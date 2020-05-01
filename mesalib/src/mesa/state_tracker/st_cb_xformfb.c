@@ -37,6 +37,7 @@
 #include "main/bufferobj.h"
 #include "main/context.h"
 #include "main/transformfeedback.h"
+#include "util/u_memory.h"
 
 #include "st_cb_bufferobjects.h"
 #include "st_cb_xformfb.h"

@@ -721,6 +721,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(EXT_demote_to_helper_invocation),
    EXT(EXT_frag_depth),
    EXT(EXT_draw_buffers),
+   EXT(EXT_draw_instanced),
    EXT(EXT_clip_cull_distance),
    EXT(EXT_geometry_point_size),
    EXT_AEP(EXT_geometry_shader),
@@ -751,6 +752,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(NV_fragment_shader_interlock),
    EXT(NV_image_formats),
    EXT(NV_shader_atomic_float),
+   EXT(NV_viewport_array2),
 };
 
 #undef EXT
@@ -1929,6 +1931,8 @@ set_shader_inout_layout(struct gl_shader *shader,
    shader->bindless_image = state->bindless_image_specified;
    shader->bound_sampler = state->bound_sampler_specified;
    shader->bound_image = state->bound_image_specified;
+   shader->redeclares_gl_layer = state->redeclares_gl_layer;
+   shader->layer_viewport_relative = state->layer_viewport_relative;
 }
 
 /* src can be NULL if only the symbols found in the exec_list should be

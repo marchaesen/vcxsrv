@@ -65,7 +65,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1609
+#define _gloffset_COUNT 1611
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -475,7 +475,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 1201
+#define driDispatchRemapTable_size 1203
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1679,6 +1679,8 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define EGLImageTargetTextureStorageEXT_remap_index 1198
 #define CopyImageSubDataNV_remap_index 1199
 #define ViewportSwizzleNV_remap_index 1200
+#define AlphaToCoverageDitherControlNV_remap_index 1201
+#define InternalBufferSubDataCopyMESA_remap_index 1202
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2881,6 +2883,8 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_EGLImageTargetTextureStorageEXT driDispatchRemapTable[EGLImageTargetTextureStorageEXT_remap_index]
 #define _gloffset_CopyImageSubDataNV driDispatchRemapTable[CopyImageSubDataNV_remap_index]
 #define _gloffset_ViewportSwizzleNV driDispatchRemapTable[ViewportSwizzleNV_remap_index]
+#define _gloffset_AlphaToCoverageDitherControlNV driDispatchRemapTable[AlphaToCoverageDitherControlNV_remap_index]
+#define _gloffset_InternalBufferSubDataCopyMESA driDispatchRemapTable[InternalBufferSubDataCopyMESA_remap_index]
 
 typedef void (GLAPIENTRYP _glptr_NewList)(GLuint, GLenum);
 #define CALL_NewList(disp, parameters) \
@@ -20579,6 +20583,28 @@ static INLINE _glptr_ViewportSwizzleNV GET_ViewportSwizzleNV(struct _glapi_table
 
 static INLINE void SET_ViewportSwizzleNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLenum, GLenum, GLenum)) {
    SET_by_offset(disp, _gloffset_ViewportSwizzleNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_AlphaToCoverageDitherControlNV)(GLenum);
+#define CALL_AlphaToCoverageDitherControlNV(disp, parameters) \
+    (* GET_AlphaToCoverageDitherControlNV(disp)) parameters
+static INLINE _glptr_AlphaToCoverageDitherControlNV GET_AlphaToCoverageDitherControlNV(struct _glapi_table *disp) {
+   return (_glptr_AlphaToCoverageDitherControlNV) (GET_by_offset(disp, _gloffset_AlphaToCoverageDitherControlNV));
+}
+
+static INLINE void SET_AlphaToCoverageDitherControlNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum)) {
+   SET_by_offset(disp, _gloffset_AlphaToCoverageDitherControlNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_InternalBufferSubDataCopyMESA)(GLintptr, GLuint, GLuint, GLintptr, GLsizeiptr, GLboolean, GLboolean);
+#define CALL_InternalBufferSubDataCopyMESA(disp, parameters) \
+    (* GET_InternalBufferSubDataCopyMESA(disp)) parameters
+static INLINE _glptr_InternalBufferSubDataCopyMESA GET_InternalBufferSubDataCopyMESA(struct _glapi_table *disp) {
+   return (_glptr_InternalBufferSubDataCopyMESA) (GET_by_offset(disp, _gloffset_InternalBufferSubDataCopyMESA));
+}
+
+static INLINE void SET_InternalBufferSubDataCopyMESA(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLintptr, GLuint, GLuint, GLintptr, GLsizeiptr, GLboolean, GLboolean)) {
+   SET_by_offset(disp, _gloffset_InternalBufferSubDataCopyMESA, fn);
 }
 
 

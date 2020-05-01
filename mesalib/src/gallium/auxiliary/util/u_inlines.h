@@ -736,6 +736,32 @@ util_texrange_covers_whole_level(const struct pipe_resource *tex,
           depth == util_num_layers(tex, level);
 }
 
+static inline bool
+util_logicop_reads_dest(enum pipe_logicop op)
+{
+   switch (op) {
+   case PIPE_LOGICOP_NOR:
+   case PIPE_LOGICOP_AND_INVERTED:
+   case PIPE_LOGICOP_AND_REVERSE:
+   case PIPE_LOGICOP_INVERT:
+   case PIPE_LOGICOP_XOR:
+   case PIPE_LOGICOP_NAND:
+   case PIPE_LOGICOP_AND:
+   case PIPE_LOGICOP_EQUIV:
+   case PIPE_LOGICOP_NOOP:
+   case PIPE_LOGICOP_OR_INVERTED:
+   case PIPE_LOGICOP_OR_REVERSE:
+   case PIPE_LOGICOP_OR:
+      return true;
+   case PIPE_LOGICOP_CLEAR:
+   case PIPE_LOGICOP_COPY_INVERTED:
+   case PIPE_LOGICOP_COPY:
+   case PIPE_LOGICOP_SET:
+      return false;
+   }
+   unreachable("bad logicop");
+}
+
 static inline struct pipe_context *
 pipe_create_multimedia_context(struct pipe_screen *screen)
 {

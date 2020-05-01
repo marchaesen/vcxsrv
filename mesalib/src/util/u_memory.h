@@ -60,6 +60,7 @@ extern "C" {
 
 #define align_malloc(_size, _alignment) os_malloc_aligned(_size, _alignment)
 #define align_free(_ptr) os_free_aligned(_ptr)
+#define align_realloc(_ptr, _oldsize, _newsize, _alignment) os_realloc_aligned(_ptr, _oldsize, _newsize, _alignment)
 
 static inline void *
 align_calloc(size_t size, unsigned long alignment)

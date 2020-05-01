@@ -97,6 +97,10 @@ typedef struct midgard_instruction {
         /* vec16 swizzle, unpacked, per source */
         unsigned swizzle[MIR_SRC_COUNT][MIR_VEC_COMPONENTS];
 
+        /* Types! */
+        nir_alu_type src_types[MIR_SRC_COUNT];
+        nir_alu_type dest_type;
+
         /* Special fields for an ALU instruction */
         midgard_reg_info registers;
 
@@ -114,9 +118,6 @@ typedef struct midgard_instruction {
         bool writeout_depth;
         bool writeout_stencil;
         bool last_writeout;
-
-        /* Kind of a hack, but hint against aggressive DCE */
-        bool dont_eliminate;
 
         /* Masks in a saneish format. One bit per channel, not packed fancy.
          * Use this instead of the op specific ones, and switch over at emit
@@ -425,10 +426,6 @@ mir_is_alu_bundle(midgard_bundle *bundle)
         return IS_ALU(bundle->tag);
 }
 
-/* Registers/SSA are distinguish in the backend by the bottom-most bit */
-
-#define IS_REG (1)
-
 static inline unsigned
 make_compiler_temp(compiler_context *ctx)
 {
@@ -438,7 +435,7 @@ make_compiler_temp(compiler_context *ctx)
 static inline unsigned
 make_compiler_temp_reg(compiler_context *ctx)
 {
-        return ((ctx->func->impl->reg_alloc + ctx->temp_alloc++) << 1) | IS_REG;
+        return ((ctx->func->impl->reg_alloc + ctx->temp_alloc++) << 1) | PAN_IS_REG;
 }
 
 static inline unsigned
@@ -454,14 +451,8 @@ nir_src_index(compiler_context *ctx, nir_src *src)
                 return nir_ssa_index(src->ssa);
         else {
                 assert(!src->reg.indirect);
-                return (src->reg.reg->index << 1) | IS_REG;
+                return (src->reg.reg->index << 1) | PAN_IS_REG;
         }
-}
-
-static inline unsigned
-nir_alu_src_index(compiler_context *ctx, nir_alu_src *src)
-{
-        return nir_src_index(ctx, &src->src);
 }
 
 static inline unsigned
@@ -471,7 +462,7 @@ nir_dest_index(nir_dest *dst)
                 return (dst->ssa.index << 1) | 0;
         else {
                 assert(!dst->reg.indirect);
-                return (dst->reg.reg->index << 1) | IS_REG;
+                return (dst->reg.reg->index << 1) | PAN_IS_REG;
         }
 }
 
@@ -527,8 +518,10 @@ v_mov(unsigned src, unsigned dest)
                 .type = TAG_ALU_4,
                 .mask = 0xF,
                 .src = { ~0, src, ~0, ~0 },
+                .src_types = { 0, nir_type_uint32 },
                 .swizzle = SWIZZLE_IDENTITY,
                 .dest = dest,
+                .dest_type = nir_type_uint32,
                 .alu = {
                         .op = midgard_alu_op_imov,
                         .reg_mode = midgard_reg_mode_32,

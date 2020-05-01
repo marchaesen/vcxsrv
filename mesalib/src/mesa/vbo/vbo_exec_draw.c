@@ -110,7 +110,7 @@ vbo_exec_bind_arrays(struct gl_context *ctx)
    /* Bind the buffer object */
    const GLuint stride = exec->vtx.vertex_size*sizeof(GLfloat);
    _mesa_bind_vertex_buffer(ctx, vao, 0, exec->vtx.bufferobj, buffer_offset,
-                            stride);
+                            stride, false, false);
 
    /* Retrieve the mapping from VBO_ATTRIB to VERT_ATTRIB space
     * Note that the position/generic0 aliasing is done in the VAO.

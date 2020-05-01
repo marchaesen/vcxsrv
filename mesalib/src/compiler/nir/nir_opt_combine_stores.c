@@ -301,7 +301,19 @@ combine_stores_block(struct combine_stores_state *state, nir_block *block)
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
       switch (intrin->intrinsic) {
       case nir_intrinsic_store_deref:
-         update_combined_store(state, intrin);
+         if (nir_intrinsic_access(intrin) & ACCESS_VOLATILE) {
+            nir_deref_instr *dst = nir_src_as_deref(intrin->src[0]);
+            /* When we see a volatile store, we go ahead and combine all
+             * previous non-volatile stores which touch that address and
+             * specifically don't add the volatile store to the list.  This
+             * way we guarantee that the volatile store isn't combined with
+             * anything and no non-volatile stores are combined across a
+             * volatile store.
+             */
+            combine_stores_with_deref(state, dst);
+         } else {
+            update_combined_store(state, intrin);
+         }
          break;
 
       case nir_intrinsic_control_barrier:

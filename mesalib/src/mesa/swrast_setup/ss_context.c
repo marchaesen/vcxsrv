@@ -26,7 +26,7 @@
  */
 
 #include "main/glheader.h"
-#include "util/imports.h"
+
 #include "main/macros.h"
 #include "main/state.h"
 #include "tnl/tnl.h"
@@ -60,7 +60,7 @@ _swsetup_CreateContext( struct gl_context *ctx )
    swsetup->NewState = ~0;
    _swsetup_trifuncs_init( ctx );
 
-   _tnl_init_vertices( ctx, ctx->Const.MaxArrayLockSize + 12, 
+   _tnl_init_vertices( ctx, ctx->Const.MaxArrayLockSize + 12,
 		       sizeof(SWvertex) );
 
 
@@ -263,7 +263,7 @@ _swsetup_Wakeup( struct gl_context *ctx )
 /**
  * Populate a swrast SWvertex from an attrib-style vertex.
  */
-void 
+void
 _swsetup_Translate( struct gl_context *ctx, const void *vertex, SWvertex *dest )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);

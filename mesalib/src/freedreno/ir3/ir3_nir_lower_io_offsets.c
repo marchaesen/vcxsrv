@@ -168,9 +168,15 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
 					  unsigned ir3_ssbo_opcode, uint8_t offset_src_idx)
 {
 	unsigned num_srcs = nir_intrinsic_infos[intrinsic->intrinsic].num_srcs;
+	int shift = 2;
 
 	bool has_dest = nir_intrinsic_infos[intrinsic->intrinsic].has_dest;
 	nir_ssa_def *new_dest = NULL;
+
+	/* for 16-bit ssbo access, offset is in 16-bit words instead of dwords */
+	if ((has_dest && intrinsic->dest.ssa.bit_size == 16) ||
+		(!has_dest && intrinsic->src[0].ssa->bit_size == 16))
+		shift = 1;
 
 	/* Here we create a new intrinsic and copy over all contents from the old one. */
 
@@ -192,7 +198,7 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
 	 * Here we use the convention that shifting right is negative while shifting
 	 * left is positive. So 'x / 4' ~ 'x >> 2' or 'x << -2'.
 	 */
-	nir_ssa_def *new_offset = ir3_nir_try_propagate_bit_shift(b, offset, -2);
+	nir_ssa_def *new_offset = ir3_nir_try_propagate_bit_shift(b, offset, -shift);
 
 	/* The new source that will hold the dword-offset is always the last
 	 * one for every intrinsic.
@@ -224,7 +230,7 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
 	if (new_offset)
 		offset = new_offset;
 	else
-		offset = nir_ushr(b, offset, nir_imm_int(b, 2));
+		offset = nir_ushr(b, offset, nir_imm_int(b, shift));
 
 	/* Insert the new intrinsic right before the old one. */
 	nir_builder_instr_insert(b, &new_intrinsic->instr);
@@ -251,6 +257,84 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
 }
 
 static bool
+lower_offset_for_ubo(nir_intrinsic_instr *intrinsic, nir_builder *b)
+{
+	/* We only need to lower offset if using LDC. Currently, we only use LDC
+	 * in the bindless mode. Also, LDC is introduced on A6xx, but currently we
+	 * only use bindless in turnip which is A6xx only.
+	 *
+	 * TODO: We should be using LDC always on A6xx+.
+	 */
+	if (!ir3_bindless_resource(intrinsic->src[0]))
+		return false;
+
+	/* TODO handle other bitsizes, including non-dword-aligned loads */
+	assert(intrinsic->dest.ssa.bit_size == 32);
+
+	b->cursor = nir_before_instr(&intrinsic->instr);
+
+	nir_intrinsic_instr *new_intrinsic =
+		nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_ubo_ir3);
+
+	debug_assert(intrinsic->dest.is_ssa);
+	new_intrinsic->src[0] = nir_src_for_ssa(intrinsic->src[0].ssa);
+
+	nir_ssa_def *offset = intrinsic->src[1].ssa;
+	nir_ssa_def *new_offset = ir3_nir_try_propagate_bit_shift(b, offset, -4);
+
+	if (!new_offset)
+		new_offset = nir_ushr(b, offset, nir_imm_int(b, 4));
+
+	new_intrinsic->src[1] = nir_src_for_ssa(new_offset);
+
+	unsigned align_mul = nir_intrinsic_align_mul(intrinsic);
+	unsigned align_offset = nir_intrinsic_align_offset(intrinsic);
+
+	unsigned components = intrinsic->num_components;
+
+	if (align_mul % 16 != 0)
+		components = 4;
+
+	new_intrinsic->num_components = components;
+
+	nir_ssa_dest_init(&new_intrinsic->instr, &new_intrinsic->dest,
+					  components, 32, NULL);
+
+	nir_builder_instr_insert(b, &new_intrinsic->instr);
+
+	nir_ssa_def *new_dest;
+	if (align_mul % 16 == 0) {
+		/* We know that the low 4 bits of the offset are constant and equal to
+		 * align_offset. Use the component offset.
+		 */
+		unsigned component = align_offset / 4;
+		nir_intrinsic_set_base(new_intrinsic, component);
+		new_dest = &new_intrinsic->dest.ssa;
+	} else {
+		/* We have to assume it isn't aligned, and extract the components
+		 * dynamically.
+		 */
+		nir_intrinsic_set_base(new_intrinsic, 0);
+		nir_ssa_def *component =
+			nir_iand(b, nir_ushr(b, offset, nir_imm_int(b, 2)), nir_imm_int(b, 3));
+		nir_ssa_def *channels[NIR_MAX_VEC_COMPONENTS];
+		for (unsigned i = 0; i < intrinsic->num_components; i++) {
+			nir_ssa_def *idx = nir_iadd(b, nir_imm_int(b, i), component);
+			channels[i] = nir_vector_extract(b, &new_intrinsic->dest.ssa, idx);
+		}
+
+		new_dest = nir_vec(b, channels, intrinsic->num_components);
+	}
+
+	nir_ssa_def_rewrite_uses(&intrinsic->dest.ssa,
+							 nir_src_for_ssa(new_dest));
+
+	nir_instr_remove(&intrinsic->instr);
+
+	return true;
+}
+
+static bool
 lower_io_offsets_block(nir_block *block, nir_builder *b, void *mem_ctx)
 {
 	bool progress = false;
@@ -260,6 +344,12 @@ lower_io_offsets_block(nir_block *block, nir_builder *b, void *mem_ctx)
 			continue;
 
 		nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+
+		/* UBO */
+		if (intr->intrinsic == nir_intrinsic_load_ubo) {
+			progress |= lower_offset_for_ubo(intr, b);
+			continue;
+		}
 
 		/* SSBO */
 		int ir3_intrinsic;

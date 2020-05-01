@@ -59,6 +59,7 @@ struct radv_vs_out_key {
 	uint32_t export_prim_id:1;
 	uint32_t export_layer_id:1;
 	uint32_t export_clip_dists:1;
+	uint32_t export_viewport_index:1;
 };
 
 struct radv_vs_variant_key {
@@ -258,6 +259,7 @@ struct radv_shader_info {
 		bool as_es;
 		bool as_ls;
 		bool export_prim_id;
+		uint8_t num_linked_outputs;
 	} vs;
 	struct {
 		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
@@ -272,6 +274,7 @@ struct radv_shader_info {
 		unsigned output_prim;
 		unsigned invocations;
 		unsigned es_type; /* GFX9: VS or TES */
+		uint8_t num_linked_inputs;
 	} gs;
 	struct {
 		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
@@ -283,6 +286,9 @@ struct radv_shader_info {
 		bool ccw;
 		bool point_mode;
 		bool export_prim_id;
+		uint8_t num_linked_inputs;
+		uint8_t num_linked_patch_inputs;
+		uint8_t num_linked_outputs;
 	} tes;
 	struct {
 		bool force_persample;
@@ -294,6 +300,7 @@ struct radv_shader_info {
 		bool has_pcoord;
 		bool prim_id_input;
 		bool layer_input;
+		bool viewport_index_input;
 		uint8_t num_input_clips_culls;
 		uint32_t input_mask;
 		uint32_t flat_shaded_mask;
@@ -314,9 +321,14 @@ struct radv_shader_info {
 	struct {
 		uint64_t outputs_written;
 		uint64_t patch_outputs_written;
+		uint64_t tes_inputs_read;
+		uint64_t tes_patch_inputs_read;
 		unsigned tcs_vertices_out;
 		uint32_t num_patches;
 		uint32_t lds_size;
+		uint8_t num_linked_inputs;
+		uint8_t num_linked_outputs;
+		uint8_t num_linked_patch_outputs;
 	} tcs;
 
 	struct radv_streamout_info so;
@@ -523,19 +535,16 @@ calculate_tess_lds_size(unsigned tcs_num_input_vertices,
 			unsigned tcs_num_output_vertices,
 			unsigned tcs_num_inputs,
 			unsigned tcs_num_patches,
-			unsigned tcs_outputs_written,
-			unsigned tcs_per_patch_outputs_written)
+			unsigned tcs_num_outputs,
+			unsigned tcs_num_patch_outputs)
 {
-	unsigned num_tcs_outputs = util_last_bit64(tcs_outputs_written);
-	unsigned num_tcs_patch_outputs = util_last_bit64(tcs_per_patch_outputs_written);
-
 	unsigned input_vertex_size = tcs_num_inputs * 16;
-	unsigned output_vertex_size = num_tcs_outputs * 16;
+	unsigned output_vertex_size = tcs_num_outputs * 16;
 
 	unsigned input_patch_size = tcs_num_input_vertices * input_vertex_size;
 
 	unsigned pervertex_output_patch_size = tcs_num_output_vertices * output_vertex_size;
-	unsigned output_patch_size = pervertex_output_patch_size + num_tcs_patch_outputs * 16;
+	unsigned output_patch_size = pervertex_output_patch_size + tcs_num_patch_outputs * 16;
 
 	unsigned output_patch0_offset = input_patch_size * tcs_num_patches;
 
@@ -546,19 +555,17 @@ static inline unsigned
 get_tcs_num_patches(unsigned tcs_num_input_vertices,
 			unsigned tcs_num_output_vertices,
 			unsigned tcs_num_inputs,
-			unsigned tcs_outputs_written,
-			unsigned tcs_per_patch_outputs_written,
+			unsigned tcs_num_outputs,
+			unsigned tcs_num_patch_outputs,
 			unsigned tess_offchip_block_dw_size,
 			enum chip_class chip_class,
 			enum radeon_family family)
 {
 	uint32_t input_vertex_size = tcs_num_inputs * 16;
 	uint32_t input_patch_size = tcs_num_input_vertices * input_vertex_size;
-	uint32_t num_tcs_outputs = util_last_bit64(tcs_outputs_written);
-	uint32_t num_tcs_patch_outputs = util_last_bit64(tcs_per_patch_outputs_written);
-	uint32_t output_vertex_size = num_tcs_outputs * 16;
+	uint32_t output_vertex_size = tcs_num_outputs * 16;
 	uint32_t pervertex_output_patch_size = tcs_num_output_vertices * output_vertex_size;
-	uint32_t output_patch_size = pervertex_output_patch_size + num_tcs_patch_outputs * 16;
+	uint32_t output_patch_size = pervertex_output_patch_size + tcs_num_patch_outputs * 16;
 
 	/* Ensure that we only need one wave per SIMD so we don't need to check
 	 * resource usage. Also ensures that the number of tcs in and out

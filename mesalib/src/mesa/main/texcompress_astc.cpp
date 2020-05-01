@@ -37,6 +37,7 @@
 #include "macros.h"
 #include "util/half_float.h"
 #include <stdio.h>
+#include <cstdlib>  // for abort() on windows
 
 static bool VERBOSE_DECODE = false;
 static bool VERBOSE_WRITE = false;

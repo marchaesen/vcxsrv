@@ -48,7 +48,7 @@
 
 
 #include "glheader.h"
-#include "util/imports.h"
+
 #include "context.h"
 #include "macros.h"
 #include "stencil.h"
@@ -318,9 +318,9 @@ _mesa_StencilMask( GLuint mask )
  * \param zfail action to take when stencil test passes, but depth test fails.
  * \param zpass action to take when stencil test passes and the depth test
  * passes (or depth testing is not enabled).
- * 
+ *
  * \sa glStencilOp().
- * 
+ *
  * Verifies the parameters and updates the respective fields in
  * __struct gl_contextRec::Stencil. On change flushes the vertices and notifies
  * the driver via the dd_function_table::StencilOp callback.

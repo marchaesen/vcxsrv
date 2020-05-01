@@ -29,6 +29,7 @@
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/execmem.h"
+#include "util/u_memory.h"
 #include "swrast/s_chan.h"
 #include "t_context.h"
 #include "t_vertex.h"
@@ -511,7 +512,7 @@ void _tnl_init_vertices( struct gl_context *ctx,
    if (max_vertex_size > vtx->max_vertex_size) {
       _tnl_free_vertices( ctx );
       vtx->max_vertex_size = max_vertex_size;
-      vtx->vertex_buf = _mesa_align_calloc(vb_size * max_vertex_size, 32 );
+      vtx->vertex_buf = align_calloc(vb_size * max_vertex_size, 32 );
       invalidate_funcs(vtx);
    }
 
@@ -557,7 +558,7 @@ void _tnl_free_vertices( struct gl_context *ctx )
       struct tnl_clipspace *vtx = GET_VERTEX_STATE(ctx);
       struct tnl_clipspace_fastpath *fp, *tmp;
 
-      _mesa_align_free(vtx->vertex_buf);
+      align_free(vtx->vertex_buf);
       vtx->vertex_buf = NULL;
 
       for (fp = vtx->fastpath ; fp ; fp = tmp) {

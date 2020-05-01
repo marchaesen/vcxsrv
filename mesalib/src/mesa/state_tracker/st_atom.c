@@ -125,7 +125,8 @@ static void check_program_state( struct st_context *st )
    struct gl_program *last_prim_shader = new_gp ? new_gp :
                                          new_tep ? new_tep : new_vp;
    if (last_prim_shader &&
-       last_prim_shader->info.outputs_written & VARYING_BIT_VIEWPORT)
+       last_prim_shader->info.outputs_written & (
+             VARYING_BIT_VIEWPORT | VARYING_BIT_VIEWPORT_MASK))
       num_viewports = ctx->Const.MaxViewports;
 
    if (st->state.num_viewports != num_viewports) {

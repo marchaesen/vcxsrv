@@ -2915,9 +2915,7 @@ InitInput(int argc, char *argv[])
     xwl_screen->XYToWindow = pScreen->XYToWindow;
     pScreen->XYToWindow = xwl_xy_to_window;
 
-    wl_display_roundtrip(xwl_screen->display);
-    while (xwl_screen->expecting_event)
-        wl_display_roundtrip(xwl_screen->display);
+    xwl_screen_roundtrip(xwl_screen);
 }
 
 void

@@ -21,8 +21,11 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include <c11/threads.h>
+
 #include "util/macros.h"
 #include "util/hash_table.h"
+#include "util/vma.h"
 
 #include <xf86drm.h>
 
@@ -37,6 +40,12 @@ struct shim_bo;
 struct shim_device {
    /* Mapping from int fd to struct shim_fd *. */
    struct hash_table *fd_map;
+
+   mtx_t mem_lock;
+   /* Heap from which shim_bo are allocated */
+   struct util_vma_heap mem_heap;
+
+   int mem_fd;
 
    int (**driver_ioctls)(int fd, unsigned long request, void *arg);
    int driver_ioctl_count;
@@ -53,12 +62,13 @@ extern struct shim_device shim_device;
 
 struct shim_fd {
    int fd;
+   mtx_t handle_lock;
    /* mapping from int gem handle to struct shim_bo *. */
    struct hash_table *handles;
 };
 
 struct shim_bo {
-   int fd;
+   uint64_t mem_addr;
    void *map;
    int refcount;
    uint32_t size;
@@ -85,3 +95,4 @@ uint64_t drm_shim_bo_get_mmap_offset(struct shim_fd *shim_fd,
 
 /* driver-specific hooks. */
 void drm_shim_driver_init(void);
+extern bool drm_shim_driver_prefers_new_render_node;

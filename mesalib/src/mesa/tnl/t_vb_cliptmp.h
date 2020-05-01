@@ -206,10 +206,10 @@ TAG(clip_tri)( struct gl_context *ctx, GLuint v0, GLuint v1, GLuint v2, GLubyte 
          printf("  %u: %u: %f, %f, %f, %f\n",
 		i, j,
 		coord[j][0], coord[j][1], coord[j][2], coord[j][3]);
-         assert(!IS_INF_OR_NAN(coord[j][0]));
-         assert(!IS_INF_OR_NAN(coord[j][1]));
-         assert(!IS_INF_OR_NAN(coord[j][2]));
-         assert(!IS_INF_OR_NAN(coord[j][3]));
+         assert(!util_is_inf_or_nan(coord[j][0]));
+         assert(!util_is_inf_or_nan(coord[j][1]));
+         assert(!util_is_inf_or_nan(coord[j][2]));
+         assert(!util_is_inf_or_nan(coord[j][3]));
       }
    }
 

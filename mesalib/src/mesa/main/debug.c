@@ -30,7 +30,7 @@
 #include "enums.h"
 #include "formats.h"
 #include "hash.h"
-#include "util/imports.h"
+
 #include "macros.h"
 #include "debug.h"
 #include "get.h"
@@ -73,7 +73,7 @@ void
 _mesa_print_state( const char *msg, GLuint state )
 {
    _mesa_debug(NULL,
-	   "%s: (0x%x) %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+	   "%s: (0x%x) %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 	   msg,
 	   state,
 	   (state & _NEW_MODELVIEW)       ? "ctx->ModelView, " : "",
@@ -81,7 +81,6 @@ _mesa_print_state( const char *msg, GLuint state )
 	   (state & _NEW_TEXTURE_MATRIX)  ? "ctx->TextureMatrix, " : "",
 	   (state & _NEW_COLOR)           ? "ctx->Color, " : "",
 	   (state & _NEW_DEPTH)           ? "ctx->Depth, " : "",
-	   (state & _NEW_EVAL)            ? "ctx->Eval/EvalMap, " : "",
 	   (state & _NEW_FOG)             ? "ctx->Fog, " : "",
 	   (state & _NEW_HINT)            ? "ctx->Hint, " : "",
 	   (state & _NEW_LIGHT)           ? "ctx->Light, " : "",
@@ -210,7 +209,7 @@ set_debug_flags(const char *str)
 /**
  * Initialize debugging variables from env vars.
  */
-void 
+void
 _mesa_init_debug( struct gl_context *ctx )
 {
    set_debug_flags(getenv("MESA_DEBUG"));
@@ -284,7 +283,7 @@ write_texture_image(struct gl_texture_object *texObj,
                                  GL_RGBA, GL_UNSIGNED_BYTE, buffer, img);
 
       /* make filename */
-      _mesa_snprintf(s, sizeof(s), "/tmp/tex%u.l%u.f%u.ppm", texObj->Name, level, face);
+      snprintf(s, sizeof(s), "/tmp/tex%u.l%u.f%u.ppm", texObj->Name, level, face);
 
       printf("  Writing image level %u to %s\n", level, s);
       write_ppm(s, buffer, img->Width, img->Height, 4, 0, 1, 2, GL_FALSE);
@@ -307,7 +306,7 @@ _mesa_write_renderbuffer_image(const struct gl_renderbuffer *rb)
    char s[100];
    GLenum format, type;
 
-   if (rb->_BaseFormat == GL_RGB || 
+   if (rb->_BaseFormat == GL_RGB ||
        rb->_BaseFormat == GL_RGBA) {
       format = GL_RGBA;
       type = GL_UNSIGNED_BYTE;
@@ -330,8 +329,8 @@ _mesa_write_renderbuffer_image(const struct gl_renderbuffer *rb)
                           format, type, &ctx->DefaultPacking, buffer);
 
    /* make filename */
-   _mesa_snprintf(s, sizeof(s), "/tmp/renderbuffer%u.ppm", rb->Name);
-   _mesa_snprintf(s, sizeof(s), "C:\\renderbuffer%u.ppm", rb->Name);
+   snprintf(s, sizeof(s), "/tmp/renderbuffer%u.ppm", rb->Name);
+   snprintf(s, sizeof(s), "C:\\renderbuffer%u.ppm", rb->Name);
 
    printf("  Writing renderbuffer image to %s\n", s);
 

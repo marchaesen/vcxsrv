@@ -46,6 +46,11 @@ void perfwarn(bool cond, const char *msg, Instruction *instr)
 }
 #endif
 
+bool instr_can_access_subdword(aco_ptr<Instruction>& instr)
+{
+   return instr->isSDWA() || instr->format == Format::PSEUDO;
+}
+
 void validate(Program* program, FILE * output)
 {
    if (!(debug_flags & DEBUG_VALIDATE))
@@ -162,7 +167,7 @@ void validate(Program* program, FILE * output)
          /* check subdword definitions */
          for (unsigned i = 0; i < instr->definitions.size(); i++) {
             if (instr->definitions[i].regClass().is_subdword())
-               check(instr->isSDWA() || instr->format == Format::PSEUDO, "Only SDWA and Pseudo instructions can write subdword registers", instr.get());
+               check(instr_can_access_subdword(instr) || instr->definitions[i].bytes() <= 4, "Only SDWA and Pseudo instructions can write subdword registers larger than 4 bytes", instr.get());
          }
 
          if (instr->isSALU() || instr->isVALU()) {
@@ -451,12 +456,12 @@ bool validate_ra(Program *program, const struct radv_nir_compiler_options *optio
                err |= ra_fail(output, loc, Location(), "Operand %d is not assigned a register", i);
             if (assignments.count(op.tempId()) && assignments[op.tempId()].reg != op.physReg())
                err |= ra_fail(output, loc, assignments.at(op.tempId()).firstloc, "Operand %d has an inconsistent register assignment with instruction", i);
-            if ((op.getTemp().type() == RegType::vgpr && op.physReg() + op.size() > 256 + program->config->num_vgprs) ||
+            if ((op.getTemp().type() == RegType::vgpr && op.physReg().reg_b + op.bytes() > (256 + program->config->num_vgprs) * 4) ||
                 (op.getTemp().type() == RegType::sgpr && op.physReg() + op.size() > program->config->num_sgprs && op.physReg() < program->sgpr_limit))
                err |= ra_fail(output, loc, assignments.at(op.tempId()).firstloc, "Operand %d has an out-of-bounds register assignment", i);
             if (op.physReg() == vcc && !program->needs_vcc)
                err |= ra_fail(output, loc, Location(), "Operand %d fixed to vcc but needs_vcc=false", i);
-            if (!(instr->isSDWA() || instr->format == Format::PSEUDO) && op.regClass().is_subdword() && op.physReg().byte())
+            if (!instr_can_access_subdword(instr) && op.regClass().is_subdword() && op.physReg().byte())
                err |= ra_fail(output, loc, assignments.at(op.tempId()).firstloc, "Operand %d must be aligned to a full register", i);
             if (!assignments[op.tempId()].firstloc.block)
                assignments[op.tempId()].firstloc = loc;
@@ -472,11 +477,13 @@ bool validate_ra(Program *program, const struct radv_nir_compiler_options *optio
                err |= ra_fail(output, loc, Location(), "Definition %d is not assigned a register", i);
             if (assignments[def.tempId()].defloc.block)
                err |= ra_fail(output, loc, assignments.at(def.tempId()).defloc, "Temporary %%%d also defined by instruction", def.tempId());
-            if ((def.getTemp().type() == RegType::vgpr && def.physReg() + def.size() > 256 + program->config->num_vgprs) ||
+            if ((def.getTemp().type() == RegType::vgpr && def.physReg().reg_b + def.bytes() > (256 + program->config->num_vgprs) * 4) ||
                 (def.getTemp().type() == RegType::sgpr && def.physReg() + def.size() > program->config->num_sgprs && def.physReg() < program->sgpr_limit))
                err |= ra_fail(output, loc, assignments.at(def.tempId()).firstloc, "Definition %d has an out-of-bounds register assignment", i);
             if (def.physReg() == vcc && !program->needs_vcc)
                err |= ra_fail(output, loc, Location(), "Definition %d fixed to vcc but needs_vcc=false", i);
+            if (!instr_can_access_subdword(instr) && def.regClass().is_subdword() && def.physReg().byte())
+               err |= ra_fail(output, loc, assignments.at(def.tempId()).firstloc, "Definition %d must be aligned to a full register", i);
             if (!assignments[def.tempId()].firstloc.block)
                assignments[def.tempId()].firstloc = loc;
             assignments[def.tempId()].defloc = loc;
@@ -579,8 +586,13 @@ bool validate_ra(Program *program, const struct radv_nir_compiler_options *optio
             PhysReg reg = assignments.at(tmp.id()).reg;
             for (unsigned j = 0; j < tmp.bytes(); j++) {
                if (regs[reg.reg_b + j])
-                  err |= ra_fail(output, loc, assignments.at(regs[reg.reg_b + i]).defloc, "Assignment of element %d of %%%d already taken by %%%d from instruction", i, tmp.id(), regs[reg.reg_b + j]);
+                  err |= ra_fail(output, loc, assignments.at(regs[reg.reg_b + j]).defloc, "Assignment of element %d of %%%d already taken by %%%d from instruction", i, tmp.id(), regs[reg.reg_b + j]);
                regs[reg.reg_b + j] = tmp.id();
+            }
+            if (def.regClass().is_subdword() && !instr_can_access_subdword(instr)) {
+               for (unsigned j = tmp.bytes(); j < 4; j++)
+                  if (regs[reg.reg_b + j])
+                     err |= ra_fail(output, loc, assignments.at(regs[reg.reg_b + j]).defloc, "Assignment of element %d of %%%d overwrites the full register taken by %%%d from instruction", i, tmp.id(), regs[reg.reg_b + j]);
             }
          }
 

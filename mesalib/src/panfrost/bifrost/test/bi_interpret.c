@@ -140,17 +140,20 @@ bit_write(struct bit_state *s, unsigned index, nir_alu_type T, bit_t value, bool
         bint(bit_i64 ## name, bit_i32 ## name, bit_i16 ## name, bit_i8 ## name); \
         unreachable("Invalid type");
 
-#define bit_make_float(name, expr) \
+#define bit_make_float_2(name, expr32, expr64) \
         static inline double \
         bit_f64 ## name(double a, double b, double c, double d) \
         { \
-                return expr; \
+                return expr64; \
         } \
         static inline float \
         bit_f32 ## name(float a, float b, float c, float d) \
         { \
-                return expr; \
+                return expr32; \
         } \
+
+#define bit_make_float(name, expr) \
+        bit_make_float_2(name, expr, expr)
 
 #define bit_make_int(name, expr) \
         static inline int64_t \
@@ -186,6 +189,10 @@ bit_make_float(fma, (a * b) + c);
 bit_make_poly(mov, a);
 bit_make_poly(min, MIN2(a, b));
 bit_make_poly(max, MAX2(a, b));
+bit_make_float_2(floor, floorf(a), floor(a));
+bit_make_float_2(ceil,  ceilf(a), ceil(a));
+bit_make_float_2(trunc, truncf(a), trunc(a));
+bit_make_float_2(nearbyint, nearbyintf(a), nearbyint(a));
 
 /* Modifiers */
 
@@ -226,29 +233,43 @@ bit_srcmod(float raw, bool abs, bool neg)
         else { return true; }
 
 static bool
-bit_eval_cond(enum bi_cond cond, bit_t l, bit_t r, nir_alu_type T, unsigned c)
+bit_eval_cond(enum bi_cond cond, bit_t l, bit_t r, nir_alu_type T, unsigned cl, unsigned cr)
 {
         if (T == nir_type_float32) {
                 BIT_COND(cond, l.f32, r.f32);
         } else if (T == nir_type_float16) {
-                float left = bf(l.f16[c]);
-                float right = bf(r.f16[c]);
+                float left = bf(l.f16[cl]);
+                float right = bf(r.f16[cr]);
                 BIT_COND(cond, left, right);
         } else if (T == nir_type_int32) {
-                int32_t left = (int32_t) l.u32;
-                int32_t right = (int32_t) r.u32;
+                int32_t left = l.u32;
+                int32_t right = r.u32;
                 BIT_COND(cond, left, right);
         } else if (T == nir_type_int16) {
-                int16_t left = (int16_t) l.u32;
-                int16_t right = (int16_t) r.u32;
+                int16_t left = l.i16[cl];
+                int16_t right = r.i16[cr];
                 BIT_COND(cond, left, right);
         } else if (T == nir_type_uint32) {
                 BIT_COND(cond, l.u32, r.u32);
         } else if (T == nir_type_uint16) {
-                BIT_COND(cond, l.u16[c], r.u16[c]);
+                BIT_COND(cond, l.u16[cl], r.u16[cr]);
         } else {
                 unreachable("Unknown type evaluated");
         }
+}
+
+static unsigned
+bit_cmp(enum bi_cond cond, bit_t l, bit_t r, nir_alu_type T, unsigned cl, unsigned cr, bool d3d)
+{
+        bool v = bit_eval_cond(cond, l, r, T, cl, cr);
+
+        /* Fill for D3D but only up to 32-bit... 64-bit is only partial
+         * (although we probably need a cleverer representation for 64-bit) */
+
+        unsigned sz = MIN2(nir_alu_type_get_type_size(T), 32);
+        unsigned max = (sz == 32) ? (~0) : ((1 << sz) - 1);
+
+        return v ? (d3d ? max : 1) : 0;
 }
 
 static float
@@ -340,6 +361,28 @@ bit_as_int16(nir_alu_type T, bit_t src, unsigned C, enum bifrost_roundmode rm)
         }
 }
 
+static float
+frexp_log(float x, int *e)
+{
+        /* Ignore sign until end */
+        float xa = fabs(x);
+
+        /* frexp reduces to [0.5, 1) */
+        float f = frexpf(xa, e);
+
+        /* reduce to [0.75, 1.5) */
+        if (f < 0.75) {
+                f *= 2.0;
+                (*e)--;
+        }
+
+        /* Reattach sign */
+        if (xa < 0.0)
+                f = -f;
+
+        return f;
+}
+
 void
 bit_step(struct bit_state *s, bi_instruction *ins, bool FMA)
 {
@@ -374,9 +417,55 @@ bit_step(struct bit_state *s, bi_instruction *ins, bool FMA)
                 bpoly(add);
 
         case BI_BRANCH:
-        case BI_CMP:
-        case BI_BITWISE:
                 unreachable("Unsupported op");
+
+        case BI_CMP: {
+                nir_alu_type T = ins->src_types[0];
+                unsigned sz = nir_alu_type_get_type_size(T);
+
+                if (sz == 32 || sz == 64) {
+                        dest.u32 = bit_cmp(ins->cond, srcs[0], srcs[1], T, 0, 0, false);
+                } else if (sz == 16) {
+                        for (unsigned c = 0; c < 2; ++c) {
+                                dest.u16[c] = bit_cmp(ins->cond, srcs[0], srcs[1],
+                                                T, ins->swizzle[0][c], ins->swizzle[1][c],
+                                                false);
+                        }
+                } else if (sz == 8) {
+                        for (unsigned c = 0; c < 4; ++c) {
+                                dest.u8[c] = bit_cmp(ins->cond, srcs[0], srcs[1],
+                                                T, ins->swizzle[0][c], ins->swizzle[1][c],
+                                                false);
+                        }
+                } else {
+                        unreachable("Invalid");
+                }
+
+                break;
+        }
+
+        case BI_BITWISE: {
+                /* Apply inverts first */
+                if (ins->bitwise.src_invert[0])
+                        srcs[0].u64 = ~srcs[0].u64;
+
+                if (ins->bitwise.src_invert[1])
+                        srcs[1].u64 = ~srcs[1].u64;
+
+                /* TODO: Shifting */
+                assert(srcs[2].u32 == 0);
+
+                if (ins->op.bitwise == BI_BITWISE_AND)
+                        dest.u64 = srcs[0].u64 & srcs[1].u64;
+                else if (ins->op.bitwise == BI_BITWISE_OR)
+                        dest.u64 = srcs[0].u64 | srcs[1].u64;
+                else if (ins->op.bitwise == BI_BITWISE_XOR)
+                        dest.u64 = srcs[0].u64 ^ srcs[1].u64;
+                else
+                        unreachable("Unsupported op");
+
+                break;
+         }
 
         case BI_CONVERT: {
                 /* If it exists */
@@ -411,9 +500,9 @@ bit_step(struct bit_state *s, bi_instruction *ins, bool FMA)
         }
 
         case BI_CSEL: {
-                bool direct = ins->csel_cond == BI_COND_ALWAYS;
+                bool direct = ins->cond == BI_COND_ALWAYS;
                 bool cond = direct ? srcs[0].u32 :
-                        bit_eval_cond(ins->csel_cond, srcs[0], srcs[1], ins->src_types[0], 0);
+                        bit_eval_cond(ins->cond, srcs[0], srcs[1], ins->src_types[0], 0, 0);
 
                 dest = cond ? srcs[2] : srcs[3];
                 break;
@@ -424,7 +513,18 @@ bit_step(struct bit_state *s, bi_instruction *ins, bool FMA)
                 unreachable("Unknown type");
         }
 
-        case BI_FREXP:
+        case BI_FREXP: {
+                if (ins->src_types[0] != nir_type_float32)
+                        unreachable("Unknown frexp type");
+
+
+                if (ins->op.frexp == BI_FREXPE_LOG)
+                        frexp_log(srcs[0].f32, &dest.i32);
+                else
+                        unreachable("Unknown frexp");
+
+                break;
+        }
         case BI_ISUB:
                 unreachable("Unsupported op");
 
@@ -439,9 +539,31 @@ bit_step(struct bit_state *s, bi_instruction *ins, bool FMA)
         case BI_MOV:
                 bpoly(mov);
 
+        case BI_REDUCE_FMA: {
+                if (ins->src_types[0] != nir_type_float32)
+                        unreachable("Unknown reduce type");
+
+                if (ins->op.reduce == BI_REDUCE_ADD_FREXPM) {
+                        int _nop = 0;
+                        float f = frexp_log(srcs[1].f32, &_nop);
+                        dest.f32 = srcs[0].f32 + f;
+                } else {
+                        unreachable("Unknown reduce");
+                }
+
+                break;
+        }
+
         case BI_SPECIAL: {
                 assert(nir_alu_type_get_base_type(ins->dest_type) == nir_type_float);
-                assert(nir_alu_type_get_base_type(ins->dest_type) != nir_type_float64);
+                assert(ins->dest_type != nir_type_float64);
+
+                if (ins->op.special == BI_SPECIAL_EXP2_LOW) {
+                        assert(ins->dest_type == nir_type_float32);
+                        dest.f32 = exp2f(srcs[1].f32);
+                        break;
+                }
+
                 float Q = (ins->dest_type == nir_type_float16) ?
                         bf(srcs[0].u16[ins->swizzle[0][0]]) :
                         srcs[0].f32;
@@ -461,10 +583,49 @@ bit_step(struct bit_state *s, bi_instruction *ins, bool FMA)
                 break;
         }
 
+        case BI_TABLE: {
+                if (ins->op.table == BI_TABLE_LOG2_U_OVER_U_1_LOW) {
+                        assert(ins->dest_type == nir_type_float32);
+                        int _nop = 0;
+                        float f = frexp_log(srcs[0].f32, &_nop);
+                        dest.f32 = log2f(f) / (f - 1.0);
+                        dest.u32++; /* Sorry. */
+                } else {
+                        unreachable("Unknown table op");
+                }
+                break;
+       }
+
+        case BI_SELECT: {
+                if (ins->src_types[0] == nir_type_uint16) {
+                        for (unsigned c = 0; c < 2; ++c)
+                                dest.u16[c] = srcs[c].u16[ins->swizzle[c][0]];
+                } else if (ins->src_types[0] == nir_type_uint8) {
+                        for (unsigned c = 0; c < 4; ++c)
+                                dest.u8[c] = srcs[c].u8[ins->swizzle[c][0]];
+                } else {
+                        unreachable("Unknown type");
+                }
+                break;
+        }
+
         case BI_SHIFT:
-        case BI_SWIZZLE:
-        case BI_ROUND:
                 unreachable("Unsupported op");
+
+        case BI_ROUND: {
+                if (ins->roundmode == BIFROST_RTP) {
+                        bfloat(bit_f64ceil, bit_f32ceil);
+                } else if (ins->roundmode == BIFROST_RTN) {
+                        bfloat(bit_f64floor, bit_f32floor);
+                } else if (ins->roundmode == BIFROST_RTE) {
+                        bfloat(bit_f64nearbyint, bit_f32nearbyint);
+                } else if (ins->roundmode == BIFROST_RTZ) {
+                        bfloat(bit_f64trunc, bit_f32trunc);
+                } else
+                        unreachable("Invalid");
+
+                break;
+        }
         
         /* We only interpret vertex shaders */
         case BI_DISCARD:
@@ -485,6 +646,17 @@ bit_step(struct bit_state *s, bi_instruction *ins, bool FMA)
 
         default:
                 unreachable("Unsupported op");
+        }
+
+        /* Apply _MSCALE */
+        if ((ins->type == BI_FMA || ins->type == BI_ADD) && ins->op.mscale) {
+                unsigned idx = (ins->type == BI_FMA) ? 3 : 2;
+
+                assert(ins->src_types[idx] == nir_type_int32);
+                assert(ins->dest_type == nir_type_float32);
+
+                int32_t scale = srcs[idx].i32;
+                dest.f32 *= exp2f(scale);
         }
 
         /* Apply outmod */

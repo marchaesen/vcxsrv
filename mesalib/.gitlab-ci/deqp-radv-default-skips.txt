@@ -1,0 +1,3 @@
+# Exclude WSI related tests.
+dEQP-VK.image.swapchain_mutable.*
+dEQP-VK.wsi.*

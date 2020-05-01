@@ -28,12 +28,13 @@
 #include "context.h"
 #include "debug_output.h"
 #include "enums.h"
-#include "util/imports.h"
+
 #include "hash.h"
 #include "mtypes.h"
 #include "version.h"
 #include "util/hash_table.h"
 #include "util/list.h"
+#include "util/u_memory.h"
 
 
 static simple_mtx_t DynamicIDMutex = _SIMPLE_MTX_INITIALIZER_NP;

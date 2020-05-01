@@ -455,8 +455,6 @@ if with_dri
   endif
 endif
 
-prog_pkgconfig = find_program('pkg-config')
-
 _vdpau = get_option('gallium-vdpau')
 if not system_has_kms_drm
   if _vdpau == 'true'
@@ -483,9 +481,7 @@ with_gallium_vdpau = false
 if _vdpau != 'false'
   dep_vdpau = dependency('vdpau', version : '>= 1.1', required : _vdpau == 'true')
   if dep_vdpau.found()
-    dep_vdpau = declare_dependency(
-      compile_args : run_command(prog_pkgconfig, ['vdpau', '--cflags']).stdout().split()
-    )
+    dep_vdpau = dep_vdpau.partial_dependency(compile_args : true)
     with_gallium_vdpau = true
   endif
 endif
@@ -635,9 +631,7 @@ dep_va = null_dep
 if _va != 'false'
   dep_va = dependency('libva', version : '>= 0.38.0', required : _va == 'true')
   if dep_va.found()
-    dep_va_headers = declare_dependency(
-      compile_args : run_command(prog_pkgconfig, ['libva', '--cflags']).stdout().split()
-    )
+    dep_va_headers = dep_va.partial_dependency(compile_args : true)
     with_gallium_va = true
   endif
 endif
@@ -899,7 +893,7 @@ elif host_machine.system() == 'sunos'
   pre_args += '-D__EXTENSIONS__'
 elif host_machine.system() == 'windows'
   pre_args += [
-    '-D_WINDOWS', '-D_WIN32_WINNT=0x0601', '-D_WINVER=0x0601',
+    '-D_WINDOWS', '-D_WIN32_WINNT=0x0601', '-DWINVER=0x0601',
     '-DPIPE_SUBSYSTEM_WINDOWS_USER',
     '-D_USE_MATH_DEFINES',  # XXX: scons doesn't use this for mingw
   ]
@@ -1030,11 +1024,16 @@ if host_machine.system() == 'windows'
   if cc.get_id() == 'msvc'
     add_project_link_arguments(
       '/fixed:no',
-      '/incremental:no',
       '/dynamicbase',
       '/nxcompat',
       language : ['c', 'cpp'],
     )
+    if get_option('buildtype') != 'debug'
+      add_project_link_arguments(
+        '/incremental:no',
+        language : ['c', 'cpp'],
+      )
+    endif
   else
     add_project_link_arguments(
       '-Wl,--nxcompat',
@@ -1401,14 +1400,21 @@ else
 endif
 
 _shared_llvm = get_option('shared-llvm')
+if _shared_llvm == 'auto'
+  _shared_llvm = (host_machine.system() != 'windows')
+else
+  _shared_llvm = (_shared_llvm == 'true')
+endif
 _llvm = get_option('llvm')
 
-# The cmake method will never find libllvm.so|dylib; this is fine for windows
-# because llvm doesn't support libllvm.dll
-_llvm_method = 'config-tool'
-if (meson.version().version_compare('>= 0.51.0') and
-    host_machine.system() == 'windows')
-  _llvm_method = 'cmake'
+# the cmake method can only link statically, so don't attempt to use it if we
+# want to link dynamically. Before 0.54.0 meson will try cmake even when shared
+# linking is requested, so we need to force the config-tool method to be used
+# in that case, but in 0.54.0 meson won't try the cmake method if shared
+# linking is requested.
+_llvm_method = 'auto'
+if meson.version().version_compare('< 0.54.0') and _shared_llvm
+  _llvm_method = 'config-tool'
 endif
 
 dep_llvm = null_dep
@@ -1501,7 +1507,7 @@ if host_machine.system() == 'windows'
   if prog_flex.found()
     # windows compatibility (uses <io.h> instead of <unistd.h> and _isatty,
     # _fileno functions)
-    prog_flex = [prog_flex, '--wincompat']
+    prog_flex = [prog_flex, '--wincompat', '-D__STDC_VERSION__=199901']
   else
     prog_flex = [find_program('lex', 'flex', required : with_any_opengl)]
   endif
@@ -1578,8 +1584,7 @@ if with_platform_wayland
   dep_wayland_server = dependency('wayland-server', version : '>=1.11')
   if with_egl
     dep_wayland_egl = dependency('wayland-egl-backend', version : '>= 3')
-    dep_wayland_egl_headers = declare_dependency(
-      compile_args : run_command(prog_pkgconfig, ['wayland-egl-backend', '--cflags']).stdout().split())
+    dep_wayland_egl_headers = dep_wayland_egl.partial_dependency(compile_args : true)
   endif
   wayland_dmabuf_xml = join_paths(
     dep_wl_protocols.get_pkgconfig_variable('pkgdatadir'), 'unstable',

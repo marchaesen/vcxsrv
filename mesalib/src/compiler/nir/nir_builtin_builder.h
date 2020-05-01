@@ -101,22 +101,6 @@ nir_flog(nir_builder *b, nir_ssa_def *x)
 }
 
 static inline nir_ssa_def *
-nir_umul24(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y)
-{
-   nir_ssa_def *mask = nir_imm_int(b, 0xffffff);
-   nir_ssa_def *x_24 = nir_iand(b, x, mask);
-   nir_ssa_def *y_24 = nir_iand(b, y, mask);
-   return nir_imul(b, x_24, y_24);
-}
-
-static inline nir_ssa_def *
-nir_umad24(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *z)
-{
-   nir_ssa_def *temp = nir_umul24(b, x, y);
-   return nir_iadd(b, temp, z);
-}
-
-static inline nir_ssa_def *
 nir_imad24(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *z)
 {
    nir_ssa_def *temp = nir_imul24(b, x, y);

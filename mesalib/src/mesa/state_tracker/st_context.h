@@ -182,6 +182,10 @@ struct st_context
    boolean draw_needs_minmax_index;
    boolean has_hw_atomics;
 
+
+   /* driver supports scissored clears */
+   boolean can_scissor_clear;
+
    /* Some state is contained in constant objects.
     * Other state is just parameter values.
     */

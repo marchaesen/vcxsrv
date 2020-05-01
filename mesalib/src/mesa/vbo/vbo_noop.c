@@ -28,6 +28,9 @@
  * GLvertexformat no-op functions.  Used in out-of-memory situations.
  */
 
+#ifdef _WIN32
+#define NOGDI
+#endif
 
 #include "main/glheader.h"
 #include "main/context.h"

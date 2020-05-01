@@ -1057,7 +1057,8 @@ static bool
 is_strided_vector(const struct glsl_type *type)
 {
    if (glsl_type_is_vector(type)) {
-      return glsl_get_explicit_stride(type) !=
+      unsigned explicit_stride = glsl_get_explicit_stride(type);
+      return explicit_stride != 0 && explicit_stride !=
              type_scalar_size_bytes(glsl_get_array_element(type));
    } else {
       return false;

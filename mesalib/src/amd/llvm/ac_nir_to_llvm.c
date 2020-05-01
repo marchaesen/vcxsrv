@@ -245,7 +245,7 @@ static LLVMValueRef emit_bcsel(struct ac_llvm_context *ctx,
 	LLVMTypeRef src1_type = LLVMTypeOf(src1);
 	LLVMTypeRef src2_type = LLVMTypeOf(src2);
 
-	assert(LLVMGetTypeKind(LLVMTypeOf(src0)) != LLVMVectorTypeKind);
+	assert(LLVMGetTypeKind(LLVMTypeOf(src0)) != LLVMFixedVectorTypeKind);
 
 	if (LLVMGetTypeKind(src1_type) == LLVMPointerTypeKind &&
 	    LLVMGetTypeKind(src2_type) != LLVMPointerTypeKind) {
@@ -589,6 +589,10 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 	unsigned num_components = instr->dest.dest.ssa.num_components;
 	unsigned src_components;
 	LLVMTypeRef def_type = get_def_type(ctx, &instr->dest.dest.ssa);
+	bool saved_inexact = false;
+
+	if (instr->exact)
+		saved_inexact = ac_disable_inexact_math(ctx->ac.builder);
 
 	assert(nir_op_infos[instr->op].num_inputs <= ARRAY_SIZE(src));
 	switch (instr->op) {
@@ -1182,6 +1186,9 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = ac_to_integer_or_pointer(&ctx->ac, result);
 		ctx->ssa_defs[instr->dest.dest.ssa.index] = result;
 	}
+
+	if (instr->exact)
+		ac_restore_inexact_math(ctx->ac.builder, saved_inexact);
 }
 
 static void visit_load_const(struct ac_nir_context *ctx,
@@ -2186,7 +2193,7 @@ static LLVMValueRef load_tess_varyings(struct ac_nir_context *ctx,
 	LLVMTypeRef dest_type = get_def_type(ctx, &instr->dest.ssa);
 
 	LLVMTypeRef src_component_type;
-	if (LLVMGetTypeKind(dest_type) == LLVMVectorTypeKind)
+	if (LLVMGetTypeKind(dest_type) == LLVMFixedVectorTypeKind)
 		src_component_type = LLVMGetElementType(dest_type);
 	else
 		src_component_type = dest_type;
@@ -2346,7 +2353,7 @@ static LLVMValueRef visit_load_var(struct ac_nir_context *ctx,
 		bool split_loads = ctx->ac.chip_class == GFX6 && elem_size_bytes < 4;
 
 		if (stride != natural_stride || split_loads) {
-			if (LLVMGetTypeKind(result_type) == LLVMVectorTypeKind)
+			if (LLVMGetTypeKind(result_type) == LLVMFixedVectorTypeKind)
 				result_type = LLVMGetElementType(result_type);
 
 			LLVMTypeRef ptr_type = LLVMPointerType(result_type,
@@ -2522,7 +2529,7 @@ visit_store_var(struct ac_nir_context *ctx,
 			LLVMBuildStore(ctx->ac.builder, val, address);
 		} else {
 			LLVMTypeRef val_type = LLVMTypeOf(val);
-			if (LLVMGetTypeKind(LLVMTypeOf(val)) == LLVMVectorTypeKind)
+			if (LLVMGetTypeKind(LLVMTypeOf(val)) == LLVMFixedVectorTypeKind)
 				val_type = LLVMGetElementType(val_type);
 
 			LLVMTypeRef ptr_type = LLVMPointerType(val_type,
@@ -4462,6 +4469,8 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 
 	if (instr->op == nir_texop_texture_samples) {
 		LLVMValueRef res, samples, is_msaa;
+		LLVMValueRef default_sample;
+
 		res = LLVMBuildBitCast(ctx->ac.builder, args.resource, ctx->ac.v8i32, "");
 		samples = LLVMBuildExtractElement(ctx->ac.builder, res,
 						  LLVMConstInt(ctx->ac.i32, 3, false), "");
@@ -4478,8 +4487,27 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 				       LLVMConstInt(ctx->ac.i32, 0xf, false), "");
 		samples = LLVMBuildShl(ctx->ac.builder, ctx->ac.i32_1,
 				       samples, "");
+
+		if (ctx->abi->robust_buffer_access) {
+			LLVMValueRef dword1, is_null_descriptor;
+
+			/* Extract the second dword of the descriptor, if it's
+			 * all zero, then it's a null descriptor.
+			 */
+			dword1 = LLVMBuildExtractElement(ctx->ac.builder, res,
+							 LLVMConstInt(ctx->ac.i32, 1, false), "");
+			is_null_descriptor =
+				LLVMBuildICmp(ctx->ac.builder, LLVMIntEQ, dword1,
+					      LLVMConstInt(ctx->ac.i32, 0, false), "");
+			default_sample =
+				LLVMBuildSelect(ctx->ac.builder, is_null_descriptor,
+						ctx->ac.i32_0, ctx->ac.i32_1, "");
+		} else {
+			default_sample = ctx->ac.i32_1;
+		}
+
 		samples = LLVMBuildSelect(ctx->ac.builder, is_msaa, samples,
-					  ctx->ac.i32_1, "");
+					  default_sample, "");
 		result = samples;
 		goto write_result;
 	}
@@ -4950,7 +4978,7 @@ static void visit_deref(struct ac_nir_context *ctx,
 		LLVMTypeRef type = LLVMPointerType(pointee_type, address_space);
 
 		if (LLVMTypeOf(result) != type) {
-			if (LLVMGetTypeKind(LLVMTypeOf(result)) == LLVMVectorTypeKind) {
+			if (LLVMGetTypeKind(LLVMTypeOf(result)) == LLVMFixedVectorTypeKind) {
 				result = LLVMBuildBitCast(ctx->ac.builder, result,
 				                          type, "");
 			} else {

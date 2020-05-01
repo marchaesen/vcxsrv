@@ -219,13 +219,8 @@ vtn_handle_amd_shader_explicit_vertex_parameter_instruction(struct vtn_builder *
 
    if (vec_array_deref) {
       assert(vec_deref);
-      if (nir_src_is_const(vec_deref->arr.index)) {
-         val->ssa->def = vtn_vector_extract(b, &intrin->dest.ssa,
-                                            nir_src_as_uint(vec_deref->arr.index));
-      } else {
-         val->ssa->def = vtn_vector_extract_dynamic(b, &intrin->dest.ssa,
-                                                    vec_deref->arr.index.ssa);
-      }
+      val->ssa->def = nir_vector_extract(&b->nb, &intrin->dest.ssa,
+                                         vec_deref->arr.index.ssa);
    } else {
       val->ssa->def = &intrin->dest.ssa;
    }

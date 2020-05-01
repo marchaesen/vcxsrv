@@ -29,7 +29,13 @@ from sys import stdout
 from mako.template import Template
 
 def find_result_types(spirv):
+    seen = set()
     for inst in spirv['instructions']:
+        # Handle aliases by choosing the first one in the grammar.
+        if inst['opcode'] in seen:
+            continue
+        seen.add(inst['opcode'])
+
         name = inst['opname']
 
         if 'operands' not in inst:

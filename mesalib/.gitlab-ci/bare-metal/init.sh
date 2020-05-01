@@ -9,9 +9,9 @@ mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts
 
 export DEQP_NO_SAVE_RESULTS=1
-export DEQP_RUNNER_OPTIONS="--compact-display false"
 export DEQP_VER=DEQP_VER_REPLACE
 export DEQP_PARALLEL=DEQP_PARALLEL_REPLACE
+export DEQP_EXPECTED_RENDERER=DEQP_EXPECTED_RENDERER_REPLACE
 export CI_NODE_INDEX=CI_NODE_INDEX_REPLACE
 export CI_NODE_TOTAL=CI_NODE_TOTAL_REPLACE
 export DEQP_SKIPS=deqp-skips.txt

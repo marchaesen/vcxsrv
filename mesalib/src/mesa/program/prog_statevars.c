@@ -33,7 +33,7 @@
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/blend.h"
-#include "util/imports.h"
+
 #include "main/macros.h"
 #include "main/mtypes.h"
 #include "main/fbobject.h"
@@ -451,10 +451,10 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
          return;
 
       case STATE_NORMAL_SCALE:
-         ASSIGN_4V(value, 
-                   ctx->_ModelViewInvScale, 
-                   ctx->_ModelViewInvScale, 
-                   ctx->_ModelViewInvScale, 
+         ASSIGN_4V(value,
+                   ctx->_ModelViewInvScale,
+                   ctx->_ModelViewInvScale,
+                   ctx->_ModelViewInvScale,
                    1);
          return;
 
@@ -613,7 +613,7 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
          }
          return;
 
-      /* XXX: make sure new tokens added here are also handled in the 
+      /* XXX: make sure new tokens added here are also handled in the
        * _mesa_program_state_flags() switch, below.
        */
       default:

@@ -35,15 +35,34 @@ radv_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
 	return radv_lookup_entrypoint(pName);
 }
 
+static void
+radv_wsi_set_memory_ownership(VkDevice _device,
+                              VkDeviceMemory _mem,
+                              VkBool32 ownership)
+{
+	RADV_FROM_HANDLE(radv_device, device, _device);
+	RADV_FROM_HANDLE(radv_device_memory, mem, _mem);
+
+	if (ownership)
+		radv_bo_list_add(device, mem->bo);
+	else
+		radv_bo_list_remove(device, mem->bo);
+}
+
 VkResult
 radv_init_wsi(struct radv_physical_device *physical_device)
 {
-	return wsi_device_init(&physical_device->wsi_device,
-			       radv_physical_device_to_handle(physical_device),
-			       radv_wsi_proc_addr,
-			       &physical_device->instance->alloc,
-			       physical_device->master_fd,
-			       &physical_device->instance->dri_options);
+	VkResult result =  wsi_device_init(&physical_device->wsi_device,
+					   radv_physical_device_to_handle(physical_device),
+					   radv_wsi_proc_addr,
+					   &physical_device->instance->alloc,
+					   physical_device->master_fd,
+					   &physical_device->instance->dri_options);
+	if (result != VK_SUCCESS)
+		return result;
+
+	physical_device->wsi_device.set_memory_ownership = radv_wsi_set_memory_ownership;
+	return VK_SUCCESS;
 }
 
 void

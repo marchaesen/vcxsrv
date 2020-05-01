@@ -49,6 +49,7 @@
 #include "swrast.h"
 #include "s_fragprog.h"
 #include "s_span.h"
+#include "util/rounding.h"
 
 
 typedef void (*texture_sample_func)(struct gl_context *ctx,
@@ -433,7 +434,7 @@ _swrast_unmap_renderbuffers(struct gl_context *ctx);
 #define FIXED_EPSILON   1
 #define FIXED_SCALE     ((float) FIXED_ONE)
 #define FIXED_DBL_SCALE ((double) FIXED_ONE)
-#define FloatToFixed(X) (IROUND((X) * FIXED_SCALE))
+#define FloatToFixed(X) (lroundf((X) * FIXED_SCALE))
 #define FixedToDouble(X) ((X) * (1.0 / FIXED_DBL_SCALE))
 #define IntToFixed(I)   ((I) << FIXED_SHIFT)
 #define FixedToInt(X)   ((X) >> FIXED_SHIFT)

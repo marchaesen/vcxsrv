@@ -1642,8 +1642,8 @@ offsets = {
     "EGLImageTargetTextureStorageEXT" : 1606,
     "CopyImageSubDataNV": 1607,
     "ViewportSwizzleNV": 1608,
-    "Render": 1609,
-    "RenderLarge": 1610,
+    "AlphaToCoverageDitherControlNV": 1609,
+    "InternalBufferSubDataCopyMESA": 1610,
     "CreateContext": 1611,
     "DestroyContext": 1612,
     "MakeCurrent": 1613,
@@ -1690,6 +1690,8 @@ offsets = {
     "CreateContextAttribsARB": 1654,
     "SetClientInfo2ARB": 1655,
     "GetVisualConfigs": 1656,
+    "Render": 1657,
+    "RenderLarge": 1658,
 }
 
 functions = [

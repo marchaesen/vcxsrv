@@ -103,7 +103,7 @@
       const GLfloat botDy = vMid->attrib[VARYING_SLOT_POS][1] - vMin->attrib[VARYING_SLOT_POS][1];
       const GLfloat area = majDx * botDy - botDx * majDy;
       /* Do backface culling */
-      if (area * bf < 0 || area == 0 || IS_INF_OR_NAN(area))
+      if (area * bf < 0 || area == 0 || util_is_inf_or_nan(area))
 	 return;
       ltor = (GLboolean) (area < 0.0F);
 

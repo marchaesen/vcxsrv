@@ -33,6 +33,7 @@
 #include "main/sse_minmax.h"
 #include "x86/common_x86_asm.h"
 #include "util/hash_table.h"
+#include "util/u_memory.h"
 
 
 struct minmax_cache_key {

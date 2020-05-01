@@ -115,13 +115,15 @@ bi_lookup_constant(bi_clause *clause, uint64_t cons, bool *hi, bool b64)
                 /* Only check top 60-bits since that's what's actually embedded
                  * in the clause, the bottom 4-bits are bundle-inline */
 
-                unsigned candidates[2] = {
+                uint64_t candidates[2] = {
                         clause->constants[i] >> 4,
                         clause->constants[i] >> 36
                 };
 
+                /* For <64-bit mode, we treat lo/hi separately */
+
                 if (!b64)
-                        candidates[0] &= 0xFFFFFFFF;
+                        candidates[0] &= (0xFFFFFFFF >> 4);
 
                 if (candidates[0] == want)
                         return i;
@@ -156,15 +158,22 @@ bi_assign_uniform_constant_single(
         if (!ins)
                 return assigned;
 
+        if (ins->type == BI_BLEND) {
+                assert(!assigned);
+                regs->uniform_constant = 0x8;
+                return true;
+        }
+
         bi_foreach_src(ins, s) {
                 if (s == 0 && (ins->type == BI_LOAD_VAR_ADDRESS || ins->type == BI_LOAD_ATTR)) continue;
 
                 if (ins->src[s] & BIR_INDEX_CONSTANT) {
                         bool hi = false;
                         bool b64 = nir_alu_type_get_type_size(ins->src_types[s]) > 32;
-                        uint64_t cons = bi_get_immediate(ins, ins->src[s]);
+                        uint64_t cons = bi_get_immediate(ins, s);
                         unsigned idx = bi_lookup_constant(clause, cons, &hi, b64);
-                        unsigned f = bi_constant_field(idx) | (cons & 0xF);
+                        unsigned lo = clause->constants[idx] & 0xF;
+                        unsigned f = bi_constant_field(idx) | lo;
 
                         if (assigned && regs->uniform_constant != f)
                                 unreachable("Mismatched uniform/const field: imm");
@@ -490,7 +499,29 @@ bi_pack_fma_fma(bi_instruction *ins, struct bi_registers *regs)
         /* (-a)(-b) = ab, so we only need one negate bit */
         bool negate_mul = ins->src_neg[0] ^ ins->src_neg[1];
 
-        if (ins->dest_type == nir_type_float32) {
+        if (ins->op.mscale) {
+                assert(!(ins->src_abs[0] && ins->src_abs[1]));
+                assert(!ins->src_abs[2] || !ins->src_neg[3] || !ins->src_abs[3]);
+
+                /* We can have exactly one abs, and can flip the multiplication
+                 * to make it fit if we have to */
+                bool flip_ab = ins->src_abs[1];
+
+                struct bifrost_fma_mscale pack = {
+                        .src0 = bi_get_src(ins, regs, flip_ab ? 1 : 0, true),
+                        .src1 = bi_get_src(ins, regs, flip_ab ? 0 : 1, true),
+                        .src2 = bi_get_src(ins, regs, 2, true),
+                        .src3 = bi_get_src(ins, regs, 3, true),
+                        .mscale_mode = 0,
+                        .mode = ins->outmod,
+                        .src0_abs = ins->src_abs[0] || ins->src_abs[1],
+                        .src1_neg = negate_mul,
+                        .src2_neg = ins->src_neg[2],
+                        .op = BIFROST_FMA_OP_MSCALE,
+                };
+
+                RETURN_PACKED(pack);
+        } else if (ins->dest_type == nir_type_float32) {
                 struct bifrost_fma_fma pack = {
                         .src0 = bi_get_src(ins, regs, 0, true),
                         .src1 = bi_get_src(ins, regs, 1, true),
@@ -551,14 +582,9 @@ bi_pack_fma_addmin_f32(bi_instruction *ins, struct bi_registers *regs)
         RETURN_PACKED(pack);
 }
 
-static unsigned
-bi_pack_fma_addmin_f16(bi_instruction *ins, struct bi_registers *regs)
+static bool
+bi_pack_fp16_abs(bi_instruction *ins, struct bi_registers *regs, bool *flip)
 {
-        unsigned op =
-                (ins->type == BI_ADD) ? BIFROST_FMA_OP_FADD16 :
-                (ins->op.minmax == BI_MINMAX_MIN) ? BIFROST_FMA_OP_FMIN16 :
-                BIFROST_FMA_OP_FMAX16;
-
         /* Absolute values are packed in a quirky way. Let k = src1 < src0. Let
          * l be an auxiliary bit we encode. Then the hardware determines:
          *
@@ -590,34 +616,70 @@ bi_pack_fma_addmin_f16(bi_instruction *ins, struct bi_registers *regs)
         unsigned abs_0 = ins->src_abs[0], abs_1 = ins->src_abs[1];
         unsigned src_0 = bi_get_src(ins, regs, 0, true);
         unsigned src_1 = bi_get_src(ins, regs, 1, true);
-        bool l = false;
-        bool flip = false;
+
+        assert(!(abs_0 && abs_1 && src_0 == src_1));
 
         if (!abs_0 && !abs_1) {
                 /* Force k = 0 <===> NOT(src1 < src0) */
-                flip = (src_1 < src_0);
+                *flip = (src_1 < src_0);
+                return false;
         } else if (abs_0 && !abs_1) {
-                l = src_1 >= src_0;
+                return src_1 >= src_0;
         } else if (abs_1 && !abs_0) {
-                flip = true;
-                l = src_0 >= src_1;
+                *flip = true;
+                return src_0 >= src_1;
         } else {
-                flip = (src_0 >= src_1);
-                l = true;
+                *flip = (src_0 >= src_1);
+                return true;
         }
+}
 
-        struct bifrost_fma_add_minmax16 pack = {
-                .src0 = flip ? src_1 : src_0,
-                .src1 = flip ? src_0 : src_1,
-                .src0_neg = ins->src_neg[flip ? 1 : 0],
-                .src1_neg = ins->src_neg[flip ? 0 : 1],
-                .abs1 = l,
-                .outmod = ins->outmod,
-                .mode = (ins->type == BI_ADD) ? ins->roundmode : ins->minmax,
-                .op = op
-        };
+static unsigned
+bi_pack_fmadd_min_f16(bi_instruction *ins, struct bi_registers *regs, bool FMA)
+{
+        unsigned op =
+                (!FMA) ? ((ins->op.minmax == BI_MINMAX_MIN) ?
+                        BIFROST_ADD_OP_FMIN16 : BIFROST_ADD_OP_FMAX16) :
+                (ins->type == BI_ADD) ? BIFROST_FMA_OP_FADD16 :
+                (ins->op.minmax == BI_MINMAX_MIN) ? BIFROST_FMA_OP_FMIN16 :
+                BIFROST_FMA_OP_FMAX16;
 
-        RETURN_PACKED(pack);
+        bool flip = false;
+        bool l = bi_pack_fp16_abs(ins, regs, &flip);
+        unsigned src_0 = bi_get_src(ins, regs, 0, true);
+        unsigned src_1 = bi_get_src(ins, regs, 1, true);
+
+        if (FMA) {
+                struct bifrost_fma_add_minmax16 pack = {
+                        .src0 = flip ? src_1 : src_0,
+                        .src1 = flip ? src_0 : src_1,
+                        .src0_neg = ins->src_neg[flip ? 1 : 0],
+                        .src1_neg = ins->src_neg[flip ? 0 : 1],
+                        .abs1 = l,
+                        .outmod = ins->outmod,
+                        .mode = (ins->type == BI_ADD) ? ins->roundmode : ins->minmax,
+                        .op = op
+                };
+
+                RETURN_PACKED(pack);
+        } else {
+                /* Can't have modes for fp16 */
+                assert(ins->outmod == 0);
+
+                struct bifrost_add_fmin16 pack = {
+                        .src0 = flip ? src_1 : src_0,
+                        .src1 = flip ? src_0 : src_1,
+                        .src0_neg = ins->src_neg[flip ? 1 : 0],
+                        .src1_neg = ins->src_neg[flip ? 0 : 1],
+                        .abs1 = l,
+                        .src0_swizzle = bi_swiz16(ins, 0),
+                        .src1_swizzle = bi_swiz16(ins, 1), 
+                        .mode = ins->minmax,
+                        .op = op
+                };
+
+                RETURN_PACKED(pack);
+        }
 }
 
 static unsigned
@@ -626,7 +688,7 @@ bi_pack_fma_addmin(bi_instruction *ins, struct bi_registers *regs)
         if (ins->dest_type == nir_type_float32)
                 return bi_pack_fma_addmin_f32(ins, regs);
         else if(ins->dest_type == nir_type_float16)
-                return bi_pack_fma_addmin_f16(ins, regs);
+                return bi_pack_fmadd_min_f16(ins, regs, true);
         else
                 unreachable("Unknown FMA/ADD type");
 }
@@ -636,6 +698,18 @@ bi_pack_fma_1src(bi_instruction *ins, struct bi_registers *regs, unsigned op)
 {
         struct bifrost_fma_inst pack = {
                 .src0 = bi_get_src(ins, regs, 0, true),
+                .op = op
+        };
+
+        RETURN_PACKED(pack);
+}
+
+static unsigned
+bi_pack_fma_2src(bi_instruction *ins, struct bi_registers *regs, unsigned op)
+{
+        struct bifrost_fma_2src pack = {
+                .src0 = bi_get_src(ins, regs, 0, true),
+                .src1 = bi_get_src(ins, regs, 1, true),
                 .op = op
         };
 
@@ -706,7 +780,7 @@ bi_pack_fma_csel(bi_instruction *ins, struct bi_registers *regs)
         bool flip = false, invert = false;
 
         enum bifrost_csel_cond cond =
-                bi_cond_to_csel(ins->csel_cond, &flip, &invert, ins->src_types[0]);
+                bi_cond_to_csel(ins->cond, &flip, &invert, ins->src_types[0]);
 
         unsigned size = nir_alu_type_get_type_size(ins->dest_type);
 
@@ -726,6 +800,23 @@ bi_pack_fma_csel(bi_instruction *ins, struct bi_registers *regs)
         };
 
         RETURN_PACKED(pack);
+}
+
+static unsigned
+bi_pack_fma_frexp(bi_instruction *ins, struct bi_registers *regs)
+{
+        unsigned op = BIFROST_FMA_OP_FREXPE_LOG;
+        return bi_pack_fma_1src(ins, regs, op);
+}
+
+static unsigned
+bi_pack_fma_reduce(bi_instruction *ins, struct bi_registers *regs)
+{
+        if (ins->op.reduce == BI_REDUCE_ADD_FREXPM) {
+                return bi_pack_fma_2src(ins, regs, BIFROST_FMA_OP_ADD_FREXPM);
+        } else {
+                unreachable("Invalid reduce op");
+        }
 }
 
 /* We have a single convert opcode in the IR but a number of opcodes that could
@@ -839,6 +930,218 @@ bi_pack_convert(bi_instruction *ins, struct bi_registers *regs, bool FMA)
 }
 
 static unsigned
+bi_pack_fma_select(bi_instruction *ins, struct bi_registers *regs)
+{
+        unsigned size = nir_alu_type_get_type_size(ins->src_types[0]);
+
+        if (size == 16) {
+                unsigned swiz = (ins->swizzle[0][0] | (ins->swizzle[1][0] << 1));
+                unsigned op = BIFROST_FMA_SEL_16(swiz);
+                return bi_pack_fma_2src(ins, regs, op);
+        } else if (size == 8) {
+                unsigned swiz = 0;
+
+                for (unsigned c = 0; c < 4; ++c) {
+                        if (ins->swizzle[c][0]) {
+                                /* Ensure lowering restriction is met */
+                                assert(ins->swizzle[c][0] == 2);
+                                swiz |= (1 << c);
+                        }
+                }
+
+                struct bifrost_fma_sel8 pack = {
+                        .src0 = bi_get_src(ins, regs, 0, true),
+                        .src1 = bi_get_src(ins, regs, 1, true),
+                        .src2 = bi_get_src(ins, regs, 2, true),
+                        .src3 = bi_get_src(ins, regs, 3, true),
+                        .swizzle = swiz,
+                        .op = BIFROST_FMA_OP_SEL8
+                };
+
+                RETURN_PACKED(pack);
+        } else {
+                unreachable("Unimplemented");
+        }
+}
+
+static enum bifrost_fcmp_cond
+bi_fcmp_cond(enum bi_cond cond)
+{
+        switch (cond) {
+        case BI_COND_LT: return BIFROST_OLT;
+        case BI_COND_LE: return BIFROST_OLE;
+        case BI_COND_GE: return BIFROST_OGE;
+        case BI_COND_GT: return BIFROST_OGT;
+        case BI_COND_EQ: return BIFROST_OEQ;
+        case BI_COND_NE: return BIFROST_UNE;
+        default:         unreachable("Unknown bi_cond");
+        }
+}
+
+/* a <?> b <==> b <flip(?)> a (TODO: NaN behaviour?) */
+
+static enum bifrost_fcmp_cond
+bi_flip_fcmp(enum bifrost_fcmp_cond cond)
+{
+        switch (cond) {
+        case BIFROST_OGT:
+                return BIFROST_OLT;
+        case BIFROST_OGE:
+                return BIFROST_OLE;
+        case BIFROST_OLT:
+                return BIFROST_OGT;
+        case BIFROST_OLE:
+                return BIFROST_OGE;
+        case BIFROST_OEQ:
+        case BIFROST_UNE:
+                return cond;
+        default:
+                unreachable("Unknown fcmp cond");
+        }
+}
+
+static unsigned
+bi_pack_fma_cmp(bi_instruction *ins, struct bi_registers *regs)
+{
+        nir_alu_type Tl = ins->src_types[0];
+        nir_alu_type Tr = ins->src_types[1];
+
+        if (Tl == nir_type_float32 || Tr == nir_type_float32) {
+                /* TODO: Mixed 32/16 cmp */
+                assert(Tl == Tr);
+
+                enum bifrost_fcmp_cond cond = bi_fcmp_cond(ins->cond);
+
+                /* Only src1 has neg, so we arrange:
+                 *      a < b   --- native
+                 *      a < -b  --- native
+                 *      -a < -b <===> a > b
+                 *      -a < b  <===> a > -b
+                 * TODO: Is this NaN-precise?
+                 */
+
+                bool flip = ins->src_neg[0];
+                bool neg =  ins->src_neg[0] ^ ins->src_neg[1];
+
+                if (flip)
+                        cond = bi_flip_fcmp(cond);
+
+                struct bifrost_fma_fcmp pack = {
+                        .src0 = bi_get_src(ins, regs, 0, true),
+                        .src1 = bi_get_src(ins, regs, 1, true),
+                        .src0_abs = ins->src_abs[0],
+                        .src1_abs = ins->src_abs[1],
+                        .src1_neg = neg,
+                        .src_expand = 0,
+                        .unk1 = 0,
+                        .cond = cond,
+                        .op = BIFROST_FMA_OP_FCMP_GL
+                };
+
+                RETURN_PACKED(pack);
+        } else if (Tl == nir_type_float16 && Tr == nir_type_float16) {
+                bool flip = false;
+                bool l = bi_pack_fp16_abs(ins, regs, &flip);
+                enum bifrost_fcmp_cond cond = bi_fcmp_cond(ins->cond);
+
+                if (flip)
+                        cond = bi_flip_fcmp(cond);
+
+                struct bifrost_fma_fcmp16 pack = {
+                        .src0 = bi_get_src(ins, regs, flip ? 1 : 0, true),
+                        .src1 = bi_get_src(ins, regs, flip ? 0 : 1, true),
+                        .src0_swizzle = bi_swiz16(ins, flip ? 1 : 0),
+                        .src1_swizzle = bi_swiz16(ins, flip ? 0 : 1),
+                        .abs1 = l,
+                        .unk = 0,
+                        .cond = cond,
+                        .op = BIFROST_FMA_OP_FCMP_GL_16,
+                };
+
+                RETURN_PACKED(pack);
+        } else {
+                unreachable("Unknown cmp type");
+        }
+}
+
+static unsigned
+bi_fma_bitwise_op(enum bi_bitwise_op op, bool rshift)
+{
+        switch (op) {
+        case BI_BITWISE_OR:
+                /* Via De Morgan's */
+                return rshift ?
+                        BIFROST_FMA_OP_RSHIFT_NAND :
+                        BIFROST_FMA_OP_LSHIFT_NAND;
+        case BI_BITWISE_AND:
+                return rshift ?
+                        BIFROST_FMA_OP_RSHIFT_AND :
+                        BIFROST_FMA_OP_LSHIFT_AND;
+        case BI_BITWISE_XOR:
+                /* Shift direction handled out of band */
+                return BIFROST_FMA_OP_RSHIFT_XOR;
+        default:
+                unreachable("Unknown op");
+        }
+}
+ 
+static unsigned
+bi_pack_fma_bitwise(bi_instruction *ins, struct bi_registers *regs)
+{
+        unsigned size = nir_alu_type_get_type_size(ins->dest_type);
+        assert(size <= 32);
+
+        bool invert_0 = ins->bitwise.src_invert[0];
+        bool invert_1 = ins->bitwise.src_invert[1];
+
+        if (ins->op.bitwise == BI_BITWISE_OR) {
+                /* Becomes NAND, so via De Morgan's:
+                 *      f(A) | f(B) = ~(~f(A) & ~f(B))
+                 *                  = NAND(~f(A), ~f(B))
+                 */
+
+                invert_0 = !invert_0;
+                invert_1 = !invert_1;
+        } else if (ins->op.bitwise == BI_BITWISE_XOR) {
+                /* ~A ^ ~B = ~(A ^ ~B) = ~(~(A ^ B)) = A ^ B
+                 * ~A ^  B = ~(A ^ B) = A ^ ~B
+                 */
+
+                invert_0 ^= invert_1;
+                invert_1 = false;
+
+                /* invert_1 ends up specifying shift direction */
+                invert_1 = !ins->bitwise.rshift;
+        }
+
+        struct bifrost_shift_fma pack = {
+                .src0 = bi_get_src(ins, regs, 0, true),
+                .src1 = bi_get_src(ins, regs, 1, true),
+                .src2 = bi_get_src(ins, regs, 2, true),
+                .half = (size == 32) ? 0 : (size == 16) ? 0x7 : (size == 8) ? 0x4 : 0,
+                .unk = 1, /* XXX */
+                .invert_1 = invert_0,
+                .invert_2 = invert_1,
+                .op = bi_fma_bitwise_op(ins->op.bitwise, ins->bitwise.rshift)
+        };
+
+        RETURN_PACKED(pack);
+}
+
+static unsigned
+bi_pack_fma_round(bi_instruction *ins, struct bi_registers *regs)
+{
+        bool fp16 = ins->dest_type == nir_type_float16;
+        assert(fp16 || ins->dest_type == nir_type_float32);
+
+        unsigned op = fp16
+                ? BIFROST_FMA_ROUND_16(ins->roundmode, bi_swiz16(ins, 0))
+                : BIFROST_FMA_ROUND_32(ins->roundmode);
+
+        return bi_pack_fma_1src(ins, regs, op);
+}
+ 
+static unsigned
 bi_pack_fma(bi_clause *clause, bi_bundle bundle, struct bi_registers *regs)
 {
         if (!bundle.fma)
@@ -848,8 +1151,9 @@ bi_pack_fma(bi_clause *clause, bi_bundle bundle, struct bi_registers *regs)
         case BI_ADD:
                 return bi_pack_fma_addmin(bundle.fma, regs);
         case BI_CMP:
+                return bi_pack_fma_cmp(bundle.fma, regs);
         case BI_BITWISE:
-		return BIFROST_FMA_NOP;
+                return bi_pack_fma_bitwise(bundle.fma, regs);
         case BI_CONVERT:
 		return bi_pack_convert(bundle.fma, regs, true);
         case BI_CSEL:
@@ -857,6 +1161,7 @@ bi_pack_fma(bi_clause *clause, bi_bundle bundle, struct bi_registers *regs)
         case BI_FMA:
                 return bi_pack_fma_fma(bundle.fma, regs);
         case BI_FREXP:
+                return bi_pack_fma_frexp(bundle.fma, regs);
         case BI_ISUB:
                 return BIFROST_FMA_NOP;
         case BI_MINMAX:
@@ -864,9 +1169,13 @@ bi_pack_fma(bi_clause *clause, bi_bundle bundle, struct bi_registers *regs)
         case BI_MOV:
                 return bi_pack_fma_1src(bundle.fma, regs, BIFROST_FMA_OP_MOV);
         case BI_SHIFT:
-        case BI_SWIZZLE:
-        case BI_ROUND:
 		return BIFROST_FMA_NOP;
+        case BI_SELECT:
+                return bi_pack_fma_select(bundle.fma, regs);
+        case BI_ROUND:
+                return bi_pack_fma_round(bundle.fma, regs);
+        case BI_REDUCE_FMA:
+                return bi_pack_fma_reduce(bundle.fma, regs);
         default:
                 unreachable("Cannot encode class as FMA");
         }
@@ -882,15 +1191,11 @@ bi_pack_add_ld_vary(bi_clause *clause, bi_instruction *ins, struct bi_registers 
                 BIFROST_ADD_OP_LD_VAR_32 :
                 BIFROST_ADD_OP_LD_VAR_16;
 
-        unsigned cmask = bi_from_bytemask(ins->writemask, size / 8);
-        unsigned channels = util_bitcount(cmask);
-        assert(cmask == ((1 << channels) - 1));
-
         unsigned packed_addr = 0;
 
         if (ins->src[0] & BIR_INDEX_CONSTANT) {
                 /* Direct uses address field directly */
-                packed_addr = bi_get_immediate(ins, ins->src[0]);
+                packed_addr = bi_get_immediate(ins, 0);
                 assert(packed_addr < 0b1000);
         } else {
                 /* Indirect gets an extra source */
@@ -901,6 +1206,7 @@ bi_pack_add_ld_vary(bi_clause *clause, bi_instruction *ins, struct bi_registers 
         assert(ins->dest & BIR_INDEX_REGISTER);
         clause->data_register = ins->dest & ~BIR_INDEX_REGISTER;
 
+        unsigned channels = ins->vector_channels;
         assert(channels >= 1 && channels <= 4);
 
         struct bifrost_ld_var pack = {
@@ -952,21 +1258,45 @@ bi_pack_add_addmin_f32(bi_instruction *ins, struct bi_registers *regs)
 }
 
 static unsigned
+bi_pack_add_add_f16(bi_instruction *ins, struct bi_registers *regs)
+{
+        /* ADD.v2f16 can't have outmod */
+        assert(ins->outmod == BIFROST_NONE);
+
+        struct bifrost_add_faddmin pack = {
+                .src0 = bi_get_src(ins, regs, 0, true),
+                .src1 = bi_get_src(ins, regs, 1, true),
+                .src0_abs = ins->src_abs[0],
+                .src1_abs = ins->src_abs[1],
+                .src0_neg = ins->src_neg[0],
+                .src1_neg = ins->src_neg[1],
+                .select = bi_swiz16(ins, 0), /* swizzle_0 */
+                .outmod = bi_swiz16(ins, 1), /* swizzle_1 */
+                .mode = ins->roundmode,
+                .op = BIFROST_ADD_OP_FADD16
+        };
+
+        RETURN_PACKED(pack);
+}
+
+static unsigned
 bi_pack_add_addmin(bi_instruction *ins, struct bi_registers *regs)
 {
         if (ins->dest_type == nir_type_float32)
                 return bi_pack_add_addmin_f32(ins, regs);
-        else if(ins->dest_type == nir_type_float16)
-                unreachable("todo");
-                //return bi_pack_add_addmin_f16(ins, regs);
-        else
+        else if (ins->dest_type == nir_type_float16) {
+                if (ins->type == BI_ADD)
+                        return bi_pack_add_add_f16(ins, regs);
+                else
+                        return bi_pack_fmadd_min_f16(ins, regs, false);
+        } else
                 unreachable("Unknown FMA/ADD type");
 }
 
 static unsigned
 bi_pack_add_ld_ubo(bi_clause *clause, bi_instruction *ins, struct bi_registers *regs)
 {
-        unsigned components = bi_load32_components(ins);
+        assert(ins->vector_channels >= 1 && ins->vector_channels <= 4);
 
         const unsigned ops[4] = {
                 BIFROST_ADD_OP_LD_UBO_1,
@@ -976,7 +1306,7 @@ bi_pack_add_ld_ubo(bi_clause *clause, bi_instruction *ins, struct bi_registers *
         };
 
         bi_write_data_register(clause, ins);
-        return bi_pack_add_2src(ins, regs, ops[components - 1]);
+        return bi_pack_add_2src(ins, regs, ops[ins->vector_channels - 1]);
 }
 
 static enum bifrost_ldst_type
@@ -997,7 +1327,7 @@ bi_pack_add_ld_var_addr(bi_clause *clause, bi_instruction *ins, struct bi_regist
         struct bifrost_ld_var_addr pack = {
                 .src0 = bi_get_src(ins, regs, 1, false),
                 .src1 = bi_get_src(ins, regs, 2, false),
-                .location = bi_get_immediate(ins, ins->src[0]),
+                .location = bi_get_immediate(ins, 0),
                 .type = bi_pack_ldst_type(ins->src_types[3]),
                 .op = BIFROST_ADD_OP_LD_VAR_ADDR
         };
@@ -1009,11 +1339,13 @@ bi_pack_add_ld_var_addr(bi_clause *clause, bi_instruction *ins, struct bi_regist
 static unsigned
 bi_pack_add_ld_attr(bi_clause *clause, bi_instruction *ins, struct bi_registers *regs)
 {
+        assert(ins->vector_channels >= 0 && ins->vector_channels <= 4);
+
         struct bifrost_ld_attr pack = {
                 .src0 = bi_get_src(ins, regs, 1, false),
                 .src1 = bi_get_src(ins, regs, 2, false),
-                .location = bi_get_immediate(ins, ins->src[0]),
-                .channels = MALI_POSITIVE(bi_load32_components(ins)),
+                .location = bi_get_immediate(ins, 0),
+                .channels = MALI_POSITIVE(ins->vector_channels),
                 .type = bi_pack_ldst_type(ins->dest_type),
                 .op = BIFROST_ADD_OP_LD_ATTR
         };
@@ -1025,13 +1357,13 @@ bi_pack_add_ld_attr(bi_clause *clause, bi_instruction *ins, struct bi_registers 
 static unsigned
 bi_pack_add_st_vary(bi_clause *clause, bi_instruction *ins, struct bi_registers *regs)
 {
-        assert(ins->store_channels >= 1 && ins->store_channels <= 4);
+        assert(ins->vector_channels >= 1 && ins->vector_channels <= 4);
 
         struct bifrost_st_vary pack = {
                 .src0 = bi_get_src(ins, regs, 1, false),
                 .src1 = bi_get_src(ins, regs, 2, false),
                 .src2 = bi_get_src(ins, regs, 3, false),
-                .channels = MALI_POSITIVE(ins->store_channels),
+                .channels = MALI_POSITIVE(ins->vector_channels),
                 .op = BIFROST_ADD_OP_ST_VAR
         };
 
@@ -1042,13 +1374,13 @@ bi_pack_add_st_vary(bi_clause *clause, bi_instruction *ins, struct bi_registers 
 static unsigned
 bi_pack_add_atest(bi_clause *clause, bi_instruction *ins, struct bi_registers *regs)
 {
-        /* TODO: fp16 */
-        assert(ins->src_types[1] == nir_type_float32);
+        bool fp16 = (ins->src_types[1] == nir_type_float16);
 
         struct bifrost_add_atest pack = {
                 .src0 = bi_get_src(ins, regs, 0, false),
                 .src1 = bi_get_src(ins, regs, 1, false),
-                .component = 1, /* Set for fp32 */
+                .half = fp16,
+                .component = fp16 ? ins->swizzle[1][0] : 1, /* Set for fp32 */
                 .op = BIFROST_ADD_OP_ATEST,
         };
 
@@ -1086,15 +1418,59 @@ bi_pack_add_special(bi_instruction *ins, struct bi_registers *regs)
                         (Y ? BIFROST_ADD_OP_FRCP_FAST_F16_Y :
                         BIFROST_ADD_OP_FRCP_FAST_F16_X) :
                         BIFROST_ADD_OP_FRCP_FAST_F32;
-        } else {
+        } else if (ins->op.special == BI_SPECIAL_FRSQ) {
                 op = fp16 ?
                         (Y ? BIFROST_ADD_OP_FRSQ_FAST_F16_Y :
                         BIFROST_ADD_OP_FRSQ_FAST_F16_X) :
                         BIFROST_ADD_OP_FRSQ_FAST_F32;
 
+        } else if (ins->op.special == BI_SPECIAL_EXP2_LOW) {
+                assert(!fp16);
+                op = BIFROST_ADD_OP_FEXP2_FAST;
+        } else {
+                unreachable("Unknown special op");
         }
 
         return bi_pack_add_1src(ins, regs, op);
+}
+
+static unsigned
+bi_pack_add_table(bi_instruction *ins, struct bi_registers *regs)
+{
+        unsigned op = 0;
+        assert(ins->dest_type == nir_type_float32);
+
+        op = BIFROST_ADD_OP_LOG2_HELP;
+        return bi_pack_add_1src(ins, regs, op);
+}
+static unsigned
+bi_pack_add_tex_compact(bi_clause *clause, bi_instruction *ins, struct bi_registers *regs)
+{
+        bool f16 = ins->dest_type == nir_type_float16;
+
+        struct bifrost_tex_compact pack = {
+                .src0 = bi_get_src(ins, regs, 0, false),
+                .src1 = bi_get_src(ins, regs, 1, false),
+                .op = f16 ? BIFROST_ADD_OP_TEX_COMPACT_F16 :
+                        BIFROST_ADD_OP_TEX_COMPACT_F32,
+                .unknown = 1,
+                .tex_index = ins->texture.texture_index,
+                .sampler_index = ins->texture.sampler_index
+        };
+
+        bi_write_data_register(clause, ins);
+        RETURN_PACKED(pack);
+}
+
+static unsigned
+bi_pack_add_select(bi_instruction *ins, struct bi_registers *regs)
+{
+        unsigned size = nir_alu_type_get_type_size(ins->src_types[0]);
+        assert(size == 16);
+
+        unsigned swiz = (ins->swizzle[0][0] | (ins->swizzle[1][0] << 1));
+        unsigned op = BIFROST_ADD_SEL_16(swiz);
+        return bi_pack_add_2src(ins, regs, op);
 }
 
 static unsigned
@@ -1140,8 +1516,15 @@ bi_pack_add(bi_clause *clause, bi_bundle bundle, struct bi_registers *regs)
                 return bi_pack_add_st_vary(clause, bundle.add, regs);
         case BI_SPECIAL:
                 return bi_pack_add_special(bundle.add, regs);
-        case BI_SWIZZLE:
+        case BI_TABLE:
+                return bi_pack_add_table(bundle.add, regs);
+        case BI_SELECT:
+                return bi_pack_add_select(bundle.add, regs);
         case BI_TEX:
+                if (bundle.add->op.texture == BI_TEX_COMPACT)
+                        return bi_pack_add_tex_compact(clause, bundle.add, regs);
+                else
+                        unreachable("Unknown tex type");
         case BI_ROUND:
                 return BIFROST_ADD_NOP;
         default:
@@ -1187,18 +1570,23 @@ bi_pack_constants(bi_context *ctx, bi_clause *clause,
 
         /* TODO: Pos */
         assert(index == 0 && clause->bundle_count == 1);
+        assert(only);
+
+        uint64_t hi = clause->constants[index + 0] >> 60ull;
 
         struct bifrost_fmt_constant quad = {
                 .pos = 0, /* TODO */
                 .tag = done ? BIFROST_FMTC_FINAL : BIFROST_FMTC_CONSTANTS,
                 .imm_1 = clause->constants[index + 0] >> 4,
-                .imm_2 = only ? 0 : clause->constants[index + 1] >> 4
+                .imm_2 = ((hi < 8) ? (hi << 60ull) : 0) >> 4,
         };
 
         /* XXX: On G71, Connor observed that the difference of the top 4 bits
          * of the second constant with the first must be less than 8, otherwise
-         * we have to swap them. I am not able to reproduce this on G52,
-         * further investigation needed. Possibly an errata. XXX */
+         * we have to swap them. On G52, I'm able to reproduce a similar issue
+         * but with a different workaround (modeled above with a single
+         * constant, unclear how to workaround for multiple constants.) Further
+         * investigation needed. Possibly an errata. XXX */
 
         util_dynarray_append(emission, struct bifrost_fmt_constant, quad);
 

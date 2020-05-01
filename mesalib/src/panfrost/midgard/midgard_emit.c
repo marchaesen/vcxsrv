@@ -242,6 +242,12 @@ mir_pack_swizzle_alu(midgard_instruction *ins)
                         }
 
                         src[i].rep_high = upper;
+
+                        /* Replicate for now.. should really pick a side for
+                         * dot products */
+
+                        if (ins->alu.reg_mode == midgard_reg_mode_16)
+                                src[i].rep_low = true;
                 }
 
                 src[i].swizzle = packed;
@@ -397,6 +403,21 @@ mir_ldst_imm_shift(midgard_load_store_op op)
                 return 1;
 }
 
+static enum mali_sampler_type
+midgard_sampler_type(nir_alu_type t) {
+        switch (nir_alu_type_get_base_type(t))
+        {
+        case nir_type_float:
+                return MALI_SAMPLER_FLOAT;
+        case nir_type_int:
+                return MALI_SAMPLER_SIGNED;
+        case nir_type_uint:
+                return MALI_SAMPLER_UNSIGNED;
+        default:
+                unreachable("Unknown sampler type");
+        }
+}
+
 /* After everything is scheduled, emit whole bundles at a time */
 
 void
@@ -473,6 +494,16 @@ emit_binary_bundle(compiler_context *ctx,
                 ins->texture.next_type = next_tag;
                 ins->texture.mask = ins->mask;
                 mir_pack_swizzle_tex(ins);
+
+                unsigned osz = nir_alu_type_get_type_size(ins->dest_type);
+                unsigned isz = nir_alu_type_get_type_size(ins->src_types[1]);
+
+                assert(osz == 32 || osz == 16);
+                assert(isz == 32 || isz == 16);
+
+                ins->texture.out_full = (osz == 32);
+                ins->texture.in_reg_full = (isz == 32);
+                ins->texture.sampler_type = midgard_sampler_type(ins->dest_type);
 
                 ctx->texture_op_count--;
 

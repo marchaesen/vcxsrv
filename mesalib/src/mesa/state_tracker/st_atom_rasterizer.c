@@ -239,7 +239,7 @@ st_update_rasterizer(struct st_context *st)
    /* _NEW_SCISSOR */
    raster->scissor = !!ctx->Scissor.EnableFlags;
 
-   /* _NEW_FRAG_CLAMP */
+   /* gl_driver_flags::NewFragClamp */
    raster->clamp_fragment_color = !st->clamp_frag_color_in_shader &&
                                   ctx->Color._ClampFragmentColor;
 

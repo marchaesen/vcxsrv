@@ -489,6 +489,19 @@ xwl_sync_events (struct xwl_screen *xwl_screen)
     xwl_read_events (xwl_screen);
 }
 
+void
+xwl_screen_roundtrip(struct xwl_screen *xwl_screen)
+{
+    int ret;
+
+    ret = wl_display_roundtrip(xwl_screen->display);
+    while (ret >= 0 && xwl_screen->expecting_event)
+        ret = wl_display_roundtrip(xwl_screen->display);
+
+    if (ret < 0)
+        xwl_give_up("could not connect to wayland server\n");
+}
+
 Bool
 xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 {
@@ -572,14 +585,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     xwl_screen->registry = wl_display_get_registry(xwl_screen->display);
     wl_registry_add_listener(xwl_screen->registry,
                              &registry_listener, xwl_screen);
-    ret = wl_display_roundtrip(xwl_screen->display);
-    if (ret == -1) {
-        ErrorF("could not connect to wayland server\n");
-        return FALSE;
-    }
-
-    while (xwl_screen->expecting_event > 0)
-        wl_display_roundtrip(xwl_screen->display);
+    xwl_screen_roundtrip(xwl_screen);
 
     bpc = xwl_screen->depth / 3;
     green_bpc = xwl_screen->depth - 2 * bpc;
@@ -678,9 +684,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 
     AddCallback(&PropertyStateCallback, xwl_property_callback, pScreen);
 
-    wl_display_roundtrip(xwl_screen->display);
-    while (xwl_screen->expecting_event)
-        wl_display_roundtrip(xwl_screen->display);
+    xwl_screen_roundtrip(xwl_screen);
 
     return ret;
 }

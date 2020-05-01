@@ -27,7 +27,7 @@
 
 
 #include "main/glheader.h"
-#include "util/imports.h"
+
 #include "main/context.h"
 #include "main/macros.h"
 #include "main/mtypes.h"
@@ -37,6 +37,7 @@
 #include "main/state.h"
 #include "main/viewport.h"
 #include "util/simple_list.h"
+#include "util/u_memory.h"
 
 #include "tnl.h"
 #include "t_context.h"
@@ -170,7 +171,7 @@ _tnl_InvalidateState( struct gl_context *ctx, GLuint new_state )
       tnl->render_inputs_bitset |= BITFIELD64_BIT(_TNL_ATTRIB_FOG);
    }
 
-   if (ctx->Polygon.FrontMode != GL_FILL || 
+   if (ctx->Polygon.FrontMode != GL_FILL ||
        ctx->Polygon.BackMode != GL_FILL)
       tnl->render_inputs_bitset |= BITFIELD64_BIT(_TNL_ATTRIB_EDGEFLAG);
 
@@ -209,7 +210,7 @@ _tnl_wakeup( struct gl_context *ctx )
 
 #if 0
    if (ctx->Light.ColorMaterialEnabled) {
-      _mesa_update_color_material( ctx, 
+      _mesa_update_color_material( ctx,
 				   ctx->Current.Attrib[VERT_ATTRIB_COLOR0] );
    }
 #endif

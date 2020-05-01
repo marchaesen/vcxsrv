@@ -32,7 +32,7 @@
 #define FORMAT_UTILS_H
 
 #include "formats.h"
-#include "util/imports.h"
+
 #include "macros.h"
 #include "util/rounding.h"
 #include "util/half_float.h"

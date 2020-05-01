@@ -243,7 +243,7 @@ _handle_v_load_store(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode,
       } else {
          struct vtn_ssa_value *ssa = vtn_create_ssa_value(b, glsl_scalar_type(glsl_get_base_type(dest_type)));
          struct vtn_ssa_value *val = vtn_ssa_value(b, w[5]);
-         ssa->def = vtn_vector_extract(b, val->def, i);
+         ssa->def = nir_channel(&b->nb, val->def, i);
          vtn_local_store(b, ssa, arr_deref, p->type->access);
       }
    }

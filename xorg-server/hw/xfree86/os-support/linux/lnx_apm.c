@@ -138,13 +138,14 @@ xf86OSPMOpen(void)
 #ifdef HAVE_ACPI
     /* Favour ACPI over APM, but only when enabled */
 
-    if (!xf86acpiDisableFlag)
+    if (!xf86acpiDisableFlag) {
         ret = lnxACPIOpen();
-
-    if (!ret)
+        if (ret)
+            return ret;
+    }
 #endif
 #ifdef HAVE_APM
-        ret = lnxAPMOpen();
+    ret = lnxAPMOpen();
 #endif
 
     return ret;

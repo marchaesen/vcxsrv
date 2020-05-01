@@ -81,8 +81,10 @@
  */
 #define RADV_MAX_PER_SET_DESCRIPTORS ((1ull << 31 ) / 96)
 
-/* Our buffer size fields allow only this much */
-#define RADV_MAX_MEMORY_ALLOCATION_SIZE 0xFFFFFFFFull
+/* Our buffer size fields allow only 2**32 - 1. We round that down to a multiple
+ * of 4 bytes so we can align buffer sizes up.
+ */
+#define RADV_MAX_MEMORY_ALLOCATION_SIZE 0xFFFFFFFCull
 
 /* Number of invocations in each subgroup. */
 #define RADV_SUBGROUP_SIZE 64

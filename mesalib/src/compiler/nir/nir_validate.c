@@ -575,6 +575,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
    case nir_intrinsic_load_shared:
    case nir_intrinsic_load_global:
    case nir_intrinsic_load_scratch:
+   case nir_intrinsic_load_constant:
       /* These memory load operations must have alignments */
       validate_assert(state,
          util_is_power_of_two_nonzero(nir_intrinsic_align_mul(instr)));
@@ -589,7 +590,6 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
    case nir_intrinsic_load_output:
    case nir_intrinsic_load_per_vertex_output:
    case nir_intrinsic_load_push_constant:
-   case nir_intrinsic_load_constant:
       /* All memory load operations must load at least a byte */
       validate_assert(state, nir_dest_bit_size(instr->dest) >= 8);
       break;

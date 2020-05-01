@@ -57,15 +57,15 @@ _mesa_glthread_allocate_command(struct gl_context *ctx,
                                 int size)
 {
    struct glthread_state *glthread = &ctx->GLThread;
-   struct glthread_batch *next = &glthread->batches[glthread->next];
+   struct glthread_batch *next = glthread->next_batch;
    struct marshal_cmd_base *cmd_base;
-   const int aligned_size = ALIGN(size, 8);
 
    if (unlikely(next->used + size > MARSHAL_MAX_CMD_SIZE)) {
       _mesa_glthread_flush_batch(ctx);
-      next = &glthread->batches[glthread->next];
+      next = glthread->next_batch;
    }
 
+   const int aligned_size = align(size, 8);
    cmd_base = (struct marshal_cmd_base *)&next->buffer[next->used];
    next->used += aligned_size;
    cmd_base->cmd_id = cmd_id;
@@ -399,6 +399,8 @@ _mesa_array_to_attrib(struct gl_context *ctx, GLenum array)
       return VERT_ATTRIB_COLOR1;
    case GL_POINT_SIZE_ARRAY_OES:
       return VERT_ATTRIB_POINT_SIZE;
+   case GL_PRIMITIVE_RESTART_NV:
+      return VERT_ATTRIB_PRIMITIVE_RESTART_NV;
    default:
       if (array >= GL_TEXTURE0 && array <= GL_TEXTURE7)
          return VERT_ATTRIB_TEX(array - GL_TEXTURE0);

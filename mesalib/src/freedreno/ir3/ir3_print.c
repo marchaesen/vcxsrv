@@ -127,6 +127,8 @@ static void print_instr_name(struct ir3_instruction *instr, bool flags)
 			printf(".s");
 		if (instr->flags & IR3_INSTR_A1EN)
 			printf(".a1en");
+		if (instr->opc == OPC_LDC)
+			printf(".offset%d", instr->cat6.d);
 		if (instr->flags & IR3_INSTR_B) {
 			printf(".base%d",
 				   is_tex(instr) ? instr->cat5.tex_base : instr->cat6.base);

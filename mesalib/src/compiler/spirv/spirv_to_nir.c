@@ -163,14 +163,6 @@ _vtn_fail(struct vtn_builder *b, const char *file, unsigned line,
    longjmp(b->fail_jump, 1);
 }
 
-struct spec_constant_value {
-   bool is_double;
-   union {
-      uint32_t data32;
-      uint64_t data64;
-   };
-};
-
 static struct vtn_ssa_value *
 vtn_undef_ssa_value(struct vtn_builder *b, const struct glsl_type *type)
 {
@@ -1547,39 +1539,13 @@ spec_constant_decoration_cb(struct vtn_builder *b, UNUSED struct vtn_value *val,
    if (dec->decoration != SpvDecorationSpecId)
       return;
 
-   struct spec_constant_value *const_value = data;
-
+   nir_const_value *value = data;
    for (unsigned i = 0; i < b->num_specializations; i++) {
       if (b->specializations[i].id == dec->operands[0]) {
-         if (const_value->is_double)
-            const_value->data64 = b->specializations[i].data64;
-         else
-            const_value->data32 = b->specializations[i].data32;
+         *value = b->specializations[i].value;
          return;
       }
    }
-}
-
-static uint32_t
-get_specialization(struct vtn_builder *b, struct vtn_value *val,
-                   uint32_t const_value)
-{
-   struct spec_constant_value data;
-   data.is_double = false;
-   data.data32 = const_value;
-   vtn_foreach_decoration(b, val, spec_constant_decoration_cb, &data);
-   return data.data32;
-}
-
-static uint64_t
-get_specialization64(struct vtn_builder *b, struct vtn_value *val,
-                   uint64_t const_value)
-{
-   struct spec_constant_value data;
-   data.is_double = true;
-   data.data64 = const_value;
-   vtn_foreach_decoration(b, val, spec_constant_decoration_cb, &data);
-   return data.data64;
 }
 
 static void
@@ -1613,18 +1579,21 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
                   "Result type of %s must be OpTypeBool",
                   spirv_op_to_string(opcode));
 
-      uint32_t int_val = (opcode == SpvOpConstantTrue ||
-                          opcode == SpvOpSpecConstantTrue);
+      bool bval = (opcode == SpvOpConstantTrue ||
+                   opcode == SpvOpSpecConstantTrue);
+
+      nir_const_value u32val = nir_const_value_for_uint(bval, 32);
 
       if (opcode == SpvOpSpecConstantTrue ||
           opcode == SpvOpSpecConstantFalse)
-         int_val = get_specialization(b, val, int_val);
+         vtn_foreach_decoration(b, val, spec_constant_decoration_cb, &u32val);
 
-      val->constant->values[0].b = int_val != 0;
+      val->constant->values[0].b = u32val.u32 != 0;
       break;
    }
 
-   case SpvOpConstant: {
+   case SpvOpConstant:
+   case SpvOpSpecConstant: {
       vtn_fail_if(val->type->base_type != vtn_base_type_scalar,
                   "Result type of %s must be a scalar",
                   spirv_op_to_string(opcode));
@@ -1645,31 +1614,10 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
       default:
          vtn_fail("Unsupported SpvOpConstant bit size: %u", bit_size);
       }
-      break;
-   }
 
-   case SpvOpSpecConstant: {
-      vtn_fail_if(val->type->base_type != vtn_base_type_scalar,
-                  "Result type of %s must be a scalar",
-                  spirv_op_to_string(opcode));
-      int bit_size = glsl_get_bit_size(val->type->type);
-      switch (bit_size) {
-      case 64:
-         val->constant->values[0].u64 =
-            get_specialization64(b, val, vtn_u64_literal(&w[3]));
-         break;
-      case 32:
-         val->constant->values[0].u32 = get_specialization(b, val, w[3]);
-         break;
-      case 16:
-         val->constant->values[0].u16 = get_specialization(b, val, w[3]);
-         break;
-      case 8:
-         val->constant->values[0].u8 = get_specialization(b, val, w[3]);
-         break;
-      default:
-         vtn_fail("Unsupported SpvOpSpecConstant bit size");
-      }
+      if (opcode == SpvOpSpecConstant)
+         vtn_foreach_decoration(b, val, spec_constant_decoration_cb,
+                                &val->constant->values[0]);
       break;
    }
 
@@ -1719,7 +1667,9 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
    }
 
    case SpvOpSpecConstantOp: {
-      SpvOp opcode = get_specialization(b, val, w[3]);
+      nir_const_value u32op = nir_const_value_for_uint(w[3], 32);
+      vtn_foreach_decoration(b, val, spec_constant_decoration_cb, &u32op);
+      SpvOp opcode = u32op.u32;
       switch (opcode) {
       case SpvOpVectorShuffle: {
          struct vtn_value *v0 = &b->values[w[4]];
@@ -3311,58 +3261,6 @@ vtn_ssa_transpose(struct vtn_builder *b, struct vtn_ssa_value *src)
    return dest;
 }
 
-nir_ssa_def *
-vtn_vector_extract(struct vtn_builder *b, nir_ssa_def *src, unsigned index)
-{
-   return nir_channel(&b->nb, src, index);
-}
-
-nir_ssa_def *
-vtn_vector_insert(struct vtn_builder *b, nir_ssa_def *src, nir_ssa_def *insert,
-                  unsigned index)
-{
-   nir_alu_instr *vec = create_vec(b, src->num_components,
-                                   src->bit_size);
-
-   for (unsigned i = 0; i < src->num_components; i++) {
-      if (i == index) {
-         vec->src[i].src = nir_src_for_ssa(insert);
-      } else {
-         vec->src[i].src = nir_src_for_ssa(src);
-         vec->src[i].swizzle[0] = i;
-      }
-   }
-
-   nir_builder_instr_insert(&b->nb, &vec->instr);
-
-   return &vec->dest.dest.ssa;
-}
-
-static nir_ssa_def *
-nir_ieq_imm(nir_builder *b, nir_ssa_def *x, uint64_t i)
-{
-   return nir_ieq(b, x, nir_imm_intN_t(b, i, x->bit_size));
-}
-
-nir_ssa_def *
-vtn_vector_extract_dynamic(struct vtn_builder *b, nir_ssa_def *src,
-                           nir_ssa_def *index)
-{
-   return nir_vector_extract(&b->nb, src, nir_i2i(&b->nb, index, 32));
-}
-
-nir_ssa_def *
-vtn_vector_insert_dynamic(struct vtn_builder *b, nir_ssa_def *src,
-                          nir_ssa_def *insert, nir_ssa_def *index)
-{
-   nir_ssa_def *dest = vtn_vector_insert(b, src, insert, 0);
-   for (unsigned i = 1; i < src->num_components; i++)
-      dest = nir_bcsel(&b->nb, nir_ieq_imm(&b->nb, index, i),
-                       vtn_vector_insert(b, src, insert, i), dest);
-
-   return dest;
-}
-
 static nir_ssa_def *
 vtn_vector_shuffle(struct vtn_builder *b, unsigned num_components,
                    nir_ssa_def *src0, nir_ssa_def *src1,
@@ -3457,17 +3355,29 @@ vtn_composite_insert(struct vtn_builder *b, struct vtn_ssa_value *src,
    struct vtn_ssa_value *cur = dest;
    unsigned i;
    for (i = 0; i < num_indices - 1; i++) {
+      /* If we got a vector here, that means the next index will be trying to
+       * dereference a scalar.
+       */
+      vtn_fail_if(glsl_type_is_vector_or_scalar(cur->type),
+                  "OpCompositeInsert has too many indices.");
+      vtn_fail_if(indices[i] >= glsl_get_length(cur->type),
+                  "All indices in an OpCompositeInsert must be in-bounds");
       cur = cur->elems[indices[i]];
    }
 
    if (glsl_type_is_vector_or_scalar(cur->type)) {
+      vtn_fail_if(indices[i] >= glsl_get_vector_elements(cur->type),
+                  "All indices in an OpCompositeInsert must be in-bounds");
+
       /* According to the SPIR-V spec, OpCompositeInsert may work down to
        * the component granularity. In that case, the last index will be
        * the index to insert the scalar into the vector.
        */
 
-      cur->def = vtn_vector_insert(b, cur->def, insert->def, indices[i]);
+      cur->def = nir_vector_insert_imm(&b->nb, cur->def, insert->def, indices[i]);
    } else {
+      vtn_fail_if(indices[i] >= glsl_get_length(cur->type),
+                  "All indices in an OpCompositeInsert must be in-bounds");
       cur->elems[indices[i]] = insert;
    }
 
@@ -3482,6 +3392,9 @@ vtn_composite_extract(struct vtn_builder *b, struct vtn_ssa_value *src,
    for (unsigned i = 0; i < num_indices; i++) {
       if (glsl_type_is_vector_or_scalar(cur->type)) {
          vtn_assert(i == num_indices - 1);
+         vtn_fail_if(indices[i] >= glsl_get_vector_elements(cur->type),
+                     "All indices in an OpCompositeExtract must be in-bounds");
+
          /* According to the SPIR-V spec, OpCompositeExtract may work down to
           * the component granularity. The last index will be the index of the
           * vector to extract.
@@ -3489,9 +3402,11 @@ vtn_composite_extract(struct vtn_builder *b, struct vtn_ssa_value *src,
 
          struct vtn_ssa_value *ret = rzalloc(b, struct vtn_ssa_value);
          ret->type = glsl_scalar_type(glsl_get_base_type(cur->type));
-         ret->def = vtn_vector_extract(b, cur->def, indices[i]);
+         ret->def = nir_channel(&b->nb, cur->def, indices[i]);
          return ret;
       } else {
+         vtn_fail_if(indices[i] >= glsl_get_length(cur->type),
+                     "All indices in an OpCompositeExtract must be in-bounds");
          cur = cur->elems[indices[i]];
       }
    }
@@ -3508,14 +3423,14 @@ vtn_handle_composite(struct vtn_builder *b, SpvOp opcode,
 
    switch (opcode) {
    case SpvOpVectorExtractDynamic:
-      ssa->def = vtn_vector_extract_dynamic(b, vtn_ssa_value(b, w[3])->def,
-                                            vtn_ssa_value(b, w[4])->def);
+      ssa->def = nir_vector_extract(&b->nb, vtn_ssa_value(b, w[3])->def,
+                                    vtn_ssa_value(b, w[4])->def);
       break;
 
    case SpvOpVectorInsertDynamic:
-      ssa->def = vtn_vector_insert_dynamic(b, vtn_ssa_value(b, w[3])->def,
-                                           vtn_ssa_value(b, w[4])->def,
-                                           vtn_ssa_value(b, w[5])->def);
+      ssa->def = nir_vector_insert(&b->nb, vtn_ssa_value(b, w[3])->def,
+                                   vtn_ssa_value(b, w[4])->def,
+                                   vtn_ssa_value(b, w[5])->def);
       break;
 
    case SpvOpVectorShuffle:
@@ -3699,11 +3614,15 @@ vtn_handle_barrier(struct vtn_builder *b, SpvOp opcode,
 
       /* GLSLang, prior to commit 8297936dd6eb3, emitted OpControlBarrier with
        * memory semantics of None for GLSL barrier().
+       * And before that, prior to c3f1cdfa, emitted the OpControlBarrier with
+       * Device instead of Workgroup for execution scope.
        */
       if (b->wa_glslang_cs_barrier &&
           b->nb.shader->info.stage == MESA_SHADER_COMPUTE &&
-          execution_scope == SpvScopeWorkgroup &&
+          (execution_scope == SpvScopeWorkgroup ||
+           execution_scope == SpvScopeDevice) &&
           memory_semantics == SpvMemorySemanticsMaskNone) {
+         execution_scope = SpvScopeWorkgroup;
          memory_scope = SpvScopeWorkgroup;
          memory_semantics = SpvMemorySemanticsAcquireReleaseMask |
                             SpvMemorySemanticsWorkgroupMemoryMask;

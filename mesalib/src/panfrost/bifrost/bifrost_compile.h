@@ -52,17 +52,16 @@ static const nir_shader_compiler_options bifrost_nir_options = {
         .lower_rotate = true,
 
         .lower_pack_half_2x16 = true,
-        .lower_pack_half_2x16_split = true,
         .lower_pack_unorm_2x16 = true,
         .lower_pack_snorm_2x16 = true,
         .lower_pack_unorm_4x8 = true,
         .lower_pack_snorm_4x8 = true,
         .lower_unpack_half_2x16 = true,
-        .lower_unpack_half_2x16_split = true,
         .lower_unpack_unorm_2x16 = true,
         .lower_unpack_snorm_2x16 = true,
         .lower_unpack_unorm_4x8 = true,
         .lower_unpack_snorm_4x8 = true,
+        .lower_pack_split = true,
 
         .lower_doubles_options = nir_lower_dmod,
 

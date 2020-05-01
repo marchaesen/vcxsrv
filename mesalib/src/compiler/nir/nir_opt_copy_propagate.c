@@ -26,7 +26,6 @@
  */
 
 #include "nir.h"
-#include <util/imports.h>
 
 /**
  * SSA-based copy propagation

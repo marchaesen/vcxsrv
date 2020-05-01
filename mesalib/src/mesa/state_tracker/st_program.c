@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
  /*
   * Authors:
@@ -32,7 +32,7 @@
 
 
 #include "main/errors.h"
-#include "util/imports.h"
+
 #include "main/hash.h"
 #include "main/mtypes.h"
 #include "program/prog_parameter.h"
@@ -52,6 +52,8 @@
 #include "tgsi/tgsi_emulate.h"
 #include "tgsi/tgsi_parse.h"
 #include "tgsi/tgsi_ureg.h"
+
+#include "util/u_memory.h"
 
 #include "st_debug.h"
 #include "st_cb_bitmap.h"
@@ -491,8 +493,6 @@ st_translate_vertex_program(struct st_context *st,
    if (stp->Base.arb.IsPositionInvariant)
       _mesa_insert_mvp_code(st->ctx, &stp->Base);
 
-   st_prepare_vertex_program(stp);
-
    /* ARB_vp: */
    if (!stp->glsl_to_tgsi) {
       _mesa_remove_output_reads(&stp->Base, PROGRAM_OUTPUT);
@@ -524,13 +524,33 @@ st_translate_vertex_program(struct st_context *st,
          stp->state.type = PIPE_SHADER_IR_NIR;
          stp->Base.nir = st_translate_prog_to_nir(st, &stp->Base,
                                                   MESA_SHADER_VERTEX);
+
+         /* We must update stp->Base.info after translation and before
+          * st_prepare_vertex_program is called, because inputs_read
+          * may become outdated after NIR optimization passes.
+          *
+          * For ffvp/ARB_vp inputs_read is populated based
+          * on declared attributes without taking their usage into
+          * consideration. When creating shader variants we expect
+          * that their inputs_read would match the base ones for
+          * input mapping to work properly.
+          */
+         nir_shader_gather_info(stp->Base.nir,
+                                nir_shader_get_entrypoint(stp->Base.nir));
+         st_nir_assign_vs_in_locations(stp->Base.nir);
+         stp->Base.info = stp->Base.nir->info;
+
          /* For st_draw_feedback, we need to generate TGSI too if draw doesn't
           * use LLVM.
           */
-         if (draw_has_llvm())
+         if (draw_has_llvm()) {
+            st_prepare_vertex_program(stp);
             return true;
+         }
       }
    }
+
+   st_prepare_vertex_program(stp);
 
    /* Get semantic names and indices. */
    for (attr = 0; attr < VARYING_SLOT_MAX; attr++) {

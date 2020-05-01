@@ -10,12 +10,14 @@
 
   <enum name="VERTEX_ATTRIB_ARRAY_DIVISOR_ARB" value="0x88FE"/>
 
-  <function name="VertexAttribDivisorARB" alias="VertexAttribDivisor">
+  <function name="VertexAttribDivisorARB" alias="VertexAttribDivisor"
+            marshal_call_after="if (COMPAT) _mesa_glthread_AttribDivisor(ctx, NULL, VERT_ATTRIB_GENERIC(index), divisor);">
     <param name="index" type="GLuint"/>
     <param name="divisor" type="GLuint"/>
   </function>
 
-  <function name="VertexArrayVertexAttribDivisorEXT">
+  <function name="VertexArrayVertexAttribDivisorEXT"
+            marshal_call_after="if (COMPAT) _mesa_glthread_AttribDivisor(ctx, &amp;vaobj, VERT_ATTRIB_GENERIC(index), divisor);">
 	<param name="vaobj" type="GLuint"/>
     <param name="index" type="GLuint"/>
     <param name="divisor" type="GLuint"/>

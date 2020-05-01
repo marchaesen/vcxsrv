@@ -43,6 +43,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "main/draw_validate.h"
 #include "main/dispatch.h"
 #include "util/bitscan.h"
+#include "util/u_memory.h"
 
 #include "vbo_noop.h"
 #include "vbo_private.h"
@@ -1015,7 +1016,7 @@ vbo_exec_vtx_init(struct vbo_exec_context *exec, bool use_buffer_objects)
       /* Use allocated memory for immediate mode. */
       exec->vtx.bufferobj = NULL;
       exec->vtx.buffer_map =
-         _mesa_align_malloc(ctx->Const.glBeginEndBufferSize, 64);
+         align_malloc(ctx->Const.glBeginEndBufferSize, 64);
       exec->vtx.buffer_ptr = exec->vtx.buffer_map;
    }
 
@@ -1039,7 +1040,7 @@ vbo_exec_vtx_destroy(struct vbo_exec_context *exec)
       assert(!exec->vtx.bufferobj ||
              exec->vtx.bufferobj->Name == IMM_BUFFER_NAME);
       if (!exec->vtx.bufferobj) {
-         _mesa_align_free(exec->vtx.buffer_map);
+         align_free(exec->vtx.buffer_map);
          exec->vtx.buffer_map = NULL;
          exec->vtx.buffer_ptr = NULL;
       }

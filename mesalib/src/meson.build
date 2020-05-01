@@ -30,7 +30,8 @@ libglsl_util = static_library(
   'glsl_util',
   files(
     'mesa/main/extensions_table.c',
-    'mesa/program/prog_parameter.c', 'mesa/program/symbol_table.c',
+    'mesa/program/prog_parameter.c',
+    'mesa/program/symbol_table.c',
     'mesa/program/dummy_errors.c',
   ),
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],

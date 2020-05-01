@@ -490,6 +490,7 @@ formats = [("pseudo", [Format.PSEUDO], 'Pseudo_instruction', list(itertools.prod
            ("reduction", [Format.PSEUDO_REDUCTION], 'Pseudo_reduction_instruction', [(3, 2), (3, 4)]),
            ("vop1", [Format.VOP1], 'VOP1_instruction', [(1, 1), (2, 2)]),
            ("vop2", [Format.VOP2], 'VOP2_instruction', itertools.product([1, 2], [2, 3])),
+           ("vop2_sdwa", [Format.VOP2, Format.SDWA], 'SDWA_instruction', itertools.product([1, 2], [2, 3])),
            ("vopc", [Format.VOPC], 'VOPC_instruction', itertools.product([1, 2], [2])),
            ("vop3", [Format.VOP3A], 'VOP3A_instruction', [(1, 3), (1, 2), (1, 1), (2, 2)]),
            ("vintrp", [Format.VINTRP], 'Interp_instruction', [(1, 2), (1, 3)]),
@@ -527,6 +528,7 @@ formats = [("pseudo", [Format.PSEUDO], 'Pseudo_instruction', list(itertools.prod
             % for dest, field_name in zip(f.get_builder_field_dests(), f.get_builder_field_names()):
       instr->${dest} = ${field_name};
             % endfor
+            ${f.get_builder_initialization(num_operands)}
         % endfor
       return insert(instr);
    }

@@ -31,6 +31,7 @@
 #include <stdbool.h>
 #include "util/format/u_format.h"
 #include "panfrost-job.h"
+#include "pan_bo.h"
 
 struct panfrost_slice {
         unsigned offset;
@@ -67,7 +68,7 @@ panfrost_afbc_header_size(unsigned width, unsigned height);
 /* mali_texture_descriptor */
 
 unsigned
-panfrost_estimate_texture_size(
+panfrost_estimate_texture_payload_size(
                 unsigned first_level, unsigned last_level,
                 unsigned first_layer, unsigned last_layer,
                 enum mali_texture_type type, enum mali_texture_layout layout);
@@ -86,6 +87,22 @@ panfrost_new_texture(
         unsigned swizzle,
         mali_ptr base,
         struct panfrost_slice *slices);
+
+void
+panfrost_new_texture_bifrost(
+        struct bifrost_texture_descriptor *descriptor,
+        uint16_t width, uint16_t height,
+        uint16_t depth, uint16_t array_size,
+        enum pipe_format format,
+        enum mali_texture_type type,
+        enum mali_texture_layout layout,
+        unsigned first_level, unsigned last_level,
+        unsigned first_layer, unsigned last_layer,
+        unsigned cube_stride,
+        unsigned swizzle,
+        mali_ptr base,
+        struct panfrost_slice *slices,
+        struct panfrost_bo *payload);
 
 
 unsigned
@@ -128,5 +145,8 @@ panfrost_get_default_swizzle(unsigned components)
                 unreachable("Invalid number of components");
         }
 }
+
+enum mali_format
+panfrost_format_to_bifrost_blend(const struct util_format_description *desc);
 
 #endif

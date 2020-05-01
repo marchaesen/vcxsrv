@@ -25,7 +25,6 @@
 
 #include "c99_math.h"
 #include "main/glheader.h"
-#include "util/imports.h"
 #include "main/macros.h"
 #include "main/mtypes.h"
 #include "main/teximage.h"
@@ -181,7 +180,7 @@ solve_plane_chan(GLfloat x, GLfloat y, const GLfloat plane[4])
       return 0;
    else if (z > CHAN_MAX)
       return CHAN_MAX;
-   return (GLchan) IROUND_POS(z);
+   return (GLchan) lroundf(z);
 #endif
 }
 
@@ -327,7 +326,7 @@ compute_coveragef(const struct LineInfo *info,
 
 typedef void (*plot_func)(struct gl_context *ctx, struct LineInfo *line,
                           int ix, int iy);
-                         
+
 
 
 /*

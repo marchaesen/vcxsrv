@@ -149,6 +149,38 @@ st_setup_arrays(struct st_context *st,
    st->draw_needs_minmax_index =
       (userbuf_attribs & ~_mesa_draw_nonzero_divisor_bits(ctx)) != 0;
 
+   if (vao->IsDynamic) {
+      while (mask) {
+         const gl_vert_attrib attr = u_bit_scan(&mask);
+         const struct gl_array_attributes *const attrib =
+            _mesa_draw_array_attrib(vao, attr);
+         const struct gl_vertex_buffer_binding *const binding =
+            &vao->BufferBinding[attrib->BufferBindingIndex];
+         const unsigned bufidx = (*num_vbuffers)++;
+
+         /* Set the vertex buffer. */
+         if (binding->BufferObj) {
+            struct st_buffer_object *stobj = st_buffer_object(binding->BufferObj);
+
+            vbuffer[bufidx].buffer.resource = stobj ? stobj->buffer : NULL;
+            vbuffer[bufidx].is_user_buffer = false;
+            vbuffer[bufidx].buffer_offset = binding->Offset +
+                                            attrib->RelativeOffset;
+         } else {
+            vbuffer[bufidx].buffer.user = attrib->Ptr;
+            vbuffer[bufidx].is_user_buffer = true;
+            vbuffer[bufidx].buffer_offset = 0;
+         }
+         vbuffer[bufidx].stride = binding->Stride; /* in bytes */
+
+         /* Set the vertex element. */
+         init_velement(vp, velements->velems, &attrib->Format, 0,
+                       binding->InstanceDivisor, bufidx,
+                       input_to_index[attr]);
+      }
+      return;
+   }
+
    while (mask) {
       /* The attribute index to start pulling a binding */
       const gl_vert_attrib i = ffs(mask) - 1;

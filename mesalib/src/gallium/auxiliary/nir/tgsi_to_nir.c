@@ -646,6 +646,10 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
          op = nir_intrinsic_load_work_group_id;
          load = nir_load_work_group_id(b);
          break;
+      case TGSI_SEMANTIC_BLOCK_SIZE:
+         op = nir_intrinsic_load_local_group_size;
+         load = nir_load_local_group_size(b);
+         break;
       case TGSI_SEMANTIC_CS_USER_DATA_AMD:
          op = nir_intrinsic_load_user_data_amd;
          load = nir_load_user_data_amd(b);
@@ -1105,6 +1109,14 @@ ttn_ucmp(nir_builder *b, nir_op op, nir_alu_dest dest, nir_ssa_def **src)
    ttn_move_dest(b, dest, nir_bcsel(b,
                                     nir_ine(b, src[0], nir_imm_int(b, 0)),
                                     src[1], src[2]));
+}
+
+static void
+ttn_barrier(nir_builder *b)
+{
+   nir_intrinsic_instr *barrier =
+      nir_intrinsic_instr_create(b->shader, nir_intrinsic_control_barrier);
+   nir_builder_instr_insert(b, &barrier->instr);
 }
 
 static void
@@ -2219,6 +2231,10 @@ ttn_emit_instruction(struct ttn_compile *c)
 
    case TGSI_OPCODE_ENDLOOP:
       ttn_endloop(c);
+      break;
+
+   case TGSI_OPCODE_BARRIER:
+      ttn_barrier(b);
       break;
 
    default:

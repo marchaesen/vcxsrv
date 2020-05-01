@@ -68,8 +68,8 @@ midgard_opt_combine_projection(compiler_context *ctx, midgard_block *block)
                 unsigned frcp = ins->src[1];
                 unsigned to = ins->dest;
 
-                if (frcp & IS_REG) continue;
-                if (to & IS_REG) continue;
+                if (frcp & PAN_IS_REG) continue;
+                if (to & PAN_IS_REG) continue;
 
                 bool frcp_found = false;
                 unsigned frcp_component = 0;
@@ -148,8 +148,8 @@ midgard_opt_varying_projection(compiler_context *ctx, midgard_block *block)
                 unsigned vary = ins->src[0];
                 unsigned to = ins->dest;
 
-                if (vary & IS_REG) continue;
-                if (to & IS_REG) continue;
+                if (vary & PAN_IS_REG) continue;
+                if (to & PAN_IS_REG) continue;
                 if (!mir_single_use(ctx, vary)) continue;
 
                 /* Check for a varying source. If we find it, we rewrite */

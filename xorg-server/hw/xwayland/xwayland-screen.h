@@ -126,6 +126,7 @@ struct xwl_output *xwl_screen_get_first_output(struct xwl_screen *xwl_screen);
 Bool xwl_close_screen(ScreenPtr screen);
 Bool xwl_screen_init(ScreenPtr pScreen, int argc, char **argv);
 void xwl_sync_events (struct xwl_screen *xwl_screen);
+void xwl_screen_roundtrip (struct xwl_screen *xwl_screen);
 void xwl_surface_damage(struct xwl_screen *xwl_screen,
                         struct wl_surface *surface,
                         int32_t x, int32_t y, int32_t width, int32_t height);

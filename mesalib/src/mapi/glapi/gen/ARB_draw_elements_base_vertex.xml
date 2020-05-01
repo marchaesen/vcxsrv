@@ -8,8 +8,7 @@
 
 <category name="GL_ARB_draw_elements_base_vertex" number="62">
 
-    <function name="DrawElementsBaseVertex" es2="3.2" exec="dynamic" marshal="draw"
-              marshal_sync="_mesa_glthread_has_non_vbo_vertices_or_indices(ctx)">
+    <function name="DrawElementsBaseVertex" es2="3.2" exec="dynamic" marshal="custom">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>
@@ -17,8 +16,7 @@
         <param name="basevertex" type="GLint"/>
     </function>
 
-    <function name="DrawRangeElementsBaseVertex" es2="3.2" exec="dynamic" marshal="draw"
-              marshal_sync="_mesa_glthread_has_non_vbo_vertices_or_indices(ctx)">
+    <function name="DrawRangeElementsBaseVertex" es2="3.2" exec="dynamic" marshal="custom">
         <param name="mode" type="GLenum"/>
         <param name="start" type="GLuint"/>
         <param name="end" type="GLuint"/>
@@ -28,8 +26,7 @@
         <param name="basevertex" type="GLint"/>
     </function>
 
-    <function name="MultiDrawElementsBaseVertex" exec="dynamic" marshal="draw"
-              marshal_sync="_mesa_glthread_has_non_vbo_vertices_or_indices(ctx)">
+    <function name="MultiDrawElementsBaseVertex" exec="dynamic" marshal="custom">
         <param name="mode" type="GLenum"/>
         <param name="count" type="const GLsizei *" count="primcount"/>
         <param name="type" type="GLenum"/>
@@ -38,8 +35,7 @@
         <param name="basevertex" type="const GLint *" count="primcount"/>
     </function>
 
-    <function name="DrawElementsInstancedBaseVertex" es2="3.2" exec="dynamic" marshal="draw"
-              marshal_sync="_mesa_glthread_has_non_vbo_vertices_or_indices(ctx)">
+    <function name="DrawElementsInstancedBaseVertex" es2="3.2" marshal="custom">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>

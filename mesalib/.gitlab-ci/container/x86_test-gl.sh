@@ -72,11 +72,17 @@ apt-get install -y --no-remove \
       qt5-default \
       qt5-qmake \
       waffle-utils \
+      wget \
       xauth \
       xvfb \
+      xz-utils \
       zlib1g
 
 . .gitlab-ci/container/container_pre_build.sh
+
+############### Build virglrenderer
+
+. .gitlab-ci/build-virglrenderer.sh
 
 ############### Build piglit
 
@@ -124,6 +130,8 @@ apt-get purge -y \
       patch \
       pkg-config \
       python3-distutils \
-      python3.7-dev
+      python3.7-dev \
+      wget \
+      xz-utils
 
 apt-get autoremove -y --purge

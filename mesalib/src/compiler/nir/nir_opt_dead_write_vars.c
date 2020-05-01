@@ -176,6 +176,19 @@ remove_dead_write_vars_local(void *mem_ctx, nir_block *block)
 
       case nir_intrinsic_store_deref: {
          nir_deref_instr *dst = nir_src_as_deref(intrin->src[0]);
+
+         if (nir_intrinsic_access(intrin) & ACCESS_VOLATILE) {
+            /* Consider a volatile write to also be a sort of read.  This
+             * prevents us from deleting a non-volatile write just before a
+             * volatile write thanks to a non-volatile write afterwards.  It's
+             * quite the corner case, but this should be safer and more
+             * predictable for the programmer than allowing two non-volatile
+             * writes to be combined with a volatile write between them.
+             */
+            clear_unused_for_read(&unused_writes, dst);
+            break;
+         }
+
          nir_component_mask_t mask = nir_intrinsic_write_mask(intrin);
          progress |= update_unused_writes(&unused_writes, intrin, dst, mask);
          break;
@@ -184,6 +197,12 @@ remove_dead_write_vars_local(void *mem_ctx, nir_block *block)
       case nir_intrinsic_copy_deref: {
          nir_deref_instr *src = nir_src_as_deref(intrin->src[1]);
          nir_deref_instr *dst = nir_src_as_deref(intrin->src[0]);
+
+         if (nir_intrinsic_dst_access(intrin) & ACCESS_VOLATILE) {
+            clear_unused_for_read(&unused_writes, src);
+            clear_unused_for_read(&unused_writes, dst);
+            break;
+         }
 
          /* Self-copy is removed. */
          if (nir_compare_derefs(src, dst) & nir_derefs_equal_bit) {

@@ -27,7 +27,7 @@
 
 #include "main/glheader.h"
 #include "main/context.h"
-#include "util/imports.h"
+
 #include "main/mtypes.h"
 
 #include "t_context.h"
@@ -75,7 +75,7 @@ static GLuint check_input_changes( struct gl_context *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    GLuint i;
-   
+
    for (i = 0; i <= _TNL_LAST_MAT; i++) {
       if (tnl->vb.AttribPtr[i]->size != tnl->pipeline.last_attrib_size[i] ||
 	  tnl->vb.AttribPtr[i]->stride != tnl->pipeline.last_attrib_stride[i]) {
@@ -93,7 +93,7 @@ static GLuint check_output_changes( struct gl_context *ctx )
 {
 #if 0
    TNLcontext *tnl = TNL_CONTEXT(ctx);
-   
+
    for (i = 0; i < VARYING_SLOT_MAX; i++) {
       if (tnl->vb.ResultPtr[i]->size != tnl->last_result_size[i] ||
 	  tnl->vb.ResultPtr[i]->stride != tnl->last_result_stride[i]) {
@@ -103,9 +103,9 @@ static GLuint check_output_changes( struct gl_context *ctx )
       }
    }
 
-   if (tnl->pipeline.output_changes) 
+   if (tnl->pipeline.output_changes)
       tnl->Driver.NotifyOutputChanges( ctx, tnl->pipeline.output_changes );
-   
+
    return tnl->pipeline.output_changes;
 #else
    return ~0;
@@ -212,10 +212,10 @@ void _tnl_run_pipeline( struct gl_context *ctx )
 	 if (s->validate)
 	    s->validate( ctx, s );
       }
-      
+
       tnl->pipeline.new_state = 0;
       tnl->pipeline.input_changes = 0;
-      
+
       /* Pipeline can only change its output in response to either a
        * statechange or an input size/stride change.  No other changes
        * are allowed.
@@ -287,10 +287,10 @@ const struct tnl_pipeline_stage *_tnl_default_pipeline[] = {
    &_tnl_texgen_stage,
    &_tnl_texture_transform_stage,
    &_tnl_point_attenuation_stage,
-   &_tnl_vertex_program_stage, 
+   &_tnl_vertex_program_stage,
    &_tnl_fog_coordinate_stage,
    &_tnl_render_stage,
-   NULL 
+   NULL
 };
 
 const struct tnl_pipeline_stage *_tnl_vp_pipeline[] = {

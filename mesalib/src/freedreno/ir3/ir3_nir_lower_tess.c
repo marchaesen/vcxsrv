@@ -890,15 +890,9 @@ ir3_nir_lower_gs(nir_shader *shader, struct ir3_shader *s)
 
 	build_primitive_map(shader, &state.map, &shader->inputs);
 
-	uint32_t loc = 0;
-	nir_foreach_variable (var, &shader->outputs) {
-		uint32_t end = var->data.driver_location + glsl_count_attribute_slots(var->type, false);
-		loc = MAX2(loc, end);
-	}
-
 	state.vertex_flags_out = nir_variable_create(shader, nir_var_shader_out,
 			glsl_uint_type(), "vertex_flags");
-	state.vertex_flags_out->data.driver_location = loc;
+	state.vertex_flags_out->data.driver_location = shader->num_outputs++;
 	state.vertex_flags_out->data.location = VARYING_SLOT_GS_VERTEX_FLAGS_IR3;
 
 	nir_function_impl *impl = nir_shader_get_entrypoint(shader);

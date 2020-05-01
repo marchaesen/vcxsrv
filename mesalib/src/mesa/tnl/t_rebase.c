@@ -50,7 +50,7 @@
 #include "main/bufferobj.h"
 #include "main/errors.h"
 #include "main/glheader.h"
-#include "util/imports.h"
+#include "main/macros.h"
 #include "main/mtypes.h"
 #include "vbo/vbo.h"
 

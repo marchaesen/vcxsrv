@@ -26,6 +26,7 @@
 #ifndef EXECMEM_H
 #define EXECMEM_H
 
+#include "glheader.h"
 
 extern void *
 _mesa_exec_malloc(unsigned size);

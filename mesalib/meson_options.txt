@@ -182,6 +182,12 @@ option(
   description : 'Whether to build the vulkan overlay layer'
 )
 option(
+  'vulkan-device-select-layer',
+  type : 'boolean',
+  value : false,
+  description : 'Whether to build the vulkan device select layer'
+)
+option(
   'shared-glapi',
   type : 'combo',
   value : 'auto',
@@ -250,9 +256,10 @@ option(
 )
 option(
   'shared-llvm',
-  type : 'boolean',
-  value : true,
-  description : 'Whether to link llvm shared or statically.'
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
+  description : 'Whether to link LLVM shared or statically.'
 )
 option(
   'valgrind',

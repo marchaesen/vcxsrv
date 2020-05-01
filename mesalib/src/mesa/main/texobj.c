@@ -35,7 +35,7 @@
 #include "fbobject.h"
 #include "formats.h"
 #include "hash.h"
-#include "util/imports.h"
+
 #include "macros.h"
 #include "shaderimage.h"
 #include "teximage.h"
@@ -44,6 +44,7 @@
 #include "mtypes.h"
 #include "program/prog_instruction.h"
 #include "texturebindless.h"
+#include "util/u_memory.h"
 
 
 

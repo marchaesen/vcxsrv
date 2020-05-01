@@ -609,23 +609,6 @@ vtn_pointer_dereference(struct vtn_builder *b,
    }
 }
 
-struct vtn_pointer *
-vtn_pointer_for_variable(struct vtn_builder *b,
-                         struct vtn_variable *var, struct vtn_type *ptr_type)
-{
-   struct vtn_pointer *pointer = rzalloc(b, struct vtn_pointer);
-
-   pointer->mode = var->mode;
-   pointer->type = var->type;
-   vtn_assert(ptr_type->base_type == vtn_base_type_pointer);
-   vtn_assert(ptr_type->deref->type == var->type->type);
-   pointer->ptr_type = ptr_type;
-   pointer->var = var;
-   pointer->access = var->access | var->type->access;
-
-   return pointer;
-}
-
 /* Returns an atomic_uint type based on the original uint type. The returned
  * type will be equivalent to the original one but will have an atomic_uint
  * type as leaf instead of an uint.
@@ -735,11 +718,7 @@ vtn_local_load(struct vtn_builder *b, nir_deref_instr *src,
 
    if (src_tail != src) {
       val->type = src->type;
-      if (nir_src_is_const(src->arr.index))
-         val->def = vtn_vector_extract(b, val->def,
-                                       nir_src_as_uint(src->arr.index));
-      else
-         val->def = vtn_vector_extract_dynamic(b, val->def, src->arr.index.ssa);
+      val->def = nir_vector_extract(&b->nb, val->def, src->arr.index.ssa);
    }
 
    return val;
@@ -755,12 +734,8 @@ vtn_local_store(struct vtn_builder *b, struct vtn_ssa_value *src,
       struct vtn_ssa_value *val = vtn_create_ssa_value(b, dest_tail->type);
       _vtn_local_load_store(b, true, dest_tail, val, access);
 
-      if (nir_src_is_const(dest->arr.index))
-         val->def = vtn_vector_insert(b, val->def, src->def,
-                                      nir_src_as_uint(dest->arr.index));
-      else
-         val->def = vtn_vector_insert_dynamic(b, val->def, src->def,
-                                              dest->arr.index.ssa);
+      val->def = nir_vector_insert(&b->nb, val->def, src->def,
+                                   dest->arr.index.ssa);
       _vtn_local_load_store(b, false, dest_tail, val, access);
    } else {
       _vtn_local_load_store(b, false, dest_tail, src, access);
@@ -2219,8 +2194,12 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
    var->mode = mode;
    var->base_location = -1;
 
-   vtn_assert(val->value_type == vtn_value_type_pointer);
-   val->pointer = vtn_pointer_for_variable(b, var, ptr_type);
+   val->pointer = rzalloc(b, struct vtn_pointer);
+   val->pointer->mode = var->mode;
+   val->pointer->type = var->type;
+   val->pointer->ptr_type = ptr_type;
+   val->pointer->var = var;
+   val->pointer->access = var->type->access;
 
    switch (var->mode) {
    case vtn_variable_mode_function:
@@ -2389,6 +2368,9 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
 
    vtn_foreach_decoration(b, val, var_decoration_cb, var);
    vtn_foreach_decoration(b, val, ptr_decoration_cb, val->pointer);
+
+   /* Propagate access flags from the OpVariable decorations. */
+   val->pointer->access |= var->access;
 
    if ((var->mode == vtn_variable_mode_input ||
         var->mode == vtn_variable_mode_output) &&
@@ -2769,7 +2751,7 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
    case SpvOpConvertUToPtr: {
       struct vtn_value *ptr_val =
          vtn_push_value(b, w[2], vtn_value_type_pointer);
-      struct vtn_value *u_val = vtn_value(b, w[3], vtn_value_type_ssa);
+      struct vtn_value *u_val = vtn_untyped_value(b, w[3]);
 
       vtn_fail_if(ptr_val->type->type == NULL,
                   "OpConvertUToPtr can only be used on physical pointers");
@@ -2779,7 +2761,8 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
                   "OpConvertUToPtr can only be used to cast from a vector or "
                   "scalar type");
 
-      nir_ssa_def *ptr_ssa = nir_sloppy_bitcast(&b->nb, u_val->ssa->def,
+      struct vtn_ssa_value *u_ssa = vtn_ssa_value(b, w[3]);
+      nir_ssa_def *ptr_ssa = nir_sloppy_bitcast(&b->nb, u_ssa->def,
                                                 ptr_val->type->type);
       ptr_val->pointer = vtn_pointer_from_ssa(b, ptr_ssa, ptr_val->type);
       vtn_foreach_decoration(b, ptr_val, ptr_decoration_cb, ptr_val->pointer);

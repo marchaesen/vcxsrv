@@ -192,7 +192,6 @@ enum value_extra {
    EXTRA_API_ES31,
    EXTRA_API_ES32,
    EXTRA_NEW_BUFFERS,
-   EXTRA_NEW_FRAG_CLAMP,
    EXTRA_VALID_DRAW_BUFFER,
    EXTRA_VALID_TEXTURE_UNIT,
    EXTRA_VALID_CLIP_DISTANCE,
@@ -314,11 +313,6 @@ union value {
 
 static const int extra_new_buffers[] = {
    EXTRA_NEW_BUFFERS,
-   EXTRA_END
-};
-
-static const int extra_new_frag_clamp[] = {
-   EXTRA_NEW_FRAG_CLAMP,
    EXTRA_END
 };
 
@@ -1394,10 +1388,6 @@ check_extra(struct gl_context *ctx, const char *func, const struct value_desc *d
          if (_mesa_is_desktop_gl(ctx) && version >= 43)
             api_found = GL_TRUE;
          break;
-      case EXTRA_NEW_FRAG_CLAMP:
-         if (ctx->NewState & (_NEW_BUFFERS | _NEW_FRAG_CLAMP))
-            _mesa_update_state(ctx);
-         break;
       case EXTRA_API_ES2:
          api_check = GL_TRUE;
          if (ctx->API == API_OPENGLES2)
@@ -1619,8 +1609,12 @@ find_value(const char *func, GLenum pname, void **p, union value *v)
       if (ctx->Texture.CurrentUnit < ARRAY_SIZE(ctx->Texture.FixedFuncUnit)) {
          unsigned index = ctx->Texture.CurrentUnit;
          *p = ((char *)&ctx->Texture.FixedFuncUnit[index] + d->offset);
+         return d;
       }
-      return d;
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(pname=%s,unit=%d)", func,
+                  _mesa_enum_to_string(pname),
+                  ctx->Texture.CurrentUnit);
+      return &error_value;
    case LOC_CUSTOM:
       find_custom_value(ctx, d, v);
       *p = v;
@@ -1955,18 +1949,18 @@ _mesa_GetIntegerv(GLenum pname, GLint *params)
       break;
 
    case TYPE_FLOAT_8:
-      params[7] = IROUND(((GLfloat *) p)[7]);
-      params[6] = IROUND(((GLfloat *) p)[6]);
-      params[5] = IROUND(((GLfloat *) p)[5]);
-      params[4] = IROUND(((GLfloat *) p)[4]);
+      params[7] = lroundf(((GLfloat *) p)[7]);
+      params[6] = lroundf(((GLfloat *) p)[6]);
+      params[5] = lroundf(((GLfloat *) p)[5]);
+      params[4] = lroundf(((GLfloat *) p)[4]);
    case TYPE_FLOAT_4:
-      params[3] = IROUND(((GLfloat *) p)[3]);
+      params[3] = lroundf(((GLfloat *) p)[3]);
    case TYPE_FLOAT_3:
-      params[2] = IROUND(((GLfloat *) p)[2]);
+      params[2] = lroundf(((GLfloat *) p)[2]);
    case TYPE_FLOAT_2:
-      params[1] = IROUND(((GLfloat *) p)[1]);
+      params[1] = lroundf(((GLfloat *) p)[1]);
    case TYPE_FLOAT:
-      params[0] = IROUND(((GLfloat *) p)[0]);
+      params[0] = lroundf(((GLfloat *) p)[0]);
       break;
 
    case TYPE_FLOATN_4:
@@ -2070,18 +2064,18 @@ _mesa_GetInteger64v(GLenum pname, GLint64 *params)
       break;
 
    case TYPE_FLOAT_8:
-      params[7] = IROUND64(((GLfloat *) p)[7]);
-      params[6] = IROUND64(((GLfloat *) p)[6]);
-      params[5] = IROUND64(((GLfloat *) p)[5]);
-      params[4] = IROUND64(((GLfloat *) p)[4]);
+      params[7] = llround(((GLfloat *) p)[7]);
+      params[6] = llround(((GLfloat *) p)[6]);
+      params[5] = llround(((GLfloat *) p)[5]);
+      params[4] = llround(((GLfloat *) p)[4]);
    case TYPE_FLOAT_4:
-      params[3] = IROUND64(((GLfloat *) p)[3]);
+      params[3] = llround(((GLfloat *) p)[3]);
    case TYPE_FLOAT_3:
-      params[2] = IROUND64(((GLfloat *) p)[2]);
+      params[2] = llround(((GLfloat *) p)[2]);
    case TYPE_FLOAT_2:
-      params[1] = IROUND64(((GLfloat *) p)[1]);
+      params[1] = llround(((GLfloat *) p)[1]);
    case TYPE_FLOAT:
-      params[0] = IROUND64(((GLfloat *) p)[0]);
+      params[0] = llround(((GLfloat *) p)[0]);
       break;
 
    case TYPE_FLOATN_4:
@@ -2918,22 +2912,22 @@ _mesa_GetIntegeri_v( GLenum pname, GLuint index, GLint *params )
    switch (type) {
    case TYPE_FLOAT_4:
    case TYPE_FLOATN_4:
-      params[3] = IROUND(v.value_float_4[3]);
+      params[3] = lroundf(v.value_float_4[3]);
    case TYPE_FLOAT_3:
    case TYPE_FLOATN_3:
-      params[2] = IROUND(v.value_float_4[2]);
+      params[2] = lroundf(v.value_float_4[2]);
    case TYPE_FLOAT_2:
    case TYPE_FLOATN_2:
-      params[1] = IROUND(v.value_float_4[1]);
+      params[1] = lroundf(v.value_float_4[1]);
    case TYPE_FLOAT:
    case TYPE_FLOATN:
-      params[0] = IROUND(v.value_float_4[0]);
+      params[0] = lroundf(v.value_float_4[0]);
       break;
 
    case TYPE_DOUBLEN_2:
-      params[1] = IROUND(v.value_double_2[1]);
+      params[1] = lroundf(v.value_double_2[1]);
    case TYPE_DOUBLEN:
-      params[0] = IROUND(v.value_double_2[0]);
+      params[0] = lroundf(v.value_double_2[0]);
       break;
 
    case TYPE_INT:

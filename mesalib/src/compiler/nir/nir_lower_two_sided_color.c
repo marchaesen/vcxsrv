@@ -46,22 +46,20 @@ typedef struct {
  */
 
 static nir_variable *
-create_input(nir_shader *shader, unsigned drvloc, gl_varying_slot slot,
+create_input(nir_shader *shader, gl_varying_slot slot,
              enum glsl_interp_mode interpolation)
 {
    nir_variable *var = rzalloc(shader, nir_variable);
 
-   var->data.driver_location = drvloc;
+   var->data.driver_location = shader->num_inputs++;
    var->type = glsl_vec4_type();
    var->data.mode = nir_var_shader_in;
-   var->name = ralloc_asprintf(var, "in_%d", drvloc);
+   var->name = ralloc_asprintf(var, "in_%d", var->data.driver_location);
    var->data.index = 0;
    var->data.location = slot;
    var->data.interpolation = interpolation;
 
    exec_list_push_tail(&shader->inputs, &var->node);
-
-   shader->num_inputs++;     /* TODO use type_size() */
 
    return var;
 }
@@ -84,17 +82,8 @@ load_input(nir_builder *b, nir_variable *in)
 static int
 setup_inputs(lower_2side_state *state)
 {
-   int maxloc = -1;
-
    /* find color inputs: */
    nir_foreach_variable(var, &state->shader->inputs) {
-      int loc = var->data.driver_location;
-
-      /* keep track of last used driver-location.. we'll be
-       * appending BCLr after last existing input:
-       */
-      maxloc = MAX2(maxloc, loc);
-
       switch (var->data.location) {
       case VARYING_SLOT_COL0:
       case VARYING_SLOT_COL1:
@@ -119,7 +108,7 @@ setup_inputs(lower_2side_state *state)
          slot = VARYING_SLOT_BFC1;
 
       state->colors[i].back = create_input(
-            state->shader, ++maxloc, slot,
+            state->shader, slot,
             state->colors[i].front->data.interpolation);
    }
 

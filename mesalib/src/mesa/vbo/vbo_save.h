@@ -37,13 +37,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "vbo.h"
 #include "vbo_attrib.h"
 
-
-struct vbo_save_copied_vtx {
-   fi_type buffer[VBO_ATTRIB_MAX * 4 * VBO_MAX_COPIED_VERTS];
-   GLuint nr;
-};
-
-
 /* For display lists, this structure holds a run of vertices of the
  * same format, and a strictly well-formed set of begin/end pairs,
  * starting on the first vertex and ending at the last.  Vertex
@@ -152,46 +145,6 @@ struct vbo_save_primitive_store {
    GLuint refcount;
 };
 
-
-struct vbo_save_context {
-   struct gl_context *ctx;
-   GLvertexformat vtxfmt;
-   GLvertexformat vtxfmt_noop;  /**< Used if out_of_memory is true */
-
-   GLbitfield64 enabled; /**< mask of enabled vbo arrays. */
-   GLubyte attrsz[VBO_ATTRIB_MAX];  /**< 1, 2, 3 or 4 */
-   GLenum16 attrtype[VBO_ATTRIB_MAX];  /**< GL_FLOAT, GL_INT, etc */
-   GLubyte active_sz[VBO_ATTRIB_MAX];  /**< 1, 2, 3 or 4 */
-   GLuint vertex_size;  /**< size in GLfloats */
-   struct gl_vertex_array_object *VAO[VP_MODE_MAX];
-
-   GLboolean out_of_memory;  /**< True if last VBO allocation failed */
-
-   GLbitfield replay_flags;
-
-   struct _mesa_prim *prims;
-   GLuint prim_count, prim_max;
-
-   bool no_current_update;
-
-   struct vbo_save_vertex_store *vertex_store;
-   struct vbo_save_primitive_store *prim_store;
-
-   fi_type *buffer_map;            /**< Mapping of vertex_store's buffer */
-   fi_type *buffer_ptr;		   /**< cursor, points into buffer_map */
-   fi_type vertex[VBO_ATTRIB_MAX*4];	   /* current values */
-   fi_type *attrptr[VBO_ATTRIB_MAX];
-   GLuint vert_count;
-   GLuint max_vert;
-   GLboolean dangling_attr_ref;
-
-   GLuint opcode_vertex_list;
-
-   struct vbo_save_copied_vtx copied;
-
-   fi_type *current[VBO_ATTRIB_MAX]; /* points into ctx->ListState */
-   GLubyte *currentsz[VBO_ATTRIB_MAX];
-};
 
 void vbo_save_init(struct gl_context *ctx);
 void vbo_save_destroy(struct gl_context *ctx);

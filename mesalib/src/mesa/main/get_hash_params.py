@@ -4,7 +4,7 @@ descriptor=[
   [ "BLEND", "CONTEXT_BIT0(Color.BlendEnabled), NO_EXTRA" ],
   [ "BLEND_SRC", "CONTEXT_ENUM16(Color.Blend[0].SrcRGB), NO_EXTRA" ],
   [ "BLUE_BITS", "BUFFER_INT(Visual.blueBits), extra_new_buffers" ],
-  [ "COLOR_CLEAR_VALUE", "LOC_CUSTOM, TYPE_FLOATN_4, 0, extra_new_frag_clamp" ],
+  [ "COLOR_CLEAR_VALUE", "LOC_CUSTOM, TYPE_FLOATN_4, 0, NO_EXTRA" ],
   [ "COLOR_WRITEMASK", "LOC_CUSTOM, TYPE_INT_4, 0, NO_EXTRA" ],
   [ "CULL_FACE", "CONTEXT_BOOL(Polygon.CullFlag), NO_EXTRA" ],
   [ "CULL_FACE_MODE", "CONTEXT_ENUM16(Polygon.CullFaceMode), NO_EXTRA" ],
@@ -161,7 +161,7 @@ descriptor=[
   [ "LIGHT_MODEL_TWO_SIDE", "CONTEXT_BOOL(Light.Model.TwoSide), NO_EXTRA" ],
   [ "ALPHA_TEST", "CONTEXT_BOOL(Color.AlphaEnabled), NO_EXTRA" ],
   [ "ALPHA_TEST_FUNC", "CONTEXT_ENUM16(Color.AlphaFunc), NO_EXTRA" ],
-  [ "ALPHA_TEST_REF", "LOC_CUSTOM, TYPE_FLOATN, 0, extra_new_frag_clamp" ],
+  [ "ALPHA_TEST_REF", "LOC_CUSTOM, TYPE_FLOATN, 0, NO_EXTRA" ],
   [ "BLEND_DST", "CONTEXT_ENUM16(Color.Blend[0].DstRGB), NO_EXTRA" ],
   [ "CLIP_DISTANCE0", "CONTEXT_BIT0(Transform.ClipPlanesEnabled), extra_valid_clip_distance" ],
   [ "CLIP_DISTANCE1", "CONTEXT_BIT1(Transform.ClipPlanesEnabled), extra_valid_clip_distance" ],
@@ -177,7 +177,7 @@ descriptor=[
   [ "CURRENT_TEXTURE_COORDS", "LOC_CUSTOM, TYPE_FLOAT_4, 0, extra_flush_current_valid_texture_unit" ],
   [ "POINT_DISTANCE_ATTENUATION", "CONTEXT_FLOAT3(Point.Params[0]), NO_EXTRA" ],
   [ "FOG", "CONTEXT_BOOL(Fog.Enabled), NO_EXTRA" ],
-  [ "FOG_COLOR", "LOC_CUSTOM, TYPE_FLOATN_4, 0, extra_new_frag_clamp" ],
+  [ "FOG_COLOR", "LOC_CUSTOM, TYPE_FLOATN_4, 0, NO_EXTRA" ],
   [ "FOG_DENSITY", "CONTEXT_FLOAT(Fog.Density), NO_EXTRA" ],
   [ "FOG_END", "CONTEXT_FLOAT(Fog.End), NO_EXTRA" ],
   [ "FOG_HINT", "CONTEXT_ENUM16(Hint.Fog), NO_EXTRA" ],
@@ -299,7 +299,7 @@ descriptor=[
   [ "DRAW_BUFFER5_ARB", "BUFFER_ENUM16(ColorDrawBuffer[5]), extra_valid_draw_buffer" ],
   [ "DRAW_BUFFER6_ARB", "BUFFER_ENUM16(ColorDrawBuffer[6]), extra_valid_draw_buffer" ],
   [ "DRAW_BUFFER7_ARB", "BUFFER_ENUM16(ColorDrawBuffer[7]), extra_valid_draw_buffer" ],
-  [ "BLEND_COLOR_EXT", "LOC_CUSTOM, TYPE_FLOATN_4, 0, extra_new_frag_clamp" ],
+  [ "BLEND_COLOR_EXT", "LOC_CUSTOM, TYPE_FLOATN_4, 0, NO_EXTRA" ],
 
 # GL_ARB_fragment_program
 # == GL_MAX_TEXTURE_IMAGE_UNITS_NV
@@ -382,6 +382,9 @@ descriptor=[
   [ "MAX_DEPTH_STENCIL_FRAMEBUFFER_SAMPLES_AMD", "CONTEXT_INT(Const.MaxDepthStencilFramebufferSamples), extra_AMD_framebuffer_multisample_advanced" ],
   [ "NUM_SUPPORTED_MULTISAMPLE_MODES_AMD", "CONTEXT_INT(Const.NumSupportedMultisampleModes), extra_AMD_framebuffer_multisample_advanced" ],
   [ "SUPPORTED_MULTISAMPLE_MODES_AMD", "LOC_CUSTOM, TYPE_INT_N, 0, extra_AMD_framebuffer_multisample_advanced" ],
+
+# GL_NV_alpha_to_coverage_dither_control
+  [ "ALPHA_TO_COVERAGE_DITHER_MODE_NV", "CONTEXT_ENUM(Multisample.SampleAlphaToCoverageDitherControl ), NO_EXTRA" ],
 ]},
 
 # GLES3 is not a typo.

@@ -71,6 +71,8 @@ st_nir_fixup_varying_slots(struct st_context *st, struct exec_list *var_list)
    nir_foreach_variable(var, var_list) {
       if (var->data.location >= VARYING_SLOT_VAR0) {
          var->data.location += 9;
+      } else if (var->data.location == VARYING_SLOT_PNTC) {
+         var->data.location = VARYING_SLOT_VAR8;
       } else if ((var->data.location >= VARYING_SLOT_TEX0) &&
                (var->data.location <= VARYING_SLOT_TEX7)) {
          var->data.location += VARYING_SLOT_VAR0 - VARYING_SLOT_TEX0;
@@ -661,17 +663,13 @@ st_link_nir(struct gl_context *ctx,
       stp->shader_program = shader_program;
       stp->state.type = PIPE_SHADER_IR_NIR;
 
-      if (shader_program->data->spirv) {
-         prog->Parameters = _mesa_new_parameter_list();
-         /* Parameters will be filled during NIR linking. */
+      /* Parameters will be filled during NIR linking. */
+      prog->Parameters = _mesa_new_parameter_list();
 
+      if (shader_program->data->spirv) {
          prog->nir = _mesa_spirv_to_nir(ctx, shader_program, shader->Stage, options);
       } else {
          validate_ir_tree(shader->ir);
-
-         prog->Parameters = _mesa_new_parameter_list();
-         _mesa_generate_parameters_list_for_uniforms(ctx, shader_program, shader,
-                                                     prog->Parameters);
 
          if (ctx->_Shader->Flags & GLSL_DUMP) {
             _mesa_log("\n");
@@ -681,9 +679,6 @@ st_link_nir(struct gl_context *ctx,
             _mesa_print_ir(_mesa_get_log_file(), shader->ir, NULL);
             _mesa_log("\n\n");
          }
-
-         prog->ExternalSamplersUsed = gl_external_samplers(prog);
-         _mesa_update_shader_textures_used(shader_program, prog);
 
          prog->nir = glsl_to_nir(st->ctx, shader_program, shader->Stage, options);
          st_nir_preprocess(st, prog, shader_program, shader->Stage);
@@ -737,6 +732,12 @@ st_link_nir(struct gl_context *ctx,
    if (!shader_program->data->spirv) {
       if (!gl_nir_link_glsl(ctx, shader_program))
          return GL_FALSE;
+
+      for (unsigned i = 0; i < num_shaders; i++) {
+         struct gl_program *prog = linked_shader[i]->Program;
+         prog->ExternalSamplersUsed = gl_external_samplers(prog);
+         _mesa_update_shader_textures_used(shader_program, prog);
+      }
 
       nir_build_program_resource_list(ctx, shader_program, false);
    }

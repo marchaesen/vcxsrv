@@ -123,6 +123,7 @@ MAIN_FILES = \
 	main/glspirv.c \
 	main/glspirv.h \
 	main/glthread_bufferobj.c \
+	main/glthread_draw.c \
 	main/glthread_marshal.h \
 	main/glthread_shaderobj.c \
 	main/glthread_varray.c \
@@ -135,6 +136,7 @@ MAIN_FILES = \
 	main/histogram.h \
 	main/image.c \
 	main/image.h \
+	main/mesa_private.h \
 	main/light.c \
 	main/light.h \
 	main/lines.c \

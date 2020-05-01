@@ -24,7 +24,6 @@
 
 #include "main/glheader.h"
 #include "main/mtypes.h"
-#include "util/imports.h"
 #include "main/arbprogram.h"
 #include "main/arrayobj.h"
 #include "main/blend.h"
@@ -54,197 +53,6 @@
 
 /** Return offset in bytes of the field within a vertex struct */
 #define OFFSET(FIELD) ((void *) offsetof(struct vertex, FIELD))
-
-static void
-setup_glsl_msaa_blit_scaled_shader(struct gl_context *ctx,
-                                   struct blit_state *blit,
-                                   struct gl_renderbuffer *src_rb,
-                                   GLenum target)
-{
-   GLint loc_src_width, loc_src_height;
-   int i, samples;
-   int shader_offset = 0;
-   void *mem_ctx = ralloc_context(NULL);
-   char *fs_source;
-   char *name, *sample_number;
-   const uint8_t *sample_map;
-   char *sample_map_str = rzalloc_size(mem_ctx, 1);
-   char *sample_map_expr = rzalloc_size(mem_ctx, 1);
-   char *texel_fetch_macro = rzalloc_size(mem_ctx, 1);
-   const char *sampler_array_suffix = "";
-   float x_scale, y_scale;
-   enum blit_msaa_shader shader_index;
-
-   assert(src_rb);
-   samples = MAX2(src_rb->NumSamples, 1);
-
-   if (samples == 16)
-      x_scale = 4.0;
-   else
-      x_scale = 2.0;
-   y_scale = samples / x_scale;
-
-   /* We expect only power of 2 samples in source multisample buffer. */
-   assert(samples > 0 && _mesa_is_pow_two(samples));
-   while (samples >> (shader_offset + 1)) {
-      shader_offset++;
-   }
-   /* Update the assert if we plan to support more than 16X MSAA. */
-   assert(shader_offset > 0 && shader_offset <= 4);
-
-   assert(target == GL_TEXTURE_2D_MULTISAMPLE ||
-          target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY);
-
-   shader_index = BLIT_2X_MSAA_SHADER_2D_MULTISAMPLE_SCALED_RESOLVE +
-                  shader_offset - 1;
-
-   if (target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY) {
-      shader_index += BLIT_2X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_SCALED_RESOLVE -
-                      BLIT_2X_MSAA_SHADER_2D_MULTISAMPLE_SCALED_RESOLVE;
-      sampler_array_suffix = "Array";
-   }
-
-   if (blit->msaa_shaders[shader_index]) {
-      _mesa_meta_use_program(ctx, blit->msaa_shaders[shader_index]);
-      /* Update the uniform values. */
-      loc_src_width =
-         _mesa_program_resource_location(blit->msaa_shaders[shader_index], GL_UNIFORM, "src_width");
-      loc_src_height =
-         _mesa_program_resource_location(blit->msaa_shaders[shader_index], GL_UNIFORM, "src_height");
-      _mesa_Uniform1f(loc_src_width, src_rb->Width);
-      _mesa_Uniform1f(loc_src_height, src_rb->Height);
-      return;
-   }
-
-   name = ralloc_asprintf(mem_ctx, "vec4 MSAA scaled resolve");
-
-   /* Below switch is used to setup the shader expression, which computes
-    * sample index and map it to to a sample number on hardware.
-    */
-   switch(samples) {
-   case 2:
-      sample_number =  "sample_map[int(2 * fract(coord.x))]";
-      sample_map = ctx->Const.SampleMap2x;
-      break;
-   case 4:
-      sample_number =  "sample_map[int(2 * fract(coord.x) + 4 * fract(coord.y))]";
-      sample_map = ctx->Const.SampleMap4x;
-      break;
-   case 8:
-      sample_number =  "sample_map[int(2 * fract(coord.x) + 8 * fract(coord.y))]";
-      sample_map = ctx->Const.SampleMap8x;
-      break;
-   case 16:
-      sample_number =  "sample_map[int(4 * fract(coord.x) + 16 * fract(coord.y))]";
-      sample_map = ctx->Const.SampleMap16x;
-      break;
-   default:
-      sample_number = NULL;
-      sample_map = NULL;
-      _mesa_problem(ctx, "Unsupported sample count %d\n", samples);
-      unreachable("Unsupported sample count");
-   }
-
-   /* Create sample map string. */
-   for (i = 0 ; i < samples - 1; i++) {
-      ralloc_asprintf_append(&sample_map_str, "%d, ", sample_map[i]);
-   }
-   ralloc_asprintf_append(&sample_map_str, "%d", sample_map[samples - 1]);
-
-   /* Create sample map expression using above string. */
-   ralloc_asprintf_append(&sample_map_expr,
-                          "   const int sample_map[%d] = int[%d](%s);\n",
-                          samples, samples, sample_map_str);
-
-   if (target == GL_TEXTURE_2D_MULTISAMPLE) {
-      ralloc_asprintf_append(&texel_fetch_macro,
-                             "#define TEXEL_FETCH(coord) texelFetch(texSampler, ivec2(coord), %s);\n",
-                             sample_number);
-   } else {
-      ralloc_asprintf_append(&texel_fetch_macro,
-                             "#define TEXEL_FETCH(coord) texelFetch(texSampler, ivec3(coord, layer), %s);\n",
-                             sample_number);
-   }
-
-   static const char vs_source[] =
-                               "#version 130\n"
-                               "#extension GL_ARB_explicit_attrib_location: enable\n"
-                               "layout(location = 0) in vec2 position;\n"
-                               "layout(location = 1) in vec3 textureCoords;\n"
-                               "out vec2 texCoords;\n"
-                               "flat out int layer;\n"
-                               "void main()\n"
-                               "{\n"
-                               "   texCoords = textureCoords.xy;\n"
-                               "   layer = int(textureCoords.z);\n"
-                               "   gl_Position = vec4(position, 0.0, 1.0);\n"
-                               "}\n"
-      ;
-
-   fs_source = ralloc_asprintf(mem_ctx,
-                               "#version 130\n"
-                               "#extension GL_ARB_texture_multisample : enable\n"
-                               "uniform sampler2DMS%s texSampler;\n"
-                               "uniform float src_width, src_height;\n"
-                               "in vec2 texCoords;\n"
-                               "flat in int layer;\n"
-                               "out vec4 out_color;\n"
-                               "\n"
-                               "void main()\n"
-                               "{\n"
-                               "%s"
-                               "   vec2 interp;\n"
-                               "   const vec2 scale = vec2(%ff, %ff);\n"
-                               "   const vec2 scale_inv = vec2(%ff, %ff);\n"
-                               "   const vec2 s_0_offset = vec2(%ff, %ff);\n"
-                               "   vec2 s_0_coord, s_1_coord, s_2_coord, s_3_coord;\n"
-                               "   vec4 s_0_color, s_1_color, s_2_color, s_3_color;\n"
-                               "   vec4 x_0_color, x_1_color;\n"
-                               "   vec2 tex_coord = texCoords - s_0_offset;\n"
-                               "\n"
-                               "   tex_coord *= scale;\n"
-                               "   tex_coord.x = clamp(tex_coord.x, 0.0f, scale.x * src_width - 1.0f);\n"
-                               "   tex_coord.y = clamp(tex_coord.y, 0.0f, scale.y * src_height - 1.0f);\n"
-                               "   interp = fract(tex_coord);\n"
-                               "   tex_coord = ivec2(tex_coord) * scale_inv;\n"
-                               "\n"
-                               "   /* Compute the sample coordinates used for filtering. */\n"
-                               "   s_0_coord = tex_coord;\n"
-                               "   s_1_coord = tex_coord + vec2(scale_inv.x, 0.0f);\n"
-                               "   s_2_coord = tex_coord + vec2(0.0f, scale_inv.y);\n"
-                               "   s_3_coord = tex_coord + vec2(scale_inv.x, scale_inv.y);\n"
-                               "\n"
-                               "   /* Fetch sample color values. */\n"
-                               "%s"
-                               "   s_0_color = TEXEL_FETCH(s_0_coord)\n"
-                               "   s_1_color = TEXEL_FETCH(s_1_coord)\n"
-                               "   s_2_color = TEXEL_FETCH(s_2_coord)\n"
-                               "   s_3_color = TEXEL_FETCH(s_3_coord)\n"
-                               "#undef TEXEL_FETCH\n"
-                               "\n"
-                               "   /* Do bilinear filtering on sample colors. */\n"
-                               "   x_0_color = mix(s_0_color, s_1_color, interp.x);\n"
-                               "   x_1_color = mix(s_2_color, s_3_color, interp.x);\n"
-                               "   out_color = mix(x_0_color, x_1_color, interp.y);\n"
-                               "}\n",
-                               sampler_array_suffix,
-                               sample_map_expr,
-                               x_scale, y_scale,
-                               1.0f / x_scale, 1.0f / y_scale,
-                               0.5f / x_scale, 0.5f / y_scale,
-                               texel_fetch_macro);
-
-   _mesa_meta_compile_and_link_program(ctx, vs_source, fs_source, name,
-                                       &blit->msaa_shaders[shader_index]);
-   loc_src_width =
-      _mesa_program_resource_location(blit->msaa_shaders[shader_index], GL_UNIFORM, "src_width");
-   loc_src_height =
-      _mesa_program_resource_location(blit->msaa_shaders[shader_index], GL_UNIFORM, "src_height");
-   _mesa_Uniform1f(loc_src_width, src_rb->Width);
-   _mesa_Uniform1f(loc_src_height, src_rb->Height);
-
-   ralloc_free(mem_ctx);
-}
 
 static void
 setup_glsl_msaa_blit_shader(struct gl_context *ctx,
@@ -278,7 +86,7 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
    }
 
    /* We expect only power of 2 samples in source multisample buffer. */
-   assert(samples > 0 && _mesa_is_pow_two(samples));
+   assert(samples > 0 && util_is_power_of_two_nonzero(samples));
    while (samples >> (shader_offset + 1)) {
       shader_offset++;
    }
@@ -482,7 +290,7 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
           * (so the floating point exponent just gets increased), rather than
           * doing a naive sum and dividing.
           */
-         assert(_mesa_is_pow_two(samples));
+         assert(util_is_power_of_two_or_zero(samples));
          /* Fetch each individual sample. */
          sample_resolve = rzalloc_size(mem_ctx, 1);
          for (i = 0; i < samples; i++) {
@@ -569,8 +377,6 @@ setup_glsl_blit_framebuffer(struct gl_context *ctx,
    unsigned texcoord_size;
    bool is_target_multisample = target == GL_TEXTURE_2D_MULTISAMPLE ||
                                 target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
-   bool is_filter_scaled_resolve = filter == GL_SCALED_RESOLVE_FASTEST_EXT ||
-                                   filter == GL_SCALED_RESOLVE_NICEST_EXT;
 
    /* target = GL_TEXTURE_RECTANGLE is not supported in GLES 3.0 */
    assert(_mesa_is_desktop_gl(ctx) || target == GL_TEXTURE_2D);
@@ -580,9 +386,7 @@ setup_glsl_blit_framebuffer(struct gl_context *ctx,
    _mesa_meta_setup_vertex_objects(ctx, &blit->VAO, &blit->buf_obj, true,
                                    2, texcoord_size, 0);
 
-   if (is_target_multisample && is_filter_scaled_resolve && is_scaled_blit) {
-      setup_glsl_msaa_blit_scaled_shader(ctx, blit, src_rb, target);
-   } else if (is_target_multisample) {
+   if (is_target_multisample) {
       setup_glsl_msaa_blit_shader(ctx, blit, drawFb, src_rb, target);
    } else {
       _mesa_meta_setup_blit_shader(ctx, target, do_depth,

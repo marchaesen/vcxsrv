@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
  /*
@@ -31,7 +31,7 @@
   */
 
 #include "main/errors.h"
-#include "util/imports.h"
+
 #include "main/image.h"
 #include "main/bufferobj.h"
 #include "main/dlist.h"
@@ -479,7 +479,7 @@ accum_bitmap(struct gl_context *ctx,
       if (px < 0 || px + width > BITMAP_CACHE_WIDTH ||
           py < 0 || py + height > BITMAP_CACHE_HEIGHT ||
           !TEST_EQ_4V(ctx->Current.RasterColor, cache->color) ||
-          ((fabs(z - cache->zpos) > Z_EPSILON))) {
+          ((fabsf(z - cache->zpos) > Z_EPSILON))) {
          /* This bitmap would extend beyond cache bounds, or the bitmap
           * color is changing
           * so flush and continue.
@@ -698,8 +698,8 @@ st_DrawAtlasBitmaps(struct gl_context *ctx,
       const float xorig = g->xorig, yorig = g->yorig;
       const float s0 = g->x, t0 = g->y;
       const float s1 = s0 + g->w, t1 = t0 + g->h;
-      const float x0 = IFLOOR(ctx->Current.RasterPos[0] - xorig + epsilon);
-      const float y0 = IFLOOR(ctx->Current.RasterPos[1] - yorig + epsilon);
+      const float x0 = util_ifloor(ctx->Current.RasterPos[0] - xorig + epsilon);
+      const float y0 = util_ifloor(ctx->Current.RasterPos[1] - yorig + epsilon);
       const float x1 = x0 + g->w, y1 = y0 + g->h;
       const float clip_x0 = x0 * clip_x_scale - 1.0f;
       const float clip_y0 = y0 * clip_y_scale - 1.0f;

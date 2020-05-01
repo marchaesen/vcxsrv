@@ -1,0 +1,213 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>Mesa Release Notes</title>
+<link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+<h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 20.0.5 Release Notes / 2020-04-22</h1>
+
+<p>
+    Mesa 20.0.5 is a bug fix release which fixes bugs found since the 20.0.4 release.
+</p>
+<p>
+Mesa 20.0.5 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+<p>
+Mesa 20.0.5 implements the Vulkan 1.2 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+</p>
+
+<h2>SHA256 checksum</h2>
+<pre>
+  2c56a82a28cc924e40ea49752abdf1d701c9952481f53cbc7a080271597f572e  mesa-20.0.5.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<ul>
+</ul>
+
+<h2>Bug fixes</h2>
+
+<ul>
+    <li>nir: nir_lower_returns can&#x27;t handle nested loops</li>
+    <li>Graphic artifacts with Mesa 20.0.4 on intel HD 510 GPU</li>
+    <li>Mesa 20 regression makes Lightsprint demos crash</li>
+    <li>Build Fails with Clang Shared Library</li>
+    <li>dri_common.h:58:8: error: unknown type name &#x27;__GLXDRIdrawable&#x27;</li>
+    <li>Graphical glitches on Intel Graphics  when Xorg started on Iris driver</li>
+    <li>SIGSEGV src/compiler/glsl/ast_function.cpp:53</li>
+    <li>manywin aborts with &quot;i965: Failed to submit batchbuffer: Invalid argument&quot;</li>
+    <li>manywin aborts with &quot;i965: Failed to submit batchbuffer: Invalid argument&quot;</li>
+    <li>manywin aborts with &quot;i965: Failed to submit batchbuffer: Invalid argument&quot;</li>
+    <li>manywin aborts with &quot;i965: Failed to submit batchbuffer: Invalid argument&quot;</li>
+    <li>v3d: transform feedback issue</li>
+    <li>radv: dEQP-VK.binding_model.descriptorset_random.sets4.noarray.ubolimitlow.sbolimitlow.imglimitlow.noiub.comp.noia.0 segfault</li>
+    <li>radv: RAVEN fails dEQP-VK.pipeline.timestamp.misc_tests.reset_query_before_copy</li>
+    <li>https://gitlab.freedesktop.org/mesa/mesa/-/issues/2727</li>
+    <li>enable storageBuffer16BitAccess feature in radv for SI and CIK</li>
+    <li>Weston drm-backend.so seems to fail with Mesa master and LIBGL_ALWAYS_SOFTWARE=1</li>
+    <li>vaapi bob deinterlacer produces wrong output height on AMD</li>
+</ul>
+
+<h2>Changes</h2>
+
+<ul>
+    <p>Arcady Goldmints-Orlov (1):</p>
+    <li>      nir: Lower returns correctly inside nested loops</li>
+    <p></p>
+    <p>Bas Nieuwenhuizen (3):</p>
+    <li>      radv: Store 64-bit availability bools if requested.</li>
+    <li>      radv: Consider maximum sample distances for entire grid.</li>
+    <li>      radv: Use correct buffer count with variable descriptor set sizes.</li>
+    <p></p>
+    <p>D Scott Phillips (1):</p>
+    <li>      util/sparse_array: don&#x27;t stomp head&#x27;s counter on pop operations</li>
+    <p></p>
+    <p>Daniel Stone (1):</p>
+    <li>      EGL: Add eglSetDamageRegionKHR to GLVND dispatch list</li>
+    <p></p>
+    <p>Danylo Piliaiev (1):</p>
+    <li>      st/mesa: Update shader info of ffvp/ARB_vp after translation to NIR</li>
+    <p></p>
+    <p>Dave Airlie (2):</p>
+    <li>      draw: free the NIR IR.</li>
+    <li>      llvmpipe/nir: free the nir shader</li>
+    <p></p>
+    <p>Dylan Baker (6):</p>
+    <li>      .pick_status.json: Update to 089e1fb287eb9b70c191091128ed5ba7edd2960a</li>
+    <li>      .pick_status.json: Update to 65e2eaa4d3a7095ac438fafb09d1e36a4210966e</li>
+    <li>      .pick_status.json: Update to 28d36d26c2212276e1238fad8f0b12caab97fee8</li>
+    <li>      .pick_status.json: Update to acf7e73be54c7f1cc52fcc9be38a9df26849200e</li>
+    <li>      .pick_status.json: Update to 13ce637f1b28381e72470763ff5e39dd3c562476</li>
+    <li>      .pick_status.json: Update to c3c1f4d6bcc210408f8b180727d269838b38193b</li>
+    <p></p>
+    <p>Emil Velikov (4):</p>
+    <li>      glx: set the loader_logger early and for everyone</li>
+    <li>      egl/drm: reinstate (kms_)swrast support</li>
+    <li>      Revert &quot;egl/dri2: Don&#x27;t dlclose() the driver on dri2_load_driver_common failure&quot;</li>
+    <li>      glx: omit loader_loader() for macOS</li>
+    <p></p>
+    <p>Eric Anholt (1):</p>
+    <li>      ci: Remove LLVM from ARM test drivers.</li>
+    <p></p>
+    <p>Eric Engestrom (1):</p>
+    <li>      docs/relnotes: add sha256sum for 20.0.4</li>
+    <p></p>
+    <p>Hyunjun Ko (1):</p>
+    <li>      nir: fix wrong assignment to buffer in xfb_varyings_info</li>
+    <p></p>
+    <p>Ilia Mirkin (1):</p>
+    <li>      nv50: don&#x27;t try to upload MSAA settings for BUFFER textures</li>
+    <p></p>
+    <p>Jason Ekstrand (5):</p>
+    <li>      anv/image: Use align_u64 for image offsets</li>
+    <li>      nir/load_store_vectorize: Fix shared atomic info</li>
+    <li>      spirv: Handle OOB vector extract operations</li>
+    <li>      intel: Add _const versions of prog_data cast helpers</li>
+    <li>      anv: Report correct SLM size</li>
+    <p></p>
+    <p>Jose Maria Casanova Crespo (1):</p>
+    <li>      v3d: Primitive Counts Feedback needs an extra 32-bit padding.</li>
+    <p></p>
+    <p>Juan A. Suarez Romero (2):</p>
+    <li>      intel/compiler: store the FS inputs in WM prog data</li>
+    <li>      anv/pipeline: allow more than 16 FS inputs</li>
+    <p></p>
+    <p>Karol Herbst (2):</p>
+    <li>      clover: fix build with single library clang build</li>
+    <li>      Revert &quot;nvc0: fix line width on GM20x+&quot;</li>
+    <p></p>
+    <p>Lionel Landwerlin (7):</p>
+    <li>      iris: properly free resources on BO allocation failure</li>
+    <li>      iris: share buffer managers accross screens</li>
+    <li>      iris: make resources take a ref on the screen object</li>
+    <li>      i965: store DRM fd on intel_screen</li>
+    <li>      i965: share buffer managers across screens</li>
+    <li>      iris: drop cache coherent cpu mapping for external BO</li>
+    <li>      util/sparse_free_list: manipulate node pointers using atomic primitives</li>
+    <p></p>
+    <p>Marek Olšák (1):</p>
+    <li>      st/mesa: fix a crash due to passing a draw vertex shader into the driver</li>
+    <p></p>
+    <p>Mathias Fröhlich (1):</p>
+    <li>      i965: Move down genX_upload_sbe in profiles.</li>
+    <p></p>
+    <p>Matt Turner (1):</p>
+    <li>      meson: Specify the maximum required libdrm in dri.pc</li>
+    <p></p>
+    <p>Neil Armstrong (3):</p>
+    <li>      gitlab-ci/lava:  fix handling of lava tags</li>
+    <li>      gitlab-ci: add FILES_HOST_URL and move FILES_HOST_NAME into jobs</li>
+    <li>      gitlab-ci: re-enable mali400/450 and t820 jobs</li>
+    <p></p>
+    <p>Rhys Perry (1):</p>
+    <li>      aco: fix 1D textureGrad() on GFX9</li>
+    <p></p>
+    <p>Rob Clark (1):</p>
+    <li>      nir: fix definition of imadsh_mix16 for vectors</li>
+    <p></p>
+    <p>Rohan Garg (1):</p>
+    <li>      ci: Split out radv build-testing on arm64</li>
+    <p></p>
+    <p>Samuel Pitoiset (9):</p>
+    <li>      ac/nir: split 8-bit load/store to global memory on GFX6</li>
+    <li>      ac/nir: split 8-bit SSBO stores on GFX6</li>
+    <li>      radv/llvm: enable 8-bit storage features on GFX6-GFX7</li>
+    <li>      ac/nir: split 16-bit load/store to global memory on GFX6</li>
+    <li>      ac/nir: split 16-bit SSBO stores on GFX6</li>
+    <li>      radv/llvm: enable 16-bit storage features on GFX6-GFX7</li>
+    <li>      radv: do not abort with unknown/unimplemented descriptor types</li>
+    <li>      radv/llvm: fix exporting the viewport index if the fragment shader needs it</li>
+    <li>      aco: fix exporting the viewport index if the fragment shader needs it</li>
+    <p></p>
+    <p>Tapani Pälli (4):</p>
+    <li>      mesa/st: unbind shader state before deleting it</li>
+    <li>      mesa/st: release variants for active programs before unref</li>
+    <li>      glsl: stop processing function parameters if error happened</li>
+    <li>      mesa/st: initialize all winsys_handle fields for memory objects</li>
+    <p></p>
+    <p>Thong Thai (1):</p>
+    <li>      gallium/auxiliary/vl: fix bob compute shaders for deint yuv</li>
+    <p></p>
+    <p>Timothy Arceri (1):</p>
+    <li>      radeonsi: don&#x27;t lower constant arrays to uniforms in GLSL IR</li>
+    <p></p>
+    <p>Tobias Jakobi (1):</p>
+    <li>      meson: Link Gallium Nine with ld_args_build_id</li>
+    <p></p>
+    <p>Tomeu Vizoso (2):</p>
+    <li>      gitlab-ci: Place files from the Mesa repo into the build tarball</li>
+    <li>      gitlab-ci: Serve files for LAVA via separate service</li>
+    <p></p>
+    <p>Vinson Lee (2):</p>
+    <li>      swr/rasterizer: Use private functions for min/max to avoid namespace issues.</li>
+    <li>      swr: Remove Byte Order Mark.</li>
+    <p></p>
+    <p>pal1000 (1):</p>
+    <li>      scons/windows: Support build with LLVM 10.</li>
+    <p></p>
+    <p></p>
+</ul>
+
+</div>
+</body>
+</html>

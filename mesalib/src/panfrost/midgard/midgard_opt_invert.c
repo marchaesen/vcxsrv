@@ -71,7 +71,7 @@ midgard_opt_not_propagate(compiler_context *ctx, midgard_block *block)
                 if (ins->alu.op != midgard_alu_op_imov) continue;
                 if (!ins->invert) continue;
                 if (mir_nontrivial_source2_mod_simple(ins)) continue;
-                if (ins->src[1] & IS_REG) continue;
+                if (ins->src[1] & PAN_IS_REG) continue;
 
                 /* Is it beneficial to propagate? */
                 if (!mir_single_use(ctx, ins->src[1])) continue;
@@ -211,7 +211,7 @@ midgard_opt_fuse_dest_invert(compiler_context *ctx, midgard_block *block)
 static bool
 mir_strip_inverted(compiler_context *ctx, unsigned node)
 {
-        if (node >= SSA_FIXED_MINIMUM)
+        if (node == SSA_FIXED_REGISTER(26))
                 return false;
 
        /* Strips and returns the invert off a node */
@@ -230,7 +230,7 @@ mir_strip_inverted(compiler_context *ctx, unsigned node)
 static bool
 is_ssa_or_constant(unsigned node)
 {
-        return !(node & IS_REG) || (node == SSA_FIXED_REGISTER(26));
+        return !(node & PAN_IS_REG) || (node == SSA_FIXED_REGISTER(26));
 }
 
 bool
@@ -308,6 +308,7 @@ midgard_opt_csel_invert(compiler_context *ctx, midgard_block *block)
         mir_foreach_instr_in_block_safe(block, ins) {
                 if (ins->type != TAG_ALU_4) continue;
                 if (!OP_IS_CSEL(ins->alu.op)) continue;
+                if (!is_ssa_or_constant(ins->src[2])) continue;
                 if (!mir_single_use(ctx, ins->src[2])) continue;
                 if (!mir_strip_inverted(ctx, ins->src[2])) continue;
 
@@ -372,7 +373,7 @@ midgard_opt_drop_cmp_invert(compiler_context *ctx, midgard_block *block)
                 if (ins->type != TAG_ALU_4) continue;
                 if (!OP_IS_INTEGER_CMP(ins->alu.op)) continue;
 
-                if ((ins->src[0] & IS_REG) || (ins->src[1] & IS_REG)) continue;
+                if ((ins->src[0] & PAN_IS_REG) || (ins->src[1] & PAN_IS_REG)) continue;
                 if (!mir_single_use(ctx, ins->src[0]) || !mir_single_use(ctx, ins->src[1])) continue;
 
                 bool a_inverted = mir_is_inverted(ctx, ins->src[0]);
@@ -406,7 +407,7 @@ midgard_opt_invert_branch(compiler_context *ctx, midgard_block *block)
                 if (ins->type != TAG_ALU_4) continue;
                 if (!midgard_is_branch_unit(ins->unit)) continue;
                 if (!ins->branch.conditional) continue;
-                if (ins->src[0] & IS_REG) continue;
+                if (ins->src[0] & PAN_IS_REG) continue;
 
                 if (mir_strip_inverted(ctx, ins->src[0])) {
                         ins->branch.invert_conditional = !ins->branch.invert_conditional;

@@ -22,8 +22,24 @@ export EGL_PLATFORM="surfaceless"
 export DISPLAY=
 export WAFFLE_PLATFORM="surfaceless_egl"
 
+RESULTS=`pwd`/results
+mkdir -p $RESULTS
+
 # Perform a self-test to ensure tracie is working properly.
 "$INSTALL/tracie/tests/test.sh"
+
+if [ "$GALLIUM_DRIVER" = "virpipe" ]; then
+    # tracie is to use virpipe, and virgl_test_server llvmpipe
+    export GALLIUM_DRIVER="$GALLIUM_DRIVER"
+
+    GALLIUM_DRIVER=llvmpipe \
+    GALLIVM_PERF="nopt,no_filter_hacks" \
+    VTEST_USE_EGL_SURFACELESS=1 \
+    VTEST_USE_GLES=1 \
+    virgl_test_server >$RESULTS/vtest-log.txt 2>&1 &
+
+    sleep 1
+fi
 
 # Sanity check to ensure that our environment is sufficient to make our tests
 # run against the Mesa built by CI, rather than any installed distro version.

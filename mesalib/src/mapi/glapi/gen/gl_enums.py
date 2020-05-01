@@ -2,7 +2,7 @@
 # (C) Copyright Zack Rusin 2005. All Rights Reserved.
 # Copyright (C) 2015 Intel Corporation
 # Copyright (C) 2015 Broadcom Corporation
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
 # to deal in the Software without restriction, including without limitation
@@ -50,9 +50,9 @@ class PrintGlEnums(gl_XML.gl_print_base):
 
 
     def printRealHeader(self):
+        print('#include <stdio.h>')
         print('#include "main/glheader.h"')
         print('#include "main/enums.h"')
-        print('#include "util/imports.h"')
         print('#include "main/mtypes.h"')
         print('')
         print('typedef struct PACKED {')
@@ -103,7 +103,7 @@ _mesa_enum_to_string(int nr)
    }
    else {
       /* this is not re-entrant safe, no big deal here */
-      _mesa_snprintf(token_tmp, sizeof(token_tmp) - 1, "0x%x", nr);
+      snprintf(token_tmp, sizeof(token_tmp) - 1, "0x%x", nr);
       token_tmp[sizeof(token_tmp) - 1] = '\\0';
       return token_tmp;
    }

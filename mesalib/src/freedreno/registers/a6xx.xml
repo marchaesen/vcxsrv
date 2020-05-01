@@ -1741,9 +1741,9 @@ to upconvert to 32b float internally?
 		<bitfield name="WIDTH" low="0" high="7" shr="5" type="uint"/>
 		<bitfield name="HEIGHT" low="8" high="16" shr="4" type="uint"/>
 	</reg32>
-	<reg32 offset="0x0c03" name="VSC_SIZE_ADDRESS_LO"/>
-	<reg32 offset="0x0c04" name="VSC_SIZE_ADDRESS_HI"/>
-	<reg64 offset="0x0c03" name="VSC_SIZE_ADDRESS" type="waddress"/>
+	<reg32 offset="0x0c03" name="VSC_DRAW_STRM_SIZE_ADDRESS_LO"/>
+	<reg32 offset="0x0c04" name="VSC_DRAW_STRM_SIZE_ADDRESS_HI"/>
+	<reg64 offset="0x0c03" name="VSC_DRAW_STRM_SIZE_ADDRESS" type="waddress"/>
 	<reg32 offset="0x0c06" name="VSC_BIN_COUNT">
 		<bitfield name="NX" low="1" high="10" type="uint"/>
 		<bitfield name="NY" low="11" high="20" type="uint"/>
@@ -1765,33 +1765,23 @@ to upconvert to 32b float internally?
 		</reg32>
 	</array>
 	<!--
-	compared to a5xx and earlier, we just program the address of the first
-	visibility stream and hw adds (pipe_num * VSC_PIPE_DATA_PITCH)
+	HW binning primitive & draw streams, which enable draws and primitives
+	within a draw to be skipped in the main tile pass.  See:
+	https://github.com/freedreno/freedreno/wiki/Visibility-Stream-Format
 
-	TODO now there seem to be two buffers of VSC data (both referenced by
-	CP_SET_BIN_DATA packet.  Not sure what this new DATA2 one is, but seems
-	to have the larger pitch.
-
-	The "DATA2" buffer is probably actually the main visibility stream; it
-	is at least the larger of the two.
-
-	For VSC_DATA_PITCH, 0x20 actually seems to be sufficient (although blob
-	uses something somewhat larger) for many cases, although required value
-	can ramp up somewhat higher.  Values less than 0x20 trigger GPU hangs
-	even with small amount of geometry (so possibly 0x20 is minimum
-	alignment or something like that).  So far I can't seem to find any-
-	thing that needs values larger than 0x20
+	Compared to a5xx and earlier, we just program the address of the first
+	stream and hw adds (pipe_num * VSC_*_STRM_PITCH)
 	 -->
-	<reg32 offset="0x0c30" name="VSC_PIPE_DATA2_ADDRESS_LO"/>
-	<reg32 offset="0x0c31" name="VSC_PIPE_DATA2_ADDRESS_HI"/>
-	<reg64 offset="0x0c30" name="VSC_PIPE_DATA2_ADDRESS" type="waddress"/>
-	<reg32 offset="0x0c32" name="VSC_PIPE_DATA2_PITCH"/>
-	<reg32 offset="0x0c33" name="VSC_PIPE_DATA2_ARRAY_PITCH" shr="4" type="uint"/>
-	<reg32 offset="0x0c34" name="VSC_PIPE_DATA_ADDRESS_LO"/>
-	<reg32 offset="0x0c35" name="VSC_PIPE_DATA_ADDRESS_HI"/>
-	<reg64 offset="0x0c34" name="VSC_PIPE_DATA_ADDRESS" type="waddress"/>
-	<reg32 offset="0x0c36" name="VSC_PIPE_DATA_PITCH"/>
-	<reg32 offset="0x0c37" name="VSC_PIPE_DATA_ARRAY_PITCH" shr="4" type="uint"/>
+	<reg32 offset="0x0c30" name="VSC_PRIM_STRM_ADDRESS_LO"/>
+	<reg32 offset="0x0c31" name="VSC_PRIM_STRM_ADDRESS_HI"/>
+	<reg64 offset="0x0c30" name="VSC_PRIM_STRM_ADDRESS" type="waddress"/>
+	<reg32 offset="0x0c32" name="VSC_PRIM_STRM_PITCH"/>
+	<reg32 offset="0x0c33" name="VSC_PRIM_STRM_ARRAY_PITCH" shr="4" type="uint"/>
+	<reg32 offset="0x0c34" name="VSC_DRAW_STRM_ADDRESS_LO"/>
+	<reg32 offset="0x0c35" name="VSC_DRAW_STRM_ADDRESS_HI"/>
+	<reg64 offset="0x0c34" name="VSC_DRAW_STRM_ADDRESS" type="waddress"/>
+	<reg32 offset="0x0c36" name="VSC_DRAW_STRM_PITCH"/>
+	<reg32 offset="0x0c37" name="VSC_DRAW_STRM_ARRAY_PITCH" shr="4" type="uint"/>
 
 	<array offset="0x0c38" name="VSC_STATE" stride="1" length="32">
 		<doc>
@@ -1804,18 +1794,18 @@ to upconvert to 32b float internally?
 		<reg32 offset="0x0" name="REG"/>
 	</array>
 
-	<array offset="0x0c58" name="VSC_SIZE2" stride="1" length="32">
+	<array offset="0x0c58" name="VSC_PRIM_STRM_SIZE" stride="1" length="32">
 		<doc>
-			Has the size of data written to corresponding VSC_DATA2
+			Has the size of data written to corresponding VSC_PRIM_STRM
 			buffer.
 		</doc>
 		<reg32 offset="0x0" name="REG"/>
 	</array>
 
-	<array offset="0x0c78" name="VSC_SIZE" stride="1" length="32">
+	<array offset="0x0c78" name="VSC_DRAW_STRM_SIZE" stride="1" length="32">
 		<doc>
 			Has the size of data written to corresponding VSC pipe, ie.
-			same thing that is written out to VSC_SIZE_ADDRESS_LO/HI
+			same thing that is written out to VSC_DRAW_STRM_SIZE_ADDRESS_LO/HI
 		</doc>
 		<reg32 offset="0x0" name="REG"/>
 	</array>
@@ -1848,10 +1838,8 @@ to upconvert to 32b float internally?
 	  <value value="0x3" name="LAYER_2D_ARRAY"/>
 	</enum>
 
-	<reg32 offset="0x8004" name="GRAS_LAYER_CNTL">
-		<bitfield name="LAYERED" pos="0" type="boolean"/>
-		<bitfield name="TYPE" low="1" high="2" type="a6xx_layer_type"/>
-	</reg32>
+	<!-- index of highest layer that can be written to via gl_Layer -->
+	<reg32 offset="0x8004" name="GRAS_MAX_LAYER_INDEX" type="uint"/>
 
 	<reg32 offset="0x8005" name="GRAS_CNTL">
 		<!-- see also RB_RENDER_CONTROL0 -->
@@ -1935,12 +1923,25 @@ to upconvert to 32b float internally?
 		<bitfield name="MSAA_DISABLE" pos="2" type="boolean"/>
 	</reg32>
 
-	<!-- always 0x0 -->
-	<reg32 offset="0x80a4" name="GRAS_UNKNOWN_80A4"/>
-	<!-- always 0x0 -->
-	<reg32 offset="0x80a5" name="GRAS_UNKNOWN_80A5"/>
-	<!-- always 0x0 -->
-	<reg32 offset="0x80a6" name="GRAS_UNKNOWN_80A6"/>
+	<bitset name="a6xx_sample_config" inline="yes">
+		<bitfield name="LOCATION_ENABLE" pos="1" type="boolean"/>
+	</bitset>
+
+	<bitset name="a6xx_sample_locations" inline="yes">
+		<bitfield name="SAMPLE_0_X" low="0" high="3" radix="4" type="fixed"/>
+		<bitfield name="SAMPLE_0_Y" low="4" high="7" radix="4" type="fixed"/>
+		<bitfield name="SAMPLE_1_X" low="8" high="11" radix="4" type="fixed"/>
+		<bitfield name="SAMPLE_1_Y" low="12" high="15" radix="4" type="fixed"/>
+		<bitfield name="SAMPLE_2_X" low="16" high="19" radix="4" type="fixed"/>
+		<bitfield name="SAMPLE_2_Y" low="20" high="23" radix="4" type="fixed"/>
+		<bitfield name="SAMPLE_3_X" low="24" high="27" radix="4" type="fixed"/>
+		<bitfield name="SAMPLE_3_Y" low="28" high="31" radix="4" type="fixed"/>
+	</bitset>
+
+	<reg32 offset="0x80a4" name="GRAS_SAMPLE_CONFIG" type="a6xx_sample_config"/>
+	<reg32 offset="0x80a5" name="GRAS_SAMPLE_LOCATION_0" type="a6xx_sample_locations"/>
+	<reg32 offset="0x80a6" name="GRAS_SAMPLE_LOCATION_1" type="a6xx_sample_locations"/>
+
 	<!-- always 0x0 -->
 	<reg32 offset="0x80af" name="GRAS_UNKNOWN_80AF"/>
 
@@ -2060,12 +2061,9 @@ to upconvert to 32b float internally?
 		<bitfield name="MSAA_DISABLE" pos="2" type="boolean"/>
 	</reg32>
 
-	<!-- always 0x0 ? -->
-	<reg32 offset="0x8804" name="RB_UNKNOWN_8804"/>
-	<!-- always 0x0 ? -->
-	<reg32 offset="0x8805" name="RB_UNKNOWN_8805"/>
-	<!-- always 0x0 ? -->
-	<reg32 offset="0x8806" name="RB_UNKNOWN_8806"/>
+	<reg32 offset="0x8804" name="RB_SAMPLE_CONFIG" type="a6xx_sample_config"/>
+	<reg32 offset="0x8805" name="RB_SAMPLE_LOCATION_0" type="a6xx_sample_locations"/>
+	<reg32 offset="0x8806" name="RB_SAMPLE_LOCATION_1" type="a6xx_sample_locations"/>
 
 	<!--
 	note: maybe not actually called RB_RENDER_CONTROLn (since RB_RENDER_CNTL
@@ -2551,7 +2549,10 @@ to upconvert to 32b float internally?
 
 	<reg32 offset="0x9304" name="VPC_CNTL_0">
 		<bitfield name="NUMNONPOSVAR" low="0" high="7" type="uint"/>
+		<!-- for fixed-function (i.e. no GS) gl_PrimitiveID in FS -->
+		<bitfield name="PRIMIDLOC" low="8" high="15" type="uint"/>
 		<bitfield name="VARYING" pos="16" type="boolean"/>
+		<bitfield name="UNKLOC" low="24" high="31" type="uint"/>
 	</reg32>
 
 	<reg32 offset="0x9305" name="VPC_SO_BUF_CNTL">
@@ -2599,7 +2600,11 @@ to upconvert to 32b float internally?
 
 	<!-- always 0x1 ? -->
 	<reg32 offset="0x9805" name="PC_UNKNOWN_9805"/>
-	<reg32 offset="0x9806" name="PC_UNKNOWN_9806"/>
+
+	<!-- probably a mirror of VFD_CONTROL_6 -->
+	<reg32 offset="0x9806" name="PC_PRIMID_CNTL">
+		<bitfield name="PRIMID_PASSTHRU" pos="0" type="boolean"/>
+	</reg32>
 
 	<reg32 offset="0x9980" name="PC_UNKNOWN_9980"/>
 	<reg32 offset="0x9981" name="PC_UNKNOWN_9981"/>
@@ -2619,7 +2624,7 @@ to upconvert to 32b float internally?
 			plus # of transform-feedback (streamout) varyings if using the
 			hw streamout (rather than stg instructions in shader)
 		</doc>
-		<bitfield name="STRIDE_IN_VPC" low="0" high="6" type="uint"/>
+		<bitfield name="STRIDE_IN_VPC" low="0" high="7" type="uint"/>
 		<bitfield name="PSIZE" pos="8" type="boolean"/>
 	</reg32>
 
@@ -2627,7 +2632,7 @@ to upconvert to 32b float internally?
 		<doc>
 		  geometry shader
 		</doc>
-		<bitfield name="STRIDE_IN_VPC" low="0" high="6" type="uint"/>
+		<bitfield name="STRIDE_IN_VPC" low="0" high="7" type="uint"/>
 		<bitfield name="PSIZE" pos="8" type="boolean"/>
 		<bitfield name="LAYER" pos="9" type="boolean"/>
 		<bitfield name="PRIMITIVE_ID" pos="11" type="boolean"/>
@@ -2641,7 +2646,7 @@ to upconvert to 32b float internally?
 			plus # of transform-feedback (streamout) varyings if using the
 			hw streamout (rather than stg instructions in shader)
 		</doc>
-		<bitfield name="STRIDE_IN_VPC" low="0" high="6" type="uint"/>
+		<bitfield name="STRIDE_IN_VPC" low="0" high="7" type="uint"/>
 		<bitfield name="PSIZE" pos="8" type="boolean"/>
 	</reg32>
 	<reg32 offset="0x9b04" name="PC_PRIMITIVE_CNTL_4">
@@ -2651,7 +2656,7 @@ to upconvert to 32b float internally?
 			plus # of transform-feedback (streamout) varyings if using the
 			hw streamout (rather than stg instructions in shader)
 		</doc>
-		<bitfield name="STRIDE_IN_VPC" low="0" high="6" type="uint"/>
+		<bitfield name="STRIDE_IN_VPC" low="0" high="7" type="uint"/>
 		<bitfield name="PSIZE" pos="8" type="boolean"/>
 	</reg32>
 
@@ -2713,6 +2718,12 @@ to upconvert to 32b float internally?
 		<bitfield name="REGID_GSHEADER" low="0" high="7" type="a3xx_regid"/>
 	</reg32>
 	<reg32 offset="0xa006" name="VFD_CONTROL_6">
+		<!--
+			True if gl_PrimitiveID is read via the FS and there is
+			no matching write from the GS, and therefore it needs to
+			be passed through via fixed-function logic.
+		-->
+		<bitfield name="PRIMID_PASSTHRU" pos="0" type="boolean"/>
 	</reg32>
 
 	<reg32 offset="0xa007" name="VFD_MODE_CNTL">
@@ -2808,9 +2819,15 @@ to upconvert to 32b float internally?
 	</bitset>
 
 	<reg32 offset="0xa800" name="SP_VS_CTRL_REG0" type="a6xx_sp_xs_ctrl_reg0"/>
+	<reg32 offset="0xa801" name="SP_VS_BRANCH_COND" type="hex">
+		<!--
+		bitmask of true/false conditions for VS brac.N instructions,
+		bit N corresponds to brac.N
+		 -->
+	</reg32>
 	<reg32 offset="0xa802" name="SP_PRIMITIVE_CNTL">
 		<!-- # of VS outputs including pos/psize -->
-		<bitfield name="VSOUT" low="0" high="4" type="uint"/>
+		<bitfield name="VSOUT" low="0" high="5" type="uint"/>
 	</reg32>
 	<array offset="0xa803" name="SP_VS_OUT" stride="1" length="16">
 		<reg32 offset="0x0" name="REG">
@@ -2882,11 +2899,19 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xa864" name="SP_DS_INSTRLEN" type="uint"/>
 
 	<reg32 offset="0xa870" name="SP_GS_CTRL_REG0" type="a6xx_sp_xs_ctrl_reg0"/>
-	<reg32 offset="0xa871" name="SP_GS_UNKNOWN_A871"/>
+	<reg32 offset="0xa871" name="SP_GS_PRIM_SIZE">
+		<!-- size of output of previous stage -->
+	</reg32>
+	<reg32 offset="0xa872" name="SP_GS_BRANCH_COND" type="hex">
+		<!--
+		bitmask of true/false conditions for FS brac.N instructions,
+		bit N corresponds to brac.N
+		 -->
+	</reg32>
 
 	<reg32 offset="0xa873" name="SP_PRIMITIVE_CNTL_GS">
 		<!-- # of VS outputs including pos/psize -->
-		<bitfield name="GSOUT" low="0" high="4" type="uint"/>
+		<bitfield name="GSOUT" low="0" high="5" type="uint"/>
 		<bitfield name="FLAGS_REGID" low="6" high="13" type="a3xx_regid"/>
 	</reg32>
 
@@ -2932,13 +2957,11 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xa8af" name="SP_GS_TEX_CONST_HI"/>
 
 	<reg32 offset="0xa980" name="SP_FS_CTRL_REG0" type="a6xx_sp_xs_ctrl_reg0"/>
-	<reg32 offset="0xa981" name="SP_UNKNOWN_A981">
-		<bitfield name="FACE0" pos="0" type="boolean"/>
-		<bitfield name="FACE1" pos="1" type="boolean"/>
-		<bitfield name="FACE2" pos="2" type="boolean"/>
-		<bitfield name="FACE3" pos="3" type="boolean"/>
-		<bitfield name="FACE4" pos="4" type="boolean"/>
-		<bitfield name="FACE5" pos="5" type="boolean"/>
+	<reg32 offset="0xa981" name="SP_FS_BRANCH_COND" type="hex">
+		<!--
+		bitmask of true/false conditions for FS brac.N instructions,
+		bit N corresponds to brac.N
+		 -->
 	</reg32>
 	<reg32 offset="0xa982" name="SP_UNKNOWN_A982"/>
 	<reg32 offset="0xa983" name="SP_FS_OBJ_START_LO"/>
@@ -3134,8 +3157,9 @@ to upconvert to 32b float internally?
 	<reg64 offset="0xb302" name="SP_TP_BORDER_COLOR_BASE_ADDR" type="address"/>
 	<reg32 offset="0xb302" name="SP_TP_BORDER_COLOR_BASE_ADDR_LO"/>
 	<reg32 offset="0xb303" name="SP_TP_BORDER_COLOR_BASE_ADDR_HI"/>
-	<!-- always 0x0 ? -->
-	<reg32 offset="0xb304" name="SP_TP_UNKNOWN_B304"/>
+	<reg32 offset="0xb304" name="SP_TP_SAMPLE_CONFIG" type="a6xx_sample_config"/>
+	<reg32 offset="0xb305" name="SP_TP_SAMPLE_LOCATION_0" type="a6xx_sample_locations"/>
+	<reg32 offset="0xb306" name="SP_TP_SAMPLE_LOCATION_1" type="a6xx_sample_locations"/>
 
 	<reg32 offset="0xb309" name="SP_TP_UNKNOWN_B309"/>
 
@@ -3282,6 +3306,7 @@ to upconvert to 32b float internally?
 		<value name="A6XX_TEX_NEAREST" value="0"/>
 		<value name="A6XX_TEX_LINEAR" value="1"/>
 		<value name="A6XX_TEX_ANISO" value="2"/>
+		<value name="A6XX_TEX_CUBIC" value="3"/> <!-- a650 only -->
 	</enum>
 	<enum name="a6xx_tex_clamp"> <!-- same as a4xx? -->
 		<value name="A6XX_TEX_REPEAT" value="0"/>
@@ -3297,6 +3322,12 @@ to upconvert to 32b float internally?
 		<value name="A6XX_TEX_ANISO_8" value="3"/>
 		<value name="A6XX_TEX_ANISO_16" value="4"/>
 	</enum>
+	<enum name="a6xx_reduction_mode">
+		<value name="A6XX_REDUCTION_MODE_AVERAGE" value="0"/>
+		<value name="A6XX_REDUCTION_MODE_MIN" value="1"/>
+		<value name="A6XX_REDUCTION_MODE_MAX" value="2"/>
+	</enum>
+
 	<reg32 offset="0" name="0">
 		<bitfield name="MIPFILTER_LINEAR_NEAR" pos="0" type="boolean"/>
 		<bitfield name="XY_MAG" low="1" high="2" type="a6xx_tex_filter"/>
@@ -3316,7 +3347,8 @@ to upconvert to 32b float internally?
 		<bitfield name="MIN_LOD" low="20" high="31" type="ufixed" radix="8"/>
 	</reg32>
 	<reg32 offset="2" name="2">
-		<bitfield name="BCOLOR_OFFSET" low="0" high="31"/>
+		<bitfield name="REDUCTION_MODE" low="0" high="1" type="a6xx_reduction_mode"/>
+		<bitfield name="BCOLOR_OFFSET" low="7" high="31" shr="7"/>
 	</reg32>
 	<reg32 offset="3" name="3"/>
 </domain>

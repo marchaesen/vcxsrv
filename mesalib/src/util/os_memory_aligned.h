@@ -36,7 +36,6 @@
 #endif
 
 
-
 /**
  * Add two size_t values with integer overflow check.
  * TODO: leverage __builtin_add_overflow where available
@@ -48,6 +47,22 @@ add_overflow_size_t(size_t a, size_t b, size_t *res)
    return *res < a || *res < b;
 }
 
+
+#if defined(HAVE_POSIX_MEMALIGN)
+
+static inline void *
+os_malloc_aligned(size_t size, size_t alignment)
+{
+   void *ptr;
+   alignment = (alignment + sizeof(void*) - 1) & ~(sizeof(void*) - 1);
+   if(posix_memalign(&ptr, alignment, size) != 0)
+      return NULL;
+   return ptr;
+}
+
+#define os_free_aligned(_ptr) free(_ptr)
+
+#else
 
 /**
  * Return memory on given byte alignment
@@ -92,4 +107,22 @@ os_free_aligned(void *ptr)
       void *realAddr = *cubbyHole;
       os_free(realAddr);
    }
+}
+
+#endif
+
+/**
+ * Reallocate memeory, with alignment
+ */
+static inline void *
+os_realloc_aligned(void *ptr, size_t oldsize, size_t newsize, size_t alignment)
+{
+   const size_t copySize = MIN2(oldsize, newsize);
+   void *newBuf = os_malloc_aligned(newsize, alignment);
+   if (newBuf && ptr && copySize > 0) {
+      memcpy(newBuf, ptr, copySize);
+   }
+
+   os_free_aligned(ptr);
+   return newBuf;
 }

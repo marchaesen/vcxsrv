@@ -1030,15 +1030,6 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
       inst->saturate = true;
       break;
    }
-   case ir_unop_noise: {
-      const enum prog_opcode opcode =
-	 prog_opcode(OPCODE_NOISE1
-		     + (ir->operands[0]->type->vector_elements) - 1);
-      assert((opcode >= OPCODE_NOISE1) && (opcode <= OPCODE_NOISE4));
-
-      emit(ir, opcode, result_dst, op[0]);
-      break;
-   }
 
    case ir_binop_add:
       emit(ir, OPCODE_ADD, result_dst, op[0], op[1]);
@@ -3021,8 +3012,6 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 
 	 progress = lower_if_to_cond_assign((gl_shader_stage)i, ir,
                                             options->MaxIfDepth) || progress;
-
-         progress = lower_noise(ir) || progress;
 
 	 /* If there are forms of indirect addressing that the driver
 	  * cannot handle, perform the lowering pass.

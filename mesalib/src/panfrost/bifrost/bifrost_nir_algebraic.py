@@ -80,6 +80,12 @@ for op in ('u2u', 'i2i', 'f2f', 'i2f', 'u2f', 'f2i', 'f2u'):
             srcsz *= 2
         dstsz *= 2
 
+# Bifrost doesn't have fp16 for a lot of special ops
+SPECIAL = ['fexp2', 'flog2', 'fsin', 'fcos']
+
+for op in SPECIAL:
+        converts += [((op + '@16', a), ('f2f16', (op, ('f2f32', a))))]
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--import-path', required=True)

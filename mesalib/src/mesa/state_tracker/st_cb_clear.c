@@ -280,6 +280,7 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
          int i;
 
          blend.independent_blend_enable = num_buffers > 1;
+         blend.max_rt = num_buffers - 1;
 
          for (i = 0; i < num_buffers; i++) {
             if (!(clear_buffers & (PIPE_CLEAR_COLOR0 << i)))
@@ -431,6 +432,7 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
       = ctx->DrawBuffer->Attachment[BUFFER_STENCIL].Renderbuffer;
    GLbitfield quad_buffers = 0x0;
    GLbitfield clear_buffers = 0x0;
+   bool have_scissor_buffers = false;
    GLuint i;
 
    st_flush_bitmap_cache(st);
@@ -461,12 +463,14 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
             unsigned surf_colormask =
                util_format_colormask(util_format_description(strb->surface->format));
 
-            if (is_scissor_enabled(ctx, rb) ||
+            bool scissor = is_scissor_enabled(ctx, rb);
+            if ((scissor && !st->can_scissor_clear) ||
                 is_window_rectangle_enabled(ctx) ||
                 ((colormask & surf_colormask) != surf_colormask))
                quad_buffers |= PIPE_CLEAR_COLOR0 << i;
             else
                clear_buffers |= PIPE_CLEAR_COLOR0 << i;
+            have_scissor_buffers |= scissor && st->can_scissor_clear;
          }
       }
    }
@@ -509,10 +513,31 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
     * renderbuffers, because it's likely to be faster.
     */
    if (clear_buffers) {
+      const struct gl_scissor_rect *scissor = &ctx->Scissor.ScissorArray[0];
+      struct pipe_scissor_state scissor_state = {
+         .minx = MAX2(scissor->X, 0),
+         .miny = MAX2(scissor->Y, 0),
+         .maxx = MAX2(scissor->X + scissor->Width, 0),
+         .maxy = MAX2(scissor->Y + scissor->Height, 0),
+
+      };
+
+      /* Now invert Y if needed.
+       * Gallium drivers use the convention Y=0=top for surfaces.
+       */
+      if (st->state.fb_orientation == Y_0_TOP) {
+         const struct gl_framebuffer *fb = ctx->DrawBuffer;
+         /* use intermediate variables to avoid uint underflow */
+         GLint miny, maxy;
+         miny = fb->Height - scissor_state.maxy;
+         maxy = fb->Height - scissor_state.miny;
+         scissor_state.miny = MAX2(miny, 0);
+         scissor_state.maxy = MAX2(maxy, 0);
+      }
       /* We can't translate the clear color to the colorbuffer format,
        * because different colorbuffers may have different formats.
        */
-      st->pipe->clear(st->pipe, clear_buffers,
+      st->pipe->clear(st->pipe, clear_buffers, have_scissor_buffers ? &scissor_state : NULL,
                       (union pipe_color_union*)&ctx->Color.ClearColor,
                       ctx->Depth.Clear, ctx->Stencil.Clear);
    }

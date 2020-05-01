@@ -138,16 +138,6 @@ struct fd_submit {
 	const struct fd_submit_funcs *funcs;
 };
 
-struct fd_ringbuffer_funcs {
-	void (*grow)(struct fd_ringbuffer *ring, uint32_t size);
-	void (*emit_reloc)(struct fd_ringbuffer *ring,
-			const struct fd_reloc *reloc);
-	uint32_t (*emit_reloc_ring)(struct fd_ringbuffer *ring,
-			struct fd_ringbuffer *target, uint32_t cmd_idx);
-	uint32_t (*cmd_count)(struct fd_ringbuffer *ring);
-	void (*destroy)(struct fd_ringbuffer *ring);
-};
-
 struct fd_bo_funcs {
 	int (*offset)(struct fd_bo *bo, uint64_t *offset);
 	int (*cpu_prep)(struct fd_bo *bo, struct fd_pipe *pipe, uint32_t op);

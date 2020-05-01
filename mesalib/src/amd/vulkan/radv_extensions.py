@@ -52,7 +52,7 @@ class Extension:
 EXTENSIONS = [
     Extension('VK_ANDROID_external_memory_android_hardware_buffer', 3, 'RADV_SUPPORT_ANDROID_HARDWARE_BUFFER  && device->rad_info.has_syncobj_wait_for_submit'),
     Extension('VK_ANDROID_native_buffer',                 5, 'ANDROID && device->rad_info.has_syncobj_wait_for_submit'),
-    Extension('VK_KHR_16bit_storage',                     1, '!device->use_aco'),
+    Extension('VK_KHR_16bit_storage',                     1, '!device->use_aco || device->rad_info.chip_class >= GFX8'),
     Extension('VK_KHR_bind_memory2',                      1, True),
     Extension('VK_KHR_buffer_device_address',             1, True),
     Extension('VK_KHR_create_renderpass2',                1, True),
@@ -92,7 +92,7 @@ EXTENSIONS = [
     Extension('VK_KHR_shader_clock',                      1, True),
     Extension('VK_KHR_shader_draw_parameters',            1, True),
     Extension('VK_KHR_shader_float_controls',             1, True),
-    Extension('VK_KHR_shader_float16_int8',               1, '!device->use_aco'),
+    Extension('VK_KHR_shader_float16_int8',               1, '!device->use_aco || device->rad_info.chip_class >= GFX8'),
     Extension('VK_KHR_shader_non_semantic_info',          1, True),
     Extension('VK_KHR_shader_subgroup_extended_types',    1, '!device->use_aco'),
     Extension('VK_KHR_spirv_1_4',                         1, True),
@@ -109,7 +109,7 @@ EXTENSIONS = [
     Extension('VK_KHR_xlib_surface',                      6, 'VK_USE_PLATFORM_XLIB_KHR'),
     Extension('VK_KHR_multiview',                         1, True),
     Extension('VK_KHR_display',                          23, 'VK_USE_PLATFORM_DISPLAY_KHR'),
-    Extension('VK_KHR_8bit_storage',                      1, '!device->use_aco'),
+    Extension('VK_KHR_8bit_storage',                      1, '!device->use_aco || device->rad_info.chip_class >= GFX8'),
     Extension('VK_EXT_direct_mode_display',               1, 'VK_USE_PLATFORM_DISPLAY_KHR'),
     Extension('VK_EXT_acquire_xlib_display',              1, 'VK_USE_PLATFORM_XLIB_XRANDR_EXT'),
     Extension('VK_EXT_buffer_device_address',             1, True),
@@ -137,6 +137,7 @@ EXTENSIONS = [
     Extension('VK_EXT_pipeline_creation_feedback',        1, True),
     Extension('VK_EXT_post_depth_coverage',               1, 'device->rad_info.chip_class >= GFX10'),
     Extension('VK_EXT_queue_family_foreign',              1, True),
+    Extension('VK_EXT_robustness2',                       1, True),
     # Disable sample locations on GFX10 until the CTS failures have been resolved.
     Extension('VK_EXT_sample_locations',                  1, 'device->rad_info.chip_class < GFX10'),
     Extension('VK_EXT_sampler_filter_minmax',             1, True),
@@ -157,6 +158,7 @@ EXTENSIONS = [
     Extension('VK_AMD_gcn_shader',                        1, True),
     Extension('VK_AMD_gpu_shader_half_float',             1, '!device->use_aco && device->rad_info.has_double_rate_fp16'),
     Extension('VK_AMD_gpu_shader_int16',                  1, '!device->use_aco && device->rad_info.has_double_rate_fp16'),
+    Extension('VK_AMD_memory_overallocation_behavior',    1, True),
     # Disable mixed attachment samples on GFX6-GFX7 until the CTS failures have been resolved.
     Extension('VK_AMD_mixed_attachment_samples',          1, 'device->rad_info.chip_class >= GFX8'),
     Extension('VK_AMD_rasterization_order',               1, 'device->rad_info.has_out_of_order_rast'),
@@ -258,6 +260,7 @@ def _init_exts_from_xml(xml):
 
     for ext in EXTENSIONS:
         if ext.type == 'device':
+            ext.enable = '(' + ext.enable + ')'
             for dep in extra_deps(ext):
                 ext.enable += ' && ' + dep
 

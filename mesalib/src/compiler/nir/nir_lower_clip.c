@@ -41,14 +41,20 @@
 
 
 static nir_variable *
-create_clipdist_var(nir_shader *shader, unsigned drvloc,
+create_clipdist_var(nir_shader *shader,
                     bool output, gl_varying_slot slot, unsigned array_size)
 {
    nir_variable *var = rzalloc(shader, nir_variable);
 
-   var->data.driver_location = drvloc;
-   var->data.mode = output ? nir_var_shader_out : nir_var_shader_in;
-   var->name = ralloc_asprintf(var, "clipdist_%d", drvloc);
+   /* TODO use type_size() for num_inputs/outputs */
+   if (output) {
+      var->data.driver_location = shader->num_outputs++;
+      var->data.mode = nir_var_shader_out;
+   } else {
+      var->data.driver_location = shader->num_inputs++;
+      var->data.mode = nir_var_shader_in;
+   }
+   var->name = ralloc_asprintf(var, "clipdist_%d", var->data.driver_location);
    var->data.index = 0;
    var->data.location = slot;
 
@@ -61,33 +67,31 @@ create_clipdist_var(nir_shader *shader, unsigned drvloc,
 
    if (output) {
       exec_list_push_tail(&shader->outputs, &var->node);
-      shader->num_outputs++; /* TODO use type_size() */
    }
    else {
       exec_list_push_tail(&shader->inputs, &var->node);
-      shader->num_inputs++;  /* TODO use type_size() */
    }
    return var;
 }
 
 static void
 create_clipdist_vars(nir_shader *shader, nir_variable **io_vars,
-                     unsigned ucp_enables, int *drvloc, bool output,
+                     unsigned ucp_enables, bool output,
                      bool use_clipdist_array)
 {
    if (use_clipdist_array) {
       io_vars[0] =
-         create_clipdist_var(shader, ++(*drvloc), true,
+         create_clipdist_var(shader, true,
                              VARYING_SLOT_CLIP_DIST0,
                              util_last_bit(ucp_enables));
    } else {
       if (ucp_enables & 0x0f)
          io_vars[0] =
-            create_clipdist_var(shader, ++(*drvloc), output,
+            create_clipdist_var(shader, output,
                                 VARYING_SLOT_CLIP_DIST0, 0);
       if (ucp_enables & 0xf0)
          io_vars[1] =
-            create_clipdist_var(shader, ++(*drvloc), output,
+            create_clipdist_var(shader, output,
                                 VARYING_SLOT_CLIP_DIST1, 0);
    }
 }
@@ -309,24 +313,12 @@ nir_lower_clip_vs(nir_shader *shader, unsigned ucp_enables, bool use_vars,
 {
    nir_function_impl *impl = nir_shader_get_entrypoint(shader);
    nir_builder b;
-   int maxloc = -1;
    nir_variable *position = NULL;
    nir_variable *clipvertex = NULL;
    nir_variable *out[2] = { NULL };
 
    if (!ucp_enables)
       return false;
-
-   /* find clipvertex/position outputs: */
-   nir_foreach_variable(var, &shader->outputs) {
-      int loc = var->data.driver_location;
-
-      /* keep track of last used driver-location.. we'll be
-       * appending CLIP_DIST0/CLIP_DIST1 after last existing
-       * output:
-       */
-      maxloc = MAX2(maxloc, loc);
-   }
 
    nir_builder_init(&b, impl);
 
@@ -347,7 +339,7 @@ nir_lower_clip_vs(nir_shader *shader, unsigned ucp_enables, bool use_vars,
       return false;
 
    /* insert CLIPDIST outputs */
-   create_clipdist_vars(shader, out, ucp_enables, &maxloc, true,
+   create_clipdist_vars(shader, out, ucp_enables, true,
                         use_clipdist_array);
 
    lower_clip_outputs(&b, position, clipvertex, out, ucp_enables, use_vars,
@@ -394,7 +386,6 @@ nir_lower_clip_gs(nir_shader *shader, unsigned ucp_enables,
 {
    nir_function_impl *impl = nir_shader_get_entrypoint(shader);
    nir_builder b;
-   int maxloc = -1;
    nir_variable *position = NULL;
    nir_variable *clipvertex = NULL;
    nir_variable *out[2] = { NULL };
@@ -407,7 +398,7 @@ nir_lower_clip_gs(nir_shader *shader, unsigned ucp_enables,
       return false;
 
    /* insert CLIPDIST outputs */
-   create_clipdist_vars(shader, out, ucp_enables, &maxloc, true,
+   create_clipdist_vars(shader, out, ucp_enables, true,
                         use_clipdist_array);
 
    nir_builder_init(&b, impl);
@@ -467,27 +458,15 @@ nir_lower_clip_fs(nir_shader *shader, unsigned ucp_enables,
                   bool use_clipdist_array)
 {
    nir_variable *in[2] = {0};
-   int maxloc = -1;
 
    if (!ucp_enables)
       return false;
-
-   nir_foreach_variable(var, &shader->inputs) {
-      int loc = var->data.driver_location;
-
-      /* keep track of last used driver-location.. we'll be
-       * appending CLIP_DIST0/CLIP_DIST1 after last existing
-       * input:
-       */
-      maxloc = MAX2(maxloc, loc);
-   }
 
    /* The shader won't normally have CLIPDIST inputs, so we
     * must add our own:
     */
    /* insert CLIPDIST inputs */
-   create_clipdist_vars(shader, in, ucp_enables, &maxloc, false,
-                        use_clipdist_array);
+   create_clipdist_vars(shader, in, ucp_enables, false, use_clipdist_array);
 
    nir_foreach_function(function, shader) {
       if (!strcmp(function->name, "main"))

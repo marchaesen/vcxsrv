@@ -33,6 +33,7 @@
 #include "context.h"
 #include "pixelstore.h"
 #include "mtypes.h"
+#include "util/rounding.h"
 
 
 static ALWAYS_INLINE void
@@ -234,7 +235,7 @@ _mesa_PixelStorei(GLenum pname, GLint param)
 void GLAPIENTRY
 _mesa_PixelStoref(GLenum pname, GLfloat param)
 {
-   _mesa_PixelStorei(pname, IROUND(param));
+   _mesa_PixelStorei(pname, lroundf(param));
 }
 
 
@@ -248,7 +249,7 @@ _mesa_PixelStorei_no_error(GLenum pname, GLint param)
 void GLAPIENTRY
 _mesa_PixelStoref_no_error(GLenum pname, GLfloat param)
 {
-   _mesa_PixelStorei_no_error(pname, IROUND(param));
+   _mesa_PixelStorei_no_error(pname, lroundf(param));
 }
 
 

@@ -320,7 +320,7 @@
 
     <function name="PointSizePointerOES" es1="1.0" desktop="false"
               no_error="true" marshal="async"
-              marshal_call_after="if (COMPAT) _mesa_glthread_AttribPointer(ctx, VERT_ATTRIB_POINT_SIZE);">
+              marshal_call_after="if (COMPAT) _mesa_glthread_AttribPointer(ctx, VERT_ATTRIB_POINT_SIZE, 1, type, stride, pointer);">
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
         <param name="pointer" type="const GLvoid *"/>
@@ -1101,7 +1101,7 @@
     </function>
 
     <function name="DrawElementsInstancedBaseVertexEXT" alias="DrawElementsInstancedBaseVertex"
-              es2="3.0" exec="dynamic">
+              es2="3.0">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>
@@ -1243,7 +1243,7 @@
     </function>
 
     <function name="DrawElementsInstancedBaseVertexOES" alias="DrawElementsInstancedBaseVertex"
-              es2="3.0" exec="dynamic">
+              es2="3.0">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>

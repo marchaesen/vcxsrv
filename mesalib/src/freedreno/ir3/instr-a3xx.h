@@ -1050,6 +1050,43 @@ static inline bool is_isam(opc_t opc)
 	}
 }
 
+
+static inline bool is_cat2_float(opc_t opc)
+{
+	switch (opc) {
+	case OPC_ADD_F:
+	case OPC_MIN_F:
+	case OPC_MAX_F:
+	case OPC_MUL_F:
+	case OPC_SIGN_F:
+	case OPC_CMPS_F:
+	case OPC_ABSNEG_F:
+	case OPC_CMPV_F:
+	case OPC_FLOOR_F:
+	case OPC_CEIL_F:
+	case OPC_RNDNE_F:
+	case OPC_RNDAZ_F:
+	case OPC_TRUNC_F:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+static inline bool is_cat3_float(opc_t opc)
+{
+	switch (opc) {
+	case OPC_MAD_F16:
+	case OPC_MAD_F32:
+	case OPC_SEL_F16:
+	case OPC_SEL_F32:
+		return true;
+	default:
+		return false;
+	}
+}
+
 int disasm_a3xx(uint32_t *dwords, int sizedwords, int level, FILE *out, unsigned gpu_id);
 
 #endif /* INSTR_A3XX_H_ */

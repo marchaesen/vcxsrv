@@ -113,10 +113,9 @@ tu_bo_list_merge(struct tu_bo_list *list, const struct tu_bo_list *other)
 static void
 tu_tiling_config_update_tile_layout(struct tu_tiling_config *tiling,
                                     const struct tu_device *dev,
-                                    uint32_t pixels)
+                                    const struct tu_render_pass *pass)
 {
-   const uint32_t tile_align_w = 64; /* note: 32 when no input attachments */
-   const uint32_t tile_align_h = 16;
+   const uint32_t tile_align_w = pass->tile_align_w;
    const uint32_t max_tile_width = 1024;
 
    /* note: don't offset the tiling config by render_area.offset,
@@ -139,43 +138,43 @@ tu_tiling_config_update_tile_layout(struct tu_tiling_config *tiling,
       .height = 1,
    };
    tiling->tile0.extent = (VkExtent2D) {
-      .width = align(ra_width, tile_align_w),
-      .height = align(ra_height, tile_align_h),
+      .width = util_align_npot(ra_width, tile_align_w),
+      .height = align(ra_height, TILE_ALIGN_H),
    };
 
    if (unlikely(dev->physical_device->instance->debug_flags & TU_DEBUG_FORCEBIN)) {
       /* start with 2x2 tiles */
       tiling->tile_count.width = 2;
       tiling->tile_count.height = 2;
-      tiling->tile0.extent.width = align(DIV_ROUND_UP(ra_width, 2), tile_align_w);
-      tiling->tile0.extent.height = align(DIV_ROUND_UP(ra_height, 2), tile_align_h);
+      tiling->tile0.extent.width = util_align_npot(DIV_ROUND_UP(ra_width, 2), tile_align_w);
+      tiling->tile0.extent.height = align(DIV_ROUND_UP(ra_height, 2), TILE_ALIGN_H);
    }
 
    /* do not exceed max tile width */
    while (tiling->tile0.extent.width > max_tile_width) {
       tiling->tile_count.width++;
       tiling->tile0.extent.width =
-         align(DIV_ROUND_UP(ra_width, tiling->tile_count.width), tile_align_w);
+         util_align_npot(DIV_ROUND_UP(ra_width, tiling->tile_count.width), tile_align_w);
    }
 
    /* will force to sysmem, don't bother trying to have a valid tile config
     * TODO: just skip all GMEM stuff when sysmem is forced?
     */
-   if (!pixels)
+   if (!pass->gmem_pixels)
       return;
 
    /* do not exceed gmem size */
-   while (tiling->tile0.extent.width * tiling->tile0.extent.height > pixels) {
+   while (tiling->tile0.extent.width * tiling->tile0.extent.height > pass->gmem_pixels) {
       if (tiling->tile0.extent.width > MAX2(tile_align_w, tiling->tile0.extent.height)) {
          tiling->tile_count.width++;
          tiling->tile0.extent.width =
-            align(DIV_ROUND_UP(ra_width, tiling->tile_count.width), tile_align_w);
+            util_align_npot(DIV_ROUND_UP(ra_width, tiling->tile_count.width), tile_align_w);
       } else {
          /* if this assert fails then layout is impossible.. */
-         assert(tiling->tile0.extent.height > tile_align_h);
+         assert(tiling->tile0.extent.height > TILE_ALIGN_H);
          tiling->tile_count.height++;
          tiling->tile0.extent.height =
-            align(DIV_ROUND_UP(ra_height, tiling->tile_count.height), tile_align_h);
+            align(DIV_ROUND_UP(ra_height, tiling->tile_count.height), TILE_ALIGN_H);
       }
    }
 }
@@ -387,31 +386,35 @@ tu6_emit_zs(struct tu_cmd_buffer *cmd,
    }
 
    const struct tu_image_view *iview = fb->attachments[a].attachment;
-   enum a6xx_depth_format fmt = tu6_pipe2depth(iview->vk_format);
+   const struct tu_render_pass_attachment *attachment =
+      &cmd->state.pass->attachments[a];
+   enum a6xx_depth_format fmt = tu6_pipe2depth(attachment->format);
 
-   tu_cs_emit_regs(cs,
-                   A6XX_RB_DEPTH_BUFFER_INFO(.depth_format = fmt),
-                   A6XX_RB_DEPTH_BUFFER_PITCH(tu_image_stride(iview->image, iview->base_mip)),
-                   A6XX_RB_DEPTH_BUFFER_ARRAY_PITCH(iview->image->layout.layer_size),
-                   A6XX_RB_DEPTH_BUFFER_BASE(tu_image_view_base_ref(iview)),
-                   A6XX_RB_DEPTH_BUFFER_BASE_GMEM(cmd->state.pass->attachments[a].gmem_offset));
+   tu_cs_emit_pkt4(cs, REG_A6XX_RB_DEPTH_BUFFER_INFO, 6);
+   tu_cs_emit(cs, A6XX_RB_DEPTH_BUFFER_INFO(.depth_format = fmt).value);
+   tu_cs_image_ref(cs, iview, 0);
+   tu_cs_emit(cs, attachment->gmem_offset);
 
    tu_cs_emit_regs(cs,
                    A6XX_GRAS_SU_DEPTH_BUFFER_INFO(.depth_format = fmt));
 
-   tu_cs_emit_regs(cs,
-                   A6XX_RB_DEPTH_FLAG_BUFFER_BASE(tu_image_view_ubwc_base_ref(iview)),
-                   A6XX_RB_DEPTH_FLAG_BUFFER_PITCH(tu_image_view_ubwc_pitches(iview)));
+   tu_cs_emit_pkt4(cs, REG_A6XX_RB_DEPTH_FLAG_BUFFER_BASE_LO, 3);
+   tu_cs_image_flag_ref(cs, iview, 0);
 
    tu_cs_emit_regs(cs,
                    A6XX_GRAS_LRZ_BUFFER_BASE(0),
                    A6XX_GRAS_LRZ_BUFFER_PITCH(0),
                    A6XX_GRAS_LRZ_FAST_CLEAR_BUFFER_BASE(0));
 
-   tu_cs_emit_regs(cs,
-                   A6XX_RB_STENCIL_INFO(0));
-
-   /* enable zs? */
+   if (attachment->format == VK_FORMAT_S8_UINT) {
+      tu_cs_emit_pkt4(cs, REG_A6XX_RB_STENCIL_INFO, 6);
+      tu_cs_emit(cs, A6XX_RB_STENCIL_INFO(.separate_stencil = true).value);
+      tu_cs_image_ref(cs, iview, 0);
+      tu_cs_emit(cs, attachment->gmem_offset);
+   } else {
+      tu_cs_emit_regs(cs,
+                     A6XX_RB_STENCIL_INFO(0));
+   }
 }
 
 static void
@@ -420,8 +423,6 @@ tu6_emit_mrt(struct tu_cmd_buffer *cmd,
              struct tu_cs *cs)
 {
    const struct tu_framebuffer *fb = cmd->state.framebuffer;
-   unsigned char mrt_comp[MAX_RTS] = { 0 };
-   unsigned srgb_cntl = 0;
 
    for (uint32_t i = 0; i < subpass->color_count; ++i) {
       uint32_t a = subpass->color_attachments[i].attachment;
@@ -430,67 +431,29 @@ tu6_emit_mrt(struct tu_cmd_buffer *cmd,
 
       const struct tu_image_view *iview = fb->attachments[a].attachment;
 
-      mrt_comp[i] = 0xf;
-
-      if (vk_format_is_srgb(iview->vk_format))
-         srgb_cntl |= (1 << i);
-
-      struct tu_native_format format =
-         tu6_format_image(iview->image, iview->vk_format, iview->base_mip);
+      tu_cs_emit_pkt4(cs, REG_A6XX_RB_MRT_BUF_INFO(i), 6);
+      tu_cs_emit(cs, iview->RB_MRT_BUF_INFO);
+      tu_cs_image_ref(cs, iview, 0);
+      tu_cs_emit(cs, cmd->state.pass->attachments[a].gmem_offset);
 
       tu_cs_emit_regs(cs,
-                      A6XX_RB_MRT_BUF_INFO(i,
-                                           .color_tile_mode = format.tile_mode,
-                                           .color_format = format.fmt,
-                                           .color_swap = format.swap),
-                      A6XX_RB_MRT_PITCH(i, tu_image_stride(iview->image, iview->base_mip)),
-                      A6XX_RB_MRT_ARRAY_PITCH(i, iview->image->layout.layer_size),
-                      A6XX_RB_MRT_BASE(i, tu_image_view_base_ref(iview)),
-                      A6XX_RB_MRT_BASE_GMEM(i, cmd->state.pass->attachments[a].gmem_offset));
+                      A6XX_SP_FS_MRT_REG(i, .dword = iview->SP_FS_MRT_REG));
 
-      tu_cs_emit_regs(cs,
-                      A6XX_SP_FS_MRT_REG(i,
-                                         .color_format = format.fmt,
-                                         .color_sint = vk_format_is_sint(iview->vk_format),
-                                         .color_uint = vk_format_is_uint(iview->vk_format)));
-
-      tu_cs_emit_regs(cs,
-                      A6XX_RB_MRT_FLAG_BUFFER_ADDR(i, tu_image_view_ubwc_base_ref(iview)),
-                      A6XX_RB_MRT_FLAG_BUFFER_PITCH(i, tu_image_view_ubwc_pitches(iview)));
+      tu_cs_emit_pkt4(cs, REG_A6XX_RB_MRT_FLAG_BUFFER_ADDR_LO(i), 3);
+      tu_cs_image_flag_ref(cs, iview, 0);
    }
 
    tu_cs_emit_regs(cs,
-                   A6XX_RB_SRGB_CNTL(.dword = srgb_cntl));
+                   A6XX_RB_SRGB_CNTL(.dword = subpass->srgb_cntl));
+   tu_cs_emit_regs(cs,
+                   A6XX_SP_SRGB_CNTL(.dword = subpass->srgb_cntl));
 
    tu_cs_emit_regs(cs,
-                   A6XX_SP_SRGB_CNTL(.dword = srgb_cntl));
-
+                   A6XX_RB_RENDER_COMPONENTS(.dword = subpass->render_components));
    tu_cs_emit_regs(cs,
-                   A6XX_RB_RENDER_COMPONENTS(
-                      .rt0 = mrt_comp[0],
-                      .rt1 = mrt_comp[1],
-                      .rt2 = mrt_comp[2],
-                      .rt3 = mrt_comp[3],
-                      .rt4 = mrt_comp[4],
-                      .rt5 = mrt_comp[5],
-                      .rt6 = mrt_comp[6],
-                      .rt7 = mrt_comp[7]));
+                   A6XX_SP_FS_RENDER_COMPONENTS(.dword = subpass->render_components));
 
-   tu_cs_emit_regs(cs,
-                   A6XX_SP_FS_RENDER_COMPONENTS(
-                      .rt0 = mrt_comp[0],
-                      .rt1 = mrt_comp[1],
-                      .rt2 = mrt_comp[2],
-                      .rt3 = mrt_comp[3],
-                      .rt4 = mrt_comp[4],
-                      .rt5 = mrt_comp[5],
-                      .rt6 = mrt_comp[6],
-                      .rt7 = mrt_comp[7]));
-
-   // XXX: We probably can't hardcode LAYER_CNTL_TYPE.
-   tu_cs_emit_regs(cs,
-                   A6XX_GRAS_LAYER_CNTL(.layered = fb->layers > 1,
-                                        .type = LAYER_2D_ARRAY));
+   tu_cs_emit_regs(cs, A6XX_GRAS_MAX_LAYER_INDEX(fb->layers - 1));
 }
 
 void
@@ -557,7 +520,7 @@ tu6_emit_render_cntl(struct tu_cmd_buffer *cmd,
             continue;
 
          const struct tu_image_view *iview = fb->attachments[a].attachment;
-         if (iview->image->layout.ubwc_layer_size != 0)
+         if (iview->ubwc_enabled)
             mrts_ubwc_enable |= 1 << i;
       }
 
@@ -566,7 +529,7 @@ tu6_emit_render_cntl(struct tu_cmd_buffer *cmd,
       const uint32_t a = subpass->depth_stencil_attachment.attachment;
       if (a != VK_ATTACHMENT_UNUSED) {
          const struct tu_image_view *iview = fb->attachments[a].attachment;
-         if (iview->image->layout.ubwc_layer_size != 0)
+         if (iview->ubwc_enabled)
             cntl |= A6XX_RB_RENDER_CNTL_FLAG_DEPTH;
       }
 
@@ -712,9 +675,9 @@ tu6_emit_tile_select(struct tu_cmd_buffer *cmd,
          tu_cs_emit_pkt7(cs, CP_SET_BIN_DATA5, 7);
          tu_cs_emit(cs, cmd->state.tiling_config.pipe_sizes[tile->pipe] |
                         CP_SET_BIN_DATA5_0_VSC_N(tile->slot));
-         tu_cs_emit_qw(cs, cmd->vsc_data.iova + tile->pipe * cmd->vsc_data_pitch);
-         tu_cs_emit_qw(cs, cmd->vsc_data.iova + (tile->pipe * 4) + (32 * cmd->vsc_data_pitch));
-         tu_cs_emit_qw(cs, cmd->vsc_data2.iova + (tile->pipe * cmd->vsc_data2_pitch));
+         tu_cs_emit_qw(cs, cmd->vsc_draw_strm.iova + tile->pipe * cmd->vsc_draw_strm_pitch);
+         tu_cs_emit_qw(cs, cmd->vsc_draw_strm.iova + (tile->pipe * 4) + (32 * cmd->vsc_draw_strm_pitch));
+         tu_cs_emit_qw(cs, cmd->vsc_prim_strm.iova + (tile->pipe * cmd->vsc_prim_strm_pitch));
 
          tu_cs_emit_pkt7(cs, CP_SET_VISIBILITY_OVERRIDE, 1);
          tu_cs_emit(cs, 0x0);
@@ -728,15 +691,6 @@ tu6_emit_tile_select(struct tu_cmd_buffer *cmd,
 
       tu_cs_emit_pkt7(cs, CP_SET_MODE, 1);
       tu_cs_emit(cs, 0x0);
-
-      tu_cs_emit_regs(cs,
-                      A6XX_RB_UNKNOWN_8804(0));
-
-      tu_cs_emit_regs(cs,
-                      A6XX_SP_TP_UNKNOWN_B304(0));
-
-      tu_cs_emit_regs(cs,
-                      A6XX_GRAS_UNKNOWN_80A4(0));
    } else {
       tu_cs_emit_pkt7(cs, CP_SET_VISIBILITY_OVERRIDE, 1);
       tu_cs_emit(cs, 0x1);
@@ -778,8 +732,7 @@ tu6_emit_tile_store(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
    tu_cs_emit_pkt7(cs, CP_SET_MARKER, 1);
    tu_cs_emit(cs, A6XX_CP_SET_MARKER_0_MODE(RM6_RESOLVE));
 
-   /* blit scissor may have been changed by CmdClearAttachments */
-   tu6_emit_blit_scissor(cmd, cs, false);
+   tu6_emit_blit_scissor(cmd, cs, true);
 
    for (uint32_t a = 0; a < pass->attachment_count; ++a) {
       if (pass->attachments[a].gmem_offset >= 0)
@@ -861,14 +814,14 @@ tu6_init_hw(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
    tu_cs_emit_write_reg(cs, REG_A6XX_VPC_UNKNOWN_9101, 0xffff00);
    tu_cs_emit_write_reg(cs, REG_A6XX_VPC_UNKNOWN_9107, 0);
 
-   tu_cs_emit_write_reg(cs, REG_A6XX_VPC_UNKNOWN_9236, 1);
+   tu_cs_emit_write_reg(cs, REG_A6XX_VPC_UNKNOWN_9236,
+                        A6XX_VPC_UNKNOWN_9236_POINT_COORD_INVERT(0));
    tu_cs_emit_write_reg(cs, REG_A6XX_VPC_UNKNOWN_9300, 0);
 
    tu_cs_emit_write_reg(cs, REG_A6XX_VPC_SO_OVERRIDE,
                         A6XX_VPC_SO_OVERRIDE_SO_DISABLE);
 
    tu_cs_emit_write_reg(cs, REG_A6XX_PC_UNKNOWN_9801, 0);
-   tu_cs_emit_write_reg(cs, REG_A6XX_PC_UNKNOWN_9806, 0);
    tu_cs_emit_write_reg(cs, REG_A6XX_PC_UNKNOWN_9980, 0);
    tu_cs_emit_write_reg(cs, REG_A6XX_PC_UNKNOWN_9990, 0);
 
@@ -889,14 +842,7 @@ tu6_init_hw(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
    tu_cs_emit_write_reg(cs, REG_A6XX_PC_UNKNOWN_9981, 0x3);
    tu_cs_emit_write_reg(cs, REG_A6XX_PC_UNKNOWN_9E72, 0);
    tu_cs_emit_write_reg(cs, REG_A6XX_VPC_UNKNOWN_9108, 0x3);
-   tu_cs_emit_write_reg(cs, REG_A6XX_SP_TP_UNKNOWN_B304, 0);
    tu_cs_emit_write_reg(cs, REG_A6XX_SP_TP_UNKNOWN_B309, 0x000000a2);
-   tu_cs_emit_write_reg(cs, REG_A6XX_RB_UNKNOWN_8804, 0);
-   tu_cs_emit_write_reg(cs, REG_A6XX_GRAS_UNKNOWN_80A4, 0);
-   tu_cs_emit_write_reg(cs, REG_A6XX_GRAS_UNKNOWN_80A5, 0);
-   tu_cs_emit_write_reg(cs, REG_A6XX_GRAS_UNKNOWN_80A6, 0);
-   tu_cs_emit_write_reg(cs, REG_A6XX_RB_UNKNOWN_8805, 0);
-   tu_cs_emit_write_reg(cs, REG_A6XX_RB_UNKNOWN_8806, 0);
    tu_cs_emit_write_reg(cs, REG_A6XX_RB_UNKNOWN_8878, 0);
    tu_cs_emit_write_reg(cs, REG_A6XX_RB_UNKNOWN_8879, 0);
    tu_cs_emit_write_reg(cs, REG_A6XX_HLSQ_CONTROL_5_REG, 0xfc);
@@ -973,8 +919,8 @@ update_vsc_pipe(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
    tu_cs_emit_regs(cs,
                    A6XX_VSC_BIN_SIZE(.width = tiling->tile0.extent.width,
                                      .height = tiling->tile0.extent.height),
-                   A6XX_VSC_SIZE_ADDRESS(.bo = &cmd->vsc_data,
-                                         .bo_offset = 32 * cmd->vsc_data_pitch));
+                   A6XX_VSC_DRAW_STRM_SIZE_ADDRESS(.bo = &cmd->vsc_draw_strm,
+                                                   .bo_offset = 32 * cmd->vsc_draw_strm_pitch));
 
    tu_cs_emit_regs(cs,
                    A6XX_VSC_BIN_COUNT(.nx = tiling->tile_count.width,
@@ -985,14 +931,14 @@ update_vsc_pipe(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
       tu_cs_emit(cs, tiling->pipe_config[i]);
 
    tu_cs_emit_regs(cs,
-                   A6XX_VSC_PIPE_DATA2_ADDRESS(.bo = &cmd->vsc_data2),
-                   A6XX_VSC_PIPE_DATA2_PITCH(cmd->vsc_data2_pitch),
-                   A6XX_VSC_PIPE_DATA2_ARRAY_PITCH(cmd->vsc_data2.size));
+                   A6XX_VSC_PRIM_STRM_ADDRESS(.bo = &cmd->vsc_prim_strm),
+                   A6XX_VSC_PRIM_STRM_PITCH(cmd->vsc_prim_strm_pitch),
+                   A6XX_VSC_PRIM_STRM_ARRAY_PITCH(cmd->vsc_prim_strm.size));
 
    tu_cs_emit_regs(cs,
-                   A6XX_VSC_PIPE_DATA_ADDRESS(.bo = &cmd->vsc_data),
-                   A6XX_VSC_PIPE_DATA_PITCH(cmd->vsc_data_pitch),
-                   A6XX_VSC_PIPE_DATA_ARRAY_PITCH(cmd->vsc_data.size));
+                   A6XX_VSC_DRAW_STRM_ADDRESS(.bo = &cmd->vsc_draw_strm),
+                   A6XX_VSC_DRAW_STRM_PITCH(cmd->vsc_draw_strm_pitch),
+                   A6XX_VSC_DRAW_STRM_ARRAY_PITCH(cmd->vsc_draw_strm.size));
 }
 
 static void
@@ -1012,22 +958,22 @@ emit_vsc_overflow_test(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
       tu_cs_emit_pkt7(cs, CP_COND_WRITE5, 8);
       tu_cs_emit(cs, CP_COND_WRITE5_0_FUNCTION(WRITE_GE) |
             CP_COND_WRITE5_0_WRITE_MEMORY);
-      tu_cs_emit(cs, CP_COND_WRITE5_1_POLL_ADDR_LO(REG_A6XX_VSC_SIZE_REG(i)));
+      tu_cs_emit(cs, CP_COND_WRITE5_1_POLL_ADDR_LO(REG_A6XX_VSC_DRAW_STRM_SIZE_REG(i)));
       tu_cs_emit(cs, CP_COND_WRITE5_2_POLL_ADDR_HI(0));
-      tu_cs_emit(cs, CP_COND_WRITE5_3_REF(cmd->vsc_data_pitch));
+      tu_cs_emit(cs, CP_COND_WRITE5_3_REF(cmd->vsc_draw_strm_pitch));
       tu_cs_emit(cs, CP_COND_WRITE5_4_MASK(~0));
       tu_cs_emit_qw(cs, cmd->scratch_bo.iova + ctrl_offset(vsc_scratch));
-      tu_cs_emit(cs, CP_COND_WRITE5_7_WRITE_DATA(1 + cmd->vsc_data_pitch));
+      tu_cs_emit(cs, CP_COND_WRITE5_7_WRITE_DATA(1 + cmd->vsc_draw_strm_pitch));
 
       tu_cs_emit_pkt7(cs, CP_COND_WRITE5, 8);
       tu_cs_emit(cs, CP_COND_WRITE5_0_FUNCTION(WRITE_GE) |
             CP_COND_WRITE5_0_WRITE_MEMORY);
-      tu_cs_emit(cs, CP_COND_WRITE5_1_POLL_ADDR_LO(REG_A6XX_VSC_SIZE2_REG(i)));
+      tu_cs_emit(cs, CP_COND_WRITE5_1_POLL_ADDR_LO(REG_A6XX_VSC_PRIM_STRM_SIZE_REG(i)));
       tu_cs_emit(cs, CP_COND_WRITE5_2_POLL_ADDR_HI(0));
-      tu_cs_emit(cs, CP_COND_WRITE5_3_REF(cmd->vsc_data2_pitch));
+      tu_cs_emit(cs, CP_COND_WRITE5_3_REF(cmd->vsc_prim_strm_pitch));
       tu_cs_emit(cs, CP_COND_WRITE5_4_MASK(~0));
       tu_cs_emit_qw(cs, cmd->scratch_bo.iova + ctrl_offset(vsc_scratch));
-      tu_cs_emit(cs, CP_COND_WRITE5_7_WRITE_DATA(3 + cmd->vsc_data2_pitch));
+      tu_cs_emit(cs, CP_COND_WRITE5_7_WRITE_DATA(3 + cmd->vsc_prim_strm_pitch));
    }
 
    tu_cs_emit_pkt7(cs, CP_WAIT_MEM_WRITES, 0);
@@ -1049,7 +995,7 @@ emit_vsc_overflow_test(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
     * if (b0 set)..
     */
 
-   /* b0 will be set if VSC_DATA or VSC_DATA2 overflow: */
+   /* b0 will be set if VSC_DRAW_STRM or VSC_PRIM_STRM overflow: */
    tu_cs_emit_pkt7(cs, CP_REG_TEST, 1);
    tu_cs_emit(cs, A6XX_CP_REG_TEST_0_REG(OVERFLOW_FLAG_REG) |
          A6XX_CP_REG_TEST_0_BIT(0) |
@@ -1167,7 +1113,7 @@ tu_emit_load_clear(struct tu_cmd_buffer *cmd,
    tu6_emit_blit_scissor(cmd, cs, true);
 
    for (uint32_t i = 0; i < cmd->state.pass->attachment_count; ++i)
-      tu_load_gmem_attachment(cmd, cs, i);
+      tu_load_gmem_attachment(cmd, cs, i, false);
 
    tu6_emit_blit_scissor(cmd, cs, false);
 
@@ -1366,7 +1312,7 @@ tu6_tile_render_end(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
 
    tu6_emit_lrz_flush(cmd, cs);
 
-   tu6_emit_event_write(cmd, cs, CACHE_FLUSH_TS, true);
+   tu6_emit_event_write(cmd, cs, PC_CCU_RESOLVE_TS, true);
 
    tu_cs_sanity_check(cs);
 }
@@ -1431,7 +1377,7 @@ tu_cmd_update_tiling_config(struct tu_cmd_buffer *cmd,
    tiling->render_area = *render_area;
    tiling->force_sysmem = false;
 
-   tu_tiling_config_update_tile_layout(tiling, dev, cmd->state.pass->gmem_pixels);
+   tu_tiling_config_update_tile_layout(tiling, dev, cmd->state.pass);
    tu_tiling_config_update_pipe_layout(tiling, dev);
    tu_tiling_config_update_pipes(tiling, dev);
 }
@@ -1621,10 +1567,10 @@ tu_create_cmd_buffer(struct tu_device *device,
       goto fail_scratch_bo;
 
    /* TODO: resize on overflow */
-   cmd_buffer->vsc_data_pitch = device->vsc_data_pitch;
-   cmd_buffer->vsc_data2_pitch = device->vsc_data2_pitch;
-   cmd_buffer->vsc_data = device->vsc_data;
-   cmd_buffer->vsc_data2 = device->vsc_data2;
+   cmd_buffer->vsc_draw_strm_pitch = device->vsc_draw_strm_pitch;
+   cmd_buffer->vsc_prim_strm_pitch = device->vsc_prim_strm_pitch;
+   cmd_buffer->vsc_draw_strm = device->vsc_draw_strm;
+   cmd_buffer->vsc_prim_strm = device->vsc_prim_strm;
 
    return VK_SUCCESS;
 
@@ -2007,9 +1953,9 @@ tu_EndCommandBuffer(VkCommandBuffer commandBuffer)
    }
 
    if (cmd_buffer->use_vsc_data) {
-      tu_bo_list_add(&cmd_buffer->bo_list, &cmd_buffer->vsc_data,
+      tu_bo_list_add(&cmd_buffer->bo_list, &cmd_buffer->vsc_draw_strm,
                      MSM_SUBMIT_BO_READ | MSM_SUBMIT_BO_WRITE);
-      tu_bo_list_add(&cmd_buffer->bo_list, &cmd_buffer->vsc_data2,
+      tu_bo_list_add(&cmd_buffer->bo_list, &cmd_buffer->vsc_prim_strm,
                      MSM_SUBMIT_BO_READ | MSM_SUBMIT_BO_WRITE);
    }
 
@@ -2190,6 +2136,15 @@ tu_CmdSetStencilReference(VkCommandBuffer commandBuffer,
 }
 
 void
+tu_CmdSetSampleLocationsEXT(VkCommandBuffer commandBuffer,
+                            const VkSampleLocationsInfoEXT* pSampleLocationsInfo)
+{
+   TU_FROM_HANDLE(tu_cmd_buffer, cmd, commandBuffer);
+
+   tu6_emit_sample_locations(&cmd->draw_cs, pSampleLocationsInfo);
+}
+
+void
 tu_CmdExecuteCommands(VkCommandBuffer commandBuffer,
                       uint32_t commandBufferCount,
                       const VkCommandBuffer *pCmdBuffers)
@@ -2233,7 +2188,7 @@ tu_CmdExecuteCommands(VkCommandBuffer commandBuffer,
                            MSM_SUBMIT_BO_READ | MSM_SUBMIT_BO_DUMP);
          }
 
-         tu_cs_emit_call(&cmd->cs, &secondary->cs);
+         tu_cs_add_entries(&cmd->cs, &secondary->cs);
       }
    }
    cmd->state.dirty = ~0u; /* TODO: set dirty only what needs to be */
@@ -2388,13 +2343,15 @@ tu_CmdNextSubpass(VkCommandBuffer commandBuffer, VkSubpassContents contents)
    tu_cond_exec_start(cs, CP_COND_EXEC_0_RENDER_MODE_GMEM);
 
    if (subpass->resolve_attachments) {
+      tu6_emit_blit_scissor(cmd, cs, true);
+
       for (unsigned i = 0; i < subpass->color_count; i++) {
          uint32_t a = subpass->resolve_attachments[i].attachment;
          if (a == VK_ATTACHMENT_UNUSED)
             continue;
 
          tu_store_gmem_attachment(cmd, cs, a,
-                                    subpass->color_attachments[i].attachment);
+                                  subpass->color_attachments[i].attachment);
 
          if (pass->attachments[a].gmem_offset < 0)
             continue;
@@ -2404,7 +2361,7 @@ tu_CmdNextSubpass(VkCommandBuffer commandBuffer, VkSubpassContents contents)
           * if it is, should be doing a GMEM->GMEM resolve instead of GMEM->MEM->GMEM..
           */
          tu_finishme("missing GMEM->GMEM resolve path\n");
-         tu_emit_load_gmem_attachment(cmd, cs, a);
+         tu_load_gmem_attachment(cmd, cs, a, true);
       }
    }
 
@@ -2524,6 +2481,7 @@ enum tu_draw_state_group_id
    TU_DRAW_STATE_DS,
    TU_DRAW_STATE_BLEND,
    TU_DRAW_STATE_VS_CONST,
+   TU_DRAW_STATE_GS_CONST,
    TU_DRAW_STATE_FS_CONST,
    TU_DRAW_STATE_DESC_SETS,
    TU_DRAW_STATE_DESC_SETS_GMEM,
@@ -2564,6 +2522,8 @@ tu6_stage2shadersb(gl_shader_stage type)
    switch (type) {
    case MESA_SHADER_VERTEX:
       return SB6_VS_SHADER;
+   case MESA_SHADER_GEOMETRY:
+      return SB6_GS_SHADER;
    case MESA_SHADER_FRAGMENT:
       return SB6_FS_SHADER;
    case MESA_SHADER_COMPUTE:
@@ -2856,8 +2816,6 @@ tu6_emit_streamout(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
       tu_cs_emit_regs(cs, A6XX_VPC_SO_BUFFER_SIZE(i, buf->size));
 
       if (cmd->state.streamout_reset & (1 << i)) {
-         offset *= tf->stride[i];
-
          tu_cs_emit_regs(cs, A6XX_VPC_SO_BUFFER_OFFSET(i, offset));
          cmd->state.streamout_reset &= ~(1  << i);
       } else {
@@ -3030,6 +2988,12 @@ tu6_bind_draw_states(struct tu_cmd_buffer *cmd,
             .id = TU_DRAW_STATE_VS_CONST,
             .enable_mask = ENABLE_ALL,
             .ib = tu6_emit_consts(cmd, pipeline, descriptors_state, MESA_SHADER_VERTEX)
+         };
+      draw_state_groups[draw_state_group_count++] =
+         (struct tu_draw_state_group) {
+            .id = TU_DRAW_STATE_GS_CONST,
+            .enable_mask = ENABLE_ALL,
+            .ib = tu6_emit_consts(cmd, pipeline, descriptors_state, MESA_SHADER_GEOMETRY)
          };
       draw_state_groups[draw_state_group_count++] =
          (struct tu_draw_state_group) {

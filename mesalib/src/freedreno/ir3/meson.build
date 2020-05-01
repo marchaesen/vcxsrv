@@ -42,6 +42,24 @@ ir3_nir_imul_c = custom_target(
   depend_files : nir_algebraic_py,
 )
 
+ir3_parser = custom_target(
+  'ir3_parser.[ch]',
+  input: 'ir3_parser.y',
+  output: ['ir3_parser.c', 'ir3_parser.h'],
+  command: [
+    prog_bison, '@INPUT@', '--name-prefix=ir3_yy', '--defines=@OUTPUT1@', '--output=@OUTPUT0@'
+  ]
+)
+
+ir3_lexer = custom_target(
+  'ir3_lexer.c',
+  input: 'ir3_lexer.l',
+  output: 'ir3_lexer.c',
+  command: [
+    prog_flex, '-o', '@OUTPUT@', '@INPUT@'
+  ]
+)
+
 libfreedreno_ir3_files = files(
   'disasm-a3xx.c',
   'instr-a3xx.h',
@@ -85,7 +103,7 @@ libfreedreno_ir3_files = files(
 
 libfreedreno_ir3 = static_library(
   'freedreno_ir3',
-  [libfreedreno_ir3_files, ir3_nir_trig_c, ir3_nir_imul_c],
+  [libfreedreno_ir3_files, ir3_nir_trig_c, ir3_nir_imul_c, ir3_parser[0], ir3_parser[1], ir3_lexer],
   include_directories : [inc_freedreno, inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
   c_args : [c_vis_args, no_override_init_args],
   cpp_args : [cpp_vis_args],
@@ -93,3 +111,13 @@ libfreedreno_ir3 = static_library(
   build_by_default : false,
 )
 
+test('ir3_disasm',
+  executable(
+    'ir3_disasm',
+    'tests/disasm.c',
+    link_with: libfreedreno_ir3,
+    dependencies: idep_mesautil,
+    include_directories: [inc_freedreno, inc_include, inc_src],
+  ),
+  suite: ['freedreno'],
+)

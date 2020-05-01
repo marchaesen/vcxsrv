@@ -28,7 +28,7 @@
  */
 
 #include "errors.h"
-#include "util/imports.h"
+
 #include "formats.h"
 #include "glformats.h"
 #include "mipmap.h"
@@ -1620,7 +1620,7 @@ make_3d_mipmap(GLenum datatype, GLuint comps, GLint border,
       GLubyte *dstImgRow = imgDst;
 
       for (row = 0; row < dstHeightNB; row++) {
-         do_row_3D(datatype, comps, srcWidthNB, 
+         do_row_3D(datatype, comps, srcWidthNB,
                    srcImgARowA, srcImgARowB,
                    srcImgBRowA, srcImgBRowB,
                    dstWidthNB, dstImgRow);

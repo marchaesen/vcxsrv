@@ -87,7 +87,18 @@ int fd_submit_flush(struct fd_submit *submit,
 		int in_fence_fd, int *out_fence_fd,
 		uint32_t *out_fence);
 
-struct fd_ringbuffer_funcs;
+struct fd_ringbuffer;
+struct fd_reloc;
+
+struct fd_ringbuffer_funcs {
+	void (*grow)(struct fd_ringbuffer *ring, uint32_t size);
+	void (*emit_reloc)(struct fd_ringbuffer *ring,
+			const struct fd_reloc *reloc);
+	uint32_t (*emit_reloc_ring)(struct fd_ringbuffer *ring,
+			struct fd_ringbuffer *target, uint32_t cmd_idx);
+	uint32_t (*cmd_count)(struct fd_ringbuffer *ring);
+	void (*destroy)(struct fd_ringbuffer *ring);
+};
 
 /* the ringbuffer object is not opaque so that OUT_RING() type stuff
  * can be inlined.  Note that users should not make assumptions about
@@ -109,12 +120,37 @@ struct fd_ringbuffer {
 struct fd_ringbuffer * fd_ringbuffer_new_object(struct fd_pipe *pipe,
 		uint32_t size);
 
-struct fd_ringbuffer *fd_ringbuffer_ref(struct fd_ringbuffer *ring);
-void fd_ringbuffer_del(struct fd_ringbuffer *ring);
+static inline void
+fd_ringbuffer_del(struct fd_ringbuffer *ring)
+{
+	if (--ring->refcnt > 0)
+		return;
 
-void fd_ringbuffer_grow(struct fd_ringbuffer *ring, uint32_t ndwords);
+	ring->funcs->destroy(ring);
+}
 
-static inline void fd_ringbuffer_emit(struct fd_ringbuffer *ring,
+static inline
+struct fd_ringbuffer *
+fd_ringbuffer_ref(struct fd_ringbuffer *ring)
+{
+	ring->refcnt++;
+	return ring;
+}
+
+static inline void
+fd_ringbuffer_grow(struct fd_ringbuffer *ring, uint32_t ndwords)
+{
+	assert(ring->funcs->grow);     /* unsupported on kgsl */
+
+	/* there is an upper bound on IB size, which appears to be 0x100000 */
+	if (ring->size < 0x100000)
+		ring->size *= 2;
+
+	ring->funcs->grow(ring, ring->size);
+}
+
+static inline void
+fd_ringbuffer_emit(struct fd_ringbuffer *ring,
 		uint32_t data)
 {
 	(*ring->cur++) = data;
@@ -134,10 +170,27 @@ struct fd_reloc {
 
 /* NOTE: relocs are 2 dwords on a5xx+ */
 
-void fd_ringbuffer_reloc(struct fd_ringbuffer *ring, const struct fd_reloc *reloc);
-uint32_t fd_ringbuffer_cmd_count(struct fd_ringbuffer *ring);
-uint32_t fd_ringbuffer_emit_reloc_ring_full(struct fd_ringbuffer *ring,
-		struct fd_ringbuffer *target, uint32_t cmd_idx);
+static inline void
+fd_ringbuffer_reloc(struct fd_ringbuffer *ring,
+		const struct fd_reloc *reloc)
+{
+	ring->funcs->emit_reloc(ring, reloc);
+}
+
+static inline uint32_t
+fd_ringbuffer_cmd_count(struct fd_ringbuffer *ring)
+{
+	if (!ring->funcs->cmd_count)
+		return 1;
+	return ring->funcs->cmd_count(ring);
+}
+
+static inline uint32_t
+fd_ringbuffer_emit_reloc_ring_full(struct fd_ringbuffer *ring,
+		struct fd_ringbuffer *target, uint32_t cmd_idx)
+{
+	return ring->funcs->emit_reloc_ring(ring, target, cmd_idx);
+}
 
 static inline uint32_t
 offset_bytes(void *end, void *start)

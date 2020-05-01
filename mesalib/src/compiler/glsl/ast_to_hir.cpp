@@ -3548,6 +3548,16 @@ is_conflicting_fragcoord_redeclaration(struct _mesa_glsl_parse_state *state,
    return false;
 }
 
+static inline bool
+is_conflicting_layer_redeclaration(struct _mesa_glsl_parse_state *state,
+                                   const struct ast_type_qualifier *qual)
+{
+   if (state->redeclares_gl_layer) {
+      return state->layer_viewport_relative != qual->flags.q.viewport_relative;
+   }
+   return false;
+}
+
 static inline void
 validate_array_dimensions(const glsl_type *t,
                           struct _mesa_glsl_parse_state *state,
@@ -3936,6 +3946,21 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
                        "pixel_interlock_ordered, pixel_interlock_unordered, "
                        "sample_interlock_ordered and sample_interlock_unordered, "
                        "only valid in fragment shader input layout declaration.");
+   }
+
+   if (var->name != NULL && strcmp(var->name, "gl_Layer") == 0) {
+      if (is_conflicting_layer_redeclaration(state, qual)) {
+         _mesa_glsl_error(loc, state, "gl_Layer redeclaration with "
+                          "different viewport_relative setting than earlier");
+      }
+      state->redeclares_gl_layer = 1;
+      if (qual->flags.q.viewport_relative) {
+         state->layer_viewport_relative = 1;
+      }
+   } else if (qual->flags.q.viewport_relative) {
+      _mesa_glsl_error(loc, state,
+                       "viewport_relative qualifier "
+                       "can only be applied to gl_Layer.");
    }
 }
 
@@ -4377,6 +4402,11 @@ get_variable_being_redeclared(ir_variable **var_ptr, YYLTYPE loc,
        */
       earlier->data.precision = var->data.precision;
       earlier->data.memory_coherent = var->data.memory_coherent;
+
+   } else if (state->NV_viewport_array2_enable &&
+              strcmp(var->name, "gl_Layer") == 0 &&
+              earlier->data.how_declared == ir_var_declared_implicitly) {
+      /* No need to do anything, just allow it. Qualifier is stored in state */
 
    } else if ((earlier->data.how_declared == ir_var_declared_implicitly &&
                state->allow_builtin_variable_redeclaration) ||

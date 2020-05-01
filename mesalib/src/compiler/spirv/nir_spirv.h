@@ -37,10 +37,7 @@ extern "C" {
 
 struct nir_spirv_specialization {
    uint32_t id;
-   union {
-      uint32_t data32;
-      uint64_t data64;
-   };
+   nir_const_value value;
    bool defined_on_module;
 };
 

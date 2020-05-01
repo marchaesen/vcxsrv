@@ -446,6 +446,32 @@ lower_subgroups_instr(nir_builder *b, nir_instr *instr, void *_options)
       assert(intrin->src[0].is_ssa);
       nir_ssa_def *int_val = ballot_type_to_uint(b, intrin->src[0].ssa,
                                                  options->ballot_bit_size);
+
+      if (intrin->intrinsic != nir_intrinsic_ballot_bitfield_extract &&
+          intrin->intrinsic != nir_intrinsic_ballot_find_lsb) {
+         /* For OpGroupNonUniformBallotFindMSB, the SPIR-V Spec says:
+          *
+          *    "Find the most significant bit set to 1 in Value, considering
+          *    only the bits in Value required to represent all bits of the
+          *    group’s invocations.  If none of the considered bits is set to
+          *    1, the result is undefined."
+          *
+          * It has similar text for the other three.  This means that, in case
+          * the subgroup size is less than 32, we have to mask off the unused
+          * bits.  If the subgroup size is fixed and greater than or equal to
+          * 32, the mask will be 0xffffffff and nir_opt_algebraic will delete
+          * the iand.
+          *
+          * We only have to worry about this for BitCount and FindMSB because
+          * FindLSB counts from the bottom and BitfieldExtract selects
+          * individual bits.  In either case, if run outside the range of
+          * valid bits, we hit the undefined results case and we can return
+          * anything we want.
+          */
+         int_val = nir_iand(b, int_val,
+            build_subgroup_mask(b, options->ballot_bit_size, options));
+      }
+
       switch (intrin->intrinsic) {
       case nir_intrinsic_ballot_bitfield_extract:
          assert(intrin->src[1].is_ssa);

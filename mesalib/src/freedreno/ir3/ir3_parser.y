@@ -22,8 +22,20 @@
  */
 
 %code requires {
-struct ir3_kernel;
-struct ir3 * ir3_parse(struct ir3_kernel *k, FILE *f);
+
+#define MAX_BUFS 4
+
+struct ir3_kernel_info {
+	uint32_t local_size[3];
+	uint32_t num_bufs;
+	uint32_t buf_sizes[MAX_BUFS]; /* size in dwords */
+
+	/* driver-param uniforms: */
+	unsigned numwg;
+};
+
+struct ir3 * ir3_parse(struct ir3_shader_variant *v,
+		struct ir3_kernel_info *k, FILE *f);
 }
 
 %{
@@ -41,7 +53,6 @@ struct ir3 * ir3_parse(struct ir3_kernel *k, FILE *f);
 #include "ir3/instr-a3xx.h"
 
 #include "ir3_parser.h"
-#include "ir3_asm.h"
 
 /* ir3 treats the abs/neg flags as separate flags for float vs integer,
  * but in the instruction encoding they are the same thing.  Tracking
@@ -51,7 +62,7 @@ struct ir3 * ir3_parse(struct ir3_kernel *k, FILE *f);
 #define IR3_REG_ABS     IR3_REG_FABS
 #define IR3_REG_NEGATE  IR3_REG_FNEG
 
-static struct ir3_kernel         *kernel;
+static struct ir3_kernel_info    *info;
 static struct ir3_shader_variant *variant;
 /* NOTE the assembler doesn't really use the ir3_block construction
  * like the compiler does.  Everything is treated as one large block.
@@ -185,6 +196,7 @@ int yydebug;
 
 extern int yylex(void);
 extern FILE *ir3_yyin;
+void ir3_yyset_lineno(int _line_number);
 
 int yyparse(void);
 
@@ -193,14 +205,16 @@ static void yyerror(const char *error)
 	fprintf(stderr, "error at line %d: %s\n", ir3_yyget_lineno(), error);
 }
 
-struct ir3 * ir3_parse(struct ir3_kernel *k, FILE *f)
+struct ir3 * ir3_parse(struct ir3_shader_variant *v,
+		struct ir3_kernel_info *k, FILE *f)
 {
+	ir3_yyset_lineno(1);
 	ir3_yyin = f;
 #ifdef YYDEBUG
 	yydebug = 1;
 #endif
-	kernel = k;
-	variant = k->v;
+	info = k;
+	variant = v;
 	if (yyparse()) {
 		ir3_destroy(variant->ir);
 		variant->ir = NULL;
@@ -248,6 +262,9 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %token <tok> T_A_INVOCATIONID
 %token <tok> T_A_WGID
 %token <tok> T_A_NUMWG
+%token <tok> T_A_IN
+%token <tok> T_A_OUT
+%token <tok> T_A_TEX
 /* todo, re-add @sampler/@uniform/@varying if needed someday */
 
 /* src register flags */
@@ -494,6 +511,9 @@ header:            localsize_header
 |                  invocationid_header
 |                  wgid_header
 |                  numwg_header
+|                  in_header
+|                  out_header
+|                  tex_header
 
 const_val:         T_FLOAT   { $$ = fui($1); }
 |                  T_INT     { $$ = $1;      }
@@ -501,10 +521,9 @@ const_val:         T_FLOAT   { $$ = fui($1); }
 |                  T_HEX     { $$ = $1;      }
 
 localsize_header:  T_A_LOCALSIZE const_val ',' const_val ',' const_val {
-                       struct kernel *k = &kernel->base;
-                       k->local_size[0] = $2;
-                       k->local_size[1] = $4;
-                       k->local_size[2] = $6;
+                       info->local_size[0] = $2;
+                       info->local_size[1] = $4;
+                       info->local_size[2] = $6;
 }
 
 const_header:      T_A_CONST '(' T_CONSTANT ')' const_val ',' const_val ',' const_val ',' const_val {
@@ -512,10 +531,9 @@ const_header:      T_A_CONST '(' T_CONSTANT ')' const_val ',' const_val ',' cons
 }
 
 buf_header:        T_A_BUF const_val {
-                       struct kernel *k = &kernel->base;
-                       int idx = k->num_bufs++;
+                       int idx = info->num_bufs++;
                        assert(idx < MAX_BUFS);
-                       k->buf_sizes[idx] = $2;
+                       info->buf_sizes[idx] = $2;
 }
 
 invocationid_header: T_A_INVOCATIONID '(' T_REGISTER ')' {
@@ -534,10 +552,22 @@ wgid_header:       T_A_WGID '(' T_REGISTER ')' {
 numwg_header:      T_A_NUMWG '(' T_CONSTANT ')' {
                        assert(($3 & 0x1) == 0);  /* half-reg not allowed */
                        unsigned reg = $3 >> 1;
-                       kernel->numwg = reg;
+                       info->numwg = reg;
                        /* reserve space in immediates for the actual value to be plugged in later: */
                        add_const($3, 0, 0, 0, 0);
 }
+
+/* Stubs for now */
+in_header:         T_A_IN '(' T_REGISTER ')' T_IDENTIFIER '(' T_IDENTIFIER '=' integer ')' { }
+
+out_header:        T_A_OUT '(' T_REGISTER ')' T_IDENTIFIER '(' T_IDENTIFIER '=' integer ')' { }
+
+tex_header:        T_A_TEX '(' T_REGISTER ')'
+                       T_IDENTIFIER '=' integer ',' /* src */
+                       T_IDENTIFIER '=' integer ',' /* samp */
+                       T_IDENTIFIER '=' integer ',' /* tex */
+                       T_IDENTIFIER '=' integer ',' /* wrmask */
+                       T_IDENTIFIER '=' integer     /* cmd */ { }
 
 iflag:             T_SY   { iflags.flags |= IR3_INSTR_SY; }
 |                  T_SS   { iflags.flags |= IR3_INSTR_SS; }

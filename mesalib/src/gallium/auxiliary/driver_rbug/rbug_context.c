@@ -921,6 +921,7 @@ rbug_flush_resource(struct pipe_context *_pipe,
 static void
 rbug_clear(struct pipe_context *_pipe,
            unsigned buffers,
+           const struct pipe_scissor_state *scissor_state,
            const union pipe_color_union *color,
            double depth,
            unsigned stencil)
@@ -931,6 +932,7 @@ rbug_clear(struct pipe_context *_pipe,
    mtx_lock(&rb_pipe->call_mutex);
    pipe->clear(pipe,
                buffers,
+               scissor_state,
                color,
                depth,
                stencil);

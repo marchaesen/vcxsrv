@@ -363,6 +363,23 @@ update_program_constants(struct gl_context *ctx)
 }
 
 
+static void
+update_fixed_func_program_usage(struct gl_context *ctx)
+{
+   ctx->FragmentProgram._UsesTexEnvProgram =
+      ctx->FragmentProgram._MaintainTexEnvProgram &&
+      !ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT] && /* GLSL*/
+      !_mesa_arb_fragment_program_enabled(ctx) &&
+      !(_mesa_ati_fragment_shader_enabled(ctx) &&
+        ctx->ATIFragmentShader.Current->Program);
+
+   ctx->VertexProgram._UsesTnlProgram =
+      ctx->VertexProgram._MaintainTnlProgram &&
+      !ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX] && /* GLSL */
+      !_mesa_arb_vertex_program_enabled(ctx);
+}
+
+
 /**
  * Compute derived GL state.
  * If __struct gl_contextRec::NewState is non-zero then this function \b must
@@ -399,14 +416,17 @@ _mesa_update_state_locked( struct gl_context *ctx )
        ctx->API == API_OPENGLES) {
       GLbitfield prog_flags = _NEW_PROGRAM;
 
-      /* Determine which state flags effect vertex/fragment program state */
-      if (ctx->FragmentProgram._MaintainTexEnvProgram) {
+      if (new_state & _NEW_PROGRAM)
+         update_fixed_func_program_usage(ctx);
+
+      /* Determine which states affect fixed-func vertex/fragment program. */
+      if (ctx->FragmentProgram._UsesTexEnvProgram) {
          prog_flags |= (_NEW_BUFFERS | _NEW_TEXTURE_OBJECT | _NEW_FOG |
                         _NEW_VARYING_VP_INPUTS | _NEW_LIGHT | _NEW_POINT |
-                        _NEW_RENDERMODE | _NEW_PROGRAM | _NEW_FRAG_CLAMP |
-                        _NEW_COLOR | _NEW_TEXTURE_STATE);
+                        _NEW_RENDERMODE | _NEW_COLOR | _NEW_TEXTURE_STATE);
       }
-      if (ctx->VertexProgram._MaintainTnlProgram) {
+
+      if (ctx->VertexProgram._UsesTnlProgram) {
          prog_flags |= (_NEW_VARYING_VP_INPUTS | _NEW_TEXTURE_OBJECT |
                         _NEW_TEXTURE_MATRIX | _NEW_TRANSFORM | _NEW_POINT |
                         _NEW_FOG | _NEW_LIGHT | _NEW_TEXTURE_STATE |
@@ -463,7 +483,6 @@ _mesa_update_state_locked( struct gl_context *ctx )
    new_prog_state |= update_program_constants(ctx);
 
    ctx->NewState |= new_prog_state;
-   vbo_exec_invalidate_state(ctx);
 
    /*
     * Give the driver a chance to act upon the new_state flags.

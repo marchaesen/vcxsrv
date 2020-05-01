@@ -48,6 +48,7 @@
 #include "program/program.h"
 #include "program/prog_parameter.h"
 #include "util/ralloc.h"
+#include "util/bitscan.h"
 
 /**
  * Delete a pipeline object.

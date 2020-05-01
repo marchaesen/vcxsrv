@@ -103,6 +103,13 @@ try_conversion_folding(struct ir3_instruction *conv)
 	case OPC_SIGN_F:
 	case OPC_ABSNEG_F:
 		return;
+	case OPC_MOV:
+		/* if src is a "cov" and type doesn't match, then it can't be folded
+		 * for example cov.u32u16+cov.f16f32 can't be folded to cov.u32f32
+		 */
+		if (src->cat1.dst_type != src->cat1.src_type &&
+			conv->cat1.src_type != src->cat1.dst_type)
+			return;
 	default:
 		break;
 	}

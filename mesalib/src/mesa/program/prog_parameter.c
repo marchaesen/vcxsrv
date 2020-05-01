@@ -28,10 +28,9 @@
  * \author Brian Paul
  */
 
-
 #include "main/glheader.h"
-#include "util/imports.h"
 #include "main/macros.h"
+#include "util/u_memory.h"
 #include "prog_instruction.h"
 #include "prog_parameter.h"
 #include "prog_statevars.h"
@@ -154,12 +153,12 @@ _mesa_new_parameter_list_sized(unsigned size)
       p->ParameterValueOffset = (unsigned *) calloc(size, sizeof(unsigned));
 
       p->ParameterValues = (gl_constant_value *)
-         _mesa_align_malloc(size * 4 *sizeof(gl_constant_value), 16);
+         align_malloc(size * 4 *sizeof(gl_constant_value), 16);
 
 
       if ((p->Parameters == NULL) || (p->ParameterValues == NULL)) {
          free(p->Parameters);
-         _mesa_align_free(p->ParameterValues);
+         align_free(p->ParameterValues);
          free(p);
          p = NULL;
       }
@@ -181,7 +180,7 @@ _mesa_free_parameter_list(struct gl_program_parameter_list *paramList)
    }
    free(paramList->Parameters);
    free(paramList->ParameterValueOffset);
-   _mesa_align_free(paramList->ParameterValues);
+   align_free(paramList->ParameterValues);
    free(paramList);
 }
 
@@ -213,10 +212,10 @@ _mesa_reserve_parameter_storage(struct gl_program_parameter_list *paramList,
                  paramList->Size * sizeof(unsigned));
 
       paramList->ParameterValues = (gl_constant_value *)
-         _mesa_align_realloc(paramList->ParameterValues,         /* old buf */
-                             oldNum * 4 * sizeof(gl_constant_value),/* old sz */
-                             paramList->Size*4*sizeof(gl_constant_value),/*new*/
-                             16);
+         align_realloc(paramList->ParameterValues,         /* old buf */
+                       oldNum * 4 * sizeof(gl_constant_value),/* old sz */
+                       paramList->Size*4*sizeof(gl_constant_value),/*new*/
+                       16);
    }
 }
 
@@ -228,7 +227,7 @@ _mesa_reserve_parameter_storage(struct gl_program_parameter_list *paramList,
  * store all the values (in blocks of 4).
  *
  * \param paramList  the list to add the parameter to
- * \param type  type of parameter, such as 
+ * \param type  type of parameter, such as
  * \param name  the parameter name, will be duplicated/copied!
  * \param size  number of elements in 'values' vector (1..4, or more)
  * \param datatype  GL_FLOAT, GL_FLOAT_VECx, GL_INT, GL_INT_VECx or GL_NONE.

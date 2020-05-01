@@ -50,7 +50,7 @@
 #include "vk_util.h"
 #include <xf86drm.h>
 #include <amdgpu.h>
-#include <amdgpu_drm.h>
+#include "drm-uapi/amdgpu_drm.h"
 #include "winsys/amdgpu/radv_amdgpu_winsys_public.h"
 #include "winsys/null/radv_null_winsys_public.h"
 #include "ac_llvm_util.h"
@@ -129,46 +129,9 @@ radv_get_vram_size(struct radv_physical_device *device)
 	return device->rad_info.vram_size - radv_get_visible_vram_size(device);
 }
 
-static bool
-radv_is_mem_type_vram(enum radv_mem_type type)
-{
-	return type == RADV_MEM_TYPE_VRAM ||
-	       type == RADV_MEM_TYPE_VRAM_UNCACHED;
-}
-
-static bool
-radv_is_mem_type_vram_visible(enum radv_mem_type type)
-{
-	return type == RADV_MEM_TYPE_VRAM_CPU_ACCESS ||
-	       type == RADV_MEM_TYPE_VRAM_CPU_ACCESS_UNCACHED;
-}
-static bool
-radv_is_mem_type_gtt_wc(enum radv_mem_type type)
-{
-	return type == RADV_MEM_TYPE_GTT_WRITE_COMBINE ||
-	       type == RADV_MEM_TYPE_GTT_WRITE_COMBINE_VRAM_UNCACHED;
-}
-
-static bool
-radv_is_mem_type_gtt_cached(enum radv_mem_type type)
-{
-	return type == RADV_MEM_TYPE_GTT_CACHED ||
-	       type == RADV_MEM_TYPE_GTT_CACHED_VRAM_UNCACHED;
-}
-
-static bool
-radv_is_mem_type_uncached(enum radv_mem_type type)
-{
-	return type == RADV_MEM_TYPE_VRAM_UNCACHED ||
-	       type == RADV_MEM_TYPE_VRAM_CPU_ACCESS_UNCACHED ||
-	       type == RADV_MEM_TYPE_GTT_WRITE_COMBINE_VRAM_UNCACHED ||
-	       type == RADV_MEM_TYPE_GTT_CACHED_VRAM_UNCACHED;
-}
-
 static void
 radv_physical_device_init_mem_types(struct radv_physical_device *device)
 {
-	STATIC_ASSERT(RADV_MEM_HEAP_COUNT <= VK_MAX_MEMORY_HEAPS);
 	uint64_t visible_vram_size = radv_get_visible_vram_size(device);
 	uint64_t vram_size = radv_get_vram_size(device);
 	int vram_index = -1, visible_vram_index = -1, gart_index = -1;
@@ -180,6 +143,15 @@ radv_physical_device_init_mem_types(struct radv_physical_device *device)
 			.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
 		};
 	}
+
+	if (device->rad_info.gart_size > 0) {
+		gart_index = device->memory_properties.memoryHeapCount++;
+		device->memory_properties.memoryHeaps[gart_index] = (VkMemoryHeap) {
+			.size = device->rad_info.gart_size,
+			.flags = 0,
+		};
+	}
+
 	if (visible_vram_size) {
 		visible_vram_index = device->memory_properties.memoryHeapCount++;
 		device->memory_properties.memoryHeaps[visible_vram_index] = (VkMemoryHeap) {
@@ -187,25 +159,32 @@ radv_physical_device_init_mem_types(struct radv_physical_device *device)
 			.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
 		};
 	}
-	if (device->rad_info.gart_size > 0) {
-		gart_index = device->memory_properties.memoryHeapCount++;
-		device->memory_properties.memoryHeaps[gart_index] = (VkMemoryHeap) {
-			.size = device->rad_info.gart_size,
-			.flags = device->rad_info.has_dedicated_vram ? 0 : VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
-		};
+
+	unsigned type_count = 0;
+
+	if (device->rad_info.has_dedicated_vram) {
+		if (vram_index >= 0) {
+			device->memory_domains[type_count] = RADEON_DOMAIN_VRAM;
+			device->memory_flags[type_count] = RADEON_FLAG_NO_CPU_ACCESS;
+			device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
+				.propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				.heapIndex = vram_index,
+			};
+		}
+	} else {
+		if (visible_vram_index >= 0) {
+			device->memory_domains[type_count] = RADEON_DOMAIN_VRAM;
+			device->memory_flags[type_count] = RADEON_FLAG_NO_CPU_ACCESS;
+			device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
+				.propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				.heapIndex = visible_vram_index,
+			};
+		}
 	}
 
-	STATIC_ASSERT(RADV_MEM_TYPE_COUNT <= VK_MAX_MEMORY_TYPES);
-	unsigned type_count = 0;
-	if (vram_index >= 0) {
-		device->mem_type_indices[type_count] = RADV_MEM_TYPE_VRAM;
-		device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
-			.propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			.heapIndex = vram_index,
-		};
-	}
-	if (gart_index >= 0 && device->rad_info.has_dedicated_vram) {
-		device->mem_type_indices[type_count] = RADV_MEM_TYPE_GTT_WRITE_COMBINE;
+	if (gart_index >= 0) {
+		device->memory_domains[type_count] = RADEON_DOMAIN_GTT;
+		device->memory_flags[type_count] = RADEON_FLAG_GTT_WC | RADEON_FLAG_CPU_ACCESS;
 		device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
 			.propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -213,7 +192,8 @@ radv_physical_device_init_mem_types(struct radv_physical_device *device)
 		};
 	}
 	if (visible_vram_index >= 0) {
-		device->mem_type_indices[type_count] = RADV_MEM_TYPE_VRAM_CPU_ACCESS;
+		device->memory_domains[type_count] = RADEON_DOMAIN_VRAM;
+		device->memory_flags[type_count] = RADEON_FLAG_CPU_ACCESS;
 		device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
 			.propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
@@ -221,26 +201,14 @@ radv_physical_device_init_mem_types(struct radv_physical_device *device)
 			.heapIndex = visible_vram_index,
 		};
 	}
-	if (gart_index >= 0 && !device->rad_info.has_dedicated_vram) {
-		/* Put GTT after visible VRAM for GPUs without dedicated VRAM
-		 * as they have identical property flags, and according to the
-		 * spec, for types with identical flags, the one with greater
-		 * performance must be given a lower index. */
-		device->mem_type_indices[type_count] = RADV_MEM_TYPE_GTT_WRITE_COMBINE;
-		device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
-			.propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			.heapIndex = gart_index,
-		};
-	}
+
 	if (gart_index >= 0) {
-		device->mem_type_indices[type_count] = RADV_MEM_TYPE_GTT_CACHED;
+		device->memory_domains[type_count] = RADEON_DOMAIN_GTT;
+		device->memory_flags[type_count] = RADEON_FLAG_CPU_ACCESS;
 		device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
 			.propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-			VK_MEMORY_PROPERTY_HOST_CACHED_BIT |
-			(device->rad_info.has_dedicated_vram ? 0 : VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+			VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
 			.heapIndex = gart_index,
 		};
 	}
@@ -253,30 +221,13 @@ radv_physical_device_init_mem_types(struct radv_physical_device *device)
 			if ((mem_type.propertyFlags & (VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
 						       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) ||
 			    mem_type.propertyFlags == VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
-				enum radv_mem_type mem_type_id;
-
-				switch (device->mem_type_indices[i]) {
-				case RADV_MEM_TYPE_VRAM:
-					mem_type_id = RADV_MEM_TYPE_VRAM_UNCACHED;
-					break;
-				case RADV_MEM_TYPE_VRAM_CPU_ACCESS:
-					mem_type_id = RADV_MEM_TYPE_VRAM_CPU_ACCESS_UNCACHED;
-					break;
-				case RADV_MEM_TYPE_GTT_WRITE_COMBINE:
-					mem_type_id = RADV_MEM_TYPE_GTT_WRITE_COMBINE_VRAM_UNCACHED;
-					break;
-				case RADV_MEM_TYPE_GTT_CACHED:
-					mem_type_id = RADV_MEM_TYPE_GTT_CACHED_VRAM_UNCACHED;
-					break;
-				default:
-					unreachable("invalid memory type");
-				}
 
 				VkMemoryPropertyFlags property_flags = mem_type.propertyFlags |
 					VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD |
 					VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD;
 
-				device->mem_type_indices[type_count] = mem_type_id;
+				device->memory_domains[type_count] = device->memory_domains[i];
+				device->memory_flags[type_count] = device->memory_flags[i] | RADEON_FLAG_VA_UNCACHED;
 				device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
 					.propertyFlags = property_flags,
 					.heapIndex = mem_type.heapIndex,
@@ -412,6 +363,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 			  device->rad_info.family != CHIP_NAVI14 &&
 			  !(device->instance->debug_flags & RADV_DEBUG_NO_NGG);
 
+	/* TODO: Implement NGG GS with ACO. */
+	device->use_ngg_gs = device->use_ngg && !device->use_aco;
 	device->use_ngg_streamout = false;
 
 	/* Determine the number of threads per wave for all stages. */
@@ -955,7 +908,7 @@ void radv_GetPhysicalDeviceFeatures(
 		.shaderCullDistance                       = true,
 		.shaderFloat64                            = true,
 		.shaderInt64                              = true,
-		.shaderInt16                              = pdevice->rad_info.chip_class >= GFX9 && !pdevice->use_aco,
+		.shaderInt16                              = pdevice->rad_info.chip_class >= GFX9,
 		.sparseBinding                            = true,
 		.variableMultisampleRate                  = true,
 		.inheritedQueries                         = true,
@@ -997,9 +950,10 @@ void radv_GetPhysicalDeviceFeatures2(
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES: {
 			VkPhysicalDevice16BitStorageFeatures *features =
 			    (VkPhysicalDevice16BitStorageFeatures*)ext;
-			features->storageBuffer16BitAccess = !pdevice->use_aco;
-			features->uniformAndStorageBuffer16BitAccess = !pdevice->use_aco;
-			features->storagePushConstant16 = !pdevice->use_aco;
+			bool enable = !pdevice->use_aco || pdevice->rad_info.chip_class >= GFX8;
+			features->storageBuffer16BitAccess = enable;
+			features->uniformAndStorageBuffer16BitAccess = enable;
+			features->storagePushConstant16 = enable;
 			features->storageInputOutput16 = pdevice->rad_info.has_double_rate_fp16 && !pdevice->use_aco && LLVM_VERSION_MAJOR >= 9;
 			break;
 		}
@@ -1098,16 +1052,17 @@ void radv_GetPhysicalDeviceFeatures2(
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES: {
 			VkPhysicalDevice8BitStorageFeatures *features =
 			    (VkPhysicalDevice8BitStorageFeatures *)ext;
-			features->storageBuffer8BitAccess = !pdevice->use_aco;
-			features->uniformAndStorageBuffer8BitAccess = !pdevice->use_aco;
-			features->storagePushConstant8 = !pdevice->use_aco;
+			bool enable = !pdevice->use_aco || pdevice->rad_info.chip_class >= GFX8;
+			features->storageBuffer8BitAccess = enable;
+			features->uniformAndStorageBuffer8BitAccess = enable;
+			features->storagePushConstant8 = enable;
 			break;
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES: {
 			VkPhysicalDeviceShaderFloat16Int8Features *features =
 				(VkPhysicalDeviceShaderFloat16Int8Features*)ext;
 			features->shaderFloat16 = pdevice->rad_info.has_double_rate_fp16 && !pdevice->use_aco;
-			features->shaderInt8 = !pdevice->use_aco;
+			features->shaderInt8 = !pdevice->use_aco || pdevice->rad_info.chip_class >= GFX8;
 			break;
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES: {
@@ -1215,9 +1170,10 @@ void radv_GetPhysicalDeviceFeatures2(
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES: {
 			VkPhysicalDeviceVulkan11Features *features =
 				(VkPhysicalDeviceVulkan11Features *)ext;
-			features->storageBuffer16BitAccess = !pdevice->use_aco;
-			features->uniformAndStorageBuffer16BitAccess = !pdevice->use_aco;
-			features->storagePushConstant16 = !pdevice->use_aco;
+			bool storage16_enable = !pdevice->use_aco || pdevice->rad_info.chip_class >= GFX8;
+			features->storageBuffer16BitAccess = storage16_enable;
+			features->uniformAndStorageBuffer16BitAccess = storage16_enable;
+			features->storagePushConstant16 = storage16_enable;
 			features->storageInputOutput16 = pdevice->rad_info.has_double_rate_fp16 && !pdevice->use_aco && LLVM_VERSION_MAJOR >= 9;
 			features->multiview = true;
 			features->multiviewGeometryShader = true;
@@ -1232,15 +1188,16 @@ void radv_GetPhysicalDeviceFeatures2(
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES: {
 			VkPhysicalDeviceVulkan12Features *features =
 				(VkPhysicalDeviceVulkan12Features *)ext;
+			bool int8_enable = !pdevice->use_aco || pdevice->rad_info.chip_class >= GFX8;
 			features->samplerMirrorClampToEdge = true;
 			features->drawIndirectCount = true;
-			features->storageBuffer8BitAccess = !pdevice->use_aco;
-			features->uniformAndStorageBuffer8BitAccess = !pdevice->use_aco;
-			features->storagePushConstant8 = !pdevice->use_aco;
+			features->storageBuffer8BitAccess = int8_enable;
+			features->uniformAndStorageBuffer8BitAccess = int8_enable;
+			features->storagePushConstant8 = int8_enable;
 			features->shaderBufferInt64Atomics = LLVM_VERSION_MAJOR >= 9;
 			features->shaderSharedInt64Atomics = LLVM_VERSION_MAJOR >= 9;
 			features->shaderFloat16 = pdevice->rad_info.has_double_rate_fp16 && !pdevice->use_aco;
-			features->shaderInt8 = !pdevice->use_aco;
+			features->shaderInt8 = int8_enable;
 			features->descriptorIndexing = true;
 			features->shaderInputAttachmentArrayDynamicIndexing = true;
 			features->shaderUniformTexelBufferArrayDynamicIndexing = true;
@@ -1292,6 +1249,20 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->stippledSmoothLines = false;
 			break;
 		}
+		case VK_STRUCTURE_TYPE_DEVICE_MEMORY_OVERALLOCATION_CREATE_INFO_AMD: {
+			VkDeviceMemoryOverallocationCreateInfoAMD *features =
+				(VkDeviceMemoryOverallocationCreateInfoAMD *)ext;
+			features->overallocationBehavior = true;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT: {
+			VkPhysicalDeviceRobustness2FeaturesEXT *features =
+				(VkPhysicalDeviceRobustness2FeaturesEXT *)ext;
+			features->robustBufferAccess2 = true;
+			features->robustImageAccess2 = true;
+			features->nullDescriptor = true;
+			break;
+		}
 		default:
 			break;
 		}
@@ -1332,7 +1303,7 @@ void radv_GetPhysicalDeviceProperties(
 		.maxImageDimension3D                      = (1 << 11),
 		.maxImageDimensionCube                    = (1 << 14),
 		.maxImageArrayLayers                      = (1 << 11),
-		.maxTexelBufferElements                   = 128 * 1024 * 1024,
+		.maxTexelBufferElements                   = UINT32_MAX,
 		.maxUniformBufferRange                    = UINT32_MAX,
 		.maxStorageBufferRange                    = UINT32_MAX,
 		.maxPushConstantsSize                     = MAX_PUSH_CONSTANTS_SIZE,
@@ -1467,7 +1438,8 @@ radv_get_physical_device_properties_1_1(struct radv_physical_device *pdevice,
 	p->deviceNodeMask = 0;
 
 	p->subgroupSize = RADV_SUBGROUP_SIZE;
-	p->subgroupSupportedStages = VK_SHADER_STAGE_ALL;
+	p->subgroupSupportedStages = VK_SHADER_STAGE_ALL_GRAPHICS |
+				     VK_SHADER_STAGE_COMPUTE_BIT;
 	p->subgroupSupportedOperations = VK_SUBGROUP_FEATURE_BASIC_BIT |
 					 VK_SUBGROUP_FEATURE_VOTE_BIT |
 					 VK_SUBGROUP_FEATURE_ARITHMETIC_BIT |
@@ -1922,6 +1894,13 @@ void radv_GetPhysicalDeviceProperties2(
 			props->lineSubPixelPrecisionBits = 4;
 			break;
 		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_PROPERTIES_EXT: {
+			VkPhysicalDeviceRobustness2PropertiesEXT *properties =
+				(VkPhysicalDeviceRobustness2PropertiesEXT *)ext;
+			properties->robustStorageBufferAccessSizeAlignment = 4;
+			properties->robustUniformBufferAccessSizeAlignment = 4;
+			break;
+		}
 		default:
 			break;
 		}
@@ -2048,7 +2027,7 @@ radv_get_memory_budget_properties(VkPhysicalDevice physicalDevice,
 	for (int i = 0; i < device->memory_properties.memoryTypeCount; i++) {
 		uint32_t heap_index = device->memory_properties.memoryTypes[i].heapIndex;
 
-		if (radv_is_mem_type_vram(device->mem_type_indices[i])) {
+		if ((device->memory_domains[i] & RADEON_DOMAIN_VRAM) && (device->memory_flags[i] & RADEON_FLAG_NO_CPU_ACCESS)) {
 			heap_usage = device->ws->query_value(device->ws,
 							     RADEON_ALLOCATED_VRAM);
 
@@ -2058,7 +2037,7 @@ radv_get_memory_budget_properties(VkPhysicalDevice physicalDevice,
 
 			memoryBudget->heapBudget[heap_index] = heap_budget;
 			memoryBudget->heapUsage[heap_index] = heap_usage;
-		} else if (radv_is_mem_type_vram_visible(device->mem_type_indices[i])) {
+		} else if (device->memory_domains[i] & RADEON_DOMAIN_VRAM) {
 			heap_usage = device->ws->query_value(device->ws,
 							     RADEON_ALLOCATED_VRAM_VIS);
 
@@ -2068,7 +2047,9 @@ radv_get_memory_budget_properties(VkPhysicalDevice physicalDevice,
 
 			memoryBudget->heapBudget[heap_index] = heap_budget;
 			memoryBudget->heapUsage[heap_index] = heap_usage;
-		} else if (radv_is_mem_type_gtt_wc(device->mem_type_indices[i])) {
+		} else {
+			assert(device->memory_domains[i] & RADEON_DOMAIN_GTT);
+
 			heap_usage = device->ws->query_value(device->ws,
 							     RADEON_ALLOCATED_GTT);
 
@@ -2119,7 +2100,8 @@ VkResult radv_GetMemoryHostPointerPropertiesEXT(
 		const struct radv_physical_device *physical_device = device->physical_device;
 		uint32_t memoryTypeBits = 0;
 		for (int i = 0; i < physical_device->memory_properties.memoryTypeCount; i++) {
-			if (radv_is_mem_type_gtt_cached(physical_device->mem_type_indices[i])) {
+			if (physical_device->memory_domains[i] == RADEON_DOMAIN_GTT &&
+			    !(physical_device->memory_flags[i] & RADEON_FLAG_GTT_WC)) {
 				memoryTypeBits = (1 << i);
 				break;
 			}
@@ -2224,8 +2206,8 @@ radv_bo_list_finish(struct radv_bo_list *bo_list)
 	pthread_mutex_destroy(&bo_list->mutex);
 }
 
-static VkResult radv_bo_list_add(struct radv_device *device,
-				 struct radeon_winsys_bo *bo)
+VkResult radv_bo_list_add(struct radv_device *device,
+			  struct radeon_winsys_bo *bo)
 {
 	struct radv_bo_list *bo_list = &device->bo_list;
 
@@ -2254,8 +2236,8 @@ static VkResult radv_bo_list_add(struct radv_device *device,
 	return VK_SUCCESS;
 }
 
-static void radv_bo_list_remove(struct radv_device *device,
-				struct radeon_winsys_bo *bo)
+void radv_bo_list_remove(struct radv_device *device,
+			 struct radeon_winsys_bo *bo)
 {
 	struct radv_bo_list *bo_list = &device->bo_list;
 
@@ -2266,7 +2248,9 @@ static void radv_bo_list_remove(struct radv_device *device,
 		return;
 
 	pthread_mutex_lock(&bo_list->mutex);
-	for(unsigned i = 0; i < bo_list->list.count; ++i) {
+	/* Loop the list backwards so we find the most recently added
+	 * memory first. */
+	for(unsigned i = bo_list->list.count; i-- > 0;) {
 		if (bo_list->list.bos[i] == bo) {
 			bo_list->list.bos[i] = bo_list->list.bos[bo_list->list.count - 1];
 			--bo_list->list.count;
@@ -2894,6 +2878,24 @@ radv_create_pthread_cond(pthread_cond_t *cond)
 	return VK_SUCCESS;
 }
 
+static VkResult
+check_physical_device_features(VkPhysicalDevice physicalDevice,
+			       const VkPhysicalDeviceFeatures *features)
+{
+	RADV_FROM_HANDLE(radv_physical_device, physical_device, physicalDevice);
+	VkPhysicalDeviceFeatures supported_features;
+	radv_GetPhysicalDeviceFeatures(physicalDevice, &supported_features);
+	VkBool32 *supported_feature = (VkBool32 *)&supported_features;
+	VkBool32 *enabled_feature = (VkBool32 *)features;
+	unsigned num_features = sizeof(VkPhysicalDeviceFeatures) / sizeof(VkBool32);
+	for (uint32_t i = 0; i < num_features; i++) {
+		if (enabled_feature[i] && !supported_feature[i])
+			return vk_error(physical_device->instance, VK_ERROR_FEATURE_NOT_PRESENT);
+	}
+
+	return VK_SUCCESS;
+}
+
 VkResult radv_CreateDevice(
 	VkPhysicalDevice                            physicalDevice,
 	const VkDeviceCreateInfo*                   pCreateInfo,
@@ -2905,17 +2907,41 @@ VkResult radv_CreateDevice(
 	struct radv_device *device;
 
 	bool keep_shader_info = false;
+	bool robust_buffer_access = false;
+	bool overallocation_disallowed = false;
 
 	/* Check enabled features */
 	if (pCreateInfo->pEnabledFeatures) {
-		VkPhysicalDeviceFeatures supported_features;
-		radv_GetPhysicalDeviceFeatures(physicalDevice, &supported_features);
-		VkBool32 *supported_feature = (VkBool32 *)&supported_features;
-		VkBool32 *enabled_feature = (VkBool32 *)pCreateInfo->pEnabledFeatures;
-		unsigned num_features = sizeof(VkPhysicalDeviceFeatures) / sizeof(VkBool32);
-		for (uint32_t i = 0; i < num_features; i++) {
-			if (enabled_feature[i] && !supported_feature[i])
-				return vk_error(physical_device->instance, VK_ERROR_FEATURE_NOT_PRESENT);
+		result = check_physical_device_features(physicalDevice,
+							pCreateInfo->pEnabledFeatures);
+		if (result != VK_SUCCESS)
+			return result;
+
+		if (pCreateInfo->pEnabledFeatures->robustBufferAccess)
+			robust_buffer_access = true;
+	}
+
+	vk_foreach_struct_const(ext, pCreateInfo->pNext) {
+		switch (ext->sType) {
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2: {
+			const VkPhysicalDeviceFeatures2 *features = (const void *)ext;
+			result = check_physical_device_features(physicalDevice,
+								&features->features);
+			if (result != VK_SUCCESS)
+				return result;
+
+			if (features->features.robustBufferAccess)
+				robust_buffer_access = true;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_DEVICE_MEMORY_OVERALLOCATION_CREATE_INFO_AMD: {
+			const VkDeviceMemoryOverallocationCreateInfoAMD *overallocation = (const void *)ext;
+			if (overallocation->overallocationBehavior == VK_MEMORY_OVERALLOCATION_BEHAVIOR_DISALLOWED_AMD)
+				overallocation_disallowed = true;
+			break;
+		}
+		default:
+			break;
 		}
 	}
 
@@ -2959,11 +2985,13 @@ VkResult radv_CreateDevice(
 		device->enabled_extensions.EXT_buffer_device_address ||
 		device->enabled_extensions.KHR_buffer_device_address;
 
-	device->robust_buffer_access = pCreateInfo->pEnabledFeatures &&
-	                               pCreateInfo->pEnabledFeatures->robustBufferAccess;
+	device->robust_buffer_access = robust_buffer_access;
 
 	mtx_init(&device->shader_slab_mutex, mtx_plain);
 	list_inithead(&device->shader_slabs);
+
+	device->overallocation_disallowed = overallocation_disallowed;
+	mtx_init(&device->overallocation_mutex, mtx_plain);
 
 	radv_bo_list_init(&device->bo_list);
 
@@ -3695,8 +3723,7 @@ radv_init_graphics_state(struct radeon_cmdbuf *cs, struct radv_queue *queue)
 
 		radv_cs_add_buffer(device->ws, cs, device->gfx_init);
 	} else {
-		struct radv_physical_device *physical_device = device->physical_device;
-		si_emit_graphics(physical_device, cs);
+		si_emit_graphics(device, cs);
 	}
 }
 
@@ -4945,6 +4972,11 @@ PFN_vkVoidFunction radv_GetInstanceProcAddr(
 	LOOKUP_RADV_ENTRYPOINT(EnumerateInstanceVersion);
 	LOOKUP_RADV_ENTRYPOINT(CreateInstance);
 
+	/* GetInstanceProcAddr() can also be called with a NULL instance.
+	 * See https://gitlab.khronos.org/vulkan/vulkan/issues/2057
+	 */
+	LOOKUP_RADV_ENTRYPOINT(GetInstanceProcAddr);
+
 #undef LOOKUP_RADV_ENTRYPOINT
 
 	if (instance == NULL)
@@ -5049,6 +5081,12 @@ static void radv_free_memory(struct radv_device *device,
 #endif
 
 	if (mem->bo) {
+		if (device->overallocation_disallowed) {
+			mtx_lock(&device->overallocation_mutex);
+			device->allocated_memory_size[mem->heap_index] -= mem->alloc_size;
+			mtx_unlock(&device->overallocation_mutex);
+		}
+
 		radv_bo_list_remove(device, mem->bo);
 		device->ws->buffer_destroy(mem->bo);
 		mem->bo = NULL;
@@ -5066,7 +5104,6 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 	VkResult result;
 	enum radeon_bo_domain domain;
 	uint32_t flags = 0;
-	enum radv_mem_type mem_type_index = device->physical_device->mem_type_indices[pAllocateInfo->memoryTypeIndex];
 
 	assert(pAllocateInfo->sType == VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
 
@@ -5148,7 +5185,6 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 		}
 	} else if (host_ptr_info) {
 		assert(host_ptr_info->handleType == VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT);
-		assert(radv_is_mem_type_gtt_cached(mem_type_index));
 		mem->bo = device->ws->buffer_from_ptr(device->ws, host_ptr_info->pHostPointer,
 		                                      pAllocateInfo->allocationSize,
 		                                      priority);
@@ -5160,19 +5196,11 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 		}
 	} else {
 		uint64_t alloc_size = align_u64(pAllocateInfo->allocationSize, 4096);
-		if (radv_is_mem_type_gtt_wc(mem_type_index) ||
-		    radv_is_mem_type_gtt_cached(mem_type_index))
-			domain = RADEON_DOMAIN_GTT;
-		else
-			domain = RADEON_DOMAIN_VRAM;
+		uint32_t heap_index;
 
-		if (radv_is_mem_type_vram(mem_type_index))
-			flags |= RADEON_FLAG_NO_CPU_ACCESS;
-		else
-			flags |= RADEON_FLAG_CPU_ACCESS;
-
-		if (radv_is_mem_type_gtt_wc(mem_type_index))
-			flags |= RADEON_FLAG_GTT_WC;
+		heap_index = device->physical_device->memory_properties.memoryTypes[pAllocateInfo->memoryTypeIndex].heapIndex;
+		domain = device->physical_device->memory_domains[pAllocateInfo->memoryTypeIndex];
+		flags |= device->physical_device->memory_flags[pAllocateInfo->memoryTypeIndex];
 
 		if (!dedicate_info && !import_info && (!export_info || !export_info->handleTypes)) {
 			flags |= RADEON_FLAG_NO_INTERPROCESS_SHARING;
@@ -5181,24 +5209,42 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 			}
 		}
 
-		if (radv_is_mem_type_uncached(mem_type_index)) {
-			assert(device->physical_device->rad_info.has_l2_uncached);
-			flags |= RADEON_FLAG_VA_UNCACHED;
+		if (device->overallocation_disallowed) {
+			uint64_t total_size =
+				device->physical_device->memory_properties.memoryHeaps[heap_index].size;
+
+			mtx_lock(&device->overallocation_mutex);
+			if (device->allocated_memory_size[heap_index] + alloc_size > total_size) {
+				mtx_unlock(&device->overallocation_mutex);
+				result = VK_ERROR_OUT_OF_DEVICE_MEMORY;
+				goto fail;
+			}
+			device->allocated_memory_size[heap_index] += alloc_size;
+			mtx_unlock(&device->overallocation_mutex);
 		}
 
 		mem->bo = device->ws->buffer_create(device->ws, alloc_size, device->physical_device->rad_info.max_alignment,
 		                                    domain, flags, priority);
 
 		if (!mem->bo) {
+			if (device->overallocation_disallowed) {
+				mtx_lock(&device->overallocation_mutex);
+				device->allocated_memory_size[heap_index] -= alloc_size;
+				mtx_unlock(&device->overallocation_mutex);
+			}
 			result = VK_ERROR_OUT_OF_DEVICE_MEMORY;
 			goto fail;
 		}
-		mem->type_index = mem_type_index;
+
+		mem->heap_index = heap_index;
+		mem->alloc_size = alloc_size;
 	}
 
-	result = radv_bo_list_add(device, mem->bo);
-	if (result != VK_SUCCESS)
-		goto fail;
+	if (!wsi_info) {
+		result = radv_bo_list_add(device, mem->bo);
+		if (result != VK_SUCCESS)
+			goto fail;
+	}
 
 	*pMem = radv_device_memory_to_handle(mem);
 
@@ -7052,6 +7098,7 @@ radv_init_sampler(struct radv_device *device,
 			   device->physical_device->rad_info.chip_class == GFX9;
 	unsigned filter_mode = V_008F30_SQ_IMG_FILTER_MODE_BLEND;
 	unsigned depth_compare_func = V_008F30_SQ_TEX_DEPTH_COMPARE_NEVER;
+	bool trunc_coord = pCreateInfo->minFilter == VK_FILTER_NEAREST && pCreateInfo->magFilter == VK_FILTER_NEAREST;
 
 	const struct VkSamplerReductionModeCreateInfo *sampler_reduction =
 		vk_find_struct_const(pCreateInfo->pNext,
@@ -7072,7 +7119,8 @@ radv_init_sampler(struct radv_device *device,
 			     S_008F30_ANISO_BIAS(max_aniso_ratio) |
 			     S_008F30_DISABLE_CUBE_WRAP(0) |
 			     S_008F30_COMPAT_MODE(compat_mode) |
-			     S_008F30_FILTER_MODE(filter_mode));
+			     S_008F30_FILTER_MODE(filter_mode) |
+			     S_008F30_TRUNC_COORD(trunc_coord));
 	sampler->state[1] = (S_008F34_MIN_LOD(S_FIXED(CLAMP(pCreateInfo->minLod, 0, 15), 8)) |
 			     S_008F34_MAX_LOD(S_FIXED(CLAMP(pCreateInfo->maxLod, 0, 15), 8)) |
 			     S_008F34_PERF_MIP(max_aniso_ratio ? max_aniso_ratio + 6 : 0));
@@ -7200,28 +7248,74 @@ VkResult radv_GetMemoryFdKHR(VkDevice _device,
 	return VK_SUCCESS;
 }
 
+static uint32_t radv_compute_valid_memory_types_attempt(struct radv_physical_device *dev,
+                                                        enum radeon_bo_domain domains,
+                                                        enum radeon_bo_flag flags,
+                                                        enum radeon_bo_flag ignore_flags)
+{
+	/* Don't count GTT/CPU as relevant:
+	 * 
+	 * - We're not fully consistent between the two.
+	 * - Sometimes VRAM gets VRAM|GTT.
+	 */
+	const enum radeon_bo_domain relevant_domains = RADEON_DOMAIN_VRAM | 
+	                                               RADEON_DOMAIN_GDS |
+	                                               RADEON_DOMAIN_OA;
+	uint32_t bits = 0;
+	for (unsigned i = 0; i < dev->memory_properties.memoryTypeCount; ++i) {
+		if ((domains & relevant_domains) != (dev->memory_domains[i] & relevant_domains))
+			continue;
+
+		if ((flags & ~ignore_flags) != (dev->memory_flags[i] & ~ignore_flags))
+			continue;
+
+		bits |= 1u << i;
+	}
+
+	return bits;
+}
+
+static uint32_t radv_compute_valid_memory_types(struct radv_physical_device *dev,
+                                                enum radeon_bo_domain domains,
+                                                enum radeon_bo_flag flags)
+{
+	enum radeon_bo_flag ignore_flags = ~(RADEON_FLAG_NO_CPU_ACCESS | RADEON_FLAG_GTT_WC);
+	uint32_t bits = radv_compute_valid_memory_types_attempt(dev, domains, flags, ignore_flags);
+
+	if (!bits) {
+		ignore_flags |= RADEON_FLAG_NO_CPU_ACCESS;
+		bits = radv_compute_valid_memory_types_attempt(dev, domains, flags, ignore_flags);
+	}
+
+	return bits;
+}
 VkResult radv_GetMemoryFdPropertiesKHR(VkDevice _device,
 				       VkExternalMemoryHandleTypeFlagBits handleType,
 				       int fd,
 				       VkMemoryFdPropertiesKHR *pMemoryFdProperties)
 {
-   RADV_FROM_HANDLE(radv_device, device, _device);
+	RADV_FROM_HANDLE(radv_device, device, _device);
 
-   switch (handleType) {
-   case VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT:
-      pMemoryFdProperties->memoryTypeBits = (1 << RADV_MEM_TYPE_COUNT) - 1;
-      return VK_SUCCESS;
+	switch (handleType) {
+	case VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT: {
+		enum radeon_bo_domain domains;
+		enum radeon_bo_flag flags;
+		if (!device->ws->buffer_get_flags_from_fd(device->ws, fd, &domains, &flags))
+			return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
 
-   default:
-      /* The valid usage section for this function says:
-       *
-       *    "handleType must not be one of the handle types defined as
-       *    opaque."
-       *
-       * So opaque handle types fall into the default "unsupported" case.
-       */
-      return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
-   }
+		pMemoryFdProperties->memoryTypeBits = radv_compute_valid_memory_types(device->physical_device, domains, flags);
+		return VK_SUCCESS;
+	}
+	default:
+		/* The valid usage section for this function says:
+		 *
+		 *    "handleType must not be one of the handle types defined as
+		 *    opaque."
+		 *
+		 * So opaque handle types fall into the default "unsupported" case.
+		 */
+		return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+	}
 }
 
 static VkResult radv_import_opaque_fd(struct radv_device *device,

@@ -71,12 +71,18 @@ mir_print_mask(unsigned mask)
 }
 
 static void
-mir_print_swizzle(unsigned *swizzle)
+mir_print_swizzle(unsigned *swizzle, nir_alu_type T)
 {
+        unsigned sz = nir_alu_type_get_type_size(T);
+        unsigned comps = 128 / sz;
+
         printf(".");
 
-        for (unsigned i = 0; i < 16; ++i)
-                putchar(components[swizzle[i]]);
+        for (unsigned i = 0; i < comps; ++i) {
+                unsigned C = swizzle[i];
+                assert(C < comps);
+                putchar(components[C]);
+        }
 }
 
 static const char *
@@ -292,7 +298,8 @@ mir_print_instruction(midgard_instruction *ins)
 
                 if (ins->branch.target_type != TARGET_DISCARD)
                         printf(" %s -> block(%d)\n",
-                               branch_target_names[ins->branch.target_type],
+                               ins->branch.target_type < 4 ?
+                                       branch_target_names[ins->branch.target_type] : "??",
                                ins->branch.target_block);
 
                 return;
@@ -334,8 +341,10 @@ mir_print_instruction(midgard_instruction *ins)
         printf(" ");
         mir_print_index(ins->dest);
 
-        if (ins->mask != 0xF)
+        if (ins->dest) {
+                pan_print_alu_type(ins->dest_type, stdout);
                 mir_print_mask(ins->mask);
+        }
 
         printf(", ");
 
@@ -345,7 +354,11 @@ mir_print_instruction(midgard_instruction *ins)
                 mir_print_embedded_constant(ins, 0);
         else {
                 mir_print_index(ins->src[0]);
-                mir_print_swizzle(ins->swizzle[0]);
+
+                if (ins->src[0] != ~0) {
+                        pan_print_alu_type(ins->src_types[0], stdout);
+                        mir_print_swizzle(ins->swizzle[0], ins->src_types[0]);
+                }
         }
         printf(", ");
 
@@ -355,16 +368,22 @@ mir_print_instruction(midgard_instruction *ins)
                 mir_print_embedded_constant(ins, 1);
         else {
                 mir_print_index(ins->src[1]);
-                mir_print_swizzle(ins->swizzle[1]);
+
+                if (ins->src[1] != ~0) {
+                        pan_print_alu_type(ins->src_types[1], stdout);
+                        mir_print_swizzle(ins->swizzle[1], ins->src_types[1]);
+                }
         }
 
-        printf(", ");
-        mir_print_index(ins->src[2]);
-        mir_print_swizzle(ins->swizzle[2]);
+        for (unsigned c = 2; c <= 3; ++c) {
+                printf(", ");
+                mir_print_index(ins->src[c]);
 
-        printf(", ");
-        mir_print_index(ins->src[3]);
-        mir_print_swizzle(ins->swizzle[3]);
+                if (ins->src[c] != ~0) {
+                        pan_print_alu_type(ins->src_types[c], stdout);
+                        mir_print_swizzle(ins->swizzle[c], ins->src_types[c]);
+                }
+        }
 
         if (ins->no_spill)
                 printf(" /* no spill */");

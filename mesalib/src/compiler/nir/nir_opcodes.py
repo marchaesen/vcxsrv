@@ -458,12 +458,6 @@ for (unsigned bit = 0; bit < bit_size; bit++) {
 }
 """)
 
-
-for i in range(1, 5):
-   for j in range(1, 5):
-      unop_horiz("fnoise{0}_{1}".format(i, j), i, tfloat, j, tfloat, "0.0f")
-
-
 # AMD_gcn_shader extended instructions
 unop_horiz("cube_face_coord", 2, tfloat32, 3, tfloat32, """
 dst.x = dst.y = 0.0;
@@ -1143,3 +1137,11 @@ triop("imad24_ir3", tint32, _2src_commutative,
 # 24b multiply into 32b result (with sign extension)
 binop("imul24", tint32, _2src_commutative + associative,
       "(((int32_t)src0 << 8) >> 8) * (((int32_t)src1 << 8) >> 8)")
+
+# unsigned 24b multiply into 32b result plus 32b int
+triop("umad24", tuint32, _2src_commutative,
+      "(((uint32_t)src0 << 8) >> 8) * (((uint32_t)src1 << 8) >> 8) + src2")
+
+# unsigned 24b multiply into 32b result uint
+binop("umul24", tint32, _2src_commutative + associative,
+      "(((uint32_t)src0 << 8) >> 8) * (((uint32_t)src1 << 8) >> 8)")

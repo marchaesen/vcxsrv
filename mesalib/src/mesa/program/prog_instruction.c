@@ -24,8 +24,10 @@
  */
 
 
+#include <stdio.h>
+#include <assert.h>
+
 #include "main/glheader.h"
-#include "util/imports.h"
 #include "prog_instruction.h"
 #include "prog_parameter.h"
 
@@ -250,7 +252,7 @@ _mesa_opcode_string(enum prog_opcode opcode)
       return InstInfo[opcode].Name;
    else {
       static char s[20];
-      _mesa_snprintf(s, sizeof(s), "OP%u", opcode);
+      snprintf(s, sizeof(s), "OP%u", opcode);
       return s;
    }
 }

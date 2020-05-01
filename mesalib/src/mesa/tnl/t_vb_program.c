@@ -33,7 +33,6 @@
 
 #include "main/glheader.h"
 #include "main/macros.h"
-#include "util/imports.h"
 #include "main/samplerobj.h"
 #include "main/state.h"
 #include "math/m_xform.h"
@@ -42,6 +41,7 @@
 #include "program/prog_execute.h"
 #include "swrast/s_context.h"
 #include "util/bitscan.h"
+#include "util/u_memory.h"
 
 #include "tnl/tnl.h"
 #include "tnl/t_context.h"
@@ -53,7 +53,7 @@
 static inline void
 check_float(float x)
 {
-   assert(!IS_INF_OR_NAN(x));
+   assert(!util_is_inf_or_nan(x));
    assert(1.0e-15 <= x && x <= 1.0e15);
 }
 #endif
@@ -392,9 +392,9 @@ run_vp( struct gl_context *ctx, struct tnl_pipeline_stage *stage )
 #endif
 #if 0
       printf("HPOS: %f %f %f %f\n",
-             machine->Outputs[0][0], 
-             machine->Outputs[0][1], 
-             machine->Outputs[0][2], 
+             machine->Outputs[0][0],
+             machine->Outputs[0][1],
+             machine->Outputs[0][2],
              machine->Outputs[0][3]);
 #endif
    }
@@ -481,7 +481,7 @@ init_vp(struct gl_context *ctx, struct tnl_pipeline_stage *stage)
 
    /* a few other misc allocations */
    _mesa_vector4f_alloc( &store->ndcCoords, 0, size, 32 );
-   store->clipmask = _mesa_align_malloc(sizeof(GLubyte)*size, 32 );
+   store->clipmask = align_malloc(sizeof(GLubyte)*size, 32 );
 
    return GL_TRUE;
 }
@@ -504,7 +504,7 @@ dtr(struct tnl_pipeline_stage *stage)
 
       /* free misc arrays */
       _mesa_vector4f_free( &store->ndcCoords );
-      _mesa_align_free( store->clipmask );
+      align_free( store->clipmask );
 
       free( store );
       stage->privatePtr = NULL;

@@ -22,6 +22,7 @@
  */
 
 #include "nir.h"
+#include "nir_deref.h"
 #include "gl_nir_linker.h"
 #include "compiler/glsl/ir_uniform.h" /* for gl_uniform_storage */
 #include "linker_util.h"
@@ -48,9 +49,19 @@ static void
 nir_setup_uniform_remap_tables(struct gl_context *ctx,
                                struct gl_shader_program *prog)
 {
-   prog->UniformRemapTable = rzalloc_array(prog,
-                                           struct gl_uniform_storage *,
-                                           prog->NumUniformRemapTable);
+   unsigned total_entries = prog->NumExplicitUniformLocations;
+
+   /* For glsl this may have been allocated by reserve_explicit_locations() so
+    * that we can keep track of unused uniforms with explicit locations.
+    */
+   assert(!prog->data->spirv ||
+          (prog->data->spirv && !prog->UniformRemapTable));
+   if (!prog->UniformRemapTable) {
+      prog->UniformRemapTable = rzalloc_array(prog,
+                                              struct gl_uniform_storage *,
+                                              prog->NumUniformRemapTable);
+   }
+
    union gl_constant_value *data =
       rzalloc_array(prog->data,
                     union gl_constant_value, prog->data->NumUniformDataSlots);
@@ -93,7 +104,8 @@ nir_setup_uniform_remap_tables(struct gl_context *ctx,
    }
 
    /* Reserve locations for rest of the uniforms. */
-   link_util_update_empty_uniform_locations(prog);
+   if (prog->data->spirv)
+      link_util_update_empty_uniform_locations(prog);
 
    for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
       struct gl_uniform_storage *uniform = &prog->data->UniformStorage[i];
@@ -113,23 +125,26 @@ nir_setup_uniform_remap_tables(struct gl_context *ctx,
       /* How many entries for this uniform? */
       const unsigned entries = MAX2(1, uniform->array_elements);
 
+      /* Add new entries to the total amount for checking against MAX_UNIFORM-
+       * _LOCATIONS. This only applies to the default uniform block (-1),
+       * because locations of uniform block entries are not assignable.
+       */
+      if (prog->data->UniformStorage[i].block_index == -1)
+         total_entries += entries;
+
       unsigned location =
          link_util_find_empty_block(prog, &prog->data->UniformStorage[i]);
 
-      if (location == -1 || location + entries >= prog->NumUniformRemapTable) {
-         unsigned new_entries = entries;
-         if (location == -1)
-            location = prog->NumUniformRemapTable;
-         else
-            new_entries = location - prog->NumUniformRemapTable + entries;
+      if (location == -1) {
+         location = prog->NumUniformRemapTable;
 
          /* resize remap table to fit new entries */
          prog->UniformRemapTable =
             reralloc(prog,
                      prog->UniformRemapTable,
                      struct gl_uniform_storage *,
-                     prog->NumUniformRemapTable + new_entries);
-         prog->NumUniformRemapTable += new_entries;
+                     prog->NumUniformRemapTable + entries);
+         prog->NumUniformRemapTable += entries;
       }
 
       /* set the base location in remap table for the uniform */
@@ -148,6 +163,15 @@ nir_setup_uniform_remap_tables(struct gl_context *ctx,
          if (uniform->block_index == -1)
             data_pos += num_slots;
       }
+   }
+
+   /* Verify that total amount of entries for explicit and implicit locations
+    * is less than MAX_UNIFORM_LOCATIONS.
+    */
+   if (total_entries > ctx->Const.MaxUserAssignableUniformLocations) {
+      linker_error(prog, "count of uniform locations > MAX_UNIFORM_LOCATIONS"
+                   "(%u > %u)", total_entries,
+                   ctx->Const.MaxUserAssignableUniformLocations);
    }
 
    /* Reserve all the explicit locations of the active subroutine uniforms. */
@@ -232,6 +256,184 @@ nir_setup_uniform_remap_tables(struct gl_context *ctx,
 }
 
 static void
+add_var_use_deref(nir_deref_instr *deref, struct hash_table *live,
+                  struct array_deref_range **derefs, unsigned *derefs_size)
+{
+   nir_deref_path path;
+   nir_deref_path_init(&path, deref, NULL);
+
+   deref = path.path[0];
+   if (deref->deref_type != nir_deref_type_var ||
+       deref->mode & ~(nir_var_uniform | nir_var_mem_ubo | nir_var_mem_ssbo)) {
+      nir_deref_path_finish(&path);
+      return;
+   }
+
+   /* Number of derefs used in current processing. */
+   unsigned num_derefs = 0;
+
+   const struct glsl_type *deref_type = deref->var->type;
+   nir_deref_instr **p = &path.path[1];
+   for (; *p; p++) {
+      if ((*p)->deref_type == nir_deref_type_array) {
+
+         /* Skip matrix derefences */
+         if (!glsl_type_is_array(deref_type))
+            break;
+
+         if ((num_derefs + 1) * sizeof(struct array_deref_range) > *derefs_size) {
+            void *ptr = reralloc_size(NULL, *derefs, *derefs_size + 4096);
+
+            if (ptr == NULL) {
+               nir_deref_path_finish(&path);
+               return;
+            }
+
+            *derefs_size += 4096;
+            *derefs = (struct array_deref_range *)ptr;
+         }
+
+         struct array_deref_range *dr = &(*derefs)[num_derefs];
+         num_derefs++;
+
+         dr->size = glsl_get_length(deref_type);
+
+         if (nir_src_is_const((*p)->arr.index)) {
+            dr->index = nir_src_as_uint((*p)->arr.index);
+         } else {
+            /* An unsized array can occur at the end of an SSBO.  We can't track
+             * accesses to such an array, so bail.
+             */
+            if (dr->size == 0) {
+               nir_deref_path_finish(&path);
+               return;
+            }
+
+            dr->index = dr->size;
+         }
+
+         deref_type = glsl_get_array_element(deref_type);
+      } else if ((*p)->deref_type == nir_deref_type_struct) {
+         /* We have reached the end of the array. */
+         break;
+      }
+   }
+
+   nir_deref_path_finish(&path);
+
+   /** Set of bit-flags to note which array elements have been accessed. */
+   BITSET_WORD *bits = NULL;
+
+   struct hash_entry *entry =
+      _mesa_hash_table_search(live, deref->var);
+   if (!entry && glsl_type_is_array(deref->var->type)) {
+      unsigned num_bits = MAX2(1, glsl_get_aoa_size(deref->var->type));
+      bits = rzalloc_array(live, BITSET_WORD, BITSET_WORDS(num_bits));
+   }
+
+   if (entry)
+      bits = (BITSET_WORD *) entry->data;
+
+   if (glsl_type_is_array(deref->var->type)) {
+      /* Count the "depth" of the arrays-of-arrays. */
+      unsigned array_depth = 0;
+      for (const struct glsl_type *type = deref->var->type;
+           glsl_type_is_array(type);
+           type = glsl_get_array_element(type)) {
+         array_depth++;
+      }
+
+      link_util_mark_array_elements_referenced(*derefs, num_derefs, array_depth,
+                                               bits);
+   }
+
+   assert(deref->mode == deref->var->data.mode);
+   _mesa_hash_table_insert(live, deref->var, bits);
+}
+
+/* Iterate over the shader and collect infomation about uniform use */
+static void
+add_var_use_shader(nir_shader *shader, struct hash_table *live)
+{
+   /* Currently allocated buffer block of derefs. */
+   struct array_deref_range *derefs = NULL;
+
+   /* Size of the derefs buffer in bytes. */
+   unsigned derefs_size = 0;
+
+   nir_foreach_function(function, shader) {
+      if (function->impl) {
+         nir_foreach_block(block, function->impl) {
+            nir_foreach_instr(instr, block) {
+               if (instr->type == nir_instr_type_intrinsic) {
+                  nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+                  switch (intr->intrinsic) {
+                  case nir_intrinsic_atomic_counter_read_deref:
+                  case nir_intrinsic_atomic_counter_inc_deref:
+                  case nir_intrinsic_atomic_counter_pre_dec_deref:
+                  case nir_intrinsic_atomic_counter_post_dec_deref:
+                  case nir_intrinsic_atomic_counter_add_deref:
+                  case nir_intrinsic_atomic_counter_min_deref:
+                  case nir_intrinsic_atomic_counter_max_deref:
+                  case nir_intrinsic_atomic_counter_and_deref:
+                  case nir_intrinsic_atomic_counter_or_deref:
+                  case nir_intrinsic_atomic_counter_xor_deref:
+                  case nir_intrinsic_atomic_counter_exchange_deref:
+                  case nir_intrinsic_atomic_counter_comp_swap_deref:
+                  case nir_intrinsic_image_deref_load:
+                  case nir_intrinsic_image_deref_store:
+                  case nir_intrinsic_image_deref_atomic_add:
+                  case nir_intrinsic_image_deref_atomic_umin:
+                  case nir_intrinsic_image_deref_atomic_imin:
+                  case nir_intrinsic_image_deref_atomic_umax:
+                  case nir_intrinsic_image_deref_atomic_imax:
+                  case nir_intrinsic_image_deref_atomic_and:
+                  case nir_intrinsic_image_deref_atomic_or:
+                  case nir_intrinsic_image_deref_atomic_xor:
+                  case nir_intrinsic_image_deref_atomic_exchange:
+                  case nir_intrinsic_image_deref_atomic_comp_swap:
+                  case nir_intrinsic_image_deref_size:
+                  case nir_intrinsic_image_deref_samples:
+                  case nir_intrinsic_load_deref:
+                  case nir_intrinsic_store_deref:
+                     add_var_use_deref(nir_src_as_deref(intr->src[0]), live,
+                                       &derefs, &derefs_size);
+                     break;
+
+                  default:
+                     /* Nothing to do */
+                     break;
+                  }
+               } else if (instr->type == nir_instr_type_tex) {
+                  nir_tex_instr *tex_instr = nir_instr_as_tex(instr);
+                  int sampler_idx =
+                     nir_tex_instr_src_index(tex_instr,
+                                             nir_tex_src_sampler_deref);
+                  int texture_idx =
+                     nir_tex_instr_src_index(tex_instr,
+                                             nir_tex_src_texture_deref);
+
+                  if (sampler_idx >= 0) {
+                     nir_deref_instr *deref =
+                        nir_src_as_deref(tex_instr->src[sampler_idx].src);
+                     add_var_use_deref(deref, live, &derefs, &derefs_size);
+                  }
+
+                  if (texture_idx >= 0) {
+                     nir_deref_instr *deref =
+                        nir_src_as_deref(tex_instr->src[texture_idx].src);
+                     add_var_use_deref(deref, live, &derefs, &derefs_size);
+                  }
+               }
+            }
+         }
+      }
+   }
+
+   ralloc_free(derefs);
+}
+
+static void
 mark_stage_as_active(struct gl_uniform_storage *uniform,
                      unsigned stage)
 {
@@ -264,11 +466,13 @@ struct nir_link_uniforms_state {
    unsigned num_hidden_uniforms;
    unsigned num_values;
    unsigned max_uniform_location;
-   unsigned next_subroutine;
 
    /* per-shader stage */
+   unsigned next_bindless_image_index;
+   unsigned next_bindless_sampler_index;
    unsigned next_image_index;
    unsigned next_sampler_index;
+   unsigned next_subroutine;
    unsigned num_shader_samplers;
    unsigned num_shader_images;
    unsigned num_shader_uniform_components;
@@ -287,6 +491,7 @@ struct nir_link_uniforms_state {
    int top_level_array_stride;
 
    struct type_tree_entry *current_type;
+   struct hash_table *referenced_uniforms;
    struct hash_table *uniform_hash;
 };
 
@@ -297,7 +502,8 @@ add_parameter(struct gl_uniform_storage *uniform,
               const struct glsl_type *type,
               struct nir_link_uniforms_state *state)
 {
-   if (!state->params || uniform->is_shader_storage || glsl_contains_opaque(type))
+   if (!state->params || uniform->is_shader_storage ||
+       (glsl_contains_opaque(type) && !state->current_var->data.bindless))
       return;
 
    unsigned num_params = glsl_get_aoa_size(type);
@@ -378,6 +584,136 @@ get_next_index(struct nir_link_uniforms_state *state,
    return index;
 }
 
+/* Update the uniforms info for the current shader stage */
+static void
+update_uniforms_shader_info(struct gl_shader_program *prog,
+                            struct nir_link_uniforms_state *state,
+                            struct gl_uniform_storage *uniform,
+                            const struct glsl_type *type,
+                            unsigned stage)
+{
+   unsigned values = glsl_get_component_slots(type);
+   const struct glsl_type *type_no_array = glsl_without_array(type);
+
+   if (glsl_type_is_sampler(type_no_array)) {
+      bool init_idx;
+      unsigned *next_index = state->current_var->data.bindless ?
+         &state->next_bindless_sampler_index :
+         &state->next_sampler_index;
+      int sampler_index = get_next_index(state, uniform, next_index, &init_idx);
+      struct gl_linked_shader *sh = prog->_LinkedShaders[stage];
+
+      if (state->current_var->data.bindless) {
+         if (init_idx) {
+            sh->Program->sh.BindlessSamplers =
+               rerzalloc(sh->Program, sh->Program->sh.BindlessSamplers,
+                         struct gl_bindless_sampler,
+                         sh->Program->sh.NumBindlessSamplers,
+                         state->next_bindless_sampler_index);
+
+            for (unsigned j = sh->Program->sh.NumBindlessSamplers;
+                 j < state->next_bindless_sampler_index; j++) {
+               sh->Program->sh.BindlessSamplers[j].target =
+                  glsl_get_sampler_target(type_no_array);
+            }
+
+            sh->Program->sh.NumBindlessSamplers =
+               state->next_bindless_sampler_index;
+         }
+
+         if (!state->var_is_in_block)
+            state->num_shader_uniform_components += values;
+      } else {
+         /* Samplers (bound or bindless) are counted as two components
+          * as specified by ARB_bindless_texture.
+          */
+         state->num_shader_samplers += values / 2;
+
+         if (init_idx) {
+            const unsigned shadow = glsl_sampler_type_is_shadow(type_no_array);
+            for (unsigned i = sampler_index;
+                 i < MIN2(state->next_sampler_index, MAX_SAMPLERS); i++) {
+               sh->Program->sh.SamplerTargets[i] =
+                  glsl_get_sampler_target(type_no_array);
+               state->shader_samplers_used |= 1U << i;
+               state->shader_shadow_samplers |= shadow << i;
+            }
+         }
+      }
+
+      uniform->opaque[stage].active = true;
+      uniform->opaque[stage].index = sampler_index;
+   } else if (glsl_type_is_image(type_no_array)) {
+      struct gl_linked_shader *sh = prog->_LinkedShaders[stage];
+
+      /* Set image access qualifiers */
+      enum gl_access_qualifier image_access =
+         state->current_var->data.access;
+      const GLenum access =
+         (image_access & ACCESS_NON_WRITEABLE) ?
+         ((image_access & ACCESS_NON_READABLE) ? GL_NONE :
+                                                 GL_READ_ONLY) :
+         ((image_access & ACCESS_NON_READABLE) ? GL_WRITE_ONLY :
+                                                 GL_READ_WRITE);
+
+      int image_index;
+      if (state->current_var->data.bindless) {
+         image_index = state->next_bindless_image_index;
+         state->next_bindless_image_index += MAX2(1, uniform->array_elements);
+
+         sh->Program->sh.BindlessImages =
+            rerzalloc(sh->Program, sh->Program->sh.BindlessImages,
+                      struct gl_bindless_image,
+                      sh->Program->sh.NumBindlessImages,
+                      state->next_bindless_image_index);
+
+         for (unsigned j = sh->Program->sh.NumBindlessImages;
+              j < state->next_bindless_image_index; j++) {
+            sh->Program->sh.BindlessImages[j].access = access;
+         }
+
+         sh->Program->sh.NumBindlessImages = state->next_bindless_image_index;
+
+      } else {
+         image_index = state->next_image_index;
+         state->next_image_index += MAX2(1, uniform->array_elements);
+
+         /* Images (bound or bindless) are counted as two components as
+          * specified by ARB_bindless_texture.
+          */
+         state->num_shader_images += values / 2;
+
+         for (unsigned i = image_index;
+              i < MIN2(state->next_image_index, MAX_IMAGE_UNIFORMS); i++) {
+            sh->Program->sh.ImageAccess[i] = access;
+         }
+      }
+
+      uniform->opaque[stage].active = true;
+      uniform->opaque[stage].index = image_index;
+
+      if (!uniform->is_shader_storage)
+         state->num_shader_uniform_components += values;
+   } else {
+      if (glsl_get_base_type(type_no_array) == GLSL_TYPE_SUBROUTINE) {
+         struct gl_linked_shader *sh = prog->_LinkedShaders[stage];
+
+         uniform->opaque[stage].index = state->next_subroutine;
+         uniform->opaque[stage].active = true;
+
+         sh->Program->sh.NumSubroutineUniforms++;
+
+         /* Increment the subroutine index by 1 for non-arrays and by the
+          * number of array elements for arrays.
+          */
+         state->next_subroutine += MAX2(1, uniform->array_elements);
+      }
+
+      if (!state->var_is_in_block)
+         state->num_shader_uniform_components += values;
+   }
+}
+
 static bool
 find_and_update_named_uniform_storage(struct gl_context *ctx,
                                       struct gl_shader_program *prog,
@@ -449,8 +785,6 @@ find_and_update_named_uniform_storage(struct gl_context *ctx,
          _mesa_hash_table_search(state->uniform_hash, *name);
       if (entry) {
          unsigned i = (unsigned) (intptr_t) entry->data;
-         mark_stage_as_active(&prog->data->UniformStorage[i], stage);
-
          struct gl_uniform_storage *uniform = &prog->data->UniformStorage[i];
 
          if (*first_element && !state->var_is_in_block) {
@@ -458,66 +792,15 @@ find_and_update_named_uniform_storage(struct gl_context *ctx,
             var->data.location = uniform - prog->data->UniformStorage;
          }
 
-         unsigned values = glsl_get_component_slots(type);
+         update_uniforms_shader_info(prog, state, uniform, type, stage);
+
          const struct glsl_type *type_no_array = glsl_without_array(type);
-         if (glsl_type_is_sampler(type_no_array)) {
-            struct gl_linked_shader *sh = prog->_LinkedShaders[stage];
-            bool init_idx;
-            unsigned sampler_index =
-               get_next_index(state, uniform, &state->next_sampler_index,
-                              &init_idx);
-
-            /* Samplers (bound or bindless) are counted as two components as
-             * specified by ARB_bindless_texture.
-             */
-            state->num_shader_samplers += values / 2;
-
-            uniform->opaque[stage].active = true;
-            uniform->opaque[stage].index = sampler_index;
-
-            if (init_idx) {
-               const unsigned shadow =
-                  glsl_sampler_type_is_shadow(type_no_array);
-               for (unsigned i = sampler_index;
-                    i < MIN2(state->next_sampler_index, MAX_SAMPLERS);
-                    i++) {
-                  sh->Program->sh.SamplerTargets[i] =
-                     glsl_get_sampler_target(type_no_array);
-                  state->shader_samplers_used |= 1U << i;
-                  state->shader_shadow_samplers |= shadow << i;
-               }
-            }
-         } else if (glsl_type_is_image(type_no_array)) {
-            struct gl_linked_shader *sh = prog->_LinkedShaders[stage];
-            int image_index = state->next_image_index;
-            /* TODO: handle structs when bindless support is added */
-            state->next_image_index += MAX2(1, uniform->array_elements);
-
-            /* Images (bound or bindless) are counted as two components as
-             * specified by ARB_bindless_texture.
-             */
-            state->num_shader_images += values / 2;
-
-            uniform->opaque[stage].active = true;
-            uniform->opaque[stage].index = image_index;
-
-            /* Set image access qualifiers */
-            enum gl_access_qualifier image_access =
-               state->current_var->data.access;
-            const GLenum access =
-               (image_access & ACCESS_NON_WRITEABLE) ?
-               ((image_access & ACCESS_NON_READABLE) ? GL_NONE :
-                                                       GL_READ_ONLY) :
-               ((image_access & ACCESS_NON_READABLE) ? GL_WRITE_ONLY :
-                                                       GL_READ_WRITE);
-            for (unsigned i = image_index;
-                 i < MIN2(state->next_image_index, MAX_IMAGE_UNIFORMS);
-                 i++) {
-               sh->Program->sh.ImageAccess[i] = access;
-            }
-         }
-
-         uniform->active_shader_mask |= 1 << stage;
+         struct hash_entry *entry =
+            _mesa_hash_table_search(state->referenced_uniforms,
+                                    state->current_var);
+         if (entry != NULL ||
+             glsl_get_base_type(type_no_array) == GLSL_TYPE_SUBROUTINE)
+            uniform->active_shader_mask |= 1 << stage;
 
          if (!state->var_is_in_block)
             add_parameter(uniform, ctx, prog, type, state);
@@ -680,6 +963,52 @@ hash_free_uniform_name(struct hash_entry *entry)
    free((void*)entry->key);
 }
 
+static void
+enter_record(struct nir_link_uniforms_state *state,
+             struct gl_context *ctx,
+             const struct glsl_type *type,
+             bool row_major)
+{
+   assert(glsl_type_is_struct(type));
+   if (!state->var_is_in_block)
+      return;
+
+   bool use_std430 = ctx->Const.UseSTD430AsDefaultPacking;
+   const enum glsl_interface_packing packing =
+      glsl_get_internal_ifc_packing(state->current_var->interface_type,
+                                    use_std430);
+
+   if (packing == GLSL_INTERFACE_PACKING_STD430)
+      state->offset = glsl_align(
+         state->offset, glsl_get_std430_base_alignment(type, row_major));
+   else
+      state->offset = glsl_align(
+         state->offset, glsl_get_std140_base_alignment(type, row_major));
+}
+
+static void
+leave_record(struct nir_link_uniforms_state *state,
+             struct gl_context *ctx,
+             const struct glsl_type *type,
+             bool row_major)
+{
+   assert(glsl_type_is_struct(type));
+   if (!state->var_is_in_block)
+      return;
+
+   bool use_std430 = ctx->Const.UseSTD430AsDefaultPacking;
+   const enum glsl_interface_packing packing =
+      glsl_get_internal_ifc_packing(state->current_var->interface_type,
+                                    use_std430);
+
+   if (packing == GLSL_INTERFACE_PACKING_STD430)
+      state->offset = glsl_align(
+         state->offset, glsl_get_std430_base_alignment(type, row_major));
+   else
+      state->offset = glsl_align(
+         state->offset, glsl_get_std140_base_alignment(type, row_major));
+}
+
 /**
  * Creates the neccessary entries in UniformStorage for the uniform. Returns
  * the number of locations used or -1 on failure.
@@ -693,7 +1022,7 @@ nir_link_uniform(struct gl_context *ctx,
                  unsigned index_in_parent,
                  int location,
                  struct nir_link_uniforms_state *state,
-                 char **name, size_t name_length)
+                 char **name, size_t name_length, bool row_major)
 {
    struct gl_uniform_storage *uniform = NULL;
 
@@ -735,9 +1064,13 @@ nir_link_uniform(struct gl_context *ctx,
       if (glsl_type_is_unsized_array(type))
          length = 1;
 
+      if (glsl_type_is_struct(type) && !prog->data->spirv)
+         enter_record(state, ctx, type, row_major);
+
       for (unsigned i = 0; i < length; i++) {
          const struct glsl_type *field_type;
          size_t new_length = name_length;
+         bool field_row_major = row_major;
 
          if (glsl_type_is_struct_or_ifc(type)) {
             field_type = glsl_get_struct_field(type, i);
@@ -763,6 +1096,21 @@ nir_link_uniform(struct gl_context *ctx,
                ralloc_asprintf_rewrite_tail(name, &new_length, ".%s",
                                             glsl_get_struct_elem_name(type, i));
             }
+
+
+            /* The layout of structures at the top level of the block is set
+             * during parsing.  For matrices contained in multiple levels of
+             * structures in the block, the inner structures have no layout.
+             * These cases must potentially inherit the layout from the outer
+             * levels.
+             */
+            const enum glsl_matrix_layout matrix_layout =
+               glsl_get_struct_field_data(type, i)->matrix_layout;
+            if (matrix_layout == GLSL_MATRIX_LAYOUT_ROW_MAJOR) {
+               field_row_major = true;
+            } else if (matrix_layout == GLSL_MATRIX_LAYOUT_COLUMN_MAJOR) {
+               field_row_major = false;
+            }
          } else {
             field_type = glsl_get_array_element(type);
 
@@ -773,7 +1121,9 @@ nir_link_uniform(struct gl_context *ctx,
 
          int entries = nir_link_uniform(ctx, prog, stage_program, stage,
                                         field_type, i, location,
-                                        state, name, new_length);
+                                        state, name, new_length,
+                                        field_row_major);
+
          if (entries == -1)
             return -1;
 
@@ -784,6 +1134,9 @@ nir_link_uniform(struct gl_context *ctx,
          if (glsl_type_is_struct_or_ifc(type))
             state->current_type = state->current_type->next_sibling;
       }
+
+      if (glsl_type_is_struct(type) && !prog->data->spirv)
+         leave_record(state, ctx, type, row_major);
 
       state->current_type = old_type;
 
@@ -820,7 +1173,12 @@ nir_link_uniform(struct gl_context *ctx,
       uniform->top_level_array_size = state->top_level_array_size;
       uniform->top_level_array_stride = state->top_level_array_stride;
 
-      uniform->active_shader_mask |= 1 << stage;
+      struct hash_entry *entry =
+         _mesa_hash_table_search(state->referenced_uniforms,
+                                 state->current_var);
+      if (entry != NULL ||
+          glsl_get_base_type(type_no_array) == GLSL_TYPE_SUBROUTINE)
+         uniform->active_shader_mask |= 1 << stage;
 
       if (location >= 0) {
          /* Uniform has an explicit location */
@@ -834,6 +1192,7 @@ nir_link_uniform(struct gl_context *ctx,
          state->num_hidden_uniforms++;
 
       uniform->is_shader_storage = nir_variable_is_in_ssbo(state->current_var);
+      uniform->is_bindless = state->current_var->data.bindless;
 
       /* Set fields whose default value depend on the variable being inside a
        * block.
@@ -948,14 +1307,8 @@ nir_link_uniform(struct gl_context *ctx,
       }
 
       uniform->block_index = buffer_block_index;
-
-      /* @FIXME: the initialization of the following will be done as we
-       * implement support for their specific features, like SSBO, atomics,
-       * etc.
-       */
       uniform->builtin = is_gl_identifier(uniform->name);
       uniform->atomic_buffer_index = -1;
-      uniform->is_bindless = false;
 
       /* The following are not for features not supported by ARB_gl_spirv */
       uniform->num_compatible_subroutines = 0;
@@ -963,87 +1316,7 @@ nir_link_uniform(struct gl_context *ctx,
       unsigned entries = MAX2(1, uniform->array_elements);
       unsigned values = glsl_get_component_slots(type);
 
-      if (glsl_type_is_sampler(type_no_array)) {
-         bool init_idx;
-         int sampler_index =
-            get_next_index(state, uniform, &state->next_sampler_index,
-                           &init_idx);
-
-         /* Samplers (bound or bindless) are counted as two components as
-          * specified by ARB_bindless_texture.
-          */
-         state->num_shader_samplers += values / 2;
-
-         uniform->opaque[stage].active = true;
-         uniform->opaque[stage].index = sampler_index;
-
-         if (init_idx) {
-            const unsigned shadow = glsl_sampler_type_is_shadow(type_no_array);
-            for (unsigned i = sampler_index;
-                 i < MIN2(state->next_sampler_index, MAX_SAMPLERS);
-                 i++) {
-               stage_program->sh.SamplerTargets[i] =
-                  glsl_get_sampler_target(type_no_array);
-               state->shader_samplers_used |= 1U << i;
-               state->shader_shadow_samplers |= shadow << i;
-            }
-         }
-
-         state->num_values += values;
-      } else if (glsl_type_is_image(type_no_array)) {
-         /* @FIXME: image_index should match that of the same image
-          * uniform in other shaders. This means we need to match image
-          * uniforms by location (GLSL does it by variable name, but we
-          * want to avoid that).
-          */
-         int image_index = state->next_image_index;
-         state->next_image_index += entries;
-
-         /* Images (bound or bindless) are counted as two components as
-          * specified by ARB_bindless_texture.
-          */
-         state->num_shader_images += values / 2;
-
-         uniform->opaque[stage].active = true;
-         uniform->opaque[stage].index = image_index;
-
-         /* Set image access qualifiers */
-         enum gl_access_qualifier image_access =
-            state->current_var->data.access;
-         const GLenum access =
-            (image_access & ACCESS_NON_WRITEABLE) ?
-            ((image_access & ACCESS_NON_READABLE) ? GL_NONE :
-                                                    GL_READ_ONLY) :
-            ((image_access & ACCESS_NON_READABLE) ? GL_WRITE_ONLY :
-                                                    GL_READ_WRITE);
-         for (unsigned i = image_index;
-              i < MIN2(state->next_image_index, MAX_IMAGE_UNIFORMS);
-              i++) {
-            stage_program->sh.ImageAccess[i] = access;
-         }
-
-         if (!uniform->is_shader_storage) {
-            state->num_shader_uniform_components += values;
-            state->num_values += values;
-         }
-      } else {
-         if (glsl_get_base_type(type_no_array) == GLSL_TYPE_SUBROUTINE) {
-            uniform->opaque[stage].index = state->next_subroutine;
-            uniform->opaque[stage].active = true;
-
-            prog->_LinkedShaders[stage]->Program->sh.NumSubroutineUniforms++;
-
-            /* Increment the subroutine index by 1 for non-arrays and by the
-             * number of array elements for arrays.
-             */
-            state->next_subroutine += MAX2(1, uniform->array_elements);
-         }
-
-         if (!state->var_is_in_block && !is_gl_identifier(uniform->name)) {
-            state->num_shader_uniform_components += values;
-            state->num_values += values;
-         }
-      }
+      update_uniforms_shader_info(prog, state, uniform, type, stage);
 
       if (uniform->remap_location != UNMAPPED_UNIFORM_LOC &&
           state->max_uniform_location < uniform->remap_location + entries)
@@ -1057,6 +1330,10 @@ nir_link_uniform(struct gl_context *ctx,
                                  (void *) (intptr_t)
                                     (prog->data->NumUniformStorage - 1));
       }
+
+      if (!is_gl_identifier(uniform->name) && !uniform->is_shader_storage &&
+          !state->var_is_in_block)
+         state->num_values += values;
 
       return MAX2(uniform->array_elements, 1);
    }
@@ -1085,6 +1362,11 @@ gl_nir_link_uniforms(struct gl_context *ctx,
       nir_shader *nir = sh->Program->nir;
       assert(nir);
 
+      state.referenced_uniforms =
+         _mesa_hash_table_create(NULL, _mesa_hash_pointer,
+                                 _mesa_key_pointer_equal);
+      state.next_bindless_image_index = 0;
+      state.next_bindless_sampler_index = 0;
       state.next_image_index = 0;
       state.next_sampler_index = 0;
       state.num_shader_samplers = 0;
@@ -1094,6 +1376,8 @@ gl_nir_link_uniforms(struct gl_context *ctx,
       state.shader_samplers_used = 0;
       state.shader_shadow_samplers = 0;
       state.params = fill_parameters ? sh->Program->Parameters : NULL;
+
+      add_var_use_shader(nir, state.referenced_uniforms);
 
       nir_foreach_variable(var, &nir->uniforms) {
          state.current_var = var;
@@ -1178,12 +1462,24 @@ gl_nir_link_uniforms(struct gl_context *ctx,
 
             if (is_interface_array) {
                unsigned l = strlen(ifc_name);
+
+               /* Even when a match is found, do not "break" here.  As this is
+                * an array of instances, all elements of the array need to be
+                * marked as referenced.
+                */
                for (unsigned i = 0; i < num_blocks; i++) {
                   if (strncmp(ifc_name, blocks[i].Name, l) == 0 &&
                       blocks[i].Name[l] == '[') {
-                     buffer_block_index = i;
+                     if (buffer_block_index == -1)
+                        buffer_block_index = i;
 
-                     blocks[i].stageref |= 1U << shader_type;
+                     struct hash_entry *entry =
+                        _mesa_hash_table_search(state.referenced_uniforms, var);
+                     if (entry) {
+                        BITSET_WORD *bits = (BITSET_WORD *) entry->data;
+                        if (BITSET_TEST(bits, blocks[i].linearized_array_index))
+                           blocks[i].stageref |= 1U << shader_type;
+                     }
                   }
                }
             } else {
@@ -1191,7 +1487,11 @@ gl_nir_link_uniforms(struct gl_context *ctx,
                   if (strcmp(ifc_name, blocks[i].Name) == 0) {
                      buffer_block_index = i;
 
-                     blocks[i].stageref |= 1U << shader_type;
+                     struct hash_entry *entry =
+                        _mesa_hash_table_search(state.referenced_uniforms, var);
+                     if (entry)
+                        blocks[i].stageref |= 1U << shader_type;
+
                      break;
                   }
                }
@@ -1250,7 +1550,10 @@ gl_nir_link_uniforms(struct gl_context *ctx,
                   if (found) {
                      location = j;
 
-                     blocks[i].stageref |= 1U << shader_type;
+                     struct hash_entry *entry =
+                        _mesa_hash_table_search(state.referenced_uniforms, var);
+                     if (entry)
+                        blocks[i].stageref |= 1U << shader_type;
 
                      break;
                   }
@@ -1289,11 +1592,14 @@ gl_nir_link_uniforms(struct gl_context *ctx,
          else
             location = -1;
 
+         bool row_major =
+            var->data.matrix_layout == GLSL_MATRIX_LAYOUT_ROW_MAJOR;
          int res = nir_link_uniform(ctx, prog, sh->Program, shader_type, type,
                                     0, location,
                                     &state,
                                     !prog->data->spirv ? &name : NULL,
-                                    !prog->data->spirv ? strlen(name) : 0);
+                                    !prog->data->spirv ? strlen(name) : 0,
+                                    row_major);
 
          free_type_tree(type_tree);
          ralloc_free(name);
@@ -1301,6 +1607,8 @@ gl_nir_link_uniforms(struct gl_context *ctx,
          if (res == -1)
             return false;
       }
+
+      _mesa_hash_table_destroy(state.referenced_uniforms, NULL);
 
       if (state.num_shader_samplers >
           ctx->Const.Program[shader_type].MaxTextureImageUnits) {
@@ -1329,8 +1637,10 @@ gl_nir_link_uniforms(struct gl_context *ctx,
    }
 
    prog->data->NumHiddenUniforms = state.num_hidden_uniforms;
-   prog->NumUniformRemapTable = state.max_uniform_location;
    prog->data->NumUniformDataSlots = state.num_values;
+
+   if (prog->data->spirv)
+      prog->NumUniformRemapTable = state.max_uniform_location;
 
    nir_setup_uniform_remap_tables(ctx, prog);
    gl_nir_set_uniform_initializers(ctx, prog);

@@ -1643,5 +1643,7 @@
 #define glEGLImageTargetTextureStorageEXT(a1, a2, a3) CALL_EGLImageTargetTextureStorageEXT(GET_DISPATCH(), (a1, a2, a3))
 #define glCopyImageSubDataNV(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15) CALL_CopyImageSubDataNV(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15))
 #define glViewportSwizzleNV(a1, a2, a3, a4, a5) CALL_ViewportSwizzleNV(GET_DISPATCH(), (a1, a2, a3, a4, a5))
+#define glAlphaToCoverageDitherControlNV(a1) CALL_AlphaToCoverageDitherControlNV(GET_DISPATCH(), (a1))
+#define glInternalBufferSubDataCopyMESA(a1, a2, a3, a4, a5, a6, a7) CALL_InternalBufferSubDataCopyMESA(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7))
 
 #endif /* !defined( __GLFUNCTIONS_H__ ) */

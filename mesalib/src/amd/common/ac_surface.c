@@ -32,12 +32,13 @@
 #include "util/macros.h"
 #include "util/u_atomic.h"
 #include "util/u_math.h"
+#include "sid.h"
 
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <amdgpu.h>
-#include <amdgpu_drm.h>
+#include "drm-uapi/amdgpu_drm.h"
 
 #include "addrlib/inc/addrinterface.h"
 
@@ -378,10 +379,6 @@ static int gfx6_compute_level(ADDR_HANDLE addrlib,
 	return 0;
 }
 
-#define   G_009910_MICRO_TILE_MODE(x)          (((x) >> 0) & 0x03)
-#define     V_009910_ADDR_SURF_THICK_MICRO_TILING                   0x03
-#define   G_009910_MICRO_TILE_MODE_NEW(x)      (((x) >> 22) & 0x07)
-
 static void gfx6_set_micro_tile_mode(struct radeon_surf *surf,
 				     const struct radeon_info *info)
 {
@@ -413,7 +410,9 @@ static bool get_display_flag(const struct ac_surf_config *config,
 	unsigned num_channels = config->info.num_channels;
 	unsigned bpe = surf->bpe;
 
-	if (!(surf->flags & RADEON_SURF_Z_OR_SBUFFER) &&
+	if (!config->is_3d &&
+	    !config->is_cube &&
+	    !(surf->flags & RADEON_SURF_Z_OR_SBUFFER) &&
 	    surf->flags & RADEON_SURF_SCANOUT &&
 	    config->info.samples <= 1 &&
 	    surf->blk_w <= 2 && surf->blk_h == 1) {
@@ -652,7 +651,8 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 	AddrSurfInfoIn.flags.cube = config->is_cube;
 	AddrSurfInfoIn.flags.display = get_display_flag(config, surf);
 	AddrSurfInfoIn.flags.pow2Pad = config->info.levels > 1;
-	AddrSurfInfoIn.flags.tcCompatible = (surf->flags & RADEON_SURF_TC_COMPATIBLE_HTILE) != 0;
+	AddrSurfInfoIn.flags.tcCompatible = info->chip_class >= GFX8 &&
+					    AddrSurfInfoIn.flags.depth;
 
 	/* Only degrade the tile mode for space if TC-compatible HTILE hasn't been
 	 * requested, because TC-compatible HTILE requires 2D tiling.
@@ -660,7 +660,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 	AddrSurfInfoIn.flags.opt4Space = !AddrSurfInfoIn.flags.tcCompatible &&
 					 !AddrSurfInfoIn.flags.fmask &&
 					 config->info.samples <= 1 &&
-					 (surf->flags & RADEON_SURF_OPTIMIZE_FOR_SPACE);
+					 !(surf->flags & RADEON_SURF_FORCE_SWIZZLE_MODE);
 
 	/* DCC notes:
 	 * - If we add MSAA support, keep in mind that CB can't decompress 8bpp
@@ -773,6 +773,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 	surf->htile_size = 0;
 	surf->htile_slice_size = 0;
 	surf->htile_alignment = 1;
+	surf->tc_compatible_htile_allowed = AddrSurfInfoIn.flags.tcCompatible;
 
 	const bool only_stencil = (surf->flags & RADEON_SURF_SBUFFER) &&
 				  !(surf->flags & RADEON_SURF_ZBUFFER);
@@ -789,10 +790,11 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 			if (level > 0)
 				continue;
 
-			if (!AddrSurfInfoOut.tcCompatible) {
+			if (!AddrSurfInfoOut.tcCompatible)
 				AddrSurfInfoIn.flags.tcCompatible = 0;
-				surf->flags &= ~RADEON_SURF_TC_COMPATIBLE_HTILE;
-			}
+
+			if (!AddrSurfInfoOut.tcCompatible || !surf->htile_size)
+				surf->tc_compatible_htile_allowed = false;
 
 			if (AddrSurfInfoIn.flags.matchStencilTileCfg) {
 				AddrSurfInfoIn.flags.matchStencilTileCfg = 0;
@@ -938,7 +940,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 	 * TC-compatible HTILE even for levels where it's disabled by DB.
 	 */
 	if (surf->htile_size && config->info.levels > 1 &&
-	    surf->flags & RADEON_SURF_TC_COMPATIBLE_HTILE) {
+	    surf->tc_compatible_htile_allowed) {
 		/* MSAA can't occur with levels > 1, so ignore the sample count. */
 		const unsigned total_pixels = surf->surf_size / surf->bpe;
 		const unsigned htile_block_size = 8 * 8;
@@ -952,14 +954,14 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 	surf->is_linear = surf->u.legacy.level[0].mode == RADEON_SURF_MODE_LINEAR_ALIGNED;
 	surf->is_displayable = surf->is_linear ||
 			       surf->micro_tile_mode == RADEON_MICRO_MODE_DISPLAY ||
-			       surf->micro_tile_mode == RADEON_MICRO_MODE_ROTATED;
+			       surf->micro_tile_mode == RADEON_MICRO_MODE_RENDER;
 
 	/* The rotated micro tile mode doesn't work if both CMASK and RB+ are
 	 * used at the same time. This case is not currently expected to occur
 	 * because we don't use rotated. Enforce this restriction on all chips
 	 * to facilitate testing.
 	 */
-	if (surf->micro_tile_mode == RADEON_MICRO_MODE_ROTATED) {
+	if (surf->micro_tile_mode == RADEON_MICRO_MODE_RENDER) {
 		assert(!"rotate micro tile mode is unsupported");
 		return ADDR_ERROR;
 	}
@@ -1008,11 +1010,11 @@ gfx9_get_preferred_swizzle_mode(ADDR_HANDLE addrlib,
 
 		if (surf->micro_tile_mode == RADEON_MICRO_MODE_DISPLAY)
 			sin.preferredSwSet.sw_D = 1;
-		else if (surf->micro_tile_mode == RADEON_MICRO_MODE_THIN)
+		else if (surf->micro_tile_mode == RADEON_MICRO_MODE_STANDARD)
 			sin.preferredSwSet.sw_S = 1;
 		else if (surf->micro_tile_mode == RADEON_MICRO_MODE_DEPTH)
 			sin.preferredSwSet.sw_Z = 1;
-		else if (surf->micro_tile_mode == RADEON_MICRO_MODE_ROTATED)
+		else if (surf->micro_tile_mode == RADEON_MICRO_MODE_RENDER)
 			sin.preferredSwSet.sw_R = 1;
 	}
 
@@ -1024,12 +1026,88 @@ gfx9_get_preferred_swizzle_mode(ADDR_HANDLE addrlib,
 	return 0;
 }
 
-static bool gfx9_is_dcc_capable(const struct radeon_info *info, unsigned sw_mode)
+static bool is_dcc_supported_by_CB(const struct radeon_info *info, unsigned sw_mode)
 {
 	if (info->chip_class >= GFX10)
 		return sw_mode == ADDR_SW_64KB_Z_X || sw_mode == ADDR_SW_64KB_R_X;
 
 	return sw_mode != ADDR_SW_LINEAR;
+}
+
+ASSERTED static bool is_dcc_supported_by_L2(const struct radeon_info *info,
+					    const struct radeon_surf *surf)
+{
+	if (info->chip_class <= GFX9) {
+		/* Only independent 64B blocks are supported. */
+		return surf->u.gfx9.dcc.independent_64B_blocks &&
+		       !surf->u.gfx9.dcc.independent_128B_blocks &&
+		       surf->u.gfx9.dcc.max_compressed_block_size == V_028C78_MAX_BLOCK_SIZE_64B;
+	}
+
+	if (info->family == CHIP_NAVI10) {
+		/* Only independent 128B blocks are supported. */
+		return !surf->u.gfx9.dcc.independent_64B_blocks &&
+		       surf->u.gfx9.dcc.independent_128B_blocks &&
+		       surf->u.gfx9.dcc.max_compressed_block_size <= V_028C78_MAX_BLOCK_SIZE_128B;
+	}
+
+	if (info->family == CHIP_NAVI12 ||
+	    info->family == CHIP_NAVI14) {
+		/* Either 64B or 128B can be used, but not both.
+		 * If 64B is used, DCC image stores are unsupported.
+		 */
+		return surf->u.gfx9.dcc.independent_64B_blocks !=
+		       surf->u.gfx9.dcc.independent_128B_blocks &&
+		       (!surf->u.gfx9.dcc.independent_64B_blocks ||
+			surf->u.gfx9.dcc.max_compressed_block_size == V_028C78_MAX_BLOCK_SIZE_64B) &&
+		       (!surf->u.gfx9.dcc.independent_128B_blocks ||
+			surf->u.gfx9.dcc.max_compressed_block_size <= V_028C78_MAX_BLOCK_SIZE_128B);
+	}
+
+	unreachable("unhandled chip");
+	return false;
+}
+
+static bool is_dcc_supported_by_DCN(const struct radeon_info *info,
+				    const struct ac_surf_config *config,
+				    const struct radeon_surf *surf,
+				    bool rb_aligned, bool pipe_aligned)
+{
+	if (!info->use_display_dcc_unaligned &&
+	    !info->use_display_dcc_with_retile_blit)
+		return false;
+
+	/* 16bpp and 64bpp are more complicated, so they are disallowed for now. */
+	if (surf->bpe != 4)
+		return false;
+
+	/* Handle unaligned DCC. */
+	if (info->use_display_dcc_unaligned &&
+	    (rb_aligned || pipe_aligned))
+		return false;
+
+	switch (info->chip_class) {
+	case GFX9:
+		/* There are more constraints, but we always set
+		 * INDEPENDENT_64B_BLOCKS = 1 and MAX_COMPRESSED_BLOCK_SIZE = 64B,
+		 * which always works.
+		 */
+		assert(surf->u.gfx9.dcc.independent_64B_blocks &&
+		       surf->u.gfx9.dcc.max_compressed_block_size == V_028C78_MAX_BLOCK_SIZE_64B);
+		return true;
+	case GFX10:
+		/* DCN requires INDEPENDENT_128B_BLOCKS = 0.
+		 * For 4K, it also requires INDEPENDENT_64B_BLOCKS = 1.
+		 */
+		return !surf->u.gfx9.dcc.independent_128B_blocks &&
+		       ((config->info.width <= 2560 &&
+			 config->info.height <= 2560) ||
+			(surf->u.gfx9.dcc.independent_64B_blocks &&
+			 surf->u.gfx9.dcc.max_compressed_block_size == V_028C78_MAX_BLOCK_SIZE_64B));
+	default:
+		unreachable("unhandled chip");
+		return false;
+	}
 }
 
 static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
@@ -1158,7 +1236,11 @@ static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 		if (info->has_graphics &&
 		    !(surf->flags & RADEON_SURF_DISABLE_DCC) &&
 		    !compressed &&
-		    gfx9_is_dcc_capable(info, in->swizzleMode)) {
+		    is_dcc_supported_by_CB(info, in->swizzleMode) &&
+		    (!in->flags.display ||
+		     is_dcc_supported_by_DCN(info, config, surf,
+					     !in->flags.metaRbUnaligned,
+					     !in->flags.metaPipeUnaligned))) {
 			ADDR2_COMPUTE_DCCINFO_INPUT din = {0};
 			ADDR2_COMPUTE_DCCINFO_OUTPUT dout = {0};
 			ADDR2_META_MIP_INFO meta_mip_info[RADEON_SURF_MAX_LEVELS] = {};
@@ -1187,6 +1269,9 @@ static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 
 			surf->u.gfx9.dcc.rb_aligned = din.dccKeyFlags.rbAligned;
 			surf->u.gfx9.dcc.pipe_aligned = din.dccKeyFlags.pipeAligned;
+			surf->u.gfx9.dcc_block_width = dout.compressBlkWidth;
+			surf->u.gfx9.dcc_block_height = dout.compressBlkHeight;
+			surf->u.gfx9.dcc_block_depth = dout.compressBlkDepth;
 			surf->dcc_size = dout.dccRamSize;
 			surf->dcc_alignment = dout.dccRamBaseAlign;
 			surf->num_dcc_levels = in->numMipLevels;
@@ -1487,14 +1572,12 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 		AddrSurfInfoIn.bpp = surf->bpe * 8;
 	}
 
-	bool is_color_surface = !(surf->flags & RADEON_SURF_Z_OR_SBUFFER);
-	AddrSurfInfoIn.flags.color = is_color_surface &&
+	AddrSurfInfoIn.flags.color = !(surf->flags & RADEON_SURF_Z_OR_SBUFFER) &&
 	                             !(surf->flags & RADEON_SURF_NO_RENDER_TARGET);
 	AddrSurfInfoIn.flags.depth = (surf->flags & RADEON_SURF_ZBUFFER) != 0;
 	AddrSurfInfoIn.flags.display = get_display_flag(config, surf);
 	/* flags.texture currently refers to TC-compatible HTILE */
-	AddrSurfInfoIn.flags.texture = is_color_surface ||
-				       surf->flags & RADEON_SURF_TC_COMPATIBLE_HTILE;
+	AddrSurfInfoIn.flags.texture = 1;
 	AddrSurfInfoIn.flags.opt4space = 1;
 
 	AddrSurfInfoIn.numMipLevels = config->info.levels;
@@ -1528,17 +1611,43 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 	AddrSurfInfoIn.flags.metaPipeUnaligned = 0;
 	AddrSurfInfoIn.flags.metaRbUnaligned = 0;
 
-	/* The display hardware can only read DCC with RB_ALIGNED=0 and
-	 * PIPE_ALIGNED=0. PIPE_ALIGNED really means L2CACHE_ALIGNED.
-	 *
-	 * The CB block requires RB_ALIGNED=1 except 1 RB chips.
-	 * PIPE_ALIGNED is optional, but PIPE_ALIGNED=0 requires L2 flushes
-	 * after rendering, so PIPE_ALIGNED=1 is recommended.
-	 */
-	if (info->use_display_dcc_unaligned && is_color_surface &&
-	    AddrSurfInfoIn.flags.display) {
-		AddrSurfInfoIn.flags.metaPipeUnaligned = 1;
-		AddrSurfInfoIn.flags.metaRbUnaligned = 1;
+	/* Optimal values for the L2 cache. */
+	if (info->chip_class == GFX9) {
+		surf->u.gfx9.dcc.independent_64B_blocks = 1;
+		surf->u.gfx9.dcc.independent_128B_blocks = 0;
+		surf->u.gfx9.dcc.max_compressed_block_size = V_028C78_MAX_BLOCK_SIZE_64B;
+	} else if (info->chip_class >= GFX10) {
+		surf->u.gfx9.dcc.independent_64B_blocks = 0;
+		surf->u.gfx9.dcc.independent_128B_blocks = 1;
+		surf->u.gfx9.dcc.max_compressed_block_size = V_028C78_MAX_BLOCK_SIZE_128B;
+	}
+
+	if (AddrSurfInfoIn.flags.display) {
+		/* The display hardware can only read DCC with RB_ALIGNED=0 and
+		 * PIPE_ALIGNED=0. PIPE_ALIGNED really means L2CACHE_ALIGNED.
+		 *
+		 * The CB block requires RB_ALIGNED=1 except 1 RB chips.
+		 * PIPE_ALIGNED is optional, but PIPE_ALIGNED=0 requires L2 flushes
+		 * after rendering, so PIPE_ALIGNED=1 is recommended.
+		 */
+		if (info->use_display_dcc_unaligned) {
+			AddrSurfInfoIn.flags.metaPipeUnaligned = 1;
+			AddrSurfInfoIn.flags.metaRbUnaligned = 1;
+		}
+
+		/* Adjust DCC settings to meet DCN requirements. */
+		if (info->use_display_dcc_unaligned ||
+		    info->use_display_dcc_with_retile_blit) {
+			/* Only Navi12/14 support independent 64B blocks in L2,
+			 * but without DCC image stores.
+			 */
+			if (info->family == CHIP_NAVI12 ||
+			    info->family == CHIP_NAVI14) {
+				surf->u.gfx9.dcc.independent_64B_blocks = 1;
+				surf->u.gfx9.dcc.independent_128B_blocks = 0;
+				surf->u.gfx9.dcc.max_compressed_block_size = V_028C78_MAX_BLOCK_SIZE_64B;
+			}
+		}
 	}
 
 	switch (mode) {
@@ -1608,8 +1717,10 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 	}
 
 	surf->is_linear = surf->u.gfx9.surf.swizzle_mode == ADDR_SW_LINEAR;
+	surf->tc_compatible_htile_allowed = surf->htile_size != 0;
 
 	/* Query whether the surface is displayable. */
+	/* This is only useful for surfaces that are allocated without SCANOUT. */
 	bool displayable = false;
 	if (!config->is_3d && !config->is_cube) {
 		r = Addr2IsValidDisplaySwizzleMode(addrlib, surf->u.gfx9.surf.swizzle_mode,
@@ -1618,13 +1729,51 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 			goto error;
 
 		/* Display needs unaligned DCC. */
-		if (info->use_display_dcc_unaligned &&
-		    surf->num_dcc_levels &&
-		    (surf->u.gfx9.dcc.pipe_aligned ||
-		     surf->u.gfx9.dcc.rb_aligned))
+		if (surf->num_dcc_levels &&
+		    !is_dcc_supported_by_DCN(info, config, surf,
+					     surf->u.gfx9.dcc.rb_aligned,
+					     surf->u.gfx9.dcc.pipe_aligned))
 			displayable = false;
 	}
 	surf->is_displayable = displayable;
+
+	/* Validate that we allocated a displayable surface if requested. */
+	assert(!AddrSurfInfoIn.flags.display || surf->is_displayable);
+
+	/* Validate that DCC is set up correctly. */
+	if (surf->num_dcc_levels) {
+		assert(is_dcc_supported_by_L2(info, surf));
+		if (AddrSurfInfoIn.flags.color)
+			assert(is_dcc_supported_by_CB(info, surf->u.gfx9.surf.swizzle_mode));
+		if (AddrSurfInfoIn.flags.display) {
+			assert(is_dcc_supported_by_DCN(info, config, surf,
+						       surf->u.gfx9.dcc.rb_aligned,
+						       surf->u.gfx9.dcc.pipe_aligned));
+		}
+	}
+
+	if (info->has_graphics &&
+	    !compressed &&
+	    !config->is_3d &&
+	    config->info.levels == 1 &&
+	    AddrSurfInfoIn.flags.color &&
+	    !surf->is_linear &&
+	    surf->surf_alignment >= 64 * 1024 && /* 64KB tiling */
+	    !(surf->flags & (RADEON_SURF_DISABLE_DCC |
+			     RADEON_SURF_FORCE_SWIZZLE_MODE |
+			     RADEON_SURF_FORCE_MICRO_TILE_MODE))) {
+		/* Validate that DCC is enabled if DCN can do it. */
+		if ((info->use_display_dcc_unaligned ||
+		     info->use_display_dcc_with_retile_blit) &&
+		    AddrSurfInfoIn.flags.display &&
+		    surf->bpe == 4) {
+			assert(surf->num_dcc_levels);
+		}
+
+		/* Validate that non-scanout DCC is always enabled. */
+		if (!AddrSurfInfoIn.flags.display)
+			assert(surf->num_dcc_levels);
+	}
 
 	switch (surf->u.gfx9.surf.swizzle_mode) {
 		/* S = standard. */
@@ -1634,7 +1783,7 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 		case ADDR_SW_64KB_S_T:
 		case ADDR_SW_4KB_S_X:
 		case ADDR_SW_64KB_S_X:
-			surf->micro_tile_mode = RADEON_MICRO_MODE_THIN;
+			surf->micro_tile_mode = RADEON_MICRO_MODE_STANDARD;
 			break;
 
 		/* D = display. */
@@ -1662,7 +1811,7 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 			 */
 			assert(info->chip_class >= GFX10 ||
 			       !"rotate micro tile mode is unsupported");
-			surf->micro_tile_mode = RADEON_MICRO_MODE_ROTATED;
+			surf->micro_tile_mode = RADEON_MICRO_MODE_RENDER;
 			break;
 
 		/* Z = depth. */
@@ -1727,12 +1876,11 @@ int ac_compute_surface(ADDR_HANDLE addrlib, const struct radeon_info *info,
 	}
 
 	if (surf->dcc_size &&
-	    (info->use_display_dcc_unaligned ||
-	     info->use_display_dcc_with_retile_blit ||
-	     !(surf->flags & RADEON_SURF_SCANOUT))) {
-		surf->dcc_offset = align64(surf->total_size, surf->dcc_alignment);
-		surf->total_size = surf->dcc_offset + surf->dcc_size;
-
+	    /* dcc_size is computed on GFX9+ only if it's displayable. */
+	    (info->chip_class >= GFX9 || !get_display_flag(config, surf))) {
+		/* It's better when displayable DCC is immediately after
+		 * the image due to hw-specific reasons.
+		 */
 		if (info->chip_class >= GFX9 &&
 		    surf->u.gfx9.dcc_retile_num_elements) {
 			/* Add space for the displayable DCC buffer. */
@@ -1753,6 +1901,9 @@ int ac_compute_surface(ADDR_HANDLE addrlib, const struct radeon_info *info,
 						   surf->u.gfx9.dcc_retile_num_elements * 4;
 			}
 		}
+
+		surf->dcc_offset = align64(surf->total_size, surf->dcc_alignment);
+		surf->total_size = surf->dcc_offset + surf->dcc_size;
 	}
 
 	return 0;

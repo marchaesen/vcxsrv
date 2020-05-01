@@ -898,6 +898,10 @@ void label_instruction(opt_ctx &ctx, Block& block, aco_ptr<Instruction>& instr)
 
    switch (instr->opcode) {
    case aco_opcode::p_create_vector: {
+      bool copy_prop = instr->operands.size() == 1 && instr->operands[0].isTemp();
+      if (copy_prop)
+         ctx.info[instr->definitions[0].tempId()].set_temp(instr->operands[0].getTemp());
+
       unsigned num_ops = instr->operands.size();
       for (const Operand& op : instr->operands) {
          if (op.isTemp() && ctx.info[op.tempId()].is_vec())
@@ -923,9 +927,8 @@ void label_instruction(opt_ctx &ctx, Block& block, aco_ptr<Instruction>& instr)
          }
          assert(k == num_ops);
       }
-      if (instr->operands.size() == 1 && instr->operands[0].isTemp())
-         ctx.info[instr->definitions[0].tempId()].set_temp(instr->operands[0].getTemp());
-      else
+
+      if (!copy_prop)
          ctx.info[instr->definitions[0].tempId()].set_vec(instr.get());
       break;
    }
@@ -951,6 +954,8 @@ void label_instruction(opt_ctx &ctx, Block& block, aco_ptr<Instruction>& instr)
                ctx.info[instr->definitions[i].tempId()].set_constant(vec_op.constantValue());
             else if (vec_op.size() == 2)
                ctx.info[instr->definitions[i].tempId()].set_constant_64bit(vec_op.constantValue());
+         } else if (vec_op.isUndefined()) {
+            ctx.info[instr->definitions[i].tempId()].set_undefined();
          } else {
             assert(vec_op.isTemp());
             ctx.info[instr->definitions[i].tempId()].set_temp(vec_op.getTemp());
@@ -988,6 +993,8 @@ void label_instruction(opt_ctx &ctx, Block& block, aco_ptr<Instruction>& instr)
                ctx.info[instr->definitions[0].tempId()].set_constant(op.constantValue());
             else if (op.size() == 2)
                ctx.info[instr->definitions[0].tempId()].set_constant_64bit(op.constantValue());
+         } else if (op.isUndefined()) {
+            ctx.info[instr->definitions[0].tempId()].set_undefined();
          } else {
             assert(op.isTemp());
             ctx.info[instr->definitions[0].tempId()].set_temp(op.getTemp());
@@ -2470,12 +2477,19 @@ void combine_instruction(opt_ctx &ctx, Block& block, aco_ptr<Instruction>& instr
          }
       }
    } else if (instr->opcode == aco_opcode::v_or_b32 && ctx.program->chip_class >= GFX9) {
-      if (combine_three_valu_op(ctx, instr, aco_opcode::v_or_b32, aco_opcode::v_or3_b32, "012", 1 | 2)) ;
+      if (combine_three_valu_op(ctx, instr, aco_opcode::s_or_b32, aco_opcode::v_or3_b32, "012", 1 | 2)) ;
+      else if (combine_three_valu_op(ctx, instr, aco_opcode::v_or_b32, aco_opcode::v_or3_b32, "012", 1 | 2)) ;
+      else if (combine_three_valu_op(ctx, instr, aco_opcode::s_and_b32, aco_opcode::v_and_or_b32, "120", 1 | 2)) ;
       else if (combine_three_valu_op(ctx, instr, aco_opcode::v_and_b32, aco_opcode::v_and_or_b32, "120", 1 | 2)) ;
+      else if (combine_three_valu_op(ctx, instr, aco_opcode::s_lshl_b32, aco_opcode::v_lshl_or_b32, "120", 1 | 2)) ;
       else combine_three_valu_op(ctx, instr, aco_opcode::v_lshlrev_b32, aco_opcode::v_lshl_or_b32, "210", 1 | 2);
    } else if (instr->opcode == aco_opcode::v_add_u32 && ctx.program->chip_class >= GFX9) {
-      if (combine_three_valu_op(ctx, instr, aco_opcode::v_xor_b32, aco_opcode::v_xad_u32, "120", 1 | 2)) ;
+      if (combine_three_valu_op(ctx, instr, aco_opcode::s_xor_b32, aco_opcode::v_xad_u32, "120", 1 | 2)) ;
+      else if (combine_three_valu_op(ctx, instr, aco_opcode::v_xor_b32, aco_opcode::v_xad_u32, "120", 1 | 2)) ;
+      else if (combine_three_valu_op(ctx, instr, aco_opcode::s_add_i32, aco_opcode::v_add3_u32, "012", 1 | 2)) ;
+      else if (combine_three_valu_op(ctx, instr, aco_opcode::s_add_u32, aco_opcode::v_add3_u32, "012", 1 | 2)) ;
       else if (combine_three_valu_op(ctx, instr, aco_opcode::v_add_u32, aco_opcode::v_add3_u32, "012", 1 | 2)) ;
+      else if (combine_three_valu_op(ctx, instr, aco_opcode::s_lshl_b32, aco_opcode::v_lshl_add_u32, "120", 1 | 2)) ;
       else combine_three_valu_op(ctx, instr, aco_opcode::v_lshlrev_b32, aco_opcode::v_lshl_add_u32, "210", 1 | 2);
    } else if (instr->opcode == aco_opcode::v_lshlrev_b32 && ctx.program->chip_class >= GFX9) {
       combine_three_valu_op(ctx, instr, aco_opcode::v_add_u32, aco_opcode::v_add_lshl_u32, "120", 2);

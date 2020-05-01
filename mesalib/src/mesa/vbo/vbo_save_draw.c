@@ -31,7 +31,7 @@
 #include "main/glheader.h"
 #include "main/bufferobj.h"
 #include "main/context.h"
-#include "util/imports.h"
+#include "main/mesa_private.h"
 #include "main/macros.h"
 #include "main/light.h"
 #include "main/state.h"

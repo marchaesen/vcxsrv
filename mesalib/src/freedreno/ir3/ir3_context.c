@@ -80,7 +80,6 @@ ir3_context_init(struct ir3_compiler *compiler,
 	/* this needs to be the last pass run, so do this here instead of
 	 * in ir3_optimize_nir():
 	 */
-	NIR_PASS_V(ctx->s, nir_lower_bool_to_bitsize);
 	bool progress = false;
 	NIR_PASS(progress, ctx->s, nir_lower_locals_to_regs);
 
@@ -216,7 +215,8 @@ ir3_put_dst(struct ir3_context *ctx, nir_dest *dst)
 		}
 	}
 
-	if (bit_size < 32) {
+	/* Note: 1-bit bools are stored in 32-bit regs */
+	if (bit_size == 16) {
 		for (unsigned i = 0; i < ctx->last_dst_n; i++) {
 			struct ir3_instruction *dst = ctx->last_dst[i];
 			dst->regs[0]->flags |= IR3_REG_HALF;
@@ -556,7 +556,7 @@ ir3_create_array_load(struct ir3_context *ctx, struct ir3_array *arr, int n,
 	unsigned flags = 0;
 
 	mov = ir3_instr_create(block, OPC_MOV);
-	if (bitsize < 32) {
+	if (bitsize == 16) {
 		mov->cat1.src_type = TYPE_U16;
 		mov->cat1.dst_type = TYPE_U16;
 		flags |= IR3_REG_HALF;

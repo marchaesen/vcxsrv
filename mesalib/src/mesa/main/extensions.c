@@ -31,7 +31,7 @@
 
 
 #include "glheader.h"
-#include "util/imports.h"
+
 #include "context.h"
 #include "extensions.h"
 #include "macros.h"
@@ -39,8 +39,12 @@
 
 struct gl_extensions _mesa_extension_override_enables;
 struct gl_extensions _mesa_extension_override_disables;
-static char *unrecognized_extensions = NULL;
 
+#define MAX_UNRECOGNIZED_EXTENSIONS 16
+static struct {
+   char *env;
+   const char *names[MAX_UNRECOGNIZED_EXTENSIONS];
+} unrecognized_extensions;
 
 /**
  * Given a member \c x of struct gl_extensions, return offset of
@@ -213,7 +217,9 @@ set_extension(struct gl_extensions *ext, int i, GLboolean state)
 static void
 free_unknown_extensions_strings(void)
 {
-   free(unrecognized_extensions);
+   free(unrecognized_extensions.env);
+   for (int i = 0; i < MAX_UNRECOGNIZED_EXTENSIONS; ++i)
+      unrecognized_extensions.names[i] = NULL;
 }
 
 
@@ -230,7 +236,7 @@ free_unknown_extensions_strings(void)
  *    - Collect unrecognized extension names in a new string.
  */
 void
-_mesa_one_time_init_extension_overrides(struct gl_context *ctx)
+_mesa_one_time_init_extension_overrides(void)
 {
    const char *env_const = getenv("MESA_EXTENSION_OVERRIDE");
    char *env;
@@ -283,15 +289,14 @@ _mesa_one_time_init_extension_overrides(struct gl_context *ctx)
 
             if (!warned) {
                warned = true;
-               _mesa_problem(ctx, "Trying to enable too many unknown extension. "
-                                  "Only the first %d will be honoured",
-                                  MAX_UNRECOGNIZED_EXTENSIONS);
+               _mesa_problem(NULL, "Trying to enable too many unknown extension. "
+                                   "Only the first %d will be honoured",
+                                   MAX_UNRECOGNIZED_EXTENSIONS);
             }
          } else {
-            ctx->Extensions.unrecognized_extensions[unknown_ext] = ext;
+            unrecognized_extensions.names[unknown_ext] = ext;
             unknown_ext++;
-
-            _mesa_problem(ctx, "Trying to enable unknown extension: %s", ext);
+            _mesa_problem(NULL, "Trying to enable unknown extension: %s", ext);
          }
       }
    }
@@ -299,7 +304,7 @@ _mesa_one_time_init_extension_overrides(struct gl_context *ctx)
    if (!unknown_ext) {
       free(env);
    } else {
-      unrecognized_extensions = env;
+      unrecognized_extensions.env = env;
       atexit(free_unknown_extensions_strings);
    }
 }
@@ -411,8 +416,8 @@ _mesa_make_extension_string(struct gl_context *ctx)
       }
    }
    for (k = 0; k < MAX_UNRECOGNIZED_EXTENSIONS; k++)
-      if (ctx->Extensions.unrecognized_extensions[k])
-         length += 1 + strlen(ctx->Extensions.unrecognized_extensions[k]); /* +1 for space */
+      if (unrecognized_extensions.names[k])
+         length += 1 + strlen(unrecognized_extensions.names[k]); /* +1 for space */
 
    exts = calloc(ALIGN(length + 1, 4), sizeof(char));
    if (exts == NULL) {
@@ -445,8 +450,8 @@ _mesa_make_extension_string(struct gl_context *ctx)
       strcat(exts, " ");
    }
    for (j = 0; j < MAX_UNRECOGNIZED_EXTENSIONS; j++) {
-      if (ctx->Extensions.unrecognized_extensions[j]) {
-         strcat(exts, ctx->Extensions.unrecognized_extensions[j]);
+      if (unrecognized_extensions.names[j]) {
+         strcat(exts, unrecognized_extensions.names[j]);
          strcat(exts, " ");
       }
    }
@@ -472,8 +477,8 @@ _mesa_get_extension_count(struct gl_context *ctx)
    }
 
    for (k = 0; k < MAX_UNRECOGNIZED_EXTENSIONS; ++k) {
-      if (ctx->Extensions.unrecognized_extensions[k])
-	 ctx->Extensions.Count++;
+      if (unrecognized_extensions.names[k])
+         ctx->Extensions.Count++;
    }
    return ctx->Extensions.Count;
 }
@@ -497,9 +502,9 @@ _mesa_get_enabled_extension(struct gl_context *ctx, GLuint index)
    }
 
    for (i = 0; i < MAX_UNRECOGNIZED_EXTENSIONS; ++i) {
-      if (ctx->Extensions.unrecognized_extensions[i]) {
+      if (unrecognized_extensions.names[i]) {
          if (n == index)
-            return (const GLubyte*) ctx->Extensions.unrecognized_extensions[i];
+            return (const GLubyte*) unrecognized_extensions.names[i];
          else
             ++n;
       }

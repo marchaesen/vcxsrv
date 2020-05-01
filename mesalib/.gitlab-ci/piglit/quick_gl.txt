@@ -1121,8 +1121,6 @@ spec/arb_texture_rg/multisample-formats 8 gl_arb_texture_rg: skip
 spec/arb_texture_rg/multisample-formats 8 gl_arb_texture_rg-float: skip
 spec/arb_texture_rg/multisample-formats 8 gl_arb_texture_rg-int: skip
 spec/arb_texture_stencil8/fbo-clear-formats/gl_stencil_index8 (fbo incomplete): skip
-spec/arb_texture_stencil8/texwrap formats bordercolor-swizzled/gl_stencil_index8, swizzled, border color only: fail
-spec/arb_texture_stencil8/texwrap formats bordercolor/gl_stencil_index8, border color only: fail
 spec/arb_texture_view/rendering-formats/clear gl_r8 as gl_r8_snorm: fail
 spec/arb_texture_view/rendering-formats/clear gl_r8 as gl_r8i: fail
 spec/arb_texture_view/rendering-formats/clear gl_rg8 as gl_r16_snorm: fail
@@ -2083,8 +2081,8 @@ wgl/wgl-sanity: skip
 summary:
        name:  results
        ----  --------
-       pass:    19537
-       fail:      248
+       pass:    19539
+       fail:      246
       crash:        0
        skip:     1814
     timeout:        0

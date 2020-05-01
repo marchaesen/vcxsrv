@@ -235,7 +235,7 @@ GL 4.6, GLSL 4.60 -- all DONE: radeonsi
   GL_ARB_shader_draw_parameters                         DONE (i965, llvmpipe, nvc0)
   GL_ARB_shader_group_vote                              DONE (i965, nvc0, llvmpipe)
   GL_ARB_spirv_extensions                               DONE (i965/gen7+)
-  GL_ARB_texture_filter_anisotropic                     DONE (freedreno, i965, nv50, nvc0, r600, softpipe (*), llvmpipe (*))
+  GL_ARB_texture_filter_anisotropic                     DONE (etnaviv/HALTI0, freedreno, i965, nv50, nvc0, r600, softpipe (*), llvmpipe (*))
   GL_ARB_transform_feedback_overflow_query              DONE (i965/gen6+, nvc0, llvmpipe, softpipe, virgl)
   GL_KHR_no_error                                       DONE (all drivers)
 

@@ -591,13 +591,8 @@ handle_glsl450_interpolation(struct vtn_builder *b, enum GLSLstd450 opcode,
 
    if (vec_array_deref) {
       assert(vec_deref);
-      if (nir_src_is_const(vec_deref->arr.index)) {
-         val->ssa->def = vtn_vector_extract(b, &intrin->dest.ssa,
-                                            nir_src_as_uint(vec_deref->arr.index));
-      } else {
-         val->ssa->def = vtn_vector_extract_dynamic(b, &intrin->dest.ssa,
-                                                    vec_deref->arr.index.ssa);
-      }
+      val->ssa->def = nir_vector_extract(&b->nb, &intrin->dest.ssa,
+                                         vec_deref->arr.index.ssa);
    } else {
       val->ssa->def = &intrin->dest.ssa;
    }
