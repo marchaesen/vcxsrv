@@ -5851,6 +5851,39 @@ XCOMM
 <dead_circumflex> <Cyrillic_ER>			: "Р̂"		# CYRILLIC CAPITAL LETTER ER WITH COMBINING CIRCUMFLEX ACCENT
 <Multi_key> <asciicircum> <Cyrillic_ER>		: "Р̂"		# CYRILLIC CAPITAL LETTER ER WITH COMBINING CIRCUMFLEX ACCENT
 
+<dead_acute> <Cyrillic_yeru>			: "ы́"		# CYRILLIC SMALL LETTER YERU WITH COMBINING ACUTE ACCENT
+<Multi_key> <acute> <Cyrillic_yeru>		: "ы́"		# CYRILLIC SMALL LETTER YERU WITH COMBINING ACUTE ACCENT
+<Multi_key> <apostrophe> <Cyrillic_yeru>	: "ы́"		# CYRILLIC SMALL LETTER YERU WITH COMBINING ACUTE ACCENT
+
+<dead_acute> <Cyrillic_YERU>			: "Ы́"		# CYRILLIC CAPITAL LETTER YERU WITH COMBINING ACUTE ACCENT
+<Multi_key> <acute> <Cyrillic_YERU>		: "Ы́"		# CYRILLIC CAPITAL LETTER YERU WITH COMBINING ACUTE ACCENT
+<Multi_key> <apostrophe> <Cyrillic_YERU>	: "Ы́"		# CYRILLIC CAPITAL LETTER YERU WITH COMBINING ACUTE ACCENT
+
+<dead_acute> <Cyrillic_e>			: "э́"		# CYRILLIC SMALL LETTER E WITH COMBINING ACUTE ACCENT
+<Multi_key> <acute> <Cyrillic_e>		: "э́"		# CYRILLIC SMALL LETTER E WITH COMBINING ACUTE ACCENT
+<Multi_key> <apostrophe> <Cyrillic_e>		: "э́"		# CYRILLIC SMALL LETTER E WITH COMBINING ACUTE ACCENT
+
+<dead_acute> <Cyrillic_E>			: "Э́"		# CYRILLIC CAPITAL LETTER E WITH COMBINING ACUTE ACCENT
+<Multi_key> <acute> <Cyrillic_E>		: "Э́"		# CYRILLIC CAPITAL LETTER E WITH COMBINING ACUTE ACCENT
+<Multi_key> <apostrophe> <Cyrillic_E>		: "Э́"		# CYRILLIC CAPITAL LETTER E WITH COMBINING ACUTE ACCENT
+
+<dead_acute> <Cyrillic_yu>			: "ю́"		# CYRILLIC SMALL LETTER YU WITH COMBINING ACUTE ACCENT
+<Multi_key> <acute> <Cyrillic_yu>		: "ю́"		# CYRILLIC SMALL LETTER YU WITH COMBINING ACUTE ACCENT
+<Multi_key> <apostrophe> <Cyrillic_yu>		: "ю́"		# CYRILLIC SMALL LETTER YU WITH COMBINING ACUTE ACCENT
+
+<dead_acute> <Cyrillic_YU>			: "Ю́́"		# CYRILLIC CAPITAL LETTER YU WITH COMBINING ACUTE ACCENT
+<Multi_key> <acute> <Cyrillic_YU>		: "Ю́́"		# CYRILLIC CAPITAL LETTER YU WITH COMBINING ACUTE ACCENT
+<Multi_key> <apostrophe> <Cyrillic_YU>		: "Ю́́"		# CYRILLIC CAPITAL LETTER YU WITH COMBINING ACUTE ACCENT
+
+<dead_acute> <Cyrillic_ya>			: "я́"		# CYRILLIC SMALL LETTER YA WITH COMBINING ACUTE ACCENT
+<Multi_key> <acute> <Cyrillic_ya>		: "я́"		# CYRILLIC SMALL LETTER YA WITH COMBINING ACUTE ACCENT
+<Multi_key> <apostrophe> <Cyrillic_ya>		: "я́"		# CYRILLIC SMALL LETTER YA WITH COMBINING ACUTE ACCENT
+
+<dead_acute> <Cyrillic_YA>			: "Я́"		# CYRILLIC CAPITAL LETTER YA WITH COMBINING ACUTE ACCENT
+<Multi_key> <acute> <Cyrillic_YA>		: "Я́"		# CYRILLIC CAPITAL LETTER YA WITH COMBINING ACUTE ACCENT
+<Multi_key> <apostrophe> <Cyrillic_YA>		: "Я́"		# CYRILLIC CAPITAL LETTER YA WITH COMBINING ACUTE ACCENT
+
+
 XCOMM APL support Geoff Streeter 2012-01-04
 
 XCOMM APL was initially an overstruck language. The original APL terminal was an IBM golfball

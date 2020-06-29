@@ -62,19 +62,19 @@ georgian_academy_wctomb (conv_t conv, unsigned char *r, ucs4_t wc, int n)
 {
   unsigned char c = 0;
   if (wc < 0x0080) {
-    *r = wc;
+    *r = (unsigned char) wc;
     return 1;
   }
   else if (wc >= 0x0080 && wc < 0x00a0)
     c = georgian_academy_page00[wc-0x0080];
   else if ((wc >= 0x00a0 && wc < 0x00c0) || (wc >= 0x00e7 && wc < 0x0100))
-    c = wc;
+    c = (unsigned char) wc;
   else if (wc >= 0x0150 && wc < 0x0198)
     c = georgian_academy_page01[wc-0x0150];
   else if (wc >= 0x02c0 && wc < 0x02e0)
     c = georgian_academy_page02[wc-0x02c0];
   else if (wc >= 0x10d0 && wc < 0x10f7)
-    c = wc-0x1010;
+    c = (unsigned char) (wc - 0x1010);
   else if (wc >= 0x2010 && wc < 0x2040)
     c = georgian_academy_page20[wc-0x2010];
   else if (wc == 0x2122)

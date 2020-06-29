@@ -1,0 +1,9 @@
+C_SOURCES := \
+	vid_dec_common.c \
+	vid_dec_common.h \
+	vid_dec_h264_common.c \
+	vid_dec_h264_common.h \
+	vid_omx_common.c \
+	vid_omx_common.h \
+	vid_enc_common.c \
+	vid_enc_common.h

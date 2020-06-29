@@ -51,7 +51,7 @@ XSetState, XSetFunction, XSetPlaneMask, XSetForeground, XSetBackground \- GC con
 .SH SYNTAX
 .HP
 int XSetState\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^, unsigned long
-\fIforeground\fP\^, unsigned int \fIbackground\fP\^, int \fIfunction\fP\^,
+\fIforeground\fP\^, unsigned long \fIbackground\fP\^, int \fIfunction\fP\^,
 unsigned long \fIplane_mask\fP\^);
 .HP
 int XSetFunction\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^, int

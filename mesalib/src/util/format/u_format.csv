@@ -144,6 +144,7 @@ PIPE_FORMAT_R5SG5SB6U_NORM          , plain, 1, 1, 1, sn5 , sn5 , un6 ,     , xy
 # Depth-stencil formats
 PIPE_FORMAT_S8_UINT                 , plain, 1, 1, 1, up8 ,     ,     ,     , _x__, zs
 PIPE_FORMAT_Z16_UNORM               , plain, 1, 1, 1, un16,     ,     ,     , x___, zs
+PIPE_FORMAT_Z16_UNORM_S8_UINT       , plain, 1, 1, 1, un16, up8 ,     ,     , xy__, zs
 PIPE_FORMAT_Z32_UNORM               , plain, 1, 1, 1, un32,     ,     ,     , x___, zs
 PIPE_FORMAT_Z32_FLOAT               , plain, 1, 1, 1, f32 ,     ,     ,     , x___, zs
 PIPE_FORMAT_Z24_UNORM_S8_UINT       , plain, 1, 1, 1, un24, up8 ,     ,     , xy__, zs,    up8 , un24,     ,     , yx__
@@ -384,6 +385,15 @@ PIPE_FORMAT_YV16                  , planar3, 1, 1, 1,     ,     ,     ,     , xy
 PIPE_FORMAT_IYUV                  , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 PIPE_FORMAT_NV12                  , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 PIPE_FORMAT_NV21                  , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
+
+PIPE_FORMAT_Y8_U8_V8_422_UNORM    , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
+PIPE_FORMAT_Y8_U8V8_422_UNORM     , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
+PIPE_FORMAT_Y8_U8_V8_444_UNORM    , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
+
+PIPE_FORMAT_Y16_U16_V16_420_UNORM , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
+PIPE_FORMAT_Y16_U16_V16_422_UNORM , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
+PIPE_FORMAT_Y16_U16V16_422_UNORM  , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
+PIPE_FORMAT_Y16_U16_V16_444_UNORM , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 
 PIPE_FORMAT_P010                  , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 PIPE_FORMAT_P016                  , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv

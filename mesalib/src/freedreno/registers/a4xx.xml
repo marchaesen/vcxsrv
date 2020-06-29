@@ -56,6 +56,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="RB4_R32G32B32A32_FLOAT" value="0x3c"/>
 	<value name="RB4_R32G32B32A32_UINT" value="0x3d"/>
 	<value name="RB4_R32G32B32A32_SINT" value="0x3e"/>
+
+	<value name="RB4_NONE" value="0xff"/>
 </enum>
 
 <enum name="a4xx_tile_mode">
@@ -135,6 +137,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="VFMT4_2_10_10_10_UNORM" value="0x3d"/>
 	<value name="VFMT4_2_10_10_10_SINT" value="0x3e"/>
 	<value name="VFMT4_2_10_10_10_SNORM" value="0x3f"/>
+
+	<value name="VFMT4_NONE" value="0xff"/>
 </enum>
 
 <enum name="a4xx_tex_fmt">
@@ -260,6 +264,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="TFMT4_ASTC_12x10"            value="0x7b"/>
 	<value name="TFMT4_ASTC_12x12"            value="0x7c"/>
 	<!-- 0x7d .. 0x7f -->
+
+	<value name="TFMT4_NONE"                  value="0xff"/>
 </enum>
 
 <enum name="a4xx_tex_fetchsize">
@@ -911,11 +917,7 @@ perhaps they should be taken with a grain of salt
 		<bitfield name="SAMPLES" low="13" high="15" type="uint"/>
 	</reg32>
 	<reg32 offset="0x20a3" name="RB_RENDER_CONTROL2">
-		<bitfield name="XCOORD" pos="0" type="boolean"/>
-		<bitfield name="YCOORD" pos="1" type="boolean"/>
-		<!-- assuming zcoord/wcoord follows.. -->
-		<bitfield name="ZCOORD" pos="2" type="boolean"/>
-		<bitfield name="WCOORD" pos="3" type="boolean"/>
+		<bitfield name="COORD_MASK" low="0" high="3" type="hex"/>
 		<bitfield name="SAMPLEMASK" pos="4" type="boolean"/>
 		<bitfield name="FACENESS" pos="5" type="boolean"/>
 		<bitfield name="SAMPLEID" pos="6" type="boolean"/>

@@ -1,6 +1,10 @@
 fossils-db:
   repo: "https://gitlab.freedesktop.org/hakzsam/fossils-db"
-  commit: "59b11cd19e375c5871c512f73b1f8ecc33a5c417"
+  commit: "5626cedcb58bd95a7b79a9664651818aea92b21c"
 
 fossils:
   - path: sascha-willems/database.foz
+  - path: parallel-rdp/small_subgroup.foz
+  - path: parallel-rdp/small_uber_subgroup.foz
+  - path: parallel-rdp/subgroup.foz
+  - path: parallel-rdp/uber_subgroup.foz

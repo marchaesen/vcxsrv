@@ -100,7 +100,7 @@ copy_list(
 	for (str = *str_list; count > 0; count--, str_list++) {
 	    strcpy(str, mb_text);
 	    *str_list = str;
-	    length = strlen(str) + 1;
+	    length = (int) strlen(str) + 1;
 	    str += length;
 	    mb_text += length;
 	}
@@ -186,7 +186,7 @@ _XTextPropertyToTextList(
 
             if (do_strcpy) {
             	len = min(from_left, to_left);
-                strncpy(to, from, len);
+                strncpy(to, from, (size_t) len);
                 from += len;
                 to += len;
                 from_left -= len;

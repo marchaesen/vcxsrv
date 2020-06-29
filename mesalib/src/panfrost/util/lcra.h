@@ -33,12 +33,10 @@
 struct lcra_state {
         unsigned node_count;
 
-        /* Word boundary where vectors can't cross */
-        unsigned bound;
-        
         /* Alignment for node in log2(bytes)+1. Since alignment must be
          * non-negative power-of-two, the elements are strictly positive
-         * integers. Zero is the sentinel for a missing node */
+         * integers. Zero is the sentinel for a missing node. In upper word,
+         * bound. */
         unsigned *alignment;
 
         /* Linear constraints imposed. Nested array sized upfront, organized as
@@ -81,9 +79,7 @@ struct lcra_state {
 
 struct lcra_state *
 lcra_alloc_equations(
-                unsigned node_count,
-                unsigned min_alignment, unsigned max_alignment,
-                unsigned bound, unsigned class_count);
+                unsigned node_count, unsigned class_count);
 
 void
 lcra_free(struct lcra_state *l);
@@ -92,7 +88,7 @@ void
 lcra_set_disjoint_class(struct lcra_state *l, unsigned c1, unsigned c2);
 
 void
-lcra_set_alignment(struct lcra_state *l, unsigned node, unsigned align_log2);
+lcra_set_alignment(struct lcra_state *l, unsigned node, unsigned align_log2, unsigned bound);
 
 void
 lcra_restrict_range(struct lcra_state *l, unsigned node, unsigned len);

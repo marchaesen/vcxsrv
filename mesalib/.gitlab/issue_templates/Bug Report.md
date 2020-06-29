@@ -30,7 +30,7 @@ Please post `inxi -GSC -xx` output OR fill information below manually
 ### Describe the issue
 
 Please describe what you are doing, what you expect and what you're
-seeing instead.
+seeing instead.  How frequent is the issue? Is it a one time occurrence? Does it appear multiple times but randomly? Can you easily reproduce it?
 
 "It doesn't work" usually is not a helpful description of an issue. 
 The more detail about how things are going wrong, the better.

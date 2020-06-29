@@ -223,7 +223,7 @@ struct pipe_screen {
                                                        void *user_memory);
 
    /**
-    * Unlike pipe_resource::bind, which describes what state trackers want,
+    * Unlike pipe_resource::bind, which describes what gallium frontends want,
     * resources can have much greater capabilities in practice, often implied
     * by the tiling layout or memory placement. This function allows querying
     * whether a capability is supported beyond what was requested by state
@@ -504,7 +504,7 @@ struct pipe_screen {
    /**
     * Run driver-specific NIR lowering and optimization passes.
     *
-    * State trackers should call this before passing shaders to drivers,
+    * gallium frontends should call this before passing shaders to drivers,
     * and ideally also before shader caching.
     *
     * \param optimize  Whether the input shader hasn't been optimized and

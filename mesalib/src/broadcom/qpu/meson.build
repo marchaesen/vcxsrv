@@ -28,7 +28,8 @@ libbroadcom_qpu = static_library(
   ['broadcom_qpu', v3d_xml_pack],
   libbroadcom_qpu_files,
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom],
-  c_args : [c_vis_args, no_override_init_args],
+  c_args : [no_override_init_args],
+  gnu_symbol_visibility : 'hidden',
   dependencies : [dep_libdrm, dep_valgrind],
   build_by_default : false,
 )

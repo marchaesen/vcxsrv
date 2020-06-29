@@ -60,8 +60,8 @@ Cursor XCreatePixmapCursor\^(\^Display *\fIdisplay\fP\^, Pixmap
 .HP
 Cursor XCreateGlyphCursor\^(\^Display *\fIdisplay\fP\^, Font
 \fIsource_font\fP\^, Font \fImask_font\fP\^, unsigned int \fIsource_char\fP\^,
-unsigned int \fImask_char\fP\^, XColor *\fIforeground_color\fP\^, XColor
-*\fIbackground_color\fP\^);
+unsigned int \fImask_char\fP\^, XColor _Xconst *\fIforeground_color\fP\^, XColor
+_Xconst *\fIbackground_color\fP\^);
 .SH ARGUMENTS
 .IP \fIbackground_color\fP 1i
 Specifies the RGB values for the background of the source.

@@ -9,55 +9,24 @@ dEQP-GLES[0-9]*.stress.*
 # These are really slow on tiling architectures (including llvmpipe).
 dEQP-GLES[0-9]*.functional.flush_finish.*
 
-# Unstable test results
-#dEQP-GLES3.functional.fragment_out.random.*
-dEQP-GLES3.functional.transform_feedback.*points.*
-dEQP-GLES3.functional.transform_feedback.*lines.*
-dEQP-GLES31.functional.primitive_bounding_box.*
-#dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array.*
-
-# Intermittent timeout
-dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.23
-dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.48
-
 # Flakes reported more than once during Jan-Feb 2020
 dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array
-dEQP-GLES3.functional.fragment_out.random.0
-dEQP-GLES3.functional.fragment_out.random.1
-dEQP-GLES3.functional.fragment_out.random.12
-dEQP-GLES3.functional.fragment_out.random.13
-dEQP-GLES3.functional.fragment_out.random.17
-dEQP-GLES3.functional.fragment_out.random.24
-dEQP-GLES3.functional.fragment_out.random.27
-dEQP-GLES3.functional.fragment_out.random.28
-dEQP-GLES3.functional.fragment_out.random.32
-dEQP-GLES3.functional.fragment_out.random.34
-dEQP-GLES3.functional.fragment_out.random.35
-dEQP-GLES3.functional.fragment_out.random.36
-dEQP-GLES3.functional.fragment_out.random.40
-dEQP-GLES3.functional.fragment_out.random.44
-dEQP-GLES3.functional.fragment_out.random.47
-dEQP-GLES3.functional.fragment_out.random.5
-dEQP-GLES3.functional.fragment_out.random.50
-dEQP-GLES3.functional.fragment_out.random.51
-dEQP-GLES3.functional.fragment_out.random.55
-dEQP-GLES3.functional.fragment_out.random.58
-dEQP-GLES3.functional.fragment_out.random.59
-dEQP-GLES3.functional.fragment_out.random.61
-dEQP-GLES3.functional.fragment_out.random.63
-dEQP-GLES3.functional.fragment_out.random.66
-dEQP-GLES3.functional.fragment_out.random.67
-dEQP-GLES3.functional.fragment_out.random.69
-dEQP-GLES3.functional.fragment_out.random.70
-dEQP-GLES3.functional.fragment_out.random.71
-dEQP-GLES3.functional.fragment_out.random.80
-dEQP-GLES3.functional.fragment_out.random.82
-dEQP-GLES3.functional.fragment_out.random.86
-dEQP-GLES3.functional.fragment_out.random.88
-dEQP-GLES3.functional.fragment_out.random.91
-dEQP-GLES3.functional.fragment_out.random.93
-dEQP-GLES3.functional.fragment_out.random.95
-dEQP-GLES3.functional.fragment_out.random.96
-dEQP-GLES3.functional.transform_feedback.array_element.interleaved.triangles.highp_mat2x3
-dEQP-GLES3.functional.transform_feedback.array_element.interleaved.triangles.lowp_mat2x4
-dEQP-GLES3.functional.transform_feedback.array_element.separate.triangles.lowp_mat2x4
+
+# Non-sysmem flakes
+dEQP-VK.pipeline.spec_constant.compute.composite.matrix.mat3x2
+
+# Fails NIR_VALIDATE so probably flaky
+dEQP-VK.memory_model.write_after_read.core11.u32.coherent.fence_fence.atomicwrite.workgroup.payload_nonlocal.workgroup.guard_local.buffer.comp
+
+# Sysmem flake: this one is fairly frequent, but if you enable it then
+# it moves to dEQP-VK.renderpass.dedicated_allocation.attachment.3.393
+#
+#dEQP-VK.renderpass.suballocation.attachment_allocation.grow_shrink.89
+
+# At least some of the separate_channels tests fail on sysmem due to an
+# interaction of use of a UBWC buffer as both a render target and a
+# texture.  Stores are done through both paths in separate channels,
+# and the UBWC updates don't get synced.  The current a650 blob also
+# fails these tests and qcom apparently noted the failure at one point
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/2017
+dEQP-VK.renderpass.*separate_channels.*

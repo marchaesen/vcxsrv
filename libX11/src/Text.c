@@ -104,7 +104,7 @@ XDrawString(
             *(tbuf+1) = 0;
 /*     memcpy ((char *) (elt + 1), CharacterOffset, PartialNChars);
  */
-         memcpy ((char *)tbuf+2, CharacterOffset, PartialNChars);
+         memcpy ((char *)tbuf+2, CharacterOffset, (size_t)PartialNChars);
 	 }
     }
 

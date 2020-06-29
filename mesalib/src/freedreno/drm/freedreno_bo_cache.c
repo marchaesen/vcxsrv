@@ -181,6 +181,7 @@ retry:
 			}
 			p_atomic_set(&bo->refcnt, 1);
 			fd_device_ref(bo->dev);
+			bo->flags = FD_RELOC_FLAGS_INIT;
 			return bo;
 		}
 	}

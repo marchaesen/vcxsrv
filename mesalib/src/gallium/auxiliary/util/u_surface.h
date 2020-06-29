@@ -66,6 +66,12 @@ util_fill_box(ubyte * dst, enum pipe_format format,
               unsigned width, unsigned height, unsigned depth,
               union util_color *uc);
 
+extern void
+util_fill_zs_box(ubyte *dst, enum pipe_format format,
+                 bool need_rmw, unsigned clear_flags, unsigned stride,
+                 unsigned layer_stride, unsigned width,
+                 unsigned height, unsigned depth,
+                 uint64_t zstencil);
 
 extern void
 util_resource_copy_region(struct pipe_context *pipe,

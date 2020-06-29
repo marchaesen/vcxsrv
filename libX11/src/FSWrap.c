@@ -117,7 +117,7 @@ _XParseBaseFontNameList(
 	Xfree(psave);
 	return (char **)NULL;
     }
-    memcpy((char *)list, (char *)plist, sizeof(char *) * (*num));
+    memcpy((char *)list, (char *)plist, sizeof(char *) * (size_t) (*num));
     *(list + *num) = NULL;
 
     return list;
@@ -141,7 +141,7 @@ copy_string_list(
     list_src = string_list;
     count = list_count;
     for (length = 0; count-- > 0; list_src++)
-	length += strlen(*list_src) + 1;
+	length = length + (int) strlen(*list_src) + 1;
 
     dst = Xmalloc(length);
     if (dst == NULL) {

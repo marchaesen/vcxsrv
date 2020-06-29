@@ -33,7 +33,7 @@ if build_glx
 
         include_directories: [ inc, xorg_inc, glx_inc ],
         c_args: [ xorg_c_args, glx_align64 ],
-        dependencies: [ common_dep, dl_dep ],
+        dependencies: [ common_dep, dl_dep, dri_dep ],
         link_whole: libxserver_glx,
         link_with: e,
 

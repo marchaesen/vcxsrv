@@ -1,5 +1,5 @@
 // swap parentheses and square brackets
-partial default
+default partial
 xkb_symbols "swap_brackets" {
     replace key <AE09> {        [         9,    bracketleft     ]       };
     replace key <AE10> {        [         0,    bracketright    ]       };

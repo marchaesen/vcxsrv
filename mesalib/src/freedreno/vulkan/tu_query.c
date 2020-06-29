@@ -311,6 +311,9 @@ tu_GetQueryPoolResults(VkDevice _device,
    TU_FROM_HANDLE(tu_query_pool, pool, queryPool);
    assert(firstQuery + queryCount <= pool->size);
 
+   if (tu_device_is_lost(device))
+      return VK_ERROR_DEVICE_LOST;
+
    switch (pool->type) {
    case VK_QUERY_TYPE_OCCLUSION:
    case VK_QUERY_TYPE_TIMESTAMP:
@@ -546,7 +549,7 @@ emit_begin_xfb_query(struct tu_cmd_buffer *cmdbuf,
    uint64_t begin_iova = primitive_query_iova(pool, query, begin[0], 0);
 
    tu_cs_emit_regs(cs, A6XX_VPC_SO_STREAM_COUNTS_LO(begin_iova));
-   tu6_emit_event_write(cmdbuf, cs, WRITE_PRIMITIVE_COUNTS, false);
+   tu6_emit_event_write(cmdbuf, cs, WRITE_PRIMITIVE_COUNTS);
 }
 
 void
@@ -693,10 +696,10 @@ emit_end_xfb_query(struct tu_cmd_buffer *cmdbuf,
    uint64_t available_iova = query_available_iova(pool, query);
 
    tu_cs_emit_regs(cs, A6XX_VPC_SO_STREAM_COUNTS_LO(end_iova));
-   tu6_emit_event_write(cmdbuf, cs, WRITE_PRIMITIVE_COUNTS, false);
+   tu6_emit_event_write(cmdbuf, cs, WRITE_PRIMITIVE_COUNTS);
 
    tu_cs_emit_wfi(cs);
-   tu6_emit_event_write(cmdbuf, cs, CACHE_FLUSH_TS, true);
+   tu6_emit_event_write(cmdbuf, cs, CACHE_FLUSH_TS);
 
    /* Set the count of written primitives */
    tu_cs_emit_pkt7(cs, CP_MEM_TO_MEM, 9);
@@ -707,7 +710,7 @@ emit_end_xfb_query(struct tu_cmd_buffer *cmdbuf,
    tu_cs_emit_qw(cs, end_written_iova);
    tu_cs_emit_qw(cs, begin_written_iova);
 
-   tu6_emit_event_write(cmdbuf, cs, CACHE_FLUSH_TS, true);
+   tu6_emit_event_write(cmdbuf, cs, CACHE_FLUSH_TS);
 
    /* Set the count of generated primitives */
    tu_cs_emit_pkt7(cs, CP_MEM_TO_MEM, 9);

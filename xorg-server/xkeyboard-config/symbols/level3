@@ -3,7 +3,7 @@
 
 // The default behaviour:
 // the right Alt key (AltGr) chooses the third symbol engraved on a key.
-default  partial modifier_keys
+default partial modifier_keys
 xkb_symbols "ralt_switch" {
   key <RALT> {
     type[Group1]="ONE_LEVEL",

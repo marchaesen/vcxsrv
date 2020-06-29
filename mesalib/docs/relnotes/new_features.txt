@@ -1,0 +1,16 @@
+GL_ARB_compute_variable_group_size on Iris.
+GL_EXT_shader_group_vote on GLES3.
+VK_AMD_texture_gather_bias_lod on RADV.
+VK_AMD_gpu_shader_half_float on RADV/ACO.
+VK_AMD_gpu_shader_int16 on RADV/ACO.
+VK_EXT_private_data on ANV and RADV.
+VK_EXT_custom_border_color on ANV and RADV.
+VK_EXT_pipeline_creation_cache_control on ANV and RADV.
+VK_EXT_shader_demote_to_helper_invocation on RADV/LLVM.
+VK_EXT_subgroup_size_control on RADV/ACO.
+VK_GOOGLE_user_type on ANV and RADV.
+VK_KHR_shader_subgroup_extended_types on RADV/ACO.
+GL_ARB_gl_spirv on nvc0/nir.
+GL_ARB_spirv_extensions on nvc0/nir.
+RADV now uses ACO per default as backend
+RADV_DEBUG=llvm option to enable LLVM backend for RADV

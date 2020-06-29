@@ -38,13 +38,6 @@ void mir_rewrite_index_dst_single(midgard_instruction *ins, unsigned old, unsign
                 ins->dest = new;
 }
 
-static midgard_vector_alu_src
-mir_get_alu_src(midgard_instruction *ins, unsigned idx)
-{
-        unsigned b = (idx == 0) ? ins->alu.src1 : ins->alu.src2;
-        return vector_alu_from_unsigned(b);
-}
-
 static void
 mir_rewrite_index_src_single_swizzle(midgard_instruction *ins, unsigned old, unsigned new, unsigned *swizzle)
 {
@@ -78,6 +71,10 @@ mir_rewrite_index_dst(compiler_context *ctx, unsigned old, unsigned new)
         mir_foreach_instr_global(ctx, ins) {
                 mir_rewrite_index_dst_single(ins, old, new);
         }
+
+        /* Implicitly written before the shader */
+        if (ctx->blend_input == old)
+                ctx->blend_input = new;
 }
 
 void
@@ -113,51 +110,28 @@ mir_single_use(compiler_context *ctx, unsigned value)
         return mir_use_count(ctx, value) <= 1;
 }
 
-static bool
-mir_nontrivial_raw_mod(midgard_vector_alu_src src, bool is_int)
+bool
+mir_nontrivial_mod(midgard_instruction *ins, unsigned i, bool check_swizzle)
 {
-        if (is_int)
-                return src.mod == midgard_int_shift;
-        else
-                return src.mod;
-}
+        bool is_int = midgard_is_integer_op(ins->alu.op);
 
-static bool
-mir_nontrivial_mod(midgard_vector_alu_src src, bool is_int, unsigned mask, unsigned *swizzle)
-{
-        if (mir_nontrivial_raw_mod(src, is_int)) return true;
+        if (is_int) {
+                if (ins->src_shift[i]) return true;
+        } else {
+                if (ins->src_neg[i]) return true;
+                if (ins->src_abs[i]) return true;
+        }
 
-        /* size-conversion */
-        if (src.half) return true;
+        if (ins->dest_type != ins->src_types[i]) return true;
 
-        for (unsigned c = 0; c < 16; ++c) {
-                if (!(mask & (1 << c))) continue;
-                if (swizzle[c] != c) return true;
+        if (check_swizzle) {
+                for (unsigned c = 0; c < 16; ++c) {
+                        if (!(ins->mask & (1 << c))) continue;
+                        if (ins->swizzle[i][c] != c) return true;
+                }
         }
 
         return false;
-}
-
-bool
-mir_nontrivial_source2_mod(midgard_instruction *ins)
-{
-        bool is_int = midgard_is_integer_op(ins->alu.op);
-
-        midgard_vector_alu_src src2 =
-                vector_alu_from_unsigned(ins->alu.src2);
-
-        return mir_nontrivial_mod(src2, is_int, ins->mask, ins->swizzle[1]);
-}
-
-bool
-mir_nontrivial_source2_mod_simple(midgard_instruction *ins)
-{
-        bool is_int = midgard_is_integer_op(ins->alu.op);
-
-        midgard_vector_alu_src src2 =
-                vector_alu_from_unsigned(ins->alu.src2);
-
-        return mir_nontrivial_raw_mod(src2, is_int) || src2.half;
 }
 
 bool
@@ -166,12 +140,7 @@ mir_nontrivial_outmod(midgard_instruction *ins)
         bool is_int = midgard_is_integer_op(ins->alu.op);
         unsigned mod = ins->alu.outmod;
 
-        /* Pseudo-outmod */
-        if (ins->invert)
-                return true;
-
-        /* Type conversion is a sort of outmod */
-        if (ins->alu.dest_override != midgard_dest_override_none)
+        if (ins->dest_type != ins->src_types[1])
                 return true;
 
         if (is_int)
@@ -180,160 +149,30 @@ mir_nontrivial_outmod(midgard_instruction *ins)
                 return mod != midgard_outmod_none;
 }
 
-/* Checks if an index will be used as a special register -- basically, if we're
- * used as the input to a non-ALU op */
+/* 128 / sz = exp2(log2(128 / sz))
+ *          = exp2(log2(128) - log2(sz))
+ *          = exp2(7 - log2(sz))
+ *          = 1 << (7 - log2(sz))
+ */
 
-bool
-mir_special_index(compiler_context *ctx, unsigned idx)
+static unsigned
+mir_components_for_bits(unsigned bits)
 {
-        mir_foreach_instr_global(ctx, ins) {
-                bool is_ldst = ins->type == TAG_LOAD_STORE_4;
-                bool is_tex = ins->type == TAG_TEXTURE_4;
-                bool is_writeout = ins->compact_branch && ins->writeout;
-
-                if (!(is_ldst || is_tex || is_writeout))
-                        continue;
-
-                if (mir_has_arg(ins, idx))
-                        return true;
-        }
-
-        return false;
+        return 1 << (7 - util_logbase2(bits));
 }
-
-/* Is a node written before a given instruction? */
-
-bool
-mir_is_written_before(compiler_context *ctx, midgard_instruction *ins, unsigned node)
-{
-        if (node >= SSA_FIXED_MINIMUM)
-                return true;
-
-        mir_foreach_instr_global(ctx, q) {
-                if (q == ins)
-                        break;
-
-                if (q->dest == node)
-                        return true;
-        }
-
-        return false;
-}
-
-/* Grabs the type size. */
-
-midgard_reg_mode
-mir_typesize(midgard_instruction *ins)
-{
-        if (ins->compact_branch)
-                return midgard_reg_mode_32;
-
-        /* TODO: Type sizes for texture */
-        if (ins->type == TAG_TEXTURE_4)
-                return midgard_reg_mode_32;
-
-        if (ins->type == TAG_LOAD_STORE_4)
-                return GET_LDST_SIZE(load_store_opcode_props[ins->load_store.op].props);
-
-        if (ins->type == TAG_ALU_4) {
-                midgard_reg_mode mode = ins->alu.reg_mode;
-
-                /* If we have an override, step down by half */
-                if (ins->alu.dest_override != midgard_dest_override_none) {
-                        assert(mode > midgard_reg_mode_8);
-                        mode--;
-                }
-
-                return mode;
-        }
-
-        unreachable("Invalid instruction type");
-}
-
-/* Grabs the size of a source */
-
-midgard_reg_mode
-mir_srcsize(midgard_instruction *ins, unsigned i)
-{
-        if (ins->type == TAG_LOAD_STORE_4) {
-                if (OP_HAS_ADDRESS(ins->load_store.op)) {
-                        if (i == 1)
-                                return midgard_reg_mode_64;
-                        else if (i == 2) {
-                                bool zext = ins->load_store.arg_1 & 0x80;
-                                return zext ? midgard_reg_mode_32 : midgard_reg_mode_64;
-                        }
-                }
-        }
-
-        /* TODO: 16-bit textures/ldst */
-        if (ins->type == TAG_TEXTURE_4 || ins->type == TAG_LOAD_STORE_4)
-                return midgard_reg_mode_32;
-
-        /* TODO: 16-bit branches */
-        if (ins->compact_branch)
-                return midgard_reg_mode_32;
-
-        if (i >= 2) {
-                /* TODO: 16-bit conditions, ffma */
-                return midgard_reg_mode_32;
-        }
-
-        /* Default to type of the instruction */
-
-        midgard_reg_mode mode = ins->alu.reg_mode;
-
-        /* If we have a half modifier, step down by half */
-
-        if ((mir_get_alu_src(ins, i)).half) {
-                assert(mode > midgard_reg_mode_8);
-                mode--;
-        }
-
-        return mode;
-}
-
-midgard_reg_mode
-mir_mode_for_destsize(unsigned size)
-{
-        switch (size) {
-        case 8:
-                return midgard_reg_mode_8;
-        case 16:
-                return midgard_reg_mode_16;
-        case 32:
-                return midgard_reg_mode_32;
-        case 64:
-                return midgard_reg_mode_64;
-        default:
-                unreachable("Unknown destination size");
-        }
-}
-
-/* ...and the inverse */
 
 unsigned
-mir_bytes_for_mode(midgard_reg_mode mode)
+mir_components_for_type(nir_alu_type T)
 {
-        switch (mode) {
-        case midgard_reg_mode_8:
-                return 1;
-        case midgard_reg_mode_16:
-                return 2;
-        case midgard_reg_mode_32:
-                return 4;
-        case midgard_reg_mode_64:
-                return 8;
-        default:
-                unreachable("Invalid register mode");
-        }
+        unsigned sz = nir_alu_type_get_type_size(T);
+        return mir_components_for_bits(sz);
 }
 
 uint16_t
-mir_from_bytemask(uint16_t bytemask, midgard_reg_mode mode)
+mir_from_bytemask(uint16_t bytemask, unsigned bits)
 {
         unsigned value = 0;
-        unsigned count = mir_bytes_for_mode(mode);
+        unsigned count = bits / 8;
 
         for (unsigned c = 0, d = 0; c < 16; c += count, ++d) {
                 bool a = (bytemask & (1 << c)) != 0;
@@ -351,11 +190,11 @@ mir_from_bytemask(uint16_t bytemask, midgard_reg_mode mode)
  * component, and check if any bytes in the component are masked on */
 
 uint16_t
-mir_round_bytemask_up(uint16_t mask, midgard_reg_mode mode)
+mir_round_bytemask_up(uint16_t mask, unsigned bits)
 {
-        unsigned bytes = mir_bytes_for_mode(mode);
+        unsigned bytes = bits / 8;
         unsigned maxmask = mask_of(bytes);
-        unsigned channels = 16 / bytes;
+        unsigned channels = mir_components_for_bits(bits);
 
         for (unsigned c = 0; c < channels; ++c) {
                 unsigned submask = maxmask << (c * bytes);
@@ -372,36 +211,35 @@ mir_round_bytemask_up(uint16_t mask, midgard_reg_mode mode)
 uint16_t
 mir_bytemask(midgard_instruction *ins)
 {
-        return pan_to_bytemask(mir_bytes_for_mode(mir_typesize(ins)) * 8, ins->mask);
+        unsigned type_size = nir_alu_type_get_type_size(ins->dest_type);
+        return pan_to_bytemask(type_size, ins->mask);
 }
 
 void
 mir_set_bytemask(midgard_instruction *ins, uint16_t bytemask)
 {
-        ins->mask = mir_from_bytemask(bytemask, mir_typesize(ins));
+        unsigned type_size = nir_alu_type_get_type_size(ins->dest_type);
+        ins->mask = mir_from_bytemask(bytemask, type_size);
 }
 
 /* Checks if we should use an upper destination override, rather than the lower
  * one in the IR. Returns zero if no, returns the bytes to shift otherwise */
 
-unsigned
-mir_upper_override(midgard_instruction *ins)
+signed
+mir_upper_override(midgard_instruction *ins, unsigned inst_size)
 {
-        /* If there is no override, there is no upper override, tautology */
-        if (ins->alu.dest_override == midgard_dest_override_none)
-                return 0;
+        unsigned type_size = nir_alu_type_get_type_size(ins->dest_type);
 
-        /* Make sure we didn't already lower somehow */
-        assert(ins->alu.dest_override == midgard_dest_override_lower);
-
-        /* What is the mask in terms of currently? */
-        midgard_reg_mode type = mir_typesize(ins);
+        /* If the sizes are the same, there's nothing to override */
+        if (type_size == inst_size)
+                return -1;
 
         /* There are 16 bytes per vector, so there are (16/bytes)
          * components per vector. So the magic half is half of
-         * (16/bytes), which simplifies to 8/bytes */
+         * (16/bytes), which simplifies to 8/bytes = 8 / (bits / 8) = 64 / bits
+         * */
 
-        unsigned threshold = 8 / mir_bytes_for_mode(type);
+        unsigned threshold = mir_components_for_bits(type_size) >> 1;
 
         /* How many components did we shift over? */
         unsigned zeroes = __builtin_ctz(ins->mask);
@@ -419,7 +257,7 @@ mir_upper_override(midgard_instruction *ins)
  */
 
 static uint16_t
-mir_bytemask_of_read_components_single(unsigned *swizzle, unsigned inmask, midgard_reg_mode mode)
+mir_bytemask_of_read_components_single(unsigned *swizzle, unsigned inmask, unsigned bits)
 {
         unsigned cmask = 0;
 
@@ -428,26 +266,12 @@ mir_bytemask_of_read_components_single(unsigned *swizzle, unsigned inmask, midga
                 cmask |= (1 << swizzle[c]);
         }
 
-        return pan_to_bytemask(mir_bytes_for_mode(mode) * 8, cmask);
+        return pan_to_bytemask(bits, cmask);
 }
 
 uint16_t
 mir_bytemask_of_read_components_index(midgard_instruction *ins, unsigned i)
 {
-        if (ins->compact_branch && ins->writeout && (i == 0)) {
-                /* Non-ZS writeout uses all components */
-                if (!ins->writeout_depth && !ins->writeout_stencil)
-                        return 0xFFFF;
-
-                /* For ZS-writeout, if both Z and S are written we need two
-                 * components, otherwise we only need one.
-                 */
-                if (ins->writeout_depth && ins->writeout_stencil)
-                        return 0xFF;
-                else
-                        return 0xF;
-        }
-
         /* Conditional branches read one 32-bit component = 4 bytes (TODO: multi branch??) */
         if (ins->compact_branch && ins->branch.conditional && (i == 0))
                 return 0xF;
@@ -455,7 +279,7 @@ mir_bytemask_of_read_components_index(midgard_instruction *ins, unsigned i)
         /* ALU ops act componentwise so we need to pay attention to
          * their mask. Texture/ldst does not so we don't clamp source
          * readmasks based on the writemask */
-        unsigned qmask = (ins->type == TAG_ALU_4) ? ins->mask : ~0;
+        unsigned qmask = ~0;
 
         /* Handle dot products and things */
         if (ins->type == TAG_ALU_4 && !ins->compact_branch) {
@@ -465,9 +289,12 @@ mir_bytemask_of_read_components_index(midgard_instruction *ins, unsigned i)
 
                 if (channel_override)
                         qmask = mask_of(channel_override);
+                else
+                        qmask = ins->mask;
         }
 
-        return mir_bytemask_of_read_components_single(ins->swizzle[i], qmask, mir_srcsize(ins, i));
+        return mir_bytemask_of_read_components_single(ins->swizzle[i], qmask,
+                nir_alu_type_get_type_size(ins->src_types[i]));
 }
 
 uint16_t
@@ -597,6 +424,22 @@ mir_flip(midgard_instruction *ins)
         temp = ins->alu.src1;
         ins->alu.src1 = ins->alu.src2;
         ins->alu.src2 = temp;
+
+        temp = ins->src_types[0];
+        ins->src_types[0] = ins->src_types[1];
+        ins->src_types[1] = temp;
+
+        temp = ins->src_abs[0];
+        ins->src_abs[0] = ins->src_abs[1];
+        ins->src_abs[1] = temp;
+
+        temp = ins->src_neg[0];
+        ins->src_neg[0] = ins->src_neg[1];
+        ins->src_neg[1] = temp;
+
+        temp = ins->src_invert[0];
+        ins->src_invert[0] = ins->src_invert[1];
+        ins->src_invert[1] = temp;
 
         unsigned temp_swizzle[16];
         memcpy(temp_swizzle, ins->swizzle[0], sizeof(ins->swizzle[0]));

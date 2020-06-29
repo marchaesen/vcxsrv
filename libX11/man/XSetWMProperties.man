@@ -56,13 +56,13 @@ XTextProperty *\fIwindow_name\fP\^, XTextProperty *\fIicon_name\fP\^, char
 **\fIargv\fP\^, int \fIargc\fP\^, XSizeHints *\fInormal_hints\fP\^, XWMHints
 *\fIwm_hints\fP\^, XClassHint *\fIclass_hints\fP\^);
 .HP
-void XmbSetWMProperties\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, char
-*\fIwindow_name\fP\^, char *\fIicon_name\fP\^, char *\fIargv\fP\^[], int
+void XmbSetWMProperties\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, _Xconst char
+*\fIwindow_name\fP\^, _Xconst char *\fIicon_name\fP\^, char *\fIargv\fP\^[], int
 \fIargc\fP\^, XSizeHints *\fInormal_hints\fP\^, XWMHints *\fIwm_hints\fP\^,
 XClassHint *\fIclass_hints\fP\^);
 .HP
-void Xutf8SetWMProperties\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, char
-*\fIwindow_name\fP\^, char *\fIicon_name\fP\^, char *\fIargv\fP\^[], int
+void Xutf8SetWMProperties\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, _Xconst char
+*\fIwindow_name\fP\^, _Xconst char *\fIicon_name\fP\^, char *\fIargv\fP\^[], int
 \fIargc\fP\^, XSizeHints *\fInormal_hints\fP\^, XWMHints *\fIwm_hints\fP\^,
 XClassHint *\fIclass_hints\fP\^);
 .SH ARGUMENTS

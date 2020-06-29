@@ -212,6 +212,7 @@ convenience for the application's rendering mechanism.
     fontvariations FC_FONT_VARIATIONS     String  comma-separated string of axes in variable font
     variable       FC_VARIABLE            Bool    Whether font is Variable Font
     fonthashint    FC_FONT_HAS_HINT       Bool    Whether font has hinting
+    order          FC_ORDER               Int     Order number of the font
     </programlisting>
   </sect2>
 </sect1>

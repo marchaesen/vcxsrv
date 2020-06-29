@@ -171,7 +171,7 @@ _XlcMapOSLocaleName(
 	    len = end - start;
 	    if (len >= MAXLOCALE)
 		len = MAXLOCALE - 1;
-	    strncpy(siname, start, len);
+	    strncpy(siname, start, (size_t) len);
 	    *(siname + len) = '\0';
 # ifdef WHITEFILL
 	    for (start = siname; start = strchr(start, ' '); )

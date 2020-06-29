@@ -1,7 +1,7 @@
 // $NetBSD: sl-c3x00,v 1.1 2009/12/13 04:54:51 nonaka Exp $
 // $OpenBSD: zaurus,v 1.2 2008/03/05 17:24:55 matthieu Exp $
 
-partial default alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 	name[Group1]= "Sharp SL-C3x00";
 

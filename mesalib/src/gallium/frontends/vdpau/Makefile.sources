@@ -1,0 +1,13 @@
+C_SOURCES := \
+	bitmap.c \
+	decode.c \
+	device.c \
+	ftab.c \
+	htab.c \
+	mixer.c \
+	output.c \
+	preemption.c \
+	presentation.c \
+	query.c \
+	surface.c \
+	vdpau_private.h

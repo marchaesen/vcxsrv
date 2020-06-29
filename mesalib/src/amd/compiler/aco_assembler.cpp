@@ -21,7 +21,7 @@ struct asm_context {
          opcode = &instr_info.opcode_gfx7[0];
       else if (chip_class <= GFX9)
          opcode = &instr_info.opcode_gfx9[0];
-      else if (chip_class == GFX10)
+      else if (chip_class >= GFX10)
          opcode = &instr_info.opcode_gfx10[0];
    }
 
@@ -42,8 +42,6 @@ static uint32_t get_sdwa_sel(unsigned sel, PhysReg reg)
 
 void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction* instr)
 {
-   uint32_t instr_offset = out.size() * 4u;
-
    /* lower remaining pseudo-instructions */
    if (instr->opcode == aco_opcode::p_constaddr) {
       unsigned dest = instr->definitions[0].physReg();
@@ -68,7 +66,7 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
       encoding |= 255 << 8;
       out.push_back(encoding);
       ctx.constaddrs.push_back(out.size());
-      out.push_back(-(instr_offset + 4) + offset);
+      out.push_back(offset);
 
       /* s_addc_u32 dest[1], dest[1], 0 */
       encoding = (0b10 << 30);
@@ -274,22 +272,50 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
       Interp_instruction* interp = static_cast<Interp_instruction*>(instr);
       uint32_t encoding = 0;
 
-      if (ctx.chip_class == GFX8 || ctx.chip_class == GFX9) {
-         encoding = (0b110101 << 26); /* Vega ISA doc says 110010 but it's wrong */
-      } else {
-         encoding = (0b110010 << 26);
-      }
+      if (instr->opcode == aco_opcode::v_interp_p1ll_f16 ||
+          instr->opcode == aco_opcode::v_interp_p1lv_f16 ||
+          instr->opcode == aco_opcode::v_interp_p2_legacy_f16 ||
+          instr->opcode == aco_opcode::v_interp_p2_f16) {
+         if (ctx.chip_class == GFX8 || ctx.chip_class == GFX9) {
+            encoding = (0b110100 << 26);
+         } else if (ctx.chip_class >= GFX10) {
+            encoding = (0b110101 << 26);
+         } else {
+            unreachable("Unknown chip_class.");
+         }
 
-      assert(encoding);
-      encoding |= (0xFF & instr->definitions[0].physReg()) << 18;
-      encoding |= opcode << 16;
-      encoding |= interp->attribute << 10;
-      encoding |= interp->component << 8;
-      if (instr->opcode == aco_opcode::v_interp_mov_f32)
-         encoding |= (0x3 & instr->operands[0].constantValue());
-      else
-         encoding |= (0xFF & instr->operands[0].physReg());
-      out.push_back(encoding);
+         encoding |= opcode << 16;
+         encoding |= (0xFF & instr->definitions[0].physReg());
+         out.push_back(encoding);
+
+         encoding = 0;
+         encoding |= interp->attribute;
+         encoding |= interp->component << 6;
+         encoding |= instr->operands[0].physReg() << 9;
+         if (instr->opcode == aco_opcode::v_interp_p2_f16 ||
+             instr->opcode == aco_opcode::v_interp_p2_legacy_f16 ||
+             instr->opcode == aco_opcode::v_interp_p1lv_f16) {
+            encoding |= instr->operands[2].physReg() << 18;
+         }
+         out.push_back(encoding);
+      } else {
+         if (ctx.chip_class == GFX8 || ctx.chip_class == GFX9) {
+            encoding = (0b110101 << 26); /* Vega ISA doc says 110010 but it's wrong */
+         } else {
+            encoding = (0b110010 << 26);
+         }
+
+         assert(encoding);
+         encoding |= (0xFF & instr->definitions[0].physReg()) << 18;
+         encoding |= opcode << 16;
+         encoding |= interp->attribute << 10;
+         encoding |= interp->component << 8;
+         if (instr->opcode == aco_opcode::v_interp_mov_f32)
+            encoding |= (0x3 & instr->operands[0].constantValue());
+         else
+            encoding |= (0xFF & instr->operands[0].physReg());
+         out.push_back(encoding);
+      }
       break;
    }
    case Format::DS: {
@@ -380,7 +406,7 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
       encoding |= (0xFF & instr->operands[1].physReg());
 
       if (ctx.chip_class >= GFX10) {
-         encoding |= (((opcode & 0x08) >> 4) << 21); /* MSB of 4-bit OPCODE */
+         encoding |= (((opcode & 0x08) >> 3) << 21); /* MSB of 4-bit OPCODE */
       }
 
       out.push_back(encoding);
@@ -522,7 +548,7 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
          uint32_t encoding;
          if (ctx.chip_class <= GFX9) {
             encoding = (0b110100 << 26);
-         } else if (ctx.chip_class == GFX10) {
+         } else if (ctx.chip_class >= GFX10) {
             encoding = (0b110101 << 26);
          } else {
             unreachable("Unknown chip_class.");
@@ -560,7 +586,7 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
          uint32_t encoding;
          if (ctx.chip_class == GFX9) {
             encoding = (0b110100111 << 23);
-         } else if (ctx.chip_class == GFX10) {
+         } else if (ctx.chip_class >= GFX10) {
             encoding = (0b110011 << 26);
          } else {
             unreachable("Unknown chip_class.");
@@ -769,7 +795,7 @@ void fix_branches(asm_context& ctx, std::vector<uint32_t>& out)
 void fix_constaddrs(asm_context& ctx, std::vector<uint32_t>& out)
 {
    for (unsigned addr : ctx.constaddrs)
-      out[addr] += out.size() * 4u;
+      out[addr] += (out.size() - addr + 1u) * 4u;
 }
 
 unsigned emit_program(Program* program,

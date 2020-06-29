@@ -37,7 +37,7 @@ header = """
 
 #define COMPAT (ctx->API != API_OPENGL_CORE)
 
-static inline int safe_mul(int a, int b)
+UNUSED static inline int safe_mul(int a, int b)
 {
     if (a < 0 || b < 0) return -1;
     if (a == 0 || b == 0) return 0;
@@ -152,9 +152,9 @@ class PrintCode(gl_XML.gl_print_base):
             'GLboolean': 1,
             'GLbyte': 1,
             'GLubyte': 1,
-            'GLenum': 2, # uses GLenum16
             'GLshort': 2,
             'GLushort': 2,
+            'GLenum': 4,
             'GLint': 4,
             'GLuint': 4,
             'GLbitfield': 4,
@@ -192,10 +192,7 @@ class PrintCode(gl_XML.gl_print_base):
                     out('{0} {1}[{2}];'.format(
                             p.get_base_type_string(), p.name, p.count))
                 else:
-                    type = p.type_string()
-                    if type == 'GLenum':
-                        type = 'GLenum16'
-                    out('{0} {1};'.format(type, p.name))
+                    out('{0} {1};'.format(p.type_string(), p.name))
 
             for p in func.variable_params:
                 if p.img_null_flag:
@@ -339,7 +336,7 @@ class PrintCode(gl_XML.gl_print_base):
 
     def print_create_marshal_table(self, api):
         out('/* _mesa_create_marshal_table takes a long time to compile with -O2 */')
-        out('#ifdef __GNUC__')
+        out('#if defined(__GNUC__) && !defined(__clang__)')
         out('__attribute__((optimize("O1")))')
         out('#endif')
         out('struct _glapi_table *')

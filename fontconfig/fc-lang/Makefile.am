@@ -290,7 +290,9 @@ BUILT_SOURCES += $(top_builddir)/conf.d/35-lang-normalize.conf
 DISTCLEANFILES = $(BUILT_SOURCES)
 
 $(top_builddir)/conf.d/35-lang-normalize.conf: $(ORTH) Makefile
-	$(AM_V_GEN) echo "<fontconfig>" > $@ && \
+	$(AM_V_GEN) echo "<?xml version=\"1.0\"?>" > $@ && \
+		echo "<!DOCTYPE fontconfig SYSTEM \"urn:fontconfig:fonts.dtd\">" >> $@ && \
+		echo "<fontconfig>" >> $@ && \
 	for i in `echo $(ORTH) | sed -e 's/ /\n/g' | grep -v _ | sed -e 's/\.orth$$//g' | sort`; do \
 		echo "  <!-- $$i* -> $$i -->" >> $@; \
 		echo "  <match>" >> $@; \

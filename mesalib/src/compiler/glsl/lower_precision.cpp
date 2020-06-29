@@ -26,6 +26,7 @@
  */
 
 #include "main/macros.h"
+#include "main/mtypes.h"
 #include "compiler/glsl_types.h"
 #include "ir.h"
 #include "ir_builder.h"
@@ -40,7 +41,7 @@ namespace {
 
 class find_precision_visitor : public ir_rvalue_enter_visitor {
 public:
-   find_precision_visitor();
+   find_precision_visitor(const struct gl_shader_compiler_options *options);
    ~find_precision_visitor();
 
    virtual void handle_rvalue(ir_rvalue **rvalue);
@@ -67,6 +68,8 @@ public:
    struct hash_table *clone_ht;
 
    void *lowered_builtin_mem_ctx;
+
+   const struct gl_shader_compiler_options *options;
 };
 
 class find_lowerable_rvalues_visitor : public ir_hierarchical_visitor {
@@ -102,7 +105,9 @@ public:
       std::vector<ir_instruction *> lowerable_children;
    };
 
-   find_lowerable_rvalues_visitor(struct set *result);
+   find_lowerable_rvalues_visitor(struct set *result,
+                                  const struct gl_shader_compiler_options *options);
+   bool can_lower_type(const glsl_type *type) const;
 
    static void stack_enter(class ir_instruction *ir, void *data);
    static void stack_leave(class ir_instruction *ir, void *data);
@@ -118,14 +123,15 @@ public:
    virtual ir_visitor_status visit_leave(ir_assignment *ir);
    virtual ir_visitor_status visit_leave(ir_call *ir);
 
-   static can_lower_state handle_precision(const glsl_type *type,
-                                           int precision);
+   can_lower_state handle_precision(const glsl_type *type,
+                                    int precision) const;
 
    static parent_relation get_parent_relation(ir_instruction *parent,
                                               ir_instruction *child);
 
    std::vector<stack_entry> stack;
    struct set *lowerable_rvalues;
+   const struct gl_shader_compiler_options *options;
 
    void pop_stack_entry();
    void add_lowerable_children(const stack_entry &entry);
@@ -142,7 +148,7 @@ public:
 };
 
 bool
-can_lower_type(const glsl_type *type)
+find_lowerable_rvalues_visitor::can_lower_type(const glsl_type *type) const
 {
    /* Don’t lower any expressions involving non-float types except bool and
     * texture samplers. This will rule out operations that change the type such
@@ -152,19 +158,31 @@ can_lower_type(const glsl_type *type)
     */
 
    switch (type->base_type) {
-   case GLSL_TYPE_FLOAT:
+   /* TODO: should we do anything for these two with regard to Int16 vs FP16
+    * support?
+    */
    case GLSL_TYPE_BOOL:
    case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
       return true;
+
+   case GLSL_TYPE_FLOAT:
+      return options->LowerPrecisionFloat16;
+
+   case GLSL_TYPE_UINT:
+   case GLSL_TYPE_INT:
+      return options->LowerPrecisionInt16;
 
    default:
       return false;
    }
 }
 
-find_lowerable_rvalues_visitor::find_lowerable_rvalues_visitor(struct set *res)
+find_lowerable_rvalues_visitor::find_lowerable_rvalues_visitor(struct set *res,
+                                 const struct gl_shader_compiler_options *opts)
 {
    lowerable_rvalues = res;
+   options = opts;
    callback_enter = stack_enter;
    callback_leave = stack_leave;
    data_enter = this;
@@ -270,7 +288,7 @@ find_lowerable_rvalues_visitor::stack_leave(class ir_instruction *ir,
 
 enum find_lowerable_rvalues_visitor::can_lower_state
 find_lowerable_rvalues_visitor::handle_precision(const glsl_type *type,
-                                                 int precision)
+                                                 int precision) const
 {
    if (!can_lower_type(type))
       return CANT_LOWER;
@@ -382,12 +400,13 @@ find_lowerable_rvalues_visitor::visit_enter(ir_expression *ir)
       stack.back().state = CANT_LOWER;
 
    /* Don't lower precision for derivative calculations */
-   if (ir->operation == ir_unop_dFdx ||
-         ir->operation == ir_unop_dFdx_coarse ||
-         ir->operation == ir_unop_dFdx_fine ||
-         ir->operation == ir_unop_dFdy ||
-         ir->operation == ir_unop_dFdy_coarse ||
-         ir->operation == ir_unop_dFdy_fine) {
+   if (!options->LowerPrecisionDerivatives &&
+       (ir->operation == ir_unop_dFdx ||
+        ir->operation == ir_unop_dFdx_coarse ||
+        ir->operation == ir_unop_dFdx_fine ||
+        ir->operation == ir_unop_dFdy ||
+        ir->operation == ir_unop_dFdy_coarse ||
+        ir->operation == ir_unop_dFdy_fine)) {
       stack.back().state = CANT_LOWER;
    }
 
@@ -398,6 +417,56 @@ static bool
 is_lowerable_builtin(ir_call *ir,
                      const struct set *lowerable_rvalues)
 {
+   /* The intrinsic call is inside the wrapper imageLoad function that will
+    * be inlined. We have to handle both of them.
+    */
+   if (ir->callee->intrinsic_id == ir_intrinsic_image_load ||
+       (ir->callee->is_builtin() &&
+        !strcmp(ir->callee_name(), "imageLoad"))) {
+      ir_rvalue *param = (ir_rvalue*)ir->actual_parameters.get_head();
+      ir_variable *resource = param->variable_referenced();
+
+      assert(ir->callee->return_precision == GLSL_PRECISION_NONE);
+      assert(resource->type->without_array()->is_image());
+
+      /* GLSL ES 3.20 requires that images have a precision modifier, but if
+       * you set one, it doesn't do anything, because all intrinsics are
+       * defined with highp. This seems to be a spec bug.
+       *
+       * In theory we could set the return value to mediump if the image
+       * format has a lower precision. This appears to be the most sensible
+       * thing to do.
+       */
+      const struct util_format_description *desc =
+         util_format_description(resource->data.image_format);
+      unsigned i =
+         util_format_get_first_non_void_channel(resource->data.image_format);
+
+      if (desc->channel[i].pure_integer ||
+          desc->channel[i].type == UTIL_FORMAT_TYPE_FLOAT)
+         return desc->channel[i].size <= 16;
+      else
+         return desc->channel[i].size <= 10; /* unorm/snorm */
+   }
+
+   /* Handle special calls. */
+   if (ir->callee->is_builtin() && ir->actual_parameters.length()) {
+      ir_rvalue *param = (ir_rvalue*)ir->actual_parameters.get_head();
+      ir_variable *var = param->variable_referenced();
+
+      /* Handle builtin wrappers around ir_texture opcodes. These wrappers will
+       * be inlined by lower_precision() if we return true here, so that we can
+       * get to ir_texture later and do proper lowering.
+       *
+       * We should lower the type of the return value if the sampler type
+       * uses lower precision. The function parameters don't matter.
+       */
+      if (var && var->type->without_array()->is_sampler()) {
+         return var->data.precision == GLSL_PRECISION_MEDIUM ||
+                var->data.precision == GLSL_PRECISION_LOW;
+      }
+   }
+
    if (!ir->callee->is_builtin())
       return false;
 
@@ -484,10 +553,11 @@ find_lowerable_rvalues_visitor::visit_leave(ir_assignment *ir)
 }
 
 void
-find_lowerable_rvalues(exec_list *instructions,
+find_lowerable_rvalues(const struct gl_shader_compiler_options *options,
+                       exec_list *instructions,
                        struct set *result)
 {
-   find_lowerable_rvalues_visitor v(result);
+   find_lowerable_rvalues_visitor v(result, options);
 
    visit_list_elements(&v, instructions);
 
@@ -495,17 +565,71 @@ find_lowerable_rvalues(exec_list *instructions,
 }
 
 static ir_rvalue *
-convert_precision(int op, ir_rvalue *ir)
+convert_precision(glsl_base_type type, bool up, ir_rvalue *ir)
 {
-   unsigned base_type = (op == ir_unop_f2fmp ?
-                        GLSL_TYPE_FLOAT16 : GLSL_TYPE_FLOAT);
+   unsigned new_type, op;
+
+   if (up) {
+      switch (type) {
+      case GLSL_TYPE_FLOAT16:
+         new_type = GLSL_TYPE_FLOAT;
+         op = ir_unop_f162f;
+         break;
+      case GLSL_TYPE_INT16:
+         new_type = GLSL_TYPE_INT;
+         op = ir_unop_i2i;
+         break;
+      case GLSL_TYPE_UINT16:
+         new_type = GLSL_TYPE_UINT;
+         op = ir_unop_u2u;
+         break;
+      default:
+         unreachable("invalid type");
+         return NULL;
+      }
+   } else {
+      switch (type) {
+      case GLSL_TYPE_FLOAT:
+         new_type = GLSL_TYPE_FLOAT16;
+         op = ir_unop_f2fmp;
+         break;
+      case GLSL_TYPE_INT:
+         new_type = GLSL_TYPE_INT16;
+         op = ir_unop_i2imp;
+         break;
+      case GLSL_TYPE_UINT:
+         new_type = GLSL_TYPE_UINT16;
+         op = ir_unop_u2ump;
+         break;
+      default:
+         unreachable("invalid type");
+         return NULL;
+      }
+   }
+
    const glsl_type *desired_type;
-   desired_type = glsl_type::get_instance(base_type,
+   desired_type = glsl_type::get_instance(new_type,
                              ir->type->vector_elements,
                              ir->type->matrix_columns);
 
    void *mem_ctx = ralloc_parent(ir);
    return new(mem_ctx) ir_expression(op, desired_type, ir, NULL);
+}
+
+static glsl_base_type
+lower_type(glsl_base_type type)
+{
+   switch (type) {
+   case GLSL_TYPE_FLOAT:
+      return GLSL_TYPE_FLOAT16;
+   case GLSL_TYPE_INT:
+      return GLSL_TYPE_INT16;
+   case GLSL_TYPE_UINT:
+      return GLSL_TYPE_UINT16;
+   default:
+      unreachable("invalid type");
+      return GLSL_TYPE_ERROR;;
+   }
 }
 
 void
@@ -518,9 +642,11 @@ lower_precision_visitor::handle_rvalue(ir_rvalue **rvalue)
 
    if (ir->as_dereference()) {
       if (!ir->type->is_boolean())
-         *rvalue = convert_precision(ir_unop_f2fmp, ir);
-   } else if (ir->type->is_float()) {
-      ir->type = glsl_type::get_instance(GLSL_TYPE_FLOAT16,
+         *rvalue = convert_precision(ir->type->base_type, false, ir);
+   } else if (ir->type->base_type == GLSL_TYPE_FLOAT ||
+              ir->type->base_type == GLSL_TYPE_INT ||
+              ir->type->base_type == GLSL_TYPE_UINT) {
+      ir->type = glsl_type::get_instance(lower_type(ir->type->base_type),
                                          ir->type->vector_elements,
                                          ir->type->matrix_columns,
                                          ir->type->explicit_stride,
@@ -531,8 +657,18 @@ lower_precision_visitor::handle_rvalue(ir_rvalue **rvalue)
       if (const_ir) {
          ir_constant_data value;
 
-         for (unsigned i = 0; i < ARRAY_SIZE(value.f16); i++)
-            value.f16[i] = _mesa_float_to_half(const_ir->value.f[i]);
+         if (ir->type->base_type == GLSL_TYPE_FLOAT16) {
+            for (unsigned i = 0; i < ARRAY_SIZE(value.f16); i++)
+               value.f16[i] = _mesa_float_to_half(const_ir->value.f[i]);
+         } else if (ir->type->base_type == GLSL_TYPE_INT16) {
+            for (unsigned i = 0; i < ARRAY_SIZE(value.i16); i++)
+               value.i16[i] = const_ir->value.i[i];
+         } else if (ir->type->base_type == GLSL_TYPE_UINT16) {
+            for (unsigned i = 0; i < ARRAY_SIZE(value.u16); i++)
+               value.u16[i] = const_ir->value.u[i];
+         } else {
+            unreachable("invalid type");
+         }
 
          const_ir->value = value;
       }
@@ -586,6 +722,10 @@ lower_precision_visitor::visit_leave(ir_expression *ir)
    case ir_unop_f2b:
       ir->operation = ir_unop_f162b;
       break;
+   case ir_unop_b2i:
+   case ir_unop_i2b:
+      /* Nothing to do - they both support int16. */
+      break;
    default:
       break;
    }
@@ -599,7 +739,7 @@ find_precision_visitor::handle_rvalue(ir_rvalue **rvalue)
    /* Checking the precision of rvalue can be lowered first throughout
     * find_lowerable_rvalues_visitor.
     * Once it found the precision of rvalue can be lowered, then we can
-    * add conversion f2fmp through lower_precision_visitor.
+    * add conversion f2fmp, etc. through lower_precision_visitor.
     */
    if (*rvalue == NULL)
       return;
@@ -629,7 +769,7 @@ find_precision_visitor::handle_rvalue(ir_rvalue **rvalue)
     * converted to bool
     */
    if ((*rvalue)->type->base_type != GLSL_TYPE_BOOL)
-      *rvalue = convert_precision(ir_unop_f162f, *rvalue);
+      *rvalue = convert_precision((*rvalue)->type->base_type, true, *rvalue);
 
    progress = true;
 }
@@ -639,15 +779,28 @@ find_precision_visitor::visit_enter(ir_call *ir)
 {
    ir_rvalue_enter_visitor::visit_enter(ir);
 
+   ir_variable *return_var =
+      ir->return_deref ? ir->return_deref->variable_referenced() : NULL;
+
+   /* Don't do anything for image_load here. We have only changed the return
+    * value to mediump/lowp, so that following instructions can use reduced
+    * precision.
+    *
+    * The return value type of the intrinsic itself isn't changed here, but
+    * can be changed in NIR if all users use the *2*mp opcode.
+    */
+   if (ir->callee->intrinsic_id == ir_intrinsic_image_load)
+      return visit_continue;
+
    /* If this is a call to a builtin and the find_lowerable_rvalues_visitor
     * overrode the precision of the temporary return variable, then we can
     * replace the builtin implementation with a lowered version.
     */
 
    if (!ir->callee->is_builtin() ||
-       ir->return_deref == NULL ||
-       ir->return_deref->variable_referenced()->data.precision !=
-       GLSL_PRECISION_MEDIUM)
+       return_var == NULL ||
+       (return_var->data.precision != GLSL_PRECISION_MEDIUM &&
+        return_var->data.precision != GLSL_PRECISION_LOW))
       return visit_continue;
 
    ir->callee = map_builtin(ir->callee);
@@ -677,7 +830,7 @@ find_precision_visitor::map_builtin(ir_function_signature *sig)
       param->data.precision = GLSL_PRECISION_MEDIUM;
    }
 
-   lower_precision(&lowered_sig->body);
+   lower_precision(options, &lowered_sig->body);
 
    _mesa_hash_table_clear(clone_ht, NULL);
 
@@ -686,12 +839,13 @@ find_precision_visitor::map_builtin(ir_function_signature *sig)
    return lowered_sig;
 }
 
-find_precision_visitor::find_precision_visitor()
+find_precision_visitor::find_precision_visitor(const struct gl_shader_compiler_options *options)
    : progress(false),
      lowerable_rvalues(_mesa_pointer_set_create(NULL)),
      lowered_builtins(NULL),
      clone_ht(NULL),
-     lowered_builtin_mem_ctx(NULL)
+     lowered_builtin_mem_ctx(NULL),
+     options(options)
 {
 }
 
@@ -709,11 +863,12 @@ find_precision_visitor::~find_precision_visitor()
 }
 
 bool
-lower_precision(exec_list *instructions)
+lower_precision(const struct gl_shader_compiler_options *options,
+                exec_list *instructions)
 {
-   find_precision_visitor v;
+   find_precision_visitor v(options);
 
-   find_lowerable_rvalues(instructions, v.lowerable_rvalues);
+   find_lowerable_rvalues(options, instructions, v.lowerable_rvalues);
 
    visit_list_elements(&v, instructions);
 

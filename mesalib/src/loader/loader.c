@@ -53,7 +53,7 @@
 #define MAX_DRM_DEVICES 64
 #ifdef USE_DRICONF
 #include "util/xmlconfig.h"
-#include "util/xmlpool.h"
+#include "util/driconf.h"
 #endif
 #endif
 

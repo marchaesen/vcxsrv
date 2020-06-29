@@ -28,6 +28,15 @@
 
 /* Finds the clause type required or return none */
 
+static bool
+bi_is_fragz(bi_instruction *ins)
+{
+        if (!(ins->src[0] & BIR_INDEX_CONSTANT))
+                return false;
+
+        return (ins->constant.u32 == BIFROST_FRAGZ);
+}
+
 static enum bifrost_clause_type
 bi_clause_type_for_ins(bi_instruction *ins)
 {
@@ -43,6 +52,9 @@ bi_clause_type_for_ins(bi_instruction *ins)
                 return BIFROST_CLAUSE_NONE;
 
         case BI_LOAD_VAR:
+                if (bi_is_fragz(ins))
+                        return BIFROST_CLAUSE_FRAGZ;
+
                 return BIFROST_CLAUSE_LOAD_VARY;
 
         case BI_LOAD_UNIFORM:
@@ -89,6 +101,22 @@ bi_ambiguous_abs(bi_instruction *ins)
         return classy && typey && absy;
 }
 
+/* New Bifrost (which?) don't seem to have ICMP on FMA */
+static bool
+bi_icmp(bi_instruction *ins)
+{
+        bool ic = nir_alu_type_get_base_type(ins->src_types[0]) != nir_type_float;
+        return ic && (ins->type == BI_CMP);
+}
+
+/* No 8/16-bit IADD/ISUB on FMA */
+static bool
+bi_imath_small(bi_instruction *ins)
+{
+        bool sz = nir_alu_type_get_type_size(ins->src_types[0]) < 32;
+        return sz && (ins->type == BI_IMATH);
+}
+
 /* Lowers FMOV to ADD #0, since FMOV doesn't exist on the h/w and this is the
  * latest time it's sane to lower (it's useful to distinguish before, but we'll
  * need this handle during scheduling to ensure the ports get modeled
@@ -103,6 +131,31 @@ bi_lower_fmov(bi_instruction *ins)
         ins->type = BI_ADD;
         ins->src[1] = BIR_INDEX_ZERO;
         ins->src_types[1] = ins->src_types[0];
+}
+
+/* To work out the back-to-back flag, we need to detect branches and
+ * "fallthrough" branches, implied in the last clause of a block that falls
+ * through to another block with *multiple predecessors*. */
+
+static bool
+bi_back_to_back(bi_block *block)
+{
+        /* Last block of a program */
+        if (!block->base.successors[0]) {
+                assert(!block->base.successors[1]);
+                return false;
+        }
+
+        /* Multiple successors? We're branching */
+        if (block->base.successors[1])
+                return false;
+
+        struct pan_block *succ = block->base.successors[0];
+        assert(succ->predecessors);
+        unsigned count = succ->predecessors->entries;
+
+        /* Back to back only if the successor has only a single predecessor */
+        return (count == 1);
 }
 
 /* Eventually, we'll need a proper scheduling, grouping instructions
@@ -138,6 +191,8 @@ bi_schedule(bi_context *ctx)
                         bool can_add = props & BI_SCHED_ADD;
 
                         can_fma &= !bi_ambiguous_abs(ins);
+                        can_fma &= !bi_icmp(ins);
+                        can_fma &= !bi_imath_small(ins);
 
                         assert(can_fma || can_add);
 
@@ -164,15 +219,32 @@ bi_schedule(bi_context *ctx)
 
                         ids = ids & 1;
                         last_id = u->scoreboard_id;
-                        u->back_to_back = false;
+
+                        /* Let's be optimistic, we'll fix up later */
+                        u->back_to_back = true;
 
                         u->constant_count = 1;
                         u->constants[0] = ins->constant.u64;
 
+                        /* No indirect jumps yet */
+                        if (ins->type == BI_BRANCH) {
+                                u->branch_constant = true;
+                                u->branch_conditional =
+                                        (ins->cond != BI_COND_ALWAYS);
+                        }
+
                         u->clause_type = bi_clause_type_for_ins(ins);
+                        u->block = (struct bi_block *) block;
 
                         list_addtail(&u->link, &bblock->clauses);
                 }
+
+                /* Back-to-back bit affects only the last clause of a block,
+                 * the rest are implicitly true */
+                bi_clause *last_clause = list_last_entry(&bblock->clauses, bi_clause, link);
+
+                if (last_clause)
+                        last_clause->back_to_back = bi_back_to_back(bblock);
 
                 bblock->scheduled = true;
         }

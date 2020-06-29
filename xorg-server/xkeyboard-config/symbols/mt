@@ -1,7 +1,7 @@
 // Maltese keyboard map (based on MSA Standard DMS100)
 // by Ramon Casha (ramon.casha@linux.org.mt)
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "latin"
@@ -48,7 +48,7 @@ xkb_symbols "us" {
     // Describes the differences between the mt
     // keyboard and a US-based physical keyboard
 
-    name[Group1]="Maltese (with US layout)";
+    name[Group1]="Maltese (US)";
 
     // The following four sets are the four additional letters, with the US
     // equivalents
@@ -118,7 +118,7 @@ xkb_symbols "alt-gb" {
     include "gb(basic)"
     include "level3(ralt_switch)"
 
-    name[Group1]="Maltese (UK layout with AltGr overrides)";
+    name[Group1]="Maltese (UK, with AltGr overrides)";
 
     // Currency symbols
     key <AE03>  { [         3,   sterling,   numbersign,     NoSymbol ] };
@@ -188,7 +188,7 @@ xkb_symbols "alt-gb" {
     include "gb(basic)"
     include "level3(ralt_switch)"
 
-    name[Group1]="Maltese (UK layout with AltGr overrides)";
+    name[Group1]="Maltese (UK, with AltGr overrides)";
 
     // Currency symbols
     key <AE03>  { [         3,   sterling,   numbersign,     NoSymbol ] };

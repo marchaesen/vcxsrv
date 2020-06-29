@@ -1,7 +1,7 @@
 // based on us_intl keyboard map file and a Sinhala keyboard map
 // version 0.3
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     name[Group1]= "French (Democratic Republic of the Congo)";

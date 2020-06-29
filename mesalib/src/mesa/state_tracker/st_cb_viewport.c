@@ -45,8 +45,8 @@ static void st_viewport(struct gl_context *ctx)
       return;
 
    /*
-    * Normally we'd want the state tracker manager to mark the drawables
-    * invalid only when needed. This will force the state tracker manager
+    * Normally we'd want the frontend manager to mark the drawables
+    * invalid only when needed. This will force the frontend manager
     * to revalidate the drawable, rather than just update the context with
     * the latest cached drawable info.
     */

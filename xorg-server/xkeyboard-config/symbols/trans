@@ -1,4 +1,4 @@
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "ipa" {
 
       name[Group1]="International Phonetic Alphabet";      // also serves extIPA and orientalistic conversions

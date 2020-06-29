@@ -57,7 +57,7 @@ int \fIwidth\fP\^, unsigned \fIheight\fP\^, int \fIdest_x\fP\^, int
 .HP
 int XCopyPlane\^(\^Display *\fIdisplay\fP\^, Drawable \fIsrc\fP\^, Drawable
 \fIdest\fP\^, GC \fIgc\fP\^, int \fIsrc_x\fP\^, int \fIsrc_y\fP\^, unsigned
-\fIwidth\fP\^, int \fIheight\fP\^, int \fIdest_x\fP\^, int \fIdest_y\fP\^,
+\fIwidth\fP\^, unsigned \fIheight\fP\^, int \fIdest_x\fP\^, int \fIdest_y\fP\^,
 unsigned long \fIplane\fP\^);
 .SH ARGUMENTS
 .IP \fIdest_x\fP 1i

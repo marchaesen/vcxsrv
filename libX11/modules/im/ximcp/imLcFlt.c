@@ -47,7 +47,8 @@ _XimLocalFilter(Display *d, Window w, XEvent *ev, XPointer client_data)
     unsigned    currstate;
     DefTree	*b = ic->private.local.base.tree;
     DTIndex	 t;
-    Bool	 braille = False, anymodifier = False;
+    Bool	 anymodifier = False;
+    unsigned char braillePattern = 0;
 
     if(ev->xkey.keycode == 0)
 	return (False);
@@ -70,7 +71,7 @@ _XimLocalFilter(Display *d, Window w, XEvent *ev, XPointer client_data)
 		/* Commited a braille pattern, let it go through compose tree */
 		keysym = XK_braille_blank | ic->private.local.brl_committing;
 		ev->type = KeyPress;
-		braille = True;
+		braillePattern = ic->private.local.brl_committing;
 		ic->private.local.brl_committing = 0;
 	    } else {
 	        return(True);
@@ -146,9 +147,9 @@ _XimLocalFilter(Display *d, Window w, XEvent *ev, XPointer client_data)
     }
 
 emit_braille:
-    if(braille) {
+    if(braillePattern) {
 	/* Braille pattern is not in compose tree, emit alone */
-	ic->private.local.brl_committed = ic->private.local.brl_committing;
+	ic->private.local.brl_committed = braillePattern;
 	ic->private.local.composed = 0;
 	ev->xkey.keycode = 0;
 	_XPutBackEvent(d, ev);

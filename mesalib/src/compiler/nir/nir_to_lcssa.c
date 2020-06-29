@@ -397,9 +397,7 @@ nir_convert_to_lcssa(nir_shader *shader, bool skip_invariants, bool skip_bool_in
          nir_metadata_preserve(function->impl, nir_metadata_block_index |
                                                nir_metadata_dominance);
       } else {
-#ifndef NDEBUG
-         function->impl->valid_metadata &= ~nir_metadata_not_properly_reset;
-#endif
+         nir_metadata_preserve(function->impl, nir_metadata_all);
       }
    }
 

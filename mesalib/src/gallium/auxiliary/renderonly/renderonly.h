@@ -28,7 +28,7 @@
 #define RENDERONLY_H
 
 #include <stdint.h>
-#include "state_tracker/drm_driver.h"
+#include "frontend/drm_driver.h"
 #include "pipe/p_state.h"
 
 struct renderonly_scanout {

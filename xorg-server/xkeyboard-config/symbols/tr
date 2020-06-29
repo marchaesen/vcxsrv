@@ -3,7 +3,7 @@
 // Nilgün Belma Bugüner <nilgun@belgeler.org>, 2005
 
 // Turkish Q layout
-default  partial
+default partial
 xkb_symbols "basic" {
 
     include "latin"
@@ -160,7 +160,7 @@ xkb_symbols "Sundeadkeys" {
 partial alphanumeric_keys
 xkb_symbols "sundeadkeys" {
     include "tr(Sundeadkeys)"
-    name[Group1]="Turkish (with Sun dead keys)";
+    name[Group1]="Turkish (Sun dead keys)";
 };
 
 // Kurdish Q layout

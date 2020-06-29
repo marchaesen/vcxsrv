@@ -46,6 +46,7 @@ vtn_handle_amd_gcn_shader_instruction(struct vtn_builder *b, SpvOp ext_opcode,
       nir_intrinsic_instr *intrin = nir_intrinsic_instr_create(b->nb.shader,
                                     nir_intrinsic_shader_clock);
       nir_ssa_dest_init(&intrin->instr, &intrin->dest, 2, 32, NULL);
+      nir_intrinsic_set_memory_scope(intrin, NIR_SCOPE_SUBGROUP);
       nir_builder_instr_insert(&b->nb, &intrin->instr);
       val->ssa->def = nir_pack_64_2x32(&b->nb, &intrin->dest.ssa);
       break;
@@ -90,7 +91,8 @@ vtn_handle_amd_shader_ballot_instruction(struct vtn_builder *b, SpvOp ext_opcode
 
    nir_intrinsic_instr *intrin = nir_intrinsic_instr_create(b->nb.shader, op);
    nir_ssa_dest_init_for_type(&intrin->instr, &intrin->dest, dest_type, NULL);
-   intrin->num_components = intrin->dest.ssa.num_components;
+   if (nir_intrinsic_infos[op].src_components[0] == 0)
+      intrin->num_components = intrin->dest.ssa.num_components;
 
    for (unsigned i = 0; i < num_args; i++)
       intrin->src[i] = nir_src_for_ssa(vtn_ssa_value(b, w[i + 5])->def);

@@ -27,6 +27,7 @@ libpanfrost_midgard_files = files(
   'midgard_schedule.c',
   'midgard_derivatives.c',
   'midgard_emit.c',
+  'midgard_helper_invocations.c',
   'midgard_ra.c',
   'midgard_ra_pipeline.c',
   'midgard_liveness.c',
@@ -35,11 +36,10 @@ libpanfrost_midgard_files = files(
   'mir_squeeze.c',
   'midgard_opt_copy_prop.c',
   'midgard_opt_dce.c',
-  'midgard_opt_invert.c',
-  'midgard_opt_float.c',
   'midgard_opt_perspective.c',
   'midgard_errata_lod.c',
   'nir_undef_to_zero.c',
+  'nir_fuse_io_16.c',
   'disassemble.c',
 )
 
@@ -71,7 +71,7 @@ libpanfrost_midgard = static_library(
    idep_nir
   ],
   link_with: [libpanfrost_util],
-  c_args : [c_vis_args, no_override_init_args],
-  cpp_args : [cpp_vis_args],
+  c_args : [no_override_init_args],
+  gnu_symbol_visibility : 'hidden',
   build_by_default : false,
 )

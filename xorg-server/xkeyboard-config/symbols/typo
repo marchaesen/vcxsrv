@@ -7,7 +7,7 @@
 // Mainly based on the layout proposed by Ilya Birman
 // http://ilyabirman.ru/projects/typography-layout/
 
-default  partial
+default partial
 xkb_symbols "base" {
 
     // 1st keyboard row
@@ -30,6 +30,7 @@ xkb_symbols "base" {
     key <AD04> { [ NoSymbol,   NoSymbol,            registered,              NoSymbol ] }; // "r"
     key <AD05> { [ NoSymbol,   NoSymbol,             trademark,              NoSymbol ] }; // "t"
     key <AD06> { [ NoSymbol,   NoSymbol,                   yen,              NoSymbol ] }; // "y"
+    key <AD07> { [ NoSymbol,   NoSymbol,                 U20B4,              NoSymbol ] }; // "u"
     key <AD10> { [ NoSymbol,   NoSymbol,                 acute,           doubleacute ] }; // "p"
     key <AD11> { [ NoSymbol,   NoSymbol,           bracketleft,             braceleft ] }; // "["
     key <AD12> { [ NoSymbol,   NoSymbol,          bracketright,            braceright ] }; // "]"
@@ -39,6 +40,7 @@ xkb_symbols "base" {
     key <AC02> { [ NoSymbol,   NoSymbol,               section,              NoSymbol ] }; // "s"
     key <AC03> { [ NoSymbol,   NoSymbol,                degree,              division ] }; // "d"
     key <AC04> { [ NoSymbol,   NoSymbol,              sterling,              NoSymbol ] }; // "f"
+    key <AC06> { [ NoSymbol,   NoSymbol,                 U20BD,              NoSymbol ] }; // "h"
     key <AC07> { [ NoSymbol,   NoSymbol,    doublelowquotemark,    singlelowquotemark ] }; // "j"
     key <AC08> { [ NoSymbol,   NoSymbol,   leftdoublequotemark,   leftsinglequotemark ] }; // "k"
     key <AC09> { [ NoSymbol,   NoSymbol,  rightdoublequotemark,  rightsinglequotemark ] }; // "l"
@@ -59,7 +61,9 @@ xkb_symbols "base" {
 
     // Reference
     // U+2030 PER MILLE SIGN
+    // U+20B4 HRYVNIA SIGN
     // U+0301 COMBINING ACUTE ACCENT
+    // U+20BD RUBLE SIGN
     // U+22C5 DOT OPERATOR
     // U+25CA LOZENGE
     // U+2212 MINUS SIGN

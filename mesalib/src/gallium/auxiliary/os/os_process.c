@@ -113,7 +113,7 @@ boolean
 os_get_command_line(char *cmdline, size_t size)
 {
 #if defined(PIPE_OS_WINDOWS)
-   const char *args = GetCommandLine();
+   const char *args = GetCommandLineA();
    if (args) {
       strncpy(cmdline, args, size);
       // make sure we terminate the string

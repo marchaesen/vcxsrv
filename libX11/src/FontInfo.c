@@ -61,7 +61,7 @@ XFontStruct **info)	/* RETURN */
     LockDisplay(dpy);
     GetReq(ListFontsWithInfo, req);
     req->maxNames = maxNames;
-    nbytes = req->nbytes = pattern ? strlen (pattern) : 0;
+    nbytes = req->nbytes = pattern ? (CARD16) strlen (pattern) : 0;
     req->length += (nbytes + 3) >> 2;
     _XSend (dpy, pattern, nbytes);
     /* use _XSend instead of Data, since subsequent _XReply will flush buffer */

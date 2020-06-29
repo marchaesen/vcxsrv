@@ -24,8 +24,8 @@ libdricommon = static_library(
   'dricommon',
   files('utils.c', 'utils.h', 'dri_util.c', 'dri_util.h'),
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_util],
-  c_args : c_vis_args,
-  dependencies : [dep_libdrm, idep_xmlconfig_headers],
+  gnu_symbol_visibility : 'hidden',
+  dependencies : dep_libdrm,
   build_by_default : false,
 )
 
@@ -33,7 +33,7 @@ libmegadriver_stub = static_library(
   'megadriver_stub',
   'megadriver_stub.c',
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-  c_args : c_vis_args,
+  gnu_symbol_visibility : 'hidden',
   dependencies : dep_libdrm,
   build_by_default : false,
 )

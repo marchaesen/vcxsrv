@@ -55,7 +55,7 @@ int XSetIconSizes\^(\^Display *\fIdisplay\fP, Window \fIw\fP, XIconSize
 *\fIsize_list\fP, int \fIcount\fP\^);
 .LP
 Status XGetIconSizes\^(\^Display *\fIdisplay\fP, Window \fIw\fP, XIconSize
-**\fIsize_list_return\fP, int \fIcount_return\fP\^);
+**\fIsize_list_return\fP, int *\fIcount_return\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.

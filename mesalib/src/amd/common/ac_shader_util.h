@@ -53,6 +53,13 @@ struct ac_data_format_info {
 	uint8_t chan_format;
 };
 
+struct ac_spi_color_formats {
+	unsigned normal : 8;
+	unsigned alpha : 8;
+	unsigned blend : 8;
+	unsigned blend_alpha : 8;
+};
+
 unsigned
 ac_get_spi_shader_z_format(bool writes_z, bool writes_stencil,
 			   bool writes_samplemask);
@@ -82,6 +89,10 @@ unsigned
 ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
 			 signed char *face_vgpr_index,
 			 signed char *ancillary_vgpr_index);
+
+void ac_choose_spi_color_formats(unsigned format, unsigned swap,
+				 unsigned ntype, bool is_depth,
+				 struct ac_spi_color_formats *formats);
 
 #ifdef __cplusplus
 }

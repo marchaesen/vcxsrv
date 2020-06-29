@@ -97,6 +97,7 @@
 #define AMDGPU_NAVI10_RANGE     0x01, 0x0A
 #define AMDGPU_NAVI12_RANGE     0x0A, 0x14
 #define AMDGPU_NAVI14_RANGE     0x14, 0x28
+#define AMDGPU_SIENNA_RANGE     0x28, 0x32
 
 #define AMDGPU_EXPAND_FIX(x) x
 #define AMDGPU_RANGE_HELPER(val, min, max) ((val >= min) && (val < max))
@@ -144,5 +145,6 @@
 #define ASICREV_IS_NAVI10_P(r)         ASICREV_IS(r, NAVI10)
 #define ASICREV_IS_NAVI12(r)           ASICREV_IS(r, NAVI12)
 #define ASICREV_IS_NAVI14(r)           ASICREV_IS(r, NAVI14)
+#define ASICREV_IS_SIENNA_M(r)         ASICREV_IS(r, SIENNA)
 
 #endif // _AMDGPU_ASIC_ADDR_H

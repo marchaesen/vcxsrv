@@ -22,17 +22,7 @@
  */
 
 %code requires {
-
-#define MAX_BUFS 4
-
-struct ir3_kernel_info {
-	uint32_t local_size[3];
-	uint32_t num_bufs;
-	uint32_t buf_sizes[MAX_BUFS]; /* size in dwords */
-
-	/* driver-param uniforms: */
-	unsigned numwg;
-};
+#include "ir3/ir3_assembler.h"
 
 struct ir3 * ir3_parse(struct ir3_shader_variant *v,
 		struct ir3_kernel_info *k, FILE *f);
@@ -99,7 +89,7 @@ static struct ir3_instruction * new_instr(opc_t opc)
 
 static void new_shader(void)
 {
-	variant->ir = ir3_create(variant->shader->compiler, variant->shader->type);
+	variant->ir = ir3_create(variant->shader->compiler, variant);
 	block = ir3_block_create(variant->ir);
 	list_addtail(&block->node, &variant->ir->block_list);
 }
@@ -163,13 +153,16 @@ static struct ir3_register * dummy_dst(void)
 
 static void add_const(unsigned reg, unsigned c0, unsigned c1, unsigned c2, unsigned c3)
 {
-	struct ir3_const_state *const_state = &variant->shader->const_state;
+	struct ir3_const_state *const_state = ir3_const_state(variant);
 	assert((reg & 0x7) == 0);
 	int idx = reg >> (1 + 2); /* low bit is half vs full, next two bits are swiz */
 	if (const_state->immediate_idx == const_state->immediates_size * 4) {
+		const_state->immediates = rerzalloc(const_state,
+				const_state->immediates,
+				__typeof__(const_state->immediates[0]),
+				const_state->immediates_size,
+				const_state->immediates_size + 4);
 		const_state->immediates_size += 4;
-		const_state->immediates = realloc (const_state->immediates,
-			const_state->immediates_size * sizeof(const_state->immediates[0]));
 	}
 	const_state->immediates[idx].val[0] = c0;
 	const_state->immediates[idx].val[1] = c1;
@@ -596,7 +589,7 @@ cat0_src:          '!' T_P0        { instr->cat0.inv = true; instr->cat0.comp = 
 cat0_immed:        '#' integer     { instr->cat0.immed = $2; }
 
 cat0_instr:        T_OP_NOP        { new_instr(OPC_NOP); }
-|                  T_OP_BR         { new_instr(OPC_BR); }    cat0_src ',' cat0_immed
+|                  T_OP_BR         { new_instr(OPC_B); }    cat0_src ',' cat0_immed
 |                  T_OP_JUMP       { new_instr(OPC_JUMP); }  cat0_immed
 |                  T_OP_CALL       { new_instr(OPC_CALL); }  cat0_immed
 |                  T_OP_RET        { new_instr(OPC_RET); }

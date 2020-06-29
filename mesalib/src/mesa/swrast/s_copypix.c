@@ -214,7 +214,7 @@ scale_and_bias_z(struct gl_context *ctx, GLuint width,
       const GLdouble depthMaxF = ctx->DrawBuffer->_DepthMaxF;
       for (i = 0; i < width; i++) {
          GLdouble d = depth[i] * ctx->Pixel.DepthScale + ctx->Pixel.DepthBias;
-         d = CLAMP(d, 0.0, 1.0) * depthMaxF;
+         d = SATURATE(d) * depthMaxF;
          if (d >= depthMaxF)
             z[i] = depthMax;
          else

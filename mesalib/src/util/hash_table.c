@@ -597,14 +597,14 @@ _mesa_hash_u32(const void *key)
 uint32_t
 _mesa_hash_string(const void *_key)
 {
-   uint32_t hash = _mesa_fnv32_1a_offset_bias;
+   uint32_t hash = 0;
    const char *key = _key;
-
-   while (*key != 0) {
-      hash = _mesa_fnv32_1a_accumulate(hash, *key);
-      key++;
-   }
-
+   size_t len = strlen(key);
+#if defined(_WIN64) || defined(__x86_64__)
+   hash = (uint32_t)XXH64(key, len, hash);
+#else
+   hash = XXH32(key, len, hash);
+#endif
    return hash;
 }
 

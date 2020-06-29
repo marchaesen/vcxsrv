@@ -168,7 +168,7 @@ tu_gem_close(const struct tu_device *dev, uint32_t gem_handle)
    drmIoctl(dev->physical_device->local_fd, DRM_IOCTL_GEM_CLOSE, &req);
 }
 
-/** Return UINT64_MAX on error. */
+/** Helper for DRM_MSM_GEM_INFO, returns 0 on error. */
 static uint64_t
 tu_gem_info(const struct tu_device *dev, uint32_t gem_handle, uint32_t info)
 {
@@ -179,20 +179,26 @@ tu_gem_info(const struct tu_device *dev, uint32_t gem_handle, uint32_t info)
 
    int ret = drmCommandWriteRead(dev->physical_device->local_fd,
                                  DRM_MSM_GEM_INFO, &req, sizeof(req));
-   if (ret == -1)
-      return UINT64_MAX;
+   if (ret < 0)
+      return 0;
 
    return req.value;
 }
 
-/** Return UINT64_MAX on error. */
+/** Returns the offset for CPU-side mmap of the gem handle.
+ *
+ * Returns 0 on error (an invalid mmap offset in the DRM UBI).
+ */
 uint64_t
 tu_gem_info_offset(const struct tu_device *dev, uint32_t gem_handle)
 {
    return tu_gem_info(dev, gem_handle, MSM_INFO_GET_OFFSET);
 }
 
-/** Return UINT64_MAX on error. */
+/** Returns the the iova of the BO in GPU memory.
+ *
+ * Returns 0 on error (an invalid iova in the MSM DRM UABI).
+ */
 uint64_t
 tu_gem_info_iova(const struct tu_device *dev, uint32_t gem_handle)
 {

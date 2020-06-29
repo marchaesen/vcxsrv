@@ -22,8 +22,8 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libXau], [1.0.9],
-	[https://gitlab.freedesktop.org/xorg/lib/libXau/issues], [libXau])
+AC_INIT([libXau], [1.0.8],
+	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXau])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 AC_USE_SYSTEM_EXTENSIONS

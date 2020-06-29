@@ -5,7 +5,7 @@
 // 2018/07/15 @a13 (a.k.a. @dbvvmpg) and Stepanenko Andrey <ftvkyo2011@yandex.ru>
 
 // Windows layout
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "winkeys" {
 
     include "ru(common)"
@@ -216,7 +216,7 @@ partial alphanumeric_keys
 xkb_symbols "phonetic_winkeys" {
 
     include "ru(phonetic)"
-    name[Group1]= "Russian (phonetic, with Win keys)";
+    name[Group1]= "Russian (phonetic, Windows)";
 
     key <LatX> { [       Cyrillic_ha,       Cyrillic_HA  ] };
     key <LatH> { [      Cyrillic_che,      Cyrillic_CHE  ] };
@@ -224,9 +224,9 @@ xkb_symbols "phonetic_winkeys" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "phonetic_yazherty" {
+xkb_symbols "phonetic_YAZHERTY" {
     include "ru(phonetic_winkeys)"
-    name[Group1]= "Russian (phonetic yazherty)";
+    name[Group1]= "Russian (phonetic, YAZHERTY)";
     key	<LatW> {	[     Cyrillic_zhe,     Cyrillic_ZHE	]	};
     key	<LatV> {	[    Cyrillic_ve,    Cyrillic_VE	]	}; 
 };
@@ -265,7 +265,7 @@ partial alphanumeric_keys
 xkb_symbols "os_winkeys" {
 
     include "ru(winkeys)"
-    name[Group1]= "Ossetian (Win keys)";
+    name[Group1]= "Ossetian (Windows)";
 
     key <TLDE> { [  Cyrillic_e,  Cyrillic_E                              ] };
     key <AC07> { [  Cyrillic_o,  Cyrillic_O,  Cyrillic_io,  Cyrillic_IO  ] };
@@ -1035,3 +1035,24 @@ xkb_symbols "unipunct" {
  key <LatM> { [ Cyrillic_softsign, Cyrillic_SOFTSIGN, Cyrillic_hardsign, Cyrillic_HARDSIGN ] };
 };
 
+partial alphanumeric_keys
+xkb_symbols "phonetic_mac" {
+
+    include "ru(phonetic_winkeys)"
+    name[Group1]= "Russian (phonetic Macintosh)";
+
+    key <LatE> { [       Cyrillic_ie,       Cyrillic_IE, Cyrillic_io, Cyrillic_IO  ] };
+    key <LatW> { [      Cyrillic_sha,      Cyrillic_SHA  ] };
+    key <LatV> { [       Cyrillic_ve,       Cyrillic_VE  ] };
+    key <TLDE> { [    Cyrillic_shcha,    Cyrillic_SHCHA  ] };
+    key <AD11> { [       Cyrillic_yu,       Cyrillic_YU  ] };
+    key <AD12> { [      Cyrillic_zhe,      Cyrillic_ZHE  ] };
+    key <AE03> { [                 3,        numbersign, numerosign  ] };
+    key <AE04> { [                 4,            dollar, U20BD       ] }; // ruble
+    key <AE05> { [                 5,           percent  ] };
+    key <AE06> { [                 6,             caret  ] };
+    key <AE11> { [ Cyrillic_softsign, Cyrillic_SOFTSIGN, minus,       underscore  ] };
+    key <AE12> { [ Cyrillic_hardsign, Cyrillic_HARDSIGN, equal,       plus        ] };
+
+    include "level3(ralt_switch)"
+};

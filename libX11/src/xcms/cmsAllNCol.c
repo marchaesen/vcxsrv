@@ -152,7 +152,7 @@ PassToServer:
     GetReq(AllocNamedColor, req);
 
     req->cmap = cmap;
-    nbytes = req->nbytes = strlen(colorname);
+    nbytes = req->nbytes = (CARD16) strlen(colorname);
     req->length += (nbytes + 3) >> 2; /* round up to mult of 4 */
 
     _XSend(dpy, colorname, nbytes);

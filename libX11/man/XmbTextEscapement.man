@@ -51,13 +51,16 @@
 XmbTextEscapement, XwcTextEscapement, Xutf8TextEscapement \- obtain the escapement of text
 .SH SYNTAX
 .HP
-int XmbTextEscapement\^(\^XFontSet \fIfont_set\fP\^, char *\fIstring\fP\^, int
+int XmbTextEscapement\^(\^XFontSet \fIfont_set\fP\^,
+_Xconst char *\fIstring\fP\^, int
 \fInum_bytes\fP\^);
 .HP
-int XwcTextEscapement\^(\^XFontSet \fIfont_set\fP\^, wchar_t *\fIstring\fP\^,
+int XwcTextEscapement\^(\^XFontSet \fIfont_set\fP\^,
+_Xconst wchar_t *\fIstring\fP\^,
 int \fInum_wchars\fP\^);
 .HP
-int Xutf8TextEscapement\^(\^XFontSet \fIfont_set\fP\^, char *\fIstring\fP\^,
+int Xutf8TextEscapement\^(\^XFontSet \fIfont_set\fP\^,
+_Xconst char *\fIstring\fP\^,
 int \fInum_bytes\fP\^);
 .SH ARGUMENTS
 .IP \fIfont_set\fP 1i

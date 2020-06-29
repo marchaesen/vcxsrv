@@ -2,6 +2,7 @@
 
 FOSSILS_SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 FOSSILS_YAML="$(readlink -f "$1")"
+FOSSILS_RESULTS="$2"
 
 clone_fossils_db()
 {
@@ -64,7 +65,12 @@ create_clean_git
 for fossil in $(query_fossils_yaml fossils)
 do
     fetch_fossil "$fossil" || exit $?
-    fossilize-replay $fossil || exit $?
+    fossilize-replay --num-threads 4 $fossil 1>&2 2> $FOSSILS_RESULTS/fossil_replay.txt
+    if [ $? != 0 ]; then
+        echo "Replay of $fossil failed"
+        grep "pipeline crashed or hung" $FOSSILS_RESULTS/fossil_replay.txt
+        exit 1
+    fi
     rm $fossil
 done
 

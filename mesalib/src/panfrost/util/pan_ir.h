@@ -95,9 +95,6 @@ typedef struct {
         unsigned sysval_count;
         unsigned sysvals[MAX_SYSVAL_COUNT];
 
-        /* Boolean properties of the program */
-        bool writes_point_size;
-
         int first_tag;
 
         struct util_dynarray compiled;
@@ -160,6 +157,13 @@ struct pan_instruction {
                 _entry_##v = _mesa_set_next_entry(blk->predecessors, _entry_##v), \
                 v = (struct pan_block *) (_entry_##v ? _entry_##v->key : NULL))
 
+static inline pan_block *
+pan_exit_block(struct list_head *blocks)
+{
+        pan_block *last = list_last_entry(blocks, pan_block, link);
+        assert(!last->successors[0] && !last->successors[1]);
+        return last;
+}
 
 typedef void (*pan_liveness_update)(uint16_t *, void *, unsigned max);
 
@@ -212,5 +216,9 @@ pan_dest_index(nir_dest *dst)
 
 /* IR printing helpers */
 void pan_print_alu_type(nir_alu_type t, FILE *fp);
+
+/* Until it can be upstreamed.. */
+bool pan_has_source_mod(nir_alu_src *src, nir_op op);
+bool pan_has_dest_mod(nir_dest **dest, nir_op op);
 
 #endif

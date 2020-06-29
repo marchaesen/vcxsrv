@@ -673,88 +673,67 @@ ADDR_E_RETURNCODE Gfx10Lib::HwlComputeDccAddrFromCoord(
     }
     else
     {
-        ADDR2_COMPUTE_DCCINFO_INPUT input = {0};
-        input.size            = sizeof(input);
-        input.dccKeyFlags     = pIn->dccKeyFlags;
-        input.colorFlags      = pIn->colorFlags;
-        input.swizzleMode     = pIn->swizzleMode;
-        input.resourceType    = pIn->resourceType;
-        input.bpp             = pIn->bpp;
-        input.unalignedWidth  = Max(pIn->unalignedWidth,  1u);
-        input.unalignedHeight = Max(pIn->unalignedHeight, 1u);
-        input.numSlices       = Max(pIn->numSlices,       1u);
-        input.numFrags        = Max(pIn->numFrags,        1u);
-        input.numMipLevels    = Max(pIn->numMipLevels,    1u);
+        const UINT_32  elemLog2    = Log2(pIn->bpp >> 3);
+        const UINT_32  numPipeLog2 = m_pipesLog2;
+        const UINT_32  pipeMask    = (1 << numPipeLog2) - 1;
+        UINT_32        index       = m_dccBaseIndex + elemLog2;
+        const UINT_8*  patIdxTable;
 
-        ADDR2_COMPUTE_DCCINFO_OUTPUT output = {0};
-        output.size = sizeof(output);
-
-        returnCode = ComputeDccInfo(&input, &output);
-
-        if (returnCode == ADDR_OK)
+        if (m_settings.supportRbPlus)
         {
-            const UINT_32  elemLog2    = Log2(pIn->bpp >> 3);
-            const UINT_32  numPipeLog2 = m_pipesLog2;
-            const UINT_32  pipeMask    = (1 << numPipeLog2) - 1;
-            UINT_32        index       = m_dccBaseIndex + elemLog2;
-            const UINT_8*  patIdxTable;
+            patIdxTable = DCC_64K_R_X_RBPLUS_PATIDX;
 
-            if (m_settings.supportRbPlus)
+            if (pIn->dccKeyFlags.pipeAligned)
             {
-                patIdxTable = DCC_64K_R_X_RBPLUS_PATIDX;
+                index += MaxNumOfBpp;
 
-                if (pIn->dccKeyFlags.pipeAligned)
+                if (m_numPkrLog2 < 2)
                 {
-                    index += MaxNumOfBpp;
-
-                    if (m_numPkrLog2 < 2)
-                    {
-                        index += m_pipesLog2 * MaxNumOfBpp;
-                    }
-                    else
-                    {
-                        // 4 groups for "m_numPkrLog2 < 2" case
-                        index += 4 * MaxNumOfBpp;
-
-                        const UINT_32 dccPipePerPkr = 3;
-
-                        index += (m_numPkrLog2 - 2) * dccPipePerPkr * MaxNumOfBpp +
-                                 (m_pipesLog2 - m_numPkrLog2) * MaxNumOfBpp;
-                    }
-                }
-            }
-            else
-            {
-                patIdxTable = DCC_64K_R_X_PATIDX;
-
-                if (pIn->dccKeyFlags.pipeAligned)
-                {
-                    index += (numPipeLog2 + UnalignedDccType) * MaxNumOfBpp;
+                    index += m_pipesLog2 * MaxNumOfBpp;
                 }
                 else
                 {
-                    index += Min(numPipeLog2, UnalignedDccType - 1) * MaxNumOfBpp;
+                    // 4 groups for "m_numPkrLog2 < 2" case
+                    index += 4 * MaxNumOfBpp;
+
+                    const UINT_32 dccPipePerPkr = 3;
+
+                    index += (m_numPkrLog2 - 2) * dccPipePerPkr * MaxNumOfBpp +
+                             (m_pipesLog2 - m_numPkrLog2) * MaxNumOfBpp;
                 }
             }
-
-            const UINT_32  blkSizeLog2 = Log2(output.metaBlkWidth) + Log2(output.metaBlkHeight) + elemLog2 - 8;
-            const UINT_32  blkMask     = (1 << blkSizeLog2) - 1;
-            const UINT_32  blkOffset   = ComputeOffsetFromSwizzlePattern(DCC_64K_R_X_SW_PATTERN[patIdxTable[index]],
-                                                                         blkSizeLog2 + 1, // +1 for nibble offset
-                                                                         pIn->x,
-                                                                         pIn->y,
-                                                                         pIn->slice,
-                                                                         0);
-            const UINT_32 xb       = pIn->x / output.metaBlkWidth;
-            const UINT_32 yb       = pIn->y / output.metaBlkHeight;
-            const UINT_32 pb       = output.pitch / output.metaBlkWidth;
-            const UINT_32 blkIndex = (yb * pb) + xb;
-            const UINT_32 pipeXor  = ((pIn->pipeXor & pipeMask) << m_pipeInterleaveLog2) & blkMask;
-
-            pOut->addr = (static_cast<UINT_64>(output.dccRamSliceSize) * pIn->slice) +
-                         (blkIndex * (1 << blkSizeLog2)) +
-                         ((blkOffset >> 1) ^ pipeXor);
         }
+        else
+        {
+            patIdxTable = DCC_64K_R_X_PATIDX;
+
+            if (pIn->dccKeyFlags.pipeAligned)
+            {
+                index += (numPipeLog2 + UnalignedDccType) * MaxNumOfBpp;
+            }
+            else
+            {
+                index += Min(numPipeLog2, UnalignedDccType - 1) * MaxNumOfBpp;
+            }
+        }
+
+        const UINT_32  blkSizeLog2 = Log2(pIn->metaBlkWidth) + Log2(pIn->metaBlkHeight) + elemLog2 - 8;
+        const UINT_32  blkMask     = (1 << blkSizeLog2) - 1;
+        const UINT_32  blkOffset   = ComputeOffsetFromSwizzlePattern(DCC_64K_R_X_SW_PATTERN[patIdxTable[index]],
+                                                                     blkSizeLog2 + 1, // +1 for nibble offset
+                                                                     pIn->x,
+                                                                     pIn->y,
+                                                                     pIn->slice,
+                                                                     0);
+        const UINT_32 xb       = pIn->x / pIn->metaBlkWidth;
+        const UINT_32 yb       = pIn->y / pIn->metaBlkHeight;
+        const UINT_32 pb       = pIn->pitch / pIn->metaBlkWidth;
+        const UINT_32 blkIndex = (yb * pb) + xb;
+        const UINT_32 pipeXor  = ((pIn->pipeXor & pipeMask) << m_pipeInterleaveLog2) & blkMask;
+
+        pOut->addr = (static_cast<UINT_64>(pIn->dccRamSliceSize) * pIn->slice) +
+                     (blkIndex * (1 << blkSizeLog2)) +
+                     ((blkOffset >> 1) ^ pipeXor);
     }
 
     return returnCode;
@@ -943,6 +922,12 @@ ChipFamily Gfx10Lib::HwlConvertChipFamily(
     {
         case FAMILY_NV:
             m_settings.isDcn2 = 1;
+
+            if (ASICREV_IS_SIENNA_M(chipRevision))
+            {
+                m_settings.supportRbPlus   = 1;
+                m_settings.dccUnsup3DSwDis = 0;
+            }
             break;
         default:
             ADDR_ASSERT(!"Unknown chip family");

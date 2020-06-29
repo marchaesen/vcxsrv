@@ -59,7 +59,7 @@ struct xwl_present_event {
     Bool buffer_released;
 
     struct xwl_present_window *xwl_present_window;
-    struct wl_buffer *buffer;
+    PixmapPtr pixmap;
 
     struct xorg_list list;
 };

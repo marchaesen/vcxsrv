@@ -55,7 +55,8 @@ XrmInitialize, XrmParseCommand, XrmValue, XrmOptionKind, XrmOptionDescRec \- ini
 void XrmInitialize\^(void\^);
 .HP
 void XrmParseCommand\^(\^XrmDatabase *\fIdatabase\fP\^, XrmOptionDescList
-\fItable\fP\^, int \fItable_count\fP\^, char *\fIname\fP\^, int
+\fItable\fP\^, int \fItable_count\fP\^,
+_Xconst char *\fIname\fP\^, int
 *\fIargc_in_out\fP\^, char **\fIargv_in_out\fP\^);
 .SH ARGUMENTS
 .IP \fIargc_in_out\fP 1i

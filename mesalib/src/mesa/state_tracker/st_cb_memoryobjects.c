@@ -31,7 +31,7 @@
 #include "st_cb_memoryobjects.h"
 #include "st_util.h"
 
-#include "state_tracker/drm_driver.h"
+#include "frontend/drm_driver.h"
 #include "pipe/p_context.h"
 #include "pipe/p_screen.h"
 

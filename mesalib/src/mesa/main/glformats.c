@@ -2391,7 +2391,7 @@ _mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat)
         is_astc_3d_format(internalFormat)))
         return GL_RGBA;
 
-   if (!_mesa_has_MESA_ycbcr_texture(ctx)) {
+   if (_mesa_has_MESA_ycbcr_texture(ctx)) {
       if (internalFormat == GL_YCBCR_MESA)
          return GL_YCBCR_MESA;
    }

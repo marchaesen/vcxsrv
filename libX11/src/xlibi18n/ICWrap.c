@@ -85,7 +85,7 @@ _XIMNestedListToNestedList(
 	    nlist++;
 	}
     }
-    return ptr - list;
+    return (int) (ptr - list);
 }
 
 static void

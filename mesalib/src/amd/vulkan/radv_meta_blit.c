@@ -620,8 +620,8 @@ void radv_CmdBlitImage(
 		VkRect2D dest_box;
 		dest_box.offset.x = MIN2(dst_x0, dst_x1);
 		dest_box.offset.y = MIN2(dst_y0, dst_y1);
-		dest_box.extent.width = abs(dst_x1 - dst_x0);
-		dest_box.extent.height = abs(dst_y1 - dst_y0);
+		dest_box.extent.width = dst_x1 - dst_x0;
+		dest_box.extent.height = dst_y1 - dst_y0;
 
 		const unsigned num_layers = dst_end - dst_start;
 		for (unsigned i = 0; i < num_layers; i++) {

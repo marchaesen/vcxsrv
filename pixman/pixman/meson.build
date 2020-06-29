@@ -102,6 +102,19 @@ pixman_files = files(
   'pixman-utils.c',
 )
 
+# Android cpu-features
+cpu_features_path = get_option('cpu-features-path')
+cpu_features_sources = []
+cpu_features_inc = []
+if cpu_features_path != ''
+  message('Using cpu-features.[ch] from ' + cpu_features_path)
+  cpu_features_sources = files(
+    cpu_features_path / 'cpu-features.h',
+    cpu_features_path / 'cpu-features.c',
+  )
+  cpu_features_inc = include_directories(cpu_features_path)
+endif
+
 # We cannot use 'link_with' or 'link_whole' because meson wont do the right
 # thing for static archives.
 _obs = []
@@ -111,10 +124,11 @@ endforeach
 
 libpixman = library(
   'pixman-1',
-  [pixman_files, config_h, version_h],
+  [pixman_files, config_h, version_h, cpu_features_sources],
   objects : _obs,
   c_args : libpixman_extra_cargs,
   dependencies : [dep_m, dep_threads],
+  include_directories : cpu_features_inc,
   version : meson.project_version(),
   install : true,
 )

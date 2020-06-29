@@ -466,6 +466,8 @@ UCSConvertCase( register unsigned code,
             *upper = 0x0178;
         else if (code == 0x00b5)      /* micro sign */
             *upper = 0x039c;
+        else if (code == 0x00df)      /* ssharp */
+            *upper = 0x1e9e;
 	return;
     }
 
@@ -595,6 +597,8 @@ UCSConvertCase( register unsigned code,
         }
         else if (code == 0x1e9b)
             *upper = 0x1e60;
+        else if (code == 0x1e9e)
+            *lower = 0x00df;    /* ssharp */
     }
 
     /* Greek Extended, U+1F00 to U+1FFF */
@@ -737,8 +741,9 @@ XConvertCase(
 	    *upper -= (XK_Greek_alphaaccent - XK_Greek_ALPHAaccent);
 	else if (sym >= XK_Greek_ALPHA && sym <= XK_Greek_OMEGA)
 	    *lower += (XK_Greek_alpha - XK_Greek_ALPHA);
-	else if (sym >= XK_Greek_alpha && sym <= XK_Greek_omega &&
-		 sym != XK_Greek_finalsmallsigma)
+	else if (sym == XK_Greek_finalsmallsigma)
+	    *upper = XK_Greek_SIGMA;
+	else if (sym >= XK_Greek_alpha && sym <= XK_Greek_omega)
 	    *upper -= (XK_Greek_alpha - XK_Greek_ALPHA);
         break;
     case 0x13: /* Latin 9 */
@@ -832,7 +837,7 @@ _XTranslateKeySym(
 	if (((modifiers & AllMods) == p->state) && (symbol == p->key)) {
 	    length = p->len;
 	    if (length > nbytes) length = nbytes;
-	    memcpy (buffer, p->string, length);
+	    memcpy (buffer, p->string, (size_t) length);
 	    return length;
 	}
     }
@@ -941,9 +946,9 @@ XRebindKeysym (
     dpy->key_bindings = p;
     dpy->free_funcs->key_bindings = _XFreeKeyBindings;
     p->next = tmp;	/* chain onto list */
-    memcpy (p->string, str, nbytes);
+    memcpy (p->string, str, (size_t) nbytes);
     p->len = nbytes;
-    memcpy ((char *) p->modifiers, (char *) mlist, nb);
+    memcpy ((char *) p->modifiers, (char *) mlist, (size_t) nb);
     p->key = keysym;
     p->mlen = nm;
     ComputeMaskFromKeytrans(dpy, p);

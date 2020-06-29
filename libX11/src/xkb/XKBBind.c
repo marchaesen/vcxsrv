@@ -756,7 +756,7 @@ XkbLookupKeyBinding(Display *dpy,
                     *extra_rtrn = (tmp - nbytes);
                 tmp = nbytes;
             }
-            memcpy(buffer, p->string, tmp);
+            memcpy(buffer, p->string, (size_t) tmp);
             if (tmp < nbytes)
                 buffer[tmp] = '\0';
             return tmp;

@@ -2508,7 +2508,7 @@ section for a dual headed configuration with two mice:
 This optional section is used to provide some information for the
 Direct Rendering Infrastructure.
 Details about the format of this section can be found on-line at
-.IR <http://dri.freedesktop.org/> .
+.IR <https://dri.freedesktop.org/> .
 .SH "VENDOR SECTION"
 The optional
 .B Vendor

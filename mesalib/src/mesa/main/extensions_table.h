@@ -278,6 +278,7 @@ EXT(EXT_separate_shader_objects             , dummy_true                        
 EXT(EXT_separate_specular_color             , dummy_true                             , GLL,  x ,  x ,  x , 1997)
 EXT(EXT_shader_framebuffer_fetch            , EXT_shader_framebuffer_fetch           , GLL, GLC,  x , ES2, 2013)
 EXT(EXT_shader_framebuffer_fetch_non_coherent, EXT_shader_framebuffer_fetch_non_coherent, GLL, GLC,  x, ES2, 2018)
+EXT(EXT_shader_group_vote                   , ARB_shader_group_vote                  ,   x,   x,  x ,  30, 2013)
 EXT(EXT_shader_image_load_formatted         , EXT_shader_image_load_formatted        , GLL, GLC,  x ,  x , 2014)
 EXT(EXT_shader_image_load_store             , EXT_shader_image_load_store            , GLL, GLC,  x ,  x , 2010)
 EXT(EXT_shader_implicit_conversions         , dummy_true                             ,  x ,  x ,  x ,  31, 2013)

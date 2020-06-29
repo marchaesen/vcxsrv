@@ -94,7 +94,7 @@ with open("VERSION") as f:
   mesa_version = f.read().strip()
 env.Append(CPPDEFINES = [
     ('PACKAGE_VERSION', '\\"%s\\"' % mesa_version),
-    ('PACKAGE_BUGREPORT', '\\"https://gitlab.freedesktop.org/mesa/mesa/issues\\"'),
+    ('PACKAGE_BUGREPORT', '\\"https://gitlab.freedesktop.org/mesa/mesa/-/issues\\"'),
 ])
 
 # Includes

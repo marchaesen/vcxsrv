@@ -358,7 +358,7 @@ radv_fill_sqtt_asic_info(struct radv_device *device,
 	chunk->vgprs_per_simd = rad_info->num_physical_wave64_vgprs_per_simd;
 	chunk->sgprs_per_simd = rad_info->num_physical_sgprs_per_simd;
 	chunk->shader_engines = rad_info->max_se;
-	chunk->compute_unit_per_shader_engine = rad_info->num_good_cu_per_sh;
+	chunk->compute_unit_per_shader_engine = rad_info->min_good_cu_per_sa;
 	chunk->simd_per_compute_unit = rad_info->num_simd_per_compute_unit;
 	chunk->wavefronts_per_simd = rad_info->max_wave64_per_simd;
 

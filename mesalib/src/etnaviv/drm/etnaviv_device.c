@@ -25,6 +25,7 @@
  */
 
 #include "util/hash_table.h"
+#include "util/os_file.h"
 
 #include "etnaviv_priv.h"
 #include "etnaviv_drmif.h"
@@ -63,7 +64,7 @@ struct etna_device *etna_device_new(int fd)
  * which is close()d when the device is finalized. */
 struct etna_device *etna_device_new_dup(int fd)
 {
-	int dup_fd = dup(fd);
+	int dup_fd = os_dupfd_cloexec(fd);
 	struct etna_device *dev = etna_device_new(dup_fd);
 
 	if (dev)

@@ -672,6 +672,9 @@ get_monitor_ranges(Uchar * c, struct monitor_ranges *r)
     r->max_clock = 0;
     if (MAX_CLOCK != 0xff)      /* is specified? */
         r->max_clock = MAX_CLOCK * 10 + 5;
+
+    r->display_range_timing_flags = c[10];
+
     if (HAVE_2ND_GTF) {
         r->gtf_2nd_f = F_2ND_GTF;
         r->gtf_2nd_c = C_2ND_GTF;
@@ -749,6 +752,30 @@ validate_version(int scrnIndex, struct edid_version *r)
                    r->revision, MAX_EDID_MINOR);
 
     return TRUE;
+}
+
+Bool
+gtf_supported(xf86MonPtr mon)
+{
+    int i;
+
+    if (!mon)
+        return FALSE;
+
+    if ((mon->ver.version == 1) && (mon->ver.revision < 4)) {
+        if (mon->features.msc & 0x1)
+	    return TRUE;
+    } else {
+        for (i = 0; i < DET_TIMINGS; i++) {
+            struct detailed_monitor_section *det_timing_des = &(mon->det_mon[i]);
+            if (det_timing_des && (det_timing_des->type == DS_RANGES) &&
+                (det_timing_des->section.ranges.display_range_timing_flags == DR_DEFAULT_GTF
+		|| det_timing_des->section.ranges.display_range_timing_flags == DR_SECONDARY_GTF))
+		    return TRUE;
+	}
+    }
+
+    return FALSE;
 }
 
 /*

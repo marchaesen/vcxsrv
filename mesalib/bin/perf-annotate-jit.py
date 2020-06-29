@@ -28,7 +28,7 @@ Linux `perf annotate` does not work with JIT code.  This script takes the data
 produced by `perf script` command, plus the diassemblies outputed by gallivm
 into /tmp/perf-XXXXX.map.asm and produces output similar to `perf annotate`.
 
-See docs/llvmpipe.html for usage instructions.
+See docs/llvmpipe.rst for usage instructions.
 
 The `perf script` output parser was derived from the gprof2dot.py script.
 """

@@ -51,6 +51,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value value="0x82" name="RB5_R32G32B32A32_FLOAT"/>
 	<value value="0x83" name="RB5_R32G32B32A32_UINT"/>
 	<value value="0x84" name="RB5_R32G32B32A32_SINT"/>
+
+	<value value="0xff" name="RB5_NONE"/>
 </enum>
 
 <enum name="a5xx_tile_mode">
@@ -138,6 +140,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value value="0x83" name="VFMT5_32_32_32_32_UINT"/>
 	<value value="0x84" name="VFMT5_32_32_32_32_SINT"/>
 	<value value="0x85" name="VFMT5_32_32_32_32_FIXED"/>
+
+	<value value="0xff" name="VFMT5_NONE"/>
 </enum>
 
 <enum name="a5xx_tex_fmt">
@@ -224,6 +228,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value value="0xcc" name="TFMT5_ASTC_10x10"/>
 	<value value="0xcd" name="TFMT5_ASTC_12x10"/>
 	<value value="0xce" name="TFMT5_ASTC_12x12"/>
+
+	<value value="0xff" name="TFMT5_NONE"/>
 </enum>
 
 <enum name="a5xx_tex_fetchsize">
@@ -1828,10 +1834,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		Also, when that happens, VARYING bits are turned on as well.
 		 -->
 		<bitfield name="UNK3" pos="3" type="boolean"/>
-		<bitfield name="XCOORD" pos="6" type="boolean"/>
-		<bitfield name="YCOORD" pos="7" type="boolean"/>
-		<bitfield name="ZCOORD" pos="8" type="boolean"/>
-		<bitfield name="WCOORD" pos="9" type="boolean"/>
+		<bitfield name="COORD_MASK" low="6" high="9" type="hex"/>
 	</reg32>
 	<reg32 offset="0xe006" name="GRAS_CL_GUARDBAND_CLIP_ADJ">
 		<bitfield name="HORZ" low="0" high="9" type="uint"/>
@@ -1982,10 +1985,7 @@ bit 7 for RECTLIST (clear) when z32s8 (used for clear of depth32?  not set
 		Also, when that happens, VARYING bits are turned on as well.
 		 -->
 		<bitfield name="UNK3" pos="3" type="boolean"/>
-		<bitfield name="XCOORD" pos="6" type="boolean"/>
-		<bitfield name="YCOORD" pos="7" type="boolean"/>
-		<bitfield name="ZCOORD" pos="8" type="boolean"/>
-		<bitfield name="WCOORD" pos="9" type="boolean"/>
+		<bitfield name="COORD_MASK" low="6" high="9" type="hex"/>
 	</reg32>
 	<reg32 offset="0xe145" name="RB_RENDER_CONTROL1">
 		<bitfield name="SAMPLEMASK" pos="0" type="boolean"/>
@@ -2779,8 +2779,10 @@ bit 7 for RECTLIST (clear) when z32s8 (used for clear of depth32?  not set
 	</reg32>
 	<reg32 offset="0x2140" name="RB_2D_SRC_FLAGS_LO"/>
 	<reg32 offset="0x2141" name="RB_2D_SRC_FLAGS_HI"/>
+        <reg32 offset="0x2142" name="RB_2D_SRC_FLAGS_PITCH" shr="6" type="uint"/>
 	<reg32 offset="0x2143" name="RB_2D_DST_FLAGS_LO"/>
 	<reg32 offset="0x2144" name="RB_2D_DST_FLAGS_HI"/>
+        <reg32 offset="0x2145" name="RB_2D_DST_FLAGS_PITCH" shr="6" type="uint"/>
 	<reg32 offset="0x2180" name="GRAS_2D_BLIT_CNTL"/> <!-- same as 0x2100 -->
 	<!-- looks same as 0x2107: -->
 	<reg32 offset="0x2181" name="GRAS_2D_SRC_INFO">
@@ -2908,7 +2910,20 @@ different border-color states per texture..  Looks something like:
 		<bitfield name="TYPE" low="29" high="30" type="a5xx_tex_type"/>
 	</reg32>
 	<reg32 offset="3" name="3">
+		<!--
+		ARRAY_PITCH is basically LAYERSZ for the first mipmap level, and
+		for 3d textures (laid out mipmap level first) MIN_LAYERSZ is the
+		layer size at the point that it stops being reduced moving to
+		higher (smaller) mipmap levels
+		 -->
 		<bitfield name="ARRAY_PITCH" low="0" high="13" shr="12" type="uint"/>
+		<!--
+		by default levels with w < 16 are linear
+		TILE_ALL makes all levels have tiling
+		seems required when using UBWC, since all levels have UBWC (can possibly be disabled?)
+		 -->
+		<bitfield name="TILE_ALL" pos="27" type="boolean"/>
+		<bitfield name="MIN_LAYERSZ" low="23" high="26" shr="12"/>
 		<bitfield name="FLAG" pos="28" type="boolean"/>
 	</reg32>
 	<reg32 offset="4" name="4">

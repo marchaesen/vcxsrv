@@ -8,7 +8,7 @@
 // based on http://www.xs4all.nl/~koospol/public/Xmodmap-nl-deadkeys.gz
 
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "latin"
@@ -128,7 +128,7 @@ xkb_symbols "sundeadkeys" {
      // For naming consistency
 
     include "nl(Sundeadkeys)"
-    name[Group1]="Dutch (with Sun dead keys)";
+    name[Group1]="Dutch (Sun dead keys)";
 };
 
 // Copied from macintosh_vndr/nl

@@ -109,7 +109,7 @@ char *XKeysymToString(KeySym ks)
 
 	snprintf(buf, sizeof(buf), "%lX", ks);
 	resval.addr = (XPointer)buf;
-	resval.size = strlen(buf) + 1;
+	resval.size = (unsigned)strlen(buf) + 1;
 	data.name = (char *)NULL;
 	data.type = XrmPermStringToQuark("String");
 	data.value = &resval;

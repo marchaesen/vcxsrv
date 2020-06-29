@@ -1,4 +1,4 @@
-partial default xkb_types "default" {
+default partial xkb_types "default" {
 
     // A type that is used by Nokia devices and keyboards.
 

@@ -116,16 +116,6 @@ combine_clip_cull(nir_shader *nir,
       cull->data.location_frac = clip_array_size % 4;
    }
 
-   nir_foreach_function(function, nir) {
-      if (function->impl) {
-         nir_metadata_preserve(function->impl,
-                               nir_metadata_block_index |
-                               nir_metadata_dominance |
-                               nir_metadata_live_ssa_defs |
-                               nir_metadata_loop_analysis);
-      }
-   }
-
    return true;
 }
 
@@ -139,6 +129,21 @@ nir_lower_clip_cull_distance_arrays(nir_shader *nir)
 
    if (nir->info.stage > MESA_SHADER_VERTEX)
       progress |= combine_clip_cull(nir, &nir->inputs, false);
+
+   nir_foreach_function(function, nir) {
+      if (!function->impl)
+         continue;
+
+      if (progress) {
+         nir_metadata_preserve(function->impl,
+                               nir_metadata_block_index |
+                               nir_metadata_dominance |
+                               nir_metadata_live_ssa_defs |
+                               nir_metadata_loop_analysis);
+      } else {
+         nir_metadata_preserve(function->impl, nir_metadata_all);
+      }
+   }
 
    return progress;
 }

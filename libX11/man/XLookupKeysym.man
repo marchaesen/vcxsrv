@@ -59,7 +59,7 @@ int XLookupString(\^XKeyEvent *\fIevent_struct\fP\^, char
 *\fIkeysym_return\fP\^, XComposeStatus *\fIstatus_in_out\fP\^);
 .HP
 int XRebindKeysym(\^Display *\fIdisplay\fP\^, KeySym \fIkeysym\fP\^, KeySym
-\fIlist\fP\^[\^]\^, int \fImod_count\fP\^, unsigned char *\fIstring\fP\^, int
+\fIlist\fP\^[\^]\^, int \fImod_count\fP\^, _Xconst unsigned char *\fIstring\fP\^, int
 \fInum_bytes\fP\^);
 .SH ARGUMENTS
 .IP \fIbuffer_return\fP 1i

@@ -132,8 +132,6 @@ ir3_nir_try_propagate_bit_shift(nir_builder *b, nir_ssa_def *offset, int32_t shi
 	nir_ssa_def *shift_ssa;
 	nir_ssa_def *new_offset = NULL;
 
-	b->cursor = nir_after_instr(&alu->instr);
-
 	/* the first src could be something like ssa_18.x, but we only want
 	 * the single component.  Otherwise the ishl/ishr/ushr could turn
 	 * into a vec4 operation:
@@ -183,6 +181,8 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
 	nir_intrinsic_instr *new_intrinsic;
 	nir_src *target_src;
 
+	b->cursor = nir_before_instr(&intrinsic->instr);
+
 	/* 'offset_src_idx' holds the index of the source that represent the offset. */
 	new_intrinsic =
 		nir_intrinsic_instr_create(b->shader, ir3_ssbo_opcode);
@@ -217,12 +217,9 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
 	for (unsigned i = 0; i < num_srcs; i++)
 		new_intrinsic->src[i] = nir_src_for_ssa(intrinsic->src[i].ssa);
 
-	for (unsigned i = 0; i < NIR_INTRINSIC_MAX_CONST_INDEX; i++)
-		new_intrinsic->const_index[i] = intrinsic->const_index[i];
+	nir_intrinsic_copy_const_indices(new_intrinsic, intrinsic);
 
 	new_intrinsic->num_components = intrinsic->num_components;
-
-	b->cursor = nir_before_instr(&intrinsic->instr);
 
 	/* If we managed to propagate the division by 4, just use the new offset
 	 * register and don't emit the SHR.
@@ -257,15 +254,12 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
 }
 
 static bool
-lower_offset_for_ubo(nir_intrinsic_instr *intrinsic, nir_builder *b)
+lower_offset_for_ubo(nir_intrinsic_instr *intrinsic, nir_builder *b, int gpu_id)
 {
-	/* We only need to lower offset if using LDC. Currently, we only use LDC
-	 * in the bindless mode. Also, LDC is introduced on A6xx, but currently we
-	 * only use bindless in turnip which is A6xx only.
-	 *
-	 * TODO: We should be using LDC always on A6xx+.
+	/* We only need to lower offset if using LDC, which takes an offset in
+	 * vec4 units and has the start component baked into the instruction.
 	 */
-	if (!ir3_bindless_resource(intrinsic->src[0]))
+	if (gpu_id < 600)
 		return false;
 
 	/* TODO handle other bitsizes, including non-dword-aligned loads */
@@ -277,7 +271,7 @@ lower_offset_for_ubo(nir_intrinsic_instr *intrinsic, nir_builder *b)
 		nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_ubo_ir3);
 
 	debug_assert(intrinsic->dest.is_ssa);
-	new_intrinsic->src[0] = nir_src_for_ssa(intrinsic->src[0].ssa);
+	new_intrinsic->src[0] = intrinsic->src[0];
 
 	nir_ssa_def *offset = intrinsic->src[1].ssa;
 	nir_ssa_def *new_offset = ir3_nir_try_propagate_bit_shift(b, offset, -4);
@@ -335,7 +329,7 @@ lower_offset_for_ubo(nir_intrinsic_instr *intrinsic, nir_builder *b)
 }
 
 static bool
-lower_io_offsets_block(nir_block *block, nir_builder *b, void *mem_ctx)
+lower_io_offsets_block(nir_block *block, nir_builder *b, void *mem_ctx, int gpu_id)
 {
 	bool progress = false;
 
@@ -347,7 +341,7 @@ lower_io_offsets_block(nir_block *block, nir_builder *b, void *mem_ctx)
 
 		/* UBO */
 		if (intr->intrinsic == nir_intrinsic_load_ubo) {
-			progress |= lower_offset_for_ubo(intr, b);
+			progress |= lower_offset_for_ubo(intr, b, gpu_id);
 			continue;
 		}
 
@@ -366,7 +360,7 @@ lower_io_offsets_block(nir_block *block, nir_builder *b, void *mem_ctx)
 }
 
 static bool
-lower_io_offsets_func(nir_function_impl *impl)
+lower_io_offsets_func(nir_function_impl *impl, int gpu_id)
 {
 	void *mem_ctx = ralloc_parent(impl);
 	nir_builder b;
@@ -374,7 +368,7 @@ lower_io_offsets_func(nir_function_impl *impl)
 
 	bool progress = false;
 	nir_foreach_block_safe (block, impl) {
-		progress |= lower_io_offsets_block(block, &b, mem_ctx);
+		progress |= lower_io_offsets_block(block, &b, mem_ctx, gpu_id);
 	}
 
 	if (progress) {
@@ -386,13 +380,13 @@ lower_io_offsets_func(nir_function_impl *impl)
 }
 
 bool
-ir3_nir_lower_io_offsets(nir_shader *shader)
+ir3_nir_lower_io_offsets(nir_shader *shader, int gpu_id)
 {
 	bool progress = false;
 
 	nir_foreach_function (function, shader) {
 		if (function->impl)
-			progress |= lower_io_offsets_func(function->impl);
+			progress |= lower_io_offsets_func(function->impl, gpu_id);
 	}
 
 	return progress;

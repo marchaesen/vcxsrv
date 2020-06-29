@@ -72,6 +72,9 @@ static struct fd_bo * bo_from_handle(struct fd_device *dev,
 	bo->dev = fd_device_ref(dev);
 	bo->size = size;
 	bo->handle = handle;
+	bo->iova = bo->funcs->iova(bo);
+	bo->flags = FD_RELOC_FLAGS_INIT;
+
 	p_atomic_set(&bo->refcnt, 1);
 	list_inithead(&bo->list);
 	/* add ourself into the handle table: */
@@ -129,9 +132,11 @@ fd_bo_new_ring(struct fd_device *dev, uint32_t size)
 {
 	uint32_t flags = DRM_FREEDRENO_GEM_GPUREADONLY;
 	struct fd_bo *bo = bo_new(dev, size, flags, &dev->ring_cache);
-	if (bo)
+	if (bo) {
 		bo->bo_reuse = RING_CACHE;
-	fd_bo_set_name(bo, "cmdstream");
+		bo->flags |= FD_RELOC_DUMP;
+		fd_bo_set_name(bo, "cmdstream");
+	}
 	return bo;
 }
 
@@ -223,16 +228,17 @@ out_unlock:
 	return bo;
 }
 
-uint64_t fd_bo_get_iova(struct fd_bo *bo)
+void
+fd_bo_mark_for_dump(struct fd_bo *bo)
 {
-	if (!bo->iova)
-		bo->iova = bo->funcs->iova(bo);
-	return bo->iova;
+	bo->flags |= FD_RELOC_DUMP;
 }
 
-void fd_bo_put_iova(struct fd_bo *bo)
+uint64_t fd_bo_get_iova(struct fd_bo *bo)
 {
-	/* currently a no-op */
+	/* ancient kernels did not support this */
+	assert(bo->iova != 0);
+	return bo->iova;
 }
 
 struct fd_bo * fd_bo_ref(struct fd_bo *bo)
@@ -312,6 +318,7 @@ int fd_bo_get_name(struct fd_bo *bo, uint32_t *name)
 
 uint32_t fd_bo_handle(struct fd_bo *bo)
 {
+	bo->bo_reuse = NO_CACHE;
 	return bo->handle;
 }
 

@@ -1,4 +1,4 @@
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "latin"
@@ -74,7 +74,7 @@ partial alphanumeric_keys
 xkb_symbols "sundeadkeys" {
     include "fr(Sundeadkeys)"
 
-    name[Group1]="French (with Sun dead keys)";
+    name[Group1]="French (Sun dead keys)";
 };
 
 partial alphanumeric_keys
@@ -248,7 +248,7 @@ xkb_symbols "oss_sundeadkeys" {
 
     include "fr(oss_Sundeadkeys)"
 
-    name[Group1]="French (alt., with Sun dead keys)";
+    name[Group1]="French (alt., Sun dead keys)";
 };
 
 partial alphanumeric_keys
@@ -419,7 +419,7 @@ xkb_symbols "latin9_sundeadkeys" {
 
     include "fr(latin9_Sundeadkeys)"
 
-    name[Group1]="French (legacy, alt., with Sun dead keys)";
+    name[Group1]="French (legacy, alt., Sun dead keys)";
 };
 
 partial alphanumeric_keys
@@ -471,7 +471,7 @@ xkb_symbols "bepo" {
     include "level3(ralt_switch)"
     include "keypad(oss)"
 
-    name[Group1]= "French (Bepo, ergonomic, Dvorak way)";
+    name[Group1]= "French (BEPO)";
 
     // First row
     key <TLDE> { [          dollar,   numbersign,        endash,       paragraph ] }; // $ # – ¶
@@ -540,7 +540,7 @@ xkb_symbols "bepo_latin9" {
     include "fr(bepo)"
     include "keypad(oss_latin9)"
 
-    name[Group1]="French (Bepo, ergonomic, Dvorak way, Latin-9 only)";
+    name[Group1]="French (BEPO, Latin-9 only)";
 
     key <TLDE> { [          dollar,   numbersign,        dollar,       paragraph ] }; // $ # $ ¶
 
@@ -602,7 +602,7 @@ xkb_symbols "bepo_latin9" {
 partial alphanumeric_keys
 xkb_symbols "bepo_afnor" {
 
-	name[Group1]= "French (Bepo, ergonomic, Dvorak way, AFNOR)";
+	name[Group1]= "French (BEPO, AFNOR)";
 
 	include "pc(pc105)"
 
@@ -1072,7 +1072,7 @@ partial alphanumeric_keys
 xkb_symbols "us" {
 
     include "us(euro)"
-    name[Group1]= "French (US, with French letters)";
+    name[Group1]= "French (US)";
 
 
     key <TLDE> { [     grave, asciitilde,    dead_grave                   ] };
@@ -1204,7 +1204,7 @@ partial alphanumeric_keys
 xkb_symbols "us-alt" {
 
     include "us(euro)"
-    name[Group1]= "French (US, with French letters, with dead keys, alternative)";
+    name[Group1]= "French (US with dead keys, alt.)";
 
     key <AB03> { [         c,          C,      ccedilla,         Ccedilla ] }; // ç Ç
 
@@ -1287,7 +1287,7 @@ xkb_symbols "afnor" {
     include "nbsp(level3n)"
     include "keypad(oss)"
 
-    name[Group1]="French (AFNOR standardized AZERTY)";
+    name[Group1]="French (AZERTY, AFNOR)";
 
      // First row
      key <TLDE> { [                  at,      numbersign,               dead_breve,   dead_invertedbreve ] }; // @ # ̑  ̆̆̆  //

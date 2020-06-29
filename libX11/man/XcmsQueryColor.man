@@ -58,7 +58,7 @@ Status XcmsQueryColors\^(\^Display *\fIdisplay\fP\^, Colormap
 \fIncolors\fP\^, XcmsColorFormat \fIresult_format\fP\^);
 .HP
 Status XcmsLookupColor\^(\^Display *\fIdisplay\fP\^, Colormap
-\fIcolormap\fP\^, char *\fIcolor_string\fP\^, XcmsColor
+\fIcolormap\fP\^, _Xconst char *\fIcolor_string\fP\^, XcmsColor
 *\fIcolor_exact_return\fP\^, XcmsColor *\fIcolor_screen_return\fP\^,
 XcmsColorFormat \fIresult_format\fP\^);
 .SH ARGUMENTS

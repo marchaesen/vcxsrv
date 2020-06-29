@@ -82,8 +82,10 @@ panfrost_astc_stretch(unsigned dim)
         return MIN2(dim, 11) - 4;
 }
 
-/* Texture addresses are tagged with information about AFBC (colour AFBC?) xor
- * ASTC (stretch factor) if in use. */
+/* Texture addresses are tagged with information about compressed formats.
+ * AFBC uses a bit for whether the colorspace transform is enabled (RGB and
+ * RGBA only).
+ * For ASTC, this is a "stretch factor" encoding the block size. */
 
 static unsigned
 panfrost_compression_tag(
@@ -91,7 +93,7 @@ panfrost_compression_tag(
                 enum mali_format format, enum mali_texture_layout layout)
 {
         if (layout == MALI_TEXTURE_AFBC)
-                return util_format_has_depth(desc) ? 0x0 : 0x1;
+                return desc->nr_channels >= 3;
         else if (format == MALI_ASTC_HDR_SUPP || format == MALI_ASTC_SRGB_SUPP)
                 return (panfrost_astc_stretch(desc->block.height) << 3) |
                         panfrost_astc_stretch(desc->block.width);
@@ -168,17 +170,18 @@ panfrost_estimate_texture_payload_size(
 
 /* Bifrost requires a tile stride for tiled textures. This stride is computed
  * as (16 * bpp * width) assuming there is at least one tile (width >= 16).
- * Otherwise if width < 16, the blob puts zero. Interactions with AFBC are
+ * Otherwise if height <= 16, the blob puts zero. Interactions with AFBC are
  * currently unknown.
  */
 
 static unsigned
 panfrost_nonlinear_stride(enum mali_texture_layout layout,
                 unsigned bytes_per_pixel,
-                unsigned width)
+                unsigned width,
+                unsigned height)
 {
         if (layout == MALI_TEXTURE_TILED) {
-                return (width < 16) ? 0 : (16 * bytes_per_pixel * width);
+                return (height <= 16) ? 0 : (16 * bytes_per_pixel * ALIGN_POT(width, 16));
         } else {
                 unreachable("TODO: AFBC on Bifrost");
         }
@@ -191,7 +194,7 @@ panfrost_emit_texture_payload(
         enum mali_format mali_format,
         enum mali_texture_type type,
         enum mali_texture_layout layout,
-        unsigned width,
+        unsigned width, unsigned height,
         unsigned first_level, unsigned last_level,
         unsigned first_layer, unsigned last_layer,
         unsigned cube_stride,
@@ -225,7 +228,8 @@ panfrost_emit_texture_payload(
                                                 slices[l].stride :
                                                 panfrost_nonlinear_stride(layout,
                                                                 MAX2(desc->block.bits / 8, 1),
-                                                                u_minify(width, l));
+                                                                u_minify(width, l),
+                                                                u_minify(height, l));
                                 }
                         }
                 }
@@ -252,7 +256,8 @@ panfrost_new_texture(
 
         unsigned bytes_per_pixel = util_format_get_blocksize(format);
 
-        enum mali_format mali_format = panfrost_find_format(desc);
+        enum mali_format mali_format = panfrost_pipe_format_table[desc->format].hw;
+        assert(mali_format);
 
         bool manual_stride = (layout == MALI_TEXTURE_LINEAR)
                 && panfrost_needs_explicit_stride(slices, width,
@@ -285,7 +290,7 @@ panfrost_new_texture(
                 mali_format,
                 type,
                 layout,
-                width,
+                width, height,
                 first_level, last_level,
                 first_layer, last_layer,
                 cube_stride,
@@ -313,7 +318,8 @@ panfrost_new_texture_bifrost(
         const struct util_format_description *desc =
                 util_format_description(format);
 
-        enum mali_format mali_format = panfrost_find_format(desc);
+        enum mali_format mali_format = panfrost_pipe_format_table[desc->format].hw;
+        assert(mali_format);
 
         panfrost_emit_texture_payload(
                 (mali_ptr *) payload->cpu,
@@ -321,7 +327,7 @@ panfrost_new_texture_bifrost(
                 mali_format,
                 type,
                 layout,
-                width,
+                width, height,
                 first_level, last_level,
                 first_layer, last_layer,
                 cube_stride,
@@ -331,7 +337,6 @@ panfrost_new_texture_bifrost(
 
         descriptor->format_unk = 0x2;
         descriptor->type = type;
-        descriptor->format_unk2 = 0x100;
         descriptor->format = mali_format;
         descriptor->srgb = (desc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB);
         descriptor->format_unk3 = 0x0;
@@ -342,7 +347,7 @@ panfrost_new_texture_bifrost(
         descriptor->levels = last_level - first_level;
         descriptor->unk1 = 0x0;
         descriptor->levels_unk = 0;
-        descriptor->level_2 = 0;
+        descriptor->level_2 = last_level - first_level;
         descriptor->payload = payload->gpu;
         descriptor->array_size = MALI_POSITIVE(array_size);
         descriptor->unk4 = 0x0;

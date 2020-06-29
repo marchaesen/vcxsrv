@@ -153,7 +153,7 @@ class Format(Enum):
       res = ''
       if self == Format.SDWA:
          for i in range(min(num_operands, 2)):
-            res += f'instr->sel[{i}] = op{i}.op.bytes() == 2 ? sdwa_uword : (op{i}.op.bytes() == 1 ? sdwa_ubyte : sdwa_udword);\n'
+            res += 'instr->sel[{0}] = op{0}.op.bytes() == 2 ? sdwa_uword : (op{0}.op.bytes() == 1 ? sdwa_ubyte : sdwa_udword);\n'.format(i)
          res += 'instr->dst_sel = def0.bytes() == 2 ? sdwa_uword : (def0.bytes() == 1 ? sdwa_ubyte : sdwa_udword);\n'
          res += 'instr->dst_preserve = true;'
       return res
@@ -191,6 +191,43 @@ class Opcode(object):
       self.is_atomic = "1" if is_atomic else "0"
       self.format = format
 
+      parts = name.replace('_e64', '').rsplit('_', 2)
+      op_dtype = parts[-1]
+      def_dtype = parts[-2] if len(parts) > 1 else parts[-1]
+
+      def_dtype_sizes = {'{}{}'.format(prefix, size) : size for prefix in 'biuf' for size in [64, 32, 24, 16]}
+      op_dtype_sizes = {k:v for k, v in def_dtype_sizes.items()}
+      # inline constants are 32-bit for 16-bit integer/typeless instructions: https://reviews.llvm.org/D81841
+      op_dtype_sizes['b16'] = 32
+      op_dtype_sizes['i16'] = 32
+      op_dtype_sizes['u16'] = 32
+
+      self.operand_size = op_dtype_sizes.get(op_dtype, 0)
+      self.definition_size = def_dtype_sizes.get(def_dtype, self.operand_size)
+
+      # exceptions
+      if self.operand_size == 16 and op_dtype != 'f16':
+         self.operand_size = 16
+      elif self.operand_size == 24:
+        self.operand_size = 32
+      elif name in ['s_sext_i32_i8', 's_sext_i32_i16', 'v_msad_u8', 'v_cvt_pk_u16_u32', 'v_cvt_pk_i16_i32']:
+         self.operand_size = 32
+      elif name in ['v_qsad_pk_u16_u8', 'v_mqsad_pk_u16_u8', 'v_mqsad_u32_u8']:
+         self.definition_size = 0
+         self.operand_size = 0
+      elif name in ['v_mad_u64_u32', 'v_mad_i64_i32']:
+         self.operand_size = 0
+      elif '_pk_' in name or name in ['v_lerp_u8', 'v_sad_u8', 'v_sad_u16',
+                                      'v_cvt_f32_ubyte0', 'v_cvt_f32_ubyte1',
+                                      'v_cvt_f32_ubyte2', 'v_cvt_f32_ubyte3']:
+         self.operand_size = 32
+         self.definition_size = 32
+      elif '_pknorm_' in name:
+         self.definition_size = 32
+      elif format == Format.PSEUDO_REDUCTION:
+         # 64-bit reductions can have a larger definition size, but get_subdword_definition_info() handles that
+         self.definition_size = 32
+
 
 # global dictionary of opcodes
 opcodes = {}
@@ -221,8 +258,6 @@ opcode("p_reduce", format=Format.PSEUDO_REDUCTION)
 opcode("p_inclusive_scan", format=Format.PSEUDO_REDUCTION)
 # e.g. subgroupExclusiveMin()
 opcode("p_exclusive_scan", format=Format.PSEUDO_REDUCTION)
-# simulates proper bpermute behavior on GFX10 wave64
-opcode("p_wave64_bpermute", format=Format.PSEUDO_REDUCTION)
 
 opcode("p_branch", format=Format.PSEUDO_BRANCH)
 opcode("p_cbranch", format=Format.PSEUDO_BRANCH)
@@ -253,6 +288,8 @@ opcode("p_exit_early_if")
 
 opcode("p_fs_buffer_store_smem", format=Format.SMEM)
 
+# simulates proper bpermute behavior when it's unsupported, eg. GFX10 wave64
+opcode("p_bpermute")
 
 # SOP2 instructions: 2 scalar inputs, 1 scalar output (+optional scc)
 SOP2 = {

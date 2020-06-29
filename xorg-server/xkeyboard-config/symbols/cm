@@ -45,7 +45,7 @@
 // == Cameroon Dvorak ==
 // Cameroon Dvorak is uses a similar system to Cameroon QWERTY.
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
 	name[Group1]="English (Cameroon)";
@@ -146,7 +146,7 @@ partial alphanumeric_keys
 xkb_symbols "azerty"
 {
 	include "cm(basic)"
-	name[Group1] = "Cameroon Multilingual (AZERTY)";
+	name[Group1] = "Cameroon (AZERTY, intl.)";
 	key <AB01> { [ w, W, U1E85, U1E84 ] };	//  SMALL LETTER W,  CAPITAL LETTER W, SMALL LETTER W WITH DIAERESIS, CAPITAL LETTER W WITH DIAERESIS
 	key <AB02> { [ x, X, U2039, U203A ] };	// SMALL LETTER X, CAPITAL LETTER X, SINGLE LEFT-POINTING ANGLE QUOTATION MARK, SINGLE RIGHT-POINTING ANGLE QUOTATION MARK
 	key <AB03> { [ c, C, U0327, copyright ] };	// SMALL LETTER C, CAPITAL LETTER C, COMBINING CEDILLA, COPYRIGHT SIGN
@@ -203,7 +203,7 @@ partial alphanumeric_keys
 xkb_symbols "qwerty"
 {
 	include "cm(basic)"
-	name[Group1] = "Cameroon Multilingual (QWERTY)";
+	name[Group1] = "Cameroon Multilingual (QWERTY, intl.)";
 	key <AB01> { [ z, Z, U2026, U2020 ] };	// SMALL LETTER Z, CAPITAL LETTER Z, ELLIPSIS, DAGGER
 	key <AB02> { [ x, X ] };	// SMALL LETTER X, CAPITAL LETTER X
 	key <AB03> { [ c, C, U0327, U00A9 ] };	// SMALL LETTER C, CAPITAL LETTER C, CEDILLA, COPYRIGHT
@@ -256,7 +256,7 @@ partial alphanumeric_keys
 xkb_symbols "dvorak"
 {
 	include "us(dvorak)"
-	name[Group1] = "Cameroon Multilingual (Dvorak)";
+	name[Group1] = "Cameroon (Dvorak, intl.)";
 	key <AB01> { [ semicolon, colon ] };	// SEMICOLON, COLON
 	key <AB02> { [ q, Q, U2014, U2013 ] };	// SMALL LETTER Q, CAPITAL LETTER Q, EM DASH, EN DASH
 	key <AB03> { [ j, J, U0330, U0323 ] };	// SMALL LETTER J, CAPITAL LETTER J, COMBINING TILDE (NASAL) BELOW, COMBINING DOT BELOW

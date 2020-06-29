@@ -1,6 +1,6 @@
 // based on a keyboard map from an 'xkb/symbols/pl' file
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     // Visualisation and description: http://podziemie.net/xkb/pl
@@ -487,6 +487,9 @@ xkb_symbols "colemak" {
     key <AC07> { [            n,            N,          nacute,           Nacute ] };
     key <AC08> { [            e,            E,         eogonek,          Eogonek ] };
     key <AC10> { [            o,            O,          oacute,           Oacute ] };
+    key <AD01> { [            q,            Q,              ae,               AE ] };
+    key <AD02> { [            w,            W, dead_circumflex,       asciitilde ] };
+    key <AD03> { [            f,            F,          ssharp,        0x1001e9e ] };
     key <AD07> { [            l,            L,         lstroke,          Lstroke ] };
 
     include "level3(ralt_switch)"

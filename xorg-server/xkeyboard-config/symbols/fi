@@ -6,20 +6,29 @@
 // Eliminate deadkeys alternative sent by Linus Torvalds
 //
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "kotoistus" {
 
-    // Official keymap for Finland based on SFS 5966 standard
+    // Official keymap for Finland based on SFS 5966:2019 standard
     //
     // This keymap implements all the functionality of Annex 1
     // of the standard and additionally defines the following to
     // allow entering these characters with keyboards without LSGT.
     //
-    // AE08+4, U+003C : LESS-THAN SIGN     (less)
-    // AE09+4, U+003E : GREATER-THAN SIGN  (greater)
-    // AD08+4, U+007C : VERTICAL LINE      (bar)
+    // AE08+4 : U+003C LESS-THAN SIGN     (less)
+    // AE09+4 : U+003E GREATER-THAN SIGN  (greater)
+    // AD08+4 : U+007C VERTICAL LINE      (bar)
     //
-    // Annex 3 of the standard is implemented in fi_FI.UTF-8/Compose
+    // Annex 3 of the standard is implemented in fi_FI.UTF-8/Compose.
+    //
+    // This keymap implements regular space in position "A-3" of the
+    // standard and implements NARROW NO-BREAK SPACE (U+202F) in A-4.
+    //
+    // The following definitions are also included to allow entering
+    // Greek letters and currency symbols with the libX11 sequences.
+    //
+    // AC08+4 : dead_greek
+    // AC09+4 : dead_currency
 
     name[Group1]="Finnish";
 
@@ -57,8 +66,8 @@ xkb_symbols "kotoistus" {
     key <AC05> { [  g,               G,                g,                     G                     ] };
     key <AC06> { [  h,               H,                h,                     H                     ] };
     key <AC07> { [  j,               J,                j,                     J                     ] };
-    key <AC08> { [  k,               K,                kra,                   NoSymbol              ] };
-    key <AC09> { [  l,               L,                dead_stroke,           NoSymbol              ] };
+    key <AC08> { [  k,               K,                kra,                   dead_greek            ] };
+    key <AC09> { [  l,               L,                dead_stroke,           dead_currency         ] };
     key <AC10> { [  odiaeresis,      Odiaeresis,       oslash,                Oslash                ] };
     key <AC11> { [  adiaeresis,      Adiaeresis,       ae,                    AE                    ] };
     key <BKSL> { [  apostrophe,      asterisk,         dead_caron,            dead_breve            ] };
@@ -75,8 +84,8 @@ xkb_symbols "kotoistus" {
     key <AB09> { [  period,          colon,            dead_belowdot,         dead_abovedot         ] };
     key <AB10> { [  minus,           underscore,       endash,                dead_belowcomma       ] };
 
-    include "nbsp(level4)"
-    include "nbsp(level3)"
+    key <SPCE> { [  space,           space,            space,                 U202F                 ] };
+
     include "kpdl(comma)"
     include "level3(ralt_switch)"
 };
@@ -85,16 +94,10 @@ partial alphanumeric_keys
 xkb_symbols "winkeys" {
 
     include "fi(kotoistus)"
-    name[Group1]="Finnish (Winkeys)";
+
+    name[Group1]="Finnish (Windows)";
+
     include "eurosign(5)"
-};
-
-partial alphanumeric_keys
-xkb_symbols "classic" {
-
-    include "fi(fi)"
-
-    name[Group1]="Finnish (classic)";
 };
 
 hidden partial alphanumeric_keys
@@ -136,8 +139,8 @@ xkb_symbols "fi" {
     key <AC05> { [  g,               G,                eng,                   ENG                   ] };
     key <AC06> { [  h,               H,                h,                     H                     ] };
     key <AC07> { [  j,               J,                j,                     J                     ] };
-    key <AC08> { [  k,               K,                kra,                   NoSymbol              ] };
-    key <AC09> { [  l,               L,                dead_stroke,           NoSymbol              ] };
+    key <AC08> { [  k,               K,                kra,                   dead_greek            ] };
+    key <AC09> { [  l,               L,                dead_stroke,           dead_currency         ] };
     key <AC10> { [  odiaeresis,      Odiaeresis,       oslash,                Oslash                ] };
     key <AC11> { [  adiaeresis,      Adiaeresis,       ae,                    AE                    ] };
     key <BKSL> { [  apostrophe,      asterisk,         dead_caron,            dead_breve            ] };
@@ -154,9 +157,18 @@ xkb_symbols "fi" {
     key <AB09> { [  period,          colon,            periodcentered,        notsign               ] };
     key <AB10> { [  minus,           underscore,       hyphen,                dead_macron           ] };
 
-    include "nbsp(level4)"
+    key <SPCE> { [  space,           space,            space,                 U202F                 ] };
+
     include "kpdl(comma)"
     include "level3(ralt_switch)"
+};
+
+partial alphanumeric_keys
+xkb_symbols "classic" {
+
+    include "fi(fi)"
+
+    name[Group1]="Finnish (classic)";
 };
 
 partial alphanumeric_keys
@@ -208,17 +220,17 @@ xkb_symbols "sun_type6" {
     // Sun Type 6/7 keyboard for Finland
 
     include "sun_vndr/fi(sun_type6)"
+
+    name[Group1]="Finnish (Sun Type 6/7)";
 };
 
 partial
 xkb_symbols "das" {
 
-    // This is DAS layout for typing Finnish. It is originally designed by
-    // Cristian Seres (cseres at iki.fi).
-    // More information about DAS: http://c.seres.fi/DAS_en.html
-    // This xkeyboard layout is originally made by Joel Lehtonen,
-    // (joel.lehtonen at iki.fi) on 2008-01-14. He released it under Public
-    // domain.
+    // DAS layout for typing Finnish designed by Cristian Seres (cseres at iki.fi).
+    // More information about DAS is available at http://c.seres.fi/DAS_en.html.
+    // This xkeyboard layout was created by Joel Lehtonen (joel.lehtonen at iki.fi),
+    // and he released it to public domain.
 
     name[Group1]="Finnish (DAS)";
 
@@ -287,9 +299,9 @@ xkb_symbols "fidvorak" {
     // Dedicated keys for Ä and Ö by utilizing the extra LSGT key found on Finnish keyboards
     // and by moving colon and semicolon behind shift-modifiers on comma and period.
     // Less and greater than symbols moved behind 3rd level modifiers on comma and period.
-    // Includes an assortment of dead keys but is not made with them in mind.
+    // Includes an assortment of dead keys but was not created with them in mind.
 
-    name[Group1]= "Finnish Dvorak";
+    name[Group1]="Finnish (Dvorak)";
 
     key <TLDE> { [  grave,           asciitilde,       dead_grave,            dead_tilde            ] };
     key <AE01> { [  1,               exclam,           NoSymbol,              exclamdown            ] };

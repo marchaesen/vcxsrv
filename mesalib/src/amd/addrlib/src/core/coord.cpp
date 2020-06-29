@@ -83,11 +83,11 @@ BOOL_32 Coordinate::operator<(const Coordinate& b)
     }
     else
     {
-        if (dim == 's' || b.dim == 'm')
+        if (dim == DIM_S || b.dim == DIM_M)
         {
             ret = TRUE;
         }
-        else if (b.dim == 's' || dim == 'm')
+        else if (b.dim == DIM_S || dim == DIM_M)
         {
             ret = FALSE;
         }

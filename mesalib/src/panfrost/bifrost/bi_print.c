@@ -37,6 +37,7 @@ bi_clause_type_name(enum bifrost_clause_type T)
         case BIFROST_CLAUSE_SSBO_LOAD: return "load";
         case BIFROST_CLAUSE_SSBO_STORE: return "store";
         case BIFROST_CLAUSE_BLEND: return "blend";
+        case BIFROST_CLAUSE_FRAGZ: return "fragz";
         case BIFROST_CLAUSE_ATEST: return "atest";
         case BIFROST_CLAUSE_64BIT: return "64";
         default: return "??";
@@ -139,7 +140,7 @@ bi_class_name(enum bi_class cl)
         case BI_FMA: return "fma";
         case BI_FMOV: return "fmov";
         case BI_FREXP: return "frexp";
-        case BI_ISUB: return "isub";
+        case BI_IMATH: return "imath";
         case BI_LOAD: return "load";
         case BI_LOAD_UNIFORM: return "load_uniform";
         case BI_LOAD_ATTR: return "load_attr";
@@ -237,6 +238,16 @@ bi_bitwise_op_name(enum bi_bitwise_op op)
         }
 }
 
+static const char *
+bi_imath_op_name(enum bi_imath_op op)
+{
+        switch (op) {
+        case BI_IMATH_ADD: return "iadd";
+        case BI_IMATH_SUB: return "isub";
+        default: return "invalid";
+        }
+}
+
 const char *
 bi_table_op_name(enum bi_table_op op)
 {
@@ -314,12 +325,6 @@ bi_cond_name(enum bi_cond cond)
 }
 
 static void
-bi_print_branch(struct bi_branch *branch, FILE *fp)
-{
-        fprintf(fp, ".%s", bi_cond_name(branch->cond));
-}
-
-static void
 bi_print_texture(struct bi_texture *tex, FILE *fp)
 {
         fprintf(fp, " - texture %u, sampler %u",
@@ -333,6 +338,8 @@ bi_print_instruction(bi_instruction *ins, FILE *fp)
                 fprintf(fp, "%s", ins->op.minmax == BI_MINMAX_MIN ? "min" : "max");
         else if (ins->type == BI_BITWISE)
                 fprintf(fp, "%s", bi_bitwise_op_name(ins->op.bitwise));
+        else if (ins->type == BI_IMATH)
+                fprintf(fp, "%s", bi_imath_op_name(ins->op.imath));
         else if (ins->type == BI_SPECIAL)
                 fprintf(fp, "%s", bi_special_op_name(ins->op.special));
         else if (ins->type == BI_TABLE)
@@ -351,16 +358,15 @@ bi_print_instruction(bi_instruction *ins, FILE *fp)
                 fprintf(fp, "%s", bi_minmax_mode_name(ins->minmax));
         else if (ins->type == BI_LOAD_VAR)
                 bi_print_load_vary(&ins->load_vary, fp);
-        else if (ins->type == BI_BRANCH)
-                bi_print_branch(&ins->branch, fp);
-        else if (ins->type == BI_CSEL || ins->type == BI_CMP)
-                fprintf(fp, ".%s", bi_cond_name(ins->cond));
         else if (ins->type == BI_BLEND)
                 fprintf(fp, ".loc%u", ins->blend_location);
         else if (ins->type == BI_TEX) {
                 fprintf(fp, ".%s", bi_tex_op_name(ins->op.texture));
         } else if (ins->type == BI_BITWISE)
                 fprintf(fp, ".%cshift", ins->bitwise.rshift ? 'r' : 'l');
+
+        if (bi_class_props[ins->type] & BI_CONDITIONAL)
+                fprintf(fp, ".%s", bi_cond_name(ins->cond));
 
         if (ins->vector_channels)
                 fprintf(fp, ".v%u", ins->vector_channels);
@@ -396,15 +402,37 @@ bi_print_instruction(bi_instruction *ins, FILE *fp)
         }
 
         if (ins->type == BI_BRANCH) {
-                if (ins->branch.target)
-                        fprintf(fp, "-> block%u", ins->branch.target->base.name);
-                else
-                        fprintf(fp, "-> blockhole");
+                if (ins->branch_target) {
+                        fprintf(fp, "-> block%u", ins->branch_target->base.name);
+                } else {
+                        fprintf(fp, "-> void");
+                }
         } else if (ins->type == BI_TEX) {
                 bi_print_texture(&ins->texture, fp);
         }
 
         fprintf(fp, "\n");
+}
+
+void
+bi_print_ports(bi_registers *regs, FILE *fp)
+{
+        for (unsigned i = 0; i < 2; ++i) {
+                if (regs->enabled[i])
+                        fprintf(fp, "port %u: %u\n", i, regs->port[i]);
+        }
+
+        if (regs->write_fma || regs->write_add) {
+                fprintf(fp, "port 2 (%s): %u\n",
+                                regs->write_add ? "ADD" : "FMA",
+                                regs->port[2]);
+        }
+
+        if ((regs->write_fma && regs->write_add) || regs->read_port3) {
+                fprintf(fp, "port 3 (%s): %u\n",
+                                regs->read_port3 ? "read" : "FMA",
+                                regs->port[3]);
+        }
 }
 
 void
@@ -444,21 +472,15 @@ bi_print_clause(bi_clause *clause, FILE *fp)
 
         fprintf(fp, "\n");
 
-        if (clause->instruction_count) {
-                assert(!clause->bundle_count);
-
-                for (unsigned i = 0; i < clause->instruction_count; ++i)
-                        bi_print_instruction(clause->instructions[i], fp);
-        } else {
-                assert(clause->bundle_count);
-
-                for (unsigned i = 0; i < clause->bundle_count; ++i)
-                        bi_print_bundle(&clause->bundles[i], fp);
-        }
+        for (unsigned i = 0; i < clause->bundle_count; ++i)
+                bi_print_bundle(&clause->bundles[i], fp);
 
         if (clause->constant_count) {
                 for (unsigned i = 0; i < clause->constant_count; ++i)
                         fprintf(fp, "%" PRIx64 " ", clause->constants[i]);
+
+                if (clause->branch_constant)
+                        fprintf(fp, "*");
 
                 fprintf(fp, "\n");
         }

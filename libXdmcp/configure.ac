@@ -22,8 +22,8 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libXdmcp], [1.1.3],
-        [https://gitlab.freedesktop.org/xorg/lib/libXdmcp/issues], [libXdmcp])
+AC_INIT([libXdmcp], [1.1.2],
+        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXdmcp])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 # Set common system defines for POSIX extensions, such as _GNU_SOURCE
@@ -65,7 +65,7 @@ esac
 
 # Checks for library functions.
 AC_CHECK_LIB([bsd], [arc4random_buf])
-AC_CHECK_FUNCS([srand48 lrand48 arc4random_buf getentropy])
+AC_CHECK_FUNCS([srand48 lrand48 arc4random_buf])
 
 # Obtain compiler/linker options for depedencies
 PKG_CHECK_MODULES(XDMCP, xproto)

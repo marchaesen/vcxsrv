@@ -30,7 +30,7 @@
 #include "util/bitset.h"
 
 #include "ir3.h"
-#include "ir3_compiler.h"
+#include "ir3_shader.h"
 #include "ir3_ra.h"
 
 
@@ -156,7 +156,6 @@ get_definer(struct ir3_ra_ctx *ctx, struct ir3_instruction *instr,
 		 * need to find the distance between where actual array starts
 		 * and collect..  that probably doesn't happen currently.
 		 */
-		struct ir3_register *src;
 		int dsz, doff;
 
 		/* note: don't use foreach_ssa_src as this gets called once
@@ -497,19 +496,6 @@ ra_select_reg_merged(unsigned int n, BITSET_WORD *regs, void *data)
 				return reg;
 			}
 		}
-	} else if (is_tex_or_prefetch(instr)) {
-		/* we could have a tex fetch w/ wrmask .z, for example.. these
-		 * cannot land in r0.x since that would underflow when we
-		 * subtract the offset.  Ie. if we pick r0.z, and subtract
-		 * the offset, the register encoded for dst will be r0.x
-		 */
-		unsigned n = ffs(instr->regs[0]->wrmask);
-		debug_assert(n > 0);
-		unsigned offset = n - 1;
-		if (!half)
-			offset *= 2;
-		base += offset;
-		max_target -= offset;
 	}
 
 	int r = pick_in_range(regs, base + start, base + max_target);
@@ -571,13 +557,22 @@ ra_init(struct ir3_ra_ctx *ctx)
 	}
 	ctx->alloc_count += ctx->class_alloc_count[total_class_count];
 
+	/* Add vreg names for r0.xyz */
+	ctx->r0_xyz_nodes = ctx->alloc_count;
+	ctx->alloc_count += 3;
+	ctx->hr0_xyz_nodes = ctx->alloc_count;
+	ctx->alloc_count += 3;
+
+	/* Add vreg name for prefetch-exclusion range: */
+	ctx->prefetch_exclude_node = ctx->alloc_count++;
+
 	ctx->g = ra_alloc_interference_graph(ctx->set->regs, ctx->alloc_count);
 	ralloc_steal(ctx->g, ctx->instrd);
 	ctx->def = rzalloc_array(ctx->g, unsigned, ctx->alloc_count);
 	ctx->use = rzalloc_array(ctx->g, unsigned, ctx->alloc_count);
 
 	/* TODO add selector callback for split (pre-a6xx) register file: */
-	if (ctx->ir->compiler->gpu_id >= 600) {
+	if (ctx->v->mergedregs) {
 		ra_set_select_reg_callback(ctx->g, ra_select_reg_merged, ctx);
 
 		if (ctx->scalar_pass) {
@@ -710,6 +705,29 @@ ra_block_compute_live_ranges(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 
 			if ((instr->opc == OPC_META_INPUT) && first_non_input)
 				use(name, first_non_input);
+
+			/* Texture instructions with writemasks can be treated as smaller
+			 * vectors (or just scalars!) to allocate knowing that the
+			 * masked-out regs won't be written, but we need to make sure that
+			 * the start of the vector doesn't come before the first register
+			 * or we'll wrap.
+			 */
+			if (is_tex_or_prefetch(instr)) {
+				int writemask_skipped_regs = ffs(instr->regs[0]->wrmask) - 1;
+				int r0_xyz = is_half(instr) ?
+					ctx->hr0_xyz_nodes : ctx->r0_xyz_nodes;
+				for (int i = 0; i < writemask_skipped_regs; i++)
+					ra_add_node_interference(ctx->g, name, r0_xyz + i);
+			}
+
+			/* Pre-fetched textures have a lower limit for bits to encode dst
+			 * register, so add additional interference with registers above
+			 * that limit.
+			 */
+			if (instr->opc == OPC_META_TEX_PREFETCH) {
+				ra_add_node_interference(ctx->g, name,
+						ctx->prefetch_exclude_node);
+			}
 		}
 
 		foreach_use (name, ctx, instr) {
@@ -1005,6 +1023,19 @@ ra_add_interference(struct ir3_ra_ctx *ctx)
 		arr->end_ip = 0;
 	}
 
+	/* set up the r0.xyz precolor regs. */
+	for (int i = 0; i < 3; i++) {
+		ra_set_node_reg(ctx->g, ctx->r0_xyz_nodes + i, i);
+		ra_set_node_reg(ctx->g, ctx->hr0_xyz_nodes + i,
+				ctx->set->first_half_reg + i);
+	}
+
+	/* pre-color node that conflict with half/full regs higher than what
+	 * can be encoded for tex-prefetch:
+	 */
+	ra_set_node_reg(ctx->g, ctx->prefetch_exclude_node,
+			ctx->set->prefetch_exclude_reg);
+
 	/* compute live ranges (use/def) on a block level, also updating
 	 * block's def/use bitmasks (used below to calculate per-block
 	 * livein/liveout):
@@ -1091,60 +1122,6 @@ ra_add_interference(struct ir3_ra_ctx *ctx)
 	}
 }
 
-/* some instructions need fix-up if dst register is half precision: */
-static void fixup_half_instr_dst(struct ir3_instruction *instr)
-{
-	switch (opc_cat(instr->opc)) {
-	case 1: /* move instructions */
-		instr->cat1.dst_type = half_type(instr->cat1.dst_type);
-		break;
-	case 4:
-		switch (instr->opc) {
-		case OPC_RSQ:
-			instr->opc = OPC_HRSQ;
-			break;
-		case OPC_LOG2:
-			instr->opc = OPC_HLOG2;
-			break;
-		case OPC_EXP2:
-			instr->opc = OPC_HEXP2;
-			break;
-		default:
-			break;
-		}
-		break;
-	case 5:
-		instr->cat5.type = half_type(instr->cat5.type);
-		break;
-	}
-}
-/* some instructions need fix-up if src register is half precision: */
-static void fixup_half_instr_src(struct ir3_instruction *instr)
-{
-	switch (instr->opc) {
-	case OPC_MOV:
-		instr->cat1.src_type = half_type(instr->cat1.src_type);
-		break;
-	case OPC_MAD_F32:
-		instr->opc = OPC_MAD_F16;
-		break;
-	case OPC_SEL_B32:
-		instr->opc = OPC_SEL_B16;
-		break;
-	case OPC_SEL_S32:
-		instr->opc = OPC_SEL_S16;
-		break;
-	case OPC_SEL_F32:
-		instr->opc = OPC_SEL_F16;
-		break;
-	case OPC_SAD_S32:
-		instr->opc = OPC_SAD_S16;
-		break;
-	default:
-		break;
-	}
-}
-
 /* NOTE: instr could be NULL for IR3_REG_ARRAY case, for the first
  * array access(es) which do not have any previous access to depend
  * on from scheduling point of view
@@ -1223,13 +1200,10 @@ static void
 ra_block_alloc(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 {
 	foreach_instr (instr, &block->instr_list) {
-		struct ir3_register *reg;
 
 		if (writes_gpr(instr)) {
 			if (should_assign(ctx, instr)) {
 				reg_assign(ctx, instr->regs[0], instr);
-				if (instr->regs[0]->flags & IR3_REG_HALF)
-					fixup_half_instr_dst(instr);
 			}
 		}
 
@@ -1245,9 +1219,6 @@ ra_block_alloc(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 			/* Note: reg->instr could be null for IR3_REG_ARRAY */
 			if (src || (reg->flags & IR3_REG_ARRAY))
 				reg_assign(ctx, instr->regs[n+1], src);
-
-			if (instr->regs[n+1]->flags & IR3_REG_HALF)
-				fixup_half_instr_src(instr);
 		}
 	}
 
@@ -1256,8 +1227,6 @@ ra_block_alloc(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 	 * them in the first pass:
 	 */
 	if (!ctx->scalar_pass) {
-		struct ir3_instruction *in, *out;
-
 		foreach_input (in, ctx->ir) {
 			reg_assign(ctx, in->regs[0], in);
 		}
@@ -1341,13 +1310,6 @@ ra_precolor(struct ir3_ra_ctx *ctx, struct ir3_instruction **precolor, unsigned 
 
 			debug_assert(!(instr->regs[0]->flags & (IR3_REG_HALF | IR3_REG_HIGH)));
 
-			/* only consider the first component: */
-			if (id->off > 0)
-				continue;
-
-			if (ctx->scalar_pass && !should_assign(ctx, instr))
-				continue;
-
 			/* 'base' is in scalar (class 0) but we need to map that
 			 * the conflicting register of the appropriate class (ie.
 			 * input could be vec2/vec3/etc)
@@ -1366,6 +1328,9 @@ ra_precolor(struct ir3_ra_ctx *ctx, struct ir3_instruction **precolor, unsigned 
 			 *           .. and so on..
 			 */
 			unsigned regid = instr->regs[0]->num;
+			assert(regid >= id->off);
+			regid -= id->off;
+
 			unsigned reg = ctx->set->gpr_to_ra_reg[id->cls][regid];
 			unsigned name = ra_name(ctx, id);
 			ra_set_node_reg(ctx->g, name, reg);
@@ -1466,7 +1431,6 @@ ra_precolor_assigned(struct ir3_ra_ctx *ctx)
 
 			precolor(ctx, instr);
 
-			struct ir3_register *src;
 			foreach_src (src, instr) {
 				if (!src->instr)
 					continue;
@@ -1504,7 +1468,6 @@ ra_sanity_check(struct ir3 *ir)
 				debug_assert(dst->num == (src->num + instr->split.off));
 			} else if (instr->opc == OPC_META_COLLECT) {
 				struct ir3_register *dst = instr->regs[0];
-				struct ir3_register *src;
 
 				foreach_src_n (src, n, instr) {
 					debug_assert(dst->num == (src->num - n));
@@ -1521,7 +1484,8 @@ ir3_ra_pass(struct ir3_shader_variant *v, struct ir3_instruction **precolor,
 	struct ir3_ra_ctx ctx = {
 			.v = v,
 			.ir = v->ir,
-			.set = v->ir->compiler->set,
+			.set = v->mergedregs ?
+				v->ir->compiler->mergedregs_set : v->ir->compiler->set,
 			.scalar_pass = scalar_pass,
 	};
 	int ret;
@@ -1548,14 +1512,14 @@ ir3_ra(struct ir3_shader_variant *v, struct ir3_instruction **precolor,
 	if (ret)
 		return ret;
 
-	ir3_debug_print(v->ir, "AFTER RA (1st pass)");
+	ir3_debug_print(v->ir, "AFTER: ir3_ra (1st pass)");
 
 	/* Second pass, assign the scalar registers: */
 	ret = ir3_ra_pass(v, precolor, nprecolor, true);
 	if (ret)
 		return ret;
 
-	ir3_debug_print(v->ir, "AFTER RA (2st pass)");
+	ir3_debug_print(v->ir, "AFTER: ir3_ra (2st pass)");
 
 #ifdef DEBUG
 #  define SANITY_CHECK DEBUG

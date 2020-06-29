@@ -109,7 +109,7 @@ class TestRE:
                 affected because intensity formats are different.
 
                 Cc: 19.2 <mesa-stable@lists.freedesktop.org>
-                Closes: https://gitlab.freedesktop.org/mesa/mesa/issues/1923
+                Closes: https://gitlab.freedesktop.org/mesa/mesa/-/issues/1923
                 Signed-off-by: Samuel Pitoiset <samuel.pitoiset@gmail.com>
                 Reviewed-by: Bas Nieuwenhuizen <bas@basnieuwenhuizen.nl>
             """)
@@ -124,7 +124,7 @@ class TestRE:
                 radeonsi: enable zerovram for Rocket League
 
                 Fixes corruption on game startup.
-                Closes: https://gitlab.freedesktop.org/mesa/mesa/issues/1888
+                Closes: https://gitlab.freedesktop.org/mesa/mesa/-/issues/1888
 
                 Cc: 19.1 19.2 <mesa-stable@lists.freedesktop.org>
                 Reviewed-by: Pierre-Eric Pelloux-Prayer <pierre-eric.pelloux-prayer@amd.com>
@@ -158,8 +158,8 @@ class TestRE:
 
                  Cc: "20.0" mesa-stable@lists.freedesktop.org
                  Reviewed-by: Kenneth Graunke <kenneth@whitecape.org>
-                 Tested-by: Marge Bot <https://gitlab.freedesktop.org/mesa/mesa/merge_requests/3454>
-                 Part-of: <https://gitlab.freedesktop.org/mesa/mesa/merge_requests/3454>
+                 Tested-by: Marge Bot <https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/3454>
+                 Part-of: <https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/3454>
             """)
 
             m = core.IS_CC.search(message)
@@ -173,8 +173,8 @@ class TestRE:
 
                  Cc: "20.0" "20.1" mesa-stable@lists.freedesktop.org
                  Reviewed-by: Kenneth Graunke <kenneth@whitecape.org>
-                 Tested-by: Marge Bot <https://gitlab.freedesktop.org/mesa/mesa/merge_requests/3454>
-                 Part-of: <https://gitlab.freedesktop.org/mesa/mesa/merge_requests/3454>
+                 Tested-by: Marge Bot <https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/3454>
+                 Part-of: <https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/3454>
             """)
 
             m = core.IS_CC.search(message)
@@ -189,8 +189,8 @@ class TestRE:
 
                  Cc: '20.0' mesa-stable@lists.freedesktop.org
                  Reviewed-by: Kenneth Graunke <kenneth@whitecape.org>
-                 Tested-by: Marge Bot <https://gitlab.freedesktop.org/mesa/mesa/merge_requests/3454>
-                 Part-of: <https://gitlab.freedesktop.org/mesa/mesa/merge_requests/3454>
+                 Tested-by: Marge Bot <https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/3454>
+                 Part-of: <https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/3454>
             """)
 
             m = core.IS_CC.search(message)
@@ -204,8 +204,8 @@ class TestRE:
 
                  Cc: '20.0' '20.1' mesa-stable@lists.freedesktop.org
                  Reviewed-by: Kenneth Graunke <kenneth@whitecape.org>
-                 Tested-by: Marge Bot <https://gitlab.freedesktop.org/mesa/mesa/merge_requests/3454>
-                 Part-of: <https://gitlab.freedesktop.org/mesa/mesa/merge_requests/3454>
+                 Tested-by: Marge Bot <https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/3454>
+                 Part-of: <https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/3454>
             """)
 
             m = core.IS_CC.search(message)

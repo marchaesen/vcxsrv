@@ -49,7 +49,9 @@ set_exponent(nir_builder *b, nir_ssa_def *src, nir_ssa_def *exp)
    /* The exponent is bits 52-62, or 20-30 of the high word, so set the exponent
     * to 1023
     */
-   nir_ssa_def *new_hi = nir_bfi(b, nir_imm_int(b, 0x7ff00000), exp, hi);
+   nir_ssa_def *new_hi = nir_bitfield_insert(b, hi, exp,
+                                             nir_imm_int(b, 20),
+                                             nir_imm_int(b, 11));
    /* recombine */
    return nir_pack_64_2x32_split(b, lo, new_hi);
 }
@@ -753,6 +755,11 @@ nir_lower_doubles_impl(nir_function_impl *impl,
        * inlining.
        */
       nir_opt_deref_impl(impl);
+   } else if (progress) {
+      nir_metadata_preserve(impl, nir_metadata_block_index |
+                                  nir_metadata_dominance);
+   } else {
+      nir_metadata_preserve(impl, nir_metadata_all);
    }
 
    return progress;

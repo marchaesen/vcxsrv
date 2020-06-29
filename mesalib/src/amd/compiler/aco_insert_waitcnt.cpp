@@ -200,20 +200,27 @@ struct wait_entry {
    uint8_t counters; /* use counter_type notion */
    bool wait_on_read:1;
    bool logical:1;
+   bool has_vmem_nosampler:1;
+   bool has_vmem_sampler:1;
 
    wait_entry(wait_event event, wait_imm imm, bool logical, bool wait_on_read)
            : imm(imm), events(event), counters(get_counters_for_event(event)),
-             wait_on_read(wait_on_read), logical(logical) {}
+             wait_on_read(wait_on_read), logical(logical),
+             has_vmem_nosampler(false), has_vmem_sampler(false) {}
 
    bool join(const wait_entry& other)
    {
       bool changed = (other.events & ~events) ||
                      (other.counters & ~counters) ||
-                     (other.wait_on_read && !wait_on_read);
+                     (other.wait_on_read && !wait_on_read) ||
+                     (other.has_vmem_nosampler && !has_vmem_nosampler) ||
+                     (other.has_vmem_sampler && !has_vmem_sampler);
       events |= other.events;
       counters |= other.counters;
       changed |= imm.combine(other.imm);
-      wait_on_read = wait_on_read || other.wait_on_read;
+      wait_on_read |= other.wait_on_read;
+      has_vmem_nosampler |= other.has_vmem_nosampler;
+      has_vmem_sampler |= other.has_vmem_sampler;
       assert(logical == other.logical);
       return changed;
    }
@@ -230,6 +237,8 @@ struct wait_entry {
       if (counter == counter_vm) {
          imm.vm = wait_imm::unset_counter;
          events &= ~event_vmem;
+         has_vmem_nosampler = false;
+         has_vmem_sampler = false;
       }
 
       if (counter == counter_exp) {
@@ -402,22 +411,16 @@ wait_imm check_instr(Instruction* instr, wait_ctx& ctx)
             continue;
 
          /* Vector Memory reads and writes return in the order they were issued */
-         if (instr->isVMEM() && ((it->second.events & vm_events) == event_vmem)) {
-            it->second.remove_counter(counter_vm);
-            if (!it->second.counters)
-               it = ctx.gpr_map.erase(it);
+         bool has_sampler = instr->format == Format::MIMG && !instr->operands[1].isUndefined() && instr->operands[1].regClass() == s4;
+         if (instr->isVMEM() && ((it->second.events & vm_events) == event_vmem) &&
+             it->second.has_vmem_nosampler == !has_sampler && it->second.has_vmem_sampler == has_sampler)
             continue;
-         }
 
          /* LDS reads and writes return in the order they were issued. same for GDS */
          if (instr->format == Format::DS) {
             bool gds = static_cast<DS_instruction*>(instr)->gds;
-            if ((it->second.events & lgkm_events) == (gds ? event_gds : event_lds)) {
-               it->second.remove_counter(counter_lgkm);
-               if (!it->second.counters)
-                  it = ctx.gpr_map.erase(it);
+            if ((it->second.events & lgkm_events) == (gds ? event_gds : event_lds))
                continue;
-            }
          }
 
          wait.combine(it->second.imm);
@@ -457,7 +460,7 @@ wait_imm kill(Instruction* instr, wait_ctx& ctx)
       imm.lgkm = 0;
    }
 
-   if (ctx.chip_class >= GFX10) {
+   if (ctx.chip_class >= GFX10 && instr->format == Format::SMEM) {
       /* GFX10: A store followed by a load at the same address causes a problem because
        * the load doesn't load the correct values unless we wait for the store first.
        * This is NOT mitigated by an s_nop.
@@ -552,7 +555,7 @@ wait_imm kill(Instruction* instr, wait_ctx& ctx)
             ctx.wait_and_remove_from_entry(it->first, it->second, counter_vm);
          if (imm.lgkm != wait_imm::unset_counter && imm.lgkm <= it->second.imm.lgkm)
             ctx.wait_and_remove_from_entry(it->first, it->second, counter_lgkm);
-         if (imm.lgkm != wait_imm::unset_counter && imm.vs <= it->second.imm.vs)
+         if (imm.vs != wait_imm::unset_counter && imm.vs <= it->second.imm.vs)
             ctx.wait_and_remove_from_entry(it->first, it->second, counter_vs);
          if (!it->second.counters)
             it = ctx.gpr_map.erase(it);
@@ -669,7 +672,8 @@ void update_counters_for_flat_load(wait_ctx& ctx, barrier_interaction barrier=ba
    ctx.pending_flat_vm = true;
 }
 
-void insert_wait_entry(wait_ctx& ctx, PhysReg reg, RegClass rc, wait_event event, bool wait_on_read)
+void insert_wait_entry(wait_ctx& ctx, PhysReg reg, RegClass rc, wait_event event, bool wait_on_read,
+                       bool has_sampler=false)
 {
    uint16_t counters = get_counters_for_event(event);
    wait_imm imm;
@@ -683,6 +687,8 @@ void insert_wait_entry(wait_ctx& ctx, PhysReg reg, RegClass rc, wait_event event
       imm.vs = 0;
 
    wait_entry new_entry(event, imm, !rc.is_linear(), wait_on_read);
+   new_entry.has_vmem_nosampler = (event & event_vmem) && !has_sampler;
+   new_entry.has_vmem_sampler = (event & event_vmem) && has_sampler;
 
    for (unsigned i = 0; i < rc.size(); i++) {
       auto it = ctx.gpr_map.emplace(PhysReg{reg.reg()+i}, new_entry);
@@ -701,15 +707,15 @@ void insert_wait_entry(wait_ctx& ctx, PhysReg reg, RegClass rc, wait_event event
    }
 }
 
-void insert_wait_entry(wait_ctx& ctx, Operand op, wait_event event)
+void insert_wait_entry(wait_ctx& ctx, Operand op, wait_event event, bool has_sampler=false)
 {
    if (!op.isConstant() && !op.isUndefined())
-      insert_wait_entry(ctx, op.physReg(), op.regClass(), event, false);
+      insert_wait_entry(ctx, op.physReg(), op.regClass(), event, false, has_sampler);
 }
 
-void insert_wait_entry(wait_ctx& ctx, Definition def, wait_event event)
+void insert_wait_entry(wait_ctx& ctx, Definition def, wait_event event, bool has_sampler=false)
 {
-   insert_wait_entry(ctx, def.physReg(), def.regClass(), event, true);
+   insert_wait_entry(ctx, def.physReg(), def.regClass(), event, true, has_sampler);
 }
 
 void gen(Instruction* instr, wait_ctx& ctx)
@@ -786,8 +792,10 @@ void gen(Instruction* instr, wait_ctx& ctx)
       wait_event ev = !instr->definitions.empty() || ctx.chip_class < GFX10 ? event_vmem : event_vmem_store;
       update_counters(ctx, ev, get_barrier_interaction(instr));
 
+      bool has_sampler = instr->format == Format::MIMG && !instr->operands[1].isUndefined() && instr->operands[1].regClass() == s4;
+
       if (!instr->definitions.empty())
-         insert_wait_entry(ctx, instr->definitions[0], ev);
+         insert_wait_entry(ctx, instr->definitions[0], ev, has_sampler);
 
       if (ctx.chip_class == GFX6 &&
           instr->format != Format::MIMG &&

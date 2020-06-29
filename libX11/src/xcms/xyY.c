@@ -145,7 +145,7 @@ CIExyY_ParseString(
     /*
      * Check for proper prefix.
      */
-    if (strncmp(spec, _XcmsCIExyY_prefix, n) != 0) {
+    if (strncmp(spec, _XcmsCIExyY_prefix, (size_t)n) != 0) {
 	return(XcmsFailure);
     }
 

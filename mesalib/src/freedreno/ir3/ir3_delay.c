@@ -49,7 +49,6 @@ ignore_dep(struct ir3_instruction *assigner,
 
 	if (assigner->barrier_class & IR3_BARRIER_ARRAY_W) {
 		struct ir3_register *dst = assigner->regs[0];
-		struct ir3_register *src;
 
 		debug_assert(dst->flags & IR3_REG_ARRAY);
 
@@ -123,7 +122,7 @@ count_instruction(struct ir3_instruction *n)
 	 * be eliminated later in resolve_jumps().. really should do that
 	 * earlier so we don't have this constraint.
 	 */
-	return is_alu(n) || (is_flow(n) && (n->opc != OPC_JUMP) && (n->opc != OPC_BR));
+	return is_alu(n) || (is_flow(n) && (n->opc != OPC_JUMP) && (n->opc != OPC_B));
 }
 
 /**
@@ -198,14 +197,35 @@ delay_calc_srcn(struct ir3_block *block,
 	unsigned delay = 0;
 
 	if (is_meta(assigner)) {
-		struct ir3_register *src;
-		foreach_src (src, assigner) {
+		foreach_src_n (src, n, assigner) {
 			unsigned d;
 
 			if (!src->instr)
 				continue;
 
 			d = delay_calc_srcn(block, src->instr, consumer, srcn, soft, pred);
+
+			/* A (rptN) instruction executes in consecutive cycles so
+			 * it's outputs are written in successive cycles.  And
+			 * likewise for it's (r)'d (incremented) inputs, they are
+			 * read on successive cycles.
+			 *
+			 * So we need to adjust the delay for (rptN)'s assigners
+			 * and consumers accordingly.
+			 *
+			 * Note that the dst of a (rptN) instruction is implicitly
+			 * (r) (the assigner case), although that is not the case
+			 * for src registers.  There is exactly one case, bary.f,
+			 * which has a vecN (collect) src that is not (r)'d.
+			 */
+			if ((assigner->opc == OPC_META_SPLIT) && src->instr->repeat) {
+				/* (rptN) assigner case: */
+				d -= MIN2(d, src->instr->repeat - assigner->split.off);
+			} else if ((assigner->opc == OPC_META_COLLECT) && consumer->repeat &&
+					(consumer->regs[srcn]->flags & IR3_REG_R)) {
+				d -= MIN2(d, n);
+			}
+
 			delay = MAX2(delay, d);
 		}
 	} else {
@@ -320,7 +340,6 @@ ir3_delay_calc(struct ir3_block *block, struct ir3_instruction *instr,
 		bool soft, bool pred)
 {
 	unsigned delay = 0;
-	struct ir3_register *src;
 
 	foreach_src_n (src, i, instr) {
 		unsigned d = 0;

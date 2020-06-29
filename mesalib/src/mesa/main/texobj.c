@@ -1514,6 +1514,10 @@ delete_textures(struct gl_context *ctx, GLsizei n, const GLuint *textures)
              */
             _mesa_HashRemove(ctx->Shared->TexObjects, delObj->Name);
 
+            if (ctx->Driver.TextureRemovedFromShared) {
+               ctx->Driver.TextureRemovedFromShared(ctx, delObj);
+            }
+
             /* Unreference the texobj.  If refcount hits zero, the texture
              * will be deleted.
              */

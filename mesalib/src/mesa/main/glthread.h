@@ -66,15 +66,23 @@ struct glthread_attrib_binding {
 struct glthread_vao {
    GLuint Name;
    GLuint CurrentElementBufferName;
-   GLbitfield UserEnabled; /**< Vertex attrib arrays enabled by the user. */
+   GLbitfield UserEnabled; /**< Vertex attribs enabled by the user. */
    GLbitfield Enabled; /**< UserEnabled with POS vs GENERIC0 aliasing resolved. */
-   GLbitfield UserPointerMask;
-   GLbitfield NonZeroDivisorMask;
+   GLbitfield BufferEnabled; /**< "Enabled" converted to buffer bindings. */
+   GLbitfield BufferInterleaved; /**< Bitmask of buffers used by multiple attribs. */
+   GLbitfield UserPointerMask; /**< Bitmask of buffer bindings. */
+   GLbitfield NonZeroDivisorMask; /**< Bitmask of buffer bindings. */
 
    struct {
+      /* Per attrib: */
       GLuint ElementSize;
+      GLuint RelativeOffset;
+      GLuint BufferIndex; /**< Referring to Attrib[BufferIndex]. */
+
+      /* Per buffer binding: */
       GLsizei Stride;
       GLuint Divisor;
+      int EnabledAttribCount; /**< Number of enabled attribs using this buffer. */
       const void *Pointer;
    } Attrib[VERT_ATTRIB_MAX];
 };
@@ -122,6 +130,9 @@ struct glthread_state
 
    /** Whether GLThread is enabled. */
    bool enabled;
+
+   /** Whether GLThread is inside a display list generation. */
+   bool inside_dlist;
 
    /** The ring of batches in memory. */
    struct glthread_batch batches[MARSHAL_MAX_BATCHES];
@@ -204,6 +215,31 @@ void _mesa_glthread_DSAAttribPointer(struct gl_context *ctx, GLuint vao,
                                      GLuint buffer, gl_vert_attrib attrib,
                                      GLint size, GLenum type, GLsizei stride,
                                      GLintptr offset);
+void _mesa_glthread_AttribFormat(struct gl_context *ctx, GLuint attribindex,
+                                 GLint size, GLenum type,  GLuint relativeoffset);
+void _mesa_glthread_DSAAttribFormat(struct gl_context *ctx, GLuint vaobj,
+                                    GLuint attribindex, GLint size, GLenum type,
+                                    GLuint relativeoffset);
+void _mesa_glthread_VertexBuffer(struct gl_context *ctx, GLuint bindingindex,
+                                 GLuint buffer, GLintptr offset, GLsizei stride);
+void _mesa_glthread_DSAVertexBuffer(struct gl_context *ctx, GLuint vaobj,
+                                    GLuint bindingindex, GLuint buffer,
+                                    GLintptr offset, GLsizei stride);
+void _mesa_glthread_DSAVertexBuffers(struct gl_context *ctx, GLuint vaobj,
+                                     GLuint first, GLsizei count,
+                                     const GLuint *buffers,
+                                     const GLintptr *offsets,
+                                     const GLsizei *strides);
+void _mesa_glthread_BindingDivisor(struct gl_context *ctx, GLuint bindingindex,
+                                   GLuint divisor);
+void _mesa_glthread_DSABindingDivisor(struct gl_context *ctx, GLuint vaobj,
+                                      GLuint bindingindex, GLuint divisor);
+void _mesa_glthread_AttribBinding(struct gl_context *ctx, GLuint attribindex,
+                                  GLuint bindingindex);
+void _mesa_glthread_DSAAttribBinding(struct gl_context *ctx, GLuint vaobj,
+                                     GLuint attribindex, GLuint bindingindex);
+void _mesa_glthread_DSAElementBuffer(struct gl_context *ctx, GLuint vaobj,
+                                     GLuint buffer);
 void _mesa_glthread_PushClientAttrib(struct gl_context *ctx, GLbitfield mask,
                                      bool set_default);
 void _mesa_glthread_PopClientAttrib(struct gl_context *ctx);

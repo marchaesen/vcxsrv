@@ -1,13 +1,19 @@
-# SPIR-V->NIR issues.
-dEQP-VK.glsl.builtin.precision.asin.highp.scalar
-dEQP-VK.glsl.builtin.precision.asin.highp.vec2
-dEQP-VK.glsl.builtin.precision.asin.highp.vec3
-dEQP-VK.glsl.builtin.precision.asin.highp.vec4
-
-# CTS bug (list of extensions not up-to-date).
-dEQP-VK.info.device_extensions
-
 # ACO specific issues.
 dEQP-VK.transform_feedback.simple.multistreams_1
 dEQP-VK.transform_feedback.simple.multistreams_3
-dEQP-VK.graphicsfuzz.loops-ifs-continues-call
+
+dEQP-VK.rasterization.flatshading.line_strip_wide
+dEQP-VK.rasterization.flatshading.non_strict_line_strip_wide
+dEQP-VK.rasterization.flatshading.non_strict_lines_wide
+dEQP-VK.rasterization.interpolation.basic.line_strip_wide
+dEQP-VK.rasterization.interpolation.basic.non_strict_line_strip_wide
+dEQP-VK.rasterization.interpolation.basic.non_strict_lines_wide
+dEQP-VK.rasterization.interpolation.projected.lines_wide
+dEQP-VK.rasterization.interpolation.projected.non_strict_line_strip_wide
+dEQP-VK.rasterization.interpolation.projected.non_strict_lines_wide
+dEQP-VK.rasterization.interpolation_multisample_2_bit.lines_wide
+dEQP-VK.rasterization.interpolation_multisample_2_bit.non_strict_lines_wide
+dEQP-VK.rasterization.interpolation_multisample_4_bit.lines_wide
+dEQP-VK.rasterization.interpolation_multisample_4_bit.non_strict_lines_wide
+dEQP-VK.rasterization.interpolation_multisample_8_bit.lines_wide
+dEQP-VK.rasterization.interpolation_multisample_8_bit.non_strict_lines_wide

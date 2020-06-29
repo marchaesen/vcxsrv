@@ -24,6 +24,9 @@
 // "bas_phonetic" - the phonetic keyboard layout compliant with the
 //                  proposed Bulgarian state standard BDS 5237:2006
 
+// "bekl" - the enhanced variant of the Bulgarian BDS keyboard, proposed
+//                  in May 2020.
+
 // "latin" - an extended variant of the QWERTY layout with symbols that
 //           Bulgarian users will type while the keyboard is in Latin mode
 
@@ -44,7 +47,7 @@
 // Describes Bulgarian keyboard "BDS" modified according to the
 // the new state standard BDS 5237:2006 and extended with symbols in
 // levels 3 and 4.
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "bds" {
 
   name[Group1]= "Bulgarian";
@@ -162,8 +165,8 @@ xkb_symbols "phonetic" {
   key <AB05> {[ Cyrillic_be,       Cyrillic_BE                                               ]};
   key <AB06> {[ Cyrillic_en,       Cyrillic_EN                                               ]};
   key <AB07> {[ Cyrillic_em,       Cyrillic_EM                                               ]};
-  key <AB08> {[ comma,            doublelowquotemark, guillemotleft,     guillemotleft       ]};
-  key <AB09> {[ period,          leftdoublequotemark, guillemotright,    guillemotright      ]};
+  key <AB08> {[ comma,             less,              guillemotleft,     guillemotleft       ]};
+  key <AB09> {[ period,            greater,           guillemotright,    guillemotright      ]};
   key <AB10> {[ slash,             question,          U0300,             U0301               ]};
 
   key <SPCE> {[ space,             space,             nobreakspace,      nobreakspace        ]};
@@ -185,6 +188,71 @@ xkb_symbols "bas_phonetic" {
   key <BKSL> {[ Cyrillic_softsign, U045D,             Cyrillic_yeru,     Cyrillic_YERU       ]};
   key <AB02> {[ Cyrillic_zhe,      Cyrillic_ZHE                                              ]};
   key <AB04> {[ Cyrillic_ve,       Cyrillic_VE                                               ]};
+};
+
+// This is an enhanced variant of the Bulgarian BDS keyboard, proposed
+// in May 2020 by a group of more than 500 linguists, teachers, writers,
+// translators, IT specialists, professors and many more.
+partial alphanumeric_keys
+xkb_symbols "bekl" {
+
+  name[Group1]= "Bulgarian (enhanced)";
+
+  key <TLDE> {[ parenleft,         parenright,        bracketleft,       bracketright        ]};
+  key <AE01> {[ 1,                 exclam                                                    ]};
+  key <AE02> {[ 2,                 question,          U0040,             U0040               ]};
+  key <AE03> {[ 3,                 plus,              dagger,            dagger              ]};
+  key <AE04> {[ 4,                 quotedbl                                                  ]};
+  key <AE05> {[ 5,                 percent,           U2329,             U232A               ]};
+  key <AE06> {[ 6,                 equal,             emdash,            emdash              ]};
+  key <AE07> {[ 7,                 colon,             ellipsis,          ellipsis            ]};
+  key <AE08> {[ 8,                 slash,             U0300,             U0301               ]};
+  key <AE09> {[ 9,                 endash                                                    ]};
+  key <AE10> {[ 0,                 numerosign                                                ]};
+  key <AE11> {[ minus,             dollar,            U2011,             EuroSign            ]};
+  key <AE12> {[ period,            EuroSign                                                  ]};
+
+  key <AD01> {[ comma,             U02BC                                                     ]};
+  key <AD02> {[ Cyrillic_u,        Cyrillic_U                                                ]};
+  key <AD03> {[ Cyrillic_ie,       Cyrillic_IE,       Cyrillic_e,        Cyrillic_E          ]};
+  key <AD04> {[ Cyrillic_i,        Cyrillic_I,        U045D,             U040D               ]};
+  key <AD05> {[ Cyrillic_sha,      Cyrillic_SHA                                              ]};
+  key <AD06> {[ Cyrillic_shcha,    Cyrillic_SHCHA                                            ]};
+  key <AD07> {[ Cyrillic_ka,       Cyrillic_KA,       copyright,         copyright           ]};
+  key <AD08> {[ Cyrillic_es,       Cyrillic_ES                                               ]};
+  key <AD09> {[ Cyrillic_de,       Cyrillic_DE                                               ]};
+  key <AD10> {[ Cyrillic_ze,       Cyrillic_ZE                                               ]};
+  key <AD11> {[ Cyrillic_tse,      Cyrillic_TSE                                              ]};
+  key <AD12> {[ semicolon,         section                                                   ]};
+
+  key <AC01> {[ Cyrillic_softsign, U045D,             Cyrillic_yeru,     Cyrillic_YERU       ]};
+  key <AC02> {[ Cyrillic_ya,       Cyrillic_YA                                               ]};
+  key <AC03> {[ Cyrillic_a,        Cyrillic_A                                                ]};
+  key <AC04> {[ Cyrillic_o,        Cyrillic_O                                                ]};
+  key <AC05> {[ Cyrillic_zhe,      Cyrillic_ZHE                                              ]};
+  key <AC06> {[ Cyrillic_ghe,      Cyrillic_GHE                                              ]};
+  key <AC07> {[ Cyrillic_te,       Cyrillic_TE,       trademark,         trademark           ]};
+  key <AC08> {[ Cyrillic_en,       Cyrillic_EN                                               ]};
+  key <AC09> {[ Cyrillic_ve,       Cyrillic_VE                                               ]};
+  key <AC10> {[ Cyrillic_em,       Cyrillic_EM                                               ]};
+  key <AC11> {[ Cyrillic_che,      Cyrillic_CHE                                              ]};
+  key <BKSL> {[ doublelowquotemark, leftdoublequotemark, guillemotleft,  guillemotright      ]};
+
+  key <LSGT> {[ U045D,             U040D                                                     ]};
+  key <AB01> {[ Cyrillic_yu,       Cyrillic_YU                                               ]};
+  key <AB02> {[ Cyrillic_shorti,   Cyrillic_SHORTI,   U046D,             U046C               ]};
+  key <AB03> {[ Cyrillic_hardsign, Cyrillic_HARDSIGN, U046B,             U046A	             ]};
+  key <AB04> {[ U0463,             U0462	                                                 ]};
+  key <AB05> {[ Cyrillic_ef,       Cyrillic_EF                                               ]};
+  key <AB06> {[ Cyrillic_ha,       Cyrillic_HA                                               ]};
+  key <AB07> {[ Cyrillic_pe,       Cyrillic_PE                                               ]};
+  key <AB08> {[ Cyrillic_er,       Cyrillic_ER,       registered,        registered          ]};
+  key <AB09> {[ Cyrillic_el,       Cyrillic_EL                                               ]};
+  key <AB10> {[ Cyrillic_be,       Cyrillic_BE                                               ]};
+
+  key <SPCE> {[ space,             space,             nobreakspace,      nobreakspace        ]};
+
+  key <KPDL> { type[Group1] = "KEYPAD",             [ KP_Delete,         KP_Separator        ]};
 };
 
 

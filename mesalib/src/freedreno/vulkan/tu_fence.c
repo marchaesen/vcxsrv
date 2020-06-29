@@ -27,6 +27,7 @@
 #include <libsync.h>
 #include <unistd.h>
 
+#include "util/os_file.h"
 #include "util/os_time.h"
 
 /**
@@ -126,7 +127,7 @@ tu_fence_copy(struct tu_fence *fence, const struct tu_fence *src)
    /* dup src->fd */
    int fd = -1;
    if (src->fd >= 0) {
-      fd = fcntl(src->fd, F_DUPFD_CLOEXEC, 0);
+      fd = os_dupfd_cloexec(src->fd);
       if (fd < 0) {
          tu_loge("failed to dup fd %d for fence", src->fd);
          sync_wait(src->fd, -1);
@@ -334,6 +335,9 @@ tu_WaitForFences(VkDevice _device,
                  uint64_t timeout)
 {
    TU_FROM_HANDLE(tu_device, device, _device);
+
+   if (tu_device_is_lost(device))
+      return VK_ERROR_DEVICE_LOST;
 
    /* add a simpler path for when fenceCount == 1? */
 

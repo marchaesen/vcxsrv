@@ -168,52 +168,52 @@ if with_gallium_opencl
   # consumer
   subdir('targets/pipe-loader')
 
-  subdir('state_trackers/clover')
+  subdir('frontends/clover')
   subdir('targets/opencl')
 endif
 if with_dri
-  subdir('state_trackers/dri')
+  subdir('frontends/dri')
   subdir('targets/dri')
 endif
 if with_osmesa == 'gallium'
-  subdir('state_trackers/osmesa')
+  subdir('frontends/osmesa')
   subdir('targets/osmesa')
 endif
 if with_glx == 'gallium-xlib'
   subdir('winsys/sw/xlib')
-  subdir('state_trackers/glx/xlib')
+  subdir('frontends/glx/xlib')
   subdir('targets/libgl-xlib')
 endif
 if with_gallium_vdpau
-  subdir('state_trackers/vdpau')
+  subdir('frontends/vdpau')
   subdir('targets/vdpau')
 endif
 if with_gallium_xvmc
-  subdir('state_trackers/xvmc')
+  subdir('frontends/xvmc')
   subdir('targets/xvmc')
 endif
 if with_gallium_omx != 'disabled'
-  subdir('state_trackers/omx')
+  subdir('frontends/omx')
   subdir('targets/omx')
 endif
 if with_gallium_va
-  subdir('state_trackers/va')
+  subdir('frontends/va')
   subdir('targets/va')
 endif
 if with_gallium_xa
-  subdir('state_trackers/xa')
+  subdir('frontends/xa')
   subdir('targets/xa')
 endif
 if with_platform_haiku
-  subdir('state_trackers/hgl')
+  subdir('frontends/hgl')
   subdir('targets/haiku-softpipe')
 endif
 if with_gallium_st_nine
-  subdir('state_trackers/nine')
+  subdir('frontends/nine')
   subdir('targets/d3dadapter9')
 endif
 if with_platform_windows
-  subdir('state_trackers/wgl')
+  subdir('frontends/wgl')
   subdir('targets/libgl-gdi')
 endif
 if with_tests

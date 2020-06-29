@@ -1,6 +1,6 @@
 // based on a keyboard map from an 'xkb/symbols/be' file
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "latin"
@@ -110,7 +110,7 @@ xkb_symbols "oss_latin9" {
     include "be(oss_frbe)"
     include "keypad(oss_latin9)"
 
-    name[Group1]="Belgian (alt., Latin-9 only)";
+    name[Group1]="Belgian (Latin-9 only, alt.)";
 
     // First row
     key <TLDE>	{ [      twosuperior,    threesuperior,          onesuperior,                  less ] }; // ² ³ ¹ < 
@@ -159,14 +159,14 @@ xkb_symbols "oss_sundeadkeys" {
 
     include "be(oss_Sundeadkeys)"
 
-    name[Group1]="Belgian (alt., with Sun dead keys)";
+    name[Group1]="Belgian (Sun dead keys, alt.)";
 };
 
 
 partial alphanumeric_keys
 xkb_symbols "iso-alternate" {
     include "be(basic)"
-    name[Group1]="Belgian (alt. ISO)";
+    name[Group1]="Belgian (ISO, alt.)";
 
     key <AD01>	{ [         a,          A,           ae,           AE ]	};
     key <AD02>	{ [         z,          Z, guillemotleft,        less ]	};
@@ -182,7 +182,7 @@ xkb_symbols "sundeadkeys" {
     // Use the Sun dead keys
 
     include "be(basic)"
-    name[Group1]="Belgian (with Sun dead keys)";
+    name[Group1]="Belgian (Sun dead keys)";
 
     key <AD11>	{ [dead_circumflex, dead_diaeresis, bracketleft, bracketleft] };
     key <AC11>	{ [    ugrave,    percent,  dead_acute,  dead_acute ]	};

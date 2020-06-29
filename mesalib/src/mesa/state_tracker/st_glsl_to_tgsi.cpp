@@ -1938,11 +1938,13 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
          emit_asm(ir, TGSI_OPCODE_NOT, result_dst, op[0]);
          break;
       }
+      /* fallthrough */
    case ir_unop_u2f:
       if (native_integers) {
          emit_asm(ir, TGSI_OPCODE_U2F, result_dst, op[0]);
          break;
       }
+      /* fallthrough */
    case ir_binop_lshift:
    case ir_binop_rshift:
       if (native_integers) {
@@ -1964,16 +1966,19 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
          emit_asm(ir, opcode, result_dst, op[0], count);
          break;
       }
+      /* fallthrough */
    case ir_binop_bit_and:
       if (native_integers) {
          emit_asm(ir, TGSI_OPCODE_AND, result_dst, op[0], op[1]);
          break;
       }
+      /* fallthrough */
    case ir_binop_bit_xor:
       if (native_integers) {
          emit_asm(ir, TGSI_OPCODE_XOR, result_dst, op[0], op[1]);
          break;
       }
+      /* fallthrough */
    case ir_binop_bit_or:
       if (native_integers) {
          emit_asm(ir, TGSI_OPCODE_OR, result_dst, op[0], op[1]);
@@ -2389,6 +2394,10 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
    case ir_unop_f2fmp:
    case ir_unop_f162b:
    case ir_unop_b2f16:
+   case ir_unop_i2i:
+   case ir_unop_i2imp:
+   case ir_unop_u2u:
+   case ir_unop_u2ump:
       /* This operation is not supported, or should have already been handled.
        */
       assert(!"Invalid ir opcode in glsl_to_tgsi_visitor::visit()");

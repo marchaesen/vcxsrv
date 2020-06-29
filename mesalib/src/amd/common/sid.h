@@ -32,9 +32,10 @@
 #define SI_SH_REG_OFFSET                     0x0000B000
 #define SI_SH_REG_END                        0x0000C000
 #define SI_CONTEXT_REG_OFFSET                0x00028000
-#define SI_CONTEXT_REG_END                   0x00029000
+#define SI_CONTEXT_REG_END                   0x00030000
 #define CIK_UCONFIG_REG_OFFSET               0x00030000
-#define CIK_UCONFIG_REG_END                  0x00038000
+#define CIK_UCONFIG_REG_END                  0x00040000
+
 
 #define EVENT_TYPE_CACHE_FLUSH                  0x6
 #define EVENT_TYPE_PS_PARTIAL_FLUSH            0x10
@@ -100,9 +101,19 @@
 #define PKT3_INDEX_BASE                        0x26
 #define PKT3_DRAW_INDEX_2                      0x27
 #define PKT3_CONTEXT_CONTROL                   0x28
-#define     CONTEXT_CONTROL_LOAD_ENABLE(x)     (((unsigned)(x) & 0x1) << 31)
-#define     CONTEXT_CONTROL_LOAD_CE_RAM(x)     (((unsigned)(x) & 0x1) << 28)
-#define     CONTEXT_CONTROL_SHADOW_ENABLE(x)   (((unsigned)(x) & 0x1) << 31)
+#define     CC0_LOAD_GLOBAL_CONFIG(x)          (((unsigned)(x) & 0x1) << 0)
+#define     CC0_LOAD_PER_CONTEXT_STATE(x)      (((unsigned)(x) & 0x1) << 1)
+#define     CC0_LOAD_GLOBAL_UCONFIG(x)         (((unsigned)(x) & 0x1) << 15)
+#define     CC0_LOAD_GFX_SH_REGS(x)            (((unsigned)(x) & 0x1) << 16)
+#define     CC0_LOAD_CS_SH_REGS(x)             (((unsigned)(x) & 0x1) << 24)
+#define     CC0_LOAD_CE_RAM(x)                 (((unsigned)(x) & 0x1) << 28)
+#define     CC0_UPDATE_LOAD_ENABLES(x)         (((unsigned)(x) & 0x1) << 31)
+#define     CC1_SHADOW_GLOBAL_CONFIG(x)        (((unsigned)(x) & 0x1) << 0)
+#define     CC1_SHADOW_PER_CONTEXT_STATE(x)    (((unsigned)(x) & 0x1) << 1)
+#define     CC1_SHADOW_GLOBAL_UCONFIG(x)       (((unsigned)(x) & 0x1) << 15)
+#define     CC1_SHADOW_GFX_SH_REGS(x)          (((unsigned)(x) & 0x1) << 16)
+#define     CC1_SHADOW_CS_SH_REGS(x)           (((unsigned)(x) & 0x1) << 24)
+#define     CC1_UPDATE_SHADOW_ENABLES(x)       (((unsigned)(x) & 0x1) << 31)
 #define PKT3_INDEX_TYPE                        0x2A /* not on GFX9 */
 #define PKT3_DRAW_INDIRECT_MULTI               0x2C
 #define   R_2C3_DRAW_INDEX_LOC                  0x2C3
@@ -185,6 +196,9 @@
 #define PKT3_ONE_REG_WRITE                     0x57 /* not on CIK */
 #define PKT3_ACQUIRE_MEM                       0x58 /* new for CIK */
 #define PKT3_REWIND                            0x59 /* VI+ [any ring] or CIK [compute ring only] */
+#define PKT3_LOAD_UCONFIG_REG                  0x5E /* GFX7+ */
+#define PKT3_LOAD_SH_REG                       0x5F
+#define PKT3_LOAD_CONTEXT_REG                  0x61
 #define PKT3_SET_CONFIG_REG                    0x68
 #define PKT3_SET_CONTEXT_REG                   0x69
 #define PKT3_SET_SH_REG                        0x76
@@ -198,7 +212,7 @@
 #define PKT3_INCREMENT_DE_COUNTER              0x85
 #define PKT3_WAIT_ON_CE_COUNTER                0x86
 #define PKT3_SET_SH_REG_INDEX                  0x9B
-#define PKT3_LOAD_CONTEXT_REG                  0x9F /* new for VI */
+#define PKT3_LOAD_CONTEXT_REG_INDEX            0x9F /* new for VI */
 
 #define PKT_TYPE_S(x)                   (((unsigned)(x) & 0x3) << 30)
 #define PKT_TYPE_G(x)                   (((x) >> 30) & 0x3)
@@ -216,6 +230,9 @@
 #define PKT3_SHADER_TYPE_S(x)           (((unsigned)(x) & 0x1) << 1)
 #define PKT0(index, count) (PKT_TYPE_S(0) | PKT0_BASE_INDEX_S(index) | PKT_COUNT_S(count))
 #define PKT3(op, count, predicate) (PKT_TYPE_S(3) | PKT_COUNT_S(count) | PKT3_IT_OPCODE_S(op) | PKT3_PREDICATE(predicate))
+
+#define PKT2_NOP_PAD                    PKT_TYPE_S(2)
+#define PKT3_NOP_PAD                    PKT3(PKT3_NOP, 0x3fff, 0) /* header-only version */
 
 #define PKT3_CP_DMA					0x41
 /* 1. header
@@ -284,9 +301,10 @@
 #define        SDMA_TS_SUB_OPCODE_GET_LOCAL_TIMESTAMP     0x1
 #define        SDMA_TS_SUB_OPCODE_GET_GLOBAL_TIMESTAMP    0x2
 #define    CIK_SDMA_PACKET_SRBM_WRITE              0xe
-/* There is apparently an undocumented HW "feature" that
-   prevents the HW from copying past 256 bytes of (1 << 22) */
-#define    CIK_SDMA_COPY_MAX_SIZE                  0x3fff00
+/* There is apparently an undocumented HW limitation that
+   prevents the HW from copying the last 255 bytes of (1 << 22) - 1 */
+#define    CIK_SDMA_COPY_MAX_SIZE                  0x3fff00  /* almost 4 MB*/
+#define    GFX103_SDMA_COPY_MAX_SIZE               0x3fffff00 /* almost 1 GB */
 
 enum amd_cmp_class_flags {
 	S_NAN = 1 << 0,        // Signaling NaN

@@ -29,20 +29,6 @@
  * a bit-size that is supported natively and then converts the result back to
  * the original bit-size.
  */
-static nir_ssa_def *
-convert_to_bit_size(nir_builder *bld,
-                    nir_ssa_def *src,
-                    nir_alu_type type,
-                    unsigned bit_size)
-{
-   nir_alu_type base_type = nir_alu_type_get_base_type(type);
-   nir_alu_type lowered_type = bit_size | base_type;
-
-   nir_op opcode =
-      nir_type_conversion_op(type, lowered_type, nir_rounding_mode_undef);
-
-   return nir_build_alu(bld, opcode, src, NULL, NULL, NULL);
-}
 
 static void
 lower_instr(nir_builder *bld, nir_alu_instr *alu, unsigned bit_size)
@@ -59,7 +45,7 @@ lower_instr(nir_builder *bld, nir_alu_instr *alu, unsigned bit_size)
 
       nir_alu_type type = nir_op_infos[op].input_types[i];
       if (nir_alu_type_get_type_size(type) == 0)
-         src = convert_to_bit_size(bld, src, type, bit_size);
+         src = nir_convert_to_bit_size(bld, src, type, bit_size);
 
       if (i == 1 && (op == nir_op_ishl || op == nir_op_ishr || op == nir_op_ushr)) {
          assert(util_is_power_of_two_nonzero(dst_bit_size));
@@ -85,7 +71,7 @@ lower_instr(nir_builder *bld, nir_alu_instr *alu, unsigned bit_size)
 
    /* Convert result back to the original bit-size */
    nir_alu_type type = nir_op_infos[op].output_type;
-   nir_ssa_def *dst = convert_to_bit_size(bld, lowered_dst, type, dst_bit_size);
+   nir_ssa_def *dst = nir_convert_to_bit_size(bld, lowered_dst, type, dst_bit_size);
    nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(dst));
 }
 
@@ -120,6 +106,8 @@ lower_impl(nir_function_impl *impl,
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
+   } else {
+      nir_metadata_preserve(impl, nir_metadata_all);
    }
 
    return progress;

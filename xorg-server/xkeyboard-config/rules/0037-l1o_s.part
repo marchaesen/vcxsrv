@@ -1,0 +1,4 @@
+! layout[1]	option	=	symbols
+  $threelevellayouts	grp:alts_toggle = +level3(ralt_switch_for_alts_toggle):1
+  *			misc:typo 	= +typo(base):1
+  *			misc:apl	= +apl(level3):1

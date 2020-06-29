@@ -31,7 +31,7 @@
 
 #ifndef HAVE_REALLOCARRAY
 extern _X_HIDDEN void *xreallocarray(void *optr, size_t nmemb, size_t size);
-# define reallocarray(ptr, n, size)	xreallocarray((ptr), (n), (size))
+# define reallocarray(ptr, n, size)	xreallocarray((ptr), (size_t)(n), (size_t)(size))
 #endif
 
 #if defined(MALLOC_0_RETURNS_NULL) || defined(__clang_analyzer__)

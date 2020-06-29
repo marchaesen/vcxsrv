@@ -178,6 +178,7 @@ mir_set_offset(compiler_context *ctx, midgard_instruction *ins, nir_src *offset,
         if (!offset->is_ssa) {
                 ins->load_store.arg_1 |= is_shared ? 0x6E : 0x7E;
                 ins->src[2] = nir_src_index(ctx, offset);
+                ins->src_types[2] = nir_type_uint | nir_src_bit_size(*offset);
                 return;
         }
 
@@ -186,12 +187,14 @@ mir_set_offset(compiler_context *ctx, midgard_instruction *ins, nir_src *offset,
         if (match.A.def) {
                 ins->src[1] = nir_ssa_index(match.A.def);
                 ins->swizzle[1][0] = match.A.comp;
+                ins->src_types[1] = nir_type_uint | match.A.def->bit_size;
         } else
                 ins->load_store.arg_1 |= is_shared ? 0x6E : 0x7E;
 
         if (match.B.def) {
                 ins->src[2] = nir_ssa_index(match.B.def);
                 ins->swizzle[2][0] = match.B.comp;
+                ins->src_types[2] = nir_type_uint | match.B.def->bit_size;
         } else
                 ins->load_store.arg_2 = 0x1E;
 

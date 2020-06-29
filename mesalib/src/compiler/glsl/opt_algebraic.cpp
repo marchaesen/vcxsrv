@@ -578,7 +578,8 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
                ir_rvalue *y_operand = inner_add->operands[1 - neg_pos];
                ir_rvalue *a_operand = mul->operands[1 - inner_add_pos];
 
-               if (x_operand->type != y_operand->type ||
+               if (!x_operand->type->is_float_16_32_64() ||
+                   x_operand->type != y_operand->type ||
                    x_operand->type != a_operand->type)
                   continue;
 

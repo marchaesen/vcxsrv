@@ -273,21 +273,7 @@ nir_lower_regs_to_ssa_impl(nir_function_impl *impl)
        * loops, a phi source may be a back-edge so we have to handle it as if
        * it were one of the last instructions in the predecessor block.
        */
-      for (unsigned i = 0; i < ARRAY_SIZE(block->successors); i++) {
-         if (block->successors[i] == NULL)
-            continue;
-
-         nir_foreach_instr(instr, block->successors[i]) {
-            if (instr->type != nir_instr_type_phi)
-               break;
-
-            nir_phi_instr *phi = nir_instr_as_phi(instr);
-            nir_foreach_phi_src(phi_src, phi) {
-               if (phi_src->pred == block)
-                  rewrite_src(&phi_src->src, &state);
-            }
-         }
-      }
+      nir_foreach_phi_src_leaving_block(block, rewrite_src, &state);
    }
 
    nir_phi_builder_finish(phi_build);

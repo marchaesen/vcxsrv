@@ -156,70 +156,6 @@ delta(uint32_t a, uint32_t b)
 }
 
 /*
- * TODO de-duplicate OUT_RING() and friends
- */
-
-#define CP_WAIT_FOR_IDLE 38
-#define CP_TYPE0_PKT 0x00000000
-#define CP_TYPE3_PKT 0xc0000000
-#define CP_TYPE4_PKT 0x40000000
-#define CP_TYPE7_PKT 0x70000000
-
-static inline void
-OUT_RING(struct fd_ringbuffer *ring, uint32_t data)
-{
-	*(ring->cur++) = data;
-}
-
-static inline void
-OUT_PKT0(struct fd_ringbuffer *ring, uint16_t regindx, uint16_t cnt)
-{
-	OUT_RING(ring, CP_TYPE0_PKT | ((cnt-1) << 16) | (regindx & 0x7FFF));
-}
-
-static inline void
-OUT_PKT3(struct fd_ringbuffer *ring, uint8_t opcode, uint16_t cnt)
-{
-	OUT_RING(ring, CP_TYPE3_PKT | ((cnt-1) << 16) | ((opcode & 0xFF) << 8));
-}
-
-
-/*
- * Starting with a5xx, pkt4/pkt7 are used instead of pkt0/pkt3
- */
-
-static inline unsigned
-_odd_parity_bit(unsigned val)
-{
-	/* See: http://graphics.stanford.edu/~seander/bithacks.html#ParityParallel
-	 * note that we want odd parity so 0x6996 is inverted.
-	 */
-	val ^= val >> 16;
-	val ^= val >> 8;
-	val ^= val >> 4;
-	val &= 0xf;
-	return (~0x6996 >> val) & 1;
-}
-
-static inline void
-OUT_PKT4(struct fd_ringbuffer *ring, uint16_t regindx, uint16_t cnt)
-{
-	OUT_RING(ring, CP_TYPE4_PKT | cnt |
-			(_odd_parity_bit(cnt) << 7) |
-			((regindx & 0x3ffff) << 8) |
-			((_odd_parity_bit(regindx) << 27)));
-}
-
-static inline void
-OUT_PKT7(struct fd_ringbuffer *ring, uint8_t opcode, uint16_t cnt)
-{
-	OUT_RING(ring, CP_TYPE7_PKT | cnt |
-			(_odd_parity_bit(cnt) << 15) |
-			((opcode & 0x7f) << 16) |
-			((_odd_parity_bit(opcode) << 23)));
-}
-
-/*
  * code to find stuff in /proc/device-tree:
  *
  * NOTE: if we sampled the counters from the cmdstream, we could avoid needing
@@ -396,7 +332,7 @@ find_device(void)
 		err(1, "could not open /dev/mem");
 
 	dev.io = mmap(0, dev.size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, dev.base);
-	if (!dev.io) {
+	if (dev.io == MAP_FAILED) {
 		close(fd);
 		err(1, "could not map device");
 	}

@@ -796,7 +796,7 @@ load_generic(
 		EncodingType type = E_SS;    /* for BC */
 		for (j = 0; shifts[j].str; j++) {
 		    if (!_XlcNCompareISOLatin1(tmp, shifts[j].str,
-					       strlen(shifts[j].str))) {
+					       (int) strlen(shifts[j].str))) {
 			type = shifts[j].type;
 			tmp += strlen(shifts[j].str);
 			break;

@@ -52,16 +52,16 @@ XmbDrawImageString, XwcDrawImageString, Xutf8DrawImageString \- draw image text 
 .SH SYNTAX
 .HP
 void XmbDrawImageString\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^,
-XFontSet \fIfont_set\fP\^, GC \fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^, char
-*\fIstring\fP\^, int \fInum_bytes\fP\^);
+XFontSet \fIfont_set\fP\^, GC \fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^,
+_Xconst char *\fIstring\fP\^, int \fInum_bytes\fP\^);
 .HP
 void XwcDrawImageString\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^,
 XFontSet \fIfont_set\fP\^, GC \fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^,
-wchar_t *\fIstring\fP\^, int \fInum_wchars\fP\^);
+_Xconst wchar_t *\fIstring\fP\^, int \fInum_wchars\fP\^);
 .HP
 void Xutf8DrawImageString\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^,
-XFontSet \fIfont_set\fP\^, GC \fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^, char
-*\fIstring\fP\^, int \fInum_bytes\fP\^);
+XFontSet \fIfont_set\fP\^, GC \fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^,
+_Xconst char *\fIstring\fP\^, int \fInum_bytes\fP\^);
 .SH ARGUMENTS
 .IP \fId\fP 1i
 Specifies the drawable.

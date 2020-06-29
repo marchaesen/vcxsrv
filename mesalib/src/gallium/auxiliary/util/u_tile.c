@@ -27,7 +27,7 @@
 
 /**
  * RGBA/float tile get/put functions.
- * Usable both by drivers and state trackers.
+ * Usable both by drivers and gallium frontends.
  */
 
 

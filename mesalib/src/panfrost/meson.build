@@ -66,5 +66,5 @@ bifrost_compiler = executable(
     libpanfrost_encoder,
     libpanfrost_midgard, # references disassemble_midgard...
   ],
-  build_by_default : true
+  build_by_default : with_tools.contains('panfrost')
 )

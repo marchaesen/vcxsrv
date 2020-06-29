@@ -43,7 +43,7 @@
 #include "dri_util.h"
 #include "utils.h"
 #include "util/u_endian.h"
-#include "util/xmlpool.h"
+#include "util/driconf.h"
 #include "main/mtypes.h"
 #include "main/framebuffer.h"
 #include "main/version.h"
@@ -935,7 +935,7 @@ static const struct {
    {
       .image_format    = __DRI_IMAGE_FORMAT_XBGR8888,
       .mesa_format     =        MESA_FORMAT_R8G8B8X8_UNORM,
-      .internal_format =        GL_RGBA8,
+      .internal_format =        GL_RGB8,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_R8,

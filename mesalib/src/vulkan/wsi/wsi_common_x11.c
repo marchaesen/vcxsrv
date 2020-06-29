@@ -450,6 +450,33 @@ x11_surface_get_support(VkIcdSurfaceBase *icd_surface,
    return VK_SUCCESS;
 }
 
+
+static uint32_t
+x11_get_min_image_count(struct wsi_device *wsi_device)
+{
+   if (wsi_device->x11.override_minImageCount)
+      return wsi_device->x11.override_minImageCount;
+
+   /* For IMMEDIATE and FIFO, most games work in a pipelined manner where the
+    * can produce frames at a rate of 1/MAX(CPU duration, GPU duration), but
+    * the render latency is CPU duration + GPU duration.
+    *
+    * This means that with scanout from pageflipping we need 3 frames to run
+    * full speed:
+    * 1) CPU rendering work
+    * 2) GPU rendering work
+    * 3) scanout
+    *
+    * Once we have a nonblocking acquire that returns a semaphore we can merge
+    * 1 and 3. Hence the ideal implementation needs only 2 images, but games
+    * cannot tellwe currently do not have an ideal implementation and that
+    * hence they need to allocate 3 images. So let us do it for them.
+    *
+    * This is a tradeoff as it uses more memory than needed for non-fullscreen
+    * and non-performance intensive applications.
+    */
+   return 3;
+}
 static VkResult
 x11_surface_get_capabilities(VkIcdSurfaceBase *icd_surface,
                              struct wsi_device *wsi_device,
@@ -502,30 +529,9 @@ x11_surface_get_capabilities(VkIcdSurfaceBase *icd_surface,
                                       VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
    }
 
-   /* For IMMEDIATE and FIFO, most games work in a pipelined manner where the
-    * can produce frames at a rate of 1/MAX(CPU duration, GPU duration), but
-    * the render latency is CPU duration + GPU duration.
-    *
-    * This means that with scanout from pageflipping we need 3 frames to run
-    * full speed:
-    * 1) CPU rendering work
-    * 2) GPU rendering work
-    * 3) scanout
-    *
-    * Once we have a nonblocking acquire that returns a semaphore we can merge
-    * 1 and 3. Hence the ideal implementation needs only 2 images, but games
-    * cannot tellwe currently do not have an ideal implementation and that
-    * hence they need to allocate 3 images. So let us do it for them.
-    *
-    * This is a tradeoff as it uses more memory than needed for non-fullscreen
-    * and non-performance intensive applications.
-    */
-   caps->minImageCount = 3;
+   caps->minImageCount = x11_get_min_image_count(wsi_device);
    /* There is no real maximum */
    caps->maxImageCount = 0;
-
-   if (wsi_device->x11.override_minImageCount)
-      caps->minImageCount = wsi_device->x11.override_minImageCount;
 
    caps->supportedTransforms = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
    caps->currentTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
@@ -777,7 +783,8 @@ struct x11_swapchain {
 
    struct x11_image                             images[0];
 };
-WSI_DEFINE_NONDISP_HANDLE_CASTS(x11_swapchain, VkSwapchainKHR)
+VK_DEFINE_NONDISP_HANDLE_CASTS(x11_swapchain, base.base, VkSwapchainKHR,
+                               VK_OBJECT_TYPE_SWAPCHAIN_KHR)
 
 /**
  * Update the swapchain status with the result of an operation, and return
@@ -1435,10 +1442,12 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
 
    unsigned num_images = pCreateInfo->minImageCount;
-   if (wsi_device->x11.strict_imageCount)
-      num_images = pCreateInfo->minImageCount;
-   else if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
-      num_images = MAX2(num_images, 5);
+   if (!wsi_device->x11.strict_imageCount) {
+      if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
+         num_images = MAX2(num_images, 5);
+
+      num_images = MAX2(num_images, x11_get_min_image_count(wsi_device));
+   }
 
    xcb_connection_t *conn = x11_surface_get_connection(icd_surface);
    struct wsi_x11_connection *wsi_conn =
@@ -1489,7 +1498,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
     * mode which provokes reallocation when anything changes, to make
     * sure we have the most optimal allocation.
     */
-   WSI_FROM_HANDLE(x11_swapchain, old_chain, pCreateInfo->oldSwapchain);
+   VK_FROM_HANDLE(x11_swapchain, old_chain, pCreateInfo->oldSwapchain);
    if (old_chain)
       chain->last_present_mode = old_chain->last_present_mode;
    else

@@ -808,7 +808,7 @@ v3d_nir_lower_vs_early(struct v3d_compile *c)
                    &c->s->outputs, used_outputs, NULL); /* demotes to globals */
         NIR_PASS_V(c->s, nir_lower_global_vars_to_local);
         v3d_optimize_nir(c->s);
-        NIR_PASS_V(c->s, nir_remove_dead_variables, nir_var_shader_in);
+        NIR_PASS_V(c->s, nir_remove_dead_variables, nir_var_shader_in, NULL);
 
         /* This must go before nir_lower_io */
         if (c->vs_key->per_vertex_point_size)
@@ -839,7 +839,7 @@ v3d_nir_lower_gs_early(struct v3d_compile *c)
                    &c->s->outputs, used_outputs, NULL); /* demotes to globals */
         NIR_PASS_V(c->s, nir_lower_global_vars_to_local);
         v3d_optimize_nir(c->s);
-        NIR_PASS_V(c->s, nir_remove_dead_variables, nir_var_shader_in);
+        NIR_PASS_V(c->s, nir_remove_dead_variables, nir_var_shader_in, NULL);
 
         /* This must go before nir_lower_io */
         if (c->gs_key->per_vertex_point_size)
@@ -1072,10 +1072,21 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
         NIR_PASS_V(c->s, nir_lower_bool_to_int32);
         NIR_PASS_V(c->s, nir_convert_from_ssa, true);
 
-        /* Schedule for about half our register space, to enable more shaders
-         * to hit 4 threads.
-         */
-        NIR_PASS_V(c->s, nir_schedule, 24);
+        static const struct nir_schedule_options schedule_options = {
+                /* Schedule for about half our register space, to enable more
+                 * shaders to hit 4 threads.
+                 */
+                .threshold = 24,
+
+                /* Vertex shaders share the same memory for inputs and outputs,
+                 * fragement and geometry shaders do not.
+                 */
+                .stages_with_shared_io_memory =
+                (((1 << MESA_ALL_SHADER_STAGES) - 1) &
+                 ~((1 << MESA_SHADER_FRAGMENT) |
+                   (1 << MESA_SHADER_GEOMETRY))),
+        };
+        NIR_PASS_V(c->s, nir_schedule, &schedule_options);
 
         v3d_nir_to_vir(c);
 

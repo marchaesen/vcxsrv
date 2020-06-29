@@ -267,8 +267,11 @@ lower_fddy(lower_wpos_ytransform_state *state, nir_alu_instr *fddy)
    b->cursor = nir_before_instr(&fddy->instr);
 
    p = nir_ssa_for_alu_src(b, fddy, 0);
-   trans = get_transform(state);
-   pt = nir_fmul(b, p, nir_channel(b, trans, 0));
+   trans = nir_channel(b, get_transform(state), 0);
+   if (p->bit_size == 16)
+      trans = nir_f2f16(b, trans);
+
+   pt = nir_fmul(b, p, trans);
 
    nir_instr_rewrite_src(&fddy->instr,
                          &fddy->src[0].src,

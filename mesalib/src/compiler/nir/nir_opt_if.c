@@ -58,25 +58,23 @@ find_continue_block(nir_loop *loop)
 static bool
 phi_has_constant_from_outside_and_one_from_inside_loop(nir_phi_instr *phi,
                                                        const nir_block *entry_block,
-                                                       uint32_t *entry_val,
-                                                       uint32_t *continue_val)
+                                                       bool *entry_val,
+                                                       bool *continue_val)
 {
    /* We already know we have exactly one continue */
    assert(exec_list_length(&phi->srcs) == 2);
 
-   *entry_val = 0;
-   *continue_val = 0;
+   *entry_val = false;
+   *continue_val = false;
 
     nir_foreach_phi_src(src, phi) {
-       assert(src->src.is_ssa);
-       nir_const_value *const_src = nir_src_as_const_value(src->src);
-       if (!const_src)
-          return false;
+       if (!nir_src_is_const(src->src))
+         return false;
 
        if (src->pred != entry_block) {
-          *continue_val = const_src[0].u32;
+          *continue_val = nir_src_as_bool(src->src);
        } else {
-          *entry_val = const_src[0].u32;
+          *entry_val = nir_src_as_bool(src->src);
        }
     }
 
@@ -169,7 +167,7 @@ opt_peel_loop_initial_if(nir_loop *loop)
    if (cond->parent_instr->block != header_block)
       return false;
 
-   uint32_t entry_val = 0, continue_val = 0;
+   bool entry_val = false, continue_val = false;
    if (!phi_has_constant_from_outside_and_one_from_inside_loop(cond_phi,
                                                                prev_block,
                                                                &entry_val,
@@ -632,7 +630,7 @@ opt_simplify_bcsel_of_phi(nir_builder *b, nir_loop *loop)
     * bcsel that must come before any break.
     *
     * For more details, see
-    * https://gitlab.freedesktop.org/mesa/mesa/merge_requests/170#note_110305
+    * https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/170#note_110305
     */
    nir_foreach_instr_safe(instr, header_block) {
       if (instr->type != nir_instr_type_alu)
@@ -665,7 +663,7 @@ opt_simplify_bcsel_of_phi(nir_builder *b, nir_loop *loop)
       nir_phi_instr *const cond_phi =
          nir_instr_as_phi(bcsel->src[0].src.ssa->parent_instr);
 
-      uint32_t entry_val = 0, continue_val = 0;
+      bool entry_val = false, continue_val = false;
       if (!phi_has_constant_from_outside_and_one_from_inside_loop(cond_phi,
                                                                   prev_block,
                                                                   &entry_val,
@@ -1334,9 +1332,39 @@ opt_if_cf_list(nir_builder *b, struct exec_list *cf_list,
          progress |= opt_if_cf_list(b, &loop->body,
                                     aggressive_last_continue);
          progress |= opt_simplify_bcsel_of_phi(b, loop);
-         progress |= opt_peel_loop_initial_if(loop);
          progress |= opt_if_loop_last_continue(loop,
                                                aggressive_last_continue);
+         break;
+      }
+
+      case nir_cf_node_function:
+         unreachable("Invalid cf type");
+      }
+   }
+
+   return progress;
+}
+
+static bool
+opt_peel_loop_initial_if_cf_list(struct exec_list *cf_list)
+{
+   bool progress = false;
+   foreach_list_typed(nir_cf_node, cf_node, node, cf_list) {
+      switch (cf_node->type) {
+      case nir_cf_node_block:
+         break;
+
+      case nir_cf_node_if: {
+         nir_if *nif = nir_cf_node_as_if(cf_node);
+         progress |= opt_peel_loop_initial_if_cf_list(&nif->then_list);
+         progress |= opt_peel_loop_initial_if_cf_list(&nif->else_list);
+         break;
+      }
+
+      case nir_cf_node_loop: {
+         nir_loop *loop = nir_cf_node_as_loop(cf_node);
+         progress |= opt_peel_loop_initial_if_cf_list(&loop->body);
+         progress |= opt_peel_loop_initial_if(loop);
          break;
       }
 
@@ -1402,21 +1430,28 @@ nir_opt_if(nir_shader *shader, bool aggressive_last_continue)
       nir_metadata_preserve(function->impl, nir_metadata_block_index |
                             nir_metadata_dominance);
 
-      if (opt_if_cf_list(&b, &function->impl->body,
-                         aggressive_last_continue)) {
-         nir_metadata_preserve(function->impl, nir_metadata_none);
+      bool preserve = true;
+
+      if (opt_if_cf_list(&b, &function->impl->body, aggressive_last_continue)) {
+         preserve = false;
+         progress = true;
+      }
+
+      if (opt_peel_loop_initial_if_cf_list(&function->impl->body)) {
+         preserve = false;
+         progress = true;
 
          /* If that made progress, we're no longer really in SSA form.  We
           * need to convert registers back into SSA defs and clean up SSA defs
           * that don't dominate their uses.
           */
          nir_lower_regs_to_ssa_impl(function->impl);
+      }
 
-         progress = true;
+      if (preserve) {
+         nir_metadata_preserve(function->impl, nir_metadata_none);
       } else {
-   #ifndef NDEBUG
-         function->impl->valid_metadata &= ~nir_metadata_not_properly_reset;
-   #endif
+         nir_metadata_preserve(function->impl, nir_metadata_all);
       }
    }
 

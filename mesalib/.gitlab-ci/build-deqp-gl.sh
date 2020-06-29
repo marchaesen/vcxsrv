@@ -40,6 +40,11 @@ for gles in gles2 gles3 gles31; do
         /deqp/external/openglcts/modules/gl_cts/data/mustpass/gles/aosp_mustpass/3.2.6.x/$gles-master.txt \
         /deqp/mustpass/$gles-master.txt
 done
+cp \
+    /deqp/external/openglcts/modules/gl_cts/data/mustpass/gl/khronos_mustpass/4.6.1.x/*-master.txt \
+    /deqp/mustpass/.
+
+
 
 # Save *some* executor utils, but otherwise strip things down
 # to reduct deqp build size:
@@ -48,13 +53,15 @@ cp /deqp/executor/testlog-to-* /deqp/executor.save
 rm -rf /deqp/executor
 mv /deqp/executor.save /deqp/executor
 
-rm -rf /deqp/external
+ls /deqp/external | grep -v openglcts | xargs rm -rf
 rm -rf /deqp/modules/internal
 rm -rf /deqp/execserver
 rm -rf /deqp/modules/egl
 rm -rf /deqp/framework
+rm -rf /deqp/external/openglcts/modules/gl_cts/data/mustpass
+rm -rf /deqp/external/openglcts/modules/cts-runner
 find -iname '*cmake*' -o -name '*ninja*' -o -name '*.o' -o -name '*.a' | xargs rm -rf
-${STRIP_CMD:-strip} modules/*/deqp-*
+${STRIP_CMD:-strip} modules/*/deqp-* external/openglcts/modules/glcts
 du -sh *
 rm -rf /VK-GL-CTS
 popd

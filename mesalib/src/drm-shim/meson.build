@@ -1,4 +1,5 @@
 # Copyright © 2019 Broadcom
+# Copyright © 2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,14 +20,15 @@
 # SOFTWARE.
 
 drm_shim = static_library(
-  ['drm_shim'],
+  'drm_shim',
   [
     'device.c',
     'drm_shim.c',
   ],
   include_directories: [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
   dependencies: [dep_libdrm, idep_mesautil, dep_dl],
-  c_args : [c_vis_args, '-std=gnu99'],
+  gnu_symbol_visibility : 'hidden',
+  override_options : ['c_std=gnu99'],
 )
 dep_drm_shim = declare_dependency(
   link_with: drm_shim,

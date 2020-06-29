@@ -28,7 +28,7 @@
 // rayanna = r
 // yayanna = y
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "sin_phonetic" {
 
   include "us"
@@ -123,7 +123,7 @@ xkb_symbols "tam_TAB" {
 partial alphanumeric_keys modifier_keys
 xkb_symbols "us" {
   include "us(basic)"
-  name[Group1]= "Sinhala (US, with Sinhala letters)";
+  name[Group1]= "Sinhala (US)";
 //
 //                   UNSHIFTED,         SHIFT,           ALT
 //                   --------------------------------------------

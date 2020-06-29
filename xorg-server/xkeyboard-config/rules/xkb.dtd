@@ -32,7 +32,7 @@
 
 <!ELEMENT option (configItem)>
 
-<!ELEMENT configItem (name,shortDescription*,description*,vendor?,countryList?,languageList?,hwList?)>
+<!ELEMENT configItem (name,shortDescription?,description?,vendor?,countryList?,languageList?,hwList?)>
 
 <!ATTLIST configItem
           popularity (standard|exotic) "standard">

@@ -52,7 +52,10 @@ lower_builtins(exec_list *instructions)
 ir_visitor_status
 lower_builtins_visitor::visit_leave(ir_call *ir)
 {
-   if (!ir->callee->is_builtin())
+   /* lower_precision() also inlines some intrinsics, which can't be inlined
+    * further.
+    */
+   if (!ir->callee->is_builtin() || ir->callee->is_intrinsic())
       return visit_continue;
 
    ir->generate_inline(ir);

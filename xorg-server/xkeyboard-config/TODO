@@ -1,6 +1,0 @@
-+ Ensure all national layouts are 'normalized' (no multiple layouts for same country/language - only variants)
-+ Write tests checking that every model/layout(variant)/option in base.xml is working
-+ Add the vendor info to the keyboard geometry description
-- Check consistence (correctness, usability) of the descriptions in the registry. Note: ask help from GNOME Usability Team.
-- Write tests which would ensure that base.xml covers everything
-- Write compatibility rules for old models/layouts/variants (potentially eternal job)

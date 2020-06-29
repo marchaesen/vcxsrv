@@ -174,21 +174,16 @@ _mesa_lookup_framebuffer_dsa(struct gl_context *ctx, GLuint id,
    /* Name exists but buffer is not initialized */
    if (fb == &DummyFramebuffer) {
       fb = ctx->Driver.NewFramebuffer(ctx, id);
-      _mesa_HashLockMutex(ctx->Shared->FrameBuffers);
       _mesa_HashInsert(ctx->Shared->FrameBuffers, id, fb);
-      _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
    }
    /* Name doesn't exist */
    else if (!fb) {
-      _mesa_HashLockMutex(ctx->Shared->FrameBuffers);
       fb = ctx->Driver.NewFramebuffer(ctx, id);
       if (!fb) {
-         _mesa_HashUnlockMutex(ctx->Shared->FrameBuffers);
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
          return NULL;
       }
-      _mesa_HashInsertLocked(ctx->Shared->BufferObjects, id, fb);
-      _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
+      _mesa_HashInsert(ctx->Shared->FrameBuffers, id, fb);
    }
    return fb;
 }
@@ -4764,9 +4759,7 @@ lookup_named_framebuffer_ext_dsa(struct gl_context *ctx, GLuint framebuffer, con
       /* Then, make sure it's initialized */
       if (fb == &DummyFramebuffer) {
          fb = ctx->Driver.NewFramebuffer(ctx, framebuffer);
-         _mesa_HashLockMutex(ctx->Shared->FrameBuffers);
          _mesa_HashInsert(ctx->Shared->FrameBuffers, framebuffer, fb);
-         _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
       }
    }
    else
@@ -5345,7 +5338,7 @@ sample_locations(struct gl_context *ctx, struct gl_framebuffer *fb,
       if (isnan(v[i]))
          fb->SampleLocationTable[start * 2 + i] = 0.5f;
       else
-         fb->SampleLocationTable[start * 2 + i] = CLAMP(v[i], 0.0f, 1.0f);
+         fb->SampleLocationTable[start * 2 + i] = SATURATE(v[i]);
    }
 
    if (fb == ctx->DrawBuffer)

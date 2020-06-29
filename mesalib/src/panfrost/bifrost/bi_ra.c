@@ -67,7 +67,7 @@ bi_allocate_registers(bi_context *ctx, bool *success)
         unsigned node_count = bi_max_temp(ctx);
 
         struct lcra_state *l =
-                lcra_alloc_equations(node_count, 1, 8, 16, 1);
+                lcra_alloc_equations(node_count, 1);
 
         l->class_start[BI_REG_CLASS_WORK] = 0;
         l->class_size[BI_REG_CLASS_WORK] = 64 * 4; /* R0 - R63, all 32-bit */
@@ -79,7 +79,7 @@ bi_allocate_registers(bi_context *ctx, bool *success)
                         continue;
 
                 l->class[dest] = BI_REG_CLASS_WORK;
-                lcra_set_alignment(l, dest, 2); /* 2^2 = 4 */
+                lcra_set_alignment(l, dest, 2, 16); /* 2^2 = 4 */
                 lcra_restrict_range(l, dest, 4);
         }
 

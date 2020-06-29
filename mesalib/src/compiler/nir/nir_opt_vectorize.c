@@ -27,7 +27,7 @@
 #include "nir_builder.h"
 #include "util/u_dynarray.h"
 
-#define HASH(hash, data) _mesa_fnv32_1a_accumulate((hash), (data))
+#define HASH(hash, data) XXH32(&data, sizeof(data), hash)
 
 static uint32_t
 hash_src(uint32_t hash, const nir_src *src)
@@ -64,7 +64,7 @@ hash_alu(uint32_t hash, const nir_alu_instr *instr)
 static uint32_t
 hash_instr(const nir_instr *instr)
 {
-   uint32_t hash = _mesa_fnv32_1a_offset_bias;
+   uint32_t hash = 0;
 
    switch (instr->type) {
    case nir_instr_type_alu:
@@ -162,7 +162,7 @@ instr_can_rewrite(nir_instr *instr)
  */
 
 static nir_instr *
-instr_try_combine(nir_instr *instr1, nir_instr *instr2)
+instr_try_combine(struct nir_shader *nir, nir_instr *instr1, nir_instr *instr2)
 {
    assert(instr1->type == nir_instr_type_alu);
    assert(instr2->type == nir_instr_type_alu);
@@ -175,6 +175,10 @@ instr_try_combine(nir_instr *instr1, nir_instr *instr2)
    unsigned total_components = alu1_components + alu2_components;
 
    if (total_components > 4)
+      return NULL;
+
+   if (nir->options->vectorize_vec2_16bit &&
+       (total_components > 2 || alu1->dest.dest.ssa.bit_size != 16))
       return NULL;
 
    nir_builder b;
@@ -315,13 +319,14 @@ vec_instr_stack_create(void *mem_ctx)
 /* returns true if we were able to successfully replace the instruction */
 
 static bool
-vec_instr_stack_push(struct util_dynarray *stack, nir_instr *instr)
+vec_instr_stack_push(struct nir_shader *nir, struct util_dynarray *stack,
+                     nir_instr *instr)
 {
    /* Walk the stack from child to parent to make live ranges shorter by
     * matching the closest thing we can
     */
    util_dynarray_foreach_reverse(stack, nir_instr *, stack_instr) {
-      nir_instr *new_instr = instr_try_combine(*stack_instr, instr);
+      nir_instr *new_instr = instr_try_combine(nir, *stack_instr, instr);
       if (new_instr) {
          *stack_instr = new_instr;
          return true;
@@ -372,20 +377,21 @@ vec_instr_set_destroy(struct set *instr_set)
 }
 
 static bool
-vec_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr)
+vec_instr_set_add_or_rewrite(struct nir_shader *nir, struct set *instr_set,
+                             nir_instr *instr)
 {
    if (!instr_can_rewrite(instr))
       return false;
 
    struct util_dynarray *new_stack = vec_instr_stack_create(instr_set);
-   vec_instr_stack_push(new_stack, instr);
+   vec_instr_stack_push(nir, new_stack, instr);
 
    struct set_entry *entry = _mesa_set_search(instr_set, new_stack);
 
    if (entry) {
       ralloc_free(new_stack);
       struct util_dynarray *stack = (struct util_dynarray *) entry->key;
-      return vec_instr_stack_push(stack, instr);
+      return vec_instr_stack_push(nir, stack, instr);
    }
 
    _mesa_set_add(instr_set, new_stack);
@@ -393,7 +399,8 @@ vec_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr)
 }
 
 static void
-vec_instr_set_remove(struct set *instr_set, nir_instr *instr)
+vec_instr_set_remove(struct nir_shader *nir, struct set *instr_set,
+                     nir_instr *instr)
 {
    if (!instr_can_rewrite(instr))
       return;
@@ -410,7 +417,7 @@ vec_instr_set_remove(struct set *instr_set, nir_instr *instr)
     * comparison function as well.
     */
    struct util_dynarray *temp = vec_instr_stack_create(instr_set);
-   vec_instr_stack_push(temp, instr);
+   vec_instr_stack_push(nir, temp, instr);
    struct set_entry *entry = _mesa_set_search(instr_set, temp);
    ralloc_free(temp);
 
@@ -425,34 +432,35 @@ vec_instr_set_remove(struct set *instr_set, nir_instr *instr)
 }
 
 static bool
-vectorize_block(nir_block *block, struct set *instr_set)
+vectorize_block(struct nir_shader *nir, nir_block *block,
+                struct set *instr_set)
 {
    bool progress = false;
 
    nir_foreach_instr_safe(instr, block) {
-      if (vec_instr_set_add_or_rewrite(instr_set, instr))
+      if (vec_instr_set_add_or_rewrite(nir, instr_set, instr))
          progress = true;
    }
 
    for (unsigned i = 0; i < block->num_dom_children; i++) {
       nir_block *child = block->dom_children[i];
-      progress |= vectorize_block(child, instr_set);
+      progress |= vectorize_block(nir, child, instr_set);
    }
 
    nir_foreach_instr_reverse(instr, block)
-      vec_instr_set_remove(instr_set, instr);
+      vec_instr_set_remove(nir, instr_set, instr);
 
    return progress;
 }
 
 static bool
-nir_opt_vectorize_impl(nir_function_impl *impl)
+nir_opt_vectorize_impl(struct nir_shader *nir, nir_function_impl *impl)
 {
    struct set *instr_set = vec_instr_set_create();
 
    nir_metadata_require(impl, nir_metadata_dominance);
 
-   bool progress = vectorize_block(nir_start_block(impl), instr_set);
+   bool progress = vectorize_block(nir, nir_start_block(impl), instr_set);
 
    if (progress)
       nir_metadata_preserve(impl, nir_metadata_block_index |
@@ -469,7 +477,7 @@ nir_opt_vectorize(nir_shader *shader)
 
    nir_foreach_function(function, shader) {
       if (function->impl)
-         progress |= nir_opt_vectorize_impl(function->impl);
+         progress |= nir_opt_vectorize_impl(shader, function->impl);
    }
 
    return progress;

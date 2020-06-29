@@ -82,7 +82,7 @@ struct u_transfer_vtbl {
     * Must be implemented if separate stencil or fake_rgtc is used.  The
     * internal_format is the format the resource was created with.  In
     * the case of separate stencil or fake_rgtc, prsc->format is set back
-    * to the state tracker visible format (e.g. Z32_FLOAT_S8X24_UINT or
+    * to the gallium-frontend-visible format (e.g. Z32_FLOAT_S8X24_UINT or
     * PIPE_FORMAT_{RTGC,LATC}* after the resource is created.
     */
    enum pipe_format (*get_internal_format)(struct pipe_resource *prsc);

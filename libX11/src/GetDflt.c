@@ -141,7 +141,7 @@ InitDefaults(
     if (dpy->xdefaults == NULL) {
 	const char *slashDotXdefaults = "/.Xdefaults";
 
-	(void) GetHomeDir (fname, PATH_MAX - strlen (slashDotXdefaults) - 1);
+	(void) GetHomeDir (fname, (int) (PATH_MAX - strlen (slashDotXdefaults) - 1));
 	(void) strcat (fname, slashDotXdefaults);
 	xdb = XrmGetFileDatabase (fname);
     } else {
@@ -152,9 +152,9 @@ InitDefaults(
 	const char *slashDotXdefaultsDash = "/.Xdefaults-";
 	int len;
 
-	(void) GetHomeDir (fname, PATH_MAX - strlen (slashDotXdefaultsDash) - 1);
+	(void) GetHomeDir (fname, (int) (PATH_MAX - strlen (slashDotXdefaultsDash) - 1));
 	(void) strcat (fname, slashDotXdefaultsDash);
-	len = strlen (fname);
+	len = (int) strlen (fname);
 	(void) _XGetHostname (fname+len, PATH_MAX-len);
 	xenv = fname;
     }

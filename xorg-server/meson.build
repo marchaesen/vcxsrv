@@ -163,13 +163,15 @@ hal_option = get_option('hal')
 glamor_option = get_option('glamor')
 
 build_udev = get_option('udev')
+build_udev_kms = get_option('udev_kms')
 if host_machine.system() == 'windows' or host_machine.system() == 'darwin'
     build_udev = false
+    build_udev_kms = false
     hal_option = 'false'
 endif
 
 if get_option('systemd_logind') == 'auto'
-    build_systemd_logind = build_udev and dbus_dep.found()
+    build_systemd_logind = build_udev_kms and dbus_dep.found()
 else
     build_systemd_logind = get_option('systemd_logind') == 'true'
 endif
@@ -303,7 +305,7 @@ endif
 build_dbus = build_hal or build_systemd_logind
 
 udev_dep = dependency('', required:false)
-if build_udev
+if build_udev or build_udev_kms
     udev_dep = dependency('libudev', version: '>= 143')
 endif
 

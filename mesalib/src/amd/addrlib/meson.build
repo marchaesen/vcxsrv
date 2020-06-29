@@ -62,5 +62,6 @@ libamdgpu_addrlib = static_library(
     ),
     inc_amd_common, inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux,
   ],
-  cpp_args : [cpp_vis_args, '-Wno-unused-variable'],
+  cpp_args : ['-Wno-unused-variable'],
+  gnu_symbol_visibility : 'hidden',
 )

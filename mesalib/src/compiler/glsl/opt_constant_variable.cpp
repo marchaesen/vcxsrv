@@ -165,6 +165,15 @@ ir_constant_variable_visitor::visit_enter(ir_call *ir)
 	 entry = get_assignment_entry(var, this->ht);
 	 entry->assignment_count++;
       }
+
+      /* We don't know if the variable passed to this function has been
+       * assigned a value or if it is undefined, so for now we always assume
+       * it has been assigned a value. Once functions have been inlined any
+       * further potential optimisations will be taken care of.
+       */
+      struct assignment_entry *entry;
+      entry = get_assignment_entry(param, this->ht);
+      entry->assignment_count++;
    }
 
    /* Mark the return storage as having been assigned to */

@@ -107,7 +107,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="DI_SRC_SEL_DMA" value="0"/>
 	<value name="DI_SRC_SEL_IMMEDIATE" value="1"/>
 	<value name="DI_SRC_SEL_AUTO_INDEX" value="2"/>
-	<value name="DI_SRC_SEL_RESERVED" value="3"/>
+	<value name="DI_SRC_SEL_AUTO_XFB" value="3"/>
 </enum>
 
 <enum name="pc_di_face_cull_sel">
@@ -306,6 +306,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="CP_DRAW_INDX_OFFSET" value="0x38"/>
 	<value name="CP_DRAW_INDIRECT" value="0x28" variants="A4XX,A5XX,A6XX"/>
 	<value name="CP_DRAW_INDX_INDIRECT" value="0x29" variants="A4XX,A5XX,A6XX"/>
+	<value name="CP_DRAW_INDIRECT_MULTI" value="0x2a" variants="A6XX"/>
 	<value name="CP_DRAW_AUTO" value="0x24"/>
 
 	<value name="CP_UNKNOWN_19" value="0x19"/>
@@ -697,6 +698,7 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<bitfield name="NUM_INDICES" low="0" high="31" type="uint"/>
 	</reg32>
 	<reg32 offset="3" name="3">
+		<bitfield name="FIRST_INDX" low="0" high="31"/>
 	</reg32>
 
 	<stripe variants="A5XX-">
@@ -708,7 +710,8 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		</reg32>
 		<reg64 offset="4" name="INDX_BASE" type="address"/>
 		<reg32 offset="6" name="6">
-			<bitfield name="INDX_SIZE" low="0" high="31"/>
+			<!-- max # of elements in index buffer -->
+			<bitfield name="MAX_INDICES" low="0" high="31"/>
 		</reg32>
 	</stripe>
 
@@ -717,7 +720,7 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	</reg32>
 
 	<reg32 offset="5" name="5">
-		<bitfield name="INDX_SIZE" low="0" high="31"/>
+		<bitfield name="INDX_SIZE" low="0" high="31" type="uint"/>
 	</reg32>
 </domain>
 
@@ -773,6 +776,37 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		</reg32>
 		<reg64 offset="4" name="INDIRECT" type="address"/>
 	</stripe>
+</domain>
+
+<domain name="CP_DRAW_INDIRECT_MULTI" width="32" varset="chip" prefix="chip" variants="A6XX-">
+	<enum name="a6xx_draw_indirect_opcode">
+		<value name="INDIRECT_OP_NORMAL"  value="0x2"/>
+		<value name="INDIRECT_OP_INDEXED" value="0x4"/>
+	</enum>
+	<reg32 offset="0" name="0" type="vgt_draw_initiator_a4xx"/>
+	<reg32 offset="1" name="1">
+		<bitfield name="OPCODE" low="0" high="3" type="a6xx_draw_indirect_opcode"/>
+		<doc>
+		DST_OFF same as in CP_LOAD_STATE6 - vec4 VS const at this offset will
+		be updated for each draw to {draw_id, first_vertex, first_instance, 0}
+		value of 0 disables it
+		</doc>
+		<bitfield name="DST_OFF" low="8" high="21" type="hex"/>
+	</reg32>
+	<reg32 offset="2" name="2">
+		<bitfield name="DRAW_COUNT" low="0" high="31" type="hex"/>
+	</reg32>
+	<doc>for opcode 2: indirect address. for opcode 4: index address</doc>
+	<reg64 offset="3" name="ADDRESS_0" type="address"/>
+	<reg32 offset="5" name="5">
+		<doc>for opcode 2: stride. for opcode 4: max_indices</doc>
+		<bitfield name="PARAM_0" low="0" high="31" type="hex"/>
+	</reg32>
+	<doc>last 3 dwords only for opcode 4</doc>
+	<reg64 offset="6" name="INDIRECT" type="address"/>
+	<reg32 offset="8" name="8">
+		<bitfield name="STRIDE" low="0" high="31" type="hex"/>
+	</reg32>
 </domain>
 
 <domain name="CP_SET_DRAW_STATE" width="32" varset="chip" variants="A4XX-">

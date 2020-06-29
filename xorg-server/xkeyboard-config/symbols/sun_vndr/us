@@ -27,7 +27,7 @@
 // of the copyright holder.
 //
 
-partial default alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "sunbasic" {
 
     include "us(basic)"
@@ -57,6 +57,11 @@ partial alphanumeric_keys
 partial alphanumeric_keys
 	xkb_symbols "euro" {
 	include "us(euro)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "ibm238l" {
+	include "us(ibm238l)"
 };
 
 partial alphanumeric_keys
@@ -155,6 +160,11 @@ partial alphanumeric_keys
 };
 
 partial alphanumeric_keys
+	xkb_symbols "olpcm" {
+	include "us(olpcm)"
+};
+
+partial alphanumeric_keys
 	xkb_symbols "chr" {
 	include "us(chr)"
 };
@@ -162,11 +172,6 @@ partial alphanumeric_keys
 partial alphanumeric_keys
 	xkb_symbols "hbs" {
 	include "us(hbs)"
-};
-
-partial alphanumeric_keys
-	xkb_symbols "htcdream" {
-	include "us(htcdream)"
 };
 
 partial alphanumeric_keys
@@ -180,8 +185,48 @@ partial alphanumeric_keys
 };
 
 partial alphanumeric_keys
+	xkb_symbols "norman" {
+	include "us(norman)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "carpalx" {
+	include "us(carpalx)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "carpalx-intl" {
+	include "us(carpalx-intl)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "carpalx-altgr-intl" {
+	include "us(carpalx-altgr-intl)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "carpalx-full" {
+	include "us(carpalx-full)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "carpalx-full-intl" {
+	include "us(carpalx-full-intl)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "carpalx-full-altgr-intl" {
+	include "us(carpalx-full-altgr-intl)"
+};
+
+partial alphanumeric_keys
 	xkb_symbols "cz_sk_de" {
 	include "us(cz_sk_de)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "scn" {
+	include "us(scn)"
 };
 
 partial alphanumeric_keys
@@ -202,4 +247,29 @@ partial alphanumeric_keys
 partial alphanumeric_keys
 	xkb_symbols "crd" {
 	include "us(crd)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "3l" {
+	include "us(3l)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "3l-cros" {
+	include "us(3l-cros)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "3l-emacs" {
+	include "us(3l-emacs)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "drix" {
+	include "us(drix)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "de_se_fi" {
+	include "us(de_se_fi)"
 };

@@ -735,7 +735,7 @@ XkbChangeTypesOfKey(XkbDescPtr xkb,
             return BadAlloc;
         }
         pSyms = XkbKeySymsPtr(xkb, key);
-        memcpy(oldSyms, pSyms, XkbKeyNumSyms(xkb, key) * sizeof(KeySym));
+        memcpy(oldSyms, pSyms, (size_t) XkbKeyNumSyms(xkb, key) * sizeof(KeySym));
         pSyms = XkbResizeKeySyms(xkb, key, width * nGroups);
         if (pSyms == NULL)
             return BadAlloc;
@@ -754,7 +754,7 @@ XkbChangeTypesOfKey(XkbDescPtr xkb,
             XkbAction oldActs[XkbMaxSymsPerKey], *pActs;
 
             pActs = XkbKeyActionsPtr(xkb, key);
-            memcpy(oldActs, pActs, XkbKeyNumSyms(xkb, key) * sizeof(XkbAction));
+            memcpy(oldActs, pActs, (size_t) XkbKeyNumSyms(xkb, key) * sizeof(XkbAction));
             pActs = XkbResizeKeyActions(xkb, key, width * nGroups);
             if (pActs == NULL)
                 return BadAlloc;

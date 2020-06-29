@@ -28,6 +28,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "util/os_file.h"
+
 #include "freedreno_drmif.h"
 #include "freedreno_priv.h"
 
@@ -90,7 +92,7 @@ out:
  */
 struct fd_device * fd_device_new_dup(int fd)
 {
-	int dup_fd = dup(fd);
+	int dup_fd = os_dupfd_cloexec(fd);
 	struct fd_device *dev = fd_device_new(dup_fd);
 	if (dev)
 		dev->closefd = 1;

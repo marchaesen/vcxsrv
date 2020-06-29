@@ -8,7 +8,7 @@ xkb_symbols "kr106" {
 alphanumeric_keys
 xkb_symbols "kr104" {
     include "us"
-    name[Group1]= "Korean (101/104 key compatible)";
+    name[Group1]= "Korean (101/104-key compatible)";
     include "kr(ralt_hangul)"
     include "kr(rctrl_hanja)"
 };

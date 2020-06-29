@@ -33,7 +33,16 @@
 #if defined(HAVE_SHA1_IN_LIBMD)  /* Use libmd for SHA1 */ \
 	|| defined(HAVE_SHA1_IN_LIBC)   /* Use libc for SHA1 */
 
+#if defined(__DragonFly__) || defined(__FreeBSD__)
+#include <sha.h>
+#define	SHA1End		SHA1_End
+#define	SHA1File	SHA1_File
+#define	SHA1Final	SHA1_Final
+#define	SHA1Init	SHA1_Init
+#define	SHA1Update	SHA1_Update
+#else
 #include <sha1.h>
+#endif
 
 void *
 x_sha1_init(void)

@@ -1060,7 +1060,7 @@ bool radv_format_pack_clear_color(VkFormat format,
 			if (channel->size == 32) {
 				memcpy(&v, &value->float32[c], 4);
 			} else if(channel->size == 16) {
-				v = util_float_to_half(value->float32[c]);
+				v = util_float_to_half_rtz(value->float32[c]);
 			} else {
 				fprintf(stderr, "failed to fast clear for unhandled float size in format %d\n", format);
 				return false;
@@ -1380,6 +1380,7 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 	VkExternalImageFormatProperties *external_props = NULL;
 	struct VkAndroidHardwareBufferUsageANDROID *android_usage = NULL;
 	VkSamplerYcbcrConversionImageFormatProperties *ycbcr_props = NULL;
+	VkTextureLODGatherFormatPropertiesAMD *texture_lod_props = NULL;
 	VkResult result;
 	VkFormat format = radv_select_android_external_format(base_info->pNext, base_info->format);
 
@@ -1410,6 +1411,9 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 			break;
 		case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID:
 			android_usage = (void *) s;
+			break;
+		case VK_STRUCTURE_TYPE_TEXTURE_LOD_GATHER_FORMAT_PROPERTIES_AMD:
+			texture_lod_props = (void *) s;
 			break;
 		default:
 			break;
@@ -1452,6 +1456,14 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 
 	if (ycbcr_props) {
 		ycbcr_props->combinedImageSamplerDescriptorCount = vk_format_get_plane_count(format);
+	}
+
+	if (texture_lod_props) {
+		if (physical_device->rad_info.chip_class >= GFX9) {
+			texture_lod_props->supportsTextureGatherLODBiasAMD = true;
+		} else {
+			texture_lod_props->supportsTextureGatherLODBiasAMD = !vk_format_is_int(format);
+		}
 	}
 
 	return VK_SUCCESS;

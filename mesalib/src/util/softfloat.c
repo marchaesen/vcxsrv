@@ -211,7 +211,7 @@ uint16_t _mesa_roundtozero_f16(int16_t s, int16_t e, int16_t m)
         if (e < 0) {
             m = _mesa_shift_right_jam32(m, -e);
             e = 0;
-        } else if ((e > 0x1d) || (0x8000 <= m)) {
+        } else if (e > 0x1d) {
             e = 0x1f;
             m = 0;
             return (s << 15) + (e << 10) + m - 1;

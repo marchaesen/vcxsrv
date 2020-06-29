@@ -91,33 +91,28 @@ void aco_compile_shader(unsigned shader_count,
       std::cerr << "After Instruction Selection:\n";
       aco_print_program(program.get(), stderr);
    }
-   aco::validate(program.get(), stderr);
 
    /* Phi lowering */
    aco::lower_phis(program.get());
-   //std::cerr << "After Phi Lowering:\n";
-   //aco_print_program(program.get(), stderr);
-
    aco::dominator_tree(program.get());
+   aco::validate(program.get(), stderr);
 
    /* Optimization */
    aco::value_numbering(program.get());
    aco::optimize(program.get());
-   aco::validate(program.get(), stderr);
 
+   /* cleanup and exec mask handling */
    aco::setup_reduce_temp(program.get());
    aco::insert_exec_mask(program.get());
    aco::validate(program.get(), stderr);
 
+   /* spilling and scheduling */
    aco::live live_vars = aco::live_var_analysis(program.get(), args->options);
    aco::spill(program.get(), live_vars, args->options);
-
    if (program->collect_statistics)
       aco::collect_presched_stats(program.get());
-
-   //std::cerr << "Before Schedule:\n";
-   //aco_print_program(program.get(), stderr);
    aco::schedule_program(program.get(), live_vars);
+   aco::validate(program.get(), stderr);
 
    std::string llvm_ir;
    if (args->options->record_ir) {
@@ -147,18 +142,15 @@ void aco_compile_shader(unsigned shader_count,
       abort();
    }
 
-   aco::ssa_elimination(program.get());
+   aco::validate(program.get(), stderr);
+
    /* Lower to HW Instructions */
+   aco::ssa_elimination(program.get());
    aco::lower_to_hw_instr(program.get());
-   //std::cerr << "After Eliminate Pseudo Instr:\n";
-   //aco_print_program(program.get(), stderr);
 
    /* Insert Waitcnt */
    aco::insert_wait_states(program.get());
    aco::insert_NOPs(program.get());
-
-   //std::cerr << "After Insert-Waitcnt:\n";
-   //aco_print_program(program.get(), stderr);
 
    if (program->collect_statistics)
       aco::collect_preasm_stats(program.get());

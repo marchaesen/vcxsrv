@@ -1,8 +1,6 @@
 """
 Generate the contents of the git_sha1.h file.
-The output of this script goes to stdout.
 """
-
 
 import argparse
 import os
@@ -21,10 +19,11 @@ def get_git_sha1():
             'rev-parse',
             'HEAD',
         ], stderr=open(os.devnull, 'w')).decode("ascii")
-    except:
+    except Exception:
         # don't print anything if it fails
         git_sha1 = ''
     return git_sha1
+
 
 def write_if_different(contents):
     """
@@ -37,6 +36,7 @@ def write_if_different(contents):
                 return
     with open(args.output, 'w') as file:
         file.write(contents)
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--output', help='File to write the #define in',

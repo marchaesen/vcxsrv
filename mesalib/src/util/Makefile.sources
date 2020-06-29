@@ -22,7 +22,6 @@ MESA_UTIL_FILES := \
 	double.h \
 	fast_idiv_by_const.c \
 	fast_idiv_by_const.h \
-	fnv1a.h \
 	format/u_format.c \
 	format/u_format.h \
 	format/u_format_bptc.c \

@@ -685,6 +685,9 @@ struct vtn_builder {
 
    /* when a physical memory model is choosen */
    bool physical_ptrs;
+
+   /* memory model specified by OpMemoryModel */
+   unsigned mem_model;
 };
 
 nir_ssa_def *
@@ -806,6 +809,10 @@ struct vtn_value *vtn_push_value_pointer(struct vtn_builder *b,
 
 struct vtn_value *vtn_push_ssa(struct vtn_builder *b, uint32_t value_id,
                                struct vtn_type *type, struct vtn_ssa_value *ssa);
+
+void
+vtn_copy_value(struct vtn_builder *b, uint32_t src_value_id,
+               uint32_t dst_value_id);
 
 struct vtn_ssa_value *vtn_create_ssa_value(struct vtn_builder *b,
                                            const struct glsl_type *type);

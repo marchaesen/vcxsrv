@@ -18,11 +18,11 @@ variables:
     DEBIAN_VERSION: testing-slim
     DEBIAN_EXEC: 'bash .gitlab-ci/debian-install.sh'
 
-    DEBIAN_TAG: "2020-01-06"
+    DEBIAN_TAG: "2020-04-21"
     IMAGE_LOCAL: "$CI_REGISTRY_IMAGE/debian/$DEBIAN_VERSION:$DEBIAN_TAG"
 
 include:
-  - project: 'wayland/ci-templates'
+  - project: 'freedesktop/ci-templates'
     ref: b7030c2cd0d6ccc5f6d4f8299bafa4daa9240d71
     file: '/templates/debian.yml'
 

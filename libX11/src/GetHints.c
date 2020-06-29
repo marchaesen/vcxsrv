@@ -315,14 +315,14 @@ XGetClassHint(
            return (0);
 
    if ( (actual_type == XA_STRING) && (actual_format == 8) ) {
-	len_name = strlen((char *) data);
+	len_name = (int) strlen((char *) data);
 	if (! (classhint->res_name = Xmalloc(len_name + 1))) {
 	    Xfree(data);
 	    return (0);
 	}
 	strcpy(classhint->res_name, (char *) data);
 	if (len_name == nitems) len_name--;
-	len_class = strlen((char *) (data+len_name+1));
+	len_class = (int) strlen((char *) (data+len_name+1));
 	if (! (classhint->res_class = Xmalloc(len_class + 1))) {
 	    Xfree(classhint->res_name);
 	    classhint->res_name = (char *) NULL;

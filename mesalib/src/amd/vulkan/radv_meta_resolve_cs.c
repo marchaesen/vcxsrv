@@ -73,10 +73,9 @@ build_resolve_compute_shader(struct radv_device *dev, bool is_integer, bool is_s
 								 false,
 								 false,
 								 GLSL_TYPE_FLOAT);
-	const struct glsl_type *img_type = glsl_sampler_type(GLSL_SAMPLER_DIM_2D,
-							     false,
-							     false,
-							     GLSL_TYPE_FLOAT);
+	const struct glsl_type *img_type = glsl_image_type(GLSL_SAMPLER_DIM_2D,
+							   false,
+							   GLSL_TYPE_FLOAT);
 	snprintf(name, 64, "meta_resolve_cs-%d-%s", samples, is_integer ? "int" : (is_srgb ? "srgb" : "float"));
 	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
 	b.shader->info.name = ralloc_strdup(b.shader, name);
@@ -173,10 +172,9 @@ build_depth_stencil_resolve_compute_shader(struct radv_device *dev, int samples,
 								 false,
 								 false,
 								 GLSL_TYPE_FLOAT);
-	const struct glsl_type *img_type = glsl_sampler_type(GLSL_SAMPLER_DIM_2D,
-							     false,
-							     false,
-							     GLSL_TYPE_FLOAT);
+	const struct glsl_type *img_type = glsl_image_type(GLSL_SAMPLER_DIM_2D,
+							   false,
+							   GLSL_TYPE_FLOAT);
 	snprintf(name, 64, "meta_resolve_cs_%s-%s-%d",
 		 index == DEPTH_RESOLVE ? "depth" : "stencil",
 		 get_resolve_mode_str(resolve_mode), samples);

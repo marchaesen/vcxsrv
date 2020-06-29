@@ -10,7 +10,7 @@
 
 // RST KazSSR 903-90
 // levels 3 and 4 are non-standard extensions
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     name[Group1] = "Kazakh";

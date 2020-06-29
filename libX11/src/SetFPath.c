@@ -48,7 +48,7 @@ XSetFontPath (
 	GetReq (SetFontPath, req);
 	req->nFonts = ndirs;
 	for (i = 0; i < ndirs; i++) {
-		n += safestrlen (directories[i]) + 1;
+		n = (int) ((size_t) n + (safestrlen (directories[i]) + 1));
 	}
 	nbytes = (n + 3) & ~3;
 	req->length += nbytes >> 2;
@@ -59,9 +59,9 @@ XSetFontPath (
 		char	*tmp = p;
 
 		for (i = 0; i < ndirs; i++) {
-			register int length = safestrlen (directories[i]);
+			register int length = (int) safestrlen (directories[i]);
 			*p = length;
-			memcpy (p + 1, directories[i], length);
+			memcpy (p + 1, directories[i], (size_t)length);
 			p += length + 1;
 		}
 		Data (dpy, tmp, nbytes);

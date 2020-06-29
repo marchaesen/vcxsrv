@@ -60,11 +60,11 @@
 XLoadFont, XQueryFont, XLoadQueryFont, XFreeFont, XGetFontProperty, XUnloadFont, XCharStruct, XFontProp, XChar2b, XFontStruct \- load or unload fonts and font metric structures
 .SH SYNTAX
 .HP
-Font XLoadFont\^(\^Display *\fIdisplay\fP\^, char *\fIname\fP\^);
+Font XLoadFont\^(\^Display *\fIdisplay\fP\^, _Xconst char *\fIname\fP\^);
 .HP
 XFontStruct *XQueryFont\^(\^Display *\fIdisplay\fP\^, XID \fIfont_ID\fP\^);
 .HP
-XFontStruct *XLoadQueryFont\^(\^Display *\fIdisplay\fP\^, char
+XFontStruct *XLoadQueryFont\^(\^Display *\fIdisplay\fP\^, _Xconst char
 *\fIname\fP\^);
 .HP
 int XFreeFont\^(\^Display *\fIdisplay\fP\^, XFontStruct *\fIfont_struct\fP\^);

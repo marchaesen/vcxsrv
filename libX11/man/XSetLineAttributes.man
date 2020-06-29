@@ -55,7 +55,7 @@ int \fIline_width\fP\^, int \fIline_style\fP\^, int \fIcap_style\fP\^, int
 \fIjoin_style\fP\^);
 .HP
 int XSetDashes\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^, int
-\fIdash_offset\fP\^, char \fIdash_list\fP[]\^, int \fIn\fP\^);
+\fIdash_offset\fP\^, _Xconst char \fIdash_list\fP[]\^, int \fIn\fP\^);
 .SH ARGUMENTS
 .IP \fIcap_style\fP 1i
 Specifies the line-style and cap-style you want to set for the specified GC.

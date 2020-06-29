@@ -34,43 +34,6 @@
 #include "ir3_ra.h"
 
 static void
-build_q_values(unsigned int **q_values, unsigned off,
-		const unsigned *sizes, unsigned count)
-{
-	for (unsigned i = 0; i < count; i++) {
-		q_values[i + off] = rzalloc_array(q_values, unsigned, total_class_count);
-
-		/* From register_allocate.c:
-		 *
-		 * q(B,C) (indexed by C, B is this register class) in
-		 * Runeson/Nyström paper.  This is "how many registers of B could
-		 * the worst choice register from C conflict with".
-		 *
-		 * If we just let the register allocation algorithm compute these
-		 * values, is extremely expensive.  However, since all of our
-		 * registers are laid out, we can very easily compute them
-		 * ourselves.  View the register from C as fixed starting at GRF n
-		 * somewhere in the middle, and the register from B as sliding back
-		 * and forth.  Then the first register to conflict from B is the
-		 * one starting at n - class_size[B] + 1 and the last register to
-		 * conflict will start at n + class_size[B] - 1.  Therefore, the
-		 * number of conflicts from B is class_size[B] + class_size[C] - 1.
-		 *
-		 *   +-+-+-+-+-+-+     +-+-+-+-+-+-+
-		 * B | | | | | |n| --> | | | | | | |
-		 *   +-+-+-+-+-+-+     +-+-+-+-+-+-+
-		 *             +-+-+-+-+-+
-		 * C           |n| | | | |
-		 *             +-+-+-+-+-+
-		 *
-		 * (Idea copied from brw_fs_reg_allocate.cpp)
-		 */
-		for (unsigned j = 0; j < count; j++)
-			q_values[i + off][j + off] = sizes[i] + sizes[j] - 1;
-	}
-}
-
-static void
 setup_conflicts(struct ir3_ra_reg_set *set)
 {
 	unsigned reg;
@@ -107,6 +70,21 @@ setup_conflicts(struct ir3_ra_reg_set *set)
 			reg++;
 		}
 	}
+
+	/*
+	 * Setup conflicts with registers over 0x3f for the special vreg
+	 * that exists to use as interference for tex-prefetch:
+	 */
+
+	for (unsigned i = 0x40; i < CLASS_REGS(0); i++) {
+		ra_add_transitive_reg_conflict(set->regs, i,
+				set->prefetch_exclude_reg);
+	}
+
+	for (unsigned i = 0x40; i < HALF_CLASS_REGS(0); i++) {
+		ra_add_transitive_reg_conflict(set->regs, i + set->first_half_reg,
+				set->prefetch_exclude_reg);
+	}
 }
 
 /* One-time setup of RA register-set, which describes all the possible
@@ -127,7 +105,7 @@ setup_conflicts(struct ir3_ra_reg_set *set)
  * really just four scalar registers.  Don't let that confuse you.)
  */
 struct ir3_ra_reg_set *
-ir3_ra_alloc_reg_set(struct ir3_compiler *compiler)
+ir3_ra_alloc_reg_set(struct ir3_compiler *compiler, bool mergedregs)
 {
 	struct ir3_ra_reg_set *set = rzalloc(compiler, struct ir3_ra_reg_set);
 	unsigned ra_reg_count, reg, base;
@@ -140,6 +118,8 @@ ir3_ra_alloc_reg_set(struct ir3_compiler *compiler)
 		ra_reg_count += HALF_CLASS_REGS(i);
 	for (unsigned i = 0; i < high_class_count; i++)
 		ra_reg_count += HIGH_CLASS_REGS(i);
+
+	ra_reg_count += 1;   /* for tex-prefetch excludes */
 
 	/* allocate the reg-set.. */
 	set->regs = ra_alloc_reg_set(set, ra_reg_count, true);
@@ -201,8 +181,21 @@ ir3_ra_alloc_reg_set(struct ir3_compiler *compiler)
 		}
 	}
 
-	/* starting a6xx, half precision regs conflict w/ full precision regs: */
-	if (compiler->gpu_id >= 600) {
+	/*
+	 * Setup an additional class, with one vreg, to simply conflict
+	 * with registers that are too high to encode tex-prefetch.  This
+	 * vreg is only used to setup additional conflicts so that RA
+	 * knows to allocate prefetch dst regs below the limit:
+	 */
+	set->prefetch_exclude_class = ra_alloc_reg_class(set->regs);
+	ra_class_add_reg(set->regs, set->prefetch_exclude_class, reg);
+	set->prefetch_exclude_reg = reg++;
+
+	/*
+	 * And finally setup conflicts.  Starting a6xx, half precision regs
+	 * conflict w/ full precision regs (when using MERGEDREGS):
+	 */
+	if (mergedregs) {
 		for (unsigned i = 0; i < CLASS_REGS(0) / 2; i++) {
 			unsigned freg  = set->gpr_to_ra_reg[0][i];
 			unsigned hreg0 = set->gpr_to_ra_reg[0 + HALF_OFFSET][(i * 2) + 0];
@@ -210,25 +203,11 @@ ir3_ra_alloc_reg_set(struct ir3_compiler *compiler)
 
 			ra_add_transitive_reg_pair_conflict(set->regs, freg, hreg0, hreg1);
 		}
-
-		setup_conflicts(set);
-
-		// TODO also need to update q_values, but for now:
-		ra_set_finalize(set->regs, NULL);
-	} else {
-		setup_conflicts(set);
-
-		/* allocate and populate q_values: */
-		unsigned int **q_values = ralloc_array(set, unsigned *, total_class_count);
-
-		build_q_values(q_values, 0, class_sizes, class_count);
-		build_q_values(q_values, HALF_OFFSET, half_class_sizes, half_class_count);
-		build_q_values(q_values, HIGH_OFFSET, high_class_sizes, high_class_count);
-
-		ra_set_finalize(set->regs, q_values);
-
-		ralloc_free(q_values);
 	}
+
+	setup_conflicts(set);
+
+	ra_set_finalize(set->regs, NULL);
 
 	return set;
 }

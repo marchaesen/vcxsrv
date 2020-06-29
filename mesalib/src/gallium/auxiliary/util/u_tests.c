@@ -38,7 +38,7 @@
 #include "tgsi/tgsi_strings.h"
 #include "tgsi/tgsi_text.h"
 #include "cso_cache/cso_context.h"
-#include "state_tracker/winsys_handle.h"
+#include "frontend/winsys_handle.h"
 #include <stdio.h>
 
 #define TOLERANCE 0.01

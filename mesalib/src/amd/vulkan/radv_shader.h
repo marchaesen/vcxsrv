@@ -34,10 +34,12 @@
 
 #include "nir/nir.h"
 #include "vulkan/vulkan.h"
+#include "vulkan/util/vk_object.h"
 
 struct radv_device;
 
 struct radv_shader_module {
+	struct vk_object_base base;
 	struct nir_shader *nir;
 	unsigned char sha1[20];
 	uint32_t size;
@@ -104,6 +106,7 @@ struct radv_fs_variant_key {
 	uint8_t num_samples;
 	uint32_t is_int8;
 	uint32_t is_int10;
+	bool is_dual_src;
 };
 
 struct radv_cs_variant_key {
@@ -137,6 +140,7 @@ struct radv_nir_compiler_options {
 	bool check_ir;
 	bool has_ls_vgpr_init_bug;
 	bool use_ngg_streamout;
+	bool enable_mrt_output_nan_fixup;
 	enum radeon_family family;
 	enum chip_class chip_class;
 	uint32_t tess_offchip_block_dw_size;
@@ -307,9 +311,11 @@ struct radv_shader_info {
 		uint32_t explicit_shaded_mask;
 		uint32_t float16_shaded_mask;
 		uint32_t num_interp;
+		uint32_t cb_shader_mask;
 		bool can_discard;
 		bool early_fragment_test;
 		bool post_depth_coverage;
+		uint8_t depth_layout;
 	} ps;
 	struct {
 		bool uses_grid_size;
@@ -433,14 +439,10 @@ radv_shader_compile_to_nir(struct radv_device *device,
 			   const struct radv_pipeline_layout *layout,
 			   unsigned subgroup_size, unsigned ballot_bit_size);
 
-void *
-radv_alloc_shader_memory(struct radv_device *device,
-			  struct radv_shader_variant *shader);
-
 void
 radv_destroy_shader_slabs(struct radv_device *device);
 
-void
+VkResult
 radv_create_shaders(struct radv_pipeline *pipeline,
 		    struct radv_device *device,
 		    struct radv_pipeline_cache *cache,

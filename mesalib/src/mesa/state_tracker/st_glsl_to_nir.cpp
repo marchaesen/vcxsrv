@@ -80,6 +80,19 @@ st_nir_fixup_varying_slots(struct st_context *st, struct exec_list *var_list)
    }
 }
 
+static void
+st_shader_gather_info(nir_shader *nir, struct gl_program *prog)
+{
+   nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
+
+   /* Copy the info we just generated back into the gl_program */
+   const char *prog_name = prog->info.name;
+   const char *prog_label = prog->info.label;
+   prog->info = nir->info;
+   prog->info.name = prog_name;
+   prog->info.label = prog_label;
+}
+
 /* input location assignment for VS inputs must be handled specially, so
  * that it is aligned w/ st's vbo state.
  * (This isn't the case with, for ex, FS inputs, which only need to agree
@@ -260,7 +273,8 @@ st_nir_opts(nir_shader *nir)
       NIR_PASS(progress, nir, nir_remove_dead_variables,
                (nir_variable_mode)(nir_var_function_temp |
                                    nir_var_shader_temp |
-                                   nir_var_mem_shared));
+                                   nir_var_mem_shared),
+               NULL);
 
       NIR_PASS(progress, nir, nir_opt_copy_prop_vars);
       NIR_PASS(progress, nir, nir_opt_dead_write_vars);
@@ -378,7 +392,7 @@ st_nir_preprocess(struct st_context *st, struct gl_program *prog,
    if (!_mesa_is_gles(st->ctx) || !nir->info.separate_shader) {
       nir_variable_mode mask =
          (nir_variable_mode) (nir_var_shader_in | nir_var_shader_out);
-      nir_remove_dead_variables(nir, mask);
+      nir_remove_dead_variables(nir, mask, NULL);
    }
 
    if (options->lower_all_io_to_temps ||
@@ -503,7 +517,7 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
 
    nir_variable_mode mask = (nir_variable_mode)
       (nir_var_shader_in | nir_var_shader_out | nir_var_function_temp );
-   nir_remove_dead_variables(nir, mask);
+   nir_remove_dead_variables(nir, mask, NULL);
 
    if (!st->has_hw_atomics)
       NIR_PASS_V(nir, nir_lower_atomics_to_ssbo);
@@ -561,8 +575,8 @@ st_nir_link_shaders(nir_shader *producer, nir_shader *consumer)
    if (nir_link_opt_varyings(producer, consumer))
       st_nir_opts(consumer);
 
-   NIR_PASS_V(producer, nir_remove_dead_variables, nir_var_shader_out);
-   NIR_PASS_V(consumer, nir_remove_dead_variables, nir_var_shader_in);
+   NIR_PASS_V(producer, nir_remove_dead_variables, nir_var_shader_out, NULL);
+   NIR_PASS_V(consumer, nir_remove_dead_variables, nir_var_shader_in, NULL);
 
    if (nir_remove_unused_varyings(producer, consumer)) {
       NIR_PASS_V(producer, nir_lower_global_vars_to_local);
@@ -575,8 +589,10 @@ st_nir_link_shaders(nir_shader *producer, nir_shader *consumer)
        * nir_compact_varyings() depends on all dead varyings being removed so
        * we need to call nir_remove_dead_variables() again here.
        */
-      NIR_PASS_V(producer, nir_remove_dead_variables, nir_var_shader_out);
-      NIR_PASS_V(consumer, nir_remove_dead_variables, nir_var_shader_in);
+      NIR_PASS_V(producer, nir_remove_dead_variables, nir_var_shader_out,
+                 NULL);
+      NIR_PASS_V(consumer, nir_remove_dead_variables, nir_var_shader_in,
+                 NULL);
    }
 }
 
@@ -765,8 +781,7 @@ st_link_nir(struct gl_context *ctx,
       NIR_PASS_V(nir, nir_lower_system_values);
       NIR_PASS_V(nir, nir_lower_clip_cull_distance_arrays);
 
-      nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
-      shader->Program->info = nir->info;
+      st_shader_gather_info(nir, shader->Program);
       if (shader->Stage == MESA_SHADER_VERTEX) {
          /* NIR expands dual-slot inputs out to two locations.  We need to
           * compact things back down GL-style single-slot inputs to avoid

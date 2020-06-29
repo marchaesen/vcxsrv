@@ -29,7 +29,7 @@
 // official standard for it. It is a copy of "us" layout, where
 // apostrophe is replaced with U02BB.
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "cyrillic" {
 
     name[Group1]= "Uzbek";

@@ -347,6 +347,7 @@ typedef enum _FcMatcherPriority {
     PRI1(ANTIALIAS),
     PRI1(RASTERIZER),
     PRI1(OUTLINE),
+    PRI1(ORDER),
     PRI1(FONTVERSION),
     PRI_END
 } FcMatcherPriority;

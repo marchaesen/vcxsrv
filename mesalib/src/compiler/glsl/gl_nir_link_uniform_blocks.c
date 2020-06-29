@@ -302,8 +302,10 @@ nir_interstage_cross_validate_uniform_blocks(struct gl_shader_program *prog,
 
    if (block_type == BLOCK_SSBO)
       prog->data->ShaderStorageBlocks = blks;
-   else
+   else {
+      prog->data->NumUniformBlocks = *num_blks;
       prog->data->UniformBlocks = blks;
+   }
 
    return true;
 }
@@ -610,6 +612,7 @@ gl_nir_link_uniform_blocks(struct gl_context *ctx,
       linked->Program->sh.UniformBlocks =
          ralloc_array(linked, struct gl_uniform_block *, num_ubo_blocks);
       ralloc_steal(linked, ubo_blocks);
+      linked->Program->sh.NumUniformBlocks = num_ubo_blocks;
       for (unsigned i = 0; i < num_ubo_blocks; i++) {
          linked->Program->sh.UniformBlocks[i] = &ubo_blocks[i];
       }

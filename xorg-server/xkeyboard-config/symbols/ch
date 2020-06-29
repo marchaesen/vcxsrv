@@ -1,4 +1,4 @@
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "latin"
@@ -62,7 +62,7 @@ xkb_symbols "de_Sundeadkeys" {
 partial alphanumeric_keys
 xkb_symbols "de_sundeadkeys" {
     include "ch(de_Sundeadkeys)"
-    name[Group1]= "German (Switzerland, with Sun dead keys)";
+    name[Group1]= "German (Switzerland, Sun dead keys)";
 };
 
 partial alphanumeric_keys
@@ -104,7 +104,7 @@ xkb_symbols "fr_Sundeadkeys" {
 partial alphanumeric_keys
 xkb_symbols "fr_sundeadkeys" {
     include "ch(fr_Sundeadkeys)"
-    name[Group1]= "French (Switzerland, with Sun dead keys)";
+    name[Group1]= "French (Switzerland, Sun dead keys)";
 };
 
 partial alphanumeric_keys

@@ -20,9 +20,10 @@
 
 inc_freedreno = include_directories(['.', './registers'])
 
+subdir('common')
+subdir('registers')
 subdir('drm')
 subdir('ir3')
-subdir('registers')
 subdir('fdl')
 subdir('perfcntrs')
 subdir('computerator')

@@ -657,8 +657,11 @@ rematerialize_deref_in_block(nir_deref_instr *deref,
    switch (deref->deref_type) {
    case nir_deref_type_var:
    case nir_deref_type_array_wildcard:
-   case nir_deref_type_cast:
       /* Nothing more to do */
+      break;
+
+   case nir_deref_type_cast:
+      new_deref->cast.ptr_stride = deref->cast.ptr_stride;
       break;
 
    case nir_deref_type_array:
@@ -940,7 +943,9 @@ opt_deref_cast(nir_builder *b, nir_deref_instr *cast)
    /* If uses would be a bit crazy */
    assert(list_is_empty(&cast->dest.ssa.if_uses));
 
-   nir_deref_instr_remove_if_unused(cast);
+   if (nir_deref_instr_remove_if_unused(cast))
+      progress = true;
+
    return progress;
 }
 
@@ -1027,9 +1032,7 @@ nir_opt_deref_impl(nir_function_impl *impl)
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
    } else {
-#ifndef NDEBUG
-      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
-#endif
+      nir_metadata_preserve(impl, nir_metadata_all);
    }
 
    return progress;

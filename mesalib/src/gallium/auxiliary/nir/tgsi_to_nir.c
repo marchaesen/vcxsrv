@@ -22,12 +22,16 @@
  * IN THE SOFTWARE.
  */
 
+#include "util/blob.h"
+#include "util/disk_cache.h"
+#include "util/u_memory.h"
 #include "util/ralloc.h"
 #include "pipe/p_screen.h"
 
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_control_flow.h"
 #include "compiler/nir/nir_builder.h"
+#include "compiler/nir/nir_serialize.h"
 #include "compiler/shader_enums.h"
 
 #include "tgsi_to_nir.h"
@@ -1846,12 +1850,15 @@ ttn_mem(struct ttn_compile *c, nir_alu_dest dest, nir_ssa_def **src)
          instr->src[3] = nir_src_for_ssa(nir_imm_int(b, 0)); /* LOD */
       }
 
+      unsigned num_components = util_last_bit(tgsi_inst->Dst[0].Register.WriteMask);
+
       if (tgsi_inst->Instruction.Opcode == TGSI_OPCODE_STORE) {
-         instr->src[3] = nir_src_for_ssa(nir_swizzle(b, src[1], SWIZ(X, Y, Z, W), 4));
+         instr->src[3] = nir_src_for_ssa(nir_swizzle(b, src[1], SWIZ(X, Y, Z, W),
+                                                     num_components));
          instr->src[4] = nir_src_for_ssa(nir_imm_int(b, 0)); /* LOD */
       }
 
-      instr->num_components = 4;
+      instr->num_components = num_components;
    } else {
       unreachable("unexpected file");
    }
@@ -2572,22 +2579,100 @@ ttn_finalize_nir(struct ttn_compile *c, struct pipe_screen *screen)
 
    nir->info.num_images = c->num_images;
    nir->info.num_textures = c->num_samplers;
-   nir->info.last_msaa_image = c->num_msaa_images - 1;
 
    nir_validate_shader(nir, "TTN: after all optimizations");
 }
 
+static void save_nir_to_disk_cache(struct disk_cache *cache,
+                                   uint8_t key[CACHE_KEY_SIZE],
+                                   const nir_shader *s)
+{
+   struct blob blob = {0};
+
+   blob_init(&blob);
+   /* Because we cannot fully trust disk_cache_put
+    * (EGL_ANDROID_blob_cache) we add the shader size,
+    * which we'll check after disk_cache_get().
+    */
+   if (blob_reserve_uint32(&blob) != 0) {
+      blob_finish(&blob);
+      return;
+   }
+
+   nir_serialize(&blob, s, true);
+   *(uint32_t *)blob.data = blob.size;
+
+   disk_cache_put(cache, key, blob.data, blob.size, NULL);
+   blob_finish(&blob);
+}
+
+static nir_shader *
+load_nir_from_disk_cache(struct disk_cache *cache,
+                         struct pipe_screen *screen,
+                         uint8_t key[CACHE_KEY_SIZE],
+                         unsigned processor)
+{
+   const nir_shader_compiler_options *options =
+      screen->get_compiler_options(screen, PIPE_SHADER_IR_NIR, processor);
+   struct blob_reader blob_reader;
+   size_t size;
+   nir_shader *s;
+
+   uint32_t *buffer = (uint32_t *)disk_cache_get(cache, key, &size);
+   if (!buffer)
+      return NULL;
+
+   /* Match found. No need to check crc32 or other things.
+    * disk_cache_get is supposed to do that for us.
+    * However we do still check if the first element is indeed the size,
+    * as we cannot fully trust disk_cache_get (EGL_ANDROID_blob_cache) */
+   if (buffer[0] != size) {
+      return NULL;
+   }
+
+   size -= 4;
+   blob_reader_init(&blob_reader, buffer + 1, size);
+   s = nir_deserialize(NULL, options, &blob_reader);
+   free(buffer); /* buffer was malloc-ed */
+   return s;
+}
+
 struct nir_shader *
 tgsi_to_nir(const void *tgsi_tokens,
-            struct pipe_screen *screen)
+            struct pipe_screen *screen,
+            bool allow_disk_cache)
 {
+   struct disk_cache *cache = NULL;
    struct ttn_compile *c;
-   struct nir_shader *s;
+   struct nir_shader *s = NULL;
+   uint8_t key[CACHE_KEY_SIZE];
+   unsigned processor;
+
+   if (allow_disk_cache)
+      cache = screen->get_disk_shader_cache(screen);
+
+   /* Look first in the cache */
+   if (cache) {
+      disk_cache_compute_key(cache,
+                             tgsi_tokens,
+                             tgsi_num_tokens(tgsi_tokens) * sizeof(struct tgsi_token),
+                             key);
+      processor = tgsi_get_processor_type(tgsi_tokens);
+      s = load_nir_from_disk_cache(cache, screen, key, processor);
+   }
+
+   if (s)
+      return s;
+
+   /* Not in the cache */
 
    c = ttn_compile_init(tgsi_tokens, NULL, screen);
    s = c->build.shader;
    ttn_finalize_nir(c, screen);
    ralloc_free(c);
+
+   if (cache)
+      save_nir_to_disk_cache(cache, key, s);
 
    return s;
 }

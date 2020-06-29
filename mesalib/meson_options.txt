@@ -23,7 +23,7 @@ option(
   type : 'array',
   value : ['auto'],
   choices : [
-    '', 'auto', 'x11', 'wayland', 'drm', 'surfaceless', 'haiku', 'android',
+    'auto', 'x11', 'wayland', 'drm', 'surfaceless', 'haiku', 'android',
     'windows',
   ],
   description : 'window systems to support. If this is set to `auto`, all platforms applicable will be enabled.'
@@ -32,14 +32,14 @@ option(
   'dri3',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'disabled', 'enabled'],
   description : 'enable support for dri3'
 )
 option(
   'dri-drivers',
   type : 'array',
   value : ['auto'],
-  choices : ['', 'auto', 'i915', 'i965', 'r100', 'r200', 'nouveau', 'swrast'],
+  choices : ['auto', 'i915', 'i965', 'r100', 'r200', 'nouveau', 'swrast'],
   description : 'List of dri drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
 option(
@@ -59,7 +59,7 @@ option(
   type : 'array',
   value : ['auto'],
   choices : [
-    '', 'auto', 'kmsro', 'radeonsi', 'r300', 'r600', 'nouveau', 'freedreno',
+    'auto', 'kmsro', 'radeonsi', 'r300', 'r600', 'nouveau', 'freedreno',
     'swrast', 'v3d', 'vc4', 'etnaviv', 'tegra', 'i915', 'svga', 'virgl',
     'swr', 'panfrost', 'iris', 'lima', 'zink'
   ],
@@ -75,8 +75,8 @@ option(
   'gallium-vdpau',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
-  description : 'enable gallium vdpau state tracker.',
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
+  description : 'enable gallium vdpau frontend.',
 )
 option(
   'vdpau-libs-path',
@@ -88,8 +88,8 @@ option(
   'gallium-xvmc',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
-  description : 'enable gallium xvmc state tracker.',
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
+  description : 'enable gallium xvmc frontend.',
 )
 option(
   'xvmc-libs-path',
@@ -102,7 +102,7 @@ option(
   type : 'combo',
   value : 'auto',
   choices : ['auto', 'disabled', 'bellagio', 'tizonia'],
-  description : 'enable gallium omx state tracker.',
+  description : 'enable gallium omx frontend.',
 )
 option(
   'omx-libs-path',
@@ -114,8 +114,8 @@ option(
   'gallium-va',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
-  description : 'enable gallium va state tracker.',
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
+  description : 'enable gallium va frontend.',
 )
 option(
   'va-libs-path',
@@ -127,27 +127,27 @@ option(
   'gallium-xa',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
-  description : 'enable gallium xa state tracker.',
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
+  description : 'enable gallium xa frontend.',
 )
 option(
   'gallium-nine',
   type : 'boolean',
   value : false,
-  description : 'build gallium "nine" Direct3D 9.x state tracker.',
+  description : 'build gallium "nine" Direct3D 9.x frontend.',
 )
 option(
   'gallium-opencl',
   type : 'combo',
   choices : ['icd', 'standalone', 'disabled'],
   value : 'disabled',
-  description : 'build gallium "clover" OpenCL state tracker.',
+  description : 'build gallium "clover" OpenCL frontend.',
 )
 option(
   'opencl-spirv',
   type : 'boolean',
   value : false,
-  description : 'build gallium "clover" OpenCL state tracker with SPIR-V binary support.',
+  description : 'build gallium "clover" OpenCL frontend with SPIR-V binary support.',
 )
 option(
   'd3d-drivers-path',
@@ -159,14 +159,14 @@ option(
   'vulkan-drivers',
   type : 'array',
   value : ['auto'],
-  choices : ['', 'auto', 'amd', 'freedreno', 'intel'],
+  choices : ['auto', 'amd', 'freedreno', 'intel'],
   description : 'List of vulkan drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
 option(
   'shader-cache',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Build with on-disk shader cache support'
 )
 option(
@@ -191,21 +191,21 @@ option(
   'shared-glapi',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Whether to build a shared or static glapi. Defaults to false on Windows, true elsewhere'
 )
 option(
   'gles1',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Build support for OpenGL ES 1.x'
 )
 option(
   'gles2',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Build support for OpenGL ES 2.x and 3.x'
 )
 option(
@@ -218,7 +218,7 @@ option(
   'gbm',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Build support for gbm platform'
 )
 option(
@@ -232,7 +232,7 @@ option(
   'egl',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Build support for EGL platform'
 )
 option(
@@ -251,35 +251,35 @@ option(
   'llvm',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Build with LLVM support.'
 )
 option(
   'shared-llvm',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Whether to link LLVM shared or statically.'
 )
 option(
   'valgrind',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Build with valgrind support'
 )
 option(
   'libunwind',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Use libunwind for stack-traces'
 )
 option(
   'lmsensors',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Enable HUD lmsensors support.'
 )
 option(
@@ -332,21 +332,21 @@ option(
   'tools',
   type : 'array',
   value : [],
-  choices : ['drm-shim', 'etnaviv', 'freedreno', 'glsl', 'intel', 'intel-ui', 'nir', 'nouveau', 'xvmc', 'lima', 'all'],
+  choices : ['drm-shim', 'etnaviv', 'freedreno', 'glsl', 'intel', 'intel-ui', 'nir', 'nouveau', 'xvmc', 'lima', 'panfrost', 'all'],
   description : 'List of tools to build. (Note: `intel-ui` selects `intel`)',
 )
 option(
   'power8',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Enable power8 optimizations.',
 )
 option(
   'xlib-lease',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Enable VK_EXT_acquire_xlib_display.'
 )
 option(
@@ -383,7 +383,7 @@ option(
 option(
   'zstd',
   type : 'combo',
-  choices : ['auto', 'true', 'false'],
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   value : 'auto',
   description : 'Use ZSTD instead of ZLIB in some cases.'
 )

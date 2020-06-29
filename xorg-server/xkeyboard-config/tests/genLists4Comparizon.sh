@@ -12,8 +12,8 @@ F2=gn2ll.lst
 F1b=${F1}base
 F1e=${F1}extras
 
-xsltproc $ROOT/xslt/reg2ll.xsl $ROOT/rules/base.xml > $F1b
-xsltproc $ROOT/xslt/reg2ll.xsl $ROOT/rules/base.extras.xml | \
+xsltproc reg2ll.xsl $ROOT/rules/base.xml > $F1b
+xsltproc reg2ll.xsl $ROOT/rules/base.extras.xml | \
   grep -v "sun_type" > $F1e
 
 cat $F1b $F1e | sort | uniq > $F1
@@ -44,7 +44,7 @@ for i in $ROOT/symbols/*; do
   } else
   {
     name=$2;
-    if (variant == "olpc" || variant == "htcdream" || variant == "olpcm" || variant == "classmate")
+    if (variant == "olpc" || variant == "olpcm" || variant == "classmate")
       printf "%s:\"%s\"\n", id, name;
     else
       printf "%s(%s):\"%s\"\n", id, variant, name;
@@ -53,6 +53,6 @@ for i in $ROOT/symbols/*; do
   fi
 done | sort | uniq > $F2
 
-diff $F1 $F2
+diff -u $F1 $F2
 
 echo "Legend: < is for rules/base.*xml.in, > is for symbols/*"

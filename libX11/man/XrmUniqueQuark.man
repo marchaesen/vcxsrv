@@ -62,7 +62,7 @@ XrmQuark XrmUniqueQuark\^(void);
 .HP
 int XrmQuark XrmStringToQuark\^(\^char *\fIstring\fP\^);
 .HP
-XrmQuark XrmPermStringToQuark\^(\^char *\fIstring\fP\^);
+XrmQuark XrmPermStringToQuark\^(\^_Xconst char *\fIstring\fP\^);
 .LP
 \&#define XrmStringToName(string) XrmStringToQuark(string)
 .br
@@ -72,7 +72,7 @@ XrmQuark XrmPermStringToQuark\^(\^char *\fIstring\fP\^);
 .HP
 XrmQuark XrmStringToQuark\^(\^char *\fIstring\fP\^);
 .HP
-XrmQuark XrmPermStringToQuark\^(\^char *\fIstring\fP\^);
+XrmQuark XrmPermStringToQuark\^(\^_Xconst char *\fIstring\fP\^);
 .LP
 \&#define XrmNameToString(name) XrmQuarkToString(name)
 .br
@@ -90,7 +90,7 @@ char *XrmQuarkToString\^(\^XrmQuark \fIquark\fP\^);
 void XrmStringToQuarkList\^(\^char *\fIstring\fP\^, XrmQuarkList
 \fIquarks_return\fP\^);
 .HP
-XrmStringToBindingQuarkList\^(\^char *\fIstring\fP\^, XrmBindingList
+void XrmStringToBindingQuarkList\^(\^_Xconst char *\fIstring\fP\^, XrmBindingList
 \fIbindings_return\fP\^, XrmQuarkList \fIquarks_return\fP\^);
 .SH ARGUMENTS
 .IP \fIbindings_return\fP 1i

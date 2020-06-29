@@ -105,7 +105,7 @@ void XSetWMProperties (
     textprop.value = (unsigned char *) hostName;
     textprop.encoding = XA_STRING;
     textprop.format = 8;
-    textprop.nitems = len;
+    textprop.nitems = (unsigned long) len;
     XSetWMClientMachine (dpy, w, &textprop);
 
     /* set hints about how geometry and window manager interaction */
@@ -142,6 +142,6 @@ void XSetWMProperties (
     if (locale)
         XChangeProperty (dpy, w, XInternAtom(dpy, "WM_LOCALE_NAME", False),
         XA_STRING, 8, PropModeReplace,
-        (unsigned char *)locale, strlen(locale));
+        (unsigned char *)locale, (int) strlen(locale));
 }
 

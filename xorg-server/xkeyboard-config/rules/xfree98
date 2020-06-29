@@ -24,6 +24,7 @@
   ctrl:lctrl_meta	=	+ctrl(lctrl_meta)
   ctrl:swapcaps		=	+ctrl(swapcaps)
   ctrl:swapcaps_hyper	=	+ctrl(swapcaps_hyper)
+  ctrl:swapcaps_and_switch_layout	=	+ctrl(swapcaps_and_switch_layout)
   ctrl:ctrl_ac		=	+ctrl(ctrl_ac)
   ctrl:ctrl_aa		=	+ctrl(ctrl_aa)
 

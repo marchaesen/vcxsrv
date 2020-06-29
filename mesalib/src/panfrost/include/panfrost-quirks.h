@@ -47,11 +47,34 @@
 /* What it says on the tin */
 #define IS_BIFROST (1 << 3)
 
+/* What it says on the tin */
+#define HAS_SWIZZLES (1 << 4)
+
+/* Support for setting shader to NULL for masking out colour (while allowing
+ * Z/S updates to proceed) */
+
+#define MIDGARD_SHADERLESS (1 << 5)
+
+/* Whether this GPU lacks support for any typed stores in blend shader,
+ * requiring packing instead */
+#define MIDGARD_NO_TYPED_BLEND_STORES (1 << 6)
+
+/* Whether this GPU lacks support for any typed loads, requiring packing */
+#define MIDGARD_NO_TYPED_BLEND_LOADS (1 << 7)
+
+/* Lack support for colour pack/unpack opcodes */
+#define NO_BLEND_PACKS (1 << 8)
+
+/* Has some missing formats for typed loads */
+#define MIDGARD_MISSING_LOADS (1 << 9)
+
 /* Quirk collections common to particular uarchs */
 
-#define MIDGARD_QUIRKS (MIDGARD_BROKEN_FP16)
+#define MIDGARD_QUIRKS (MIDGARD_BROKEN_FP16 | HAS_SWIZZLES \
+                | MIDGARD_NO_TYPED_BLEND_STORES \
+                | MIDGARD_MISSING_LOADS)
 
-#define BIFROST_QUIRKS (IS_BIFROST)
+#define BIFROST_QUIRKS (IS_BIFROST | NO_BLEND_PACKS)
 
 static inline unsigned
 panfrost_get_quirks(unsigned gpu_id)
@@ -59,7 +82,9 @@ panfrost_get_quirks(unsigned gpu_id)
         switch (gpu_id) {
         case 0x600:
         case 0x620:
-                return MIDGARD_QUIRKS | MIDGARD_SFBD;
+                return MIDGARD_QUIRKS | MIDGARD_SFBD
+                        | MIDGARD_NO_TYPED_BLEND_LOADS
+                        | NO_BLEND_PACKS;
 
         case 0x720:
                 return MIDGARD_QUIRKS | MIDGARD_SFBD | MIDGARD_NO_HIER_TILING;
@@ -69,9 +94,16 @@ panfrost_get_quirks(unsigned gpu_id)
                 return MIDGARD_QUIRKS | MIDGARD_NO_HIER_TILING;
 
         case 0x750:
+                /* Someone should investigate the broken loads? */
+                return MIDGARD_QUIRKS | MIDGARD_NO_TYPED_BLEND_LOADS
+                        | NO_BLEND_PACKS | MIDGARD_SHADERLESS;
+
         case 0x860:
         case 0x880:
-                return MIDGARD_QUIRKS;
+                return MIDGARD_QUIRKS | MIDGARD_SHADERLESS;
+
+        case 0x6000: /* G71 */
+                return BIFROST_QUIRKS | HAS_SWIZZLES;
 
         case 0x7093: /* G31 */
         case 0x7212: /* G52 */

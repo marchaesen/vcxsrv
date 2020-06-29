@@ -845,7 +845,7 @@ FcCacheTimeValid (FcConfig *config, FcCache *cache, struct stat *dir_stat)
 		FcCacheDir (cache), cache->checksum, (int) dir_stat->st_mtime);
 #endif
 
-    return cache->checksum == (int) dir_stat->st_mtime && fnano;
+    return dir_stat->st_mtime == 0 || (cache->checksum == (int) dir_stat->st_mtime && fnano);
 }
 
 static FcBool
@@ -1041,17 +1041,39 @@ static FcBool
 FcDirCacheMapHelper (FcConfig *config, int fd, struct stat *fd_stat, struct stat *dir_stat, struct timeval *latest_cache_mtime, void *closure)
 {
     FcCache *cache = FcDirCacheMapFd (config, fd, fd_stat, dir_stat);
-    struct timeval cache_mtime;
+    struct timeval cache_mtime, zero_mtime = { 0, 0}, dir_mtime;
 
     if (!cache)
 	return FcFalse;
     cache_mtime.tv_sec = fd_stat->st_mtime;
+    dir_mtime.tv_sec = dir_stat->st_mtime;
 #ifdef HAVE_STRUCT_STAT_ST_MTIM
     cache_mtime.tv_usec = fd_stat->st_mtim.tv_nsec / 1000;
+    dir_mtime.tv_usec = dir_stat->st_mtim.tv_nsec / 1000;
 #else
     cache_mtime.tv_usec = 0;
+    dir_mtime.tv_usec = 0;
 #endif
-    if (timercmp (latest_cache_mtime, &cache_mtime, <))
+    /* special take care of OSTree */
+    if (!timercmp (&zero_mtime, &dir_mtime, !=))
+    {
+	if (!timercmp (&zero_mtime, &cache_mtime, !=))
+	{
+	    if (*((FcCache **) closure))
+		FcDirCacheUnload (*((FcCache **) closure));
+	}
+	else if (*((FcCache **) closure) && !timercmp (&zero_mtime, latest_cache_mtime, !=))
+	{
+	    FcDirCacheUnload (cache);
+	    return FcFalse;
+	}
+	else if (timercmp (latest_cache_mtime, &cache_mtime, <))
+	{
+	    if (*((FcCache **) closure))
+		FcDirCacheUnload (*((FcCache **) closure));
+	}
+    }
+    else if (timercmp (latest_cache_mtime, &cache_mtime, <))
     {
 	if (*((FcCache **) closure))
 	    FcDirCacheUnload (*((FcCache **) closure));

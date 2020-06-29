@@ -1,6 +1,6 @@
 // $NetBSD: ws011sh,v 1.2 2010/05/30 10:10:20 nonaka Exp $
 
-partial default alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 	name[Group1]= "Sharp WS011SH";
 

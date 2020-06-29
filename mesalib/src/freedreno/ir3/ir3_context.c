@@ -74,8 +74,7 @@ ir3_context_init(struct ir3_compiler *compiler,
 	 */
 
 	ctx->s = nir_shader_clone(ctx, so->shader->nir);
-	if (ir3_key_lowers_nir(&so->key))
-		ir3_optimize_nir(so->shader, ctx->s, &so->key);
+	ir3_nir_lower_variant(so, ctx->s);
 
 	/* this needs to be the last pass run, so do this here instead of
 	 * in ir3_optimize_nir():
@@ -113,6 +112,43 @@ ir3_context_init(struct ir3_compiler *compiler,
 		NIR_PASS_V(ctx->s, ir3_nir_lower_tex_prefetch);
 
 	NIR_PASS_V(ctx->s, nir_convert_from_ssa, true);
+
+	/* Super crude heuristic to limit # of tex prefetch in small
+	 * shaders.  This completely ignores loops.. but that's really
+	 * not the worst of it's problems.  (A frag shader that has
+	 * loops is probably going to be big enough to not trigger a
+	 * lower threshold.)
+	 *
+	 *   1) probably want to do this in terms of ir3 instructions
+	 *   2) probably really want to decide this after scheduling
+	 *      (or at least pre-RA sched) so we have a rough idea about
+	 *      nops, and don't count things that get cp'd away
+	 *   3) blob seems to use higher thresholds with a mix of more
+	 *      SFU instructions.  Which partly makes sense, more SFU
+	 *      instructions probably means you want to get the real
+	 *      shader started sooner, but that considers where in the
+	 *      shader the SFU instructions are, which blob doesn't seem
+	 *      to do.
+	 *
+	 * This uses more conservative thresholds assuming a more alu
+	 * than sfu heavy instruction mix.
+	 */
+	if (so->type == MESA_SHADER_FRAGMENT) {
+		nir_function_impl *fxn = nir_shader_get_entrypoint(ctx->s);
+
+		unsigned instruction_count = 0;
+		nir_foreach_block (block, fxn) {
+			instruction_count += exec_list_length(&block->instr_list);
+		}
+
+		if (instruction_count < 50) {
+			ctx->prefetch_limit = 2;
+		} else if (instruction_count < 70) {
+			ctx->prefetch_limit = 3;
+		} else {
+			ctx->prefetch_limit = IR3_MAX_SAMPLER_PREFETCH;
+		}
+	}
 
 	if (shader_debug_enabled(so->type)) {
 		fprintf(stdout, "NIR (final form) for %s shader %s:\n",
@@ -219,9 +255,13 @@ ir3_put_dst(struct ir3_context *ctx, nir_dest *dst)
 	if (bit_size == 16) {
 		for (unsigned i = 0; i < ctx->last_dst_n; i++) {
 			struct ir3_instruction *dst = ctx->last_dst[i];
-			dst->regs[0]->flags |= IR3_REG_HALF;
-			if (ctx->last_dst[i]->opc == OPC_META_SPLIT)
-				dst->regs[1]->instr->regs[0]->flags |= IR3_REG_HALF;
+			ir3_set_dst_type(dst, true);
+			ir3_fixup_src_type(dst);
+			if (dst->opc == OPC_META_SPLIT) {
+				ir3_set_dst_type(ssa(dst->regs[1]), true);
+				ir3_fixup_src_type(ssa(dst->regs[1]));
+				dst->regs[1]->flags |= IR3_REG_HALF;
+			}
 		}
 	}
 
@@ -384,11 +424,7 @@ create_addr0(struct ir3_block *block, struct ir3_instruction *src, int align)
 {
 	struct ir3_instruction *instr, *immed;
 
-	/* TODO in at least some cases, the backend could probably be
-	 * made clever enough to propagate IR3_REG_HALF..
-	 */
 	instr = ir3_COV(block, src, TYPE_U32, TYPE_S16);
-	instr->regs[0]->flags |= IR3_REG_HALF;
 
 	switch(align){
 	case 1:
@@ -396,41 +432,29 @@ create_addr0(struct ir3_block *block, struct ir3_instruction *src, int align)
 		break;
 	case 2:
 		/* src *= 2	=> src <<= 1: */
-		immed = create_immed(block, 1);
-		immed->regs[0]->flags |= IR3_REG_HALF;
-
+		immed = create_immed_typed(block, 1, TYPE_S16);
 		instr = ir3_SHL_B(block, instr, 0, immed, 0);
-		instr->regs[0]->flags |= IR3_REG_HALF;
-		instr->regs[1]->flags |= IR3_REG_HALF;
 		break;
 	case 3:
 		/* src *= 3: */
-		immed = create_immed(block, 3);
-		immed->regs[0]->flags |= IR3_REG_HALF;
-
+		immed = create_immed_typed(block, 3, TYPE_S16);
 		instr = ir3_MULL_U(block, instr, 0, immed, 0);
-		instr->regs[0]->flags |= IR3_REG_HALF;
-		instr->regs[1]->flags |= IR3_REG_HALF;
 		break;
 	case 4:
 		/* src *= 4 => src <<= 2: */
-		immed = create_immed(block, 2);
-		immed->regs[0]->flags |= IR3_REG_HALF;
-
+		immed = create_immed_typed(block, 2, TYPE_S16);
 		instr = ir3_SHL_B(block, instr, 0, immed, 0);
-		instr->regs[0]->flags |= IR3_REG_HALF;
-		instr->regs[1]->flags |= IR3_REG_HALF;
 		break;
 	default:
 		unreachable("bad align");
 		return NULL;
 	}
 
+	instr->regs[0]->flags |= IR3_REG_HALF;
+
 	instr = ir3_MOV(block, instr, TYPE_S16);
 	instr->regs[0]->num = regid(REG_A0, 0);
 	instr->regs[0]->flags &= ~IR3_REG_SSA;
-	instr->regs[0]->flags |= IR3_REG_HALF;
-	instr->regs[1]->flags |= IR3_REG_HALF;
 
 	return instr;
 }
@@ -439,12 +463,10 @@ static struct ir3_instruction *
 create_addr1(struct ir3_block *block, unsigned const_val)
 {
 
-	struct ir3_instruction *immed = create_immed(block, const_val);
+	struct ir3_instruction *immed = create_immed_typed(block, const_val, TYPE_S16);
 	struct ir3_instruction *instr = ir3_MOV(block, immed, TYPE_S16);
 	instr->regs[0]->num = regid(REG_A0, 1);
 	instr->regs[0]->flags &= ~IR3_REG_SSA;
-	instr->regs[0]->flags |= IR3_REG_HALF;
-	instr->regs[1]->flags |= IR3_REG_HALF;
 	return instr;
 }
 

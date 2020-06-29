@@ -30,7 +30,6 @@
 
 #include "radv_radeon_winsys.h"
 #include "ac_gpu_info.h"
-#include "addrlib/inc/addrinterface.h"
 #include "util/list.h"
 #include <pthread.h>
 

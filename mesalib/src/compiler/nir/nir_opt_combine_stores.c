@@ -338,7 +338,7 @@ combine_stores_block(struct combine_stores_state *state, nir_block *block)
          combine_stores_with_modes(state, nir_var_shader_out);
          break;
 
-      case nir_intrinsic_scoped_memory_barrier:
+      case nir_intrinsic_scoped_barrier:
          if (nir_intrinsic_memory_semantics(intrin) & NIR_MEMORY_RELEASE) {
             combine_stores_with_modes(state,
                                       nir_intrinsic_memory_modes(intrin));
@@ -400,6 +400,8 @@ combine_stores_impl(struct combine_stores_state *state, nir_function_impl *impl)
    if (state->progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
+   } else {
+      nir_metadata_preserve(impl, nir_metadata_all);
    }
 
    return state->progress;

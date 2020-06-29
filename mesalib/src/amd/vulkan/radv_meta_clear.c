@@ -1481,7 +1481,7 @@ radv_clear_cmask(struct radv_cmd_buffer *cmd_buffer,
 		 struct radv_image *image,
 		 const VkImageSubresourceRange *range, uint32_t value)
 {
-	uint64_t offset = image->offset + image->cmask_offset;
+	uint64_t offset = image->offset + image->planes[0].surface.cmask_offset;
 	uint64_t size;
 
 	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
@@ -1504,7 +1504,7 @@ radv_clear_fmask(struct radv_cmd_buffer *cmd_buffer,
 		 struct radv_image *image,
 		 const VkImageSubresourceRange *range, uint32_t value)
 {
-	uint64_t offset = image->offset + image->fmask_offset;
+	uint64_t offset = image->offset + image->planes[0].surface.fmask_offset;
 	uint64_t size;
 
 	/* MSAA images do not support mipmap levels. */
@@ -1538,7 +1538,7 @@ radv_clear_dcc(struct radv_cmd_buffer *cmd_buffer,
 	radv_update_dcc_metadata(cmd_buffer, image, range, true);
 
 	for (uint32_t l = 0; l < level_count; l++) {
-		uint64_t offset = image->offset + image->dcc_offset;
+		uint64_t offset = image->offset + image->planes[0].surface.dcc_offset;
 		uint32_t level = range->baseMipLevel + l;
 		uint64_t size;
 
@@ -1576,7 +1576,7 @@ radv_clear_htile(struct radv_cmd_buffer *cmd_buffer,
 {
 	unsigned layer_count = radv_get_layerCount(image, range);
 	uint64_t size = image->planes[0].surface.htile_slice_size * layer_count;
-	uint64_t offset = image->offset + image->htile_offset +
+	uint64_t offset = image->offset + image->planes[0].surface.htile_offset +
 	                  image->planes[0].surface.htile_slice_size * range->baseArrayLayer;
 	uint32_t htile_mask, flush_bits;
 

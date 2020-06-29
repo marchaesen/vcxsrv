@@ -1276,13 +1276,15 @@ VkResult radv_CreateQueryPool(
 	VkQueryPool*                                pQueryPool)
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
-	struct radv_query_pool *pool = vk_alloc2(&device->alloc, pAllocator,
+	struct radv_query_pool *pool = vk_alloc2(&device->vk.alloc, pAllocator,
 					       sizeof(*pool), 8,
 					       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
 	if (!pool)
 		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
+	vk_object_base_init(&device->vk, &pool->base,
+			    VK_OBJECT_TYPE_QUERY_POOL);
 
 	switch(pCreateInfo->queryType) {
 	case VK_QUERY_TYPE_OCCLUSION:
@@ -1313,7 +1315,7 @@ VkResult radv_CreateQueryPool(
 					     RADV_BO_PRIORITY_QUERY_POOL);
 
 	if (!pool->bo) {
-		vk_free2(&device->alloc, pAllocator, pool);
+		vk_free2(&device->vk.alloc, pAllocator, pool);
 		return vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
 	}
 
@@ -1321,7 +1323,7 @@ VkResult radv_CreateQueryPool(
 
 	if (!pool->ptr) {
 		device->ws->buffer_destroy(pool->bo);
-		vk_free2(&device->alloc, pAllocator, pool);
+		vk_free2(&device->vk.alloc, pAllocator, pool);
 		return vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
 	}
 
@@ -1341,7 +1343,9 @@ void radv_DestroyQueryPool(
 		return;
 
 	device->ws->buffer_destroy(pool->bo);
-	vk_free2(&device->alloc, pAllocator, pool);
+
+	vk_object_base_finish(&pool->base);
+	vk_free2(&device->vk.alloc, pAllocator, pool);
 }
 
 VkResult radv_GetQueryPoolResults(
@@ -1673,7 +1677,7 @@ void radv_CmdResetQueryPool(
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	RADV_FROM_HANDLE(radv_query_pool, pool, queryPool);
 	uint32_t value = pool->type == VK_QUERY_TYPE_TIMESTAMP
-			 ? TIMESTAMP_NOT_READY : 0;
+			 ? (uint32_t)TIMESTAMP_NOT_READY : 0;
 	uint32_t flush_bits = 0;
 
 	/* Make sure to sync all previous work if the given command buffer has
@@ -1708,7 +1712,7 @@ void radv_ResetQueryPool(
 	RADV_FROM_HANDLE(radv_query_pool, pool, queryPool);
 
 	uint32_t value = pool->type == VK_QUERY_TYPE_TIMESTAMP
-			 ? TIMESTAMP_NOT_READY : 0;
+			 ? (uint32_t)TIMESTAMP_NOT_READY : 0;
 	uint32_t *data =  (uint32_t*)(pool->ptr + firstQuery * pool->stride);
 	uint32_t *data_end = (uint32_t*)(pool->ptr + (firstQuery + queryCount) * pool->stride);
 

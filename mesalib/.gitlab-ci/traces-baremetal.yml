@@ -1,0 +1,262 @@
+# bare-metal has traces-db baked into the container until we can sort
+# out LFS caching, so we use a separate yml without the git repo
+# declaration at the top.
+
+traces:
+# This trace takes an egregious amount of time in replay (5 minutes)
+#  on freedreno for some reason.
+#  - path: glxgears/glxgears.trace
+#    expectations:
+#      - device: freedreno-a630
+#        checksum: 5599d6e8e43384c59196b9c9b0161268
+  - path: gputest/furmark.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: de674022e53fc9e0a9eb217f8bf0fe03
+# Note: Requires GL3.3
+  - path: gputest/gimark.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: 2cae8e2104356e2b3017cbd953cf7b4a
+  - path: gputest/pixmark-julia-fp32.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: 4a02628395948c34d95d035a9c9735cb
+# Note: Requires GL4 (fp64).
+#  - path: gputest/pixmark-julia-fp64.trace
+#    expectations:
+#      - device: freedreno-a630
+#        checksum: 0
+  - path: gputest/pixmark-piano.trace
+    expectations:
+      # One of the material textures appears brighter on freedreno than
+      # i965 in a way that is probably wrong.
+      - device: freedreno-a630
+        checksum: 1aad6e1ffe23cae71acdb70695a6184b
+  - path: gputest/pixmark-volplosion.trace
+    expectations:
+      # Looks fine, but totally different shape from the rendering on i965.
+      - device: freedreno-a630
+        checksum: 86d678c70b8adf27095ace1a6bbfe2d2
+  - path: gputest/plot3d.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: 67a9eb692e694b11107860bbcd47d493
+# Note: Requires GL4 for tess.
+  - path: gputest/tessmark.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: 985e231b58b7dc4b6da34ff32f8ebb82
+  - path: gputest/triangle.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: 1dc6abfb1cfbc5b16adc6f4abf76eec8
+  - path: humus/AmbientAperture.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: 531c54b2d1af670f698fb47d3fe321d4
+  - path: humus/CelShading.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: b0ac8fb4b2b2268cfb87944730125886
+  - path: humus/DynamicBranching3.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: 1f168d54278d95100ad0f9e94c2eb111
+  - path: humus/HDR.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: 40387a4e89ef71c472a94413b175ff59
+  - path: humus/Portals.trace
+    expectations:
+      # Bad rendering -- some sort of gap in the upper right of the image.
+      - device: freedreno-a630
+        checksum: 1c7411cebed6ba0015aaef102539fc5a
+  - path: humus/RaytracedShadows.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: 992ffe18dfac0030368494b4367150f1
+  - path: humus/VolumetricFogging2.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: 00670c5b830a7b8098fdcd347f7e0d6c
+  - path: pathfinder/canvas_moire.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: 0e32ca8fc815a7250f38a07faeafb21b
+  - path: pathfinder/canvas_text.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: 74129b650bd3ca806ff2dd46813ba6e6
+  - path: pathfinder/demo.trace
+    expectations:
+      - device: freedreno-a630
+        checksum: f6661ed4de9e0a444c6338ebd0cd3768
+  - path: glmark2/buffer-columns=200:interleave=false:update-dispersion=0.9:update-fraction=0.5:update-method=map.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: 1d04a606014f00663e0d078903d190c8
+  - path: glmark2/buffer-columns=200:interleave=false:update-dispersion=0.9:update-fraction=0.5:update-method=subdata.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: 6c00e3f05fab4b0df449451803b2749a
+  - path: glmark2/buffer-columns=200:interleave=true:update-dispersion=0.9:update-fraction=0.5:update-method=map.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: 5706da41ae1877086e7ac2dc9af66e81
+  - path: glmark2/bump-bump-render=height.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: ed8ef7fcd88f20c5814bbdd95f62824a
+  - path: glmark2/bump-bump-render=high-poly.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: 39e9e510819758910efc7b58bd08b981
+  - path: glmark2/bump-bump-render=normals.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: 3b270da5fcb3c1ee49c889644a5cc439
+  - path: glmark2/conditionals-fragment-steps=0:vertex-steps=0.rdc
+    expectations:
+      # Incorrect rendering, a bunch of the area is uniform gray when it should
+      # continue the pattern
+      - device: freedreno-a630
+        checksum: 4d654718f516adb891e6adef04924896
+  - path: glmark2/conditionals-fragment-steps=5:vertex-steps=0.rdc
+    expectations:
+      # Incorrect rendering, a bunch of the area is uniform gray when it should
+      # continue the pattern
+      - device: freedreno-a630
+        checksum: 7937cc1cb07b980da11a7c892a97bcdc
+  - path: glmark2/conditionals-fragment-steps=0:vertex-steps=5.rdc
+    expectations:
+      # Incorrect rendering, a bunch of the area is uniform gray when it should
+      # continue the pattern
+      - device: freedreno-a630
+        checksum: 2977a3bb963096a4ed421dff7001d498
+  - path: glmark2/desktop-blur-radius=5:effect=blur:passes=1:separable=true:windows=4.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: d750bb0972cf14a4c0bc35896d87da16
+  - path: glmark2/desktop-effect=shadow:windows=4.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: 5ff3fe9ab8ad3a53ce4b8bfe7a61900a
+  - path: glmark2/effect2d-kernel=0,1,0;1,-4,1;0,1,0.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: b38d1d3ebe30ea3df97713515dab3df0
+  - path: glmark2/effect2d-kernel=1,1,1,1,1;1,1,1,1,1;1,1,1,1,1;.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: 2346a6597f4d1f20b493e8d6a8f7e592
+  - path: glmark2/function-fragment-complexity=low:fragment-steps=5.rdc
+    expectations:
+      # Incorrect rendering, a bunch of the area is uniform gray when it should
+      # continue the pattern
+      - device: freedreno-a630
+        checksum: d479556facd21af43d526b3cc95bed8b
+  - path: glmark2/function-fragment-complexity=medium:fragment-steps=5.rdc
+    expectations:
+      # Incorrect rendering, a bunch of the area is uniform gray when it should
+      # continue the pattern
+      - device: freedreno-a630
+        checksum: 17895715bdb496faa73bba89b06347f6
+  - path: glmark2/glmark2-build-use-vbo-false.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: ecb647d14dae3876eb2a4282633d84f5
+  - path: glmark2/glmark2-build-use-vbo-true.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: b2608bba0f80ef93809e42399fb77124
+  - path: glmark2/ideas-speed=duration.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: 4f51ce282835db86fd8dc42b81755ef8
+  - path: glmark2/jellyfish.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: b50568db464034da63a536a9fe89499b
+  - path: glmark2/loop-fragment-loop=false:fragment-steps=5:vertex-steps=5.rdc
+    expectations:
+      # Incorrect rendering, a bunch of the area is uniform gray when it should
+      # continue the pattern
+      - device: freedreno-a630
+        checksum: 52397a2278680b28ccfac4d8ba7340dd
+  - path: glmark2/loop-fragment-steps=5:fragment-uniform=false:vertex-steps=5.rdc
+    expectations:
+      # Incorrect rendering, a bunch of the area is uniform gray when it should
+      # continue the pattern
+      - device: freedreno-a630
+        checksum: 45ce9b6056ec0e0e4276e7738eaa7fa1
+  - path: glmark2/loop-fragment-steps=5:fragment-uniform=true:vertex-steps=5.rdc
+    expectations:
+      # Incorrect rendering, a bunch of the area is uniform gray when it should
+      # continue the pattern
+      - device: freedreno-a630
+        checksum: ec5ea3eab5b54524748a0c883cc929d6
+  - path: glmark2/pulsar-light=false:quads=5:texture=false.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: e482fd686d39decbec52ada682d93890
+  - path: glmark2/refract.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: a7b60492d31ca93f1506dfa59b462570
+  - path: glmark2/shading-shading=blinn-phong-inf.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: 5a4aa8bebb324d0319ae1ebd95c7ce57
+  - path: glmark2/shading-shading=cel.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: 444fc5f23e3ce564d9945c20ed5d5e67
+  - path: glmark2/shading-shading=gouraud.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: fcc26fca31375b216382e69bc5f113fb
+  - path: glmark2/shading-shading=phong.rdc
+    # Some speckling on the main specular highlight that may just be
+    # mediump artifacts
+    expectations:
+      - device: freedreno-a630
+        checksum: ba29b12892f5cb9f9c506db9cc76f987
+  - path: glmark2/shadow.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: d8b5931669733240797f1acf5d98db25
+    # Very yellow terrain compared to i965, may just be mediump artifacts.
+  - path: glmark2/terrain.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: 2368b3132a8768bc3a98b3fda0a4830e
+  - path: glmark2/texture-texture-filter=linear.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: b4beeda82884d2e6de549b16cd9b90e8
+  - path: glmark2/texture-texture-filter=mipmap.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: 27e1cdb7e8f3f5bb6a61ebf02927d201
+  - path: glmark2/texture-texture-filter=nearest.rdc
+    expectations:
+      - device: freedreno-a630
+        checksum: 0b0114e48cf37efc43d8b27b926eaadf
+# Throws errors on freedreno
+#  - path: supertuxkart/supertuxkart-antediluvian-abyss.rdc
+#    expectations:
+#      - device: freedreno-a630
+#        checksum: 0
+#  - path: supertuxkart/supertuxkart-menu.rdc
+#    expectations:
+#      - device: freedreno-a630
+#        checksum: 0
+#  - path: supertuxkart/supertuxkart-ravenbridge-mansion.rdc
+#    expectations:
+#      - device: freedreno-a630
+#        checksum: 0
+#  - path: godot/Material Testers.x86_64_2020.04.08_13.38_frame799.rdc
+#    expectations:
+#      - device: freedreno-a630
+#        checksum: 0

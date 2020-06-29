@@ -33,7 +33,6 @@ static nir_ssa_def *
 load(nir_builder *b, unsigned ncomp, nir_intrinsic_op op)
 {
 	nir_intrinsic_instr *load_size = nir_intrinsic_instr_create(b->shader, op);
-	load_size->num_components = ncomp;
 	nir_ssa_dest_init(&load_size->instr, &load_size->dest, ncomp, 32, NULL);
 	nir_builder_instr_insert(b, &load_size->instr);
 

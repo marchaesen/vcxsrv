@@ -135,7 +135,8 @@ cs_program_emit(struct fd_ringbuffer *ring, struct kernel *kernel)
 	OUT_PKT4(ring, REG_A6XX_SP_CS_CTRL_REG0, 1);
 	OUT_RING(ring, A6XX_SP_CS_CTRL_REG0_THREADSIZE(thrsz) |
 		A6XX_SP_CS_CTRL_REG0_FULLREGFOOTPRINT(i->max_reg + 1) |
-		A6XX_SP_CS_CTRL_REG0_MERGEDREGS |
+		A6XX_SP_CS_CTRL_REG0_HALFREGFOOTPRINT(i->max_half_reg + 1) |
+		COND(v->mergedregs, A6XX_SP_CS_CTRL_REG0_MERGEDREGS) |
 		A6XX_SP_CS_CTRL_REG0_BRANCHSTACK(v->branchstack) |
 		COND(v->need_pixlod, A6XX_SP_CS_CTRL_REG0_PIXLODENABLE));
 
@@ -168,7 +169,7 @@ cs_program_emit(struct fd_ringbuffer *ring, struct kernel *kernel)
 		CP_LOAD_STATE6_0_STATE_SRC(SS6_INDIRECT) |
 		CP_LOAD_STATE6_0_STATE_BLOCK(SB6_CS_SHADER) |
 		CP_LOAD_STATE6_0_NUM_UNIT(v->instrlen));
-	OUT_RELOCD(ring, v->bo, 0, 0, 0);
+	OUT_RELOC(ring, v->bo, 0, 0, 0);
 }
 
 static void
@@ -207,7 +208,7 @@ cs_const_emit(struct fd_ringbuffer *ring, struct kernel *kernel, uint32_t grid[3
 	struct ir3_kernel *ir3_kernel = to_ir3_kernel(kernel);
 	struct ir3_shader_variant *v = ir3_kernel->v;
 
-	const struct ir3_const_state *const_state = &v->shader->const_state;
+	const struct ir3_const_state *const_state = ir3_const_state(v);
 	uint32_t base = const_state->offsets.immediate;
 	int size = const_state->immediates_count;
 
@@ -258,7 +259,7 @@ cs_ibo_emit(struct fd_ringbuffer *ring, struct fd_submit *submit,
 			A6XX_IBO_2_UNK4 | A6XX_IBO_2_UNK31 |
 			A6XX_IBO_2_TYPE(A6XX_TEX_1D));
 		OUT_RING(state, A6XX_IBO_3_ARRAY_PITCH(0));
-		OUT_RELOCW(state, kernel->bufs[i], 0, 0, 0);
+		OUT_RELOC(state, kernel->bufs[i], 0, 0, 0);
 		OUT_RING(state, 0x00000000);
 		OUT_RING(state, 0x00000000);
 		OUT_RING(state, 0x00000000);
@@ -300,7 +301,7 @@ event_write(struct fd_ringbuffer *ring, struct kernel *kernel,
 		struct ir3_kernel *ir3_kernel = to_ir3_kernel(kernel);
 		struct a6xx_backend *a6xx_backend = to_a6xx_backend(ir3_kernel->backend);
 		seqno = ++a6xx_backend->seqno;
-		OUT_RELOCW(ring, control_ptr(a6xx_backend, seqno));  /* ADDR_LO/HI */
+		OUT_RELOC(ring, control_ptr(a6xx_backend, seqno));  /* ADDR_LO/HI */
 		OUT_RING(ring, seqno);
 	}
 
@@ -398,7 +399,7 @@ a6xx_emit_grid(struct kernel *kernel, uint32_t grid[3], struct fd_submit *submit
 			OUT_PKT7(ring, CP_REG_TO_MEM, 3);
 			OUT_RING(ring, CP_REG_TO_MEM_0_64B |
 				CP_REG_TO_MEM_0_REG(counter->counter_reg_lo));
-			OUT_RELOCW(ring, query_sample_idx(a6xx_backend, i, start));
+			OUT_RELOC(ring, query_sample_idx(a6xx_backend, i, start));
 		}
 	}
 
@@ -418,7 +419,7 @@ a6xx_emit_grid(struct kernel *kernel, uint32_t grid[3], struct fd_submit *submit
 			OUT_PKT7(ring, CP_REG_TO_MEM, 3);
 			OUT_RING(ring, CP_REG_TO_MEM_0_64B |
 				CP_REG_TO_MEM_0_REG(counter->counter_reg_lo));
-			OUT_RELOCW(ring, query_sample_idx(a6xx_backend, i, stop));
+			OUT_RELOC(ring, query_sample_idx(a6xx_backend, i, stop));
 		}
 
 		/* and compute the result: */
@@ -427,7 +428,7 @@ a6xx_emit_grid(struct kernel *kernel, uint32_t grid[3], struct fd_submit *submit
 			OUT_PKT7(ring, CP_MEM_TO_MEM, 9);
 			OUT_RING(ring, CP_MEM_TO_MEM_0_DOUBLE |
 					CP_MEM_TO_MEM_0_NEG_C);
-			OUT_RELOCW(ring, query_sample_idx(a6xx_backend, i, result));     /* dst */
+			OUT_RELOC(ring, query_sample_idx(a6xx_backend, i, result));     /* dst */
 			OUT_RELOC(ring, query_sample_idx(a6xx_backend, i, result));      /* srcA */
 			OUT_RELOC(ring, query_sample_idx(a6xx_backend, i, stop));        /* srcB */
 			OUT_RELOC(ring, query_sample_idx(a6xx_backend, i, start));       /* srcC */

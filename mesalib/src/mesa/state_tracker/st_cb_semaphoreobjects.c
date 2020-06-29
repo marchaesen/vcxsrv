@@ -34,7 +34,7 @@
 #include "st_cb_bufferobjects.h"
 #include "st_cb_semaphoreobjects.h"
 
-#include "state_tracker/drm_driver.h"
+#include "frontend/drm_driver.h"
 #include "pipe/p_context.h"
 #include "pipe/p_screen.h"
 

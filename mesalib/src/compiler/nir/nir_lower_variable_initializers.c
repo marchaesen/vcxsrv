@@ -115,9 +115,7 @@ nir_lower_variable_initializers(nir_shader *shader, nir_variable_mode modes)
                                                nir_metadata_dominance |
                                                nir_metadata_live_ssa_defs);
       } else {
-#ifndef NDEBUG
-         function->impl->valid_metadata &= ~nir_metadata_not_properly_reset;
-#endif
+         nir_metadata_preserve(function->impl, nir_metadata_all);
       }
    }
 

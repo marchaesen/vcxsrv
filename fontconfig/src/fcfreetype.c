@@ -1627,7 +1627,10 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	}
     }
     if (!nm_share)
+    {
 	free (name_mapping);
+	name_mapping = NULL;
+    }
 
     if (!nfamily && face->family_name &&
 	FcStrCmpIgnoreBlanksAndCase ((FcChar8 *) face->family_name, (FcChar8 *) "") != 0)
@@ -1821,6 +1824,8 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	if (!FcPatternObjectAddInteger (pat, FC_FONTVERSION_OBJECT, 0))
 	    goto bail1;
     }
+    if (!FcPatternObjectAddInteger (pat, FC_ORDER_OBJECT, 0))
+	goto bail1;
 
     if (os2 && os2->version >= 0x0001 && os2->version != 0xffff)
     {

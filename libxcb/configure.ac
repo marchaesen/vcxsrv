@@ -2,8 +2,8 @@ dnl Process this file with autoconf to produce a configure script.
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libxcb],[1.13.1],
-        [https://gitlab.freedesktop.org/xorg/lib/libxcb/issues],
+AC_INIT([libxcb],[1.12],
+        [https://bugs.freedesktop.org/enter_bug.cgi?product=xcb],
         [libxcb])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
@@ -50,7 +50,7 @@ fi
 AC_SUBST(HTML_CHECK_RESULT)
 
 # Checks for pkg-config packages
-PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.13)
+PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.12)
 NEEDED="pthread-stubs xau >= 0.99.2"
 PKG_CHECK_MODULES(NEEDED, $NEEDED)
 
@@ -235,7 +235,7 @@ XCB_EXTENSION(Xevie, no)
 XCB_EXTENSION(XFixes, yes)
 XCB_EXTENSION(XFree86-DRI, yes)
 XCB_EXTENSION(Xinerama, yes)
-XCB_EXTENSION(XInput, yes)
+XCB_EXTENSION(XInput, no)
 XCB_EXTENSION(XKB, yes)
 XCB_EXTENSION(Xprint, no)
 XCB_EXTENSION(SELinux, no)

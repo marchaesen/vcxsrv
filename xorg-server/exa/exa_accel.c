@@ -738,7 +738,7 @@ exaPolySegment(DrawablePtr pDrawable, GCPtr pGC, int nseg, xSegment * pSeg)
         }
     }
 
-    prect = xallocarray(nseg, sizeof(xRectangle));
+    prect = xallocarray((unsigned int)nseg, sizeof(xRectangle));
     for (i = 0; i < nseg; i++) {
         if (pSeg[i].x1 < pSeg[i].x2) {
             prect[i].x = pSeg[i].x1;

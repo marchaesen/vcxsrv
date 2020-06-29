@@ -50,10 +50,10 @@
 XStoreBytes, XStoreBuffer, XFetchBytes, XFetchBuffer, XRotateBuffers \- manipulate cut and paste buffers
 .SH SYNTAX
 .HP
-int XStoreBytes\^(\^Display *\fIdisplay\fP\^, char *\fIbytes\fP\^, int
+int XStoreBytes\^(\^Display *\fIdisplay\fP\^, _Xconst char *\fIbytes\fP\^, int
 \^\fInbytes\fP\^);
 .HP
-int XStoreBuffer\^(\^Display *\fIdisplay\fP\^, char *\fIbytes\fP\^, int
+int XStoreBuffer\^(\^Display *\fIdisplay\fP\^, _Xconst char *\fIbytes\fP\^, int
 \^\fInbytes\fP\^, int \fIbuffer\fP\^);
 .HP
 char *XFetchBytes\^(\^Display *\fIdisplay\fP\^, int *\fInbytes_return\fP\^);

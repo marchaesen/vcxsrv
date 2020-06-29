@@ -828,7 +828,7 @@ nir_convert_from_ssa(nir_shader *shader, bool phi_webs_only)
 
 
 static void
-place_phi_read(nir_shader *shader, nir_register *reg,
+place_phi_read(nir_builder *b, nir_register *reg,
                nir_ssa_def *def, nir_block *block, unsigned depth)
 {
    if (block != def->parent_instr->block) {
@@ -857,18 +857,14 @@ place_phi_read(nir_shader *shader, nir_register *reg,
           * that way.
           */
          set_foreach(block->predecessors, entry) {
-            place_phi_read(shader, reg, def, (nir_block *)entry->key,
-                           depth + 1);
+            place_phi_read(b, reg, def, (nir_block *)entry->key, depth + 1);
          }
          return;
       }
    }
 
-   nir_alu_instr *mov = nir_alu_instr_create(shader, nir_op_mov);
-   mov->src[0].src = nir_src_for_ssa(def);
-   mov->dest.dest = nir_dest_for_reg(reg);
-   mov->dest.write_mask = (1 << reg->num_components) - 1;
-   nir_instr_insert(nir_after_block_before_jump(block), &mov->instr);
+   b->cursor = nir_after_block_before_jump(block);
+   nir_store_reg(b, reg, def, ~0);
 }
 
 /** Lower all of the phi nodes in a block to imovs to and from a register
@@ -888,8 +884,8 @@ place_phi_read(nir_shader *shader, nir_register *reg,
 bool
 nir_lower_phis_to_regs_block(nir_block *block)
 {
-   nir_function_impl *impl = nir_cf_node_get_function(&block->cf_node);
-   nir_shader *shader = impl->function->shader;
+   nir_builder b;
+   nir_builder_init(&b, nir_cf_node_get_function(&block->cf_node));
 
    bool progress = false;
    nir_foreach_instr_safe(instr, block) {
@@ -899,22 +895,16 @@ nir_lower_phis_to_regs_block(nir_block *block)
       nir_phi_instr *phi = nir_instr_as_phi(instr);
       assert(phi->dest.is_ssa);
 
-      nir_register *reg = create_reg_for_ssa_def(&phi->dest.ssa, impl);
+      nir_register *reg = create_reg_for_ssa_def(&phi->dest.ssa, b.impl);
 
-      nir_alu_instr *mov = nir_alu_instr_create(shader, nir_op_mov);
-      mov->src[0].src = nir_src_for_reg(reg);
-      mov->dest.write_mask = (1 << phi->dest.ssa.num_components) - 1;
-      nir_ssa_dest_init(&mov->instr, &mov->dest.dest,
-                        phi->dest.ssa.num_components, phi->dest.ssa.bit_size,
-                        phi->dest.ssa.name);
-      nir_instr_insert(nir_after_instr(&phi->instr), &mov->instr);
+      b.cursor = nir_after_instr(&phi->instr);
+      nir_ssa_def *def = nir_load_reg(&b, reg);
 
-      nir_ssa_def_rewrite_uses(&phi->dest.ssa,
-                               nir_src_for_ssa(&mov->dest.dest.ssa));
+      nir_ssa_def_rewrite_uses(&phi->dest.ssa, nir_src_for_ssa(def));
 
       nir_foreach_phi_src(src, phi) {
          assert(src->src.is_ssa);
-         place_phi_read(shader, reg, src->src.ssa, src->pred, 0);
+         place_phi_read(&b, reg, src->src.ssa, src->pred, 0);
       }
 
       nir_instr_remove(&phi->instr);

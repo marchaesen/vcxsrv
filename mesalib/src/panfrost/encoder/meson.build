@@ -38,8 +38,8 @@ libpanfrost_encoder = static_library(
   'panfrost_encoder',
   [libpanfrost_encoder_files],
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_panfrost_hw],
-  c_args : [c_vis_args, no_override_init_args],
-  cpp_args : [cpp_vis_args],
+  c_args : [no_override_init_args],
+  gnu_symbol_visibility : 'hidden',
   dependencies: [dep_libdrm],
   build_by_default : false,
 )

@@ -50,12 +50,12 @@
 XParseGeometry, XWMGeometry \- parse window geometry
 .SH SYNTAX
 .HP
-int XParseGeometry\^(\^char *\fIparsestring\fP\^, int *\fIx_return\fP\^, int
+int XParseGeometry\^(\^_Xconst char *\fIparsestring\fP\^, int *\fIx_return\fP\^, int
 *\fIy_return\fP\^, unsigned int *\fIwidth_return\fP\^, unsigned int
 *\fIheight_return\fP\^);
 .HP
-int XWMGeometry\^(\^Display *\fIdisplay\fP\^, int \fIscreen\fP\^, char
-*\fIuser_geom\fP\^, char *\fIdef_geom\fP\^, unsigned int \fIbwidth\fP\^,
+int XWMGeometry\^(\^Display *\fIdisplay\fP\^, int \fIscreen\fP\^, _Xconst char
+*\fIuser_geom\fP\^, _Xconst char *\fIdef_geom\fP\^, unsigned int \fIbwidth\fP\^,
 XSizeHints *\fIhints\fP\^, int *\fIx_return\fP, int *\fIy_return\fP\^, int
 *\fIwidth_return\fP\^, int *\fIheight_return\fP\^, int
 *\fIgravity_return\fP\^);

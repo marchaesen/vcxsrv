@@ -90,11 +90,11 @@ changehost (Display *dpy, XHostAddress *host, BYTE mode)
     req->hostLength = addrlen;
     if (siAddr) {
 	char *dest = (char *) NEXTPTR(req,xChangeHostsReq);
-	memcpy(dest, siAddr->type, siAddr->typelength);
+	memcpy(dest, siAddr->type, (size_t) siAddr->typelength);
 	dest[siAddr->typelength] = '\0';
-	memcpy(dest + siAddr->typelength + 1,siAddr->value,siAddr->valuelength);
+	memcpy(dest + siAddr->typelength + 1,siAddr->value,(size_t) siAddr->valuelength);
     } else {
-	memcpy((char *) NEXTPTR(req,xChangeHostsReq), host->address, addrlen);
+	memcpy((char *) NEXTPTR(req,xChangeHostsReq), host->address, (size_t) addrlen);
     }
     UnlockDisplay(dpy);
     SyncHandle();

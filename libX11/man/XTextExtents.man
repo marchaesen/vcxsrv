@@ -50,23 +50,23 @@
 XTextExtents, XTextExtents16, XQueryTextExtents, XQueryTextExtents16 \- compute or query text extents
 .SH SYNTAX
 .HP
-int XTextExtents\^(\^XFontStruct *\fIfont_struct\fP\^, char *\fIstring\fP\^,
+int XTextExtents\^(\^XFontStruct *\fIfont_struct\fP\^, _Xconst char *\fIstring\fP\^,
 int \fInchars\fP\^, int *\fIdirection_return\fP\^, int
 *\fIfont_ascent_return\fP, int *\fIfont_descent_return\fP\^, XCharStruct
 *\fIoverall_return\fP\^);
 .HP
-int XTextExtents16\^(\^XFontStruct *\fIfont_struct\fP\^, XChar2b
+int XTextExtents16\^(\^XFontStruct *\fIfont_struct\fP\^, _Xconst XChar2b
 *\fIstring\fP\^, int \fInchars\fP\^, int *\fIdirection_return\fP\^, int
 *\fIfont_ascent_return\fP, int *\fIfont_descent_return\fP\^, XCharStruct
 *\fIoverall_return\fP\^);
 .HP
-int XQueryTextExtents\^(\^Display *\fIdisplay\fP\^, XID \fIfont_ID\fP\^, char
+int XQueryTextExtents\^(\^Display *\fIdisplay\fP\^, XID \fIfont_ID\fP\^, _Xconst char
 *\fIstring\fP\^, int \fInchars\fP\^, int *\fIdirection_return\fP\^, int
 *\fIfont_ascent_return\fP, int *\fIfont_descent_return\fP\^, XCharStruct
 *\fIoverall_return\fP\^);
 .HP
 int XQueryTextExtents16\^(\^Display *\fIdisplay\fP\^, XID \fIfont_ID\fP\^,
-XChar2b *\fIstring\fP\^, int \fInchars\fP\^, int *\fIdirection_return\fP\^,
+_Xconst XChar2b *\fIstring\fP\^, int \fInchars\fP\^, int *\fIdirection_return\fP\^,
 int *\fIfont_ascent_return\fP, int *\fIfont_descent_return\fP\^, XCharStruct
 *\fIoverall_return\fP\^);
 .SH ARGUMENTS

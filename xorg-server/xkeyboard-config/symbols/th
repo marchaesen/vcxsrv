@@ -1,6 +1,6 @@
 // based on a keyboard map from an 'xkb/symbols/th' file
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
     name[Group1]= "Thai";
 

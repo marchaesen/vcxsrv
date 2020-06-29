@@ -51,11 +51,11 @@ XDrawImageString, XDrawImageString16 \- draw image text
 .SH SYNTAX
 .HP
 int XDrawImageString\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, GC
-\fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^, char *\fIstring\fP\^, int
+\fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^, _Xconst char *\fIstring\fP\^, int
 \fIlength\fP\^);
 .HP
 int XDrawImageString16\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, GC
-\fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^, XChar2b *\fIstring\fP\^, int
+\fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^, _Xconst XChar2b *\fIstring\fP\^, int
 \fIlength\fP\^);
 .SH ARGUMENTS
 .IP \fId\fP 1i
@@ -149,6 +149,13 @@ window is used as a Drawable.
 .B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
+.SH NOTES
+Unlike XDrawString and XDrawString16,
+these functions send no more than 255 characters at a time to the server.
+When the total number of characters to be sent is larger than 255,
+these functions split the string into chunks up to 255 characters.
+After sending each chunk,
+these functions query the server to determine the actual text extent.
 .SH "SEE ALSO"
 XDrawString(__libmansuffix__),
 XDrawText(__libmansuffix__),

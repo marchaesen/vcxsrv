@@ -135,6 +135,18 @@ variables_can_merge(const nir_shader *shader,
        a->data.index != b->data.index)
       return false;
 
+   /* It's tricky to merge XFB-outputs correctly, because we need there
+    * to not be any overlaps when we get to
+    * nir_gather_xfb_info_with_varyings later on. We'll end up
+    * triggering an assert there if we merge here.
+    */
+   if ((shader->info.stage == MESA_SHADER_VERTEX ||
+        shader->info.stage == MESA_SHADER_TESS_EVAL ||
+        shader->info.stage == MESA_SHADER_GEOMETRY) &&
+       a->data.mode == nir_var_shader_out &&
+       (a->data.explicit_xfb_buffer || b->data.explicit_xfb_buffer))
+      return false;
+
    return true;
 }
 

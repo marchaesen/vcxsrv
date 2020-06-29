@@ -36,7 +36,7 @@
 bool ir3_nir_apply_trig_workarounds(nir_shader *shader);
 bool ir3_nir_lower_imul(nir_shader *shader);
 bool ir3_nir_lower_tg4_to_tex(nir_shader *shader);
-bool ir3_nir_lower_io_offsets(nir_shader *shader);
+bool ir3_nir_lower_io_offsets(nir_shader *shader, int gpu_id);
 bool ir3_nir_lower_load_barycentric_at_sample(nir_shader *shader);
 bool ir3_nir_lower_load_barycentric_at_offset(nir_shader *shader);
 bool ir3_nir_move_varying_inputs(nir_shader *shader);
@@ -44,18 +44,22 @@ int ir3_nir_coord_offset(nir_ssa_def *ssa);
 bool ir3_nir_lower_tex_prefetch(nir_shader *shader);
 
 
-void ir3_nir_lower_to_explicit_io(nir_shader *shader,
-		struct ir3_shader *s, unsigned topology);
-void ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader *s, unsigned topology);
+void ir3_nir_lower_to_explicit_output(nir_shader *shader,
+		struct ir3_shader_variant *v, unsigned topology);
+void ir3_nir_lower_to_explicit_input(nir_shader *shader);
+void ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader_variant *v, unsigned topology);
 void ir3_nir_lower_tess_eval(nir_shader *shader, unsigned topology);
-void ir3_nir_lower_gs(nir_shader *shader, struct ir3_shader *s);
+void ir3_nir_lower_gs(nir_shader *shader);
 
 const nir_shader_compiler_options * ir3_get_compiler_options(struct ir3_compiler *compiler);
-bool ir3_key_lowers_nir(const struct ir3_shader_key *key);
-void ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
-		const struct ir3_shader_key *key);
+void ir3_finalize_nir(struct ir3_compiler *compiler, nir_shader *s);
+void ir3_nir_post_finalize(struct ir3_compiler *compiler, nir_shader *s);
+void ir3_nir_lower_variant(struct ir3_shader_variant *so, nir_shader *s);
 
-bool ir3_nir_analyze_ubo_ranges(nir_shader *nir, struct ir3_shader *shader);
+void ir3_setup_const_state(nir_shader *nir, struct ir3_shader_variant *v,
+		struct ir3_const_state *const_state);
+void ir3_nir_analyze_ubo_ranges(nir_shader *nir, struct ir3_shader_variant *v);
+bool ir3_nir_lower_ubo_loads(nir_shader *nir, struct ir3_shader_variant *v);
 
 nir_ssa_def *
 ir3_nir_try_propagate_bit_shift(nir_builder *b, nir_ssa_def *offset, int32_t shift);

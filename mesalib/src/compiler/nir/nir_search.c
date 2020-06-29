@@ -913,8 +913,10 @@ nir_algebraic_impl(nir_function_impl *impl,
     * anything other than constants and ALU instructions.
     */
    struct util_dynarray states = {0};
-   if (!util_dynarray_resize(&states, uint16_t, impl->ssa_alloc))
+   if (!util_dynarray_resize(&states, uint16_t, impl->ssa_alloc)) {
+      nir_metadata_preserve(impl, nir_metadata_all);
       return false;
+   }
    memset(states.data, 0, states.size);
 
    struct hash_table *range_ht = _mesa_pointer_hash_table_create(NULL);
@@ -960,11 +962,9 @@ nir_algebraic_impl(nir_function_impl *impl,
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
-    } else {
-#ifndef NDEBUG
-      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
-#endif
-    }
+   } else {
+      nir_metadata_preserve(impl, nir_metadata_all);
+   }
 
    return progress;
 }

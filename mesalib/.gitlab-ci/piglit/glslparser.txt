@@ -1136,18 +1136,22 @@ spec/arb_gpu_shader_int64/compiler/built-in-functions/sign-i64vec4.vert: skip
 spec/arb_gpu_shader_int64/compiler/built-in-functions/sign-int64_t.frag: skip
 spec/arb_gpu_shader_int64/compiler/built-in-functions/sign-int64_t.geom: skip
 spec/arb_gpu_shader_int64/compiler/built-in-functions/sign-int64_t.vert: skip
-spec/arb_sample_shading/compiler/gl_numsamples.frag: skip
-spec/arb_sample_shading/compiler/gl_sampleid.frag: skip
-spec/arb_sample_shading/compiler/gl_samplemask.frag: skip
-spec/arb_sample_shading/compiler/gl_sampleposition.frag: skip
-spec/arb_sample_shading/preprocessor/enabled-compat.frag: skip
-spec/arb_sample_shading/preprocessor/enabled-compat.vert: skip
-spec/arb_sample_shading/preprocessor/enabled-core.comp: skip
-spec/arb_sample_shading/preprocessor/enabled-core.frag: skip
-spec/arb_sample_shading/preprocessor/enabled-core.geom: skip
-spec/arb_sample_shading/preprocessor/enabled-core.tesc: skip
-spec/arb_sample_shading/preprocessor/enabled-core.tese: skip
-spec/arb_sample_shading/preprocessor/enabled-core.vert: skip
+spec/arb_sample_shading/preprocessor/disabled-defined-compat.frag: skip
+spec/arb_sample_shading/preprocessor/disabled-defined-compat.vert: skip
+spec/arb_sample_shading/preprocessor/disabled-defined-core.comp: skip
+spec/arb_sample_shading/preprocessor/disabled-defined-core.frag: skip
+spec/arb_sample_shading/preprocessor/disabled-defined-core.geom: skip
+spec/arb_sample_shading/preprocessor/disabled-defined-core.tesc: skip
+spec/arb_sample_shading/preprocessor/disabled-defined-core.tese: skip
+spec/arb_sample_shading/preprocessor/disabled-defined-core.vert: skip
+spec/arb_sample_shading/preprocessor/disabled-undefined-compat.frag: skip
+spec/arb_sample_shading/preprocessor/disabled-undefined-compat.vert: skip
+spec/arb_sample_shading/preprocessor/disabled-undefined-core.comp: skip
+spec/arb_sample_shading/preprocessor/disabled-undefined-core.frag: skip
+spec/arb_sample_shading/preprocessor/disabled-undefined-core.geom: skip
+spec/arb_sample_shading/preprocessor/disabled-undefined-core.tesc: skip
+spec/arb_sample_shading/preprocessor/disabled-undefined-core.tese: skip
+spec/arb_sample_shading/preprocessor/disabled-undefined-core.vert: skip
 spec/arb_separate_shader_objects/preprocessor/disabled-defined-compat.frag: skip
 spec/arb_separate_shader_objects/preprocessor/disabled-defined-compat.vert: skip
 spec/arb_separate_shader_objects/preprocessor/disabled-defined-core.comp: skip
@@ -1300,6 +1304,10 @@ spec/arb_shader_stencil_export/preprocessor/disabled-undefined-core.geom: skip
 spec/arb_shader_stencil_export/preprocessor/disabled-undefined-core.tesc: skip
 spec/arb_shader_stencil_export/preprocessor/disabled-undefined-core.tese: skip
 spec/arb_shader_stencil_export/preprocessor/disabled-undefined-core.vert: skip
+spec/arb_shader_storage_buffer_object/compiler/atomiccompswap-implicit-conversion.vert: skip
+spec/arb_shader_storage_buffer_object/compiler/atomicmin-array-element-implicit-conversion.vert: skip
+spec/arb_shader_storage_buffer_object/compiler/atomicmin-implicit-conversion.vert: skip
+spec/arb_shader_storage_buffer_object/compiler/atomicmin-swizzle-implicit-conversion.vert: skip
 spec/arb_shader_storage_buffer_object/compiler/unused-array-element.comp: skip
 spec/arb_shader_storage_buffer_object/compiler/unused-array-element.frag: skip
 spec/arb_shader_storage_buffer_object/preprocessor/disabled-defined-compat.frag: skip
@@ -1330,17 +1338,22 @@ spec/arb_shader_subroutine/preprocessor/disabled-undefined-core.geom: skip
 spec/arb_shader_subroutine/preprocessor/disabled-undefined-core.tesc: skip
 spec/arb_shader_subroutine/preprocessor/disabled-undefined-core.tese: skip
 spec/arb_shader_subroutine/preprocessor/disabled-undefined-core.vert: skip
-spec/arb_shader_texture_image_samples/compiler/fs-image-samples.frag: skip
-spec/arb_shader_texture_image_samples/compiler/fs-texture-samples.frag: skip
-spec/arb_shader_texture_image_samples/compiler/vs-texture-samples.vert: skip
-spec/arb_shader_texture_image_samples/preprocessor/enabled-compat.frag: skip
-spec/arb_shader_texture_image_samples/preprocessor/enabled-compat.vert: skip
-spec/arb_shader_texture_image_samples/preprocessor/enabled-core.comp: skip
-spec/arb_shader_texture_image_samples/preprocessor/enabled-core.frag: skip
-spec/arb_shader_texture_image_samples/preprocessor/enabled-core.geom: skip
-spec/arb_shader_texture_image_samples/preprocessor/enabled-core.tesc: skip
-spec/arb_shader_texture_image_samples/preprocessor/enabled-core.tese: skip
-spec/arb_shader_texture_image_samples/preprocessor/enabled-core.vert: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-defined-compat.frag: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-defined-compat.vert: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-defined-core.comp: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-defined-core.frag: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-defined-core.geom: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-defined-core.tesc: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-defined-core.tese: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-defined-core.vert: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-undefined-compat.frag: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-undefined-compat.vert: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-undefined-core.comp: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-undefined-core.frag: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-undefined-core.geom: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-undefined-core.tesc: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-undefined-core.tese: skip
+spec/arb_shader_texture_image_samples/preprocessor/disabled-undefined-core.vert: skip
 spec/arb_shader_texture_lod/preprocessor/disabled-defined-compat.frag: skip
 spec/arb_shader_texture_lod/preprocessor/disabled-defined-compat.vert: skip
 spec/arb_shader_texture_lod/preprocessor/disabled-defined-core.comp: skip
@@ -1579,6 +1592,19 @@ spec/ext_draw_buffers/preprocessor/disabled-undefined-es.tesc: skip
 spec/ext_draw_buffers/preprocessor/disabled-undefined-es.tese: skip
 spec/ext_draw_buffers/preprocessor/disabled-undefined-es.vert: skip
 spec/ext_draw_buffers/preprocessor/enabled-es.geom: skip
+spec/ext_draw_instanced/preprocessor/disabled-defined-es.comp: skip
+spec/ext_draw_instanced/preprocessor/disabled-defined-es.frag: skip
+spec/ext_draw_instanced/preprocessor/disabled-defined-es.geom: skip
+spec/ext_draw_instanced/preprocessor/disabled-defined-es.tesc: skip
+spec/ext_draw_instanced/preprocessor/disabled-defined-es.tese: skip
+spec/ext_draw_instanced/preprocessor/disabled-defined-es.vert: skip
+spec/ext_draw_instanced/preprocessor/disabled-undefined-es.comp: skip
+spec/ext_draw_instanced/preprocessor/disabled-undefined-es.frag: skip
+spec/ext_draw_instanced/preprocessor/disabled-undefined-es.geom: skip
+spec/ext_draw_instanced/preprocessor/disabled-undefined-es.tesc: skip
+spec/ext_draw_instanced/preprocessor/disabled-undefined-es.tese: skip
+spec/ext_draw_instanced/preprocessor/disabled-undefined-es.vert: skip
+spec/ext_draw_instanced/preprocessor/enabled-es.geom: skip
 spec/ext_geometry_point_size/preprocessor/disabled-defined-es.geom: skip
 spec/ext_geometry_point_size/preprocessor/disabled-undefined-es.geom: skip
 spec/ext_geometry_point_size/preprocessor/enabled-es.comp: skip
@@ -4551,6 +4577,7 @@ spec/glsl-4.00/compiler/inout/vs-input-double.vert: skip
 spec/glsl-4.00/compiler/inout/vs-input-dvec2.vert: skip
 spec/glsl-4.00/compiler/inout/vs-input-dvec3.vert: skip
 spec/glsl-4.00/compiler/inout/vs-input-dvec4.vert: skip
+spec/glsl-4.30/compiler/legal-aggregate-initializer-sequence-operator-abuse.frag: skip
 spec/glsl-4.40/compiler/inout-parameter-qualifier.frag: skip
 spec/glsl-es-3.20/compiler/flat_interpolation/default-interface_block-array-int-bad.frag: skip
 spec/glsl-es-3.20/compiler/flat_interpolation/default-interface_block-array-ivec2-bad.frag: skip
@@ -4636,6 +4663,10 @@ spec/intel_conservative_rasterization/compiler/post_depth_coverage.gl.frag: skip
 spec/intel_conservative_rasterization/compiler/post_depth_coverage.gl.vert: skip
 spec/intel_conservative_rasterization/compiler/post_depth_coverage.gles.frag: skip
 spec/intel_conservative_rasterization/compiler/post_depth_coverage.gles.vert: skip
+spec/intel_shader_atomic_float_minmax/compiler/atomiccompswap-implicit-conversion.vert: skip
+spec/intel_shader_atomic_float_minmax/compiler/atomicmin-array-element-implicit-conversion-fail.vert: skip
+spec/intel_shader_atomic_float_minmax/compiler/atomicmin-implicit-conversion-fail.vert: skip
+spec/intel_shader_atomic_float_minmax/compiler/atomicmin-swizzle-implicit-conversion-fail.vert: skip
 spec/intel_shader_atomic_float_minmax/compiler/shared-atomicexchange-float-fail.comp: skip
 spec/intel_shader_atomic_float_minmax/compiler/shared-atomicmax-float-fail.comp: skip
 spec/intel_shader_atomic_float_minmax/compiler/shared-atomicmin-float-fail.comp: skip
@@ -4745,6 +4776,15 @@ spec/nv_shader_atomic_float/compiler/shared-atomicadd-float-fail.comp: skip
 spec/nv_shader_atomic_float/compiler/shared-atomicexchange-float-fail.comp: skip
 spec/nv_shader_atomic_float/compiler/ssbo-atomicadd-float-fail.frag: skip
 spec/nv_shader_atomic_float/compiler/ssbo-atomicexchange-float-fail.frag: skip
+spec/nv_viewport_array2/compiler/viewport_relative-bad.vert: skip
+spec/nv_viewport_array2/compiler/viewport_relative.geom: skip
+spec/nv_viewport_array2/compiler/viewport_relative.tesc: skip
+spec/nv_viewport_array2/compiler/viewport_relative.tese: skip
+spec/nv_viewport_array2/compiler/viewport_relative.vert: skip
+spec/nv_viewport_array2/compiler/viewportmask.geom: skip
+spec/nv_viewport_array2/compiler/viewportmask.tesc: skip
+spec/nv_viewport_array2/compiler/viewportmask.tese: skip
+spec/nv_viewport_array2/compiler/viewportmask.vert: skip
 spec/oes_blend_func_extended/preprocessor/disabled-defined-es.geom: skip
 spec/oes_blend_func_extended/preprocessor/disabled-undefined-es.geom: skip
 spec/oes_blend_func_extended/preprocessor/enabled-es.comp: skip
@@ -4875,10 +4915,10 @@ spec/oes_texture_storage_multisample_2d_array/preprocessor/enabled-es.geom: skip
 summary:
        name:  results
        ----  --------
-       pass:     9909
+       pass:     9918
        fail:        2
       crash:        0
-       skip:     4872
+       skip:     4912
     timeout:        0
        warn:        0
  incomplete:        0
@@ -4887,4 +4927,4 @@ summary:
     changes:        0
       fixes:        0
 regressions:        0
-      total:    14783
+      total:    14832

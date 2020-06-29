@@ -172,17 +172,18 @@ matrix_inverse(struct vtn_builder *b, struct vtn_ssa_value *src)
 }
 
 /**
- * Approximate asin(x) by the formula:
- *    asin~(x) = sign(x) * (pi/2 - sqrt(1 - |x|) * (pi/2 + |x|(pi/4 - 1 + |x|(p0 + |x|p1))))
+ * Approximate asin(x) by the piecewise formula:
+ * for |x| < 0.5, asin~(x) = x * (1 + x²(pS0 + x²(pS1 + x²*pS2)) / (1 + x²*qS1))
+ * for |x| ≥ 0.5, asin~(x) = sign(x) * (π/2 - sqrt(1 - |x|) * (π/2 + |x|(π/4 - 1 + |x|(p0 + |x|p1))))
  *
- * which is correct to first order at x=0 and x=±1 regardless of the p
+ * The latter is correct to first order at x=0 and x=±1 regardless of the p
  * coefficients but can be made second-order correct at both ends by selecting
  * the fit coefficients appropriately.  Different p coefficients can be used
  * in the asin and acos implementation to minimize some relative error metric
  * in each case.
  */
 static nir_ssa_def *
-build_asin(nir_builder *b, nir_ssa_def *x, float p0, float p1)
+build_asin(nir_builder *b, nir_ssa_def *x, float p0, float p1, bool piecewise)
 {
    if (x->bit_size == 16) {
       /* The polynomial approximation isn't precise enough to meet half-float
@@ -195,10 +196,10 @@ build_asin(nir_builder *b, nir_ssa_def *x, float p0, float p1)
        * approximation in 32-bit math and then we convert the result back to
        * 16-bit.
        */
-      return nir_f2f16(b, build_asin(b, nir_f2f32(b, x), p0, p1));
+      return nir_f2f16(b, build_asin(b, nir_f2f32(b, x), p0, p1, piecewise));
    }
-
    nir_ssa_def *one = nir_imm_floatN_t(b, 1.0f, x->bit_size);
+   nir_ssa_def *half = nir_imm_floatN_t(b, 0.5f, x->bit_size);
    nir_ssa_def *abs_x = nir_fabs(b, x);
 
    nir_ssa_def *p0_plus_xp1 = nir_fadd_imm(b, nir_fmul_imm(b, abs_x, p1), p0);
@@ -210,17 +211,42 @@ build_asin(nir_builder *b, nir_ssa_def *x, float p0, float p1)
                                                   M_PI_4f - 1.0f)),
                       M_PI_2f);
 
-   return nir_fmul(b, nir_fsign(b, x),
+   nir_ssa_def *result0 = nir_fmul(b, nir_fsign(b, x),
                       nir_fsub(b, nir_imm_floatN_t(b, M_PI_2f, x->bit_size),
                                   nir_fmul(b, nir_fsqrt(b, nir_fsub(b, one, abs_x)),
                                                            expr_tail)));
+   if (piecewise) {
+      /* approximation for |x| < 0.5 */
+      const float pS0 =  1.6666586697e-01f;
+      const float pS1 = -4.2743422091e-02f;
+      const float pS2 = -8.6563630030e-03f;
+      const float qS1 = -7.0662963390e-01f;
+
+      nir_ssa_def *x2 = nir_fmul(b, x, x);
+      nir_ssa_def *p = nir_fmul(b,
+                                x2,
+                                nir_fadd_imm(b,
+                                             nir_fmul(b,
+                                                      x2,
+                                                      nir_fadd_imm(b, nir_fmul_imm(b, x2, pS2),
+                                                                   pS1)),
+                                             pS0));
+
+      nir_ssa_def *q = nir_fadd(b, one, nir_fmul_imm(b, x2, qS1));
+      nir_ssa_def *result1 = nir_fadd(b, x, nir_fmul(b, x, nir_fdiv(b, p, q)));
+      return nir_bcsel(b, nir_flt(b, abs_x, half), result1, result0);
+   } else {
+      return result0;
+   }
 }
 
 static nir_op
 vtn_nir_alu_op_for_spirv_glsl_opcode(struct vtn_builder *b,
                                      enum GLSLstd450 opcode,
-                                     unsigned execution_mode)
+                                     unsigned execution_mode,
+                                     bool *exact)
 {
+   *exact = false;
    switch (opcode) {
    case GLSLstd450Round:         return nir_op_fround_even;
    case GLSLstd450RoundEven:     return nir_op_fround_even;
@@ -239,11 +265,11 @@ vtn_nir_alu_op_for_spirv_glsl_opcode(struct vtn_builder *b,
    case GLSLstd450Log2:          return nir_op_flog2;
    case GLSLstd450Sqrt:          return nir_op_fsqrt;
    case GLSLstd450InverseSqrt:   return nir_op_frsq;
-   case GLSLstd450NMin:          return nir_op_fmin;
+   case GLSLstd450NMin:          *exact = true; return nir_op_fmin;
    case GLSLstd450FMin:          return nir_op_fmin;
    case GLSLstd450UMin:          return nir_op_umin;
    case GLSLstd450SMin:          return nir_op_imin;
-   case GLSLstd450NMax:          return nir_op_fmax;
+   case GLSLstd450NMax:          *exact = true; return nir_op_fmax;
    case GLSLstd450FMax:          return nir_op_fmax;
    case GLSLstd450UMax:          return nir_op_umax;
    case GLSLstd450SMax:          return nir_op_imax;
@@ -309,8 +335,7 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       val->ssa->def = nir_degrees(nb, src[0]);
       return;
    case GLSLstd450Tan:
-      val->ssa->def = nir_fdiv(nb, nir_fsin(nb, src[0]),
-                               nir_fcos(nb, src[0]));
+      val->ssa->def = nir_ftan(nb, src[0]);
       return;
 
    case GLSLstd450Modf: {
@@ -354,8 +379,12 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       return;
 
    case GLSLstd450FClamp:
-   case GLSLstd450NClamp:
       val->ssa->def = nir_fclamp(nb, src[0], src[1], src[2]);
+      return;
+   case GLSLstd450NClamp:
+      nb->exact = true;
+      val->ssa->def = nir_fclamp(nb, src[0], src[1], src[2]);
+      nb->exact = false;
       return;
    case GLSLstd450UClamp:
       val->ssa->def = nir_uclamp(nb, src[0], src[1], src[2]);
@@ -482,13 +511,13 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
    }
 
    case GLSLstd450Asin:
-      val->ssa->def = build_asin(nb, src[0], 0.086566724, -0.03102955);
+      val->ssa->def = build_asin(nb, src[0], 0.086566724, -0.03102955, true);
       return;
 
    case GLSLstd450Acos:
       val->ssa->def =
          nir_fsub(nb, nir_imm_floatN_t(nb, M_PI_2f, src[0]->bit_size),
-                      build_asin(nb, src[0], 0.08132463, -0.02363318));
+                      build_asin(nb, src[0], 0.08132463, -0.02363318, false));
       return;
 
    case GLSLstd450Atan:
@@ -516,10 +545,11 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
    default: {
       unsigned execution_mode =
          b->shader->info.float_controls_execution_mode;
-      val->ssa->def =
-         nir_build_alu(&b->nb,
-                       vtn_nir_alu_op_for_spirv_glsl_opcode(b, entrypoint, execution_mode),
-                       src[0], src[1], src[2], NULL);
+      bool exact;
+      nir_op op = vtn_nir_alu_op_for_spirv_glsl_opcode(b, entrypoint, execution_mode, &exact);
+      b->nb.exact = exact;
+      val->ssa->def = nir_build_alu(&b->nb, op, src[0], src[1], src[2], NULL);
+      b->nb.exact = false;
       return;
    }
    }

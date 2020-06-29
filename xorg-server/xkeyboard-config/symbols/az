@@ -3,7 +3,7 @@
 // 2001 - Pablo Saratxaga <pablo@mandrakesoft.com>
 // 2015 - Adil Aliyev <adilaliev@gmail.com>
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "latin" {
 
   include "us"

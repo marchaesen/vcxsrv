@@ -228,6 +228,33 @@ xwl_cursor_warped_to(DeviceIntPtr device,
     xwl_seat_emulate_pointer_warp(xwl_seat, xwl_window, sprite, x, y);
 }
 
+static struct xwl_window *
+find_matching_input_output_window(struct xwl_screen *xwl_screen,
+                                  WindowPtr window)
+{
+    struct xwl_window *xwl_window;
+
+    xorg_list_for_each_entry(xwl_window, &xwl_screen->window_list, link_window) {
+        /* When confining happens on InputOnly windows, work out the InputOutput
+         * window that would be covered by its geometry.
+         */
+        if (window->drawable.x < xwl_window->window->drawable.x ||
+            window->drawable.x + window->drawable.width >
+            xwl_window->window->drawable.x + xwl_window->window->drawable.width ||
+            window->drawable.y < xwl_window->window->drawable.y ||
+            window->drawable.y + window->drawable.height >
+            xwl_window->window->drawable.y + xwl_window->window->drawable.height)
+            continue;
+
+        if (xwl_window->window->drawable.class == InputOnly)
+            continue;
+
+        return xwl_window;
+    }
+
+    return NULL;
+}
+
 static void
 xwl_cursor_confined_to(DeviceIntPtr device,
                        ScreenPtr screen,
@@ -250,14 +277,9 @@ xwl_cursor_confined_to(DeviceIntPtr device,
     }
 
     xwl_window = xwl_window_from_window(window);
-    if (!xwl_window && xwl_seat->focus_window) {
-        /* Allow confining on InputOnly windows, but only if the geometry
-         * is the same than the focus window.
-         */
-        if (window->drawable.class == InputOnly) {
-            DebugF("Confine on InputOnly window, assuming pointer focus\n");
-            xwl_window = xwl_seat->focus_window;
-        }
+    if (!xwl_window && window->drawable.class == InputOnly) {
+        DebugF("Confine on InputOnly window, finding matching toplevel\n");
+        xwl_window = find_matching_input_output_window(xwl_screen, window);
     }
     if (!xwl_window)
         return;

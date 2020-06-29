@@ -145,7 +145,7 @@ void *util_make_layered_clear_helper_vertex_shader(struct pipe_context *pipe)
          "MOV OUT[2].x, SV[0].xxxx\n"
          "END\n";
    struct tgsi_token tokens[1000];
-   struct pipe_shader_state state;
+   struct pipe_shader_state state = {0};
 
    if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
       assert(0);
@@ -189,7 +189,7 @@ void *util_make_layered_clear_geometry_shader(struct pipe_context *pipe)
       "EMIT IMM[0].xxxx\n"
       "END\n";
    struct tgsi_token tokens[1000];
-   struct pipe_shader_state state;
+   struct pipe_shader_state state = {0};
 
    if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
       assert(0);
@@ -458,7 +458,7 @@ util_make_fragment_passthrough_shader(struct pipe_context *pipe,
 
    char text[sizeof(shader_templ)+100];
    struct tgsi_token tokens[1000];
-   struct pipe_shader_state state;
+   struct pipe_shader_state state = {0};
 
    sprintf(text, shader_templ,
            write_all_cbufs ? "PROPERTY FS_COLOR0_WRITES_ALL_CBUFS 1\n" : "",
@@ -551,7 +551,7 @@ util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
    const char *type = tgsi_texture_names[tgsi_tex];
    char text[sizeof(shader_templ)+100];
    struct tgsi_token tokens[1000];
-   struct pipe_shader_state state;
+   struct pipe_shader_state state = {0};
 
    assert(tgsi_tex == TGSI_TEXTURE_2D_MSAA ||
           tgsi_tex == TGSI_TEXTURE_2D_ARRAY_MSAA);
@@ -669,7 +669,7 @@ util_make_fs_blit_msaa_depthstencil(struct pipe_context *pipe,
    const char *type = tgsi_texture_names[tgsi_tex];
    char text[sizeof(shader_templ)+100];
    struct tgsi_token tokens[1000];
-   struct pipe_shader_state state;
+   struct pipe_shader_state state = {0};
 
    assert(tgsi_tex == TGSI_TEXTURE_2D_MSAA ||
           tgsi_tex == TGSI_TEXTURE_2D_ARRAY_MSAA);
@@ -895,6 +895,7 @@ util_make_geometry_passthrough_shader(struct pipe_context *pipe,
    return ureg_create_shader_and_destroy(ureg, pipe);
 }
 
+
 /**
  * Blit from color to ZS or from ZS to color in a manner that is equivalent
  * to memcpy.
@@ -1050,6 +1051,113 @@ util_make_fs_pack_color_zs(struct pipe_context *pipe,
          ureg_MOV(ureg, ureg_writemask(out_stencil, TGSI_WRITEMASK_Y),
                   ureg_scalar(ureg_src(stencil), TGSI_SWIZZLE_X));
       }
+   }
+
+   ureg_END(ureg);
+
+   return ureg_create_shader_and_destroy(ureg, pipe);
+}
+
+
+/**
+ * Create passthrough tessellation control shader.
+ * Passthrough tessellation control shader has output of vertex shader
+ * as input and input of tessellation eval shader as output.
+ */
+void *
+util_make_tess_ctrl_passthrough_shader(struct pipe_context *pipe,
+                                       uint num_vs_outputs,
+                                       uint num_tes_inputs,
+                                       const ubyte *vs_semantic_names,
+                                       const ubyte *vs_semantic_indexes,
+                                       const ubyte *tes_semantic_names,
+                                       const ubyte *tes_semantic_indexes,
+                                       const unsigned vertices_per_patch)
+{
+   unsigned i, j;
+   unsigned num_regs;
+
+   struct ureg_program *ureg;
+   struct ureg_dst temp, addr;
+   struct ureg_src invocationID;
+   struct ureg_dst dst[PIPE_MAX_SHADER_OUTPUTS];
+   struct ureg_src src[PIPE_MAX_SHADER_INPUTS];
+
+   ureg = ureg_create(PIPE_SHADER_TESS_CTRL);
+
+   if (!ureg)
+      return NULL;
+
+   ureg_property(ureg, TGSI_PROPERTY_TCS_VERTICES_OUT, vertices_per_patch);
+
+   num_regs = 0;
+
+   for (i = 0; i < num_tes_inputs; i++) {
+      switch (tes_semantic_names[i]) {
+      case TGSI_SEMANTIC_POSITION:
+      case TGSI_SEMANTIC_PSIZE:
+      case TGSI_SEMANTIC_COLOR:
+      case TGSI_SEMANTIC_BCOLOR:
+      case TGSI_SEMANTIC_CLIPDIST:
+      case TGSI_SEMANTIC_CLIPVERTEX:
+      case TGSI_SEMANTIC_TEXCOORD:
+      case TGSI_SEMANTIC_FOG:
+      case TGSI_SEMANTIC_GENERIC:
+         for (j = 0; j < num_vs_outputs; j++) {
+            if (tes_semantic_names[i] == vs_semantic_names[j] &&
+                tes_semantic_indexes[i] == vs_semantic_indexes[j]) {
+
+               dst[num_regs] = ureg_DECL_output(ureg,
+                                               tes_semantic_names[i],
+                                               tes_semantic_indexes[i]);
+               src[num_regs] = ureg_DECL_input(ureg, vs_semantic_names[j],
+                                               vs_semantic_indexes[j],
+                                               0, 1);
+
+               if (tes_semantic_names[i] == TGSI_SEMANTIC_GENERIC ||
+                   tes_semantic_names[i] == TGSI_SEMANTIC_POSITION) {
+                  src[num_regs] = ureg_src_dimension(src[num_regs], 0);
+                  dst[num_regs] = ureg_dst_dimension(dst[num_regs], 0);
+               }
+
+               num_regs++;
+               break;
+            }
+         }
+         break;
+      default:
+         break;
+      }
+   }
+
+   dst[num_regs] = ureg_DECL_output(ureg, TGSI_SEMANTIC_TESSOUTER,
+                                    num_regs);
+   src[num_regs] = ureg_DECL_constant(ureg, 0);
+   num_regs++;
+   dst[num_regs] = ureg_DECL_output(ureg, TGSI_SEMANTIC_TESSINNER,
+                                    num_regs);
+   src[num_regs] = ureg_DECL_constant(ureg, 1);
+   num_regs++;
+
+   if (vertices_per_patch > 1) {
+      invocationID = ureg_DECL_system_value(ureg,
+                        TGSI_SEMANTIC_INVOCATIONID, 0);
+      temp = ureg_DECL_local_temporary(ureg);
+      addr = ureg_DECL_address(ureg);
+      ureg_UARL(ureg, ureg_writemask(addr, TGSI_WRITEMASK_X),
+                ureg_scalar(invocationID, TGSI_SWIZZLE_X));
+   }
+
+   for (i = 0; i < num_regs; i++) {
+      if (dst[i].Dimension && vertices_per_patch > 1) {
+         struct ureg_src addr_x = ureg_scalar(ureg_src(addr), TGSI_SWIZZLE_X);
+         ureg_MOV(ureg, temp, ureg_src_dimension_indirect(src[i],
+                  addr_x, 0));
+         ureg_MOV(ureg, ureg_dst_dimension_indirect(dst[i],
+                  addr_x, 0), ureg_src(temp));
+      }
+      else
+         ureg_MOV(ureg, dst[i], src[i]);
    }
 
    ureg_END(ureg);

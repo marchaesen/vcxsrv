@@ -1,0 +1,8 @@
+option('xkb-base',
+       type: 'string',
+       value: '',
+       description: 'XKB base path [default=$datadir/X11/xkb]')
+option('compat-rules',
+       type: 'boolean',
+       value: true,
+       description: 'create compatibility rules [default=true]')

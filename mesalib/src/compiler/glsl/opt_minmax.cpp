@@ -110,6 +110,22 @@ compare_components(ir_constant *a, ir_constant *b)
         i < components;
         c0 += a_inc, c1 += b_inc, ++i) {
       switch (a->type->base_type) {
+      case GLSL_TYPE_UINT16:
+         if (a->value.u16[c0] < b->value.u16[c1])
+            foundless = true;
+         else if (a->value.u16[c0] > b->value.u16[c1])
+            foundgreater = true;
+         else
+            foundequal = true;
+         break;
+      case GLSL_TYPE_INT16:
+         if (a->value.i16[c0] < b->value.i16[c1])
+            foundless = true;
+         else if (a->value.i16[c0] > b->value.i16[c1])
+            foundgreater = true;
+         else
+            foundequal = true;
+         break;
       case GLSL_TYPE_UINT:
          if (a->value.u[c0] < b->value.u[c1])
             foundless = true;
@@ -183,6 +199,16 @@ combine_constant(bool ismin, ir_constant *a, ir_constant *b)
    ir_constant *c = a->clone(mem_ctx, NULL);
    for (unsigned i = 0; i < c->type->components(); i++) {
       switch (c->type->base_type) {
+      case GLSL_TYPE_UINT16:
+         if ((ismin && b->value.u16[i] < c->value.u16[i]) ||
+             (!ismin && b->value.u16[i] > c->value.u16[i]))
+            c->value.u16[i] = b->value.u16[i];
+         break;
+      case GLSL_TYPE_INT16:
+         if ((ismin && b->value.i16[i] < c->value.i16[i]) ||
+             (!ismin && b->value.i16[i] > c->value.i16[i]))
+            c->value.i16[i] = b->value.i16[i];
+         break;
       case GLSL_TYPE_UINT:
          if ((ismin && b->value.u[i] < c->value.u[i]) ||
              (!ismin && b->value.u[i] > c->value.u[i]))

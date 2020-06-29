@@ -22,7 +22,7 @@
 // without use of a deadkey.
 
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     // Modern keyboard for Irish and English

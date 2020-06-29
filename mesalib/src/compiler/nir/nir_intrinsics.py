@@ -132,6 +132,8 @@ MEMORY_SEMANTICS = "NIR_INTRINSIC_MEMORY_SEMANTICS"
 MEMORY_MODES = "NIR_INTRINSIC_MEMORY_MODES"
 # Scope of a memory operation
 MEMORY_SCOPE = "NIR_INTRINSIC_MEMORY_SCOPE"
+# Scope of a control barrier
+EXECUTION_SCOPE = "NIR_INTRINSIC_EXECUTION_SCOPE"
 
 #
 # Possible flags:
@@ -219,17 +221,19 @@ barrier("control_barrier")
 # intrinsic.
 barrier("memory_barrier")
 
-# Memory barrier with explicit scope.  Follows the semantics of SPIR-V
-# OpMemoryBarrier, used to implement Vulkan Memory Model.  Storage that the
-# barrierr applies is represented using NIR variable modes.
-intrinsic("scoped_memory_barrier",
-          indices=[MEMORY_SEMANTICS, MEMORY_MODES, MEMORY_SCOPE])
+# Control/Memory barrier with explicit scope.  Follows the semantics of SPIR-V
+# OpMemoryBarrier and OpControlBarrier, used to implement Vulkan Memory Model.
+# Storage that the barrier applies is represented using NIR variable modes.
+# For an OpMemoryBarrier, set EXECUTION_SCOPE to NIR_SCOPE_NONE.
+intrinsic("scoped_barrier",
+          indices=[EXECUTION_SCOPE, MEMORY_SEMANTICS, MEMORY_MODES, MEMORY_SCOPE])
 
 # Shader clock intrinsic with semantics analogous to the clock2x32ARB()
 # GLSL intrinsic.
 # The latter can be used as code motion barrier, which is currently not
 # feasible with NIR.
-intrinsic("shader_clock", dest_comp=2, flags=[CAN_ELIMINATE])
+intrinsic("shader_clock", dest_comp=2, flags=[CAN_ELIMINATE],
+          indices=[MEMORY_SCOPE])
 
 # Shader ballot intrinsics with semantics analogous to the
 #
@@ -401,20 +405,11 @@ image("atomic_or",   src_comp=[4, 1, 1], dest_comp=1)
 image("atomic_xor",  src_comp=[4, 1, 1], dest_comp=1)
 image("atomic_exchange",  src_comp=[4, 1, 1], dest_comp=1)
 image("atomic_comp_swap", src_comp=[4, 1, 1, 1], dest_comp=1)
-image("atomic_fadd",  src_comp=[1, 4, 1, 1], dest_comp=1)
+image("atomic_fadd",  src_comp=[4, 1, 1], dest_comp=1)
 image("size",    dest_comp=0, flags=[CAN_ELIMINATE, CAN_REORDER])
 image("samples", dest_comp=1, flags=[CAN_ELIMINATE, CAN_REORDER])
 image("atomic_inc_wrap",  src_comp=[4, 1, 1], dest_comp=1)
 image("atomic_dec_wrap",  src_comp=[4, 1, 1], dest_comp=1)
-
-# Intel-specific query for loading from the brw_image_param struct passed
-# into the shader as a uniform.  The variable is a deref to the image
-# variable. The const index specifies which of the six parameters to load.
-intrinsic("image_deref_load_param_intel", src_comp=[1], dest_comp=0,
-          indices=[BASE], flags=[CAN_ELIMINATE, CAN_REORDER])
-image("load_raw_intel", src_comp=[1], dest_comp=0,
-      flags=[CAN_ELIMINATE])
-image("store_raw_intel", src_comp=[1, 0])
 
 # Vulkan descriptor set intrinsics
 #
@@ -792,16 +787,16 @@ intrinsic("store_ssbo_ir3",  src_comp=[0, 1, 1, 1],
           indices=[WRMASK, ACCESS, ALIGN_MUL, ALIGN_OFFSET])
 intrinsic("load_ssbo_ir3",  src_comp=[1, 1, 1], dest_comp=0,
           indices=[ACCESS, ALIGN_MUL, ALIGN_OFFSET], flags=[CAN_ELIMINATE])
-intrinsic("ssbo_atomic_add_ir3",        src_comp=[1, 1, 1, 1],    dest_comp=1)
-intrinsic("ssbo_atomic_imin_ir3",       src_comp=[1, 1, 1, 1],    dest_comp=1)
-intrinsic("ssbo_atomic_umin_ir3",       src_comp=[1, 1, 1, 1],    dest_comp=1)
-intrinsic("ssbo_atomic_imax_ir3",       src_comp=[1, 1, 1, 1],    dest_comp=1)
-intrinsic("ssbo_atomic_umax_ir3",       src_comp=[1, 1, 1, 1],    dest_comp=1)
-intrinsic("ssbo_atomic_and_ir3",        src_comp=[1, 1, 1, 1],    dest_comp=1)
-intrinsic("ssbo_atomic_or_ir3",         src_comp=[1, 1, 1, 1],    dest_comp=1)
-intrinsic("ssbo_atomic_xor_ir3",        src_comp=[1, 1, 1, 1],    dest_comp=1)
-intrinsic("ssbo_atomic_exchange_ir3",   src_comp=[1, 1, 1, 1],    dest_comp=1)
-intrinsic("ssbo_atomic_comp_swap_ir3",  src_comp=[1, 1, 1, 1, 1], dest_comp=1)
+intrinsic("ssbo_atomic_add_ir3",        src_comp=[1, 1, 1, 1],    dest_comp=1, indices=[ACCESS])
+intrinsic("ssbo_atomic_imin_ir3",       src_comp=[1, 1, 1, 1],    dest_comp=1, indices=[ACCESS])
+intrinsic("ssbo_atomic_umin_ir3",       src_comp=[1, 1, 1, 1],    dest_comp=1, indices=[ACCESS])
+intrinsic("ssbo_atomic_imax_ir3",       src_comp=[1, 1, 1, 1],    dest_comp=1, indices=[ACCESS])
+intrinsic("ssbo_atomic_umax_ir3",       src_comp=[1, 1, 1, 1],    dest_comp=1, indices=[ACCESS])
+intrinsic("ssbo_atomic_and_ir3",        src_comp=[1, 1, 1, 1],    dest_comp=1, indices=[ACCESS])
+intrinsic("ssbo_atomic_or_ir3",         src_comp=[1, 1, 1, 1],    dest_comp=1, indices=[ACCESS])
+intrinsic("ssbo_atomic_xor_ir3",        src_comp=[1, 1, 1, 1],    dest_comp=1, indices=[ACCESS])
+intrinsic("ssbo_atomic_exchange_ir3",   src_comp=[1, 1, 1, 1],    dest_comp=1, indices=[ACCESS])
+intrinsic("ssbo_atomic_comp_swap_ir3",  src_comp=[1, 1, 1, 1, 1], dest_comp=1, indices=[ACCESS])
 
 # IR3-specific instruction for UBO loads using the ldc instruction. The second
 # source is the indirect offset, in units of four dwords. The base is a
@@ -833,7 +828,7 @@ intrinsic("end_patch_ir3")
 # between geometry stages - perhaps it's explicit access to the vertex cache.
 
 # src[] = { value, offset }.
-store("shared_ir3", 2, [BASE, WRMASK, ALIGN_MUL, ALIGN_OFFSET])
+store("shared_ir3", 2, [BASE, ALIGN_MUL, ALIGN_OFFSET])
 # src[] = { offset }.
 load("shared_ir3", 1, [BASE, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
 
@@ -843,7 +838,7 @@ load("shared_ir3", 1, [BASE, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
 
 # src[] = { value, address(vec2 of hi+lo uint32_t), offset }.
 # const_index[] = { write_mask, align_mul, align_offset }
-intrinsic("store_global_ir3", [0, 2, 1], indices=[WRMASK, ACCESS, ALIGN_MUL, ALIGN_OFFSET])
+intrinsic("store_global_ir3", [0, 2, 1], indices=[ACCESS, ALIGN_MUL, ALIGN_OFFSET])
 # src[] = { address(vec2 of hi+lo uint32_t), offset }.
 # const_index[] = { access, align_mul, align_offset }
 intrinsic("load_global_ir3", [2, 1], dest_comp=0, indices=[ACCESS, ALIGN_MUL, ALIGN_OFFSET], flags=[CAN_ELIMINATE])
@@ -865,17 +860,11 @@ intrinsic("bindless_resource_ir3", [1], dest_comp=1, indices=[DESC_SET], flags=[
 # One notable divergence is sRGB, which is asymmetric: raw_input_pan requires
 # an sRGB->linear conversion, but linear values should be written to
 # raw_output_pan and the hardware handles linear->sRGB.
-#
-# We also have format-specific Midgard intrinsics. There are rather
-# here-be-dragons. load_output_u8_as_fp16_pan does the equivalent of
-# load_raw_out_pan on an RGBA8 UNORM framebuffer followed by u2u16 -> fp16 ->
-# division by 255.
 
 # src[] = { value }
 store("raw_output_pan", 1, [])
-store("zs_output_pan", 1, [COMPONENT])
+store("combined_output_pan", 4, [BASE, COMPONENT])
 load("raw_output_pan", 0, [], [CAN_ELIMINATE, CAN_REORDER])
-load("output_u8_as_fp16_pan", 0, [], [CAN_ELIMINATE, CAN_REORDER])
 
 # Loads the sampler paramaters <min_lod, max_lod, lod_bias>
 # src[] = { sampler_index }
@@ -922,3 +911,15 @@ store("tlb_sample_color_v3d", 2, [BASE, COMPONENT, TYPE], [])
 # V3D-specific intrinsic to load the number of layers attached to
 # the target framebuffer
 intrinsic("load_fb_layers_v3d", dest_comp=1, flags=[CAN_ELIMINATE, CAN_REORDER])
+
+# Intel-specific query for loading from the brw_image_param struct passed
+# into the shader as a uniform.  The variable is a deref to the image
+# variable. The const index specifies which of the six parameters to load.
+intrinsic("image_deref_load_param_intel", src_comp=[1], dest_comp=0,
+          indices=[BASE], flags=[CAN_ELIMINATE, CAN_REORDER])
+image("load_raw_intel", src_comp=[1], dest_comp=0,
+      flags=[CAN_ELIMINATE])
+image("store_raw_intel", src_comp=[1, 0])
+
+# Number of data items being operated on for a SIMD program.
+system_value("simd_width_intel", 1)

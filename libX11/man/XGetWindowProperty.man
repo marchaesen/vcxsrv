@@ -61,7 +61,7 @@ Atom *XListProperties\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, int
 .HP
 int XChangeProperty\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, Atom
 \fIproperty\fP\^, Atom \fItype\fP\^, int \fIformat\fP\^, int \fImode\fP\^,
-unsigned char *\fIdata\fP\^, int \fInelements\fP\^);
+_Xconst unsigned char *\fIdata\fP\^, int \fInelements\fP\^);
 .HP
 int XRotateWindowProperties\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^,
 Atom \fIproperties\fP\^[]\^, int \fInum_prop\fP\^, int \fInpositions\fP\^);

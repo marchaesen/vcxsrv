@@ -1731,11 +1731,10 @@ xf86ProbeOutputModes(ScrnInfoPtr scrn, int maxX, int maxY)
 
         if (edid_monitor) {
             struct det_monrec_parameter p;
-            struct disp_features *features = &edid_monitor->features;
             struct cea_data_block *hdmi_db;
 
             /* if display is not continuous-frequency, don't add default modes */
-            if (!GTF_SUPPORTED(features->msc))
+            if (!gtf_supported(edid_monitor))
                 add_default_modes = FALSE;
 
             p.mon_rec = &mon_rec;

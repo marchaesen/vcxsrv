@@ -64,6 +64,17 @@ struct spirv_to_nir_options {
     */
    bool frag_coord_is_sysval;
 
+   /* Whether to lower TessLevelInner and TessLevelOuter to system values.
+    * This is the inverse of GLSLTessLevelsAsInputs in GLSL.
+    */
+   bool tess_levels_are_sysvals;
+
+   /* Whether to lower TessLevelInner/Outer from their SPIR-V declarations
+    * as arrays of floats to vec4 and vec2 respectively. This is the same as
+    * LowerTessLevel in GLSL.
+    */
+   bool lower_tess_levels_to_vec;
+
    struct spirv_supported_capabilities caps;
 
    /* Address format for various kinds of pointers. */

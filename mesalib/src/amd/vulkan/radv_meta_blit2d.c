@@ -517,7 +517,6 @@ build_nir_texel_fetch(struct nir_builder *b, struct radv_device *device,
 	}
 	if (is_multisampled) {
 		sample_idx = nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_sample_id);
-		sample_idx->num_components = 1;
 		nir_ssa_dest_init(&sample_idx->instr, &sample_idx->dest, 1, 32, "sample_idx");
 		nir_builder_instr_insert(b, &sample_idx->instr);
 	}

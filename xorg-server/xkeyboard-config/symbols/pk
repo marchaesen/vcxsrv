@@ -6,7 +6,7 @@
 // Alt-key combinations are yet to be put in. The unavailable keys are
 // those which do not have a corresponding glyph in Unicode.
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "urd-phonetic" {
 
    name[Group1]= "Urdu (Pakistan)";

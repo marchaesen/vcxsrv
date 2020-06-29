@@ -53,7 +53,7 @@ XSupportsLocale, XSetLocaleModifiers \- determine locale support and configure l
 .HP
 Bool XSupportsLocale\^(void);
 .HP
-char *XSetLocaleModifiers\^(\^char *\fImodifier_list\fP\^);
+char *XSetLocaleModifiers\^(\^_Xconst char *\fImodifier_list\fP\^);
 .SH ARGUMENTS
 .IP \fImodifier_list\fP 1i
 Specifies the modifiers.

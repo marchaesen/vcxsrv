@@ -43,7 +43,7 @@ XLoadFont (
 
     LockDisplay(dpy);
     GetReq(OpenFont, req);
-    nbytes = req->nbytes = name ? strlen(name) : 0;
+    nbytes = req->nbytes = name ? (CARD16) strlen(name) : 0;
     req->fid = fid = XAllocID(dpy);
     req->length += (nbytes+3)>>2;
     Data (dpy, name, nbytes);

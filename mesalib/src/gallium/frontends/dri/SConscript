@@ -1,0 +1,29 @@
+#######################################################################
+# SConscript for dri state_tracker
+
+Import('*')
+
+env = env.Clone()
+
+env.PkgUseModules(['DRM'])
+
+env.Append(CPPPATH = [
+    '#/src',
+    '#/src/mapi',
+    '#/src/mesa',
+    '#/src/mesa/drivers/dri/common',
+])
+
+sources = env.ParseSourceList('Makefile.sources', 'common_SOURCES')
+
+# XXX: if HAVE_DRISW
+sources.append(env.ParseSourceList('Makefile.sources', 'drisw_SOURCES'))
+
+# XXX: if HAVE_DRI2
+sources.append(env.ParseSourceList('Makefile.sources', 'dri2_SOURCES'))
+
+st_dri = env.ConvenienceLibrary(
+    target = 'st_dri',
+    source = sources
+)
+Export('st_dri')

@@ -112,7 +112,6 @@ def renderdoc_dump_images(filename, eventIds, outputDir):
    for eventId in eventIds:
       dumpImage(controller, eventId, outputDir, tracefile)
 
-   controller.Shutdown()
    cap.Shutdown()
 
    rd.ShutdownReplay()

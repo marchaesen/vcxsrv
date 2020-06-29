@@ -96,17 +96,8 @@ elif host_machine.system().endswith('bsd')
         'bsd/bsd_VTsw.c',
         'bsd/bsd_bell.c',
         'bsd/bsd_init.c',
+	'shared/pm_noop.c'
     ]
-
-    if cc.has_header('machine/apmvar.h')
-        if cc.has_header('sys/event.h')
-            srcs_xorg_os_support += 'bsd/bsd_kqueue_apm.c'
-        else
-            srcs_xorg_os_support += 'bsd/bsd_apm.c'
-        endif
-    else
-        srcs_xorg_os_support += 'shared/pm_noop.c'
-    endif
 
     if host_machine.cpu_family() == 'x86_64'
         srcs_xorg_os_support += 'bsd/i386_video.c'

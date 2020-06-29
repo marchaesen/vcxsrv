@@ -63,7 +63,7 @@ Colormap DefaultColormap\^(\^Display *\fIdisplay\fP\^,
 int DefaultDepth\^(\^Display *\fIdisplay\fP\^, \^int \fIscreen_number\fP\^);
 .HP
 int *XListDepths\^(\^Display *\fIdisplay\fP, int \fIscreen_number\fP, int
-\fIcount_return\fP\^);
+*\fIcount_return\fP\^);
 .HP
 GC DefaultGC\^(\^Display *\fIdisplay\fP\^, \^int \fIscreen_number\fP\^);
 .HP
@@ -82,9 +82,9 @@ int DisplayPlanes\^(\^Display *\fIdisplay\fP\^, \^int \fIscreen_number\fP\^);
 .HP
 char *DisplayString\^(\^Display *\fIdisplay\fP\^);
 .HP
-long XMaxRequestSize(\^Display *\fIdisplay\fP\^)
+long XMaxRequestSize(\^Display *\fIdisplay\fP\^);
 .HP
-long XExtendedMaxRequestSize(\^Display *\fIdisplay\fP\^)
+long XExtendedMaxRequestSize(\^Display *\fIdisplay\fP\^);
 .HP
 unsigned long LastKnownRequestProcessed\^(\^Display *\fIdisplay\fP\^);
 .HP
@@ -103,9 +103,9 @@ int ScreenCount\^(\^Display *\fIdisplay\fP\^);
 Screen *ScreenOfDisplay\^(\^Display *\fIdisplay\fP, int
 \fIscreen_number\fP\^);
 .HP
-char *ServerVendor\^(\^Display *\fIdisplay\fP\^)
+char *ServerVendor\^(\^Display *\fIdisplay\fP\^);
 .HP
-int VendorRelease\^(\^Display *\fIdisplay\fP\^)
+int VendorRelease\^(\^Display *\fIdisplay\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.

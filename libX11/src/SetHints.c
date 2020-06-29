@@ -260,7 +260,7 @@ XSetStandardProperties (
 	    XChangeProperty (dpy, w, XA_WM_ICON_NAME, XA_STRING, 8,
                              PropModeReplace,
                              (_Xconst unsigned char *)icon_string,
-                             safestrlen(icon_string));
+                             (int)safestrlen(icon_string));
 		}
 
 	if (icon_pixmap != None) {

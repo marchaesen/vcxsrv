@@ -54,7 +54,7 @@ int *actualCount)	/* RETURN */
     LockDisplay(dpy);
     GetReq(ListFonts, req);
     req->maxNames = maxNames;
-    nbytes = req->nbytes = pattern ? strlen (pattern) : 0;
+    nbytes = req->nbytes = pattern ? (CARD16) strlen (pattern) : 0;
     req->length += (nbytes + 3) >> 2;
     _XSend (dpy, pattern, nbytes);
     /* use _XSend instead of Data, since following _XReply will flush buffer */

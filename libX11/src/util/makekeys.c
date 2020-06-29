@@ -71,7 +71,7 @@ parse_line(const char *buf, char *key, KeySym *val, char *prefix)
      * the trickery around tmp is to account for prefices. */
     i = sscanf(buf, "#define %127s 0x%lx", key, val);
     if (i == 2 && (tmp = strstr(key, "XK_"))) {
-        memcpy(prefix, key, tmp - key);
+        memcpy(prefix, key, (size_t)(tmp - key));
         prefix[tmp - key] = '\0';
         tmp += 3;
         memmove(key, tmp, strlen(tmp) + 1);
@@ -83,7 +83,7 @@ parse_line(const char *buf, char *key, KeySym *val, char *prefix)
      * canonicalise this to XF86foo before we do the lookup. */
     i = sscanf(buf, "#define %127s %127s", key, alias);
     if (i == 2 && (tmp = strstr(key, "XK_")) && (tmpa = strstr(alias, "XK_"))) {
-        memcpy(prefix, key, tmp - key);
+        memcpy(prefix, key, (size_t)(tmp - key));
         prefix[tmp - key] = '\0';
         tmp += 3;
         memmove(key, tmp, strlen(tmp) + 1);

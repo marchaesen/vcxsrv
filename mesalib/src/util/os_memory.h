@@ -34,8 +34,6 @@
 #ifndef _OS_MEMORY_H_
 #define _OS_MEMORY_H_
 
-#include "detect_os.h"
-
 #if defined(EMBEDDED_DEVICE)
 
 #ifdef __cplusplus
@@ -66,10 +64,6 @@ os_realloc_aligned(void *ptr, size_t oldsize, size_t newsize, size_t alignemnt);
 #ifdef __cplusplus
 }
 #endif
-
-#elif DETECT_OS_WINDOWS && defined(DEBUG) && !defined(DEBUG_MEMORY_IMPLEMENTATION)
-
-#  include "os_memory_debug.h"
 
 #else
 

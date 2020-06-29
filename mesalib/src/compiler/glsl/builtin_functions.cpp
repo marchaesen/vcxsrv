@@ -778,9 +778,15 @@ vote(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+vote_ext(const _mesa_glsl_parse_state *state)
+{
+   return state->EXT_shader_group_vote_enable;
+}
+
+static bool
 vote_or_v460_desktop(const _mesa_glsl_parse_state *state)
 {
-   return state->ARB_shader_group_vote_enable || v460_desktop(state);
+   return state->EXT_shader_group_vote_enable || state->ARB_shader_group_vote_enable || v460_desktop(state);
 }
 
 static bool
@@ -4272,6 +4278,18 @@ builtin_builder::create_builtins()
 
    add_function("allInvocationsEqualARB",
                 _vote("__intrinsic_vote_eq", vote),
+                NULL);
+
+   add_function("anyInvocationEXT",
+                _vote("__intrinsic_vote_any", vote_ext),
+                NULL);
+
+   add_function("allInvocationsEXT",
+                _vote("__intrinsic_vote_all", vote_ext),
+                NULL);
+
+   add_function("allInvocationsEqualEXT",
+                _vote("__intrinsic_vote_eq", vote_ext),
                 NULL);
 
    add_function("anyInvocation",

@@ -133,7 +133,6 @@ struct save_state
    struct gl_stencil_attrib Stencil;
 
    /** MESA_META_TRANSFORM */
-   GLenum MatrixMode;
    GLfloat ModelviewMatrix[16];
    GLfloat ProjectionMatrix[16];
    GLfloat TextureMatrix[16];
@@ -236,56 +235,6 @@ struct blit_shader_table {
 };
 
 /**
- * Indices in the blit_state->msaa_shaders[] array
- *
- * Note that setup_glsl_msaa_blit_shader() assumes that the _INT enums are five
- * more than the corresponding non-_INT versions and _UINT are five beyond that.
- */
-enum blit_msaa_shader {
-   BLIT_1X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE,
-   BLIT_2X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE,
-   BLIT_4X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE,
-   BLIT_8X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE,
-   BLIT_16X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE,
-   BLIT_1X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE_INT,
-   BLIT_2X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE_INT,
-   BLIT_4X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE_INT,
-   BLIT_8X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE_INT,
-   BLIT_16X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE_INT,
-   BLIT_1X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE_UINT,
-   BLIT_2X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE_UINT,
-   BLIT_4X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE_UINT,
-   BLIT_8X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE_UINT,
-   BLIT_16X_MSAA_SHADER_2D_MULTISAMPLE_RESOLVE_UINT,
-   BLIT_MSAA_SHADER_2D_MULTISAMPLE_COPY,
-   BLIT_MSAA_SHADER_2D_MULTISAMPLE_COPY_INT,
-   BLIT_MSAA_SHADER_2D_MULTISAMPLE_COPY_UINT,
-   BLIT_MSAA_SHADER_2D_MULTISAMPLE_DEPTH_RESOLVE,
-   BLIT_MSAA_SHADER_2D_MULTISAMPLE_DEPTH_COPY,
-   BLIT_1X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE,
-   BLIT_2X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE,
-   BLIT_4X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE,
-   BLIT_8X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE,
-   BLIT_16X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE,
-   BLIT_1X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE_INT,
-   BLIT_2X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE_INT,
-   BLIT_4X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE_INT,
-   BLIT_8X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE_INT,
-   BLIT_16X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE_INT,
-   BLIT_1X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE_UINT,
-   BLIT_2X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE_UINT,
-   BLIT_4X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE_UINT,
-   BLIT_8X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE_UINT,
-   BLIT_16X_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE_UINT,
-   BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_COPY,
-   BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_COPY_INT,
-   BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_COPY_UINT,
-   BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_DEPTH_RESOLVE,
-   BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_DEPTH_COPY,
-   BLIT_MSAA_SHADER_COUNT,
-};
-
-/**
  * State for glBlitFramebufer()
  */
 struct blit_state
@@ -294,7 +243,6 @@ struct blit_state
    struct gl_buffer_object *buf_obj;
    struct blit_shader_table shaders_with_depth;
    struct blit_shader_table shaders_without_depth;
-   struct gl_shader_program *msaa_shaders[BLIT_MSAA_SHADER_COUNT];
    struct temp_texture depthTex;
    bool no_ctsi_fallback;
 };
@@ -318,7 +266,6 @@ struct clear_state
    GLuint VAO;
    struct gl_buffer_object *buf_obj;
    struct gl_shader_program *ShaderProg;
-   struct gl_shader_program *IntegerShaderProg;
 };
 
 
@@ -454,15 +401,6 @@ _mesa_meta_fb_tex_blit_begin(struct gl_context *ctx,
 extern void
 _mesa_meta_fb_tex_blit_end(struct gl_context *ctx, GLenum target,
                            struct fb_tex_blit_state *blit);
-
-extern struct gl_texture_object *
-_mesa_meta_texture_object_from_renderbuffer(struct gl_context *ctx,
-                                            struct gl_renderbuffer *rb);
-
-struct gl_sampler_object *
-_mesa_meta_setup_sampler(struct gl_context *ctx,
-                         struct gl_texture_object *texObj,
-                         GLenum target, GLenum filter, GLuint srcLevel);
 
 extern GLbitfield
 _mesa_meta_BlitFramebuffer(struct gl_context *ctx,

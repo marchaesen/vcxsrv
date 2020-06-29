@@ -28,7 +28,7 @@ static int
 jisx0201_wctomb (conv_t conv, unsigned char *r, ucs4_t wc, int n)
 {
   if (wc < 0x0080 && !(wc == 0x005c || wc == 0x007e)) {
-    *r = wc;
+    *r = (unsigned char) wc;
     return 1;
   }
   if (wc == 0x00a5) {
@@ -40,7 +40,7 @@ jisx0201_wctomb (conv_t conv, unsigned char *r, ucs4_t wc, int n)
     return 1;
   }
   if (wc >= 0xff61 && wc < 0xffa0) {
-    *r = wc - 0xfec0;
+    *r = (unsigned char) (wc - 0xfec0);
     return 1;
   }
   return RET_ILSEQ;

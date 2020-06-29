@@ -25,7 +25,6 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(LOCAL_PATH)/Makefile.sources
-include $(MESA_TOP)/src/gallium/drivers/freedreno/Android.gen.mk
 include $(LOCAL_PATH)/Android.drm.mk
 include $(LOCAL_PATH)/Android.ir3.mk
 include $(LOCAL_PATH)/Android.perfcntrs.mk

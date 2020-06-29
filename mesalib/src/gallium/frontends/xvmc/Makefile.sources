@@ -1,0 +1,7 @@
+C_SOURCES := \
+	attributes.c \
+	block.c \
+	context.c \
+	surface.c \
+	subpicture.c \
+	xvmc_private.h

@@ -299,6 +299,38 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
 					   op0->type->vector_elements, 1);
       break;
 
+   case ir_unop_i2imp:
+      this->type = glsl_type::get_instance(GLSL_TYPE_INT16,
+					   op0->type->vector_elements, 1);
+      break;
+
+   case ir_unop_i2i:
+      if (op0->type->base_type == GLSL_TYPE_INT) {
+         this->type = glsl_type::get_instance(GLSL_TYPE_INT16,
+                                              op0->type->vector_elements, 1);
+      } else {
+         assert(op0->type->base_type == GLSL_TYPE_INT16);
+         this->type = glsl_type::get_instance(GLSL_TYPE_INT,
+                                              op0->type->vector_elements, 1);
+      }
+      break;
+
+   case ir_unop_u2u:
+      if (op0->type->base_type == GLSL_TYPE_UINT) {
+         this->type = glsl_type::get_instance(GLSL_TYPE_UINT16,
+                                              op0->type->vector_elements, 1);
+      } else {
+         assert(op0->type->base_type == GLSL_TYPE_UINT16);
+         this->type = glsl_type::get_instance(GLSL_TYPE_UINT,
+                                              op0->type->vector_elements, 1);
+      }
+      break;
+
+   case ir_unop_u2ump:
+      this->type = glsl_type::get_instance(GLSL_TYPE_UINT16,
+					   op0->type->vector_elements, 1);
+      break;
+
    case ir_unop_f2b:
    case ir_unop_i2b:
    case ir_unop_d2b:
@@ -728,6 +760,32 @@ ir_constant::ir_constant(double d, unsigned vector_elements)
    }
 }
 
+ir_constant::ir_constant(int16_t i16, unsigned vector_elements)
+   : ir_rvalue(ir_type_constant)
+{
+   assert(vector_elements <= 4);
+   this->type = glsl_type::get_instance(GLSL_TYPE_INT16, vector_elements, 1);
+   for (unsigned i = 0; i < vector_elements; i++) {
+      this->value.i16[i] = i16;
+   }
+   for (unsigned i = vector_elements; i < 16; i++) {
+      this->value.i16[i] = 0;
+   }
+}
+
+ir_constant::ir_constant(uint16_t u16, unsigned vector_elements)
+   : ir_rvalue(ir_type_constant)
+{
+   assert(vector_elements <= 4);
+   this->type = glsl_type::get_instance(GLSL_TYPE_UINT16, vector_elements, 1);
+   for (unsigned i = 0; i < vector_elements; i++) {
+      this->value.u16[i] = u16;
+   }
+   for (unsigned i = vector_elements; i < 16; i++) {
+      this->value.u16[i] = 0;
+   }
+}
+
 ir_constant::ir_constant(unsigned int u, unsigned vector_elements)
    : ir_rvalue(ir_type_constant)
 {
@@ -800,6 +858,8 @@ ir_constant::ir_constant(const ir_constant *c, unsigned i)
    this->type = c->type->get_base_type();
 
    switch (this->type->base_type) {
+   case GLSL_TYPE_UINT16:  this->value.u16[0] = c->value.u16[i]; break;
+   case GLSL_TYPE_INT16:  this->value.i16[0] = c->value.i16[i]; break;
    case GLSL_TYPE_UINT:  this->value.u[0] = c->value.u[i]; break;
    case GLSL_TYPE_INT:   this->value.i[0] = c->value.i[i]; break;
    case GLSL_TYPE_FLOAT: this->value.f[0] = c->value.f[i]; break;
@@ -870,6 +930,11 @@ ir_constant::ir_constant(const struct glsl_type *type, exec_list *value_list)
       } else {
 	 /* Vector or scalar - fill all components */
 	 switch (type->base_type) {
+         case GLSL_TYPE_UINT16:
+	 case GLSL_TYPE_INT16:
+	    for (unsigned i = 0; i < type->components(); i++)
+	       this->value.u16[i] = value->value.u16[0];
+	    break;
 	 case GLSL_TYPE_UINT:
 	 case GLSL_TYPE_INT:
 	    for (unsigned i = 0; i < type->components(); i++)
@@ -943,6 +1008,12 @@ ir_constant::ir_constant(const struct glsl_type *type, exec_list *value_list)
 
       for (unsigned j = 0; j < value->type->components(); j++) {
 	 switch (type->base_type) {
+         case GLSL_TYPE_UINT16:
+	    this->value.u16[i] = value->get_uint16_component(j);
+	    break;
+	 case GLSL_TYPE_INT16:
+	    this->value.i16[i] = value->get_int16_component(j);
+	    break;
 	 case GLSL_TYPE_UINT:
 	    this->value.u[i] = value->get_uint_component(j);
 	    break;
@@ -1017,6 +1088,8 @@ bool
 ir_constant::get_bool_component(unsigned i) const
 {
    switch (this->type->base_type) {
+   case GLSL_TYPE_UINT16:return this->value.u16[i] != 0;
+   case GLSL_TYPE_INT16: return this->value.i16[i] != 0;
    case GLSL_TYPE_UINT:  return this->value.u[i] != 0;
    case GLSL_TYPE_INT:   return this->value.i[i] != 0;
    case GLSL_TYPE_FLOAT: return ((int)this->value.f[i]) != 0;
@@ -1040,6 +1113,8 @@ float
 ir_constant::get_float_component(unsigned i) const
 {
    switch (this->type->base_type) {
+   case GLSL_TYPE_UINT16:return (float) this->value.u16[i];
+   case GLSL_TYPE_INT16: return (float) this->value.i16[i];
    case GLSL_TYPE_UINT:  return (float) this->value.u[i];
    case GLSL_TYPE_INT:   return (float) this->value.i[i];
    case GLSL_TYPE_FLOAT: return this->value.f[i];
@@ -1072,6 +1147,8 @@ double
 ir_constant::get_double_component(unsigned i) const
 {
    switch (this->type->base_type) {
+   case GLSL_TYPE_UINT16:return (double) this->value.u16[i];
+   case GLSL_TYPE_INT16: return (double) this->value.i16[i];
    case GLSL_TYPE_UINT:  return (double) this->value.u[i];
    case GLSL_TYPE_INT:   return (double) this->value.i[i];
    case GLSL_TYPE_FLOAT: return (double) this->value.f[i];
@@ -1091,10 +1168,62 @@ ir_constant::get_double_component(unsigned i) const
    return 0.0;
 }
 
+int16_t
+ir_constant::get_int16_component(unsigned i) const
+{
+   switch (this->type->base_type) {
+   case GLSL_TYPE_UINT16:return this->value.u16[i];
+   case GLSL_TYPE_INT16: return this->value.i16[i];
+   case GLSL_TYPE_UINT:  return this->value.u[i];
+   case GLSL_TYPE_INT:   return this->value.i[i];
+   case GLSL_TYPE_FLOAT: return (int16_t) this->value.f[i];
+   case GLSL_TYPE_FLOAT16: return (int16_t) _mesa_half_to_float(this->value.f16[i]);
+   case GLSL_TYPE_BOOL:  return this->value.b[i] ? 1 : 0;
+   case GLSL_TYPE_DOUBLE: return (int16_t) this->value.d[i];
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
+   case GLSL_TYPE_UINT64: return (int16_t) this->value.u64[i];
+   case GLSL_TYPE_INT64:  return (int16_t) this->value.i64[i];
+   default:              assert(!"Should not get here."); break;
+   }
+
+   /* Must return something to make the compiler happy.  This is clearly an
+    * error case.
+    */
+   return 0;
+}
+
+uint16_t
+ir_constant::get_uint16_component(unsigned i) const
+{
+   switch (this->type->base_type) {
+   case GLSL_TYPE_UINT16:return this->value.u16[i];
+   case GLSL_TYPE_INT16: return this->value.i16[i];
+   case GLSL_TYPE_UINT:  return this->value.u[i];
+   case GLSL_TYPE_INT:   return this->value.i[i];
+   case GLSL_TYPE_FLOAT: return (uint16_t) this->value.f[i];
+   case GLSL_TYPE_FLOAT16: return (uint16_t) _mesa_half_to_float(this->value.f16[i]);
+   case GLSL_TYPE_BOOL:  return this->value.b[i] ? 1 : 0;
+   case GLSL_TYPE_DOUBLE: return (uint16_t) this->value.d[i];
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
+   case GLSL_TYPE_UINT64: return (uint16_t) this->value.u64[i];
+   case GLSL_TYPE_INT64:  return (uint16_t) this->value.i64[i];
+   default:              assert(!"Should not get here."); break;
+   }
+
+   /* Must return something to make the compiler happy.  This is clearly an
+    * error case.
+    */
+   return 0;
+}
+
 int
 ir_constant::get_int_component(unsigned i) const
 {
    switch (this->type->base_type) {
+   case GLSL_TYPE_UINT16:return this->value.u16[i];
+   case GLSL_TYPE_INT16: return this->value.i16[i];
    case GLSL_TYPE_UINT:  return this->value.u[i];
    case GLSL_TYPE_INT:   return this->value.i[i];
    case GLSL_TYPE_FLOAT: return (int) this->value.f[i];
@@ -1118,6 +1247,8 @@ unsigned
 ir_constant::get_uint_component(unsigned i) const
 {
    switch (this->type->base_type) {
+   case GLSL_TYPE_UINT16:return this->value.u16[i];
+   case GLSL_TYPE_INT16: return this->value.i16[i];
    case GLSL_TYPE_UINT:  return this->value.u[i];
    case GLSL_TYPE_INT:   return this->value.i[i];
    case GLSL_TYPE_FLOAT: return (unsigned) this->value.f[i];
@@ -1141,6 +1272,8 @@ int64_t
 ir_constant::get_int64_component(unsigned i) const
 {
    switch (this->type->base_type) {
+   case GLSL_TYPE_UINT16:return this->value.u16[i];
+   case GLSL_TYPE_INT16: return this->value.i16[i];
    case GLSL_TYPE_UINT:  return this->value.u[i];
    case GLSL_TYPE_INT:   return this->value.i[i];
    case GLSL_TYPE_FLOAT: return (int64_t) this->value.f[i];
@@ -1164,6 +1297,8 @@ uint64_t
 ir_constant::get_uint64_component(unsigned i) const
 {
    switch (this->type->base_type) {
+   case GLSL_TYPE_UINT16:return this->value.u16[i];
+   case GLSL_TYPE_INT16: return this->value.i16[i];
    case GLSL_TYPE_UINT:  return this->value.u[i];
    case GLSL_TYPE_INT:   return this->value.i[i];
    case GLSL_TYPE_FLOAT: return (uint64_t) this->value.f[i];
@@ -1219,6 +1354,8 @@ void
 ir_constant::copy_offset(ir_constant *src, int offset)
 {
    switch (this->type->base_type) {
+   case GLSL_TYPE_UINT16:
+   case GLSL_TYPE_INT16:
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
    case GLSL_TYPE_FLOAT:
@@ -1233,6 +1370,12 @@ ir_constant::copy_offset(ir_constant *src, int offset)
       assert (size <= this->type->components() - offset);
       for (unsigned int i=0; i<size; i++) {
 	 switch (this->type->base_type) {
+         case GLSL_TYPE_UINT16:
+	    value.u16[i+offset] = src->get_uint16_component(i);
+	    break;
+	 case GLSL_TYPE_INT16:
+	    value.i16[i+offset] = src->get_int16_component(i);
+	    break;
 	 case GLSL_TYPE_UINT:
 	    value.u[i+offset] = src->get_uint_component(i);
 	    break;
@@ -1295,6 +1438,12 @@ ir_constant::copy_masked_offset(ir_constant *src, int offset, unsigned int mask)
    for (int i=0; i<4; i++) {
       if (mask & (1 << i)) {
 	 switch (this->type->base_type) {
+         case GLSL_TYPE_UINT16:
+	    value.u16[i+offset] = src->get_uint16_component(id++);
+	    break;
+	 case GLSL_TYPE_INT16:
+	    value.i16[i+offset] = src->get_int16_component(id++);
+	    break;
 	 case GLSL_TYPE_UINT:
 	    value.u[i+offset] = src->get_uint_component(id++);
 	    break;
@@ -1345,6 +1494,14 @@ ir_constant::has_value(const ir_constant *c) const
 
    for (unsigned i = 0; i < this->type->components(); i++) {
       switch (this->type->base_type) {
+      case GLSL_TYPE_UINT16:
+	 if (this->value.u16[i] != c->value.u16[i])
+	    return false;
+	 break;
+      case GLSL_TYPE_INT16:
+	 if (this->value.i16[i] != c->value.i16[i])
+	    return false;
+	 break;
       case GLSL_TYPE_UINT:
 	 if (this->value.u[i] != c->value.u[i])
 	    return false;
@@ -1410,6 +1567,14 @@ ir_constant::is_value(float f, int i) const
          if (_mesa_half_to_float(this->value.f16[c]) != f)
             return false;
          break;
+      case GLSL_TYPE_INT16:
+	 if (this->value.i16[c] != int16_t(i))
+	    return false;
+	 break;
+      case GLSL_TYPE_UINT16:
+	 if (this->value.u16[c] != uint16_t(i))
+	    return false;
+	 break;
       case GLSL_TYPE_INT:
 	 if (this->value.i[c] != i)
 	    return false;
@@ -1834,6 +1999,7 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.explicit_binding = false;
    this->data.explicit_component = false;
    this->data.has_initializer = false;
+   this->data.is_implicit_initializer = false;
    this->data.is_unmatched_generic_inout = false;
    this->data.is_xfb_only = false;
    this->data.explicit_xfb_buffer = false;

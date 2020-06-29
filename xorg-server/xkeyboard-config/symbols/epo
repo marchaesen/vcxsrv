@@ -7,7 +7,7 @@
 // Benno Schulenberg (Beno Sĥilenberĥ) <bensberg@justemail.net>
 // Chusslove Illich (Ĉaslavo Iliĉo) <caslav.ilic@gmx.net>
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
   include "us(basic)"
@@ -47,7 +47,7 @@ xkb_symbols "basic" {
 partial alphanumeric_keys
 xkb_symbols "legacy" {
 
-  name[Group1]= "Esperanto (displaced semicolon and quote, obsolete)";
+  name[Group1]= "Esperanto (legacy)";
 
   key.type[Group1] = "FOUR_LEVEL";
 

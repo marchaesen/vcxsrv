@@ -57,24 +57,25 @@ lower_load_store(nir_builder *b,
       load->num_components = intrin->num_components;
       load->src[0] = nir_src_for_ssa(offset);
       nir_intrinsic_set_align(load, align, 0);
+      unsigned bit_size = intrin->dest.ssa.bit_size;
       nir_ssa_dest_init(&load->instr, &load->dest,
                         intrin->dest.ssa.num_components,
-                        intrin->dest.ssa.bit_size, NULL);
+                        bit_size == 1 ? 32 : bit_size, NULL);
       nir_builder_instr_insert(b, &load->instr);
 
       nir_ssa_def *value = &load->dest.ssa;
-      if (glsl_type_is_boolean(deref->type))
-         value = nir_b2i32(b, value);
+      if (bit_size == 1)
+         value = nir_b2b1(b, value);
 
       nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                               nir_src_for_ssa(&load->dest.ssa));
+                               nir_src_for_ssa(value));
    } else {
       assert(intrin->intrinsic == nir_intrinsic_store_deref);
 
       assert(intrin->src[1].is_ssa);
       nir_ssa_def *value = intrin->src[1].ssa;
-      if (glsl_type_is_boolean(deref->type))
-         value = nir_i2b(b, value);
+      if (value->bit_size == 1)
+         value = nir_b2b32(b, value);
 
       nir_intrinsic_instr *store =
          nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_scratch);
@@ -174,6 +175,8 @@ nir_lower_vars_to_scratch(nir_shader *shader,
          progress = true;
          nir_metadata_preserve(function->impl, nir_metadata_block_index |
                                                nir_metadata_dominance);
+      } else {
+         nir_metadata_preserve(function->impl, nir_metadata_all);
       }
    }
 

@@ -441,7 +441,7 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
 	case PKT3_PFP_SYNC_ME:
 		break;
 	case PKT3_NOP:
-		if (header == 0xffff1000) {
+		if (header == PKT3_NOP_PAD) {
 			count = -1; /* One dword NOP. */
 		} else if (count == 0 && ib->cur_dw < ib->num_dw &&
 			   AC_IS_TRACE_POINT(ib->ib[ib->cur_dw])) {

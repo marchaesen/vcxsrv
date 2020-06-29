@@ -58,7 +58,7 @@ void XrmMergeDatabases(\^XrmDatabase \fIsource_db\fP, XrmDatabase
 void XrmCombineDatabase(\^XrmDatabase \fIsource_db\fP, XrmDatabase
 *\fItarget_db\fP, Bool \fIoverride\fP\^);
 .HP
-Status XrmCombineFileDatabase(\^char *\fIfilename\fP, XrmDatabase
+Status XrmCombineFileDatabase(\^_Xconst char *\fIfilename\fP, XrmDatabase
 *\fItarget_db\fP\^, Bool \fIoverride\fP);
 .SH ARGUMENTS
 .IP \fIsource_db\fP 1i

@@ -56,7 +56,7 @@ get_buf_size(
 	mb_list = (char **) list;
 	for ( ; count-- > 0; mb_list++) {
 	    if (*mb_list)
-		length += strlen(*mb_list) + 1;
+		length = (int) ((size_t) length + (strlen(*mb_list) + 1));
 	}
 	length *= 3;	/* XXX */
     }
@@ -118,7 +118,7 @@ _XTextListToTextProperty(
 			strcpy(to, *mb_list);
 		    else
 			*to = '\0';
-		    from_left = (*mb_list ? strlen(*mb_list) : 0) + 1;
+		    from_left = (int) (*mb_list ? strlen(*mb_list) : 0) + 1;
 		    nitems += from_left;
 		    to += from_left;
 		    mb_list++;
@@ -161,7 +161,7 @@ retry:
 	    wc_list++;
 	} else {
 	    from = (XPointer) *mb_list;
-	    from_left = (*mb_list ? strlen(*mb_list) : 0);
+	    from_left = (int) (*mb_list ? strlen(*mb_list) : 0);
 	    mb_list++;
 	}
 
@@ -190,7 +190,7 @@ retry:
 
     _XlcCloseConverter(conv);
 
-    nitems = to - buf;
+    nitems = (int) (to - buf);
 done:
     if (nitems <= 0)
 	nitems = 1;
@@ -202,14 +202,14 @@ done:
     if (nitems == 1)
 	*value = 0;
     else
-    	memcpy(value, buf, nitems);
+    	memcpy(value, buf, (size_t) nitems);
     nitems--;
     Xfree(buf);
 
     text_prop->value = (unsigned char *) value;
     text_prop->encoding = encoding;
     text_prop->format = 8;
-    text_prop->nitems = nitems;
+    text_prop->nitems = (unsigned long) nitems;
 
     return unconv_num;
 }

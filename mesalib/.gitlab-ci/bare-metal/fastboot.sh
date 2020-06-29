@@ -1,10 +1,13 @@
 #!/bin/bash
 
-BM=$CI_PROJECT_DIR/.gitlab-ci/bare-metal
+BM=$CI_PROJECT_DIR/install/bare-metal
 
-if [ -z "$BM_SERIAL" ]; then
-  echo "Must set BM_SERIAL in your gitlab-runner config.toml [[runners]] environment"
-  echo "This is the serial device to talk to for waiting for fastboot to be ready and logging from the kernel."
+if [ -z "$BM_SERIAL" -a -z "$BM_SERIAL_SCRIPT" ]; then
+  echo "Must set BM_SERIAL OR BM_SERIAL_SCRIPT in your gitlab-runner config.toml [[runners]] environment"
+  echo "BM_SERIAL:"
+  echo "  This is the serial device to talk to for waiting for fastboot to be ready and logging from the kernel."
+  echo "BM_SERIAL_SCRIPT:"
+  echo "  This is a shell script to talk to for waiting for fastboot to be ready and logging from the kernel."
   exit 1
 fi
 
@@ -44,33 +47,23 @@ fi
 
 set -ex
 
-# Copy the rootfs to a temporary for our setup, as I believe changes to the
-# container can end up impacting future runs.
-cp -Rp $BM_ROOTFS rootfs
+# Clear out any previous run's artifacts.
+rm -rf results/
+mkdir -p results
+find artifacts/ -name serial\*.txt  | xargs rm -f
 
-# Set up the init script that brings up the system.
-cp $BM/init.sh rootfs/init
-sed -i "s|DEQP_VER_REPLACE|$DEQP_VER|g" rootfs/init
-sed -i "s|DEQP_PARALLEL_REPLACE|$DEQP_PARALLEL|g" rootfs/init
-sed -i "s|DEQP_EXPECTED_RENDERER_REPLACE|$DEQP_EXPECTED_RENDERER|g" rootfs/init
-sed -i "s|CI_NODE_INDEX_REPLACE|$CI_NODE_INDEX|g" rootfs/init
-sed -i "s|CI_NODE_TOTAL_REPLACE|$CI_NODE_TOTAL|g" rootfs/init
+# Create the rootfs in a temp dir
+rsync -a --delete $BM_ROOTFS/ rootfs/
+. $BM/rootfs-setup.sh rootfs
 
-# Add the Mesa drivers we built, and make a consistent symlink to them.
-mkdir -p rootfs/$CI_PROJECT_DIR
-tar -C rootfs/$CI_PROJECT_DIR/ -xf $CI_PROJECT_DIR/artifacts/install.tar
-ln -sf $CI_PROJECT_DIR/install rootfs/install
-
-# Copy the deqp runner script and metadata.
-cp .gitlab-ci/deqp-runner.sh rootfs/deqp/.
-cp .gitlab-ci/$DEQP_SKIPS rootfs/$CI_PROJECT_DIR/install/deqp-skips.txt
-if [ -n "$DEQP_EXPECTED_FAILS" ]; then
-  cp .gitlab-ci/$DEQP_EXPECTED_FAILS rootfs/$CI_PROJECT_DIR/install/deqp-expected-fails.txt
-fi
-
-# Finally, pack it up into a cpio rootfs.
+# Finally, pack it up into a cpio rootfs.  Skip the vulkan CTS since none of
+# these devices use it and it would take up space in the initrd.
 pushd rootfs
-  find -H | cpio -H newc -o | xz --check=crc32 -T4 - > $CI_PROJECT_DIR/rootfs.cpio.gz
+find -H | \
+  egrep -v "external/(openglcts|vulkancts|amber|glslang|spirv-tools)" |
+  egrep -v "traces-db|apitrace|renderdoc|python" | \
+  cpio -H newc -o | \
+  xz --check=crc32 -T4 - > $CI_PROJECT_DIR/rootfs.cpio.gz
 popd
 
 cat $BM_KERNEL $BM_DTB > Image.gz-dtb
@@ -83,24 +76,35 @@ abootimg \
 rm Image.gz-dtb
 
 # Start watching serial, and power up the device.
-$BM/serial-buffer.py $BM_SERIAL | tee artifacts/serial-output.txt &
+if [ -n "$BM_SERIAL" ]; then
+  $BM/serial-buffer.py $BM_SERIAL | tee artifacts/serial-output.txt &
+else
+  PATH=$BM:$PATH $BM_SERIAL_SCRIPT | tee artifacts/serial-output.txt &
+fi
+
 while [ ! -e artifacts/serial-output.txt ]; do
   sleep 1
 done
 PATH=$BM:$PATH $BM_POWERUP
 
 # Once fastboot is ready, boot our image.
-$BM/expect-output.sh artifacts/serial-output.txt "fastboot: processing commands"
+$BM/expect-output.sh artifacts/serial-output.txt \
+  -f "fastboot: processing commands" \
+  -f "Listening for fastboot command on" \
+  -e "data abort"
+
 fastboot boot -s $BM_FASTBOOT_SERIAL artifacts/fastboot.img
 
 # Wait for the device to complete the deqp run
-$BM/expect-output.sh artifacts/serial-output.txt "DEQP RESULT"
+$BM/expect-output.sh artifacts/serial-output.txt \
+    -f "bare-metal result" \
+    -e "---. end Kernel panic"
 
 # power down the device
 PATH=$BM:$PATH $BM_POWERDOWN
 
 set +e
-if grep -q "DEQP RESULT: pass" artifacts/serial-output.txt; then
+if grep -q "bare-metal result: pass" artifacts/serial-output.txt; then
    exit 0
 else
    exit 1

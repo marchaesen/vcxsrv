@@ -34,7 +34,7 @@
 
 #define set_toupper(ch) \
   if (ch >= 'a' && ch <= 'z') \
-    ch = ch - 'a' + 'A';
+    ch = (unsigned char) (ch - 'a' + 'A');
 
 /* Compares two ISO 8859-1 strings, ignoring case of ASCII letters.
    Like strcasecmp in an ASCII locale. */
@@ -46,8 +46,8 @@ _XlcCompareISOLatin1(
     unsigned char ch1, ch2;
 
     for ( ; ; str1++, str2++) {
-	ch1 = *str1;
-	ch2 = *str2;
+	ch1 = (unsigned char) *str1;
+	ch2 = (unsigned char) *str2;
 	if (ch1 == '\0' || ch2 == '\0')
 	    break;
 	set_toupper(ch1);
@@ -72,8 +72,8 @@ _XlcNCompareISOLatin1(
     for ( ; ; str1++, str2++, len--) {
 	if (len == 0)
 	    return 0;
-	ch1 = *str1;
-	ch2 = *str2;
+	ch1 = (unsigned char) *str1;
+	ch2 = (unsigned char) *str2;
 	if (ch1 == '\0' || ch2 == '\0')
 	    break;
 	set_toupper(ch1);

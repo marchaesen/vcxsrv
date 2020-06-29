@@ -46,6 +46,7 @@ struct panfrost_slice {
          * is its offset/stride? */
         unsigned checksum_offset;
         unsigned checksum_stride;
+        struct panfrost_bo *checksum_bo;
 
         /* Has anything been written to this slice? */
         bool initialized;
@@ -113,8 +114,12 @@ panfrost_texture_offset(struct panfrost_slice *slices, bool is_3d, unsigned cube
 
 /* Formats */
 
-enum mali_format
-panfrost_find_format(const struct util_format_description *desc);
+struct panfrost_format {
+        enum mali_format hw;
+        unsigned bind;
+};
+
+extern struct panfrost_format panfrost_pipe_format_table[PIPE_FORMAT_COUNT];
 
 bool
 panfrost_is_z24s8_variant(enum pipe_format fmt);
@@ -144,6 +149,13 @@ panfrost_get_default_swizzle(unsigned components)
         default:
                 unreachable("Invalid number of components");
         }
+}
+
+static inline unsigned
+panfrost_bifrost_swizzle(unsigned components)
+{
+        /* Set all components to 0 and force w if needed */
+        return components < 4 ? 0x10 : 0x00;
 }
 
 enum mali_format

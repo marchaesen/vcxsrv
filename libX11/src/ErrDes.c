@@ -204,9 +204,9 @@ XGetErrorDatabaseText(
 	result.addr = (XPointer)NULL;
     if (!result.addr) {
 	result.addr = (XPointer) defaultp;
-	result.size = strlen(defaultp) + 1;
+	result.size = (unsigned)strlen(defaultp) + 1;
     }
-    (void) strncpy (buffer, (char *) result.addr, nbytes);
+    (void) strncpy (buffer, (char *) result.addr, (size_t)nbytes);
     if (result.size > nbytes) buffer[nbytes-1] = '\0';
     return 0;
 }

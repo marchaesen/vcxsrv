@@ -141,6 +141,7 @@ convenience for the applications' rendering mechanism.
   prgname         String  String  Name of the running program
   postscriptname  String  Font family name in PostScript
   fonthashint     Bool    Whether the font has hinting
+  order           Int     Order number of the font
     </programlisting>
   </refsect2>
   <refsect2>

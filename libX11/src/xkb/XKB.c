@@ -410,7 +410,7 @@ XkbSetDebuggingFlags(Display *dpy,
     if (msg) {
         char *out;
 
-        req->msgLength = (unsigned short) strlen(msg) + 1;
+        req->msgLength = (CARD16) (strlen(msg) + 1);
         req->length += (req->msgLength + (unsigned) 3) >> 2;
         BufAlloc(char *, out, ((req->msgLength + (unsigned) 3) / 4) * 4);
         memcpy(out, msg, req->msgLength);

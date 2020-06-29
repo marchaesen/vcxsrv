@@ -56,9 +56,9 @@ XOM XOpenOM\^(\^Display *\fIdisplay\fP\^, XrmDatabase \fIdb\fP\^, char
 .HP
 Status XCloseOM\^(\^XOM \fIom\fP\^);
 .HP
-char *XSetOMValues\^(\^XOM \fIom\fP\^);
+char *XSetOMValues\^(\^XOM \fIom\fP, ...\^);
 .HP
-char *XGetOMValues\^(\^XOM \fIom\fP\^);
+char *XGetOMValues\^(\^XOM \fIom\fP, ...\^);
 .HP
 Display *XDisplayOfOM\^(\^XOM \fIom\fP\^);
 .HP

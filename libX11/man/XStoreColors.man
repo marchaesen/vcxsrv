@@ -57,7 +57,7 @@ int XStoreColor\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^,
 XColor *\fIcolor\fP\^);
 .HP
 int XStoreNamedColor\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^,
-char *\^\fIcolor\fP\^, unsigned long \fIpixel\fP\^, int \fIflags\fP\^);
+_Xconst char *\^\fIcolor\fP\^, unsigned long \fIpixel\fP\^, int \fIflags\fP\^);
 .SH ARGUMENTS
 .IP \fIcolor\fP 1i
 Specifies the pixel and RGB values or the color name string (for example, red).

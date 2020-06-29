@@ -65,35 +65,48 @@ all_uses_fp16_conv(struct ir3_instruction *conv_src)
 	return true;
 }
 
+/* For an instruction which has a conversion folded in, re-write the
+ * uses of *all* conv's that used that src to be a simple mov that
+ * cp can eliminate.  This avoids invalidating the SSA uses, it just
+ * shifts the use to a simple mov.
+ */
 static void
-rewrite_uses(struct ir3_instruction *conv, struct ir3_instruction *replace)
+rewrite_src_uses(struct ir3_instruction *src)
 {
-	foreach_ssa_use (use, conv) {
-		struct ir3_instruction *src;
-		foreach_ssa_src_n (src, n, use) {
-			if (src == conv)
-				use->regs[n]->instr = replace;
+	foreach_ssa_use (use, src) {
+		assert(is_fp16_conv(use));
+
+		if (is_half(src)) {
+			use->regs[1]->flags |= IR3_REG_HALF;
+		} else {
+			use->regs[1]->flags &= ~IR3_REG_HALF;
 		}
+
+		use->cat1.src_type = use->cat1.dst_type;
 	}
 }
 
-static void
+static bool
 try_conversion_folding(struct ir3_instruction *conv)
 {
 	struct ir3_instruction *src;
 
 	if (!is_fp16_conv(conv))
-		return;
+		return false;
 
+	/* NOTE: we can have non-ssa srcs after copy propagation: */
 	src = ssa(conv->regs[1]);
+	if (!src)
+		return false;
+
 	if (!is_alu(src))
-		return;
+		return false;
 
 	/* avoid folding f2f32(f2f16) together, in cases where this is legal to
 	 * do (glsl) nir should have handled that for us already:
 	 */
 	if (is_fp16_conv(src))
-		return;
+		return false;
 
 	switch (src->opc) {
 	case OPC_SEL_B32:
@@ -102,20 +115,21 @@ try_conversion_folding(struct ir3_instruction *conv)
 	case OPC_MIN_F:
 	case OPC_SIGN_F:
 	case OPC_ABSNEG_F:
-		return;
+		return false;
 	case OPC_MOV:
 		/* if src is a "cov" and type doesn't match, then it can't be folded
 		 * for example cov.u32u16+cov.f16f32 can't be folded to cov.u32f32
 		 */
 		if (src->cat1.dst_type != src->cat1.src_type &&
 			conv->cat1.src_type != src->cat1.dst_type)
-			return;
+			return false;
+		break;
 	default:
 		break;
 	}
 
 	if (!all_uses_fp16_conv(src))
-		return;
+		return false;
 
 	if (src->opc == OPC_MOV) {
 		if (src->cat1.dst_type == src->cat1.src_type) {
@@ -134,27 +148,27 @@ try_conversion_folding(struct ir3_instruction *conv)
 		}
 	}
 
-	if (conv->regs[0]->flags & IR3_REG_HALF) {
-		src->regs[0]->flags |= IR3_REG_HALF;
-	} else {
-		src->regs[0]->flags &= ~IR3_REG_HALF;
-	}
+	ir3_set_dst_type(src, is_half(conv));
+	rewrite_src_uses(src);
 
-	rewrite_uses(conv, src);
+	return true;
 }
 
-void
+bool
 ir3_cf(struct ir3 *ir)
 {
 	void *mem_ctx = ralloc_context(NULL);
+	bool progress = false;
 
 	ir3_find_ssa_uses(ir, mem_ctx, false);
 
 	foreach_block (block, &ir->block_list) {
-		foreach_instr_safe (instr, &block->instr_list) {
-			try_conversion_folding(instr);
+		foreach_instr (instr, &block->instr_list) {
+			progress |= try_conversion_folding(instr);
 		}
 	}
 
 	ralloc_free(mem_ctx);
+
+	return progress;
 }

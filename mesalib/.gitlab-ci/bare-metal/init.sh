@@ -8,21 +8,14 @@ mount -t devtmpfs none /dev || echo possibly already mounted
 mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts
 
-export DEQP_NO_SAVE_RESULTS=1
-export DEQP_VER=DEQP_VER_REPLACE
-export DEQP_PARALLEL=DEQP_PARALLEL_REPLACE
-export DEQP_EXPECTED_RENDERER=DEQP_EXPECTED_RENDERER_REPLACE
-export CI_NODE_INDEX=CI_NODE_INDEX_REPLACE
-export CI_NODE_TOTAL=CI_NODE_TOTAL_REPLACE
-export DEQP_SKIPS=deqp-skips.txt
-if [ -e /install/deqp-expected-fails.txt ]; then
-  export DEQP_EXPECTED_FAILS=deqp-expected-fails.txt
-fi
+. /set-job-env-vars.sh
 
-if sh /deqp/deqp-runner.sh; then
-    echo "DEQP RESULT: pass"
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
+
+if sh $BARE_METAL_TEST_SCRIPT; then
+    echo "bare-metal result: pass"
 else
-    echo "DEQP RESULT: fail"
+    echo "bare-metal result: fail"
 fi
 
 # Wait until the job would have timed out anyway, so we don't spew a "init

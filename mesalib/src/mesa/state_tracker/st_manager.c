@@ -1248,7 +1248,7 @@ st_manager_add_color_renderbuffer(struct st_context *st,
    st_framebuffer_update_attachments(stfb);
 
    /*
-    * Force a call to the state tracker manager to validate the
+    * Force a call to the frontend manager to validate the
     * new renderbuffer. It might be that there is a window system
     * renderbuffer available.
     */

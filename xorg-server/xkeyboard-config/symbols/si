@@ -1,4 +1,4 @@
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "rs(latin)"
@@ -13,7 +13,7 @@ xkb_symbols "us" {
 
     include "rs(latinyz)"
 
-    name[Group1]= "Slovenian (US, with Slovenian letters)";
+    name[Group1]= "Slovenian (US)";
 
     key <TLDE> { type[Group1]="TWO_LEVEL", [ cedilla, diaeresis ] };
 };

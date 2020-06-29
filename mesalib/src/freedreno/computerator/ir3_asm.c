@@ -21,8 +21,8 @@
  * SOFTWARE.
  */
 
+#include "ir3/ir3_assembler.h"
 #include "ir3/ir3_compiler.h"
-#include "ir3/ir3_parser.h"
 
 #include "ir3_asm.h"
 
@@ -30,30 +30,17 @@ struct ir3_kernel *
 ir3_asm_assemble(struct ir3_compiler *c, FILE *in)
 {
 	struct ir3_kernel *kernel = calloc(1, sizeof(*kernel));
+	struct ir3_shader *shader = ir3_parse_asm(c, &kernel->info, in);
+	struct ir3_shader_variant *v = shader->variants;
 
-	struct ir3_shader *shader = calloc(1, sizeof(*shader));
-	shader->compiler = c;
-	shader->type = MESA_SHADER_COMPUTE;
-
-	struct ir3_shader_variant *v = calloc(1, sizeof(*v));
-	v->type = MESA_SHADER_COMPUTE;
-	v->shader = shader;
+	v->mergedregs = true;
 
 	kernel->v = v;
-
-	kernel->info.numwg = INVALID_REG;
-
-	v->ir = ir3_parse(v, &kernel->info, in);
-	if (!v->ir)
-		errx(-1, "parse failed");
-
-	ir3_debug_print(v->ir, "AFTER PARSING");
+	kernel->bin = v->bin;
 
 	memcpy(kernel->base.local_size, kernel->info.local_size, sizeof(kernel->base.local_size));
 	kernel->base.num_bufs = kernel->info.num_bufs;
 	memcpy(kernel->base.buf_sizes, kernel->info.buf_sizes, sizeof(kernel->base.buf_sizes));
-
-	kernel->bin = ir3_shader_assemble(v, c->gpu_id);
 
 	unsigned sz = v->info.sizedwords * 4;
 

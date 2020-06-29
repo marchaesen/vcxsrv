@@ -36,10 +36,6 @@
 extern "C" {
 #endif
 
-#if LLVM_VERSION_MAJOR < 11
-#define LLVMFixedVectorTypeKind LLVMVectorTypeKind
-#endif
-
 struct ac_compiler_passes;
 
 enum ac_func_attr {
@@ -68,8 +64,7 @@ enum ac_target_machine_options {
 	AC_TM_CHECK_IR = (1 << 4),
 	AC_TM_ENABLE_GLOBAL_ISEL = (1 << 5),
 	AC_TM_CREATE_LOW_OPT = (1 << 6),
-	AC_TM_NO_LOAD_STORE_OPT = (1 << 7),
-	AC_TM_WAVE32 = (1 << 8),
+	AC_TM_WAVE32 = (1 << 7),
 };
 
 enum ac_float_mode {

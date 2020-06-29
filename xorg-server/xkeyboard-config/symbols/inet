@@ -219,7 +219,10 @@ xkb_symbols "evdev" {
     key <I255>   {      [ XF86RFKill            ]       }; // KEY_RFKILL
 
     key <I372>  {       [ XF86Favorites          ]       };
+    key <I380>  {       [ XF86FullScreen         ]       };
     key <I382>  {       [ XF86Keyboard           ]       };
+    key <I442>  {       [ dollar                 ]       };
+    key <I443>  {       [ EuroSign               ]       };
     key <I569>  {       [ XF86RotationLockToggle ]       };
 
     key <FK13>   {      [ XF86Tools         ]       };
@@ -1426,6 +1429,16 @@ xkb_symbols "microsoftmult" {
     key <I80>   {       [ XF86Documents ]       };
 };
 
+// Microsoft Surface
+partial alphanumeric_keys
+xkb_symbols "microsoftsurface" {
+    include "inet(evdev)"
+    key <I88>   {       [ XF86Search            ]         };
+    key <I163>  {       [ XF86AudioPrev         ]         };
+    key <I164>  {       [ XF86AudioPlay, XF86AudioPause ] };
+    key <I165>  {       [ XF86AudioNext         ]         };
+};
+
 
 // Oretec
 
@@ -1852,32 +1865,6 @@ xkb_symbols "compalfl90" {
 partial alphanumeric_keys
 xkb_symbols "pc105" {
     include "inet(media_nav_acpi_common)"
-};
-
-
-// HTC Dream
-partial alphanumeric_keys
-xkb_symbols "htcdream" {
-	key <BKSP> { [ BackSpace ] };
-	key <RTRN> { [ Return ] };
-
-        key <AE01> { [ 1, 1, exclam, exclam ] };
-        key <AE02> { [ 2, 2, at, at ] };
-        key <AE03> { [ 3, 3, numbersign, numbersign ] };
-        key <AE04> { [ 4, 4, dollar, dollar ] };
-        key <AE05> { [ 5, 5, percent, percent ] };
-        key <AE06> { [ 6, 6, dead_circumflex, dead_circumflex ] };
-        key <AE07> { [ 7, 7, ampersand, ampersand ] };
-        key <AE08> { [ 8, 8, asterisk, asterisk ] };
-        key <AE09> { [ 9, 9, parenleft, parenleft ] };
-        key <AE10> { [ 0, 0, parenright, parenright ] };
-
-	key <LFSH> { [ Shift_L ] };
-	key <SPCE> { [ space ] };
-	key <AB09> { [ period, period, slash, slash ] };
-	key <RTSH> { [ Shift_R ] };
-
-	modifier_map Shift { <LFSH>, <RTSH> };
 };
 
 partial alphanumeric_keys

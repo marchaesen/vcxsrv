@@ -52,7 +52,7 @@ VkResult
 tu_cs_alloc(struct tu_cs *cs,
             uint32_t count,
             uint32_t size,
-            struct ts_cs_memory *memory);
+            struct tu_cs_memory *memory);
 
 struct tu_cs_entry
 tu_cs_end_sub_stream(struct tu_cs *cs, struct tu_cs *sub_cs);

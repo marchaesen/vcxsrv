@@ -1443,7 +1443,7 @@ union packed_tex_data {
    uint32_t u32;
    struct {
       enum glsl_sampler_dim sampler_dim:4;
-      nir_alu_type dest_type:8;
+      unsigned dest_type:8;
       unsigned coord_components:3;
       unsigned is_array:1;
       unsigned is_shadow:1;

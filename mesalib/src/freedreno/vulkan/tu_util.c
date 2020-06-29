@@ -35,6 +35,16 @@
 
 /* TODO: Add Android support to tu_log funcs */
 
+/** \see tu_loge() */
+static void
+tu_loge_v(const char *format, va_list va)
+{
+   fprintf(stderr, "vk: error: ");
+   vfprintf(stderr, format, va);
+   fprintf(stderr, "\n");
+}
+
+
 /** Log an error message.  */
 void tu_printflike(1, 2) tu_loge(const char *format, ...)
 {
@@ -45,11 +55,11 @@ void tu_printflike(1, 2) tu_loge(const char *format, ...)
    va_end(va);
 }
 
-/** \see tu_loge() */
-void
-tu_loge_v(const char *format, va_list va)
+/** \see tu_logi() */
+static void
+tu_logi_v(const char *format, va_list va)
 {
-   fprintf(stderr, "vk: error: ");
+   fprintf(stderr, "tu: info: ");
    vfprintf(stderr, format, va);
    fprintf(stderr, "\n");
 }
@@ -62,15 +72,6 @@ void tu_printflike(1, 2) tu_logi(const char *format, ...)
    va_start(va, format);
    tu_logi_v(format, va);
    va_end(va);
-}
-
-/** \see tu_logi() */
-void
-tu_logi_v(const char *format, va_list va)
-{
-   fprintf(stderr, "tu: info: ");
-   vfprintf(stderr, format, va);
-   fprintf(stderr, "\n");
 }
 
 void tu_printflike(3, 4)

@@ -107,7 +107,7 @@ XFontStruct *XLoadQueryFont(
     LockDisplay(dpy);
     GetReq(OpenFont, req);
     seq = dpy->request; /* Can't use extended sequence number here */
-    nbytes = req->nbytes  = name ? strlen(name) : 0;
+    nbytes = req->nbytes = (CARD16) (name ? strlen(name) : 0);
     req->fid = fid = XAllocID(dpy);
     req->length += (nbytes+3)>>2;
     Data (dpy, name, nbytes);
@@ -662,7 +662,7 @@ int _XF86LoadQueryLocaleFont(
 
     if (!name)
 	return 0;
-    l = strlen(name);
+    l = (int) strlen(name);
     if (l < 2 || name[l - 1] != '*' || name[l - 2] != '-')
 	return 0;
     charset = NULL;
@@ -679,7 +679,7 @@ int _XF86LoadQueryLocaleFont(
 	return 0;
     if (_XlcNCompareISOLatin1(name + l - 2 - (p - charset), charset, p - charset))
 	return 0;
-    if (strlen(p + 1) + l - 1 >= sizeof(buf) - 1)
+    if (strlen(p + 1) + (size_t) l - 1 >= sizeof(buf) - 1)
 	return 0;
     strcpy(buf, name);
     strcpy(buf + l - 1, p + 1);

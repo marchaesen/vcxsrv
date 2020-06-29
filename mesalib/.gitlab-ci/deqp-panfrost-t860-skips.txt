@@ -14,7 +14,3 @@ dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_neg_z_and_p
 
 # XXX: Causes irrecoverable GPU hangs when run in parallel with dEQP-GLES3.functional.transform_feedback.*
 dEQP-GLES3.functional.rasterizer_discard.*
-
-# XXX: Not completely implemented yet, behave flakily
-dEQP-GLES3.functional.shaders.derivate.*
-

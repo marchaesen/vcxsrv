@@ -148,8 +148,10 @@ def main():
         if symbol in optional_symbols:
             continue
         if symbol[:2] == '_Z':
-            # Ignore random C++ symbols
-            #TODO: figure out if there's any way to avoid exporting them in the first place
+            # As ajax found out, the compiler intentionally exports symbols
+            # that we explicitely asked it not to export, and we can't do
+            # anything about it:
+            # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=36022#c4
             continue
         unknown_symbols.append(symbol)
 

@@ -36,8 +36,6 @@
 static void
 instr_dce(struct ir3_instruction *instr, bool falsedep)
 {
-	struct ir3_instruction *src;
-
 	/* don't mark falsedep's as used, but otherwise process them normally: */
 	if (!falsedep)
 		instr->flags &= ~IR3_INSTR_UNUSED;
@@ -120,7 +118,6 @@ find_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
 		}
 	}
 
-	struct ir3_instruction *out;
 	foreach_output (out, ir)
 		instr_dce(out, false);
 
@@ -170,7 +167,6 @@ find_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
 	}
 
 	/* cleanup unused inputs: */
-	struct ir3_instruction *in;
 	foreach_input_n (in, n, ir)
 		if (in->flags & IR3_INSTR_UNUSED)
 			ir->inputs[n] = NULL;
@@ -178,17 +174,20 @@ find_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
 	return progress;
 }
 
-void
+bool
 ir3_dce(struct ir3 *ir, struct ir3_shader_variant *so)
 {
 	void *mem_ctx = ralloc_context(NULL);
-	bool progress;
+	bool progress, made_progress = false;
 
 	ir3_find_ssa_uses(ir, mem_ctx, true);
 
 	do {
 		progress = find_and_remove_unused(ir, so);
+		made_progress |= progress;
 	} while (progress);
 
 	ralloc_free(mem_ctx);
+
+	return made_progress;
 }

@@ -85,6 +85,11 @@ _lookup_ptr(clone_state *state, const void *ptr, bool global)
    if (!state->global_clone && global)
       return (void *)ptr;
 
+   if (unlikely(!state->remap_table)) {
+      assert(state->allow_remap_fallback);
+      return (void *)ptr;
+   }
+
    entry = _mesa_hash_table_search(state->remap_table, ptr);
    if (!entry) {
       assert(state->allow_remap_fallback);
@@ -254,7 +259,8 @@ __clone_dst(clone_state *state, nir_instr *ninstr,
    if (dst->is_ssa) {
       nir_ssa_dest_init(ninstr, ndst, dst->ssa.num_components,
                         dst->ssa.bit_size, dst->ssa.name);
-      add_remap(state, &ndst->ssa, &dst->ssa);
+      if (likely(state->remap_table))
+         add_remap(state, &ndst->ssa, &dst->ssa);
    } else {
       ndst->reg.reg = remap_reg(state, dst->reg.reg);
       if (dst->reg.indirect) {
@@ -263,26 +269,6 @@ __clone_dst(clone_state *state, nir_instr *ninstr,
       }
       ndst->reg.base_offset = dst->reg.base_offset;
    }
-}
-
-nir_alu_instr *
-nir_alu_instr_clone(nir_shader *shader, const nir_alu_instr *orig)
-{
-   nir_alu_instr *clone = nir_alu_instr_create(shader, orig->op);
-
-   clone->exact = orig->exact;
-
-   for (unsigned i = 0; i < nir_op_infos[orig->op].num_inputs; i++)
-      nir_alu_src_copy(&clone->src[i], &orig->src[i], clone);
-
-   nir_ssa_dest_init(&clone->instr,
-                     &clone->dest.dest,
-                     orig->dest.dest.ssa.num_components,
-                     orig->dest.dest.ssa.bit_size,
-                     orig->dest.dest.ssa.name);
-   clone->dest.write_mask = orig->dest.write_mask;
-
-   return clone;
 }
 
 static nir_alu_instr *
@@ -306,6 +292,16 @@ clone_alu(clone_state *state, const nir_alu_instr *alu)
    }
 
    return nalu;
+}
+
+nir_alu_instr *
+nir_alu_instr_clone(nir_shader *shader, const nir_alu_instr *orig)
+{
+   clone_state state = {
+      .allow_remap_fallback = true,
+      .ns = shader,
+   };
+   return clone_alu(&state, orig);
 }
 
 static nir_deref_instr *

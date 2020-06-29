@@ -2,7 +2,7 @@
 
 // 3-Level layout
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
     include "ara(basic)"
     name[Group1]= "Iraqi";

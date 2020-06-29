@@ -285,7 +285,10 @@ default xkb_keycodes "evdev" {
 	<I255> = 255;	// #define KEY_RFKILL              247
 
 	<I372> = 372;   // #define KEY_FAVORITES           364
+	<I380> = 380;   // #define KEY_FULL_SCREEN         372
 	<I382> = 382;   // #define KEY_KEYBOARD            374
+	<I442> = 442;   // #define KEY_DOLLAR              434
+	<I443> = 443;   // #define KEY_EURO                435
 	<I569> = 569;   // #define KEY_ROTATE_LOCK_TOGGLE  561
 
 	// Fake keycodes for virtual keys

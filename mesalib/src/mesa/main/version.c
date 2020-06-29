@@ -524,7 +524,8 @@ compute_version_es2(const struct gl_extensions *extensions,
                          extensions->ARB_draw_instanced &&
                          extensions->ARB_uniform_buffer_object &&
                          extensions->EXT_texture_snorm &&
-                         extensions->NV_primitive_restart &&
+                         (extensions->NV_primitive_restart ||
+                          consts->PrimitiveRestartFixedIndex) &&
                          extensions->OES_depth_texture_cube_map &&
                          extensions->EXT_texture_type_2_10_10_10_REV);
    const bool es31_compute_shader =

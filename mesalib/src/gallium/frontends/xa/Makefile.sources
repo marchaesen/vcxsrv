@@ -1,0 +1,8 @@
+C_SOURCES := \
+	xa_composite.c \
+	xa_context.c \
+	xa_priv.h \
+	xa_renderer.c \
+	xa_tgsi.c \
+	xa_tracker.c \
+	xa_yuv.c

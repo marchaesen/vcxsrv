@@ -165,7 +165,7 @@ util_upload_index_buffer(struct pipe_context *pipe,
  * CPU cores that share the same L3 cache. This is needed for good multi-
  * threading performance on AMD Zen CPUs.
  *
- * \param upper_thread  thread in the state tracker that also needs to be
+ * \param upper_thread  thread in gallium frontends that also needs to be
  *                      pinned.
  */
 void

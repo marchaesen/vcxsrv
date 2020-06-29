@@ -109,32 +109,32 @@ XkbGetKeyboardByName(Display *dpy,
 
     *str++ = mapLen;
     if (mapLen > 0) {
-        memcpy(str, names->keymap, mapLen);
+        memcpy(str, names->keymap, (size_t) mapLen);
         str += mapLen;
     }
     *str++ = codesLen;
     if (codesLen > 0) {
-        memcpy(str, names->keycodes, codesLen);
+        memcpy(str, names->keycodes, (size_t) codesLen);
         str += codesLen;
     }
     *str++ = typesLen;
     if (typesLen > 0) {
-        memcpy(str, names->types, typesLen);
+        memcpy(str, names->types, (size_t) typesLen);
         str += typesLen;
     }
     *str++ = compatLen;
     if (compatLen > 0) {
-        memcpy(str, names->compat, compatLen);
+        memcpy(str, names->compat, (size_t) compatLen);
         str += compatLen;
     }
     *str++ = symsLen;
     if (symsLen > 0) {
-        memcpy(str, names->symbols, symsLen);
+        memcpy(str, names->symbols, (size_t) symsLen);
         str += symsLen;
     }
     *str++ = geomLen;
     if (geomLen > 0) {
-        memcpy(str, names->geometry, geomLen);
+        memcpy(str, names->geometry, (size_t) geomLen);
         str += geomLen;
     }
     if ((!_XReply(dpy, (xReply *) &rep, 0, xFalse)) || (!rep.reported))
