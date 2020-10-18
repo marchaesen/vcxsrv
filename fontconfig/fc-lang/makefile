@@ -5,13 +5,7 @@ endif
 INCLUDES+=..\src
 
 TMPL=fclang.tmpl.h
-STMPL=fclang.tmpl.h
 TARG=$(OBJDIR)\fclang.h
-
-TTYAPP=fc-lang
-
-CSRCS= \
-	fc-lang.c
 
 # NOTE:
 #
@@ -271,8 +265,6 @@ ORTH = \
 DEFINES += HAVE_CONFIG_H
 INCLUDES := .. $(INCLUDES) $(OBJDIR) ..\fc-case\$(OBJDIR)
 
-$(TARG):$(ORTH) $(OBJDIR)\fc-lang.exe $(STMPL)
-	del -e $(TARG)
-	$(OBJDIR)\fc-lang.exe -d . $(ORTH) < $(STMPL) > $(TARG).tmp
-	move $(TARG).tmp $(TARG)
+$(TARG):$(ORTH) $(TMPL) fc-lang.py
+	$(PYTHON3) fc-lang.py $(ORTH) --template $(TMPL) --output $@ --directory .
 

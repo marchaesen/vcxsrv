@@ -20,4 +20,5 @@
 #define PATH_MAX 1024
 #endif
 #define CONFIGDIR "./fonts"
+#define HAVE_UNISTD_H 1
 
