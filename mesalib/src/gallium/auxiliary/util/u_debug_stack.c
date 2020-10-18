@@ -35,6 +35,7 @@
 #include "util/u_debug.h"
 #include "u_debug_symbol.h"
 #include "u_debug_stack.h"
+#include "pipe/p_config.h"
 
 #if defined(HAVE_LIBUNWIND)
 

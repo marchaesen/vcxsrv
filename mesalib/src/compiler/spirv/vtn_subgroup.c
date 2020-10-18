@@ -252,7 +252,8 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
       }
       nir_intrinsic_instr *intrin =
          nir_intrinsic_instr_create(b->nb.shader, op);
-      intrin->num_components = src0->num_components;
+      if (nir_intrinsic_infos[op].src_components[0] == 0)
+         intrin->num_components = src0->num_components;
       intrin->src[0] = nir_src_for_ssa(src0);
       nir_ssa_dest_init_for_type(&intrin->instr, &intrin->dest,
                                  val->type->type, NULL);

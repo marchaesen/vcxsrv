@@ -461,6 +461,11 @@ ir_expression_operation = [
    operation("f2f16", 1, source_types=(float_type,), dest_type=float_type, c_expression="{src0}"),
    operation("f2fmp", 1, source_types=(float_type,), dest_type=float_type, c_expression="{src0}"),
    operation("f162f", 1, source_types=(float_type,), dest_type=float_type, c_expression="{src0}"),
+   # int16<->int32 conversion.
+   operation("i2i", 1, source_types=(int_type,), dest_type=int_type, c_expression="{src0}"),
+   operation("i2imp", 1, source_types=(int_type,), dest_type=int_type, c_expression="{src0}"),
+   operation("u2u", 1, source_types=(uint_type,), dest_type=uint_type, c_expression="{src0}"),
+   operation("u2ump", 1, source_types=(uint_type,), dest_type=uint_type, c_expression="{src0}"),
    # Double-to-integer conversion.
    operation("d2i", 1, source_types=(double_type,), dest_type=int_type, c_expression="{src0}"),
    # Integer-to-double conversion.

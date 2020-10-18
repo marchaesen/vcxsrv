@@ -2,10 +2,12 @@
 
 set -ex
 
+git config --global user.email "mesa@example.com"
+git config --global user.name "Mesa CI"
 git clone \
-    --depth 1 \
     https://github.com/KhronosGroup/VK-GL-CTS.git \
-    -b vulkan-cts-1.2.1.0 \
+    -b vulkan-cts-1.2.3.0 \
+    --depth 1 \
     /VK-GL-CTS
 pushd /VK-GL-CTS
 
@@ -16,27 +18,43 @@ python3 external/fetch_sources.py --insecure
 
 mkdir -p /deqp
 
+# Save the testlog stylesheets:
+cp doc/testlog-stylesheet/testlog.{css,xsl} /deqp
 popd
 
 pushd /deqp
 cmake -G Ninja \
-      -DDEQP_TARGET=x11_glx \
+      -DDEQP_TARGET=${DEQP_TARGET:-x11_glx} \
       -DCMAKE_BUILD_TYPE=Release \
+      $EXTRA_CMAKE_ARGS \
       /VK-GL-CTS
 ninja
 
-# Copy out the mustpass list we want.
+# Copy out the mustpass lists we want.
 mkdir /deqp/mustpass
 cp /VK-GL-CTS/external/vulkancts/mustpass/master/vk-default.txt \
    /deqp/mustpass/vk-master.txt
 
-rm -rf /deqp/modules/internal
+for gles in gles2 gles3 gles31; do
+    cp \
+        /deqp/external/openglcts/modules/gl_cts/data/mustpass/gles/aosp_mustpass/3.2.6.x/$gles-master.txt \
+        /deqp/mustpass/$gles-master.txt
+done
+
+# Save *some* executor utils, but otherwise strip things down
+# to reduct deqp build size:
+mkdir /deqp/executor.save
+cp /deqp/executor/testlog-to-* /deqp/executor.save
 rm -rf /deqp/executor
+mv /deqp/executor.save /deqp/executor
+
+rm -rf /deqp/modules/internal
 rm -rf /deqp/execserver
 rm -rf /deqp/modules/egl
 rm -rf /deqp/framework
 find -iname '*cmake*' -o -name '*ninja*' -o -name '*.o' -o -name '*.a' | xargs rm -rf
-strip external/vulkancts/modules/vulkan/deqp-vk
+${STRIP_CMD:-strip} external/vulkancts/modules/vulkan/deqp-vk
+${STRIP_CMD:-strip} modules/*/deqp-*
 du -sh *
 rm -rf /VK-GL-CTS
 popd

@@ -29,6 +29,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define BIFROST_DBG_MSGS        0x0001
+#define BIFROST_DBG_SHADERS     0x0002
+
+extern int bifrost_debug;
+
 enum bifrost_clause_type {
         BIFROST_CLAUSE_NONE       = 0,
         BIFROST_CLAUSE_LOAD_VARY  = 1,
@@ -37,6 +42,7 @@ enum bifrost_clause_type {
         BIFROST_CLAUSE_SSBO_LOAD  = 5,
         BIFROST_CLAUSE_SSBO_STORE = 6,
         BIFROST_CLAUSE_BLEND      = 9,
+        BIFROST_CLAUSE_FRAGZ      = 12,
         BIFROST_CLAUSE_ATEST      = 13,
         BIFROST_CLAUSE_64BIT      = 15
 };
@@ -109,6 +115,9 @@ struct bifrost_fma_inst {
         unsigned op   : 20;
 } __attribute__((packed));
 
+#define BIFROST_FMA_IADD_32 (0x4ff98 >> 3)
+#define BIFROST_FMA_ISUB_32 (0x4ffd8 >> 3)
+
 struct bifrost_fma_2src {
         unsigned src0 : 3;
         unsigned src1 : 3;
@@ -160,11 +169,38 @@ struct bifrost_add_inst {
         unsigned op   : 17;
 } __attribute__((packed));
 
+#define BIFROST_ADD_OP_DISCARD (0x19100 >> 8)
+
+enum bifrost_discard_cond {
+        BIFROST_DISCARD_FEQ = 0,
+        BIFROST_DISCARD_FNE = 1,
+        BIFROST_DISCARD_FLE = 2,
+        BIFROST_DISCARD_FLT = 3,
+};
+
+struct bifrost_add_discard {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+        enum bifrost_discard_cond cond : 2;
+        /* Zero for fp32 */
+        unsigned src0_select : 1;
+        unsigned src1_select : 1;
+        unsigned fp32 : 1;
+        unsigned op   : 9;
+} __attribute__((packed));
+
 #define BIFROST_ADD_OP_LD_UBO_1 (0x0c1a0 >> 3)
 #define BIFROST_ADD_OP_LD_UBO_2 (0x0c1e0 >> 3)
 #define BIFROST_ADD_OP_LD_UBO_3 (0x0caa0 >> 3)
 #define BIFROST_ADD_OP_LD_UBO_4 (0x0c220 >> 3)
 #define BIFROST_ADD_SEL_16(swiz) ((0xea60 >> 3) | (swiz))
+
+#define BIFROST_ADD_IADD_8  (0x17880 >> 3)
+#define BIFROST_ADD_IADD_16 (0x17900 >> 3)
+#define BIFROST_ADD_IADD_32 (0x178c0 >> 3)
+#define BIFROST_ADD_ISUB_8  (0x17a80 >> 3)
+#define BIFROST_ADD_ISUB_16 (0x17b00 >> 3)
+#define BIFROST_ADD_ISUB_32 (0x17ac0 >> 3)
 
 struct bifrost_add_2src {
         unsigned src0 : 3;
@@ -471,11 +507,13 @@ struct bifrost_add_fcmp16 {
 
 enum bifrost_icmp_cond {
         BIFROST_ICMP_IGT = 0,
-        BIFROST_ICMP_IGE = 1,
-        BIFROST_ICMP_UGT = 2,
+        BIFROST_ICMP_IGE = 1, /* swapped for 16-bit */
+        BIFROST_ICMP_UGT = 2, /* swapped for 16-bit */
         BIFROST_ICMP_UGE = 3,
         BIFROST_ICMP_EQ  = 4,
         BIFROST_ICMP_NEQ  = 5,
+        BIFROST_ICMP_32_OR_8 = 6, /* nested */
+        BIFROST_ICMP_64 = 7, /* nested */
 };
 
 struct bifrost_fma_icmp32 {
@@ -495,6 +533,9 @@ struct bifrost_fma_icmp16 {
         unsigned op : 9;
 } __attribute__((packed));
 
+#define BIFROST_ADD_OP_ICMP_32 (0x0f600 >> 8)
+#define BIFROST_ADD_OP_ICMP_16 (0x0f000 >> 11)
+
 struct bifrost_add_icmp {
         unsigned src0 : 3;
         unsigned src1 : 3;
@@ -504,6 +545,16 @@ struct bifrost_add_icmp {
         unsigned op : 9;
 } __attribute__((packed));
 
+struct bifrost_add_icmp16 {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+        unsigned src0_swizzle : 2;
+        unsigned src1_swizzle : 2;
+        unsigned d3d : 1;
+        enum bifrost_icmp_cond cond : 3;
+        unsigned op : 6;
+} __attribute__((packed));
+ 
 /* Two sources for vectorization */
 #define BIFROST_FMA_FLOAT32_TO_16 (0xdd000 >> 3)
 #define BIFROST_ADD_FLOAT32_TO_16 (0x0EC00 >> 3)
@@ -573,6 +624,10 @@ enum bifrost_interp_mode {
 #define BIFROST_ADD_OP_LD_VAR_16 (0x1a << 1)
 #define BIFROST_ADD_OP_LD_VAR_32 (0x0a << 1)
 
+/* Fixed location for gl_FragCoord.zw */
+#define BIFROST_FRAGZ (23)
+#define BIFROST_FRAGW (22)
+
 struct bifrost_ld_var {
         unsigned src0 : 3;
 
@@ -613,14 +668,14 @@ struct bifrost_dual_tex_ctrl {
         unsigned unk1 : 22;
 } __attribute__((packed));
 
-#define BIFROST_ADD_OP_TEX_COMPACT_F32 (0x0b000 >> 10)
-#define BIFROST_ADD_OP_TEX_COMPACT_F16 (0x1b000 >> 10)
+#define BIFROST_ADD_OP_TEX_COMPACT_F32(vtx) ((0x0b000 | ((vtx) ? (0x400) : (0))) >> 10)
+#define BIFROST_ADD_OP_TEX_COMPACT_F16(vtx) ((0x1b000 | ((vtx) ? (0x400) : (0))) >> 10)
 
 struct bifrost_tex_compact {
         unsigned src0 : 3;
         unsigned src1 : 3;
         unsigned tex_index : 3;
-        unsigned unknown : 1;
+        unsigned compute_lod : 1;
         unsigned sampler_index : 3;
         unsigned op   : 7;
 } __attribute__((packed));
@@ -678,6 +733,8 @@ enum bifrost_branch_cond {
 enum bifrost_branch_code {
         BR_ALWAYS = 63,
 };
+
+#define BIFROST_ADD_OP_BRANCH (0x0d000 >> 12)
 
 struct bifrost_branch {
         unsigned src0 : 3;

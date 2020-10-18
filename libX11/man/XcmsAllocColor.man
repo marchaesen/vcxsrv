@@ -54,7 +54,7 @@ Status XcmsAllocColor\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^,
 XcmsColor *\fIcolor_in_out\fP\^, XcmsColorFormat \fIresult_format\fP\^);
 .HP
 Status XcmsAllocNamedColor\^(\^Display *\fIdisplay\fP\^, Colormap
-\fIcolormap\fP\^, char *\fIcolor_string\fP\^, XcmsColor
+\fIcolormap\fP\^, _Xconst char *\fIcolor_string\fP\^, XcmsColor
 *\fIcolor_screen_return\fP\^, XcmsColor *\fIcolor_exact_return\fP\^, XcmsColorFormat \fIresult_format\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i

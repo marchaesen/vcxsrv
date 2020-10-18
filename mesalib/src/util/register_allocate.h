@@ -39,6 +39,9 @@ extern "C" {
 struct ra_class;
 struct ra_regs;
 
+struct blob;
+struct blob_reader;
+
 /* @{
  * Register set setup.
  *
@@ -65,6 +68,9 @@ void ra_class_add_reg(struct ra_regs *regs, unsigned int c, unsigned int reg);
 void ra_set_num_conflicts(struct ra_regs *regs, unsigned int class_a,
                           unsigned int class_b, unsigned int num_conflicts);
 void ra_set_finalize(struct ra_regs *regs, unsigned int **conflicts);
+
+void ra_set_serialize(const struct ra_regs *regs, struct blob *blob);
+struct ra_regs *ra_set_deserialize(void *mem_ctx, struct blob_reader *blob);
 /** @} */
 
 /** @{ Interference graph setup.

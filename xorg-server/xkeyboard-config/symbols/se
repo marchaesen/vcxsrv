@@ -1,6 +1,6 @@
 // based on a keyboard map from an 'xkb/symbols/se' file
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
     include "latin(type2)"
     include "se(se)"
@@ -307,7 +307,7 @@ partial alphanumeric_keys
 xkb_symbols "us" {
     include "us"
 
-    name[Group1]="Swedish (US, with Swedish letters)";
+    name[Group1]="Swedish (US)";
 
     key <AC10> { [ NoSymbol, NoSymbol, odiaeresis, Odiaeresis ] };
     key <AC11> { [ NoSymbol, NoSymbol, adiaeresis, Adiaeresis ] };
@@ -394,7 +394,7 @@ xkb_symbols "ovd" {
 partial alphanumeric_keys
 xkb_symbols "us_dvorak" {
   include "us(dvorak-intl)"
-  name[Group1]="Swedish (based on US Intl. Dvorak)";
+  name[Group1]="Swedish (Dvorak, intl.)";
 
   key <TLDE> { [ apostrophe,  asciitilde,           grave,      dead_tilde ] };
   key <AE02> { [          2,    quotedbl,              at                  ] };

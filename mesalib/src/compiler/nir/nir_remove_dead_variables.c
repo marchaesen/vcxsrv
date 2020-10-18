@@ -143,11 +143,15 @@ remove_dead_var_writes(nir_shader *shader, struct set *live)
 }
 
 static bool
-remove_dead_vars(struct exec_list *var_list, struct set *live)
+remove_dead_vars(struct exec_list *var_list, struct set *live,
+                 bool (*can_remove_var)(nir_variable *var))
 {
    bool progress = false;
 
    foreach_list_typed_safe(nir_variable, var, node, var_list) {
+      if (can_remove_var && !can_remove_var(var))
+         continue;
+
       struct set_entry *entry = _mesa_set_search(live, var);
       if (entry == NULL) {
          /* Mark this variable as used by setting the mode to 0 */
@@ -161,48 +165,64 @@ remove_dead_vars(struct exec_list *var_list, struct set *live)
 }
 
 bool
-nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes)
+nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes,
+                          bool (*can_remove_var)(nir_variable *var))
 {
    bool progress = false;
    struct set *live = _mesa_pointer_set_create(NULL);
 
    add_var_use_shader(shader, live, modes);
 
-   if (modes & nir_var_uniform)
-      progress = remove_dead_vars(&shader->uniforms, live) || progress;
+   if (modes & nir_var_uniform) {
+      progress = remove_dead_vars(&shader->uniforms, live, can_remove_var) ||
+         progress;
+   }
 
-   if (modes & nir_var_shader_in)
-      progress = remove_dead_vars(&shader->inputs, live) || progress;
+   if (modes & nir_var_shader_in) {
+      progress = remove_dead_vars(&shader->inputs, live, can_remove_var) ||
+         progress;
+   }
 
-   if (modes & nir_var_shader_out)
-      progress = remove_dead_vars(&shader->outputs, live) || progress;
+   if (modes & nir_var_shader_out) {
+      progress = remove_dead_vars(&shader->outputs, live, can_remove_var) ||
+         progress;
+   }
 
-   if (modes & nir_var_shader_temp)
-      progress = remove_dead_vars(&shader->globals, live) || progress;
+   if (modes & nir_var_shader_temp) {
+      progress = remove_dead_vars(&shader->globals, live, can_remove_var) ||
+         progress;
+   }
 
-   if (modes & nir_var_system_value)
-      progress = remove_dead_vars(&shader->system_values, live) || progress;
+   if (modes & nir_var_system_value) {
+      progress = remove_dead_vars(&shader->system_values, live,
+                                  can_remove_var) || progress;
+   }
 
-   if (modes & nir_var_mem_shared)
-      progress = remove_dead_vars(&shader->shared, live) || progress;
+   if (modes & nir_var_mem_shared) {
+      progress = remove_dead_vars(&shader->shared, live, can_remove_var) ||
+         progress;
+   }
 
    if (modes & nir_var_function_temp) {
       nir_foreach_function(function, shader) {
          if (function->impl) {
-            if (remove_dead_vars(&function->impl->locals, live))
+            if (remove_dead_vars(&function->impl->locals, live,
+                                 can_remove_var))
                progress = true;
          }
       }
    }
 
-   if (progress) {
-      remove_dead_var_writes(shader, live);
+   nir_foreach_function(function, shader) {
+      if (!function->impl)
+         continue;
 
-      nir_foreach_function(function, shader) {
-         if (function->impl) {
-            nir_metadata_preserve(function->impl, nir_metadata_block_index |
-                                                  nir_metadata_dominance);
-         }
+      if (progress) {
+         remove_dead_var_writes(shader, live);
+         nir_metadata_preserve(function->impl, nir_metadata_block_index |
+                                               nir_metadata_dominance);
+      } else {
+         nir_metadata_preserve(function->impl, nir_metadata_all);
       }
    }
 

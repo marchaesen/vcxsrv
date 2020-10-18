@@ -291,6 +291,9 @@ do {                       \
 /** Clamp X to [MIN,MAX].  Turn NaN into MIN, arbitrarily. */
 #define CLAMP( X, MIN, MAX )  ( (X)>(MIN) ? ((X)>(MAX) ? (MAX) : (X)) : (MIN) )
 
+/* Syntax sugar occuring frequently in graphics code */
+#define SATURATE( X ) CLAMP(X, 0.0f, 1.0f)
+
 /** Minimum of two values: */
 #define MIN2( A, B )   ( (A)<(B) ? (A) : (B) )
 

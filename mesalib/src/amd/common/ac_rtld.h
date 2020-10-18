@@ -116,7 +116,8 @@ void ac_rtld_close(struct ac_rtld_binary *binary);
 bool ac_rtld_get_section_by_name(struct ac_rtld_binary *binary, const char *name,
 				 const char **data, size_t *nbytes);
 
-bool ac_rtld_read_config(struct ac_rtld_binary *binary,
+bool ac_rtld_read_config(const struct radeon_info *info,
+			 struct ac_rtld_binary *binary,
 			 struct ac_shader_config *config);
 
 struct ac_rtld_upload_info {

@@ -50,6 +50,19 @@ struct shader_io_state {
    }
 };
 
+enum resource_flags {
+   has_glc_vmem_load = 0x1,
+   has_nonglc_vmem_load = 0x2,
+   has_glc_vmem_store = 0x4,
+   has_nonglc_vmem_store = 0x8,
+
+   has_vmem_store = has_glc_vmem_store | has_nonglc_vmem_store,
+   has_vmem_loadstore = has_vmem_store | has_glc_vmem_load | has_nonglc_vmem_load,
+   has_nonglc_vmem_loadstore = has_nonglc_vmem_load | has_nonglc_vmem_store,
+
+   buffer_is_restrict = 0x10,
+};
+
 struct isel_context {
    const struct radv_nir_compiler_options *options;
    struct radv_shader_args *args;
@@ -57,7 +70,6 @@ struct isel_context {
    nir_shader *shader;
    uint32_t constant_data_offset;
    Block *block;
-   bool *divergent_vals;
    std::unique_ptr<Temp[]> allocated;
    std::unordered_map<unsigned, std::array<Temp,NIR_MAX_VEC_COMPONENTS>> allocated_vec;
    Stage stage; /* Stage */
@@ -82,6 +94,9 @@ struct isel_context {
       bool exec_potentially_empty_break = false;
       std::unique_ptr<unsigned[]> nir_to_aco; /* NIR block index to ACO block index */
    } cf_info;
+
+   uint32_t resource_flag_offsets[MAX_SETS];
+   std::vector<uint8_t> buffer_resource_flags;
 
    Temp arg_temps[AC_MAX_ARGS];
 
@@ -152,7 +167,7 @@ unsigned get_interp_input(nir_intrinsic_op intrin, enum glsl_interp_mode interp)
  * block instead. This is so that we can use any SGPR live-out of the side
  * without the branch without creating a linear phi in the invert or merge block. */
 bool
-sanitize_if(nir_function_impl *impl, bool *divergent, nir_if *nif)
+sanitize_if(nir_function_impl *impl, nir_if *nif)
 {
    //TODO: skip this if the condition is uniform and there are no divergent breaks/continues?
 
@@ -197,7 +212,7 @@ sanitize_if(nir_function_impl *impl, bool *divergent, nir_if *nif)
 }
 
 bool
-sanitize_cf_list(nir_function_impl *impl, bool *divergent, struct exec_list *cf_list)
+sanitize_cf_list(nir_function_impl *impl, struct exec_list *cf_list)
 {
    bool progress = false;
    foreach_list_typed(nir_cf_node, cf_node, node, cf_list) {
@@ -206,14 +221,14 @@ sanitize_cf_list(nir_function_impl *impl, bool *divergent, struct exec_list *cf_
          break;
       case nir_cf_node_if: {
          nir_if *nif = nir_cf_node_as_if(cf_node);
-         progress |= sanitize_cf_list(impl, divergent, &nif->then_list);
-         progress |= sanitize_cf_list(impl, divergent, &nif->else_list);
-         progress |= sanitize_if(impl, divergent, nif);
+         progress |= sanitize_cf_list(impl, &nif->then_list);
+         progress |= sanitize_cf_list(impl, &nif->else_list);
+         progress |= sanitize_if(impl, nif);
          break;
       }
       case nir_cf_node_loop: {
          nir_loop *loop = nir_cf_node_as_loop(cf_node);
-         progress |= sanitize_cf_list(impl, divergent, &loop->body);
+         progress |= sanitize_cf_list(impl, &loop->body);
          break;
       }
       case nir_cf_node_function:
@@ -222,6 +237,193 @@ sanitize_cf_list(nir_function_impl *impl, bool *divergent, struct exec_list *cf_
    }
 
    return progress;
+}
+
+void get_buffer_resource_flags(isel_context *ctx, nir_ssa_def *def, unsigned access,
+                               uint8_t **flags, uint32_t *count)
+{
+   int desc_set = -1;
+   unsigned binding = 0;
+
+   if (!def) {
+      /* global resources are considered aliasing with all other buffers and
+       * buffer images */
+      // TODO: only merge flags of resources which can really alias.
+   } else if (def->parent_instr->type == nir_instr_type_intrinsic) {
+      nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(def->parent_instr);
+      if (intrin->intrinsic == nir_intrinsic_vulkan_resource_index) {
+         desc_set = nir_intrinsic_desc_set(intrin);
+         binding = nir_intrinsic_binding(intrin);
+      }
+   } else if (def->parent_instr->type == nir_instr_type_deref) {
+      nir_deref_instr *deref = nir_instr_as_deref(def->parent_instr);
+      assert(deref->type->is_image());
+      if (deref->type->sampler_dimensionality != GLSL_SAMPLER_DIM_BUF) {
+         *flags = NULL;
+         *count = 0;
+         return;
+      }
+
+      nir_variable *var = nir_deref_instr_get_variable(deref);
+      desc_set = var->data.descriptor_set;
+      binding = var->data.binding;
+   }
+
+   if (desc_set < 0) {
+      *flags = ctx->buffer_resource_flags.data();
+      *count = ctx->buffer_resource_flags.size();
+      return;
+   }
+
+   unsigned set_offset = ctx->resource_flag_offsets[desc_set];
+
+   if (!(ctx->buffer_resource_flags[set_offset + binding] & buffer_is_restrict)) {
+      /* Non-restrict buffers alias only with other non-restrict buffers.
+       * We reserve flags[0] for these. */
+      *flags = ctx->buffer_resource_flags.data();
+      *count = 1;
+      return;
+   }
+
+   *flags = ctx->buffer_resource_flags.data() + set_offset + binding;
+   *count = 1;
+}
+
+uint8_t get_all_buffer_resource_flags(isel_context *ctx, nir_ssa_def *def, unsigned access)
+{
+   uint8_t *flags;
+   uint32_t count;
+   get_buffer_resource_flags(ctx, def, access, &flags, &count);
+
+   uint8_t res = 0;
+   for (unsigned i = 0; i < count; i++)
+      res |= flags[i];
+   return res;
+}
+
+bool can_subdword_ssbo_store_use_smem(nir_intrinsic_instr *intrin)
+{
+   unsigned wrmask = nir_intrinsic_write_mask(intrin);
+   if (util_last_bit(wrmask) != util_bitcount(wrmask) ||
+       util_bitcount(wrmask) * intrin->src[0].ssa->bit_size % 32 ||
+       util_bitcount(wrmask) != intrin->src[0].ssa->num_components)
+      return false;
+
+   if (nir_intrinsic_align_mul(intrin) % 4 || nir_intrinsic_align_offset(intrin) % 4)
+      return false;
+
+   return true;
+}
+
+void fill_desc_set_info(isel_context *ctx, nir_function_impl *impl)
+{
+   radv_pipeline_layout *pipeline_layout = ctx->options->layout;
+
+   unsigned resource_flag_count = 1; /* +1 to reserve flags[0] for aliased resources */
+   for (unsigned i = 0; i < pipeline_layout->num_sets; i++) {
+      radv_descriptor_set_layout *layout = pipeline_layout->set[i].layout;
+      ctx->resource_flag_offsets[i] = resource_flag_count;
+      resource_flag_count += layout->binding_count;
+   }
+   ctx->buffer_resource_flags = std::vector<uint8_t>(resource_flag_count);
+
+   nir_foreach_variable(var, &impl->function->shader->uniforms) {
+      if (var->data.mode == nir_var_mem_ssbo && (var->data.access & ACCESS_RESTRICT)) {
+         uint32_t offset = ctx->resource_flag_offsets[var->data.descriptor_set];
+         ctx->buffer_resource_flags[offset + var->data.binding] |= buffer_is_restrict;
+      }
+   }
+
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr(instr, block) {
+         if (instr->type != nir_instr_type_intrinsic)
+            continue;
+         nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+         if (!(nir_intrinsic_infos[intrin->intrinsic].index_map[NIR_INTRINSIC_ACCESS]))
+            continue;
+
+         nir_ssa_def *res = NULL;
+         unsigned access = nir_intrinsic_access(intrin);
+         unsigned flags = 0;
+         bool glc = access & (ACCESS_VOLATILE | ACCESS_COHERENT | ACCESS_NON_READABLE);
+         switch (intrin->intrinsic) {
+         case nir_intrinsic_load_ssbo: {
+            if (nir_dest_is_divergent(intrin->dest) && (!glc || ctx->program->chip_class >= GFX8))
+               flags |= glc ? has_glc_vmem_load : has_nonglc_vmem_load;
+            res = intrin->src[0].ssa;
+            break;
+         }
+         case nir_intrinsic_ssbo_atomic_add:
+         case nir_intrinsic_ssbo_atomic_imin:
+         case nir_intrinsic_ssbo_atomic_umin:
+         case nir_intrinsic_ssbo_atomic_imax:
+         case nir_intrinsic_ssbo_atomic_umax:
+         case nir_intrinsic_ssbo_atomic_and:
+         case nir_intrinsic_ssbo_atomic_or:
+         case nir_intrinsic_ssbo_atomic_xor:
+         case nir_intrinsic_ssbo_atomic_exchange:
+         case nir_intrinsic_ssbo_atomic_comp_swap:
+            flags |= has_glc_vmem_load | has_glc_vmem_store;
+            res = intrin->src[0].ssa;
+            break;
+         case nir_intrinsic_store_ssbo:
+            if (nir_src_is_divergent(intrin->src[2]) || ctx->program->chip_class < GFX8 ||
+                (intrin->src[0].ssa->bit_size < 32 && !can_subdword_ssbo_store_use_smem(intrin)))
+               flags |= glc ? has_glc_vmem_store : has_nonglc_vmem_store;
+            res = intrin->src[1].ssa;
+            break;
+         case nir_intrinsic_load_global:
+            if (!(access & ACCESS_NON_WRITEABLE))
+               flags |= glc ? has_glc_vmem_load : has_nonglc_vmem_load;
+            break;
+         case nir_intrinsic_store_global:
+            flags |= glc ? has_glc_vmem_store : has_nonglc_vmem_store;
+            break;
+         case nir_intrinsic_global_atomic_add:
+         case nir_intrinsic_global_atomic_imin:
+         case nir_intrinsic_global_atomic_umin:
+         case nir_intrinsic_global_atomic_imax:
+         case nir_intrinsic_global_atomic_umax:
+         case nir_intrinsic_global_atomic_and:
+         case nir_intrinsic_global_atomic_or:
+         case nir_intrinsic_global_atomic_xor:
+         case nir_intrinsic_global_atomic_exchange:
+         case nir_intrinsic_global_atomic_comp_swap:
+            flags |= has_glc_vmem_load | has_glc_vmem_store;
+            break;
+         case nir_intrinsic_image_deref_load:
+            res = intrin->src[0].ssa;
+            flags |= glc ? has_glc_vmem_load : has_nonglc_vmem_load;
+            break;
+         case nir_intrinsic_image_deref_store:
+            res = intrin->src[0].ssa;
+            flags |= (glc || ctx->program->chip_class == GFX6) ? has_glc_vmem_store : has_nonglc_vmem_store;
+            break;
+         case nir_intrinsic_image_deref_atomic_add:
+         case nir_intrinsic_image_deref_atomic_umin:
+         case nir_intrinsic_image_deref_atomic_imin:
+         case nir_intrinsic_image_deref_atomic_umax:
+         case nir_intrinsic_image_deref_atomic_imax:
+         case nir_intrinsic_image_deref_atomic_and:
+         case nir_intrinsic_image_deref_atomic_or:
+         case nir_intrinsic_image_deref_atomic_xor:
+         case nir_intrinsic_image_deref_atomic_exchange:
+         case nir_intrinsic_image_deref_atomic_comp_swap:
+            res = intrin->src[0].ssa;
+            flags |= has_glc_vmem_load | has_glc_vmem_store;
+            break;
+         default:
+            continue;
+         }
+
+         uint8_t *flags_ptr;
+         uint32_t count;
+         get_buffer_resource_flags(ctx, res, access, &flags_ptr, &count);
+
+         for (unsigned i = 0; i < count; i++)
+            flags_ptr[i] |= flags;
+      }
+   }
 }
 
 RegClass get_reg_class(isel_context *ctx, RegType type, unsigned components, unsigned bitsize)
@@ -238,11 +440,13 @@ void init_context(isel_context *ctx, nir_shader *shader)
    unsigned lane_mask_size = ctx->program->lane_mask.size();
 
    ctx->shader = shader;
-   ctx->divergent_vals = nir_divergence_analysis(shader, nir_divergence_view_index_uniform);
+   nir_divergence_analysis(shader, nir_divergence_view_index_uniform);
+
+   fill_desc_set_info(ctx, impl);
 
    /* sanitize control flow */
    nir_metadata_require(impl, nir_metadata_dominance);
-   sanitize_cf_list(impl, ctx->divergent_vals, &impl->body);
+   sanitize_cf_list(impl, &impl->body);
    nir_metadata_preserve(impl, (nir_metadata)~nir_metadata_block_index);
 
    /* we'll need this for isel */
@@ -259,6 +463,7 @@ void init_context(isel_context *ctx, nir_shader *shader)
 
    std::unique_ptr<unsigned[]> nir_to_aco{new unsigned[impl->num_blocks]()};
 
+   /* TODO: make this recursive to improve compile times and merge with fill_desc_set_info() */
    bool done = false;
    while (!done) {
       done = true;
@@ -332,10 +537,10 @@ void init_context(isel_context *ctx, nir_shader *shader)
                   case nir_op_b2f16:
                   case nir_op_b2f32:
                   case nir_op_mov:
-                     type = ctx->divergent_vals[alu_instr->dest.dest.ssa.index] ? RegType::vgpr : RegType::sgpr;
+                     type = nir_dest_is_divergent(alu_instr->dest.dest) ? RegType::vgpr : RegType::sgpr;
                      break;
                   case nir_op_bcsel:
-                     type = ctx->divergent_vals[alu_instr->dest.dest.ssa.index] ? RegType::vgpr : RegType::sgpr;
+                     type = nir_dest_is_divergent(alu_instr->dest.dest) ? RegType::vgpr : RegType::sgpr;
                      /* fallthrough */
                   default:
                      for (unsigned i = 0; i < nir_op_infos[alu_instr->op].num_inputs; i++) {
@@ -465,7 +670,7 @@ void init_context(isel_context *ctx, nir_shader *shader)
                   case nir_intrinsic_load_global:
                   case nir_intrinsic_vulkan_resource_index:
                   case nir_intrinsic_load_shared:
-                     type = ctx->divergent_vals[intrinsic->dest.ssa.index] ? RegType::vgpr : RegType::sgpr;
+                     type = nir_dest_is_divergent(intrinsic->dest) ? RegType::vgpr : RegType::sgpr;
                      break;
                   case nir_intrinsic_load_view_index:
                      type = ctx->stage == fragment_fs ? RegType::vgpr : RegType::sgpr;
@@ -524,9 +729,10 @@ void init_context(isel_context *ctx, nir_shader *shader)
 
                if (tex->dest.ssa.bit_size == 64)
                   size *= 2;
-               if (tex->op == nir_texop_texture_samples)
-                  assert(!ctx->divergent_vals[tex->dest.ssa.index]);
-               if (ctx->divergent_vals[tex->dest.ssa.index])
+               if (tex->op == nir_texop_texture_samples) {
+                  assert(!tex->dest.ssa.divergent);
+               }
+               if (nir_dest_is_divergent(tex->dest))
                   allocated[tex->dest.ssa.index] = Temp(0, RegClass(RegType::vgpr, size));
                else
                   allocated[tex->dest.ssa.index] = Temp(0, RegClass(RegType::sgpr, size));
@@ -558,7 +764,7 @@ void init_context(isel_context *ctx, nir_shader *shader)
                   break;
                }
 
-               if (ctx->divergent_vals[phi->dest.ssa.index]) {
+               if (nir_dest_is_divergent(phi->dest)) {
                   type = RegType::vgpr;
                } else {
                   type = RegType::sgpr;
@@ -690,7 +896,7 @@ mem_vectorize_callback(unsigned align, unsigned bit_size,
                        unsigned num_components, unsigned high_offset,
                        nir_intrinsic_instr *low, nir_intrinsic_instr *high)
 {
-   if ((bit_size != 32 && bit_size != 64) || num_components > 4)
+   if (num_components > 4)
       return false;
 
    /* >128 bit loads are split except with SMEM */
@@ -700,17 +906,11 @@ mem_vectorize_callback(unsigned align, unsigned bit_size,
    switch (low->intrinsic) {
    case nir_intrinsic_load_global:
    case nir_intrinsic_store_global:
-      return align % 4 == 0;
    case nir_intrinsic_store_ssbo:
-      if (low->src[0].ssa->bit_size < 32 || high->src[0].ssa->bit_size < 32)
-         return false;
-      return align % 4 == 0;
    case nir_intrinsic_load_ssbo:
-      if (low->dest.ssa.bit_size < 32 || high->dest.ssa.bit_size < 32)
-         return false;
    case nir_intrinsic_load_ubo:
    case nir_intrinsic_load_push_constant:
-      return align % 4 == 0;
+      return align % (bit_size == 8 ? 2 : 4) == 0;
    case nir_intrinsic_load_deref:
    case nir_intrinsic_store_deref:
       assert(nir_src_as_deref(low->src[0])->mode == nir_var_mem_shared);
@@ -720,7 +920,7 @@ mem_vectorize_callback(unsigned align, unsigned bit_size,
       if (bit_size * num_components > 64) /* 96 and 128 bit loads require 128 bit alignment and are split otherwise */
          return align % 16 == 0;
       else
-         return align % 4 == 0;
+         return align % (bit_size == 8 ? 2 : 4) == 0;
    default:
       return false;
    }
@@ -994,11 +1194,20 @@ setup_nir(isel_context *ctx, nir_shader *nir)
 
    bool lower_to_scalar = false;
    bool lower_pack = false;
+   nir_variable_mode robust_modes = (nir_variable_mode)0;
+
+   if (ctx->options->robust_buffer_access) {
+      robust_modes = (nir_variable_mode)(nir_var_mem_ubo |
+                                         nir_var_mem_ssbo |
+                                         nir_var_mem_global |
+                                         nir_var_mem_push_const);
+   }
+
    if (nir_opt_load_store_vectorize(nir,
                                     (nir_variable_mode)(nir_var_mem_ssbo | nir_var_mem_ubo |
                                                         nir_var_mem_push_const | nir_var_mem_shared |
                                                         nir_var_mem_global),
-                                    mem_vectorize_callback)) {
+                                    mem_vectorize_callback, robust_modes)) {
       lower_to_scalar = true;
       lower_pack = true;
    }
@@ -1011,7 +1220,6 @@ setup_nir(isel_context *ctx, nir_shader *nir)
       nir_lower_pack(nir);
 
    /* lower ALU operations */
-   // TODO: implement logic64 in aco, it's more effective for sgprs
    nir_lower_int64(nir, nir->options->lower_int64_options);
 
    if (nir_lower_bit_size(nir, lower_bit_size_callback, NULL))
@@ -1246,6 +1454,11 @@ setup_isel_context(Program* program,
    ctx.block->kind = block_kind_top_level;
 
    setup_xnack(program);
+   program->sram_ecc_enabled = args->options->family == CHIP_ARCTURUS;
+   /* apparently gfx702 also has fast v_fma_f32 but I can't find a family for that */
+   program->has_fast_fma32 = program->chip_class >= GFX9;
+   if (args->options->family == CHIP_TAHITI || args->options->family == CHIP_CARRIZO || args->options->family == CHIP_HAWAII)
+      program->has_fast_fma32 = true;
 
    return ctx;
 }

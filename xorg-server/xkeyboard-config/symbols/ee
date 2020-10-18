@@ -2,7 +2,7 @@
 // Estonian XKB-keymap by Ville Hallik <ville@linux.ee>
 //
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     // Describes the differences between a very simple en_US
@@ -81,7 +81,7 @@ xkb_symbols "dvorak" {
 partial alphanumeric_keys
 xkb_symbols "us" {
     include "us(euro)"
-    name[Group1] = "Estonian (US, with Estonian letters)";
+    name[Group1] = "Estonian (US)";
 
     // ž, Ž
     key <AB01>	{ [           z,  Z,          zcaron,     Zcaron     ]	};

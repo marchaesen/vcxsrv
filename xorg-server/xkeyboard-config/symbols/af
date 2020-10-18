@@ -10,7 +10,7 @@
 //
 // 2006-02-15 file created by M. Emal Alekozai <memala@gmx.net>
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
    name[Group1]= "Afghani";
 

@@ -155,9 +155,7 @@ nir_opt_undef(nir_shader *shader)
                                   nir_metadata_block_index |
                                   nir_metadata_dominance);
          } else {
-#ifndef NDEBUG
-            function->impl->valid_metadata &= ~nir_metadata_not_properly_reset;
-#endif
+            nir_metadata_preserve(function->impl, nir_metadata_all);
          }
       }
    }

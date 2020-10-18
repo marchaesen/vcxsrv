@@ -490,7 +490,7 @@ rbug_delete_vs_state(struct pipe_context *_pipe,
    struct rbug_context *rb_pipe = rbug_context(_pipe);
    struct rbug_shader *rb_shader = rbug_shader(_vs);
 
-   mtx_unlock(&rb_pipe->call_mutex);
+   mtx_lock(&rb_pipe->call_mutex);
    rbug_shader_destroy(rb_pipe, rb_shader);
    mtx_unlock(&rb_pipe->call_mutex);
 }

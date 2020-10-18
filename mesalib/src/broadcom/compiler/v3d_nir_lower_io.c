@@ -219,7 +219,6 @@ v3d_nir_lower_vpm_output(struct v3d_compile *c, nir_builder *b,
                 nir_intrinsic_instr *load =
                         nir_intrinsic_instr_create(b->shader,
                                                    nir_intrinsic_load_fb_layers_v3d);
-                load->num_components = 1;
                 nir_ssa_dest_init(&load->instr, &load->dest, 1, 32, NULL);
                 nir_builder_instr_insert(b, &load->instr);
                 nir_ssa_def *fb_layers = &load->dest.ssa;

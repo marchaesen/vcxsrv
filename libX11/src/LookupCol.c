@@ -78,7 +78,7 @@ XLookupColor (
 	 * for parsing.
 	 */
 
-	n = strlen (spec);
+	n = (int) strlen (spec);
 	LockDisplay(dpy);
 	GetReq (LookupColor, req);
 	req->cmap = cmap;

@@ -50,7 +50,7 @@ extern "C" {
 #define UTIL_QUEUE_INIT_RESIZE_IF_FULL            (1 << 1)
 #define UTIL_QUEUE_INIT_SET_FULL_THREAD_AFFINITY  (1 << 2)
 
-#if defined(__GNUC__) && defined(HAVE_LINUX_FUTEX_H)
+#if UTIL_FUTEX_SUPPORTED
 #define UTIL_QUEUE_FENCE_FUTEX
 #else
 #define UTIL_QUEUE_FENCE_STANDARD

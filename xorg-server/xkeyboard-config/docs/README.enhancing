@@ -187,7 +187,7 @@ Okay, let's assume you want extend an existing keymap and you want to over-
 ride a few keys. Let's take a simple U.K. keyboard as an example (defined in
 pc/gb):
 
-     partial default alphanumeric_keys
+     default partial alphanumeric_keys
      xkb_symbols "basic" {
        include "pc/latin"
 

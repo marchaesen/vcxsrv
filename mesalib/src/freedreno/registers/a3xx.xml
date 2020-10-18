@@ -91,6 +91,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="VFMT_2_10_10_10_UNORM" value="0x3d"/>
 	<value name="VFMT_2_10_10_10_SINT" value="0x3e"/>
 	<value name="VFMT_2_10_10_10_SNORM" value="0x3f"/>
+
+	<value name="VFMT_NONE" value="0xff"/>
 </enum>
 
 <enum name="a3xx_tex_fmt">
@@ -210,6 +212,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="TFMT_ETC2_RGBA8" value="0x74"/>
 	<value name="TFMT_ETC2_RGB8A1" value="0x75"/>
 	<value name="TFMT_ETC2_RGB8" value="0x76"/>
+
+	<value name="TFMT_NONE" value="0xff"/>
 </enum>
 
 <enum name="a3xx_tex_fetchsize">
@@ -236,8 +240,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="RB_R8G8B8A8_SINT"	    value="0x0b"/>
 	<value name="RB_R8G8_UNORM"	    value="0x0c"/>
 	<value name="RB_R8G8_SNORM"	    value="0x0d"/>
-	<value name="RB_R8_UINT"	    value="0x0e"/> <!-- also used for R8G8_UINT? -->
-	<value name="RB_R8_SINT"	    value="0x0f"/> <!-- also used for R8G8_SINT? -->
+	<value name="RB_R8G8_UINT"	    value="0x0e"/>
+	<value name="RB_R8G8_SINT"	    value="0x0f"/>
 	<value name="RB_R10G10B10A2_UNORM"  value="0x10"/>
 	<value name="RB_A2R10G10B10_UNORM"  value="0x11"/>
 	<value name="RB_R10G10B10A2_UINT"   value="0x12"/>
@@ -278,6 +282,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="RB_R32_UINT"	    value="0x38"/>
 	<value name="RB_R32G32_UINT"	    value="0x39"/>
 	<value name="RB_R32G32B32A32_UINT"  value="0x3b"/>
+
+	<value name="RB_NONE"               value="0xff"/>
 </enum>
 
 <enum name="a3xx_cp_perfcounter_select">
@@ -870,10 +876,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 			controlling blend or readback from GMEM??
 		 -->
 		<bitfield name="ENABLE_GMEM" pos="13" type="boolean"/>
-		<bitfield name="XCOORD" pos="14" type="boolean"/>
-		<bitfield name="YCOORD" pos="15" type="boolean"/>
-		<bitfield name="ZCOORD" pos="16" type="boolean"/>
-		<bitfield name="WCOORD" pos="17" type="boolean"/>
+		<bitfield name="COORD_MASK" low="14" high="17" type="hex"/>
 		<bitfield name="I_CLAMP_ENABLE" pos="19" type="boolean"/>
 		<bitfield name="COV_VALUE_OUTPUT_ENABLE" pos="20" type="boolean"/>
 		<bitfield name="ALPHA_TEST" pos="22" type="boolean"/>

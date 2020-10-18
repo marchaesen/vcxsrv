@@ -64,12 +64,12 @@ XrmGetFileDatabase, XrmPutFileDatabase, XrmGetStringDatabase, XrmLocaleOfDatabas
 .HP
 XrmDatabase XrmGetFileDatabase\^(\^char *\fIfilename\fP\^);
 .HP
-void XrmPutFileDatabase\^(\^XrmDatabase \fIdatabase\fP\^, char
-*\fIstored_db\fP\^);
+void XrmPutFileDatabase\^(\^XrmDatabase \fIdatabase\fP\^,
+_Xconst char *\fIstored_db\fP\^);
 .HP
-XrmDatabase XrmGetStringDatabase\^(\^char *\fIdata\fP\^);
+XrmDatabase XrmGetStringDatabase\^(\^_Xconst char *\fIdata\fP\^);
 .HP
-char *XrmLocaleOfDatabase\^(\^XrmDatabase \fIdatabase\fP\^);
+const char *XrmLocaleOfDatabase\^(\^XrmDatabase \fIdatabase\fP\^);
 .HP
 XrmDatabase XrmGetDatabase\^(\^Display *\fIdisplay\fP\^);
 .HP

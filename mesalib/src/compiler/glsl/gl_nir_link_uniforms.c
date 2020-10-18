@@ -36,6 +36,14 @@
 
 #define UNMAPPED_UNIFORM_LOC ~0u
 
+struct uniform_array_info {
+   /** List of dereferences of the uniform array. */
+   struct util_dynarray *deref_list;
+
+   /** Set of bit-flags to note which array elements have been accessed. */
+   BITSET_WORD *indices;
+};
+
 /**
  * Built-in / reserved GL variables names start with "gl_"
  */
@@ -43,6 +51,126 @@ static inline bool
 is_gl_identifier(const char *s)
 {
    return s && s[0] == 'g' && s[1] == 'l' && s[2] == '_';
+}
+
+static unsigned
+uniform_storage_size(const struct glsl_type *type)
+{
+   switch (glsl_get_base_type(type)) {
+   case GLSL_TYPE_STRUCT:
+   case GLSL_TYPE_INTERFACE: {
+      unsigned size = 0;
+      for (unsigned i = 0; i < glsl_get_length(type); i++)
+         size += uniform_storage_size(glsl_get_struct_field(type, i));
+      return size;
+   }
+   case GLSL_TYPE_ARRAY: {
+      const struct glsl_type *e_type = glsl_get_array_element(type);
+      enum glsl_base_type e_base_type = glsl_get_base_type(e_type);
+      if (e_base_type == GLSL_TYPE_STRUCT ||
+          e_base_type == GLSL_TYPE_INTERFACE ||
+          e_base_type == GLSL_TYPE_ARRAY) {
+         unsigned length = !glsl_type_is_unsized_array(type) ?
+            glsl_get_length(type) : 1;
+         return length * uniform_storage_size(e_type);
+      } else
+         return 1;
+   }
+   default:
+      return 1;
+   }
+}
+
+/**
+ * Update the sizes of linked shader uniform arrays to the maximum
+ * array index used.
+ *
+ * From page 81 (page 95 of the PDF) of the OpenGL 2.1 spec:
+ *
+ *     If one or more elements of an array are active,
+ *     GetActiveUniform will return the name of the array in name,
+ *     subject to the restrictions listed above. The type of the array
+ *     is returned in type. The size parameter contains the highest
+ *     array element index used, plus one. The compiler or linker
+ *     determines the highest index used.  There will be only one
+ *     active uniform reported by the GL per uniform array.
+ */
+static void
+update_array_sizes(struct gl_shader_program *prog, nir_variable *var,
+                   struct hash_table **referenced_uniforms,
+                   unsigned current_var_stage)
+{
+   /* For now we only resize 1D arrays.
+    * TODO: add support for resizing more complex array types ??
+    */
+   if (!glsl_type_is_array(var->type) ||
+       glsl_type_is_array(glsl_get_array_element(var->type)))
+      return;
+
+   /* GL_ARB_uniform_buffer_object says that std140 uniforms
+    * will not be eliminated.  Since we always do std140, just
+    * don't resize arrays in UBOs.
+    *
+    * Atomic counters are supposed to get deterministic
+    * locations assigned based on the declaration ordering and
+    * sizes, array compaction would mess that up.
+    *
+    * Subroutine uniforms are not removed.
+    */
+   if (nir_variable_is_in_block(var) || glsl_contains_atomic(var->type) ||
+       glsl_get_base_type(glsl_without_array(var->type)) == GLSL_TYPE_SUBROUTINE ||
+       var->constant_initializer)
+      return;
+
+   struct uniform_array_info *ainfo = NULL;
+   int words = BITSET_WORDS(glsl_array_size(var->type));
+   int max_array_size = 0;
+   for (unsigned stage = 0; stage < MESA_SHADER_STAGES; stage++) {
+      struct gl_linked_shader *sh = prog->_LinkedShaders[stage];
+      if (!sh)
+         continue;
+
+      struct hash_entry *entry =
+         _mesa_hash_table_search(referenced_uniforms[stage], var->name);
+      if (entry) {
+         ainfo = (struct uniform_array_info *)  entry->data;
+         max_array_size = MAX2(BITSET_LAST_BIT(ainfo->indices, words),
+                               max_array_size);
+      }
+
+      if (max_array_size == glsl_array_size(var->type))
+         return;
+   }
+
+   if (max_array_size != glsl_array_size(var->type)) {
+      /* If this is a built-in uniform (i.e., it's backed by some
+       * fixed-function state), adjust the number of state slots to
+       * match the new array size.  The number of slots per array entry
+       * is not known.  It seems safe to assume that the total number of
+       * slots is an integer multiple of the number of array elements.
+       * Determine the number of slots per array element by dividing by
+       * the old (total) size.
+       */
+      const unsigned num_slots = var->num_state_slots;
+      if (num_slots > 0) {
+         var->num_state_slots =
+            (max_array_size * (num_slots / glsl_array_size(var->type)));
+      }
+
+      var->type = glsl_array_type(glsl_get_array_element(var->type),
+                                  max_array_size, 0);
+
+      /* Update the types of dereferences in case we changed any. */
+      struct hash_entry *entry =
+         _mesa_hash_table_search(referenced_uniforms[current_var_stage], var->name);
+      if (entry) {
+         struct uniform_array_info *ainfo =
+            (struct uniform_array_info *) entry->data;
+         util_dynarray_foreach(ainfo->deref_list, nir_deref_instr *, deref) {
+            (*deref)->type = var->type;
+         }
+      }
+   }
 }
 
 static void
@@ -321,18 +449,23 @@ add_var_use_deref(nir_deref_instr *deref, struct hash_table *live,
 
    nir_deref_path_finish(&path);
 
-   /** Set of bit-flags to note which array elements have been accessed. */
-   BITSET_WORD *bits = NULL;
+
+   struct uniform_array_info *ainfo = NULL;
 
    struct hash_entry *entry =
-      _mesa_hash_table_search(live, deref->var);
+      _mesa_hash_table_search(live, deref->var->name);
    if (!entry && glsl_type_is_array(deref->var->type)) {
+      ainfo = ralloc(live, struct uniform_array_info);
+
       unsigned num_bits = MAX2(1, glsl_get_aoa_size(deref->var->type));
-      bits = rzalloc_array(live, BITSET_WORD, BITSET_WORDS(num_bits));
+      ainfo->indices = rzalloc_array(live, BITSET_WORD, BITSET_WORDS(num_bits));
+
+      ainfo->deref_list = ralloc(live, struct util_dynarray);
+      util_dynarray_init(ainfo->deref_list, live);
    }
 
    if (entry)
-      bits = (BITSET_WORD *) entry->data;
+      ainfo = (struct uniform_array_info *) entry->data;
 
    if (glsl_type_is_array(deref->var->type)) {
       /* Count the "depth" of the arrays-of-arrays. */
@@ -344,11 +477,13 @@ add_var_use_deref(nir_deref_instr *deref, struct hash_table *live,
       }
 
       link_util_mark_array_elements_referenced(*derefs, num_derefs, array_depth,
-                                               bits);
+                                               ainfo->indices);
+
+      util_dynarray_append(ainfo->deref_list, nir_deref_instr *, deref);
    }
 
    assert(deref->mode == deref->var->data.mode);
-   _mesa_hash_table_insert(live, deref->var, bits);
+   _mesa_hash_table_insert(live, deref->var->name, ainfo);
 }
 
 /* Iterate over the shader and collect infomation about uniform use */
@@ -491,7 +626,7 @@ struct nir_link_uniforms_state {
    int top_level_array_stride;
 
    struct type_tree_entry *current_type;
-   struct hash_table *referenced_uniforms;
+   struct hash_table *referenced_uniforms[MESA_SHADER_STAGES];
    struct hash_table *uniform_hash;
 };
 
@@ -795,11 +930,12 @@ find_and_update_named_uniform_storage(struct gl_context *ctx,
          update_uniforms_shader_info(prog, state, uniform, type, stage);
 
          const struct glsl_type *type_no_array = glsl_without_array(type);
-         struct hash_entry *entry =
-            _mesa_hash_table_search(state->referenced_uniforms,
-                                    state->current_var);
+         struct hash_entry *entry = prog->data->spirv ? NULL :
+            _mesa_hash_table_search(state->referenced_uniforms[stage],
+                                    state->current_var->name);
          if (entry != NULL ||
-             glsl_get_base_type(type_no_array) == GLSL_TYPE_SUBROUTINE)
+             glsl_get_base_type(type_no_array) == GLSL_TYPE_SUBROUTINE ||
+             prog->data->spirv)
             uniform->active_shader_mask |= 1 << stage;
 
          if (!state->var_is_in_block)
@@ -1142,15 +1278,20 @@ nir_link_uniform(struct gl_context *ctx,
 
       return location_count;
    } else {
-      /* Create a new uniform storage entry */
-      prog->data->UniformStorage =
-         reralloc(prog->data,
-                  prog->data->UniformStorage,
-                  struct gl_uniform_storage,
-                  prog->data->NumUniformStorage + 1);
-      if (!prog->data->UniformStorage) {
-         linker_error(prog, "Out of memory during linking.\n");
-         return -1;
+      /* TODO: reallocating storage is slow, we should figure out a way to
+       * allocate storage up front for spirv like we do for GLSL.
+       */
+      if (prog->data->spirv) {
+         /* Create a new uniform storage entry */
+         prog->data->UniformStorage =
+            reralloc(prog->data,
+                     prog->data->UniformStorage,
+                     struct gl_uniform_storage,
+                     prog->data->NumUniformStorage + 1);
+         if (!prog->data->UniformStorage) {
+            linker_error(prog, "Out of memory during linking.\n");
+            return -1;
+         }
       }
 
       uniform = &prog->data->UniformStorage[prog->data->NumUniformStorage];
@@ -1173,11 +1314,12 @@ nir_link_uniform(struct gl_context *ctx,
       uniform->top_level_array_size = state->top_level_array_size;
       uniform->top_level_array_stride = state->top_level_array_stride;
 
-      struct hash_entry *entry =
-         _mesa_hash_table_search(state->referenced_uniforms,
-                                 state->current_var);
+      struct hash_entry *entry = prog->data->spirv ? NULL :
+         _mesa_hash_table_search(state->referenced_uniforms[stage],
+                                 state->current_var->name);
       if (entry != NULL ||
-          glsl_get_base_type(type_no_array) == GLSL_TYPE_SUBROUTINE)
+          glsl_get_base_type(type_no_array) == GLSL_TYPE_SUBROUTINE ||
+          prog->data->spirv)
          uniform->active_shader_mask |= 1 << stage;
 
       if (location >= 0) {
@@ -1351,6 +1493,72 @@ gl_nir_link_uniforms(struct gl_context *ctx,
 
    /* Iterate through all linked shaders */
    struct nir_link_uniforms_state state = {0,};
+
+   if (!prog->data->spirv) {
+      /* Gather information on uniform use */
+      for (unsigned stage = 0; stage < MESA_SHADER_STAGES; stage++) {
+         struct gl_linked_shader *sh = prog->_LinkedShaders[stage];
+         if (!sh)
+            continue;
+
+         state.referenced_uniforms[stage] =
+            _mesa_hash_table_create(NULL, _mesa_hash_string,
+                                    _mesa_key_string_equal);
+
+         nir_shader *nir = sh->Program->nir;
+         add_var_use_shader(nir, state.referenced_uniforms[stage]);
+      }
+
+      /* Resize uniform arrays based on the maximum array index */
+      for (unsigned stage = 0; stage < MESA_SHADER_STAGES; stage++) {
+         struct gl_linked_shader *sh = prog->_LinkedShaders[stage];
+         if (!sh)
+            continue;
+
+         nir_shader *nir = sh->Program->nir;
+         nir_foreach_variable(var, &nir->uniforms)
+            update_array_sizes(prog, var, state.referenced_uniforms, stage);
+      }
+   }
+
+   /* Count total number of uniforms and allocate storage */
+   unsigned storage_size = 0;
+   if (!prog->data->spirv) {
+      struct set *storage_counted =
+         _mesa_set_create(NULL, _mesa_hash_string, _mesa_key_string_equal);
+      for (unsigned stage = 0; stage < MESA_SHADER_STAGES; stage++) {
+         struct gl_linked_shader *sh = prog->_LinkedShaders[stage];
+         if (!sh)
+            continue;
+
+         nir_foreach_variable(var, &sh->Program->nir->uniforms) {
+            const struct glsl_type *type = var->type;
+            const char *name = var->name;
+            if (nir_variable_is_in_block(var) &&
+                glsl_without_array(type) == var->interface_type) {
+               type = glsl_without_array(var->type);
+               name = glsl_get_type_name(type);
+            }
+
+            struct set_entry *entry = _mesa_set_search(storage_counted, name);
+            if (!entry) {
+               storage_size += uniform_storage_size(type);
+               _mesa_set_add(storage_counted, name);
+            }
+         }
+      }
+      _mesa_set_destroy(storage_counted, NULL);
+
+      prog->data->UniformStorage = rzalloc_array(prog->data,
+                                                 struct gl_uniform_storage,
+                                                 storage_size);
+      if (!prog->data->UniformStorage) {
+         linker_error(prog, "Out of memory while linking uniforms.\n");
+         return false;
+      }
+   }
+
+   /* Iterate through all linked shaders */
    state.uniform_hash = _mesa_hash_table_create(NULL, _mesa_hash_string,
                                                 _mesa_key_string_equal);
 
@@ -1362,9 +1570,6 @@ gl_nir_link_uniforms(struct gl_context *ctx,
       nir_shader *nir = sh->Program->nir;
       assert(nir);
 
-      state.referenced_uniforms =
-         _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                 _mesa_key_pointer_equal);
       state.next_bindless_image_index = 0;
       state.next_bindless_sampler_index = 0;
       state.next_image_index = 0;
@@ -1376,8 +1581,6 @@ gl_nir_link_uniforms(struct gl_context *ctx,
       state.shader_samplers_used = 0;
       state.shader_shadow_samplers = 0;
       state.params = fill_parameters ? sh->Program->Parameters : NULL;
-
-      add_var_use_shader(nir, state.referenced_uniforms);
 
       nir_foreach_variable(var, &nir->uniforms) {
          state.current_var = var;
@@ -1474,10 +1677,12 @@ gl_nir_link_uniforms(struct gl_context *ctx,
                         buffer_block_index = i;
 
                      struct hash_entry *entry =
-                        _mesa_hash_table_search(state.referenced_uniforms, var);
+                        _mesa_hash_table_search(state.referenced_uniforms[shader_type],
+                                                var->name);
                      if (entry) {
-                        BITSET_WORD *bits = (BITSET_WORD *) entry->data;
-                        if (BITSET_TEST(bits, blocks[i].linearized_array_index))
+                        struct uniform_array_info *ainfo =
+                           (struct uniform_array_info *) entry->data;
+                        if (BITSET_TEST(ainfo->indices, blocks[i].linearized_array_index))
                            blocks[i].stageref |= 1U << shader_type;
                      }
                   }
@@ -1488,7 +1693,8 @@ gl_nir_link_uniforms(struct gl_context *ctx,
                      buffer_block_index = i;
 
                      struct hash_entry *entry =
-                        _mesa_hash_table_search(state.referenced_uniforms, var);
+                        _mesa_hash_table_search(state.referenced_uniforms[shader_type],
+                                                var->name);
                      if (entry)
                         blocks[i].stageref |= 1U << shader_type;
 
@@ -1551,7 +1757,7 @@ gl_nir_link_uniforms(struct gl_context *ctx,
                      location = j;
 
                      struct hash_entry *entry =
-                        _mesa_hash_table_search(state.referenced_uniforms, var);
+                        _mesa_hash_table_search(state.referenced_uniforms[shader_type], var->name);
                      if (entry)
                         blocks[i].stageref |= 1U << shader_type;
 
@@ -1608,7 +1814,10 @@ gl_nir_link_uniforms(struct gl_context *ctx,
             return false;
       }
 
-      _mesa_hash_table_destroy(state.referenced_uniforms, NULL);
+      if (!prog->data->spirv) {
+         _mesa_hash_table_destroy(state.referenced_uniforms[shader_type],
+                                  NULL);
+      }
 
       if (state.num_shader_samplers >
           ctx->Const.Program[shader_type].MaxTextureImageUnits) {
@@ -1638,6 +1847,8 @@ gl_nir_link_uniforms(struct gl_context *ctx,
 
    prog->data->NumHiddenUniforms = state.num_hidden_uniforms;
    prog->data->NumUniformDataSlots = state.num_values;
+
+   assert(prog->data->spirv || prog->data->NumUniformStorage == storage_size);
 
    if (prog->data->spirv)
       prog->NumUniformRemapTable = state.max_uniform_location;

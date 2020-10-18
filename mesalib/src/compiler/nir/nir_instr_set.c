@@ -83,7 +83,7 @@ instr_can_rewrite(const nir_instr *instr)
 }
 
 
-#define HASH(hash, data) _mesa_fnv32_1a_accumulate((hash), (data))
+#define HASH(hash, data) XXH32(&(data), sizeof(data), hash)
 
 static uint32_t
 hash_src(uint32_t hash, const nir_src *src)
@@ -198,7 +198,7 @@ hash_load_const(uint32_t hash, const nir_load_const_instr *instr)
       }
    } else {
       unsigned size = instr->def.num_components * sizeof(*instr->value);
-      hash = _mesa_fnv32_1a_accumulate_block(hash, instr->value, size);
+      hash = XXH32(instr->value, size, hash);
    }
 
    return hash;
@@ -246,9 +246,7 @@ hash_intrinsic(uint32_t hash, const nir_intrinsic_instr *instr)
       hash = HASH(hash, instr->dest.ssa.bit_size);
    }
 
-   hash = _mesa_fnv32_1a_accumulate_block(hash, instr->const_index,
-                                          info->num_indices
-                                             * sizeof(instr->const_index[0]));
+   hash = XXH32(instr->const_index, info->num_indices * sizeof(instr->const_index[0]), hash);
    return hash;
 }
 
@@ -291,7 +289,7 @@ static uint32_t
 hash_instr(const void *data)
 {
    const nir_instr *instr = data;
-   uint32_t hash = _mesa_fnv32_1a_offset_bias;
+   uint32_t hash = 0;
 
    switch (instr->type) {
    case nir_instr_type_alu:

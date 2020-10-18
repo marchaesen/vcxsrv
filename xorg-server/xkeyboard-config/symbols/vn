@@ -8,7 +8,7 @@
 // July 2009
 
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "us"
@@ -44,7 +44,7 @@ partial alphanumeric_keys
 xkb_symbols "us" {
 
     include "us(euro)"
-    name[Group1]= "Vietnamese (US, with Vietnamese letters)";
+    name[Group1]= "Vietnamese (US)";
 
     key <TLDE> { [dead_grave, dead_tilde,              grave,          asciitilde ] };
     key <AE04> { [         4,     dollar,           DongSign,            currency ] }; // ₫ ¤
@@ -72,7 +72,7 @@ xkb_symbols "fr" {
 
     include "fr(basic)"
 
-    name[Group1]="Vietnamese (French, with Vietnamese letters)";
+    name[Group1]="Vietnamese (French)";
 
     key <AE02> { [dead_tilde,          2,             eacute,          asciitilde ] };
     key <AE04> { [dead_acute,          4,         apostrophe,           braceleft ] };

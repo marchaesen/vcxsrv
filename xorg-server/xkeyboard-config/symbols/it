@@ -5,7 +5,7 @@
 // 18 July 2018 - Fixed inconsistent 'ì' and 'ù' in it(intl)
 //                Alessandro Pellegrini <pellegrini@dis.uniroma1.it>
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "latin(type4)"
@@ -69,7 +69,7 @@ partial alphanumeric_keys
 xkb_symbols "winkeys" {
 
    include "it(basic)"
-   name[Group1]="Italian (Winkeys)";
+   name[Group1]="Italian (Windows)";
    include "eurosign(5)"
 };
 
@@ -186,7 +186,7 @@ xkb_symbols "us" {
 
     include "us(euro)"
 
-    name[Group1]= "Italian (US, with Italian letters)";
+    name[Group1]= "Italian (US)";
 
     key <TLDE> { [     grave, asciitilde,    dead_grave,       dead_tilde ] };
     key <AE01> { [         1,     exclam,   onesuperior                   ] };
@@ -217,50 +217,6 @@ xkb_symbols "us" {
     key <AB09> { [    period,    greater,  guillemotright                 ] };
 
     include "level3(ralt_switch)"
-};
-
-partial alphanumeric_keys
-xkb_symbols "htcdream" {
-        include "inet(htcdream)"
-        name[Group1]= "Italian";
-
-        //second row
-        key <AD01> { [ q, Q, Tab, Tab ] };
-        key <AD02> { [ w, W, grave, grave ] };
-        key <AD03> { [ e, E, egrave, egrave] };
-        key <AD04> { [ r, R, eacute, eacute ] };
-        key <AD05> { [ t, T, quotedbl, quotedbl ] };
-        key <AD06> { [ y, Y, apostrophe, apostrophe ] };
-        key <AD07> { [ u, U, ugrave, ugrave ] };
-        key <AD08> { [ i, I, igrave, igrave ] };
-        key <AD09> { [ o, O, ograve, ograve ] };
-        key <AD10> { [ p, P, NoSymbol, NoSymbol ] };
-
-        //third row
-        key <AC01> { [ a, A, agrave, agrave ] };
-        key <AC02> { [ s, S, bar, bar ] };
-        key <AC03> { [ d ,D, EuroSign, EuroSign ] };
-        key <AC04> { [ f, F, sterling, sterling ] };
-        key <AC05> { [ g, G, division, division ] };
-        key <AC06> { [ h, H, multiply, multiply ] };
-        key <AC07> { [ j, J, minus, minus ] };
-        key <AC08> { [ k, K, plus, plus ] };
-        key <AC09> { [ l, L, equal, equal ] };
-
-        //forth row
-        key <AB01> { [ z, Z, underscore, underscore ] };
-        key <AB02> { [ x, X, asciitilde, asciitilde ] };
-        key <AB03> { [ c, C, less, less ] };
-        key <AB04> { [ v, V, greater, greater ] };
-        key <AB05> { [ b, B,  backslash, backslash ] };
-        key <AB06> { [ n, N, colon, colon ] };
-        key <AB07> { [ m, M, semicolon, semicolon ] };
-        key <AB08> { [ comma, comma, question, question ] };
-
-        //fifth row
-        key <FK15> { [ at, at, NoSymbol, NoSymbol ] };
-
-        include "level3(alt_switch)"
 };
 
 partial alphanumeric_keys
@@ -360,7 +316,7 @@ partial alphanumeric_keys
 partial alphanumeric_keys
     xkb_symbols "lld" {
     include "it(basic)"
-    name[Group1] = "Italian Ladin";
+    name[Group1] = "Italian (Ladin)";
 
     key <AD08> { [ i, I, idiaeresis, Idiaeresis ] };
     key <AD10> { [ p, P, ediaeresis, Ediaeresis ] };

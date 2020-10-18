@@ -104,7 +104,7 @@ struct pipe_video_codec
 
    /**
     * flush any outstanding command buffers to the hardware
-    * should be called before a video_buffer is acessed by the state tracker again
+    * should be called before a video_buffer is acessed by the gallium frontend again
     */
    void (*flush)(struct pipe_video_codec *codec);
 

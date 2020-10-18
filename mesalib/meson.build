@@ -1,4 +1,4 @@
-# Copyright © 2017-2019 Intel Corporation
+# Copyright © 2017-2020 Intel Corporation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@ project(
     [find_program('python', 'python3'), 'bin/meson_get_version.py']
   ).stdout(),
   license : 'MIT',
-  meson_version : '>= 0.46',
+  meson_version : '>= 0.52',
   default_options : ['buildtype=debugoptimized', 'b_ndebug=if-release', 'c_std=c99', 'cpp_std=c++14']
 )
 
@@ -46,13 +46,11 @@ pre_args = [
   '-D__STDC_FORMAT_MACROS',
   '-D__STDC_LIMIT_MACROS',
   '-DPACKAGE_VERSION="@0@"'.format(meson.project_version()),
-  '-DPACKAGE_BUGREPORT="https://gitlab.freedesktop.org/mesa/mesa/issues"',
+  '-DPACKAGE_BUGREPORT="https://gitlab.freedesktop.org/mesa/mesa/-/issues"',
 ]
 
 with_vulkan_icd_dir = get_option('vulkan-icd-dir')
 with_tests = get_option('build-tests')
-with_valgrind = get_option('valgrind')
-with_libunwind = get_option('libunwind')
 with_glx_read_only_text = get_option('glx-read-only-text')
 with_glx_direct = get_option('glx-direct')
 with_osmesa = get_option('osmesa')
@@ -87,47 +85,68 @@ if dri_search_path == ''
 endif
 
 with_gles1 = get_option('gles1')
+if with_gles1 == 'true'
+  with_gles1 = 'enabled'
+  warning('gles1 option "true" deprecated, please use "enabled" instead.')
+elif with_gles1 == 'false'
+  with_gles1 = 'disabled'
+  warning('gles1 option "false" deprecated, please use "disabled" instead.')
+endif
 with_gles2 = get_option('gles2')
+if with_gles2 == 'true'
+  with_gles2 = 'enabled'
+  warning('gles2 option "true" deprecated, please use "enabled" instead.')
+elif with_gles2 == 'false'
+  with_gles2 = 'disabled'
+  warning('gles2 option "false" deprecated, please use "disabled" instead.')
+endif
 if host_machine.system() == 'windows'
   if with_gles1 == 'auto'
-    with_gles1 = 'false'
+    with_gles1 = 'disabled'
   endif
   if with_gles2 == 'auto'
-    with_gles2 = 'false'
+    with_gles2 = 'disabled'
   endif
 endif
 with_opengl = get_option('opengl')
 
 # Default shared glapi off for windows, on elsewhere.
 _sg = get_option('shared-glapi')
+if _sg == 'true'
+  _sg = 'enabled'
+  warning('shared-glapi option "true" deprecated, please use "enabled" instead.')
+elif _sg == 'false'
+  _sg = 'disabled'
+  warning('shared-glapi option "false" deprecated, please use "disabled" instead.')
+endif
 if _sg == 'auto'
   with_shared_glapi = host_machine.system() != 'windows'
 else
-  with_shared_glapi = _sg == 'true'
+  with_shared_glapi = _sg == 'enabled'
 endif
 
 # shared-glapi is required if at least two OpenGL APIs are being built
 if not with_shared_glapi
-  if ((with_gles1 == 'true' and with_gles2 == 'true') or
-      (with_gles1 == 'true' and with_opengl) or
-      (with_gles2 == 'true' and with_opengl))
+  if ((with_gles1 == 'enabled' and with_gles2 == 'enabled') or
+      (with_gles1 == 'enabled' and with_opengl) or
+      (with_gles2 == 'enabled' and with_opengl))
     error('shared-glapi required for building two or more of OpenGL, OpenGL ES 1.x, OpenGL ES 2.x')
   endif
-  with_gles1 = 'false'
-  with_gles2 = 'false'
+  with_gles1 = 'disabled'
+  with_gles2 = 'disabled'
 endif
 
 # We require OpenGL for OpenGL ES
 if not with_opengl
-  if (with_gles1 == 'true' or with_gles2 == 'true') and not with_opengl
+  if (with_gles1 == 'enabled' or with_gles2 == 'enabled') and not with_opengl
     error('building OpenGL ES without OpenGL is not supported.')
   endif
-  with_gles1 = 'false'
-  with_gles2 = 'false'
+  with_gles1 = 'disabled'
+  with_gles2 = 'disabled'
 endif
 
-with_gles1 = with_gles1 != 'false'
-with_gles2 = with_gles2 != 'false'
+with_gles1 = with_gles1 != 'disabled'
+with_gles2 = with_gles2 != 'disabled'
 with_any_opengl = with_opengl or with_gles1 or with_gles2
 # Only build shared_glapi if at least one OpenGL API is enabled
 with_shared_glapi = with_shared_glapi and with_any_opengl
@@ -162,7 +181,7 @@ with_dri_r200 = dri_drivers.contains('r200')
 with_dri_nouveau = dri_drivers.contains('nouveau')
 with_dri_swrast = dri_drivers.contains('swrast')
 
-with_dri = dri_drivers.length() != 0 and dri_drivers != ['']
+with_dri = dri_drivers.length() != 0
 
 gallium_drivers = get_option('gallium-drivers')
 if gallium_drivers.contains('auto')
@@ -209,16 +228,12 @@ with_gallium_swr = gallium_drivers.contains('swr')
 with_gallium_lima = gallium_drivers.contains('lima')
 with_gallium_zink = gallium_drivers.contains('zink')
 
-if cc.get_id().startswith('intel') and meson.version().version_compare('< 0.49.1')
-  error('Meson does not have sufficient support of ICC before 0.49.1 to compile mesa')
-endif
-
-with_gallium = gallium_drivers.length() != 0 and gallium_drivers != ['']
+with_gallium = gallium_drivers.length() != 0
 
 if with_gallium and system_has_kms_drm
   _glx = get_option('glx')
   _egl = get_option('egl')
-  if _glx == 'dri' or _egl == 'true' or (_glx == 'disabled' and _egl != 'false')
+  if _glx == 'dri' or _egl == 'enabled' or (_glx == 'disabled' and _egl != 'disabled')
     with_dri = true
   endif
 endif
@@ -246,7 +261,7 @@ endif
 with_intel_vk = _vulkan_drivers.contains('intel')
 with_amd_vk = _vulkan_drivers.contains('amd')
 with_freedreno_vk = _vulkan_drivers.contains('freedreno')
-with_any_vk = _vulkan_drivers.length() != 0 and _vulkan_drivers != ['']
+with_any_vk = _vulkan_drivers.length() != 0
 
 if with_dri_swrast and (with_gallium_softpipe or with_gallium_swr)
   error('Only one swrast provider can be built')
@@ -299,21 +314,22 @@ with_platform_haiku = _platforms.contains('haiku')
 with_platform_surfaceless = _platforms.contains('surfaceless')
 with_platform_windows = _platforms.contains('windows')
 
-with_platforms = false
-if _platforms.length() != 0 and _platforms != ['']
-  # sanity check that list contains no empty strings
-  if _platforms.contains('')
-    error('Invalid argument list given to -Dplatforms, please fix.')
-  endif
-  with_platforms = true
+if _platforms.length() != 0
   egl_native_platform = _platforms[0]
 endif
 
 _xlib_lease = get_option('xlib-lease')
+if _xlib_lease == 'true'
+  _xlib_lease = 'enabled'
+  warning('xlib_lease option "true" deprecated, please use "enabled" instead.')
+elif _xlib_lease == 'false'
+  _xlib_lease = 'disabled'
+  warning('xlib_lease option "false" deprecated, please use "disabled" instead.')
+endif
 if _xlib_lease == 'auto'
   with_xlib_lease = with_platform_x11 and with_platform_drm
 else
-  with_xlib_lease = _xlib_lease == 'true'
+  with_xlib_lease = _xlib_lease == 'enabled'
 endif
 
 with_glx = get_option('glx')
@@ -350,27 +366,41 @@ if not (with_dri or with_gallium or with_glx != 'disabled')
 endif
 
 _gbm = get_option('gbm')
+if _gbm == 'true'
+  _gbm = 'enabled'
+  warning('gbm option "true" deprecated, please use "enabled" instead.')
+elif _gbm == 'false'
+  _gbm = 'disabled'
+  warning('gbm option "false" deprecated, please use "disabled" instead.')
+endif
 if _gbm == 'auto'
   with_gbm = system_has_kms_drm and with_dri
 else
-  with_gbm = _gbm == 'true'
+  with_gbm = _gbm == 'enabled'
 endif
 if with_gbm and not system_has_kms_drm
   error('GBM only supports DRM/KMS platforms')
 endif
 
 _egl = get_option('egl')
+if _egl == 'true'
+  _egl = 'enabled'
+  warning('egl option "true" deprecated, please use "enabled" instead.')
+elif _egl == 'false'
+  _egl = 'disabled'
+  warning('egl option "false" deprecated, please use "disabled" instead.')
+endif
 if _egl == 'auto'
   with_egl = (
     not ['darwin', 'windows'].contains(host_machine.system()) and
-    with_dri and with_shared_glapi and with_platforms
+    with_dri and with_shared_glapi and _platforms.length() != 0
   )
-elif _egl == 'true'
+elif _egl == 'enabled'
   if not with_dri
     error('EGL requires dri')
   elif not with_shared_glapi
     error('EGL requires shared-glapi')
-  elif not with_platforms
+  elif _platforms.length() == 0
     error('No platforms specified, consider -Dplatforms=drm,x11,surfaceless at least')
   elif not ['disabled', 'dri'].contains(with_glx)
     error('EGL requires dri, but a GLX is being built without dri')
@@ -440,10 +470,17 @@ endif
 with_dri2 = (with_dri or with_any_vk) and (with_dri_platform == 'drm' or
   host_machine.system() == 'gnu')
 _dri3 = get_option('dri3')
+if _dri3 == 'true'
+  _dri3 = 'enabled'
+  warning('dri3 option "true" deprecated, please use "enabled" instead.')
+elif _dri3 == 'false'
+  _dri3 = 'disabled'
+  warning('dri3 option "false" deprecated, please use "disabled" instead.')
+endif
 if _dri3 == 'auto'
   with_dri3 = system_has_kms_drm and with_dri2
 else
-  with_dri3 = _dri3 == 'true'
+  with_dri3 = _dri3 == 'enabled'
 endif
 
 if with_any_vk and (with_platform_x11 and not with_dri3)
@@ -456,30 +493,37 @@ if with_dri
 endif
 
 _vdpau = get_option('gallium-vdpau')
+if _vdpau == 'true'
+  _vdpau = 'enabled'
+  warning('gallium-vdpau option "true" deprecated, please use "enabled" instead.')
+elif _vdpau == 'false'
+  _vdpau = 'disabled'
+  warning('gallium-vdpau option "false" deprecated, please use "disabled" instead.')
+endif
 if not system_has_kms_drm
-  if _vdpau == 'true'
+  if _vdpau == 'enabled'
     error('VDPAU state tracker can only be build on unix-like OSes.')
   else
-    _vdpau = 'false'
+    _vdpau = 'disabled'
   endif
 elif not with_platform_x11
-  if _vdpau == 'true'
+  if _vdpau == 'enabled'
     error('VDPAU state tracker requires X11 support.')
   else
-    _vdpau = 'false'
+    _vdpau = 'disabled'
   endif
 elif not (with_gallium_r300 or with_gallium_r600 or with_gallium_radeonsi or
           with_gallium_nouveau)
-  if _vdpau == 'true'
+  if _vdpau == 'enabled'
     error('VDPAU state tracker requires at least one of the following gallium drivers: r300, r600, radeonsi, nouveau.')
   else
-    _vdpau = 'false'
+    _vdpau = 'disabled'
   endif
 endif
 dep_vdpau = null_dep
 with_gallium_vdpau = false
-if _vdpau != 'false'
-  dep_vdpau = dependency('vdpau', version : '>= 1.1', required : _vdpau == 'true')
+if _vdpau != 'disabled'
+  dep_vdpau = dependency('vdpau', version : '>= 1.1', required : _vdpau == 'enabled')
   if dep_vdpau.found()
     dep_vdpau = dep_vdpau.partial_dependency(compile_args : true)
     with_gallium_vdpau = true
@@ -499,31 +543,38 @@ if with_gallium_zink
 endif
 
 _xvmc = get_option('gallium-xvmc')
+if _xvmc == 'true'
+  _xvmc = 'enabled'
+  warning('gallium-xvmc option "true" deprecated, please use "enabled" instead.')
+elif _xvmc == 'false'
+  _xvmc = 'disabled'
+  warning('gallium-xvmc option "false" deprecated, please use "disabled" instead.')
+endif
 if not system_has_kms_drm
-  if _xvmc == 'true'
+  if _xvmc == 'enabled'
     error('XVMC state tracker can only be build on unix-like OSes.')
   else
-    _xvmc = 'false'
+    _xvmc = 'disabled'
   endif
 elif not with_platform_x11
-  if _xvmc == 'true'
+  if _xvmc == 'enabled'
     error('XVMC state tracker requires X11 support.')
   else
-    _xvmc = 'false'
+    _xvmc = 'disabled'
   endif
 elif not (with_gallium_r600 or with_gallium_nouveau)
-  if _xvmc == 'true'
+  if _xvmc == 'enabled'
     error('XVMC state tracker requires at least one of the following gallium drivers: r600, nouveau.')
   else
-    _xvmc = 'false'
+    _xvmc = 'disabled'
   endif
 endif
 dep_xvmc = null_dep
 dep_xv = null_dep
 with_gallium_xvmc = false
-if _xvmc != 'false'
-  dep_xvmc = dependency('xvmc', version : '>= 1.0.6', required : _xvmc == 'true')
-  dep_xv = dependency('xv', required : _xvmc == 'true')
+if _xvmc != 'disabled'
+  dep_xvmc = dependency('xvmc', version : '>= 1.0.6', required : _xvmc == 'enabled')
+  dep_xv = dependency('xv', required : _xvmc == 'enabled')
   with_gallium_xvmc = dep_xvmc.found() and dep_xv.found()
 endif
 
@@ -613,23 +664,30 @@ if with_gallium_omx != 'disabled'
 endif
 
 _va = get_option('gallium-va')
+if _va == 'true'
+  _va = 'enabled'
+  warning('gallium-va option "true" deprecated, please use "enabled" instead.')
+elif _va == 'false'
+  _va = 'disabled'
+  warning('gallium-va option "false" deprecated, please use "disabled" instead.')
+endif
 if not system_has_kms_drm
-  if _va == 'true'
+  if _va == 'enabled'
     error('VA state tracker can only be built on unix-like OSes.')
   else
-    _va = 'false'
+    _va = 'disabled'
   endif
 elif not (with_gallium_r600 or with_gallium_radeonsi or with_gallium_nouveau)
-  if _va == 'true'
+  if _va == 'enabled'
     error('VA state tracker requires at least one of the following gallium drivers: r600, radeonsi, nouveau.')
   else
-    _va = 'false'
+    _va = 'disabled'
   endif
 endif
 with_gallium_va = false
 dep_va = null_dep
-if _va != 'false'
-  dep_va = dependency('libva', version : '>= 0.38.0', required : _va == 'true')
+if _va != 'disabled'
+  dep_va = dependency('libva', version : '>= 0.38.0', required : _va == 'enabled')
   if dep_va.found()
     dep_va_headers = dep_va.partial_dependency(compile_args : true)
     with_gallium_va = true
@@ -642,21 +700,28 @@ if va_drivers_path == ''
 endif
 
 _xa = get_option('gallium-xa')
+if _xa == 'true'
+  _xa = 'enabled'
+  warning('gallium-xa option "true" deprecated, please use "enabled" instead.')
+elif _xa == 'false'
+  _xa = 'disabled'
+  warning('gallium-xa option "false" deprecated, please use "disabled" instead.')
+endif
 if not system_has_kms_drm
-  if _xa == 'true'
+  if _xa == 'enabled'
     error('XA state tracker can only be built on unix-like OSes.')
   else
-    _xa = 'false'
+    _xa = 'disabled'
   endif
 elif not (with_gallium_nouveau or with_gallium_freedreno or with_gallium_i915
           or with_gallium_svga)
-  if _xa == 'true'
+  if _xa == 'enabled'
     error('XA state tracker requires at least one of the following gallium drivers: nouveau, freedreno, i915, svga.')
   else
-    _xa = 'false'
+    _xa = 'disabled'
   endif
 endif
-with_gallium_xa = _xa != 'false'
+with_gallium_xa = _xa != 'disabled'
 
 d3d_drivers_path = get_option('d3d-drivers-path')
 if d3d_drivers_path == ''
@@ -676,8 +741,15 @@ if with_gallium_st_nine
     error('Using nine with wine requires dri3')
   endif
 endif
-
-if get_option('power8') != 'false'
+_power8 = get_option('power8')
+if _power8 == 'true'
+  _power8 = 'enabled'
+  warning('power8 option "true" deprecated, please use "enabled" instead.')
+elif _power8 == 'disabled'
+  _power8 = 'disabled'
+  warning('power8 option "false" deprecated, please use "disabled" instead.')
+endif
+if _power8 != 'disabled'
   # on old versions of meson the cpu family would return as ppc64le on little
   # endian power8, this was changed in 0.48 such that the family would always
   # be ppc64 regardless of endianness, and then the machine.endian() value
@@ -698,7 +770,7 @@ if get_option('power8') != 'false'
         args : '-mpower8-vector',
         name : 'POWER8 intrinsics')
       pre_args += ['-D_ARCH_PWR8', '-mpower8-vector']
-    elif get_option('power8') == 'true'
+    elif get_option('power8') == 'enabled'
       error('POWER8 intrinsic support required but not found.')
     endif
   endif
@@ -792,11 +864,7 @@ if with_platform_haiku
   pre_args += '-DHAVE_HAIKU_PLATFORM'
 endif
 
-if meson.version().version_compare('>=0.50')
-  prog_python = import('python').find_installation('python3')
-else
-  prog_python = import('python3').find_python()
-endif
+prog_python = import('python').find_installation('python3')
 has_mako = run_command(
   prog_python, '-c',
   '''
@@ -824,18 +892,22 @@ endif
 
 with_shader_cache = false
 _shader_cache = get_option('shader-cache')
-if _shader_cache != 'false'
+if _shader_cache == 'true'
+  _shader_cache = 'enabled'
+  warning('shader_cache option "true" deprecated, please use "enabled" instead.')
+elif _shader_cache == 'false'
+  _shader_cache = 'disabled'
+  warning('shader_cache option "false" deprecated, please use "disabled" instead.')
+endif
+if _shader_cache != 'disabled'
   if host_machine.system() == 'windows'
-    if _shader_cache == 'true'
+    if _shader_cache == 'enabled'
       error('Shader Cache does not currently work on Windows')
     endif
   else
     pre_args += '-DENABLE_SHADER_CACHE'
     with_shader_cache = true
   endif
-endif
-if with_amd_vk and not with_shader_cache
-  error('Radv requires shader cache support')
 endif
 
 # Check for GCC style builtins
@@ -847,39 +919,15 @@ foreach b : ['bswap32', 'bswap64', 'clz', 'clzll', 'ctz', 'expect', 'ffs',
 endforeach
 
 # check for GCC __attribute__
-foreach a : ['const', 'flatten', 'malloc', 'pure', 'unused',
-             'warn_unused_result', 'weak',]
-  if cc.compiles('int foo(void) __attribute__((@0@));'.format(a),
-                 name : '__attribute__((@0@))'.format(a))
-    pre_args += '-DHAVE_FUNC_ATTRIBUTE_@0@'.format(a.to_upper())
-  endif
+_attributes = [
+  'const', 'flatten', 'malloc', 'pure', 'unused', 'warn_unused_result',
+  'weak', 'format', 'packed', 'returns_nonnull', 'alias', 'noreturn',
+]
+foreach a : cc.get_supported_function_attributes(_attributes)
+  pre_args += '-DHAVE_FUNC_ATTRIBUTE_@0@'.format(a.to_upper())
 endforeach
-if cc.compiles('int foo(const char *p, ...) __attribute__((format(printf, 1, 2)));',
-               name : '__attribute__((format(...)))')
-  pre_args += '-DHAVE_FUNC_ATTRIBUTE_FORMAT'
-endif
-if cc.compiles('struct __attribute__((packed)) foo { int bar; };',
-               name : '__attribute__((packed))')
-  pre_args += '-DHAVE_FUNC_ATTRIBUTE_PACKED'
-endif
-if cc.compiles('int *foo(void) __attribute__((returns_nonnull));',
-               name : '__attribute__((returns_nonnull))')
-  pre_args += '-DHAVE_FUNC_ATTRIBUTE_RETURNS_NONNULL'
-endif
-if cc.compiles('''int foo_def(void) __attribute__((visibility("default")));
-                  int foo_hid(void) __attribute__((visibility("hidden")));
-                  int foo_int(void) __attribute__((visibility("internal")));
-                  int foo_pro(void) __attribute__((visibility("protected")));''',
-               name : '__attribute__((visibility(...)))')
+if cc.has_function_attribute('visibility:hidden')
   pre_args += '-DHAVE_FUNC_ATTRIBUTE_VISIBILITY'
-endif
-if cc.compiles('int foo(void) { return 0; } int bar(void) __attribute__((alias("foo")));',
-               name : '__attribute__((alias(...)))')
-  pre_args += '-DHAVE_FUNC_ATTRIBUTE_ALIAS'
-endif
-if cc.compiles('int foo(void) __attribute__((__noreturn__));',
-               name : '__attribute__((__noreturn__))')
-  pre_args += '-DHAVE_FUNC_ATTRIBUTE_NORETURN'
 endif
 if cc.compiles('__uint128_t foo(void) { return 0; }',
                name : '__uint128_t')
@@ -914,11 +962,9 @@ endif
 
 # Check for generic C arguments
 c_args = []
-c_vis_args = []
 c_msvc_compat_args = []
 no_override_init_args = []
 cpp_args = []
-cpp_vis_args = []
 cpp_msvc_compat_args = []
 if cc.get_id() == 'msvc'
   foreach a : ['/wd4018',  # signed/unsigned mismatch
@@ -980,6 +1026,11 @@ else
     '-fno-math-errno',
     '-fno-trapping-math',
     '-Qunused-arguments',
+    # Some classes use custom new operator which zeroes memory, however
+    # gcc does aggressive dead-store elimination which threats all writes
+    # to the memory before the constructor as "dead stores".
+    # For now we disable this optimization.
+    '-flifetime-dse=1',
   ]
   # MinGW chokes on format specifiers and I can't get it all working
   if not (cc.get_id() == 'gcc' and host_machine.system() == 'windows')
@@ -997,10 +1048,6 @@ else
     endif
   endforeach
 
-  if cc.has_argument('-fvisibility=hidden')
-    c_vis_args += '-fvisibility=hidden'
-  endif
-
   # Check for C and C++ arguments for MSVC compatibility. These are only used
   # in parts of the mesa code base that need to compile with MSVC, mainly
   # common code
@@ -1012,11 +1059,6 @@ else
       cpp_msvc_compat_args += a
     endif
   endforeach
-
-  if cpp.has_argument('-fvisibility=hidden')
-    cpp_vis_args += '-fvisibility=hidden'
-  endif
-
 endif
 
 # set linker arguments
@@ -1157,13 +1199,20 @@ if (cc.has_header_symbol('sys/mkdev.h', 'major') and
   pre_args += '-DMAJOR_IN_MKDEV'
 endif
 
-foreach h : ['xlocale.h', 'sys/sysctl.h', 'linux/futex.h', 'endian.h', 'dlfcn.h', 'execinfo.h', 'sys/shm.h', 'cet.h']
-  if cc.compiles('#include <@0@>'.format(h), name : '@0@'.format(h))
+if not ['linux'].contains(host_machine.system())
+  # Deprecated on Linux and requires <sys/types.h> on FreeBSD and OpenBSD
+  if cc.check_header('sys/sysctl.h', prefix : '#include <sys/types.h>')
+    pre_args += '-DHAVE_SYS_SYSCTL_H'
+  endif
+endif
+
+foreach h : ['xlocale.h', 'linux/futex.h', 'endian.h', 'dlfcn.h', 'execinfo.h', 'sys/shm.h', 'cet.h']
+  if cc.check_header(h)
     pre_args += '-DHAVE_@0@'.format(h.to_upper().underscorify())
   endif
 endforeach
 
-foreach f : ['strtof', 'mkostemp', 'timespec_get', 'memfd_create', 'random_r', 'flock', 'strtok_r']
+foreach f : ['strtof', 'mkostemp', 'timespec_get', 'memfd_create', 'random_r', 'flock', 'strtok_r', 'getrandom']
   if cc.has_function(f)
     pre_args += '-DHAVE_@0@'.format(f.to_upper())
   endif
@@ -1270,8 +1319,15 @@ dep_zlib = dependency('zlib', version : '>= 1.2.3', fallback : ['zlib', 'zlib_de
 pre_args += '-DHAVE_ZLIB'
 
 _zstd = get_option('zstd')
-if _zstd != 'false'
-  dep_zstd = dependency('libzstd', required : _zstd == 'true')
+if _zstd == 'true'
+  _zstd = 'enabled'
+  warning('zstd option "true" deprecated, please use "enabled" instead.')
+elif _zstd == 'false'
+  _zstd = 'disabled'
+  warning('zstd option "false" deprecated, please use "disabled" instead.')
+endif
+if _zstd != 'disabled'
+  dep_zstd = dependency('libzstd', required : _zstd == 'enabled')
   if dep_zstd.found()
     pre_args += '-DHAVE_ZSTD'
   endif
@@ -1400,12 +1456,26 @@ else
 endif
 
 _shared_llvm = get_option('shared-llvm')
+if _shared_llvm == 'true'
+  _shared_llvm = 'enabled'
+  warning('shared_llvm option "true" deprecated, please use "enabled" instead.')
+elif _shared_llvm == 'false'
+  _shared_llvm = 'disabled'
+  warning('shared_llvm option "false" deprecated, please use "disabled" instead.')
+endif
 if _shared_llvm == 'auto'
   _shared_llvm = (host_machine.system() != 'windows')
 else
-  _shared_llvm = (_shared_llvm == 'true')
+  _shared_llvm = (_shared_llvm == 'enabled')
 endif
 _llvm = get_option('llvm')
+if _llvm == 'true'
+  _llvm = 'enabled'
+  warning('llvm option "true" deprecated, please use "enabled" instead.')
+elif _llvm == 'false'
+  _llvm = 'disabled'
+  warning('llvm option "false" deprecated, please use "disabled" instead.')
+endif
 
 # the cmake method can only link statically, so don't attempt to use it if we
 # want to link dynamically. Before 0.54.0 meson will try cmake even when shared
@@ -1419,7 +1489,7 @@ endif
 
 dep_llvm = null_dep
 with_llvm = false
-if _llvm != 'false'
+if _llvm != 'disabled'
   dep_llvm = dependency(
     'llvm',
     version : _llvm_version,
@@ -1427,7 +1497,7 @@ if _llvm != 'false'
     optional_modules : llvm_optional_modules,
     required : (
       with_amd_vk or with_gallium_radeonsi or with_gallium_swr or
-      with_gallium_opencl or _llvm == 'true'
+      with_gallium_opencl or _llvm == 'enabled'
     ),
     static : not _shared_llvm,
     method : _llvm_method,
@@ -1448,11 +1518,9 @@ if with_llvm
   # has also been added, so we'll use that if we can, to cover the cmake case.
   if dep_llvm.type_name() == 'internal'
     _rtti = subproject('llvm').get_variable('has_rtti', true)
-  elif meson.version().version_compare('>=0.51')
+  else
     # The CMake finder will return 'ON', the llvm-config will return 'YES'
     _rtti = ['ON', 'YES'].contains(dep_llvm.get_variable(cmake : 'LLVM_ENABLE_RTTI', configtool: 'has-rtti'))
-  else
-    _rtti = dep_llvm.get_configtool_variable('has-rtti') == 'YES'
   endif
   if not _rtti
     if with_gallium_nouveau
@@ -1488,8 +1556,16 @@ if with_glvnd
   pre_args += '-DUSE_LIBGLVND=1'
 endif
 
-if with_valgrind != 'false'
-  dep_valgrind = dependency('valgrind', required : with_valgrind == 'true')
+_valgrind = get_option('valgrind')
+if _valgrind == 'true'
+  _valgrind = 'enabled'
+  warning('valgrind option "true" deprecated, please use "enabled" instead.')
+elif _valgrind == 'false'
+  _valgrind = 'disabled'
+  warning('valgrind option "false" deprecated, please use "disabled" instead.')
+endif
+if _valgrind != 'disabled'
+  dep_valgrind = dependency('valgrind', required : _valgrind == 'enabled')
   if dep_valgrind.found()
     pre_args += '-DHAVE_VALGRIND'
   endif
@@ -1526,7 +1602,7 @@ else
   # Disable deprecated keyword warnings, since we have to use them for
   # old-bison compat.  See discussion in
   # https://gitlab.freedesktop.org/mesa/mesa/merge_requests/2161
-  if meson.version().version_compare('>= 0.52.0') and find_program('bison', required : false, version : '> 2.3').found()
+  if find_program('bison', required : false, version : '> 2.3').found()
     prog_bison = [prog_bison, '-Wno-deprecated']
   endif
 
@@ -1539,8 +1615,16 @@ if get_option('selinux')
   pre_args += '-DMESA_SELINUX'
 endif
 
-if with_libunwind != 'false'
-  dep_unwind = dependency('libunwind', required : with_libunwind == 'true')
+_libunwind = get_option('libunwind')
+if _libunwind == 'true'
+  _libunwind = 'enabled'
+  warning('libunwind option "true" deprecated, please use "enabled" instead.')
+elif _libunwind == 'false'
+  _libunwind = 'disabled'
+  warning('libunwind option "false" deprecated, please use "disabled" instead.')
+endif
+if _libunwind != 'disabled'
+  dep_unwind = dependency('libunwind', required : _libunwind == 'enabled')
   if dep_unwind.found()
     pre_args += '-DHAVE_LIBUNWIND'
   endif
@@ -1674,8 +1758,15 @@ if get_option('gallium-extra-hud')
 endif
 
 _sensors = get_option('lmsensors')
-if _sensors != 'false'
-  dep_lmsensors = cc.find_library('sensors', required : _sensors == 'true')
+if _sensors == 'true'
+  _sensors = 'enabled'
+  warning('sensors option "true" deprecated, please use "enabled" instead.')
+elif _sensors == 'false'
+  _sensors = 'disabled'
+  warning('sensors option "false" deprecated, please use "disabled" instead.')
+endif
+if _sensors != 'disabled'
+  dep_lmsensors = cc.find_library('sensors', required : _sensors == 'enabled')
   if dep_lmsensors.found()
     pre_args += '-DHAVE_LIBSENSORS=1'
   endif
@@ -1805,7 +1896,7 @@ if with_egl
   lines += 'EGL drivers:     ' + ' '.join(egl_drivers)
 endif
 lines += 'GBM:             ' + (with_gbm ? 'yes' : 'no')
-if with_platforms
+if _platforms.length() != 0
   lines += 'EGL/Vulkan/VL platforms:   ' + ' '.join(_platforms)
 endif
 

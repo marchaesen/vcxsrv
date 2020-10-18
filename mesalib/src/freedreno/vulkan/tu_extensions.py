@@ -25,24 +25,17 @@ COPYRIGHT = """\
 """
 
 import argparse
-import copy
+import os.path
 import re
-import xml.etree.cElementTree as et
+import sys
 
-from mako.template import Template
+VULKAN_UTIL = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../vulkan/util'))
+sys.path.append(VULKAN_UTIL)
+
+from vk_extensions import *
+from vk_extensions_gen import *
 
 MAX_API_VERSION = '1.2.131'
-
-class Extension:
-    def __init__(self, name, ext_version, enable):
-        self.name = name
-        self.ext_version = int(ext_version)
-        if enable is True:
-            self.enable = 'true';
-        elif enable is False:
-            self.enable = 'false';
-        else:
-            self.enable = enable;
 
 # On Android, we disable all surface and swapchain extensions. Android's Vulkan
 # loader implements VK_KHR_surface and VK_KHR_swapchain, and applications
@@ -61,6 +54,7 @@ EXTENSIONS = [
     Extension('VK_KHR_maintenance2',                      1, True),
     Extension('VK_KHR_maintenance3',                      1, True),
     Extension('VK_KHR_sampler_mirror_clamp_to_edge',      1, True),
+    Extension('VK_KHR_sampler_ycbcr_conversion',          1, True),
     Extension('VK_KHR_surface',                          25, 'TU_HAS_SURFACE'),
     Extension('VK_KHR_swapchain',                        68, 'TU_HAS_SURFACE'),
     Extension('VK_KHR_wayland_surface',                   6, 'VK_USE_PLATFORM_WAYLAND_KHR'),
@@ -81,184 +75,19 @@ EXTENSIONS = [
     Extension('VK_EXT_sampler_filter_minmax',             1, True),
     Extension('VK_EXT_transform_feedback',                1, True),
     Extension('VK_ANDROID_native_buffer',                 1, True),
-    Extension('VK_KHR_external_semaphore_fd',             1, True),
     Extension('VK_KHR_external_fence_fd',                 1, True),
+    Extension('VK_KHR_external_semaphore',                1, True),
+    Extension('VK_KHR_external_semaphore_capabilities',   1, True),
+    Extension('VK_KHR_external_semaphore_fd',             1, True),
     Extension('VK_IMG_filter_cubic',                      1, 'device->gpu_id == 650'),
     Extension('VK_EXT_filter_cubic',                      1, 'device->gpu_id == 650'),
+    Extension('VK_EXT_index_type_uint8',                  1, True),
+    Extension('VK_EXT_vertex_attribute_divisor',          1, True),
+    Extension('VK_KHR_shader_draw_parameters',            1, True),
 ]
 
-class VkVersion:
-    def __init__(self, string):
-        split = string.split('.')
-        self.major = int(split[0])
-        self.minor = int(split[1])
-        if len(split) > 2:
-            assert len(split) == 3
-            self.patch = int(split[2])
-        else:
-            self.patch = None
-
-        # Sanity check.  The range bits are required by the definition of the
-        # VK_MAKE_VERSION macro
-        assert self.major < 1024 and self.minor < 1024
-        assert self.patch is None or self.patch < 4096
-        assert(str(self) == string)
-
-    def __str__(self):
-        ver_list = [str(self.major), str(self.minor)]
-        if self.patch is not None:
-            ver_list.append(str(self.patch))
-        return '.'.join(ver_list)
-
-    def c_vk_version(self):
-        patch = self.patch if self.patch is not None else 0
-        ver_list = [str(self.major), str(self.minor), str(patch)]
-        return 'VK_MAKE_VERSION(' + ', '.join(ver_list) + ')'
-
-    def __int_ver(self):
-        # This is just an expansion of VK_VERSION
-        patch = self.patch if self.patch is not None else 0
-        return (self.major << 22) | (self.minor << 12) | patch
-
-    def __gt__(self, other):
-        # If only one of them has a patch version, "ignore" it by making
-        # other's patch version match self.
-        if (self.patch is None) != (other.patch is None):
-            other = copy.copy(other)
-            other.patch = self.patch
-
-        return self.__int_ver() > other.__int_ver()
-
 MAX_API_VERSION = VkVersion(MAX_API_VERSION)
-
-def _init_exts_from_xml(xml):
-    """ Walk the Vulkan XML and fill out extra extension information. """
-
-    xml = et.parse(xml)
-
-    ext_name_map = {}
-    for ext in EXTENSIONS:
-        ext_name_map[ext.name] = ext
-
-    for ext_elem in xml.findall('.extensions/extension'):
-        ext_name = ext_elem.attrib['name']
-        if ext_name not in ext_name_map:
-            continue
-
-        ext = ext_name_map[ext_name]
-        ext.type = ext_elem.attrib['type']
-
-_TEMPLATE_H = Template(COPYRIGHT + """
-#ifndef TU_EXTENSIONS_H
-#define TU_EXTENSIONS_H
-
-enum {
-   TU_INSTANCE_EXTENSION_COUNT = ${len(instance_extensions)},
-   TU_DEVICE_EXTENSION_COUNT = ${len(device_extensions)},
-};
-
-struct tu_instance_extension_table {
-   union {
-      bool extensions[TU_INSTANCE_EXTENSION_COUNT];
-      struct {
-%for ext in instance_extensions:
-        bool ${ext.name[3:]};
-%endfor
-      };
-   };
-};
-
-struct tu_device_extension_table {
-   union {
-      bool extensions[TU_DEVICE_EXTENSION_COUNT];
-      struct {
-%for ext in device_extensions:
-        bool ${ext.name[3:]};
-%endfor
-      };
-   };
-};
-
-extern const VkExtensionProperties tu_instance_extensions[TU_INSTANCE_EXTENSION_COUNT];
-extern const VkExtensionProperties tu_device_extensions[TU_DEVICE_EXTENSION_COUNT];
-extern const struct tu_instance_extension_table tu_supported_instance_extensions;
-
-
-struct tu_physical_device;
-
-void tu_fill_device_extension_table(const struct tu_physical_device *device,
-                                      struct tu_device_extension_table* table);
-#endif
-""")
-
-_TEMPLATE_C = Template(COPYRIGHT + """
-#include "tu_private.h"
-
-#include "vk_util.h"
-
-/* Convert the VK_USE_PLATFORM_* defines to booleans */
-%for platform in ['ANDROID_KHR', 'WAYLAND_KHR', 'XCB_KHR', 'XLIB_KHR', 'DISPLAY_KHR', 'XLIB_XRANDR_EXT']:
-#ifdef VK_USE_PLATFORM_${platform}
-#   undef VK_USE_PLATFORM_${platform}
-#   define VK_USE_PLATFORM_${platform} true
-#else
-#   define VK_USE_PLATFORM_${platform} false
-#endif
-%endfor
-
-/* And ANDROID too */
-#ifdef ANDROID
-#   undef ANDROID
-#   define ANDROID true
-#else
-#   define ANDROID false
-#endif
-
-#define TU_HAS_SURFACE (VK_USE_PLATFORM_WAYLAND_KHR || \\
-                         VK_USE_PLATFORM_XCB_KHR || \\
-                         VK_USE_PLATFORM_XLIB_KHR || \\
-                         VK_USE_PLATFORM_DISPLAY_KHR)
-
-
-const VkExtensionProperties tu_instance_extensions[TU_INSTANCE_EXTENSION_COUNT] = {
-%for ext in instance_extensions:
-   {"${ext.name}", ${ext.ext_version}},
-%endfor
-};
-
-const VkExtensionProperties tu_device_extensions[TU_DEVICE_EXTENSION_COUNT] = {
-%for ext in device_extensions:
-   {"${ext.name}", ${ext.ext_version}},
-%endfor
-};
-
-const struct tu_instance_extension_table tu_supported_instance_extensions = {
-%for ext in instance_extensions:
-   .${ext.name[3:]} = ${ext.enable},
-%endfor
-};
-
-void tu_fill_device_extension_table(const struct tu_physical_device *device,
-                                      struct tu_device_extension_table* table)
-{
-%for ext in device_extensions:
-   table->${ext.name[3:]} = ${ext.enable};
-%endfor
-}
-
-VkResult tu_EnumerateInstanceVersion(
-    uint32_t*                                   pApiVersion)
-{
-    *pApiVersion = ${MAX_API_VERSION.c_vk_version()};
-    return VK_SUCCESS;
-}
-
-uint32_t
-tu_physical_device_api_version(struct tu_physical_device *dev)
-{
-    return VK_MAKE_VERSION(1, 1, 82);
-}
-""")
+API_VERSIONS = [ ApiVersion(MAX_API_VERSION,  True) ]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -271,19 +100,4 @@ if __name__ == '__main__':
                         dest='xml_files')
     args = parser.parse_args()
 
-    for filename in args.xml_files:
-        _init_exts_from_xml(filename)
-
-    for ext in EXTENSIONS:
-        assert ext.type == 'instance' or ext.type == 'device'
-
-    template_env = {
-        'MAX_API_VERSION': MAX_API_VERSION,
-        'instance_extensions': [e for e in EXTENSIONS if e.type == 'instance'],
-        'device_extensions': [e for e in EXTENSIONS if e.type == 'device'],
-    }
-
-    with open(args.out_c, 'w') as f:
-        f.write(_TEMPLATE_C.render(**template_env))
-    with open(args.out_h, 'w') as f:
-        f.write(_TEMPLATE_H.render(**template_env))
+    gen_extensions('tu', args.xml_files, API_VERSIONS, MAX_API_VERSION, EXTENSIONS, args.out_c, args.out_h)

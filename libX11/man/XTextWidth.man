@@ -50,10 +50,10 @@
 XTextWidth, XTextWidth16 \- compute text width
 .SH SYNTAX
 .HP
-int XTextWidth\^(\^XFontStruct *\fIfont_struct\fP\^, char *\fIstring\fP\^,
+int XTextWidth\^(\^XFontStruct *\fIfont_struct\fP\^, _Xconst char *\fIstring\fP\^,
 int \fIcount\fP\^);
 .HP
-int XTextWidth16\^(\^XFontStruct *\fIfont_struct\fP\^, XChar2b
+int XTextWidth16\^(\^XFontStruct *\fIfont_struct\fP\^, _Xconst XChar2b
 *\fIstring\fP\^, int \fIcount\fP\^);
 .SH ARGUMENTS
 .IP \fIcount\fP 1i

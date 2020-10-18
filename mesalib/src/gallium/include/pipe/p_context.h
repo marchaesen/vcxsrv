@@ -91,7 +91,7 @@ struct pipe_context {
    void *draw;  /**< private, for draw module (temporary?) */
 
    /**
-    * Stream uploaders created by the driver. All drivers, state trackers, and
+    * Stream uploaders created by the driver. All drivers, gallium frontends, and
     * modules should use them.
     *
     * Use u_upload_alloc or u_upload_data as many times as you want.

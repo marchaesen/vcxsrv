@@ -2,7 +2,7 @@
 // Keyboard modification for Apple keyboards
 //
 
-partial default modifier_keys
+default partial modifier_keys
 xkb_symbols "extended" {
 
     key <KPEQ> { [ KP_Equal ] }; 

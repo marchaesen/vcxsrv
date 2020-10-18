@@ -45,6 +45,7 @@ libmesa_format = static_library(
   [files_mesa_format, u_format_table_c],
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
   dependencies : dep_m,
-  c_args : [c_msvc_compat_args, c_vis_args],
+  c_args : [c_msvc_compat_args],
+  gnu_symbol_visibility : 'hidden',
   build_by_default : false
 )

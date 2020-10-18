@@ -21,6 +21,7 @@
  * SOFTWARE.
  */
 
+#include "ac_gpu_info.h"
 #include "ac_binary.h"
 
 #include "util/u_math.h"
@@ -39,6 +40,7 @@
 void ac_parse_shader_binary_config(const char *data, size_t nbytes,
 				   unsigned wave_size,
 				   bool really_needs_scratch,
+				   const struct radeon_info *info,
 				   struct ac_shader_config *conf)
 {
 	uint32_t scratch_size = 0;
@@ -125,6 +127,16 @@ void ac_parse_shader_binary_config(const char *data, size_t nbytes,
 	if (really_needs_scratch) {
 		/* sgprs spills aren't spilling */
 	        conf->scratch_bytes_per_wave = G_00B860_WAVESIZE(scratch_size) * 256 * 4;
+	}
+
+	/* GFX 10.3 internally:
+	 * - aligns VGPRS to 16 for Wave32 and 8 for Wave64
+	 * - aligns LDS to 1024
+	 *
+	 * For shader-db stats, set num_vgprs that the hw actually uses.
+	 */
+	if (info->chip_class >= GFX10_3) {
+		conf->num_vgprs = align(conf->num_vgprs, wave_size == 32 ? 16 : 8);
 	}
 
 	/* Enable 64-bit and 16-bit denormals, because there is no performance

@@ -35,6 +35,7 @@ midgard_opt_copy_prop_reg(compiler_context *ctx, midgard_block *block)
         mir_foreach_instr_in_block_safe(block, ins) {
                 if (ins->type != TAG_ALU_4) continue;
                 if (!OP_IS_MOVE(ins->alu.op)) continue;
+                if (ins->is_pack) continue;
 
                 unsigned from = ins->src[1];
                 unsigned to = ins->dest;
@@ -44,7 +45,7 @@ midgard_opt_copy_prop_reg(compiler_context *ctx, midgard_block *block)
 
                 if (ins->has_inline_constant) continue;
                 if (ins->has_constants) continue;
-                if (mir_nontrivial_source2_mod(ins)) continue;
+                if (mir_nontrivial_mod(ins, 1, true)) continue;
                 if (mir_nontrivial_outmod(ins)) continue;
                 if (!mir_single_use(ctx, from)) continue;
 
@@ -68,6 +69,7 @@ midgard_opt_copy_prop(compiler_context *ctx, midgard_block *block)
         mir_foreach_instr_in_block_safe(block, ins) {
                 if (ins->type != TAG_ALU_4) continue;
                 if (!OP_IS_MOVE(ins->alu.op)) continue;
+                if (ins->is_pack) continue;
 
                 unsigned from = ins->src[1];
                 unsigned to = ins->dest;
@@ -82,7 +84,7 @@ midgard_opt_copy_prop(compiler_context *ctx, midgard_block *block)
                 if (ins->has_constants) continue;
 
                 /* Modifier propagation is not handled here */
-                if (mir_nontrivial_source2_mod_simple(ins)) continue;
+                if (mir_nontrivial_mod(ins, 1, false)) continue;
                 if (mir_nontrivial_outmod(ins)) continue;
 
                 /* Shortened arguments (bias for textures, extra load/store

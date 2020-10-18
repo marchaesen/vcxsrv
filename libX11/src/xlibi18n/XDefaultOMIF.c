@@ -166,14 +166,14 @@ check_charset(
     int count;
     ssize_t length, name_len;
 
-    name_len = strlen(font_name);
+    name_len = (ssize_t) strlen(font_name);
     last = font_name + name_len;
 
     count = font_set->font_data_count;
     font_data = font_set->font_data;
 
     for ( ; count-- > 0; font_data++) {
-	length = strlen(font_data->name);
+	length = (ssize_t) strlen(font_data->name);
 
 	if (length > name_len)
 	    return(NULL);
@@ -374,7 +374,7 @@ parse_fontname(
 
 	strncpy(buf, pattern, BUFSIZ);
 	buf[BUFSIZ-1] = '\0';
-	length = strlen(buf);
+	length = (ssize_t) strlen(buf);
 	last = buf + length - 1;
 
 	for (num_fields = 0, base_name = buf; *base_name != '\0'; base_name++)
@@ -423,7 +423,7 @@ parse_fontname(
 	for ( ; font_data_count-- > 0; font_data++) {
 	    if (append_charset)
 		{
-		strncpy(last, font_data->name, BUFSIZ - length);
+		strncpy(last, font_data->name, (size_t) (BUFSIZ - length));
 		buf[BUFSIZ-1] = '\0';
 		}
 	    else {

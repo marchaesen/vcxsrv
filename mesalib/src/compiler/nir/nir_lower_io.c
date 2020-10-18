@@ -911,7 +911,7 @@ build_explicit_io_load(nir_builder *b, nir_intrinsic_instr *intrin,
       load->src[1] = nir_src_for_ssa(addr_to_offset(b, addr, addr_format));
    }
 
-   if (mode != nir_var_mem_ubo && mode != nir_var_shader_in && mode != nir_var_mem_shared)
+   if (mode != nir_var_shader_in && mode != nir_var_mem_shared)
       nir_intrinsic_set_access(load, nir_intrinsic_access(intrin));
 
    unsigned bit_size = intrin->dest.ssa.bit_size;

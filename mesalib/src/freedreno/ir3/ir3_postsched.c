@@ -51,7 +51,9 @@
  */
 
 struct ir3_postsched_ctx {
-	struct ir3_context *ctx;
+	struct ir3 *ir;
+
+	struct ir3_shader_variant *v;
 
 	void *mem_ctx;
 	struct ir3_block *block;           /* the current block */
@@ -59,9 +61,8 @@ struct ir3_postsched_ctx {
 
 	struct list_head unscheduled_list; /* unscheduled instructions */
 
-	bool error;
-
 	int sfu_delay;
+	int tex_delay;
 };
 
 struct ir3_postsched_node {
@@ -92,14 +93,27 @@ schedule(struct ir3_postsched_ctx *ctx, struct ir3_instruction *instr)
 
 	list_addtail(&instr->node, &instr->block->instr_list);
 
+	struct ir3_postsched_node *n = instr->data;
+	dag_prune_head(ctx->dag, &n->dag);
+
+	if (is_meta(instr) && (instr->opc != OPC_META_TEX_PREFETCH))
+		return;
+
 	if (is_sfu(instr)) {
 		ctx->sfu_delay = 8;
+	} else if (check_src_cond(instr, is_sfu)) {
+		ctx->sfu_delay = 0;
 	} else if (ctx->sfu_delay > 0) {
 		ctx->sfu_delay--;
 	}
 
-	struct ir3_postsched_node *n = instr->data;
-	dag_prune_head(ctx->dag, &n->dag);
+	if (is_tex_or_prefetch(instr)) {
+		ctx->tex_delay = 10;
+	} else if (check_src_cond(instr, is_tex_or_prefetch)) {
+		ctx->tex_delay = 0;
+	} else if (ctx->tex_delay > 0) {
+		ctx->tex_delay--;
+	}
 }
 
 static void
@@ -129,10 +143,13 @@ static bool
 would_sync(struct ir3_postsched_ctx *ctx, struct ir3_instruction *instr)
 {
 	if (ctx->sfu_delay) {
-		struct ir3_register *reg;
-		foreach_src (reg, instr)
-			if (reg->instr && is_sfu(reg->instr))
-				return true;
+		if (check_src_cond(instr, is_sfu))
+			return true;
+	}
+
+	if (ctx->tex_delay) {
+		if (check_src_cond(instr, is_tex_or_prefetch))
+			return true;
 	}
 
 	return false;
@@ -300,7 +317,7 @@ choose_instr(struct ir3_postsched_ctx *ctx)
 }
 
 struct ir3_postsched_deps_state {
-	struct ir3_context *ctx;
+	struct ir3_postsched_ctx *ctx;
 
 	enum { F, R } direction;
 
@@ -385,7 +402,6 @@ static void
 calculate_deps(struct ir3_postsched_deps_state *state,
 		struct ir3_postsched_node *node)
 {
-	struct ir3_register *reg;
 	int b;
 
 	/* Add dependencies on instructions that previously (or next,
@@ -426,7 +442,7 @@ calculate_deps(struct ir3_postsched_deps_state *state,
 	/* And then after we update the state for what this instruction
 	 * wrote:
 	 */
-	reg = node->instr->regs[0];
+	struct ir3_register *reg = node->instr->regs[0];
 	if (reg->flags & IR3_REG_RELATIV) {
 		/* mark the entire array as written: */
 		struct ir3_array *arr = ir3_lookup_array(state->ctx->ir, reg->array.id);
@@ -444,9 +460,9 @@ static void
 calculate_forward_deps(struct ir3_postsched_ctx *ctx)
 {
 	struct ir3_postsched_deps_state state = {
-			.ctx = ctx->ctx,
+			.ctx = ctx,
 			.direction = F,
-			.merged = ctx->ctx->compiler->gpu_id >= 600,
+			.merged = ctx->v->mergedregs,
 	};
 
 	foreach_instr (instr, &ctx->unscheduled_list) {
@@ -458,9 +474,9 @@ static void
 calculate_reverse_deps(struct ir3_postsched_ctx *ctx)
 {
 	struct ir3_postsched_deps_state state = {
-			.ctx = ctx->ctx,
+			.ctx = ctx,
 			.direction = R,
-			.merged = ctx->ctx->compiler->gpu_id >= 600,
+			.merged = ctx->v->mergedregs,
 	};
 
 	foreach_instr_rev (instr, &ctx->unscheduled_list) {
@@ -522,7 +538,6 @@ sched_dag_init(struct ir3_postsched_ctx *ctx)
 	 */
 	foreach_instr (instr, &ctx->unscheduled_list) {
 		struct ir3_postsched_node *n = instr->data;
-		struct ir3_instruction *src;
 
 		foreach_ssa_src_n (src, i, instr) {
 			if (src->block != instr->block)
@@ -568,6 +583,8 @@ static void
 sched_block(struct ir3_postsched_ctx *ctx, struct ir3_block *block)
 {
 	ctx->block = block;
+	ctx->tex_delay = 0;
+	ctx->sfu_delay = 0;
 
 	/* move all instructions to the unscheduled list, and
 	 * empty the block's instruction list (to which we will
@@ -582,7 +599,7 @@ sched_block(struct ir3_postsched_ctx *ctx, struct ir3_block *block)
 	foreach_instr_safe (instr, &ctx->unscheduled_list) {
 		switch (instr->opc) {
 		case OPC_NOP:
-		case OPC_BR:
+		case OPC_B:
 		case OPC_JUMP:
 			list_delinit(&instr->node);
 			break;
@@ -611,15 +628,7 @@ sched_block(struct ir3_postsched_ctx *ctx, struct ir3_block *block)
 			schedule(ctx, instr);
 
 	while (!list_is_empty(&ctx->unscheduled_list)) {
-		struct ir3_instruction *instr;
-
-		instr = choose_instr(ctx);
-
-		/* this shouldn't happen: */
-		if (!instr) {
-			ctx->error = true;
-			break;
-		}
+		struct ir3_instruction *instr = choose_instr(ctx);
 
 		unsigned delay = ir3_delay_calc(ctx->block, instr, false, false);
 		d("delay=%u", delay);
@@ -672,7 +681,6 @@ cleanup_self_movs(struct ir3 *ir)
 {
 	foreach_block (block, &ir->block_list) {
 		foreach_instr_safe (instr, &block->instr_list) {
-			struct ir3_register *reg;
 
 			foreach_src (reg, instr) {
 				if (!reg->instr)
@@ -694,22 +702,20 @@ cleanup_self_movs(struct ir3 *ir)
 	}
 }
 
-int
-ir3_postsched(struct ir3_context *cctx)
+bool
+ir3_postsched(struct ir3 *ir, struct ir3_shader_variant *v)
 {
 	struct ir3_postsched_ctx ctx = {
-			.ctx = cctx,
+			.ir = ir,
+			.v  = v,
 	};
 
-	ir3_remove_nops(cctx->ir);
-	cleanup_self_movs(cctx->ir);
+	ir3_remove_nops(ir);
+	cleanup_self_movs(ir);
 
-	foreach_block (block, &cctx->ir->block_list) {
+	foreach_block (block, &ir->block_list) {
 		sched_block(&ctx, block);
 	}
 
-	if (ctx.error)
-		return -1;
-
-	return 0;
+	return true;
 }

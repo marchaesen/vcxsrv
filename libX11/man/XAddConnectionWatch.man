@@ -54,10 +54,10 @@ typedef void (*XConnectionWatchProc)\^(\^Display *\fIdisplay\fP\^, XPointer
 \fIclient_data\fP\^, int \fIfd\fP\^, Bool \fIopening\fP\^, XPointer
 *\fIwatch_data\fP\^);
 .HP
-Status XAddConnectionWatch\^(\^Display *\fIdisplay\fP\^, XWatchProc
+Status XAddConnectionWatch\^(\^Display *\fIdisplay\fP\^, XConnectionWatchProc
 \fIprocedure\fP\^, XPointer \fIclient_data\fP\^);
 .HP
-Status XRemoveConnectionWatch\^(\^Display *\fIdisplay\fP\^, XWatchProc
+void XRemoveConnectionWatch\^(\^Display *\fIdisplay\fP\^, XConnectionWatchProc
 \fIprocedure\fP\^, XPointer \fIclient_data\fP\^);
 .HP
 void XProcessInternalConnection\^(\^Display *\fIdisplay\fP\^, int \fIfd\fP\^);

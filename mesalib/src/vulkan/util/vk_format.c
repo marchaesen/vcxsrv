@@ -171,7 +171,7 @@ static const enum pipe_format vk_format_map[] = {
    [VK_FORMAT_X8_D24_UNORM_PACK32] = PIPE_FORMAT_Z24X8_UNORM,
    [VK_FORMAT_D32_SFLOAT] = PIPE_FORMAT_Z32_FLOAT,
    [VK_FORMAT_S8_UINT] = PIPE_FORMAT_S8_UINT,
-   /* Missing D16_UNORM_S8_UINT */
+   [VK_FORMAT_D16_UNORM_S8_UINT] = PIPE_FORMAT_Z16_UNORM_S8_UINT,
    [VK_FORMAT_D24_UNORM_S8_UINT] = PIPE_FORMAT_Z24_UNORM_S8_UINT,
    [VK_FORMAT_D32_SFLOAT_S8_UINT] = PIPE_FORMAT_Z32_FLOAT_S8X24_UINT,
 
@@ -244,8 +244,36 @@ static const enum pipe_format vk_format_map[] = {
 enum pipe_format
 vk_format_to_pipe_format(enum VkFormat vkformat)
 {
-   if (vkformat >= ARRAY_SIZE(vk_format_map))
-      return PIPE_FORMAT_NONE;
+   if (vkformat >= ARRAY_SIZE(vk_format_map)) {
+      switch (vkformat) {
+      case VK_FORMAT_G8B8G8R8_422_UNORM:
+         return PIPE_FORMAT_YUYV;
+      case VK_FORMAT_B8G8R8G8_422_UNORM:
+         return PIPE_FORMAT_UYVY;
+      case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
+         return PIPE_FORMAT_IYUV;
+      case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
+         return PIPE_FORMAT_NV12;
+      case VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM:
+         return PIPE_FORMAT_Y8_U8_V8_422_UNORM;
+      case VK_FORMAT_G8_B8R8_2PLANE_422_UNORM:
+         return PIPE_FORMAT_Y8_U8V8_422_UNORM;
+      case VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM:
+         return PIPE_FORMAT_Y8_U8_V8_444_UNORM;
+      case VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM:
+         return PIPE_FORMAT_Y16_U16_V16_420_UNORM;
+      case VK_FORMAT_G16_B16R16_2PLANE_420_UNORM:
+         return PIPE_FORMAT_P016;
+      case VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM:
+         return PIPE_FORMAT_Y16_U16_V16_422_UNORM;
+      case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM:
+         return PIPE_FORMAT_Y16_U16V16_422_UNORM;
+      case VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM:
+         return PIPE_FORMAT_Y16_U16_V16_444_UNORM;
+      default:
+         return PIPE_FORMAT_NONE;
+      }
+   }
 
    /* Unpopulated entries in the table must be PIPE_FORMAT_NONE */
    STATIC_ASSERT(PIPE_FORMAT_NONE == 0);

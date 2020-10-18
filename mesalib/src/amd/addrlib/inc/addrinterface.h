@@ -3349,17 +3349,23 @@ typedef struct _ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT
     UINT_32             mipId;               ///< mipmap level id
 
     ADDR2_META_FLAGS    dccKeyFlags;         ///< DCC flags
-    ADDR2_SURFACE_FLAGS colorFlags;          ///< Color surface flags
     AddrResourceType    resourceType;        ///< Color surface type
     AddrSwizzleMode     swizzleMode;         ///< Color surface swizzle mode
     UINT_32             bpp;                 ///< Color surface bits per pixel
-    UINT_32             unalignedWidth;      ///< Color surface original width (of mip0)
-    UINT_32             unalignedHeight;     ///< Color surface original height (of mip0)
     UINT_32             numSlices;           ///< Color surface original slices (of mip0)
     UINT_32             numMipLevels;        ///< Color surface mipmap levels
     UINT_32             numFrags;            ///< Color surface fragment number
 
     UINT_32             pipeXor;             ///< pipe Xor setting
+    UINT_32             pitch;               ///< ADDR2_COMPUTE_DCC_INFO_OUTPUT::pitch
+    UINT_32             height;              ///< ADDR2_COMPUTE_DCC_INFO_OUTPUT::height
+    UINT_32             compressBlkWidth;    ///< ADDR2_COMPUTE_DCC_INFO_OUTPUT::compressBlkWidth
+    UINT_32             compressBlkHeight;   ///< ADDR2_COMPUTE_DCC_INFO_OUTPUT::compressBlkHeight
+    UINT_32             compressBlkDepth;    ///< ADDR2_COMPUTE_DCC_INFO_OUTPUT::compressBlkDepth
+    UINT_32             metaBlkWidth;        ///< ADDR2_COMPUTE_DCC_INFO_OUTPUT::metaBlkWidth
+    UINT_32             metaBlkHeight;       ///< ADDR2_COMPUTE_DCC_INFO_OUTPUT::metaBlkHeight
+    UINT_32             metaBlkDepth;        ///< ADDR2_COMPUTE_DCC_INFO_OUTPUT::metaBlkDepth
+    UINT_32             dccRamSliceSize;     ///< ADDR2_COMPUTE_DCC_INFO_OUTPUT::dccRamSliceSize
 } ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT;
 
 /**

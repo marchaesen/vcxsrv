@@ -987,62 +987,41 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeDccAddrFromCoord(
     }
     else
     {
-        ADDR2_COMPUTE_DCCINFO_INPUT input = {0};
-        input.size            = sizeof(input);
-        input.dccKeyFlags     = pIn->dccKeyFlags;
-        input.colorFlags      = pIn->colorFlags;
-        input.swizzleMode     = pIn->swizzleMode;
-        input.resourceType    = pIn->resourceType;
-        input.bpp             = pIn->bpp;
-        input.unalignedWidth  = Max(pIn->unalignedWidth, 1u);
-        input.unalignedHeight = Max(pIn->unalignedHeight, 1u);
-        input.numSlices       = Max(pIn->numSlices, 1u);
-        input.numFrags        = Max(pIn->numFrags, 1u);
-        input.numMipLevels    = Max(pIn->numMipLevels, 1u);
+        UINT_32 elementBytesLog2  = Log2(pIn->bpp >> 3);
+        UINT_32 numSamplesLog2    = Log2(pIn->numFrags);
+        UINT_32 metaBlkWidthLog2  = Log2(pIn->metaBlkWidth);
+        UINT_32 metaBlkHeightLog2 = Log2(pIn->metaBlkHeight);
+        UINT_32 metaBlkDepthLog2  = Log2(pIn->metaBlkDepth);
+        UINT_32 compBlkWidthLog2  = Log2(pIn->compressBlkWidth);
+        UINT_32 compBlkHeightLog2 = Log2(pIn->compressBlkHeight);
+        UINT_32 compBlkDepthLog2  = Log2(pIn->compressBlkDepth);
 
-        ADDR2_COMPUTE_DCCINFO_OUTPUT output = {0};
-        output.size = sizeof(output);
+        MetaEqParams metaEqParams = {pIn->mipId, elementBytesLog2, numSamplesLog2, pIn->dccKeyFlags,
+                                     Gfx9DataColor, pIn->swizzleMode, pIn->resourceType,
+                                     metaBlkWidthLog2, metaBlkHeightLog2, metaBlkDepthLog2,
+                                     compBlkWidthLog2, compBlkHeightLog2, compBlkDepthLog2};
 
-        returnCode = ComputeDccInfo(&input, &output);
+        const CoordEq* pMetaEq = GetMetaEquation(metaEqParams);
 
-        if (returnCode == ADDR_OK)
-        {
-            UINT_32 elementBytesLog2  = Log2(pIn->bpp >> 3);
-            UINT_32 numSamplesLog2    = Log2(pIn->numFrags);
-            UINT_32 metaBlkWidthLog2  = Log2(output.metaBlkWidth);
-            UINT_32 metaBlkHeightLog2 = Log2(output.metaBlkHeight);
-            UINT_32 metaBlkDepthLog2  = Log2(output.metaBlkDepth);
-            UINT_32 compBlkWidthLog2  = Log2(output.compressBlkWidth);
-            UINT_32 compBlkHeightLog2 = Log2(output.compressBlkHeight);
-            UINT_32 compBlkDepthLog2  = Log2(output.compressBlkDepth);
+        UINT_32 xb = pIn->x / pIn->metaBlkWidth;
+        UINT_32 yb = pIn->y / pIn->metaBlkHeight;
+        UINT_32 zb = pIn->slice / pIn->metaBlkDepth;
 
-            MetaEqParams metaEqParams = {pIn->mipId, elementBytesLog2, numSamplesLog2, pIn->dccKeyFlags,
-                                         Gfx9DataColor, pIn->swizzleMode, pIn->resourceType,
-                                         metaBlkWidthLog2, metaBlkHeightLog2, metaBlkDepthLog2,
-                                         compBlkWidthLog2, compBlkHeightLog2, compBlkDepthLog2};
+        UINT_32 pitchInBlock     = pIn->pitch / pIn->metaBlkWidth;
+        UINT_32 sliceSizeInBlock = (pIn->height / pIn->metaBlkHeight) * pitchInBlock;
+        UINT_32 blockIndex       = zb * sliceSizeInBlock + yb * pitchInBlock + xb;
 
-            const CoordEq* pMetaEq = GetMetaEquation(metaEqParams);
+        UINT_32 coords[] = { pIn->x, pIn->y, pIn->slice, pIn->sample, blockIndex };
+        UINT_64 address = pMetaEq->solve(coords);
 
-            UINT_32 xb = pIn->x / output.metaBlkWidth;
-            UINT_32 yb = pIn->y / output.metaBlkHeight;
-            UINT_32 zb = pIn->slice / output.metaBlkDepth;
+        pOut->addr = address >> 1;
 
-            UINT_32 pitchInBlock     = output.pitch / output.metaBlkWidth;
-            UINT_32 sliceSizeInBlock = (output.height / output.metaBlkHeight) * pitchInBlock;
-            UINT_32 blockIndex       = zb * sliceSizeInBlock + yb * pitchInBlock + xb;
+        UINT_32 numPipeBits = GetPipeLog2ForMetaAddressing(pIn->dccKeyFlags.pipeAligned,
+                                                           pIn->swizzleMode);
 
-            UINT_32 coords[] = { pIn->x, pIn->y, pIn->slice, pIn->sample, blockIndex };
-            UINT_64 address = pMetaEq->solve(coords);
+        UINT_64 pipeXor = static_cast<UINT_64>(pIn->pipeXor & ((1 << numPipeBits) - 1));
 
-            pOut->addr = address >> 1;
-
-            UINT_32 numPipeBits = GetPipeLog2ForMetaAddressing(pIn->dccKeyFlags.pipeAligned,
-                                                               pIn->swizzleMode);
-
-            UINT_64 pipeXor = static_cast<UINT_64>(pIn->pipeXor & ((1 << numPipeBits) - 1));
-
-            pOut->addr ^= (pipeXor << m_pipeInterleaveLog2);
-        }
+        pOut->addr ^= (pipeXor << m_pipeInterleaveLog2);
     }
 
     return returnCode;
@@ -1067,7 +1046,7 @@ BOOL_32 Gfx9Lib::HwlInitGlobalParams(
 
     if (m_settings.isArcticIsland)
     {
-        GB_ADDR_CONFIG gbAddrConfig;
+        GB_ADDR_CONFIG_gfx9 gbAddrConfig;
 
         gbAddrConfig.u32All = pCreateIn->regValue.gbAddrConfig;
 

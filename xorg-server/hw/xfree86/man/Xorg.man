@@ -561,7 +561,7 @@ vesa(@drivermansuffix@),
 vmware(@drivermansuffix@),
 .br
 Web site
-.IR <http://www.x.org> .
+.IR <https://www.x.org> .
 
 .SH AUTHORS
 Xorg has many contributors world wide.  The names of most of them
@@ -614,9 +614,9 @@ Orest Zborowski    \fIorestz@eskimo.com\fP
 .PP
 Xorg source is available from the FTP server
 \fI<ftp://ftp.x.org/>\fP, and from the X.Org
-server \fI<http://gitweb.freedesktop.org/>\fP.  Documentation and other
+server \fI<https://gitlab.freedesktop.org/xorg/>\fP.  Documentation and other
 information can be found from the X.Org web site
-\fI<http://www.x.org/>\fP.
+\fI<https://www.x.org/>\fP.
 
 .SH LEGAL
 .PP
@@ -626,7 +626,7 @@ and redistribution in source and binary form without fee.
 .B Xorg is copyright by numerous authors and
 contributors from around the world.  Licensing information can be found
 at
-.IR <http://www.x.org> .
+.IR <https://www.x.org> .
 Refer to the source code for specific copyright notices.
 .PP
 .B XFree86(TM)

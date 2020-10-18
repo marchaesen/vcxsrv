@@ -50,7 +50,7 @@
 XInternAtom, XInternAtoms, XGetAtomName, XGetAtomNames \- create or return atom names
 .SH SYNTAX
 .HP
-Atom XInternAtom\^(\^Display *\fIdisplay\fP\^, char *\fIatom_name\fP\^, Bool
+Atom XInternAtom\^(\^Display *\fIdisplay\fP\^, _Xconst char *\fIatom_name\fP\^, Bool
 \fIonly_if_exists\fP\^);
 .HP
 Status XInternAtoms\^(\^Display *\fIdisplay\fP\^, char **\fInames\fP\^, int

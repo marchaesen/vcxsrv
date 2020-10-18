@@ -2,8 +2,29 @@
 
 set -e
 
-echo "Waiting for $1 to say '$2'"
+STRINGS=$(mktemp)
+ERRORS=$(mktemp)
 
-while ! grep -q "$2" $1; do
+trap "rm $STRINGS; rm $ERRORS;" EXIT
+
+FILE=$1
+shift 1
+
+while getopts "f:e:" opt; do
+  case $opt in
+    f) echo "$OPTARG" >> $STRINGS;;
+    e) echo "$OPTARG" >> $STRINGS ; echo "$OPTARG" >> $ERRORS;;
+  esac
+done
+shift $((OPTIND -1))
+
+echo "Waiting for $FILE to say one of following strings"
+cat $STRINGS
+
+while ! egrep -wf $STRINGS $FILE; do
   sleep 2
 done
+
+if egrep -wf $ERRORS $FILE; then
+  exit 1
+fi

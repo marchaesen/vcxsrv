@@ -94,8 +94,8 @@
 #elif CHAN_BITS == 32
 
 #define CHAN_TO_UBYTE(c)  FLOAT_TO_UBYTE(c)
-#define CHAN_TO_USHORT(c) ((GLushort) (CLAMP((c), 0.0f, 1.0f) * 65535.0))
-#define CHAN_TO_SHORT(c)  ((GLshort) (CLAMP((c), 0.0f, 1.0f) * 32767.0))
+#define CHAN_TO_USHORT(c) ((GLushort) (SATURATE((c)) * 65535.0))
+#define CHAN_TO_SHORT(c)  ((GLshort) (SATURATE((c)) * 32767.0))
 #define CHAN_TO_FLOAT(c)  (c)
 
 #define CLAMPED_FLOAT_TO_CHAN(c, f)  c = (f)

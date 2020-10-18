@@ -22,20 +22,11 @@
  */
 
 #include "freedreno_layout.h"
+#include "fd_layout_test.h"
 #include "adreno_common.xml.h"
 #include "a6xx.xml.h"
 
 #include <stdio.h>
-
-struct testcase {
-	enum pipe_format format;
-
-	int array_size; /* Size for array textures, or 0 otherwise. */
-	bool is_3d;
-
-    /* Partially filled layout of input parameters and expected results. */
-	struct fdl_layout layout;
-};
 
 static const struct testcase testcases[] = {
 	/* A straightforward first testcase, linear, with an obvious format. */
@@ -365,96 +356,236 @@ static const struct testcase testcases[] = {
 				{ .offset = 8192, .pitch = 128 },
 				{ .offset = 12288, .pitch = 128 },
 				{ .offset = 16384, .pitch = 128 },
-				{ .offset = 20480, .pitch = 64 },
-				{ .offset = 20544, .pitch = 64 },
-				{ .offset = 20608, .pitch = 64 },
-				{ .offset = 20672, .pitch = 64 },
+				{ .offset = 20480, .pitch = 128 },
+				{ .offset = 20608, .pitch = 128 },
+				{ .offset = 20736, .pitch = 128 },
+				{ .offset = 20864, .pitch = 128 },
 			},
 		},
 	},
 
-};
-
-static bool test_layout(const struct testcase *testcase)
-{
-	struct fdl_layout layout = {
-		.ubwc = testcase->layout.ubwc,
-		.tile_mode = testcase->layout.tile_mode,
-	};
-	bool ok = true;
-
-	int max_size = MAX2(testcase->layout.width0, testcase->layout.height0);
-	int mip_levels = 1;
-	while (max_size > 1) {
-		mip_levels++;
-		max_size = u_minify(max_size, 1);
-	}
-
-	fdl6_layout(&layout,
-			testcase->format,
-			MAX2(testcase->layout.nr_samples, 1),
-			testcase->layout.width0,
-			MAX2(testcase->layout.height0, 1),
-			MAX2(testcase->layout.depth0, 1),
-			mip_levels,
-			MAX2(testcase->array_size, 1),
-			testcase->is_3d);
-
-	/* fdl lays out UBWC data before the color data, while all we have
-	 * recorded in this testcase are the color offsets.  Shift the fdl layout
-	 * down so we can compare color offsets.
+	/* Single-level RGBA8888 UBWC following UBWC alignment rules laid out in
+	 * msm_media_info.h to verify that we don't break buffer sharing.
 	 */
-	if (layout.ubwc) {
-		for (int l = 1; l < mip_levels; l++)
-			layout.slices[l].offset -= layout.slices[0].offset;
-		layout.slices[0].offset = 0;
-	}
+	{
+		.format = PIPE_FORMAT_R8G8B8A8_UNORM,
+		.layout = {
+			.tile_mode = TILE6_3,
+			.ubwc = true,
+			.width0 = 16384, .height0 = 129,
+			.slices = {
+				{ .offset = 1024 * 48, .pitch = 16384 * 4 },
+			},
+			.ubwc_slices = {
+				{ .offset = 0, .pitch = 1024 },
+			},
+		},
+	},
 
-	for (int l = 0; l < mip_levels; l++) {
-		if (layout.slices[l].offset != testcase->layout.slices[l].offset) {
-			fprintf(stderr, "%s %dx%dx%d@%dx lvl%d: offset 0x%x != 0x%x\n",
-					util_format_short_name(testcase->format),
-					layout.width0, layout.height0, layout.depth0,
-					layout.nr_samples, l,
-					layout.slices[l].offset,
-					testcase->layout.slices[l].offset);
-			ok = false;
-		}
-		if (layout.slices[l].pitch != testcase->layout.slices[l].pitch) {
-			fprintf(stderr, "%s %dx%dx%d@%dx lvl%d: pitch %d != %d\n",
-					util_format_short_name(testcase->format),
-					layout.width0, layout.height0, layout.depth0,
-					layout.nr_samples, l,
-					layout.slices[l].pitch,
-					testcase->layout.slices[l].pitch);
-			ok = false;
-		}
+	/* UBWC: Pitch comes from POT-aligned level 0. */
+	/* Pitch fixed in this commit, but offsets broken.  Will be fixed in
+	 * following commits.
+	 */
+	{
+		.format = PIPE_FORMAT_R8G8B8A8_UNORM,
+		.layout = {
+			.tile_mode = TILE6_3,
+			.ubwc = true,
+			.width0 = 2049, .height0 = 128,
+			.slices = {
+				{ .offset = 0, .pitch = 8448 },
+				{ .offset = 1081344, .pitch = 4352 },
+				{ .offset = 1359872, .pitch = 2304 },
+				{ .offset = 1433600, .pitch = 1280 },
+				{ .offset = 1454080, .pitch = 768 },
+				{ .offset = 1466368, .pitch = 512 },
+				{ .offset = 1474560, .pitch = 256 },
+				{ .offset = 1478656, .pitch = 256 },
+				{ .offset = 1482752, .pitch = 256 },
+				{ .offset = 1486848, .pitch = 256 },
+				{ .offset = 1490944, .pitch = 256 },
+				{ .offset = 1495040, .pitch = 256 },
+			},
+			.ubwc_slices = {
+				{ .offset = 0, .pitch = 256 },
+				{ .offset = 16384, .pitch = 128 },
+				{ .offset = 24576, .pitch = 64 },
+				{ .offset = 28672, .pitch = 64 },
+				{ .offset = 32768, .pitch = 64 },
+				{ .offset = 36864, .pitch = 64 },
+				{ .offset = 40960, .pitch = 64 },
+				{ .offset = 45056, .pitch = 64 },
+				{ .offset = 49152, .pitch = 64 },
+				{ .offset = 53248, .pitch = 64 },
+				{ .offset = 57344, .pitch = 64 },
+				{ .offset = 61440, .pitch = 64 },
+			},
+		},
+	},
+	/* UBWC: Height comes from POT-aligned level 0. */
+	{
+		.format = PIPE_FORMAT_R8G8B8A8_UNORM,
+		.layout = {
+			.tile_mode = TILE6_3,
+			.ubwc = true,
+			.width0 = 1024, .height0 = 1025,
+			.slices = {
+				{ .offset = 0, .pitch = 4096 },
+				{ .offset = 4259840, .pitch = 2048 },
+				{ .offset = 5308416, .pitch = 1024 },
+				{ .offset = 5570560, .pitch = 512 },
+				{ .offset = 5636096, .pitch = 256 },
+				{ .offset = 5652480, .pitch = 256 },
+				{ .offset = 5660672, .pitch = 256 },
+				{ .offset = 5664768, .pitch = 256 },
+				{ .offset = 5668864, .pitch = 256 },
+				{ .offset = 5672960, .pitch = 256 },
+				{ .offset = 5677056, .pitch = 256 },
+			},
+			.ubwc_slices = {
+				{ .offset = 0, .pitch = 64 },
+				{ .offset = 32768, .pitch = 64 },
+				{ .offset = 49152, .pitch = 64 },
+				{ .offset = 57344, .pitch = 64 },
+				{ .offset = 61440, .pitch = 64 },
+				{ .offset = 65536, .pitch = 64 },
+				{ .offset = 69632, .pitch = 64 },
+				{ .offset = 73728, .pitch = 64 },
+				{ .offset = 77824, .pitch = 64 },
+				{ .offset = 81920, .pitch = 64 },
+				{ .offset = 86016, .pitch = 64 },
+			},
+		},
+	},
 
-		if (layout.ubwc_slices[l].offset != testcase->layout.ubwc_slices[l].offset) {
-			fprintf(stderr, "%s %dx%dx%d@%dx lvl%d: offset 0x%x != 0x%x\n",
-					util_format_short_name(testcase->format),
-					layout.width0, layout.height0, layout.depth0,
-					layout.nr_samples, l,
-					layout.ubwc_slices[l].offset,
-					testcase->layout.ubwc_slices[l].offset);
-			ok = false;
-		}
-		if (layout.ubwc_slices[l].pitch != testcase->layout.ubwc_slices[l].pitch) {
-			fprintf(stderr, "%s %dx%dx%d@%dx lvl%d: pitch %d != %d\n",
-					util_format_short_name(testcase->format),
-					layout.width0, layout.height0, layout.depth0,
-					layout.nr_samples, l,
-					layout.ubwc_slices[l].pitch,
-					testcase->layout.ubwc_slices[l].pitch);
-			ok = false;
-		}
-	}
-
-	if (!ok)
-		fprintf(stderr, "\n");
-
-	return ok;
-}
+	/* UBWC: Get at minimum height of a level across cpps */
+	{
+		.format = PIPE_FORMAT_R16_UINT,
+		.layout = {
+			.tile_mode = TILE6_3,
+			.ubwc = true,
+			.width0 = 16384, .height0 = 1,
+			.slices = {
+				{ .offset = 0, .pitch = 32768 },
+				{ .offset = 524288, .pitch = 16384 },
+				{ .offset = 786432, .pitch = 8192 },
+				{ .offset = 917504, .pitch = 4096 },
+				{ .offset = 983040, .pitch = 2048 },
+				{ .offset = 1015808, .pitch = 1024 },
+				{ .offset = 1032192, .pitch = 512 },
+				{ .offset = 1040384, .pitch = 256 },
+				{ .offset = 1044480, .pitch = 256 },
+				{ .offset = 1048576, .pitch = 256 },
+				{ .offset = 1052672, .pitch = 256 },
+				{ .offset = 1056768, .pitch = 256 },
+				{ .offset = 1060864, .pitch = 256 },
+				{ .offset = 1064960, .pitch = 256 },
+				{ .offset = 1069056, .pitch = 256 },
+			},
+			.ubwc_slices = {
+				{ .offset = 0, .pitch = 1024 },
+				{ .offset = 65536, .pitch = 512 },
+				{ .offset = 98304, .pitch = 256 },
+				{ .offset = 114688, .pitch = 128 },
+				{ .offset = 122880, .pitch = 64 },
+				{ .offset = 126976, .pitch = 64 },
+				{ .offset = 131072, .pitch = 64 },
+				{ .offset = 135168, .pitch = 64 },
+				{ .offset = 139264, .pitch = 64 },
+				{ .offset = 143360, .pitch = 64 },
+				{ .offset = 147456, .pitch = 64 },
+				{ .offset = 151552, .pitch = 64 },
+				{ .offset = 155648, .pitch = 64 },
+				{ .offset = 159744, .pitch = 64 },
+				{ .offset = 163840, .pitch = 64 },
+			},
+		},
+	},
+	{
+		.format = PIPE_FORMAT_R8G8B8A8_UNORM,
+		.layout = {
+			.tile_mode = TILE6_3,
+			.ubwc = true,
+			.width0 = 16384, .height0 = 1,
+			.slices = {
+				{ .offset = 0, .pitch = 65536 },
+				{ .offset = 1048576, .pitch = 32768 },
+				{ .offset = 1572864, .pitch = 16384 },
+				{ .offset = 1835008, .pitch = 8192 },
+				{ .offset = 1966080, .pitch = 4096 },
+				{ .offset = 2031616, .pitch = 2048 },
+				{ .offset = 2064384, .pitch = 1024 },
+				{ .offset = 2080768, .pitch = 512 },
+				{ .offset = 2088960, .pitch = 256 },
+				{ .offset = 2093056, .pitch = 256 },
+				{ .offset = 2097152, .pitch = 256 },
+				{ .offset = 2101248, .pitch = 256 },
+				{ .offset = 2105344, .pitch = 256 },
+				{ .offset = 2109440, .pitch = 256 },
+				{ .offset = 2113536, .pitch = 256 },
+			},
+			.ubwc_slices = {
+				{ .offset = 0, .pitch = 1024 },
+				{ .offset = 65536, .pitch = 512 },
+				{ .offset = 98304, .pitch = 256 },
+				{ .offset = 114688, .pitch = 128 },
+				{ .offset = 122880, .pitch = 64 },
+				{ .offset = 126976, .pitch = 64 },
+				{ .offset = 131072, .pitch = 64 },
+				{ .offset = 135168, .pitch = 64 },
+				{ .offset = 139264, .pitch = 64 },
+				{ .offset = 143360, .pitch = 64 },
+				{ .offset = 147456, .pitch = 64 },
+				{ .offset = 151552, .pitch = 64 },
+				{ .offset = 155648, .pitch = 64 },
+				{ .offset = 159744, .pitch = 64 },
+				{ .offset = 163840, .pitch = 64 },
+			},
+		},
+	},
+	{
+		.format = PIPE_FORMAT_R32G32B32A32_FLOAT,
+		.layout = {
+			.tile_mode = TILE6_3,
+			.ubwc = true,
+			.width0 = 16384, .height0 = 1,
+			.slices = {
+				{ .offset = 0, .pitch = 262144 },
+				{ .offset = 4194304, .pitch = 131072 },
+				{ .offset = 6291456, .pitch = 65536 },
+				{ .offset = 7340032, .pitch = 32768 },
+				{ .offset = 7864320, .pitch = 16384 },
+				{ .offset = 8126464, .pitch = 8192 },
+				{ .offset = 8257536, .pitch = 4096 },
+				{ .offset = 8323072, .pitch = 2048 },
+				{ .offset = 8355840, .pitch = 1024 },
+				{ .offset = 8372224, .pitch = 1024 },
+				{ .offset = 8388608, .pitch = 1024 },
+				{ .offset = 8404992, .pitch = 1024 },
+				{ .offset = 8421376, .pitch = 1024 },
+				{ .offset = 8437760, .pitch = 1024 },
+				{ .offset = 8454144, .pitch = 1024 },
+			},
+			.ubwc_slices = {
+				{ .offset = 0, .pitch = 4096 },
+				{ .offset = 262144, .pitch = 2048 },
+				{ .offset = 393216, .pitch = 1024 },
+				{ .offset = 458752, .pitch = 512 },
+				{ .offset = 491520, .pitch = 256 },
+				{ .offset = 507904, .pitch = 128 },
+				{ .offset = 516096, .pitch = 64 },
+				{ .offset = 520192, .pitch = 64 },
+				{ .offset = 524288, .pitch = 64 },
+				{ .offset = 528384, .pitch = 64 },
+				{ .offset = 532480, .pitch = 64 },
+				{ .offset = 536576, .pitch = 64 },
+				{ .offset = 540672, .pitch = 64 },
+				{ .offset = 544768, .pitch = 64 },
+				{ .offset = 548864, .pitch = 64 },
+			},
+		},
+	},
+};
 
 int
 main(int argc, char **argv)
@@ -462,7 +593,7 @@ main(int argc, char **argv)
 	int ret = 0;
 
 	for (int i = 0; i < ARRAY_SIZE(testcases); i++) {
-		if (!test_layout(&testcases[i]))
+		if (!fdl_test_layout(&testcases[i], 630))
 			ret = 1;
 	}
 

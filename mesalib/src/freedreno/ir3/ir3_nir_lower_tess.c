@@ -38,10 +38,10 @@ struct state {
 
 	nir_variable *vertex_count_var;
 	nir_variable *emitted_vertex_var;
-	nir_variable *vertex_flags_var;
 	nir_variable *vertex_flags_out;
 
-	nir_variable *output_vars[32];
+	struct exec_list old_outputs;
+	struct exec_list emit_outputs;
 
 	nir_ssa_def *outer_levels[4];
 	nir_ssa_def *inner_levels[2];
@@ -179,7 +179,7 @@ build_primitive_map(nir_shader *shader, struct primitive_map *map, struct exec_l
 }
 
 static void
-lower_vs_block(nir_block *block, nir_builder *b, struct state *state)
+lower_block_to_explicit_output(nir_block *block, nir_builder *b, struct state *state)
 {
 	nir_foreach_instr_safe (instr, block) {
 		if (instr->type != nir_instr_type_intrinsic)
@@ -191,6 +191,13 @@ lower_vs_block(nir_block *block, nir_builder *b, struct state *state)
 		case nir_intrinsic_store_output: {
 			// src[] = { value, offset }.
 
+			/* nir_lower_io_to_temporaries replaces all access to output
+			 * variables with temp variables and then emits a nir_copy_var at
+			 * the end of the shader.  Thus, we should always get a full wrmask
+			 * here.
+			 */
+			assert(util_is_power_of_two_nonzero(nir_intrinsic_write_mask(intr) + 1));
+
 			b->cursor = nir_instr_remove(&intr->instr);
 
 			nir_ssa_def *vertex_id = build_vertex_id(b, state);
@@ -199,10 +206,8 @@ lower_vs_block(nir_block *block, nir_builder *b, struct state *state)
 			nir_intrinsic_instr *store =
 				nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_shared_ir3);
 
-			nir_intrinsic_set_write_mask(store, MASK(intr->num_components));
 			store->src[0] = nir_src_for_ssa(intr->src[0].ssa);
 			store->src[1] = nir_src_for_ssa(offset);
-
 			store->num_components = intr->num_components;
 
 			nir_builder_instr_insert(b, &store->instr);
@@ -222,12 +227,13 @@ local_thread_id(nir_builder *b)
 }
 
 void
-ir3_nir_lower_to_explicit_io(nir_shader *shader, struct ir3_shader *s, unsigned topology)
+ir3_nir_lower_to_explicit_output(nir_shader *shader, struct ir3_shader_variant *v,
+		unsigned topology)
 {
 	struct state state = { };
 
 	build_primitive_map(shader, &state.map, &shader->outputs);
-	memcpy(s->output_loc, state.map.loc, sizeof(s->output_loc));
+	memcpy(v->output_loc, state.map.loc, sizeof(v->output_loc));
 
 	nir_function_impl *impl = nir_shader_get_entrypoint(shader);
 	assert(impl);
@@ -236,19 +242,81 @@ ir3_nir_lower_to_explicit_io(nir_shader *shader, struct ir3_shader *s, unsigned 
 	nir_builder_init(&b, impl);
 	b.cursor = nir_before_cf_list(&impl->body);
 
-	if (s->type == MESA_SHADER_VERTEX && topology != IR3_TESS_NONE)
+	if (v->type == MESA_SHADER_VERTEX && topology != IR3_TESS_NONE)
 		state.header = nir_load_tcs_header_ir3(&b);
 	else
 		state.header = nir_load_gs_header_ir3(&b);
 
 	nir_foreach_block_safe (block, impl)
-		lower_vs_block(block, &b, &state);
+		lower_block_to_explicit_output(block, &b, &state);
 
 	nir_metadata_preserve(impl, nir_metadata_block_index |
 			nir_metadata_dominance);
 
-	s->output_size = state.map.stride;
+	v->output_size = state.map.stride;
 }
+
+
+static void
+lower_block_to_explicit_input(nir_block *block, nir_builder *b, struct state *state)
+{
+	nir_foreach_instr_safe (instr, block) {
+		if (instr->type != nir_instr_type_intrinsic)
+			continue;
+
+		nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+
+		switch (intr->intrinsic) {
+		case nir_intrinsic_load_per_vertex_input: {
+			// src[] = { vertex, offset }.
+
+			b->cursor = nir_before_instr(&intr->instr);
+
+			nir_ssa_def *offset = build_local_offset(b, state,
+					intr->src[0].ssa, // this is typically gl_InvocationID
+					nir_intrinsic_base(intr),
+					intr->src[1].ssa);
+
+			replace_intrinsic(b, intr, nir_intrinsic_load_shared_ir3, offset, NULL, NULL);
+			break;
+		}
+
+		case nir_intrinsic_load_invocation_id: {
+			b->cursor = nir_before_instr(&intr->instr);
+
+			nir_ssa_def *iid = build_invocation_id(b, state);
+			nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(iid));
+			nir_instr_remove(&intr->instr);
+			break;
+		}
+
+		default:
+			break;
+		}
+	}
+}
+
+void
+ir3_nir_lower_to_explicit_input(nir_shader *shader)
+{
+ 	struct state state = { };
+
+	nir_function_impl *impl = nir_shader_get_entrypoint(shader);
+	assert(impl);
+
+	nir_builder b;
+	nir_builder_init(&b, impl);
+	b.cursor = nir_before_cf_list(&impl->body);
+
+	if (shader->info.stage == MESA_SHADER_GEOMETRY)
+		state.header = nir_load_gs_header_ir3(&b);
+	else
+		state.header = nir_load_tcs_header_ir3(&b);
+
+	nir_foreach_block_safe (block, impl)
+		lower_block_to_explicit_input(block, &b, &state);
+}
+
 
 static nir_ssa_def *
 build_per_vertex_offset(nir_builder *b, struct state *state,
@@ -339,15 +407,6 @@ lower_tess_ctrl_block(nir_block *block, nir_builder *b, struct state *state)
 		nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
 		switch (intr->intrinsic) {
-		case nir_intrinsic_load_invocation_id:
-			b->cursor = nir_before_instr(&intr->instr);
-
-			nir_ssa_def *invocation_id = build_invocation_id(b, state);
-			nir_ssa_def_rewrite_uses(&intr->dest.ssa,
-									 nir_src_for_ssa(invocation_id));
-			nir_instr_remove(&intr->instr);
-			break;
-
 		case nir_intrinsic_control_barrier:
 		case nir_intrinsic_memory_barrier_tcs_patch:
 			/* Hull shaders dispatch 32 wide so an entire patch will always
@@ -378,32 +437,22 @@ lower_tess_ctrl_block(nir_block *block, nir_builder *b, struct state *state)
 
 			b->cursor = nir_before_instr(&intr->instr);
 
+			/* nir_lower_io_to_temporaries replaces all access to output
+			 * variables with temp variables and then emits a nir_copy_var at
+			 * the end of the shader.  Thus, we should always get a full wrmask
+			 * here.
+			 */
+			assert(util_is_power_of_two_nonzero(nir_intrinsic_write_mask(intr) + 1));
+
 			nir_ssa_def *value = intr->src[0].ssa;
 			nir_ssa_def *address = nir_load_tess_param_base_ir3(b);
 			nir_variable *var = get_var(&b->shader->outputs, nir_intrinsic_base(intr));
 			nir_ssa_def *offset = build_per_vertex_offset(b, state,
 					intr->src[1].ssa, intr->src[2].ssa, var);
 
-			nir_intrinsic_instr *store =
-				replace_intrinsic(b, intr, nir_intrinsic_store_global_ir3, value, address,
-								  nir_iadd(b, offset, nir_imm_int(b, nir_intrinsic_component(intr))));
+			replace_intrinsic(b, intr, nir_intrinsic_store_global_ir3, value, address,
+					nir_iadd(b, offset, nir_imm_int(b, nir_intrinsic_component(intr))));
 
-			nir_intrinsic_set_write_mask(store, nir_intrinsic_write_mask(intr));
-
-			break;
-		}
-
-		case nir_intrinsic_load_per_vertex_input: {
-			// src[] = { vertex, offset }.
-
-			b->cursor = nir_before_instr(&intr->instr);
-
-			nir_ssa_def *offset = build_local_offset(b, state,
-					intr->src[0].ssa, // this is typically gl_InvocationID
-					nir_intrinsic_base(intr),
-					intr->src[1].ssa);
-
-			replace_intrinsic(b, intr, nir_intrinsic_load_shared_ir3, offset, NULL, NULL);
 			break;
 		}
 
@@ -454,9 +503,12 @@ lower_tess_ctrl_block(nir_block *block, nir_builder *b, struct state *state)
 			b->cursor = nir_before_instr(&intr->instr);
 
 			if (levels) {
-				for (int i = 0; i < 4; i++)
-					if (nir_intrinsic_write_mask(intr) & (1 << i))
-						levels[i] = nir_channel(b, intr->src[0].ssa, i);
+				for (int i = 0; i < 4; i++) {
+					if (nir_intrinsic_write_mask(intr) & (1 << i)) {
+						uint32_t component = nir_intrinsic_component(intr);
+						levels[i + component] = nir_channel(b, intr->src[0].ssa, i);
+					}
+				}
 				nir_instr_remove(&intr->instr);
 			} else {
 				nir_ssa_def *address = nir_load_tess_param_base_ir3(b);
@@ -464,11 +516,15 @@ lower_tess_ctrl_block(nir_block *block, nir_builder *b, struct state *state)
 
 				debug_assert(nir_intrinsic_component(intr) == 0);
 
-				nir_intrinsic_instr *store =
-					replace_intrinsic(b, intr, nir_intrinsic_store_global_ir3,
-							intr->src[0].ssa, address, offset);
+				/* nir_lower_io_to_temporaries replaces all access to output
+				 * variables with temp variables and then emits a nir_copy_var at
+				 * the end of the shader.  Thus, we should always get a full wrmask
+				 * here.
+				 */
+				assert(util_is_power_of_two_nonzero(nir_intrinsic_write_mask(intr) + 1));
 
-				nir_intrinsic_set_write_mask(store, nir_intrinsic_write_mask(intr));
+				replace_intrinsic(b, intr, nir_intrinsic_store_global_ir3,
+						intr->src[0].ssa, address, offset);
 			}
 			break;
 		}
@@ -484,6 +540,9 @@ emit_tess_epilouge(nir_builder *b, struct state *state)
 {
 	nir_ssa_def *tessfactor_address = nir_load_tess_factor_base_ir3(b);
 	nir_ssa_def *levels[2];
+
+	if (!state->outer_levels[0])
+		return;
 
 	/* Then emit the epilogue that actually writes out the tessellation levels
 	 * to the BOs.
@@ -517,7 +576,6 @@ emit_tess_epilouge(nir_builder *b, struct state *state)
 	store->src[2] = nir_src_for_ssa(offset);
 	nir_builder_instr_insert(b, &store->instr);
 	store->num_components = levels[0]->num_components;
-	nir_intrinsic_set_write_mask(store, (1 << levels[0]->num_components) - 1);
 
 	if (levels[1]) {
 		store = nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_global_ir3);
@@ -528,7 +586,6 @@ emit_tess_epilouge(nir_builder *b, struct state *state)
 		store->src[2] = nir_src_for_ssa(offset);
 		nir_builder_instr_insert(b, &store->instr);
 		store->num_components = levels[1]->num_components;
-		nir_intrinsic_set_write_mask(store, (1 << levels[1]->num_components) - 1);
 	}
 
 	/* Finally, Insert endpatch instruction:
@@ -542,7 +599,8 @@ emit_tess_epilouge(nir_builder *b, struct state *state)
 }
 
 void
-ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader *s, unsigned topology)
+ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader_variant *v,
+		unsigned topology)
 {
 	struct state state = { .topology = topology };
 
@@ -553,8 +611,8 @@ ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader *s, unsigned topol
 	}
 
 	build_primitive_map(shader, &state.map, &shader->outputs);
-	memcpy(s->output_loc, state.map.loc, sizeof(s->output_loc));
-	s->output_size = state.map.stride;
+	memcpy(v->output_loc, state.map.loc, sizeof(v->output_loc));
+	v->output_size = state.map.stride;
 
 	nir_function_impl *impl = nir_shader_get_entrypoint(shader);
 	assert(impl);
@@ -654,6 +712,7 @@ lower_tess_eval_block(nir_block *block, nir_builder *b, struct state *state)
 
 		case nir_intrinsic_load_tess_level_inner:
 		case nir_intrinsic_load_tess_level_outer: {
+				unsigned dest_comp = nir_intrinsic_dest_components(intr);
 				b->cursor = nir_before_instr(&intr->instr);
 
 				gl_varying_slot slot;
@@ -672,7 +731,7 @@ lower_tess_eval_block(nir_block *block, nir_builder *b, struct state *state)
 				 * component individually.
 				 */
 				nir_ssa_def *levels[4];
-				for (unsigned i = 0; i < intr->num_components; i++) {
+				for (unsigned i = 0; i < dest_comp; i++) {
 					nir_intrinsic_instr *new_intr =
 						nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_global_ir3);
 
@@ -684,7 +743,7 @@ lower_tess_eval_block(nir_block *block, nir_builder *b, struct state *state)
 					levels[i] = &new_intr->dest.ssa;
 				}
 
-				nir_ssa_def *v = nir_vec(b, levels, intr->num_components);
+				nir_ssa_def *v = nir_vec(b, levels, dest_comp);
 
 				nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(v));
 
@@ -743,8 +802,6 @@ ir3_nir_lower_tess_eval(nir_shader *shader, unsigned topology)
 static void
 lower_gs_block(nir_block *block, nir_builder *b, struct state *state)
 {
-	nir_intrinsic_instr *outputs[32] = {};
-
 	nir_foreach_instr_safe (instr, block) {
 		if (instr->type != nir_instr_type_intrinsic)
 			continue;
@@ -752,38 +809,24 @@ lower_gs_block(nir_block *block, nir_builder *b, struct state *state)
 		nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
 		switch (intr->intrinsic) {
-		case nir_intrinsic_store_output: {
-			// src[] = { value, offset }.
-
-			uint32_t loc = nir_intrinsic_base(intr);
-			outputs[loc] = intr;
-			break;
-		}
-
 		case nir_intrinsic_end_primitive: {
 			b->cursor = nir_before_instr(&intr->instr);
-			nir_store_var(b, state->vertex_flags_var, nir_imm_int(b, 4), 0x1);
+			nir_store_var(b, state->vertex_flags_out, nir_imm_int(b, 4), 0x1);
 			nir_instr_remove(&intr->instr);
 			break;
 		}
 
 		case nir_intrinsic_emit_vertex: {
-
 			/* Load the vertex count */
 			b->cursor = nir_before_instr(&intr->instr);
 			nir_ssa_def *count = nir_load_var(b, state->vertex_count_var);
 
 			nir_push_if(b, nir_ieq(b, count, local_thread_id(b)));
 
-			for (uint32_t i = 0; i < ARRAY_SIZE(outputs); i++) {
-				if (outputs[i]) {
-					nir_store_var(b, state->output_vars[i],
-							outputs[i]->src[0].ssa,
-							(1 << outputs[i]->num_components) - 1);
-
-					nir_instr_remove(&outputs[i]->instr);
-				}
-				outputs[i] = NULL;
+			foreach_two_lists(dest_node, &state->emit_outputs, src_node, &state->old_outputs) {
+				nir_variable *dest = exec_node_data(nir_variable, dest_node, node);
+				nir_variable *src = exec_node_data(nir_variable, src_node, node);
+				nir_copy_var(b, dest, src);
 			}
 
 			nir_instr_remove(&intr->instr);
@@ -791,39 +834,13 @@ lower_gs_block(nir_block *block, nir_builder *b, struct state *state)
 			nir_store_var(b, state->emitted_vertex_var,
 					nir_iadd(b, nir_load_var(b, state->emitted_vertex_var), nir_imm_int(b, 1)), 0x1);
 
-			nir_store_var(b, state->vertex_flags_out,
-					nir_load_var(b, state->vertex_flags_var), 0x1);
-
 			nir_pop_if(b, NULL);
 
 			/* Increment the vertex count by 1 */
 			nir_store_var(b, state->vertex_count_var,
 					nir_iadd(b, count, nir_imm_int(b, 1)), 0x1); /* .x */
-			nir_store_var(b, state->vertex_flags_var, nir_imm_int(b, 0), 0x1);
+			nir_store_var(b, state->vertex_flags_out, nir_imm_int(b, 0), 0x1);
 
-			break;
-		}
-
-		case nir_intrinsic_load_per_vertex_input: {
-			// src[] = { vertex, offset }.
-
-			b->cursor = nir_before_instr(&intr->instr);
-
-			nir_ssa_def *offset = build_local_offset(b, state,
-					intr->src[0].ssa, // this is typically gl_InvocationID
-					nir_intrinsic_base(intr),
-					intr->src[1].ssa);
-
-			replace_intrinsic(b, intr, nir_intrinsic_load_shared_ir3, offset, NULL, NULL);
-			break;
-		}
-
-		case nir_intrinsic_load_invocation_id: {
-			b->cursor = nir_before_instr(&intr->instr);
-
-			nir_ssa_def *iid = build_invocation_id(b, state);
-			nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(iid));
-			nir_instr_remove(&intr->instr);
 			break;
 		}
 
@@ -833,50 +850,8 @@ lower_gs_block(nir_block *block, nir_builder *b, struct state *state)
 	}
 }
 
-static void
-emit_store_outputs(nir_builder *b, struct state *state)
-{
-	/* This also stores the internally added vertex_flags output. */
-
-	for (uint32_t i = 0; i < ARRAY_SIZE(state->output_vars); i++) {
-		if (!state->output_vars[i])
-			continue;
-
-		nir_intrinsic_instr *store =
-			nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_output);
-
-		nir_intrinsic_set_base(store, i);
-		store->src[0] = nir_src_for_ssa(nir_load_var(b, state->output_vars[i]));
-		store->src[1] = nir_src_for_ssa(nir_imm_int(b, 0));
-		store->num_components = store->src[0].ssa->num_components;
-
-		nir_builder_instr_insert(b, &store->instr);
-	}
-}
-
-static void
-clean_up_split_vars(nir_shader *shader, struct exec_list *list)
-{
-	uint32_t components[32] = {};
-
-	nir_foreach_variable (var, list) {
-		uint32_t mask =
-			((1 << glsl_get_components(glsl_without_array(var->type))) - 1) << var->data.location_frac;
-		components[var->data.driver_location] |= mask;
-	}
-
-	nir_foreach_variable_safe (var, list) {
-		uint32_t mask =
-			((1 << glsl_get_components(glsl_without_array(var->type))) - 1) << var->data.location_frac;
-		bool subset =
-			(components[var->data.driver_location] | mask) != mask;
-		if (subset)
-			exec_node_remove(&var->node);
-	}
-}
-
 void
-ir3_nir_lower_gs(nir_shader *shader, struct ir3_shader *s)
+ir3_nir_lower_gs(nir_shader *shader)
 {
 	struct state state = { };
 
@@ -885,15 +860,17 @@ ir3_nir_lower_gs(nir_shader *shader, struct ir3_shader *s)
 		nir_print_shader(shader, stderr);
 	}
 
-	clean_up_split_vars(shader, &shader->inputs);
-	clean_up_split_vars(shader, &shader->outputs);
-
 	build_primitive_map(shader, &state.map, &shader->inputs);
 
+	/* Create an output var for vertex_flags. This will be shadowed below,
+	 * same way regular outputs get shadowed, and this variable will become a
+	 * temporary.
+	 */
 	state.vertex_flags_out = nir_variable_create(shader, nir_var_shader_out,
 			glsl_uint_type(), "vertex_flags");
 	state.vertex_flags_out->data.driver_location = shader->num_outputs++;
 	state.vertex_flags_out->data.location = VARYING_SLOT_GS_VERTEX_FLAGS_IR3;
+	state.vertex_flags_out->data.interpolation = INTERP_MODE_NONE;
 
 	nir_function_impl *impl = nir_shader_get_entrypoint(shader);
 	assert(impl);
@@ -904,25 +881,48 @@ ir3_nir_lower_gs(nir_shader *shader, struct ir3_shader *s)
 
 	state.header = nir_load_gs_header_ir3(&b);
 
-	nir_foreach_variable (var, &shader->outputs) {
-		state.output_vars[var->data.driver_location] = 
-			nir_local_variable_create(impl, var->type,
-					ralloc_asprintf(var, "%s:gs-temp", var->name));
+	/* Generate two set of shadow vars for the output variables.  The first
+	 * set replaces the real outputs and the second set (emit_outputs) we'll
+	 * assign in the emit_vertex conditionals.  Then at the end of the shader
+	 * we copy the emit_outputs to the real outputs, so that we get
+	 * store_output in uniform control flow.
+	 */
+	exec_list_move_nodes_to(&shader->outputs, &state.old_outputs);
+	exec_list_make_empty(&state.emit_outputs);
+	nir_foreach_variable(var, &state.old_outputs) {
+		/* Create a new output var by cloning the original output var and
+		 * stealing the name.
+		 */
+		nir_variable *output = nir_variable_clone(var, shader);
+		exec_list_push_tail(&shader->outputs, &output->node);
+
+		/* Rewrite the original output to be a shadow variable. */
+		var->name = ralloc_asprintf(var, "%s@gs-temp", output->name);
+		var->data.mode = nir_var_shader_temp;
+
+		/* Clone the shadow variable to create the emit shadow variable that
+		 * we'll assign in the emit conditionals.
+		 */
+		nir_variable *emit_output = nir_variable_clone(var, shader);
+		emit_output->name = ralloc_asprintf(var, "%s@emit-temp", output->name);
+		exec_list_push_tail(&state.emit_outputs, &emit_output->node);
 	}
 
+	/* During the shader we'll keep track of which vertex we're currently
+	 * emitting for the EmitVertex test and how many vertices we emitted so we
+	 * know to discard if didn't emit any.  In most simple shaders, this can
+	 * all be statically determined and gets optimized away.
+	 */
 	state.vertex_count_var =
 		nir_local_variable_create(impl, glsl_uint_type(), "vertex_count");
 	state.emitted_vertex_var =
 		nir_local_variable_create(impl, glsl_uint_type(), "emitted_vertex");
-	state.vertex_flags_var =
-		nir_local_variable_create(impl, glsl_uint_type(), "vertex_flags");
-	state.vertex_flags_out = state.output_vars[state.vertex_flags_out->data.driver_location];
 
-	/* initialize to 0 */
+	/* Initialize to 0. */
 	b.cursor = nir_before_cf_list(&impl->body);
 	nir_store_var(&b, state.vertex_count_var, nir_imm_int(&b, 0), 0x1);
 	nir_store_var(&b, state.emitted_vertex_var, nir_imm_int(&b, 0), 0x1);
-	nir_store_var(&b, state.vertex_flags_var, nir_imm_int(&b, 4), 0x1);
+	nir_store_var(&b, state.vertex_flags_out, nir_imm_int(&b, 4), 0x1);
 
 	nir_foreach_block_safe (block, impl)
 		lower_gs_block(block, &b, &state);
@@ -940,10 +940,23 @@ ir3_nir_lower_gs(nir_shader *shader, struct ir3_shader *s)
 
 		nir_builder_instr_insert(&b, &discard_if->instr);
 
-		emit_store_outputs(&b, &state);
+		foreach_two_lists(dest_node, &shader->outputs, src_node, &state.emit_outputs) {
+			nir_variable *dest = exec_node_data(nir_variable, dest_node, node);
+			nir_variable *src = exec_node_data(nir_variable, src_node, node);
+			nir_copy_var(&b, dest, src);
+		}
 	}
 
+	exec_list_append(&shader->globals, &state.old_outputs);
+	exec_list_append(&shader->globals, &state.emit_outputs);
+
 	nir_metadata_preserve(impl, 0);
+
+	nir_lower_global_vars_to_local(shader);
+	nir_split_var_copies(shader);
+	nir_lower_var_copies(shader);
+
+	nir_fixup_deref_modes(shader);
 
 	if (shader_debug_enabled(shader->info.stage)) {
 		fprintf(stderr, "NIR (after gs lowering):\n");
@@ -976,7 +989,7 @@ ir3_link_geometry_stages(const struct ir3_shader_variant *producer,
 		nir_foreach_variable(out_var, &producer->shader->nir->outputs) {
 			if (in_var->data.location == out_var->data.location) {
 				locs[in_var->data.driver_location] =
-					producer->shader->output_loc[out_var->data.driver_location] * factor;
+					producer->output_loc[out_var->data.driver_location] * factor;
 
 				debug_assert(num_loc <= in_var->data.driver_location + 1);
 				num_loc = in_var->data.driver_location + 1;

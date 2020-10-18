@@ -1007,9 +1007,9 @@ _math_matrix_frustum( GLmatrix *mat,
 }
 
 /**
- * Apply an orthographic projection matrix.
+ * Create an orthographic projection matrix.
  *
- * \param mat matrix to apply the projection.
+ * \param m float array in which to store the project matrix
  * \param left left clipping plane coordinate.
  * \param right right clipping plane coordinate.
  * \param bottom bottom clipping plane coordinate.
@@ -1017,17 +1017,15 @@ _math_matrix_frustum( GLmatrix *mat,
  * \param nearval distance to the near clipping plane.
  * \param farval distance to the far clipping plane.
  *
- * Creates the projection matrix and multiplies it with \p mat, marking the
- * MAT_FLAG_GENERAL_SCALE and MAT_FLAG_TRANSLATION flags.
+ * Creates the projection matrix and stored the values in \p m.  As with other
+ * OpenGL matrices, the data is stored in column-major ordering.
  */
 void
-_math_matrix_ortho( GLmatrix *mat,
-		    GLfloat left, GLfloat right,
-		    GLfloat bottom, GLfloat top,
-		    GLfloat nearval, GLfloat farval )
+_math_float_ortho(float *m,
+                  float left, float right,
+                  float bottom, float top,
+                  float nearval, float farval)
 {
-   GLfloat m[16];
-
 #define M(row,col)  m[col*4+row]
    M(0,0) = 2.0F / (right-left);
    M(0,1) = 0.0F;
@@ -1049,7 +1047,31 @@ _math_matrix_ortho( GLmatrix *mat,
    M(3,2) = 0.0F;
    M(3,3) = 1.0F;
 #undef M
+}
 
+/**
+ * Apply an orthographic projection matrix.
+ *
+ * \param mat matrix to apply the projection.
+ * \param left left clipping plane coordinate.
+ * \param right right clipping plane coordinate.
+ * \param bottom bottom clipping plane coordinate.
+ * \param top top clipping plane coordinate.
+ * \param nearval distance to the near clipping plane.
+ * \param farval distance to the far clipping plane.
+ *
+ * Creates the projection matrix and multiplies it with \p mat, marking the
+ * MAT_FLAG_GENERAL_SCALE and MAT_FLAG_TRANSLATION flags.
+ */
+void
+_math_matrix_ortho( GLmatrix *mat,
+		    GLfloat left, GLfloat right,
+		    GLfloat bottom, GLfloat top,
+		    GLfloat nearval, GLfloat farval )
+{
+   GLfloat m[16];
+
+   _math_float_ortho(m, left, right, bottom, top, nearval, farval);
    matrix_multf( mat, m, (MAT_FLAG_GENERAL_SCALE|MAT_FLAG_TRANSLATION));
 }
 

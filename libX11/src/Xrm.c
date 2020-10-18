@@ -1047,7 +1047,7 @@ XrmQPutStringResource(
 
     if (!*pdb) *pdb = NewDatabase();
     value.addr = (XPointer) str;
-    value.size = strlen(str)+1;
+    value.size = (unsigned) strlen(str) + 1;
     _XLockMutex(&(*pdb)->linfo);
     PutEntry(*pdb, bindings, quarks, XrmQString, &value);
     _XUnlockMutex(&(*pdb)->linfo);
@@ -1532,7 +1532,7 @@ XrmPutStringResource(
     if (!*pdb) *pdb = NewDatabase();
     XrmStringToBindingQuarkList(specifier, bindings, quarks);
     value.addr = (XPointer) str;
-    value.size = strlen(str)+1;
+    value.size = (unsigned) strlen(str)+1;
     _XLockMutex(&(*pdb)->linfo);
     PutEntry(*pdb, bindings, quarks, XrmQString, &value);
     _XUnlockMutex(&(*pdb)->linfo);
@@ -1652,11 +1652,11 @@ GetIncludeFile(
 	len = str - base + 1;
 	if (len + fnamelen >= BUFSIZ)
 	    return;
-	strncpy(realfname, base, len);
-	strncpy(realfname + len, fname, fnamelen);
+	strncpy(realfname, base, (size_t) len);
+	strncpy(realfname + len, fname, (size_t) fnamelen);
 	realfname[len + fnamelen] = '\0';
     } else {
-	strncpy(realfname, fname, fnamelen);
+	strncpy(realfname, fname, (size_t) fnamelen);
 	realfname[fnamelen] = '\0';
     }
     if (!(str = ReadInFile(realfname)))

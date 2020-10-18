@@ -3712,7 +3712,8 @@ _swrast_choose_texture_sample_func( struct gl_context *ctx,
 				    const struct gl_texture_object *t,
                                     const struct gl_sampler_object *sampler)
 {
-   if (!t || !_mesa_is_texture_complete(t, sampler)) {
+   if (!t || !_mesa_is_texture_complete(t, sampler,
+                                        ctx->Const.ForceIntegerTexNearest)) {
       return null_sample_func;
    }
    else {

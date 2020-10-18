@@ -250,7 +250,7 @@ xkb_symbols "it" {
     key <AB09>  {       [       period,         colon,          period,		colon		]       };
 };
 
-partial default alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "base" {
     key <AD01>	{	[	q,			Q,			1,			1			]	};
     key <AD02>	{	[	w,			W,			2,			2			]	};

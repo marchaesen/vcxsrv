@@ -39,16 +39,17 @@ radv_null_cs(struct radeon_cmdbuf *base)
 	return (struct radv_null_cs*)base;
 }
 
-static struct radeon_winsys_ctx *radv_null_ctx_create(struct radeon_winsys *_ws,
-						      enum radeon_ctx_priority priority)
+static VkResult radv_null_ctx_create(struct radeon_winsys *_ws,
+				     enum radeon_ctx_priority priority,
+				     struct radeon_winsys_ctx **rctx)
 {
 	struct radv_null_ctx *ctx = CALLOC_STRUCT(radv_null_ctx);
 
 	if (!ctx)
-		return NULL;
+		return VK_ERROR_OUT_OF_HOST_MEMORY;
 
-	return (struct radeon_winsys_ctx *)ctx;
-
+	*rctx = (struct radeon_winsys_ctx *)ctx;
+	return VK_SUCCESS;
 }
 
 static void radv_null_ctx_destroy(struct radeon_winsys_ctx *rwctx)
@@ -77,9 +78,9 @@ radv_null_cs_create(struct radeon_winsys *ws,
 	return &cs->base;
 }
 
-static bool radv_null_cs_finalize(struct radeon_cmdbuf *_cs)
+static VkResult radv_null_cs_finalize(struct radeon_cmdbuf *_cs)
 {
-	return true;
+	return VK_SUCCESS;
 }
 
 static void radv_null_cs_destroy(struct radeon_cmdbuf *rcs)

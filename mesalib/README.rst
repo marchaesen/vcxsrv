@@ -12,9 +12,9 @@ Other repositories are likely forks, and code found there is not supported.
 Build & install
 ---------------
 
-You can find more information in our documentation (`docs/install.html
+You can find more information in our documentation (`docs/install.rst
 <https://mesa3d.org/install.html>`_), but the recommended way is to use
-Meson (`docs/meson.html <https://mesa3d.org/meson.html>`_):
+Meson (`docs/meson.rst <https://mesa3d.org/meson.html>`_):
 
 .. code-block:: sh
 
@@ -46,14 +46,14 @@ Bug reports
 -----------
 
 If you think something isn't working properly, please file a bug report
-(`docs/bugs.html <https://mesa3d.org/bugs.html>`_).
+(`docs/bugs.rst <https://mesa3d.org/bugs.html>`_).
 
 
 Contributing
 ------------
 
 Contributions are welcome, and step-by-step instructions can be found in our
-documentation (`docs/submittingpatches.html
+documentation (`docs/submittingpatches.rst
 <https://mesa3d.org/submittingpatches.html>`_).
 
 Note that Mesa uses gitlab for patches submission, review and discussions.

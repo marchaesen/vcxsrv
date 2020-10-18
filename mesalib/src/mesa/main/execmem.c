@@ -37,7 +37,7 @@
 #include "c11/threads.h"
 
 
-#if defined(__linux__) || defined(__OpenBSD__) || defined(_NetBSD__) || defined(__sun) || defined(__HAIKU__)
+#if defined(__linux__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__sun) || defined(__HAIKU__)
 
 /*
  * Allocate a large block of memory which can hold code then dole it out

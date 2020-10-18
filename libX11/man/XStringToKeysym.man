@@ -50,7 +50,7 @@
 XStringToKeysym, XKeysymToString, XKeycodeToKeysym, XKeysymToKeycode, XConvertCase \- convert keysyms
 .SH SYNTAX
 .HP
-KeySym XStringToKeysym\^(\^char *\fIstring\fP\^);
+KeySym XStringToKeysym\^(\^_Xconst char *\fIstring\fP\^);
 .HP
 char *XKeysymToString\^(\^KeySym \fIkeysym\fP\^);
 .HP

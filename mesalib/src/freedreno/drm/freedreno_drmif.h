@@ -157,8 +157,8 @@ struct fd_bo *fd_bo_from_handle(struct fd_device *dev,
 		uint32_t handle, uint32_t size);
 struct fd_bo * fd_bo_from_name(struct fd_device *dev, uint32_t name);
 struct fd_bo * fd_bo_from_dmabuf(struct fd_device *dev, int fd);
+void fd_bo_mark_for_dump(struct fd_bo *bo);
 uint64_t fd_bo_get_iova(struct fd_bo *bo);
-void fd_bo_put_iova(struct fd_bo *bo);
 struct fd_bo * fd_bo_ref(struct fd_bo *bo);
 void fd_bo_del(struct fd_bo *bo);
 int fd_bo_get_name(struct fd_bo *bo, uint32_t *name);

@@ -32,13 +32,9 @@
 extern FILE *pandecode_dump_stream;
 
 struct pandecode_mapped_memory {
-        struct list_head node;
-
         size_t length;
-
         void *addr;
         uint64_t gpu_va;
-
         char name[32];
 };
 

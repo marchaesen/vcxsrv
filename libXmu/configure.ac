@@ -1,8 +1,8 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libXmu], [1.1.3],
-	[https://gitlab.freedesktop.org/xorg/lib/libXmu/issues], [libXmu])
+AC_INIT([libXmu], [1.1.2],
+	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXmu])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 

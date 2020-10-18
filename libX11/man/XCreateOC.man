@@ -50,7 +50,7 @@
 XCreateOC, XDestroyOC, XSetOCValues, XGetOCValues, XOMOfOC \- create output contexts
 .SH SYNTAX
 .HP
-XOC XCreateOC\^(\^XOM \fIom\fP\^);
+XOC XCreateOC\^(\^XOM \fIom\fP\^, ...);
 .HP
 void XDestroyOC\^(\^XOC \fIoc\fP\^);
 .HP

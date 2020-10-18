@@ -378,6 +378,9 @@ egl_screen_probe(ScreenPtr pScreen)
         return NULL;
     }
 
+    if (!screen->base.glvnd)
+        screen->base.glvnd = strdup("mesa");
+
     __glXScreenInit(base, pScreen);
     __glXsetGetProcAddress(eglGetProcAddress);
 

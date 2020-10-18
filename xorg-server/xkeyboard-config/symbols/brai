@@ -1,5 +1,5 @@
 // 10-dot patterns on the home row + v and n
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "home_row" {
     include "brai(keypad)"
 

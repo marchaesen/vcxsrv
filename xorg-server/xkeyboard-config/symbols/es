@@ -1,6 +1,6 @@
 // Modified for a real Spanish keyboard by Jon Tombs.
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "latin(type4)"
@@ -30,7 +30,7 @@ partial alphanumeric_keys
 xkb_symbols "winkeys" {
 
     include "es(basic)"
-    name[Group1]="Spanish (Win keys)";
+    name[Group1]="Spanish (Windows)";
     include "eurosign(5)"
 };
 
@@ -48,7 +48,7 @@ xkb_symbols "sundeadkeys" {
 
     include "es(Sundeadkeys)"
 
-    name[Group1]="Spanish (with Sun dead keys)";
+    name[Group1]="Spanish (Sun dead keys)";
 };
 
 partial alphanumeric_keys
@@ -142,7 +142,7 @@ xkb_symbols "ast" {
 
     include "es(basic)"
 
-    name[Group1]="Asturian (Spain, with bottom-dot H and bottom-dot L)";
+    name[Group1]="Asturian (Spain, with bottom-dot H and L)";
 
     key <AC06>  { [	    h,      H,		0x1001E25,  0x1001E24 ] };
     key <AC09>  { [	    l,      L,		0x1001E37,  0x1001E36 ] };

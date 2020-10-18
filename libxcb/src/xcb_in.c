@@ -661,8 +661,6 @@ int xcb_poll_for_reply(xcb_connection_t *c, unsigned int request, void **reply, 
     assert(reply != 0);
     pthread_mutex_lock(&c->iolock);
     ret = poll_for_reply(c, widen(c, request), reply, error);
-    if(!ret && c->in.reading == 0 && _xcb_in_read(c)) /* _xcb_in_read shuts down the connection on error */
-        ret = poll_for_reply(c, widen(c, request), reply, error);
     pthread_mutex_unlock(&c->iolock);
     return ret;
 }
@@ -680,8 +678,6 @@ int xcb_poll_for_reply64(xcb_connection_t *c, uint64_t request, void **reply, xc
     assert(reply != 0);
     pthread_mutex_lock(&c->iolock);
     ret = poll_for_reply(c, request, reply, error);
-    if(!ret && c->in.reading == 0 && _xcb_in_read(c)) /* _xcb_in_read shuts down the connection on error */
-        ret = poll_for_reply(c, request, reply, error);
     pthread_mutex_unlock(&c->iolock);
     return ret;
 }
@@ -772,8 +768,6 @@ xcb_generic_event_t *xcb_poll_for_special_event(xcb_connection_t *c,
         return 0;
     pthread_mutex_lock(&c->iolock);
     event = get_special_event(c, se);
-    if(!event && c->in.reading == 0 && _xcb_in_read(c)) /* _xcb_in_read shuts down the connection on error */
-        event = get_special_event(c, se);
     pthread_mutex_unlock(&c->iolock);
     return event;
 }
@@ -958,20 +952,8 @@ void _xcb_in_replies_done(xcb_connection_t *c)
         pend = container_of(c->in.pending_replies_tail, struct pending_reply, next);
         if(pend->workaround == WORKAROUND_EXTERNAL_SOCKET_OWNER)
         {
-            if (XCB_SEQUENCE_COMPARE(pend->first_request, <=, c->out.request)) {
-                pend->last_request = c->out.request;
-                pend->workaround = WORKAROUND_NONE;
-            } else {
-                /* The socket was taken, but no requests were actually sent
-                 * so just discard the pending_reply that was created.
-                 */
-                struct pending_reply **prev_next = &c->in.pending_replies;
-                while (*prev_next != pend)
-                    prev_next = &(*prev_next)->next;
-                *prev_next = NULL;
-                c->in.pending_replies_tail = prev_next;
-                free(pend);
-            }
+            pend->last_request = c->out.request;
+            pend->workaround = WORKAROUND_NONE;
         }
     }
 }

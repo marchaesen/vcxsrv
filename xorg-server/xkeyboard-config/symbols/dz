@@ -26,8 +26,7 @@ xkb_symbols "la" {
 
     include "fr(oss)"
 
-    name[Group1]="Berber (Algeria, Latin)";
-    
+    name[Group1]="Berber (Algeria, Latin)";    
 
     key <AD02>  { [ z,  Z,  0x1001E93,  0x1001E92   ] }; // z Z ẓ Ẓ
     key <AD04>  { [ r,  R,  0x1001E5B,  0x1001E5A   ] }; // r R ṛ Ṛ
@@ -42,6 +41,63 @@ xkb_symbols "la" {
  
     include "level3(ralt_switch)"
 };
+
+partial alphanumeric_keys
+xkb_symbols "azerty-deadkeys" {
+     // Kabylian keyboard with dead keys    
+     // 2020 by Louis Gostiaux <louis.gostiaux@free.fr>
+
+    include "fr"
+
+    name[Group1]= "Kabylian (azerty layout with dead keys)";
+
+    key <AD01>	{ [     a,       A,     U025B, U0190  ]}; // a A ɛ Ɛ
+    key <AD02>  { [ 	z,  	 Z,  	U2D63 	      ] }; // ⵣ
+    key <AC01>	{ [     q,       Q,     U0263, U0194  ] }; // q Q ɣ Ɣ
+    key <AB01>  { [ 	w,  	 W,  	U02B7 	      ] }; // ʷ
+    key <AB08>  { [ semicolon,  period,  dead_belowdot,  dead_caron] }; 
+    		  // dead-below dot for ḍ,ṭ,ẓ,ḥ and dead-caron for č and ǧ  
+
+    include "level3(ralt_switch)"
+
+};
+
+partial alphanumeric_keys
+xkb_symbols "qwerty-gb-deadkeys" {
+     // Kabylian keyboard, uk international with dead keys     
+     // 2020 by Louis Gostiaux <louis.gostiaux@free.fr>
+
+    include "gb(intl)"
+
+    name[Group1]= "Kabylian (qwerty-gb layout with dead keys)";
+
+    key <AC01>	{ [     a,       A,     U025B, U0190  ]}; // a A ɛ Ɛ
+    key <AD01>	{ [     q,       Q,     U0263, U0194  ] }; // q Q ɣ Ɣ
+    key <AB01>  { [ 	z,  	 Z,  	U2D63 	      ] }; // ⵣ
+    key <AD02>  { [ 	w,  	 W,  	U02B7 	      ] }; // ʷ
+    key <AB09>  { [  period,	greater	,  dead_belowdot,  dead_caron] }; 
+
+    include "level3(ralt_switch)"
+};
+
+partial alphanumeric_keys
+xkb_symbols "qwerty-us-deadkeys" {
+     // Kabylian keyboard, us international with dead keys     
+     // 2020 by Louis Gostiaux <louis.gostiaux@free.fr>
+
+    include "us(intl)"
+
+    name[Group1]= "Kabylian (qwerty-us layout with dead keys)";
+
+    key <AC01>	{ [     a,       A,     U025B, U0190  ]	}; // a A ɛ Ɛ
+    key <AD01>	{ [     q,       Q,     U0263, U0194  ] }; // q Q ɣ Ɣ
+    key <AB01>  { [ 	z,  	 Z,  	U2D63 	      ] }; // ⵣ
+    key <AD02>  { [ 	w,  	 W,  	U02B7 	      ] }; // ʷ
+    key <AB09>  { [  period,	greater	,  dead_belowdot,  dead_caron] }; 
+
+    include "level3(ralt_switch)"
+};
+
 
 
 //

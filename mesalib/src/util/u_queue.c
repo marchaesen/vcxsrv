@@ -33,6 +33,13 @@
 #include "util/u_thread.h"
 #include "u_process.h"
 
+#if defined(__linux__)
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <sys/syscall.h>
+#endif
+
+
 /* Define 256MB */
 #define S_256MB (256 * 1024 * 1024)
 
@@ -258,6 +265,13 @@ util_queue_thread_func(void *input)
    }
 #endif
 
+#if defined(__linux__)
+   if (queue->flags & UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY) {
+      /* The nice() function can only set a maximum of 19. */
+      setpriority(PRIO_PROCESS, syscall(SYS_gettid), 19);
+   }
+#endif
+
    if (strlen(queue->name) > 0) {
       char name[16];
       snprintf(name, sizeof(name), "%s%i", queue->name, thread_index);
@@ -331,16 +345,17 @@ util_queue_create_thread(struct util_queue *queue, unsigned index)
    }
 
    if (queue->flags & UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY) {
-#if defined(__linux__) && defined(SCHED_IDLE)
+#if defined(__linux__) && defined(SCHED_BATCH)
       struct sched_param sched_param = {0};
 
       /* The nice() function can only set a maximum of 19.
-       * SCHED_IDLE is the same as nice = 20.
+       * SCHED_BATCH gives the scheduler a hint that this is a latency
+       * insensitive thread.
        *
        * Note that Linux only allows decreasing the priority. The original
        * priority can't be restored.
        */
-      pthread_setschedparam(queue->threads[index], SCHED_IDLE, &sched_param);
+      pthread_setschedparam(queue->threads[index], SCHED_BATCH, &sched_param);
 #endif
    }
    return true;

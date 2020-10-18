@@ -27,8 +27,8 @@ AC_PREREQ([2.60])
 # version.  This version number will be substituted into Xft.h
 # Please bump the minor library number at each release as well.
 #
-AC_INIT([libXft], [2.3.3],
-        [https://gitlab.freedesktop.org/xorg/lib/libXft/issues], [libXft])
+AC_INIT([libXft], [2.3.2],
+        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXft])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 

@@ -773,6 +773,11 @@ pipe_create_multimedia_context(struct pipe_screen *screen)
    return screen->context_create(screen, NULL, flags);
 }
 
+static inline unsigned util_res_sample_count(struct pipe_resource *res)
+{
+   return res->nr_samples > 0 ? res->nr_samples : 1;
+}
+
 #ifdef __cplusplus
 }
 #endif

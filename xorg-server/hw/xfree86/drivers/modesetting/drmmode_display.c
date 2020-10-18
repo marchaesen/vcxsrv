@@ -2459,7 +2459,7 @@ drmmode_output_add_gtf_modes(xf86OutputPtr output, DisplayModePtr Modes)
     int max_x = 0, max_y = 0;
     float max_vrefresh = 0.0;
 
-    if (mon && GTF_SUPPORTED(mon->features.msc))
+    if (mon && gtf_supported(mon))
         return Modes;
 
     if (!has_panel_fitter(output))

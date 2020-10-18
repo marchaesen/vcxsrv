@@ -82,7 +82,7 @@ _ReadListing(XkbReadBufferPtr buf, int count, Status * status_rtrn)
         str = (char *) _XkbGetReadBufferPtr(buf, wlen);
         if (!str)
             goto BAILOUT;
-        memcpy(this->name, str, slen);
+        memcpy(this->name, str, (size_t) slen);
     }
     return first;
  BAILOUT:
@@ -154,32 +154,32 @@ XkbListComponents(Display *dpy,
 
     *str++ = mapLen;
     if (mapLen > 0) {
-        memcpy(str, ptrns->keymap, mapLen);
+        memcpy(str, ptrns->keymap, (size_t) mapLen);
         str += mapLen;
     }
     *str++ = codesLen;
     if (codesLen > 0) {
-        memcpy(str, ptrns->keycodes, codesLen);
+        memcpy(str, ptrns->keycodes, (size_t) codesLen);
         str += codesLen;
     }
     *str++ = typesLen;
     if (typesLen > 0) {
-        memcpy(str, ptrns->types, typesLen);
+        memcpy(str, ptrns->types, (size_t) typesLen);
         str += typesLen;
     }
     *str++ = compatLen;
     if (compatLen > 0) {
-        memcpy(str, ptrns->compat, compatLen);
+        memcpy(str, ptrns->compat, (size_t) compatLen);
         str += compatLen;
     }
     *str++ = symsLen;
     if (symsLen > 0) {
-        memcpy(str, ptrns->symbols, symsLen);
+        memcpy(str, ptrns->symbols, (size_t) symsLen);
         str += symsLen;
     }
     *str++ = geomLen;
     if (geomLen > 0) {
-        memcpy(str, ptrns->geometry, geomLen);
+        memcpy(str, ptrns->geometry, (size_t) geomLen);
         str += geomLen;
     }
     if (!_XReply(dpy, (xReply *) &rep, 0, xFalse))

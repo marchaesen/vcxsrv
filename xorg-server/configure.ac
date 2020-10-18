@@ -237,15 +237,6 @@ dnl OpenBSD /dev/xf86 aperture driver
 if test -c /dev/xf86 ; then
 	AC_DEFINE(HAS_APERTURE_DRV, 1, [System has /dev/xf86 aperture driver])
 fi
-
-dnl BSD APM support 
-AC_CHECK_HEADER([machine/apmvar.h],[
-	AC_CHECK_HEADER([sys/event.h],
-		ac_cv_BSD_KQUEUE_APM=yes,
-		ac_cv_BSD_APM=yes)])
-
-AM_CONDITIONAL(BSD_APM, [test "x$ac_cv_BSD_APM" = xyes])
-AM_CONDITIONAL(BSD_KQUEUE_APM, [test "x$ac_cv_BSD_KQUEUE_APM" = xyes])
 	
 dnl glibc backtrace support check
 AC_CHECK_HEADER([execinfo.h],[

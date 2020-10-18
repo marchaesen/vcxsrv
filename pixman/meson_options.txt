@@ -75,6 +75,11 @@ option(
   description : 'Use GNU style inline assembler',
 )
 option(
+  'cpu-features-path',
+  type : 'string',
+  description : 'Path to platform-specific cpu-features.[ch] for systems that do not provide it (e.g. Android)',
+)
+option(
   'openmp',
   type : 'feature',
   description : 'Enable openmp support',
@@ -100,4 +105,9 @@ option(
   'libpng',
   type : 'feature',
   description : 'Use libpng'
+)
+option(
+  'tests',
+  type : 'feature',
+  description : 'Build tests and demos'
 )

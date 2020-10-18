@@ -58,11 +58,11 @@ int XQueryColors\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^,
 XColor \fIdefs_in_out\fP[\^]\^, int \fIncolors\fP\^);
 .HP
 Status XLookupColor\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^,
-char *\fIcolor_name\fP\^, XColor *\fIexact_def_return\fP\^, XColor
+_Xconst char *\fIcolor_name\fP\^, XColor *\fIexact_def_return\fP\^, XColor
 *\fIscreen_def_return\fP\^);
 .HP
 Status XParseColor\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^,
-char *\fIspec\fP\^, XColor *\fIexact_def_return\fP\^);
+_Xconst char *\fIspec\fP\^, XColor *\fIexact_def_return\fP\^);
 .SH ARGUMENTS
 .IP \fIcolormap\fP 1i
 Specifies the colormap.

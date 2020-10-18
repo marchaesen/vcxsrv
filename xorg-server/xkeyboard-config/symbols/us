@@ -1,4 +1,4 @@
-default  partial alphanumeric_keys modifier_keys
+default partial alphanumeric_keys modifier_keys
 xkb_symbols "basic" {
 
     name[Group1]= "English (US)";
@@ -1056,7 +1056,7 @@ xkb_symbols "olpc" {
 partial alphanumeric_keys
 xkb_symbols "olpc2" {
    include "us(olpc)"
-   name[Group1]= "English (the divide/multiply keys toggle the layout)";
+   name[Group1]= "English (the divide/multiply toggle the layout)";
    include "group(olpc)"
 };
 
@@ -1178,6 +1178,31 @@ xkb_symbols "chr" {
     key <AB10> { [      U13C2,      U13C9 ] };
 };
 
+// Add Hawaiian `okina and kahako to US layout
+// Author: Greg Meyer <gregory.meyer@gmail.com>, 2020
+// this mapping follows the one for Windows here: http://www.olelo.hawaii.edu/enehana/winkbd.php
+// `okina replaces apostrophe (apostrophe moves to level 3)
+// vowels with kahako (macron) are level 3 symbols
+partial alphanumeric_keys
+xkb_symbols "haw"  {
+
+    include "us(basic)"
+    name[Group1] = "Hawaiian";
+
+    // `okina replaces single apostrophe
+    // alt gives the literal apostrophe
+    key <AC11> {[ U02BB, quotedbl, apostrophe ] };
+
+    // kahako
+    key <AC01> {[ a, A, amacron, Amacron ]};
+    key <AD03> {[ e, E, emacron, Emacron ]};
+    key <AD07> {[ u, U, umacron, Umacron ]};
+    key <AD08> {[ i, I, imacron, Imacron ]};
+    key <AD09> {[ o, O, omacron, Omacron ]};
+
+    include "level3(ralt_switch)"
+};
+
 // Serbian charecters added as third level symbols to US keyboard layout.
 
 partial alphanumeric_keys
@@ -1201,51 +1226,6 @@ xkb_symbols "hbs" {
   key <AB09> { [ period, greater, ellipsis, guillemotleft ] };
 
   include "level3(ralt_switch)"
-};
-
-//based on http://upload.wikimedia.org/wikipedia/commons/1/18/T-Mobile_G1_launch_event_2.jpg
-partial alphanumeric_keys
-xkb_symbols "htcdream" {
-        include "inet(htcdream)"
-        name[Group1]= "English (US)";
-
-        //second row
-        key <AD01> { [ q, Q, Tab, Tab ] };
-        key <AD02> { [ w, W, grave, grave ] };
-        key <AD03> { [ e, E, underscore, underscore ] };
-        key <AD04> { [ r, R, sterling, sterling ] };
-        key <AD05> { [ t, T, EuroSign, EuroSign ] };
-        key <AD06> { [ y, Y, division, division ] };
-        key <AD07> { [ u, U, multiply, multiply ] };
-        key <AD08> { [ i, I, minus, minus ] };
-        key <AD09> { [ o, O, plus, plus ] };
-        key <AD10> { [ p, P, equal, equal ] };
-
-        //third row
-        key <AC01> { [ a, A, NoSymbol, NoSymbol ] };
-        key <AC02> { [ s, S, bar, bar ] };
-        key <AC03> { [ d ,D, backslash, backslash ] };
-        key <AC04> { [ f, F, braceleft, braceleft ] };
-        key <AC05> { [ g, G, braceright, braceright ] };
-        key <AC06> { [ h, H, colon, colon ] };
-        key <AC07> { [ j, J, semicolon, semicolon ] };
-        key <AC08> { [ k, K, quotedbl, quotedbl ] };
-        key <AC09> { [ l, L, apostrophe, apostrophe ] };
-
-        //forth row
-        key <AB01> { [ z, Z, NoSymbol, NoSymbol ] };
-        key <AB02> { [ x, X, NoSymbol, NoSymbol ] };
-        key <AB03> { [ c, C, NoSymbol, NoSymbol ] };
-        key <AB04> { [ v, V, bracketleft, bracketleft ] };
-        key <AB05> { [ b, B, bracketright, bracketright ] };
-        key <AB06> { [ n, N, less, less ] };
-        key <AB07> { [ m, M, greater, greater ] };
-        key <AB08> { [ comma, comma, question, question ] };
-
-        //fifth row
-        key <FK15> { [ at, at, asciitilde, asciitilde ] };
-
-        include "level3(alt_switch)"
 };
 
 // Workman Keyboard Layout symbols for xkb on X.Org Server 7.x
@@ -1683,7 +1663,7 @@ xkb_symbols "scn" {
 partial alphanumeric_keys
 xkb_symbols "intl-unicode" {
 
- name[Group1]= "English (US, international AltGr Unicode combining)";
+ name[Group1]= "English (US, intl., AltGr Unicode combining)";
 
  include "us(intl)"
  include "level3(ralt_switch)"
@@ -1733,7 +1713,7 @@ xkb_symbols "intl-unicode" {
 partial alphanumeric_keys
 xkb_symbols "alt-intl-unicode" {
 
- name[Group1]= "English (US, international AltGr Unicode combining, alternative)";
+ name[Group1]= "English (US, intl., AltGr Unicode combining, alt.)";
 
  include "us(intl-unicode)"
 
@@ -1880,13 +1860,25 @@ xkb_symbols "3l" {
 partial modifier_keys
 xkb_symbols "3l-cros" {
     include "us(3l)"
-    name[Group1] = "English (3l, chromebook)";
+    name[Group1] = "English (3l, Chromebook)";
     key <LWIN> {
         type[Group1] = "ONE_LEVEL",
         symbols[Group1] = [ Tab ]
     };
 };
 
+// A 3l variant for emacs users, which maps control to caps lock and (re)maps 
+// tab back to tab.
+partial modifier_keys
+xkb_symbols "3l-emacs" {
+    include "us(3l)"
+    name[Group1] = "English (3l, emacs)";
+
+    key <TAB> { [ Tab ] };
+    key <CAPS> { [ Control_L ] };
+
+    modifier_map Control { <CAPS> };
+};
 
 // Drix EU Latin - version 3.1 (2019-10-07)
 // Author: Jerome Leclanche <jerome@leclan.ch>
@@ -1992,5 +1984,27 @@ xkb_symbols "drix" {
 		type[Group1]="TWO_LEVEL",
 		[ ISO_Level3_Shift, Multi_key ]
 	};
-	modifier_map Mod5 { <RALT> };
+};
+
+// German and Swedish characters added as third level symbols to the US keyboard layout
+// Author: Stephan Lachnit <stephanlachnit@protonmail.com>, 2019
+// the german umlauts are placed over the characters without diaeresis, the sharp-s over the s
+// the swedish ao is placed over the p, since it's closed to the position on a swedish keyboard
+// the euro sign is placed over the e, as it is usual for german and swedish keyboards
+partial alphanumeric_keys
+xkb_symbols "de_se_fi"  {
+
+    include "us(basic)"
+    include "eurosign(e)"
+    name[Group1] = "German, Swedish and Finnish (US)";
+
+    key <AC01> {[ a,            A,          adiaeresis, Adiaeresis ]};
+    key <AC02> {[ s,            S,          ssharp,     U1E9E      ]};
+    key <AD01> {[ q,            Q,          at                     ]};
+    key <AD07> {[ u,            U,          udiaeresis, Udiaeresis ]};
+    key <AD09> {[ o,            O,          odiaeresis, Odiaeresis ]};
+    key <AD10> {[ p,            P,          aring,      Aring      ]};
+    key <AD12> {[ bracketright, braceright, asciitilde             ]};
+
+    include "level3(ralt_switch)"
 };

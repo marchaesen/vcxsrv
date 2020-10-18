@@ -45,7 +45,7 @@ fdl_layout_buffer(struct fdl_layout *layout, uint32_t size)
 void
 fdl_dump_layout(struct fdl_layout *layout)
 {
-	for (uint32_t level = 0; level < layout->slices[level].size0; level++) {
+	for (uint32_t level = 0; level < ARRAY_SIZE(layout->slices) && layout->slices[level].size0; level++) {
 		struct fdl_slice *slice = &layout->slices[level];
 		struct fdl_slice *ubwc_slice = &layout->ubwc_slices[level];
 

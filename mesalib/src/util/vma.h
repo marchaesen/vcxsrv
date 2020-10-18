@@ -25,6 +25,7 @@
 #define _UTIL_VMA_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include "list.h"
 
@@ -34,6 +35,12 @@ extern "C" {
 
 struct util_vma_heap {
    struct list_head holes;
+
+   /** If true, util_vma_heap_alloc will prefer high addresses
+    *
+    * Default is true.
+    */
+   bool alloc_high;
 };
 
 void util_vma_heap_init(struct util_vma_heap *heap,
@@ -48,6 +55,9 @@ bool util_vma_heap_alloc_addr(struct util_vma_heap *heap,
 
 void util_vma_heap_free(struct util_vma_heap *heap,
                         uint64_t offset, uint64_t size);
+
+void util_vma_heap_print(struct util_vma_heap *heap, FILE *fp,
+                         const char *tab, uint64_t total_size);
 
 #ifdef __cplusplus
 } /* extern C */

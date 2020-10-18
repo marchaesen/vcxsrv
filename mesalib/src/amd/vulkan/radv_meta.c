@@ -219,7 +219,7 @@ meta_alloc(void* _device, size_t size, size_t alignment,
            VkSystemAllocationScope allocationScope)
 {
 	struct radv_device *device = _device;
-	return device->alloc.pfnAllocation(device->alloc.pUserData, size, alignment,
+	return device->vk.alloc.pfnAllocation(device->vk.alloc.pUserData, size, alignment,
 					   VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 }
 
@@ -228,7 +228,7 @@ meta_realloc(void* _device, void *original, size_t size, size_t alignment,
              VkSystemAllocationScope allocationScope)
 {
 	struct radv_device *device = _device;
-	return device->alloc.pfnReallocation(device->alloc.pUserData, original,
+	return device->vk.alloc.pfnReallocation(device->vk.alloc.pUserData, original,
 					     size, alignment,
 					     VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 }
@@ -237,7 +237,7 @@ static void
 meta_free(void* _device, void *data)
 {
 	struct radv_device *device = _device;
-	return device->alloc.pfnFree(device->alloc.pUserData, data);
+	return device->vk.alloc.pfnFree(device->vk.alloc.pUserData, data);
 }
 
 static bool
@@ -262,7 +262,8 @@ radv_builtin_cache_path(char *path)
 
 	strcpy(path, pwd.pw_dir);
 	strcat(path, "/.cache");
-	mkdir(path, 0755);
+	if (mkdir(path, 0755) && errno != EEXIST)
+		return false;
 
 	ret = snprintf(path, PATH_MAX + 1, "%s%s%zd",
 		       pwd.pw_dir, suffix2, sizeof(void *) * 8);

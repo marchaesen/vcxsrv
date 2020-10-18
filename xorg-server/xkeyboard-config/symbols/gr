@@ -7,7 +7,7 @@
 // Originally converted to single group form by:
 //   Ivan Pascal <pascal@info.tsu.ru>
 
-default  partial alphanumeric_keys alternate_group
+default partial alphanumeric_keys alternate_group
 xkb_symbols "basic" {
 	include "gr(simple)"
 

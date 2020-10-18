@@ -44,6 +44,7 @@
 #include "util/u_string.h"
 #include "util/u_hash_table.h"
 #include "os/os_thread.h"
+#include "pipe/p_config.h"
 
 int debug_refcnt_state;
 
@@ -113,7 +114,11 @@ debug_serial_delete(void *p)
 }
 
 
+#if defined(PIPE_OS_WINDOWS)
+#define STACK_LEN 60
+#else
 #define STACK_LEN 64
+#endif
 
 /**
  * Log a reference count change to the log file (if enabled).

@@ -226,7 +226,7 @@ st_texture_release_all_sampler_views(struct st_context *st,
    for (unsigned i = 0; i < views->count; ++i) {
       struct st_sampler_view *stsv = &views->views[i];
       if (stsv->view) {
-         if (stsv->st != st) {
+         if (stsv->st && stsv->st != st) {
             /* Transfer this reference to the zombie list.  It will
              * likely be freed when the zombie list is freed.
              */

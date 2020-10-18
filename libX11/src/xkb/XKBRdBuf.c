@@ -71,7 +71,7 @@ _XkbCopyFromReadBuffer(XkbReadBufferPtr from, char *to, int size)
     if ((from == NULL) || (from->error) || (to == NULL) || (size < 1) ||
         (_XkbReadBufferDataLeft(from) < size))
         return 0;
-    memcpy(to, from->data, size);
+    memcpy(to, from->data, (size_t)size);
     from->data += size;
     return 1;
 }

@@ -66,6 +66,8 @@ libfreedreno_ir3_files = files(
   'ir3.c',
   'ir3_a4xx.c',
   'ir3_a6xx.c',
+  'ir3_assembler.c',
+  'ir3_assembler.h',
   'ir3_compiler_nir.c',
   'ir3_compiler.c',
   'ir3_compiler.h',
@@ -73,8 +75,10 @@ libfreedreno_ir3_files = files(
   'ir3_context.h',
   'ir3_cf.c',
   'ir3_cp.c',
+  'ir3_cp_postsched.c',
   'ir3_dce.c',
   'ir3_delay.c',
+  'ir3_disk_cache.c',
   'ir3_group.c',
   'ir3_image.c',
   'ir3_image.h',
@@ -98,16 +102,16 @@ libfreedreno_ir3_files = files(
   'ir3_sched.c',
   'ir3_shader.c',
   'ir3_shader.h',
-  'ir3_sun.c',
+  'ir3_validate.c',
 )
 
 libfreedreno_ir3 = static_library(
   'freedreno_ir3',
   [libfreedreno_ir3_files, ir3_nir_trig_c, ir3_nir_imul_c, ir3_parser[0], ir3_parser[1], ir3_lexer],
   include_directories : [inc_freedreno, inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-  c_args : [c_vis_args, no_override_init_args],
-  cpp_args : [cpp_vis_args],
-  dependencies : idep_nir_headers,
+  c_args : [no_override_init_args],
+  gnu_symbol_visibility : 'hidden',
+  dependencies : [idep_nir_headers, dep_dl],
   build_by_default : false,
 )
 
@@ -118,6 +122,17 @@ test('ir3_disasm',
     link_with: libfreedreno_ir3,
     dependencies: idep_mesautil,
     include_directories: [inc_freedreno, inc_include, inc_src],
+  ),
+  suite: ['freedreno'],
+)
+
+test('ir3_delay_test',
+  executable(
+    'ir3_delay_test',
+    'tests/delay.c',
+    link_with: libfreedreno_ir3,
+    dependencies: [idep_mesautil, idep_nir],
+    include_directories: [inc_freedreno, inc_include, inc_src, inc_mesa, inc_gallium],
   ),
   suite: ['freedreno'],
 )

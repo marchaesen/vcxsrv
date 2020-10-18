@@ -7,7 +7,7 @@
 // This implementation extends the standard with Yiddish digraphs
 // (a common extension) and Nun Hafukha (a fun character).
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
     // uses the kbd layout in use in Israel.
 

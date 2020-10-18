@@ -109,6 +109,5 @@ VULKAN_GENERATED_FILES := \
 	radv_entrypoints.h \
 	radv_extensions.c \
 	radv_extensions.h \
-	vk_format_table.c \
-	gfx10_format_table.h
+	vk_format_table.c
 

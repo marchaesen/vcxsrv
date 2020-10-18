@@ -1,6 +1,6 @@
 // Symbols for Japanese 106-keys keyboards (by tsuka@kawalab.dnj.ynu.ac.jp).
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "106" {
 
     include "jp(common)"

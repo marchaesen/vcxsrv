@@ -83,7 +83,7 @@ struct ir3_context {
 	struct ir3_instruction *frag_face, *frag_coord;
 
 	/* For vertex shaders, keep track of the system values sources */
-	struct ir3_instruction *vertex_id, *basevertex, *instance_id, *base_instance;
+	struct ir3_instruction *vertex_id, *basevertex, *instance_id, *base_instance, *draw_id;
 
 	/* For fragment shaders: */
 	struct ir3_instruction *samp_id, *samp_mask_in;
@@ -146,6 +146,8 @@ struct ir3_context {
 
 	unsigned max_texture_index;
 
+	unsigned prefetch_limit;
+
 	/* set if we encounter something we can't handle yet, so we
 	 * can bail cleanly and fallback to TGSI compiler f/e
 	 */
@@ -161,6 +163,8 @@ struct ir3_context_funcs {
 			struct ir3_instruction **dst);
 	void (*emit_intrinsic_store_image)(struct ir3_context *ctx, nir_intrinsic_instr *intr);
 	struct ir3_instruction * (*emit_intrinsic_atomic_image)(struct ir3_context *ctx, nir_intrinsic_instr *intr);
+	void (*emit_intrinsic_image_size)(struct ir3_context *ctx, nir_intrinsic_instr *intr,
+			struct ir3_instruction **dst);
 };
 
 extern const struct ir3_context_funcs ir3_a4xx_funcs;
@@ -178,6 +182,9 @@ struct ir3_instruction * ir3_create_collect(struct ir3_context *ctx,
 		struct ir3_instruction *const *arr, unsigned arrsz);
 void ir3_split_dest(struct ir3_block *block, struct ir3_instruction **dst,
 		struct ir3_instruction *src, unsigned base, unsigned n);
+void ir3_handle_bindless_cat6(struct ir3_instruction *instr, nir_src rsrc);
+void emit_intrinsic_image_size_tex(struct ir3_context *ctx, nir_intrinsic_instr *intr,
+		struct ir3_instruction **dst);
 
 NORETURN void ir3_context_error(struct ir3_context *ctx, const char *format, ...);
 

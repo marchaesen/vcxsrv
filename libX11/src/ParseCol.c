@@ -46,7 +46,7 @@ XParseColor (
 	XcmsColor cmsColor;
 
         if (!spec) return(0);
-	n = strlen (spec);
+	n = (int) strlen (spec);
 	if (*spec == '#') {
 	    /*
 	     * RGB
@@ -119,7 +119,7 @@ XParseColor (
 	    LockDisplay(dpy);
 	    GetReq (LookupColor, req);
 	    req->cmap = cmap;
-	    req->nbytes = n = strlen(spec);
+	    req->nbytes = (CARD16) (n = (int) strlen(spec));
 	    req->length += (n + 3) >> 2;
 	    Data (dpy, spec, (long)n);
 	    if (!_XReply (dpy, (xReply *) &reply, 0, xTrue)) {

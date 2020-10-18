@@ -50,16 +50,16 @@
 XReadBitmapFile, XReadBitmapFileData, XWriteBitmapFile, XCreatePixmapFromBitmapData, XCreateBitmapFromData \- manipulate bitmaps
 .SH SYNTAX
 .HP
-int XReadBitmapFile(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, char
+int XReadBitmapFile(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, _Xconst char
 *\fIfilename\fP\^, unsigned int *\fIwidth_return\fP, unsigned int
 *\fIheight_return\fP\^, Pixmap *\fIbitmap_return\fP\^, int
 *\fIx_hot_return\fP, int *\fIy_hot_return\fP\^);
 .HP
-int XReadBitmapFileData(\^char *\fIfilename\fP\^, unsigned int
+int XReadBitmapFileData(\^_Xconst char *\fIfilename\fP\^, unsigned int
 *\fIwidth_return\fP, unsigned int *\fIheight_return\fP\^, unsigned char
-*\fIdata_return\fP\^, int *\fIx_hot_return\fP, int *\fIy_hot_return\fP\^);
+**\fIdata_return\fP\^, int *\fIx_hot_return\fP, int *\fIy_hot_return\fP\^);
 .HP
-int XWriteBitmapFile(\^Display *\fIdisplay\fP\^, char *\fIfilename\fP\^,
+int XWriteBitmapFile(\^Display *\fIdisplay\fP\^, _Xconst char *\fIfilename\fP\^,
 Pixmap \fIbitmap\fP\^, unsigned int \fIwidth\fP, unsigned int \fIheight\fP\^,
 int \fIx_hot\fP, int \fIy_hot\fP\^);
 .HP
@@ -69,7 +69,7 @@ Pixmap XCreatePixmapFromBitmapData\^(\^Display *\fIdisplay\fP\^, Drawable
 \fIdepth\fP\^);
 .HP
 Pixmap XCreateBitmapFromData(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^,
-char *\fIdata\fP\^, unsigned int \fIwidth\fP, unsigned int \fIheight\fP\^);
+_Xconst char *\fIdata\fP\^, unsigned int \fIwidth\fP, unsigned int \fIheight\fP\^);
 .SH ARGUMENTS
 .IP \fIbitmap\fP 1i
 Specifies the bitmap.

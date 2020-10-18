@@ -334,7 +334,7 @@ XOpenDisplay (
 	}
 
  	u.setup = (xConnSetup *) (((char *) u.setup) + sz_xConnSetup);
-  	(void) strncpy(dpy->vendor, u.vendor, vendorlen);
+  	(void) strncpy(dpy->vendor, u.vendor, (size_t) vendorlen);
 	dpy->vendor[vendorlen] = '\0';
  	vendorlen = (vendorlen + 3) & ~3;	/* round up */
 	u.vendor += vendorlen;

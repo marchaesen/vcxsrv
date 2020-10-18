@@ -56,7 +56,7 @@ void XSetWMName\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, XTextProperty
 Status XGetWMName\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^,
 XTextProperty *\fItext_prop_return\fP\^);
 .HP
-int XStoreName\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, char
+int XStoreName\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, _Xconst char
 *\fIwindow_name\fP\^);
 .HP
 Status XFetchName\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, char

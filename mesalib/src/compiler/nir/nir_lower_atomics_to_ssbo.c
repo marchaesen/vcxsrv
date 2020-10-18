@@ -127,9 +127,15 @@ lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
       break;
    }
 
-   if (new_instr->intrinsic == nir_intrinsic_load_ssbo ||
-       new_instr->intrinsic == nir_intrinsic_store_ssbo)
+   if (new_instr->intrinsic == nir_intrinsic_load_ssbo) {
       nir_intrinsic_set_align(new_instr, 4, 0);
+
+      /* we could be replacing an intrinsic with fixed # of dest
+       * num_components with one that has variable number.  So
+       * best to take this from the dest:
+       */
+      new_instr->num_components = instr->dest.ssa.num_components;
+   }
 
    nir_ssa_dest_init(&new_instr->instr, &new_instr->dest,
                      instr->dest.ssa.num_components,
@@ -144,11 +150,6 @@ lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
    } else {
       nir_ssa_def_rewrite_uses(&instr->dest.ssa, nir_src_for_ssa(&new_instr->dest.ssa));
    }
-
-   /* we could be replacing an intrinsic with fixed # of dest num_components
-    * with one that has variable number.  So best to take this from the dest:
-    */
-   new_instr->num_components = instr->dest.ssa.num_components;
 
    return true;
 }

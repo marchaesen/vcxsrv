@@ -3,7 +3,7 @@
 // Please notify any corrections or omissions to
 // Kevin Donnelly (kevin@dotmon.com)
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "swa" {
     name[Group1]= "Swahili (Tanzania)";
 

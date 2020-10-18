@@ -149,7 +149,7 @@ CIELab_ParseString(
     /*
      * Check for proper prefix.
      */
-    if (strncmp(spec, _XcmsCIELab_prefix, n) != 0) {
+    if (strncmp(spec, _XcmsCIELab_prefix, (size_t)n) != 0) {
 	return(XcmsFailure);
     }
 

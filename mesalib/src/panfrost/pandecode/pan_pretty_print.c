@@ -54,7 +54,7 @@ char *pandecode_format(enum mali_format format)
                 DEFINE_CASE(RGB10_A2I);
                 DEFINE_CASE(RGB332_UNORM);
                 DEFINE_CASE(RGB233_UNORM);
-                DEFINE_CASE(Z32_UNORM);
+                DEFINE_CASE(Z24X8_UNORM);
                 DEFINE_CASE(R32_FIXED);
                 DEFINE_CASE(RG32_FIXED);
                 DEFINE_CASE(RGB32_FIXED);

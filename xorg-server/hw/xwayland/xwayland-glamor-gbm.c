@@ -239,7 +239,7 @@ xwl_glamor_gbm_create_pixmap(ScreenPtr screen,
 #endif
         {
             bo = gbm_bo_create(xwl_gbm->gbm, width, height, format,
-                               GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+                               GBM_BO_USE_RENDERING);
         }
 
         if (bo) {
@@ -293,6 +293,9 @@ xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
     struct xwl_gbm_private *xwl_gbm = xwl_gbm_get(xwl_screen);
     unsigned short width = pixmap->drawable.width;
     unsigned short height = pixmap->drawable.height;
+    uint32_t format;
+    struct xwl_format *xwl_format = NULL;
+    Bool modifier_supported = FALSE;
     int prime_fd;
     int num_planes;
     uint32_t strides[4];
@@ -317,6 +320,8 @@ xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
     if (!xwl_pixmap->bo)
        return NULL;
 
+    format = wl_drm_format_for_depth(pixmap->drawable.depth);
+
     prime_fd = gbm_bo_get_fd(xwl_pixmap->bo);
     if (prime_fd == -1)
         return NULL;
@@ -335,7 +340,23 @@ xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
     offsets[0] = 0;
 #endif
 
-    if (xwl_gbm->dmabuf && modifier != DRM_FORMAT_MOD_INVALID) {
+    for (i = 0; i < xwl_screen->num_formats; i++) {
+       if (xwl_screen->formats[i].format == format) {
+          xwl_format = &xwl_screen->formats[i];
+          break;
+       }
+    }
+
+    if (xwl_format) {
+        for (i = 0; i < xwl_format->num_modifiers; i++) {
+            if (xwl_format->modifiers[i] == modifier) {
+                modifier_supported = TRUE;
+                break;
+            }
+        }
+    }
+
+    if (xwl_gbm->dmabuf && modifier_supported) {
         struct zwp_linux_buffer_params_v1 *params;
 
         params = zwp_linux_dmabuf_v1_create_params(xwl_gbm->dmabuf);
@@ -347,13 +368,12 @@ xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
 
         xwl_pixmap->buffer =
            zwp_linux_buffer_params_v1_create_immed(params, width, height,
-                                                   wl_drm_format_for_depth(pixmap->drawable.depth),
-                                                   0);
+                                                   format, 0);
         zwp_linux_buffer_params_v1_destroy(params);
     } else if (num_planes == 1) {
         xwl_pixmap->buffer =
             wl_drm_create_prime_buffer(xwl_gbm->drm, prime_fd, width, height,
-                                       wl_drm_format_for_depth(pixmap->drawable.depth),
+                                       format,
                                        0, gbm_bo_get_stride(xwl_pixmap->bo),
                                        0, 0,
                                        0, 0);
@@ -514,7 +534,8 @@ glamor_pixmap_from_fds(ScreenPtr screen, CARD8 num_fds, const int *fds,
           data.strides[i] = strides[i];
           data.offsets[i] = offsets[i];
        }
-       bo = gbm_bo_import(xwl_gbm->gbm, GBM_BO_IMPORT_FD_MODIFIER, &data, 0);
+       bo = gbm_bo_import(xwl_gbm->gbm, GBM_BO_IMPORT_FD_MODIFIER, &data,
+                          GBM_BO_USE_RENDERING);
 #endif
     } else if (num_fds == 1) {
        struct gbm_import_fd_data data;
@@ -525,7 +546,7 @@ glamor_pixmap_from_fds(ScreenPtr screen, CARD8 num_fds, const int *fds,
        data.stride = strides[0];
        data.format = gbm_format_for_depth(depth);
        bo = gbm_bo_import(xwl_gbm->gbm, GBM_BO_IMPORT_FD, &data,
-             GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+                          GBM_BO_USE_RENDERING);
     } else {
        goto error;
     }
@@ -647,7 +668,9 @@ glamor_get_modifiers(ScreenPtr screen, uint32_t format,
        }
     }
 
-    if (!xwl_format)
+    if (!xwl_format ||
+        (xwl_format->num_modifiers == 1 &&
+         xwl_format->modifiers[0] == DRM_FORMAT_MOD_INVALID))
         return FALSE;
 
     *modifiers = calloc(xwl_format->num_modifiers, sizeof(uint64_t));
@@ -810,10 +833,6 @@ xwl_dmabuf_handle_modifier(void *data, struct zwp_linux_dmabuf_v1 *dmabuf,
    struct xwl_screen *xwl_screen = data;
     struct xwl_format *xwl_format = NULL;
     int i;
-
-    if (modifier_hi == (DRM_FORMAT_MOD_INVALID >> 32) &&
-        modifier_lo == (DRM_FORMAT_MOD_INVALID & 0xffffffff))
-        return;
 
     for (i = 0; i < xwl_screen->num_formats; i++) {
         if (xwl_screen->formats[i].format == format) {

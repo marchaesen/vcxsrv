@@ -7,7 +7,7 @@
 //
 // If you want two layouts, use:
 // Option "XkbLayout" "lt,lt(us)"
-default  partial alphanumeric_keys modifier_keys
+default partial alphanumeric_keys modifier_keys
 xkb_symbols "basic" {
 
     include "latin"
@@ -42,7 +42,7 @@ xkb_symbols "us" {
     include "eurosign(e)"
     include "level3(ralt_switch)"
 
-    name[Group1]="Lithuanian (US, with Lithuanian letters)";
+    name[Group1]="Lithuanian (US)";
 
     key <TLDE> {[    grave,    asciitilde,               acute               ]};
     key <AE01> {[        1,        exclam,             aogonek,      Aogonek ]};
@@ -295,7 +295,7 @@ xkb_symbols "us_dvorak" {
 
     include "us(dvorak)"
 
-    name[Group1]="Lithuanian (US Dvorak with Lithuanian letters)";
+    name[Group1]="Lithuanian (Dvorak)";
 
     key <AE01>	{ [        1,      exclam,    aogonek,      Aogonek ] };
     key <AE02>	{ [        2,          at,     ccaron,       Ccaron ] };
@@ -316,4 +316,31 @@ xkb_symbols "us_dvorak" {
 partial alphanumeric_keys
 	xkb_symbols "sun_type6" {
 	include "sun_vndr/lt(sun_type6)"
+};
+
+// Samogitian (žemaiťiu/žemaičių) layout based on Lithuanian standard layout.
+// Long vowels are made by composition. It means after pressing vowel press grave accent (`).
+// This layout also supports special letters like ëůȧťď or Latvian ģŗļķ. These can be accessed by similar letter with holding AltGr.
+// Euro sign € is added on top e. Accessed by holding AltGr.
+// To enable layout use:
+//      Option "XkbLayout" "lt(sgs)"
+//
+// Added by Arnas Udovičius <zordsdavini@gmail.com>, 2020
+
+partial alphanumeric_keys modifier_keys
+xkb_symbols "sgs" {
+
+    include "lt(basic)"
+    name[Group1]="Samogitian";
+
+    key <TLDE>  {[ U0304,   asciitilde, grave,      acute ]};
+    key	<AD01>  {[ q,       Q, 	        U00EB, 	    U00CB ]};
+    key	<AD02>  {[ w,    	W, 	        U016F, 	    U016E ]};
+    key <AD04>	{[ r,     	R, 	        rcedilla,   Rcedilla]};
+    key <AD05>  {[ t,     	T, 	        tcaron,     Tcaron ]};
+    key <AC01>	{[ a,     	A, 	        U0227, 	    U0226 ]};
+    key <AC03>  {[ d,      	D, 	        dcaron,     Dcaron ]};
+    key <AC05>	{[ g,     	G, 	        gcedilla,   Gcedilla]};
+    key <AC08>	{[ k,     	K, 	        kcedilla,   Kcedilla]};
+    key <AC09>	{[ l,     	L, 	        lcedilla,   Lcedilla]};
 };

@@ -6,7 +6,7 @@
 //   PC98-like map for the kana part
 //   EISU and KANA keys found on other Apple keyboards
 
-partial default alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "usmac" {
     name[Group1]	= "Japan - Macintosh, US map";
     include "jp(common)"

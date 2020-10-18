@@ -1109,13 +1109,15 @@
     <type name="DEBUGPROCARB" size="4" pointer="true"/>
     <type name="DEBUGPROC" size="4" pointer="true"/>
 
-    <function name="NewList" deprecated="3.1">
+    <function name="NewList" deprecated="3.1"
+              marshal_call_after="if (COMPAT) ctx->GLThread.inside_dlist = true;">
         <param name="list" type="GLuint"/>
         <param name="mode" type="GLenum"/>
         <glx sop="101"/>
     </function>
 
-    <function name="EndList" deprecated="3.1">
+    <function name="EndList" deprecated="3.1"
+              marshal_call_after="if (COMPAT) ctx->GLThread.inside_dlist = false;">
         <glx sop="102"/>
     </function>
 
@@ -2388,8 +2390,14 @@
         <glx sop="108" handcode="true"/>
     </function>
 
+    <!-- Shared contexts have to wait for glthread to finish execution after glFlush,
+         so that other contexts can see the effect of previous GL calls when glFlush returns.
+         This is harmless if the contexts run on different threads, because we only stall
+         1 thread that's asynchronous anyway. It's worse when the contexts run on the same
+         thread, but that's not a good use of multiple contexts.
+    -->
     <function name="Flush" es1="1.0" es2="2.0"
-              marshal_call_after="_mesa_glthread_flush_batch(ctx);">
+              marshal_call_after="_mesa_glthread_flush_batch(ctx); if (ctx->Shared->RefCount > 1) _mesa_glthread_finish(ctx);">
         <glx sop="142" handcode="true"/>
     </function>
 

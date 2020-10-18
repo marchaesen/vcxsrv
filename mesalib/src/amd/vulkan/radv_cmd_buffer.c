@@ -277,22 +277,15 @@ static VkResult radv_create_cmd_buffer(
 	if (cmd_buffer == NULL)
 		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-	cmd_buffer->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
+	vk_object_base_init(&device->vk, &cmd_buffer->base,
+			    VK_OBJECT_TYPE_COMMAND_BUFFER);
+
 	cmd_buffer->device = device;
 	cmd_buffer->pool = pool;
 	cmd_buffer->level = level;
 
-	if (pool) {
-		list_addtail(&cmd_buffer->pool_link, &pool->cmd_buffers);
-		cmd_buffer->queue_family_index = pool->queue_family_index;
-
-	} else {
-		/* Init the pool_link so we can safely call list_del when we destroy
-		 * the command buffer
-		 */
-		list_inithead(&cmd_buffer->pool_link);
-		cmd_buffer->queue_family_index = RADV_QUEUE_GENERAL;
-	}
+	list_addtail(&cmd_buffer->pool_link, &pool->cmd_buffers);
+	cmd_buffer->queue_family_index = pool->queue_family_index;
 
 	ring = radv_queue_family_to_ring(cmd_buffer->queue_family_index);
 
@@ -325,8 +318,10 @@ radv_cmd_buffer_destroy(struct radv_cmd_buffer *cmd_buffer)
 		cmd_buffer->device->ws->buffer_destroy(cmd_buffer->upload.upload_bo);
 	cmd_buffer->device->ws->cs_destroy(cmd_buffer->cs);
 
-	for (unsigned i = 0; i < VK_PIPELINE_BIND_POINT_RANGE_SIZE; i++)
+	for (unsigned i = 0; i < MAX_BIND_POINTS; i++)
 		free(cmd_buffer->descriptors[i].push_set.set.mapped_ptr);
+
+	vk_object_base_finish(&cmd_buffer->base);
 
 	vk_free(&cmd_buffer->pool->alloc, cmd_buffer);
 }
@@ -364,7 +359,7 @@ radv_reset_cmd_buffer(struct radv_cmd_buffer *cmd_buffer)
 
 	memset(cmd_buffer->vertex_bindings, 0, sizeof(cmd_buffer->vertex_bindings));
 
-	for (unsigned i = 0; i < VK_PIPELINE_BIND_POINT_RANGE_SIZE; i++) {
+	for (unsigned i = 0; i < MAX_BIND_POINTS; i++) {
 		cmd_buffer->descriptors[i].dirty = 0;
 		cmd_buffer->descriptors[i].valid = 0;
 		cmd_buffer->descriptors[i].push_dirty = false;
@@ -1808,7 +1803,7 @@ radv_load_ds_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 	uint32_t reg = R_028028_DB_STENCIL_CLEAR + 4 * reg_offset;
 
 	if (cmd_buffer->device->physical_device->rad_info.has_load_ctx_reg_pkt) {
-		radeon_emit(cs, PKT3(PKT3_LOAD_CONTEXT_REG, 3, 0));
+		radeon_emit(cs, PKT3(PKT3_LOAD_CONTEXT_REG_INDEX, 3, 0));
 		radeon_emit(cs, va);
 		radeon_emit(cs, va >> 32);
 		radeon_emit(cs, (reg - SI_CONTEXT_REG_OFFSET) >> 2);
@@ -1992,7 +1987,7 @@ radv_load_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 	uint32_t reg = R_028C8C_CB_COLOR0_CLEAR_WORD0 + cb_idx * 0x3c;
 
 	if (cmd_buffer->device->physical_device->rad_info.has_load_ctx_reg_pkt) {
-		radeon_emit(cs, PKT3(PKT3_LOAD_CONTEXT_REG, 3, cmd_buffer->state.predicating));
+		radeon_emit(cs, PKT3(PKT3_LOAD_CONTEXT_REG_INDEX, 3, cmd_buffer->state.predicating));
 		radeon_emit(cs, va);
 		radeon_emit(cs, va >> 32);
 		radeon_emit(cs, (reg - SI_CONTEXT_REG_OFFSET) >> 2);
@@ -2958,8 +2953,7 @@ radv_dst_access_flush(struct radv_cmd_buffer *cmd_buffer,
 			flush_bits |= RADV_CMD_FLAG_INV_VCACHE;
 			/* Unlike LLVM, ACO uses SMEM for SSBOs and we have to
 			 * invalidate the scalar cache. */
-			if (cmd_buffer->device->physical_device->use_aco &&
-			    cmd_buffer->device->physical_device->rad_info.chip_class >= GFX8)
+			if (!cmd_buffer->device->physical_device->use_llvm)
 				flush_bits |= RADV_CMD_FLAG_INV_SCACHE;
 
 			if (!image_is_coherent)
@@ -3318,7 +3312,6 @@ VkResult radv_AllocateCommandBuffers(
 			list_addtail(&cmd_buffer->pool_link, &pool->cmd_buffers);
 
 			result = radv_reset_cmd_buffer(cmd_buffer);
-			cmd_buffer->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
 			cmd_buffer->level = pAllocateInfo->level;
 
 			pCommandBuffers[i] = radv_cmd_buffer_to_handle(cmd_buffer);
@@ -3793,8 +3786,9 @@ VkResult radv_EndCommandBuffer(
 	vk_free(&cmd_buffer->pool->alloc, cmd_buffer->state.attachments);
 	vk_free(&cmd_buffer->pool->alloc, cmd_buffer->state.subpass_sample_locs);
 
-	if (!cmd_buffer->device->ws->cs_finalize(cmd_buffer->cs))
-		return vk_error(cmd_buffer->device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+	VkResult result = cmd_buffer->device->ws->cs_finalize(cmd_buffer->cs);
+	if (result != VK_SUCCESS)
+		return vk_error(cmd_buffer->device->instance, result);
 
 	cmd_buffer->status = RADV_CMD_BUFFER_STATUS_EXECUTABLE;
 
@@ -4256,15 +4250,18 @@ VkResult radv_CreateCommandPool(
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	struct radv_cmd_pool *pool;
 
-	pool = vk_alloc2(&device->alloc, pAllocator, sizeof(*pool), 8,
+	pool = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*pool), 8,
 			   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	if (pool == NULL)
 		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
+	vk_object_base_init(&device->vk, &pool->base,
+			    VK_OBJECT_TYPE_COMMAND_POOL);
+
 	if (pAllocator)
 		pool->alloc = *pAllocator;
 	else
-		pool->alloc = device->alloc;
+		pool->alloc = device->vk.alloc;
 
 	list_inithead(&pool->cmd_buffers);
 	list_inithead(&pool->free_cmd_buffers);
@@ -4298,7 +4295,8 @@ void radv_DestroyCommandPool(
 		radv_cmd_buffer_destroy(cmd_buffer);
 	}
 
-	vk_free2(&device->alloc, pAllocator, pool);
+	vk_object_base_finish(&pool->base);
+	vk_free2(&device->vk.alloc, pAllocator, pool);
 }
 
 VkResult radv_ResetCommandPool(
@@ -5467,7 +5465,7 @@ void radv_initialize_dcc(struct radv_cmd_buffer *cmd_buffer,
 		if (size != image->planes[0].surface.dcc_size) {
 			state->flush_bits |=
 				radv_fill_buffer(cmd_buffer, image->bo,
-						 image->offset + image->dcc_offset + size,
+						 image->offset + image->planes[0].surface.dcc_offset + size,
 						 image->planes[0].surface.dcc_size - size,
 						 0xffffffff);
 		}

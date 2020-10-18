@@ -26,6 +26,8 @@
 
 #include "radv_constants.h"
 
+#include "vulkan/util/vk_object.h"
+
 #include <vulkan/vulkan.h>
 
 struct radv_descriptor_set_binding_layout {
@@ -49,6 +51,8 @@ struct radv_descriptor_set_binding_layout {
 };
 
 struct radv_descriptor_set_layout {
+   struct vk_object_base base;
+
    /* The create flags for this descriptor set layout */
    VkDescriptorSetLayoutCreateFlags flags;
 
@@ -81,6 +85,7 @@ struct radv_descriptor_set_layout {
 };
 
 struct radv_pipeline_layout {
+   struct vk_object_base base;
    struct {
       struct radv_descriptor_set_layout *layout;
       uint32_t size;

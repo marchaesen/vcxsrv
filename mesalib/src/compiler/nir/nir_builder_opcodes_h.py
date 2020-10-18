@@ -56,7 +56,6 @@ nir_load_system_value(nir_builder *build, nir_intrinsic_op op, int index,
                       unsigned bit_size)
 {
    nir_intrinsic_instr *load = nir_intrinsic_instr_create(build->shader, op);
-   load->num_components = nir_intrinsic_infos[op].dest_components;
    load->const_index[0] = index;
    nir_ssa_dest_init(&load->instr, &load->dest,
                      nir_intrinsic_infos[op].dest_components, bit_size, NULL);

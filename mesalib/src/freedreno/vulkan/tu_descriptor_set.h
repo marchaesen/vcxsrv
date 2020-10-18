@@ -54,12 +54,13 @@ struct tu_descriptor_set_binding_layout
     */
    uint32_t dynamic_offset_offset;
 
-   /* Index into the array of dynamic input attachment descriptors */
-   uint32_t input_attachment_offset;
-
    /* Offset in the tu_descriptor_set_layout of the immutable samplers, or 0
     * if there are no immutable samplers. */
    uint32_t immutable_samplers_offset;
+
+   /* Offset in the tu_descriptor_set_layout of the ycbcr samplers, or 0
+    * if there are no immutable samplers. */
+   uint32_t ycbcr_samplers_offset;
 
    /* Shader stages that use this binding */
    uint32_t shader_stages;
@@ -82,9 +83,6 @@ struct tu_descriptor_set_layout
    /* Number of dynamic offsets used by this descriptor set */
    uint16_t dynamic_offset_count;
 
-   /* Number of input attachments used by the descriptor set */
-   uint16_t input_attachment_count;
-
    /* A bitfield of which dynamic buffers are ubo's, to make the
     * descriptor-binding-time patching easier.
     */
@@ -106,13 +104,11 @@ struct tu_pipeline_layout
       struct tu_descriptor_set_layout *layout;
       uint32_t size;
       uint32_t dynamic_offset_start;
-      uint32_t input_attachment_start;
    } set[MAX_SETS];
 
    uint32_t num_sets;
    uint32_t push_constant_size;
    uint32_t dynamic_offset_count;
-   uint32_t input_attachment_count;
 
    unsigned char sha1[20];
 };
@@ -123,4 +119,15 @@ tu_immutable_samplers(const struct tu_descriptor_set_layout *set,
 {
    return (void *) ((const char *) set + binding->immutable_samplers_offset);
 }
+
+static inline const struct tu_sampler_ycbcr_conversion *
+tu_immutable_ycbcr_samplers(const struct tu_descriptor_set_layout *set,
+                            const struct tu_descriptor_set_binding_layout *binding)
+{
+   if (!binding->ycbcr_samplers_offset)
+      return NULL;
+
+   return (void *) ((const char *) set + binding->ycbcr_samplers_offset);
+}
+
 #endif /* TU_DESCRIPTOR_SET_H */

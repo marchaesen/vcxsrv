@@ -73,6 +73,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "blob.h"
 #include "ralloc.h"
 #include "main/macros.h"
 #include "util/bitset.h"
@@ -419,6 +420,68 @@ ra_set_finalize(struct ra_regs *regs, unsigned int **q_values)
    for (b = 0; b < regs->count; b++) {
       util_dynarray_fini(&regs->regs[b].conflict_list);
    }
+}
+
+void
+ra_set_serialize(const struct ra_regs *regs, struct blob *blob)
+{
+   blob_write_uint32(blob, regs->count);
+   blob_write_uint32(blob, regs->class_count);
+
+   for (unsigned int r = 0; r < regs->count; r++) {
+      struct ra_reg *reg = &regs->regs[r];
+      blob_write_bytes(blob, reg->conflicts, BITSET_WORDS(regs->count) *
+                                             sizeof(BITSET_WORD));
+      assert(util_dynarray_num_elements(&reg->conflict_list, unsigned int) == 0);
+   }
+
+   for (unsigned int c = 0; c < regs->class_count; c++) {
+      struct ra_class *class = regs->classes[c];
+      blob_write_bytes(blob, class->regs, BITSET_WORDS(regs->count) *
+                                          sizeof(BITSET_WORD));
+      blob_write_uint32(blob, class->p);
+      blob_write_bytes(blob, class->q, regs->class_count * sizeof(*class->q));
+   }
+
+   blob_write_uint32(blob, regs->round_robin);
+}
+
+struct ra_regs *
+ra_set_deserialize(void *mem_ctx, struct blob_reader *blob)
+{
+   unsigned int reg_count = blob_read_uint32(blob);
+   unsigned int class_count = blob_read_uint32(blob);
+
+   struct ra_regs *regs = ra_alloc_reg_set(mem_ctx, reg_count, false);
+   assert(regs->count == reg_count);
+
+   for (unsigned int r = 0; r < reg_count; r++) {
+      struct ra_reg *reg = &regs->regs[r];
+      blob_copy_bytes(blob, reg->conflicts, BITSET_WORDS(reg_count) *
+                                            sizeof(BITSET_WORD));
+   }
+
+   assert(regs->classes == NULL);
+   regs->classes = ralloc_array(regs->regs, struct ra_class *, class_count);
+   regs->class_count = class_count;
+
+   for (unsigned int c = 0; c < class_count; c++) {
+      struct ra_class *class = rzalloc(regs, struct ra_class);
+      regs->classes[c] = class;
+
+      class->regs = ralloc_array(class, BITSET_WORD, BITSET_WORDS(reg_count));
+      blob_copy_bytes(blob, class->regs, BITSET_WORDS(reg_count) *
+                                         sizeof(BITSET_WORD));
+
+      class->p = blob_read_uint32(blob);
+
+      class->q = ralloc_array(regs->classes[c], unsigned int, class_count);
+      blob_copy_bytes(blob, class->q, class_count * sizeof(*class->q));
+   }
+
+   regs->round_robin = blob_read_uint32(blob);
+
+   return regs;
 }
 
 static void

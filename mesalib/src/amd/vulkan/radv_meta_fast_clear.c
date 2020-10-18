@@ -37,10 +37,9 @@ build_dcc_decompress_compute_shader(struct radv_device *dev)
 							     false,
 							     false,
 							     GLSL_TYPE_FLOAT);
-	const struct glsl_type *img_type = glsl_sampler_type(GLSL_SAMPLER_DIM_2D,
-							     false,
-							     false,
-							     GLSL_TYPE_FLOAT);
+	const struct glsl_type *img_type = glsl_image_type(GLSL_SAMPLER_DIM_2D,
+							   false,
+							   GLSL_TYPE_FLOAT);
 	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
 	b.shader->info.name = ralloc_strdup(b.shader, "dcc_decompress_compute");
 

@@ -59,13 +59,13 @@ void XrmQPutResource\^(\^XrmDatabase *\fIdatabase\fP\^, XrmBindingList
 \fIbindings\fP\^, XrmQuarkList \fIquarks\fP\^, XrmRepresentation \fItype\fP\^,
 XrmValue *\fIvalue\fP\^);
 .HP
-void XrmPutStringResource\^(\^XrmDatabase *\fIdatabase\fP\^, char
-*\fIspecifier\fP\^, char *\fIvalue\fP\^);
+void XrmPutStringResource\^(\^XrmDatabase *\fIdatabase\fP\^, _Xconst char
+*\fIspecifier\fP\^, _Xconst char *\fIvalue\fP\^);
 .HP
 void XrmQPutStringResource\^(\^XrmDatabase *\fIdatabase\fP\^, XrmBindingList
-\fIbindings\fP\^, XrmQuarkList \fIquarks\fP\^, char *\fIvalue\fP\^);
+\fIbindings\fP\^, XrmQuarkList \fIquarks\fP\^, _Xconst char *\fIvalue\fP\^);
 .HP
-void XrmPutLineResource\^(\^XrmDatabase *\fIdatabase\fP\^, char
+void XrmPutLineResource\^(\^XrmDatabase *\fIdatabase\fP\^, _Xconst char
 *\fIline\fP\^);
 .SH ARGUMENTS
 .IP \fIbindings\fP 1i

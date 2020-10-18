@@ -124,8 +124,18 @@ nir_opt_conditional_discard(nir_shader *shader)
    nir_foreach_function(function, shader) {
       if (function->impl) {
          nir_builder_init(&builder, function->impl);
+
+         bool impl_progress = false;
          nir_foreach_block_safe(block, function->impl) {
-            progress |= nir_opt_conditional_discard_block(&builder, block);
+            if (nir_opt_conditional_discard_block(&builder, block))
+               impl_progress = true;
+         }
+
+         if (impl_progress) {
+            nir_metadata_preserve(function->impl, nir_metadata_none);
+            progress = true;
+         } else {
+            nir_metadata_preserve(function->impl, nir_metadata_all);
          }
       }
    }

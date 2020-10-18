@@ -133,6 +133,7 @@ remove_dead_write_vars_local(void *mem_ctx, nir_block *block)
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
       switch (intrin->intrinsic) {
       case nir_intrinsic_control_barrier:
+      case nir_intrinsic_group_memory_barrier:
       case nir_intrinsic_memory_barrier: {
          clear_unused_for_modes(&unused_writes, nir_var_shader_out |
                                                 nir_var_mem_ssbo |
@@ -154,7 +155,7 @@ remove_dead_write_vars_local(void *mem_ctx, nir_block *block)
          clear_unused_for_modes(&unused_writes, nir_var_shader_out);
          break;
 
-      case nir_intrinsic_scoped_memory_barrier: {
+      case nir_intrinsic_scoped_barrier: {
          if (nir_intrinsic_memory_semantics(intrin) & NIR_MEMORY_RELEASE) {
             clear_unused_for_modes(&unused_writes,
                                    nir_intrinsic_memory_modes(intrin));
@@ -242,6 +243,8 @@ remove_dead_write_vars_impl(void *mem_ctx, nir_function_impl *impl)
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
+   } else {
+      nir_metadata_preserve(impl, nir_metadata_all);
    }
 
    return progress;

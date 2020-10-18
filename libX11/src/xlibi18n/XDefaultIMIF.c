@@ -453,7 +453,7 @@ _WcLookupString(
     } else {
 	*status = XLookupKeySym;
     }
-    mbstowcs(buffer, mb_buf, length);
+    mbstowcs(buffer, mb_buf, (size_t) length);
     XFree(mb_buf);
     return(length);
 }

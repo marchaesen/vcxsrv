@@ -1228,6 +1228,18 @@ wsi_display_start_wait_thread(struct wsi_display *wsi)
    return 0;
 }
 
+static void
+wsi_display_stop_wait_thread(struct wsi_display *wsi)
+{
+   pthread_mutex_lock(&wsi->wait_mutex);
+   if (wsi->wait_thread) {
+      pthread_cancel(wsi->wait_thread);
+      pthread_join(wsi->wait_thread, NULL);
+      wsi->wait_thread = 0;
+   }
+   pthread_mutex_unlock(&wsi->wait_mutex);
+}
+
 /*
  * Wait for at least one event from the kernel to be processed.
  * Call with wait_mutex held
@@ -1936,12 +1948,7 @@ wsi_display_finish_wsi(struct wsi_device *wsi_device,
          vk_free(wsi->alloc, connector);
       }
 
-      pthread_mutex_lock(&wsi->wait_mutex);
-      if (wsi->wait_thread) {
-         pthread_cancel(wsi->wait_thread);
-         pthread_join(wsi->wait_thread, NULL);
-      }
-      pthread_mutex_unlock(&wsi->wait_mutex);
+      wsi_display_stop_wait_thread(wsi);
       pthread_mutex_destroy(&wsi->wait_mutex);
       pthread_cond_destroy(&wsi->wait_cond);
 
@@ -1961,9 +1968,12 @@ wsi_release_display(VkPhysicalDevice            physical_device,
       (struct wsi_display *) wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
 
    if (wsi->fd >= 0) {
+      wsi_display_stop_wait_thread(wsi);
+
       close(wsi->fd);
       wsi->fd = -1;
    }
+
 #ifdef VK_USE_PLATFORM_XLIB_XRANDR_EXT
    wsi_display_connector_from_handle(display)->output = None;
 #endif

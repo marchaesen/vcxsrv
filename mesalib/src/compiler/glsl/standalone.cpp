@@ -438,7 +438,9 @@ standalone_compile_shader(const struct standalone_options *_options,
       for (unsigned i = MESA_SHADER_VERTEX; i <= MESA_SHADER_FRAGMENT; i++) {
          struct gl_shader_compiler_options *options =
             &ctx->Const.ShaderCompilerOptions[i];
-         options->LowerPrecision = true;
+         options->LowerPrecisionFloat16 = true;
+         options->LowerPrecisionInt16 = true;
+         options->LowerPrecisionDerivatives = true;
       }
    }
 

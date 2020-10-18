@@ -42,7 +42,6 @@
 typedef struct {
 	nir_shader *shader;
 	nir_block *start_block;
-	struct nir_instr *cursor;
 } state;
 
 static void move_instruction_to_start_block(state *state, nir_instr *instr);
@@ -59,6 +58,10 @@ move_src(nir_src *src, void *state)
 static void
 move_instruction_to_start_block(state *state, nir_instr *instr)
 {
+	/* nothing to do if the instruction is already in the start block */
+	if (instr->block == state->start_block)
+		return;
+
 	/* first move (recursively) all src's to ensure they appear before
 	 * load*_input that we are trying to move:
 	 */
@@ -67,14 +70,7 @@ move_instruction_to_start_block(state *state, nir_instr *instr)
 	/* and then move the instruction itself:
 	 */
 	exec_node_remove(&instr->node);
-
-	if (state->cursor) {
-		exec_node_insert_after(&state->cursor->node, &instr->node);
-	} else {
-		exec_list_push_head(&state->start_block->instr_list, &instr->node);
-	}
-
-	state->cursor = instr;
+	exec_list_push_tail(&state->start_block->instr_list, &instr->node);
 	instr->block = state->start_block;
 }
 
@@ -100,7 +96,6 @@ move_varying_inputs_block(state *state, nir_block *block)
 
 		debug_assert(intr->dest.is_ssa);
 
-		state->cursor = NULL;
 		move_instruction_to_start_block(state, instr);
 
 		progress = true;

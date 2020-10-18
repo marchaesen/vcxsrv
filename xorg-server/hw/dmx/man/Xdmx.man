@@ -729,4 +729,4 @@ Portions of
 are based on code from The XFree86 Project
 .RI ( http://www.xfree86.org )
 and X.Org
-.RI ( http://www.x.org ).
+.RI ( https://www.x.org ).

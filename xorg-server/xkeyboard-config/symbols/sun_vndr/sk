@@ -27,7 +27,7 @@
 // of the copyright holder.
 //
 
-partial default alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "sun_type6" {
 
     name[Group1]="Slovak (Sun Type 6/7)";

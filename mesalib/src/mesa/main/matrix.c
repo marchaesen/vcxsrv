@@ -436,16 +436,16 @@ _mesa_MatrixPopEXT( GLenum matrixMode )
 }
 
 
-static void
-matrix_load_identity(struct gl_matrix_stack* stack)
+void
+_mesa_load_identity_matrix(struct gl_context *ctx, struct gl_matrix_stack *stack)
 {
-   GET_CURRENT_CONTEXT(ctx);
-
    FLUSH_VERTICES(ctx, 0);
 
    _math_matrix_set_identity(stack->Top);
    ctx->NewState |= stack->DirtyFlag;
 }
+
+
 /**
  * Replace the current matrix with the identity matrix.
  *
@@ -463,7 +463,7 @@ _mesa_LoadIdentity( void )
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glLoadIdentity()\n");
 
-   matrix_load_identity(ctx->CurrentStack);
+   _mesa_load_identity_matrix(ctx, ctx->CurrentStack);
 }
 
 
@@ -476,14 +476,26 @@ _mesa_MatrixLoadIdentityEXT( GLenum matrixMode )
    if (!stack)
       return;
 
-   matrix_load_identity(stack);
+   _mesa_load_identity_matrix(ctx, stack);
+}
+
+
+void
+_mesa_load_matrix(struct gl_context *ctx, struct gl_matrix_stack *stack,
+                  const GLfloat *m)
+{
+   if (memcmp(m, stack->Top->m, 16 * sizeof(GLfloat)) != 0) {
+      FLUSH_VERTICES(ctx, 0);
+      _math_matrix_loadf(stack->Top, m);
+      ctx->NewState |= stack->DirtyFlag;
+   }
 }
 
 
 static void
-matrix_load(struct gl_matrix_stack *stack, const GLfloat *m, const char* caller)
+matrix_load(struct gl_context *ctx, struct gl_matrix_stack *stack,
+            const GLfloat *m, const char* caller)
 {
-   GET_CURRENT_CONTEXT(ctx);
    if (!m) return;
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx,
@@ -494,11 +506,7 @@ matrix_load(struct gl_matrix_stack *stack, const GLfloat *m, const char* caller)
           m[2], m[6], m[10], m[14],
           m[3], m[7], m[11], m[15]);
 
-   if (memcmp(m, stack->Top->m, 16 * sizeof(GLfloat)) != 0) {
-      FLUSH_VERTICES(ctx, 0);
-      _math_matrix_loadf( stack->Top, m );
-      ctx->NewState |= stack->DirtyFlag;
-   }
+   _mesa_load_matrix(ctx, stack, m);
 }
 
 
@@ -517,7 +525,7 @@ void GLAPIENTRY
 _mesa_LoadMatrixf( const GLfloat *m )
 {
    GET_CURRENT_CONTEXT(ctx);
-   matrix_load(ctx->CurrentStack, m, "glLoadMatrix");
+   matrix_load(ctx, ctx->CurrentStack, m, "glLoadMatrix");
 }
 
 
@@ -538,7 +546,7 @@ _mesa_MatrixLoadfEXT( GLenum matrixMode, const GLfloat *m )
    if (!stack)
       return;
 
-   matrix_load(stack, m, "glMatrixLoadfEXT");
+   matrix_load(ctx, stack, m, "glMatrixLoadfEXT");
 }
 
 

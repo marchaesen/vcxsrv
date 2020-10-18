@@ -41,15 +41,12 @@
 
 struct lcra_state *
 lcra_alloc_equations(
-                unsigned node_count,
-                unsigned min_alignment, unsigned max_alignment,
-                unsigned bound, unsigned class_count)
+                unsigned node_count, unsigned class_count)
 {
         struct lcra_state *l = calloc(1, sizeof(*l));
 
         l->node_count = node_count;
         l->class_count = class_count;
-        l->bound = bound;
 
         l->alignment = calloc(sizeof(l->alignment[0]), node_count);
         l->linear = calloc(sizeof(l->linear[0]), node_count * node_count);
@@ -86,9 +83,9 @@ lcra_free(struct lcra_state *l)
 }
 
 void
-lcra_set_alignment(struct lcra_state *l, unsigned node, unsigned align_log2)
+lcra_set_alignment(struct lcra_state *l, unsigned node, unsigned align_log2, unsigned bound)
 {
-        l->alignment[node] = align_log2 + 1;
+        l->alignment[node] = (align_log2 + 1) | (bound << 16);
 }
 
 void
@@ -101,8 +98,12 @@ lcra_set_disjoint_class(struct lcra_state *l, unsigned c1, unsigned c2)
 void
 lcra_restrict_range(struct lcra_state *l, unsigned node, unsigned len)
 {
-        if (node < l->node_count && l->alignment[node])
-                l->modulus[node] = DIV_ROUND_UP(l->bound - len + 1, 1 << (l->alignment[node] - 1));
+        if (node < l->node_count && l->alignment[node]) {
+                unsigned BA = l->alignment[node];
+                unsigned alignment = (BA & 0xffff) - 1;
+                unsigned bound = BA >> 16;
+                l->modulus[node] = DIV_ROUND_UP(bound - len + 1, 1 << alignment);
+        }
 }
 
 void
@@ -164,9 +165,11 @@ lcra_solve(struct lcra_state *l)
                 unsigned _class = l->class[step];
                 unsigned class_start = l->class_start[_class];
 
-                unsigned shift = l->alignment[step] - 1;
+                unsigned BA = l->alignment[step];
+                unsigned shift = (BA & 0xffff) - 1;
+                unsigned bound = BA >> 16;
 
-                unsigned P = l->bound >> shift;
+                unsigned P = bound >> shift;
                 unsigned Q = l->modulus[step];
                 unsigned r_max = l->class_size[_class];
                 unsigned k_max = r_max >> shift;

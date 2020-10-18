@@ -195,6 +195,22 @@ st_DeleteTextureObject(struct gl_context *ctx,
    _mesa_delete_texture_object(ctx, texObj);
 }
 
+/**
+ * Called via ctx->Driver.TextureRemovedFromShared()
+ * When texture is removed from ctx->Shared->TexObjects we lose
+ * the ability to clean up views on context destruction, which may
+ * lead to dangling pointers to destroyed contexts.
+ * Release the views to prevent this.
+ */
+static void
+st_TextureReleaseAllSamplerViews(struct gl_context *ctx,
+                                 struct gl_texture_object *texObj)
+{
+   struct st_context *st = st_context(ctx);
+   struct st_texture_object *stObj = st_texture_object(texObj);
+
+   st_texture_release_all_sampler_views(st, stObj);
+}
 
 /** called via ctx->Driver.FreeTextureImageBuffer() */
 static void
@@ -215,9 +231,10 @@ st_FreeTextureImageBuffer(struct gl_context *ctx,
    stImage->transfer = NULL;
    stImage->num_transfers = 0;
 
-   if (stImage->compressed_data) {
+   if (stImage->compressed_data &&
+       pipe_reference(&stImage->compressed_data->reference, NULL)) {
+      free(stImage->compressed_data->ptr);
       free(stImage->compressed_data);
-      stImage->compressed_data = NULL;
    }
 
    /* if the texture image is being deallocated, the structure of the
@@ -264,16 +281,21 @@ compressed_tex_fallback_allocate(struct st_context *st,
    if (!st_compressed_format_fallback(st, texImage->TexFormat))
       return;
 
-   if (stImage->compressed_data)
+   if (stImage->compressed_data &&
+       pipe_reference(&stImage->compressed_data->reference, NULL)) {
+      free(stImage->compressed_data->ptr);
       free(stImage->compressed_data);
+   }
 
    unsigned data_size = _mesa_format_image_size(texImage->TexFormat,
                                                 texImage->Width2,
                                                 texImage->Height2,
                                                 texImage->Depth2);
 
-   stImage->compressed_data =
+   stImage->compressed_data = ST_CALLOC_STRUCT(st_compressed_data);
+   stImage->compressed_data->ptr =
       malloc(data_size * _mesa_num_tex_faces(texImage->TexObject->Target));
+   pipe_reference_init(&stImage->compressed_data->reference, 1);
 }
 
 
@@ -320,8 +342,9 @@ st_MapTextureImage(struct gl_context *ctx,
             _mesa_format_row_stride(texImage->TexFormat, texImage->Width2);
          unsigned block_size = _mesa_get_format_bytes(texImage->TexFormat);
 
+         assert(stImage->compressed_data);
          *mapOut = itransfer->temp_data =
-            stImage->compressed_data +
+            stImage->compressed_data->ptr +
             (z * y_blocks + (y / blk_h)) * stride +
             (x / blk_w) * block_size;
          itransfer->map = map;
@@ -3100,7 +3123,15 @@ st_TextureView(struct gl_context *ctx,
       for (face = 0; face < numFaces; face++) {
          struct st_texture_image *stImage =
             st_texture_image(texObj->Image[face][level]);
+         struct st_texture_image *origImage =
+            st_texture_image(origTexObj->Image[face][level]);
          pipe_resource_reference(&stImage->pt, tex->pt);
+         if (origImage &&
+             origImage->compressed_data) {
+            pipe_reference(NULL,
+                           &origImage->compressed_data->reference);
+            stImage->compressed_data = origImage->compressed_data;
+         }
       }
    }
 
@@ -3355,6 +3386,7 @@ st_init_texture_functions(struct dd_function_table *functions)
    functions->NewTextureImage = st_NewTextureImage;
    functions->DeleteTextureImage = st_DeleteTextureImage;
    functions->DeleteTexture = st_DeleteTextureObject;
+   functions->TextureRemovedFromShared = st_TextureReleaseAllSamplerViews;
    functions->AllocTextureImageBuffer = st_AllocTextureImageBuffer;
    functions->FreeTextureImageBuffer = st_FreeTextureImageBuffer;
    functions->MapTextureImage = st_MapTextureImage;

@@ -108,6 +108,14 @@ bit_write(struct bit_state *s, unsigned index, nir_alu_type T, bit_t value, bool
                                         srcs[3].u16[ins->swizzle[3][c]]); \
         }
 
+#define bv4i8(fxn) \
+        for (unsigned c = 0; c < 4; ++c) { \
+                dest.u8[c] = fxn(srcs[0].u8[ins->swizzle[0][c]], \
+                                        srcs[1].u8[ins->swizzle[1][c]], \
+                                        srcs[2].u8[ins->swizzle[2][c]], \
+                                        srcs[3].u8[ins->swizzle[3][c]]); \
+        }
+
 #define bf32(fxn) dest.f32 = fxn(srcs[0].f32, srcs[1].f32, srcs[2].f32, srcs[3].f32)
 #define bi32(fxn) dest.i32 = fxn(srcs[0].u32, srcs[1].u32, srcs[2].u32, srcs[3].i32)
 
@@ -132,7 +140,8 @@ bit_write(struct bit_state *s, unsigned index, nir_alu_type T, bit_t value, bool
                 bv2i16(fxn16); \
                 break; \
         } else if (ins->dest_type == nir_type_int8 || ins->dest_type == nir_type_uint8) { \
-                unreachable("TODO: 8-bit"); \
+                bv4i8(fxn8); \
+                break; \
         }
 
 #define bpoly(name) \
@@ -185,6 +194,7 @@ bit_write(struct bit_state *s, unsigned index, nir_alu_type T, bit_t value, bool
         bit_make_int(name, expr) \
         
 bit_make_poly(add, a + b);
+bit_make_int(sub, a - b);
 bit_make_float(fma, (a * b) + c);
 bit_make_poly(mov, a);
 bit_make_poly(min, MIN2(a, b));
@@ -205,7 +215,7 @@ bit_outmod(float raw, enum bifrost_outmod mod)
         case BIFROST_SAT_SIGNED:
                 return CLAMP(raw, -1.0, 1.0);
         case BIFROST_SAT:
-                return CLAMP(raw, 0.0, 1.0);
+                return SATURATE(raw);
         default:
                 return raw;
         }
@@ -501,10 +511,24 @@ bit_step(struct bit_state *s, bi_instruction *ins, bool FMA)
 
         case BI_CSEL: {
                 bool direct = ins->cond == BI_COND_ALWAYS;
-                bool cond = direct ? srcs[0].u32 :
-                        bit_eval_cond(ins->cond, srcs[0], srcs[1], ins->src_types[0], 0, 0);
+                unsigned sz = nir_alu_type_get_type_size(ins->src_types[0]);
 
-                dest = cond ? srcs[2] : srcs[3];
+                if (sz == 32) {
+                        bool cond = direct ? srcs[0].u32 :
+                                bit_eval_cond(ins->cond, srcs[0], srcs[1], ins->src_types[0], 0, 0);
+
+                        dest = cond ? srcs[2] : srcs[3];
+                } else if (sz == 16) {
+                        for (unsigned c = 0; c < 2; ++c) {
+                                bool cond = direct ? srcs[0].u16[c] :
+                                        bit_eval_cond(ins->cond, srcs[0], srcs[1], ins->src_types[0], c, c);
+
+                                dest.u16[c] = cond ? srcs[2].u16[c] : srcs[3].u16[c];
+                        }
+                } else {
+                        unreachable("Remaining types todo");
+                }
+
                 break;
         }
 
@@ -525,8 +549,18 @@ bit_step(struct bit_state *s, bi_instruction *ins, bool FMA)
 
                 break;
         }
-        case BI_ISUB:
-                unreachable("Unsupported op");
+
+        case BI_IMATH: {
+                if (ins->op.imath == BI_IMATH_ADD) {
+                        bint(bit_i64add, bit_i32add, bit_i16add, bit_i8add);
+                } else if (ins->op.imath == BI_IMATH_SUB) {
+                        bint(bit_i64sub, bit_i32sub, bit_i16sub, bit_i8sub);
+                } else {
+                        unreachable("Unsupported op");
+                }
+
+                break;
+        }
 
         case BI_MINMAX: {
                 if (ins->op.minmax == BI_MINMAX_MIN) {

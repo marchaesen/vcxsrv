@@ -33,7 +33,7 @@ Generates the glapi_mapi_tmp.h header file from Khronos's XML file.
 """
 
 import sys
-import xml.etree.cElementTree as etree
+import xml.etree.ElementTree as etree
 
 import genCommon
 

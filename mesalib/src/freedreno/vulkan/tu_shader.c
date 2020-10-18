@@ -26,6 +26,7 @@
 #include "spirv/nir_spirv.h"
 #include "util/mesa-sha1.h"
 #include "nir/nir_xfb_info.h"
+#include "nir/nir_vulkan.h"
 #include "vk_util.h"
 
 #include "ir3/ir3_nir.h"
@@ -42,8 +43,12 @@ tu_spirv_to_nir(struct ir3_compiler *compiler,
    const struct spirv_to_nir_options spirv_options = {
       .frag_coord_is_sysval = true,
       .lower_ubo_ssbo_access_to_offsets = true,
+      .tess_levels_are_sysvals = true,
+      .lower_tess_levels_to_vec = true,
       .caps = {
-         .transform_feedback = compiler->gpu_id >= 600,
+         .transform_feedback = true,
+         .tessellation = true,
+         .draw_parameters = true,
       },
    };
    const nir_shader_compiler_options *nir_options =
@@ -134,12 +139,13 @@ lower_vulkan_resource_index(nir_builder *b, nir_intrinsic_instr *instr,
       &set_layout->binding[binding];
    uint32_t base;
 
+   shader->active_desc_sets |= 1u << set;
+
    switch (binding_layout->type) {
    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
       base = layout->set[set].dynamic_offset_start +
-         binding_layout->dynamic_offset_offset +
-         layout->input_attachment_count;
+         binding_layout->dynamic_offset_offset;
       set = MAX_SETS;
       break;
    default:
@@ -150,7 +156,7 @@ lower_vulkan_resource_index(nir_builder *b, nir_intrinsic_instr *instr,
    nir_intrinsic_instr *bindless =
       nir_intrinsic_instr_create(b->shader,
                                  nir_intrinsic_bindless_resource_ir3);
-   bindless->num_components = 1;
+   bindless->num_components = 0;
    nir_ssa_dest_init(&bindless->instr, &bindless->dest,
                      1, 32, NULL);
    nir_intrinsic_set_desc_set(bindless, set);
@@ -174,29 +180,42 @@ build_bindless(nir_builder *b, nir_deref_instr *deref, bool is_sampler,
    const struct tu_descriptor_set_binding_layout *bind_layout =
       &layout->set[set].layout->binding[binding];
 
+   /* input attachments use non bindless workaround */
+   if (bind_layout->type == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT) {
+      const struct glsl_type *glsl_type = glsl_without_array(var->type);
+      uint32_t idx = var->data.index * 2;
+
+      b->shader->info.textures_used |=
+         ((1ull << (bind_layout->array_size * 2)) - 1) << (idx * 2);
+
+      /* D24S8 workaround: stencil of D24S8 will be sampled as uint */
+      if (glsl_get_sampler_result_type(glsl_type) == GLSL_TYPE_UINT)
+         idx += 1;
+
+      if (deref->deref_type == nir_deref_type_var)
+         return nir_imm_int(b, idx);
+
+      nir_ssa_def *arr_index = nir_ssa_for_src(b, deref->arr.index, 1);
+      return nir_iadd(b, nir_imm_int(b, idx),
+                      nir_imul_imm(b, arr_index, 2));
+   }
+
+   shader->active_desc_sets |= 1u << set;
+
    nir_ssa_def *desc_offset;
    unsigned descriptor_stride;
-   if (bind_layout->type == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT) {
-      unsigned offset =
-         layout->set[set].input_attachment_start +
-         bind_layout->input_attachment_offset;
-      desc_offset = nir_imm_int(b, offset);
-      set = MAX_SETS;
-      descriptor_stride = 1;
-   } else {
-      unsigned offset = 0;
-      /* Samplers come second in combined image/sampler descriptors, see
-       * write_combined_image_sampler_descriptor().
-       */
-      if (is_sampler && bind_layout->type ==
-          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
-         offset = 1;
-      }
-      desc_offset =
-         nir_imm_int(b, (bind_layout->offset / (4 * A6XX_TEX_CONST_DWORDS)) +
-                     offset);
-      descriptor_stride = bind_layout->size / (4 * A6XX_TEX_CONST_DWORDS);
+   unsigned offset = 0;
+   /* Samplers come second in combined image/sampler descriptors, see
+      * write_combined_image_sampler_descriptor().
+      */
+   if (is_sampler && bind_layout->type ==
+         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+      offset = 1;
    }
+   desc_offset =
+      nir_imm_int(b, (bind_layout->offset / (4 * A6XX_TEX_CONST_DWORDS)) +
+                  offset);
+   descriptor_stride = bind_layout->size / (4 * A6XX_TEX_CONST_DWORDS);
 
    if (deref->deref_type != nir_deref_type_var) {
       assert(deref->deref_type == nir_deref_type_array);
@@ -209,7 +228,7 @@ build_bindless(nir_builder *b, nir_deref_instr *deref, bool is_sampler,
    nir_intrinsic_instr *bindless =
       nir_intrinsic_instr_create(b->shader,
                                  nir_intrinsic_bindless_resource_ir3);
-   bindless->num_components = 1;
+   bindless->num_components = 0;
    nir_ssa_dest_init(&bindless->instr, &bindless->dest,
                      1, 32, NULL);
    nir_intrinsic_set_desc_set(bindless, set);
@@ -272,10 +291,69 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
    }
 }
 
+static void
+lower_tex_ycbcr(const struct tu_pipeline_layout *layout,
+                nir_builder *builder,
+                nir_tex_instr *tex)
+{
+   int deref_src_idx = nir_tex_instr_src_index(tex, nir_tex_src_texture_deref);
+   assert(deref_src_idx >= 0);
+   nir_deref_instr *deref = nir_src_as_deref(tex->src[deref_src_idx].src);
+
+   nir_variable *var = nir_deref_instr_get_variable(deref);
+   const struct tu_descriptor_set_layout *set_layout =
+      layout->set[var->data.descriptor_set].layout;
+   const struct tu_descriptor_set_binding_layout *binding =
+      &set_layout->binding[var->data.binding];
+   const struct tu_sampler_ycbcr_conversion *ycbcr_samplers =
+      tu_immutable_ycbcr_samplers(set_layout, binding);
+
+   if (!ycbcr_samplers)
+      return;
+
+   /* For the following instructions, we don't apply any change */
+   if (tex->op == nir_texop_txs ||
+       tex->op == nir_texop_query_levels ||
+       tex->op == nir_texop_lod)
+      return;
+
+   assert(tex->texture_index == 0);
+   unsigned array_index = 0;
+   if (deref->deref_type != nir_deref_type_var) {
+      assert(deref->deref_type == nir_deref_type_array);
+      if (!nir_src_is_const(deref->arr.index))
+         return;
+      array_index = nir_src_as_uint(deref->arr.index);
+      array_index = MIN2(array_index, binding->array_size - 1);
+   }
+   const struct tu_sampler_ycbcr_conversion *ycbcr_sampler = ycbcr_samplers + array_index;
+
+   if (ycbcr_sampler->ycbcr_model == VK_SAMPLER_YCBCR_MODEL_CONVERSION_RGB_IDENTITY)
+      return;
+
+   builder->cursor = nir_after_instr(&tex->instr);
+
+   uint8_t bits = vk_format_get_component_bits(ycbcr_sampler->format,
+                                               UTIL_FORMAT_COLORSPACE_RGB,
+                                               PIPE_SWIZZLE_X);
+   uint32_t bpcs[3] = {bits, bits, bits}; /* TODO: use right bpc for each channel ? */
+   nir_ssa_def *result = nir_convert_ycbcr_to_rgb(builder,
+                                                  ycbcr_sampler->ycbcr_model,
+                                                  ycbcr_sampler->ycbcr_range,
+                                                  &tex->dest.ssa,
+                                                  bpcs);
+   nir_ssa_def_rewrite_uses_after(&tex->dest.ssa, nir_src_for_ssa(result),
+                                  result->parent_instr);
+
+   builder->cursor = nir_before_instr(&tex->instr);
+}
+
 static bool
 lower_tex(nir_builder *b, nir_tex_instr *tex,
           struct tu_shader *shader, const struct tu_pipeline_layout *layout)
 {
+   lower_tex_ycbcr(layout, b, tex);
+
    int sampler_src_idx = nir_tex_instr_src_index(tex, nir_tex_src_sampler_deref);
    if (sampler_src_idx >= 0) {
       nir_deref_instr *deref = nir_src_as_deref(tex->src[sampler_src_idx].src);
@@ -292,6 +370,10 @@ lower_tex(nir_builder *b, nir_tex_instr *tex,
       nir_instr_rewrite_src(&tex->instr, &tex->src[tex_src_idx].src,
                             nir_src_for_ssa(bindless));
       tex->src[tex_src_idx].src_type = nir_tex_src_texture_handle;
+
+      /* for the input attachment case: */
+      if (bindless->parent_instr->type != nir_instr_type_intrinsic)
+         tex->src[tex_src_idx].src_type = nir_tex_src_texture_offset;
    }
 
    return true;
@@ -359,7 +441,6 @@ gather_push_constants(nir_shader *shader, struct tu_shader *tu_shader)
    if (min >= max) {
       tu_shader->push_consts.lo = 0;
       tu_shader->push_consts.count = 0;
-      tu_shader->ir3_shader.const_state.num_reserved_user_consts = 0;
       return;
    }
 
@@ -370,40 +451,6 @@ gather_push_constants(nir_shader *shader, struct tu_shader *tu_shader)
    tu_shader->push_consts.lo = (min / 16) / 4 * 4;
    tu_shader->push_consts.count =
       align(max, 16) / 16 - tu_shader->push_consts.lo;
-   tu_shader->ir3_shader.const_state.num_reserved_user_consts = 
-      align(tu_shader->push_consts.count, 4);
-}
-
-/* Gather the InputAttachmentIndex for each input attachment from the NIR
- * shader and organize the info in a way so that draw-time patching is easy.
- */
-static void
-gather_input_attachments(nir_shader *shader, struct tu_shader *tu_shader,
-                         const struct tu_pipeline_layout *layout)
-{
-   nir_foreach_variable(var, &shader->uniforms) {
-      const struct glsl_type *glsl_type = glsl_without_array(var->type);
-
-      if (!glsl_type_is_image(glsl_type))
-         continue;
-
-      enum glsl_sampler_dim dim = glsl_get_sampler_dim(glsl_type);
-
-      const uint32_t set = var->data.descriptor_set;
-      const uint32_t binding = var->data.binding;
-      const struct tu_descriptor_set_binding_layout *bind_layout =
-            &layout->set[set].layout->binding[binding];
-      const uint32_t array_size = bind_layout->array_size;
-
-      if (dim == GLSL_SAMPLER_DIM_SUBPASS ||
-          dim == GLSL_SAMPLER_DIM_SUBPASS_MS) {
-         unsigned offset =
-            layout->set[set].input_attachment_start +
-            bind_layout->input_attachment_offset;
-         for (unsigned i = 0; i < array_size; i++)
-            tu_shader->attachment_idx[offset + i] = var->data.index + i;
-      }
-   }
 }
 
 static bool
@@ -413,20 +460,30 @@ tu_lower_io(nir_shader *shader, struct tu_shader *tu_shader,
    bool progress = false;
 
    gather_push_constants(shader, tu_shader);
-   gather_input_attachments(shader, tu_shader, layout);
 
    nir_foreach_function(function, shader) {
       if (function->impl)
          progress |= lower_impl(function->impl, tu_shader, layout);
    }
 
+   /* Remove now-unused variables so that when we gather the shader info later
+    * they won't be counted.
+    */
+
+   if (progress)
+      nir_opt_dce(shader);
+
+   progress |=
+      nir_remove_dead_variables(shader,
+                                nir_var_uniform | nir_var_mem_ubo | nir_var_mem_ssbo,
+                                NULL);
+
    return progress;
 }
 
 static void
-tu_gather_xfb_info(nir_shader *nir, struct tu_shader *shader)
+tu_gather_xfb_info(nir_shader *nir, struct ir3_stream_output_info *info)
 {
-   struct ir3_stream_output_info *info = &shader->ir3_shader.stream_output;
    nir_xfb_info *xfb = nir_gather_xfb_info(nir, NULL);
 
    if (!xfb)
@@ -472,23 +529,34 @@ tu_shader_create(struct tu_device *dev,
                  struct tu_pipeline_layout *layout,
                  const VkAllocationCallbacks *alloc)
 {
-   const struct tu_shader_module *module =
-      tu_shader_module_from_handle(stage_info->module);
    struct tu_shader *shader;
 
-   const uint32_t max_variant_count = (stage == MESA_SHADER_VERTEX) ? 2 : 1;
    shader = vk_zalloc2(
       &dev->alloc, alloc,
-      sizeof(*shader) + sizeof(struct ir3_shader_variant) * max_variant_count,
+      sizeof(*shader),
       8, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    if (!shader)
       return NULL;
 
-   /* translate SPIR-V to NIR */
-   assert(module->code_size % 4 == 0);
-   nir_shader *nir = tu_spirv_to_nir(
-      dev->compiler, (const uint32_t *) module->code, module->code_size / 4,
-      stage, stage_info->pName, stage_info->pSpecializationInfo);
+   nir_shader *nir;
+   if (stage_info) {
+      /* translate SPIR-V to NIR */
+      const struct tu_shader_module *module =
+         tu_shader_module_from_handle(stage_info->module);
+      assert(module->code_size % 4 == 0);
+      nir = tu_spirv_to_nir(
+         dev->compiler, (const uint32_t *) module->code, module->code_size / 4,
+         stage, stage_info->pName, stage_info->pSpecializationInfo);
+   } else {
+      assert(stage == MESA_SHADER_FRAGMENT);
+      nir_builder fs_b;
+      const nir_shader_compiler_options *nir_options =
+         ir3_get_compiler_options(dev->compiler);
+      nir_builder_init_simple_shader(&fs_b, NULL, MESA_SHADER_FRAGMENT, nir_options);
+      fs_b.shader->info.name = ralloc_strdup(fs_b.shader, "noop_fs");
+      nir = fs_b.shader;
+   }
+
    if (!nir) {
       vk_free2(&dev->alloc, alloc, shader);
       return NULL;
@@ -518,17 +586,19 @@ tu_shader_create(struct tu_device *dev,
    NIR_PASS_V(nir, nir_split_per_member_structs);
 
    NIR_PASS_V(nir, nir_remove_dead_variables,
-              nir_var_shader_in | nir_var_shader_out | nir_var_system_value | nir_var_mem_shared);
+              nir_var_shader_in | nir_var_shader_out | nir_var_system_value | nir_var_mem_shared,
+              NULL);
 
    /* Gather information for transform feedback.
     * This should be called after nir_split_per_member_structs.
     * Also needs to be called after nir_remove_dead_variables with varyings,
     * so that we could align stream outputs correctly.
     */
+   struct ir3_stream_output_info so_info = {};
    if (nir->info.stage == MESA_SHADER_VERTEX ||
          nir->info.stage == MESA_SHADER_TESS_EVAL ||
          nir->info.stage == MESA_SHADER_GEOMETRY)
-      tu_gather_xfb_info(nir, shader);
+      tu_gather_xfb_info(nir, &so_info);
 
    NIR_PASS_V(nir, nir_propagate_invariant);
 
@@ -542,6 +612,11 @@ tu_shader_create(struct tu_device *dev,
    NIR_PASS_V(nir, nir_opt_combine_stores, nir_var_all);
 
    /* ir3 doesn't support indirect input/output */
+   /* TODO: We shouldn't perform this lowering pass on gl_TessLevelInner
+    * and gl_TessLevelOuter. Since the tess levels are actually stored in
+    * a global BO, they can be directly accessed via stg and ldg.
+    * nir_lower_indirect_derefs will instead generate a big if-ladder which
+    * isn't *incorrect* but is much less efficient. */
    NIR_PASS_V(nir, nir_lower_indirect_derefs, nir_var_shader_in | nir_var_shader_out);
 
    NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects, false);
@@ -557,26 +632,14 @@ tu_shader_create(struct tu_device *dev,
 
    NIR_PASS_V(nir, tu_lower_io, shader, layout);
 
-   NIR_PASS_V(nir, nir_lower_io, nir_var_all, ir3_glsl_type_size, 0);
-
-   if (stage == MESA_SHADER_FRAGMENT) {
-      /* NOTE: lower load_barycentric_at_sample first, since it
-       * produces load_barycentric_at_offset:
-       */
-      NIR_PASS_V(nir, ir3_nir_lower_load_barycentric_at_sample);
-      NIR_PASS_V(nir, ir3_nir_lower_load_barycentric_at_offset);
-
-      NIR_PASS_V(nir, ir3_nir_move_varying_inputs);
-   }
-
    nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
 
-   /* num_uniforms only used by ir3 for size of ubo 0 (push constants) */
-   nir->num_uniforms = MAX_PUSH_CONSTANTS_SIZE / 16;
+   ir3_finalize_nir(dev->compiler, nir);
 
-   shader->ir3_shader.compiler = dev->compiler;
-   shader->ir3_shader.type = stage;
-   shader->ir3_shader.nir = nir;
+   shader->ir3_shader =
+      ir3_shader_from_nir(dev->compiler, nir,
+                          align(shader->push_consts.count, 4),
+                          &so_info);
 
    return shader;
 }
@@ -586,152 +649,9 @@ tu_shader_destroy(struct tu_device *dev,
                   struct tu_shader *shader,
                   const VkAllocationCallbacks *alloc)
 {
-   if (shader->ir3_shader.nir)
-      ralloc_free(shader->ir3_shader.nir);
-
-   for (uint32_t i = 0; i < 1 + shader->has_binning_pass; i++) {
-      if (shader->variants[i].ir)
-         ir3_destroy(shader->variants[i].ir);
-   }
-
-   if (shader->ir3_shader.const_state.immediates)
-	   free(shader->ir3_shader.const_state.immediates);
-   if (shader->binary)
-      free(shader->binary);
-   if (shader->binning_binary)
-      free(shader->binning_binary);
+   ir3_shader_destroy(shader->ir3_shader);
 
    vk_free2(&dev->alloc, alloc, shader);
-}
-
-void
-tu_shader_compile_options_init(
-   struct tu_shader_compile_options *options,
-   const VkGraphicsPipelineCreateInfo *pipeline_info)
-{
-   bool has_gs = false;
-   bool msaa = false;
-   if (pipeline_info) {
-      for (uint32_t i = 0; i < pipeline_info->stageCount; i++) {
-         if (pipeline_info->pStages[i].stage == VK_SHADER_STAGE_GEOMETRY_BIT) {
-            has_gs = true;
-            break;
-         }
-      }
-
-      const VkPipelineMultisampleStateCreateInfo *msaa_info = pipeline_info->pMultisampleState;
-      const struct VkPipelineSampleLocationsStateCreateInfoEXT *sample_locations =
-         vk_find_struct_const(msaa_info->pNext, PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT);
-      if (!pipeline_info->pRasterizationState->rasterizerDiscardEnable &&
-          (msaa_info->rasterizationSamples > 1 ||
-          /* also set msaa key when sample location is not the default
-           * since this affects varying interpolation */
-           (sample_locations && sample_locations->sampleLocationsEnable))) {
-         msaa = true;
-      }
-   }
-
-   *options = (struct tu_shader_compile_options) {
-      /* TODO: Populate the remaining fields of ir3_shader_key. */
-      .key = {
-         .has_gs = has_gs,
-         .msaa = msaa,
-      },
-      /* TODO: VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT
-       * some optimizations need to happen otherwise shader might not compile
-       */
-      .optimize = true,
-      .include_binning_pass = true,
-   };
-}
-
-static uint32_t *
-tu_compile_shader_variant(struct ir3_shader *shader,
-                          const struct ir3_shader_key *key,
-                          struct ir3_shader_variant *nonbinning,
-                          struct ir3_shader_variant *variant)
-{
-   variant->shader = shader;
-   variant->type = shader->type;
-   variant->key = *key;
-   variant->binning_pass = !!nonbinning;
-   variant->nonbinning = nonbinning;
-
-   int ret = ir3_compile_shader_nir(shader->compiler, variant);
-   if (ret)
-      return NULL;
-
-   /* when assemble fails, we rely on tu_shader_destroy to clean up the
-    * variant
-    */
-   return ir3_shader_assemble(variant, shader->compiler->gpu_id);
-}
-
-VkResult
-tu_shader_compile(struct tu_device *dev,
-                  struct tu_shader *shader,
-                  const struct tu_shader *next_stage,
-                  const struct tu_shader_compile_options *options,
-                  const VkAllocationCallbacks *alloc)
-{
-   if (options->optimize) {
-      /* ignore the key for the first pass of optimization */
-      ir3_optimize_nir(&shader->ir3_shader, shader->ir3_shader.nir, NULL);
-
-      if (unlikely(dev->physical_device->instance->debug_flags &
-                   TU_DEBUG_NIR)) {
-         fprintf(stderr, "optimized nir:\n");
-         nir_print_shader(shader->ir3_shader.nir, stderr);
-      }
-   }
-
-   shader->binary = tu_compile_shader_variant(
-      &shader->ir3_shader, &options->key, NULL, &shader->variants[0]);
-   if (!shader->binary)
-      return VK_ERROR_OUT_OF_HOST_MEMORY;
-
-   if (shader_debug_enabled(shader->ir3_shader.type)) {
-      fprintf(stdout, "Native code for unnamed %s shader %s:\n",
-              ir3_shader_stage(&shader->variants[0]), shader->ir3_shader.nir->info.name);
-       if (shader->ir3_shader.type == MESA_SHADER_FRAGMENT)
-               fprintf(stdout, "SIMD0\n");
-       ir3_shader_disasm(&shader->variants[0], shader->binary, stdout);
-   }
-
-   /* compile another variant for the binning pass */
-   if (options->include_binning_pass &&
-       shader->ir3_shader.type == MESA_SHADER_VERTEX) {
-      shader->binning_binary = tu_compile_shader_variant(
-         &shader->ir3_shader, &options->key, &shader->variants[0],
-         &shader->variants[1]);
-      if (!shader->binning_binary)
-         return VK_ERROR_OUT_OF_HOST_MEMORY;
-
-      shader->has_binning_pass = true;
-
-      if (shader_debug_enabled(MESA_SHADER_VERTEX)) {
-         fprintf(stdout, "Native code for unnamed binning shader %s:\n",
-                 shader->ir3_shader.nir->info.name);
-          ir3_shader_disasm(&shader->variants[1], shader->binary, stdout);
-      }
-   }
-
-   if (unlikely(dev->physical_device->instance->debug_flags & TU_DEBUG_IR3)) {
-      fprintf(stderr, "disassembled ir3:\n");
-      fprintf(stderr, "shader: %s\n",
-              gl_shader_stage_name(shader->ir3_shader.type));
-      ir3_shader_disasm(&shader->variants[0], shader->binary, stderr);
-
-      if (shader->has_binning_pass) {
-         fprintf(stderr, "disassembled ir3:\n");
-         fprintf(stderr, "shader: %s (binning)\n",
-                 gl_shader_stage_name(shader->ir3_shader.type));
-         ir3_shader_disasm(&shader->variants[1], shader->binning_binary,
-                           stderr);
-      }
-   }
-
-   return VK_SUCCESS;
 }
 
 VkResult

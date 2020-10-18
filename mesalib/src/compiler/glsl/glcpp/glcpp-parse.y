@@ -1187,6 +1187,9 @@ _token_list_equal_ignoring_space(token_list_t *a, token_list_t *b)
             node_b = node_b->next;
       }
 
+      if (node_a == NULL && node_b == NULL)
+         break;
+
       if (node_b == NULL && node_a->token->type == SPACE) {
          while (node_a && node_a->token->type == SPACE)
             node_a = node_a->next;

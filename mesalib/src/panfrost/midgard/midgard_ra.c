@@ -35,24 +35,24 @@ struct phys_reg {
         /* Byte offset into the physical register: 0-15 */
         unsigned offset;
 
-        /* Number of bytes in a component of this register */
-        unsigned size;
+        /* log2(bytes per component) for fast mul/div */
+        unsigned shift;
 };
 
 /* Shift up by reg_offset and horizontally by dst_offset. */
 
 static void
-offset_swizzle(unsigned *swizzle, unsigned reg_offset, unsigned srcsize, unsigned dst_offset)
+offset_swizzle(unsigned *swizzle, unsigned reg_offset, unsigned srcshift, unsigned dstshift, unsigned dst_offset)
 {
         unsigned out[MIR_VEC_COMPONENTS];
 
-        signed reg_comp = reg_offset / srcsize;
-        signed dst_comp = dst_offset / srcsize;
+        signed reg_comp = reg_offset >> srcshift;
+        signed dst_comp = dst_offset >> dstshift;
 
-        unsigned max_component = (16 / srcsize) - 1;
+        unsigned max_component = (16 >> srcshift) - 1;
 
-        assert(reg_comp * srcsize == reg_offset);
-        assert(dst_comp * srcsize == dst_offset);
+        assert(reg_comp << srcshift == reg_offset);
+        assert(dst_comp << dstshift == dst_offset);
 
         for (signed c = 0; c < MIR_VEC_COMPONENTS; ++c) {
                 signed comp = MAX2(c - dst_comp, 0);
@@ -65,12 +65,12 @@ offset_swizzle(unsigned *swizzle, unsigned reg_offset, unsigned srcsize, unsigne
 /* Helper to return the default phys_reg for a given register */
 
 static struct phys_reg
-default_phys_reg(int reg, midgard_reg_mode size)
+default_phys_reg(int reg, unsigned shift)
 {
         struct phys_reg r = {
                 .reg = reg,
                 .offset = 0,
-                .size = mir_bytes_for_mode(size)
+                .shift = shift
         };
 
         return r;
@@ -80,20 +80,20 @@ default_phys_reg(int reg, midgard_reg_mode size)
  * register corresponds to */
 
 static struct phys_reg
-index_to_reg(compiler_context *ctx, struct lcra_state *l, unsigned reg, midgard_reg_mode size)
+index_to_reg(compiler_context *ctx, struct lcra_state *l, unsigned reg, unsigned shift)
 {
         /* Check for special cases */
         if (reg == ~0)
-                return default_phys_reg(REGISTER_UNUSED, size);
+                return default_phys_reg(REGISTER_UNUSED, shift);
         else if (reg >= SSA_FIXED_MINIMUM)
-                return default_phys_reg(SSA_REG_FROM_FIXED(reg), size);
+                return default_phys_reg(SSA_REG_FROM_FIXED(reg), shift);
         else if (!l)
-                return default_phys_reg(REGISTER_UNUSED, size);
+                return default_phys_reg(REGISTER_UNUSED, shift);
 
         struct phys_reg r = {
                 .reg = l->solutions[reg] / 16,
                 .offset = l->solutions[reg] & 0xF,
-                .size = mir_bytes_for_mode(size)
+                .shift = shift
         };
 
         /* Report that we actually use this register, and return it */
@@ -292,7 +292,8 @@ mir_lower_special_reads(compiler_context *ctx)
                                 } else {
                                         idx = spill_idx++;
                                         m = v_mov(i, idx);
-                                        m.mask = mir_from_bytemask(mir_bytemask_of_read_components(pre_use, i), midgard_reg_mode_32);
+                                        m.mask = mir_from_bytemask(mir_round_bytemask_up(
+                                                                mir_bytemask_of_read_components(pre_use, i), 32), 32);
                                         mir_insert_instruction_before(ctx, pre_use, m);
                                         mir_rewrite_index_src_single(pre_use, i, idx);
                                 }
@@ -388,7 +389,7 @@ mir_compute_interference(
                         midgard_block *block = (midgard_block *) _block;
                         mir_foreach_instr_in_block_rev(block, ins) {
                                 if (ins->writeout)
-                                        r1w = ins->src[2];
+                                        r1w = ins->dest;
                         }
 
                         if (r1w != ~0)
@@ -434,6 +435,20 @@ mir_compute_interference(
         }
 }
 
+static bool
+mir_is_64(midgard_instruction *ins)
+{
+        if (nir_alu_type_get_type_size(ins->dest_type) == 64)
+                return true;
+
+        mir_foreach_src(ins, v) {
+                if (nir_alu_type_get_type_size(ins->src_types[v]) == 64)
+                        return true;
+        }
+
+        return false;
+}
+
 /* This routine performs the actual register allocation. It should be succeeded
  * by install_registers */
 
@@ -441,15 +456,17 @@ static struct lcra_state *
 allocate_registers(compiler_context *ctx, bool *spilled)
 {
         /* The number of vec4 work registers available depends on when the
-         * uniforms start, so compute that first */
-        int work_count = 16 - MAX2((ctx->uniform_cutoff - 8), 0);
+         * uniforms start and the shader stage. By ABI we limit blend shaders
+         * to 8 registers, should be lower XXX */
+        int work_count = ctx->is_blend ? 8 :
+                16 - MAX2((ctx->uniform_cutoff - 8), 0);
 
        /* No register allocation to do with no SSA */
 
         if (!ctx->temp_count)
                 return NULL;
 
-        struct lcra_state *l = lcra_alloc_equations(ctx->temp_count, 1, 8, 16, 5);
+        struct lcra_state *l = lcra_alloc_equations(ctx->temp_count, 5);
 
         /* Starts of classes, in bytes */
         l->class_start[REG_CLASS_WORK]  = 16 * 0;
@@ -476,6 +493,7 @@ allocate_registers(compiler_context *ctx, bool *spilled)
 
         unsigned *found_class = calloc(sizeof(unsigned), ctx->temp_count);
         unsigned *min_alignment = calloc(sizeof(unsigned), ctx->temp_count);
+        unsigned *min_bound = calloc(sizeof(unsigned), ctx->temp_count);
 
         mir_foreach_instr_global(ctx, ins) {
                 /* Swizzles of 32-bit sources on 64-bit instructions need to be
@@ -484,7 +502,7 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                  * but once we get RA we shouldn't disrupt this further. Align
                  * sources of 64-bit instructions. */
 
-                if (ins->type == TAG_ALU_4 && ins->alu.reg_mode == midgard_reg_mode_64) {
+                if (ins->type == TAG_ALU_4 && mir_is_64(ins)) {
                         mir_foreach_src(ins, v) {
                                 unsigned s = ins->src[v];
 
@@ -496,47 +514,67 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                 if (ins->type == TAG_LOAD_STORE_4 && OP_HAS_ADDRESS(ins->load_store.op)) {
                         mir_foreach_src(ins, v) {
                                 unsigned s = ins->src[v];
-                                unsigned size = mir_srcsize(ins, v);
+                                unsigned size = nir_alu_type_get_type_size(ins->src_types[v]);
 
                                 if (s < ctx->temp_count)
-                                        min_alignment[s] = (size == midgard_reg_mode_64) ? 3 : 2;
+                                        min_alignment[s] = (size == 64) ? 3 : 2;
                         }
                 }
 
                 if (ins->dest >= SSA_FIXED_MINIMUM) continue;
 
+                unsigned size = nir_alu_type_get_type_size(ins->dest_type);
+
+                if (ins->is_pack)
+                        size = 32;
+
                 /* 0 for x, 1 for xy, 2 for xyz, 3 for xyzw */
-                int class = util_logbase2(ins->mask);
+                int comps1 = util_logbase2(ins->mask);
+
+                int bytes = (comps1 + 1) * (size / 8);
 
                 /* Use the largest class if there's ambiguity, this
                  * handles partial writes */
 
                 int dest = ins->dest;
-                found_class[dest] = MAX2(found_class[dest], class);
+                found_class[dest] = MAX2(found_class[dest], bytes);
 
-                /* XXX: Ensure swizzles align the right way with more LCRA constraints? */
-                if (ins->type == TAG_ALU_4 && ins->alu.reg_mode != midgard_reg_mode_32)
-                        min_alignment[dest] = 3; /* (1 << 3) = 8 */
+                min_alignment[dest] =
+                        (size == 16) ? 1 : /* (1 << 1) = 2-byte */
+                        (size == 32) ? 2 : /* (1 << 2) = 4-byte */
+                        (size == 64) ? 3 : /* (1 << 3) = 8-byte */
+                        3; /* 8-bit todo */
 
-                if (ins->type == TAG_LOAD_STORE_4 && ins->load_64)
-                        min_alignment[dest] = 3;
+                /* We can't cross xy/zw boundaries. TODO: vec8 can */
+                if (size == 16)
+                        min_bound[dest] = 8;
 
                 /* We don't have a swizzle for the conditional and we don't
                  * want to muck with the conditional itself, so just force
                  * alignment for now */
 
-                if (ins->type == TAG_ALU_4 && OP_IS_CSEL_V(ins->alu.op))
+                if (ins->type == TAG_ALU_4 && OP_IS_CSEL_V(ins->alu.op)) {
                         min_alignment[dest] = 4; /* 1 << 4= 16-byte = vec4 */
 
+                        /* LCRA assumes bound >= alignment */
+                        min_bound[dest] = 16;
+                }
+
+                /* Since ld/st swizzles and masks are 32-bit only, we need them
+                 * aligned to enable final packing */
+                if (ins->type == TAG_LOAD_STORE_4)
+                        min_alignment[dest] = MAX2(min_alignment[dest], 2);
         }
 
         for (unsigned i = 0; i < ctx->temp_count; ++i) {
-                lcra_set_alignment(l, i, min_alignment[i] ? min_alignment[i] : 2);
-                lcra_restrict_range(l, i, (found_class[i] + 1) * 4);
+                lcra_set_alignment(l, i, min_alignment[i] ? min_alignment[i] : 2,
+                                min_bound[i] ? min_bound[i] : 16);
+                lcra_restrict_range(l, i, found_class[i]);
         }
         
         free(found_class);
         free(min_alignment);
+        free(min_bound);
 
         /* Next, we'll determine semantic class. We default to zero (work).
          * But, if we're used with a special operation, that will force us to a
@@ -576,26 +614,37 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                 assert(check_read_class(l->class, ins->type, ins->src[2]));
         }
 
-        /* Mark writeout to r0, render target to r1.z, unknown to r1.w */
+        /* Mark writeout to r0, depth to r1.x, stencil to r1.y,
+         * render target to r1.z, unknown to r1.w */
         mir_foreach_instr_global(ctx, ins) {
                 if (!(ins->compact_branch && ins->writeout)) continue;
 
-                if (ins->src[0] < ctx->temp_count) {
-                        if (ins->writeout_depth)
-                                l->solutions[ins->src[0]] = (16 * 1) + COMPONENT_X * 4;
-                        else if (ins->writeout_stencil)
-                                l->solutions[ins->src[0]] = (16 * 1) + COMPONENT_Y * 4;
-                        else
-                                l->solutions[ins->src[0]] = 0;
-                }
+                if (ins->src[0] < ctx->temp_count)
+                        l->solutions[ins->src[0]] = 0;
+
+                if (ins->src[2] < ctx->temp_count)
+                        l->solutions[ins->src[2]] = (16 * 1) + COMPONENT_X * 4;
+
+                if (ins->src[3] < ctx->temp_count)
+                        l->solutions[ins->src[3]] = (16 * 1) + COMPONENT_Y * 4;
 
                 if (ins->src[1] < ctx->temp_count)
                         l->solutions[ins->src[1]] = (16 * 1) + COMPONENT_Z * 4;
 
-                if (ins->src[2] < ctx->temp_count)
-                        l->solutions[ins->src[2]] = (16 * 1) + COMPONENT_W * 4;
+                if (ins->dest < ctx->temp_count)
+                        l->solutions[ins->dest] = (16 * 1) + COMPONENT_W * 4;
         }
-        
+
+        /* Precolour blend input to r0. Note writeout is necessarily at the end
+         * and blend shaders are single-RT only so there is only a single
+         * writeout block, so this cannot conflict with the writeout r0 (there
+         * is no need to have an intermediate move) */
+
+        if (ctx->blend_input != ~0) {
+                assert(ctx->blend_input < ctx->temp_count);
+                l->solutions[ctx->blend_input] = 0;
+        }
+
         mir_compute_interference(ctx, l);
 
         *spilled = !lcra_solve(l);
@@ -613,6 +662,16 @@ install_registers_instr(
         struct lcra_state *l,
         midgard_instruction *ins)
 {
+        unsigned src_shift[MIR_SRC_COUNT];
+
+        for (unsigned i = 0; i < MIR_SRC_COUNT; ++i) {
+                src_shift[i] =
+                        util_logbase2(nir_alu_type_get_type_size(ins->src_types[i]) / 8);
+        }
+
+        unsigned dest_shift =
+                util_logbase2(nir_alu_type_get_type_size(ins->dest_type) / 8);
+
         switch (ins->type) {
         case TAG_ALU_4:
         case TAG_ALU_8:
@@ -621,9 +680,9 @@ install_registers_instr(
                  if (ins->compact_branch)
                          return;
 
-                struct phys_reg src1 = index_to_reg(ctx, l, ins->src[0], mir_srcsize(ins, 0));
-                struct phys_reg src2 = index_to_reg(ctx, l, ins->src[1], mir_srcsize(ins, 1));
-                struct phys_reg dest = index_to_reg(ctx, l, ins->dest, mir_typesize(ins));
+                struct phys_reg src1 = index_to_reg(ctx, l, ins->src[0], src_shift[0]);
+                struct phys_reg src2 = index_to_reg(ctx, l, ins->src[1], src_shift[1]);
+                struct phys_reg dest = index_to_reg(ctx, l, ins->dest, dest_shift);
 
                 mir_set_bytemask(ins, mir_bytemask(ins) << dest.offset);
 
@@ -631,7 +690,7 @@ install_registers_instr(
                         GET_CHANNEL_COUNT(alu_opcode_props[ins->alu.op].props) ? 0 :
                         dest.offset;
 
-                offset_swizzle(ins->swizzle[0], src1.offset, src1.size, dest_offset);
+                offset_swizzle(ins->swizzle[0], src1.offset, src1.shift, dest.shift, dest_offset);
 
                 ins->registers.src1_reg = src1.reg;
 
@@ -649,10 +708,7 @@ install_registers_instr(
 
                         ins->alu.src2 = imm << 2;
                 } else {
-                        midgard_vector_alu_src mod2 =
-                                vector_alu_from_unsigned(ins->alu.src2);
-                        offset_swizzle(ins->swizzle[1], src2.offset, src2.size, dest_offset);
-                        ins->alu.src2 = vector_alu_srco_unsigned(mod2);
+                        offset_swizzle(ins->swizzle[1], src2.offset, src2.shift, dest.shift, dest_offset);
 
                         ins->registers.src2_reg = src2.reg;
                 }
@@ -669,16 +725,16 @@ install_registers_instr(
                 bool encodes_src = OP_IS_STORE(ins->load_store.op);
 
                 if (encodes_src) {
-                        struct phys_reg src = index_to_reg(ctx, l, ins->src[0], mir_srcsize(ins, 0));
+                        struct phys_reg src = index_to_reg(ctx, l, ins->src[0], src_shift[0]);
                         assert(src.reg == 26 || src.reg == 27);
 
                         ins->load_store.reg = src.reg - 26;
-                        offset_swizzle(ins->swizzle[0], src.offset, src.size, 0);
+                        offset_swizzle(ins->swizzle[0], src.offset, src.shift, 0, 0);
                } else {
-                        struct phys_reg dst = index_to_reg(ctx, l, ins->dest, mir_typesize(ins));
+                        struct phys_reg dst = index_to_reg(ctx, l, ins->dest, dest_shift);
 
                         ins->load_store.reg = dst.reg;
-                        offset_swizzle(ins->swizzle[0], 0, 4, dst.offset);
+                        offset_swizzle(ins->swizzle[0], 0, 2, 2, dst.offset);
                         mir_set_bytemask(ins, mir_bytemask(ins) << dst.offset);
                 }
 
@@ -686,19 +742,18 @@ install_registers_instr(
 
                 unsigned src2 = ins->src[1];
                 unsigned src3 = ins->src[2];
-                midgard_reg_mode m32 = midgard_reg_mode_32;
 
                 if (src2 != ~0) {
-                        struct phys_reg src = index_to_reg(ctx, l, src2, m32);
-                        unsigned component = src.offset / src.size;
-                        assert(component * src.size == src.offset);
+                        struct phys_reg src = index_to_reg(ctx, l, src2, 2);
+                        unsigned component = src.offset >> src.shift;
+                        assert(component << src.shift == src.offset);
                         ins->load_store.arg_1 |= midgard_ldst_reg(src.reg, component);
                 }
 
                 if (src3 != ~0) {
-                        struct phys_reg src = index_to_reg(ctx, l, src3, m32);
-                        unsigned component = src.offset / src.size;
-                        assert(component * src.size == src.offset);
+                        struct phys_reg src = index_to_reg(ctx, l, src3, 2);
+                        unsigned component = src.offset >> src.shift;
+                        assert(component << src.shift == src.offset);
                         ins->load_store.arg_2 |= midgard_ldst_reg(src.reg, component);
                 }
  
@@ -710,22 +765,20 @@ install_registers_instr(
                         break;
 
                 /* Grab RA results */
-                struct phys_reg dest = index_to_reg(ctx, l, ins->dest, mir_typesize(ins));
-                struct phys_reg coord = index_to_reg(ctx, l, ins->src[1], mir_srcsize(ins, 1));
-                struct phys_reg lod = index_to_reg(ctx, l, ins->src[2], mir_srcsize(ins, 2));
-                struct phys_reg offset = index_to_reg(ctx, l, ins->src[3], mir_srcsize(ins, 2));
+                struct phys_reg dest = index_to_reg(ctx, l, ins->dest, dest_shift);
+                struct phys_reg coord = index_to_reg(ctx, l, ins->src[1], src_shift[1]);
+                struct phys_reg lod = index_to_reg(ctx, l, ins->src[2], src_shift[2]);
+                struct phys_reg offset = index_to_reg(ctx, l, ins->src[3], src_shift[3]);
 
                 /* First, install the texture coordinate */
-                ins->texture.in_reg_full = 1;
-                ins->texture.in_reg_upper = 0;
                 ins->texture.in_reg_select = coord.reg & 1;
-                offset_swizzle(ins->swizzle[1], coord.offset, coord.size, 0);
+                offset_swizzle(ins->swizzle[1], coord.offset, coord.shift, dest.shift, 0);
 
                 /* Next, install the destination */
-                ins->texture.out_full = 1;
-                ins->texture.out_upper = 0;
                 ins->texture.out_reg_select = dest.reg & 1;
-                offset_swizzle(ins->swizzle[0], 0, 4, dest.offset);
+                offset_swizzle(ins->swizzle[0], 0, 2, dest.shift,
+                                dest_shift == 1 ? dest.offset % 8 :
+                                dest.offset);
                 mir_set_bytemask(ins, mir_bytemask(ins) << dest.offset);
 
                 /* If there is a register LOD/bias, use it */
@@ -808,6 +861,9 @@ mir_spill_register(
                 unsigned spill_class,
                 unsigned *spill_count)
 {
+        if (spill_class == REG_CLASS_WORK && ctx->is_blend)
+                unreachable("Blend shader spilling is currently unimplemented");
+
         unsigned spill_index = ctx->temp_count;
 
         /* We have a spill node, so check the class. Work registers
@@ -901,7 +957,8 @@ mir_spill_register(
                                 /* Mask the load based on the component count
                                  * actually needed to prevent RA loops */
 
-                                st.mask = mir_from_bytemask(read_bytemask, midgard_reg_mode_32);
+                                st.mask = mir_from_bytemask(mir_round_bytemask_up(
+                                                        read_bytemask, 32), 32);
 
                                 mir_insert_instruction_before_scheduled(ctx, block, before, st);
                         } else {

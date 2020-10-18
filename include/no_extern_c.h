@@ -27,7 +27,7 @@
 /*
  * Including system's headers inside `extern "C" { ... }` is not safe, as system
  * headers may have C++ code in them, and C++ code inside extern "C"
- * leads to syntatically incorrect code.
+ * leads to syntactically incorrect code.
  *
  * This is because putting code inside extern "C" won't make __cplusplus define
  * go away, that is, the system header being included thinks is free to use C++

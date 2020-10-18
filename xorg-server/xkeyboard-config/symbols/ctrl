@@ -30,6 +30,15 @@ xkb_symbols "swapcaps_hyper" {
     modifier_map Mod3 { <LCTL> };
 };
 
+// Set CapsLock to left Ctrl and left Ctrl to switch layout.
+partial modifier_keys
+xkb_symbols "swapcaps_and_switch_layout" {
+    replace key <CAPS> { [ Control_L ] };
+    replace key <LCTL> { [ ISO_Next_Group ] };
+    modifier_map Control { <CAPS> };
+    modifier_map  Lock { <LCTL> };
+};
+
 // Move Ctrl to the leftmost key on the middle row and CapsLock to the
 // leftmost key on the bottom row.  Only works if the geometry or keycodes
 // file has defined appropriate aliases for the keys in question.

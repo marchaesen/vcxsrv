@@ -121,6 +121,8 @@ nir_opt_intrinsics(nir_shader *shader)
          progress = true;
          nir_metadata_preserve(function->impl, nir_metadata_block_index |
                                                nir_metadata_dominance);
+      } else {
+         nir_metadata_preserve(function->impl, nir_metadata_all);
       }
    }
 

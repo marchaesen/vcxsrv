@@ -467,6 +467,12 @@ clear_bufferuiv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
       _mesa_update_state( ctx );
    }
 
+   if (!no_error && ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE) {
+      _mesa_error(ctx, GL_INVALID_FRAMEBUFFER_OPERATION,
+                  "glClearBufferuiv(incomplete framebuffer)");
+      return;
+   }
+
    switch (buffer) {
    case GL_COLOR:
       {
@@ -553,6 +559,12 @@ clear_bufferfv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
 
    if (ctx->NewState) {
       _mesa_update_state( ctx );
+   }
+
+   if (!no_error && ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE) {
+      _mesa_error(ctx, GL_INVALID_FRAMEBUFFER_OPERATION,
+                  "glClearBufferfv(incomplete framebuffer)");
+      return;
    }
 
    switch (buffer) {

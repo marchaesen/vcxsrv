@@ -37,5 +37,7 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_MODULE := libfreedreno_drm
 
+LOCAL_STATIC_LIBRARIES := libfreedreno_registers
+
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)

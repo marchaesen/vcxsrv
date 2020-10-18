@@ -2961,7 +2961,7 @@ void GLAPIENTRY gl_dispatch_stub_1593(GLuint vaobj, GLuint attribindex, GLint si
 void GLAPIENTRY gl_dispatch_stub_1594(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset);
 void GLAPIENTRY gl_dispatch_stub_1595(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset);
 void GLAPIENTRY gl_dispatch_stub_1596(GLuint vaobj, GLuint attribindex, GLuint bindingindex);
-void GLAPIENTRY gl_dispatch_stub_1597(GLuint vaobj, GLuint attribindex, GLuint divisor);
+void GLAPIENTRY gl_dispatch_stub_1597(GLuint vaobj, GLuint bindingindex, GLuint divisor);
 void GLAPIENTRY gl_dispatch_stub_1598(GLuint buffer, GLintptr offset, GLsizeiptr size, GLboolean commit);
 void GLAPIENTRY gl_dispatch_stub_1599(GLenum type, GLint namelen, const GLchar * name, GLint stringlen, const GLchar * string);
 void GLAPIENTRY gl_dispatch_stub_1600(GLint namelen, const GLchar * name);

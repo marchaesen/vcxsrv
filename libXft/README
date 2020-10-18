@@ -1,0 +1,52 @@
+			Xft
+		X FreeType library
+
+Xft version 2.1 was the first stand alone release of Xft, a library that
+connects X applications with the FreeType font rasterization library. Xft
+uses fontconfig to locate fonts so it has no configuration files.
+
+Before building Xft you will need to have installed:
+	freetype			http://freetype.org/
+	fontconfig			http://fontconfig.org/
+	libX11, libXext, & libXrender	http://x.org/
+
+All questions regarding this software should be directed at the
+Xorg mailing list:
+
+        http://lists.freedesktop.org/mailman/listinfo/xorg
+
+Please submit bug reports to the Xorg bugzilla:
+
+        https://bugs.freedesktop.org/enter_bug.cgi?product=xorg
+
+The master development code repository can be found at:
+
+        git://anongit.freedesktop.org/git/xorg/lib/libXft
+
+        http://cgit.freedesktop.org/xorg/lib/libXft
+
+For patch submission instructions, see:
+
+	http://www.x.org/wiki/Development/Documentation/SubmittingPatches
+
+For more information on the git code manager, see:
+
+        http://wiki.x.org/wiki/GitPage
+
+To release a version of this library:
+
+ 1.     Update the version number in configure.ac
+ 2.     Fix the NEWS file
+                Change version number
+                Set the date
+		add highlights
+ 3.     Commit those changes
+ 4.     rebuild the configuration files with autogen.sh
+                sh autogen.sh --sysconfdir=/etc --prefix=/usr --mandir=/usr/share/man
+ 5.     Follow the steps listed in
+	http://xorg.freedesktop.org/wiki/Development/Documentation/ReleaseHOWTO
+
+Keith Packard
+keithp@keithp.com
+
+

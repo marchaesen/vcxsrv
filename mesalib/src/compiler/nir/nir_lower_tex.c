@@ -240,7 +240,8 @@ sample_plane(nir_builder *b, nir_tex_instr *tex, int plane,
    plane_tex->texture_index = tex->texture_index;
    plane_tex->sampler_index = tex->sampler_index;
 
-   nir_ssa_dest_init(&plane_tex->instr, &plane_tex->dest, 4, 32, NULL);
+   nir_ssa_dest_init(&plane_tex->instr, &plane_tex->dest, 4,
+         nir_dest_bit_size(tex->dest), NULL);
 
    nir_builder_instr_insert(b, &plane_tex->instr);
 
@@ -262,6 +263,7 @@ convert_yuv_to_rgb(nir_builder *b, nir_tex_instr *tex,
       { { .f32 = 0.0f        }, { .f32 = -0.39176229f }, { .f32 = 2.01723214f }, { .f32 = 0.0f } },
       { { .f32 = 1.59602678f }, { .f32 = -0.81296764f }, { .f32 = 0.0f        }, { .f32 = 0.0f } },
    };
+   unsigned bit_size = nir_dest_bit_size(tex->dest);
 
    nir_ssa_def *offset =
       nir_vec4(b,
@@ -270,11 +272,14 @@ convert_yuv_to_rgb(nir_builder *b, nir_tex_instr *tex,
                nir_imm_float(b, -1.085630787f),
                a);
 
+   offset = nir_f2fN(b, offset, bit_size);
+
+   nir_ssa_def *m0 = nir_f2fN(b, nir_build_imm(b, 4, 32, m[0]), bit_size);
+   nir_ssa_def *m1 = nir_f2fN(b, nir_build_imm(b, 4, 32, m[1]), bit_size);
+   nir_ssa_def *m2 = nir_f2fN(b, nir_build_imm(b, 4, 32, m[2]), bit_size);
+
    nir_ssa_def *result =
-      nir_ffma(b, y, nir_build_imm(b, 4, 32, m[0]),
-               nir_ffma(b, u, nir_build_imm(b, 4, 32, m[1]),
-                        nir_ffma(b, v, nir_build_imm(b, 4, 32, m[2]),
-                                 offset)));
+      nir_ffma(b, y, m0, nir_ffma(b, u, m1, nir_ffma(b, v, m2, offset)));
 
    nir_ssa_def_rewrite_uses(&tex->dest.ssa, nir_src_for_ssa(result));
 }
@@ -959,7 +964,8 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
          progress = lower_offset(b, tex) || progress;
       }
 
-      if ((tex->sampler_dim == GLSL_SAMPLER_DIM_RECT) && options->lower_rect) {
+      if ((tex->sampler_dim == GLSL_SAMPLER_DIM_RECT) && options->lower_rect &&
+          tex->op != nir_texop_txf && !nir_tex_instr_is_query(tex)) {
          lower_rect(b, tex);
          progress = true;
       }

@@ -1,5 +1,7 @@
 // This layout includes all Indian layouts, including:
-//     - Devanagari (Hindi, Marathi, Sanskrit)
+//     - Hindi
+//     - Marathi
+//     - Sanskrit
 //     - Bangla
 //     - Gujarati
 //     - Kannada
@@ -28,7 +30,7 @@
 // based on a keyboard map from an 'xkb/symbols/dev' file
 
 // Devangari is the default. Kill me if I am wrong:)
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "deva" {
 	// March 2004 -- David Holl <smyrph+dev_xkb@ece.wpi.edu>
 	name[Group1]="Indian";
@@ -467,7 +469,7 @@ xkb_symbols "ben_inscript" {
 };
 
 xkb_symbols "ben_gitanjali" {
- name[Group1]= "Bangla (India, Uni Gitanjali)";
+ name[Group1]= "Bangla (India, Gitanjali)";
    key <ESC>   { [ Escape			] };
 
 // numbers
@@ -1519,7 +1521,7 @@ xkb_symbols "urd-phonetic3" {
 partial alphanumeric_keys
 xkb_symbols "urd-winkeys" {
     include "pk(urd-nla)"
-    name[Group1]= "Urdu (Win keys)";
+    name[Group1]= "Urdu (Windows)";
 };
 
 // based on a keyboard map from an 'xkb/symbols/gur' file
@@ -1912,7 +1914,7 @@ xkb_symbols "mal_enhanced" {
 //
 partial alphanumeric_keys
 xkb_symbols "hin-kagapa" {
-     name[Group1] = "Hindi (KaGaPa phonetic)";
+     name[Group1] = "Hindi (KaGaPa, phonetic)";
      key.type="FOUR_LEVEL";
 
     // Roman digits
@@ -1978,14 +1980,14 @@ xkb_symbols "hin-kagapa" {
 partial alphanumeric_keys
 xkb_symbols "san-kagapa" {
   include "in(hin-kagapa)"
-  name[Group1] = "Sanskrit (KaGaPa phonetic)";
+  name[Group1] = "Sanskrit (KaGaPa, phonetic)";
 };
 
 // Marathi uses Devanagari layout of Hindi
 partial alphanumeric_keys
 xkb_symbols "mar-kagapa" {
   include "in(hin-kagapa)"
-  name[Group1] = "Marathi (KaGaPa phonetic)";
+  name[Group1] = "Marathi (KaGaPa, phonetic)";
 };
 
 
@@ -2003,7 +2005,7 @@ xkb_symbols "mar-kagapa" {
 //
 partial alphanumeric_keys
 xkb_symbols "kan-kagapa" {
-    name[Group1] = "Kannada (KaGaPa phonetic)";
+    name[Group1] = "Kannada (KaGaPa, phonetic)";
     key.type="FOUR_LEVEL";
 
     // Roman digits
@@ -2080,7 +2082,7 @@ xkb_symbols "kan-kagapa" {
 //
 partial alphanumeric_keys
 xkb_symbols "tel-kagapa" {
-    name[Group1] = "Telugu (KaGaPa phonetic)";
+    name[Group1] = "Telugu (KaGaPa, phonetic)";
     key.type="FOUR_LEVEL";
 
     // Roman digits
@@ -2205,5 +2207,193 @@ xkb_symbols "eeyek" {
 
     key <BKSL> {	[ backslash,         bar	]	};
     
+    include "level3(ralt_switch)"
+};
+
+// This layout is developed by Niranjan Tambe in July 2019
+// for typing Indic languages in International Phonetic Alphabet (IPA).
+
+partial alphanumeric_keys modifier_keys
+xkb_symbols "iipa" {
+
+    name[Group1]= "Indic IPA (IIPA)";
+    key <AE01>	{ [	1,		exclam]	};
+    key <AE02>	{ [	2,		at]	};
+    key <AE03>	{ [	3,		numbersign]	};
+    key <AE04>	{ [	4,		U20B9]	};
+    key <AE05>	{ [	5,		percent]	};
+    key <AE06>	{ [	6,		asciicircum] };
+    key <AE07>	{ [	7,		ampersand]	};
+    key <AE08>	{ [	8,		asterisk]	};
+    key <AE09>	{ [	9,		parenleft]	};
+    key <AE10>	{ [	0,		parenright]	};
+    key <AE11>	{ [	minus,	underscore]	};
+    key <AE12>	{ [	equal,       plus]	};
+
+    key <AD01>	{ [	U02B0,		U02B1]	}; // [ʰ], [ʱ]
+    key <AD02>	{ [	U00E6,		q]	}; // [æ], [q] found in Urdu
+    key <AD03>	{ [	a,			U028B]	}; // [a], [ʋ]
+    key <AD04>	{ [	i,			U026A]	}; // [i] [ɪ]
+    key <AD05>	{ [	u,			U026F]	}; // [u] [ɯ] found in Tamil
+    key <AD06>	{ [	b,			Y]	}; // [b]
+    key <AD07>	{ [	h,			U014B]	}; // [h], [ŋ]
+    key <AD08>	{ [	g,			U0263]	}; // [g], [ɣ] found in Urdu
+    key <AD09>	{ [	d,			U00F0]	}; // [d], [ð] found in Malayalam
+    key <AD10>	{ [	U02A4,		U02A3]	}; // [ʤ], [ʣ] found in Marathi
+    key <AD11>	{ [	U0256,		U027D]	}; // [ɖ], [ɽ]
+    key <AD12>	{ [	bracketleft,	bracketright]	}; // "[", "]" needed for denoting phonetic symbols
+
+    key <AC01>	{ [	o,		U0254]	}; // [o], [ɔ] found in Bangla
+    key <AC02>	{ [	e,		U025B]	}; // [e], [ɛ]
+    key <AC03>	{ [	U0259,	U0361]	}; // [ə], [   ͡  ]
+    key <AC04>	{ [	i,		U026A]	}; // [i], [ɪ]
+    key <AC05>	{ [	u,		U026F]	}; // [u], [ɯ]
+    key <AC06>	{ [	p,		f]	}; // [p], [f]
+    key <AC07>	{ [	U027E,	r]	}; // [ɾ], [r]
+    key <AC08>	{ [	k,		x]	}; // [k], [x] found in Urdu
+    key <AC09>	{ [	t,		U03B8]	}; // [t], [θ]
+    key <AC10>	{ [	U02A7,	U02A6]	}; // [ʧ], [ʦ] found in Marathi
+    key <AC11>	{ [	U0288,	quotedbl]	}; // [ʈ]
+    key <TLDE>	{ [	grave, 	asciitilde]	};
+
+    key <BKSL>	{ [	backslash,	bar]	};
+    key <AB01>	{ [	U032A,		U0303]	}; // [ ̪], [ ̃] Dental mark, nasalisation mark
+    key <AB02>	{ [	U0306,		X]	}; // [  ̆] Short sound
+    key <AB03>	{ [	m,			U0273]	}; // [m], [ɳ]
+    key <AB04>	{ [	n,			v]	}; // [n], [v]
+    key <AB05>	{ [	w,			z] }; // [w], [z]
+    key <AB06>	{ [	l,			U026D]	}; // [l], [ɭ]
+    key <AB07>	{ [	s,			U0283]	}; // [s], [ʃ]
+    key <AB08>	{ [	comma,		U0282]	}; // [ʂ]
+    key <AB09>	{ [	period,		U02D0]	}; // [ː] Long sound
+    key <AB10>	{ [	j,			slash] }; // [j]
+
+};
+
+// This layout is developed by Niranjan Tambe in July 2019
+// for typing Marathi language with some necessary symbols.
+
+xkb_symbols "marathi" {
+	name[Group1]="Marathi Inscript (Enhanced)";
+	key <TLDE> { [ U0962, U090C,   grave, asciitilde  ] }; // Added  ॢ & ऌ
+	key <AE01> { [ U0967, exclam,       1, exclam      ] }; // Added exclamation mark
+	key <AE02> { [ U0968, U0945,       2, at          ] }; // Added ॅ
+	key <AE03> { [ U0969, U093D,  3, numbersign  ] }; // Added ऽ
+	key <AE04> { [ U096a, U20B9,      4		  ] }; // Added ₹
+	key <AE05> { [ U096b, percent,     5, percent     ] }; 
+	key <AE06> { [ U096c, asciicircum, 6, asciicircum ] }; 
+	key <AE07> { [ U096d, U0970,   7, ampersand   ] }; // Added ॰
+	key <AE08> { [ U096e, U0950,    8, asterisk    ] };
+	key <AE09> { [ U096f, parenleft,   9, parenleft   ] };
+	key <AE10> { [ U0966, parenright,  0, parenright  ] };
+	key <AE11> { [ minus, U0903, minus, underscore    ] };
+	key <AE12> { [ U0943, U090b, U0944, U0960 ] };
+
+	key <AD01> { [ U094c, U0914 ] };
+	key <AD02> { [ U0948, U0910 ] };
+	key <AD03> { [ U093e, U0906 ] };
+	key <AD04> { [ U0940, U0908, U0963, U0961 ] };
+	key <AD05> { [ U0942, U090a ] };
+	key <AD06> { [ U092c, U092d ] };
+	key <AD07> { [ U0939, U0919 ] };
+	key <AD08> { [ U0917, U0918, U095a ] };
+	key <AD09> { [ U0926, U0927 ] };
+	key <AD10> { [ U091c, U091d, U095b ] };
+	key <AD11> { [ U0921, U0922, U095c, U095d ] };
+	key <AD12> { [ U093c, U091e ] };
+	key <BKSL> { [ U0949, U0911, U005C, U007C ] };
+
+	key <AC01> { [ U094b, U0913 ] };
+	key <AC02> { [ U0947, U090f ] };
+	key <AC03> { [ U094d, U0905 ] };
+	key <AC04> { [ U093f, U0907, U0962, U090c ] };
+	key <AC05> { [ U0941, U0909 ] };
+	key <AC06> { [ U092a, U092b, NoSymbol, U095e ] };
+	key <AC07> { [ U0930, U0931 ] };
+	key <AC08> { [ U0915, U0916, U0958, U0959 ] };
+	key <AC09> { [ U0924, U0925 ] };
+	key <AC10> { [ U091a, U091b, U0952 ] };
+	key <AC11> { [ U091f, U0920, NoSymbol, U0951 ] };
+
+	key <AB01> { [ apostrophe, U0972, U0953 ] }; // Added apostrophe & ॲ
+	key <AB02> { [ U0902, U0901, NoSymbol, U0950 ] }; 
+	key <AB03> { [ U092e, U0923, U0954 ] };
+	key <AB04> { [ U0928, quotedbl ] }; // Added "
+	key <AB05> { [ U0935, UA8FB ] }; // Added headstroke
+	key <AB06> { [ U0932, U0933 ] };
+	key <AB07> { [ U0938, U0936 ] };
+	key <AB08> { [ comma, U0937, U0970 ] };
+	key <AB09> { [ period, U0964, U0965, U093d ] };
+	key <AB10> { [ U092f, question, slash, question ] };
+};
+
+// EXTRAS:
+
+//           Modi is an ancient Indian script that is used to write texts in Marathi, Hindi and Sanskrit.
+//           This keyboard layout is Based on Marathi KaGaPa phonetic layout. Just the characters which are not applicable in modi, are ommited.
+//
+//           Author : D.Abhi     <abhishekdeshpande128@gmail.com>
+//
+// 
+partial alphanumeric_keys
+xkb_symbols "modi-kagapa" {
+     name[Group1] = "Modi (KaGaPa phonetic)";
+     key.type="FOUR_LEVEL";
+
+ // Roman digits
+    key <TLDE>  { [   apostrophe,   asciitilde,   U201C           ] };  // U201C: left double quotation mark
+    key <AE01>  { [   1,            exclam,       U11651          ] };
+    key <AE02>  { [   2,            at,           U11652,  U20A8  ] };  // U20A8: generic rupee sign (Rs)
+    key <AE03>  { [   3,            numbersign,   U11653          ] };
+    key <AE04>  { [   4,            dollar,       U11654,  U20B9  ] };  // U20B9: new Indian rupee sign
+    key <AE05>  { [   5,            percent,      U11655          ] };
+    key <AE06>  { [   6,            asciicircum,  U11656,  U200C  ] };  // ZWNJ
+    key <AE07>  { [   7,            ampersand,    U11657,  U200D  ] };  // ZWJ
+    key <AE08>  { [   8,            asterisk,     U11658          ] };  
+    key <AE09>  { [   9,            parenleft,    U11659          ] };
+    key <AE10>  { [   0,            parenright,   U11650,  U11643 ] };  // U11643: Modi abbreviation sign
+    key <AE11>  { [   minus,        underscore                    ] };  
+    key <AE12>  { [   equal,        plus                          ] };
+    key <BKSL>  { [   U005C,        U007C,        U11641,  U11642 ] };  // backslash, pipe, Modi danda, Modi double danda
+
+    //Q Row
+    key <AD01>  { [   U11618,         U11619                      ] };  // Q: retroflex Modi letter Ta, Tha
+    key <AD02>  { [   U1161A,         U1161B                      ] };  // W: retroflex Modi letter Da, Dha 
+    key <AD03>  { [   U11639,         U1160A,    U1160B           ] };  // E: Modi vovel sign E, Modi letter E, letter ai
+    key <AD04>  { [   U11628,         U11635,    U11606           ] };  // R: Modi ra, Modi vowel sign vocalic R, vocalic letter R 
+    key <AD05>  { [   U1161D,         U1161E                      ] };  // T: dental Modi letter ta, tha
+    key <AD06>  { [   U11627,         U1163A                      ] };  // Y: Modi letter ya, Modi vowel sign ai
+    key <AD07>  { [   U11633,         U11634,    U11604,  U11605  ] };  // U: Modi vowel sign u, uu, Modi letter u, uu
+    key <AD08>  { [   U11631,         U11632,    U11602,  U11603  ] };  // I: Modi vowel sign i, ii, Modi letter i, ii
+    key <AD09>  { [   U1163B,         U1160C                      ] };  // O: Modi vowel sign o, Modi letter o
+    key <AD10>  { [   U11622,         U11623                      ] };  // P: Modi letter pa, pha 
+    key <AD11>  { [   bracketleft,   braceleft                    ] };
+    key <AD12>  { [   bracketright,  braceright                   ] };
+
+    //A Row
+    key <AC01>  { [   U11630,       U11601,     U11600           ] };  // A: Modi vowel sign aa, Modi letter aa, Modi letter a
+    key <AC02>  { [   U1162D,       U1162B                       ] };  // S: Modi letter sa, sha
+    key <AC03>  { [   U1161F,       U11620                       ] };  // D: dental Modi letter da, dha
+    key <AC04>  { [   U1163F,       U11636,     U11607           ] };  // F: Modi sign virama, Modi vowel sign vocalic RR, letter vocalic RR
+    key <AC05>  { [   U11610,       U11611                       ] };  // G: Modi letter ga, gha
+    key <AC06>  { [   U1162E,       U1163E                       ] };  // H: Modi letter ha, Modi visarga
+    key <AC07>  { [   U11615,       U11616                       ] };  // J: Modi letter ja, jha
+    key <AC08>  { [   U1160E,       U1160F                       ] };  // K: Modi letter ka, kha
+    key <AC09>  { [   U11629,       U1162F,     U11637,  U11608  ] };  // L: Modi letter la, lla, Modi vowel sign vocalic L, letter vocalic L
+    key <AC10>  { [   semicolon,    colon                        ] };
+    key <AC11>  { [   apostrophe,   quotedbl                     ] }; 
+                                                                       
+    //Z Row
+    key <AB01>  { [   U11617,    U11612                     ] };  // Z: Modi letter nya, nga
+    key <AB02>  { [   U1162C,    U11609,   U11638           ] };  // X: Modi letter ssa, Modi letter vocalic ll, Modi vowel sign vocalic ll 
+    key <AB03>  { [   U11613,    U11614                     ] };  // C: Modi letter ca, cha
+    key <AB04>  { [   U1162A,    U1163C,   U1160D           ] };  // V: Modi letter va, Modi vowel sign au, Modi letter au
+    key <AB05>  { [   U11624,    U11625                     ] };  // B: Modi letter ba, bha
+    key <AB06>  { [   U11621,    U1161C                     ] };  // N: Modi letter na, nna
+    key <AB07>  { [   U11626,    U1163D,   U093D,    U0950  ] };  // M: Modi ma, Modi anusvara, avagraha, Devanagari OM
+    key <AB08>  { [   comma,     U003C,    U11640,   U11644 ] };  // comma: comma, less than, Modi chandrabindu, Modi sign huva
+    key <AB09>  { [   period,    U003E                      ] };  // period: period, greater than, matra, candra o
+    key <AB10>  { [   slash,     question                   ] };
+
     include "level3(ralt_switch)"
 };

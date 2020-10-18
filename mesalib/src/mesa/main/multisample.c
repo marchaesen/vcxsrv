@@ -41,7 +41,7 @@ _mesa_SampleCoverage(GLclampf value, GLboolean invert)
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   value = CLAMP(value, 0.0f, 1.0f);
+   value = SATURATE(value);
 
    if (ctx->Multisample.SampleCoverageInvert == invert &&
        ctx->Multisample.SampleCoverageValue == value)
@@ -165,7 +165,7 @@ _mesa_SampleMaski(GLuint index, GLbitfield mask)
 static void
 min_sample_shading(struct gl_context *ctx, GLclampf value)
 {
-   value = CLAMP(value, 0.0f, 1.0f);
+   value = SATURATE(value);
 
    if (ctx->Multisample.MinSampleShadingValue == value)
       return;

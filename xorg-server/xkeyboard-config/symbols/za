@@ -1,6 +1,6 @@
 // Based on the Latvian and GB keyboard maps.
 
-default  partial alphanumeric_keys modifier_keys
+default partial alphanumeric_keys modifier_keys
 xkb_symbols "basic" {
 
     // Describes the differences between an en_US layout

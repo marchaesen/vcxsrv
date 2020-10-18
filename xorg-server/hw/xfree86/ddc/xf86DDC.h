@@ -48,6 +48,9 @@ extern _X_EXPORT Bool xf86SetDDCproperties(ScrnInfoPtr pScreen, xf86MonPtr DDC);
 extern _X_EXPORT Bool
  xf86MonitorIsHDMI(xf86MonPtr mon);
 
+extern _X_EXPORT Bool
+gtf_supported(xf86MonPtr mon);
+
 extern _X_EXPORT DisplayModePtr
 FindDMTMode(int hsize, int vsize, int refresh, Bool rb);
 

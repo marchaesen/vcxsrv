@@ -76,7 +76,7 @@ int flags)  /* DoRed, DoGreen, DoBlue */
     req->cmap = cmap;
     req->flags = flags;
     req->pixel = pixel;
-    req->nbytes = nbytes = strlen(name);
+    req->nbytes = (CARD16) (nbytes = (unsigned) strlen(name));
     req->length += (nbytes + 3) >> 2; /* round up to multiple of 4 */
     Data(dpy, name, (long)nbytes);
     UnlockDisplay(dpy);

@@ -95,7 +95,21 @@ __bitset_ffs(const BITSET_WORD *x, int n)
    return 0;
 }
 
+/* Get the last bit set in a bitset.
+ */
+static inline int
+__bitset_last_bit(const BITSET_WORD *x, int n)
+{
+   for (int i = n - 1; i >= 0; i--) {
+      if (x[i])
+         return util_last_bit(x[i]) + BITSET_WORDBITS * i;
+   }
+
+   return 0;
+}
+
 #define BITSET_FFS(x) __bitset_ffs(x, ARRAY_SIZE(x))
+#define BITSET_LAST_BIT(x, size) __bitset_last_bit(x, size)
 
 static inline unsigned
 __bitset_next_set(unsigned i, BITSET_WORD *tmp,

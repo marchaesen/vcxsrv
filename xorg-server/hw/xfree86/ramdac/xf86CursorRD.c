@@ -212,7 +212,7 @@ xf86CursorEnableDisableFBAccess(ScrnInfoPtr pScrn, Bool enable)
                                                xf86CursorScreenKey);
 
     if (!enable && ScreenPriv->CurrentCursor != NullCursor) {
-        CursorPtr currentCursor = ScreenPriv->CurrentCursor;
+        CursorPtr currentCursor = RefCursor(ScreenPriv->CurrentCursor);
 
         xf86CursorSetCursor(pDev, pScreen, NullCursor, ScreenPriv->x,
                             ScreenPriv->y);
@@ -231,6 +231,7 @@ xf86CursorEnableDisableFBAccess(ScrnInfoPtr pScrn, Bool enable)
          */
         xf86CursorSetCursor(pDev, pScreen, ScreenPriv->SavedCursor,
                             ScreenPriv->x, ScreenPriv->y);
+        UnrefCursor(ScreenPriv->SavedCursor);
         ScreenPriv->SavedCursor = NULL;
     }
 }

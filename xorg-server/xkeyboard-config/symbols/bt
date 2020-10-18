@@ -13,7 +13,7 @@
 //   Version 1.0   2004-07-29  Some correction by Pema Geyleg <pema_geyleg@druknet.bt>
 /////////////////////////////////////////////////////////////////
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
       name[Group1]= "Dzongkha";
 

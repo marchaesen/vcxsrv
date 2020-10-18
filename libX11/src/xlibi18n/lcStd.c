@@ -139,7 +139,7 @@ _Xlcmbstowcs(
 	return -1;
 
     from = (XPointer) str;
-    from_left = strlen(str);
+    from_left = (int) strlen(str);
     to = (XPointer) wstr;
     to_left = len;
 
@@ -279,7 +279,7 @@ _Xwcslen(
     while (*wstr_ptr)
 	wstr_ptr++;
 
-    return wstr_ptr - wstr;
+    return (int) (wstr_ptr - wstr);
 }
 
 int
@@ -331,7 +331,7 @@ _Xlcmbstoutf8(
 	return -1;
 
     from = (XPointer) str;
-    from_left = strlen(str);
+    from_left = (int) strlen(str);
     to = (XPointer) ustr;
     to_left = len;
 

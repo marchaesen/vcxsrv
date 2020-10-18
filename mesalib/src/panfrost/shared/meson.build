@@ -31,7 +31,7 @@ libpanfrost_shared = static_library(
   'panfrost_shared',
   [libpanfrost_shared_files],
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-  c_args : [c_vis_args, no_override_init_args, '-O3'],
-  cpp_args : [cpp_vis_args],
+  c_args : [no_override_init_args, '-O3'],
+  gnu_symbol_visibility : 'hidden',
   build_by_default : false,
 )

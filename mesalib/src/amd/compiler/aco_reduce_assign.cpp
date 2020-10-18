@@ -114,21 +114,19 @@ void setup_reduce_temp(Program* program)
             }
          }
 
-         if (op == gfx10_wave64_bpermute) {
-            instr->operands[1] = Operand(reduceTmp);
-            continue;
-         }
-
          /* same as before, except for the vector temporary instead of the reduce temporary */
          unsigned cluster_size = static_cast<Pseudo_reduction_instruction *>(instr)->cluster_size;
          bool need_vtmp = op == imul32 || op == fadd64 || op == fmul64 ||
                           op == fmin64 || op == fmax64 || op == umin64 ||
                           op == umax64 || op == imin64 || op == imax64 ||
                           op == imul64;
+         bool gfx10_need_vtmp = op == imul8 || op == imax8 || op == imin8 || op == umin8 ||
+                                op == imul16 || op == imax16 || op == imin16 || op == umin16 ||
+                                op == iadd64;
 
          if (program->chip_class >= GFX10 && cluster_size == 64)
             need_vtmp = true;
-         if (program->chip_class >= GFX10 && op == iadd64)
+         if (program->chip_class >= GFX10 && gfx10_need_vtmp)
             need_vtmp = true;
          if (program->chip_class <= GFX7)
             need_vtmp = true;
@@ -163,9 +161,11 @@ void setup_reduce_temp(Program* program)
          bool need_sitmp = (program->chip_class <= GFX7 || program->chip_class >= GFX10) && instr->opcode != aco_opcode::p_reduce;
          if (instr->opcode == aco_opcode::p_exclusive_scan) {
             need_sitmp |=
-               (op == imin32 || op == imin64 || op == imax32 || op == imax64 ||
-                op == fmin32 || op == fmin64 || op == fmax32 || op == fmax64 ||
-                op == fmul64);
+               (op == imin8 || op == imin16 || op == imin32 || op == imin64 ||
+                op == imax8 || op == imax16 || op == imax32 || op == imax64 ||
+                op == fmin16 || op == fmin32 || op == fmin64 ||
+                op == fmax16 || op == fmax32 || op == fmax64 ||
+                op == fmul16 || op == fmul64);
          }
          if (need_sitmp) {
             instr->definitions[2] = bld.def(RegClass(RegType::sgpr, instr->operands[0].size()));

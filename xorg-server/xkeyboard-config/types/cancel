@@ -1,4 +1,4 @@
-partial default xkb_types "Shift_Cancels_Caps" {
+default partial xkb_types "Shift_Cancels_Caps" {
 
 override type "TWO_LEVEL" {
     modifiers = Shift+Lock;

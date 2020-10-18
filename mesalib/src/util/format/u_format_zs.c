@@ -334,6 +334,54 @@ util_format_z32_float_pack_z_32unorm(uint8_t *dst_row, unsigned dst_stride,
 }
 
 void
+util_format_z16_unorm_s8_uint_unpack_z_float(float *dst_row, unsigned dst_stride,
+                                             const uint8_t *src_row, unsigned src_stride,
+                                             unsigned width, unsigned height)
+{
+   unreachable("z16_s8 packing/unpacking is not implemented.");
+}
+
+void
+util_format_z16_unorm_s8_uint_pack_z_float(uint8_t *dst_row, unsigned dst_stride,
+                                           const float *src_row, unsigned src_stride,
+                                           unsigned width, unsigned height)
+{
+   unreachable("z16_s8 packing/unpacking is not implemented.");
+}
+
+void
+util_format_z16_unorm_s8_uint_unpack_z_32unorm(uint32_t *dst_row, unsigned dst_stride,
+                                               const uint8_t *src_row, unsigned src_stride,
+                                               unsigned width, unsigned height)
+{
+   unreachable("z16_s8 packing/unpacking is not implemented.");
+}
+
+void
+util_format_z16_unorm_s8_uint_pack_z_32unorm(uint8_t *dst_row, unsigned dst_stride,
+                                             const uint32_t *src_row, unsigned src_stride,
+                                             unsigned width, unsigned height)
+{
+   unreachable("z16_s8 packing/unpacking is not implemented.");
+}
+
+void
+util_format_z16_unorm_s8_uint_unpack_s_8uint(uint8_t *dst_row, unsigned dst_stride,
+                                             const uint8_t *src_row, unsigned src_stride,
+                                             unsigned width, unsigned height)
+{
+   unreachable("z16_s8 packing/unpacking is not implemented.");
+}
+
+void
+util_format_z16_unorm_s8_uint_pack_s_8uint(uint8_t *dst_row, unsigned dst_stride,
+                                           const uint8_t *src_row, unsigned src_stride,
+                                           unsigned width, unsigned height)
+{
+   unreachable("z16_s8 packing/unpacking is not implemented.");
+}
+
+void
 util_format_z24_unorm_s8_uint_unpack_z_float(float *dst_row, unsigned dst_stride,
                                                 const uint8_t *src_row, unsigned src_stride,
                                                 unsigned width, unsigned height)

@@ -90,7 +90,7 @@ struct hud_context {
       unsigned max_num_vertices;
       unsigned num_vertices;
       unsigned buffer_size;
-   } text, bg, whitelines, color_prims;
+   } text, bg, whitelines;
 
    bool has_srgb;
 };

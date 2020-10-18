@@ -50,7 +50,7 @@
 XOpenDisplay, XCloseDisplay \- connect or disconnect to X server
 .SH SYNTAX
 .HP
-Display *XOpenDisplay\^(\^char *\fIdisplay_name\fP\^);
+Display *XOpenDisplay\^(\^_Xconst char *\fIdisplay_name\fP\^);
 .HP
 int XCloseDisplay\^(Display *\fIdisplay\fP\^);
 .SH ARGUMENTS

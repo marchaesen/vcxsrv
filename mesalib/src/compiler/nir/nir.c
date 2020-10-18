@@ -1256,6 +1256,32 @@ nir_foreach_src(nir_instr *instr, nir_foreach_src_cb cb, void *state)
    return nir_foreach_dest(instr, visit_dest_indirect, &dest_state);
 }
 
+bool
+nir_foreach_phi_src_leaving_block(nir_block *block,
+                                  nir_foreach_src_cb cb,
+                                  void *state)
+{
+   for (unsigned i = 0; i < ARRAY_SIZE(block->successors); i++) {
+      if (block->successors[i] == NULL)
+         continue;
+
+      nir_foreach_instr(instr, block->successors[i]) {
+         if (instr->type != nir_instr_type_phi)
+            break;
+
+         nir_phi_instr *phi = nir_instr_as_phi(instr);
+         nir_foreach_phi_src(phi_src, phi) {
+            if (phi_src->pred == block) {
+               if (!cb(&phi_src->src, state))
+                  return false;
+            }
+         }
+      }
+   }
+
+   return true;
+}
+
 nir_const_value
 nir_const_value_for_float(double f, unsigned bit_size)
 {
@@ -1323,8 +1349,8 @@ nir_src_is_dynamically_uniform(nir_src src)
    /* As are uniform variables */
    if (src.ssa->parent_instr->type == nir_instr_type_intrinsic) {
       nir_intrinsic_instr *intr = nir_instr_as_intrinsic(src.ssa->parent_instr);
-
-      if (intr->intrinsic == nir_intrinsic_load_uniform)
+      if (intr->intrinsic == nir_intrinsic_load_uniform &&
+          nir_src_is_dynamically_uniform(intr->src[0]))
          return true;
    }
 
@@ -1451,6 +1477,7 @@ nir_ssa_def_init(nir_instr *instr, nir_ssa_def *def,
    list_inithead(&def->if_uses);
    def->num_components = num_components;
    def->bit_size = bit_size;
+   def->divergent = true; /* This is the safer default */
 
    if (instr->block) {
       nir_function_impl *impl =
@@ -1948,9 +1975,7 @@ nir_function_impl_lower_instructions(nir_function_impl *impl,
    if (progress) {
       nir_metadata_preserve(impl, preserved);
    } else {
-#ifndef NDEBUG
-      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
-#endif
+      nir_metadata_preserve(impl, nir_metadata_all);
    }
 
    return progress;
@@ -2233,6 +2258,8 @@ nir_rewrite_image_intrinsic(nir_intrinsic_instr *intrin, nir_ssa_def *src,
    CASE(atomic_exchange)
    CASE(atomic_comp_swap)
    CASE(atomic_fadd)
+   CASE(atomic_inc_wrap)
+   CASE(atomic_dec_wrap)
    CASE(size)
    CASE(samples)
    CASE(load_raw_intel)

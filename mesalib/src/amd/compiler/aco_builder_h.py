@@ -78,6 +78,8 @@ ds_pattern_bitmode(unsigned and_mask, unsigned or_mask, unsigned xor_mask)
 
 aco_ptr<Instruction> create_s_mov(Definition dst, Operand src);
 
+extern uint8_t int8_mul_table[512];
+
 enum sendmsg {
    sendmsg_none = 0,
    _sendmsg_gs = 2,
@@ -166,10 +168,17 @@ public:
 
    std::vector<aco_ptr<Instruction>> *instructions;
    std::vector<aco_ptr<Instruction>>::iterator it;
+   bool is_precise = false;
 
    Builder(Program *pgm) : program(pgm), use_iterator(false), start(false), lm(pgm->lane_mask), instructions(NULL) {}
    Builder(Program *pgm, Block *block) : program(pgm), use_iterator(false), start(false), lm(pgm ? pgm->lane_mask : s2), instructions(&block->instructions) {}
    Builder(Program *pgm, std::vector<aco_ptr<Instruction>> *instrs) : program(pgm), use_iterator(false), start(false), lm(pgm ? pgm->lane_mask : s2), instructions(instrs) {}
+
+   Builder precise() const {
+      Builder res = *this;
+      res.is_precise = true;
+      return res;
+   };
 
    void moveEnd(Block *block) {
       instructions = &block->instructions;
@@ -381,14 +390,48 @@ public:
         return vop1(aco_opcode::v_mov_b32, dst, op);
       } else if (op.bytes() > 2) {
          return pseudo(aco_opcode::p_create_vector, dst, op);
-      } else if (dst.regClass().is_subdword()) {
-        aco_ptr<SDWA_instruction> sdwa{create_instruction<SDWA_instruction>(aco_opcode::v_mov_b32, asSDWA(Format::VOP1), 1, 1)};
-        sdwa->operands[0] = op;
+      } else if (op.bytes() == 1 && op.isConstant()) {
+        uint8_t val = op.constantValue();
+        Operand op32((uint32_t)val | (val & 0x80u ? 0xffffff00u : 0u));
+        aco_ptr<SDWA_instruction> sdwa;
+        if (op32.isLiteral()) {
+            sdwa.reset(create_instruction<SDWA_instruction>(aco_opcode::v_mul_u32_u24, asSDWA(Format::VOP2), 2, 1));
+            uint32_t a = (uint32_t)int8_mul_table[val * 2];
+            uint32_t b = (uint32_t)int8_mul_table[val * 2 + 1];
+            sdwa->operands[0] = Operand(a | (a & 0x80u ? 0xffffff00u : 0x0u));
+            sdwa->operands[1] = Operand(b | (b & 0x80u ? 0xffffff00u : 0x0u));
+        } else {
+            sdwa.reset(create_instruction<SDWA_instruction>(aco_opcode::v_mov_b32, asSDWA(Format::VOP1), 1, 1));
+            sdwa->operands[0] = op32;
+        }
         sdwa->definitions[0] = dst;
-        sdwa->sel[0] = op.bytes() == 1 ? sdwa_ubyte : sdwa_uword;
+        sdwa->sel[0] = sdwa_udword;
+        sdwa->sel[1] = sdwa_udword;
+        sdwa->dst_sel = sdwa_ubyte;
+        sdwa->dst_preserve = true;
+        return insert(std::move(sdwa));
+      } else if (op.bytes() == 2 && op.isConstant() && !op.isLiteral()) {
+        aco_ptr<SDWA_instruction> sdwa{create_instruction<SDWA_instruction>(aco_opcode::v_add_f16, asSDWA(Format::VOP2), 2, 1)};
+        sdwa->operands[0] = op;
+        sdwa->operands[1] = Operand(0u);
+        sdwa->definitions[0] = dst;
+        sdwa->sel[0] = sdwa_uword;
+        sdwa->sel[1] = sdwa_udword;
         sdwa->dst_sel = dst.bytes() == 1 ? sdwa_ubyte : sdwa_uword;
         sdwa->dst_preserve = true;
         return insert(std::move(sdwa));
+      } else if (dst.regClass().is_subdword()) {
+        if (program->chip_class >= GFX8) {
+            aco_ptr<SDWA_instruction> sdwa{create_instruction<SDWA_instruction>(aco_opcode::v_mov_b32, asSDWA(Format::VOP1), 1, 1)};
+            sdwa->operands[0] = op;
+            sdwa->definitions[0] = dst;
+            sdwa->sel[0] = op.bytes() == 1 ? sdwa_ubyte : sdwa_uword;
+            sdwa->dst_sel = dst.bytes() == 1 ? sdwa_ubyte : sdwa_uword;
+            sdwa->dst_preserve = true;
+            return insert(std::move(sdwa));
+        } else {
+            return vop1(aco_opcode::v_mov_b32, dst, op);
+        }
       } else {
         unreachable("Unhandled case in bld.copy()");
       }
@@ -487,7 +530,7 @@ formats = [("pseudo", [Format.PSEUDO], 'Pseudo_instruction', list(itertools.prod
            ("exp", [Format.EXP], 'Export_instruction', [(0, 4)]),
            ("branch", [Format.PSEUDO_BRANCH], 'Pseudo_branch_instruction', itertools.product([0], [0, 1])),
            ("barrier", [Format.PSEUDO_BARRIER], 'Pseudo_barrier_instruction', [(0, 0)]),
-           ("reduction", [Format.PSEUDO_REDUCTION], 'Pseudo_reduction_instruction', [(3, 2), (3, 4)]),
+           ("reduction", [Format.PSEUDO_REDUCTION], 'Pseudo_reduction_instruction', [(3, 2)]),
            ("vop1", [Format.VOP1], 'VOP1_instruction', [(1, 1), (2, 2)]),
            ("vop2", [Format.VOP2], 'VOP2_instruction', itertools.product([1, 2], [2, 3])),
            ("vop2_sdwa", [Format.VOP2, Format.SDWA], 'SDWA_instruction', itertools.product([1, 2], [2, 3])),
@@ -520,6 +563,7 @@ formats = [("pseudo", [Format.PSEUDO], 'Pseudo_instruction', list(itertools.prod
       ${struct} *instr = create_instruction<${struct}>(opcode, (Format)(${'|'.join('(int)Format::%s' % f.name for f in formats)}), ${num_operands}, ${num_definitions});
         % for i in range(num_definitions):
             instr->definitions[${i}] = def${i};
+            instr->definitions[${i}].setPrecise(is_precise);
         % endfor
         % for i in range(num_operands):
             instr->operands[${i}] = op${i}.op;

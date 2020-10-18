@@ -7,33 +7,54 @@
 namespace aco {
 
 static const char *reduce_ops[] = {
+   [iadd8] = "iadd8",
+   [iadd16] = "iadd16",
    [iadd32] = "iadd32",
    [iadd64] = "iadd64",
+   [imul8] = "imul8",
+   [imul16] = "imul16",
    [imul32] = "imul32",
    [imul64] = "imul64",
+   [fadd16] = "fadd16",
    [fadd32] = "fadd32",
    [fadd64] = "fadd64",
+   [fmul16] = "fmul16",
    [fmul32] = "fmul32",
    [fmul64] = "fmul64",
+   [imin8] = "imin8",
+   [imin16] = "imin16",
    [imin32] = "imin32",
    [imin64] = "imin64",
+   [imax8] = "imax8",
+   [imax16] = "imax16",
    [imax32] = "imax32",
    [imax64] = "imax64",
+   [umin8] = "umin8",
+   [umin16] = "umin16",
    [umin32] = "umin32",
    [umin64] = "umin64",
+   [umax8] = "umax8",
+   [umax16] = "umax16",
    [umax32] = "umax32",
    [umax64] = "umax64",
+   [fmin16] = "fmin16",
    [fmin32] = "fmin32",
    [fmin64] = "fmin64",
+   [fmax16] = "fmax16",
    [fmax32] = "fmax32",
    [fmax64] = "fmax64",
+   [iand8] = "iand8",
+   [iand16] = "iand16",
    [iand32] = "iand32",
    [iand64] = "iand64",
+   [ior8] = "ior8",
+   [ior16] = "ior16",
    [ior32] = "ior32",
    [ior64] = "ior64",
+   [ixor8] = "ixor8",
+   [ixor16] = "ixor16",
    [ixor32] = "ixor32",
    [ixor64] = "ixor64",
-   [gfx10_wave64_bpermute] = "gfx10_wave64_bpermute",
 };
 
 static void print_reg_class(const RegClass rc, FILE *output)
@@ -132,8 +153,13 @@ static void print_constant(uint8_t reg, FILE *output)
 
 static void print_operand(const Operand *operand, FILE *output)
 {
-   if (operand->isLiteral()) {
-      fprintf(output, "0x%x", operand->constantValue());
+   if (operand->isLiteral() || (operand->isConstant() && operand->bytes() == 1)) {
+      if (operand->bytes() == 1)
+         fprintf(output, "0x%.2x", operand->constantValue());
+      else if (operand->bytes() == 2)
+         fprintf(output, "0x%.4x", operand->constantValue());
+      else
+         fprintf(output, "0x%x", operand->constantValue());
    } else if (operand->isConstant()) {
       print_constant(operand->physReg().reg(), output);
    } else if (operand->isUndefined()) {
@@ -153,6 +179,8 @@ static void print_operand(const Operand *operand, FILE *output)
 static void print_definition(const Definition *definition, FILE *output)
 {
    print_reg_class(definition->regClass(), output);
+   if (definition->isPrecise())
+      fprintf(output, "(precise)");
    fprintf(output, "%%%d", definition->tempId());
 
    if (definition->isFixed())

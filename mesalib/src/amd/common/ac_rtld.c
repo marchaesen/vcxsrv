@@ -82,9 +82,9 @@ struct ac_rtld_part {
 static void report_erroraf(const char *fmt, va_list va)
 {
 	char *msg;
-	int ret = asprintf(&msg, fmt, va);
+	int ret = vasprintf(&msg, fmt, va);
 	if (ret < 0)
-		msg = "(asprintf failed)";
+		msg = "(vasprintf failed)";
 
 	fprintf(stderr, "ac_rtld error: %s\n", msg);
 
@@ -514,7 +514,8 @@ bool ac_rtld_get_section_by_name(struct ac_rtld_binary *binary, const char *name
 	return get_section_by_name(&binary->parts[0], name, data, nbytes);
 }
 
-bool ac_rtld_read_config(struct ac_rtld_binary *binary,
+bool ac_rtld_read_config(const struct radeon_info *info,
+			 struct ac_rtld_binary *binary,
 			 struct ac_shader_config *config)
 {
 	for (unsigned i = 0; i < binary->num_parts; ++i) {
@@ -529,7 +530,7 @@ bool ac_rtld_read_config(struct ac_rtld_binary *binary,
 		/* TODO: be precise about scratch use? */
 		struct ac_shader_config c = {};
 		ac_parse_shader_binary_config(config_data, config_nbytes,
-					      binary->wave_size, true, &c);
+					      binary->wave_size, true, info, &c);
 
 		config->num_sgprs = MAX2(config->num_sgprs, c.num_sgprs);
 		config->num_vgprs = MAX2(config->num_vgprs, c.num_vgprs);

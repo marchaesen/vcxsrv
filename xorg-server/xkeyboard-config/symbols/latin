@@ -1,6 +1,6 @@
 // Common Latin alphabet layout
 
-default  partial
+default partial
 xkb_symbols "basic" {
 
     key <AE01>	{ [         1,     exclam,  onesuperior,   exclamdown ]	};

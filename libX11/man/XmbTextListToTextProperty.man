@@ -65,14 +65,17 @@ int Xutf8TextListToTextProperty\^(\^Display *\fIdisplay\fP\^, char
 **\fIlist\fP\^, int \fIcount\fP\^, XICCEncodingStyle \fIstyle\fP\^,
 XTextProperty *\fItext_prop_return\fP\^);
 .HP
-int XmbTextPropertyToTextList\^(\^Display *\fIdisplay\fP\^, XTextProperty
+int XmbTextPropertyToTextList\^(\^Display *\fIdisplay\fP\^,
+_Xconst XTextProperty
 *\fItext_prop\fP\^, char ***\fIlist_return\fP\^, int *\fIcount_return\fP\^);
 .HP
-int XwcTextPropertyToTextList\^(\^Display *\fIdisplay\fP\^, XTextProperty
+int XwcTextPropertyToTextList\^(\^Display *\fIdisplay\fP\^,
+_Xconst XTextProperty
 *\fItext_prop\fP\^, wchar_t ***\fIlist_return\fP\^, int
 *\fIcount_return\fP\^);
 .HP
-int Xutf8TextPropertyToTextList\^(\^Display *\fIdisplay\fP\^, XTextProperty
+int Xutf8TextPropertyToTextList\^(\^Display *\fIdisplay\fP\^,
+_Xconst XTextProperty
 *\fItext_prop\fP\^, char ***\fIlist_return\fP\^, int *\fIcount_return\fP\^);
 .HP
 void XwcFreeStringList\^(\^wchar_t **\fIlist\fP\^);

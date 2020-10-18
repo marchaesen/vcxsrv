@@ -136,7 +136,7 @@ instead of -d.
 .PP
 X(@miscmansuffix@), Xserver(1), xdm(1), xinit(1), syslog(1), syslogd(8)
 .PP
-http://xquartz.macosforge.org
+https://www.xquartz.org/
 .PP
 .SH AUTHORS / HISTORY
 X11 was originally ported to Mac OS X Server by John Carmack.  Dave

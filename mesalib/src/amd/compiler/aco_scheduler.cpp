@@ -484,7 +484,10 @@ HazardResult perform_hazard_query(hazard_query *query, Instruction *instr)
        instr->opcode == aco_opcode::s_setprio)
       return hazard_fail_unreorderable;
 
-   if (query->barrier_interaction && (query->barrier_interaction & parse_barrier(instr)))
+   barrier_interaction bar = parse_barrier(instr);
+   if (query->barrier_interaction && (query->barrier_interaction & bar))
+      return hazard_fail_barrier;
+   if (bar && query->barriers && (query->barriers & ~bar))
       return hazard_fail_barrier;
    if (query->barriers && (query->barriers & get_barrier_interaction(instr)))
       return hazard_fail_barrier;

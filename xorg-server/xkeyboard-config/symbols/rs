@@ -12,7 +12,7 @@
 // - Further modifications on 2005-08-18 to support Bosnian,
 //   Croatian and Slovenian in xkeyboard-config.
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     name[Group1]= "Serbian";
@@ -271,7 +271,7 @@ xkb_symbols "alternatequotes" {
     // Another acceptable »pair of quotes« for Serbian.
 
     include "rs(basic)"
-    name[Group1]= "Serbian (Cyrillic with guillemets)";
+    name[Group1]= "Serbian (Cyrillic, with guillemets)";
 
     key <AC02> { [ any, any,   guillemotright    ] }; // s
     key <AC03> { [ any, any,   guillemotleft     ] }; // d
@@ -281,7 +281,7 @@ xkb_symbols "latinalternatequotes" {
     // Another acceptable »pair of quotes« for Serbian.
 
     include "rs(latin)"
-    name[Group1]= "Serbian (Latin with guillemets)";
+    name[Group1]= "Serbian (Latin, with guillemets)";
 
     key <AC02> { [ any, any,   guillemotright    ] }; // s
     key <AC03> { [ any, any,   guillemotleft     ] }; // d

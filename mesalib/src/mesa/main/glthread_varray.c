@@ -33,9 +33,6 @@
 #include "main/dispatch.h"
 #include "main/varray.h"
 
-/* TODO:
- *   - Handle ARB_vertex_attrib_binding (incl. EXT_dsa and ARB_dsa)
- */
 
 void
 _mesa_glthread_reset_vao(struct glthread_vao *vao)
@@ -52,6 +49,7 @@ _mesa_glthread_reset_vao(struct glthread_vao *vao)
    vao->CurrentElementBufferName = 0;
    vao->UserEnabled = 0;
    vao->Enabled = 0;
+   vao->BufferEnabled = 0;
    vao->UserPointerMask = 0;
    vao->NonZeroDivisorMask = 0;
 
@@ -61,8 +59,11 @@ _mesa_glthread_reset_vao(struct glthread_vao *vao)
          elem_size = 16;
 
       vao->Attrib[i].ElementSize = elem_size;
+      vao->Attrib[i].RelativeOffset = 0;
+      vao->Attrib[i].BufferIndex = i;
       vao->Attrib[i].Stride = elem_size;
       vao->Attrib[i].Divisor = 0;
+      vao->Attrib[i].EnabledAttribCount = 0;
       vao->Attrib[i].Pointer = NULL;
    }
 }
@@ -212,6 +213,30 @@ _mesa_glthread_PrimitiveRestartIndex(struct gl_context *ctx, GLuint index)
    update_primitive_restart(ctx);
 }
 
+static inline void
+enable_buffer(struct glthread_vao *vao, unsigned binding_index)
+{
+   int attrib_count = ++vao->Attrib[binding_index].EnabledAttribCount;
+
+   if (attrib_count == 1)
+      vao->BufferEnabled |= 1 << binding_index;
+   else if (attrib_count == 2)
+      vao->BufferInterleaved |= 1 << binding_index;
+}
+
+static inline void
+disable_buffer(struct glthread_vao *vao, unsigned binding_index)
+{
+   int attrib_count = --vao->Attrib[binding_index].EnabledAttribCount;
+
+   if (attrib_count == 0)
+      vao->BufferEnabled &= ~(1 << binding_index);
+   else if (attrib_count == 1)
+      vao->BufferInterleaved &= ~(1 << binding_index);
+   else
+      assert(attrib_count >= 0);
+}
+
 void
 _mesa_glthread_ClientState(struct gl_context *ctx, GLuint *vaobj,
                            gl_vert_attrib attrib, bool enable)
@@ -230,15 +255,61 @@ _mesa_glthread_ClientState(struct gl_context *ctx, GLuint *vaobj,
    if (!vao)
       return;
 
-   if (enable)
-      vao->UserEnabled |= 1u << attrib;
-   else
-      vao->UserEnabled &= ~(1u << attrib);
+   const unsigned attrib_bit = 1u << attrib;
 
-   /* The generic0 attribute superseeds the position attribute */
+   if (enable && !(vao->UserEnabled & attrib_bit)) {
+      vao->UserEnabled |= attrib_bit;
+
+      /* The generic0 attribute supersedes the position attribute. We need to
+       * update BufferBindingEnabled accordingly.
+       */
+      if (attrib == VERT_ATTRIB_POS) {
+         if (!(vao->UserEnabled & VERT_BIT_GENERIC0))
+            enable_buffer(vao, vao->Attrib[VERT_ATTRIB_POS].BufferIndex);
+      } else {
+         enable_buffer(vao, vao->Attrib[attrib].BufferIndex);
+
+         if (attrib == VERT_ATTRIB_GENERIC0 && vao->UserEnabled & VERT_BIT_POS)
+            disable_buffer(vao, vao->Attrib[VERT_ATTRIB_POS].BufferIndex);
+      }
+   } else if (!enable && (vao->UserEnabled & attrib_bit)) {
+      vao->UserEnabled &= ~attrib_bit;
+
+      /* The generic0 attribute supersedes the position attribute. We need to
+       * update BufferBindingEnabled accordingly.
+       */
+      if (attrib == VERT_ATTRIB_POS) {
+         if (!(vao->UserEnabled & VERT_BIT_GENERIC0))
+            disable_buffer(vao, vao->Attrib[VERT_ATTRIB_POS].BufferIndex);
+      } else {
+         disable_buffer(vao, vao->Attrib[attrib].BufferIndex);
+
+         if (attrib == VERT_ATTRIB_GENERIC0 && vao->UserEnabled & VERT_BIT_POS)
+            enable_buffer(vao, vao->Attrib[VERT_ATTRIB_POS].BufferIndex);
+      }
+   }
+
+   /* The generic0 attribute supersedes the position attribute. */
    vao->Enabled = vao->UserEnabled;
    if (vao->Enabled & VERT_BIT_GENERIC0)
       vao->Enabled &= ~VERT_BIT_POS;
+}
+
+static void
+set_attrib_binding(struct glthread_state *glthread, struct glthread_vao *vao,
+                   gl_vert_attrib attrib, unsigned new_binding_index)
+{
+   unsigned old_binding_index = vao->Attrib[attrib].BufferIndex;
+
+   if (old_binding_index != new_binding_index) {
+      vao->Attrib[attrib].BufferIndex = new_binding_index;
+
+      if (vao->Enabled & (1u << attrib)) {
+         /* Update BufferBindingEnabled. */
+         enable_buffer(vao, new_binding_index);
+         disable_buffer(vao, old_binding_index);
+      }
+   }
 }
 
 void _mesa_glthread_AttribDivisor(struct gl_context *ctx, const GLuint *vaobj,
@@ -252,6 +323,8 @@ void _mesa_glthread_AttribDivisor(struct gl_context *ctx, const GLuint *vaobj,
       return;
 
    vao->Attrib[attrib].Divisor = divisor;
+
+   set_attrib_binding(&ctx->GLThread, vao, attrib, attrib);
 
    if (divisor)
       vao->NonZeroDivisorMask |= 1u << attrib;
@@ -273,6 +346,9 @@ attrib_pointer(struct glthread_state *glthread, struct glthread_vao *vao,
    vao->Attrib[attrib].ElementSize = elem_size;
    vao->Attrib[attrib].Stride = stride ? stride : elem_size;
    vao->Attrib[attrib].Pointer = pointer;
+   vao->Attrib[attrib].RelativeOffset = 0;
+
+   set_attrib_binding(glthread, vao, attrib, attrib);
 
    if (buffer != 0)
       vao->UserPointerMask &= ~(1u << attrib);
@@ -307,6 +383,182 @@ _mesa_glthread_DSAAttribPointer(struct gl_context *ctx, GLuint vaobj,
 
    attrib_pointer(glthread, vao, buffer, attrib, size, type, stride,
                   (const void*)offset);
+}
+
+static void
+attrib_format(struct glthread_state *glthread, struct glthread_vao *vao,
+              GLuint attribindex, GLint size, GLenum type,
+              GLuint relativeoffset)
+{
+   if (attribindex >= VERT_ATTRIB_GENERIC_MAX)
+      return;
+
+   unsigned elem_size = _mesa_bytes_per_vertex_attrib(size, type);
+
+   unsigned i = VERT_ATTRIB_GENERIC(attribindex);
+   vao->Attrib[i].ElementSize = elem_size;
+   vao->Attrib[i].RelativeOffset = relativeoffset;
+}
+
+void
+_mesa_glthread_AttribFormat(struct gl_context *ctx, GLuint attribindex,
+                            GLint size, GLenum type, GLuint relativeoffset)
+{
+   struct glthread_state *glthread = &ctx->GLThread;
+
+   attrib_format(glthread, glthread->CurrentVAO, attribindex, size, type,
+                 relativeoffset);
+}
+
+void
+_mesa_glthread_DSAAttribFormat(struct gl_context *ctx, GLuint vaobj,
+                               GLuint attribindex, GLint size, GLenum type,
+                               GLuint relativeoffset)
+{
+   struct glthread_state *glthread = &ctx->GLThread;
+   struct glthread_vao *vao = lookup_vao(ctx, vaobj);
+
+   if (vao)
+      attrib_format(glthread, vao, attribindex, size, type, relativeoffset);
+}
+
+static void
+bind_vertex_buffer(struct glthread_state *glthread, struct glthread_vao *vao,
+                   GLuint bindingindex, GLuint buffer, GLintptr offset,
+                   GLsizei stride)
+{
+   if (bindingindex >= VERT_ATTRIB_GENERIC_MAX)
+      return;
+
+   unsigned i = VERT_ATTRIB_GENERIC(bindingindex);
+   vao->Attrib[i].Pointer = (const void*)offset;
+   vao->Attrib[i].Stride = stride;
+
+   if (buffer != 0)
+      vao->UserPointerMask &= ~(1u << i);
+   else
+      vao->UserPointerMask |= 1u << i;
+}
+
+void
+_mesa_glthread_VertexBuffer(struct gl_context *ctx, GLuint bindingindex,
+                            GLuint buffer, GLintptr offset, GLsizei stride)
+{
+   struct glthread_state *glthread = &ctx->GLThread;
+
+   bind_vertex_buffer(glthread, glthread->CurrentVAO, bindingindex, buffer,
+                      offset, stride);
+}
+
+void
+_mesa_glthread_DSAVertexBuffer(struct gl_context *ctx, GLuint vaobj,
+                               GLuint bindingindex, GLuint buffer,
+                               GLintptr offset, GLsizei stride)
+{
+   struct glthread_state *glthread = &ctx->GLThread;
+   struct glthread_vao *vao = lookup_vao(ctx, vaobj);
+
+   if (vao)
+      bind_vertex_buffer(glthread, vao, bindingindex, buffer, offset, stride);
+}
+
+void
+_mesa_glthread_DSAVertexBuffers(struct gl_context *ctx, GLuint vaobj,
+                                GLuint first, GLsizei count,
+                                const GLuint *buffers,
+                                const GLintptr *offsets,
+                                const GLsizei *strides)
+{
+   struct glthread_state *glthread = &ctx->GLThread;
+   struct glthread_vao *vao;
+
+   vao = lookup_vao(ctx, vaobj);
+   if (!vao)
+      return;
+
+   for (unsigned i = 0; i < count; i++) {
+      bind_vertex_buffer(glthread, vao, first + i, buffers[i], offsets[i],
+                         strides[i]);
+   }
+}
+
+static void
+binding_divisor(struct glthread_state *glthread, struct glthread_vao *vao,
+                GLuint bindingindex, GLuint divisor)
+{
+   if (bindingindex >= VERT_ATTRIB_GENERIC_MAX)
+      return;
+
+   unsigned i = VERT_ATTRIB_GENERIC(bindingindex);
+   vao->Attrib[i].Divisor = divisor;
+
+   if (divisor)
+      vao->NonZeroDivisorMask |= 1u << i;
+   else
+      vao->NonZeroDivisorMask &= ~(1u << i);
+}
+
+void
+_mesa_glthread_BindingDivisor(struct gl_context *ctx, GLuint bindingindex,
+                              GLuint divisor)
+{
+   struct glthread_state *glthread = &ctx->GLThread;
+
+   binding_divisor(glthread, glthread->CurrentVAO, bindingindex, divisor);
+}
+
+void
+_mesa_glthread_DSABindingDivisor(struct gl_context *ctx, GLuint vaobj,
+                                 GLuint bindingindex, GLuint divisor)
+{
+   struct glthread_state *glthread = &ctx->GLThread;
+   struct glthread_vao *vao = lookup_vao(ctx, vaobj);
+
+   if (vao)
+      binding_divisor(glthread, vao, bindingindex, divisor);
+}
+
+void
+_mesa_glthread_AttribBinding(struct gl_context *ctx, GLuint attribindex,
+                             GLuint bindingindex)
+{
+   struct glthread_state *glthread = &ctx->GLThread;
+
+   if (attribindex >= VERT_ATTRIB_GENERIC_MAX ||
+       bindingindex >= VERT_ATTRIB_GENERIC_MAX)
+      return;
+
+   set_attrib_binding(glthread, glthread->CurrentVAO,
+                      VERT_ATTRIB_GENERIC(attribindex),
+                      VERT_ATTRIB_GENERIC(bindingindex));
+}
+
+void
+_mesa_glthread_DSAAttribBinding(struct gl_context *ctx, GLuint vaobj,
+                                GLuint attribindex, GLuint bindingindex)
+{
+   struct glthread_state *glthread = &ctx->GLThread;
+
+   if (attribindex >= VERT_ATTRIB_GENERIC_MAX ||
+       bindingindex >= VERT_ATTRIB_GENERIC_MAX)
+      return;
+
+   struct glthread_vao *vao = lookup_vao(ctx, vaobj);
+   if (vao) {
+      set_attrib_binding(glthread, vao,
+                         VERT_ATTRIB_GENERIC(attribindex),
+                         VERT_ATTRIB_GENERIC(bindingindex));
+   }
+}
+
+void
+_mesa_glthread_DSAElementBuffer(struct gl_context *ctx, GLuint vaobj,
+                                GLuint buffer)
+{
+   struct glthread_vao *vao = lookup_vao(ctx, vaobj);
+
+   if (vao)
+      vao->CurrentElementBufferName = buffer;
 }
 
 void

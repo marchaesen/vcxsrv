@@ -21,7 +21,7 @@ export DXVK_LOG_LEVEL="none"
 export DXVK_STATE_CACHE=0
 
 # Perform a self-test to ensure tracie is working properly.
-"$INSTALL/tracie/tests/test.sh"
+python3 -m pytest -v --pyargs $INSTALL/tracie/tests/test.py
 
 # Sanity check to ensure that our environment is sufficient to make our tests
 # run against the Mesa built by CI, rather than any installed distro version.

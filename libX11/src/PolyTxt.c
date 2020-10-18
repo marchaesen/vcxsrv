@@ -197,7 +197,7 @@ XDrawText(
 		    *(tbuf+1) = 0;   /* elt->delta  */
 		}
 	    	*tbuf = PartialNChars;   /*  elt->len  */
-                memcpy (tbuf+2 , CharacterOffset, PartialNChars);
+                memcpy (tbuf+2 , CharacterOffset, (size_t) PartialNChars);
 	    }
 	}
     item++;

@@ -111,6 +111,46 @@ has_src(nir_tex_instr *tex, nir_tex_src_type type)
 }
 
 static bool
+ok_bindless_src(nir_tex_instr *tex, nir_tex_src_type type)
+{
+	int idx = nir_tex_instr_src_index(tex, type);
+	assert(idx >= 0);
+	nir_intrinsic_instr *bindless = ir3_bindless_resource(tex->src[idx].src);
+
+	/* TODO from SP_FS_BINDLESS_PREFETCH[n] it looks like this limit should
+	 * be 1<<8 ?
+	 */
+	return nir_src_is_const(bindless->src[0]) &&
+			(nir_src_as_uint(bindless->src[0]) < (1 << 16));
+}
+
+/**
+ * Check that we will be able to encode the tex/samp parameters
+ * successfully.  These limits are based on the layout of
+ * SP_FS_PREFETCH[n] and SP_FS_BINDLESS_PREFETCH[n], so at some
+ * point (if those regs changes) they may become generation
+ * specific.
+ */
+static bool
+ok_tex_samp(nir_tex_instr *tex)
+{
+	if (has_src(tex, nir_tex_src_texture_handle)) {
+		/* bindless case: */
+
+		assert(has_src(tex, nir_tex_src_sampler_handle));
+
+		return ok_bindless_src(tex, nir_tex_src_texture_handle) &&
+				ok_bindless_src(tex, nir_tex_src_sampler_handle);
+	} else {
+		assert(!has_src(tex, nir_tex_src_texture_offset));
+		assert(!has_src(tex, nir_tex_src_sampler_offset));
+
+		return (tex->texture_index <= 0x1f) &&
+				(tex->sampler_index <= 0xf);
+	}
+}
+
+static bool
 lower_tex_prefetch_block(nir_block *block)
 {
 	bool progress = false;
@@ -135,30 +175,14 @@ lower_tex_prefetch_block(nir_block *block)
 				has_src(tex, nir_tex_src_sampler_offset))
 			continue;
 
-		/* Disallow indirect or large bindless handles */
-		int idx = nir_tex_instr_src_index(tex, nir_tex_src_texture_handle);
-		if (idx >= 0) {
-			nir_intrinsic_instr *bindless =
-				ir3_bindless_resource(tex->src[idx].src);
-			if (!nir_src_is_const(bindless->src[0]) ||
-				nir_src_as_uint(bindless->src[0]) >= (1 << 16))
-				continue;
-		}
-
-		idx = nir_tex_instr_src_index(tex, nir_tex_src_sampler_handle);
-		if (idx >= 0) {
-			nir_intrinsic_instr *bindless =
-				ir3_bindless_resource(tex->src[idx].src);
-			if (!nir_src_is_const(bindless->src[0]) ||
-				nir_src_as_uint(bindless->src[0]) >= (1 << 16))
-				continue;
-		}
-
 		/* only prefetch for simple 2d tex fetch case */
 		if (tex->sampler_dim != GLSL_SAMPLER_DIM_2D || tex->is_array)
 			continue;
 
-		idx = nir_tex_instr_src_index(tex, nir_tex_src_coord);
+		if (!ok_tex_samp(tex))
+			continue;
+
+		int idx = nir_tex_instr_src_index(tex, nir_tex_src_coord);
 		/* First source should be the sampling coordinate. */
 		nir_tex_src *coord = &tex->src[idx];
 		debug_assert(coord->src.is_ssa);

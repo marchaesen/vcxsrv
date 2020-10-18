@@ -1573,7 +1573,7 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
                   for (unsigned i = 0; i < temp.size(); i++)
                      bld.mubuf(opcode, scratch_rsrc, Operand(), scratch_offset, split->definitions[i].getTemp(), offset + i * 4, false);
                } else {
-                  bld.mubuf(opcode, scratch_rsrc, Operand(), scratch_offset, temp, offset, false);
+                  bld.mubuf(opcode, scratch_rsrc, Operand(v1), scratch_offset, temp, offset, false);
                }
             } else if (sgpr_slot.find(spill_id) != sgpr_slot.end()) {
                ctx.program->config->spilled_sgprs += (*it)->operands[0].size();
@@ -1641,7 +1641,7 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
                   }
                   bld.insert(vec);
                } else {
-                  bld.mubuf(opcode, def, scratch_rsrc, Operand(), scratch_offset, offset, false);
+                  bld.mubuf(opcode, def, scratch_rsrc, Operand(v1), scratch_offset, offset, false);
                }
             } else if (sgpr_slot.find(spill_id) != sgpr_slot.end()) {
                uint32_t spill_slot = sgpr_slot[spill_id];

@@ -69,6 +69,7 @@ AMD_DEBUG_FILES = \
 
 AMD_GENERATED_FILES = \
 	common/amdgfxregs.h \
+	common/gfx10_format_table.c \
 	common/sid_tables.h
 
 ACO_FILES = \
@@ -78,6 +79,7 @@ ACO_FILES = \
 	compiler/aco_instruction_selection_setup.cpp \
 	compiler/aco_interface.cpp \
 	compiler/aco_interface.h \
+	compiler/aco_ir.cpp \
 	compiler/aco_ir.h \
 	compiler/aco_assembler.cpp \
 	compiler/aco_insert_exec_mask.cpp \

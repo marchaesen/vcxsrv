@@ -15,7 +15,7 @@ static int
 iso8859_1_wctomb (conv_t conv, unsigned char *r, ucs4_t wc, int n)
 {
   if (wc < 0x0100) {
-    *r = wc;
+    *r = (unsigned char) wc;
     return 1;
   }
   return RET_ILSEQ;

@@ -597,12 +597,14 @@
       <param name="index" type="GLuint" />
    </function>
 
-   <function name="VertexArrayElementBuffer" no_error="true">
+   <function name="VertexArrayElementBuffer" no_error="true"
+             marshal_call_after="if (COMPAT) _mesa_glthread_DSAElementBuffer(ctx, vaobj, buffer);">
       <param name="vaobj" type="GLuint" />
       <param name="buffer" type="GLuint" />
    </function>
 
-   <function name="VertexArrayVertexBuffer" no_error="true">
+   <function name="VertexArrayVertexBuffer" no_error="true"
+             marshal_call_after="if (COMPAT) _mesa_glthread_DSAVertexBuffer(ctx, vaobj, bindingindex, buffer, offset, stride);">
       <param name="vaobj" type="GLuint" />
       <param name="bindingindex" type="GLuint" />
       <param name="buffer" type="GLuint" />
@@ -610,7 +612,8 @@
       <param name="stride" type="GLsizei" />
    </function>
 
-   <function name="VertexArrayVertexBuffers" no_error="true">
+   <function name="VertexArrayVertexBuffers" no_error="true"
+             marshal_call_after="if (COMPAT) _mesa_glthread_DSAVertexBuffers(ctx, vaobj, first, count, buffers, offsets, strides);">
       <param name="vaobj" type="GLuint" />
       <param name="first" type="GLuint" />
       <param name="count" type="GLsizei" />
@@ -619,7 +622,8 @@
       <param name="strides" type="const GLsizei *" count="count"/>
    </function>
 
-   <function name="VertexArrayAttribFormat">
+   <function name="VertexArrayAttribFormat"
+             marshal_call_after="if (COMPAT) _mesa_glthread_DSAAttribFormat(ctx, vaobj, attribindex, size, type, relativeoffset);">
       <param name="vaobj" type="GLuint" />
       <param name="attribindex" type="GLuint" />
       <param name="size" type="GLint" />
@@ -628,7 +632,8 @@
       <param name="relativeoffset" type="GLuint" />
    </function>
 
-   <function name="VertexArrayAttribIFormat">
+   <function name="VertexArrayAttribIFormat"
+             marshal_call_after="if (COMPAT) _mesa_glthread_DSAAttribFormat(ctx, vaobj, attribindex, size, type, relativeoffset);">
       <param name="vaobj" type="GLuint" />
       <param name="attribindex" type="GLuint" />
       <param name="size" type="GLint" />
@@ -636,7 +641,8 @@
       <param name="relativeoffset" type="GLuint" />
    </function>
 
-   <function name="VertexArrayAttribLFormat">
+   <function name="VertexArrayAttribLFormat"
+             marshal_call_after="if (COMPAT) _mesa_glthread_DSAAttribFormat(ctx, vaobj, attribindex, size, type, relativeoffset);">
       <param name="vaobj" type="GLuint" />
       <param name="attribindex" type="GLuint" />
       <param name="size" type="GLint" />
@@ -644,13 +650,15 @@
       <param name="relativeoffset" type="GLuint" />
    </function>
 
-   <function name="VertexArrayAttribBinding" no_error="true">
+   <function name="VertexArrayAttribBinding" no_error="true"
+             marshal_call_after="if (COMPAT) _mesa_glthread_DSAAttribBinding(ctx, vaobj, attribindex, bindingindex);">
       <param name="vaobj" type="GLuint" />
       <param name="attribindex" type="GLuint" />
       <param name="bindingindex" type="GLuint" />
    </function>
 
-   <function name="VertexArrayBindingDivisor" no_error="true">
+   <function name="VertexArrayBindingDivisor" no_error="true"
+             marshal_call_after="if (COMPAT) _mesa_glthread_DSABindingDivisor(ctx, vaobj, bindingindex, divisor);">
       <param name="vaobj" type="GLuint" />
       <param name="bindingindex" type="GLuint" />
       <param name="divisor" type="GLuint" />

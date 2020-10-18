@@ -4,13 +4,19 @@
 variables:
   # minimal set of packages required to build xkeyboard-config. extra packages
   # will be installed in the tests where required.
-  ARCH_PKGS: 'xorg-util-macros autoconf automake make gettext pkg-config gcc grep m4 python'
+  ARCH_PKGS: 'xorg-util-macros autoconf automake make gettext pkg-config gcc grep m4 python meson ninja git'
   BUILDDIR: '_build'
   # installation directory must be inside $CI_PROJECT_DIR to allow for artifact caching
   INSTDIR: '$CI_PROJECT_DIR/_inst'
   # Override these in the jobs to pass commands to configure/make
   CONFIGURE_ARGS: ''
   MAKE_EXTRA_ARG: ''
+  FDO_UPSTREAM_REPO: 'xkeyboard-config/xkeyboard-config'
+
+stages:
+  - build
+  - test
+  - gitlab
 
 # We use arch because the image updates frequently and we're not stuck
 # forever in the update phase
@@ -32,6 +38,33 @@ variables:
    - ../configure --prefix="$INSTDIR" --disable-silent-rules --disable-runtime-deps "$CONFIGURE_ARGS"
    - make
    - if test x"$MAKE_EXTRA_COMMAND" != "x"; then make $MAKE_EXTRA_COMMAND; fi
+
+
+.meson_build:
+  extends: .default_setup
+  script:
+    - meson "$BUILDDIR" -Dprefix="$INSTDIR"
+    - meson configure "$BUILDDIR"
+    - ninja -C "$BUILDDIR"
+    - if test x"$NINJA_EXTRA_COMMAND" != "x"; then ninja -C "$BUILDDIR" $NINJA_EXTRA_COMMAND; fi
+
+#
+# Verify that the merge request has the allow-collaboration checkbox ticked
+#
+
+check-merge-request:
+  image: golang:alpine
+  stage: gitlab
+  before_script:
+    - apk add python3 py-pip git
+    - pip3 install git+http://gitlab.freedesktop.org/freedesktop/ci-templates
+  script:
+    - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=results.xml
+  artifacts:
+    when: on_failure
+    reports:
+      junit: results.xml
+  allow_failure: true
 
 make_install:
   extends: .default_build
@@ -58,6 +91,32 @@ make_distcheck:
   stage: build
   variables:
       MAKE_EXTRA_COMMAND: "distcheck"
+
+meson_build:
+  extends: .meson_build
+  stage: build
+  variables:
+      NINJA_EXTRA_COMMAND: "install"
+  after_script:
+    - pacman -S --noconfirm tree
+    - tree $INSTDIR
+  artifacts:
+    name: installed files
+    expire_in: 20 min
+    paths:
+      - $INSTDIR/
+
+meson_test:
+  extends: .meson_build
+  stage: build
+  variables:
+      NINJA_EXTRA_COMMAND: "test"
+
+meston_dist:
+  extends: .meson_build
+  stage: build
+  variables:
+      NINJA_EXTRA_COMMAND: "dist"
 
 xmllint:
   image: archlinux/base
@@ -86,7 +145,8 @@ layout_tests:
     - meson builddir -Denable-wayland=false -Denable-x11=false -Denable-docs=false -Dxkb-config-root="$INSTDIR/share/X11/xkb"
     - ninja -C builddir
     - echo Running test script - this will take several minutes
-    - ./builddir/xkeyboard-config-test > $INSTDIR/xkeyboard-config-test.out
+    - ./builddir/xkeyboard-config-test "$INSTDIR/share/X11/xkb/rules/evdev.xml" > $INSTDIR/xkeyboard-config-test.out
+    - ./builddir/xkeyboard-config-test "$INSTDIR/share/X11/xkb/rules/evdev.extras.xml" >> $INSTDIR/xkeyboard-config-test.out
     - popd > /dev/null
   variables:
     GIT_STRATEGY: none
@@ -95,3 +155,18 @@ layout_tests:
     expire_in: 2 weeks
     paths:
     - $INSTDIR/xkeyboard-config-test.out
+
+keymap_tests:
+  extends: .default_setup
+  stage: test
+  script:
+    - pacman -S --noconfirm xorg-xkbcomp python-pytest
+    - export XKB_CONFIG_ROOT="$INSTDIR/share/X11/xkb"
+    - pytest --junitxml=results.xml
+  artifacts:
+    reports:
+      junit: results.xml
+  # use the installed tree from the make_install job
+  needs:
+    - job: make_install
+      artifacts: true

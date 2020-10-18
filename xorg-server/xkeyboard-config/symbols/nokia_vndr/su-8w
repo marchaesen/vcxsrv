@@ -378,7 +378,7 @@ xkb_symbols "us_nodeadkeys" {
 
 
 
-partial default alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "base" {
     // forked from from pc(pc105); madness.
     key <ESC>  {	[ Escape			]	};

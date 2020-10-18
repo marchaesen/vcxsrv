@@ -931,7 +931,7 @@ struct _glapi_table
    void (GLAPIENTRYP VertexAttribFormat)(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset); /* 884 */
    void (GLAPIENTRYP VertexAttribIFormat)(GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset); /* 885 */
    void (GLAPIENTRYP VertexAttribLFormat)(GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset); /* 886 */
-   void (GLAPIENTRYP VertexBindingDivisor)(GLuint attribindex, GLuint divisor); /* 887 */
+   void (GLAPIENTRYP VertexBindingDivisor)(GLuint bindingindex, GLuint divisor); /* 887 */
    void (GLAPIENTRYP FramebufferParameteri)(GLenum target, GLenum pname, GLint param); /* 888 */
    void (GLAPIENTRYP GetFramebufferParameteriv)(GLenum target, GLenum pname, GLint * params); /* 889 */
    void (GLAPIENTRYP GetInternalformati64v)(GLenum target, GLenum internalformat, GLenum pname, GLsizei bufSize, GLint64 * params); /* 890 */
@@ -1641,7 +1641,7 @@ struct _glapi_table
    void (GLAPIENTRYP VertexArrayVertexAttribIFormatEXT)(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset); /* 1594 */
    void (GLAPIENTRYP VertexArrayVertexAttribLFormatEXT)(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset); /* 1595 */
    void (GLAPIENTRYP VertexArrayVertexAttribBindingEXT)(GLuint vaobj, GLuint attribindex, GLuint bindingindex); /* 1596 */
-   void (GLAPIENTRYP VertexArrayVertexBindingDivisorEXT)(GLuint vaobj, GLuint attribindex, GLuint divisor); /* 1597 */
+   void (GLAPIENTRYP VertexArrayVertexBindingDivisorEXT)(GLuint vaobj, GLuint bindingindex, GLuint divisor); /* 1597 */
    void (GLAPIENTRYP NamedBufferPageCommitmentEXT)(GLuint buffer, GLintptr offset, GLsizeiptr size, GLboolean commit); /* 1598 */
    void (GLAPIENTRYP NamedStringARB)(GLenum type, GLint namelen, const GLchar * name, GLint stringlen, const GLchar * string); /* 1599 */
    void (GLAPIENTRYP DeleteNamedStringARB)(GLint namelen, const GLchar * name); /* 1600 */

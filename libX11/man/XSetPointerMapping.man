@@ -50,7 +50,7 @@
 XSetPointerMapping, XGetPointerMapping \- manipulate pointer settings
 .SH SYNTAX
 .HP
-int XSetPointerMapping\^(\^Display *\fIdisplay\fP\^, unsigned char
+int XSetPointerMapping\^(\^Display *\fIdisplay\fP\^, _Xconst unsigned char
 \fImap\fP\^[]\^, int \fInmap\fP\^);
 .HP
 int XGetPointerMapping\^(\^Display *\fIdisplay\fP\^, unsigned char

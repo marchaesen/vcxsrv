@@ -167,6 +167,7 @@ C_SOURCES := \
 	tgsi/tgsi_build.h \
 	tgsi/tgsi_dump.c \
 	tgsi/tgsi_dump.h \
+	tgsi/tgsi_dynamic_indexing.c \
 	tgsi/tgsi_exec.c \
 	tgsi/tgsi_exec.h \
 	tgsi/tgsi_emulate.c \
@@ -201,6 +202,7 @@ C_SOURCES := \
 	tgsi/tgsi_ureg.h \
 	tgsi/tgsi_util.c \
 	tgsi/tgsi_util.h \
+	tgsi/tgsi_vpos.c \
 	translate/translate.c \
 	translate/translate.h \
 	translate/translate_cache.c \

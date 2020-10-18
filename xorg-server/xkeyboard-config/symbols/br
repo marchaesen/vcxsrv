@@ -28,7 +28,7 @@ xkb_symbols "abnt2" {
     key <AC10> { [     ccedilla,       Ccedilla,    dead_acute,dead_doubleacute ] };
     key <AC11> { [   dead_tilde,dead_circumflex,    asciitilde,     asciicircum ] };
 
-    key <LSGT> { [    backslash,            bar,     masculine,      dead_breve ] };
+    key <LSGT> { [    backslash,            bar,    dead_caron,      dead_breve ] };
     key <AB03> { [            c,              C,     copyright,       copyright ] };
     key <AB07> { [            m,              M,            mu,              mu ] };
     key <AB10> { [    semicolon,          colon, dead_belowdot,   dead_abovedot ] };

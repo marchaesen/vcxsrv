@@ -44,7 +44,7 @@
 // Latvian QWERTY layout
 // http://en.wikipedia.org/wiki/QWERTY
 //
-default  partial alphanumeric_keys modifier_keys
+default partial alphanumeric_keys modifier_keys
 xkb_symbols "basic" {
 
 	name[Group1]= "Latvian";
@@ -329,7 +329,7 @@ xkb_symbols "modern" {
 partial alphanumeric_keys modifier_keys
 xkb_symbols "dvorak" {
 
-	name[Group1]= "Latvian (US Dvorak)";
+	name[Group1]= "Latvian (Dvorak)";
 
 	key <TLDE> {[ asciitilde,	grave,		acute,			asciitilde		]};
 	key <AE01> {[ 1,		exclam,		onesuperior,		exclamdown		]};
@@ -393,7 +393,7 @@ xkb_symbols "ykeydvorak" {
 
 	include "lv(dvorak)"
 
-	name[Group1]= "Latvian (US Dvorak, Y variant)";
+	name[Group1]= "Latvian (Dvorak, with Y)";
 
 	key <AD05> {[ISO_Level3_Latch, ISO_Level3_Latch, y, Y]};
 	key <SPCE> {[space, space, y, Y]};
@@ -406,7 +406,7 @@ xkb_symbols "minuskeydvorak" {
 
 	include "lv(dvorak)"
 
-	name[Group1]= "Latvian (US Dvorak, minus variant)";
+	name[Group1]= "Latvian (Dvorak, with minus)";
 
 	key <AC11> {[ISO_Level3_Latch, ISO_Level3_Latch, minus, underscore]};
 	key <SPCE> {[space, space, minus, underscore]};
@@ -423,7 +423,7 @@ xkb_symbols "dvorakprogr" {
 
 	include "lv(dvorak)"
 
-	name[Group1]= "Latvian (programmer US Dvorak)";
+	name[Group1]= "Latvian (programmer Dvorak)";
 
 	key <TLDE> {[ dollar,		asciitilde,	EuroSign,		cent			]};
 	key <AE01> {[ ampersand,	percent,	acute,			asciitilde		]};
@@ -452,7 +452,7 @@ xkb_symbols "ykeydvorakprogr" {
 
 	include "lv(dvorakprogr)"
 
-	name[Group1]= "Latvian (programmer US Dvorak, Y variant)";
+	name[Group1]= "Latvian (programmer Dvorak, with Y)";
 
 	key <AD05> {[ISO_Level3_Latch, ISO_Level3_Latch, y, Y]};
 	key <SPCE> {[space, space, y, Y]};
@@ -465,7 +465,7 @@ xkb_symbols "minuskeydvorakprogr" {
 
 	include "lv(dvorakprogr)"
 
-	name[Group1]= "Latvian (programmer US Dvorak, minus variant)";
+	name[Group1]= "Latvian (programmer Dvorak, with minus)";
 
 	key <AC11> {[ISO_Level3_Latch, ISO_Level3_Latch, minus, underscore]};
 	key <SPCE> {[space, space, minus, underscore]};
@@ -482,7 +482,7 @@ xkb_symbols "colemak" {
 
 	include "lv(basic)"
 
-	name[Group1]= "Latvian (US Colemak)";
+	name[Group1]= "Latvian (Colemak)";
 
 	key <AD03> {[ f,		F,		f,			F			]};
 	key <AD04> {[ p,		P,		p,			P			]};
@@ -512,7 +512,7 @@ xkb_symbols "apostrophecolemak" {
 
 	include "lv(colemak)"
 
-	name[Group1]= "Latvian (US Colemak, apostrophe variant)";
+	name[Group1]= "Latvian (Colemak, with apostrophe)";
 
 	key <AC11> {[ISO_Level3_Latch, quotedbl, apostrophe, quotedbl]};
 	key <SPCE> {[space, space, apostrophe]};

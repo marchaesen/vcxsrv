@@ -30,11 +30,12 @@ apt-get install -y --no-remove \
       flex \
       g++ \
       gcc \
-      gettext \
       git \
       libclang-3.9-dev \
       libclang-4.0-dev \
       libclang-5.0-dev \
+      libclang-6.0-dev \
+      libclang-7-dev \
       libclc-dev \
       libdrm-dev \
       libelf-dev \
@@ -45,13 +46,21 @@ apt-get install -y --no-remove \
       llvm-3.9-dev \
       llvm-4.0-dev \
       llvm-5.0-dev \
-      meson \
+      llvm-6.0-dev \
+      llvm-7-dev \
+      ninja-build \
       pkg-config \
       python-mako \
       python3-mako \
+      python3-pip \
+      python3-setuptools \
+      python3-wheel \
       scons \
       xz-utils \
       zlib1g-dev
+
+# We need at least 0.52.0, which is not in stretch
+python3 -m pip install meson>=0.52
 
 . .gitlab-ci/container/container_pre_build.sh
 

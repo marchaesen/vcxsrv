@@ -1,7 +1,7 @@
 // based on a keyboard
 // Modified for a real Latin American Keyboard by Fabian Mandelbaum
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "latin(type4)"
@@ -38,7 +38,7 @@ xkb_symbols "Sundeadkeys" {
 partial alphanumeric_keys
 xkb_symbols "sundeadkeys" {
     include "latam(Sundeadkeys)"
-    name[Group1]="Spanish (Latin American, with Sun dead keys)";
+    name[Group1]="Spanish (Latin American, Sun dead keys)";
 };
 
 partial alphanumeric_keys

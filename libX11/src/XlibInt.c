@@ -1728,9 +1728,9 @@ int _XGetHostname (
 	return 0;
 
     uname (&name);
-    len = strlen (name.nodename);
+    len = (int) strlen (name.nodename);
     if (len >= maxlen) len = maxlen - 1;
-    strncpy (buf, name.nodename, len);
+    strncpy (buf, name.nodename, (size_t) len);
     buf[len] = '\0';
 #else
     if (maxlen <= 0 || buf == NULL)
@@ -1739,7 +1739,7 @@ int _XGetHostname (
     buf[0] = '\0';
     (void) gethostname (buf, maxlen);
     buf [maxlen - 1] = '\0';
-    len = strlen(buf);
+    len = (int) strlen(buf);
 #endif /* NEED_UTSNAME */
     return len;
 }

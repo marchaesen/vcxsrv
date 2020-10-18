@@ -2182,6 +2182,7 @@ struct gl_program
           */
          GLenum16 ImageAccess[MAX_IMAGE_UNIFORMS];
 
+         GLuint NumUniformBlocks;
          struct gl_uniform_block **UniformBlocks;
          struct gl_uniform_block **ShaderStorageBlocks;
 
@@ -3205,7 +3206,9 @@ struct gl_shader_compiler_options
     * If we can lower the precision of variables based on precision
     * qualifiers
     */
-   GLboolean LowerPrecision;
+   GLboolean LowerPrecisionFloat16;
+   GLboolean LowerPrecisionInt16;
+   GLboolean LowerPrecisionDerivatives;
 
    /**
     * \name Forms of indirect addressing the driver cannot do.
@@ -3827,6 +3830,11 @@ struct gl_constants
    GLboolean AllowGLSLExtensionDirectiveMidShader;
 
    /**
+    * Allow a subset of GLSL 1.20 in GLSL 1.10 as needed by SPECviewperf13.
+    */
+   GLboolean AllowGLSL120SubsetIn110;
+
+   /**
     * Allow builtins as part of constant expressions. This was not allowed
     * until GLSL 1.20 this allows it everywhere.
     */
@@ -3867,9 +3875,18 @@ struct gl_constants
    GLboolean ForceGLSLAbsSqrt;
 
    /**
-    * Force uninitialized variables to default to zero.
+    * Types of variable to default initialized to zero. Supported values are:
+    *   - 0: no zero initialization
+    *   - 1: all shader variables and gl_FragColor are initialiazed to 0
+    *   - 2: same as 1, but shader out variables are *not* initialized, while
+    *        function out variables are now initialized.
     */
-   GLboolean GLSLZeroInit;
+   GLchar GLSLZeroInit;
+
+   /**
+    * Treat integer textures using GL_LINEAR filters as GL_NEAREST.
+    */
+   GLboolean ForceIntegerTexNearest;
 
    /**
     * Does the driver support real 32-bit integers?  (Otherwise, integers are
@@ -4167,6 +4184,13 @@ struct gl_constants
 
    /** Whether to allow the fast path for frequently updated VAOs. */
    bool AllowDynamicVAOFastPath;
+
+   /** Whether the driver can support primitive restart with a fixed index.
+    * This is essentially a subset of NV_primitive_restart with enough support
+    * to be able to enable GLES 3.1. Some hardware can support this but not the
+    * full NV extension with arbitrary restart indices.
+    */
+   bool PrimitiveRestartFixedIndex;
 
    /** GL_ARB_gl_spirv */
    struct spirv_supported_capabilities SpirVCapabilities;

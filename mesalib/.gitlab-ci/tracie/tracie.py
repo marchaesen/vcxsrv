@@ -16,8 +16,8 @@ from urllib import parse
 
 import dump_trace_images
 
-TRACES_DB_PATH = os.getcwd() + "/traces-db/"
-RESULTS_PATH = os.getcwd() + "/results/"
+TRACES_DB_PATH = "./traces-db/"
+RESULTS_PATH = "./results/"
 
 def replay(trace_path, device_name):
     success = dump_trace_images.dump_from_trace(trace_path, [], device_name)
@@ -85,7 +85,9 @@ def gitlab_ensure_trace(project_url, repo_commit, trace):
     trace_path = TRACES_DB_PATH + trace['path']
     if project_url is None:
         assert(repo_commit is None)
-        assert(os.path.exists(trace_path))
+        if not os.path.exists(trace_path):
+            print("{} missing".format(trace_path))
+            sys.exit(1)
         return
 
     os.makedirs(os.path.dirname(trace_path), exist_ok=True)
@@ -106,11 +108,13 @@ def gitlab_check_trace(project_url, repo_commit, device_name, trace, expectation
 
     result = {}
     result[trace['path']] = {}
+    result[trace['path']]['expected'] = expectation['checksum']
 
     trace_path = Path(TRACES_DB_PATH + trace['path'])
     checksum, image_file, log_file = replay(trace_path, device_name)
     if checksum is None:
-        return False
+        result[trace['path']]['actual'] = 'error'
+        return False, result
     elif checksum == expectation['checksum']:
         print("[check_image] Images match for %s" % (trace['path']))
         ok = True
@@ -131,21 +135,13 @@ def gitlab_check_trace(project_url, repo_commit, device_name, trace, expectation
         shutil.move(image_file, os.path.join(results_path, image_name))
         result[trace['path']]['image'] = os.path.join(dir_in_results, image_name)
 
-    result[trace['path']]['expected'] = expectation['checksum']
     result[trace['path']]['actual'] = checksum
 
     return ok, result
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--file', required=True,
-                        help='the name of the traces.yml file listing traces and their checksums for each device')
-    parser.add_argument('--device-name', required=True,
-                        help="the name of the graphics device used to replay traces")
+def run(filename, device_name):
 
-    args = parser.parse_args()
-
-    with open(args.file, 'r') as f:
+    with open(filename, 'r') as f:
         y = yaml.safe_load(f)
 
     if "traces-db" in y:
@@ -155,21 +151,34 @@ def main():
         project_url = None
         commit_id = None
 
-    traces = y['traces']
+    traces = y['traces'] or []
     all_ok = True
     results = {}
     for trace in traces:
         for expectation in trace['expectations']:
-            if expectation['device'] == args.device_name:
-                ok, result = gitlab_check_trace(project_url, commit_id, args.device_name, trace, expectation)
+            if expectation['device'] == device_name:
+                ok, result = gitlab_check_trace(project_url, commit_id,
+                                                device_name, trace,
+                                                expectation)
                 all_ok = all_ok and ok
                 results.update(result)
 
+    os.makedirs(RESULTS_PATH, exist_ok=True)
     with open(os.path.join(RESULTS_PATH, 'results.yml'), 'w') as f:
         yaml.safe_dump(results, f, default_flow_style=False)
 
+    return all_ok
 
-    sys.exit(0 if all_ok else 1)
+def main(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--file', required=True,
+                        help='the name of the traces.yml file listing traces and their checksums for each device')
+    parser.add_argument('--device-name', required=True,
+                        help="the name of the graphics device used to replay traces")
+
+    args = parser.parse_args(args)
+    return run(args.file, args.device_name)
 
 if __name__ == "__main__":
-    main()
+    all_ok = main(sys.argv[1:])
+    sys.exit(0 if all_ok else 1)

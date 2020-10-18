@@ -2027,7 +2027,18 @@ emit_store_output_gs(struct v3d_compile *c, nir_intrinsic_instr *instr)
                            V3D_QPU_PF_PUSHZ);
         }
 
-        vir_VPM_WRITE_indirect(c, ntq_get_src(c, instr->src[0], 0), offset);
+        struct qreg val = ntq_get_src(c, instr->src[0], 0);
+
+        /* The offset isn’t necessarily dynamically uniform for a geometry
+         * shader. This can happen if the shader sometimes doesn’t emit one of
+         * the vertices. In that case subsequent vertices will be written to
+         * different offsets in the VPM and we need to use the scatter write
+         * instruction to have a different offset for each lane.
+         */
+        if (nir_src_is_dynamically_uniform(instr->src[1]))
+                vir_VPM_WRITE_indirect(c, val, offset);
+        else
+                vir_STVPMD(c, offset, val);
 
         if (vir_in_nonuniform_control_flow(c)) {
                 struct qinst *last_inst =
@@ -2123,7 +2134,7 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 break;
 
         case nir_intrinsic_load_user_clip_plane:
-                for (int i = 0; i < instr->num_components; i++) {
+                for (int i = 0; i < nir_intrinsic_dest_components(instr); i++) {
                         ntq_store_dest(c, &instr->dest, i,
                                        vir_uniform(c, QUNIFORM_USER_CLIP_PLANE,
                                                    nir_intrinsic_ucp_id(instr) *

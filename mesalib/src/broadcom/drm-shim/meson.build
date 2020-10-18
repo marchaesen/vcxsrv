@@ -23,7 +23,7 @@ libv3d_noop_drm_shim = shared_library(
   'v3d_noop.c',
   include_directories: [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
   dependencies: dep_drm_shim,
-  c_args : c_vis_args,
+  gnu_symbol_visibility : 'hidden',
   install : true,
 )
 
@@ -41,8 +41,9 @@ if dep_v3dv3.found()
                             'v3dx.c',
                             v3d_xml_pack
         ],
-        include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom, inc_gallium_v3d],
-        c_args : [c_vis_args, no_override_init_args, '-DV3D_VERSION=' + ver, v3dv3_c_args],
+        include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom, inc_gallium_v3d, inc_simulator],
+        c_args : [no_override_init_args, '-DV3D_VERSION=' + ver, v3dv3_c_args],
+        gnu_symbol_visibility : 'hidden',
         dependencies: [dep_valgrind, dep_thread, dep_v3dv3],
     )
   endforeach
@@ -51,12 +52,13 @@ if dep_v3dv3.found()
     ['v3d_drm_shim'],
     [
       'v3d.c',
-      '../../gallium/drivers/v3d/v3d_simulator_wrapper.cpp',
+      '../simulator/v3d_simulator_wrapper.cpp',
     ],
     dependencies: [idep_mesautil, dep_dl, dep_drm_shim, dep_v3dv3],
     link_with: per_version_libs,
-    include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom, inc_gallium_v3d],
-    c_args : [c_vis_args, no_override_init_args, '-std=gnu99', v3dv3_c_args],
+    include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom, inc_gallium_v3d, inc_simulator],
+    c_args : [no_override_init_args, '-std=gnu99', v3dv3_c_args],
+    gnu_symbol_visibility : 'hidden',
     cpp_args : [v3dv3_c_args]
   )
 endif

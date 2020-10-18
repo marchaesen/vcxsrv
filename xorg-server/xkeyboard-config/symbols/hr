@@ -1,4 +1,4 @@
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "rs(latin)"
@@ -9,6 +9,7 @@ xkb_symbols "basic" {
     key <AE03> { [     3, numbersign,   asciicircum, dead_circumflex ] };
     key <AE05> { [     5,    percent,        degree,  dead_abovering ] };
     key <AE07> { [     7,      slash,         grave,      dead_grave ] };
+    key <AC03> { [   any,        any, rightdoublequotemark, guillemotleft ] };
     key <AB10> { [ minus, underscore, dead_belowdot,   dead_abovedot ] };
 };
 
@@ -16,7 +17,7 @@ partial alphanumeric_keys
 xkb_symbols "us" {
 
     include "us"
-    name[Group1]= "Croatian (US, with Croatian letters)";
+    name[Group1]= "Croatian (US)";
 
     key <AD01> { [  any,  any,  backslash               ] };
     key <AD02> { [  any,  any,  bar                     ] };

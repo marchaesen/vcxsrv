@@ -24,7 +24,7 @@ if with_platform_x11 and with_dri3
   libloader_dri3_helper = static_library(
     'loader_dri3_helper',
     'loader_dri3_helper.c',
-    c_args : c_vis_args,
+    gnu_symbol_visibility : 'hidden',
     include_directories : [inc_include, inc_src],
     dependencies : [
       dep_libdrm, dep_xcb_dri3, dep_xcb_present, dep_xcb_sync, dep_xshmfence,
@@ -36,7 +36,7 @@ else
 endif
 
 loader_c_args = [
-  c_vis_args, '-DUSE_DRICONF',
+  '-DUSE_DRICONF',
   '-DDEFAULT_DRIVER_DIR="@0@"'.format(dri_search_path),
 ]
 
@@ -48,7 +48,8 @@ libloader = static_library(
   'loader',
   ['loader.c', 'pci_id_driver_map.c'],
   c_args : loader_c_args,
+  gnu_symbol_visibility : 'hidden',
   include_directories : [inc_include, inc_src, inc_util],
-  dependencies : [dep_libdrm, dep_thread, idep_xmlconfig_headers],
+  dependencies : [dep_libdrm, dep_thread],
   build_by_default : false,
 )

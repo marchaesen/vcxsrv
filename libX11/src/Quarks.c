@@ -320,7 +320,7 @@ nomatch:    if (!rehash)
 	if (!name)
 	    goto fail;
 	s1 = (char*)name;
-	memcpy(s1, s2, len);
+	memcpy(s1, s2, (size_t)len);
 	s1[len] = '\0';
 #ifdef PERMQ
 	CLEARPERM(q);

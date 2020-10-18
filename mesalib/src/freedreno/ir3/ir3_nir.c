@@ -32,8 +32,6 @@
 #include "ir3_compiler.h"
 #include "ir3_shader.h"
 
-static void ir3_setup_const_state(struct ir3_shader *shader, nir_shader *nir);
-
 static const nir_shader_compiler_options options = {
 		.lower_fpow = true,
 		.lower_scmp = true,
@@ -72,6 +70,7 @@ static const nir_shader_compiler_options options = {
 		.lower_rotate = true,
 		.lower_to_scalar = true,
 		.has_imul24 = true,
+		.lower_wpos_pntc = true,
 };
 
 /* we don't want to lower vertex_id to _zero_based on newer gpus: */
@@ -115,6 +114,7 @@ static const nir_shader_compiler_options options_a6xx = {
 		.lower_to_scalar = true,
 		.has_imul24 = true,
 		.max_unroll_iterations = 32,
+		.lower_wpos_pntc = true,
 };
 
 const nir_shader_compiler_options *
@@ -123,17 +123,6 @@ ir3_get_compiler_options(struct ir3_compiler *compiler)
 	if (compiler->gpu_id >= 600)
 		return &options_a6xx;
 	return &options;
-}
-
-/* for given shader key, are any steps handled in nir? */
-bool
-ir3_key_lowers_nir(const struct ir3_shader_key *key)
-{
-	return key->fsaturate_s | key->fsaturate_t | key->fsaturate_r |
-			key->vsaturate_s | key->vsaturate_t | key->vsaturate_r |
-			key->ucp_enables | key->color_two_side |
-			key->fclamp_color | key->vclamp_color |
-			key->tessellation | key->has_gs;
 }
 
 #define OPT(nir, pass, ...) ({                             \
@@ -210,55 +199,30 @@ ir3_optimize_loop(nir_shader *s)
 	} while (progress);
 }
 
+static bool
+should_split_wrmask(const nir_instr *instr, const void *data)
+{
+	nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+
+	switch (intr->intrinsic) {
+	case nir_intrinsic_store_ssbo:
+	case nir_intrinsic_store_shared:
+	case nir_intrinsic_store_global:
+		return true;
+	default:
+		return false;
+	}
+}
+
 void
-ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
-		const struct ir3_shader_key *key)
+ir3_finalize_nir(struct ir3_compiler *compiler, nir_shader *s)
 {
 	struct nir_lower_tex_options tex_options = {
 			.lower_rect = 0,
 			.lower_tg4_offsets = true,
 	};
 
-	if (key && (key->has_gs || key->tessellation)) {
-		switch (shader->type) {
-		case MESA_SHADER_VERTEX:
-			NIR_PASS_V(s, ir3_nir_lower_to_explicit_io, shader, key->tessellation);
-			break;
-		case MESA_SHADER_TESS_CTRL:
-			NIR_PASS_V(s, ir3_nir_lower_tess_ctrl, shader, key->tessellation);
-			break;
-		case MESA_SHADER_TESS_EVAL:
-			NIR_PASS_V(s, ir3_nir_lower_tess_eval, key->tessellation);
-			if (key->has_gs)
-				NIR_PASS_V(s, ir3_nir_lower_to_explicit_io, shader, key->tessellation);
-			break;
-		case MESA_SHADER_GEOMETRY:
-			NIR_PASS_V(s, ir3_nir_lower_gs, shader);
-			break;
-		default:
-			break;
-		}
-	}
-
-	if (key) {
-		switch (shader->type) {
-		case MESA_SHADER_FRAGMENT:
-			tex_options.saturate_s = key->fsaturate_s;
-			tex_options.saturate_t = key->fsaturate_t;
-			tex_options.saturate_r = key->fsaturate_r;
-			break;
-		case MESA_SHADER_VERTEX:
-			tex_options.saturate_s = key->vsaturate_s;
-			tex_options.saturate_t = key->vsaturate_t;
-			tex_options.saturate_r = key->vsaturate_r;
-			break;
-		default:
-			/* TODO */
-			break;
-		}
-	}
-
-	if (shader->compiler->gpu_id >= 400) {
+	if (compiler->gpu_id >= 400) {
 		/* a4xx seems to have *no* sam.p */
 		tex_options.lower_txp = ~0;  /* lower all txp */
 	} else {
@@ -272,51 +236,162 @@ ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
 		debug_printf("----------------------\n");
 	}
 
+	if (s->info.stage == MESA_SHADER_GEOMETRY)
+		NIR_PASS_V(s, ir3_nir_lower_gs);
+
+	NIR_PASS_V(s, nir_lower_io_arrays_to_elements_no_indirects, false);
+
+	NIR_PASS_V(s, nir_lower_amul, ir3_glsl_type_size);
+
 	OPT_V(s, nir_lower_regs_to_ssa);
-	OPT_V(s, ir3_nir_lower_io_offsets);
-
-	if (key) {
-		if (s->info.stage == MESA_SHADER_VERTEX) {
-			OPT_V(s, nir_lower_clip_vs, key->ucp_enables, false, false, NULL);
-			if (key->vclamp_color)
-				OPT_V(s, nir_lower_clamp_color_outputs);
-		} else if (s->info.stage == MESA_SHADER_FRAGMENT) {
-			OPT_V(s, nir_lower_clip_fs, key->ucp_enables, false);
-			if (key->fclamp_color)
-				OPT_V(s, nir_lower_clamp_color_outputs);
-		}
-		if (key->color_two_side) {
-			OPT_V(s, nir_lower_two_sided_color);
-		}
-	} else {
-		/* only want to do this the first time (when key is null)
-		 * and not again on any potential 2nd variant lowering pass:
-		 */
-		OPT_V(s, ir3_nir_apply_trig_workarounds);
-
-		/* This wouldn't hurt to run multiple times, but there is
-		 * no need to:
-		 */
-		if (shader->type == MESA_SHADER_FRAGMENT)
-			OPT_V(s, nir_lower_fb_read);
-	}
+	OPT_V(s, nir_lower_wrmasks, should_split_wrmask, s);
 
 	OPT_V(s, nir_lower_tex, &tex_options);
 	OPT_V(s, nir_lower_load_const_to_scalar);
-	if (shader->compiler->gpu_id < 500)
+	if (compiler->gpu_id < 500)
 		OPT_V(s, ir3_nir_lower_tg4_to_tex);
 
 	ir3_optimize_loop(s);
 
-	/* do ubo load and idiv lowering after first opt loop to get a chance to
-	 * propagate constants for divide by immed power-of-two and constant ubo
-	 * block/offsets:
-	 *
-	 * NOTE that UBO analysis pass should only be done once, before variants
+	/* do idiv lowering after first opt loop to get a chance to propagate
+	 * constants for divide by immed power-of-two:
 	 */
-	const bool ubo_progress = !key && OPT(s, ir3_nir_analyze_ubo_ranges, shader);
 	const bool idiv_progress = OPT(s, nir_lower_idiv, nir_lower_idiv_fast);
-	if (ubo_progress || idiv_progress)
+
+	if (idiv_progress)
+		ir3_optimize_loop(s);
+
+	OPT_V(s, nir_remove_dead_variables, nir_var_function_temp, NULL);
+
+	if (ir3_shader_debug & IR3_DBG_DISASM) {
+		debug_printf("----------------------\n");
+		nir_print_shader(s, stdout);
+		debug_printf("----------------------\n");
+	}
+
+	nir_sweep(s);
+}
+
+/**
+ * Late passes that need to be done after pscreen->finalize_nir()
+ */
+void
+ir3_nir_post_finalize(struct ir3_compiler *compiler, nir_shader *s)
+{
+	NIR_PASS_V(s, nir_lower_io, nir_var_all, ir3_glsl_type_size,
+			   (nir_lower_io_options)0);
+
+	if (s->info.stage == MESA_SHADER_FRAGMENT) {
+		/* NOTE: lower load_barycentric_at_sample first, since it
+		 * produces load_barycentric_at_offset:
+		 */
+		NIR_PASS_V(s, ir3_nir_lower_load_barycentric_at_sample);
+		NIR_PASS_V(s, ir3_nir_lower_load_barycentric_at_offset);
+		NIR_PASS_V(s, ir3_nir_move_varying_inputs);
+		NIR_PASS_V(s, nir_lower_fb_read);
+	}
+
+	if (compiler->gpu_id >= 600 &&
+			s->info.stage == MESA_SHADER_FRAGMENT &&
+			!(ir3_shader_debug & IR3_DBG_NOFP16)) {
+		NIR_PASS_V(s, nir_lower_mediump_outputs);
+	}
+
+	/* we cannot ensure that ir3_finalize_nir() is only called once, so
+	 * we also need to do trig workarounds here:
+	 */
+	OPT_V(s, ir3_nir_apply_trig_workarounds);
+
+	ir3_optimize_loop(s);
+}
+
+void
+ir3_nir_lower_variant(struct ir3_shader_variant *so, nir_shader *s)
+{
+	if (ir3_shader_debug & IR3_DBG_DISASM) {
+		debug_printf("----------------------\n");
+		nir_print_shader(s, stdout);
+		debug_printf("----------------------\n");
+	}
+
+	bool progress = false;
+
+	if (so->key.has_gs || so->key.tessellation) {
+		switch (so->shader->type) {
+		case MESA_SHADER_VERTEX:
+			NIR_PASS_V(s, ir3_nir_lower_to_explicit_output, so, so->key.tessellation);
+			progress = true;
+			break;
+		case MESA_SHADER_TESS_CTRL:
+			NIR_PASS_V(s, ir3_nir_lower_tess_ctrl, so, so->key.tessellation);
+			NIR_PASS_V(s, ir3_nir_lower_to_explicit_input);
+			progress = true;
+			break;
+		case MESA_SHADER_TESS_EVAL:
+			NIR_PASS_V(s, ir3_nir_lower_tess_eval, so->key.tessellation);
+			if (so->key.has_gs)
+				NIR_PASS_V(s, ir3_nir_lower_to_explicit_output, so, so->key.tessellation);
+			progress = true;
+			break;
+		case MESA_SHADER_GEOMETRY:
+			NIR_PASS_V(s, ir3_nir_lower_to_explicit_input);
+			progress = true;
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (s->info.stage == MESA_SHADER_VERTEX) {
+		if (so->key.ucp_enables)
+			progress |= OPT(s, nir_lower_clip_vs, so->key.ucp_enables, false, false, NULL);
+		if (so->key.vclamp_color)
+			progress |= OPT(s, nir_lower_clamp_color_outputs);
+	} else if (s->info.stage == MESA_SHADER_FRAGMENT) {
+		if (so->key.ucp_enables)
+			progress |= OPT(s, nir_lower_clip_fs, so->key.ucp_enables, false);
+		if (so->key.fclamp_color)
+			progress |= OPT(s, nir_lower_clamp_color_outputs);
+	}
+	if (so->key.color_two_side) {
+		OPT_V(s, nir_lower_two_sided_color);
+		progress = true;
+	}
+
+	struct nir_lower_tex_options tex_options = { };
+
+	switch (so->shader->type) {
+	case MESA_SHADER_FRAGMENT:
+		tex_options.saturate_s = so->key.fsaturate_s;
+		tex_options.saturate_t = so->key.fsaturate_t;
+		tex_options.saturate_r = so->key.fsaturate_r;
+		break;
+	case MESA_SHADER_VERTEX:
+		tex_options.saturate_s = so->key.vsaturate_s;
+		tex_options.saturate_t = so->key.vsaturate_t;
+		tex_options.saturate_r = so->key.vsaturate_r;
+		break;
+	default:
+		/* TODO */
+		break;
+	}
+
+	if (tex_options.saturate_s || tex_options.saturate_t ||
+		tex_options.saturate_r) {
+		progress |= OPT(s, nir_lower_tex, &tex_options);
+	}
+
+	if (!so->binning_pass)
+		OPT_V(s, ir3_nir_analyze_ubo_ranges, so);
+
+	progress |= OPT(s, ir3_nir_lower_ubo_loads, so);
+
+	/* UBO offset lowering has to come after we've decided what will
+	 * be left as load_ubo
+	 */
+	OPT_V(s, ir3_nir_lower_io_offsets, so->shader->compiler->gpu_id);
+
+	if (progress)
 		ir3_optimize_loop(s);
 
 	/* Do late algebraic optimization to turn add(a, neg(b)) back into
@@ -333,8 +408,6 @@ ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
 		OPT_V(s, nir_opt_cse);
 	}
 
-	OPT_V(s, nir_remove_dead_variables, nir_var_function_temp);
-
 	OPT_V(s, nir_opt_sink, nir_move_const_undef);
 
 	if (ir3_shader_debug & IR3_DBG_DISASM) {
@@ -345,13 +418,12 @@ ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
 
 	nir_sweep(s);
 
-	/* The first time thru, when not creating variant, do the one-time
-	 * const_state layout setup.  This should be done after ubo range
-	 * analysis.
+	/* Binning pass variants re-use  the const_state of the corresponding
+	 * draw pass shader, so that same const emit can be re-used for both
+	 * passes:
 	 */
-	if (!key) {
-		ir3_setup_const_state(shader, s);
-	}
+	if (!so->binning_pass)
+		ir3_setup_const_state(s, so, ir3_const_state(so));
 }
 
 static void
@@ -401,14 +473,6 @@ ir3_nir_scan_driver_consts(nir_shader *shader,
 						layout->image_dims.count;
 					layout->image_dims.count += 3; /* three const per */
 					break;
-				case nir_intrinsic_load_ubo:
-					if (nir_src_is_const(intr->src[0])) {
-						layout->num_ubos = MAX2(layout->num_ubos,
-								nir_src_as_uint(intr->src[0]) + 1);
-					} else {
-						layout->num_ubos = shader->info.num_ubos;
-					}
-					break;
 				case nir_intrinsic_load_base_vertex:
 				case nir_intrinsic_load_first_vertex:
 					layout->num_driver_params =
@@ -438,32 +502,39 @@ ir3_nir_scan_driver_consts(nir_shader *shader,
 	}
 }
 
-static void
-ir3_setup_const_state(struct ir3_shader *shader, nir_shader *nir)
+/* Sets up the variant-dependent constant state for the ir3_shader.  Note
+ * that it is also used from ir3_nir_analyze_ubo_ranges() to figure out the
+ * maximum number of driver params that would eventually be used, to leave
+ * space for this function to allocate the driver params.
+ */
+void
+ir3_setup_const_state(nir_shader *nir, struct ir3_shader_variant *v,
+		struct ir3_const_state *const_state)
 {
-	struct ir3_compiler *compiler = shader->compiler;
-	struct ir3_const_state *const_state = &shader->const_state;
+	struct ir3_compiler *compiler = v->shader->compiler;
 
 	memset(&const_state->offsets, ~0, sizeof(const_state->offsets));
 
 	ir3_nir_scan_driver_consts(nir, const_state);
 
 	if ((compiler->gpu_id < 500) &&
-			(shader->stream_output.num_outputs > 0)) {
+			(v->shader->stream_output.num_outputs > 0)) {
 		const_state->num_driver_params =
 			MAX2(const_state->num_driver_params, IR3_DP_VTXCNT_MAX + 1);
 	}
 
+	const_state->num_ubos = nir->info.num_ubos;
+
 	/* num_driver_params is scalar, align to vec4: */
 	const_state->num_driver_params = align(const_state->num_driver_params, 4);
 
-	debug_assert((shader->ubo_state.size % 16) == 0);
-	unsigned constoff = align(shader->ubo_state.size / 16, 8);
+	debug_assert((const_state->ubo_state.size % 16) == 0);
+	unsigned constoff = const_state->ubo_state.size / 16;
 	unsigned ptrsz = ir3_pointer_size(compiler);
 
 	if (const_state->num_ubos > 0) {
 		const_state->offsets.ubo = constoff;
-		constoff += align(nir->info.num_ubos * ptrsz, 4) / 4;
+		constoff += align(const_state->num_ubos * ptrsz, 4) / 4;
 	}
 
 	if (const_state->ssbo_size.count > 0) {
@@ -478,18 +549,22 @@ ir3_setup_const_state(struct ir3_shader *shader, nir_shader *nir)
 		constoff += align(cnt, 4) / 4;
 	}
 
-	if (const_state->num_driver_params > 0)
+	if (const_state->num_driver_params > 0) {
+		/* offset cannot be 0 for vs params loaded by CP_DRAW_INDIRECT_MULTI */
+		if (v->type == MESA_SHADER_VERTEX && compiler->gpu_id >= 600)
+			constoff = MAX2(constoff, 1);
 		const_state->offsets.driver_param = constoff;
+	}
 	constoff += const_state->num_driver_params / 4;
 
-	if ((shader->type == MESA_SHADER_VERTEX) &&
+	if ((v->type == MESA_SHADER_VERTEX) &&
 			(compiler->gpu_id < 500) &&
-			shader->stream_output.num_outputs > 0) {
+			v->shader->stream_output.num_outputs > 0) {
 		const_state->offsets.tfbo = constoff;
 		constoff += align(IR3_MAX_SO_BUFFERS * ptrsz, 4) / 4;
 	}
 
-	switch (shader->type) {
+	switch (v->type) {
 	case MESA_SHADER_VERTEX:
 		const_state->offsets.primitive_param = constoff;
 		constoff += 1;
@@ -511,4 +586,6 @@ ir3_setup_const_state(struct ir3_shader *shader, nir_shader *nir)
 	}
 
 	const_state->offsets.immediate = constoff;
+
+	assert(constoff <= ir3_max_const(v));
 }

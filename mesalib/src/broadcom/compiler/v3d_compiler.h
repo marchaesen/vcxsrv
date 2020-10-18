@@ -571,7 +571,6 @@ struct v3d_compile {
         int local_invocation_index_bits;
 
         uint8_t vattr_sizes[V3D_MAX_VS_INPUTS / 4];
-        uint8_t gs_input_sizes[V3D_MAX_GS_INPUTS];
         uint32_t vpm_output_size;
 
         /* Size in bytes of registers that have been spilled. This is how much
@@ -1038,6 +1037,7 @@ VIR_A_ALU2(XOR)
 VIR_A_ALU2(VADD)
 VIR_A_ALU2(VSUB)
 VIR_A_NODST_2(STVPMV)
+VIR_A_NODST_2(STVPMD)
 VIR_A_ALU1(NOT)
 VIR_A_ALU1(NEG)
 VIR_A_ALU1(FLAPUSH)

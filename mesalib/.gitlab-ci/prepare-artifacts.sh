@@ -23,9 +23,14 @@ find install -name \*.so -exec $STRIP {} \;
 # Test runs don't pull down the git tree, so put the dEQP helper
 # script and associated bits there.
 cp VERSION install/
+cp -Rp .gitlab-ci/bare-metal install/
 cp -Rp .gitlab-ci/deqp* install/
 cp -Rp .gitlab-ci/piglit install/
-cp -Rp .gitlab-ci/traces.yml install/
+if [ -d /lava-files ]; then
+    cp -Rp .gitlab-ci/traces-baremetal.yml install/traces.yml
+else
+    cp -Rp .gitlab-ci/traces.yml install/
+fi
 cp -Rp .gitlab-ci/tracie install/
 cp -Rp .gitlab-ci/tracie-runner-gl.sh install/
 cp -Rp .gitlab-ci/tracie-runner-vk.sh install/

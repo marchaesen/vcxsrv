@@ -107,7 +107,7 @@ util_draw_max_index(
             max_index = MIN2(max_index, buffer_max_index);
          }
          else {
-            /* Per-instance data. Simply make sure the state tracker didn't
+            /* Per-instance data. Simply make sure gallium frontends didn't
              * request more instances than those that fit in the buffer */
             if ((info->start_instance + info->instance_count)/element->instance_divisor
                 > (buffer_max_index + 1)) {

@@ -15,7 +15,7 @@
 // 1999, Pablo Saratxaga <srtxg@chanae.alphanet.ch>
 //
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     name[Group1]= "Georgian";

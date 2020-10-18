@@ -408,8 +408,8 @@ radv_thread_trace_init_cs(struct radv_device *device)
 		switch (family) {
 		case RADV_QUEUE_GENERAL:
 			radeon_emit(device->thread_trace_start_cs[family], PKT3(PKT3_CONTEXT_CONTROL, 1, 0));
-			radeon_emit(device->thread_trace_start_cs[family], CONTEXT_CONTROL_LOAD_ENABLE(1));
-			radeon_emit(device->thread_trace_start_cs[family], CONTEXT_CONTROL_SHADOW_ENABLE(1));
+			radeon_emit(device->thread_trace_start_cs[family], CC0_UPDATE_LOAD_ENABLES(1));
+			radeon_emit(device->thread_trace_start_cs[family], CC1_UPDATE_SHADOW_ENABLES(1));
 			break;
 		case RADV_QUEUE_COMPUTE:
 			radeon_emit(device->thread_trace_start_cs[family], PKT3(PKT3_NOP, 0, 0));
@@ -443,8 +443,8 @@ radv_thread_trace_init_cs(struct radv_device *device)
 		switch (family) {
 		case RADV_QUEUE_GENERAL:
 			radeon_emit(device->thread_trace_stop_cs[family], PKT3(PKT3_CONTEXT_CONTROL, 1, 0));
-			radeon_emit(device->thread_trace_stop_cs[family], CONTEXT_CONTROL_LOAD_ENABLE(1));
-			radeon_emit(device->thread_trace_stop_cs[family], CONTEXT_CONTROL_SHADOW_ENABLE(1));
+			radeon_emit(device->thread_trace_stop_cs[family], CC0_UPDATE_LOAD_ENABLES(1));
+			radeon_emit(device->thread_trace_stop_cs[family], CC1_UPDATE_SHADOW_ENABLES(1));
 			break;
 		case RADV_QUEUE_COMPUTE:
 			radeon_emit(device->thread_trace_stop_cs[family], PKT3(PKT3_NOP, 0, 0));

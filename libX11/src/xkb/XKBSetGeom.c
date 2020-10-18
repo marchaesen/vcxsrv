@@ -48,7 +48,7 @@ _WriteCountedString(char *wire, char *str)
 {
     CARD16 len, *pLen;
 
-    len = (str ? strlen(str) : 0);
+    len = (CARD16) (str ? strlen(str) : 0);
     pLen = (CARD16 *) wire;
     *pLen = len;
     if (len && str)
@@ -65,8 +65,8 @@ _SizeGeomProperties(XkbGeometryPtr geom)
 
     for (size = i = 0, prop = geom->properties; i < geom->num_properties;
          i++, prop++) {
-        size += _SizeCountedString(prop->name);
-        size += _SizeCountedString(prop->value);
+        size = (int) ((unsigned) size + _SizeCountedString(prop->name));
+        size = (int) ((unsigned) size + _SizeCountedString(prop->value));
     }
     return size;
 }
@@ -78,7 +78,7 @@ _SizeGeomColors(XkbGeometryPtr geom)
     register XkbColorPtr color;
 
     for (i = size = 0, color = geom->colors; i < geom->num_colors; i++, color++) {
-        size += _SizeCountedString(color->spec);
+        size = (int) ((unsigned) size + _SizeCountedString(color->spec));
     }
     return size;
 }
@@ -110,11 +110,11 @@ _SizeGeomDoodads(int num_doodads, XkbDoodadPtr doodad)
     for (i = size = 0; i < num_doodads; i++, doodad++) {
         size += SIZEOF(xkbAnyDoodadWireDesc);
         if (doodad->any.type == XkbTextDoodad) {
-            size += _SizeCountedString(doodad->text.text);
-            size += _SizeCountedString(doodad->text.font);
+            size = (int) ((unsigned) size + _SizeCountedString(doodad->text.text));
+            size = (int) ((unsigned) size + _SizeCountedString(doodad->text.font));
         }
         else if (doodad->any.type == XkbLogoDoodad) {
-            size += _SizeCountedString(doodad->logo.logo_name);
+            size = (int) ((unsigned) size + _SizeCountedString(doodad->logo.logo_name));
         }
     }
     return size;
@@ -385,7 +385,7 @@ _WriteGeomKeyAliases(char *wire, XkbGeometryPtr geom)
 
     sz = geom->num_key_aliases * (XkbKeyNameLength * 2);
     if (sz > 0) {
-        memcpy(wire, (char *) geom->key_aliases, sz);
+        memcpy(wire, (char *) geom->key_aliases, (size_t)sz);
         wire += sz;
     }
     return wire;
@@ -400,7 +400,7 @@ _SendSetGeometry(Display *dpy, XkbGeometryPtr geom, xkbSetGeometryReq *req)
     char *wire, *tbuf;
 
     sz = 0;
-    sz += _SizeCountedString(geom->label_font);
+    sz = (int) ((unsigned) (sz + _SizeCountedString(geom->label_font)));
     sz += _SizeGeomProperties(geom);
     sz += _SizeGeomColors(geom);
     sz += _SizeGeomShapes(geom);

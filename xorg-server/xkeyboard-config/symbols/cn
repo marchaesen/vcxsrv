@@ -1,7 +1,7 @@
 //
 // Default Chinese is the same as American
 //
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
     include "us(basic)"
 
@@ -233,7 +233,7 @@ xkb_symbols "ug" {
 partial alphanumeric_keys
 xkb_symbols "altgr-pinyin" {
    include "us(basic)"
-   name[Group1]= "Hanyu Pinyin (altgr)";
+   name[Group1]= "Hanyu Pinyin (with AltGr dead keys)";
 
    key <TLDE> { [      grave,	asciitilde,  periodcentered,dead_abovering ]	};
    key <AE01> { [	   1,	exclam,		dead_macron,	    macron ]	};
@@ -319,7 +319,7 @@ xkb_symbols "mon_trad" {
     key <AB10> { [ U00B7,     question ] };  // /: ·, ?
 };
 
-// Mongolian Todo Keyboard Map for XKB/X.Org
+// Mongolian (Todo) Keyboard Map for XKB/X.Org
 //
 // by Maurizio M. Gavioli <mmg@vistamaresoft.com>, 2019 from PRC
 // standard GB/T 28038-2011, par. 4.4.
@@ -332,7 +332,7 @@ partial alphanumeric_keys
 xkb_symbols "mon_trad_todo" {
     include "us(basic)"
 
-    name[Group1]= "Mongolian Todo";
+    name[Group1]= "Mongolian (Todo)";
 
     key <TLDE> { [ U180D,   asciitilde ] };  // ~: FVS3, ~
     key <AE01> { [ 1,           exclam ] };  // 1: 1, !
@@ -386,7 +386,7 @@ xkb_symbols "mon_trad_todo" {
     key <AB10> { [ U3001,     question ] };  // /: 、, ?
 };
 
-// Mongolian Xibe Keyboard Map for XKB/X.Org
+// Mongolian (Xibe) Keyboard Map for XKB/X.Org
 //
 // by Maurizio M. Gavioli <mmg@vistamaresoft.com>, 2019 from PRC
 // standard GB/T 28038-2011, par. 4.5.
@@ -399,7 +399,7 @@ partial alphanumeric_keys
 xkb_symbols "mon_trad_xibe" {
     include "us(basic)"
 
-    name[Group1]= "Mongolian Xibe";
+    name[Group1]= "Mongolian (Xibe)";
 
     key <TLDE> { [ U180D,   asciitilde ] };  // ~: FVS3, ~
     key <AE01> { [ 1,           exclam ] };  // 1: 1, !
@@ -453,7 +453,7 @@ xkb_symbols "mon_trad_xibe" {
     key <AB10> { [ U3001,     question ] };  // /: 、, ?
 };
 
-// Mongolian Manchu Keyboard Map for XKB/X.Org
+// Mongolian (Manchu) Keyboard Map for XKB/X.Org
 //
 // by Maurizio M. Gavioli <mmg@vistamaresoft.com>, 2019 from PRC
 // standard GB/T 28038-2011, par. 4.6.
@@ -467,7 +467,7 @@ partial alphanumeric_keys
 xkb_symbols "mon_trad_manchu" {
     include "us(basic)"
 
-    name[Group1]= "Mongolian Manchu";
+    name[Group1]= "Mongolian (Manchu)";
 
     key <TLDE> { [ U180D,   asciitilde ] };  // ~: FVS3, ~
     key <AE01> { [ 1,           exclam ] };  // 1: 1, !
@@ -530,7 +530,7 @@ partial alphanumeric_keys
 xkb_symbols "mon_trad_galik" {
     include "us(basic)"
 
-    name[Group1]= "Mongolian Galik";
+    name[Group1]= "Mongolian (Galik)";
 
     key <TLDE> { [ U180D,        U180D ] };  // ~: FVS3
     key <AE01> { [ U1811,        U1811 ] };  // 1: ᠑
@@ -584,7 +584,7 @@ xkb_symbols "mon_trad_galik" {
     key <AB10> { [ VoidSymbol, VoidSymbol ] };  // /:
 };
 
-// Mongolian Todo Galik Keyboard Map for XKB/X.Org
+// Mongolian (Todo Galik) Keyboard Map for XKB/X.Org
 //
 // by Maurizio M. Gavioli <mmg@vistamaresoft.com>, 2019 from PRC
 // standard GB/T 28038-2011, par. 4.8.
@@ -593,7 +593,7 @@ partial alphanumeric_keys
 xkb_symbols "mon_todo_galik" {
     include "us(basic)"
 
-    name[Group1]= "Mongolian Todo Galik";
+    name[Group1]= "Mongolian (Todo Galik)";
 
     key <TLDE> { [ U180D,        U180D ] };  // ~: FVS3
     key <AE01> { [ U1811,        U1811 ] };  // 1: ᠑
@@ -648,7 +648,7 @@ xkb_symbols "mon_todo_galik" {
     key <AB10> { [ VoidSymbol, VoidSymbol ] };  // /: ---
 };
 
-// Mongolian Manchu Galik Keyboard Map for XKB/X.Org
+// Mongolian (Manchu Galik) Keyboard Map for XKB/X.Org
 //
 // by Maurizio M. Gavioli <mmg@vistamaresoft.com>, 2019 from PRC
 // standard GB/T 28038-2011, par. 4.9.
@@ -658,7 +658,7 @@ partial alphanumeric_keys
 xkb_symbols "mon_manchu_galik" {
     include "us(basic)"
 
-    name[Group1]= "Mongolian Manchu Galik";
+    name[Group1]= "Mongolian (Manchu Galik)";
 
     key <TLDE> { [ U180D,        U180D ] };  // ~: FVS3
     key <AE01> { [ VoidSymbol, VoidSymbol ] };  // /: ---

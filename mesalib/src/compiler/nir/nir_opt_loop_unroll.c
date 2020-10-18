@@ -963,8 +963,12 @@ nir_opt_loop_unroll_impl(nir_function_impl *impl,
    progress |= process_loops_in_block(impl->function->shader, &impl->body,
                                       &has_nested_loop);
 
-   if (progress)
+   if (progress) {
+      nir_metadata_preserve(impl, nir_metadata_none);
       nir_lower_regs_to_ssa_impl(impl);
+   } else {
+      nir_metadata_preserve(impl, nir_metadata_all);
+   }
 
    return progress;
 }

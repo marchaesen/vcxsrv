@@ -63,23 +63,25 @@ can_dce(midgard_instruction *ins)
         return true;
 }
 
-bool
-midgard_opt_dead_code_eliminate(compiler_context *ctx, midgard_block *block)
+static bool
+midgard_opt_dead_code_eliminate_block(compiler_context *ctx, midgard_block *block)
 {
         bool progress = false;
-
-        mir_invalidate_liveness(ctx);
-        mir_compute_liveness(ctx);
 
         uint16_t *live = mem_dup(block->base.live_out, ctx->temp_count * sizeof(uint16_t));
 
         mir_foreach_instr_in_block_rev(block, ins) {
                 if (can_cull_mask(ctx, ins)) {
-                        midgard_reg_mode mode = mir_typesize(ins);
+                        unsigned type_size = nir_alu_type_get_type_size(ins->dest_type);
+                        unsigned round_size = type_size;
                         unsigned oldmask = ins->mask;
 
-                        unsigned rounded = mir_round_bytemask_up(live[ins->dest], mode);
-                        unsigned cmask = mir_from_bytemask(rounded, mode);
+                        /* Make sure we're packable */
+                        if (type_size == 16 && ins->type == TAG_LOAD_STORE_4)
+                                round_size = 32;
+
+                        unsigned rounded = mir_round_bytemask_up(live[ins->dest], round_size);
+                        unsigned cmask = mir_from_bytemask(rounded, type_size);
 
                         ins->mask &= cmask;
                         progress |= (ins->mask != oldmask);
@@ -96,6 +98,27 @@ midgard_opt_dead_code_eliminate(compiler_context *ctx, midgard_block *block)
         }
 
         free(live);
+
+        return progress;
+}
+
+bool
+midgard_opt_dead_code_eliminate(compiler_context *ctx)
+{
+        /* We track liveness. In fact, it's ok if we assume more things are
+         * live than they actually are, that just reduces the effectiveness of
+         * this iterations lightly. And DCE has the effect of strictly reducing
+         * liveness, so we can run DCE across all blocks while only computing
+         * liveness at the beginning. */
+
+        mir_invalidate_liveness(ctx);
+        mir_compute_liveness(ctx);
+
+        bool progress = false;
+
+        mir_foreach_block(ctx, block) {
+                progress |= midgard_opt_dead_code_eliminate_block(ctx, (midgard_block *) block);
+        }
 
         return progress;
 }

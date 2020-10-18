@@ -3290,6 +3290,11 @@
   },
   {
    "chips": ["gfx9"],
+   "map": {"at": 47252, "to": "mm"},
+   "name": "COMPUTE_SHADER_CHKSUM"
+  },
+  {
+   "chips": ["gfx9"],
    "map": {"at": 213048, "to": "mm"},
    "name": "CPC_LATENCY_STATS_DATA"
   },
@@ -6257,6 +6262,11 @@
    "map": {"at": 199212, "to": "mm"},
    "name": "PA_SC_SCREEN_EXTENT_MAX_1",
    "type_ref": "PA_SC_SCREEN_EXTENT_MIN_0"
+  },
+  {
+   "chips": ["gfx9"],
+   "map": {"at": 199380, "to": "mm"},
+   "name": "PA_STATE_STEREO_X"
   },
   {
    "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],

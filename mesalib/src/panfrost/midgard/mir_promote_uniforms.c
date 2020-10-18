@@ -127,11 +127,45 @@ mir_work_heuristic(compiler_context *ctx)
         return 8;
 }
 
+/* Bitset of indices that will be used as a special register -- inputs to a
+ * non-ALU op. We precompute this set so that testing is efficient, otherwise
+ * we end up O(mn) behaviour for n instructions and m uniform reads */
+
+static BITSET_WORD *
+mir_special_indices(compiler_context *ctx)
+{
+        mir_compute_temp_count(ctx);
+        BITSET_WORD *bset = calloc(BITSET_WORDS(ctx->temp_count), sizeof(BITSET_WORD));
+
+        mir_foreach_instr_global(ctx, ins) {
+                /* Look for special instructions */
+                bool is_ldst = ins->type == TAG_LOAD_STORE_4;
+                bool is_tex = ins->type == TAG_TEXTURE_4;
+                bool is_writeout = ins->compact_branch && ins->writeout;
+
+                if (!(is_ldst || is_tex || is_writeout))
+                        continue;
+
+                /* Anything read by a special instruction is itself special */
+                mir_foreach_src(ins, i) {
+                        unsigned idx = ins->src[i];
+
+                        if (idx < ctx->temp_count)
+                                BITSET_SET(bset, idx);
+                }
+        }
+
+        return bset;
+}
+
 void
 midgard_promote_uniforms(compiler_context *ctx)
 {
         unsigned work_count = mir_work_heuristic(ctx);
         unsigned promoted_count = 24 - work_count;
+
+        /* First, figure out special indices a priori so we don't recompute a lot */
+        BITSET_WORD *special = mir_special_indices(ctx);
 
         mir_foreach_instr_global_safe(ctx, ins) {
                 if (!mir_is_promoteable_ubo(ins)) continue;
@@ -153,15 +187,20 @@ midgard_promote_uniforms(compiler_context *ctx)
                  * we're being fed into a special class */
 
                 bool needs_move = ins->dest & PAN_IS_REG;
-                needs_move |= mir_special_index(ctx, ins->dest);
+
+                if (ins->dest < ctx->temp_count)
+                        needs_move |= BITSET_TEST(special, ins->dest);
 
                 if (needs_move) {
+                        unsigned type_size = nir_alu_type_get_type_size(ins->dest_type);
                         midgard_instruction mov = v_mov(promoted, ins->dest);
+                        mov.dest_type = nir_type_uint | type_size;
+                        mov.src_types[0] = mov.dest_type;
 
-                        if (ins->load_64)
+                        if (type_size == 64)
                                 mov.alu.reg_mode = midgard_reg_mode_64;
 
-                        uint16_t rounded = mir_round_bytemask_up(mir_bytemask(ins), mov.alu.reg_mode);
+                        uint16_t rounded = mir_round_bytemask_up(mir_bytemask(ins), type_size);
                         mir_set_bytemask(&mov, rounded);
                         mir_insert_instruction_before(ctx, ins, mov);
                 } else {
@@ -170,4 +209,6 @@ midgard_promote_uniforms(compiler_context *ctx)
 
                 mir_remove_instruction(ins);
         }
+
+        free(special);
 }

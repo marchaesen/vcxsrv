@@ -123,8 +123,15 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                                       ntq_get_src(c, instr->src[i].src, 0),
                                       &tmu_writes);
 
-                        if (instr->op != nir_texop_txf)
+                        /* With texel fetch automatic LOD is already disabled,
+                         * and disable_autolod must not be enabled. For
+                         * non-cubes we can use the register TMUSLOD, that
+                         * implicitly sets disable_autolod.
+                         */
+                        if (instr->op != nir_texop_txf &&
+                            instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE) {
                                 p2_unpacked.disable_autolod = true;
+                        }
                         break;
 
                 case nir_tex_src_comparator:
@@ -136,7 +143,7 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                 case nir_tex_src_offset: {
                         if (nir_src_is_const(instr->src[i].src)) {
                                 p2_unpacked.offset_s = nir_src_comp_as_int(instr->src[i].src, 0);
-                                if (instr->coord_components >= 2)
+                                if (non_array_components >= 2)
                                         p2_unpacked.offset_t =
                                                 nir_src_comp_as_int(instr->src[i].src, 1);
                                 if (non_array_components >= 3)
@@ -213,7 +220,7 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                 (instr->op == nir_texop_lod ||
                  memcmp(&p2_unpacked, &p2_unpacked_default, sizeof(p2_unpacked)) != 0);
 
-        if (needs_p2_config || output_type_32_bit ||
+        if (output_type_32_bit ||
             nir_tex_instr_need_sampler(instr)) {
                 struct V3D41_TMU_CONFIG_PARAMETER_1 p1_unpacked = {
                         .output_type_32_bit = output_type_32_bit,
@@ -244,6 +251,19 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                 p1_packed |= unit << 24;
 
                 vir_WRTMUC(c, QUNIFORM_TMU_CONFIG_P1, p1_packed);
+        } else if (needs_p2_config) {
+                /* Configuration parameters need to be set up in
+                 * order, and if P2 is needed, you need to set up P1
+                 * too even if sampler info is not needed by the
+                 * texture operation. But we can set up default info,
+                 * and avoid asking the driver for the sampler state
+                 * address
+                 */
+                uint32_t p1_packed_default;
+                V3D41_TMU_CONFIG_PARAMETER_1_pack(NULL,
+                                                  (uint8_t *)&p1_packed_default,
+                                                  &p1_unpacked_default);
+                vir_WRTMUC(c, QUNIFORM_CONSTANT, p1_packed_default);
         }
 
         if (needs_p2_config)
@@ -254,6 +274,8 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                 vir_TMU_WRITE(c, V3D_QPU_WADDR_TMUSF, s, &tmu_writes);
         } else if (instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE) {
                 vir_TMU_WRITE(c, V3D_QPU_WADDR_TMUSCM, s, &tmu_writes);
+        } else if (instr->op == nir_texop_txl) {
+                vir_TMU_WRITE(c, V3D_QPU_WADDR_TMUSLOD, s, &tmu_writes);
         } else {
                 vir_TMU_WRITE(c, V3D_QPU_WADDR_TMUS, s, &tmu_writes);
         }

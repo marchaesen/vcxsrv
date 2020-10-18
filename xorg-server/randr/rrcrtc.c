@@ -1239,7 +1239,7 @@ ProcRRSetCrtcConfig(ClientPtr client)
     rrScrPrivPtr pScrPriv;
     RRCrtcPtr crtc;
     RRModePtr mode;
-    int numOutputs;
+    unsigned int numOutputs;
     RROutputPtr *outputs = NULL;
     RROutput *outputIds;
     TimeStamp time;

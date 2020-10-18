@@ -54,7 +54,7 @@
 //   no modification but it might not support them fully, please report if
 //   you're able to get it running with such a keyboard
 
-partial default alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
     name[Group1]= "Iceland - Mac";
 

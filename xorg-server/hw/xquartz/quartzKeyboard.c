@@ -95,6 +95,8 @@ const static struct {
     { 62,  XK_Control_R     },
     { 63,  XK_Meta_R        },
 
+    { 110, XK_Menu          },
+
     { 122, XK_F1            },
     { 120, XK_F2            },
     { 99,  XK_F3            },
@@ -110,6 +112,11 @@ const static struct {
     { 105, XK_F13           },
     { 107, XK_F14           },
     { 113, XK_F15           },
+    { 106, XK_F16           },
+    { 64,  XK_F17           },
+    { 79,  XK_F18           },
+    { 80,  XK_F19           },
+    { 90,  XK_F20           },
 };
 #endif
 

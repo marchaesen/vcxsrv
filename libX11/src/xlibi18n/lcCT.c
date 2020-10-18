@@ -323,7 +323,7 @@ _XlcParseCharSet(
     if (*ptr == '\0')
     	return False;
 
-    length = strlen(ptr);
+    length = (int) strlen(ptr);
 
     type = _XlcParseCT(&ptr, &length, &final_byte);
 
@@ -428,7 +428,7 @@ _XlcGetCTInfo(
             && (type != XctExtSeg
                 || (text_len >= ct_info->ext_segment_len
                     && memcmp(text, ct_info->ext_segment,
-                              ct_info->ext_segment_len) == 0)))
+                              (size_t) ct_info->ext_segment_len) == 0)))
             return ct_info;
 
     return (CTInfo) NULL;
@@ -477,7 +477,7 @@ _XlcAddCT(
     }
 
     /* Allocate a CTinfo record. */
-    length = strlen(ct_sequence);
+    length = (int) strlen(ct_sequence);
     ct_info = Xmalloc(sizeof(CTInfoRec) + length+1);
     if (ct_info == NULL)
 	return charset;
@@ -506,7 +506,7 @@ _XlcAddCT(
             /* By convention, the extended segment name is the encoding_name
                in lowercase. */
             const char *q = charset->encoding_name;
-            int n = strlen(q);
+            int n = (int) strlen(q);
             char *p;
 
             /* Ensure ct_info->ext_segment_len <= 0x3fff - 6. */
@@ -802,7 +802,7 @@ cttocs(
                 int n = (state->ext_seg_left <= buf_len
                          ? state->ext_seg_left
                          : (buf_len / char_size) * char_size);
-                memcpy(bufptr, ctptr, n);
+                memcpy(bufptr, ctptr, (size_t) n);
                 ctptr += n; ctext_len -= n;
                 bufptr += n; buf_len -= n;
                 state->ext_seg_left -= n;
@@ -834,7 +834,7 @@ cttocs(
                        We may be splitting a character into multiple pieces.
                        Oh well. */
                     int n = buf_len;
-                    memcpy(bufptr, ctptr, n);
+                    memcpy(bufptr, ctptr, (size_t) n);
                     ctptr += n; ctext_len -= n;
                     bufptr += n; buf_len -= n;
                     state->ext_seg_left -= n;
@@ -899,7 +899,7 @@ cstoct(
 	return -1;
 
     side = charset->side;
-    length = strlen(ct_info->ct_sequence);
+    length = (int) strlen(ct_info->ct_sequence);
 
     ext_segment_start = NULL;
 
@@ -909,7 +909,7 @@ cstoct(
         if (ct_len < length + 3)
             return -1;
 
-        memcpy(ctptr, ct_info->ct_sequence, length);
+        memcpy(ctptr, ct_info->ct_sequence, (size_t) length);
         ctptr += length;
         ct_len -= length + 3;
     } else
@@ -924,7 +924,7 @@ cstoct(
             if (ct_len < length + 2 + ct_info->ext_segment_len)
                 return -1;
 
-            memcpy(ctptr, ct_info->ct_sequence, length);
+            memcpy(ctptr, ct_info->ct_sequence, (size_t) length);
             ctptr += length;
             ct_len -= length;
 
@@ -936,14 +936,14 @@ cstoct(
             if (ct_len > 0x3fff)
                 ct_len = 0x3fff;
 
-            memcpy(ctptr, ct_info->ext_segment, ct_info->ext_segment_len);
+            memcpy(ctptr, ct_info->ext_segment, (size_t) ct_info->ext_segment_len);
             ctptr += ct_info->ext_segment_len;
             ct_len -= ct_info->ext_segment_len;
         } else {
             if (ct_len < length)
                 return -1;
 
-            memcpy(ctptr, ct_info->ct_sequence, length);
+            memcpy(ctptr, ct_info->ct_sequence, (size_t) length);
             ctptr += length;
             ct_len -= length;
         }

@@ -62,6 +62,11 @@
 
 #define MIDGARD_NO_UPPER_ALU (1 << 4)
 
+/* Whether (texture) out-of-order execution support is missing on early
+ * Midgards. For these just set the OoO bits to 0. */
+
+#define MIDGARD_NO_OOO (1 << 5)
+
 static inline unsigned
 midgard_get_quirks(unsigned gpu_id)
 {
@@ -70,13 +75,15 @@ midgard_get_quirks(unsigned gpu_id)
         case 0x620:
                 return MIDGARD_OLD_BLEND |
                         MIDGARD_BROKEN_LOD |
-                        MIDGARD_NO_UPPER_ALU;
+                        MIDGARD_NO_UPPER_ALU |
+                        MIDGARD_NO_OOO;
 
         case 0x720:
                 return MIDGARD_INTERPIPE_REG_ALIASING | 
                         MIDGARD_OLD_BLEND |
                         MIDGARD_BROKEN_LOD |
-                        MIDGARD_NO_UPPER_ALU;
+                        MIDGARD_NO_UPPER_ALU |
+                        MIDGARD_NO_OOO;
 
         case 0x820:
         case 0x830:

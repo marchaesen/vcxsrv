@@ -51,7 +51,7 @@ XSaveContext, XFindContext, XDeleteContext, XUniqueContext \- associative look-u
 .SH SYNTAX
 .HP
 int XSaveContext(\^Display *\fIdisplay\fP\^, XID \fIrid\fP\^, XContext
-\fIcontext\fP\^, XPointer \fIdata\fP\^);
+\fIcontext\fP\^, _Xconst char *\fIdata\fP\^);
 .HP
 int XFindContext(\^Display *\fIdisplay\fP\^, XID \fIrid\fP\^, XContext
 \fIcontext\fP\^, XPointer *\fIdata_return\fP\^);

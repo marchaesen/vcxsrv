@@ -31,6 +31,14 @@
 #include "glheader.h"
 
 struct gl_context;
+struct gl_matrix_stack;
+
+extern void
+_mesa_load_identity_matrix(struct gl_context *ctx, struct gl_matrix_stack *s);
+
+extern void
+_mesa_load_matrix(struct gl_context *ctx, struct gl_matrix_stack *s,
+                  const GLfloat *m);
 
 extern void GLAPIENTRY
 _mesa_Frustum( GLdouble left, GLdouble right,

@@ -727,6 +727,26 @@ vulkan_descriptor_type_name(VkDescriptorType type)
 }
 
 static void
+print_alu_type(nir_alu_type type, print_state *state)
+{
+   FILE *fp = state->fp;
+   unsigned size = nir_alu_type_get_type_size(type);
+   const char *name;
+
+   switch (nir_alu_type_get_base_type(type)) {
+   case nir_type_int: name = "int"; break;
+   case nir_type_uint: name = "uint"; break;
+   case nir_type_bool: name = "bool"; break;
+   case nir_type_float: name = "float"; break;
+   default: name = "invalid";
+   }
+   if (size)
+      fprintf(fp, "%s%u", name, size);
+   else
+      fprintf(fp, "%s", name);
+}
+
+static void
 print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
 {
    const nir_intrinsic_info *info = &nir_intrinsic_infos[instr->intrinsic];
@@ -786,6 +806,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       [NIR_INTRINSIC_MEMORY_SEMANTICS] = "mem_semantics",
       [NIR_INTRINSIC_MEMORY_MODES] = "mem_modes",
       [NIR_INTRINSIC_MEMORY_SCOPE] = "mem_scope",
+      [NIR_INTRINSIC_EXECUTION_SCOPE] = "exec_scope",
    };
    for (unsigned idx = 1; idx < NIR_INTRINSIC_NUM_INDEX_FLAGS; idx++) {
       if (!info->index_map[idx])
@@ -839,20 +860,8 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       }
 
       case NIR_INTRINSIC_TYPE: {
-         nir_alu_type type = nir_intrinsic_type(instr);
-         unsigned size = nir_alu_type_get_type_size(type);
-         const char *name;
-         switch (nir_alu_type_get_base_type(type)) {
-         case nir_type_int: name = "int"; break;
-         case nir_type_uint: name = "uint"; break;
-         case nir_type_bool: name = "bool"; break;
-         case nir_type_float: name = "float"; break;
-         default: name = "invalid";
-         }
-         if (size)
-            fprintf(fp, " type=%s%u", name, size);
-         else
-            fprintf(fp, " type=%s", name);
+         fprintf(fp, " type=");
+         print_alu_type(nir_intrinsic_type(instr), state);
          break;
       }
 
@@ -896,9 +905,14 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
          break;
       }
 
+      case NIR_INTRINSIC_EXECUTION_SCOPE:
       case NIR_INTRINSIC_MEMORY_SCOPE: {
-         fprintf(fp, " mem_scope=");
-         switch (nir_intrinsic_memory_scope(instr)) {
+         fprintf(fp, " %s=", index_name[idx]);
+         nir_scope scope =
+            idx == NIR_INTRINSIC_MEMORY_SCOPE ? nir_intrinsic_memory_scope(instr)
+                                              : nir_intrinsic_execution_scope(instr);
+         switch (scope) {
+         case NIR_SCOPE_NONE:         fprintf(fp, "NONE");         break;
          case NIR_SCOPE_DEVICE:       fprintf(fp, "DEVICE");       break;
          case NIR_SCOPE_QUEUE_FAMILY: fprintf(fp, "QUEUE_FAMILY"); break;
          case NIR_SCOPE_WORKGROUP:    fprintf(fp, "WORKGROUP");    break;
@@ -961,7 +975,9 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
 
    print_dest(&instr->dest, state);
 
-   fprintf(fp, " = ");
+   fprintf(fp, " = (");
+   print_alu_type(instr->dest_type, state);
+   fprintf(fp, ")");
 
    switch (instr->op) {
    case nir_texop_tex:
@@ -1496,6 +1512,8 @@ nir_print_shader_annotated(nir_shader *shader, FILE *fp,
    fprintf(fp, "inputs: %u\n", shader->num_inputs);
    fprintf(fp, "outputs: %u\n", shader->num_outputs);
    fprintf(fp, "uniforms: %u\n", shader->num_uniforms);
+   if (shader->info.num_ubos)
+      fprintf(fp, "ubos: %u\n", shader->info.num_ubos);
    fprintf(fp, "shared: %u\n", shader->num_shared);
    if (shader->scratch_size)
       fprintf(fp, "scratch: %u\n", shader->scratch_size);

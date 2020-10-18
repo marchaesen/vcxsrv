@@ -50,12 +50,12 @@
 XListFonts, XFreeFontNames, XListFontsWithInfo, XFreeFontInfo \- obtain or free font names and information
 .SH SYNTAX
 .HP
-char **XListFonts\^(\^Display *\^\fIdisplay\fP\^, char *\^\fIpattern\fP\^, int
+char **XListFonts\^(\^Display *\^\fIdisplay\fP\^, _Xconst char *\^\fIpattern\fP\^, int
 \fImaxnames\fP\^, int *\^\fIactual_count_return\fP\^);
 .HP
 int XFreeFontNames\^(\^char *\fIlist\fP\^[\^]\^);
 .HP
-char **XListFontsWithInfo\^(\^Display *\fIdisplay\fP\^, char *\fIpattern\fP\^,
+char **XListFontsWithInfo\^(\^Display *\fIdisplay\fP\^, _Xconst char *\fIpattern\fP\^,
 int \fImaxnames\fP\^, int *\fIcount_return\fP\^, XFontStruct
 **\fIinfo_return\fP\^);
 .HP

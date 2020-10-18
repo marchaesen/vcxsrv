@@ -154,6 +154,7 @@ struct fd_bo {
 	uint32_t handle;
 	uint32_t name;
 	int32_t refcnt;
+	uint32_t flags; /* flags like FD_RELOC_DUMP to use for relocs to this BO */
 	uint64_t iova;
 	void *map;
 	const struct fd_bo_funcs *funcs;

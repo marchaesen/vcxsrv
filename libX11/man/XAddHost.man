@@ -82,7 +82,7 @@ int XAddHosts\^(\^Display *\fIdisplay\fP, XHostAddress *\fIhosts\fP,
 int \fInum_hosts\fP\^);
 .HP
 XHostAddress *XListHosts\^(\^Display *\fIdisplay\fP, int *\fInhosts_return\fP,
-Bool \fIstate_return\fP\^);
+Bool *\fIstate_return\fP\^);
 .HP
 int XRemoveHost\^(\^Display *\fIdisplay\fP, XHostAddress *\fIhost\fP\^);
 .HP

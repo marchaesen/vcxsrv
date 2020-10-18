@@ -1343,6 +1343,10 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_unop_f2fmp:
    case ir_unop_f162b:
    case ir_unop_b2f16:
+   case ir_unop_i2i:
+   case ir_unop_i2imp:
+   case ir_unop_u2u:
+   case ir_unop_u2ump:
       assert(!"not supported");
       break;
 

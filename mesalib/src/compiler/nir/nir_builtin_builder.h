@@ -256,6 +256,12 @@ nir_select(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *s)
 }
 
 static inline nir_ssa_def *
+nir_ftan(nir_builder *b, nir_ssa_def *x)
+{
+   return nir_fdiv(b, nir_fsin(b, x), nir_fcos(b, x));
+}
+
+static inline nir_ssa_def *
 nir_clz_u(nir_builder *b, nir_ssa_def *a)
 {
    nir_ssa_def *val;

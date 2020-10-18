@@ -1935,7 +1935,7 @@ iconv_mbstocs(XlcConv conv, XPointer *from, int *from_left,
 
     /* Uses stdc iconv to convert multibyte -> widechar */
 
-	consumed = mbtowc(&wc, (const char *)src, srcend-src);
+	consumed = mbtowc(&wc, (const char *)src, (size_t) (srcend - src));
 	if (consumed == 0)
 	    break;
 	if (consumed == -1) {
@@ -2031,7 +2031,7 @@ iconv_mbtocs(XlcConv conv, XPointer *from, int *from_left,
 
     /* Uses stdc iconv to convert multibyte -> widechar */
 
-	consumed = mbtowc(&wc, (const char *)src, srcend-src);
+	consumed = mbtowc(&wc, (const char *)src, (size_t) (srcend - src));
 	if (consumed == 0)
 	    break;
 	if (consumed == -1) {
@@ -2121,7 +2121,7 @@ iconv_mbstostr(XlcConv conv, XPointer *from, int *from_left,
 
     /* Uses stdc iconv to convert multibyte -> widechar */
 
-	consumed = mbtowc(&wc, (const char *)src, srcend-src);
+	consumed = mbtowc(&wc, (const char *)src, (size_t) (srcend - src));
 	if (consumed == 0)
 	    break;
 	if (dst == dstend)
@@ -2225,7 +2225,7 @@ iconv_mbstowcs(XlcConv conv, XPointer *from, int *from_left,
     int length, unconv_num = 0;
 
     while (src_left > 0 && dst_left > 0) {
-	length = mbtowc(dst, src, src_left);
+	length = mbtowc(dst, src, (size_t) src_left);
 
 	if (length > 0) {
 	    src += length;

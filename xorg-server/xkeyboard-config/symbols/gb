@@ -1,6 +1,6 @@
 // based on a keyboard map from an 'xkb/symbols/gb' file
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     // Describes the differences between a very simple en_US
@@ -54,6 +54,8 @@ xkb_symbols "intl" {
     key <BKSL>  { [ numbersign, dead_tilde,            bar,         bar ] };
     key <LSGT>  { [  backslash,        bar,            bar,         bar ] };
 
+    key <AB08>  { [      comma,       less,       ccedilla,         Ccedilla ] };
+
     include "level3(ralt_switch)"
 };
 
@@ -72,7 +74,7 @@ xkb_symbols "extd" {
 
     include "latin"
 
-    name[Group1]="English (UK, extended, with Win keys)";
+    name[Group1]="English (UK, extended, Windows)";
 
     key <TLDE> { [ dead_grave,    notsign,       brokenbar,    NoSymbol ] };
 
@@ -180,7 +182,7 @@ xkb_symbols "mac_intl" {
 
     include "latin" 
 
-    name[Group1]="English (UK, intl., Macintosh)";
+    name[Group1]="English (UK, Macintosh, intl.)";
 
     key <AE02>  { [   2,                       at,           EuroSign,    onehalf ] };
     key <AE03>  { [   3,                 sterling,        twosuperior,   onethird ] };

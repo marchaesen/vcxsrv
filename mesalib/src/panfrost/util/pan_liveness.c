@@ -104,14 +104,6 @@ liveness_block_update(
  * adding the predecessors of the block to the work list if we made progress.
  */
 
-static inline pan_block *
-pan_exit_block(struct list_head *blocks)
-{
-        pan_block *last = list_last_entry(blocks, pan_block, link);
-        assert(!last->successors[0] && !last->successors[1]);
-        return last;
-}
-
 void
 pan_compute_liveness(
                 struct list_head *blocks,

@@ -28,15 +28,21 @@
 #include "util/u_math.h"
 
 #include "ir3.h"
-#include "ir3_compiler.h"
+#include "ir3_shader.h"
 
 /*
  * Legalize:
  *
- * We currently require that scheduling ensures that we have enough nop's
- * in all the right places.  The legalize step mostly handles fixing up
- * instruction flags ((ss)/(sy)/(ei)), and collapses sequences of nop's
- * into fewer nop's w/ rpt flag.
+ * The legalize pass handles ensuring sufficient nop's and sync flags for
+ * correct execution.
+ *
+ * 1) Iteratively determine where sync ((sy)/(ss)) flags are needed,
+ *    based on state flowing out of predecessor blocks until there is
+ *    no further change.  In some cases this requires inserting nops.
+ * 2) Mark (ei) on last varying input, and (ul) on last use of a0.x
+ * 3) Final nop scheduling for instruction latency
+ * 4) Resolve jumps and schedule blocks, marking potential convergence
+ *    points with (jp)
  */
 
 struct ir3_legalize_ctx {
@@ -88,6 +94,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 	struct ir3_legalize_state *state = &bd->state;
 	bool last_input_needs_ss = false;
 	bool has_tex_prefetch = false;
+	bool mergedregs = ctx->so->mergedregs;
 
 	/* our input state is the OR of all predecessor blocks' state: */
 	set_foreach(block->predecessors, entry) {
@@ -113,7 +120,6 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 	list_inithead(&block->instr_list);
 
 	foreach_instr_safe (n, &instr_list) {
-		struct ir3_register *reg;
 		unsigned i;
 
 		n->flags &= ~(IR3_INSTR_SS | IR3_INSTR_SY);
@@ -133,15 +139,15 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 		if (last_n && is_barrier(last_n)) {
 			n->flags |= IR3_INSTR_SS | IR3_INSTR_SY;
 			last_input_needs_ss = false;
-			regmask_init(&state->needs_ss_war);
-			regmask_init(&state->needs_ss);
-			regmask_init(&state->needs_sy);
+			regmask_init(&state->needs_ss_war, mergedregs);
+			regmask_init(&state->needs_ss, mergedregs);
+			regmask_init(&state->needs_sy, mergedregs);
 		}
 
-		if (last_n && (last_n->opc == OPC_IF)) {
+		if (last_n && (last_n->opc == OPC_PREDT)) {
 			n->flags |= IR3_INSTR_SS;
-			regmask_init(&state->needs_ss_war);
-			regmask_init(&state->needs_ss);
+			regmask_init(&state->needs_ss_war, mergedregs);
+			regmask_init(&state->needs_ss, mergedregs);
 		}
 
 		/* NOTE: consider dst register too.. it could happen that
@@ -151,7 +157,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 		 * resulting in undefined results:
 		 */
 		for (i = 0; i < n->regs_count; i++) {
-			reg = n->regs[i];
+			struct ir3_register *reg = n->regs[i];
 
 			if (reg_gpr(reg)) {
 
@@ -162,13 +168,13 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 				if (regmask_get(&state->needs_ss, reg)) {
 					n->flags |= IR3_INSTR_SS;
 					last_input_needs_ss = false;
-					regmask_init(&state->needs_ss_war);
-					regmask_init(&state->needs_ss);
+					regmask_init(&state->needs_ss_war, mergedregs);
+					regmask_init(&state->needs_ss, mergedregs);
 				}
 
 				if (regmask_get(&state->needs_sy, reg)) {
 					n->flags |= IR3_INSTR_SY;
-					regmask_init(&state->needs_sy);
+					regmask_init(&state->needs_sy, mergedregs);
 				}
 			}
 
@@ -181,12 +187,12 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 		}
 
 		if (n->regs_count > 0) {
-			reg = n->regs[0];
+			struct ir3_register *reg = n->regs[0];
 			if (regmask_get(&state->needs_ss_war, reg)) {
 				n->flags |= IR3_INSTR_SS;
 				last_input_needs_ss = false;
-				regmask_init(&state->needs_ss_war);
-				regmask_init(&state->needs_ss);
+				regmask_init(&state->needs_ss_war, mergedregs);
+				regmask_init(&state->needs_ss, mergedregs);
 			}
 
 			if (last_rel && (reg->num == regid(REG_A0, 0))) {
@@ -304,8 +310,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			ir3_reg_create(baryf, regid(0, 0), 0);
 
 			/* insert the dummy bary.f after last_input: */
-			list_delinit(&baryf->node);
-			list_add(&baryf->node, &last_input->node);
+			ir3_instr_move_after(baryf, last_input);
 
 			last_input = baryf;
 
@@ -574,12 +579,12 @@ block_sched(struct ir3 *ir)
 			/* create "else" branch first (since "then" block should
 			 * frequently/always end up being a fall-thru):
 			 */
-			br = ir3_BR(block, block->condition, 0);
+			br = ir3_B(block, block->condition, 0);
 			br->cat0.inv = true;
 			br->cat0.target = block->successors[1];
 
 			/* "then" branch: */
-			br = ir3_BR(block, block->condition, 0);
+			br = ir3_B(block, block->condition, 0);
 			br->cat0.target = block->successors[0];
 
 		} else if (block->successors[0]) {
@@ -633,7 +638,7 @@ kill_sched(struct ir3 *ir, struct ir3_shader_variant *so)
 			if (instr->opc != OPC_KILL)
 				continue;
 
-			struct ir3_instruction *br = ir3_instr_create(block, OPC_BR);
+			struct ir3_instruction *br = ir3_instr_create(block, OPC_B);
 			br->regs[1] = instr->regs[1];
 			br->cat0.target =
 				list_last_entry(&ir->block_list, struct ir3_block, node);
@@ -682,7 +687,8 @@ nop_sched(struct ir3 *ir)
 			 */
 
 			if ((delay > 0) && (ir->compiler->gpu_id >= 600) && last &&
-					((opc_cat(last->opc) == 2) || (opc_cat(last->opc) == 3))) {
+					((opc_cat(last->opc) == 2) || (opc_cat(last->opc) == 3)) &&
+					(last->repeat == 0)) {
 				/* the previous cat2/cat3 instruction can encode at most 3 nop's: */
 				unsigned transfer = MIN2(delay, 3 - last->nop);
 				last->nop += transfer;
@@ -707,10 +713,11 @@ nop_sched(struct ir3 *ir)
 	}
 }
 
-void
+bool
 ir3_legalize(struct ir3 *ir, struct ir3_shader_variant *so, int *max_bary)
 {
 	struct ir3_legalize_ctx *ctx = rzalloc(ir, struct ir3_legalize_ctx);
+	bool mergedregs = so->mergedregs;
 	bool progress;
 
 	ctx->so = so;
@@ -720,7 +727,14 @@ ir3_legalize(struct ir3 *ir, struct ir3_shader_variant *so, int *max_bary)
 
 	/* allocate per-block data: */
 	foreach_block (block, &ir->block_list) {
-		block->data = rzalloc(ctx, struct ir3_legalize_block_data);
+		struct ir3_legalize_block_data *bd =
+				rzalloc(ctx, struct ir3_legalize_block_data);
+
+		regmask_init(&bd->state.needs_ss_war, mergedregs);
+		regmask_init(&bd->state.needs_ss, mergedregs);
+		regmask_init(&bd->state.needs_sy, mergedregs);
+
+		block->data = bd;
 	}
 
 	ir3_remove_nops(ir);
@@ -747,4 +761,6 @@ ir3_legalize(struct ir3 *ir, struct ir3_shader_variant *so, int *max_bary)
 	mark_xvergence_points(ir);
 
 	ralloc_free(ctx);
+
+	return true;
 }

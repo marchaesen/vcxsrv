@@ -35,8 +35,6 @@ EXTRA_DIST = config.rpath  \
 	fontconfig.pc.in \
 	fonts.conf.in \
 	fonts.dtd \
-	fontconfig.spec.in \
-	fontconfig.spec \
 	fontconfig-zip.in \
 	config-fixups.h
 CLEANFILES = fonts.conf

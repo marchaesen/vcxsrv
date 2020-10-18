@@ -284,7 +284,7 @@ xkb_symbols "sundeadkeys" {
 
     include "de(Sundeadkeys)"
 
-    name[Group1]="German (with Sun dead keys)";
+    name[Group1]="German (Sun dead keys)";
 };
 
 
@@ -764,51 +764,6 @@ xkb_symbols "pl" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "htcdream" {
-        include "inet(htcdream)"
-
-        name[Group1]= "German";
-
-        //second row
-        key <AD01> { [ q, Q, Tab, Tab ] };
-        key <AD02> { [ w, W, grave, grave ] };
-        key <AD03> { [ e, E, EuroSign, EuroSign ] };
-        key <AD04> { [ r, R, underscore, underscore ] };
-        key <AD05> { [ t, T, sterling, sterling] };
-        key <AD06> { [ z, Z, division, division ] };
-        key <AD07> { [ u, U, udiaeresis, udiaeresis ] };
-        key <AD08> { [ i, I, minus, minus ] };
-        key <AD09> { [ o, O, odiaeresis, odiaeresis ] };
-        key <AD10> { [ p, P, equal, equal ] };
-
-        //third row
-        key <AC01> { [ a, A, adiaeresis, adiaeresis ] };
-        key <AC02> { [ s, S, ssharp, U1E9E ] };
-        key <AC03> { [ d ,D, backslash, backslash ] };
-        key <AC04> { [ f, F, braceleft, braceleft ] };
-        key <AC05> { [ g, G, braceright, braceright ] };
-        key <AC06> { [ h, H, multiply, multiply ] };
-        key <AC07> { [ j, J, colon, colon ] };
-        key <AC08> { [ k, K, plus, plus ] };
-        key <AC09> { [ l, L, apostrophe, apostrophe ] };
-
-        //forth row
-        key <AB01> { [ y, Y, bar, bar ] };
-        key <AB02> { [ x, X, bracketleft, bracketleft ] };
-        key <AB03> { [ c, C, bracketright, bracketright ] };
-        key <AB04> { [ v, V, less, less ] };
-        key <AB05> { [ b, B, greater, greater ] };
-        key <AB06> { [ n, N, semicolon, semicolon ] };
-        key <AB07> { [ m, M, quotedbl, quotedbl ] };
-        key <AB08> { [ comma, comma, question, question ] };
-
-        //fifth row
-        key <FK15> { [ at, at, asciitilde, asciitilde ] };
-
-        include "level3(alt_switch)"
-};
-
-partial alphanumeric_keys
 xkb_symbols "tr" {
 
     // add turkish-specific letters to the basic German layout.
@@ -832,7 +787,7 @@ partial alphanumeric_keys
 xkb_symbols "us" {
     include "us"
 
-    name[Group1]="German (US, with German letters)";
+    name[Group1]="German (US)";
 
     key <AC01> { [           a,          A, adiaeresis, Adiaeresis ] };
     key <AC02> { [           s,          S,     ssharp,      U1E9E ] };
@@ -843,7 +798,7 @@ xkb_symbols "us" {
     key <AD09> { [           o,          O, odiaeresis, Odiaeresis ] };
     key <AD11> { [ bracketleft,  braceleft, udiaeresis, Udiaeresis ] };
     key <AE03> { [           3, numbersign,    section,    section ] };
-    key <AE11> { [       minus, underscore,     ssharp,   question ] };
+    key <AE11> { [       minus, underscore,     ssharp,      U1E9E ] };
 
     include "level3(ralt_switch)"
 };
@@ -854,7 +809,7 @@ xkb_symbols "hu" {
     // modify the basic German layout to not have any dead keys and add Hungarian letters
 
     include "de(basic)"
-    name[Group1]="German (with Hungarian letters and no dead keys)";
+    name[Group1]="German (with Hungarian letters, no dead keys)";
 
     key <AB01> { [         y,          Y,        guillemotleft,         less ] };
     key <AC10> { [odiaeresis, Odiaeresis,               eacute,       Eacute ] };
@@ -1055,7 +1010,7 @@ xkb_symbols "bone_eszett_home" {
 
     include "de(bone_eszett_home_base)"
 
-    name[Group1]= "German (Bone, eszett home row)";
+    name[Group1]= "German (Bone, eszett in the home row)";
 
     include "shift(both_capslock)"
     include "level3(caps_switch)"
@@ -1111,7 +1066,7 @@ xkb_symbols "neo_qwertz" {
 
     include "de(neo_qwertz_base)"
 
-    name[Group1]= "German (Neo qwertz)";
+    name[Group1]= "German (Neo, QWERTZ)";
 
     include "shift(both_capslock)"
     include "level3(caps_switch)"
@@ -1134,7 +1089,7 @@ xkb_symbols "neo_qwerty" {
 
     include "de(neo_qwerty_base)"
 
-    name[Group1]= "German (Neo qwerty)";
+    name[Group1]= "German (Neo, QWERTY)";
 
     include "shift(both_capslock)"
     include "level3(caps_switch)"
@@ -1146,7 +1101,7 @@ xkb_symbols "neo_qwerty" {
 partial alphanumeric_keys
     xkb_symbols "lld" {
     include "de(basic)"
-    name[Group1] = "German Ladin";
+    name[Group1] = "German (Ladin)";
 
     key <AD10> { [ p, P, ediaeresis, Ediaeresis ] };
 

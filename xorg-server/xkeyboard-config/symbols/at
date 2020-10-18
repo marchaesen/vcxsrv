@@ -29,6 +29,6 @@ xkb_symbols "sundeadkeys" {
 
     include "de(Sundeadkeys)"
 
-    name[Group1]="German (Austria, with Sun dead keys)";
+    name[Group1]="German (Austria, Sun dead keys)";
 };
 

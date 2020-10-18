@@ -29,6 +29,255 @@
 #include "vk_util.h"
 #include "vk_format.h"
 
+static void
+tu_render_pass_add_subpass_dep(struct tu_render_pass *pass,
+                               const VkSubpassDependency2 *dep)
+{
+   uint32_t src = dep->srcSubpass;
+   uint32_t dst = dep->dstSubpass;
+
+   /* Ignore subpass self-dependencies as they allow the app to call
+    * vkCmdPipelineBarrier() inside the render pass and the driver should only
+    * do the barrier when called, not when starting the render pass.
+    */
+   if (src == dst)
+      return;
+
+   struct tu_subpass_barrier *src_barrier;
+   if (src == VK_SUBPASS_EXTERNAL) {
+      src_barrier = &pass->subpasses[0].start_barrier;
+   } else if (src == pass->subpass_count - 1) {
+      src_barrier = &pass->end_barrier;
+   } else {
+      src_barrier = &pass->subpasses[src + 1].start_barrier;
+   }
+
+   struct tu_subpass_barrier *dst_barrier;
+   if (dst == VK_SUBPASS_EXTERNAL) {
+      dst_barrier = &pass->end_barrier;
+   } else {
+      dst_barrier = &pass->subpasses[dst].start_barrier;
+   }
+
+   if (dep->dstStageMask != VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT)
+      src_barrier->src_stage_mask |= dep->srcStageMask;
+   src_barrier->src_access_mask |= dep->srcAccessMask;
+   dst_barrier->dst_access_mask |= dep->dstAccessMask;
+}
+
+/* We currently only care about undefined layouts, because we have to
+ * flush/invalidate CCU for those. PREINITIALIZED is the same thing as
+ * UNDEFINED for anything not linear tiled, but we don't know yet whether the
+ * images used are tiled, so just assume they are.
+ */
+
+static bool
+layout_undefined(VkImageLayout layout)
+{
+   return layout == VK_IMAGE_LAYOUT_UNDEFINED ||
+          layout == VK_IMAGE_LAYOUT_PREINITIALIZED;
+}
+
+/* This implements the following bit of spec text:
+ *
+ *    If there is no subpass dependency from VK_SUBPASS_EXTERNAL to the
+ *    first subpass that uses an attachment, then an implicit subpass
+ *    dependency exists from VK_SUBPASS_EXTERNAL to the first subpass it is
+ *    used in. The implicit subpass dependency only exists if there
+ *    exists an automatic layout transition away from initialLayout.
+ *    The subpass dependency operates as if defined with the
+ *    following parameters:
+ *
+ *    VkSubpassDependency implicitDependency = {
+ *        .srcSubpass = VK_SUBPASS_EXTERNAL;
+ *        .dstSubpass = firstSubpass; // First subpass attachment is used in
+ *        .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+ *        .dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+ *        .srcAccessMask = 0;
+ *        .dstAccessMask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT |
+ *                         VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+ *                         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+ *                         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+ *                         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+ *        .dependencyFlags = 0;
+ *    };
+ *
+ *    Similarly, if there is no subpass dependency from the last subpass
+ *    that uses an attachment to VK_SUBPASS_EXTERNAL, then an implicit
+ *    subpass dependency exists from the last subpass it is used in to
+ *    VK_SUBPASS_EXTERNAL. The implicit subpass dependency only exists
+ *    if there exists an automatic layout transition into finalLayout.
+ *    The subpass dependency operates as if defined with the following
+ *    parameters:
+ *
+ *    VkSubpassDependency implicitDependency = {
+ *        .srcSubpass = lastSubpass; // Last subpass attachment is used in
+ *        .dstSubpass = VK_SUBPASS_EXTERNAL;
+ *        .srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+ *        .dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+ *        .srcAccessMask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT |
+ *                         VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+ *                         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+ *                         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+ *                         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+ *        .dstAccessMask = 0;
+ *        .dependencyFlags = 0;
+ *    };
+ *
+ * Note: currently this is the only use we have for layout transitions,
+ * besides needing to invalidate CCU at the beginning, so we also flag
+ * transitions from UNDEFINED here.
+ */
+static void
+tu_render_pass_add_implicit_deps(struct tu_render_pass *pass,
+                                 const VkRenderPassCreateInfo2 *info)
+{
+   const VkAttachmentDescription2* att = info->pAttachments;
+   bool has_external_src[info->subpassCount];
+   bool has_external_dst[info->subpassCount];
+   bool att_used[pass->attachment_count];
+
+   memset(has_external_src, 0, sizeof(has_external_src));
+   memset(has_external_dst, 0, sizeof(has_external_dst));
+
+   for (uint32_t i = 0; i < info->dependencyCount; i++) {
+      uint32_t src = info->pDependencies[i].srcSubpass;
+      uint32_t dst = info->pDependencies[i].dstSubpass;
+
+      if (src == dst)
+         continue;
+
+      if (src == VK_SUBPASS_EXTERNAL)
+         has_external_src[dst] = true;
+      if (dst == VK_SUBPASS_EXTERNAL)
+         has_external_dst[src] = true;
+   }
+
+   memset(att_used, 0, sizeof(att_used));
+
+   for (unsigned i = 0; i < info->subpassCount; i++) {
+      if (!has_external_src[i])
+         continue;
+
+      const VkSubpassDescription2 *subpass = &info->pSubpasses[i];
+      bool src_implicit_dep = false;
+
+      for (unsigned j = 0; j < subpass->inputAttachmentCount; j++) {
+         uint32_t a = subpass->pInputAttachments[j].attachment;
+         if (a == VK_ATTACHMENT_UNUSED)
+            continue;
+         if (att[a].initialLayout != subpass->pInputAttachments[j].layout && !att_used[a])
+            src_implicit_dep = true;
+         att_used[a] = true;
+      }
+
+      for (unsigned j = 0; j < subpass->colorAttachmentCount; j++) {
+         uint32_t a = subpass->pColorAttachments[j].attachment;
+         if (a == VK_ATTACHMENT_UNUSED)
+            continue;
+         if (att[a].initialLayout != subpass->pColorAttachments[j].layout && !att_used[a])
+            src_implicit_dep = true;
+         att_used[a] = true;
+      }
+
+      if (subpass->pResolveAttachments) {
+         for (unsigned j = 0; j < subpass->colorAttachmentCount; j++) {
+            uint32_t a = subpass->pResolveAttachments[j].attachment;
+            if (a == VK_ATTACHMENT_UNUSED)
+               continue;
+            if (att[a].initialLayout != subpass->pResolveAttachments[j].layout && !att_used[a])
+               src_implicit_dep = true;
+            att_used[a] = true;
+         }
+      }
+
+      if (src_implicit_dep) {
+         tu_render_pass_add_subpass_dep(pass, &(VkSubpassDependency2KHR) {
+            .srcSubpass = VK_SUBPASS_EXTERNAL,
+            .dstSubpass = i,
+            .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+            .srcAccessMask = 0,
+            .dstAccessMask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT |
+                             VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            .dependencyFlags = 0,
+         });
+      }
+   }
+
+   memset(att_used, 0, sizeof(att_used));
+
+   for (int i = info->subpassCount - 1; i >= 0; i--) {
+      if (!has_external_dst[i])
+         continue;
+
+      const VkSubpassDescription2 *subpass = &info->pSubpasses[i];
+      bool dst_implicit_dep = false;
+
+      for (unsigned j = 0; j < subpass->inputAttachmentCount; j++) {
+         uint32_t a = subpass->pInputAttachments[j].attachment;
+         if (a == VK_ATTACHMENT_UNUSED)
+            continue;
+         if (att[a].finalLayout != subpass->pInputAttachments[j].layout && !att_used[a])
+            dst_implicit_dep = true;
+         att_used[a] = true;
+      }
+
+      for (unsigned j = 0; j < subpass->colorAttachmentCount; j++) {
+         uint32_t a = subpass->pColorAttachments[j].attachment;
+         if (a == VK_ATTACHMENT_UNUSED)
+            continue;
+         if (att[a].finalLayout != subpass->pColorAttachments[j].layout && !att_used[a])
+            dst_implicit_dep = true;
+         att_used[a] = true;
+      }
+
+      if (subpass->pResolveAttachments) {
+         for (unsigned j = 0; j < subpass->colorAttachmentCount; j++) {
+            uint32_t a = subpass->pResolveAttachments[j].attachment;
+            if (a == VK_ATTACHMENT_UNUSED)
+               continue;
+            if (att[a].finalLayout != subpass->pResolveAttachments[j].layout && !att_used[a])
+               dst_implicit_dep = true;
+            att_used[a] = true;
+         }
+      }
+
+      if (dst_implicit_dep) {
+         tu_render_pass_add_subpass_dep(pass, &(VkSubpassDependency2KHR) {
+            .srcSubpass = i,
+            .dstSubpass = VK_SUBPASS_EXTERNAL,
+            .srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+            .srcAccessMask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT |
+                             VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            .dstAccessMask = 0,
+            .dependencyFlags = 0,
+         });
+      }
+   }
+
+   /* Handle UNDEFINED transitions, similar to the handling in tu_barrier().
+    * Assume that if an attachment has an initial layout of UNDEFINED, it gets
+    * transitioned eventually.
+    */
+   for (unsigned i = 0; i < info->attachmentCount; i++) {
+      if (layout_undefined(att[i].initialLayout)) {
+         if (vk_format_is_depth_or_stencil(att[i].format)) {
+            pass->subpasses[0].start_barrier.incoherent_ccu_depth = true;
+         } else {
+            pass->subpasses[0].start_barrier.incoherent_ccu_color = true;
+         }
+      }
+   }
+}
+
 static void update_samples(struct tu_subpass *subpass,
                            VkSampleCountFlagBits samples)
 {
@@ -37,8 +286,8 @@ static void update_samples(struct tu_subpass *subpass,
 }
 
 static void
-create_render_pass_common(struct tu_render_pass *pass,
-                          const struct tu_physical_device *phys_dev)
+tu_render_pass_gmem_config(struct tu_render_pass *pass,
+                           const struct tu_physical_device *phys_dev)
 {
    uint32_t block_align_shift = 4; /* log2(gmem_align/(tile_align_w*tile_align_h)) */
    uint32_t tile_align_w = phys_dev->tile_align_w;
@@ -88,6 +337,11 @@ create_render_pass_common(struct tu_render_pass *pass,
       uint32_t align = MAX2(1, att->cpp >> block_align_shift);
       uint32_t nblocks = MAX2((gmem_blocks * att->cpp / cpp_total) & ~(align - 1), align);
 
+      if (nblocks > gmem_blocks) {
+         pixels = 0;
+         break;
+      }
+
       gmem_blocks -= nblocks;
       cpp_total -= att->cpp;
       offset += nblocks * gmem_align;
@@ -95,33 +349,6 @@ create_render_pass_common(struct tu_render_pass *pass,
    }
 
    pass->gmem_pixels = pixels;
-
-   for (uint32_t i = 0; i < pass->subpass_count; i++) {
-      struct tu_subpass *subpass = &pass->subpasses[i];
-
-      subpass->srgb_cntl = 0;
-      subpass->render_components = 0;
-
-      for (uint32_t i = 0; i < subpass->color_count; ++i) {
-         uint32_t a = subpass->color_attachments[i].attachment;
-         if (a == VK_ATTACHMENT_UNUSED)
-            continue;
-
-         subpass->render_components |= 0xf << (i * 4);
-
-         if (vk_format_is_srgb(pass->attachments[a].format))
-            subpass->srgb_cntl |= 1 << i;
-      }
-   }
-
-   /* disable unused attachments */
-   for (uint32_t i = 0; i < pass->attachment_count; i++) {
-      struct tu_render_pass_attachment *att = &pass->attachments[i];
-      if (att->gmem_offset < 0) {
-         att->clear_mask = 0;
-         att->load = false;
-      }
-   }
 }
 
 static void
@@ -162,132 +389,130 @@ attachment_set_ops(struct tu_render_pass_attachment *att,
    }
 }
 
+static void
+translate_references(VkAttachmentReference2 **reference_ptr,
+                     const VkAttachmentReference *reference,
+                     uint32_t count)
+{
+   VkAttachmentReference2 *reference2 = *reference_ptr;
+   *reference_ptr += count;
+   for (uint32_t i = 0; i < count; i++) {
+      reference2[i] = (VkAttachmentReference2) {
+         .sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2,
+         .pNext = NULL,
+         .attachment = reference[i].attachment,
+         .layout = reference[i].layout,
+         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
+      };
+   }
+}
+
 VkResult
-tu_CreateRenderPass(VkDevice _device,
+tu_CreateRenderPass(VkDevice device,
                     const VkRenderPassCreateInfo *pCreateInfo,
                     const VkAllocationCallbacks *pAllocator,
                     VkRenderPass *pRenderPass)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
-   struct tu_render_pass *pass;
-   size_t size;
-   size_t attachments_offset;
-
-   assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
-
-   size = sizeof(*pass);
-   size += pCreateInfo->subpassCount * sizeof(pass->subpasses[0]);
-   attachments_offset = size;
-   size += pCreateInfo->attachmentCount * sizeof(pass->attachments[0]);
-
-   pass = vk_alloc2(&device->alloc, pAllocator, size, 8,
-                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-   if (pass == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
-
-   memset(pass, 0, size);
-   pass->attachment_count = pCreateInfo->attachmentCount;
-   pass->subpass_count = pCreateInfo->subpassCount;
-   pass->attachments = (void *) pass + attachments_offset;
+   /* note: these counts shouldn't be excessively high, so allocating it all
+    * on the stack should be OK..
+    * also note preserve attachments aren't translated, currently unused
+    */
+   VkAttachmentDescription2 attachments[pCreateInfo->attachmentCount];
+   VkSubpassDescription2 subpasses[pCreateInfo->subpassCount];
+   VkSubpassDependency2 dependencies[pCreateInfo->dependencyCount];
+   uint32_t reference_count = 0;
+   for (uint32_t i = 0; i < pCreateInfo->subpassCount; i++) {
+      reference_count += pCreateInfo->pSubpasses[i].inputAttachmentCount;
+      reference_count += pCreateInfo->pSubpasses[i].colorAttachmentCount;
+      if (pCreateInfo->pSubpasses[i].pResolveAttachments)
+         reference_count += pCreateInfo->pSubpasses[i].colorAttachmentCount;
+      if (pCreateInfo->pSubpasses[i].pDepthStencilAttachment)
+         reference_count += 1;
+   }
+   VkAttachmentReference2 reference[reference_count];
+   VkAttachmentReference2 *reference_ptr = reference;
 
    for (uint32_t i = 0; i < pCreateInfo->attachmentCount; i++) {
-      struct tu_render_pass_attachment *att = &pass->attachments[i];
-
-      att->format = pCreateInfo->pAttachments[i].format;
-      att->samples = pCreateInfo->pAttachments[i].samples;
-      att->cpp = vk_format_get_blocksize(att->format) * att->samples;
-      att->gmem_offset = -1;
-
-      attachment_set_ops(att,
-                         pCreateInfo->pAttachments[i].loadOp,
-                         pCreateInfo->pAttachments[i].stencilLoadOp,
-                         pCreateInfo->pAttachments[i].storeOp,
-                         pCreateInfo->pAttachments[i].stencilStoreOp);
+      attachments[i] = (VkAttachmentDescription2) {
+         .sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
+         .pNext = NULL,
+         .flags = pCreateInfo->pAttachments[i].flags,
+         .format = pCreateInfo->pAttachments[i].format,
+         .samples = pCreateInfo->pAttachments[i].samples,
+         .loadOp = pCreateInfo->pAttachments[i].loadOp,
+         .storeOp = pCreateInfo->pAttachments[i].storeOp,
+         .stencilLoadOp = pCreateInfo->pAttachments[i].stencilLoadOp,
+         .stencilStoreOp = pCreateInfo->pAttachments[i].stencilStoreOp,
+         .initialLayout = pCreateInfo->pAttachments[i].initialLayout,
+         .finalLayout = pCreateInfo->pAttachments[i].finalLayout,
+      };
    }
 
-   uint32_t subpass_attachment_count = 0;
-   struct tu_subpass_attachment *p;
    for (uint32_t i = 0; i < pCreateInfo->subpassCount; i++) {
-      const VkSubpassDescription *desc = &pCreateInfo->pSubpasses[i];
+      subpasses[i] = (VkSubpassDescription2) {
+         .sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2,
+         .pNext = NULL,
+         .flags = pCreateInfo->pSubpasses[i].flags,
+         .pipelineBindPoint = pCreateInfo->pSubpasses[i].pipelineBindPoint,
+         .viewMask = 0,
+         .inputAttachmentCount = pCreateInfo->pSubpasses[i].inputAttachmentCount,
+         .colorAttachmentCount = pCreateInfo->pSubpasses[i].colorAttachmentCount,
+      };
 
-      subpass_attachment_count +=
-         desc->inputAttachmentCount + desc->colorAttachmentCount +
-         (desc->pResolveAttachments ? desc->colorAttachmentCount : 0);
+      subpasses[i].pInputAttachments = reference_ptr;
+      translate_references(&reference_ptr,
+                           pCreateInfo->pSubpasses[i].pInputAttachments,
+                           subpasses[i].inputAttachmentCount);
+      subpasses[i].pColorAttachments = reference_ptr;
+      translate_references(&reference_ptr,
+                           pCreateInfo->pSubpasses[i].pColorAttachments,
+                           subpasses[i].colorAttachmentCount);
+      subpasses[i].pResolveAttachments = NULL;
+      if (pCreateInfo->pSubpasses[i].pResolveAttachments) {
+         subpasses[i].pResolveAttachments = reference_ptr;
+         translate_references(&reference_ptr,
+                              pCreateInfo->pSubpasses[i].pResolveAttachments,
+                              subpasses[i].colorAttachmentCount);
+      }
+      subpasses[i].pDepthStencilAttachment = NULL;
+      if (pCreateInfo->pSubpasses[i].pDepthStencilAttachment) {
+         subpasses[i].pDepthStencilAttachment = reference_ptr;
+         translate_references(&reference_ptr,
+                              pCreateInfo->pSubpasses[i].pDepthStencilAttachment,
+                              1);
+      }
    }
 
-   if (subpass_attachment_count) {
-      pass->subpass_attachments = vk_alloc2(
-         &device->alloc, pAllocator,
-         subpass_attachment_count * sizeof(struct tu_subpass_attachment), 8,
-         VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-      if (pass->subpass_attachments == NULL) {
-         vk_free2(&device->alloc, pAllocator, pass);
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
-      }
-   } else
-      pass->subpass_attachments = NULL;
+   assert(reference_ptr == reference + reference_count);
 
-   p = pass->subpass_attachments;
-   for (uint32_t i = 0; i < pCreateInfo->subpassCount; i++) {
-      const VkSubpassDescription *desc = &pCreateInfo->pSubpasses[i];
-      struct tu_subpass *subpass = &pass->subpasses[i];
-
-      subpass->input_count = desc->inputAttachmentCount;
-      subpass->color_count = desc->colorAttachmentCount;
-      subpass->samples = 0;
-
-      if (desc->inputAttachmentCount > 0) {
-         subpass->input_attachments = p;
-         p += desc->inputAttachmentCount;
-
-         for (uint32_t j = 0; j < desc->inputAttachmentCount; j++) {
-            uint32_t a = desc->pInputAttachments[j].attachment;
-            subpass->input_attachments[j].attachment = a;
-            if (a != VK_ATTACHMENT_UNUSED)
-               pass->attachments[a].gmem_offset = 0;
-         }
-      }
-
-      if (desc->colorAttachmentCount > 0) {
-         subpass->color_attachments = p;
-         p += desc->colorAttachmentCount;
-
-         for (uint32_t j = 0; j < desc->colorAttachmentCount; j++) {
-            uint32_t a = desc->pColorAttachments[j].attachment;
-            subpass->color_attachments[j].attachment = a;
-
-            if (a != VK_ATTACHMENT_UNUSED) {
-               pass->attachments[a].gmem_offset = 0;
-               update_samples(subpass, pCreateInfo->pAttachments[a].samples);
-            }
-         }
-      }
-
-      subpass->resolve_attachments = desc->pResolveAttachments ? p : NULL;
-      if (desc->pResolveAttachments) {
-         p += desc->colorAttachmentCount;
-         for (uint32_t j = 0; j < desc->colorAttachmentCount; j++) {
-            subpass->resolve_attachments[j].attachment =
-                  desc->pResolveAttachments[j].attachment;
-         }
-      }
-
-      uint32_t a = desc->pDepthStencilAttachment ?
-         desc->pDepthStencilAttachment->attachment : VK_ATTACHMENT_UNUSED;
-      subpass->depth_stencil_attachment.attachment = a;
-      if (a != VK_ATTACHMENT_UNUSED) {
-            pass->attachments[a].gmem_offset = 0;
-            update_samples(subpass, pCreateInfo->pAttachments[a].samples);
-      }
-
-      subpass->samples = subpass->samples ?: 1;
+   for (uint32_t i = 0; i < pCreateInfo->dependencyCount; i++) {
+      dependencies[i] = (VkSubpassDependency2) {
+         .sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
+         .pNext = NULL,
+         .srcSubpass = pCreateInfo->pDependencies[i].srcSubpass,
+         .dstSubpass = pCreateInfo->pDependencies[i].dstSubpass,
+         .srcStageMask = pCreateInfo->pDependencies[i].srcStageMask,
+         .dstStageMask = pCreateInfo->pDependencies[i].dstStageMask,
+         .srcAccessMask = pCreateInfo->pDependencies[i].srcAccessMask,
+         .dstAccessMask = pCreateInfo->pDependencies[i].dstAccessMask,
+         .dependencyFlags = pCreateInfo->pDependencies[i].dependencyFlags,
+         .viewOffset = 0,
+      };
    }
 
-   *pRenderPass = tu_render_pass_to_handle(pass);
+   VkRenderPassCreateInfo2 create_info = {
+      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2,
+      .pNext = pCreateInfo->pNext,
+      .flags = pCreateInfo->flags,
+      .attachmentCount = pCreateInfo->attachmentCount,
+      .pAttachments = attachments,
+      .subpassCount = pCreateInfo->subpassCount,
+      .pSubpasses = subpasses,
+      .dependencyCount = pCreateInfo->dependencyCount,
+      .pDependencies = dependencies,
+   };
 
-   create_render_pass_common(pass, device->physical_device);
-
-   return VK_SUCCESS;
+   return tu_CreateRenderPass2(device, &create_info, pAllocator, pRenderPass);
 }
 
 VkResult
@@ -308,12 +533,11 @@ tu_CreateRenderPass2(VkDevice _device,
    attachments_offset = size;
    size += pCreateInfo->attachmentCount * sizeof(pass->attachments[0]);
 
-   pass = vk_alloc2(&device->alloc, pAllocator, size, 8,
+   pass = vk_zalloc2(&device->alloc, pAllocator, size, 8,
                     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (pass == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   memset(pass, 0, size);
    pass->attachment_count = pCreateInfo->attachmentCount;
    pass->subpass_count = pCreateInfo->subpassCount;
    pass->attachments = (void *) pass + attachments_offset;
@@ -335,7 +559,7 @@ tu_CreateRenderPass2(VkDevice _device,
    uint32_t subpass_attachment_count = 0;
    struct tu_subpass_attachment *p;
    for (uint32_t i = 0; i < pCreateInfo->subpassCount; i++) {
-      const VkSubpassDescription2KHR *desc = &pCreateInfo->pSubpasses[i];
+      const VkSubpassDescription2 *desc = &pCreateInfo->pSubpasses[i];
 
       subpass_attachment_count +=
          desc->inputAttachmentCount + desc->colorAttachmentCount +
@@ -356,12 +580,13 @@ tu_CreateRenderPass2(VkDevice _device,
 
    p = pass->subpass_attachments;
    for (uint32_t i = 0; i < pCreateInfo->subpassCount; i++) {
-      const VkSubpassDescription2KHR *desc = &pCreateInfo->pSubpasses[i];
+      const VkSubpassDescription2 *desc = &pCreateInfo->pSubpasses[i];
       struct tu_subpass *subpass = &pass->subpasses[i];
 
       subpass->input_count = desc->inputAttachmentCount;
       subpass->color_count = desc->colorAttachmentCount;
       subpass->samples = 0;
+      subpass->srgb_cntl = 0;
 
       if (desc->inputAttachmentCount > 0) {
          subpass->input_attachments = p;
@@ -386,6 +611,9 @@ tu_CreateRenderPass2(VkDevice _device,
             if (a != VK_ATTACHMENT_UNUSED) {
                pass->attachments[a].gmem_offset = 0;
                update_samples(subpass, pCreateInfo->pAttachments[a].samples);
+
+               if (vk_format_is_srgb(pass->attachments[a].format))
+                  subpass->srgb_cntl |= 1 << j;
             }
          }
       }
@@ -411,9 +639,24 @@ tu_CreateRenderPass2(VkDevice _device,
       subpass->samples = subpass->samples ?: 1;
    }
 
-   *pRenderPass = tu_render_pass_to_handle(pass);
+   /* disable unused attachments */
+   for (uint32_t i = 0; i < pass->attachment_count; i++) {
+      struct tu_render_pass_attachment *att = &pass->attachments[i];
+      if (att->gmem_offset < 0) {
+         att->clear_mask = 0;
+         att->load = false;
+      }
+   }
 
-   create_render_pass_common(pass, device->physical_device);
+   tu_render_pass_gmem_config(pass, device->physical_device);
+
+   for (unsigned i = 0; i < pCreateInfo->dependencyCount; ++i) {
+      tu_render_pass_add_subpass_dep(pass, &pCreateInfo->pDependencies[i]);
+   }
+
+   tu_render_pass_add_implicit_deps(pass, pCreateInfo);
+ 
+   *pRenderPass = tu_render_pass_to_handle(pass);
 
    return VK_SUCCESS;
 }

@@ -152,13 +152,19 @@ nir_opt_move(nir_shader *shader, nir_move_options options)
       if (!func->impl)
          continue;
 
+      bool impl_progress = false;
       nir_foreach_block(block, func->impl) {
-         if (move(block, options)) {
-            nir_metadata_preserve(func->impl, nir_metadata_block_index |
-                                              nir_metadata_dominance |
-                                              nir_metadata_live_ssa_defs);
-            progress = true;
-         }
+         if (move(block, options))
+            impl_progress = true;
+      }
+
+      if (impl_progress) {
+         nir_metadata_preserve(func->impl, nir_metadata_block_index |
+                                           nir_metadata_dominance |
+                                           nir_metadata_live_ssa_defs);
+         progress = true;
+      } else {
+         nir_metadata_preserve(func->impl, nir_metadata_all);
       }
    }
 

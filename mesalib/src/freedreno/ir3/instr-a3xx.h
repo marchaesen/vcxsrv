@@ -39,7 +39,7 @@
 typedef enum {
 	/* category 0: */
 	OPC_NOP             = _OPC(0, 0),
-	OPC_BR              = _OPC(0, 1),
+	OPC_B               = _OPC(0, 1),
 	OPC_JUMP            = _OPC(0, 2),
 	OPC_CALL            = _OPC(0, 3),
 	OPC_RET             = _OPC(0, 4),
@@ -51,9 +51,19 @@ typedef enum {
 	OPC_CHSH            = _OPC(0, 10),
 	OPC_FLOW_REV        = _OPC(0, 11),
 
-	OPC_IF              = _OPC(0, 13),
-	OPC_ELSE            = _OPC(0, 14),
-	OPC_ENDIF           = _OPC(0, 15),
+	OPC_BKT             = _OPC(0, 16),
+	OPC_STKS            = _OPC(0, 17),
+	OPC_STKR            = _OPC(0, 18),
+	OPC_XSET            = _OPC(0, 19),
+	OPC_XCLR            = _OPC(0, 20),
+	OPC_GETONE          = _OPC(0, 21),
+	OPC_DBG             = _OPC(0, 22),
+	OPC_SHPS            = _OPC(0, 23),   /* shader prologue start */
+	OPC_SHPE            = _OPC(0, 24),   /* shader prologue end */
+
+	OPC_PREDT           = _OPC(0, 29),   /* predicated true */
+	OPC_PREDF           = _OPC(0, 30),   /* predicated false */
+	OPC_PREDE           = _OPC(0, 31),   /* predicated end */
 
 	/* category 1: */
 	OPC_MOV             = _OPC(1, 0),
@@ -311,6 +321,16 @@ static inline int reg_special(reg_t reg)
 	return (reg.num == REG_A0) || (reg.num == REG_P0);
 }
 
+typedef enum {
+	BRANCH_PLAIN = 0,   /* br */
+	BRANCH_OR    = 1,   /* brao */
+	BRANCH_AND   = 2,   /* braa */
+	BRANCH_CONST = 3,   /* brac */
+	BRANCH_ANY   = 4,   /* bany */
+	BRANCH_ALL   = 5,   /* ball */
+	BRANCH_X     = 6,   /* brax ??? */
+} brtype_t;
+
 typedef struct PACKED {
 	/* dword0: */
 	union PACKED {
@@ -328,13 +348,18 @@ typedef struct PACKED {
 	};
 
 	/* dword1: */
-	uint32_t dummy2   : 8;
+	uint32_t idx      : 5;  /* brac.N index */
+	uint32_t brtype   : 3;  /* branch type, see brtype_t */
 	uint32_t repeat   : 3;
 	uint32_t dummy3   : 1;
 	uint32_t ss       : 1;
-	uint32_t dummy4   : 7;
-	uint32_t inv      : 1;
-	uint32_t comp     : 2;
+	uint32_t inv1     : 1;
+	uint32_t comp1    : 2;
+	uint32_t eq       : 1;
+	uint32_t opc_hi   : 1;  /* at least one bit */
+	uint32_t dummy4   : 2;
+	uint32_t inv0     : 1;
+	uint32_t comp0    : 2;  /* component for first src */
 	uint32_t opc      : 4;
 	uint32_t jmp_tgt  : 1;
 	uint32_t sync     : 1;
@@ -749,7 +774,7 @@ typedef struct PACKED {
 	uint32_t src_ssbo : 8;
 	uint32_t pad2     : 3;  // type
 	uint32_t g        : 1;
-	uint32_t pad3     : 1;
+	uint32_t src_ssbo_im : 1;
 	uint32_t pad4     : 10; // opc/jmp_tgt/sync/opc_cat
 } instr_cat6ldgb_t;
 
@@ -804,10 +829,12 @@ typedef union PACKED {
 /* Similar to cat5_desc_mode_t, describes how the descriptor is loaded.
  */
 typedef enum {
-	/* Use old GL binding model with an immediate index.
-	 * TODO: find CAT6_UNIFORM and CAT6_NONUNIFORM
-	 */
+	/* Use old GL binding model with an immediate index. */
 	CAT6_IMM = 0,
+
+	CAT6_UNIFORM = 1,
+
+	CAT6_NONUNIFORM = 2,
 
 	/* Use the bindless model, with an immediate index.
 	 */
@@ -963,7 +990,7 @@ static inline bool is_cat6_legacy(instr_t *instr, unsigned gpu_id)
 static inline uint32_t instr_opc(instr_t *instr, unsigned gpu_id)
 {
 	switch (instr->opc_cat) {
-	case 0:  return instr->cat0.opc;
+	case 0:  return instr->cat0.opc | instr->cat0.opc_hi << 4;
 	case 1:  return 0;
 	case 2:  return instr->cat2.opc;
 	case 3:  return instr->cat3.opc;

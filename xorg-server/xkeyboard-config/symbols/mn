@@ -3,7 +3,7 @@
 // Author Sanlig Badral <badral@chinggis.com>
 // 2002/12/7 Version 1.0
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
   name[Group1]= "Mongolian";

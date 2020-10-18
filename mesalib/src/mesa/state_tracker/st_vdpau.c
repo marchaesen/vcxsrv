@@ -50,10 +50,10 @@
 #include "st_format.h"
 #include "st_cb_flush.h"
 
-#include "state_tracker/vdpau_interop.h"
-#include "state_tracker/vdpau_dmabuf.h"
-#include "state_tracker/vdpau_funcs.h"
-#include "state_tracker/drm_driver.h"
+#include "frontend/vdpau_interop.h"
+#include "frontend/vdpau_dmabuf.h"
+#include "frontend/vdpau_funcs.h"
+#include "frontend/drm_driver.h"
 
 static struct pipe_resource *
 st_vdpau_video_surface_gallium(struct gl_context *ctx, const void *vdpSurface,

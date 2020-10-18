@@ -43,6 +43,7 @@ libvulkan_wsi = static_library(
   files_vulkan_wsi,
   include_directories : [inc_include, inc_src],
   dependencies : [vulkan_wsi_deps, dep_libdrm, idep_vulkan_util, idep_xmlconfig],
-  c_args : [c_vis_args, vulkan_wsi_args],
+  c_args : [vulkan_wsi_args],
+  gnu_symbol_visibility : 'hidden',
   build_by_default : false,
 )

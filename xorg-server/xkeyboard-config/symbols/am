@@ -1,6 +1,6 @@
 // based on a keyboard map from an 'xkb/symbols/am' file
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     name[Group1]= "Armenian";
@@ -136,7 +136,7 @@ xkb_symbols "phonetic-alt" {
 partial alphanumeric_keys
 xkb_symbols "olpc-phonetic" {
     include "am(phonetic-alt)"
-    name[Group1]= "Armenian (OLPC phonetic)";
+    name[Group1]= "Armenian (OLPC, phonetic)";
 
     include "group(olpc)"
 };

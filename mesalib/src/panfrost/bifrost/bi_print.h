@@ -47,6 +47,7 @@ const char * bi_frexp_op_name(enum bi_frexp_op op);
 const char * bi_tex_op_name(enum bi_tex_op op);
 
 void bi_print_instruction(bi_instruction *ins, FILE *fp);
+void bi_print_ports(bi_registers *regs, FILE *fp);
 void bi_print_bundle(bi_bundle *bundle, FILE *fp);
 void bi_print_clause(bi_clause *clause, FILE *fp);
 void bi_print_block(bi_block *block, FILE *fp);

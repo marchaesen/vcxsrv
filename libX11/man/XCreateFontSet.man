@@ -50,7 +50,7 @@
 XCreateFontSet, XFreeFontSet \- create and free an international text drawing font set
 .SH SYNTAX
 .HP
-XFontSet XCreateFontSet\^(\^Display *\fIdisplay\fP\^, char
+XFontSet XCreateFontSet\^(\^Display *\fIdisplay\fP\^, _Xconst char
 *\fIbase_font_name_list\fP\^, char ***\fImissing_charset_list_return\fP\^, int
 *\fImissing_charset_count_return\fP\^, char **\fIdef_string_return\fP\^);
 .HP

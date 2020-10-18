@@ -110,6 +110,12 @@ extern void
 _math_matrix_scale( GLmatrix *mat, GLfloat x, GLfloat y, GLfloat z );
 
 extern void
+_math_float_ortho(float *m,
+                  float left, float right,
+                  float bottom, float top,
+                  float nearval, float farval);
+
+extern void
 _math_matrix_ortho( GLmatrix *mat,
 		    GLfloat left, GLfloat right,
 		    GLfloat bottom, GLfloat top,

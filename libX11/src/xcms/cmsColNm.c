@@ -419,7 +419,7 @@ _XcmsLookupColorName(
     tmpName = *name;
 
 Retry:
-    if ((len = strlen(tmpName)) > 63) {
+    if ((len = (int)strlen(tmpName)) > 63) {
 	name_lowered = Xmalloc(len+1);
 	if (name_lowered == NULL)
 	    return(XcmsFailure);
@@ -509,7 +509,7 @@ RemoveSpaces(
 
     /* REMOVE SPACES */
     cptr = pString;
-    for (i = strlen(pString); i; i--, cptr++) {
+    for (i = (int)strlen(pString); i; i--, cptr++) {
 	if (!isspace(*cptr)) {
 	    *pString++ = *cptr;
 	    count++;
@@ -738,7 +738,7 @@ LoadColornameDB(void)
     pathname = __XOS2RedirRoot(pathname);
 #endif
 
-    length = strlen(pathname);
+    length = (int)strlen(pathname);
     if ((length == 0) || (length >= (BUFSIZ - 5))){
 	XcmsColorDbState = XcmsDbInitFailure;
 	return(XcmsFailure);

@@ -6,7 +6,7 @@ Get-Date
 Write-Host "Compiling Mesa"
 $builddir = New-Item -ItemType Directory -Name "build"
 Push-Location $builddir.FullName
-cmd.exe /C "C:\BuildTools\Common7\Tools\VsDevCmd.bat -host_arch=amd64 -arch=amd64 && meson -Dgallium-drivers=swrast -Dbuild-tests=true .. && ninja test"
+cmd.exe /C 'C:\BuildTools\Common7\Tools\VsDevCmd.bat -host_arch=amd64 -arch=amd64 && meson --default-library=static --buildtype=release -Db_vscrt=mt --cmake-prefix-path="C:\llvm-10" --pkg-config-path="C:\llvm-10\lib\pkgconfig;C:\llvm-10\share\pkgconfig;C:\spirv-tools\lib\pkgconfig" -Dllvm=true -Dshared-llvm=false -Dgallium-drivers=swrast -Dbuild-tests=true && ninja test'
 $buildstatus = $?
 Pop-Location
 Remove-Item -Recurse -Path $builddir

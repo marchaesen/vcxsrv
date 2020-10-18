@@ -295,8 +295,8 @@ set_depth_range_no_notify(struct gl_context *ctx, unsigned idx,
    FLUSH_VERTICES(ctx, _NEW_VIEWPORT);
    ctx->NewDriverState |= ctx->DriverFlags.NewViewport;
 
-   ctx->ViewportArray[idx].Near = CLAMP(nearval, 0.0, 1.0);
-   ctx->ViewportArray[idx].Far = CLAMP(farval, 0.0, 1.0);
+   ctx->ViewportArray[idx].Near = SATURATE(nearval);
+   ctx->ViewportArray[idx].Far = SATURATE(farval);
 }
 
 void

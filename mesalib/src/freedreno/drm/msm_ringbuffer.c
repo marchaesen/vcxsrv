@@ -97,15 +97,6 @@ cmd_free(struct msm_cmd *cmd)
 	free(cmd);
 }
 
-/* for _FD_RINGBUFFER_OBJECT rb's we need to track the bo's and flags to
- * later copy into the submit when the stateobj rb is later referenced by
- * a regular rb:
- */
-struct msm_reloc_bo {
-	struct fd_bo *bo;
-	unsigned flags;
-};
-
 struct msm_ringbuffer {
 	struct fd_ringbuffer base;
 
@@ -116,7 +107,7 @@ struct msm_ringbuffer {
 		/* for _FD_RINGBUFFER_OBJECT case: */
 		struct {
 			struct fd_pipe *pipe;
-			DECLARE_ARRAY(struct msm_reloc_bo, reloc_bos);
+			DECLARE_ARRAY(struct fd_bo *, reloc_bos);
 			struct set *ring_set;
 		};
 		/* for other cases: */
@@ -138,7 +129,7 @@ static struct fd_ringbuffer * msm_ringbuffer_init(
 
 /* add (if needed) bo to submit and return index: */
 static uint32_t
-append_bo(struct msm_submit *submit, struct fd_bo *bo, uint32_t flags)
+append_bo(struct msm_submit *submit, struct fd_bo *bo)
 {
 	struct msm_bo *msm_bo = to_msm_bo(bo);
 	uint32_t idx;
@@ -162,7 +153,8 @@ append_bo(struct msm_submit *submit, struct fd_bo *bo, uint32_t flags)
 			idx = APPEND(submit, submit_bos);
 			idx = APPEND(submit, bos);
 
-			submit->submit_bos[idx].flags = 0;
+			submit->submit_bos[idx].flags = bo->flags &
+					(MSM_SUBMIT_BO_READ | MSM_SUBMIT_BO_WRITE);
 			submit->submit_bos[idx].handle = bo->handle;
 			submit->submit_bos[idx].presumed = 0;
 
@@ -173,11 +165,6 @@ append_bo(struct msm_submit *submit, struct fd_bo *bo, uint32_t flags)
 		}
 		msm_bo->idx = idx;
 	}
-
-	if (flags & FD_RELOC_READ)
-		submit->submit_bos[idx].flags |= MSM_SUBMIT_BO_READ;
-	if (flags & FD_RELOC_WRITE)
-		submit->submit_bos[idx].flags |= MSM_SUBMIT_BO_WRITE;
 
 	return idx;
 }
@@ -280,16 +267,10 @@ handle_stateobj_relocs(struct msm_submit *submit, struct msm_ringbuffer *ring)
 
 	for (unsigned i = 0; i < cmd->nr_relocs; i++) {
 		unsigned idx = cmd->relocs[i].reloc_idx;
-		struct fd_bo *bo = ring->u.reloc_bos[idx].bo;
-		unsigned flags = 0;
-
-		if (ring->u.reloc_bos[idx].flags & MSM_SUBMIT_BO_READ)
-			flags |= FD_RELOC_READ;
-		if (ring->u.reloc_bos[idx].flags & MSM_SUBMIT_BO_WRITE)
-			flags |= FD_RELOC_WRITE;
+		struct fd_bo *bo = ring->u.reloc_bos[idx];
 
 		relocs[i] = cmd->relocs[i];
-		relocs[i].reloc_idx = append_bo(submit, bo, flags);
+		relocs[i].reloc_idx = append_bo(submit, bo);
 	}
 
 	return relocs;
@@ -347,7 +328,7 @@ msm_submit_flush(struct fd_submit *submit, int in_fence_fd,
 
 			cmds[i].type = MSM_SUBMIT_CMD_IB_TARGET_BUF;
 			cmds[i].submit_idx =
-				append_bo(msm_submit, msm_ring->ring_bo, FD_RELOC_READ);
+				append_bo(msm_submit, msm_ring->ring_bo);
 			cmds[i].submit_offset = msm_ring->offset;
 			cmds[i].size = offset_bytes(ring->cur, ring->start);
 			cmds[i].pad = 0;
@@ -363,7 +344,7 @@ msm_submit_flush(struct fd_submit *submit, int in_fence_fd,
 					cmds[i].type = MSM_SUBMIT_CMD_IB_TARGET_BUF;
 				}
 				cmds[i].submit_idx = append_bo(msm_submit,
-						msm_ring->u.cmds[j]->ring_bo, FD_RELOC_READ);
+						msm_ring->u.cmds[j]->ring_bo);
 				cmds[i].submit_offset = msm_ring->offset;
 				cmds[i].size = msm_ring->u.cmds[j]->size;
 				cmds[i].pad = 0;
@@ -522,8 +503,7 @@ msm_ringbuffer_emit_reloc(struct fd_ringbuffer *ring,
 	if (ring->flags & _FD_RINGBUFFER_OBJECT) {
 		unsigned idx = APPEND(&msm_ring->u, reloc_bos);
 
-		msm_ring->u.reloc_bos[idx].bo = fd_bo_ref(reloc->bo);
-		msm_ring->u.reloc_bos[idx].flags = reloc->flags;
+		msm_ring->u.reloc_bos[idx] = fd_bo_ref(reloc->bo);
 
 		/* this gets fixed up at submit->flush() time, since this state-
 		 * object rb can be used with many different submits
@@ -535,7 +515,7 @@ msm_ringbuffer_emit_reloc(struct fd_ringbuffer *ring,
 		struct msm_submit *msm_submit =
 				to_msm_submit(msm_ring->u.submit);
 
-		reloc_idx = append_bo(msm_submit, reloc->bo, reloc->flags);
+		reloc_idx = append_bo(msm_submit, reloc->bo);
 
 		pipe = msm_ring->u.submit->pipe;
 	}
@@ -607,7 +587,6 @@ msm_ringbuffer_emit_reloc_ring(struct fd_ringbuffer *ring,
 
 	msm_ringbuffer_emit_reloc(ring, &(struct fd_reloc){
 		.bo     = bo,
-		.flags  = FD_RELOC_READ,
 		.offset = msm_target->offset,
 	});
 
@@ -650,7 +629,7 @@ msm_ringbuffer_destroy(struct fd_ringbuffer *ring)
 
 	if (ring->flags & _FD_RINGBUFFER_OBJECT) {
 		for (unsigned i = 0; i < msm_ring->u.nr_reloc_bos; i++) {
-			fd_bo_del(msm_ring->u.reloc_bos[i].bo);
+			fd_bo_del(msm_ring->u.reloc_bos[i]);
 		}
 
 		_mesa_set_destroy(msm_ring->u.ring_set, unref_rings);

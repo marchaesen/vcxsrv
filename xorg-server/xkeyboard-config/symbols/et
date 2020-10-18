@@ -5,7 +5,7 @@
 // 2007 Sergey Udaltsov <svu@gnome.org>
 //
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
     include "et(olpc)"
     name[Group1]="Amharic";

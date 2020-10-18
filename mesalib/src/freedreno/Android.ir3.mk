@@ -31,21 +31,67 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := \
 	$(ir3_SOURCES)
 
+LOCAL_MODULE := libfreedreno_ir3
+
+LOCAL_MODULE_CLASS := STATIC_LIBRARIES
+
+intermediates := $(call local-generated-sources-dir)
+
 LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/compiler/nir \
 	$(MESA_TOP)/src/gallium/include \
 	$(MESA_TOP)/src/gallium/auxiliary \
 	$(MESA_TOP)/prebuilt-intermediates/nir \
+	$(MESA_TOP)/src/freedreno/ir3 \
+	$(intermediates)/ir3
 
 # We need libmesa_nir to get NIR's generated include directories.
 LOCAL_STATIC_LIBRARIES := \
 	libmesa_nir
 
-LOCAL_MODULE := libfreedreno_ir3
-
 LOCAL_GENERATED_SOURCES := \
 	$(MESA_GEN_GLSL_H) \
 	$(MESA_GEN_NIR_H)
+
+LOCAL_GENERATED_SOURCES += $(addprefix $(intermediates)/, \
+	$(ir3_GENERATED_FILES))
+
+ir3_lexer_deps := \
+	$(MESA_TOP)/src/freedreno/ir3/ir3_lexer.l
+
+ir3_nir_imul_deps := \
+	$(MESA_TOP)/src/freedreno/ir3/ir3_nir_imul.py \
+	$(MESA_TOP)/src/compiler/nir/nir_algebraic.py
+
+ir3_nir_trig_deps := \
+	$(MESA_TOP)/src/freedreno/ir3/ir3_nir_trig.py \
+	$(MESA_TOP)/src/compiler/nir/nir_algebraic.py
+
+ir3_parser_deps := \
+	$(MESA_TOP)/src/freedreno/ir3/ir3_parser.y
+
+$(intermediates)/ir3/ir3_lexer.c: $(ir3_lexer_deps)
+	@mkdir -p $(dir $@)
+	@echo "Gen Header: $(PRIVATE_MODULE) <= $(notdir $(@))"
+	$(hide) flex -o $@ $<
+
+$(intermediates)/ir3/ir3_nir_imul.c: $(ir3_nir_imul_deps)
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $< -p $(MESA_TOP)/src/compiler/nir > $@
+
+$(intermediates)/ir3/ir3_nir_trig.c: $(ir3_nir_trig_deps)
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $< -p $(MESA_TOP)/src/compiler/nir > $@
+
+$(intermediates)/ir3/ir3_parser.c: $(ir3_parser_deps)
+	@mkdir -p $(dir $@)
+	@echo "Gen Header: $(PRIVATE_MODULE) <= $(notdir $(@))"
+	$(hide) bison $< --name-prefix=ir3_yy --output=$@
+
+$(intermediates)/ir3/ir3_parser.h: $(ir3_parser_deps)
+	@mkdir -p $(dir $@)
+	@echo "Gen Header: $(PRIVATE_MODULE) <= $(notdir $(@))"
+	$(hide) bison $< --name-prefix=ir3_yy --defines=$@
 
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)

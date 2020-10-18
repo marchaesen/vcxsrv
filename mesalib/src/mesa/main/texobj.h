@@ -122,7 +122,8 @@ _mesa_unlock_texture(struct gl_context *ctx, struct gl_texture_object *texObj)
 /** Is the texture "complete" with respect to the given sampler state? */
 static inline GLboolean
 _mesa_is_texture_complete(const struct gl_texture_object *texObj,
-                          const struct gl_sampler_object *sampler)
+                          const struct gl_sampler_object *sampler,
+                          bool linear_as_nearest_for_int_tex)
 {
    struct gl_texture_image *img = texObj->Image[0][texObj->BaseLevel];
    bool isMultisample = img && img->NumSamples >= 2;
@@ -149,8 +150,16 @@ _mesa_is_texture_complete(const struct gl_texture_object *texObj,
        (sampler->MagFilter != GL_NEAREST ||
         (sampler->MinFilter != GL_NEAREST &&
          sampler->MinFilter != GL_NEAREST_MIPMAP_NEAREST))) {
-      /* If the format is integer, only nearest filtering is allowed */
-      return GL_FALSE;
+      /* If the format is integer, only nearest filtering is allowed,
+       * but some applications (eg: Grid Autosport) uses the default
+       * filtering values.
+       */
+      if (texObj->_IsIntegerFormat &&
+          linear_as_nearest_for_int_tex) {
+         /* Skip return */
+      } else {
+         return GL_FALSE;
+      }
    }
 
    /* Section 8.17 (texture completeness) of the OpenGL 4.6 core profile spec:

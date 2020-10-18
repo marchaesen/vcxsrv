@@ -471,21 +471,28 @@ nir_handle_add_jump(nir_block *block)
    nir_function_impl *impl = nir_cf_node_get_function(&block->cf_node);
    nir_metadata_preserve(impl, nir_metadata_none);
 
-   if (jump_instr->type == nir_jump_break ||
-       jump_instr->type == nir_jump_continue) {
-      nir_loop *loop = nearest_loop(&block->cf_node);
-
-      if (jump_instr->type == nir_jump_continue) {
-         nir_block *first_block = nir_loop_first_block(loop);
-         link_blocks(block, first_block, NULL);
-      } else {
-         nir_cf_node *after = nir_cf_node_next(&loop->cf_node);
-         nir_block *after_block = nir_cf_node_as_block(after);
-         link_blocks(block, after_block, NULL);
-      }
-   } else {
-      assert(jump_instr->type == nir_jump_return);
+   switch (jump_instr->type) {
+   case nir_jump_return:
       link_blocks(block, impl->end_block, NULL);
+      break;
+
+   case nir_jump_break: {
+      nir_loop *loop = nearest_loop(&block->cf_node);
+      nir_cf_node *after = nir_cf_node_next(&loop->cf_node);
+      nir_block *after_block = nir_cf_node_as_block(after);
+      link_blocks(block, after_block, NULL);
+      break;
+   }
+
+   case nir_jump_continue: {
+      nir_loop *loop = nearest_loop(&block->cf_node);
+      nir_block *first_block = nir_loop_first_block(loop);
+      link_blocks(block, first_block, NULL);
+      break;
+   }
+
+   default:
+      unreachable("Invalid jump type");
    }
 }
 

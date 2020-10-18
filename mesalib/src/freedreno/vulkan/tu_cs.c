@@ -268,7 +268,7 @@ VkResult
 tu_cs_alloc(struct tu_cs *cs,
             uint32_t count,
             uint32_t size,
-            struct ts_cs_memory *memory)
+            struct tu_cs_memory *memory)
 {
    assert(cs->mode == TU_CS_MODE_SUB_STREAM);
    assert(size && size <= 1024);

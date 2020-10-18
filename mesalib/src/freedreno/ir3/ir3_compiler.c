@@ -40,6 +40,7 @@ static const struct debug_named_value shader_debug_options[] = {
 	{"forces2en",  IR3_DBG_FORCES2EN,  "Force s2en mode for tex sampler instructions"},
 	{"nouboopt",   IR3_DBG_NOUBOOPT,   "Disable lowering UBO to uniform"},
 	{"nofp16",     IR3_DBG_NOFP16,     "Don't lower mediump to fp16"},
+	{"nocache",    IR3_DBG_NOCACHE,    "Disable shader cache"},
 #ifdef DEBUG
 	/* DEBUG-only options: */
 	{"schedmsgs",  IR3_DBG_SCHEDMSGS,  "Enable scheduler debug messages"},
@@ -52,7 +53,14 @@ DEBUG_GET_ONCE_FLAGS_OPTION(ir3_shader_debug, "IR3_SHADER_DEBUG", shader_debug_o
 
 enum ir3_shader_debug ir3_shader_debug = 0;
 
-struct ir3_compiler * ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id)
+void
+ir3_compiler_destroy(struct ir3_compiler *compiler)
+{
+	ralloc_free(compiler);
+}
+
+struct ir3_compiler *
+ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id)
 {
 	struct ir3_compiler *compiler = rzalloc(NULL, struct ir3_compiler);
 
@@ -60,10 +68,41 @@ struct ir3_compiler * ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id
 
 	compiler->dev = dev;
 	compiler->gpu_id = gpu_id;
-	compiler->set = ir3_ra_alloc_reg_set(compiler);
+	compiler->set = ir3_ra_alloc_reg_set(compiler, false);
 
 	if (compiler->gpu_id >= 600) {
+		compiler->mergedregs_set = ir3_ra_alloc_reg_set(compiler, true);
 		compiler->samgq_workaround = true;
+		/* a6xx split the pipeline state into geometry and fragment state, in
+		 * order to let the VS run ahead of the FS. As a result there are now
+		 * separate const files for the the fragment shader and everything
+		 * else, and separate limits. There seems to be a shared limit, but
+		 * it's higher than the vert or frag limits.
+		 *
+		 * TODO: The shared limit seems to be different on different on
+		 * different models.
+		 */
+		compiler->max_const_pipeline = 640;
+		compiler->max_const_frag = 512;
+		compiler->max_const_geom = 512;
+		compiler->max_const_safe = 128;
+
+		/* Compute shaders don't share a const file with the FS. Instead they
+		 * have their own file, which is smaller than the FS one.
+		 *
+		 * TODO: is this true on earlier gen's?
+		 */
+		compiler->max_const_compute = 256;
+	} else {
+		compiler->max_const_pipeline = 512;
+		compiler->max_const_geom = 512;
+		compiler->max_const_frag = 512;
+		compiler->max_const_compute = 512;
+
+		/* Note: this will have to change if/when we support tess+GS on
+		 * earlier gen's.
+		 */
+		compiler->max_const_safe = 256;
 	}
 
 	if (compiler->gpu_id >= 400) {
@@ -73,6 +112,7 @@ struct ir3_compiler * ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id
 		compiler->unminify_coords = false;
 		compiler->txf_ms_with_isaml = false;
 		compiler->array_index_add_half = true;
+		compiler->const_upload_unit = 4;
 	} else {
 		/* no special handling for "flat" */
 		compiler->flat_bypass = false;
@@ -80,7 +120,10 @@ struct ir3_compiler * ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id
 		compiler->unminify_coords = true;
 		compiler->txf_ms_with_isaml = true;
 		compiler->array_index_add_half = false;
+		compiler->const_upload_unit = 8;
 	}
+
+	ir3_disk_cache_init(compiler);
 
 	return compiler;
 }

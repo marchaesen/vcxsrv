@@ -15,6 +15,7 @@ drm_SOURCES := \
 	drm/msm_ringbuffer.c
 
 ir3_SOURCES := \
+	fdl/fd5_layout.c \
 	fdl/fd6_layout.c \
 	fdl/freedreno_layout.c \
 	ir3/disasm-a3xx.c \
@@ -22,15 +23,19 @@ ir3_SOURCES := \
 	ir3/ir3.c \
 	ir3/ir3_a4xx.c \
 	ir3/ir3_a6xx.c \
+	ir3/ir3_assembler.c \
+	ir3/ir3_assembler.h \
 	ir3/ir3_compiler.c \
 	ir3/ir3_compiler.h \
 	ir3/ir3_compiler_nir.c \
 	ir3/ir3_context.c \
 	ir3/ir3_context.h \
 	ir3/ir3_cp.c \
+	ir3/ir3_cp_postsched.c \
 	ir3/ir3_cf.c \
 	ir3/ir3_dce.c \
 	ir3/ir3_delay.c \
+	ir3/ir3_disk_cache.c \
 	ir3/ir3_group.c \
 	ir3/ir3_image.c \
 	ir3/ir3_image.h \
@@ -54,11 +59,14 @@ ir3_SOURCES := \
 	ir3/ir3_sched.c \
 	ir3/ir3_shader.c \
 	ir3/ir3_shader.h \
-	ir3/ir3_sun.c
+	ir3/ir3_validate.c
 
 ir3_GENERATED_FILES := \
+	ir3/ir3_lexer.c \
 	ir3/ir3_nir_trig.c \
-	ir3/ir3_nir_imul.c
+	ir3/ir3_nir_imul.c \
+	ir3/ir3_parser.c \
+	ir3/ir3_parser.h
 
 perfcntrs_SOURCES := \
 	perfcntrs/fd2_perfcntr.c \

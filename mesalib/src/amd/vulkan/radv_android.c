@@ -29,7 +29,13 @@
 #include <vulkan/vk_android_native_buffer.h>
 #include <vulkan/vk_icd.h>
 #include <libsync.h>
+
+#if ANDROID_API_LEVEL >= 26
+#include <hardware/gralloc1.h>
 #endif
+#endif
+
+#include "util/os_file.h"
 
 #include "radv_private.h"
 #include "vk_util.h"
@@ -133,7 +139,7 @@ radv_image_from_gralloc(VkDevice device_h,
 	const VkImportMemoryFdInfoKHR import_info = {
 		.sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR,
 		.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT,
-		.fd = dup(dma_buf),
+		.fd = os_dupfd_cloexec(dma_buf),
 	};
 
 	/* Find the first VRAM memory type, or GART for PRIME images. */
@@ -289,6 +295,91 @@ VkResult radv_GetSwapchainGrallocUsageANDROID(
 	return VK_SUCCESS;
 }
 
+VkResult radv_GetSwapchainGrallocUsage2ANDROID(
+    VkDevice            device_h,
+    VkFormat            format,
+    VkImageUsageFlags   imageUsage,
+    VkSwapchainImageUsageFlagsANDROID swapchainImageUsage,
+    uint64_t*           grallocConsumerUsage,
+    uint64_t*           grallocProducerUsage)
+{
+	/* Before level 26 (Android 8.0/Oreo) the loader uses
+	 * vkGetSwapchainGrallocUsageANDROID. */
+#if ANDROID_API_LEVEL >= 26
+	RADV_FROM_HANDLE(radv_device, device, device_h);
+	struct radv_physical_device *phys_dev = device->physical_device;
+	VkPhysicalDevice phys_dev_h = radv_physical_device_to_handle(phys_dev);
+	VkResult result;
+
+	*grallocConsumerUsage = 0;
+	*grallocProducerUsage = 0;
+
+	if (swapchainImageUsage & VK_SWAPCHAIN_IMAGE_USAGE_SHARED_BIT_ANDROID)
+		return vk_errorf(device->instance, VK_ERROR_FORMAT_NOT_SUPPORTED,
+		                 "The Vulkan loader tried to query shared presentable image support");
+
+	const VkPhysicalDeviceImageFormatInfo2 image_format_info = {
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
+		.format = format,
+		.type = VK_IMAGE_TYPE_2D,
+		.tiling = VK_IMAGE_TILING_OPTIMAL,
+		.usage = imageUsage,
+	};
+
+	VkImageFormatProperties2 image_format_props = {
+		.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2,
+	};
+
+	/* Check that requested format and usage are supported. */
+	result = radv_GetPhysicalDeviceImageFormatProperties2(phys_dev_h,
+	                                                      &image_format_info, &image_format_props);
+	if (result != VK_SUCCESS) {
+		return vk_errorf(device->instance, result,
+		                 "radv_GetPhysicalDeviceImageFormatProperties2 failed "
+		                 "inside %s", __func__);
+	}
+
+	if (unmask32(&imageUsage, VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+	                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)) {
+		*grallocProducerUsage |= GRALLOC1_PRODUCER_USAGE_GPU_RENDER_TARGET;
+		*grallocConsumerUsage |= GRALLOC1_CONSUMER_USAGE_CLIENT_TARGET;
+	}
+
+	if (unmask32(&imageUsage, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+	                          VK_IMAGE_USAGE_SAMPLED_BIT |
+	                          VK_IMAGE_USAGE_STORAGE_BIT |
+	                          VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)) {
+		*grallocConsumerUsage |= GRALLOC1_CONSUMER_USAGE_GPU_TEXTURE;
+	}
+
+	if (imageUsage != 0) {
+		return vk_errorf(device->instance, VK_ERROR_FORMAT_NOT_SUPPORTED,
+		                "unsupported VkImageUsageFlags(0x%x) for gralloc "
+		                "swapchain", imageUsage);
+	}
+
+	/*
+	* FINISHME: Advertise all display-supported formats. Mostly
+	* DRM_FORMAT_ARGB2101010 and DRM_FORMAT_ABGR2101010, but need to check
+	* what we need for 30-bit colors.
+	*/
+	if (format == VK_FORMAT_B8G8R8A8_UNORM ||
+	    format == VK_FORMAT_B5G6R5_UNORM_PACK16) {
+		*grallocProducerUsage |= GRALLOC1_PRODUCER_USAGE_GPU_RENDER_TARGET;
+		*grallocConsumerUsage |= GRALLOC1_CONSUMER_USAGE_HWCOMPOSER;
+	}
+
+	if (!*grallocProducerUsage && !*grallocConsumerUsage)
+		return VK_ERROR_FORMAT_NOT_SUPPORTED;
+
+	return VK_SUCCESS;
+#else
+	*grallocConsumerUsage = 0;
+	*grallocProducerUsage = 0;
+	return VK_ERROR_FORMAT_NOT_SUPPORTED;
+#endif
+}
+
 VkResult
 radv_AcquireImageANDROID(
       VkDevice            device,
@@ -300,7 +391,7 @@ radv_AcquireImageANDROID(
 	VkResult semaphore_result = VK_SUCCESS, fence_result = VK_SUCCESS;
 
 	if (semaphore != VK_NULL_HANDLE) {
-		int semaphore_fd = nativeFenceFd >= 0 ? dup(nativeFenceFd) : nativeFenceFd;
+		int semaphore_fd = nativeFenceFd >= 0 ? os_dupfd_cloexec(nativeFenceFd) : nativeFenceFd;
 		semaphore_result = radv_ImportSemaphoreFdKHR(device,
 		                                             &(VkImportSemaphoreFdInfoKHR) {
 		                                                 .sType = VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_FD_INFO_KHR,
@@ -311,7 +402,7 @@ radv_AcquireImageANDROID(
 	}
 
 	if (fence != VK_NULL_HANDLE) {
-		int fence_fd = nativeFenceFd >= 0 ? dup(nativeFenceFd) : nativeFenceFd;
+		int fence_fd = nativeFenceFd >= 0 ? os_dupfd_cloexec(nativeFenceFd) : nativeFenceFd;
 		fence_result = radv_ImportFenceFdKHR(device,
 		                                     &(VkImportFenceFdInfoKHR) {
 		                                         .sType = VK_STRUCTURE_TYPE_IMPORT_FENCE_FD_INFO_KHR,

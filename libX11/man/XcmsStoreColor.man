@@ -53,9 +53,11 @@ XcmsStoreColor, XcmsStoreColors \- set colors
 Status XcmsStoreColor\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^,
 XcmsColor *\fIcolor\fP\^);
 .HP
-Status XcmsStoreColors\^(\^Display *\fIdisplay\fP\^, Colormap
-\fIcolormap\fP\^, XcmsColor \fIcolors\fP\^[\^]\^, int \fIncolors\fP\^, Bool
-\fIcompression_flags_return\fP\^[\^]\^);
+Status XcmsStoreColors\^(\^Display *\fIdisplay\fP\^,
+Colormap \fIcolormap\fP\^,
+XcmsColor *\fIcolors\fP\^,
+unsigned \fIncolors\fP\^,
+Bool *\fIcompression_flags_return\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.

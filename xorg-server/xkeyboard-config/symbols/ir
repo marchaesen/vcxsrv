@@ -12,7 +12,7 @@
 // Author: Behnam Esfahbod <behnam@esfahbod.info>
 //
 
-default  partial alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "pes" {
     name[Group1]= "Persian";
 

@@ -77,6 +77,9 @@ vk_destroy_debug_report_callback(struct vk_debug_report_instance *instance,
                                  const VkAllocationCallbacks* pAllocator,
                                  const VkAllocationCallbacks* instance_allocator)
 {
+   if (_callback == VK_NULL_HANDLE)
+      return;
+
    struct vk_debug_report_callback *callback =
             (struct vk_debug_report_callback *)(uintptr_t)_callback;
 

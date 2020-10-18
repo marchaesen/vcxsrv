@@ -35,7 +35,7 @@ libglsl_util = static_library(
     'mesa/program/dummy_errors.c',
   ),
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-  c_args : [c_vis_args],
+  gnu_symbol_visibility : 'hidden',
   build_by_default : false,
 )
 
@@ -43,7 +43,8 @@ sha1_h = custom_target(
   'git_sha1.h',
   output : 'git_sha1.h',
   command : [prog_python, git_sha1_gen_py, '--output', '@OUTPUT@'],
-  build_always : true, # commit sha1 can change without having touched these files
+  build_by_default : true,
+  build_always_stale : true, # commit sha1 can change without having touched these files
 )
 
 subdir('gtest')

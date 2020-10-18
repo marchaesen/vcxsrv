@@ -1,0 +1,77 @@
+Quickstart Guide
+
+*** Configure and build mesa
+CFLAGS="-m32" CXXFLAGS="-m32" ./autogen.sh --prefix=/usr \
+ --with-gallium-drivers=nouveau,r600,swrast --enable-nine \
+ --enable-debug --enable-texture-float --with-dri-drivers= --disable-dri \
+ --disable-opengl --disable-egl --disable-vdpau --disable-xvmc --disable-gbm \
+ --disable-llvm
+make
+
+*** Then we create some symlinks to mesa:
+ln -s "`pwd`/lib/gallium/libd3dadapter9.so.0.0.0" /usr/lib/
+ln -s "`pwd`/lib/gallium/libd3dadapter9.so.0" /usr/lib/
+ln -s "`pwd`/lib/gallium/libd3dadapter9.so" /usr/lib/
+ln -s "`pwd`/include/d3dadapter" /usr/include/
+
+*** Clone and build a patched wine
+git clone git@github.com:iXit/wine.git
+./configure
+make
+
+*** And finally we create some symlinks to our patched wine files:
+for f in d3d9.dll gdi32.dll user32.dll wineps.drv winex11.drv;
+do
+    mv /usr/lib/wine/$f.so /usr/lib/wine/$f.so.old
+    ln -s "`pwd`/dlls/`basename -s .dll $f`/$f.so" /usr/lib/wine/
+done
+
+*** Activating it within wine
+regedit
+Navigate to HKCU\Software\Wine\Direct3D
+If it's not there, create it
+Create a new DWORD value called UseNative
+Set its value to 1
+
+Every Direct3D9 program will now try using nine before wined3d
+
+If you want to selectively enable it per-exe instead, use the key:
+HKCU\Software\Wine\AppDefaults\app.exe\Direct3D\UseNative
+where app.exe is the name of your .exe file
+
+
+*** HOW IT WORKS ***
+
+Nine implements the full IDirect3DDevice9 COM interface and a custom COM
+interface called ID3DAdapter9 which is used to implement a final IDirect3D9Ex
+COM interface.
+ID3DAdapter9 is completely devoid of window system code, meaning this can be
+provided by wine, Xlib, Wayland, etc. It's inadvisible to write a non-Windows
+backend though, as we don't want to encourage linux developers to use this API.
+
+The gallium frontend is compiled, along with pipe-loader, into a library called
+libd3dadapter9.so. This library loads pipe_[driver].so drivers on demand and
+exports a single symbol for getting a subsystem driver. Currently only DRM is
+supported.
+This library is then linked to the library implementing the IDirect3D9[Ex]
+interface and the actual Direct3D9 entry points (Direct3DCreate9[Ex])
+
+The implementation of IDirect3D9[Ex] lies within wine and coexists with
+wined3d. It's loaded on demand and so if it's not there, it doesn't have any
+drivers or something else is wrong, d3d9.dll will automatically revert to using
+wined3d.
+Whether or not it's even tried is determined by 2 DWORD registry keys.
+> HKCU\Software\Wine\Direct3D\UseNative
+> HKCU\Software\Wine\AppDefaults\app.exe\Direct3D\UseNative
+The former is the global on-switch. The latter is per-exe.
+
+The driver search path can be set at configure time with
+--with-gallium-driver-dir and overridden at runtime with D3D9_DRIVERS_PATH.
+Debugging information can be gotten with the WINEDEBUG channels d3d9 and
+d3dadapter, and gallium frontend debug information can be gotten with NINE_DEBUG.
+Help on NINE_DEBUG is shown through NINE_DEBUG=help
+
+Finally, the ID3DPresent[Group] and ID3DAdapter9 interfaces are not set in
+stone, so feel free to hack on those as well as st/nine.
+
+Happy Hacking!

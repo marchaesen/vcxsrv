@@ -33,6 +33,10 @@ uint16_t
 pan_to_bytemask(unsigned bytes, unsigned mask)
 {
         switch (bytes) {
+        case 0:
+                assert(mask == 0);
+                return 0;
+
         case 8:
                 return mask;
 

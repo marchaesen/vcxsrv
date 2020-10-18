@@ -37,6 +37,12 @@ add_project_arguments(
     '-fno-strict-aliasing',
     '-fvisibility=hidden',
     '-Wundef',
+    # -ftrapping-math is the default for gcc, but -fno-trapping-math is the
+    # default for clang.  The FLOAT_IS_ZERO macro is used to guard against
+    # floating-point exceptions, however with -fno-trapping-math, the compiler
+    # can reorder floating-point operations so that they occur before the guard.
+    # Note, this function is ignored in clang < 10.0.0.
+    '-ftrapping-math'
   ]),
   language : ['c']
 )
@@ -392,8 +398,6 @@ endif
 
 dep_gtk = dependency('gtk+-2.0', version : '>= 2.16', required : get_option('gtk'))
 dep_glib = dependency('glib-2.0', required : get_option('gtk'))
-dep_pixman = dependency('pixman-1', required : get_option('gtk'),
-                        version : '>= ' + meson.project_version())
 
 dep_png = null_dep
 if not get_option('libpng').disabled()
@@ -528,8 +532,11 @@ version_conf.set('PIXMAN_VERSION_MICRO', split[2])
 add_project_arguments('-DHAVE_CONFIG_H', language : ['c'])
 
 subdir('pixman')
-subdir('test')
-subdir('demos')
+
+if not get_option('tests').disabled()
+  subdir('test')
+  subdir('demos')
+endif
 
 pkg = import('pkgconfig')
 pkg.generate(

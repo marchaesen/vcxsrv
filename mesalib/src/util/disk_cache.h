@@ -132,6 +132,12 @@ disk_cache_get_function_identifier(void *ptr, struct mesa_sha1 *ctx)
       return false;
    return true;
 }
+#else
+static inline bool
+disk_cache_get_function_identifier(void *ptr, struct mesa_sha1 *ctx)
+{
+   return false;
+}
 #endif
 
 /* Provide inlined stub functions if the shader cache is disabled. */

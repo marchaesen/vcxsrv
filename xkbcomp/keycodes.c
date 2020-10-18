@@ -31,8 +31,6 @@
 #include "misc.h"
 #include "alias.h"
 
-static Bool high_keycode_warned;
-
 char *
 longText(unsigned long val, unsigned format)
 {
@@ -334,15 +332,10 @@ AddKeyName(KeyNamesInfo * info,
 
     if ((kc < info->effectiveMin) || (kc > info->effectiveMax))
     {
-        if (!high_keycode_warned && warningLevel > 1)
-        {
-            WARN2("Unsupported high keycode %d for name <%s> ignored\n",
-                  kc, name);
-            ACTION2("X11 cannot support keycodes above 255.\n");
-            ACTION2("This warning only shows for the first high keycode.\n");
-            high_keycode_warned = True;
-        }
-        return True;
+        ERROR2("Illegal keycode %d for name <%s>\n", kc, name);
+        ACTION2("Must be in the range %d-%d inclusive\n",
+                info->effectiveMin, info->effectiveMax);
+        return False;
     }
     if (kc < info->computedMin)
         info->computedMin = kc;
@@ -598,15 +591,10 @@ HandleKeycodeDef(KeycodeDef * stmt, unsigned merge, KeyNamesInfo * info)
     code = result.ival;
     if ((code < info->effectiveMin) || (code > info->effectiveMax))
     {
-        if (!high_keycode_warned && warningLevel > 1)
-        {
-            WARN2("Unsupported high keycode %d for name <%s> ignored\n",
-                  code, stmt->name);
-            ACTION2("X11 cannot support keycodes above 255.\n");
-            ACTION2("This warning only shows for the first high keycode.\n");
-            high_keycode_warned = True;
-        }
-        return 1;
+        ERROR2("Illegal keycode %d for name <%s>\n", code, stmt->name);
+        ACTION2("Must be in the range %d-%d inclusive\n",
+                info->effectiveMin, info->effectiveMax);
+        return 0;
     }
     if (stmt->merge != MergeDefault)
     {
@@ -665,21 +653,13 @@ HandleKeyNameVar(VarDef * stmt, KeyNamesInfo * info)
         ACTION1("Assignment to field %s ignored\n", field.str);
         return 0;
     }
-    if ((tmp.ival < XkbMinLegalKeyCode))
+    if ((tmp.ival < XkbMinLegalKeyCode) || (tmp.ival > XkbMaxLegalKeyCode))
     {
         ERROR3
             ("Illegal keycode %d (must be in the range %d-%d inclusive)\n",
              tmp.ival, XkbMinLegalKeyCode, XkbMaxLegalKeyCode);
         ACTION1("Value of \"%s\" not changed\n", field.str);
         return 0;
-    }
-    if ((tmp.ival > XkbMaxLegalKeyCode))
-    {
-        WARN2("Unsupported maximum keycode %d, clipping.\n", tmp.ival);
-        ACTION2("X11 cannot support keycodes above 255.\n");
-        info->explicitMax = XkbMaxLegalKeyCode;
-        info->effectiveMax = XkbMaxLegalKeyCode;
-        return 1;
     }
     if (which == MIN_KEYCODE_DEF)
     {

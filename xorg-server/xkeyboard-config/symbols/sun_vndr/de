@@ -27,7 +27,7 @@
 // of the copyright holder.
 //
 
-partial default alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "sun_type6" {
 
     name[Group1]="German (Sun Type 6/7)";
@@ -163,11 +163,6 @@ partial alphanumeric_keys
 partial alphanumeric_keys
 	xkb_symbols "ru" {
 	include "de(ru)"
-};
-
-partial alphanumeric_keys
-	xkb_symbols "htcdream" {
-	include "de(htcdream)"
 };
 
 partial alphanumeric_keys

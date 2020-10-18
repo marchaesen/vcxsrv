@@ -335,6 +335,9 @@ FcDefaultSubstitute (FcPattern *pattern)
 	if (prgname)
 	    FcPatternObjectAddString (pattern, FC_PRGNAME_OBJECT, prgname);
     }
+
+    if (!FcPatternFindObjectIter (pattern, &iter, FC_ORDER_OBJECT))
+	FcPatternObjectAddInteger (pattern, FC_ORDER_OBJECT, 0);
 }
 #define __fcdefault__
 #include "fcaliastail.h"

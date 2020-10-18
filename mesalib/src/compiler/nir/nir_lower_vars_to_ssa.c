@@ -750,9 +750,7 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
    }
 
    if (!progress) {
-#ifndef NDEBUG
-      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
-#endif
+      nir_metadata_preserve(impl, nir_metadata_all);
       return false;
    }
 

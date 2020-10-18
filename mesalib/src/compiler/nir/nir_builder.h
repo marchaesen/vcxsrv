@@ -1159,6 +1159,20 @@ nir_load_reg(nir_builder *build, nir_register *reg)
    return nir_ssa_for_src(build, nir_src_for_reg(reg), reg->num_components);
 }
 
+static inline void
+nir_store_reg(nir_builder *build, nir_register *reg,
+              nir_ssa_def *def, nir_component_mask_t write_mask)
+{
+   assert(reg->num_components == def->num_components);
+   assert(reg->bit_size == def->bit_size);
+
+   nir_alu_instr *mov = nir_alu_instr_create(build->shader, nir_op_mov);
+   mov->src[0].src = nir_src_for_ssa(def);
+   mov->dest.dest = nir_dest_for_reg(reg);
+   mov->dest.write_mask = write_mask & BITFIELD_MASK(reg->num_components);
+   nir_builder_instr_insert(build, &mov->instr);
+}
+
 static inline nir_ssa_def *
 nir_load_deref_with_access(nir_builder *build, nir_deref_instr *deref,
                            enum gl_access_qualifier access)
@@ -1346,17 +1360,67 @@ nir_compare_func(nir_builder *b, enum compare_func func,
 }
 
 static inline void
+nir_scoped_barrier(nir_builder *b,
+                   nir_scope exec_scope,
+                   nir_scope mem_scope,
+                   nir_memory_semantics mem_semantics,
+                   nir_variable_mode mem_modes)
+{
+   nir_intrinsic_instr *intrin =
+      nir_intrinsic_instr_create(b->shader, nir_intrinsic_scoped_barrier);
+   nir_intrinsic_set_execution_scope(intrin, exec_scope);
+   nir_intrinsic_set_memory_scope(intrin, mem_scope);
+   nir_intrinsic_set_memory_semantics(intrin, mem_semantics);
+   nir_intrinsic_set_memory_modes(intrin, mem_modes);
+   nir_builder_instr_insert(b, &intrin->instr);
+}
+
+static inline void
 nir_scoped_memory_barrier(nir_builder *b,
                           nir_scope scope,
                           nir_memory_semantics semantics,
                           nir_variable_mode modes)
 {
-   nir_intrinsic_instr *intrin =
-      nir_intrinsic_instr_create(b->shader, nir_intrinsic_scoped_memory_barrier);
-   nir_intrinsic_set_memory_scope(intrin, scope);
-   nir_intrinsic_set_memory_semantics(intrin, semantics);
-   nir_intrinsic_set_memory_modes(intrin, modes);
-   nir_builder_instr_insert(b, &intrin->instr);
+   nir_scoped_barrier(b, NIR_SCOPE_NONE, scope, semantics, modes);
+}
+
+static inline nir_ssa_def *
+nir_convert_to_bit_size(nir_builder *b,
+                    nir_ssa_def *src,
+                    nir_alu_type type,
+                    unsigned bit_size)
+{
+   nir_alu_type base_type = nir_alu_type_get_base_type(type);
+   nir_alu_type dst_type = (nir_alu_type)(bit_size | base_type);
+
+   nir_op opcode =
+      nir_type_conversion_op(type, dst_type, nir_rounding_mode_undef);
+
+   return nir_build_alu(b, opcode, src, NULL, NULL, NULL);
+}
+
+static inline nir_ssa_def *
+nir_i2iN(nir_builder *b, nir_ssa_def *src, unsigned bit_size)
+{
+   return nir_convert_to_bit_size(b, src, nir_type_int, bit_size);
+}
+
+static inline nir_ssa_def *
+nir_u2uN(nir_builder *b, nir_ssa_def *src, unsigned bit_size)
+{
+   return nir_convert_to_bit_size(b, src, nir_type_uint, bit_size);
+}
+
+static inline nir_ssa_def *
+nir_b2bN(nir_builder *b, nir_ssa_def *src, unsigned bit_size)
+{
+   return nir_convert_to_bit_size(b, src, nir_type_bool, bit_size);
+}
+
+static inline nir_ssa_def *
+nir_f2fN(nir_builder *b, nir_ssa_def *src, unsigned bit_size)
+{
+   return nir_convert_to_bit_size(b, src, nir_type_float, bit_size);
 }
 
 #endif /* NIR_BUILDER_H */

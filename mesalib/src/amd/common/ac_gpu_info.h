@@ -59,6 +59,7 @@ struct radeon_info {
 	/* Features. */
 	bool                        has_graphics; /* false if the chip is compute-only */
 	uint32_t                    num_rings[NUM_RING_TYPES];
+	uint32_t                    ib_pad_dw_mask[NUM_RING_TYPES];
 	bool                        has_clear_state;
 	bool                        has_distributed_tess;
 	bool                        has_dcc_constant_encode;
@@ -66,7 +67,7 @@ struct radeon_info {
 	bool                        rbplus_allowed; /* if RB+ is allowed */
 	bool                        has_load_ctx_reg_pkt;
 	bool                        has_out_of_order_rast;
-	bool                        has_double_rate_fp16;
+	bool                        has_packed_math_16bit;
 	bool                        cpdma_prefetch_writes_memory;
 	bool                        has_gfx9_scissor_bug;
 	bool                        has_tc_compat_zrange_bug;
@@ -110,7 +111,7 @@ struct radeon_info {
 
 	/* CP info. */
 	bool                        gfx_ib_pad_with_type2;
-	unsigned                    ib_start_alignment;
+	unsigned                    ib_alignment; /* both start and size alignment */
 	uint32_t                    me_fw_version;
 	uint32_t                    me_fw_feature;
 	uint32_t                    pfp_fw_version;
@@ -157,7 +158,8 @@ struct radeon_info {
 	uint32_t                    r600_max_quad_pipes; /* wave size / 16 */
 	uint32_t                    max_shader_clock;
 	uint32_t                    num_good_compute_units;
-	uint32_t                    num_good_cu_per_sh;
+	uint32_t                    max_good_cu_per_sa;
+	uint32_t                    min_good_cu_per_sa; /* min != max if SAs have different # of CUs */
 	uint32_t                    max_se; /* shader engines */
 	uint32_t                    max_sh_per_se; /* shader arrays per shader engine */
 	uint32_t                    max_wave64_per_simd;

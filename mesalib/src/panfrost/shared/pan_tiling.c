@@ -143,6 +143,11 @@ typedef struct {
 } __attribute__((packed)) pan_uint128_t;
 #endif
 
+typedef struct {
+  uint16_t lo;
+  uint8_t hi;
+} __attribute__((packed)) pan_uint24_t;
+
 /* Optimized routine to tile an aligned (w & 0xF == 0) texture. Explanation:
  *
  * dest_start precomputes the offset to the beginning of the first horizontal
@@ -235,6 +240,8 @@ TILED_ACCESS_TYPE(pan_uint128_t, 4);
       TILED_UNALIGNED_TYPE(uint8_t, store, shift) \
    else if (bpp == 16) \
       TILED_UNALIGNED_TYPE(uint16_t, store, shift) \
+   else if (bpp == 24) \
+      TILED_UNALIGNED_TYPE(pan_uint24_t, store, shift) \
    else if (bpp == 32) \
       TILED_UNALIGNED_TYPE(uint32_t, store, shift) \
    else if (bpp == 64) \
@@ -283,7 +290,7 @@ panfrost_access_tiled_image(void *dst, void *src,
 {
    const struct util_format_description *desc = util_format_description(format);
 
-   if (desc->block.width > 1) {
+   if (desc->block.width > 1 || desc->block.bits == 24) {
       panfrost_access_tiled_image_generic(dst, (void *) src,
             x, y, w, h,
             dst_stride, src_stride, desc, is_store);

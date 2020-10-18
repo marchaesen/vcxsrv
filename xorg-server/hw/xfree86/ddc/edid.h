@@ -262,6 +262,10 @@
 #define MAX_H (_MAX_H(c) + _MAX_H_OFFSET(c))
 #define _MAX_CLOCK(x) x[9]
 #define MAX_CLOCK _MAX_CLOCK(c)
+#define _DEFAULT_GTF(x) (x[10] == 0x00)
+#define DEFAULT_GTF _DEFAULT_GTF(c)
+#define _RANGE_LIMITS_ONLY(x) (x[10] == 0x01)
+#define RANGE_LIMITS_ONLY _RANGE_LIMITS_ONLY(c)
 #define _HAVE_2ND_GTF(x) (x[10] == 0x02)
 #define HAVE_2ND_GTF _HAVE_2ND_GTF(c)
 #define _F_2ND_GTF(x) (x[12] * 2)
@@ -477,6 +481,16 @@ struct detailed_timings {
 #define DS_VENDOR 0x101
 #define DS_VENDOR_MAX 0x110
 
+/*
+ * Display range limit Descriptor of EDID version1, reversion 4
+ */
+typedef enum {
+	DR_DEFAULT_GTF,
+	DR_LIMITS_ONLY,
+	DR_SECONDARY_GTF,
+	DR_CVT_SUPPORTED = 4,
+} DR_timing_flags;
+
 struct monitor_ranges {
     int min_v;
     int max_v;
@@ -495,6 +509,7 @@ struct monitor_ranges {
     char supported_blanking;
     char supported_scaling;
     int preferred_refresh;      /* in hz */
+    DR_timing_flags display_range_timing_flags;
 };
 
 struct whitePoints {
@@ -524,7 +539,7 @@ struct detailed_monitor_section {
         Uchar serial[13];
         Uchar ascii_data[13];
         Uchar name[13];
-        struct monitor_ranges ranges;   /* 56 */
+        struct monitor_ranges ranges;   /* 60 */
         struct std_timings std_t[5];    /* 80 */
         struct whitePoints wp[2];       /* 32 */
         /* color management data */

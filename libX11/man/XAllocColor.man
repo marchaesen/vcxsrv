@@ -56,7 +56,7 @@ Status XAllocColor\^(\^Display *\fIdisplay\fP, Colormap \fIcolormap\fP\^,
 XColor *\fIscreen_in_out\fP\^);
 .HP
 Status XAllocNamedColor\^(\^Display *\fIdisplay\fP, Colormap \fIcolormap\fP\^,
-char *\fIcolor_name\fP\^, XColor *\fIscreen_def_return\fP\^, XColor
+_Xconst char *\fIcolor_name\fP\^, XColor *\fIscreen_def_return\fP\^, XColor
 *\fIexact_def_return\fP\^);
 .HP
 Status XAllocColorCells\^(\^Display *\fIdisplay\fP, Colormap \fIcolormap\fP\^,

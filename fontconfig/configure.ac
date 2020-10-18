@@ -782,7 +782,6 @@ its/Makefile
 po/Makefile.in
 po-conf/Makefile.in
 test/Makefile
-fontconfig.spec
 fontconfig.pc
 fontconfig-zip
 ])

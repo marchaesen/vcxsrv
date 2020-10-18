@@ -24,6 +24,7 @@
 #include "st_nir.h"
 
 #include "compiler/nir/nir_builder.h"
+#include "compiler/glsl/gl_nir.h"
 
 struct pipe_shader_state *
 st_nir_finish_builtin_shader(struct st_context *st,
@@ -58,6 +59,8 @@ st_nir_finish_builtin_shader(struct st_context *st,
 
    st_nir_lower_samplers(screen, nir, NULL, NULL);
    st_nir_lower_uniforms(st, nir);
+   if (!screen->get_param(screen, PIPE_CAP_NIR_IMAGES_AS_DEREF))
+      NIR_PASS_V(nir, gl_nir_lower_images, false);
 
    if (screen->finalize_nir)
       screen->finalize_nir(screen, nir, true);

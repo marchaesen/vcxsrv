@@ -374,9 +374,7 @@ opt_dead_cf_impl(nir_function_impl *impl)
        */
       nir_repair_ssa_impl(impl);
    } else {
-#ifndef NDEBUG
-      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
-#endif
+      nir_metadata_preserve(impl, nir_metadata_all);
    }
 
    return progress;
