@@ -56,7 +56,7 @@ subdir('spirv')
 
 subdir('nir')
 
-# This is here because putting it in spirv/meson.build would create a circular
+# These are here because putting it in spirv/meson.build would create a circular
 # dependency with nir/meson.build.
 spirv2nir = executable(
   'spirv2nir',
@@ -68,5 +68,33 @@ spirv2nir = executable(
   build_by_default : with_tools.contains('nir'),
   install : with_tools.contains('nir'),
 )
+
+if with_tests
+  test(
+    'avail_vis',
+    executable(
+      'avail_vis',
+      files('spirv/tests/avail_vis.cpp'),
+      c_args : [c_msvc_compat_args, no_override_init_args],
+      gnu_symbol_visibility : 'hidden',
+      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
+      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
+    ),
+    suite : ['compiler', 'spirv'],
+  )
+
+  test(
+    'volatile',
+    executable(
+      'volatile',
+      files('spirv/tests/volatile.cpp'),
+      c_args : [c_msvc_compat_args, no_override_init_args],
+      gnu_symbol_visibility : 'hidden',
+      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
+      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
+    ),
+    suite : ['compiler', 'spirv'],
+  )
+endif
 
 subdir('glsl')

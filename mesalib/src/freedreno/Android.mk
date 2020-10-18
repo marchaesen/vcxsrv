@@ -25,7 +25,9 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(LOCAL_PATH)/Makefile.sources
+include $(LOCAL_PATH)/Android.common.mk
 include $(LOCAL_PATH)/Android.drm.mk
+include $(LOCAL_PATH)/Android.ir2.mk
 include $(LOCAL_PATH)/Android.ir3.mk
 include $(LOCAL_PATH)/Android.perfcntrs.mk
 include $(LOCAL_PATH)/Android.registers.mk

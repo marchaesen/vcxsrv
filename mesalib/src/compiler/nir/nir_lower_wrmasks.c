@@ -128,8 +128,8 @@ split_wrmask(nir_builder *b, nir_intrinsic_instr *intr)
 
       const int offset_units = value->bit_size / 8;
 
-      if (info->index_map[NIR_INTRINSIC_ALIGN_MUL]) {
-         assert(info->index_map[NIR_INTRINSIC_ALIGN_OFFSET]);
+      if (nir_intrinsic_has_align_mul(intr)) {
+         assert(nir_intrinsic_has_align_offset(intr));
          unsigned align_mul = nir_intrinsic_align_mul(intr);
          unsigned align_off = nir_intrinsic_align_offset(intr);
 
@@ -144,7 +144,7 @@ split_wrmask(nir_builder *b, nir_intrinsic_instr *intr)
        * instructions
        */
       unsigned offset_adj = offset_units * first_component;
-      if (info->index_map[NIR_INTRINSIC_BASE]) {
+      if (nir_intrinsic_has_base(intr)) {
          nir_intrinsic_set_base(new_intr,
                nir_intrinsic_base(intr) + offset_adj);
       } else {
@@ -179,54 +179,55 @@ split_wrmask(nir_builder *b, nir_intrinsic_instr *intr)
    nir_instr_remove(&intr->instr);
 }
 
+struct nir_lower_wrmasks_state {
+   nir_instr_filter_cb cb;
+   const void *data;
+};
+
+static bool
+nir_lower_wrmasks_instr(nir_builder *b, nir_instr *instr, void *data)
+{
+   struct nir_lower_wrmasks_state *state = data;
+
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+
+   /* if no wrmask, then skip it: */
+   if (!nir_intrinsic_has_write_mask(intr))
+      return false;
+
+   /* if wrmask is already contiguous, then nothing to do: */
+   if (nir_intrinsic_write_mask(intr) == BITFIELD_MASK(intr->num_components))
+      return false;
+
+   /* do we know how to lower this instruction? */
+   if (value_src(intr->intrinsic) < 0)
+      return false;
+
+   assert(offset_src(intr->intrinsic) >= 0);
+
+   /* does backend need us to lower this intrinsic? */
+   if (state->cb && !state->cb(instr, state->data))
+      return false;
+
+   split_wrmask(b, intr);
+
+   return true;
+}
+
 bool
 nir_lower_wrmasks(nir_shader *shader, nir_instr_filter_cb cb, const void *data)
 {
-   bool progress = false;
+   struct nir_lower_wrmasks_state state = {
+      .cb = cb,
+      .data = data,
+   };
 
-   nir_foreach_function(function, shader) {
-      nir_function_impl *impl = function->impl;
-
-      if (!impl)
-         continue;
-
-      nir_foreach_block(block, impl) {
-         nir_foreach_instr_safe(instr, block) {
-            if (instr->type != nir_instr_type_intrinsic)
-               continue;
-
-            nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-            const nir_intrinsic_info *info = &nir_intrinsic_infos[intr->intrinsic];
-
-            /* if no wrmask, then skip it: */
-            if (!info->index_map[NIR_INTRINSIC_WRMASK])
-               continue;
-
-            /* if wrmask is already contiguous, then nothing to do: */
-            if (nir_intrinsic_write_mask(intr) == BITFIELD_MASK(intr->num_components))
-               continue;
-
-            /* do we know how to lower this instruction? */
-            if (value_src(intr->intrinsic) < 0)
-               continue;
-
-            assert(offset_src(intr->intrinsic) >= 0);
-
-            /* does backend need us to lower this intrinsic? */
-            if (cb && !cb(instr, data))
-               continue;
-
-            nir_builder b;
-            nir_builder_init(&b, impl);
-            split_wrmask(&b, intr);
-            progress = true;
-         }
-      }
-
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
-
-   }
-
-   return progress;
+   return nir_shader_instructions_pass(shader,
+                                       nir_lower_wrmasks_instr,
+                                       nir_metadata_block_index |
+                                       nir_metadata_dominance,
+                                       &state);
 }

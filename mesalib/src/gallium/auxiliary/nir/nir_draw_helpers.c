@@ -49,7 +49,7 @@ typedef struct {
 static nir_ssa_def *
 load_frag_coord(nir_builder *b)
 {
-   nir_foreach_variable(var, &b->shader->inputs) {
+   nir_foreach_shader_in_variable(var, b->shader) {
       if (var->data.location == VARYING_SLOT_POS)
          return nir_load_var(b, var);
    }
@@ -123,7 +123,7 @@ nir_lower_pstipple_fs(struct nir_shader *shader,
       return;
 
    int binding = 0;
-   nir_foreach_variable(var, &shader->uniforms) {
+   nir_foreach_uniform_variable(var, shader) {
       if (glsl_type_is_sampler(var->type)) {
          if (var->data.binding >= binding)
             binding = var->data.binding + 1;
@@ -216,7 +216,7 @@ nir_lower_aaline_fs(struct nir_shader *shader, int *varying)
       return;
 
    int highest_location = -1, highest_drv_location = -1;
-   nir_foreach_variable(var, &shader->inputs) {
+   nir_foreach_shader_in_variable(var, shader) {
      if ((int)var->data.location > highest_location)
          highest_location = var->data.location;
      if ((int)var->data.driver_location > highest_drv_location)
@@ -340,7 +340,7 @@ nir_lower_aapoint_fs(struct nir_shader *shader, int *varying)
       return;
 
    int highest_location = -1, highest_drv_location = -1;
-   nir_foreach_variable(var, &shader->inputs) {
+   nir_foreach_shader_in_variable(var, shader) {
      if ((int)var->data.location > highest_location)
          highest_location = var->data.location;
      if ((int)var->data.driver_location > highest_drv_location)

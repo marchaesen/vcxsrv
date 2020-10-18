@@ -660,6 +660,21 @@ _mesa_pointer_hash_table_create(void *mem_ctx)
                                   _mesa_key_pointer_equal);
 }
 
+
+bool
+_mesa_hash_table_reserve(struct hash_table *ht, unsigned size)
+{
+   if (size < ht->max_entries)
+      return true;
+   for (unsigned i = ht->size_index + 1; i < ARRAY_SIZE(hash_sizes); i++) {
+      if (hash_sizes[i].max_entries >= size) {
+         _mesa_hash_table_rehash(ht, i);
+         break;
+      }
+   }
+   return ht->max_entries >= size;
+}
+
 /**
  * Hash table wrapper which supports 64-bit keys.
  *

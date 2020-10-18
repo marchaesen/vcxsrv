@@ -113,10 +113,10 @@ extern _X_EXPORT PixmapPtr AllocatePixmap(ScreenPtr /*pScreen */ ,
 extern _X_EXPORT void FreePixmap(PixmapPtr /*pPixmap */ );
 
 extern _X_EXPORT PixmapPtr
-PixmapShareToSlave(PixmapPtr pixmap, ScreenPtr slave);
+PixmapShareToSecondary(PixmapPtr pixmap, ScreenPtr secondary);
 
 extern _X_EXPORT void
-PixmapUnshareSlavePixmap(PixmapPtr slave_pixmap);
+PixmapUnshareSecondaryPixmap(PixmapPtr secondary_pixmap);
 
 #define HAS_DIRTYTRACKING_ROTATION 1
 #define HAS_DIRTYTRACKING_DRAWABLE_SRC 1
@@ -130,7 +130,7 @@ extern _X_EXPORT Bool
 PixmapStopDirtyTracking(DrawablePtr src, PixmapPtr slave_dst);
 
 /* helper function, drivers can do this themselves if they can do it more
-   efficently */
+   efficiently */
 extern _X_EXPORT Bool
 PixmapSyncDirtyHelper(PixmapDirtyUpdatePtr dirty);
 

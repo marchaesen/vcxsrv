@@ -30,6 +30,7 @@
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
 #include "util/u_upload_mgr.h"
+#include "compiler/shader_info.h"
 
 /* 0 = disabled, 1 = assertions, 2 = printfs */
 #define TC_DEBUG 0
@@ -696,11 +697,41 @@ tc_set_constant_buffer(struct pipe_context *_pipe,
       } else {
          tc_set_resource_reference(&p->cb.buffer,
                                    cb->buffer);
-         memcpy(&p->cb, cb, sizeof(*cb));
+         p->cb.user_buffer = NULL;
+         p->cb.buffer_offset = cb->buffer_offset;
+         p->cb.buffer_size = cb->buffer_size;
       }
    } else {
       memset(&p->cb, 0, sizeof(*cb));
    }
+}
+
+struct tc_inlinable_constants {
+   ubyte shader;
+   ubyte num_values;
+   uint32_t values[MAX_INLINABLE_UNIFORMS];
+};
+
+static void
+tc_call_set_inlinable_constants(struct pipe_context *pipe, union tc_payload *payload)
+{
+   struct tc_inlinable_constants *p = (struct tc_inlinable_constants *)payload;
+
+   pipe->set_inlinable_constants(pipe, p->shader, p->num_values, p->values);
+}
+
+static void
+tc_set_inlinable_constants(struct pipe_context *_pipe,
+                           enum pipe_shader_type shader,
+                           uint num_values, uint32_t *values)
+{
+   struct threaded_context *tc = threaded_context(_pipe);
+   struct tc_inlinable_constants *p =
+      tc_add_struct_typed_call(tc, TC_CALL_set_inlinable_constants,
+                               tc_inlinable_constants);
+   p->shader = shader;
+   p->num_values = num_values;
+   memcpy(p->values, values, num_values * 4);
 }
 
 struct tc_scissors {
@@ -1359,17 +1390,17 @@ tc_improve_map_buffer_flags(struct threaded_context *tc,
       return usage;
 
    /* Use the staging upload if it's preferred. */
-   if (usage & (PIPE_TRANSFER_DISCARD_RANGE |
-                PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE) &&
-       !(usage & PIPE_TRANSFER_PERSISTENT) &&
+   if (usage & (PIPE_MAP_DISCARD_RANGE |
+                PIPE_MAP_DISCARD_WHOLE_RESOURCE) &&
+       !(usage & PIPE_MAP_PERSISTENT) &&
        /* Try not to decrement the counter if it's not positive. Still racy,
         * but it makes it harder to wrap the counter from INT_MIN to INT_MAX. */
        tres->max_forced_staging_uploads > 0 &&
        p_atomic_dec_return(&tres->max_forced_staging_uploads) >= 0) {
-      usage &= ~(PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE |
-                 PIPE_TRANSFER_UNSYNCHRONIZED);
+      usage &= ~(PIPE_MAP_DISCARD_WHOLE_RESOURCE |
+                 PIPE_MAP_UNSYNCHRONIZED);
 
-      return usage | tc_flags | PIPE_TRANSFER_DISCARD_RANGE;
+      return usage | tc_flags | PIPE_MAP_DISCARD_RANGE;
    }
 
    /* Sparse buffers can't be mapped directly and can't be reallocated
@@ -1380,8 +1411,8 @@ tc_improve_map_buffer_flags(struct threaded_context *tc,
       /* We can use DISCARD_RANGE instead of full discard. This is the only
        * fast path for sparse buffers that doesn't need thread synchronization.
        */
-      if (usage & PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE)
-         usage |= PIPE_TRANSFER_DISCARD_RANGE;
+      if (usage & PIPE_MAP_DISCARD_WHOLE_RESOURCE)
+         usage |= PIPE_MAP_DISCARD_RANGE;
 
       /* Allow DISCARD_WHOLE_RESOURCE and infering UNSYNCHRONIZED in drivers.
        * The threaded context doesn't do unsychronized mappings and invalida-
@@ -1394,50 +1425,50 @@ tc_improve_map_buffer_flags(struct threaded_context *tc,
    usage |= tc_flags;
 
    /* Handle CPU reads trivially. */
-   if (usage & PIPE_TRANSFER_READ) {
-      if (usage & PIPE_TRANSFER_UNSYNCHRONIZED)
+   if (usage & PIPE_MAP_READ) {
+      if (usage & PIPE_MAP_UNSYNCHRONIZED)
          usage |= TC_TRANSFER_MAP_THREADED_UNSYNC; /* don't sync */
 
       /* Drivers aren't allowed to do buffer invalidations. */
-      return usage & ~PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE;
+      return usage & ~PIPE_MAP_DISCARD_WHOLE_RESOURCE;
    }
 
    /* See if the buffer range being mapped has never been initialized,
     * in which case it can be mapped unsynchronized. */
-   if (!(usage & PIPE_TRANSFER_UNSYNCHRONIZED) &&
+   if (!(usage & PIPE_MAP_UNSYNCHRONIZED) &&
        !tres->is_shared &&
        !util_ranges_intersect(&tres->valid_buffer_range, offset, offset + size))
-      usage |= PIPE_TRANSFER_UNSYNCHRONIZED;
+      usage |= PIPE_MAP_UNSYNCHRONIZED;
 
-   if (!(usage & PIPE_TRANSFER_UNSYNCHRONIZED)) {
+   if (!(usage & PIPE_MAP_UNSYNCHRONIZED)) {
       /* If discarding the entire range, discard the whole resource instead. */
-      if (usage & PIPE_TRANSFER_DISCARD_RANGE &&
+      if (usage & PIPE_MAP_DISCARD_RANGE &&
           offset == 0 && size == tres->b.width0)
-         usage |= PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE;
+         usage |= PIPE_MAP_DISCARD_WHOLE_RESOURCE;
 
       /* Discard the whole resource if needed. */
-      if (usage & PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE) {
+      if (usage & PIPE_MAP_DISCARD_WHOLE_RESOURCE) {
          if (tc_invalidate_buffer(tc, tres))
-            usage |= PIPE_TRANSFER_UNSYNCHRONIZED;
+            usage |= PIPE_MAP_UNSYNCHRONIZED;
          else
-            usage |= PIPE_TRANSFER_DISCARD_RANGE; /* fallback */
+            usage |= PIPE_MAP_DISCARD_RANGE; /* fallback */
       }
    }
 
    /* We won't need this flag anymore. */
    /* TODO: We might not need TC_TRANSFER_MAP_NO_INVALIDATE with this. */
-   usage &= ~PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE;
+   usage &= ~PIPE_MAP_DISCARD_WHOLE_RESOURCE;
 
    /* GL_AMD_pinned_memory and persistent mappings can't use staging
     * buffers. */
-   if (usage & (PIPE_TRANSFER_UNSYNCHRONIZED |
-                PIPE_TRANSFER_PERSISTENT) ||
+   if (usage & (PIPE_MAP_UNSYNCHRONIZED |
+                PIPE_MAP_PERSISTENT) ||
        tres->is_user_ptr)
-      usage &= ~PIPE_TRANSFER_DISCARD_RANGE;
+      usage &= ~PIPE_MAP_DISCARD_RANGE;
 
    /* Unsychronized buffer mappings don't have to synchronize the thread. */
-   if (usage & PIPE_TRANSFER_UNSYNCHRONIZED) {
-      usage &= ~PIPE_TRANSFER_DISCARD_RANGE;
+   if (usage & PIPE_MAP_UNSYNCHRONIZED) {
+      usage &= ~PIPE_MAP_DISCARD_RANGE;
       usage |= TC_TRANSFER_MAP_THREADED_UNSYNC; /* notify the driver */
    }
 
@@ -1460,7 +1491,7 @@ tc_transfer_map(struct pipe_context *_pipe,
       /* Do a staging transfer within the threaded context. The driver should
        * only get resource_copy_region.
        */
-      if (usage & PIPE_TRANSFER_DISCARD_RANGE) {
+      if (usage & PIPE_MAP_DISCARD_RANGE) {
          struct threaded_transfer *ttrans = slab_alloc(&tc->pool_transfers);
          uint8_t *map;
 
@@ -1488,8 +1519,8 @@ tc_transfer_map(struct pipe_context *_pipe,
    /* Unsychronized buffer mappings don't have to synchronize the thread. */
    if (!(usage & TC_TRANSFER_MAP_THREADED_UNSYNC))
       tc_sync_msg(tc, resource->target != PIPE_BUFFER ? "  texture" :
-                      usage & PIPE_TRANSFER_DISCARD_RANGE ? "  discard_range" :
-                      usage & PIPE_TRANSFER_READ ? "  read" : "  ??");
+                      usage & PIPE_MAP_DISCARD_RANGE ? "  discard_range" :
+                      usage & PIPE_MAP_READ ? "  read" : "  ??");
 
    tc->bytes_mapped_estimate += box->width;
 
@@ -1559,8 +1590,8 @@ tc_transfer_flush_region(struct pipe_context *_pipe,
    struct threaded_context *tc = threaded_context(_pipe);
    struct threaded_transfer *ttrans = threaded_transfer(transfer);
    struct threaded_resource *tres = threaded_resource(transfer->resource);
-   unsigned required_usage = PIPE_TRANSFER_WRITE |
-                             PIPE_TRANSFER_FLUSH_EXPLICIT;
+   unsigned required_usage = PIPE_MAP_WRITE |
+                             PIPE_MAP_FLUSH_EXPLICIT;
 
    if (tres->b.target == PIPE_BUFFER) {
       if ((transfer->usage & required_usage) == required_usage) {
@@ -1599,24 +1630,24 @@ tc_transfer_unmap(struct pipe_context *_pipe, struct pipe_transfer *transfer)
    struct threaded_transfer *ttrans = threaded_transfer(transfer);
    struct threaded_resource *tres = threaded_resource(transfer->resource);
 
-   /* PIPE_TRANSFER_THREAD_SAFE is only valid with UNSYNCHRONIZED. It can be
+   /* PIPE_MAP_THREAD_SAFE is only valid with UNSYNCHRONIZED. It can be
     * called from any thread and bypasses all multithreaded queues.
     */
-   if (transfer->usage & PIPE_TRANSFER_THREAD_SAFE) {
-      assert(transfer->usage & PIPE_TRANSFER_UNSYNCHRONIZED);
-      assert(!(transfer->usage & (PIPE_TRANSFER_FLUSH_EXPLICIT |
-                                  PIPE_TRANSFER_DISCARD_RANGE)));
+   if (transfer->usage & PIPE_MAP_THREAD_SAFE) {
+      assert(transfer->usage & PIPE_MAP_UNSYNCHRONIZED);
+      assert(!(transfer->usage & (PIPE_MAP_FLUSH_EXPLICIT |
+                                  PIPE_MAP_DISCARD_RANGE)));
 
       struct pipe_context *pipe = tc->pipe;
-      pipe->transfer_unmap(pipe, transfer);
       util_range_add(&tres->b, tres->base_valid_buffer_range,
                       transfer->box.x, transfer->box.x + transfer->box.width);
+      pipe->transfer_unmap(pipe, transfer);
       return;
    }
 
    if (tres->b.target == PIPE_BUFFER) {
-      if (transfer->usage & PIPE_TRANSFER_WRITE &&
-          !(transfer->usage & PIPE_TRANSFER_FLUSH_EXPLICIT))
+      if (transfer->usage & PIPE_MAP_WRITE &&
+          !(transfer->usage & PIPE_MAP_FLUSH_EXPLICIT))
          tc_buffer_do_flush_region(tc, ttrans, &transfer->box);
 
       /* Staging transfers don't send the call to the driver. */
@@ -1669,19 +1700,19 @@ tc_buffer_subdata(struct pipe_context *_pipe,
    if (!size)
       return;
 
-   usage |= PIPE_TRANSFER_WRITE;
+   usage |= PIPE_MAP_WRITE;
 
-   /* PIPE_TRANSFER_MAP_DIRECTLY supresses implicit DISCARD_RANGE. */
-   if (!(usage & PIPE_TRANSFER_MAP_DIRECTLY))
-      usage |= PIPE_TRANSFER_DISCARD_RANGE;
+   /* PIPE_MAP_DIRECTLY supresses implicit DISCARD_RANGE. */
+   if (!(usage & PIPE_MAP_DIRECTLY))
+      usage |= PIPE_MAP_DISCARD_RANGE;
 
    usage = tc_improve_map_buffer_flags(tc, tres, usage, offset, size);
 
    /* Unsychronized and big transfers should use transfer_map. Also handle
     * full invalidations, because drivers aren't allowed to do them.
     */
-   if (usage & (PIPE_TRANSFER_UNSYNCHRONIZED |
-                PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE) ||
+   if (usage & (PIPE_MAP_UNSYNCHRONIZED |
+                PIPE_MAP_DISCARD_WHOLE_RESOURCE) ||
        size > TC_MAX_SUBDATA_BYTES) {
       struct pipe_transfer *transfer;
       struct pipe_box box;
@@ -1993,6 +2024,20 @@ tc_set_context_param(struct pipe_context *_pipe,
    }
 }
 
+static void
+tc_call_set_frontend_noop(struct pipe_context *pipe, union tc_payload *payload)
+{
+   pipe->set_frontend_noop(pipe, payload->boolean);
+}
+
+static void
+tc_set_frontend_noop(struct pipe_context *_pipe, bool enable)
+{
+   struct threaded_context *tc = threaded_context(_pipe);
+
+   tc_add_small_call(tc, TC_CALL_set_frontend_noop)->boolean = enable;
+}
+
 
 /********************************************************************
  * draw, launch, clear, blit, copy, flush
@@ -2039,19 +2084,7 @@ tc_flush(struct pipe_context *_pipe, struct pipe_fence_handle **fence,
    struct threaded_context *tc = threaded_context(_pipe);
    struct pipe_context *pipe = tc->pipe;
    struct pipe_screen *screen = pipe->screen;
-   bool async = flags & PIPE_FLUSH_DEFERRED;
-
-   if (flags & PIPE_FLUSH_ASYNC) {
-      struct tc_batch *last = &tc->batch_slots[tc->last];
-
-      /* Prefer to do the flush in the driver thread, but avoid the inter-thread
-       * communication overhead if the driver thread is currently idle and the
-       * caller is going to wait for the fence immediately anyway.
-       */
-      if (!(util_queue_fence_is_signalled(&last->fence) &&
-            (flags & PIPE_FLUSH_HINT_FINISH)))
-         async = true;
-   }
+   bool async = flags & (PIPE_FLUSH_DEFERRED | PIPE_FLUSH_ASYNC);
 
    if (async && tc->create_fence) {
       if (fence) {
@@ -2746,6 +2779,7 @@ threaded_context_create(struct pipe_context *pipe,
    CTX_INIT(set_min_samples);
    CTX_INIT(set_clip_state);
    CTX_INIT(set_constant_buffer);
+   CTX_INIT(set_inlinable_constants);
    CTX_INIT(set_framebuffer_state);
    CTX_INIT(set_polygon_stipple);
    CTX_INIT(set_scissor_states);
@@ -2793,6 +2827,7 @@ threaded_context_create(struct pipe_context *pipe,
    CTX_INIT(create_image_handle);
    CTX_INIT(delete_image_handle);
    CTX_INIT(make_image_handle_resident);
+   CTX_INIT(set_frontend_noop);
 #undef CTX_INIT
 
    if (out)

@@ -1,0 +1,236 @@
+traces-db:
+  download-url: "https://minio-packet.freedesktop.org/mesa-tracie-public/"
+
+traces:
+  - path: glmark2/desktop-blur-radius=5:effect=blur:passes=1:separable=true:windows=4.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 316650141be869c8afe76b42d3573b49
+  - path: glmark2/jellyfish.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 2c57f9d33489dd43c8807bd0f06c3ed8
+  - path: glxgears/glxgears-2.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: eb9b3d497be567f02a6e039fa32f2b13
+  - path: 0ad/0ad.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: c6261e56f37cc5d73b83d493561df646
+  - path: pathfinder/demo.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: c81c85f9b247dd1b06c3dd5b669cc283
+  - path: pathfinder/canvas_moire.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 78dd2357ad6e5ffc049a75bfb11c5497
+  - path: pathfinder/canvas_text.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 56d1398206ceea45562f80f8ea9d3814
+  - path: gputest/furmark.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: d71c0d8e6c46c8f29d1aa8d0ed7d3c87
+  - path: gputest/pixmark-piano.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 014b88f3357d32af0c306d4a14eb36ef
+  - path: gputest/triangle.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 2d0527e7288a0fc31099404546dadbfb
+  - path: humus/Portals.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: b6f00f39566152c3c8462903b7a1f258
+  - path: glmark2/buffer-columns=200:interleave=false:update-dispersion=0.9:update-fraction=0.5:update-method=map.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: ee76b7ffb344d545ee22c1b83d61f893
+  - path: glmark2/buffer-columns=200:interleave=false:update-dispersion=0.9:update-fraction=0.5:update-method=subdata.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 8f90923d9b9daf7b3708f10b3b019af8
+  - path: glmark2/buffer-columns=200:interleave=true:update-dispersion=0.9:update-fraction=0.5:update-method=map.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: db55995d943f1284c39637a116ceb645
+  - path: glmark2/bump-bump-render=height.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: da75c0dfbcb27b44fbaed15b2f29509c
+  - path: glmark2/bump-bump-render=high-poly.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: e2e83a59d4eb6763d2fe922932aa14b5
+  - path: glmark2/bump-bump-render=normals.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: b7beae443e41e229d34da46ab2047a98
+  - path: glmark2/conditionals-fragment-steps=0:vertex-steps=0.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: e95f9a5ce73727a92eeb4109d28caba4
+  - path: glmark2/conditionals-fragment-steps=0:vertex-steps=5.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: e9ff7521f88eebd8a6770ab5eb28fad4
+  - path: glmark2/conditionals-fragment-steps=5:vertex-steps=0.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 0381a3eb918cfecec03a64d06158d1a3
+  - path: glmark2/desktop-effect=shadow:windows=4.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: c21cf8fe26107351eaa97725e6f9883f
+  - path: glmark2/effect2d-kernel=0,1,0;1,-4,1;0,1,0.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 2958ae3442ed26b681b6978e278ba10d
+  - path: glmark2/effect2d-kernel=1,1,1,1,1;1,1,1,1,1;1,1,1,1,1;.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 2d4384b59505215932dc2f01ae174379
+  - path: glmark2/function-fragment-complexity=low:fragment-steps=5.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: f84fc1a1ff1a8342678bca081f8a5c0d
+  - path: glmark2/function-fragment-complexity=medium:fragment-steps=5.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 4097ffd5e97bd56589dfab374574d116
+  - path: glmark2/glmark2-build-use-vbo-false.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: e344777696ef13adc2bd943dfd4199a2
+  - path: glmark2/glmark2-build-use-vbo-true.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 51da69c3490816c93c130e63686d2483
+  - path: glmark2/ideas-speed=duration.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 966191b52dc4885cfc56c0e7c80856b2
+  - path: glmark2/loop-fragment-loop=false:fragment-steps=5:vertex-steps=5.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 65cfa43254eaa0ca09ceb8792b4e4ee7
+  - path: glmark2/loop-fragment-steps=5:fragment-uniform=false:vertex-steps=5.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 716f1ebf84d9ab30a8c4261ecbed492b
+  - path: glmark2/loop-fragment-steps=5:fragment-uniform=true:vertex-steps=5.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 45061884dc857a9e0c31d0b0c02d4cbe
+  - path: glmark2/pulsar-light=false:quads=5:texture=false.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 605881a1cb0d8d59e28e19663b6f5eb0
+  - path: glmark2/refract.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: db300d3a8afb6cecc19ae8e38c7b87c6
+  - path: glmark2/shading-shading=blinn-phong-inf.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 36b193b33127144f8080aa60d582e65e
+  - path: glmark2/shading-shading=cel.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: faac1e367720e1ccd9820f2b78808294
+  - path: glmark2/shading-shading=gouraud.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 22bd04eb9862eb4ecff525ac83b2826d
+  - path: glmark2/shading-shading=phong.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: fda002d281d57b3eacb5c2c8f619a62d
+  - path: glmark2/shadow.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 03dfbf026a0f0ab643e5a6ef19623e81
+  - path: glmark2/terrain.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 52f19a65bd77ae03b5f51ee0038a2982
+  - path: glmark2/texture-texture-filter=linear.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 992eb4af603d68a3920014f64f0973b1
+  - path: glmark2/texture-texture-filter=mipmap.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: c635b1741e4103cf48cd554882e15a4c
+  - path: glmark2/texture-texture-filter=nearest.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: bd00656bf6683dae40bfa26a6416061d
+  - path: godot/Material Testers.x86_64_2020.04.08_13.38_frame799.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 41a0b6eddecdf1df645ccf34082aac88
+  - path: gputest/gimark.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 98e742377cef049e98014300a34d7bba
+  - path: gputest/pixmark-julia-fp32.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: ad472cdef2a68ffaabcbf2a694c4aefe
+  - path: gputest/pixmark-julia-fp64.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: b181b0a910f5ae5b161df70f834c3d5f
+  - path: gputest/pixmark-volplosion.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 708f92a8ac8aef23a4a544cc5ec755d6
+  - path: gputest/plot3d.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: f9e6c1cb70add69cf2a4724800d48b25
+  - path: gputest/tessmark.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: d6597f93caa383c492d8290036c60919
+  - path: humus/AmbientAperture.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 56291d097c4be9c079fb771c849c6a2e
+  - path: humus/CelShading.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 7d30dbe3470873c327464ea7ebe6bcf0
+  - path: humus/DynamicBranching3.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 0f02743d054c66f04da404add87d67dc
+  - path: humus/HDR.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: b44ce4cb377321f6423a5a62a9083794
+  - path: humus/RaytracedShadows.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 4209605af96a1d7c20aa7324aa93839f
+  - path: humus/VolumetricFogging2.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 12ad73ad05b01854da65eb0094612ebf
+  - path: supertuxkart/supertuxkart-antediluvian-abyss.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: a2c4c127873f93b7db4ef48ea9fb7689
+  - path: supertuxkart/supertuxkart-menu.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: bc851bb8808b311c2df9c36a6c289e6e
+  - path: supertuxkart/supertuxkart-ravenbridge-mansion.rdc
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: c8f9eae92c67c7d53db4d69a703e3914

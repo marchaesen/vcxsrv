@@ -265,7 +265,7 @@ dependent information, handling charset, converting text, etc.
 </para>
 
 <para>
-As a result of using these APIs instead of accessing vender private
+As a result of using these APIs instead of accessing vendor private
 extension of the locale object, we can keep locale, IM and OM
 independently each other.
 </para>

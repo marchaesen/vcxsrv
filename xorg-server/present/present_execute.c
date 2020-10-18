@@ -48,16 +48,13 @@ present_execute_wait(present_vblank_ptr vblank, uint64_t crtc_msc)
     ScreenPtr                   screen = window->drawable.pScreen;
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
 
-    if (vblank->requeue) {
-        vblank->requeue = FALSE;
-        if (msc_is_after(vblank->target_msc, crtc_msc) &&
-            Success == screen_priv->queue_vblank(screen,
-                                                 window,
-                                                 vblank->crtc,
-                                                 vblank->event_id,
-                                                 vblank->target_msc))
-            return TRUE;
-    }
+    /* We may have to requeue for the next MSC if check_flip_window prevented
+     * using a flip.
+     */
+    if (vblank->exec_msc == crtc_msc + 1 &&
+        screen_priv->queue_vblank(screen, window, vblank->crtc, vblank->event_id,
+                                  vblank->exec_msc) == Success)
+        return TRUE;
 
     if (vblank->wait_fence) {
         if (!present_fence_check_triggered(vblank->wait_fence)) {
@@ -75,13 +72,13 @@ present_execute_copy(present_vblank_ptr vblank, uint64_t crtc_msc)
     ScreenPtr                   screen = window->drawable.pScreen;
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
 
-    /* If present_flip failed, we may have to requeue for the target MSC */
-    if (vblank->target_msc == crtc_msc + 1 &&
+    /* If present_flip failed, we may have to requeue for the next MSC */
+    if (vblank->exec_msc == crtc_msc + 1 &&
         Success == screen_priv->queue_vblank(screen,
                                              window,
                                              vblank->crtc,
                                              vblank->event_id,
-                                             vblank->target_msc)) {
+                                             vblank->exec_msc)) {
         vblank->queued = TRUE;
         return;
     }

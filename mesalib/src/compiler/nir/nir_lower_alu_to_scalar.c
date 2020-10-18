@@ -114,6 +114,8 @@ lower_alu_instr_scalar(nir_builder *b, nir_instr *instr, void *_data)
    case name##2: \
    case name##3: \
    case name##4: \
+   case name##8: \
+   case name##16: \
       return lower_reduction(alu, chan, merge, b); \
 
    switch (alu->op) {
@@ -215,19 +217,19 @@ lower_alu_instr_scalar(nir_builder *b, nir_instr *instr, void *_data)
       LOWER_REDUCTION(nir_op_fdot, nir_op_fmul, nir_op_fadd);
       LOWER_REDUCTION(nir_op_ball_fequal, nir_op_feq, nir_op_iand);
       LOWER_REDUCTION(nir_op_ball_iequal, nir_op_ieq, nir_op_iand);
-      LOWER_REDUCTION(nir_op_bany_fnequal, nir_op_fne, nir_op_ior);
+      LOWER_REDUCTION(nir_op_bany_fnequal, nir_op_fneu, nir_op_ior);
       LOWER_REDUCTION(nir_op_bany_inequal, nir_op_ine, nir_op_ior);
       LOWER_REDUCTION(nir_op_b8all_fequal, nir_op_feq8, nir_op_iand);
       LOWER_REDUCTION(nir_op_b8all_iequal, nir_op_ieq8, nir_op_iand);
-      LOWER_REDUCTION(nir_op_b8any_fnequal, nir_op_fne8, nir_op_ior);
+      LOWER_REDUCTION(nir_op_b8any_fnequal, nir_op_fneu8, nir_op_ior);
       LOWER_REDUCTION(nir_op_b8any_inequal, nir_op_ine8, nir_op_ior);
       LOWER_REDUCTION(nir_op_b16all_fequal, nir_op_feq16, nir_op_iand);
       LOWER_REDUCTION(nir_op_b16all_iequal, nir_op_ieq16, nir_op_iand);
-      LOWER_REDUCTION(nir_op_b16any_fnequal, nir_op_fne16, nir_op_ior);
+      LOWER_REDUCTION(nir_op_b16any_fnequal, nir_op_fneu16, nir_op_ior);
       LOWER_REDUCTION(nir_op_b16any_inequal, nir_op_ine16, nir_op_ior);
       LOWER_REDUCTION(nir_op_b32all_fequal, nir_op_feq32, nir_op_iand);
       LOWER_REDUCTION(nir_op_b32all_iequal, nir_op_ieq32, nir_op_iand);
-      LOWER_REDUCTION(nir_op_b32any_fnequal, nir_op_fne32, nir_op_ior);
+      LOWER_REDUCTION(nir_op_b32any_fnequal, nir_op_fneu32, nir_op_ior);
       LOWER_REDUCTION(nir_op_b32any_inequal, nir_op_ine32, nir_op_ior);
       LOWER_REDUCTION(nir_op_fall_equal, nir_op_seq, nir_op_fmin);
       LOWER_REDUCTION(nir_op_fany_nequal, nir_op_sne, nir_op_fmax);

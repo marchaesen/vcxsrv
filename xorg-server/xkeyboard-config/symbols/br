@@ -36,8 +36,6 @@ xkb_symbols "abnt2" {
     // The ABNT-2 keyboard has this special key:
     key <AB11> { [        slash,       question,        degree,    questiondown ] };
 
-    modifier_map Mod3   { Scroll_Lock };
-
     include "kpdl(comma)"
 
     include "level3(ralt_switch)"

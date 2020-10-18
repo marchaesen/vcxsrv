@@ -134,6 +134,10 @@ clGetKernelInfo(cl_kernel d_kern, cl_kernel_info param,
       buf.as_scalar<cl_program>() = desc(kern.program());
       break;
 
+   case CL_KERNEL_ATTRIBUTES:
+      buf.as_string() = find(name_equals(kern.name()), kern.program().symbols()).attributes;
+      break;
+
    default:
       throw error(CL_INVALID_VALUE);
    }
@@ -192,9 +196,46 @@ clGetKernelWorkGroupInfo(cl_kernel d_kern, cl_device_id d_dev,
 CLOVER_API cl_int
 clGetKernelArgInfo(cl_kernel d_kern,
                    cl_uint idx, cl_kernel_arg_info param,
-                   size_t size, void *r_buf, size_t *r_size) {
-   CLOVER_NOT_SUPPORTED_UNTIL("1.2");
-   return CL_KERNEL_ARG_INFO_NOT_AVAILABLE;
+                   size_t size, void *r_buf, size_t *r_size) try {
+   property_buffer buf { r_buf, size, r_size };
+
+   auto info = obj(d_kern).args_infos().at(idx);
+
+   if (info.arg_name.empty())
+      return CL_KERNEL_ARG_INFO_NOT_AVAILABLE;
+
+   switch (param) {
+   case CL_KERNEL_ARG_ADDRESS_QUALIFIER:
+      buf.as_scalar<cl_kernel_arg_address_qualifier>() = info.address_qualifier;
+      break;
+
+   case CL_KERNEL_ARG_ACCESS_QUALIFIER:
+      buf.as_scalar<cl_kernel_arg_access_qualifier>() = info.access_qualifier;
+      break;
+
+   case CL_KERNEL_ARG_TYPE_NAME:
+      buf.as_string() = info.type_name;
+      break;
+
+   case CL_KERNEL_ARG_TYPE_QUALIFIER:
+      buf.as_scalar<cl_kernel_arg_type_qualifier>() = info.type_qualifier;
+      break;
+
+   case CL_KERNEL_ARG_NAME:
+      buf.as_string() = info.arg_name;
+      break;
+
+   default:
+      throw error(CL_INVALID_VALUE);
+   }
+
+   return CL_SUCCESS;
+
+} catch (std::out_of_range &e) {
+   return CL_INVALID_ARG_INDEX;
+
+} catch (error &e) {
+   return e.get();
 }
 
 namespace {

@@ -26,18 +26,20 @@
 
 #include "compiler/nir/nir.h"
 #include "util/u_dynarray.h"
-#include "panfrost-job.h"
 #include "panfrost/util/pan_ir.h"
 
 int
-midgard_compile_shader_nir(nir_shader *nir, panfrost_program *program, bool is_blend, unsigned blend_rt, unsigned gpu_id, bool shaderdb);
+midgard_compile_shader_nir(nir_shader *nir, panfrost_program *program,
+                           const struct panfrost_compile_inputs *inputs);
 
 /* NIR options are shared between the standalone compiler and the online
  * compiler. Defining it here is the simplest, though maybe not the Right
  * solution. */
 
 static const nir_shader_compiler_options midgard_nir_options = {
-        .lower_ffma = true,
+        .lower_ffma16 = true,
+        .lower_ffma32 = true,
+        .lower_ffma64 = true,
         .lower_scmp = true,
         .lower_flrp16 = true,
         .lower_flrp32 = true,
@@ -45,7 +47,6 @@ static const nir_shader_compiler_options midgard_nir_options = {
         .lower_ffract = true,
         .lower_fmod = true,
         .lower_fdiv = true,
-        .lower_idiv = true,
         .lower_isign = true,
         .lower_fpow = true,
         .lower_find_lsb = true,

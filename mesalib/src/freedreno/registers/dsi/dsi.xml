@@ -1,0 +1,1219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<database xmlns="http://nouveau.freedesktop.org/"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
+<import file="freedreno_copyright.xml"/>
+
+<domain name="DSI" width="32">
+	<enum name="dsi_traffic_mode">
+		<value name="NON_BURST_SYNCH_PULSE" value="0"/>
+		<value name="NON_BURST_SYNCH_EVENT" value="1"/>
+		<value name="BURST_MODE" value="2"/>
+	</enum>
+	<enum name="dsi_vid_dst_format">
+		<value name="VID_DST_FORMAT_RGB565" value="0"/>
+		<value name="VID_DST_FORMAT_RGB666" value="1"/>
+		<value name="VID_DST_FORMAT_RGB666_LOOSE" value="2"/>
+		<value name="VID_DST_FORMAT_RGB888" value="3"/>
+	</enum>
+	<enum name="dsi_rgb_swap">
+		<value name="SWAP_RGB" value="0"/>
+		<value name="SWAP_RBG" value="1"/>
+		<value name="SWAP_BGR" value="2"/>
+		<value name="SWAP_BRG" value="3"/>
+		<value name="SWAP_GRB" value="4"/>
+		<value name="SWAP_GBR" value="5"/>
+	</enum>
+	<enum name="dsi_cmd_trigger">
+		<value name="TRIGGER_NONE" value="0"/>
+		<value name="TRIGGER_SEOF" value="1"/>
+		<value name="TRIGGER_TE" value="2"/>
+		<value name="TRIGGER_SW" value="4"/>
+		<value name="TRIGGER_SW_SEOF" value="5"/>
+		<value name="TRIGGER_SW_TE" value="6"/>
+	</enum>
+	<enum name="dsi_cmd_dst_format">
+		<value name="CMD_DST_FORMAT_RGB111" value="0"/>
+		<value name="CMD_DST_FORMAT_RGB332" value="3"/>
+		<value name="CMD_DST_FORMAT_RGB444" value="4"/>
+		<value name="CMD_DST_FORMAT_RGB565" value="6"/>
+		<value name="CMD_DST_FORMAT_RGB666" value="7"/>
+		<value name="CMD_DST_FORMAT_RGB888" value="8"/>
+	</enum>
+	<enum name="dsi_lane_swap">
+		<value name="LANE_SWAP_0123" value="0"/>
+		<value name="LANE_SWAP_3012" value="1"/>
+		<value name="LANE_SWAP_2301" value="2"/>
+		<value name="LANE_SWAP_1230" value="3"/>
+		<value name="LANE_SWAP_0321" value="4"/>
+		<value name="LANE_SWAP_1032" value="5"/>
+		<value name="LANE_SWAP_2103" value="6"/>
+		<value name="LANE_SWAP_3210" value="7"/>
+	</enum>
+	<bitset name="DSI_IRQ">
+		<bitfield name="CMD_DMA_DONE" pos="0" type="boolean"/>
+		<bitfield name="MASK_CMD_DMA_DONE" pos="1" type="boolean"/>
+		<bitfield name="CMD_MDP_DONE" pos="8" type="boolean"/>
+		<bitfield name="MASK_CMD_MDP_DONE" pos="9" type="boolean"/>
+		<bitfield name="VIDEO_DONE" pos="16" type="boolean"/>
+		<bitfield name="MASK_VIDEO_DONE" pos="17" type="boolean"/>
+		<bitfield name="BTA_DONE" pos="20" type="boolean"/>
+		<bitfield name="MASK_BTA_DONE" pos="21" type="boolean"/>
+		<bitfield name="ERROR" pos="24" type="boolean"/>
+		<bitfield name="MASK_ERROR" pos="25" type="boolean"/>
+	</bitset>
+
+	<reg32 offset="0x00000" name="6G_HW_VERSION">
+		<bitfield name="MAJOR" low="28" high="31" type="uint"/>
+		<bitfield name="MINOR" low="16" high="27" type="uint"/>
+		<bitfield name="STEP" low="0" high="15" type="uint"/>
+	</reg32>
+
+	<reg32 offset="0x00000" name="CTRL">
+		<bitfield name="ENABLE" pos="0" type="boolean"/>
+		<bitfield name="VID_MODE_EN" pos="1" type="boolean"/>
+		<bitfield name="CMD_MODE_EN" pos="2" type="boolean"/>
+		<bitfield name="LANE0" pos="4" type="boolean"/>
+		<bitfield name="LANE1" pos="5" type="boolean"/>
+		<bitfield name="LANE2" pos="6" type="boolean"/>
+		<bitfield name="LANE3" pos="7" type="boolean"/>
+		<bitfield name="CLK_EN" pos="8" type="boolean"/>
+		<bitfield name="ECC_CHECK" pos="20" type="boolean"/>
+		<bitfield name="CRC_CHECK" pos="24" type="boolean"/>
+	</reg32>
+
+	<reg32 offset="0x00004" name="STATUS0">
+		<bitfield name="CMD_MODE_ENGINE_BUSY" pos="0" type="boolean"/>
+		<bitfield name="CMD_MODE_DMA_BUSY" pos="1" type="boolean"/>
+		<bitfield name="CMD_MODE_MDP_BUSY" pos="2" type="boolean"/>
+		<bitfield name="VIDEO_MODE_ENGINE_BUSY" pos="3" type="boolean"/>
+		<bitfield name="DSI_BUSY" pos="4" type="boolean"/>  <!-- see mipi_dsi_cmd_bta_sw_trigger() -->
+		<bitfield name="INTERLEAVE_OP_CONTENTION" pos="31" type="boolean"/>
+	</reg32>
+
+	<reg32 offset="0x00008" name="FIFO_STATUS">
+		<bitfield name="VIDEO_MDP_FIFO_OVERFLOW" pos="0" type="boolean"/>
+		<bitfield name="VIDEO_MDP_FIFO_UNDERFLOW" pos="3" type="boolean"/>
+		<bitfield name="CMD_MDP_FIFO_UNDERFLOW" pos="7" type="boolean"/>
+		<bitfield name="CMD_DMA_FIFO_RD_WATERMARK_REACH" pos="8" type="boolean"/>
+		<bitfield name="CMD_DMA_FIFO_WR_WATERMARK_REACH" pos="9" type="boolean"/>
+		<bitfield name="CMD_DMA_FIFO_UNDERFLOW" pos="10" type="boolean"/>
+		<bitfield name="DLN0_LP_FIFO_EMPTY"     pos="12" type="boolean"/>
+		<bitfield name="DLN0_LP_FIFO_FULL"      pos="13" type="boolean"/>
+		<bitfield name="DLN0_LP_FIFO_OVERFLOW"  pos="14" type="boolean"/>
+		<bitfield name="DLN0_HS_FIFO_EMPTY"     pos="16" type="boolean"/>
+		<bitfield name="DLN0_HS_FIFO_FULL"      pos="17" type="boolean"/>
+		<bitfield name="DLN0_HS_FIFO_OVERFLOW"  pos="18" type="boolean"/>
+		<bitfield name="DLN0_HS_FIFO_UNDERFLOW" pos="19" type="boolean"/>
+		<bitfield name="DLN1_HS_FIFO_EMPTY"     pos="20" type="boolean"/>
+		<bitfield name="DLN1_HS_FIFO_FULL"      pos="21" type="boolean"/>
+		<bitfield name="DLN1_HS_FIFO_OVERFLOW"  pos="22" type="boolean"/>
+		<bitfield name="DLN1_HS_FIFO_UNDERFLOW" pos="23" type="boolean"/>
+		<bitfield name="DLN2_HS_FIFO_EMPTY"     pos="24" type="boolean"/>
+		<bitfield name="DLN2_HS_FIFO_FULL"      pos="25" type="boolean"/>
+		<bitfield name="DLN2_HS_FIFO_OVERFLOW"  pos="26" type="boolean"/>
+		<bitfield name="DLN2_HS_FIFO_UNDERFLOW" pos="27" type="boolean"/>
+		<bitfield name="DLN3_HS_FIFO_EMPTY"     pos="28" type="boolean"/>
+		<bitfield name="DLN3_HS_FIFO_FULL"      pos="29" type="boolean"/>
+		<bitfield name="DLN3_HS_FIFO_OVERFLOW"  pos="30" type="boolean"/>
+		<bitfield name="DLN3_HS_FIFO_UNDERFLOW" pos="31" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x0000c" name="VID_CFG0">
+		<bitfield name="VIRT_CHANNEL" low="0" high="1" type="uint"/>  <!-- always zero? -->
+		<bitfield name="DST_FORMAT" low="4" high="5" type="dsi_vid_dst_format"/>
+		<bitfield name="TRAFFIC_MODE" low="8" high="9" type="dsi_traffic_mode"/>
+		<bitfield name="BLLP_POWER_STOP" pos="12" type="boolean"/>
+		<bitfield name="EOF_BLLP_POWER_STOP" pos="15" type="boolean"/>
+		<bitfield name="HSA_POWER_STOP" pos="16" type="boolean"/>
+		<bitfield name="HBP_POWER_STOP" pos="20" type="boolean"/>
+		<bitfield name="HFP_POWER_STOP" pos="24" type="boolean"/>
+		<bitfield name="PULSE_MODE_HSA_HE" pos="28" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x0001c" name="VID_CFG1">
+		<bitfield name="R_SEL" pos="0" type="boolean"/>
+		<bitfield name="G_SEL" pos="4" type="boolean"/>
+		<bitfield name="B_SEL" pos="8" type="boolean"/>
+		<bitfield name="RGB_SWAP" low="12" high="14" type="dsi_rgb_swap"/>
+	</reg32>
+	<reg32 offset="0x00020" name="ACTIVE_H">
+		<bitfield name="START" low="0" high="11" type="uint"/>
+		<bitfield name="END" low="16" high="27" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00024" name="ACTIVE_V">
+		<bitfield name="START" low="0" high="11" type="uint"/>
+		<bitfield name="END" low="16" high="27" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00028" name="TOTAL">
+		<bitfield name="H_TOTAL" low="0" high="11" type="uint"/>
+		<bitfield name="V_TOTAL" low="16" high="27" type="uint"/>
+	</reg32>
+	<reg32 offset="0x0002c" name="ACTIVE_HSYNC">
+		<bitfield name="START" low="0" high="11" type="uint"/>
+		<bitfield name="END" low="16" high="27" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00030" name="ACTIVE_VSYNC_HPOS">
+		<bitfield name="START" low="0" high="11" type="uint"/>
+		<bitfield name="END" low="16" high="27" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00034" name="ACTIVE_VSYNC_VPOS">
+		<bitfield name="START" low="0" high="11" type="uint"/>
+		<bitfield name="END" low="16" high="27" type="uint"/>
+	</reg32>
+
+	<reg32 offset="0x00038" name="CMD_DMA_CTRL">
+		<bitfield name="BROADCAST_EN" pos="31" type="boolean"/>
+		<bitfield name="FROM_FRAME_BUFFER" pos="28" type="boolean"/>
+		<bitfield name="LOW_POWER" pos="26" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x0003c" name="CMD_CFG0">
+		<bitfield name="DST_FORMAT" low="0" high="3" type="dsi_cmd_dst_format"/>
+		<bitfield name="R_SEL" pos="4" type="boolean"/>
+		<bitfield name="G_SEL" pos="8" type="boolean"/>
+		<bitfield name="B_SEL" pos="12" type="boolean"/>
+		<bitfield name="INTERLEAVE_MAX" low="20" high="23" type="uint"/>
+		<bitfield name="RGB_SWAP" low="16" high="18" type="dsi_rgb_swap"/>
+	</reg32>
+	<reg32 offset="0x00040" name="CMD_CFG1">
+		<bitfield name="WR_MEM_START" low="0" high="7" type="uint"/>
+		<bitfield name="WR_MEM_CONTINUE" low="8" high="15" type="uint"/>
+		<bitfield name="INSERT_DCS_COMMAND" pos="16" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x00044" name="DMA_BASE"/>
+	<reg32 offset="0x00048" name="DMA_LEN"/>
+	<reg32 offset="0x00054" name="CMD_MDP_STREAM0_CTRL">
+		<bitfield name="DATA_TYPE" low="0" high="5" type="uint"/>
+		<bitfield name="VIRTUAL_CHANNEL" low="8" high="9" type="uint"/>
+		<bitfield name="WORD_COUNT" low="16" high="31" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00058" name="CMD_MDP_STREAM0_TOTAL">
+		<bitfield name="H_TOTAL" low="0" high="11" type="uint"/>
+		<bitfield name="V_TOTAL" low="16" high="27" type="uint"/>
+	</reg32>
+	<reg32 offset="0x0005c" name="CMD_MDP_STREAM1_CTRL">
+		<bitfield name="DATA_TYPE" low="0" high="5" type="uint"/>
+		<bitfield name="VIRTUAL_CHANNEL" low="8" high="9" type="uint"/>
+		<bitfield name="WORD_COUNT" low="16" high="31" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00060" name="CMD_MDP_STREAM1_TOTAL">
+		<bitfield name="H_TOTAL" low="0" high="15" type="uint"/>
+		<bitfield name="V_TOTAL" low="16" high="31" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00064" name="ACK_ERR_STATUS"/>
+	<array offset="0x00068" name="RDBK" length="4" stride="4">
+		<reg32 offset="0x0" name="DATA"/>
+	</array>
+	<reg32 offset="0x00080" name="TRIG_CTRL">
+		<bitfield name="DMA_TRIGGER" low="0" high="2" type="dsi_cmd_trigger"/>
+		<bitfield name="MDP_TRIGGER" low="4" high="6" type="dsi_cmd_trigger"/>
+		<bitfield name="STREAM" low="8" high="9" type="uint"/>
+		<bitfield name="BLOCK_DMA_WITHIN_FRAME" pos="12" type="boolean"/>
+		<bitfield name="TE" pos="31" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x0008c" name="TRIG_DMA"/>
+	<reg32 offset="0x000b0" name="DLN0_PHY_ERR">
+		<bitfield name="DLN0_ERR_ESC" pos="0" type="boolean"/>
+		<bitfield name="DLN0_ERR_SYNC_ESC" pos="4" type="boolean"/>
+		<bitfield name="DLN0_ERR_CONTROL" pos="8" type="boolean"/>
+		<bitfield name="DLN0_ERR_CONTENTION_LP0" pos="12" type="boolean"/>
+		<bitfield name="DLN0_ERR_CONTENTION_LP1" pos="16" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x000b4" name="LP_TIMER_CTRL">
+		<bitfield name="LP_RX_TO" low="0" high="15" type="uint"/>
+		<bitfield name="BTA_TO" low="16" high="31" type="uint"/>
+	</reg32>
+	<reg32 offset="0x000b8" name="HS_TIMER_CTRL">
+		<bitfield name="HS_TX_TO" low="0" high="15" type="uint"/>
+		<bitfield name="TIMER_RESOLUTION" low="16" high="19" type="uint"/>
+		<bitfield name="HS_TX_TO_STOP_EN" pos="28" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x000bc" name="TIMEOUT_STATUS"/>
+	<reg32 offset="0x000c0" name="CLKOUT_TIMING_CTRL">
+		<bitfield name="T_CLK_PRE" low="0" high="5" type="uint"/>
+		<bitfield name="T_CLK_POST" low="8" high="13" type="uint"/>
+	</reg32>
+	<reg32 offset="0x000c8" name="EOT_PACKET_CTRL">
+		<bitfield name="TX_EOT_APPEND" pos="0" type="boolean"/>
+		<bitfield name="RX_EOT_IGNORE" pos="4" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x000a4" name="LANE_STATUS">
+		<bitfield name="DLN0_STOPSTATE" pos="0" type="boolean"/>
+		<bitfield name="DLN1_STOPSTATE" pos="1" type="boolean"/>
+		<bitfield name="DLN2_STOPSTATE" pos="2" type="boolean"/>
+		<bitfield name="DLN3_STOPSTATE" pos="3" type="boolean"/>
+		<bitfield name="CLKLN_STOPSTATE" pos="4" type="boolean"/>
+		<bitfield name="DLN0_ULPS_ACTIVE_NOT" pos="8" type="boolean"/>
+		<bitfield name="DLN1_ULPS_ACTIVE_NOT" pos="9" type="boolean"/>
+		<bitfield name="DLN2_ULPS_ACTIVE_NOT" pos="10" type="boolean"/>
+		<bitfield name="DLN3_ULPS_ACTIVE_NOT" pos="11" type="boolean"/>
+		<bitfield name="CLKLN_ULPS_ACTIVE_NOT" pos="12" type="boolean"/>
+		<bitfield name="DLN0_DIRECTION" pos="16" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x000a8" name="LANE_CTRL">
+		<bitfield name="CLKLN_HS_FORCE_REQUEST" pos="28" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x000ac" name="LANE_SWAP_CTRL">
+		<bitfield name="DLN_SWAP_SEL" low="0" high="2" type="dsi_lane_swap"/>
+	</reg32>
+	<reg32 offset="0x00108" name="ERR_INT_MASK0"/>
+	<reg32 offset="0x0010c" name="INTR_CTRL" type="DSI_IRQ"/>
+	<reg32 offset="0x00114" name="RESET"/>
+	<reg32 offset="0x00118" name="CLK_CTRL">
+		<bitfield name="AHBS_HCLK_ON" pos="0" type="boolean"/>
+		<bitfield name="AHBM_SCLK_ON" pos="1" type="boolean"/>
+		<bitfield name="PCLK_ON" pos="2" type="boolean"/>
+		<bitfield name="DSICLK_ON" pos="3" type="boolean"/>
+		<bitfield name="BYTECLK_ON" pos="4" type="boolean"/>
+		<bitfield name="ESCCLK_ON" pos="5" type="boolean"/>
+		<bitfield name="FORCE_ON_DYN_AHBM_HCLK" pos="9" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x0011c" name="CLK_STATUS">
+		<bitfield name="DSI_AON_AHBM_HCLK_ACTIVE" pos="0" type="boolean"/>
+		<bitfield name="DSI_DYN_AHBM_HCLK_ACTIVE" pos="1" type="boolean"/>
+		<bitfield name="DSI_AON_AHBS_HCLK_ACTIVE" pos="2" type="boolean"/>
+		<bitfield name="DSI_DYN_AHBS_HCLK_ACTIVE" pos="3" type="boolean"/>
+		<bitfield name="DSI_AON_DSICLK_ACTIVE" pos="4" type="boolean"/>
+		<bitfield name="DSI_DYN_DSICLK_ACTIVE" pos="5" type="boolean"/>
+		<bitfield name="DSI_AON_BYTECLK_ACTIVE" pos="6" type="boolean"/>
+		<bitfield name="DSI_DYN_BYTECLK_ACTIVE" pos="7" type="boolean"/>
+		<bitfield name="DSI_AON_ESCCLK_ACTIVE" pos="8" type="boolean"/>
+		<bitfield name="DSI_AON_PCLK_ACTIVE" pos="9" type="boolean"/>
+		<bitfield name="DSI_DYN_PCLK_ACTIVE" pos="10" type="boolean"/>
+		<bitfield name="DSI_DYN_CMD_PCLK_ACTIVE" pos="12" type="boolean"/>
+		<bitfield name="DSI_CMD_PCLK_ACTIVE" pos="13" type="boolean"/>
+		<bitfield name="DSI_VID_PCLK_ACTIVE" pos="14" type="boolean"/>
+		<bitfield name="DSI_CAM_BIST_PCLK_ACT" pos="15" type="boolean"/>
+		<bitfield name="PLL_UNLOCKED" pos="16" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x00128" name="PHY_RESET">
+		<bitfield name="RESET" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x0017c" name="T_CLK_PRE_EXTEND">
+		<bitfield name="INC_BY_2_BYTECLK" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x001b4" name="CMD_MODE_MDP_CTRL2">
+		<bitfield name="DST_FORMAT2" low="0" high="3" type="dsi_cmd_dst_format"/>
+		<bitfield name="R_SEL" pos="4" type="boolean"/>
+		<bitfield name="G_SEL" pos="5" type="boolean"/>
+		<bitfield name="B_SEL" pos="6" type="boolean"/>
+		<bitfield name="BYTE_MSB_LSB_FLIP" pos="7" type="boolean"/>
+		<bitfield name="RGB_SWAP" low="8" high="10" type="dsi_rgb_swap"/>
+		<bitfield name="INPUT_RGB_SWAP" low="12" high="14" type="dsi_rgb_swap"/>
+		<bitfield name="BURST_MODE" pos="16" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x001b8" name="CMD_MODE_MDP_STREAM2_CTRL">
+		<bitfield name="DATA_TYPE" low="0" high="5" type="uint"/>
+		<bitfield name="VIRTUAL_CHANNEL" low="8" high="9" type="uint"/>
+		<bitfield name="WORD_COUNT" low="16" high="31" type="uint"/>
+	</reg32>
+	<reg32 offset="0x001d0" name="RDBK_DATA_CTRL">
+		<bitfield name="COUNT" low="16" high="23" type="uint"/>
+		<bitfield name="CLR" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x001f0" name="VERSION">
+		<bitfield name="MAJOR" low="24" high="31" type="uint"/>
+	</reg32>
+
+	<reg32 offset="0x00200" name="PHY_PLL_CTRL_0">
+		<bitfield name="ENABLE" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x00204" name="PHY_PLL_CTRL_1"/>
+	<reg32 offset="0x00208" name="PHY_PLL_CTRL_2"/>
+	<reg32 offset="0x0020c" name="PHY_PLL_CTRL_3"/>
+	<reg32 offset="0x00210" name="PHY_PLL_CTRL_4"/>
+	<reg32 offset="0x00214" name="PHY_PLL_CTRL_5"/>
+	<reg32 offset="0x00218" name="PHY_PLL_CTRL_6"/>
+	<reg32 offset="0x0021c" name="PHY_PLL_CTRL_7"/>
+	<reg32 offset="0x00220" name="PHY_PLL_CTRL_8"/>
+	<reg32 offset="0x00224" name="PHY_PLL_CTRL_9"/>
+	<reg32 offset="0x00228" name="PHY_PLL_CTRL_10"/>
+	<reg32 offset="0x0022c" name="PHY_PLL_CTRL_11"/>
+	<reg32 offset="0x00230" name="PHY_PLL_CTRL_12"/>
+	<reg32 offset="0x00234" name="PHY_PLL_CTRL_13"/>
+	<reg32 offset="0x00238" name="PHY_PLL_CTRL_14"/>
+	<reg32 offset="0x0023c" name="PHY_PLL_CTRL_15"/>
+	<reg32 offset="0x00240" name="PHY_PLL_CTRL_16"/>
+	<reg32 offset="0x00244" name="PHY_PLL_CTRL_17"/>
+	<reg32 offset="0x00248" name="PHY_PLL_CTRL_18"/>
+	<reg32 offset="0x0024c" name="PHY_PLL_CTRL_19"/>
+	<reg32 offset="0x00250" name="PHY_PLL_CTRL_20"/>
+
+	<reg32 offset="0x00280" name="PHY_PLL_STATUS">
+		<bitfield name="PLL_BUSY" pos="0" type="boolean"/>
+	</reg32>
+</domain>
+
+<domain name="DSI_8x60" width="32">
+	<reg32 offset="0x00258" name="PHY_TPA_CTRL_1"/>
+	<reg32 offset="0x0025c" name="PHY_TPA_CTRL_2"/>
+	<reg32 offset="0x00260" name="PHY_TIMING_CTRL_0"/>
+	<reg32 offset="0x00264" name="PHY_TIMING_CTRL_1"/>
+	<reg32 offset="0x00268" name="PHY_TIMING_CTRL_2"/>
+	<reg32 offset="0x0026c" name="PHY_TIMING_CTRL_3"/>
+	<reg32 offset="0x00270" name="PHY_TIMING_CTRL_4"/>
+	<reg32 offset="0x00274" name="PHY_TIMING_CTRL_5"/>
+	<reg32 offset="0x00278" name="PHY_TIMING_CTRL_6"/>
+	<reg32 offset="0x0027c" name="PHY_TIMING_CTRL_7"/>
+	<reg32 offset="0x00280" name="PHY_TIMING_CTRL_8"/>
+	<reg32 offset="0x00284" name="PHY_TIMING_CTRL_9"/>
+	<reg32 offset="0x00288" name="PHY_TIMING_CTRL_10"/>
+	<reg32 offset="0x0028c" name="PHY_TIMING_CTRL_11"/>
+	<reg32 offset="0x00290" name="PHY_CTRL_0"/>
+	<reg32 offset="0x00294" name="PHY_CTRL_1"/>
+	<reg32 offset="0x00298" name="PHY_CTRL_2"/>
+	<reg32 offset="0x0029c" name="PHY_CTRL_3"/>
+	<reg32 offset="0x002a0" name="PHY_STRENGTH_0"/>
+	<reg32 offset="0x002a4" name="PHY_STRENGTH_1"/>
+	<reg32 offset="0x002a8" name="PHY_STRENGTH_2"/>
+	<reg32 offset="0x002ac" name="PHY_STRENGTH_3"/>
+	<reg32 offset="0x002cc" name="PHY_REGULATOR_CTRL_0"/>
+	<reg32 offset="0x002d0" name="PHY_REGULATOR_CTRL_1"/>
+	<reg32 offset="0x002d4" name="PHY_REGULATOR_CTRL_2"/>
+	<reg32 offset="0x002d8" name="PHY_REGULATOR_CTRL_3"/>
+	<reg32 offset="0x002dc" name="PHY_REGULATOR_CTRL_4"/>
+
+	<reg32 offset="0x000f0" name="PHY_CAL_HW_TRIGGER"/>
+	<reg32 offset="0x000f4" name="PHY_CAL_CTRL"/>
+	<reg32 offset="0x000fc" name="PHY_CAL_STATUS">
+		<bitfield name="CAL_BUSY" pos="28" type="boolean"/>
+	</reg32>
+</domain>
+
+<domain name="DSI_28nm_8960_PHY" width="32">
+
+	<array offset="0x00000" name="LN" length="4" stride="0x40">
+		<reg32 offset="0x00" name="CFG_0"/>
+		<reg32 offset="0x04" name="CFG_1"/>
+		<reg32 offset="0x08" name="CFG_2"/>
+		<reg32 offset="0x0c" name="TEST_DATAPATH"/>
+		<reg32 offset="0x14" name="TEST_STR_0"/>
+		<reg32 offset="0x18" name="TEST_STR_1"/>
+	</array>
+
+	<reg32 offset="0x00100" name="LNCK_CFG_0"/>
+	<reg32 offset="0x00104" name="LNCK_CFG_1"/>
+	<reg32 offset="0x00108" name="LNCK_CFG_2"/>
+
+	<reg32 offset="0x0010c" name="LNCK_TEST_DATAPATH"/>
+	<reg32 offset="0x00114" name="LNCK_TEST_STR0"/>
+	<reg32 offset="0x00118" name="LNCK_TEST_STR1"/>
+
+	<reg32 offset="0x00140" name="TIMING_CTRL_0">
+		<bitfield name="CLK_ZERO" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00144" name="TIMING_CTRL_1">
+		<bitfield name="CLK_TRAIL" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00148" name="TIMING_CTRL_2">
+		<bitfield name="CLK_PREPARE" low="0" high="7" type="uint"/>
+	</reg32>
+
+	<reg32 offset="0x0014c" name="TIMING_CTRL_3"/>
+
+	<reg32 offset="0x00150" name="TIMING_CTRL_4">
+		<bitfield name="HS_EXIT" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00154" name="TIMING_CTRL_5">
+		<bitfield name="HS_ZERO" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00158" name="TIMING_CTRL_6">
+		<bitfield name="HS_PREPARE" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x0015c" name="TIMING_CTRL_7">
+		<bitfield name="HS_TRAIL" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00160" name="TIMING_CTRL_8">
+		<bitfield name="HS_RQST" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00164" name="TIMING_CTRL_9">
+		<bitfield name="TA_GO" low="0" high="2" type="uint"/>
+		<bitfield name="TA_SURE" low="4" high="6" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00168" name="TIMING_CTRL_10">
+		<bitfield name="TA_GET" low="0" high="2" type="uint"/>
+	</reg32>
+	<reg32 offset="0x0016c" name="TIMING_CTRL_11">
+		<bitfield name="TRIG3_CMD" low="0" high="7" type="uint"/>
+	</reg32>
+
+	<reg32 offset="0x00170" name="CTRL_0"/>
+	<reg32 offset="0x00174" name="CTRL_1"/>
+	<reg32 offset="0x00178" name="CTRL_2"/>
+	<reg32 offset="0x0017c" name="CTRL_3"/>
+
+	<reg32 offset="0x00180" name="STRENGTH_0"/>
+	<reg32 offset="0x00184" name="STRENGTH_1"/>
+	<reg32 offset="0x00188" name="STRENGTH_2"/>
+
+	<reg32 offset="0x0018c" name="BIST_CTRL_0"/>
+	<reg32 offset="0x00190" name="BIST_CTRL_1"/>
+	<reg32 offset="0x00194" name="BIST_CTRL_2"/>
+	<reg32 offset="0x00198" name="BIST_CTRL_3"/>
+	<reg32 offset="0x0019c" name="BIST_CTRL_4"/>
+
+	<reg32 offset="0x001b0" name="LDO_CTRL"/>
+</domain>
+
+<domain name="DSI_28nm_8960_PHY_MISC" width="32">
+	<reg32 offset="0x00000" name="REGULATOR_CTRL_0"/>
+	<reg32 offset="0x00004" name="REGULATOR_CTRL_1"/>
+	<reg32 offset="0x00008" name="REGULATOR_CTRL_2"/>
+	<reg32 offset="0x0000c" name="REGULATOR_CTRL_3"/>
+	<reg32 offset="0x00010" name="REGULATOR_CTRL_4"/>
+	<reg32 offset="0x00014" name="REGULATOR_CTRL_5"/>
+	<reg32 offset="0x00018" name="REGULATOR_CAL_PWR_CFG"/>
+	<reg32 offset="0x00028" name="CAL_HW_TRIGGER"/>
+	<reg32 offset="0x0002c" name="CAL_SW_CFG_0"/>
+	<reg32 offset="0x00030" name="CAL_SW_CFG_1"/>
+	<reg32 offset="0x00034" name="CAL_SW_CFG_2"/>
+	<reg32 offset="0x00038" name="CAL_HW_CFG_0"/>
+	<reg32 offset="0x0003c" name="CAL_HW_CFG_1"/>
+	<reg32 offset="0x00040" name="CAL_HW_CFG_2"/>
+	<reg32 offset="0x00044" name="CAL_HW_CFG_3"/>
+	<reg32 offset="0x00048" name="CAL_HW_CFG_4"/>
+	<reg32 offset="0x00050" name="CAL_STATUS">
+		<bitfield name="CAL_BUSY" pos="4" type="boolean"/>
+	</reg32>
+</domain>
+
+<domain name="DSI_28nm_8960_PHY_PLL" width="32">
+	<reg32 offset="0x00000" name="CTRL_0">
+		<bitfield name="ENABLE" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x00004" name="CTRL_1"/>
+	<reg32 offset="0x00008" name="CTRL_2"/>
+	<reg32 offset="0x0000c" name="CTRL_3"/>
+	<reg32 offset="0x00010" name="CTRL_4"/>
+	<reg32 offset="0x00014" name="CTRL_5"/>
+	<reg32 offset="0x00018" name="CTRL_6"/>
+	<reg32 offset="0x0001c" name="CTRL_7"/>
+	<reg32 offset="0x00020" name="CTRL_8"/>
+	<reg32 offset="0x00024" name="CTRL_9"/>
+	<reg32 offset="0x00028" name="CTRL_10"/>
+	<reg32 offset="0x0002c" name="CTRL_11"/>
+	<reg32 offset="0x00030" name="CTRL_12"/>
+	<reg32 offset="0x00034" name="CTRL_13"/>
+	<reg32 offset="0x00038" name="CTRL_14"/>
+	<reg32 offset="0x0003c" name="CTRL_15"/>
+	<reg32 offset="0x00040" name="CTRL_16"/>
+	<reg32 offset="0x00044" name="CTRL_17"/>
+	<reg32 offset="0x00048" name="CTRL_18"/>
+	<reg32 offset="0x0004c" name="CTRL_19"/>
+	<reg32 offset="0x00050" name="CTRL_20"/>
+
+	<reg32 offset="0x00080" name="RDY">
+		<bitfield name="PLL_RDY" pos="0" type="boolean"/>
+	</reg32>
+</domain>
+
+<domain name="DSI_28nm_PHY" width="32">
+	<array offset="0x00000" name="LN" length="4" stride="0x40">
+		<reg32 offset="0x00" name="CFG_0"/>
+		<reg32 offset="0x04" name="CFG_1"/>
+		<reg32 offset="0x08" name="CFG_2"/>
+		<reg32 offset="0x0c" name="CFG_3"/>
+		<reg32 offset="0x10" name="CFG_4"/>
+		<reg32 offset="0x14" name="TEST_DATAPATH"/>
+		<reg32 offset="0x18" name="DEBUG_SEL"/>
+		<reg32 offset="0x1c" name="TEST_STR_0"/>
+		<reg32 offset="0x20" name="TEST_STR_1"/>
+	</array>
+
+	<reg32 offset="0x00100" name="LNCK_CFG_0"/>
+	<reg32 offset="0x00104" name="LNCK_CFG_1"/>
+	<reg32 offset="0x00108" name="LNCK_CFG_2"/>
+	<reg32 offset="0x0010c" name="LNCK_CFG_3"/>
+	<reg32 offset="0x00110" name="LNCK_CFG_4"/>
+	<reg32 offset="0x00114" name="LNCK_TEST_DATAPATH"/>
+	<reg32 offset="0x00118" name="LNCK_DEBUG_SEL"/>
+	<reg32 offset="0x0011c" name="LNCK_TEST_STR0"/>
+	<reg32 offset="0x00120" name="LNCK_TEST_STR1"/>
+
+	<reg32 offset="0x00140" name="TIMING_CTRL_0">
+		<bitfield name="CLK_ZERO" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00144" name="TIMING_CTRL_1">
+		<bitfield name="CLK_TRAIL" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00148" name="TIMING_CTRL_2">
+		<bitfield name="CLK_PREPARE" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x0014c" name="TIMING_CTRL_3">
+		<bitfield name="CLK_ZERO_8" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x00150" name="TIMING_CTRL_4">
+		<bitfield name="HS_EXIT" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00154" name="TIMING_CTRL_5">
+		<bitfield name="HS_ZERO" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00158" name="TIMING_CTRL_6">
+		<bitfield name="HS_PREPARE" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x0015c" name="TIMING_CTRL_7">
+		<bitfield name="HS_TRAIL" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00160" name="TIMING_CTRL_8">
+		<bitfield name="HS_RQST" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00164" name="TIMING_CTRL_9">
+		<bitfield name="TA_GO" low="0" high="2" type="uint"/>
+		<bitfield name="TA_SURE" low="4" high="6" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00168" name="TIMING_CTRL_10">
+		<bitfield name="TA_GET" low="0" high="2" type="uint"/>
+	</reg32>
+	<reg32 offset="0x0016c" name="TIMING_CTRL_11">
+		<bitfield name="TRIG3_CMD" low="0" high="7" type="uint"/>
+	</reg32>
+
+	<reg32 offset="0x00170" name="CTRL_0"/>
+	<reg32 offset="0x00174" name="CTRL_1"/>
+	<reg32 offset="0x00178" name="CTRL_2"/>
+	<reg32 offset="0x0017c" name="CTRL_3"/>
+	<reg32 offset="0x00180" name="CTRL_4"/>
+
+	<reg32 offset="0x00184" name="STRENGTH_0"/>
+	<reg32 offset="0x00188" name="STRENGTH_1"/>
+
+	<reg32 offset="0x001b4" name="BIST_CTRL_0"/>
+	<reg32 offset="0x001b8" name="BIST_CTRL_1"/>
+	<reg32 offset="0x001bc" name="BIST_CTRL_2"/>
+	<reg32 offset="0x001c0" name="BIST_CTRL_3"/>
+	<reg32 offset="0x001c4" name="BIST_CTRL_4"/>
+	<reg32 offset="0x001c8" name="BIST_CTRL_5"/>
+
+	<reg32 offset="0x001d4" name="GLBL_TEST_CTRL">
+		<bitfield name="BITCLK_HS_SEL" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x001dc" name="LDO_CNTRL"/>
+</domain>
+
+<domain name="DSI_28nm_PHY_REGULATOR" width="32">
+	<reg32 offset="0x00000" name="CTRL_0"/>
+	<reg32 offset="0x00004" name="CTRL_1"/>
+	<reg32 offset="0x00008" name="CTRL_2"/>
+	<reg32 offset="0x0000c" name="CTRL_3"/>
+	<reg32 offset="0x00010" name="CTRL_4"/>
+	<reg32 offset="0x00014" name="CTRL_5"/>
+	<reg32 offset="0x00018" name="CAL_PWR_CFG"/>
+</domain>
+
+<domain name="DSI_28nm_PHY_PLL" width="32">
+	<reg32 offset="0x00000" name="REFCLK_CFG">
+		<bitfield name="DBLR" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x00004" name="POSTDIV1_CFG"/>
+	<reg32 offset="0x00008" name="CHGPUMP_CFG"/>
+	<reg32 offset="0x0000C" name="VCOLPF_CFG"/>
+	<reg32 offset="0x00010" name="VREG_CFG">
+		<bitfield name="POSTDIV1_BYPASS_B" pos="1" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x00014" name="PWRGEN_CFG"/>
+	<reg32 offset="0x00018" name="DMUX_CFG"/>
+	<reg32 offset="0x0001C" name="AMUX_CFG"/>
+	<reg32 offset="0x00020" name="GLB_CFG">
+		<bitfield name="PLL_PWRDN_B" pos="0" type="boolean"/>
+		<bitfield name="PLL_LDO_PWRDN_B" pos="1" type="boolean"/>
+		<bitfield name="PLL_PWRGEN_PWRDN_B" pos="2" type="boolean"/>
+		<bitfield name="PLL_ENABLE" pos="3" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x00024" name="POSTDIV2_CFG"/>
+	<reg32 offset="0x00028" name="POSTDIV3_CFG"/>
+	<reg32 offset="0x0002C" name="LPFR_CFG"/>
+	<reg32 offset="0x00030" name="LPFC1_CFG"/>
+	<reg32 offset="0x00034" name="LPFC2_CFG"/>
+	<reg32 offset="0x00038" name="SDM_CFG0">
+		<bitfield name="BYP_DIV" low="0" high="5" type="uint"/>
+		<bitfield name="BYP" pos="6" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x0003C" name="SDM_CFG1">
+		<bitfield name="DC_OFFSET" low="0" high="5" type="uint"/>
+		<bitfield name="DITHER_EN" pos="6" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00040" name="SDM_CFG2">
+		<bitfield name="FREQ_SEED_7_0" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00044" name="SDM_CFG3">
+		<bitfield name="FREQ_SEED_15_8" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00048" name="SDM_CFG4"/>
+	<reg32 offset="0x0004C" name="SSC_CFG0"/>
+	<reg32 offset="0x00050" name="SSC_CFG1"/>
+	<reg32 offset="0x00054" name="SSC_CFG2"/>
+	<reg32 offset="0x00058" name="SSC_CFG3"/>
+	<reg32 offset="0x0005C" name="LKDET_CFG0"/>
+	<reg32 offset="0x00060" name="LKDET_CFG1"/>
+	<reg32 offset="0x00064" name="LKDET_CFG2"/>
+	<reg32 offset="0x00068" name="TEST_CFG">
+		<bitfield name="PLL_SW_RESET" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x0006C" name="CAL_CFG0"/>
+	<reg32 offset="0x00070" name="CAL_CFG1"/>
+	<reg32 offset="0x00074" name="CAL_CFG2"/>
+	<reg32 offset="0x00078" name="CAL_CFG3"/>
+	<reg32 offset="0x0007C" name="CAL_CFG4"/>
+	<reg32 offset="0x00080" name="CAL_CFG5"/>
+	<reg32 offset="0x00084" name="CAL_CFG6"/>
+	<reg32 offset="0x00088" name="CAL_CFG7"/>
+	<reg32 offset="0x0008C" name="CAL_CFG8"/>
+	<reg32 offset="0x00090" name="CAL_CFG9"/>
+	<reg32 offset="0x00094" name="CAL_CFG10"/>
+	<reg32 offset="0x00098" name="CAL_CFG11"/>
+	<reg32 offset="0x0009C" name="EFUSE_CFG"/>
+	<reg32 offset="0x000A0" name="DEBUG_BUS_SEL"/>
+	<reg32 offset="0x000A4" name="CTRL_42"/>
+	<reg32 offset="0x000A8" name="CTRL_43"/>
+	<reg32 offset="0x000AC" name="CTRL_44"/>
+	<reg32 offset="0x000B0" name="CTRL_45"/>
+	<reg32 offset="0x000B4" name="CTRL_46"/>
+	<reg32 offset="0x000B8" name="CTRL_47"/>
+	<reg32 offset="0x000BC" name="CTRL_48"/>
+	<reg32 offset="0x000C0" name="STATUS">
+		<bitfield name="PLL_RDY" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x000C4" name="DEBUG_BUS0"/>
+	<reg32 offset="0x000C8" name="DEBUG_BUS1"/>
+	<reg32 offset="0x000CC" name="DEBUG_BUS2"/>
+	<reg32 offset="0x000D0" name="DEBUG_BUS3"/>
+	<reg32 offset="0x000D4" name="CTRL_54"/>
+</domain>
+
+<domain name="DSI_20nm_PHY" width="32">
+	<array offset="0x00000" name="LN" length="4" stride="0x40">
+		<reg32 offset="0x00" name="CFG_0"/>
+		<reg32 offset="0x04" name="CFG_1"/>
+		<reg32 offset="0x08" name="CFG_2"/>
+		<reg32 offset="0x0c" name="CFG_3"/>
+		<reg32 offset="0x10" name="CFG_4"/>
+		<reg32 offset="0x14" name="TEST_DATAPATH"/>
+		<reg32 offset="0x18" name="DEBUG_SEL"/>
+		<reg32 offset="0x1c" name="TEST_STR_0"/>
+		<reg32 offset="0x20" name="TEST_STR_1"/>
+	</array>
+
+	<reg32 offset="0x00100" name="LNCK_CFG_0"/>
+	<reg32 offset="0x00104" name="LNCK_CFG_1"/>
+	<reg32 offset="0x00108" name="LNCK_CFG_2"/>
+	<reg32 offset="0x0010c" name="LNCK_CFG_3"/>
+	<reg32 offset="0x00110" name="LNCK_CFG_4"/>
+	<reg32 offset="0x00114" name="LNCK_TEST_DATAPATH"/>
+	<reg32 offset="0x00118" name="LNCK_DEBUG_SEL"/>
+	<reg32 offset="0x0011c" name="LNCK_TEST_STR0"/>
+	<reg32 offset="0x00120" name="LNCK_TEST_STR1"/>
+
+	<reg32 offset="0x00140" name="TIMING_CTRL_0">
+		<bitfield name="CLK_ZERO" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00144" name="TIMING_CTRL_1">
+		<bitfield name="CLK_TRAIL" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00148" name="TIMING_CTRL_2">
+		<bitfield name="CLK_PREPARE" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x0014c" name="TIMING_CTRL_3">
+		<bitfield name="CLK_ZERO_8" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x00150" name="TIMING_CTRL_4">
+		<bitfield name="HS_EXIT" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00154" name="TIMING_CTRL_5">
+		<bitfield name="HS_ZERO" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00158" name="TIMING_CTRL_6">
+		<bitfield name="HS_PREPARE" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x0015c" name="TIMING_CTRL_7">
+		<bitfield name="HS_TRAIL" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00160" name="TIMING_CTRL_8">
+		<bitfield name="HS_RQST" low="0" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00164" name="TIMING_CTRL_9">
+		<bitfield name="TA_GO" low="0" high="2" type="uint"/>
+		<bitfield name="TA_SURE" low="4" high="6" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00168" name="TIMING_CTRL_10">
+		<bitfield name="TA_GET" low="0" high="2" type="uint"/>
+	</reg32>
+	<reg32 offset="0x0016c" name="TIMING_CTRL_11">
+		<bitfield name="TRIG3_CMD" low="0" high="7" type="uint"/>
+	</reg32>
+
+	<reg32 offset="0x00170" name="CTRL_0"/>
+	<reg32 offset="0x00174" name="CTRL_1"/>
+	<reg32 offset="0x00178" name="CTRL_2"/>
+	<reg32 offset="0x0017c" name="CTRL_3"/>
+	<reg32 offset="0x00180" name="CTRL_4"/>
+
+	<reg32 offset="0x00184" name="STRENGTH_0"/>
+	<reg32 offset="0x00188" name="STRENGTH_1"/>
+
+	<reg32 offset="0x001b4" name="BIST_CTRL_0"/>
+	<reg32 offset="0x001b8" name="BIST_CTRL_1"/>
+	<reg32 offset="0x001bc" name="BIST_CTRL_2"/>
+	<reg32 offset="0x001c0" name="BIST_CTRL_3"/>
+	<reg32 offset="0x001c4" name="BIST_CTRL_4"/>
+	<reg32 offset="0x001c8" name="BIST_CTRL_5"/>
+
+	<reg32 offset="0x001d4" name="GLBL_TEST_CTRL">
+		<bitfield name="BITCLK_HS_SEL" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x001dc" name="LDO_CNTRL"/>
+</domain>
+
+<domain name="DSI_20nm_PHY_REGULATOR" width="32">
+	<reg32 offset="0x00000" name="CTRL_0"/>
+	<reg32 offset="0x00004" name="CTRL_1"/>
+	<reg32 offset="0x00008" name="CTRL_2"/>
+	<reg32 offset="0x0000c" name="CTRL_3"/>
+	<reg32 offset="0x00010" name="CTRL_4"/>
+	<reg32 offset="0x00014" name="CTRL_5"/>
+	<reg32 offset="0x00018" name="CAL_PWR_CFG"/>
+</domain>
+
+<domain name="DSI_14nm_PHY_CMN" width="32">
+	<reg32 offset="0x00000" name="REVISION_ID0"/>
+	<reg32 offset="0x00004" name="REVISION_ID1"/>
+	<reg32 offset="0x00008" name="REVISION_ID2"/>
+	<reg32 offset="0x0000c" name="REVISION_ID3"/>
+	<reg32 offset="0x00010" name="CLK_CFG0">
+		<bitfield name="DIV_CTRL_3_0" low="4" high="7" type="uint"/>
+		<bitfield name="DIV_CTRL_7_4" low="4" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00014" name="CLK_CFG1">
+		<bitfield name="DSICLK_SEL" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x00018" name="GLBL_TEST_CTRL">
+		<bitfield name="BITCLK_HS_SEL" pos="2" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x0001C" name="CTRL_0"/>
+	<reg32 offset="0x00020" name="CTRL_1">
+	</reg32>
+	<reg32 offset="0x00024" name="HW_TRIGGER"/>
+	<reg32 offset="0x00028" name="SW_CFG0"/>
+	<reg32 offset="0x0002C" name="SW_CFG1"/>
+	<reg32 offset="0x00030" name="SW_CFG2"/>
+	<reg32 offset="0x00034" name="HW_CFG0"/>
+	<reg32 offset="0x00038" name="HW_CFG1"/>
+	<reg32 offset="0x0003C" name="HW_CFG2"/>
+	<reg32 offset="0x00040" name="HW_CFG3"/>
+	<reg32 offset="0x00044" name="HW_CFG4"/>
+	<reg32 offset="0x00048" name="PLL_CNTRL">
+		<bitfield name="PLL_START" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x0004C" name="LDO_CNTRL">
+		<bitfield name="VREG_CTRL" low="0" high="5" type="uint"/>
+	</reg32>
+</domain>
+
+<domain name="DSI_14nm_PHY" width="32">
+	<array offset="0x00000" name="LN" length="5" stride="0x80">
+		<reg32 offset="0x00" name="CFG0">
+			<bitfield name="PREPARE_DLY" low="6" high="7" type="uint"/>
+		</reg32>
+		<reg32 offset="0x04" name="CFG1">
+			<bitfield name="HALFBYTECLK_EN" pos="0" type="boolean"/>
+		</reg32>
+		<reg32 offset="0x08" name="CFG2"/>
+		<reg32 offset="0x0c" name="CFG3"/>
+		<reg32 offset="0x10" name="TEST_DATAPATH"/>
+		<reg32 offset="0x14" name="TEST_STR"/>
+		<reg32 offset="0x18" name="TIMING_CTRL_4">
+			<bitfield name="HS_EXIT" low="0" high="7" type="uint"/>
+		</reg32>
+		<reg32 offset="0x1c" name="TIMING_CTRL_5">
+			<bitfield name="HS_ZERO" low="0" high="7" type="uint"/>
+		</reg32>
+		<reg32 offset="0x20" name="TIMING_CTRL_6">
+			<bitfield name="HS_PREPARE" low="0" high="7" type="uint"/>
+		</reg32>
+		<reg32 offset="0x24" name="TIMING_CTRL_7">
+			<bitfield name="HS_TRAIL" low="0" high="7" type="uint"/>
+		</reg32>
+		<reg32 offset="0x28" name="TIMING_CTRL_8">
+			<bitfield name="HS_RQST" low="0" high="7" type="uint"/>
+		</reg32>
+		<reg32 offset="0x2c" name="TIMING_CTRL_9">
+			<bitfield name="TA_GO" low="0" high="2" type="uint"/>
+			<bitfield name="TA_SURE" low="4" high="6" type="uint"/>
+		</reg32>
+		<reg32 offset="0x30" name="TIMING_CTRL_10">
+			<bitfield name="TA_GET" low="0" high="2" type="uint"/>
+		</reg32>
+		<reg32 offset="0x34" name="TIMING_CTRL_11">
+			<bitfield name="TRIG3_CMD" low="0" high="7" type="uint"/>
+		</reg32>
+		<reg32 offset="0x38" name="STRENGTH_CTRL_0"/>
+		<reg32 offset="0x3c" name="STRENGTH_CTRL_1"/>
+		<reg32 offset="0x64" name="VREG_CNTRL"/>
+	</array>
+</domain>
+
+<domain name="DSI_14nm_PHY_PLL" width="32">
+	<reg32 offset="0x000" name="IE_TRIM"/>
+	<reg32 offset="0x004" name="IP_TRIM"/>
+	<reg32 offset="0x010" name="IPTAT_TRIM"/>
+	<reg32 offset="0x01c" name="CLKBUFLR_EN"/>
+	<reg32 offset="0x028" name="SYSCLK_EN_RESET"/>
+	<reg32 offset="0x02c" name="RESETSM_CNTRL"/>
+	<reg32 offset="0x030" name="RESETSM_CNTRL2"/>
+	<reg32 offset="0x034" name="RESETSM_CNTRL3"/>
+	<reg32 offset="0x038" name="RESETSM_CNTRL4"/>
+	<reg32 offset="0x03c" name="RESETSM_CNTRL5"/>
+	<reg32 offset="0x040" name="KVCO_DIV_REF1"/>
+	<reg32 offset="0x044" name="KVCO_DIV_REF2"/>
+	<reg32 offset="0x048" name="KVCO_COUNT1"/>
+	<reg32 offset="0x04c" name="KVCO_COUNT2"/>
+	<reg32 offset="0x05c" name="VREF_CFG1"/>
+	<reg32 offset="0x058" name="KVCO_CODE"/>
+	<reg32 offset="0x06c" name="VCO_DIV_REF1"/>
+	<reg32 offset="0x070" name="VCO_DIV_REF2"/>
+	<reg32 offset="0x074" name="VCO_COUNT1"/>
+	<reg32 offset="0x078" name="VCO_COUNT2"/>
+	<reg32 offset="0x07c" name="PLLLOCK_CMP1"/>
+	<reg32 offset="0x080" name="PLLLOCK_CMP2"/>
+	<reg32 offset="0x084" name="PLLLOCK_CMP3"/>
+	<reg32 offset="0x088" name="PLLLOCK_CMP_EN"/>
+	<reg32 offset="0x08c" name="PLL_VCO_TUNE"/>
+	<reg32 offset="0x090" name="DEC_START"/>
+	<reg32 offset="0x094" name="SSC_EN_CENTER"/>
+	<reg32 offset="0x098" name="SSC_ADJ_PER1"/>
+	<reg32 offset="0x09c" name="SSC_ADJ_PER2"/>
+	<reg32 offset="0x0a0" name="SSC_PER1"/>
+	<reg32 offset="0x0a4" name="SSC_PER2"/>
+	<reg32 offset="0x0a8" name="SSC_STEP_SIZE1"/>
+	<reg32 offset="0x0ac" name="SSC_STEP_SIZE2"/>
+	<reg32 offset="0x0b4" name="DIV_FRAC_START1"/>
+	<reg32 offset="0x0b8" name="DIV_FRAC_START2"/>
+	<reg32 offset="0x0bc" name="DIV_FRAC_START3"/>
+	<reg32 offset="0x0c0" name="TXCLK_EN"/>
+	<reg32 offset="0x0c4" name="PLL_CRCTRL"/>
+	<reg32 offset="0x0cc" name="RESET_SM_READY_STATUS"/>
+	<reg32 offset="0x0e8" name="PLL_MISC1"/>
+	<reg32 offset="0x0f0" name="CP_SET_CUR"/>
+	<reg32 offset="0x0f4" name="PLL_ICPMSET"/>
+	<reg32 offset="0x0f8" name="PLL_ICPCSET"/>
+	<reg32 offset="0x0fc" name="PLL_ICP_SET"/>
+	<reg32 offset="0x100" name="PLL_LPF1"/>
+	<reg32 offset="0x104" name="PLL_LPF2_POSTDIV"/>
+	<reg32 offset="0x108" name="PLL_BANDGAP"/>
+</domain>
+
+<domain name="DSI_10nm_PHY_CMN" width="32">
+	<reg32 offset="0x00000" name="REVISION_ID0"/>
+	<reg32 offset="0x00004" name="REVISION_ID1"/>
+	<reg32 offset="0x00008" name="REVISION_ID2"/>
+	<reg32 offset="0x0000c" name="REVISION_ID3"/>
+	<reg32 offset="0x00010" name="CLK_CFG0"/>
+	<reg32 offset="0x00014" name="CLK_CFG1"/>
+	<reg32 offset="0x00018" name="GLBL_CTRL"/>
+	<reg32 offset="0x0001c" name="RBUF_CTRL"/>
+	<reg32 offset="0x00020" name="VREG_CTRL"/>
+	<reg32 offset="0x00024" name="CTRL_0"/>
+	<reg32 offset="0x00028" name="CTRL_1"/>
+	<reg32 offset="0x0002c" name="CTRL_2"/>
+	<reg32 offset="0x00030" name="LANE_CFG0"/>
+	<reg32 offset="0x00034" name="LANE_CFG1"/>
+	<reg32 offset="0x00038" name="PLL_CNTRL"/>
+	<reg32 offset="0x00098" name="LANE_CTRL0"/>
+	<reg32 offset="0x0009c" name="LANE_CTRL1"/>
+	<reg32 offset="0x000a0" name="LANE_CTRL2"/>
+	<reg32 offset="0x000a4" name="LANE_CTRL3"/>
+	<reg32 offset="0x000a8" name="LANE_CTRL4"/>
+	<reg32 offset="0x000ac" name="TIMING_CTRL_0"/>
+	<reg32 offset="0x000b0" name="TIMING_CTRL_1"/>
+	<reg32 offset="0x000b4" name="TIMING_CTRL_2"/>
+	<reg32 offset="0x000b8" name="TIMING_CTRL_3"/>
+	<reg32 offset="0x000bc" name="TIMING_CTRL_4"/>
+	<reg32 offset="0x000c0" name="TIMING_CTRL_5"/>
+	<reg32 offset="0x000c4" name="TIMING_CTRL_6"/>
+	<reg32 offset="0x000c8" name="TIMING_CTRL_7"/>
+	<reg32 offset="0x000cc" name="TIMING_CTRL_8"/>
+	<reg32 offset="0x000d0" name="TIMING_CTRL_9"/>
+	<reg32 offset="0x000d4" name="TIMING_CTRL_10"/>
+	<reg32 offset="0x000d8" name="TIMING_CTRL_11"/>
+	<reg32 offset="0x000ec" name="PHY_STATUS"/>
+	<reg32 offset="0x000f4" name="LANE_STATUS0"/>
+	<reg32 offset="0x000f8" name="LANE_STATUS1"/>
+</domain>
+
+<domain name="DSI_10nm_PHY" width="32">
+	<array offset="0x00000" name="LN" length="5" stride="0x80">
+		<reg32 offset="0x00" name="CFG0"/>
+		<reg32 offset="0x04" name="CFG1"/>
+		<reg32 offset="0x08" name="CFG2"/>
+		<reg32 offset="0x0c" name="CFG3"/>
+		<reg32 offset="0x10" name="TEST_DATAPATH"/>
+		<reg32 offset="0x14" name="PIN_SWAP"/>
+		<reg32 offset="0x18" name="HSTX_STR_CTRL"/>
+		<reg32 offset="0x1c" name="OFFSET_TOP_CTRL"/>
+		<reg32 offset="0x20" name="OFFSET_BOT_CTRL"/>
+		<reg32 offset="0x24" name="LPTX_STR_CTRL"/>
+		<reg32 offset="0x28" name="LPRX_CTRL"/>
+		<reg32 offset="0x2c" name="TX_DCTRL"/>
+	</array>
+</domain>
+
+<domain name="DSI_10nm_PHY_PLL" width="32">
+	<reg32 offset="0x0000" name="ANALOG_CONTROLS_ONE"/>
+	<reg32 offset="0x0004" name="ANALOG_CONTROLS_TWO"/>
+	<reg32 offset="0x0010" name="ANALOG_CONTROLS_THREE"/>
+	<reg32 offset="0x001c" name="DSM_DIVIDER"/>
+	<reg32 offset="0x0020" name="FEEDBACK_DIVIDER"/>
+	<reg32 offset="0x0024" name="SYSTEM_MUXES"/>
+	<reg32 offset="0x002c" name="CMODE"/>
+	<reg32 offset="0x0030" name="CALIBRATION_SETTINGS"/>
+	<reg32 offset="0x0054" name="BAND_SEL_CAL_SETTINGS_THREE"/>
+	<reg32 offset="0x0064" name="FREQ_DETECT_SETTINGS_ONE"/>
+	<reg32 offset="0x007c" name="PFILT"/>
+	<reg32 offset="0x0080" name="IFILT"/>
+	<reg32 offset="0x0094" name="OUTDIV"/>
+	<reg32 offset="0x00a4" name="CORE_OVERRIDE"/>
+	<reg32 offset="0x00a8" name="CORE_INPUT_OVERRIDE"/>
+	<reg32 offset="0x00b4" name="PLL_DIGITAL_TIMERS_TWO"/>
+	<reg32 offset="0x00cc" name="DECIMAL_DIV_START_1"/>
+	<reg32 offset="0x00d0" name="FRAC_DIV_START_LOW_1"/>
+	<reg32 offset="0x00d4" name="FRAC_DIV_START_MID_1"/>
+	<reg32 offset="0x00d8" name="FRAC_DIV_START_HIGH_1"/>
+	<reg32 offset="0x010c" name="SSC_STEPSIZE_LOW_1"/>
+	<reg32 offset="0x0110" name="SSC_STEPSIZE_HIGH_1"/>
+	<reg32 offset="0x0114" name="SSC_DIV_PER_LOW_1"/>
+	<reg32 offset="0x0118" name="SSC_DIV_PER_HIGH_1"/>
+	<reg32 offset="0x011c" name="SSC_DIV_ADJPER_LOW_1"/>
+	<reg32 offset="0x0120" name="SSC_DIV_ADJPER_HIGH_1"/>
+	<reg32 offset="0x013c" name="SSC_CONTROL"/>
+	<reg32 offset="0x0140" name="PLL_OUTDIV_RATE"/>
+	<reg32 offset="0x0144" name="PLL_LOCKDET_RATE_1"/>
+	<reg32 offset="0x014c" name="PLL_PROP_GAIN_RATE_1"/>
+	<reg32 offset="0x0154" name="PLL_BAND_SET_RATE_1"/>
+	<reg32 offset="0x015c" name="PLL_INT_GAIN_IFILT_BAND_1"/>
+	<reg32 offset="0x0164" name="PLL_FL_INT_GAIN_PFILT_BAND_1"/>
+	<reg32 offset="0x0180" name="PLL_LOCK_OVERRIDE"/>
+	<reg32 offset="0x0184" name="PLL_LOCK_DELAY"/>
+	<reg32 offset="0x018c" name="CLOCK_INVERTERS"/>
+	<reg32 offset="0x01a0" name="COMMON_STATUS_ONE"/>
+</domain>
+
+<domain name="DSI_7nm_PHY_CMN" width="32">
+	<reg32 offset="0x00000" name="REVISION_ID0"/>
+	<reg32 offset="0x00004" name="REVISION_ID1"/>
+	<reg32 offset="0x00008" name="REVISION_ID2"/>
+	<reg32 offset="0x0000c" name="REVISION_ID3"/>
+	<reg32 offset="0x00010" name="CLK_CFG0"/>
+	<reg32 offset="0x00014" name="CLK_CFG1"/>
+	<reg32 offset="0x00018" name="GLBL_CTRL"/>
+	<reg32 offset="0x0001c" name="RBUF_CTRL"/>
+	<reg32 offset="0x00020" name="VREG_CTRL_0"/>
+	<reg32 offset="0x00024" name="CTRL_0"/>
+	<reg32 offset="0x00028" name="CTRL_1"/>
+	<reg32 offset="0x0002c" name="CTRL_2"/>
+	<reg32 offset="0x00030" name="CTRL_3"/>
+	<reg32 offset="0x00034" name="LANE_CFG0"/>
+	<reg32 offset="0x00038" name="LANE_CFG1"/>
+	<reg32 offset="0x0003c" name="PLL_CNTRL"/>
+	<reg32 offset="0x00040" name="DPHY_SOT"/>
+	<reg32 offset="0x000a0" name="LANE_CTRL0"/>
+	<reg32 offset="0x000a4" name="LANE_CTRL1"/>
+	<reg32 offset="0x000a8" name="LANE_CTRL2"/>
+	<reg32 offset="0x000ac" name="LANE_CTRL3"/>
+	<reg32 offset="0x000b0" name="LANE_CTRL4"/>
+	<reg32 offset="0x000b4" name="TIMING_CTRL_0"/>
+	<reg32 offset="0x000b8" name="TIMING_CTRL_1"/>
+	<reg32 offset="0x000bc" name="TIMING_CTRL_2"/>
+	<reg32 offset="0x000c0" name="TIMING_CTRL_3"/>
+	<reg32 offset="0x000c4" name="TIMING_CTRL_4"/>
+	<reg32 offset="0x000c8" name="TIMING_CTRL_5"/>
+	<reg32 offset="0x000cc" name="TIMING_CTRL_6"/>
+	<reg32 offset="0x000d0" name="TIMING_CTRL_7"/>
+	<reg32 offset="0x000d4" name="TIMING_CTRL_8"/>
+	<reg32 offset="0x000d8" name="TIMING_CTRL_9"/>
+	<reg32 offset="0x000dc" name="TIMING_CTRL_10"/>
+	<reg32 offset="0x000e0" name="TIMING_CTRL_11"/>
+	<reg32 offset="0x000e4" name="TIMING_CTRL_12"/>
+	<reg32 offset="0x000e8" name="TIMING_CTRL_13"/>
+	<reg32 offset="0x000ec" name="GLBL_HSTX_STR_CTRL_0"/>
+	<reg32 offset="0x000f0" name="GLBL_HSTX_STR_CTRL_1"/>
+	<reg32 offset="0x000f4" name="GLBL_RESCODE_OFFSET_TOP_CTRL"/>
+	<reg32 offset="0x000f8" name="GLBL_RESCODE_OFFSET_BOT_CTRL"/>
+	<reg32 offset="0x000fc" name="GLBL_RESCODE_OFFSET_MID_CTRL"/>
+	<reg32 offset="0x00100" name="GLBL_LPTX_STR_CTRL"/>
+	<reg32 offset="0x00104" name="GLBL_PEMPH_CTRL_0"/>
+	<reg32 offset="0x00108" name="GLBL_PEMPH_CTRL_1"/>
+	<reg32 offset="0x0010c" name="GLBL_STR_SWI_CAL_SEL_CTRL"/>
+	<reg32 offset="0x00110" name="VREG_CTRL_1"/>
+	<reg32 offset="0x00114" name="CTRL_4"/>
+	<reg32 offset="0x00128" name="GLBL_DIGTOP_SPARE4"/>
+	<reg32 offset="0x00140" name="PHY_STATUS"/>
+	<reg32 offset="0x00148" name="LANE_STATUS0"/>
+	<reg32 offset="0x0014c" name="LANE_STATUS1"/>
+</domain>
+
+<domain name="DSI_7nm_PHY" width="32">
+	<array offset="0x00000" name="LN" length="5" stride="0x80">
+		<reg32 offset="0x00" name="CFG0"/>
+		<reg32 offset="0x04" name="CFG1"/>
+		<reg32 offset="0x08" name="CFG2"/>
+		<reg32 offset="0x0c" name="TEST_DATAPATH"/>
+		<reg32 offset="0x10" name="PIN_SWAP"/>
+		<reg32 offset="0x14" name="LPRX_CTRL"/>
+		<reg32 offset="0x18" name="TX_DCTRL"/>
+	</array>
+</domain>
+
+<domain name="DSI_7nm_PHY_PLL" width="32">
+	<reg32 offset="0x0000" name="ANALOG_CONTROLS_ONE"/>
+	<reg32 offset="0x0004" name="ANALOG_CONTROLS_TWO"/>
+	<reg32 offset="0x0008" name="INT_LOOP_SETTINGS"/>
+	<reg32 offset="0x000c" name="INT_LOOP_SETTINGS_TWO"/>
+	<reg32 offset="0x0010" name="ANALOG_CONTROLS_THREE"/>
+	<reg32 offset="0x0014" name="ANALOG_CONTROLS_FOUR"/>
+	<reg32 offset="0x0018" name="ANALOG_CONTROLS_FIVE"/>
+	<reg32 offset="0x001c" name="INT_LOOP_CONTROLS"/>
+	<reg32 offset="0x0020" name="DSM_DIVIDER"/>
+	<reg32 offset="0x0024" name="FEEDBACK_DIVIDER"/>
+	<reg32 offset="0x0028" name="SYSTEM_MUXES"/>
+	<reg32 offset="0x002c" name="FREQ_UPDATE_CONTROL_OVERRIDES"/>
+	<reg32 offset="0x0030" name="CMODE"/>
+	<reg32 offset="0x0034" name="PSM_CTRL"/>
+	<reg32 offset="0x0038" name="RSM_CTRL"/>
+	<reg32 offset="0x003c" name="VCO_TUNE_MAP"/>
+	<reg32 offset="0x0040" name="PLL_CNTRL"/>
+	<reg32 offset="0x0044" name="CALIBRATION_SETTINGS"/>
+	<reg32 offset="0x0048" name="BAND_SEL_CAL_TIMER_LOW"/>
+	<reg32 offset="0x004c" name="BAND_SEL_CAL_TIMER_HIGH"/>
+	<reg32 offset="0x0050" name="BAND_SEL_CAL_SETTINGS"/>
+	<reg32 offset="0x0054" name="BAND_SEL_MIN"/>
+	<reg32 offset="0x0058" name="BAND_SEL_MAX"/>
+	<reg32 offset="0x005c" name="BAND_SEL_PFILT"/>
+	<reg32 offset="0x0060" name="BAND_SEL_IFILT"/>
+	<reg32 offset="0x0064" name="BAND_SEL_CAL_SETTINGS_TWO"/>
+	<reg32 offset="0x0068" name="BAND_SEL_CAL_SETTINGS_THREE"/>
+	<reg32 offset="0x006c" name="BAND_SEL_CAL_SETTINGS_FOUR"/>
+	<reg32 offset="0x0070" name="BAND_SEL_ICODE_HIGH"/>
+	<reg32 offset="0x0074" name="BAND_SEL_ICODE_LOW"/>
+	<reg32 offset="0x0078" name="FREQ_DETECT_SETTINGS_ONE"/>
+	<reg32 offset="0x007c" name="FREQ_DETECT_THRESH"/>
+	<reg32 offset="0x0080" name="FREQ_DET_REFCLK_HIGH"/>
+	<reg32 offset="0x0084" name="FREQ_DET_REFCLK_LOW"/>
+	<reg32 offset="0x0088" name="FREQ_DET_PLLCLK_HIGH"/>
+	<reg32 offset="0x008c" name="FREQ_DET_PLLCLK_LOW"/>
+	<reg32 offset="0x0090" name="PFILT"/>
+	<reg32 offset="0x0094" name="IFILT"/>
+	<reg32 offset="0x0098" name="PLL_GAIN"/>
+	<reg32 offset="0x009c" name="ICODE_LOW"/>
+	<reg32 offset="0x00a0" name="ICODE_HIGH"/>
+	<reg32 offset="0x00a4" name="LOCKDET"/>
+	<reg32 offset="0x00a8" name="OUTDIV"/>
+	<reg32 offset="0x00ac" name="FASTLOCK_CONTROL"/>
+	<reg32 offset="0x00b0" name="PASS_OUT_OVERRIDE_ONE"/>
+	<reg32 offset="0x00b4" name="PASS_OUT_OVERRIDE_TWO"/>
+	<reg32 offset="0x00b8" name="CORE_OVERRIDE"/>
+	<reg32 offset="0x00bc" name="CORE_INPUT_OVERRIDE"/>
+	<reg32 offset="0x00c0" name="RATE_CHANGE"/>
+	<reg32 offset="0x00c4" name="PLL_DIGITAL_TIMERS"/>
+	<reg32 offset="0x00c8" name="PLL_DIGITAL_TIMERS_TWO"/>
+	<reg32 offset="0x00cc" name="DECIMAL_DIV_START"/>
+	<reg32 offset="0x00d0" name="FRAC_DIV_START_LOW"/>
+	<reg32 offset="0x00d4" name="FRAC_DIV_START_MID"/>
+	<reg32 offset="0x00d8" name="FRAC_DIV_START_HIGH"/>
+	<reg32 offset="0x00dc" name="DEC_FRAC_MUXES"/>
+	<reg32 offset="0x00e0" name="DECIMAL_DIV_START_1"/>
+	<reg32 offset="0x00e4" name="FRAC_DIV_START_LOW_1"/>
+	<reg32 offset="0x00e8" name="FRAC_DIV_START_MID_1"/>
+	<reg32 offset="0x00ec" name="FRAC_DIV_START_HIGH_1"/>
+	<reg32 offset="0x00f0" name="DECIMAL_DIV_START_2"/>
+	<reg32 offset="0x00f4" name="FRAC_DIV_START_LOW_2"/>
+	<reg32 offset="0x00f8" name="FRAC_DIV_START_MID_2"/>
+	<reg32 offset="0x00fc" name="FRAC_DIV_START_HIGH_2"/>
+	<reg32 offset="0x0100" name="MASH_CONTROL"/>
+	<reg32 offset="0x0104" name="SSC_STEPSIZE_LOW"/>
+	<reg32 offset="0x0108" name="SSC_STEPSIZE_HIGH"/>
+	<reg32 offset="0x010c" name="SSC_DIV_PER_LOW"/>
+	<reg32 offset="0x0110" name="SSC_DIV_PER_HIGH"/>
+	<reg32 offset="0x0114" name="SSC_ADJPER_LOW"/>
+	<reg32 offset="0x0118" name="SSC_ADJPER_HIGH"/>
+	<reg32 offset="0x011c" name="SSC_MUX_CONTROL"/>
+	<reg32 offset="0x0120" name="SSC_STEPSIZE_LOW_1"/>
+	<reg32 offset="0x0124" name="SSC_STEPSIZE_HIGH_1"/>
+	<reg32 offset="0x0128" name="SSC_DIV_PER_LOW_1"/>
+	<reg32 offset="0x012c" name="SSC_DIV_PER_HIGH_1"/>
+	<reg32 offset="0x0130" name="SSC_ADJPER_LOW_1"/>
+	<reg32 offset="0x0134" name="SSC_ADJPER_HIGH_1"/>
+	<reg32 offset="0x0138" name="SSC_STEPSIZE_LOW_2"/>
+	<reg32 offset="0x013c" name="SSC_STEPSIZE_HIGH_2"/>
+	<reg32 offset="0x0140" name="SSC_DIV_PER_LOW_2"/>
+	<reg32 offset="0x0144" name="SSC_DIV_PER_HIGH_2"/>
+	<reg32 offset="0x0148" name="SSC_ADJPER_LOW_2"/>
+	<reg32 offset="0x014c" name="SSC_ADJPER_HIGH_2"/>
+	<reg32 offset="0x0150" name="SSC_CONTROL"/>
+	<reg32 offset="0x0154" name="PLL_OUTDIV_RATE"/>
+	<reg32 offset="0x0158" name="PLL_LOCKDET_RATE_1"/>
+	<reg32 offset="0x015c" name="PLL_LOCKDET_RATE_2"/>
+	<reg32 offset="0x0160" name="PLL_PROP_GAIN_RATE_1"/>
+	<reg32 offset="0x0164" name="PLL_PROP_GAIN_RATE_2"/>
+	<reg32 offset="0x0168" name="PLL_BAND_SEL_RATE_1"/>
+	<reg32 offset="0x016c" name="PLL_BAND_SEL_RATE_2"/>
+	<reg32 offset="0x0170" name="PLL_INT_GAIN_IFILT_BAND_1"/>
+	<reg32 offset="0x0174" name="PLL_INT_GAIN_IFILT_BAND_2"/>
+	<reg32 offset="0x0178" name="PLL_FL_INT_GAIN_PFILT_BAND_1"/>
+	<reg32 offset="0x017c" name="PLL_FL_INT_GAIN_PFILT_BAND_2"/>
+	<reg32 offset="0x0180" name="PLL_FASTLOCK_EN_BAND"/>
+	<reg32 offset="0x0184" name="FREQ_TUNE_ACCUM_INIT_MID"/>
+	<reg32 offset="0x0188" name="FREQ_TUNE_ACCUM_INIT_HIGH"/>
+	<reg32 offset="0x018c" name="FREQ_TUNE_ACCUM_INIT_MUX"/>
+	<reg32 offset="0x0190" name="PLL_LOCK_OVERRIDE"/>
+	<reg32 offset="0x0194" name="PLL_LOCK_DELAY"/>
+	<reg32 offset="0x0198" name="PLL_LOCK_MIN_DELAY"/>
+	<reg32 offset="0x019c" name="CLOCK_INVERTERS"/>
+	<reg32 offset="0x01a0" name="SPARE_AND_JPC_OVERRIDES"/>
+	<reg32 offset="0x01a4" name="BIAS_CONTROL_1"/>
+	<reg32 offset="0x01a8" name="BIAS_CONTROL_2"/>
+	<reg32 offset="0x01ac" name="ALOG_OBSV_BUS_CTRL_1"/>
+	<reg32 offset="0x01b0" name="COMMON_STATUS_ONE"/>
+	<reg32 offset="0x01b4" name="COMMON_STATUS_TWO"/>
+	<reg32 offset="0x01b8" name="BAND_SEL_CAL"/>
+	<reg32 offset="0x01bc" name="ICODE_ACCUM_STATUS_LOW"/>
+	<reg32 offset="0x01c0" name="ICODE_ACCUM_STATUS_HIGH"/>
+	<reg32 offset="0x01c4" name="FD_OUT_LOW"/>
+	<reg32 offset="0x01c8" name="FD_OUT_HIGH"/>
+	<reg32 offset="0x01cc" name="ALOG_OBSV_BUS_STATUS_1"/>
+	<reg32 offset="0x01d0" name="PLL_MISC_CONFIG"/>
+	<reg32 offset="0x01d4" name="FLL_CONFIG"/>
+	<reg32 offset="0x01d8" name="FLL_FREQ_ACQ_TIME"/>
+	<reg32 offset="0x01dc" name="FLL_CODE0"/>
+	<reg32 offset="0x01e0" name="FLL_CODE1"/>
+	<reg32 offset="0x01e4" name="FLL_GAIN0"/>
+	<reg32 offset="0x01e8" name="FLL_GAIN1"/>
+	<reg32 offset="0x01ec" name="SW_RESET"/>
+	<reg32 offset="0x01f0" name="FAST_PWRUP"/>
+	<reg32 offset="0x01f4" name="LOCKTIME0"/>
+	<reg32 offset="0x01f8" name="LOCKTIME1"/>
+	<reg32 offset="0x01fc" name="DEBUG_BUS_SEL"/>
+	<reg32 offset="0x0200" name="DEBUG_BUS0"/>
+	<reg32 offset="0x0204" name="DEBUG_BUS1"/>
+	<reg32 offset="0x0208" name="DEBUG_BUS2"/>
+	<reg32 offset="0x020c" name="DEBUG_BUS3"/>
+	<reg32 offset="0x0210" name="ANALOG_FLL_CONTROL_OVERRIDES"/>
+	<reg32 offset="0x0214" name="VCO_CONFIG"/>
+	<reg32 offset="0x0218" name="VCO_CAL_CODE1_MODE0_STATUS"/>
+	<reg32 offset="0x021c" name="VCO_CAL_CODE1_MODE1_STATUS"/>
+	<reg32 offset="0x0220" name="RESET_SM_STATUS"/>
+	<reg32 offset="0x0224" name="TDC_OFFSET"/>
+	<reg32 offset="0x0228" name="PS3_PWRDOWN_CONTROLS"/>
+	<reg32 offset="0x022c" name="PS4_PWRDOWN_CONTROLS"/>
+	<reg32 offset="0x0230" name="PLL_RST_CONTROLS"/>
+	<reg32 offset="0x0234" name="GEAR_BAND_SELECT_CONTROLS"/>
+	<reg32 offset="0x0238" name="PSM_CLK_CONTROLS"/>
+	<reg32 offset="0x023c" name="SYSTEM_MUXES_2"/>
+	<reg32 offset="0x0240" name="VCO_CONFIG_1"/>
+	<reg32 offset="0x0244" name="VCO_CONFIG_2"/>
+	<reg32 offset="0x0248" name="CLOCK_INVERTERS_1"/>
+	<reg32 offset="0x024c" name="CLOCK_INVERTERS_2"/>
+	<reg32 offset="0x0250" name="CMODE_1"/>
+	<reg32 offset="0x0254" name="CMODE_2"/>
+	<reg32 offset="0x0258" name="ANALOG_CONTROLS_FIVE_1"/>
+	<reg32 offset="0x025c" name="ANALOG_CONTROLS_FIVE_2"/>
+	<reg32 offset="0x0260" name="PERF_OPTIMIZE"/>
+</domain>
+
+</database>

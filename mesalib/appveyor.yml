@@ -40,7 +40,7 @@ cache:
 - llvm-5.0.1-msvc2017-mtd.7z
 - subprojects\packagecache -> subprojects\*.wrap
 
-os: Visual Studio 2017
+os: Visual Studio 2019
 
 init:
 # Appveyor defaults core.autocrlf to input instead of the default (true), but
@@ -48,6 +48,7 @@ init:
 - git config --global core.autocrlf true
 
 environment:
+  Path: C:\Python38-x64;C:\Python38-x64\Scripts;%Path%
   WINFLEXBISON_VERSION: 2.5.15
   LLVM_ARCHIVE: llvm-5.0.1-msvc2017-mtd.7z
   matrix:

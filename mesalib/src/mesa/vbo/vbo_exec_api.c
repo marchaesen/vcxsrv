@@ -53,6 +53,16 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define IMM_BUFFER_NAME 0xaabbccdd
 
 
+static void GLAPIENTRY
+vbo_exec_Materialfv(GLenum face, GLenum pname, const GLfloat *params);
+
+static void GLAPIENTRY
+vbo_exec_EvalCoord1f(GLfloat u);
+
+static void GLAPIENTRY
+vbo_exec_EvalCoord2f(GLfloat u, GLfloat v);
+
+
 static void
 vbo_reset_all_attr(struct vbo_exec_context *exec);
 

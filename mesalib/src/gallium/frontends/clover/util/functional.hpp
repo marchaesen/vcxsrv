@@ -347,21 +347,6 @@ namespace clover {
       const std::string &name;
    };
 
-   class id_equals {
-   public:
-      id_equals(const uint32_t id) : id(id) {
-      }
-
-      template<typename T>
-      bool
-      operator()(const T &x) const {
-         return x.id == id;
-      }
-
-   private:
-      const uint32_t id;
-   };
-
    template<typename T>
    class key_equals_t {
    public:
@@ -404,6 +389,30 @@ namespace clover {
    type_equals_t<T>
    type_equals(T x) {
       return { x };
+   }
+
+   template<typename T>
+   class id_type_equals_t {
+   public:
+      id_type_equals_t(const uint32_t id, T t) :
+         id(id), type(t) {
+      }
+
+      template<typename X>
+      bool
+      operator()(const X &x) const {
+         return id == x.id && type(x);
+      }
+
+   private:
+      const uint32_t id;
+      type_equals_t<T> type;
+   };
+
+   template<typename T>
+   id_type_equals_t<T>
+   id_type_equals(const uint32_t id, T x) {
+      return { id, x };
    }
 
    struct interval_overlaps {

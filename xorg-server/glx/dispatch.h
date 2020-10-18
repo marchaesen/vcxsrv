@@ -65,7 +65,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1611
+#define _gloffset_COUNT 1643
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -475,7 +475,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 1203
+#define driDispatchRemapTable_size 1235
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1681,6 +1681,38 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define ViewportSwizzleNV_remap_index 1200
 #define AlphaToCoverageDitherControlNV_remap_index 1201
 #define InternalBufferSubDataCopyMESA_remap_index 1202
+#define Vertex2hNV_remap_index 1203
+#define Vertex2hvNV_remap_index 1204
+#define Vertex3hNV_remap_index 1205
+#define Vertex3hvNV_remap_index 1206
+#define Vertex4hNV_remap_index 1207
+#define Vertex4hvNV_remap_index 1208
+#define Normal3hNV_remap_index 1209
+#define Normal3hvNV_remap_index 1210
+#define Color3hNV_remap_index 1211
+#define Color3hvNV_remap_index 1212
+#define Color4hNV_remap_index 1213
+#define Color4hvNV_remap_index 1214
+#define TexCoord1hNV_remap_index 1215
+#define TexCoord1hvNV_remap_index 1216
+#define TexCoord2hNV_remap_index 1217
+#define TexCoord2hvNV_remap_index 1218
+#define TexCoord3hNV_remap_index 1219
+#define TexCoord3hvNV_remap_index 1220
+#define TexCoord4hNV_remap_index 1221
+#define TexCoord4hvNV_remap_index 1222
+#define MultiTexCoord1hNV_remap_index 1223
+#define MultiTexCoord1hvNV_remap_index 1224
+#define MultiTexCoord2hNV_remap_index 1225
+#define MultiTexCoord2hvNV_remap_index 1226
+#define MultiTexCoord3hNV_remap_index 1227
+#define MultiTexCoord3hvNV_remap_index 1228
+#define MultiTexCoord4hNV_remap_index 1229
+#define MultiTexCoord4hvNV_remap_index 1230
+#define FogCoordhNV_remap_index 1231
+#define FogCoordhvNV_remap_index 1232
+#define SecondaryColor3hNV_remap_index 1233
+#define SecondaryColor3hvNV_remap_index 1234
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2885,6 +2917,38 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_ViewportSwizzleNV driDispatchRemapTable[ViewportSwizzleNV_remap_index]
 #define _gloffset_AlphaToCoverageDitherControlNV driDispatchRemapTable[AlphaToCoverageDitherControlNV_remap_index]
 #define _gloffset_InternalBufferSubDataCopyMESA driDispatchRemapTable[InternalBufferSubDataCopyMESA_remap_index]
+#define _gloffset_Vertex2hNV driDispatchRemapTable[Vertex2hNV_remap_index]
+#define _gloffset_Vertex2hvNV driDispatchRemapTable[Vertex2hvNV_remap_index]
+#define _gloffset_Vertex3hNV driDispatchRemapTable[Vertex3hNV_remap_index]
+#define _gloffset_Vertex3hvNV driDispatchRemapTable[Vertex3hvNV_remap_index]
+#define _gloffset_Vertex4hNV driDispatchRemapTable[Vertex4hNV_remap_index]
+#define _gloffset_Vertex4hvNV driDispatchRemapTable[Vertex4hvNV_remap_index]
+#define _gloffset_Normal3hNV driDispatchRemapTable[Normal3hNV_remap_index]
+#define _gloffset_Normal3hvNV driDispatchRemapTable[Normal3hvNV_remap_index]
+#define _gloffset_Color3hNV driDispatchRemapTable[Color3hNV_remap_index]
+#define _gloffset_Color3hvNV driDispatchRemapTable[Color3hvNV_remap_index]
+#define _gloffset_Color4hNV driDispatchRemapTable[Color4hNV_remap_index]
+#define _gloffset_Color4hvNV driDispatchRemapTable[Color4hvNV_remap_index]
+#define _gloffset_TexCoord1hNV driDispatchRemapTable[TexCoord1hNV_remap_index]
+#define _gloffset_TexCoord1hvNV driDispatchRemapTable[TexCoord1hvNV_remap_index]
+#define _gloffset_TexCoord2hNV driDispatchRemapTable[TexCoord2hNV_remap_index]
+#define _gloffset_TexCoord2hvNV driDispatchRemapTable[TexCoord2hvNV_remap_index]
+#define _gloffset_TexCoord3hNV driDispatchRemapTable[TexCoord3hNV_remap_index]
+#define _gloffset_TexCoord3hvNV driDispatchRemapTable[TexCoord3hvNV_remap_index]
+#define _gloffset_TexCoord4hNV driDispatchRemapTable[TexCoord4hNV_remap_index]
+#define _gloffset_TexCoord4hvNV driDispatchRemapTable[TexCoord4hvNV_remap_index]
+#define _gloffset_MultiTexCoord1hNV driDispatchRemapTable[MultiTexCoord1hNV_remap_index]
+#define _gloffset_MultiTexCoord1hvNV driDispatchRemapTable[MultiTexCoord1hvNV_remap_index]
+#define _gloffset_MultiTexCoord2hNV driDispatchRemapTable[MultiTexCoord2hNV_remap_index]
+#define _gloffset_MultiTexCoord2hvNV driDispatchRemapTable[MultiTexCoord2hvNV_remap_index]
+#define _gloffset_MultiTexCoord3hNV driDispatchRemapTable[MultiTexCoord3hNV_remap_index]
+#define _gloffset_MultiTexCoord3hvNV driDispatchRemapTable[MultiTexCoord3hvNV_remap_index]
+#define _gloffset_MultiTexCoord4hNV driDispatchRemapTable[MultiTexCoord4hNV_remap_index]
+#define _gloffset_MultiTexCoord4hvNV driDispatchRemapTable[MultiTexCoord4hvNV_remap_index]
+#define _gloffset_FogCoordhNV driDispatchRemapTable[FogCoordhNV_remap_index]
+#define _gloffset_FogCoordhvNV driDispatchRemapTable[FogCoordhvNV_remap_index]
+#define _gloffset_SecondaryColor3hNV driDispatchRemapTable[SecondaryColor3hNV_remap_index]
+#define _gloffset_SecondaryColor3hvNV driDispatchRemapTable[SecondaryColor3hvNV_remap_index]
 
 typedef void (GLAPIENTRYP _glptr_NewList)(GLuint, GLenum);
 #define CALL_NewList(disp, parameters) \
@@ -20605,6 +20669,358 @@ static INLINE _glptr_InternalBufferSubDataCopyMESA GET_InternalBufferSubDataCopy
 
 static INLINE void SET_InternalBufferSubDataCopyMESA(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLintptr, GLuint, GLuint, GLintptr, GLsizeiptr, GLboolean, GLboolean)) {
    SET_by_offset(disp, _gloffset_InternalBufferSubDataCopyMESA, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_Vertex2hNV)(GLhalfNV, GLhalfNV);
+#define CALL_Vertex2hNV(disp, parameters) \
+    (* GET_Vertex2hNV(disp)) parameters
+static INLINE _glptr_Vertex2hNV GET_Vertex2hNV(struct _glapi_table *disp) {
+   return (_glptr_Vertex2hNV) (GET_by_offset(disp, _gloffset_Vertex2hNV));
+}
+
+static INLINE void SET_Vertex2hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_Vertex2hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_Vertex2hvNV)(const GLhalfNV *);
+#define CALL_Vertex2hvNV(disp, parameters) \
+    (* GET_Vertex2hvNV(disp)) parameters
+static INLINE _glptr_Vertex2hvNV GET_Vertex2hvNV(struct _glapi_table *disp) {
+   return (_glptr_Vertex2hvNV) (GET_by_offset(disp, _gloffset_Vertex2hvNV));
+}
+
+static INLINE void SET_Vertex2hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_Vertex2hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_Vertex3hNV)(GLhalfNV, GLhalfNV, GLhalfNV);
+#define CALL_Vertex3hNV(disp, parameters) \
+    (* GET_Vertex3hNV(disp)) parameters
+static INLINE _glptr_Vertex3hNV GET_Vertex3hNV(struct _glapi_table *disp) {
+   return (_glptr_Vertex3hNV) (GET_by_offset(disp, _gloffset_Vertex3hNV));
+}
+
+static INLINE void SET_Vertex3hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhalfNV, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_Vertex3hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_Vertex3hvNV)(const GLhalfNV *);
+#define CALL_Vertex3hvNV(disp, parameters) \
+    (* GET_Vertex3hvNV(disp)) parameters
+static INLINE _glptr_Vertex3hvNV GET_Vertex3hvNV(struct _glapi_table *disp) {
+   return (_glptr_Vertex3hvNV) (GET_by_offset(disp, _gloffset_Vertex3hvNV));
+}
+
+static INLINE void SET_Vertex3hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_Vertex3hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_Vertex4hNV)(GLhalfNV, GLhalfNV, GLhalfNV, GLhalfNV);
+#define CALL_Vertex4hNV(disp, parameters) \
+    (* GET_Vertex4hNV(disp)) parameters
+static INLINE _glptr_Vertex4hNV GET_Vertex4hNV(struct _glapi_table *disp) {
+   return (_glptr_Vertex4hNV) (GET_by_offset(disp, _gloffset_Vertex4hNV));
+}
+
+static INLINE void SET_Vertex4hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhalfNV, GLhalfNV, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_Vertex4hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_Vertex4hvNV)(const GLhalfNV *);
+#define CALL_Vertex4hvNV(disp, parameters) \
+    (* GET_Vertex4hvNV(disp)) parameters
+static INLINE _glptr_Vertex4hvNV GET_Vertex4hvNV(struct _glapi_table *disp) {
+   return (_glptr_Vertex4hvNV) (GET_by_offset(disp, _gloffset_Vertex4hvNV));
+}
+
+static INLINE void SET_Vertex4hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_Vertex4hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_Normal3hNV)(GLhalfNV, GLhalfNV, GLhalfNV);
+#define CALL_Normal3hNV(disp, parameters) \
+    (* GET_Normal3hNV(disp)) parameters
+static INLINE _glptr_Normal3hNV GET_Normal3hNV(struct _glapi_table *disp) {
+   return (_glptr_Normal3hNV) (GET_by_offset(disp, _gloffset_Normal3hNV));
+}
+
+static INLINE void SET_Normal3hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhalfNV, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_Normal3hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_Normal3hvNV)(const GLhalfNV *);
+#define CALL_Normal3hvNV(disp, parameters) \
+    (* GET_Normal3hvNV(disp)) parameters
+static INLINE _glptr_Normal3hvNV GET_Normal3hvNV(struct _glapi_table *disp) {
+   return (_glptr_Normal3hvNV) (GET_by_offset(disp, _gloffset_Normal3hvNV));
+}
+
+static INLINE void SET_Normal3hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_Normal3hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_Color3hNV)(GLhalfNV, GLhalfNV, GLhalfNV);
+#define CALL_Color3hNV(disp, parameters) \
+    (* GET_Color3hNV(disp)) parameters
+static INLINE _glptr_Color3hNV GET_Color3hNV(struct _glapi_table *disp) {
+   return (_glptr_Color3hNV) (GET_by_offset(disp, _gloffset_Color3hNV));
+}
+
+static INLINE void SET_Color3hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhalfNV, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_Color3hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_Color3hvNV)(const GLhalfNV *);
+#define CALL_Color3hvNV(disp, parameters) \
+    (* GET_Color3hvNV(disp)) parameters
+static INLINE _glptr_Color3hvNV GET_Color3hvNV(struct _glapi_table *disp) {
+   return (_glptr_Color3hvNV) (GET_by_offset(disp, _gloffset_Color3hvNV));
+}
+
+static INLINE void SET_Color3hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_Color3hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_Color4hNV)(GLhalfNV, GLhalfNV, GLhalfNV, GLhalfNV);
+#define CALL_Color4hNV(disp, parameters) \
+    (* GET_Color4hNV(disp)) parameters
+static INLINE _glptr_Color4hNV GET_Color4hNV(struct _glapi_table *disp) {
+   return (_glptr_Color4hNV) (GET_by_offset(disp, _gloffset_Color4hNV));
+}
+
+static INLINE void SET_Color4hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhalfNV, GLhalfNV, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_Color4hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_Color4hvNV)(const GLhalfNV *);
+#define CALL_Color4hvNV(disp, parameters) \
+    (* GET_Color4hvNV(disp)) parameters
+static INLINE _glptr_Color4hvNV GET_Color4hvNV(struct _glapi_table *disp) {
+   return (_glptr_Color4hvNV) (GET_by_offset(disp, _gloffset_Color4hvNV));
+}
+
+static INLINE void SET_Color4hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_Color4hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TexCoord1hNV)(GLhalfNV);
+#define CALL_TexCoord1hNV(disp, parameters) \
+    (* GET_TexCoord1hNV(disp)) parameters
+static INLINE _glptr_TexCoord1hNV GET_TexCoord1hNV(struct _glapi_table *disp) {
+   return (_glptr_TexCoord1hNV) (GET_by_offset(disp, _gloffset_TexCoord1hNV));
+}
+
+static INLINE void SET_TexCoord1hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_TexCoord1hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TexCoord1hvNV)(const GLhalfNV *);
+#define CALL_TexCoord1hvNV(disp, parameters) \
+    (* GET_TexCoord1hvNV(disp)) parameters
+static INLINE _glptr_TexCoord1hvNV GET_TexCoord1hvNV(struct _glapi_table *disp) {
+   return (_glptr_TexCoord1hvNV) (GET_by_offset(disp, _gloffset_TexCoord1hvNV));
+}
+
+static INLINE void SET_TexCoord1hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_TexCoord1hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TexCoord2hNV)(GLhalfNV, GLhalfNV);
+#define CALL_TexCoord2hNV(disp, parameters) \
+    (* GET_TexCoord2hNV(disp)) parameters
+static INLINE _glptr_TexCoord2hNV GET_TexCoord2hNV(struct _glapi_table *disp) {
+   return (_glptr_TexCoord2hNV) (GET_by_offset(disp, _gloffset_TexCoord2hNV));
+}
+
+static INLINE void SET_TexCoord2hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_TexCoord2hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TexCoord2hvNV)(const GLhalfNV *);
+#define CALL_TexCoord2hvNV(disp, parameters) \
+    (* GET_TexCoord2hvNV(disp)) parameters
+static INLINE _glptr_TexCoord2hvNV GET_TexCoord2hvNV(struct _glapi_table *disp) {
+   return (_glptr_TexCoord2hvNV) (GET_by_offset(disp, _gloffset_TexCoord2hvNV));
+}
+
+static INLINE void SET_TexCoord2hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_TexCoord2hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TexCoord3hNV)(GLhalfNV, GLhalfNV, GLhalfNV);
+#define CALL_TexCoord3hNV(disp, parameters) \
+    (* GET_TexCoord3hNV(disp)) parameters
+static INLINE _glptr_TexCoord3hNV GET_TexCoord3hNV(struct _glapi_table *disp) {
+   return (_glptr_TexCoord3hNV) (GET_by_offset(disp, _gloffset_TexCoord3hNV));
+}
+
+static INLINE void SET_TexCoord3hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhalfNV, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_TexCoord3hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TexCoord3hvNV)(const GLhalfNV *);
+#define CALL_TexCoord3hvNV(disp, parameters) \
+    (* GET_TexCoord3hvNV(disp)) parameters
+static INLINE _glptr_TexCoord3hvNV GET_TexCoord3hvNV(struct _glapi_table *disp) {
+   return (_glptr_TexCoord3hvNV) (GET_by_offset(disp, _gloffset_TexCoord3hvNV));
+}
+
+static INLINE void SET_TexCoord3hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_TexCoord3hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TexCoord4hNV)(GLhalfNV, GLhalfNV, GLhalfNV, GLhalfNV);
+#define CALL_TexCoord4hNV(disp, parameters) \
+    (* GET_TexCoord4hNV(disp)) parameters
+static INLINE _glptr_TexCoord4hNV GET_TexCoord4hNV(struct _glapi_table *disp) {
+   return (_glptr_TexCoord4hNV) (GET_by_offset(disp, _gloffset_TexCoord4hNV));
+}
+
+static INLINE void SET_TexCoord4hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhalfNV, GLhalfNV, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_TexCoord4hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TexCoord4hvNV)(const GLhalfNV *);
+#define CALL_TexCoord4hvNV(disp, parameters) \
+    (* GET_TexCoord4hvNV(disp)) parameters
+static INLINE _glptr_TexCoord4hvNV GET_TexCoord4hvNV(struct _glapi_table *disp) {
+   return (_glptr_TexCoord4hvNV) (GET_by_offset(disp, _gloffset_TexCoord4hvNV));
+}
+
+static INLINE void SET_TexCoord4hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_TexCoord4hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexCoord1hNV)(GLenum, GLhalfNV);
+#define CALL_MultiTexCoord1hNV(disp, parameters) \
+    (* GET_MultiTexCoord1hNV(disp)) parameters
+static INLINE _glptr_MultiTexCoord1hNV GET_MultiTexCoord1hNV(struct _glapi_table *disp) {
+   return (_glptr_MultiTexCoord1hNV) (GET_by_offset(disp, _gloffset_MultiTexCoord1hNV));
+}
+
+static INLINE void SET_MultiTexCoord1hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_MultiTexCoord1hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexCoord1hvNV)(GLenum, const GLhalfNV *);
+#define CALL_MultiTexCoord1hvNV(disp, parameters) \
+    (* GET_MultiTexCoord1hvNV(disp)) parameters
+static INLINE _glptr_MultiTexCoord1hvNV GET_MultiTexCoord1hvNV(struct _glapi_table *disp) {
+   return (_glptr_MultiTexCoord1hvNV) (GET_by_offset(disp, _gloffset_MultiTexCoord1hvNV));
+}
+
+static INLINE void SET_MultiTexCoord1hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_MultiTexCoord1hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexCoord2hNV)(GLenum, GLhalfNV, GLhalfNV);
+#define CALL_MultiTexCoord2hNV(disp, parameters) \
+    (* GET_MultiTexCoord2hNV(disp)) parameters
+static INLINE _glptr_MultiTexCoord2hNV GET_MultiTexCoord2hNV(struct _glapi_table *disp) {
+   return (_glptr_MultiTexCoord2hNV) (GET_by_offset(disp, _gloffset_MultiTexCoord2hNV));
+}
+
+static INLINE void SET_MultiTexCoord2hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_MultiTexCoord2hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexCoord2hvNV)(GLenum, const GLhalfNV *);
+#define CALL_MultiTexCoord2hvNV(disp, parameters) \
+    (* GET_MultiTexCoord2hvNV(disp)) parameters
+static INLINE _glptr_MultiTexCoord2hvNV GET_MultiTexCoord2hvNV(struct _glapi_table *disp) {
+   return (_glptr_MultiTexCoord2hvNV) (GET_by_offset(disp, _gloffset_MultiTexCoord2hvNV));
+}
+
+static INLINE void SET_MultiTexCoord2hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_MultiTexCoord2hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexCoord3hNV)(GLenum, GLhalfNV, GLhalfNV, GLhalfNV);
+#define CALL_MultiTexCoord3hNV(disp, parameters) \
+    (* GET_MultiTexCoord3hNV(disp)) parameters
+static INLINE _glptr_MultiTexCoord3hNV GET_MultiTexCoord3hNV(struct _glapi_table *disp) {
+   return (_glptr_MultiTexCoord3hNV) (GET_by_offset(disp, _gloffset_MultiTexCoord3hNV));
+}
+
+static INLINE void SET_MultiTexCoord3hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLhalfNV, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_MultiTexCoord3hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexCoord3hvNV)(GLenum, const GLhalfNV *);
+#define CALL_MultiTexCoord3hvNV(disp, parameters) \
+    (* GET_MultiTexCoord3hvNV(disp)) parameters
+static INLINE _glptr_MultiTexCoord3hvNV GET_MultiTexCoord3hvNV(struct _glapi_table *disp) {
+   return (_glptr_MultiTexCoord3hvNV) (GET_by_offset(disp, _gloffset_MultiTexCoord3hvNV));
+}
+
+static INLINE void SET_MultiTexCoord3hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_MultiTexCoord3hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexCoord4hNV)(GLenum, GLhalfNV, GLhalfNV, GLhalfNV, GLhalfNV);
+#define CALL_MultiTexCoord4hNV(disp, parameters) \
+    (* GET_MultiTexCoord4hNV(disp)) parameters
+static INLINE _glptr_MultiTexCoord4hNV GET_MultiTexCoord4hNV(struct _glapi_table *disp) {
+   return (_glptr_MultiTexCoord4hNV) (GET_by_offset(disp, _gloffset_MultiTexCoord4hNV));
+}
+
+static INLINE void SET_MultiTexCoord4hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLhalfNV, GLhalfNV, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_MultiTexCoord4hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexCoord4hvNV)(GLenum, const GLhalfNV *);
+#define CALL_MultiTexCoord4hvNV(disp, parameters) \
+    (* GET_MultiTexCoord4hvNV(disp)) parameters
+static INLINE _glptr_MultiTexCoord4hvNV GET_MultiTexCoord4hvNV(struct _glapi_table *disp) {
+   return (_glptr_MultiTexCoord4hvNV) (GET_by_offset(disp, _gloffset_MultiTexCoord4hvNV));
+}
+
+static INLINE void SET_MultiTexCoord4hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_MultiTexCoord4hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_FogCoordhNV)(GLhalfNV);
+#define CALL_FogCoordhNV(disp, parameters) \
+    (* GET_FogCoordhNV(disp)) parameters
+static INLINE _glptr_FogCoordhNV GET_FogCoordhNV(struct _glapi_table *disp) {
+   return (_glptr_FogCoordhNV) (GET_by_offset(disp, _gloffset_FogCoordhNV));
+}
+
+static INLINE void SET_FogCoordhNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_FogCoordhNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_FogCoordhvNV)(const GLhalfNV *);
+#define CALL_FogCoordhvNV(disp, parameters) \
+    (* GET_FogCoordhvNV(disp)) parameters
+static INLINE _glptr_FogCoordhvNV GET_FogCoordhvNV(struct _glapi_table *disp) {
+   return (_glptr_FogCoordhvNV) (GET_by_offset(disp, _gloffset_FogCoordhvNV));
+}
+
+static INLINE void SET_FogCoordhvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_FogCoordhvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_SecondaryColor3hNV)(GLhalfNV, GLhalfNV, GLhalfNV);
+#define CALL_SecondaryColor3hNV(disp, parameters) \
+    (* GET_SecondaryColor3hNV(disp)) parameters
+static INLINE _glptr_SecondaryColor3hNV GET_SecondaryColor3hNV(struct _glapi_table *disp) {
+   return (_glptr_SecondaryColor3hNV) (GET_by_offset(disp, _gloffset_SecondaryColor3hNV));
+}
+
+static INLINE void SET_SecondaryColor3hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhalfNV, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_SecondaryColor3hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_SecondaryColor3hvNV)(const GLhalfNV *);
+#define CALL_SecondaryColor3hvNV(disp, parameters) \
+    (* GET_SecondaryColor3hvNV(disp)) parameters
+static INLINE _glptr_SecondaryColor3hvNV GET_SecondaryColor3hvNV(struct _glapi_table *disp) {
+   return (_glptr_SecondaryColor3hvNV) (GET_by_offset(disp, _gloffset_SecondaryColor3hvNV));
+}
+
+static INLINE void SET_SecondaryColor3hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_SecondaryColor3hvNV, fn);
 }
 
 

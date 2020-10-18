@@ -1,5 +1,5 @@
-project('xkeyboard-config', 'c',
-        version: '2.30', # change version in configure.ac as well
+project('xkeyboard-config',
+        version: '2.31', # change version in configure.ac as well
         license: 'MIT/Expat',
         meson_version: '>= 0.54.0')
 

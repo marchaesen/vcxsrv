@@ -29,6 +29,13 @@ option(
   description : 'window systems to support. If this is set to `auto`, all platforms applicable will be enabled.'
 )
 option(
+  'android-stub',
+  type : 'boolean',
+  value : false,
+  description : 'Build against android-stub',
+)
+
+option(
   'dri3',
   type : 'combo',
   value : 'auto',
@@ -150,6 +157,13 @@ option(
   description : 'build gallium "clover" OpenCL frontend with SPIR-V binary support.',
 )
 option(
+  'static-libclc',
+  type : 'array',
+  value : [],
+  choices : ['spirv', 'spirv64', 'all'],
+  description : 'Link libclc SPIR-V statically.',
+)
+option(
   'd3d-drivers-path',
   type : 'string',
   value : '',
@@ -159,15 +173,21 @@ option(
   'vulkan-drivers',
   type : 'array',
   value : ['auto'],
-  choices : ['auto', 'amd', 'freedreno', 'intel'],
+  choices : ['auto', 'amd', 'broadcom', 'freedreno', 'intel', 'swrast'],
   description : 'List of vulkan drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
+)
+option(
+  'freedreno-kgsl',
+  type : 'boolean',
+  value : false,
+  description : 'use kgsl backend for freedreno vulkan driver',
 )
 option(
   'shader-cache',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
-  description : 'Build with on-disk shader cache support'
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled', 'default-disabled'],
+  description : 'Build with on-disk shader cache support. If set to default-disabled, the feature is only activated when environment variable MESA_GLSL_CACHE_DISABLE is set to false'
 )
 option(
   'vulkan-icd-dir',
@@ -286,7 +306,13 @@ option(
   'build-tests',
   type : 'boolean',
   value : false,
-  description : 'Build unit tests. Currently this will build *all* unit tests, which may build more than expected.'
+  description : 'Build unit tests. Currently this will build *all* unit tests except the ACO tests, which may build more than expected.'
+)
+option(
+  'build-aco-tests',
+  type : 'boolean',
+  value : false,
+  description : 'Build ACO tests. These require RADV and glslang but not an AMD GPU.'
 )
 option(
   'install-intel-gpu-tests',

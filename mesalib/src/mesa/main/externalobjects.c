@@ -164,12 +164,9 @@ _mesa_CreateMemoryObjectsEXT(GLsizei n, GLuint *memoryObjects)
       return;
 
    _mesa_HashLockMutex(ctx->Shared->MemoryObjects);
-   GLuint first = _mesa_HashFindFreeKeyBlock(ctx->Shared->MemoryObjects, n);
-   if (first) {
+   if (_mesa_HashFindFreeKeys(ctx->Shared->MemoryObjects, memoryObjects, n)) {
       for (GLsizei i = 0; i < n; i++) {
          struct gl_memory_object *memObj;
-
-         memoryObjects[i] = first + i;
 
          /* allocate memory object */
          memObj = ctx->Driver.NewMemoryObject(ctx, memoryObjects[i]);
@@ -182,7 +179,7 @@ _mesa_CreateMemoryObjectsEXT(GLsizei n, GLuint *memoryObjects)
          /* insert into hash table */
          _mesa_HashInsertLocked(ctx->Shared->MemoryObjects,
                                 memoryObjects[i],
-                                memObj);
+                                memObj, true);
       }
    }
 
@@ -602,12 +599,10 @@ _mesa_GenSemaphoresEXT(GLsizei n, GLuint *semaphores)
       return;
 
    _mesa_HashLockMutex(ctx->Shared->SemaphoreObjects);
-   GLuint first = _mesa_HashFindFreeKeyBlock(ctx->Shared->SemaphoreObjects, n);
-   if (first) {
+   if (_mesa_HashFindFreeKeys(ctx->Shared->SemaphoreObjects, semaphores, n)) {
       for (GLsizei i = 0; i < n; i++) {
-         semaphores[i] = first + i;
          _mesa_HashInsertLocked(ctx->Shared->SemaphoreObjects,
-                                semaphores[i], &DummySemaphoreObject);
+                                semaphores[i], &DummySemaphoreObject, true);
       }
    }
 
@@ -886,7 +881,7 @@ _mesa_ImportSemaphoreFdEXT(GLuint semaphore,
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
          return;
       }
-      _mesa_HashInsert(ctx->Shared->SemaphoreObjects, semaphore, semObj);
+      _mesa_HashInsert(ctx->Shared->SemaphoreObjects, semaphore, semObj, true);
    }
 
    ctx->Driver.ImportSemaphoreFd(ctx, semObj, fd);

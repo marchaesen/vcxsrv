@@ -54,8 +54,8 @@
  * The program parser will produce the state[] values.
  */
 static void
-_mesa_fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
-                  gl_constant_value *val)
+fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
+            gl_constant_value *val)
 {
    GLfloat *value = &val->f;
 
@@ -322,7 +322,7 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
             matrix = ctx->ProgramMatrixStack[index].Top;
          }
          else {
-            _mesa_problem(ctx, "Bad matrix name in _mesa_fetch_state()");
+            _mesa_problem(ctx, "Bad matrix name in fetch_state()");
             return;
          }
          if (modifier == STATE_MATRIX_INVERSE ||
@@ -386,7 +386,7 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
                        ctx->FragmentProgram.Current->arb.LocalParams[idx]);
                return;
             default:
-               _mesa_problem(ctx, "Bad state switch in _mesa_fetch_state()");
+               _mesa_problem(ctx, "Bad state switch in fetch_state()");
                return;
          }
       }
@@ -415,7 +415,7 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
                        ctx->VertexProgram.Current->arb.LocalParams[idx]);
                return;
             default:
-               _mesa_problem(ctx, "Bad state switch in _mesa_fetch_state()");
+               _mesa_problem(ctx, "Bad state switch in fetch_state()");
                return;
          }
       }
@@ -630,6 +630,15 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
    }
 }
 
+unsigned
+_mesa_program_state_value_size(const gl_state_index16 state[STATE_LENGTH])
+{
+   if (state[0] == STATE_LIGHT && state[2] == STATE_SPOT_CUTOFF)
+      return 1;
+
+   /* Everything else is packed into vec4s */
+   return 4;
+}
 
 /**
  * Return a bitmask of the Mesa state flags (_NEW_* values) which would
@@ -1100,9 +1109,8 @@ _mesa_load_state_parameters(struct gl_context *ctx,
    for (i = 0; i < paramList->NumParameters; i++) {
       if (paramList->Parameters[i].Type == PROGRAM_STATE_VAR) {
          unsigned pvo = paramList->ParameterValueOffset[i];
-         _mesa_fetch_state(ctx,
-			   paramList->Parameters[i].StateIndexes,
-                           paramList->ParameterValues + pvo);
+         fetch_state(ctx, paramList->Parameters[i].StateIndexes,
+                     paramList->ParameterValues + pvo);
       }
    }
 }

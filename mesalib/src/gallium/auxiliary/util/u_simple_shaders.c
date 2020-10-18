@@ -656,7 +656,8 @@ util_make_fs_blit_msaa_depthstencil(struct pipe_context *pipe,
          "FRAG\n"
          "DCL IN[0], GENERIC[0], LINEAR\n"
          "DCL SAMP[0..1]\n"
-         "DCL SVIEW[0..1], %s, FLOAT\n"
+         "DCL SVIEW[0], %s, FLOAT\n"
+         "DCL SVIEW[1], %s, UINT\n"
          "DCL OUT[0], POSITION\n"
          "DCL OUT[1], STENCIL\n"
          "DCL TEMP[0]\n"
@@ -674,7 +675,7 @@ util_make_fs_blit_msaa_depthstencil(struct pipe_context *pipe,
    assert(tgsi_tex == TGSI_TEXTURE_2D_MSAA ||
           tgsi_tex == TGSI_TEXTURE_2D_ARRAY_MSAA);
 
-   sprintf(text, shader_templ, type, type, type);
+   sprintf(text, shader_templ, type, type, type, type);
 
    if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
       assert(0);
@@ -1163,4 +1164,41 @@ util_make_tess_ctrl_passthrough_shader(struct pipe_context *pipe,
    ureg_END(ureg);
 
    return ureg_create_shader_and_destroy(ureg, pipe);
+}
+
+void *
+util_make_fs_stencil_blit(struct pipe_context *pipe, bool msaa_src)
+{
+   static const char shader_templ[] =
+      "FRAG\n"
+      "DCL IN[0], GENERIC[0], LINEAR\n"
+      "DCL SAMP[0]\n"
+      "DCL CONST[0][0]\n"
+      "DCL TEMP[0]\n"
+
+      "F2U TEMP[0], IN[0]\n"
+      "TXF_LZ TEMP[0].x, TEMP[0], SAMP[0], %s\n"
+      "AND TEMP[0].x, TEMP[0], CONST[0][0]\n"
+      "USNE TEMP[0].x, TEMP[0], CONST[0][0]\n"
+      "U2F TEMP[0].x, TEMP[0]\n"
+      "KILL_IF -TEMP[0].xxxx\n"
+      "END\n";
+
+   char text[sizeof(shader_templ)+100];
+   struct tgsi_token tokens[1000];
+   struct pipe_shader_state state = { 0 };
+
+   enum tgsi_texture_type tgsi_tex = msaa_src ? TGSI_TEXTURE_2D_MSAA :
+                                                TGSI_TEXTURE_2D;
+
+   sprintf(text, shader_templ, tgsi_texture_names[tgsi_tex]);
+
+   if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
+      assert(0);
+      return NULL;
+   }
+
+   pipe_shader_state_from_tgsi(&state, tokens);
+
+   return pipe->create_fs_state(pipe, &state);
 }

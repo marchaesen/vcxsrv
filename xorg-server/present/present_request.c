@@ -31,15 +31,14 @@
 static int
 proc_present_query_version(ClientPtr client)
 {
-    xPresentQueryVersionReply rep;
     REQUEST(xPresentQueryVersionReq);
-
-        rep.type = X_Reply;
-        rep.sequenceNumber = client->sequence;
-        rep.length = 0;
-        rep.majorVersion = SERVER_PRESENT_MAJOR_VERSION;
-        rep.minorVersion = SERVER_PRESENT_MINOR_VERSION;
-
+    xPresentQueryVersionReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+        .majorVersion = SERVER_PRESENT_MAJOR_VERSION,
+        .minorVersion = SERVER_PRESENT_MINOR_VERSION
+    };
 
     REQUEST_SIZE_MATCH(xPresentQueryVersionReq);
     /* From presentproto:
@@ -211,14 +210,15 @@ proc_present_select_input (ClientPtr client)
 static int
 proc_present_query_capabilities (ClientPtr client)
 {
+    REQUEST(xPresentQueryCapabilitiesReq);
+    xPresentQueryCapabilitiesReply rep = {
+        .type = X_Reply,
+        .sequenceNumber = client->sequence,
+        .length = 0,
+    };
     WindowPtr   window;
     RRCrtcPtr   crtc = NULL;
     int         r;
-    xPresentQueryCapabilitiesReply rep;
-    REQUEST(xPresentQueryCapabilitiesReq);
-        rep.type = X_Reply;
-        rep.sequenceNumber = client->sequence;
-        rep.length = 0;
 
     REQUEST_SIZE_MATCH(xPresentQueryCapabilitiesReq);
     r = dixLookupWindow(&window, stuff->target, client, DixGetAttrAccess);

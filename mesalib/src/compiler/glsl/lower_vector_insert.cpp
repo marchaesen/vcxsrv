@@ -32,7 +32,8 @@ namespace {
 class vector_insert_visitor : public ir_rvalue_visitor {
 public:
    vector_insert_visitor(bool lower_nonconstant_index)
-      : progress(false), lower_nonconstant_index(lower_nonconstant_index)
+      : progress(false), lower_nonconstant_index(lower_nonconstant_index),
+        remove_assignment(false)
    {
       factory.instructions = &factory_instructions;
    }
@@ -43,11 +44,13 @@ public:
    }
 
    virtual void handle_rvalue(ir_rvalue **rv);
+   virtual ir_visitor_status visit_leave(ir_assignment *expr);
 
    ir_factory factory;
    exec_list factory_instructions;
    bool progress;
    bool lower_nonconstant_index;
+   bool remove_assignment;
 };
 
 } /* anonymous namespace */
@@ -68,6 +71,21 @@ vector_insert_visitor::handle_rvalue(ir_rvalue **rv)
    ir_constant *const idx =
       expr->operands[2]->constant_expression_value(factory.mem_ctx);
    if (idx != NULL) {
+      unsigned index = idx->value.u[0];
+
+      if (index >= expr->operands[0]->type->vector_elements) {
+         /* Section 5.11 (Out-of-Bounds Accesses) of the GLSL 4.60 spec says:
+          *
+          *  In the subsections described above for array, vector, matrix and
+          *  structure accesses, any out-of-bounds access produced undefined
+          *  behavior.... Out-of-bounds writes may be discarded or overwrite
+          *  other variables of the active program.
+          */
+         this->remove_assignment = true;
+         this->progress = true;
+         return;
+      }
+
       /* Replace (vector_insert (vec) (scalar) (index)) with a dereference of
        * a new temporary.  The new temporary gets assigned as
        *
@@ -134,6 +152,19 @@ vector_insert_visitor::handle_rvalue(ir_rvalue **rv)
    }
 
    base_ir->insert_before(factory.instructions);
+}
+
+ir_visitor_status
+vector_insert_visitor::visit_leave(ir_assignment *ir)
+{
+   ir_rvalue_visitor::visit_leave(ir);
+
+   if (this->remove_assignment) {
+      ir->remove();
+      this->remove_assignment = false;
+   }
+
+   return visit_continue;
 }
 
 bool

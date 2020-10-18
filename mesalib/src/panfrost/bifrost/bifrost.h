@@ -34,239 +34,149 @@
 
 extern int bifrost_debug;
 
-enum bifrost_clause_type {
-        BIFROST_CLAUSE_NONE       = 0,
-        BIFROST_CLAUSE_LOAD_VARY  = 1,
-        BIFROST_CLAUSE_UBO        = 2,
-        BIFROST_CLAUSE_TEX        = 3,
-        BIFROST_CLAUSE_SSBO_LOAD  = 5,
-        BIFROST_CLAUSE_SSBO_STORE = 6,
-        BIFROST_CLAUSE_BLEND      = 9,
-        BIFROST_CLAUSE_FRAGZ      = 12,
-        BIFROST_CLAUSE_ATEST      = 13,
-        BIFROST_CLAUSE_64BIT      = 15
+enum bifrost_message_type {
+        BIFROST_MESSAGE_NONE       = 0,
+        BIFROST_MESSAGE_VARYING    = 1,
+        BIFROST_MESSAGE_ATTRIBUTE  = 2,
+        BIFROST_MESSAGE_TEX        = 3,
+        BIFROST_MESSAGE_VARTEX     = 4,
+        BIFROST_MESSAGE_LOAD       = 5,
+        BIFROST_MESSAGE_STORE      = 6,
+        BIFROST_MESSAGE_ATOMIC     = 7,
+        BIFROST_MESSAGE_BARRIER    = 8,
+        BIFROST_MESSAGE_BLEND      = 9,
+        BIFROST_MESSAGE_TILE       = 10,
+        /* type 11 reserved */
+        BIFROST_MESSAGE_Z_STENCIL  = 12,
+        BIFROST_MESSAGE_ATEST      = 13,
+        BIFROST_MESSAGE_JOB        = 14,
+        BIFROST_MESSAGE_64BIT      = 15
+};
+
+enum bifrost_ftz {
+        BIFROST_FTZ_DISABLE = 0,
+        BIFROST_FTZ_DX11 = 1,
+        BIFROST_FTZ_ALWAYS = 2,
+        BIFROST_FTZ_ABRUPT = 3
+};
+
+enum bifrost_exceptions {
+        BIFROST_EXCEPTIONS_ENABLED = 0,
+        BIFROST_EXCEPTIONS_DISABLED = 1,
+        BIFROST_EXCEPTIONS_PRECISE_DIVISION = 2,
+        BIFROST_EXCEPTIONS_PRECISE_SQRT = 3,
+};
+
+/* Describes clause flow control, with respect to control flow and branch
+ * reconvergence.
+ *
+ * Control flow may be considered back-to-back (execute clauses back-to-back),
+ * non-back-to-back (switch warps after clause before the next clause), write
+ * elision (back-to-back and elide register slot #3 write from the clause), or
+ * end of shader.
+ *
+ * Branch reconvergence may be disabled, enabled unconditionally, or enabled
+ * based on the program counter. A clause requires reconvergence if it has a
+ * successor that can be executed without first executing the clause itself.
+ * Separate iterations of a loop are treated separately here, so it is also the
+ * case for a loop exit where the iteration count is not warp-invariant.
+ *
+ */
+
+enum bifrost_flow {
+        /* End-of-shader */
+        BIFROST_FLOW_END = 0,
+
+        /* Non back-to-back, PC-encoded reconvergence */
+        BIFROST_FLOW_NBTB_PC = 1,
+
+        /* Non back-to-back, unconditional reconvergence */
+        BIFROST_FLOW_NBTB_UNCONDITIONAL = 2,
+
+        /* Non back-to-back, no reconvergence */
+        BIFROST_FLOW_NBTB = 3,
+
+        /* Back-to-back, unconditional reconvergence */
+        BIFROST_FLOW_BTB_UNCONDITIONAL = 4,
+
+        /* Back-to-back, no reconvergence */
+        BIFROST_FLOW_BTB_NONE = 5,
+
+        /* Write elision, unconditional reconvergence */
+        BIFROST_FLOW_WE_UNCONDITIONAL = 6,
+
+        /* Write elision, no reconvergence */
+        BIFROST_FLOW_WE = 7,
 };
 
 struct bifrost_header {
-        unsigned unk0 : 7;
-        // If true, convert any infinite result of any floating-point operation to
-        // the biggest representable number.
+        /* Reserved */
+        unsigned zero1 : 5;
+
+        /* Flush-to-zero mode, leave zero for GL */
+        enum bifrost_ftz flush_to_zero : 2;
+
+        /* Convert any infinite result of any floating-point operation to the
+         * biggest representable number */
         unsigned suppress_inf: 1;
-        // Convert any NaN results to 0.
+
+        /* Convert NaN to +0.0 */
         unsigned suppress_nan : 1;
-        unsigned unk1 : 2;
-        // true if the execution mask of the next clause is the same as the mask of
-        // the current clause.
-        unsigned back_to_back : 1;
-        unsigned no_end_of_shader: 1;
-        unsigned unk2 : 2;
-        // Set to true for fragment shaders, to implement this bit of spec text
-        // from section 7.1.5 of the GLSL ES spec:
-        //
-        // "Stores to image and buffer variables performed by helper invocations
-        // have no effect on the underlying image or buffer memory."
-        //
-        // Helper invocations are threads (invocations) corresponding to pixels in
-        // a quad that aren't actually part of the triangle, but are included to
-        // make derivatives work correctly. They're usually turned on, but they
-        // need to be masked off for GLSL-level stores. This bit seems to be the
-        // only bit that's actually different between fragment shaders and other
-        // shaders, so this is probably what it's doing.
-        unsigned elide_writes : 1;
-        // If backToBack is off:
-        // - true for conditional branches and fallthrough
-        // - false for unconditional branches
-        // The blob seems to always set it to true if back-to-back is on.
-        unsigned branch_cond : 1;
-        // This bit is set when the next clause writes to the data register of some
-        // previous clause.
-        unsigned datareg_writebarrier: 1;
-        unsigned datareg : 6;
-        unsigned scoreboard_deps: 8;
-        unsigned scoreboard_index: 3;
-        enum bifrost_clause_type clause_type: 4;
-        unsigned unk3 : 1; // part of clauseType?
-        enum bifrost_clause_type next_clause_type: 4;
-        unsigned unk4 : 1; // part of nextClauseType?
+
+        /* Floating-point excception handling mode */
+        enum bifrost_exceptions float_exceptions : 2;
+
+        /* Enum describing the flow control, which matters for handling
+         * divergence and reconvergence efficiently */
+        enum bifrost_flow flow_control : 3;
+
+        /* Reserved */
+        unsigned zero2 : 1;
+
+        /* Terminate discarded threads, rather than continuing execution. Set
+         * for fragment shaders for standard GL behaviour of DISCARD. Also in a
+         * fragment shader, this disables helper invocations, so cannot be used
+         * in a shader that requires derivatives or texture LOD computation */
+        unsigned terminate_discarded_threads : 1;
+
+        /* If set, the hardware may prefetch the next clause. If false, the
+         * hardware may not. Clear for unconditional branches. */
+        unsigned next_clause_prefetch : 1;
+
+        /* If set, a barrier will be inserted after the clause waiting for all
+         * message passing instructions to read their staging registers, such
+         * that it is safe for the next clause to write them. */
+        unsigned staging_barrier: 1;
+        unsigned staging_register : 6;
+
+        /* Slots to wait on and slot to be used for message passing
+         * instructions respectively */
+        unsigned dependency_wait : 8;
+        unsigned dependency_slot : 3;
+
+        enum bifrost_message_type message_type : 5;
+        enum bifrost_message_type next_message_type : 5;
 } __attribute__((packed));
 
 enum bifrost_packed_src {
         BIFROST_SRC_PORT0    = 0,
         BIFROST_SRC_PORT1    = 1,
-        BIFROST_SRC_PORT3    = 2,
+        BIFROST_SRC_PORT2    = 2,
         BIFROST_SRC_STAGE    = 3,
-        BIFROST_SRC_CONST_LO = 4,
-        BIFROST_SRC_CONST_HI = 5,
+        BIFROST_SRC_FAU_LO   = 4,
+        BIFROST_SRC_FAU_HI   = 5,
         BIFROST_SRC_PASS_FMA = 6,
         BIFROST_SRC_PASS_ADD = 7,
 };
-
-#define BIFROST_FMA_EXT (0xe0000)
-#define BIFROST_FMA_OP_MOV BIFROST_FMA_EXT | (0x32d)
-#define BIFROST_FMA_OP_FREXPE_LOG BIFROST_FMA_EXT | 0x3c5
-#define BIFROST_FMA_OP_ADD_FREXPM ((BIFROST_FMA_EXT | 0x1e80) >> 3)
-#define BIFROST_FMA_SEL_16(swiz) (((BIFROST_FMA_EXT | 0x1e00) >> 3) | (swiz))
-
-#define BIFROST_FMA_ROUND_16(mode, swiz) (BIFROST_FMA_EXT | 0x1800 | (swiz) | ((mode) << 6))
-#define BIFROST_FMA_ROUND_32(mode) (BIFROST_FMA_EXT | 0x1805 | ((mode) << 6))
 
 struct bifrost_fma_inst {
         unsigned src0 : 3;
         unsigned op   : 20;
 } __attribute__((packed));
 
-#define BIFROST_FMA_IADD_32 (0x4ff98 >> 3)
-#define BIFROST_FMA_ISUB_32 (0x4ffd8 >> 3)
-
-struct bifrost_fma_2src {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned op   : 17;
-} __attribute__((packed));
-
-#define BIFROST_FMA_OP_SEL8 (0x71)
-
-struct bifrost_fma_sel8 {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned src2 : 3;
-        unsigned src3 : 3;
-        unsigned swizzle : 4;
-        unsigned op   : 7;
-} __attribute__((packed));
-
-#define BIFROST_FMA_OP_MSCALE (0x50 >> 3)
-
-struct bifrost_fma_mscale {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned src2 : 3;
-        unsigned src3 : 3;
-
-        /* If mscale_mode is set - an MSCALE specific mode. If it is not set, a
-         * regular outmod */
-        unsigned mode : 2;
-        unsigned mscale_mode : 1;
-
-        unsigned src0_abs : 1;
-        unsigned src1_neg : 1;
-        unsigned src2_neg : 1;
-        unsigned op   : 5;
-} __attribute__((packed));
-
-#define BIFROST_ADD_OP_BLEND (0x1952c)
-#define BIFROST_ADD_OP_FRCP_FAST_F32 (0x0cc00)
-#define BIFROST_ADD_OP_FRCP_FAST_F16_X (0x0ce10)
-#define BIFROST_ADD_OP_FRCP_FAST_F16_Y (0x0ce30)
-#define BIFROST_ADD_OP_FRSQ_FAST_F32 (0x0cc20)
-#define BIFROST_ADD_OP_FRSQ_FAST_F16_X (0x0ce50)
-#define BIFROST_ADD_OP_FRSQ_FAST_F16_Y (0x0ce70)
-#define BIFROST_ADD_OP_LOG2_HELP  (0x0cc68)
-#define BIFROST_ADD_OP_FEXP2_FAST (0x0cd58)
-
 struct bifrost_add_inst {
         unsigned src0 : 3;
         unsigned op   : 17;
-} __attribute__((packed));
-
-#define BIFROST_ADD_OP_DISCARD (0x19100 >> 8)
-
-enum bifrost_discard_cond {
-        BIFROST_DISCARD_FEQ = 0,
-        BIFROST_DISCARD_FNE = 1,
-        BIFROST_DISCARD_FLE = 2,
-        BIFROST_DISCARD_FLT = 3,
-};
-
-struct bifrost_add_discard {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        enum bifrost_discard_cond cond : 2;
-        /* Zero for fp32 */
-        unsigned src0_select : 1;
-        unsigned src1_select : 1;
-        unsigned fp32 : 1;
-        unsigned op   : 9;
-} __attribute__((packed));
-
-#define BIFROST_ADD_OP_LD_UBO_1 (0x0c1a0 >> 3)
-#define BIFROST_ADD_OP_LD_UBO_2 (0x0c1e0 >> 3)
-#define BIFROST_ADD_OP_LD_UBO_3 (0x0caa0 >> 3)
-#define BIFROST_ADD_OP_LD_UBO_4 (0x0c220 >> 3)
-#define BIFROST_ADD_SEL_16(swiz) ((0xea60 >> 3) | (swiz))
-
-#define BIFROST_ADD_IADD_8  (0x17880 >> 3)
-#define BIFROST_ADD_IADD_16 (0x17900 >> 3)
-#define BIFROST_ADD_IADD_32 (0x178c0 >> 3)
-#define BIFROST_ADD_ISUB_8  (0x17a80 >> 3)
-#define BIFROST_ADD_ISUB_16 (0x17b00 >> 3)
-#define BIFROST_ADD_ISUB_32 (0x17ac0 >> 3)
-
-struct bifrost_add_2src {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned op   : 14;
-} __attribute__((packed));
-
-#define BIFROST_ADD_OP_FMAX32 (0x00)
-#define BIFROST_ADD_OP_FMIN32 (0x01)
-#define BIFROST_ADD_OP_FADD32 (0x02)
-
-#define BIFROST_ADD_OP_FADD16 (0x0A)
-
-struct bifrost_add_faddmin {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned src1_abs : 1;
-        unsigned src0_neg : 1;
-        unsigned src1_neg : 1;
-        unsigned select : 2; /* swizzle_0 for fp16 */
-        unsigned outmod : 2; /* swizzle_1 for fp16 */
-        unsigned mode : 2;
-        unsigned src0_abs : 1;
-        unsigned op   : 4;
-} __attribute__((packed));
-
-#define BIFROST_ADD_OP_FMAX16 (0x10)
-#define BIFROST_ADD_OP_FMIN16 (0x12)
-
-struct bifrost_add_fmin16 {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        /* abs2 inferred as with FMA */
-        unsigned abs1 : 1;
-        unsigned src0_neg : 1;
-        unsigned src1_neg : 1;
-        unsigned src0_swizzle : 2;
-        unsigned src1_swizzle : 2;
-        unsigned mode : 2;
-        unsigned op : 5;
-} __attribute__((packed));
-
-#define BIFROST_ADD_OP_ST_VAR (0x19300 >> 8)
-
-struct bifrost_st_vary {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned src2 : 3;
-        unsigned channels : 2;
-        unsigned op   : 9;
-} __attribute__((packed));
-
-#define BIFROST_ADD_OP_ATEST (0xc8f)
-
-struct bifrost_add_atest {
-        /* gl_SampleMask (R60) */
-        unsigned src0 : 3;
-
-        /* Alpha value */
-        unsigned src1 : 3;
-
-        /* If half, X/Y select. If !half, always set */
-        unsigned component : 1;
-        unsigned half : 1;
-
-        unsigned op   : 12;
 } __attribute__((packed));
 
 enum bifrost_outmod {
@@ -310,310 +220,6 @@ enum bifrost_minmax_mode {
         BIFROST_SRC0_WINS   = 0x3,
 };
 
-#define BIFROST_FMA_OP_FADD32 (0x58 >> 2)
-#define BIFROST_FMA_OP_FMAX32 (0x40 >> 2)
-#define BIFROST_FMA_OP_FMIN32 (0x44 >> 2)
-
-struct bifrost_fma_add {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned src1_abs : 1;
-        unsigned src0_neg : 1;
-        unsigned src1_neg : 1;
-        unsigned unk : 3;
-        unsigned src0_abs : 1;
-        enum bifrost_roundmode roundmode : 2;
-        enum bifrost_outmod outmod : 2;
-        unsigned op : 6;
-} __attribute__((packed));
-
-#define BIFROST_FMA_OP_FMAX16 (0xC0 >> 2)
-#define BIFROST_FMA_OP_FMIN16 (0xCC >> 2)
-#define BIFROST_FMA_OP_FADD16 (0xD8 >> 2)
-
-struct bifrost_fma_add_minmax16 {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        /* abs2 inferred as (src1 < src0) */
-        unsigned abs1 : 1;
-        unsigned src0_neg : 1;
-        unsigned src1_neg : 1;
-        unsigned src0_swizzle : 2;
-        unsigned src1_swizzle : 2;
-        unsigned mode : 2;
-        enum bifrost_outmod outmod : 2;
-        /* roundmode for add, min/max mode for min/max */
-        unsigned op : 6;
-} __attribute__((packed));
-
-#define BIFROST_FMA_OP_FMA (0x00)
-
-struct bifrost_fma_fma {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned src2 : 3;
-        unsigned src_expand : 3;
-        unsigned src0_abs : 1;
-        enum bifrost_roundmode roundmode : 2;
-        enum bifrost_outmod outmod : 2;
-        unsigned src0_neg : 1; /* 14 */
-        unsigned src2_neg : 1;
-        unsigned src1_abs : 1;
-        unsigned src2_abs : 1; /* 17 */
-        unsigned op : 2;
-} __attribute__((packed));
-
-#define BIFROST_FMA_OP_FMA16 (0x2)
-
-struct bifrost_fma_fma16 {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned src2 : 3;
-        unsigned swizzle_0 : 2;
-        unsigned swizzle_1 : 2;
-        enum bifrost_roundmode roundmode : 2;
-        enum bifrost_outmod outmod : 2;
-        unsigned src0_neg : 1;
-        unsigned src2_neg : 1;
-        unsigned swizzle_2 : 2;
-        unsigned op : 2;
-} __attribute__((packed));
-
-enum bifrost_csel_cond {
-        BIFROST_FEQ_F = 0x0,
-        BIFROST_FGT_F = 0x1,
-        BIFROST_FGE_F = 0x2,
-        BIFROST_IEQ_F = 0x3,
-        BIFROST_IGT_I = 0x4,
-        BIFROST_IGE_I = 0x5,
-        BIFROST_UGT_I = 0x6,
-        BIFROST_UGE_I = 0x7
-};
-
-#define BIFROST_FMA_OP_CSEL4     (0x5c)
-#define BIFROST_FMA_OP_CSEL4_V16 (0xdc)
-
-struct bifrost_csel4 {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned src2 : 3;
-        unsigned src3 : 3;
-        enum bifrost_csel_cond cond : 3;
-        unsigned op   : 8;
-} __attribute__((packed));
-
-#define BIFROST_FMA_OP_RSHIFT_NAND     (0x60000 >> 12)
-#define BIFROST_FMA_OP_RSHIFT_AND      (0x61000 >> 12)
-#define BIFROST_FMA_OP_LSHIFT_NAND     (0x62000 >> 12)
-#define BIFROST_FMA_OP_LSHIFT_AND      (0x63000 >> 12)
-#define BIFROST_FMA_OP_RSHIFT_XOR      (0x64000 >> 12)
-#define BIFROST_FMA_OP_LSHIFT_ADD_32   (0x65200 >> 6)
-#define BIFROST_FMA_OP_LSHIFT_SUB_32   (0x65600 >> 6)
-#define BIFROST_FMA_OP_LSHIFT_RSUB_32  (0x65a00 >> 6)
-#define BIFROST_FMA_OP_RSHIFT_ADD_32   (0x65e00 >> 6)
-#define BIFROST_FMA_OP_RSHIFT_SUB_32   (0x66200 >> 6)
-#define BIFROST_FMA_OP_RSHIFT_RSUB_32  (0x66600 >> 6)
-
-struct bifrost_shift_fma {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned src2 : 3;
-        unsigned half : 3;
-        unsigned unk  : 1; /* always set? */
-        unsigned invert_1 : 1; /* Inverts sources to combining op */
-        /* For XOR, switches RSHIFT to LSHIFT since only one invert needed */
-        unsigned invert_2 : 1;
-        unsigned op : 8;
-} __attribute__((packed));
-
-struct bifrost_shift_add {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned src2 : 3;
-        unsigned zero : 2;
-
-        unsigned invert_1 : 1;
-        unsigned invert_2 : 1;
-
-        unsigned op : 7;
-} __attribute__((packed));
-
-enum bifrost_fcmp_cond {
-        BIFROST_OEQ = 0,
-        BIFROST_OGT = 1,
-        BIFROST_OGE = 2,
-        BIFROST_UNE = 3,
-        BIFROST_OLT = 4,
-        BIFROST_OLE = 5,
-};
-
-#define BIFROST_FMA_OP_FCMP_GL (0x48000 >> 13)
-#define BIFROST_FMA_OP_FCMP_D3D (0x4c000 >> 13)
-
-struct bifrost_fma_fcmp {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned src1_abs : 1;
-        unsigned unk1 : 1;
-        unsigned src1_neg : 1;
-        unsigned src_expand : 3;
-        unsigned src0_abs : 1;
-        enum bifrost_fcmp_cond cond : 3;
-        unsigned op   : 7;
-} __attribute__((packed));
-
-struct bifrost_add_fcmp {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        enum bifrost_fcmp_cond cond : 3;
-        unsigned src_expand : 2;
-        unsigned src0_abs : 1;
-        unsigned src1_abs : 1;
-        unsigned src1_neg : 1;
-        unsigned op   : 6;
-} __attribute__((packed));
-
-#define BIFROST_FMA_OP_FCMP_GL_16 (0xc8000 >> 13)
-#define BIFROST_FMA_OP_FCMP_D3D_16 (0xcc000 >> 13)
-
-struct bifrost_fma_fcmp16 {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-
-        /* abs2 inferred */
-        unsigned abs1 : 1;
-        unsigned unk : 2;
-
-        unsigned src0_swizzle : 2;
-        unsigned src1_swizzle : 2;
-
-        enum bifrost_fcmp_cond cond : 3;
-        unsigned op   : 7;
-} __attribute__((packed));
-
-struct bifrost_add_fcmp16 {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        enum bifrost_fcmp_cond cond : 3;
-
-        unsigned src0_swizzle : 2;
-        unsigned src1_swizzle : 2;
-
-        /* No abs mods */
-        unsigned src0_neg : 1;
-
-        unsigned op   : 6;
-} __attribute__((packed));
-
-enum bifrost_icmp_cond {
-        BIFROST_ICMP_IGT = 0,
-        BIFROST_ICMP_IGE = 1, /* swapped for 16-bit */
-        BIFROST_ICMP_UGT = 2, /* swapped for 16-bit */
-        BIFROST_ICMP_UGE = 3,
-        BIFROST_ICMP_EQ  = 4,
-        BIFROST_ICMP_NEQ  = 5,
-        BIFROST_ICMP_32_OR_8 = 6, /* nested */
-        BIFROST_ICMP_64 = 7, /* nested */
-};
-
-struct bifrost_fma_icmp32 {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        enum bifrost_icmp_cond cond : 3;
-        unsigned unk1 : 1; /* set */
-        unsigned d3d : 1;
-        unsigned op : 12;
-} __attribute__((packed));
-
-struct bifrost_fma_icmp16 {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned unk : 5; /* 11010 */
-        enum bifrost_icmp_cond cond : 3;
-        unsigned op : 9;
-} __attribute__((packed));
-
-#define BIFROST_ADD_OP_ICMP_32 (0x0f600 >> 8)
-#define BIFROST_ADD_OP_ICMP_16 (0x0f000 >> 11)
-
-struct bifrost_add_icmp {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        enum bifrost_icmp_cond cond : 3;
-        unsigned sz : 1; /* 1 for 32, 0 for 8 */
-        unsigned d3d : 1;
-        unsigned op : 9;
-} __attribute__((packed));
-
-struct bifrost_add_icmp16 {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned src0_swizzle : 2;
-        unsigned src1_swizzle : 2;
-        unsigned d3d : 1;
-        enum bifrost_icmp_cond cond : 3;
-        unsigned op : 6;
-} __attribute__((packed));
- 
-/* Two sources for vectorization */
-#define BIFROST_FMA_FLOAT32_TO_16 (0xdd000 >> 3)
-#define BIFROST_ADD_FLOAT32_TO_16 (0x0EC00 >> 3)
-
-enum bifrost_convert_mode {
-        BIFROST_CONV_UNK0 = 0,
-        BIFROST_CONV_F32_TO_I32 = 1,
-        BIFROST_CONV_F16_TO_I16 = 2,
-        BIFROST_CONV_I32_TO_F32 = 3,
-        BIFROST_CONV_I16_TO_X32 = 4,
-        BIFROST_CONV_F16_TO_F32 = 5,
-        BIFROST_CONV_I16_TO_F16 = 6,
-        BIFROST_CONV_UNK7 = 7
-};
-
-/* i16 to x32 */
-#define BIFROST_CONVERT_4(is_unsigned, component, to_float) \
-        ((is_unsigned & 1) | ((component & 1) << 1) | ((to_float & 1) << 2) | \
-         ((0x3) << 3) | ((4) << 5) | 0x100)
-
-/* f16 to f32 */
-#define BIFROST_CONVERT_5(component) \
-        ((component & 1) | ((1) << 1) | ((5) << 5) | 0x100)
-
-/* Other conversions */
-#define BIFROST_CONVERT(is_unsigned, roundmode, swizzle, mode) \
-        ((is_unsigned & 1) | ((roundmode & 3) << 1) | ((swizzle & 3) << 3) | ((mode & 7) << 5))
-
-#define BIFROST_FMA_CONVERT (0xe0000)
-#define BIFROST_ADD_CONVERT (0x07800)
-
-enum bifrost_ldst_type {
-        BIFROST_LDST_F16 = 0,
-        BIFROST_LDST_F32 = 1,
-        BIFROST_LDST_I32 = 2,
-        BIFROST_LDST_U32 = 3
-};
-
-#define BIFROST_ADD_OP_LD_VAR_ADDR (0x18000 >> 10)
-
-struct bifrost_ld_var_addr {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned location : 5;
-        enum bifrost_ldst_type type : 2;
-        unsigned op : 7;
-} __attribute__((packed));
-
-#define BIFROST_ADD_OP_LD_ATTR (0x08000 >> 12)
-
-struct bifrost_ld_attr {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned location : 5;
-        unsigned channels : 2; /* MALI_POSITIVE */
-        enum bifrost_ldst_type type : 2;
-        unsigned op : 5;
-} __attribute__((packed));
-
 enum bifrost_interp_mode {
         BIFROST_INTERP_PER_FRAG = 0x0,
         BIFROST_INTERP_CENTROID = 0x1,
@@ -621,64 +227,9 @@ enum bifrost_interp_mode {
         BIFROST_INTERP_EXPLICIT = 0x3
 };
 
-#define BIFROST_ADD_OP_LD_VAR_16 (0x1a << 1)
-#define BIFROST_ADD_OP_LD_VAR_32 (0x0a << 1)
-
 /* Fixed location for gl_FragCoord.zw */
 #define BIFROST_FRAGZ (23)
 #define BIFROST_FRAGW (22)
-
-struct bifrost_ld_var {
-        unsigned src0 : 3;
-
-        /* If top two bits set, indirect with src in bottom three */
-        unsigned addr : 5;
-
-        unsigned channels : 2; /* MALI_POSITIVE */
-        enum bifrost_interp_mode interp_mode : 2;
-        unsigned reuse : 1;
-        unsigned flat : 1;
-        unsigned op : 6;
-} __attribute__((packed));
-
-struct bifrost_tex_ctrl {
-        unsigned sampler_index : 4; // also used to signal indirects
-        unsigned tex_index : 7;
-        bool no_merge_index : 1; // whether to merge (direct) sampler & texture indices
-        bool filter : 1; // use the usual filtering pipeline (0 for texelFetch & textureGather)
-        unsigned unk0 : 2;
-        bool texel_offset : 1; // *Offset()
-        bool is_shadow : 1;
-        bool is_array : 1;
-        unsigned tex_type : 2; // 2D, 3D, Cube, Buffer
-        bool compute_lod : 1; // 0 for *Lod()
-        bool not_supply_lod : 1; // 0 for *Lod() or when a bias is applied
-        bool calc_gradients : 1; // 0 for *Grad()
-        unsigned unk1 : 1;
-        unsigned result_type : 4; // integer, unsigned, float TODO: why is this 4 bits?
-        unsigned unk2 : 4;
-} __attribute__((packed));
-
-struct bifrost_dual_tex_ctrl {
-        unsigned sampler_index0 : 2;
-        unsigned unk0 : 2;
-        unsigned tex_index0 : 2;
-        unsigned sampler_index1 : 2;
-        unsigned tex_index1 : 2;
-        unsigned unk1 : 22;
-} __attribute__((packed));
-
-#define BIFROST_ADD_OP_TEX_COMPACT_F32(vtx) ((0x0b000 | ((vtx) ? (0x400) : (0))) >> 10)
-#define BIFROST_ADD_OP_TEX_COMPACT_F16(vtx) ((0x1b000 | ((vtx) ? (0x400) : (0))) >> 10)
-
-struct bifrost_tex_compact {
-        unsigned src0 : 3;
-        unsigned src1 : 3;
-        unsigned tex_index : 3;
-        unsigned compute_lod : 1;
-        unsigned sampler_index : 3;
-        unsigned op   : 7;
-} __attribute__((packed));
 
 enum branch_bit_size {
         BR_SIZE_32 = 0,
@@ -700,16 +251,10 @@ enum branch_bit_size {
         BR_SIZE_ZERO = 7,
 };
 
-enum bifrost_reg_write_unit {
-        REG_WRITE_NONE = 0, // don't write
-        REG_WRITE_TWO, // write using reg2
-        REG_WRITE_THREE, // write using reg3
-};
-
 struct bifrost_regs {
-        unsigned uniform_const : 8;
-        unsigned reg2 : 6;
+        unsigned fau_idx : 8;
         unsigned reg3 : 6;
+        unsigned reg2 : 6;
         unsigned reg0 : 5;
         unsigned reg1 : 6;
         unsigned ctrl : 4;
@@ -754,9 +299,6 @@ struct bifrost_branch {
 
 /* Clause packing */
 
-#define BIFROST_FMA_NOP (0x701960 | BIFROST_SRC_STAGE)
-#define BIFROST_ADD_NOP (0x3D960 | BIFROST_SRC_STAGE)
-
 struct bifrost_fmt1 {
         unsigned ins_0 : 3;
         unsigned tag : 5;
@@ -779,23 +321,234 @@ struct bifrost_fmt_constant {
         uint64_t imm_2 : 60;
 } __attribute__((packed));
 
-enum bifrost_reg_control {
-        BIFROST_WRITE_FMA_P2         = 1,
-        BIFROST_WRITE_FMA_P2_READ_P3 = 2,
-        BIFROST_FIRST_WRITE_FMA_P2_READ_P3 = 3,
-        BIFROST_READ_P3              = 4,
-        BIFROST_WRITE_ADD_P2         = 5,
-        BIFROST_WRITE_ADD_P2_READ_P3 = 6,
-        BIFROST_WRITE_ADD_P2_FMA_P3  = 7,
-
-        BIFROST_FIRST_NONE           = 8,
-        BIFROST_FIRST_WRITE_FMA_P2   = 9,
-        /* INSTR_INVALID_ENC */
-        BIFROST_REG_NONE             = 11,
-        BIFROST_FIRST_READ_P3        = 12,
-        BIFROST_FIRST_WRITE_ADD_P2   = 13,
-        BIFROST_FIRST_WRITE_ADD_P2_READ_P3 = 14,
-        BIFROST_FIRST_WRITE_ADD_P2_FMA_P3  = 15
+/* 32-bit modes for slots 2/3, as encoded in the register block. Other values
+ * are reserved. First part specifies behaviour of slot 2 (Idle, Read, Write
+ * Full, Write Low, Write High), second part behaviour of slot 3, and the last
+ * part specifies the source for the write (FMA, ADD, or MIX for FMA/ADD).
+ *
+ * IDLE is a special mode disabling both slots, except for the first
+ * instruction in the clause which uses IDLE_1 for the same purpose.
+ *
+ * All fields 0 used as sentinel for reserved encoding, so IDLE(_1) have FMA
+ * set (and ignored) as a placeholder to differentiate from reserved.
+ */
+enum bifrost_reg_mode {
+        BIFROST_R_WL_FMA  = 1,
+        BIFROST_R_WH_FMA  = 2,
+        BIFROST_R_W_FMA   = 3,
+        BIFROST_R_WL_ADD  = 4,
+        BIFROST_R_WH_ADD  = 5,
+        BIFROST_R_W_ADD   = 6,
+        BIFROST_WL_WL_ADD = 7,
+        BIFROST_WL_WH_ADD = 8,
+        BIFROST_WL_W_ADD  = 9,
+        BIFROST_WH_WL_ADD = 10,
+        BIFROST_WH_WH_ADD = 11,
+        BIFROST_WH_W_ADD  = 12,
+        BIFROST_W_WL_ADD  = 13,
+        BIFROST_W_WH_ADD  = 14,
+        BIFROST_W_W_ADD   = 15,
+        BIFROST_IDLE_1    = 16,
+        BIFROST_I_W_FMA   = 17,
+        BIFROST_I_WL_FMA  = 18,
+        BIFROST_I_WH_FMA  = 19,
+        BIFROST_R_I       = 20,
+        BIFROST_I_W_ADD   = 21,
+        BIFROST_I_WL_ADD  = 22,
+        BIFROST_I_WH_ADD  = 23,
+        BIFROST_WL_WH_MIX = 24,
+        BIFROST_WH_WL_MIX = 26,
+        BIFROST_IDLE      = 27,
 };
+
+enum bifrost_reg_op {
+        BIFROST_OP_IDLE = 0,
+        BIFROST_OP_READ = 1,
+        BIFROST_OP_WRITE = 2,
+        BIFROST_OP_WRITE_LO = 3,
+        BIFROST_OP_WRITE_HI = 4,
+};
+
+struct bifrost_reg_ctrl_23 {
+        enum bifrost_reg_op slot2;
+        enum bifrost_reg_op slot3;
+        bool slot3_fma;
+};
+
+static const struct bifrost_reg_ctrl_23 bifrost_reg_ctrl_lut[32] = {
+        [BIFROST_R_WL_FMA]  = { BIFROST_OP_READ,     BIFROST_OP_WRITE_LO, true },
+        [BIFROST_R_WH_FMA]  = { BIFROST_OP_READ,     BIFROST_OP_WRITE_HI, true },
+        [BIFROST_R_W_FMA]   = { BIFROST_OP_READ,     BIFROST_OP_WRITE,    true },
+        [BIFROST_R_WL_ADD]  = { BIFROST_OP_READ,     BIFROST_OP_WRITE_LO, false },
+        [BIFROST_R_WH_ADD]  = { BIFROST_OP_READ,     BIFROST_OP_WRITE_HI, false },
+        [BIFROST_R_W_ADD]   = { BIFROST_OP_READ,     BIFROST_OP_WRITE,    false },
+        [BIFROST_WL_WL_ADD] = { BIFROST_OP_WRITE_LO, BIFROST_OP_WRITE_LO, false },
+        [BIFROST_WL_WH_ADD] = { BIFROST_OP_WRITE_LO, BIFROST_OP_WRITE_HI, false },
+        [BIFROST_WL_W_ADD]  = { BIFROST_OP_WRITE_LO, BIFROST_OP_WRITE,    false },
+        [BIFROST_WH_WL_ADD] = { BIFROST_OP_WRITE_HI, BIFROST_OP_WRITE_LO, false },
+        [BIFROST_WH_WH_ADD] = { BIFROST_OP_WRITE_HI, BIFROST_OP_WRITE_HI, false },
+        [BIFROST_WH_W_ADD]  = { BIFROST_OP_WRITE_HI, BIFROST_OP_WRITE,    false },
+        [BIFROST_W_WL_ADD]  = { BIFROST_OP_WRITE,    BIFROST_OP_WRITE_LO, false },
+        [BIFROST_W_WH_ADD]  = { BIFROST_OP_WRITE,    BIFROST_OP_WRITE_HI, false },
+        [BIFROST_W_W_ADD]   = { BIFROST_OP_WRITE,    BIFROST_OP_WRITE,    false },
+        [BIFROST_IDLE_1]    = { BIFROST_OP_IDLE,     BIFROST_OP_IDLE,     true },
+        [BIFROST_I_W_FMA]   = { BIFROST_OP_IDLE,     BIFROST_OP_WRITE,    true },
+        [BIFROST_I_WL_FMA]  = { BIFROST_OP_IDLE,     BIFROST_OP_WRITE_LO, true },
+        [BIFROST_I_WH_FMA]  = { BIFROST_OP_IDLE,     BIFROST_OP_WRITE_HI, true },
+        [BIFROST_R_I]       = { BIFROST_OP_READ,     BIFROST_OP_IDLE,     false },
+        [BIFROST_I_W_ADD]   = { BIFROST_OP_IDLE,     BIFROST_OP_WRITE,    false },
+        [BIFROST_I_WL_ADD]  = { BIFROST_OP_IDLE,     BIFROST_OP_WRITE_LO, false },
+        [BIFROST_I_WH_ADD]  = { BIFROST_OP_IDLE,     BIFROST_OP_WRITE_HI, false },
+        [BIFROST_WL_WH_MIX] = { BIFROST_OP_WRITE_LO, BIFROST_OP_WRITE_HI, false },
+        [BIFROST_WH_WL_MIX] = { BIFROST_OP_WRITE_HI, BIFROST_OP_WRITE_LO, false },
+        [BIFROST_IDLE]      = { BIFROST_OP_IDLE,     BIFROST_OP_IDLE,     true },
+};
+
+/* Texture operator descriptors in various states. Usually packed in the
+ * compiler and stored as a constant */
+
+enum bifrost_index {
+        /* Both texture/sampler index immediate */
+        BIFROST_INDEX_IMMEDIATE_SHARED = 0,
+
+        /* Sampler index immediate, texture index from staging */
+        BIFROST_INDEX_IMMEDIATE_SAMPLER = 1,
+
+        /* Texture index immediate, sampler index from staging */
+        BIFROST_INDEX_IMMEDIATE_TEXTURE = 2,
+
+        /* Both indices from (separate) staging registers */
+        BIFROST_INDEX_REGISTER = 3,
+};
+
+enum bifrost_tex_op {
+        /* Given explicit derivatives, compute a gradient descriptor */
+        BIFROST_TEX_OP_GRDESC_DER = 4,
+
+        /* Given implicit derivatives (texture coordinates in a fragment
+         * shader), compute a gradient descriptor */
+        BIFROST_TEX_OP_GRDESC = 5,
+
+        /* Fetch a texel. Takes a staging register with LOD level / face index
+         * packed 16:16 */
+        BIFROST_TEX_OP_FETCH = 6,
+
+        /* Filtered texture */
+        BIFROST_TEX_OP_TEX = 7,
+};
+
+enum bifrost_lod_mode {
+        /* Takes two staging registers forming a 64-bit gradient descriptor
+         * (computed by a previous GRDESC or GRDESC_DER operation) */
+        BIFROST_LOD_MODE_GRDESC = 3,
+
+        /* Take a staging register with 8:8 fixed-point in bottom 16-bits
+         * specifying an explicit LOD */
+        BIFROST_LOD_MODE_EXPLICIT = 4,
+
+        /* Takes a staging register with bottom 16-bits as 8:8 fixed-point LOD
+         * bias and top 16-bit as 8:8 fixed-point lower bound (generally left
+         * zero), added and clamped to a computed LOD */
+        BIFROST_LOD_MODE_BIAS = 5,
+
+        /* Set LOD to zero */
+        BIFROST_LOD_MODE_ZERO = 6,
+
+        /* Compute LOD */
+        BIFROST_LOD_MODE_COMPUTE = 7,
+};
+
+enum bifrost_texture_format {
+        /* 16-bit floating point, with optional clamping */
+        BIFROST_TEXTURE_FORMAT_F16 = 0,
+        BIFROST_TEXTURE_FORMAT_F16_POS = 1,
+        BIFROST_TEXTURE_FORMAT_F16_PM1 = 2,
+        BIFROST_TEXTURE_FORMAT_F16_1 = 3,
+
+        /* 32-bit floating point, with optional clamping */
+        BIFROST_TEXTURE_FORMAT_F32 = 4,
+        BIFROST_TEXTURE_FORMAT_F32_POS = 5,
+        BIFROST_TEXTURE_FORMAT_F32_PM1 = 6,
+        BIFROST_TEXTURE_FORMAT_F32_1 = 7,
+};
+
+enum bifrost_texture_format_full {
+        /* Transclude bifrost_texture_format from above */
+
+        /* Integers, unclamped */
+        BIFROST_TEXTURE_FORMAT_U16 = 12,
+        BIFROST_TEXTURE_FORMAT_S16 = 13,
+        BIFROST_TEXTURE_FORMAT_U32 = 14,
+        BIFROST_TEXTURE_FORMAT_S32 = 15,
+};
+
+enum bifrost_texture_fetch {
+        /* Default texelFetch */
+        BIFROST_TEXTURE_FETCH_TEXEL = 1,
+
+        /* Deprecated, fetches 4x U32 of a U8 x 4 texture. Do not use. */
+        BIFROST_TEXTURE_FETCH_GATHER4_RGBA = 3,
+
+        /* Gathers */
+        BIFROST_TEXTURE_FETCH_GATHER4_R = 4,
+        BIFROST_TEXTURE_FETCH_GATHER4_G = 5,
+        BIFROST_TEXTURE_FETCH_GATHER4_B = 6,
+        BIFROST_TEXTURE_FETCH_GATHER4_A = 7
+};
+
+struct bifrost_texture_operation {
+        /* If immediate_indices is set:
+         *     - immediate sampler index
+         *     - index used as texture index
+         * Otherwise:
+         *      - bifrost_single_index in lower 2 bits
+         *      - 0x3 in upper 2 bits (single-texturing)
+         */
+        unsigned sampler_index_or_mode : 4;
+        unsigned index : 7;
+        bool immediate_indices : 1;
+        enum bifrost_tex_op op : 3;
+
+        /* If set for TEX/FETCH, loads texel offsets and multisample index from
+         * a staging register containing offset_x:offset_y:offset_z:ms_index
+         * packed 8:8:8:8. Offsets must be in [-31, +31]. If set for
+         * GRDESC(_DER), disable LOD bias. */
+        bool offset_or_bias_disable : 1;
+
+        /* If set for TEX/FETCH, loads fp32 shadow comparison value from a
+         * staging register. Implies fetch_component = gather4_r. If set for
+         * GRDESC(_DER), disables LOD clamping. */
+        bool shadow_or_clamp_disable : 1;
+
+        /* If set, loads an uint32 array index from a staging register. */
+        bool array : 1;
+
+        /* Texture dimension, or 0 for a cubemap */
+        unsigned dimension : 2;
+
+        /* Method to compute LOD value or for a FETCH, the
+         * bifrost_texture_fetch component specification */
+        enum bifrost_lod_mode lod_or_fetch : 3;
+
+        /* Reserved */
+        unsigned zero : 1;
+
+        /* Register format for the result */
+        enum bifrost_texture_format_full format : 4;
+
+        /* Write mask for the result */
+        unsigned mask : 4;
+} __attribute__((packed));
+
+#define BIFROST_MEGA_SAMPLE 128
+#define BIFROST_ALL_SAMPLES 255
+#define BIFROST_CURRENT_PIXEL 255
+
+struct bifrost_pixel_indices {
+        unsigned sample : 8;
+        unsigned rt : 8;
+        unsigned x : 8;
+        unsigned y : 8;
+} __attribute__((packed));
 
 #endif

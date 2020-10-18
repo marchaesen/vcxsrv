@@ -59,6 +59,8 @@
 static DevPrivateKeyRec xwl_screen_private_key;
 static DevPrivateKeyRec xwl_client_private_key;
 
+#define DEFAULT_DPI 96
+
 _X_NORETURN
 static void _X_ATTRIBUTE_PRINTF(1, 2)
 xwl_give_up(const char *f, ...)
@@ -328,10 +330,8 @@ xwl_screen_post_damage(struct xwl_screen *xwl_screen)
         return;
 
 #ifdef XWL_HAS_GLAMOR
-    if (xwl_screen->glamor &&
-        xwl_screen->egl_backend == &xwl_screen->gbm_backend) {
+    if (xwl_glamor_needs_buffer_flush(xwl_screen))
         glamor_block_handler(xwl_screen->screen);
-    }
 #endif
 
     xorg_list_for_each_entry_safe(xwl_window, next_xwl_window,
@@ -511,6 +511,16 @@ xwl_sync_events (struct xwl_screen *xwl_screen)
     xwl_read_events (xwl_screen);
 }
 
+void xwl_surface_damage(struct xwl_screen *xwl_screen,
+                        struct wl_surface *surface,
+                        int32_t x, int32_t y, int32_t width, int32_t height)
+{
+    if (wl_surface_get_version(surface) >= WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION)
+        wl_surface_damage_buffer(surface, x, y, width, height);
+    else
+        wl_surface_damage(surface, x, y, width, height);
+}
+
 void
 xwl_screen_roundtrip(struct xwl_screen *xwl_screen)
 {
@@ -563,6 +573,19 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-rootless") == 0) {
             xwl_screen->rootless = 1;
+
+            /* Disable the XSS extension on Xwayland rootless.
+             *
+             * Xwayland is just a Wayland client, no X11 screensaver
+             * should be expected to work reliably on Xwayland rootless.
+             */
+#ifdef SCREENSAVER
+            noScreenSaverExtension = TRUE;
+#endif
+            ScreenSaverTime = 0;
+            ScreenSaverInterval = 0;
+            defaultScreenSaverTime = 0;
+            defaultScreenSaverInterval = 0;
         }
         else if (strcmp(argv[i], "-shm") == 0) {
             xwl_screen->glamor = 0;
@@ -594,6 +617,9 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     xorg_list_init(&xwl_screen->window_list);
     xwl_screen->depth = 24;
 
+    if (!monitorResolution)
+        monitorResolution = DEFAULT_DPI;
+
     xwl_screen->display = wl_display_connect(NULL);
     if (xwl_screen->display == NULL) {
         ErrorF("could not connect to wayland server\n");
@@ -624,7 +650,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 
     ret = fbScreenInit(pScreen, NULL,
                        xwl_screen->width, xwl_screen->height,
-                       96, 96, 0,
+                       monitorResolution, monitorResolution, 0,
                        BitsPerPixel(xwl_screen->depth));
     if (!ret)
         return FALSE;

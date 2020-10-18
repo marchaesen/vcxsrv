@@ -101,15 +101,6 @@
       <variantList>
         <variant>
           <configItem popularity="exotic">
-            <name>us</name>
-            <description>German (US)</description>
-            <languageList>
-              <iso639Id>eng</iso639Id>
-            </languageList>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem popularity="exotic">
             <name>hu</name>
             <description>German (with Hungarian letters, no dead keys)</description>
             <languageList>
@@ -208,7 +199,6 @@
     <layout>
       <configItem popularity="exotic">
         <name>eg</name>
-        <shortDescription>ⲕⲏⲙⲉ</shortDescription>
         <description>Coptic</description>
         <languageList>
           <iso639Id>cop</iso639Id>
@@ -231,8 +221,8 @@
         </variant>
         <variant>
           <configItem popularity="exotic">
-            <name>ohu_lig</name>
-            <shortDescription>ohu_lig</shortDescription>
+            <name>oldhunlig</name>
+            <shortDescription>oldhun(lig)</shortDescription>
             <description>Old Hungarian (for ligatures)</description>
           </configItem>
         </variant>
@@ -1056,15 +1046,6 @@
             <description>Portuguese (Sun Type 6/7)</description>
           </configItem>
         </variant>
-      </variantList>
-    </layout>
-    <layout>
-      <configItem popularity="exotic">
-        <name>pt</name>
-        <shortDescription>pt</shortDescription>
-        <description>Portuguese</description>
-      </configItem>
-      <variantList>
         <variant>
           <configItem popularity="exotic">
             <name>colemak</name>
@@ -1171,6 +1152,12 @@
           <configItem popularity="exotic">
             <name>sun_type6</name>
             <description>Turkish (Sun Type 6/7)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>otk</name>
+            <description>Old Turkic</description>
           </configItem>
         </variant>
       </variantList>

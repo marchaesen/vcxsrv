@@ -1221,7 +1221,7 @@ winDestroyColormapShadowGDI(ColormapPtr pColormap)
 }
 
 /*
- * Set engine specific funtions
+ * Set engine specific functions
  */
 
 Bool

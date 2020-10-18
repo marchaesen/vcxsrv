@@ -108,13 +108,13 @@ February 2012: Mesa 8.0 is released, implementing the OpenGL 3.0
 specification and version 1.30 of the OpenGL Shading Language.
 
 July 2016: Mesa 12.0 is released, including OpenGL 4.3 support and
-initial support for Vulkan for Intel GPUs. Plus, there's another gallium
+initial support for Vulkan for Intel GPUs. Plus, there's another Gallium
 software driver ("swr") based on LLVM and developed by Intel.
 
 Ongoing: Mesa is the OpenGL implementation for devices designed by
 Intel, AMD, NVIDIA, Qualcomm, Broadcom, Vivante, plus the VMware and
 VirGL virtual GPUs. There's also several software-based renderers:
-swrast (the legacy Mesa rasterizer), softpipe (a gallium reference
+swrast (the legacy Mesa rasterizer), softpipe (a Gallium reference
 driver), llvmpipe (LLVM/JIT-based high-speed rasterizer) and swr
 (another LLVM-based driver).
 

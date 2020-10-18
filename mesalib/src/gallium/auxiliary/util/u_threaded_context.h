@@ -85,9 +85,9 @@
  * Transfer_map rules for buffer mappings
  * --------------------------------------
  *
- * 1) If transfer_map has PIPE_TRANSFER_UNSYNCHRONIZED, the call is made
+ * 1) If transfer_map has PIPE_MAP_UNSYNCHRONIZED, the call is made
  *    in the non-driver thread without flushing the queue. The driver will
- *    receive TC_TRANSFER_MAP_THREADED_UNSYNC in addition to PIPE_TRANSFER_-
+ *    receive TC_TRANSFER_MAP_THREADED_UNSYNC in addition to PIPE_MAP_-
  *    UNSYNCHRONIZED to indicate this.
  *    Note that transfer_unmap is always enqueued and called from the driver
  *    thread.
@@ -191,7 +191,7 @@
 struct threaded_context;
 struct tc_unflushed_batch_token;
 
-/* These are transfer flags sent to drivers. */
+/* These are map flags sent to drivers. */
 /* Never infer whether it's safe to use unsychronized mappings: */
 #define TC_TRANSFER_MAP_NO_INFER_UNSYNCHRONIZED (1u << 29)
 /* Don't invalidate buffers: */
@@ -311,6 +311,7 @@ union tc_payload {
    struct pipe_transfer *transfer;
    struct pipe_fence_handle *fence;
    uint64_t handle;
+   bool boolean;
 };
 
 #ifdef _MSC_VER

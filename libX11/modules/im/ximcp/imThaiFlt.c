@@ -129,7 +129,7 @@ char const tactis_chtype[TACTIS_CHARS] = {
 
 static 
 char const write_rules_lookup[CH_CLASSES][CH_CLASSES] = {
-        /* Table 0: writing/outputing rules */
+        /* Table 0: writing/outputting rules */
         /* row: leading char,  column: following char */
 /* CTRL NON CONS LV FV1 FV2 FV3 BV1 BV2 BD TONE AD1 AD2 AD3 AV1 AV2 AV3 */
    {XC, NC, NC, NC, NC, NC, NC, NC, NC, NC, NC, NC, NC, NC, NC, NC, NC}/*CTRL*/
@@ -821,7 +821,7 @@ XThaiTranslateKey(
      * 4 of the keymap.
      * Since we don't know whether ThaiCat keyboard or WTT keyboard is
      * in use, the same mapping is done for all Thai input.
-     * We just arbitary choose to use column 3 keysyms as the indices of
+     * We just arbitrarily choose to use column 3 keysyms as the indices of
      * this mapping.
      * When the control key is also hold, this mapping has no effect.
      */

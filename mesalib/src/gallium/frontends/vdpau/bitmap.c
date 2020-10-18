@@ -200,7 +200,7 @@ vlVdpBitmapSurfacePutBitsNative(VdpBitmapSurface surface,
 
    dst_box = RectToPipeBox(destination_rect, vlsurface->sampler_view->texture);
    pipe->texture_subdata(pipe, vlsurface->sampler_view->texture, 0,
-                         PIPE_TRANSFER_WRITE, &dst_box, *source_data,
+                         PIPE_MAP_WRITE, &dst_box, *source_data,
                          *source_pitches, 0);
 
    mtx_unlock(&vlsurface->device->mutex);

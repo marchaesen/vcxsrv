@@ -77,13 +77,13 @@ struct ir3_context {
 	 * inputs.  So we do all the input tracking normally and fix
 	 * things up after compile_instructions()
 	 */
-	struct ir3_instruction *ij_pixel, *ij_sample, *ij_centroid, *ij_size;
+	struct ir3_instruction *ij[IJ_COUNT];
 
 	/* for fragment shaders, for gl_FrontFacing and gl_FragCoord: */
 	struct ir3_instruction *frag_face, *frag_coord;
 
 	/* For vertex shaders, keep track of the system values sources */
-	struct ir3_instruction *vertex_id, *basevertex, *instance_id, *base_instance, *draw_id;
+	struct ir3_instruction *vertex_id, *basevertex, *instance_id, *base_instance, *draw_id, *view_index;
 
 	/* For fragment shaders: */
 	struct ir3_instruction *samp_id, *samp_mask_in;
@@ -202,8 +202,7 @@ struct ir3_instruction * ir3_get_predicate(struct ir3_context *ctx,
 void ir3_declare_array(struct ir3_context *ctx, nir_register *reg);
 struct ir3_array * ir3_get_array(struct ir3_context *ctx, nir_register *reg);
 struct ir3_instruction *ir3_create_array_load(struct ir3_context *ctx,
-		struct ir3_array *arr, int n, struct ir3_instruction *address,
-		unsigned bitsize);
+		struct ir3_array *arr, int n, struct ir3_instruction *address);
 void ir3_create_array_store(struct ir3_context *ctx, struct ir3_array *arr, int n,
 		struct ir3_instruction *src, struct ir3_instruction *address);
 

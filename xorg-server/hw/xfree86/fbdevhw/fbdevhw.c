@@ -1,4 +1,4 @@
-/* all driver need this */
+/* all drivers need this */
 #ifdef HAVE_XORG_CONFIG_H
 #include <xorg-config.h>
 #endif
@@ -118,7 +118,7 @@ fbdevHWGetFD(ScrnInfoPtr pScrn)
 }
 
 /* -------------------------------------------------------------------- */
-/* some helpers for printing debug informations                         */
+/* some helpers for printing debug information                          */
 
 #ifdef DEBUG
 static void

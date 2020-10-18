@@ -433,7 +433,7 @@ dmxConsoleMoveRelative(myPrivate * priv, int x, int y,
 }
 
 /** This routine gets called from #dmxCoreMotion for each motion.  This
- * allows the console's notion of the cursor postion to change when
+ * allows the console's notion of the cursor position to change when
  * another input device actually caused the change. */
 void
 dmxConsoleUpdatePosition(void *private, int x, int y)
@@ -475,7 +475,7 @@ dmxConsoleUpdatePosition(void *private, int x, int y)
     }
 }
 
-/** Collect all pending events from the console's display.  Plase these
+/** Collect all pending events from the console's display.  Place these
  * events on the server event queue using the \a motion and \a enqueue
  * routines.  The \a checkspecial routine is used to check for special
  * keys that need handling.  \a block tells if signals should be blocked

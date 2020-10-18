@@ -17,6 +17,7 @@ compiler/nir/nir_opcodes.h
 compiler/nir/nir_opt_algebraic.c
 compiler/spirv/spirv_info.c
 compiler/spirv/vtn_gather_types.c
+compiler/spirv/vtn_generator_ids.h
 mapi/glapi/gen/glapi_gentable.c
 mapi/glapi/gen/glapi_mapi_tmp.h
 mapi/glapi/gen/glapitable.h

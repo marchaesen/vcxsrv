@@ -41,7 +41,7 @@
 
 /*
    Each top-level rootless window has a one-to-one correspondence to a physical
-   on-screen window. The physical window is refered to as a "frame".
+   on-screen window. The physical window is referred to as a "frame".
  */
 
 typedef void *RootlessFrameID;
@@ -345,7 +345,7 @@ void RootlessStartDrawing(WindowPtr pWindow);
 void RootlessStopDrawing(WindowPtr pWindow, Bool flush);
 
 /*
- * Alocate a new screen pixmap.
+ * Allocate a new screen pixmap.
  *  miCreateScreenResources does not do this properly with a null
  *  framebuffer pointer.
  */

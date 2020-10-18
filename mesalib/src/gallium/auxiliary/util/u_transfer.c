@@ -13,19 +13,19 @@ void u_default_buffer_subdata(struct pipe_context *pipe,
    struct pipe_box box;
    uint8_t *map = NULL;
 
-   assert(!(usage & PIPE_TRANSFER_READ));
+   assert(!(usage & PIPE_MAP_READ));
 
    /* the write flag is implicit by the nature of buffer_subdata */
-   usage |= PIPE_TRANSFER_WRITE;
+   usage |= PIPE_MAP_WRITE;
 
    /* buffer_subdata implicitly discards the rewritten buffer range.
-    * PIPE_TRANSFER_MAP_DIRECTLY supresses that.
+    * PIPE_MAP_DIRECTLY supresses that.
     */
-   if (!(usage & PIPE_TRANSFER_MAP_DIRECTLY)) {
+   if (!(usage & PIPE_MAP_DIRECTLY)) {
       if (offset == 0 && size == resource->width0) {
-         usage |= PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE;
+         usage |= PIPE_MAP_DISCARD_WHOLE_RESOURCE;
       } else {
-         usage |= PIPE_TRANSFER_DISCARD_RANGE;
+         usage |= PIPE_MAP_DISCARD_RANGE;
       }
    }
 
@@ -52,13 +52,13 @@ void u_default_texture_subdata(struct pipe_context *pipe,
    const uint8_t *src_data = data;
    uint8_t *map = NULL;
 
-   assert(!(usage & PIPE_TRANSFER_READ));
+   assert(!(usage & PIPE_MAP_READ));
 
    /* the write flag is implicit by the nature of texture_subdata */
-   usage |= PIPE_TRANSFER_WRITE;
+   usage |= PIPE_MAP_WRITE;
 
    /* texture_subdata implicitly discards the rewritten buffer range */
-   usage |= PIPE_TRANSFER_DISCARD_RANGE;
+   usage |= PIPE_MAP_DISCARD_RANGE;
 
    map = pipe->transfer_map(pipe,
                             resource,

@@ -1,0 +1,20 @@
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    server_name _;
+
+    location / {
+        dav_methods     PUT;
+        dav_ext_methods PROPFIND OPTIONS;
+        dav_access      user:rw group:rw all:r;
+
+        client_body_temp_path   /tmp;
+        client_max_body_size    0;
+        create_full_put_path    on;
+
+        root /results;
+
+        autoindex     on;
+    }
+}

@@ -12,3 +12,6 @@ dEQP-GLES[0-9]*.functional.flush_finish.*
 # XXX: Why does this flake?
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_neg_z_and_pos_x_pos_z_and_neg_x_neg_y_pos_z
 
+# Needs investigation
+dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_rgb565_depth_component16
+dEQP-GLES2.functional.fbo.render.shared_colorbuffer.tex2d_rgba_depth_component16

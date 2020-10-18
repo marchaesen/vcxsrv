@@ -280,12 +280,12 @@ xf86ReleaseKeys(DeviceIntPtr pDev)
     /*
      * Hmm... here is the biggest hack of every time !
      * It may be possible that a switch-vt procedure has finished BEFORE
-     * you released all keys neccessary to do this. That peculiar behavior
+     * you released all keys necessary to do this. That peculiar behavior
      * can fool the X-server pretty much, cause it assumes that some keys
-     * were not released. TWM may stuck alsmost completly....
+     * were not released. TWM may stuck almost completely....
      * OK, what we are doing here is after returning from the vt-switch
-     * exeplicitely unrelease all keyboard keys before the input-devices
-     * are reenabled.
+     * explicitly unrelease all keyboard keys before the input-devices
+     * are re-enabled.
      */
 
     for (i = keyc->xkbInfo->desc->min_key_code;

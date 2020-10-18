@@ -50,7 +50,7 @@ static nir_variable *
 find_sampler(lower_tex_src_state *state, unsigned samp)
 {
    /* NOTE: arrays of samplerExternalOES do not appear to be allowed: */
-   nir_foreach_variable(var, &state->shader->uniforms)
+   nir_foreach_uniform_variable(var, state->shader)
       if (var->data.binding == samp)
          return var;
    return NULL;

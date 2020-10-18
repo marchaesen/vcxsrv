@@ -25,8 +25,8 @@
 
 #include "tu_private.h"
 
-#include "registers/adreno_common.xml.h"
-#include "registers/a6xx.xml.h"
+#include "adreno_common.xml.h"
+#include "a6xx.xml.h"
 
 #include "vk_format.h"
 #include "vk_util.h"
@@ -215,14 +215,18 @@ static const struct tu_native_format tu6_format_table[] = {
    TU6_VTC(B10G11R11_UFLOAT_PACK32,    11_11_10_FLOAT,    WZYX), /* 122 */
    TU6_xTx(E5B9G9R9_UFLOAT_PACK32,     9_9_9_E5_FLOAT,    WZYX), /* 123 */
 
-   /* depth/stencil */
+   /* depth/stencil
+    * X8_D24_UNORM/D24_UNORM_S8_UINT should be Z24_UNORM_S8_UINT_AS_R8G8B8A8
+    * but the format doesn't work on A630 when UBWC is disabled, so use
+    * 8_8_8_8_UNORM as the default and override it when UBWC is enabled
+    */
    TU6_xTC(D16_UNORM,                  16_UNORM,                      WZYX), /* 124 */
-   TU6_xTC(X8_D24_UNORM_PACK32,        Z24_UNORM_S8_UINT_AS_R8G8B8A8, WZYX), /* 125 */
+   TU6_xTC(X8_D24_UNORM_PACK32,        8_8_8_8_UNORM,                 WZYX), /* 125 */
    TU6_xTC(D32_SFLOAT,                 32_FLOAT,                      WZYX), /* 126 */
    TU6_xTC(S8_UINT,                    8_UINT,                        WZYX), /* 127 */
    TU6_xxx(D16_UNORM_S8_UINT,          X8Z16_UNORM,                   WZYX), /* 128 */
-   TU6_xTC(D24_UNORM_S8_UINT,          Z24_UNORM_S8_UINT_AS_R8G8B8A8, WZYX), /* 129 */
-   TU6_xxx(D32_SFLOAT_S8_UINT,         x,                             WZYX), /* 130 */
+   TU6_xTC(D24_UNORM_S8_UINT,          8_8_8_8_UNORM,                 WZYX), /* 129 */
+   TU6_xTC(D32_SFLOAT_S8_UINT,         NONE,                          WZYX), /* 130 */
 
    /* compressed */
    TU6_xTx(BC1_RGB_UNORM_BLOCK,        DXT1,              WZYX), /* 131 */
@@ -281,19 +285,14 @@ static const struct tu_native_format tu6_format_table[] = {
    TU6_xTx(ASTC_12x12_SRGB_BLOCK,      ASTC_12x12,        WZYX), /* 184 */
 };
 
-#define FMT_EXT_BASE VK_FORMAT_G8B8G8R8_422_UNORM
 #undef TU6_FMT
-#define TU6_FMT(vkfmt, hwfmt, swapfmt, valid) \
-   [VK_FORMAT_##vkfmt - FMT_EXT_BASE] = {                   \
-      .fmt = FMT6_##hwfmt,                     \
-      .swap = swapfmt,                       \
-      .supported = valid,                    \
-   }
-
-static const struct tu_native_format tu6_format_table_ext[] = {
-   TU6_xTx(G8B8G8R8_422_UNORM,         R8G8R8B8_422_UNORM,        WZYX), /* 0 */
-   TU6_xTx(B8G8R8G8_422_UNORM,         G8R8B8R8_422_UNORM,        WZYX), /* 1 */
-};
+#define TU6_FMT(vkfmt, hwfmt, swapfmt, valid)   \
+   case VK_FORMAT_##vkfmt:                      \
+      fmt = (struct tu_native_format) {         \
+         .fmt = FMT6_##hwfmt,                   \
+         .swap = swapfmt,                       \
+         .supported = valid,                    \
+      }; break;
 
 static struct tu_native_format
 tu6_get_native_format(VkFormat format)
@@ -302,10 +301,17 @@ tu6_get_native_format(VkFormat format)
 
    if (format < ARRAY_SIZE(tu6_format_table)) {
       fmt = tu6_format_table[format];
-   } else if (format >= FMT_EXT_BASE) {
-      unsigned idx = format - FMT_EXT_BASE;
-      if (idx < ARRAY_SIZE(tu6_format_table_ext))
-         fmt = tu6_format_table_ext[idx];
+   } else {
+      switch (format) {
+      TU6_xTx(G8B8G8R8_422_UNORM,         R8G8R8B8_422_UNORM,        WZYX)
+      TU6_xTx(B8G8R8G8_422_UNORM,         G8R8B8R8_422_UNORM,        WZYX)
+      TU6_xTx(G8_B8_R8_3PLANE_420_UNORM,  R8_G8_B8_3PLANE_420_UNORM, WZYX)
+      TU6_xTx(G8_B8R8_2PLANE_420_UNORM,   R8_G8B8_2PLANE_420_UNORM,  WZYX)
+      TU6_xTC(A4R4G4B4_UNORM_PACK16_EXT,  4_4_4_4_UNORM,             WXYZ)
+      TU6_xTC(A4B4G4R4_UNORM_PACK16_EXT,  4_4_4_4_UNORM,             WZYX)
+      default:
+         break;
+      }
    }
 
    if (fmt.supported && vk_format_to_pipe_format(format) == PIPE_FORMAT_NONE) {
@@ -376,8 +382,7 @@ tu_physical_device_get_format_properties(
       buffer |= VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
 
    if (native_fmt.supported & FMT_TEXTURE) {
-      optimal |= VK_FORMAT_FEATURE_BLIT_SRC_BIT |
-                 VK_FORMAT_FEATURE_TRANSFER_SRC_BIT |
+      optimal |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT |
                  VK_FORMAT_FEATURE_TRANSFER_DST_BIT |
                  VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
                  VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT |
@@ -386,6 +391,12 @@ tu_physical_device_get_format_properties(
                  VK_FORMAT_FEATURE_MIDPOINT_CHROMA_SAMPLES_BIT;
 
       buffer |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
+
+      /* no blit src bit for YUYV/NV12/I420 formats */
+      if (desc->layout != UTIL_FORMAT_LAYOUT_SUBSAMPLED &&
+          desc->layout != UTIL_FORMAT_LAYOUT_PLANAR2 &&
+          desc->layout != UTIL_FORMAT_LAYOUT_PLANAR3)
+         optimal |= VK_FORMAT_FEATURE_BLIT_SRC_BIT;
 
       if (desc->layout != UTIL_FORMAT_LAYOUT_SUBSAMPLED)
          optimal |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT;
@@ -440,21 +451,16 @@ tu_physical_device_get_format_properties(
    if (tu6_pipe2depth(format) != (enum a6xx_depth_format)~0)
       optimal |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
+   /* D32_SFLOAT_S8_UINT is tiled as two images, so no linear format
+    * blob enables some linear features, but its not useful, so don't bother.
+    */
+   if (format == VK_FORMAT_D32_SFLOAT_S8_UINT)
+      linear = 0;
+
 end:
    out_properties->linearTilingFeatures = linear;
    out_properties->optimalTilingFeatures = optimal;
    out_properties->bufferFeatures = buffer;
-}
-
-void
-tu_GetPhysicalDeviceFormatProperties(VkPhysicalDevice physicalDevice,
-                                     VkFormat format,
-                                     VkFormatProperties *pFormatProperties)
-{
-   TU_FROM_HANDLE(tu_physical_device, physical_device, physicalDevice);
-
-   tu_physical_device_get_format_properties(physical_device, format,
-                                            pFormatProperties);
 }
 
 void
@@ -630,32 +636,6 @@ unsupported:
    return VK_ERROR_FORMAT_NOT_SUPPORTED;
 }
 
-VkResult
-tu_GetPhysicalDeviceImageFormatProperties(
-   VkPhysicalDevice physicalDevice,
-   VkFormat format,
-   VkImageType type,
-   VkImageTiling tiling,
-   VkImageUsageFlags usage,
-   VkImageCreateFlags createFlags,
-   VkImageFormatProperties *pImageFormatProperties)
-{
-   TU_FROM_HANDLE(tu_physical_device, physical_device, physicalDevice);
-
-   const VkPhysicalDeviceImageFormatInfo2 info = {
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
-      .pNext = NULL,
-      .format = format,
-      .type = type,
-      .tiling = tiling,
-      .usage = usage,
-      .flags = createFlags,
-   };
-
-   return tu_get_image_format_properties(physical_device, &info,
-                                         pImageFormatProperties, NULL);
-}
-
 static VkResult
 tu_get_external_image_format_properties(
    const struct tu_physical_device *physical_device,
@@ -812,21 +792,6 @@ fail:
    }
 
    return result;
-}
-
-void
-tu_GetPhysicalDeviceSparseImageFormatProperties(
-   VkPhysicalDevice physicalDevice,
-   VkFormat format,
-   VkImageType type,
-   uint32_t samples,
-   VkImageUsageFlags usage,
-   VkImageTiling tiling,
-   uint32_t *pNumProperties,
-   VkSparseImageFormatProperties *pProperties)
-{
-   /* Sparse images are not yet supported. */
-   *pNumProperties = 0;
 }
 
 void

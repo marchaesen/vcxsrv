@@ -157,7 +157,7 @@ void vid_enc_BufferEncoded_common(vid_enc_PrivateType * priv, OMX_BUFFERHEADERTY
    box.depth = outp->bitstream->depth0;
 
    output->pBuffer = priv->t_pipe->transfer_map(priv->t_pipe, outp->bitstream, 0,
-                                                PIPE_TRANSFER_READ_WRITE,
+                                                PIPE_MAP_READ_WRITE,
                                                 &box, &outp->transfer);
 
    /* ------------- get size of result ----------------- */
@@ -413,14 +413,14 @@ OMX_ERRORTYPE enc_LoadImage_common(vid_enc_PrivateType * priv, OMX_VIDEO_PORTDEF
       box.height = def->nFrameHeight;
       box.depth = 1;
       pipe->texture_subdata(pipe, views[0]->texture, 0,
-                            PIPE_TRANSFER_WRITE, &box,
+                            PIPE_MAP_WRITE, &box,
                             ptr, def->nStride, 0);
       ptr = ((uint8_t*)buf->pBuffer) + (def->nStride * box.height);
       box.width = def->nFrameWidth / 2;
       box.height = def->nFrameHeight / 2;
       box.depth = 1;
       pipe->texture_subdata(pipe, views[1]->texture, 0,
-                            PIPE_TRANSFER_WRITE, &box,
+                            PIPE_MAP_WRITE, &box,
                             ptr, def->nStride, 0);
    } else {
       struct vl_video_buffer *dst_buf = (struct vl_video_buffer *)vbuf;
@@ -546,7 +546,7 @@ OMX_ERRORTYPE enc_LoadImage_common(vid_enc_PrivateType * priv, OMX_VIDEO_PORTDEF
       box.height = inp->resource->height0;
       box.depth = inp->resource->depth0;
       buf->pBuffer = pipe->transfer_map(pipe, inp->resource, 0,
-                                        PIPE_TRANSFER_WRITE, &box,
+                                        PIPE_MAP_WRITE, &box,
                                         &inp->transfer);
    }
 

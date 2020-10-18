@@ -118,7 +118,7 @@ struct __GLXFBConfigRec {
 
     GLuint multiSampleSize;     /* Number of samples per pixel (0 if no ms) */
 
-    GLuint nMultiSampleBuffers; /* Number of availble ms buffers */
+    GLuint nMultiSampleBuffers; /* Number of available ms buffers */
     GLint maxAuxBuffers;
 
     /* frame buffer level */

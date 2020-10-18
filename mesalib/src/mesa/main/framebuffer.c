@@ -758,6 +758,13 @@ renderbuffer_exists(struct gl_context *ctx,
          return GL_FALSE;
       }
       break;
+   case GL_DEPTH_STENCIL_TO_RGBA_NV:
+   case GL_DEPTH_STENCIL_TO_BGRA_NV:
+      if (att[BUFFER_DEPTH].Type == GL_NONE ||
+          att[BUFFER_STENCIL].Type == GL_NONE) {
+         return GL_FALSE;
+      }
+      break;
    default:
       _mesa_problem(ctx,
                     "Unexpected format 0x%x in renderbuffer_exists",

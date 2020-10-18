@@ -22,34 +22,33 @@
  */
 
 #include "ac_shader_args.h"
+
 #include "nir/nir_builder.h"
 
-void
-ac_add_arg(struct ac_shader_args *info, enum ac_arg_regfile regfile,
-	   unsigned size, enum ac_arg_type type, struct ac_arg *arg)
+void ac_add_arg(struct ac_shader_args *info, enum ac_arg_regfile regfile, unsigned size,
+                enum ac_arg_type type, struct ac_arg *arg)
 {
-	assert(info->arg_count < AC_MAX_ARGS);
+   assert(info->arg_count < AC_MAX_ARGS);
 
-	unsigned offset;
-	if (regfile == AC_ARG_SGPR) {
-		offset = info->num_sgprs_used;
-		info->num_sgprs_used += size;
-	} else {
-		assert(regfile == AC_ARG_VGPR);
-		offset = info->num_vgprs_used;
-		info->num_vgprs_used += size;
-	}
+   unsigned offset;
+   if (regfile == AC_ARG_SGPR) {
+      offset = info->num_sgprs_used;
+      info->num_sgprs_used += size;
+   } else {
+      assert(regfile == AC_ARG_VGPR);
+      offset = info->num_vgprs_used;
+      info->num_vgprs_used += size;
+   }
 
-	info->args[info->arg_count].file = regfile;
-	info->args[info->arg_count].offset = offset;
-	info->args[info->arg_count].size = size;
-	info->args[info->arg_count].type = type;
+   info->args[info->arg_count].file = regfile;
+   info->args[info->arg_count].offset = offset;
+   info->args[info->arg_count].size = size;
+   info->args[info->arg_count].type = type;
 
-	if (arg) {
-		arg->arg_index = info->arg_count;
-		arg->used = true;
-	}
+   if (arg) {
+      arg->arg_index = info->arg_count;
+      arg->used = true;
+   }
 
-	info->arg_count++;
+   info->arg_count++;
 }
-

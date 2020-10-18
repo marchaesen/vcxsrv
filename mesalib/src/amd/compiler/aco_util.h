@@ -27,6 +27,7 @@
 
 #include <cassert>
 #include <iterator>
+#include <vector>
 
 namespace aco {
 
@@ -216,6 +217,12 @@ public:
       --length;
    }
 
+   /*! \brief                 Adds an element to the end of the span
+   */
+   constexpr void push_back(const_reference val) noexcept {
+      *std::next(begin(), length++) = val;
+   }
+
    /*! \brief                 Clears the span
    */
    constexpr void clear() noexcept {
@@ -227,6 +234,151 @@ private:
    uint16_t offset{ 0 };      //!> Byte offset from span to data
    size_type length{ 0 };     //!> Size of the span
 };
+
+/*
+ * Cache-friendly set of 32-bit IDs with O(1) insert/erase/lookup and
+ * the ability to efficiently iterate over contained elements.
+ *
+ * Internally implemented as a bit vector: If the set contains an ID, the
+ * corresponding bit is set. It doesn't use std::vector<bool> since we then
+ * couldn't efficiently iterate over the elements.
+ *
+ * The interface resembles a subset of std::set/std::unordered_set.
+ */
+struct IDSet {
+   struct Iterator {
+      const IDSet *set;
+      union {
+         struct {
+            uint32_t bit:6;
+            uint32_t word:26;
+         };
+         uint32_t id;
+      };
+
+      Iterator& operator ++();
+
+      bool operator != (const Iterator& other) const;
+
+      uint32_t operator * () const;
+   };
+
+   size_t count(uint32_t id) const {
+      if (id >= words.size() * 64)
+         return 0;
+
+      return words[id / 64u] & (1ull << (id % 64u)) ? 1 : 0;
+   }
+
+   Iterator find(uint32_t id) const {
+      if (!count(id))
+         return end();
+
+      Iterator it;
+      it.set = this;
+      it.bit = id % 64u;
+      it.word = id / 64u;
+      return it;
+   }
+
+   std::pair<Iterator, bool> insert(uint32_t id) {
+      if (words.size() * 64u <= id)
+         words.resize(DIV_ROUND_UP(id + 1, 64u));
+
+      Iterator it;
+      it.set = this;
+      it.bit = id % 64u;
+      it.word = id / 64u;
+
+      uint64_t mask = 1ull << it.bit;
+      if (words[it.word] & mask)
+         return std::make_pair(it, false);
+
+      words[it.word] |= mask;
+      bits_set++;
+      return std::make_pair(it, true);
+   }
+
+   size_t erase(uint32_t id) {
+      if (!count(id))
+         return 0;
+
+      words[id / 64u] ^= 1ull << (id % 64u);
+      bits_set--;
+      return 1;
+   }
+
+   Iterator cbegin() const {
+      Iterator it;
+      it.set = this;
+      for (size_t i = 0; i < words.size(); i++) {
+         if (words[i]) {
+            it.word = i;
+            it.bit = ffsll(words[i]) - 1;
+            return it;
+         }
+      }
+      return end();
+   }
+
+   Iterator cend() const {
+      Iterator it;
+      it.set = this;
+      it.word = words.size();
+      it.bit = 0;
+      return it;
+   }
+
+   Iterator begin() const {
+      return cbegin();
+   }
+
+   Iterator end() const {
+      return cend();
+   }
+
+   bool empty() const {
+      return bits_set == 0;
+   }
+
+   size_t size() const {
+      return bits_set;
+   }
+
+   std::vector<uint64_t> words;
+   uint32_t bits_set;
+};
+
+inline IDSet::Iterator& IDSet::Iterator::operator ++() {
+   uint64_t m = set->words[word];
+   m &= ~((2ull << bit) - 1ull);
+   if (!m) {
+      /* don't continue past the end */
+      if (word == set->words.size())
+         return *this;
+
+      word++;
+      for (; word < set->words.size(); word++) {
+         if (set->words[word]) {
+            bit = ffsll(set->words[word]) - 1;
+            return *this;
+         }
+      }
+      bit = 0;
+   } else {
+      bit = ffsll(m) - 1;
+   }
+   return *this;
+}
+
+inline bool IDSet::Iterator::operator != (const IDSet::Iterator& other) const {
+   assert(set == other.set);
+   return id != other.id;
+}
+
+inline uint32_t IDSet::Iterator::operator * () const {
+   return (word << 6) | bit;
+}
 
 } // namespace aco
 

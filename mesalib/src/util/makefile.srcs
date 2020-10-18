@@ -10,6 +10,15 @@ srcdir=.
 format_srgb.c: format_srgb.py
 	python $(srcdir)/format_srgb.py > $@
 
+u_format_gen := $(srcdir)/format/u_format_table.py
+u_format_deps := $(srcdir)/format/u_format.csv \
+	$(srcdir)/format/u_format_pack.py \
+	$(srcdir)/format/u_format_parse.py
+
+format/u_format_pack.h: $(u_format_deps)
+	@mkdir -p $(dir $@)
+	python $(u_format_gen) --header $< > $@
+
 format/u_format_table.c: $(srcdir)/format/u_format_table.py $(srcdir)/format/u_format.csv
 	python $(srcdir)/format/u_format_table.py $(srcdir)/format/u_format.csv > $@
 

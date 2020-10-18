@@ -1,7 +1,6 @@
 
 #include <stdbool.h>
 
-#include "api_loopback.h"
 #include "api_exec.h"
 #include "blend.h"
 #include "clear.h"

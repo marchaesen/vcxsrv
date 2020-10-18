@@ -2,6 +2,7 @@
 #include <algorithm>
 
 #include "aco_ir.h"
+#include "aco_builder.h"
 #include "common/sid.h"
 #include "ac_shader_util.h"
 #include "util/u_math.h"
@@ -80,8 +81,17 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
 
    uint32_t opcode = ctx.opcode[(int)instr->opcode];
    if (opcode == (uint32_t)-1) {
-      fprintf(stderr, "Unsupported opcode: ");
-      aco_print_instr(instr, stderr);
+      char *out;
+      size_t outsize;
+      FILE *memf = open_memstream(&out, &outsize);
+
+      fprintf(memf, "Unsupported opcode: ");
+      aco_print_instr(instr, memf);
+      fclose(memf);
+
+      aco_err(ctx.program, out);
+      free(out);
+
       abort();
    }
 
@@ -148,8 +158,10 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
       uint32_t encoding = (0b101111111 << 23);
       encoding |= opcode << 16;
       encoding |= (uint16_t) sopp->imm;
-      if (sopp->block != -1)
+      if (sopp->block != -1) {
+         sopp->pass_flags = 0;
          ctx.branches.emplace_back(out.size(), sopp);
+      }
       out.push_back(encoding);
       break;
    }
@@ -527,7 +539,9 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
    }
    case Format::PSEUDO:
    case Format::PSEUDO_BARRIER:
-      unreachable("Pseudo instructions should be lowered before assembly.");
+      if (instr->opcode != aco_opcode::p_unit_test)
+         unreachable("Pseudo instructions should be lowered before assembly.");
+      break;
    default:
       if ((uint16_t) instr->format & (uint16_t) Format::VOP3A) {
          VOP3A_instruction* vop3 = static_cast<VOP3A_instruction*>(instr);
@@ -622,6 +636,8 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
          encoding |= dpp->neg[1] << 22;
          encoding |= dpp->abs[0] << 21;
          encoding |= dpp->neg[0] << 20;
+         if (ctx.chip_class >= GFX10)
+            encoding |= 1 << 18; /* set Fetch Inactive to match GFX9 behaviour */
          encoding |= dpp->bound_ctrl << 19;
          encoding |= dpp->dpp_ctrl << 8;
          encoding |= (0xFF) & dpp_op.physReg();
@@ -733,10 +749,40 @@ void fix_exports(asm_context& ctx, std::vector<uint32_t>& out, Program* program)
 
    if (!exported) {
       /* Abort in order to avoid a GPU hang. */
-      fprintf(stderr, "Missing export in %s shader:\n", (program->stage & hw_vs) ? "vertex" : "fragment");
+      aco_err(program, "Missing export in %s shader:", (program->stage & (hw_vs | hw_ngg_gs)) ? "vertex or NGG" : "fragment");
       aco_print_program(program, stderr);
       abort();
    }
+}
+
+static void insert_code(asm_context& ctx, std::vector<uint32_t>& out, unsigned insert_before,
+                        unsigned insert_count, const uint32_t *insert_data)
+{
+   out.insert(out.begin() + insert_before, insert_data, insert_data + insert_count);
+
+   /* Update the offset of each affected block */
+   for (Block& block : ctx.program->blocks) {
+      if (block.offset >= insert_before)
+         block.offset += insert_count;
+   }
+
+   /* Find first branch after the inserted code */
+   auto branch_it = std::find_if(ctx.branches.begin(), ctx.branches.end(), [insert_before](const auto &branch) -> bool {
+      return (unsigned)branch.first >= insert_before;
+   });
+
+   /* Update the locations of branches */
+   for (; branch_it != ctx.branches.end(); ++branch_it)
+      branch_it->first += insert_count;
+
+   /* Find first constant address after the inserted code */
+   auto caddr_it = std::find_if(ctx.constaddrs.begin(), ctx.constaddrs.end(), [insert_before](const int &caddr_pos) -> bool {
+      return (unsigned)caddr_pos >= insert_before;
+   });
+
+   /* Update the locations of constant addresses */
+   for (; caddr_it != ctx.constaddrs.end(); ++caddr_it)
+      (*caddr_it) += insert_count;
 }
 
 static void fix_branches_gfx10(asm_context& ctx, std::vector<uint32_t>& out)
@@ -754,42 +800,107 @@ static void fix_branches_gfx10(asm_context& ctx, std::vector<uint32_t>& out)
       if (gfx10_3f_bug) {
          /* Insert an s_nop after the branch */
          constexpr uint32_t s_nop_0 = 0xbf800000u;
-         int s_nop_pos = buggy_branch_it->first + 1;
-         auto out_pos = std::next(out.begin(), s_nop_pos);
-         out.insert(out_pos, s_nop_0);
-
-         /* Update the offset of each affected block */
-         for (Block& block : ctx.program->blocks) {
-            if (block.offset > (unsigned)buggy_branch_it->first)
-               block.offset++;
-         }
-
-         /* Update the branches following the current one */
-         for (auto branch_it = std::next(buggy_branch_it); branch_it != ctx.branches.end(); ++branch_it)
-            branch_it->first++;
-
-         /* Find first constant address after the inserted instruction */
-         auto caddr_it = std::find_if(ctx.constaddrs.begin(), ctx.constaddrs.end(), [s_nop_pos](const int &caddr_pos) -> bool {
-            return caddr_pos >= s_nop_pos;
-         });
-
-         /* Update the locations of constant addresses */
-         for (; caddr_it != ctx.constaddrs.end(); ++caddr_it)
-            (*caddr_it)++;
-
+         insert_code(ctx, out, buggy_branch_it->first + 1, 1, &s_nop_0);
       }
    } while (gfx10_3f_bug);
 }
 
+void emit_long_jump(asm_context& ctx, SOPP_instruction *branch, bool backwards, std::vector<uint32_t>& out)
+{
+   Builder bld(ctx.program);
+
+   Definition def_tmp_lo(branch->definitions[0].physReg(), s1);
+   Operand op_tmp_lo(branch->definitions[0].physReg(), s1);
+   Definition def_tmp_hi(branch->definitions[0].physReg().advance(4), s1);
+   Operand op_tmp_hi(branch->definitions[0].physReg().advance(4), s1);
+
+   aco_ptr<Instruction> instr;
+
+   if (branch->opcode != aco_opcode::s_branch) {
+      /* for conditional branches, skip the long jump if the condition is false */
+      aco_opcode inv;
+      switch (branch->opcode) {
+      case aco_opcode::s_cbranch_scc0:
+         inv = aco_opcode::s_cbranch_scc1;
+         break;
+      case aco_opcode::s_cbranch_scc1:
+         inv = aco_opcode::s_cbranch_scc0;
+         break;
+      case aco_opcode::s_cbranch_vccz:
+         inv = aco_opcode::s_cbranch_vccnz;
+         break;
+      case aco_opcode::s_cbranch_vccnz:
+         inv = aco_opcode::s_cbranch_vccz;
+         break;
+      case aco_opcode::s_cbranch_execz:
+         inv = aco_opcode::s_cbranch_execnz;
+         break;
+      case aco_opcode::s_cbranch_execnz:
+         inv = aco_opcode::s_cbranch_execz;
+         break;
+      default:
+         unreachable("Unhandled long jump.");
+      }
+      instr.reset(bld.sopp(inv, -1, 7));
+      emit_instruction(ctx, out, instr.get());
+   }
+
+   /* create the new PC and stash SCC in the LSB */
+   instr.reset(bld.sop1(aco_opcode::s_getpc_b64, branch->definitions[0]).instr);
+   emit_instruction(ctx, out, instr.get());
+
+   instr.reset(bld.sop2(aco_opcode::s_addc_u32, def_tmp_lo, op_tmp_lo, Operand(0u)).instr);
+   instr->operands[1].setFixed(PhysReg{255}); /* this operand has to be a literal */
+   emit_instruction(ctx, out, instr.get());
+   branch->pass_flags = out.size();
+
+   instr.reset(bld.sop2(aco_opcode::s_addc_u32, def_tmp_hi, op_tmp_hi, Operand(backwards ? UINT32_MAX : 0u)).instr);
+   emit_instruction(ctx, out, instr.get());
+
+   /* restore SCC and clear the LSB of the new PC */
+   instr.reset(bld.sopc(aco_opcode::s_bitcmp1_b32, def_tmp_lo, op_tmp_lo, Operand(0u)).instr);
+   emit_instruction(ctx, out, instr.get());
+   instr.reset(bld.sop1(aco_opcode::s_bitset0_b32, def_tmp_lo, Operand(0u)).instr);
+   emit_instruction(ctx, out, instr.get());
+
+   /* create the s_setpc_b64 to jump */
+   instr.reset(bld.sop1(aco_opcode::s_setpc_b64, Operand(branch->definitions[0].physReg(), s2)).instr);
+   emit_instruction(ctx, out, instr.get());
+}
+
 void fix_branches(asm_context& ctx, std::vector<uint32_t>& out)
 {
-   if (ctx.chip_class >= GFX10)
-      fix_branches_gfx10(ctx, out);
+   bool repeat = false;
+   do {
+      repeat = false;
 
-   for (std::pair<int, SOPP_instruction*> &branch : ctx.branches) {
-      int offset = (int)ctx.program->blocks[branch.second->block].offset - branch.first - 1;
-      out[branch.first] |= (uint16_t) offset;
-   }
+      if (ctx.chip_class == GFX10)
+         fix_branches_gfx10(ctx, out);
+
+      for (std::pair<int, SOPP_instruction*> &branch : ctx.branches) {
+         int offset = (int)ctx.program->blocks[branch.second->block].offset - branch.first - 1;
+         if ((offset < INT16_MIN || offset > INT16_MAX) && !branch.second->pass_flags) {
+            std::vector<uint32_t> long_jump;
+            bool backwards = ctx.program->blocks[branch.second->block].offset < (unsigned)branch.first;
+            emit_long_jump(ctx, branch.second, backwards, long_jump);
+
+            out[branch.first] = long_jump[0];
+            insert_code(ctx, out, branch.first + 1, long_jump.size() - 1, long_jump.data() + 1);
+
+            repeat = true;
+            break;
+         }
+
+         if (branch.second->pass_flags) {
+            int after_getpc = branch.first + branch.second->pass_flags - 2;
+            offset = (int)ctx.program->blocks[branch.second->block].offset - after_getpc;
+            out[branch.first + branch.second->pass_flags - 1] = offset * 4;
+         } else {
+            out[branch.first] &= 0xffff0000u;
+            out[branch.first] |= (uint16_t) offset;
+         }
+      }
+   } while (repeat);
 }
 
 void fix_constaddrs(asm_context& ctx, std::vector<uint32_t>& out)

@@ -68,15 +68,12 @@ void
 nir_lower_point_size_mov(nir_shader *shader,
                          const gl_state_index16 *pointsize_state_tokens)
 {
-   assert(shader->info.stage == MESA_SHADER_VERTEX);
+   assert(shader->info.stage != MESA_SHADER_FRAGMENT &&
+          shader->info.stage != MESA_SHADER_COMPUTE);
 
-   nir_variable *out = NULL;
-   nir_foreach_variable(var, &shader->outputs) {
-      if (var->data.location == VARYING_SLOT_PSIZ) {
-         out = var;
-         break;
-      }
-   }
+   nir_variable *out =
+      nir_find_variable_with_location(shader, nir_var_shader_out,
+                                      VARYING_SLOT_PSIZ);
 
    lower_impl(nir_shader_get_entrypoint(shader), pointsize_state_tokens,
               out);

@@ -137,6 +137,7 @@ struct wsi_display_fence {
    struct wsi_fence             base;
    bool                         event_received;
    bool                         destroyed;
+   uint32_t                     syncobj; /* syncobj to signal on event */
    uint64_t                     sequence;
 };
 
@@ -1527,6 +1528,14 @@ wsi_display_fence_check_free(struct wsi_display_fence *fence)
 
 static void wsi_display_fence_event_handler(struct wsi_display_fence *fence)
 {
+   struct wsi_display *wsi =
+      (struct wsi_display *) fence->base.wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
+
+   if (fence->syncobj) {
+      (void) drmSyncobjSignal(wsi->fd, &fence->syncobj, 1);
+      (void) drmSyncobjDestroy(wsi->fd, fence->syncobj);
+   }
+
    fence->event_received = true;
    wsi_display_fence_check_free(fence);
 }
@@ -1545,7 +1554,8 @@ static struct wsi_display_fence *
 wsi_display_fence_alloc(VkDevice device,
                         const struct wsi_device *wsi_device,
                         VkDisplayKHR display,
-                        const VkAllocationCallbacks *allocator)
+                        const VkAllocationCallbacks *allocator,
+                        int sync_fd)
 {
    struct wsi_display *wsi =
       (struct wsi_display *) wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
@@ -1555,6 +1565,14 @@ wsi_display_fence_alloc(VkDevice device,
 
    if (!fence)
       return NULL;
+
+   if (sync_fd >= 0) {
+      int ret = drmSyncobjFDToHandle(wsi->fd, sync_fd, &fence->syncobj);
+      if (ret) {
+         vk_free2(wsi->alloc, allocator, fence);
+         return NULL;
+      }
+   }
 
    fence->base.device = device;
    fence->base.display = display;
@@ -2499,7 +2517,8 @@ wsi_register_device_event(VkDevice device,
                           struct wsi_device *wsi_device,
                           const VkDeviceEventInfoEXT *device_event_info,
                           const VkAllocationCallbacks *allocator,
-                          struct wsi_fence **fence_p)
+                          struct wsi_fence **fence_p,
+                          int sync_fd)
 {
    return VK_ERROR_FEATURE_NOT_PRESENT;
 }
@@ -2510,7 +2529,8 @@ wsi_register_display_event(VkDevice device,
                            VkDisplayKHR display,
                            const VkDisplayEventInfoEXT *display_event_info,
                            const VkAllocationCallbacks *allocator,
-                           struct wsi_fence **fence_p)
+                           struct wsi_fence **fence_p,
+                           int sync_fd)
 {
    struct wsi_display *wsi =
       (struct wsi_display *) wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
@@ -2520,7 +2540,7 @@ wsi_register_display_event(VkDevice device,
    switch (display_event_info->displayEvent) {
    case VK_DISPLAY_EVENT_TYPE_FIRST_PIXEL_OUT_EXT:
 
-      fence = wsi_display_fence_alloc(device, wsi_device, display, allocator);
+      fence = wsi_display_fence_alloc(device, wsi_device, display, allocator, sync_fd);
 
       if (!fence)
          return VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -2528,10 +2548,16 @@ wsi_register_display_event(VkDevice device,
       ret = wsi_register_vblank_event(fence, wsi_device, display,
                                       DRM_CRTC_SEQUENCE_RELATIVE, 1, NULL);
 
-      if (ret == VK_SUCCESS)
-         *fence_p = &fence->base;
-      else if (fence != NULL)
+      if (ret == VK_SUCCESS) {
+         if (fence_p)
+            *fence_p = &fence->base;
+         else
+            fence->base.destroy(&fence->base);
+      } else if (fence != NULL) {
+         if (fence->syncobj)
+            drmSyncobjDestroy(wsi->fd, fence->syncobj);
          vk_free2(wsi->alloc, allocator, fence);
+      }
 
       break;
    default:

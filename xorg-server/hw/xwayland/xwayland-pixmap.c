@@ -41,7 +41,7 @@ static DevPrivateKeyRec xwl_pixmap_private_key;
 static DevPrivateKeyRec xwl_pixmap_cb_private_key;
 
 struct xwl_pixmap_buffer_release_callback {
-    xwl_pixmap_cb callback;
+    xwl_buffer_release_cb callback;
     void *data;
 };
 
@@ -59,7 +59,7 @@ xwl_pixmap_get(PixmapPtr pixmap)
 
 Bool
 xwl_pixmap_set_buffer_release_cb(PixmapPtr pixmap,
-                                 xwl_pixmap_cb func, void *data)
+                                 xwl_buffer_release_cb func, void *data)
 {
     struct xwl_pixmap_buffer_release_callback *xwl_pixmap_buffer_release_callback;
 
@@ -107,7 +107,7 @@ xwl_pixmap_buffer_release_cb(void *data, struct wl_buffer *wl_buffer)
                                                           &xwl_pixmap_cb_private_key);
     if (xwl_pixmap_buffer_release_callback)
         (*xwl_pixmap_buffer_release_callback->callback)
-            (pixmap, xwl_pixmap_buffer_release_callback->data);
+            (xwl_pixmap_buffer_release_callback->data);
 }
 
 Bool

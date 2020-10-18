@@ -275,6 +275,91 @@ FcReadLink (const FcChar8 *pathname,
 #endif
 }
 
+/* On Windows MingW provides dirent.h / openddir(), but MSVC does not */
+#ifndef HAVE_DIRENT_H
+
+struct DIR {
+    struct dirent d_ent;
+    HANDLE handle;
+    WIN32_FIND_DATA fdata;
+    FcBool valid;
+};
+
+FcPrivate DIR *
+FcCompatOpendirWin32 (const char *dirname)
+{
+    size_t len;
+    char *name;
+    DIR *dir;
+
+    dir = calloc (1, sizeof (struct DIR));
+    if (dir == NULL)
+        return NULL;
+
+    len = strlen (dirname);
+    name = malloc (len + 3);
+    if (name == NULL)
+    {
+      free (dir);
+      return NULL;
+    }
+    memcpy (name, dirname, len);
+    name[len++] = FC_DIR_SEPARATOR;
+    name[len++] = '*';
+    name[len] = '\0';
+
+    dir->handle = FindFirstFileEx (name, FindExInfoBasic, &dir->fdata, FindExSearchNameMatch, NULL, 0);
+
+    free (name);
+
+    if (!dir->handle)
+    {
+        free (dir);
+        dir = NULL;
+
+        if (GetLastError () == ERROR_FILE_NOT_FOUND)
+            errno = ENOENT;
+        else
+            errno = EACCES;
+    }
+
+    dir->valid = FcTrue;
+    return dir;
+}
+
+FcPrivate struct dirent *
+FcCompatReaddirWin32 (DIR *dir)
+{
+    if (dir->valid != FcTrue)
+        return NULL;
+
+    dir->d_ent.d_name = dir->fdata.cFileName;
+
+    if ((dir->fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
+        dir->d_ent.d_type = DT_DIR;
+    else if (dir->fdata.dwFileAttributes == FILE_ATTRIBUTE_NORMAL)
+        dir->d_ent.d_type = DT_REG;
+    else
+        dir->d_ent.d_type = DT_UNKNOWN;
+
+    if (!FindNextFile (dir->handle, &dir->fdata))
+        dir->valid = FcFalse;
+
+    return &dir->d_ent;
+}
+
+FcPrivate int
+FcCompatClosedirWin32 (DIR *dir)
+{
+    if (dir != NULL && dir->handle != NULL)
+    {
+        FindClose (dir->handle);
+        free (dir);
+    }
+    return 0;
+}
+#endif /* HAVE_DIRENT_H */
+
 #define __fccompat__
 #include "fcaliastail.h"
 #undef __fccompat__

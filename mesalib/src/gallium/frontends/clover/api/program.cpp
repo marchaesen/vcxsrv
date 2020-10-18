@@ -29,6 +29,32 @@
 using namespace clover;
 
 namespace {
+
+   std::string
+   build_options(const char *p_opts, const char *p_debug) {
+      auto opts = std::string(p_opts ? p_opts : "");
+      std::string extra_opts = debug_get_option(p_debug, "");
+
+      return detokenize(std::vector<std::string>{opts, extra_opts}, " ");
+   }
+
+   class build_notifier {
+   public:
+      build_notifier(cl_program prog,
+                     void (*notifer)(cl_program, void *), void *data) :
+                     prog_(prog), notifer(notifer), data_(data) { }
+
+      ~build_notifier() {
+         if (notifer)
+            notifer(prog_, data_);
+      }
+
+   private:
+      cl_program prog_;
+      void (*notifer)(cl_program, void *);
+      void *data_;
+   };
+
    void
    validate_build_common(const program &prog, cl_uint num_devs,
                          const cl_device_id *d_devs,
@@ -178,10 +204,11 @@ clBuildProgram(cl_program d_prog, cl_uint num_devs,
    auto &prog = obj(d_prog);
    auto devs =
       (d_devs ? objs(d_devs, num_devs) : ref_vector<device>(prog.devices()));
-   const auto opts = std::string(p_opts ? p_opts : "") + " " +
-                     debug_get_option("CLOVER_EXTRA_BUILD_OPTIONS", "");
+   const auto opts = build_options(p_opts, "CLOVER_EXTRA_BUILD_OPTIONS");
 
    validate_build_common(prog, num_devs, d_devs, pfn_notify, user_data);
+
+   auto notifier = build_notifier(d_prog, pfn_notify, user_data);
 
    if (prog.has_source) {
       prog.compile(devs, opts);
@@ -211,11 +238,12 @@ clCompileProgram(cl_program d_prog, cl_uint num_devs,
    auto &prog = obj(d_prog);
    auto devs =
        (d_devs ? objs(d_devs, num_devs) : ref_vector<device>(prog.devices()));
-   const auto opts = std::string(p_opts ? p_opts : "") + " " +
-                     debug_get_option("CLOVER_EXTRA_COMPILE_OPTIONS", "");
+   const auto opts = build_options(p_opts, "CLOVER_EXTRA_COMPILE_OPTIONS");
    header_map headers;
 
    validate_build_common(prog, num_devs, d_devs, pfn_notify, user_data);
+
+   auto notifier = build_notifier(d_prog, pfn_notify, user_data);
 
    if (bool(num_headers) != bool(header_names))
       throw error(CL_INVALID_VALUE);
@@ -333,12 +361,15 @@ clLinkProgram(cl_context d_ctx, cl_uint num_devs, const cl_device_id *d_devs,
               void (*pfn_notify) (cl_program, void *), void *user_data,
               cl_int *r_errcode) try {
    auto &ctx = obj(d_ctx);
-   const auto opts = std::string(p_opts ? p_opts : "") + " " +
-                     debug_get_option("CLOVER_EXTRA_LINK_OPTIONS", "");
+   const auto opts = build_options(p_opts, "CLOVER_EXTRA_LINK_OPTIONS");
    auto progs = objs(d_progs, num_progs);
    auto all_devs =
       (d_devs ? objs(d_devs, num_devs) : ref_vector<device>(ctx.devices()));
    auto prog = create<program>(ctx, all_devs);
+   auto r_prog = ret_object(prog);
+
+   auto notifier = build_notifier(r_prog, pfn_notify, user_data);
+
    auto devs = validate_link_devices(progs, all_devs, opts);
 
    validate_build_common(prog, num_devs, d_devs, pfn_notify, user_data);
@@ -351,7 +382,7 @@ clLinkProgram(cl_context d_ctx, cl_uint num_devs, const cl_device_id *d_devs,
       ret_error(r_errcode, CL_LINK_PROGRAM_FAILURE);
    }
 
-   return ret_object(prog);
+   return r_prog;
 
 } catch (invalid_build_options_error &e) {
    ret_error(r_errcode, CL_INVALID_LINKER_OPTIONS);

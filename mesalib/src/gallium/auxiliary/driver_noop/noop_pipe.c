@@ -343,6 +343,10 @@ static void noop_set_context_param(struct pipe_context *ctx,
 {
 }
 
+static void noop_set_frontend_noop(struct pipe_context *ctx, bool enable)
+{
+}
+
 static struct pipe_context *noop_create_context(struct pipe_screen *screen,
                                                 void *priv, unsigned flags)
 {
@@ -383,6 +387,7 @@ static struct pipe_context *noop_create_context(struct pipe_screen *screen,
    ctx->texture_subdata = noop_texture_subdata;
    ctx->invalidate_resource = noop_invalidate_resource;
    ctx->set_context_param = noop_set_context_param;
+   ctx->set_frontend_noop = noop_set_frontend_noop;
    noop_init_state_functions(ctx);
 
    return ctx;

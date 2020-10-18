@@ -150,7 +150,7 @@ xf86CheckHWCursor(ScreenPtr pScreen, CursorPtr cursor, xf86CursorInfoPtr infoPtr
     }
 
     /* ask each driver consuming a pixmap if it can support HW cursor */
-    xorg_list_for_each_entry(pSlave, &pScreen->slave_list, slave_head) {
+    xorg_list_for_each_entry(pSlave, &pScreen->secondary_list, secondary_head) {
         xf86CursorScreenPtr sPriv;
 
         if (!RRHasScanoutPixmap(pSlave))
@@ -162,7 +162,7 @@ xf86CheckHWCursor(ScreenPtr pScreen, CursorPtr cursor, xf86CursorInfoPtr infoPtr
 	    break;
 	}
 
-        /* FALSE if HWCursor not supported by slave */
+        /* FALSE if HWCursor not supported by secondary */
         if (!xf86ScreenCheckHWCursor(pSlave, cursor, sPriv->CursorInfoPtr)) {
             use_hw_cursor = FALSE;
 	    break;
@@ -252,14 +252,14 @@ xf86SetCursor(ScreenPtr pScreen, CursorPtr pCurs, int x, int y)
     if (!xf86ScreenSetCursor(pScreen, pCurs, x, y))
         goto out;
 
-    /* ask each slave driver to set the cursor. */
-    xorg_list_for_each_entry(pSlave, &pScreen->slave_list, slave_head) {
+    /* ask each secondary driver to set the cursor. */
+    xorg_list_for_each_entry(pSlave, &pScreen->secondary_list, secondary_head) {
         if (!RRHasScanoutPixmap(pSlave))
             continue;
 
         if (!xf86ScreenSetCursor(pSlave, pCurs, x, y)) {
             /*
-             * hide the master (and successfully set slave) cursors,
+             * hide the primary (and successfully set secondary) cursors,
              * otherwise both the hw and sw cursor will show.
              */
             xf86SetCursor(pScreen, NullCursor, x, y);
@@ -328,8 +328,8 @@ xf86MoveCursor(ScreenPtr pScreen, int x, int y)
 
     xf86ScreenMoveCursor(pScreen, x, y);
 
-    /* ask each slave driver to move the cursor */
-    xorg_list_for_each_entry(pSlave, &pScreen->slave_list, slave_head) {
+    /* ask each secondary driver to move the cursor */
+    xorg_list_for_each_entry(pSlave, &pScreen->secondary_list, secondary_head) {
         if (!RRHasScanoutPixmap(pSlave))
             continue;
 

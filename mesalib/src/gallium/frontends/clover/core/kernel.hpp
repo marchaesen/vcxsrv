@@ -23,6 +23,7 @@
 #ifndef CLOVER_CORE_KERNEL_HPP
 #define CLOVER_CORE_KERNEL_HPP
 
+#include <map>
 #include <memory>
 
 #include "core/object.hpp"
@@ -140,6 +141,7 @@ namespace clover {
 
       argument_range args();
       const_argument_range args() const;
+      std::vector<clover::module::arg_info> args_infos();
 
       const intrusive_ref<clover::program> program;
 
@@ -242,6 +244,7 @@ namespace clover {
       };
 
       std::vector<std::unique_ptr<argument>> _args;
+      std::map<device *, std::unique_ptr<root_buffer> > _constant_buffers;
       std::string _name;
       exec_context exec;
       const ref_holder program_ref;

@@ -3218,7 +3218,7 @@ the natural alignment in the data stream.
 You must pad structures out to 32-bit boundaries.
 Pad information does not have to be zeroed unless you want to
 preserve such fields for future use in your protocol requests,
-but it is recommended to zero it to avoid inadvertant data leakage
+but it is recommended to zero it to avoid inadvertent data leakage
 and improve compressability.
 Floating point varies radically between machines and should be
 avoided completely if at all possible.

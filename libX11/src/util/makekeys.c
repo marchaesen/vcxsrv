@@ -69,7 +69,7 @@ parse_line(const char *buf, char *key, KeySym *val, char *prefix)
     char *tmp, *tmpa;
 
     /* See if we can catch a straight XK_foo 0x1234-style definition first;
-     * the trickery around tmp is to account for prefices. */
+     * the trickery around tmp is to account for prefixes. */
     i = sscanf(buf, "#define %127s 0x%lx", key, val);
     if (i == 2 && (tmp = strstr(key, "XK_"))) {
         memcpy(prefix, key, (size_t)(tmp - key));

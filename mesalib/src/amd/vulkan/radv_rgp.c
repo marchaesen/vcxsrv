@@ -331,6 +331,7 @@ radv_fill_sqtt_asic_info(struct radv_device *device,
 			 struct sqtt_file_chunk_asic_info *chunk)
 {
 	struct radeon_info *rad_info = &device->physical_device->rad_info;
+	bool has_wave32 = rad_info->chip_class >= GFX10;
 
 	chunk->header.chunk_id.type = SQTT_FILE_CHUNK_TYPE_ASIC_INFO;
 	chunk->header.chunk_id.index = 0;
@@ -355,15 +356,18 @@ radv_fill_sqtt_asic_info(struct radv_device *device,
 
 	chunk->device_id = rad_info->pci_id;
 	chunk->device_revision_id = rad_info->pci_rev_id;
-	chunk->vgprs_per_simd = rad_info->num_physical_wave64_vgprs_per_simd;
+	chunk->vgprs_per_simd = rad_info->num_physical_wave64_vgprs_per_simd *
+	                        (has_wave32 ? 2 : 1);
 	chunk->sgprs_per_simd = rad_info->num_physical_sgprs_per_simd;
 	chunk->shader_engines = rad_info->max_se;
-	chunk->compute_unit_per_shader_engine = rad_info->min_good_cu_per_sa;
+	chunk->compute_unit_per_shader_engine = rad_info->min_good_cu_per_sa *
+	                                        rad_info->max_sh_per_se;
 	chunk->simd_per_compute_unit = rad_info->num_simd_per_compute_unit;
 	chunk->wavefronts_per_simd = rad_info->max_wave64_per_simd;
 
 	chunk->minimum_vgpr_alloc = rad_info->min_wave64_vgpr_alloc;
-	chunk->vgpr_alloc_granularity = rad_info->wave64_vgpr_alloc_granularity;
+	chunk->vgpr_alloc_granularity = rad_info->wave64_vgpr_alloc_granularity *
+	                                (has_wave32 ? 2 : 1);
 	chunk->minimum_sgpr_alloc = rad_info->min_sgpr_alloc;
 	chunk->sgpr_alloc_granularity = rad_info->sgpr_alloc_granularity;
 
@@ -582,10 +586,10 @@ radv_sqtt_dump_data(struct radv_device *device,
 		    const struct radv_thread_trace *thread_trace,
 		    FILE *output)
 {
-	struct sqtt_file_chunk_asic_info asic_info = {};
-	struct sqtt_file_chunk_cpu_info cpu_info = {};
-	struct sqtt_file_chunk_api_info api_info = {};
-	struct sqtt_file_header header = {};
+	struct sqtt_file_chunk_asic_info asic_info = {0};
+	struct sqtt_file_chunk_cpu_info cpu_info = {0};
+	struct sqtt_file_chunk_api_info api_info = {0};
+	struct sqtt_file_header header = {0};
 	size_t file_offset = 0;
 
 	/* SQTT header file. */
@@ -612,8 +616,8 @@ radv_sqtt_dump_data(struct radv_device *device,
 		for (unsigned i = 0; i < thread_trace->num_traces; i++) {
 			const struct radv_thread_trace_se *se = &thread_trace->traces[i];
 			const struct radv_thread_trace_info *info = &se->info;
-			struct sqtt_file_chunk_sqtt_desc desc = {};
-			struct sqtt_file_chunk_sqtt_data data = {};
+			struct sqtt_file_chunk_sqtt_desc desc = {0};
+			struct sqtt_file_chunk_sqtt_data data = {0};
 			uint64_t size = info->cur_offset * 32; /* unit of 32 bytes */
 
 			/* SQTT desc chunk. */

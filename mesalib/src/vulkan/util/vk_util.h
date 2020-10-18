@@ -212,6 +212,14 @@ uint32_t vk_get_driver_version(void);
 
 uint32_t vk_get_version_override(void);
 
+struct vk_pipeline_cache_header {
+   uint32_t header_size;
+   uint32_t header_version;
+   uint32_t vendor_id;
+   uint32_t device_id;
+   uint8_t  uuid[VK_UUID_SIZE];
+};
+
 #define VK_EXT_OFFSET (1000000000UL)
 #define VK_ENUM_EXTENSION(__enum) \
    ((__enum) >= VK_EXT_OFFSET ? ((((__enum) - VK_EXT_OFFSET) / 1000UL) + 1) : 0)

@@ -34,7 +34,7 @@ if with_platform_wayland
   ]
 endif
 
-if with_platform_drm
+if system_has_kms_drm and not with_platform_android
   files_vulkan_wsi += files('wsi_common_display.c')
 endif
 

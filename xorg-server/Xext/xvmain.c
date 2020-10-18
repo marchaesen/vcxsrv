@@ -425,7 +425,7 @@ XvdiDestroyVideoNotifyList(void *pn, XID id)
 {
     XvVideoNotifyPtr npn, cpn;
 
-    /* ACTUALLY DESTROY THE NOTITY LIST */
+    /* ACTUALLY DESTROY THE NOTIFY LIST */
 
     cpn = (XvVideoNotifyPtr) pn;
 
@@ -820,7 +820,7 @@ XvdiSelectVideoNotify(ClientPtr client, DrawablePtr pDraw, BOOL onoff)
             tpn = tpn->next;
         }
 
-        /* IF TUNNING OFF, THEN JUST RETURN */
+        /* IF TURNING OFF, THEN JUST RETURN */
 
         if (!onoff)
             return Success;

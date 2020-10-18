@@ -33,6 +33,7 @@ LOCAL_SRC_FILES := $(LOCAL_SRC_FILES)
 
 LOCAL_C_INCLUDES += \
 	$(intermediates)/nir \
+	$(intermediates)/spirv \
 	$(MESA_TOP)/src/compiler/nir
 
 LOCAL_EXPORT_C_INCLUDE_DIRS += \
@@ -100,6 +101,10 @@ $(intermediates)/spirv/spirv_info.c: $(LOCAL_PATH)/spirv/spirv_info_c.py $(LOCAL
 	$(hide) $(MESA_PYTHON2) $^ $@ || ($(RM) $@; false)
 
 $(intermediates)/spirv/vtn_gather_types.c:: $(LOCAL_PATH)/spirv/vtn_gather_types_c.py $(LOCAL_PATH)/spirv/spirv.core.grammar.json
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $^ $@ || ($(RM) $@; false)
+
+$(intermediates)/spirv/vtn_generator_ids.h:: $(LOCAL_PATH)/spirv/vtn_generator_ids_h.py $(LOCAL_PATH)/spirv/spir-v.xml
 	@mkdir -p $(dir $@)
 	$(hide) $(MESA_PYTHON2) $^ $@ || ($(RM) $@; false)
 

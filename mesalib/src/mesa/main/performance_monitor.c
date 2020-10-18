@@ -338,7 +338,6 @@ _mesa_GetPerfMonitorCounterInfoAMD(GLuint group, GLuint counter, GLenum pname,
 void GLAPIENTRY
 _mesa_GenPerfMonitorsAMD(GLsizei n, GLuint *monitors)
 {
-   GLuint first;
    GET_CURRENT_CONTEXT(ctx);
 
    if (MESA_VERBOSE & VERBOSE_API)
@@ -354,21 +353,16 @@ _mesa_GenPerfMonitorsAMD(GLsizei n, GLuint *monitors)
    if (monitors == NULL)
       return;
 
-   /* We don't actually need them to be contiguous, but this is what
-    * the rest of Mesa does, so we may as well.
-    */
-   first = _mesa_HashFindFreeKeyBlock(ctx->PerfMonitor.Monitors, n);
-   if (first) {
+   if (_mesa_HashFindFreeKeys(ctx->PerfMonitor.Monitors, monitors, n)) {
       GLsizei i;
       for (i = 0; i < n; i++) {
          struct gl_perf_monitor_object *m =
-            new_performance_monitor(ctx, first + i);
+            new_performance_monitor(ctx, monitors[i]);
          if (!m) {
             _mesa_error(ctx, GL_OUT_OF_MEMORY, "glGenPerfMonitorsAMD");
             return;
          }
-         monitors[i] = first + i;
-         _mesa_HashInsert(ctx->PerfMonitor.Monitors, first + i, m);
+         _mesa_HashInsert(ctx->PerfMonitor.Monitors, monitors[i], m, true);
       }
    } else {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glGenPerfMonitorsAMD");

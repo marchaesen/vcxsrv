@@ -34,4 +34,4 @@ vulkaninfo | grep "Mesa $MESA_VERSION\(\s\|$\)"
 # file:
 # https://docs.gitlab.com/runner/configuration/advanced-configuration.html#the-runners-section
 PATH="/gfxreconstruct/build/bin:$PATH" \
-    python3 "$INSTALL/tracie/tracie.py" --file "$INSTALL/traces.yml" --device-name "$DEVICE_NAME"
+    python3 "$INSTALL/tracie/tracie.py" --file "$INSTALL/traces-$DRIVER_NAME.yml" --device-name "$DEVICE_NAME"

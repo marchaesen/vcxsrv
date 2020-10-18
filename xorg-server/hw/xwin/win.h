@@ -435,7 +435,7 @@ typedef struct _winPrivScreenRec {
     void *pWMInfo;
     Bool fRootWindowShown;
 
-    /* Privates used for any module running in a seperate thread */
+    /* Privates used for any module running in a separate thread */
     pthread_mutex_t pmServerStarted;
     Bool fServerStarted;
 

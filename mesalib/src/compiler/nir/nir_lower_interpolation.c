@@ -111,6 +111,8 @@ nir_lower_interpolation_block(nir_block *block, nir_builder *b,
          nir_intrinsic_set_base(load_iid, nir_intrinsic_base(intr));
          nir_intrinsic_set_component(load_iid,
                                      nir_intrinsic_component(intr) + i);
+         nir_intrinsic_set_io_semantics(load_iid,
+                                        nir_intrinsic_io_semantics(intr));
          nir_builder_instr_insert(b, &load_iid->instr);
 
          nir_ssa_def *iid = &load_iid->dest.ssa;

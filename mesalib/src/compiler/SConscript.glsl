@@ -90,7 +90,7 @@ compiler_objs += mesa_objs
 # GLSL generated sources
 env.CodeGenerate(
     target = 'glsl/float64_glsl.h',
-    script = 'glsl/xxd.py',
+    script = '../util/xxd.py',
     source = ['glsl/float64.glsl'],
     command = python_cmd + ' $SCRIPT $SOURCE $TARGET -n float64_source',
 )

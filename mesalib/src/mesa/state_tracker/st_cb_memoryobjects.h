@@ -34,6 +34,9 @@ struct st_memory_object
 {
    struct gl_memory_object Base;
    struct pipe_memory_object *memory;
+
+   /* TEXTURE_TILING_EXT param from gl_texture_object */
+   GLuint TextureTiling;
 };
 
 static inline struct st_memory_object *

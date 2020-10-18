@@ -64,7 +64,8 @@ present_close_screen(ScreenPtr screen)
 {
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
 
-    screen_priv->flip_destroy(screen);
+    if (screen_priv->flip_destroy)
+        screen_priv->flip_destroy(screen);
 
     unwrap(screen_priv, screen, CloseScreen);
     (*screen->CloseScreen) (screen);

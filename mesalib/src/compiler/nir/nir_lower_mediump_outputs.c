@@ -47,42 +47,32 @@ nir_lower_mediump_outputs(nir_shader *nir)
          if (intr->intrinsic != nir_intrinsic_store_output)
             continue;
 
-         nir_foreach_variable (var, &nir->outputs) {
-            if (var->data.driver_location != nir_intrinsic_base(intr))
-               continue; /* not found yet */
+         if (!nir_intrinsic_io_semantics(intr).medium_precision)
+            break; /* can't lower */
 
-            if (var->data.precision != GLSL_PRECISION_MEDIUM &&
-                var->data.precision != GLSL_PRECISION_LOW)
-               break; /* can't lower */
-
-            switch (glsl_get_base_type(var->type)) {
-            case GLSL_TYPE_FLOAT:
-               var->type = glsl_float16_type(var->type);
-               b.cursor = nir_before_instr(&intr->instr);
-               nir_instr_rewrite_src(&intr->instr, &intr->src[0],
-                     nir_src_for_ssa(nir_f2f16(&b, intr->src[0].ssa)));
-               nir_intrinsic_set_type(intr, nir_type_float16);
-               break;
-
-            case GLSL_TYPE_INT:
-               var->type = glsl_int16_type(var->type);
-               b.cursor = nir_before_instr(&intr->instr);
-               nir_instr_rewrite_src(&intr->instr, &intr->src[0],
-                     nir_src_for_ssa(nir_i2i16(&b, intr->src[0].ssa)));
-               nir_intrinsic_set_type(intr, nir_type_int16);
-               break;
-
-            case GLSL_TYPE_UINT:
-               var->type = glsl_uint16_type(var->type);
-               b.cursor = nir_before_instr(&intr->instr);
-               nir_instr_rewrite_src(&intr->instr, &intr->src[0],
-                     nir_src_for_ssa(nir_u2u16(&b, intr->src[0].ssa)));
-               nir_intrinsic_set_type(intr, nir_type_uint16);
-               break;
-
-            default:;
-            }
+         switch (nir_intrinsic_src_type(intr)) {
+         case nir_type_float32:
+            b.cursor = nir_before_instr(&intr->instr);
+            nir_instr_rewrite_src(&intr->instr, &intr->src[0],
+                  nir_src_for_ssa(nir_f2f16(&b, intr->src[0].ssa)));
+            nir_intrinsic_set_src_type(intr, nir_type_float16);
             break;
+
+         case nir_type_int32:
+            b.cursor = nir_before_instr(&intr->instr);
+            nir_instr_rewrite_src(&intr->instr, &intr->src[0],
+                  nir_src_for_ssa(nir_i2i16(&b, intr->src[0].ssa)));
+            nir_intrinsic_set_src_type(intr, nir_type_int16);
+            break;
+
+         case nir_type_uint32:
+            b.cursor = nir_before_instr(&intr->instr);
+            nir_instr_rewrite_src(&intr->instr, &intr->src[0],
+                  nir_src_for_ssa(nir_u2u16(&b, intr->src[0].ssa)));
+            nir_intrinsic_set_src_type(intr, nir_type_uint16);
+            break;
+
+         default:;
          }
       }
    }

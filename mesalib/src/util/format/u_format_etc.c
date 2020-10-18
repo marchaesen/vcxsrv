@@ -25,7 +25,7 @@ util_format_etc1_rgb8_pack_rgba_8unorm(UNUSED uint8_t *dst_row, UNUSED unsigned 
 }
 
 void
-util_format_etc1_rgb8_unpack_rgba_float(float *dst_row, unsigned dst_stride, const uint8_t *src_row, unsigned src_stride, unsigned width, unsigned height)
+util_format_etc1_rgb8_unpack_rgba_float(void *dst_row, unsigned dst_stride, const uint8_t *src_row, unsigned src_stride, unsigned width, unsigned height)
 {
    const unsigned bw = 4, bh = 4, bs = 8, comps = 4;
    struct etc1_block block;
@@ -38,7 +38,7 @@ util_format_etc1_rgb8_unpack_rgba_float(float *dst_row, unsigned dst_stride, con
          etc1_parse_block(&block, src);
 
          for (j = 0; j < bh; j++) {
-            float *dst = dst_row + (y + j) * dst_stride / sizeof(*dst_row) + x * comps;
+            float *dst = (float *)((uint8_t *)dst_row + (y + j) * dst_stride + x * comps * 4);
             uint8_t tmp[3];
 
             for (i = 0; i < bw; i++) {
@@ -67,8 +67,9 @@ util_format_etc1_rgb8_pack_rgba_float(UNUSED uint8_t *dst_row, UNUSED unsigned d
 }
 
 void
-util_format_etc1_rgb8_fetch_rgba_float(float *dst, const uint8_t *src, unsigned i, unsigned j)
+util_format_etc1_rgb8_fetch_rgba(void *in_dst, const uint8_t *src, unsigned i, unsigned j)
 {
+   float *dst = in_dst;
    struct etc1_block block;
    uint8_t tmp[3];
 

@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "dri_screen.h"
 #include "dri_query_renderer.h"
+#include "pipe-loader/pipe_loader.h"
 
 static int
 dri2_query_renderer_integer(__DRIscreen *_screen, int param,
@@ -30,11 +31,15 @@ dri2_query_renderer_integer(__DRIscreen *_screen, int param,
                                                       PIPE_CAP_ACCELERATED);
       return 0;
 
-   case __DRI2_RENDERER_VIDEO_MEMORY:
+   case __DRI2_RENDERER_VIDEO_MEMORY: {
+      int ov = driQueryOptioni(&screen->dev->option_cache, "override_vram_size");
       value[0] =
          (unsigned int)screen->base.screen->get_param(screen->base.screen,
                                                       PIPE_CAP_VIDEO_MEMORY);
+      if (ov >= 0)
+         value[0] = MIN2(ov, value[0]);
       return 0;
+   }
 
    case __DRI2_RENDERER_UNIFIED_MEMORY_ARCHITECTURE:
       value[0] =

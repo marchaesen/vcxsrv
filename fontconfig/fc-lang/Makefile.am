@@ -25,7 +25,7 @@
 
 TAG = lang
 DEPS = $(ORTH)
-ARGS = -d $(srcdir) $(ORTH)
+ARGS = --directory $(srcdir) $(ORTH)
 DIST = $(ORTH)
 
 include $(top_srcdir)/Tools.mk

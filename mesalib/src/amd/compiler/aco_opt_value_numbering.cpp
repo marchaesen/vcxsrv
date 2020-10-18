@@ -219,6 +219,8 @@ struct InstrPred {
 
       switch (a->format) {
          case Format::SOPK: {
+            if (a->opcode == aco_opcode::s_getreg_b32)
+               return false;
             SOPK_instruction* aK = static_cast<SOPK_instruction*>(a);
             SOPK_instruction* bK = static_cast<SOPK_instruction*>(b);
             return aK->imm == bK->imm;
@@ -226,8 +228,12 @@ struct InstrPred {
          case Format::SMEM: {
             SMEM_instruction* aS = static_cast<SMEM_instruction*>(a);
             SMEM_instruction* bS = static_cast<SMEM_instruction*>(b);
-            return aS->can_reorder && bS->can_reorder &&
-                   aS->glc == bS->glc && aS->nv == bS->nv;
+            /* isel shouldn't be creating situations where this assertion fails */
+            assert(aS->prevent_overflow == bS->prevent_overflow);
+            return aS->sync.can_reorder() && bS->sync.can_reorder() &&
+                   aS->sync == bS->sync && aS->glc == bS->glc && aS->dlc == bS->dlc &&
+                   aS->nv == bS->nv && aS->disable_wqm == bS->disable_wqm &&
+                   aS->prevent_overflow == bS->prevent_overflow;
          }
          case Format::VINTRP: {
             Interp_instruction* aI = static_cast<Interp_instruction*>(a);
@@ -248,8 +254,8 @@ struct InstrPred {
          case Format::MTBUF: {
             MTBUF_instruction* aM = static_cast<MTBUF_instruction *>(a);
             MTBUF_instruction* bM = static_cast<MTBUF_instruction *>(b);
-            return aM->can_reorder && bM->can_reorder &&
-                   aM->barrier == bM->barrier &&
+            return aM->sync.can_reorder() && bM->sync.can_reorder() &&
+                   aM->sync == bM->sync &&
                    aM->dfmt == bM->dfmt &&
                    aM->nfmt == bM->nfmt &&
                    aM->offset == bM->offset &&
@@ -264,8 +270,8 @@ struct InstrPred {
          case Format::MUBUF: {
             MUBUF_instruction* aM = static_cast<MUBUF_instruction *>(a);
             MUBUF_instruction* bM = static_cast<MUBUF_instruction *>(b);
-            return aM->can_reorder && bM->can_reorder &&
-                   aM->barrier == bM->barrier &&
+            return aM->sync.can_reorder() && bM->sync.can_reorder() &&
+                   aM->sync == bM->sync &&
                    aM->offset == bM->offset &&
                    aM->offen == bM->offen &&
                    aM->idxen == bM->idxen &&
@@ -292,7 +298,9 @@ struct InstrPred {
                return false;
             DS_instruction* aD = static_cast<DS_instruction *>(a);
             DS_instruction* bD = static_cast<DS_instruction *>(b);
-            return aD->pass_flags == bD->pass_flags &&
+            return aD->sync.can_reorder() && bD->sync.can_reorder() &&
+                   aD->sync == bD->sync &&
+                   aD->pass_flags == bD->pass_flags &&
                    aD->gds == bD->gds &&
                    aD->offset0 == bD->offset0 &&
                    aD->offset1 == bD->offset1;
@@ -300,8 +308,8 @@ struct InstrPred {
          case Format::MIMG: {
             MIMG_instruction* aM = static_cast<MIMG_instruction*>(a);
             MIMG_instruction* bM = static_cast<MIMG_instruction*>(b);
-            return aM->can_reorder && bM->can_reorder &&
-                   aM->barrier == bM->barrier &&
+            return aM->sync.can_reorder() && bM->sync.can_reorder() &&
+                   aM->sync == bM->sync &&
                    aM->dmask == bM->dmask &&
                    aM->unrm == bM->unrm &&
                    aM->glc == bM->glc &&
@@ -403,6 +411,12 @@ void process_block(vn_ctx& ctx, Block& block)
                ctx.renames[instr->definitions[i].tempId()] = orig_instr->definitions[i].getTemp();
                if (instr->definitions[i].isPrecise())
                   orig_instr->definitions[i].setPrecise(true);
+               /* SPIR_V spec says that an instruction marked with NUW wrapping
+                * around is undefined behaviour, so we can break additions in
+                * other contexts.
+                */
+               if (instr->definitions[i].isNUW())
+                  orig_instr->definitions[i].setNUW(true);
             }
          } else {
             ctx.expr_values.erase(res.first);

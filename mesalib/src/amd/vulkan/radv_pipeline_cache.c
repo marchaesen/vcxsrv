@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "util/macros.h"
 #include "util/mesa-sha1.h"
 #include "util/debug.h"
 #include "util/disk_cache.h"
@@ -28,6 +29,7 @@
 #include "radv_debug.h"
 #include "radv_private.h"
 #include "radv_shader.h"
+#include "vulkan/util/vk_util.h"
 
 #include "ac_nir_to_llvm.h"
 
@@ -107,6 +109,7 @@ entry_size(struct cache_entry *entry)
 	for (int i = 0; i < MESA_SHADER_STAGES; ++i)
 		if (entry->binary_sizes[i])
 			ret += entry->binary_sizes[i];
+	ret = align(ret, alignof(struct cache_entry));
 	return ret;
 }
 
@@ -132,7 +135,7 @@ radv_hash_shaders(unsigned char *hash,
 
 			_mesa_sha1_update(&ctx, module->sha1, sizeof(module->sha1));
 			_mesa_sha1_update(&ctx, stages[i]->pName, strlen(stages[i]->pName));
-			if (spec_info) {
+			if (spec_info && spec_info->mapEntryCount) {
 				_mesa_sha1_update(&ctx, spec_info->pMapEntries,
 				                  spec_info->mapEntryCount * sizeof spec_info->pMapEntries[0]);
 				_mesa_sha1_update(&ctx, spec_info->pData, spec_info->dataSize);
@@ -262,67 +265,6 @@ radv_is_cache_disabled(struct radv_device *device)
 	return (device->instance->debug_flags & RADV_DEBUG_NO_CACHE);
 }
 
-/*
- * Secure compiles cannot open files so we get the parent process to load the
- * cache entry for us.
- */
-static struct cache_entry *
-radv_sc_read_from_disk_cache(struct radv_device *device, uint8_t *disk_sha1)
-{
-	struct cache_entry *entry;
-	unsigned process = device->sc_state->secure_compile_thread_counter;
-	enum radv_secure_compile_type sc_type = RADV_SC_TYPE_READ_DISK_CACHE;
-
-	write(device->sc_state->secure_compile_processes[process].fd_secure_output,
-	      &sc_type, sizeof(enum radv_secure_compile_type));
-	write(device->sc_state->secure_compile_processes[process].fd_secure_output,
-	      disk_sha1, sizeof(uint8_t) * 20);
-
-	uint8_t found_cache_entry;
-	if (!radv_sc_read(device->sc_state->secure_compile_processes[process].fd_secure_input,
-			  &found_cache_entry, sizeof(uint8_t), true))
-		return NULL;
-
-	if (found_cache_entry) {
-		size_t entry_size;
-		if (!radv_sc_read(device->sc_state->secure_compile_processes[process].fd_secure_input,
-				  &entry_size, sizeof(size_t), true))
-			return NULL;
-
-		entry = malloc(entry_size);
-		if (!radv_sc_read(device->sc_state->secure_compile_processes[process].fd_secure_input,
-				  entry, entry_size, true))
-			return NULL;
-
-		return entry;
-	}
-
-	return NULL;
-}
-
-/*
- * Secure compiles cannot open files so we get the parent process to write to
- * the disk cache for us.
- */
-static void
-radv_sc_write_to_disk_cache(struct radv_device *device, uint8_t *disk_sha1,
-			    struct cache_entry *entry)
-{
-	unsigned process = device->sc_state->secure_compile_thread_counter;
-	enum radv_secure_compile_type sc_type = RADV_SC_TYPE_WRITE_DISK_CACHE;
-
-	write(device->sc_state->secure_compile_processes[process].fd_secure_output,
-	      &sc_type, sizeof(enum radv_secure_compile_type));
-	write(device->sc_state->secure_compile_processes[process].fd_secure_output,
-	      disk_sha1, sizeof(uint8_t) * 20);
-
-	uint32_t size = entry_size(entry);
-	write(device->sc_state->secure_compile_processes[process].fd_secure_output,
-	      &size, sizeof(uint32_t));
-	write(device->sc_state->secure_compile_processes[process].fd_secure_output,
-	      entry, size);
-}
-
 bool
 radv_create_shader_variants_from_pipeline_cache(struct radv_device *device,
 					        struct radv_pipeline_cache *cache,
@@ -356,14 +298,9 @@ radv_create_shader_variants_from_pipeline_cache(struct radv_device *device,
 		disk_cache_compute_key(device->physical_device->disk_cache,
 				       sha1, 20, disk_sha1);
 
-		if (radv_device_use_secure_compile(device->instance)) {
-			entry = radv_sc_read_from_disk_cache(device, disk_sha1);
-		} else {
-			entry = (struct cache_entry *)
-				disk_cache_get(device->physical_device->disk_cache,
-					       disk_sha1, NULL);
-		}
-
+		entry = (struct cache_entry *)
+			disk_cache_get(device->physical_device->disk_cache,
+				       disk_sha1, NULL);
 		if (!entry) {
 			radv_pipeline_cache_unlock(cache);
 			return false;
@@ -456,6 +393,7 @@ radv_pipeline_cache_insert_shaders(struct radv_device *device,
 	for (int i = 0; i < MESA_SHADER_STAGES; ++i)
 		if (variants[i])
 			size += binaries[i]->total_size;
+	size = align(size, alignof(struct cache_entry));
 
 
 	entry = vk_alloc(&cache->alloc, size, 8,
@@ -489,16 +427,8 @@ radv_pipeline_cache_insert_shaders(struct radv_device *device,
 		disk_cache_compute_key(device->physical_device->disk_cache, sha1, 20,
 			       disk_sha1);
 
-		/* Write the cache item out to the parent of this forked
-		 * process.
-		 */
-		if (radv_device_use_secure_compile(device->instance)) {
-			radv_sc_write_to_disk_cache(device, disk_sha1, entry);
-		} else {
-			disk_cache_put(device->physical_device->disk_cache,
-				       disk_sha1, entry, entry_size(entry),
-				       NULL);
-		}
+		disk_cache_put(device->physical_device->disk_cache, disk_sha1,
+			       entry, entry_size(entry), NULL);
 	}
 
 	if (device->instance->debug_flags & RADV_DEBUG_NO_MEMORY_CACHE &&
@@ -526,20 +456,12 @@ radv_pipeline_cache_insert_shaders(struct radv_device *device,
 	return;
 }
 
-struct cache_header {
-	uint32_t header_size;
-	uint32_t header_version;
-	uint32_t vendor_id;
-	uint32_t device_id;
-	uint8_t  uuid[VK_UUID_SIZE];
-};
-
 bool
 radv_pipeline_cache_load(struct radv_pipeline_cache *cache,
 			 const void *data, size_t size)
 {
 	struct radv_device *device = cache->device;
-	struct cache_header header;
+	struct vk_pipeline_cache_header header;
 
 	if (size < sizeof(header))
 		return false;
@@ -589,7 +511,6 @@ VkResult radv_CreatePipelineCache(
 	struct radv_pipeline_cache *cache;
 
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO);
-	assert(pCreateInfo->flags == 0);
 
 	cache = vk_alloc2(&device->vk.alloc, pAllocator,
 			    sizeof(*cache), 8,
@@ -643,7 +564,7 @@ VkResult radv_GetPipelineCacheData(
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	RADV_FROM_HANDLE(radv_pipeline_cache, cache, _cache);
-	struct cache_header *header;
+	struct vk_pipeline_cache_header *header;
 	VkResult result = VK_SUCCESS;
 
 	radv_pipeline_cache_lock(cache);
@@ -661,7 +582,7 @@ VkResult radv_GetPipelineCacheData(
 	}
 	void *p = pData, *end = pData + *pDataSize;
 	header = p;
-	header->header_size = sizeof(*header);
+	header->header_size = align(sizeof(*header), alignof(struct cache_entry));
 	header->header_version = VK_PIPELINE_CACHE_HEADER_VERSION_ONE;
 	header->vendor_id = ATI_VENDOR_ID;
 	header->device_id = device->physical_device->rad_info.pci_id;

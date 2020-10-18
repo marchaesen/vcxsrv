@@ -59,7 +59,7 @@ in this Software without prior written authorization from The Open Group.
 #define	FS_PROTOCOL_MINOR	0
 
 #ifndef X_PROTOCOL
-/* protocol familes */
+/* protocol families */
 #define FamilyInternet          0
 #define FamilyDECnet            1
 #define FamilyChaos             2

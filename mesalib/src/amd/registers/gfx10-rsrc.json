@@ -195,99 +195,99 @@
  },
  "register_mappings": [
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 36608, "to": "mm"},
    "name": "SQ_BUF_RSRC_WORD0"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 36612, "to": "mm"},
    "name": "SQ_BUF_RSRC_WORD1",
    "type_ref": "SQ_BUF_RSRC_WORD1"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 36616, "to": "mm"},
    "name": "SQ_BUF_RSRC_WORD2"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 36620, "to": "mm"},
    "name": "SQ_BUF_RSRC_WORD3",
    "type_ref": "SQ_BUF_RSRC_WORD3"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 36348, "to": "mm"},
    "name": "SQ_EXP_0",
    "type_ref": "SQ_EXP_0"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 40960, "to": "mm"},
    "name": "SQ_IMG_RSRC_WORD0"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 40964, "to": "mm"},
    "name": "SQ_IMG_RSRC_WORD1",
    "type_ref": "SQ_IMG_RSRC_WORD1"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 40968, "to": "mm"},
    "name": "SQ_IMG_RSRC_WORD2",
    "type_ref": "SQ_IMG_RSRC_WORD2"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 40972, "to": "mm"},
    "name": "SQ_IMG_RSRC_WORD3",
    "type_ref": "SQ_IMG_RSRC_WORD3"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 40976, "to": "mm"},
    "name": "SQ_IMG_RSRC_WORD4",
    "type_ref": "SQ_IMG_RSRC_WORD4"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 40980, "to": "mm"},
    "name": "SQ_IMG_RSRC_WORD5",
    "type_ref": "SQ_IMG_RSRC_WORD5"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 40984, "to": "mm"},
    "name": "SQ_IMG_RSRC_WORD6",
    "type_ref": "SQ_IMG_RSRC_WORD6"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 40988, "to": "mm"},
    "name": "SQ_IMG_RSRC_WORD7"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 36656, "to": "mm"},
    "name": "SQ_IMG_SAMP_WORD0",
    "type_ref": "SQ_IMG_SAMP_WORD0"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 36660, "to": "mm"},
    "name": "SQ_IMG_SAMP_WORD1",
    "type_ref": "SQ_IMG_SAMP_WORD1"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 36664, "to": "mm"},
    "name": "SQ_IMG_SAMP_WORD2",
    "type_ref": "SQ_IMG_SAMP_WORD2"
   },
   {
-   "chips": ["gfx10"],
+   "chips": ["gfx10", "gfx103"],
    "map": {"at": 36668, "to": "mm"},
    "name": "SQ_IMG_SAMP_WORD3",
    "type_ref": "SQ_IMG_SAMP_WORD3"

@@ -37,46 +37,51 @@ bi_is_fragz(bi_instruction *ins)
         return (ins->constant.u32 == BIFROST_FRAGZ);
 }
 
-static enum bifrost_clause_type
-bi_clause_type_for_ins(bi_instruction *ins)
+static enum bifrost_message_type
+bi_message_type_for_ins(bi_instruction *ins)
 {
         unsigned T = ins->type;
 
         /* Only high latency ops impose clause types */
         if (!(bi_class_props[T] & BI_SCHED_HI_LATENCY))
-                return BIFROST_CLAUSE_NONE;
+                return BIFROST_MESSAGE_NONE;
 
         switch (T) {
         case BI_BRANCH:
         case BI_DISCARD:
-                return BIFROST_CLAUSE_NONE;
+                return BIFROST_MESSAGE_NONE;
 
         case BI_LOAD_VAR:
                 if (bi_is_fragz(ins))
-                        return BIFROST_CLAUSE_FRAGZ;
+                        return BIFROST_MESSAGE_Z_STENCIL;
 
-                return BIFROST_CLAUSE_LOAD_VARY;
+                return BIFROST_MESSAGE_VARYING;
 
         case BI_LOAD_UNIFORM:
         case BI_LOAD_ATTR:
         case BI_LOAD_VAR_ADDRESS:
-                return BIFROST_CLAUSE_UBO;
+                return BIFROST_MESSAGE_ATTRIBUTE;
 
-        case BI_TEX:
-                return BIFROST_CLAUSE_TEX;
+        case BI_TEXS:
+        case BI_TEXC:
+        case BI_TEXC_DUAL:
+                return BIFROST_MESSAGE_TEX;
 
         case BI_LOAD:
-                return BIFROST_CLAUSE_SSBO_LOAD;
+                return BIFROST_MESSAGE_LOAD;
 
         case BI_STORE:
         case BI_STORE_VAR:
-                return BIFROST_CLAUSE_SSBO_STORE;
+                return BIFROST_MESSAGE_STORE;
 
         case BI_BLEND:
-                return BIFROST_CLAUSE_BLEND;
+                return BIFROST_MESSAGE_BLEND;
+
+        case BI_LOAD_TILE:
+                return BIFROST_MESSAGE_TILE;
 
         case BI_ATEST:
-                return BIFROST_CLAUSE_ATEST;
+                return BIFROST_MESSAGE_ATEST;
 
         default:
                 unreachable("Invalid high-latency class");
@@ -85,7 +90,7 @@ bi_clause_type_for_ins(bi_instruction *ins)
 
 /* There is an encoding restriction against FMA fp16 add/min/max
  * having both sources with abs(..) with a duplicated source. This is
- * due to the packing being order-sensitive, so the ports must end up distinct
+ * due to the packing being order-sensitive, so the slots must end up distinct
  * to handle both having abs(..). The swizzle doesn't matter here. Note
  * BIR_INDEX_REGISTER generally should not be used pre-schedule (TODO: enforce
  * this).
@@ -119,7 +124,7 @@ bi_imath_small(bi_instruction *ins)
 
 /* Lowers FMOV to ADD #0, since FMOV doesn't exist on the h/w and this is the
  * latest time it's sane to lower (it's useful to distinguish before, but we'll
- * need this handle during scheduling to ensure the ports get modeled
+ * need this handle during scheduling to ensure the slots get modeled
  * correctly with respect to the new zero source) */
 
 static void
@@ -188,7 +193,7 @@ bi_schedule(bi_context *ctx)
                         /* Check for scheduling restrictions */
 
                         bool can_fma = props & BI_SCHED_FMA;
-                        bool can_add = props & BI_SCHED_ADD;
+                        ASSERTED bool can_add = props & BI_SCHED_ADD;
 
                         can_fma &= !bi_ambiguous_abs(ins);
                         can_fma &= !bi_icmp(ins);
@@ -208,7 +213,7 @@ bi_schedule(bi_context *ctx)
                         else {
                                 /* Rule: first instructions cannot have write barriers */
                                 u->dependencies |= (1 << last_id);
-                                u->data_register_write_barrier = true;
+                                u->staging_barrier = true;
                         }
 
                         if (ins->type == BI_ATEST)
@@ -221,19 +226,20 @@ bi_schedule(bi_context *ctx)
                         last_id = u->scoreboard_id;
 
                         /* Let's be optimistic, we'll fix up later */
-                        u->back_to_back = true;
+                        u->flow_control = BIFROST_FLOW_NBTB;
 
                         u->constant_count = 1;
                         u->constants[0] = ins->constant.u64;
 
-                        /* No indirect jumps yet */
-                        if (ins->type == BI_BRANCH) {
+                        if (ins->type == BI_BRANCH && ins->branch_target)
                                 u->branch_constant = true;
-                                u->branch_conditional =
-                                        (ins->cond != BI_COND_ALWAYS);
-                        }
 
-                        u->clause_type = bi_clause_type_for_ins(ins);
+                        /* We always prefetch except unconditional branches */
+                        u->next_clause_prefetch = !(
+                                (ins->type == BI_BRANCH) &&
+                                (ins->cond == BI_COND_ALWAYS));
+
+                        u->message_type = bi_message_type_for_ins(ins);
                         u->block = (struct bi_block *) block;
 
                         list_addtail(&u->link, &bblock->clauses);
@@ -241,10 +247,12 @@ bi_schedule(bi_context *ctx)
 
                 /* Back-to-back bit affects only the last clause of a block,
                  * the rest are implicitly true */
-                bi_clause *last_clause = list_last_entry(&bblock->clauses, bi_clause, link);
 
-                if (last_clause)
-                        last_clause->back_to_back = bi_back_to_back(bblock);
+                if (!list_is_empty(&bblock->clauses)) {
+                        bi_clause *last_clause = list_last_entry(&bblock->clauses, bi_clause, link);
+                        if (!bi_back_to_back(bblock))
+                                last_clause->flow_control = BIFROST_FLOW_NBTB_UNCONDITIONAL;
+                }
 
                 bblock->scheduled = true;
         }

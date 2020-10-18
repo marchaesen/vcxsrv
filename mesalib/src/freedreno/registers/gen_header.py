@@ -78,7 +78,7 @@ class Field(object):
 			val = "fui(%s)" % var_name
 		elif self.type == "float" and self.high - self.low == 15:
 			type = "float"
-			val = "util_float_to_half(%s)" % var_name
+			val = "_mesa_float_to_half(%s)" % var_name
 		elif self.type in [ "address", "waddress" ]:
 			type = "uint64_t"
 			val = var_name
@@ -93,7 +93,7 @@ class Field(object):
 
 def tab_to(name, value):
 	tab_count = (68 - (len(name) & ~7)) // 8
-	if tab_count == 0:
+	if tab_count <= 0:
 		tab_count = 1
 	print(name + ('\t' * tab_count) + value)
 
@@ -126,8 +126,11 @@ class Bitset(object):
 		if prefix == None:
 			prefix = self.name
 
+		value_name = "dword"
 		print("struct %s {" % prefix)
 		for f in self.fields:
+			if f.type == "waddress":
+				value_name = "qword"
 			if f.type in [ "address", "waddress" ]:
 				tab_to("    __bo_type", "bo;")
 				tab_to("    uint32_t", "bo_offset;")
@@ -137,8 +140,12 @@ class Bitset(object):
 			type, val = f.ctype("var")
 
 			tab_to("    %s" % type, "%s;" % name)
-		tab_to("    uint32_t", "unknown;")
-		tab_to("    uint32_t", "dword;")
+		if value_name == "qword":
+			tab_to("    uint64_t", "unknown;")
+			tab_to("    uint64_t", "qword;")
+		else:
+			tab_to("    uint32_t", "unknown;")
+			tab_to("    uint32_t", "dword;")
 		print("};\n")
 
 		address = None;
@@ -176,7 +183,7 @@ class Bitset(object):
 			else:
 				type, val = f.ctype("fields.%s" % field_name(prefix, f.name))
 				print("            (%-40s << %2d) |" % (val, f.low))
-		print("            fields.unknown | fields.dword,")
+		print("            fields.unknown | fields.%s," % (value_name,))
 
 		if address:
 			print("        .is_address = true,")
@@ -227,7 +234,10 @@ class Bitset(object):
 
 class Array(object):
 	def __init__(self, attrs, domain):
-		self.name = attrs["name"]
+		if "name" in attrs:
+			self.name = attrs["name"]
+		else:
+			self.name = ""
 		self.domain = domain
 		self.offset = int(attrs["offset"], 0)
 		self.stride = int(attrs["stride"], 0)
@@ -341,8 +351,8 @@ class Parser(object):
 		self.stack.pop()
 		file.close()
 
-	def parse(self, filename):
-		self.path = os.path.dirname(filename)
+	def parse(self, rnn_path, filename):
+		self.path = rnn_path
 		self.stack = []
 		self.do_parse(filename)
 
@@ -363,7 +373,7 @@ class Parser(object):
 
 	def start_element(self, name, attrs):
 		if name == "import":
-			filename = os.path.basename(attrs["file"])
+			filename = attrs["file"]
 			self.do_parse(os.path.join(self.path, filename))
 		elif name == "domain":
 			self.current_domain = attrs["name"]
@@ -439,8 +449,9 @@ class Parser(object):
 
 def main():
 	p = Parser()
-	xml_file = sys.argv[1]
-	if len(sys.argv) > 2 and sys.argv[2] == '--pack-structs':
+	rnn_path = sys.argv[1]
+	xml_file = sys.argv[2]
+	if len(sys.argv) > 3 and sys.argv[3] == '--pack-structs':
 		do_structs = True
 		guard = str.replace(os.path.basename(xml_file), '.', '_').upper() + '_STRUCTS'
 	else:
@@ -450,7 +461,7 @@ def main():
 	print("#ifndef %s\n#define %s\n" % (guard, guard))
 
 	try:
-		p.parse(xml_file)
+		p.parse(rnn_path, xml_file)
 	except Error as e:
 		print(e)
 		exit(1)

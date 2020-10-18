@@ -106,7 +106,7 @@ bi_get_component_count(bi_instruction *ins, signed src)
                 return (src <= 0) ? ins->vector_channels : 1;
         } else {
                 unsigned dest_bytes = nir_alu_type_get_type_size(ins->dest_type);
-                unsigned src_bytes = nir_alu_type_get_type_size(ins->src_types[src]);
+                unsigned src_bytes = nir_alu_type_get_type_size(ins->src_types[MAX2(src, 0)]);
 
                 /* If there's either f32 on either end, it's only a single
                  * component, etc. */
@@ -180,3 +180,28 @@ bi_writemask(bi_instruction *ins)
         unsigned shift = ins->dest_offset * 4; /* 32-bit words */
         return (mask << shift);
 }
+
+/* Rewrites uses of an index. This is O(nc) to the program and number of
+ * uses, so combine lowering is effectively O(n^2).  Better bookkeeping
+ * would bring down to linear if that's an issue. */
+
+void
+bi_rewrite_uses(bi_context *ctx,
+                unsigned old, unsigned oldc,
+                unsigned new, unsigned newc)
+{
+        assert(newc >= oldc);
+
+        bi_foreach_instr_global(ctx, ins) {
+                bi_foreach_src(ins, s) {
+                        if (ins->src[s] != old) continue;
+
+                        for (unsigned i = 0; i < 16; ++i)
+                                ins->swizzle[s][i] += (newc - oldc);
+
+                        ins->src[s] = new;
+                }
+        }
+}
+
+

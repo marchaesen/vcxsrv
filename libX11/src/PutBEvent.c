@@ -34,8 +34,8 @@ from The Open Group.
 
 int
 _XPutBackEvent (
-    register Display *dpy,
-    register XEvent *event)
+    Display *dpy,
+    XEvent *event)
 	{
 	register _XQEvent *qelt;
 	XEvent store = *event;

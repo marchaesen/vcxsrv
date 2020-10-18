@@ -26,6 +26,8 @@
 #include <vector>
 #include <string>
 
+#include "CL/cl.h"
+
 namespace clover {
    struct module {
       typedef uint32_t resource_id;
@@ -53,6 +55,25 @@ namespace clover {
          std::vector<char> data;
       };
 
+      struct arg_info {
+         arg_info(const std::string &arg_name, const std::string &type_name,
+                  const cl_kernel_arg_type_qualifier type_qualifier,
+                  const cl_kernel_arg_address_qualifier address_qualifier,
+                  const cl_kernel_arg_access_qualifier access_qualifier) :
+            arg_name(arg_name), type_name(type_name),
+            type_qualifier(type_qualifier),
+            address_qualifier(address_qualifier),
+            access_qualifier(access_qualifier) { };
+         arg_info() : arg_name(""), type_name(""), type_qualifier(0),
+            address_qualifier(0), access_qualifier(0) { };
+
+         std::string arg_name;
+         std::string type_name;
+         cl_kernel_arg_type_qualifier type_qualifier;
+         cl_kernel_arg_address_qualifier address_qualifier;
+         cl_kernel_arg_access_qualifier access_qualifier;
+      };
+
       struct argument {
          enum type {
             scalar,
@@ -76,7 +97,8 @@ namespace clover {
             grid_dimension,
             grid_offset,
             image_size,
-            image_format
+            image_format,
+            constant_buffer
          };
 
          argument(enum type type, size_t size,
@@ -102,15 +124,24 @@ namespace clover {
          size_t target_align;
          ext_type ext_type;
          semantic semantic;
+         arg_info info;
       };
 
       struct symbol {
-         symbol(const std::string &name, resource_id section,
-                size_t offset, const std::vector<argument> &args) :
-                name(name), section(section), offset(offset), args(args) { }
-         symbol() : name(), section(0), offset(0), args() { }
+         symbol(const std::string &name, const std::string &attributes,
+                const std::vector<::size_t> &reqd_work_group_size,
+                resource_id section, size_t offset,
+                const std::vector<argument> &args) :
+            name(name), attributes(attributes),
+            reqd_work_group_size(reqd_work_group_size),
+            section(section),
+            offset(offset), args(args) { }
+         symbol() : name(), attributes(), reqd_work_group_size({0, 0, 0}),
+            section(0), offset(0), args() { }
 
          std::string name;
+         std::string attributes;
+         std::vector<::size_t> reqd_work_group_size;
          resource_id section;
          size_t offset;
          std::vector<argument> args;

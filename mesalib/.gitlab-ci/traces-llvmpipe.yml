@@ -1,0 +1,177 @@
+traces-db:
+  download-url: "https://minio-packet.freedesktop.org/mesa-tracie-public/"
+
+traces:
+  - path: glmark2/desktop-blur-radius=5:effect=blur:passes=1:separable=true:windows=4.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 8867f3a41f180626d0d4b7661ff5c0f4
+  - path: glmark2/jellyfish.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: e0fe979fee129c0ed42a3059d1a4e1c9
+  - path: glxgears/glxgears-2.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: f8eba0fec6e3e0af9cb09844bc73bdc8
+  - path: 0ad/0ad.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: d76d0f5b5b064bba3e6a2a122c0799cf
+  - path: pathfinder/demo.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: e624d76c70cc3c532f4f54439e13659a
+  - path: pathfinder/canvas_moire.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: c4ee0eef519f1a32ba24b7b392b31b28
+  - path: pathfinder/canvas_text.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: f8c6d9a5c9248821ed9aaa376bef05c3
+  - path: gputest/furmark.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 248ee9534a1f333b479e599646f56f63
+  - path: gputest/pixmark-piano.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 022b43b7fff9e8623dcfcd91e6bbe7aa
+  - path: gputest/triangle.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: c8848dec77ee0c55292417f54c0a1a49
+  - path: humus/Portals.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: d6eb6aee7a8a1c85d504a498cbf94659
+  - path: bgfx/01-cubes.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: de0b5f10a091b976021cf1dac2ca8e5d
+  - path: bgfx/02-metaballs.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 7e0d9320adb1cc660f9e10f4991bb6eb
+  - path: bgfx/03-raymarch.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 0dc99a6fd61e6613f5153d066c9c6cd6
+  - path: bgfx/04-mesh.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 79e669f1e41ed144d22151be7fdc74a4
+  - path: bgfx/05-instancing.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 79d48af0dee9cb41fba0ef35cd655324
+  - path: bgfx/06-bump.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: e6b325ef1650bd10d943900c468b8c63
+  - path: bgfx/07-callback.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 85ecb06e767fd3123e10ce67ac1f109b
+  - path: bgfx/09-hdr.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 6bd4f501dfbee14fcea6912ced5a068d
+  - path: bgfx/10-font.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 32e95e7c6fb4deaef63d2f6f9c51f864
+  - path: bgfx/11-fontsdf.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 29a66770ae1240fa87dce21ec28323ff
+  - path: bgfx/12-lod.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 9d03427c2a51f79861b03cb3b6eaf6ba
+  - path: bgfx/13-stencil.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: a6b0e3b8c79a2177a991f141d0c03af6
+  - path: bgfx/14-shadowvolumes.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: b0a3e0897c43f874ced825c464d8ea34
+  - path: bgfx/15-shadowmaps-simple.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 06d568886371d68d3836d5c647aae1e0
+  - path: bgfx/16-shadowmaps.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 9b7efb87ab939f9c955a9e3b006d8c3e
+  - path: bgfx/18-ibl.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 905e0b702bd936f65186e8ecfe903182
+  - path: bgfx/19-oit.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 8f67d3b8327c0099d75753aed9d792d0
+  - path: bgfx/20-nanosvg.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: b10dadafb8b345a1dc88452d00b6e4c0
+  - path: bgfx/23-vectordisplay.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 3fe59e4876b86f4929f19e4a2254cf7d
+  - path: bgfx/26-occlusion.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 6a29b2cd71b3f831ae0f41d3b7714c89
+  - path: bgfx/28-wireframe.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 3aebd4eb89f6e68b84852f7556d5c1d9
+  - path: bgfx/29-debugdraw.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: c3ea41e60bb61c0dfb941f2203ce5555
+  - path: bgfx/31-rsm.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: a67afc372d2783f123dd2e2c0e32dfaf
+  - path: bgfx/32-particles.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 2093155a8b898e1d800a877a6c2ed446
+  - path: bgfx/33-pom.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: ebee76b92d1c7b8b71b53998ed20843f
+  - path: bgfx/34-mvs.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: b51eae3259861e0d8d791877ccbcdc1b
+  - path: bgfx/35-dynamic.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: a3feb6e8c1b7cc4de02e0a324fbdc710
+  - path: bgfx/36-sky.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 914356a89e1d00bb6389d60e3b0f19e5
+  - path: bgfx/37-gpudrivenrendering.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: a778dbf1d7c8bff9d68ae53a74cec467
+  - path: bgfx/38-bloom.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 123d7a210f839e463886b1325c91f6f1
+  - path: bgfx/39-assao.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 0845a76ade386b7896807313229d4afe
+  - path: bgfx/40-svt.rdc
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: a29f2ca810cba5d2e2d5f62b0385d275
+

@@ -66,7 +66,7 @@ Screen specific parameters can be applied as a
 default to all screens by placing those screen specific parameters
 before any \fB\-screen\fP parameter.  Screen specific parameters placed after
 the first \fB\-screen\fP parameter will apply only to the immediately
-preceeding \fB\-screen\fP parameter.
+preceding \fB\-screen\fP parameter.
 .TP 8
 .B \-[no]multimonitors or \-[no]multiplemonitors
 Create a screen 0 that covers all monitors [the primary monitor] on a system with
@@ -79,7 +79,7 @@ This option is currently enabled by default in \fB\-multiwindow\fP mode.
 .B "\-screen \fIscreen_number\fP [\fIW\fP \fIH\fP [\fIX\fP \fIY\fP] | [[\fIW\fPx\fIH\fP[+\fIX\fP+\fIY\fP]][@\fIM\fP]] ] "
 Create screen number
 .I screen_number
-and optionally specify it's
+and optionally specify its
 .I height,
 .I width
 and

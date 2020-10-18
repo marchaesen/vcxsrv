@@ -175,7 +175,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
          draw_set_mapped_vertex_buffer(draw, buf, vbuffer->buffer.user, ~0);
       } else {
          void *map = pipe_buffer_map(pipe, vbuffer->buffer.resource,
-                                     PIPE_TRANSFER_READ, &vb_transfer[buf]);
+                                     PIPE_MAP_READ, &vb_transfer[buf]);
          draw_set_mapped_vertex_buffer(draw, buf, map,
                                        vbuffer->buffer.resource->width0);
       }
@@ -198,7 +198,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
 
          start = pointer_to_offset(ib->ptr) >> ib->index_size_shift;
          mapped_indices = pipe_buffer_map(pipe, stobj->buffer,
-                                          PIPE_TRANSFER_READ, &ib_transfer);
+                                          PIPE_MAP_READ, &ib_transfer);
       }
       else {
          mapped_indices = ib->ptr;
@@ -251,7 +251,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
          size = MIN2(size, (unsigned) binding->Size);
 
       void *ptr = pipe_buffer_map_range(pipe, buf, offset, size,
-                                        PIPE_TRANSFER_READ, &ubo_transfer[i]);
+                                        PIPE_MAP_READ, &ubo_transfer[i]);
 
       draw_set_mapped_constant_buffer(draw, PIPE_SHADER_VERTEX, 1 + i, ptr,
                                       size);
@@ -281,7 +281,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
          size = MIN2(size, (unsigned) binding->Size);
 
       void *ptr = pipe_buffer_map_range(pipe, buf, offset, size,
-                                        PIPE_TRANSFER_READ, &ssbo_transfer[i]);
+                                        PIPE_MAP_READ, &ssbo_transfer[i]);
 
       draw_set_mapped_shader_buffer(draw, PIPE_SHADER_VERTEX,
                                     i, ptr, size);
@@ -331,7 +331,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
             sv_transfer[i][j] = NULL;
             mip_addr[j] = (uintptr_t)
                           pipe_transfer_map_3d(pipe, res, j,
-                                               PIPE_TRANSFER_READ, 0, 0,
+                                               PIPE_MAP_READ, 0, 0,
                                                view->u.tex.first_layer,
                                                u_minify(res->width0, j),
                                                u_minify(res->height0, j),
@@ -364,7 +364,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
          base_addr = (uintptr_t)
                      pipe_buffer_map_range(pipe, res, view->u.buf.offset,
                                            view->u.buf.size,
-                                           PIPE_TRANSFER_READ,
+                                           PIPE_MAP_READ,
                                            &sv_transfer[i][0]);
       }
 
@@ -397,7 +397,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
          num_layers = img->u.tex.last_layer - img->u.tex.first_layer + 1;
 
          addr = pipe_transfer_map_3d(pipe, res, img->u.tex.level,
-                                     PIPE_TRANSFER_READ, 0, 0,
+                                     PIPE_MAP_READ, 0, 0,
                                      img->u.tex.first_layer,
                                      width, height, num_layers,
                                      &img_transfer[i]);
@@ -412,7 +412,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
          height = num_layers = 1;
 
          addr = pipe_buffer_map_range(pipe, res, img->u.buf.offset,
-                                      img->u.buf.size, PIPE_TRANSFER_READ,
+                                      img->u.buf.size, PIPE_MAP_READ,
                                       &img_transfer[i]);
       }
 

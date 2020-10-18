@@ -28,7 +28,8 @@
 
 void nir_inline_function_impl(struct nir_builder *b,
                               const nir_function_impl *impl,
-                              nir_ssa_def **params)
+                              nir_ssa_def **params,
+                              struct hash_table *shader_var_remap)
 {
    nir_function_impl *copy = nir_function_impl_clone(b->shader, impl);
 
@@ -44,27 +45,64 @@ void nir_inline_function_impl(struct nir_builder *b,
 
    nir_foreach_block(block, copy) {
       nir_foreach_instr_safe(instr, block) {
-         /* Returns have to be lowered for this to work */
-         assert(instr->type != nir_instr_type_jump ||
-                nir_instr_as_jump(instr)->type != nir_jump_return);
+         switch (instr->type) {
+         case nir_instr_type_deref: {
+            nir_deref_instr *deref = nir_instr_as_deref(instr);
+            if (deref->deref_type != nir_deref_type_var)
+               break;
 
-         if (instr->type != nir_instr_type_intrinsic)
-            continue;
+            /* We don't need to remap function variables.  We already cloned
+             * them as part of nir_function_impl_clone and appended them to
+             * b->impl->locals.
+             */
+            if (deref->var->data.mode == nir_var_function_temp)
+               break;
 
-         nir_intrinsic_instr *load = nir_instr_as_intrinsic(instr);
-         if (load->intrinsic != nir_intrinsic_load_param)
-            continue;
+            /* If no map is provided, we assume that there are either no
+             * shader variables or they already live b->shader (this is the
+             * case for function inlining within a single shader.
+             */
+            if (shader_var_remap == NULL)
+               break;
 
-         unsigned param_idx = nir_intrinsic_param_idx(load);
-         assert(param_idx < impl->function->num_params);
-         assert(load->dest.is_ssa);
-         nir_ssa_def_rewrite_uses(&load->dest.ssa,
-                                  nir_src_for_ssa(params[param_idx]));
+            struct hash_entry *entry =
+               _mesa_hash_table_search(shader_var_remap, deref->var);
+            if (entry == NULL) {
+               nir_variable *nvar = nir_variable_clone(deref->var, b->shader);
+               nir_shader_add_variable(b->shader, nvar);
+               entry = _mesa_hash_table_insert(shader_var_remap,
+                                               deref->var, nvar);
+            }
+            deref->var = entry->data;
+            break;
+         }
 
-         /* Remove any left-over load_param intrinsics because they're soon
-          * to be in another function and therefore no longer valid.
-          */
-         nir_instr_remove(&load->instr);
+         case nir_instr_type_intrinsic: {
+            nir_intrinsic_instr *load = nir_instr_as_intrinsic(instr);
+            if (load->intrinsic != nir_intrinsic_load_param)
+               break;
+
+            unsigned param_idx = nir_intrinsic_param_idx(load);
+            assert(param_idx < impl->function->num_params);
+            assert(load->dest.is_ssa);
+            nir_ssa_def_rewrite_uses(&load->dest.ssa,
+                                     nir_src_for_ssa(params[param_idx]));
+
+            /* Remove any left-over load_param intrinsics because they're soon
+             * to be in another function and therefore no longer valid.
+             */
+            nir_instr_remove(&load->instr);
+            break;
+         }
+
+         case nir_instr_type_jump:
+            /* Returns have to be lowered for this to work */
+            assert(nir_instr_as_jump(instr)->type != nir_jump_return);
+            break;
+
+         default:
+            break;
+         }
       }
    }
 
@@ -116,7 +154,7 @@ inline_functions_block(nir_block *block, nir_builder *b,
                                      call->callee->params[i].num_components);
       }
 
-      nir_inline_function_impl(b, call->callee->impl, params);
+      nir_inline_function_impl(b, call->callee->impl, params, NULL);
    }
 
    return progress;

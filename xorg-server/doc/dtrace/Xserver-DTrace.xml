@@ -15,8 +15,8 @@
       </affiliation>
     </author>
     <releaseinfo>X Server Version &xserver.version;</releaseinfo>
-    <copyright><year>2005</year><year>2006</year><year>2007</year><year>2010</year>
-      <holder>Oracle and/or its affiliates. All rights reserved.</holder>
+    <copyright><year>2005</year><year>2006</year><year>2007</year><year>2010</year><year>2020</year>
+      <holder>Oracle and/or its affiliates.</holder>
     </copyright>
     <legalnotice id="copyright">
       <para>
@@ -46,9 +46,9 @@ DEALINGS IN THE SOFTWARE.
     <title>Introduction</title>
     <para>
       This page provides details on a
-      <ulink url="http://wikis.sun.com/display/DTrace/Statically+Defined+Tracing+for+User+Applications">statically defined user application tracing provider</ulink>
+      <ulink url="http://dtrace.org/guide/chp-usdt.html">statically defined user application tracing provider</ulink>
       for the
-      <ulink url="http://hub.opensolaris.org/bin/view/Community+Group+dtrace/">DTrace</ulink>
+      <ulink url="http://dtrace.org/blogs/about/">DTrace</ulink>
       facility in <productname>Solaris</productname> 10,
       <productname>MacOS X</productname> 10.5, and later releases.  This
       provider instruments various points in the X server, to allow
@@ -58,7 +58,7 @@ DEALINGS IN THE SOFTWARE.
     </para>
 
     <para>
-      The provider was integrated into the X.Org git master repository
+      The provider was integrated into the X.Org code base
       with Solaris 10 &amp; OpenSolaris support for the Xserver 1.4 release,
       released in 2007 with X11R7.3.   Support for DTrace on MacOS X
       was added in Xserver 1.7.
@@ -235,9 +235,9 @@ DEALINGS IN THE SOFTWARE.
 
     <para>
       To access data in arguments of type <type>string</type>, you will need
-      to use <ulink url="http://wikis.sun.com/display/DTrace/Actions+and+Subroutines#ActionsandSubroutines-{{copyinstr}}"><function>copyinstr()</function></ulink>.
+      to use <ulink url="http://dtrace.org/guide/chp-actsub.html#chp-actsub-copyinstr"><function>copyinstr()</function></ulink>.
       To access data buffers referenced via <type>uintptr_t</type>'s, you will
-      need to use <ulink url="http://wikis.sun.com/display/DTrace/Actions+and+Subroutines#ActionsandSubroutines-{{copyin}}"><function>copyin()</function></ulink>.
+      need to use <ulink url="http://dtrace.org/guide/chp-actsub.html#chp-actsub-copyin"><function>copyin()</function></ulink>.
 
     <table id="Probe_Arguments">
       <title>Probe Arguments</title>
@@ -286,7 +286,7 @@ DEALINGS IN THE SOFTWARE.
 	    <entry><type>uintptr_t</type></entry>
 	    <entry>Pointer to buffer containing X event - decode using
 	      structures in
-	      &lt;<ulink url="http://cgit.freedesktop.org/xorg/proto/xproto/tree/Xproto.h"><filename class="headerfile">X11/Xproto.h</filename></ulink>&gt;
+	      &lt;<ulink url="https://gitlab.freedesktop.org/xorg/proto/xorgproto/-/blob/master/include/X11/Xproto.h"><filename class="headerfile">X11/Xproto.h</filename></ulink>&gt;
 	      and similar headers for each extension</entry>
 	  </row>
 	  <row>
@@ -325,7 +325,7 @@ DEALINGS IN THE SOFTWARE.
 	    <entry><type>uintptr_t</type></entry>
 	    <entry>Pointer to buffer containing X request - decode using
 	      structures in
-	      &lt;<ulink url="http://cgit.freedesktop.org/xorg/proto/xproto/tree/Xproto.h"><filename class="headerfile">X11/Xproto.h</filename></ulink>&gt;
+	      &lt;<ulink url="https://gitlab.freedesktop.org/xorg/proto/xorgproto/-/blob/master/include/X11/Xproto.h"><filename class="headerfile">X11/Xproto.h</filename></ulink>&gt;
 	      and similar headers for each extension</entry>
 	  </row>
 	  <row>

@@ -4,16 +4,6 @@ dEQP-GLES2.functional.clipping.point.wide_point_clip
 dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_center
 dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_corner
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_neg_z_and_pos_x_pos_z_and_neg_x_neg_y_pos_z
-dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.rebind_rbo_rgb565_depth_component16
-dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.rebind_rbo_rgb5_a1_depth_component16
-dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.rebind_rbo_rgba4_depth_component16
-dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.rebind_tex2d_rgba_depth_component16
-dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.rebind_tex2d_rgb_depth_component16
-dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.rebind_rbo_rgb565_stencil_index8
-dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.rebind_rbo_rgb5_a1_stencil_index8
-dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.rebind_rbo_rgba4_stencil_index8
-dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.rebind_tex2d_rgba_stencil_index8
-dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.rebind_tex2d_rgb_stencil_index8
 dEQP-GLES2.functional.polygon_offset.fixed16_displacement_with_units
 dEQP-GLES2.functional.texture.filtering.2d.linear_nearest_clamp_l8_npot
 dEQP-GLES2.functional.texture.filtering.2d.linear_nearest_clamp_rgb888_npot
@@ -124,7 +114,6 @@ dEQP-GLES3.functional.fbo.msaa.4_samples.rgba8
 dEQP-GLES3.functional.fbo.msaa.4_samples.srgb8_alpha8
 dEQP-GLES3.functional.fbo.msaa.4_samples.stencil_index8
 dEQP-GLES3.functional.fbo.render.recreate_depth_stencil.tex2d_rgba8_depth_rbo_depth_component16
-dEQP-GLES3.functional.fbo.render.recreate_depth_stencil.tex2d_rgba8_depth_rbo_depth_component24
 dEQP-GLES3.functional.fbo.render.recreate_depth_stencil.tex2d_rgba8_depth_rbo_depth_component32f
 dEQP-GLES3.functional.fbo.render.recreate_depth_stencil.tex2d_rgba8_depth_stencil_rbo_depth24_stencil8
 dEQP-GLES3.functional.fbo.render.recreate_depth_stencil.tex2d_rgba8_depth_stencil_rbo_depth32f_stencil8
@@ -475,7 +464,6 @@ dEQP-GLES3.functional.transform_feedback.random.interleaved.lines.8
 dEQP-GLES3.functional.transform_feedback.random.interleaved.lines.9
 dEQP-GLES3.functional.transform_feedback.random.interleaved.triangles.1
 dEQP-GLES3.functional.transform_feedback.random.interleaved.triangles.3
-dEQP-GLES3.functional.transform_feedback.random.interleaved.triangles.8
 dEQP-GLES3.functional.transform_feedback.random.separate.lines.10
 dEQP-GLES3.functional.transform_feedback.random.separate.lines.2
 dEQP-GLES3.functional.transform_feedback.random.separate.lines.4

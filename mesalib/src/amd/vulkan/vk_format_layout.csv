@@ -5,6 +5,8 @@ VK_FORMAT_UNDEFINED                  , plain, 1, 1, u8  ,     ,     ,     , x001
 VK_FORMAT_R4G4_UNORM_PACK8           , plain, 1, 1, un4 , un4 ,     ,     , xy01, rgb
 VK_FORMAT_R4G4B4A4_UNORM_PACK16      , plain, 1, 1, un4 , un4 , un4 , un4 , wzyx, rgb
 VK_FORMAT_B4G4R4A4_UNORM_PACK16      , plain, 1, 1, un4 , un4 , un4 , un4 , wxyz, rgb
+VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT  , plain, 1, 1, un4 , un4 , un4 , un4 , zyxw, rgb
+VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT  , plain, 1, 1, un4 , un4 , un4 , un4 , xyzw, rgb
 VK_FORMAT_R5G6B5_UNORM_PACK16        , plain, 1, 1, un5 , un6 , un5 ,     , zyx1, rgb
 VK_FORMAT_B5G6R5_UNORM_PACK16        , plain, 1, 1, un5 , un6 , un5 ,     , xyz1, rgb
 VK_FORMAT_R5G5B5A1_UNORM_PACK16      , plain, 1, 1, un1 , un5 , un5 , un5 , wzyx, rgb

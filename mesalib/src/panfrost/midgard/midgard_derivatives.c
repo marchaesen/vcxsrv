@@ -50,18 +50,18 @@
  */
 
 static unsigned
-mir_derivative_op(nir_op op)
+mir_derivative_mode(nir_op op)
 {
         switch (op) {
         case nir_op_fddx:
         case nir_op_fddx_fine:
         case nir_op_fddx_coarse:
-                return TEXTURE_OP_DFDX;
+                return TEXTURE_DFDX;
 
         case nir_op_fddy:
         case nir_op_fddy_fine:
         case nir_op_fddy_coarse:
-                return TEXTURE_OP_DFDY;
+                return TEXTURE_DFDY;
 
         default:
                 unreachable("Invalid derivative op");
@@ -82,8 +82,7 @@ mir_op_computes_derivatives(gl_shader_stage stage, unsigned op)
 
         switch (op) {
         case TEXTURE_OP_NORMAL:
-        case TEXTURE_OP_DFDX:
-        case TEXTURE_OP_DFDY:
+        case TEXTURE_OP_DERIVATIVE:
                 assert(stage == MESA_SHADER_FRAGMENT);
                 return true;
         default:
@@ -106,9 +105,10 @@ midgard_emit_derivatives(compiler_context *ctx, nir_alu_instr *instr)
                 .src = { ~0, nir_src_index(ctx, &instr->src[0].src), ~0, ~0 },
                 .swizzle = SWIZZLE_IDENTITY_4,
                 .src_types = { nir_type_float32, nir_type_float32 },
+                .op = TEXTURE_OP_DERIVATIVE,
                 .texture = {
-                        .op = mir_derivative_op(instr->op),
-                        .format = MALI_TEX_2D,
+                        .mode = mir_derivative_mode(instr->op),
+                        .format = 2,
                         .in_reg_full = 1,
                         .out_full = 1,
                         .sampler_type = MALI_SAMPLER_FLOAT,
@@ -126,7 +126,7 @@ midgard_lower_derivatives(compiler_context *ctx, midgard_block *block)
 {
         mir_foreach_instr_in_block_safe(block, ins) {
                 if (ins->type != TAG_TEXTURE_4) continue;
-                if (!OP_IS_DERIVATIVE(ins->texture.op)) continue;
+                if (ins->op != TEXTURE_OP_DERIVATIVE) continue;
 
                 /* Check if we need to split */
 

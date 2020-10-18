@@ -330,6 +330,8 @@ compute_version(const struct gl_extensions *extensions,
                          extensions->ARB_transform_feedback3);
    const bool ver_4_1 = (ver_4_0 &&
                          consts->GLSLVersion >= 410 &&
+                         consts->MaxTextureSize >= 16384 &&
+                         consts->MaxRenderbufferSize >= 16384 &&
                          extensions->ARB_ES2_compatibility &&
                          extensions->ARB_shader_precision &&
                          extensions->ARB_vertex_attrib_64bit &&

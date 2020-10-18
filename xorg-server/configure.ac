@@ -189,7 +189,7 @@ if test "x$ac_cv_func_getpeereid" = xno && test "x$ac_cv_func_getpeerucred" = xn
 	AC_DEFINE([NO_LOCAL_CLIENT_CRED], 1, [Define to 1 if no local socket credentials interface exists])
 fi
 
-dnl Find the math libary, then check for cbrt function in it.
+dnl Find the math library, then check for cbrt function in it.
 AC_CHECK_LIB(m, sqrt)
 AC_CHECK_FUNCS([cbrt])
 
@@ -580,6 +580,8 @@ AC_ARG_ENABLE(xnest,   	      AS_HELP_STRING([--enable-xnest], [Build Xnest serv
 AC_ARG_ENABLE(xquartz,        AS_HELP_STRING([--enable-xquartz], [Build Xquartz server for OS-X (default: auto)]), [XQUARTZ=$enableval], [XQUARTZ=auto])
 AC_ARG_ENABLE(xwayland,       AS_HELP_STRING([--enable-xwayland], [Build Xwayland server (default: auto)]), [XWAYLAND=$enableval], [XWAYLAND=auto])
 AC_ARG_ENABLE(xwayland-eglstream, AS_HELP_STRING([--enable-xwayland-eglstream], [Build Xwayland eglstream support (default: no)]), [XWAYLAND_EGLSTREAM=$enableval], [XWAYLAND_EGLSTREAM=no])
+AC_ARG_WITH(xwayland-path, AS_HELP_STRING([--with-xwayland-path=PATH], [Directory containing Xwayland executable (default: ${bindir})]),
+					 [ xwayland_path="$withval" ], [ xwayland_path="$bindir" ])
 AC_ARG_ENABLE(standalone-xpbproxy, AS_HELP_STRING([--enable-standalone-xpbproxy], [Build a standalone xpbproxy (in addition to the one integrated into Xquartz as a separate thread) (default: no)]), [STANDALONE_XPBPROXY=$enableval], [STANDALONE_XPBPROXY=no])
 AC_ARG_ENABLE(xwin,    	      AS_HELP_STRING([--enable-xwin], [Build XWin server (default: auto)]), [XWIN=$enableval], [XWIN=auto])
 AC_ARG_ENABLE(glamor,         AS_HELP_STRING([--enable-glamor], [Build glamor dix module (default: auto)]), [GLAMOR=$enableval], [GLAMOR=auto])
@@ -2314,6 +2316,9 @@ if test "x$XWAYLAND" = xyes; then
 	if test "x$GLAMOR" = xyes && test "x$GBM" = xyes; then
 		AC_DEFINE(XWL_HAS_GLAMOR, 1,
 			  [Build xwayland with glamor support])
+		AC_SUBST(have_glamor, "true")
+	else
+		AC_SUBST(have_glamor, "false")
 	fi
 
 	PKG_CHECK_MODULES(WAYLAND_EGLSTREAM, [wayland-eglstream-protocols >= 1.0.2], [have_wl_eglstream=yes], [have_wl_eglstream=no])
@@ -2336,6 +2341,9 @@ if test "x$XWAYLAND" = xyes; then
 		AC_SUBST(WAYLAND_EGLSTREAM_DATADIR, `$PKG_CONFIG --variable=pkgdatadir wayland-eglstream-protocols`)
 		AC_DEFINE(XWL_HAS_EGLSTREAM, 1,
 			  [Build xwayland with eglstream support])
+		AC_SUBST(have_eglstream, "true")
+	else
+		AC_SUBST(have_eglstream, "false")
 	fi
 
 	XWAYLAND_LIBS="$FB_LIB $FIXES_LIB $MI_LIB $XEXT_LIB $DBE_LIB $RECORD_LIB $GLX_LIBS $RANDR_LIB $RENDER_LIB $DAMAGE_LIB $DRI3_LIB $PRESENT_LIB $MIEXT_SYNC_LIB $MIEXT_DAMAGE_LIB $MIEXT_SHADOW_LIB $XI_LIB $XKB_LIB $XKB_STUB_LIB $COMPOSITE_LIB $MAIN_LIB $DIX_LIB $OS_LIB"
@@ -2358,6 +2366,9 @@ if test "x$XWAYLAND" = xyes; then
                           AC_SUBST(SCANNER_ARG, 'code'))
 
 	AC_SUBST(WAYLAND_PROTOCOLS_DATADIR, `$PKG_CONFIG --variable=pkgdatadir wayland-protocols`)
+
+	AC_SUBST(xwayland_path)
+
 fi
 AM_CONDITIONAL(XWAYLAND_EGLSTREAM, [test "x$XWAYLAND_EGLSTREAM" = "xyes"])
 
@@ -2502,6 +2513,7 @@ hw/kdrive/ephyr/Makefile
 hw/kdrive/ephyr/man/Makefile
 hw/kdrive/src/Makefile
 hw/xwayland/Makefile
+hw/xwayland/xwayland.pc
 test/Makefile
 xserver.ent
 xorg-server.pc

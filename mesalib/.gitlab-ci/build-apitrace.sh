@@ -23,7 +23,10 @@ APITRACE_VERSION="9.0"
 git clone https://github.com/apitrace/apitrace.git --single-branch --no-checkout /apitrace
 pushd /apitrace
 git checkout "$APITRACE_VERSION"
-cmake -G Ninja -B_build -H. -DCMAKE_BUILD_TYPE=Release -DENABLE_GUI=False -DENABLE_WAFFLE=on -DWaffle_DIR=/usr/local/lib/cmake/Waffle/ $EXTRA_CMAKE_ARGS
+# Note: The cmake stuff for waffle in apitrace fails to use waffle's library
+# directory.  Just force the issue here.
+env LDFLAGS="-L/usr/local/lib" \
+    cmake -G Ninja -B_build -H. -DCMAKE_BUILD_TYPE=Release -DENABLE_GUI=False -DENABLE_WAFFLE=on -DWaffle_DIR=/usr/local/lib/cmake/Waffle/ $EXTRA_CMAKE_ARGS
 ninja -C _build
 mkdir build
 cp _build/apitrace build

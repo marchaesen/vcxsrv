@@ -1655,6 +1655,38 @@ struct _glapi_table
    void (GLAPIENTRYP ViewportSwizzleNV)(GLuint index, GLenum swizzlex, GLenum swizzley, GLenum swizzlez, GLenum swizzlew); /* 1608 */
    void (GLAPIENTRYP AlphaToCoverageDitherControlNV)(GLenum mode); /* 1609 */
    void (GLAPIENTRYP InternalBufferSubDataCopyMESA)(GLintptr srcBuffer, GLuint srcOffset, GLuint dstTargetOrName, GLintptr dstOffset, GLsizeiptr size, GLboolean named, GLboolean ext_dsa); /* 1610 */
+   void (GLAPIENTRYP Vertex2hNV)(GLhalfNV x, GLhalfNV y); /* 1611 */
+   void (GLAPIENTRYP Vertex2hvNV)(const GLhalfNV * v); /* 1612 */
+   void (GLAPIENTRYP Vertex3hNV)(GLhalfNV x, GLhalfNV y, GLhalfNV z); /* 1613 */
+   void (GLAPIENTRYP Vertex3hvNV)(const GLhalfNV * v); /* 1614 */
+   void (GLAPIENTRYP Vertex4hNV)(GLhalfNV x, GLhalfNV y, GLhalfNV z, GLhalfNV w); /* 1615 */
+   void (GLAPIENTRYP Vertex4hvNV)(const GLhalfNV * v); /* 1616 */
+   void (GLAPIENTRYP Normal3hNV)(GLhalfNV nx, GLhalfNV ny, GLhalfNV nz); /* 1617 */
+   void (GLAPIENTRYP Normal3hvNV)(const GLhalfNV * v); /* 1618 */
+   void (GLAPIENTRYP Color3hNV)(GLhalfNV red, GLhalfNV green, GLhalfNV blue); /* 1619 */
+   void (GLAPIENTRYP Color3hvNV)(const GLhalfNV * v); /* 1620 */
+   void (GLAPIENTRYP Color4hNV)(GLhalfNV red, GLhalfNV green, GLhalfNV blue, GLhalfNV alpha); /* 1621 */
+   void (GLAPIENTRYP Color4hvNV)(const GLhalfNV * v); /* 1622 */
+   void (GLAPIENTRYP TexCoord1hNV)(GLhalfNV s); /* 1623 */
+   void (GLAPIENTRYP TexCoord1hvNV)(const GLhalfNV * v); /* 1624 */
+   void (GLAPIENTRYP TexCoord2hNV)(GLhalfNV s, GLhalfNV t); /* 1625 */
+   void (GLAPIENTRYP TexCoord2hvNV)(const GLhalfNV * v); /* 1626 */
+   void (GLAPIENTRYP TexCoord3hNV)(GLhalfNV s, GLhalfNV t, GLhalfNV r); /* 1627 */
+   void (GLAPIENTRYP TexCoord3hvNV)(const GLhalfNV * v); /* 1628 */
+   void (GLAPIENTRYP TexCoord4hNV)(GLhalfNV s, GLhalfNV t, GLhalfNV r, GLhalfNV q); /* 1629 */
+   void (GLAPIENTRYP TexCoord4hvNV)(const GLhalfNV * v); /* 1630 */
+   void (GLAPIENTRYP MultiTexCoord1hNV)(GLenum target, GLhalfNV s); /* 1631 */
+   void (GLAPIENTRYP MultiTexCoord1hvNV)(GLenum target, const GLhalfNV * v); /* 1632 */
+   void (GLAPIENTRYP MultiTexCoord2hNV)(GLenum target, GLhalfNV s, GLhalfNV t); /* 1633 */
+   void (GLAPIENTRYP MultiTexCoord2hvNV)(GLenum target, const GLhalfNV * v); /* 1634 */
+   void (GLAPIENTRYP MultiTexCoord3hNV)(GLenum target, GLhalfNV s, GLhalfNV t, GLhalfNV r); /* 1635 */
+   void (GLAPIENTRYP MultiTexCoord3hvNV)(GLenum target, const GLhalfNV * v); /* 1636 */
+   void (GLAPIENTRYP MultiTexCoord4hNV)(GLenum target, GLhalfNV s, GLhalfNV t, GLhalfNV r, GLhalfNV q); /* 1637 */
+   void (GLAPIENTRYP MultiTexCoord4hvNV)(GLenum target, const GLhalfNV * v); /* 1638 */
+   void (GLAPIENTRYP FogCoordhNV)(GLhalfNV x); /* 1639 */
+   void (GLAPIENTRYP FogCoordhvNV)(const GLhalfNV * v); /* 1640 */
+   void (GLAPIENTRYP SecondaryColor3hNV)(GLhalfNV red, GLhalfNV green, GLhalfNV blue); /* 1641 */
+   void (GLAPIENTRYP SecondaryColor3hvNV)(const GLhalfNV * v); /* 1642 */
 };
 
 #ifdef __cplusplus

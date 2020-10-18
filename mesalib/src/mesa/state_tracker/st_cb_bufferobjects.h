@@ -55,7 +55,7 @@ st_buffer_object(struct gl_buffer_object *obj)
 }
 
 
-enum pipe_transfer_usage
+enum pipe_map_flags
 st_access_flags_to_transfer_flags(GLbitfield access, bool wholeBuffer);
 
 

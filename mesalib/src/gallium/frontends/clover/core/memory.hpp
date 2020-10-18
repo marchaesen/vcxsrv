@@ -49,7 +49,11 @@ namespace clover {
       operator==(const memory_obj &obj) const;
 
       virtual cl_mem_object_type type() const = 0;
-      virtual clover::resource &resource(command_queue &q) = 0;
+      virtual clover::resource &
+      resource_in(command_queue &q) = 0;
+      virtual clover::resource &
+      resource_undef(command_queue &q) = 0;
+      virtual void resource_out(command_queue &q) = 0;
 
       void destroy_notify(std::function<void ()> f);
       cl_mem_flags flags() const;
@@ -82,9 +86,17 @@ namespace clover {
       root_buffer(clover::context &ctx, cl_mem_flags flags,
                   size_t size, void *host_ptr);
 
-      virtual clover::resource &resource(command_queue &q);
+      virtual clover::resource &
+      resource_in(command_queue &q);
+      virtual clover::resource &
+      resource_undef(command_queue &q);
+      virtual void
+      resource_out(command_queue &q);
 
    private:
+      clover::resource &
+         resource(command_queue &q, const void *data_ptr);
+
       std::map<device *,
                std::unique_ptr<root_resource>> resources;
    };
@@ -94,7 +106,12 @@ namespace clover {
       sub_buffer(root_buffer &parent, cl_mem_flags flags,
                  size_t offset, size_t size);
 
-      virtual clover::resource &resource(command_queue &q);
+      virtual clover::resource &
+      resource_in(command_queue &q);
+      virtual clover::resource &
+      resource_undef(command_queue &q);
+      virtual void
+      resource_out(command_queue &q);
       size_t offset() const;
 
       const intrusive_ref<root_buffer> parent;
@@ -114,7 +131,6 @@ namespace clover {
             void *host_ptr);
 
    public:
-      virtual clover::resource &resource(command_queue &q);
       cl_image_format format() const;
       size_t width() const;
       size_t height() const;
@@ -122,8 +138,17 @@ namespace clover {
       size_t pixel_size() const;
       size_t row_pitch() const;
       size_t slice_pitch() const;
+      virtual clover::resource &
+      resource_in(command_queue &q);
+      virtual clover::resource &
+      resource_undef(command_queue &q);
+      virtual void
+      resource_out(command_queue &q);
 
    private:
+      clover::resource &
+         resource(command_queue &q, const void *data_ptr);
+
       cl_image_format _format;
       size_t _width;
       size_t _height;

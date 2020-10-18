@@ -40,10 +40,13 @@ class lower_xfb_var_splicer : public ir_hierarchical_visitor
 {
 public:
    explicit lower_xfb_var_splicer(void *mem_ctx,
+                                  gl_shader_stage stage,
                                   const exec_list *instructions);
 
+   ir_visitor_status append_instructions(exec_node *node);
    virtual ir_visitor_status visit_leave(ir_return *ret);
    virtual ir_visitor_status visit_leave(ir_function_signature *sig);
+   virtual ir_visitor_status visit_leave(ir_emit_vertex *emit);
 
 private:
    /**
@@ -51,8 +54,10 @@ private:
     */
    void * const mem_ctx;
 
+   gl_shader_stage stage;
+
    /**
-    * Instructions that should be spliced into place before each return.
+    * Instructions that should be spliced into place before each return and EmitVertex().
     */
    const exec_list *instructions;
 };
@@ -60,18 +65,33 @@ private:
 } /* anonymous namespace */
 
 
-lower_xfb_var_splicer::lower_xfb_var_splicer(void *mem_ctx, const exec_list *instructions)
-   : mem_ctx(mem_ctx), instructions(instructions)
+lower_xfb_var_splicer::lower_xfb_var_splicer(void *mem_ctx, gl_shader_stage stage,
+                                             const exec_list *instructions)
+   : mem_ctx(mem_ctx), stage(stage), instructions(instructions)
 {
+}
+
+ir_visitor_status
+lower_xfb_var_splicer::append_instructions(exec_node *node)
+{
+   foreach_in_list(ir_instruction, ir, this->instructions) {
+      node->insert_before(ir->clone(this->mem_ctx, NULL));
+   }
+   return visit_continue;
 }
 
 ir_visitor_status
 lower_xfb_var_splicer::visit_leave(ir_return *ret)
 {
-   foreach_in_list(ir_instruction, ir, this->instructions) {
-      ret->insert_before(ir->clone(this->mem_ctx, NULL));
-   }
-   return visit_continue;
+   if (stage != MESA_SHADER_VERTEX)
+      return visit_continue;
+   return append_instructions(ret);
+}
+
+ir_visitor_status
+lower_xfb_var_splicer::visit_leave(ir_emit_vertex *emit)
+{
+   return append_instructions(emit);
 }
 
 /** Insert a copy-back assignment at the end of the main() function */
@@ -81,11 +101,13 @@ lower_xfb_var_splicer::visit_leave(ir_function_signature *sig)
    if (strcmp(sig->function_name(), "main") != 0)
       return visit_continue;
 
-   if (((ir_instruction*)sig->body.get_tail())->ir_type == ir_type_return)
-      return visit_continue;
+   if (this->stage == MESA_SHADER_VERTEX) {
+      if (((ir_instruction*)sig->body.get_tail())->ir_type == ir_type_return)
+         return visit_continue;
 
-   foreach_in_list(ir_instruction, ir, this->instructions) {
-      sig->body.push_tail(ir->clone(this->mem_ctx, NULL));
+      foreach_in_list(ir_instruction, ir, this->instructions) {
+         sig->body.push_tail(ir->clone(this->mem_ctx, NULL));
+      }
    }
 
    return visit_continue;
@@ -215,7 +237,7 @@ lower_xfb_varying(void *mem_ctx,
    ir_assignment *new_assignment = new(mem_ctx) ir_assignment(lhs, deref);
    new_instructions.push_tail(new_assignment);
 
-   lower_xfb_var_splicer splicer(mem_ctx, &new_instructions);
+   lower_xfb_var_splicer splicer(mem_ctx, shader->Stage, &new_instructions);
    visit_list_elements(&splicer, shader->ir);
 
    return new_variable;

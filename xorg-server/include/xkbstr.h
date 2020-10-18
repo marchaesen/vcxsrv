@@ -386,7 +386,7 @@ typedef struct _XkbCompatMapRec {
 
 typedef struct _XkbIndicatorMapRec {
     unsigned char flags;
-    /* FIXME: For some reason, interepretation of groups is wildly
+    /* FIXME: For some reason, interpretation of groups is wildly
      *        different between which being base/latched/locked. */
     unsigned char which_groups;
     unsigned char groups;

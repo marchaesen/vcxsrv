@@ -115,15 +115,6 @@ intersects(unsigned a_start, unsigned a_end, unsigned b_start, unsigned b_end)
 	return !((a_start >= b_end) || (b_start >= a_end));
 }
 
-static unsigned
-reg_size_for_array(struct ir3_array *arr)
-{
-	if (arr->half)
-		return DIV_ROUND_UP(arr->length, 2);
-
-	return arr->length;
-}
-
 static bool
 instr_before(struct ir3_instruction *a, struct ir3_instruction *b)
 {
@@ -236,7 +227,7 @@ get_definer(struct ir3_ra_ctx *ctx, struct ir3_instruction *instr,
 		dd = get_definer(ctx, d->regs[1]->instr, &dsz, &doff);
 
 		/* by definition, should come before: */
-		debug_assert(instr_before(dd, d));
+		ra_assert(ctx, instr_before(dd, d));
 
 		*sz = MAX2(*sz, dsz);
 
@@ -246,7 +237,7 @@ get_definer(struct ir3_ra_ctx *ctx, struct ir3_instruction *instr,
 		d = dd;
 	}
 
-	debug_assert(d->opc != OPC_META_SPLIT);
+	ra_assert(ctx, d->opc != OPC_META_SPLIT);
 
 	id->defn = d;
 	id->sz = *sz;
@@ -453,7 +444,7 @@ ra_select_reg_merged(unsigned int n, BITSET_WORD *regs, void *data)
 			return pick_in_range(regs, base, base + max_target);
 		}
 	} else {
-		assert(sz == 1);
+		ra_assert(ctx, sz == 1);
 	}
 
 	/* NOTE: this is only used in scalar pass, so the register
@@ -552,8 +543,8 @@ ra_init(struct ir3_ra_ctx *ctx)
 	base = ctx->class_base[total_class_count];
 	foreach_array (arr, &ctx->ir->array_list) {
 		arr->base = base;
-		ctx->class_alloc_count[total_class_count] += reg_size_for_array(arr);
-		base += reg_size_for_array(arr);
+		ctx->class_alloc_count[total_class_count] += arr->length;
+		base += arr->length;
 	}
 	ctx->alloc_count += ctx->class_alloc_count[total_class_count];
 
@@ -565,6 +556,27 @@ ra_init(struct ir3_ra_ctx *ctx)
 
 	/* Add vreg name for prefetch-exclusion range: */
 	ctx->prefetch_exclude_node = ctx->alloc_count++;
+
+	if (RA_DEBUG) {
+		d("INSTRUCTION VREG NAMES:");
+		foreach_block (block, &ctx->ir->block_list) {
+			foreach_instr (instr, &block->instr_list) {
+				if (!ctx->instrd[instr->ip].defn)
+					continue;
+				if (!writes_gpr(instr))
+					continue;
+				di(instr, "%04u", scalar_name(ctx, instr, 0));
+			}
+		}
+		d("ARRAY VREG NAMES:");
+		foreach_array (arr, &ctx->ir->array_list) {
+			d("%04u: arr%u", arr->base, arr->id);
+		}
+		d("EXTRA VREG NAMES:");
+		d("%04u: r0_xyz_nodes", ctx->r0_xyz_nodes);
+		d("%04u: hr0_xyz_nodes", ctx->hr0_xyz_nodes);
+		d("%04u: prefetch_exclude_node", ctx->prefetch_exclude_node);
+	}
 
 	ctx->g = ra_alloc_interference_graph(ctx->set->regs, ctx->alloc_count);
 	ralloc_steal(ctx->g, ctx->instrd);
@@ -586,11 +598,11 @@ ra_init(struct ir3_ra_ctx *ctx)
 static struct ir3_instruction *
 name_to_instr(struct ir3_ra_ctx *ctx, unsigned name)
 {
-	assert(!name_is_array(ctx, name));
+	ra_assert(ctx, !name_is_array(ctx, name));
 	struct hash_entry *entry = _mesa_hash_table_search(ctx->name_to_instr, &name);
 	if (entry)
 		return entry->data;
-	unreachable("invalid instr name");
+	ra_unreachable(ctx, "invalid instr name");
 	return NULL;
 }
 
@@ -603,13 +615,12 @@ name_is_array(struct ir3_ra_ctx *ctx, unsigned name)
 static struct ir3_array *
 name_to_array(struct ir3_ra_ctx *ctx, unsigned name)
 {
-	assert(name_is_array(ctx, name));
+	ra_assert(ctx, name_is_array(ctx, name));
 	foreach_array (arr, &ctx->ir->array_list) {
-		unsigned sz = reg_size_for_array(arr);
-		if (name < (arr->base + sz))
+		if (name < (arr->base + arr->length))
 			return arr;
 	}
-	unreachable("invalid array name");
+	ra_unreachable(ctx, "invalid array name");
 	return NULL;
 }
 
@@ -623,7 +634,7 @@ static void
 __def(struct ir3_ra_ctx *ctx, struct ir3_ra_block_data *bd, unsigned name,
 		struct ir3_instruction *instr)
 {
-	debug_assert(name < ctx->alloc_count);
+	ra_assert(ctx, name < ctx->alloc_count);
 
 	/* split/collect do not actually define any real value */
 	if ((instr->opc == OPC_META_SPLIT) || (instr->opc == OPC_META_COLLECT))
@@ -640,7 +651,7 @@ static void
 __use(struct ir3_ra_ctx *ctx, struct ir3_ra_block_data *bd, unsigned name,
 		struct ir3_instruction *instr)
 {
-	debug_assert(name < ctx->alloc_count);
+	ra_assert(ctx, name < ctx->alloc_count);
 	ctx->use[name] = MAX2(ctx->use[name], instr->ip);
 	if (!BITSET_TEST(bd->def, name))
 		BITSET_SET(bd->use, name);
@@ -757,7 +768,7 @@ ra_block_compute_live_ranges(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 				 */
 				unsigned *key = ralloc(ctx->name_to_instr, unsigned);
 				*key = name;
-				debug_assert(!_mesa_hash_table_search(ctx->name_to_instr, key));
+				ra_assert(ctx, !_mesa_hash_table_search(ctx->name_to_instr, key));
 				_mesa_hash_table_insert(ctx->name_to_instr, key, instr);
 			}
 		}
@@ -866,14 +877,14 @@ ra_calc_block_live_values(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 	struct ir3_ra_block_data *bd = block->data;
 	unsigned name;
 
-	assert(ctx->name_to_instr);
+	ra_assert(ctx, ctx->name_to_instr);
 
 	/* TODO this gets a bit more complicated in non-scalar pass.. but
 	 * possibly a lowball estimate is fine to start with if we do
 	 * round-robin in non-scalar pass?  Maybe we just want to handle
 	 * that in a different fxn?
 	 */
-	assert(ctx->scalar_pass);
+	ra_assert(ctx, ctx->scalar_pass);
 
 	BITSET_WORD *live =
 		rzalloc_array(bd, BITSET_WORD, BITSET_WORDS(ctx->alloc_count));
@@ -943,7 +954,7 @@ ra_calc_block_live_values(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 		cur_live += new_live;
 		cur_live -= new_dead;
 
-		assert(cur_live >= 0);
+		ra_assert(ctx, cur_live >= 0);
 		d("CUR_LIVE: %u", cur_live);
 
 		max = MAX2(max, cur_live);
@@ -953,14 +964,14 @@ ra_calc_block_live_values(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 		 * live)
 		 */
 		cur_live -= next_dead;
-		assert(cur_live >= 0);
+		ra_assert(ctx, cur_live >= 0);
 
 		if (RA_DEBUG) {
 			unsigned cnt = 0;
 			BITSET_FOREACH_SET (name, live, ctx->alloc_count) {
 				cnt += name_size(ctx, name);
 			}
-			assert(cur_live == cnt);
+			ra_assert(ctx, cur_live == cnt);
 		}
 	}
 
@@ -989,7 +1000,7 @@ ra_calc_block_live_values(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 			 * tells us a value is livein.  But not used by the block or
 			 * liveout for the block.  Possibly a bug in the liverange
 			 * extension.  But for now leave the assert disabled:
-			assert(cur_live == liveout);
+			ra_assert(ctx, cur_live == liveout);
 			 */
 		}
 	}
@@ -1062,20 +1073,6 @@ ra_add_interference(struct ir3_ra_ctx *ctx)
 			d("   length:   %u", arr->length);
 			d("   start_ip: %u", arr->start_ip);
 			d("   end_ip:   %u", arr->end_ip);
-		}
-		d("INSTRUCTION VREG NAMES:");
-		foreach_block (block, &ctx->ir->block_list) {
-			foreach_instr (instr, &block->instr_list) {
-				if (!ctx->instrd[instr->ip].defn)
-					continue;
-				if (!writes_gpr(instr))
-					continue;
-				di(instr, "%04u", scalar_name(ctx, instr, 0));
-			}
-		}
-		d("ARRAY VREG NAMES:");
-		foreach_array (arr, &ctx->ir->array_list) {
-			d("%04u: arr%u", arr->base, arr->id);
 		}
 	}
 
@@ -1159,7 +1156,7 @@ reg_assign(struct ir3_ra_ctx *ctx, struct ir3_register *reg,
 		 */
 		if (ctx->scalar_pass && is_tex_or_prefetch(id->defn)) {
 			unsigned n = ffs(id->defn->regs[0]->wrmask);
-			debug_assert(n > 0);
+			ra_assert(ctx, n > 0);
 			first_component = n - 1;
 		}
 
@@ -1167,9 +1164,9 @@ reg_assign(struct ir3_ra_ctx *ctx, struct ir3_register *reg,
 		unsigned r = ra_get_node_reg(ctx->g, name);
 		unsigned num = ctx->set->ra_reg_to_gpr[r] + id->off;
 
-		debug_assert(!(reg->flags & IR3_REG_RELATIV));
+		ra_assert(ctx, !(reg->flags & IR3_REG_RELATIV));
 
-		debug_assert(num >= first_component);
+		ra_assert(ctx, num >= first_component);
 
 		if (is_high(id->defn))
 			num += FIRST_HIGH_REG;
@@ -1240,6 +1237,15 @@ static void
 assign_arr_base(struct ir3_ra_ctx *ctx, struct ir3_array *arr,
 		struct ir3_instruction **precolor, unsigned nprecolor)
 {
+	/* In the mergedregs case, we convert full precision arrays
+	 * to their effective half-precision base, and find conflicts
+	 * amongst all other arrays/inputs.
+	 *
+	 * In the splitregs case (halfreg file and fullreg file do
+	 * not conflict), we ignore arrays and other pre-colors that
+	 * are not the same precision.
+	 */
+	bool mergedregs = ctx->v->mergedregs;
 	unsigned base = 0;
 
 	/* figure out what else we conflict with which has already
@@ -1249,14 +1255,34 @@ retry:
 	foreach_array (arr2, &ctx->ir->array_list) {
 		if (arr2 == arr)
 			break;
-		if (arr2->end_ip == 0)
+		ra_assert(ctx, arr2->start_ip <= arr2->end_ip);
+
+		unsigned base2 = arr2->reg;
+		unsigned len2  = arr2->length;
+		unsigned len   = arr->length;
+
+		if (mergedregs) {
+			/* convert into half-reg space: */
+			if (!arr2->half) {
+				base2 *= 2;
+				len2  *= 2;
+			}
+			if (!arr->half) {
+				len   *= 2;
+			}
+		} else if (arr2->half != arr->half) {
+			/* for split-register-file mode, we only conflict with
+			 * other arrays of same precision:
+			 */
 			continue;
+		}
+
 		/* if it intersects with liverange AND register range.. */
 		if (intersects(arr->start_ip, arr->end_ip,
 				arr2->start_ip, arr2->end_ip) &&
-			intersects(base, base + reg_size_for_array(arr),
-				arr2->reg, arr2->reg + reg_size_for_array(arr2))) {
-			base = MAX2(base, arr2->reg + reg_size_for_array(arr2));
+			intersects(base, base + len,
+				base2, base2 + len2)) {
+			base = MAX2(base, base2 + len2);
 			goto retry;
 		}
 	}
@@ -1274,19 +1300,42 @@ retry:
 		if (id->off > 0)
 			continue;
 
-		unsigned name = ra_name(ctx, id);
-		unsigned regid = instr->regs[0]->num;
+		unsigned name   = ra_name(ctx, id);
+		unsigned regid  = instr->regs[0]->num;
+		unsigned reglen = class_sizes[id->cls];
+		unsigned len    = arr->length;
+
+		if (mergedregs) {
+			/* convert into half-reg space: */
+			if (!is_half(instr)) {
+				regid  *= 2;
+				reglen *= 2;
+			}
+			if (!arr->half) {
+				len   *= 2;
+			}
+		} else if (is_half(instr) != arr->half) {
+			/* for split-register-file mode, we only conflict with
+			 * other arrays of same precision:
+			 */
+			continue;
+		}
 
 		/* Check if array intersects with liverange AND register
 		 * range of the input:
 		 */
 		if (intersects(arr->start_ip, arr->end_ip,
 						ctx->def[name], ctx->use[name]) &&
-				intersects(base, base + reg_size_for_array(arr),
-						regid, regid + class_sizes[id->cls])) {
-			base = MAX2(base, regid + class_sizes[id->cls]);
+				intersects(base, base + len,
+						regid, regid + reglen)) {
+			base = MAX2(base, regid + reglen);
 			goto retry;
 		}
+	}
+
+	/* convert back from half-reg space to fullreg space: */
+	if (mergedregs && !arr->half) {
+		base = DIV_ROUND_UP(base, 2);
 	}
 
 	arr->reg = base;
@@ -1308,7 +1357,7 @@ ra_precolor(struct ir3_ra_ctx *ctx, struct ir3_instruction **precolor, unsigned 
 
 			struct ir3_ra_instr_data *id = &ctx->instrd[instr->ip];
 
-			debug_assert(!(instr->regs[0]->flags & (IR3_REG_HALF | IR3_REG_HIGH)));
+			ra_assert(ctx, !(instr->regs[0]->flags & (IR3_REG_HALF | IR3_REG_HIGH)));
 
 			/* 'base' is in scalar (class 0) but we need to map that
 			 * the conflicting register of the appropriate class (ie.
@@ -1328,7 +1377,7 @@ ra_precolor(struct ir3_ra_ctx *ctx, struct ir3_instruction **precolor, unsigned 
 			 *           .. and so on..
 			 */
 			unsigned regid = instr->regs[0]->num;
-			assert(regid >= id->off);
+			ra_assert(ctx, regid >= id->off);
 			regid -= id->off;
 
 			unsigned reg = ctx->set->gpr_to_ra_reg[id->cls][regid];
@@ -1337,11 +1386,8 @@ ra_precolor(struct ir3_ra_ctx *ctx, struct ir3_instruction **precolor, unsigned 
 		}
 	}
 
-	/* pre-assign array elements:
-	 *
-	 * TODO this is going to need some work for half-precision.. possibly
-	 * this is easier on a6xx, where we can just divide array size by two?
-	 * But on a5xx and earlier it will need to track two bases.
+	/*
+	 * Pre-assign array elements:
 	 */
 	foreach_array (arr, &ctx->ir->array_list) {
 
@@ -1351,28 +1397,12 @@ ra_precolor(struct ir3_ra_ctx *ctx, struct ir3_instruction **precolor, unsigned 
 		if (!ctx->scalar_pass)
 			assign_arr_base(ctx, arr, precolor, nprecolor);
 
-		unsigned base = arr->reg;
-
 		for (unsigned i = 0; i < arr->length; i++) {
-			unsigned name, reg;
+			unsigned cls = arr->half ? HALF_OFFSET : 0;
 
-			if (arr->half) {
-				/* Doesn't need to do this on older generations than a6xx,
-				 * since there's no conflict between full regs and half regs
-				 * on them.
-				 *
-				 * TODO Presumably "base" could start from 0 respectively
-				 * for half regs of arrays on older generations.
-				 */
-				unsigned base_half = base * 2 + i;
-				reg = ctx->set->gpr_to_ra_reg[0+HALF_OFFSET][base_half];
-				base = base_half / 2 + 1;
-			} else {
-				reg = ctx->set->gpr_to_ra_reg[0][base++];
-			}
-
-			name = arr->base + i;
-			ra_set_node_reg(ctx->g, name, reg);
+			ra_set_node_reg(ctx->g,
+					arr->base + i,   /* vreg name */
+					ctx->set->gpr_to_ra_reg[cls][arr->reg + i]);
 		}
 	}
 
@@ -1418,7 +1448,7 @@ precolor(struct ir3_ra_ctx *ctx, struct ir3_instruction *instr)
 static void
 ra_precolor_assigned(struct ir3_ra_ctx *ctx)
 {
-	debug_assert(ctx->scalar_pass);
+	ra_assert(ctx, ctx->scalar_pass);
 
 	foreach_block (block, &ctx->ir->block_list) {
 		foreach_instr (instr, &block->instr_list) {
@@ -1490,12 +1520,18 @@ ir3_ra_pass(struct ir3_shader_variant *v, struct ir3_instruction **precolor,
 	};
 	int ret;
 
+	ret = setjmp(ctx.jmp_env);
+	if (ret)
+		goto fail;
+
 	ra_init(&ctx);
 	ra_add_interference(&ctx);
 	ra_precolor(&ctx, precolor, nprecolor);
 	if (scalar_pass)
 		ra_precolor_assigned(&ctx);
 	ret = ra_alloc(&ctx);
+
+fail:
 	ra_destroy(&ctx);
 
 	return ret;

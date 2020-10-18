@@ -23,7 +23,8 @@ CPP_SED_MAGIC = $(SED) -e '/^\#  *[0-9][0-9]*  *.*$$/d' \
                        -e '/^[	 ]*XCOMM[^a-zA-Z0-9_]/s/XCOMM/\#/' \
                        -e '/^[	 ]*XHASH/s/XHASH/\#/' \
                        -e 's,X11_LOCALEDATADIR,$(X11_LOCALEDATADIR),g' \
-                       -e '/\@\@$$/s/\@\@$$/\\/'
+                       -e '/\@\@$$/s/\@\@$$/\\/' \
+                       -e '/^$$/d'
 
 .pre:
 	@$(MKDIR_P) $(@D)

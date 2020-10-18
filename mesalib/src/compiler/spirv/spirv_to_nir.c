@@ -36,6 +36,9 @@
 #include "util/u_math.h"
 
 #include <stdio.h>
+#if UTIL_ARCH_BIG_ENDIAN
+#include <byteswap.h>
+#endif
 
 void
 vtn_log(struct vtn_builder *b, enum nir_spirv_debug_level level,
@@ -167,7 +170,7 @@ static struct vtn_ssa_value *
 vtn_undef_ssa_value(struct vtn_builder *b, const struct glsl_type *type)
 {
    struct vtn_ssa_value *val = rzalloc(b, struct vtn_ssa_value);
-   val->type = type;
+   val->type = glsl_get_bare_type(type);
 
    if (glsl_type_is_vector_or_scalar(type)) {
       unsigned num_components = glsl_get_vector_elements(val->type);
@@ -176,18 +179,12 @@ vtn_undef_ssa_value(struct vtn_builder *b, const struct glsl_type *type)
    } else {
       unsigned elems = glsl_get_length(val->type);
       val->elems = ralloc_array(b, struct vtn_ssa_value *, elems);
-      if (glsl_type_is_matrix(type)) {
-         const struct glsl_type *elem_type =
-            glsl_vector_type(glsl_get_base_type(type),
-                             glsl_get_vector_elements(type));
-
-         for (unsigned i = 0; i < elems; i++)
-            val->elems[i] = vtn_undef_ssa_value(b, elem_type);
-      } else if (glsl_type_is_array(type)) {
+      if (glsl_type_is_array_or_matrix(type)) {
          const struct glsl_type *elem_type = glsl_get_array_element(type);
          for (unsigned i = 0; i < elems; i++)
             val->elems[i] = vtn_undef_ssa_value(b, elem_type);
       } else {
+         vtn_assert(glsl_type_is_struct_or_ifc(type));
          for (unsigned i = 0; i < elems; i++) {
             const struct glsl_type *elem_type = glsl_get_struct_field(type, i);
             val->elems[i] = vtn_undef_ssa_value(b, elem_type);
@@ -208,68 +205,36 @@ vtn_const_ssa_value(struct vtn_builder *b, nir_constant *constant,
       return entry->data;
 
    struct vtn_ssa_value *val = rzalloc(b, struct vtn_ssa_value);
-   val->type = type;
+   val->type = glsl_get_bare_type(type);
 
-   switch (glsl_get_base_type(type)) {
-   case GLSL_TYPE_INT:
-   case GLSL_TYPE_UINT:
-   case GLSL_TYPE_INT16:
-   case GLSL_TYPE_UINT16:
-   case GLSL_TYPE_UINT8:
-   case GLSL_TYPE_INT8:
-   case GLSL_TYPE_INT64:
-   case GLSL_TYPE_UINT64:
-   case GLSL_TYPE_BOOL:
-   case GLSL_TYPE_FLOAT:
-   case GLSL_TYPE_FLOAT16:
-   case GLSL_TYPE_DOUBLE: {
-      int bit_size = glsl_get_bit_size(type);
-      if (glsl_type_is_vector_or_scalar(type)) {
-         unsigned num_components = glsl_get_vector_elements(val->type);
-         nir_load_const_instr *load =
-            nir_load_const_instr_create(b->shader, num_components, bit_size);
+   if (glsl_type_is_vector_or_scalar(type)) {
+      unsigned num_components = glsl_get_vector_elements(val->type);
+      unsigned bit_size = glsl_get_bit_size(type);
+      nir_load_const_instr *load =
+         nir_load_const_instr_create(b->shader, num_components, bit_size);
 
-         memcpy(load->value, constant->values,
-                sizeof(nir_const_value) * load->def.num_components);
+      memcpy(load->value, constant->values,
+             sizeof(nir_const_value) * num_components);
 
-         nir_instr_insert_before_cf_list(&b->nb.impl->body, &load->instr);
-         val->def = &load->def;
-      } else {
-         assert(glsl_type_is_matrix(type));
-         unsigned columns = glsl_get_matrix_columns(val->type);
-         val->elems = ralloc_array(b, struct vtn_ssa_value *, columns);
-         const struct glsl_type *column_type = glsl_get_column_type(val->type);
-         for (unsigned i = 0; i < columns; i++)
+      nir_instr_insert_before_cf_list(&b->nb.impl->body, &load->instr);
+      val->def = &load->def;
+   } else {
+      unsigned elems = glsl_get_length(val->type);
+      val->elems = ralloc_array(b, struct vtn_ssa_value *, elems);
+      if (glsl_type_is_array_or_matrix(type)) {
+         const struct glsl_type *elem_type = glsl_get_array_element(type);
+         for (unsigned i = 0; i < elems; i++) {
             val->elems[i] = vtn_const_ssa_value(b, constant->elements[i],
-                                                column_type);
+                                                elem_type);
+         }
+      } else {
+         vtn_assert(glsl_type_is_struct_or_ifc(type));
+         for (unsigned i = 0; i < elems; i++) {
+            const struct glsl_type *elem_type = glsl_get_struct_field(type, i);
+            val->elems[i] = vtn_const_ssa_value(b, constant->elements[i],
+                                                elem_type);
+         }
       }
-      break;
-   }
-
-   case GLSL_TYPE_ARRAY: {
-      unsigned elems = glsl_get_length(val->type);
-      val->elems = ralloc_array(b, struct vtn_ssa_value *, elems);
-      const struct glsl_type *elem_type = glsl_get_array_element(val->type);
-      for (unsigned i = 0; i < elems; i++)
-         val->elems[i] = vtn_const_ssa_value(b, constant->elements[i],
-                                             elem_type);
-      break;
-   }
-
-   case GLSL_TYPE_STRUCT: {
-      unsigned elems = glsl_get_length(val->type);
-      val->elems = ralloc_array(b, struct vtn_ssa_value *, elems);
-      for (unsigned i = 0; i < elems; i++) {
-         const struct glsl_type *elem_type =
-            glsl_get_struct_field(val->type, i);
-         val->elems[i] = vtn_const_ssa_value(b, constant->elements[i],
-                                             elem_type);
-      }
-      break;
-   }
-
-   default:
-      vtn_fail("bad constant type");
    }
 
    return val;
@@ -301,17 +266,168 @@ vtn_ssa_value(struct vtn_builder *b, uint32_t value_id)
    }
 }
 
-static char *
+struct vtn_value *
+vtn_push_ssa_value(struct vtn_builder *b, uint32_t value_id,
+                   struct vtn_ssa_value *ssa)
+{
+   struct vtn_type *type = vtn_get_value_type(b, value_id);
+
+   /* See vtn_create_ssa_value */
+   vtn_fail_if(ssa->type != glsl_get_bare_type(type->type),
+               "Type mismatch for SPIR-V SSA value");
+
+   struct vtn_value *val;
+   if (type->base_type == vtn_base_type_pointer) {
+      val = vtn_push_pointer(b, value_id, vtn_pointer_from_ssa(b, ssa->def, type));
+   } else {
+      /* Don't trip the value_type_ssa check in vtn_push_value */
+      val = vtn_push_value(b, value_id, vtn_value_type_invalid);
+      val->value_type = vtn_value_type_ssa;
+      val->ssa = ssa;
+   }
+
+   return val;
+}
+
+nir_ssa_def *
+vtn_get_nir_ssa(struct vtn_builder *b, uint32_t value_id)
+{
+   struct vtn_ssa_value *ssa = vtn_ssa_value(b, value_id);
+   vtn_fail_if(!glsl_type_is_vector_or_scalar(ssa->type),
+               "Expected a vector or scalar type");
+   return ssa->def;
+}
+
+struct vtn_value *
+vtn_push_nir_ssa(struct vtn_builder *b, uint32_t value_id, nir_ssa_def *def)
+{
+   /* Types for all SPIR-V SSA values are set as part of a pre-pass so the
+    * type will be valid by the time we get here.
+    */
+   struct vtn_type *type = vtn_get_value_type(b, value_id);
+   vtn_fail_if(def->num_components != glsl_get_vector_elements(type->type) ||
+               def->bit_size != glsl_get_bit_size(type->type),
+               "Mismatch between NIR and SPIR-V type.");
+   struct vtn_ssa_value *ssa = vtn_create_ssa_value(b, type->type);
+   ssa->def = def;
+   return vtn_push_ssa_value(b, value_id, ssa);
+}
+
+static enum gl_access_qualifier
+spirv_to_gl_access_qualifier(struct vtn_builder *b,
+                             SpvAccessQualifier access_qualifier)
+{
+   switch (access_qualifier) {
+   case SpvAccessQualifierReadOnly:
+      return ACCESS_NON_WRITEABLE;
+   case SpvAccessQualifierWriteOnly:
+      return ACCESS_NON_READABLE;
+   case SpvAccessQualifierReadWrite:
+      return 0;
+   default:
+      vtn_fail("Invalid image access qualifier");
+   }
+}
+
+static nir_deref_instr *
+vtn_get_image(struct vtn_builder *b, uint32_t value_id,
+              enum gl_access_qualifier *access)
+{
+   struct vtn_type *type = vtn_get_value_type(b, value_id);
+   vtn_assert(type->base_type == vtn_base_type_image);
+   if (access)
+      *access |= spirv_to_gl_access_qualifier(b, type->access_qualifier);
+   return nir_build_deref_cast(&b->nb, vtn_get_nir_ssa(b, value_id),
+                               nir_var_uniform, type->glsl_image, 0);
+}
+
+static void
+vtn_push_image(struct vtn_builder *b, uint32_t value_id,
+               nir_deref_instr *deref, bool propagate_non_uniform)
+{
+   struct vtn_type *type = vtn_get_value_type(b, value_id);
+   vtn_assert(type->base_type == vtn_base_type_image);
+   struct vtn_value *value = vtn_push_nir_ssa(b, value_id, &deref->dest.ssa);
+   value->propagated_non_uniform = propagate_non_uniform;
+}
+
+static nir_deref_instr *
+vtn_get_sampler(struct vtn_builder *b, uint32_t value_id)
+{
+   struct vtn_type *type = vtn_get_value_type(b, value_id);
+   vtn_assert(type->base_type == vtn_base_type_sampler);
+   return nir_build_deref_cast(&b->nb, vtn_get_nir_ssa(b, value_id),
+                               nir_var_uniform, glsl_bare_sampler_type(), 0);
+}
+
+nir_ssa_def *
+vtn_sampled_image_to_nir_ssa(struct vtn_builder *b,
+                             struct vtn_sampled_image si)
+{
+   return nir_vec2(&b->nb, &si.image->dest.ssa, &si.sampler->dest.ssa);
+}
+
+static void
+vtn_push_sampled_image(struct vtn_builder *b, uint32_t value_id,
+                       struct vtn_sampled_image si, bool propagate_non_uniform)
+{
+   struct vtn_type *type = vtn_get_value_type(b, value_id);
+   vtn_assert(type->base_type == vtn_base_type_sampled_image);
+   struct vtn_value *value = vtn_push_nir_ssa(b, value_id,
+                                              vtn_sampled_image_to_nir_ssa(b, si));
+   value->propagated_non_uniform = propagate_non_uniform;
+}
+
+static struct vtn_sampled_image
+vtn_get_sampled_image(struct vtn_builder *b, uint32_t value_id)
+{
+   struct vtn_type *type = vtn_get_value_type(b, value_id);
+   vtn_assert(type->base_type == vtn_base_type_sampled_image);
+   nir_ssa_def *si_vec2 = vtn_get_nir_ssa(b, value_id);
+
+   struct vtn_sampled_image si = { NULL, };
+   si.image = nir_build_deref_cast(&b->nb, nir_channel(&b->nb, si_vec2, 0),
+                                   nir_var_uniform,
+                                   type->image->glsl_image, 0);
+   si.sampler = nir_build_deref_cast(&b->nb, nir_channel(&b->nb, si_vec2, 1),
+                                     nir_var_uniform,
+                                     glsl_bare_sampler_type(), 0);
+   return si;
+}
+
+static const char *
 vtn_string_literal(struct vtn_builder *b, const uint32_t *words,
                    unsigned word_count, unsigned *words_used)
 {
-   char *dup = ralloc_strndup(b, (char *)words, word_count * sizeof(*words));
-   if (words_used) {
-      /* Ammount of space taken by the string (including the null) */
-      unsigned len = strlen(dup) + 1;
-      *words_used = DIV_ROUND_UP(len, sizeof(*words));
+   /* From the SPIR-V spec:
+    *
+    *    "A string is interpreted as a nul-terminated stream of characters.
+    *    The character set is Unicode in the UTF-8 encoding scheme. The UTF-8
+    *    octets (8-bit bytes) are packed four per word, following the
+    *    little-endian convention (i.e., the first octet is in the
+    *    lowest-order 8 bits of the word). The final word contains the
+    *    string’s nul-termination character (0), and all contents past the
+    *    end of the string in the final word are padded with 0."
+    *
+    * On big-endian, we need to byte-swap.
+    */
+#if UTIL_ARCH_BIG_ENDIAN
+   {
+      uint32_t *copy = ralloc_array(b, uint32_t, word_count);
+      for (unsigned i = 0; i < word_count; i++)
+         copy[i] = bswap_32(words[i]);
+      words = copy;
    }
-   return dup;
+#endif
+
+   const char *str = (char *)words;
+   const char *end = memchr(str, 0, word_count * 4);
+   vtn_fail_if(end == NULL, "String is not null-terminated");
+
+   if (words_used)
+      *words_used = DIV_ROUND_UP(end - str + 1, sizeof(*words));
+
+   return str;
 }
 
 const uint32_t *
@@ -376,10 +492,10 @@ static void
 vtn_handle_extension(struct vtn_builder *b, SpvOp opcode,
                      const uint32_t *w, unsigned count)
 {
-   const char *ext = (const char *)&w[2];
    switch (opcode) {
    case SpvOpExtInstImport: {
       struct vtn_value *val = vtn_push_value(b, w[1], vtn_value_type_extension);
+      const char *ext = vtn_string_literal(b, &w[2], count - 2, NULL);
       if (strcmp(ext, "GLSL.std.450") == 0) {
          val->ext_handler = vtn_handle_glsl450_instruction;
       } else if ((strcmp(ext, "SPV_AMD_gcn_shader") == 0)
@@ -616,6 +732,7 @@ vtn_types_compatible(struct vtn_builder *b,
    case vtn_base_type_image:
    case vtn_base_type_sampler:
    case vtn_base_type_sampled_image:
+   case vtn_base_type_event:
       return t1->type == t2->type;
 
    case vtn_base_type_array:
@@ -671,6 +788,7 @@ vtn_type_copy(struct vtn_builder *b, struct vtn_type *src)
    case vtn_base_type_image:
    case vtn_base_type_sampler:
    case vtn_base_type_sampled_image:
+   case vtn_base_type_event:
       /* Nothing more to do */
       break;
 
@@ -691,6 +809,121 @@ vtn_type_copy(struct vtn_builder *b, struct vtn_type *src)
    }
 
    return dest;
+}
+
+static const struct glsl_type *
+wrap_type_in_array(const struct glsl_type *type,
+                   const struct glsl_type *array_type)
+{
+   if (!glsl_type_is_array(array_type))
+      return type;
+
+   const struct glsl_type *elem_type =
+      wrap_type_in_array(type, glsl_get_array_element(array_type));
+   return glsl_array_type(elem_type, glsl_get_length(array_type),
+                          glsl_get_explicit_stride(array_type));
+}
+
+static bool
+vtn_type_needs_explicit_layout(struct vtn_builder *b, enum vtn_variable_mode mode)
+{
+   /* For OpenCL we never want to strip the info from the types, and it makes
+    * type comparisons easier in later stages.
+    */
+   if (b->options->environment == NIR_SPIRV_OPENCL)
+      return true;
+
+   switch (mode) {
+   case vtn_variable_mode_input:
+   case vtn_variable_mode_output:
+      /* Layout decorations kept because we need offsets for XFB arrays of
+       * blocks.
+       */
+      return b->shader->info.has_transform_feedback_varyings;
+
+   case vtn_variable_mode_ssbo:
+   case vtn_variable_mode_phys_ssbo:
+   case vtn_variable_mode_ubo:
+   case vtn_variable_mode_push_constant:
+      return true;
+
+   default:
+      return false;
+   }
+}
+
+const struct glsl_type *
+vtn_type_get_nir_type(struct vtn_builder *b, struct vtn_type *type,
+                      enum vtn_variable_mode mode)
+{
+   if (mode == vtn_variable_mode_atomic_counter) {
+      vtn_fail_if(glsl_without_array(type->type) != glsl_uint_type(),
+                  "Variables in the AtomicCounter storage class should be "
+                  "(possibly arrays of arrays of) uint.");
+      return wrap_type_in_array(glsl_atomic_uint_type(), type->type);
+   }
+
+   if (mode == vtn_variable_mode_uniform) {
+      switch (type->base_type) {
+      case vtn_base_type_array: {
+         const struct glsl_type *elem_type =
+            vtn_type_get_nir_type(b, type->array_element, mode);
+
+         return glsl_array_type(elem_type, type->length,
+                                glsl_get_explicit_stride(type->type));
+      }
+
+      case vtn_base_type_struct: {
+         bool need_new_struct = false;
+         const uint32_t num_fields = type->length;
+         NIR_VLA(struct glsl_struct_field, fields, num_fields);
+         for (unsigned i = 0; i < num_fields; i++) {
+            fields[i] = *glsl_get_struct_field_data(type->type, i);
+            const struct glsl_type *field_nir_type =
+               vtn_type_get_nir_type(b, type->members[i], mode);
+            if (fields[i].type != field_nir_type) {
+               fields[i].type = field_nir_type;
+               need_new_struct = true;
+            }
+         }
+         if (need_new_struct) {
+            if (glsl_type_is_interface(type->type)) {
+               return glsl_interface_type(fields, num_fields,
+                                          /* packing */ 0, false,
+                                          glsl_get_type_name(type->type));
+            } else {
+               return glsl_struct_type(fields, num_fields,
+                                       glsl_get_type_name(type->type),
+                                       glsl_struct_type_is_packed(type->type));
+            }
+         } else {
+            /* No changes, just pass it on */
+            return type->type;
+         }
+      }
+
+      case vtn_base_type_image:
+         return type->glsl_image;
+
+      case vtn_base_type_sampler:
+         return glsl_bare_sampler_type();
+
+      case vtn_base_type_sampled_image:
+         return type->image->glsl_image;
+
+      default:
+         return type->type;
+      }
+   }
+
+   /* Layout decorations are allowed but ignored in certain conditions,
+    * to allow SPIR-V generators perform type deduplication.  Discard
+    * unnecessary ones when passing to NIR.
+    */
+   if (!vtn_type_needs_explicit_layout(b, mode))
+      return glsl_get_bare_type(type->type);
+
+   return type->type;
 }
 
 static struct vtn_type *
@@ -830,6 +1063,7 @@ struct_member_decoration_cb(struct vtn_builder *b,
    case SpvDecorationLinkageAttributes:
    case SpvDecorationNoContraction:
    case SpvDecorationInputAttachmentIndex:
+   case SpvDecorationCPacked:
       vtn_warn("Decoration not allowed on struct members: %s",
                spirv_decoration_to_string(dec->decoration));
       break;
@@ -837,14 +1071,6 @@ struct_member_decoration_cb(struct vtn_builder *b,
    case SpvDecorationXfbBuffer:
    case SpvDecorationXfbStride:
       /* This is handled later by var_decoration_cb in vtn_variables.c */
-      break;
-
-   case SpvDecorationCPacked:
-      if (b->shader->info.stage != MESA_SHADER_KERNEL)
-         vtn_warn("Decoration only allowed for CL-style kernels: %s",
-                  spirv_decoration_to_string(dec->decoration));
-      else
-         ctx->type->packed = true;
       break;
 
    case SpvDecorationSaturatedConversion:
@@ -925,6 +1151,21 @@ struct_member_matrix_stride_cb(struct vtn_builder *b,
     */
    vtn_array_type_rewrite_glsl_type(ctx->type->members[member]);
    ctx->fields[member].type = ctx->type->members[member]->type;
+}
+
+static void
+struct_packed_decoration_cb(struct vtn_builder *b,
+                            struct vtn_value *val, int member,
+                            const struct vtn_decoration *dec, void *void_ctx)
+{
+   vtn_assert(val->type->base_type == vtn_base_type_struct);
+   if (dec->decoration == SpvDecorationCPacked) {
+      if (b->shader->info.stage != MESA_SHADER_KERNEL) {
+         vtn_warn("Decoration only allowed for CL-style kernels: %s",
+                  spirv_decoration_to_string(dec->decoration));
+      }
+      val->type->packed = true;
+   }
 }
 
 static void
@@ -1025,11 +1266,7 @@ type_decoration_cb(struct vtn_builder *b,
       break;
 
    case SpvDecorationCPacked:
-      if (b->shader->info.stage != MESA_SHADER_KERNEL)
-         vtn_warn("Decoration only allowed for CL-style kernels: %s",
-                  spirv_decoration_to_string(dec->decoration));
-      else
-         type->packed = true;
+      /* Handled when parsing a struct type, nothing to do here. */
       break;
 
    case SpvDecorationSaturatedConversion:
@@ -1130,23 +1367,12 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
    case SpvOpTypeInt: {
       int bit_size = w[2];
       const bool signedness = w[3];
+      vtn_fail_if(bit_size != 8 && bit_size != 16 &&
+                  bit_size != 32 && bit_size != 64,
+                  "Invalid int bit size: %u", bit_size);
       val->type->base_type = vtn_base_type_scalar;
-      switch (bit_size) {
-      case 64:
-         val->type->type = (signedness ? glsl_int64_t_type() : glsl_uint64_t_type());
-         break;
-      case 32:
-         val->type->type = (signedness ? glsl_int_type() : glsl_uint_type());
-         break;
-      case 16:
-         val->type->type = (signedness ? glsl_int16_t_type() : glsl_uint16_t_type());
-         break;
-      case 8:
-         val->type->type = (signedness ? glsl_int8_t_type() : glsl_uint8_t_type());
-         break;
-      default:
-         vtn_fail("Invalid int bit size: %u", bit_size);
-      }
+      val->type->type = signedness ? glsl_intN_t_type(bit_size) :
+                                     glsl_uintN_t_type(bit_size);
       val->type->length = 1;
       break;
    }
@@ -1154,25 +1380,15 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
    case SpvOpTypeFloat: {
       int bit_size = w[2];
       val->type->base_type = vtn_base_type_scalar;
-      switch (bit_size) {
-      case 16:
-         val->type->type = glsl_float16_t_type();
-         break;
-      case 32:
-         val->type->type = glsl_float_type();
-         break;
-      case 64:
-         val->type->type = glsl_double_type();
-         break;
-      default:
-         vtn_fail("Invalid float bit size: %u", bit_size);
-      }
+      vtn_fail_if(bit_size != 16 && bit_size != 32 && bit_size != 64,
+                  "Invalid float bit size: %u", bit_size);
+      val->type->type = glsl_floatN_t_type(bit_size);
       val->type->length = 1;
       break;
    }
 
    case SpvOpTypeVector: {
-      struct vtn_type *base = vtn_value(b, w[2], vtn_value_type_type)->type;
+      struct vtn_type *base = vtn_get_type(b, w[2]);
       unsigned elems = w[3];
 
       vtn_fail_if(base->base_type != vtn_base_type_scalar,
@@ -1190,7 +1406,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
    }
 
    case SpvOpTypeMatrix: {
-      struct vtn_type *base = vtn_value(b, w[2], vtn_value_type_type)->type;
+      struct vtn_type *base = vtn_get_type(b, w[2]);
       unsigned columns = w[3];
 
       vtn_fail_if(base->base_type != vtn_base_type_vector,
@@ -1214,8 +1430,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
 
    case SpvOpTypeRuntimeArray:
    case SpvOpTypeArray: {
-      struct vtn_type *array_element =
-         vtn_value(b, w[2], vtn_value_type_type)->type;
+      struct vtn_type *array_element = vtn_get_type(b, w[2]);
 
       if (opcode == SpvOpTypeRuntimeArray) {
          /* A length of 0 is used to denote unsized arrays */
@@ -1226,8 +1441,6 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
 
       val->type->base_type = vtn_base_type_array;
       val->type->array_element = array_element;
-      if (b->shader->info.stage == MESA_SHADER_KERNEL)
-         val->type->stride = glsl_get_cl_size(array_element->type);
 
       vtn_foreach_decoration(b, val, array_stride_decoration_cb, NULL);
       val->type->type = glsl_array_type(array_element->type, val->type->length,
@@ -1245,8 +1458,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
 
       NIR_VLA(struct glsl_struct_field, fields, count);
       for (unsigned i = 0; i < num_fields; i++) {
-         val->type->members[i] =
-            vtn_value(b, w[i + 2], vtn_value_type_type)->type;
+         val->type->members[i] = vtn_get_type(b, w[i + 2]);
          fields[i] = (struct glsl_struct_field) {
             .type = val->type->members[i]->type,
             .name = ralloc_asprintf(b, "field%d", i),
@@ -1255,14 +1467,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
          };
       }
 
-      if (b->shader->info.stage == MESA_SHADER_KERNEL) {
-         unsigned offset = 0;
-         for (unsigned i = 0; i < num_fields; i++) {
-            offset = align(offset, glsl_get_cl_alignment(fields[i].type));
-            fields[i].offset = offset;
-            offset += glsl_get_cl_size(fields[i].type);
-         }
-      }
+      vtn_foreach_decoration(b, val, struct_packed_decoration_cb, NULL);
 
       struct member_decoration_ctx ctx = {
          .num_fields = num_fields,
@@ -1286,7 +1491,8 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
                                                name ? name : "block");
       } else {
          val->type->type = glsl_struct_type(fields, num_fields,
-                                            name ? name : "struct", false);
+                                            name ? name : "struct",
+                                            val->type->packed);
       }
       break;
    }
@@ -1295,14 +1501,13 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
       val->type->base_type = vtn_base_type_function;
       val->type->type = NULL;
 
-      val->type->return_type = vtn_value(b, w[2], vtn_value_type_type)->type;
+      val->type->return_type = vtn_get_type(b, w[2]);
 
       const unsigned num_params = count - 3;
       val->type->length = num_params;
       val->type->params = ralloc_array(b, struct vtn_type *, num_params);
       for (unsigned i = 0; i < count - 3; i++) {
-         val->type->params[i] =
-            vtn_value(b, w[i + 3], vtn_value_type_type)->type;
+         val->type->params[i] = vtn_get_type(b, w[i + 3]);
       }
       break;
    }
@@ -1343,7 +1548,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
                      "forward declaration of a pointer, OpTypePointer can "
                      "only be used once for a given id.");
 
-         val->type->deref = vtn_value(b, w[3], vtn_value_type_type)->type;
+         val->type->deref = vtn_get_type(b, w[3]);
 
          /* Only certain storage classes use ArrayStride.  The others (in
           * particular Workgroup) are expected to be laid out by the driver.
@@ -1359,20 +1564,6 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
             /* Nothing to do. */
             break;
          }
-
-         if (b->physical_ptrs) {
-            switch (storage_class) {
-            case SpvStorageClassFunction:
-            case SpvStorageClassWorkgroup:
-            case SpvStorageClassCrossWorkgroup:
-            case SpvStorageClassUniformConstant:
-               val->type->stride = align(glsl_get_cl_size(val->type->deref->type),
-                                         glsl_get_cl_alignment(val->type->deref->type));
-               break;
-            default:
-               break;
-            }
-         }
       }
       break;
    }
@@ -1380,12 +1571,23 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
    case SpvOpTypeImage: {
       val->type->base_type = vtn_base_type_image;
 
-      const struct vtn_type *sampled_type =
-         vtn_value(b, w[2], vtn_value_type_type)->type;
+      /* Images are represented in NIR as a scalar SSA value that is the
+       * result of a deref instruction.  An OpLoad on an OpTypeImage pointer
+       * from UniformConstant memory just takes the NIR deref from the pointer
+       * and turns it into an SSA value.
+       */
+      val->type->type = nir_address_format_to_glsl_type(
+         vtn_mode_to_address_format(b, vtn_variable_mode_function));
 
-      vtn_fail_if(sampled_type->base_type != vtn_base_type_scalar ||
-                  glsl_get_bit_size(sampled_type->type) != 32,
-                  "Sampled type of OpTypeImage must be a 32-bit scalar");
+      const struct vtn_type *sampled_type = vtn_get_type(b, w[2]);
+      if (b->shader->info.stage == MESA_SHADER_KERNEL) {
+         vtn_fail_if(sampled_type->base_type != vtn_base_type_void,
+                     "Sampled type of OpTypeImage must be void for kernels");
+      } else {
+         vtn_fail_if(sampled_type->base_type != vtn_base_type_scalar ||
+                     glsl_get_bit_size(sampled_type->type) != 32,
+                     "Sampled type of OpTypeImage must be a 32-bit scalar");
+      }
 
       enum glsl_sampler_dim dim;
       switch ((SpvDim)w[3]) {
@@ -1411,6 +1613,9 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
 
       if (count > 9)
          val->type->access_qualifier = w[9];
+      else if (b->shader->info.stage == MESA_SHADER_KERNEL)
+         /* Per the CL C spec: If no qualifier is provided, read_only is assumed. */
+         val->type->access_qualifier = SpvAccessQualifierReadOnly;
       else
          val->type->access_qualifier = SpvAccessQualifierReadWrite;
 
@@ -1428,36 +1633,66 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
       enum glsl_base_type sampled_base_type =
          glsl_get_base_type(sampled_type->type);
       if (sampled == 1) {
-         val->type->sampled = true;
-         val->type->type = glsl_sampler_type(dim, false, is_array,
-                                             sampled_base_type);
+         val->type->glsl_image = glsl_sampler_type(dim, false, is_array,
+                                                   sampled_base_type);
       } else if (sampled == 2) {
-         val->type->sampled = false;
-         val->type->type = glsl_image_type(dim, is_array, sampled_base_type);
+         val->type->glsl_image = glsl_image_type(dim, is_array,
+                                                 sampled_base_type);
+      } else if (b->shader->info.stage == MESA_SHADER_KERNEL) {
+         val->type->glsl_image = glsl_image_type(dim, is_array,
+                                                 GLSL_TYPE_VOID);
       } else {
          vtn_fail("We need to know if the image will be sampled");
       }
       break;
    }
 
-   case SpvOpTypeSampledImage:
+   case SpvOpTypeSampledImage: {
       val->type->base_type = vtn_base_type_sampled_image;
-      val->type->image = vtn_value(b, w[2], vtn_value_type_type)->type;
-      val->type->type = val->type->image->type;
+      val->type->image = vtn_get_type(b, w[2]);
+
+      /* Sampled images are represented NIR as a vec2 SSA value where each
+       * component is the result of a deref instruction.  The first component
+       * is the image and the second is the sampler.  An OpLoad on an
+       * OpTypeSampledImage pointer from UniformConstant memory just takes
+       * the NIR deref from the pointer and duplicates it to both vector
+       * components.
+       */
+      nir_address_format addr_format =
+         vtn_mode_to_address_format(b, vtn_variable_mode_function);
+      assert(nir_address_format_num_components(addr_format) == 1);
+      unsigned bit_size = nir_address_format_bit_size(addr_format);
+      assert(bit_size == 32 || bit_size == 64);
+
+      enum glsl_base_type base_type =
+         bit_size == 32 ? GLSL_TYPE_UINT : GLSL_TYPE_UINT64;
+      val->type->type = glsl_vector_type(base_type, 2);
       break;
+   }
 
    case SpvOpTypeSampler:
-      /* The actual sampler type here doesn't really matter.  It gets
-       * thrown away the moment you combine it with an image.  What really
-       * matters is that it's a sampler type as opposed to an integer type
-       * so the backend knows what to do.
-       */
       val->type->base_type = vtn_base_type_sampler;
-      val->type->type = glsl_bare_sampler_type();
+
+      /* Samplers are represented in NIR as a scalar SSA value that is the
+       * result of a deref instruction.  An OpLoad on an OpTypeSampler pointer
+       * from UniformConstant memory just takes the NIR deref from the pointer
+       * and turns it into an SSA value.
+       */
+      val->type->type = nir_address_format_to_glsl_type(
+         vtn_mode_to_address_format(b, vtn_variable_mode_function));
       break;
 
    case SpvOpTypeOpaque:
+      val->type->base_type = vtn_base_type_struct;
+      const char *name = vtn_string_literal(b, &w[2], count - 2, NULL);
+      val->type->type = glsl_struct_type(NULL, 0, name, false);
+      break;
+
    case SpvOpTypeEvent:
+      val->type->base_type = vtn_base_type_event;
+      val->type->type = glsl_int_type();
+      break;
+
    case SpvOpTypeDeviceEvent:
    case SpvOpTypeReserveId:
    case SpvOpTypeQueue:
@@ -1507,6 +1742,7 @@ vtn_null_constant(struct vtn_builder *b, struct vtn_type *type)
    case vtn_base_type_sampler:
    case vtn_base_type_sampled_image:
    case vtn_base_type_function:
+   case vtn_base_type_event:
       /* For those we have to return something but it doesn't matter what. */
       break;
 
@@ -1812,11 +2048,9 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
          case SpvOpUConvert:
             /* We have a source in a conversion */
             src_alu_type =
-               nir_get_nir_type_for_glsl_type(
-                  vtn_value(b, w[4], vtn_value_type_constant)->type->type);
+               nir_get_nir_type_for_glsl_type(vtn_get_value_type(b, w[4])->type);
             /* We use the bitsize of the conversion source to evaluate the opcode later */
-            bit_size = glsl_get_bit_size(
-               vtn_value(b, w[4], vtn_value_type_constant)->type->type);
+            bit_size = glsl_get_bit_size(vtn_get_value_type(b, w[4])->type);
             break;
          default:
             bit_size = glsl_get_bit_size(val->type->type);
@@ -1882,30 +2116,12 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
       val->constant = vtn_null_constant(b, val->type);
       break;
 
-   case SpvOpConstantSampler:
-      vtn_fail("OpConstantSampler requires Kernel Capability");
-      break;
-
    default:
       vtn_fail_with_opcode("Unhandled opcode", opcode);
    }
 
    /* Now that we have the value, update the workgroup size if needed */
    vtn_foreach_decoration(b, val, handle_workgroup_size_decoration_cb, NULL);
-}
-
-SpvMemorySemanticsMask
-vtn_storage_class_to_memory_semantics(SpvStorageClass sc)
-{
-   switch (sc) {
-   case SpvStorageClassStorageBuffer:
-   case SpvStorageClassPhysicalStorageBuffer:
-      return SpvMemorySemanticsUniformMemoryMask;
-   case SpvStorageClassWorkgroup:
-      return SpvMemorySemanticsWorkgroupMemoryMask;
-   default:
-      return SpvMemorySemanticsMaskNone;
-   }
 }
 
 static void
@@ -1957,7 +2173,8 @@ vtn_split_barrier_semantics(struct vtn_builder *b,
                    SpvMemorySemanticsOutputMemoryMask);
 
    const SpvMemorySemanticsMask other_semantics =
-      semantics & ~(order_semantics | av_vis_semantics | storage_semantics);
+      semantics & ~(order_semantics | av_vis_semantics | storage_semantics |
+                    SpvMemorySemanticsVolatileMask);
 
    if (other_semantics)
       vtn_warn("Ignoring unhandled memory semantics: %u\n", other_semantics);
@@ -2164,42 +2381,33 @@ vtn_emit_scoped_memory_barrier(struct vtn_builder *b, SpvScope scope,
 struct vtn_ssa_value *
 vtn_create_ssa_value(struct vtn_builder *b, const struct glsl_type *type)
 {
+   /* Always use bare types for SSA values for a couple of reasons:
+    *
+    *  1. Code which emits deref chains should never listen to the explicit
+    *     layout information on the SSA value if any exists.  If we've
+    *     accidentally been relying on this, we want to find those bugs.
+    *
+    *  2. We want to be able to quickly check that an SSA value being assigned
+    *     to a SPIR-V value has the right type.  Using bare types everywhere
+    *     ensures that we can pointer-compare.
+    */
    struct vtn_ssa_value *val = rzalloc(b, struct vtn_ssa_value);
-   val->type = type;
+   val->type = glsl_get_bare_type(type);
+
 
    if (!glsl_type_is_vector_or_scalar(type)) {
-      unsigned elems = glsl_get_length(type);
+      unsigned elems = glsl_get_length(val->type);
       val->elems = ralloc_array(b, struct vtn_ssa_value *, elems);
-      for (unsigned i = 0; i < elems; i++) {
-         const struct glsl_type *child_type;
-
-         switch (glsl_get_base_type(type)) {
-         case GLSL_TYPE_INT:
-         case GLSL_TYPE_UINT:
-         case GLSL_TYPE_INT16:
-         case GLSL_TYPE_UINT16:
-         case GLSL_TYPE_UINT8:
-         case GLSL_TYPE_INT8:
-         case GLSL_TYPE_INT64:
-         case GLSL_TYPE_UINT64:
-         case GLSL_TYPE_BOOL:
-         case GLSL_TYPE_FLOAT:
-         case GLSL_TYPE_FLOAT16:
-         case GLSL_TYPE_DOUBLE:
-            child_type = glsl_get_column_type(type);
-            break;
-         case GLSL_TYPE_ARRAY:
-            child_type = glsl_get_array_element(type);
-            break;
-         case GLSL_TYPE_STRUCT:
-         case GLSL_TYPE_INTERFACE:
-            child_type = glsl_get_struct_field(type, i);
-            break;
-         default:
-            vtn_fail("unkown base type");
+      if (glsl_type_is_array_or_matrix(type)) {
+         const struct glsl_type *elem_type = glsl_get_array_element(type);
+         for (unsigned i = 0; i < elems; i++)
+            val->elems[i] = vtn_create_ssa_value(b, elem_type);
+      } else {
+         vtn_assert(glsl_type_is_struct_or_ifc(type));
+         for (unsigned i = 0; i < elems; i++) {
+            const struct glsl_type *elem_type = glsl_get_struct_field(type, i);
+            val->elems[i] = vtn_create_ssa_value(b, elem_type);
          }
-
-         val->elems[i] = vtn_create_ssa_value(b, child_type);
       }
    }
 
@@ -2210,7 +2418,7 @@ static nir_tex_src
 vtn_tex_src(struct vtn_builder *b, unsigned index, nir_tex_src_type type)
 {
    nir_tex_src src;
-   src.src = nir_src_for_ssa(vtn_ssa_value(b, index)->def);
+   src.src = nir_src_for_ssa(vtn_get_nir_ssa(b, index));
    src.src_type = type;
    return src;
 }
@@ -2252,66 +2460,64 @@ image_operand_arg(struct vtn_builder *b, const uint32_t *w, uint32_t count,
 }
 
 static void
+non_uniform_decoration_cb(struct vtn_builder *b,
+                          struct vtn_value *val, int member,
+                          const struct vtn_decoration *dec, void *void_ctx)
+{
+   enum gl_access_qualifier *access = void_ctx;
+   switch (dec->decoration) {
+   case SpvDecorationNonUniformEXT:
+      *access |= ACCESS_NON_UNIFORM;
+      break;
+
+   default:
+      break;
+   }
+}
+
+static void
 vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
                    const uint32_t *w, unsigned count)
 {
+   struct vtn_type *ret_type = vtn_get_type(b, w[1]);
+
    if (opcode == SpvOpSampledImage) {
-      struct vtn_value *val =
-         vtn_push_value(b, w[2], vtn_value_type_sampled_image);
-      val->sampled_image = ralloc(b, struct vtn_sampled_image);
+      struct vtn_sampled_image si = {
+         .image = vtn_get_image(b, w[3], NULL),
+         .sampler = vtn_get_sampler(b, w[4]),
+      };
 
-      /* It seems valid to use OpSampledImage with OpUndef instead of
-       * OpTypeImage or OpTypeSampler.
-       */
-      if (vtn_untyped_value(b, w[3])->value_type == vtn_value_type_undef) {
-         val->sampled_image->image = NULL;
-      } else {
-         val->sampled_image->image =
-            vtn_value(b, w[3], vtn_value_type_pointer)->pointer;
-      }
+      enum gl_access_qualifier access = 0;
+      vtn_foreach_decoration(b, vtn_untyped_value(b, w[3]),
+                             non_uniform_decoration_cb, &access);
+      vtn_foreach_decoration(b, vtn_untyped_value(b, w[4]),
+                             non_uniform_decoration_cb, &access);
 
-      if (vtn_untyped_value(b, w[4])->value_type == vtn_value_type_undef) {
-         val->sampled_image->sampler = NULL;
-      } else {
-         val->sampled_image->sampler =
-            vtn_value(b, w[4], vtn_value_type_pointer)->pointer;
-      }
+      vtn_push_sampled_image(b, w[2], si, access & ACCESS_NON_UNIFORM);
       return;
    } else if (opcode == SpvOpImage) {
-      struct vtn_value *src_val = vtn_untyped_value(b, w[3]);
-      if (src_val->value_type == vtn_value_type_sampled_image) {
-         vtn_push_value_pointer(b, w[2], src_val->sampled_image->image);
-      } else {
-         vtn_assert(src_val->value_type == vtn_value_type_pointer);
-         vtn_push_value_pointer(b, w[2], src_val->pointer);
-      }
+      struct vtn_sampled_image si = vtn_get_sampled_image(b, w[3]);
+
+      enum gl_access_qualifier access = 0;
+      vtn_foreach_decoration(b, vtn_untyped_value(b, w[3]),
+                             non_uniform_decoration_cb, &access);
+
+      vtn_push_image(b, w[2], si.image, access & ACCESS_NON_UNIFORM);
       return;
    }
 
-   struct vtn_type *ret_type = vtn_value(b, w[1], vtn_value_type_type)->type;
-
-   struct vtn_pointer *image = NULL, *sampler = NULL;
+   nir_deref_instr *image = NULL, *sampler = NULL;
    struct vtn_value *sampled_val = vtn_untyped_value(b, w[3]);
-   if (sampled_val->value_type == vtn_value_type_sampled_image) {
-      image = sampled_val->sampled_image->image;
-      sampler = sampled_val->sampled_image->sampler;
+   if (sampled_val->type->base_type == vtn_base_type_sampled_image) {
+      struct vtn_sampled_image si = vtn_get_sampled_image(b, w[3]);
+      image = si.image;
+      sampler = si.sampler;
    } else {
-      vtn_assert(sampled_val->value_type == vtn_value_type_pointer);
-      image = sampled_val->pointer;
+      image = vtn_get_image(b, w[3], NULL);
    }
 
-   if (!image) {
-      vtn_push_value(b, w[2], vtn_value_type_undef);
-      return;
-   }
-
-   nir_deref_instr *image_deref = vtn_pointer_to_deref(b, image);
-   nir_deref_instr *sampler_deref =
-      sampler ? vtn_pointer_to_deref(b, sampler) : NULL;
-
-   const struct glsl_type *image_type = sampled_val->type->type;
-   const enum glsl_sampler_dim sampler_dim = glsl_get_sampler_dim(image_type);
-   const bool is_array = glsl_sampler_type_is_array(image_type);
+   const enum glsl_sampler_dim sampler_dim = glsl_get_sampler_dim(image->type);
+   const bool is_array = glsl_sampler_type_is_array(image->type);
    nir_alu_type dest_type = nir_type_invalid;
 
    /* Figure out the base texture operation */
@@ -2371,6 +2577,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
 
    case SpvOpFragmentMaskFetchAMD:
       texop = nir_texop_fragment_mask_fetch;
+      dest_type = nir_type_uint;
       break;
 
    default:
@@ -2380,7 +2587,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
    nir_tex_src srcs[10]; /* 10 should be enough */
    nir_tex_src *p = srcs;
 
-   p->src = nir_src_for_ssa(&image_deref->dest.ssa);
+   p->src = nir_src_for_ssa(&image->dest.ssa);
    p->src_type = nir_tex_src_texture_deref;
    p++;
 
@@ -2394,7 +2601,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       vtn_fail_if(sampler == NULL,
                   "%s requires an image of type OpTypeSampledImage",
                   spirv_op_to_string(opcode));
-      p->src = nir_src_for_ssa(&sampler_deref->dest.ssa);
+      p->src = nir_src_for_ssa(&sampler->dest.ssa);
       p->src_type = nir_tex_src_sampler_deref;
       p++;
       break;
@@ -2442,9 +2649,21 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       if (is_array && texop != nir_texop_lod)
          coord_components++;
 
-      coord = vtn_ssa_value(b, w[idx++])->def;
+      struct vtn_ssa_value *coord_val = vtn_ssa_value(b, w[idx++]);
+      coord = coord_val->def;
       p->src = nir_src_for_ssa(nir_channels(&b->nb, coord,
                                             (1 << coord_components) - 1));
+
+      /* OpenCL allows integer sampling coordinates */
+      if (glsl_type_is_integer(coord_val->type) &&
+          opcode == SpvOpImageSampleExplicitLod) {
+         vtn_fail_if(b->shader->info.stage != MESA_SHADER_KERNEL,
+                     "Unless the Kernel capability is being used, the coordinate parameter "
+                     "OpImageSampleExplicitLod must be floating point.");
+
+         p->src = nir_src_for_ssa(nir_i2f32(&b->nb, p->src.ssa));
+      }
+
       p->src_type = nir_tex_src_coord;
       p++;
       break;
@@ -2589,15 +2808,43 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       is_shadow && glsl_get_components(ret_type->type) == 1;
    instr->component = gather_component;
 
-   if (image && (image->access & ACCESS_NON_UNIFORM))
+   /* The Vulkan spec says:
+    *
+    *    "If an instruction loads from or stores to a resource (including
+    *    atomics and image instructions) and the resource descriptor being
+    *    accessed is not dynamically uniform, then the operand corresponding
+    *    to that resource (e.g. the pointer or sampled image operand) must be
+    *    decorated with NonUniform."
+    *
+    * It's very careful to specify that the exact operand must be decorated
+    * NonUniform.  The SPIR-V parser is not expected to chase through long
+    * chains to find the NonUniform decoration.  It's either right there or we
+    * can assume it doesn't exist.
+    */
+   enum gl_access_qualifier access = 0;
+   vtn_foreach_decoration(b, sampled_val, non_uniform_decoration_cb, &access);
+
+   if (sampled_val->propagated_non_uniform)
+      access |= ACCESS_NON_UNIFORM;
+
+   if (image && (access & ACCESS_NON_UNIFORM))
       instr->texture_non_uniform = true;
 
-   if (sampler && (sampler->access & ACCESS_NON_UNIFORM))
+   if (sampler && (access & ACCESS_NON_UNIFORM))
       instr->sampler_non_uniform = true;
 
-   /* for non-query ops, get dest_type from sampler type */
+   /* for non-query ops, get dest_type from SPIR-V return type */
    if (dest_type == nir_type_invalid) {
-      switch (glsl_get_sampler_result_type(image_type)) {
+      /* the return type should match the image type, unless the image type is
+       * VOID (CL image), in which case the return type dictates the sampler
+       */
+      enum glsl_base_type sampler_base =
+         glsl_get_sampler_result_type(image->type);
+      enum glsl_base_type ret_base = glsl_get_base_type(ret_type->type);
+      vtn_fail_if(sampler_base != ret_base && sampler_base != GLSL_TYPE_VOID,
+                  "SPIR-V return type mismatches image type. This is only valid "
+                  "for untyped images (OpenCL).");
+      switch (ret_base) {
       case GLSL_TYPE_FLOAT:   dest_type = nir_type_float;   break;
       case GLSL_TYPE_INT:     dest_type = nir_type_int;     break;
       case GLSL_TYPE_UINT:    dest_type = nir_type_uint;    break;
@@ -2645,35 +2892,36 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       }
    }
 
-   struct vtn_ssa_value *ssa = vtn_create_ssa_value(b, ret_type->type);
-   ssa->def = &instr->dest.ssa;
-   vtn_push_ssa(b, w[2], ret_type, ssa);
-
    nir_builder_instr_insert(&b->nb, &instr->instr);
+
+   vtn_push_nir_ssa(b, w[2], &instr->dest.ssa);
 }
 
 static void
 fill_common_atomic_sources(struct vtn_builder *b, SpvOp opcode,
                            const uint32_t *w, nir_src *src)
 {
+   const struct glsl_type *type = vtn_get_type(b, w[1])->type;
+   unsigned bit_size = glsl_get_bit_size(type);
+
    switch (opcode) {
    case SpvOpAtomicIIncrement:
-      src[0] = nir_src_for_ssa(nir_imm_int(&b->nb, 1));
+      src[0] = nir_src_for_ssa(nir_imm_intN_t(&b->nb, 1, bit_size));
       break;
 
    case SpvOpAtomicIDecrement:
-      src[0] = nir_src_for_ssa(nir_imm_int(&b->nb, -1));
+      src[0] = nir_src_for_ssa(nir_imm_intN_t(&b->nb, -1, bit_size));
       break;
 
    case SpvOpAtomicISub:
       src[0] =
-         nir_src_for_ssa(nir_ineg(&b->nb, vtn_ssa_value(b, w[6])->def));
+         nir_src_for_ssa(nir_ineg(&b->nb, vtn_get_nir_ssa(b, w[6])));
       break;
 
    case SpvOpAtomicCompareExchange:
    case SpvOpAtomicCompareExchangeWeak:
-      src[0] = nir_src_for_ssa(vtn_ssa_value(b, w[8])->def);
-      src[1] = nir_src_for_ssa(vtn_ssa_value(b, w[7])->def);
+      src[0] = nir_src_for_ssa(vtn_get_nir_ssa(b, w[8]));
+      src[1] = nir_src_for_ssa(vtn_get_nir_ssa(b, w[7]));
       break;
 
    case SpvOpAtomicExchange:
@@ -2685,7 +2933,8 @@ fill_common_atomic_sources(struct vtn_builder *b, SpvOp opcode,
    case SpvOpAtomicAnd:
    case SpvOpAtomicOr:
    case SpvOpAtomicXor:
-      src[0] = nir_src_for_ssa(vtn_ssa_value(b, w[6])->def);
+   case SpvOpAtomicFAddEXT:
+      src[0] = nir_src_for_ssa(vtn_get_nir_ssa(b, w[6]));
       break;
 
    default:
@@ -2696,15 +2945,14 @@ fill_common_atomic_sources(struct vtn_builder *b, SpvOp opcode,
 static nir_ssa_def *
 get_image_coord(struct vtn_builder *b, uint32_t value)
 {
-   struct vtn_ssa_value *coord = vtn_ssa_value(b, value);
+   nir_ssa_def *coord = vtn_get_nir_ssa(b, value);
 
    /* The image_load_store intrinsics assume a 4-dim coordinate */
-   unsigned dim = glsl_get_vector_elements(coord->type);
    unsigned swizzle[4];
    for (unsigned i = 0; i < 4; i++)
-      swizzle[i] = MIN2(i, dim - 1);
+      swizzle[i] = MIN2(i, coord->num_components - 1);
 
-   return nir_swizzle(&b->nb, coord->def, swizzle, 4);
+   return nir_swizzle(&b->nb, coord, swizzle, 4);
 }
 
 static nir_ssa_def *
@@ -2729,9 +2977,9 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
          vtn_push_value(b, w[2], vtn_value_type_image_pointer);
       val->image = ralloc(b, struct vtn_image_pointer);
 
-      val->image->image = vtn_value(b, w[3], vtn_value_type_pointer)->pointer;
+      val->image->image = vtn_nir_deref(b, w[3]);
       val->image->coord = get_image_coord(b, w[4]);
-      val->image->sample = vtn_ssa_value(b, w[5])->def;
+      val->image->sample = vtn_get_nir_ssa(b, w[5]);
       val->image->lod = nir_imm_int(&b->nb, 0);
       return;
    }
@@ -2740,6 +2988,9 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    SpvScope scope = SpvScopeInvocation;
    SpvMemorySemanticsMask semantics = 0;
 
+   enum gl_access_qualifier access = 0;
+
+   struct vtn_value *res_val;
    switch (opcode) {
    case SpvOpAtomicExchange:
    case SpvOpAtomicCompareExchange:
@@ -2756,26 +3007,50 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    case SpvOpAtomicAnd:
    case SpvOpAtomicOr:
    case SpvOpAtomicXor:
-      image = *vtn_value(b, w[3], vtn_value_type_image_pointer)->image;
+   case SpvOpAtomicFAddEXT:
+      res_val = vtn_value(b, w[3], vtn_value_type_image_pointer);
+      image = *res_val->image;
       scope = vtn_constant_uint(b, w[4]);
       semantics = vtn_constant_uint(b, w[5]);
+      access |= ACCESS_COHERENT;
       break;
 
    case SpvOpAtomicStore:
-      image = *vtn_value(b, w[1], vtn_value_type_image_pointer)->image;
+      res_val = vtn_value(b, w[1], vtn_value_type_image_pointer);
+      image = *res_val->image;
       scope = vtn_constant_uint(b, w[2]);
       semantics = vtn_constant_uint(b, w[3]);
+      access |= ACCESS_COHERENT;
+      break;
+
+   case SpvOpImageQuerySizeLod:
+      res_val = vtn_untyped_value(b, w[3]);
+      image.image = vtn_get_image(b, w[3], &access);
+      image.coord = NULL;
+      image.sample = NULL;
+      image.lod = vtn_ssa_value(b, w[4])->def;
       break;
 
    case SpvOpImageQuerySize:
-      image.image = vtn_value(b, w[3], vtn_value_type_pointer)->pointer;
+      res_val = vtn_untyped_value(b, w[3]);
+      image.image = vtn_get_image(b, w[3], &access);
+      image.coord = NULL;
+      image.sample = NULL;
+      image.lod = NULL;
+      break;
+
+   case SpvOpImageQueryFormat:
+   case SpvOpImageQueryOrder:
+      res_val = vtn_untyped_value(b, w[3]);
+      image.image = vtn_get_image(b, w[3], &access);
       image.coord = NULL;
       image.sample = NULL;
       image.lod = NULL;
       break;
 
    case SpvOpImageRead: {
-      image.image = vtn_value(b, w[3], vtn_value_type_pointer)->pointer;
+      res_val = vtn_untyped_value(b, w[3]);
+      image.image = vtn_get_image(b, w[3], &access);
       image.coord = get_image_coord(b, w[4]);
 
       const SpvImageOperandsMask operands =
@@ -2784,7 +3059,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       if (operands & SpvImageOperandsSampleMask) {
          uint32_t arg = image_operand_arg(b, w, count, 5,
                                           SpvImageOperandsSampleMask);
-         image.sample = vtn_ssa_value(b, w[arg])->def;
+         image.sample = vtn_get_nir_ssa(b, w[arg]);
       } else {
          image.sample = nir_ssa_undef(&b->nb, 1, 32);
       }
@@ -2801,18 +3076,20 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       if (operands & SpvImageOperandsLodMask) {
          uint32_t arg = image_operand_arg(b, w, count, 5,
                                           SpvImageOperandsLodMask);
-         image.lod = vtn_ssa_value(b, w[arg])->def;
+         image.lod = vtn_get_nir_ssa(b, w[arg]);
       } else {
          image.lod = nir_imm_int(&b->nb, 0);
       }
 
-      /* TODO: Volatile. */
+      if (operands & SpvImageOperandsVolatileTexelMask)
+         access |= ACCESS_VOLATILE;
 
       break;
    }
 
    case SpvOpImageWrite: {
-      image.image = vtn_value(b, w[1], vtn_value_type_pointer)->pointer;
+      res_val = vtn_untyped_value(b, w[1]);
+      image.image = vtn_get_image(b, w[1], &access);
       image.coord = get_image_coord(b, w[2]);
 
       /* texel = w[3] */
@@ -2823,7 +3100,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       if (operands & SpvImageOperandsSampleMask) {
          uint32_t arg = image_operand_arg(b, w, count, 4,
                                           SpvImageOperandsSampleMask);
-         image.sample = vtn_ssa_value(b, w[arg])->def;
+         image.sample = vtn_get_nir_ssa(b, w[arg]);
       } else {
          image.sample = nir_ssa_undef(&b->nb, 1, 32);
       }
@@ -2840,12 +3117,13 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       if (operands & SpvImageOperandsLodMask) {
          uint32_t arg = image_operand_arg(b, w, count, 4,
                                           SpvImageOperandsLodMask);
-         image.lod = vtn_ssa_value(b, w[arg])->def;
+         image.lod = vtn_get_nir_ssa(b, w[arg]);
       } else {
          image.lod = nir_imm_int(&b->nb, 0);
       }
 
-      /* TODO: Volatile. */
+      if (operands & SpvImageOperandsVolatileTexelMask)
+         access |= ACCESS_VOLATILE;
 
       break;
    }
@@ -2854,10 +3132,14 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       vtn_fail_with_opcode("Invalid image opcode", opcode);
    }
 
+   if (semantics & SpvMemorySemanticsVolatileMask)
+      access |= ACCESS_VOLATILE;
+
    nir_intrinsic_op op;
    switch (opcode) {
 #define OP(S, N) case SpvOp##S: op = nir_intrinsic_image_deref_##N; break;
    OP(ImageQuerySize,            size)
+   OP(ImageQuerySizeLod,         size)
    OP(ImageRead,                 load)
    OP(ImageWrite,                store)
    OP(AtomicLoad,                load)
@@ -2876,6 +3158,9 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    OP(AtomicAnd,                 atomic_and)
    OP(AtomicOr,                  atomic_or)
    OP(AtomicXor,                 atomic_xor)
+   OP(AtomicFAddEXT,             atomic_fadd)
+   OP(ImageQueryFormat,          format)
+   OP(ImageQueryOrder,           order)
 #undef OP
    default:
       vtn_fail_with_opcode("Invalid image opcode", opcode);
@@ -2883,47 +3168,76 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
 
    nir_intrinsic_instr *intrin = nir_intrinsic_instr_create(b->shader, op);
 
-   nir_deref_instr *image_deref = vtn_pointer_to_deref(b, image.image);
-   intrin->src[0] = nir_src_for_ssa(&image_deref->dest.ssa);
+   intrin->src[0] = nir_src_for_ssa(&image.image->dest.ssa);
 
-   /* ImageQuerySize doesn't take any extra parameters */
-   if (opcode != SpvOpImageQuerySize) {
+   switch (opcode) {
+   case SpvOpImageQuerySize:
+   case SpvOpImageQuerySizeLod:
+   case SpvOpImageQueryFormat:
+   case SpvOpImageQueryOrder:
+      break;
+   default:
       /* The image coordinate is always 4 components but we may not have that
        * many.  Swizzle to compensate.
        */
       intrin->src[1] = nir_src_for_ssa(expand_to_vec4(&b->nb, image.coord));
       intrin->src[2] = nir_src_for_ssa(image.sample);
+      break;
    }
 
-   nir_intrinsic_set_access(intrin, image.image->access);
+   /* The Vulkan spec says:
+    *
+    *    "If an instruction loads from or stores to a resource (including
+    *    atomics and image instructions) and the resource descriptor being
+    *    accessed is not dynamically uniform, then the operand corresponding
+    *    to that resource (e.g. the pointer or sampled image operand) must be
+    *    decorated with NonUniform."
+    *
+    * It's very careful to specify that the exact operand must be decorated
+    * NonUniform.  The SPIR-V parser is not expected to chase through long
+    * chains to find the NonUniform decoration.  It's either right there or we
+    * can assume it doesn't exist.
+    */
+   vtn_foreach_decoration(b, res_val, non_uniform_decoration_cb, &access);
+   nir_intrinsic_set_access(intrin, access);
 
    switch (opcode) {
-   case SpvOpAtomicLoad:
+   case SpvOpImageQueryFormat:
+   case SpvOpImageQueryOrder:
+      /* No additional sources */
+      break;
    case SpvOpImageQuerySize:
+      intrin->src[1] = nir_src_for_ssa(nir_imm_int(&b->nb, 0));
+      break;
+   case SpvOpImageQuerySizeLod:
+      intrin->src[1] = nir_src_for_ssa(image.lod);
+      break;
+   case SpvOpAtomicLoad:
    case SpvOpImageRead:
-      if (opcode == SpvOpImageRead || opcode == SpvOpAtomicLoad) {
-         /* Only OpImageRead can support a lod parameter if
-          * SPV_AMD_shader_image_load_store_lod is used but the current NIR
-          * intrinsics definition for atomics requires us to set it for
-          * OpAtomicLoad.
-          */
-         intrin->src[3] = nir_src_for_ssa(image.lod);
-      }
+      /* Only OpImageRead can support a lod parameter if
+      * SPV_AMD_shader_image_load_store_lod is used but the current NIR
+      * intrinsics definition for atomics requires us to set it for
+      * OpAtomicLoad.
+      */
+      intrin->src[3] = nir_src_for_ssa(image.lod);
       break;
    case SpvOpAtomicStore:
    case SpvOpImageWrite: {
       const uint32_t value_id = opcode == SpvOpAtomicStore ? w[4] : w[3];
-      nir_ssa_def *value = vtn_ssa_value(b, value_id)->def;
+      struct vtn_ssa_value *value = vtn_ssa_value(b, value_id);
       /* nir_intrinsic_image_deref_store always takes a vec4 value */
       assert(op == nir_intrinsic_image_deref_store);
       intrin->num_components = 4;
-      intrin->src[3] = nir_src_for_ssa(expand_to_vec4(&b->nb, value));
+      intrin->src[3] = nir_src_for_ssa(expand_to_vec4(&b->nb, value->def));
       /* Only OpImageWrite can support a lod parameter if
        * SPV_AMD_shader_image_load_store_lod is used but the current NIR
        * intrinsics definition for atomics requires us to set it for
        * OpAtomicStore.
        */
       intrin->src[4] = nir_src_for_ssa(image.lod);
+
+      if (opcode == SpvOpImageWrite)
+         nir_intrinsic_set_src_type(intrin, nir_get_nir_type_for_glsl_type(value->type));
       break;
    }
 
@@ -2941,6 +3255,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    case SpvOpAtomicAnd:
    case SpvOpAtomicOr:
    case SpvOpAtomicXor:
+   case SpvOpAtomicFAddEXT:
       fill_common_atomic_sources(b, opcode, w, &intrin->src[3]);
       break;
 
@@ -2959,7 +3274,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       vtn_emit_memory_barrier(b, scope, before_semantics);
 
    if (opcode != SpvOpImageWrite && opcode != SpvOpAtomicStore) {
-      struct vtn_type *type = vtn_value(b, w[1], vtn_value_type_type)->type;
+      struct vtn_type *type = vtn_get_type(b, w[1]);
 
       unsigned dest_components = glsl_get_vector_elements(type->type);
       if (nir_intrinsic_infos[op].dest_components == 0)
@@ -2974,42 +3289,16 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       if (nir_intrinsic_dest_components(intrin) != dest_components)
          result = nir_channels(&b->nb, result, (1 << dest_components) - 1);
 
-      struct vtn_value *val =
-         vtn_push_ssa(b, w[2], type, vtn_create_ssa_value(b, type->type));
-      val->ssa->def = result;
+      vtn_push_nir_ssa(b, w[2], result);
+
+      if (opcode == SpvOpImageRead)
+         nir_intrinsic_set_dest_type(intrin, nir_get_nir_type_for_glsl_type(type->type));
    } else {
       nir_builder_instr_insert(&b->nb, &intrin->instr);
    }
 
    if (after_semantics)
       vtn_emit_memory_barrier(b, scope, after_semantics);
-}
-
-static nir_intrinsic_op
-get_ssbo_nir_atomic_op(struct vtn_builder *b, SpvOp opcode)
-{
-   switch (opcode) {
-   case SpvOpAtomicLoad:         return nir_intrinsic_load_ssbo;
-   case SpvOpAtomicStore:        return nir_intrinsic_store_ssbo;
-#define OP(S, N) case SpvOp##S: return nir_intrinsic_ssbo_##N;
-   OP(AtomicExchange,            atomic_exchange)
-   OP(AtomicCompareExchange,     atomic_comp_swap)
-   OP(AtomicCompareExchangeWeak, atomic_comp_swap)
-   OP(AtomicIIncrement,          atomic_add)
-   OP(AtomicIDecrement,          atomic_add)
-   OP(AtomicIAdd,                atomic_add)
-   OP(AtomicISub,                atomic_add)
-   OP(AtomicSMin,                atomic_imin)
-   OP(AtomicUMin,                atomic_umin)
-   OP(AtomicSMax,                atomic_imax)
-   OP(AtomicUMax,                atomic_umax)
-   OP(AtomicAnd,                 atomic_and)
-   OP(AtomicOr,                  atomic_or)
-   OP(AtomicXor,                 atomic_xor)
-#undef OP
-   default:
-      vtn_fail_with_opcode("Invalid SSBO atomic", opcode);
-   }
 }
 
 static nir_intrinsic_op
@@ -3063,6 +3352,7 @@ get_deref_nir_atomic_op(struct vtn_builder *b, SpvOp opcode)
    OP(AtomicAnd,                 atomic_and)
    OP(AtomicOr,                  atomic_or)
    OP(AtomicXor,                 atomic_xor)
+   OP(AtomicFAddEXT,             atomic_fadd)
 #undef OP
    default:
       vtn_fail_with_opcode("Invalid shared atomic", opcode);
@@ -3081,6 +3371,7 @@ vtn_handle_atomics(struct vtn_builder *b, SpvOp opcode,
 
    SpvScope scope = SpvScopeInvocation;
    SpvMemorySemanticsMask semantics = 0;
+   enum gl_access_qualifier access = 0;
 
    switch (opcode) {
    case SpvOpAtomicLoad:
@@ -3098,6 +3389,7 @@ vtn_handle_atomics(struct vtn_builder *b, SpvOp opcode,
    case SpvOpAtomicAnd:
    case SpvOpAtomicOr:
    case SpvOpAtomicXor:
+   case SpvOpAtomicFAddEXT:
       ptr = vtn_value(b, w[3], vtn_value_type_pointer)->pointer;
       scope = vtn_constant_uint(b, w[4]);
       semantics = vtn_constant_uint(b, w[5]);
@@ -3113,8 +3405,11 @@ vtn_handle_atomics(struct vtn_builder *b, SpvOp opcode,
       vtn_fail_with_opcode("Invalid SPIR-V atomic", opcode);
    }
 
+   if (semantics & SpvMemorySemanticsVolatileMask)
+      access |= ACCESS_VOLATILE;
+
    /* uniform as "atomic counter uniform" */
-   if (ptr->mode == vtn_variable_mode_uniform) {
+   if (ptr->mode == vtn_variable_mode_atomic_counter) {
       nir_deref_instr *deref = vtn_pointer_to_deref(b, ptr);
       nir_intrinsic_op op = get_uniform_nir_atomic_op(b, opcode);
       atomic = nir_intrinsic_instr_create(b->nb.shader, op);
@@ -3150,58 +3445,6 @@ vtn_handle_atomics(struct vtn_builder *b, SpvOp opcode,
          unreachable("Invalid SPIR-V atomic");
 
       }
-   } else if (vtn_pointer_uses_ssa_offset(b, ptr)) {
-      nir_ssa_def *offset, *index;
-      offset = vtn_pointer_to_offset(b, ptr, &index);
-
-      assert(ptr->mode == vtn_variable_mode_ssbo);
-
-      nir_intrinsic_op op  = get_ssbo_nir_atomic_op(b, opcode);
-      atomic = nir_intrinsic_instr_create(b->nb.shader, op);
-
-      int src = 0;
-      switch (opcode) {
-      case SpvOpAtomicLoad:
-         atomic->num_components = glsl_get_vector_elements(ptr->type->type);
-         nir_intrinsic_set_align(atomic, 4, 0);
-         if (ptr->mode == vtn_variable_mode_ssbo)
-            atomic->src[src++] = nir_src_for_ssa(index);
-         atomic->src[src++] = nir_src_for_ssa(offset);
-         break;
-
-      case SpvOpAtomicStore:
-         atomic->num_components = glsl_get_vector_elements(ptr->type->type);
-         nir_intrinsic_set_write_mask(atomic, (1 << atomic->num_components) - 1);
-         nir_intrinsic_set_align(atomic, 4, 0);
-         atomic->src[src++] = nir_src_for_ssa(vtn_ssa_value(b, w[4])->def);
-         if (ptr->mode == vtn_variable_mode_ssbo)
-            atomic->src[src++] = nir_src_for_ssa(index);
-         atomic->src[src++] = nir_src_for_ssa(offset);
-         break;
-
-      case SpvOpAtomicExchange:
-      case SpvOpAtomicCompareExchange:
-      case SpvOpAtomicCompareExchangeWeak:
-      case SpvOpAtomicIIncrement:
-      case SpvOpAtomicIDecrement:
-      case SpvOpAtomicIAdd:
-      case SpvOpAtomicISub:
-      case SpvOpAtomicSMin:
-      case SpvOpAtomicUMin:
-      case SpvOpAtomicSMax:
-      case SpvOpAtomicUMax:
-      case SpvOpAtomicAnd:
-      case SpvOpAtomicOr:
-      case SpvOpAtomicXor:
-         if (ptr->mode == vtn_variable_mode_ssbo)
-            atomic->src[src++] = nir_src_for_ssa(index);
-         atomic->src[src++] = nir_src_for_ssa(offset);
-         fill_common_atomic_sources(b, opcode, w, &atomic->src[src]);
-         break;
-
-      default:
-         vtn_fail_with_opcode("Invalid SPIR-V atomic", opcode);
-      }
    } else {
       nir_deref_instr *deref = vtn_pointer_to_deref(b, ptr);
       const struct glsl_type *deref_type = deref->type;
@@ -3209,6 +3452,11 @@ vtn_handle_atomics(struct vtn_builder *b, SpvOp opcode,
       atomic = nir_intrinsic_instr_create(b->nb.shader, op);
       atomic->src[0] = nir_src_for_ssa(&deref->dest.ssa);
 
+      if (ptr->mode != vtn_variable_mode_workgroup)
+         access |= ACCESS_COHERENT;
+
+      nir_intrinsic_set_access(atomic, access);
+
       switch (opcode) {
       case SpvOpAtomicLoad:
          atomic->num_components = glsl_get_vector_elements(deref_type);
@@ -3217,7 +3465,7 @@ vtn_handle_atomics(struct vtn_builder *b, SpvOp opcode,
       case SpvOpAtomicStore:
          atomic->num_components = glsl_get_vector_elements(deref_type);
          nir_intrinsic_set_write_mask(atomic, (1 << atomic->num_components) - 1);
-         atomic->src[1] = nir_src_for_ssa(vtn_ssa_value(b, w[4])->def);
+         atomic->src[1] = nir_src_for_ssa(vtn_get_nir_ssa(b, w[4]));
          break;
 
       case SpvOpAtomicExchange:
@@ -3234,6 +3482,7 @@ vtn_handle_atomics(struct vtn_builder *b, SpvOp opcode,
       case SpvOpAtomicAnd:
       case SpvOpAtomicOr:
       case SpvOpAtomicXor:
+      case SpvOpAtomicFAddEXT:
          fill_common_atomic_sources(b, opcode, w, &atomic->src[1]);
          break;
 
@@ -3245,7 +3494,7 @@ vtn_handle_atomics(struct vtn_builder *b, SpvOp opcode,
    /* Atomic ordering operations will implicitly apply to the atomic operation
     * storage class, so include that too.
     */
-   semantics |= vtn_storage_class_to_memory_semantics(ptr->ptr_type->storage_class);
+   semantics |= vtn_mode_to_memory_semantics(ptr->mode);
 
    SpvMemorySemanticsMask before_semantics;
    SpvMemorySemanticsMask after_semantics;
@@ -3255,16 +3504,13 @@ vtn_handle_atomics(struct vtn_builder *b, SpvOp opcode,
       vtn_emit_memory_barrier(b, scope, before_semantics);
 
    if (opcode != SpvOpAtomicStore) {
-      struct vtn_type *type = vtn_value(b, w[1], vtn_value_type_type)->type;
+      struct vtn_type *type = vtn_get_type(b, w[1]);
 
       nir_ssa_dest_init(&atomic->instr, &atomic->dest,
                         glsl_get_vector_elements(type->type),
                         glsl_get_bit_size(type->type), NULL);
 
-      struct vtn_ssa_value *ssa = rzalloc(b, struct vtn_ssa_value);
-      ssa->def = &atomic->dest.ssa;
-      ssa->type = type->type;
-      vtn_push_ssa(b, w[2], type, ssa);
+      vtn_push_nir_ssa(b, w[2], &atomic->dest.ssa);
    }
 
    nir_builder_instr_insert(&b->nb, &atomic->instr);
@@ -3454,8 +3700,9 @@ vtn_composite_extract(struct vtn_builder *b, struct vtn_ssa_value *src,
           * vector to extract.
           */
 
-         struct vtn_ssa_value *ret = rzalloc(b, struct vtn_ssa_value);
-         ret->type = glsl_scalar_type(glsl_get_base_type(cur->type));
+         const struct glsl_type *scalar_type =
+            glsl_scalar_type(glsl_get_base_type(cur->type));
+         struct vtn_ssa_value *ret = vtn_create_ssa_value(b, scalar_type);
          ret->def = nir_channel(&b->nb, cur->def, indices[i]);
          return ret;
       } else {
@@ -3472,25 +3719,25 @@ static void
 vtn_handle_composite(struct vtn_builder *b, SpvOp opcode,
                      const uint32_t *w, unsigned count)
 {
-   struct vtn_type *type = vtn_value(b, w[1], vtn_value_type_type)->type;
+   struct vtn_type *type = vtn_get_type(b, w[1]);
    struct vtn_ssa_value *ssa = vtn_create_ssa_value(b, type->type);
 
    switch (opcode) {
    case SpvOpVectorExtractDynamic:
-      ssa->def = nir_vector_extract(&b->nb, vtn_ssa_value(b, w[3])->def,
-                                    vtn_ssa_value(b, w[4])->def);
+      ssa->def = nir_vector_extract(&b->nb, vtn_get_nir_ssa(b, w[3]),
+                                    vtn_get_nir_ssa(b, w[4]));
       break;
 
    case SpvOpVectorInsertDynamic:
-      ssa->def = nir_vector_insert(&b->nb, vtn_ssa_value(b, w[3])->def,
-                                   vtn_ssa_value(b, w[4])->def,
-                                   vtn_ssa_value(b, w[5])->def);
+      ssa->def = nir_vector_insert(&b->nb, vtn_get_nir_ssa(b, w[3]),
+                                   vtn_get_nir_ssa(b, w[4]),
+                                   vtn_get_nir_ssa(b, w[5]));
       break;
 
    case SpvOpVectorShuffle:
       ssa->def = vtn_vector_shuffle(b, glsl_get_vector_elements(type->type),
-                                    vtn_ssa_value(b, w[3])->def,
-                                    vtn_ssa_value(b, w[4])->def,
+                                    vtn_get_nir_ssa(b, w[3]),
+                                    vtn_get_nir_ssa(b, w[4]),
                                     w + 5);
       break;
 
@@ -3500,7 +3747,7 @@ vtn_handle_composite(struct vtn_builder *b, SpvOp opcode,
       if (glsl_type_is_vector_or_scalar(type->type)) {
          nir_ssa_def *srcs[NIR_MAX_VEC_COMPONENTS];
          for (unsigned i = 0; i < elems; i++)
-            srcs[i] = vtn_ssa_value(b, w[3 + i])->def;
+            srcs[i] = vtn_get_nir_ssa(b, w[3 + i]);
          ssa->def =
             vtn_vector_construct(b, glsl_get_vector_elements(type->type),
                                  elems, srcs);
@@ -3533,7 +3780,7 @@ vtn_handle_composite(struct vtn_builder *b, SpvOp opcode,
       vtn_fail_with_opcode("unknown composite operation", opcode);
    }
 
-   vtn_push_ssa(b, w[2], type, ssa);
+   vtn_push_ssa_value(b, w[2], ssa);
 }
 
 static void
@@ -3577,40 +3824,43 @@ vtn_emit_memory_barrier(struct vtn_builder *b, SpvScope scope,
    /* There's only two scopes thing left */
    vtn_assert(scope == SpvScopeInvocation || scope == SpvScopeDevice);
 
-   /* Map the GLSL memoryBarrier() construct to the corresponding NIR one. */
-   static const SpvMemorySemanticsMask glsl_memory_barrier =
-      SpvMemorySemanticsUniformMemoryMask |
-      SpvMemorySemanticsWorkgroupMemoryMask |
-      SpvMemorySemanticsImageMemoryMask;
-   if ((semantics & glsl_memory_barrier) == glsl_memory_barrier) {
-       vtn_emit_barrier(b, nir_intrinsic_memory_barrier);
-       semantics &= ~(glsl_memory_barrier | SpvMemorySemanticsAtomicCounterMemoryMask);
+   /* Map the GLSL memoryBarrier() construct and any barriers with more than one
+    * semantic to the corresponding NIR one.
+    */
+   if (util_bitcount(semantics & all_memory_semantics) > 1) {
+      vtn_emit_barrier(b, nir_intrinsic_memory_barrier);
+      if (semantics & SpvMemorySemanticsOutputMemoryMask) {
+         /* GLSL memoryBarrier() (and the corresponding NIR one) doesn't include
+          * TCS outputs, so we have to emit it's own intrinsic for that. We
+          * then need to emit another memory_barrier to prevent moving
+          * non-output operations to before the tcs_patch barrier.
+          */
+         vtn_emit_barrier(b, nir_intrinsic_memory_barrier_tcs_patch);
+         vtn_emit_barrier(b, nir_intrinsic_memory_barrier);
+      }
+      return;
    }
 
-   /* Issue a bunch of more specific barriers */
-   uint32_t bits = semantics;
-   while (bits) {
-      SpvMemorySemanticsMask semantic = 1 << u_bit_scan(&bits);
-      switch (semantic) {
-      case SpvMemorySemanticsUniformMemoryMask:
-         vtn_emit_barrier(b, nir_intrinsic_memory_barrier_buffer);
-         break;
-      case SpvMemorySemanticsWorkgroupMemoryMask:
-         vtn_emit_barrier(b, nir_intrinsic_memory_barrier_shared);
-         break;
-      case SpvMemorySemanticsAtomicCounterMemoryMask:
-         vtn_emit_barrier(b, nir_intrinsic_memory_barrier_atomic_counter);
-         break;
-      case SpvMemorySemanticsImageMemoryMask:
-         vtn_emit_barrier(b, nir_intrinsic_memory_barrier_image);
-         break;
-      case SpvMemorySemanticsOutputMemoryMask:
-         if (b->nb.shader->info.stage == MESA_SHADER_TESS_CTRL)
-            vtn_emit_barrier(b, nir_intrinsic_memory_barrier_tcs_patch);
-         break;
-      default:
-         break;;
-      }
+   /* Issue a more specific barrier */
+   switch (semantics & all_memory_semantics) {
+   case SpvMemorySemanticsUniformMemoryMask:
+      vtn_emit_barrier(b, nir_intrinsic_memory_barrier_buffer);
+      break;
+   case SpvMemorySemanticsWorkgroupMemoryMask:
+      vtn_emit_barrier(b, nir_intrinsic_memory_barrier_shared);
+      break;
+   case SpvMemorySemanticsAtomicCounterMemoryMask:
+      vtn_emit_barrier(b, nir_intrinsic_memory_barrier_atomic_counter);
+      break;
+   case SpvMemorySemanticsImageMemoryMask:
+      vtn_emit_barrier(b, nir_intrinsic_memory_barrier_image);
+      break;
+   case SpvMemorySemanticsOutputMemoryMask:
+      if (b->nb.shader->info.stage == MESA_SHADER_TESS_CTRL)
+         vtn_emit_barrier(b, nir_intrinsic_memory_barrier_tcs_patch);
+      break;
+   default:
+      break;
    }
 }
 
@@ -3840,6 +4090,8 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          (count > 3) ? vtn_value(b, w[3], vtn_value_type_string)->str : "";
 
       vtn_info("Parsing SPIR-V from %s %u source file %s", lang, version, file);
+
+      b->source_lang = w[1];
       break;
    }
 
@@ -3883,7 +4135,6 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          break;
 
       case SpvCapabilityLinkage:
-      case SpvCapabilityFloat16Buffer:
       case SpvCapabilitySparseResidency:
          vtn_warn("Unsupported SPIR-V capability: %s",
                   spirv_capability_to_string(cap));
@@ -3931,15 +4182,22 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          break;
 
       case SpvCapabilityKernel:
+      case SpvCapabilityFloat16Buffer:
          spv_check_supported(kernel, cap);
          break;
 
       case SpvCapabilityImageBasic:
+         spv_check_supported(kernel_image, cap);
+         break;
+
+      case SpvCapabilityLiteralSampler:
+         spv_check_supported(literal_sampler, cap);
+         break;
+
       case SpvCapabilityImageReadWrite:
       case SpvCapabilityImageMipmap:
       case SpvCapabilityPipes:
       case SpvCapabilityDeviceEnqueue:
-      case SpvCapabilityLiteralSampler:
       case SpvCapabilityGenericPointer:
          vtn_warn("Unsupported OpenCL-style SPIR-V capability: %s",
                   spirv_capability_to_string(cap));
@@ -4094,6 +4352,7 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
 
       case SpvCapabilityDemoteToHelperInvocationEXT:
          spv_check_supported(demote_to_helper_invocation, cap);
+         b->uses_demote_to_helper_invocation = true;
          break;
 
       case SpvCapabilityShaderClockKHR:
@@ -4124,6 +4383,14 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(amd_image_gather_bias_lod, cap);
          break;
 
+      case SpvCapabilityAtomicFloat32AddEXT:
+         spv_check_supported(float32_atomic_add, cap);
+         break;
+
+      case SpvCapabilityAtomicFloat64AddEXT:
+         spv_check_supported(float64_atomic_add, cap);
+         break;
+
       default:
          vtn_fail("Unhandled capability: %s (%u)",
                   spirv_capability_to_string(cap), cap);
@@ -4142,18 +4409,24 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
                      "AddressingModelPhysical32 only supported for kernels");
          b->shader->info.cs.ptr_size = 32;
          b->physical_ptrs = true;
-         b->options->shared_addr_format = nir_address_format_32bit_global;
-         b->options->global_addr_format = nir_address_format_32bit_global;
-         b->options->temp_addr_format = nir_address_format_32bit_global;
+         assert(nir_address_format_bit_size(b->options->global_addr_format) == 32);
+         assert(nir_address_format_num_components(b->options->global_addr_format) == 1);
+         assert(nir_address_format_bit_size(b->options->shared_addr_format) == 32);
+         assert(nir_address_format_num_components(b->options->shared_addr_format) == 1);
+         assert(nir_address_format_bit_size(b->options->constant_addr_format) == 32);
+         assert(nir_address_format_num_components(b->options->constant_addr_format) == 1);
          break;
       case SpvAddressingModelPhysical64:
          vtn_fail_if(b->shader->info.stage != MESA_SHADER_KERNEL,
                      "AddressingModelPhysical64 only supported for kernels");
          b->shader->info.cs.ptr_size = 64;
          b->physical_ptrs = true;
-         b->options->shared_addr_format = nir_address_format_64bit_global;
-         b->options->global_addr_format = nir_address_format_64bit_global;
-         b->options->temp_addr_format = nir_address_format_64bit_global;
+         assert(nir_address_format_bit_size(b->options->global_addr_format) == 64);
+         assert(nir_address_format_num_components(b->options->global_addr_format) == 1);
+         assert(nir_address_format_bit_size(b->options->shared_addr_format) == 64);
+         assert(nir_address_format_num_components(b->options->shared_addr_format) == 1);
+         assert(nir_address_format_bit_size(b->options->constant_addr_format) == 64);
+         assert(nir_address_format_num_components(b->options->constant_addr_format) == 1);
          break;
       case SpvAddressingModelLogical:
          vtn_fail_if(b->shader->info.stage == MESA_SHADER_KERNEL,
@@ -4289,14 +4562,7 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
       b->shader->info.cs.local_size[2] = mode->operands[2];
       break;
 
-   case SpvExecutionModeLocalSizeId:
-      b->shader->info.cs.local_size[0] = vtn_constant_uint(b, mode->operands[0]);
-      b->shader->info.cs.local_size[1] = vtn_constant_uint(b, mode->operands[1]);
-      b->shader->info.cs.local_size[2] = vtn_constant_uint(b, mode->operands[2]);
-      break;
-
    case SpvExecutionModeLocalSizeHint:
-   case SpvExecutionModeLocalSizeHintId:
       break; /* Nothing to do with this */
 
    case SpvExecutionModeOutputVertices:
@@ -4426,8 +4692,60 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
    case SpvExecutionModeDenormFlushToZero:
    case SpvExecutionModeSignedZeroInfNanPreserve:
    case SpvExecutionModeRoundingModeRTE:
-   case SpvExecutionModeRoundingModeRTZ:
-      /* Already handled in vtn_handle_rounding_mode_in_execution_mode() */
+   case SpvExecutionModeRoundingModeRTZ: {
+      unsigned execution_mode = 0;
+      switch (mode->exec_mode) {
+      case SpvExecutionModeDenormPreserve:
+         switch (mode->operands[0]) {
+         case 16: execution_mode = FLOAT_CONTROLS_DENORM_PRESERVE_FP16; break;
+         case 32: execution_mode = FLOAT_CONTROLS_DENORM_PRESERVE_FP32; break;
+         case 64: execution_mode = FLOAT_CONTROLS_DENORM_PRESERVE_FP64; break;
+         default: vtn_fail("Floating point type not supported");
+         }
+         break;
+      case SpvExecutionModeDenormFlushToZero:
+         switch (mode->operands[0]) {
+         case 16: execution_mode = FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP16; break;
+         case 32: execution_mode = FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP32; break;
+         case 64: execution_mode = FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP64; break;
+         default: vtn_fail("Floating point type not supported");
+         }
+         break;
+      case SpvExecutionModeSignedZeroInfNanPreserve:
+         switch (mode->operands[0]) {
+         case 16: execution_mode = FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP16; break;
+         case 32: execution_mode = FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP32; break;
+         case 64: execution_mode = FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP64; break;
+         default: vtn_fail("Floating point type not supported");
+         }
+         break;
+      case SpvExecutionModeRoundingModeRTE:
+         switch (mode->operands[0]) {
+         case 16: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP16; break;
+         case 32: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP32; break;
+         case 64: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP64; break;
+         default: vtn_fail("Floating point type not supported");
+         }
+         break;
+      case SpvExecutionModeRoundingModeRTZ:
+         switch (mode->operands[0]) {
+         case 16: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP16; break;
+         case 32: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP32; break;
+         case 64: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP64; break;
+         default: vtn_fail("Floating point type not supported");
+         }
+         break;
+      default:
+         break;
+      }
+
+      b->shader->info.float_controls_execution_mode |= execution_mode;
+      break;
+   }
+
+   case SpvExecutionModeLocalSizeId:
+   case SpvExecutionModeLocalSizeHintId:
+      /* Handled later by vtn_handle_execution_mode_id(). */
       break;
 
    default:
@@ -4438,60 +4756,28 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
 }
 
 static void
-vtn_handle_rounding_mode_in_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
-                                           const struct vtn_decoration *mode, void *data)
+vtn_handle_execution_mode_id(struct vtn_builder *b, struct vtn_value *entry_point,
+                             const struct vtn_decoration *mode, UNUSED void *data)
 {
+
    vtn_assert(b->entry_point == entry_point);
 
-   unsigned execution_mode = 0;
+   switch (mode->exec_mode) {
+   case SpvExecutionModeLocalSizeId:
+      b->shader->info.cs.local_size[0] = vtn_constant_uint(b, mode->operands[0]);
+      b->shader->info.cs.local_size[1] = vtn_constant_uint(b, mode->operands[1]);
+      b->shader->info.cs.local_size[2] = vtn_constant_uint(b, mode->operands[2]);
+      break;
 
-   switch(mode->exec_mode) {
-   case SpvExecutionModeDenormPreserve:
-      switch (mode->operands[0]) {
-      case 16: execution_mode = FLOAT_CONTROLS_DENORM_PRESERVE_FP16; break;
-      case 32: execution_mode = FLOAT_CONTROLS_DENORM_PRESERVE_FP32; break;
-      case 64: execution_mode = FLOAT_CONTROLS_DENORM_PRESERVE_FP64; break;
-      default: vtn_fail("Floating point type not supported");
-      }
-      break;
-   case SpvExecutionModeDenormFlushToZero:
-      switch (mode->operands[0]) {
-      case 16: execution_mode = FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP16; break;
-      case 32: execution_mode = FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP32; break;
-      case 64: execution_mode = FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP64; break;
-      default: vtn_fail("Floating point type not supported");
-      }
-       break;
-   case SpvExecutionModeSignedZeroInfNanPreserve:
-      switch (mode->operands[0]) {
-      case 16: execution_mode = FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP16; break;
-      case 32: execution_mode = FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP32; break;
-      case 64: execution_mode = FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP64; break;
-      default: vtn_fail("Floating point type not supported");
-      }
-      break;
-   case SpvExecutionModeRoundingModeRTE:
-      switch (mode->operands[0]) {
-      case 16: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP16; break;
-      case 32: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP32; break;
-      case 64: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP64; break;
-      default: vtn_fail("Floating point type not supported");
-      }
-      break;
-   case SpvExecutionModeRoundingModeRTZ:
-      switch (mode->operands[0]) {
-      case 16: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP16; break;
-      case 32: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP32; break;
-      case 64: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP64; break;
-      default: vtn_fail("Floating point type not supported");
-      }
+   case SpvExecutionModeLocalSizeHintId:
+      /* Nothing to do with this hint. */
       break;
 
    default:
+      /* Nothing to do.  Literal execution modes already handled by
+       * vtn_handle_execution_mode(). */
       break;
    }
-
-   b->shader->info.float_controls_execution_mode |= execution_mode;
 }
 
 static bool
@@ -4552,7 +4838,6 @@ vtn_handle_variable_or_type_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpConstantFalse:
    case SpvOpConstant:
    case SpvOpConstantComposite:
-   case SpvOpConstantSampler:
    case SpvOpConstantNull:
    case SpvOpSpecConstantTrue:
    case SpvOpSpecConstantFalse:
@@ -4564,6 +4849,7 @@ vtn_handle_variable_or_type_instruction(struct vtn_builder *b, SpvOp opcode,
 
    case SpvOpUndef:
    case SpvOpVariable:
+   case SpvOpConstantSampler:
       vtn_handle_variables(b, opcode, w, count);
       break;
 
@@ -4649,70 +4935,66 @@ vtn_handle_select(struct vtn_builder *b, SpvOp opcode,
       vtn_fail("Result type of OpSelect must be a scalar, composite, or pointer");
    }
 
-   struct vtn_type *res_type = vtn_value(b, w[1], vtn_value_type_type)->type;
-   struct vtn_ssa_value *ssa = vtn_nir_select(b,
-      vtn_ssa_value(b, w[3]), vtn_ssa_value(b, w[4]), vtn_ssa_value(b, w[5]));
-
-   vtn_push_ssa(b, w[2], res_type, ssa);
+   vtn_push_ssa_value(b, w[2],
+      vtn_nir_select(b, vtn_ssa_value(b, w[3]),
+                        vtn_ssa_value(b, w[4]),
+                        vtn_ssa_value(b, w[5])));
 }
 
 static void
 vtn_handle_ptr(struct vtn_builder *b, SpvOp opcode,
                const uint32_t *w, unsigned count)
 {
-      struct vtn_type *type1 = vtn_untyped_value(b, w[3])->type;
-      struct vtn_type *type2 = vtn_untyped_value(b, w[4])->type;
-      vtn_fail_if(type1->base_type != vtn_base_type_pointer ||
-                  type2->base_type != vtn_base_type_pointer,
-                  "%s operands must have pointer types",
-                  spirv_op_to_string(opcode));
-      vtn_fail_if(type1->storage_class != type2->storage_class,
-                  "%s operands must have the same storage class",
-                  spirv_op_to_string(opcode));
+   struct vtn_type *type1 = vtn_get_value_type(b, w[3]);
+   struct vtn_type *type2 = vtn_get_value_type(b, w[4]);
+   vtn_fail_if(type1->base_type != vtn_base_type_pointer ||
+               type2->base_type != vtn_base_type_pointer,
+               "%s operands must have pointer types",
+               spirv_op_to_string(opcode));
+   vtn_fail_if(type1->storage_class != type2->storage_class,
+               "%s operands must have the same storage class",
+               spirv_op_to_string(opcode));
 
-      struct vtn_type *vtn_type =
-         vtn_value(b, w[1], vtn_value_type_type)->type;
-      const struct glsl_type *type = vtn_type->type;
+   struct vtn_type *vtn_type = vtn_get_type(b, w[1]);
+   const struct glsl_type *type = vtn_type->type;
 
-      nir_address_format addr_format = vtn_mode_to_address_format(
-         b, vtn_storage_class_to_mode(b, type1->storage_class, NULL, NULL));
+   nir_address_format addr_format = vtn_mode_to_address_format(
+      b, vtn_storage_class_to_mode(b, type1->storage_class, NULL, NULL));
 
-      nir_ssa_def *def;
+   nir_ssa_def *def;
 
-      switch (opcode) {
-      case SpvOpPtrDiff: {
-         /* OpPtrDiff returns the difference in number of elements (not byte offset). */
-         unsigned elem_size, elem_align;
-         glsl_get_natural_size_align_bytes(type1->deref->type,
-                                           &elem_size, &elem_align);
+   switch (opcode) {
+   case SpvOpPtrDiff: {
+      /* OpPtrDiff returns the difference in number of elements (not byte offset). */
+      unsigned elem_size, elem_align;
+      glsl_get_natural_size_align_bytes(type1->deref->type,
+                                        &elem_size, &elem_align);
 
-         def = nir_build_addr_isub(&b->nb,
-                                   vtn_ssa_value(b, w[3])->def,
-                                   vtn_ssa_value(b, w[4])->def,
-                                   addr_format);
-         def = nir_idiv(&b->nb, def, nir_imm_intN_t(&b->nb, elem_size, def->bit_size));
-         def = nir_i2i(&b->nb, def, glsl_get_bit_size(type));
-         break;
-      }
+      def = nir_build_addr_isub(&b->nb,
+                                vtn_get_nir_ssa(b, w[3]),
+                                vtn_get_nir_ssa(b, w[4]),
+                                addr_format);
+      def = nir_idiv(&b->nb, def, nir_imm_intN_t(&b->nb, elem_size, def->bit_size));
+      def = nir_i2i(&b->nb, def, glsl_get_bit_size(type));
+      break;
+   }
 
-      case SpvOpPtrEqual:
-      case SpvOpPtrNotEqual: {
-         def = nir_build_addr_ieq(&b->nb,
-                                  vtn_ssa_value(b, w[3])->def,
-                                  vtn_ssa_value(b, w[4])->def,
-                                  addr_format);
-         if (opcode == SpvOpPtrNotEqual)
-            def = nir_inot(&b->nb, def);
-         break;
-      }
+   case SpvOpPtrEqual:
+   case SpvOpPtrNotEqual: {
+      def = nir_build_addr_ieq(&b->nb,
+                               vtn_get_nir_ssa(b, w[3]),
+                               vtn_get_nir_ssa(b, w[4]),
+                               addr_format);
+      if (opcode == SpvOpPtrNotEqual)
+         def = nir_inot(&b->nb, def);
+      break;
+   }
 
-      default:
-         unreachable("Invalid ptr operation");
-      }
+   default:
+      unreachable("Invalid ptr operation");
+   }
 
-      struct vtn_ssa_value *ssa_value = vtn_create_ssa_value(b, type);
-      ssa_value->def = def;
-      vtn_push_ssa(b, w[2], vtn_type, ssa_value);
+   vtn_push_nir_ssa(b, w[2], def);
 }
 
 static bool
@@ -4730,7 +5012,7 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
 
    case SpvOpUndef: {
       struct vtn_value *val = vtn_push_value(b, w[2], vtn_value_type_undef);
-      val->type = vtn_value(b, w[1], vtn_value_type_type)->type;
+      val->type = vtn_get_type(b, w[1]);
       break;
    }
 
@@ -4770,7 +5052,6 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpImageFetch:
    case SpvOpImageGather:
    case SpvOpImageDrefGather:
-   case SpvOpImageQuerySizeLod:
    case SpvOpImageQueryLod:
    case SpvOpImageQueryLevels:
    case SpvOpImageQuerySamples:
@@ -4780,16 +5061,19 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpImageRead:
    case SpvOpImageWrite:
    case SpvOpImageTexelPointer:
+   case SpvOpImageQueryFormat:
+   case SpvOpImageQueryOrder:
       vtn_handle_image(b, opcode, w, count);
       break;
 
+   case SpvOpImageQuerySizeLod:
    case SpvOpImageQuerySize: {
-      struct vtn_pointer *image =
-         vtn_value(b, w[3], vtn_value_type_pointer)->pointer;
-      if (glsl_type_is_image(image->type->type)) {
+      struct vtn_type *image_type = vtn_get_value_type(b, w[3]);
+      vtn_assert(image_type->base_type == vtn_base_type_image);
+      if (glsl_type_is_image(image_type->glsl_image)) {
          vtn_handle_image(b, opcode, w, count);
       } else {
-         vtn_assert(glsl_type_is_sampler(image->type->type));
+         vtn_assert(glsl_type_is_sampler(image_type->glsl_image));
          vtn_handle_texture(b, opcode, w, count);
       }
       break;
@@ -4814,7 +5098,8 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpAtomicUMax:
    case SpvOpAtomicAnd:
    case SpvOpAtomicOr:
-   case SpvOpAtomicXor: {
+   case SpvOpAtomicXor:
+   case SpvOpAtomicFAddEXT: {
       struct vtn_value *pointer = vtn_untyped_value(b, w[3]);
       if (pointer->value_type == vtn_value_type_image_pointer) {
          vtn_handle_image(b, opcode, w, count);
@@ -4853,6 +5138,8 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpSConvert:
    case SpvOpFConvert:
    case SpvOpQuantizeToF16:
+   case SpvOpSatConvertSToU:
+   case SpvOpSatConvertUToS:
    case SpvOpPtrCastToGeneric:
    case SpvOpGenericCastToPtr:
    case SpvOpIsNan:
@@ -5066,12 +5353,7 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
       nir_ssa_dest_init(&intrin->instr, &intrin->dest, 1, 1, NULL);
       nir_builder_instr_insert(&b->nb, &intrin->instr);
 
-      struct vtn_type *res_type =
-         vtn_value(b, w[1], vtn_value_type_type)->type;
-      struct vtn_ssa_value *val = vtn_create_ssa_value(b, res_type->type);
-      val->def = &intrin->dest.ssa;
-
-      vtn_push_ssa(b, w[2], res_type, val);
+      vtn_push_nir_ssa(b, w[2], &intrin->dest.ssa);
       break;
    }
 
@@ -5099,7 +5381,7 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
       nir_intrinsic_set_memory_scope(intrin, nir_scope);
       nir_builder_instr_insert(&b->nb, &intrin->instr);
 
-      struct vtn_type *type = vtn_value(b, w[1], vtn_value_type_type)->type;
+      struct vtn_type *type = vtn_get_type(b, w[1]);
       const struct glsl_type *dest_type = type->type;
       nir_ssa_def *result;
 
@@ -5112,15 +5394,17 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
          result = nir_pack_64_2x32(&b->nb, &intrin->dest.ssa);
       }
 
-      struct vtn_value *val = vtn_push_value(b, w[2], vtn_value_type_ssa);
-      val->type = type;
-      val->ssa = vtn_create_ssa_value(b, dest_type);
-      val->ssa->def = result;
+      vtn_push_nir_ssa(b, w[2], result);
       break;
    }
 
    case SpvOpLifetimeStart:
    case SpvOpLifetimeStop:
+      break;
+
+   case SpvOpGroupAsyncCopy:
+   case SpvOpGroupWaitEvents:
+      vtn_handle_opencl_core_instruction(b, opcode, w, count);
       break;
 
    default:
@@ -5167,21 +5451,17 @@ vtn_create_builder(const uint32_t *words, size_t word_count,
       goto fail;
    }
 
-   uint16_t generator_id = words[2] >> 16;
+   b->generator_id = words[2] >> 16;
    uint16_t generator_version = words[2];
-
-   /* The first GLSLang version bump actually 1.5 years after #179 was fixed
-    * but this should at least let us shut the workaround off for modern
-    * versions of GLSLang.
-    */
-   b->wa_glslang_179 = (generator_id == 8 && generator_version == 1);
 
    /* In GLSLang commit 8297936dd6eb3, their handling of barrier() was fixed
     * to provide correct memory semantics on compute shader barrier()
     * commands.  Prior to that, we need to fix them up ourselves.  This
     * GLSLang fix caused them to bump to generator version 3.
     */
-   b->wa_glslang_cs_barrier = (generator_id == 8 && generator_version < 3);
+   b->wa_glslang_cs_barrier =
+      (b->generator_id == vtn_generator_glslang_reference_front_end &&
+       generator_version < 3);
 
    /* words[2] == generator magic */
    unsigned value_id_bound = words[3];
@@ -5208,8 +5488,6 @@ vtn_emit_kernel_entry_point_wrapper(struct vtn_builder *b,
    const char *func_name =
       ralloc_asprintf(b->shader, "__wrapped_%s", entry_point->name);
 
-   /* we shouldn't have any inputs yet */
-   vtn_assert(!entry_point->shader->num_inputs);
    vtn_assert(b->shader->info.stage == MESA_SHADER_KERNEL);
 
    nir_function *main_entry_point = nir_function_create(b->shader, func_name);
@@ -5231,17 +5509,24 @@ vtn_emit_kernel_entry_point_wrapper(struct vtn_builder *b,
 
       /* input variable */
       nir_variable *in_var = rzalloc(b->nb.shader, nir_variable);
-      in_var->data.mode = nir_var_shader_in;
+      in_var->data.mode = nir_var_uniform;
       in_var->data.read_only = true;
       in_var->data.location = i;
+      if (param_type->base_type == vtn_base_type_image) {
+         in_var->data.access =
+            spirv_to_gl_access_qualifier(b, param_type->access_qualifier);
+      }
 
       if (is_by_val)
          in_var->type = param_type->deref->type;
+      else if (param_type->base_type == vtn_base_type_image)
+         in_var->type = param_type->glsl_image;
+      else if (param_type->base_type == vtn_base_type_sampler)
+         in_var->type = glsl_bare_sampler_type();
       else
          in_var->type = param_type->type;
 
       nir_shader_add_variable(b->nb.shader, in_var);
-      b->nb.shader->num_inputs++;
 
       /* we have to copy the entire variable into function memory */
       if (is_by_val) {
@@ -5251,6 +5536,10 @@ vtn_emit_kernel_entry_point_wrapper(struct vtn_builder *b,
          nir_copy_var(&b->nb, copy_var, in_var);
          call->params[i] =
             nir_src_for_ssa(&nir_build_deref_var(&b->nb, copy_var)->dest.ssa);
+      } else if (param_type->base_type == vtn_base_type_image ||
+                 param_type->base_type == vtn_base_type_sampler) {
+         /* Don't load the var, just pass a deref of it */
+         call->params[i] = nir_src_for_ssa(&nir_build_deref_var(&b->nb, in_var)->dest.ssa);
       } else {
          call->params[i] = nir_src_for_ssa(nir_load_var(&b->nb, in_var));
       }
@@ -5293,22 +5582,39 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    words = vtn_foreach_instruction(b, words, word_end,
                                    vtn_handle_preamble_instruction);
 
-   if (b->entry_point == NULL) {
-      vtn_fail("Entry point not found");
+   /* DirectXShaderCompiler and glslang/shaderc both create OpKill from HLSL's
+    * discard/clip, which uses demote semantics. DirectXShaderCompiler will use
+    * demote if the extension is enabled, so we disable this workaround in that
+    * case.
+    *
+    * Related glslang issue: https://github.com/KhronosGroup/glslang/issues/2416
+    */
+   bool glslang = b->generator_id == vtn_generator_glslang_reference_front_end ||
+                  b->generator_id == vtn_generator_shaderc_over_glslang;
+   bool dxsc = b->generator_id == vtn_generator_spiregg;
+   b->convert_discard_to_demote = ((dxsc && !b->uses_demote_to_helper_invocation) ||
+                                   (glslang && b->source_lang == SpvSourceLanguageHLSL)) &&
+                                  options->caps.demote_to_helper_invocation;
+
+   if (!options->create_library && b->entry_point == NULL) {
+      vtn_fail("Entry point not found for %s shader \"%s\"",
+               _mesa_shader_stage_to_string(stage), entry_point_name);
       ralloc_free(b);
       return NULL;
    }
+
+   /* Ensure a sane address mode is being used for function temps */
+   assert(nir_address_format_bit_size(b->options->temp_addr_format) == nir_get_ptr_bitsize(b->shader));
+   assert(nir_address_format_num_components(b->options->temp_addr_format) == 1);
 
    /* Set shader info defaults */
    if (stage == MESA_SHADER_GEOMETRY)
       b->shader->info.gs.invocations = 1;
 
-   /* Parse rounding mode execution modes. This has to happen earlier than
-    * other changes in the execution modes since they can affect, for example,
-    * the result of the floating point constants.
-    */
-   vtn_foreach_execution_mode(b, b->entry_point,
-                              vtn_handle_rounding_mode_in_execution_mode, NULL);
+   /* Parse execution modes. */
+   if (!options->create_library)
+      vtn_foreach_execution_mode(b, b->entry_point,
+                                 vtn_handle_execution_mode, NULL);
 
    b->specializations = spec;
    b->num_specializations = num_spec;
@@ -5317,9 +5623,12 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    words = vtn_foreach_instruction(b, words, word_end,
                                    vtn_handle_variable_or_type_instruction);
 
-   /* Parse execution modes */
-   vtn_foreach_execution_mode(b, b->entry_point,
-                              vtn_handle_execution_mode, NULL);
+   /* Parse execution modes that depend on IDs. Must happen after we have
+    * constants parsed.
+    */
+   if (!options->create_library)
+      vtn_foreach_execution_mode(b, b->entry_point,
+                                 vtn_handle_execution_mode_id, NULL);
 
    if (b->workgroup_size_builtin) {
       vtn_assert(b->workgroup_size_builtin->type->type ==
@@ -5338,15 +5647,17 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
 
    vtn_build_cfg(b, words, word_end);
 
-   assert(b->entry_point->value_type == vtn_value_type_function);
-   b->entry_point->func->referenced = true;
+   if (!options->create_library) {
+      assert(b->entry_point->value_type == vtn_value_type_function);
+      b->entry_point->func->referenced = true;
+   }
 
    bool progress;
    do {
       progress = false;
       vtn_foreach_cf_node(node, &b->functions) {
          struct vtn_function *func = vtn_cf_node_as_function(node);
-         if (func->referenced && !func->emitted) {
+         if ((options->create_library || func->referenced) && !func->emitted) {
             b->const_table = _mesa_pointer_hash_table_create(b);
 
             vtn_function_emit(b, func, vtn_handle_body_instruction);
@@ -5355,15 +5666,20 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
       }
    } while (progress);
 
-   vtn_assert(b->entry_point->value_type == vtn_value_type_function);
-   nir_function *entry_point = b->entry_point->func->impl->function;
-   vtn_assert(entry_point);
+   if (!options->create_library) {
+      vtn_assert(b->entry_point->value_type == vtn_value_type_function);
+      nir_function *entry_point = b->entry_point->func->impl->function;
+      vtn_assert(entry_point);
 
-   /* post process entry_points with input params */
-   if (entry_point->num_params && b->shader->info.stage == MESA_SHADER_KERNEL)
-      entry_point = vtn_emit_kernel_entry_point_wrapper(b, entry_point);
+      /* post process entry_points with input params */
+      if (entry_point->num_params && b->shader->info.stage == MESA_SHADER_KERNEL)
+         entry_point = vtn_emit_kernel_entry_point_wrapper(b, entry_point);
 
-   entry_point->is_entrypoint = true;
+      entry_point->is_entrypoint = true;
+   }
+
+   /* structurize the CFG */
+   nir_lower_goto_ifs(b->shader);
 
    /* When multiple shader stages exist in the same SPIR-V module, we
     * generate input and output variables for every stage, in the same

@@ -235,6 +235,7 @@ st_FreeTextureImageBuffer(struct gl_context *ctx,
        pipe_reference(&stImage->compressed_data->reference, NULL)) {
       free(stImage->compressed_data->ptr);
       free(stImage->compressed_data);
+      stImage->compressed_data = NULL;
    }
 
    /* if the texture image is being deallocated, the structure of the
@@ -317,7 +318,7 @@ st_MapTextureImage(struct gl_context *ctx,
                     GL_MAP_WRITE_BIT |
                     GL_MAP_INVALIDATE_RANGE_BIT)) == 0);
 
-   const enum pipe_transfer_usage transfer_flags =
+   const enum pipe_map_flags transfer_flags =
       st_access_flags_to_transfer_flags(mode, false);
 
    map = st_texture_image_map(st, stImage, transfer_flags, x, y, slice, w, h, 1,
@@ -380,7 +381,7 @@ st_UnmapTextureImage(struct gl_context *ctx,
 
       assert(z == transfer->box.z);
 
-      if (transfer->usage & PIPE_TRANSFER_WRITE) {
+      if (transfer->usage & PIPE_MAP_WRITE) {
          if (texImage->TexFormat == MESA_FORMAT_ETC1_RGB8) {
             _mesa_etc1_unpack_rgba8888(itransfer->map, transfer->stride,
                                        itransfer->temp_data,
@@ -708,7 +709,6 @@ st_AllocTextureImageBuffer(struct gl_context *ctx,
    struct st_context *st = st_context(ctx);
    struct st_texture_image *stImage = st_texture_image(texImage);
    struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
-   const GLuint level = texImage->Level;
    GLuint width = texImage->Width;
    GLuint height = texImage->Height;
    GLuint depth = texImage->Depth;
@@ -720,29 +720,34 @@ st_AllocTextureImageBuffer(struct gl_context *ctx,
    stObj->needs_validation = true;
 
    compressed_tex_fallback_allocate(st, stImage);
+   const bool allowAllocateToStObj = !stObj->pt ||
+                                     stObj->pt->last_level == 0 ||
+                                     texImage->Level == 0;
 
-   /* Look if the parent texture object has space for this image */
-   if (stObj->pt &&
-       level <= stObj->pt->last_level &&
-       st_texture_match_image(st, stObj->pt, texImage)) {
-      /* this image will fit in the existing texture object's memory */
-      pipe_resource_reference(&stImage->pt, stObj->pt);
-      return GL_TRUE;
-   }
+   if (allowAllocateToStObj) {
+      /* Look if the parent texture object has space for this image */
+      if (stObj->pt &&
+          st_texture_match_image(st, stObj->pt, texImage)) {
+         /* this image will fit in the existing texture object's memory */
+         pipe_resource_reference(&stImage->pt, stObj->pt);
+         assert(stImage->pt);
+         return GL_TRUE;
+      }
 
-   /* The parent texture object does not have space for this image */
+      /* The parent texture object does not have space for this image */
 
-   pipe_resource_reference(&stObj->pt, NULL);
-   st_texture_release_all_sampler_views(st, stObj);
+      pipe_resource_reference(&stObj->pt, NULL);
+      st_texture_release_all_sampler_views(st, stObj);
 
-   if (!guess_and_alloc_texture(st, stObj, stImage)) {
-      /* Probably out of memory.
-       * Try flushing any pending rendering, then retry.
-       */
-      st_finish(st);
       if (!guess_and_alloc_texture(st, stObj, stImage)) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage");
-         return GL_FALSE;
+         /* Probably out of memory.
+         * Try flushing any pending rendering, then retry.
+         */
+         st_finish(st);
+         if (!guess_and_alloc_texture(st, stObj, stImage)) {
+            _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage");
+            return GL_FALSE;
+         }
       }
    }
 
@@ -1671,7 +1676,7 @@ st_TexSubImage(struct gl_context *ctx, GLuint dims,
       height = 1;
    }
 
-   map = pipe_transfer_map_3d(pipe, src, 0, PIPE_TRANSFER_WRITE, 0, 0, 0,
+   map = pipe_transfer_map_3d(pipe, src, 0, PIPE_MAP_WRITE, 0, 0, 0,
                               width, height, depth, &transfer);
    if (!map) {
       _mesa_unmap_teximage_pbo(ctx, unpack);
@@ -2200,7 +2205,7 @@ st_GetTexSubImage(struct gl_context * ctx,
 
    pixels = _mesa_map_pbo_dest(ctx, &ctx->Pack, pixels);
 
-   map = pipe_transfer_map_3d(pipe, dst, 0, PIPE_TRANSFER_READ,
+   map = pipe_transfer_map_3d(pipe, dst, 0, PIPE_MAP_READ,
                               0, 0, 0, width, height, depth, &tex_xfer);
    if (!map) {
       goto end;
@@ -2314,7 +2319,7 @@ fallback_copy_texsubimage(struct gl_context *ctx,
    struct pipe_context *pipe = st->pipe;
    struct pipe_transfer *src_trans;
    GLubyte *texDest;
-   enum pipe_transfer_usage transfer_usage;
+   enum pipe_map_flags transfer_usage;
    void *map;
    unsigned dst_width = width;
    unsigned dst_height = height;
@@ -2332,7 +2337,7 @@ fallback_copy_texsubimage(struct gl_context *ctx,
                            strb->texture,
                            strb->surface->u.tex.level,
                            strb->surface->u.tex.first_layer,
-                           PIPE_TRANSFER_READ,
+                           PIPE_MAP_READ,
                            srcX, srcY,
                            width, height, &src_trans);
    if (!map) {
@@ -2343,9 +2348,9 @@ fallback_copy_texsubimage(struct gl_context *ctx,
    if ((baseFormat == GL_DEPTH_COMPONENT ||
         baseFormat == GL_DEPTH_STENCIL) &&
        util_format_is_depth_and_stencil(stImage->pt->format))
-      transfer_usage = PIPE_TRANSFER_READ_WRITE;
+      transfer_usage = PIPE_MAP_READ_WRITE;
    else
-      transfer_usage = PIPE_TRANSFER_WRITE;
+      transfer_usage = PIPE_MAP_WRITE;
 
    texDest = st_texture_image_map(st, stImage, transfer_usage,
                                   destX, destY, slice,
@@ -2902,6 +2907,9 @@ st_texture_create_from_memory(struct st_context *st,
    pt.bind = bind;
    /* only set this for OpenGL textures, not renderbuffers */
    pt.flags = PIPE_RESOURCE_FLAG_TEXTURING_MORE_LIKELY;
+   if (memObj->TextureTiling == GL_LINEAR_TILING_EXT)
+      pt.bind |= PIPE_BIND_LINEAR;
+
    pt.nr_samples = nr_samples;
    pt.nr_storage_samples = nr_samples;
 
@@ -2945,6 +2953,11 @@ st_texture_storage(struct gl_context *ctx,
    fmt = st_mesa_format_to_pipe_format(st, texImage->TexFormat);
 
    bindings = default_bindings(st, fmt);
+
+   if (smObj) {
+      smObj->TextureTiling = texObj->TextureTiling;
+      bindings |= PIPE_BIND_SHARED;
+   }
 
    if (num_samples > 0) {
       /* Find msaa sample count which is actually supported.  For example,

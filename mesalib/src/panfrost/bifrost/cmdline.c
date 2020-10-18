@@ -67,8 +67,11 @@ compile_shader(char **argv, bool vertex_only)
                 NIR_PASS_V(nir[i], gl_nir_lower_buffers, prog);
                 NIR_PASS_V(nir[i], nir_opt_constant_folding);
 
-                unsigned product_id = 0x7212; /* Mali G52 */
-                bifrost_compile_shader_nir(nir[i], &compiled, product_id);
+                struct panfrost_compile_inputs inputs = {
+                        .gpu_id = 0x7212, /* Mali G52 */
+                };
+
+                bifrost_compile_shader_nir(nir[i], &compiled, &inputs);
 
                 if (vertex_only)
                         return compiled;

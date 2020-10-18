@@ -24,9 +24,13 @@
 #include "tu_private.h"
 
 #include <hardware/gralloc.h>
+
+#if ANDROID_API_LEVEL >= 26
+#include <hardware/gralloc1.h>
+#endif
+
 #include <hardware/hardware.h>
 #include <hardware/hwvulkan.h>
-#include <libsync.h>
 
 #include <vulkan/vk_android_native_buffer.h>
 #include <vulkan/vk_icd.h>
@@ -110,6 +114,12 @@ tu_hal_close(struct hw_device_t *dev)
    return -1;
 }
 
+/**
+ * Creates the VkImage using the gralloc handle in *gralloc_info.
+ *
+ * We support two different grallocs here, gbm_gralloc, and the qcom gralloc
+ * used on Android phones.
+ */
 VkResult
 tu_image_from_gralloc(VkDevice device_h,
                       const VkImageCreateInfo *base_info,
@@ -122,24 +132,62 @@ tu_image_from_gralloc(VkDevice device_h,
    VkImage image_h = VK_NULL_HANDLE;
    struct tu_image *image = NULL;
    VkResult result;
+   bool ubwc = false;
 
-   result = tu_image_create(device_h, base_info, alloc, &image_h,
-                            DRM_FORMAT_MOD_LINEAR, NULL);
-   if (result != VK_SUCCESS)
-      return result;
+   const uint32_t *handle_fds = (uint32_t *)gralloc_info->handle->data;
+   const uint32_t *handle_data = &handle_fds[gralloc_info->handle->numFds];
+   int dma_buf;
 
-   if (gralloc_info->handle->numFds != 1) {
+   if (gralloc_info->handle->numFds == 1) {
+      /* gbm_gralloc.  TODO: modifiers support */
+      dma_buf = handle_fds[0];
+   } else if (gralloc_info->handle->numFds == 2) {
+      /* Qualcomm gralloc, find it at:
+       *
+       * https://android.googlesource.com/platform/hardware/qcom/display/.
+       *
+       * The gralloc_info->handle is a pointer to a struct private_handle_t
+       * from your platform's gralloc.  On msm8996 (a5xx) and newer grallocs
+       * that's libgralloc1/gr_priv_handle.h, while previously it was
+       * libgralloc/gralloc_priv.h.
+       */
+
+      if (gralloc_info->handle->numInts < 2) {
+         return vk_errorf(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE,
+                          "VkNativeBufferANDROID::handle::numInts is %d, "
+                          "expected at least 2 for qcom gralloc",
+                          gralloc_info->handle->numFds);
+      }
+
+      uint32_t gmsm = ('g' << 24) | ('m' << 16) | ('s' << 8) | 'm';
+      if (handle_data[0] != gmsm) {
+         return vk_errorf(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE,
+                          "private_handle_t::magic is %x, expected %x",
+                          handle_data[0], gmsm);
+      }
+
+      /* This UBWC flag was introduced in a5xx. */
+      ubwc = handle_data[1] & 0x08000000;
+
+      /* QCOM gralloc has two fds passed in: the actual GPU buffer, and a buffer
+       * of CPU-side metadata.  I haven't found any need for the metadata buffer
+       * yet.  See qdMetaData.h for what's in the metadata fd.
+       */
+      dma_buf = handle_fds[0];
+   } else {
       return vk_errorf(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE,
                        "VkNativeBufferANDROID::handle::numFds is %d, "
-                       "expected 1",
+                       "expected 1 (gbm_gralloc) or 2 (qcom gralloc)",
                        gralloc_info->handle->numFds);
    }
 
-   /* Do not close the gralloc handle's dma_buf. The lifetime of the dma_buf
-    * must exceed that of the gralloc handle, and we do not own the gralloc
-    * handle.
-    */
-   int dma_buf = gralloc_info->handle->data[0];
+   result = tu_image_create(device_h, base_info, alloc, &image_h,
+                            ubwc ?
+                            DRM_FORMAT_MOD_QCOM_COMPRESSED :
+                            DRM_FORMAT_MOD_LINEAR,
+                            NULL);
+   if (result != VK_SUCCESS)
+      return result;
 
    image = tu_image_from_handle(image_h);
 
@@ -164,7 +212,7 @@ tu_image_from_gralloc(VkDevice device_h,
                         &(VkMemoryAllocateInfo) {
                            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
                            .pNext = &import_info,
-                           .allocationSize = image->layout.size,
+                           .allocationSize = image->total_size,
                            .memoryTypeIndex = 0,
                         },
                         alloc, &memory_h);
@@ -185,18 +233,14 @@ fail_create_image:
    return result;
 }
 
-VkResult
-tu_GetSwapchainGrallocUsageANDROID(VkDevice device_h,
-                                   VkFormat format,
-                                   VkImageUsageFlags imageUsage,
-                                   int *grallocUsage)
+static VkResult
+format_supported_with_usage(VkDevice device_h, VkFormat format,
+                            VkImageUsageFlags imageUsage)
 {
    TU_FROM_HANDLE(tu_device, device, device_h);
    struct tu_physical_device *phys_dev = device->physical_device;
    VkPhysicalDevice phys_dev_h = tu_physical_device_to_handle(phys_dev);
    VkResult result;
-
-   *grallocUsage = 0;
 
    /* WARNING: Android Nougat's libvulkan.so hardcodes the VkImageUsageFlags
     * returned to applications via
@@ -234,6 +278,13 @@ tu_GetSwapchainGrallocUsageANDROID(VkDevice device_h,
                        __func__);
    }
 
+   return VK_SUCCESS;
+}
+
+static VkResult
+setup_gralloc0_usage(struct tu_device *device, VkFormat format,
+                     VkImageUsageFlags imageUsage, int *grallocUsage)
+{
    if (unmask32(&imageUsage, VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT))
       *grallocUsage |= GRALLOC_USAGE_HW_RENDER;
@@ -272,17 +323,68 @@ tu_GetSwapchainGrallocUsageANDROID(VkDevice device_h,
 }
 
 VkResult
-tu_GetSwapchainGrallocUsage2ANDROID(VkDevice device,
+tu_GetSwapchainGrallocUsageANDROID(VkDevice device_h,
+                                   VkFormat format,
+                                   VkImageUsageFlags imageUsage,
+                                   int *grallocUsage)
+{
+   TU_FROM_HANDLE(tu_device, device, device_h);
+   VkResult result;
+
+   result = format_supported_with_usage(device_h, format, imageUsage);
+   if (result != VK_SUCCESS)
+      return result;
+
+   *grallocUsage = 0;
+   return setup_gralloc0_usage(device, format, imageUsage, grallocUsage);
+}
+
+#if ANDROID_API_LEVEL >= 26
+VkResult
+tu_GetSwapchainGrallocUsage2ANDROID(VkDevice device_h,
                                     VkFormat format,
                                     VkImageUsageFlags imageUsage,
                                     VkSwapchainImageUsageFlagsANDROID swapchainImageUsage,
                                     uint64_t *grallocConsumerUsage,
                                     uint64_t *grallocProducerUsage)
 {
-   tu_stub();
+   TU_FROM_HANDLE(tu_device, device, device_h);
+   VkResult result;
+
+   *grallocConsumerUsage = 0;
+   *grallocProducerUsage = 0;
+   mesa_logd("%s: format=%d, usage=0x%x", __func__, format, imageUsage);
+
+   result = format_supported_with_usage(device_h, format, imageUsage);
+   if (result != VK_SUCCESS)
+      return result;
+
+   int32_t grallocUsage = 0;
+   result = setup_gralloc0_usage(device, format, imageUsage, &grallocUsage);
+   if (result != VK_SUCCESS)
+      return result;
+
+   /* Setup gralloc1 usage flags from gralloc0 flags. */
+
+   if (grallocUsage & GRALLOC_USAGE_HW_RENDER) {
+      *grallocProducerUsage |= GRALLOC1_PRODUCER_USAGE_GPU_RENDER_TARGET;
+      *grallocConsumerUsage |= GRALLOC1_CONSUMER_USAGE_CLIENT_TARGET;
+   }
+
+   if (grallocUsage & GRALLOC_USAGE_HW_TEXTURE) {
+      *grallocConsumerUsage |= GRALLOC1_CONSUMER_USAGE_GPU_TEXTURE;
+   }
+
+   if (grallocUsage & (GRALLOC_USAGE_HW_FB |
+                       GRALLOC_USAGE_HW_COMPOSER |
+                       GRALLOC_USAGE_EXTERNAL_DISP)) {
+      *grallocProducerUsage |= GRALLOC1_PRODUCER_USAGE_GPU_RENDER_TARGET;
+      *grallocConsumerUsage |= GRALLOC1_CONSUMER_USAGE_HWCOMPOSER;
+   }
 
    return VK_SUCCESS;
 }
+#endif
 
 VkResult
 tu_AcquireImageANDROID(VkDevice device,
@@ -321,56 +423,4 @@ tu_AcquireImageANDROID(VkDevice device,
    if (semaphore_result != VK_SUCCESS)
       return semaphore_result;
    return fence_result;
-}
-
-VkResult
-tu_QueueSignalReleaseImageANDROID(VkQueue _queue,
-                                  uint32_t waitSemaphoreCount,
-                                  const VkSemaphore *pWaitSemaphores,
-                                  VkImage image,
-                                  int *pNativeFenceFd)
-{
-   TU_FROM_HANDLE(tu_queue, queue, _queue);
-   VkResult result = VK_SUCCESS;
-
-   if (waitSemaphoreCount == 0) {
-      if (pNativeFenceFd)
-         *pNativeFenceFd = -1;
-      return VK_SUCCESS;
-   }
-
-   int fd = -1;
-
-   for (uint32_t i = 0; i < waitSemaphoreCount; ++i) {
-      int tmp_fd;
-      result = tu_GetSemaphoreFdKHR(
-         tu_device_to_handle(queue->device),
-         &(VkSemaphoreGetFdInfoKHR) {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR,
-            .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT,
-            .semaphore = pWaitSemaphores[i],
-         },
-         &tmp_fd);
-      if (result != VK_SUCCESS) {
-         if (fd >= 0)
-            close(fd);
-         return result;
-      }
-
-      if (fd < 0)
-         fd = tmp_fd;
-      else if (tmp_fd >= 0) {
-         sync_accumulate("tu", &fd, tmp_fd);
-         close(tmp_fd);
-      }
-   }
-
-   if (pNativeFenceFd) {
-      *pNativeFenceFd = fd;
-   } else if (fd >= 0) {
-      close(fd);
-      /* We still need to do the exports, to reset the semaphores, but
-       * otherwise we don't wait on them. */
-   }
-   return VK_SUCCESS;
 }

@@ -1066,7 +1066,7 @@ extern _X_EXPORT Bool
  xf86_cursors_init(ScreenPtr screen, int max_width, int max_height, int flags);
 
 /**
- * Superseeded by xf86CursorResetCursor, which is getting called
+ * Superseded by xf86CursorResetCursor, which is getting called
  * automatically when necessary.
  */
 static _X_INLINE _X_DEPRECATED void xf86_reload_cursors(ScreenPtr screen) {}

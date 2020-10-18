@@ -959,7 +959,7 @@ dmxBECreateResources(void *value, XID id, RESTYPE type, void *n)
     }
 }
 
-/** Create window hierachy on back-end server.  The window tree is
+/** Create window hierarchy on back-end server.  The window tree is
  *  created in a special order (bottom most subwindow first) so that the
  *  #dmxCreateNonRootWindow() function does not need to recursively call
  *  itself to create each window's parents.  This is required so that we
@@ -1590,11 +1590,11 @@ dmxBEDestroyScratchGCs(int scrnNum)
         dmxBEFreeGC(ppGC[i]);
 }
 
-/** Destroy window hierachy on back-end server.  To ensure that all
+/** Destroy window hierarchy on back-end server.  To ensure that all
  *  XDestroyWindow() calls succeed, they must be performed in a bottom
  *  up order so that windows are not destroyed before their children.
  *  XDestroyWindow(), which is called from #dmxBEDestroyWindow(), will
- *  destroy a window as well as all of it's children. */
+ *  destroy a window as well as all of its children. */
 static void
 dmxBEDestroyWindowTree(int idx)
 {

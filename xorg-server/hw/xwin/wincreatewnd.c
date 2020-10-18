@@ -213,7 +213,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
 
     /* Did the user specify a height and width? */
     if (pScreenInfo->fUserGaveHeightAndWidth) {
-        /* User gave a desired height and width, try to accomodate */
+        /* User gave a desired height and width, try to accommodate */
         winDebug("winCreateBoundingWindowWindowed - User gave height "
                  "and width\n");
 

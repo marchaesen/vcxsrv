@@ -67,8 +67,8 @@ xwl_present_window_get_priv(WindowPtr window)
         xwl_present_window->ust = GetTimeInMicros();
 
         xorg_list_init(&xwl_present_window->frame_callback_list);
-        xorg_list_init(&xwl_present_window->event_list);
-        xorg_list_init(&xwl_present_window->release_queue);
+        xorg_list_init(&xwl_present_window->wait_list);
+        xorg_list_init(&xwl_present_window->release_list);
 
         dixSetPrivate(&window->devPrivates,
                       &xwl_present_window_private_key,
@@ -91,16 +91,16 @@ xwl_present_timer_callback(OsTimerPtr timer,
                            void *arg);
 
 static inline Bool
-xwl_present_has_events(struct xwl_present_window *xwl_present_window)
+xwl_present_has_pending_events(struct xwl_present_window *xwl_present_window)
 {
     return !!xwl_present_window->sync_flip ||
-           !xorg_list_is_empty(&xwl_present_window->event_list);
+           !xorg_list_is_empty(&xwl_present_window->wait_list);
 }
 
 static void
 xwl_present_reset_timer(struct xwl_present_window *xwl_present_window)
 {
-    if (xwl_present_has_events(xwl_present_window)) {
+    if (xwl_present_has_pending_events(xwl_present_window)) {
         CARD32 timeout;
 
         if (!xorg_list_is_empty(&xwl_present_window->frame_callback_list))
@@ -118,18 +118,23 @@ xwl_present_reset_timer(struct xwl_present_window *xwl_present_window)
 }
 
 static void
+xwl_present_release_pixmap(struct xwl_present_event *event)
+{
+    if (!event->pixmap)
+        return;
+
+    xwl_pixmap_del_buffer_release_cb(event->pixmap);
+    dixDestroyPixmap(event->pixmap, event->pixmap->drawable.id);
+    event->pixmap = NULL;
+}
+
+static void
 xwl_present_free_event(struct xwl_present_event *event)
 {
     if (!event)
         return;
 
-    if (event->pixmap) {
-        if (!event->buffer_released)
-            xwl_pixmap_del_buffer_release_cb(event->pixmap);
-
-        dixDestroyPixmap(event->pixmap, event->pixmap->drawable.id);
-    }
-
+    xwl_present_release_pixmap(event);
     xorg_list_del(&event->list);
     free(event);
 }
@@ -151,12 +156,12 @@ xwl_present_cleanup(WindowPtr window)
     }
 
     /* Clear remaining events */
-    xorg_list_for_each_entry_safe(event, tmp, &xwl_present_window->event_list, list)
+    xorg_list_for_each_entry_safe(event, tmp, &xwl_present_window->wait_list, list)
         xwl_present_free_event(event);
 
     xwl_present_free_event(xwl_present_window->sync_flip);
 
-    xorg_list_for_each_entry_safe(event, tmp, &xwl_present_window->release_queue, list)
+    xorg_list_for_each_entry_safe(event, tmp, &xwl_present_window->release_list, list)
         xwl_present_free_event(event);
 
     /* Clear timer */
@@ -171,29 +176,20 @@ xwl_present_cleanup(WindowPtr window)
 }
 
 static void
-xwl_present_buffer_release(PixmapPtr pixmap, void *data)
+xwl_present_buffer_release(void *data)
 {
     struct xwl_present_event *event = data;
 
     if (!event)
         return;
 
-    xwl_pixmap_del_buffer_release_cb(pixmap);
-    event->buffer_released = TRUE;
+    xwl_present_release_pixmap(event);
 
-    if (event->abort) {
-        if (!event->pending)
-            xwl_present_free_event(event);
-        return;
-    }
+    if (!event->abort)
+        present_wnmd_idle_notify(event->xwl_present_window->window, event->event_id);
 
-    if (!event->pending) {
-        present_wnmd_event_notify(event->xwl_present_window->window,
-                                  event->event_id,
-                                  event->xwl_present_window->ust,
-                                  event->xwl_present_window->msc);
+    if (!event->pending)
         xwl_present_free_event(event);
-    }
 }
 
 static void
@@ -209,21 +205,19 @@ xwl_present_msc_bump(struct xwl_present_window *xwl_present_window)
     if (event) {
         event->pending = FALSE;
 
-        present_wnmd_event_notify(xwl_present_window->window, event->event_id,
-                                  xwl_present_window->ust, msc);
+        present_wnmd_flip_notify(xwl_present_window->window, event->event_id,
+                                 xwl_present_window->ust, msc);
 
-        if (event->buffer_released) {
+        if (!event->pixmap) {
             /* If the buffer was already released, clean up now */
-            present_wnmd_event_notify(xwl_present_window->window, event->event_id,
-                                      xwl_present_window->ust, msc);
             xwl_present_free_event(event);
         } else {
-            xorg_list_add(&event->list, &xwl_present_window->release_queue);
+            xorg_list_add(&event->list, &xwl_present_window->release_list);
         }
     }
 
     xorg_list_for_each_entry_safe(event, tmp,
-                                  &xwl_present_window->event_list,
+                                  &xwl_present_window->wait_list,
                                   list) {
         if (event->target_msc <= msc) {
             present_wnmd_event_notify(xwl_present_window->window,
@@ -279,27 +273,12 @@ xwl_present_sync_callback(void *data,
 
     event->pending = FALSE;
 
-    if (event->abort) {
-        /* Event might have been aborted */
-        if (event->buffer_released)
-            /* Buffer was already released, cleanup now */
-            xwl_present_free_event(event);
-        return;
-    }
+    if (!event->abort)
+        present_wnmd_flip_notify(xwl_present_window->window, event->event_id,
+                                 xwl_present_window->ust, xwl_present_window->msc);
 
-    present_wnmd_event_notify(xwl_present_window->window,
-                              event->event_id,
-                              xwl_present_window->ust,
-                              xwl_present_window->msc);
-
-    if (event->buffer_released) {
-        /* If the buffer was already released, send the event now again */
-        present_wnmd_event_notify(xwl_present_window->window,
-                                  event->event_id,
-                                  xwl_present_window->ust,
-                                  xwl_present_window->msc);
+    if (!event->pixmap)
         xwl_present_free_event(event);
-    }
 }
 
 static const struct wl_callback_listener xwl_present_sync_listener = {
@@ -359,7 +338,7 @@ xwl_present_queue_vblank(WindowPtr present_window,
     event->xwl_present_window = xwl_present_window;
     event->target_msc = msc;
 
-    xorg_list_append(&event->list, &xwl_present_window->event_list);
+    xorg_list_append(&event->list, &xwl_present_window->wait_list);
 
     /* If there's a pending frame callback, use that */
     if (xwl_window && xwl_window->frame_callback &&
@@ -391,14 +370,14 @@ xwl_present_abort_vblank(WindowPtr present_window,
     if (!xwl_present_window)
         return;
 
-    xorg_list_for_each_entry_safe(event, tmp, &xwl_present_window->event_list, list) {
+    xorg_list_for_each_entry_safe(event, tmp, &xwl_present_window->wait_list, list) {
         if (event->event_id == event_id) {
             xwl_present_free_event(event);
             return;
         }
     }
 
-    xorg_list_for_each_entry(event, &xwl_present_window->release_queue, list) {
+    xorg_list_for_each_entry(event, &xwl_present_window->release_list, list) {
         if (event->event_id == event_id) {
             event->abort = TRUE;
             return;
@@ -420,8 +399,16 @@ xwl_present_check_flip2(RRCrtcPtr crtc,
                         PresentFlipReason *reason)
 {
     struct xwl_window *xwl_window = xwl_window_from_window(present_window);
+    ScreenPtr screen = pixmap->drawable.pScreen;
 
     if (!xwl_window)
+        return FALSE;
+
+    /* Can't flip if the window pixmap doesn't match the xwl_window parent
+     * window's, e.g. because a client redirected this window or one of its
+     * parents.
+     */
+    if (screen->GetWindowPixmap(xwl_window->window) != screen->GetWindowPixmap(present_window))
         return FALSE;
 
     /*
@@ -468,13 +455,12 @@ xwl_present_flip(WindowPtr present_window,
     event->target_msc = target_msc;
     event->pending = TRUE;
     event->abort = FALSE;
-    event->buffer_released = FALSE;
 
     if (sync_flip) {
         xorg_list_init(&event->list);
         xwl_present_window->sync_flip = event;
     } else {
-        xorg_list_add(&event->list, &xwl_present_window->release_queue);
+        xorg_list_add(&event->list, &xwl_present_window->release_list);
     }
 
     xwl_pixmap_set_buffer_release_cb(pixmap, xwl_present_buffer_release, event);
@@ -493,7 +479,9 @@ xwl_present_flip(WindowPtr present_window,
     /* Realign timer */
     xwl_present_reset_timer(xwl_present_window);
 
-    xwl_surface_damage(xwl_window->xwl_screen, xwl_window->surface, 0, 0,
+    xwl_surface_damage(xwl_window->xwl_screen, xwl_window->surface,
+                       damage_box->x1 - present_window->drawable.x,
+                       damage_box->y1 - present_window->drawable.y,
                        damage_box->x2 - damage_box->x1,
                        damage_box->y2 - damage_box->y1);
 
@@ -552,10 +540,7 @@ xwl_present_init(ScreenPtr screen)
 {
     struct xwl_screen *xwl_screen = xwl_screen_get(screen);
 
-    /*
-     * doesn't work with the EGLStream backend.
-     */
-    if (xwl_screen->egl_backend == &xwl_screen->eglstream_backend)
+    if (!xwl_glamor_has_present_flip(xwl_screen))
         return FALSE;
 
     if (!dixRegisterPrivateKey(&xwl_present_window_private_key, PRIVATE_WINDOW, 0))

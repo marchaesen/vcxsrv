@@ -188,5 +188,5 @@ ddxUseMsg(void)
     ErrorF("-bw int                window border width\n");
     ErrorF("-name string           window name\n");
     ErrorF("-scrns int             number of screens to generate\n");
-    ErrorF("-install               instal colormaps directly\n");
+    ErrorF("-install               install colormaps directly\n");
 }

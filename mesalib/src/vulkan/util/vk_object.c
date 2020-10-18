@@ -77,6 +77,47 @@ vk_device_finish(UNUSED struct vk_device *device)
    vk_object_base_finish(&device->base);
 }
 
+void *
+vk_object_alloc(struct vk_device *device,
+                const VkAllocationCallbacks *alloc,
+                size_t size,
+                VkObjectType obj_type)
+{
+   void *ptr = vk_alloc2(&device->alloc, alloc, size, 8,
+                         VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (ptr == NULL)
+      return NULL;
+
+   vk_object_base_init(device, (struct vk_object_base *)ptr, obj_type);
+
+   return ptr;
+}
+
+void *
+vk_object_zalloc(struct vk_device *device,
+                const VkAllocationCallbacks *alloc,
+                size_t size,
+                VkObjectType obj_type)
+{
+   void *ptr = vk_zalloc2(&device->alloc, alloc, size, 8,
+                         VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (ptr == NULL)
+      return NULL;
+
+   vk_object_base_init(device, (struct vk_object_base *)ptr, obj_type);
+
+   return ptr;
+}
+
+void
+vk_object_free(struct vk_device *device,
+               const VkAllocationCallbacks *alloc,
+               void *data)
+{
+   vk_object_base_finish((struct vk_object_base *)data);
+   vk_free2(&device->alloc, alloc, data);
+}
+
 VkResult
 vk_private_data_slot_create(struct vk_device *device,
                             const VkPrivateDataSlotCreateInfoEXT* pCreateInfo,

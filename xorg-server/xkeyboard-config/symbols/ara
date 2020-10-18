@@ -244,9 +244,10 @@ xkb_symbols "buckwalter" {
 
 partial alphanumeric_keys
 xkb_symbols "olpc" {
-    name[Group1]= "Arabic (OLPC)";
 
     include "ara(basic)"
+
+    name[Group1]= "Arabic (OLPC)";
 
     // This OLPC layout comprises the following changes in comparison to the default Arabic one:
     //  ‣ Arabic and European digits are swapped (which entails swapping of the percent and permille signs).

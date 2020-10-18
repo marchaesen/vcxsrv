@@ -1,0 +1,2 @@
+# Sometimes crashes, e.g. https://gitlab.freedesktop.org/kusma/mesa/-/jobs/4109419
+dEQP-GLES31.functional.compute.basic.empty

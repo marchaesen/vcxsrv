@@ -671,7 +671,7 @@ ReplaceCursor(CursorPtr pCursor, TestCursorFunc testCursor, void *closure)
                                         ReplaceCursorLookup, (void *) &rcl);
         }
     }
-    /* this "knows" that WindowHasNewCursor doesn't depend on it's argument */
+    /* this "knows" that WindowHasNewCursor doesn't depend on its argument */
     WindowHasNewCursor(screenInfo.screens[0]->root);
 }
 

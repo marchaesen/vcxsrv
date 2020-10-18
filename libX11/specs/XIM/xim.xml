@@ -31,12 +31,12 @@
 
 <abstract>
 <para>
-This specifies a protocol between IM library and IM (Input Method) Server for internationalized text input, which is indepedent from any specific language, any specific input method and the transport layer used in communication between the IM library and the IM Server, and uses a client-server model.  This protocol allows user to use his/her favorite method for all applications within the stand-along distrubuted environment.
+This specifies a protocol between IM library and IM (Input Method) Server for internationalized text input, which is independent from any specific language, any specific input method and the transport layer used in communication between the IM library and the IM Server, and uses a client-server model.  This protocol allows user to use his/her favorite method for all applications within the stand-along distributed environment.
 </para>
 </abstract>
 
 <legalnotice>
-<para>Permission to use,copy and distribute this documetation for any purpose
+<para>Permission to use, copy and distribute this documentation for any purpose
 and without fee is hereby granted, provided that the above copyright notice
 and this permission notice appear in all copies.  Fujitsu and Sun Microsystems
 make no representation about the suitability for any purpose of the information in this document.
@@ -978,7 +978,7 @@ A client must send
 message as the first message on the connection.
 The list specifies the names of authentication protocols the sending
 IM Server is willing to perform.
-(If the client need not authenticate, the list may be omited.)
+(If the client need not authenticate, the list may be omitted.)
 </para>
 
 <para>
@@ -1123,7 +1123,7 @@ If <emphasis remap='I'>client_ask</emphasis> -&gt; <emphasis remap='I'>client_wa
       </para>
       <para>
 If <emphasis remap='I'>client_no_check</emphasis>,
-client-auth-protocol-names may be omited -&gt; <emphasis remap='I'>client_wait2</emphasis>
+client-auth-protocol-names may be omitted -&gt; <emphasis remap='I'>client_wait2</emphasis>
       </para>
     </listitem>
   </varlistentry>
@@ -1569,7 +1569,7 @@ XIM_ENCODING_NEGOTIATION_REPLY (IM Server -&gt; IM library)
      2     CARD16     category of the encoding determined.
            #0         name
            #1         detailed data
-     2     INT16      index of the encoding determinated.
+     2     INT16      index of the encoding determined.
      2                unused
 </literallayout>
 

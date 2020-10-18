@@ -104,11 +104,11 @@ xa_surface_dma(struct xa_context *ctx,
     struct pipe_transfer *transfer;
     void *map;
     int w, h, i;
-    enum pipe_transfer_usage transfer_direction;
+    enum pipe_map_flags transfer_direction;
     struct pipe_context *pipe = ctx->pipe;
 
-    transfer_direction = (to_surface ? PIPE_TRANSFER_WRITE :
-			  PIPE_TRANSFER_READ);
+    transfer_direction = (to_surface ? PIPE_MAP_WRITE :
+			  PIPE_MAP_READ);
 
     for (i = 0; i < num_boxes; ++i, ++boxes) {
 	w = boxes->x2 - boxes->x1;
@@ -148,19 +148,19 @@ xa_surface_map(struct xa_context *ctx,
 	return NULL;
 
     if (usage & XA_MAP_READ)
-	gallium_usage |= PIPE_TRANSFER_READ;
+	gallium_usage |= PIPE_MAP_READ;
     if (usage & XA_MAP_WRITE)
-	gallium_usage |= PIPE_TRANSFER_WRITE;
+	gallium_usage |= PIPE_MAP_WRITE;
     if (usage & XA_MAP_MAP_DIRECTLY)
-	gallium_usage |= PIPE_TRANSFER_MAP_DIRECTLY;
+	gallium_usage |= PIPE_MAP_DIRECTLY;
     if (usage & XA_MAP_UNSYNCHRONIZED)
-	gallium_usage |= PIPE_TRANSFER_UNSYNCHRONIZED;
+	gallium_usage |= PIPE_MAP_UNSYNCHRONIZED;
     if (usage & XA_MAP_DONTBLOCK)
-	gallium_usage |= PIPE_TRANSFER_DONTBLOCK;
+	gallium_usage |= PIPE_MAP_DONTBLOCK;
     if (usage & XA_MAP_DISCARD_WHOLE_RESOURCE)
-	gallium_usage |= PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE;
+	gallium_usage |= PIPE_MAP_DISCARD_WHOLE_RESOURCE;
 
-    if (!(gallium_usage & (PIPE_TRANSFER_READ_WRITE)))
+    if (!(gallium_usage & (PIPE_MAP_READ_WRITE)))
 	return NULL;
 
     map = pipe_transfer_map(pipe, srf->tex, 0, 0,

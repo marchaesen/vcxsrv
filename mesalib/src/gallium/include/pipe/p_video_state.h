@@ -457,6 +457,11 @@ struct pipe_h265_enc_seq_param
    uint8_t  log2_diff_max_min_transform_block_size;
    uint8_t  max_transform_hierarchy_depth_inter;
    uint8_t  max_transform_hierarchy_depth_intra;
+   uint8_t conformance_window_flag;
+   uint16_t conf_win_left_offset;
+   uint16_t conf_win_right_offset;
+   uint16_t conf_win_top_offset;
+   uint16_t conf_win_bottom_offset;
 };
 
 struct pipe_h265_enc_pic_param

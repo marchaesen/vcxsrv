@@ -356,7 +356,8 @@ combine_stores_block(struct combine_stores_state *state, nir_block *block)
          break;
       }
 
-      case nir_intrinsic_copy_deref: {
+      case nir_intrinsic_copy_deref:
+      case nir_intrinsic_memcpy_deref: {
          nir_deref_instr *dst = nir_src_as_deref(intrin->src[0]);
          nir_deref_instr *src = nir_src_as_deref(intrin->src[1]);
          combine_stores_with_deref(state, dst);

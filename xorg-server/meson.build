@@ -164,7 +164,7 @@ glamor_option = get_option('glamor')
 
 build_udev = get_option('udev')
 build_udev_kms = get_option('udev_kms')
-if host_machine.system() == 'windows' or host_machine.system() == 'darwin'
+if ['windows',  'darwin', 'cygwin'].contains(host_machine.system())
     build_udev = false
     build_udev_kms = false
     hal_option = 'false'
@@ -199,6 +199,11 @@ if (host_machine.system() != 'darwin' and
     if get_option('xwayland') != 'false'
         xwayland_required = get_option('xwayland') == 'true'
         build_glamor = glamor_option == 'true' or glamor_option == 'auto'
+
+        xwayland_path = get_option('xwayland-path')
+        if (xwayland_path == '')
+            xwayland_path = join_paths(get_option('prefix'), get_option('bindir'))
+        endif
 
         xwayland_dep = [
             dependency('wayland-client', version: wayland_req, required: xwayland_required),

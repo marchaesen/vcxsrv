@@ -29,9 +29,10 @@
 
 #include "vk_util.h"
 
-#include "util/u_half.h"
+#include "util/half_float.h"
 #include "util/format_srgb.h"
 #include "util/format_r11g11b10f.h"
+#include "util/format_rgb9e5.h"
 
 uint32_t radv_translate_buffer_dataformat(const struct vk_format_description *desc,
 					  int first_non_void)
@@ -565,7 +566,8 @@ bool radv_is_buffer_format_supported(VkFormat format, bool *scaled)
 		num_format != ~0;
 }
 
-bool radv_is_colorbuffer_format_supported(VkFormat format, bool *blendable)
+bool radv_is_colorbuffer_format_supported(const struct radv_physical_device *pdevice,
+                                          VkFormat format, bool *blendable)
 {
 	const struct vk_format_description *desc = vk_format_description(format);
 	uint32_t color_format = radv_translate_colorformat(format);
@@ -580,6 +582,10 @@ bool radv_is_colorbuffer_format_supported(VkFormat format, bool *blendable)
 		*blendable = false;
 	} else
 		*blendable = true;
+
+	if (format == VK_FORMAT_E5B9G9R9_UFLOAT_PACK32 && pdevice->rad_info.chip_class < GFX10_3)
+		return false;
+
 	return color_format != V_028C70_COLOR_INVALID &&
 		color_swap != ~0U &&
 		color_num_format != ~0;
@@ -624,6 +630,7 @@ radv_device_supports_etc(struct radv_physical_device *physical_device)
 {
 	return physical_device->rad_info.family == CHIP_VEGA10 ||
 	       physical_device->rad_info.family == CHIP_RAVEN ||
+	       physical_device->rad_info.family == CHIP_RAVEN2 ||
 	       physical_device->rad_info.family == CHIP_STONEY;
 }
 
@@ -726,7 +733,7 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 				linear &= ~VK_FORMAT_FEATURE_BLIT_SRC_BIT;
 			}
 		}
-		if (radv_is_colorbuffer_format_supported(format, &blendable)) {
+		if (radv_is_colorbuffer_format_supported(physical_device, format, &blendable)) {
 			linear |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;
 			tiled |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;
 			if (blendable) {
@@ -749,7 +756,9 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 		          VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
 	}
 
-	if (format == VK_FORMAT_R32_UINT || format == VK_FORMAT_R32_SINT) {
+	if (format == VK_FORMAT_R32_UINT ||
+	    format == VK_FORMAT_R32_SINT ||
+	    format == VK_FORMAT_R32_SFLOAT) {
 		buffer |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;
 		linear |= VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;
 		tiled |= VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;
@@ -793,6 +802,9 @@ uint32_t radv_translate_colorformat(VkFormat format)
 
 	if (format == VK_FORMAT_B10G11R11_UFLOAT_PACK32) /* isn't plain */
 		return V_028C70_COLOR_10_11_11;
+
+	if (format == VK_FORMAT_E5B9G9R9_UFLOAT_PACK32)
+		return V_028C70_COLOR_5_9_9_9;
 
 	if (desc->layout != VK_FORMAT_LAYOUT_PLAIN)
 		return V_028C70_COLOR_INVALID;
@@ -927,6 +939,9 @@ unsigned radv_translate_colorswap(VkFormat format, bool do_endian_swap)
 	if (format == VK_FORMAT_B10G11R11_UFLOAT_PACK32)
 		return V_028C70_SWAP_STD;
 
+	if (format == VK_FORMAT_E5B9G9R9_UFLOAT_PACK32)
+		return V_028C70_SWAP_STD;
+
 	if (desc->layout != VK_FORMAT_LAYOUT_PLAIN)
 		return ~0U;
 
@@ -986,6 +1001,10 @@ bool radv_format_pack_clear_color(VkFormat format,
 
 	if (format == VK_FORMAT_B10G11R11_UFLOAT_PACK32) {
 		clear_vals[0] = float3_to_r11g11b10f(value->float32);
+		clear_vals[1] = 0;
+		return true;
+	} else if (format == VK_FORMAT_E5B9G9R9_UFLOAT_PACK32) {
+		clear_vals[0] = float3_to_rgb9e5(value->float32);
 		clear_vals[1] = 0;
 		return true;
 	}
@@ -1060,7 +1079,7 @@ bool radv_format_pack_clear_color(VkFormat format,
 			if (channel->size == 32) {
 				memcpy(&v, &value->float32[c], 4);
 			} else if(channel->size == 16) {
-				v = util_float_to_half_rtz(value->float32[c]);
+				v = _mesa_float_to_float16_rtz(value->float32[c]);
 			} else {
 				fprintf(stderr, "failed to fast clear for unhandled float size in format %d\n", format);
 				return false;

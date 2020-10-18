@@ -26,7 +26,6 @@ srcs_xorg_common = [
 
 xorg_sdk_headers = [
     'compiler.h',
-    'fourcc.h',
     'xf86.h',
     'xf86Module.h',
     'xf86Opt.h',

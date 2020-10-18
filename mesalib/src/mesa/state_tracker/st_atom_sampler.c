@@ -132,7 +132,7 @@ st_convert_sampler(const struct st_context *st,
     * levels.
     */
    sampler->lod_bias = CLAMP(sampler->lod_bias, -16, 16);
-   sampler->lod_bias = floorf(sampler->lod_bias * 256) / 256;
+   sampler->lod_bias = roundf(sampler->lod_bias * 256) / 256;
 
    sampler->min_lod = MAX2(msamp->MinLod, 0.0f);
    sampler->max_lod = msamp->MaxLod;
@@ -315,7 +315,12 @@ update_shader_samplers(struct st_context *st,
 
       switch (st_get_view_format(stObj)) {
       case PIPE_FORMAT_NV12:
+         if (stObj->pt->format == PIPE_FORMAT_R8_G8B8_420_UNORM)
+            /* no additional views needed */
+            break;
+         /* fallthrough */
       case PIPE_FORMAT_P010:
+      case PIPE_FORMAT_P012:
       case PIPE_FORMAT_P016:
       case PIPE_FORMAT_YUYV:
       case PIPE_FORMAT_UYVY:

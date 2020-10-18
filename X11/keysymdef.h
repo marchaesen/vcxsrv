@@ -86,8 +86,8 @@ SOFTWARE.
  * Mnemonic names for keysyms are defined in this file with lines
  * that match one of these Perl regular expressions:
  *
- *    /^\#define XK_([a-zA-Z_0-9]+)\s+0x([0-9a-f]+)\s*\/\* U+([0-9A-F]{4,6}) (.*) \*\/\s*$/
- *    /^\#define XK_([a-zA-Z_0-9]+)\s+0x([0-9a-f]+)\s*\/\*\(U+([0-9A-F]{4,6}) (.*)\)\*\/\s*$/
+ *    /^\#define XK_([a-zA-Z_0-9]+)\s+0x([0-9a-f]+)\s*\/\* U\+([0-9A-F]{4,6}) (.*) \*\/\s*$/
+ *    /^\#define XK_([a-zA-Z_0-9]+)\s+0x([0-9a-f]+)\s*\/\*\(U\+([0-9A-F]{4,6}) (.*)\)\*\/\s*$/
  *    /^\#define XK_([a-zA-Z_0-9]+)\s+0x([0-9a-f]+)\s*(\/\*\s*(.*)\s*\*\/)?\s*$/
  *
  * Before adding new keysyms, please do consider the following: In
@@ -1455,9 +1455,9 @@ SOFTWARE.
 #define XK_fivesixths                    0x0ab7  /* U+215A VULGAR FRACTION FIVE SIXTHS */
 #define XK_careof                        0x0ab8  /* U+2105 CARE OF */
 #define XK_figdash                       0x0abb  /* U+2012 FIGURE DASH */
-#define XK_leftanglebracket              0x0abc  /*(U+27E8 MATHEMATICAL LEFT ANGLE BRACKET)*/
+#define XK_leftanglebracket              0x0abc  /*(U+2329 LEFT-POINTING ANGLE BRACKET)*/
 #define XK_decimalpoint                  0x0abd  /*(U+002E FULL STOP)*/
-#define XK_rightanglebracket             0x0abe  /*(U+27E9 MATHEMATICAL RIGHT ANGLE BRACKET)*/
+#define XK_rightanglebracket             0x0abe  /*(U+232A RIGHT-POINTING ANGLE BRACKET)*/
 #define XK_marker                        0x0abf
 #define XK_oneeighth                     0x0ac3  /* U+215B VULGAR FRACTION ONE EIGHTH */
 #define XK_threeeighths                  0x0ac4  /* U+215C VULGAR FRACTION THREE EIGHTHS */
@@ -1710,106 +1710,106 @@ SOFTWARE.
 #define XK_Hangul_switch                 0xff7e  /* Alias for mode_switch */
 
 /* Hangul Consonant Characters */
-#define XK_Hangul_Kiyeog                 0x0ea1
-#define XK_Hangul_SsangKiyeog            0x0ea2
-#define XK_Hangul_KiyeogSios             0x0ea3
-#define XK_Hangul_Nieun                  0x0ea4
-#define XK_Hangul_NieunJieuj             0x0ea5
-#define XK_Hangul_NieunHieuh             0x0ea6
-#define XK_Hangul_Dikeud                 0x0ea7
-#define XK_Hangul_SsangDikeud            0x0ea8
-#define XK_Hangul_Rieul                  0x0ea9
-#define XK_Hangul_RieulKiyeog            0x0eaa
-#define XK_Hangul_RieulMieum             0x0eab
-#define XK_Hangul_RieulPieub             0x0eac
-#define XK_Hangul_RieulSios              0x0ead
-#define XK_Hangul_RieulTieut             0x0eae
-#define XK_Hangul_RieulPhieuf            0x0eaf
-#define XK_Hangul_RieulHieuh             0x0eb0
-#define XK_Hangul_Mieum                  0x0eb1
-#define XK_Hangul_Pieub                  0x0eb2
-#define XK_Hangul_SsangPieub             0x0eb3
-#define XK_Hangul_PieubSios              0x0eb4
-#define XK_Hangul_Sios                   0x0eb5
-#define XK_Hangul_SsangSios              0x0eb6
-#define XK_Hangul_Ieung                  0x0eb7
-#define XK_Hangul_Jieuj                  0x0eb8
-#define XK_Hangul_SsangJieuj             0x0eb9
-#define XK_Hangul_Cieuc                  0x0eba
-#define XK_Hangul_Khieuq                 0x0ebb
-#define XK_Hangul_Tieut                  0x0ebc
-#define XK_Hangul_Phieuf                 0x0ebd
-#define XK_Hangul_Hieuh                  0x0ebe
+#define XK_Hangul_Kiyeog                 0x0ea1  /* U+3131 HANGUL LETTER KIYEOK */
+#define XK_Hangul_SsangKiyeog            0x0ea2  /* U+3132 HANGUL LETTER SSANGKIYEOK */
+#define XK_Hangul_KiyeogSios             0x0ea3  /* U+3133 HANGUL LETTER KIYEOK-SIOS */
+#define XK_Hangul_Nieun                  0x0ea4  /* U+3134 HANGUL LETTER NIEUN */
+#define XK_Hangul_NieunJieuj             0x0ea5  /* U+3135 HANGUL LETTER NIEUN-CIEUC */
+#define XK_Hangul_NieunHieuh             0x0ea6  /* U+3136 HANGUL LETTER NIEUN-HIEUH */
+#define XK_Hangul_Dikeud                 0x0ea7  /* U+3137 HANGUL LETTER TIKEUT */
+#define XK_Hangul_SsangDikeud            0x0ea8  /* U+3138 HANGUL LETTER SSANGTIKEUT */
+#define XK_Hangul_Rieul                  0x0ea9  /* U+3139 HANGUL LETTER RIEUL */
+#define XK_Hangul_RieulKiyeog            0x0eaa  /* U+313A HANGUL LETTER RIEUL-KIYEOK */
+#define XK_Hangul_RieulMieum             0x0eab  /* U+313B HANGUL LETTER RIEUL-MIEUM */
+#define XK_Hangul_RieulPieub             0x0eac  /* U+313C HANGUL LETTER RIEUL-PIEUP */
+#define XK_Hangul_RieulSios              0x0ead  /* U+313D HANGUL LETTER RIEUL-SIOS */
+#define XK_Hangul_RieulTieut             0x0eae  /* U+313E HANGUL LETTER RIEUL-THIEUTH */
+#define XK_Hangul_RieulPhieuf            0x0eaf  /* U+313F HANGUL LETTER RIEUL-PHIEUPH */
+#define XK_Hangul_RieulHieuh             0x0eb0  /* U+3140 HANGUL LETTER RIEUL-HIEUH */
+#define XK_Hangul_Mieum                  0x0eb1  /* U+3141 HANGUL LETTER MIEUM */
+#define XK_Hangul_Pieub                  0x0eb2  /* U+3142 HANGUL LETTER PIEUP */
+#define XK_Hangul_SsangPieub             0x0eb3  /* U+3143 HANGUL LETTER SSANGPIEUP */
+#define XK_Hangul_PieubSios              0x0eb4  /* U+3144 HANGUL LETTER PIEUP-SIOS */
+#define XK_Hangul_Sios                   0x0eb5  /* U+3145 HANGUL LETTER SIOS */
+#define XK_Hangul_SsangSios              0x0eb6  /* U+3146 HANGUL LETTER SSANGSIOS */
+#define XK_Hangul_Ieung                  0x0eb7  /* U+3147 HANGUL LETTER IEUNG */
+#define XK_Hangul_Jieuj                  0x0eb8  /* U+3148 HANGUL LETTER CIEUC */
+#define XK_Hangul_SsangJieuj             0x0eb9  /* U+3149 HANGUL LETTER SSANGCIEUC */
+#define XK_Hangul_Cieuc                  0x0eba  /* U+314A HANGUL LETTER CHIEUCH */
+#define XK_Hangul_Khieuq                 0x0ebb  /* U+314B HANGUL LETTER KHIEUKH */
+#define XK_Hangul_Tieut                  0x0ebc  /* U+314C HANGUL LETTER THIEUTH */
+#define XK_Hangul_Phieuf                 0x0ebd  /* U+314D HANGUL LETTER PHIEUPH */
+#define XK_Hangul_Hieuh                  0x0ebe  /* U+314E HANGUL LETTER HIEUH */
 
 /* Hangul Vowel Characters */
-#define XK_Hangul_A                      0x0ebf
-#define XK_Hangul_AE                     0x0ec0
-#define XK_Hangul_YA                     0x0ec1
-#define XK_Hangul_YAE                    0x0ec2
-#define XK_Hangul_EO                     0x0ec3
-#define XK_Hangul_E                      0x0ec4
-#define XK_Hangul_YEO                    0x0ec5
-#define XK_Hangul_YE                     0x0ec6
-#define XK_Hangul_O                      0x0ec7
-#define XK_Hangul_WA                     0x0ec8
-#define XK_Hangul_WAE                    0x0ec9
-#define XK_Hangul_OE                     0x0eca
-#define XK_Hangul_YO                     0x0ecb
-#define XK_Hangul_U                      0x0ecc
-#define XK_Hangul_WEO                    0x0ecd
-#define XK_Hangul_WE                     0x0ece
-#define XK_Hangul_WI                     0x0ecf
-#define XK_Hangul_YU                     0x0ed0
-#define XK_Hangul_EU                     0x0ed1
-#define XK_Hangul_YI                     0x0ed2
-#define XK_Hangul_I                      0x0ed3
+#define XK_Hangul_A                      0x0ebf  /* U+314F HANGUL LETTER A */
+#define XK_Hangul_AE                     0x0ec0  /* U+3150 HANGUL LETTER AE */
+#define XK_Hangul_YA                     0x0ec1  /* U+3151 HANGUL LETTER YA */
+#define XK_Hangul_YAE                    0x0ec2  /* U+3152 HANGUL LETTER YAE */
+#define XK_Hangul_EO                     0x0ec3  /* U+3153 HANGUL LETTER EO */
+#define XK_Hangul_E                      0x0ec4  /* U+3154 HANGUL LETTER E */
+#define XK_Hangul_YEO                    0x0ec5  /* U+3155 HANGUL LETTER YEO */
+#define XK_Hangul_YE                     0x0ec6  /* U+3156 HANGUL LETTER YE */
+#define XK_Hangul_O                      0x0ec7  /* U+3157 HANGUL LETTER O */
+#define XK_Hangul_WA                     0x0ec8  /* U+3158 HANGUL LETTER WA */
+#define XK_Hangul_WAE                    0x0ec9  /* U+3159 HANGUL LETTER WAE */
+#define XK_Hangul_OE                     0x0eca  /* U+315A HANGUL LETTER OE */
+#define XK_Hangul_YO                     0x0ecb  /* U+315B HANGUL LETTER YO */
+#define XK_Hangul_U                      0x0ecc  /* U+315C HANGUL LETTER U */
+#define XK_Hangul_WEO                    0x0ecd  /* U+315D HANGUL LETTER WEO */
+#define XK_Hangul_WE                     0x0ece  /* U+315E HANGUL LETTER WE */
+#define XK_Hangul_WI                     0x0ecf  /* U+315F HANGUL LETTER WI */
+#define XK_Hangul_YU                     0x0ed0  /* U+3160 HANGUL LETTER YU */
+#define XK_Hangul_EU                     0x0ed1  /* U+3161 HANGUL LETTER EU */
+#define XK_Hangul_YI                     0x0ed2  /* U+3162 HANGUL LETTER YI */
+#define XK_Hangul_I                      0x0ed3  /* U+3163 HANGUL LETTER I */
 
 /* Hangul syllable-final (JongSeong) Characters */
-#define XK_Hangul_J_Kiyeog               0x0ed4
-#define XK_Hangul_J_SsangKiyeog          0x0ed5
-#define XK_Hangul_J_KiyeogSios           0x0ed6
-#define XK_Hangul_J_Nieun                0x0ed7
-#define XK_Hangul_J_NieunJieuj           0x0ed8
-#define XK_Hangul_J_NieunHieuh           0x0ed9
-#define XK_Hangul_J_Dikeud               0x0eda
-#define XK_Hangul_J_Rieul                0x0edb
-#define XK_Hangul_J_RieulKiyeog          0x0edc
-#define XK_Hangul_J_RieulMieum           0x0edd
-#define XK_Hangul_J_RieulPieub           0x0ede
-#define XK_Hangul_J_RieulSios            0x0edf
-#define XK_Hangul_J_RieulTieut           0x0ee0
-#define XK_Hangul_J_RieulPhieuf          0x0ee1
-#define XK_Hangul_J_RieulHieuh           0x0ee2
-#define XK_Hangul_J_Mieum                0x0ee3
-#define XK_Hangul_J_Pieub                0x0ee4
-#define XK_Hangul_J_PieubSios            0x0ee5
-#define XK_Hangul_J_Sios                 0x0ee6
-#define XK_Hangul_J_SsangSios            0x0ee7
-#define XK_Hangul_J_Ieung                0x0ee8
-#define XK_Hangul_J_Jieuj                0x0ee9
-#define XK_Hangul_J_Cieuc                0x0eea
-#define XK_Hangul_J_Khieuq               0x0eeb
-#define XK_Hangul_J_Tieut                0x0eec
-#define XK_Hangul_J_Phieuf               0x0eed
-#define XK_Hangul_J_Hieuh                0x0eee
+#define XK_Hangul_J_Kiyeog               0x0ed4  /* U+11A8 HANGUL JONGSEONG KIYEOK */
+#define XK_Hangul_J_SsangKiyeog          0x0ed5  /* U+11A9 HANGUL JONGSEONG SSANGKIYEOK */
+#define XK_Hangul_J_KiyeogSios           0x0ed6  /* U+11AA HANGUL JONGSEONG KIYEOK-SIOS */
+#define XK_Hangul_J_Nieun                0x0ed7  /* U+11AB HANGUL JONGSEONG NIEUN */
+#define XK_Hangul_J_NieunJieuj           0x0ed8  /* U+11AC HANGUL JONGSEONG NIEUN-CIEUC */
+#define XK_Hangul_J_NieunHieuh           0x0ed9  /* U+11AD HANGUL JONGSEONG NIEUN-HIEUH */
+#define XK_Hangul_J_Dikeud               0x0eda  /* U+11AE HANGUL JONGSEONG TIKEUT */
+#define XK_Hangul_J_Rieul                0x0edb  /* U+11AF HANGUL JONGSEONG RIEUL */
+#define XK_Hangul_J_RieulKiyeog          0x0edc  /* U+11B0 HANGUL JONGSEONG RIEUL-KIYEOK */
+#define XK_Hangul_J_RieulMieum           0x0edd  /* U+11B1 HANGUL JONGSEONG RIEUL-MIEUM */
+#define XK_Hangul_J_RieulPieub           0x0ede  /* U+11B2 HANGUL JONGSEONG RIEUL-PIEUP */
+#define XK_Hangul_J_RieulSios            0x0edf  /* U+11B3 HANGUL JONGSEONG RIEUL-SIOS */
+#define XK_Hangul_J_RieulTieut           0x0ee0  /* U+11B4 HANGUL JONGSEONG RIEUL-THIEUTH */
+#define XK_Hangul_J_RieulPhieuf          0x0ee1  /* U+11B5 HANGUL JONGSEONG RIEUL-PHIEUPH */
+#define XK_Hangul_J_RieulHieuh           0x0ee2  /* U+11B6 HANGUL JONGSEONG RIEUL-HIEUH */
+#define XK_Hangul_J_Mieum                0x0ee3  /* U+11B7 HANGUL JONGSEONG MIEUM */
+#define XK_Hangul_J_Pieub                0x0ee4  /* U+11B8 HANGUL JONGSEONG PIEUP */
+#define XK_Hangul_J_PieubSios            0x0ee5  /* U+11B9 HANGUL JONGSEONG PIEUP-SIOS */
+#define XK_Hangul_J_Sios                 0x0ee6  /* U+11BA HANGUL JONGSEONG SIOS */
+#define XK_Hangul_J_SsangSios            0x0ee7  /* U+11BB HANGUL JONGSEONG SSANGSIOS */
+#define XK_Hangul_J_Ieung                0x0ee8  /* U+11BC HANGUL JONGSEONG IEUNG */
+#define XK_Hangul_J_Jieuj                0x0ee9  /* U+11BD HANGUL JONGSEONG CIEUC */
+#define XK_Hangul_J_Cieuc                0x0eea  /* U+11BE HANGUL JONGSEONG CHIEUCH */
+#define XK_Hangul_J_Khieuq               0x0eeb  /* U+11BF HANGUL JONGSEONG KHIEUKH */
+#define XK_Hangul_J_Tieut                0x0eec  /* U+11C0 HANGUL JONGSEONG THIEUTH */
+#define XK_Hangul_J_Phieuf               0x0eed  /* U+11C1 HANGUL JONGSEONG PHIEUPH */
+#define XK_Hangul_J_Hieuh                0x0eee  /* U+11C2 HANGUL JONGSEONG HIEUH */
 
 /* Ancient Hangul Consonant Characters */
-#define XK_Hangul_RieulYeorinHieuh       0x0eef
-#define XK_Hangul_SunkyeongeumMieum      0x0ef0
-#define XK_Hangul_SunkyeongeumPieub      0x0ef1
-#define XK_Hangul_PanSios                0x0ef2
-#define XK_Hangul_KkogjiDalrinIeung      0x0ef3
-#define XK_Hangul_SunkyeongeumPhieuf     0x0ef4
-#define XK_Hangul_YeorinHieuh            0x0ef5
+#define XK_Hangul_RieulYeorinHieuh       0x0eef  /* U+316D HANGUL LETTER RIEUL-YEORINHIEUH */
+#define XK_Hangul_SunkyeongeumMieum      0x0ef0  /* U+3171 HANGUL LETTER KAPYEOUNMIEUM */
+#define XK_Hangul_SunkyeongeumPieub      0x0ef1  /* U+3178 HANGUL LETTER KAPYEOUNPIEUP */
+#define XK_Hangul_PanSios                0x0ef2  /* U+317F HANGUL LETTER PANSIOS */
+#define XK_Hangul_KkogjiDalrinIeung      0x0ef3  /* U+3181 HANGUL LETTER YESIEUNG */
+#define XK_Hangul_SunkyeongeumPhieuf     0x0ef4  /* U+3184 HANGUL LETTER KAPYEOUNPHIEUPH */
+#define XK_Hangul_YeorinHieuh            0x0ef5  /* U+3186 HANGUL LETTER YEORINHIEUH */
 
 /* Ancient Hangul Vowel Characters */
-#define XK_Hangul_AraeA                  0x0ef6
-#define XK_Hangul_AraeAE                 0x0ef7
+#define XK_Hangul_AraeA                  0x0ef6  /* U+318D HANGUL LETTER ARAEA */
+#define XK_Hangul_AraeAE                 0x0ef7  /* U+318E HANGUL LETTER ARAEAE */
 
 /* Ancient Hangul syllable-final (JongSeong) Characters */
-#define XK_Hangul_J_PanSios              0x0ef8
-#define XK_Hangul_J_KkogjiDalrinIeung    0x0ef9
-#define XK_Hangul_J_YeorinHieuh          0x0efa
+#define XK_Hangul_J_PanSios              0x0ef8  /* U+11EB HANGUL JONGSEONG PANSIOS */
+#define XK_Hangul_J_KkogjiDalrinIeung    0x0ef9  /* U+11F0 HANGUL JONGSEONG YESIEUNG */
+#define XK_Hangul_J_YeorinHieuh          0x0efa  /* U+11F9 HANGUL JONGSEONG YEORINHIEUH */
 
 /* Korean currency symbol */
 #define XK_Korean_Won                    0x0eff  /*(U+20A9 WON SIGN)*/
@@ -2084,6 +2084,11 @@ SOFTWARE.
 #define XK_ohorn                      0x10001a1  /* U+01A1 LATIN SMALL LETTER O WITH HORN */
 #define XK_Uhorn                      0x10001af  /* U+01AF LATIN CAPITAL LETTER U WITH HORN */
 #define XK_uhorn                      0x10001b0  /* U+01B0 LATIN SMALL LETTER U WITH HORN */
+#define XK_combining_tilde            0x1000303  /* U+0303 COMBINING TILDE */
+#define XK_combining_grave            0x1000300  /* U+0300 COMBINING GRAVE ACCENT */
+#define XK_combining_acute            0x1000301  /* U+0301 COMBINING ACUTE ACCENT */
+#define XK_combining_hook             0x1000309  /* U+0309 COMBINING HOOK ABOVE */
+#define XK_combining_belowdot         0x1000323  /* U+0323 COMBINING DOT BELOW */
 
 #endif /* XK_VIETNAMESE */
 

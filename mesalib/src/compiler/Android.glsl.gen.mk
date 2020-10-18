@@ -53,7 +53,7 @@ MESA_GEN_GLSL_H := $(addprefix $(call local-generated-sources-dir)/, \
 define local-l-or-ll-to-c-or-cpp
 	@mkdir -p $(dir $@)
 	@echo "Mesa Lex: $(PRIVATE_MODULE) <= $<"
-	$(hide) $(LEX) --nounistd -o$@ $<
+	$(hide) $(MESA_LEX) --nounistd -o$@ $<
 endef
 
 define glsl_local-y-to-c-and-h
@@ -102,6 +102,6 @@ $(intermediates)/glsl/ir_expression_operation_strings.h: $(LOCAL_PATH)/glsl/ir_e
 	@mkdir -p $(dir $@)
 	$(hide) $(MESA_PYTHON2) $< strings > $@
 
-$(intermediates)/glsl/float64_glsl.h: $(LOCAL_PATH)/glsl/xxd.py
+$(intermediates)/glsl/float64_glsl.h: $(MESA_TOP)/src/util/xxd.py
 	@mkdir -p $(dir $@)
 	$(hide) $(MESA_PYTHON2) $< $(MESA_TOP)/src/compiler/glsl/float64.glsl $@ -n float64_source > $@

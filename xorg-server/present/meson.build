@@ -24,7 +24,6 @@ libxserver_present = static_library('libxserver_present',
         common_dep,
         dependency('presentproto', version: '>= 1.2')
     ],
-    c_args: '-DHAVE_XORG_CONFIG_H'
 )
 
 install_data(hdrs_present, install_dir: xorgsdkdir)

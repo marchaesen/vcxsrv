@@ -48,6 +48,8 @@
  */
 
 typedef struct {
+   nir_shader *shader;
+
    int (*type_size)(const struct glsl_type *, bool);
 
    /* Tables of UBOs and SSBOs mapping driver_location/base whether
@@ -102,7 +104,7 @@ large_ubo(lower_state *state, nir_src src)
    if (!nir_src_is_const(src))
       return state->has_large_ubo;
    unsigned idx = nir_src_as_uint(src);
-   assert(idx < state->max_slot);
+   assert(idx < state->shader->info.num_ubos);
    return state->large_ubos[idx];
 }
 
@@ -112,7 +114,7 @@ large_ssbo(lower_state *state, nir_src src)
    if (!nir_src_is_const(src))
       return state->has_large_ssbo;
    unsigned idx = nir_src_as_uint(src);
-   assert(idx < state->max_slot);
+   assert(idx < state->shader->info.num_ssbos);
    return state->large_ssbos[idx];
 }
 
@@ -232,30 +234,20 @@ nir_lower_amul(nir_shader *shader,
    assert(shader->options->has_imul24);
    assert(type_size);
 
-   /* uniforms list actually includes ubo's and ssbo's: */
-   int max_slot = 0;
-
-   nir_foreach_variable (var, &shader->uniforms) {
-      int base = var->data.binding;
-      int size = MAX2(1, glsl_array_size(var->type));
-
-      max_slot = MAX2(max_slot, base + size);
-   }
-
-   NIR_VLA_FILL(bool, large_ubos, max_slot, 0);
-   NIR_VLA_FILL(bool, large_ssbos, max_slot, 0);
+   NIR_VLA_FILL(bool, large_ubos, shader->info.num_ubos, 0);
+   NIR_VLA_FILL(bool, large_ssbos, shader->info.num_ssbos, 0);
 
    lower_state state = {
-         .type_size = type_size,
-         .large_ubos = large_ubos,
-         .large_ssbos = large_ssbos,
-         .max_slot = max_slot,
+      .shader = shader,
+      .type_size = type_size,
+      .large_ubos = large_ubos,
+      .large_ssbos = large_ssbos,
    };
 
    /* Figure out which UBOs or SSBOs are large enough to be
     * disqualified from imul24:
     */
-   nir_foreach_variable(var, &shader->uniforms) {
+   nir_foreach_variable_in_shader (var, shader) {
       if (var->data.mode == nir_var_mem_ubo) {
          if (is_large(&state, var)) {
             state.has_large_ubo = true;

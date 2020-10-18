@@ -344,7 +344,7 @@ extern _X_EXPORT void glamor_set_drawable_modifiers_func(ScreenPtr screen,
  * @scrn: Current screen info pointer.
  * @fd:   Current drm fd.
  *
- * This function creates and intialize EGL contexts.
+ * This function creates and initializes EGL contexts.
  * Should be called from DDX's preInit function.
  * Return TRUE if success, otherwise return FALSE.
  * */

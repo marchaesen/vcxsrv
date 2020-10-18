@@ -121,7 +121,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #define _XSyncMinValue(pv) ((pv)->hi = 0x80000000, (pv)->lo = 0)
 
 /*
- *  These are the publically usable macros.  If you want the function version
+ *  These are the publicly usable macros.  If you want the function version
  *  of one of these, just #undef the macro to uncover the function.
  *  (This is the same convention that the ANSI C library uses.)
  */

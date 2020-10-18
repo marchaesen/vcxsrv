@@ -34,12 +34,12 @@
 /* This is an opaque structure implemented in the different backends */
 struct xwl_pixmap;
 
-typedef void (*xwl_pixmap_cb) (PixmapPtr pixmap, void *data);
+typedef void (*xwl_buffer_release_cb) (void *data);
 
 void xwl_pixmap_set_private(PixmapPtr pixmap, struct xwl_pixmap *xwl_pixmap);
 struct xwl_pixmap *xwl_pixmap_get(PixmapPtr pixmap);
 Bool xwl_pixmap_set_buffer_release_cb(PixmapPtr pixmap,
-                                      xwl_pixmap_cb func, void *data);
+                                      xwl_buffer_release_cb func, void *data);
 void xwl_pixmap_del_buffer_release_cb(PixmapPtr pixmap);
 void xwl_pixmap_buffer_release_cb(void *data, struct wl_buffer *wl_buffer);
 Bool xwl_pixmap_init(void);

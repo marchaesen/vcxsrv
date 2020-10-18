@@ -2356,7 +2356,7 @@ To add a row to an existing overlay, use
     </term>
     <listitem>
       <para>
-        row to be overlayed in the section <parameter>overlay</parameter>
+        row to be overlaid in the section <parameter>overlay</parameter>
          overlays
       </para>
     </listitem>

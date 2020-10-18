@@ -101,7 +101,7 @@ cbrt(double x)
 #endif
 
 /*
- * some interesting sematic interpretation of the protocol:
+ * some interesting semantic interpretation of the protocol:
  *
  * Self intersecting arcs (i.e. those spanning 360 degrees)
  *  never join with other arcs, and are drawn without caps
@@ -2375,7 +2375,7 @@ lengthToAngle(double len, dashMap * map)
 }
 
 /*
- * compute the angle of an ellipse which cooresponds to
+ * compute the angle of an ellipse which corresponds to
  * the given path length.  Note that the correct solution
  * to this problem is an eliptic integral, we'll punt and
  * approximate (it's only for dashes anyway).  This

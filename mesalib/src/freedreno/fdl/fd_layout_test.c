@@ -24,6 +24,7 @@
 #include "freedreno_layout.h"
 #include "fd_layout_test.h"
 #include "adreno_common.xml.h"
+#include "adreno_pm4.xml.h"
 #include "a6xx.xml.h"
 
 #include <stdio.h>
@@ -88,12 +89,12 @@ bool fdl_test_layout(const struct testcase *testcase, int gpu_id)
 					testcase->layout.slices[l].offset);
 			ok = false;
 		}
-		if (layout.slices[l].pitch != testcase->layout.slices[l].pitch) {
+		if (fdl_pitch(&layout, l) != testcase->layout.slices[l].pitch) {
 			fprintf(stderr, "%s %dx%dx%d@%dx lvl%d: pitch %d != %d\n",
 					util_format_short_name(testcase->format),
 					layout.width0, layout.height0, layout.depth0,
 					layout.nr_samples, l,
-					layout.slices[l].pitch,
+					fdl_pitch(&layout, l),
 					testcase->layout.slices[l].pitch);
 			ok = false;
 		}
@@ -107,12 +108,12 @@ bool fdl_test_layout(const struct testcase *testcase, int gpu_id)
 					testcase->layout.ubwc_slices[l].offset);
 			ok = false;
 		}
-		if (layout.ubwc_slices[l].pitch != testcase->layout.ubwc_slices[l].pitch) {
+		if (fdl_ubwc_pitch(&layout, l) != testcase->layout.ubwc_slices[l].pitch) {
 			fprintf(stderr, "%s %dx%dx%d@%dx lvl%d: UBWC pitch %d != %d\n",
 					util_format_short_name(testcase->format),
 					layout.width0, layout.height0, layout.depth0,
 					layout.nr_samples, l,
-					layout.ubwc_slices[l].pitch,
+					fdl_ubwc_pitch(&layout, l),
 					testcase->layout.ubwc_slices[l].pitch);
 			ok = false;
 		}

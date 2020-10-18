@@ -318,6 +318,9 @@ void print_regs(ra_ctx& ctx, bool vgprs, RegisterFile& reg_file)
 
 unsigned get_subdword_operand_stride(chip_class chip, const aco_ptr<Instruction>& instr, unsigned idx, RegClass rc)
 {
+   /* v_readfirstlane_b32 cannot use SDWA */
+   if (instr->opcode == aco_opcode::p_as_uniform)
+      return 4;
    if (instr->format == Format::PSEUDO && chip >= GFX8)
       return rc.bytes() % 2 == 0 ? 2 : 1;
 
@@ -546,7 +549,7 @@ void update_renames(ra_ctx& ctx, RegisterFile& reg_file,
          }
       }
       // FIXME: if a definition got moved, change the target location and remove the parallelcopy
-      copy.second.setTemp(Temp(ctx.program->allocateId(), copy.second.regClass()));
+      copy.second.setTemp(ctx.program->allocateTmp(copy.second.regClass()));
       ctx.assignments.emplace_back(copy.second.physReg(), copy.second.regClass());
       assert(ctx.assignments.size() == ctx.program->peekAllocationId());
       reg_file.fill(copy.second);
@@ -591,7 +594,7 @@ std::pair<PhysReg, bool> get_reg_simple(ra_ctx& ctx,
    RegClass rc = info.rc;
 
    if (stride == 1) {
-
+      info.rc = RegClass(rc.type(), size);
       for (unsigned stride = 8; stride > 1; stride /= 2) {
          if (size % stride)
             continue;
@@ -1256,7 +1259,7 @@ PhysReg get_reg(ra_ctx& ctx,
 
    //FIXME: if nothing helps, shift-rotate the registers to make space
 
-   fprintf(stderr, "ACO: failed to allocate registers during shader compilation\n");
+   aco_err(ctx.program, "Failed to allocate registers during shader compilation.");
    abort();
 }
 
@@ -1482,6 +1485,19 @@ bool operand_can_use_reg(chip_class chip, aco_ptr<Instruction>& instr, unsigned 
    if (instr->operands[idx].isFixed())
       return instr->operands[idx].physReg() == reg;
 
+   bool is_writelane = instr->opcode == aco_opcode::v_writelane_b32 ||
+                       instr->opcode == aco_opcode::v_writelane_b32_e64;
+   if (chip <= GFX9 && is_writelane && idx <= 1) {
+      /* v_writelane_b32 can take two sgprs but only if one is m0. */
+      bool is_other_sgpr = instr->operands[!idx].isTemp() &&
+                           (!instr->operands[!idx].isFixed() ||
+                            instr->operands[!idx].physReg() != m0);
+      if (is_other_sgpr && instr->operands[!idx].tempId() != instr->operands[idx].tempId()) {
+         instr->operands[idx].setFixed(m0);
+         return reg == m0;
+      }
+   }
+
    if (reg.byte()) {
       unsigned stride = get_subdword_operand_stride(chip, instr, idx, rc);
       if (reg.byte() % stride)
@@ -1560,7 +1576,7 @@ Temp handle_live_in(ra_ctx& ctx, Temp val, Block* block)
       Temp tmp = read_variable(ctx, val, preds[0]);
 
       /* if the block is not sealed yet, we create an incomplete phi (which might later get removed again) */
-      new_val = Temp{ctx.program->allocateId(), val.regClass()};
+      new_val = ctx.program->allocateTmp(val.regClass());
       ctx.assignments.emplace_back();
       aco_opcode opcode = val.is_linear() ? aco_opcode::p_linear_phi : aco_opcode::p_phi;
       aco_ptr<Instruction> phi{create_instruction<Pseudo_instruction>(opcode, Format::PSEUDO, preds.size(), 1)};
@@ -1595,7 +1611,7 @@ Temp handle_live_in(ra_ctx& ctx, Temp val, Block* block)
          /* the variable has been renamed differently in the predecessors: we need to insert a phi */
          aco_opcode opcode = val.is_linear() ? aco_opcode::p_linear_phi : aco_opcode::p_phi;
          aco_ptr<Instruction> phi{create_instruction<Pseudo_instruction>(opcode, Format::PSEUDO, preds.size(), 1)};
-         new_val = Temp{ctx.program->allocateId(), val.regClass()};
+         new_val = ctx.program->allocateTmp(val.regClass());
          phi->definitions[0] = Definition(new_val);
          for (unsigned i = 0; i < preds.size(); i++) {
             phi->operands[i] = Operand(ops[i]);
@@ -1685,7 +1701,7 @@ void try_remove_trivial_phi(ra_ctx& ctx, Temp temp)
 } /* end namespace */
 
 
-void register_allocation(Program *program, std::vector<TempSet>& live_out_per_block)
+void register_allocation(Program *program, std::vector<IDSet>& live_out_per_block)
 {
    ra_ctx ctx(program);
    std::vector<std::vector<Temp>> phi_ressources;
@@ -1695,14 +1711,14 @@ void register_allocation(Program *program, std::vector<TempSet>& live_out_per_bl
       Block& block = *it;
 
       /* first, compute the death points of all live vars within the block */
-      TempSet& live = live_out_per_block[block.index];
+      IDSet& live = live_out_per_block[block.index];
 
       std::vector<aco_ptr<Instruction>>::reverse_iterator rit;
       for (rit = block.instructions.rbegin(); rit != block.instructions.rend(); ++rit) {
          aco_ptr<Instruction>& instr = *rit;
          if (is_phi(instr)) {
             if (instr->definitions[0].isKill() || instr->definitions[0].isFixed()) {
-               live.erase(instr->definitions[0].getTemp());
+               live.erase(instr->definitions[0].tempId());
                continue;
             }
             /* collect information about affinity-related temporaries */
@@ -1732,7 +1748,7 @@ void register_allocation(Program *program, std::vector<TempSet>& live_out_per_bl
             /* add operands to live variables */
             for (const Operand& op : instr->operands) {
                if (op.isTemp())
-                  live.emplace(op.getTemp());
+                  live.insert(op.tempId());
             }
          }
 
@@ -1741,7 +1757,7 @@ void register_allocation(Program *program, std::vector<TempSet>& live_out_per_bl
             const Definition& def = instr->definitions[i];
             if (!def.isTemp())
                continue;
-            live.erase(def.getTemp());
+            live.erase(def.tempId());
             /* mark last-seen phi operand */
             std::unordered_map<unsigned, unsigned>::iterator it = temp_to_phi_ressources.find(def.tempId());
             if (it != temp_to_phi_ressources.end() && def.regClass() == phi_ressources[it->second][0].regClass()) {
@@ -1777,14 +1793,14 @@ void register_allocation(Program *program, std::vector<TempSet>& live_out_per_bl
    std::vector<std::bitset<128>> sgpr_live_in(program->blocks.size());
 
    for (Block& block : program->blocks) {
-      TempSet& live = live_out_per_block[block.index];
+      IDSet& live = live_out_per_block[block.index];
       /* initialize register file */
       assert(block.index != 0 || live.empty());
       RegisterFile register_file;
       ctx.war_hint.reset();
 
-      for (Temp t : live) {
-         Temp renamed = handle_live_in(ctx, t, &block);
+      for (unsigned t : live) {
+         Temp renamed = handle_live_in(ctx, Temp(t, program->temp_rc[t]), &block);
          assignment& var = ctx.assignments[renamed.id()];
          /* due to live-range splits, the live-in might be a phi, now */
          if (var.assigned)
@@ -1937,7 +1953,7 @@ void register_allocation(Program *program, std::vector<TempSet>& live_out_per_bl
             register_file.fill(definition);
             ctx.assignments[definition.tempId()] = {definition.physReg(), definition.regClass()};
          }
-         live.emplace(definition.getTemp());
+         live.insert(definition.tempId());
 
          /* update phi affinities */
          for (const Operand& op : phi->operands) {
@@ -2138,7 +2154,7 @@ void register_allocation(Program *program, std::vector<TempSet>& live_out_per_bl
 
             /* set live if it has a kill point */
             if (!definition.isKill())
-               live.emplace(definition.getTemp());
+               live.insert(definition.tempId());
 
             ctx.assignments[definition.tempId()] = {definition.physReg(), definition.regClass()};
             register_file.fill(definition);
@@ -2199,7 +2215,7 @@ void register_allocation(Program *program, std::vector<TempSet>& live_out_per_bl
 
             /* set live if it has a kill point */
             if (!definition->isKill())
-               live.emplace(definition->getTemp());
+               live.insert(definition->tempId());
 
             ctx.assignments[definition->tempId()] = {definition->physReg(), definition->regClass()};
             register_file.fill(*definition);
@@ -2232,11 +2248,11 @@ void register_allocation(Program *program, std::vector<TempSet>& live_out_per_bl
                   if (!sgpr_operands_alias_defs) {
                      unsigned reg = parallelcopy[i].first.physReg().reg();
                      unsigned size = parallelcopy[i].first.getTemp().size();
-                     sgpr_operands[reg / 64u] |= ((1u << size) - 1) << (reg % 64u);
+                     sgpr_operands[reg / 64u] |= u_bit_consecutive64(reg % 64u, size);
 
                      reg = parallelcopy[i].second.physReg().reg();
                      size = parallelcopy[i].second.getTemp().size();
-                     if (sgpr_operands[reg / 64u] & ((1u << size) - 1) << (reg % 64u))
+                     if (sgpr_operands[reg / 64u] & u_bit_consecutive64(reg % 64u, size))
                         sgpr_operands_alias_defs = true;
                   }
                }
@@ -2319,7 +2335,7 @@ void register_allocation(Program *program, std::vector<TempSet>& live_out_per_bl
                   if (op.isTemp() && op.isFirstKill())
                      register_file.block(op.physReg(), op.regClass());
                }
-               Temp tmp = {program->allocateId(), can_sgpr ? s1 : v1};
+               Temp tmp = program->allocateTmp(can_sgpr ? s1 : v1);
                ctx.assignments.emplace_back();
                PhysReg reg = get_reg(ctx, register_file, tmp, parallelcopy, instr);
 

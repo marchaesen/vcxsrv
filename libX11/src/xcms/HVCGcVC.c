@@ -170,7 +170,7 @@ XcmsTekHVCClipVC (
 	}
 
 	if (pColor->spec.TekHVC.V < hvc_max.spec.TekHVC.V) {
-	    /* return the intersection of the perpindicular line through     */
+	    /* return the intersection of the perpendicular line through     */
 	    /* the value and chroma given and the line from 0,0 and hvc_max. */
 	    Chroma = pColor->spec.TekHVC.C;
 	    Value = pColor->spec.TekHVC.V;

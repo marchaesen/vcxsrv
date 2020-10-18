@@ -308,6 +308,8 @@ static int parse_reg(const char *str)
 "|"                               return '|';
 "c"                               return 'c';
 "r"                               return 'r';
+"hc"                              return TOKEN(T_HC);
+"hr"                              return TOKEN(T_HR);
 "g"                               return 'g';
 "l"                               return 'l';
 "<"                               return '<';

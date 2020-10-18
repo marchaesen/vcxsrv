@@ -109,7 +109,8 @@ st_server_wait_semaphore(struct gl_context *ctx,
          continue;
 
       bufObj = st_buffer_object(bufObjs[i]);
-      pipe->flush_resource(pipe, bufObj->buffer);
+      if (bufObj->buffer)
+         pipe->flush_resource(pipe, bufObj->buffer);
    }
 
    for (unsigned i = 0; i < numTextureBarriers; i++) {
@@ -117,7 +118,8 @@ st_server_wait_semaphore(struct gl_context *ctx,
          continue;
 
       texObj = st_texture_object(texObjs[i]);
-      pipe->flush_resource(pipe, texObj->pt);
+      if (texObj->pt)
+         pipe->flush_resource(pipe, texObj->pt);
    }
 }
 
@@ -141,7 +143,8 @@ st_server_signal_semaphore(struct gl_context *ctx,
          continue;
 
       bufObj = st_buffer_object(bufObjs[i]);
-      pipe->flush_resource(pipe, bufObj->buffer);
+      if (bufObj->buffer)
+         pipe->flush_resource(pipe, bufObj->buffer);
    }
 
    for (unsigned i = 0; i < numTextureBarriers; i++) {
@@ -149,7 +152,8 @@ st_server_signal_semaphore(struct gl_context *ctx,
          continue;
 
       texObj = st_texture_object(texObjs[i]);
-      pipe->flush_resource(pipe, texObj->pt);
+      if (texObj->pt)
+         pipe->flush_resource(pipe, texObj->pt);
    }
 
    /* The driver is allowed to flush during fence_server_signal, be prepared */

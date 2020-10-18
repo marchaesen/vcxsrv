@@ -1,7 +1,9 @@
-SUBDIRS = compat
-
 rulesdir = $(xkb_base)/rules
 xmldir = $(rulesdir)
+
+EXTRA_DIST =
+CLEANFILES =
+BUILT_SOURCES =
 
 if CREATE_RULES_SYMLINK
 #  extra_rules_file = $(xkb_rules_symlink)
@@ -22,6 +24,84 @@ else
 install-data-hook:
 
 endif
+
+# rules/compat parts
+# Because we rely on the generated sources of that file, we need to keep these
+# in the same Makefile.am
+
+layout_mappings=$(srcdir)/compat/layoutsMapping.lst
+variant_mappings=$(srcdir)/compat/variantsMapping.lst
+
+compat_dist_parts = \
+    compat/0003-lists.part \
+    compat/0028-lv_c.part   \
+    compat/0029-l1v1_c.part \
+    compat/0030-l2v2_c.part \
+    compat/0031-l3v3_c.part \
+    compat/0032-l4v4_c.part \
+    compat/0041-o_s.part \
+    compat/0041-o_s.part \
+    compat/0028-lv_c.part \
+    compat/0029-l1v1_c.part \
+    compat/0030-l2v2_c.part \
+    compat/0031-l3v3_c.part \
+    compat/0032-l4v4_c.part \
+    $(NULL)
+
+compat_generated_parts = \
+    compat/0012-ml_s.part \
+    compat/0014-ml1_s.part \
+    compat/0017-ml2_s.part \
+    compat/0019-ml3_s.part \
+    compat/0021-ml4_s.part \
+    compat/0010-mlv_s.part \
+    compat/0016-ml1v1_s.part \
+    compat/0023-ml2v2_s.part \
+    compat/0024-ml3v3_s.part \
+    compat/0025-ml4v4_s.part \
+    $(NULL)
+
+compat_parts = $(compat_generated_parts) $(compat_dist_parts)
+if USE_COMPAT_RULES
+BUILT_SOURCES += $(compat_parts)
+endif
+
+map_script = $(srcdir)/compat/map-variants.py
+
+compat/0014-ml1_s.part: $(map_script) $(layout_mappings) $(variant_mappings)
+	$(map_script) --want=mls --number=1 $@ $(layout_mappings) $(variant_mappings)
+
+compat/0017-ml2_s.part: $(map_script) $(layout_mappings) $(variant_mappings)
+	$(map_script) --want=mls --number=2 $@ $(layout_mappings) $(variant_mappings)
+
+compat/0019-ml3_s.part: $(map_script) $(layout_mappings) $(variant_mappings)
+	$(map_script) --want=mls --number=3 $@ $(layout_mappings) $(variant_mappings)
+
+compat/0021-ml4_s.part: $(map_script) $(layout_mappings) $(variant_mappings)
+	$(map_script) --want=mls --number=4 $@ $(layout_mappings) $(variant_mappings)
+
+compat/0016-ml1v1_s.part: $(map_script) $(variant_mappings)
+	$(map_script) --want=mlvs --number=1 $@ $(variant_mappings)
+
+compat/0023-ml2v2_s.part: $(map_script) $(variant_mappings)
+	$(map_script) --want=mlvs --number=2 $@ $(variant_mappings)
+
+compat/0024-ml3v3_s.part: $(map_script) $(variant_mappings)
+	$(map_script) --want=mlvs --number=3 $@ $(variant_mappings)
+
+compat/0025-ml4v4_s.part: $(map_script) $(variant_mappings)
+	$(map_script) --want=mlvs --number=4 $@ $(variant_mappings)
+
+compat/0012-ml_s.part: $(map_script) $(layout_mappings) $(variant_mappings)
+	$(map_script) --want=mls $@ $(layout_mappings) $(variant_mappings)
+
+compat/0010-mlv_s.part: $(map_script) $(layout_mappings) $(variant_mappings)
+	$(map_script) --want=mlvs $@ $(variant_mappings)
+
+EXTRA_DIST += $(layout_mappings) $(variant_mappings) $(compat_dist_parts) $(map_script)
+CLEANFILES += $(compat_generated_parts)
+
+# end of the rules/compat parts, now for the parts in rules/
 
 parts = \
 	0000-hdr.part \
@@ -52,25 +132,6 @@ parts = \
 	0042-o_s.part \
 	0043-o_c.part \
 	0044-o_t.part
-
-compat_parts = \
-	compat/0003-lists.part \
-	compat/0010-mlv_s.part \
-	compat/0012-ml_s.part \
-	compat/0014-ml1_s.part \
-	compat/0016-ml1v1_s.part \
-	compat/0017-ml2_s.part \
-	compat/0019-ml3_s.part \
-	compat/0021-ml4_s.part \
-	compat/0023-ml2v2_s.part  \
-	compat/0024-ml3v3_s.part  \
-	compat/0025-ml4v4_s.part  \
-	compat/0028-lv_c.part   \
-	compat/0029-l1v1_c.part \
-	compat/0030-l2v2_c.part \
-	compat/0031-l3v3_c.part \
-	compat/0032-l4v4_c.part \
-	compat/0041-o_s.part
 
 if USE_COMPAT_RULES
 parts += $(compat_parts)
@@ -105,8 +166,8 @@ $(srcdir)/evdev.xml: base.xml
 $(srcdir)/evdev.extras.xml: base.extras.xml
 	cp $(srcdir)/base.extras.xml $@
 
-EXTRA_DIST= $(xml_DATA) xfree98 \
-            $(base_parts) $(evdev_parts) $(compat_parts) \
-            xml2lst.pl merge.py xkb.its $(dist_files)
+EXTRA_DIST += $(xml_DATA) xfree98 \
+              $(base_parts) $(evdev_parts) $(compat_parts) \
+              xml2lst.pl merge.py xkb.its $(dist_files)
 
-CLEANFILES = base base.lst evdev evdev.lst
+CLEANFILES += base base.lst evdev evdev.lst

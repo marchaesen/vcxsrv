@@ -39,6 +39,7 @@ void v3d_simulator_destroy(struct v3d_simulator_file *sim_file);
 uint32_t v3d_simulator_get_spill(uint32_t spill_size);
 int v3d_simulator_ioctl(int fd, unsigned long request, void *arg);
 void v3d_simulator_open_from_handle(int fd, int handle, uint32_t size);
+uint32_t v3d_simulator_get_mem_size(void);
 
 #ifdef v3dX
 #  include "v3dx_simulator.h"

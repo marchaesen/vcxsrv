@@ -100,12 +100,12 @@ static const struct gl_builtin_uniform_element gl_LightSource_elements[] = {
 		  SWIZZLE_Y,
 		  SWIZZLE_Z,
 		  SWIZZLE_Z)},
-   {"spotExponent", {STATE_LIGHT, 0, STATE_ATTENUATION}, SWIZZLE_WWWW},
-   {"spotCutoff", {STATE_LIGHT, 0, STATE_SPOT_CUTOFF}, SWIZZLE_XXXX},
    {"spotCosCutoff", {STATE_LIGHT, 0, STATE_SPOT_DIRECTION}, SWIZZLE_WWWW},
    {"constantAttenuation", {STATE_LIGHT, 0, STATE_ATTENUATION}, SWIZZLE_XXXX},
    {"linearAttenuation", {STATE_LIGHT, 0, STATE_ATTENUATION}, SWIZZLE_YYYY},
    {"quadraticAttenuation", {STATE_LIGHT, 0, STATE_ATTENUATION}, SWIZZLE_ZZZZ},
+   {"spotExponent", {STATE_LIGHT, 0, STATE_ATTENUATION}, SWIZZLE_WWWW},
+   {"spotCutoff", {STATE_LIGHT, 0, STATE_SPOT_CUTOFF}, SWIZZLE_XXXX},
 };
 
 static const struct gl_builtin_uniform_element gl_LightModel_elements[] = {
@@ -315,11 +315,11 @@ class per_vertex_accumulator
 public:
    per_vertex_accumulator();
    void add_field(int slot, const glsl_type *type, int precision,
-                  const char *name);
+                  const char *name, enum glsl_interp_mode interp);
    const glsl_type *construct_interface_instance() const;
 
 private:
-   glsl_struct_field fields[11];
+   glsl_struct_field fields[14];
    unsigned num_fields;
 };
 
@@ -333,7 +333,8 @@ per_vertex_accumulator::per_vertex_accumulator()
 
 void
 per_vertex_accumulator::add_field(int slot, const glsl_type *type,
-                                  int precision, const char *name)
+                                  int precision, const char *name,
+                                  enum glsl_interp_mode interp)
 {
    assert(this->num_fields < ARRAY_SIZE(this->fields));
    this->fields[this->num_fields].type = type;
@@ -341,7 +342,7 @@ per_vertex_accumulator::add_field(int slot, const glsl_type *type,
    this->fields[this->num_fields].matrix_layout = GLSL_MATRIX_LAYOUT_INHERITED;
    this->fields[this->num_fields].location = slot;
    this->fields[this->num_fields].offset = -1;
-   this->fields[this->num_fields].interpolation = INTERP_MODE_NONE;
+   this->fields[this->num_fields].interpolation = interp;
    this->fields[this->num_fields].centroid = 0;
    this->fields[this->num_fields].sample = 0;
    this->fields[this->num_fields].patch = 0;
@@ -397,14 +398,16 @@ private:
    }
 
    ir_variable *add_input(int slot, const glsl_type *type, int precision,
-                          const char *name)
+                          const char *name,
+                          enum glsl_interp_mode interp = INTERP_MODE_NONE)
    {
-      return add_variable(name, type, precision, ir_var_shader_in, slot);
+      return add_variable(name, type, precision, ir_var_shader_in, slot, interp);
    }
 
-   ir_variable *add_input(int slot, const glsl_type *type, const char *name)
+   ir_variable *add_input(int slot, const glsl_type *type, const char *name,
+                          enum glsl_interp_mode interp = INTERP_MODE_NONE)
    {
-      return add_input(slot, type, GLSL_PRECISION_NONE, name);
+      return add_input(slot, type, GLSL_PRECISION_NONE, name, interp);
    }
 
    ir_variable *add_output(int slot, const glsl_type *type, int precision,
@@ -438,7 +441,7 @@ private:
 
    ir_variable *add_variable(const char *name, const glsl_type *type,
                              int precision, enum ir_variable_mode mode,
-                             int slot);
+                             int slot, enum glsl_interp_mode interp = INTERP_MODE_NONE);
    ir_variable *add_index_variable(const char *name, const glsl_type *type,
                                    int precision, enum ir_variable_mode mode,
                                    int slot, int index);
@@ -455,10 +458,12 @@ private:
    }
    ir_variable *add_const_ivec3(const char *name, int x, int y, int z);
    void add_varying(int slot, const glsl_type *type, int precision,
-                    const char *name);
-   void add_varying(int slot, const glsl_type *type, const char *name)
+                    const char *name,
+                    enum glsl_interp_mode interp  = INTERP_MODE_NONE);
+   void add_varying(int slot, const glsl_type *type, const char *name,
+                    enum glsl_interp_mode interp = INTERP_MODE_NONE)
    {
-      add_varying(slot, type, GLSL_PRECISION_NONE, name);
+      add_varying(slot, type, GLSL_PRECISION_NONE, name, interp);
    }
 
    exec_list * const instructions;
@@ -553,7 +558,8 @@ ir_variable *
 builtin_variable_generator::add_variable(const char *name,
                                          const glsl_type *type,
                                          int precision,
-                                         enum ir_variable_mode mode, int slot)
+                                         enum ir_variable_mode mode, int slot,
+                                         enum glsl_interp_mode interp)
 {
    ir_variable *var = new(symtab) ir_variable(type, name, mode);
    var->data.how_declared = ir_var_declared_implicitly;
@@ -580,6 +586,7 @@ builtin_variable_generator::add_variable(const char *name,
    var->data.location = slot;
    var->data.explicit_location = (slot >= 0);
    var->data.explicit_index = 0;
+   var->data.interpolation = interp;
 
    if (state->es_shader)
       var->data.precision = precision;
@@ -1073,8 +1080,6 @@ builtin_variable_generator::generate_special_vars()
 void
 builtin_variable_generator::generate_vs_special_vars()
 {
-   ir_variable *var;
-
    if (state->is_version(130, 300) || state->EXT_gpu_shader4_enable) {
       add_system_value(SYSTEM_VALUE_VERTEX_ID, int_t, GLSL_PRECISION_HIGH,
                        "gl_VertexID");
@@ -1100,33 +1105,6 @@ builtin_variable_generator::generate_vs_special_vars()
       add_system_value(SYSTEM_VALUE_BASE_VERTEX, int_t, "gl_BaseVertexARB");
       add_system_value(SYSTEM_VALUE_BASE_INSTANCE, int_t, "gl_BaseInstanceARB");
       add_system_value(SYSTEM_VALUE_DRAW_ID, int_t, "gl_DrawIDARB");
-   }
-   if (state->AMD_vertex_shader_layer_enable ||
-       state->ARB_shader_viewport_layer_array_enable ||
-       state->NV_viewport_array2_enable) {
-      var = add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
-      var->data.interpolation = INTERP_MODE_FLAT;
-   }
-   if (state->AMD_vertex_shader_viewport_index_enable ||
-       state->ARB_shader_viewport_layer_array_enable ||
-       state->NV_viewport_array2_enable) {
-      var = add_output(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
-      var->data.interpolation = INTERP_MODE_FLAT;
-   }
-   if (state->NV_viewport_array2_enable) {
-      /* From the NV_viewport_array2 specification:
-       *
-       *    "The variable gl_ViewportMask[] is available as an output variable
-       *    in the VTG languages. The array has ceil(v/32) elements where v is
-       *    the maximum number of viewports supported by the implementation."
-       *
-       * Since no drivers expose more than 16 viewports, we can simply set the
-       * array size to 1 rather than computing it and dealing with varying
-       * slot complication.
-       */
-      var = add_output(VARYING_SLOT_VIEWPORT_MASK, array(int_t, 1),
-                       "gl_ViewportMask");
-      var->data.interpolation = INTERP_MODE_FLAT;
    }
    if (compatibility) {
       add_input(VERT_ATTRIB_POS, vec4_t, "gl_Vertex");
@@ -1405,16 +1383,14 @@ builtin_variable_generator::generate_fs_special_vars()
        state->ARB_fragment_layer_viewport_enable ||
        state->OES_geometry_shader_enable ||
        state->EXT_geometry_shader_enable) {
-      var = add_input(VARYING_SLOT_LAYER, int_t, GLSL_PRECISION_HIGH,
-                      "gl_Layer");
-      var->data.interpolation = INTERP_MODE_FLAT;
+      add_varying(VARYING_SLOT_LAYER, int_t, GLSL_PRECISION_HIGH,
+                  "gl_Layer", INTERP_MODE_FLAT);
    }
 
    if (state->is_version(430, 0) ||
        state->ARB_fragment_layer_viewport_enable ||
        state->OES_viewport_array_enable) {
-      var = add_input(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
-      var->data.interpolation = INTERP_MODE_FLAT;
+      add_varying(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex", INTERP_MODE_FLAT);
    }
 
    if (state->is_version(450, 310) || state->ARB_ES3_1_compatibility_enable)
@@ -1452,19 +1428,20 @@ builtin_variable_generator::generate_cs_special_vars()
  */
 void
 builtin_variable_generator::add_varying(int slot, const glsl_type *type,
-                                        int precision, const char *name)
+                                        int precision, const char *name,
+                                        enum glsl_interp_mode interp)
 {
    switch (state->stage) {
    case MESA_SHADER_TESS_CTRL:
    case MESA_SHADER_TESS_EVAL:
    case MESA_SHADER_GEOMETRY:
-      this->per_vertex_in.add_field(slot, type, precision, name);
+      this->per_vertex_in.add_field(slot, type, precision, name, interp);
       /* FALLTHROUGH */
    case MESA_SHADER_VERTEX:
-      this->per_vertex_out.add_field(slot, type, precision, name);
+      this->per_vertex_out.add_field(slot, type, precision, name, interp);
       break;
    case MESA_SHADER_FRAGMENT:
-      add_input(slot, type, precision, name);
+      add_input(slot, type, precision, name, interp);
       break;
    case MESA_SHADER_COMPUTE:
       /* Compute shaders don't have varyings. */
@@ -1504,6 +1481,34 @@ builtin_variable_generator::generate_varyings()
                      GLSL_PRECISION_MEDIUM,
                      "gl_PointSize");
       }
+      if (state->stage == MESA_SHADER_VERTEX) {
+         if (state->AMD_vertex_shader_viewport_index_enable ||
+             state->ARB_shader_viewport_layer_array_enable ||
+             state->NV_viewport_array2_enable) {
+            add_varying(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex", INTERP_MODE_FLAT);
+         }
+
+         if (state->AMD_vertex_shader_layer_enable ||
+             state->ARB_shader_viewport_layer_array_enable ||
+             state->NV_viewport_array2_enable) {
+            add_varying(VARYING_SLOT_LAYER, int_t, GLSL_PRECISION_HIGH,
+                        "gl_Layer", INTERP_MODE_FLAT);
+         }
+
+         /* From the NV_viewport_array2 specification:
+          *
+          *    "The variable gl_ViewportMask[] is available as an output variable
+          *    in the VTG languages. The array has ceil(v/32) elements where v is
+          *    the maximum number of viewports supported by the implementation."
+          *
+          * Since no drivers expose more than 16 viewports, we can simply set the
+          * array size to 1 rather than computing it and dealing with varying
+          * slot complication.
+          */
+         if (state->NV_viewport_array2_enable)
+            add_varying(VARYING_SLOT_VIEWPORT_MASK, array(int_t, 1),
+                        "gl_ViewportMask", INTERP_MODE_FLAT);
+        }
    }
 
    if (state->has_clip_distance()) {

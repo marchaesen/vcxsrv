@@ -23,7 +23,7 @@
 #ifndef _NINE_VERTEXSHADER9_H_
 #define _NINE_VERTEXSHADER9_H_
 
-#include "util/u_half.h"
+#include "util/half_float.h"
 
 #include "iunknown.h"
 #include "device9.h"
@@ -112,8 +112,8 @@ NineVertexShader9_UpdateKey( struct NineVertexShader9 *vs,
      * Use compressed float16 values for the pointsize min/max in the key.
      * Shaders do not usually output psize.*/
     if (vs->point_size) {
-        key |= ((uint64_t)util_float_to_half(asfloat(context->rs[D3DRS_POINTSIZE_MIN]))) << 32;
-        key |= ((uint64_t)util_float_to_half(asfloat(context->rs[D3DRS_POINTSIZE_MAX]))) << 48;
+        key |= ((uint64_t)_mesa_float_to_half(asfloat(context->rs[D3DRS_POINTSIZE_MIN]))) << 32;
+        key |= ((uint64_t)_mesa_float_to_half(asfloat(context->rs[D3DRS_POINTSIZE_MAX]))) << 48;
     }
 
     res = vs->last_key != key;

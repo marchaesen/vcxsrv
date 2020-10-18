@@ -31,7 +31,7 @@ in this Software without prior written authorization from The Open Group.
 
 /* can only call when display is locked. */
 void _XSetClipRectangles (
-    register Display *dpy,
+    Display *dpy,
     GC gc,
     int clip_x_origin, int clip_y_origin,
     XRectangle *rectangles,

@@ -222,7 +222,7 @@ FcListPatternMatchAny (const FcPattern *p,
 	if (pe->object == FC_NAMELANG_OBJECT)
 	{
 	    /* "namelang" object is the alias object to change "familylang",
-	     * "stylelang" and "fullnamelang" object alltogether. it won't be
+	     * "stylelang" and "fullnamelang" object all together. it won't be
 	     * available on the font pattern. so checking its availability
 	     * causes no results. we should ignore it here.
 	     */

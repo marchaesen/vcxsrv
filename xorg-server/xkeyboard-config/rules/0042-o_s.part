@@ -174,6 +174,7 @@
   shift:lshift_both_shiftlock        =       +shift(lshift_both_shiftlock)
   shift:rshift_both_shiftlock        =       +shift(rshift_both_shiftlock)
   solaris:sun_compat				 =		 +sun_vndr/solaris(sun_compat)
+  lv2:lsgt_switch                    =       +level2(lsgt_switch)
   lv3:caps_switch                    =       +level3(caps_switch)
   lv3:bksl_switch                    =       +level3(bksl_switch)
   lv3:lsgt_switch                    =       +level3(lsgt_switch)

@@ -281,7 +281,7 @@ int nfds;
    int i;
    APIRET rc;
 /* First we determine up to which descriptor we need to check.              */
-/* No need to check up to 256 if we don't have to (and usually we dont...)*/
+/* No need to check up to 256 if we don't have to (and usually we don't...)*/
 /* Note: stuff here is hardcoded for fd_sets which are int[8] as in EMX!!!    */
 
   if(nfds > sd->max_fds){

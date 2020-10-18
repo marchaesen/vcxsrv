@@ -43,7 +43,7 @@ void util_shorten_ubyte_elts_to_userptr(struct pipe_context *context,
        in_map = info->index.user;
     } else {
        in_map = pipe_buffer_map(context, info->index.resource,
-                                PIPE_TRANSFER_READ |
+                                PIPE_MAP_READ |
                                 add_transfer_flags,
                                 &src_transfer);
     }
@@ -77,7 +77,7 @@ void util_rebuild_ushort_elts_to_userptr(struct pipe_context *context,
        in_map = info->index.user;
     } else {
        in_map = pipe_buffer_map(context, info->index.resource,
-                                PIPE_TRANSFER_READ |
+                                PIPE_MAP_READ |
                                 add_transfer_flags,
                                 &in_transfer);
     }
@@ -111,7 +111,7 @@ void util_rebuild_uint_elts_to_userptr(struct pipe_context *context,
        in_map = info->index.user;
     } else {
        in_map = pipe_buffer_map(context, info->index.resource,
-                                PIPE_TRANSFER_READ |
+                                PIPE_MAP_READ |
                                 add_transfer_flags,
                                 &in_transfer);
     }

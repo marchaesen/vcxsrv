@@ -142,7 +142,7 @@ Section "InputDevice"
 
     Option	"AutoRepeat"	"500 5"
 
-# Specifiy which keyboard LEDs can be user-controlled (eg, with xset(1)).
+# Specify which keyboard LEDs can be user-controlled (eg, with xset(1)).
 
 #    Option	"Xleds"	"1 2 3"
 

@@ -63,6 +63,9 @@ static const struct {
 	[CHIP_NAVI10] = { 0x7310, 16 },
 	[CHIP_NAVI12] = { 0x7360, 8 },
 	[CHIP_NAVI14] = { 0x7340, 8 },
+	/* TODO: fill with real info. */
+	[CHIP_SIENNA_CICHLID] = { 0xffff, 8 },
+	[CHIP_NAVY_FLOUNDER] = { 0xffff, 8 },
 };
 
 static void radv_null_winsys_query_info(struct radeon_winsys *rws,
@@ -80,7 +83,7 @@ static void radv_null_winsys_query_info(struct radeon_winsys *rws,
 			info->family = i;
 			info->name = "OVERRIDDEN";
 
-			if (i >= CHIP_SIENNA)
+			if (i >= CHIP_SIENNA_CICHLID)
 				info->chip_class = GFX10_3;
 			else if (i >= CHIP_NAVI10)
 				info->chip_class = GFX10;

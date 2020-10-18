@@ -112,7 +112,7 @@ Basic formatting guidelines
 -  Constants, macros and enum names are ``ALL_UPPERCASE``, with \_
    between words.
 -  Mesa usually uses camel case for local variables (Ex:
-   ``localVarname``) while gallium typically uses underscores (Ex:
+   ``localVarname``) while Gallium typically uses underscores (Ex:
    ``local_var_name``).
 -  Global variables are almost never used because Mesa should be
    thread-safe.

@@ -127,12 +127,16 @@ static int bo_comparator(const void *ap, const void *bp) {
 	return (a > b) ? 1 : (a < b) ? -1 : 0;
 }
 
-static void
+static VkResult
 radv_amdgpu_winsys_rebuild_bo_list(struct radv_amdgpu_winsys_bo *bo)
 {
 	if (bo->bo_capacity < bo->range_count) {
 		uint32_t new_count = MAX2(bo->bo_capacity * 2, bo->range_count);
-		bo->bos = realloc(bo->bos, new_count * sizeof(struct radv_amdgpu_winsys_bo *));
+		struct radv_amdgpu_winsys_bo **bos =
+			realloc(bo->bos, new_count * sizeof(struct radv_amdgpu_winsys_bo *));
+		if (!bos)
+			return VK_ERROR_OUT_OF_HOST_MEMORY;
+		bo->bos = bos;
 		bo->bo_capacity = new_count;
 	}
 
@@ -149,9 +153,11 @@ radv_amdgpu_winsys_rebuild_bo_list(struct radv_amdgpu_winsys_bo *bo)
 			bo->bos[final_bo_count++] = bo->bos[i];
 
 	bo->bo_count = final_bo_count;
+
+	return VK_SUCCESS;
 }
 
-static void
+static VkResult
 radv_amdgpu_winsys_bo_virtual_bind(struct radeon_winsys_bo *_parent,
                                    uint64_t offset, uint64_t size,
                                    struct radeon_winsys_bo *_bo, uint64_t bo_offset)
@@ -161,18 +167,21 @@ radv_amdgpu_winsys_bo_virtual_bind(struct radeon_winsys_bo *_parent,
 	int range_count_delta, new_idx;
 	int first = 0, last;
 	struct radv_amdgpu_map_range new_first, new_last;
+	VkResult result;
 
 	assert(parent->is_virtual);
 	assert(!bo || !bo->is_virtual);
 
-	if (!size)
-		return;
-
 	/* We have at most 2 new ranges (1 by the bind, and another one by splitting a range that contains the newly bound range). */
 	if (parent->range_capacity - parent->range_count < 2) {
-		parent->range_capacity += 2;
-		parent->ranges = realloc(parent->ranges,
-		                         parent->range_capacity * sizeof(struct radv_amdgpu_map_range));
+		uint32_t range_capacity = parent->range_capacity + 2;
+		struct radv_amdgpu_map_range *ranges =
+			realloc(parent->ranges,
+				range_capacity * sizeof(struct radv_amdgpu_map_range));
+		if (!ranges)
+			return VK_ERROR_OUT_OF_HOST_MEMORY;
+		parent->ranges = ranges;
+		parent->range_capacity = range_capacity;
 	}
 
 	/*
@@ -266,7 +275,11 @@ radv_amdgpu_winsys_bo_virtual_bind(struct radeon_winsys_bo *_parent,
 
 	parent->range_count += range_count_delta;
 
-	radv_amdgpu_winsys_rebuild_bo_list(parent);
+	result = radv_amdgpu_winsys_rebuild_bo_list(parent);
+	if (result != VK_SUCCESS)
+		return result;
+
+	return VK_SUCCESS;
 }
 
 static void radv_amdgpu_winsys_bo_destroy(struct radeon_winsys_bo *_bo)
@@ -284,10 +297,10 @@ static void radv_amdgpu_winsys_bo_destroy(struct radeon_winsys_bo *_bo)
 		free(bo->ranges);
 	} else {
 		if (bo->ws->debug_all_bos) {
-			pthread_mutex_lock(&bo->ws->global_bo_list_lock);
+			pthread_rwlock_wrlock(&bo->ws->global_bo_list_lock);
 			list_del(&bo->global_list_item);
 			bo->ws->num_buffers--;
-			pthread_mutex_unlock(&bo->ws->global_bo_list_lock);
+			pthread_rwlock_unlock(&bo->ws->global_bo_list_lock);
 		}
 		radv_amdgpu_bo_va_op(bo->ws, bo->bo, 0, bo->size, bo->base.va,
 				     0, 0, AMDGPU_VA_OP_UNMAP);
@@ -317,10 +330,10 @@ static void radv_amdgpu_add_buffer_to_global_list(struct radv_amdgpu_winsys_bo *
 	struct radv_amdgpu_winsys *ws = bo->ws;
 
 	if (bo->ws->debug_all_bos) {
-		pthread_mutex_lock(&ws->global_bo_list_lock);
+		pthread_rwlock_wrlock(&ws->global_bo_list_lock);
 		list_addtail(&bo->global_list_item, &ws->global_bo_list);
 		ws->num_buffers++;
-		pthread_mutex_unlock(&ws->global_bo_list_lock);
+		pthread_rwlock_unlock(&ws->global_bo_list_lock);
 	}
 }
 
@@ -335,6 +348,7 @@ radv_amdgpu_winsys_bo_create(struct radeon_winsys *_ws,
 	struct radv_amdgpu_winsys *ws = radv_amdgpu_winsys(_ws);
 	struct radv_amdgpu_winsys_bo *bo;
 	struct amdgpu_bo_alloc_request request = {0};
+	struct radv_amdgpu_map_range *ranges = NULL;
 	amdgpu_bo_handle buf_handle;
 	uint64_t va = 0;
 	amdgpu_va_handle va_handle;
@@ -363,7 +377,11 @@ radv_amdgpu_winsys_bo_create(struct radeon_winsys *_ws,
 	bo->ref_count = 1;
 
 	if (flags & RADEON_FLAG_VIRTUAL) {
-		bo->ranges = realloc(NULL, sizeof(struct radv_amdgpu_map_range));
+		ranges = realloc(NULL, sizeof(struct radv_amdgpu_map_range));
+		if (!ranges)
+			goto error_ranges_alloc;
+
+		bo->ranges = ranges;
 		bo->range_count = 1;
 		bo->range_capacity = 1;
 
@@ -379,8 +397,19 @@ radv_amdgpu_winsys_bo_create(struct radeon_winsys *_ws,
 	request.alloc_size = size;
 	request.phys_alignment = alignment;
 
-	if (initial_domain & RADEON_DOMAIN_VRAM)
+	if (initial_domain & RADEON_DOMAIN_VRAM) {
 		request.preferred_heap |= AMDGPU_GEM_DOMAIN_VRAM;
+
+		/* Since VRAM and GTT have almost the same performance on
+		 * APUs, we could just set GTT. However, in order to decrease
+		 * GTT(RAM) usage, which is shared with the OS, allow VRAM
+		 * placements too. The idea is not to use VRAM usefully, but
+		 * to use it so that it's not unused and wasted.
+		 */
+		if (!ws->info.has_dedicated_vram)
+			request.preferred_heap |= AMDGPU_GEM_DOMAIN_GTT;
+	}
+
 	if (initial_domain & RADEON_DOMAIN_GTT)
 		request.preferred_heap |= AMDGPU_GEM_DOMAIN_GTT;
 	if (initial_domain & RADEON_DOMAIN_GDS)
@@ -461,6 +490,9 @@ error_va_map:
 	amdgpu_bo_free(buf_handle);
 
 error_bo_alloc:
+	free(ranges);
+
+error_ranges_alloc:
 	amdgpu_va_range_free(va_handle);
 
 error_va_alloc:

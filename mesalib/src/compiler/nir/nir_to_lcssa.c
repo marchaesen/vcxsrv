@@ -178,8 +178,8 @@ instr_is_invariant(nir_instr *instr, nir_loop *loop)
       nir_intrinsic_instr *intrinsic = nir_instr_as_intrinsic(instr);
       if (!(nir_intrinsic_infos[intrinsic->intrinsic].flags & NIR_INTRINSIC_CAN_REORDER))
          return not_invariant;
-      /* fallthrough */
    }
+   /* fallthrough */
    default:
       return nir_foreach_src(instr, src_is_invariant, loop) ? invariant : not_invariant;
    }
@@ -253,7 +253,7 @@ convert_loop_exit_for_ssa(nir_ssa_def *def, void *void_state)
       cast->mode = instr->mode;
       cast->type = instr->type;
       cast->parent = nir_src_for_ssa(&phi->dest.ssa);
-      cast->cast.ptr_stride = nir_deref_instr_ptr_as_array_stride(instr);
+      cast->cast.ptr_stride = nir_deref_instr_array_stride(instr);
 
       nir_ssa_dest_init(&cast->instr, &cast->dest,
                         phi->dest.ssa.num_components,

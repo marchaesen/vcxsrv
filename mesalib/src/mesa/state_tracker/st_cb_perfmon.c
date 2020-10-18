@@ -404,17 +404,17 @@ st_InitPerfMonitorGroups(struct gl_context *ctx)
             case PIPE_DRIVER_QUERY_TYPE_MICROSECONDS:
             case PIPE_DRIVER_QUERY_TYPE_HZ:
                c->Minimum.u64 = 0;
-               c->Maximum.u64 = info.max_value.u64 ? info.max_value.u64 : -1;
+               c->Maximum.u64 = info.max_value.u64 ? info.max_value.u64 : UINT64_MAX;
                c->Type = GL_UNSIGNED_INT64_AMD;
                break;
             case PIPE_DRIVER_QUERY_TYPE_UINT:
                c->Minimum.u32 = 0;
-               c->Maximum.u32 = info.max_value.u32 ? info.max_value.u32 : -1;
+               c->Maximum.u32 = info.max_value.u32 ? info.max_value.u32 : UINT32_MAX;
                c->Type = GL_UNSIGNED_INT;
                break;
             case PIPE_DRIVER_QUERY_TYPE_FLOAT:
                c->Minimum.f = 0.0;
-               c->Maximum.f = info.max_value.f ? info.max_value.f : -1;
+               c->Maximum.f = info.max_value.f ? info.max_value.f : FLT_MAX;
                c->Type = GL_FLOAT;
                break;
             case PIPE_DRIVER_QUERY_TYPE_PERCENTAGE:

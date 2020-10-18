@@ -141,6 +141,17 @@ SOURCES = [
     },
 
     {
+        'api': 'spirv',
+        'sources': [
+            Source('src/compiler/spirv/spirv.h',                    'https://github.com/KhronosGroup/SPIRV-Headers/raw/master/include/spirv/unified1/spirv.h'),
+            Source('src/compiler/spirv/spirv.core.grammar.json',    'https://github.com/KhronosGroup/SPIRV-Headers/raw/master/include/spirv/unified1/spirv.core.grammar.json'),
+            Source('src/compiler/spirv/OpenCL.std.h',               'https://github.com/KhronosGroup/SPIRV-Headers/raw/master/include/spirv/unified1/OpenCL.std.h'),
+            Source('src/compiler/spirv/GLSL.std.450.h',             'https://github.com/KhronosGroup/SPIRV-Headers/raw/master/include/spirv/unified1/GLSL.std.450.h'),
+            Source('src/compiler/spirv/GLSL.ext.AMD.h',             'https://github.com/KhronosGroup/glslang/raw/master/SPIRV/GLSL.ext.AMD.h'),  # FIXME: is this the canonical source?
+        ],
+    },
+
+    {
         'api': 'vulkan',
         'inc_folder': 'vulkan',
         'sources': [
@@ -180,7 +191,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('apis', nargs='*',
-                        choices=[group['api'] for group in SOURCES],
+                        # the `[[]]` here is a workaround for python bug 9625
+                        # where having `choices` breaks `nargs='*'`:
+                        # https://bugs.python.org/issue9625
+                        choices=[group['api'] for group in SOURCES] + [[]],
                         help='Only update the APIs specified.')
     args = parser.parse_args()
 
@@ -197,6 +211,7 @@ if __name__ == '__main__':
             source.sync()
 
         # Make sure all the API files are handled by this script
-        for file in pathlib.Path('include/' + group['inc_folder']).iterdir():
-            if file not in [source.file for source in group['sources']]:
-                error('{} is unknown, please add it to SOURCES'.format(file))
+        if 'inc_folder' in group:
+            for file in pathlib.Path('include/' + group['inc_folder']).iterdir():
+                if file not in [source.file for source in group['sources']]:
+                    error('{} is unknown, please add it to SOURCES'.format(file))

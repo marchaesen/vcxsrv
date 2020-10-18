@@ -79,13 +79,14 @@ AM_CPPFLAGS = 						\
 	$(EXPAT_CFLAGS)					\
 	$(WARN_CFLAGS)					\
 	-DFC_CACHEDIR='"$(FC_CACHEDIR)"'                \
+	-DCONFIGDIR='"$(CONFIGDIR)"'			\
 	-DFONTCONFIG_PATH='"$(BASECONFIGDIR)"'		\
 	-DFC_TEMPLATEDIR='"$(TEMPLATEDIR)"'
 LDADD  = $(LIBINTL)
 
 EXTRA_DIST += makealias
 
-noinst_HEADERS=fcint.h fcftint.h fcdeprecate.h fcstdint.h
+noinst_HEADERS=fcint.h fcftint.h fcdeprecate.h fcfoundry.h fcmd5.h fcstdint.h
 
 ALIAS_FILES = fcalias.h fcaliastail.h fcftalias.h fcftaliastail.h
 
@@ -150,6 +151,7 @@ libfontconfig_la_SOURCES = \
 	fcname.c \
 	fcobjs.c \
 	fcobjs.h \
+	fcopentype.c \
 	fcpat.c \
 	fcrange.c \
 	fcserialize.c \

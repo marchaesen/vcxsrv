@@ -123,7 +123,6 @@ cat > sdksyms.c << EOF
 
 /* hw/xfree86/common/Makefile.am */
 #include "compiler.h"
-#include "fourcc.h"
 #include "xf86.h"
 #include "xf86Module.h"
 #include "xf86Opt.h"
@@ -251,6 +250,7 @@ cat > sdksyms.c << EOF
 #include "exevents.h"
 #include "extension.h"
 #include "extnsionst.h"
+#include "fourcc.h"
 #include "gc.h"
 #include "gcstruct.h"
 #include "globals.h"

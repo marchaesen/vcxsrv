@@ -247,7 +247,7 @@ constant_template_vector_insert = mako.template.Template("""\
 
       memcpy(&data, &op[0]->value, sizeof(data));
 
-      switch (this->type->base_type) {
+      switch (return_type->base_type) {
     % for dst_type, src_types in op.signatures():
       case ${src_types[0].glsl_type}:
          data.${dst_type.union_field}[idx] = op[1]->value.${src_types[0].union_field}[0];
@@ -262,8 +262,8 @@ constant_template_vector_insert = mako.template.Template("""\
 # This template is for ir_quadop_vector.
 constant_template_vector = mako.template.Template("""\
    case ${op.get_enum_name()}:
-      for (unsigned c = 0; c < this->type->vector_elements; c++) {
-         switch (this->type->base_type) {
+      for (unsigned c = 0; c < return_type->vector_elements; c++) {
+         switch (return_type->base_type) {
     % for dst_type, src_types in op.signatures():
          case ${src_types[0].glsl_type}:
             data.${dst_type.union_field}[c] = op[c]->value.${src_types[0].union_field}[0];
@@ -284,7 +284,7 @@ constant_template_lrp = mako.template.Template("""\
 
       unsigned c2_inc = op[2]->type->is_scalar() ? 0 : 1;
       for (unsigned c = 0, c2 = 0; c < components; c2 += c2_inc, c++) {
-         switch (this->type->base_type) {
+         switch (return_type->base_type) {
     % for dst_type, src_types in op.signatures():
          case ${src_types[0].glsl_type}:
             data.${dst_type.union_field}[c] = ${op.get_c_expression(src_types, ("c", "c", "c2"))};
@@ -303,7 +303,7 @@ constant_template_lrp = mako.template.Template("""\
 constant_template_csel = mako.template.Template("""\
    case ${op.get_enum_name()}:
       for (unsigned c = 0; c < components; c++) {
-         switch (this->type->base_type) {
+         switch (return_type->base_type) {
     % for dst_type, src_types in op.signatures():
          case ${src_types[1].glsl_type}:
             data.${dst_type.union_field}[c] = ${op.get_c_expression(src_types)};
@@ -560,14 +560,14 @@ ir_expression_operation = [
    operation("saturate", 1, printable_name="sat", source_types=(float_type,), c_expression="CLAMP({src0}, 0.0f, 1.0f)"),
 
    # Double packing, part of ARB_gpu_shader_fp64.
-   operation("pack_double_2x32", 1, printable_name="packDouble2x32", source_types=(uint_type,), dest_type=double_type, c_expression="memcpy(&data.d[0], &op[0]->value.u[0], sizeof(double))", flags=frozenset((horizontal_operation, non_assign_operation))),
-   operation("unpack_double_2x32", 1, printable_name="unpackDouble2x32", source_types=(double_type,), dest_type=uint_type, c_expression="memcpy(&data.u[0], &op[0]->value.d[0], sizeof(double))", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("pack_double_2x32", 1, printable_name="packDouble2x32", source_types=(uint_type,), dest_type=double_type, c_expression="data.u64[0] = pack_2x32(op[0]->value.u[0], op[0]->value.u[1])", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("unpack_double_2x32", 1, printable_name="unpackDouble2x32", source_types=(double_type,), dest_type=uint_type, c_expression="unpack_2x32(op[0]->value.u64[0], &data.u[0], &data.u[1])", flags=frozenset((horizontal_operation, non_assign_operation))),
 
    # Sampler/Image packing, part of ARB_bindless_texture.
-   operation("pack_sampler_2x32", 1, printable_name="packSampler2x32", source_types=(uint_type,), dest_type=uint64_type, c_expression="memcpy(&data.u64[0], &op[0]->value.u[0], sizeof(uint64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
-   operation("pack_image_2x32", 1, printable_name="packImage2x32", source_types=(uint_type,), dest_type=uint64_type, c_expression="memcpy(&data.u64[0], &op[0]->value.u[0], sizeof(uint64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
-   operation("unpack_sampler_2x32", 1, printable_name="unpackSampler2x32", source_types=(uint64_type,), dest_type=uint_type, c_expression="memcpy(&data.u[0], &op[0]->value.u64[0], sizeof(uint64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
-   operation("unpack_image_2x32", 1, printable_name="unpackImage2x32", source_types=(uint64_type,), dest_type=uint_type, c_expression="memcpy(&data.u[0], &op[0]->value.u64[0], sizeof(uint64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("pack_sampler_2x32", 1, printable_name="packSampler2x32", source_types=(uint_type,), dest_type=uint64_type, c_expression="data.u64[0] = pack_2x32(op[0]->value.u[0], op[0]->value.u[1])", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("pack_image_2x32", 1, printable_name="packImage2x32", source_types=(uint_type,), dest_type=uint64_type, c_expression="data.u64[0] = pack_2x32(op[0]->value.u[0], op[0]->value.u[1])", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("unpack_sampler_2x32", 1, printable_name="unpackSampler2x32", source_types=(uint64_type,), dest_type=uint_type, c_expression="unpack_2x32(op[0]->value.u64[0], &data.u[0], &data.u[1])", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("unpack_image_2x32", 1, printable_name="unpackImage2x32", source_types=(uint64_type,), dest_type=uint_type, c_expression="unpack_2x32(op[0]->value.u64[0], &data.u[0], &data.u[1])", flags=frozenset((horizontal_operation, non_assign_operation))),
 
    operation("frexp_sig", 1),
    operation("frexp_exp", 1),
@@ -592,10 +592,10 @@ ir_expression_operation = [
    operation("ssbo_unsized_array_length", 1),
 
    # 64-bit integer packing ops.
-   operation("pack_int_2x32", 1, printable_name="packInt2x32", source_types=(int_type,), dest_type=int64_type, c_expression="memcpy(&data.i64[0], &op[0]->value.i[0], sizeof(int64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
-   operation("pack_uint_2x32", 1, printable_name="packUint2x32", source_types=(uint_type,), dest_type=uint64_type, c_expression="memcpy(&data.u64[0], &op[0]->value.u[0], sizeof(uint64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
-   operation("unpack_int_2x32", 1, printable_name="unpackInt2x32", source_types=(int64_type,), dest_type=int_type, c_expression="memcpy(&data.i[0], &op[0]->value.i64[0], sizeof(int64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
-   operation("unpack_uint_2x32", 1, printable_name="unpackUint2x32", source_types=(uint64_type,), dest_type=uint_type, c_expression="memcpy(&data.u[0], &op[0]->value.u64[0], sizeof(uint64_t))", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("pack_int_2x32", 1, printable_name="packInt2x32", source_types=(int_type,), dest_type=int64_type, c_expression="data.u64[0] = pack_2x32(op[0]->value.u[0], op[0]->value.u[1])", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("pack_uint_2x32", 1, printable_name="packUint2x32", source_types=(uint_type,), dest_type=uint64_type, c_expression="data.u64[0] = pack_2x32(op[0]->value.u[0], op[0]->value.u[1])", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("unpack_int_2x32", 1, printable_name="unpackInt2x32", source_types=(int64_type,), dest_type=int_type, c_expression="unpack_2x32(op[0]->value.u64[0], &data.u[0], &data.u[1])", flags=frozenset((horizontal_operation, non_assign_operation))),
+   operation("unpack_uint_2x32", 1, printable_name="unpackUint2x32", source_types=(uint64_type,), dest_type=uint_type, c_expression="unpack_2x32(op[0]->value.u64[0], &data.u[0], &data.u[1])", flags=frozenset((horizontal_operation, non_assign_operation))),
 
    operation("add", 2, printable_name="+", source_types=numeric_types, c_expression="{src0} + {src1}", flags=vector_scalar_operation),
    operation("sub", 2, printable_name="-", source_types=numeric_types, c_expression="{src0} - {src1}", flags=vector_scalar_operation),

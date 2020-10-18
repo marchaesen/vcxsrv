@@ -12,18 +12,20 @@ export PATH=/usr/lib/ccache:$PATH
 export CC="/usr/lib/ccache/gcc"
 export CXX="/usr/lib/ccache/g++"
 
+# Force linkers to gold, since it's so much faster for building.  We can't use
+# lld because we're on old debian and it's buggy.  ming fails meson builds
+# with it with "meson.build:21:0: ERROR: Unable to determine dynamic linker"
+find /usr/bin -name \*-ld -o -name ld | \
+    grep -v mingw | \
+    xargs -n 1 -I '{}' ln -sf '{}.gold' '{}'
+
 ccache --show-stats
 
-if uname -m | grep -q arm || uname -m | grep -q aarch64; then
-    export JFLAGS=-j8
-else
-    export JFLAGS=-j4
-fi
-
 # Make a wrapper script for ninja to always include the -j flags
-echo /usr/bin/ninja $JFLAGS '"$@"' > /usr/local/bin/ninja
+echo '#!/bin/sh -x' > /usr/local/bin/ninja
+echo '/usr/bin/ninja -j${FDO_CI_CONCURRENT:-4} "$@"' >> /usr/local/bin/ninja
 chmod +x /usr/local/bin/ninja
 
 # Set MAKEFLAGS so that all make invocations in container builds include the
 # flags (doesn't apply to non-container builds, but we don't run make there)
-export MAKEFLAGS=$JFLAGS
+export MAKEFLAGS="-j${FDO_CI_CONCURRENT:-4}"

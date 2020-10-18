@@ -156,7 +156,7 @@ static void add_const(unsigned reg, unsigned c0, unsigned c1, unsigned c2, unsig
 	struct ir3_const_state *const_state = ir3_const_state(variant);
 	assert((reg & 0x7) == 0);
 	int idx = reg >> (1 + 2); /* low bit is half vs full, next two bits are swiz */
-	if (const_state->immediate_idx == const_state->immediates_size * 4) {
+	if (const_state->immediates_count == const_state->immediates_size) {
 		const_state->immediates = rerzalloc(const_state,
 				const_state->immediates,
 				__typeof__(const_state->immediates[0]),
@@ -164,12 +164,11 @@ static void add_const(unsigned reg, unsigned c0, unsigned c1, unsigned c2, unsig
 				const_state->immediates_size + 4);
 		const_state->immediates_size += 4;
 	}
-	const_state->immediates[idx].val[0] = c0;
-	const_state->immediates[idx].val[1] = c1;
-	const_state->immediates[idx].val[2] = c2;
-	const_state->immediates[idx].val[3] = c3;
-	const_state->immediates_count = idx + 1;
-	const_state->immediate_idx++;
+	const_state->immediates[idx * 4 + 0] = c0;
+	const_state->immediates[idx * 4 + 1] = c1;
+	const_state->immediates[idx * 4 + 2] = c2;
+	const_state->immediates[idx * 4 + 3] = c3;
+	const_state->immediates_count++;
 }
 
 static void add_sysval(unsigned reg, unsigned compmask, gl_system_value sysval)
@@ -179,7 +178,6 @@ static void add_sysval(unsigned reg, unsigned compmask, gl_system_value sysval)
 	variant->inputs[n].sysval = true;
 	variant->inputs[n].slot = sysval;
 	variant->inputs[n].compmask = compmask;
-	variant->inputs[n].interpolate = INTERP_MODE_FLAT;
 	variant->total_in++;
 }
 
@@ -265,6 +263,9 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %token <tok> T_NEG
 %token <tok> T_ABS
 %token <tok> T_R
+
+%token <tok> T_HR
+%token <tok> T_HC
 
 /* dst register flags */
 %token <tok> T_EVEN
@@ -873,6 +874,8 @@ offset:            { $$ = 0; }
 
 relative:          'r' '<' T_A0 offset '>'  { new_reg(0, IR3_REG_RELATIV)->array.offset = $4; }
 |                  'c' '<' T_A0 offset '>'  { new_reg(0, IR3_REG_RELATIV | IR3_REG_CONST)->array.offset = $4; }
+|                  T_HR '<' T_A0 offset '>'  { new_reg(0, IR3_REG_RELATIV | IR3_REG_HALF)->array.offset = $4; }
+|                  T_HC '<' T_A0 offset '>'  { new_reg(0, IR3_REG_RELATIV | IR3_REG_CONST | IR3_REG_HALF)->array.offset = $4; }
 
 immediate:         integer             { new_reg(0, IR3_REG_IMMED)->iim_val = $1; }
 |                  '(' integer ')'     { new_reg(0, IR3_REG_IMMED)->fim_val = $2; }

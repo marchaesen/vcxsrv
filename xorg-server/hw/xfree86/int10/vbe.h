@@ -225,8 +225,7 @@ typedef enum {
 } vbeSaveRestoreFunction;
 
 extern _X_EXPORT Bool
-
-VBESaveRestore(vbeInfoPtr pVbe, vbeSaveRestoreFunction fuction,
+VBESaveRestore(vbeInfoPtr pVbe, vbeSaveRestoreFunction function,
                void **memory, int *size, int *real_mode_pages);
 
 /*

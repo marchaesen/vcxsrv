@@ -20,10 +20,6 @@
  * OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_XORG_CONFIG_H
-#include <xorg-config.h>
-#endif
-
 #include "dri3_priv.h"
 #include <syncsrv.h>
 #include <unistd.h>

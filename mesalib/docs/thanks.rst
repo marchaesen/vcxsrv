@@ -15,7 +15,7 @@ somewhat dated, unfortunately.
 -  Precision Insight, Inc., VA Linux Systems, Inc., and most recently,
    Tungsten Graphics, Inc. have supported the ongoing development of
    Mesa.
--  The `Mesa <https://www.mesa3d.org>`__ website and git repository are
+-  The `Mesa <https://www.mesa3d.org>`__ website and Git repository are
    hosted by `freedesktop.org <https://freedesktop.org/>`__.
 -  `alt.software <http://web.archive.org/web/20131110021426/http://www.altsoftware.com/>`__
    contributed the Direct3D driver.
@@ -30,7 +30,7 @@ somewhat dated, unfortunately.
 -  **David Bucciarelli** wrote and maintained the 3Dfx Glide driver.
    Thousands of Linux/Quake players thank David!
 -  **Gareth Hughes** wrote new GLU 1.2 Polygon Tessellation code (now
-   superceded by SGI SI GLU).
+   superseded by SGI SI GLU).
 -  **Holger Waechtler** contributed AMD 3DNow! assembly code which
    accelerates vertex transformation in Mesa 3.1. Holger also
    implemented the GL_EXT_texture_env_combine extension.

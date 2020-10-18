@@ -108,7 +108,7 @@ DeleteDeviceEvents(DeviceIntPtr dev, WindowPtr pWin, ClientPtr client)
 
 /***********************************************************************
  *
- * Walk througth the window tree, deleting event selections for this client
+ * Walk through the window tree, deleting event selections for this client
  * from this device from all windows.
  *
  */

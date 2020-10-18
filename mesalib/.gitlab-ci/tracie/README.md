@@ -5,15 +5,13 @@ Home of the Mesa trace testing effort.
 
 ### Traces definition file
 
-The trace definition file contains information about the GitLab
-project and git commit to get the traces from, and a list of the
-traces to run along with their expected image checksums on each
-device. An example:
+The trace definition file contains information about the traces to run along
+with their expected image checksums on each device, and optionally from where to
+download them. An example:
 
 ```yaml
 traces-db:
-  gitlab-project-url: https://gitlab.freedesktop.org/gfx-ci/tracie/traces-db
-  commit: master
+  download-url: https://minio-packet.freedesktop.org/mesa-tracie-public/
 
 traces:
   - path: glmark2/jellyfish.rdc
@@ -40,12 +38,10 @@ with the [image_checksum.py](.gitlab-ci/tracie/image_checksum.py) script.
 Alternatively, an arbitrary checksum can be used, and during replay (see below)
 the scripts will report the mismatch and expected checksum.
 
-### Trace-db GitLab projects
+### Trace-db download urls
 
-The trace-db GitLab projects are assumed to have git repositories
-using LFS for their trace files. This is so that trace files can be
-potentially checked out and replayed individually, thus reducing
-storage requirements during CI runs.
+The trace-db:download-url property contains an HTTPS url from which traces can
+be downloaded, by appending traces:path properties to it.
 
 ### Enabling trace testing on a new device
 
@@ -56,13 +52,14 @@ To enable trace testing on a new device:
 
    1. If you mean to test GL traces, use the `.traces-test-gl`
       template jobs as a base, and make sure you set a unique value for the
-     `DEVICE_NAME` variable:
+     `DEVICE_NAME` variable and the name of the Mesa driver as `DRIVER_NAME`:
 
    ```yaml
    my-hardware-gl-traces:
      extends: .traces-test-gl
      variables:
        DEVICE_NAME: "gl-myhardware"
+       DRIVER_NAME: "mydriver"
    ```
 
    2. If you mean to test Vulkan traces, use the `.traces-test-vk`
@@ -75,12 +72,14 @@ To enable trace testing on a new device:
      variables:
        VK_DRIVER: "radeon"
        DEVICE_NAME: "vk-myhardware"
+       DRIVER_NAME: "radv"
    ```
 
-2. Update the .gitlab-ci/traces.yml file with expectations for the new device.
-   Ensure that the device name used in the expectations matches the one
-   set in the job. For more information, and tips about how to calculate
-   the checksums, see the section describing the trace definition files.
+2. Update the .gitlab-ci/traces-$DRIVER_NAME.yml file with expectations for
+   the new device. Ensure that the device name used in the expectations
+   matches the one set in the job. For more information, and tips about how to
+   calculate the checksums, see the section describing the trace definition
+   files.
 
 ### Trace files
 
@@ -94,6 +93,10 @@ applications. Traces for proprietary games and application are typically not
 redistributable, unless specific redistribution rights have been granted by the
 publisher.
 
+Trace files in a given repository are expected to be immutable once committed
+for the first time, so any changes need to be accompanied by a change in the
+file name (eg. by appending a _v2 suffix to the file).
+
 ### Replaying traces
 
 Mesa traces CI uses a set of scripts to replay traces and check the output
@@ -102,7 +105,7 @@ against reference checksums.
 The high level script [tracie.py](.gitlab-ci/tracie/tracie.py) accepts
 a traces definition file and the name of the device to be tested:
 
-    tracie.py --file .gitlab-ci/traces.yml --device-name gl-vmware-llvmpipe
+    tracie.py --file .gitlab-ci/traces-llvmpipe.yml --device-name gl-vmware-llvmpipe
 
 tracie.py copies the produced artifacts to the `$CI_PROJECT_DIR/result`
 directory. By default, created images from traces are only stored in case of a

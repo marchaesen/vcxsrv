@@ -28,7 +28,12 @@
 
 #include "core/object.hpp"
 #include "core/format.hpp"
+#include "core/module.hpp"
+#include "util/lazy.hpp"
 #include "pipe-loader/pipe_loader.h"
+
+struct nir_shader;
+struct disk_cache;
 
 namespace clover {
    class platform;
@@ -70,8 +75,9 @@ namespace clover {
       bool has_halves() const;
       bool has_int64_atomics() const;
       bool has_unified_memory() const;
-      cl_uint mem_base_addr_align() const;
+      size_t mem_base_addr_align() const;
       cl_device_svm_capabilities svm_support() const;
+      bool allows_user_pointers() const;
 
       std::vector<size_t> max_block_size() const;
       cl_uint subgroup_size() const;
@@ -100,6 +106,8 @@ namespace clover {
          return svm_support() & CL_DEVICE_SVM_FINE_GRAIN_SYSTEM;
       }
 
+      lazy<std::shared_ptr<nir_shader>> clc_nir;
+      disk_cache *clc_cache;
    private:
       pipe_screen *pipe;
       pipe_loader_device *ldev;

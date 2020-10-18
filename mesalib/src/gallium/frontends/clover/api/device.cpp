@@ -205,8 +205,7 @@ clGetDeviceInfo(cl_device_id d_dev, cl_device_info param,
       break;
 
    case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
-      buf.as_scalar<cl_uint>() = 8 *
-         std::max(dev.mem_base_addr_align(), (cl_uint) sizeof(cl_long) * 16);
+      buf.as_scalar<cl_uint>() = 8 * dev.mem_base_addr_align();
       break;
 
    case CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:

@@ -1,4 +1,4 @@
-AC_INIT(xkeyboard-config, 2.30) # change version in meson.build as well
+AC_INIT(xkeyboard-config, 2.31) # change version in meson.build as well
 AC_CONFIG_SRCDIR(rules/base.xml)
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 
@@ -73,13 +73,14 @@ AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [Gettext package])
 AC_SUBST(xkb_base)
 AC_SUBST(xkb_rules_symlink)
 
+# needed for out-of-tree builds
+AC_CONFIG_COMMANDS([mkdir], [$MKDIR_P rules/compat/])
 AC_OUTPUT([ po/Makefile.in
 Makefile
 compat/Makefile
 geometry/Makefile
 keycodes/Makefile
 rules/Makefile
-rules/compat/Makefile
 symbols/Makefile
 types/Makefile
 xkeyboard-config.pc

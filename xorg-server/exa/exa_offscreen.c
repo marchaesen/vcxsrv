@@ -150,7 +150,7 @@ exaFindAreaToEvict(ExaScreenPrivPtr pExaScr, int size, int align)
  * @param privdata private data for the save callback.
  *
  * Allocates offscreen memory from the device associated with pScreen.  size
- * and align deteremine where and how large the allocated area is, and locked
+ * and align determine where and how large the allocated area is, and locked
  * will mark whether it should be held in card memory.  privdata may be any
  * pointer for the save callback when the area is removed.
  *

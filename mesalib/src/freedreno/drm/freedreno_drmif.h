@@ -94,8 +94,11 @@ enum fd_version {
 	FD_VERSION_BO_IOVA = 3,            /* supports fd_bo_get/put_iova() */
 	FD_VERSION_SOFTPIN = 4,            /* adds softpin, bo name, and dump flag */
 	FD_VERSION_ROBUSTNESS = 5,         /* adds FD_NR_FAULTS and FD_PP_PGTABLE */
+	FD_VERSION_MEMORY_FD = 2,          /* supports shared memory objects */
 };
 enum fd_version fd_device_version(struct fd_device *dev);
+
+bool fd_has_syncobj(struct fd_device *dev);
 
 /* pipe functions:
  */

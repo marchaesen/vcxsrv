@@ -24,13 +24,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
 #include "tu_private.h"
 #include "tu_cs.h"
 #include "util/disk_cache.h"
 #include "util/strtod.h"
 #include "vk_util.h"
-#include <xf86drm.h>
-#include <xf86drmMode.h>
 #include "vk_format.h"
 #include "util/debug.h"
 #include "wsi_common_display.h"
@@ -267,25 +266,31 @@ tu_RegisterDeviceEventEXT(VkDevice                    _device,
                           VkFence                     *_fence)
 {
    TU_FROM_HANDLE(tu_device, device, _device);
-   struct tu_fence            *fence;
-   VkResult                     ret;
+   VkResult ret;
 
-   fence = vk_alloc2(&device->instance->alloc, allocator, sizeof (*fence),
-                     8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-   if (!fence)
-      return VK_ERROR_OUT_OF_HOST_MEMORY;
+   ret = tu_CreateFence(_device, &(VkFenceCreateInfo) {}, allocator, _fence);
+   if (ret != VK_SUCCESS)
+      return ret;
 
-   tu_fence_init(fence, false);
+   TU_FROM_HANDLE(tu_syncobj, fence, *_fence);
 
-   ret = wsi_register_device_event(_device,
-                                   &device->physical_device->wsi_device,
-                                   device_event_info,
-                                   allocator,
-                                   &fence->fence_wsi);
-   if (ret == VK_SUCCESS)
-      *_fence = tu_fence_to_handle(fence);
-   else
-      vk_free2(&device->instance->alloc, allocator, fence);
+   int sync_fd = tu_syncobj_to_fd(device, fence);
+   if (sync_fd >= 0) {
+      ret = wsi_register_device_event(_device,
+                                      &device->physical_device->wsi_device,
+                                      device_event_info,
+                                      allocator,
+                                      NULL,
+                                      sync_fd);
+   } else {
+      ret = VK_ERROR_OUT_OF_HOST_MEMORY;
+   }
+
+   close(sync_fd);
+
+   if (ret != VK_SUCCESS)
+      tu_DestroyFence(_device, *_fence, allocator);
+
    return ret;
 }
 
@@ -297,28 +302,32 @@ tu_RegisterDisplayEventEXT(VkDevice                           _device,
                            VkFence                            *_fence)
 {
    TU_FROM_HANDLE(tu_device, device, _device);
+   VkResult ret;
 
-   struct tu_fence            *fence;
-   VkResult                     ret;
+   ret = tu_CreateFence(_device, &(VkFenceCreateInfo) {}, allocator, _fence);
+   if (ret != VK_SUCCESS)
+      return ret;
 
-   fence = vk_alloc2(&device->instance->alloc, allocator, sizeof (*fence),
-                     8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-   if (!fence)
-      return VK_ERROR_OUT_OF_HOST_MEMORY;
+   TU_FROM_HANDLE(tu_syncobj, fence, *_fence);
 
-   tu_fence_init(fence, false);
+   int sync_fd = tu_syncobj_to_fd(device, fence);
+   if (sync_fd >= 0) {
+      ret = wsi_register_display_event(_device,
+                                       &device->physical_device->wsi_device,
+                                       display,
+                                       display_event_info,
+                                       allocator,
+                                       NULL,
+                                       sync_fd);
+   } else {
+      ret = VK_ERROR_OUT_OF_HOST_MEMORY;
+   }
 
-   ret = wsi_register_display_event(_device,
-                                    &device->physical_device->wsi_device,
-                                    display,
-                                    display_event_info,
-                                    allocator,
-                                    &fence->fence_wsi);
+   close(sync_fd);
 
-   if (ret == VK_SUCCESS)
-      *_fence = tu_fence_to_handle(fence);
-   else
-      vk_free2(&device->instance->alloc, allocator, fence);
+   if (ret != VK_SUCCESS)
+      tu_DestroyFence(_device, *_fence, allocator);
+
    return ret;
 }
 

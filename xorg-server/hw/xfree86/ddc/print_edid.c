@@ -143,7 +143,7 @@ print_dpms_features(int scrnIndex, struct disp_features *c,
     if (!c->input_type) {       /* analog */
         switch (c->display_type) {
         case DISP_MONO:
-            xf86ErrorF("; Monochorome/GrayScale Display\n");
+            xf86ErrorF("; Monochrome/GrayScale Display\n");
             break;
         case DISP_RGB:
             xf86ErrorF("; RGB/Color Display\n");

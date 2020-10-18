@@ -31,23 +31,20 @@
 #include "bifrost.h"
 #include "compiler.h"
 
-const char * bi_clause_type_name(enum bifrost_clause_type T);
+const char * bi_message_type_name(enum bifrost_message_type T);
 const char * bi_output_mod_name(enum bifrost_outmod mod);
 const char * bi_minmax_mode_name(enum bifrost_minmax_mode mod);
 const char * bi_round_mode_name(enum bifrost_roundmode mod);
-const char * bi_csel_cond_name(enum bifrost_csel_cond cond);
 const char * bi_interp_mode_name(enum bifrost_interp_mode mode);
-const char * bi_ldst_type_name(enum bifrost_ldst_type type);
 const char * bi_class_name(enum bi_class cl);
 const char * bi_cond_name(enum bi_cond cond);
 const char * bi_special_op_name(enum bi_special_op op);
 const char * bi_table_op_name(enum bi_table_op op);
 const char * bi_reduce_op_name(enum bi_reduce_op op);
 const char * bi_frexp_op_name(enum bi_frexp_op op);
-const char * bi_tex_op_name(enum bi_tex_op op);
 
 void bi_print_instruction(bi_instruction *ins, FILE *fp);
-void bi_print_ports(bi_registers *regs, FILE *fp);
+void bi_print_slots(bi_registers *regs, FILE *fp);
 void bi_print_bundle(bi_bundle *bundle, FILE *fp);
 void bi_print_clause(bi_clause *clause, FILE *fp);
 void bi_print_block(bi_block *block, FILE *fp);

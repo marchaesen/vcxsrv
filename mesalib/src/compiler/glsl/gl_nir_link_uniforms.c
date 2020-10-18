@@ -637,6 +637,12 @@ add_parameter(struct gl_uniform_storage *uniform,
               const struct glsl_type *type,
               struct nir_link_uniforms_state *state)
 {
+   /* Builtin uniforms are backed by PROGRAM_STATE_VAR, so don't add them as
+    * uniforms.
+    */
+   if (uniform->builtin)
+      return;
+
    if (!state->params || uniform->is_shader_storage ||
        (glsl_contains_opaque(type) && !state->current_var->data.bindless))
       return;
@@ -1515,8 +1521,7 @@ gl_nir_link_uniforms(struct gl_context *ctx,
          if (!sh)
             continue;
 
-         nir_shader *nir = sh->Program->nir;
-         nir_foreach_variable(var, &nir->uniforms)
+         nir_foreach_gl_uniform_variable(var, sh->Program->nir)
             update_array_sizes(prog, var, state.referenced_uniforms, stage);
       }
    }
@@ -1531,7 +1536,7 @@ gl_nir_link_uniforms(struct gl_context *ctx,
          if (!sh)
             continue;
 
-         nir_foreach_variable(var, &sh->Program->nir->uniforms) {
+         nir_foreach_gl_uniform_variable(var, sh->Program->nir) {
             const struct glsl_type *type = var->type;
             const char *name = var->name;
             if (nir_variable_is_in_block(var) &&
@@ -1582,7 +1587,7 @@ gl_nir_link_uniforms(struct gl_context *ctx,
       state.shader_shadow_samplers = 0;
       state.params = fill_parameters ? sh->Program->Parameters : NULL;
 
-      nir_foreach_variable(var, &nir->uniforms) {
+      nir_foreach_gl_uniform_variable(var, nir) {
          state.current_var = var;
          state.current_ifc_type = NULL;
          state.offset = 0;
@@ -1722,54 +1727,57 @@ gl_nir_link_uniforms(struct gl_context *ctx,
             }
          }
 
-         if (!prog->data->spirv && state.var_is_in_block &&
-             glsl_without_array(state.current_var->type) != state.current_var->interface_type) {
+         if (!prog->data->spirv && state.var_is_in_block) {
+            if (glsl_without_array(state.current_var->type) != state.current_var->interface_type) {
+               /* this is nested at some offset inside the block */
+               bool found = false;
+               char sentinel = '\0';
 
-            bool found = false;
-            char sentinel = '\0';
-
-            if (glsl_type_is_struct(state.current_var->type)) {
-               sentinel = '.';
-            } else if (glsl_type_is_array(state.current_var->type) &&
-                       (glsl_type_is_array(glsl_get_array_element(state.current_var->type))
-                        || glsl_type_is_struct(glsl_without_array(state.current_var->type)))) {
-              sentinel = '[';
-            }
-
-            const unsigned l = strlen(state.current_var->name);
-            for (unsigned i = 0; i < num_blocks; i++) {
-               for (unsigned j = 0; j < blocks[i].NumUniforms; j++) {
-                 if (sentinel) {
-                     const char *begin = blocks[i].Uniforms[j].Name;
-                     const char *end = strchr(begin, sentinel);
-
-                     if (end == NULL)
-                        continue;
-
-                     if ((ptrdiff_t) l != (end - begin))
-                        continue;
-                     found = strncmp(state.current_var->name, begin, l) == 0;
-                  } else {
-                     found = strcmp(state.current_var->name, blocks[i].Uniforms[j].Name) == 0;
-                  }
-
-                  if (found) {
-                     location = j;
-
-                     struct hash_entry *entry =
-                        _mesa_hash_table_search(state.referenced_uniforms[shader_type], var->name);
-                     if (entry)
-                        blocks[i].stageref |= 1U << shader_type;
-
-                     break;
-                  }
+               if (glsl_type_is_struct(state.current_var->type)) {
+                  sentinel = '.';
+               } else if (glsl_type_is_array(state.current_var->type) &&
+                          (glsl_type_is_array(glsl_get_array_element(state.current_var->type))
+                           || glsl_type_is_struct(glsl_without_array(state.current_var->type)))) {
+                 sentinel = '[';
                }
 
-               if (found)
-                  break;
-            }
-            assert(found);
+               const unsigned l = strlen(state.current_var->name);
+               for (unsigned i = 0; i < num_blocks; i++) {
+                  for (unsigned j = 0; j < blocks[i].NumUniforms; j++) {
+                    if (sentinel) {
+                        const char *begin = blocks[i].Uniforms[j].Name;
+                        const char *end = strchr(begin, sentinel);
 
+                        if (end == NULL)
+                           continue;
+
+                        if ((ptrdiff_t) l != (end - begin))
+                           continue;
+                        found = strncmp(state.current_var->name, begin, l) == 0;
+                     } else {
+                        found = strcmp(state.current_var->name, blocks[i].Uniforms[j].Name) == 0;
+                     }
+
+                     if (found) {
+                        location = j;
+
+                        struct hash_entry *entry =
+                           _mesa_hash_table_search(state.referenced_uniforms[shader_type], var->name);
+                        if (entry)
+                           blocks[i].stageref |= 1U << shader_type;
+
+                        break;
+                     }
+                  }
+
+                  if (found)
+                     break;
+               }
+               assert(found);
+            } else
+               /* this is the base block offset */
+               location = buffer_block_index;
+            assert(buffer_block_index >= 0);
             const struct gl_uniform_block *const block =
                &blocks[buffer_block_index];
             assert(location != -1);

@@ -105,7 +105,7 @@ winClipboardThreadProc(void *arg)
 }
 
 /*
- * Intialize the Clipboard module
+ * Initialize the Clipboard module
  */
 
 Bool

@@ -133,68 +133,81 @@ lower_alu_instr(nir_alu_instr *instr, nir_builder *b)
    case nir_op_imul_high:
    case nir_op_umul_high:
       if (b->shader->options->lower_mul_high) {
-         nir_ssa_def *c1 = nir_imm_int(b, 1);
-         nir_ssa_def *c16 = nir_imm_int(b, 16);
-
          nir_ssa_def *src0 = nir_ssa_for_alu_src(b, instr, 0);
          nir_ssa_def *src1 = nir_ssa_for_alu_src(b, instr, 1);
-         nir_ssa_def *different_signs = NULL;
-         if (instr->op == nir_op_imul_high) {
-            nir_ssa_def *c0 = nir_imm_int(b, 0);
-            different_signs = nir_ixor(b,
-                                       nir_ilt(b, src0, c0),
-                                       nir_ilt(b, src1, c0));
-            src0 = nir_iabs(b, src0);
-            src1 = nir_iabs(b, src1);
-         }
+         if (src0->bit_size < 32) {
+            /* Just do the math in 32-bit space and shift the result */
+            nir_alu_type base_type = nir_op_infos[instr->op].output_type;
+            nir_op upcast_op = nir_type_conversion_op(base_type | src0->bit_size, base_type | 32, nir_rounding_mode_undef);
+            nir_op downscast_op = nir_type_conversion_op(base_type | 32, base_type | src0->bit_size, nir_rounding_mode_undef);
 
-         /*   ABCD
-          * * EFGH
-          * ======
-          * (GH * CD) + (GH * AB) << 16 + (EF * CD) << 16 + (EF * AB) << 32
-          *
-          * Start by splitting into the 4 multiplies.
-          */
-         nir_ssa_def *src0l = nir_iand(b, src0, nir_imm_int(b, 0xffff));
-         nir_ssa_def *src1l = nir_iand(b, src1, nir_imm_int(b, 0xffff));
-         nir_ssa_def *src0h = nir_ushr(b, src0, c16);
-         nir_ssa_def *src1h = nir_ushr(b, src1, c16);
+            nir_ssa_def *src0_32 = nir_build_alu(b, upcast_op, src0, NULL, NULL, NULL);
+            nir_ssa_def *src1_32 = nir_build_alu(b, upcast_op, src1, NULL, NULL, NULL);
+            nir_ssa_def *dest_32 = nir_imul(b, src0_32, src1_32);
+            nir_ssa_def *dest_shifted = nir_ishr(b, dest_32, nir_imm_int(b, src0->bit_size));
+            lowered = nir_build_alu(b, downscast_op, dest_shifted, NULL, NULL, NULL);
+         } else {
+            nir_ssa_def *c1 = nir_imm_intN_t(b, 1, src0->bit_size);
+            nir_ssa_def *cshift = nir_imm_int(b, src0->bit_size / 2);
+            nir_ssa_def *cmask = nir_imm_intN_t(b, (1ull << (src0->bit_size / 2)) - 1, src0->bit_size);
+            nir_ssa_def *different_signs = NULL;
+            if (instr->op == nir_op_imul_high) {
+               nir_ssa_def *c0 = nir_imm_intN_t(b, 0, src0->bit_size);
+               different_signs = nir_ixor(b,
+                                          nir_ilt(b, src0, c0),
+                                          nir_ilt(b, src1, c0));
+               src0 = nir_iabs(b, src0);
+               src1 = nir_iabs(b, src1);
+            }
 
-         nir_ssa_def *lo = nir_imul(b, src0l, src1l);
-         nir_ssa_def *m1 = nir_imul(b, src0l, src1h);
-         nir_ssa_def *m2 = nir_imul(b, src0h, src1l);
-         nir_ssa_def *hi = nir_imul(b, src0h, src1h);
-
-         nir_ssa_def *tmp;
-
-         tmp = nir_ishl(b, m1, c16);
-         hi = nir_iadd(b, hi, nir_iand(b, nir_uadd_carry(b, lo, tmp), c1));
-         lo = nir_iadd(b, lo, tmp);
-         hi = nir_iadd(b, hi, nir_ushr(b, m1, c16));
-
-         tmp = nir_ishl(b, m2, c16);
-         hi = nir_iadd(b, hi, nir_iand(b, nir_uadd_carry(b, lo, tmp), c1));
-         lo = nir_iadd(b, lo, tmp);
-         hi = nir_iadd(b, hi, nir_ushr(b, m2, c16));
-
-         if (instr->op == nir_op_imul_high) {
-            /* For channels where different_signs is set we have to perform a
-             * 64-bit negation.  This is *not* the same as just negating the
-             * high 32-bits.  Consider -3 * 2.  The high 32-bits is 0, but the
-             * desired result is -1, not -0!  Recall -x == ~x + 1.
+            /*   ABCD
+             * * EFGH
+             * ======
+             * (GH * CD) + (GH * AB) << 16 + (EF * CD) << 16 + (EF * AB) << 32
+             *
+             * Start by splitting into the 4 multiplies.
              */
-            hi = nir_bcsel(b, different_signs,
-                           nir_iadd(b,
-                                    nir_inot(b, hi),
-                                    nir_iand(b,
-                                             nir_uadd_carry(b,
-                                                            nir_inot(b, lo),
-                                                            c1),
-                                             nir_imm_int(b, 1))),
-                           hi);
-         }
+            nir_ssa_def *src0l = nir_iand(b, src0, cmask);
+            nir_ssa_def *src1l = nir_iand(b, src1, cmask);
+            nir_ssa_def *src0h = nir_ushr(b, src0, cshift);
+            nir_ssa_def *src1h = nir_ushr(b, src1, cshift);
 
-         lowered = hi;
+            nir_ssa_def *lo = nir_imul(b, src0l, src1l);
+            nir_ssa_def *m1 = nir_imul(b, src0l, src1h);
+            nir_ssa_def *m2 = nir_imul(b, src0h, src1l);
+            nir_ssa_def *hi = nir_imul(b, src0h, src1h);
+
+            nir_ssa_def *tmp;
+
+            tmp = nir_ishl(b, m1, cshift);
+            hi = nir_iadd(b, hi, nir_iand(b, nir_uadd_carry(b, lo, tmp), c1));
+            lo = nir_iadd(b, lo, tmp);
+            hi = nir_iadd(b, hi, nir_ushr(b, m1, cshift));
+
+            tmp = nir_ishl(b, m2, cshift);
+            hi = nir_iadd(b, hi, nir_iand(b, nir_uadd_carry(b, lo, tmp), c1));
+            lo = nir_iadd(b, lo, tmp);
+            hi = nir_iadd(b, hi, nir_ushr(b, m2, cshift));
+
+            if (instr->op == nir_op_imul_high) {
+               /* For channels where different_signs is set we have to perform a
+                * 64-bit negation.  This is *not* the same as just negating the
+                * high 32-bits.  Consider -3 * 2.  The high 32-bits is 0, but the
+                * desired result is -1, not -0!  Recall -x == ~x + 1.
+                */
+               hi = nir_bcsel(b, different_signs,
+                              nir_iadd(b,
+                                       nir_inot(b, hi),
+                                       nir_iand(b,
+                                                nir_uadd_carry(b,
+                                                               nir_inot(b, lo),
+                                                               c1),
+                                                nir_imm_intN_t(b, 1, src0->bit_size))),
+                              hi);
+            }
+
+            lowered = hi;
+         }
       }
       break;
 

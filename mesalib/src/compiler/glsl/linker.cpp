@@ -332,7 +332,7 @@ public:
         invalid_stream_id(0),
         invalid_stream_id_from_emit_vertex(false),
         end_primitive_found(false),
-        uses_non_zero_stream(false)
+        used_streams(0)
    {
       /* empty */
    }
@@ -353,8 +353,7 @@ public:
          return visit_stop;
       }
 
-      if (stream_id != 0)
-         uses_non_zero_stream = true;
+      used_streams |= 1 << stream_id;
 
       return visit_continue;
    }
@@ -377,8 +376,7 @@ public:
          return visit_stop;
       }
 
-      if (stream_id != 0)
-         uses_non_zero_stream = true;
+      used_streams |= 1 << stream_id;
 
       return visit_continue;
    }
@@ -399,9 +397,9 @@ public:
       return invalid_stream_id;
    }
 
-   bool uses_streams()
+   unsigned active_stream_mask()
    {
-      return uses_non_zero_stream;
+      return used_streams;
    }
 
    bool uses_end_primitive()
@@ -414,7 +412,7 @@ private:
    int invalid_stream_id;
    bool invalid_stream_id_from_emit_vertex;
    bool end_primitive_found;
-   bool uses_non_zero_stream;
+   unsigned used_streams;
 };
 
 /* Class that finds array derefs and check if indexes are dynamic. */
@@ -811,7 +809,7 @@ validate_geometry_shader_emissions(struct gl_context *ctx,
                       emit_vertex.error_stream(),
                       ctx->Const.MaxVertexStreams - 1);
       }
-      prog->Geom.UsesStreams = emit_vertex.uses_streams();
+      prog->Geom.ActiveStreamMask = emit_vertex.active_stream_mask();
       prog->Geom.UsesEndPrimitive = emit_vertex.uses_end_primitive();
 
       /* From the ARB_gpu_shader5 spec:
@@ -834,11 +832,11 @@ validate_geometry_shader_emissions(struct gl_context *ctx,
        * Since we can call EmitVertex() and EndPrimitive() when we output
        * primitives other than points, calling EmitStreamVertex(0) or
        * EmitEndPrimitive(0) should not produce errors. This it also what Nvidia
-       * does. Currently we only set prog->Geom.UsesStreams to TRUE when
-       * EmitStreamVertex() or EmitEndPrimitive() are called with a non-zero
+       * does. We can use prog->Geom.ActiveStreamMask to check whether only the
+       * first (zero) stream is active.
        * stream.
        */
-      if (prog->Geom.UsesStreams &&
+      if (prog->Geom.ActiveStreamMask & ~(1 << 0) &&
           sh->Program->info.gs.output_primitive != GL_POINTS) {
          linker_error(prog, "EmitStreamVertex(n) and EndStreamPrimitive(n) "
                       "with n>0 requires point output\n");

@@ -294,7 +294,7 @@ st_texture_match_image(struct st_context *st,
  */
 extern GLubyte *
 st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
-                     enum pipe_transfer_usage usage,
+                     enum pipe_map_flags usage,
                      GLuint x, GLuint y, GLuint z,
                      GLuint w, GLuint h, GLuint d,
                      struct pipe_transfer **transfer);

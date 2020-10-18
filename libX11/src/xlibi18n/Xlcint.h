@@ -655,7 +655,7 @@ typedef struct {
 
 /*
  * An X Input Manager (IM).  Implementations may need to extend this data
- * structure to accomodate additional data, state information etc.
+ * structure to accommodate additional data, state information etc.
  */
 typedef struct _XIM {
     XIMMethods		methods;		/* method list of this IM */
@@ -739,7 +739,7 @@ typedef struct {
 
 /*
  * an Input Context.  Implementations may need to extend this data
- * structure to accomodate additional data, state information etc.
+ * structure to accommodate additional data, state information etc.
  */
 typedef struct _XIC {
     XICMethods		methods;		/* method list of this IC */

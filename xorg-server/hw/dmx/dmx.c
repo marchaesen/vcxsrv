@@ -33,7 +33,7 @@
 
 /** \file
  * This file implements the server-side part of the DMX protocol. A
- * vector of fucntions is provided at extension initialization time, so
+ * vector of functions is provided at extension initialization time, so
  * most all of the useful functions in this file are declared static and
  * do not appear in the doxygen documentation.
  *

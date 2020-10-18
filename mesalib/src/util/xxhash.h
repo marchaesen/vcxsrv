@@ -69,6 +69,15 @@ XXH64       13.8 GB/s            1.9 GB/s
 XXH32        6.8 GB/s            6.0 GB/s
 */
 
+/* Mesa leaves strict aliasing on in the compiler, and this code likes to
+ * dereference the passed in data as u32*, which means that the compiler is
+ * free to move the u32 read before the write of the struct members being
+ * hashed, and in practice it did in freedreno.  Forcing these two things
+ * prevents it.
+ */
+#define XXH_FORCE_ALIGN_CHECK 0
+#define XXH_FORCE_MEMORY_ACCESS 0
+
 #if defined (__cplusplus)
 extern "C" {
 #endif

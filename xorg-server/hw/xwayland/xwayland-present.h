@@ -34,7 +34,6 @@
 
 #ifdef GLAMOR_HAS_GBM
 struct xwl_present_window {
-    struct xwl_screen *xwl_screen;
     struct xwl_present_event *sync_flip;
     WindowPtr window;
     struct xorg_list frame_callback_list;
@@ -46,8 +45,8 @@ struct xwl_present_window {
 
     struct wl_callback *sync_callback;
 
-    struct xorg_list event_list;
-    struct xorg_list release_queue;
+    struct xorg_list wait_list;
+    struct xorg_list release_list;
 };
 
 struct xwl_present_event {
@@ -56,7 +55,6 @@ struct xwl_present_event {
 
     Bool abort;
     Bool pending;
-    Bool buffer_released;
 
     struct xwl_present_window *xwl_present_window;
     PixmapPtr pixmap;

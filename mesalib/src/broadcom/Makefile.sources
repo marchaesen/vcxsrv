@@ -41,6 +41,7 @@ BROADCOM_FILES = \
 	compiler/v3d_compiler.h \
 	compiler/v3d_nir_lower_image_load_store.c \
 	compiler/v3d_nir_lower_io.c \
+	compiler/v3d_nir_lower_line_smooth.c \
 	compiler/v3d_nir_lower_scratch.c \
 	compiler/v3d_nir_lower_txf_ms.c \
 	qpu/qpu_disasm.c \

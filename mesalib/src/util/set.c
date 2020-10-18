@@ -148,6 +148,26 @@ _mesa_set_create(void *mem_ctx,
    return ht;
 }
 
+static uint32_t
+key_u32_hash(const void *key)
+{
+   uint32_t u = (uint32_t)(uintptr_t)key;
+   return _mesa_hash_uint(&u);
+}
+
+static bool
+key_u32_equals(const void *a, const void *b)
+{
+   return (uint32_t)(uintptr_t)a == (uint32_t)(uintptr_t)b;
+}
+
+/* key == 0 and key == deleted_key are not allowed */
+struct set *
+_mesa_set_create_u32_keys(void *mem_ctx)
+{
+   return _mesa_set_create(NULL, key_u32_hash, key_u32_equals);
+}
+
 struct set *
 _mesa_set_clone(struct set *set, void *dst_mem_ctx)
 {
@@ -569,4 +589,24 @@ _mesa_pointer_set_create(void *mem_ctx)
 {
    return _mesa_set_create(mem_ctx, _mesa_hash_pointer,
                            _mesa_key_pointer_equal);
+}
+
+bool
+_mesa_set_intersects(struct set *a, struct set *b)
+{
+   assert(a->key_hash_function == b->key_hash_function);
+   assert(a->key_equals_function == b->key_equals_function);
+
+   /* iterate over the set with less entries */
+   if (b->entries < a->entries) {
+      struct set *tmp = a;
+      a = b;
+      b = tmp;
+   }
+
+   set_foreach(a, entry) {
+      if (_mesa_set_search_pre_hashed(b, entry->hash, entry->key))
+         return true;
+   }
+   return false;
 }

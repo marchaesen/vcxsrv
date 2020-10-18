@@ -1,4 +1,3 @@
-fast_color_clear/fcc-write-after-clear: skip
 glx/extension string sanity: fail
 glx/glx-buffer-age: skip
 glx/glx-buffer-age vblank_mode=0: skip
@@ -27,6 +26,7 @@ glx/glx-visuals-depth: fail
 glx/glx-visuals-depth -pixmap: fail
 glx/glx-visuals-stencil: fail
 glx/glx-visuals-stencil -pixmap: fail
+glx/glx_arb_create_context/invalid flag: fail
 glx/glx_arb_create_context_es2_profile/invalid opengl es version: fail
 glx/glx_arb_create_context_no_error/no error: skip
 glx/glx_arb_create_context_robustness/invalid reset notification strategy: skip
@@ -80,7 +80,6 @@ shaders/activeprogram-bad-program: skip
 shaders/activeprogram-get: skip
 shaders/createshaderprogram-attached-shaders: skip
 shaders/createshaderprogram-bad-type: skip
-shaders/glsl-bug-110796: fail
 shaders/glsl-fs-fogscale/gs-out and fs: skip
 shaders/glsl-fs-fogscale/vs, gs and fs: skip
 shaders/sso-simple: skip
@@ -91,7 +90,6 @@ shaders/sso-user-varying-02: skip
 shaders/useshaderprogram-bad-program: skip
 shaders/useshaderprogram-bad-type: skip
 shaders/useshaderprogram-flushverts-1: skip
-shaders/zero-tex-coord texturegather: skip
 spec/!opengl 1.0/gl-1.0-swapbuffers-behavior: fail
 spec/!opengl 1.0/rasterpos/glsl_vs_gs_linked: skip
 spec/!opengl 1.0/rasterpos/glsl_vs_gs_sso: skip
@@ -388,16 +386,9 @@ spec/!opengl 2.0/vertex-program-two-side/tcs-out, tes and fs: skip
 spec/!opengl 2.0/vertex-program-two-side/tes-out and fs: skip
 spec/!opengl 2.0/vertex-program-two-side/vs, gs and fs: skip
 spec/!opengl 2.0/vertex-program-two-side/vs, tcs, tes and fs: skip
+spec/!opengl 3.1/draw-buffers-errors: skip
 spec/!opengl 3.2/gl-3.2-adj-prims pv-first: fail
 spec/!opengl 3.2/layered-rendering/clear-color-mismatched-layer-count: fail
-spec/!opengl 4.2/gl-max-vertex-attrib-stride: skip
-spec/!opengl 4.2/required-renderbuffer-attachment-formats: skip
-spec/!opengl 4.2/required-sized-texture-formats: skip
-spec/!opengl 4.2/required-texture-attachment-formats: skip
-spec/!opengl 4.3/get_glsl_version: skip
-spec/!opengl 4.5/compare-framebuffer-parameter-with-get: skip
-spec/!opengl 4.5/named-framebuffer-draw-buffers-errors: skip
-spec/!opengl 4.5/named-framebuffer-read-buffer-errors: skip
 spec/!opengl es 2.0/invalid-es3-queries_gles2: skip
 spec/3dfx_texture_compression_fxt1/compressedteximage gl_compressed_rgb_fxt1_3dfx: skip
 spec/3dfx_texture_compression_fxt1/compressedteximage gl_compressed_rgba_fxt1_3dfx: skip
@@ -474,9 +465,6 @@ spec/arb_depth_buffer_float/depthstencil-render-miplevels 585 s=z24_s8_d=z32f_s8
 spec/arb_direct_state_access/getcompressedtextureimage: skip
 spec/arb_direct_state_access/gettextureimage-formats: skip
 spec/arb_direct_state_access/gettextureimage-formats init-by-rendering: skip
-spec/arb_enhanced_layouts/arb_enhanced_layouts-transform-feedback-layout-qualifiers_gs: skip
-spec/arb_enhanced_layouts/arb_enhanced_layouts-transform-feedback-layout-qualifiers_gs_max: skip
-spec/arb_enhanced_layouts/gs-stream-location-aliasing: fail
 spec/arb_fragment_program/fp-indirections: skip
 spec/arb_fragment_shader_interlock/arb_fragment_shader_interlock-image-load-store: skip
 spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-params/dsa: skip
@@ -498,17 +486,14 @@ spec/arb_geometry_shader4/arb_geometry_shader4-program-parameter-vertices-out ma
 spec/arb_geometry_shader4/arb_geometry_shader4-program-parameter-vertices-out tf 1: skip
 spec/arb_geometry_shader4/arb_geometry_shader4-program-parameter-vertices-out tf max: skip
 spec/arb_geometry_shader4/arb_geometry_shader4-vertices-in: skip
+spec/arb_gpu_shader5/arb_gpu_shader5-xfb-streams-without-invocations spirv: skip
 spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-dlist-uniforms: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-fs-non-uniform-control-flow-ssbo: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-vs-non-uniform-control-flow-ssbo: skip
 spec/arb_internalformat_query/minmax: skip
 spec/arb_internalformat_query/misc. api error checks: skip
 spec/arb_pipeline_statistics_query/arb_pipeline_statistics_query-frag: fail
 spec/arb_pixel_buffer_object/cubemap npot pbo: fail
 spec/arb_pixel_buffer_object/cubemap pbo: fail
-spec/arb_post_depth_coverage/arb_post_depth_coverage-basic: skip
-spec/arb_post_depth_coverage/arb_post_depth_coverage-multisampling: skip
-spec/arb_post_depth_coverage/arb_post_depth_coverage-sample-shading: skip
+spec/arb_post_depth_coverage/arb_post_depth_coverage-multisampling: fail
 spec/arb_program_interface_query/arb_program_interface_query-getprogramresourceindex/'vs_input2[1][0]' on gl_program_input: fail
 spec/arb_query_buffer_object/qbo/query-gl_time_elapsed-async_cpu_read_before-gl_int: fail
 spec/arb_query_buffer_object/qbo/query-gl_time_elapsed-async_cpu_read_before-gl_unsigned_int: fail
@@ -517,7 +502,6 @@ spec/arb_query_buffer_object/qbo/query-gl_time_elapsed-sync_cpu_read_after_cache
 spec/arb_query_buffer_object/qbo/query-gl_time_elapsed-sync_cpu_read_after_cache_test-gl_unsigned_int: fail
 spec/arb_query_buffer_object/qbo/query-gl_time_elapsed-sync_cpu_read_after_cache_test-gl_unsigned_int64_arb: fail
 spec/arb_sample_locations/test: skip
-spec/arb_sample_shading/arb_sample_shading-builtin-gl-sample-mask-mrt-alpha-to-coverage-combinations: fail
 spec/arb_sample_shading/builtin-gl-num-samples 16: skip
 spec/arb_sample_shading/builtin-gl-num-samples 32: skip
 spec/arb_sample_shading/builtin-gl-num-samples 6: skip
@@ -550,51 +534,35 @@ spec/arb_sample_shading/samplemask 0 all: skip
 spec/arb_sample_shading/samplemask 16: skip
 spec/arb_sample_shading/samplemask 16 all: skip
 spec/arb_sample_shading/samplemask 2 all/0.250000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 2 all/0.250000 partition: skip
 spec/arb_sample_shading/samplemask 2 all/0.500000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 2 all/0.500000 partition: skip
 spec/arb_sample_shading/samplemask 2 all/1.000000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 2 all/1.000000 partition: skip
 spec/arb_sample_shading/samplemask 2 all/noms fix: fail
 spec/arb_sample_shading/samplemask 2 all/noms mask_in_one: fail
-spec/arb_sample_shading/samplemask 2 all/noms partition: skip
+spec/arb_sample_shading/samplemask 2 all/noms partition: fail
 spec/arb_sample_shading/samplemask 2 all/sample mask_in_one: fail
-spec/arb_sample_shading/samplemask 2 all/sample partition: skip
 spec/arb_sample_shading/samplemask 2/0.250000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 2/0.250000 partition: skip
 spec/arb_sample_shading/samplemask 2/0.500000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 2/0.500000 partition: skip
 spec/arb_sample_shading/samplemask 2/1.000000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 2/1.000000 partition: skip
 spec/arb_sample_shading/samplemask 2/noms fix: fail
 spec/arb_sample_shading/samplemask 2/noms mask_in_one: fail
-spec/arb_sample_shading/samplemask 2/noms partition: skip
+spec/arb_sample_shading/samplemask 2/noms partition: fail
 spec/arb_sample_shading/samplemask 2/sample mask_in_one: fail
-spec/arb_sample_shading/samplemask 2/sample partition: skip
 spec/arb_sample_shading/samplemask 32: skip
 spec/arb_sample_shading/samplemask 32 all: skip
 spec/arb_sample_shading/samplemask 4 all/0.250000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 4 all/0.250000 partition: skip
 spec/arb_sample_shading/samplemask 4 all/0.500000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 4 all/0.500000 partition: skip
 spec/arb_sample_shading/samplemask 4 all/1.000000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 4 all/1.000000 partition: skip
 spec/arb_sample_shading/samplemask 4 all/noms fix: fail
 spec/arb_sample_shading/samplemask 4 all/noms mask_in_one: fail
-spec/arb_sample_shading/samplemask 4 all/noms partition: skip
+spec/arb_sample_shading/samplemask 4 all/noms partition: fail
 spec/arb_sample_shading/samplemask 4 all/sample mask_in_one: fail
-spec/arb_sample_shading/samplemask 4 all/sample partition: skip
 spec/arb_sample_shading/samplemask 4/0.250000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 4/0.250000 partition: skip
 spec/arb_sample_shading/samplemask 4/0.500000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 4/0.500000 partition: skip
 spec/arb_sample_shading/samplemask 4/1.000000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 4/1.000000 partition: skip
 spec/arb_sample_shading/samplemask 4/noms fix: fail
 spec/arb_sample_shading/samplemask 4/noms mask_in_one: fail
-spec/arb_sample_shading/samplemask 4/noms partition: skip
+spec/arb_sample_shading/samplemask 4/noms partition: fail
 spec/arb_sample_shading/samplemask 4/sample mask_in_one: fail
-spec/arb_sample_shading/samplemask 4/sample partition: skip
 spec/arb_sample_shading/samplemask 6: skip
 spec/arb_sample_shading/samplemask 6 all: skip
 spec/arb_sample_shading/samplemask 8: skip
@@ -603,12 +571,6 @@ spec/arb_separate_shader_objects/programuniform coverage/double matrices: skip
 spec/arb_separate_shader_objects/programuniform coverage/double scalar and vectors: skip
 spec/arb_shader_atomic_counters/max-counters/combined test above maximum number of atomic counter buffers: skip
 spec/arb_shader_image_load_store/early-z/occlusion query test/early-z pass: fail
-spec/arb_shader_image_load_store/indexing/compute shader/dynamically uniform indexing test: fail
-spec/arb_shader_image_load_store/indexing/fragment shader/dynamically uniform indexing test: fail
-spec/arb_shader_image_load_store/indexing/geometry shader/dynamically uniform indexing test: fail
-spec/arb_shader_image_load_store/indexing/tessellation control shader/dynamically uniform indexing test: fail
-spec/arb_shader_image_load_store/indexing/tessellation evaluation shader/dynamically uniform indexing test: fail
-spec/arb_shader_image_load_store/indexing/vertex shader/dynamically uniform indexing test: fail
 spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r11f_g11f_b10f: fail
 spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r16: fail
 spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r16_snorm: fail
@@ -634,16 +596,10 @@ spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r
 spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg8_snorm: fail
 spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg8i: fail
 spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg8ui: fail
-spec/arb_shader_image_load_store/max-images/combined max image uniforms test: fail
-spec/arb_shader_image_load_store/max-images/compute shader max image uniforms test: fail
-spec/arb_shader_image_load_store/max-images/fragment shader max image uniforms test: fail
-spec/arb_shader_image_load_store/max-images/geometry shader max image uniforms test: fail
-spec/arb_shader_image_load_store/max-images/tessellation control shader max image uniforms test: fail
-spec/arb_shader_image_load_store/max-images/tessellation evaluation shader max image uniforms test: fail
-spec/arb_shader_image_load_store/max-images/vertex shader max image uniforms test: fail
-spec/arb_shader_image_load_store/max-size/imagecube max size test/8192x8192x6x1: skip
-spec/arb_shader_image_load_store/max-size/imagecubearray max size test/8192x8192x6x1: skip
-spec/arb_shader_storage_buffer_object/minmax: skip
+spec/arb_shader_image_load_store/max-size/image2dmsarray max size test/4x16384x8x8: skip
+spec/arb_shader_image_load_store/max-size/image2dmsarray max size test/4x8x16384x8: skip
+spec/arb_shader_image_load_store/max-size/imagecube max size test/16384x16384x6x1: skip
+spec/arb_shader_image_load_store/max-size/imagecubearray max size test/16384x16384x6x1: skip
 spec/arb_shader_texture_image_samples/builtin-image/r8/compute/image2dms samples test/2x8x96x1: skip
 spec/arb_shader_texture_image_samples/builtin-image/r8/compute/image2dmsarray samples test/2x8x16x6: skip
 spec/arb_shader_texture_image_samples/builtin-image/r8/fragment/image2dms samples test/2x8x96x1: skip
@@ -781,10 +737,7 @@ spec/arb_sparse_buffer/buffer-data: skip
 spec/arb_sparse_buffer/commit: skip
 spec/arb_sparse_buffer/minmax: skip
 spec/arb_tessellation_shader/arb_tessellation_shader-immediate-mode-draw-patches: skip
-spec/arb_tessellation_shader/arb_tessellation_shader-tes-gs-max-output -small -scan 1 50: fail
-spec/arb_texture_buffer_object/indexed: skip
 spec/arb_texture_buffer_object/negative-unsupported: skip
-spec/arb_texture_compression_bptc/bptc-float-modes: fail
 spec/arb_texture_cube_map/copyteximage cube samples=16: skip
 spec/arb_texture_cube_map/copyteximage cube samples=2: skip
 spec/arb_texture_cube_map/copyteximage cube samples=32: skip
@@ -810,8 +763,6 @@ spec/arb_texture_multisample/sample-position/16: skip
 spec/arb_texture_multisample/sample-position/32: skip
 spec/arb_texture_multisample/sample-position/6: skip
 spec/arb_texture_multisample/sample-position/8: skip
-spec/arb_texture_multisample/texelfetch fs sampler2dms 4 1x130-501x130: fail
-spec/arb_texture_multisample/texelfetch fs sampler2dms 4 1x71-501x71: fail
 spec/arb_texture_multisample/texelfetch/16-fs-isampler2dms: skip
 spec/arb_texture_multisample/texelfetch/16-fs-isampler2dmsarray: skip
 spec/arb_texture_multisample/texelfetch/16-fs-sampler2dms: skip
@@ -919,34 +870,12 @@ spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16f: fail
 spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16i: fail
 spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rgba8_snorm: fail
 spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rgba8i: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8_snorm as gl_r32f: fail
 spec/arb_timer_query/query gl_timestamp: fail
-spec/arb_transform_feedback3/arb_transform_feedback3-draw_using_invalid_stream_index: skip
-spec/arb_transform_feedback3/arb_transform_feedback3-ext_interleaved_two_bufs_gs: skip
-spec/arb_transform_feedback3/arb_transform_feedback3-ext_interleaved_two_bufs_gs_max: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-buffer_object_0: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-buffer_object_1: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-buffer_object_2: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-buffer_object_any: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-buffer_object_no_overflow: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-conditional_render_0: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-conditional_render_1: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-conditional_render_2: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-conditional_render_any: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-conditional_render_any_inverted: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-conditional_render_no_overflow: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-simple_query_0: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-simple_query_1: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-simple_query_2: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-simple_query_any: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic/arb_transform_feedback_overflow_query-simple_query_no_overflow: skip
-spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-errors: skip
 spec/arb_vertex_attrib_64bit/get_double_attribs-display-lists: skip
 spec/arb_vertex_program/vp-address-02: skip
 spec/arb_vertex_program/vp-address-04: skip
 spec/arb_vertex_type_2_10_10_10_rev/attrib-p-type-size-match: skip
 spec/arb_viewport_array/display-list: skip
-spec/arb_viewport_array/render-viewport-2: skip
 spec/ati_envmap_bumpmap/ati_envmap_bumpmap-bump: skip
 spec/egl 1.4/egl-blob-cache: skip
 spec/egl 1.4/egl-context-priority: skip
@@ -1565,7 +1494,6 @@ spec/glsl-1.30/execution/tex-miplevel-selection texture(bias) cubearray: fail
 spec/glsl-1.30/execution/tex-miplevel-selection texture(bias) cubeshadow: fail
 spec/glsl-1.30/execution/tex-miplevel-selection textureoffset 2darrayshadow: skip
 spec/glsl-1.50/built-in constants compatibility: skip
-spec/glsl-1.50/gs-max-output: fail
 spec/intel_blackhole_render/intel_blackhole-blit: skip
 spec/intel_blackhole_render/intel_blackhole-blit_gles2: skip
 spec/intel_blackhole_render/intel_blackhole-blit_gles3: skip
@@ -1581,7 +1509,7 @@ spec/intel_conservative_rasterization/intel_conservative_rasterization-invalid: 
 spec/intel_conservative_rasterization/intel_conservative_rasterization-invalid_gles3: skip
 spec/intel_conservative_rasterization/intel_conservative_rasterization-tri: skip
 spec/intel_conservative_rasterization/intel_conservative_rasterization-tri_gles3: skip
-spec/intel_performance_query/intel_performance_query-issue_2235: fail
+spec/intel_performance_query/intel_performance_query-issue_2235: skip
 spec/khr_texture_compression_astc/array-gl/12x12 block dim: fail
 spec/khr_texture_compression_astc/array-gl/5x5 block dim: fail
 spec/khr_texture_compression_astc/array-gles/12x12 block dim: fail
@@ -1667,15 +1595,6 @@ spec/nv_viewport_swizzle/nv_viewport_swizzle-errors_gles3: skip
 spec/oes_egl_image_external_essl3/oes_egl_image_external_essl3/oes_egl_image_external_essl3_imageload: fail
 spec/oes_egl_image_external_essl3/oes_egl_image_external_essl3/oes_egl_image_external_essl3_imagestore: fail
 spec/oes_egl_image_external_essl3/oes_egl_image_external_essl3/oes_egl_image_external_essl3_texturesize: fail
-spec/oes_geometry_shader/built-in constants/gl_maxgeometryatomiccounterbuffers: fail
-spec/oes_geometry_shader/built-in constants/gl_maxgeometryatomiccounters: fail
-spec/oes_geometry_shader/built-in constants/gl_maxgeometryimageuniforms: fail
-spec/oes_geometry_shader/built-in constants/gl_maxgeometryinputcomponents: fail
-spec/oes_geometry_shader/built-in constants/gl_maxgeometryoutputcomponents: fail
-spec/oes_geometry_shader/built-in constants/gl_maxgeometryoutputvertices: fail
-spec/oes_geometry_shader/built-in constants/gl_maxgeometrytextureimageunits: fail
-spec/oes_geometry_shader/built-in constants/gl_maxgeometrytotaloutputcomponents: fail
-spec/oes_geometry_shader/built-in constants/gl_maxgeometryuniformcomponents: fail
 spec/oes_matrix_get/all queries: skip
 spec/oes_texture_compression_astc/miptree-3d-gl hdr: skip
 spec/oes_texture_compression_astc/miptree-3d-gl ldr: skip
@@ -1683,7 +1602,6 @@ spec/oes_texture_compression_astc/miptree-3d-gl srgb: skip
 spec/oes_texture_compression_astc/miptree-3d-gles hdr: skip
 spec/oes_texture_compression_astc/miptree-3d-gles ldr: skip
 spec/oes_texture_compression_astc/miptree-3d-gles srgb: skip
-spec/oes_texture_view/clear-into-view-layered: skip
 spec/oes_texture_view/rendering-formats/clear gl_r8 as gl_r8_snorm: fail
 spec/oes_texture_view/rendering-formats/clear gl_r8 as gl_r8i: fail
 spec/oes_texture_view/rendering-formats/clear gl_rg8 as gl_r16_snorm: fail
@@ -1698,20 +1616,14 @@ spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16f: fail
 spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16i: fail
 spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rgba8_snorm: fail
 spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rgba8i: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8_snorm as gl_r32f: fail
-spec/oes_texture_view/rendering-formats/render to gl_rgb16 as gl_rgb16f: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb16 as gl_rgb16i: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb16 as gl_rgb16ui: skip
-spec/oes_texture_view/rendering-formats/render to gl_rgb16_snorm as gl_rgb16f: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb16_snorm as gl_rgb16i: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb16_snorm as gl_rgb16ui: skip
-spec/oes_texture_view/rendering-formats/render to gl_rgb16f as gl_rgb16f: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb16f as gl_rgb16i: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb16f as gl_rgb16ui: skip
-spec/oes_texture_view/rendering-formats/render to gl_rgb16i as gl_rgb16f: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb16i as gl_rgb16i: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb16i as gl_rgb16ui: skip
-spec/oes_texture_view/rendering-formats/render to gl_rgb16ui as gl_rgb16f: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb16ui as gl_rgb16i: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb16ui as gl_rgb16ui: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb32f as gl_rgb32f: skip
@@ -1735,32 +1647,18 @@ spec/oes_texture_view/rendering-formats/render to gl_rgb8i as gl_rgb8ui: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb8ui as gl_rgb8_snorm: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb8ui as gl_rgb8i: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb8ui as gl_rgb8ui: skip
-spec/oes_texture_view/sampling-2d-array-as-cubemap-array: skip
-spec/oes_texture_view/targets: skip
 spec/oes_texture_view/texsubimage-layers pbo: skip
 spec/oes_texture_view/texsubimage-levels pbo: skip
-spec/oes_viewport_array/bounds: skip
-spec/oes_viewport_array/clear: skip
-spec/oes_viewport_array/depthrange-indices: skip
-spec/oes_viewport_array/minmax: skip
-spec/oes_viewport_array/queries: skip
-spec/oes_viewport_array/render-depthrange: skip
-spec/oes_viewport_array/render-scissor: skip
-spec/oes_viewport_array/render-viewport: skip
-spec/oes_viewport_array/render-viewport-2: skip
-spec/oes_viewport_array/scissor-check: skip
-spec/oes_viewport_array/scissor-indices: skip
-spec/oes_viewport_array/viewport-indices: skip
 wgl/wgl-multi-context-single-window: skip
 wgl/wgl-multi-window-single-context: skip
 wgl/wgl-sanity: skip
 summary:
        name:  results
        ----  --------
-       pass:    21754
-       fail:      224
+       pass:    23075
+       fail:      197
       crash:        0
-       skip:     1508
+       skip:     1433
     timeout:        0
        warn:        6
  incomplete:        0
@@ -1769,4 +1667,4 @@ summary:
     changes:        0
       fixes:        0
 regressions:        0
-      total:    23510
+      total:    24729

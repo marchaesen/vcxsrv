@@ -131,7 +131,7 @@ u_suballocator_alloc(struct u_suballocator *allocator, unsigned size,
          } else {
             struct pipe_transfer *transfer = NULL;
             void *ptr = pipe_buffer_map(pipe, allocator->buffer,
-                                        PIPE_TRANSFER_WRITE, &transfer);
+                                        PIPE_MAP_WRITE, &transfer);
             memset(ptr, 0, allocator->size);
             pipe_buffer_unmap(pipe, transfer);
          }

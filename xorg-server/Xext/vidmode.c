@@ -277,8 +277,8 @@ ProcVidModeGetModeLine(ClientPtr client)
 
     /*
      * Older servers sometimes had server privates that the VidMode
-     * extention made available. So to be compatiable pretend that
-     * there are no server privates to pass to the client
+     * extension made available. So to be compatible pretend that
+     * there are no server privates to pass to the client.
      */
     rep.privsize = 0;
 

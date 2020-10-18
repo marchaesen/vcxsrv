@@ -195,21 +195,21 @@ RRMonitorInitList(ScreenPtr screen, RRMonitorListPtr mon_list, Bool get_active)
     rrScrPrivPtr        pScrPriv = rrGetScrPriv(screen);
     int                 m, o, c, sc;
     int                 numCrtcs;
-    ScreenPtr           slave;
+    ScreenPtr           secondary;
 
     if (!RRGetInfo(screen, FALSE))
         return FALSE;
 
-    /* Count the number of crtcs in this and any slave screens */
+    /* Count the number of crtcs in this and any secondary screens */
     numCrtcs = pScrPriv->numCrtcs;
-    xorg_list_for_each_entry(slave, &screen->slave_list, slave_head) {
-        rrScrPrivPtr pSlavePriv;
+    xorg_list_for_each_entry(secondary, &screen->secondary_list, secondary_head) {
+        rrScrPrivPtr pSecondaryPriv;
 
-        if (!slave->is_output_slave)
+        if (!secondary->is_output_secondary)
             continue;
 
-        pSlavePriv = rrGetScrPriv(slave);
-        numCrtcs += pSlavePriv->numCrtcs;
+        pSecondaryPriv = rrGetScrPriv(secondary);
+        numCrtcs += pSecondaryPriv->numCrtcs;
     }
     mon_list->num_crtcs = numCrtcs;
 
@@ -224,16 +224,16 @@ RRMonitorInitList(ScreenPtr screen, RRMonitorListPtr mon_list, Bool get_active)
             mon_list->server_crtc[c] = pScrPriv->crtcs[sc];
     }
 
-    xorg_list_for_each_entry(slave, &screen->slave_list, slave_head) {
-        rrScrPrivPtr pSlavePriv;
+    xorg_list_for_each_entry(secondary, &screen->secondary_list, secondary_head) {
+        rrScrPrivPtr pSecondaryPriv;
 
-        if (!slave->is_output_slave)
+        if (!secondary->is_output_secondary)
             continue;
 
-        pSlavePriv = rrGetScrPriv(slave);
-        for (sc = 0; sc < pSlavePriv->numCrtcs; sc++, c++) {
-            if (pSlavePriv->crtcs[sc]->mode != NULL)
-                mon_list->server_crtc[c] = pSlavePriv->crtcs[sc];
+        pSecondaryPriv = rrGetScrPriv(secondary);
+        for (sc = 0; sc < pSecondaryPriv->numCrtcs; sc++, c++) {
+            if (pSecondaryPriv->crtcs[sc]->mode != NULL)
+                mon_list->server_crtc[c] = pSecondaryPriv->crtcs[sc];
         }
     }
 
@@ -464,7 +464,7 @@ RRMonitorAdd(ClientPtr client, ScreenPtr screen, RRMonitorPtr monitor)
 {
     rrScrPrivPtr        pScrPriv = rrGetScrPriv(screen);
     int                 m;
-    ScreenPtr           slave;
+    ScreenPtr           secondary;
     RRMonitorPtr        *monitors;
 
     if (!pScrPriv)
@@ -479,11 +479,11 @@ RRMonitorAdd(ClientPtr client, ScreenPtr screen, RRMonitorPtr monitor)
         return BadValue;
     }
 
-    xorg_list_for_each_entry(slave, &screen->slave_list, slave_head) {
-        if (!slave->is_output_slave)
+    xorg_list_for_each_entry(secondary, &screen->secondary_list, secondary_head) {
+        if (!secondary->is_output_secondary)
             continue;
 
-        if (RRMonitorMatchesOutputName(slave, monitor->name)) {
+        if (RRMonitorMatchesOutputName(secondary, monitor->name)) {
             client->errorValue = monitor->name;
             return BadValue;
         }

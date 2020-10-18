@@ -223,7 +223,7 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
     setup_int_vect(pInt);
     set_return_trap(pInt);
 
-    /* Retrieve the entire legacy video BIOS segment.  This can be upto
+    /* Retrieve the entire legacy video BIOS segment.  This can be up to
      * 128KiB.
      */
     vbiosMem = (char *) base + V_BIOS;

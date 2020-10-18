@@ -55,80 +55,85 @@ static nir_variable* intrinsic_get_var(nir_intrinsic_instr *instr)
 
 
 static void gather_usage_helper(const nir_deref_instr **deref_ptr,
-				unsigned location,
-				uint8_t mask,
-				uint8_t *usage_mask)
+                                unsigned location,
+                                uint8_t mask,
+                                uint8_t *usage_mask)
 {
-	for (; *deref_ptr; deref_ptr++) {
-		const nir_deref_instr *deref = *deref_ptr;
-		switch (deref->deref_type) {
-		case nir_deref_type_array: {
-			unsigned elem_size =
-				glsl_count_attribute_slots(deref->type, false);
-			if (nir_src_is_const(deref->arr.index)) {
-				location += elem_size * nir_src_as_uint(deref->arr.index);
-			} else {
-				unsigned array_elems =
-					glsl_get_length(deref_ptr[-1]->type);
-				for (unsigned i = 0; i < array_elems; i++) {
-					gather_usage_helper(deref_ptr + 1,
-							    location + elem_size * i,
-							    mask, usage_mask);
-				}
-				return;
-			}
-			break;
-		}
-		case nir_deref_type_struct: {
-			const struct glsl_type *parent_type =
-				deref_ptr[-1]->type;
-			unsigned index = deref->strct.index;
-			for (unsigned i = 0; i < index; i++) {
-				const struct glsl_type *ft = glsl_get_struct_field(parent_type, i);
-				location += glsl_count_attribute_slots(ft, false);
-			}
-			break;
-		}
-		default:
-			unreachable("Unhandled deref type in gather_components_used_helper");
-		}
-	}
+   for (; *deref_ptr; deref_ptr++) {
+      const nir_deref_instr *deref = *deref_ptr;
+      switch (deref->deref_type) {
+      case nir_deref_type_array: {
+         bool is_compact = nir_deref_instr_get_variable(deref)->data.compact;
+         unsigned elem_size = is_compact ? DIV_ROUND_UP(glsl_get_length(deref->type), 4) :
+            glsl_count_attribute_slots(deref->type, false);
+         if (nir_src_is_const(deref->arr.index)) {
+            if (is_compact) {
+               location += nir_src_as_uint(deref->arr.index) / 4;
+               mask <<= nir_src_as_uint(deref->arr.index) % 4;
+            } else
+               location += elem_size * nir_src_as_uint(deref->arr.index);
+         } else {
+            unsigned array_elems =
+               glsl_get_length(deref_ptr[-1]->type);
+            for (unsigned i = 0; i < array_elems; i++) {
+               gather_usage_helper(deref_ptr + 1,
+                                   location + elem_size * i,
+                                   mask, usage_mask);
+            }
+            return;
+         }
+         break;
+      }
+      case nir_deref_type_struct: {
+         const struct glsl_type *parent_type =
+            deref_ptr[-1]->type;
+         unsigned index = deref->strct.index;
+         for (unsigned i = 0; i < index; i++) {
+            const struct glsl_type *ft = glsl_get_struct_field(parent_type, i);
+            location += glsl_count_attribute_slots(ft, false);
+         }
+         break;
+      }
+      default:
+         unreachable("Unhandled deref type in gather_components_used_helper");
+      }
+   }
 
-	usage_mask[location] |= mask & 0xf;
-	if (mask & 0xf0)
-		usage_mask[location + 1] |= (mask >> 4) & 0xf;
+   usage_mask[location] |= mask & 0xf;
+   if (mask & 0xf0)
+      usage_mask[location + 1] |= (mask >> 4) & 0xf;
 }
 
 static void gather_usage(const nir_deref_instr *deref,
-			 uint8_t mask,
-			 uint8_t *usage_mask)
+                         uint8_t mask,
+                         uint8_t *usage_mask)
 {
-	nir_deref_path path;
-	nir_deref_path_init(&path, (nir_deref_instr *)deref, NULL);
+   nir_deref_path path;
+   nir_deref_path_init(&path, (nir_deref_instr *)deref, NULL);
 
-	unsigned location_frac = path.path[0]->var->data.location_frac;
-	if (glsl_type_is_64bit(deref->type)) {
-		uint8_t new_mask = 0;
-		for (unsigned i = 0; i < 4; i++) {
-			if (mask & (1 << i))
-				new_mask |= 0x3 << (2 * i);
-		}
-		mask = new_mask << location_frac;
-	} else {
-		mask <<= location_frac;
-		mask &= 0xf;
-	}
+   unsigned location_frac = path.path[0]->var->data.location_frac;
+   if (glsl_type_is_64bit(deref->type)) {
+      uint8_t new_mask = 0;
+      for (unsigned i = 0; i < 4; i++) {
+         if (mask & (1 << i))
+            new_mask |= 0x3 << (2 * i);
+      }
+      mask = new_mask << location_frac;
+   } else {
+      mask <<= location_frac;
+      mask &= 0xf;
+   }
 
-	gather_usage_helper((const nir_deref_instr **)&path.path[1],
-			    path.path[0]->var->data.driver_location,
-			    mask, usage_mask);
+   gather_usage_helper((const nir_deref_instr **)&path.path[1],
+                       path.path[0]->var->data.driver_location,
+                       mask, usage_mask);
 
-	nir_deref_path_finish(&path);
+   nir_deref_path_finish(&path);
 }
 
 static void gather_intrinsic_load_deref_info(const nir_shader *nir,
                                              const nir_intrinsic_instr *instr,
-					     const nir_deref_instr *deref,
+                                             const nir_deref_instr *deref,
                                              bool need_texcoord,
                                              nir_variable *var,
                                              struct tgsi_shader_info *info)
@@ -489,7 +494,7 @@ void nir_tgsi_scan_shader(const struct nir_shader *nir,
 
    i = 0;
    uint64_t processed_inputs = 0;
-   nir_foreach_variable(variable, &nir->inputs) {
+   nir_foreach_shader_in_variable(variable, nir) {
       unsigned semantic_name, semantic_index;
 
       const struct glsl_type *type = variable->type;
@@ -498,8 +503,8 @@ void nir_tgsi_scan_shader(const struct nir_shader *nir,
          type = glsl_get_array_element(type);
       }
 
-      unsigned attrib_count = glsl_count_attribute_slots(type,
-                                                         nir->info.stage == MESA_SHADER_VERTEX);
+      unsigned attrib_count = variable->data.compact ? DIV_ROUND_UP(glsl_get_length(type), 4) :
+         glsl_count_attribute_slots(type, nir->info.stage == MESA_SHADER_VERTEX);
 
       i = variable->data.driver_location;
 
@@ -568,12 +573,18 @@ void nir_tgsi_scan_shader(const struct nir_shader *nir,
    }
 
    info->num_inputs = nir->num_inputs;
-   info->file_max[TGSI_FILE_INPUT] = nir->num_inputs - 1;
+   if (nir->info.io_lowered) {
+      info->num_inputs = util_bitcount64(nir->info.inputs_read);
+      if (nir->info.inputs_read_indirectly)
+         info->indirect_files |= 1 << TGSI_FILE_INPUT;
+   }
+
+   info->file_max[TGSI_FILE_INPUT] = info->num_inputs - 1;
 
    i = 0;
    uint64_t processed_outputs = 0;
    unsigned num_outputs = 0;
-   nir_foreach_variable(variable, &nir->outputs) {
+   nir_foreach_shader_out_variable(variable, nir) {
       unsigned semantic_name, semantic_index;
 
       i = variable->data.driver_location;
@@ -584,7 +595,8 @@ void nir_tgsi_scan_shader(const struct nir_shader *nir,
          type = glsl_get_array_element(type);
       }
 
-      unsigned attrib_count = glsl_count_attribute_slots(type, false);
+      unsigned attrib_count = variable->data.compact ? DIV_ROUND_UP(glsl_get_length(type), 4) :
+         glsl_count_attribute_slots(type, false);
       for (unsigned k = 0; k < attrib_count; k++, i++) {
 
          if (nir->info.stage == MESA_SHADER_FRAGMENT) {
@@ -743,18 +755,47 @@ void nir_tgsi_scan_shader(const struct nir_shader *nir,
       }
    }
 
+   if (nir->info.io_lowered) {
+      uint64_t outputs_written = nir->info.outputs_written;
+
+      while (outputs_written) {
+         unsigned location = u_bit_scan64(&outputs_written);
+         unsigned i = util_bitcount64(nir->info.outputs_written &
+                                      BITFIELD64_MASK(location));
+         unsigned semantic_name, semantic_index;
+
+         tgsi_get_gl_varying_semantic(location, need_texcoord,
+                                      &semantic_name, &semantic_index);
+
+         info->output_semantic_name[i] = semantic_name;
+         info->output_semantic_index[i] = semantic_index;
+         info->output_usagemask[i] = 0xf;
+      }
+      num_outputs = util_bitcount64(nir->info.outputs_written);
+      if (nir->info.outputs_accessed_indirectly)
+         info->indirect_files |= 1 << TGSI_FILE_OUTPUT;
+   }
+
+   uint32_t sampler_mask = 0, image_mask = 0;
+   nir_foreach_uniform_variable(var, nir) {
+      uint32_t sampler_count = glsl_type_get_sampler_count(var->type);
+      uint32_t image_count = glsl_type_get_image_count(var->type);
+      sampler_mask |= ((1ull << sampler_count) - 1) << var->data.binding;
+      image_mask |= ((1ull << image_count) - 1) << var->data.binding;
+   }
    info->num_outputs = num_outputs;
 
    info->const_file_max[0] = nir->num_uniforms - 1;
    info->const_buffers_declared = u_bit_consecutive(1, nir->info.num_ubos);
    if (nir->num_uniforms > 0)
-     info->const_buffers_declared |= 1;
-   info->images_declared = u_bit_consecutive(0, nir->info.num_images);
-   info->samplers_declared = nir->info.textures_used;
+      info->const_buffers_declared |= 1;
+   info->images_declared = image_mask;
+   info->samplers_declared = sampler_mask;
 
    info->file_max[TGSI_FILE_SAMPLER] = util_last_bit(info->samplers_declared) - 1;
-   info->file_max[TGSI_FILE_SAMPLER_VIEW] = info->file_max[TGSI_FILE_SAMPLER];
-   info->file_mask[TGSI_FILE_SAMPLER] = info->file_mask[TGSI_FILE_SAMPLER_VIEW] = info->samplers_declared;
+   info->file_max[TGSI_FILE_SAMPLER_VIEW] = util_last_bit(nir->info.textures_used) - 1;
+   info->file_mask[TGSI_FILE_SAMPLER] = info->samplers_declared;
+   info->file_mask[TGSI_FILE_SAMPLER_VIEW] = nir->info.textures_used;
    info->file_max[TGSI_FILE_IMAGE] = util_last_bit(info->images_declared) - 1;
    info->file_mask[TGSI_FILE_IMAGE] = info->images_declared;
 

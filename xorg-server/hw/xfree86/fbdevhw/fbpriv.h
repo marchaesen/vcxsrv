@@ -1,5 +1,5 @@
 /*
- * copyed from from linux kernel 2.2.4
+ * copied from from linux kernel 2.2.4
  * removed internal stuff (#ifdef __KERNEL__)
  */
 

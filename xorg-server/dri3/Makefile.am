@@ -1,7 +1,7 @@
 noinst_LTLIBRARIES = libdri3.la
 AM_CFLAGS = \
-	-DHAVE_XORG_CONFIG_H \
-	@DIX_CFLAGS@ @XORG_CFLAGS@
+	@DIX_CFLAGS@ \
+	@LIBDRM_CFLAGS@
 
 libdri3_la_SOURCES = \
 	dri3.h \

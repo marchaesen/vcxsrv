@@ -195,7 +195,7 @@ contains code points <literal>0x343</literal> (<parameter>0x300 + 32*2
 + (4-1)</parameter>) and <literal>0x35e</literal> (<parameter>0x300 +
 32*2 + (31-1)</parameter>) because <parameter>map[2]</parameter> has
 the 4th and 31st bits set.  The code points represented by
-<literal>map[3]</literal> and later are left as an excercise for the
+<literal>map[3]</literal> and later are left as an exercise for the
 reader ;).
 @@
 

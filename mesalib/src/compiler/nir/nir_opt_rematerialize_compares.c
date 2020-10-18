@@ -37,8 +37,8 @@ is_two_src_comparison(const nir_alu_instr *instr)
    case nir_op_fge32:
    case nir_op_feq:
    case nir_op_feq32:
-   case nir_op_fne:
-   case nir_op_fne32:
+   case nir_op_fneu:
+   case nir_op_fneu32:
    case nir_op_ilt:
    case nir_op_ilt32:
    case nir_op_ult:

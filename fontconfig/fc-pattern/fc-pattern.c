@@ -33,10 +33,13 @@
 
 #include <fontconfig/fontconfig.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 #ifdef ENABLE_NLS
 #include <libintl.h>

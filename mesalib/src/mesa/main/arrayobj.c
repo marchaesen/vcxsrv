@@ -1110,13 +1110,12 @@ static void
 gen_vertex_arrays(struct gl_context *ctx, GLsizei n, GLuint *arrays,
                   bool create, const char *func)
 {
-   GLuint first;
    GLint i;
 
    if (!arrays)
       return;
 
-   first = _mesa_HashFindFreeKeyBlock(ctx->Array.Objects, n);
+   _mesa_HashFindFreeKeys(ctx->Array.Objects, arrays, n);
 
    /* For the sake of simplicity we create the array objects in both
     * the Gen* and Create* cases.  The only difference is the value of
@@ -1124,16 +1123,14 @@ gen_vertex_arrays(struct gl_context *ctx, GLsizei n, GLuint *arrays,
     */
    for (i = 0; i < n; i++) {
       struct gl_vertex_array_object *obj;
-      GLuint name = first + i;
 
-      obj = _mesa_new_vao(ctx, name);
+      obj = _mesa_new_vao(ctx, arrays[i]);
       if (!obj) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
          return;
       }
       obj->EverBound = create;
-      _mesa_HashInsertLocked(ctx->Array.Objects, obj->Name, obj);
-      arrays[i] = first + i;
+      _mesa_HashInsertLocked(ctx->Array.Objects, obj->Name, obj, true);
    }
 }
 

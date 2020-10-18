@@ -462,7 +462,7 @@ _mesa_CreatePerfQueryINTEL(GLuint queryId, GLuint *queryHandle)
    obj->Active = false;
    obj->Ready = false;
 
-   _mesa_HashInsert(ctx->PerfQuery.Objects, id, obj);
+   _mesa_HashInsert(ctx->PerfQuery.Objects, id, obj, true);
    *queryHandle = id;
 }
 

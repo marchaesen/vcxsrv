@@ -426,7 +426,7 @@ _swrast_compute_lambda(GLfloat dsdx, GLfloat dsdy, GLfloat dtdx, GLfloat dtdy,
    GLfloat x = sqrtf(dudx * dudx + dvdx * dvdx);
    GLfloat y = sqrtf(dudy * dudy + dvdy * dvdy);
    GLfloat rho = MAX2(x, y);
-   GLfloat lambda = util_fast_log2(rho);
+   GLfloat lambda = log2f(rho);
    return lambda;
 }
 
@@ -453,7 +453,7 @@ _swrast_compute_lambda(GLfloat dsdx, GLfloat dsdy, GLfloat dtdx, GLfloat dtdy,
    maxU = MAX2(dsdx2, dsdy2) * texW;
    maxV = MAX2(dtdx2, dtdy2) * texH;
    rho = MAX2(maxU, maxV);
-   lambda = util_fast_log2(rho);
+   lambda = logf2(rho);
    return lambda;
 }
 #endif

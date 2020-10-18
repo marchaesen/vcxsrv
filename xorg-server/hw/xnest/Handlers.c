@@ -32,7 +32,7 @@ is" without express or implied warranty.
 #include "Handlers.h"
 
 void
-xnestBlockHandler(void *blockData, void *timout)
+xnestBlockHandler(void *blockData, void *timeout)
 {
     xnestCollectExposures();
     XFlush(xnestDisplay);

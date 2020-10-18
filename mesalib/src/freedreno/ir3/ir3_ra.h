@@ -27,6 +27,8 @@
 #ifndef IR3_RA_H_
 #define IR3_RA_H_
 
+#include <setjmp.h>
+
 #include "util/bitset.h"
 
 
@@ -180,7 +182,18 @@ struct ir3_ra_ctx {
 	 */
 	unsigned namebuf[NUM_REGS];
 	unsigned namecnt, nameidx;
+
+	/* Error handling: */
+	jmp_buf jmp_env;
 };
+
+#define ra_assert(ctx, expr) do { \
+		if (!(expr)) { \
+			_debug_printf("RA: %s:%u: %s: Assertion `%s' failed.\n", __FILE__, __LINE__, __func__, #expr); \
+			longjmp((ctx)->jmp_env, -1); \
+		} \
+	} while (0)
+#define ra_unreachable(ctx, str) ra_assert(ctx, !str)
 
 static inline int
 ra_name(struct ir3_ra_ctx *ctx, struct ir3_ra_instr_data *id)

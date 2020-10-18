@@ -54,4 +54,4 @@ fi
 MESA_VERSION=$(cat "$INSTALL/VERSION" | sed 's/\./\\./g')
 wflinfo --platform surfaceless_egl --api gles2 | grep "Mesa $MESA_VERSION\(\s\|$\)"
 
-python3 "$INSTALL/tracie/tracie.py" --file "$INSTALL/traces.yml" --device-name "$DEVICE_NAME"
+python3 "$INSTALL/tracie/tracie.py" --file "$INSTALL/traces-$DRIVER_NAME.yml" --device-name "$DEVICE_NAME"

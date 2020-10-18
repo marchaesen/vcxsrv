@@ -57,9 +57,10 @@
 
 #include "extinit.h"
 
-/* XTest events are sent during request processing and may be interruped by
+/* XTest events are sent during request processing and may be interrupted by
  * a SIGIO. We need a separate event list to avoid events overwriting each
- * other's memory */
+ * other's memory.
+ */
 static InternalEvent *xtest_evlist;
 
 /**

@@ -132,4 +132,19 @@ executable(
         libglxvnd,
     ],
     install: true,
+    install_dir: xwayland_path
+)
+
+xwayland_data = configuration_data()
+xwayland_data.set('PACKAGE_VERSION', meson.project_version())
+xwayland_data.set('xwayland_path', xwayland_path)
+xwayland_data.set('have_glamor', build_glamor ? 'true' : 'false')
+xwayland_data.set('have_eglstream', build_eglstream ? 'true' : 'false')
+configure_file(
+    input: 'xwayland.pc.in',
+    output: 'xwayland.pc',
+    configuration: xwayland_data,
+    install_dir: join_paths(get_option('prefix'),
+                            get_option('libdir'),
+                            'pkgconfig'),
 )

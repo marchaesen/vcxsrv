@@ -68,7 +68,7 @@ static bool
 is_swizzleless_move(nir_alu_instr *instr)
 {
    if (is_move(instr)) {
-      for (unsigned i = 0; i < 4; i++) {
+      for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++) {
          if (!((instr->dest.write_mask >> i) & 1))
             break;
          if (instr->src[0].swizzle[i] != i)
@@ -224,6 +224,16 @@ copy_prop_instr(nir_instr *instr)
          unsigned num_components = nir_intrinsic_src_components(intrin, i);
 
          while (copy_prop_src(&intrin->src[i], instr, NULL, num_components))
+            progress = true;
+      }
+
+      return progress;
+   }
+
+   case nir_instr_type_jump: {
+      nir_jump_instr *jump = nir_instr_as_jump(instr);
+      if (jump->type == nir_jump_goto_if) {
+         while (copy_prop_src(&jump->condition, instr, NULL, 1))
             progress = true;
       }
 

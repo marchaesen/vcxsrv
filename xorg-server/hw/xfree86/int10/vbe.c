@@ -169,7 +169,7 @@ vbeFree(vbeInfoPtr pVbe)
         return;
 
     xf86Int10FreePages(pVbe->pInt10, pVbe->memory, pVbe->num_pages);
-    /* If we have initalized int10 we ought to free it, too */
+    /* If we have initialized int10 we ought to free it, too */
     if (pVbe->init_int10)
         xf86FreeInt10(pVbe->pInt10);
     free(pVbe);
@@ -846,7 +846,7 @@ VBEGetVBEpmi(vbeInfoPtr pVbe)
        AX    := Status
        ES    := Real Mode Segment of Table
        DI    := Offset of Table
-       CX    := Lenght of Table including protected mode code in bytes (for copying purposes)
+       CX    := Length of Table including protected mode code in bytes (for copying purposes)
        (All other registers are preserved)
      */
 

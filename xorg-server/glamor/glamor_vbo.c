@@ -24,7 +24,7 @@
 /**
  * @file glamor_vbo.c
  *
- * Helpers for managing streamed vertex bufffers used in glamor.
+ * Helpers for managing streamed vertex buffers used in glamor.
  */
 
 #include "glamor_priv.h"

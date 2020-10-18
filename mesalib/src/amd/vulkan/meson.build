@@ -131,7 +131,7 @@ if with_platform_wayland
   libradv_files += files('radv_wsi_wayland.c')
 endif
 
-if with_platform_drm
+if system_has_kms_drm and not with_platform_android
   radv_flags += '-DVK_USE_PLATFORM_DISPLAY_KHR'
   libradv_files += files('radv_wsi_display.c')
 endif
@@ -146,6 +146,16 @@ if with_platform_android
   radv_flags += [
     '-DVK_USE_PLATFORM_ANDROID_KHR'
   ]
+endif
+
+# When static linking LLVM, all its symbols are public API.
+# That may cause symbol collision, so explicitly demote everything.
+libvulkan_radeon_ld_args = []
+libvulkan_radeon_link_depends = []
+
+if with_llvm and with_ld_version_script
+  libvulkan_radeon_ld_args += ['-Wl,--version-script', join_paths(meson.current_source_dir(), 'vulkan.sym')]
+  libvulkan_radeon_link_depends += files('vulkan.sym')
 endif
 
 libvulkan_radeon = shared_library(
@@ -164,7 +174,10 @@ libvulkan_radeon = shared_library(
   ],
   c_args : [no_override_init_args, radv_flags],
   cpp_args : [radv_flags],
-  link_args : [ld_args_bsymbolic, ld_args_gc_sections],
+  link_args : [
+    ld_args_build_id, ld_args_bsymbolic, ld_args_gc_sections, libvulkan_radeon_ld_args,
+  ],
+  link_depends : [libvulkan_radeon_link_depends,],
   gnu_symbol_visibility : 'hidden',
   install : true,
 )
@@ -176,6 +189,7 @@ if with_symbols_check
     args : [
       '--lib', libvulkan_radeon,
       '--symbols-file', vulkan_icd_symbols,
+      '--ignore-symbol', 'ac_init_shared_llvm_once',
       symbols_check_args,
     ],
     suite : ['amd'],

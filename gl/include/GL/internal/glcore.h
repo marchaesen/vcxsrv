@@ -60,7 +60,7 @@ typedef struct __GLcontextRec __GLcontext;
  * context to the application.
  *
  * Instances of this structure are shared by the driver and the loader.  To
- * maintain binary compatability, new fields \b must be added only to the
+ * maintain binary compatibility, new fields \b must be added only to the
  * end of the structure.
  *
  * \sa _gl_context_modes_create

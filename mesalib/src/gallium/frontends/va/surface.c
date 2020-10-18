@@ -200,7 +200,7 @@ upload_sampler(struct pipe_context *pipe, struct pipe_sampler_view *dst,
    struct pipe_transfer *transfer;
    void *map;
 
-   map = pipe->transfer_map(pipe, dst->texture, 0, PIPE_TRANSFER_WRITE,
+   map = pipe->transfer_map(pipe, dst->texture, 0, PIPE_MAP_WRITE,
                             dst_box, &transfer);
    if (!map)
       return;

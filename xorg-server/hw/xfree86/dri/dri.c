@@ -1736,7 +1736,7 @@ DRISwapContext(int drmFD, void *oldctx, void *newctx)
         return;
     }
 
-    /* usefull for debugging, just print out after n context switches */
+    /* useful for debugging, just print out after n context switches */
     if (!count || !(count % 1)) {
         DRIDrvMsg(pScreen->myNum, X_INFO,
                   "[DRI] Context switch %5d from %p/0x%08x (%d)\n",

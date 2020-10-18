@@ -75,7 +75,7 @@ ProcRRGetProviders (ClientPtr client)
 
     if (pScrPriv->provider)
         total_providers++;
-    xorg_list_for_each_entry(iter, &pScreen->slave_list, slave_head) {
+    xorg_list_for_each_entry(iter, &pScreen->secondary_list, secondary_head) {
         pScrPriv = rrGetScrPriv(iter);
         total_providers += pScrPriv->provider ? 1 : 0;
     }
@@ -111,7 +111,7 @@ ProcRRGetProviders (ClientPtr client)
 
         providers = (RRProvider *)extra;
         ADD_PROVIDER(pScreen);
-        xorg_list_for_each_entry(iter, &pScreen->slave_list, slave_head) {
+        xorg_list_for_each_entry(iter, &pScreen->secondary_list, secondary_head) {
             ADD_PROVIDER(iter);
         }
     }
@@ -174,8 +174,8 @@ ProcRRGetProviderInfo (ClientPtr client)
     if (provider->output_source &&
             provider->output_source != provider->offload_sink)
         rep.nAssociatedProviders++;
-    xorg_list_for_each_entry(provscreen, &pScreen->slave_list, slave_head) {
-        if (provscreen->is_output_slave || provscreen->is_offload_slave)
+    xorg_list_for_each_entry(provscreen, &pScreen->secondary_list, secondary_head) {
+        if (provscreen->is_output_secondary || provscreen->is_offload_secondary)
             rep.nAssociatedProviders++;
     }
 
@@ -227,17 +227,17 @@ ProcRRGetProviderInfo (ClientPtr client)
             swapl(&prov_cap[i]);
         i++;
     }
-    xorg_list_for_each_entry(provscreen, &pScreen->slave_list, slave_head) {
-        if (!provscreen->is_output_slave && !provscreen->is_offload_slave)
+    xorg_list_for_each_entry(provscreen, &pScreen->secondary_list, secondary_head) {
+        if (!provscreen->is_output_secondary && !provscreen->is_offload_secondary)
             continue;
         pScrProvPriv = rrGetScrPriv(provscreen);
         providers[i] = pScrProvPriv->provider->id;
         if (client->swapped)
             swapl(&providers[i]);
         prov_cap[i] = 0;
-        if (provscreen->is_output_slave)
+        if (provscreen->is_output_secondary)
             prov_cap[i] |= RR_Capability_SinkOutput;
-        if (provscreen->is_offload_slave)
+        if (provscreen->is_offload_secondary)
             prov_cap[i] |= RR_Capability_SourceOffload;
         if (client->swapped)
             swapl(&prov_cap[i]);
@@ -488,26 +488,36 @@ RRDeliverProviderEvent(ClientPtr client, WindowPtr pWin, RRProviderPtr provider)
 }
 
 void
-RRProviderAutoConfigGpuScreen(ScreenPtr pScreen, ScreenPtr masterScreen)
+RRProviderAutoConfigGpuScreen(ScreenPtr pScreen, ScreenPtr primaryScreen)
 {
-    rrScrPrivPtr pScrPriv = rrGetScrPriv(pScreen);
-    rrScrPrivPtr masterPriv = rrGetScrPriv(masterScreen);
-    RRProviderPtr provider = pScrPriv->provider;
-    RRProviderPtr master_provider = masterPriv->provider;
+    rrScrPrivPtr pScrPriv;
+    rrScrPrivPtr primaryPriv;
+    RRProviderPtr provider;
+    RRProviderPtr primary_provider;
 
-    if (!provider || !master_provider)
+    /* Bail out if RandR wasn't initialized. */
+    if (!dixPrivateKeyRegistered(rrPrivKey))
+        return;
+
+    pScrPriv = rrGetScrPriv(pScreen);
+    primaryPriv = rrGetScrPriv(primaryScreen);
+
+    provider = pScrPriv->provider;
+    primary_provider = primaryPriv->provider;
+
+    if (!provider || !primary_provider)
         return;
 
     if ((provider->capabilities & RR_Capability_SinkOutput) &&
-        (master_provider->capabilities & RR_Capability_SourceOutput)) {
-        pScrPriv->rrProviderSetOutputSource(pScreen, provider, master_provider);
+        (primary_provider->capabilities & RR_Capability_SourceOutput)) {
+        pScrPriv->rrProviderSetOutputSource(pScreen, provider, primary_provider);
         RRInitPrimeSyncProps(pScreen);
 
-        masterPriv->configChanged = TRUE;
-        RRSetChanged(masterScreen);
+        primaryPriv->configChanged = TRUE;
+        RRSetChanged(primaryScreen);
     }
 
     if ((provider->capabilities & RR_Capability_SourceOffload) &&
-        (master_provider->capabilities & RR_Capability_SinkOffload))
-        pScrPriv->rrProviderSetOffloadSink(pScreen, provider, master_provider);
+        (primary_provider->capabilities & RR_Capability_SinkOffload))
+        pScrPriv->rrProviderSetOffloadSink(pScreen, provider, primary_provider);
 }

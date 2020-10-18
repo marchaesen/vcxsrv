@@ -101,7 +101,7 @@ fbSetVisualTypesAndMasks(int depth, int visuals, int bitsPerRGB,
 
 /*
  * Given a list of formats for a screen, create a list
- * of visuals and depths for the screen which coorespond to
+ * of visuals and depths for the screen which correspond to
  * the set which can be used with this version of fb.
  */
 Bool

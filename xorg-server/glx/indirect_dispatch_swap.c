@@ -88,6 +88,14 @@ bswap_CARD64(const void * src)
     return x.ret;
 }
 
+static _X_UNUSED GLhalfNV
+bswap_FLOAT16(const void * src)
+{
+    union { uint16_t dst; GLhalfNV ret; } x;
+    x.dst = bswap_16(*(uint16_t *) src);
+    return x.ret;
+}
+
 static _X_UNUSED GLdouble
 bswap_FLOAT64(const void * src)
 {

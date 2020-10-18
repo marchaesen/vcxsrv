@@ -1114,7 +1114,7 @@ QuickSortRects(BoxRec rects[], int numRects)
  *
  * Side Effects:
  *      The passed-in ``region'' may be modified.
- *	pOverlap set to TRUE if any retangles overlapped, else FALSE;
+ *	pOverlap set to TRUE if any rectangles overlapped, else FALSE;
  *
  * Strategy:
  *      Step 1. Sort the rectangles into ascending order with primary key y1
@@ -1123,7 +1123,7 @@ QuickSortRects(BoxRec rects[], int numRects)
  *      Step 2. Split the rectangles into the minimum number of proper y-x
  *		banded regions.  This may require horizontally merging
  *		rectangles, and vertically coalescing bands.  With any luck,
- *		this step in an identity tranformation (ala the Box widget),
+ *		this step in an identity transformation (ala the Box widget),
  *		or a coalescing into 1 box (ala Menus).
  *
  *	Step 3. Merge the separate regions down to a single region by calling

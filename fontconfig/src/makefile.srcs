@@ -14,8 +14,8 @@ PUBLIC_FT_FILES = \
 	../fontconfig/fcfreetype.h
 
 fcalias.h fcaliastail.h: makealias.py $(PUBLIC_FILES)
-	python makealias.py . fcalias.h fcaliastail.h $(PUBLIC_FILES)
+	$(PYTHON3) makealias.py . fcalias.h fcaliastail.h $(PUBLIC_FILES)
 
 fcftalias.h fcftaliastail.h: makealias.py $(PUBLIC_FT_FILES)
-	python makealias.py . fcftalias.h fcftaliastail.h $(PUBLIC_FT_FILES)
+	$(PYTHON3) makealias.py . fcftalias.h fcftaliastail.h $(PUBLIC_FT_FILES)
 

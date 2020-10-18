@@ -23,6 +23,7 @@ sdk_HEADERS =		\
 	extension.h	\
 	extinit.h	\
 	extnsionst.h	\
+	fourcc.h	\
 	gc.h		\
 	gcstruct.h	\
 	globals.h	\

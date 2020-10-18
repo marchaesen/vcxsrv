@@ -48,7 +48,98 @@ namespace clover {
          get_kernel_metadata_operands(const ::llvm::Function &f,
                                       const std::string &name) {
             const auto data_node = f.getMetadata(name);
-            return range(data_node->op_begin(), data_node->op_end());
+            if (data_node)
+               return range(data_node->op_begin(), data_node->op_end());
+            else
+               return iterator_range< ::llvm::MDNode::op_iterator>();
+         }
+      }
+
+      ///
+      /// Extract the string metadata node \p name.
+      ///
+      inline std::string
+      get_str_kernel_metadata(const ::llvm::Function &f,
+                          const std::string &name) {
+         auto operands = detail::get_kernel_metadata_operands(f, name);
+         if (operands.size()) {
+            return ::llvm::cast< ::llvm::MDString>(
+               detail::get_kernel_metadata_operands(f, name)[0])
+               ->getString().str();
+         } else {
+            return "";
+         }
+      }
+
+      ///
+      /// Extract the string metadata node \p name.
+      ///
+      inline std::vector<size_t>
+      get_uint_vector_kernel_metadata(const ::llvm::Function &f,
+                          const std::string &name) {
+         auto operands = detail::get_kernel_metadata_operands(f, name);
+         if (operands.size()) {
+            return map([=](const ::llvm::MDOperand& o) {
+               auto value = ::llvm::cast< ::llvm::ConstantAsMetadata>(o)
+                                                               ->getValue();
+               return ::llvm::cast< ::llvm::ConstantInt>(value)
+                                                ->getLimitedValue(UINT_MAX);
+            }, operands);
+         } else {
+            return {};
+         }
+      }
+
+      ///
+      /// Extract the string metadata node \p name.
+      ///
+      inline std::string
+      get_type_kernel_metadata(const ::llvm::Function &f,
+                          const std::string &name) {
+         auto operands = detail::get_kernel_metadata_operands(f, name);
+         if (operands.size()) {
+            auto value = ::llvm::cast< ::llvm::ConstantAsMetadata>(operands[0])
+                                                               ->getValue();
+            auto type = ::llvm::cast< ::llvm::UndefValue>(value)
+                                                               ->getType();
+
+            value = ::llvm::cast< ::llvm::ConstantAsMetadata>(operands[1])
+                                                               ->getValue();
+            bool is_signed = ::llvm::cast< ::llvm::ConstantInt>(value)
+                                                ->getLimitedValue(UINT_MAX);
+
+            std::string data;
+            if (type->isIntOrIntVectorTy()) {
+               if (!is_signed)
+                  data = "unsigned ";
+
+               const auto size = type->getScalarSizeInBits();
+               switch(size) {
+                  case 8:
+                     data += "char";
+                     break;
+                  case 16:
+                     data += "short";
+                     break;
+                  case 32:
+                     data += "int";
+                     break;
+                  case 64:
+                     data += "long";
+                     break;
+               }
+               if (type->isVectorTy())
+                  data += std::to_string(((::llvm::VectorType*)type)->getNumElements());
+
+            } else {
+               ::llvm::raw_string_ostream os { data };
+               type->print(os);
+               os.flush();
+            }
+
+            return data;
+         } else {
+            return "";
          }
       }
 
@@ -57,12 +148,35 @@ namespace clover {
       /// argument given by \p arg.
       ///
       inline std::string
-      get_argument_metadata(const ::llvm::Function &f,
+      get_str_argument_metadata(const ::llvm::Function &f,
                             const ::llvm::Argument &arg,
                             const std::string &name) {
-         return ::llvm::cast< ::llvm::MDString>(
-               detail::get_kernel_metadata_operands(f, name)[arg.getArgNo()])
-            ->getString().str();
+         auto operands = detail::get_kernel_metadata_operands(f, name);
+         if (operands.size() > arg.getArgNo()) {
+            return ::llvm::cast< ::llvm::MDString>(operands[arg.getArgNo()])
+               ->getString().str();
+         } else {
+            return "";
+         }
+      }
+
+      ///
+      /// Extract the int metadata node \p name corresponding to the kernel
+      /// argument given by \p arg.
+      ///
+      inline uint
+      get_uint_argument_metadata(const ::llvm::Function &f,
+                            const ::llvm::Argument &arg,
+                            const std::string &name) {
+         auto operands = detail::get_kernel_metadata_operands(f, name);
+         if (operands.size() >= arg.getArgNo()) {
+            auto meta_arg_value = ::llvm::cast< ::llvm::ConstantAsMetadata>(
+               operands[arg.getArgNo()])->getValue();
+            return ::llvm::cast< ::llvm::ConstantInt>(meta_arg_value)
+               ->getLimitedValue(UINT_MAX);
+         } else {
+            return 0;
+         }
       }
 
       ///

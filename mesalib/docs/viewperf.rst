@@ -185,7 +185,7 @@ If either of the two passes happen to use a software fallback of some
 sort, the Z values of fragments may be different between the two passes.
 This leads to incorrect rendering.
 
-For example, the VMware SVGA gallium driver uses a special semi-fallback
+For example, the VMware SVGA Gallium driver uses a special semi-fallback
 path for drawing with polygon stipple. Since the two passes are rendered
 with different vertex transformation implementations, the rendering
 doesn't appear as expected. Setting the SVGA_FORCE_SWTNL environment

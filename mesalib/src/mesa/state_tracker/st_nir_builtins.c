@@ -43,6 +43,7 @@ st_nir_finish_builtin_shader(struct st_context *st,
    NIR_PASS_V(nir, nir_split_var_copies);
    NIR_PASS_V(nir, nir_lower_var_copies);
    NIR_PASS_V(nir, nir_lower_system_values);
+   NIR_PASS_V(nir, nir_lower_compute_system_values, NULL);
 
    if (nir->options->lower_to_scalar) {
       nir_variable_mode mask =

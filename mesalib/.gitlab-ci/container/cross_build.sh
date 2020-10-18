@@ -7,8 +7,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 # Ephemeral packages (installed for this script and removed again at the end)
 STABLE_EPHEMERAL=" \
-        libpciaccess-dev:$arch \
-        wget \
+        libpciaccess-dev:$arch
         "
 
 dpkg --add-architecture $arch
@@ -21,10 +20,17 @@ apt-get install -y --no-remove \
         libexpat1-dev:$arch \
         libffi-dev:$arch \
         libstdc++6:$arch \
-        libtinfo-dev:$arch
+        libtinfo-dev:$arch \
+        wget
+
+if [[ $arch == "armhf" ]]; then
+        LLVM=llvm-7-dev
+else
+        LLVM=llvm-8-dev
+fi
 
 apt-get install -y --no-remove -t buster-backports \
-        llvm-8-dev:$arch
+        $LLVM:$arch
 
 . .gitlab-ci/create-cross-file.sh $arch
 
@@ -33,16 +39,8 @@ apt-get install -y --no-remove -t buster-backports \
 
 
 # dependencies where we want a specific version
-export LIBDRM_VERSION=libdrm-2.4.100
-
-wget https://dri.freedesktop.org/libdrm/$LIBDRM_VERSION.tar.bz2
-tar -xvf $LIBDRM_VERSION.tar.bz2 && rm $LIBDRM_VERSION.tar.bz2
-cd $LIBDRM_VERSION
-meson --cross-file=/cross_file-${arch}.txt build -D libdir=lib/$(dpkg-architecture -A $arch -qDEB_TARGET_MULTIARCH)
-ninja -C build install
-cd ..
-rm -rf $LIBDRM_VERSION
-
+EXTRA_MESON_ARGS="--cross-file=/cross_file-${arch}.txt -D libdir=lib/$(dpkg-architecture -A $arch -qDEB_TARGET_MULTIARCH)"
+. .gitlab-ci/build-libdrm.sh
 
 apt-get purge -y \
         $STABLE_EPHEMERAL

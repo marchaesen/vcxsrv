@@ -1,36 +1,71 @@
-import sys,os,re,glob
+#!/usr/bin/env python3
 
-SRCDIR=sys.argv[1]
-HEAD=open(sys.argv[2],"w")
-TAIL=open(sys.argv[3],"w")
+import os
+import re
+import sys
+import argparse
+from collections import OrderedDict
 
-#rm -f $HEAD $TAIL
-TAIL.write("#if HAVE_GNUC_ATTRIBUTE\n")
+# cat fontconfig/fontconfig.h | grep '^Fc[^ ]* *(' | sed -e 's/ *(.*$//'
 
-InputFiles=sys.argv[4:]
-Names=[]
-for Input in InputFiles:
-  buffer=open(Input,"r").read()
-  Names.extend(re.findall(r'\n(Fc[^ ]*) *\(',buffer))
+def extract(fname):
+    with open(fname, 'r', encoding='utf-8') as f:
+        for l in f.readlines():
+            l = l.rstrip()
+            m = re.match(r'^(Fc[^ ]*)[\s\w]*\(.*', l)
 
-def SearchCFiles(Name):
-  Files=glob.glob(os.path.join(SRCDIR,"*.c") )
-  for File in Files:
-    buffer=open(File,"r").read()
-    res = re.findall(r'\n%s[ \(].*'%Name,buffer)
-    if res:
-      File=re.sub(r'^.*[\\/]','',File)
-      return "__"+re.sub(r'\.c','__',File)
+            if m and m.group(1) not in ['FcCacheDir', 'FcCacheSubdir']:
+                yield m.group(1)
 
-for Name in Names:
-  if Name=="FcCacheDir" or Name=="FcCacheSubdir":
-    continue
+if __name__=='__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('srcdir')
+    parser.add_argument('head')
+    parser.add_argument('tail')
+    parser.add_argument('headers', nargs='+')
 
-  alias="IA__"+Name
-  HEAD.write("extern __typeof (%s) %s;\n"%(Name,alias))
-  HEAD.write("#define %s %s\n"%(Name,alias))
-  TAIL.write("#ifdef "+SearchCFiles(Name)+"\n")
-  TAIL.write("#undef %s\n"%Name)
-  TAIL.write("extern __typeof (%s) %s;\n"%(Name,Name))
-  TAIL.write("#endif\n")
-TAIL.write("#endif\n")
+    args = parser.parse_args()
+
+    definitions = {}
+
+    for fname in os.listdir(args.srcdir):
+        define_name, ext = os.path.splitext(fname)
+        if ext != '.c':
+            continue
+
+        define_name = '__%s__' % os.path.basename(define_name)
+
+        for definition in extract(os.path.join(args.srcdir, fname)):
+            definitions[definition] = define_name
+
+    declarations = OrderedDict()
+
+    for fname in args.headers:
+        for declaration in extract(fname):
+            try:
+                define_name = definitions[declaration]
+            except KeyError:
+                print ('error: could not locate %s in src/*.c' % declaration)
+                sys.exit(1)
+
+            declarations[declaration] = define_name
+
+    with open(args.head, 'w') as head:
+        with open(args.tail, 'w') as tail:
+            tail.write('#if HAVE_GNUC_ATTRIBUTE\n')
+            last = None
+            for name, define_name in declarations.items():
+                alias = 'IA__%s' % name
+                hattr = 'FC_ATTRIBUTE_VISIBILITY_HIDDEN'
+                head.write('extern __typeof (%s) %s %s;\n' % (name, alias, hattr))
+                head.write('#define %s %s\n' % (name, alias))
+                if define_name != last:
+                    if last is not None:
+                        tail.write('#endif /* %s */\n' % last)
+                    tail.write('#ifdef %s\n' % define_name)
+                    last = define_name
+                tail.write('# undef %s\n' % name)
+                cattr = '__attribute((alias("%s"))) FC_ATTRIBUTE_VISIBILITY_EXPORT' % alias
+                tail.write('extern __typeof (%s) %s %s;\n' % (name, name, cattr))
+            tail.write('#endif /* %s */\n' % last)
+            tail.write('#endif /* HAVE_GNUC_ATTRIBUTE */\n')

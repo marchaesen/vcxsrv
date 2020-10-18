@@ -13,7 +13,6 @@ KDRIVE_XV_SOURCES =	\
 endif
 
 libkdrive_la_SOURCES =	\
-	fourcc.h	\
 	kcmap.c		\
 	kdrive.c	\
 	kdrive.h	\

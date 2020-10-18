@@ -731,7 +731,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
 
     if (!strcmp(argv[i], "-fakemouse2")) {
         if (i == argc - 1) {
-            FatalError("-fakemouse2 must be followed by a modifer list\n");
+            FatalError("-fakemouse2 must be followed by a modifier list\n");
         }
         if (!strcasecmp(argv[i + 1], "none") || !strcmp(argv[i + 1], ""))
             darwinFakeMouse2Mask = 0;
@@ -744,7 +744,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
 
     if (!strcmp(argv[i], "-fakemouse3")) {
         if (i == argc - 1) {
-            FatalError("-fakemouse3 must be followed by a modifer list\n");
+            FatalError("-fakemouse3 must be followed by a modifier list\n");
         }
         if (!strcasecmp(argv[i + 1], "none") || !strcmp(argv[i + 1], ""))
             darwinFakeMouse3Mask = 0;

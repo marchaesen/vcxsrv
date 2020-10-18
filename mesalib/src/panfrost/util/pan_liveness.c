@@ -120,11 +120,13 @@ pan_compute_liveness(
                         _mesa_hash_pointer,
                         _mesa_key_pointer_equal);
 
-        /* Allocate */
+        /* Free any previous liveness, and allocate */
+
+        pan_free_liveness(blocks);
 
         list_for_each_entry(pan_block, block, blocks, link) {
-                block->live_in = rzalloc_array(NULL, uint16_t, temp_count);
-                block->live_out = rzalloc_array(NULL, uint16_t, temp_count);
+                block->live_in = rzalloc_array(block, uint16_t, temp_count);
+                block->live_out = rzalloc_array(block, uint16_t, temp_count);
         }
 
         /* Initialize the work list with the exit block */

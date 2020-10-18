@@ -174,6 +174,7 @@ struct loader_dri3_drawable {
     */
    mtx_t mtx;
    cnd_t event_cnd;
+   unsigned last_special_event_sequence;
    bool has_event_waiter;
 };
 
@@ -204,6 +205,7 @@ int64_t
 loader_dri3_swap_buffers_msc(struct loader_dri3_drawable *draw,
                              int64_t target_msc, int64_t divisor,
                              int64_t remainder, unsigned flush_flags,
+                             const int *rects, int n_rects,
                              bool force_copy);
 
 int

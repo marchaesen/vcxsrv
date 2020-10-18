@@ -51,7 +51,7 @@ Status XFetchName (
 	}
     if ( (actual_type == XA_STRING) &&  (actual_format == 8) ) {
 
-	/* The data returned by XGetWindowProperty is guarranteed to
+	/* The data returned by XGetWindowProperty is guaranteed to
 	contain one extra byte that is null terminated to make retrieveing
 	string properties easy. */
 
@@ -82,7 +82,7 @@ Status XGetIconName (
 	}
     if ( (actual_type == XA_STRING) &&  (actual_format == 8) ) {
 
-	/* The data returned by XGetWindowProperty is guarranteed to
+	/* The data returned by XGetWindowProperty is guaranteed to
 	contain one extra byte that is null terminated to make retrieveing
 	string properties easy. */
 

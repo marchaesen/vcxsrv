@@ -122,7 +122,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
          lower_offset_arrays(ir);
       do_mat_op_to_vec(ir);
 
-      if (stage == MESA_SHADER_FRAGMENT)
+      if (stage == MESA_SHADER_FRAGMENT && pscreen->get_param(pscreen, PIPE_CAP_FBFETCH))
          lower_blend_equation_advanced(
             shader, ctx->Extensions.KHR_blend_equation_advanced_coherent);
 

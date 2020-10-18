@@ -352,8 +352,8 @@ NineDevice9_ctor( struct NineDevice9 *This,
 
         u_box_1d(0, 16, &box);
         data = This->context.pipe->transfer_map(This->context.pipe, This->dummy_vbo, 0,
-                                        PIPE_TRANSFER_WRITE |
-                                        PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE,
+                                        PIPE_MAP_WRITE |
+                                        PIPE_MAP_DISCARD_WHOLE_RESOURCE,
                                         &box, &transfer);
         assert(data);
         assert(transfer);
@@ -787,8 +787,8 @@ NineDevice9_SetCursorProperties( struct NineDevice9 *This,
     u_box_origin_2d(This->cursor.w, This->cursor.h, &box);
 
     ptr = pipe->transfer_map(pipe, This->cursor.image, 0,
-                             PIPE_TRANSFER_WRITE |
-                             PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE,
+                             PIPE_MAP_WRITE |
+                             PIPE_MAP_DISCARD_WHOLE_RESOURCE,
                              &box, &transfer);
     if (!ptr)
         ret_err("Failed to update cursor image.\n", D3DERR_DRIVERINTERNALERROR);
@@ -800,26 +800,26 @@ NineDevice9_SetCursorProperties( struct NineDevice9 *This,
     {
         D3DLOCKED_RECT lock;
         HRESULT hr;
-        const struct util_format_description *sfmt =
-            util_format_description(surf->base.info.format);
-        assert(sfmt);
+        const struct util_format_unpack_description *unpack =
+            util_format_unpack_description(surf->base.info.format);
+        assert(unpack);
 
         hr = NineSurface9_LockRect(surf, &lock, NULL, D3DLOCK_READONLY);
         if (FAILED(hr))
             ret_err("Failed to map cursor source image.\n",
                     D3DERR_DRIVERINTERNALERROR);
 
-        sfmt->unpack_rgba_8unorm(ptr, transfer->stride,
-                                 lock.pBits, lock.Pitch,
-                                 This->cursor.w, This->cursor.h);
+        unpack->unpack_rgba_8unorm(ptr, transfer->stride,
+                                   lock.pBits, lock.Pitch,
+                                   This->cursor.w, This->cursor.h);
 
         if (hw_cursor) {
             void *data = lock.pBits;
             /* SetCursor assumes 32x32 argb with pitch 128 */
             if (lock.Pitch != 128) {
-                sfmt->unpack_rgba_8unorm(This->cursor.hw_upload_temp, 128,
-                                         lock.pBits, lock.Pitch,
-                                         32, 32);
+                unpack->unpack_rgba_8unorm(This->cursor.hw_upload_temp, 128,
+                                           lock.pBits, lock.Pitch,
+                                           32, 32);
                 data = This->cursor.hw_upload_temp;
             }
             hw_cursor = ID3DPresent_SetCursor(This->swapchains[0]->present,
@@ -3192,7 +3192,7 @@ NineDevice9_ProcessVertices( struct NineDevice9 *This,
     pipe_sw->stream_output_target_destroy(pipe_sw, target);
 
     u_box_1d(0, VertexCount * so.stride[0] * 4, &box);
-    map = pipe_sw->transfer_map(pipe_sw, resource, 0, PIPE_TRANSFER_READ, &box,
+    map = pipe_sw->transfer_map(pipe_sw, resource, 0, PIPE_MAP_READ, &box,
                                 &transfer);
     if (!map) {
         hr = D3DERR_DRIVERINTERNALERROR;

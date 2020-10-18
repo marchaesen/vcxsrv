@@ -55,7 +55,7 @@ load_color_map_texture(struct gl_context *ctx, struct pipe_resource *pt)
    uint i, j;
 
    dest = (uint *) pipe_transfer_map(pipe,
-                                     pt, 0, 0, PIPE_TRANSFER_WRITE,
+                                     pt, 0, 0, PIPE_MAP_WRITE,
                                      0, 0, texSize, texSize, &transfer);
 
    /* Pack four 1D maps into a 2D texture:

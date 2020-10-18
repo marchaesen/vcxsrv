@@ -46,12 +46,13 @@ bool ir3_nir_lower_tex_prefetch(nir_shader *shader);
 
 void ir3_nir_lower_to_explicit_output(nir_shader *shader,
 		struct ir3_shader_variant *v, unsigned topology);
-void ir3_nir_lower_to_explicit_input(nir_shader *shader);
+void ir3_nir_lower_to_explicit_input(nir_shader *shader, struct ir3_compiler *compiler);
 void ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader_variant *v, unsigned topology);
 void ir3_nir_lower_tess_eval(nir_shader *shader, unsigned topology);
 void ir3_nir_lower_gs(nir_shader *shader);
 
 const nir_shader_compiler_options * ir3_get_compiler_options(struct ir3_compiler *compiler);
+void ir3_optimize_loop(nir_shader *s);
 void ir3_finalize_nir(struct ir3_compiler *compiler, nir_shader *s);
 void ir3_nir_post_finalize(struct ir3_compiler *compiler, nir_shader *s);
 void ir3_nir_lower_variant(struct ir3_shader_variant *so, nir_shader *s);

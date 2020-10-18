@@ -139,7 +139,7 @@ void vid_dec_FillOutput(vid_dec_PrivateType *priv, struct pipe_video_buffer *buf
          struct pipe_transfer *transfer;
          uint8_t *map, *dst;
          map = priv->pipe->transfer_map(priv->pipe, views[i]->texture, 0,
-                  PIPE_TRANSFER_READ, &box, &transfer);
+                  PIPE_MAP_READ, &box, &transfer);
          if (!map)
             return;
 

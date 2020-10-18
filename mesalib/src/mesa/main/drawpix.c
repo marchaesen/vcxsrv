@@ -217,7 +217,17 @@ _mesa_CopyPixels( GLint srcx, GLint srcy, GLsizei width, GLsizei height,
    if (type != GL_COLOR &&
        type != GL_DEPTH &&
        type != GL_STENCIL &&
-       type != GL_DEPTH_STENCIL) {
+       type != GL_DEPTH_STENCIL &&
+       type != GL_DEPTH_STENCIL_TO_RGBA_NV &&
+       type != GL_DEPTH_STENCIL_TO_BGRA_NV) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glCopyPixels(type=%s)",
+                  _mesa_enum_to_string(type));
+      return;
+   }
+
+   /* Return GL_INVALID_ENUM if the relevant extension is not enabled */
+   if ((type == GL_DEPTH_STENCIL_TO_RGBA_NV || type == GL_DEPTH_STENCIL_TO_BGRA_NV) &&
+       !ctx->Extensions.NV_copy_depth_to_color) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glCopyPixels(type=%s)",
                   _mesa_enum_to_string(type));
       return;

@@ -529,7 +529,7 @@ PARAMETERS:
 int	- New software interrupt to prepare for
 
 REMARKS:
-This function is used to set up the emulator state to exceute a software
+This function is used to set up the emulator state to execute a software
 interrupt. This can be used by the user application code to allow an
 interrupt to be hooked, examined and then reflected back to the emulator
 so that the code in the emulator will continue processing the software

@@ -39,6 +39,13 @@ env.CodeGenerate(
     command = python_cmd + ' $SCRIPT $SOURCE $TARGET'
 )
 
+env.CodeGenerate(
+    target = 'spirv/vtn_generator_ids.h',
+    script = 'spirv/vtn_generator_ids_h.py',
+    source = ['spirv/spir-v.xml'],
+    command = python_cmd + ' $SCRIPT $SOURCE $TARGET'
+)
+
 # parse Makefile.sources
 source_lists = env.ParseSourceList('Makefile.sources')
 

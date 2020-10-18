@@ -129,6 +129,16 @@ struct u_transfer_helper * u_transfer_helper_create(const struct u_transfer_vtbl
 
 void u_transfer_helper_destroy(struct u_transfer_helper *helper);
 
+void *
+u_transfer_helper_deinterleave_transfer_map(struct pipe_context *pctx,
+                                            struct pipe_resource *prsc,
+                                            unsigned level, unsigned usage,
+                                            const struct pipe_box *box,
+                                            struct pipe_transfer **pptrans);
+
+void
+u_transfer_helper_deinterleave_transfer_unmap(struct pipe_context *pctx,
+                                              struct pipe_transfer *ptrans);
 #ifdef __cplusplus
 } // extern "C" {
 #endif

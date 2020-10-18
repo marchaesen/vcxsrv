@@ -166,6 +166,12 @@ static void noop_set_constant_buffer(struct pipe_context *ctx,
 {
 }
 
+static void noop_set_inlinable_constants(struct pipe_context *ctx,
+                                         enum pipe_shader_type shader,
+                                         uint num_values, uint32_t *values)
+{
+}
+
 
 static void noop_sampler_view_destroy(struct pipe_context *ctx,
                                       struct pipe_sampler_view *state)
@@ -296,6 +302,7 @@ void noop_init_state_functions(struct pipe_context *ctx)
    ctx->set_blend_color = noop_set_blend_color;
    ctx->set_clip_state = noop_set_clip_state;
    ctx->set_constant_buffer = noop_set_constant_buffer;
+   ctx->set_inlinable_constants = noop_set_inlinable_constants;
    ctx->set_sampler_views = noop_set_sampler_views;
    ctx->set_framebuffer_state = noop_set_framebuffer_state;
    ctx->set_polygon_stipple = noop_set_polygon_stipple;

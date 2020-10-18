@@ -269,7 +269,7 @@ cpu-state-varible M.x86.mode. There are several potential states:
 	gs segment override
 	ss segment override
 
-	ds/ss select (in absense of override)
+	ds/ss select (in absence of override)
 
 Each of the above 7 items are handled with a bit in the mode field.
 ****************************************************************************/

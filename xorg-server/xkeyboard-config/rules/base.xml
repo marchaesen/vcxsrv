@@ -1446,6 +1446,12 @@
         </variant>
         <variant>
           <configItem>
+            <name>symbolic</name>
+            <description>English (US, Symbolic)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>rus</name>
             <!-- Keyboard indicator for Russian layouts -->
             <shortDescription>ru</shortDescription>
@@ -2189,17 +2195,6 @@
         </variant>
         <variant>
           <configItem>
-            <name>tel-kagapa</name>
-            <!-- Keyboard indicator for Telugu layouts -->
-            <shortDescription>te</shortDescription>
-            <description>Telugu (KaGaPa, phonetic)</description>
-            <languageList>
-              <iso639Id>tel</iso639Id>
-            </languageList>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
             <name>urd-phonetic</name>
             <!-- Keyboard indicator for Urdu layouts -->
             <shortDescription>ur</shortDescription>
@@ -2300,21 +2295,18 @@
         <variant>
           <configItem>
             <name>iipa</name>
-            <shortDescription>iipa</shortDescription>
-            <description>Indic IPA (IIPA)</description>
+            <description>Indic (phonetic, IPA)</description>
             <languageList>
-              <iso639Id>eng</iso639Id>
+              <iso639Id>inc</iso639Id>
             </languageList>
           </configItem>
         </variant>
-        
         <variant>
           <configItem>
             <name>marathi</name>
-            <shortDescription>ins</shortDescription>
-            <description>मराठी इन्स्क्रिप्ट</description>
+            <description>Marathi (enhanced Inscript)</description>
             <languageList>
-              <iso639Id>eng</iso639Id>
+              <iso639Id>mar</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -3627,8 +3619,26 @@
         </variant>
         <variant>
           <configItem>
+            <name>e1</name>
+            <description>German (E1)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>e2</name>
+            <description>German (E2)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>T3</name>
             <description>German (T3)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>us</name>
+            <description>German (US)</description>
           </configItem>
         </variant>
         <variant>
@@ -6377,7 +6387,7 @@
        </variant>
       </variantList>
     </layout>
-    <layout> 
+    <layout>
       <configItem>
         <name>jv</name>
         <shortDescription>jv</shortDescription>
@@ -6640,6 +6650,19 @@
         <configItem>
           <name>grp:lctrl_lwin_toggle</name>
           <description>Left Ctrl+Left Win</description>
+        </configItem>
+      </option>
+    </group>
+    <group allowMultipleSelection="true">
+      <!-- The key combination used to choose the 2nd level of symbols -->
+      <configItem>
+        <name>lv2</name>
+        <description>Key to choose the 2nd level</description>
+      </configItem>
+      <option>
+        <configItem>
+          <name>lv2:lsgt_switch</name>
+          <description>The "&lt; &gt;" key</description>
         </configItem>
       </option>
     </group>

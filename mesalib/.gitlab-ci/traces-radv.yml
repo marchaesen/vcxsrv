@@ -1,0 +1,23 @@
+traces-db:
+  download-url: "https://minio-packet.freedesktop.org/mesa-tracie-public/"
+
+traces:
+  - path: KhronosGroup-Vulkan-Tools/amd/polaris10/vkcube.gfxr
+    expectations:
+      - device: vk-amd-polaris10
+        checksum: 917cbbf4f09dd62ea26d247a1c70c16e
+      - device: vk-amd-raven
+        checksum: 45f9a89c7eabdaee5bc52ad4f45e598f
+  - path: LunarG-VulkanSamples/amd/polaris10/Hologram:-w:640:-h:480.gfxr
+    expectations:
+      - device: vk-amd-polaris10
+        checksum: cfde36cd7377068a739c30e3fd171d08
+      - device: vk-amd-raven
+        checksum: cfde36cd7377068a739c30e3fd171d08
+  - path: Wicked-Engine/Tests:Cloth_Physics_Test.trace-dxgi
+    expectations:
+      - device: vk-amd-polaris10
+        checksum: 6b6d27df609b8d086cc3335e6d103581
+      - device: vk-amd-raven
+        checksum: f013465b97fd8ba0217bcde74c262384
+

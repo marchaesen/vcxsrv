@@ -131,7 +131,7 @@ xf86BusConfig(void)
     /*
      * 2. If no Screens were found, call each drivers probe function with
      *    ignorePrimary = TRUE, to ensure that we do actually get a
-     *    Screen if there is atleast one supported video card.
+     *    Screen if there is at least one supported video card.
      */
     if (xf86NumScreens == 0) {
         xf86ProbeIgnorePrimary = TRUE;
@@ -403,7 +403,7 @@ xf86RemoveEntityFromScreen(ScrnInfoPtr pScrn, int entityIndex)
 
 /*
  * xf86ClearEntityListForScreen() - called when a screen is deleted
- * to mark it's entities unused. Called by xf86DeleteScreen().
+ * to mark its entities unused. Called by xf86DeleteScreen().
  */
 void
 xf86ClearEntityListForScreen(ScrnInfoPtr pScrn)

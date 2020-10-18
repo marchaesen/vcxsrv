@@ -38,6 +38,8 @@
 
 #include "c11/threads.h"
 
+struct util_idalloc;
+
 /**
  * Magic GLuint object name that gets stored outside of the struct hash_table.
  *
@@ -103,6 +105,9 @@ struct _mesa_HashTable {
    GLuint MaxKey;                        /**< highest key inserted so far */
    mtx_t Mutex;                          /**< mutual exclusion lock */
    GLboolean InDeleteAll;                /**< Debug check */
+   /* Used when name reuse is enabled */
+   struct util_idalloc* id_alloc;
+
    /** Value that would be in the table for DELETED_KEY_VALUE. */
    void *deleted_key_data;
 };
@@ -113,7 +118,8 @@ extern void _mesa_DeleteHashTable(struct _mesa_HashTable *table);
 
 extern void *_mesa_HashLookup(struct _mesa_HashTable *table, GLuint key);
 
-extern void _mesa_HashInsert(struct _mesa_HashTable *table, GLuint key, void *data);
+extern void _mesa_HashInsert(struct _mesa_HashTable *table, GLuint key, void *data,
+                             GLboolean isGenName);
 
 extern void _mesa_HashRemove(struct _mesa_HashTable *table, GLuint key);
 
@@ -149,7 +155,7 @@ _mesa_HashUnlockMutex(struct _mesa_HashTable *table)
 extern void *_mesa_HashLookupLocked(struct _mesa_HashTable *table, GLuint key);
 
 extern void _mesa_HashInsertLocked(struct _mesa_HashTable *table,
-                                   GLuint key, void *data);
+                                   GLuint key, void *data, GLboolean isGenName);
 
 extern void _mesa_HashRemoveLocked(struct _mesa_HashTable *table, GLuint key);
 
@@ -172,10 +178,15 @@ extern void _mesa_HashPrint(const struct _mesa_HashTable *table);
 
 extern GLuint _mesa_HashFindFreeKeyBlock(struct _mesa_HashTable *table, GLuint numKeys);
 
+extern bool
+_mesa_HashFindFreeKeys(struct _mesa_HashTable *table, GLuint* keys, GLuint numKeys);
+
 extern GLuint
 _mesa_HashNumEntries(const struct _mesa_HashTable *table);
 
 extern void _mesa_test_hash_functions(void);
+
+extern void _mesa_HashEnableNameReuse(struct _mesa_HashTable *table);
 
 
 #endif

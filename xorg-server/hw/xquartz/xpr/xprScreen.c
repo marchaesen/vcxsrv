@@ -470,7 +470,7 @@ xprSetupScreen(int index, ScreenPtr pScreen)
 
 /*
  * xprUpdateScreen
- *  Update screen after configuation change.
+ *  Update screen after configuration change.
  */
 static void
 xprUpdateScreen(ScreenPtr pScreen)

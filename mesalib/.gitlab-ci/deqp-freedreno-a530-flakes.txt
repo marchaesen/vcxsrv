@@ -1,0 +1,23 @@
+# Note: skips lists for CI are just a list of lines that, when
+# non-zero-length and not starting with '#', will regex match to
+# delete lines from the test list.  Be careful.
+
+# Skip the perf/stress tests to keep runtime manageable
+dEQP-GLES[0-9]*.performance.*
+dEQP-GLES[0-9]*.stress.*
+
+# These are really slow on tiling architectures (including llvmpipe).
+dEQP-GLES[0-9]*.functional.flush_finish.*
+
+# unstable results (probably related to the iommu faults).
+dEQP-GLES3.functional.texture.filtering.3d.*
+dEQP-GLES3.functional.texture.vertex.3d.filtering.*
+dEQP-GLES3.functional.fbo.invalidate.sub.unbind_blit_msaa_stencil
+dEQP-GLES3.functional.fbo.invalidate.whole.unbind_blit_msaa_stencil
+dEQP-GLES31.functional.ubo.2_level_struct_array.single_buffer.packed_instance_array_fragment
+
+# These are in the xfails list (they usually do), but the random
+# behavior occasionally results in UnexpectedPass results.
+dEQP-GLES31.functional.separate_shader.random.99
+dEQP-GLES31.functional.separate_shader.random.69
+dEQP-GLES31.functional.separate_shader.random.119

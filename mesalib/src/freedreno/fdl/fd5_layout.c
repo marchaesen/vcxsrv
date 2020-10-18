@@ -29,29 +29,12 @@
 
 #include "freedreno_layout.h"
 
-/* indexed by cpp: */
-static const struct {
-	unsigned pitchalign;
-	unsigned heightalign;
-} tile_alignment[] = {
-	[1]  = { 128, 32 },
-	[2]  = { 128, 16 },
-	[3]  = { 128, 16 },
-	[4]  = {  64, 16 },
-	[8]  = {  64, 16 },
-	[12] = {  64, 16 },
-	[16] = {  64, 16 },
-};
-
 void
 fdl5_layout(struct fdl_layout *layout,
 		enum pipe_format format, uint32_t nr_samples,
 		uint32_t width0, uint32_t height0, uint32_t depth0,
 		uint32_t mip_levels, uint32_t array_size, bool is_3d)
 {
-	const struct util_format_description *format_desc =
-		util_format_description(format);
-
 	assert(nr_samples > 0);
 	layout->width0 = width0;
 	layout->height0 = height0;
@@ -65,30 +48,27 @@ fdl5_layout(struct fdl_layout *layout,
 	layout->nr_samples = nr_samples;
 	layout->layer_first = !is_3d;
 
-	uint32_t pitchalign;
-	uint32_t heightalign;
-	uint32_t width = width0;
-	uint32_t height = height0;
-	uint32_t depth = depth0;
+	uint32_t heightalign = layout->cpp == 1 ? 32 : 16;
 	/* in layer_first layout, the level (slice) contains just one
 	 * layer (since in fact the layer contains the slices)
 	 */
 	uint32_t layers_in_level = layout->layer_first ? 1 : array_size;
 
-	heightalign = tile_alignment[layout->cpp].heightalign;
+	/* use 128 pixel alignment for cpp=1 and cpp=2 */
+	if (layout->cpp < 4 && layout->tile_mode)
+		fdl_set_pitchalign(layout, fdl_cpp_shift(layout) + 7);
+	else
+		fdl_set_pitchalign(layout, fdl_cpp_shift(layout) + 6);
 
 	for (uint32_t level = 0; level < mip_levels; level++) {
 		struct fdl_slice *slice = &layout->slices[level];
 		uint32_t tile_mode = fdl_tile_mode(layout, level);
-		uint32_t aligned_height = height;
-		uint32_t blocks;
+		uint32_t pitch = fdl_pitch(layout, level);
+		uint32_t nblocksy = util_format_get_nblocksy(format, u_minify(height0, level));
 
 		if (tile_mode) {
-			pitchalign = tile_alignment[layout->cpp].pitchalign;
-			aligned_height = align(aligned_height, heightalign);
+			nblocksy = align(nblocksy, heightalign);
 		} else {
-			pitchalign = 64;
-
 			/* The blits used for mem<->gmem work at a granularity of
 			 * 32x32, which can cause faults due to over-fetch on the
 			 * last level.  The simple solution is to over-allocate a
@@ -97,20 +77,10 @@ fdl5_layout(struct fdl_layout *layout,
 			 * may not be:
 			 */
 			if (level == mip_levels - 1)
-				aligned_height = align(aligned_height, 32);
+				nblocksy = align(nblocksy, 32);
 		}
 
-		unsigned pitch_pixels;
-		if (format_desc->layout == UTIL_FORMAT_LAYOUT_ASTC)
-			pitch_pixels =
-				util_align_npot(width, pitchalign * util_format_get_blockwidth(format));
-		else
-			pitch_pixels = align(width, pitchalign);
-
 		slice->offset = layout->size;
-		blocks = util_format_get_nblocks(format, pitch_pixels, aligned_height);
-		slice->pitch = util_format_get_nblocksx(format, pitch_pixels) *
-			layout->cpp;
 
 		const int alignment = is_3d ? 4096 : 1;
 
@@ -123,17 +93,13 @@ fdl5_layout(struct fdl_layout *layout,
 		if (is_3d && (
 					level == 1 ||
 					(level > 1 && layout->slices[level - 1].size0 > 0xf000)))
-			slice->size0 = align(blocks * layout->cpp, alignment);
+			slice->size0 = align(nblocksy * pitch, alignment);
 		else if (level == 0 || layout->layer_first || alignment == 1)
-			slice->size0 = align(blocks * layout->cpp, alignment);
+			slice->size0 = align(nblocksy * pitch, alignment);
 		else
 			slice->size0 = layout->slices[level - 1].size0;
 
-		layout->size += slice->size0 * depth * layers_in_level;
-
-		width = u_minify(width, 1);
-		height = u_minify(height, 1);
-		depth = u_minify(depth, 1);
+		layout->size += slice->size0 * u_minify(depth0, level) * layers_in_level;
 	}
 }
 

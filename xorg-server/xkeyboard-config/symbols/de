@@ -97,9 +97,125 @@ xkb_symbols "deadacute" {
     key <BKSL>	{ [numbersign, apostrophe,   rightsinglequotemark,   dead_grave ] };
 };
 
+partial alphanumeric_keys
+xkb_symbols "e1" {
+    // German extended layout E1 based on DIN 2137-1:2018-12
+    // Designed for a 105-key keyboard
+    // https://de.wikipedia.org/wiki/Tastaturbelegung
+
+    name[Group1]="German (E1)";
+
+    // first row
+    key.type[Group1] = "EIGHT_LEVEL";
+    key <TLDE> { [ dead_circumflex,     degree,             multiply, NoSymbol,             NoSymbol,             NoSymbol, NoSymbol, NoSymbol ] };
+    key <AE01> { [               1,     exclam, rightsinglequotemark, NoSymbol,           onequarter,                U25CA, NoSymbol, NoSymbol ] };
+    key <AE02> { [               2,   quotedbl,          twosuperior, NoSymbol,              onehalf,                U00A6, NoSymbol, NoSymbol ] };
+    key <AE03> { [               3,    section,        threesuperior, NoSymbol,        threequarters,                U00B6, NoSymbol, NoSymbol ] };
+    key <AE04> { [               4,     dollar,               emdash, NoSymbol,             currency,                U2133, NoSymbol, NoSymbol ] };
+    key <AE05> { [               5,    percent,           exclamdown, NoSymbol,                U2030,                U20B0, NoSymbol, NoSymbol ] };
+    key <AE06> { [               6,  ampersand,         questiondown, NoSymbol,                U2044,                U204A, NoSymbol, NoSymbol ] };
+    key <AE07> { [               7,      slash,            braceleft, NoSymbol,                U2300,                U2116, NoSymbol, NoSymbol ] };
+    key <AE08> { [               8,  parenleft,          bracketleft, NoSymbol,                U27E8,                U27EA, NoSymbol, NoSymbol ] };
+    key <AE09> { [               9, parenright,         bracketright, NoSymbol,                U27E9,                U27EB, NoSymbol, NoSymbol ] };
+    key <AE10> { [               0,      equal,           braceright, NoSymbol,             division,                U2205, NoSymbol, NoSymbol ] };
+    key <AE11> { [          ssharp,   question,            backslash, NoSymbol,             notequal,                U00AC, NoSymbol, NoSymbol ] };
+    key <AE12> { [      dead_acute, dead_grave,        dead_abovedot, NoSymbol,             sterling,                U035C, NoSymbol, NoSymbol ] };
+
+    // second row
+    key.type[Group1] = "EIGHT_LEVEL_ALPHABETIC";
+    key <AD01> { [               q,          Q,                   at, NoSymbol,            masculine,                U2642, NoSymbol, NoSymbol ] };
+    key <AD02> { [               w,          W,           dead_caron, NoSymbol,          ordfeminine,                U2640, NoSymbol, NoSymbol ] };
+    key <AD03> { [               e,          E,             EuroSign, NoSymbol,                schwa,                SCHWA, NoSymbol, NoSymbol ] };
+    key <AD04> { [               r,          R,     dead_doubleacute, NoSymbol,            trademark,           registered, NoSymbol, NoSymbol ] };
+    key <AD05> { [               t,          T,           dead_tilde, NoSymbol,                thorn,                THORN, NoSymbol, NoSymbol ] };
+    key <AD06> { [               z,          Z,       dead_diaeresis, NoSymbol,                U0292,                U01B7, NoSymbol, NoSymbol ] };
+    key <AD07> { [               u,          U,           dead_breve, NoSymbol,           rightarrow,            leftarrow, NoSymbol, NoSymbol ] };
+    key <AD08> { [               i,          I,          dead_macron, NoSymbol,             idotless,                U26A5, NoSymbol, NoSymbol ] };
+    key <AD09> { [               o,          O,       dead_abovering, NoSymbol,               oslash,               Oslash, NoSymbol, NoSymbol ] };
+    key <AD10> { [               p,          P,            dead_hook, NoSymbol,            downarrow,              uparrow, NoSymbol, NoSymbol ] };
+    key <AD11> { [      udiaeresis, Udiaeresis,            dead_horn, NoSymbol,                U2198,                U2197, NoSymbol, NoSymbol ] };
+    key.type[Group1] = "EIGHT_LEVEL";
+    key <AD12> { [            plus,   asterisk,           asciitilde, NoSymbol,            plusminus,                U2052, NoSymbol, NoSymbol ] };
+
+    // third row
+    key.type[Group1] = "EIGHT_LEVEL_ALPHABETIC";
+    // Per DIN 2137-1:2018-12, p. 11-12, (Alt)Gr+a can either invoke
+    // a selection possibility for emojis or special characters, or
+    // output the U+263A smiley.
+    key <AC01> { [               a,          A,            Multi_key, NoSymbol,             NoSymbol,             NoSymbol, NoSymbol, NoSymbol ] };
+    key <AC02> { [               s,          S,              seconds, NoSymbol,                U017F,                U2211, NoSymbol, NoSymbol ] };
+    key <AC03> { [               d,          D,              minutes, NoSymbol,                  eth,                  ETH, NoSymbol, NoSymbol ] };
+    key <AC04> { [               f,          F,     ISO_Level5_Latch, NoSymbol,             NoSymbol,             NoSymbol, NoSymbol, NoSymbol ] };
+    key <AC05> { [               g,          G,                U1E9E, NoSymbol,                U02BF,                U261B, NoSymbol, NoSymbol ] };
+    key <AC06> { [               h,          H,     dead_belowmacron, NoSymbol,                U02BE,                U261A, NoSymbol, NoSymbol ] };
+    key <AC07> { [               j,          J,         dead_cedilla, NoSymbol,                U02B9,                U02BA, NoSymbol, NoSymbol ] };
+    key <AC08> { [               k,          K,      dead_belowcomma, NoSymbol,             NoSymbol,             NoSymbol, NoSymbol, NoSymbol ] };
+    key <AC09> { [               l,          L,          dead_ogonek, NoSymbol,              lstroke,              Lstroke, NoSymbol, NoSymbol ] };
+    key <AC10> { [      odiaeresis, Odiaeresis,        dead_belowdot, NoSymbol,                   oe,                   OE, NoSymbol, NoSymbol ] };
+    key <AC11> { [      adiaeresis, Adiaeresis,          dead_stroke, NoSymbol,                   ae,                   AE, NoSymbol, NoSymbol ] };
+    key.type[Group1] = "EIGHT_LEVEL";
+    key <BKSL> { [      numbersign, apostrophe,                U2212, NoSymbol,                U2020,                U2021, NoSymbol, NoSymbol ] };
+
+    // fourth row
+    key.type[Group1] = "EIGHT_LEVEL_ALPHABETIC";
+    key <AB01> { [               y,          Y,                U203A, NoSymbol,                U2423,                U23D1, NoSymbol, NoSymbol ] };
+    key <AB02> { [               x,          X,       guillemotright, NoSymbol,   doublelowquotemark,   singlelowquotemark, NoSymbol, NoSymbol ] };
+    key <AB03> { [               c,          C,                U202F, NoSymbol,                 cent,            copyright, NoSymbol, NoSymbol ] };
+    key <AB04> { [               v,          V,        guillemotleft, NoSymbol,  leftdoublequotemark,  leftsinglequotemark, NoSymbol, NoSymbol ] };
+    key <AB05> { [               b,          B,                U2039, NoSymbol, rightdoublequotemark, rightsinglequotemark, NoSymbol, NoSymbol ] };
+    key <AB06> { [               n,          N,               endash, NoSymbol,                  eng,                  ENG, NoSymbol, NoSymbol ] };
+    // Per DIN 2137-1:2018-12, p. 12, U+2217 should be replaced by the
+    // 'middle asterisk' character as soon as it has been added to
+    // Unicode (see Unicode proposal L2/17-152).
+    key <AB07> { [               m,          M,                   mu, NoSymbol,                U200C,                U2217, NoSymbol, NoSymbol ] };
+    key.type[Group1] = "EIGHT_LEVEL";
+    key <AB08> { [           comma,  semicolon,                U2011, NoSymbol,                U02BB,                U2661, NoSymbol, NoSymbol ] };
+    key <AB09> { [          period,      colon,       periodcentered, NoSymbol,             ellipsis,                U2713, NoSymbol, NoSymbol ] };
+    key <AB10> { [           minus, underscore,               hyphen, NoSymbol,                U2022,                U25E6, NoSymbol, NoSymbol ] };
+
+    // fifth row
+    key.type[Group1] = "EIGHT_LEVEL";
+    key <SPCE> { [           space,      space,         nobreakspace, NoSymbol,                U200A,                U2009, NoSymbol, NoSymbol ] };
+    key.type[Group1] = "ONE_LEVEL";
+    key <LFSH> { [ Shift_L ] };
+    key <RTSH> { [ Shift_R ] };
+    key <RALT> { [ ISO_Level3_Shift ] };
+
+    // key <LSGT> exists only on the 105-key keyboard
+    key.type[Group1] = "EIGHT_LEVEL";
+    key <LSGT> { [            less,    greater,                  bar, NoSymbol,        lessthanequal,     greaterthanequal, NoSymbol, NoSymbol ] };
+
+    include "kpdl(comma)"
+    include "level3(modifier_mapping)"
+    include "level5(modifier_mapping)"
+ };
+
+partial alphanumeric_keys
+xkb_symbols "e2" {
+    // German extended layout E2 based on DIN 2137-1:2018-12
+    // Designed for a 104-key keyboard
+    // https://de.wikipedia.org/wiki/Tastaturbelegung
+
+    include "de(e1)"
+    name[Group1]="German (E2)";
+
+    // one key less: assign bar, less and greater to other keys
+    key.type[Group1] = "EIGHT_LEVEL";
+    key <TLDE> { [ dead_circumflex,   degree,        bar, NoSymbol,      NoSymbol, NoSymbol, NoSymbol, NoSymbol ] };
+    key <AE02> { [               2, quotedbl,       less, NoSymbol,       onehalf,    U00A6, NoSymbol, NoSymbol ] };
+    key <AE03> { [               3,  section,    greater, NoSymbol, threequarters,    U00B6, NoSymbol, NoSymbol ] };
+    key <AD12> { [            plus, asterisk, asciitilde, NoSymbol,      multiply,    U2052, NoSymbol, NoSymbol ] };
+
+    // if E2 is used on a 105-key keyboard
+    key.type[Group1] = "ONE_LEVEL";
+    key <LSGT> { [ ISO_Level3_Shift ] };
+};
 
 partial alphanumeric_keys
 xkb_symbols "T3" {
+    // German extended layout T3 based on DIN 2137-1:2012-06
+    // Now obsolete, use de(e1) or de(e2)
+
     name[Group1]="German (T3)";
 
     key.type[Group1] = "EIGHT_LEVEL";
@@ -131,9 +247,9 @@ xkb_symbols "T3" {
     key <AD11> { [      udiaeresis,      Udiaeresis,       dead_horn,        NoSymbol,           U017F,  dead_abovering,      dead_grave,        NoSymbol ] };
     key.type[Group1] = "EIGHT_LEVEL";
     key <AD12> { [            plus,        asterisk,      asciitilde,        NoSymbol,      dead_tilde,     dead_macron,              at,        NoSymbol ] };
-    
+
     key.type[Group1] = "ONE_LEVEL";
-    key <CAPS>  { [ Caps_Lock	]	};
+    key <CAPS>  { [ Caps_Lock ] };
     key.type[Group1] = "EIGHT_LEVEL_ALPHABETIC";
     key <AC01> { [               a,               A,   lessthanequal,        NoSymbol,              ae,              AE,           U0329,        NoSymbol ] };
     key <AC02> { [               s,               S, greaterthanequal,       NoSymbol,          ssharp,         section,   dead_belowdot,        NoSymbol ] };
@@ -740,10 +856,10 @@ xkb_symbols "pl" {
     // https://github.com/kontextify/xkeyboard-config
 
     include "latin(type4)"
- 
+    include "de(nodeadkeys)"
+
     name[Group1]= "Polish (Germany, no dead keys)";
 
-    include "de(nodeadkeys)"
     key <AE04>	{ [         4,     dollar,   EuroSign,     currency ]	};
 
     key <AD01>  { [         q,          Q ] };
@@ -781,27 +897,32 @@ xkb_symbols "tr" {
 
 };
 
-// EXTRAS:
-
 partial alphanumeric_keys
 xkb_symbols "us" {
     include "us"
 
     name[Group1]="German (US)";
 
+    key <AE03> { [           3, numbersign,    section,     degree ] };
+    key <AE11> { [       minus, underscore,     ssharp,      U1E9E ] };
+
+    key <AD03> { [           e,          E,   EuroSign,       cent ] };
+    key <AD07> { [           u,          U, udiaeresis, Udiaeresis ] };
+    key <AD09> { [           o,          O, odiaeresis, Odiaeresis ] };
+    key <AD11> { [ bracketleft,  braceleft, udiaeresis, Udiaeresis ] };
+
     key <AC01> { [           a,          A, adiaeresis, Adiaeresis ] };
     key <AC02> { [           s,          S,     ssharp,      U1E9E ] };
     key <AC10> { [   semicolon,      colon, odiaeresis, Odiaeresis ] };
     key <AC11> { [  apostrophe,   quotedbl, adiaeresis, Adiaeresis ] };
-    key <AD03> { [           e,          E,   EuroSign,   EuroSign ] };
-    key <AD07> { [           u,          U, udiaeresis, Udiaeresis ] };
-    key <AD09> { [           o,          O, odiaeresis, Odiaeresis ] };
-    key <AD11> { [ bracketleft,  braceleft, udiaeresis, Udiaeresis ] };
-    key <AE03> { [           3, numbersign,    section,    section ] };
-    key <AE11> { [       minus, underscore,     ssharp,      U1E9E ] };
+
+    key <AB03> { [           c,          C,  Multi_key,  Multi_key ] };
+    key <AB07> { [           m,          M, dead_greek,       Menu ] };
 
     include "level3(ralt_switch)"
 };
+
+// EXTRAS:
 
 partial alphanumeric_keys
 xkb_symbols "hu" {

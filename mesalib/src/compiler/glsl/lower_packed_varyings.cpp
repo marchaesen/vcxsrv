@@ -580,20 +580,21 @@ lower_packed_varyings_visitor::lower_rvalue(ir_rvalue *rvalue,
          right_swizzle_values[i] = i + left_components;
          right_swizzle_name[i] = "xyzw"[i + left_components];
       }
-      ir_swizzle *left_swizzle = new(this->mem_ctx)
-         ir_swizzle(rvalue, left_swizzle_values, left_components);
+
       ir_swizzle *right_swizzle = new(this->mem_ctx)
          ir_swizzle(rvalue->clone(this->mem_ctx, NULL), right_swizzle_values,
                     right_components);
-      char *left_name
-         = ralloc_asprintf(this->mem_ctx, "%s.%s", name, left_swizzle_name);
       char *right_name
          = ralloc_asprintf(this->mem_ctx, "%s.%s", name, right_swizzle_name);
-      if (left_components)
+      if (left_components) {
+         char *left_name
+            = ralloc_asprintf(this->mem_ctx, "%s.%s", name, left_swizzle_name);
+         ir_swizzle *left_swizzle = new(this->mem_ctx)
+                                    ir_swizzle(rvalue, left_swizzle_values, left_components);
          fine_location = this->lower_rvalue(left_swizzle, fine_location,
                                             unpacked_var, left_name, false,
                                             vertex_index);
-      else
+      } else
          /* Top up the fine location to the next slot */
          fine_location++;
       return this->lower_rvalue(right_swizzle, fine_location, unpacked_var,

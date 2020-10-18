@@ -164,7 +164,7 @@
 #define T2 GET(E_T2)
 #define T_MANU GET(E_TMANU)
 
-/* extract information from estabished timing section */
+/* extract information from established timing section */
 #define _VALID_TIMING(x) !(((x[0] == 0x01) && (x[1] == 0x01)) \
                         || ((x[0] == 0x00) && (x[1] == 0x00)) \
                         || ((x[0] == 0x20) && (x[1] == 0x20)) )

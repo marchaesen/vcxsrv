@@ -140,7 +140,7 @@ link_block_to_non_block(nir_block *block, nir_cf_node *node)
 
       unlink_block_successors(block);
       link_blocks(block, first_then_block, first_else_block);
-   } else {
+   } else if (node->type == nir_cf_node_loop) {
       /*
        * For similar reasons as the corresponding case in
        * link_non_block_to_block(), don't worry about if the loop header has
@@ -312,7 +312,7 @@ block_add_normal_succs(nir_block *block)
          nir_block *first_else_block = nir_if_first_else_block(next_if);
 
          link_blocks(block, first_then_block, first_else_block);
-      } else {
+      } else if (next->type == nir_cf_node_loop) {
          nir_loop *next_loop = nir_cf_node_as_loop(next);
 
          nir_block *first_block = nir_loop_first_block(next_loop);
@@ -491,6 +491,14 @@ nir_handle_add_jump(nir_block *block)
       break;
    }
 
+   case nir_jump_goto:
+      link_blocks(block, jump_instr->target, NULL);
+      break;
+
+   case nir_jump_goto_if:
+      link_blocks(block, jump_instr->else_target, jump_instr->target);
+      break;
+
    default:
       unreachable("Invalid jump type");
    }
@@ -624,8 +632,10 @@ cleanup_cf_node(nir_cf_node *node, nir_function_impl *impl)
       /* We need to walk the instructions and clean up defs/uses */
       nir_foreach_instr_safe(instr, block) {
          if (instr->type == nir_instr_type_jump) {
-            nir_jump_type jump_type = nir_instr_as_jump(instr)->type;
-            unlink_jump(block, jump_type, false);
+            nir_jump_instr *jump = nir_instr_as_jump(instr);
+            unlink_jump(block, jump->type, false);
+            if (jump->type == nir_jump_goto_if)
+               nir_instr_rewrite_src(instr, &jump->condition, NIR_SRC_INIT);
          } else {
             nir_foreach_ssa_def(instr, replace_ssa_def_uses, impl);
             nir_instr_remove(instr);
@@ -673,15 +683,32 @@ nir_cf_extract(nir_cf_list *extracted, nir_cursor begin, nir_cursor end)
       return;
    }
 
-   /* In the case where begin points to an instruction in some basic block and
-    * end points to the end of the same basic block, we rely on the fact that
-    * splitting on an instruction moves earlier instructions into a new basic
-    * block. If the later instructions were moved instead, then the end cursor
-    * would be pointing to the same place that begin used to point to, which
-    * is obviously not what we want.
-    */
    split_block_cursor(begin, &block_before, &block_begin);
+
+   /* Splitting a block twice with two cursors created before either split is
+    * tricky and there are a couple of places it can go wrong if both cursors
+    * point to the same block.  One is if the second cursor is an block-based
+    * cursor and, thanks to the split above, it ends up pointing to the wrong
+    * block.  If it's a before_block cursor and it's in the same block as
+    * begin, then begin must also be a before_block cursor and it should be
+    * caught by the nir_cursors_equal check above and we won't get here.  If
+    * it's an after_block cursor, we need to re-adjust to ensure that it
+    * points to the second one of the split blocks, regardless of which it is.
+    */
+   if (end.option == nir_cursor_after_block && end.block == block_before)
+      end.block = block_begin;
+
    split_block_cursor(end, &block_end, &block_after);
+
+   /* The second place this can all go wrong is that it could be that the
+    * second split places the original block after the new block in which case
+    * the block_begin pointer that we saved off above is pointing to the block
+    * at the end rather than the block in the middle like it's supposed to be.
+    * In this case, we have to re-adjust begin_block to point to the middle
+    * one.
+    */
+   if (block_begin == block_after)
+      block_begin = block_end;
 
    extracted->impl = nir_cf_node_get_function(&block_begin->cf_node);
    exec_list_make_empty(&extracted->list);

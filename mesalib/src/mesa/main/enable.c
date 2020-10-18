@@ -1727,6 +1727,8 @@ _mesa_IsEnabled( GLenum cap )
                return (texUnit->TexGenEnabled & STR_BITS) == STR_BITS
                   ? GL_TRUE : GL_FALSE;
             }
+
+            return GL_FALSE;
          }
 
       /* client-side state */

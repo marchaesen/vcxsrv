@@ -187,6 +187,9 @@ util_get_process_exec_path(char* process_path, size_t len)
 
     return 0;
 success:
+   if (r == len)
+      return 0;
+
     process_path[r] = '\0';
     return r;
 

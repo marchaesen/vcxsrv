@@ -240,8 +240,8 @@ class UI:
 
             {err}
 
-            You can either cancel, or resolve the conflicts, commit the
-            changes and select ok."""))
+            You can either cancel, or resolve the conflicts (`git mergetool`), finish the
+            cherry-pick (`git cherry-pick --continue`) and select ok."""))
 
         can_btn = urwid.Button('Cancel')
         urwid.connect_signal(can_btn, 'click', reset_cb)

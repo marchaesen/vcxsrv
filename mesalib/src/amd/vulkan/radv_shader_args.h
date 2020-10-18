@@ -69,6 +69,7 @@ struct radv_shader_args {
 	struct ac_arg ngg_gs_state;
 
 	bool is_gs_copy_shader;
+	bool is_trap_handler_shader;
 };
 
 static inline struct radv_shader_args *

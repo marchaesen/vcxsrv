@@ -598,7 +598,7 @@ int42_handler(xf86Int10InfoPtr pInt)
 /**
  * These functions are meant to be used by the PCI BIOS emulation. Some
  * BIOSes need to see if there are \b other chips of the same type around so
- * by setting \c exclude one PCI device can be explicitely excluded, if
+ * by setting \c exclude one PCI device can be explicitly excluded, if
  * required.
  */
 static struct pci_device *

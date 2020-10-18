@@ -13,6 +13,7 @@ INCLUDES += \
 	$(top_builddir)/src/compiler/glsl\
 	$(top_srcdir)/src/compiler/glsl\
 	$(top_srcdir)/src/compiler/glsl/glcpp\
+	$(top_srcdir)/src/compiler/spirv\
 	$(top_builddir)/src/compiler/nir \
 	$(top_srcdir)/src/compiler/nir \
 	$(top_srcdir)/src/compiler/spirv \

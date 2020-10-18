@@ -69,8 +69,15 @@ bi_allocate_registers(bi_context *ctx, bool *success)
         struct lcra_state *l =
                 lcra_alloc_equations(node_count, 1);
 
-        l->class_start[BI_REG_CLASS_WORK] = 0;
-        l->class_size[BI_REG_CLASS_WORK] = 64 * 4; /* R0 - R63, all 32-bit */
+        if (ctx->is_blend) {
+                /* R0-R3 are reserved for the blend input */
+                l->class_start[BI_REG_CLASS_WORK] = 4 * 4;
+                l->class_size[BI_REG_CLASS_WORK] = 64 * 4;
+        } else {
+                /* R0 - R63, all 32-bit */
+                l->class_start[BI_REG_CLASS_WORK] = 0;
+                l->class_size[BI_REG_CLASS_WORK] = 64 * 4;
+        }
 
         bi_foreach_instr_global(ctx, ins) {
                 unsigned dest = ins->dest;
@@ -172,6 +179,19 @@ bi_register_allocate(bi_context *ctx)
 {
         struct lcra_state *l = NULL;
         bool success = false;
+
+        /* For instructions that both read and write from a data register, it's
+         * the *same* data register. We enforce that constraint by just doing a
+         * quick rewrite. TODO: are there cases where this causes RA to have no
+         * solutions due to copyprop? */
+        bi_foreach_instr_global(ctx, ins) {
+                unsigned props = bi_class_props[ins->type];
+                unsigned both = BI_DATA_REG_SRC | BI_DATA_REG_DEST;
+                if ((props & both) != both) continue;
+
+                bi_rewrite_uses(ctx, ins->dest, 0, ins->src[0], 0);
+                ins->dest = ins->src[0];
+        }
 
         do {
                 if (l) {

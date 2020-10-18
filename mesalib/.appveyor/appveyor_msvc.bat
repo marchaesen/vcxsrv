@@ -2,20 +2,20 @@ goto %1
 
 :install
 rem Check pip
+python --version
+python -m pip install --upgrade pip
+python -m pip --version
 if "%buildsystem%" == "scons" (
-    python --version
-    python -m pip --version
     rem Install Mako
-    python -m pip install Mako==1.0.7
+    python -m pip install Mako==1.1.3
     rem Install pywin32 extensions, needed by SCons
     python -m pip install pypiwin32
     rem Install python wheels, necessary to install SCons via pip
     python -m pip install wheel
     rem Install SCons
-    python -m pip install scons==3.0.1
+    python -m pip install scons==3.1.2
     call scons --version
 ) else (
-    python --version
     python -m pip install Mako meson
     meson --version
 
@@ -44,7 +44,7 @@ goto :eof
 
 :build_script
 if "%buildsystem%" == "scons" (
-    call scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=14.1 llvm=1
+    call scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=14.2 machine=x86 llvm=1
 ) else (
     call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat" -arch=x86
     rem We use default-library as static to affect any wraps (such as expat and zlib)
@@ -59,7 +59,7 @@ goto :eof
 
 :test_script
 if "%buildsystem%" == "scons" (
-    call scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=14.1 llvm=1 check
+    call scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=14.2 machine=x86 llvm=1 check
 ) else (
     call meson test -C builddir
 )

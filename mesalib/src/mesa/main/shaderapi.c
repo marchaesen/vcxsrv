@@ -341,7 +341,7 @@ create_shader(struct gl_context *ctx, GLenum type)
    name = _mesa_HashFindFreeKeyBlock(ctx->Shared->ShaderObjects, 1);
    sh = _mesa_new_shader(name, _mesa_shader_enum_to_shader_stage(type));
    sh->Type = type;
-   _mesa_HashInsertLocked(ctx->Shared->ShaderObjects, name, sh);
+   _mesa_HashInsertLocked(ctx->Shared->ShaderObjects, name, sh, true);
    _mesa_HashUnlockMutex(ctx->Shared->ShaderObjects);
 
    return name;
@@ -373,7 +373,7 @@ create_shader_program(struct gl_context *ctx)
 
    shProg = _mesa_new_shader_program(name);
 
-   _mesa_HashInsertLocked(ctx->Shared->ShaderObjects, name, shProg);
+   _mesa_HashInsertLocked(ctx->Shared->ShaderObjects, name, shProg, true);
 
    assert(shProg->RefCount == 1);
 
@@ -2610,7 +2610,7 @@ _mesa_copy_linked_program_data(const struct gl_shader_program *src,
    case MESA_SHADER_GEOMETRY: {
       dst->info.gs.vertices_in = src->Geom.VerticesIn;
       dst->info.gs.uses_end_primitive = src->Geom.UsesEndPrimitive;
-      dst->info.gs.uses_streams = src->Geom.UsesStreams;
+      dst->info.gs.active_stream_mask = src->Geom.ActiveStreamMask;
       break;
    }
    case MESA_SHADER_FRAGMENT: {

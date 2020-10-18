@@ -25,7 +25,7 @@
 
 #include "tu_private.h"
 
-#include "registers/adreno_pm4.xml.h"
+#include "adreno_pm4.xml.h"
 
 void
 tu_cs_init(struct tu_cs *cs,
@@ -57,8 +57,35 @@ tu_cs_alloc(struct tu_cs *cs,
 struct tu_cs_entry
 tu_cs_end_sub_stream(struct tu_cs *cs, struct tu_cs *sub_cs);
 
+static inline struct tu_draw_state
+tu_cs_end_draw_state(struct tu_cs *cs, struct tu_cs *sub_cs)
+{
+   struct tu_cs_entry entry = tu_cs_end_sub_stream(cs, sub_cs);
+   return (struct tu_draw_state) {
+      .iova = entry.bo->iova + entry.offset,
+      .size = entry.size / sizeof(uint32_t),
+   };
+}
+
 VkResult
 tu_cs_reserve_space(struct tu_cs *cs, uint32_t reserved_size);
+
+static inline struct tu_draw_state
+tu_cs_draw_state(struct tu_cs *sub_cs, struct tu_cs *cs, uint32_t size)
+{
+   struct tu_cs_memory memory;
+
+   /* TODO: clean this up */
+   tu_cs_alloc(sub_cs, size, 1, &memory);
+   tu_cs_init_external(cs, memory.map, memory.map + size);
+   tu_cs_begin(cs);
+   tu_cs_reserve_space(cs, size);
+
+   return (struct tu_draw_state) {
+      .iova = memory.iova,
+      .size = size,
+   };
+}
 
 void
 tu_cs_reset(struct tu_cs *cs);
@@ -241,6 +268,17 @@ tu_cs_emit_ib(struct tu_cs *cs, const struct tu_cs_entry *entry)
    tu_cs_emit_pkt7(cs, CP_INDIRECT_BUFFER, 3);
    tu_cs_emit_qw(cs, entry->bo->iova + entry->offset);
    tu_cs_emit(cs, entry->size / sizeof(uint32_t));
+}
+
+/* for compute which isn't using SET_DRAW_STATE */
+static inline void
+tu_cs_emit_state_ib(struct tu_cs *cs, struct tu_draw_state state)
+{
+   if (state.size) {
+      tu_cs_emit_pkt7(cs, CP_INDIRECT_BUFFER, 3);
+      tu_cs_emit_qw(cs, state.iova);
+      tu_cs_emit(cs, state.size);
+   }
 }
 
 /**

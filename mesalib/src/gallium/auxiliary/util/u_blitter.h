@@ -400,6 +400,16 @@ void util_blitter_custom_shader(struct blitter_context *blitter,
                                 struct pipe_surface *dstsurf,
                                 void *custom_vs, void *custom_fs);
 
+/* Used by D3D12 for non-MSAA -> MSAA stencil blits */
+void util_blitter_stencil_fallback(struct blitter_context *blitter,
+                                   struct pipe_resource *dst,
+                                   unsigned dst_level,
+                                   const struct pipe_box *dstbox,
+                                   struct pipe_resource *src,
+                                   unsigned src_level,
+                                   const struct pipe_box *srcbox,
+                                   const struct pipe_scissor_state *scissor);
+
 /* The functions below should be used to save currently bound constant state
  * objects inside a driver. The objects are automatically restored at the end
  * of the util_blitter_{clear, copy_region, fill_region} functions and then

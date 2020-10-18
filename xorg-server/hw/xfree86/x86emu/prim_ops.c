@@ -68,7 +68,7 @@
 *
 * By inspection, one gets:  cc = ab +  r'(a + b)
 *
-* That represents alot of operations, but NO CHOICE....
+* That represents a lot of operations, but NO CHOICE....
 *
 * Borrow Chain Calculation.
 *
@@ -2050,7 +2050,7 @@ test_byte(u8 d, u8 s)
     CONDITIONAL_SET_FLAG(res & 0x80, F_SF);
     CONDITIONAL_SET_FLAG(res == 0, F_ZF);
     CONDITIONAL_SET_FLAG(PARITY(res & 0xff), F_PF);
-    /* AF == dont care */
+    /* AF == don't care */
     CLEAR_FLAG(F_CF);
 }
 
@@ -2069,7 +2069,7 @@ test_word(u16 d, u16 s)
     CONDITIONAL_SET_FLAG(res & 0x8000, F_SF);
     CONDITIONAL_SET_FLAG(res == 0, F_ZF);
     CONDITIONAL_SET_FLAG(PARITY(res & 0xff), F_PF);
-    /* AF == dont care */
+    /* AF == don't care */
     CLEAR_FLAG(F_CF);
 }
 
@@ -2088,7 +2088,7 @@ test_long(u32 d, u32 s)
     CONDITIONAL_SET_FLAG(res & 0x80000000, F_SF);
     CONDITIONAL_SET_FLAG(res == 0, F_ZF);
     CONDITIONAL_SET_FLAG(PARITY(res & 0xff), F_PF);
-    /* AF == dont care */
+    /* AF == don't care */
     CLEAR_FLAG(F_CF);
 }
 
@@ -2597,7 +2597,7 @@ ins(int size)
         inc = -size;
     }
     if (M.x86.mode & (SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE)) {
-        /* dont care whether REPE or REPNE */
+        /* don't care whether REPE or REPNE */
         /* in until CX is ZERO. */
         u32 count = ((M.x86.mode & SYSMODE_PREFIX_DATA) ?
                      M.x86.R_ECX : M.x86.R_CX);
@@ -2663,7 +2663,7 @@ outs(int size)
         inc = -size;
     }
     if (M.x86.mode & (SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE)) {
-        /* dont care whether REPE or REPNE */
+        /* don't care whether REPE or REPNE */
         /* out until CX is ZERO. */
         u32 count = ((M.x86.mode & SYSMODE_PREFIX_DATA) ?
                      M.x86.R_ECX : M.x86.R_CX);
@@ -2818,7 +2818,7 @@ cpuid(void)
     switch (feature) {
     case 0:
         /* Regardless if we have real data from the hardware, the emulator
-         * will only support upto feature 1, which we set in register EAX.
+         * will only support up to feature 1, which we set in register EAX.
          * Registers EBX:EDX:ECX contain a string identifying the CPU.
          */
         M.x86.R_EAX = 1;

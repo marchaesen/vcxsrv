@@ -225,3 +225,7 @@ if with_tests
   endif
   subdir('tests')
 endif
+if with_swrast_vk
+  subdir('frontends/lavapipe')
+  subdir('targets/lavapipe')
+endif

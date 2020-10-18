@@ -139,34 +139,35 @@ static nir_ssa_def *
 emit_udiv(nir_builder *bld, nir_ssa_def *numer, nir_ssa_def *denom, bool modulo)
 {
    nir_ssa_def *rcp = nir_frcp(bld, nir_u2f32(bld, denom));
-   rcp = nir_f2u32(bld, nir_fmul_imm(bld, rcp, 4294967296.0));
-   nir_ssa_def *rcp_lo = nir_imul(bld, rcp, denom);
-   nir_ssa_def *rcp_hi = nir_umul_high(bld, rcp, denom);
-   nir_ssa_def *rcp_hi_ne_zero = nir_ine(bld, rcp_hi, nir_imm_int(bld, 0));
-   nir_ssa_def *neg_rcp_lo = nir_ineg(bld, rcp_lo);
-   nir_ssa_def *abs_rcp_lo = nir_bcsel(bld, rcp_hi_ne_zero, rcp_lo, neg_rcp_lo);
-   nir_ssa_def *e = nir_umul_high(bld, abs_rcp_lo, rcp);
-   nir_ssa_def *rcp_plus_e = nir_iadd(bld, rcp, e);
-   nir_ssa_def *rcp_minus_e = nir_isub(bld, rcp, e);
-   nir_ssa_def *tmp0 = nir_bcsel(bld, rcp_hi_ne_zero, rcp_minus_e, rcp_plus_e);
-   nir_ssa_def *quotient = nir_umul_high(bld, tmp0, numer);
+   rcp = nir_f2u32(bld, nir_fmul_imm(bld, rcp, 4294966784.0));
+
+   nir_ssa_def *neg_rcp_times_denom =
+      nir_imul(bld, rcp, nir_ineg(bld, denom));
+   rcp = nir_iadd(bld, rcp, nir_umul_high(bld, rcp, neg_rcp_times_denom));
+
+   /* Get initial estimate for quotient/remainder, then refine the estimate
+    * in two iterations after */
+   nir_ssa_def *quotient = nir_umul_high(bld, numer, rcp);
    nir_ssa_def *num_s_remainder = nir_imul(bld, quotient, denom);
    nir_ssa_def *remainder = nir_isub(bld, numer, num_s_remainder);
-   nir_ssa_def *remainder_ge_den = nir_uge(bld, remainder, denom);
-   nir_ssa_def *remainder_ge_zero = nir_uge(bld, numer, num_s_remainder);
-   nir_ssa_def *tmp1 = nir_iand(bld, remainder_ge_den, remainder_ge_zero);
 
+   /* First refinement step */
+   nir_ssa_def *remainder_ge_den = nir_uge(bld, remainder, denom);
+   if (!modulo) {
+      quotient = nir_bcsel(bld, remainder_ge_den,
+                           nir_iadd_imm(bld, quotient, 1), quotient);
+   }
+   remainder = nir_bcsel(bld, remainder_ge_den,
+                         nir_isub(bld, remainder, denom), remainder);
+
+   /* Second refinement step */
+   remainder_ge_den = nir_uge(bld, remainder, denom);
    if (modulo) {
-      nir_ssa_def *rem = nir_bcsel(bld, tmp1,
-                                   nir_isub(bld, remainder, denom), remainder);
-      return nir_bcsel(bld, remainder_ge_zero,
-                       rem, nir_iadd(bld, remainder, denom));
+      return nir_bcsel(bld, remainder_ge_den, nir_isub(bld, remainder, denom),
+                       remainder);
    } else {
-      nir_ssa_def *one = nir_imm_int(bld, 1);
-      nir_ssa_def *div = nir_bcsel(bld, tmp1,
-                                   nir_iadd(bld, quotient, one), quotient);
-      return nir_bcsel(bld, remainder_ge_zero,
-                       div, nir_isub(bld, quotient, one));
+      return nir_bcsel(bld, remainder_ge_den, nir_iadd_imm(bld, quotient, 1),
+                       quotient);
    }
 }
 

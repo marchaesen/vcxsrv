@@ -29,6 +29,7 @@
 #include "main/accum.h"
 #include "main/api_exec.h"
 #include "main/context.h"
+#include "main/debug_output.h"
 #include "main/glthread.h"
 #include "main/samplerobj.h"
 #include "main/shaderobj.h"
@@ -552,7 +553,7 @@ st_init_driver_flags(struct st_context *st)
    }
 
    if (st->lower_ucp)
-      f->NewClipPlaneEnable = ST_NEW_VS_STATE;
+      f->NewClipPlaneEnable = ST_NEW_VS_STATE | ST_NEW_GS_STATE;
    else
       f->NewClipPlaneEnable = ST_NEW_RASTERIZER;
 
@@ -721,10 +722,7 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
    assert(!ctx->Extensions.OES_geometry_shader || !st->lower_point_size);
    assert(!ctx->Extensions.ARB_tessellation_shader || !st->lower_point_size);
 
-   /* FIXME: add support for geometry and tessellation shaders for
-    * lower_ucp
-    */
-   assert(!ctx->Extensions.OES_geometry_shader || !st->lower_ucp);
+   /* FIXME: add support for tessellation shaders for lower_ucp */
    assert(!ctx->Extensions.ARB_tessellation_shader || !st->lower_ucp);
 
    if (st_have_perfmon(st)) {
@@ -764,6 +762,10 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
     */
    ctx->Point.MaxSize = MAX2(ctx->Const.MaxPointSize,
                              ctx->Const.MaxPointSizeAA);
+
+   ctx->Const.NoClippingOnCopyTex = screen->get_param(screen,
+                                                      PIPE_CAP_NO_CLIP_ON_COPY_TEX);
+
    /* For vertex shaders, make sure not to emit saturate when SM 3.0
     * is not supported
     */
@@ -807,10 +809,29 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
    st->shader_has_one_variant[MESA_SHADER_GEOMETRY] =
          st->has_shareable_shaders &&
          !st->clamp_frag_depth_in_shader &&
-         !st->clamp_vert_color_in_shader;
+         !st->clamp_vert_color_in_shader &&
+         !st->lower_ucp;
    st->shader_has_one_variant[MESA_SHADER_COMPUTE] = st->has_shareable_shaders;
 
    st->bitmap.cache.empty = true;
+
+   if (ctx->Const.ForceGLNamesReuse && ctx->Shared->RefCount == 1) {
+      _mesa_HashEnableNameReuse(ctx->Shared->TexObjects);
+      _mesa_HashEnableNameReuse(ctx->Shared->ShaderObjects);
+      _mesa_HashEnableNameReuse(ctx->Shared->BufferObjects);
+      _mesa_HashEnableNameReuse(ctx->Shared->SamplerObjects);
+      _mesa_HashEnableNameReuse(ctx->Shared->FrameBuffers);
+      _mesa_HashEnableNameReuse(ctx->Shared->RenderBuffers);
+      _mesa_HashEnableNameReuse(ctx->Shared->MemoryObjects);
+      _mesa_HashEnableNameReuse(ctx->Shared->SemaphoreObjects);
+   }
+   /* SPECviewperf13/sw-04 crashes since a56849ddda6 if Mesa is build with
+    * -O3 on gcc 7.5, which doesn't happen with ForceGLNamesReuse, which is
+    * the default setting for SPECviewperf because it simulates glGen behavior
+    * of closed source drivers.
+    */
+   if (ctx->Const.ForceGLNamesReuse)
+      _mesa_HashEnableNameReuse(ctx->Query.QueryObjects);
 
    _mesa_override_extensions(ctx);
    _mesa_compute_version(ctx);
@@ -1103,12 +1124,18 @@ st_destroy_context(struct st_context *st)
 
    st_destroy_program_variants(st);
 
-   _mesa_free_context_data(ctx);
+   /* Do not release debug_output yet because it might be in use by other threads.
+    * These threads will be terminated by _mesa_free_context_data and
+    * st_destroy_context_priv.
+    */
+   _mesa_free_context_data(ctx, false);
 
    /* This will free the st_context too, so 'st' must not be accessed
     * afterwards. */
    st_destroy_context_priv(st, true);
    st = NULL;
+
+   _mesa_destroy_debug_output(ctx);
 
    free(ctx);
 

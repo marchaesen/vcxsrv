@@ -83,7 +83,7 @@ typedef struct {
     unsigned char *CRTC;        /* Crtc Controller */
     unsigned char *Sequencer;   /* Video Sequencer */
     unsigned char *Graphics;    /* Video Graphics */
-    unsigned char *Attribute;   /* Video Atribute */
+    unsigned char *Attribute;   /* Video Attribute */
     unsigned char DAC[768];     /* Internal Colorlookuptable */
     unsigned char numCRTC;      /* number of CRTC registers, def=VGA_NUM_CRTC */
     unsigned char numSequencer; /* number of seq registers, def=VGA_NUM_SEQ */

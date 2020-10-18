@@ -3,6 +3,7 @@
 import argparse
 import re
 import sys
+from pathlib import Path
 
 
 class Layout(object):
@@ -135,7 +136,7 @@ if __name__ == '__main__':
 
     dest = None
     if ns.dest == '-':
-        dest = sys.stdout 
+        dest = sys.stdout
 
     with dest or open(ns.dest, 'w') as fd:
         map_variant(fd, ns.files, ns.want, ns.number)

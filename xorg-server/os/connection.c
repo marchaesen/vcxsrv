@@ -983,7 +983,7 @@ ListenToAllClients(void)
 /****************
  * IgnoreClient
  *    Removes one client from input masks.
- *    Must have cooresponding call to AttendClient.
+ *    Must have corresponding call to AttendClient.
  ****************/
 
 void

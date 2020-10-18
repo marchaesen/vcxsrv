@@ -461,7 +461,7 @@ u_vbuf_translate_buffers(struct u_vbuf *mgr, struct translate_key *key,
          }
 
          map = pipe_buffer_map_range(mgr->pipe, vb->buffer.resource, offset, size,
-                                     PIPE_TRANSFER_READ, &vb_transfer[i]);
+                                     PIPE_MAP_READ, &vb_transfer[i]);
       }
 
       /* Subtract min_index so that indexing with the index buffer works. */
@@ -491,7 +491,7 @@ u_vbuf_translate_buffers(struct u_vbuf *mgr, struct translate_key *key,
       } else {
          map = pipe_buffer_map_range(mgr->pipe, info->index.resource, offset,
                                      info->count * info->index_size,
-                                     PIPE_TRANSFER_READ, &transfer);
+                                     PIPE_MAP_READ, &transfer);
       }
 
       switch (info->index_size) {
@@ -1228,7 +1228,7 @@ void u_vbuf_get_minmax_index(struct pipe_context *pipe,
       indices = pipe_buffer_map_range(pipe, info->index.resource,
                                       info->start * info->index_size,
                                       info->count * info->index_size,
-                                      PIPE_TRANSFER_READ, &transfer);
+                                      PIPE_MAP_READ, &transfer);
    }
 
    u_vbuf_get_minmax_index_mapped(info, indices, out_min_index, out_max_index);
@@ -1386,7 +1386,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info)
             indices = (uint8_t*)info->index.user;
          } else {
             indices = (uint8_t*)pipe_buffer_map(pipe, info->index.resource,
-                                                PIPE_TRANSFER_READ, &transfer);
+                                                PIPE_MAP_READ, &transfer);
          }
 
          for (unsigned i = 0; i < draw_count; i++) {

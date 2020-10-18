@@ -488,7 +488,6 @@ static int emit_cat5(struct ir3_instruction *instr, void *ptr,
 
 	if (instr->flags & IR3_INSTR_S2EN) {
 		struct ir3_register *samp_tex = instr->regs[1];
-		iassert(samp_tex->flags & IR3_REG_HALF);
 		cat5->s2en_bindless.src3 = reg(samp_tex, info, instr->repeat,
 									   (instr->flags & IR3_INSTR_B) ? 0 : IR3_REG_HALF);
 		if (instr->flags & IR3_INSTR_B) {
@@ -882,6 +881,7 @@ static int emit_cat6(struct ir3_instruction *instr, void *ptr,
 			}
 		} else {
 			cat6c->off = instr->cat6.dst_offset;
+			cat6c->off_high = instr->cat6.dst_offset >> 8;
 		}
 	} else {
 		instr_cat6d_t *cat6d = ptr;
@@ -921,6 +921,7 @@ void * ir3_assemble(struct ir3_shader_variant *v)
 	uint32_t *ptr, *dwords;
 	struct ir3_info *info = &v->info;
 	struct ir3 *shader = v->ir;
+	const struct ir3_compiler *compiler = v->shader->compiler;
 
 	memset(info, 0, sizeof(*info));
 	info->data          = v;
@@ -928,21 +929,17 @@ void * ir3_assemble(struct ir3_shader_variant *v)
 	info->max_half_reg  = -1;
 	info->max_const     = -1;
 
+	uint32_t instr_count = 0;
 	foreach_block (block, &shader->block_list) {
 		foreach_instr (instr, &block->instr_list) {
-			info->sizedwords += 2;
+			instr_count++;
 		}
 	}
 
-	/* need an integer number of instruction "groups" (sets of 16
-	 * instructions on a4xx or sets of 4 instructions on a3xx),
-	 * so pad out w/ NOPs if needed: (NOTE each instruction is 64bits)
-	 */
-	if (v->shader->compiler->gpu_id >= 400) {
-		info->sizedwords = align(info->sizedwords, 16 * 2);
-	} else {
-		info->sizedwords = align(info->sizedwords, 4 * 2);
-	}
+	v->instrlen = DIV_ROUND_UP(instr_count, compiler->instr_align);
+
+	/* Pad out with NOPs to instrlen. */
+	info->sizedwords = v->instrlen * compiler->instr_align * sizeof(instr_t) / 4;
 
 	ptr = dwords = rzalloc_size(v, 4 * info->sizedwords);
 
@@ -957,10 +954,17 @@ void * ir3_assemble(struct ir3_shader_variant *v)
 			if ((instr->opc == OPC_BARY_F) && (instr->regs[0]->flags & IR3_REG_EI))
 				info->last_baryf = info->instrs_count;
 
-			info->instrs_count += 1 + instr->repeat + instr->nop;
-			info->nops_count += instr->nop;
-			if (instr->opc == OPC_NOP)
-				info->nops_count += 1 + instr->repeat;
+			unsigned instrs_count = 1 + instr->repeat + instr->nop;
+			unsigned nops_count = instr->nop;
+
+			if (instr->opc == OPC_NOP) {
+				nops_count = 1 + instr->repeat;
+				info->instrs_per_cat[0] += nops_count;
+			} else {
+				info->instrs_per_cat[opc_cat(instr->opc)] += instrs_count;
+				info->instrs_per_cat[0] += nops_count;
+			}
+
 			if (instr->opc == OPC_MOV) {
 				if (instr->cat1.src_type == instr->cat1.dst_type) {
 					info->mov_count += 1 + instr->repeat;
@@ -968,6 +972,10 @@ void * ir3_assemble(struct ir3_shader_variant *v)
 					info->cov_count += 1 + instr->repeat;
 				}
 			}
+
+			info->instrs_count += instrs_count;
+			info->nops_count += nops_count;
+
 			dwords += 2;
 
 			if (instr->flags & IR3_INSTR_SS) {

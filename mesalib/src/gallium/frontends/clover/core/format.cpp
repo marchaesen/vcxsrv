@@ -122,11 +122,18 @@ namespace clover {
    translate_target(cl_mem_object_type type) {
       switch (type) {
       case CL_MEM_OBJECT_BUFFER:
+      case CL_MEM_OBJECT_IMAGE1D_BUFFER:
          return PIPE_BUFFER;
+      case CL_MEM_OBJECT_IMAGE1D:
+         return PIPE_TEXTURE_1D;
       case CL_MEM_OBJECT_IMAGE2D:
          return PIPE_TEXTURE_2D;
       case CL_MEM_OBJECT_IMAGE3D:
          return PIPE_TEXTURE_3D;
+      case CL_MEM_OBJECT_IMAGE1D_ARRAY:
+         return PIPE_TEXTURE_1D_ARRAY;
+      case CL_MEM_OBJECT_IMAGE2D_ARRAY:
+         return PIPE_TEXTURE_2D_ARRAY;
       default:
          throw error(CL_INVALID_VALUE);
       }

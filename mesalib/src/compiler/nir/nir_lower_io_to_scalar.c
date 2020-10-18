@@ -49,7 +49,8 @@ lower_load_input_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
 
       nir_intrinsic_set_base(chan_intr, nir_intrinsic_base(intr));
       nir_intrinsic_set_component(chan_intr, nir_intrinsic_component(intr) + i);
-      nir_intrinsic_set_type(chan_intr, nir_intrinsic_type(intr));
+      nir_intrinsic_set_dest_type(chan_intr, nir_intrinsic_dest_type(intr));
+      nir_intrinsic_set_io_semantics(chan_intr, nir_intrinsic_io_semantics(intr));
       /* offset */
       nir_src_copy(&chan_intr->src[0], &intr->src[0], chan_intr);
 
@@ -82,7 +83,8 @@ lower_store_output_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
       nir_intrinsic_set_base(chan_intr, nir_intrinsic_base(intr));
       nir_intrinsic_set_write_mask(chan_intr, 0x1);
       nir_intrinsic_set_component(chan_intr, nir_intrinsic_component(intr) + i);
-      nir_intrinsic_set_type(chan_intr, nir_intrinsic_type(intr));
+      nir_intrinsic_set_src_type(chan_intr, nir_intrinsic_src_type(intr));
+      nir_intrinsic_set_io_semantics(chan_intr, nir_intrinsic_io_semantics(intr));
 
       /* value */
       chan_intr->src[0] = nir_src_for_ssa(nir_channel(b, value, i));
@@ -95,40 +97,42 @@ lower_store_output_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
    nir_instr_remove(&intr->instr);
 }
 
+static bool
+nir_lower_io_to_scalar_instr(nir_builder *b, nir_instr *instr, void *data)
+{
+   nir_variable_mode mask = *(nir_variable_mode *)data;
+
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+
+   if (intr->num_components == 1)
+      return false;
+
+   if (intr->intrinsic == nir_intrinsic_load_input &&
+       (mask & nir_var_shader_in)) {
+      lower_load_input_to_scalar(b, intr);
+      return true;
+   }
+
+   if (intr->intrinsic == nir_intrinsic_store_output &&
+       mask & nir_var_shader_out) {
+      lower_store_output_to_scalar(b, intr);
+      return true;
+   }
+
+   return false;
+}
+
 void
 nir_lower_io_to_scalar(nir_shader *shader, nir_variable_mode mask)
 {
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         nir_builder b;
-         nir_builder_init(&b, function->impl);
-
-         nir_foreach_block(block, function->impl) {
-            nir_foreach_instr_safe(instr, block) {
-               if (instr->type != nir_instr_type_intrinsic)
-                  continue;
-
-               nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-
-               if (intr->num_components == 1)
-                  continue;
-
-               switch (intr->intrinsic) {
-               case nir_intrinsic_load_input:
-                  if (mask & nir_var_shader_in)
-                     lower_load_input_to_scalar(&b, intr);
-                  break;
-               case nir_intrinsic_store_output:
-                  if (mask & nir_var_shader_out)
-                     lower_store_output_to_scalar(&b, intr);
-                  break;
-               default:
-                  break;
-               }
-            }
-         }
-      }
-   }
+   nir_shader_instructions_pass(shader,
+                                nir_lower_io_to_scalar_instr,
+                                nir_metadata_block_index |
+                                nir_metadata_dominance,
+                                &mask);
 }
 
 static nir_variable **
@@ -283,98 +287,112 @@ lower_store_output_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
    nir_instr_remove(&intr->instr);
 }
 
+struct io_to_scalar_early_state {
+   struct hash_table *split_inputs, *split_outputs;
+   nir_variable_mode mask;
+};
+
+static bool
+nir_lower_io_to_scalar_early_instr(nir_builder *b, nir_instr *instr, void *data)
+{
+   struct io_to_scalar_early_state *state = data;
+
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+
+   if (intr->num_components == 1)
+      return false;
+
+   if (intr->intrinsic != nir_intrinsic_load_deref &&
+       intr->intrinsic != nir_intrinsic_store_deref &&
+       intr->intrinsic != nir_intrinsic_interp_deref_at_centroid &&
+       intr->intrinsic != nir_intrinsic_interp_deref_at_sample &&
+       intr->intrinsic != nir_intrinsic_interp_deref_at_offset &&
+       intr->intrinsic != nir_intrinsic_interp_deref_at_vertex)
+      return false;
+
+   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+   nir_variable_mode mode = deref->mode;
+   if (!(mode & state->mask))
+      return false;
+
+   nir_variable *var = nir_deref_instr_get_variable(deref);
+
+   /* TODO: add patch support */
+   if (var->data.patch)
+      return false;
+
+   /* TODO: add doubles support */
+   if (glsl_type_is_64bit(glsl_without_array(var->type)))
+      return false;
+
+   if (!(b->shader->info.stage == MESA_SHADER_VERTEX &&
+         mode == nir_var_shader_in) &&
+       var->data.location < VARYING_SLOT_VAR0 &&
+       var->data.location >= 0)
+      return false;
+
+   /* Don't bother splitting if we can't opt away any unused
+    * components.
+    */
+   if (var->data.always_active_io)
+      return false;
+
+   /* Skip types we cannot split */
+   if (glsl_type_is_matrix(glsl_without_array(var->type)) ||
+       glsl_type_is_struct_or_ifc(glsl_without_array(var->type)))
+      return false;
+
+   switch (intr->intrinsic) {
+   case nir_intrinsic_interp_deref_at_centroid:
+   case nir_intrinsic_interp_deref_at_sample:
+   case nir_intrinsic_interp_deref_at_offset:
+   case nir_intrinsic_interp_deref_at_vertex:
+   case nir_intrinsic_load_deref:
+      if ((state->mask & nir_var_shader_in && mode == nir_var_shader_in) ||
+          (state->mask & nir_var_shader_out && mode == nir_var_shader_out)) {
+         lower_load_to_scalar_early(b, intr, var, state->split_inputs,
+                                    state->split_outputs);
+         return true;
+      }
+      break;
+   case nir_intrinsic_store_deref:
+      if (state->mask & nir_var_shader_out &&
+          mode == nir_var_shader_out) {
+         lower_store_output_to_scalar_early(b, intr, var, state->split_outputs);
+         return true;
+      }
+      break;
+   default:
+      break;
+   }
+
+   return false;
+}
+
 /*
  * This function is intended to be called earlier than nir_lower_io_to_scalar()
  * i.e. before nir_lower_io() is called.
  */
-void
+bool
 nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask)
 {
-   struct hash_table *split_inputs = _mesa_pointer_hash_table_create(NULL);
-   struct hash_table *split_outputs = _mesa_pointer_hash_table_create(NULL);
+   struct io_to_scalar_early_state state = {
+      .split_inputs = _mesa_pointer_hash_table_create(NULL),
+      .split_outputs = _mesa_pointer_hash_table_create(NULL),
+      .mask = mask
+   };
 
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         nir_builder b;
-         nir_builder_init(&b, function->impl);
-
-         nir_foreach_block(block, function->impl) {
-            nir_foreach_instr_safe(instr, block) {
-               if (instr->type != nir_instr_type_intrinsic)
-                  continue;
-
-               nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-
-               if (intr->num_components == 1)
-                  continue;
-
-               if (intr->intrinsic != nir_intrinsic_load_deref &&
-                   intr->intrinsic != nir_intrinsic_store_deref &&
-                   intr->intrinsic != nir_intrinsic_interp_deref_at_centroid &&
-                   intr->intrinsic != nir_intrinsic_interp_deref_at_sample &&
-                   intr->intrinsic != nir_intrinsic_interp_deref_at_offset &&
-                   intr->intrinsic != nir_intrinsic_interp_deref_at_vertex)
-                  continue;
-
-               nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
-               nir_variable_mode mode = deref->mode;
-               if (!(mode & mask))
-                  continue;
-
-               nir_variable *var = nir_deref_instr_get_variable(deref);
-
-               /* TODO: add patch support */
-               if (var->data.patch)
-                  continue;
-
-               /* TODO: add doubles support */
-               if (glsl_type_is_64bit(glsl_without_array(var->type)))
-                  continue;
-
-               if (!(shader->info.stage == MESA_SHADER_VERTEX &&
-                     mode == nir_var_shader_in) &&
-                   var->data.location < VARYING_SLOT_VAR0 &&
-                   var->data.location >= 0)
-                  continue;
-
-               /* Don't bother splitting if we can't opt away any unused
-                * components.
-                */
-               if (var->data.always_active_io)
-                  continue;
-
-              /* Skip types we cannot split */
-              if (glsl_type_is_matrix(glsl_without_array(var->type)) ||
-                  glsl_type_is_struct_or_ifc(glsl_without_array(var->type)))
-                 continue;
-
-               switch (intr->intrinsic) {
-               case nir_intrinsic_interp_deref_at_centroid:
-               case nir_intrinsic_interp_deref_at_sample:
-               case nir_intrinsic_interp_deref_at_offset:
-               case nir_intrinsic_interp_deref_at_vertex:
-               case nir_intrinsic_load_deref:
-                  if ((mask & nir_var_shader_in && mode == nir_var_shader_in) ||
-                      (mask & nir_var_shader_out && mode == nir_var_shader_out))
-                     lower_load_to_scalar_early(&b, intr, var, split_inputs,
-                                                split_outputs);
-                  break;
-               case nir_intrinsic_store_deref:
-                  if (mask & nir_var_shader_out &&
-                      mode == nir_var_shader_out)
-                     lower_store_output_to_scalar_early(&b, intr, var,
-                                                        split_outputs);
-                  break;
-               default:
-                  break;
-               }
-            }
-         }
-      }
-   }
+   bool progress = nir_shader_instructions_pass(shader,
+                                                nir_lower_io_to_scalar_early_instr,
+                                                nir_metadata_block_index |
+                                                nir_metadata_dominance,
+                                                &state);
 
    /* Remove old input from the shaders inputs list */
-   hash_table_foreach(split_inputs, entry) {
+   hash_table_foreach(state.split_inputs, entry) {
       nir_variable *var = (nir_variable *) entry->key;
       exec_node_remove(&var->node);
 
@@ -382,15 +400,17 @@ nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask)
    }
 
    /* Remove old output from the shaders outputs list */
-   hash_table_foreach(split_outputs, entry) {
+   hash_table_foreach(state.split_outputs, entry) {
       nir_variable *var = (nir_variable *) entry->key;
       exec_node_remove(&var->node);
 
       free(entry->data);
    }
 
-   _mesa_hash_table_destroy(split_inputs, NULL);
-   _mesa_hash_table_destroy(split_outputs, NULL);
+   _mesa_hash_table_destroy(state.split_inputs, NULL);
+   _mesa_hash_table_destroy(state.split_outputs, NULL);
 
    nir_remove_dead_derefs(shader);
+
+   return progress;
 }

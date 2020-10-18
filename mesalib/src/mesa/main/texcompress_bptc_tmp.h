@@ -554,8 +554,7 @@ fetch_rgba_unorm_from_block(const uint8_t *block,
 
    if (mode_num == 0) {
       /* According to the spec this mode is reserved and shouldn't be used. */
-      memset(result, 0, 3);
-      result[3] = 0xff;
+      memset(result, 0, 4);
       return;
    }
 
@@ -661,7 +660,7 @@ decompress_rgba_unorm_block(int src_width, int src_height,
 {
    int mode_num = ffs(block[0]);
    const struct bptc_unorm_mode *mode;
-   int bit_offset, secondary_bit_offset;
+   int bit_offset_head, bit_offset, secondary_bit_offset;
    int partition_num;
    int subset_num;
    int rotation;
@@ -681,20 +680,16 @@ decompress_rgba_unorm_block(int src_width, int src_height,
       for(y = 0; y < src_height; y += 1) {
          uint8_t *result = dst_row;
          memset(result, 0, 4 * src_width);
-         for(x = 0; x < src_width; x += 1) {
-            result[3] = 0xff;
-            result += 4;
-         }
          dst_row += dst_rowstride;
       }
       return;
    }
 
    mode = bptc_unorm_modes + mode_num - 1;
-   bit_offset = mode_num;
+   bit_offset_head = mode_num;
 
-   partition_num = extract_bits(block, bit_offset, mode->n_partition_bits);
-   bit_offset += mode->n_partition_bits;
+   partition_num = extract_bits(block, bit_offset_head, mode->n_partition_bits);
+   bit_offset_head += mode->n_partition_bits;
 
    switch (mode->n_subsets) {
    case 1:
@@ -712,26 +707,27 @@ decompress_rgba_unorm_block(int src_width, int src_height,
    }
 
    if (mode->has_rotation_bits) {
-      rotation = extract_bits(block, bit_offset, 2);
-      bit_offset += 2;
+      rotation = extract_bits(block, bit_offset_head, 2);
+      bit_offset_head += 2;
    } else {
       rotation = 0;
    }
 
    if (mode->has_index_selection_bit) {
-      index_selection = extract_bits(block, bit_offset, 1);
-      bit_offset++;
+      index_selection = extract_bits(block, bit_offset_head, 1);
+      bit_offset_head++;
    } else {
       index_selection = 0;
    }
 
-   bit_offset = extract_unorm_endpoints(mode, block, bit_offset, endpoints);
+   bit_offset_head = extract_unorm_endpoints(mode, block, bit_offset_head, endpoints);
 
    for(y = 0; y < src_height; y += 1) {
       uint8_t *result = dst_row;
       for(x = 0; x < src_width; x += 1) {
          int texel;
          texel = x + y * 4;
+         bit_offset = bit_offset_head;
 
          anchors_before_texel = count_anchors_before_texel(mode->n_subsets,
                                                            partition_num,
@@ -1052,7 +1048,7 @@ decompress_rgb_float_block(unsigned src_width, unsigned src_height,
 {
    int mode_num;
    const struct bptc_float_mode *mode;
-   int bit_offset;
+   int bit_offset_head, bit_offset;
    int partition_num;
    int subset_num;
    int index_bits;
@@ -1067,10 +1063,10 @@ decompress_rgb_float_block(unsigned src_width, unsigned src_height,
 
    if (block[0] & 0x2) {
       mode_num = (((block[0] >> 1) & 0xe) | (block[0] & 1)) + 2;
-      bit_offset = 5;
+      bit_offset_head = 5;
    } else {
       mode_num = block[0] & 3;
-      bit_offset = 2;
+      bit_offset_head = 2;
    }
 
    mode = bptc_float_modes + mode_num;
@@ -1088,12 +1084,12 @@ decompress_rgb_float_block(unsigned src_width, unsigned src_height,
       return;
    }
 
-   bit_offset = extract_float_endpoints(mode, block, bit_offset,
+   bit_offset_head = extract_float_endpoints(mode, block, bit_offset_head,
                                         endpoints, is_signed);
 
    if (mode->n_partition_bits) {
-      partition_num = extract_bits(block, bit_offset, mode->n_partition_bits);
-      bit_offset += mode->n_partition_bits;
+      partition_num = extract_bits(block, bit_offset_head, mode->n_partition_bits);
+      bit_offset_head += mode->n_partition_bits;
 
       subsets = partition_table1[partition_num];
       n_subsets = 2;
@@ -1107,6 +1103,8 @@ decompress_rgb_float_block(unsigned src_width, unsigned src_height,
       float *result = dst_row;
       for(x = 0; x < src_width; x += 1) {
          int texel;
+
+         bit_offset = bit_offset_head;
 
          texel = x + y * 4;
 

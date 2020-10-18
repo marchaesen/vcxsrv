@@ -56,7 +56,7 @@
 /*
  * GetReqVendorPrivate - this is the equivalent of GetReq macro
  *    from Xlibint.h but it does not set the reqType field (the opcode).
- *    this is because the GL single opcodes has different naming convension
+ *    this is because the GL single opcodes has different naming convention
  *    the other X opcodes (ie. X_GLsop_GetFloatv).
  */
 #if (defined(__STDC__) && !defined(UNIXCPP)) || defined(ANSICPP)

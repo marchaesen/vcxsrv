@@ -39,6 +39,7 @@
 #endif
 
 #include <X11/X.h>
+#include "mi.h"
 #include "os.h"
 #include "servermd.h"
 #include "pixmapstr.h"
@@ -811,8 +812,8 @@ xf86SetGamma(ScrnInfoPtr scrp, Gamma gamma)
         scrp->gamma.red = SET_GAMMA(DDC->features.gamma);
         scrp->gamma.green = SET_GAMMA(DDC->features.gamma);
         scrp->gamma.blue = SET_GAMMA(DDC->features.gamma);
-        /* EDID structure version 2 gives optional seperate red, green & blue gamma values
-         * in bytes 0x57-0x59 */
+        /* EDID structure version 2 gives optional separate red, green & blue
+         * gamma values in bytes 0x57-0x59 */
 #endif
     }
     else if (TEST_GAMMA(gamma)) {
@@ -1737,4 +1738,17 @@ void
 xf86UpdateDesktopDimensions(void)
 {
     update_desktop_dimensions();
+}
+
+
+void
+xf86AddInputEventDrainCallback(CallbackProcPtr callback, void *param)
+{
+    mieqAddCallbackOnDrained(callback, param);
+}
+
+void
+xf86RemoveInputEventDrainCallback(CallbackProcPtr callback, void *param)
+{
+    mieqRemoveCallbackOnDrained(callback, param);
 }

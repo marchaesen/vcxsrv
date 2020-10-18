@@ -44,6 +44,17 @@ fi
 
 FONT1=$TESTDIR/4x6.pcf
 FONT2=$TESTDIR/8x16.pcf
+TEST=""
+
+clean_exit() {
+    rc=$?
+    trap - SIGINT SIGTERM SIGABRT EXIT
+    if [ "x$TEST" != "x" ]; then
+        echo "Aborting from '$TEST' with the exit code $rc"
+    fi
+    exit $rc
+}
+trap clean_exit SIGINT SIGTERM SIGABRT EXIT
 
 check () {
     {
@@ -423,4 +434,36 @@ else
     echo "No test-crbug1004254: skipped"
 fi
 
+if [ "x$EXEEXT" = "x" ]; then
+
+dotest "empty XDG_CACHE_HOME"
+prep
+export XDG_CACHE_HOME=""
+export old_HOME="$HOME"
+export temp_HOME=$(mktemp -d --tmpdir fontconfig.XXXXXXXX)
+export HOME="$temp_HOME"
+cp "$FONT1" "$FONT2" "$FONTDIR"
+if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
+    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"
+fi
+echo "<fontconfig><dir>$FONTDIR</dir><cachedir prefix=\"xdg\">fontconfig</cachedir></fontconfig>" > my-fonts.conf
+FONTCONFIG_FILE="$MyPWD"/my-fonts.conf $FCCACHE "$FONTDIR" || :
+if [ -d "$HOME"/.cache ] && [ -d "$HOME"/.cache/fontconfig ]; then : ; else
+  echo "*** Test failed: $TEST"
+  echo "No \$HOME/.cache/fontconfig directory"
+  ls -a "$HOME"
+  ls -a "$HOME"/.cache
+  exit 1
+fi
+
+export HOME="$old_HOME"
+rm -rf "$temp_HOME" my-fonts.conf
+unset XDG_CACHE_HOME
+unset old_HOME
+unset temp_HOME
+
+fi # if [ "x$EXEEXT" = "x" ]
+
 rm -rf "$FONTDIR" "$CACHEFILE" "$CACHEDIR" "$BASEDIR" "$FONTCONFIG_FILE" out
+
+TEST=""

@@ -24,75 +24,81 @@
 #ifndef AC_SHADER_UTIL_H
 #define AC_SHADER_UTIL_H
 
+#include "ac_binary.h"
+#include "amd_family.h"
+#include "compiler/nir/nir.h"
+
 #include <stdbool.h>
 #include <stdint.h>
-
-#include "amd_family.h"
-#include "ac_binary.h"
-#include "compiler/nir/nir.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-enum ac_image_dim {
-	ac_image_1d,
-	ac_image_2d,
-	ac_image_3d,
-	ac_image_cube, // includes cube arrays
-	ac_image_1darray,
-	ac_image_2darray,
-	ac_image_2dmsaa,
-	ac_image_2darraymsaa,
+enum ac_image_dim
+{
+   ac_image_1d,
+   ac_image_2d,
+   ac_image_3d,
+   ac_image_cube, // includes cube arrays
+   ac_image_1darray,
+   ac_image_2darray,
+   ac_image_2dmsaa,
+   ac_image_2darraymsaa,
 };
 
 struct ac_data_format_info {
-	uint8_t element_size;
-	uint8_t num_channels;
-	uint8_t chan_byte_size;
-	uint8_t chan_format;
+   uint8_t element_size;
+   uint8_t num_channels;
+   uint8_t chan_byte_size;
+   uint8_t chan_format;
 };
 
 struct ac_spi_color_formats {
-	unsigned normal : 8;
-	unsigned alpha : 8;
-	unsigned blend : 8;
-	unsigned blend_alpha : 8;
+   unsigned normal : 8;
+   unsigned alpha : 8;
+   unsigned blend : 8;
+   unsigned blend_alpha : 8;
 };
 
-unsigned
-ac_get_spi_shader_z_format(bool writes_z, bool writes_stencil,
-			   bool writes_samplemask);
+/* For ac_build_fetch_format.
+ *
+ * Note: FLOAT must be 0 (used for convenience of encoding in radeonsi).
+ */
+enum ac_fetch_format
+{
+   AC_FETCH_FORMAT_FLOAT = 0,
+   AC_FETCH_FORMAT_FIXED,
+   AC_FETCH_FORMAT_UNORM,
+   AC_FETCH_FORMAT_SNORM,
+   AC_FETCH_FORMAT_USCALED,
+   AC_FETCH_FORMAT_SSCALED,
+   AC_FETCH_FORMAT_UINT,
+   AC_FETCH_FORMAT_SINT,
+   AC_FETCH_FORMAT_NONE,
+};
 
-unsigned
-ac_get_cb_shader_mask(unsigned spi_shader_col_format);
+unsigned ac_get_spi_shader_z_format(bool writes_z, bool writes_stencil, bool writes_samplemask);
 
-uint32_t
-ac_vgt_gs_mode(unsigned gs_max_vert_out, enum chip_class chip_class);
+unsigned ac_get_cb_shader_mask(unsigned spi_shader_col_format);
 
-unsigned
-ac_get_tbuffer_format(enum chip_class chip_class,
-		      unsigned dfmt, unsigned nfmt);
+uint32_t ac_vgt_gs_mode(unsigned gs_max_vert_out, enum chip_class chip_class);
 
-const struct ac_data_format_info *
-ac_get_data_format_info(unsigned dfmt);
+unsigned ac_get_tbuffer_format(enum chip_class chip_class, unsigned dfmt, unsigned nfmt);
 
-enum ac_image_dim
-ac_get_sampler_dim(enum chip_class chip_class, enum glsl_sampler_dim dim,
-		   bool is_array);
+const struct ac_data_format_info *ac_get_data_format_info(unsigned dfmt);
 
-enum ac_image_dim
-ac_get_image_dim(enum chip_class chip_class, enum glsl_sampler_dim sdim,
-		 bool is_array);
+enum ac_image_dim ac_get_sampler_dim(enum chip_class chip_class, enum glsl_sampler_dim dim,
+                                     bool is_array);
 
-unsigned
-ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
-			 signed char *face_vgpr_index,
-			 signed char *ancillary_vgpr_index);
+enum ac_image_dim ac_get_image_dim(enum chip_class chip_class, enum glsl_sampler_dim sdim,
+                                   bool is_array);
 
-void ac_choose_spi_color_formats(unsigned format, unsigned swap,
-				 unsigned ntype, bool is_depth,
-				 struct ac_spi_color_formats *formats);
+unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
+                                  signed char *face_vgpr_index, signed char *ancillary_vgpr_index);
+
+void ac_choose_spi_color_formats(unsigned format, unsigned swap, unsigned ntype, bool is_depth,
+                                 struct ac_spi_color_formats *formats);
 
 #ifdef __cplusplus
 }

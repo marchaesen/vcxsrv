@@ -496,10 +496,16 @@ get_sampler_view_format(struct st_context *st,
    /* Use R8_UNORM for video formats */
    switch (format) {
    case PIPE_FORMAT_NV12:
+      if (stObj->pt->format == PIPE_FORMAT_R8_G8B8_420_UNORM) {
+         format = PIPE_FORMAT_R8_G8B8_420_UNORM;
+         break;
+      }
+      /* fallthrough */
    case PIPE_FORMAT_IYUV:
       format = PIPE_FORMAT_R8_UNORM;
       break;
    case PIPE_FORMAT_P010:
+   case PIPE_FORMAT_P012:
    case PIPE_FORMAT_P016:
       format = PIPE_FORMAT_R16_UNORM;
       break;

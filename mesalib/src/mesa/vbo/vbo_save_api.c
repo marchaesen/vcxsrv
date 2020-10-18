@@ -101,6 +101,14 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 /* An interesting VBO number/name to help with debugging */
 #define VBO_BUF_ID  12345
 
+static void GLAPIENTRY
+_save_Materialfv(GLenum face, GLenum pname, const GLfloat *params);
+
+static void GLAPIENTRY
+_save_EvalCoord1f(GLfloat u);
+
+static void GLAPIENTRY
+_save_EvalCoord2f(GLfloat u, GLfloat v);
 
 /*
  * NOTE: Old 'parity' issue is gone, but copying can still be
@@ -739,10 +747,13 @@ copy_from_current(struct gl_context *ctx)
       switch (save->attrsz[i]) {
       case 4:
          save->attrptr[i][3] = save->current[i][3];
+         /* fallthrough */
       case 3:
          save->attrptr[i][2] = save->current[i][2];
+         /* fallthrough */
       case 2:
          save->attrptr[i][1] = save->current[i][1];
+         /* fallthrough */
       case 1:
          save->attrptr[i][0] = save->current[i][0];
          break;
@@ -1224,7 +1235,7 @@ _save_PrimitiveRestartNV(void)
       bool no_current_update = save->no_current_update;
 
       /* restart primitive */
-      CALL_End(GET_DISPATCH(), ());
+      CALL_End(ctx->CurrentServerDispatch, ());
       vbo_save_NotifyBegin(ctx, curPrim, no_current_update);
    }
 }
@@ -1239,12 +1250,57 @@ static void GLAPIENTRY
 _save_OBE_Rectf(GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2)
 {
    GET_CURRENT_CONTEXT(ctx);
+   struct _glapi_table *dispatch = ctx->CurrentServerDispatch;
+
    vbo_save_NotifyBegin(ctx, GL_QUADS, false);
-   CALL_Vertex2f(GET_DISPATCH(), (x1, y1));
-   CALL_Vertex2f(GET_DISPATCH(), (x2, y1));
-   CALL_Vertex2f(GET_DISPATCH(), (x2, y2));
-   CALL_Vertex2f(GET_DISPATCH(), (x1, y2));
-   CALL_End(GET_DISPATCH(), ());
+   CALL_Vertex2f(dispatch, (x1, y1));
+   CALL_Vertex2f(dispatch, (x2, y1));
+   CALL_Vertex2f(dispatch, (x2, y2));
+   CALL_Vertex2f(dispatch, (x1, y2));
+   CALL_End(dispatch, ());
+}
+
+
+static void GLAPIENTRY
+_save_OBE_Rectd(GLdouble x1, GLdouble y1, GLdouble x2, GLdouble y2)
+{
+   _save_OBE_Rectf((GLfloat) x1, (GLfloat) y1, (GLfloat) x2, (GLfloat) y2);
+}
+
+static void GLAPIENTRY
+_save_OBE_Rectdv(const GLdouble *v1, const GLdouble *v2)
+{
+   _save_OBE_Rectf((GLfloat) v1[0], (GLfloat) v1[1], (GLfloat) v2[0], (GLfloat) v2[1]);
+}
+
+static void GLAPIENTRY
+_save_OBE_Rectfv(const GLfloat *v1, const GLfloat *v2)
+{
+   _save_OBE_Rectf(v1[0], v1[1], v2[0], v2[1]);
+}
+
+static void GLAPIENTRY
+_save_OBE_Recti(GLint x1, GLint y1, GLint x2, GLint y2)
+{
+   _save_OBE_Rectf((GLfloat) x1, (GLfloat) y1, (GLfloat) x2, (GLfloat) y2);
+}
+
+static void GLAPIENTRY
+_save_OBE_Rectiv(const GLint *v1, const GLint *v2)
+{
+   _save_OBE_Rectf((GLfloat) v1[0], (GLfloat) v1[1], (GLfloat) v2[0], (GLfloat) v2[1]);
+}
+
+static void GLAPIENTRY
+_save_OBE_Rects(GLshort x1, GLshort y1, GLshort x2, GLshort y2)
+{
+   _save_OBE_Rectf((GLfloat) x1, (GLfloat) y1, (GLfloat) x2, (GLfloat) y2);
+}
+
+static void GLAPIENTRY
+_save_OBE_Rectsv(const GLshort *v1, const GLshort *v2)
+{
+   _save_OBE_Rectf((GLfloat) v1[0], (GLfloat) v1[1], (GLfloat) v2[0], (GLfloat) v2[1]);
 }
 
 
@@ -1277,7 +1333,7 @@ _save_OBE_DrawArrays(GLenum mode, GLint start, GLsizei count)
 
    for (i = 0; i < count; i++)
       _mesa_array_element(ctx, start + i);
-   CALL_End(GET_DISPATCH(), ());
+   CALL_End(ctx->CurrentServerDispatch, ());
 
    _mesa_vao_unmap_arrays(ctx, vao);
 }
@@ -1332,7 +1388,7 @@ array_element(struct gl_context *ctx,
     */
    if (ctx->Array._PrimitiveRestart &&
        elt == ctx->Array._RestartIndex[index_size - 1]) {
-      CALL_PrimitiveRestartNV(GET_DISPATCH(), ());
+      CALL_PrimitiveRestartNV(ctx->CurrentServerDispatch, ());
       return;
    }
 
@@ -1400,7 +1456,7 @@ _save_OBE_DrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
       break;
    }
 
-   CALL_End(GET_DISPATCH(), ());
+   CALL_End(ctx->CurrentServerDispatch, ());
 
    _mesa_vao_unmap(ctx, vao);
 }
@@ -1453,11 +1509,13 @@ static void GLAPIENTRY
 _save_OBE_MultiDrawElements(GLenum mode, const GLsizei *count, GLenum type,
                             const GLvoid * const *indices, GLsizei primcount)
 {
+   GET_CURRENT_CONTEXT(ctx);
+   struct _glapi_table *dispatch = ctx->CurrentServerDispatch;
    GLsizei i;
 
    for (i = 0; i < primcount; i++) {
       if (count[i] > 0) {
-	 CALL_DrawElements(GET_DISPATCH(), (mode, count[i], type, indices[i]));
+	 CALL_DrawElements(dispatch, (mode, count[i], type, indices[i]));
       }
    }
 }
@@ -1470,11 +1528,13 @@ _save_OBE_MultiDrawElementsBaseVertex(GLenum mode, const GLsizei *count,
                                       GLsizei primcount,
                                       const GLint *basevertex)
 {
+   GET_CURRENT_CONTEXT(ctx);
+   struct _glapi_table *dispatch = ctx->CurrentServerDispatch;
    GLsizei i;
 
    for (i = 0; i < primcount; i++) {
       if (count[i] > 0) {
-	 CALL_DrawElementsBaseVertex(GET_DISPATCH(), (mode, count[i], type,
+	 CALL_DrawElementsBaseVertex(dispatch, (mode, count[i], type,
 						      indices[i],
 						      basevertex[i]));
       }
@@ -1513,6 +1573,14 @@ vbo_initialize_save_dispatch(const struct gl_context *ctx,
    SET_MultiDrawElementsEXT(exec, _save_OBE_MultiDrawElements);
    SET_MultiDrawElementsBaseVertex(exec, _save_OBE_MultiDrawElementsBaseVertex);
    SET_Rectf(exec, _save_OBE_Rectf);
+   SET_Rectd(exec, _save_OBE_Rectd);
+   SET_Rectdv(exec, _save_OBE_Rectdv);
+   SET_Rectfv(exec, _save_OBE_Rectfv);
+   SET_Recti(exec, _save_OBE_Recti);
+   SET_Rectiv(exec, _save_OBE_Rectiv);
+   SET_Rects(exec, _save_OBE_Rects);
+   SET_Rectsv(exec, _save_OBE_Rectsv);
+
    /* Note: other glDraw functins aren't compiled into display lists */
 }
 

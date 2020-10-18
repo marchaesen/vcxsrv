@@ -1127,7 +1127,7 @@ DbeSetupBackgroundPainter(WindowPtr pWin, GCPtr pGC)
  *     DbeExtensionInit().
  *
  *     To make resource deletion simple, we do not do anything in this function
- *     and leave all resource deleteion to DbeWindowPrivDelete(), which will
+ *     and leave all resource deletion to DbeWindowPrivDelete(), which will
  *     eventually be called or already has been called.  Deletion functions are
  *     not guaranteed to be called in any particular order.
  *
@@ -1183,7 +1183,7 @@ DbeWindowPrivDelete(void *pDbeWinPriv, XID id)
     }
     else {
         /* We are removing the last ID in the array, in which case, the
-         * assignement below is all that we need to do.
+         * assignment below is all that we need to do.
          */
     }
     pDbeWindowPriv->IDs[pDbeWindowPriv->nBufferIDs - 1] = DBE_FREE_ID_ELEMENT;

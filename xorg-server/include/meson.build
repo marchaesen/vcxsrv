@@ -445,6 +445,7 @@ if build_xorg
             'extension.h',
             'extinit.h',
             'extnsionst.h',
+            'fourcc.h',
             'gc.h',
             'gcstruct.h',
             'globals.h',

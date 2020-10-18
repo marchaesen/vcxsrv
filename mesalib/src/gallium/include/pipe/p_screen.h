@@ -511,6 +511,47 @@ struct pipe_screen {
     *                  should be.
     */
    void (*finalize_nir)(struct pipe_screen *screen, void *nir, bool optimize);
+
+   /*Separated memory/resource allocations interfaces for Vulkan */
+
+   /**
+    * Create a resource, and retrieve the required size for it but don't allocate
+    * any backing memory.
+    */
+   struct pipe_resource * (*resource_create_unbacked)(struct pipe_screen *,
+                                                      const struct pipe_resource *templat,
+                                                      uint64_t *size_required);
+
+   /**
+    * Allocate backing memory to be bound to resources.
+    */
+   struct pipe_memory_allocation *(*allocate_memory)(struct pipe_screen *screen,
+                                                     uint64_t size);
+   /**
+    * Free previously allocated backing memory.
+    */
+   void (*free_memory)(struct pipe_screen *screen,
+                       struct pipe_memory_allocation *);
+
+   /**
+    * Bind memory to a resource.
+    */
+   void (*resource_bind_backing)(struct pipe_screen *screen,
+                                 struct pipe_resource *pt,
+                                 struct pipe_memory_allocation *pmem,
+                                 uint64_t offset);
+
+   /**
+    * Map backing memory.
+    */
+   void *(*map_memory)(struct pipe_screen *screen,
+                       struct pipe_memory_allocation *pmem);
+
+   /**
+    * Unmap backing memory.
+    */
+   void (*unmap_memory)(struct pipe_screen *screen,
+                        struct pipe_memory_allocation *pmem);
 };
 
 

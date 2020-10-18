@@ -30,52 +30,46 @@
  *    gl_FragCoord.xyz = gl_FragCoord_orig.xyz
  *    gl_FragCoord.w = 1.0 / gl_FragCoord_orig.w
  *
- * To trigger the transformation, gl_FragCoord currently has to be treated
- * as a system value with PIPE_CAP_TGSI_FS_POSITION_IS_SYSVAL enabled.
  */
 
-static void
-lower_fragcoord_wtrans(nir_builder *b, nir_intrinsic_instr *intr)
+static bool
+lower_fragcoord_wtrans_filter(const nir_instr *instr, UNUSED const void *_options)
 {
-   assert(intr->dest.is_ssa);
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
 
-   b->cursor = nir_before_instr(&intr->instr);
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   if (intr->intrinsic == nir_intrinsic_load_frag_coord)
+      return true;
 
-   nir_ssa_def *fragcoord_in = nir_load_frag_coord(b);
-   nir_ssa_def *w_rcp = nir_frcp(b, nir_channel(b, fragcoord_in, 3));
-   nir_ssa_def *fragcoord_wtrans = nir_vec4(b,
-                                            nir_channel(b, fragcoord_in, 0),
-                                            nir_channel(b, fragcoord_in, 1),
-                                            nir_channel(b, fragcoord_in, 2),
-                                            w_rcp);
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa,
-                            nir_src_for_ssa(fragcoord_wtrans));
+   if (intr->intrinsic != nir_intrinsic_load_deref)
+      return false;
+
+   nir_variable *var = nir_intrinsic_get_var(intr, 0);
+   return var->data.location == VARYING_SLOT_POS;
 }
 
-void
+static nir_ssa_def *
+lower_fragcoord_wtrans_impl(nir_builder *b, nir_instr *instr,
+                            UNUSED void *_options)
+{
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+
+   return nir_vec4(b,
+                   nir_channel(b, &intr->dest.ssa, 0),
+                   nir_channel(b, &intr->dest.ssa, 1),
+                   nir_channel(b, &intr->dest.ssa, 2),
+                   nir_frcp(b, nir_channel(b, &intr->dest.ssa, 3)));
+}
+
+bool
 nir_lower_fragcoord_wtrans(nir_shader *shader)
 {
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
-   nir_foreach_function(func, shader) {
-      if (!func->impl)
-         continue;
+   return nir_shader_lower_instructions(shader,
+                                        lower_fragcoord_wtrans_filter,
+                                        lower_fragcoord_wtrans_impl,
+                                        NULL);
 
-      nir_builder b;
-      nir_builder_init(&b, func->impl);
-      nir_foreach_block(block, func->impl) {
-         nir_foreach_instr_safe(instr, block) {
-            if (instr->type != nir_instr_type_intrinsic)
-               continue;
-
-            nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-            if (intr->intrinsic != nir_intrinsic_load_frag_coord)
-               continue;
-
-            lower_fragcoord_wtrans(&b, intr);
-         }
-      }
-      nir_metadata_preserve(func->impl, nir_metadata_block_index |
-                            nir_metadata_dominance);
-   }
 }

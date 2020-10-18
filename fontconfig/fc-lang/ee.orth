@@ -30,7 +30,7 @@
 # * http://www.panafril10n.org/wikidoc/pmwiki.php/PanAfrLoc/Gbe
 #
 # We amend the main alphabet with tone marks over each vowel, but some
-# combinations lack precomposed forms in Unicode, so we also add indiviual
+# combinations lack precomposed forms in Unicode, so we also add individual
 # combining marks.
 #
 # Sources also differ on the notation used for the fourth tone: circumflex

@@ -1043,10 +1043,12 @@ copy_uniforms_to_storage(gl_constant_value *storage,
                          const unsigned offset, const unsigned components,
                          enum glsl_base_type basicType)
 {
-   if (!uni->type->is_boolean() && !uni->is_bindless) {
+   bool copy_as_uint64 = uni->is_bindless &&
+                         (uni->type->is_sampler() || uni->type->is_image());
+   if (!uni->type->is_boolean() && !copy_as_uint64) {
       memcpy(storage, values,
              sizeof(storage[0]) * components * count * size_mul);
-   } else if (uni->is_bindless) {
+   } else if (copy_as_uint64) {
       const union gl_constant_value *src =
          (const union gl_constant_value *) values;
       GLuint64 *dst = (GLuint64 *)&storage->i;

@@ -141,11 +141,24 @@ xkb_symbols "lyx" {
 partial alphanumeric_keys
 xkb_symbols "phonetic" {
 
-    // uses the phonetic layout from old Slackware 'il.map' file
+    include "il(basic)"
 
     name[Group1]= "Hebrew (phonetic)";
 
-    key <AE12> {        [     equal,    plus, hebrew_doublelowline, hebrew_doublelowline ]};
+    // Implements the phonetic layout from the old Slackware 'il.map' file.
+
+    key <AE09> {	[	  9,	parenleft	]	};
+    key <AE10> {	[	  0,	parenright	]	};
+    key <TLDE> {	[     grave,	asciitilde	]	};
+
+    key <AD11> {	[ bracketleft,	braceleft	]	};
+    key <AD12> {	[ bracketright,	braceright	]	};
+    key <AC10> {	[ semicolon,	colon		]	};
+    key <AC11> {	[ apostrophe,	quotedbl	]	};
+    key <AB08> {	[     comma,	less		]	};
+    key <AB09> {	[    period,	greater		]	};
+    key <AB10> {	[     slash,	question	]	};
+    key <BKSL> {	[ backslash,         bar	]	};
 
     key <LatQ> {	[ hebrew_qoph, hebrew_qoph	]	};
     key <LatW> {	[ hebrew_waw, hebrew_waw	]	};

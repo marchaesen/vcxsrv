@@ -43,6 +43,10 @@
 #include "drmmode_display.h"
 #define MS_LOGLEVEL_DEBUG 4
 
+struct ms_vrr_priv {
+    Bool variable_refresh;
+};
+
 typedef enum {
     OPTION_SW_CURSOR,
     OPTION_DEVICE_PATH,
@@ -52,6 +56,7 @@ typedef enum {
     OPTION_ZAPHOD_HEADS,
     OPTION_DOUBLE_SHADOW,
     OPTION_ATOMIC,
+    OPTION_VARIABLE_REFRESH,
 } modesettingOpts;
 
 typedef struct
@@ -121,6 +126,13 @@ typedef struct _modesettingRec {
     Bool tried_queue_sequence;
 
     Bool kms_has_modifiers;
+
+    /* VRR support */
+    Bool vrr_support;
+    WindowPtr flip_window;
+
+    Bool is_connector_vrr_capable;
+    uint32_t connector_prop_id;
 
     /* shadow API */
     struct {
@@ -224,3 +236,5 @@ Bool ms_do_pageflip(ScreenPtr screen,
 #endif
 
 int ms_flush_drm_events(ScreenPtr screen);
+Bool ms_window_has_variable_refresh(modesettingPtr ms, WindowPtr win);
+void ms_present_set_screen_vrr(ScrnInfoPtr scrn, Bool vrr_enabled);

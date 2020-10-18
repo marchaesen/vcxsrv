@@ -45,7 +45,7 @@ get_texcoord(lower_drawpixels_state *state)
       nir_variable *texcoord = NULL;
 
       /* find gl_TexCoord, if it exists: */
-      nir_foreach_variable(var, &state->shader->inputs) {
+      nir_foreach_shader_in_variable(var, state->shader) {
          if (var->data.location == VARYING_SLOT_TEX0) {
             texcoord = var;
             break;
@@ -264,16 +264,8 @@ lower_drawpixels_block(lower_drawpixels_state *state, nir_block *block)
 
          case nir_intrinsic_load_interpolated_input:
          case nir_intrinsic_load_input: {
-            /* The intrinsic doesn't carry the variable. We need to find it
-             * manually.
-             */
-            nir_foreach_variable(var, &state->b.shader->inputs) {
-               if ((var->data.driver_location == nir_intrinsic_base(intr)) &&
-                   (nir_intrinsic_component(intr) >= var->data.location_frac  &&
-                    nir_intrinsic_component(intr) <
-                     (var->data.location_frac + glsl_get_components(var->type))))
-                  lower_texcoord(state, intr);
-            }
+            if (nir_intrinsic_io_semantics(intr).location == VARYING_SLOT_TEX0)
+               lower_texcoord(state, intr);
             break;
          }
          default:

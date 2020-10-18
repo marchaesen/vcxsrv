@@ -18,9 +18,7 @@
 */
 
 #include "tessellator.hpp"
-#if defined(__MINGW32__) || defined(__MINGW64__)
-#include <cmath>
-#elif defined(_WIN32) || defined(_WIN64)
+#if defined(_MSC_VER)
 #include <math.h> // ceil
 #else
 #include <cmath>
@@ -195,7 +193,7 @@ INT32 floatToIDotF( const float& input )
         if (iShift >= 0)
         {
 //            assert( iShift < 32 );
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_MSC_VER)
 #pragma warning( suppress : 4293 )
 #endif
             _fxpMaxPosValueFloat -= INT32( 1 ) << iShift;
@@ -217,7 +215,7 @@ INT32 floatToIDotF( const float& input )
         if (iShift >= 0)
         {
 //            assert( iShift < 32 );
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_MSC_VER)
 #pragma warning( suppress : 4293 )
 #endif
             _fxpMaxPosValueFloat -= INT32( 1 ) << iShift;

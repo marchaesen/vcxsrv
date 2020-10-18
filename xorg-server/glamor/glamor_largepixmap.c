@@ -744,7 +744,7 @@ glamor_compute_transform_clipped_regions(PixmapPtr pixmap,
 
 /*
  * As transform and repeatpad mode.
- * We may get a clipped result which in multipe regions.
+ * We may get a clipped result which in multiple regions.
  * It's not easy to do a 2nd round clipping just as we do
  * without transform/repeatPad. As it's not easy to reverse
  * the 2nd round clipping result with a transform/repeatPad mode,

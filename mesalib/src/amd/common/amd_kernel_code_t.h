@@ -30,13 +30,12 @@
 //---------------------------------------------------------------------------//
 
 // Sets val bits for specified mask in specified dst packed instance.
-#define AMD_HSA_BITS_SET(dst, mask, val)                                       \
-  dst &= (~(1 << mask ## _SHIFT) & ~mask);                                     \
-  dst |= (((val) << mask ## _SHIFT) & mask)
+#define AMD_HSA_BITS_SET(dst, mask, val)                                                           \
+   dst &= (~(1 << mask##_SHIFT) & ~mask);                                                          \
+   dst |= (((val) << mask##_SHIFT) & mask)
 
 // Gets bits for specified mask from specified src packed instance.
-#define AMD_HSA_BITS_GET(src, mask)                                            \
-  ((src & mask) >> mask ## _SHIFT)
+#define AMD_HSA_BITS_GET(src, mask) ((src & mask) >> mask##_SHIFT)
 
 /* Every amd_*_code_t has the following properties, which are composed of
  * a number of bit fields. Every bit field has a mask (AMD_CODE_PROPERTY_*),
@@ -47,132 +46,164 @@
  * implementation defined in the C standard and so cannot be used to
  * specify an ABI)
  */
-enum amd_code_property_mask_t {
+enum amd_code_property_mask_t
+{
 
-  /* Enable the setup of the SGPR user data registers
-   * (AMD_CODE_PROPERTY_ENABLE_SGPR_*), see documentation of amd_kernel_code_t
-   * for initial register state.
-   *
-   * The total number of SGPRuser data registers requested must not
-   * exceed 16. Any requests beyond 16 will be ignored.
-   *
-   * Used to set COMPUTE_PGM_RSRC2.USER_SGPR (set to total count of
-   * SGPR user data registers enabled up to 16).
-   */
+   /* Enable the setup of the SGPR user data registers
+    * (AMD_CODE_PROPERTY_ENABLE_SGPR_*), see documentation of amd_kernel_code_t
+    * for initial register state.
+    *
+    * The total number of SGPRuser data registers requested must not
+    * exceed 16. Any requests beyond 16 will be ignored.
+    *
+    * Used to set COMPUTE_PGM_RSRC2.USER_SGPR (set to total count of
+    * SGPR user data registers enabled up to 16).
+    */
 
-  AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_BUFFER_SHIFT = 0,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_BUFFER_WIDTH = 1,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_BUFFER = ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_BUFFER_WIDTH) - 1) << AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_BUFFER_SHIFT,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_BUFFER_SHIFT = 0,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_BUFFER_WIDTH = 1,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_BUFFER =
+      ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_BUFFER_WIDTH) - 1)
+      << AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_BUFFER_SHIFT,
 
-  AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_PTR_SHIFT = 1,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_PTR_WIDTH = 1,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_PTR = ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_PTR_WIDTH) - 1) << AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_PTR_SHIFT,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_PTR_SHIFT = 1,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_PTR_WIDTH = 1,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_PTR =
+      ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_PTR_WIDTH) - 1)
+      << AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_PTR_SHIFT,
 
-  AMD_CODE_PROPERTY_ENABLE_SGPR_QUEUE_PTR_SHIFT = 2,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_QUEUE_PTR_WIDTH = 1,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_QUEUE_PTR = ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_QUEUE_PTR_WIDTH) - 1) << AMD_CODE_PROPERTY_ENABLE_SGPR_QUEUE_PTR_SHIFT,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_QUEUE_PTR_SHIFT = 2,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_QUEUE_PTR_WIDTH = 1,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_QUEUE_PTR =
+      ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_QUEUE_PTR_WIDTH) - 1)
+      << AMD_CODE_PROPERTY_ENABLE_SGPR_QUEUE_PTR_SHIFT,
 
-  AMD_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR_SHIFT = 3,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR_WIDTH = 1,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR = ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR_WIDTH) - 1) << AMD_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR_SHIFT,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR_SHIFT = 3,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR_WIDTH = 1,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR =
+      ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR_WIDTH) - 1)
+      << AMD_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR_SHIFT,
 
-  AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_ID_SHIFT = 4,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_ID_WIDTH = 1,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_ID = ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_ID_WIDTH) - 1) << AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_ID_SHIFT,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_ID_SHIFT = 4,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_ID_WIDTH = 1,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_ID =
+      ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_ID_WIDTH) - 1)
+      << AMD_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_ID_SHIFT,
 
-  AMD_CODE_PROPERTY_ENABLE_SGPR_FLAT_SCRATCH_INIT_SHIFT = 5,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_FLAT_SCRATCH_INIT_WIDTH = 1,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_FLAT_SCRATCH_INIT = ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_FLAT_SCRATCH_INIT_WIDTH) - 1) << AMD_CODE_PROPERTY_ENABLE_SGPR_FLAT_SCRATCH_INIT_SHIFT,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_FLAT_SCRATCH_INIT_SHIFT = 5,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_FLAT_SCRATCH_INIT_WIDTH = 1,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_FLAT_SCRATCH_INIT =
+      ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_FLAT_SCRATCH_INIT_WIDTH) - 1)
+      << AMD_CODE_PROPERTY_ENABLE_SGPR_FLAT_SCRATCH_INIT_SHIFT,
 
-  AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE_SHIFT = 6,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE_WIDTH = 1,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE = ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE_WIDTH) - 1) << AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE_SHIFT,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE_SHIFT = 6,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE_WIDTH = 1,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE =
+      ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE_WIDTH) - 1)
+      << AMD_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE_SHIFT,
 
-  AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_X_SHIFT = 7,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_X_WIDTH = 1,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_X = ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_X_WIDTH) - 1) << AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_X_SHIFT,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_X_SHIFT = 7,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_X_WIDTH = 1,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_X =
+      ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_X_WIDTH) - 1)
+      << AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_X_SHIFT,
 
-  AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Y_SHIFT = 8,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Y_WIDTH = 1,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Y = ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Y_WIDTH) - 1) << AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Y_SHIFT,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Y_SHIFT = 8,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Y_WIDTH = 1,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Y =
+      ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Y_WIDTH) - 1)
+      << AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Y_SHIFT,
 
-  AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Z_SHIFT = 9,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Z_WIDTH = 1,
-  AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Z = ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Z_WIDTH) - 1) << AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Z_SHIFT,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Z_SHIFT = 9,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Z_WIDTH = 1,
+   AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Z =
+      ((1 << AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Z_WIDTH) - 1)
+      << AMD_CODE_PROPERTY_ENABLE_SGPR_GRID_WORKGROUP_COUNT_Z_SHIFT,
 
-  AMD_CODE_PROPERTY_RESERVED1_SHIFT = 10,
-  AMD_CODE_PROPERTY_RESERVED1_WIDTH = 6,
-  AMD_CODE_PROPERTY_RESERVED1 = ((1 << AMD_CODE_PROPERTY_RESERVED1_WIDTH) - 1) << AMD_CODE_PROPERTY_RESERVED1_SHIFT,
+   AMD_CODE_PROPERTY_RESERVED1_SHIFT = 10,
+   AMD_CODE_PROPERTY_RESERVED1_WIDTH = 6,
+   AMD_CODE_PROPERTY_RESERVED1 = ((1 << AMD_CODE_PROPERTY_RESERVED1_WIDTH) - 1)
+                                 << AMD_CODE_PROPERTY_RESERVED1_SHIFT,
 
-  /* Control wave ID base counter for GDS ordered-append. Used to set
-   * COMPUTE_DISPATCH_INITIATOR.ORDERED_APPEND_ENBL. (Not sure if
-   * ORDERED_APPEND_MODE also needs to be settable)
-   */
-  AMD_CODE_PROPERTY_ENABLE_ORDERED_APPEND_GDS_SHIFT = 16,
-  AMD_CODE_PROPERTY_ENABLE_ORDERED_APPEND_GDS_WIDTH = 1,
-  AMD_CODE_PROPERTY_ENABLE_ORDERED_APPEND_GDS = ((1 << AMD_CODE_PROPERTY_ENABLE_ORDERED_APPEND_GDS_WIDTH) - 1) << AMD_CODE_PROPERTY_ENABLE_ORDERED_APPEND_GDS_SHIFT,
+   /* Control wave ID base counter for GDS ordered-append. Used to set
+    * COMPUTE_DISPATCH_INITIATOR.ORDERED_APPEND_ENBL. (Not sure if
+    * ORDERED_APPEND_MODE also needs to be settable)
+    */
+   AMD_CODE_PROPERTY_ENABLE_ORDERED_APPEND_GDS_SHIFT = 16,
+   AMD_CODE_PROPERTY_ENABLE_ORDERED_APPEND_GDS_WIDTH = 1,
+   AMD_CODE_PROPERTY_ENABLE_ORDERED_APPEND_GDS =
+      ((1 << AMD_CODE_PROPERTY_ENABLE_ORDERED_APPEND_GDS_WIDTH) - 1)
+      << AMD_CODE_PROPERTY_ENABLE_ORDERED_APPEND_GDS_SHIFT,
 
-  /* The interleave (swizzle) element size in bytes required by the
-   * code for private memory. This must be 2, 4, 8 or 16. This value
-   * is provided to the finalizer when it is invoked and is recorded
-   * here. The hardware will interleave the memory requests of each
-   * lane of a wavefront by this element size to ensure each
-   * work-item gets a distinct memory memory location. Therefore, the
-   * finalizer ensures that all load and store operations done to
-   * private memory do not exceed this size. For example, if the
-   * element size is 4 (32-bits or dword) and a 64-bit value must be
-   * loaded, the finalizer will generate two 32-bit loads. This
-   * ensures that the interleaving will get the work-item
-   * specific dword for both halves of the 64-bit value. If it just
-   * did a 64-bit load then it would get one dword which belonged to
-   * its own work-item, but the second dword would belong to the
-   * adjacent lane work-item since the interleaving is in dwords.
-   *
-   * The value used must match the value that the runtime configures
-   * the GPU flat scratch (SH_STATIC_MEM_CONFIG.ELEMENT_SIZE). This
-   * is generally DWORD.
-   *
-   * USE VALUES FROM THE AMD_ELEMENT_BYTE_SIZE_T ENUM.
-   */
-  AMD_CODE_PROPERTY_PRIVATE_ELEMENT_SIZE_SHIFT = 17,
-  AMD_CODE_PROPERTY_PRIVATE_ELEMENT_SIZE_WIDTH = 2,
-  AMD_CODE_PROPERTY_PRIVATE_ELEMENT_SIZE = ((1 << AMD_CODE_PROPERTY_PRIVATE_ELEMENT_SIZE_WIDTH) - 1) << AMD_CODE_PROPERTY_PRIVATE_ELEMENT_SIZE_SHIFT,
+   /* The interleave (swizzle) element size in bytes required by the
+    * code for private memory. This must be 2, 4, 8 or 16. This value
+    * is provided to the finalizer when it is invoked and is recorded
+    * here. The hardware will interleave the memory requests of each
+    * lane of a wavefront by this element size to ensure each
+    * work-item gets a distinct memory memory location. Therefore, the
+    * finalizer ensures that all load and store operations done to
+    * private memory do not exceed this size. For example, if the
+    * element size is 4 (32-bits or dword) and a 64-bit value must be
+    * loaded, the finalizer will generate two 32-bit loads. This
+    * ensures that the interleaving will get the work-item
+    * specific dword for both halves of the 64-bit value. If it just
+    * did a 64-bit load then it would get one dword which belonged to
+    * its own work-item, but the second dword would belong to the
+    * adjacent lane work-item since the interleaving is in dwords.
+    *
+    * The value used must match the value that the runtime configures
+    * the GPU flat scratch (SH_STATIC_MEM_CONFIG.ELEMENT_SIZE). This
+    * is generally DWORD.
+    *
+    * USE VALUES FROM THE AMD_ELEMENT_BYTE_SIZE_T ENUM.
+    */
+   AMD_CODE_PROPERTY_PRIVATE_ELEMENT_SIZE_SHIFT = 17,
+   AMD_CODE_PROPERTY_PRIVATE_ELEMENT_SIZE_WIDTH = 2,
+   AMD_CODE_PROPERTY_PRIVATE_ELEMENT_SIZE =
+      ((1 << AMD_CODE_PROPERTY_PRIVATE_ELEMENT_SIZE_WIDTH) - 1)
+      << AMD_CODE_PROPERTY_PRIVATE_ELEMENT_SIZE_SHIFT,
 
-  /* Are global memory addresses 64 bits. Must match
-   * amd_kernel_code_t.hsail_machine_model ==
-   * HSA_MACHINE_LARGE. Must also match
-   * SH_MEM_CONFIG.PTR32 (GFX6 (SI)/GFX7 (CI)),
-   * SH_MEM_CONFIG.ADDRESS_MODE (GFX8 (VI)+).
-   */
-  AMD_CODE_PROPERTY_IS_PTR64_SHIFT = 19,
-  AMD_CODE_PROPERTY_IS_PTR64_WIDTH = 1,
-  AMD_CODE_PROPERTY_IS_PTR64 = ((1 << AMD_CODE_PROPERTY_IS_PTR64_WIDTH) - 1) << AMD_CODE_PROPERTY_IS_PTR64_SHIFT,
+   /* Are global memory addresses 64 bits. Must match
+    * amd_kernel_code_t.hsail_machine_model ==
+    * HSA_MACHINE_LARGE. Must also match
+    * SH_MEM_CONFIG.PTR32 (GFX6 (SI)/GFX7 (CI)),
+    * SH_MEM_CONFIG.ADDRESS_MODE (GFX8 (VI)+).
+    */
+   AMD_CODE_PROPERTY_IS_PTR64_SHIFT = 19,
+   AMD_CODE_PROPERTY_IS_PTR64_WIDTH = 1,
+   AMD_CODE_PROPERTY_IS_PTR64 = ((1 << AMD_CODE_PROPERTY_IS_PTR64_WIDTH) - 1)
+                                << AMD_CODE_PROPERTY_IS_PTR64_SHIFT,
 
-  /* Indicate if the generated ISA is using a dynamically sized call
-   * stack. This can happen if calls are implemented using a call
-   * stack and recursion, alloca or calls to indirect functions are
-   * present. In these cases the Finalizer cannot compute the total
-   * private segment size at compile time. In this case the
-   * workitem_private_segment_byte_size only specifies the statically
-   * know private segment size, and additional space must be added
-   * for the call stack.
-   */
-  AMD_CODE_PROPERTY_IS_DYNAMIC_CALLSTACK_SHIFT = 20,
-  AMD_CODE_PROPERTY_IS_DYNAMIC_CALLSTACK_WIDTH = 1,
-  AMD_CODE_PROPERTY_IS_DYNAMIC_CALLSTACK = ((1 << AMD_CODE_PROPERTY_IS_DYNAMIC_CALLSTACK_WIDTH) - 1) << AMD_CODE_PROPERTY_IS_DYNAMIC_CALLSTACK_SHIFT,
+   /* Indicate if the generated ISA is using a dynamically sized call
+    * stack. This can happen if calls are implemented using a call
+    * stack and recursion, alloca or calls to indirect functions are
+    * present. In these cases the Finalizer cannot compute the total
+    * private segment size at compile time. In this case the
+    * workitem_private_segment_byte_size only specifies the statically
+    * know private segment size, and additional space must be added
+    * for the call stack.
+    */
+   AMD_CODE_PROPERTY_IS_DYNAMIC_CALLSTACK_SHIFT = 20,
+   AMD_CODE_PROPERTY_IS_DYNAMIC_CALLSTACK_WIDTH = 1,
+   AMD_CODE_PROPERTY_IS_DYNAMIC_CALLSTACK =
+      ((1 << AMD_CODE_PROPERTY_IS_DYNAMIC_CALLSTACK_WIDTH) - 1)
+      << AMD_CODE_PROPERTY_IS_DYNAMIC_CALLSTACK_SHIFT,
 
-  /* Indicate if code generated has support for debugging. */
-  AMD_CODE_PROPERTY_IS_DEBUG_SUPPORTED_SHIFT = 21,
-  AMD_CODE_PROPERTY_IS_DEBUG_SUPPORTED_WIDTH = 1,
-  AMD_CODE_PROPERTY_IS_DEBUG_SUPPORTED = ((1 << AMD_CODE_PROPERTY_IS_DEBUG_SUPPORTED_WIDTH) - 1) << AMD_CODE_PROPERTY_IS_DEBUG_SUPPORTED_SHIFT,
+   /* Indicate if code generated has support for debugging. */
+   AMD_CODE_PROPERTY_IS_DEBUG_SUPPORTED_SHIFT = 21,
+   AMD_CODE_PROPERTY_IS_DEBUG_SUPPORTED_WIDTH = 1,
+   AMD_CODE_PROPERTY_IS_DEBUG_SUPPORTED = ((1 << AMD_CODE_PROPERTY_IS_DEBUG_SUPPORTED_WIDTH) - 1)
+                                          << AMD_CODE_PROPERTY_IS_DEBUG_SUPPORTED_SHIFT,
 
-  AMD_CODE_PROPERTY_IS_XNACK_SUPPORTED_SHIFT = 22,
-  AMD_CODE_PROPERTY_IS_XNACK_SUPPORTED_WIDTH = 1,
-  AMD_CODE_PROPERTY_IS_XNACK_SUPPORTED = ((1 << AMD_CODE_PROPERTY_IS_XNACK_SUPPORTED_WIDTH) - 1) << AMD_CODE_PROPERTY_IS_XNACK_SUPPORTED_SHIFT,
+   AMD_CODE_PROPERTY_IS_XNACK_SUPPORTED_SHIFT = 22,
+   AMD_CODE_PROPERTY_IS_XNACK_SUPPORTED_WIDTH = 1,
+   AMD_CODE_PROPERTY_IS_XNACK_SUPPORTED = ((1 << AMD_CODE_PROPERTY_IS_XNACK_SUPPORTED_WIDTH) - 1)
+                                          << AMD_CODE_PROPERTY_IS_XNACK_SUPPORTED_SHIFT,
 
-  AMD_CODE_PROPERTY_RESERVED2_SHIFT = 23,
-  AMD_CODE_PROPERTY_RESERVED2_WIDTH = 9,
-  AMD_CODE_PROPERTY_RESERVED2 = ((1 << AMD_CODE_PROPERTY_RESERVED2_WIDTH) - 1) << AMD_CODE_PROPERTY_RESERVED2_SHIFT
+   AMD_CODE_PROPERTY_RESERVED2_SHIFT = 23,
+   AMD_CODE_PROPERTY_RESERVED2_WIDTH = 9,
+   AMD_CODE_PROPERTY_RESERVED2 = ((1 << AMD_CODE_PROPERTY_RESERVED2_WIDTH) - 1)
+                                 << AMD_CODE_PROPERTY_RESERVED2_SHIFT
 };
 
 /* AMD Kernel Code Object (amd_kernel_code_t). GPU CP uses the AMD Kernel
@@ -381,154 +412,154 @@ enum amd_code_property_mask_t {
  */
 
 typedef struct amd_kernel_code_s {
-  uint32_t amd_kernel_code_version_major;
-  uint32_t amd_kernel_code_version_minor;
-  uint16_t amd_machine_kind;
-  uint16_t amd_machine_version_major;
-  uint16_t amd_machine_version_minor;
-  uint16_t amd_machine_version_stepping;
+   uint32_t amd_kernel_code_version_major;
+   uint32_t amd_kernel_code_version_minor;
+   uint16_t amd_machine_kind;
+   uint16_t amd_machine_version_major;
+   uint16_t amd_machine_version_minor;
+   uint16_t amd_machine_version_stepping;
 
-  /* Byte offset (possibly negative) from start of amd_kernel_code_t
-   * object to kernel's entry point instruction. The actual code for
-   * the kernel is required to be 256 byte aligned to match hardware
-   * requirements (SQ cache line is 16). The code must be position
-   * independent code (PIC) for AMD devices to give runtime the
-   * option of copying code to discrete GPU memory or APU L2
-   * cache. The Finalizer should endeavour to allocate all kernel
-   * machine code in contiguous memory pages so that a device
-   * pre-fetcher will tend to only pre-fetch Kernel Code objects,
-   * improving cache performance.
-   */
-  int64_t kernel_code_entry_byte_offset;
+   /* Byte offset (possibly negative) from start of amd_kernel_code_t
+    * object to kernel's entry point instruction. The actual code for
+    * the kernel is required to be 256 byte aligned to match hardware
+    * requirements (SQ cache line is 16). The code must be position
+    * independent code (PIC) for AMD devices to give runtime the
+    * option of copying code to discrete GPU memory or APU L2
+    * cache. The Finalizer should endeavour to allocate all kernel
+    * machine code in contiguous memory pages so that a device
+    * pre-fetcher will tend to only pre-fetch Kernel Code objects,
+    * improving cache performance.
+    */
+   int64_t kernel_code_entry_byte_offset;
 
-  /* Range of bytes to consider prefetching expressed as an offset
-   * and size. The offset is from the start (possibly negative) of
-   * amd_kernel_code_t object. Set both to 0 if no prefetch
-   * information is available.
-   */
-  int64_t kernel_code_prefetch_byte_offset;
-  uint64_t kernel_code_prefetch_byte_size;
+   /* Range of bytes to consider prefetching expressed as an offset
+    * and size. The offset is from the start (possibly negative) of
+    * amd_kernel_code_t object. Set both to 0 if no prefetch
+    * information is available.
+    */
+   int64_t kernel_code_prefetch_byte_offset;
+   uint64_t kernel_code_prefetch_byte_size;
 
-  /* Number of bytes of scratch backing memory required for full
-   * occupancy of target chip. This takes into account the number of
-   * bytes of scratch per work-item, the wavefront size, the maximum
-   * number of wavefronts per CU, and the number of CUs. This is an
-   * upper limit on scratch. If the grid being dispatched is small it
-   * may only need less than this. If the kernel uses no scratch, or
-   * the Finalizer has not computed this value, it must be 0.
-   */
-  uint64_t max_scratch_backing_memory_byte_size;
+   /* Number of bytes of scratch backing memory required for full
+    * occupancy of target chip. This takes into account the number of
+    * bytes of scratch per work-item, the wavefront size, the maximum
+    * number of wavefronts per CU, and the number of CUs. This is an
+    * upper limit on scratch. If the grid being dispatched is small it
+    * may only need less than this. If the kernel uses no scratch, or
+    * the Finalizer has not computed this value, it must be 0.
+    */
+   uint64_t max_scratch_backing_memory_byte_size;
 
-  /* Shader program settings for CS. Contains COMPUTE_PGM_RSRC1 and
-   * COMPUTE_PGM_RSRC2 registers.
-   */
-  uint64_t compute_pgm_resource_registers;
+   /* Shader program settings for CS. Contains COMPUTE_PGM_RSRC1 and
+    * COMPUTE_PGM_RSRC2 registers.
+    */
+   uint64_t compute_pgm_resource_registers;
 
-  /* Code properties. See amd_code_property_mask_t for a full list of
-   * properties.
-   */
-  uint32_t code_properties;
+   /* Code properties. See amd_code_property_mask_t for a full list of
+    * properties.
+    */
+   uint32_t code_properties;
 
-  /* The amount of memory required for the combined private, spill
-   * and arg segments for a work-item in bytes. If
-   * is_dynamic_callstack is 1 then additional space must be added to
-   * this value for the call stack.
-   */
-  uint32_t workitem_private_segment_byte_size;
+   /* The amount of memory required for the combined private, spill
+    * and arg segments for a work-item in bytes. If
+    * is_dynamic_callstack is 1 then additional space must be added to
+    * this value for the call stack.
+    */
+   uint32_t workitem_private_segment_byte_size;
 
-  /* The amount of group segment memory required by a work-group in
-   * bytes. This does not include any dynamically allocated group
-   * segment memory that may be added when the kernel is
-   * dispatched.
-   */
-  uint32_t workgroup_group_segment_byte_size;
+   /* The amount of group segment memory required by a work-group in
+    * bytes. This does not include any dynamically allocated group
+    * segment memory that may be added when the kernel is
+    * dispatched.
+    */
+   uint32_t workgroup_group_segment_byte_size;
 
-  /* Number of byte of GDS required by kernel dispatch. Must be 0 if
-   * not using GDS.
-   */
-  uint32_t gds_segment_byte_size;
+   /* Number of byte of GDS required by kernel dispatch. Must be 0 if
+    * not using GDS.
+    */
+   uint32_t gds_segment_byte_size;
 
-  /* The size in bytes of the kernarg segment that holds the values
-   * of the arguments to the kernel. This could be used by CP to
-   * prefetch the kernarg segment pointed to by the dispatch packet.
-   */
-  uint64_t kernarg_segment_byte_size;
+   /* The size in bytes of the kernarg segment that holds the values
+    * of the arguments to the kernel. This could be used by CP to
+    * prefetch the kernarg segment pointed to by the dispatch packet.
+    */
+   uint64_t kernarg_segment_byte_size;
 
-  /* Number of fbarrier's used in the kernel and all functions it
-   * calls. If the implementation uses group memory to allocate the
-   * fbarriers then that amount must already be included in the
-   * workgroup_group_segment_byte_size total.
-   */
-  uint32_t workgroup_fbarrier_count;
+   /* Number of fbarrier's used in the kernel and all functions it
+    * calls. If the implementation uses group memory to allocate the
+    * fbarriers then that amount must already be included in the
+    * workgroup_group_segment_byte_size total.
+    */
+   uint32_t workgroup_fbarrier_count;
 
-  /* Number of scalar registers used by a wavefront. This includes
-   * the special SGPRs for VCC, Flat Scratch Base, Flat Scratch Size
-   * and XNACK (for GFX8 (VI)). It does not include the 16 SGPR added if a
-   * trap handler is enabled. Used to set COMPUTE_PGM_RSRC1.SGPRS.
-   */
-  uint16_t wavefront_sgpr_count;
+   /* Number of scalar registers used by a wavefront. This includes
+    * the special SGPRs for VCC, Flat Scratch Base, Flat Scratch Size
+    * and XNACK (for GFX8 (VI)). It does not include the 16 SGPR added if a
+    * trap handler is enabled. Used to set COMPUTE_PGM_RSRC1.SGPRS.
+    */
+   uint16_t wavefront_sgpr_count;
 
-  /* Number of vector registers used by each work-item. Used to set
-   * COMPUTE_PGM_RSRC1.VGPRS.
-   */
-  uint16_t workitem_vgpr_count;
+   /* Number of vector registers used by each work-item. Used to set
+    * COMPUTE_PGM_RSRC1.VGPRS.
+    */
+   uint16_t workitem_vgpr_count;
 
-  /* If reserved_vgpr_count is 0 then must be 0. Otherwise, this is the
-   * first fixed VGPR number reserved.
-   */
-  uint16_t reserved_vgpr_first;
+   /* If reserved_vgpr_count is 0 then must be 0. Otherwise, this is the
+    * first fixed VGPR number reserved.
+    */
+   uint16_t reserved_vgpr_first;
 
-  /* The number of consecutive VGPRs reserved by the client. If
-   * is_debug_supported then this count includes VGPRs reserved
-   * for debugger use.
-   */
-  uint16_t reserved_vgpr_count;
+   /* The number of consecutive VGPRs reserved by the client. If
+    * is_debug_supported then this count includes VGPRs reserved
+    * for debugger use.
+    */
+   uint16_t reserved_vgpr_count;
 
-  /* If reserved_sgpr_count is 0 then must be 0. Otherwise, this is the
-   * first fixed SGPR number reserved.
-   */
-  uint16_t reserved_sgpr_first;
+   /* If reserved_sgpr_count is 0 then must be 0. Otherwise, this is the
+    * first fixed SGPR number reserved.
+    */
+   uint16_t reserved_sgpr_first;
 
-  /* The number of consecutive SGPRs reserved by the client. If
-   * is_debug_supported then this count includes SGPRs reserved
-   * for debugger use.
-   */
-  uint16_t reserved_sgpr_count;
+   /* The number of consecutive SGPRs reserved by the client. If
+    * is_debug_supported then this count includes SGPRs reserved
+    * for debugger use.
+    */
+   uint16_t reserved_sgpr_count;
 
-  /* If is_debug_supported is 0 then must be 0. Otherwise, this is the
-   * fixed SGPR number used to hold the wave scratch offset for the
-   * entire kernel execution, or uint16_t(-1) if the register is not
-   * used or not known.
-   */
-  uint16_t debug_wavefront_private_segment_offset_sgpr;
+   /* If is_debug_supported is 0 then must be 0. Otherwise, this is the
+    * fixed SGPR number used to hold the wave scratch offset for the
+    * entire kernel execution, or uint16_t(-1) if the register is not
+    * used or not known.
+    */
+   uint16_t debug_wavefront_private_segment_offset_sgpr;
 
-  /* If is_debug_supported is 0 then must be 0. Otherwise, this is the
-   * fixed SGPR number of the first of 4 SGPRs used to hold the
-   * scratch V# used for the entire kernel execution, or uint16_t(-1)
-   * if the registers are not used or not known.
-   */
-  uint16_t debug_private_segment_buffer_sgpr;
+   /* If is_debug_supported is 0 then must be 0. Otherwise, this is the
+    * fixed SGPR number of the first of 4 SGPRs used to hold the
+    * scratch V# used for the entire kernel execution, or uint16_t(-1)
+    * if the registers are not used or not known.
+    */
+   uint16_t debug_private_segment_buffer_sgpr;
 
-  /* The maximum byte alignment of variables used by the kernel in
-   * the specified memory segment. Expressed as a power of two. Must
-   * be at least HSA_POWERTWO_16.
-   */
-  uint8_t kernarg_segment_alignment;
-  uint8_t group_segment_alignment;
-  uint8_t private_segment_alignment;
+   /* The maximum byte alignment of variables used by the kernel in
+    * the specified memory segment. Expressed as a power of two. Must
+    * be at least HSA_POWERTWO_16.
+    */
+   uint8_t kernarg_segment_alignment;
+   uint8_t group_segment_alignment;
+   uint8_t private_segment_alignment;
 
-  /* Wavefront size expressed as a power of two. Must be a power of 2
-   * in range 1..64 inclusive. Used to support runtime query that
-   * obtains wavefront size, which may be used by application to
-   * allocated dynamic group memory and set the dispatch work-group
-   * size.
-   */
-  uint8_t wavefront_size;
+   /* Wavefront size expressed as a power of two. Must be a power of 2
+    * in range 1..64 inclusive. Used to support runtime query that
+    * obtains wavefront size, which may be used by application to
+    * allocated dynamic group memory and set the dispatch work-group
+    * size.
+    */
+   uint8_t wavefront_size;
 
-  int32_t call_convention;
-  uint8_t reserved3[12];
-  uint64_t runtime_loader_kernel_symbol;
-  uint64_t control_directives[16];
+   int32_t call_convention;
+   uint8_t reserved3[12];
+   uint64_t runtime_loader_kernel_symbol;
+   uint64_t control_directives[16];
 } amd_kernel_code_t;
 
 #endif // AMDKERNELCODET_H

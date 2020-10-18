@@ -40,7 +40,7 @@ The INCR (Incremental transfer) clipboard protocol for clipboard contents larger
 request (approximately 256K) is only supported for X -> Windows clipboard transfers.
 
 Some X clients, notably ones written in Tcl/Tk, do not re-assert ownership of the PRIMARY selection or update
-it's timestamp when it's contents change, which currently prevents \fIxwinclip\fP from correctly noticing that
+its timestamp when its contents change, which currently prevents \fIxwinclip\fP from correctly noticing that
 the PRIMARY selection's contents have changed.
 
 Windows clipboard rendering is synchronous in the WM_RENDER*FORMAT message (that is, we must have placed the
@@ -49,7 +49,7 @@ client which owns the selection to convert the selection to our requested format
 using a fixed timeout.  After requesting conversion of the selection, if no events are received from the X
 client which owns the selection for one second, the conversion is assumed to have failed.
 
-The XWin(1) server should indicate somehow (by placing an atom on the root window?) that it is running with it's
+The XWin(1) server should indicate somehow (by placing an atom on the root window?) that it is running with its
 internal clipboard integration enabled, and xwinclip should notice this and exit with an appropriate error.
 
 Probably many other bugs.

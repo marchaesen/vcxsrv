@@ -24,11 +24,12 @@
 #ifndef AC_NIR_TO_LLVM_H
 #define AC_NIR_TO_LLVM_H
 
-#include <stdbool.h>
-#include "llvm-c/Core.h"
-#include "llvm-c/TargetMachine.h"
 #include "amd_family.h"
 #include "compiler/shader_enums.h"
+#include "llvm-c/Core.h"
+#include "llvm-c/TargetMachine.h"
+
+#include <stdbool.h>
 
 struct nir_shader;
 struct nir_variable;
@@ -37,13 +38,13 @@ struct ac_shader_abi;
 struct ac_shader_args;
 
 /* Interpolation locations */
-#define INTERP_CENTER 0
+#define INTERP_CENTER   0
 #define INTERP_CENTROID 1
-#define INTERP_SAMPLE 2
+#define INTERP_SAMPLE   2
 
 static inline unsigned ac_llvm_reg_index_soa(unsigned index, unsigned chan)
 {
-	return (index * 4) + chan;
+   return (index * 4) + chan;
 }
 
 bool ac_lower_indirect_derefs(struct nir_shader *nir, enum chip_class);
@@ -51,14 +52,11 @@ bool ac_lower_indirect_derefs(struct nir_shader *nir, enum chip_class);
 bool ac_are_tessfactors_def_in_all_invocs(const struct nir_shader *nir);
 
 void ac_nir_translate(struct ac_llvm_context *ac, struct ac_shader_abi *abi,
-		      const struct ac_shader_args *args, struct nir_shader *nir);
+                      const struct ac_shader_args *args, struct nir_shader *nir);
 
-void
-ac_handle_shader_output_decl(struct ac_llvm_context *ctx,
-			     struct ac_shader_abi *abi,
-			     struct nir_shader *nir,
-			     struct nir_variable *variable,
-			     gl_shader_stage stage);
+void ac_handle_shader_output_decl(struct ac_llvm_context *ctx, struct ac_shader_abi *abi,
+                                  struct nir_shader *nir, struct nir_variable *variable,
+                                  gl_shader_stage stage);
 
 void ac_emit_barrier(struct ac_llvm_context *ac, gl_shader_stage stage);
 

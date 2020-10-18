@@ -150,7 +150,7 @@ This option specifies the geometry parameters for the top-level
 window.
 See \(lqGEOMETRY SPECIFICATIONS\(rq in
 .BR X (@miscmansuffix@)
-for a discusson of this option's syntax.
+for a discussion of this option's syntax.
 This window corresponds to the root window of the nested server.
 The width
 .I W

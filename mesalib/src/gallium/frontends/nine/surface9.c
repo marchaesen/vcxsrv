@@ -463,13 +463,13 @@ NineSurface9_LockRect( struct NineSurface9 *This,
     }
 
     if (Flags & D3DLOCK_DISCARD) {
-        usage = PIPE_TRANSFER_WRITE | PIPE_TRANSFER_DISCARD_RANGE;
+        usage = PIPE_MAP_WRITE | PIPE_MAP_DISCARD_RANGE;
     } else {
         usage = (Flags & D3DLOCK_READONLY) ?
-            PIPE_TRANSFER_READ : PIPE_TRANSFER_READ_WRITE;
+            PIPE_MAP_READ : PIPE_MAP_READ_WRITE;
     }
     if (Flags & D3DLOCK_DONOTWAIT)
-        usage |= PIPE_TRANSFER_DONTBLOCK;
+        usage |= PIPE_MAP_DONTBLOCK;
 
     if (pRect) {
         /* Windows XP accepts invalid locking rectangles, Windows 7 rejects
@@ -728,7 +728,7 @@ NineSurface9_CopyDefaultToMem( struct NineSurface9 *This,
 
     pipe = NineDevice9_GetPipe(This->base.base.device);
     p_src = pipe->transfer_map(pipe, r_src, From->level,
-                               PIPE_TRANSFER_READ,
+                               PIPE_MAP_READ,
                                &src_box, &transfer);
     p_dst = This->data;
 

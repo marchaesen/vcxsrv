@@ -118,7 +118,7 @@ CopySwap32Write(ClientPtr pClient, int size, CARD32 *pbuf)
         nbytes = (toLast - to) << 2;
         while (to < toLast) {
             /* can't write "cpswapl(*from++, *to++)" because cpswapl is a macro
-               that evaulates its args more than once */
+               that evaluates its args more than once */
             cpswapl(*from, *to);
             from++;
             to++;
@@ -165,7 +165,7 @@ CopySwap16Write(ClientPtr pClient, int size, short *pbuf)
         nbytes = (toLast - to) << 1;
         while (to < toLast) {
             /* can't write "cpswaps(*from++, *to++)" because cpswaps is a macro
-               that evaulates its args more than once */
+               that evaluates its args more than once */
             cpswaps(*from, *to);
             from++;
             to++;

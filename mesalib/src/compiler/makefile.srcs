@@ -41,8 +41,8 @@ glsl/ir_expression_operation_constant.h: glsl/ir_expression_operation.py
 glsl/ir_expression_operation_strings.h: glsl/ir_expression_operation.py
 	$(PYTHON_GEN) $(srcdir)/glsl/ir_expression_operation.py strings > $@
 
-glsl/float64_glsl.h: glsl/xxd.py glsl/float64.glsl
-	$(PYTHON_GEN) $(srcdir)/glsl/xxd.py $(srcdir)/glsl/float64.glsl $@ -n float64_source
+glsl/float64_glsl.h: $(srcdir)/../util/xxd.py glsl/float64.glsl
+	$(PYTHON_GEN) $(srcdir)/../util/xxd.py $(srcdir)/glsl/float64.glsl $@ -n float64_source
 
 nir/nir_builder_opcodes.h: nir/nir_opcodes.py nir/nir_builder_opcodes_h.py
 	$(PYTHON_GEN) $(srcdir)/nir/nir_builder_opcodes_h.py > $@
@@ -70,4 +70,7 @@ spirv/spirv_info.c: spirv/spirv_info_c.py spirv/spirv.core.grammar.json
 
 spirv/vtn_gather_types.c: spirv/vtn_gather_types_c.py spirv/spirv.core.grammar.json
 	$(PYTHON_GEN) $(srcdir)/spirv/vtn_gather_types_c.py $(srcdir)/spirv/spirv.core.grammar.json $@
+
+spirv/vtn_generator_ids.h: spirv/vtn_generator_ids_h.py spirv/spir-v.xml
+	$(PYTHON_GEN) $(srcdir)/spirv/vtn_generator_ids_h.py $(srcdir)/spirv/spir-v.xml $@
 

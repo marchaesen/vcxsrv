@@ -5,13 +5,20 @@ set -o xtrace
 
 VERSION=`cat install/VERSION`
 
+rm -rf results
 cd /piglit
 
 PIGLIT_OPTIONS=$(echo $PIGLIT_OPTIONS | head -n 1)
+set +e
 xvfb-run --server-args="-noreset" sh -c \
          "export LD_LIBRARY_PATH=$OLDPWD/install/lib;
-         wflinfo --platform glx --api gl --profile core | grep \"Mesa $VERSION\\\$\" &&
-         ./piglit run -j4 $PIGLIT_OPTIONS $PIGLIT_PROFILES $OLDPWD/results"
+         wflinfo --platform glx --api gl --profile core | tee /tmp/version.txt | grep \"Mesa $VERSION\\\$\" &&
+         ./piglit run -j${FDO_CI_CONCURRENT:-4} $PIGLIT_OPTIONS $PIGLIT_PROFILES $OLDPWD/results"
+retVal=$?
+if [ $retVal -ne 0 ]; then
+    echo "Found $(cat /tmp/version.txt), expected $VERSION"
+fi
+set -e
 
 PIGLIT_RESULTS=${PIGLIT_RESULTS:-$PIGLIT_PROFILES}
 mkdir -p .gitlab-ci/piglit

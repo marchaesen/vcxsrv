@@ -72,7 +72,7 @@ typedef struct {
     HashTable     visitedResources;
 
     /* Used by AddSubResourceSizeSpec when AddResourceSizeValue is
-       handling crossreferences */
+       handling cross-references */
     HashTable     visitedSubResources;
 
     /* used when ConstructResourceBytesCtx is passed to
@@ -442,7 +442,7 @@ WillConstructMask(ClientPtr client, CARD32 mask,
            client id spec
 
     @param sendClient Which client wishes to receive this answer. Used for
-                      byte endianess.
+                      byte endianness.
     @param client     Which client are we considering.
     @param mask       The client id spec mask indicating which information
                       we want about this client.
@@ -609,7 +609,7 @@ ProcXResQueryClientIds (ClientPtr client)
     return rc;
 }
 
-/** @brief Swaps xXResResourceIdSpec endianess */
+/** @brief Swaps xXResResourceIdSpec endianness */
 static void
 SwapXResResourceIdSpec(xXResResourceIdSpec *spec)
 {
@@ -617,7 +617,7 @@ SwapXResResourceIdSpec(xXResResourceIdSpec *spec)
     swapl(&spec->type);
 }
 
-/** @brief Swaps xXResResourceSizeSpec endianess */
+/** @brief Swaps xXResResourceSizeSpec endianness */
 static void
 SwapXResResourceSizeSpec(xXResResourceSizeSpec *size)
 {
@@ -627,7 +627,7 @@ SwapXResResourceSizeSpec(xXResResourceSizeSpec *size)
     swapl(&size->useCount);
 }
 
-/** @brief Swaps xXResResourceSizeValue endianess */
+/** @brief Swaps xXResResourceSizeValue endianness */
 static void
 SwapXResResourceSizeValue(xXResResourceSizeValue *rep)
 {

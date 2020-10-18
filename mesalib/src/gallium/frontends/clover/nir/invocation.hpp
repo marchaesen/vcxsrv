@@ -24,10 +24,20 @@
 #define CLOVER_NIR_INVOCATION_HPP
 
 #include "core/module.hpp"
+#include <util/disk_cache.h>
+
+struct nir_shader;
 
 namespace clover {
    class device;
    namespace nir {
+      void check_for_libclc(const device &dev);
+
+      // converts libclc spirv into nir
+      nir_shader *load_libclc_nir(const device &dev, std::string &r_log);
+
+      struct disk_cache *create_clc_disk_cache(void);
+
       // converts a given spirv module to nir
       module spirv_to_nir(const module &mod, const device &dev, std::string &r_log);
    }

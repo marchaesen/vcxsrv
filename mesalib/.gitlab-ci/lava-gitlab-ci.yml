@@ -1,26 +1,69 @@
-.lava-test:
+variables:
+  DISTRIBUTION_TAG: "2020-10-08-new-kernel"
+
+.kernel+rootfs:
+  stage: container-2
   extends:
     - .ci-run-policy
   variables:
+    GIT_STRATEGY: fetch
+    KERNEL_URL: "https://gitlab.freedesktop.org/tomeu/linux/-/archive/v5.9-rc5-for-mesa-ci/linux-v5.9-rc5-for-mesa-ci.tar.gz"
+    UPLOAD_FOR_LAVA: 1
+  script:
+    - .gitlab-ci/container/lava_build.sh
+
+kernel+rootfs_amd64:
+  extends:
+    - .use-x86_build-base
+    - .kernel+rootfs
+  image: "$CI_REGISTRY_IMAGE/debian/x86_build-base:$BASE_TAG"
+  variables:
+    DEBIAN_ARCH: "amd64"
+
+kernel+rootfs_arm64:
+  extends:
+    - .use-arm_build
+    - .kernel+rootfs
+  tags:
+    - aarch64
+  variables:
+    DEBIAN_ARCH: "arm64"
+
+kernel+rootfs_armhf:
+  extends:
+    - kernel+rootfs_arm64
+  variables:
+    DEBIAN_ARCH: "armhf"
+
+.lava-test:
+  extends:
+    - .ci-run-policy
+  # Cancel job if a newer commit is pushed to the same branch
+  interruptible: true
+  variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
     ENV_VARS: "DEQP_PARALLEL=6"
+    FIXED_ENV_VARS: "CI_PIPELINE_ID=${CI_PIPELINE_ID} CI_JOB_ID=${CI_JOB_ID} CI_PROJECT_PATH=${CI_PROJECT_PATH} CI_JOB_JWT=${CI_JOB_JWT} TRACIE_NO_UNIT_TESTS=1 TRACIE_UPLOAD_TO_MINIO=1 DRIVER_NAME=${DRIVER_NAME}"
     DEQP_VERSION: gles2
+    ARTIFACTS_PREFIX: "https://minio-packet.freedesktop.org/mesa-lava/"
+    MESA_URL: "https://minio-packet.freedesktop.org/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}/mesa-${ARCH}.tar.gz"
   script:
-    - mkdir -p /srv/${FILES_HOST_NAME}/$CI_JOB_ID/
-    - cp /lava-files/${KERNEL_IMAGE_NAME} /srv/${FILES_HOST_NAME}/$CI_JOB_ID/.
-    - cp /lava-files/${DEVICE_TYPE}.dtb /srv/${FILES_HOST_NAME}/$CI_JOB_ID/.
-    - tar -C /lava-files/rootfs-${ARCH} -xf artifacts/install.tar
-    - pushd /lava-files/rootfs-${ARCH}
-    - find -H  |  cpio -H newc -o | gzip -c - > /srv/${FILES_HOST_NAME}/$CI_JOB_ID/lava-rootfs-${ARCH}.cpio.gz
-    - popd
+    # Try to use the kernel and rootfs built in mainline first, to save cycles
+    - >
+      if wget -q --method=HEAD "${ARTIFACTS_PREFIX}/mesa/mesa/${DISTRIBUTION_TAG}/${ARCH}/done"; then
+        ARTIFACTS_URL="${ARTIFACTS_PREFIX}/mesa/mesa/${DISTRIBUTION_TAG}/${ARCH}"
+      else
+        ARTIFACTS_URL="${ARTIFACTS_PREFIX}/${CI_PROJECT_PATH}/${DISTRIBUTION_TAG}/${ARCH}"
+      fi
     - >
       artifacts/generate_lava.py \
-        --template artifacts/lava-deqp.yml.jinja2 \
+        --template artifacts/lava-${TEST_SUITE}.yml.jinja2 \
         --pipeline-info "$CI_PIPELINE_URL on $CI_COMMIT_REF_NAME ${CI_NODE_INDEX}/${CI_NODE_TOTAL}" \
-        --base-artifacts-url ${FILES_HOST_URL}/$CI_JOB_ID \
+        --base-artifacts-url ${ARTIFACTS_URL} \
+        --mesa-url ${MESA_URL} \
         --device-type ${DEVICE_TYPE} \
-        --env-vars "${ENV_VARS}" \
-        --arch ${ARCH} \
+        --dtb ${DTB} \
+        --env-vars "${ENV_VARS} ${FIXED_ENV_VARS}" \
         --deqp-version ${DEQP_VERSION} \
         --kernel-image-name ${KERNEL_IMAGE_NAME} \
         --kernel-image-type "${KERNEL_IMAGE_TYPE}" \
@@ -29,17 +72,15 @@
         --lava-tags "${LAVA_TAGS}" \
         --ci-node-index "${CI_NODE_INDEX}" \
         --ci-node-total "${CI_NODE_TOTAL}"
-    - lava_job_id=`lavacli jobs submit lava-deqp.yml` || lavacli jobs submit lava-deqp.yml
+    - lava_job_id=`lavacli jobs submit lava-${TEST_SUITE}.yml` || lavacli jobs submit lava-${TEST_SUITE}.yml
     - echo $lava_job_id
     - rm -rf artifacts/*
-    - cp lava-deqp.yml artifacts/.
-    - lavacli jobs logs $lava_job_id | tee artifacts/lava-deqp-$lava_job_id.log
+    - cp lava-${TEST_SUITE}.yml artifacts/.
+    - lavacli jobs logs $lava_job_id | tee artifacts/lava-${TEST_SUITE}-$lava_job_id.log
     - lavacli jobs show $lava_job_id
-    - result=`lavacli results $lava_job_id 0_deqp deqp | head -1`
+    - result=`lavacli results $lava_job_id 0_${TEST_SUITE} ${TEST_SUITE} | head -1`
     - echo $result
     - '[[ "$result" == "pass" ]]'
-  after_script:
-    - rm -rf /srv/${FILES_HOST_NAME}/$CI_JOB_ID/
   artifacts:
     name: "mesa_${CI_JOB_NAME}"
     when: always
@@ -52,13 +93,12 @@
     KERNEL_IMAGE_NAME: zImage
     KERNEL_IMAGE_TYPE: "type:\ zimage"
     BOOT_METHOD: u-boot
+    TEST_SUITE: "deqp"
   extends:
     - .lava-test
     - .use-arm_build
-  dependencies:
-    - meson-armhf
   needs:
-    - arm_build
+    - kernel+rootfs_armhf
     - meson-armhf
 
 .lava-test:arm64:
@@ -67,14 +107,58 @@
     KERNEL_IMAGE_NAME: Image
     KERNEL_IMAGE_TYPE: "type:\ image"
     BOOT_METHOD: u-boot
+    TEST_SUITE: "deqp"
   extends:
     - .lava-test
     - .use-arm_build
   dependencies:
     - meson-arm64
   needs:
-    - arm_build
+    - kernel+rootfs_arm64
     - meson-arm64
+
+.lava-test:amd64:
+  variables:
+    ARCH: amd64
+    KERNEL_IMAGE_NAME: bzImage
+    KERNEL_IMAGE_TYPE: "type:\ zimage"
+    BOOT_METHOD: u-boot
+    TEST_SUITE: "deqp"
+  extends:
+    - .lava-test
+    - .use-arm_build
+  needs:
+    - kernel+rootfs_amd64
+    - meson-testing
+
+.lava-traces-base:
+  after_script:
+    - mkdir -p artifacts
+    - wget -O "artifacts/junit.xml" "https://minio-packet.freedesktop.org/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}/${CI_JOB_ID}/traces/junit.xml"
+  artifacts:
+    reports:
+      junit: artifacts/junit.xml
+
+.lava-traces:amd64:
+  variables:
+    TEST_SUITE: "tracie"
+  extends:
+    - .lava-test:amd64
+    - .lava-traces-base
+
+.lava-traces:armhf:
+  variables:
+    TEST_SUITE: "tracie"
+  extends:
+    - .lava-test:armhf
+    - .lava-traces-base
+
+.lava-traces:arm64:
+  variables:
+    TEST_SUITE: "tracie"
+  extends:
+    - .lava-test:arm64
+    - .lava-traces-base
 
 panfrost-t720-gles2:arm64:
   extends:
@@ -82,10 +166,9 @@ panfrost-t720-gles2:arm64:
     - .panfrost-rules
   variables:
     DEVICE_TYPE: sun50i-h6-pine-h64
+    DTB: ${DEVICE_TYPE}
     GPU_VERSION: panfrost-t720
     ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T720"
-    FILES_HOST_NAME: "mesa-ci-lava-files.freedesktop.org"
-    FILES_HOST_URL: "https://mesa-ci-lava-files.freedesktop.org"
   tags:
     - mesa-ci-aarch64-lava-collabora
 
@@ -95,45 +178,74 @@ panfrost-t760-gles2:armhf:
     - .panfrost-rules
   variables:
     DEVICE_TYPE: rk3288-veyron-jaq
+    DTB: ${DEVICE_TYPE}
     GPU_VERSION: panfrost-t760
     BOOT_METHOD: depthcharge
     KERNEL_IMAGE_TYPE: ""
     ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T760"
-    FILES_HOST_NAME: "mesa-ci-lava-files.freedesktop.org"
-    FILES_HOST_URL: "https://mesa-ci-lava-files.freedesktop.org"
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+.panfrost-t760-traces:armhf:
+  extends:
+    - .lava-traces:armhf
+    - .panfrost-rules
+  variables:
+    DEVICE_TYPE: rk3288-veyron-jaq
+    DTB: ${DEVICE_TYPE}
+    GPU_VERSION: panfrost-t760
+    DRIVER_NAME: panfrost
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
+    ENV_VARS: "PAN_MESA_DEBUG=deqp MESA_GLES_VERSION_OVERRIDE=3.1 MESA_GL_VERSION_OVERRIDE=3.3 MESA_GLSL_VERSION_OVERRIDE=330"
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+.lava-rk3399-gru-kevin:
+  extends:
+    - .panfrost-rules
+  variables:
+    DEVICE_TYPE: rk3399-gru-kevin
+    DTB: ${DEVICE_TYPE}
+    GPU_VERSION: panfrost-t860
+    DRIVER_NAME: panfrost
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
   tags:
     - mesa-ci-aarch64-lava-collabora
 
 panfrost-t860-gles2:arm64:
   extends:
     - .lava-test:arm64
-    - .panfrost-rules
+    - .lava-rk3399-gru-kevin
   variables:
-    DEVICE_TYPE: rk3399-gru-kevin
-    GPU_VERSION: panfrost-t860
-    BOOT_METHOD: depthcharge
-    KERNEL_IMAGE_TYPE: ""
     ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T860"
-    FILES_HOST_NAME: "mesa-ci-lava-files.freedesktop.org"
-    FILES_HOST_URL: "https://mesa-ci-lava-files.freedesktop.org"
-  tags:
-    - mesa-ci-aarch64-lava-collabora
 
 panfrost-t860-gles3:arm64:
+  parallel: 2
+  extends:
+    - .lava-test:arm64
+    - .lava-rk3399-gru-kevin
+  variables:
+    DEQP_VERSION: gles3
+    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T860"
+
+panfrost-t860-traces:arm64:
+  extends:
+    - .lava-traces:arm64
+    - .lava-rk3399-gru-kevin
+  variables:
+    ENV_VARS: "PAN_MESA_DEBUG=deqp MESA_GLES_VERSION_OVERRIDE=3.1 MESA_GL_VERSION_OVERRIDE=3.3 MESA_GLSL_VERSION_OVERRIDE=330"
+
+panfrost-g52-gles2:arm64:
   extends:
     - .lava-test:arm64
     - .panfrost-rules
   variables:
-    DEVICE_TYPE: rk3399-gru-kevin
-    GPU_VERSION: panfrost-t860
-    BOOT_METHOD: depthcharge
-    KERNEL_IMAGE_TYPE: ""
-    DEQP_VERSION: gles3
-    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T860"
-    CI_NODE_INDEX: 1
-    CI_NODE_TOTAL: 5
-    FILES_HOST_NAME: "mesa-ci-lava-files.freedesktop.org"
-    FILES_HOST_URL: "https://mesa-ci-lava-files.freedesktop.org"
+    DEVICE_TYPE: meson-g12b-a311d-khadas-vim3
+    DTB: ${DEVICE_TYPE}
+    GPU_VERSION: panfrost-g52
+    ENV_VARS: "PAN_MESA_DEBUG=bifrost DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=G52"
   tags:
     - mesa-ci-aarch64-lava-collabora
 
@@ -143,6 +255,7 @@ panfrost-t860-gles3:arm64:
     - .panfrost-rules
   variables:
     DEVICE_TYPE: meson-gxm-khadas-vim2
+    DTB: ${DEVICE_TYPE}
     GPU_VERSION: panfrost-t820
     LAVA_TAGS: panfrost
     ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T820"
@@ -156,6 +269,7 @@ panfrost-t860-gles3:arm64:
     - .lima-rules
   variables:
     DEVICE_TYPE: sun8i-h3-libretech-all-h3-cc
+    DTB: ${DEVICE_TYPE}
     GPU_VERSION: lima
     ENV_VARS: "DEQP_PARALLEL=3 DEQP_EXPECTED_RENDERER=Mali400"
   tags:
@@ -167,7 +281,56 @@ panfrost-t860-gles3:arm64:
     - .lima-rules
   variables:
     DEVICE_TYPE: meson-gxl-s905x-libretech-cc
+    DTB: ${DEVICE_TYPE}
     GPU_VERSION: lima
     ENV_VARS: "DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=Mali450"
   tags:
     - mesa-ci-aarch64-lava-baylibre
+
+radeonsi-stoney-gles2:amd64:
+  extends:
+    - .lava-test:amd64
+    - .radeonsi-rules
+  variables:
+    DEVICE_TYPE: hp-11A-G6-EE-grunt
+    DTB: ""
+    GPU_VERSION: radeonsi-stoney
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
+    ENV_VARS: "DEQP_PARALLEL=4 DEQP_EXPECTED_RENDERER=STONEY NIR_VALIDATE=0"
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+radeonsi-stoney-gles3:amd64:
+  extends:
+    - radeonsi-stoney-gles2:amd64
+  variables:
+    DEQP_VERSION: gles3
+    CI_NODE_INDEX: 1
+    CI_NODE_TOTAL: 4
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+radeonsi-stoney-gles31:amd64:
+  extends:
+    - radeonsi-stoney-gles2:amd64
+  variables:
+    DEQP_VERSION: gles31
+    CI_NODE_INDEX: 1
+    CI_NODE_TOTAL: 5
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+radeonsi-stoney-traces:amd64:
+  extends:
+    - .lava-traces:amd64
+    - .radeonsi-rules
+  variables:
+    DEVICE_TYPE: hp-11A-G6-EE-grunt
+    DTB: ""
+    GPU_VERSION: radeonsi-stoney
+    DRIVER_NAME: radeonsi
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
+  tags:
+    - mesa-ci-aarch64-lava-collabora

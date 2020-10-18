@@ -55,7 +55,7 @@
  *
  * Note 2: The default epoch for the year is 2000.
  *         To change the default epoch, change the DMX_VENDOR_RELEASE
- *         macro below, bumb the minor version number, and change
+ *         macro below, bump the minor version number, and change
  *         xdpyinfo to key off the major/minor version to determine the
  *         new epoch.  Remember to do this on January 1, 2100 and every
  *         100 years thereafter.

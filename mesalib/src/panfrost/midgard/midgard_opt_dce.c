@@ -36,8 +36,11 @@ can_cull_mask(compiler_context *ctx, midgard_instruction *ins)
         if (ins->dest >= ctx->temp_count)
                 return false;
 
+        if (ins->dest == ctx->blend_src1)
+                return false;
+
         if (ins->type == TAG_LOAD_STORE_4)
-                if (load_store_opcode_props[ins->load_store.op].props & LDST_SPECIAL_MASK)
+                if (load_store_opcode_props[ins->op].props & LDST_SPECIAL_MASK)
                         return false;
 
         return true;
@@ -53,11 +56,11 @@ can_dce(midgard_instruction *ins)
                 return false;
 
         if (ins->type == TAG_LOAD_STORE_4)
-                if (load_store_opcode_props[ins->load_store.op].props & LDST_SIDE_FX)
+                if (load_store_opcode_props[ins->op].props & LDST_SIDE_FX)
                         return false;
 
         if (ins->type == TAG_TEXTURE_4)
-                if (ins->texture.op == TEXTURE_OP_BARRIER)
+                if (ins->op == TEXTURE_OP_BARRIER)
                         return false;
 
         return true;
@@ -135,7 +138,7 @@ midgard_opt_dead_move_eliminate(compiler_context *ctx, midgard_block *block)
         mir_foreach_instr_in_block_safe(block, ins) {
                 if (ins->type != TAG_ALU_4) continue;
                 if (ins->compact_branch) continue;
-                if (!OP_IS_MOVE(ins->alu.op)) continue;
+                if (!OP_IS_MOVE(ins->op)) continue;
 
                 /* Check if it's overwritten in this block before being read */
                 bool overwritten = false;

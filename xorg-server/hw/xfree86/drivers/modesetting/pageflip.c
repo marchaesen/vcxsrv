@@ -85,7 +85,7 @@ struct ms_flipdata {
 };
 
 /*
- * Per crtc pageflipping infomation,
+ * Per crtc pageflipping information,
  * These are submitted to the queuing code
  * one of them per crtc per flip.
  */
@@ -219,7 +219,7 @@ queue_flip_on_crtc(ScreenPtr screen, xf86CrtcPtr crtc,
         xf86DrvMsg(scrn->scrnIndex, X_WARNING, "flip queue retry\n");
     }
 
-    /* The page flip succeded. */
+    /* The page flip succeeded. */
     return TRUE;
 }
 
@@ -273,7 +273,7 @@ ms_do_pageflip(ScreenPtr screen,
      * Take a local reference on flipdata.
      * if the first flip fails, the sequence abort
      * code will free the crtc flip data, and drop
-     * it's reference which would cause this to be
+     * its reference which would cause this to be
      * freed when we still required it.
      */
     flipdata->flip_count++;

@@ -658,8 +658,8 @@ qpu_compatible_peripheral_access(const struct v3d_device_info *devinfo,
         /* V3D 4.1 and later allow TMU read along with a VPM read or write, and
          * WRTMUC with a TMU magic register write (other than tmuc).
          */
-        if ((a->sig.ldtmu && v3d_qpu_uses_vpm(b)) ||
-            (b->sig.ldtmu && v3d_qpu_uses_vpm(a))) {
+        if ((a->sig.ldtmu && v3d_qpu_reads_or_writes_vpm(b)) ||
+            (b->sig.ldtmu && v3d_qpu_reads_or_writes_vpm(a))) {
                 return true;
         }
 

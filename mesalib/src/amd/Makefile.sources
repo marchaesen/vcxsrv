@@ -49,7 +49,9 @@ AMD_COMMON_FILES = \
 	common/ac_shader_args.c \
 	common/ac_shader_args.h \
 	common/ac_shader_util.c \
-	common/ac_shader_util.h
+	common/ac_shader_util.h \
+	common/ac_shadowed_regs.c \
+	common/ac_shadowed_regs.h
 
 AMD_COMMON_LLVM_FILES = \
 	llvm/ac_llvm_build.c \
@@ -76,6 +78,7 @@ ACO_FILES = \
 	compiler/aco_dead_code_analysis.cpp \
 	compiler/aco_dominance.cpp \
 	compiler/aco_instruction_selection.cpp \
+	compiler/aco_instruction_selection.h \
 	compiler/aco_instruction_selection_setup.cpp \
 	compiler/aco_interface.cpp \
 	compiler/aco_interface.h \

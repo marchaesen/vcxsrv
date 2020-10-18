@@ -119,7 +119,7 @@ typedef struct {
     /* Hash table mapping from glyph sha1 to position in the glyph; we use
      * open addressing with a hash table size determined based on size and large
      * enough so that we always have a good amount of free space, so we can
-     * use linear probing. (Linear probing is preferrable to double hashing
+     * use linear probing. (Linear probing is preferable to double hashing
      * here because it allows us to easily remove entries.)
      */
     int *hashEntries;
@@ -130,7 +130,7 @@ typedef struct {
 
     PicturePtr picture;         /* Where the glyphs of the cache are stored */
     int yOffset;                /* y location within the picture where the cache starts */
-    int columns;                /* Number of columns the glyphs are layed out in */
+    int columns;                /* Number of columns the glyphs are laid out in */
     int evictionPosition;       /* Next random position to evict a glyph */
 } ExaGlyphCacheRec, *ExaGlyphCachePtr;
 
@@ -658,7 +658,7 @@ void
 Bool
 exaSetSharedPixmapBacking_mixed(PixmapPtr pPixmap, void *handle);
 Bool
-exaSharePixmapBacking_mixed(PixmapPtr pPixmap, ScreenPtr slave, void **handle_p);
+exaSharePixmapBacking_mixed(PixmapPtr pPixmap, ScreenPtr secondary, void **handle_p);
 
 /* exa_render.c */
 Bool

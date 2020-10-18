@@ -1,5 +1,7 @@
 job_name: mesa-deqp-{{ deqp_version }}-{{ gpu_version }} {{ pipeline_info }}
 device_type: {{ device_type }}
+context:
+  extra_nfsroot_args: " init=/init rootwait"
 timeouts:
   job:
     minutes: 40
@@ -21,24 +23,18 @@ actions:
 - deploy:
     timeout:
       minutes: 10
-{% if boot_method == "fastboot" %}
-{# fastboot has just one boot image with the dtb and rootfs packed in #}
-    to: fastboot
-    images:
-      boot:
-        url: {{ base_artifacts_url }}/{{ kernel_image_name }}
-{% else %}
     to: tftp
     kernel:
       url: {{ base_artifacts_url }}/{{ kernel_image_name }}
 {% if kernel_image_type %}
       {{ kernel_image_type }}
 {% endif %}
-    ramdisk:
-      url: {{ base_artifacts_url }}/lava-rootfs-{{ arch }}.cpio.gz
+    nfsrootfs:
+      url: {{ base_artifacts_url }}/lava-rootfs.tgz
       compression: gz
+{% if dtb %}
     dtb:
-      url: {{ base_artifacts_url }}/{{ device_type }}.dtb
+      url: {{ base_artifacts_url }}/{{ dtb }}.dtb
 {% endif %}
     os: oe
 - boot:
@@ -54,7 +50,7 @@ actions:
       download_command: wget -S --progress=dot:giga
       unpack_command: tar -C / -xzf
 {% else %}
-    commands: ramdisk
+    commands: nfs
 {% endif %}
     prompts:
       - 'lava-shell:'
@@ -78,6 +74,17 @@ actions:
           - mount -t devtmpfs none /dev || echo possibly already mounted
           - mkdir -p /dev/pts
           - mount -t devpts devpts /dev/pts
+          - echo "nameserver 8.8.8.8" > /etc/resolv.conf
+          - for i in 1 2 3; do sntp -sS pool.ntp.org && break || sleep 2; done
+
+          # amdgpu failed to find its firmware during boot, rebind
+          - echo 0000:00:01.0 > /sys/bus/pci/drivers/amdgpu/bind || true
+
+          - DEVFREQ_GOVERNOR=`find /sys/devices -name governor | grep gpu || true`
+          - echo performance > $DEVFREQ_GOVERNOR || true
+
+          - GPU_AUTOSUSPEND=`find /sys/devices -name autosuspend_delay_ms | grep gpu | head -1`
+          - echo -1 > $GPU_AUTOSUSPEND || true
 
 {% if env_vars %}
           - export {{ env_vars }}
@@ -85,6 +92,8 @@ actions:
 
           # deqp-runner.sh assumes some stuff is in pwd
           - cd /
+
+          - wget -S --progress=dot:giga -O- {{ mesa_url }} | tar -xz
 
           - export DEQP_NO_SAVE_RESULTS=1
           - 'export DEQP_RUNNER_OPTIONS="--shuffle false"'

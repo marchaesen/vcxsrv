@@ -19,38 +19,35 @@
 # SOFTWARE.
 
 xml_files = [
-  'a2xx.xml',
-  'a3xx.xml',
-  'a4xx.xml',
-  'a5xx.xml',
-  'a6xx.xml',
-  'adreno_common.xml',
-  'adreno_pm4.xml',
+  'adreno.xml',
+  'freedreno_copyright.xml',
+  'rules-ng.xsd',
 ]
 
+gen_header_py = files('gen_header.py')
+
 freedreno_xml_header_files = []
+
 foreach f : xml_files
   _name = f + '.h'
   freedreno_xml_header_files += custom_target(
     _name,
-    input : ['gen_header.py', f],
-    output : _name,
-    command : [prog_python, '@INPUT@'],
-    capture : true,
+    input: [gen_header_py, f],
+    output: _name,
+    command: [prog_python, '@INPUT0@', rnn_src_path, '@INPUT1@'],
+    capture: true,
+  )
+  _gzname = f + '.gz'
+  custom_target(
+    _gzname,
+    input: f,
+    output: _gzname,
+    command: [prog_gzip, '-kc', '@INPUT@'],
+    capture: true,
+    install_dir: rnn_install_path,
+    install: install_fd_decode_tools,
+    build_by_default: install_fd_decode_tools,
   )
 endforeach
 
-freedreno_xml_header_files += custom_target(
-    'a6xx-pack.xml.h',
-    input : ['gen_header.py', 'a6xx.xml'],
-    output : 'a6xx-pack.xml.h',
-    command : [prog_python, '@INPUT@', '--pack-structs'],
-    capture : true,
-  )
-freedreno_xml_header_files += custom_target(
-    'adreno-pm4-pack.xml.h',
-     input : ['gen_header.py', 'adreno_pm4.xml'],
-     output : 'adreno-pm4-pack.xml.h',
-     command : [prog_python, '@INPUT@', '--pack-structs'],
-     capture : true,
-  )
+subdir('adreno')

@@ -89,7 +89,7 @@ objects in <parameter>os</parameter>.
 @RET@		FcPattern *
 @FUNC@		FcPatternFilter
 @TYPE1@		FcPattern * 			@ARG1@		 p
-@TYPE2@		const FcObjectSet * 		@ARG1@		 os
+@TYPE2@		const FcObjectSet * 		@ARG2@		 os
 @PURPOSE@	Filter the objects of pattern
 @DESC@
 Returns a new pattern that only has those objects from

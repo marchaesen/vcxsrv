@@ -13,7 +13,7 @@ Consortium not be used in advertising or publicity pertaining to
 distribution of the software without written prior permission.
 
 HEWLETT-PACKARD MAKES NO WARRANTY OF ANY KIND WITH REGARD
-TO THIS SOFWARE, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+TO THIS SOFTWARE, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 PURPOSE.  Hewlett-Packard shall not be liable for errors
 contained herein or direct, indirect, special, incidental or

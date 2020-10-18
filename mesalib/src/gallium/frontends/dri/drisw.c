@@ -422,7 +422,7 @@ drisw_update_tex_buffer(struct dri_drawable *drawable,
 
    map = pipe_transfer_map(pipe, res,
                            0, 0, // level, layer,
-                           PIPE_TRANSFER_WRITE,
+                           PIPE_MAP_WRITE,
                            x, y, w, h, &transfer);
 
    /* Copy the Drawable content to the mapped texture buffer */
@@ -449,6 +449,10 @@ static __DRIimageExtension driSWImageExtension = {
     .destroyImage = dri2_destroy_image,
 };
 
+static const __DRIrobustnessExtension dri2Robustness = {
+   .base = { __DRI2_ROBUSTNESS, 1 }
+};
+
 /*
  * Backend function for init_screen.
  */
@@ -459,6 +463,18 @@ static const __DRIextension *drisw_screen_extensions[] = {
    &dri2ConfigQueryExtension.base,
    &dri2FenceExtension.base,
    &dri2NoErrorExtension.base,
+   &driSWImageExtension.base,
+   &dri2FlushControlExtension.base,
+   NULL
+};
+
+static const __DRIextension *drisw_robust_screen_extensions[] = {
+   &driTexBufferExtension.base,
+   &dri2RendererQueryExtension.base,
+   &dri2ConfigQueryExtension.base,
+   &dri2FenceExtension.base,
+   &dri2NoErrorExtension.base,
+   &dri2Robustness.base,
    &driSWImageExtension.base,
    &dri2FlushControlExtension.base,
    NULL
@@ -496,7 +512,7 @@ drisw_init_screen(__DRIscreen * sPriv)
    screen->swrast_no_present = debug_get_option_swrast_no_present();
 
    sPriv->driverPrivate = (void *)screen;
-   sPriv->extensions = drisw_screen_extensions;
+
    if (loader->base.version >= 4) {
       if (loader->putImageShm)
          lf = &drisw_shm_lf;
@@ -515,6 +531,12 @@ drisw_init_screen(__DRIscreen * sPriv)
    if (!configs)
       goto fail;
 
+   if (pscreen->get_param(pscreen, PIPE_CAP_DEVICE_RESET_STATUS_QUERY)) {
+      sPriv->extensions = drisw_robust_screen_extensions;
+      screen->has_reset_status_query = true;
+   }
+   else
+      sPriv->extensions = drisw_screen_extensions;
    screen->lookup_egl_image = dri2_lookup_egl_image;
 
    return configs;

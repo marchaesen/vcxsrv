@@ -35,6 +35,11 @@ struct gl_nir_linker_options {
    bool fill_parameters;
 };
 
+#define nir_foreach_gl_uniform_variable(var, shader) \
+   nir_foreach_variable_with_modes(var, shader, nir_var_uniform | \
+                                                nir_var_mem_ubo | \
+                                                nir_var_mem_ssbo)
+
 bool gl_nir_link_spirv(struct gl_context *ctx,
                        struct gl_shader_program *prog,
                        const struct gl_nir_linker_options *options);

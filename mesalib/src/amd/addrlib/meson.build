@@ -52,6 +52,11 @@ files_addrlib = files(
   'src/r800/siaddrlib.h',
 )
 
+cpp_args_addrlib = []
+if cpp.get_id() != 'msvc'
+  cpp_args_addrlib += '-Wno-unused-variable'
+endif
+
 libamdgpu_addrlib = static_library(
   'addrlib',
   files_addrlib,
@@ -62,6 +67,6 @@ libamdgpu_addrlib = static_library(
     ),
     inc_amd_common, inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux,
   ],
-  cpp_args : ['-Wno-unused-variable'],
+  cpp_args : cpp_args_addrlib,
   gnu_symbol_visibility : 'hidden',
 )

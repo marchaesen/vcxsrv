@@ -109,7 +109,7 @@ struct sw_winsys
                                 struct winsys_handle *whandle );
 
    /**
-    * \param flags  bitmask of PIPE_TRANSFER_x flags
+    * \param flags  bitmask of PIPE_MAP_x flags
     */
    void *
    (*displaytarget_map)( struct sw_winsys *ws, 

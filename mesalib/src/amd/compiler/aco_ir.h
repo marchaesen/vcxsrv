@@ -37,7 +37,8 @@
 #include "aco_opcodes.h"
 #include "aco_util.h"
 
-struct radv_nir_compiler_options;
+#include "vulkan/radv_shader.h"
+
 struct radv_shader_args;
 struct radv_shader_info;
 
@@ -46,9 +47,13 @@ namespace aco {
 extern uint64_t debug_flags;
 
 enum {
-   DEBUG_VALIDATE = 0x1,
+   DEBUG_VALIDATE_IR = 0x1,
    DEBUG_VALIDATE_RA = 0x2,
    DEBUG_PERFWARN = 0x4,
+   DEBUG_FORCE_WAITCNT = 0x8,
+   DEBUG_NO_VN = 0x10,
+   DEBUG_NO_OPT = 0x20,
+   DEBUG_NO_SCHED = 0x40,
 };
 
 /**
@@ -103,21 +108,78 @@ enum class Format : std::uint16_t {
    SDWA = 1 << 14,
 };
 
-enum barrier_interaction : uint8_t {
-   barrier_none = 0,
-   barrier_buffer = 0x1,
-   barrier_image = 0x2,
-   barrier_atomic = 0x4,
-   barrier_shared = 0x8,
-   /* used for geometry shaders to ensure vertex data writes are before the
-    * GS_DONE s_sendmsg. */
-   barrier_gs_data = 0x10,
-   /* used for geometry shaders to ensure s_sendmsg instructions are in-order. */
-   barrier_gs_sendmsg = 0x20,
-   /* used by barriers. created by s_barrier */
-   barrier_barrier = 0x40,
-   barrier_count = 7,
+enum storage_class : uint8_t {
+   storage_none = 0x0, /* no synchronization and can be reordered around aliasing stores */
+   storage_buffer = 0x1, /* SSBOs and global memory */
+   storage_atomic_counter = 0x2, /* not used for Vulkan */
+   storage_image = 0x4,
+   storage_shared = 0x8, /* or TCS output */
+   storage_vmem_output = 0x10, /* GS or TCS output stores using VMEM */
+   storage_scratch = 0x20,
+   storage_vgpr_spill = 0x40,
+   storage_count = 8,
 };
+
+enum memory_semantics : uint8_t {
+   semantic_none = 0x0,
+   /* for loads: don't move any access after this load to before this load (even other loads)
+    * for barriers: don't move any access after the barrier to before any
+    * atomics/control_barriers/sendmsg_gs_done before the barrier */
+   semantic_acquire = 0x1,
+   /* for stores: don't move any access before this store to after this store
+    * for barriers: don't move any access before the barrier to after any
+    * atomics/control_barriers/sendmsg_gs_done after the barrier */
+   semantic_release = 0x2,
+
+   /* the rest are for load/stores/atomics only */
+   /* cannot be DCE'd or CSE'd */
+   semantic_volatile = 0x4,
+   /* does not interact with barriers and assumes this lane is the only lane
+    * accessing this memory */
+   semantic_private = 0x8,
+   /* this operation can be reordered around operations of the same storage. says nothing about barriers */
+   semantic_can_reorder = 0x10,
+   /* this is a atomic instruction (may only read or write memory) */
+   semantic_atomic = 0x20,
+   /* this is instruction both reads and writes memory */
+   semantic_rmw = 0x40,
+
+   semantic_acqrel = semantic_acquire | semantic_release,
+   semantic_atomicrmw = semantic_volatile | semantic_atomic | semantic_rmw,
+};
+
+enum sync_scope : uint8_t {
+   scope_invocation = 0,
+   scope_subgroup = 1,
+   scope_workgroup = 2,
+   scope_queuefamily = 3,
+   scope_device = 4,
+};
+
+struct memory_sync_info {
+   memory_sync_info() : storage(storage_none), semantics(semantic_none), scope(scope_invocation) {}
+   memory_sync_info(int storage, int semantics=0, sync_scope scope=scope_invocation)
+      : storage((storage_class)storage), semantics((memory_semantics)semantics), scope(scope) {}
+
+   storage_class storage:8;
+   memory_semantics semantics:8;
+   sync_scope scope:8;
+
+   bool operator == (const memory_sync_info& rhs) const {
+      return storage == rhs.storage &&
+             semantics == rhs.semantics &&
+             scope == rhs.scope;
+   }
+
+   bool can_reorder() const {
+      if (semantics & semantic_acqrel)
+         return false;
+      /* Also check storage so that zero-initialized memory_sync_info can be
+       * reordered. */
+      return (!storage || (semantics & semantic_can_reorder)) && !(semantics & semantic_volatile);
+   }
+};
+static_assert(sizeof(memory_sync_info) == 3, "Unexpected padding");
 
 enum fp_round {
    fp_round_ne = 0,
@@ -130,6 +192,8 @@ enum fp_denorm {
    /* Note that v_rcp_f32, v_exp_f32, v_log_f32, v_sqrt_f32, v_rsq_f32 and
     * v_mad_f32/v_madak_f32/v_madmk_f32/v_mac_f32 always flush denormals. */
    fp_denorm_flush = 0x0,
+   fp_denorm_keep_in = 0x1,
+   fp_denorm_keep_out = 0x2,
    fp_denorm_keep = 0x3,
 };
 
@@ -141,6 +205,10 @@ struct float_mode {
           fp_round round16_64:2;
           unsigned denorm32:2;
           unsigned denorm16_64:2;
+      };
+      struct {
+         uint8_t round:4;
+         uint8_t denorm:4;
       };
       uint8_t val = 0;
    };
@@ -316,6 +384,20 @@ struct PhysReg {
 static constexpr PhysReg m0{124};
 static constexpr PhysReg vcc{106};
 static constexpr PhysReg vcc_hi{107};
+static constexpr PhysReg tba{108}; /* GFX6-GFX8 */
+static constexpr PhysReg tma{110}; /* GFX6-GFX8 */
+static constexpr PhysReg ttmp0{112};
+static constexpr PhysReg ttmp1{113};
+static constexpr PhysReg ttmp2{114};
+static constexpr PhysReg ttmp3{115};
+static constexpr PhysReg ttmp4{116};
+static constexpr PhysReg ttmp5{117};
+static constexpr PhysReg ttmp6{118};
+static constexpr PhysReg ttmp7{119};
+static constexpr PhysReg ttmp8{120};
+static constexpr PhysReg ttmp9{121};
+static constexpr PhysReg ttmp10{122};
+static constexpr PhysReg ttmp11{123};
 static constexpr PhysReg sgpr_null{125}; /* GFX10+ */
 static constexpr PhysReg exec{126};
 static constexpr PhysReg exec_lo{126};
@@ -368,7 +450,7 @@ public:
       if (v <= 64)
          setFixed(PhysReg{128u + v});
       else if (v >= 0xFFF0) /* [-16 .. -1] */
-         setFixed(PhysReg{192u + (0xFFFF - v)});
+         setFixed(PhysReg{(unsigned)(192 - (int16_t)v)});
       else if (v == 0x3800) /* 0.5 */
          setFixed(PhysReg{240});
       else if (v == 0xB800) /* -0.5 */
@@ -696,7 +778,8 @@ private:
 class Definition final
 {
 public:
-   constexpr Definition() : temp(Temp(0, s1)), reg_(0), isFixed_(0), hasHint_(0), isKill_(0), isPrecise_(0) {}
+   constexpr Definition() : temp(Temp(0, s1)), reg_(0), isFixed_(0), hasHint_(0),
+                            isKill_(0), isPrecise_(0), isNUW_(0) {}
    Definition(uint32_t index, RegClass type) noexcept
       : temp(index, type) {}
    explicit Definition(Temp tmp) noexcept
@@ -793,6 +876,17 @@ public:
       return isPrecise_;
    }
 
+   /* No Unsigned Wrap */
+   constexpr void setNUW(bool nuw) noexcept
+   {
+      isNUW_ = nuw;
+   }
+
+   constexpr bool isNUW() const noexcept
+   {
+      return isNUW_;
+   }
+
 private:
    Temp temp = Temp(0, s1);
    PhysReg reg_;
@@ -802,6 +896,7 @@ private:
          uint8_t hasHint_:1;
          uint8_t isKill_:1;
          uint8_t isPrecise_:1;
+         uint8_t isNUW_:1;
       };
       /* can't initialize bit-fields in c++11, so work around using a union */
       uint8_t control_ = 0;
@@ -914,13 +1009,13 @@ static_assert(sizeof(SOP2_instruction) == sizeof(Instruction) + 0, "Unexpected p
  *
  */
 struct SMEM_instruction : public Instruction {
-   barrier_interaction barrier;
+   memory_sync_info sync;
    bool glc : 1; /* VI+: globally coherent */
    bool dlc : 1; /* NAVI: device level coherent */
    bool nv : 1; /* VEGA only: Non-volatile */
-   bool can_reorder : 1;
    bool disable_wqm : 1;
-   uint32_t padding: 19;
+   bool prevent_overflow : 1; /* avoid overflow when combining additions */
+   uint32_t padding: 3;
 };
 static_assert(sizeof(SMEM_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
 
@@ -1048,11 +1143,13 @@ static_assert(sizeof(Interp_instruction) == sizeof(Instruction) + 4, "Unexpected
  *
  */
 struct DS_instruction : public Instruction {
+   memory_sync_info sync;
+   bool gds;
    int16_t offset0;
    int8_t offset1;
-   bool gds;
+   uint8_t padding;
 };
-static_assert(sizeof(DS_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
+static_assert(sizeof(DS_instruction) == sizeof(Instruction) + 8, "Unexpected padding");
 
 /**
  * Vector Memory Untyped-buffer Instructions
@@ -1063,7 +1160,7 @@ static_assert(sizeof(DS_instruction) == sizeof(Instruction) + 4, "Unexpected pad
  *
  */
 struct MUBUF_instruction : public Instruction {
-   uint16_t offset : 12; /* Unsigned byte offset - 12 bit */
+   memory_sync_info sync;
    bool offen : 1; /* Supply an offset from VGPR (VADDR) */
    bool idxen : 1; /* Supply an index from VGPR (VADDR) */
    bool addr64 : 1; /* SI, CIK: Address size is 64-bit */
@@ -1073,11 +1170,11 @@ struct MUBUF_instruction : public Instruction {
    bool tfe : 1; /* texture fail enable */
    bool lds : 1; /* Return read-data to LDS instead of VGPRs */
    bool disable_wqm : 1; /* Require an exec mask without helper invocations */
-   bool can_reorder : 1;
-   uint8_t padding : 2;
-   barrier_interaction barrier;
+   uint16_t offset : 12; /* Unsigned byte offset - 12 bit */
+   bool swizzled : 1;
+   uint32_t padding1 : 18;
 };
-static_assert(sizeof(MUBUF_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
+static_assert(sizeof(MUBUF_instruction) == sizeof(Instruction) + 8, "Unexpected padding");
 
 /**
  * Vector Memory Typed-buffer Instructions
@@ -1088,8 +1185,7 @@ static_assert(sizeof(MUBUF_instruction) == sizeof(Instruction) + 4, "Unexpected 
  *
  */
 struct MTBUF_instruction : public Instruction {
-   uint16_t offset; /* Unsigned byte offset - 12 bit */
-   barrier_interaction barrier;
+   memory_sync_info sync;
    uint8_t dfmt : 4; /* Data Format of data in memory buffer */
    uint8_t nfmt : 3; /* Numeric format of data in memory */
    bool offen : 1; /* Supply an offset from VGPR (VADDR) */
@@ -1099,8 +1195,8 @@ struct MTBUF_instruction : public Instruction {
    bool slc : 1; /* system level coherent */
    bool tfe : 1; /* texture fail enable */
    bool disable_wqm : 1; /* Require an exec mask without helper invocations */
-   bool can_reorder : 1;
-   uint32_t padding : 25;
+   uint32_t padding : 10;
+   uint16_t offset; /* Unsigned byte offset - 12 bit */
 };
 static_assert(sizeof(MTBUF_instruction) == sizeof(Instruction) + 8, "Unexpected padding");
 
@@ -1114,6 +1210,7 @@ static_assert(sizeof(MTBUF_instruction) == sizeof(Instruction) + 8, "Unexpected 
  *
  */
 struct MIMG_instruction : public Instruction {
+   memory_sync_info sync;
    uint8_t dmask; /* Data VGPR enable mask */
    uint8_t dim : 3; /* NAVI: dimensionality */
    bool unrm : 1; /* Force address to be un-normalized */
@@ -1127,11 +1224,9 @@ struct MIMG_instruction : public Instruction {
    bool a16 : 1; /* VEGA, NAVI: Address components are 16-bits */
    bool d16 : 1; /* Convert 32-bit data to 16-bit data */
    bool disable_wqm : 1; /* Require an exec mask without helper invocations */
-   bool can_reorder : 1;
-   uint8_t padding : 1;
-   barrier_interaction barrier;
+   uint32_t padding : 18;
 };
-static_assert(sizeof(MIMG_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
+static_assert(sizeof(MIMG_instruction) == sizeof(Instruction) + 8, "Unexpected padding");
 
 /**
  * Flat/Scratch/Global Instructions
@@ -1141,18 +1236,18 @@ static_assert(sizeof(MIMG_instruction) == sizeof(Instruction) + 4, "Unexpected p
  *
  */
 struct FLAT_instruction : public Instruction {
-   uint16_t offset; /* Vega/Navi only */
+   memory_sync_info sync;
    bool slc : 1; /* system level coherent */
    bool glc : 1; /* globally coherent */
    bool dlc : 1; /* NAVI: device level coherent */
    bool lds : 1;
    bool nv : 1;
    bool disable_wqm : 1; /* Require an exec mask without helper invocations */
-   bool can_reorder : 1;
-   uint8_t padding : 1;
-   barrier_interaction barrier;
+   uint32_t padding0 : 2;
+   uint16_t offset; /* Vega/Navi only */
+   uint16_t padding1;
 };
-static_assert(sizeof(FLAT_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
+static_assert(sizeof(FLAT_instruction) == sizeof(Instruction) + 8, "Unexpected padding");
 
 struct Export_instruction : public Instruction {
    uint8_t enabled_mask;
@@ -1181,8 +1276,10 @@ struct Pseudo_branch_instruction : public Instruction {
 static_assert(sizeof(Pseudo_branch_instruction) == sizeof(Instruction) + 8, "Unexpected padding");
 
 struct Pseudo_barrier_instruction : public Instruction {
+   memory_sync_info sync;
+   sync_scope exec_scope;
 };
-static_assert(sizeof(Pseudo_barrier_instruction) == sizeof(Instruction) + 0, "Unexpected padding");
+static_assert(sizeof(Pseudo_barrier_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
 
 enum ReduceOp : uint16_t {
    iadd8, iadd16, iadd32, iadd64,
@@ -1279,13 +1376,16 @@ static inline bool is_phi(aco_ptr<Instruction>& instr)
    return is_phi(instr.get());
 }
 
-barrier_interaction get_barrier_interaction(const Instruction* instr);
+memory_sync_info get_sync_info(const Instruction* instr);
+
 bool is_dead(const std::vector<uint16_t>& uses, Instruction *instr);
 
 bool can_use_opsel(chip_class chip, aco_opcode op, int idx, bool high);
 bool can_use_SDWA(chip_class chip, const aco_ptr<Instruction>& instr);
 /* updates "instr" and returns the old instruction (or NULL if no update was needed) */
 aco_ptr<Instruction> convert_to_SDWA(chip_class chip, aco_ptr<Instruction>& instr);
+
+uint32_t get_reduction_identity(ReduceOp op, unsigned idx);
 
 enum block_kind {
    /* uniform indicates that leaving this block,
@@ -1464,6 +1564,7 @@ class Program final {
 public:
    float_mode next_fp_mode;
    std::vector<Block> blocks;
+   std::vector<RegClass> temp_rc = {s1};
    RegisterDemand max_reg_demand = RegisterDemand();
    uint16_t num_waves = 0;
    uint16_t max_waves = 0; /* maximum number of waves, regardless of register usage */
@@ -1503,10 +1604,23 @@ public:
    bool collect_statistics = false;
    uint32_t statistics[num_statistics];
 
-   uint32_t allocateId()
+   struct {
+      void (*func)(void *private_data,
+                   enum radv_compiler_debug_level level,
+                   const char *message);
+      void *private_data;
+   } debug;
+
+   uint32_t allocateId(RegClass rc)
    {
       assert(allocationID <= 16777215);
+      temp_rc.push_back(rc);
       return allocationID++;
+   }
+
+   Temp allocateTmp(RegClass rc)
+   {
+      return Temp(allocateId(rc), rc);
    }
 
    uint32_t peekAllocationId()
@@ -1536,19 +1650,18 @@ private:
    uint32_t allocationID = 1;
 };
 
-struct TempHash {
-   std::size_t operator()(Temp t) const {
-      return t.id();
-   }
-};
-using TempSet = std::unordered_set<Temp, TempHash>;
-
 struct live {
    /* live temps out per block */
-   std::vector<TempSet> live_out;
+   std::vector<IDSet> live_out;
    /* register demand (sgpr/vgpr) per instruction per block */
    std::vector<std::vector<RegisterDemand>> register_demand;
 };
+
+void init();
+
+void init_program(Program *program, Stage stage, struct radv_shader_info *info,
+                  enum chip_class chip_class, enum radeon_family family,
+                  ac_shader_config *config);
 
 void select_program(Program *program,
                     unsigned shader_count,
@@ -1558,34 +1671,35 @@ void select_program(Program *program,
 void select_gs_copy_shader(Program *program, struct nir_shader *gs_shader,
                            ac_shader_config* config,
                            struct radv_shader_args *args);
+void select_trap_handler_shader(Program *program, struct nir_shader *shader,
+                                ac_shader_config* config,
+                                struct radv_shader_args *args);
 
-void lower_wqm(Program* program, live& live_vars,
-               const struct radv_nir_compiler_options *options);
 void lower_phis(Program* program);
 void calc_min_waves(Program* program);
 void update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand);
-live live_var_analysis(Program* program, const struct radv_nir_compiler_options *options);
+live live_var_analysis(Program* program);
 std::vector<uint16_t> dead_code_analysis(Program *program);
 void dominator_tree(Program* program);
 void insert_exec_mask(Program *program);
 void value_numbering(Program* program);
 void optimize(Program* program);
 void setup_reduce_temp(Program* program);
-void lower_to_cssa(Program* program, live& live_vars, const struct radv_nir_compiler_options *options);
-void register_allocation(Program *program, std::vector<TempSet>& live_out_per_block);
+void lower_to_cssa(Program* program, live& live_vars);
+void register_allocation(Program *program, std::vector<IDSet>& live_out_per_block);
 void ssa_elimination(Program* program);
 void lower_to_hw_instr(Program* program);
 void schedule_program(Program* program, live& live_vars);
-void spill(Program* program, live& live_vars, const struct radv_nir_compiler_options *options);
+void spill(Program* program, live& live_vars);
 void insert_wait_states(Program* program);
 void insert_NOPs(Program* program);
 unsigned emit_program(Program* program, std::vector<uint32_t>& code);
-void print_asm(Program *program, std::vector<uint32_t>& binary,
+bool print_asm(Program *program, std::vector<uint32_t>& binary,
                unsigned exec_size, std::ostream& out);
-void validate(Program* program, FILE *output);
-bool validate_ra(Program* program, const struct radv_nir_compiler_options *options, FILE *output);
+bool validate_ir(Program* program);
+bool validate_ra(Program* program);
 #ifndef NDEBUG
-void perfwarn(bool cond, const char *msg, Instruction *instr=NULL);
+void perfwarn(Program *program, bool cond, const char *msg, Instruction *instr=NULL);
 #else
 #define perfwarn(program, cond, msg, ...) do {} while(0)
 #endif
@@ -1596,6 +1710,14 @@ void collect_postasm_stats(Program *program, const std::vector<uint32_t>& code);
 
 void aco_print_instr(const Instruction *instr, FILE *output);
 void aco_print_program(const Program *program, FILE *output);
+
+void _aco_perfwarn(Program *program, const char *file, unsigned line,
+                   const char *fmt, ...);
+void _aco_err(Program *program, const char *file, unsigned line,
+              const char *fmt, ...);
+
+#define aco_perfwarn(program, ...) _aco_perfwarn(program, __FILE__, __LINE__, __VA_ARGS__)
+#define aco_err(program, ...) _aco_err(program, __FILE__, __LINE__, __VA_ARGS__)
 
 /* utilities for dealing with register demand */
 RegisterDemand get_live_changes(aco_ptr<Instruction>& instr);

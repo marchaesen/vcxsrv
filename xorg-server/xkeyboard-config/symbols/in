@@ -114,7 +114,7 @@ xkb_symbols "bolnagri" {
      key.type="FOUR_LEVEL";
 
     // Roman digits
-    key <TLDE>  { [   U0902,	U0901,		apostrophe, 	asciitilde ] }; // apostrophe: anusvara, candrabindu
+    key <TLDE>  { [   U0902,	U0901,		grave, 	asciitilde ] }; // grave: anusvara, candrabindu
     key <AE01>  { [   1,	exclam,		U0967,		exclam	   ] };
     key <AE02>  { [   2,	at,		U0968,		at	   ] };
     key <AE03>  { [   3,    	numbersign, 	U0969,		numbersign ] };
@@ -857,7 +857,7 @@ xkb_symbols "mal_lalitha" {
      key.type="FOUR_LEVEL";
 
     // Roman digits
-    key <TLDE>  { [   U0D4D,	U0D02,		apostrophe, 	asciitilde ] }; // apostrophe: virama(chandrakala),anusvara
+    key <TLDE>  { [   U0D4D,	U0D02,		grave, 	asciitilde ] }; // grave: virama(chandrakala),anusvara
     key <AE01>  { [   1,	exclam,	U0D67,		exclam	   ] };
     key <AE02>  { [   2,	at,		U0D68,		at	   ] };
     key <AE03>  { [   3,    	numbersign, 	U0D69,		numbersign ] };
@@ -1606,7 +1606,7 @@ xkb_symbols "jhelum" {
           key.type="FOUR_LEVEL";
 
      // Roman digits
-     key <TLDE>  { [  apostrophe, asciitilde, U0A02,U0A01 ] }; // apostrophe: anusvara, candrabindu
+     key <TLDE>  { [  grave, asciitilde, U0A02,U0A01 ] }; // grave: anusvara, candrabindu
      key <AE01>  { [   1,exclam,	U0A67,	exclam	   ] };
      key <AE02>  { [   2,at,	U0A68,	at	   ] };
      key <AE03>  { [   3,numbersign, U0A69,	numbersign ] };
@@ -1918,7 +1918,7 @@ xkb_symbols "hin-kagapa" {
      key.type="FOUR_LEVEL";
 
     // Roman digits
-    key <TLDE>  { [   apostrophe,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
+    key <TLDE>  { [   grave,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
     key <AE01>  { [   1,            exclam,       U0967          ] };
     key <AE02>  { [   2,            at,           U0968,  U20A8  ] };  // U20A8: generic rupee sign (Rs)
     key <AE03>  { [   3,            numbersign,   U0969          ] };
@@ -2009,7 +2009,7 @@ xkb_symbols "kan-kagapa" {
     key.type="FOUR_LEVEL";
 
     // Roman digits
-    key <TLDE>  { [   apostrophe,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
+    key <TLDE>  { [   grave,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
     key <AE01>  { [   1,            exclam,       U0CE7          ] };
     key <AE02>  { [   2,            at,           U0CE8,  U20A8  ] };  // U20A8: generic rupee sign (Rs)
     key <AE03>  { [   3,            numbersign,   U0CE9          ] };
@@ -2086,7 +2086,7 @@ xkb_symbols "tel-kagapa" {
     key.type="FOUR_LEVEL";
 
     // Roman digits
-    key <TLDE>  { [   apostrophe,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
+    key <TLDE>  { [   grave,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
     key <AE01>  { [   1,            exclam,       U0C67          ] };
     key <AE02>  { [   2,            at,           U0C68,  U20A8  ] };  // U20A8: generic rupee sign (Rs)
     key <AE03>  { [   3,            numbersign,   U0C69          ] };
@@ -2216,7 +2216,7 @@ xkb_symbols "eeyek" {
 partial alphanumeric_keys modifier_keys
 xkb_symbols "iipa" {
 
-    name[Group1]= "Indic IPA (IIPA)";
+    name[Group1]= "Indic (phonetic, IPA)";
     key <AE01>	{ [	1,		exclam]	};
     key <AE02>	{ [	2,		at]	};
     key <AE03>	{ [	3,		numbersign]	};
@@ -2274,7 +2274,7 @@ xkb_symbols "iipa" {
 // for typing Marathi language with some necessary symbols.
 
 xkb_symbols "marathi" {
-	name[Group1]="Marathi Inscript (Enhanced)";
+	name[Group1]="Marathi (enhanced Inscript)";
 	key <TLDE> { [ U0962, U090C,   grave, asciitilde  ] }; // Added  ॢ & ऌ
 	key <AE01> { [ U0967, exclam,       1, exclam      ] }; // Added exclamation mark
 	key <AE02> { [ U0968, U0945,       2, at          ] }; // Added ॅ
@@ -2329,11 +2329,11 @@ xkb_symbols "marathi" {
 
 // EXTRAS:
 
-//           Modi is an ancient Indian script that is used to write texts in Marathi, Hindi and Sanskrit.
-//           This keyboard layout is Based on Marathi KaGaPa phonetic layout. Just the characters which are not applicable in modi, are ommited.
+//           Modi is an ancient Indian script that is used to write texts in Marathi, Hindi and Sanskrit. It is most commonly used to write Marathi language in Maharashtra.
+//           This keyboard layout is Based on Marathi KaGaPa phonetic layout. Just the characters which are not applicable in Modi, are ommited.
 //
-//           Author : D.Abhi     <abhishekdeshpande128@gmail.com>
-//
+//           Created by : Abhishek Deshpande     <abhishekdeshpande128@gmail.com>
+//           Date : 9th February, 2020
 // 
 partial alphanumeric_keys
 xkb_symbols "modi-kagapa" {
@@ -2341,7 +2341,7 @@ xkb_symbols "modi-kagapa" {
      key.type="FOUR_LEVEL";
 
  // Roman digits
-    key <TLDE>  { [   apostrophe,   asciitilde,   U201C           ] };  // U201C: left double quotation mark
+    key <TLDE>  { [   grave,   asciitilde,   U201C           ] };  // U201C: left double quotation mark
     key <AE01>  { [   1,            exclam,       U11651          ] };
     key <AE02>  { [   2,            at,           U11652,  U20A8  ] };  // U20A8: generic rupee sign (Rs)
     key <AE03>  { [   3,            numbersign,   U11653          ] };
@@ -2390,9 +2390,9 @@ xkb_symbols "modi-kagapa" {
     key <AB04>  { [   U1162A,    U1163C,   U1160D           ] };  // V: Modi letter va, Modi vowel sign au, Modi letter au
     key <AB05>  { [   U11624,    U11625                     ] };  // B: Modi letter ba, bha
     key <AB06>  { [   U11621,    U1161C                     ] };  // N: Modi letter na, nna
-    key <AB07>  { [   U11626,    U1163D,   U093D,    U0950  ] };  // M: Modi ma, Modi anusvara, avagraha, Devanagari OM
+    key <AB07>  { [   U11626,    U1163D,   U093D,    U0950  ] };  // M: Modi ma, Modi anusvara, avagraha, Devanagari OM (Avagraha & OM commonly occur in Marathi texts, so they are mapped here for convenience.)
     key <AB08>  { [   comma,     U003C,    U11640,   U11644 ] };  // comma: comma, less than, Modi chandrabindu, Modi sign huva
-    key <AB09>  { [   period,    U003E                      ] };  // period: period, greater than, matra, candra o
+    key <AB09>  { [   period,    U003E                      ] };  // period: period, greater than
     key <AB10>  { [   slash,     question                   ] };
 
     include "level3(ralt_switch)"

@@ -139,6 +139,8 @@ extern void
 _mesa_load_state_parameters(struct gl_context *ctx,
                             struct gl_program_parameter_list *paramList);
 
+extern unsigned
+_mesa_program_state_value_size(const gl_state_index16 state[STATE_LENGTH]);
 
 extern GLbitfield
 _mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH]);

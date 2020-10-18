@@ -68,7 +68,7 @@
 #endif
 
 #ifdef MAXDEVICES
-/* MAXDEVICES represents the maximimum number of input devices usable
+/* MAXDEVICES represents the maximum number of input devices usable
  * at the same time plus one entry for DRM support.
  */
 #define MAX_FUNCS   (MAXDEVICES + 1)

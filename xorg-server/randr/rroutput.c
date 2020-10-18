@@ -32,27 +32,27 @@ RESTYPE RROutputType;
 void
 RROutputChanged(RROutputPtr output, Bool configChanged)
 {
-    /* set changed bits on the master screen only */
+    /* set changed bits on the primary screen only */
     ScreenPtr pScreen = output->pScreen;
-    rrScrPrivPtr mastersp;
+    rrScrPrivPtr primarysp;
 
     output->changed = TRUE;
     if (!pScreen)
         return;
 
     if (pScreen->isGPU) {
-        ScreenPtr master = pScreen->current_master;
-        if (!master)
+        ScreenPtr primary = pScreen->current_primary;
+        if (!primary)
             return;
-        mastersp = rrGetScrPriv(master);
+        primarysp = rrGetScrPriv(primary);
     }
     else {
-        mastersp = rrGetScrPriv(pScreen);
+        primarysp = rrGetScrPriv(pScreen);
     }
 
     RRSetChanged(pScreen);
     if (configChanged)
-        mastersp->configChanged = TRUE;
+        primarysp->configChanged = TRUE;
 }
 
 /*
@@ -609,7 +609,7 @@ ProcRRSetOutputPrimary(ClientPtr client)
     WindowPtr pWin;
     rrScrPrivPtr pScrPriv;
     int ret;
-    ScreenPtr slave;
+    ScreenPtr secondary;
 
     REQUEST_SIZE_MATCH(xRRSetOutputPrimaryReq);
 
@@ -627,7 +627,7 @@ ProcRRSetOutputPrimary(ClientPtr client)
             client->errorValue = stuff->window;
             return BadMatch;
         }
-        if (output->pScreen->isGPU && output->pScreen->current_master != pWin->drawable.pScreen) {
+        if (output->pScreen->isGPU && output->pScreen->current_primary != pWin->drawable.pScreen) {
             client->errorValue = stuff->window;
             return BadMatch;
         }
@@ -638,11 +638,11 @@ ProcRRSetOutputPrimary(ClientPtr client)
     {
         RRSetPrimaryOutput(pWin->drawable.pScreen, pScrPriv, output);
 
-        xorg_list_for_each_entry(slave,
-                                 &pWin->drawable.pScreen->slave_list,
-                                 slave_head) {
-            if (slave->is_output_slave)
-                RRSetPrimaryOutput(slave, rrGetScrPriv(slave), output);
+        xorg_list_for_each_entry(secondary,
+                                 &pWin->drawable.pScreen->secondary_list,
+                                 secondary_head) {
+            if (secondary->is_output_secondary)
+                RRSetPrimaryOutput(secondary, rrGetScrPriv(secondary), output);
         }
     }
 

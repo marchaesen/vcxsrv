@@ -121,7 +121,7 @@ static XlcResource resources[] = {
 
 /* Retrieves a number of attributes of an XlcCharSet.
    Return NULL if successful, otherwise the name of the first argument
-   specifiying a nonexistent attribute. */
+   specifying a nonexistent attribute. */
 static char *
 get_values(
     XlcCharSet charset,
@@ -137,7 +137,7 @@ get_values(
 
 /* Retrieves a number of attributes of an XlcCharSet.
    Return NULL if successful, otherwise the name of the first argument
-   specifiying a nonexistent attribute. */
+   specifying a nonexistent attribute. */
 char *
 _XlcGetCSValues(XlcCharSet charset, ...)
 {

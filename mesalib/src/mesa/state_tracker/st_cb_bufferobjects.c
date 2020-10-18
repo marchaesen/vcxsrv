@@ -133,13 +133,13 @@ st_bufferobj_subdata(struct gl_context *ctx,
     * buffer directly.
     *
     * If the buffer is mapped, suppress implicit buffer range invalidation
-    * by using PIPE_TRANSFER_MAP_DIRECTLY.
+    * by using PIPE_MAP_DIRECTLY.
     */
    struct pipe_context *pipe = st_context(ctx)->pipe;
 
    pipe->buffer_subdata(pipe, st_obj->buffer,
                         _mesa_bufferobj_mapped(obj, MAP_USER) ?
-                           PIPE_TRANSFER_MAP_DIRECTLY : 0,
+                           PIPE_MAP_DIRECTLY : 0,
                         offset, size, data);
 }
 
@@ -310,12 +310,12 @@ bufferobj_data(struct gl_context *ctx,
           *
           * If the buffer is mapped, we can't discard it.
           *
-          * PIPE_TRANSFER_MAP_DIRECTLY supresses implicit buffer range
+          * PIPE_MAP_DIRECTLY supresses implicit buffer range
           * invalidation.
           */
          pipe->buffer_subdata(pipe, st_obj->buffer,
-                              is_mapped ? PIPE_TRANSFER_MAP_DIRECTLY :
-                                          PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE,
+                              is_mapped ? PIPE_MAP_DIRECTLY :
+                                          PIPE_MAP_DISCARD_WHOLE_RESOURCE,
                               0, size, data);
          return GL_TRUE;
       } else if (is_mapped) {
@@ -453,49 +453,49 @@ st_bufferobj_invalidate(struct gl_context *ctx,
 
 
 /**
- * Convert GLbitfield of GL_MAP_x flags to gallium pipe_transfer_usage flags.
+ * Convert GLbitfield of GL_MAP_x flags to gallium pipe_map_flags flags.
  * \param wholeBuffer  is the whole buffer being mapped?
  */
-enum pipe_transfer_usage
+enum pipe_map_flags
 st_access_flags_to_transfer_flags(GLbitfield access, bool wholeBuffer)
 {
-   enum pipe_transfer_usage flags = 0;
+   enum pipe_map_flags flags = 0;
 
    if (access & GL_MAP_WRITE_BIT)
-      flags |= PIPE_TRANSFER_WRITE;
+      flags |= PIPE_MAP_WRITE;
 
    if (access & GL_MAP_READ_BIT)
-      flags |= PIPE_TRANSFER_READ;
+      flags |= PIPE_MAP_READ;
 
    if (access & GL_MAP_FLUSH_EXPLICIT_BIT)
-      flags |= PIPE_TRANSFER_FLUSH_EXPLICIT;
+      flags |= PIPE_MAP_FLUSH_EXPLICIT;
 
    if (access & GL_MAP_INVALIDATE_BUFFER_BIT) {
-      flags |= PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE;
+      flags |= PIPE_MAP_DISCARD_WHOLE_RESOURCE;
    }
    else if (access & GL_MAP_INVALIDATE_RANGE_BIT) {
       if (wholeBuffer)
-         flags |= PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE;
+         flags |= PIPE_MAP_DISCARD_WHOLE_RESOURCE;
       else
-         flags |= PIPE_TRANSFER_DISCARD_RANGE;
+         flags |= PIPE_MAP_DISCARD_RANGE;
    }
 
    if (access & GL_MAP_UNSYNCHRONIZED_BIT)
-      flags |= PIPE_TRANSFER_UNSYNCHRONIZED;
+      flags |= PIPE_MAP_UNSYNCHRONIZED;
 
    if (access & GL_MAP_PERSISTENT_BIT)
-      flags |= PIPE_TRANSFER_PERSISTENT;
+      flags |= PIPE_MAP_PERSISTENT;
 
    if (access & GL_MAP_COHERENT_BIT)
-      flags |= PIPE_TRANSFER_COHERENT;
+      flags |= PIPE_MAP_COHERENT;
 
    /* ... other flags ...
    */
 
    if (access & MESA_MAP_NOWAIT_BIT)
-      flags |= PIPE_TRANSFER_DONTBLOCK;
+      flags |= PIPE_MAP_DONTBLOCK;
    if (access & MESA_MAP_THREAD_SAFE_BIT)
-      flags |= PIPE_TRANSFER_THREAD_SAFE;
+      flags |= PIPE_MAP_THREAD_SAFE;
 
    return flags;
 }
@@ -518,7 +518,7 @@ st_bufferobj_map_range(struct gl_context *ctx,
    assert(offset < obj->Size);
    assert(offset + length <= obj->Size);
 
-   const enum pipe_transfer_usage transfer_flags =
+   const enum pipe_map_flags transfer_flags =
       st_access_flags_to_transfer_flags(access,
                                         offset == 0 && length == obj->Size);
 

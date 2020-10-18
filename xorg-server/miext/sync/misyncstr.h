@@ -65,7 +65,7 @@ struct _SyncTrigger {
     SyncObject *pSync;
     int64_t wait_value;         /* wait value */
     unsigned int value_type;    /* Absolute or Relative */
-    unsigned int test_type;     /* transition or Comparision type */
+    unsigned int test_type;     /* transition or Comparison type */
     int64_t test_value;         /* trigger event threshold value */
     Bool (*CheckTrigger)(struct _SyncTrigger *pTrigger,
                          int64_t newval);

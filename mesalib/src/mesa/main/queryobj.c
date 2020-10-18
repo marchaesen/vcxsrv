@@ -262,7 +262,6 @@ create_queries(struct gl_context *ctx, GLenum target, GLsizei n, GLuint *ids,
                bool dsa)
 {
    const char *func = dsa ? "glGenQueries" : "glCreateQueries";
-   GLuint first;
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "%s(%d)\n", func, n);
@@ -272,12 +271,11 @@ create_queries(struct gl_context *ctx, GLenum target, GLsizei n, GLuint *ids,
       return;
    }
 
-   first = _mesa_HashFindFreeKeyBlock(ctx->Query.QueryObjects, n);
-   if (first) {
+   if (_mesa_HashFindFreeKeys(ctx->Query.QueryObjects, ids, n)) {
       GLsizei i;
       for (i = 0; i < n; i++) {
          struct gl_query_object *q
-            = ctx->Driver.NewQueryObject(ctx, first + i);
+            = ctx->Driver.NewQueryObject(ctx, ids[i]);
          if (!q) {
             _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
             return;
@@ -286,8 +284,7 @@ create_queries(struct gl_context *ctx, GLenum target, GLsizei n, GLuint *ids,
             q->Target = target;
             q->EverBound = GL_TRUE;
          }
-         ids[i] = first + i;
-         _mesa_HashInsertLocked(ctx->Query.QueryObjects, first + i, q);
+         _mesa_HashInsertLocked(ctx->Query.QueryObjects, ids[i], q, true);
       }
    }
 }
@@ -457,7 +454,7 @@ _mesa_BeginQueryIndexed(GLenum target, GLuint index, GLuint id)
             _mesa_error(ctx, GL_OUT_OF_MEMORY, "glBeginQuery{Indexed}");
             return;
          }
-         _mesa_HashInsertLocked(ctx->Query.QueryObjects, id, q);
+         _mesa_HashInsertLocked(ctx->Query.QueryObjects, id, q, false);
       }
    }
    else {
@@ -599,7 +596,7 @@ _mesa_QueryCounter(GLuint id, GLenum target)
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glQueryCounter");
          return;
       }
-      _mesa_HashInsertLocked(ctx->Query.QueryObjects, id, q);
+      _mesa_HashInsertLocked(ctx->Query.QueryObjects, id, q, false);
    }
    else {
       if (q->Target && q->Target != GL_TIMESTAMP) {

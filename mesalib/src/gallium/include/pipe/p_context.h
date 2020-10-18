@@ -219,7 +219,7 @@ struct pipe_context {
    struct pipe_query *(*new_intel_perf_query_obj)(struct pipe_context *pipe,
                                                  unsigned query_index);
 
-   void (*begin_intel_perf_query)(struct pipe_context *pipe, struct pipe_query *q);
+   bool (*begin_intel_perf_query)(struct pipe_context *pipe, struct pipe_query *q);
 
    void (*end_intel_perf_query)(struct pipe_context *pipe, struct pipe_query *q);
 
@@ -319,6 +319,26 @@ struct pipe_context {
    void (*set_constant_buffer)( struct pipe_context *,
                                 enum pipe_shader_type shader, uint index,
                                 const struct pipe_constant_buffer *buf );
+
+   /**
+    * Set inlinable constants for constant buffer 0.
+    *
+    * These are constants that the driver would like to inline in the IR
+    * of the current shader and recompile it. Drivers can determine which
+    * constants they prefer to inline in finalize_nir and store that
+    * information in shader_info::*inlinable_uniform*. When the state tracker
+    * or frontend uploads constants to a constant buffer, it can pass
+    * inlinable constants separately via this call.
+    *
+    * Any set_constant_buffer call invalidates this state, so this function
+    * must be called after it. Binding a shader also invalidates this state.
+    *
+    * There is no PIPE_CAP for this. Drivers shouldn't set the shader_info
+    * fields if they don't want this or if they don't implement this.
+    */
+   void (*set_inlinable_constants)( struct pipe_context *,
+                                    enum pipe_shader_type shader,
+                                    uint num_values, uint32_t *values );
 
    void (*set_framebuffer_state)( struct pipe_context *,
                                   const struct pipe_framebuffer_state * );
@@ -674,7 +694,7 @@ struct pipe_context {
    void *(*transfer_map)(struct pipe_context *,
                          struct pipe_resource *resource,
                          unsigned level,
-                         unsigned usage,  /* a combination of PIPE_TRANSFER_x */
+                         unsigned usage,  /* a combination of PIPE_MAP_x */
                          const struct pipe_box *,
                          struct pipe_transfer **out_transfer);
 
@@ -694,7 +714,7 @@ struct pipe_context {
     */
    void (*buffer_subdata)(struct pipe_context *,
                           struct pipe_resource *,
-                          unsigned usage, /* a combination of PIPE_TRANSFER_x */
+                          unsigned usage, /* a combination of PIPE_MAP_x */
                           unsigned offset,
                           unsigned size,
                           const void *data);
@@ -702,7 +722,7 @@ struct pipe_context {
    void (*texture_subdata)(struct pipe_context *,
                            struct pipe_resource *,
                            unsigned level,
-                           unsigned usage, /* a combination of PIPE_TRANSFER_x */
+                           unsigned usage, /* a combination of PIPE_MAP_x */
                            const struct pipe_box *,
                            const void *data,
                            unsigned stride,

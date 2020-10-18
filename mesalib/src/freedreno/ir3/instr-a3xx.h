@@ -31,6 +31,22 @@
 #include <stdbool.h>
 #include <assert.h>
 
+void ir3_assert_handler(const char *expr, const char *file, int line,
+		const char *func) __attribute__((weak)) __attribute__ ((__noreturn__));
+
+/* A wrapper for assert() that allows overriding handling of a failed
+ * assert.  This is needed for tools like crashdec which can want to
+ * attempt to disassemble memory that might not actually be valid
+ * instructions.
+ */
+#define ir3_assert(expr) do { \
+		if (!(expr)) { \
+			if (ir3_assert_handler) { \
+				ir3_assert_handler(#expr, __FILE__, __LINE__, __func__); \
+			} \
+			assert(expr); \
+		} \
+	} while (0)
 /* size of largest OPC field of all the instruction categories: */
 #define NOPC_BITS 6
 
@@ -185,6 +201,9 @@ typedef enum {
 	OPC_DSYPP_1         = _OPC(5, 25),
 	OPC_RGETPOS         = _OPC(5, 26),
 	OPC_RGETINFO        = _OPC(5, 27),
+	/* cat5 meta instructions, placed above the cat5 opc field's size */
+	OPC_DSXPP_MACRO     = _OPC(5, 32),
+	OPC_DSYPP_MACRO     = _OPC(5, 33),
 
 	/* category 6: */
 	OPC_LDG             = _OPC(6, 0),        /* load-global */
@@ -246,6 +265,8 @@ typedef enum {
 #define opc_cat(opc) ((int)((opc) >> NOPC_BITS))
 #define opc_op(opc)  ((unsigned)((opc) & ((1 << NOPC_BITS) - 1)))
 
+const char *disasm_a3xx_instr_name(opc_t opc);
+
 typedef enum {
 	TYPE_F16 = 0,
 	TYPE_F32 = 1,
@@ -272,7 +293,7 @@ static inline uint32_t type_size(type_t type)
 	case TYPE_S8:
 		return 8;
 	default:
-		assert(0); /* invalid type */
+		ir3_assert(0); /* invalid type */
 		return 0;
 	}
 }
@@ -311,6 +332,21 @@ typedef union PACKED {
 	int32_t  idummy13  : 13;
 	int32_t  idummy8   : 8;
 } reg_t;
+
+/* comp:
+ *   0 - x
+ *   1 - y
+ *   2 - z
+ *   3 - w
+ */
+static inline uint32_t regid(int num, int comp)
+{
+	return (num << 2) | (comp & 0x3);
+}
+
+#define INVALID_REG      regid(63, 0)
+#define VALIDREG(r)      ((r) != INVALID_REG)
+#define CONDREG(r, val)  COND(VALIDREG(r), (val))
 
 /* special registers: */
 #define REG_A0 61       /* address register */
@@ -712,7 +748,8 @@ typedef struct PACKED {
 typedef struct PACKED {
 	/* dword0: */
 	uint32_t mustbe0  : 1;
-	uint32_t src1     : 13;
+	uint32_t src1     : 8;
+	uint32_t pad      : 5;
 	uint32_t ignore0  : 8;
 	uint32_t src1_im  : 1;
 	uint32_t src2_im  : 1;
@@ -725,15 +762,11 @@ typedef struct PACKED {
 /* dword1 encoding for dst_off: */
 typedef struct PACKED {
 	/* dword0: */
-	uint32_t dword0;
+	uint32_t dw0_pad1 : 9;
+	int32_t off_high : 5;
+	uint32_t dw0_pad2 : 18;
 
-	/* note: there is some weird stuff going on where sometimes
-	 * cat6->a.off is involved.. but that seems like a bug in
-	 * the blob, since it is used even if !cat6->src_off
-	 * It would make sense for there to be some more bits to
-	 * bring us to 11 bits worth of offset, but not sure..
-	 */
-	int32_t off       : 8;
+	uint32_t off      : 8;
 	uint32_t mustbe1  : 1;
 	uint32_t dst      : 8;
 	uint32_t pad1     : 15;
@@ -979,8 +1012,8 @@ static inline bool is_cat6_legacy(instr_t *instr, unsigned gpu_id)
 	 * in all cases.  So we can use this to detect new encoding:
 	 */
 	if ((cat6->pad3 & 0x8) && (cat6->pad5 & 0x2)) {
-		assert(gpu_id >= 600);
-		assert(instr->cat6.opc == 0);
+		ir3_assert(gpu_id >= 600);
+		ir3_assert(instr->cat6.opc == 0);
 		return false;
 	}
 
@@ -1113,7 +1146,5 @@ static inline bool is_cat3_float(opc_t opc)
 		return false;
 	}
 }
-
-int disasm_a3xx(uint32_t *dwords, int sizedwords, int level, FILE *out, unsigned gpu_id);
 
 #endif /* INSTR_A3XX_H_ */

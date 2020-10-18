@@ -466,6 +466,48 @@ handleVAEncSliceParameterBufferType(vlVaDriver *drv, vlVaContext *context, vlVaB
    return status;
 }
 
+static VAStatus
+handleVAEncPackedHeaderParameterBufferType(vlVaContext *context, vlVaBuffer *buf)
+{
+   VAStatus status = VA_STATUS_SUCCESS;
+
+   switch (u_reduce_video_profile(context->templat.profile)) {
+   case PIPE_VIDEO_FORMAT_HEVC:
+      break;
+
+   default:
+      return VA_STATUS_ERROR_UNIMPLEMENTED;
+   }
+
+   VAEncPackedHeaderParameterBuffer *param = (VAEncPackedHeaderParameterBuffer *)buf->data;
+   if (param->type == VAEncPackedHeaderSequence)
+      context->packed_header_type = param->type;
+   else
+      status = VA_STATUS_ERROR_UNIMPLEMENTED;
+
+   return status;
+}
+
+static VAStatus
+handleVAEncPackedHeaderDataBufferType(vlVaContext *context, vlVaBuffer *buf)
+{
+   VAStatus status = VA_STATUS_SUCCESS;
+
+   if (context->packed_header_type != VAEncPackedHeaderSequence)
+      return VA_STATUS_ERROR_UNIMPLEMENTED;
+
+   switch (u_reduce_video_profile(context->templat.profile)) {
+   case PIPE_VIDEO_FORMAT_HEVC:
+      status = vlVaHandleVAEncPackedHeaderDataBufferTypeHEVC(context, buf);
+      break;
+
+   default:
+      break;
+   }
+
+   return status;
+}
+
 VAStatus
 vlVaRenderPicture(VADriverContextP ctx, VAContextID context_id, VABufferID *buffers, int num_buffers)
 {
@@ -534,6 +576,13 @@ vlVaRenderPicture(VADriverContextP ctx, VAContextID context_id, VABufferID *buff
 
       case VAHuffmanTableBufferType:
          vlVaHandleHuffmanTableBufferType(context, buf);
+         break;
+
+      case VAEncPackedHeaderParameterBufferType:
+         handleVAEncPackedHeaderParameterBufferType(context, buf);
+         break;
+      case VAEncPackedHeaderDataBufferType:
+         handleVAEncPackedHeaderDataBufferType(context, buf);
          break;
 
       default:

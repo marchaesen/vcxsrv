@@ -137,14 +137,17 @@ static VkResult device_select_CreateInstance(const VkInstanceCreateInfo *pCreate
    PFN_vkCreateInstance fpCreateInstance =
       (PFN_vkCreateInstance)info->GetInstanceProcAddr(NULL, "vkCreateInstance");
    if (fpCreateInstance == NULL) {
+      free(info);
       return VK_ERROR_INITIALIZATION_FAILED;
    }
 
    chain_info->u.pLayerInfo = chain_info->u.pLayerInfo->pNext;
 
    VkResult result = fpCreateInstance(pCreateInfo, pAllocator, pInstance);
-   if (result != VK_SUCCESS)
+   if (result != VK_SUCCESS) {
+      free(info);
       return result;
+   }
 
    for (unsigned i = 0; i < pCreateInfo->enabledExtensionCount; i++) {
       if (!strcmp(pCreateInfo->ppEnabledExtensionNames[i], VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
@@ -228,7 +231,7 @@ static void print_gpu(const struct instance_info *info, unsigned index, VkPhysic
    fprintf(stderr, "\n");
 }
 
-static void fill_drm_device_info(const struct instance_info *info,
+static bool fill_drm_device_info(const struct instance_info *info,
                                  struct device_pci_info *drm_device,
                                  VkPhysicalDevice device)
 {
@@ -247,6 +250,7 @@ static void fill_drm_device_info(const struct instance_info *info,
    else
      info->GetPhysicalDeviceProperties(device, &properties.properties);
 
+   drm_device->cpu_device = properties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU;
    drm_device->dev_info.vendor_id = properties.properties.vendorID;
    drm_device->dev_info.device_id = properties.properties.deviceID;
    if (info->has_pci_bus) {
@@ -256,6 +260,7 @@ static void fill_drm_device_info(const struct instance_info *info,
      drm_device->bus_info.dev = ext_pci_properties.pciDevice;
      drm_device->bus_info.func = ext_pci_properties.pciFunction;
    }
+   return drm_device->cpu_device;
 }
 
 static int device_select_find_explicit_default(struct device_pci_info *pci_infos,
@@ -320,6 +325,35 @@ static int device_select_find_boot_vga_default(struct device_pci_info *pci_infos
    return default_idx;
 }
 
+static int device_select_find_non_cpu(struct device_pci_info *pci_infos,
+                                      uint32_t device_count)
+{
+   int default_idx = -1;
+
+   /* pick first GPU device */
+   for (unsigned i = 0; i < device_count; ++i) {
+      if (!pci_infos[i].cpu_device){
+         default_idx = i;
+         break;
+      }
+   }
+   return default_idx;
+}
+
+static int find_non_cpu_skip(struct device_pci_info *pci_infos,
+                        uint32_t device_count,
+                        int skip_idx)
+{
+   for (unsigned i = 0; i < device_count; ++i) {
+      if (i == skip_idx)
+         continue;
+      if (pci_infos[i].cpu_device)
+         continue;
+      return i;
+   }
+   return -1;
+}
+
 static uint32_t get_default_device(const struct instance_info *info,
                                    const char *selection,
                                    uint32_t physical_device_count,
@@ -328,7 +362,7 @@ static uint32_t get_default_device(const struct instance_info *info,
    int default_idx = -1;
    const char *dri_prime = getenv("DRI_PRIME");
    bool dri_prime_is_one = false;
-
+   int cpu_count = 0;
    if (dri_prime && !strcmp(dri_prime, "1"))
       dri_prime_is_one = true;
 
@@ -341,7 +375,7 @@ static uint32_t get_default_device(const struct instance_info *info,
      return 0;
 
    for (unsigned i = 0; i < physical_device_count; ++i) {
-      fill_drm_device_info(info, &pci_infos[i], pPhysicalDevices[i]);
+      cpu_count += fill_drm_device_info(info, &pci_infos[i], pPhysicalDevices[i]) ? 1 : 0;
    }
 
    if (selection)
@@ -352,16 +386,15 @@ static uint32_t get_default_device(const struct instance_info *info,
       default_idx = device_select_find_wayland_pci_default(pci_infos, physical_device_count);
    if (default_idx == -1 && info->has_xcb)
       default_idx = device_select_find_xcb_pci_default(pci_infos, physical_device_count);
-   if (info->has_pci_bus && default_idx == -1) {
+   if (default_idx == -1 && info->has_pci_bus)
       default_idx = device_select_find_boot_vga_default(pci_infos, physical_device_count);
-   }
+   if (default_idx == -1 && cpu_count)
+      default_idx = device_select_find_non_cpu(pci_infos, physical_device_count);
 
    /* DRI_PRIME=1 handling - pick any other device than default. */
-   if (default_idx != -1 && dri_prime_is_one && physical_device_count > 1) {
-      if (default_idx == 0)
-         default_idx = 1;
-      else if (default_idx == 1)
-         default_idx = 0;
+   if (default_idx != -1 && dri_prime_is_one && physical_device_count > (cpu_count + 1)) {
+      if (default_idx == 0 || default_idx == 1)
+         default_idx = find_non_cpu_skip(pci_infos, physical_device_count, default_idx);
    }
    free(pci_infos);
    return default_idx == -1 ? 0 : default_idx;

@@ -278,7 +278,7 @@ This option disables the RENDER extension.
 .sp
 .TP 8
 .BI "-noglxproxy"
-This option disables GLX proxy -- the build-in GLX extension
+This option disables GLX proxy -- the built-in GLX extension
 implementation that is DMX aware.
 .sp
 .TP 8

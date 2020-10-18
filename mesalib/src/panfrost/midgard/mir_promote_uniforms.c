@@ -43,7 +43,7 @@ mir_is_promoteable_ubo(midgard_instruction *ins)
         /* TODO: promote unaligned access via swizzle? */
 
         return (ins->type == TAG_LOAD_STORE_4) &&
-                (OP_IS_UBO_READ(ins->load_store.op)) &&
+                (OP_IS_UBO_READ(ins->op)) &&
                 !(ins->constants.u32[0] & 0xF) &&
                 !(ins->load_store.arg_1) &&
                 (ins->load_store.arg_2 == 0x1E) &&
@@ -186,7 +186,7 @@ midgard_promote_uniforms(compiler_context *ctx)
                 /* We do need the move for safety for a non-SSA dest, or if
                  * we're being fed into a special class */
 
-                bool needs_move = ins->dest & PAN_IS_REG;
+                bool needs_move = ins->dest & PAN_IS_REG || ins->dest == ctx->blend_src1;
 
                 if (ins->dest < ctx->temp_count)
                         needs_move |= BITSET_TEST(special, ins->dest);
@@ -196,9 +196,6 @@ midgard_promote_uniforms(compiler_context *ctx)
                         midgard_instruction mov = v_mov(promoted, ins->dest);
                         mov.dest_type = nir_type_uint | type_size;
                         mov.src_types[0] = mov.dest_type;
-
-                        if (type_size == 64)
-                                mov.alu.reg_mode = midgard_reg_mode_64;
 
                         uint16_t rounded = mir_round_bytemask_up(mir_bytemask(ins), type_size);
                         mir_set_bytemask(&mov, rounded);

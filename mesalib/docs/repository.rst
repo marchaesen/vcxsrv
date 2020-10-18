@@ -1,29 +1,29 @@
 Source Code Repository
 ======================
 
-Mesa uses `git <https://git-scm.com>`__ as its source code management
+Mesa uses `Git <https://git-scm.com>`__ as its source code management
 system.
 
-The master git repository is hosted on
+The master Git repository is hosted on
 `freedesktop.org <https://www.freedesktop.org>`__.
 
 You may access the repository either as an :ref:`anonymous
 user <anonymous>` (read-only) or as a :ref:`developer <developer>`
 (read/write).
 
-You may also `browse the main Mesa git
+You may also `browse the main Mesa Git
 repository <https://gitlab.freedesktop.org/mesa/mesa>`__ and the `Mesa
-demos and tests git
+demos and tests Git
 repository <https://gitlab.freedesktop.org/mesa/demos>`__.
 
 .. _anonymous:
 
-Anonymous git Access
+Anonymous Git Access
 --------------------
 
 To get the Mesa sources anonymously (read-only):
 
-#. Install the git software on your computer if needed.
+#. Install the Git software on your computer if needed.
 #. Get an initial, local copy of the repository with:
 
    ::
@@ -44,10 +44,10 @@ To get the Mesa sources anonymously (read-only):
 
 .. _developer:
 
-Developer git Access
+Developer Git Access
 --------------------
 
-If you wish to become a Mesa developer with gitlab merge privilege,
+If you wish to become a Mesa developer with GitLab merge privilege,
 please follow this procedure:
 
 #. Subscribe to the
@@ -56,7 +56,7 @@ please follow this procedure:
 #. Start contributing to the project by :doc:`submitting
    patches <submittingpatches>`. Specifically,
 
-   -  Use `gitlab <https://gitlab.freedesktop.org/>`__ to create your
+   -  Use `GitLab <https://gitlab.freedesktop.org/>`__ to create your
       merge requests.
    -  Wait for someone to review the code and give you a ``Reviewed-by``
       statement.
@@ -67,7 +67,7 @@ please follow this procedure:
    a dozen or so patches accepted, a maintainer may use their discretion
    to give you access to merge your own code.
 
-Pushing code to your gitlab account via HTTPS
+Pushing code to your GitLab account via HTTPS
 ---------------------------------------------
 
 Useful for people behind strict proxies
@@ -75,7 +75,7 @@ Useful for people behind strict proxies
 You can use `personal access
 tokens <https://gitlab.freedesktop.org/profile/personal_access_tokens>`__
 to push over HTTPS if ssh will does not suit your needs. In this case,
-create a token, and put it in the url as shown here:
+create a token, and put it in the URL as shown here:
 
 ::
 
@@ -84,7 +84,7 @@ create a token, and put it in the url as shown here:
 Windows Users
 -------------
 
-If you're `using git on
+If you're `using Git on
 Windows <https://git.wiki.kernel.org/index.php/WindowsInstall>`__ you'll
 want to enable automatic CR/LF conversion in your local copy of the
 repository:
@@ -93,7 +93,7 @@ repository:
 
    git config --global core.autocrlf true
 
-This will cause git to convert all text files to CR+LF on checkout, and
+This will cause Git to convert all text files to CR+LF on checkout, and
 to LF on commit.
 
 Unix users don't need to set this option.
@@ -115,7 +115,7 @@ Developer Git Tips
 
 #. Setting up to edit the master branch
 
-   If you try to do a pull by just saying\ ``git pull`` and git
+   If you try to do a pull by just saying\ ``git pull`` and Git
    complains that you have not specified a branch, try:
 
    ::
@@ -128,7 +128,7 @@ Developer Git Tips
 
 #. Small changes to master
 
-   If you are an experienced git user working on substantial
+   If you are an experienced Git user working on substantial
    modifications, you are probably working on a separate branch and
    would rebase your branch prior to merging with master. But for small
    changes to the master branch itself, you also need to use the rebase
@@ -154,7 +154,7 @@ Developer Git Tips
 
    It is possible (and likely) that someone has changed master since you
    did your last pull. Even if your changes do not conflict with their
-   changes, git will make a fast-forward merge branch, branching from
+   changes, Git will make a fast-forward merge branch, branching from
    the point in time where you did your last pull and merging it to a
    point after the other changes.
 
@@ -168,7 +168,7 @@ Developer Git Tips
    If you are familiar with CVS or similar system, this is similar to
    doing a ``cvs update`` in order to update your source tree to the
    current repository state, instead of the time you did the last
-   update. (CVS doesn't work like git in this respect, but this is
+   update. (CVS doesn't work like Git in this respect, but this is
    easiest way to explain it.)
 
    In any case, your repository now looks like you made your changes

@@ -29,6 +29,8 @@ PERFORMANCE OF THIS SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <limits.h>
+
 #include "Xlibint.h"
 #include "Xlcint.h"
 #include "Ximint.h"
@@ -214,7 +216,7 @@ _XimAttributeToValue(
     Xic			  ic,
     XIMResourceList	  res,
     CARD16		 *data,
-    INT16		  data_len,
+    CARD16		  data_len,
     XPointer		  value,
     BITMASK32		  mode)
 {
@@ -250,18 +252,24 @@ _XimAttributeToValue(
 
     case XimType_XIMStyles:
 	{
-	    INT16		 num = data[0];
+	    CARD16		 num = data[0];
 	    register CARD32	*style_list = (CARD32 *)&data[2];
 	    XIMStyle		*style;
 	    XIMStyles		*rep;
 	    register int	 i;
 	    char		*p;
-	    int			 alloc_len;
+	    unsigned int         alloc_len;
 
 	    if (!(value))
 		return False;
 
+	    if (num > (USHRT_MAX / sizeof(XIMStyle)))
+		return False;
+	    if ((2 * sizeof(CARD16) + (num * sizeof(CARD32))) > data_len)
+		return False;
 	    alloc_len = sizeof(XIMStyles) + sizeof(XIMStyle) * num;
+	    if (alloc_len < sizeof(XIMStyles))
+		return False;
 	    if (!(p = Xmalloc(alloc_len)))
 		return False;
 
@@ -313,7 +321,7 @@ _XimAttributeToValue(
 
     case XimType_XFontSet:
 	{
-	    INT16	 len = data[0];
+	    CARD16	 len = data[0];
 	    char	*base_name;
 	    XFontSet	 rep = (XFontSet)NULL;
 	    char	**missing_list = NULL;
@@ -324,11 +332,12 @@ _XimAttributeToValue(
 		return False;
 	    if (!ic)
 		return False;
-
+	    if (len > data_len)
+		return False;
 	    if (!(base_name = Xmalloc(len + 1)))
 		return False;
 
-	    (void)strncpy(base_name, (char *)&data[1], (int)len);
+	    (void)strncpy(base_name, (char *)&data[1], (size_t)len);
 	    base_name[len] = '\0';
 
 	    if (mode & XIM_PREEDIT_ATTR) {
@@ -357,19 +366,25 @@ _XimAttributeToValue(
 
     case XimType_XIMHotKeyTriggers:
 	{
-	    INT32			 num = *((CARD32 *)data);
+	    CARD32			 num = *((CARD32 *)data);
 	    register CARD32		*key_list = (CARD32 *)&data[2];
 	    XIMHotKeyTrigger		*key;
 	    XIMHotKeyTriggers		*rep;
 	    register int		 i;
 	    char			*p;
-	    int				 alloc_len;
+	    unsigned int		 alloc_len;
 
 	    if (!(value))
 		return False;
 
+	    if (num > (UINT_MAX / sizeof(XIMHotKeyTrigger)))
+		return False;
+	    if ((2 * sizeof(CARD16) + (num * 3 * sizeof(CARD32))) > data_len)
+		return False;
 	    alloc_len = sizeof(XIMHotKeyTriggers)
 		      + sizeof(XIMHotKeyTrigger) * num;
+	    if (alloc_len < sizeof(XIMHotKeyTriggers))
+		return False;
 	    if (!(p = Xmalloc(alloc_len)))
 		return False;
 
@@ -1378,13 +1393,13 @@ _XimEncodeSavedICATTRIBUTE(
 
 static unsigned int
 _XimCountNumberOfAttr(
-    INT16	 total,
-    CARD16	*attr,
-    int		*names_len)
+    CARD16	  total,
+    CARD16	 *attr,
+    unsigned int *names_len)
 {
     unsigned int n;
-    INT16	 len;
-    INT16	 min_len = sizeof(CARD16)	/* sizeof attribute ID */
+    CARD16	 len;
+    CARD16	 min_len = sizeof(CARD16)	/* sizeof attribute ID */
 			 + sizeof(CARD16)	/* sizeof type of value */
 			 + sizeof(INT16);	/* sizeof length of attribute */
 
@@ -1392,6 +1407,9 @@ _XimCountNumberOfAttr(
     *names_len = 0;
     while (total > min_len) {
 	len = attr[2];
+	if (len > (total - min_len)) {
+	    return 0;
+	}
 	*names_len += (len + 1);
 	len += (min_len + XIM_PAD(len + 2));
 	total -= len;
@@ -1406,17 +1424,15 @@ _XimGetAttributeID(
     Xim			  im,
     CARD16		 *buf)
 {
-    unsigned int	  n;
+    unsigned int	  n, names_len, values_len;
     XIMResourceList	  res;
     char		 *names;
-    int			  names_len;
     XPointer		  tmp;
     XIMValuesList	 *values_list;
     char		**values;
-    int			  values_len;
     register int	  i;
-    INT16		  len;
-    INT16		  min_len = sizeof(CARD16) /* sizeof attribute ID */
+    CARD16		  len;
+    CARD16		  min_len = sizeof(CARD16) /* sizeof attribute ID */
 				  + sizeof(CARD16) /* sizeof type of value */
 				  + sizeof(INT16); /* sizeof length of attr */
     /*

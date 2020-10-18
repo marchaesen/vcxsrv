@@ -33,10 +33,15 @@ os_socket_listen_abstract(const char *path, int count)
    int ret = bind(s, (struct sockaddr*)&addr,
                   offsetof(struct sockaddr_un, sun_path) +
                   strlen(path) + 1);
-   if (ret < 0)
+   if (ret < 0) {
+      close(s);
       return -1;
+   }
 
-   listen(s, count);
+   if (listen(s, count) < 0) {
+      close(s);
+      return -1;
+   }
 
    return s;
 }

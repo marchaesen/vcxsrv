@@ -1961,7 +1961,7 @@ sample_lambda_2d_aniso(struct gl_context *ctx,
       /* note: we need to have Pmin=sqrt(Pmin2) here, but we can avoid
        * this since 0.5*log(x) = log(sqrt(x))
        */
-      lod = 0.5f * util_fast_log2(Pmin2);
+      lod = 0.5f * log2f(Pmin2);
 
       if (adjustLOD) {
          /* from swrast/s_texcombine.c _swrast_texture_span */

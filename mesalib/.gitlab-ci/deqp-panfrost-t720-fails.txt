@@ -19,11 +19,8 @@ dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_tex2d_rgb_depth_com
 dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_tex2d_rgb_stencil_index8
 dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_tex2d_rgba_depth_component16
 dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_tex2d_rgba_stencil_index8
-dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_rgb565_depth_component16
 dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_rgb5_a1_depth_component16
 dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_rgba4_depth_component16
-dEQP-GLES2.functional.fbo.render.shared_colorbuffer.tex2d_rgb_depth_component16
-dEQP-GLES2.functional.fbo.render.shared_colorbuffer.tex2d_rgba_depth_component16
 dEQP-GLES2.functional.fbo.render.shared_depthbuffer.rbo_rgb565_depth_component16
 dEQP-GLES2.functional.fbo.render.shared_depthbuffer.rbo_rgb5_a1_depth_component16
 dEQP-GLES2.functional.fbo.render.shared_depthbuffer.rbo_rgba4_depth_component16

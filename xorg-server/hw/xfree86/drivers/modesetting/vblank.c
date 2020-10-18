@@ -115,7 +115,7 @@ ms_crtc_on(xf86CrtcPtr crtc)
 /*
  * Return the first output which is connected to an active CRTC on this screen.
  *
- * RRFirstOutput() will return an output from a slave screen if it is primary,
+ * RRFirstOutput() will return an output from a secondary screen if it is primary,
  * which is not the behavior that ms_covering_crtc() wants.
  */
 
@@ -188,10 +188,10 @@ ms_covering_xf86_crtc(ScreenPtr pScreen, BoxPtr box, Bool screen_is_ms)
         }
     }
 
-    /* Fallback to primary crtc for drawable's on slave outputs */
+    /* Fallback to primary crtc for drawable's on secondary outputs */
     if (best_crtc == NULL && !pScreen->isGPU) {
         RROutputPtr primary_output = NULL;
-        ScreenPtr slave;
+        ScreenPtr secondary;
 
         if (dixPrivateKeyRegistered(rrPrivKey))
             primary_output = ms_first_output(scrn->pScreen);
@@ -202,12 +202,12 @@ ms_covering_xf86_crtc(ScreenPtr pScreen, BoxPtr box, Bool screen_is_ms)
         if (!ms_crtc_on(crtc))
             return NULL;
 
-        xorg_list_for_each_entry(slave, &pScreen->slave_list, slave_head) {
-            if (!slave->is_output_slave)
+        xorg_list_for_each_entry(secondary, &pScreen->secondary_list, secondary_head) {
+            if (!secondary->is_output_secondary)
                 continue;
 
-            if (ms_covering_xf86_crtc(slave, box, FALSE)) {
-                /* The drawable is on a slave output, return primary crtc */
+            if (ms_covering_xf86_crtc(secondary, box, FALSE)) {
+                /* The drawable is on a secondary output, return primary crtc */
                 return crtc;
             }
         }
@@ -260,10 +260,10 @@ ms_covering_randr_crtc(ScreenPtr pScreen, BoxPtr box, Bool screen_is_ms)
         }
     }
 
-    /* Fallback to primary crtc for drawable's on slave outputs */
+    /* Fallback to primary crtc for drawable's on secondary outputs */
     if (best_crtc == NULL && !pScreen->isGPU) {
         RROutputPtr primary_output = NULL;
-        ScreenPtr slave;
+        ScreenPtr secondary;
 
         if (dixPrivateKeyRegistered(rrPrivKey))
             primary_output = ms_first_output(scrn->pScreen);
@@ -274,12 +274,12 @@ ms_covering_randr_crtc(ScreenPtr pScreen, BoxPtr box, Bool screen_is_ms)
         if (!ms_crtc_on((xf86CrtcPtr) crtc->devPrivate))
             return NULL;
 
-        xorg_list_for_each_entry(slave, &pScreen->slave_list, slave_head) {
-            if (!slave->is_output_slave)
+        xorg_list_for_each_entry(secondary, &pScreen->secondary_list, secondary_head) {
+            if (!secondary->is_output_secondary)
                 continue;
 
-            if (ms_covering_randr_crtc(slave, box, FALSE)) {
-                /* The drawable is on a slave output, return primary crtc */
+            if (ms_covering_randr_crtc(secondary, box, FALSE)) {
+                /* The drawable is on a secondary output, return primary crtc */
                 return crtc;
             }
         }

@@ -321,7 +321,7 @@ pipe_buffer_create_const0(struct pipe_screen *screen,
  * Map a range of a resource.
  * \param offset  start of region, in bytes
  * \param length  size of region, in bytes
- * \param access  bitmask of PIPE_TRANSFER_x flags
+ * \param access  bitmask of PIPE_MAP_x flags
  * \param transfer  returns a transfer object
  */
 static inline void *
@@ -352,7 +352,7 @@ pipe_buffer_map_range(struct pipe_context *pipe,
 
 /**
  * Map whole resource.
- * \param access  bitmask of PIPE_TRANSFER_x flags
+ * \param access  bitmask of PIPE_MAP_x flags
  * \param transfer  returns a transfer object
  */
 static inline void *
@@ -405,7 +405,7 @@ pipe_buffer_write(struct pipe_context *pipe,
                   const void *data)
 {
    /* Don't set any other usage bits. Drivers should derive them. */
-   pipe->buffer_subdata(pipe, buf, PIPE_TRANSFER_WRITE, offset, size, data);
+   pipe->buffer_subdata(pipe, buf, PIPE_MAP_WRITE, offset, size, data);
 }
 
 /**
@@ -421,8 +421,8 @@ pipe_buffer_write_nooverlap(struct pipe_context *pipe,
                             const void *data)
 {
    pipe->buffer_subdata(pipe, buf,
-                        (PIPE_TRANSFER_WRITE |
-                         PIPE_TRANSFER_UNSYNCHRONIZED),
+                        (PIPE_MAP_WRITE |
+                         PIPE_MAP_UNSYNCHRONIZED),
                         offset, size, data);
 }
 
@@ -458,7 +458,7 @@ pipe_buffer_read(struct pipe_context *pipe,
    map = (ubyte *) pipe_buffer_map_range(pipe,
                                          buf,
                                          offset, size,
-                                         PIPE_TRANSFER_READ,
+                                         PIPE_MAP_READ,
                                          &src_transfer);
    if (!map)
       return;
@@ -470,7 +470,7 @@ pipe_buffer_read(struct pipe_context *pipe,
 
 /**
  * Map a resource for reading/writing.
- * \param access  bitmask of PIPE_TRANSFER_x flags
+ * \param access  bitmask of PIPE_MAP_x flags
  */
 static inline void *
 pipe_transfer_map(struct pipe_context *context,
@@ -493,7 +493,7 @@ pipe_transfer_map(struct pipe_context *context,
 
 /**
  * Map a 3D (texture) resource for reading/writing.
- * \param access  bitmask of PIPE_TRANSFER_x flags
+ * \param access  bitmask of PIPE_MAP_x flags
  */
 static inline void *
 pipe_transfer_map_3d(struct pipe_context *context,

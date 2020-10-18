@@ -55,7 +55,7 @@ AM_CPPFLAGS = $(XORG_INCS) -I$(srcdir)/../ddc -I$(srcdir)/../i2c \
 	   -I$(srcdir)/../modes -I$(srcdir)/../ramdac -I$(srcdir)/../dri2 \
 	   -I$(top_builddir)
 
-sdk_HEADERS = compiler.h fourcc.h xf86.h xf86Module.h xf86Opt.h \
+sdk_HEADERS = compiler.h xf86.h xf86Module.h xf86Opt.h \
               xf86PciInfo.h xf86Priv.h xf86Privstr.h \
               xf86cmap.h xf86fbman.h xf86str.h xf86Xinput.h xisb.h \
               $(XVSDKINCS) $(XF86VMODE_SDK) $(DGA_SDK) xorgVersion.h \
@@ -67,7 +67,6 @@ CLEANFILES = $(BUILT_SOURCES)
 
 EXTRA_DIST = \
 	compiler.h \
-	fourcc.h \
 	xf86.h \
 	xf86Bus.h \
 	xf86Config.h \

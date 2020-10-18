@@ -116,7 +116,7 @@ AllocatePixmap(ScreenPtr pScreen, int pixDataSize)
     if (pScreen->totalPixmapSize > ((size_t) - 1) - pixDataSize)
         return NullPixmap;
 
-    pPixmap = malloc(pScreen->totalPixmapSize + pixDataSize);
+    pPixmap = calloc(1, pScreen->totalPixmapSize + pixDataSize);
     if (!pPixmap)
         return NullPixmap;
 
@@ -132,40 +132,40 @@ FreePixmap(PixmapPtr pPixmap)
     free(pPixmap);
 }
 
-void PixmapUnshareSlavePixmap(PixmapPtr slave_pixmap)
+void PixmapUnshareSecondaryPixmap(PixmapPtr secondary_pixmap)
 {
      intptr_t ihandle = -1;
-     ScreenPtr pScreen = slave_pixmap->drawable.pScreen;
-     pScreen->SetSharedPixmapBacking(slave_pixmap, (void *)ihandle);
+     ScreenPtr pScreen = secondary_pixmap->drawable.pScreen;
+     pScreen->SetSharedPixmapBacking(secondary_pixmap, (void *)ihandle);
 }
 
-PixmapPtr PixmapShareToSlave(PixmapPtr pixmap, ScreenPtr slave)
+PixmapPtr PixmapShareToSecondary(PixmapPtr pixmap, ScreenPtr secondary)
 {
     PixmapPtr spix;
     int ret;
     void *handle;
-    ScreenPtr master = pixmap->drawable.pScreen;
+    ScreenPtr primary = pixmap->drawable.pScreen;
     int depth = pixmap->drawable.depth;
 
-    ret = master->SharePixmapBacking(pixmap, slave, &handle);
+    ret = primary->SharePixmapBacking(pixmap, secondary, &handle);
     if (ret == FALSE)
         return NULL;
 
-    spix = slave->CreatePixmap(slave, 0, 0, depth,
+    spix = secondary->CreatePixmap(secondary, 0, 0, depth,
                                CREATE_PIXMAP_USAGE_SHARED);
-    slave->ModifyPixmapHeader(spix, pixmap->drawable.width,
-                              pixmap->drawable.height, depth, 0,
-                              pixmap->devKind, NULL);
+    secondary->ModifyPixmapHeader(spix, pixmap->drawable.width,
+                                  pixmap->drawable.height, depth, 0,
+                                  pixmap->devKind, NULL);
 
-    /* have the slave pixmap take a reference on the master pixmap
+    /* have the secondary pixmap take a reference on the primary pixmap
        later we destroy them both at the same time */
     pixmap->refcnt++;
 
-    spix->master_pixmap = pixmap;
+    spix->primary_pixmap = pixmap;
 
-    ret = slave->SetSharedPixmapBacking(spix, handle);
+    ret = secondary->SetSharedPixmapBacking(spix, handle);
     if (ret == FALSE) {
-        slave->DestroyPixmap(spix);
+        secondary->DestroyPixmap(spix);
         return NULL;
     }
 
@@ -182,7 +182,7 @@ PixmapDirtyDamageDestroy(DamagePtr damage, void *closure)
 
 Bool
 PixmapStartDirtyTracking(DrawablePtr src,
-                         PixmapPtr slave_dst,
+                         PixmapPtr secondary_dst,
                          int x, int y, int dst_x, int dst_y,
                          Rotation rotation)
 {
@@ -197,7 +197,7 @@ PixmapStartDirtyTracking(DrawablePtr src,
         return FALSE;
 
     dirty_update->src = src;
-    dirty_update->slave_dst = slave_dst;
+    dirty_update->secondary_dst = secondary_dst;
     dirty_update->x = x;
     dirty_update->y = y;
     dirty_update->dst_x = dst_x;
@@ -209,8 +209,8 @@ PixmapStartDirtyTracking(DrawablePtr src,
 
     if (rotation != RR_Rotate_0) {
         RRTransformCompute(x, y,
-                           slave_dst->drawable.width,
-                           slave_dst->drawable.height,
+                           secondary_dst->drawable.width,
+                           secondary_dst->drawable.height,
                            rotation,
                            NULL,
                            &dirty_update->transform,
@@ -229,11 +229,11 @@ PixmapStartDirtyTracking(DrawablePtr src,
     box.y1 = dirty_update->y;
     if (dirty_update->rotation == RR_Rotate_90 ||
         dirty_update->rotation == RR_Rotate_270) {
-        box.x2 = dirty_update->x + slave_dst->drawable.height;
-        box.y2 = dirty_update->y + slave_dst->drawable.width;
+        box.x2 = dirty_update->x + secondary_dst->drawable.height;
+        box.y2 = dirty_update->y + secondary_dst->drawable.width;
     } else {
-        box.x2 = dirty_update->x + slave_dst->drawable.width;
-        box.y2 = dirty_update->y + slave_dst->drawable.height;
+        box.x2 = dirty_update->x + secondary_dst->drawable.width;
+        box.y2 = dirty_update->y + secondary_dst->drawable.height;
     }
     RegionInit(&dstregion, &box, 1);
     damageregion = DamageRegion(dirty_update->damage);
@@ -246,13 +246,13 @@ PixmapStartDirtyTracking(DrawablePtr src,
 }
 
 Bool
-PixmapStopDirtyTracking(DrawablePtr src, PixmapPtr slave_dst)
+PixmapStopDirtyTracking(DrawablePtr src, PixmapPtr secondary_dst)
 {
     ScreenPtr screen = src->pScreen;
     PixmapDirtyUpdatePtr ent, safe;
 
     xorg_list_for_each_entry_safe(ent, safe, &screen->pixmap_dirty_list, ent) {
-        if (ent->src == src && ent->slave_dst == slave_dst) {
+        if (ent->src == src && ent->secondary_dst == secondary_dst) {
             if (ent->damage)
                 DamageDestroy(ent->damage);
             xorg_list_del(&ent->ent);
@@ -372,9 +372,9 @@ Bool PixmapSyncDirtyHelper(PixmapDirtyUpdatePtr dirty)
     RegionRec pixregion;
     BoxRec box;
 
-    dst = dirty->slave_dst->master_pixmap;
+    dst = dirty->secondary_dst->primary_pixmap;
     if (!dst)
-        dst = dirty->slave_dst;
+        dst = dirty->secondary_dst;
 
     box.x1 = 0;
     box.y1 = 0;

@@ -44,7 +44,7 @@
 
 /**
  * Some documentation about touch points:
- * The driver submits touch events with it's own (unique) touch point ID.
+ * The driver submits touch events with its own (unique) touch point ID.
  * The driver may re-use those IDs, the DDX doesn't care. It just passes on
  * the data to the DIX. In the server, the driver's ID is referred to as the
  * DDX id anyway.
@@ -63,7 +63,7 @@
 
 /**
  * Check which devices need a bigger touch event queue and grow their
- * last.touches by half it's current size.
+ * last.touches by half its current size.
  *
  * @param client Always the serverClient
  * @param closure Always NULL
@@ -578,7 +578,7 @@ TouchBuildSprite(DeviceIntPtr sourcedev, TouchPointInfoPtr ti,
  * @param[in] button_event The respective button event (if any)
  *
  * @returns The number of converted events.
- * @retval 0 An error occured
+ * @retval 0 An error occurred
  * @retval 1 only the motion event is valid
  * @retval 2 motion and button event are valid
  */

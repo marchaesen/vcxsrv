@@ -97,9 +97,12 @@ dst_register(struct st_translate *t, gl_register_file file, GLuint index)
       else
          assert(index < VARYING_SLOT_MAX);
 
-      assert(t->outputMapping[index] < ARRAY_SIZE(t->outputs));
-
-      return t->outputs[t->outputMapping[index]];
+      if (t->outputMapping[index] < ARRAY_SIZE(t->outputs))
+         return t->outputs[t->outputMapping[index]];
+      else {
+         assert(t->procType == PIPE_SHADER_VERTEX);
+         return ureg_dst(ureg_DECL_constant(t->ureg, 0));
+      }
 
    case PROGRAM_ADDRESS:
       return t->address[index];
@@ -149,8 +152,12 @@ src_register(struct st_translate *t,
       }
 
    case PROGRAM_OUTPUT:
-      assert(t->outputMapping[index] < ARRAY_SIZE(t->outputs));
-      return ureg_src(t->outputs[t->outputMapping[index]]); /* not needed? */
+      if (t->outputMapping[index] < ARRAY_SIZE(t->outputs))
+         return ureg_src(t->outputs[t->outputMapping[index]]);
+      else {
+         assert(t->procType == PIPE_SHADER_VERTEX);
+         return ureg_DECL_constant(t->ureg, 0);
+      }
 
    case PROGRAM_ADDRESS:
       return ureg_src(t->address[index]);

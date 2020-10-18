@@ -54,7 +54,7 @@ refresh rate.
 
 As hardware often limits possible configuration combinations, each output
 knows the set of CRTCs that it can be connected to as well as the set of
-other outputs which can be simutaneously connected to a CRTC.
+other outputs which can be simultaneously connected to a CRTC.
 
 2.1.2 CRTC overview
 

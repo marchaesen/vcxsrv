@@ -68,7 +68,7 @@ set_loc_desc(struct radv_shader_args *args, int idx, uint8_t *sgpr_idx)
 
 	set_loc(ud_info, sgpr_idx, 1);
 
-	locs->descriptor_sets_enabled |= 1 << idx;
+	locs->descriptor_sets_enabled |= 1u << idx;
 }
 
 struct user_sgpr_info {
