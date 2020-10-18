@@ -33,8 +33,6 @@
 #include <set>
 #include <vector>
 
-#include "vulkan/radv_shader.h"
-
 namespace aco {
 RegisterDemand get_live_changes(aco_ptr<Instruction>& instr)
 {
@@ -91,18 +89,18 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
 
    register_demand.resize(block->instructions.size());
    block->register_demand = RegisterDemand();
-   TempSet live = lives.live_out[block->index];
+   IDSet live = lives.live_out[block->index];
 
    /* add the live_out_exec to live */
    bool exec_live = false;
    if (block->live_out_exec != Temp()) {
-      live.insert(block->live_out_exec);
+      live.insert(block->live_out_exec.id());
       exec_live = true;
    }
 
    /* initialize register demand */
-   for (Temp t : live)
-      new_demand += t;
+   for (unsigned t : live)
+      new_demand += Temp(t, program->temp_rc[t]);
    new_demand.sgpr -= phi_sgpr_ops[block->index];
 
    /* traverse the instructions backwards */
@@ -126,7 +124,7 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
             program->needs_vcc = true;
 
          const Temp temp = definition.getTemp();
-         const size_t n = live.erase(temp);
+         const size_t n = live.erase(temp.id());
 
          if (n) {
             new_demand -= temp;
@@ -158,7 +156,7 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
             if (operand.isFixed() && operand.physReg() == vcc)
                program->needs_vcc = true;
             const Temp temp = operand.getTemp();
-            const bool inserted = live.insert(temp).second;
+            const bool inserted = live.insert(temp.id()).second;
             if (inserted) {
                operand.setFirstKill(true);
                for (unsigned j = i + 1; j < insn->operands.size(); ++j) {
@@ -198,7 +196,7 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
       if ((definition.isFixed() || definition.hasHint()) && definition.physReg() == vcc)
          program->needs_vcc = true;
       const Temp temp = definition.getTemp();
-      const size_t n = live.erase(temp);
+      const size_t n = live.erase(temp.id());
 
       if (n)
          definition.setKill(false);
@@ -209,12 +207,13 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
    }
 
    /* now, we need to merge the live-ins into the live-out sets */
-   for (Temp t : live) {
-      std::vector<unsigned>& preds = t.is_linear() ? block->linear_preds : block->logical_preds;
+   for (unsigned t : live) {
+      RegClass rc = program->temp_rc[t];
+      std::vector<unsigned>& preds = rc.is_linear() ? block->linear_preds : block->logical_preds;
 
 #ifndef NDEBUG
       if (preds.empty())
-         fprintf(stderr, "Temporary never defined or are defined after use: %%%d in BB%d\n", t.id(), block->index);
+         aco_err(program, "Temporary never defined or are defined after use: %%%d in BB%d", t, block->index);
 #endif
 
       for (unsigned pred_idx : preds) {
@@ -240,7 +239,7 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
          if (operand.isFixed() && operand.physReg() == vcc)
             program->needs_vcc = true;
          /* check if we changed an already processed block */
-         const bool inserted = lives.live_out[preds[i]].insert(operand.getTemp()).second;
+         const bool inserted = lives.live_out[preds[i]].insert(operand.tempId()).second;
          if (inserted) {
             operand.setKill(true);
             worklist.insert(preds[i]);
@@ -337,6 +336,8 @@ void update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand)
 {
    /* TODO: max_waves_per_simd, simd_per_cu and the number of physical vgprs for Navi */
    unsigned max_waves_per_simd = 10;
+   if ((program->family >= CHIP_POLARIS10 && program->family <= CHIP_VEGAM) || program->chip_class >= GFX10_3)
+      max_waves_per_simd = 8;
    unsigned simd_per_cu = 4;
 
    bool wgp = program->chip_class >= GFX10; /* assume WGP is used on Navi */
@@ -374,8 +375,7 @@ void update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand)
    }
 }
 
-live live_var_analysis(Program* program,
-                       const struct radv_nir_compiler_options *options)
+live live_var_analysis(Program* program)
 {
    live result;
    result.live_out.resize(program->blocks.size());

@@ -258,6 +258,7 @@ destroy_core(
     if (lcd) {
         if (lcd->core) {
             Xfree(lcd->core->name);
+            Xfree(lcd->core->modifiers);
             Xfree(lcd->core);
         }
         Xfree(lcd->methods);

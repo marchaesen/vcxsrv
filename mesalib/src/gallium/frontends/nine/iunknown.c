@@ -190,7 +190,6 @@ NineUnknown_SetPrivateData( struct NineUnknown *This,
                             DWORD SizeOfData,
                             DWORD Flags )
 {
-    enum pipe_error err;
     struct pheader *header;
     const void *user_data = pData;
     char guid_str[64];

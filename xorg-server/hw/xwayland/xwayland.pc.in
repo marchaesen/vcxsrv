@@ -1,0 +1,7 @@
+Name: Xwayland
+Description: X Server for Wayland
+Version: @PACKAGE_VERSION@
+xwayland=@xwayland_path@/Xwayland
+have_glamor=@have_glamor@
+have_eglstream=@have_eglstream@
+have_initfd=true

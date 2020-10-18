@@ -58,7 +58,7 @@ build_fmask_expand_compute_shader(struct radv_device *device, int samples)
 	output_img->data.access = ACCESS_NON_READABLE;
 
 	nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-	nir_ssa_def *wg_id = nir_load_work_group_id(&b);
+	nir_ssa_def *wg_id = nir_load_work_group_id(&b, 32);
 	nir_ssa_def *block_size = nir_imm_ivec4(&b,
 						b.shader->info.cs.local_size[0],
 						b.shader->info.cs.local_size[1],

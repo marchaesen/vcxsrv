@@ -497,7 +497,7 @@ static void
 exaValidateGC(GCPtr pGC, unsigned long changes, DrawablePtr pDrawable)
 {
     /* fbValidateGC will do direct access to pixmaps if the tiling has changed.
-     * Do a few smart things so fbValidateGC can do it's work.
+     * Do a few smart things so fbValidateGC can do its work.
      */
 
     ScreenPtr pScreen = pDrawable->pScreen;

@@ -4845,7 +4845,7 @@ convenience to the user.
 For example, a user tends to mistype the commit key while
 preediting.  In that case, some input methods provide a special
 key sequence to request a ``reconvert'' operation on the 
-committed string, similiar to the undo facility provided by most
+committed string, similar to the undo facility provided by most
 text editors.
 Another example is where the user is proofreading a document 
 that has some misconversions from preediting and wants to correct
@@ -6924,7 +6924,7 @@ The following keys apply to these tables.
   <thead>
     <row rowsep='1'>
       <entry><acronym>XIC</acronym> Value</entry>
-      <entry>Geometry Mangement</entry>
+      <entry>Geometry Management</entry>
       <entry>Preedit Callback</entry>
       <entry>Preedit Position</entry>
       <entry>Input Style Preedit Area</entry>

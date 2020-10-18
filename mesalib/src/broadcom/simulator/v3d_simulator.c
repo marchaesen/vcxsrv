@@ -584,6 +584,12 @@ v3d_simulator_ioctl(int fd, unsigned long request, void *args)
         }
 }
 
+uint32_t
+v3d_simulator_get_mem_size(void)
+{
+   return sim_state.mem_size;
+}
+
 static void
 v3d_simulator_init_global()
 {

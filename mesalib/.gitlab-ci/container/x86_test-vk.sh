@@ -16,10 +16,10 @@ STABLE_EPHEMERAL=" \
       libpng-dev \
       libvulkan-dev \
       libxcb-ewmh-dev \
-      libxcb-keysyms1-dev \
       libxkbcommon-dev \
       libxrandr-dev \
       libxrender-dev \
+      libzstd-dev \
       meson \
       p7zip \
       pkg-config \
@@ -27,7 +27,13 @@ STABLE_EPHEMERAL=" \
       wget \
       "
 
+# Unfortunately, gfxreconstruct needs the -dev packages:
+# https://github.com/LunarG/gfxreconstruct/issues/402
 apt-get install -y --no-remove \
+      libwayland-dev \
+      libx11-xcb-dev \
+      libxcb-keysyms1-dev \
+      libxcb1-dev \
       $STABLE_EPHEMERAL
 
 # We need multiarch for Wine
@@ -111,7 +117,7 @@ wine \
 
 ############### Build dEQP VK
 
-. .gitlab-ci/build-deqp-vk.sh
+. .gitlab-ci/build-deqp.sh
 
 ############### Build gfxreconstruct
 

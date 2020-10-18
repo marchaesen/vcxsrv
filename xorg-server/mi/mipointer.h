@@ -100,7 +100,7 @@ miPointerSetScreen(DeviceIntPtr pDev, int screen_num, int x, int y);
 extern _X_EXPORT void
 miPointerGetPosition(DeviceIntPtr pDev, int *x, int *y);
 
-/* Moves the cursor to the specified position.  May clip the co-ordinates:
+/* Moves the cursor to the specified position.  May clip the coordinates:
  * x and y are modified in-place. */
 extern _X_EXPORT ScreenPtr
 miPointerSetPosition(DeviceIntPtr pDev, int mode, double *x, double *y,

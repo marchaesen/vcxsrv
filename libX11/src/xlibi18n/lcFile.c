@@ -212,7 +212,7 @@ xlocaledir(
     if (dir) {
 #ifndef WIN32
 	/*
-	 * Only use the user-supplied path if the process isn't priviledged.
+	 * Only use the user-supplied path if the process isn't privileged.
 	 */
 	if (getuid() == geteuid() && getgid() == getegid()) {
 #if defined(HASSETUGID)
@@ -227,7 +227,7 @@ xlocaledir(
 	    }
 #else
 	    /*
-	     * If there are saved ID's the process might still be priviledged
+	     * If there are saved ID's the process might still be privileged
 	     * even though the above test succeeded.  If issetugid() and
 	     * getresgid() aren't available, test this by trying to set
 	     * euid to 0.
@@ -242,7 +242,7 @@ xlocaledir(
 		priv = 0;
 	    } else {
 		if (seteuid(oldeuid) == -1) {
-		    /* XXX ouch, coudn't get back to original uid
+		    /* XXX ouch, couldn't get back to original uid
 		     what can we do ??? */
 		    _exit(127);
 		}
@@ -290,7 +290,7 @@ xlocalelibdir(
     if (dir) {
 #ifndef WIN32
 	/*
-	 * Only use the user-supplied path if the process isn't priviledged.
+	 * Only use the user-supplied path if the process isn't privileged.
 	 */
 	if (getuid() == geteuid() && getgid() == getegid()) {
 #if defined(HASSETUGID)
@@ -305,7 +305,7 @@ xlocalelibdir(
 	    }
 #else
 	    /*
-	     * If there are saved ID's the process might still be priviledged
+	     * If there are saved ID's the process might still be privileged
 	     * even though the above test succeeded.  If issetugid() and
 	     * getresgid() aren't available, test this by trying to set
 	     * euid to 0.
@@ -320,7 +320,7 @@ xlocalelibdir(
 		priv = 0;
 	    } else {
 		if (seteuid(oldeuid) == -1) {
-		    /* XXX ouch, coudn't get back to original uid
+		    /* XXX ouch, couldn't get back to original uid
 		     what can we do ??? */
 		    _exit(127);
 		}

@@ -315,8 +315,8 @@ xf86CrtcFitsScreen(xf86CrtcPtr crtc, struct pict_f_transform *crtc_to_fb)
      */
     if (pScrn->is_gpu) {
 	ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
-	if (pScreen->current_master)
-	    pScrn = xf86ScreenToScrn(pScreen->current_master);
+	if (pScreen->current_primary)
+	    pScrn = xf86ScreenToScrn(pScreen->current_primary);
     }
 
     if (pScrn->virtualX == 0 || pScrn->virtualY == 0)

@@ -920,7 +920,7 @@ AddLocalHosts(void)
         /* Fix for XFree86 bug #156: pass addingLocal = TRUE to
          * NewHost to tell that we are adding the default local
          * host entries and not to flag the entries as being
-         * explicitely requested */
+         * explicitly requested */
         (void) NewHost(self->family, self->addr, self->len, TRUE);
 }
 

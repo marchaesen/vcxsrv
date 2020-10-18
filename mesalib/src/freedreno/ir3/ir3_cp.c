@@ -161,8 +161,6 @@ lower_immed(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr, unsigned n,
 	if (!ir3_valid_flags(instr, n, new_flags))
 		return false;
 
-	unsigned swiz, idx, i;
-
 	reg = ir3_reg_clone(ctx->shader, reg);
 
 	/* Half constant registers seems to handle only 32-bit values
@@ -196,9 +194,12 @@ lower_immed(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr, unsigned n,
 		new_flags &= ~IR3_REG_FNEG;
 	}
 
-	/* Reallocate for 4 more elements whenever it's necessary */
+	/* Reallocate for 4 more elements whenever it's necessary.  Note that ir3
+	 * printing relies on having groups of 4 dwords, so we fill the unused
+	 * slots with a dummy value.
+	 */
 	struct ir3_const_state *const_state = ir3_const_state(ctx->so);
-	if (const_state->immediate_idx == const_state->immediates_size * 4) {
+	if (const_state->immediates_count == const_state->immediates_size) {
 		const_state->immediates = rerzalloc(const_state,
 				const_state->immediates,
 				__typeof__(const_state->immediates[0]),
@@ -206,33 +207,26 @@ lower_immed(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr, unsigned n,
 				const_state->immediates_size + 4);
 		const_state->immediates_size += 4;
 
-		for (int i = const_state->immediate_idx; i < const_state->immediates_size * 4; i++)
-			const_state->immediates[i / 4].val[i % 4] = 0xd0d0d0d0;
+		for (int i = const_state->immediates_count; i < const_state->immediates_size; i++)
+			const_state->immediates[i] = 0xd0d0d0d0;
 	}
 
-	for (i = 0; i < const_state->immediate_idx; i++) {
-		swiz = i % 4;
-		idx  = i / 4;
-
-		if (const_state->immediates[idx].val[swiz] == reg->uim_val) {
+	int i;
+	for (i = 0; i < const_state->immediates_count; i++) {
+		if (const_state->immediates[i] == reg->uim_val)
 			break;
-		}
 	}
 
-	if (i == const_state->immediate_idx) {
+	if (i == const_state->immediates_count) {
 		/* Add on a new immediate to be pushed, if we have space left in the
 		 * constbuf.
 		 */
-		if (const_state->offsets.immediate + const_state->immediate_idx / 4 >=
+		if (const_state->offsets.immediate + const_state->immediates_count / 4 >=
 				ir3_max_const(ctx->so))
 			return false;
 
-		swiz = i % 4;
-		idx  = i / 4;
-
-		const_state->immediates[idx].val[swiz] = reg->uim_val;
-		const_state->immediates_count = idx + 1;
-		const_state->immediate_idx++;
+		const_state->immediates[i] = reg->uim_val;
+		const_state->immediates_count++;
 	}
 
 	reg->flags = new_flags;

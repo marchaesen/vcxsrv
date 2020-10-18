@@ -58,6 +58,33 @@ struct radv_meta_saved_state {
 	struct radv_attachment_state *attachments;
 	struct radv_framebuffer *framebuffer;
 	VkRect2D render_area;
+
+	VkCullModeFlags cull_mode;
+	VkFrontFace front_face;
+
+	unsigned primitive_topology;
+
+	bool depth_test_enable;
+	bool depth_write_enable;
+	unsigned depth_compare_op;
+	bool depth_bounds_test_enable;
+	bool stencil_test_enable;
+
+	struct {
+		struct {
+			VkStencilOp fail_op;
+			VkStencilOp pass_op;
+			VkStencilOp depth_fail_op;
+			VkCompareOp compare_op;
+		} front;
+
+		struct {
+			VkStencilOp fail_op;
+			VkStencilOp pass_op;
+			VkStencilOp depth_fail_op;
+			VkCompareOp compare_op;
+		} back;
+	} stencil_op;
 };
 
 VkResult radv_device_init_meta_clear_state(struct radv_device *device, bool on_demand);
@@ -192,24 +219,21 @@ void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 				     struct radv_image *dest_image,
 				     VkFormat dest_format,
 				     VkImageLayout dest_image_layout,
-				     uint32_t region_count,
-				     const VkImageResolve *regions);
+				     const VkImageResolve2KHR *region);
 
 void radv_meta_resolve_fragment_image(struct radv_cmd_buffer *cmd_buffer,
 				      struct radv_image *src_image,
 				      VkImageLayout src_image_layout,
 				      struct radv_image *dest_image,
 				      VkImageLayout dest_image_layout,
-				      uint32_t region_count,
-				      const VkImageResolve *regions);
+				     const VkImageResolve2KHR *region);
 
 void radv_decompress_resolve_subpass_src(struct radv_cmd_buffer *cmd_buffer);
 
 void radv_decompress_resolve_src(struct radv_cmd_buffer *cmd_buffer,
 				 struct radv_image *src_image,
 				 VkImageLayout src_image_layout,
-				 uint32_t region_count,
-				 const VkImageResolve *regions);
+				 const VkImageResolve2KHR *region);
 
 uint32_t radv_clear_cmask(struct radv_cmd_buffer *cmd_buffer,
 			  struct radv_image *image,
@@ -250,6 +274,25 @@ radv_is_dcc_decompress_pipeline(struct radv_cmd_buffer *cmd_buffer)
 	       meta_state->fast_clear_flush.dcc_decompress_pipeline;
 }
 
+/**
+ * Return whether the bound pipeline is the hardware resolve path.
+ */
+static inline bool
+radv_is_hw_resolve_pipeline(struct radv_cmd_buffer *cmd_buffer)
+{
+	struct radv_meta_state *meta_state = &cmd_buffer->device->meta_state;
+	struct radv_pipeline *pipeline = cmd_buffer->state.pipeline;
+
+	if (!pipeline)
+		return false;
+
+	for (uint32_t i = 0; i < NUM_META_FS_KEYS; ++i) {
+		if (radv_pipeline_to_handle(pipeline) == meta_state->resolve.pipeline[i])
+			return true;
+	}
+	return false;
+}
+
 /* common nir builder helpers */
 #include "nir/nir_builder.h"
 
@@ -264,6 +307,10 @@ void radv_meta_build_resolve_shader_core(nir_builder *b,
 					 nir_variable *input_img,
 					 nir_variable *color,
 					 nir_ssa_def *img_coord);
+
+nir_ssa_def *radv_meta_load_descriptor(nir_builder *b, unsigned desc_set,
+				       unsigned binding);
+
 #ifdef __cplusplus
 }
 #endif

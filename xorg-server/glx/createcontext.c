@@ -130,12 +130,16 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
      * On the client, the screen comes from the FBConfig, so GLXBadFBConfig
      * should be issued if the screen is nonsense.
      */
-    if (!validGlxScreen(client, req->screen, &glxScreen, &err))
+    if (!validGlxScreen(client, req->screen, &glxScreen, &err)) {
+        client->errorValue = req->fbconfig;
         return __glXError(GLXBadFBConfig);
+    }
 
     if (req->fbconfig) {
-        if (!validGlxFBConfig(client, glxScreen, req->fbconfig, &config, &err))
+        if (!validGlxFBConfig(client, glxScreen, req->fbconfig, &config, &err)) {
+            client->errorValue = req->fbconfig;
             return __glXError(GLXBadFBConfig);
+        }
     }
 
     /* Validate the context with which the new context should share resources.
@@ -307,6 +311,7 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
      */
     if (!req->isDirect && (major_version > 1 || minor_version > 4
                            || profile == GLX_CONTEXT_ES2_PROFILE_BIT_EXT)) {
+        client->errorValue = req->fbconfig;
         return __glXError(GLXBadFBConfig);
     }
 

@@ -1452,14 +1452,14 @@ v3d_qpu_instr_pack_branch(const struct v3d_device_info *devinfo,
 
                 *packed_instr |= QPU_SET_FIELD(instr->branch.offset >> 24,
                                                VC5_QPU_BRANCH_ADDR_HIGH);
-
-        case V3D_QPU_BRANCH_DEST_REGFILE:
-                *packed_instr |= QPU_SET_FIELD(instr->branch.raddr_a,
-                                               VC5_QPU_RADDR_A);
-                break;
-
         default:
                 break;
+        }
+
+        if (instr->branch.bdi == V3D_QPU_BRANCH_DEST_REGFILE ||
+            instr->branch.bdu == V3D_QPU_BRANCH_DEST_REGFILE) {
+                *packed_instr |= QPU_SET_FIELD(instr->branch.raddr_a,
+                                               VC5_QPU_RADDR_A);
         }
 
         return true;

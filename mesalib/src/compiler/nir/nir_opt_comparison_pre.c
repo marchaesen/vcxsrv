@@ -237,7 +237,7 @@ comparison_pre_block(nir_block *block, struct block_queue *bq, nir_builder *bld)
       if (alu->dest.saturate)
          continue;
 
-      static const uint8_t swizzle[4] = { 0, 0, 0, 0 };
+      static const uint8_t swizzle[NIR_MAX_VEC_COMPONENTS] = {0};
 
       switch (alu->op) {
       case nir_op_fadd: {
@@ -319,7 +319,7 @@ comparison_pre_block(nir_block *block, struct block_queue *bq, nir_builder *bld)
 
       case nir_op_flt:
       case nir_op_fge:
-      case nir_op_fne:
+      case nir_op_fneu:
       case nir_op_feq:
          /* If the instruction is a comparison that is used by an if-statement
           * and neither operand is immediate value 0, add it to the set.

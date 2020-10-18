@@ -61,6 +61,9 @@ _mesa_set_create(void *mem_ctx,
                  bool (*key_equals_function)(const void *a,
                                              const void *b));
 struct set *
+_mesa_set_create_u32_keys(void *mem_ctx);
+
+struct set *
 _mesa_set_clone(struct set *set, void *dst_mem_ctx);
 
 void
@@ -109,6 +112,9 @@ _mesa_set_random_entry(struct set *set,
 
 struct set *
 _mesa_pointer_set_create(void *mem_ctx);
+
+bool
+_mesa_set_intersects(struct set *a, struct set *b);
 
 /**
  * This foreach function is safe against deletion, but not against

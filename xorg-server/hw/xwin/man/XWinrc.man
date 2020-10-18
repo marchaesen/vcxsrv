@@ -141,7 +141,7 @@ filename of an .ico format file
 .br
 (e.g. "cygwin.ico", "apple.ico", "C:\\icons\\cheese.ico", "/usr/share/icons/moon.ico")
 .IP \fI"NAME.DLL,nnn"\fP 16
-filename of a DLL with an index into it's ICON resources
+filename of a DLL with an index into its ICON resources
 .br
 (e.g. "c:\\windows\\system32\\shell32.dll,4", the default folder icon,
       "/usr/bin/cygicons-0.dll,10", the hippo icon)

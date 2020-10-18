@@ -1727,7 +1727,7 @@ create_tofontcs_conv(
 {
     XlcConv conv;
     int i, num, k, count;
-    char **value, buf[20];
+    char **value, buf[32];
     Utf8Conv *preferred;
 
     lazy_init_all_charsets();

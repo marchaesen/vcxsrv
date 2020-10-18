@@ -292,7 +292,7 @@ public:
    virtual void visit(ir_barrier *);
    /*@}*/
 
-   void visit_expression(ir_expression *, st_src_reg *) ATTRIBUTE_NOINLINE;
+   void ATTRIBUTE_NOINLINE visit_expression(ir_expression *, st_src_reg *);
 
    void visit_atomic_counter_intrinsic(ir_call *);
    void visit_ssbo_intrinsic(ir_call *);
@@ -6520,17 +6520,6 @@ emit_face_var(struct gl_context *ctx, struct st_translate *t)
    t->inputs[t->inputMapping[VARYING_SLOT_FACE]] = ureg_src(face_temp);
 }
 
-static void
-emit_compute_block_size(const struct gl_program *prog,
-                        struct ureg_program *ureg) {
-   ureg_property(ureg, TGSI_PROPERTY_CS_FIXED_BLOCK_WIDTH,
-                 prog->info.cs.local_size[0]);
-   ureg_property(ureg, TGSI_PROPERTY_CS_FIXED_BLOCK_HEIGHT,
-                 prog->info.cs.local_size[1]);
-   ureg_property(ureg, TGSI_PROPERTY_CS_FIXED_BLOCK_DEPTH,
-                 prog->info.cs.local_size[2]);
-}
-
 struct sort_inout_decls {
    bool operator()(const struct inout_decl &a, const struct inout_decl &b) const {
       return mapping[a.mesa_index] < mapping[b.mesa_index];
@@ -6552,26 +6541,6 @@ sort_inout_decls_by_slot(struct inout_decl *decls,
    sort_inout_decls sorter;
    sorter.mapping = mapping;
    std::sort(decls, decls + count, sorter);
-}
-
-static enum tgsi_interpolate_mode
-st_translate_interp(enum glsl_interp_mode glsl_qual, GLuint varying)
-{
-   switch (glsl_qual) {
-   case INTERP_MODE_NONE:
-      if (varying == VARYING_SLOT_COL0 || varying == VARYING_SLOT_COL1)
-         return TGSI_INTERPOLATE_COLOR;
-      return TGSI_INTERPOLATE_PERSPECTIVE;
-   case INTERP_MODE_SMOOTH:
-      return TGSI_INTERPOLATE_PERSPECTIVE;
-   case INTERP_MODE_FLAT:
-      return TGSI_INTERPOLATE_CONSTANT;
-   case INTERP_MODE_NOPERSPECTIVE:
-      return TGSI_INTERPOLATE_LINEAR;
-   default:
-      assert(0 && "unexpected interp mode in st_translate_interp()");
-      return TGSI_INTERPOLATE_PERSPECTIVE;
-   }
 }
 
 /**
@@ -6622,7 +6591,9 @@ st_translate_program(
    assert(numOutputs <= ARRAY_SIZE(t->outputs));
 
    ASSERT_BITFIELD_SIZE(st_src_reg, type, GLSL_TYPE_ERROR);
+   ASSERT_BITFIELD_SIZE(st_src_reg, file, PROGRAM_FILE_MAX);
    ASSERT_BITFIELD_SIZE(st_dst_reg, type, GLSL_TYPE_ERROR);
+   ASSERT_BITFIELD_SIZE(st_dst_reg, file, PROGRAM_FILE_MAX);
    ASSERT_BITFIELD_SIZE(glsl_to_tgsi_instruction, tex_type, GLSL_TYPE_ERROR);
    ASSERT_BITFIELD_SIZE(glsl_to_tgsi_instruction, image_format, PIPE_FORMAT_COUNT);
    ASSERT_BITFIELD_SIZE(glsl_to_tgsi_instruction, tex_target,
@@ -6680,7 +6651,9 @@ st_translate_program(
             assert(interpMode);
             interp_mode = interpMode[slot] != TGSI_INTERPOLATE_COUNT ?
                (enum tgsi_interpolate_mode) interpMode[slot] :
-               st_translate_interp(decl->interp, inputSlotToAttr[slot]);
+               tgsi_get_interp_mode(decl->interp,
+                                    inputSlotToAttr[slot] == VARYING_SLOT_COL0 ||
+                                    inputSlotToAttr[slot] == VARYING_SLOT_COL1);
 
             interp_location = (enum tgsi_interpolate_loc) decl->interp_loc;
          }
@@ -6762,14 +6735,6 @@ st_translate_program(
    }
 
    if (procType == PIPE_SHADER_FRAGMENT) {
-      if (program->shader->Program->info.fs.early_fragment_tests ||
-          program->shader->Program->info.fs.post_depth_coverage) {
-         ureg_property(ureg, TGSI_PROPERTY_FS_EARLY_DEPTH_STENCIL, 1);
-
-         if (program->shader->Program->info.fs.post_depth_coverage)
-            ureg_property(ureg, TGSI_PROPERTY_FS_POST_DEPTH_COVERAGE, 1);
-      }
-
       if (proginfo->info.inputs_read & VARYING_BIT_POS) {
           /* Must do this after setting up t->inputs. */
           emit_wpos(st_context(ctx), t, proginfo, ureg,
@@ -6813,6 +6778,12 @@ st_translate_program(
             goto out;
          }
       }
+
+      if (program->shader->Program->sh.fs.BlendSupport)
+         ureg_property(ureg,
+                       TGSI_PROPERTY_FS_BLEND_EQUATION_ADVANCED,
+                       program->shader->Program->sh.fs.BlendSupport);
+
    }
    else if (procType == PIPE_SHADER_VERTEX) {
       for (i = 0; i < numOutputs; i++) {
@@ -6825,13 +6796,6 @@ st_translate_program(
          }
       }
    }
-
-   if (procType == PIPE_SHADER_COMPUTE) {
-      emit_compute_block_size(proginfo, ureg);
-   }
-
-   if (program->shader->Program->info.layer_viewport_relative)
-      ureg_property(ureg, TGSI_PROPERTY_LAYER_VIEWPORT_RELATIVE, 1);
 
    /* Declare address register.
     */
@@ -7021,25 +6985,6 @@ st_translate_program(
     */
    foreach_in_list(glsl_to_tgsi_instruction, inst, &program->instructions)
       compile_tgsi_instruction(t, inst);
-
-   /* Set the next shader stage hint for VS and TES. */
-   switch (procType) {
-   case PIPE_SHADER_VERTEX:
-   case PIPE_SHADER_TESS_EVAL:
-      if (program->shader_program->SeparateShader)
-         break;
-
-      for (i = program->shader->Stage+1; i <= MESA_SHADER_FRAGMENT; i++) {
-         if (program->shader_program->_LinkedShaders[i]) {
-            ureg_set_next_shader_processor(
-                  ureg, pipe_shader_type_from_mesa((gl_shader_stage)i));
-            break;
-         }
-      }
-      break;
-   default:
-      ; /* nothing - silence compiler warning */
-   }
 
 out:
    if (t) {

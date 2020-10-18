@@ -39,9 +39,17 @@
       - src/gallium/tests/**/*
       - src/gallium/winsys/*
 
+# Generic rule to not run the job during scheduled pipelines
+# ----------------------------------------------------------
+.scheduled_pipelines-rules:
+  rules: &ignore_scheduled_pipelines
+    if: '$CI_PIPELINE_SOURCE == "schedule"'
+    when: never
+
 .softpipe-rules:
   stage: softpipe
   rules:
+    - *ignore_scheduled_pipelines
     - changes:
         *mesa_core_file_list
       when: on_success
@@ -57,6 +65,7 @@
 .llvmpipe-rules:
   stage: llvmpipe
   rules:
+    - *ignore_scheduled_pipelines
     - changes:
         *mesa_core_file_list
       when: on_success
@@ -72,6 +81,7 @@
 .freedreno-rules:
   stage: freedreno
   rules:
+    - *ignore_scheduled_pipelines
     - changes:
         *mesa_core_file_list
       when: on_success
@@ -79,7 +89,18 @@
         *gallium_core_file_list
       when: on_success
     - changes:
-      - src/freedreno/**/*
+      # Note: when https://gitlab.com/gitlab-org/gitlab/-/issues/198688
+      # is supported, we can change the src/freedreno/ rule to explicitly
+      # exclude tools, rather than having to explicitly list everything
+      # else
+      - src/freedreno/common/**/*
+      - src/freedreno/drm/**/*
+      - src/freedreno/fdl/**/*
+      - src/freedreno/ir2/**/*
+      - src/freedreno/ir3/**/*
+      - src/freedreno/perfcntrs/**/*
+      - src/freedreno/registers/**/*
+      - src/freedreno/vulkan/**/*
       - src/gallium/drivers/freedreno/**/*
       - src/gallium/winsys/freedreno/**/*
       when: on_success
@@ -88,6 +109,7 @@
 .panfrost-rules:
   stage: panfrost
   rules:
+    - *ignore_scheduled_pipelines
     - changes:
         *mesa_core_file_list
       when: on_success
@@ -104,6 +126,7 @@
 .lima-rules:
   stage: lima
   rules:
+    - *ignore_scheduled_pipelines
     - changes:
         *mesa_core_file_list
       when: on_success
@@ -119,6 +142,7 @@
 
 .radv-rules:
   rules:
+    - *ignore_scheduled_pipelines
     - changes:
         *mesa_core_file_list
       when: on_success
@@ -131,6 +155,7 @@
 .virgl-rules:
   stage: virgl
   rules:
+    - *ignore_scheduled_pipelines
     - changes:
         *mesa_core_file_list
       when: on_success
@@ -143,5 +168,26 @@
     - changes:
       - src/gallium/drivers/virgl/**/*
       - src/gallium/winsys/virgl/**/*
+      when: on_success
+    - when: never
+
+.radeonsi-rules:
+  stage: radeonsi
+  rules:
+    - *ignore_scheduled_pipelines
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+      - src/gallium/drivers/radeonsi/**/*
+      - src/gallium/winsys/amdgpu/**/*
+      - src/amd/*
+      - src/amd/addrlib/**/*
+      - src/amd/common/**/*
+      - src/amd/llvm/**/*
+      - src/amd/registers/**/*
       when: on_success
     - when: never

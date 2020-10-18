@@ -24,6 +24,7 @@ apt-get install -y --no-remove \
         flex \
         git \
         netcat \
+        nginx-full \
         python3-distutils \
         python3-minimal \
         python3-serial \
@@ -36,5 +37,9 @@ apt-get install -y --no-remove \
 
 apt install -t buster-backports -y --no-remove \
     meson
+
+# setup nginx
+sed -i '/gzip_/ s/#\ //g' /etc/nginx/nginx.conf
+cp .gitlab-ci/bare-metal/nginx-default-site  /etc/nginx/sites-enabled/default
 
 . .gitlab-ci/container/container_post_build.sh

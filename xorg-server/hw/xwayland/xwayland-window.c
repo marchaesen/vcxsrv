@@ -783,16 +783,6 @@ xwl_destroy_window(WindowPtr window)
     return ret;
 }
 
-void xwl_surface_damage(struct xwl_screen *xwl_screen,
-                        struct wl_surface *surface,
-                        int32_t x, int32_t y, int32_t width, int32_t height)
-{
-    if (wl_surface_get_version(surface) >= WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION)
-        wl_surface_damage_buffer(surface, x, y, width, height);
-    else
-        wl_surface_damage(surface, x, y, width, height);
-}
-
 void
 xwl_window_post_damage(struct xwl_window *xwl_window)
 {

@@ -87,7 +87,7 @@ _XWAttrsHandler(
 
 Status
 _XGetWindowAttributes(
-    register Display *dpy,
+    Display *dpy,
     Window w,
     XWindowAttributes *attr)
 {

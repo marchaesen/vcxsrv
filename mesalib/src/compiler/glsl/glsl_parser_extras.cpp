@@ -761,6 +761,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(NV_fragment_shader_interlock),
    EXT(NV_image_formats),
    EXT(NV_shader_atomic_float),
+   EXT(NV_shader_atomic_int64),
    EXT(NV_viewport_array2),
 };
 
@@ -1187,6 +1188,7 @@ ast_node::print(void) const
 
 ast_node::ast_node(void)
 {
+   this->location.path = NULL;
    this->location.source = 0;
    this->location.first_line = 0;
    this->location.first_column = 0;
@@ -2249,7 +2251,8 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
       &ctx->Const.ShaderCompilerOptions[shader->Stage];
 
    if (!state->error && !shader->ir->is_empty()) {
-      if (options->LowerPrecisionFloat16 || options->LowerPrecisionInt16)
+      if (state->es_shader &&
+          (options->LowerPrecisionFloat16 || options->LowerPrecisionInt16))
          lower_precision(options, shader->ir);
       lower_builtins(shader->ir);
       assign_subroutine_indexes(state);

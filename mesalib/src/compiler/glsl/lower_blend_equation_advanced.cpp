@@ -329,8 +329,7 @@ calc_blend_result(ir_factory f,
 
    unsigned choices = blend_qualifiers;
    while (choices) {
-      enum gl_advanced_blend_mode choice = (enum gl_advanced_blend_mode)
-         (1u << u_bit_scan(&choices));
+      enum gl_advanced_blend_mode choice = (enum gl_advanced_blend_mode)u_bit_scan(&choices);
 
       ir_if *iff = new(mem_ctx) ir_if(is_mode(mode, choice));
       casefactory.emit(iff);
@@ -385,7 +384,6 @@ calc_blend_result(ir_factory f,
          set_lum(&casefactory, factor, dst_rgb, src_rgb);
          break;
       case BLEND_NONE:
-      case BLEND_ALL:
          unreachable("not real cases");
       }
 

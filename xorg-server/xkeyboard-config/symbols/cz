@@ -145,9 +145,9 @@ xkb_symbols "qwerty-mac" {
     key <AD11>  { [    uacute,      slash,  bracketleft,         less ] };
     key <AD12>  { [parenright,  parenleft, bracketright,      greater ] };
 
-    key <AC01>  { [         a,          A,      aogonek,     Aogonekl ] };
+    key <AC01>  { [         a,          A,      aogonek,      Aogonek ] };
     key <AC02>  { [         s,          S,       ssharp,        U2211 ] };
-    key <AC03>  { [         d,          D, partialderivate,     U2206 ] };
+    key <AC03>  { [         d,          D, partialderivative,   U2206 ] };
     key <AC04>  { [         f,          F,     NoSymbol,     NoSymbol ] };
     key <AC05>  { [         g,          G,     NoSymbol,     NoSymbol ] };
     key <AC06>  { [         h,          H, leftsinglequotemark, leftdoublequotemark]};
@@ -476,8 +476,8 @@ xkb_symbols "prog_typo" {
     //
     // Contains typographic symbols in third and fourth level. 
 
-    name[Group1]="Czech (programming, typographic)";
-
     include "cz(prog)"
     include "cz(typo)"
+
+    name[Group1]="Czech (programming, typographic)";
 };

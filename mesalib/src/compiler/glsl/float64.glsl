@@ -155,7 +155,7 @@ __feq64(uint64_t a, uint64_t b)
  * performed according to the IEEE Standard for Floating-Point Arithmetic.
  */
 bool
-__fne64(uint64_t a, uint64_t b)
+__fneu64(uint64_t a, uint64_t b)
 {
    if (__is_nan(a) || __is_nan(b))
       return true;
@@ -206,16 +206,16 @@ __flt64_nonnan(uint64_t __a, uint64_t __b)
     *
     * This is equivalent to
     *
-    *    fne(a, b) && (both_negative(a, b) ? a >= b : a < b)
+    *    fneu(a, b) && (both_negative(a, b) ? a >= b : a < b)
     *
-    *    fne(a, b) && (both_negative(a, b) ? !(a < b) : a < b)
+    *    fneu(a, b) && (both_negative(a, b) ? !(a < b) : a < b)
     *
-    *    fne(a, b) && ((both_negative(a, b) && !(a < b)) ||
+    *    fneu(a, b) && ((both_negative(a, b) && !(a < b)) ||
     *                  (!both_negative(a, b) && (a < b)))
     *
     * (A!|B)&(A|!B) is (A xor B) which is implemented here using !=.
     *
-    *    fne(a, b) && (both_negative(a, b) != (a < b))
+    *    fneu(a, b) && (both_negative(a, b) != (a < b))
     */
    bool lt = ilt64(a.y, a.x, b.y, b.x);
    bool both_negative = (a.y & b.y & 0x80000000u) != 0;
@@ -1093,66 +1093,6 @@ __fp64_to_int64(uint64_t a)
 }
 
 uint64_t
-__fp32_to_uint64(float f)
-{
-   uint a = floatBitsToUint(f);
-   uint aFrac = a & 0x007FFFFFu;
-   int aExp = int((a>>23) & 0xFFu);
-   uint aSign = a & 0x80000000u;
-   uint zFrac0 = 0u;
-   uint zFrac1 = 0u;
-   uint zFrac2 = 0u;
-   uint64_t default_nan = 0xFFFFFFFFFFFFFFFFUL;
-   int shiftCount = 0xBE - aExp;
-
-   if (shiftCount <0) {
-      if (aExp == 0xFF)
-         return default_nan;
-   }
-
-   aFrac = mix(aFrac, aFrac | 0x00800000u, aExp != 0);
-   __shortShift64Left(aFrac, 0, 40, zFrac0, zFrac1);
-
-   if (shiftCount != 0) {
-      __shift64ExtraRightJamming(zFrac0, zFrac1, zFrac2, shiftCount,
-                                 zFrac0, zFrac1, zFrac2);
-   }
-
-   return __roundAndPackUInt64(aSign, zFrac0, zFrac1, zFrac2);
-}
-
-int64_t
-__fp32_to_int64(float f)
-{
-   uint a = floatBitsToUint(f);
-   uint aFrac = a & 0x007FFFFFu;
-   int aExp = int((a>>23) & 0xFFu);
-   uint aSign = a & 0x80000000u;
-   uint zFrac0 = 0u;
-   uint zFrac1 = 0u;
-   uint zFrac2 = 0u;
-   int64_t default_NegNaN = -0x7FFFFFFFFFFFFFFEL;
-   int64_t default_PosNaN = 0xFFFFFFFFFFFFFFFFL;
-   int shiftCount = 0xBE - aExp;
-
-   if (shiftCount <0) {
-      if (aExp == 0xFF && aFrac != 0u)
-         return default_NegNaN;
-      return mix(default_NegNaN, default_PosNaN, aSign == 0u);
-   }
-
-   aFrac = mix(aFrac, aFrac | 0x00800000u, aExp != 0);
-   __shortShift64Left(aFrac, 0, 40, zFrac0, zFrac1);
-
-   if (shiftCount != 0) {
-      __shift64ExtraRightJamming(zFrac0, zFrac1, zFrac2, shiftCount,
-                                 zFrac0, zFrac1, zFrac2);
-   }
-
-   return __roundAndPackInt64(aSign, zFrac0, zFrac1, zFrac2);
-}
-
-uint64_t
 __int64_to_fp64(int64_t a)
 {
    if (a==0)
@@ -1345,40 +1285,6 @@ __fp64_to_fp32(uint64_t __a)
    __shift64RightJamming(aFracHi, aFracLo, 22, allZero, zFrac);
    zFrac = mix(zFrac, zFrac | 0x40000000u, aExp != 0);
    return __roundAndPackFloat32(aSign, aExp - 0x381, zFrac);
-}
-
-float
-__uint64_to_fp32(uint64_t __a)
-{
-   uvec2 aFrac = unpackUint2x32(__a);
-   int shiftCount = mix(__countLeadingZeros32(aFrac.y) - 33,
-                        __countLeadingZeros32(aFrac.x) - 1,
-                        aFrac.y == 0u);
-
-   if (0 <= shiftCount)
-      __shortShift64Left(aFrac.y, aFrac.x, shiftCount, aFrac.y, aFrac.x);
-   else
-      __shift64RightJamming(aFrac.y, aFrac.x, -shiftCount, aFrac.y, aFrac.x);
-
-   return __roundAndPackFloat32(0u, 0x9C - shiftCount, aFrac.x);
-}
-
-float
-__int64_to_fp32(int64_t __a)
-{
-   uint aSign = uint(unpackInt2x32(__a).y) & 0x80000000u;
-   uint64_t absA = mix(uint64_t(__a), uint64_t(-__a), __a < 0);
-   uvec2 aFrac = unpackUint2x32(absA);
-   int shiftCount = mix(__countLeadingZeros32(aFrac.y) - 33,
-                        __countLeadingZeros32(aFrac.x) - 1,
-                        aFrac.y == 0u);
-
-   if (0 <= shiftCount)
-      __shortShift64Left(aFrac.y, aFrac.x, shiftCount, aFrac.y, aFrac.x);
-   else
-      __shift64RightJamming(aFrac.y, aFrac.x, -shiftCount, aFrac.y, aFrac.x);
-
-   return __roundAndPackFloat32(aSign, 0x9C - shiftCount, aFrac.x);
 }
 
 /* Returns the result of converting the single-precision floating-point value

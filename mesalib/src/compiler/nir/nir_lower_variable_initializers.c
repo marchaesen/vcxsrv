@@ -54,13 +54,17 @@ build_constant_load(nir_builder *b, nir_deref_instr *deref, nir_constant *c)
 }
 
 static bool
-lower_const_initializer(struct nir_builder *b, struct exec_list *var_list)
+lower_const_initializer(struct nir_builder *b, struct exec_list *var_list,
+                        nir_variable_mode modes)
 {
    bool progress = false;
 
    b->cursor = nir_before_cf_list(&b->impl->body);
 
-   nir_foreach_variable(var, var_list) {
+   nir_foreach_variable_in_list(var, var_list) {
+      if (!(var->data.mode & modes))
+         continue;
+
       if (var->constant_initializer) {
          build_constant_load(b, nir_build_deref_var(b, var),
                              var->constant_initializer);
@@ -88,6 +92,16 @@ nir_lower_variable_initializers(nir_shader *shader, nir_variable_mode modes)
 {
    bool progress = false;
 
+   /* Only some variables have initializers that we want to lower.  Others
+    * such as uniforms have initializers which are useful later during linking
+    * so we want to skip over those.  Restrict to only variable types where
+    * initializers make sense so that callers can use nir_var_all.
+    */
+   modes &= nir_var_shader_out |
+            nir_var_shader_temp |
+            nir_var_function_temp |
+            nir_var_system_value;
+
    nir_foreach_function(function, shader) {
       if (!function->impl)
 	 continue;
@@ -97,17 +111,17 @@ nir_lower_variable_initializers(nir_shader *shader, nir_variable_mode modes)
       nir_builder builder;
       nir_builder_init(&builder, function->impl);
 
-      if ((modes & nir_var_shader_out) && function->is_entrypoint)
-         impl_progress |= lower_const_initializer(&builder, &shader->outputs);
+      if ((modes & ~nir_var_function_temp) && function->is_entrypoint) {
+         impl_progress |= lower_const_initializer(&builder,
+                                                  &shader->variables,
+                                                  modes);
+      }
 
-      if ((modes & nir_var_shader_temp) && function->is_entrypoint)
-         impl_progress |= lower_const_initializer(&builder, &shader->globals);
-
-      if ((modes & nir_var_system_value) && function->is_entrypoint)
-         impl_progress |= lower_const_initializer(&builder, &shader->system_values);
-
-      if (modes & nir_var_function_temp)
-         impl_progress |= lower_const_initializer(&builder, &function->impl->locals);
+      if (modes & nir_var_function_temp) {
+         impl_progress |= lower_const_initializer(&builder,
+                                                  &function->impl->locals,
+                                                  nir_var_function_temp);
+      }
 
       if (impl_progress) {
          progress = true;

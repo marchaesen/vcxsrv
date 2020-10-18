@@ -39,7 +39,7 @@
  *		TekHVCMxC.c
  *
  *	DESCRIPTION
- *		Source for the XcmsTekHVCQueryMaxC() gamut boudary
+ *		Source for the XcmsTekHVCQueryMaxC() gamut boundary
  *		querying routine.
  *
  */

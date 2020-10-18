@@ -1,0 +1,57 @@
+# Note: flakes lists for CI are just a list of lines that, when
+# non-zero-length and not starting with '#', will regex match to
+# delete lines from the test list.  Be careful.
+
+# Flakes reported more than once during Jan-Feb 2020
+dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array
+
+# We have longstanding intermittent failures with compswap.
+dEQP-GLES31.functional.compute.shared_var.atomic.compswap.highp_int
+dEQP-GLES31.functional.compute.shared_var.atomic.compswap.highp_uint
+dEQP-GLES31.functional.compute.shared_var.atomic.compswap.lowp_int
+dEQP-GLES31.functional.compute.shared_var.atomic.compswap.lowp_uint
+dEQP-GLES31.functional.compute.shared_var.atomic.compswap.mediump_int
+dEQP-GLES31.functional.compute.shared_var.atomic.compswap.mediump_uint
+dEQP-GLES31.functional.ssbo.atomic.compswap.highp_int
+dEQP-GLES31.functional.ssbo.atomic.compswap.highp_uint
+dEQP-GLES31.functional.ssbo.atomic.compswap.lowp_int
+dEQP-GLES31.functional.ssbo.atomic.compswap.lowp_uint
+dEQP-GLES31.functional.ssbo.atomic.compswap.mediump_int
+dEQP-GLES31.functional.ssbo.atomic.compswap.mediump_uint
+
+# Non-sysmem flakes
+dEQP-VK.pipeline.spec_constant.compute.composite.matrix.mat3x2
+
+# Sysmem flakes
+dEQP-GLES31.functional.texture.multisample.samples_3.use_texture_depth_2d
+dEQP-GLES31.functional.texture.multisample.samples_4.use_texture_depth_2d_array
+dEQP-GLES31.functional.stencil_texturing.render.depth24_stencil8_draw
+
+# Fails NIR_VALIDATE so probably flaky
+dEQP-VK.memory_model.write_after_read.core11.u32.coherent.fence_fence.atomicwrite.workgroup.payload_nonlocal.workgroup.guard_local.buffer.comp
+
+# At least some of the separate_channels tests fail on sysmem due to an
+# interaction of use of a UBWC buffer as both a render target and a
+# texture.  Stores are done through both paths in separate channels,
+# and the UBWC updates don't get synced.  The current a650 blob also
+# fails these tests and qcom apparently noted the failure at one point
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/2017
+dEQP-VK.renderpass.*separate_channels.*
+
+# These tests are broken (does not respect our minStorageBufferOffsetAlignment of 64)
+dEQP-VK.pipeline.push_descriptor.compute.*
+
+# Undiagnosed flakes appearing more than once in the last 2 months as
+# of 2020-08-19, in descending order of frequency.
+dEQP-GLES3.functional.fbo.msaa.2_samples.stencil_index8
+dEQP-GLES3.functional.fragment_out.random.39
+dEQP-VK.subgroups.shuffle.framebuffer.subgroupshufflexor_bvec3_tess_eval
+dEQP-VK.image.texel_view_compatible.graphic.extended.2d_image.texture_read.astc_10x6_unorm_block.r32g32b32a32_uint
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.generate_mipmaps.from_base_level.layercount_6.r8g8b8a8_sint.general_optimal_nearest
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.r16_unorm.b8g8r8a8_snorm.optimal_optimal_nearest
+dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array
+dEQP-VK.subgroups.quad.framebuffer.subgroupquadswapvertical_ivec2_tess_eval
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.r8g8b8a8_snorm.r32_sfloat.general_optimal_nearest
+dEQP-GLES31.functional.tessellation.invariance.primitive_set.quads_equal_spacing_cw
+dEQP-GLES31.functional.ssbo.layout.3_level_unsized_array.std140.mat2
+dEQP-GLES31.functional.draw_indirect.compute_interop.large.drawelements_combined_grid_1200x1200_drawcount_8

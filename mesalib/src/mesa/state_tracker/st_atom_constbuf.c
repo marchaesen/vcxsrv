@@ -119,6 +119,21 @@ st_upload_constants(struct st_context *st, struct gl_program *prog)
       cso_set_constant_buffer(st->cso_context, shader_type, 0, &cb);
       pipe_resource_reference(&cb.buffer, NULL);
 
+      /* Set inlinable constants. */
+      unsigned num_inlinable_uniforms = prog->info.num_inlinable_uniforms;
+      if (num_inlinable_uniforms) {
+         struct pipe_context *pipe = st->pipe;
+         uint32_t values[MAX_INLINABLE_UNIFORMS];
+         gl_constant_value *constbuf = params->ParameterValues;
+
+         for (unsigned i = 0; i < num_inlinable_uniforms; i++)
+            values[i] = constbuf[prog->info.inlinable_uniform_dw_offsets[i]].u;
+
+         pipe->set_inlinable_constants(pipe, shader_type,
+                                       prog->info.num_inlinable_uniforms,
+                                       values);
+      }
+
       st->state.constants[shader_type].ptr = params->ParameterValues;
       st->state.constants[shader_type].size = paramBytes;
    }

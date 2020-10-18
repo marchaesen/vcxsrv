@@ -107,8 +107,8 @@
 									x86emu_decode_printf(x,y)
 
 /*
- * The following allow us to look at the bytes of an instruction.  The
- * first INCR_INSTRN_LEN, is called everytime bytes are consumed in
+ * The following allows us to look at the bytes of an instruction.  The
+ * first INCR_INSTRN_LEN, is called every time bytes are consumed in
  * the decoding process.  The SAVE_IP_CS is called initially when the
  * major opcode of the instruction is accessed.
  */

@@ -139,7 +139,7 @@ void XwinExtensionInit(void)
 #if defined(DDXBEFORERESET)
 /*
  * Called right before KillAllClients when the server is going to reset,
- * allows us to shutdown our seperate threads cleanly.
+ * allows us to shutdown our separate threads cleanly.
  */
 
 void

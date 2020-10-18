@@ -1,4 +1,4 @@
-#		Add & Override for this directory and it's subdirectories
+#		Add & Override for this directory and its subdirectories
 mach_startup.h
 mach_startupServer.c
 mach_startupServer.h

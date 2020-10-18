@@ -23,7 +23,7 @@
 #
 # Panjabi/Punjabi in Pakistan (pa-PK)
 #
-# This file is kept for compatiblity for glibc: According to ISO 639-3, the
+# This file is kept for compatibility for glibc: According to ISO 639-3, the
 # proper code for Pakistani Panjabi is 'lah'. See the file 'lah.orth' for
 # more information.
 include lah.orth

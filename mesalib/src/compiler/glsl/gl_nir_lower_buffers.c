@@ -182,6 +182,7 @@ lower_buffer_interface_derefs_impl(nir_function_impl *impl,
 
             b.cursor = nir_before_instr(&deref->instr);
 
+            unsigned offset = 0;
             nir_ssa_def *ptr;
             if (deref->deref_type == nir_deref_type_var &&
                 !glsl_type_is_interface(glsl_without_array(deref->var->type))) {
@@ -189,7 +190,7 @@ lower_buffer_interface_derefs_impl(nir_function_impl *impl,
                 * containing one.  We need the block index and its offset
                 * inside that block
                 */
-               unsigned index, offset;
+               unsigned index;
                get_block_index_offset(deref->var, shader_program,
                                       b.shader->info.stage,
                                       &index, &offset);
@@ -201,7 +202,7 @@ lower_buffer_interface_derefs_impl(nir_function_impl *impl,
                 */
                nir_ssa_def *index = get_block_array_index(&b, deref,
                                                           shader_program);
-               ptr = nir_vec2(&b, index, nir_imm_int(&b, 0));
+               ptr = nir_vec2(&b, index, nir_imm_int(&b, offset));
             } else {
                /* This will get handled by nir_lower_explicit_io(). */
                break;
@@ -209,6 +210,14 @@ lower_buffer_interface_derefs_impl(nir_function_impl *impl,
 
             nir_deref_instr *cast = nir_build_deref_cast(&b, ptr, deref->mode,
                                                          deref->type, 0);
+            /* Set the alignment on the cast so that we get good alignment out
+             * of nir_lower_explicit_io.  Our offset to the start of the UBO
+             * variable is always a constant, so we can use the maximum
+             * align_mul.
+             */
+            cast->cast.align_mul = NIR_ALIGN_MUL_MAX;
+            cast->cast.align_offset = offset % NIR_ALIGN_MUL_MAX;
+
             nir_ssa_def_rewrite_uses(&deref->dest.ssa,
                                      nir_src_for_ssa(&cast->dest.ssa));
             nir_deref_instr_remove_if_unused(deref);

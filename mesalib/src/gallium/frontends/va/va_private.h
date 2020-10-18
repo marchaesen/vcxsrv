@@ -267,6 +267,7 @@ typedef struct {
    unsigned int export_refcount;
    VABufferInfo export_state;
    unsigned int coded_size;
+   struct pipe_video_buffer *derived_image_buffer;
 } vlVaBuffer;
 
 typedef struct {
@@ -307,6 +308,7 @@ typedef struct {
    int gop_coeff;
    bool needs_begin_frame;
    void *blit_cs;
+   int packed_header_type;
 } vlVaContext;
 
 typedef struct {
@@ -458,5 +460,5 @@ VAStatus vlVaHandleVAEncSliceParameterBufferTypeHEVC(vlVaDriver *drv, vlVaContex
 VAStatus vlVaHandleVAEncSequenceParameterBufferTypeHEVC(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf);
 VAStatus vlVaHandleVAEncMiscParameterTypeRateControlHEVC(vlVaContext *context, VAEncMiscParameterBuffer *buf);
 VAStatus vlVaHandleVAEncMiscParameterTypeFrameRateHEVC(vlVaContext *context, VAEncMiscParameterBuffer *buf);
-
+VAStatus vlVaHandleVAEncPackedHeaderDataBufferTypeHEVC(vlVaContext *context, vlVaBuffer *buf);
 #endif //VA_PRIVATE_H

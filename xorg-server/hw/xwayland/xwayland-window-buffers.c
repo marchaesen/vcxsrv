@@ -181,7 +181,7 @@ xwl_window_buffer_timer_callback(OsTimerPtr timer, CARD32 time, void *arg)
 }
 
 static void
-xwl_window_buffer_release_callback(PixmapPtr pixmap, void *data)
+xwl_window_buffer_release_callback(void *data)
 {
     struct xwl_window_buffer *xwl_window_buffer = data;
     struct xwl_window *xwl_window = xwl_window_buffer->xwl_window;
@@ -278,6 +278,11 @@ xwl_window_buffers_get_pixmap(struct xwl_window *xwl_window,
     RegionPtr full_damage;
 
     window_pixmap = (*xwl_screen->screen->GetWindowPixmap) (xwl_window->window);
+
+#ifdef XWL_HAS_GLAMOR
+    if (!xwl_glamor_needs_n_buffering(xwl_screen))
+        return window_pixmap;
+#endif /* XWL_HAS_GLAMOR */
 
     xwl_window_buffer = xwl_window_buffer_get_available(xwl_window);
     if (!xwl_window_buffer)

@@ -45,7 +45,7 @@ struct u_upload_mgr {
    unsigned bind;          /* Bitmask of PIPE_BIND_* flags. */
    enum pipe_resource_usage usage;
    unsigned flags;
-   unsigned map_flags;     /* Bitmask of PIPE_TRANSFER_* flags. */
+   unsigned map_flags;     /* Bitmask of PIPE_MAP_* flags. */
    boolean map_persistent; /* If persistent mappings are supported. */
 
    struct pipe_resource *buffer;   /* Upload buffer. */
@@ -77,15 +77,15 @@ u_upload_create(struct pipe_context *pipe, unsigned default_size,
                               PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT);
 
    if (upload->map_persistent) {
-      upload->map_flags = PIPE_TRANSFER_WRITE |
-                          PIPE_TRANSFER_UNSYNCHRONIZED |
-                          PIPE_TRANSFER_PERSISTENT |
-                          PIPE_TRANSFER_COHERENT;
+      upload->map_flags = PIPE_MAP_WRITE |
+                          PIPE_MAP_UNSYNCHRONIZED |
+                          PIPE_MAP_PERSISTENT |
+                          PIPE_MAP_COHERENT;
    }
    else {
-      upload->map_flags = PIPE_TRANSFER_WRITE |
-                          PIPE_TRANSFER_UNSYNCHRONIZED |
-                          PIPE_TRANSFER_FLUSH_EXPLICIT;
+      upload->map_flags = PIPE_MAP_WRITE |
+                          PIPE_MAP_UNSYNCHRONIZED |
+                          PIPE_MAP_FLUSH_EXPLICIT;
    }
 
    return upload;
@@ -110,7 +110,7 @@ u_upload_clone(struct pipe_context *pipe, struct u_upload_mgr *upload)
    if (!upload->map_persistent && result->map_persistent)
       u_upload_disable_persistent(result);
    else if (upload->map_persistent &&
-            upload->map_flags & PIPE_TRANSFER_FLUSH_EXPLICIT)
+            upload->map_flags & PIPE_MAP_FLUSH_EXPLICIT)
       u_upload_enable_flush_explicit(result);
 
    return result;
@@ -120,16 +120,16 @@ void
 u_upload_enable_flush_explicit(struct u_upload_mgr *upload)
 {
    assert(upload->map_persistent);
-   upload->map_flags &= ~PIPE_TRANSFER_COHERENT;
-   upload->map_flags |= PIPE_TRANSFER_FLUSH_EXPLICIT;
+   upload->map_flags &= ~PIPE_MAP_COHERENT;
+   upload->map_flags |= PIPE_MAP_FLUSH_EXPLICIT;
 }
 
 void
 u_upload_disable_persistent(struct u_upload_mgr *upload)
 {
    upload->map_persistent = FALSE;
-   upload->map_flags &= ~(PIPE_TRANSFER_COHERENT | PIPE_TRANSFER_PERSISTENT);
-   upload->map_flags |= PIPE_TRANSFER_FLUSH_EXPLICIT;
+   upload->map_flags &= ~(PIPE_MAP_COHERENT | PIPE_MAP_PERSISTENT);
+   upload->map_flags |= PIPE_MAP_FLUSH_EXPLICIT;
 }
 
 static void
@@ -138,7 +138,7 @@ upload_unmap_internal(struct u_upload_mgr *upload, boolean destroying)
    if (!upload->transfer)
       return;
 
-   if (upload->map_flags & PIPE_TRANSFER_FLUSH_EXPLICIT) {
+   if (upload->map_flags & PIPE_MAP_FLUSH_EXPLICIT) {
       struct pipe_box *box = &upload->transfer->box;
       unsigned flush_offset = box->x + upload->flushed_size;
 

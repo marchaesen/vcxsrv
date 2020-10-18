@@ -431,7 +431,7 @@ VBESetModeParameters(ScrnInfoPtr pScrn, vbeInfoPtr pVbe)
 }
 
 /*
- * These wrappers are to allow (temporary) funtionality divergences.
+ * These wrappers are to allow (temporary) functionality divergences.
  */
 int
 VBEValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,

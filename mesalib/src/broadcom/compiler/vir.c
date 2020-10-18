@@ -24,6 +24,7 @@
 #include "broadcom/common/v3d_device_info.h"
 #include "v3d_compiler.h"
 #include "util/u_prim.h"
+#include "compiler/nir/nir_schedule.h"
 
 int
 vir_get_nsrc(struct qinst *inst)
@@ -205,6 +206,17 @@ vir_set_unpack(struct qinst *inst, int src,
                         inst->qpu.alu.mul.a_unpack = unpack;
                 else
                         inst->qpu.alu.mul.b_unpack = unpack;
+        }
+}
+
+void
+vir_set_pack(struct qinst *inst, enum v3d_qpu_output_pack pack)
+{
+        if (vir_is_add(inst)) {
+                inst->qpu.alu.add.output_pack = pack;
+        } else {
+                assert(vir_is_mul(inst));
+                inst->qpu.alu.mul.output_pack = pack;
         }
 }
 
@@ -499,7 +511,8 @@ vir_compile_init(const struct v3d_compiler *compiler,
                  void (*debug_output)(const char *msg,
                                       void *debug_output_data),
                  void *debug_output_data,
-                 int program_id, int variant_id)
+                 int program_id, int variant_id,
+                 bool fallback_scheduler)
 {
         struct v3d_compile *c = rzalloc(NULL, struct v3d_compile);
 
@@ -511,6 +524,8 @@ vir_compile_init(const struct v3d_compiler *compiler,
         c->threads = 4;
         c->debug_output = debug_output;
         c->debug_output_data = debug_output_data;
+        c->compilation_result = V3D_COMPILATION_SUCCEEDED;
+        c->fallback_scheduler = fallback_scheduler;
 
         s = nir_shader_clone(c, s);
         c->s = s;
@@ -566,7 +581,7 @@ v3d_lower_nir(struct v3d_compile *c)
         }
 
         /* CS textures may not have return_size reflecting the shadow state. */
-        nir_foreach_variable(var, &c->s->uniforms) {
+        nir_foreach_uniform_variable(var, c->s) {
                 const struct glsl_type *type = glsl_without_array(var->type);
                 unsigned array_len = MAX2(glsl_get_length(var->type), 1);
 
@@ -582,6 +597,7 @@ v3d_lower_nir(struct v3d_compile *c)
 
         NIR_PASS_V(c->s, nir_lower_tex, &tex_options);
         NIR_PASS_V(c->s, nir_lower_system_values);
+        NIR_PASS_V(c->s, nir_lower_compute_system_values, NULL);
 
         NIR_PASS_V(c->s, nir_lower_vars_to_scratch,
                    nir_var_function_temp,
@@ -620,11 +636,19 @@ v3d_vs_set_prog_data(struct v3d_compile *c,
         }
 
         prog_data->uses_vid = (c->s->info.system_values_read &
-                               (1ull << SYSTEM_VALUE_VERTEX_ID));
+                               (1ull << SYSTEM_VALUE_VERTEX_ID |
+                                1ull << SYSTEM_VALUE_VERTEX_ID_ZERO_BASE));
+
+        prog_data->uses_biid = (c->s->info.system_values_read &
+                                (1ull << SYSTEM_VALUE_BASE_INSTANCE));
+
         prog_data->uses_iid = (c->s->info.system_values_read &
-                               (1ull << SYSTEM_VALUE_INSTANCE_ID));
+                               (1ull << SYSTEM_VALUE_INSTANCE_ID |
+                                1ull << SYSTEM_VALUE_INSTANCE_INDEX));
 
         if (prog_data->uses_vid)
+                prog_data->vpm_input_size++;
+        if (prog_data->uses_biid)
                 prog_data->vpm_input_size++;
         if (prog_data->uses_iid)
                 prog_data->vpm_input_size++;
@@ -736,6 +760,7 @@ v3d_fs_set_prog_data(struct v3d_compile *c,
                 c->uses_implicit_point_line_varyings;
         prog_data->lock_scoreboard_on_first_thrsw =
                 c->lock_scoreboard_on_first_thrsw;
+        prog_data->force_per_sample_msaa = c->force_per_sample_msaa;
 }
 
 static void
@@ -805,7 +830,7 @@ v3d_nir_lower_vs_early(struct v3d_compile *c)
                 used_outputs[comp] |= 1ull << slot;
         }
         NIR_PASS_V(c->s, nir_remove_unused_io_vars,
-                   &c->s->outputs, used_outputs, NULL); /* demotes to globals */
+                   nir_var_shader_out, used_outputs, NULL); /* demotes to globals */
         NIR_PASS_V(c->s, nir_lower_global_vars_to_local);
         v3d_optimize_nir(c->s);
         NIR_PASS_V(c->s, nir_remove_dead_variables, nir_var_shader_in, NULL);
@@ -817,8 +842,11 @@ v3d_nir_lower_vs_early(struct v3d_compile *c)
         NIR_PASS_V(c->s, nir_lower_io, nir_var_shader_in | nir_var_shader_out,
                    type_size_vec4,
                    (nir_lower_io_options)0);
-        /* clean up nir_lower_io's deref_var remains */
+        /* clean up nir_lower_io's deref_var remains and do a constant folding pass
+         * on the code it generated.
+         */
         NIR_PASS_V(c->s, nir_opt_dce);
+        NIR_PASS_V(c->s, nir_opt_constant_folding);
 }
 
 static void
@@ -836,7 +864,7 @@ v3d_nir_lower_gs_early(struct v3d_compile *c)
                 used_outputs[comp] |= 1ull << slot;
         }
         NIR_PASS_V(c->s, nir_remove_unused_io_vars,
-                   &c->s->outputs, used_outputs, NULL); /* demotes to globals */
+                   nir_var_shader_out, used_outputs, NULL); /* demotes to globals */
         NIR_PASS_V(c->s, nir_lower_global_vars_to_local);
         v3d_optimize_nir(c->s);
         NIR_PASS_V(c->s, nir_remove_dead_variables, nir_var_shader_in, NULL);
@@ -855,7 +883,7 @@ v3d_nir_lower_gs_early(struct v3d_compile *c)
 static void
 v3d_fixup_fs_output_types(struct v3d_compile *c)
 {
-        nir_foreach_variable(var, &c->s->outputs) {
+        nir_foreach_shader_out_variable(var, c->s) {
                 uint32_t mask = 0;
 
                 switch (var->data.location) {
@@ -889,6 +917,13 @@ v3d_nir_lower_fs_early(struct v3d_compile *c)
                 v3d_fixup_fs_output_types(c);
 
         NIR_PASS_V(c->s, v3d_nir_lower_logic_ops, c);
+
+        if (c->fs_key->line_smoothing) {
+                v3d_nir_lower_line_smooth(c->s);
+                NIR_PASS_V(c->s, nir_lower_global_vars_to_local);
+                /* The lowering pass can introduce new sysval reads */
+                nir_shader_gather_info(c->s, nir_shader_get_entrypoint(c->s));
+        }
 
         /* If the shader has no non-TLB side effects, we can promote it to
          * enabling early_fragment_tests even if the user didn't.
@@ -932,7 +967,7 @@ static void
 v3d_nir_lower_fs_late(struct v3d_compile *c)
 {
         if (c->fs_key->light_twoside)
-                NIR_PASS_V(c->s, nir_lower_two_sided_color);
+                NIR_PASS_V(c->s, nir_lower_two_sided_color, true);
 
         if (c->fs_key->clamp_color)
                 NIR_PASS_V(c->s, nir_lower_clamp_color_outputs);
@@ -943,9 +978,15 @@ v3d_nir_lower_fs_late(struct v3d_compile *c)
                            false, NULL);
         }
 
+        /* In OpenGL the fragment shader can't read gl_ClipDistance[], but
+         * Vulkan allows it, in which case the SPIR-V compiler will declare
+         * VARING_SLOT_CLIP_DIST0 as compact array variable. Pass true as
+         * the last parameter to always operate with a compact array in both
+         * OpenGL and Vulkan so we do't have to care about the API we
+         * are using.
+         */
         if (c->key->ucp_enables)
-                NIR_PASS_V(c->s, nir_lower_clip_fs, c->key->ucp_enables,
-                           false);
+                NIR_PASS_V(c->s, nir_lower_clip_fs, c->key->ucp_enables, true);
 
         /* Note: FS input scalarizing must happen after
          * nir_lower_two_sided_color, which only handles a vec4 at a time.
@@ -980,42 +1021,75 @@ vir_get_max_temps(struct v3d_compile *c)
         return max_temps;
 }
 
-uint64_t *v3d_compile(const struct v3d_compiler *compiler,
-                      struct v3d_key *key,
-                      struct v3d_prog_data **out_prog_data,
-                      nir_shader *s,
-                      void (*debug_output)(const char *msg,
-                                           void *debug_output_data),
-                      void *debug_output_data,
-                      int program_id, int variant_id,
-                      uint32_t *final_assembly_size)
-{
-        struct v3d_prog_data *prog_data;
-        struct v3d_compile *c = vir_compile_init(compiler, key, s,
-                                                 debug_output, debug_output_data,
-                                                 program_id, variant_id);
+enum v3d_dependency_class {
+        V3D_DEPENDENCY_CLASS_GS_VPM_OUTPUT_0
+};
 
+static bool
+v3d_intrinsic_dependency_cb(nir_intrinsic_instr *intr,
+                            nir_schedule_dependency *dep,
+                            void *user_data)
+{
+        struct v3d_compile *c = user_data;
+
+        switch (intr->intrinsic) {
+        case nir_intrinsic_store_output:
+                /* Writing to location 0 overwrites the value passed in for
+                 * gl_PrimitiveID on geometry shaders
+                 */
+                if (c->s->info.stage != MESA_SHADER_GEOMETRY ||
+                    nir_intrinsic_base(intr) != 0)
+                        break;
+
+                nir_const_value *const_value =
+                        nir_src_as_const_value(intr->src[1]);
+
+                if (const_value == NULL)
+                        break;
+
+                uint64_t offset =
+                        nir_const_value_as_uint(*const_value,
+                                                nir_src_bit_size(intr->src[1]));
+                if (offset != 0)
+                        break;
+
+                dep->klass = V3D_DEPENDENCY_CLASS_GS_VPM_OUTPUT_0;
+                dep->type = NIR_SCHEDULE_WRITE_DEPENDENCY;
+                return true;
+
+        case nir_intrinsic_load_primitive_id:
+                if (c->s->info.stage != MESA_SHADER_GEOMETRY)
+                        break;
+
+                dep->klass = V3D_DEPENDENCY_CLASS_GS_VPM_OUTPUT_0;
+                dep->type = NIR_SCHEDULE_READ_DEPENDENCY;
+                return true;
+
+        default:
+                break;
+        }
+
+        return false;
+}
+
+static void
+v3d_attempt_compile(struct v3d_compile *c)
+{
         switch (c->s->info.stage) {
         case MESA_SHADER_VERTEX:
-                c->vs_key = (struct v3d_vs_key *)key;
-                prog_data = rzalloc_size(NULL, sizeof(struct v3d_vs_prog_data));
+                c->vs_key = (struct v3d_vs_key *) c->key;
                 break;
         case MESA_SHADER_GEOMETRY:
-                c->gs_key = (struct v3d_gs_key *)key;
-                prog_data = rzalloc_size(NULL, sizeof(struct v3d_gs_prog_data));
+                c->gs_key = (struct v3d_gs_key *) c->key;
                 break;
         case MESA_SHADER_FRAGMENT:
-                c->fs_key = (struct v3d_fs_key *)key;
-                prog_data = rzalloc_size(NULL, sizeof(struct v3d_fs_prog_data));
+                c->fs_key = (struct v3d_fs_key *) c->key;
                 break;
         case MESA_SHADER_COMPUTE:
-                prog_data = rzalloc_size(NULL,
-                                         sizeof(struct v3d_compute_prog_data));
                 break;
         default:
                 unreachable("unsupported shader stage");
         }
-
 
         switch (c->s->info.stage) {
         case MESA_SHADER_VERTEX:
@@ -1052,6 +1126,17 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
         NIR_PASS_V(c->s, v3d_nir_lower_image_load_store);
         NIR_PASS_V(c->s, nir_lower_idiv, nir_lower_idiv_fast);
 
+        if (c->key->robust_buffer_access) {
+           /* v3d_nir_lower_robust_buffer_access assumes constant buffer
+            * indices on ubo/ssbo intrinsics so run a copy propagation pass
+            * before we run the lowering to warrant this. We also want to run
+            * the lowering before v3d_optimize to clean-up redundant
+            * get_buffer_size calls produced in the pass.
+            */
+           NIR_PASS_V(c->s, nir_copy_prop);
+           NIR_PASS_V(c->s, v3d_nir_lower_robust_buffer_access, c);
+        }
+
         v3d_optimize_nir(c->s);
 
         /* Do late algebraic optimization to turn add(a, neg(b)) back into
@@ -1072,7 +1157,7 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
         NIR_PASS_V(c->s, nir_lower_bool_to_int32);
         NIR_PASS_V(c->s, nir_convert_from_ssa, true);
 
-        static const struct nir_schedule_options schedule_options = {
+        struct nir_schedule_options schedule_options = {
                 /* Schedule for about half our register space, to enable more
                  * shaders to hit 4 threads.
                  */
@@ -1085,30 +1170,107 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
                 (((1 << MESA_ALL_SHADER_STAGES) - 1) &
                  ~((1 << MESA_SHADER_FRAGMENT) |
                    (1 << MESA_SHADER_GEOMETRY))),
+
+                .fallback = c->fallback_scheduler,
+
+                .intrinsic_cb = v3d_intrinsic_dependency_cb,
+                .intrinsic_cb_data = c,
         };
         NIR_PASS_V(c->s, nir_schedule, &schedule_options);
 
         v3d_nir_to_vir(c);
+}
+
+uint32_t
+v3d_prog_data_size(gl_shader_stage stage)
+{
+        static const int prog_data_size[] = {
+                [MESA_SHADER_VERTEX] = sizeof(struct v3d_vs_prog_data),
+                [MESA_SHADER_GEOMETRY] = sizeof(struct v3d_gs_prog_data),
+                [MESA_SHADER_FRAGMENT] = sizeof(struct v3d_fs_prog_data),
+                [MESA_SHADER_COMPUTE] = sizeof(struct v3d_compute_prog_data),
+        };
+
+        assert(stage >= 0 &&
+               stage < ARRAY_SIZE(prog_data_size) &&
+               prog_data_size[stage]);
+
+        return prog_data_size[stage];
+}
+
+int v3d_shaderdb_dump(struct v3d_compile *c,
+		      char **shaderdb_str)
+{
+        if (c == NULL)
+                return -1;
+
+        return asprintf(shaderdb_str,
+                        "%s shader: %d inst, %d threads, %d loops, "
+                        "%d uniforms, %d max-temps, %d:%d spills:fills, "
+                        "%d sfu-stalls, %d inst-and-stalls",
+                        vir_get_stage_name(c),
+                        c->qpu_inst_count,
+                        c->threads,
+                        c->loops,
+                        c->num_uniforms,
+                        vir_get_max_temps(c),
+                        c->spills,
+                        c->fills,
+                        c->qpu_inst_stalled_count,
+                        c->qpu_inst_count + c->qpu_inst_stalled_count);
+}
+
+uint64_t *v3d_compile(const struct v3d_compiler *compiler,
+                      struct v3d_key *key,
+                      struct v3d_prog_data **out_prog_data,
+                      nir_shader *s,
+                      void (*debug_output)(const char *msg,
+                                           void *debug_output_data),
+                      void *debug_output_data,
+                      int program_id, int variant_id,
+                      uint32_t *final_assembly_size)
+{
+        struct v3d_compile *c;
+
+        for (int i = 0; true; i++) {
+                c = vir_compile_init(compiler, key, s,
+                                     debug_output, debug_output_data,
+                                     program_id, variant_id,
+                                     i > 0 /* fallback_scheduler */);
+
+                v3d_attempt_compile(c);
+
+                if (i > 0 ||
+                    c->compilation_result !=
+                    V3D_COMPILATION_FAILED_REGISTER_ALLOCATION)
+                        break;
+
+                char *debug_msg;
+                int ret = asprintf(&debug_msg,
+                                   "Using fallback scheduler for %s",
+                                   vir_get_stage_name(c));
+
+                if (ret >= 0) {
+                        if (unlikely(V3D_DEBUG & V3D_DEBUG_PERF))
+                                fprintf(stderr, "%s\n", debug_msg);
+
+                        c->debug_output(debug_msg, c->debug_output_data);
+                        free(debug_msg);
+                }
+
+                vir_compile_destroy(c);
+        }
+
+        struct v3d_prog_data *prog_data;
+
+        prog_data = rzalloc_size(NULL, v3d_prog_data_size(c->s->info.stage));
 
         v3d_set_prog_data(c, prog_data);
 
         *out_prog_data = prog_data;
 
         char *shaderdb;
-        int ret = asprintf(&shaderdb,
-                           "%s shader: %d inst, %d threads, %d loops, "
-                           "%d uniforms, %d max-temps, %d:%d spills:fills, "
-                           "%d sfu-stalls, %d inst-and-stalls",
-                           vir_get_stage_name(c),
-                           c->qpu_inst_count,
-                           c->threads,
-                           c->loops,
-                           c->num_uniforms,
-                           vir_get_max_temps(c),
-                           c->spills,
-                           c->fills,
-                           c->qpu_inst_stalled_count,
-                           c->qpu_inst_count + c->qpu_inst_stalled_count);
+        int ret = v3d_shaderdb_dump(c, &shaderdb);
         if (ret >= 0) {
                 if (V3D_DEBUG & V3D_DEBUG_SHADERDB)
                         fprintf(stderr, "SHADER-DB: %s\n", shaderdb);

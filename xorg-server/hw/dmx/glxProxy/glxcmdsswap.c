@@ -752,7 +752,7 @@ __glXSwapRenderLarge(__GLXclientState * cl, GLbyte * pc)
         /*
          * call the command procedure to swap any arguments
          * Note that we are assuming that all arguments that needs to be
-         * swaped are on the first req only !
+         * swapped are on the first req only !
          */
         opcode = hdr->opcode;
         if ((opcode >= __GLX_MIN_RENDER_OPCODE) &&

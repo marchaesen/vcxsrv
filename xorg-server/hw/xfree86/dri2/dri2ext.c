@@ -344,7 +344,7 @@ ProcDRI2CopyRegion(ClientPtr client)
     /* CopyRegion needs to be a round trip to make sure the X server
      * queues the swap buffer rendering commands before the DRI client
      * continues rendering.  The reply has a bitmask to signal the
-     * presense of optional return values as well, but we're not using
+     * presence of optional return values as well, but we're not using
      * that yet.
      */
 

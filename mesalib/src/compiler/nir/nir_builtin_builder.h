@@ -38,11 +38,9 @@ extern "C" {
 
 nir_ssa_def* nir_cross3(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y);
 nir_ssa_def* nir_cross4(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y);
-nir_ssa_def* nir_length(nir_builder *b, nir_ssa_def *vec);
 nir_ssa_def* nir_fast_length(nir_builder *b, nir_ssa_def *vec);
 nir_ssa_def* nir_nextafter(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y);
 nir_ssa_def* nir_normalize(nir_builder *b, nir_ssa_def *vec);
-nir_ssa_def* nir_rotate(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y);
 nir_ssa_def* nir_smoothstep(nir_builder *b, nir_ssa_def *edge0,
                             nir_ssa_def *edge1, nir_ssa_def *x);
 nir_ssa_def* nir_upsample(nir_builder *b, nir_ssa_def *hi, nir_ssa_def *lo);
@@ -58,7 +56,7 @@ nir_get_texture_size(nir_builder *b, nir_tex_instr *tex);
 static inline nir_ssa_def *
 nir_nan_check2(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *res)
 {
-   return nir_bcsel(b, nir_fne(b, x, x), x, nir_bcsel(b, nir_fne(b, y, y), y, res));
+   return nir_bcsel(b, nir_fneu(b, x, x), x, nir_bcsel(b, nir_fneu(b, y, y), y, res));
 }
 
 static inline nir_ssa_def *
@@ -175,12 +173,6 @@ nir_fdim(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y)
 
    // return NaN if either x or y are NaN, else x-y if x>y, else +0.0
    return nir_nan_check2(b, x, y, nir_bcsel(b, cond, res, zero));
-}
-
-static inline nir_ssa_def *
-nir_distance(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y)
-{
-   return nir_length(b, nir_fsub(b, x, y));
 }
 
 static inline nir_ssa_def *

@@ -143,7 +143,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_DISPLAYCHANGE:
         /*
            WM_DISPLAYCHANGE seems to be sent when the monitor layout or
-           any monitor's resolution or depth changes, but it's lParam and
+           any monitor's resolution or depth changes, but its lParam and
            wParam always indicate the resolution and bpp for the primary
            monitor (so ignore that as we could be on any monitor...)
          */
@@ -151,7 +151,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* We cannot handle a display mode change during initialization */
         if (s_pScreenInfo == NULL)
             FatalError("winWindowProc - WM_DISPLAYCHANGE - The display "
-                       "mode changed while we were intializing.  This is "
+                       "mode changed while we were initializing.  This is "
                        "very bad and unexpected.  Exiting.\n");
 
         /*

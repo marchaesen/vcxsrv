@@ -2214,7 +2214,7 @@ union ir_constant_data {
       bool b[16];
       double d[16];
       uint16_t f16[16];
-      int16_t u16[16];
+      uint16_t u16[16];
       int16_t i16[16];
       uint64_t u64[16];
       int64_t i64[16];

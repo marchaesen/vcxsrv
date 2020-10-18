@@ -111,6 +111,7 @@ static void fd_device_del_impl(struct fd_device *dev)
 {
 	int close_fd = dev->closefd ? dev->fd : -1;
 	fd_bo_cache_cleanup(&dev->bo_cache, 0);
+	fd_bo_cache_cleanup(&dev->ring_cache, 0);
 	_mesa_hash_table_destroy(dev->handle_table, NULL);
 	_mesa_hash_table_destroy(dev->name_table, NULL);
 	dev->funcs->destroy(dev);
@@ -152,4 +153,12 @@ bool fd_dbg(void)
 		dbg = getenv("LIBGL_DEBUG") ? 1 : -1;
 
 	return dbg == 1;
+}
+
+bool fd_has_syncobj(struct fd_device *dev)
+{
+	uint64_t value;
+	if (drmGetCap(dev->fd, DRM_CAP_SYNCOBJ, &value))
+		return false;
+	return value && dev->version >= FD_VERSION_FENCE_FD;
 }

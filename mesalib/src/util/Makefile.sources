@@ -9,7 +9,7 @@ MESA_UTIL_FILES := \
 	blob.h \
 	build_id.c \
 	build_id.h \
-        compiler.h \
+	compiler.h \
 	crc32.c \
 	crc32.h \
 	dag.c \
@@ -18,8 +18,11 @@ MESA_UTIL_FILES := \
 	debug.h \
 	disk_cache.c \
 	disk_cache.h \
+	disk_cache_os.c \
+	disk_cache_os.h \
 	double.c \
 	double.h \
+	enum_operators.h \
 	fast_idiv_by_const.c \
 	fast_idiv_by_const.h \
 	format/u_format.c \
@@ -50,7 +53,11 @@ MESA_UTIL_FILES := \
 	half_float.h \
 	hash_table.c \
 	hash_table.h \
+	u_idalloc.c \
+	u_idalloc.h \
 	list.h \
+	log.c \
+	log.h \
 	macros.h \
 	mesa-sha1.c \
 	mesa-sha1.h \
@@ -109,6 +116,10 @@ MESA_UTIL_FILES := \
 	u_debug.c \
 	u_debug.h \
 	u_debug_memory.c \
+	u_debug_stack.c \
+	u_debug_stack.h \
+	u_debug_symbol.c \
+	u_debug_symbol.h \
 	u_cpu_detect.c \
 	u_cpu_detect.h \
 	os_memory_aligned.h \
@@ -126,7 +137,8 @@ MESA_UTIL_FILES := \
 
 MESA_UTIL_GENERATED_FILES = \
 	format_srgb.c \
-	format/u_format_table.c
+	format/u_format_table.c \
+	format/u_format_pack.h
 
 XMLCONFIG_FILES := \
 	xmlconfig.c \

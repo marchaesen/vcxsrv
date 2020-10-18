@@ -24,6 +24,7 @@
 #define CLOVER_UTIL_ALGORITHM_HPP
 
 #include <algorithm>
+#include <sstream>
 #include <stdexcept>
 
 #include "util/range.hpp"
@@ -212,6 +213,81 @@ namespace clover {
       }
 
       r.erase(i, e);
+   }
+
+   ///
+   /// Build a vector of string from a space separated string
+   /// quoted parts content is preserved and unquoted
+   ///
+   inline std::vector<std::string>
+   tokenize(const std::string &s) {
+      std::vector<std::string> ss;
+      std::ostringstream oss;
+
+      // OpenCL programs can pass a quoted argument, most frequently the
+      // include path. This is useful so that path containing spaces is
+      // treated as a single argument instead of being split by the spaces.
+      // Additionally, the argument should also be unquoted before being
+      // passed to the compiler. We avoid using std::string::replace here to
+      // remove quotes, as the single and double quote characters can be a
+      // part of the file name.
+      bool escape_next = false;
+      bool in_quote_double = false;
+      bool in_quote_single = false;
+
+      for (auto c : s) {
+         if (escape_next) {
+            oss.put(c);
+            escape_next = false;
+         } else if (c == '\\') {
+            escape_next = true;
+         } else if (c == '"' && !in_quote_single) {
+            in_quote_double = !in_quote_double;
+         } else if (c == '\'' && !in_quote_double) {
+            in_quote_single = !in_quote_single;
+         } else if (c != ' ' || in_quote_single || in_quote_double) {
+            oss.put(c);
+         } else if (oss.tellp() > 0) {
+            ss.emplace_back(oss.str());
+            oss.str("");
+         }
+      }
+
+      if (oss.tellp() > 0)
+         ss.emplace_back(oss.str());
+
+      if (in_quote_double || in_quote_single)
+         throw invalid_build_options_error();
+
+      return ss;
+   }
+
+   ///
+   /// Build a \a sep separated string from a vector of T
+   ///
+   template<typename T>
+   std::string
+   detokenize(const std::vector<T> &ss, const std::string &sep) {
+      std::string r;
+
+      for (const auto &s : ss)
+         r += (r.empty() ? "" : sep) + std::to_string(s);
+
+      return r;
+   }
+
+   ///
+   /// Build a \a sep separated string from a vector of string
+   ///
+   template <>
+   inline std::string
+   detokenize(const std::vector<std::string> &ss, const std::string &sep) {
+      std::string r;
+
+      for (const auto &s : ss)
+         r += (r.empty() || s.empty() ? "" : sep) + s;
+
+      return r;
    }
 }
 

@@ -53,7 +53,11 @@ static FILE *stream;
 /* TODO: maybe move this serial machinery to a stand-alone module and
  * expose it?
  */
+#ifdef PIPE_OS_WINDOWS
+static mtx_t serials_mutex;
+#else
 static mtx_t serials_mutex = _MTX_INITIALIZER_NP;
+#endif
 
 static struct hash_table *serials_hash;
 static unsigned serials_last;

@@ -34,6 +34,16 @@
  */
 
 static void
+mark_array_use(struct ir3_instruction *instr, struct ir3_register *reg)
+{
+	if (reg->flags & IR3_REG_ARRAY) {
+		struct ir3_array *arr =
+			ir3_lookup_array(instr->block->shader, reg->array.id);
+		arr->unused = false;
+	}
+}
+
+static void
 instr_dce(struct ir3_instruction *instr, bool falsedep)
 {
 	/* don't mark falsedep's as used, but otherwise process them normally: */
@@ -42,6 +52,12 @@ instr_dce(struct ir3_instruction *instr, bool falsedep)
 
 	if (ir3_instr_check_mark(instr))
 		return;
+
+	if (writes_gpr(instr))
+		mark_array_use(instr, instr->regs[0]);   /* dst */
+
+	foreach_src (reg, instr)
+		mark_array_use(instr, reg);              /* src */
 
 	foreach_ssa_src_n (src, i, instr) {
 		instr_dce(src, __is_false_dep(instr, i));
@@ -118,6 +134,9 @@ find_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
 		}
 	}
 
+	foreach_array (arr, &ir->array_list)
+		arr->unused = true;
+
 	foreach_output (out, ir)
 		instr_dce(out, false);
 
@@ -133,6 +152,12 @@ find_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
 	/* remove un-used instructions: */
 	foreach_block (block, &ir->block_list) {
 		progress |= remove_unused_by_block(block);
+	}
+
+	/* remove un-used arrays: */
+	foreach_array_safe (arr, &ir->array_list) {
+		if (arr->unused)
+			list_delinit(&arr->node);
 	}
 
 	/* fixup wrmask of split instructions to account for adjusted tex

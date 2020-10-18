@@ -1186,7 +1186,7 @@ LCM(unsigned int x, unsigned int y)
 
 /*
  * Given various screen attributes, determine the minimum scanline width such
- * that each scanline is server and DDX padded and any pixels with imbedded
+ * that each scanline is server and DDX padded and any pixels with embedded
  * bank boundaries are off-screen.  This function returns -1 if such a width
  * cannot exist.
  */
@@ -1223,7 +1223,7 @@ scanLineWidth(unsigned int xsize,       /* pixels */
 
     /*
      * Scanlines will be server-pad aligned at this point.  They will also be
-     * a multiple of nWidthUnit bits long.  Ensure that pixels with imbedded
+     * a multiple of nWidthUnit bits long.  Ensure that pixels with embedded
      * bank boundaries are off-screen.
      *
      * It seems reasonable to limit total frame buffer size to 1/16 of the

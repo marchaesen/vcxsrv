@@ -1,0 +1,13 @@
+# Common feature options
+option('doc', type : 'feature', value : 'auto', yield: true,
+  description: 'Build documentation')
+option('doc-txt', type: 'feature', value: 'auto')
+option('doc-man', type: 'feature', value: 'auto')
+option('doc-pdf', type: 'feature', value: 'auto')
+option('doc-html', type: 'feature', value: 'auto')
+option('nls', type : 'feature', value : 'auto', yield: true,
+  description : 'Enable native language support (translations)')
+option('tests', type : 'feature', value : 'auto', yield : true,
+  description: 'Enable unit tests')
+option('tools', type : 'feature', value : 'auto', yield : true,
+  description: 'Build command-line tools (fc-list, fc-query, etc.)')

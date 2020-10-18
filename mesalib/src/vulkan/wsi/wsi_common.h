@@ -109,7 +109,14 @@ struct wsi_device {
        * provided VkSwapchainCreateInfoKH::RminImageCount.
        */
       bool strict_imageCount;
+
+      /* Ensures to create at least the number of image specified by the
+       * driver in VkSurfaceCapabilitiesKHR::minImageCount.
+       */
+      bool ensure_minImageCount;
    } x11;
+
+   bool sw;
 
    /* Signals the semaphore such that any wait on the semaphore will wait on
     * any reads or writes on the give memory object.  This is used to
@@ -172,6 +179,8 @@ struct wsi_device {
    WSI_CB(ResetFences);
    WSI_CB(QueueSubmit);
    WSI_CB(WaitForFences);
+   WSI_CB(MapMemory);
+   WSI_CB(UnmapMemory);
 #undef WSI_CB
 
     struct wsi_interface *                  wsi[VK_ICD_WSI_PLATFORM_MAX];
@@ -185,7 +194,8 @@ wsi_device_init(struct wsi_device *wsi,
                 WSI_FN_GetPhysicalDeviceProcAddr proc_addr,
                 const VkAllocationCallbacks *alloc,
                 int display_fd,
-                const struct driOptionCache *dri_options);
+                const struct driOptionCache *dri_options,
+                bool sw_device);
 
 void
 wsi_device_finish(struct wsi_device *wsi,

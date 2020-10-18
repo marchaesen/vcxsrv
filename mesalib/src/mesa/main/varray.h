@@ -29,6 +29,19 @@
 
 #include "bufferobj.h"
 
+struct gl_interleaved_layout {
+   bool tflag, cflag, nflag;      /* enable/disable flags */
+   int tcomps, ccomps, vcomps;    /* components per texcoord, color, vertex */
+   GLenum ctype;                  /* color type */
+   int coffset, noffset, voffset; /* color, normal, vertex offsets */
+   int toffset;                   /* always zero */
+   int defstride;                 /* default stride */
+};
+
+bool
+_mesa_get_interleaved_layout(GLenum format,
+                             struct gl_interleaved_layout *layout);
+
 void
 _mesa_set_vertex_format(struct gl_vertex_format *vertex_format,
                         GLubyte size, GLenum16 type, GLenum16 format,

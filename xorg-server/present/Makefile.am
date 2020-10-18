@@ -1,7 +1,6 @@
 noinst_LTLIBRARIES = libpresent.la
 AM_CFLAGS = \
-	-DHAVE_XORG_CONFIG_H \
-	@DIX_CFLAGS@ @XORG_CFLAGS@
+	@DIX_CFLAGS@
 
 libpresent_la_SOURCES = \
 	present.h \

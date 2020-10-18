@@ -251,7 +251,7 @@ DoCreateContext(__GLXclientState * cl, GLXContextID gcId,
      ** Find the display list space that we want to share.
      **
      ** NOTE: In a multithreaded X server, we would need to keep a reference
-     ** count for each display list so that if one client detroyed a list that
+     ** count for each display list so that if one client destroyed a list that
      ** another client was using, the list would not really be freed until it
      ** was no longer in use.  Since this sample implementation has no support
      ** for multithreaded servers, we don't do this.
@@ -1860,7 +1860,7 @@ DoGetDrawableAttributes(__GLXclientState * cl, XID drawId)
     xGLXGetDrawableAttributesReply reply;
     __GLXdrawable *pGlxDraw = NULL;
     DrawablePtr pDraw;
-    CARD32 attributes[18];
+    CARD32 attributes[20];
     int num = 0, error;
 
     if (!validGlxDrawable(client, drawId, GLX_DRAWABLE_ANY,
@@ -1897,6 +1897,14 @@ DoGetDrawableAttributes(__GLXclientState * cl, XID drawId)
             ATTRIB(GLX_STEREO_TREE_EXT, 0);
         }
     }
+
+    /* GLX_EXT_get_drawable_type */
+    if (!pGlxDraw || pGlxDraw->type == GLX_DRAWABLE_WINDOW)
+        ATTRIB(GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT);
+    else if (pGlxDraw->type == GLX_DRAWABLE_PIXMAP)
+        ATTRIB(GLX_DRAWABLE_TYPE, GLX_PIXMAP_BIT);
+    else if (pGlxDraw->type == GLX_DRAWABLE_PBUFFER)
+        ATTRIB(GLX_DRAWABLE_TYPE, GLX_PBUFFER_BIT);
 #undef ATTRIB
 
     reply = (xGLXGetDrawableAttributesReply) {

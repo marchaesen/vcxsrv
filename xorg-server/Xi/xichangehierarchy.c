@@ -423,7 +423,7 @@ ProcXIChangeHierarchy(ClientPtr client)
     if (!stuff->num_changes)
         return rc;
 
-    len = ((size_t)stuff->length << 2) - sizeof(xXIChangeHierarchyReq);
+    len = ((size_t)client->req_len << 2) - sizeof(xXIChangeHierarchyReq);
 
     any = (xXIAnyHierarchyChangeInfo *) &stuff[1];
     while (stuff->num_changes--) {

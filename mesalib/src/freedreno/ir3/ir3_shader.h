@@ -74,6 +74,18 @@ enum ir3_driver_param {
 #define IR3_MAX_SO_OUTPUTS       64
 #define IR3_MAX_UBO_PUSH_RANGES  32
 
+/* mirrors SYSTEM_VALUE_BARYCENTRIC_ but starting from 0 */
+enum ir3_bary {
+	IJ_PERSP_PIXEL,
+	IJ_PERSP_SAMPLE,
+	IJ_PERSP_CENTROID,
+	IJ_PERSP_SIZE,
+	IJ_LINEAR_PIXEL,
+	IJ_LINEAR_CENTROID,
+	IJ_LINEAR_SAMPLE,
+	IJ_COUNT,
+};
+
 /**
  * Description of a lowered UBO.
  */
@@ -115,7 +127,7 @@ struct ir3_ubo_analysis_state {
  * be required, rather than allocating worst-case const space, we scan the
  * shader and allocate consts as-needed:
  *
- *   + SSBO sizes: only needed if shader has a get_buffer_size intrinsic
+ *   + SSBO sizes: only needed if shader has a get_ssbo_size intrinsic
  *     for a given SSBO
  *
  *   + Image dimensions: needed to calculate pixel offset, but only for
@@ -159,9 +171,9 @@ struct ir3_const_state {
 	} offsets;
 
 	struct {
-		uint32_t mask;  /* bitmask of SSBOs that have get_buffer_size */
+		uint32_t mask;  /* bitmask of SSBOs that have get_ssbo_size */
 		uint32_t count; /* number of consts allocated */
-		/* one const allocated per SSBO which has get_buffer_size,
+		/* one const allocated per SSBO which has get_ssbo_size,
 		 * ssbo_sizes.off[ssbo_id] is offset from start of ssbo_sizes
 		 * consts:
 		 */
@@ -179,12 +191,9 @@ struct ir3_const_state {
 		uint32_t off[IR3_MAX_SHADER_IMAGES];
 	} image_dims;
 
-	unsigned immediate_idx;
 	unsigned immediates_count;
 	unsigned immediates_size;
-	struct {
-		uint32_t val[4];
-	} *immediates;
+	uint32_t *immediates;
 
 	/* State of ubo access lowered to push consts: */
 	struct ir3_ubo_analysis_state ubo_state;
@@ -306,6 +315,12 @@ struct ir3_shader_key {
 			 * the limit:
 			 */
 			unsigned safe_constlen : 1;
+
+			/* Whether gl_Layer must be forced to 0 because it isn't written. */
+			unsigned layer_zero : 1;
+
+			/* Whether gl_ViewportIndex must be forced to 0 because it isn't written. */
+			unsigned view_zero : 1;
 		};
 		uint32_t global;
 	};
@@ -371,6 +386,9 @@ ir3_shader_key_changes_fs(struct ir3_shader_key *key, struct ir3_shader_key *las
 		return true;
 
 	if (last_key->rasterflat != key->rasterflat)
+		return true;
+
+	if (last_key->layer_zero != key->layer_zero)
 		return true;
 
 	if (last_key->ucp_enables != key->ucp_enables)
@@ -544,9 +562,10 @@ struct ir3_shader_variant {
 	struct {
 		uint8_t slot;
 		uint8_t regid;
+		uint8_t view;
 		bool    half : 1;
 	} outputs[32 + 2];  /* +POSITION +PSIZE */
-	bool writes_pos, writes_smask, writes_psize;
+	bool writes_pos, writes_smask, writes_psize, writes_stencilref;
 
 	/* Size in dwords of all outputs for VS, size of entire patch for HS. */
 	uint32_t output_size;
@@ -573,9 +592,8 @@ struct ir3_shader_variant {
 		/* fragment shader specific: */
 		bool    bary       : 1;   /* fetched varying (vs one loaded into reg) */
 		bool    rasterflat : 1;   /* special handling for emit->rasterflat */
-		bool    use_ldlv   : 1;   /* internal to ir3_compiler_nir */
 		bool    half       : 1;
-		enum glsl_interp_mode interpolate;
+		bool    flat       : 1;
 	} inputs[32 + 2];  /* +POSITION +FACE */
 
 	/* sum of input components (scalar).  For frag shaders, it only counts
@@ -836,6 +854,9 @@ struct ir3_shader_linkage {
 
 	/* location for fixed-function gl_PrimitiveID passthrough */
 	uint8_t primid_loc;
+
+	/* location for fixed-function gl_ViewIndex passthrough */
+	uint8_t viewid_loc;
 };
 
 static inline void
@@ -876,6 +897,7 @@ ir3_link_shaders(struct ir3_shader_linkage *l,
 	int j = -1, k;
 
 	l->primid_loc = 0xff;
+	l->viewid_loc = 0xff;
 
 	while (l->cnt < ARRAY_SIZE(l->var)) {
 		j = ir3_next_varying(fs, j);
@@ -890,6 +912,11 @@ ir3_link_shaders(struct ir3_shader_linkage *l,
 
 		if (k < 0 && fs->inputs[j].slot == VARYING_SLOT_PRIMITIVE_ID) {
 			l->primid_loc = fs->inputs[j].inloc;
+		}
+
+		if (fs->inputs[j].slot == VARYING_SLOT_VIEW_INDEX) {
+			assert(k < 0);
+			l->viewid_loc = fs->inputs[j].inloc;
 		}
 
 		ir3_link_add(l, k >= 0 ? vs->outputs[k].regid : default_regid,

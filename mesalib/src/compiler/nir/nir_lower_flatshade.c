@@ -42,7 +42,7 @@ nir_lower_flatshade(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_variable(var, &shader->inputs) {
+   nir_foreach_shader_in_variable(var, shader) {
       progress |= lower_input(shader, var);
    }
 

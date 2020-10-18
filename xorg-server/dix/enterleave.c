@@ -130,7 +130,7 @@ PointerWin(DeviceIntPtr dev)
 
 /**
  * Search for the first window below 'win' that has a pointer directly within
- * it's boundaries (excluding boundaries of its own descendants).
+ * its boundaries (excluding boundaries of its own descendants).
  *
  * @return The child window that has the pointer within its boundaries or
  *         NULL.
@@ -150,7 +150,7 @@ FirstPointerChild(WindowPtr win)
 
 /**
  * Search for the first window below 'win' that has a focus directly within
- * it's boundaries (excluding boundaries of its own descendants).
+ * its boundaries (excluding boundaries of its own descendants).
  *
  * @return The child window that has the pointer within its boundaries or
  *         NULL.

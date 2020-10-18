@@ -110,7 +110,8 @@ move_vec_src_uses_to_dest_block(nir_block *block)
          continue;
 
       for (unsigned i; i = ffs(srcs_remaining) - 1, srcs_remaining;) {
-         int8_t swizzle[4] = { -1, -1, -1, -1 };
+         int8_t swizzle[NIR_MAX_VEC_COMPONENTS];
+         memset(swizzle, -1, sizeof(swizzle));
 
          for (unsigned j = i; j < nir_op_infos[vec->op].num_inputs; j++) {
             if (vec->src[j].src.ssa != vec->src[i].src.ssa)

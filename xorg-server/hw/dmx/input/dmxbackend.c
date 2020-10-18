@@ -429,7 +429,7 @@ dmxBackendCollectEvents(DevicePtr pDev,
                 continue;
             if (!(dmxScreen = dmxBackendFindWindow(priv, X.xmotion.window)))
                 dmxLog(dmxFatal,
-                       "   Event on non-existant window %lu\n",
+                       "   Event on non-existent window %lu\n",
                        X.xmotion.window);
             if (!priv->relative || dmxInput->console) {
                 int newX = X.xmotion.x - dmxScreen->rootX;

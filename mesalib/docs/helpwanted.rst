@@ -7,7 +7,7 @@ specific ideas and areas where help would be appreciated:
 #. **Driver patching and testing.** Patches are often posted to the
    `mesa-dev mailing
    list <https://lists.freedesktop.org/mailman/listinfo/mesa-dev>`__,
-   but aren't immediately checked into git because not enough people are
+   but aren't immediately checked into Git because not enough people are
    testing them. Just applying patches, testing and reporting back is
    helpful.
 #. **Driver debugging.** There are plenty of open bugs in the `bug

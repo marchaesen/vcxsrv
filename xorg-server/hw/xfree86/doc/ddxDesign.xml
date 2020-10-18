@@ -511,7 +511,7 @@ mechanism for this.
 
 	<para>
     If a device is capable of disabling this decoding the resource is
-    called sharable.  For PCI devices a generic method is provided to
+    called shareable.  For PCI devices a generic method is provided to
     control resource decoding.  Other devices will have to provide a
     device specific function to control decoding.
 	</para>
@@ -1065,7 +1065,7 @@ Here is what <function>InitOutput()</function> does:
       against the expected number (most drivers expect only one).  The
       entity information for each of them should be retrieved (with
       <function>xf86GetEntityInfo()</function>) and checked for the correct
-      bus type and that none of the sharable resources registered during
+      bus type and that none of the shareable resources registered during
       the Probe phase was rejected.
 	    </para>
 
@@ -1373,7 +1373,7 @@ Here is what <function>InitOutput()</function> does:
 
 	<orderedlist>
 	  <listitem><para>
-	The sharable resources registered by each entity are compared.
+	The shareable resources registered by each entity are compared.
 	If a resource is registered by more than one entity the entity
 	will be marked to indicate that it needs to share this resources
 	type (IO or MEM).
@@ -2193,7 +2193,7 @@ giving up the VT.
 
       <para>
 In <function>PreInit()</function> phase each driver should check if any
-sharable resources it has registered during <function>Probe()</function> has
+shareable resources it has registered during <function>Probe()</function> has
 been denied and take appropriate action which could simply be to fail.
 If it needs to access resources it has disabled during
 <function>EntitySetup()</function> it can do so provided it has registered
@@ -2226,7 +2226,7 @@ rules:
 
 	<orderedlist>
 	  <listitem><para>
-   The sharable resources registered by each entity are compared.  If
+   The shareable resources registered by each entity are compared.  If
    a resource is registered by more than one entity the entity will be
    marked to need to share this resources type (<constant>IO</constant> or
    <constant>MEM</constant>).
@@ -4704,7 +4704,7 @@ typedef struct {
 		  <varlistentry>
 		    <term><structfield>depth</structfield></term>
 		    <listitem><para>
-	The significant bits per pixel in RGB formats (analgous to the
+	The significant bits per pixel in RGB formats (analogous to the
 	depth of a pixmap format).
 		      </para></listitem></varlistentry>
 

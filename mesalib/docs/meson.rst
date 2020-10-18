@@ -38,7 +38,7 @@ or
 
    sudo dnf install meson   # Fedora
 
-Some older versions of meson do not check that they are too old and will
+Some older versions of Meson do not check that they are too old and will
 error out in odd ways.
 
 You'll also need `Ninja <https://ninja-build.org/>`__. If it's not
@@ -48,38 +48,38 @@ package.
 Windows
 ^^^^^^^
 
-You will need to install python3 and meson as a module using pip. This
-is because we use python for generating code, and rely on external
-modules (mako). You also need pkg-config (a hard dependency of meson),
-flex, and bison. The easiest way to install everything you need is with
-`chocolatey <https://chocolatey.org/>`__.
+You will need to install Python 3 and Meson as a module using pip. This
+is because we use Python for generating code, and rely on external
+modules (Mako). You also need pkg-config (a hard dependency of Meson),
+Flex, and Bison. The easiest way to install everything you need is with
+`Chocolatey <https://chocolatey.org/>`__.
 
 .. code-block:: console
 
    choco install python3 winflexbison pkgconfiglite
 
-You can even use chocolatey to install mingw and ninja (ninja can be
+You can even use Chocolatey to install MinGW and Ninja (Ninja can be
 used with MSVC as well)
 
 .. code-block:: console
 
    choco install ninja mingw
 
-Then install meson using pip
+Then install Meson using pip
 
 .. code-block:: console
 
    py -3 -m pip install meson mako
 
-You may need to add the python3 scripts directory to your path for
-meson.
+You may need to add the Python 3 scripts directory to your path for
+Meson.
 
 2. Basic Usage
 --------------
 
-The meson program is used to configure the source directory and
-generates either a ninja build file or Visual Studio® build files. The
-latter must be enabled via the ``--backend`` switch, as ninja is the
+The Meson program is used to configure the source directory and
+generates either a Ninja build file or Visual Studio® build files. The
+latter must be enabled via the ``--backend`` switch, as Ninja is the
 default backend on all operating systems.
 
 Meson only supports out-of-tree builds, and must be passed a directory
@@ -144,22 +144,22 @@ symbolic links for drivers). To install:
 Windows specific instructions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-On windows you have a couple of choices for compilers. If you installed
-mingw with chocolatey and want to use ninja you should be able to open
+On Windows you have a couple of choices for compilers. If you installed
+MinGW with Chocolatey and want to use Ninja you should be able to open
 any shell and follow the instructions above. If you want to you MSVC,
 clang-cl, or ICL (the Intel Compiler), read on.
 
 Both ICL and MSVC come with shell environments, the easiest way to use
-meson with these it to open a shell. For clang-cl you will need to open
+Meson with these it to open a shell. For clang-cl you will need to open
 an MSVC shell, and then override the compilers, either using a `native
 file <https://mesonbuild.com/Native-environments.html>`__, or with the
 CC and CXX environment variables.
 
-All of these compilers are tested and work with ninja, but if you want
-visual studio integration or you just like msbuild, passing
-``--backend=vs`` to meson will generate a visual studio solution. If you
-want to use ICL or clang-cl with the vsbackend you will need meson
-0.52.0 or greater. Older versions always use the microsoft compiler.
+All of these compilers are tested and work with Ninja, but if you want
+Visual Studio integration or you just like msbuild, passing
+``--backend=vs`` to Meson will generate a Visual Studio solution. If you
+want to use ICL or clang-cl with the vsbackend you will need Meson
+0.52.0 or greater. Older versions always use the Microsoft compiler.
 
 3. Advanced Usage
 -----------------
@@ -190,7 +190,7 @@ Compiler Options
 Meson supports the common CFLAGS, CXXFLAGS, etc. environment variables
 but their use is discouraged because of the many caveats in using them.
 
-Instead, it is recomended to use ``-D${lang}_args`` and
+Instead, it is recommended to use ``-D${lang}_args`` and
 ``-D${lang}_link_args``. Among the benefits of these options is that
 they are guaranteed to persist across rebuilds and reconfigurations.
 
@@ -230,18 +230,18 @@ LLVM
 Meson includes upstream logic to wrap llvm-config using its standard
 dependency interface.
 
-As of meson 0.51.0 meson can use cmake to find llvm (the cmake finder
-was added in meson 0.49.0, but LLVM cannot be found until 0.51) Due to
-the way LLVM implements its cmake finder it will only find static
+As of Meson 0.51.0 Meson can use CMake to find LLVM (the CMake finder
+was added in Meson 0.49.0, but LLVM cannot be found until 0.51) Due to
+the way LLVM implements its CMake finder it will only find static
 libraries, it will never find libllvm.so. There is also a
-``-Dcmake_module_path`` option in this meson version, which points to
+``-Dcmake_module_path`` option in this Meson version, which points to
 the root of an alternative installation (the prefix). For example:
 
 .. code-block:: console
 
    meson builddir -Dcmake_module_path=/home/user/mycmake/prefix
 
-As of meson 0.49.0 meson also has the concept of a `"native
+As of Meson 0.49.0 Meson also has the concept of a `"native
 file" <https://mesonbuild.com/Native-environments.html>`__, these files
 provide information about the native build environment (as opposed to a
 cross build environment). They are ini formatted and can override where
@@ -254,7 +254,7 @@ custom-llvm.ini
    [binaries]
    llvm-config = '/usr/local/bin/llvm/llvm-config'
 
-Then configure meson:
+Then configure Meson:
 
 .. code-block:: console
 
@@ -262,7 +262,7 @@ Then configure meson:
 
 Meson < 0.49 doesn't support native files, so to specify a custom
 ``llvm-config`` you need to modify your ``$PATH`` (or ``%PATH%`` on
-windows), which will be searched for ``llvm-config``,
+Windows), which will be searched for ``llvm-config``,
 ``llvm-config$version``, and ``llvm-config-$version``:
 
 .. code-block:: console
@@ -284,7 +284,7 @@ cross-llvm.ini
 
 Obviously, only cmake or llvm-config is required.
 
-Then configure meson:
+Then configure Meson:
 
 .. code-block:: console
 
@@ -293,14 +293,14 @@ Then configure meson:
 See the :ref:`Cross Compilation <cross-compilation>` section for more
 information.
 
-On windows (and in other cases), using llvm-config or cmake may be
+On Windows (and in other cases), using llvm-config or CMake may be
 either undesirable or impossible. Meson's solution for this is a
 `wrap <https://mesonbuild.com/Wrap-dependency-system-manual.html>`__, in
 this case a "binary wrap". Follow the steps below:
 
 -  Install the binaries and headers into the
    ``$mesa_src/subprojects/llvm``
--  Add a meson build.build file to that directory (more on that later)
+-  Add a meson.build file to that directory (more on that later)
 
 The wrap file must define the following:
 
@@ -310,7 +310,7 @@ The wrap file must define the following:
 It may also define:
 
 -  ``irbuilder_h``: a ``files()`` object pointing to llvm/IR/IRBuilder.h
-   (this is requred for SWR)
+   (this is required for SWR)
 -  ``has_rtti``: a ``bool`` that declares whether LLVM was built with
    RTTI. Defaults to true
 
@@ -373,7 +373,7 @@ metadata in ``/usr/X11R6`` before the standard directories.
 Options
 ^^^^^^^
 
-One of the oddities of meson is that some options are different when
+One of the oddities of Meson is that some options are different when
 passed to the ``meson`` than to ``meson configure``. These options are
 passed as --option=foo to ``meson``, but -Doption=foo to
 ``meson configure``. Mesa defined options are always passed as
@@ -385,18 +385,18 @@ For those coming from autotools be aware of the following:
    This option will set the compiler debug/optimisation levels to aid
    debugging the Mesa libraries.
 
-   Note that in meson this defaults to ``debugoptimized``, and not
+   Note that in Meson this defaults to ``debugoptimized``, and not
    setting it to ``release`` will yield non-optimal performance and
    binary size. Not using ``debug`` may interfere with debugging as some
    code and validation will be optimized away.
 
    For those wishing to pass their own optimization flags, use the
-   ``plain`` buildtype, which causes meson to inject no additional
+   ``plain`` buildtype, which causes Meson to inject no additional
    compiler arguments, only those in the C/CXXFLAGS and those that mesa
    itself defines.
 
 ``-Db_ndebug``
-   This option controls assertions in meson projects. When set to
+   This option controls assertions in Meson projects. When set to
    ``false`` (the default) assertions are enabled, when set to true they
    are disabled. This is unrelated to the ``buildtype``; setting the
    latter to ``release`` will not turn off assertions.
@@ -467,7 +467,7 @@ of those, as they'll have the right values for your system:
    cpu = 'aarch64'
    endian = 'little'
 
-64-bit build on x86 windows:
+64-bit build on x86 Windows:
 
 ::
 

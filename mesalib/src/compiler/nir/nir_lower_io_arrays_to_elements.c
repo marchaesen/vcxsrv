@@ -61,7 +61,7 @@ get_io_offset(nir_builder *b, nir_deref_instr *deref, nir_variable *var,
          unsigned size = glsl_count_attribute_slots((*p)->type, false);
          offset += size * index;
 
-         xfb_offset += index * glsl_get_component_slots((*p)->type) * 4;
+         *xfb_offset += index * glsl_get_component_slots((*p)->type) * 4;
 
          unsigned num_elements = glsl_type_is_array((*p)->type) ?
             glsl_get_aoa_size((*p)->type) : 1;

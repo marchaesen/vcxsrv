@@ -81,6 +81,9 @@ typedef struct {
    /* the current function implementation being validated */
    nir_function_impl *impl;
 
+   /* Set of all blocks in the list */
+   struct set *blocks;
+
    /* Set of seen SSA sources */
    struct set *ssa_srcs;
 
@@ -418,6 +421,12 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
       /* We just validate that the type and mode are there */
       validate_assert(state, instr->mode);
       validate_assert(state, instr->type);
+      if (instr->cast.align_mul > 0) {
+         validate_assert(state, util_is_power_of_two_nonzero(instr->cast.align_mul));
+         validate_assert(state, instr->cast.align_offset < instr->cast.align_mul);
+      } else {
+         validate_assert(state, instr->cast.align_offset == 0);
+      }
    } else {
       /* We require the parent to be SSA.  This may be lifted in the future */
       validate_assert(state, instr->parent.is_ssa);
@@ -451,7 +460,8 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
          if (instr->mode == nir_var_mem_ubo ||
              instr->mode == nir_var_mem_ssbo ||
              instr->mode == nir_var_mem_shared ||
-             instr->mode == nir_var_mem_global) {
+             instr->mode == nir_var_mem_global ||
+             instr->mode == nir_var_mem_push_const) {
             /* Shared variables and UBO/SSBOs have a bit more relaxed rules
              * because we need to be able to handle array derefs on vectors.
              * Fortunately, nir_lower_io handles these just fine.
@@ -503,13 +513,15 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
     */
    validate_assert(state, list_is_empty(&instr->dest.ssa.if_uses));
 
-   /* Only certain modes can be used as sources for phi instructions. */
+   /* Certain modes cannot be used as sources for phi instructions because
+    * way too many passes assume that they can always chase deref chains.
+    */
    nir_foreach_use(use, &instr->dest.ssa) {
       if (use->parent_instr->type == nir_instr_type_phi) {
-         validate_assert(state, instr->mode == nir_var_mem_ubo ||
-                                instr->mode == nir_var_mem_ssbo ||
-                                instr->mode == nir_var_mem_shared ||
-                                instr->mode == nir_var_mem_global);
+         validate_assert(state, instr->mode != nir_var_shader_in &&
+                                instr->mode != nir_var_shader_out &&
+                                instr->mode != nir_var_shader_out &&
+                                instr->mode != nir_var_uniform);
       }
    }
 }
@@ -535,6 +547,16 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
    unsigned dest_bit_size = 0;
    unsigned src_bit_sizes[NIR_INTRINSIC_MAX_INPUTS] = { 0, };
    switch (instr->intrinsic) {
+   case nir_intrinsic_convert_alu_types: {
+      nir_alu_type src_type = nir_intrinsic_src_type(instr);
+      nir_alu_type dest_type = nir_intrinsic_dest_type(instr);
+      dest_bit_size = nir_alu_type_get_type_size(dest_type);
+      src_bit_sizes[0] = nir_alu_type_get_type_size(src_type);
+      validate_assert(state, dest_bit_size != 0);
+      validate_assert(state, src_bit_sizes[0] != 0);
+      break;
+   }
+
    case nir_intrinsic_load_param: {
       unsigned param_idx = nir_intrinsic_param_idx(instr);
       validate_assert(state, param_idx < state->impl->function->num_params);
@@ -585,10 +607,22 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       break;
    }
 
+   case nir_intrinsic_load_ubo_vec4: {
+      int bit_size = nir_dest_bit_size(instr->dest);
+      validate_assert(state, bit_size >= 8);
+      validate_assert(state, (nir_intrinsic_component(instr) +
+                              instr->num_components) * (bit_size / 8) <= 16);
+      break;
+   }
+
    case nir_intrinsic_load_ubo:
+      /* Make sure that the creator didn't forget to set the range_base+range. */
+      validate_assert(state, nir_intrinsic_range(instr) != 0);
+      /* Fall through */
    case nir_intrinsic_load_ssbo:
    case nir_intrinsic_load_shared:
    case nir_intrinsic_load_global:
+   case nir_intrinsic_load_global_constant:
    case nir_intrinsic_load_scratch:
    case nir_intrinsic_load_constant:
       /* These memory load operations must have alignments */
@@ -777,9 +811,12 @@ validate_jump_instr(nir_jump_instr *instr, validate_state *state)
    case nir_jump_return:
       validate_assert(state, block->successors[0] == state->impl->end_block);
       validate_assert(state, block->successors[1] == NULL);
+      validate_assert(state, instr->target == NULL);
+      validate_assert(state, instr->else_target == NULL);
       break;
 
    case nir_jump_break:
+      validate_assert(state, state->impl->structured);
       validate_assert(state, state->loop != NULL);
       if (state->loop) {
          nir_block *after =
@@ -787,15 +824,36 @@ validate_jump_instr(nir_jump_instr *instr, validate_state *state)
          validate_assert(state, block->successors[0] == after);
       }
       validate_assert(state, block->successors[1] == NULL);
+      validate_assert(state, instr->target == NULL);
+      validate_assert(state, instr->else_target == NULL);
       break;
 
    case nir_jump_continue:
+      validate_assert(state, state->impl->structured);
       validate_assert(state, state->loop != NULL);
       if (state->loop) {
          nir_block *first = nir_loop_first_block(state->loop);
          validate_assert(state, block->successors[0] == first);
       }
       validate_assert(state, block->successors[1] == NULL);
+      validate_assert(state, instr->target == NULL);
+      validate_assert(state, instr->else_target == NULL);
+      break;
+
+   case nir_jump_goto:
+      validate_assert(state, !state->impl->structured);
+      validate_assert(state, instr->target == block->successors[0]);
+      validate_assert(state, instr->target != NULL);
+      validate_assert(state, instr->else_target == NULL);
+      break;
+
+   case nir_jump_goto_if:
+      validate_assert(state, !state->impl->structured);
+      validate_assert(state, instr->target == block->successors[1]);
+      validate_assert(state, instr->else_target == block->successors[0]);
+      validate_src(&instr->condition, state, 0, 1);
+      validate_assert(state, instr->target != NULL);
+      validate_assert(state, instr->else_target != NULL);
       break;
 
    default:
@@ -873,8 +931,8 @@ validate_phi_src(nir_phi_instr *instr, nir_block *pred, validate_state *state)
          return;
       }
    }
-
-   abort();
+   validate_assert(state, !"Phi does not have a source corresponding to one "
+                           "of its predecessor blocks");
 }
 
 static void
@@ -888,7 +946,62 @@ validate_phi_srcs(nir_block *block, nir_block *succ, validate_state *state)
    }
 }
 
+static void
+collect_blocks(struct exec_list *cf_list, validate_state *state)
+{
+   exec_list_validate(cf_list);
+   foreach_list_typed(nir_cf_node, node, node, cf_list) {
+      switch (node->type) {
+      case nir_cf_node_block:
+         _mesa_set_add(state->blocks, nir_cf_node_as_block(node));
+         break;
+
+      case nir_cf_node_if:
+         collect_blocks(&nir_cf_node_as_if(node)->then_list, state);
+         collect_blocks(&nir_cf_node_as_if(node)->else_list, state);
+         break;
+
+      case nir_cf_node_loop:
+         collect_blocks(&nir_cf_node_as_loop(node)->body, state);
+         break;
+
+      default:
+         unreachable("Invalid CF node type");
+      }
+   }
+}
+
 static void validate_cf_node(nir_cf_node *node, validate_state *state);
+
+static void
+validate_block_predecessors(nir_block *block, validate_state *state)
+{
+   for (unsigned i = 0; i < 2; i++) {
+      if (block->successors[i] == NULL)
+         continue;
+
+      /* The block has to exist in the nir_function_impl */
+      validate_assert(state, _mesa_set_search(state->blocks,
+                                              block->successors[i]));
+
+      /* And we have to be in our successor's predecessors set */
+      validate_assert(state,
+         _mesa_set_search(block->successors[i]->predecessors, block));
+
+      validate_phi_srcs(block, block->successors[i], state);
+   }
+
+   /* The start block cannot have any predecessors */
+   if (block == nir_start_block(state->impl))
+      validate_assert(state, block->predecessors->entries == 0);
+
+   set_foreach(block->predecessors, entry) {
+      const nir_block *pred = entry->key;
+      validate_assert(state, _mesa_set_search(state->blocks, pred));
+      validate_assert(state, pred->successors[0] == block ||
+                             pred->successors[1] == block);
+   }
+}
 
 static void
 validate_block(nir_block *block, validate_state *state)
@@ -909,24 +1022,11 @@ validate_block(nir_block *block, validate_state *state)
 
    validate_assert(state, block->successors[0] != NULL);
    validate_assert(state, block->successors[0] != block->successors[1]);
+   validate_block_predecessors(block, state);
 
-   for (unsigned i = 0; i < 2; i++) {
-      if (block->successors[i] != NULL) {
-         struct set_entry *entry =
-            _mesa_set_search(block->successors[i]->predecessors, block);
-         validate_assert(state, entry);
-
-         validate_phi_srcs(block, block->successors[i], state);
-      }
-   }
-
-   set_foreach(block->predecessors, entry) {
-      const nir_block *pred = entry->key;
-      validate_assert(state, pred->successors[0] == block ||
-             pred->successors[1] == block);
-   }
-
-   if (!nir_block_ends_in_jump(block)) {
+   if (!state->impl->structured) {
+      validate_assert(state, nir_block_ends_in_jump(block));
+   } else if (!nir_block_ends_in_jump(block)) {
       nir_cf_node *next = nir_cf_node_next(&block->cf_node);
       if (next == NULL) {
          switch (state->parent_node->type) {
@@ -962,20 +1062,38 @@ validate_block(nir_block *block, validate_state *state)
                    nir_if_first_then_block(if_stmt));
             validate_assert(state, block->successors[1] ==
                    nir_if_first_else_block(if_stmt));
-         } else {
-            validate_assert(state, next->type == nir_cf_node_loop);
+         } else if (next->type == nir_cf_node_loop) {
             nir_loop *loop = nir_cf_node_as_loop(next);
             validate_assert(state, block->successors[0] ==
                    nir_loop_first_block(loop));
             validate_assert(state, block->successors[1] == NULL);
+         } else {
+            validate_assert(state,
+               !"Structured NIR cannot have consecutive blocks");
          }
       }
    }
 }
 
+
+static void
+validate_end_block(nir_block *block, validate_state *state)
+{
+   validate_assert(state, block->cf_node.parent == &state->impl->cf_node);
+
+   exec_list_validate(&block->instr_list);
+   validate_assert(state, exec_list_is_empty(&block->instr_list));
+
+   validate_assert(state, block->successors[0] == NULL);
+   validate_assert(state, block->successors[1] == NULL);
+   validate_block_predecessors(block, state);
+}
+
 static void
 validate_if(nir_if *if_stmt, validate_state *state)
 {
+   validate_assert(state, state->impl->structured);
+
    state->if_stmt = if_stmt;
 
    validate_assert(state, !exec_node_is_head_sentinel(if_stmt->cf_node.node.prev));
@@ -994,12 +1112,10 @@ validate_if(nir_if *if_stmt, validate_state *state)
    nir_cf_node *old_parent = state->parent_node;
    state->parent_node = &if_stmt->cf_node;
 
-   exec_list_validate(&if_stmt->then_list);
    foreach_list_typed(nir_cf_node, cf_node, node, &if_stmt->then_list) {
       validate_cf_node(cf_node, state);
    }
 
-   exec_list_validate(&if_stmt->else_list);
    foreach_list_typed(nir_cf_node, cf_node, node, &if_stmt->else_list) {
       validate_cf_node(cf_node, state);
    }
@@ -1011,6 +1127,8 @@ validate_if(nir_if *if_stmt, validate_state *state)
 static void
 validate_loop(nir_loop *loop, validate_state *state)
 {
+   validate_assert(state, state->impl->structured);
+
    validate_assert(state, !exec_node_is_head_sentinel(loop->cf_node.node.prev));
    nir_cf_node *prev_node = nir_cf_node_prev(&loop->cf_node);
    validate_assert(state, prev_node->type == nir_cf_node_block);
@@ -1026,7 +1144,6 @@ validate_loop(nir_loop *loop, validate_state *state)
    nir_loop *old_loop = state->loop;
    state->loop = loop;
 
-   exec_list_validate(&loop->body);
    foreach_list_typed(nir_cf_node, cf_node, node, &loop->body) {
       validate_cf_node(cf_node, state);
    }
@@ -1093,41 +1210,48 @@ postvalidate_reg_decl(nir_register *reg, validate_state *state)
       validate_assert(state, entry);
       _mesa_set_remove(reg_state->uses, entry);
    }
-
-   if (reg_state->uses->entries != 0) {
-      printf("extra entries in register uses:\n");
-      set_foreach(reg_state->uses, entry)
-         printf("%p\n", entry->key);
-
-      abort();
-   }
+   validate_assert(state, reg_state->uses->entries == 0);
 
    nir_foreach_if_use(src, reg) {
       struct set_entry *entry = _mesa_set_search(reg_state->if_uses, src);
       validate_assert(state, entry);
       _mesa_set_remove(reg_state->if_uses, entry);
    }
-
-   if (reg_state->if_uses->entries != 0) {
-      printf("extra entries in register if_uses:\n");
-      set_foreach(reg_state->if_uses, entry)
-         printf("%p\n", entry->key);
-
-      abort();
-   }
+   validate_assert(state, reg_state->if_uses->entries == 0);
 
    nir_foreach_def(src, reg) {
       struct set_entry *entry = _mesa_set_search(reg_state->defs, src);
       validate_assert(state, entry);
       _mesa_set_remove(reg_state->defs, entry);
    }
+   validate_assert(state, reg_state->defs->entries == 0);
+}
 
-   if (reg_state->defs->entries != 0) {
-      printf("extra entries in register defs:\n");
-      set_foreach(reg_state->defs, entry)
-         printf("%p\n", entry->key);
-
-      abort();
+static void
+validate_constant(nir_constant *c, const struct glsl_type *type,
+                  validate_state *state)
+{
+   if (glsl_type_is_vector_or_scalar(type)) {
+      unsigned num_components = glsl_get_vector_elements(type);
+      unsigned bit_size = glsl_get_bit_size(type);
+      for (unsigned i = 0; i < num_components; i++)
+         validate_const_value(&c->values[i], bit_size, state);
+      for (unsigned i = num_components; i < NIR_MAX_VEC_COMPONENTS; i++)
+         validate_assert(state, c->values[i].u64 == 0);
+   } else {
+      validate_assert(state, c->num_elements == glsl_get_length(type));
+      if (glsl_type_is_struct_or_ifc(type)) {
+         for (unsigned i = 0; i < c->num_elements; i++) {
+            const struct glsl_type *elem_type = glsl_get_struct_field(type, i);
+            validate_constant(c->elements[i], elem_type, state);
+         }
+      } else if (glsl_type_is_array_or_matrix(type)) {
+         const struct glsl_type *elem_type = glsl_get_array_element(type);
+         for (unsigned i = 0; i < c->num_elements; i++)
+            validate_constant(c->elements[i], elem_type, state);
+      } else {
+         validate_assert(state, !"Invalid type for nir_constant");
+      }
    }
 }
 
@@ -1164,6 +1288,9 @@ validate_var_decl(nir_variable *var, nir_variable_mode valid_modes,
    if (var->data.per_view)
       validate_assert(state, glsl_type_is_array(var->type));
 
+   if (var->constant_initializer)
+      validate_constant(var->constant_initializer, var->type, state);
+
    /*
     * TODO validate some things ir_validate.cpp does (requires more GLSL type
     * support)
@@ -1174,6 +1301,60 @@ validate_var_decl(nir_variable *var, nir_variable_mode valid_modes,
                            state->impl : NULL);
 
    state->var = NULL;
+}
+
+static bool
+validate_ssa_def_dominance(nir_ssa_def *def, void *_state)
+{
+   validate_state *state = _state;
+
+   validate_assert(state, def->index < state->impl->ssa_alloc);
+   validate_assert(state, !BITSET_TEST(state->ssa_defs_found, def->index));
+   BITSET_SET(state->ssa_defs_found, def->index);
+
+   return true;
+}
+
+static bool
+validate_src_dominance(nir_src *src, void *_state)
+{
+   validate_state *state = _state;
+   if (!src->is_ssa)
+      return true;
+
+   if (src->ssa->parent_instr->block == src->parent_instr->block) {
+      validate_assert(state, src->ssa->index < state->impl->ssa_alloc);
+      validate_assert(state, BITSET_TEST(state->ssa_defs_found,
+                                         src->ssa->index));
+   } else {
+      validate_assert(state, nir_block_dominates(src->ssa->parent_instr->block,
+                                                 src->parent_instr->block));
+   }
+   return true;
+}
+
+static void
+validate_ssa_dominance(nir_function_impl *impl, validate_state *state)
+{
+   nir_metadata_require(impl, nir_metadata_dominance);
+
+   nir_foreach_block(block, impl) {
+      state->block = block;
+      nir_foreach_instr(instr, block) {
+         state->instr = instr;
+         if (instr->type == nir_instr_type_phi) {
+            nir_phi_instr *phi = nir_instr_as_phi(instr);
+            nir_foreach_phi_src(src, phi) {
+               validate_assert(state,
+                  nir_block_dominates(src->src.ssa->parent_instr->block,
+                                      src->pred));
+            }
+         } else {
+            nir_foreach_src(instr, validate_src_dominance, state);
+         }
+         nir_foreach_ssa_def(instr, validate_ssa_def_dominance, state);
+      }
+   }
 }
 
 static void
@@ -1199,7 +1380,7 @@ validate_function_impl(nir_function_impl *impl, validate_state *state)
    state->parent_node = &impl->cf_node;
 
    exec_list_validate(&impl->locals);
-   nir_foreach_variable(var, &impl->locals) {
+   nir_foreach_function_temp_variable(var, impl) {
       validate_var_decl(var, nir_var_function_temp, state);
    }
 
@@ -1216,22 +1397,30 @@ validate_function_impl(nir_function_impl *impl, validate_state *state)
                                     BITSET_WORD, BITSET_WORDS(impl->ssa_alloc));
    memset(state->ssa_defs_found, 0, BITSET_WORDS(impl->ssa_alloc) *
                                     sizeof(BITSET_WORD));
-   exec_list_validate(&impl->body);
+
+   _mesa_set_clear(state->blocks, NULL);
+   collect_blocks(&impl->body, state);
+   _mesa_set_add(state->blocks, impl->end_block);
+   validate_assert(state, !exec_list_is_empty(&impl->body));
    foreach_list_typed(nir_cf_node, node, node, &impl->body) {
       validate_cf_node(node, state);
    }
+   validate_end_block(impl->end_block, state);
 
    foreach_list_typed(nir_register, reg, node, &impl->registers) {
       postvalidate_reg_decl(reg, state);
    }
 
-   if (state->ssa_srcs->entries != 0) {
-      printf("extra dangling SSA sources:\n");
-      set_foreach(state->ssa_srcs, entry)
-         printf("%p\n", entry->key);
+   validate_assert(state, state->ssa_srcs->entries == 0);
+   _mesa_set_clear(state->ssa_srcs, NULL);
 
-      abort();
+   static int validate_dominance = -1;
+   if (validate_dominance < 0) {
+      validate_dominance =
+         env_var_as_boolean("NIR_VALIDATE_SSA_DOMINANCE", false);
    }
+   if (validate_dominance)
+      validate_ssa_dominance(impl, state);
 }
 
 static void
@@ -1251,6 +1440,7 @@ init_validate_state(validate_state *state)
    state->ssa_srcs = _mesa_pointer_set_create(state->mem_ctx);
    state->ssa_defs_found = NULL;
    state->regs_found = NULL;
+   state->blocks = _mesa_pointer_set_create(state->mem_ctx);
    state->var_defs = _mesa_pointer_hash_table_create(state->mem_ctx);
    state->errors = _mesa_pointer_hash_table_create(state->mem_ctx);
 
@@ -1314,42 +1504,59 @@ nir_validate_shader(nir_shader *shader, const char *when)
 
    state.shader = shader;
 
-   exec_list_validate(&shader->uniforms);
-   nir_foreach_variable(var, &shader->uniforms) {
-      validate_var_decl(var, nir_var_uniform |
-                             nir_var_mem_ubo |
-                             nir_var_mem_ssbo,
-                        &state);
-   }
+   nir_variable_mode valid_modes =
+      nir_var_shader_in |
+      nir_var_shader_out |
+      nir_var_shader_temp |
+      nir_var_uniform |
+      nir_var_mem_ubo |
+      nir_var_system_value |
+      nir_var_mem_ssbo |
+      nir_var_mem_shared |
+      nir_var_mem_push_const |
+      nir_var_mem_constant;
 
-   exec_list_validate(&shader->inputs);
-   nir_foreach_variable(var, &shader->inputs) {
-     validate_var_decl(var, nir_var_shader_in, &state);
-   }
-
-   exec_list_validate(&shader->outputs);
-   nir_foreach_variable(var, &shader->outputs) {
-     validate_var_decl(var, nir_var_shader_out, &state);
-   }
-
-   exec_list_validate(&shader->shared);
-   nir_foreach_variable(var, &shader->shared) {
-      validate_var_decl(var, nir_var_mem_shared, &state);
-   }
-
-   exec_list_validate(&shader->globals);
-   nir_foreach_variable(var, &shader->globals) {
-     validate_var_decl(var, nir_var_shader_temp, &state);
-   }
-
-   exec_list_validate(&shader->system_values);
-   nir_foreach_variable(var, &shader->system_values) {
-     validate_var_decl(var, nir_var_system_value, &state);
-   }
+   exec_list_validate(&shader->variables);
+   nir_foreach_variable_in_shader(var, shader)
+     validate_var_decl(var, valid_modes, &state);
 
    exec_list_validate(&shader->functions);
    foreach_list_typed(nir_function, func, node, &shader->functions) {
       validate_function(func, &state);
+   }
+
+   if (_mesa_hash_table_num_entries(state.errors) > 0)
+      dump_errors(&state, when);
+
+   destroy_validate_state(&state);
+}
+
+void
+nir_validate_ssa_dominance(nir_shader *shader, const char *when)
+{
+   static int should_validate = -1;
+   if (should_validate < 0)
+      should_validate = env_var_as_boolean("NIR_VALIDATE", true);
+   if (!should_validate)
+      return;
+
+   validate_state state;
+   init_validate_state(&state);
+
+   state.shader = shader;
+
+   nir_foreach_function(func, shader) {
+      if (func->impl == NULL)
+         continue;
+
+      state.ssa_defs_found = reralloc(state.mem_ctx, state.ssa_defs_found,
+                                      BITSET_WORD,
+                                      BITSET_WORDS(func->impl->ssa_alloc));
+      memset(state.ssa_defs_found, 0, BITSET_WORDS(func->impl->ssa_alloc) *
+                                      sizeof(BITSET_WORD));
+
+      state.impl = func->impl;
+      validate_ssa_dominance(func->impl, &state);
    }
 
    if (_mesa_hash_table_num_entries(state.errors) > 0)

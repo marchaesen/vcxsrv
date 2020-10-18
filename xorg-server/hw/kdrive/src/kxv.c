@@ -423,7 +423,7 @@ KdXVInitAdaptors(ScreenPtr pScreen, KdVideoAdaptorPtr infoPtr, int number)
    client clip from the GC when the video is initialized.  We then
    use KdXVUpdateCompositeClip to calculate the new composite clip
    when we need it.  This is different from what DEC did.  They saved
-   the GC and used it's clip list when they needed to reclip the window,
+   the GC and used its clip list when they needed to reclip the window,
    even if the client clip was different from the one the video was
    initialized with.  If the original GC was destroyed, they had to stop
    the video.  I like the new method better (MArk).

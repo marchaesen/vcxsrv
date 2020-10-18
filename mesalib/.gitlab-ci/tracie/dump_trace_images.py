@@ -58,17 +58,13 @@ def get_last_apitrace_frame_call(cmd_wrapper, trace_path):
     return -1
 
 def get_last_gfxreconstruct_frame_call(trace_path):
-    # FIXME: It would be great to have another way to get the amount of
-    # traces which wouldn't imply replaying the whole trace:
-    # https://github.com/LunarG/gfxreconstruct/issues/329
-    cmd = ["gfxrecon-replay", str(trace_path)]
+    cmd = ["gfxrecon-info", str(trace_path)]
     ret = subprocess.run(cmd, stdout=subprocess.PIPE)
-    for l in reversed(ret.stdout.decode(errors='replace').splitlines()):
-        s = l.split(", ", 2)
-        if len(s) >= 3:
-            c = s[2].split(None, 1)
-            if len(c) >= 1 and c[0].isnumeric():
-                return int(c[0])
+    lines = ret.stdout.decode(errors='replace').splitlines()
+    if len(lines) >= 1:
+        c = lines[0].split(": ", 1)
+        if len(c) >= 2 and c[1].isnumeric():
+            return int(c[1])
     return -1
 
 def dump_with_apitrace(retrace_cmd, trace_path, calls, device_name):

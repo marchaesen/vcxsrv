@@ -68,7 +68,7 @@ lower_intrinsic(lower_state *state, nir_intrinsic_instr *intr)
       break;
    case nir_intrinsic_store_output:
       /* already had i/o lowered.. lookup the matching output var: */
-      nir_foreach_variable(var, &state->shader->outputs) {
+      nir_foreach_shader_out_variable(var, state->shader) {
          int drvloc = var->data.driver_location;
          if (nir_intrinsic_base(intr) == drvloc) {
             out = var;

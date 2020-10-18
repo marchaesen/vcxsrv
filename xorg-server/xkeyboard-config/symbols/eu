@@ -1,7 +1,7 @@
 // Based on <http://eurkey.steffen.bruentjen.eu/>
 // Copyright 2012 Steffen Bruentjen (eurkey (at) steffen dot bruentjen dot de)
 
-default partial alphanumeric_keys modifier_keys 
+default partial alphanumeric_keys modifier_keys
 xkb_symbols "basic"  {
 
         name[Group1] = "EurKEY (US)";
@@ -17,7 +17,7 @@ xkb_symbols "basic"  {
         key <AE08> { [              8,          asterisk,   doublelowquotemark,   singlelowquotemark ] };
         key <AE09> { [              9,         parenleft,  leftdoublequotemark,  leftsinglequotemark ] };
         key <AE10> { [              0,        parenright, rightdoublequotemark, rightsinglequotemark ] };
-        key <AE11> { [          minus,        underscore,               endash,               emdash ] };
+        key <AE11> { [          minus,        underscore,                U2713,                U2717 ] };
         key <AE12> { [          equal,              plus,             multiply,             division ] };
 
         key <AD01> { [              q,                 Q,                   ae,                   AE ] };
@@ -35,7 +35,7 @@ xkb_symbols "basic"  {
         key <BKSL> { [      backslash,               bar,              notsign,            brokenbar ] };
 
         key <AC01> { [              a,                 A,           adiaeresis,           Adiaeresis ] };
-        key <AC02> { [              s,                 S,               ssharp,              section ] };
+        key <AC02> { [              s,                 S,               ssharp,                U1E9E ] };
         key <AC03> { [              d,                 D,                  eth,                  Eth ] };
         key <AC04> { [              f,                 F,               egrave,               Egrave ] };
         key <AC05> { [              g,                 G,               eacute,               Eacute ] };

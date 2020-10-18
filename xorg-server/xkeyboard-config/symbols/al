@@ -86,7 +86,7 @@ xkb_symbols "plisi" {
  key <AC05> { [ g, G, U2033 ] };
  key <AC06> { [ h, H, section ] };
  key <AC07> { [ j, J, dead_cedilla ] };
- key <AC08> { [ k, K, dead_comma ] };
+ key <AC08> { [ k, K, dead_belowcomma ] };
  key <AC09> { [ l, L, dead_ogonek ] };
  key <AC10> { [ ediaeresis, Ediaeresis, dead_belowdot ] };
  key <AC11> { [ apostrophe, quotedbl ] };

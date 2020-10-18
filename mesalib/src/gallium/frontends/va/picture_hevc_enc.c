@@ -29,6 +29,15 @@
 #include "util/u_video.h"
 #include "va_private.h"
 
+#include "vl/vl_vlc.h"
+#include "vl/vl_rbsp.h"
+
+enum HEVCNALUnitType {
+    HEVC_NAL_VPS        = 32,
+    HEVC_NAL_SPS        = 33,
+    HEVC_NAL_PPS        = 34,
+};
+
 VAStatus
 vlVaHandleVAEncPictureParameterBufferTypeHEVC(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf)
 {
@@ -183,6 +192,128 @@ vlVaHandleVAEncMiscParameterTypeFrameRateHEVC(vlVaContext *context, VAEncMiscPar
    } else {
       context->desc.h265enc.rc.frame_rate_num = fr->framerate;
       context->desc.h265enc.rc.frame_rate_den = 1;
+   }
+
+   return VA_STATUS_SUCCESS;
+}
+
+static void profile_tier(struct vl_rbsp *rbsp)
+{
+   vl_rbsp_u(rbsp, 2); /* general_profile_space */
+   vl_rbsp_u(rbsp, 1); /* general_tier_flag */
+   vl_rbsp_u(rbsp, 5); /* general_profile_idc */
+
+   /* general_profile_compatibility_flag */
+   for(int i = 0; i < 32; ++i)
+      vl_rbsp_u(rbsp, 1);
+
+   vl_rbsp_u(rbsp, 1); /* general_progressive_source_flag */
+   vl_rbsp_u(rbsp, 1); /* general_interlaced_source_flag */
+   vl_rbsp_u(rbsp, 1); /* general_non_packed_constraint_flag */
+   vl_rbsp_u(rbsp, 1); /* general_frame_only_constraint_flag */
+
+   /* general_reserved_zero_44bits */
+   vl_rbsp_u(rbsp, 16);
+   vl_rbsp_u(rbsp, 16);
+   vl_rbsp_u(rbsp, 12);
+}
+
+static unsigned profile_tier_level(struct vl_rbsp *rbsp,
+                                   int max_sublayers_minus1)
+{
+   bool sub_layer_profile_present_flag[6];
+   bool sub_layer_level_present_flag[6];
+   unsigned level_idc;
+   int i;
+
+   profile_tier(rbsp);
+   level_idc = vl_rbsp_u(rbsp, 8);  /* general_level_idc */
+
+   for (i = 0; i < max_sublayers_minus1; ++i) {
+      sub_layer_profile_present_flag[i] = vl_rbsp_u(rbsp, 1);
+      sub_layer_level_present_flag[i] = vl_rbsp_u(rbsp, 1);
+   }
+
+   if (max_sublayers_minus1 > 0)
+      for (i = max_sublayers_minus1; i < 8; ++i)
+         vl_rbsp_u(rbsp, 2);        /* reserved_zero_2bits */
+
+   for (i = 0; i < max_sublayers_minus1; ++i) {
+      if (sub_layer_profile_present_flag[i])
+         profile_tier(rbsp);
+
+      if (sub_layer_level_present_flag[i])
+         vl_rbsp_u(rbsp, 8);        /* sub_layer_level_idc */
+   }
+
+   return level_idc;
+}
+
+static void parseEncSpsParamsH265(vlVaContext *context, struct vl_rbsp *rbsp)
+{
+   int sps_max_sub_layers_minus1;
+
+   vl_rbsp_u(rbsp, 4);     /* sps_video_parameter_set_id */
+   sps_max_sub_layers_minus1 = vl_rbsp_u(rbsp, 3);
+   vl_rbsp_u(rbsp, 1);     /* sps_temporal_id_nesting_flag */
+
+   /* level_idc */
+   profile_tier_level(rbsp, sps_max_sub_layers_minus1);
+
+   vl_rbsp_ue(rbsp);       /* id */
+   context->desc.h265enc.seq.chroma_format_idc = vl_rbsp_ue(rbsp);
+   if (context->desc.h265enc.seq.chroma_format_idc == 3)
+      vl_rbsp_u(rbsp, 1);  /* separate_colour_plane_flag */
+
+   context->desc.h265enc.seq.pic_width_in_luma_samples = vl_rbsp_ue(rbsp);
+   context->desc.h265enc.seq.pic_height_in_luma_samples = vl_rbsp_ue(rbsp);
+
+   /* conformance_window_flag - used for cropping */
+   context->desc.h265enc.seq.conformance_window_flag = vl_rbsp_u(rbsp, 1);
+   if (context->desc.h265enc.seq.conformance_window_flag) {
+      context->desc.h265enc.seq.conf_win_left_offset = vl_rbsp_ue(rbsp);
+      context->desc.h265enc.seq.conf_win_right_offset = vl_rbsp_ue(rbsp);
+      context->desc.h265enc.seq.conf_win_top_offset = vl_rbsp_ue(rbsp);
+      context->desc.h265enc.seq.conf_win_bottom_offset = vl_rbsp_ue(rbsp);
+   }
+}
+
+VAStatus
+vlVaHandleVAEncPackedHeaderDataBufferTypeHEVC(vlVaContext *context, vlVaBuffer *buf)
+{
+   struct vl_vlc vlc = {0};
+   vl_vlc_init(&vlc, 1, (const void * const*)&buf->data, &buf->size);
+
+   while (vl_vlc_bits_left(&vlc) > 0) {
+      /* search the first 64 bytes for a startcode */
+      for (int i = 0; i < 64 && vl_vlc_bits_left(&vlc) >= 24; ++i) {
+         if (vl_vlc_peekbits(&vlc, 24) == 0x000001)
+            break;
+         vl_vlc_eatbits(&vlc, 8);
+         vl_vlc_fillbits(&vlc);
+      }
+      vl_vlc_eatbits(&vlc, 24); /* eat the startcode */
+
+      if (vl_vlc_valid_bits(&vlc) < 15)
+         vl_vlc_fillbits(&vlc);
+
+      vl_vlc_eatbits(&vlc, 1);
+      unsigned nal_unit_type = vl_vlc_get_uimsbf(&vlc, 6);
+      vl_vlc_eatbits(&vlc, 6);
+      vl_vlc_eatbits(&vlc, 3);
+
+      struct vl_rbsp rbsp;
+      vl_rbsp_init(&rbsp, &vlc, ~0);
+
+      switch(nal_unit_type) {
+      case HEVC_NAL_SPS:
+         parseEncSpsParamsH265(context, &rbsp);
+         break;
+      case HEVC_NAL_VPS:
+      case HEVC_NAL_PPS:
+      default:
+         break;
+      }
    }
 
    return VA_STATUS_SUCCESS;

@@ -442,7 +442,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
             g_ScreenInfo[nScreenNum].fUserGaveHeightAndWidth = FALSE;
         }
 
-        /* Flag that this screen was explicity specified by the user */
+        /* Flag that this screen was explicitly specified by the user */
         g_ScreenInfo[nScreenNum].fExplicitScreen = TRUE;
 
         /*

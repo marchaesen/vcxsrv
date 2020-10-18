@@ -1508,7 +1508,7 @@ UpdateTouchesForGrab(DeviceIntPtr mouse)
  * @param mouse The device to grab.
  * @param grab The grab structure, needs to be setup.
  * @param autoGrab True if the grab was caused by a button down event and not
- * explicitely by a client.
+ * explicitly by a client.
  */
 void
 ActivatePointerGrab(DeviceIntPtr mouse, GrabPtr grab,
@@ -2764,7 +2764,7 @@ DeliverDeviceEvents(WindowPtr pWin, InternalEvent *event, GrabPtr grab,
 }
 
 /**
- * Deliver event to a window and it's immediate parent. Used for most window
+ * Deliver event to a window and its immediate parent. Used for most window
  * events (CreateNotify, ConfigureNotify, etc.). Not useful for events that
  * propagate up the tree or extension events
  *
@@ -3977,7 +3977,7 @@ CheckPassiveGrabsOnWindow(WindowPtr pWin,
  *
  * If the event is a keyboard event, the ancestors of the focus window are
  * traced down and tried to see if they have any passive grabs to be
- * activated.  If the focus window itself is reached and it's descendants
+ * activated.  If the focus window itself is reached and its descendants
  * contain the pointer, the ancestors of the window that the pointer is in
  * are then traced down starting at the focus window, otherwise no grabs are
  * activated.
@@ -5398,7 +5398,7 @@ ProcSendEvent(ClientPtr client)
             return Success;
 
         /* If the input focus is PointerRootWin, send the event to where
-           the pointer is if possible, then perhaps propogate up to root. */
+           the pointer is if possible, then perhaps propagate up to root. */
         if (inputFocus == PointerRootWin)
             inputFocus = GetCurrentRootWindow(dev);
 

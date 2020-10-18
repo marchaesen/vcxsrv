@@ -36,10 +36,21 @@
                                       V3D_MAX_GS_INPUTS, \
                                       V3D_MAX_FS_INPUTS)
 
+/* For now we need to maintain a different limits for OpenGL and Vulkan due
+ * some OpenGL CTS tests hitting register allocation when trying to use all
+ * the texture available.
+ *
+ * FIXME: nir_schedule should be able to handle that. When fixed it would be
+ * simpler to keep just one limit
+ */
+#define V3D_VULKAN_MAX_TEXTURE_SAMPLERS 24
+#define V3D_OPENGL_MAX_TEXTURE_SAMPLERS 16
+
 /* Not specifically a hardware limit, just coordination between compiler and
  * driver.
  */
-#define V3D_MAX_TEXTURE_SAMPLERS 16
+#define V3D_MAX_TEXTURE_SAMPLERS MAX2(V3D_VULKAN_MAX_TEXTURE_SAMPLERS, \
+                                      V3D_OPENGL_MAX_TEXTURE_SAMPLERS)
 
 /* The HW can do 16384 (15), but we run into hangs when we expose that. */
 #define V3D_MAX_MIP_LEVELS 13
@@ -47,5 +58,8 @@
 #define V3D_MAX_SAMPLES 4
 
 #define V3D_MAX_DRAW_BUFFERS 4
+
+#define V3D_MAX_POINT_SIZE 512.0f
+#define V3D_MAX_LINE_WIDTH 32
 
 #endif /* V3D_LIMITS_H */

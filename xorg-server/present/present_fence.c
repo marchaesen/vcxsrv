@@ -20,10 +20,6 @@
  * OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_XORG_CONFIG_H
-#include <xorg-config.h>
-#endif
-
 #include "present_priv.h"
 #include <gcstruct.h>
 #include <misync.h>

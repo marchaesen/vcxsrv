@@ -452,6 +452,21 @@ isub64_saturate(int64_t a, int64_t b)
    return a - b;
 }
 
+static uint64_t
+pack_2x32(uint32_t a, uint32_t b)
+{
+   uint64_t v = a;
+   v |= (uint64_t)b << 32;
+   return v;
+}
+
+static void
+unpack_2x32(uint64_t p, uint32_t *a, uint32_t *b)
+{
+   *a = p & 0xffffffff;
+   *b = (p >> 32);
+}
+
 /**
  * Get the constant that is ultimately referenced by an r-value, in a constant
  * expression evaluation context.
@@ -679,6 +694,7 @@ ir_expression::constant_expression_value(void *mem_ctx,
    if (this->type->is_error())
       return NULL;
 
+   const glsl_type *return_type = this->type;
    ir_constant *op[ARRAY_SIZE(this->operands)] = { NULL, };
    ir_constant_data data;
 
@@ -743,6 +759,33 @@ ir_expression::constant_expression_value(void *mem_ctx,
          /* nothing to do */
          break;
       }
+   }
+
+   switch (return_type->base_type) {
+   case GLSL_TYPE_FLOAT16:
+      return_type = glsl_type::get_instance(GLSL_TYPE_FLOAT,
+                                            return_type->vector_elements,
+                                            return_type->matrix_columns,
+                                            return_type->explicit_stride,
+                                            return_type->interface_row_major);
+      break;
+   case GLSL_TYPE_INT16:
+      return_type = glsl_type::get_instance(GLSL_TYPE_INT,
+                                            return_type->vector_elements,
+                                            return_type->matrix_columns,
+                                            return_type->explicit_stride,
+                                            return_type->interface_row_major);
+      break;
+   case GLSL_TYPE_UINT16:
+      return_type = glsl_type::get_instance(GLSL_TYPE_UINT,
+                                            return_type->vector_elements,
+                                            return_type->matrix_columns,
+                                            return_type->explicit_stride,
+                                            return_type->interface_row_major);
+      break;
+   default:
+      /* nothing to do */
+      break;
    }
 
    if (op[1] != NULL)
@@ -912,6 +955,19 @@ ir_dereference_array::constant_expression_value(void *mem_ctx,
 
          const glsl_type *const column_type = array->type->column_type();
 
+         /* Section 5.11 (Out-of-Bounds Accesses) of the GLSL 4.60 spec says:
+          *
+          *    In the subsections described above for array, vector, matrix and
+          *    structure accesses, any out-of-bounds access produced undefined
+          *    behavior....Out-of-bounds reads return undefined values, which
+          *    include values from other variables of the active program or zero.
+          */
+         if (idx->value.i[0] < 0 || column >= array->type->matrix_columns) {
+            ir_constant_data data = { { 0 } };
+
+            return new(mem_ctx) ir_constant(column_type, &data);
+         }
+
          /* Offset in the constant matrix to the first element of the column
           * to be extracted.
           */
@@ -920,6 +976,12 @@ ir_dereference_array::constant_expression_value(void *mem_ctx,
          ir_constant_data data = { { 0 } };
 
          switch (column_type->base_type) {
+         case GLSL_TYPE_FLOAT16:
+            for (unsigned i = 0; i < column_type->vector_elements; i++)
+               data.f16[i] = array->value.f16[mat_idx + i];
+
+            break;
+
          case GLSL_TYPE_FLOAT:
             for (unsigned i = 0; i < column_type->vector_elements; i++)
                data.f[i] = array->value.f[mat_idx + i];

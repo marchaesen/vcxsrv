@@ -26,7 +26,10 @@
 #include "fcint.h"
 #include <fcntl.h>
 #include <stdarg.h>
+
+#ifdef HAVE_DIRENT_H
 #include <dirent.h>
+#endif
 
 #ifdef ENABLE_LIBXML2
 
@@ -1207,7 +1210,7 @@ FcPStackPop (FcConfigParse *parse)
 	{
 	    if (attrs[0][0])
 	    {
-		FcConfigMessage (parse, FcSevereError, "invalid attribute '%s'", attrs[0]);
+		FcConfigMessage (parse, FcSevereWarning, "invalid attribute '%s'", attrs[0]);
 	    }
 	    attrs += 2;
 	}

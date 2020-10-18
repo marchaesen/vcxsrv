@@ -205,7 +205,7 @@ _mesa_GenFragmentShadersATI(GLuint range)
 
    first = _mesa_HashFindFreeKeyBlock(ctx->Shared->ATIShaders, range);
    for (i = 0; i < range; i++) {
-      _mesa_HashInsertLocked(ctx->Shared->ATIShaders, first + i, &DummyShader);
+      _mesa_HashInsertLocked(ctx->Shared->ATIShaders, first + i, &DummyShader, true);
    }
 
    _mesa_HashUnlockMutex(ctx->Shared->ATIShaders);
@@ -244,8 +244,10 @@ _mesa_BindFragmentShaderATI(GLuint id)
       newProg = ctx->Shared->DefaultFragmentShader;
    }
    else {
+      bool isGenName;
       newProg = (struct ati_fragment_shader *)
          _mesa_HashLookup(ctx->Shared->ATIShaders, id);
+      isGenName = newProg != NULL;
       if (!newProg || newProg == &DummyShader) {
 	 /* allocate a new program now */
 	 newProg = _mesa_new_ati_fragment_shader(ctx, id);
@@ -253,7 +255,7 @@ _mesa_BindFragmentShaderATI(GLuint id)
 	    _mesa_error(ctx, GL_OUT_OF_MEMORY, "glBindFragmentShaderATI");
 	    return;
 	 }
-	 _mesa_HashInsert(ctx->Shared->ATIShaders, id, newProg);
+	 _mesa_HashInsert(ctx->Shared->ATIShaders, id, newProg, isGenName);
       }
 
    }

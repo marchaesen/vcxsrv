@@ -18,6 +18,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+XVMC_MAJOR = 1
+XVMC_MINOR = 0
+
 libxvmc_st = static_library(
   'xvmc_st',
   files('attributes.c', 'block.c', 'context.c', 'surface.c', 'subpicture.c'),

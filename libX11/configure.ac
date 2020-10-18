@@ -1,7 +1,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libX11], [1.6.9],
+AC_INIT([libX11], [1.6.12],
         [https://gitlab.freedesktop.org/xorg/lib/libx11/issues], [libX11])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([src/config.h include/X11/XlibConf.h])
@@ -78,7 +78,7 @@ AC_SUBST([EXEEXT_FOR_BUILD])
 # Checks for pkg-config packages
 
 # Always required
-X11_REQUIRES='xproto >= 7.0.17 xextproto xtrans xcb >= 1.11.1'
+X11_REQUIRES='xproto >= 7.0.25 xextproto xtrans xcb >= 1.11.1'
 X11_EXTRA_DEPS="xcb >= 1.11.1"
 
 PKG_PROG_PKG_CONFIG()
@@ -152,6 +152,7 @@ AC_MSG_RESULT($XLIB_LOADABLE_XCURSOR)
 AC_CHECK_HEADERS([sys/filio.h sys/select.h sys/ioctl.h sys/socket.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
+AX_GCC_BUILTIN([__builtin_popcountl])
 
 # Checks for library functions.
 AC_CHECK_FUNCS([strtol seteuid])

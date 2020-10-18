@@ -160,7 +160,7 @@ Bug fixes:
 
 -  glGet*(GL_DEPTH_BITS) returned bytes, not bits
 -  point, line, and bitmap rasterization suffered from roundoff errors
--  fixed a division by zero error in line clippping
+-  fixed a division by zero error in line clipping
 -  occasional wrong default background color really fixed!
 -  glDepthFunc(GL_ALWAYS) with glDepthMask(GL_FALSE) didn't work
 -  gluBuild2DMipmaps malloc problem fixed
@@ -435,7 +435,7 @@ Bug fixes:
 -  linear interpolation of mipmap levels was incorrectly weighted
 -  readpix.c didn't compile on Macintosh
 -  GL_INVERT and related logic ops didn't work right
--  glTexImage[12]D() didn't check its parameters consistantly
+-  glTexImage[12]D() didn't check its parameters consistently
 -  fixed a memory leak in glTexImage[12]D()
 -  kludged around a SunOS 5.x/GCC compiler bug in the feedback code
 -  glReadPixels aborted instead of normally catching some errors
@@ -622,7 +622,7 @@ Bug fixes:
 -  NULL proxy image sent to glTexImageXD() caused crash
 -  added texture state validation optimization (Henk Kok)
 -  fixed colormap reuse problem when using both RGB and CI windows
--  32bpp True/DirectColor X visuals weren't recognized
+-  32 BPP True/DirectColor X visuals weren't recognized
 -  fixed potential problem in evaluators memory allocation
 -  fixed assorted demo compilation bugs
 
@@ -746,7 +746,7 @@ Bug fixes:
 -  glDeleteLists(0, n) caused assertion failure
 -  bilinear texture sampling wasn't accurate enough
 -  glClear w/ glDepthMask(GL_FALSE) didn't work right on 3Dfx
--  color components were reversed on big endian 32 bpp X visuals
+-  color components were reversed on big endian 32 BPP X visuals
 
 Changes:
 
@@ -758,7 +758,7 @@ Changes:
 New:
 
 -  multi-textured points and lines (mjk@nvidia.com)
--  optimized 24bpp X rendering (bernd.paysan@gmx.de)
+-  optimized 24 BPP X rendering (bernd.paysan@gmx.de)
 -  added allegro support (bernie-t@geocities.com)
 -  cleaned-up Windows-related stuff (Ted Jump)
 -  minor stereo changes (KendallB@scitechsoft.com)
@@ -796,7 +796,7 @@ Changes:
 New:
 
 -  optimized glAccum function
--  optimized 24bpp rendering in XMesa driver
+-  optimized 24 BPP rendering in XMesa driver
 -  GLU 1.2 polygon tessellator
 
 Bug Fixes:
@@ -837,7 +837,7 @@ Bug fixes:
 
 -  fixed memcpy bugs in span.c
 -  fixed missing glEnd problem in demos/tessdemo.c
--  fixed bug when clearing 24bpp Ximages
+-  fixed bug when clearing 24 BPP Ximages
 -  fixed clipping problem found in Unreal Tournament
 -  fixed Loki's "ice bug" and "crazy triangles" seen in Heretic2
 -  fixed Loki's 3dfx RGB vs BGR bug
@@ -971,8 +971,8 @@ Bug fixes:
 -  glXCopySubBufferMESA() Y position was off by one
 -  Error checking of glTexSubImage3D() was broken (bug 128775)
 -  glPopAttrib() didn't restore all derived Mesa state correctly
--  Better glReadPixels accuracy for 16bpp color - fixes lots of OpenGL
-   conformance problems at 16bpp.
+-  Better glReadPixels accuracy for 16 BPP color - fixes lots of OpenGL
+   conformance problems at 16 BPP.
 -  clearing depth buffer with scissoring was broken, would segfault
 -  OSMesaGetDepthBuffer() returned bad bytesPerValue value
 -  fixed a line clipping bug (reported by Craig McDaniel)
@@ -999,7 +999,7 @@ Bug fixes:
 -  fixed segfaults in FX and X drivers when using tex unit 1 but not 0
 -  GL_NAND logicop didn't work right in RGBA mode
 -  fixed a memory corruption bug in vertex buffer reset code
--  clearing the softwara alpha buffer with scissoring was broken
+-  clearing the software alpha buffer with scissoring was broken
 -  fixed a few color index mode fog bugs
 -  fixed some bad assertions in color index mode
 -  fixed FX line 'stipple' bug #420091
@@ -1039,7 +1039,7 @@ New:
 -  libOSMesa.so library, contains the OSMesa driver interface
 -  GL/glxext.h header file for GLX extensions
 -  somewhat faster software texturing, fogging, depth testing
--  all color-index conformance tests now pass (only 8bpp tested)
+-  all color-index conformance tests now pass (only 8 BPP tested)
 -  SPARC assembly language TCL optimizations (David Miller)
 -  GL_SGIS_generate_mipmap extension
 
@@ -1143,7 +1143,7 @@ Bug fixes:
 -  glTexEnviv( pname != GL_TEXTURE_ENV_COLOR ) was broken
 -  glReadPixels was sometimes mistakenly clipped by the scissor box
 -  glDraw/ReadPixels didn't catch all the errors that they should have
--  Fixed 24bpp rendering problem in Windows driver (Karl Schultz)
+-  Fixed 24 BPP rendering problem in Windows driver (Karl Schultz)
 -  16-bit GLchan mode fixes (m_trans_tmp.h, s_triangle.c)
 -  Fixed 1-bit float->int conversion bug in glDrawPixels(GL_DEPTH_COMP)
 -  glColorMask as sometimes effecting glXSwapBuffers()
@@ -1366,7 +1366,7 @@ Bug fixes:
 -  fixed bug in GL_IBM_rasterpos_clip (missing return)
 -  GL_DEPTH_TEXTURE_MODE = GL_ALPHA didn't work correctly
 -  a few Solaris compilation fixes
--  fixed glClear() problem for DRI drivers (non-existant stencil, etc)
+-  fixed glClear() problem for DRI drivers (non-existent stencil, etc)
 -  fixed int/REAL mixup in GLU NURBS curve evaluator (Eric Cazeaux)
 -  fixed delete [] bug in SI GLU (bug 721765) (Diego Santa Cruz)
 -  glFog() didn't clamp fog colors

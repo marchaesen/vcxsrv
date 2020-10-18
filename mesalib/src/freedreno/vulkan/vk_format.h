@@ -132,6 +132,8 @@ vk_format_get_component_bits(VkFormat format,
    switch (format) {
    case VK_FORMAT_G8B8G8R8_422_UNORM:
    case VK_FORMAT_B8G8R8G8_422_UNORM:
+   case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
+   case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
       /* util_format_get_component_bits doesn't return what we want */
       return 8;
    default:

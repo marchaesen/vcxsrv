@@ -279,18 +279,18 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
         Flags &= ~(D3DLOCK_DISCARD | D3DLOCK_NOOVERWRITE);
 
     if (Flags & D3DLOCK_DISCARD)
-        usage = PIPE_TRANSFER_WRITE | PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE;
+        usage = PIPE_MAP_WRITE | PIPE_MAP_DISCARD_WHOLE_RESOURCE;
     else if (Flags & D3DLOCK_NOOVERWRITE)
-        usage = PIPE_TRANSFER_WRITE | PIPE_TRANSFER_UNSYNCHRONIZED;
+        usage = PIPE_MAP_WRITE | PIPE_MAP_UNSYNCHRONIZED;
     else
         /* Do not ask for READ if writeonly and default pool (should be safe enough,
          * as the doc says app shouldn't expect reading to work with writeonly).
          * Ignore for Systemmem as it has special behaviours. */
         usage = ((This->base.usage & D3DUSAGE_WRITEONLY) && This->base.pool == D3DPOOL_DEFAULT) ?
-            PIPE_TRANSFER_WRITE :
-            PIPE_TRANSFER_READ_WRITE;
+            PIPE_MAP_WRITE :
+            PIPE_MAP_READ_WRITE;
     if (Flags & D3DLOCK_DONOTWAIT && !(This->base.usage & D3DUSAGE_DYNAMIC))
-        usage |= PIPE_TRANSFER_DONTBLOCK;
+        usage |= PIPE_MAP_DONTBLOCK;
 
     This->discard_nooverwrite_only &= !!(Flags & (D3DLOCK_DISCARD | D3DLOCK_NOOVERWRITE));
 
@@ -390,7 +390,7 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
             /* Use the new resource */
             pipe_resource_reference(&This->base.resource, new_res);
             pipe_resource_reference(&new_res, NULL);
-            usage = PIPE_TRANSFER_WRITE | PIPE_TRANSFER_UNSYNCHRONIZED;
+            usage = PIPE_MAP_WRITE | PIPE_MAP_UNSYNCHRONIZED;
             NineBuffer9_RebindIfRequired(This, device);
             This->maps[This->nmaps].is_pipe_secondary = TRUE;
         }

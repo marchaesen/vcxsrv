@@ -35,7 +35,7 @@ lower_frexp_sig(nir_builder *b, nir_ssa_def *x)
    nir_ssa_def *abs_x = nir_fabs(b, x);
    nir_ssa_def *zero = nir_imm_floatN_t(b, 0, x->bit_size);
    nir_ssa_def *sign_mantissa_mask, *exponent_value;
-   nir_ssa_def *is_not_zero = nir_fne(b, abs_x, zero);
+   nir_ssa_def *is_not_zero = nir_fneu(b, abs_x, zero);
 
    switch (x->bit_size) {
    case 16:
@@ -109,7 +109,7 @@ lower_frexp_exp(nir_builder *b, nir_ssa_def *x)
 {
    nir_ssa_def *abs_x = nir_fabs(b, x);
    nir_ssa_def *zero = nir_imm_floatN_t(b, 0, x->bit_size);
-   nir_ssa_def *is_not_zero = nir_fne(b, abs_x, zero);
+   nir_ssa_def *is_not_zero = nir_fneu(b, abs_x, zero);
    nir_ssa_def *exponent;
 
    switch (x->bit_size) {

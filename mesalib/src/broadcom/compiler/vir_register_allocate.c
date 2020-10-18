@@ -208,6 +208,8 @@ v3d_emit_spill_tmua(struct v3d_compile *c, uint32_t spill_offset)
 static void
 v3d_spill_reg(struct v3d_compile *c, int spill_temp)
 {
+        c->spill_count++;
+
         bool is_uniform = vir_is_mov_uniform(c, spill_temp);
 
         uint32_t spill_offset = 0;
@@ -415,6 +417,26 @@ node_to_temp_priority(const void *in_a, const void *in_b)
         const struct node_to_temp_map *b = in_b;
 
         return a->priority - b->priority;
+}
+
+/**
+ * Computes the number of registers to spill in a batch after a register
+ * allocation failure.
+ */
+static uint32_t
+get_spill_batch_size(struct v3d_compile *c)
+{
+   /* Allow up to 10 spills in batches of 1 in any case to avoid any chance of
+    * over-spilling if the program requires few spills to compile.
+    */
+   if (c->spill_count < 10)
+           return 1;
+
+   /* If we have to spill more than that we assume performance is not going to
+    * be great and we shift focus to batching spills to cut down compile
+    * time at the expense of over-spilling.
+    */
+   return 20;
 }
 
 #define CLASS_BIT_PHYS			(1 << 0)
@@ -647,18 +669,38 @@ v3d_register_allocate(struct v3d_compile *c, bool *spilled)
 
         bool ok = ra_allocate(g);
         if (!ok) {
-                int node = v3d_choose_spill_node(c, g, temp_to_node);
+                const uint32_t spill_batch_size = get_spill_batch_size(c);
 
-                /* Don't emit spills using the TMU until we've dropped thread
-                 * conut first.
-                 */
-                if (node != -1 &&
-                    (vir_is_mov_uniform(c, map[node].temp) ||
-                     thread_index == 0)) {
-                        v3d_spill_reg(c, map[node].temp);
+                for (uint32_t i = 0; i < spill_batch_size; i++) {
+                        int node = v3d_choose_spill_node(c, g, temp_to_node);
+                        if (node == -1)
+                           break;
 
-                        /* Ask the outer loop to call back in. */
-                        *spilled = true;
+                        /* TMU spills inject thrsw signals that invalidate
+                         * accumulators, so we can't batch them.
+                         */
+                        bool is_uniform = vir_is_mov_uniform(c, map[node].temp);
+                        if (i > 0 && !is_uniform)
+                                break;
+
+                        /* Don't emit spills using the TMU until we've dropped
+                         * thread count first.
+                         */
+                        if (is_uniform || thread_index == 0) {
+                                v3d_spill_reg(c, map[node].temp);
+
+                                /* Ask the outer loop to call back in. */
+                                *spilled = true;
+
+                                /* See comment above about batching TMU spills.
+                                 */
+                                if (!is_uniform) {
+                                        assert(i == 0);
+                                        break;
+                                }
+                        } else {
+                                break;
+                        }
                 }
 
                 ralloc_free(g);

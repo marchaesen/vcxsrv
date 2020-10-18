@@ -2531,7 +2531,7 @@ CSMT_ITEM_NO_WAIT_WITH_COUNTER(nine_context_box_upload,
     map = pipe->transfer_map(pipe,
                              res,
                              level,
-                             PIPE_TRANSFER_WRITE | PIPE_TRANSFER_DISCARD_RANGE,
+                             PIPE_MAP_WRITE | PIPE_MAP_DISCARD_RANGE,
                              dst_box, &transfer);
     if (!map)
         return;
@@ -3077,7 +3077,7 @@ update_vertex_buffers_sw(struct NineDevice9 *device, int start_vertice, int num_
                 u_box_1d(vtxbuf.buffer_offset + offset + start_vertice * vtxbuf.stride,
                          num_vertices * vtxbuf.stride, &box);
 
-                userbuf = pipe->transfer_map(pipe, buf, 0, PIPE_TRANSFER_READ, &box,
+                userbuf = pipe->transfer_map(pipe, buf, 0, PIPE_MAP_READ, &box,
                                              &(sw_internal->transfers_so[i]));
                 vtxbuf.is_user_buffer = true;
                 vtxbuf.buffer.user = userbuf;

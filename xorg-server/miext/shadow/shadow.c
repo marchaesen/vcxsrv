@@ -87,7 +87,7 @@ shadowGetImage(DrawablePtr pDrawable, int sx, int sy, int w, int h,
 
     shadowBuf(pScreen);
 
-    /* Many apps use GetImage to sync with the visable frame buffer */
+    /* Many apps use GetImage to sync with the visible frame buffer */
     if (pDrawable->type == DRAWABLE_WINDOW)
         shadowRedisplay(pScreen);
     unwrap(pBuf, pScreen, GetImage);

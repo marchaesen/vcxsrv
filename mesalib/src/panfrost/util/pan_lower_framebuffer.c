@@ -89,6 +89,15 @@ pan_unpacked_type_for_format(const struct util_format_description *desc)
 enum pan_format_class
 pan_format_class_load(const struct util_format_description *desc, unsigned quirks)
 {
+        /* Pure integers can be loaded via EXT_framebuffer_fetch and should be
+         * handled as a raw load with a size conversion (it's cheap). Likewise,
+         * since float framebuffers are internally implemented as raw (i.e.
+         * integer) framebuffers with blend shaders to go back and forth, they
+         * should be s/w as well */
+
+        if (util_format_is_pure_integer(desc->format) || util_format_is_float(desc->format))
+                return PAN_FORMAT_SOFTWARE;
+
         /* Check if we can do anything better than software architecturally */
         if (quirks & MIDGARD_NO_TYPED_BLEND_LOADS) {
                 return (quirks & NO_BLEND_PACKS)
@@ -222,6 +231,22 @@ pan_fill_4(nir_builder *b, nir_ssa_def *v)
 }
 
 static nir_ssa_def *
+pan_extend(nir_builder *b, nir_ssa_def *v, unsigned N)
+{
+        nir_ssa_def *q[4];
+        assert(v->num_components <= 4);
+        assert(N <= 4);
+
+        for (unsigned j = 0; j < v->num_components; ++j)
+                q[j] = nir_channel(b, v, j);
+
+        for (unsigned j = v->num_components; j < N; ++j)
+                q[j] = nir_imm_int(b, 0);
+
+        return nir_vec(b, q, N);
+}
+
+static nir_ssa_def *
 pan_replicate_4(nir_builder *b, nir_ssa_def *v)
 {
         nir_ssa_def *replicated[4] = { v, v, v, v };
@@ -259,7 +284,7 @@ pan_unpack_unorm_8(nir_builder *b, nir_ssa_def *pack, unsigned num_components)
 {
         assert(num_components <= 4);
         nir_ssa_def *unpacked = nir_unpack_unorm_4x8(b, nir_channel(b, pack, 0));
-        return nir_f2f16(b, unpacked);
+        return nir_f2fmp(b, unpacked);
 }
 
 /* UNORM 4 is also unpacked to f16, which prevents us from using the shared
@@ -290,7 +315,7 @@ pan_unpack_unorm_small(nir_builder *b, nir_ssa_def *pack,
                 nir_ssa_def *scales, nir_ssa_def *shifts)
 {
         nir_ssa_def *channels = nir_unpack_32_4x8(b, nir_channel(b, pack, 0));
-        nir_ssa_def *raw = nir_ushr(b, nir_u2u16(b, channels), shifts);
+        nir_ssa_def *raw = nir_ushr(b, nir_i2imp(b, channels), shifts);
         return nir_fmul(b, nir_u2f16(b, raw), scales);
 }
 
@@ -377,12 +402,12 @@ pan_unpack_unorm_1010102(nir_builder *b, nir_ssa_def *packed)
 {
         nir_ssa_def *p = nir_channel(b, packed, 0);
         nir_ssa_def *bytes = nir_unpack_32_4x8(b, p);
-        nir_ssa_def *ubytes = nir_u2u16(b, bytes);
+        nir_ssa_def *ubytes = nir_i2imp(b, bytes);
 
         nir_ssa_def *shifts = nir_ushr(b, pan_replicate_4(b, nir_channel(b, ubytes, 3)),
                         nir_imm_ivec4(b, 0, 2, 4, 6));
         nir_ssa_def *precision = nir_iand(b, shifts,
-                        nir_i2i16(b, nir_imm_ivec4(b, 0x3, 0x3, 0x3, 0x3)));
+                        nir_i2imp(b, nir_imm_ivec4(b, 0x3, 0x3, 0x3, 0x3)));
 
         nir_ssa_def *top_rgb = nir_ishl(b, nir_channels(b, ubytes, 0x7), nir_imm_int(b, 2));
         top_rgb = nir_ior(b, nir_channels(b, precision, 0x7), top_rgb);
@@ -395,7 +420,7 @@ pan_unpack_unorm_1010102(nir_builder *b, nir_ssa_def *packed)
         };
 
         nir_ssa_def *scale = nir_imm_vec4(b, 1.0 / 1023.0, 1.0 / 1023.0, 1.0 / 1023.0, 1.0 / 3.0);
-        return nir_f2f16(b, nir_fmul(b, nir_u2f32(b, nir_vec(b, chans, 4)), scale));
+        return nir_f2fmp(b, nir_fmul(b, nir_u2f32(b, nir_vec(b, chans, 4)), scale));
 }
 
 /* On the other hand, the pure int RGB10_A2 is identical to the spec */
@@ -424,7 +449,7 @@ pan_unpack_uint_1010102(nir_builder *b, nir_ssa_def *packed)
         nir_ssa_def *mask = nir_iand(b, shift,
                         nir_imm_ivec4(b, 0x3ff, 0x3ff, 0x3ff, 0x3));
 
-        return nir_u2u16(b, mask);
+        return nir_i2imp(b, mask);
 }
 
 /* NIR means we can *finally* catch a break */
@@ -440,7 +465,7 @@ static nir_ssa_def *
 pan_unpack_r11g11b10(nir_builder *b, nir_ssa_def *v)
 {
         nir_ssa_def *f32 = nir_format_unpack_11f11f10f(b, nir_channel(b, v, 0));
-        nir_ssa_def *f16 = nir_f2f16(b, f32);
+        nir_ssa_def *f16 = nir_f2fmp(b, f32);
 
         /* Extend to vec4 with alpha */
         nir_ssa_def *components[4] = {
@@ -461,7 +486,7 @@ pan_linear_to_srgb(nir_builder *b, nir_ssa_def *linear)
         nir_ssa_def *rgb = nir_channels(b, linear, 0x7);
 
         /* TODO: fp16 native conversion */
-        nir_ssa_def *srgb = nir_f2f16(b,
+        nir_ssa_def *srgb = nir_f2fmp(b,
                         nir_format_linear_to_srgb(b, nir_f2f32(b, rgb)));
 
         nir_ssa_def *comp[4] = {
@@ -480,7 +505,7 @@ pan_srgb_to_linear(nir_builder *b, nir_ssa_def *srgb)
         nir_ssa_def *rgb = nir_channels(b, srgb, 0x7);
 
         /* TODO: fp16 native conversion */
-        nir_ssa_def *linear = nir_f2f16(b,
+        nir_ssa_def *linear = nir_f2fmp(b,
                         nir_format_srgb_to_linear(b, nir_f2f32(b, rgb)));
 
         nir_ssa_def *comp[4] = {
@@ -635,16 +660,25 @@ pan_lower_fb_store(nir_shader *shader,
         nir_builder_instr_insert(b, &new->instr);
 }
 
+static nir_ssa_def *
+pan_sample_id(nir_builder *b, int sample)
+{
+        return (sample >= 0) ? nir_imm_int(b, sample) : nir_load_sample_id(b);
+}
+
 static void
 pan_lower_fb_load(nir_shader *shader,
                 nir_builder *b,
                 nir_intrinsic_instr *intr,
                 const struct util_format_description *desc,
-                unsigned quirks)
+                unsigned base, int sample, unsigned quirks)
 {
         nir_intrinsic_instr *new = nir_intrinsic_instr_create(shader,
                        nir_intrinsic_load_raw_output_pan);
         new->num_components = 4;
+        new->src[0] = nir_src_for_ssa(pan_sample_id(b, sample));
+
+        nir_intrinsic_set_base(new, base);
 
         nir_ssa_dest_init(&new->instr, &new->dest, 4, 32, NULL);
         nir_builder_instr_insert(b, &new->instr);
@@ -656,17 +690,45 @@ pan_lower_fb_load(nir_shader *shader,
         if (desc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB)
                 unpacked = pan_srgb_to_linear(b, unpacked);
 
+        /* Convert to the size of the load intrinsic.
+         *
+         * We can assume that the type will match with the framebuffer format:
+         *
+         * Page 170 of the PDF of the OpenGL ES 3.0.6 spec says:
+         *
+         * If [UNORM or SNORM, convert to fixed-point]; otherwise no type
+         * conversion is applied. If the values written by the fragment shader
+         * do not match the format(s) of the corresponding color buffer(s),
+         * the result is undefined.
+         */
+
+        unsigned bits = nir_dest_bit_size(intr->dest);
+
+        nir_alu_type src_type;
+        if (desc->channel[0].pure_integer) {
+                if (desc->channel[0].type == UTIL_FORMAT_TYPE_SIGNED)
+                        src_type = nir_type_int;
+                else
+                        src_type = nir_type_uint;
+        } else {
+                src_type = nir_type_float;
+        }
+
+        unpacked = nir_convert_to_bit_size(b, unpacked, src_type, bits);
+        unpacked = pan_extend(b, unpacked, nir_dest_num_components(intr->dest));
+
         nir_src rewritten = nir_src_for_ssa(unpacked);
         nir_ssa_def_rewrite_uses_after(&intr->dest.ssa, rewritten, &intr->instr);
 }
 
-void
-pan_lower_framebuffer(nir_shader *shader,
-                const struct util_format_description *desc,
-                unsigned quirks)
+bool
+pan_lower_framebuffer(nir_shader *shader, const enum pipe_format *rt_fmts,
+                      bool is_blend, unsigned quirks)
 {
-        /* Blend shaders are represented as special fragment shaders */
-        assert(shader->info.stage == MESA_SHADER_FRAGMENT);
+        if (shader->info.stage != MESA_SHADER_FRAGMENT)
+               return false;
+
+        bool progress = false;
 
         nir_foreach_function(func, shader) {
                 nir_foreach_block(block, func->impl) {
@@ -679,8 +741,29 @@ pan_lower_framebuffer(nir_shader *shader,
                                 bool is_load = intr->intrinsic == nir_intrinsic_load_deref;
                                 bool is_store = intr->intrinsic == nir_intrinsic_store_deref;
 
-                                if (!(is_load || is_store))
+                                if (!(is_load || (is_store && is_blend)))
                                         continue;
+
+                                nir_variable *var = nir_intrinsic_get_var(intr, 0);
+
+                                if (var->data.mode != nir_var_shader_out)
+                                        continue;
+
+                                unsigned base = var->data.driver_location;
+
+                                unsigned rt;
+                                if (var->data.location == FRAG_RESULT_COLOR)
+                                        rt = 0;
+                                else if (var->data.location >= FRAG_RESULT_DATA0)
+                                        rt = var->data.location - FRAG_RESULT_DATA0;
+                                else
+                                        continue;
+
+                                if (rt_fmts[rt] == PIPE_FORMAT_NONE)
+                                        continue;
+
+                                const struct util_format_description *desc =
+                                   util_format_description(rt_fmts[rt]);
 
                                 enum pan_format_class fmt_class =
                                         pan_format_class(desc, quirks, is_store);
@@ -689,11 +772,11 @@ pan_lower_framebuffer(nir_shader *shader,
                                 if (fmt_class == PAN_FORMAT_NATIVE)
                                         continue;
 
-                                /* Don't worry about MRT */
-                                nir_variable *var = nir_intrinsic_get_var(intr, 0);
-
-                                if (var->data.location != FRAG_RESULT_COLOR)
-                                        continue;
+                                /* EXT_shader_framebuffer_fetch requires
+                                 * per-sample loads.
+                                 * MSAA blend shaders are not yet handled, so
+                                 * for now always load sample 0. */
+                                int sample = is_blend ? 0 : -1;
 
                                 nir_builder b;
                                 nir_builder_init(&b, func->impl);
@@ -703,14 +786,18 @@ pan_lower_framebuffer(nir_shader *shader,
                                         pan_lower_fb_store(shader, &b, intr, desc, quirks);
                                 } else {
                                         b.cursor = nir_after_instr(instr);
-                                        pan_lower_fb_load(shader, &b, intr, desc, quirks);
+                                        pan_lower_fb_load(shader, &b, intr, desc, base, sample, quirks);
                                 }
 
                                 nir_instr_remove(instr);
+
+                                progress = true;
                         }
                 }
 
                 nir_metadata_preserve(func->impl, nir_metadata_block_index |
                                 nir_metadata_dominance);
         }
+
+        return progress;
 }

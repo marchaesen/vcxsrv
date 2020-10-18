@@ -143,12 +143,15 @@ remove_dead_var_writes(nir_shader *shader, struct set *live)
 }
 
 static bool
-remove_dead_vars(struct exec_list *var_list, struct set *live,
-                 bool (*can_remove_var)(nir_variable *var))
+remove_dead_vars(struct exec_list *var_list, nir_variable_mode modes,
+                 struct set *live, bool (*can_remove_var)(nir_variable *var))
 {
    bool progress = false;
 
-   foreach_list_typed_safe(nir_variable, var, node, var_list) {
+   nir_foreach_variable_in_list_safe(var, var_list) {
+      if (!(var->data.mode & modes))
+         continue;
+
       if (can_remove_var && !can_remove_var(var))
          continue;
 
@@ -173,41 +176,17 @@ nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes,
 
    add_var_use_shader(shader, live, modes);
 
-   if (modes & nir_var_uniform) {
-      progress = remove_dead_vars(&shader->uniforms, live, can_remove_var) ||
-         progress;
-   }
-
-   if (modes & nir_var_shader_in) {
-      progress = remove_dead_vars(&shader->inputs, live, can_remove_var) ||
-         progress;
-   }
-
-   if (modes & nir_var_shader_out) {
-      progress = remove_dead_vars(&shader->outputs, live, can_remove_var) ||
-         progress;
-   }
-
-   if (modes & nir_var_shader_temp) {
-      progress = remove_dead_vars(&shader->globals, live, can_remove_var) ||
-         progress;
-   }
-
-   if (modes & nir_var_system_value) {
-      progress = remove_dead_vars(&shader->system_values, live,
-                                  can_remove_var) || progress;
-   }
-
-   if (modes & nir_var_mem_shared) {
-      progress = remove_dead_vars(&shader->shared, live, can_remove_var) ||
-         progress;
+   if (modes & ~nir_var_function_temp) {
+      progress = remove_dead_vars(&shader->variables, modes,
+                                  live, can_remove_var) || progress;
    }
 
    if (modes & nir_var_function_temp) {
       nir_foreach_function(function, shader) {
          if (function->impl) {
-            if (remove_dead_vars(&function->impl->locals, live,
-                                 can_remove_var))
+            if (remove_dead_vars(&function->impl->locals,
+                                 nir_var_function_temp,
+                                 live, can_remove_var))
                progress = true;
          }
       }

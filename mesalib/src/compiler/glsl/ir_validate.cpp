@@ -35,6 +35,7 @@
 
 #include "ir.h"
 #include "ir_hierarchical_visitor.h"
+#include "util/debug.h"
 #include "util/hash_table.h"
 #include "util/macros.h"
 #include "util/set.h"
@@ -68,11 +69,13 @@ public:
    virtual ir_visitor_status visit_enter(ir_function *ir);
    virtual ir_visitor_status visit_leave(ir_function *ir);
    virtual ir_visitor_status visit_enter(ir_function_signature *ir);
+   virtual ir_visitor_status visit_enter(ir_return *ir);
 
    virtual ir_visitor_status visit_leave(ir_expression *ir);
    virtual ir_visitor_status visit_leave(ir_swizzle *ir);
 
    virtual ir_visitor_status visit_enter(class ir_dereference_array *);
+   virtual ir_visitor_status visit_enter(class ir_dereference_record *);
 
    virtual ir_visitor_status visit_enter(ir_assignment *ir);
    virtual ir_visitor_status visit_enter(ir_call *ir);
@@ -92,6 +95,16 @@ ir_validate::visit(ir_dereference_variable *ir)
    if ((ir->var == NULL) || (ir->var->as_variable() == NULL)) {
       printf("ir_dereference_variable @ %p does not specify a variable %p\n",
 	     (void *) ir, (void *) ir->var);
+      abort();
+   }
+
+   /* Compare types without arrays, because one side can be sized and
+    * the other unsized.
+    */
+   if (ir->var->type->without_array() != ir->type->without_array()) {
+      printf("ir_dereference_variable type is not equal to variable type: ");
+      ir->print();
+      printf("\n");
       abort();
    }
 
@@ -120,6 +133,21 @@ ir_validate::visit_enter(class ir_dereference_array *ir)
       abort();
    }
 
+   if (ir->array->type->is_array()) {
+      if (ir->array->type->fields.array != ir->type) {
+         printf("ir_dereference_array type is not equal to the array "
+                "element type: ");
+         ir->print();
+         printf("\n");
+         abort();
+      }
+   } else if (ir->array->type->base_type != ir->type->base_type) {
+      printf("ir_dereference_array base types are not equal: ");
+      ir->print();
+      printf("\n");
+      abort();
+   }
+
    if (!ir->array_index->type->is_scalar()) {
       printf("ir_dereference_array @ %p does not have scalar index: %s\n",
              (void *) ir, ir->array_index->type->name);
@@ -129,6 +157,28 @@ ir_validate::visit_enter(class ir_dereference_array *ir)
    if (!ir->array_index->type->is_integer_16_32()) {
       printf("ir_dereference_array @ %p does not have integer index: %s\n",
              (void *) ir, ir->array_index->type->name);
+      abort();
+   }
+
+   return visit_continue;
+}
+
+ir_visitor_status
+ir_validate::visit_enter(class ir_dereference_record *ir)
+{
+   if (!ir->record->type->is_struct() && !ir->record->type->is_interface()) {
+      printf("ir_dereference_record @ %p does not specify a record\n",
+             (void *) ir);
+      ir->print();
+      printf("\n");
+      abort();
+   }
+
+   if (ir->record->type->fields.structure[ir->field_idx].type != ir->type) {
+      printf("ir_dereference_record type is not equal to the record "
+             "field type: ");
+      ir->print();
+      printf("\n");
       abort();
    }
 
@@ -234,6 +284,17 @@ ir_validate::visit_enter(ir_function_signature *ir)
 }
 
 ir_visitor_status
+ir_validate::visit_enter(ir_return *ir)
+{
+   if (!this->current_function) {
+      printf("Return statement outside of a function\n");
+      abort();
+   }
+
+   return visit_continue;
+}
+
+ir_visitor_status
 ir_validate::visit_leave(ir_expression *ir)
 {
    for (unsigned i = ir->num_operands; i < 4; i++) {
@@ -330,20 +391,20 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->type->is_int_16_32());
       break;
    case ir_unop_bitcast_i2f:
-      assert(ir->operands[0]->type->is_int_16_32());
-      assert(ir->type->is_float_16_32());
+      assert(ir->operands[0]->type->base_type == GLSL_TYPE_INT);
+      assert(ir->type->base_type == GLSL_TYPE_FLOAT);
       break;
    case ir_unop_bitcast_f2i:
-      assert(ir->operands[0]->type->is_float_16_32());
-      assert(ir->type->is_int_16_32());
+      assert(ir->operands[0]->type->base_type == GLSL_TYPE_FLOAT);
+      assert(ir->type->base_type == GLSL_TYPE_INT);
       break;
    case ir_unop_bitcast_u2f:
-      assert(ir->operands[0]->type->is_uint_16_32());
-      assert(ir->type->is_float_16_32());
+      assert(ir->operands[0]->type->base_type == GLSL_TYPE_UINT);
+      assert(ir->type->base_type == GLSL_TYPE_FLOAT);
       break;
    case ir_unop_bitcast_f2u:
-      assert(ir->operands[0]->type->is_float_16_32());
-      assert(ir->type->is_uint_16_32());
+      assert(ir->operands[0]->type->base_type == GLSL_TYPE_FLOAT);
+      assert(ir->type->base_type == GLSL_TYPE_UINT);
       break;
 
    case ir_unop_bitcast_u642d:
@@ -540,7 +601,7 @@ ir_validate::visit_leave(ir_expression *ir)
 
    case ir_unop_bitfield_reverse:
       assert(ir->operands[0]->type == ir->type);
-      assert(ir->type->is_integer_16_32());
+      assert(ir->type->is_integer_32());
       break;
 
    case ir_unop_bit_count:
@@ -629,12 +690,12 @@ ir_validate::visit_leave(ir_expression *ir)
       break;
 
    case ir_unop_frexp_sig:
-      assert(ir->operands[0]->type->is_float_16_32_64());
+      assert(ir->operands[0]->type->is_float_32_64());
       assert(ir->type->is_double());
       break;
    case ir_unop_frexp_exp:
-      assert(ir->operands[0]->type->is_float_16_32_64());
-      assert(ir->type->is_int_16_32());
+      assert(ir->operands[0]->type->is_float_32_64());
+      assert(ir->type->base_type == GLSL_TYPE_INT);
       break;
    case ir_unop_subroutine_to_int:
       assert(ir->operands[0]->type->base_type == GLSL_TYPE_SUBROUTINE);
@@ -789,8 +850,8 @@ ir_validate::visit_leave(ir_expression *ir)
 
    case ir_binop_ldexp:
       assert(ir->operands[0]->type == ir->type);
-      assert(ir->operands[0]->type->is_float_16_32_64());
-      assert(ir->operands[1]->type->is_int_16_32());
+      assert(ir->operands[0]->type->is_float_32_64());
+      assert(ir->operands[1]->type->base_type == GLSL_TYPE_INT);
       assert(ir->operands[0]->type->components() ==
              ir->operands[1]->type->components());
       break;
@@ -1031,6 +1092,15 @@ ir_validate::visit_enter(ir_assignment *ir)
       }
    }
 
+   if (lhs->type->base_type != ir->rhs->type->base_type) {
+      printf("Assignment LHS and RHS base types are different:\n");
+      lhs->print();
+      printf("\n");
+      ir->rhs->print();
+      printf("\n");
+      abort();
+   }
+
    this->validate_ir(ir, this->data_enter);
 
    return visit_continue;
@@ -1111,7 +1181,6 @@ ir_validate::validate_ir(ir_instruction *ir, void *data)
    _mesa_set_add(ir_set, ir);
 }
 
-#ifdef DEBUG
 static void
 check_node_type(ir_instruction *ir, void *data)
 {
@@ -1125,7 +1194,6 @@ check_node_type(ir_instruction *ir, void *data)
    if (value != NULL)
       assert(value->type != glsl_type::error_type);
 }
-#endif
 
 void
 validate_ir_tree(exec_list *instructions)
@@ -1134,7 +1202,10 @@ validate_ir_tree(exec_list *instructions)
     * and it's half composed of assert()s anyway which wouldn't do
     * anything.
     */
-#ifdef DEBUG
+#ifndef DEBUG
+   if (!env_var_as_boolean("GLSL_VALIDATE", false))
+      return;
+#endif
    ir_validate v;
 
    v.run(instructions);
@@ -1142,5 +1213,4 @@ validate_ir_tree(exec_list *instructions)
    foreach_in_list(ir_instruction, ir, instructions) {
       visit_tree(ir, check_node_type, NULL);
    }
-#endif
 }

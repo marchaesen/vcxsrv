@@ -548,7 +548,7 @@ void radv_decompress_depth_stencil(struct radv_cmd_buffer *cmd_buffer,
 				   const VkImageSubresourceRange *subresourceRange,
 				   struct radv_sample_locations_state *sample_locs)
 {
-	struct radv_barrier_data barrier = {};
+	struct radv_barrier_data barrier = {0};
 
 	barrier.layout_transitions.depth_stencil_expand = 1;
 	radv_describe_layout_transition(cmd_buffer, &barrier);
@@ -563,7 +563,7 @@ void radv_resummarize_depth_stencil(struct radv_cmd_buffer *cmd_buffer,
 				    const VkImageSubresourceRange *subresourceRange,
 				    struct radv_sample_locations_state *sample_locs)
 {
-	struct radv_barrier_data barrier = {};
+	struct radv_barrier_data barrier = {0};
 
 	barrier.layout_transitions.depth_stencil_resummarize = 1;
 	radv_describe_layout_transition(cmd_buffer, &barrier);

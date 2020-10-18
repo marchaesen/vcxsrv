@@ -55,16 +55,9 @@
 static nir_variable *
 get_texcoord(nir_shader *shader)
 {
-   nir_variable *texcoord = NULL;
-
-   /* find gl_TexCoord, if it exists: */
-   nir_foreach_variable(var, &shader->inputs) {
-      if (var->data.location == VARYING_SLOT_TEX0) {
-         texcoord = var;
-         break;
-      }
-   }
-
+   nir_variable *texcoord =
+      nir_find_variable_with_location(shader, nir_var_shader_in,
+                                      VARYING_SLOT_TEX0);
    /* otherwise create it: */
    if (texcoord == NULL) {
       texcoord = nir_variable_create(shader,

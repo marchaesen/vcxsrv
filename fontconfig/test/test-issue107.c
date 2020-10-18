@@ -29,8 +29,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
-#include <unistd.h>
 #include <errno.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 #ifndef HAVE_STRUCT_DIRENT_D_TYPE
 #include <sys/types.h>
 #include <sys/stat.h>

@@ -20,9 +20,13 @@ import sphinx_rtd_theme
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+sys.path.append(os.path.abspath('_exts'))
 
 
 # -- General configuration ------------------------------------------------
@@ -34,7 +38,7 @@ import sphinx_rtd_theme
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = []
+extensions = ['sphinx.ext.graphviz', 'formatting', 'redirects']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -103,6 +107,15 @@ html_favicon = "favicon.ico"
 #
 html_theme_options = {
   'display_version': False,
+}
+
+html_context = {
+  'display_gitlab': True,
+  'gitlab_host': 'gitlab.freedesktop.org',
+  'gitlab_user': 'mesa',
+  'gitlab_repo': 'mesa',
+  'gitlab_version': 'master',
+  'conf_py_path': '/docs/',
 }
 
 html_copy_source = False
@@ -178,3 +191,7 @@ texinfo_documents = [
      author, 'TheMesa3DGraphicsLibrary', 'One line description of project.',
      'Miscellaneous'),
 ]
+
+# -- Options for Graphviz -------------------------------------------------
+
+graphviz_output_format = 'svg'

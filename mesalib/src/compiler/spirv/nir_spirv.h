@@ -28,6 +28,7 @@
 #ifndef _NIR_SPIRV_H_
 #define _NIR_SPIRV_H_
 
+#include "util/disk_cache.h"
 #include "compiler/nir/nir.h"
 #include "compiler/shader_info.h"
 
@@ -56,24 +57,17 @@ enum nir_spirv_execution_environment {
 struct spirv_to_nir_options {
    enum nir_spirv_execution_environment environment;
 
-   /* Whether or not to lower all UBO/SSBO access to offsets up-front. */
-   bool lower_ubo_ssbo_access_to_offsets;
-
    /* Whether to make FragCoord to a system value, the same as
     * GLSLFragCoordIsSysVal in GLSL.
     */
    bool frag_coord_is_sysval;
 
-   /* Whether to lower TessLevelInner and TessLevelOuter to system values.
-    * This is the inverse of GLSLTessLevelsAsInputs in GLSL.
+   /* Whether to keep ViewIndex as an input instead of rewriting to a sysval.
     */
-   bool tess_levels_are_sysvals;
+   bool view_index_is_input;
 
-   /* Whether to lower TessLevelInner/Outer from their SPIR-V declarations
-    * as arrays of floats to vec4 and vec2 respectively. This is the same as
-    * LowerTessLevel in GLSL.
-    */
-   bool lower_tess_levels_to_vec;
+   /* Create a nir library. */
+   bool create_library;
 
    struct spirv_supported_capabilities caps;
 
@@ -85,12 +79,9 @@ struct spirv_to_nir_options {
    nir_address_format shared_addr_format;
    nir_address_format global_addr_format;
    nir_address_format temp_addr_format;
+   nir_address_format constant_addr_format;
 
-   /* Whether UniformConstant memory should be treated as normal global memory.
-    * This is usefull for CL 2.0 implementations with fine grain system SVM
-    * support.
-    */
-   bool constant_as_global;
+   const nir_shader *clc_shader;
 
    struct {
       void (*func)(void *private_data,
@@ -111,6 +102,16 @@ nir_shader *spirv_to_nir(const uint32_t *words, size_t word_count,
                          gl_shader_stage stage, const char *entry_point_name,
                          const struct spirv_to_nir_options *options,
                          const nir_shader_compiler_options *nir_options);
+
+bool nir_can_find_libclc(unsigned ptr_bit_size);
+
+nir_shader *
+nir_load_libclc_shader(unsigned ptr_bit_size,
+                       struct disk_cache *disk_cache,
+                       const struct spirv_to_nir_options *spirv_options,
+                       const nir_shader_compiler_options *nir_options);
+
+bool nir_lower_libclc(nir_shader *shader, const nir_shader *clc_shader);
 
 #ifdef __cplusplus
 }

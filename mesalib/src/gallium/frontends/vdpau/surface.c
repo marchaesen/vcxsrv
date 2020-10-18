@@ -261,7 +261,7 @@ vlVdpVideoSurfaceGetBitsYCbCr(VdpVideoSurface surface,
          uint8_t *map;
 
          map = pipe->transfer_map(pipe, sv->texture, 0,
-                                       PIPE_TRANSFER_READ, &box, &transfer);
+                                       PIPE_MAP_READ, &box, &transfer);
          if (!map) {
             mtx_unlock(&vlsurface->device->mutex);
             return VDP_STATUS_RESOURCES;
@@ -308,7 +308,7 @@ vlVdpVideoSurfacePutBitsYCbCr(VdpVideoSurface surface,
    struct pipe_context *pipe;
    struct pipe_sampler_view **sampler_views;
    unsigned i, j;
-   unsigned usage = PIPE_TRANSFER_WRITE;
+   unsigned usage = PIPE_MAP_WRITE;
 
    vlVdpSurface *p_surf = vlGetDataHTAB(surface);
    if (!p_surf)
@@ -414,7 +414,7 @@ vlVdpVideoSurfacePutBitsYCbCr(VdpVideoSurface surface,
             pipe_transfer_unmap(pipe, transfer);
          } else {
             pipe->texture_subdata(pipe, tex, 0,
-                                  PIPE_TRANSFER_WRITE, &dst_box,
+                                  PIPE_MAP_WRITE, &dst_box,
                                   source_data[i] + source_pitches[i] * j,
                                   source_pitches[i] * tex->array_size,
                                   0);
@@ -423,7 +423,7 @@ vlVdpVideoSurfacePutBitsYCbCr(VdpVideoSurface surface,
           * This surface has already been synced
           * by the first map.
           */
-         usage |= PIPE_TRANSFER_UNSYNCHRONIZED;
+         usage |= PIPE_MAP_UNSYNCHRONIZED;
       }
    }
    mtx_unlock(&p_surf->device->mutex);

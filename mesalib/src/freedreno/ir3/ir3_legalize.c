@@ -233,13 +233,6 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			list_addtail(&n->node, &block->instr_list);
 		}
 
-		if (n->opc == OPC_DSXPP_1 || n->opc == OPC_DSYPP_1) {
-			struct ir3_instruction *op_p = ir3_instr_clone(n);
-			op_p->flags = IR3_INSTR_P;
-
-			ctx->so->need_fine_derivatives = true;
-		}
-
 		if (is_sfu(n))
 			regmask_set(&state->needs_ss, n->regs[0]);
 
@@ -354,6 +347,42 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 				break;
 			struct ir3_legalize_block_data *pbd = block->successors[i]->data;
 			pbd->valid = false;
+		}
+	}
+
+	return true;
+}
+
+/* Expands dsxpp and dsypp macros to:
+ *
+ * dsxpp.1 dst, src
+ * dsxpp.1.p dst, src
+ *
+ * We apply this after flags syncing, as we don't want to sync in between the
+ * two (which might happen if dst == src).  We do it before nop scheduling
+ * because that needs to count actual instructions.
+ */
+static bool
+apply_fine_deriv_macro(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
+{
+	struct list_head instr_list;
+
+	/* remove all the instructions from the list, we'll be adding
+	 * them back in as we go
+	 */
+	list_replace(&block->instr_list, &instr_list);
+	list_inithead(&block->instr_list);
+
+	foreach_instr_safe (n, &instr_list) {
+		list_addtail(&n->node, &block->instr_list);
+
+		if (n->opc == OPC_DSXPP_MACRO || n->opc == OPC_DSYPP_MACRO) {
+			n->opc = (n->opc == OPC_DSXPP_MACRO) ? OPC_DSXPP_1 : OPC_DSYPP_1;
+
+			struct ir3_instruction *op_p = ir3_instr_clone(n);
+			op_p->flags = IR3_INSTR_P;
+
+			ctx->so->need_fine_derivatives = true;
 		}
 	}
 
@@ -752,6 +781,11 @@ ir3_legalize(struct ir3 *ir, struct ir3_shader_variant *so, int *max_bary)
 	block_sched(ir);
 	if (so->type == MESA_SHADER_FRAGMENT)
 		kill_sched(ir, so);
+
+	foreach_block (block, &ir->block_list) {
+		progress |= apply_fine_deriv_macro(ctx, block);
+	}
+
 	nop_sched(ir);
 
 	do {

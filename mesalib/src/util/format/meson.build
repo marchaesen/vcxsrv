@@ -31,6 +31,15 @@ files_mesa_format = [
   'u_format_zs.c',
 ]
 
+u_format_pack_h = custom_target(
+  'u_format_pack.h',
+  input : ['u_format_table.py', 'u_format.csv'],
+  output : 'u_format_pack.h',
+  command : [prog_python, '@INPUT@', '--header'],
+  depend_files : files('u_format_pack.py', 'u_format_parse.py'),
+  capture : true,
+)
+
 u_format_table_c = custom_target(
   'u_format_table.c',
   input : ['u_format_table.py', 'u_format.csv'],
@@ -42,7 +51,7 @@ u_format_table_c = custom_target(
 
 libmesa_format = static_library(
   'mesa_format',
-  [files_mesa_format, u_format_table_c],
+  [files_mesa_format, u_format_table_c, u_format_pack_h],
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
   dependencies : dep_m,
   c_args : [c_msvc_compat_args],

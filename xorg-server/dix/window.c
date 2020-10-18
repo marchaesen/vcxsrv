@@ -2274,8 +2274,8 @@ ConfigureWindow(WindowPtr pWin, Mask mask, XID *vlist, ClientPtr client)
     if (!pParent)
         return Success;
 
-    /* Figure out if the window should be moved.  Doesnt
-       make the changes to the window if event sent */
+    /* Figure out if the window should be moved.  Doesn't
+       make the changes to the window if event sent. */
 
     if (mask & CWStackMode)
         pSib = WhereDoIGoInTheStack(pWin, pSib, pParent->drawable.x + x,
@@ -2547,7 +2547,7 @@ ReparentWindow(WindowPtr pWin, WindowPtr pParent,
     if (pWin->prevSib)
         pWin->prevSib->nextSib = pWin->nextSib;
 
-    /* insert at begining of pParent */
+    /* insert at beginning of pParent */
     pWin->parent = pParent;
     pPrev = RealChildHead(pParent);
     if (pPrev) {

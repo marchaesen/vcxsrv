@@ -74,6 +74,9 @@ struct ir3_compiler {
 	 */
 	bool samgq_workaround;
 
+	/* on a650, vertex shader <-> tess control io uses LDL/STL */
+	bool tess_use_shared;
+
 	/* The maximum number of constants, in vec4's, across the entire graphics
 	 * pipeline.
 	 */
@@ -92,6 +95,11 @@ struct ir3_compiler {
 
 	/* The maximum number of constants, in vec4's, for compute shaders. */
 	uint16_t max_const_compute;
+
+	/* Number of instructions that the shader's base address and length
+	 * (instrlen divides instruction count by this) must be aligned to.
+	 */
+	uint32_t instr_align;
 
 	/* on a3xx, the unit of indirect const load is higher than later gens (in
 	 * vec4 units):

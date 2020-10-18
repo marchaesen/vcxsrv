@@ -540,7 +540,7 @@ ptn_tex(struct ptn_compile *c, nir_alu_dest dest, nir_ssa_def **src,
    nir_variable *var = c->sampler_vars[prog_inst->TexSrcUnit];
    if (!var) {
       const struct glsl_type *type =
-         glsl_sampler_type(instr->sampler_dim, false, false, GLSL_TYPE_FLOAT);
+         glsl_sampler_type(instr->sampler_dim, instr->is_shadow, false, GLSL_TYPE_FLOAT);
       char samplerName[20];
       snprintf(samplerName, sizeof(samplerName), "sampler_%d", prog_inst->TexSrcUnit);
       var = nir_variable_create(b->shader, nir_var_uniform, type, samplerName);
@@ -815,7 +815,7 @@ ptn_add_output_stores(struct ptn_compile *c)
 {
    nir_builder *b = &c->build;
 
-   nir_foreach_variable(var, &b->shader->outputs) {
+   nir_foreach_shader_out_variable(var, b->shader) {
       nir_ssa_def *src = nir_load_reg(b, c->output_regs[var->data.location]);
       if (c->prog->Target == GL_FRAGMENT_PROGRAM_ARB &&
           var->data.location == FRAG_RESULT_DEPTH) {
@@ -913,22 +913,21 @@ setup_registers_and_variables(struct ptn_compile *c)
       nir_register *reg = nir_local_reg_create(b->impl);
       reg->num_components = 4;
 
-      nir_variable *var = rzalloc(shader, nir_variable);
+      const struct glsl_type *type;
       if ((c->prog->Target == GL_FRAGMENT_PROGRAM_ARB && i == FRAG_RESULT_DEPTH) ||
           (c->prog->Target == GL_VERTEX_PROGRAM_ARB && i == VARYING_SLOT_FOGC) ||
           (c->prog->Target == GL_VERTEX_PROGRAM_ARB && i == VARYING_SLOT_PSIZ))
-         var->type = glsl_float_type();
+         type = glsl_float_type();
       else
-         var->type = glsl_vec4_type();
-      var->data.mode = nir_var_shader_out;
-      var->name = ralloc_asprintf(var, "out_%d", i);
+         type = glsl_vec4_type();
 
+      nir_variable *var =
+         nir_variable_create(shader, nir_var_shader_out, type,
+                             ralloc_asprintf(shader, "out_%d", i));
       var->data.location = i;
       var->data.index = 0;
 
       c->output_regs[i] = reg;
-
-      exec_list_push_tail(&shader->outputs, &var->node);
       c->output_vars[i] = var;
    }
 

@@ -334,6 +334,9 @@ xf86CursorSetCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCurs,
         ScreenPriv->HotY = cursor->bits->yhot;
 
         if (!infoPtr->pScrn->vtSema) {
+            cursor = RefCursor(cursor);
+            if (ScreenPriv->SavedCursor)
+                FreeCursor(ScreenPriv->SavedCursor, None);
             ScreenPriv->SavedCursor = cursor;
             return;
         }
@@ -461,8 +464,8 @@ xf86CurrentCursor(ScreenPtr pScreen)
 {
     xf86CursorScreenPtr ScreenPriv;
 
-    if (pScreen->is_output_slave)
-        pScreen = pScreen->current_master;
+    if (pScreen->is_output_secondary)
+        pScreen = pScreen->current_primary;
 
     ScreenPriv = dixLookupPrivate(&pScreen->devPrivates, xf86CursorScreenKey);
     return ScreenPriv->CurrentCursor;

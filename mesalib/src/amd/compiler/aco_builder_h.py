@@ -69,6 +69,13 @@ dpp_row_sr(unsigned amount)
     return (dpp_ctrl)(((unsigned) _dpp_row_sr) | amount);
 }
 
+inline dpp_ctrl
+dpp_row_rr(unsigned amount)
+{
+    assert(amount > 0 && amount < 16);
+    return (dpp_ctrl)(((unsigned) _dpp_row_rr) | amount);
+}
+
 inline unsigned
 ds_pattern_bitmode(unsigned and_mask, unsigned or_mask, unsigned xor_mask)
 {
@@ -159,6 +166,8 @@ public:
       s_bcnt1_i32 = (unsigned) aco_opcode::s_bcnt1_i32_b64,
       s_bitcmp1 = (unsigned) aco_opcode::s_bitcmp1_b64,
       s_ff1_i32 = (unsigned) aco_opcode::s_ff1_i32_b64,
+      s_flbit_i32 = (unsigned) aco_opcode::s_flbit_i32_b64,
+      s_lshl = (unsigned) aco_opcode::s_lshl_b64,
    };
 
    Program *program;
@@ -169,8 +178,9 @@ public:
    std::vector<aco_ptr<Instruction>> *instructions;
    std::vector<aco_ptr<Instruction>>::iterator it;
    bool is_precise = false;
+   bool is_nuw = false;
 
-   Builder(Program *pgm) : program(pgm), use_iterator(false), start(false), lm(pgm->lane_mask), instructions(NULL) {}
+   Builder(Program *pgm) : program(pgm), use_iterator(false), start(false), lm(pgm ? pgm->lane_mask : s2), instructions(NULL) {}
    Builder(Program *pgm, Block *block) : program(pgm), use_iterator(false), start(false), lm(pgm ? pgm->lane_mask : s2), instructions(&block->instructions) {}
    Builder(Program *pgm, std::vector<aco_ptr<Instruction>> *instrs) : program(pgm), use_iterator(false), start(false), lm(pgm ? pgm->lane_mask : s2), instructions(instrs) {}
 
@@ -179,6 +189,12 @@ public:
       res.is_precise = true;
       return res;
    };
+
+   Builder nuw() const {
+      Builder res = *this;
+      res.is_nuw = true;
+      return res;
+   }
 
    void moveEnd(Block *block) {
       instructions = &block->instructions;
@@ -239,23 +255,23 @@ public:
    }
 
    Temp tmp(RegClass rc) {
-      return (Temp){program->allocateId(), rc};
+      return program->allocateTmp(rc);
    }
 
    Temp tmp(RegType type, unsigned size) {
-      return (Temp){program->allocateId(), RegClass(type, size)};
+      return tmp(RegClass(type, size));
    }
 
    Definition def(RegClass rc) {
-      return Definition((Temp){program->allocateId(), rc});
+      return Definition(program->allocateTmp(rc));
    }
 
    Definition def(RegType type, unsigned size) {
-      return Definition((Temp){program->allocateId(), RegClass(type, size)});
+      return def(RegClass(type, size));
    }
 
    Definition def(RegClass rc, PhysReg reg) {
-      return Definition(program->allocateId(), reg, rc);
+      return Definition(program->allocateId(rc), reg, rc);
    }
 
    inline aco_opcode w64or32(WaveSpecificOpcode opcode) const {
@@ -295,6 +311,10 @@ public:
          return aco_opcode::s_bitcmp1_b32;
       case s_ff1_i32:
          return aco_opcode::s_ff1_i32_b32;
+      case s_flbit_i32:
+         return aco_opcode::s_flbit_i32_b32;
+      case s_lshl:
+         return aco_opcode::s_lshl_b32;
       default:
          unreachable("Unsupported wave specific opcode.");
       }
@@ -303,7 +323,8 @@ public:
 % for fixed in ['m0', 'vcc', 'exec', 'scc']:
    Operand ${fixed}(Temp tmp) {
        % if fixed == 'vcc' or fixed == 'exec':
-          assert(tmp.regClass() == lm);
+          //vcc_hi and exec_hi can still be used in wave32
+          assert(tmp.type() == RegType::sgpr && tmp.bytes() <= 8);
        % endif
        Operand op(tmp);
        op.setFixed(aco::${fixed});
@@ -312,7 +333,8 @@ public:
 
    Definition ${fixed}(Definition def) {
        % if fixed == 'vcc' or fixed == 'exec':
-          assert(def.regClass() == lm);
+          //vcc_hi and exec_hi can still be used in wave32
+          assert(def.regClass().type() == RegType::sgpr && def.bytes() <= 8);
        % endif
        def.setFixed(aco::${fixed});
        return def;
@@ -320,10 +342,15 @@ public:
 
    Definition hint_${fixed}(Definition def) {
        % if fixed == 'vcc' or fixed == 'exec':
-          assert(def.regClass() == lm);
+          //vcc_hi and exec_hi can still be used in wave32
+          assert(def.regClass().type() == RegType::sgpr && def.bytes() <= 8);
        % endif
        def.setHint(aco::${fixed});
        return def;
+   }
+
+   Definition hint_${fixed}(RegClass rc) {
+       return hint_${fixed}(def(rc));
    }
 
 % endfor
@@ -388,7 +415,7 @@ public:
         return sop1(aco_opcode::s_mov_b64, dst, op);
       } else if (dst.regClass() == v1 || dst.regClass() == v1.as_linear()) {
         return vop1(aco_opcode::v_mov_b32, dst, op);
-      } else if (op.bytes() > 2) {
+      } else if (op.bytes() > 2 || (op.isLiteral() && dst.regClass().is_subdword())) {
          return pseudo(aco_opcode::p_create_vector, dst, op);
       } else if (op.bytes() == 1 && op.isConstant()) {
         uint8_t val = op.constantValue();
@@ -517,10 +544,10 @@ public:
 <%
 import itertools
 formats = [("pseudo", [Format.PSEUDO], 'Pseudo_instruction', list(itertools.product(range(5), range(5))) + [(8, 1), (1, 8)]),
-           ("sop1", [Format.SOP1], 'SOP1_instruction', [(1, 1), (2, 1), (3, 2)]),
+           ("sop1", [Format.SOP1], 'SOP1_instruction', [(0, 1), (1, 0), (1, 1), (2, 1), (3, 2)]),
            ("sop2", [Format.SOP2], 'SOP2_instruction', itertools.product([1, 2], [2, 3])),
            ("sopk", [Format.SOPK], 'SOPK_instruction', itertools.product([0, 1, 2], [0, 1])),
-           ("sopp", [Format.SOPP], 'SOPP_instruction', [(0, 0), (0, 1)]),
+           ("sopp", [Format.SOPP], 'SOPP_instruction', itertools.product([0, 1], [0, 1])),
            ("sopc", [Format.SOPC], 'SOPC_instruction', [(1, 2)]),
            ("smem", [Format.SMEM], 'SMEM_instruction', [(0, 4), (0, 3), (1, 0), (1, 3), (1, 2), (0, 0)]),
            ("ds", [Format.DS], 'DS_instruction', [(1, 1), (1, 2), (0, 3), (0, 4)]),
@@ -528,10 +555,10 @@ formats = [("pseudo", [Format.PSEUDO], 'Pseudo_instruction', list(itertools.prod
            ("mtbuf", [Format.MTBUF], 'MTBUF_instruction', [(0, 4), (1, 3)]),
            ("mimg", [Format.MIMG], 'MIMG_instruction', [(0, 3), (1, 3)]),
            ("exp", [Format.EXP], 'Export_instruction', [(0, 4)]),
-           ("branch", [Format.PSEUDO_BRANCH], 'Pseudo_branch_instruction', itertools.product([0], [0, 1])),
+           ("branch", [Format.PSEUDO_BRANCH], 'Pseudo_branch_instruction', itertools.product([1], [0, 1])),
            ("barrier", [Format.PSEUDO_BARRIER], 'Pseudo_barrier_instruction', [(0, 0)]),
            ("reduction", [Format.PSEUDO_REDUCTION], 'Pseudo_reduction_instruction', [(3, 2)]),
-           ("vop1", [Format.VOP1], 'VOP1_instruction', [(1, 1), (2, 2)]),
+           ("vop1", [Format.VOP1], 'VOP1_instruction', [(0, 0), (1, 1), (2, 2)]),
            ("vop2", [Format.VOP2], 'VOP2_instruction', itertools.product([1, 2], [2, 3])),
            ("vop2_sdwa", [Format.VOP2, Format.SDWA], 'SDWA_instruction', itertools.product([1, 2], [2, 3])),
            ("vopc", [Format.VOPC], 'VOPC_instruction', itertools.product([1, 2], [2])),
@@ -545,8 +572,9 @@ formats = [("pseudo", [Format.PSEUDO], 'Pseudo_instruction', list(itertools.prod
            ("vopc_e64", [Format.VOPC, Format.VOP3A], 'VOP3A_instruction', itertools.product([1, 2], [2])),
            ("flat", [Format.FLAT], 'FLAT_instruction', [(0, 3), (1, 2)]),
            ("global", [Format.GLOBAL], 'FLAT_instruction', [(0, 3), (1, 2)])]
+formats = [(f if len(f) == 5 else f + ('',)) for f in formats]
 %>\\
-% for name, formats, struct, shapes in formats:
+% for name, formats, struct, shapes, extra_field_setup in formats:
     % for num_definitions, num_operands in shapes:
         <%
         args = ['aco_opcode opcode']
@@ -564,6 +592,7 @@ formats = [("pseudo", [Format.PSEUDO], 'Pseudo_instruction', list(itertools.prod
         % for i in range(num_definitions):
             instr->definitions[${i}] = def${i};
             instr->definitions[${i}].setPrecise(is_precise);
+            instr->definitions[${i}].setNUW(is_nuw);
         % endfor
         % for i in range(num_operands):
             instr->operands[${i}] = op${i}.op;
@@ -574,6 +603,7 @@ formats = [("pseudo", [Format.PSEUDO], 'Pseudo_instruction', list(itertools.prod
             % endfor
             ${f.get_builder_initialization(num_operands)}
         % endfor
+       ${extra_field_setup}
       return insert(instr);
    }
 

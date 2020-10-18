@@ -27,6 +27,8 @@
 #ifndef FREEDRENO_PERFCNTR_H_
 #define FREEDRENO_PERFCNTR_H_
 
+#include "util/macros.h"
+
 /*
  * Mapping very closely to the AMD_performance_monitor extension, adreno has
  * groups of performance counters where each group has N counters, which can

@@ -344,7 +344,7 @@ extern "C" {
 #define DDSCAPS2_RESERVED2              0x00000040
 /* indicates surface will never be locked again */
 #define DDSCAPS2_OPAQUE                 0x00000080
-/* set at CreateSurface() time to indicate antialising will be used */
+/* set at CreateSurface() time to indicate antialiasing will be used */
 #define DDSCAPS2_HINTANTIALIASING       0x00000100
 /* set at CreateSurface() time to indicate cubic environment map */
 #define DDSCAPS2_CUBEMAP                0x00000200
@@ -383,9 +383,9 @@ extern "C" {
     typedef struct _DDCAPS_DX7 {        /* DirectX 7 version of caps struct */
         DWORD dwSize;           /* size of the DDDRIVERCAPS structure */
         DWORD dwCaps;           /* driver specific capabilities */
-        DWORD dwCaps2;          /* more driver specific capabilites */
+        DWORD dwCaps2;          /* more driver specific capabilities */
         DWORD dwCKeyCaps;       /* color key capabilities of the surface */
-        DWORD dwFXCaps;         /* driver specific stretching and effects capabilites */
+        DWORD dwFXCaps;         /* driver specific stretching and effects capabilities */
         DWORD dwFXAlphaCaps;    /* alpha driver specific capabilities */
         DWORD dwPalCaps;        /* palette capabilities */
         DWORD dwSVCaps;         /* stereo vision capabilities */
@@ -407,7 +407,7 @@ extern "C" {
         DWORD dwAlignSizeDest;  /* dest rectangle byte size */
         DWORD dwAlignStrideAlign;       /* stride alignment */
         DWORD dwRops[DD_ROP_SPACE];     /* ROPS supported */
-        DDSCAPS ddsOldCaps;     /* old DDSCAPS - superceded for DirectX6+ */
+        DDSCAPS ddsOldCaps;     /* old DDSCAPS - superseded for DirectX6+ */
         DWORD dwMinOverlayStretch;      /* minimum overlay stretch factor multiplied by 1000, eg 1000 == 1.0, 1300 == 1.3 */
         DWORD dwMaxOverlayStretch;      /* maximum overlay stretch factor multiplied by 1000, eg 1000 == 1.0, 1300 == 1.3 */
         DWORD dwMinLiveVideoStretch;    /* minimum live video stretch factor multiplied by 1000, eg 1000 == 1.0, 1300 == 1.3 */
@@ -443,9 +443,9 @@ extern "C" {
     typedef struct _DDCAPS_DX6 {        /* DirectX 6 version of caps struct */
         DWORD dwSize;           /* size of the DDDRIVERCAPS structure */
         DWORD dwCaps;           /* driver specific capabilities */
-        DWORD dwCaps2;          /* more driver specific capabilites */
+        DWORD dwCaps2;          /* more driver specific capabilities */
         DWORD dwCKeyCaps;       /* color key capabilities of the surface */
-        DWORD dwFXCaps;         /* driver specific stretching and effects capabilites */
+        DWORD dwFXCaps;         /* driver specific stretching and effects capabilities */
         DWORD dwFXAlphaCaps;    /* alpha driver specific capabilities */
         DWORD dwPalCaps;        /* palette capabilities */
         DWORD dwSVCaps;         /* stereo vision capabilities */
@@ -467,7 +467,7 @@ extern "C" {
         DWORD dwAlignSizeDest;  /* dest rectangle byte size */
         DWORD dwAlignStrideAlign;       /* stride alignment */
         DWORD dwRops[DD_ROP_SPACE];     /* ROPS supported */
-        DDSCAPS ddsOldCaps;     /* old DDSCAPS - superceded for DirectX6+ */
+        DDSCAPS ddsOldCaps;     /* old DDSCAPS - superseded for DirectX6+ */
         DWORD dwMinOverlayStretch;      /* minimum overlay stretch factor multiplied by 1000, eg 1000 == 1.0, 1300 == 1.3 */
         DWORD dwMaxOverlayStretch;      /* maximum overlay stretch factor multiplied by 1000, eg 1000 == 1.0, 1300 == 1.3 */
         DWORD dwMinLiveVideoStretch;    /* minimum live video stretch factor multiplied by 1000, eg 1000 == 1.0, 1300 == 1.3 */
@@ -504,9 +504,9 @@ extern "C" {
     typedef struct _DDCAPS_DX5 {        /* DirectX5 version of caps struct */
         DWORD dwSize;           /* size of the DDDRIVERCAPS structure */
         DWORD dwCaps;           /* driver specific capabilities */
-        DWORD dwCaps2;          /* more driver specific capabilites */
+        DWORD dwCaps2;          /* more driver specific capabilities */
         DWORD dwCKeyCaps;       /* color key capabilities of the surface */
-        DWORD dwFXCaps;         /* driver specific stretching and effects capabilites */
+        DWORD dwFXCaps;         /* driver specific stretching and effects capabilities */
         DWORD dwFXAlphaCaps;    /* alpha driver specific capabilities */
         DWORD dwPalCaps;        /* palette capabilities */
         DWORD dwSVCaps;         /* stereo vision capabilities */
@@ -564,9 +564,9 @@ extern "C" {
     typedef struct _DDCAPS_DX3 {        /* DirectX3 version of caps struct */
         DWORD dwSize;           /* size of the DDDRIVERCAPS structure */
         DWORD dwCaps;           /* driver specific capabilities */
-        DWORD dwCaps2;          /* more driver specific capabilites */
+        DWORD dwCaps2;          /* more driver specific capabilities */
         DWORD dwCKeyCaps;       /* color key capabilities of the surface */
-        DWORD dwFXCaps;         /* driver specific stretching and effects capabilites */
+        DWORD dwFXCaps;         /* driver specific stretching and effects capabilities */
         DWORD dwFXAlphaCaps;    /* alpha driver specific capabilities */
         DWORD dwPalCaps;        /* palette capabilities */
         DWORD dwSVCaps;         /* stereo vision capabilities */
@@ -827,7 +827,7 @@ extern "C" {
 
 /* DDCAPS.dwSVCaps */
 /* the first 4 of these are now obsolete */
-#if DIRECTDRAW_VERSION >= 0x700 /* FIXME: I'm not sure when this switch occured */
+#if DIRECTDRAW_VERSION >= 0x700 /* FIXME: I'm not sure when this switch occurred */
 #define DDSVCAPS_RESERVED1		0x00000001
 #define DDSVCAPS_RESERVED2		0x00000002
 #define DDSVCAPS_RESERVED3		0x00000004

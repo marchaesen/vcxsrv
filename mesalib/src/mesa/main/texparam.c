@@ -266,7 +266,7 @@ set_tex_parameteri(struct gl_context *ctx,
    switch (pname) {
    case GL_TEXTURE_MIN_FILTER:
       if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
-         goto invalid_enum;
+         goto invalid_dsa;
 
       if (texObj->Sampler.MinFilter == params[0])
          return GL_FALSE;
@@ -294,7 +294,7 @@ set_tex_parameteri(struct gl_context *ctx,
 
    case GL_TEXTURE_MAG_FILTER:
       if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
-         goto invalid_enum;
+         goto invalid_dsa;
 
       if (texObj->Sampler.MagFilter == params[0])
          return GL_FALSE;
@@ -311,7 +311,7 @@ set_tex_parameteri(struct gl_context *ctx,
 
    case GL_TEXTURE_WRAP_S:
       if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
-         goto invalid_enum;
+         goto invalid_dsa;
 
       if (texObj->Sampler.WrapS == params[0])
          return GL_FALSE;
@@ -324,7 +324,7 @@ set_tex_parameteri(struct gl_context *ctx,
 
    case GL_TEXTURE_WRAP_T:
       if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
-         goto invalid_enum;
+         goto invalid_dsa;
 
       if (texObj->Sampler.WrapT == params[0])
          return GL_FALSE;
@@ -337,7 +337,7 @@ set_tex_parameteri(struct gl_context *ctx,
 
    case GL_TEXTURE_WRAP_R:
       if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
-         goto invalid_enum;
+         goto invalid_dsa;
 
       if (texObj->Sampler.WrapR == params[0])
          return GL_FALSE;
@@ -437,7 +437,7 @@ set_tex_parameteri(struct gl_context *ctx,
           || _mesa_is_gles3(ctx)) {
 
          if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
-            goto invalid_enum;
+            goto invalid_dsa;
 
          if (texObj->Sampler.CompareMode == params[0])
             return GL_FALSE;
@@ -456,7 +456,7 @@ set_tex_parameteri(struct gl_context *ctx,
           || _mesa_is_gles3(ctx)) {
 
          if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
-            goto invalid_enum;
+            goto invalid_dsa;
 
          if (texObj->Sampler.CompareFunc == params[0])
             return GL_FALSE;
@@ -570,7 +570,7 @@ set_tex_parameteri(struct gl_context *ctx,
          GLenum decode = params[0];
 
          if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
-            goto invalid_enum;
+            goto invalid_dsa;
 
 	 if (decode == GL_DECODE_EXT || decode == GL_SKIP_DECODE_EXT) {
 	    if (texObj->Sampler.sRGBDecode != decode) {
@@ -588,7 +588,7 @@ set_tex_parameteri(struct gl_context *ctx,
          GLenum param = params[0];
 
          if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
-            goto invalid_enum;
+            goto invalid_dsa;
 
          if (param != GL_TRUE && param != GL_FALSE) {
             goto invalid_param;
@@ -602,8 +602,8 @@ set_tex_parameteri(struct gl_context *ctx,
       goto invalid_pname;
 
    case GL_TEXTURE_TILING_EXT:
-      if (ctx->Extensions.EXT_memory_object) {
-         texObj->TextureTiling = params[0];
+      if (ctx->Extensions.EXT_memory_object && !texObj->Immutable) {
+            texObj->TextureTiling = params[0];
 
          return GL_TRUE;
       }
@@ -622,6 +622,10 @@ invalid_param:
    _mesa_error(ctx, GL_INVALID_ENUM, "glTex%sParameter(param=%s)",
                suffix, _mesa_enum_to_string(params[0]));
    return GL_FALSE;
+
+invalid_dsa:
+   if (!dsa)
+      goto invalid_enum;
 
 invalid_operation:
    _mesa_error(ctx, GL_INVALID_OPERATION, "glTex%sParameter(pname=%s)",
@@ -665,7 +669,7 @@ set_tex_parameterf(struct gl_context *ctx,
          goto invalid_pname;
 
       if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
-         goto invalid_enum;
+         goto invalid_dsa;
 
       if (texObj->Sampler.MinLod == params[0])
          return GL_FALSE;
@@ -678,7 +682,7 @@ set_tex_parameterf(struct gl_context *ctx,
          goto invalid_pname;
 
       if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
-         goto invalid_enum;
+         goto invalid_dsa;
 
       if (texObj->Sampler.MaxLod == params[0])
          return GL_FALSE;
@@ -697,7 +701,7 @@ set_tex_parameterf(struct gl_context *ctx,
    case GL_TEXTURE_MAX_ANISOTROPY_EXT:
       if (ctx->Extensions.EXT_texture_filter_anisotropic) {
          if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
-            goto invalid_enum;
+            goto invalid_dsa;
 
          if (texObj->Sampler.MaxAnisotropy == params[0])
             return GL_FALSE;
@@ -725,7 +729,7 @@ set_tex_parameterf(struct gl_context *ctx,
          goto invalid_pname;
 
       if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
-         goto invalid_enum;
+         goto invalid_dsa;
 
       if (texObj->Sampler.LodBias != params[0]) {
 	 flush(ctx);
@@ -782,6 +786,12 @@ invalid_pname:
                suffix, _mesa_enum_to_string(pname));
    return GL_FALSE;
 
+invalid_dsa:
+   if (!dsa)
+      goto invalid_enum;
+   _mesa_error(ctx, GL_INVALID_OPERATION, "glTex%sParameter(pname=%s)",
+               suffix, _mesa_enum_to_string(pname));
+   return GL_FALSE;
 invalid_enum:
    _mesa_error(ctx, GL_INVALID_ENUM, "glTex%sParameter(pname=%s)",
                suffix, _mesa_enum_to_string(pname));
@@ -1013,7 +1023,7 @@ _mesa_texture_parameterIiv(struct gl_context *ctx,
       }
 
       if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target)) {
-         _mesa_error(ctx, GL_INVALID_ENUM, "glTextureParameterIiv(texture)");
+         _mesa_error(ctx, dsa ? GL_INVALID_OPERATION : GL_INVALID_ENUM, "glTextureParameterIiv(texture)");
          return;
       }
       FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT);
@@ -1041,7 +1051,7 @@ _mesa_texture_parameterIuiv(struct gl_context *ctx,
       }
 
       if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target)) {
-         _mesa_error(ctx, GL_INVALID_ENUM, "glTextureParameterIuiv(texture)");
+         _mesa_error(ctx, dsa ? GL_INVALID_OPERATION : GL_INVALID_ENUM, "glTextureParameterIuiv(texture)");
          return;
       }
       FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT);

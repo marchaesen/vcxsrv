@@ -204,7 +204,7 @@ dmxLogCont(dmxLogLevel logLevel, const char *format, ...)
 }
 
 #ifndef DMX_LOG_STANDALONE
-/** Log an informational message (at level #dmxInfo) related to ouput.
+/** Log an informational message (at level #dmxInfo) related to output.
  * The message prefix will contain backend information from \a
  * dmxScreen. */
 void

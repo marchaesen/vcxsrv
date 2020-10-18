@@ -1238,7 +1238,7 @@ clients are drawing into their windows simultaneously.
 If it allows one client to run until its request
 queue is empty by ignoring isItTimeToYield, the client's queue may
 in fact never empty and other clients will be blocked out.
-On the other hand, if it switchs between different clients too quickly,
+On the other hand, if it switches between different clients too quickly,
 performance may suffer due to too much switching between contexts.
 For example, if a graphics processor needs to be set up with drawing modes
 before drawing, and two different clients are drawing with
@@ -4624,7 +4624,7 @@ GC mode-dependent components: fgPixel (for fillStyle Solid); tile, patOrg
 (for fillStyle Tile); stipple, patOrg, fgPixel (for fillStyle Stipple);
 and stipple, patOrg, fgPixel and bgPixel (for fillStyle OpaqueStipple).</para>
 <para>
-PushPixels applys the foreground color, tile, or stipple from the pGC
+PushPixels applies the foreground color, tile, or stipple from the pGC
 through a stencil onto pDrawable.  pBitMap points to a stencil (of
 which we use an area dx wide by dy high), which is oriented over the
 drawable at xOrg, yOrg.  Where there is a 1 bit in the bitmap, the

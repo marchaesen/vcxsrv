@@ -95,7 +95,7 @@ _XcmsGetElement(
 
 /*
  *	NAME
- *		_XcmsGetProperty -- Determine the existance of a property
+ *		_XcmsGetProperty -- Determine the existence of a property
  *
  *	SYNOPSIS
  */

@@ -13,7 +13,7 @@ These are the primary Mesa 3D / DRI mailing lists:
    beginners.
 
 -  `mesa-commit <https://lists.freedesktop.org/mailman/listinfo/mesa-commit>`__
-   - relays git check-in messages (for developers). In general, people
+   - relays Git check-in messages (for developers). In general, people
    should not post to this list.
 
 -  `mesa-announce <https://lists.freedesktop.org/mailman/listinfo/mesa-announce>`__
@@ -21,7 +21,7 @@ These are the primary Mesa 3D / DRI mailing lists:
    traffic.
 
 -  `dri-devel <http://lists.freedesktop.org/mailman/listinfo/dri-devel>`__
-   - for the Linux/BSD Direct Rendering Module (drm) kernel modules
+   - for the Linux/BSD Direct Rendering Module (DRM) kernel modules
    supporting Mesa's userspace drivers
 
 -  `piglit <https://lists.freedesktop.org/mailman/listinfo/piglit>`__ -

@@ -1095,7 +1095,7 @@ AllocColor(ColormapPtr pmap,
 
 /*
  * FakeAllocColor -- fake an AllocColor request by
- * returning a free pixel if availible, otherwise returning
+ * returning a free pixel if available, otherwise returning
  * the closest matching pixel.  This is used by the mi
  * software sprite code to recolor cursors.  A nice side-effect
  * is that this routine will never return failure.
@@ -2510,7 +2510,7 @@ _colormap_find_resource(void *value, XID id, void *cdata)
 }
 
 /* something has realloced the visuals, instead of breaking
-   ABI fix it up here - glx and compsite did this wrong */
+   ABI fix it up here - glx and composite did this wrong */
 Bool
 ResizeVisualArray(ScreenPtr pScreen, int new_visual_count, DepthPtr depth)
 {

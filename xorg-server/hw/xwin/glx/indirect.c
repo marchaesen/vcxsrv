@@ -763,7 +763,7 @@ glxWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
        Discard any CopyWindow requests if a GL drawing context is pointing at the window
 
        For regions which are being drawn by GL, the shadow framebuffer doesn't have the
-       correct bits, so we wish to avoid shadow framebuffer damage occuring, which will
+       correct bits, so we wish to avoid shadow framebuffer damage occurring, which will
        cause those incorrect bits to be transferred to the display....
      */
     if (pGlxDraw && pGlxDraw->drawContext) {
@@ -1110,7 +1110,7 @@ glxWinReleaseTexImage(__GLXcontext * baseContext,
  *
  * WGL contexts are created for a specific HDC, so we cannot create the WGL
  * context in glxWinCreateContext(), we must defer creation until the context
- * is actually used on a specifc drawable which is connected to a native window,
+ * is actually used on a specific drawable which is connected to a native window,
  * pbuffer or DIB
  *
  * The WGL context may be used on other, compatible HDCs, so we don't need to
@@ -1915,7 +1915,7 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
             continue;
         }
         else {
-            // PFD_GENERIC_ACCELERATED is not considered, so this may be MCD or ICD acclerated...
+            // PFD_GENERIC_ACCELERATED is not considered, so this may be MCD or ICD accelerated...
             c->base.visualRating = GLX_NONE_EXT;
         }
 

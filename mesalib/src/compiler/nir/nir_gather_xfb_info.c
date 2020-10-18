@@ -202,7 +202,7 @@ nir_gather_xfb_info_with_varyings(const nir_shader *shader,
    unsigned num_outputs = 0;
    unsigned num_varyings = 0;
    nir_xfb_varyings_info *varyings_info = NULL;
-   nir_foreach_variable(var, &shader->outputs) {
+   nir_foreach_shader_out_variable(var, shader) {
       if (var->data.explicit_xfb_buffer) {
          num_outputs += glsl_count_attribute_slots(var->type, false);
          num_varyings += glsl_varying_count(var->type);
@@ -218,7 +218,7 @@ nir_gather_xfb_info_with_varyings(const nir_shader *shader,
    }
 
    /* Walk the list of outputs and add them to the array */
-   nir_foreach_variable(var, &shader->outputs) {
+   nir_foreach_shader_out_variable(var, shader) {
       if (!var->data.explicit_xfb_buffer)
          continue;
 

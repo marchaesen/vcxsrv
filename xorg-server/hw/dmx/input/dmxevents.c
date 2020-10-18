@@ -32,7 +32,7 @@
  */
 
 /** \file
- * Provide support and helper functions for enqueing events received by
+ * Provide support and helper functions for enqueuing events received by
  * the low-level input drivers. */
 
 #ifdef HAVE_DMX_CONFIG_H

@@ -181,7 +181,7 @@ void st_validate_state( struct st_context *st, enum st_pipeline pipeline )
     * Inactive states are shader states not used by shaders at the moment.
     */
    st->dirty |= ctx->NewDriverState & st->active_states & ST_ALL_STATES_MASK;
-   ctx->NewDriverState = 0;
+   ctx->NewDriverState &= ~st->dirty;
 
    /* Get pipeline state. */
    switch (pipeline) {

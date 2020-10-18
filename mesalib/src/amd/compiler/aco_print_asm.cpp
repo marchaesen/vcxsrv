@@ -14,7 +14,7 @@ namespace aco {
 /* LLVM disassembler only supports GFX8+, try to disassemble with CLRXdisasm
  * for GFX6-GFX7 if found on the system, this is better than nothing.
 */
-void print_asm_gfx6_gfx7(Program *program, std::vector<uint32_t>& binary,
+bool print_asm_gfx6_gfx7(Program *program, std::vector<uint32_t>& binary,
                          std::ostream& out)
 {
    char path[] = "/tmp/fileXXXXXX";
@@ -26,7 +26,7 @@ void print_asm_gfx6_gfx7(Program *program, std::vector<uint32_t>& binary,
    /* Dump the binary into a temporary file. */
    fd = mkstemp(path);
    if (fd < 0)
-      return;
+      return true;
 
    for (uint32_t w : binary)
    {
@@ -83,17 +83,21 @@ void print_asm_gfx6_gfx7(Program *program, std::vector<uint32_t>& binary,
       pclose(p);
    }
 
+   return false;
+
 fail:
    close(fd);
    unlink(path);
+   return true;
 }
 
-void print_asm(Program *program, std::vector<uint32_t>& binary,
+bool print_asm(Program *program, std::vector<uint32_t>& binary,
                unsigned exec_size, std::ostream& out)
 {
    if (program->chip_class <= GFX7) {
+      /* Do not abort if clrxdisasm isn't found. */
       print_asm_gfx6_gfx7(program, binary, out);
-      return;
+      return false;
    }
 
    std::vector<bool> referenced_blocks(program->blocks.size());
@@ -146,38 +150,61 @@ void print_asm(Program *program, std::vector<uint32_t>& binary,
          binary[pos+1] = binary[pos+1] & 0xF803FFFF;
       }
 
+      const int align_width = 60;
+      out << std::left << std::setw(align_width) << std::setfill(' ');
+
       size_t l = LLVMDisasmInstruction(disasm, (uint8_t *) &binary[pos],
                                        (exec_size - pos) * sizeof(uint32_t), pos * 4,
                                        outline, sizeof(outline));
 
+      if (program->chip_class >= GFX10 && l == 8 &&
+          ((binary[pos] & 0xffff0000) == 0xd7610000) &&
+          ((binary[pos + 1] & 0x1ff) == 0xff)) {
+         /* v_writelane with literal uses 3 dwords but llvm consumes only 2 */
+         l += 4;
+      }
+
       size_t new_pos;
-      const int align_width = 60;
       if (!l &&
           ((program->chip_class >= GFX9 && (binary[pos] & 0xffff8000) == 0xd1348000) || /* v_add_u32_e64 + clamp */
            (program->chip_class >= GFX10 && (binary[pos] & 0xffff8000) == 0xd7038000) || /* v_add_u16_e64 + clamp */
-           (program->chip_class <= GFX9 && (binary[pos] & 0xffff8000) == 0xd1268000)) /* v_add_u16_e64 + clamp */) {
-         out << std::left << std::setw(align_width) << std::setfill(' ') << "\tinteger addition + clamp";
+           (program->chip_class <= GFX9 && (binary[pos] & 0xffff8000) == 0xd1268000) || /* v_add_u16_e64 + clamp */
+           (program->chip_class >= GFX10 && (binary[pos] & 0xffff8000) == 0xd76d8000) || /* v_add3_u32 + clamp */
+           (program->chip_class == GFX9 && (binary[pos] & 0xffff8000) == 0xd1ff8000)) /* v_add3_u32 + clamp */) {
+         out << "\tinteger addition + clamp";
          bool has_literal = program->chip_class >= GFX10 &&
                             (((binary[pos+1] & 0x1ff) == 0xff) || (((binary[pos+1] >> 9) & 0x1ff) == 0xff));
          new_pos = pos + 2 + has_literal;
       } else if (program->chip_class >= GFX10 && l == 4 && ((binary[pos] & 0xfe0001ff) == 0x020000f9)) {
-         out << std::left << std::setw(align_width) << std::setfill(' ') << "\tv_cndmask_b32 + sdwa";
+         out << "\tv_cndmask_b32 + sdwa";
          new_pos = pos + 2;
       } else if (!l) {
-         out << std::left << std::setw(align_width) << std::setfill(' ') << "(invalid instruction)";
+         out << "(invalid instruction)";
          new_pos = pos + 1;
          invalid = true;
       } else {
-         out << std::left << std::setw(align_width) << std::setfill(' ') << outline;
+         out << outline;
          assert(l % 4 == 0);
          new_pos = pos + l / 4;
       }
+      size_t size = new_pos - pos;
       out << std::right;
 
       out << " ;";
-      for (; pos < new_pos; pos++)
-         out << " " << std::setfill('0') << std::setw(8) << std::hex << binary[pos];
+      for (unsigned i = 0; i < size; i++)
+         out << " " << std::setfill('0') << std::setw(8) << std::hex << binary[pos + i];
       out << std::endl;
+
+      size_t original_pos = pos;
+      pos += size;
+
+      unsigned repeat_count = 0;
+      while (pos + size <= exec_size && memcmp(&binary[pos], &binary[original_pos], size * 4) == 0) {
+         repeat_count++;
+         pos += size;
+      }
+      if (repeat_count)
+         out << std::left << std::setw(0) << std::dec << std::setfill(' ') << "\t(then repeated " << repeat_count << " times)" << std::endl;
    }
    out << std::setfill(' ') << std::setw(0) << std::dec;
    assert(next_block == program->blocks.size());
@@ -201,13 +228,7 @@ void print_asm(Program *program, std::vector<uint32_t>& binary,
 
    out << std::setfill(' ') << std::setw(0) << std::dec;
 
-   if (invalid) {
-      /* Invalid instructions usually lead to GPU hangs, which can make
-       * getting the actual invalid instruction hard. Abort here so that we
-       * can find the problem.
-       */
-      abort();
-   }
+   return invalid;
 }
 
 }

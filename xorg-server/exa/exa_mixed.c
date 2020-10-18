@@ -297,7 +297,7 @@ exaPixmapHasGpuCopy_mixed(PixmapPtr pPixmap)
 }
 
 Bool
-exaSharePixmapBacking_mixed(PixmapPtr pPixmap, ScreenPtr slave, void **handle_p)
+exaSharePixmapBacking_mixed(PixmapPtr pPixmap, ScreenPtr secondary, void **handle_p)
 {
     ScreenPtr pScreen = pPixmap->drawable.pScreen;
     ExaScreenPriv(pScreen);
@@ -306,7 +306,7 @@ exaSharePixmapBacking_mixed(PixmapPtr pPixmap, ScreenPtr slave, void **handle_p)
     exaMoveInPixmap(pPixmap);
     /* get the driver to give us a handle */
     if (pExaScr->info->SharePixmapBacking)
-        ret = pExaScr->info->SharePixmapBacking(pPixmap, slave, handle_p);
+        ret = pExaScr->info->SharePixmapBacking(pPixmap, secondary, handle_p);
 
     return ret;
 }

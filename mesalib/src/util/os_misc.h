@@ -95,6 +95,12 @@ os_get_option(const char *name);
 bool
 os_get_total_physical_memory(uint64_t *size);
 
+/*
+ * Amount of physical memory available to a process
+ */
+bool
+os_get_available_system_memory(uint64_t *size);
+
 
 #ifdef	__cplusplus
 }

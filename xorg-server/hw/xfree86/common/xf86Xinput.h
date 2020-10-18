@@ -199,6 +199,11 @@ xf86VIDrvMsgVerb(InputInfoPtr dev,
                  MessageType type, int verb, const char *format, va_list args)
 _X_ATTRIBUTE_PRINTF(4, 0);
 
+extern _X_EXPORT void xf86AddInputEventDrainCallback(CallbackProcPtr callback,
+                                                     void *param);
+extern _X_EXPORT void xf86RemoveInputEventDrainCallback(CallbackProcPtr callback,
+                                                        void *param);
+
 /* xf86Option.c */
 extern _X_EXPORT void
 xf86CollectInputOptions(InputInfoPtr pInfo, const char **defaultOpts);

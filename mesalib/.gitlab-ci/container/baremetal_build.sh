@@ -22,6 +22,7 @@ BAREMETAL_EPHEMERAL=" \
         libffi-dev:$arch \
         libgbm-dev:$arch \
         libgles2-mesa-dev:$arch \
+        libpciaccess-dev:$arch \
         libpcre3-dev:$arch \
         libpng-dev:$arch \
         libpython3-dev:$arch \
@@ -48,26 +49,12 @@ mkdir /var/cache/apt/archives/$arch
 . .gitlab-ci/container/container_pre_build.sh
 
 ############### Create rootfs
-KERNEL_URL=https://gitlab.freedesktop.org/drm/msm/-/archive/drm-msm-fixes-2020-06-25/msm-drm-msm-fixes-2020-06-25.tar.gz
+KERNEL_URL=https://github.com/anholt/linux/archive/cheza-pagetables-2020-09-04.tar.gz
 
-DEBIAN_ARCH=$arch INCLUDE_VK_CTS=1 . .gitlab-ci/container/lava_arm.sh
+DEBIAN_ARCH=$arch INCLUDE_VK_CTS=1 . .gitlab-ci/container/lava_build.sh
 
-############### Store traces
-# Clone the traces-db at container build time so we don't have to pull traces
-# per run (too much egress cost for fd.o).
-git clone \
-    --depth 1 \
-    -b mesa-ci-2020-06-08 \
-    https://gitlab.freedesktop.org/gfx-ci/tracie/traces-db.git \
-    $ROOTFS/traces-db
-rm -rf $ROOTFS/traces-db/.git
-find $ROOTFS/traces-db -type f \
-     -a -not -name '*.trace' \
-     -a -not -name '*.rdc' \
-     -delete
-
-ccache --show-stats
-
-. .gitlab-ci/container/container_post_build.sh
+############### Uninstall the build software
 
 apt-get purge -y $BAREMETAL_EPHEMERAL
+
+. .gitlab-ci/container/container_post_build.sh

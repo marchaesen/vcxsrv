@@ -311,7 +311,7 @@ static OMX_ERRORTYPE enc_AllocateBackTexture(omx_base_PortType *port,
    box.width = (*resource)->width0;
    box.height = (*resource)->height0;
    box.depth = (*resource)->depth0;
-   ptr = priv->s_pipe->transfer_map(priv->s_pipe, *resource, 0, PIPE_TRANSFER_WRITE, &box, transfer);
+   ptr = priv->s_pipe->transfer_map(priv->s_pipe, *resource, 0, PIPE_MAP_WRITE, &box, transfer);
    if (map)
       *map = ptr;
 

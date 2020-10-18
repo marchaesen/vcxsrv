@@ -216,8 +216,6 @@ C_SOURCES := \
 	util/u_bitmask.c \
 	util/u_bitmask.h \
 	util/u_blend.h \
-	util/u_blit.c \
-	util/u_blit.h \
 	util/u_blitter.c \
 	util/u_blitter.h \
 	util/u_box.h \
@@ -233,10 +231,6 @@ C_SOURCES := \
 	util/u_debug_image.h \
 	util/u_debug_refcnt.c \
 	util/u_debug_refcnt.h \
-	util/u_debug_stack.c \
-	util/u_debug_stack.h \
-	util/u_debug_symbol.c \
-	util/u_debug_symbol.h \
 	util/u_dirty_flags.h \
 	util/u_dirty_surfaces.h \
 	util/u_dl.c \
@@ -254,15 +248,12 @@ C_SOURCES := \
 	util/u_framebuffer.h \
 	util/u_gen_mipmap.c \
 	util/u_gen_mipmap.h \
-	util/u_half.h \
 	util/u_handle_table.c \
 	util/u_handle_table.h \
 	util/u_hash_table.c \
 	util/u_hash_table.h \
 	util/u_helpers.c \
 	util/u_helpers.h \
-	util/u_idalloc.c \
-	util/u_idalloc.h \
 	util/u_index_modify.c \
 	util/u_index_modify.h \
 	util/u_inlines.h \

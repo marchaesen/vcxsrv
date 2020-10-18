@@ -94,7 +94,7 @@ miPolyGlyphBlt(DrawablePtr pDrawable, GC * pGC, int x, int y, unsigned int nglyp
     int j;
     unsigned char *pbits;       /* buffer for PutImage */
     unsigned char *pb;          /* temp pointer into buffer */
-    CharInfoPtr pci;            /* currect char info */
+    CharInfoPtr pci;            /* current char info */
     unsigned char *pglyph;      /* pointer bits in glyph */
     int gWidth, gHeight;        /* width and height of glyph */
     int nbyGlyphWidth;          /* bytes per scanline of glyph */

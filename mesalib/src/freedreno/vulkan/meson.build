@@ -47,10 +47,10 @@ libtu_files = files(
   'tu_device.c',
   'tu_descriptor_set.c',
   'tu_descriptor_set.h',
-  'tu_drm.c',
-  'tu_fence.c',
   'tu_formats.c',
   'tu_image.c',
+  'tu_legacy.c',
+  'tu_nir_lower_multiview.c',
   'tu_pass.c',
   'tu_pipeline.c',
   'tu_pipeline_cache.c',
@@ -81,7 +81,7 @@ if with_platform_wayland
   libtu_files += files('tu_wsi_wayland.c')
 endif
 
-if with_platform_drm
+if system_has_kms_drm and not with_platform_android
   tu_flags += '-DVK_USE_PLATFORM_DISPLAY_KHR'
   libtu_files += files('tu_wsi_display.c')
 endif
@@ -95,6 +95,12 @@ endif
 if with_xlib_lease
   tu_deps += [dep_xcb_xrandr, dep_xlib_xrandr]
   tu_flags += '-DVK_USE_PLATFORM_XLIB_XRANDR_EXT'
+endif
+
+if with_freedreno_kgsl
+  libtu_files += files('tu_kgsl.c')
+else
+  libtu_files += files('tu_drm.c')
 endif
 
 libvulkan_freedreno = shared_library(
@@ -131,7 +137,7 @@ libvulkan_freedreno = shared_library(
   ],
   c_args : [no_override_init_args, tu_flags],
   gnu_symbol_visibility : 'hidden',
-  link_args : [ld_args_bsymbolic, ld_args_gc_sections],
+  link_args : [ld_args_bsymbolic, ld_args_gc_sections, ld_args_build_id],
   install : true,
 )
 

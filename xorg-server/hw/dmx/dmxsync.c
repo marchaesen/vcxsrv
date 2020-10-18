@@ -146,7 +146,7 @@ dmxSyncInit(void)
  * is TRUE, call XSync() immediately instead of waiting for the next
  * XSync() batching point.  Note that if XSync() batching was deselected
  * with #dmxSyncActivate() before #dmxSyncInit() was called, then no
- * XSync() batching is performed and this function always calles XSync()
+ * XSync() batching is performed and this function always calls XSync()
  * immediately.
  *
  * (Note that this function uses TimerSet but works correctly in the

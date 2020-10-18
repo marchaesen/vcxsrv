@@ -1,5 +1,5 @@
 /*
- * Xephyr - A kdrive X server thats runs in a host X window.
+ * Xephyr - A kdrive X server that runs in a host X window.
  *          Authored by Matthew Allum <mallum@openedhand.com>
  *
  * Copyright © 2004 Nokia
@@ -219,7 +219,7 @@ ephyrMapFramebuffer(KdScreenInfo * screen)
 
     /*
      * Use the rotation last applied to ourselves (in the Xephyr case the fb
-     * coordinate system moves independently of the pointer coordiante system).
+     * coordinate system moves independently of the pointer coordinate system).
      */
     KdComputePointerMatrix(&m, ephyrRandr, screen->width, screen->height);
     KdSetPointerMatrix(&m);
@@ -294,7 +294,7 @@ ephyrShadowUpdate(ScreenPtr pScreen, shadowBufPtr pBuf)
     EPHYR_LOG("slow paint");
 
     /* FIXME: Slow Rotated/Reflected updates could be much
-     * much faster efficiently updating via tranforming
+     * much faster efficiently updating via transforming
      * pBuf->pDamage  regions
      */
     shadowUpdateRotatePacked(pScreen, pBuf);
@@ -777,8 +777,7 @@ ephyrUpdateModifierState(unsigned int state)
     for (i = 0, mask = 1; i < 8; i++, mask <<= 1) {
         int key;
 
-        /* Modifier is down, but shouldn't be
-         */
+        /* Modifier is down, but shouldn't be */
         if ((xkb_state & mask) && !(state & mask)) {
             int count = keyc->modifierKeyCount[i];
 
@@ -796,8 +795,7 @@ ephyrUpdateModifierState(unsigned int state)
                 }
         }
 
-        /* Modifier shoud be down, but isn't
-         */
+        /* Modifier should be down, but isn't */
         if (!(xkb_state & mask) && (state & mask))
             for (key = 0; key < MAP_LENGTH; key++)
                 if (keyc->xkbInfo->desc->map->modmap[key] & mask) {

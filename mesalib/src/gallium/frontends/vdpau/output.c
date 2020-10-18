@@ -221,7 +221,7 @@ vlVdpOutputSurfaceGetBitsNative(VdpOutputSurface surface,
 
    res = vlsurface->sampler_view->texture;
    box = RectToPipeBox(source_rect, res);
-   map = pipe->transfer_map(pipe, res, 0, PIPE_TRANSFER_READ, &box, &transfer);
+   map = pipe->transfer_map(pipe, res, 0, PIPE_MAP_READ, &box, &transfer);
    if (!map) {
       mtx_unlock(&vlsurface->device->mutex);
       return VDP_STATUS_RESOURCES;
@@ -272,7 +272,7 @@ vlVdpOutputSurfacePutBitsNative(VdpOutputSurface surface,
    }
 
    pipe->texture_subdata(pipe, vlsurface->sampler_view->texture, 0,
-                         PIPE_TRANSFER_WRITE, &dst_box, *source_data,
+                         PIPE_MAP_WRITE, &dst_box, *source_data,
                          *source_pitches, 0);
    mtx_unlock(&vlsurface->device->mutex);
 
@@ -359,7 +359,7 @@ vlVdpOutputSurfacePutBitsIndexed(VdpOutputSurface surface,
    box.height = res->height0;
    box.depth = res->depth0;
 
-   context->texture_subdata(context, res, 0, PIPE_TRANSFER_WRITE, &box,
+   context->texture_subdata(context, res, 0, PIPE_MAP_WRITE, &box,
                             source_data[0], source_pitch[0],
                             source_pitch[0] * res->height0);
 
@@ -392,7 +392,7 @@ vlVdpOutputSurfacePutBitsIndexed(VdpOutputSurface surface,
    box.height = res->height0;
    box.depth = res->depth0;
 
-   context->texture_subdata(context, res, 0, PIPE_TRANSFER_WRITE, &box, color_table,
+   context->texture_subdata(context, res, 0, PIPE_MAP_WRITE, &box, color_table,
                             util_format_get_stride(colortbl_format, res->width0), 0);
 
    memset(&sv_tmpl, 0, sizeof(sv_tmpl));
@@ -496,7 +496,7 @@ vlVdpOutputSurfacePutBitsYCbCr(VdpOutputSurface surface,
          sv->texture->width0, sv->texture->height0, 1
       };
 
-      pipe->texture_subdata(pipe, sv->texture, 0, PIPE_TRANSFER_WRITE, &dst_box,
+      pipe->texture_subdata(pipe, sv->texture, 0, PIPE_MAP_WRITE, &dst_box,
                             source_data[i], source_pitches[i], 0);
    }
 

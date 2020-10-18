@@ -69,7 +69,7 @@ static struct fd_bo * bo_from_handle(struct fd_device *dev,
 		drmIoctl(dev->fd, DRM_IOCTL_GEM_CLOSE, &req);
 		return NULL;
 	}
-	bo->dev = fd_device_ref(dev);
+	bo->dev = dev;
 	bo->size = size;
 	bo->handle = handle;
 	bo->iova = bo->funcs->iova(bo);
@@ -262,7 +262,7 @@ void fd_bo_del(struct fd_bo *bo)
 		goto out;
 
 	bo_del(bo);
-	fd_device_del_locked(dev);
+
 out:
 	pthread_mutex_unlock(&table_lock);
 }

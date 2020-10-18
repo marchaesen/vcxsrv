@@ -103,6 +103,7 @@ libfreedreno_ir3_files = files(
   'ir3_shader.c',
   'ir3_shader.h',
   'ir3_validate.c',
+  'regmask.h',
 )
 
 libfreedreno_ir3 = static_library(
@@ -131,6 +132,7 @@ test('ir3_delay_test',
     'ir3_delay_test',
     'tests/delay.c',
     link_with: libfreedreno_ir3,
+    link_args: ld_args_build_id,
     dependencies: [idep_mesautil, idep_nir],
     include_directories: [inc_freedreno, inc_include, inc_src, inc_mesa, inc_gallium],
   ),

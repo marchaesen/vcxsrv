@@ -2810,6 +2810,7 @@ assign_varying_locations(struct gl_context *ctx,
           !tfeedback_decls[i].is_aligned(dmul, matched_candidate->offset)) ||
          (matched_candidate->toplevel_var->data.explicit_location &&
           matched_candidate->toplevel_var->data.location < VARYING_SLOT_VAR0 &&
+          (!consumer || consumer->Stage == MESA_SHADER_FRAGMENT) &&
           (ctx->Const.ShaderCompilerOptions[producer->Stage].LowerBuiltinVariablesXfb &
               BITFIELD_BIT(matched_candidate->toplevel_var->data.location)));
 

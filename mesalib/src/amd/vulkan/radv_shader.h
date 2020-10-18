@@ -29,12 +29,18 @@
 #define RADV_SHADER_H
 
 #include "ac_binary.h"
+#include "ac_shader_util.h"
+
 #include "amd_family.h"
 #include "radv_constants.h"
 
 #include "nir/nir.h"
 #include "vulkan/vulkan.h"
 #include "vulkan/util/vk_object.h"
+
+#include "aco_interface.h"
+
+#define RADV_VERT_ATTRIB_MAX MAX2(VERT_ATTRIB_MAX, VERT_ATTRIB_GENERIC0 + MAX_VERTEX_ATTRIBS)
 
 struct radv_device;
 
@@ -44,13 +50,6 @@ struct radv_shader_module {
 	unsigned char sha1[20];
 	uint32_t size;
 	char data[0];
-};
-
-enum {
-	RADV_ALPHA_ADJUST_NONE = 0,
-	RADV_ALPHA_ADJUST_SNORM = 1,
-	RADV_ALPHA_ADJUST_SINT = 2,
-	RADV_ALPHA_ADJUST_SSCALED = 3,
 };
 
 struct radv_vs_out_key {
@@ -76,7 +75,7 @@ struct radv_vs_variant_key {
 
 	/* For 2_10_10_10 formats the alpha is handled as unsigned by pre-vega HW.
 	 * so we may need to fix it up. */
-	uint64_t alpha_adjust;
+	enum ac_fetch_format alpha_adjust[MAX_VERTEX_ATTRIBS];
 
 	/* For some formats the channels have to be shuffled. */
 	uint32_t post_shuffle;
@@ -89,14 +88,12 @@ struct radv_tes_variant_key {
 	struct radv_vs_out_key out;
 
 	uint8_t num_patches;
-	uint8_t tcs_num_outputs;
 };
 
 struct radv_tcs_variant_key {
 	struct radv_vs_variant_key vs_key;
 	unsigned primitive_mode;
 	unsigned input_vertices;
-	unsigned num_inputs;
 	uint32_t tes_reads_tess_factors:1;
 };
 
@@ -127,6 +124,11 @@ struct radv_shader_variant_key {
 	bool has_multiview_view_index;
 };
 
+enum radv_compiler_debug_level {
+	RADV_COMPILER_DEBUG_LEVEL_PERFWARN,
+	RADV_COMPILER_DEBUG_LEVEL_ERROR,
+};
+
 struct radv_nir_compiler_options {
 	struct radv_pipeline_layout *layout;
 	struct radv_shader_variant_key key;
@@ -141,10 +143,18 @@ struct radv_nir_compiler_options {
 	bool has_ls_vgpr_init_bug;
 	bool use_ngg_streamout;
 	bool enable_mrt_output_nan_fixup;
+	bool disable_optimizations; /* only used by ACO */
 	enum radeon_family family;
 	enum chip_class chip_class;
 	uint32_t tess_offchip_block_dw_size;
 	uint32_t address32_hi;
+
+	struct {
+		void (*func)(void *private_data,
+			     enum radv_compiler_debug_level level,
+			     const char *message);
+		void *private_data;
+	} debug;
 };
 
 enum radv_ud_index {
@@ -252,8 +262,7 @@ struct radv_shader_info {
 	bool is_ngg;
 	bool is_ngg_passthrough;
 	struct {
-		uint64_t ls_outputs_written;
-		uint8_t input_usage_mask[VERT_ATTRIB_MAX];
+		uint8_t input_usage_mask[RADV_VERT_ATTRIB_MAX];
 		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
 		bool has_vertex_buffers; /* needs vertex buffers and base/start */
 		bool needs_draw_id;
@@ -270,7 +279,6 @@ struct radv_shader_info {
 		uint8_t num_stream_output_components[4];
 		uint8_t output_streams[VARYING_SLOT_VAR31 + 1];
 		uint8_t max_stream;
-		bool writes_memory;
 		unsigned gsvs_vertex_size;
 		unsigned max_gsvs_emit_size;
 		unsigned vertices_in;
@@ -325,13 +333,11 @@ struct radv_shader_info {
 		unsigned block_size[3];
 	} cs;
 	struct {
-		uint64_t outputs_written;
-		uint64_t patch_outputs_written;
 		uint64_t tes_inputs_read;
 		uint64_t tes_patch_inputs_read;
 		unsigned tcs_vertices_out;
 		uint32_t num_patches;
-		uint32_t lds_size;
+		uint32_t num_lds_blocks;
 		uint8_t num_linked_inputs;
 		uint8_t num_linked_outputs;
 		uint8_t num_linked_patch_outputs;
@@ -369,7 +375,7 @@ struct radv_shader_binary_legacy {
 	unsigned ir_size;
 	unsigned disasm_size;
 	unsigned stats_size;
-	
+
 	/* data has size of stats_size + code_size + ir_size + disasm_size + 2,
 	 * where the +2 is for 0 of the ir strings. */
 	uint8_t data[0];
@@ -380,17 +386,6 @@ struct radv_shader_binary_rtld {
 	unsigned elf_size;
 	unsigned llvm_ir_size;
 	uint8_t data[0];
-};
-
-struct radv_compiler_statistic_info {
-	char name[32];
-	char desc[64];
-};
-
-struct radv_compiler_statistics {
-	unsigned count;
-	struct radv_compiler_statistic_info *infos;
-	uint32_t values[];
 };
 
 struct radv_shader_variant {
@@ -409,7 +404,7 @@ struct radv_shader_variant {
 	char *nir_string;
 	char *disasm_string;
 	char *ir_string;
-	struct radv_compiler_statistics *statistics;
+	struct aco_compiler_statistics *statistics;
 
 	struct list_head slab_list;
 };
@@ -465,6 +460,7 @@ radv_shader_variant_compile(struct radv_device *device,
 			    const struct radv_shader_variant_key *key,
 			    struct radv_shader_info *info,
 			    bool keep_shader_info, bool keep_statistic_info,
+			    bool disable_optimizations,
 			    struct radv_shader_binary **binary_out);
 
 struct radv_shader_variant *
@@ -472,7 +468,11 @@ radv_create_gs_copy_shader(struct radv_device *device, struct nir_shader *nir,
 			   struct radv_shader_info *info,
 			   struct radv_shader_binary **binary_out,
 			   bool multiview,  bool keep_shader_info,
-			   bool keep_statistic_info);
+			   bool keep_statistic_info,
+			   bool disable_optimizations);
+
+struct radv_shader_variant *
+radv_create_trap_handler_shader(struct radv_device *device);
 
 void
 radv_shader_variant_destroy(struct radv_device *device,
@@ -493,12 +493,6 @@ const char *
 radv_get_shader_name(struct radv_shader_info *info,
 		     gl_shader_stage stage);
 
-void
-radv_shader_dump_stats(struct radv_device *device,
-		       struct radv_shader_variant *variant,
-		       gl_shader_stage stage,
-		       FILE *file);
-
 bool
 radv_can_dump_shader(struct radv_device *device,
 		     struct radv_shader_module *module,
@@ -508,32 +502,14 @@ bool
 radv_can_dump_shader_stats(struct radv_device *device,
 			   struct radv_shader_module *module);
 
-static inline unsigned
-shader_io_get_unique_index(gl_varying_slot slot)
-{
-	/* handle patch indices separate */
-	if (slot == VARYING_SLOT_TESS_LEVEL_OUTER)
-		return 0;
-	if (slot == VARYING_SLOT_TESS_LEVEL_INNER)
-		return 1;
-	if (slot >= VARYING_SLOT_PATCH0 && slot <= VARYING_SLOT_TESS_MAX)
-		return 2 + (slot - VARYING_SLOT_PATCH0);
-	if (slot == VARYING_SLOT_POS)
-		return 0;
-	if (slot == VARYING_SLOT_PSIZ)
-		return 1;
-	if (slot == VARYING_SLOT_CLIP_DIST0)
-		return 2;
-	if (slot == VARYING_SLOT_CLIP_DIST1)
-		return 3;
-	/* 3 is reserved for clip dist as well */
-	if (slot >= VARYING_SLOT_VAR0 && slot <= VARYING_SLOT_VAR31)
-		return 4 + (slot - VARYING_SLOT_VAR0);
-	unreachable("illegal slot in get unique index\n");
-}
+VkResult
+radv_dump_shader_stats(struct radv_device *device,
+		       struct radv_pipeline *pipeline,
+		       gl_shader_stage stage, FILE *output);
 
 static inline unsigned
-calculate_tess_lds_size(unsigned tcs_num_input_vertices,
+calculate_tess_lds_size(enum chip_class chip_class,
+			unsigned tcs_num_input_vertices,
 			unsigned tcs_num_output_vertices,
 			unsigned tcs_num_inputs,
 			unsigned tcs_num_patches,
@@ -550,7 +526,17 @@ calculate_tess_lds_size(unsigned tcs_num_input_vertices,
 
 	unsigned output_patch0_offset = input_patch_size * tcs_num_patches;
 
-	return output_patch0_offset + output_patch_size * tcs_num_patches;
+	unsigned lds_size = output_patch0_offset + output_patch_size * tcs_num_patches;
+
+	if (chip_class >= GFX7) {
+		assert(lds_size <= 65536);
+		lds_size = align(lds_size, 512) / 512;
+	} else {
+		assert(lds_size <= 32768);
+		lds_size = align(lds_size, 256) / 256;
+	}
+
+	return lds_size;
 }
 
 static inline unsigned
@@ -604,6 +590,6 @@ get_tcs_num_patches(unsigned tcs_num_input_vertices,
 }
 
 void
-radv_lower_fs_io(nir_shader *nir);
+radv_lower_io(struct radv_device *device, nir_shader *nir);
 
 #endif

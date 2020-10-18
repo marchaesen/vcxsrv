@@ -44,6 +44,11 @@ MESA_DRI_LDFLAGS := -Wl,--build-id=sha1
 MESA_COMMON_MK := $(MESA_TOP)/Android.common.mk
 MESA_PYTHON2 := python
 MESA_PYTHON3 := python3
+ifeq ($(filter 5 6 7 8 9 10, $(MESA_ANDROID_MAJOR_VERSION)),)
+MESA_LEX     := M4=$(M4) $(LEX)
+else
+MESA_LEX     := $(LEX)
+endif
 
 # Lists to convert driver names to boolean variables
 # in form of <driver name>.<boolean make variable>
@@ -92,7 +97,7 @@ endif
 define mesa-build-with-llvm
   $(if $(filter $(MESA_ANDROID_MAJOR_VERSION), 4 5 6 7), \
     $(warning Unsupported LLVM version in Android $(MESA_ANDROID_MAJOR_VERSION)),) \
-  $(eval LOCAL_CFLAGS += -DLLVM_AVAILABLE -DMESA_LLVM_VERSION_STRING=\"3.9\") \
+  $(eval LOCAL_CFLAGS += -DLLVM_AVAILABLE -DLLVM_IS_SHARED=1 -DMESA_LLVM_VERSION_STRING=\"3.9\") \
   $(eval LOCAL_SHARED_LIBRARIES += libLLVM)
 endef
 

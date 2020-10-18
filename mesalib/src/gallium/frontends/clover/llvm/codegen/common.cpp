@@ -66,6 +66,86 @@ namespace {
          unreachable("Unknown image type");
    }
 
+   module::arg_info create_arg_info(const std::string &arg_name,
+                                    const std::string &type_name,
+                                    const std::string &type_qualifier,
+                                    const int address_qualifier,
+                                    const std::string &access_qualifier) {
+
+      cl_kernel_arg_type_qualifier cl_type_qualifier =
+                                                   CL_KERNEL_ARG_TYPE_NONE;
+      if (type_qualifier.find("const") != std::string::npos)
+         cl_type_qualifier |= CL_KERNEL_ARG_TYPE_CONST;
+      if (type_qualifier.find("restrict") != std::string::npos)
+         cl_type_qualifier |=  CL_KERNEL_ARG_TYPE_RESTRICT;
+      if (type_qualifier.find("volatile") != std::string::npos)
+         cl_type_qualifier |=  CL_KERNEL_ARG_TYPE_VOLATILE;
+
+      cl_kernel_arg_address_qualifier cl_address_qualifier =
+                                             CL_KERNEL_ARG_ADDRESS_PRIVATE;
+      if (address_qualifier == 1)
+         cl_address_qualifier = CL_KERNEL_ARG_ADDRESS_GLOBAL;
+      else if (address_qualifier == 2)
+         cl_address_qualifier =  CL_KERNEL_ARG_ADDRESS_CONSTANT;
+      else if (address_qualifier == 3)
+         cl_address_qualifier =  CL_KERNEL_ARG_ADDRESS_LOCAL;
+
+      cl_kernel_arg_access_qualifier cl_access_qualifier =
+                                                   CL_KERNEL_ARG_ACCESS_NONE;
+      if (access_qualifier == "read_only")
+         cl_access_qualifier = CL_KERNEL_ARG_ACCESS_READ_ONLY;
+      else if (access_qualifier == "write_only")
+         cl_access_qualifier = CL_KERNEL_ARG_ACCESS_WRITE_ONLY;
+      else if (access_qualifier == "read_write")
+         cl_access_qualifier = CL_KERNEL_ARG_ACCESS_READ_WRITE;
+
+      return module::arg_info(arg_name, type_name, cl_type_qualifier,
+                              cl_address_qualifier, cl_access_qualifier);
+   }
+
+   std::vector<size_t>
+   get_reqd_work_group_size(const Module &mod,
+                            const std::string &kernel_name) {
+      const Function &f = *mod.getFunction(kernel_name);
+      auto vector_metadata = get_uint_vector_kernel_metadata(f, "reqd_work_group_size");
+
+      return vector_metadata.empty() ? std::vector<size_t>({0, 0, 0}) : vector_metadata;
+   }
+
+
+   std::string
+   kernel_attributes(const Module &mod, const std::string &kernel_name) {
+      std::vector<std::string> attributes;
+
+      const Function &f = *mod.getFunction(kernel_name);
+
+      auto vec_type_hint = get_type_kernel_metadata(f, "vec_type_hint");
+      if (!vec_type_hint.empty())
+         attributes.emplace_back("vec_type_hint(" + vec_type_hint + ")");
+
+      auto work_group_size_hint = get_uint_vector_kernel_metadata(f, "work_group_size_hint");
+      if (!work_group_size_hint.empty()) {
+         std::string s = "work_group_size_hint(";
+         s += detokenize(work_group_size_hint, ",");
+         s += ")";
+         attributes.emplace_back(s);
+      }
+
+      auto reqd_work_group_size = get_uint_vector_kernel_metadata(f, "reqd_work_group_size");
+      if (!reqd_work_group_size.empty()) {
+         std::string s = "reqd_work_group_size(";
+         s += detokenize(reqd_work_group_size, ",");
+         s += ")";
+         attributes.emplace_back(s);
+      }
+
+      auto nosvm = get_str_kernel_metadata(f, "nosvm");
+      if (!nosvm.empty())
+         attributes.emplace_back("nosvm");
+
+      return detokenize(attributes, " ");
+   }
+
    std::vector<module::argument>
    make_kernel_args(const Module &mod, const std::string &kernel_name,
                     const clang::CompilerInstance &c) {
@@ -82,23 +162,25 @@ namespace {
          // type that is not a power of two bytes in size must be
          // aligned to the next larger power of two.
          // This rule applies to built-in types only, not structs or unions."
-         const unsigned arg_store_size = dl.getTypeStoreSize(arg_type);
          const unsigned arg_api_size = dl.getTypeAllocSize(arg_type);
 
-         const auto target_type = compat::get_abi_type(arg_type, mod);
-         const unsigned target_size = dl.getTypeStoreSize(target_type);
-         const unsigned target_align = dl.getABITypeAlignment(target_type);
+         const unsigned target_size = dl.getTypeStoreSize(arg_type);
+         const unsigned target_align = dl.getABITypeAlignment(arg_type);
 
-         const auto type_name = get_argument_metadata(f, arg,
-                                                      "kernel_arg_type");
-
+         const auto type_name = get_str_argument_metadata(f, arg,
+                                                          "kernel_arg_type");
          if (type_name == "image2d_t" || type_name == "image3d_t") {
             // Image.
-            const auto access_qual = get_argument_metadata(
+            const auto access_qual = get_str_argument_metadata(
                f, arg, "kernel_arg_access_qual");
             args.emplace_back(get_image_type(type_name, access_qual),
-                              arg_store_size, target_size,
+                              target_size, target_size,
                               target_align, module::argument::zero_ext);
+
+         } else if (type_name == "sampler_t") {
+            args.emplace_back(module::argument::sampler, arg_api_size,
+                              target_size, target_align,
+                              module::argument::zero_ext);
 
          } else if (type_name == "__llvm_image_size") {
             // Image size implicit argument.
@@ -126,8 +208,10 @@ namespace {
                const unsigned address_space =
                   cast< ::llvm::PointerType>(actual_type)->getAddressSpace();
 
-               if (address_space == compat::target_address_space(
-                                  c.getTarget(), clang::LangAS::opencl_local)) {
+               const auto &map = c.getTarget().getAddressSpaceMap();
+               const auto offset =
+                           static_cast<unsigned>(clang::LangAS::opencl_local);
+               if (address_space == map[offset]) {
                   args.emplace_back(module::argument::local, arg_api_size,
                                     target_size, target_align,
                                     module::argument::zero_ext);
@@ -152,6 +236,16 @@ namespace {
                                  target_size, target_align,
                                  (needs_sign_ext ? module::argument::sign_ext :
                                   module::argument::zero_ext));
+            }
+
+            // Add kernel argument infos if built with -cl-kernel-arg-info.
+            if (c.getCodeGenOpts().EmitOpenCLArgMetadata) {
+               args.back().info = create_arg_info(
+                  get_str_argument_metadata(f, arg, "kernel_arg_name"),
+                  type_name,
+                  get_str_argument_metadata(f, arg, "kernel_arg_type_qual"),
+                  get_uint_argument_metadata(f, arg, "kernel_arg_addr_space"),
+                  get_str_argument_metadata(f, arg, "kernel_arg_access_qual"));
             }
          }
       }
@@ -200,7 +294,9 @@ clover::llvm::build_module_common(const Module &mod,
                                get_kernels(mod))) {
       const ::std::string name(llvm_name);
       if (offsets.count(name))
-         m.syms.emplace_back(name, 0, offsets.at(name),
+         m.syms.emplace_back(name, kernel_attributes(mod, name),
+                             get_reqd_work_group_size(mod, name),
+                             0, offsets.at(name),
                              make_kernel_args(mod, name, c));
    }
 

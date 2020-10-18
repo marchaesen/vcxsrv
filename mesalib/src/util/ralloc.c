@@ -28,6 +28,9 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "util/macros.h"
+#include "util/u_math.h"
+
 /* Some versions of MinGW are missing _vscprintf's declaration, although they
  * still provide the symbol in the import library. */
 #ifdef __MINGW32__
@@ -120,7 +123,15 @@ ralloc_context(const void *ctx)
 void *
 ralloc_size(const void *ctx, size_t size)
 {
-   void *block = malloc(size + sizeof(ralloc_header));
+   /* Some malloc allocation doesn't always align to 16 bytes even on 64 bits
+    * system, from Android bionic/tests/malloc_test.cpp:
+    *  - Allocations of a size that rounds up to a multiple of 16 bytes
+    *    must have at least 16 byte alignment.
+    *  - Allocations of a size that rounds up to a multiple of 8 bytes and
+    *    not 16 bytes, are only required to have at least 8 byte alignment.
+    */
+   void *block = malloc(align64(size + sizeof(ralloc_header),
+                                alignof(ralloc_header)));
    ralloc_header *info;
    ralloc_header *parent;
 
@@ -167,7 +178,8 @@ resize(void *ptr, size_t size)
    ralloc_header *child, *old, *info;
 
    old = get_header(ptr);
-   info = realloc(old, size + sizeof(ralloc_header));
+   info = realloc(old, align64(size + sizeof(ralloc_header),
+                               alignof(ralloc_header)));
 
    if (info == NULL)
       return NULL;

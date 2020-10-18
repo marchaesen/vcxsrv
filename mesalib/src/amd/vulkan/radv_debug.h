@@ -28,45 +28,46 @@
 
 /* Please keep docs/envvars.rst up-to-date when you add/remove options. */
 enum {
-	RADV_DEBUG_NO_FAST_CLEARS    =   0x1,
-	RADV_DEBUG_NO_DCC            =   0x2,
-	RADV_DEBUG_DUMP_SHADERS      =   0x4,
-	RADV_DEBUG_NO_CACHE          =   0x8,
-	RADV_DEBUG_DUMP_SHADER_STATS =  0x10,
-	RADV_DEBUG_NO_HIZ            =  0x20,
-	RADV_DEBUG_NO_COMPUTE_QUEUE  =  0x40,
-	RADV_DEBUG_ALL_BOS           =  0x80,
-	RADV_DEBUG_NO_IBS            = 0x100,
-	RADV_DEBUG_DUMP_SPIRV        = 0x200,
-	RADV_DEBUG_VM_FAULTS         = 0x400,
-	RADV_DEBUG_ZERO_VRAM         = 0x800,
-	RADV_DEBUG_SYNC_SHADERS      = 0x1000,
-	RADV_DEBUG_PREOPTIR          = 0x2000,
-	RADV_DEBUG_NO_DYNAMIC_BOUNDS = 0x4000,
-	RADV_DEBUG_NO_OUT_OF_ORDER   = 0x8000,
-	RADV_DEBUG_INFO              = 0x10000,
-	RADV_DEBUG_ERRORS            = 0x20000,
-	RADV_DEBUG_STARTUP           = 0x40000,
-	RADV_DEBUG_CHECKIR           = 0x80000,
-	RADV_DEBUG_NOTHREADLLVM      = 0x100000,
-	RADV_DEBUG_NOBINNING         = 0x200000,
-	RADV_DEBUG_NO_NGG            = 0x400000,
-	RADV_DEBUG_ALL_ENTRYPOINTS   = 0x800000,
-	RADV_DEBUG_DUMP_META_SHADERS = 0x1000000,
-	RADV_DEBUG_NO_MEMORY_CACHE   = 0x2000000,
-	RADV_DEBUG_DISCARD_TO_DEMOTE = 0x4000000,
-	RADV_DEBUG_LLVM              = 0x8000000,
+	RADV_DEBUG_NO_FAST_CLEARS    = 1 << 0,
+	RADV_DEBUG_NO_DCC            = 1 << 1,
+	RADV_DEBUG_DUMP_SHADERS      = 1 << 2,
+	RADV_DEBUG_NO_CACHE          = 1 << 3,
+	RADV_DEBUG_DUMP_SHADER_STATS = 1 << 4,
+	RADV_DEBUG_NO_HIZ            = 1 << 5,
+	RADV_DEBUG_NO_COMPUTE_QUEUE  = 1 << 6,
+	RADV_DEBUG_ALL_BOS           = 1 << 7,
+	RADV_DEBUG_NO_IBS            = 1 << 8,
+	RADV_DEBUG_DUMP_SPIRV        = 1 << 9,
+	RADV_DEBUG_VM_FAULTS         = 1 << 10,
+	RADV_DEBUG_ZERO_VRAM         = 1 << 11,
+	RADV_DEBUG_SYNC_SHADERS      = 1 << 12,
+	RADV_DEBUG_PREOPTIR          = 1 << 13,
+	RADV_DEBUG_NO_DYNAMIC_BOUNDS = 1 << 14,
+	RADV_DEBUG_NO_OUT_OF_ORDER   = 1 << 15,
+	RADV_DEBUG_INFO              = 1 << 16,
+	RADV_DEBUG_ERRORS            = 1 << 17,
+	RADV_DEBUG_STARTUP           = 1 << 18,
+	RADV_DEBUG_CHECKIR           = 1 << 19,
+	RADV_DEBUG_NOTHREADLLVM      = 1 << 20,
+	RADV_DEBUG_NOBINNING         = 1 << 21,
+	RADV_DEBUG_NO_NGG            = 1 << 22,
+	RADV_DEBUG_ALL_ENTRYPOINTS   = 1 << 23,
+	RADV_DEBUG_DUMP_META_SHADERS = 1 << 24,
+	RADV_DEBUG_NO_MEMORY_CACHE   = 1 << 25,
+	RADV_DEBUG_DISCARD_TO_DEMOTE = 1 << 26,
+	RADV_DEBUG_LLVM              = 1 << 27,
+	RADV_DEBUG_FORCE_COMPRESS    = 1 << 28,
 };
 
 enum {
-	RADV_PERFTEST_LOCAL_BOS       =    0x1,
-	RADV_PERFTEST_DCC_MSAA        =    0x2,
-	RADV_PERFTEST_BO_LIST         =    0x4,
-	RADV_PERFTEST_TC_COMPAT_CMASK =    0x8,
-	RADV_PERFTEST_CS_WAVE_32      =   0x10,
-	RADV_PERFTEST_PS_WAVE_32      =   0x20,
-	RADV_PERFTEST_GE_WAVE_32      =   0x40,
-	RADV_PERFTEST_DFSM            =   0x80,
+	RADV_PERFTEST_LOCAL_BOS       = 1 << 0,
+	RADV_PERFTEST_DCC_MSAA        = 1 << 1,
+	RADV_PERFTEST_BO_LIST         = 1 << 2,
+	RADV_PERFTEST_TC_COMPAT_CMASK = 1 << 3,
+	RADV_PERFTEST_CS_WAVE_32      = 1 << 4,
+	RADV_PERFTEST_PS_WAVE_32      = 1 << 5,
+	RADV_PERFTEST_GE_WAVE_32      = 1 << 6,
+	RADV_PERFTEST_DFSM            = 1 << 7,
 };
 
 bool
@@ -80,5 +81,9 @@ radv_print_spirv(const char *data, uint32_t size, FILE *fp);
 
 void
 radv_dump_enabled_options(struct radv_device *device, FILE *f);
+
+bool radv_trap_handler_init(struct radv_device *device);
+void radv_trap_handler_finish(struct radv_device *device);
+void radv_check_trap_handler(struct radv_queue *queue);
 
 #endif

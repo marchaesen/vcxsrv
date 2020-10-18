@@ -1435,7 +1435,7 @@ _mesa_double_to_f32(double val, bool rtz)
  * From f32_to_f16()
  */
 uint16_t
-_mesa_float_to_half_rtz(float val)
+_mesa_float_to_half_rtz_slow(float val)
 {
     const fi_type fi = {val};
     const uint32_t flt_m = fi.u & 0x7fffff;

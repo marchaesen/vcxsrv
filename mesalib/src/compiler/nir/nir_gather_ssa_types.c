@@ -186,14 +186,14 @@ nir_gather_ssa_types(nir_function_impl *impl,
                case nir_intrinsic_load_uniform:
                   assert(intrin->dest.is_ssa);
                   set_type(intrin->dest.ssa.index,
-                           nir_intrinsic_type(intrin),
+                           nir_intrinsic_dest_type(intrin),
                            float_types, int_types, &progress);
                   break;
 
                case nir_intrinsic_store_output:
                   assert(intrin->src[0].is_ssa);
                   set_type(intrin->src[0].ssa->index,
-                           nir_intrinsic_type(intrin),
+                           nir_intrinsic_src_type(intrin),
                            float_types, int_types, &progress);
                   break;
 

@@ -298,7 +298,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /*
           WM_RENDERALLFORMATS is sent as we are shutting down, to render the
-          clipboard so it's contents remains available to other applications.
+          clipboard so its contents remains available to other applications.
 
           Unfortunately, this can't work without major changes. The server is
           already waiting for us to stop, so we can't ask for the rendering of

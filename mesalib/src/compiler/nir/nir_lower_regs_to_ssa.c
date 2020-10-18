@@ -131,7 +131,10 @@ rewrite_alu_instr(nir_alu_instr *alu, struct regs_to_ssa_state *state)
     * channels in the write mask.
     */
    unsigned num_components;
-   unsigned vec_swizzle[4] = { 0, 1, 2, 3 };
+   uint8_t vec_swizzle[NIR_MAX_VEC_COMPONENTS];
+   for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++)
+      vec_swizzle[i] = i;
+
    if (nir_op_infos[alu->op].output_size == 0) {
       /* Figure out the swizzle we need on the vecN operation and compute
        * the number of components in the SSA def at the same time.

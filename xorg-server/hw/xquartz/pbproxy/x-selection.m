@@ -787,7 +787,7 @@ get_property(Window win, Atom property, struct propdata *pdata, Bool delete,
     [self send_reply:&reply];
 }
 
-/* Return nil if an error occured. */
+/* Return nil if an error occurred. */
 /* DO NOT retain the encdata for longer than the length of an event response.
  * The autorelease pool will reuse/free it.
  */
@@ -818,8 +818,8 @@ get_property(Window win, Atom property, struct propdata *pdata, Bool delete,
     return encdata;
 }
 
-/* Return YES when an error has occured when trying to send the PICT. */
-/* The caller should send a default reponse with a property of None when an error occurs. */
+/* Return YES when an error has occurred when trying to send the PICT. */
+/* The caller should send a default response with a property of None when an error occurs. */
 - (BOOL) send_image_pict_reply:(XSelectionRequestEvent *)e
                     pasteboard:(NSPasteboard *)pb
                           type:(NSBitmapImageFileType)imagetype
@@ -866,7 +866,7 @@ get_property(Window win, Atom property, struct propdata *pdata, Bool delete,
     return NO; /*no error*/
 }
 
-/* Return YES if an error occured. */
+/* Return YES if an error occurred. */
 /* The caller should send a reply with a property of None when an error occurs. */
 - (BOOL) send_image_tiff_reply:(XSelectionRequestEvent *)e
                     pasteboard:(NSPasteboard *)pb
@@ -1049,7 +1049,7 @@ get_property(Window win, Atom property, struct propdata *pdata, Bool delete,
         if (get_property(e->requestor, e->property, &pdata, /*Delete*/ True,
                          &type)) {
             /*
-             * An error occured, so we should invoke the copy_completed:, but
+             * An error occurred, so we should invoke the copy_completed:, but
              * not handle_selection:type:propdata:
              */
             [self copy_completed:e->selection];

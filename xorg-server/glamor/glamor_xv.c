@@ -41,7 +41,7 @@
 #include "glamor_transfer.h"
 
 #include <X11/extensions/Xv.h>
-#include "../hw/xfree86/common/fourcc.h"
+#include <fourcc.h>
 /* Reference color space transform data */
 typedef struct tagREF_TRANSFORM {
     float RefLuma;

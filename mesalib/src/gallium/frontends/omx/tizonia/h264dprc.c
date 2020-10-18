@@ -204,7 +204,6 @@ static void get_eglimage(vid_dec_PrivateType* priv) {
 
         memset(&templat, 0, sizeof(templat));
         templat.buffer_format = p_res->format;
-        templat.chroma_format = PIPE_VIDEO_CHROMA_FORMAT_NONE;
         templat.width = p_res->width0;
         templat.height = p_res->height0;
         templat.interlaced = 0;

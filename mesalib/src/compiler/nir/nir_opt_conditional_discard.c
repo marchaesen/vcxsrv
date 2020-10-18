@@ -29,6 +29,7 @@
  * Handles optimization of lowering of
  *  - if (cond) discard to discard_if(cond) and
  *  - if (cond) demote to demote_if(cond)
+ *  - if (cond) terminate to terminate_if(cond)
  */
 
 static bool
@@ -94,8 +95,12 @@ nir_opt_conditional_discard_block(nir_builder *b, nir_block *block)
    case nir_intrinsic_demote:
       op = nir_intrinsic_demote_if;
       break;
+   case nir_intrinsic_terminate:
+      op = nir_intrinsic_terminate_if;
+      break;
    case nir_intrinsic_discard_if:
    case nir_intrinsic_demote_if:
+   case nir_intrinsic_terminate_if:
       assert(intrin->src[0].is_ssa);
       cond = nir_iand(b, cond, intrin->src[0].ssa);
       break;

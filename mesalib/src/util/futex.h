@@ -100,9 +100,16 @@ static inline int futex_wake(uint32_t *addr, int count)
 
 static inline int futex_wait(uint32_t *addr, int32_t value, const struct timespec *timeout)
 {
-   struct timespec tsrel, tsnow;
-   clock_gettime(CLOCK_MONOTONIC, &tsnow); 
-   timespecsub(timeout, &tsrel, &tsrel);
+   struct timespec tsnow, tsrel;
+
+   if (timeout == NULL)
+      return futex(addr, FUTEX_WAIT, value, NULL, NULL);
+
+   clock_gettime(CLOCK_MONOTONIC, &tsnow);
+   if (timespeccmp(&tsnow, timeout, <))
+      timespecsub(timeout, &tsnow, &tsrel);
+   else
+      timespecclear(&tsrel);
    return futex(addr, FUTEX_WAIT, value, &tsrel, NULL);
 }
 

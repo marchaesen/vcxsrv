@@ -534,7 +534,7 @@ xf86platformProbeDev(DriverPtr drvp)
     const unsigned numDevs = xf86MatchDevice(drvp->driverName, &devList);
     int i, j;
 
-    /* find the main device or any device specificed in xorg.conf */
+    /* find the main device or any device specified in xorg.conf */
     for (i = 0; i < numDevs; i++) {
         const char *devpath;
 

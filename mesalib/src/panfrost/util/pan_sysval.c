@@ -59,7 +59,7 @@ panfrost_nir_sysval_for_intrinsic(nir_intrinsic_instr *instr)
         case nir_intrinsic_load_num_work_groups:
                 return PAN_SYSVAL_NUM_WORK_GROUPS;
         case nir_intrinsic_load_ssbo_address: 
-        case nir_intrinsic_get_buffer_size: 
+        case nir_intrinsic_get_ssbo_size: 
                 return panfrost_sysval_for_ssbo(instr);
         case nir_intrinsic_load_sampler_lod_parameters_pan:
                 return panfrost_sysval_for_sampler(instr);
@@ -124,10 +124,10 @@ panfrost_nir_assign_sysval_body(struct panfrost_sysvals *ctx, nir_instr *instr)
 }
 
 void
-panfrost_nir_assign_sysvals(struct panfrost_sysvals *ctx, nir_shader *shader)
+panfrost_nir_assign_sysvals(struct panfrost_sysvals *ctx, void *memctx, nir_shader *shader)
 {
         ctx->sysval_count = 0;
-        ctx->sysval_to_id = _mesa_hash_table_u64_create(NULL);
+        ctx->sysval_to_id = _mesa_hash_table_u64_create(memctx);
 
         nir_foreach_function(function, shader) {
                 if (!function->impl) continue;

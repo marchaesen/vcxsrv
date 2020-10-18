@@ -32,6 +32,17 @@ extern "C" {
 
 struct ac_shader_config;
 
+struct aco_compiler_statistic_info {
+   char name[32];
+   char desc[64];
+};
+
+struct aco_compiler_statistics {
+   unsigned count;
+   struct aco_compiler_statistic_info *infos;
+   uint32_t values[];
+};
+
 void aco_compile_shader(unsigned shader_count,
                         struct nir_shader *const *shaders,
                         struct radv_shader_binary** binary,

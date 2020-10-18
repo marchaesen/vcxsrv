@@ -178,7 +178,7 @@ If the valuemask contains a valid set of GC mask bits
 .BR GCSubwindowMode ,
 .BR GCGraphicsExposures ,
 .BR GCClipXOrigin ,
-.BR GCCLipYOrigin ,
+.BR GCClipYOrigin ,
 .BR GCDashOffset ,
 or
 .BR GCArcMode )

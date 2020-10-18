@@ -37,7 +37,6 @@
 #include <stdlib.h>
 
 #include "fb.h"
-#include "os.h"
 #include "pixmapstr.h"
 
 #include "xwayland-pixmap.h"
@@ -111,9 +110,16 @@ create_tmpfile_cloexec(char *tmpname)
  *
  * If the C library implements posix_fallocate(), it is used to
  * guarantee that disk space is available for the file at the
- * given size. If disk space is insufficent, errno is set to ENOSPC.
+ * given size. If disk space is insufficient, errno is set to ENOSPC.
  * If posix_fallocate() is not supported, program may receive
  * SIGBUS on accessing mmap()'ed file contents instead.
+ *
+ * If the C library implements memfd_create(), it is used to create the
+ * file purely in memory, without any backing file name on the file
+ * system, and then sealing off the possibility of shrinking it.  This
+ * can then be checked before accessing mmap()'ed file contents, to
+ * make sure SIGBUS can't happen.  It also avoids requiring
+ * XDG_RUNTIME_DIR.
  */
 static int
 os_create_anonymous_file(off_t size)
@@ -124,25 +130,39 @@ os_create_anonymous_file(off_t size)
     int fd;
     int ret;
 
-    path = getenv("XDG_RUNTIME_DIR");
-    if (!path) {
-        errno = ENOENT;
-        return -1;
+#ifdef HAVE_MEMFD_CREATE
+    fd = memfd_create("xwayland-shared", MFD_CLOEXEC | MFD_ALLOW_SEALING);
+    if (fd >= 0) {
+        /* We can add this seal before calling posix_fallocate(), as
+         * the file is currently zero-sized anyway.
+         *
+         * There is also no need to check for the return value, we
+         * couldn't do anything with it anyway.
+         */
+        fcntl(fd, F_ADD_SEALS, F_SEAL_SHRINK);
+    } else
+#endif
+    {
+        path = getenv("XDG_RUNTIME_DIR");
+        if (!path) {
+            errno = ENOENT;
+            return -1;
+        }
+
+        name = malloc(strlen(path) + sizeof(template));
+        if (!name)
+            return -1;
+
+        strcpy(name, path);
+        strcat(name, template);
+
+        fd = create_tmpfile_cloexec(name);
+
+        free(name);
+
+        if (fd < 0)
+            return -1;
     }
-
-    name = malloc(strlen(path) + sizeof(template));
-    if (!name)
-        return -1;
-
-    strcpy(name, path);
-    strcat(name, template);
-
-    fd = create_tmpfile_cloexec(name);
-
-    free(name);
-
-    if (fd < 0)
-        return -1;
 
 #ifdef HAVE_POSIX_FALLOCATE
     /*

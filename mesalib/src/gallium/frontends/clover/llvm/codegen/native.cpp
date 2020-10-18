@@ -114,7 +114,7 @@ namespace {
 
       std::unique_ptr<TargetMachine> tm {
          t->createTargetMachine(target.triple, target.cpu, "", {},
-                                ::llvm::None, compat::default_code_model,
+                                ::llvm::None, ::llvm::None,
                                 ::llvm::CodeGenOpt::Default) };
       if (!tm)
          fail(r_log, build_error(),
@@ -130,7 +130,7 @@ namespace {
          tm->Options.MCOptions.AsmVerbose =
             (ft == compat::CGFT_AssemblyFile);
 
-         if (compat::add_passes_to_emit_file(*tm, pm, os, ft))
+         if (tm->addPassesToEmitFile(pm, os, nullptr, ft))
             fail(r_log, build_error(), "TargetMachine can't emit this file");
 
          pm.run(mod);
@@ -154,7 +154,7 @@ clover::llvm::print_module_native(const ::llvm::Module &mod,
                                   const target &target) {
    std::string log;
    try {
-      std::unique_ptr< ::llvm::Module> cmod { compat::clone_module(mod) };
+      std::unique_ptr< ::llvm::Module> cmod { ::llvm::CloneModule(mod) };
       return as_string(emit_code(*cmod, target,
                                  compat::CGFT_AssemblyFile, log));
    } catch (...) {

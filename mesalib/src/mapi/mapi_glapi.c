@@ -169,6 +169,15 @@ _glapi_add_dispatch( const char * const * function_names,
    return (alias) ? stub_get_slot(alias) : -1;
 }
 
+#if defined(ANDROID) && ANDROID_API_LEVEL <= 30
+static int is_debug_marker_func(const char *name)
+{
+   return (!strcmp(name, "InsertEventMarkerEXT") ||
+           !strcmp(name, "PushGroupMarkerEXT") ||
+           !strcmp(name, "PopGroupMarkerEXT"));
+}
+#endif
+
 static const struct mapi_stub *
 _glapi_get_stub(const char *name, int generate)
 {
@@ -179,7 +188,15 @@ _glapi_get_stub(const char *name, int generate)
    name += 2;
 
    stub = stub_find_public(name);
+#if defined(ANDROID) && ANDROID_API_LEVEL <= 30
+   /* Android framework till API Level 30 uses function pointers from
+    * eglGetProcAddress without checking GL_EXT_debug_marker.
+    * Make sure we don't return stub function pointers if we don't
+    * support GL_EXT_debug_marker */
+   if (!stub && !is_debug_marker_func(name))
+#else
    if (!stub)
+#endif
       stub = stub_find_dynamic(name, generate);
 
    return stub;

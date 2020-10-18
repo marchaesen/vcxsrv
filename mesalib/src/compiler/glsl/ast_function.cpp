@@ -182,6 +182,37 @@ is_atomic_function(const char *func_name)
           !strcmp(func_name, "atomicCompSwap");
 }
 
+static bool
+verify_atomic_image_parameter_qualifier(YYLTYPE *loc, _mesa_glsl_parse_state *state,
+                                        ir_variable *var)
+{
+   if (!var ||
+       (var->data.image_format != PIPE_FORMAT_R32_UINT &&
+        var->data.image_format != PIPE_FORMAT_R32_SINT &&
+        var->data.image_format != PIPE_FORMAT_R32_FLOAT)) {
+      _mesa_glsl_error(loc, state, "Image atomic functions should use r32i/r32ui "
+                       "format qualifier");
+      return false;
+   }
+   return true;
+}
+
+static bool
+is_atomic_image_function(const char *func_name)
+{
+   return !strcmp(func_name, "imageAtomicAdd") ||
+          !strcmp(func_name, "imageAtomicMin") ||
+          !strcmp(func_name, "imageAtomicMax") ||
+          !strcmp(func_name, "imageAtomicAnd") ||
+          !strcmp(func_name, "imageAtomicOr") ||
+          !strcmp(func_name, "imageAtomicXor") ||
+          !strcmp(func_name, "imageAtomicExchange") ||
+          !strcmp(func_name, "imageAtomicCompSwap") ||
+          !strcmp(func_name, "imageAtomicIncWrap") ||
+          !strcmp(func_name, "imageAtomicDecWrap");
+}
+
+
 /**
  * Verify that 'out' and 'inout' actual parameters are lvalues.  Also, verify
  * that 'const_in' formal parameters (an extension in our IR) correspond to
@@ -205,9 +236,6 @@ verify_parameter_modes(_mesa_glsl_parse_state *state,
       const ast_expression *const actual_ast =
          exec_node_data(ast_expression, actual_ast_node, link);
 
-      /* FIXME: 'loc' is incorrect (as of 2011-01-21). It is always
-       * FIXME: 0:0(0).
-       */
       YYLTYPE loc = actual_ast->get_location();
 
       /* Verify that 'const_in' parameters are ir_constants. */
@@ -347,6 +375,19 @@ verify_parameter_modes(_mesa_glsl_parse_state *state,
       YYLTYPE loc = actual_ast->get_location();
 
       if (!verify_first_atomic_parameter(&loc, state,
+                                         actual->variable_referenced())) {
+         return false;
+      }
+   } else if (is_atomic_image_function(func_name)) {
+      const ir_rvalue *const actual =
+         (ir_rvalue *) actual_ir_parameters.get_head_raw();
+
+      const ast_expression *const actual_ast =
+         exec_node_data(ast_expression,
+                        actual_ast_parameters.get_head_raw(), link);
+      YYLTYPE loc = actual_ast->get_location();
+
+      if (!verify_atomic_image_parameter_qualifier(&loc, state,
                                          actual->variable_referenced())) {
          return false;
       }

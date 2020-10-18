@@ -10,6 +10,9 @@ PLATFORM_SYMBOLS = [
     '__bss_end__',
     '__bss_start__',
     '__bss_start',
+    '__cxa_guard_abort',
+    '__cxa_guard_acquire',
+    '__cxa_guard_release',
     '__end__',
     '_bss_end__',
     '_edata',
@@ -17,7 +20,6 @@ PLATFORM_SYMBOLS = [
     '_fini',
     '_init',
 ]
-
 
 def get_symbols_nm(nm, lib):
     '''
@@ -88,6 +90,9 @@ def main():
     parser.add_argument('--dumpbin',
                         action='store',
                         help='path to binary (or name in $PATH)')
+    parser.add_argument('--ignore-symbol',
+                        action='append',
+                        help='do not process this symbol')
     args = parser.parse_args()
 
     try:
@@ -146,6 +151,8 @@ def main():
         if symbol in mandatory_symbols:
             continue
         if symbol in optional_symbols:
+            continue
+        if args.ignore_symbol and symbol in args.ignore_symbol:
             continue
         if symbol[:2] == '_Z':
             # As ajax found out, the compiler intentionally exports symbols

@@ -339,7 +339,7 @@ xnestChangeWindowAttributes(WindowPtr pWin, unsigned long mask)
         xnestSetInstalledColormapWindows(pWin->drawable.pScreen);
     }
 
-    if (mask & CWCursor)        /* this is handeled in cursor code */
+    if (mask & CWCursor)        /* this is handled in cursor code */
         mask &= ~CWCursor;
 
     if (mask)

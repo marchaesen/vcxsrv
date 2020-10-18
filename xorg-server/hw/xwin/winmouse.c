@@ -100,7 +100,7 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
          */
         map = malloc(sizeof(CARD8) * (lngMouseButtons + lngWheelEvents + 1));
 
-        /* initalize button map */
+        /* initialize button map */
         map[0] = 0;
         for (i = 1; i <= lngMouseButtons + lngWheelEvents; i++)
             map[i] = i;

@@ -24,9 +24,9 @@
 #ifndef AC_BINARY_H
 #define AC_BINARY_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,26 +35,24 @@ extern "C" {
 struct radeon_info;
 
 struct ac_shader_config {
-	unsigned num_sgprs;
-	unsigned num_vgprs;
-	unsigned num_shared_vgprs; /* GFX10: number of VGPRs shared between half-waves */
-	unsigned spilled_sgprs;
-	unsigned spilled_vgprs;
-	unsigned lds_size; /* in HW allocation units; i.e 256 bytes on SI, 512 bytes on CI+ */
-	unsigned spi_ps_input_ena;
-	unsigned spi_ps_input_addr;
-	unsigned float_mode;
-	unsigned scratch_bytes_per_wave;
-	unsigned rsrc1;
-	unsigned rsrc2;
-	unsigned rsrc3;
+   unsigned num_sgprs;
+   unsigned num_vgprs;
+   unsigned num_shared_vgprs; /* GFX10: number of VGPRs shared between half-waves */
+   unsigned spilled_sgprs;
+   unsigned spilled_vgprs;
+   unsigned lds_size; /* in HW allocation units; i.e 256 bytes on SI, 512 bytes on CI+ */
+   unsigned spi_ps_input_ena;
+   unsigned spi_ps_input_addr;
+   unsigned float_mode;
+   unsigned scratch_bytes_per_wave;
+   unsigned rsrc1;
+   unsigned rsrc2;
+   unsigned rsrc3;
 };
 
-void ac_parse_shader_binary_config(const char *data, size_t nbytes,
-				   unsigned wave_size,
-				   bool really_needs_scratch,
-				   const struct radeon_info *info,
-				   struct ac_shader_config *conf);
+void ac_parse_shader_binary_config(const char *data, size_t nbytes, unsigned wave_size,
+                                   bool really_needs_scratch, const struct radeon_info *info,
+                                   struct ac_shader_config *conf);
 
 #ifdef __cplusplus
 }

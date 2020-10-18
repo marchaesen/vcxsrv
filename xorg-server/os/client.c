@@ -197,7 +197,7 @@ DetermineClientCmd(pid_t pid, const char **cmdname, const char **cmdargs)
         return;
     path[totsize - 1] = '\0';
 
-    /* Contruct the process name without arguments. */
+    /* Construct the process name without arguments. */
     if (cmdname) {
         *cmdname = strdup(path);
     }

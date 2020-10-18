@@ -53,6 +53,7 @@ if cc.get_id() == 'msvc'
 else
   idep_getopt = null_dep
 endif
+subdir('android_stub')
 subdir('util')
 subdir('mapi')
 # TODO: opengl
@@ -72,7 +73,7 @@ endif
 if with_gallium_radeonsi or with_amd_vk
   subdir('amd')
 endif
-if with_gallium_vc4 or with_gallium_v3d
+if with_gallium_vc4 or with_gallium_v3d or with_broadcom_vk
   subdir('broadcom')
 endif
 if with_gallium_etnaviv
@@ -83,6 +84,9 @@ if with_gallium_freedreno or with_freedreno_vk
 endif
 if with_gallium_panfrost or with_gallium_lima
   subdir('panfrost')
+endif
+if with_gallium_virgl
+  subdir('virtio')
 endif
 if with_dri_i965 or with_intel_vk or with_gallium_iris
   subdir('intel')
@@ -122,6 +126,6 @@ if with_glx != 'disabled' and not with_glvnd
     libraries : libgl,
     libraries_private : gl_priv_libs,
     requires_private : gl_priv_reqs,
-    variables : ['glx_tls=yes'],
+    variables : ['glx_tls=@0@'.format(use_elf_tls ? 'yes' : 'no')],
   )
 endif

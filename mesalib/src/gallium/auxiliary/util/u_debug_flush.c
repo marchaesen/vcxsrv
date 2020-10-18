@@ -216,9 +216,9 @@ debug_flush_map(struct debug_flush_buf *fbuf, unsigned flags)
       return;
 
    mtx_lock(&fbuf->mutex);
-   map_sync = !(flags & PIPE_TRANSFER_UNSYNCHRONIZED);
+   map_sync = !(flags & PIPE_MAP_UNSYNCHRONIZED);
    persistent = !map_sync || fbuf->supports_persistent ||
-      !!(flags & PIPE_TRANSFER_PERSISTENT);
+      !!(flags & PIPE_MAP_PERSISTENT);
 
    /* Recursive maps are allowed if previous maps are persistent,
     * or if the current map is unsync. In other cases we might flush

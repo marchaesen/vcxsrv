@@ -63,7 +63,7 @@ typedef struct DMXConfigListStruct {
     struct DMXConfigListStruct *next;
 } DMXConfigList, *DMXConfigListPtr;
 
-/** This stucture stores the parsed configuration information. */
+/** This structure stores the parsed configuration information. */
 typedef struct DMXConfigCmdStruct {
     const char *filename;
     const char *config;

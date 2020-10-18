@@ -417,7 +417,7 @@ allocate_uniform_blocks(void *mem_ctx,
    *num_variables = 0;
    *num_blocks = 0;
 
-   nir_foreach_variable(var, &shader->Program->nir->uniforms) {
+   nir_foreach_variable_in_shader(var, shader->Program->nir) {
       if (block_type == BLOCK_UBO && !nir_variable_is_in_ubo(var))
          continue;
 
@@ -557,7 +557,7 @@ link_linked_shader_uniform_blocks(void *mem_ctx,
    unsigned variable_index = 0;
    struct gl_uniform_block *blks = *blocks;
 
-   nir_foreach_variable(var, &shader->Program->nir->uniforms) {
+   nir_foreach_variable_in_shader(var, shader->Program->nir) {
       if (block_type == BLOCK_UBO && !nir_variable_is_in_ubo(var))
          continue;
 

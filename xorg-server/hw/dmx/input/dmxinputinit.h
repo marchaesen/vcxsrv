@@ -256,7 +256,7 @@ typedef struct _DMXLocalInputInfo {
 
     long deviceId;                        /**< device id on remote side,
                                            * if any */
-    const char *deviceName;               /**< devive name on remote
+    const char *deviceName;               /**< device name on remote
                                            * side, if any */
 } DMXLocalInputInfoRec;
 

@@ -62,6 +62,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "XimTrInt.h"
 #include "Ximint.h"
 
+#include <limits.h>
 
 int
 _XimCheckDataSize(
@@ -807,12 +808,16 @@ _XimOpen(
     int			 buf_size;
     int			 ret_code;
     char		*locale_name;
+    size_t		 locale_len;
 
     locale_name = im->private.proto.locale_name;
-    len = strlen(locale_name);
-    buf_b[0] = (BYTE)len;			   /* length of locale name */
-    (void)strcpy((char *)&buf_b[1], locale_name);  /* locale name */
-    len += sizeof(BYTE);			   /* sizeof length */
+    locale_len = strlen(locale_name);
+    if (locale_len > UCHAR_MAX)
+      return False;
+    memset(buf32, 0, sizeof(buf32));
+    buf_b[0] = (BYTE)locale_len;		/* length of locale name */
+    memcpy(&buf_b[1], locale_name, locale_len);	   /* locale name */
+    len = (INT16)(locale_len + sizeof(BYTE));	   /* sizeof length */
     XIM_SET_PAD(buf_b, len);			   /* pad */
 
     _XimSetHeader((XPointer)buf, XIM_OPEN, 0, &len);
@@ -869,7 +874,7 @@ _XimOpen(
     _XimSetIMMode(im->private.proto.im_inner_resources,
 				im->private.proto.im_num_inner_resources);
 
-    /* Transport Callbak */
+    /* Transport Callback */
     _XimRegProtoIntrCallback(im, XIM_SET_EVENT_MASK, 0,
 				 _XimSetEventMaskCallback, (XPointer)im);
     _XimRegProtoIntrCallback(im, XIM_FORWARD_EVENT, 0,
@@ -1287,6 +1292,7 @@ _XimProtoSetIMValues(
 #endif /* XIM_CONNECTABLE */
 
     _XimGetCurrentIMValues(im, &im_values);
+    memset(tmp_buf, 0, sizeof(tmp_buf32));
     buf = tmp_buf;
     buf_size = XIM_HEADER_SIZE + sizeof(CARD16) + sizeof(INT16);
     data_len = BUFSIZE - buf_size;
@@ -1307,7 +1313,7 @@ _XimProtoSetIMValues(
 
 	buf_size += ret_len;
 	if (buf == tmp_buf) {
-	    if (!(tmp = Xmalloc(buf_size + data_len))) {
+	    if (!(tmp = Xcalloc(buf_size + data_len, 1))) {
 		return arg->name;
 	    }
 	    memcpy(tmp, buf, buf_size);
@@ -1317,6 +1323,7 @@ _XimProtoSetIMValues(
 		Xfree(buf);
 		return arg->name;
 	    }
+            memset(&tmp[buf_size], 0, data_len);
 	    buf = tmp;
 	}
     }
@@ -1458,7 +1465,7 @@ _XimProtoGetIMValues(
 	     + sizeof(INT16)
 	     + XIM_PAD(buf_size);
 
-    if (!(buf = Xmalloc(buf_size)))
+    if (!(buf = Xcalloc(buf_size, 1)))
 	return arg->name;
     buf_s = (CARD16 *)&buf[XIM_HEADER_SIZE];
 
@@ -1558,10 +1565,10 @@ _XimSetEncodingByName(
     *buf = (char *)ret;
 
     ret[0] = (BYTE)encoding_len;
-    (void)strncpy((char *)&ret[1], encoding, encoding_len);
+    memcpy(&ret[1], encoding, encoding_len);
     ret += (encoding_len + sizeof(BYTE));
     ret[0] = (BYTE)compound_len;
-    (void)strncpy((char *)&ret[1], "COMPOUND_TEXT", compound_len);
+    memcpy(&ret[1], "COMPOUND_TEXT", compound_len);
     return True;
 }
 
@@ -1720,7 +1727,7 @@ _XimEncodingNegotiation(
 	+ sizeof(CARD16)
 	+ detail_len;
 
-    if (!(buf = Xmalloc(XIM_HEADER_SIZE + len)))
+    if (!(buf = Xcalloc(XIM_HEADER_SIZE + len, 1)))
 	goto free_detail_ptr;
 
     buf_s = (CARD16 *)&buf[XIM_HEADER_SIZE];
@@ -1816,6 +1823,7 @@ _XimSendSavedIMValues(
     int			 ret_code;
 
     _XimGetCurrentIMValues(im, &im_values);
+    memset(tmp_buf, 0, sizeof(tmp_buf32));
     buf = tmp_buf;
     buf_size = XIM_HEADER_SIZE + sizeof(CARD16) + sizeof(INT16);
     data_len = BUFSIZE - buf_size;
@@ -1838,7 +1846,7 @@ _XimSendSavedIMValues(
 
 	buf_size += ret_len;
 	if (buf == tmp_buf) {
-	    if (!(tmp = Xmalloc(buf_size + data_len))) {
+	    if (!(tmp = Xcalloc(buf_size + data_len, 1))) {
 		return False;
 	    }
 	    memcpy(tmp, buf, buf_size);
@@ -1848,6 +1856,7 @@ _XimSendSavedIMValues(
 		Xfree(buf);
 		return False;
 	    }
+            memset(&tmp[buf_size], 0, data_len);
 	    buf = tmp;
 	}
     }

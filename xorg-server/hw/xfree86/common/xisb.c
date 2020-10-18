@@ -155,7 +155,7 @@ XisbTrace(XISBuffer * b, int trace)
  * will use check to select for data and prevent a block.
  * It is the caller's responsibility to set the block_duration to -1 if it
  * knows that there is data to read (because the main select loop triggered
- * the read) and want's to avoid the unnecessary overhead of the select call
+ * the read) and wants to avoid the unnecessary overhead of the select call
  *
  * a zero or positive block duration will cause the select to block for the
  * give duration in usecs.

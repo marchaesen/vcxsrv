@@ -96,7 +96,7 @@ for the INT10 executor:
  starting at address  0 in the process virtual  memory space.  Thus if
  this mode is to be used, the OS environment has to be able to provide
  that, ie. it must be able to remap the processes virtual memory space
- onto itself.  If the  emulator is able  to handle memory  access thru
+ onto itself.  If the emulator is able to handle memory access through
  externally  provided functions the  real mode  process memory  can be
  located anywhere  in the processes  virtual memory. It does  not even
  have to be consecutive.
@@ -304,7 +304,7 @@ FALSE. Otherwise TRUE is returned.
 
 Note: This  function is  currently based on  the Linux vm86  call.  It
 might have  to be modified  or even rewritten  for other OS.   So your
-milage may vary.
+mileage may vary.
 
 Functions to dump memory, code, xf86 CPU register values and stack are
 also provided.  Take a  look at  helper.c To view  a memory  range the

@@ -20,6 +20,7 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#include <algorithm>
 #include <unistd.h>
 #include "core/device.hpp"
 #include "core/platform.hpp"
@@ -27,6 +28,9 @@
 #include "pipe/p_state.h"
 #include "util/bitscan.h"
 #include "util/u_debug.h"
+#include "spirv/invocation.hpp"
+#include "nir/invocation.hpp"
+#include <fstream>
 
 using namespace clover;
 
@@ -44,14 +48,18 @@ namespace {
 }
 
 device::device(clover::platform &platform, pipe_loader_device *ldev) :
-   platform(platform), ldev(ldev) {
+   platform(platform), clc_cache(NULL), ldev(ldev) {
    pipe = pipe_loader_create_screen(ldev);
    if (pipe && pipe->get_param(pipe, PIPE_CAP_COMPUTE)) {
       if (supports_ir(PIPE_SHADER_IR_NATIVE))
          return;
 #ifdef HAVE_CLOVER_SPIRV
-      if (supports_ir(PIPE_SHADER_IR_NIR_SERIALIZED))
+      if (supports_ir(PIPE_SHADER_IR_NIR_SERIALIZED)) {
+         nir::check_for_libclc(*this);
+         clc_cache = nir::create_clc_disk_cache();
+         clc_nir = lazy<std::shared_ptr<nir_shader>>([&] () { std::string log; return std::shared_ptr<nir_shader>(nir::load_libclc_nir(*this, log), ralloc_free); });
          return;
+      }
 #endif
    }
    if (pipe)
@@ -60,6 +68,8 @@ device::device(clover::platform &platform, pipe_loader_device *ldev) :
 }
 
 device::~device() {
+   if (clc_cache)
+      disk_cache_destroy(clc_cache);
    if (pipe)
       pipe->destroy(pipe);
    if (ldev)
@@ -215,9 +225,9 @@ device::has_unified_memory() const {
    return pipe->get_param(pipe, PIPE_CAP_UMA);
 }
 
-cl_uint
+size_t
 device::mem_base_addr_align() const {
-   return sysconf(_SC_PAGESIZE);
+   return std::max((size_t)sysconf(_SC_PAGESIZE), sizeof(cl_long) * 16);
 }
 
 cl_device_svm_capabilities
@@ -237,13 +247,18 @@ device::svm_support() const {
    //
    // Another unsolvable scenario is a cl_mem object passed by cl_mem reference
    // and SVM pointer into the same kernel at the same time.
-   if (pipe->get_param(pipe, PIPE_CAP_RESOURCE_FROM_USER_MEMORY) &&
-       pipe->get_param(pipe, PIPE_CAP_SYSTEM_SVM))
+   if (allows_user_pointers() && pipe->get_param(pipe, PIPE_CAP_SYSTEM_SVM))
       // we can emulate all lower levels if we support fine grain system
       return CL_DEVICE_SVM_FINE_GRAIN_SYSTEM |
              CL_DEVICE_SVM_COARSE_GRAIN_BUFFER |
              CL_DEVICE_SVM_FINE_GRAIN_BUFFER;
    return 0;
+}
+
+bool
+device::allows_user_pointers() const {
+   return pipe->get_param(pipe, PIPE_CAP_RESOURCE_FROM_USER_MEMORY) ||
+          pipe->get_param(pipe, PIPE_CAP_RESOURCE_FROM_USER_MEMORY_COMPUTE_ONLY);
 }
 
 std::vector<size_t>

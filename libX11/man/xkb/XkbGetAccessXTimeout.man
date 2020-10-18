@@ -21,7 +21,7 @@
 .\"
 .TH XkbGetAccessXTimeout __libmansuffix__ __xorgversion__ "XKB FUNCTIONS"
 .SH NAME
-XkbGetAccessXTimeout \- Queries the current AccessXTimeout options for a 
+XkbGetAccessXTimeout \- Queries the current AccessXTimeout options for a
 keyboard device
 .SH SYNOPSIS
 .HP
@@ -41,7 +41,7 @@ keyboard device
 unsigned short
 .TP
 .I \- device_spec
-device to query, or XkbUseCoreKbd 
+device to query, or XkbUseCoreKbd
 .TP
 .I \- timeout_rtrn
 delay until AccessXTimeout, seconds
@@ -59,51 +59,51 @@ backfilled with ax_options to modify
 backfilled with values for ax_options
 .SH DESCRIPTION
 .LP
-In environments where computers are shared, features such as SlowKeys present a 
-problem: if 
-SlowKeys is on, the keyboard can appear to be unresponsive because keys are not 
-accepted 
-until they are held for a certain period of time. To help solve this problem, 
-Xkb provides 
-an AccessXTimeout control to automatically change the enabled/disabled state of 
-any boolean 
-controls and to change the value of the AccessXKeys and AccessXFeedback control 
-attributes 
+In environments where computers are shared, features such as SlowKeys present a
+problem: if
+SlowKeys is on, the keyboard can appear to be unresponsive because keys are not
+accepted
+until they are held for a certain period of time. To help solve this problem,
+Xkb provides
+an AccessXTimeout control to automatically change the enabled/disabled state of
+any boolean
+controls and to change the value of the AccessXKeys and AccessXFeedback control
+attributes
 if the keyboard is idle for a specified period of time.
 
-When a timeout as specified by AccessXTimeout occurs and a control is 
-consequently modified, 
+When a timeout as specified by AccessXTimeout occurs and a control is
+consequently modified,
 Xkb generates an XkbControlsNotify event.
 
-.I XkbGetAccessXTimeout 
-sends a request to the X server to obtain the current values for the 
-AccessXTimeout attributes, waits for a reply, and backfills the values into the 
-appropriate arguments. The parameters 
-.I options_mask_rtrn 
-and 
-.I options_values_rtrn 
-are backfilled with the options to modify and the values for 
-.I ax_options, 
+.I XkbGetAccessXTimeout
+sends a request to the X server to obtain the current values for the
+AccessXTimeout attributes, waits for a reply, and backfills the values into the
+appropriate arguments. The parameters
+.I options_mask_rtrn
+and
+.I options_values_rtrn
+are backfilled with the options to modify and the values for
+.I ax_options,
 which is a field in the XkbControlsRec structure.
-.I XkbGetAccessXTimeout 
-returns True if successful; if a compatible version of the Xkb extension is not 
-available in the server, 
-.I XkbGetAccessXTimeout 
+.I XkbGetAccessXTimeout
+returns True if successful; if a compatible version of the Xkb extension is not
+available in the server,
+.I XkbGetAccessXTimeout
 returns False.
 .SH "RETURN VALUES"
 .TP 15
 True
-The 
-.I XkbGetAccessXTimeout 
-returns True when it successfully sends a request to the X server to obtain the 
-current values for the AccessXTimeout attributes, waits for a reply, and 
+The
+.I XkbGetAccessXTimeout
+returns True when it successfully sends a request to the X server to obtain the
+current values for the AccessXTimeout attributes, waits for a reply, and
 backfills the values into the appropriate arguments.
 .TP 15
 False
-The 
-.I XkbGetAccessXTimeout 
-funtion returns False if a compatible version of the Xkb extension is not 
-available in the 
+The
+.I XkbGetAccessXTimeout
+function returns False if a compatible version of the Xkb extension is not
+available in the
 server.
 .SH STRUCTURES
 .LP
@@ -112,7 +112,7 @@ The XkbControlsRec structure is defined as follows:
 
 \&#define XkbMaxLegalKeyCode     255
 \&#define XkbPerKeyBitArraySize  ((XkbMaxLegalKeyCode+1)/8)
-    
+
 typedef struct {
     unsigned char   mk_dflt_btn;      /\(** default button for keyboard driven mouse */
     unsigned char   num_groups;       /\(** number of keyboard groups */

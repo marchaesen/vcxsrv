@@ -361,6 +361,13 @@ glsl_sampler_type_is_array(const struct glsl_type *type)
 }
 
 bool
+glsl_struct_type_is_packed(const struct glsl_type *type)
+{
+   assert(glsl_type_is_struct(type));
+   return type->packed;
+}
+
+bool
 glsl_type_is_dual_slot(const struct glsl_type *type)
 {
    return type->is_dual_slot();
@@ -414,6 +421,18 @@ glsl_float16_t_type(void)
 }
 
 const glsl_type *
+glsl_floatN_t_type(unsigned bit_size)
+{
+   switch (bit_size) {
+   case 16: return glsl_type::float16_t_type;
+   case 32: return glsl_type::float_type;
+   case 64: return glsl_type::double_type;
+   default:
+      unreachable("Unsupported bit size");
+   }
+}
+
+const glsl_type *
 glsl_vec_type(unsigned n)
 {
    return glsl_type::vec(n);
@@ -435,6 +454,12 @@ const glsl_type *
 glsl_uvec4_type(void)
 {
    return glsl_type::uvec4_type;
+}
+
+const glsl_type *
+glsl_ivec4_type(void)
+{
+   return glsl_type::ivec4_type;
 }
 
 const glsl_type *
@@ -483,6 +508,32 @@ const glsl_type *
 glsl_uint8_t_type(void)
 {
    return glsl_type::uint8_t_type;
+}
+
+const glsl_type *
+glsl_intN_t_type(unsigned bit_size)
+{
+   switch (bit_size) {
+   case 8:  return glsl_type::int8_t_type;
+   case 16: return glsl_type::int16_t_type;
+   case 32: return glsl_type::int_type;
+   case 64: return glsl_type::int64_t_type;
+   default:
+      unreachable("Unsupported bit size");
+   }
+}
+
+const glsl_type *
+glsl_uintN_t_type(unsigned bit_size)
+{
+   switch (bit_size) {
+   case 8:  return glsl_type::uint8_t_type;
+   case 16: return glsl_type::uint16_t_type;
+   case 32: return glsl_type::uint_type;
+   case 64: return glsl_type::uint64_t_type;
+   default:
+      unreachable("Unsupported bit size");
+   }
 }
 
 const glsl_type *
@@ -577,6 +628,12 @@ const struct glsl_type *
 glsl_bare_sampler_type()
 {
    return glsl_type::sampler_type;
+}
+
+const struct glsl_type *
+glsl_bare_shadow_sampler_type()
+{
+   return glsl_type::samplerShadow_type;
 }
 
 const struct glsl_type *
@@ -683,6 +740,7 @@ glsl_get_natural_size_align_bytes(const struct glsl_type *type,
       break;
    }
 
+   case GLSL_TYPE_INTERFACE:
    case GLSL_TYPE_STRUCT:
       *size = 0;
       *align = 0;
@@ -706,7 +764,6 @@ glsl_get_natural_size_align_bytes(const struct glsl_type *type,
    case GLSL_TYPE_SUBROUTINE:
    case GLSL_TYPE_VOID:
    case GLSL_TYPE_ERROR:
-   case GLSL_TYPE_INTERFACE:
    case GLSL_TYPE_FUNCTION:
       unreachable("type does not have a natural size");
    }
@@ -746,6 +803,14 @@ int
 glsl_get_cl_alignment(const struct glsl_type *type)
 {
    return type->cl_alignment();
+}
+
+void
+glsl_get_cl_type_size_align(const struct glsl_type *type,
+                            unsigned *size, unsigned *align)
+{
+   *size = glsl_get_cl_size(type);
+   *align = glsl_get_cl_alignment(type);
 }
 
 unsigned
@@ -839,6 +904,18 @@ glsl_get_explicit_size(const struct glsl_type *type, bool align_to_stride)
    return type->explicit_size(align_to_stride);
 }
 
+unsigned
+glsl_get_explicit_alignment(const struct glsl_type *type)
+{
+   return type->explicit_alignment;
+}
+
+bool
+glsl_type_is_packed(const struct glsl_type *type)
+{
+   return type->packed;
+}
+
 bool
 glsl_type_is_leaf(const struct glsl_type *type)
 {
@@ -858,4 +935,10 @@ glsl_get_explicit_type_for_size_align(const struct glsl_type *type,
                                       unsigned *size, unsigned *align)
 {
    return type->get_explicit_type_for_size_align(type_info, size, align);
+}
+
+const struct glsl_type *
+glsl_type_replace_vec3_with_vec4(const struct glsl_type *type)
+{
+   return type->replace_vec3_with_vec4();
 }

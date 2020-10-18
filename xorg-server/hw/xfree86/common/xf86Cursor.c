@@ -137,8 +137,8 @@ xf86PointerMoved(ScrnInfoPtr pScr, int x, int y)
     Bool frameChanged = FALSE;
 
     /*
-     * check wether (x,y) belongs to the visual part of the screen
-     * if not, change the base of the displayed frame accoring
+     * check whether (x,y) belongs to the visual part of the screen
+     * if not, change the base of the displayed frame occurring
      */
     if (pScr->frameX0 > x) {
         pScr->frameX0 = x;

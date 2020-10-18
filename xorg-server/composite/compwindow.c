@@ -453,7 +453,7 @@ compReparentWindow(WindowPtr pWin, WindowPtr pPriorParent)
     compUnredirectOneSubwindow(pPriorParent, pWin);
     compRedirectOneSubwindow(pWin->parent, pWin);
     /*
-     * Add any implict redirect due to synthesized visual
+     * Add any implicit redirect due to synthesized visual
      */
     if (compImplicitRedirect(pWin, pWin->parent))
         compRedirectWindow(serverClient, pWin, CompositeRedirectAutomatic);

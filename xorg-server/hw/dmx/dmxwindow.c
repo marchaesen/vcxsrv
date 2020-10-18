@@ -270,7 +270,7 @@ dmxCreateNonRootWindow(WindowPtr pWindow)
 
 /** This function handles lazy window creation and realization.  Window
  *  creation is handled by #dmxCreateNonRootWindow().  It also handles
- *  any stacking changes that have occured since the window was
+ *  any stacking changes that have occurred since the window was
  *  originally created by calling #dmxDoRestackWindow().  If the window
  *  is shaped, the shape is set on the back-end server by calling
  *  #dmxDoSetShape(), and if the window has pictures (from RENDER)

@@ -302,7 +302,7 @@ v3d_emit_ms_output(struct v3d_compile *c, nir_builder *b,
         store->num_components = 4;
         nir_intrinsic_set_base(store, sample);
         nir_intrinsic_set_component(store, 0);
-        nir_intrinsic_set_type(store, type);
+        nir_intrinsic_set_src_type(store, type);
         store->src[0] = nir_src_for_ssa(color);
         store->src[1] = nir_src_for_ssa(nir_imm_int(b, rt));
         nir_builder_instr_insert(b, &store->instr);
@@ -322,7 +322,7 @@ v3d_nir_lower_logic_op_instr(struct v3d_compile *c,
                 c->msaa_per_sample_output = true;
 
                 nir_src *offset = &intr->src[1];
-                nir_alu_type type = nir_intrinsic_type(intr);
+                nir_alu_type type = nir_intrinsic_src_type(intr);
                 for (int i = 0; i < V3D_MAX_SAMPLES; i++) {
                         nir_ssa_def *sample =
                                 v3d_nir_emit_logic_op(c, b, frag_color, rt, i);
@@ -352,7 +352,7 @@ v3d_nir_lower_logic_ops_block(nir_block *block, struct v3d_compile *c)
                 if (intr->intrinsic != nir_intrinsic_store_output)
                         continue;
 
-                nir_foreach_variable(var, &c->s->outputs) {
+                nir_foreach_shader_out_variable(var, c->s) {
                         const int driver_loc = var->data.driver_location;
                         if (driver_loc != nir_intrinsic_base(intr))
                                 continue;

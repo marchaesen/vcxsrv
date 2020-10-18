@@ -766,7 +766,6 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeCmaskAddrFromCoord(
     ADDR2_COMPUTE_CMASK_INFO_INPUT input = {0};
     input.size            = sizeof(input);
     input.cMaskFlags      = pIn->cMaskFlags;
-    input.colorFlags      = pIn->colorFlags;
     input.unalignedWidth  = Max(pIn->unalignedWidth, 1u);
     input.unalignedHeight = Max(pIn->unalignedHeight, 1u);
     input.numSlices       = Max(pIn->numSlices, 1u);

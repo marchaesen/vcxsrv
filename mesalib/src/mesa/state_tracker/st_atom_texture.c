@@ -188,6 +188,10 @@ update_textures(struct st_context *st,
 
       switch (st_get_view_format(stObj)) {
       case PIPE_FORMAT_NV12:
+         if (stObj->pt->format == PIPE_FORMAT_R8_G8B8_420_UNORM)
+            /* no additional views needed */
+            break;
+
          /* we need one additional R8G8 view: */
          tmpl.format = PIPE_FORMAT_RG88_UNORM;
          tmpl.swizzle_g = PIPE_SWIZZLE_Y;   /* tmpl from Y plane is R8 */
@@ -196,6 +200,7 @@ update_textures(struct st_context *st,
                st->pipe->create_sampler_view(st->pipe, stObj->pt->next, &tmpl);
          break;
       case PIPE_FORMAT_P010:
+      case PIPE_FORMAT_P012:
       case PIPE_FORMAT_P016:
          /* we need one additional R16G16 view: */
          tmpl.format = PIPE_FORMAT_RG1616_UNORM;

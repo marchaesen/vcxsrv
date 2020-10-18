@@ -1,4 +1,4 @@
-#		Add & Override for this directory and it's subdirectories
+#		Add & Override for this directory and its subdirectories
 dmxtodmx
 parser.c
 parser.h

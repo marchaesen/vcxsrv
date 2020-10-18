@@ -20,10 +20,6 @@
  * OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_XORG_CONFIG_H
-#include <xorg-config.h>
-#endif
-
 #include "present_priv.h"
 #include <misync.h>
 #include <misyncstr.h>
@@ -335,8 +331,8 @@ present_flip_notify(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
     ScreenPtr                   screen = vblank->screen;
     present_screen_priv_ptr     screen_priv = present_screen_priv(screen);
 
-    DebugPresent(("\tn %" PRIu64 " %p %" PRIu64 ": %08" PRIx32 " -> %08" PRIx32 "\n",
-                  vblank->event_id, vblank, vblank->target_msc,
+    DebugPresent(("\tn %" PRIu64 " %p %" PRIu64 " %" PRIu64 ": %08" PRIx32 " -> %08" PRIx32 "\n",
+                  vblank->event_id, vblank, vblank->exec_msc, vblank->target_msc,
                   vblank->pixmap ? vblank->pixmap->drawable.id : 0,
                   vblank->window ? vblank->window->drawable.id : 0));
 
@@ -456,7 +452,7 @@ present_check_flip_window (WindowPtr window)
             vblank->flip = FALSE;
             vblank->reason = reason;
             if (vblank->sync_flip)
-                vblank->requeue = TRUE;
+                vblank->exec_msc = vblank->target_msc;
         }
     }
 }
@@ -582,6 +578,7 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
               */
             screen_priv->flip_pending = NULL;
             vblank->flip = FALSE;
+            vblank->exec_msc = vblank->target_msc;
         }
         DebugPresent(("\tc %p %" PRIu64 ": %08" PRIx32 " -> %08" PRIx32 "\n",
                       vblank, crtc_msc, vblank->pixmap->drawable.id, vblank->window->drawable.id));
@@ -732,16 +729,19 @@ present_scmd_pixmap(WindowPtr window,
                                    screen_priv->info ? &screen_priv->info->capabilities : NULL,
                                    notifies,
                                    num_notifies,
-                                   &target_msc,
+                                   target_msc,
                                    crtc_msc);
 
     if (!vblank)
         return BadAlloc;
 
+    if (vblank->flip && vblank->sync_flip)
+        vblank->exec_msc--;
+
     xorg_list_append(&vblank->event_queue, &present_exec_queue);
     vblank->queued = TRUE;
-    if (msc_is_after(target_msc, crtc_msc)) {
-        ret = present_queue_vblank(screen, window, target_crtc, vblank->event_id, target_msc);
+    if (msc_is_after(vblank->exec_msc, crtc_msc)) {
+        ret = present_queue_vblank(screen, window, target_crtc, vblank->event_id, vblank->exec_msc);
         if (ret == Success)
             return Success;
 

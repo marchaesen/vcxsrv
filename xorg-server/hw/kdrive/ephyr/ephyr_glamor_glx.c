@@ -42,7 +42,7 @@
 #include <X11/Xproto.h>
 
 /* until we need geometry shaders GL3.1 should suffice. */
-/* Xephyr has it's own copy of this for build reasons */
+/* Xephyr has its own copy of this for build reasons */
 #define GLAMOR_GL_CORE_VER_MAJOR 3
 #define GLAMOR_GL_CORE_VER_MINOR 1
 /** @{

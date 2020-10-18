@@ -25,6 +25,8 @@ import asyncio
 import datetime
 import os
 import pathlib
+import re
+import subprocess
 import sys
 import textwrap
 import typing
@@ -73,7 +75,7 @@ TEMPLATE = Template(textwrap.dedent("""\
     ------------
 
     %for f in features:
-    - ${f}
+    - ${rst_escape(f)}
     %endfor
 
 
@@ -81,7 +83,7 @@ TEMPLATE = Template(textwrap.dedent("""\
     ---------
 
     %for b in bugs:
-    - ${b}
+    - ${rst_escape(b)}
     %endfor
 
 
@@ -90,13 +92,25 @@ TEMPLATE = Template(textwrap.dedent("""\
     %for c, author_line in changes:
       %if author_line:
 
-    ${c}
+    ${rst_escape(c)}
 
       %else:
-    - ${c}
+    - ${rst_escape(c)}
       %endif
     %endfor
     """))
+
+
+def rst_escape(unsafe_str: str) -> str:
+    "Escape rST special chars when they follow or preceed a whitespace"
+    special = re.escape(r'`<>*_#[]|')
+    unsafe_str = re.sub(r'(^|\s)([' + special + r'])',
+                        r'\1\\\2',
+                        unsafe_str)
+    unsafe_str = re.sub(r'([' + special + r'])(\s|$)',
+                        r'\\\1\2',
+                        unsafe_str)
+    return unsafe_str
 
 
 async def gather_commits(version: str) -> str:
@@ -211,6 +225,7 @@ def get_features(is_point_release: bool) -> typing.Generator[str, None, None]:
                 yield line
             else:
                 yield "None"
+        p.unlink()
     else:
         yield "None"
 
@@ -247,9 +262,14 @@ async def main() -> None:
                 header_underline=header_underline,
                 previous_version=previous_version,
                 vk_version=CURRENT_VK_VERSION,
+                rst_escape=rst_escape,
             ))
         except:
             print(exceptions.text_error_template().render())
+
+    subprocess.run(['git', 'add', final])
+    subprocess.run(['git', 'commit', '-m',
+                    f'docs: add release notes for {this_version}'])
 
 
 if __name__ == "__main__":

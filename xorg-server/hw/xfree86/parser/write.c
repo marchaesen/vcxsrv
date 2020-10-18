@@ -139,7 +139,7 @@ xf86writeConfigFile(const char *filename, XF86ConfigPtr cptr)
         int status;
         void (*csig) (int);
 
-        /* Need to fork to change ruid without loosing euid */
+        /* Need to fork to change ruid without losing euid */
         csig = OsSignal(SIGCHLD, SIG_DFL);
         switch ((pid = fork())) {
         case -1:

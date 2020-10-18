@@ -633,7 +633,7 @@ struct Inst {
  * \param devList        List of Device sections parsed from the config file.
  * \param numDevs        Number of entries in \c devList.
  * \param drvp           Pointer the driver's control structure.
- * \param foundEntities  Returned list of entity indicies associated with the
+ * \param foundEntities  Returned list of entity indices associated with the
  *                       driver.
  *
  * \returns

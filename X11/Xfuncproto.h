@@ -218,4 +218,12 @@ in this Software without prior written authorization from The Open Group.
 # define _X_NOTSAN
 #endif
 
+/* Mark a char array/pointer as not containing a NUL-terminated string */
+/* requires xproto >= 7.0.33 */
+#if __has_attribute(nonstring)
+# define _X_NONSTRING __attribute__((nonstring))
+#else
+# define _X_NONSTRING
+#endif
+
 #endif /* _XFUNCPROTO_H_ */

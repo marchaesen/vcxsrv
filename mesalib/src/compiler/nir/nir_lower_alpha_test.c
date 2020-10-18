@@ -61,7 +61,7 @@ nir_lower_alpha_test(nir_shader *shader, enum compare_func func,
                   break;
                case nir_intrinsic_store_output:
                   /* already had i/o lowered.. lookup the matching output var: */
-                  nir_foreach_variable(var, &shader->outputs) {
+                  nir_foreach_shader_out_variable(var, shader) {
                      int drvloc = var->data.driver_location;
                      if (nir_intrinsic_base(intr) == drvloc) {
                         out = var;

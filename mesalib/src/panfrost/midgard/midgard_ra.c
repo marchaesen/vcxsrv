@@ -116,7 +116,7 @@ set_class(unsigned *classes, unsigned node, unsigned class)
 /* Special register classes impose special constraints on who can read their
  * values, so check that */
 
-static bool
+static bool ASSERTED
 check_read_class(unsigned *classes, unsigned tag, unsigned node)
 {
         /* Non-nodes are implicitly ok */
@@ -137,7 +137,7 @@ check_read_class(unsigned *classes, unsigned tag, unsigned node)
         }
 }
 
-static bool
+static bool ASSERTED
 check_write_class(unsigned *classes, unsigned tag, unsigned node)
 {
         /* Non-nodes are implicitly ok */
@@ -203,6 +203,7 @@ mir_lower_special_reads(compiler_context *ctx)
                         mark_node_class(ldst, ins->src[0]);
                         mark_node_class(ldst, ins->src[1]);
                         mark_node_class(ldst, ins->src[2]);
+                        mark_node_class(ldst, ins->src[3]);
                         break;
 
                 case TAG_TEXTURE_4:
@@ -266,9 +267,6 @@ mir_lower_special_reads(compiler_context *ctx)
 
                         unsigned idx = spill_idx++;
 
-                        midgard_instruction m = hazard_write ?
-                                v_mov(idx, i) : v_mov(i, idx);
-
                         /* Insert move before each read/write, depending on the
                          * hazard we're trying to account for */
 
@@ -279,19 +277,23 @@ mir_lower_special_reads(compiler_context *ctx)
                                 if (hazard_write) {
                                         if (pre_use->dest != i)
                                                 continue;
-                                } else {
-                                        if (!mir_has_arg(pre_use, i))
-                                                continue;
-                                }
 
-                                if (hazard_write) {
+                                        midgard_instruction m = v_mov(idx, i);
+                                        m.dest_type = pre_use->dest_type;
+                                        m.src_types[1] = m.dest_type;
+                                        m.mask = pre_use->mask;
+
                                         midgard_instruction *use = mir_next_op(pre_use);
                                         assert(use);
                                         mir_insert_instruction_before(ctx, use, m);
                                         mir_rewrite_index_dst_single(pre_use, i, idx);
                                 } else {
+                                        if (!mir_has_arg(pre_use, i))
+                                                continue;
+
                                         idx = spill_idx++;
-                                        m = v_mov(i, idx);
+
+                                        midgard_instruction m = v_mov(i, idx);
                                         m.mask = mir_from_bytemask(mir_round_bytemask_up(
                                                                 mir_bytemask_of_read_components(pre_use, i), 32), 32);
                                         mir_insert_instruction_before(ctx, pre_use, m);
@@ -307,69 +309,6 @@ mir_lower_special_reads(compiler_context *ctx)
         free(ldst);
         free(texr);
         free(texw);
-}
-
-/* We register allocate after scheduling, so we need to ensure instructions
- * executing in parallel within a segment of a bundle don't clobber each
- * other's registers. This is mostly a non-issue thanks to scheduling, but
- * there are edge cases. In particular, after a register is written in a
- * segment, it interferes with anything reading. */
-
-static void
-mir_compute_segment_interference(
-                compiler_context *ctx,
-                struct lcra_state *l,
-                midgard_bundle *bun,
-                unsigned pivot,
-                unsigned i)
-{
-        for (unsigned j = pivot; j < i; ++j) {
-                mir_foreach_src(bun->instructions[j], s) {
-                        if (bun->instructions[j]->src[s] >= ctx->temp_count)
-                                continue;
-
-                        for (unsigned q = pivot; q < i; ++q) {
-                                if (bun->instructions[q]->dest >= ctx->temp_count)
-                                        continue;
-
-                                /* See dEQP-GLES2.functional.shaders.return.output_write_in_func_dynamic_fragment */
-
-                                if (q >= j) {
-                                        if (!(bun->instructions[j]->unit == UNIT_SMUL && bun->instructions[q]->unit == UNIT_VLUT))
-                                                continue;
-                                }
-
-                                unsigned mask = mir_bytemask(bun->instructions[q]);
-                                unsigned rmask = mir_bytemask_of_read_components(bun->instructions[j], bun->instructions[j]->src[s]);
-                                lcra_add_node_interference(l, bun->instructions[q]->dest, mask, bun->instructions[j]->src[s], rmask);
-                        }
-                }
-        }
-}
-
-static void
-mir_compute_bundle_interference(
-                compiler_context *ctx,
-                struct lcra_state *l,
-                midgard_bundle *bun)
-{
-        if (!IS_ALU(bun->tag))
-                return;
-
-        bool old = bun->instructions[0]->unit >= UNIT_VADD;
-        unsigned pivot = 0;
-
-        for (unsigned i = 1; i < bun->instruction_count; ++i) {
-                bool new = bun->instructions[i]->unit >= UNIT_VADD;
-
-                if (old != new) {
-                        mir_compute_segment_interference(ctx, l, bun, 0, i);
-                        pivot = i;
-                        break;
-                }
-        }
-
-        mir_compute_segment_interference(ctx, l, bun, pivot, bun->instruction_count);
 }
 
 static void
@@ -428,9 +367,6 @@ mir_compute_interference(
                         mir_liveness_ins_update(live, ins, ctx->temp_count);
                 }
 
-                mir_foreach_bundle_in_block(blk, bun)
-                        mir_compute_bundle_interference(ctx, l, bun);
-
                 free(live);
         }
 }
@@ -466,7 +402,11 @@ allocate_registers(compiler_context *ctx, bool *spilled)
         if (!ctx->temp_count)
                 return NULL;
 
-        struct lcra_state *l = lcra_alloc_equations(ctx->temp_count, 5);
+        /* Initialize LCRA. Allocate an extra node at the end for a precoloured
+         * r1 for interference */
+
+        struct lcra_state *l = lcra_alloc_equations(ctx->temp_count + 1, 5);
+        unsigned node_r1 = ctx->temp_count;
 
         /* Starts of classes, in bytes */
         l->class_start[REG_CLASS_WORK]  = 16 * 0;
@@ -511,7 +451,7 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                         }
                 }
 
-                if (ins->type == TAG_LOAD_STORE_4 && OP_HAS_ADDRESS(ins->load_store.op)) {
+                if (ins->type == TAG_LOAD_STORE_4 && OP_HAS_ADDRESS(ins->op)) {
                         mir_foreach_src(ins, v) {
                                 unsigned s = ins->src[v];
                                 unsigned size = nir_alu_type_get_type_size(ins->src_types[v]);
@@ -553,7 +493,7 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                  * want to muck with the conditional itself, so just force
                  * alignment for now */
 
-                if (ins->type == TAG_ALU_4 && OP_IS_CSEL_V(ins->alu.op)) {
+                if (ins->type == TAG_ALU_4 && OP_IS_CSEL_V(ins->op)) {
                         min_alignment[dest] = 4; /* 1 << 4= 16-byte = vec4 */
 
                         /* LCRA assumes bound >= alignment */
@@ -590,12 +530,14 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                         set_class(l->class, ins->src[0], REG_CLASS_LDST);
                         set_class(l->class, ins->src[1], REG_CLASS_LDST);
                         set_class(l->class, ins->src[2], REG_CLASS_LDST);
+                        set_class(l->class, ins->src[3], REG_CLASS_LDST);
 
-                        if (OP_IS_VEC4_ONLY(ins->load_store.op)) {
+                        if (OP_IS_VEC4_ONLY(ins->op)) {
                                 lcra_restrict_range(l, ins->dest, 16);
                                 lcra_restrict_range(l, ins->src[0], 16);
                                 lcra_restrict_range(l, ins->src[1], 16);
                                 lcra_restrict_range(l, ins->src[2], 16);
+                                lcra_restrict_range(l, ins->src[3], 16);
                         }
                 } else if (ins->type == TAG_TEXTURE_4) {
                         set_class(l->class, ins->dest, REG_CLASS_TEXW);
@@ -612,6 +554,7 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                 assert(check_read_class(l->class, ins->type, ins->src[0]));
                 assert(check_read_class(l->class, ins->type, ins->src[1]));
                 assert(check_read_class(l->class, ins->type, ins->src[2]));
+                assert(check_read_class(l->class, ins->type, ins->src[3]));
         }
 
         /* Mark writeout to r0, depth to r1.x, stencil to r1.y,
@@ -635,6 +578,52 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                         l->solutions[ins->dest] = (16 * 1) + COMPONENT_W * 4;
         }
 
+        /* Destinations of instructions in a writeout block cannot be assigned
+         * to r1 unless they are actually used as r1 from the writeout itself,
+         * since the writes to r1 are special. A code sequence like:
+         *
+         *      sadd.fmov r1.x, [...]
+         *      vadd.fadd r0, r1, r2
+         *      [writeout branch]
+         *
+         * will misbehave since the r1.x write will be interpreted as a
+         * gl_FragDepth write so it won't show up correctly when r1 is read in
+         * the following segment. We model this as interference.
+         */
+
+        l->solutions[node_r1] = (16 * 1);
+
+        mir_foreach_block(ctx, _blk) {
+                midgard_block *blk = (midgard_block *) _blk;
+
+                mir_foreach_bundle_in_block(blk, v) {
+                        /* We need at least a writeout and nonwriteout instruction */
+                        if (v->instruction_count < 2)
+                                continue;
+
+                        /* Branches always come at the end */
+                        midgard_instruction *br = v->instructions[v->instruction_count - 1];
+
+                        if (!br->writeout)
+                                continue;
+
+                        for (signed i = v->instruction_count - 2; i >= 0; --i) {
+                                midgard_instruction *ins = v->instructions[i];
+
+                                if (ins->dest >= ctx->temp_count)
+                                        continue;
+
+                                bool used_as_r1 = (br->dest == ins->dest);
+
+                                mir_foreach_src(br, s)
+                                        used_as_r1 |= (s > 0) && (br->src[s] == ins->dest);
+
+                                if (!used_as_r1)
+                                        lcra_add_node_interference(l, ins->dest, mir_bytemask(ins), node_r1, 0xFFFF);
+                        }
+                }
+        }
+
         /* Precolour blend input to r0. Note writeout is necessarily at the end
          * and blend shaders are single-RT only so there is only a single
          * writeout block, so this cannot conflict with the writeout r0 (there
@@ -643,6 +632,15 @@ allocate_registers(compiler_context *ctx, bool *spilled)
         if (ctx->blend_input != ~0) {
                 assert(ctx->blend_input < ctx->temp_count);
                 l->solutions[ctx->blend_input] = 0;
+        }
+
+        /* Same for the dual-source blend input/output, except here we use r2,
+         * which is also set in the fragment shader. */
+
+        if (ctx->blend_src1 != ~0) {
+                assert(ctx->blend_src1 < ctx->temp_count);
+                l->solutions[ctx->blend_src1] = (16 * 2);
+                ctx->work_registers = MAX2(ctx->work_registers, 2);
         }
 
         mir_compute_interference(ctx, l);
@@ -687,33 +685,18 @@ install_registers_instr(
                 mir_set_bytemask(ins, mir_bytemask(ins) << dest.offset);
 
                 unsigned dest_offset =
-                        GET_CHANNEL_COUNT(alu_opcode_props[ins->alu.op].props) ? 0 :
+                        GET_CHANNEL_COUNT(alu_opcode_props[ins->op].props) ? 0 :
                         dest.offset;
 
                 offset_swizzle(ins->swizzle[0], src1.offset, src1.shift, dest.shift, dest_offset);
-
-                ins->registers.src1_reg = src1.reg;
-
-                ins->registers.src2_imm = ins->has_inline_constant;
-
-                if (ins->has_inline_constant) {
-                        /* Encode inline 16-bit constant. See disassembler for
-                         * where the algorithm is from */
-
-                        ins->registers.src2_reg = ins->inline_constant >> 11;
-
-                        int lower_11 = ins->inline_constant & ((1 << 12) - 1);
-                        uint16_t imm = ((lower_11 >> 8) & 0x7) |
-                                       ((lower_11 & 0xFF) << 3);
-
-                        ins->alu.src2 = imm << 2;
-                } else {
+                if (!ins->has_inline_constant)
                         offset_swizzle(ins->swizzle[1], src2.offset, src2.shift, dest.shift, dest_offset);
-
-                        ins->registers.src2_reg = src2.reg;
-                }
-
-                ins->registers.out_reg = dest.reg;
+                if (ins->src[0] != ~0)
+                        ins->src[0] = SSA_FIXED_REGISTER(src1.reg);
+                if (ins->src[1] != ~0)
+                        ins->src[1] = SSA_FIXED_REGISTER(src2.reg);
+                if (ins->dest != ~0)
+                        ins->dest = SSA_FIXED_REGISTER(dest.reg);
                 break;
         }
 
@@ -722,46 +705,40 @@ install_registers_instr(
                  * whether we are loading or storing -- think about the
                  * logical dataflow */
 
-                bool encodes_src = OP_IS_STORE(ins->load_store.op);
+                bool encodes_src = OP_IS_STORE(ins->op);
 
                 if (encodes_src) {
                         struct phys_reg src = index_to_reg(ctx, l, ins->src[0], src_shift[0]);
                         assert(src.reg == 26 || src.reg == 27);
 
-                        ins->load_store.reg = src.reg - 26;
+                        ins->src[0] = SSA_FIXED_REGISTER(src.reg);
                         offset_swizzle(ins->swizzle[0], src.offset, src.shift, 0, 0);
                } else {
                         struct phys_reg dst = index_to_reg(ctx, l, ins->dest, dest_shift);
 
-                        ins->load_store.reg = dst.reg;
+                        ins->dest = SSA_FIXED_REGISTER(dst.reg);
                         offset_swizzle(ins->swizzle[0], 0, 2, 2, dst.offset);
                         mir_set_bytemask(ins, mir_bytemask(ins) << dst.offset);
                 }
 
                 /* We also follow up by actual arguments */
 
-                unsigned src2 = ins->src[1];
-                unsigned src3 = ins->src[2];
-
-                if (src2 != ~0) {
-                        struct phys_reg src = index_to_reg(ctx, l, src2, 2);
-                        unsigned component = src.offset >> src.shift;
-                        assert(component << src.shift == src.offset);
-                        ins->load_store.arg_1 |= midgard_ldst_reg(src.reg, component);
+                for (int i = 1; i <= 3; i++) {
+                        unsigned src_index = ins->src[i];
+                        if (src_index != ~0) {
+                                struct phys_reg src = index_to_reg(ctx, l, src_index, src_shift[i]);
+                                unsigned component = src.offset >> src.shift;
+                                assert(component << src.shift == src.offset);
+                                ins->src[i] = SSA_FIXED_REGISTER(src.reg);
+                                ins->swizzle[i][0] += component;
+                        }
                 }
 
-                if (src3 != ~0) {
-                        struct phys_reg src = index_to_reg(ctx, l, src3, 2);
-                        unsigned component = src.offset >> src.shift;
-                        assert(component << src.shift == src.offset);
-                        ins->load_store.arg_2 |= midgard_ldst_reg(src.reg, component);
-                }
- 
                 break;
         }
 
         case TAG_TEXTURE_4: {
-                if (ins->texture.op == TEXTURE_OP_BARRIER)
+                if (ins->op == TEXTURE_OP_BARRIER)
                         break;
 
                 /* Grab RA results */
@@ -771,11 +748,13 @@ install_registers_instr(
                 struct phys_reg offset = index_to_reg(ctx, l, ins->src[3], src_shift[3]);
 
                 /* First, install the texture coordinate */
-                ins->texture.in_reg_select = coord.reg & 1;
+                if (ins->src[1] != ~0)
+                        ins->src[1] = SSA_FIXED_REGISTER(coord.reg);
                 offset_swizzle(ins->swizzle[1], coord.offset, coord.shift, dest.shift, 0);
 
                 /* Next, install the destination */
-                ins->texture.out_reg_select = dest.reg & 1;
+                if (ins->dest != ~0)
+                        ins->dest = SSA_FIXED_REGISTER(dest.reg);
                 offset_swizzle(ins->swizzle[0], 0, 2, dest.shift,
                                 dest_shift == 1 ? dest.offset % 8 :
                                 dest.offset);
@@ -784,33 +763,14 @@ install_registers_instr(
                 /* If there is a register LOD/bias, use it */
                 if (ins->src[2] != ~0) {
                         assert(!(lod.offset & 3));
-                        midgard_tex_register_select sel = {
-                                .select = lod.reg & 1,
-                                .full = 1,
-                                .component = lod.offset / 4
-                        };
-
-                        uint8_t packed;
-                        memcpy(&packed, &sel, sizeof(packed));
-                        ins->texture.bias = packed;
+                        ins->src[2] = SSA_FIXED_REGISTER(lod.reg);
+                        ins->swizzle[2][0] = lod.offset / 4;
                 }
 
                 /* If there is an offset register, install it */
                 if (ins->src[3] != ~0) {
-                        unsigned x = offset.offset / 4;
-                        unsigned y = x + 1;
-                        unsigned z = x + 2;
-
-                        /* Check range, TODO: half-registers */
-                        assert(z < 4);
-
-                        ins->texture.offset =
-                                (1)                   | /* full */
-                                (offset.reg & 1) << 1 | /* select */
-                                (0 << 2)              | /* upper */
-                                (x << 3)              | /* swizzle */
-                                (y << 5)              | /* swizzle */
-                                (z << 7);               /* swizzle */
+                        ins->src[3] = SSA_FIXED_REGISTER(offset.reg);
+                        ins->swizzle[3][0] = offset.offset / 4;
                 }
 
                 break;
@@ -891,9 +851,17 @@ mir_spill_register(
 
                         midgard_instruction st;
 
+                        /* Note: it's important to match the mask of the spill
+                         * with the mask of the instruction whose destination
+                         * we're spilling, or otherwise we'll read invalid
+                         * components and can fail RA in a subsequent iteration
+                         */
+
                         if (is_special_w) {
                                 st = v_mov(spill_node, spill_slot);
                                 st.no_spill |= (1 << spill_class);
+                                st.mask = ins->mask;
+                                st.dest_type = st.src_types[1] = ins->dest_type;
                         } else {
                                 ins->dest = spill_index++;
                                 ins->no_spill |= (1 << spill_class);
@@ -1003,6 +971,7 @@ mir_ra(compiler_context *ctx)
 
                         if (spill_node == -1) {
                                 fprintf(stderr, "ERROR: Failed to choose spill node\n");
+                                lcra_free(l);
                                 return;
                         }
 

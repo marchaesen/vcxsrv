@@ -12,11 +12,11 @@ And please remove anything that doesn't apply to keep things readable :)
 
 ### System information
 
-Please post `inxi -GSC -xx` output OR fill information below manually
+Please post `inxi -GSC -xx` output ([fenced with triple backticks](https://docs.gitlab.com/ee/user/markdown.html#code-spans-and-blocks)) OR fill information below manually
 
 
 - OS: (`cat /etc/os-release | grep "NAME"`)
-- GPU: (`lspci | grep VGA` or `lshw -C display`)
+- GPU: (`lspci -nn | grep VGA` or `lshw -C display -numeric`)
 - Kernel version: (run `uname -a`)
 - Mesa version: (`glxinfo -B | grep "OpenGL version string"`)
 - Xserver version (if applicable): (`sudo X -version`)

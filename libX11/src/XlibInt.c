@@ -188,7 +188,7 @@ void _XPollfdCacheDel(
 static int sync_hazard(Display *dpy)
 {
     /*
-     * "span" and "hazard" need to be signed such that the ">=" comparision
+     * "span" and "hazard" need to be signed such that the ">=" comparison
      * works correctly in the case that hazard is greater than 65525
      */
     int64_t span = X_DPY_GET_REQUEST(dpy) - X_DPY_GET_LAST_REQUEST_READ(dpy);
@@ -269,7 +269,7 @@ void _XSetSeqSyncFunction(Display *dpy)
 #ifdef LONG64
 void _XRead32(
     Display *dpy,
-    register long *data,
+    long *data,
     long len)
 {
     register int *buf;
@@ -1648,7 +1648,7 @@ void Data(
 int
 _XData32(
     Display *dpy,
-    register _Xconst long *data,
+    _Xconst long *data,
     unsigned len)
 {
     register int *buf;

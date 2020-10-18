@@ -300,6 +300,16 @@ radv_num_subpass_attachments(const VkSubpassDescription *desc)
 	       (desc->pDepthStencilAttachment != NULL);
 }
 
+static void
+radv_destroy_render_pass(struct radv_device *device,
+			 const VkAllocationCallbacks *pAllocator,
+			 struct radv_render_pass *pass)
+{
+	vk_object_base_finish(&pass->base);
+	vk_free2(&device->vk.alloc, pAllocator, pass->subpass_attachments);
+	vk_free2(&device->vk.alloc, pAllocator, pass);
+}
+
 VkResult radv_CreateRenderPass(
 	VkDevice                                    _device,
 	const VkRenderPassCreateInfo*               pCreateInfo,
@@ -370,7 +380,7 @@ VkResult radv_CreateRenderPass(
 				    subpass_attachment_count * sizeof(struct radv_subpass_attachment), 8,
 				    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 		if (pass->subpass_attachments == NULL) {
-			vk_free2(&device->vk.alloc, pAllocator, pass);
+			radv_destroy_render_pass(device, pAllocator, pass);
 			return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 		}
 	} else
@@ -553,7 +563,7 @@ VkResult radv_CreateRenderPass2(
 				    subpass_attachment_count * sizeof(struct radv_subpass_attachment), 8,
 				    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 		if (pass->subpass_attachments == NULL) {
-			vk_free2(&device->vk.alloc, pAllocator, pass);
+			radv_destroy_render_pass(device, pAllocator, pass);
 			return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 		}
 	} else
@@ -690,9 +700,7 @@ void radv_DestroyRenderPass(
 	if (!_pass)
 		return;
 
-	vk_object_base_finish(&pass->base);
-	vk_free2(&device->vk.alloc, pAllocator, pass->subpass_attachments);
-	vk_free2(&device->vk.alloc, pAllocator, pass);
+	radv_destroy_render_pass(device, pAllocator, pass);
 }
 
 void radv_GetRenderAreaGranularity(

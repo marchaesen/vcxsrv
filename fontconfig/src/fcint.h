@@ -40,7 +40,9 @@
 #include <limits.h>
 #include <float.h>
 #include <math.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <stddef.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -53,6 +55,14 @@
 
 #ifndef FC_CONFIG_PATH
 #define FC_CONFIG_PATH "fonts.conf"
+#endif
+
+#ifdef _WIN32
+#define FC_LIKELY(expr) (expr)
+#define FC_UNLIKELY(expr) (expr)
+#else
+#define FC_LIKELY(expr) (__builtin_expect (((expr) ? 1 : 0), 1))
+#define FC_UNLIKELY(expr) (__builtin_expect (((expr) ? 1 : 0), 0))
 #endif
 
 #ifdef _WIN32
@@ -80,6 +90,10 @@ extern pfnSHGetFolderPathA pSHGetFolderPathA;
 #define FC_UNUSED	__attribute__((unused))
 #else
 #define FC_UNUSED
+#endif
+
+#ifndef FC_UINT64_FORMAT
+#define FC_UINT64_FORMAT	"llu"
 #endif
 
 #define FC_DBG_MATCH	1
@@ -1322,6 +1336,9 @@ FcStrLastSlash (const FcChar8  *path);
 FcPrivate FcChar32
 FcStrHashIgnoreCase (const FcChar8 *s);
 
+FcPrivate FcChar32
+FcStrHashIgnoreBlanksAndCase (const FcChar8 *s);
+
 FcPrivate FcChar8 *
 FcStrCanonFilename (const FcChar8 *s);
 
@@ -1350,6 +1367,10 @@ FcObjectLookupOtherTypeById (FcObject id);
 
 FcPrivate const FcObjectType *
 FcObjectLookupOtherTypeByName (const char *str);
+
+/* fcopentype.c */
+FcPrivate FcBool
+FcPatternAddFullname (FcPattern *pat);
 
 /* fchash.c */
 FcPrivate FcBool

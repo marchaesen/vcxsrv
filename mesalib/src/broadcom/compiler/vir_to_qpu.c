@@ -417,7 +417,7 @@ v3d_vir_to_qpu(struct v3d_compile *c, struct qpu_reg *temp_registers)
                         fprintf(stderr, "Failed to pack instruction:\n");
                         vir_dump_inst(c, inst);
                         fprintf(stderr, "\n");
-                        c->failed = true;
+                        c->compilation_result = V3D_COMPILATION_FAILED;
                         return;
                 }
         }

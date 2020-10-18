@@ -282,7 +282,7 @@ struct st_context
 
    /** for glDraw/CopyPixels */
    struct {
-      void *zs_shaders[4];
+      void *zs_shaders[6];
    } drawpix;
 
    /** Cache of glDrawPixels images */

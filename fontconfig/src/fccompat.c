@@ -71,6 +71,21 @@
 #define FC_O_NOINHERIT 0
 #endif
 
+#ifndef HAVE_UNISTD_H
+/* Values for the second argument to access. These may be OR'd together. */
+#ifndef R_OK
+#define R_OK    4       /* Test for read permission.  */
+#endif
+#ifndef W_OK
+#define W_OK    2       /* Test for write permission.  */
+#endif
+#ifndef F_OK
+#define F_OK    0       /* Test for existence.  */
+#endif
+
+typedef int mode_t;
+#endif /* !HAVE_UNISTD_H */
+
 #if !defined (HAVE_MKOSTEMP) && !defined(HAVE_MKSTEMP) && !defined(HAVE__MKTEMP_S)
 static int
 mkstemp (char *template)
@@ -274,6 +289,91 @@ FcReadLink (const FcChar8 *pathname,
     return -1;
 #endif
 }
+
+/* On Windows MingW provides dirent.h / openddir(), but MSVC does not */
+#ifndef HAVE_DIRENT_H
+
+struct DIR {
+    struct dirent d_ent;
+    HANDLE handle;
+    WIN32_FIND_DATA fdata;
+    FcBool valid;
+};
+
+FcPrivate DIR *
+FcCompatOpendirWin32 (const char *dirname)
+{
+    size_t len;
+    char *name;
+    DIR *dir;
+
+    dir = calloc (1, sizeof (struct DIR));
+    if (dir == NULL)
+        return NULL;
+
+    len = strlen (dirname);
+    name = malloc (len + 3);
+    if (name == NULL)
+    {
+      free (dir);
+      return NULL;
+    }
+    memcpy (name, dirname, len);
+    name[len++] = FC_DIR_SEPARATOR;
+    name[len++] = '*';
+    name[len] = '\0';
+
+    dir->handle = FindFirstFileEx (name, FindExInfoBasic, &dir->fdata, FindExSearchNameMatch, NULL, 0);
+
+    free (name);
+
+    if (!dir->handle)
+    {
+        free (dir);
+        dir = NULL;
+
+        if (GetLastError () == ERROR_FILE_NOT_FOUND)
+            errno = ENOENT;
+        else
+            errno = EACCES;
+    }
+
+    dir->valid = FcTrue;
+    return dir;
+}
+
+FcPrivate struct dirent *
+FcCompatReaddirWin32 (DIR *dir)
+{
+    if (dir->valid != FcTrue)
+        return NULL;
+
+    dir->d_ent.d_name = dir->fdata.cFileName;
+
+    if ((dir->fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
+        dir->d_ent.d_type = DT_DIR;
+    else if (dir->fdata.dwFileAttributes == FILE_ATTRIBUTE_NORMAL)
+        dir->d_ent.d_type = DT_REG;
+    else
+        dir->d_ent.d_type = DT_UNKNOWN;
+
+    if (!FindNextFile (dir->handle, &dir->fdata))
+        dir->valid = FcFalse;
+
+    return &dir->d_ent;
+}
+
+FcPrivate int
+FcCompatClosedirWin32 (DIR *dir)
+{
+    if (dir != NULL && dir->handle != NULL)
+    {
+        FindClose (dir->handle);
+        free (dir);
+    }
+    return 0;
+}
+#endif /* HAVE_DIRENT_H */
 
 #define __fccompat__
 #include "fcaliastail.h"

@@ -153,7 +153,7 @@ ProcXGrabDevice(ClientPtr client)
  * set when XI starts up) and binary OR's the device's mask to whatever the
  * event mask for the given event type was.
  * If an error occurs, it is sent to the client. Errors are generated if
- *  - if the device given in the event classs is invalid
+ *  - if the device given in the event class is invalid
  *  - if the device in the class list is not the device given as parameter (no
  *  error if parameter is NULL)
  *

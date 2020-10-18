@@ -118,8 +118,11 @@ handle_constant_store(void *mem_ctx, struct var_info *info,
       info->constant_data = rzalloc_size(mem_ctx, var_size);
    }
 
-   char *dst = (char *)info->constant_data +
-               nir_deref_instr_get_const_offset(deref, size_align);
+   const unsigned offset = nir_deref_instr_get_const_offset(deref, size_align);
+   if (offset >= info->constant_data_size)
+      return;
+
+   char *dst = (char *)info->constant_data + offset;
 
    for (unsigned i = 0; i < num_components; i++) {
       if (!(writemask & (1 << i)))
@@ -173,11 +176,7 @@ nir_opt_large_constants(nir_shader *shader,
    /* This only works with a single entrypoint */
    nir_function_impl *impl = nir_shader_get_entrypoint(shader);
 
-   /* This pass can only be run once */
-   assert(shader->constant_data == NULL && shader->constant_data_size == 0);
-
-   unsigned num_locals = exec_list_length(&impl->locals);
-   nir_index_vars(shader, impl, nir_var_function_temp);
+   unsigned num_locals = nir_function_impl_index_vars(impl);
 
    if (num_locals == 0) {
       nir_shader_preserve_all_metadata(shader);
@@ -185,7 +184,7 @@ nir_opt_large_constants(nir_shader *shader,
    }
 
    struct var_info *var_infos = ralloc_array(NULL, struct var_info, num_locals);
-   nir_foreach_variable(var, &impl->locals) {
+   nir_foreach_function_temp_variable(var, impl) {
       var_infos[var->index] = (struct var_info) {
          .var = var,
          .is_constant = true,
@@ -200,6 +199,19 @@ nir_opt_large_constants(nir_shader *shader,
     */
    nir_foreach_block(block, impl) {
       nir_foreach_instr(instr, block) {
+         if (instr->type == nir_instr_type_deref) {
+            /* If we ever see a complex use of a deref_var, we have to assume
+             * that variable is non-constant because we can't guarantee we
+             * will find all of the writers of that variable.
+             */
+            nir_deref_instr *deref = nir_instr_as_deref(instr);
+            if (deref->deref_type == nir_deref_type_var &&
+                deref->mode == nir_var_function_temp &&
+                nir_deref_instr_has_complex_use(deref))
+               var_infos[deref->var->index].is_constant = false;
+            continue;
+         }
+
          if (instr->type != nir_instr_type_intrinsic)
             continue;
 
@@ -229,6 +241,9 @@ nir_opt_large_constants(nir_shader *shader,
 
          if (dst_deref && dst_deref->mode == nir_var_function_temp) {
             nir_variable *var = nir_deref_instr_get_variable(dst_deref);
+            if (var == NULL)
+               continue;
+
             assert(var->data.mode == nir_var_function_temp);
 
             struct var_info *info = &var_infos[var->index];
@@ -254,6 +269,9 @@ nir_opt_large_constants(nir_shader *shader,
 
          if (src_deref && src_deref->mode == nir_var_function_temp) {
             nir_variable *var = nir_deref_instr_get_variable(src_deref);
+            if (var == NULL)
+               continue;
+
             assert(var->data.mode == nir_var_function_temp);
 
             /* We only consider variables constant if all the reads are
@@ -275,7 +293,7 @@ nir_opt_large_constants(nir_shader *shader,
     * data.  We sort them by size and content so we can easily find
     * duplicates.
     */
-   shader->constant_data_size = 0;
+   const unsigned old_constant_data_size = shader->constant_data_size;
    qsort(var_infos, num_locals, sizeof(struct var_info), var_info_cmp);
    for (int i = 0; i < num_locals; i++) {
       struct var_info *info = &var_infos[i];
@@ -303,13 +321,16 @@ nir_opt_large_constants(nir_shader *shader,
       }
    }
 
-   if (shader->constant_data_size == 0) {
+   if (shader->constant_data_size == old_constant_data_size) {
       nir_shader_preserve_all_metadata(shader);
       ralloc_free(var_infos);
       return false;
    }
 
-   shader->constant_data = rzalloc_size(shader, shader->constant_data_size);
+   assert(shader->constant_data_size > old_constant_data_size);
+   shader->constant_data = rerzalloc_size(shader, shader->constant_data,
+                                          old_constant_data_size,
+                                          shader->constant_data_size);
    for (int i = 0; i < num_locals; i++) {
       struct var_info *info = &var_infos[i];
       if (!info->duplicate && info->is_constant) {
@@ -335,6 +356,9 @@ nir_opt_large_constants(nir_shader *shader,
                continue;
 
             nir_variable *var = nir_deref_instr_get_variable(deref);
+            if (var == NULL)
+               continue;
+
             struct var_info *info = &var_infos[var->index];
             if (info->is_constant) {
                b.cursor = nir_after_instr(&intrin->instr);
@@ -353,6 +377,9 @@ nir_opt_large_constants(nir_shader *shader,
                continue;
 
             nir_variable *var = nir_deref_instr_get_variable(deref);
+            if (var == NULL)
+               continue;
+
             struct var_info *info = &var_infos[var->index];
             if (info->is_constant) {
                nir_instr_remove(&intrin->instr);

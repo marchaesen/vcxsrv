@@ -2872,7 +2872,6 @@ typedef struct _ADDR2_COMPUTE_CMASKINFO_INPUT
     UINT_32             size;               ///< Size of this structure in bytes
 
     ADDR2_META_FLAGS    cMaskFlags;         ///< CMASK flags
-    ADDR2_SURFACE_FLAGS colorFlags;         ///< Color surface flags
     AddrResourceType    resourceType;       ///< Color surface type
     AddrSwizzleMode     swizzleMode;        ///< FMask surface swizzle mode
     UINT_32             unalignedWidth;     ///< Color surface original width
@@ -2943,7 +2942,6 @@ typedef struct _ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_INPUT
     UINT_32             slice;               ///< Index of slices
 
     ADDR2_META_FLAGS    cMaskFlags;          ///< CMASK flags
-    ADDR2_SURFACE_FLAGS colorFlags;          ///< Color surface flags
     AddrResourceType    resourceType;        ///< Color surface type
     AddrSwizzleMode     swizzleMode;         ///< FMask surface swizzle mode
 
@@ -3002,7 +3000,6 @@ typedef struct _ADDR2_COMPUTE_CMASK_COORDFROMADDR_INPUT
     UINT_32             bitPosition;         ///< Bit position within addr, 0 or 4
 
     ADDR2_META_FLAGS    cMaskFlags;          ///< CMASK flags
-    ADDR2_SURFACE_FLAGS colorFlags;          ///< Color surface flags
     AddrResourceType    resourceType;        ///< Color surface type
     AddrSwizzleMode     swizzleMode;         ///< FMask surface swizzle mode
 
@@ -3260,7 +3257,6 @@ typedef struct _ADDR2_COMPUTE_DCCINFO_INPUT
     UINT_32             size;               ///< Size of this structure in bytes
 
     ADDR2_META_FLAGS    dccKeyFlags;        ///< DCC key flags
-    ADDR2_SURFACE_FLAGS colorFlags;         ///< Color surface flags
     AddrResourceType    resourceType;       ///< Color surface type
     AddrSwizzleMode     swizzleMode;        ///< Color surface swizzle mode
     UINT_32             bpp;                ///< bits per pixel

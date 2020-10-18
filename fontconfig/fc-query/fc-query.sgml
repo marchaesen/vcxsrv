@@ -157,7 +157,7 @@ manpage.1: manpage.sgml
   <refsect1>
     <title>RETURN CODES</title>
     <para><command>fc-query</command> returns error code 0 for successful parsing,
-    or 1 if any errors occured or if at least one font face could not be opened.</para>
+    or 1 if any errors occurred or if at least one font face could not be opened.</para>
   </refsect1>
 
   <refsect1>

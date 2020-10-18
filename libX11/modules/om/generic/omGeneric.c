@@ -702,7 +702,7 @@ parse_omit_name(
 
     switch (num_fields) {
     case 12:
-	/* This is the best way to have specifed the fontset.  In this
+	/* This is the best way to have specified the fontset.  In this
 	 * case, there is no original encoding. E.g.,
          *       -*-*-*-*-*-*-14-*-*-*-*-*
 	 * To this, we'll append a dash:
@@ -771,7 +771,7 @@ parse_omit_name(
     if ((font_data->xlfd_name = get_font_name(oc, buf)) != NULL)
 	return True;
 
-    /* This may mot be needed anymore as XListFonts() takes care of this */
+    /* This may not be needed anymore as XListFonts() takes care of this */
     if (num_fields < 12) {
 	if ((last - buf) > (XLFD_MAX_LEN - 2))
 	    return -1;
@@ -1113,7 +1113,7 @@ parse_fontname(
 		goto err;
 	    } else if(ret == True) {
 		/*
-		 * We can't just loop thru fontset->font_data to
+		 * We can't just loop through fontset->font_data to
 		 * find the first (ie. best) match: parse_fontdata
 		 * will try a substitute font if no primary one could
 		 * be matched. It returns the required information in
@@ -1908,7 +1908,8 @@ init_om(
     char **required_list;
     XOrientation *orientation;
     char **value, buf[BUFSIZ], *bufptr;
-    int count = 0, num = 0, length = 0;
+    int count = 0, num = 0;
+    unsigned int length = 0;
 
     _XlcGetResource(lcd, "XLC_FONTSET", "on_demand_loading", &value, &count);
     if (count > 0 && _XlcCompareISOLatin1(*value, "True") == 0)
@@ -2048,7 +2049,7 @@ init_om(
     /* directional dependent drawing */
     om->core.directional_dependent = False;
 
-    /* contexual drawing */
+    /* contextual drawing */
     om->core.contextual_drawing = False;
 
     /* context dependent */

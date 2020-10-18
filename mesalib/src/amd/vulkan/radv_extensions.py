@@ -35,17 +35,16 @@ sys.path.append(VULKAN_UTIL)
 from vk_extensions import *
 from vk_extensions_gen import *
 
-MAX_API_VERSION = '1.2.128'
+API_PATCH_VERSION = 145
 
 # Supported API versions.  Each one is the maximum patch version for the given
 # version.  Version come in increasing order and each version is available if
 # it's provided "enable" condition is true and all previous versions are
 # available.
-# TODO: The patch version should be unified!
 API_VERSIONS = [
-    ApiVersion('1.0.68',  True),
-    ApiVersion('1.1.107', True),
-    ApiVersion('1.2.131', '!ANDROID'),
+    ApiVersion('1.0', True),
+    ApiVersion('1.1', True),
+    ApiVersion('1.2', '!ANDROID'),
 ]
 
 MAX_API_VERSION = None # Computed later
@@ -61,6 +60,7 @@ EXTENSIONS = [
     Extension('VK_KHR_16bit_storage',                     1, True),
     Extension('VK_KHR_bind_memory2',                      1, True),
     Extension('VK_KHR_buffer_device_address',             1, True),
+    Extension('VK_KHR_copy_commands2',                    1, True),
     Extension('VK_KHR_create_renderpass2',                1, True),
     Extension('VK_KHR_dedicated_allocation',              1, True),
     Extension('VK_KHR_depth_stencil_resolve',             1, True),
@@ -110,6 +110,7 @@ EXTENSIONS = [
     Extension('VK_KHR_timeline_semaphore',                2, 'device->rad_info.has_syncobj_wait_for_submit'),
     Extension('VK_KHR_uniform_buffer_standard_layout',    1, True),
     Extension('VK_KHR_variable_pointers',                 1, True),
+    Extension('VK_KHR_vulkan_memory_model',               3, True),
     Extension('VK_KHR_wayland_surface',                   6, 'VK_USE_PLATFORM_WAYLAND_KHR'),
     Extension('VK_KHR_xcb_surface',                       6, 'VK_USE_PLATFORM_XCB_KHR'),
     Extension('VK_KHR_xlib_surface',                      6, 'VK_USE_PLATFORM_XLIB_KHR'),
@@ -124,16 +125,18 @@ EXTENSIONS = [
     Extension('VK_EXT_conservative_rasterization',        1, 'device->rad_info.chip_class >= GFX9'),
     Extension('VK_EXT_custom_border_color',               12, True),
     Extension('VK_EXT_display_surface_counter',           1, 'VK_USE_PLATFORM_DISPLAY_KHR'),
-    Extension('VK_EXT_display_control',                   1, 'VK_USE_PLATFORM_DISPLAY_KHR'),
+    Extension('VK_EXT_display_control',                   1, 'VK_USE_PLATFORM_DISPLAY_KHR && device->rad_info.has_syncobj_wait_for_submit'),
     Extension('VK_EXT_debug_report',                      9, True),
     Extension('VK_EXT_depth_clip_enable',                 1, True),
     Extension('VK_EXT_depth_range_unrestricted',          1, True),
     Extension('VK_EXT_descriptor_indexing',               2, True),
     Extension('VK_EXT_discard_rectangles',                1, True),
+    Extension('VK_EXT_extended_dynamic_state',            1, True),
     Extension('VK_EXT_external_memory_dma_buf',           1, True),
     Extension('VK_EXT_external_memory_host',              1, 'device->rad_info.has_userptr'),
     Extension('VK_EXT_global_priority',                   1, 'device->rad_info.has_ctx_priority'),
     Extension('VK_EXT_host_query_reset',                  1, True),
+    Extension('VK_EXT_image_robustness',                  1, True),
     Extension('VK_EXT_index_type_uint8',                  1, 'device->rad_info.chip_class >= GFX8'),
     Extension('VK_EXT_inline_uniform_block',              1, True),
     # Disable line rasterization on GFX9 until the CTS failures have been resolved.
@@ -151,6 +154,7 @@ EXTENSIONS = [
     Extension('VK_EXT_sample_locations',                  1, 'device->rad_info.chip_class < GFX10'),
     Extension('VK_EXT_sampler_filter_minmax',             1, True),
     Extension('VK_EXT_scalar_block_layout',               1, 'device->rad_info.chip_class >= GFX7'),
+    Extension('VK_EXT_shader_atomic_float',               1, True),
     Extension('VK_EXT_shader_demote_to_helper_invocation',1, 'LLVM_VERSION_MAJOR >= 9 || !device->use_llvm'),
     Extension('VK_EXT_shader_viewport_index_layer',       1, True),
     Extension('VK_EXT_shader_stencil_export',             1, True),
@@ -184,11 +188,13 @@ EXTENSIONS = [
     Extension('VK_GOOGLE_hlsl_functionality1',            1, True),
     Extension('VK_GOOGLE_user_type',                      1, True),
     Extension('VK_NV_compute_shader_derivatives',         1, True),
+    Extension('VK_EXT_4444_formats',                      1, True),
 ]
 
 MAX_API_VERSION = VkVersion('0.0.0')
 for version in API_VERSIONS:
     version.version = VkVersion(version.version)
+    version.version.patch = API_PATCH_VERSION
     assert version.version > MAX_API_VERSION
     MAX_API_VERSION = version.version
 

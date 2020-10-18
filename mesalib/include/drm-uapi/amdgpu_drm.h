@@ -502,15 +502,15 @@ struct drm_amdgpu_gem_op {
 #define AMDGPU_VM_MTYPE_MASK		(0xf << 5)
 /* Default MTYPE. Pre-AI must use this.  Recommended for newer ASICs. */
 #define AMDGPU_VM_MTYPE_DEFAULT		(0 << 5)
-/* Use NC MTYPE instead of default MTYPE */
+/* Use Non Coherent MTYPE instead of default MTYPE */
 #define AMDGPU_VM_MTYPE_NC		(1 << 5)
-/* Use WC MTYPE instead of default MTYPE */
+/* Use Write Combine MTYPE instead of default MTYPE */
 #define AMDGPU_VM_MTYPE_WC		(2 << 5)
-/* Use CC MTYPE instead of default MTYPE */
+/* Use Cache Coherent MTYPE instead of default MTYPE */
 #define AMDGPU_VM_MTYPE_CC		(3 << 5)
-/* Use UC MTYPE instead of default MTYPE */
+/* Use UnCached MTYPE instead of default MTYPE */
 #define AMDGPU_VM_MTYPE_UC		(4 << 5)
-/* Use RW MTYPE instead of default MTYPE */
+/* Use Read Write MTYPE instead of default MTYPE */
 #define AMDGPU_VM_MTYPE_RW		(5 << 5)
 
 struct drm_amdgpu_gem_va {
@@ -602,6 +602,10 @@ union drm_amdgpu_cs {
  */
 #define AMDGPU_IB_FLAGS_SECURE  (1 << 5)
 
+/* Tell KMD to flush and invalidate caches
+ */
+#define AMDGPU_IB_FLAG_EMIT_MEM_SYNC  (1 << 6)
+
 struct drm_amdgpu_cs_chunk_ib {
 	__u32 _pad;
 	/** AMDGPU_IB_FLAG_* */
@@ -669,6 +673,7 @@ struct drm_amdgpu_cs_chunk_data {
  */
 #define AMDGPU_IDS_FLAGS_FUSION         0x1
 #define AMDGPU_IDS_FLAGS_PREEMPTION     0x2
+#define AMDGPU_IDS_FLAGS_TMZ            0x4
 
 /* indicate if acceleration can be working */
 #define AMDGPU_INFO_ACCEL_WORKING		0x00

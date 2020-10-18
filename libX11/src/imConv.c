@@ -24,7 +24,7 @@ LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH
 THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-  Auther:   Kazunori Nishihara, Fuji Xerox Co.,Ltd.
+  Author:   Kazunori Nishihara, Fuji Xerox Co.,Ltd.
                                 kaz@ssdev.ksp.fujixerox.co.jp
   Modifier: Takashi Fujiwara    FUJITSU LIMITED
                                 fujiwara@a80.tech.yk.fujitsu.co.jp
@@ -96,7 +96,7 @@ _XimGetLocaleCode (
 
 /*
  * Returns the locale dependent representation of a keysym.
- * The locale's encoding is passed in form of pointer to UCS convertor.
+ * The locale's encoding is passed in form of pointer to UCS converter.
  * The resulting multi-byte sequence is placed starting at buf (a buffer
  * with nbytes bytes, nbytes should be >= 8) and is NUL terminated.
  * Returns the length of the resulting multi-byte sequence, excluding the

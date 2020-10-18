@@ -93,6 +93,9 @@ ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id)
 		 * TODO: is this true on earlier gen's?
 		 */
 		compiler->max_const_compute = 256;
+
+		if (compiler->gpu_id == 650)
+			compiler->tess_use_shared = true;
 	} else {
 		compiler->max_const_pipeline = 512;
 		compiler->max_const_geom = 512;
@@ -112,6 +115,7 @@ ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id)
 		compiler->unminify_coords = false;
 		compiler->txf_ms_with_isaml = false;
 		compiler->array_index_add_half = true;
+		compiler->instr_align = 16;
 		compiler->const_upload_unit = 4;
 	} else {
 		/* no special handling for "flat" */
@@ -120,6 +124,7 @@ ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id)
 		compiler->unminify_coords = true;
 		compiler->txf_ms_with_isaml = true;
 		compiler->array_index_add_half = false;
+		compiler->instr_align = 4;
 		compiler->const_upload_unit = 8;
 	}
 

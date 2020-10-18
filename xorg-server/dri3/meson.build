@@ -14,7 +14,6 @@ if build_dri3
         srcs_dri3,
         include_directories: inc,
         dependencies: [ common_dep, libdrm_dep ],
-        c_args: '-DHAVE_XORG_CONFIG_H'
         )
 endif
 

@@ -96,9 +96,9 @@ nine_upload_create_buffer_group(struct nine_buffer_upload *upload,
 
     group->map = pipe_buffer_map_range(upload->pipe, group->resource,
                                        0, upload->buffers_size,
-                                       PIPE_TRANSFER_WRITE |
-                                       PIPE_TRANSFER_PERSISTENT |
-                                       PIPE_TRANSFER_COHERENT,
+                                       PIPE_MAP_WRITE |
+                                       PIPE_MAP_PERSISTENT |
+                                       PIPE_MAP_COHERENT,
                                        &group->transfer);
     if (group->map == NULL) {
         group->transfer = NULL;
@@ -225,9 +225,9 @@ nine_upload_create_buffer(struct nine_buffer_upload *upload,
 
         buf->map = pipe_buffer_map_range(upload->pipe, buf->resource,
                                          0, buffer_size,
-                                         PIPE_TRANSFER_WRITE |
-                                         PIPE_TRANSFER_PERSISTENT |
-                                         PIPE_TRANSFER_COHERENT,
+                                         PIPE_MAP_WRITE |
+                                         PIPE_MAP_PERSISTENT |
+                                         PIPE_MAP_COHERENT,
                                          &buf->transfer);
         if (buf->map == NULL) {
             pipe_resource_reference(&buf->resource, NULL);

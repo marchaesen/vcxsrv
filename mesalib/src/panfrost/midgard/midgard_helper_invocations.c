@@ -68,7 +68,7 @@ mir_block_uses_helpers(gl_shader_stage stage, midgard_block *block)
 {
         mir_foreach_instr_in_block(block, ins) {
                 if (ins->type != TAG_TEXTURE_4) continue;
-                if (mir_op_computes_derivatives(stage, ins->texture.op))
+                if (mir_op_computes_derivatives(stage, ins->op))
                         return true;
         }
 
@@ -151,7 +151,7 @@ mir_analyze_helper_terminate(compiler_context *ctx)
 
                 mir_foreach_instr_in_block_rev(block, ins) {
                         if (ins->type != TAG_TEXTURE_4) continue;
-                        if (!mir_op_computes_derivatives(ctx->stage, ins->texture.op)) continue;
+                        if (!mir_op_computes_derivatives(ctx->stage, ins->op)) continue;
 
                         ins->helper_terminate = true;
                         break;
@@ -197,7 +197,7 @@ mir_analyze_helper_requirements(compiler_context *ctx)
         mir_foreach_instr_global(ctx, ins) {
                 if (ins->type != TAG_TEXTURE_4) continue;
                 if (ins->dest >= ctx->temp_count) continue;
-                if (!mir_op_computes_derivatives(ctx->stage, ins->texture.op)) continue;
+                if (!mir_op_computes_derivatives(ctx->stage, ins->op)) continue;
 
                 mir_foreach_src(ins, s) {
                         if (ins->src[s] < temp_count)

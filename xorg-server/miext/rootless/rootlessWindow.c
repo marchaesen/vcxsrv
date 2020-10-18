@@ -561,9 +561,9 @@ RootlessReorderWindow(WindowPtr pWin)
 
         /* Find the next window above this one that has a mapped frame.
          * Only include cases where the windows are in the same category of
-         * hittability to ensure offscreen windows dont get restacked
+         * hittability to ensure offscreen windows don't get restacked
          * relative to onscreen ones (but that the offscreen ones maintain
-         * their stacking order if they are explicitly asked to Reorder
+         * their stacking order if they are explicitly asked to Reorder).
          */
 
         newPrevW = pWin->prevSib;
@@ -932,7 +932,7 @@ StartFrameResize(WindowPtr pWin, Bool gravity,
 
             if (code == (WIDTH_SMALLER | HEIGHT_SMALLER)) {
                 /* Since the window is getting smaller, we can do gravity
-                   repair on it with it's current size, then resize it
+                   repair on it with its current size, then resize it
                    afterwards. */
 
                 resize_after = TRUE;

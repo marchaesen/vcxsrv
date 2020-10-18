@@ -722,7 +722,7 @@ ChangeCurrentContext(__GLXclientState * cl, __GLXcontext * glxc,
 }
 
 /*
-** Given a tag, and back-end screen number, retrives the current back-end
+** Given a tag, and back-end screen number, retrieves the current back-end
 ** tag.
 */
 int

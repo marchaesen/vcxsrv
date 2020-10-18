@@ -29,31 +29,28 @@
 #include "ac_llvm_build.h"
 
 struct ac_cull_options {
-	/* In general, I recommend setting all to true except view Z culling,
-	 * which isn't so effective because W culling is cheaper and partially
-	 * replaces near Z culling, and you don't need to set Position.z
-	 * if Z culling is disabled.
-	 *
-	 * If something doesn't work, turn some of these off to find out what.
-	 */
-	bool cull_front;
-	bool cull_back;
-	bool cull_view_xy;
-	bool cull_view_near_z;
-	bool cull_view_far_z;
-	bool cull_small_prims;
-	bool cull_zero_area;
-	bool cull_w; /* cull primitives with all W < 0 */
+   /* In general, I recommend setting all to true except view Z culling,
+    * which isn't so effective because W culling is cheaper and partially
+    * replaces near Z culling, and you don't need to set Position.z
+    * if Z culling is disabled.
+    *
+    * If something doesn't work, turn some of these off to find out what.
+    */
+   bool cull_front;
+   bool cull_back;
+   bool cull_view_xy;
+   bool cull_view_near_z;
+   bool cull_view_far_z;
+   bool cull_small_prims;
+   bool cull_zero_area;
+   bool cull_w; /* cull primitives with all W < 0 */
 
-	bool use_halfz_clip_space;
+   bool use_halfz_clip_space;
 };
 
-LLVMValueRef ac_cull_triangle(struct ac_llvm_context *ctx,
-			      LLVMValueRef pos[3][4],
-			      LLVMValueRef initially_accepted,
-			      LLVMValueRef vp_scale[2],
-			      LLVMValueRef vp_translate[2],
-			      LLVMValueRef small_prim_precision,
-			      struct ac_cull_options *options);
+LLVMValueRef ac_cull_triangle(struct ac_llvm_context *ctx, LLVMValueRef pos[3][4],
+                              LLVMValueRef initially_accepted, LLVMValueRef vp_scale[2],
+                              LLVMValueRef vp_translate[2], LLVMValueRef small_prim_precision,
+                              struct ac_cull_options *options);
 
 #endif

@@ -84,116 +84,36 @@ bi_combine_sel16(bi_context *ctx, bi_instruction *parent, unsigned comp, unsigne
         bi_emit_before(ctx, parent, sel);
 }
 
-/* Gets the instruction generating a given source. Combine lowering is
- * accidentally O(n^2) right now because this function is O(n) instead of O(1).
- * If this pass is slow, this cost can be avoided in favour for better
- * bookkeeping. */
-
-static bi_instruction *
-bi_get_parent(bi_context *ctx, unsigned idx)
-{
-        bi_foreach_instr_global(ctx, ins) {
-                if (ins->dest == idx)
-                        return ins;
-        }
-
-        return NULL;
-}
-
-/* Rewrites uses of an index. Again, this could be O(n) to the program but is
- * currently O(nc) to the program and number of combines, so the pass becomes
- * effectively O(n^2). Better bookkeeping would bring down to linear if that's
- * an issue. */
+/* Copies result of combine from the temp R to the instruction destination,
+ * given a bitsize sz */
 
 static void
-bi_rewrite_uses(bi_context *ctx,
-                unsigned old, unsigned oldc,
-                unsigned new, unsigned newc)
+bi_combine_copy(bi_context *ctx, bi_instruction *ins, unsigned R, unsigned sz)
 {
-        bi_foreach_instr_global(ctx, ins) {
-                bi_foreach_src(ins, s) {
-                        if (ins->src[s] != old) continue;
+        bi_foreach_src(ins, s) {
+                if (!ins->src[s])
+                        continue;
 
-                        for (unsigned i = 0; i < 16; ++i)
-                                ins->swizzle[s][i] += (newc - oldc);
+                /* Iterate by 32-bits */
+                unsigned shift = (sz == 8) ? 2 :
+                        (sz == 16) ? 1 : 0;
 
-                        ins->src[s] = new;
-                }
+                if (s & ((1 << shift) - 1))
+                        continue;
+
+                bi_instruction copy = {
+                        .type = BI_MOV,
+                        .dest = ins->dest,
+                        .dest_type = nir_type_uint32,
+                        .dest_offset = s >> shift,
+                        .src = { R },
+                        .src_types = { nir_type_uint32 },
+                        .swizzle = { { s >> shift } }
+                };
+
+                bi_emit_before(ctx, ins, copy);
         }
 }
-
-/* Checks if we have a nicely aligned vector prefix */
-
-static bool
-bi_is_aligned_vec32(bi_instruction *combine, unsigned s, bi_instruction *io,
-                unsigned *count)
-{
-        /* We only support prefixes */
-        if (s != 0)
-                return false;
-
-        if (!(bi_class_props[io->type] & BI_VECTOR))
-                return false;
-
-        if (nir_alu_type_get_type_size(combine->dest_type) != 32)
-                return false;
-
-        if (nir_alu_type_get_type_size(io->dest_type) != 32)
-                return false;
-
-        unsigned components = io->vector_channels;
-
-        /* Are we contiguous like that? */
-
-        for (unsigned i = 0; i < components; ++i) {
-                if (combine->src[i] != io->dest)
-                        return false;
-
-                if (combine->swizzle[i][0] != i)
-                        return false;
-        }
-
-        /* We're good to go */
-        *count = components;
-        return true;
-}
-
-#if 0
-/* Tries to lower a given source of a combine to an appropriate rewrite,
- * returning true if successful, and false with no changes otherwise. */
-
-static bool
-bi_lower_combine_src(bi_context *ctx, bi_instruction *ins, unsigned s, unsigned R,
-                unsigned *vec_count)
-{
-        unsigned src = ins->src[s];
-
-        /* We currently only handle SSA */
-
-        if (!src) return false;
-        if (src & (BIR_SPECIAL | PAN_IS_REG)) return false;
-
-        /* We are SSA. Lookup the generating instruction. */
-        unsigned bytes = nir_alu_type_get_type_size(ins->dest_type) / 8;
-
-        bi_instruction *parent = bi_get_parent(ctx, src,
-                         0xF << (ins->swizzle[s][0] * bytes));
-
-        if (!parent) return false;
-
-        /* We have a parent instuction, sanity check the typesize */
-        unsigned pbytes = nir_alu_type_get_type_size(parent->dest_type) / 8;
-        if (pbytes != bytes) return false;
-
-        bool scalar = parent->vector_channels != 0;
-        if (!(scalar || bi_is_aligned_vec(ins, s, parent, vec_count))) return false;
-
-        if (!bi_shift_mask(parent, bytes * s)) return false;
-        bi_rewrite_uses(ctx, parent->dest, 0, R, s);
-        parent->dest = R;
-        return true;
-}
-#endif
 
 void
 bi_lower_combine(bi_context *ctx, bi_block *block)
@@ -201,8 +121,21 @@ bi_lower_combine(bi_context *ctx, bi_block *block)
         bi_foreach_instr_in_block_safe(block, ins) {
                 if (ins->type != BI_COMBINE) continue;
 
+                /* If a register COMBINE reads its own output, we need a
+                 * temporary move to allow for swapping. TODO: Could do a bit
+                 * better for pairwise swaps of 16-bit vectors */
+                bool reads_self = false;
+
+                bi_foreach_src(ins, s) {
+                        if(ins->src[s] == ins->dest)
+                                reads_self = true;
+                }
+
                 bool needs_rewrite = !(ins->dest & PAN_IS_REG);
-                unsigned R = needs_rewrite ? bi_make_temp_reg(ctx) : ins->dest;
+                bool needs_copy = (ins->dest & PAN_IS_REG) && reads_self;
+                bool needs_temp = needs_rewrite || needs_copy;
+
+                unsigned R = needs_temp ? bi_make_temp_reg(ctx) : ins->dest;
                 unsigned sz = nir_alu_type_get_type_size(ins->dest_type);
 
                 bi_foreach_src(ins, s) {
@@ -210,17 +143,6 @@ bi_lower_combine(bi_context *ctx, bi_block *block)
                         if (!ins->src[s])
                                 continue;
 
-#if 0
-                        unsigned vec_count = 0;
-
-                        if (bi_lower_combine_src(ctx, ins, s, R, &vec_count)) {
-                                /* Skip vectored sources */
-                                if (vec_count)
-                                        s += (vec_count - 1);
-                        } else {
-                                bi_insert_combine_mov(ctx, ins, s, R);
-                        }
-#endif
                         if (sz == 32)
                                 bi_combine_mov32(ctx, ins, s, R);
                         else if (sz == 16) {
@@ -233,6 +155,8 @@ bi_lower_combine(bi_context *ctx, bi_block *block)
 
                 if (needs_rewrite)
                         bi_rewrite_uses(ctx, ins->dest, 0, R, 0);
+                else if (needs_copy)
+                        bi_combine_copy(ctx, ins, R, sz);
 
                 bi_remove_instruction(ins);
         }

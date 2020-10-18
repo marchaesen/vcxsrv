@@ -119,8 +119,8 @@ static unsigned char const _reverse_nibs[0x100] = {
 
 int
 _XReverse_Bytes(
-    register unsigned char *bpt,
-    register int nb)
+    unsigned char *bpt,
+    int nb)
 {
     do {
 	*bpt = _reverse_byte[*bpt];

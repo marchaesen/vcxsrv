@@ -28,10 +28,10 @@
 #include <math.h>
 #include <assert.h>
 #include "half_float.h"
-#include "util/u_half.h"
 #include "rounding.h"
 #include "softfloat.h"
 #include "macros.h"
+#include "u_math.h"
 
 typedef union { float f; int32_t i; uint32_t u; } fi_type;
 
@@ -54,7 +54,7 @@ typedef union { float f; int32_t i; uint32_t u; } fi_type;
  *     result in the same value as if the expression were executed on the GPU.
  */
 uint16_t
-_mesa_float_to_half(float val)
+_mesa_float_to_half_slow(float val)
 {
    const fi_type fi = {val};
    const int flt_m = fi.i & 0x7fffff;
@@ -129,9 +129,9 @@ _mesa_float_to_half(float val)
 }
 
 uint16_t
-_mesa_float_to_float16_rtz(float val)
+_mesa_float_to_float16_rtz_slow(float val)
 {
-    return _mesa_float_to_half_rtz(val);
+    return _mesa_float_to_half_rtz_slow(val);
 }
 
 /**
@@ -140,9 +140,31 @@ _mesa_float_to_float16_rtz(float val)
  * http://www.opengl.org/discussion_boards/ubb/Forum3/HTML/008786.html
  */
 float
-_mesa_half_to_float(uint16_t val)
+_mesa_half_to_float_slow(uint16_t val)
 {
-   return util_half_to_float(val);
+   union fi infnan;
+   union fi magic;
+   union fi f32;
+
+   infnan.ui = 0x8f << 23;
+   infnan.f = 65536.0f;
+   magic.ui  = 0xef << 23;
+
+   /* Exponent / Mantissa */
+   f32.ui = (val & 0x7fff) << 13;
+
+   /* Adjust */
+   f32.f *= magic.f;
+   /* XXX: The magic mul relies on denorms being available */
+
+   /* Inf / NaN */
+   if (f32.f >= infnan.f)
+      f32.ui |= 0xff << 23;
+
+   /* Sign */
+   f32.ui |= (uint32_t)(val & 0x8000) << 16;
+
+   return f32.f;
 }
 
 /**

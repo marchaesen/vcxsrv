@@ -451,7 +451,7 @@ XkbRMLVOtoKcCGST(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
 /**
  * Compile the given RMLVO keymap and return it. Returns the XkbDescPtr on
  * success or NULL on failure. If the components compiled are not a superset
- * or equal to need, the compiliation is treated as failure.
+ * or equal to need, the compilation is treated as failure.
  */
 static XkbDescPtr
 XkbCompileKeymapForDevice(DeviceIntPtr dev, XkbRMLVOSet * rmlvo, int need)

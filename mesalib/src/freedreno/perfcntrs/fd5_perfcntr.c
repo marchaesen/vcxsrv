@@ -27,7 +27,8 @@
 #ifndef FD5_PERFCNTR_H_
 #define FD5_PERFCNTR_H_
 
-#include "util/u_half.h"
+#include "util/half_float.h"
+#include "util/u_math.h"
 #include "adreno_common.xml.h"
 #include "a5xx.xml.h"
 

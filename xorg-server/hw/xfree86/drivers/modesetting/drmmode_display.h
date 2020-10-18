@@ -112,6 +112,7 @@ typedef struct {
 
     DevPrivateKeyRec pixmapPrivateKeyRec;
     DevScreenPrivateKeyRec spritePrivateKeyRec;
+    DevPrivateKeyRec vrrPrivateKeyRec;
     /* Number of SW cursors currently visible on this screen */
     int sprites_visible;
 
@@ -127,6 +128,8 @@ typedef struct {
 
     Bool dri2_enable;
     Bool present_enable;
+
+    uint32_t vrr_prop_id;
 } drmmode_rec, *drmmode_ptr;
 
 typedef struct {
@@ -193,6 +196,8 @@ typedef struct {
 
     Bool enable_flipping;
     Bool flipping_active;
+
+    Bool vrr_enabled;
 } drmmode_crtc_private_rec, *drmmode_crtc_private_ptr;
 
 typedef struct {
@@ -227,7 +232,7 @@ typedef struct _msPixmapPriv {
     uint32_t fb_id;
     struct dumb_bo *backing_bo; /* if this pixmap is backed by a dumb bo */
 
-    DamagePtr slave_damage;
+    DamagePtr secondary_damage;
 
     /** Sink fields for flipping shared pixmaps */
     int flip_seq; /* seq of current page flip event handler */
@@ -236,7 +241,7 @@ typedef struct _msPixmapPriv {
     /** Source fields for flipping shared pixmaps */
     Bool defer_dirty_update; /* if we want to manually update */
     PixmapDirtyUpdatePtr dirty; /* cached dirty ent to avoid searching list */
-    DrawablePtr slave_src; /* if we exported shared pixmap, dirty tracking src */
+    DrawablePtr secondary_src; /* if we exported shared pixmap, dirty tracking src */
     Bool notify_on_damage; /* if sink has requested damage notification */
 } msPixmapPrivRec, *msPixmapPrivPtr;
 
@@ -259,7 +264,7 @@ int drmmode_bo_destroy(drmmode_ptr drmmode, drmmode_bo *bo);
 uint32_t drmmode_bo_get_pitch(drmmode_bo *bo);
 uint32_t drmmode_bo_get_handle(drmmode_bo *bo);
 Bool drmmode_glamor_handle_new_screen_pixmap(drmmode_ptr drmmode);
-void *drmmode_map_slave_bo(drmmode_ptr drmmode, msPixmapPrivPtr ppriv);
+void *drmmode_map_secondary_bo(drmmode_ptr drmmode, msPixmapPrivPtr ppriv);
 Bool drmmode_SetSlaveBO(PixmapPtr ppix,
                         drmmode_ptr drmmode,
                         int fd_handle, int pitch, int size);
@@ -275,9 +280,11 @@ void drmmode_DisableSharedPixmapFlipping(xf86CrtcPtr crtc, drmmode_ptr drmmode);
 extern Bool drmmode_pre_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int cpp);
 extern Bool drmmode_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
 void drmmode_adjust_frame(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int x, int y);
-extern Bool drmmode_set_desired_modes(ScrnInfoPtr pScrn, drmmode_ptr drmmode, Bool set_hw);
+extern Bool drmmode_set_desired_modes(ScrnInfoPtr pScrn, drmmode_ptr drmmode,
+                                      Bool set_hw, Bool ign_err);
 extern Bool drmmode_setup_colormap(ScreenPtr pScreen, ScrnInfoPtr pScrn);
 
+extern void drmmode_update_kms_state(drmmode_ptr drmmode);
 extern void drmmode_uevent_init(ScrnInfoPtr scrn, drmmode_ptr drmmode);
 extern void drmmode_uevent_fini(ScrnInfoPtr scrn, drmmode_ptr drmmode);
 
@@ -293,5 +300,6 @@ void drmmode_copy_fb(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
 int drmmode_crtc_flip(xf86CrtcPtr crtc, uint32_t fb_id, uint32_t flags, void *data);
 
 void drmmode_set_dpms(ScrnInfoPtr scrn, int PowerManagementMode, int flags);
+void drmmode_crtc_set_vrr(xf86CrtcPtr crtc, Bool enabled);
 
 #endif

@@ -503,7 +503,7 @@ _mesa_set_texture_view_state(struct gl_context *ctx,
    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
       texObj->NumLevels = 1;
       texObj->ImmutableLevels = 1;
-      /* fall through to set NumLayers */
+      /* fallthrough - to set NumLayers */
 
    case GL_TEXTURE_2D_ARRAY:
    case GL_TEXTURE_CUBE_MAP_ARRAY:

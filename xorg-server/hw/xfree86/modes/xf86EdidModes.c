@@ -573,7 +573,7 @@ DDCModeFromDetailedTiming(int scrnIndex, struct detailed_timings *timing,
      * Refuse to create modes that are insufficiently large.  64 is a random
      * number, maybe the spec says something about what the minimum is.  In
      * particular I see this frequently with _old_ EDID, 1.0 or so, so maybe
-     * our parser is just being too aggresive there.
+     * our parser is just being too aggressive there.
      */
     if (timing->h_active < 64 || timing->v_active < 64) {
         xf86DrvMsg(scrnIndex, X_INFO,
@@ -589,7 +589,7 @@ DDCModeFromDetailedTiming(int scrnIndex, struct detailed_timings *timing,
         return NULL;
     }
 
-    /* We only do seperate sync currently */
+    /* We only do separate sync currently */
     if (timing->sync != 0x03) {
         xf86DrvMsg(scrnIndex, X_INFO,
                    "%s: %dx%d Warning: We only handle separate"

@@ -653,7 +653,7 @@ DeepCopyPointerClasses(DeviceIntPtr from, DeviceIntPtr to)
  * Copies the CONTENT of the classes of device from into the classes in device
  * to. From and to are identical after finishing.
  *
- * If to does not have classes from currenly has, the classes are stored in
+ * If to does not have classes from currently has, the classes are stored in
  * to's devPrivates system. Later, we recover it again from there if needed.
  * Saves a few memory allocations.
  */
@@ -2667,7 +2667,7 @@ SendEvent(ClientPtr client, DeviceIntPtr d, Window dest, Bool propagate,
             return Success;
 
         /* If the input focus is PointerRootWin, send the event to where
-         * the pointer is if possible, then perhaps propogate up to root. */
+         * the pointer is if possible, then perhaps propagate up to root. */
         if (inputFocus == PointerRootWin)
             inputFocus = GetCurrentRootWindow(d);
 

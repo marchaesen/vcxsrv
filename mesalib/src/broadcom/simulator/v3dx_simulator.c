@@ -46,7 +46,7 @@
 #define HW_REGISTER_RO(x) (x)
 #define HW_REGISTER_RW(x) (x)
 #if V3D_VERSION >= 41
-#include "libs/core/v3d/registers/4.1.34.0/v3d.h"
+#include "libs/core/v3d/registers/4.1.35.0/v3d.h"
 #else
 #include "libs/core/v3d/registers/3.3.0.0/v3d.h"
 #endif
@@ -135,12 +135,12 @@ static void
 v3d_reload_gmp(struct v3d_hw *v3d)
 {
         /* Completely reset the GMP. */
-        V3D_WRITE(V3D_GMP_0_CFG,
-                  V3D_GMP_0_CFG_PROTENABLE_SET);
-        V3D_WRITE(V3D_GMP_0_TABLE_ADDR, g_gmp_ofs);
-        V3D_WRITE(V3D_GMP_0_CLEAR_LOAD, ~0);
-        while (V3D_READ(V3D_GMP_0_STATUS) &
-               V3D_GMP_0_STATUS_CFG_BUSY_SET) {
+        V3D_WRITE(V3D_GMP_CFG,
+                  V3D_GMP_CFG_PROTENABLE_SET);
+        V3D_WRITE(V3D_GMP_TABLE_ADDR, g_gmp_ofs);
+        V3D_WRITE(V3D_GMP_CLEAR_LOAD, ~0);
+        while (V3D_READ(V3D_GMP_STATUS) &
+               V3D_GMP_STATUS_CFG_BUSY_SET) {
                 ;
         }
 }
@@ -271,7 +271,7 @@ v3d_isr(uint32_t hub_status)
 
                 if (core_status & V3D_CTL_0_INT_STS_INT_GMPV_SET) {
                         fprintf(stderr, "GMP violation at 0x%08x\n",
-                                V3D_READ(V3D_GMP_0_VIO_ADDR));
+                                V3D_READ(V3D_GMP_VIO_ADDR));
                         abort();
                 } else {
                         fprintf(stderr,

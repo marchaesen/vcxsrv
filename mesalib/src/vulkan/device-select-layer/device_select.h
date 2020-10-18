@@ -30,6 +30,7 @@ struct device_pci_info {
   drmPciDeviceInfo dev_info;
   drmPciBusInfo bus_info;
   bool has_bus_info;
+  bool cpu_device;
 };
 
 #ifdef VK_USE_PLATFORM_XCB_KHR

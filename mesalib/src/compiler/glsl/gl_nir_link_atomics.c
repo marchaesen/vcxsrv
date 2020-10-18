@@ -148,7 +148,7 @@ find_active_atomic_counters(struct gl_context *ctx,
 
       nir_shader *nir = sh->Program->nir;
 
-      nir_foreach_variable(var, &nir->uniforms) {
+      nir_foreach_uniform_variable(var, nir) {
          if (!glsl_contains_atomic(var->type))
             continue;
 

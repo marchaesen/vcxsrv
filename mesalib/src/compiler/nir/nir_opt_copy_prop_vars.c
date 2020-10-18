@@ -195,7 +195,8 @@ gather_vars_written(struct copy_prop_var_state *state,
          case nir_intrinsic_deref_atomic_exchange:
          case nir_intrinsic_deref_atomic_comp_swap:
          case nir_intrinsic_store_deref:
-         case nir_intrinsic_copy_deref: {
+         case nir_intrinsic_copy_deref:
+         case nir_intrinsic_memcpy_deref: {
             /* Destination in all of store_deref, copy_deref and the atomics is src[0]. */
             nir_deref_instr *dst = nir_src_as_deref(intrin->src[0]);
 
@@ -290,10 +291,10 @@ static void
 copy_entry_remove(struct util_dynarray *copies,
                   struct copy_entry *entry)
 {
-   /* This also works when removing the last element since pop don't shrink
-    * the memory used by the array, so the swap is useless but not invalid.
-    */
-   *entry = util_dynarray_pop(copies, struct copy_entry);
+   const struct copy_entry *src =
+      util_dynarray_pop_ptr(copies, struct copy_entry);
+   if (src != entry)
+      *entry = *src;
 }
 
 static bool
@@ -1056,6 +1057,7 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
          break;
       }
 
+      case nir_intrinsic_memcpy_deref:
       case nir_intrinsic_deref_atomic_add:
       case nir_intrinsic_deref_atomic_imin:
       case nir_intrinsic_deref_atomic_umin:

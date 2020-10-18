@@ -16,8 +16,8 @@ Compiling and Installing
 Build system
 ^^^^^^^^^^^^
 
--  `meson <https://mesonbuild.com>`__ is required when building on \*nix
-   platforms and is supported on windows.
+-  `Meson <https://mesonbuild.com>`__ is required when building on \*nix
+   platforms and is supported on Windows.
 -  `SCons <http://www.scons.org/>`__ is an alternative for building on
    Windows and Linux.
 -  Android Build system when building as native Android component. Meson
@@ -38,15 +38,15 @@ Third party/extra tools.
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  `Python <https://www.python.org/>`__ - Python is required. When
-   building with scons 2.7 is required. When building with meson 3.5 or
+   building with SCons 2.7 is required. When building with meson 3.5 or
    newer is required.
 -  `Python Mako module <http://www.makotemplates.org/>`__ - Python Mako
    module is required. Version 0.8.0 or later should work.
 -  lex / yacc - for building the Mesa IR and GLSL compiler.
 
-   On Linux systems, flex and bison versions 2.5.35 and 2.4.1,
+   On Linux systems, Flex and Bison versions 2.5.35 and 2.4.1,
    respectively, (or later) should work. On Windows with MinGW, install
-   flex and bison with:
+   Flex and Bison with:
 
    ::
 
@@ -57,7 +57,7 @@ Third party/extra tools.
 
 .. note::
 
-   Some versions can be buggy (eg. flex 2.6.2) so do try others
+   Some versions can be buggy (eg. Flex 2.6.2) so do try others
    if things fail.
 
 1.2 Requirements
@@ -94,7 +94,7 @@ The general approach is:
      ninja -C builddir/
      sudo ninja -C builddir/ install
 
-On windows you can also use the visual studio backend
+On Windows you can also use the Visual Studio backend
 
 ::
 
@@ -116,7 +116,7 @@ To build Mesa with SCons on Linux or Windows do
 
 The build output will be placed in
 build/\ *platform*-*machine*-*debug*/..., where *platform* is for
-example linux or windows, *machine* is x86 or x86_64, optionally
+example Linux or Windows, *machine* is x86 or x86_64, optionally
 followed by -debug for debug builds.
 
 To build Mesa with SCons for Windows on Linux using the MinGW

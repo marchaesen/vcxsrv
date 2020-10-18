@@ -68,9 +68,9 @@
 #define _XF86_OSPROC_H
 
 /*
- * The actual prototypes have been pulled into this seperate file so
+ * The actual prototypes have been pulled into this separate file so
  * that they can can be used without pulling in all of the OS specific
- * stuff like sys/stat.h, etc. This casues problem for loadable modules.
+ * stuff like sys/stat.h, etc. that causes problems for loadable modules.
  */
 
 /*

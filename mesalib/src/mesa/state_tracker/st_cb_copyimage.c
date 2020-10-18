@@ -585,7 +585,7 @@ fallback_copy_image(struct st_context *st,
             GL_MAP_WRITE_BIT, &dst, &dst_stride);
    } else {
       dst = pipe_transfer_map(st->pipe, dst_res, 0, dst_z,
-                              PIPE_TRANSFER_WRITE,
+                              PIPE_MAP_WRITE,
                               dst_x, dst_y, dst_w, dst_h,
                               &dst_transfer);
       dst_stride = dst_transfer->stride;
@@ -598,7 +598,7 @@ fallback_copy_image(struct st_context *st,
             GL_MAP_READ_BIT, &src, &src_stride);
    } else {
       src = pipe_transfer_map(st->pipe, src_res, 0, src_z,
-                              PIPE_TRANSFER_READ,
+                              PIPE_MAP_READ,
                               src_x, src_y, src_w, src_h,
                               &src_transfer);
       src_stride = src_transfer->stride;

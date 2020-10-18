@@ -234,19 +234,19 @@ static const struct format_mapping format_map[] = {
         DEFAULT_RGB_FORMATS }
    },
    {
-      { GL_RGB4 },
+      { GL_RGB4, 0 },
       { PIPE_FORMAT_B4G4R4X4_UNORM, PIPE_FORMAT_B4G4R4A4_UNORM,
         PIPE_FORMAT_A4B4G4R4_UNORM,
         DEFAULT_RGB_FORMATS }
    },
    {
-      { GL_RGB5 },
+      { GL_RGB5, 0 },
       { PIPE_FORMAT_B5G5R5X1_UNORM, PIPE_FORMAT_X1B5G5R5_UNORM,
         PIPE_FORMAT_B5G5R5A1_UNORM, PIPE_FORMAT_A1B5G5R5_UNORM,
         DEFAULT_RGB_FORMATS }
    },
    {
-      { GL_RGB565 },
+      { GL_RGB565, 0 },
       { PIPE_FORMAT_B5G6R5_UNORM, DEFAULT_RGB_FORMATS }
    },
 
@@ -910,7 +910,7 @@ static const struct format_mapping format_map[] = {
    },
    {
      { GL_R8I, GL_RED_INTEGER_EXT, 0},
-     { PIPE_FORMAT_R8_SINT, 0},
+     { PIPE_FORMAT_R8_SINT, PIPE_FORMAT_R8G8_SINT, 0},
    },
    {
      { GL_R16I, 0},
@@ -922,7 +922,7 @@ static const struct format_mapping format_map[] = {
    },
   {
      { GL_R8UI, 0},
-     { PIPE_FORMAT_R8_UINT, 0},
+     { PIPE_FORMAT_R8_UINT, PIPE_FORMAT_R8G8_UINT, 0},
    },
    {
      { GL_R16UI, 0},
@@ -1281,7 +1281,11 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
             internalFormat == GL_RGB16F ||
             internalFormat == GL_RGBA16F ||
             internalFormat == GL_RGB32F ||
-            internalFormat == GL_RGBA32F)
+            internalFormat == GL_RGBA32F ||
+            internalFormat == GL_RED ||
+            internalFormat == GL_RED_SNORM ||
+            internalFormat == GL_R8I ||
+            internalFormat == GL_R8UI)
       bindings |= PIPE_BIND_RENDER_TARGET;
 
    /* GLES allows the driver to choose any format which matches

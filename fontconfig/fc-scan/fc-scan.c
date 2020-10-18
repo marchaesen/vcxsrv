@@ -36,10 +36,13 @@
 #include <fontconfig/fontconfig.h>
 #include <fontconfig/fcfreetype.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
@@ -63,6 +66,7 @@
 static const struct option longopts[] = {
     {"brief", 0, 0, 'b'},
     {"format", 1, 0, 'f'},
+    {"sysroot", required_argument, 0, 'y'},
     {"version", 0, 0, 'V'},
     {"help", 0, 0, 'h'},
     {NULL,0,0,0},
@@ -79,22 +83,24 @@ usage (char *program, int error)
 {
     FILE *file = error ? stderr : stdout;
 #if HAVE_GETOPT_LONG
-    fprintf (file, _("usage: %s [-bVh] [-f FORMAT] [--brief] [--format FORMAT] [--version] [--help] font-file...\n"),
+    fprintf (file, _("usage: %s [-bcVh] [-f FORMAT] [-y SYSROOT] [--brief] [--format FORMAT] [--version] [--help] font-file...\n"),
 	     program);
 #else
-    fprintf (file, _("usage: %s [-bVh] [-f FORMAT] font-file...\n"),
+    fprintf (file, _("usage: %s [-bcVh] [-f FORMAT] [-y SYSROOT] font-file...\n"),
 	     program);
 #endif
     fprintf (file, _("Scan font files and directories, and print resulting pattern(s)\n"));
     fprintf (file, "\n");
 #if HAVE_GETOPT_LONG
-    fprintf (file, _("  -b, --brief          display font pattern briefly\n"));
-    fprintf (file, _("  -f, --format=FORMAT  use the given output format\n"));
-    fprintf (file, _("  -V, --version        display font config version and exit\n"));
-    fprintf (file, _("  -h, --help           display this help and exit\n"));
+    fprintf (file, _("  -b, --brief            display font pattern briefly\n"));
+    fprintf (file, _("  -f, --format=FORMAT    use the given output format\n"));
+    fprintf (file, _("  -y, --sysroot=SYSROOT  prepend SYSROOT to all paths for scanning\n"));
+    fprintf (file, _("  -V, --version          display font config version and exit\n"));
+    fprintf (file, _("  -h, --help             display this help and exit\n"));
 #else
     fprintf (file, _("  -b         (brief)         display font pattern briefly\n"));
     fprintf (file, _("  -f FORMAT  (format)        use the given output format\n"));
+    fprintf (file, _("  -y SYSROOT (sysroot)       prepend SYSROOT to all paths for scanning\n"));
     fprintf (file, _("  -V         (version)       display font config version and exit\n"));
     fprintf (file, _("  -h         (help)          display this help and exit\n"));
 #endif
@@ -105,7 +111,7 @@ int
 main (int argc, char **argv)
 {
     int         brief = 0;
-    FcChar8     *format = NULL;
+    FcChar8     *format = NULL, *sysroot = NULL;
     int		i;
     FcFontSet   *fs;
 #if HAVE_GETOPT_LONG || HAVE_GETOPT
@@ -113,9 +119,9 @@ main (int argc, char **argv)
 
     setlocale (LC_ALL, "");
 #if HAVE_GETOPT_LONG
-    while ((c = getopt_long (argc, argv, "bf:Vh", longopts, NULL)) != -1)
+    while ((c = getopt_long (argc, argv, "bf:y:Vh", longopts, NULL)) != -1)
 #else
-    while ((c = getopt (argc, argv, "bf:Vh")) != -1)
+    while ((c = getopt (argc, argv, "bf:y:Vh")) != -1)
 #endif
     {
 	switch (c) {
@@ -124,6 +130,9 @@ main (int argc, char **argv)
 	    break;
 	case 'f':
 	    format = (FcChar8 *) strdup (optarg);
+	    break;
+	case 'y':
+	    sysroot = FcStrCopy ((const FcChar8 *) optarg);
 	    break;
 	case 'V':
 	    fprintf (stderr, "fontconfig version %d.%d.%d\n",
@@ -143,6 +152,11 @@ main (int argc, char **argv)
     if (i == argc)
 	usage (argv[0], 1);
 
+    if (sysroot)
+    {
+	FcConfigSetSysRoot (NULL, sysroot);
+	FcStrFree (sysroot);
+    }
     fs = FcFontSetCreate ();
 
     for (; i < argc; i++)

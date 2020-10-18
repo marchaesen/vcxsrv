@@ -1071,7 +1071,7 @@ init_om(
     /* directional dependent drawing */
     om->core.directional_dependent = False;
 
-    /* contexual drawing */
+    /* contextual drawing */
     om->core.contextual_drawing = False;
 
     /* context dependent */

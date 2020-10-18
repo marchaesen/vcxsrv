@@ -415,10 +415,10 @@ FcLangContains (const FcChar8 *super, const FcChar8 *sub)
 	c2 = FcToLower (c2);
 	if (c1 != c2)
 	{
-	    /* see if super has a country while sub is mising one */
+	    /* see if super has a country while sub is missing one */
 	    if (c1 == '-' && c2 == '\0')
 		return FcTrue;
-	    /* see if sub has a country while super is mising one */
+	    /* see if sub has a country while super is missing one */
 	    if (c1 == '\0' && c2 == '-')
 		return FcTrue;
 	    return FcFalse;

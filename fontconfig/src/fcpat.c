@@ -338,7 +338,7 @@ FcValueHash (const FcValue *v)
     case FcTypeLangSet:
 	return FcLangSetHash (FcValueLangSet(v));
     case FcTypeRange:
-	return FcRangeHash (v->u.r);
+	return FcRangeHash (FcValueRange (v));
     }
     return 0;
 }

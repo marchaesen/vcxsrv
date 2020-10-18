@@ -65,11 +65,6 @@
                 op == midgard_alu_op_fcsel \
         )
 
-#define OP_IS_DERIVATIVE(op) ( \
-                op == TEXTURE_OP_DFDX || \
-                op == TEXTURE_OP_DFDY \
-        )
-
 #define OP_IS_UNSIGNED_CMP(op) ( \
                 op == midgard_alu_op_ult || \
                 op == midgard_alu_op_ule \
@@ -143,6 +138,9 @@
 /* Uniforms are begin at (REGISTER_UNIFORMS - uniform_count) */
 #define REGISTER_UNIFORMS 24
 
+/* r24 and r25 are special registers that only exist during the pipeline,
+ * by using them when we don't care about the register we skip a roundtrip
+ * to the register file. */
 #define REGISTER_UNUSED 24
 #define REGISTER_CONSTANT 26
 #define REGISTER_LDST_BASE 26
@@ -240,6 +238,9 @@ struct mir_tag_props {
 /* Computes an address according to indirects/zext/shift/etc */
 #define LDST_ADDRESS (1 << 5)
 
+/* Some fields such swizzle and address have special meanings */
+#define LDST_ATOMIC (1 << 6)
+
 /* This file is common, so don't define the tables themselves. #include
  * midgard_op.h if you need that, or edit midgard_ops.c directly */
 
@@ -307,9 +308,19 @@ mir_is_simple_swizzle(unsigned *swizzle, unsigned mask)
 /* Packs a load/store argument */
 
 static inline uint8_t
-midgard_ldst_reg(unsigned reg, unsigned component)
+midgard_ldst_reg(unsigned reg, unsigned component, unsigned size)
 {
         assert((reg == REGISTER_LDST_BASE) || (reg == REGISTER_LDST_BASE + 1));
+        assert(size == 16 || size == 32 || size == 64);
+
+        /* Shift so everything is in terms of 32-bit units */
+        if (size == 64) {
+                assert(component < 2);
+                component <<= 1;
+        } else if (size == 16) {
+                assert((component & 1) == 0);
+                component >>= 1;
+        }
 
         midgard_ldst_register_select sel = {
                 .component = component,
@@ -327,6 +338,10 @@ midgard_is_branch_unit(unsigned unit)
 {
         return (unit == ALU_ENAB_BRANCH) || (unit == ALU_ENAB_BR_COMPACT);
 }
+
+/* Packs ALU mod argument */
+struct midgard_instruction;
+unsigned mir_pack_mod(struct midgard_instruction *ins, unsigned i, bool scalar);
 
 void
 mir_print_constant_component(FILE *fp, const midgard_constants *consts,

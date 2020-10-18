@@ -22,7 +22,9 @@
  */
 #include "fcint.h"
 #include "fcarch.h"
+#ifdef HAVE_DIRENT_H
 #include <dirent.h>
+#endif
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>

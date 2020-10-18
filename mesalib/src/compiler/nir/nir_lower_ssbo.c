@@ -128,6 +128,11 @@ lower_ssbo_instr(nir_builder *b, nir_intrinsic_instr *intr)
    global->num_components = intr->num_components;
    global->src[is_store ? 1 : 0] = nir_src_for_ssa(address);
 
+   if (!is_atomic) {
+      nir_intrinsic_set_align_mul(global, nir_intrinsic_align_mul(intr));
+      nir_intrinsic_set_align_offset(global, nir_intrinsic_align_offset(intr));
+   }
+
    if (is_store) {
       nir_src_copy(&global->src[0], &intr->src[0], global);
       nir_intrinsic_set_write_mask(global, nir_intrinsic_write_mask(intr));

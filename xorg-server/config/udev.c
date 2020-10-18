@@ -477,6 +477,31 @@ config_udev_fini(void)
 
 #ifdef CONFIG_UDEV_KMS
 
+/* Find the last occurrence of the needle in haystack */
+static char *strrstr(const char *haystack, const char *needle)
+{
+    char *prev, *last, *tmp;
+
+    prev = strstr(haystack, needle);
+    if (!prev)
+        return NULL;
+
+    last = prev;
+    tmp = prev + 1;
+
+    while (tmp) {
+        last = strstr(tmp, needle);
+        if (!last)
+            return prev;
+        else {
+            prev = last;
+            tmp = prev + 1;
+        }
+    }
+
+    return last;
+}
+
 static void
 config_udev_odev_setup_attribs(struct udev_device *udev_device, const char *path, const char *syspath,
                                int major, int minor,
@@ -491,7 +516,7 @@ config_udev_odev_setup_attribs(struct udev_device *udev_device, const char *path
     attribs->minor = minor;
 
     value = udev_device_get_property_value(udev_device, "ID_PATH");
-    if (value && (str = strstr(value, "pci-"))) {
+    if (value && (str = strrstr(value, "pci-"))) {
         attribs->busid = XNFstrdup(str);
         attribs->busid[3] = ':';
     }

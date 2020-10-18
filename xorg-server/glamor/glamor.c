@@ -423,7 +423,8 @@ glamor_debug_output_callback(GLenum source,
 static void
 glamor_setup_debug_output(ScreenPtr screen)
 {
-    if (!epoxy_has_gl_extension("GL_ARB_debug_output"))
+    if (!epoxy_has_gl_extension("GL_KHR_debug") &&
+        !epoxy_has_gl_extension("GL_ARB_debug_output"))
         return;
 
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -1071,7 +1072,7 @@ glamor_shareable_fd_from_pixmap(ScreenPtr screen,
     int ret;
 
     /*
-     * The actual difference between a sharable and non sharable buffer
+     * The actual difference between a shareable and non-shareable buffer
      * is decided 4 call levels deep in glamor_make_pixmap_exportable()
      * based on pixmap->usage_hint == CREATE_PIXMAP_USAGE_SHARED
      * 2 of those calls are also exported API, so we cannot just add a flag.

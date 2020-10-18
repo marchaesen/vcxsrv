@@ -569,10 +569,10 @@ typedef struct {
 	CARD32	length;
 	CARD16	width;			/* total pixel width */
 	CARD16	height;			/* total pixel height */
-	CARD16	rx;			/* reproducable x pixel offset */
-	CARD16	ry;			/* reproducable y pixel offset */
-	CARD16	rwidth;			/* reproducable x pixel width */
-	CARD16	rheight;		/* reproducable y pixel width */
+	CARD16	rx;			/* reproducible x pixel offset */
+	CARD16	ry;			/* reproducible y pixel offset */
+	CARD16	rwidth;			/* reproducible x pixel width */
+	CARD16	rheight;		/* reproducible y pixel width */
 	CARD32	pad1;
 	CARD32	pad2;
 	CARD32	pad3;

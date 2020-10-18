@@ -28,6 +28,7 @@ if with_platform_x11 and with_dri3
     include_directories : [inc_include, inc_src],
     dependencies : [
       dep_libdrm, dep_xcb_dri3, dep_xcb_present, dep_xcb_sync, dep_xshmfence,
+      dep_xcb_xfixes,
     ],
     build_by_default : false,
   )

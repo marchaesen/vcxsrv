@@ -147,7 +147,7 @@ sub make_compose_chart {
     chomp($cl);
 
     if ($cl =~ m{^\s*#\s*(.*)$}) {	# Comment only lines
-      # Combine commment blocks
+      # Combine comment blocks
       my $comment = $1;
 
       if ($in_comment) {

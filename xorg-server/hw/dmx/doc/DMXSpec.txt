@@ -287,7 +287,7 @@
 
     On success, status will be 0 and physicalScreen will contain the new
     screen number.  On failure, status will be non-zero.  The status
-    will be 1 if any of the following occured:
+    will be 1 if any of the following occurred:
         * the -addremovescreens command-line option was not specified on
           the Xdmx command line
         * the value of physicalScreen is out of range
@@ -419,7 +419,7 @@
     layout.  The valueMask and valueList specify which attributes are to
     be changed.  The possible values are:
 
-        Attriubute      Type
+        Attribute       Type
 
         Width           INT16
         Height          INT16

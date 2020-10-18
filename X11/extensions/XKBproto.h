@@ -28,6 +28,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define	_XKBPROTO_H_
 
 #include <X11/Xmd.h>
+#include <X11/Xfuncproto.h>
 #include <X11/extensions/XKB.h>
 
 #define Window CARD32
@@ -675,7 +676,7 @@ typedef struct _xkbRowWireDesc {
 #define	sz_xkbRowWireDesc	8
 
 typedef struct _xkbKeyWireDesc {
-    CARD8	name[XkbKeyNameLength];
+    CARD8	name[XkbKeyNameLength]	_X_NONSTRING;
     INT16	gap;
     CARD8	shapeNdx;
     CARD8	colorNdx;
@@ -698,8 +699,8 @@ typedef struct _xkbOverlayRowWireDesc {
 #define	sz_xkbOverlayRowWireDesc	4
 
 typedef struct _xkbOverlayKeyWireDesc {
-   CARD8	over[XkbKeyNameLength];
-   CARD8	under[XkbKeyNameLength];
+   CARD8	over[XkbKeyNameLength]	_X_NONSTRING;
+   CARD8	under[XkbKeyNameLength]	_X_NONSTRING;
 } xkbOverlayKeyWireDesc;
 #define	sz_xkbOverlayKeyWireDesc	8
 

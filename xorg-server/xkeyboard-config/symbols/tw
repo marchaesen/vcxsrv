@@ -36,7 +36,7 @@ xkb_symbols "tw" {
     key <AC11> { [apostrophe,   quotedbl,         U02BC, dead_doubleacute ] };
 
     key <AB03> { [	   c,          C,      ccedilla,         Ccedilla ] };
-    key <AB06> { [	   n,          N,        ntilde,           Ntilde ] };
+    key <AB06> { [	   n,          N,         U207F,            U1D3A ] };
     key <AB07> { [	   m,          M,            mu,               mu ] };
     key <AB08> { [     comma,       less, dead_belowcomma,  guillemotleft ] };
     key <AB09> { [    period,    greater, dead_belowdot,   guillemotright ] };

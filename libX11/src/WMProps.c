@@ -80,7 +80,7 @@ void XSetWMProperties (
      char **argv,		/* command line */
      int argc,			/* size of command line */
      XSizeHints *sizeHints,	/* size hints for window in its normal state */
-     XWMHints *wmHints,		/* miscelaneous window manager hints */
+     XWMHints *wmHints,		/* miscellaneous window manager hints */
      XClassHint *classHints)	/* resource name and class */
 {
     XTextProperty textprop;

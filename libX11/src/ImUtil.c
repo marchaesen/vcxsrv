@@ -269,7 +269,7 @@ static void _putbits(
  * valid, and reinit the functions if not.
  */
 void _XInitImageFuncPtrs (
-    register XImage *image)
+    XImage *image)
 {
 	image->f.create_image = XCreateImage;
 	image->f.destroy_image = _XDestroyImage;
@@ -918,9 +918,9 @@ static XImage *_XSubImage (
 
 int _XSetImage(
     XImage *srcimg,
-    register XImage *dstimg,
-    register int x,
-    register int y)
+    XImage *dstimg,
+    int x,
+    int y)
 {
 	register unsigned long pixel;
 	register int row, col;

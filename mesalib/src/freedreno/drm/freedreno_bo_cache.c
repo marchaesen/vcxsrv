@@ -180,7 +180,6 @@ retry:
 				goto retry;
 			}
 			p_atomic_set(&bo->refcnt, 1);
-			fd_device_ref(bo->dev);
 			bo->flags = FD_RELOC_FLAGS_INIT;
 			return bo;
 		}
@@ -206,11 +205,6 @@ fd_bo_cache_free(struct fd_bo_cache *cache, struct fd_bo *bo)
 		VG_BO_RELEASE(bo);
 		list_addtail(&bo->list, &bucket->list);
 		fd_bo_cache_cleanup(cache, time.tv_sec);
-
-		/* bo's in the bucket cache don't have a ref and
-		 * don't hold a ref to the dev:
-		 */
-		fd_device_del_locked(bo->dev);
 
 		return 0;
 	}

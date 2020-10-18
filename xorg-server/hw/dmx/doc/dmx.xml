@@ -3307,10 +3307,10 @@ described above).
 <title>Doxygen documentation</title>
 
 <para>Doxygen is an open-source (GPL) documentation system for generating
-browseable documentation from stylized comments in the source code.  We
+browsable documentation from stylized comments in the source code.  We
 have placed all of the Xdmx server and DMX protocol source code files
 under Doxygen so that comprehensive documentation for the Xdmx source
-code is available in an easily browseable format.
+code is available in an easily browsable format.
 </para>
 </sect3>
 

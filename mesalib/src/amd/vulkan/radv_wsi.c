@@ -57,7 +57,8 @@ radv_init_wsi(struct radv_physical_device *physical_device)
 					   radv_wsi_proc_addr,
 					   &physical_device->instance->alloc,
 					   physical_device->master_fd,
-					   &physical_device->instance->dri_options);
+					   &physical_device->instance->dri_options,
+					   false);
 	if (result != VK_SUCCESS)
 		return result;
 
@@ -259,12 +260,21 @@ VkResult radv_AcquireNextImage2KHR(
 
 	if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {
 		if (fence) {
-			if (fence->fence)
-				device->ws->signal_fence(fence->fence);
-			if (fence->temp_syncobj) {
-				device->ws->signal_syncobj(device->ws, fence->temp_syncobj);
-			} else if (fence->syncobj) {
-				device->ws->signal_syncobj(device->ws, fence->syncobj);
+			struct radv_fence_part *part =
+				fence->temporary.kind != RADV_FENCE_NONE ?
+				&fence->temporary : &fence->permanent;
+
+			switch (part->kind) {
+			case RADV_FENCE_NONE:
+				break;
+			case RADV_FENCE_WINSYS:
+				device->ws->signal_fence(part->fence);
+				break;
+			case RADV_FENCE_SYNCOBJ:
+				device->ws->signal_syncobj(device->ws, part->syncobj, 0);
+				break;
+			default:
+				unreachable("Invalid WSI fence type");
 			}
 		}
 		if (semaphore) {
@@ -278,9 +288,10 @@ VkResult radv_AcquireNextImage2KHR(
 				/* Do not need to do anything. */
 				break;
 			case RADV_SEMAPHORE_TIMELINE:
+			case RADV_SEMAPHORE_TIMELINE_SYNCOBJ:
 				unreachable("WSI only allows binary semaphores.");
 			case RADV_SEMAPHORE_SYNCOBJ:
-				device->ws->signal_syncobj(device->ws, part->syncobj);
+				device->ws->signal_syncobj(device->ws, part->syncobj, 0);
 				break;
 			}
 		}

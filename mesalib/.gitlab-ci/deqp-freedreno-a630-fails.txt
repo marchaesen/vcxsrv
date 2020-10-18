@@ -1,22 +1,27 @@
 # Possibly https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/2035 related
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_neg_z_and_pos_x_pos_z_and_neg_x_neg_y_pos_z
 
-dEQP-GLES31.functional.stencil_texturing.render.depth24_stencil8_clear
-dEQP-GLES31.functional.stencil_texturing.render.depth24_stencil8_draw
-dEQP-VK.binding_model.descriptorset_random.sets4.constant.ubolimitlow.sbolimithigh.imglimithigh.noiub.uab.frag.ialimitlow.0
-dEQP-VK.compute.basic.shared_var_single_group
-dEQP-VK.draw.output_location.array.b8g8r8a8-unorm-mediump-output-vec3
-dEQP-VK.glsl.derivate.fwidthfine.uniform_loop.vec3_mediump
-dEQP-VK.glsl.linkage.varying.struct.mat3x2
-dEQP-VK.graphicsfuzz.mat-array-deep-control-flow
-dEQP-VK.pipeline.spec_constant.compute.composite.array.mat4x3
-dEQP-VK.pipeline.spec_constant.graphics.geometry.composite.array.array_vec4
-dEQP-VK.pipeline.spec_constant.graphics.vertex.composite.array.mat4x3
-dEQP-VK.renderpass2.dedicated_allocation.formats.d24_unorm_s8_uint.input.load.store.self_dep_draw_stencil_read_only
-dEQP-VK.renderpass.dedicated_allocation.formats.d24_unorm_s8_uint.input.clear.dont_care.clear_draw
-dEQP-VK.renderpass.suballocation.formats.d24_unorm_s8_uint.input.dont_care.dont_care.draw_use_input_aspect
-dEQP-VK.renderpass.suballocation.formats.d24_unorm_s8_uint.input.dont_care.store.draw_stencil_read_only
-dEQP-VK.spirv_assembly.instruction.compute.float_controls.fp32.input_args.negate_denorm_preserve
-dEQP-VK.spirv_assembly.instruction.compute.float_controls.fp32.input_args.rounding_rtz_out_prod
-dEQP-VK.spirv_assembly.instruction.graphics.opquantize.carry_bit_geom
-dEQP-VK.subgroups.builtin_var.graphics.subgroupinvocationid
+dEQP-VK.api.image_clearing.core.clear_color_attachment.single_layer.a8b8g8r8_srgb_pack32_1x33
+dEQP-VK.api.image_clearing.dedicated_allocation.clear_color_attachment.single_layer.b8g8r8a8_srgb_33x128
+dEQP-VK.compute.indirect_dispatch.upload_buffer.multi_dispatch
+dEQP-VK.draw.output_location.array.r8g8-uint-mediump-output-uint
+dEQP-VK.memory_model.message_passing.core11.u32.coherent.fence_fence.atomicwrite.device.payload_local.image.guard_nonlocal.workgroup.comp
+dEQP-VK.spirv_assembly.instruction.graphics.opquantize.round_to_negative_inf_geom
+dEQP-VK.spirv_assembly.instruction.graphics.opquantize.spec_const_positive_round_up_or_round_down_geom
+
+# not sure what's wrong here
+dEQP-VK.tessellation.invariance.outer_edge_index_independence.quads_fractional_even_spacing_ccw_point_mode
+dEQP-VK.tessellation.invariance.outer_edge_symmetry.triangles_fractional_odd_spacing_cw_point_mode
+
+KHR-GL30.clip_distance.functional
+KHR-GL30.transform_feedback.api_errors_test
+KHR-GL30.transform_feedback.capture_vertex_interleaved_test
+KHR-GL30.transform_feedback.capture_vertex_separate_test
+KHR-GL30.transform_feedback.discard_vertex_test
+KHR-GL30.transform_feedback.draw_xfb_feedbackk_test
+KHR-GL30.transform_feedback.draw_xfb_instanced_test
+KHR-GL30.transform_feedback.draw_xfb_stream_instanced_test
+KHR-GL30.transform_feedback.draw_xfb_test
+KHR-GL30.transform_feedback.get_xfb_varying
+KHR-GL30.transform_feedback.query_vertex_interleaved_test
+KHR-GL30.transform_feedback.query_vertex_separate_test

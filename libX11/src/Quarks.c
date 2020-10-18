@@ -63,7 +63,7 @@ from The Open Group.
 #ifdef PERMQ
 typedef unsigned char Bits;
 #endif
-typedef unsigned long Entry; /* dont confuse with EntryRec from Xintatom.h */
+typedef unsigned long Entry; /* don't confuse with EntryRec from Xintatom.h */
 
 static XrmQuark nextQuark = 1;	/* next available quark number */
 static unsigned long quarkMask = 0;
@@ -398,7 +398,7 @@ XrmString XrmQuarkToString(register XrmQuark quark)
     else {
 #ifdef PERMQ
 	/* We have to mark the quark as permanent, since the caller might hold
-	 * onto the string pointer forver.
+	 * onto the string pointer forever.
 	 */
 	SETPERM(quark);
 #endif

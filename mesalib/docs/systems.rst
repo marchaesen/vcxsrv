@@ -7,7 +7,7 @@ Haiku. We're actively developing and maintaining several hardware and
 software drivers.
 
 The primary API is OpenGL but there's also support for OpenGL ES 1, ES2
-and ES 3, OpenVG, OpenCL, VDPAU, XvMC and the EGL interface.
+and ES 3, OpenCL, VDPAU, XvMC and the EGL interface.
 
 Hardware drivers include:
 
@@ -31,10 +31,10 @@ Hardware drivers include:
 
 Software drivers include:
 
--  :doc:`llvmpipe <llvmpipe>` - uses LLVM for x86 JIT code generation
+-  :doc:`llvmpipe <gallium/drivers/llvmpipe>` - uses LLVM for x86 JIT code generation
    and is multi-threaded
 -  softpipe - a reference Gallium driver
--  :doc:`svga <vmware-guest>` - driver for vmware virtual gpu
+-  :doc:`svga <vmware-guest>` - driver for VMWare virtual GPU
 -  `swr <https://www.openswr.org/>`__ - x86-optimized software renderer
    for visualization workloads
 -  `virgl <https://virgil3d.github.io/>`__ - research project for
@@ -55,7 +55,7 @@ Deprecated Systems and Drivers
 In the past there were other drivers for older GPUs and operating
 systems. These have been removed from the Mesa source tree and
 distribution. If anyone's interested though, the code can be found in
-the git repo. The list includes:
+the Git repo. The list includes:
 
 -  3dfx/glide
 -  Matrox

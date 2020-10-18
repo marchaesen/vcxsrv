@@ -515,7 +515,7 @@ st_ReadPixels(struct gl_context *ctx, GLint x, GLint y,
    /* map resources */
    pixels = _mesa_map_pbo_dest(ctx, pack, pixels);
 
-   map = pipe_transfer_map_3d(pipe, dst, 0, PIPE_TRANSFER_READ,
+   map = pipe_transfer_map_3d(pipe, dst, 0, PIPE_MAP_READ,
                               dst_x, dst_y, 0, width, height, 1, &tex_xfer);
    if (!map) {
       _mesa_unmap_pbo_dest(ctx, pack);

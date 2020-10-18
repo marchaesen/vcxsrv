@@ -342,7 +342,8 @@ radv_emit_thread_trace_stop(struct radv_device *device,
 }
 
 void
-radv_emit_thread_trace_userdata(struct radeon_cmdbuf *cs,
+radv_emit_thread_trace_userdata(const struct radv_device *device,
+				struct radeon_cmdbuf *cs,
 				const void *data, uint32_t num_dwords)
 {
 	const uint32_t *dwords = (uint32_t *)data;
@@ -350,7 +351,12 @@ radv_emit_thread_trace_userdata(struct radeon_cmdbuf *cs,
 	while (num_dwords > 0) {
 		uint32_t count = MIN2(num_dwords, 2);
 
-		radeon_set_uconfig_reg_seq(cs, R_030D08_SQ_THREAD_TRACE_USERDATA_2, count);
+		/* Without the perfctr bit the CP might not always pass the
+		 * write on correctly. */
+		if (device->physical_device->rad_info.chip_class >= GFX10)
+			radeon_set_uconfig_reg_seq_perfctr(cs, R_030D08_SQ_THREAD_TRACE_USERDATA_2, count);
+		else
+			radeon_set_uconfig_reg_seq(cs, R_030D08_SQ_THREAD_TRACE_USERDATA_2, count);
 		radeon_emit_array(cs, dwords, count);
 
 		dwords += count;
@@ -384,6 +390,7 @@ static void
 radv_emit_wait_for_idle(struct radv_device *device,
 			struct radeon_cmdbuf *cs, int family)
 {
+	enum rgp_flush_bits sqtt_flush_bits = 0;
 	si_cs_emit_cache_flush(cs, device->physical_device->rad_info.chip_class,
 			       NULL, 0,
 			       family == RING_COMPUTE &&
@@ -394,17 +401,21 @@ radv_emit_wait_for_idle(struct radv_device *device,
 			       RADV_CMD_FLAG_INV_ICACHE |
 			       RADV_CMD_FLAG_INV_SCACHE |
 			       RADV_CMD_FLAG_INV_VCACHE |
-			       RADV_CMD_FLAG_INV_L2, 0);
+			       RADV_CMD_FLAG_INV_L2, &sqtt_flush_bits, 0);
 }
 
 static void
 radv_thread_trace_init_cs(struct radv_device *device)
 {
 	struct radeon_winsys *ws = device->ws;
+	VkResult result;
 
 	/* Thread trace start CS. */
 	for (int family = 0; family < 2; ++family) {
 		device->thread_trace_start_cs[family] = ws->cs_create(ws, family);
+		if (!device->thread_trace_start_cs[family])
+			return;
+
 		switch (family) {
 		case RADV_QUEUE_GENERAL:
 			radeon_emit(device->thread_trace_start_cs[family], PKT3(PKT3_CONTEXT_CONTROL, 1, 0));
@@ -434,12 +445,17 @@ radv_thread_trace_init_cs(struct radv_device *device)
 					     device->thread_trace_start_cs[family],
 					     family);
 
-		ws->cs_finalize(device->thread_trace_start_cs[family]);
+		result = ws->cs_finalize(device->thread_trace_start_cs[family]);
+		if (result != VK_SUCCESS)
+			return;
 	}
 
 	/* Thread trace stop CS. */
 	for (int family = 0; family < 2; ++family) {
 		device->thread_trace_stop_cs[family] = ws->cs_create(ws, family);
+		if (!device->thread_trace_stop_cs[family])
+			return;
+
 		switch (family) {
 		case RADV_QUEUE_GENERAL:
 			radeon_emit(device->thread_trace_stop_cs[family], PKT3(PKT3_CONTEXT_CONTROL, 1, 0));
@@ -469,7 +485,9 @@ radv_thread_trace_init_cs(struct radv_device *device)
 					  device->thread_trace_stop_cs[family],
 					  false);
 
-		ws->cs_finalize(device->thread_trace_stop_cs[family]);
+		result = ws->cs_finalize(device->thread_trace_stop_cs[family]);
+		if (result != VK_SUCCESS)
+			return;
 	}
 }
 
@@ -478,6 +496,12 @@ radv_thread_trace_init_bo(struct radv_device *device)
 {
 	struct radeon_winsys *ws = device->ws;
 	uint64_t size;
+
+	/* The buffer size and address need to be aligned in HW regs. Align the
+	 * size as early as possible so that we do all the allocation & addressing
+	 * correctly. */
+	device->thread_trace_buffer_size = align64(device->thread_trace_buffer_size,
+	                                           1u << SQTT_BUFFER_ALIGN_SHIFT);
 
 	/* Compute total size of the thread trace BO for 4 SEs. */
 	size = align64(sizeof(struct radv_thread_trace_info) * 4,
@@ -590,7 +614,7 @@ radv_get_thread_trace(struct radv_queue *queue,
 		void *data_ptr = thread_trace_ptr + data_offset;
 		struct radv_thread_trace_info *info =
 			(struct radv_thread_trace_info *)info_ptr;
-		struct radv_thread_trace_se thread_trace_se = {};
+		struct radv_thread_trace_se thread_trace_se = {0};
 
 		if (!radv_is_thread_trace_complete(device, info)) {
 			uint32_t expected_size =

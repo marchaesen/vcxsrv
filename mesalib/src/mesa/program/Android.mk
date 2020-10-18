@@ -23,7 +23,7 @@ LOCAL_PATH := $(call my-dir)
 define local-l-to-c
 	@mkdir -p $(dir $@)
 	@echo "Mesa Lex: $(PRIVATE_MODULE) <= $<"
-	$(hide) $(LEX) -o$@ $<
+	$(hide) $(MESA_LEX) -o$@ $<
 endef
 
 define mesa_local-y-to-c-and-h

@@ -24,6 +24,7 @@
 #include "freedreno_layout.h"
 #include "fd_layout_test.h"
 #include "adreno_common.xml.h"
+#include "adreno_pm4.xml.h"
 #include "a6xx.xml.h"
 
 #include <stdio.h>
@@ -582,6 +583,22 @@ static const struct testcase testcases[] = {
 				{ .offset = 540672, .pitch = 64 },
 				{ .offset = 544768, .pitch = 64 },
 				{ .offset = 548864, .pitch = 64 },
+			},
+		},
+	},
+
+	{
+		.format = PIPE_FORMAT_R8G8B8A8_UNORM,
+		.layout = {
+			.tile_mode = TILE6_3,
+			.ubwc = true,
+			.nr_samples = 4,
+			.width0 = 412, .height0 = 732,
+			.slices = {
+				{ .offset = 0, .pitch = 7168 },
+			},
+			.ubwc_slices = {
+				{ .offset = 0, .pitch = 128 },
 			},
 		},
 	},

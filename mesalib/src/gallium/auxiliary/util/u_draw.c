@@ -150,7 +150,7 @@ util_draw_indirect(struct pipe_context *pipe,
       uint32_t *dc_param = pipe_buffer_map_range(pipe,
                                                  info_in->indirect->indirect_draw_count,
                                                  info_in->indirect->indirect_draw_count_offset,
-                                                 4, PIPE_TRANSFER_READ, &dc_transfer);
+                                                 4, PIPE_MAP_READ, &dc_transfer);
       if (!dc_transfer) {
          debug_printf("%s: failed to map indirect draw count buffer\n", __FUNCTION__);
          return;
@@ -167,7 +167,7 @@ util_draw_indirect(struct pipe_context *pipe,
                             info_in->indirect->buffer,
                             info_in->indirect->offset,
                             (num_params * info_in->indirect->draw_count) * sizeof(uint32_t),
-                            PIPE_TRANSFER_READ,
+                            PIPE_MAP_READ,
                             &transfer);
    if (!transfer) {
       debug_printf("%s: failed to map indirect buffer\n", __FUNCTION__);

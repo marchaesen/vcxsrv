@@ -50,7 +50,6 @@ set -ex
 # Clear out any previous run's artifacts.
 rm -rf results/
 mkdir -p results
-find artifacts/ -name serial\*.txt  | xargs rm -f
 
 # Create the rootfs in the NFS directory.  rm to make sure it's in a pristine
 # state, since it's volume-mounted on the host.
@@ -58,48 +57,44 @@ rsync -a --delete $BM_ROOTFS/ /nfs/
 mkdir -p /nfs/results
 . $BM/rootfs-setup.sh /nfs
 
-# Set up the TFTP kernel/cmdline.  When we support more than one board with
-# this method, we'll need to do some check on the runner name or something.
+# Put the kernel/dtb image and the boot command line in the tftp directory for
+# the board to find.  For normal Mesa development, we build the kernel and
+# store it in the docker container that this script is running in.
+#
+# However, container builds are expensive, so when you're hacking on the
+# kernel, it's nice to be able to skip the half hour container build and plus
+# moving that container to the runner.  So, if BM_KERNEL is a URL, fetch it
+# instead of looking in the container.  Note that the kernel build should be
+# the output of:
+#
+# make Image.lzma
+#
+# mkimage \
+#  -A arm64 \
+#  -f auto \
+#  -C lzma \
+#  -d arch/arm64/boot/Image.lzma \
+#  -b arch/arm64/boot/dts/qcom/sdm845-cheza-r3.dtb \
+#  cheza-image.img
+
 rm -rf /tftp/*
-cp $BM_KERNEL /tftp/vmlinuz
+if echo "$BM_KERNEL" | grep -q http; then
+  apt install -y wget
+  wget $BM_KERNEL -O /tftp/vmlinuz
+else
+  cp $BM_KERNEL /tftp/vmlinuz
+fi
 echo "$BM_CMDLINE" > /tftp/cmdline
 
-# Start watching serials, and power up the device.
-$BM/serial-buffer.py $BM_SERIAL_EC | tee serial-ec-output.txt | sed -u 's|^|SERIAL-EC> |g' &
-$BM/serial-buffer.py $BM_SERIAL | tee serial-output.txt | sed -u 's|^|SERIAL-CPU> |g'  &
-while [ ! -e serial-output.txt ]; do
-  sleep 1
-done
-# Flush any partial commands in the EC's prompt, then ask for a reboot.
-$BM/write-serial.py $BM_SERIAL_EC ""
-$BM/write-serial.py $BM_SERIAL_EC reboot
-
-# This is emitted right when the bootloader pauses to check for input.  Emit a
-# ^N character to request network boot, because we don't have a
-# direct-to-netboot firmware on cheza.
-$BM/expect-output.sh serial-output.txt -f "load_archive: loading locale_en.bin"
-$BM/write-serial.py $BM_SERIAL `printf '\016'`
-
-# Wait for the device to complete the deqp run
-$BM/expect-output.sh serial-output.txt \
-    -f "bare-metal result" \
-    -e "---. end Kernel panic" \
-    -e "POWER_GOOD not seen in time"
-
-# power down the CPU on the device
-$BM/write-serial.py $BM_SERIAL_EC 'power off'
-
-set -ex
+set +e
+python3 $BM/cros_servo_run.py \
+        --cpu $BM_SERIAL \
+        --ec $BM_SERIAL_EC
+ret=$?
+set -e
 
 # Bring artifacts back from the NFS dir to the build dir where gitlab-runner
-# will look for them.  Note that results/ may already exist, so be careful
-# with cp.
-mkdir -p results
+# will look for them.
 cp -Rp /nfs/results/. results/
 
-set +e
-if grep -q "bare-metal result: pass" serial-output.txt; then
-   exit 0
-else
-   exit 1
-fi
+exit $ret

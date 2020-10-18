@@ -664,11 +664,11 @@ create_depthstencil_pipeline(struct radv_device *device,
 
 	const VkPipelineDepthStencilStateCreateInfo ds_state = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-		.depthTestEnable = (aspects & VK_IMAGE_ASPECT_DEPTH_BIT),
+		.depthTestEnable = !!(aspects & VK_IMAGE_ASPECT_DEPTH_BIT),
 		.depthCompareOp = VK_COMPARE_OP_ALWAYS,
-		.depthWriteEnable = (aspects & VK_IMAGE_ASPECT_DEPTH_BIT),
+		.depthWriteEnable = !!(aspects & VK_IMAGE_ASPECT_DEPTH_BIT),
 		.depthBoundsTestEnable = false,
-		.stencilTestEnable = (aspects & VK_IMAGE_ASPECT_STENCIL_BIT),
+		.stencilTestEnable = !!(aspects & VK_IMAGE_ASPECT_STENCIL_BIT),
 		.front = {
 			.passOp = VK_STENCIL_OP_REPLACE,
 			.compareOp = VK_COMPARE_OP_ALWAYS,
@@ -1175,7 +1175,7 @@ build_clear_htile_mask_shader()
 	b.shader->info.cs.local_size[2] = 1;
 
 	nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-	nir_ssa_def *wg_id = nir_load_work_group_id(&b);
+	nir_ssa_def *wg_id = nir_load_work_group_id(&b, 32);
 	nir_ssa_def *block_size = nir_imm_ivec4(&b,
 						b.shader->info.cs.local_size[0],
 						b.shader->info.cs.local_size[1],
@@ -1186,16 +1186,7 @@ build_clear_htile_mask_shader()
 	nir_ssa_def *offset = nir_imul(&b, global_id, nir_imm_int(&b, 16));
 	offset = nir_channel(&b, offset, 0);
 
-	nir_intrinsic_instr *buf =
-		nir_intrinsic_instr_create(b.shader,
-					   nir_intrinsic_vulkan_resource_index);
-
-	buf->src[0] = nir_src_for_ssa(nir_imm_int(&b, 0));
-	buf->num_components = 1;
-	nir_intrinsic_set_desc_set(buf, 0);
-	nir_intrinsic_set_binding(buf, 0);
-	nir_ssa_dest_init(&buf->instr, &buf->dest, buf->num_components, 32, NULL);
-	nir_builder_instr_insert(&b, &buf->instr);
+	nir_ssa_def *buf = radv_meta_load_descriptor(&b, 0, 0);
 
 	nir_intrinsic_instr *constants =
 		nir_intrinsic_instr_create(b.shader,
@@ -1209,7 +1200,7 @@ build_clear_htile_mask_shader()
 
 	nir_intrinsic_instr *load =
 		nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_ssbo);
-	load->src[0] = nir_src_for_ssa(&buf->dest.ssa);
+	load->src[0] = nir_src_for_ssa(buf);
 	load->src[1] = nir_src_for_ssa(offset);
 	nir_ssa_dest_init(&load->instr, &load->dest, 4, 32, NULL);
 	load->num_components = 4;
@@ -1225,7 +1216,7 @@ build_clear_htile_mask_shader()
 	nir_intrinsic_instr *store =
 		nir_intrinsic_instr_create(b.shader, nir_intrinsic_store_ssbo);
 	store->src[0] = nir_src_for_ssa(data);
-	store->src[1] = nir_src_for_ssa(&buf->dest.ssa);
+	store->src[1] = nir_src_for_ssa(buf);
 	store->src[2] = nir_src_for_ssa(offset);
 	nir_intrinsic_set_write_mask(store, 0xf);
 	nir_intrinsic_set_access(store, ACCESS_NON_READABLE);
@@ -1608,7 +1599,7 @@ static void vi_get_fast_clear_parameters(struct radv_device *device,
 					 uint32_t* reset_value,
 					 bool *can_avoid_fast_clear_elim)
 {
-	bool values[4] = {};
+	bool values[4] = {0};
 	int extra_channel;
 	bool main_value = false;
 	bool extra_value = false;

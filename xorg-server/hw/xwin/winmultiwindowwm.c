@@ -698,7 +698,7 @@ UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow)
     winApplyHints(pWMInfo, iWindow, hWnd, &zstyle);
     winUpdateWindowPosition(hWnd, &zstyle);
 
-    /* Apply the updated window style, without changing it's show or activation state */
+    /* Apply the updated window style, without changing its show or activation state */
     flags = SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE;
     if (zstyle == HWND_NOTOPMOST)
         flags |= SWP_NOZORDER | SWP_NOOWNERZORDER;
@@ -1422,7 +1422,7 @@ winInitWM(void **ppWMInfo,
     pArg->pWMInfo = pWMInfo;
     pArg->ppmServerStarted = ppmServerStarted;
 
-    /* Intialize the message queue */
+    /* Initialize the message queue */
     if (!InitQueue(&pWMInfo->wmMsgQueue)) {
         ErrorF("winInitWM - InitQueue () failed.\n");
         return FALSE;
@@ -1600,7 +1600,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
 
     /*
       Set the root window cursor to left_ptr (this controls the cursor an
-      application gets over it's windows when it doesn't set one)
+      application gets over its windows when it doesn't set one)
     */
     {
 #define XC_left_ptr 68

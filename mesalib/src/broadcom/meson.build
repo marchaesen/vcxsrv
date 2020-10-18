@@ -25,7 +25,7 @@ subdir('cle')
 v3d_versions = ['33', '41', '42']
 v3d_libs = []
 
-if with_gallium_v3d
+if with_gallium_v3d or with_broadcom_vk
   subdir('compiler')
   subdir('qpu')
   subdir('simulator')
@@ -63,3 +63,7 @@ libbroadcom_v3d = static_library(
   build_by_default : false,
   dependencies: [dep_valgrind, dep_thread],
 )
+
+if with_broadcom_vk
+  subdir('vulkan')
+endif

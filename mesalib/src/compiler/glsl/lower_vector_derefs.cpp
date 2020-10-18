@@ -136,15 +136,31 @@ vector_deref_visitor::visit_enter(ir_assignment *ir)
          ir->write_mask = (1 << new_lhs->type->vector_elements) - 1;
          ir->set_lhs(new_lhs);
       }
-   } else if (new_lhs->ir_type != ir_type_swizzle) {
-      ir->set_lhs(new_lhs);
-      ir->write_mask = 1 << old_index_constant->get_uint_component(0);
    } else {
-      /* If the "new" LHS is a swizzle, use the set_lhs helper to instead
-       * swizzle the RHS.
-       */
-      unsigned component[1] = { old_index_constant->get_uint_component(0) };
-      ir->set_lhs(new(mem_ctx) ir_swizzle(new_lhs, component, 1));
+      unsigned index = old_index_constant->get_uint_component(0);
+
+      if (index >= new_lhs->type->vector_elements) {
+         /* Section 5.11 (Out-of-Bounds Accesses) of the GLSL 4.60 spec says:
+          *
+          *  In the subsections described above for array, vector, matrix and
+          *  structure accesses, any out-of-bounds access produced undefined
+          *  behavior.... Out-of-bounds writes may be discarded or overwrite
+          *  other variables of the active program.
+          */
+         ir->remove();
+         return visit_continue;
+      }
+
+      if (new_lhs->ir_type != ir_type_swizzle) {
+         ir->set_lhs(new_lhs);
+         ir->write_mask = 1 << index;
+      } else {
+         /* If the "new" LHS is a swizzle, use the set_lhs helper to instead
+          * swizzle the RHS.
+          */
+         unsigned component[1] = { index };
+         ir->set_lhs(new(mem_ctx) ir_swizzle(new_lhs, component, 1));
+      }
    }
 
    return ir_rvalue_enter_visitor::visit_enter(ir);

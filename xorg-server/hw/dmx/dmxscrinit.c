@@ -216,7 +216,7 @@ dmxScreenInit(ScreenPtr pScreen, int argc, char *argv[])
 	return FALSE;
 
     /*
-     * Initalise the visual types.  miSetVisualTypesAndMasks() requires
+     * Initialise the visual types.  miSetVisualTypesAndMasks() requires
      * that all of the types for each depth be collected together.  It's
      * intended for slightly different usage to what we would like here.
      * Maybe a miAddVisualTypeAndMask() function will be added to make

@@ -53,12 +53,17 @@ nir_${name}(nir_builder *build, ${src_decl_list(opcode.num_inputs)})
 /* Generic builder for system values. */
 static inline nir_ssa_def *
 nir_load_system_value(nir_builder *build, nir_intrinsic_op op, int index,
-                      unsigned bit_size)
+                      unsigned num_components, unsigned bit_size)
 {
    nir_intrinsic_instr *load = nir_intrinsic_instr_create(build->shader, op);
+   if (nir_intrinsic_infos[op].dest_components > 0)
+      assert(num_components == nir_intrinsic_infos[op].dest_components);
+   else
+      load->num_components = num_components;
    load->const_index[0] = index;
+
    nir_ssa_dest_init(&load->instr, &load->dest,
-                     nir_intrinsic_infos[op].dest_components, bit_size, NULL);
+                     num_components, bit_size, NULL);
    nir_builder_instr_insert(build, &load->instr);
    return &load->dest.ssa;
 }
@@ -68,6 +73,8 @@ def sysval_decl_list(opcode):
    res = ''
    if opcode.indices:
       res += ', unsigned ' + opcode.indices[0].lower()
+   if opcode.dest_components == 0:
+      res += ', unsigned num_components'
    if len(opcode.bit_sizes) != 1:
       res += ', unsigned bit_size'
    return res
@@ -78,6 +85,11 @@ def sysval_arg_list(opcode):
       args.append(opcode.indices[0].lower())
    else:
       args.append('0')
+
+   if opcode.dest_components == 0:
+      args.append('num_components')
+   else:
+      args.append(str(opcode.dest_components))
 
    if len(opcode.bit_sizes) == 1:
       bit_size = opcode.bit_sizes[0]

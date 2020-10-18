@@ -60,7 +60,7 @@ SOFTWARE.
 /* Draw lineSolid, fillStyle-independent zero width lines.
  *
  * Must keep X and Y coordinates in "ints" at least until after they're
- * translated and clipped to accomodate CoordModePrevious lines with very
+ * translated and clipped to accommodate CoordModePrevious lines with very
  * large coordinates.
  *
  * Draws the same pixels regardless of sign(dx) or sign(dy).

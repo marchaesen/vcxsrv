@@ -31,3 +31,10 @@ spirv_info_c = custom_target(
   output : 'spirv_info.c',
   command : [prog_python, '@INPUT0@', '@INPUT1@', '@OUTPUT@'],
 )
+
+vtn_generator_ids_h = custom_target(
+  'vtn_generator_ids.h',
+  input : files('vtn_generator_ids_h.py', 'spir-v.xml'),
+  output : 'vtn_generator_ids.h',
+  command : [prog_python, '@INPUT0@', '@INPUT1@', '@OUTPUT@'],
+)

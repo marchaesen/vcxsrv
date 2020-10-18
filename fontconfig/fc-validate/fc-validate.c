@@ -36,10 +36,13 @@
 #include <fontconfig/fontconfig.h>
 #include <fontconfig/fcfreetype.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
@@ -164,7 +167,7 @@ main (int argc, char **argv)
 
     if (FT_Init_FreeType (&ftlib))
     {
-	fprintf (stderr, _("Can't initalize FreeType library\n"));
+	fprintf (stderr, _("Can't initialize FreeType library\n"));
 	return 1;
     }
 

@@ -254,81 +254,6 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
 }
 
 static bool
-lower_offset_for_ubo(nir_intrinsic_instr *intrinsic, nir_builder *b, int gpu_id)
-{
-	/* We only need to lower offset if using LDC, which takes an offset in
-	 * vec4 units and has the start component baked into the instruction.
-	 */
-	if (gpu_id < 600)
-		return false;
-
-	/* TODO handle other bitsizes, including non-dword-aligned loads */
-	assert(intrinsic->dest.ssa.bit_size == 32);
-
-	b->cursor = nir_before_instr(&intrinsic->instr);
-
-	nir_intrinsic_instr *new_intrinsic =
-		nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_ubo_ir3);
-
-	debug_assert(intrinsic->dest.is_ssa);
-	new_intrinsic->src[0] = intrinsic->src[0];
-
-	nir_ssa_def *offset = intrinsic->src[1].ssa;
-	nir_ssa_def *new_offset = ir3_nir_try_propagate_bit_shift(b, offset, -4);
-
-	if (!new_offset)
-		new_offset = nir_ushr(b, offset, nir_imm_int(b, 4));
-
-	new_intrinsic->src[1] = nir_src_for_ssa(new_offset);
-
-	unsigned align_mul = nir_intrinsic_align_mul(intrinsic);
-	unsigned align_offset = nir_intrinsic_align_offset(intrinsic);
-
-	unsigned components = intrinsic->num_components;
-
-	if (align_mul % 16 != 0)
-		components = 4;
-
-	new_intrinsic->num_components = components;
-
-	nir_ssa_dest_init(&new_intrinsic->instr, &new_intrinsic->dest,
-					  components, 32, NULL);
-
-	nir_builder_instr_insert(b, &new_intrinsic->instr);
-
-	nir_ssa_def *new_dest;
-	if (align_mul % 16 == 0) {
-		/* We know that the low 4 bits of the offset are constant and equal to
-		 * align_offset. Use the component offset.
-		 */
-		unsigned component = align_offset / 4;
-		nir_intrinsic_set_base(new_intrinsic, component);
-		new_dest = &new_intrinsic->dest.ssa;
-	} else {
-		/* We have to assume it isn't aligned, and extract the components
-		 * dynamically.
-		 */
-		nir_intrinsic_set_base(new_intrinsic, 0);
-		nir_ssa_def *component =
-			nir_iand(b, nir_ushr(b, offset, nir_imm_int(b, 2)), nir_imm_int(b, 3));
-		nir_ssa_def *channels[NIR_MAX_VEC_COMPONENTS];
-		for (unsigned i = 0; i < intrinsic->num_components; i++) {
-			nir_ssa_def *idx = nir_iadd(b, nir_imm_int(b, i), component);
-			channels[i] = nir_vector_extract(b, &new_intrinsic->dest.ssa, idx);
-		}
-
-		new_dest = nir_vec(b, channels, intrinsic->num_components);
-	}
-
-	nir_ssa_def_rewrite_uses(&intrinsic->dest.ssa,
-							 nir_src_for_ssa(new_dest));
-
-	nir_instr_remove(&intrinsic->instr);
-
-	return true;
-}
-
-static bool
 lower_io_offsets_block(nir_block *block, nir_builder *b, void *mem_ctx, int gpu_id)
 {
 	bool progress = false;
@@ -338,12 +263,6 @@ lower_io_offsets_block(nir_block *block, nir_builder *b, void *mem_ctx, int gpu_
 			continue;
 
 		nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-
-		/* UBO */
-		if (intr->intrinsic == nir_intrinsic_load_ubo) {
-			progress |= lower_offset_for_ubo(intr, b, gpu_id);
-			continue;
-		}
 
 		/* SSBO */
 		int ir3_intrinsic;

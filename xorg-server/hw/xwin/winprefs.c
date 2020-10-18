@@ -295,7 +295,7 @@ HandleCustomWM_INITMENU(HWND hwnd, HMENU hmenu)
 
 /*
  * Searches for the custom WM_COMMAND command ID and performs action.
- * Return TRUE if command is proccessed, FALSE otherwise.
+ * Return TRUE if command is processed, FALSE otherwise.
  */
 Bool
 HandleCustomWM_COMMAND(HWND hwnd, WORD command, winPrivScreenPtr pScreenPriv)

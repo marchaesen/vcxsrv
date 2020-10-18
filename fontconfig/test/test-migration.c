@@ -28,13 +28,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <dirent.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 #ifndef HAVE_STRUCT_DIRENT_D_TYPE
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #endif
 #include <fontconfig/fontconfig.h>
 

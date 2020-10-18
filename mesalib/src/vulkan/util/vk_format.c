@@ -270,6 +270,10 @@ vk_format_to_pipe_format(enum VkFormat vkformat)
          return PIPE_FORMAT_Y16_U16V16_422_UNORM;
       case VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM:
          return PIPE_FORMAT_Y16_U16_V16_444_UNORM;
+      case VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT:
+         return PIPE_FORMAT_B4G4R4A4_UNORM;
+      case VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT:
+         return PIPE_FORMAT_R4G4B4A4_UNORM;
       default:
          return PIPE_FORMAT_NONE;
       }

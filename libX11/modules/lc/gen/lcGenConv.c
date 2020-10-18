@@ -940,7 +940,7 @@ wcstombs_org(
             if (*to_left < defstr_len)
 		break;
 	    if (outbufptr) {
-                strncpy((char *)outbufptr, default_string, defstr_len);
+                memcpy(outbufptr, default_string, defstr_len);
                 outbufptr += defstr_len;
             }
 	    (*to_left) -= defstr_len;
@@ -976,7 +976,7 @@ wcstombs_org(
                     if (*to_left < length)
 		        break;
 	            if (outbufptr) {
-                        strncpy((char *)outbufptr, encoding, length);
+			memcpy(outbufptr, encoding, length);
 	                outbufptr += length;
                     }
 	            (*to_left) -= length;
@@ -1966,7 +1966,7 @@ wcstostr(
             if (*to_left < defstr_len)
 		break;
 	    if (outbufptr) {
-                strncpy((char *)outbufptr, default_string, defstr_len);
+		memcpy(outbufptr, default_string, defstr_len);
 	        outbufptr += defstr_len;
             }
 	    (*to_left) -= defstr_len;
@@ -2005,7 +2005,7 @@ wcstostr(
 		            break;
 
 	                if (outbufptr) {
-                            strncpy((char *)outbufptr, encoding, length);
+			    memcpy(outbufptr, encoding, length);
 	                    outbufptr += length;
                         }
 	                (*to_left) -= length;
@@ -2462,7 +2462,7 @@ strtombs(
                 if (*to_left < length)
 		    break;
 	        if (outbufptr) {
-                    strncpy((char *)outbufptr, encoding, length);
+		    memcpy(outbufptr, encoding, length);
 	            outbufptr += length;
                 }
 	        (*to_left) -= length;

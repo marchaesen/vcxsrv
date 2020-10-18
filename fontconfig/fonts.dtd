@@ -27,7 +27,7 @@
 
     If 'prefix' is 'default' or 'cwd', then the current working directory will be added prior to the value.
     If 'prefix' is 'xdg', then the value in the $XDG_DATA_HOME will be added prior to the value.
-    If 'prefix' is 'relative', then the path of curent file will be added prior to the value.
+    If 'prefix' is 'relative', then the path of current file will be added prior to the value.
 -->
 <!ELEMENT cache (#PCDATA)>
 <!ATTLIST cache xml:space (default|preserve) 'preserve'>

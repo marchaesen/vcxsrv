@@ -2915,7 +2915,9 @@ lookup_texture_ext_dsa(struct gl_context *ctx, GLenum target, GLuint texture,
       texObj = ctx->Shared->DefaultTex[targetIndex];
       assert(texObj);
    } else {
+      bool isGenName;
       texObj = _mesa_lookup_texture(ctx, texture);
+      isGenName = texObj != NULL;
       if (!texObj && ctx->API == API_OPENGL_CORE) {
          _mesa_error(ctx, GL_INVALID_OPERATION, "%s(non-gen name)", caller);
          return NULL;
@@ -2929,7 +2931,7 @@ lookup_texture_ext_dsa(struct gl_context *ctx, GLenum target, GLuint texture,
          }
 
          /* insert into hash table */
-         _mesa_HashInsert(ctx->Shared->TexObjects, texObj->Name, texObj);
+         _mesa_HashInsert(ctx->Shared->TexObjects, texObj->Name, texObj, isGenName);
       }
 
       if (texObj->Target != boundTarget) {
@@ -3703,7 +3705,7 @@ texturesubimage(struct gl_context *ctx, GLuint dims,
    if (!no_error) {
       /* check target (proxies not allowed) */
       if (!legal_texsubimage_target(ctx, dims, texObj->Target, true)) {
-         _mesa_error(ctx, GL_INVALID_ENUM, "%s(target=%s)",
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(target=%s)",
                      callerName, _mesa_enum_to_string(texObj->Target));
          return;
       }
@@ -4210,7 +4212,8 @@ copy_texture_sub_image(struct gl_context *ctx, GLuint dims,
       xoffset += texImage->Border;
    }
 
-   if (_mesa_clip_copytexsubimage(ctx, &xoffset, &yoffset, &x, &y,
+   if (ctx->Const.NoClippingOnCopyTex ||
+       _mesa_clip_copytexsubimage(ctx, &xoffset, &yoffset, &x, &y,
                                   &width, &height)) {
       struct gl_renderbuffer *srcRb =
          get_copy_tex_image_source(ctx, texImage->TexFormat);
@@ -4416,7 +4419,8 @@ copyteximage(struct gl_context *ctx, GLuint dims, struct gl_texture_object *texO
             /* Allocate texture memory (no pixel data yet) */
             ctx->Driver.AllocTextureImageBuffer(ctx, texImage);
 
-            if (_mesa_clip_copytexsubimage(ctx, &dstX, &dstY, &srcX, &srcY,
+            if (ctx->Const.NoClippingOnCopyTex ||
+                _mesa_clip_copytexsubimage(ctx, &dstX, &dstY, &srcX, &srcY,
                                            &width, &height)) {
                struct gl_renderbuffer *srcRb =
                   get_copy_tex_image_source(ctx, texImage->TexFormat);
@@ -5728,6 +5732,7 @@ compressed_tex_sub_image(unsigned dim, GLenum target, GLuint textureOrIndex,
          break;
       case TEX_MODE_CURRENT_NO_ERROR:
          no_error = true;
+         /* fallthrough */
       case TEX_MODE_CURRENT_ERROR:
       default:
          assert(textureOrIndex == 0);

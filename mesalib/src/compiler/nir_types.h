@@ -118,7 +118,11 @@ int glsl_get_cl_size(const struct glsl_type *type);
 
 int glsl_get_cl_alignment(const struct glsl_type *type);
 
+void glsl_get_cl_type_size_align(const struct glsl_type *type,
+                                 unsigned *size, unsigned *align);
+
 unsigned glsl_get_explicit_size(const struct glsl_type *type, bool align_to_stride);
+unsigned glsl_get_explicit_alignment(const struct glsl_type *type);
 
 static inline unsigned
 glsl_get_bit_size(const struct glsl_type *type)
@@ -126,6 +130,7 @@ glsl_get_bit_size(const struct glsl_type *type)
    return glsl_base_type_get_bit_size(glsl_get_base_type(type));
 }
 
+bool glsl_type_is_packed(const struct glsl_type *type);
 bool glsl_type_is_16bit(const struct glsl_type *type);
 bool glsl_type_is_32bit(const struct glsl_type *type);
 bool glsl_type_is_64bit(const struct glsl_type *type);
@@ -152,6 +157,7 @@ bool glsl_type_is_integer(const struct glsl_type *type);
 bool glsl_type_contains_64bit(const struct glsl_type *type);
 bool glsl_sampler_type_is_shadow(const struct glsl_type *type);
 bool glsl_sampler_type_is_array(const struct glsl_type *type);
+bool glsl_struct_type_is_packed(const struct glsl_type *type);
 bool glsl_contains_atomic(const struct glsl_type *type);
 bool glsl_contains_opaque(const struct glsl_type *type);
 
@@ -159,10 +165,12 @@ const struct glsl_type *glsl_void_type(void);
 const struct glsl_type *glsl_float_type(void);
 const struct glsl_type *glsl_float16_t_type(void);
 const struct glsl_type *glsl_double_type(void);
+const struct glsl_type *glsl_floatN_t_type(unsigned bit_size);
 const struct glsl_type *glsl_vec_type(unsigned n);
 const struct glsl_type *glsl_dvec_type(unsigned n);
 const struct glsl_type *glsl_vec4_type(void);
 const struct glsl_type *glsl_uvec4_type(void);
+const struct glsl_type *glsl_ivec4_type(void);
 const struct glsl_type *glsl_int_type(void);
 const struct glsl_type *glsl_uint_type(void);
 const struct glsl_type *glsl_int64_t_type(void);
@@ -171,6 +179,8 @@ const struct glsl_type *glsl_int16_t_type(void);
 const struct glsl_type *glsl_uint16_t_type(void);
 const struct glsl_type *glsl_int8_t_type(void);
 const struct glsl_type *glsl_uint8_t_type(void);
+const struct glsl_type *glsl_intN_t_type(unsigned bit_size);
+const struct glsl_type *glsl_uintN_t_type(unsigned bit_size);
 const struct glsl_type *glsl_bool_type(void);
 
 const struct glsl_type *glsl_scalar_type(enum glsl_base_type base_type);
@@ -200,6 +210,7 @@ const struct glsl_type *glsl_sampler_type(enum glsl_sampler_dim dim,
                                           bool is_shadow, bool is_array,
                                           enum glsl_base_type base_type);
 const struct glsl_type *glsl_bare_sampler_type();
+const struct glsl_type *glsl_bare_shadow_sampler_type();
 const struct glsl_type *glsl_image_type(enum glsl_sampler_dim dim,
                                         bool is_array,
                                         enum glsl_base_type base_type);
@@ -223,6 +234,8 @@ const struct glsl_type *glsl_atomic_uint_type(void);
 const struct glsl_type *glsl_get_explicit_type_for_size_align(const struct glsl_type *type,
                                                               glsl_type_size_align_func type_info,
                                                               unsigned *size, unsigned *align);
+
+const struct glsl_type *glsl_type_replace_vec3_with_vec4(const struct glsl_type *type);
 
 unsigned glsl_type_get_sampler_count(const struct glsl_type *type);
 unsigned glsl_type_get_image_count(const struct glsl_type *type);

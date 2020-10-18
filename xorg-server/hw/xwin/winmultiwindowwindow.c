@@ -507,7 +507,7 @@ winCreateWindowsWindow(WindowPtr pWin)
        make sure the window actually ends up somewhere where it will be visible
 
        To handle arrangements of monitors which form a non-rectangular virtual
-       desktop, check if the window will end up with it's top-left corner on any
+       desktop, check if the window will end up with its top-left corner on any
        monitor
     */
     if (pWin->drawable.class != InputOnly) {
@@ -551,7 +551,7 @@ winCreateWindowsWindow(WindowPtr pWin)
 
     /*
        Calculate the window coordinates containing the requested client area,
-       being careful to preseve CW_USEDEFAULT
+       being careful to preserve CW_USEDEFAULT
      */
     rc.top = (iY != CW_USEDEFAULT) ? iY : 0;
     rc.left = (iX != CW_USEDEFAULT) ? iX : 0;
@@ -751,7 +751,7 @@ winReorderWindowsMultiWindow(void)
     WindowPtr pWin = NULL;
     WindowPtr pWinSib = NULL;
     XID vlist[2];
-    static Bool fRestacking = FALSE;    /* Avoid recusive calls to this function */
+    static Bool fRestacking = FALSE; /* Avoid recursive calls to this function */
     DWORD dwCurrentProcessID = GetCurrentProcessId();
     DWORD dwWindowProcessID = 0;
 
@@ -760,7 +760,7 @@ winReorderWindowsMultiWindow(void)
 #endif
 
     if (fRestacking) {
-        /* It is a recusive call so immediately exit */
+        /* It is a recursive call so immediately exit */
 #if CYGWINDOWING_DEBUG
         ErrorF("winReorderWindowsMultiWindow - "
                "exit because fRestacking == TRUE\n");
@@ -1070,7 +1070,7 @@ winCreatePixmapMultiwindow(ScreenPtr pScreen, int width, int height, int depth,
     pPixmap->devKind = paddedwidth;
     pPixmap->refcnt = 1;
     pPixmap->devPrivate.ptr = NULL; // later set to pbBits
-    pPixmap->master_pixmap = NULL;
+    pPixmap->primary_pixmap = NULL;
 #ifdef COMPOSITE
     pPixmap->screen_x = 0;
     pPixmap->screen_y = 0;

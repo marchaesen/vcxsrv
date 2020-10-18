@@ -592,14 +592,18 @@ is_access_out_of_bounds(nir_loop_terminator *term, nir_deref_instr *deref,
 
       nir_deref_instr *parent = nir_deref_instr_parent(d);
       assert(glsl_type_is_array(parent->type) ||
-             glsl_type_is_matrix(parent->type));
+             glsl_type_is_matrix(parent->type) ||
+             glsl_type_is_vector(parent->type));
 
       /* We have already unrolled the loop and the new one will be imbedded in
        * the innermost continue branch. So unless the array is greater than
        * the trip count any iteration over the loop will be an out of bounds
        * access of the array.
        */
-      return glsl_get_length(parent->type) <= trip_count;
+      unsigned length = glsl_type_is_vector(parent->type) ?
+                        glsl_get_vector_elements(parent->type) :
+                        glsl_get_length(parent->type);
+      return length <= trip_count;
    }
 
    return false;

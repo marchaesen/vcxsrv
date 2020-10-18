@@ -43,7 +43,7 @@ void
 _mesa_init_debug_output(struct gl_context *ctx);
 
 void
-_mesa_free_errors_data(struct gl_context *ctx);
+_mesa_destroy_debug_output(struct gl_context *ctx);
 
 void
 _mesa_debug_get_id(GLuint *id);

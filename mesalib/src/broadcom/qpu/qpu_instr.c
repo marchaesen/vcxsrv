@@ -591,7 +591,6 @@ v3d_qpu_add_op_reads_vpm(enum  v3d_qpu_add_op op)
 {
         switch (op) {
         case V3D_QPU_A_VPMSETUP:
-        case V3D_QPU_A_VPMWT:
         case V3D_QPU_A_LDVPMV_IN:
         case V3D_QPU_A_LDVPMV_OUT:
         case V3D_QPU_A_LDVPMD_IN:
@@ -610,7 +609,6 @@ v3d_qpu_add_op_writes_vpm(enum  v3d_qpu_add_op op)
 {
         switch (op) {
         case V3D_QPU_A_VPMSETUP:
-        case V3D_QPU_A_VPMWT:
         case V3D_QPU_A_STVPMV:
         case V3D_QPU_A_STVPMD:
         case V3D_QPU_A_STVPMP:
@@ -737,10 +735,25 @@ v3d_qpu_writes_vpm(const struct v3d_qpu_instr *inst)
         return false;
 }
 
+static bool
+v3d_qpu_waits_vpm(const struct v3d_qpu_instr *inst)
+{
+        return inst->type == V3D_QPU_INSTR_TYPE_ALU &&
+               inst->alu.add.op == V3D_QPU_A_VPMWT;
+}
+
+bool
+v3d_qpu_reads_or_writes_vpm(const struct v3d_qpu_instr *inst)
+{
+        return v3d_qpu_reads_vpm(inst) || v3d_qpu_writes_vpm(inst);
+}
+
 bool
 v3d_qpu_uses_vpm(const struct v3d_qpu_instr *inst)
 {
-        return v3d_qpu_reads_vpm(inst) || v3d_qpu_writes_vpm(inst);
+        return v3d_qpu_reads_vpm(inst) ||
+               v3d_qpu_writes_vpm(inst) ||
+               v3d_qpu_waits_vpm(inst);
 }
 
 bool

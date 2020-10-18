@@ -225,7 +225,7 @@ _XcmsFreeDefaultCCCs(
 /*
  *	DESCRIPTION
  *		This routine frees the default XcmsCCC's associated with
- *		each screen and its associated substructures as neccessary.
+ *		each screen and its associated substructures as necessary.
  *
  *	RETURNS
  *		void
@@ -297,7 +297,7 @@ _XcmsInitScrnInfo(
 
     /*
      * Check if the XcmsCCC's for each screen has been created.
-     * Really dont need to be created until some routine uses the Xcms
+     * Really don't need to be created until some routine uses the Xcms
      * API routines.
      */
     if ((XcmsCCC)dpy->cms.defaultCCCs == NULL) {

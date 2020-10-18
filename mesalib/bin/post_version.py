@@ -26,45 +26,22 @@ import pathlib
 import subprocess
 
 
-def update_homepage(version: str) -> None:
-    p = pathlib.Path(__file__).parent.parent / 'docs' / 'conf.py'
-
-    # Don't post release candidates to the homepage
-    if 'rc' in version:
-        return
-
-    with open(p, 'r') as f:
-        conf = f.readlines()
-
-    new_conf = []
-    for line in conf:
-        if line.startswith("version = '") and line.endswith("'\n"):
-            old_version = line.split("'")[1]
-            # Avoid overwriting 20.1.0 when releasing 20.0.8
-            # TODO: we might need more than that to handle 20.0.10
-            if old_version < version:
-                line = f"version = '{version}'\n"
-        new_conf.append(line)
-
-    with open(p, 'w') as f:
-        for line in new_conf:
-            f.write(line)
-
-    subprocess.run(['git', 'add', p])
-
-
 def update_release_notes(version: str) -> None:
-    p = pathlib.Path(__file__).parent.parent / 'docs' / 'relnotes.rst'
+    p = pathlib.Path('docs') / 'relnotes.rst'
 
     with open(p, 'r') as f:
         relnotes = f.readlines()
 
     new_relnotes = []
     first_list = True
+    second_list = True
     for line in relnotes:
         if first_list and line.startswith('-'):
             first_list = False
-            new_relnotes.append(f'- `{version} release notes <relnotes/{version}.rst>`__\n')
+            new_relnotes.append(f'-  :doc:`{version} release notes <relnotes/{version}>`\n')
+        if not first_list and second_list and line.startswith('   relnotes/'):
+            second_list = False
+            new_relnotes.append(f'   relnotes/{version}\n')
         new_relnotes.append(line)
 
     with open(p, 'w') as f:
@@ -75,7 +52,7 @@ def update_release_notes(version: str) -> None:
 
 
 def update_calendar(version: str) -> None:
-    p = pathlib.Path(__file__).parent.parent / 'docs' / 'release-calendar.rst'
+    p = pathlib.Path('docs') / 'release-calendar.rst'
 
     with open(p, 'r') as f:
         calendar = f.readlines()
@@ -108,15 +85,12 @@ def main() -> None:
     parser.add_argument('version', help="The released version.")
     args = parser.parse_args()
 
-    update_homepage(args.version)
-    update_release_notes(args.version)
     update_calendar(args.version)
     done = 'update calendar'
 
-    if not is_release_candidate(args.version):
-        update_index(args.version)
+    if 'rc' not in args.version:
         update_release_notes(args.version)
-        done += ', add news item, and link releases notes'
+        done += ' and link releases notes'
 
     subprocess.run(['git', 'commit', '-m',
                     f'docs: {done} for {args.version}'])

@@ -58,13 +58,13 @@ get_unwrapped_array_length(nir_shader *nir, nir_variable *var)
 
 static bool
 combine_clip_cull(nir_shader *nir,
-                  struct exec_list *vars,
+                  nir_variable_mode mode,
                   bool store_info)
 {
    nir_variable *cull = NULL;
    nir_variable *clip = NULL;
 
-   nir_foreach_variable(var, vars) {
+   nir_foreach_variable_with_modes(var, nir, mode) {
       if (var->data.location == VARYING_SLOT_CLIP_DIST0)
          clip = var;
 
@@ -125,10 +125,10 @@ nir_lower_clip_cull_distance_arrays(nir_shader *nir)
    bool progress = false;
 
    if (nir->info.stage <= MESA_SHADER_GEOMETRY)
-      progress |= combine_clip_cull(nir, &nir->outputs, true);
+      progress |= combine_clip_cull(nir, nir_var_shader_out, true);
 
    if (nir->info.stage > MESA_SHADER_VERTEX)
-      progress |= combine_clip_cull(nir, &nir->inputs, false);
+      progress |= combine_clip_cull(nir, nir_var_shader_in, false);
 
    nir_foreach_function(function, nir) {
       if (!function->impl)

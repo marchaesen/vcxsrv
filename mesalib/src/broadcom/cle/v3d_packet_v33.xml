@@ -269,6 +269,7 @@
     <value name="d16"      value="42" min_ver="41"/>
     <value name="d24s8"    value="43" min_ver="41"/>
     <value name="s8"       value="44" min_ver="41"/>
+    <value name="rgba5551" value="45" min_ver="41"/>
   </enum>
 
   <enum name="Z/S Output Image Format" prefix="V3D_OUTPUT_IMAGE_FORMAT_ZS" max_ver="33">
@@ -630,11 +631,11 @@
   </packet>
 
   <packet code="54" name="Set InstanceID" cl="B" min_ver="41">
-    <field name="Instance ID" size="32" start="32" type="uint"/>
+    <field name="Instance ID" size="32" start="0" type="uint"/>
   </packet>
 
   <packet code="55" name="Set PrimitiveID" cl="B" min_ver="41">
-    <field name="Primitive ID" size="32" start="32" type="uint"/>
+    <field name="Primitive ID" size="32" start="0" type="uint"/>
   </packet>
 
   <packet code="56" name="Prim List Format">
@@ -1051,9 +1052,9 @@
 
   <packet code="121" name="Tile Rendering Mode Cfg (Color)" cl="R" min_ver="41">
 
-    <field name="Pad" size="28" start="34" type="uint"/>
+    <field name="Pad" size="28" start="36" type="uint"/>
 
-    <field name="Render Target 3 Clamp" size="2" start="32" type="Render Target Clamp"/>
+    <field name="Render Target 3 Clamp" size="2" start="34" type="Render Target Clamp"/>
     <field name="Render Target 3 Internal Type" size="4" start="30" type="Internal Type"/>
     <field name="Render Target 3 Internal BPP" size="2" start="28" type="Internal BPP"/>
 
@@ -1775,6 +1776,7 @@
     <value name="Texture Data Format RGBA32I" value="112"/>
     <value name="Texture Data Format RGBA32UI" value="113"/>
     <value name="Texture Data Format RGB10_A2UI" value="114"/>
+    <value name="Texture Data Format A1_RGB5" value="115"/>
 
   </enum>
 </vcxml>

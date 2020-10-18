@@ -1027,8 +1027,7 @@ void radv_meta_resolve_fragment_image(struct radv_cmd_buffer *cmd_buffer,
 				      VkImageLayout src_image_layout,
 				      struct radv_image *dest_image,
 				      VkImageLayout dest_image_layout,
-				      uint32_t region_count,
-				      const VkImageResolve *regions)
+				      const VkImageResolve2KHR *region)
 {
 	struct radv_device *device = cmd_buffer->device;
 	struct radv_meta_saved_state saved_state;
@@ -1039,7 +1038,7 @@ void radv_meta_resolve_fragment_image(struct radv_cmd_buffer *cmd_buffer,
 	VkRenderPass rp;
 
 	radv_decompress_resolve_src(cmd_buffer, src_image, src_image_layout,
-				    region_count, regions);
+				    region);
 
 	if (!device->meta_state.resolve_fragment.rc[samples_log2].render_pass[fs_key][dst_layout]) {
 		VkResult ret = create_resolve_pipeline(device, samples_log2, radv_fs_key_format_exemplars[fs_key]);
@@ -1056,104 +1055,100 @@ void radv_meta_resolve_fragment_image(struct radv_cmd_buffer *cmd_buffer,
 		       RADV_META_SAVE_CONSTANTS |
 		       RADV_META_SAVE_DESCRIPTORS);
 
-	for (uint32_t r = 0; r < region_count; ++r) {
-		const VkImageResolve *region = &regions[r];
+	assert(region->srcSubresource.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT);
+	assert(region->dstSubresource.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT);
+	assert(region->srcSubresource.layerCount == region->dstSubresource.layerCount);
 
-		assert(region->srcSubresource.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT);
-		assert(region->dstSubresource.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT);
-		assert(region->srcSubresource.layerCount == region->dstSubresource.layerCount);
+	const uint32_t src_base_layer =
+		radv_meta_get_iview_layer(src_image, &region->srcSubresource,
+					  &region->srcOffset);
 
-		const uint32_t src_base_layer =
-			radv_meta_get_iview_layer(src_image, &region->srcSubresource,
-						  &region->srcOffset);
+	const uint32_t dest_base_layer =
+		radv_meta_get_iview_layer(dest_image, &region->dstSubresource,
+					  &region->dstOffset);
 
-		const uint32_t dest_base_layer =
-			radv_meta_get_iview_layer(dest_image, &region->dstSubresource,
-						  &region->dstOffset);
+	const struct VkExtent3D extent =
+		radv_sanitize_image_extent(src_image->type, region->extent);
+	const struct VkOffset3D srcOffset =
+		radv_sanitize_image_offset(src_image->type, region->srcOffset);
+	const struct VkOffset3D dstOffset =
+		radv_sanitize_image_offset(dest_image->type, region->dstOffset);
 
-		const struct VkExtent3D extent =
-			radv_sanitize_image_extent(src_image->type, region->extent);
-		const struct VkOffset3D srcOffset =
-			radv_sanitize_image_offset(src_image->type, region->srcOffset);
-		const struct VkOffset3D dstOffset =
-			radv_sanitize_image_offset(dest_image->type, region->dstOffset);
+	for (uint32_t layer = 0; layer < region->srcSubresource.layerCount;
+	     ++layer) {
 
-		for (uint32_t layer = 0; layer < region->srcSubresource.layerCount;
-		     ++layer) {
+		struct radv_image_view src_iview;
+		radv_image_view_init(&src_iview, cmd_buffer->device,
+				     &(VkImageViewCreateInfo) {
+					     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+						     .image = radv_image_to_handle(src_image),
+						     .viewType = radv_meta_get_view_type(src_image),
+						     .format = src_image->vk_format,
+						     .subresourceRange = {
+						     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+						     .baseMipLevel = region->srcSubresource.mipLevel,
+						     .levelCount = 1,
+						     .baseArrayLayer = src_base_layer + layer,
+						     .layerCount = 1,
+					     },
+				     }, NULL);
 
-			struct radv_image_view src_iview;
-			radv_image_view_init(&src_iview, cmd_buffer->device,
-					     &(VkImageViewCreateInfo) {
-						     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-							     .image = radv_image_to_handle(src_image),
-							     .viewType = radv_meta_get_view_type(src_image),
-							     .format = src_image->vk_format,
-							     .subresourceRange = {
-							     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-							     .baseMipLevel = region->srcSubresource.mipLevel,
-							     .levelCount = 1,
-							     .baseArrayLayer = src_base_layer + layer,
-							     .layerCount = 1,
-						     },
-					     }, NULL);
-
-			struct radv_image_view dest_iview;
-			radv_image_view_init(&dest_iview, cmd_buffer->device,
-					     &(VkImageViewCreateInfo) {
-						     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-							     .image = radv_image_to_handle(dest_image),
-							     .viewType = radv_meta_get_view_type(dest_image),
-							     .format = dest_image->vk_format,
-							     .subresourceRange = {
-							     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-							     .baseMipLevel = region->dstSubresource.mipLevel,
-							     .levelCount = 1,
-							     .baseArrayLayer = dest_base_layer + layer,
-							     .layerCount = 1,
-						     },
-					     }, NULL);
+		struct radv_image_view dest_iview;
+		radv_image_view_init(&dest_iview, cmd_buffer->device,
+				     &(VkImageViewCreateInfo) {
+					     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+						     .image = radv_image_to_handle(dest_image),
+						     .viewType = radv_meta_get_view_type(dest_image),
+						     .format = dest_image->vk_format,
+						     .subresourceRange = {
+						     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+						     .baseMipLevel = region->dstSubresource.mipLevel,
+						     .levelCount = 1,
+						     .baseArrayLayer = dest_base_layer + layer,
+						     .layerCount = 1,
+					     },
+				     }, NULL);
 
 
-			VkFramebuffer fb;
-			radv_CreateFramebuffer(radv_device_to_handle(cmd_buffer->device),
-			       &(VkFramebufferCreateInfo) {
-				       .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-					       .attachmentCount = 1,
-					       .pAttachments = (VkImageView[]) {
-					       radv_image_view_to_handle(&dest_iview),
-				       },
-				       .width = extent.width + dstOffset.x,
-				       .height = extent.height + dstOffset.y,
-				       .layers = 1
-				}, &cmd_buffer->pool->alloc, &fb);
+		VkFramebuffer fb;
+		radv_CreateFramebuffer(radv_device_to_handle(cmd_buffer->device),
+		       &(VkFramebufferCreateInfo) {
+			       .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+				       .attachmentCount = 1,
+				       .pAttachments = (VkImageView[]) {
+				       radv_image_view_to_handle(&dest_iview),
+			       },
+			       .width = extent.width + dstOffset.x,
+			       .height = extent.height + dstOffset.y,
+			       .layers = 1
+			}, &cmd_buffer->pool->alloc, &fb);
 
-			radv_cmd_buffer_begin_render_pass(cmd_buffer,
-							  &(VkRenderPassBeginInfo) {
-								.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-									.renderPass = rp,
-									.framebuffer = fb,
-									.renderArea = {
-										.offset = { dstOffset.x, dstOffset.y, },
-										.extent = { extent.width, extent.height },
-									},
-								.clearValueCount = 0,
-								.pClearValues = NULL,
-						});
+		radv_cmd_buffer_begin_render_pass(cmd_buffer,
+						  &(VkRenderPassBeginInfo) {
+							.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+								.renderPass = rp,
+								.framebuffer = fb,
+								.renderArea = {
+									.offset = { dstOffset.x, dstOffset.y, },
+									.extent = { extent.width, extent.height },
+								},
+							.clearValueCount = 0,
+							.pClearValues = NULL,
+					});
 
-			radv_cmd_buffer_set_subpass(cmd_buffer,
-						    &cmd_buffer->state.pass->subpasses[0]);
+		radv_cmd_buffer_set_subpass(cmd_buffer,
+					    &cmd_buffer->state.pass->subpasses[0]);
 
-			emit_resolve(cmd_buffer,
-				     &src_iview,
-				     &dest_iview,
-				     &(VkOffset2D) { srcOffset.x, srcOffset.y },
-				     &(VkOffset2D) { dstOffset.x, dstOffset.y },
-				     &(VkExtent2D) { extent.width, extent.height });
+		emit_resolve(cmd_buffer,
+			     &src_iview,
+			     &dest_iview,
+			     &(VkOffset2D) { srcOffset.x, srcOffset.y },
+			     &(VkOffset2D) { dstOffset.x, dstOffset.y },
+			     &(VkExtent2D) { extent.width, extent.height });
 
-			radv_cmd_buffer_end_render_pass(cmd_buffer);
+		radv_cmd_buffer_end_render_pass(cmd_buffer);
 
-			radv_DestroyFramebuffer(radv_device_to_handle(cmd_buffer->device), fb, &cmd_buffer->pool->alloc);
-		}
+		radv_DestroyFramebuffer(radv_device_to_handle(cmd_buffer->device), fb, &cmd_buffer->pool->alloc);
 	}
 
 	radv_meta_restore(&saved_state, cmd_buffer);

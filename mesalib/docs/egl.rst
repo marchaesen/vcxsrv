@@ -49,12 +49,12 @@ time
 
 ``-D platforms=...``
    List the platforms (window systems) to support. Its argument is a
-   comma separated string such as ``-D platforms=x11,drm``. It decides
+   comma separated string such as ``-D platforms=x11,wayland``. It decides
    the platforms a driver may support. The first listed platform is also
    used by the main library to decide the native platform.
 
-   The available platforms are ``x11``, ``drm``, ``wayland``,
-   ``surfaceless``, ``android``, and ``haiku``. The ``android`` platform
+   The available platforms are ``x11``, ``wayland``,
+   ``android``, and ``haiku``. The ``android`` platform
    can either be built as a system component, part of AOSP, using
    ``Android.mk`` files, or cross-compiled using appropriate options.
    Unless for special needs, the build system should select the right
@@ -100,16 +100,6 @@ at runtime
    This changes the log level of the main library and the drivers. The
    valid values are: ``debug``, ``info``, ``warning``, and ``fatal``.
 
-EGL Drivers
------------
-
-``egl_dri2``
-   This driver supports both ``x11`` and ``drm`` platforms. It functions
-   as a DRI driver loader. For ``x11`` support, it talks to the X server
-   directly using (XCB-)DRI2 protocol.
-
-   This driver can share DRI drivers with ``libGL``.
-
 Packaging
 ---------
 
@@ -121,6 +111,65 @@ Developers
 
 The sources of the main library and drivers can be found at
 ``src/egl/``.
+
+The code basically consists of two things:
+
+1. An EGL API dispatcher. This directly routes all the ``eglFooBar()``
+   API calls into driver-specific functions.
+
+2. Two EGL drivers (``dri2`` and ``haiku``), implementing the API
+   functions handling the platforms' specifics.
+
+Two of API functions are optional (``eglQuerySurface()`` and
+``eglSwapInterval()``); the former provides fallback for all the
+platform-agnostic attributes (ie. everything except ``EGL_WIDTH``
+& ``EGL_HEIGHT``), and the latter just silently pretends the API call
+succeeded (as per EGL spec).
+
+A driver _could_ implement all the other EGL API functions, but several of
+them are only needed for extensions, like ``eglSwapBuffersWithDamageEXT()``.
+See ``src/egl/main/egldriver.h`` to see which driver hooks are only
+required by extensions.
+
+Bootstrapping
+~~~~~~~~~~~~~
+
+When the apps calls ``eglInitialize()``, the driver's ``Initialize()``
+function is called. If the first driver initialization attempt fails,
+a second one is tried using only software components (this can be forced
+using the ``LIBGL_ALWAYS_SOFTWARE`` environment variable). Typically,
+this function takes care of setting up visual configs, creating EGL
+devices, etc.
+
+Teardown
+~~~~~~~~
+
+When ``eglTerminate()`` is called, the ``driver->Terminate()`` function
+is called. The driver should clean up after itself.
+
+Subclassing
+~~~~~~~~~~~
+
+The internal libEGL data structures such as ``_EGLDisplay``,
+``_EGLContext``, ``_EGLSurface``, etc. should be considered base classes
+from which drivers will derive subclasses.
+
+EGL Drivers
+-----------
+
+``egl_dri2``
+   This driver supports several platforms: ``android``, ``device``,
+   ``drm, ``surfaceless``, ``wayland`` and ``x11``. It functions as
+   a DRI driver loader. For ``x11`` support, it talks to the X server
+   directly using (XCB-)DRI3 protocol when available, and falls back to
+   DRI2 if necessary (can be forced with ``LIBGL_DRI3_DISABLE``).
+
+   This driver can share DRI drivers with ``libGL``.
+
+``haiku``
+   This driver supports only the `Haiku <https://haiku-os.org>`__
+   platform. It is also much less feature-complete than ``egl_dri2``,
+   supporting only part of EGL 1.4 and none of the extensions beyond it.
 
 Lifetime of Display Resources
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -192,6 +241,6 @@ renders to the specified render buffer for pixmap and pbuffer surfaces.
 The ``EGLDisplay`` will be locked before calling any of the dispatch
 functions (well, except for GetProcAddress which does not take an
 ``EGLDisplay``). This guarantees that the same dispatch function will
-not be called with the sample display at the same time. If a driver has
+not be called with the same display at the same time. If a driver has
 access to an ``EGLDisplay`` without going through the EGL APIs, the
 driver should as well lock the display before using it.

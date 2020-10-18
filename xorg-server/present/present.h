@@ -95,7 +95,7 @@ typedef Bool (*present_flip_ptr) (RRCrtcPtr crtc,
                                   Bool sync_flip);
 /* Flip pixmap for window, return false if it didn't happen.
  *
- * Like present_flip_ptr, additionaly with:
+ * Like present_flip_ptr, additionally with:
  *
  * 'window' used for synchronization.
  *
@@ -160,12 +160,26 @@ typedef struct present_wnmd_info {
  */
 extern _X_EXPORT void
 present_event_notify(uint64_t event_id, uint64_t ust, uint64_t msc);
+
 /*
  * Called when 'event_id' occurs for 'window'.
  * 'ust' and 'msc' indicate when the event actually happened
  */
 extern _X_EXPORT void
 present_wnmd_event_notify(WindowPtr window, uint64_t event_id, uint64_t ust, uint64_t msc);
+
+/*
+ * Called when presentation 'event_id' occurs for 'window'.
+ * 'ust' and 'msc' indicate when the presentation actually happened.
+ */
+extern _X_EXPORT void
+present_wnmd_flip_notify(WindowPtr window, uint64_t event_id, uint64_t ust, uint64_t msc);
+
+/*
+ * Called when the flipped Pixmap associated with 'event_id' is not used anymore by the DDX.
+ */
+extern _X_EXPORT void
+present_wnmd_idle_notify(WindowPtr window, uint64_t event_id);
 
 extern _X_EXPORT Bool
 present_screen_init(ScreenPtr screen, present_screen_info_ptr info);

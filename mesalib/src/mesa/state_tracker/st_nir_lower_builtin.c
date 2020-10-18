@@ -126,7 +126,7 @@ get_variable(lower_builtin_state *state, nir_deref_path *path,
 
    char *name = _mesa_program_state_string(tokens);
 
-   nir_foreach_variable(var, &shader->uniforms) {
+   nir_foreach_uniform_variable(var, shader) {
       if (strcmp(var->name, name) == 0) {
          free(name);
          return var;

@@ -107,6 +107,9 @@ struct blitter_context_priv
     */
    void *fs_pack_color_zs[TGSI_TEXTURE_COUNT][10];
 
+   /* FS which is meant for replicating indevidual stencil-buffer bits */
+   void *fs_stencil_blit_fallback[2];
+
    /* Blend state. */
    void *blend[PIPE_MASK_RGBA+1][2]; /**< blend state with writemask */
    void *blend_clear[GET_CLEAR_BLEND_STATE_IDX(PIPE_CLEAR_COLOR)+1];
@@ -116,6 +119,7 @@ struct blitter_context_priv
    void *dsa_write_depth_keep_stencil;
    void *dsa_keep_depth_stencil;
    void *dsa_keep_depth_write_stencil;
+   void *dsa_replicate_stencil_bit[8];
 
    /* Vertex elements states. */
    void *velem_state;
@@ -494,6 +498,11 @@ void util_blitter_destroy(struct blitter_context *blitter)
    pipe->delete_depth_stencil_alpha_state(pipe, ctx->dsa_write_depth_stencil);
    pipe->delete_depth_stencil_alpha_state(pipe, ctx->dsa_keep_depth_write_stencil);
 
+   for (i = 0; i < ARRAY_SIZE(ctx->dsa_replicate_stencil_bit); i++) {
+      if (ctx->dsa_replicate_stencil_bit[i])
+         pipe->delete_depth_stencil_alpha_state(pipe, ctx->dsa_replicate_stencil_bit[i]);
+   }
+
    unsigned scissor, msaa;
    for (scissor = 0; scissor < 2; scissor++) {
       for (msaa = 0; msaa < 2; msaa++) {
@@ -564,6 +573,10 @@ void util_blitter_destroy(struct blitter_context *blitter)
       ctx->delete_fs_state(pipe, ctx->fs_write_one_cbuf);
    if (ctx->fs_write_all_cbufs)
       ctx->delete_fs_state(pipe, ctx->fs_write_all_cbufs);
+
+   for (i = 0; i < ARRAY_SIZE(ctx->fs_stencil_blit_fallback); ++i)
+      if (ctx->fs_stencil_blit_fallback[i])
+         ctx->delete_fs_state(pipe, ctx->fs_stencil_blit_fallback[i]);
 
    pipe->delete_sampler_state(pipe, ctx->sampler_state_rect_linear);
    pipe->delete_sampler_state(pipe, ctx->sampler_state_rect);
@@ -2763,4 +2776,157 @@ void util_blitter_custom_shader(struct blitter_context *blitter,
    util_blitter_restore_fb_state(blitter);
    util_blitter_restore_render_cond(blitter);
    util_blitter_unset_running_flag(blitter);
+}
+
+static void *
+get_stencil_blit_fallback_fs(struct blitter_context_priv *ctx, bool msaa_src)
+{
+   if (!ctx->fs_stencil_blit_fallback[msaa_src]) {
+      ctx->fs_stencil_blit_fallback[msaa_src] =
+         util_make_fs_stencil_blit(ctx->base.pipe, msaa_src);
+   }
+
+   return ctx->fs_stencil_blit_fallback[msaa_src];
+}
+
+static void *
+get_stencil_blit_fallback_dsa(struct blitter_context_priv *ctx, unsigned i)
+{
+   assert(i < ARRAY_SIZE(ctx->dsa_replicate_stencil_bit));
+   if (!ctx->dsa_replicate_stencil_bit[i]) {
+      struct pipe_depth_stencil_alpha_state dsa = { 0 };
+      dsa.depth.func = PIPE_FUNC_ALWAYS;
+      dsa.stencil[0].enabled = 1;
+      dsa.stencil[0].func = PIPE_FUNC_ALWAYS;
+      dsa.stencil[0].fail_op = PIPE_STENCIL_OP_REPLACE;
+      dsa.stencil[0].zpass_op = PIPE_STENCIL_OP_REPLACE;
+      dsa.stencil[0].zfail_op = PIPE_STENCIL_OP_REPLACE;
+      dsa.stencil[0].valuemask = 0xff;
+      dsa.stencil[0].writemask = 1u << i;
+
+      ctx->dsa_replicate_stencil_bit[i] =
+         ctx->base.pipe->create_depth_stencil_alpha_state(ctx->base.pipe, &dsa);
+   }
+   return ctx->dsa_replicate_stencil_bit[i];
+}
+
+/**
+ * Performs a series of draws to implement stencil blits texture without
+ * requiring stencil writes, updating a single bit per pixel at the time.
+ */
+void
+util_blitter_stencil_fallback(struct blitter_context *blitter,
+                              struct pipe_resource *dst,
+                              unsigned dst_level,
+                              const struct pipe_box *dstbox,
+                              struct pipe_resource *src,
+                              unsigned src_level,
+                              const struct pipe_box *srcbox,
+                              const struct pipe_scissor_state *scissor)
+{
+   struct blitter_context_priv *ctx = (struct blitter_context_priv *)blitter;
+   struct pipe_context *pipe = ctx->base.pipe;
+
+   /* check the saved state */
+   util_blitter_set_running_flag(blitter);
+   blitter_check_saved_vertex_states(ctx);
+   blitter_check_saved_fragment_states(ctx);
+   blitter_check_saved_fb_state(ctx);
+   blitter_disable_render_cond(ctx);
+
+   /* Initialize the surface. */
+   struct pipe_surface *dst_view, dst_templ;
+   util_blitter_default_dst_texture(&dst_templ, dst, dst_level, dstbox->z);
+   dst_view = pipe->create_surface(pipe, dst, &dst_templ);
+
+   /* Initialize the sampler view. */
+   struct pipe_sampler_view src_templ, *src_view;
+   util_blitter_default_src_texture(blitter, &src_templ, src, src_level);
+   src_templ.format = util_format_stencil_only(src_templ.format);
+   src_view = pipe->create_sampler_view(pipe, src, &src_templ);
+
+   /* bind states */
+   pipe->bind_blend_state(pipe, ctx->blend[PIPE_MASK_RGBA][0]);
+   pipe->bind_fs_state(pipe,
+      get_stencil_blit_fallback_fs(ctx, src->nr_samples > 1));
+
+   /* set a framebuffer state */
+   struct pipe_framebuffer_state fb_state = { 0 };
+   fb_state.width = dstbox->width;
+   fb_state.height = dstbox->height;
+   fb_state.zsbuf = dst_view;
+   pipe->set_framebuffer_state(pipe, &fb_state);
+   pipe->set_sample_mask(pipe, ~0);
+
+   blitter_set_common_draw_rect_state(ctx, scissor != NULL,
+      util_framebuffer_get_num_samples(&fb_state) > 1);
+   blitter_set_dst_dimensions(ctx, dst_view->width, dst_view->height);
+
+   if (scissor) {
+      pipe->clear_depth_stencil(pipe, dst_view, PIPE_CLEAR_STENCIL, 0.0, 0,
+                                MAX2(dstbox->x, scissor->minx),
+                                MAX2(dstbox->y, scissor->miny),
+                                MIN2(dstbox->x + dstbox->width, scissor->maxx) - dstbox->x,
+                                MIN2(dstbox->y + dstbox->height, scissor->maxy) - dstbox->y,
+                                true);
+      pipe->set_scissor_states(pipe, 0, 1, scissor);
+   } else {
+      pipe->clear_depth_stencil(pipe, dst_view, PIPE_CLEAR_STENCIL, 0.0, 0,
+                                dstbox->x, dstbox->y,
+                                dstbox->width, dstbox->height,
+                                true);
+   }
+
+   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 1, &src_view);
+   pipe->bind_sampler_states(pipe, PIPE_SHADER_FRAGMENT, 0, 1, &ctx->sampler_state);
+
+   unsigned stencil_bits =
+      util_format_get_component_bits(dst->format,
+                                     UTIL_FORMAT_COLORSPACE_ZS, 1);
+
+   struct pipe_stencil_ref sr = { { (1u << stencil_bits) - 1 } };
+   pipe->set_stencil_ref(pipe, &sr);
+
+   union blitter_attrib coord;
+   get_texcoords(src_view, src->width0, src->height0,
+                 srcbox->x, srcbox->y,
+                 srcbox->x + srcbox->width, srcbox->y + srcbox->height,
+                 srcbox->z, 0, true,
+                 &coord);
+
+   for (int i = 0; i < stencil_bits; ++i) {
+      uint32_t mask = 1 << i;
+      struct pipe_constant_buffer cb = {
+         .user_buffer = &mask,
+         .buffer_size = sizeof(mask),
+      };
+      pipe->set_constant_buffer(pipe, PIPE_SHADER_FRAGMENT, blitter->cb_slot,
+                                &cb);
+
+      pipe->bind_depth_stencil_alpha_state(pipe,
+         get_stencil_blit_fallback_dsa(ctx, i));
+
+      blitter->draw_rectangle(blitter, ctx->velem_state,
+                              get_vs_passthrough_pos_generic,
+                              dstbox->x, dstbox->y,
+                              dstbox->x + dstbox->width,
+                              dstbox->y + dstbox->height,
+                              0, stencil_bits,
+                              UTIL_BLITTER_ATTRIB_TEXCOORD_XYZW,
+                              &coord);
+   }
+
+   if (scissor)
+      pipe->set_scissor_states(pipe, 0, 1, &ctx->base.saved_scissor);
+
+   util_blitter_restore_vertex_states(blitter);
+   util_blitter_restore_fragment_states(blitter);
+   util_blitter_restore_textures(blitter);
+   util_blitter_restore_fb_state(blitter);
+   util_blitter_restore_render_cond(blitter);
+   util_blitter_restore_constant_buffer_state(blitter);
+   util_blitter_unset_running_flag(blitter);
+
+   pipe_surface_reference(&dst_view, NULL);
+   pipe_sampler_view_reference(&src_view, NULL);
 }

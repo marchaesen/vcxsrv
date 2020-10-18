@@ -45,8 +45,7 @@ bifrost_get_quirks(unsigned product_id)
 {
         switch (product_id >> 12) {
         case 6: /* 1st gen */
-                return BIFROST_NO_PRELOAD |
-                        BIFROST_NO_FAST_OP;
+                return BIFROST_NO_PRELOAD;
 
         case 7: /* 2nd gen */
         case 8: /* 3rd gen */

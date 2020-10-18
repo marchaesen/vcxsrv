@@ -317,7 +317,7 @@ winConfigKeyboard(DeviceIntPtr pDevice)
 
         deviceIdentifier = layoutNum >> 16;
         for (pass = 0; pass < 2; pass++) {
-            /* If we didn't find an exact match for the input locale identifer,
+            /* If we didn't find an exact match for the input locale identifier,
                try to find an match on the language identifier part only  */
             if (pass == 1)
                 layoutNum = (layoutNum & 0xffff);

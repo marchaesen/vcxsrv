@@ -1440,7 +1440,7 @@ trace_context_transfer_map(struct pipe_context *_context,
    *transfer = trace_transfer_create(tr_context, resource, result);
 
    if (map) {
-      if (usage & PIPE_TRANSFER_WRITE) {
+      if (usage & PIPE_MAP_WRITE) {
          trace_transfer(*transfer)->map = map;
       }
    }

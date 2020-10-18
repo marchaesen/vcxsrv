@@ -1598,22 +1598,22 @@ layout_qualifier_id:
             const char *s;
             uint32_t mask;
          } map[] = {
-                 { "blend_support_multiply",       BLEND_MULTIPLY },
-                 { "blend_support_screen",         BLEND_SCREEN },
-                 { "blend_support_overlay",        BLEND_OVERLAY },
-                 { "blend_support_darken",         BLEND_DARKEN },
-                 { "blend_support_lighten",        BLEND_LIGHTEN },
-                 { "blend_support_colordodge",     BLEND_COLORDODGE },
-                 { "blend_support_colorburn",      BLEND_COLORBURN },
-                 { "blend_support_hardlight",      BLEND_HARDLIGHT },
-                 { "blend_support_softlight",      BLEND_SOFTLIGHT },
-                 { "blend_support_difference",     BLEND_DIFFERENCE },
-                 { "blend_support_exclusion",      BLEND_EXCLUSION },
-                 { "blend_support_hsl_hue",        BLEND_HSL_HUE },
-                 { "blend_support_hsl_saturation", BLEND_HSL_SATURATION },
-                 { "blend_support_hsl_color",      BLEND_HSL_COLOR },
-                 { "blend_support_hsl_luminosity", BLEND_HSL_LUMINOSITY },
-                 { "blend_support_all_equations",  BLEND_ALL },
+                 { "blend_support_multiply",       BITFIELD_BIT(BLEND_MULTIPLY) },
+                 { "blend_support_screen",         BITFIELD_BIT(BLEND_SCREEN) },
+                 { "blend_support_overlay",        BITFIELD_BIT(BLEND_OVERLAY) },
+                 { "blend_support_darken",         BITFIELD_BIT(BLEND_DARKEN) },
+                 { "blend_support_lighten",        BITFIELD_BIT(BLEND_LIGHTEN) },
+                 { "blend_support_colordodge",     BITFIELD_BIT(BLEND_COLORDODGE) },
+                 { "blend_support_colorburn",      BITFIELD_BIT(BLEND_COLORBURN) },
+                 { "blend_support_hardlight",      BITFIELD_BIT(BLEND_HARDLIGHT) },
+                 { "blend_support_softlight",      BITFIELD_BIT(BLEND_SOFTLIGHT) },
+                 { "blend_support_difference",     BITFIELD_BIT(BLEND_DIFFERENCE) },
+                 { "blend_support_exclusion",      BITFIELD_BIT(BLEND_EXCLUSION) },
+                 { "blend_support_hsl_hue",        BITFIELD_BIT(BLEND_HSL_HUE) },
+                 { "blend_support_hsl_saturation", BITFIELD_BIT(BLEND_HSL_SATURATION) },
+                 { "blend_support_hsl_color",      BITFIELD_BIT(BLEND_HSL_COLOR) },
+                 { "blend_support_hsl_luminosity", BITFIELD_BIT(BLEND_HSL_LUMINOSITY) },
+                 { "blend_support_all_equations",  (1u << (BLEND_HSL_LUMINOSITY + 1)) - 2 },
          };
          for (unsigned i = 0; i < ARRAY_SIZE(map); i++) {
             if (match_layout_qualifier($1, map[i].s, state) == 0) {

@@ -1054,7 +1054,6 @@ static void
 create_transform_feedbacks(struct gl_context *ctx, GLsizei n, GLuint *ids,
                            bool dsa)
 {
-   GLuint first;
    const char* func;
 
    if (dsa)
@@ -1070,20 +1069,17 @@ create_transform_feedbacks(struct gl_context *ctx, GLsizei n, GLuint *ids,
    if (!ids)
       return;
 
-   /* we don't need contiguous IDs, but this might be faster */
-   first = _mesa_HashFindFreeKeyBlock(ctx->TransformFeedback.Objects, n);
-   if (first) {
+   if (_mesa_HashFindFreeKeys(ctx->TransformFeedback.Objects, ids, n)) {
       GLsizei i;
       for (i = 0; i < n; i++) {
          struct gl_transform_feedback_object *obj
-            = ctx->Driver.NewTransformFeedback(ctx, first + i);
+            = ctx->Driver.NewTransformFeedback(ctx, ids[i]);
          if (!obj) {
             _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
             return;
          }
-         ids[i] = first + i;
-         _mesa_HashInsertLocked(ctx->TransformFeedback.Objects, first + i,
-                                obj);
+         _mesa_HashInsertLocked(ctx->TransformFeedback.Objects, ids[i],
+                                obj, true);
          if (dsa) {
             /* this is normally done at bind time in the non-dsa case */
             obj->EverBound = GL_TRUE;

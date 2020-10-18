@@ -172,6 +172,8 @@ hash_deref(uint32_t hash, const nir_deref_instr *instr)
 
    case nir_deref_type_cast:
       hash = HASH(hash, instr->cast.ptr_stride);
+      hash = HASH(hash, instr->cast.align_mul);
+      hash = HASH(hash, instr->cast.align_offset);
       break;
 
    case nir_deref_type_var:
@@ -247,6 +249,10 @@ hash_intrinsic(uint32_t hash, const nir_intrinsic_instr *instr)
    }
 
    hash = XXH32(instr->const_index, info->num_indices * sizeof(instr->const_index[0]), hash);
+
+   for (unsigned i = 0; i < nir_intrinsic_infos[instr->intrinsic].num_srcs; i++)
+      hash = hash_src(hash, &instr->src[i]);
+
    return hash;
 }
 
@@ -474,7 +480,7 @@ nir_alu_srcs_negative_equal(const nir_alu_instr *alu1,
       return true;
    }
 
-   uint8_t alu1_swizzle[4] = {0};
+   uint8_t alu1_swizzle[NIR_MAX_VEC_COMPONENTS] = {0};
    nir_src alu1_actual_src;
    nir_alu_instr *neg1 = get_neg_instr(alu1->src[src1].src);
 
@@ -491,7 +497,7 @@ nir_alu_srcs_negative_equal(const nir_alu_instr *alu1,
          alu1_swizzle[i] = i;
    }
 
-   uint8_t alu2_swizzle[4] = {0};
+   uint8_t alu2_swizzle[NIR_MAX_VEC_COMPONENTS] = {0};
    nir_src alu2_actual_src;
    nir_alu_instr *neg2 = get_neg_instr(alu2->src[src2].src);
 
@@ -619,7 +625,9 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
          break;
 
       case nir_deref_type_cast:
-         if (deref1->cast.ptr_stride != deref2->cast.ptr_stride)
+         if (deref1->cast.ptr_stride != deref2->cast.ptr_stride ||
+             deref1->cast.align_mul != deref2->cast.align_mul ||
+             deref1->cast.align_offset != deref2->cast.align_offset)
             return false;
          break;
 

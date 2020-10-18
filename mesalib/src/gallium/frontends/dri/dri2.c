@@ -726,6 +726,16 @@ dri2_update_tex_buffer(struct dri_drawable *drawable,
    /* no-op */
 }
 
+static const struct dri2_format_mapping r8_g8b8_mapping = {
+   DRM_FORMAT_NV12,
+   __DRI_IMAGE_FORMAT_NONE,
+   __DRI_IMAGE_COMPONENTS_Y_UV,
+   PIPE_FORMAT_R8_G8B8_420_UNORM,
+   2,
+   { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
+     { 1, 1, 1, __DRI_IMAGE_FORMAT_GR88, 2 } }
+};
+
 static __DRIimage *
 dri2_create_image_from_winsys(__DRIscreen *_screen,
                               int width, int height, const struct dri2_format_mapping *map,
@@ -739,6 +749,7 @@ dri2_create_image_from_winsys(__DRIscreen *_screen,
    unsigned tex_usage = 0;
    int i;
    bool use_lowered = false;
+   const unsigned format_planes = util_format_get_num_planes(map->pipe_format);
 
    if (pscreen->is_format_supported(pscreen, map->pipe_format, screen->target, 0, 0,
                                     PIPE_BIND_RENDER_TARGET))
@@ -746,6 +757,14 @@ dri2_create_image_from_winsys(__DRIscreen *_screen,
    if (pscreen->is_format_supported(pscreen, map->pipe_format, screen->target, 0, 0,
                                     PIPE_BIND_SAMPLER_VIEW))
       tex_usage |= PIPE_BIND_SAMPLER_VIEW;
+
+   /* For NV12, see if we have support for sampling r8_b8g8 */
+   if (!tex_usage && map->pipe_format == PIPE_FORMAT_NV12 &&
+       pscreen->is_format_supported(pscreen, PIPE_FORMAT_R8_G8B8_420_UNORM,
+                                    screen->target, 0, 0, PIPE_BIND_SAMPLER_VIEW)) {
+      map = &r8_g8b8_mapping;
+      tex_usage |= PIPE_BIND_SAMPLER_VIEW;
+   }
 
    if (!tex_usage && util_format_is_yuv(map->pipe_format)) {
       /* YUV format sampling can be emulated by the GL gallium frontend by
@@ -773,7 +792,23 @@ dri2_create_image_from_winsys(__DRIscreen *_screen,
    templ.depth0 = 1;
    templ.array_size = 1;
 
-   for (i = (use_lowered ? map->nplanes : num_handles) - 1; i >= 0; i--) {
+   for (i = num_handles - 1; i >= format_planes; i--) {
+      struct pipe_resource *tex;
+
+      templ.next = img->texture;
+
+      tex = pscreen->resource_from_handle(pscreen, &templ, &whandle[i],
+                                          PIPE_HANDLE_USAGE_FRAMEBUFFER_WRITE);
+      if (!tex) {
+         pipe_resource_reference(&img->texture, NULL);
+         FREE(img);
+         return NULL;
+      }
+
+      img->texture = tex;
+   }
+
+   for (i = (use_lowered ? map->nplanes : format_planes) - 1; i >= 0; i--) {
       struct pipe_resource *tex;
 
       templ.next = img->texture;
@@ -847,9 +882,18 @@ dri2_get_modifier_num_planes(uint64_t modifier, int fourcc)
       return 0;
 
    switch (modifier) {
+   case I915_FORMAT_MOD_Y_TILED_GEN12_MC_CCS:
    case I915_FORMAT_MOD_Y_TILED_GEN12_RC_CCS:
    case I915_FORMAT_MOD_Y_TILED_CCS:
-      return 2;
+      return 2 * util_format_get_num_planes(map->pipe_format);
+   case DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED:
+   case DRM_FORMAT_MOD_ARM_AFBC(
+                        AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
+                        AFBC_FORMAT_MOD_SPARSE |
+                        AFBC_FORMAT_MOD_YTR):
+   case DRM_FORMAT_MOD_ARM_AFBC(
+                        AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
+                        AFBC_FORMAT_MOD_SPARSE):
    case DRM_FORMAT_MOD_BROADCOM_UIF:
    case DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED:
    case DRM_FORMAT_MOD_LINEAR:
@@ -869,7 +913,7 @@ dri2_get_modifier_num_planes(uint64_t modifier, int fourcc)
    case I915_FORMAT_MOD_X_TILED:
    case I915_FORMAT_MOD_Y_TILED:
    case DRM_FORMAT_MOD_INVALID:
-      return map->nplanes;
+      return util_format_get_num_planes(map->pipe_format);
    default:
       return 0;
    }
@@ -882,26 +926,16 @@ dri2_create_image_from_fd(__DRIscreen *_screen,
                           int *strides, int *offsets, unsigned *error,
                           void *loaderPrivate)
 {
-   struct winsys_handle whandles[3];
+   struct winsys_handle whandles[4];
    const struct dri2_format_mapping *map = dri2_get_mapping_by_fourcc(fourcc);
    __DRIimage *img = NULL;
    unsigned err = __DRI_IMAGE_ERROR_SUCCESS;
-   int i, expected_num_fds;
-   int num_handles = dri2_get_modifier_num_planes(modifier, fourcc);
+   int i;
+   const int expected_num_fds = dri2_get_modifier_num_planes(modifier, fourcc);
 
-   if (!map || num_handles == 0) {
+   if (!map || expected_num_fds == 0) {
       err = __DRI_IMAGE_ERROR_BAD_MATCH;
       goto exit;
-   }
-
-   switch (fourcc) {
-   case DRM_FORMAT_YUYV:
-   case DRM_FORMAT_UYVY:
-      expected_num_fds = 1;
-      break;
-   default:
-      expected_num_fds = num_handles;
-      break;
    }
 
    if (num_fds != expected_num_fds) {
@@ -1542,8 +1576,7 @@ dri2_map_image(__DRIcontext *context, __DRIimage *image,
 {
    struct dri_context *ctx = dri_context(context);
    struct pipe_context *pipe = ctx->st->pipe;
-   enum pipe_transfer_usage pipe_access = 0;
-   struct pipe_resource *resource = image->texture;
+   enum pipe_map_flags pipe_access = 0;
    struct pipe_transfer *trans;
    void *map;
 
@@ -1554,13 +1587,14 @@ dri2_map_image(__DRIcontext *context, __DRIimage *image,
    if (plane >= dri2_get_mapping_by_format(image->dri_format)->nplanes)
       return NULL;
 
+   struct pipe_resource *resource = image->texture;
    while (plane--)
       resource = resource->next;
 
    if (flags & __DRI_IMAGE_TRANSFER_READ)
-         pipe_access |= PIPE_TRANSFER_READ;
+         pipe_access |= PIPE_MAP_READ;
    if (flags & __DRI_IMAGE_TRANSFER_WRITE)
-         pipe_access |= PIPE_TRANSFER_WRITE;
+         pipe_access |= PIPE_MAP_WRITE;
 
    map = pipe_transfer_map(pipe, resource, 0, 0, pipe_access, x0, y0,
                            width, height, &trans);

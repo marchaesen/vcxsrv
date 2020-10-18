@@ -222,7 +222,21 @@ XLookupKeysym(register XKeyEvent * event, int col)
     if (_XkbUnavailable(dpy))
         return _XLookupKeysym(event, col);
     _XkbCheckPendingRefresh(dpy, dpy->xkb_info);
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
     return XKeycodeToKeysym(dpy, event->keycode, col);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+
 }
 
    /*
@@ -587,8 +601,8 @@ _XkbReloadDpy(Display *dpy)
 }
 
 int
-XkbTranslateKeySym(register Display *dpy,
-                   register KeySym *sym_rtrn,
+XkbTranslateKeySym(Display *dpy,
+                   KeySym *sym_rtrn,
                    unsigned int mods,
                    char *buffer,
                    int nbytes,

@@ -91,14 +91,17 @@ validate_instr(struct ir3_validate_ctx *ctx, struct ir3_instruction *instr)
 
 		/* Validate that all src's are either half of full.
 		 *
-		 * Note: tex instructions w/ .s2en are a bit special in
-		 * that the tex/samp src reg is half-reg irrespective of
-		 * the precision of other srcs.  The tex/samp src is the
-		 * first src reg when .s2en is set
+		 * Note: tex instructions w/ .s2en are a bit special in that the
+		 * tex/samp src reg is half-reg for non-bindless and full for
+		 * bindless, irrespective of the precision of other srcs. The
+		 * tex/samp src is the first src reg when .s2en is set
 		 */
 		if ((instr->flags & IR3_INSTR_S2EN) && (n < 2)) {
 			if (n == 0) {
-				validate_assert(ctx, reg->flags & IR3_REG_HALF);
+				if (instr->flags & IR3_INSTR_B)
+					validate_assert(ctx, !(reg->flags & IR3_REG_HALF));
+				else
+					validate_assert(ctx, reg->flags & IR3_REG_HALF);
 			}
 		} else if (n > 0) {
 			validate_assert(ctx, (last_reg->flags & IR3_REG_HALF) == (reg->flags & IR3_REG_HALF));

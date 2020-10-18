@@ -1476,7 +1476,7 @@ xf86FirstLocalDevice(void)
  *
  * This function is the same for X or Y coordinates.
  * You may have to reverse the high and low values to compensate for
- * different orgins on the touch screen vs X.
+ * different origins on the touch screen vs X.
  *
  * e.g. to scale from device coordinates into screen coordinates, call
  * xf86ScaleAxis(x, 0, screen_width, dev_min, dev_max);

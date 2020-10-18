@@ -13,9 +13,9 @@ $ make headers_install INSTALL_HDR_PATH=/path/to/install
 
 The last update was done at the following kernel commit :
 
-commit 1aa63ddf726ea049279989b93b69b57ce6efd75b
-Merge: 774f1eeb18b0 14d0066b8477
+commit 3393649977f9a8847c659e282ea290d4b703295c
+Merge: cbc2e82932ae ced026e959be
 Author: Dave Airlie <airlied@redhat.com>
-Date:   Wed Apr 22 10:40:34 2020 +1000
+Date:   Fri Aug 28 13:51:30 2020 +1000
 
-    Merge tag 'drm-misc-next-2020-04-14' of git://anongit.freedesktop.org/drm/drm-misc into drm-next
+    Merge tag 'drm-intel-next-2020-08-24-1' of git://anongit.freedesktop.org/drm/drm-intel into drm-next

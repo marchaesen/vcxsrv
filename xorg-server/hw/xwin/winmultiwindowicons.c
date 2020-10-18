@@ -346,7 +346,7 @@ NetWMToWinIcon(int bpp, uint32_t * icon)
         osvi.dwMajorVersion = 5;
         osvi.dwMinorVersion = 1;
 
-        /* Windows versions later than XP have icon alpha channel suport, 2000 does not */
+        /* Windows versions later than XP have icon alpha channel support, 2000 does not */
         VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION,
                           VER_GREATER_EQUAL);
         VER_SET_CONDITION(dwlConditionMask, VER_MINORVERSION,

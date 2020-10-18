@@ -34,7 +34,7 @@ midgard_opt_copy_prop_reg(compiler_context *ctx, midgard_block *block)
 
         mir_foreach_instr_in_block_safe(block, ins) {
                 if (ins->type != TAG_ALU_4) continue;
-                if (!OP_IS_MOVE(ins->alu.op)) continue;
+                if (!OP_IS_MOVE(ins->op)) continue;
                 if (ins->is_pack) continue;
 
                 unsigned from = ins->src[1];
@@ -68,7 +68,7 @@ midgard_opt_copy_prop(compiler_context *ctx, midgard_block *block)
 
         mir_foreach_instr_in_block_safe(block, ins) {
                 if (ins->type != TAG_ALU_4) continue;
-                if (!OP_IS_MOVE(ins->alu.op)) continue;
+                if (!OP_IS_MOVE(ins->op)) continue;
                 if (ins->is_pack) continue;
 
                 unsigned from = ins->src[1];
@@ -107,7 +107,7 @@ midgard_opt_copy_prop(compiler_context *ctx, midgard_block *block)
 
                         unsigned start =
                                 is_tex ? 2 :
-                                OP_IS_STORE(q->load_store.op) ? 1 : 0;
+                                OP_IS_STORE(q->op) ? 1 : 0;
 
                         mir_foreach_src(q, s) {
                                 if ((s >= start) && q->src[s] == to) {
@@ -119,6 +119,9 @@ midgard_opt_copy_prop(compiler_context *ctx, midgard_block *block)
 
                 if (skip)
                         continue;
+
+                if (ctx->blend_src1 == to)
+                        ctx->blend_src1 = from;
 
                 /* We're clear -- rewrite, composing the swizzle */
                 mir_rewrite_index_src_swizzle(ctx, to, from, ins->swizzle[1]);

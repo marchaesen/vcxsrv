@@ -227,7 +227,7 @@ fbBltOne(FbStip * src, FbStride srcStride,      /* FbStip units per scanline */
      */
     dstS = dstX / dstBpp;
     /*
-     * Compute shift constants for effective alignement
+     * Compute shift constants for effective alignment
      */
     if (srcX >= dstS) {
         leftShift = srcX - dstS;

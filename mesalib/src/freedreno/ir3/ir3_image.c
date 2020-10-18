@@ -113,14 +113,61 @@ ir3_get_type_for_image_intrinsic(const nir_intrinsic_instr *instr)
 {
 	const nir_intrinsic_info *info = &nir_intrinsic_infos[instr->intrinsic];
 	int bit_size = info->has_dest ? nir_dest_bit_size(instr->dest) : 32;
-	enum pipe_format format = nir_intrinsic_format(instr);
 
-	if (util_format_is_pure_uint(format))
+	nir_alu_type type = nir_type_uint;
+	switch (instr->intrinsic) {
+	case nir_intrinsic_image_load:
+	case nir_intrinsic_bindless_image_load:
+		type = nir_alu_type_get_base_type(nir_intrinsic_dest_type(instr));
+		break;
+
+	case nir_intrinsic_image_store:
+	case nir_intrinsic_bindless_image_store:
+		type = nir_alu_type_get_base_type(nir_intrinsic_src_type(instr));
+		break;
+
+	case nir_intrinsic_image_atomic_add:
+	case nir_intrinsic_bindless_image_atomic_add:
+	case nir_intrinsic_image_atomic_umin:
+	case nir_intrinsic_bindless_image_atomic_umin:
+	case nir_intrinsic_image_atomic_umax:
+	case nir_intrinsic_bindless_image_atomic_umax:
+	case nir_intrinsic_image_atomic_and:
+	case nir_intrinsic_bindless_image_atomic_and:
+	case nir_intrinsic_image_atomic_or:
+	case nir_intrinsic_bindless_image_atomic_or:
+	case nir_intrinsic_image_atomic_xor:
+	case nir_intrinsic_bindless_image_atomic_xor:
+	case nir_intrinsic_image_atomic_exchange:
+	case nir_intrinsic_bindless_image_atomic_exchange:
+	case nir_intrinsic_image_atomic_comp_swap:
+	case nir_intrinsic_bindless_image_atomic_comp_swap:
+	case nir_intrinsic_image_atomic_inc_wrap:
+	case nir_intrinsic_bindless_image_atomic_inc_wrap:
+		type = nir_type_uint;
+		break;
+
+	case nir_intrinsic_image_atomic_imin:
+	case nir_intrinsic_bindless_image_atomic_imin:
+	case nir_intrinsic_image_atomic_imax:
+	case nir_intrinsic_bindless_image_atomic_imax:
+		type = nir_type_int;
+		break;
+
+	default:
+		unreachable("Unhandled NIR image intrinsic");
+	}
+
+	switch (type) {
+	case nir_type_uint:
 		return bit_size == 16 ? TYPE_U16 : TYPE_U32;
-	else if (util_format_is_pure_sint(format))
+	case nir_type_int:
 		return bit_size == 16 ? TYPE_S16 : TYPE_S32;
-	else
+	case nir_type_float:
 		return bit_size == 16 ? TYPE_F16 : TYPE_F32;
+	default:
+		unreachable("bad type");
+	}
 }
 
 /* Returns the number of components for the different image formats

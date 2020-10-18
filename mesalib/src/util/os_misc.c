@@ -27,6 +27,8 @@
 
 
 #include "os_misc.h"
+#include "os_file.h"
+#include "macros.h"
 
 #include <stdarg.h>
 
@@ -44,6 +46,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <inttypes.h>
 
 #endif
 
@@ -54,6 +58,9 @@
 #  include <log/log.h>
 #elif DETECT_OS_LINUX || DETECT_OS_CYGWIN || DETECT_OS_SOLARIS || DETECT_OS_HURD
 #  include <unistd.h>
+#elif DETECT_OS_OPENBSD || DETECT_OS_FREEBSD
+#  include <sys/resource.h>
+#  include <sys/sysctl.h>
 #elif DETECT_OS_APPLE || DETECT_OS_BSD
 #  include <sys/sysctl.h>
 #elif DETECT_OS_HAIKU
@@ -179,6 +186,54 @@ os_get_total_physical_memory(uint64_t *size)
    return (ret == TRUE);
 #else
 #error unexpected platform in os_sysinfo.c
+   return false;
+#endif
+}
+
+bool
+os_get_available_system_memory(uint64_t *size)
+{
+#if DETECT_OS_LINUX
+   char *meminfo = os_read_file("/proc/meminfo", NULL);
+   if (!meminfo)
+      return false;
+
+   char *str = strstr(meminfo, "MemAvailable:");
+   if (!str) {
+      free(meminfo);
+      return false;
+   }
+
+   uint64_t kb_mem_available;
+   if (sscanf(str, "MemAvailable: %" PRIx64, &kb_mem_available) == 1) {
+      free(meminfo);
+      *size = kb_mem_available << 10;
+      return true;
+   }
+
+   free(meminfo);
+   return false;
+#elif DETECT_OS_OPENBSD || DETECT_OS_FREEBSD
+   struct rlimit rl;
+#if DETECT_OS_OPENBSD
+   int mib[] = { CTL_HW, HW_USERMEM64 };
+#elif DETECT_OS_FREEBSD
+   int mib[] = { CTL_HW, HW_USERMEM };
+#endif
+   int64_t mem_available;
+   size_t len = sizeof(mem_available);
+
+   /* physmem - wired */
+   if (sysctl(mib, 2, &mem_available, &len, NULL, 0) == -1)
+      return false;
+
+   /* static login.conf limit */
+   if (getrlimit(RLIMIT_DATA, &rl) == -1)
+      return false;
+
+   *size = MIN2(mem_available, rl.rlim_cur);
+   return true;
+#else
    return false;
 #endif
 }

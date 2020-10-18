@@ -2336,7 +2336,7 @@ structure contains:
 
 #define           USPosition         (1L&lt;&lt;0)  /* user specified x,y */
 #define           USSize             (1L&lt;&lt;1)  /* user specified width,height */
-#define           PPosition          (1L&lt;&lt;2)  /* program specified posistion */
+#define           PPosition          (1L&lt;&lt;2)  /* program specified position */
 #define           PSize              (1L&lt;&lt;3)  /* program specified size */
 #define           PMinSize           (1L&lt;&lt;4)  /* program specified minimum size */
 #define           PMaxSize           (1L&lt;&lt;5)  /* program specified maximum size */

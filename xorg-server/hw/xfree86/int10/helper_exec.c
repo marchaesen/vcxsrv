@@ -660,10 +660,10 @@ bios_checksum(const uint8_t *start, int size)
  * an attempt to detect a legacy ISA card. If they find one they might
  * act very strange: for example they might configure the card as a
  * monochrome card. This might cause some drivers to choke.
- * To avoid this we attempt legacy VGA by writing to all know VGA
+ * To avoid this we attempt legacy VGA by writing to all known VGA
  * disable registers before we call the BIOS initialization and
- * restore the original values afterwards. In beween we hold our
- * breath. To get to a (possibly exising) ISA card need to disable
+ * restore the original values afterwards. In between we hold our
+ * breath. To get to a (possibly existing) ISA card need to disable
  * our current PCI card.
  */
 /*

@@ -61,6 +61,7 @@ static inline void _FCMemoryBarrier (void) {
 }
 
 typedef LONG fc_atomic_int_t;
+#define FC_ATOMIC_INT_FORMAT		"ld"
 #define fc_atomic_int_add(AI, V)	InterlockedExchangeAdd (&(AI), (V))
 
 #define fc_atomic_ptr_get(P)		(_FCMemoryBarrier (), (void *) *(P))
@@ -73,6 +74,7 @@ typedef LONG fc_atomic_int_t;
 #include <AvailabilityMacros.h>
 
 typedef int fc_atomic_int_t;
+#define FC_ATOMIC_INT_FORMAT		"d"
 #define fc_atomic_int_add(AI, V)	(OSAtomicAdd32Barrier ((V), &(AI)) - (V))
 
 #define fc_atomic_ptr_get(P)		(OSMemoryBarrier (), (void *) *(P))
@@ -85,6 +87,7 @@ typedef int fc_atomic_int_t;
 #elif !defined(FC_NO_MT) && defined(HAVE_INTEL_ATOMIC_PRIMITIVES)
 
 typedef int fc_atomic_int_t;
+#define FC_ATOMIC_INT_FORMAT		"d"
 #define fc_atomic_int_add(AI, V)	__sync_fetch_and_add (&(AI), (V))
 
 #define fc_atomic_ptr_get(P)		(void *) (__sync_synchronize (), *(P))
@@ -97,6 +100,7 @@ typedef int fc_atomic_int_t;
 #include <mbarrier.h>
 
 typedef unsigned int fc_atomic_int_t;
+#define FC_ATOMIC_INT_FORMAT		"u"
 #define fc_atomic_int_add(AI, V)	( ({__machine_rw_barrier ();}), atomic_add_int_nv (&(AI), (V)) - (V))
 
 #define fc_atomic_ptr_get(P)		( ({__machine_rw_barrier ();}), (void *) *(P))
@@ -107,6 +111,7 @@ typedef unsigned int fc_atomic_int_t;
 
 #define FC_ATOMIC_INT_NIL 1 /* Warn that fallback implementation is in use. */
 typedef volatile int fc_atomic_int_t;
+#define FC_ATOMIC_INT_FORMAT		"d"
 #define fc_atomic_int_add(AI, V)	(((AI) += (V)) - (V))
 
 #define fc_atomic_ptr_get(P)		((void *) *(P))
@@ -116,6 +121,7 @@ typedef volatile int fc_atomic_int_t;
 #else /* FC_NO_MT */
 
 typedef int fc_atomic_int_t;
+#define FC_ATOMIC_INT_FORMAT		"d"
 #define fc_atomic_int_add(AI, V)	(((AI) += (V)) - (V))
 
 #define fc_atomic_ptr_get(P)		((void *) *(P))

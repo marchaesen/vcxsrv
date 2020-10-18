@@ -31,8 +31,8 @@
 #include "drm/freedreno_drmif.h"
 #include "drm/freedreno_ringbuffer.h"
 
-#include "registers/adreno_pm4.xml.h"
-#include "registers/adreno_common.xml.h"
+#include "adreno_pm4.xml.h"
+#include "adreno_common.xml.h"
 
 #define MAX_BUFS 4
 

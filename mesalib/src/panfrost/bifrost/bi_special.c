@@ -58,7 +58,8 @@ bi_emit_fexp2_new(bi_context *ctx, nir_alu_instr *instr)
                         /* 0x3f80000000 = 1.0f as fp32
                          * 24 = shift to multiply by 2^24 */
                         .u64 = (0x3f800000) | (24ull << 32)
-                }
+                },
+                .swizzle = { { instr->src[0].swizzle[0] } }
         };
 
         /* F2I_RTE T, T */
@@ -81,6 +82,7 @@ bi_emit_fexp2_new(bi_context *ctx, nir_alu_instr *instr)
                 .dest_type = nir_type_float32,
                 .src = { f2i.dest, mscale.src[0] },
                 .src_types = { nir_type_int32, nir_type_float32 },
+                .swizzle = { {}, { instr->src[0].swizzle[0] } }
         };
 
         bi_emit(ctx, mscale);
@@ -100,7 +102,8 @@ bi_emit_flog2_new(bi_context *ctx, nir_alu_instr *instr)
                 .dest = bi_make_temp(ctx),
                 .dest_type = nir_type_int32,
                 .src = { pan_src_index(&instr->src[0].src) },
-                .src_types = { nir_type_float32 }
+                .src_types = { nir_type_float32 },
+                .swizzle = { { instr->src[0].swizzle[0] } }
         };
 
         /* I32_TO_F32 m */
@@ -126,7 +129,8 @@ bi_emit_flog2_new(bi_context *ctx, nir_alu_instr *instr)
                 .src_types = { nir_type_float32, nir_type_float32 },
                 .constant = {
                         .u64 = 0xBF800000 /* -1.0 */
-                }
+                },
+                .swizzle = { {}, { instr->src[0].swizzle[0] } }
         };
 
         /* FLOG2_HELP log2(x)/(x-1), x */
@@ -137,6 +141,7 @@ bi_emit_flog2_new(bi_context *ctx, nir_alu_instr *instr)
                 .dest_type = nir_type_float32,
                 .src = { pan_src_index(&instr->src[0].src) },
                 .src_types = { nir_type_float32 },
+                .swizzle = { { instr->src[0].swizzle[0] } }
         };
 
         /* FMA log2(x)/(x - 1), (x - 1), M */

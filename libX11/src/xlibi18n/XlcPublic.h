@@ -136,7 +136,7 @@ extern Bool _XlcAddCharSet(
 
 /* Retrieves a number of attributes of an XlcCharSet.
    Return NULL if successful, otherwise the name of the first argument
-   specifiying a nonexistent attribute. */
+   specifying a nonexistent attribute. */
 extern char *_XlcGetCSValues(
     XlcCharSet		charset,
     ...

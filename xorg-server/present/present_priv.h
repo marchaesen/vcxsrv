@@ -23,6 +23,7 @@
 #ifndef _PRESENT_PRIV_H_
 #define _PRESENT_PRIV_H_
 
+#include "dix-config.h"
 #include <X11/X.h>
 #include "scrnintstr.h"
 #include "misc.h"
@@ -70,14 +71,14 @@ struct present_vblank {
     int16_t             y_off;
     CARD16              kind;
     uint64_t            event_id;
-    uint64_t            target_msc;
+    uint64_t            target_msc;     /* target MSC when present should complete */
+    uint64_t            exec_msc;       /* MSC at which present can be executed */
     uint64_t            msc_offset;
     present_fence_ptr   idle_fence;
     present_fence_ptr   wait_fence;
     present_notify_ptr  notifies;
     int                 num_notifies;
     Bool                queued;         /* on present_exec_queue */
-    Bool                requeue;        /* on queue, but target_msc has changed */
     Bool                flip;           /* planning on using flip */
     Bool                flip_ready;     /* wants to flip, but waiting for previous flip or unflip */
     Bool                flip_idler;     /* driver explicitly permitted idling */
@@ -469,7 +470,7 @@ present_vblank_create(WindowPtr window,
                       const uint32_t *capabilities,
                       present_notify_ptr notifies,
                       int num_notifies,
-                      uint64_t *target_msc,
+                      uint64_t target_msc,
                       uint64_t crtc_msc);
 
 void
@@ -481,9 +482,6 @@ present_vblank_destroy(present_vblank_ptr vblank);
 /*
  * present_wnmd.c
  */
-void
-present_wnmd_set_abort_flip(WindowPtr window);
-
 void
 present_wnmd_init_mode_hooks(present_screen_priv_ptr screen_priv);
 

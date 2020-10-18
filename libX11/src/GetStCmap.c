@@ -1,4 +1,3 @@
-
 /***********************************************************
 
 Copyright 1987, 1998  The Open Group
@@ -111,7 +110,7 @@ Status XGetStandardColormap (
 	cmap->blue_mult	 = use->blue_mult;
 	cmap->base_pixel = use->base_pixel;
 
-	Xfree (stdcmaps);	/* don't need alloced memory */
+	Xfree (stdcmaps);	/* don't need allocated memory */
     }
     return stat;
 }

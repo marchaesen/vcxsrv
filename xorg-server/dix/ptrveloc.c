@@ -97,7 +97,7 @@ InitVelocityData(DeviceVelocityPtr vel)
 {
     memset(vel, 0, sizeof(DeviceVelocityRec));
 
-    vel->corr_mul = 10.0;       /* dots per 10 milisecond should be usable */
+    vel->corr_mul = 10.0;       /* dots per 10 millisecond should be usable */
     vel->const_acceleration = 1.0;      /* no acceleration/deceleration  */
     vel->reset_time = 300;
     vel->use_softening = 1;
@@ -519,7 +519,7 @@ DoGetDirection(int dx, int dy)
 
 /* cache DoGetDirection().
  * To avoid excessive use of direction calculation, cache the values for
- * [-5..5] for both x/y. Anything outside of that is calcualted on the fly.
+ * [-5..5] for both x/y. Anything outside of that is calculated on the fly.
  *
  * @return A bitmask for N, NE, S, SE, etc. indicating the directions for
  * this movement.
@@ -597,7 +597,7 @@ CalcTracker(const MotionTracker * tracker, int cur_t)
 /* find the most plausible velocity. That is, the most distant
  * (in time) tracker which isn't too old, the movement vector was
  * in the same octant, and where the velocity is within an
- * acceptable range to the inital velocity.
+ * acceptable range to the initial velocity.
  *
  * @return The tracker's velocity or 0 if the above conditions are unmet
  */

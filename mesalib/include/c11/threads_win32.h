@@ -51,7 +51,7 @@ Configuration macro:
     Max registerable TSS dtor number.
 */
 
-// XXX: Retain XP compatability
+// XXX: Retain XP compatibility
 #if 0
 #if _WIN32_WINNT >= 0x0600
 // Prefer native WindowsAPI on newer environment.

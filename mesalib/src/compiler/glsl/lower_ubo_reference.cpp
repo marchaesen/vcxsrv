@@ -48,8 +48,10 @@ public:
    lower_ubo_reference_visitor(struct gl_linked_shader *shader,
                                bool clamp_block_indices,
                                bool use_std430_as_default)
-   : shader(shader), clamp_block_indices(clamp_block_indices),
-     struct_field(NULL), variable(NULL)
+   : buffer_access_type(ubo_load_access),
+     shader(shader), clamp_block_indices(clamp_block_indices),
+     struct_field(NULL), variable(NULL), uniform_block(NULL),
+     progress(false)
    {
       this->use_std430_as_default = use_std430_as_default;
    }
@@ -971,7 +973,7 @@ lower_ubo_reference_visitor::lower_ssbo_atomic_intrinsic(ir_call *ir)
 
    ir_rvalue *deref = (ir_rvalue *) inst;
    assert(deref->type->is_scalar() &&
-          (deref->type->is_integer_32() || deref->type->is_float()));
+          (deref->type->is_integer_32_64() || deref->type->is_float()));
 
    ir_variable *var = deref->variable_referenced();
    assert(var);

@@ -1,3 +1,4 @@
+bindir = @xwayland_path@
 bin_PROGRAMS = Xwayland
 
 Xwayland_CFLAGS =				\
@@ -115,7 +116,10 @@ endif
 nodist_Xwayland_SOURCES = $(Xwayland_built_sources)
 CLEANFILES = $(Xwayland_built_sources)
 
-EXTRA_DIST = drm.xml
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = xwayland.pc
+
+EXTRA_DIST = xwayland.pc.in drm.xml
 
 $(Xwayland_SOURCES): $(Xwayland_built_sources)
 

@@ -45,7 +45,7 @@
 #define BIGENDIAN_CPU
 #endif
 
-union GB_ADDR_CONFIG
+union GB_ADDR_CONFIG_gfx10
 {
     struct
     {

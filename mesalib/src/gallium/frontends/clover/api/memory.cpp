@@ -424,28 +424,6 @@ clSetMemObjectDestructorCallback(cl_mem d_mem,
    return e.get();
 }
 
-CLOVER_API cl_int
-clEnqueueFillBuffer(cl_command_queue command_queue, cl_mem buffer,
-                    const void *pattern, size_t pattern_size,
-                    size_t offset, size_t size,
-                    cl_uint num_events_in_wait_list,
-                    const cl_event *event_wait_list,
-                    cl_event *event) {
-   CLOVER_NOT_SUPPORTED_UNTIL("1.2");
-   return CL_INVALID_VALUE;
-}
-
-CLOVER_API cl_int
-clEnqueueFillImage(cl_command_queue command_queue, cl_mem image,
-                   const void *fill_color,
-                   const size_t *origin, const size_t *region,
-                   cl_uint num_events_in_wait_list,
-                   const cl_event *event_wait_list,
-                   cl_event *event) {
-   CLOVER_NOT_SUPPORTED_UNTIL("1.2");
-   return CL_INVALID_VALUE;
-}
-
 CLOVER_API void *
 clSVMAlloc(cl_context d_ctx,
            cl_svm_mem_flags flags,

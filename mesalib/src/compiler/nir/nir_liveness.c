@@ -96,7 +96,7 @@ set_src_live(nir_src *src, void *void_live)
    if (src->ssa->live_index == 0)
       return true;   /* undefined variables are never live */
 
-   BITSET_SET(live, src->ssa->live_index);
+   BITSET_SET(live, src->ssa->index);
 
    return true;
 }
@@ -106,7 +106,7 @@ set_ssa_def_dead(nir_ssa_def *def, void *void_live)
 {
    BITSET_WORD *live = void_live;
 
-   BITSET_CLEAR(live, def->live_index);
+   BITSET_CLEAR(live, def->index);
 
    return true;
 }
@@ -160,7 +160,10 @@ propagate_across_edge(nir_block *pred, nir_block *succ,
 void
 nir_live_ssa_defs_impl(nir_function_impl *impl)
 {
-   struct live_ssa_defs_state state;
+   struct live_ssa_defs_state state = {
+      .bitset_words = BITSET_WORDS(impl->ssa_alloc),
+   };
+   state.tmp_live = rzalloc_array(impl, BITSET_WORD, state.bitset_words),
 
    /* We start at 1 because we reserve the index value of 0 for ssa_undef
     * instructions.  Those are never live, so their liveness information
@@ -174,12 +177,9 @@ nir_live_ssa_defs_impl(nir_function_impl *impl)
 
    nir_block_worklist_init(&state.worklist, impl->num_blocks, NULL);
 
-   /* We now know how many unique ssa definitions we have and we can go
-    * ahead and allocate live_in and live_out sets and add all of the
-    * blocks to the worklist.
+   /* Allocate live_in and live_out sets and add all of the blocks to the
+    * worklist.
     */
-   state.bitset_words = BITSET_WORDS(state.num_ssa_defs);
-   state.tmp_live = rzalloc_array(impl, BITSET_WORD, state.bitset_words);
    nir_foreach_block(block, impl) {
       init_liveness_block(block, &state);
    }
@@ -250,6 +250,15 @@ search_for_use_after_instr(nir_instr *start, nir_ssa_def *def)
          return true;
       node = node->next;
    }
+
+   /* If uses are considered to be in the block immediately preceding the if
+    * so we need to also check the following if condition, if any.
+    */
+   nir_if *following_if = nir_block_get_following_if(start->block);
+   if (following_if && following_if->condition.is_ssa &&
+       following_if->condition.ssa == def)
+      return true;
+
    return false;
 }
 
@@ -259,13 +268,13 @@ search_for_use_after_instr(nir_instr *start, nir_ssa_def *def)
 static bool
 nir_ssa_def_is_live_at(nir_ssa_def *def, nir_instr *instr)
 {
-   if (BITSET_TEST(instr->block->live_out, def->live_index)) {
+   if (BITSET_TEST(instr->block->live_out, def->index)) {
       /* Since def dominates instr, if def is in the liveout of the block,
        * it's live at instr
        */
       return true;
    } else {
-      if (BITSET_TEST(instr->block->live_in, def->live_index) ||
+      if (BITSET_TEST(instr->block->live_in, def->index) ||
           def->parent_instr->block == instr->block) {
          /* In this case it is either live coming into instr's block or it
           * is defined in the same block.  In this case, we simply need to

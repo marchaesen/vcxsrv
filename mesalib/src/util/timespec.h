@@ -312,6 +312,7 @@ timespec_after(const struct timespec *a, const struct timespec *b)
       (a->tv_sec > b->tv_sec);
 }
 
+#ifndef _WIN32
 /**
  * Checks whether a timespec value is after the current time
  *
@@ -326,5 +327,6 @@ timespec_passed(clockid_t clock_domain, const struct timespec *deadline)
    clock_gettime(clock_domain, &current_time);
    return timespec_after(&current_time, deadline);
 }
+#endif
 
 #endif /* TIMESPEC_H */

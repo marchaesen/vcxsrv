@@ -34,15 +34,24 @@ in this Software without prior written authorization from The Open Group.
 
 #define ROUNDUP(nbytes, pad) (((((nbytes) - 1) + (pad)) / (pad)) * (pad))
 
-static unsigned int Ones(                /* HACKMEM 169 */
-    unsigned long mask)
+#ifdef HAVE___BUILTIN_POPCOUNTL
+# define Ones __builtin_popcountl
+#else
+/*
+ * Count the number of bits set to 1 in a 32-bit word.
+ * Algorithm from MIT AI Lab Memo 239: "HAKMEM", ITEM 169.
+ * http://dspace.mit.edu/handle/1721.1/6086
+ */
+static inline unsigned int
+Ones(unsigned long mask)
 {
     register unsigned long y;
 
-    y = (mask >> 1) &033333333333;
+    y = (mask >> 1) & 033333333333;
     y = mask - y - ((y >>1) & 033333333333);
     return ((unsigned int) (((y + (y >> 3)) & 030707070707) % 077));
 }
+#endif
 
 XImage *XGetImage (
      register Display *dpy,

@@ -124,6 +124,24 @@ void vk_device_finish(struct vk_device *device);
 #define VK_FROM_HANDLE(__driver_type, __name, __handle) \
    struct __driver_type *__name = __driver_type ## _from_handle(__handle)
 
+/* Helpers for vk object (de)allocation and (de)initialization */
+void *
+vk_object_alloc(struct vk_device *device,
+                const VkAllocationCallbacks *alloc,
+                size_t size,
+                VkObjectType vk_obj_type);
+
+void *
+vk_object_zalloc(struct vk_device *device,
+                const VkAllocationCallbacks *alloc,
+                size_t size,
+                VkObjectType vk_obj_type);
+
+void
+vk_object_free(struct vk_device *device,
+               const VkAllocationCallbacks *alloc,
+               void *data);
+
 
 struct vk_private_data_slot {
    struct vk_object_base base;

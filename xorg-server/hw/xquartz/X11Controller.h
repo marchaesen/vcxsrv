@@ -88,7 +88,7 @@ typedef unsigned int NSUInteger;
     IBOutlet NSMenuItem *window_separator;
     // window_separator is DEPRECATED due to this radar:
     // <rdar://problem/7088335> NSApplication releases the separator in the Windows menu even though it's an IBOutlet
-    // It is kept around for localization compatability and is subject to removal "eventually"
+    // It is kept around for localization compatibility and is subject to removal "eventually"
     // If it is !NULL (meaning it is in the nib), it is removed from the menu and released
 
     IBOutlet NSMenuItem *x11_about_item;
@@ -96,7 +96,7 @@ typedef unsigned int NSUInteger;
     IBOutlet NSMenuItem *apps_separator;
     IBOutlet NSMenuItem *toggle_fullscreen_item;
 #ifdef XQUARTZ_SPARKLE
-    NSMenuItem *check_for_updates_item; // Programatically enabled
+    NSMenuItem *check_for_updates_item; // Programmatically enabled
 #endif
     IBOutlet NSMenuItem *copy_menu_item;
     IBOutlet NSMenu *dock_apps_menu;

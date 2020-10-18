@@ -70,7 +70,7 @@ util_pstipple_update_stipple_texture(struct pipe_context *pipe,
 
    /* map texture memory */
    data = pipe_transfer_map(pipe, tex, 0, 0,
-                            PIPE_TRANSFER_WRITE, 0, 0, 32, 32, &transfer);
+                            PIPE_MAP_WRITE, 0, 0, 32, 32, &transfer);
 
    /*
     * Load alpha texture.

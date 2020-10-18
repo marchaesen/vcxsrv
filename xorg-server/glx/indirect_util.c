@@ -227,7 +227,7 @@ get_decode_index(const struct __glXDispatchInfo *dispatch_info, unsigned opcode)
         child_index = (opcode & mask) >> next_remain;
         index = tree[index + 1 + child_index];
 
-        /* If the next node is an empty leaf, the opcode is for a non-existant
+        /* If the next node is an empty leaf, the opcode is for a non-existent
          * function.  We're done.
          *
          * If the next node is a non-empty leaf, look up the function pointer

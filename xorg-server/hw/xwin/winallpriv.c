@@ -67,7 +67,7 @@ winAllocatePrivates(ScreenPtr pScreen)
     /* Initialize the memory of the private structure */
     ZeroMemory(pScreenPriv, sizeof(winPrivScreenRec));
 
-    /* Intialize private structure members */
+    /* Initialize private structure members */
     pScreenPriv->fActive = TRUE;
 
     /* Register our screen private */

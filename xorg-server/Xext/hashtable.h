@@ -40,7 +40,7 @@ typedef struct {
     int             keySize;
 } HtGenericHashSetupRec, *HtGenericHashSetupPtr;
 
-/** @brief  ht_create initalizes a hash table for a certain hash table
+/** @brief  ht_create initializes a hash table for a certain hash table
             configuration
 
     @param[out] ht       The hash table structure to initialize

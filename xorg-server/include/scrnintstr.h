@@ -362,17 +362,17 @@ typedef Bool (*SetSharedPixmapBackingProcPtr)(PixmapPtr, void *);
 #define HAS_SYNC_SHARED_PIXMAP 1
 /* The SyncSharedPixmap hook has two purposes:
  *
- * 1. If the master driver has it, the slave driver can use it to
+ * 1. If the primary driver has it, the secondary driver can use it to
  * synchronize the shared pixmap contents with the screen pixmap.
- * 2. If the slave driver has it, the master driver can expect the slave
- * driver to call the master screen's SyncSharedPixmap hook, so the master
+ * 2. If the secondary driver has it, the primary driver can expect the secondary
+ * driver to call the primary screen's SyncSharedPixmap hook, so the primary
  * driver doesn't have to synchronize the shared pixmap contents itself,
  * e.g. from the BlockHandler.
  *
  * A driver must only set the hook if it handles both cases correctly.
  *
- * The argument is the slave screen's pixmap_dirty_list entry, the hook is
- * responsible for finding the corresponding entry in the master screen's
+ * The argument is the secondary screen's pixmap_dirty_list entry, the hook is
+ * responsible for finding the corresponding entry in the primary screen's
  * pixmap_dirty_list.
  */
 typedef void (*SyncSharedPixmapProcPtr)(PixmapDirtyUpdatePtr);
@@ -486,9 +486,9 @@ typedef void (*DPMSProcPtr)(ScreenPtr pScreen, int level);
         Wrap(as, pScreen, UnrealizeCursor, AnimCurUnrealizeCursor);
 
     The wrapping block handler is a bit different; it does the Unwrap,
-    the local operations and then only re-Wraps if the hook is still
-    required. Unwrap occurrs at the top of each function, just after
-    entry, and Wrap occurrs at the bottom of each function, just
+    the local operations, and then only re-Wraps if the hook is still
+    required. Unwrap occurs at the top of each function, just after
+    entry, and Wrap occurs at the bottom of each function, just
     before returning.
  */
 
@@ -634,14 +634,14 @@ typedef struct _Screen {
 
     Bool isGPU;
 
-    /* Info on this screen's slaves (if any) */
-    struct xorg_list slave_list;
-    struct xorg_list slave_head;
-    int output_slaves;
-    /* Info for when this screen is a slave */
-    ScreenPtr current_master;
-    Bool is_output_slave;
-    Bool is_offload_slave;
+    /* Info on this screen's secondarys (if any) */
+    struct xorg_list secondary_list;
+    struct xorg_list secondary_head;
+    int output_secondarys;
+    /* Info for when this screen is a secondary */
+    ScreenPtr current_primary;
+    Bool is_output_secondary;
+    Bool is_offload_secondary;
 
     SharePixmapBackingProcPtr SharePixmapBacking;
     SetSharedPixmapBackingProcPtr SetSharedPixmapBacking;

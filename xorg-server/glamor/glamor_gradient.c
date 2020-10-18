@@ -204,7 +204,7 @@ _glamor_create_radial_gradient_program(ScreenPtr screen, int stops_count,
      *     Refer to pixman radial gradient.
      *
      *     The problem is given the two circles of c1 and c2 with the radius of r1 and
-     *     r1, we need to caculate the t, which is used to do interpolate with stops,
+     *     r1, we need to calculate the t, which is used to do interpolate with stops,
      *     using the fomula:
      *     length((1-t)*c1 + t*c2 - p) = (1-t)*r1 + t*r2
      *     expand the fomula with xy coond, get the following:
@@ -428,11 +428,11 @@ _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
      *                                      |
      *
      *      step 1: compute the distance of p, pt1 and pt2 in the slope direction.
-     *              Caculate the distance on Y axis first and multiply cos_val to
+     *              Calculate the distance on Y axis first and multiply cos_val to
      *              get the value on slope direction(pd, p1d and p2d represent the
      *              distance of p, pt1, and pt2 respectively).
      *
-     *      step 2: caculate the percentage of (pd - p1d)/(p2d - p1d).
+     *      step 2: calculate the percentage of (pd - p1d)/(p2d - p1d).
      *              If (pd - p1d) > (p2d - p1d) or < 0, then sub or add (p2d - p1d)
      *              to make it in the range of [0, (p2d - p1d)].
      *

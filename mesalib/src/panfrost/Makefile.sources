@@ -16,25 +16,36 @@ bifrost_FILES := \
         bifrost/bi_quirks.h \
         bifrost/bir.c \
         bifrost/compiler.h \
-        bifrost/cmdline.c \
-        bifrost/disassemble.c \
-        bifrost/disassemble.h
+        bifrost/cmdline.c
 
-encoder_FILES := \
-	encoder/pan_afbc.c \
-        encoder/pan_attributes.c \
-        encoder/pan_bo.c \
-        encoder/pan_bo.h \
-        encoder/pan_device.h \
-        encoder/pan_encoder.h \
-        encoder/pan_format.c \
-        encoder/pan_invocation.c \
-        encoder/pan_props.c \
-        encoder/pan_sampler.c \
-        encoder/pan_tiler.c \
-        encoder/pan_texture.c \
-        encoder/pan_scratch.c \
-        encoder/pan_util.h
+bifrost_disasm_FILES := \
+        bifrost/disassemble.c \
+        bifrost/disassemble.h \
+        bifrost/bi_print_common.c \
+        bifrost/bi_print_common.h
+
+lib_FILES := \
+        lib/decode_common.c \
+        lib/decode.c \
+        lib/pan_afbc.c \
+        lib/pan_attributes.c \
+        lib/pan_bo.c \
+        lib/pan_bo.h \
+        lib/pan_blit.c \
+        lib/pan_device.h \
+        lib/pan_encoder.h \
+        lib/pan_format.c \
+        lib/pan_invocation.c \
+        lib/pan_pool.c \
+        lib/pan_pool.h \
+        lib/pan_props.c \
+        lib/pan_sampler.c \
+        lib/pan_scoreboard.c \
+        lib/pan_scoreboard.h \
+        lib/pan_tiler.c \
+        lib/pan_texture.c \
+        lib/pan_scratch.c \
+        lib/pan_util.h
 
 midgard_FILES := \
         midgard/compiler.h \
@@ -67,19 +78,18 @@ midgard_FILES := \
         midgard/nir_undef_to_zero.c \
         midgard/nir_fuse_io_16.c \
 
+midgard_disasm_FILES := \
+        midgard/disassemble.c \
+        midgard/disassemble.h \
+        midgard/midgard_ops.c \
+        midgard/midgard_ops.h \
+        midgard/midgard_print_constant.c
+
 shared_FILES := \
         shared/pan_minmax_cache.c \
         shared/pan_tiling.c \
         shared/pan_minmax_cache.h \
         shared/pan_tiling.h \
-
-pandecode_FILES := \
-        pandecode/common.c \
-        pandecode/decode.c \
-        pandecode/decode.h \
-        pandecode/pan_pretty_print.c \
-        pandecode/pan_pretty_print.h \
-        pandecode/public.h
 
 util_FILES := \
         util/lcra.c \

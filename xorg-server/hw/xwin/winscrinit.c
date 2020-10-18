@@ -40,7 +40,7 @@
 
 /*
  * Determine what type of screen we are initializing
- * and call the appropriate procedure to intiailize
+ * and call the appropriate procedure to initialize
  * that type of screen.
  */
 
@@ -101,7 +101,7 @@ winScreenInit(ScreenPtr pScreen, int argc, char **argv)
     else if (dwInitialBPP != pScreenInfo->dwBPP) {
         /* Warn user if engine forced a depth different to -depth parameter */
         ErrorF
-            ("winScreenInit - Command line depth of %d bpp overidden by engine, using %d bpp\n",
+            ("winScreenInit - Command line depth of %d bpp overridden by engine, using %d bpp\n",
              (int) dwInitialBPP, (int) pScreenInfo->dwBPP);
     }
     else {
@@ -288,7 +288,7 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
          * own colormap, as it cannot allocate 7 planes in the default
          * colormap.  Setting whitePixel to 1 allows Magic to get 7
          * planes in the default colormap, so it doesn't create its
-         * own colormap.  This latter situation is highly desireable,
+         * own colormap.  This latter situation is highly desirable,
          * as it keeps the Magic window viewable when switching to
          * other X clients that use the default colormap.
          */

@@ -46,9 +46,9 @@
 default partial alphanumeric_keys
 xkb_symbols "basic" {
 
-	name[Group1]="APL";
+	include "apl(dyalog_base)"	// forward reference to a good APL keyboard without Dyalogs extras
 
-	include "apl(dyalog_base)"	// forward reference good APL keyboard without Dyalogs extras
+	name[Group1]="APL";
 };
 
 // ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
@@ -134,9 +134,10 @@ xkb_symbols "common" {
 
 partial alphanumeric_keys
 xkb_symbols "unified" {
-	name[Group1]= "APL symbols (unified)";
 
 	include "apl(common)"
+
+	name[Group1]= "APL symbols (unified)";
 
 	key <AD12> { [ U2192			] }; // ]: → -- Rightwards Arrow
 	key <AE09> { [ NoSymbol,	U2371	] }; // 9: ⍱ -- APL Functional Symbol Down Caret Tilde
@@ -167,9 +168,10 @@ xkb_symbols "unified" {
 
 partial alphanumeric_keys
 xkb_symbols "sax" {
-	name[Group1]= "APL symbols (SAX, Sharp APL for Unix)";
 
 	include "apl(unified)"
+
+	name[Group1]= "APL symbols (SAX, Sharp APL for Unix)";
 
 	key <AB03> { [	NoSymbol,	U235D	] }; // C: ⍝ -- APL Functional Symbol Up Shoe Jot
 	key <AB05> { [	NoSymbol,	U234E	] }; // B: ⍎ -- APL Functional Symbol Down Tack Jot (Unicode got the name wrong; it should have been "Up Tack")
@@ -229,9 +231,10 @@ xkb_symbols "sax" {
 
 partial alphanumeric_keys
 xkb_symbols "apl2" {
-	name[Group1]= "APL symbols (IBM APL2)";
 
 	include "apl(common)"
+
+	name[Group1]= "APL symbols (IBM APL2)";
 
 	// The first column is NoSymbol because it inherits.  The second is NoSymbol because those keys don't do anything
 	// AFS - short for APL Functional Symbol
@@ -289,11 +292,12 @@ xkb_symbols "apl2" {
 
 partial alphanumeric_keys
 xkb_symbols "aplplusII" {
-	name[Group1]= "APL symbols (Manugistics APL*PLUS II)";
-	// AFS - short for APL Functional Symbol
 
 	include "apl(apl2)"
 
+	name[Group1]= "APL symbols (Manugistics APL*PLUS II)";
+
+	// AFS is short for APL Functional Symbol
 	key <AC10> { [	bracketleft,	parenleft,	U234E	] }; // ;: ⍎ -- [See B key in SAX layout]
 	key <AC11> { [	bracketright,	parenright,	U2355	] }; // ': ⍕ -- [See N key in SAX layout] 
 	key <AD11> { [	U2190,		NoSymbol,	U235E	] }; // [: ← ⍞ -- Leftwards Arrow / AFS Quote Quad
@@ -326,9 +330,10 @@ xkb_symbols "aplplusII" {
 
 partial alphanumeric_keys
 xkb_symbols "aplx" {
-	name[Group1]= "APL symbols (APLX unified)";
 
 	include "apl(unified)"
+
+	name[Group1]= "APL symbols (APLX unified)";
 
 	key <AB08> { [	U235D,		U236A	] }; // ,: ⍝ ⍪ -- APL Functional Symbol Up Shoe Jot / APL Functional Symbol Comma Bar
 	key <AB09> { [	U2340,		U2364	] }; // .: ⍀ ⍤ -- APL Functional Symbol Backslash Bar / APL Functional Symbol Jot Diaeresis
@@ -621,6 +626,7 @@ xkb_symbols "dyalog" {
 	include "apl(dyalog_base)"
 	include "apl(dyalog_box)"
 	include "apl(dyalog_codes)"
+
 	name[Group1] = "APL symbols (Dyalog APL)";
 };
 

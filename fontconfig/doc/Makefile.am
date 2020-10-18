@@ -26,13 +26,16 @@ NULL =
 EXTRA_DIST =			\
 	$(BUILT_DOCS)		\
 	$(DOC_FUNCS_FNCS)	\
-	$(DOC_FUNCS_SGML)	\
 	$(HTML_DIR)/*		\
 	$(SGML_FILES)		\
 	$(check_SCRIPTS)	\
 	confdir.sgml.in		\
 	func.sgml		\
 	$(NULL)
+BUILT_SOURCES =			\
+	$(DOC_FUNCS_SGML)	\
+	$(NULL)
+
 if USEDOCBOOK
 maintainerdoccleanfiles =	\
 	$(NULL)
@@ -133,15 +136,10 @@ HTML_DIR = fontconfig-devel
 #
 noinst_PROGRAMS =	\
 	$(NULL)
-##
-edit_sgml_SOURCES =	\
-	edit-sgml.c	\
+noinst_SCRIPTS =		\
+	edit-sgml.py		\
 	$(NULL)
-$(edit_sgml_OBJECTS) : CC:=$(CC_FOR_BUILD)
-$(edit_sgml_OBJECTS) : CFLAGS:=$(CFLAGS_FOR_BUILD)
-$(edit_sgml_OBJECTS) : CPPFLAGS:=$(CPPFLAGS_FOR_BUILD)
-edit_sgml_LINK = $(CC_FOR_BUILD) -o $@
-#
+##
 check_SCRIPTS =			\
 	check-missing-doc	\
 	$(NULL)
@@ -167,15 +165,12 @@ if USEDOCBOOK
 BUILT_SOURCES +=		\
 	$(LOCAL_SGML_FILES)	\
 	$(NULL)
-noinst_PROGRAMS +=	\
-	edit-sgml	\
-	$(NULL)
 htmldoc_DATA += $(HTML_DIR)/*
 
 ##
 .fncs.sgml:
 	$(AM_V_GEN) $(RM) $@; \
-	$(builddir)/edit-sgml$(EXEEXT) $(srcdir)/func.sgml < '$(srcdir)/$*.fncs' > $*.sgml
+	$(PYTHON) $(srcdir)/edit-sgml.py $(srcdir)/func.sgml '$(srcdir)/$*.fncs' $*.sgml
 .sgml.txt:
 	$(AM_V_GEN) $(RM) $@; \
 	$(DOC2TXT) $*.sgml
@@ -200,9 +195,9 @@ func.refs: local-fontconfig-devel.sgml $(DOCS_DEPS)
 	$(RM) devel-man/manpage.* &&		\
 	rmdir devel-man || rm $@ || :
 confdir.sgml: $(srcdir)/confdir.sgml.in
-	$(AM_V_GEN) sed -e 's,@CONFDIR\@,${CONFDIR},' $(srcdir)/$@.in | awk '{if (NR > 1) printf("\n"); printf("%s", $$0);}' > $@
+	$(AM_V_GEN) sed -e 's,@BASECONFIGDIR\@,${BASECONFIGDIR},' $(srcdir)/$@.in | awk '{if (NR > 1) printf("\n"); printf("%s", $$0);}' > $@
 ##
-$(DOC_FUNCS_SGML): $(DOC_FUNCS_FNCS) edit-sgml$(EXEEXT) $(srcdir)/func.sgml
+$(DOC_FUNCS_SGML): $(DOC_FUNCS_FNCS) $(srcdir)/edit-sgml.py $(srcdir)/func.sgml
 $(TXT_FILES): $(DOCS_DEPS)
 $(PDF_FILES): $(DOCS_DEPS)
 $(HTML_FILES): $(DOCS_DEPS)
@@ -232,7 +227,7 @@ dist-local-check-docs-enabled:
 	@false
 endif
 
-# force doc rebulid after configure
+# force doc rebuild after configure
 dist-hook-local: dist-local-check-docs-enabled
 
 -include $(top_srcdir)/git.mk

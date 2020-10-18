@@ -22,28 +22,6 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-/*
-  Copyright © 2002-2003 by Juliusz Chroboczek
-
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-
-  The above copyright notice and this permission notice shall be included in
-  all copies or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-  THE SOFTWARE.
-*/
-
 #include "fcint.h"
 #include "fcftint.h"
 #include <stdlib.h>
@@ -65,6 +43,7 @@
 #endif
 #include FT_MULTIPLE_MASTERS_H
 
+#include "fcfoundry.h"
 #include "ftglue.h"
 
 /*
@@ -927,33 +906,6 @@ FcSfntNameLanguage (FT_SfntName *sname)
     return 0;
 }
 
-/* Order is significant.  For example, some B&H fonts are hinted by
-   URW++, and both strings appear in the notice. */
-
-static const char *FcNoticeFoundries[][2] =
-    {
-     {"Adobe", "adobe"},
-     {"Bigelow", "b&h"},
-     {"Bitstream", "bitstream"},
-     {"Gnat", "culmus"},
-     {"Iorsh", "culmus"},
-     {"HanYang System", "hanyang"},
-     {"Font21", "hwan"},
-     {"IBM", "ibm"},
-     {"International Typeface Corporation", "itc"},
-     {"Linotype", "linotype"},
-     {"LINOTYPE-HELL", "linotype"},
-     {"Microsoft", "microsoft"},
-     {"Monotype", "monotype"},
-     {"Omega", "omega"},
-     {"Tiro Typeworks", "tiro"},
-     {"URW", "urw"},
-     {"XFree86", "xfree86"},
-     {"Xorg", "xorg"},
-};
-
-#define NUM_NOTICE_FOUNDRIES	(int) (sizeof (FcNoticeFoundries) / sizeof (FcNoticeFoundries[0]))
-
 static const FcChar8 *
 FcNoticeFoundry(const FT_String *notice)
 {
@@ -1133,12 +1085,10 @@ static const FT_UShort platform_order[] = {
 
 static const FT_UShort nameid_order[] = {
     TT_NAME_ID_WWS_FAMILY,
-    TT_NAME_ID_PREFERRED_FAMILY,
+    TT_NAME_ID_TYPOGRAPHIC_FAMILY,
     TT_NAME_ID_FONT_FAMILY,
-    TT_NAME_ID_MAC_FULL_NAME,
-    TT_NAME_ID_FULL_NAME,
     TT_NAME_ID_WWS_SUBFAMILY,
-    TT_NAME_ID_PREFERRED_SUBFAMILY,
+    TT_NAME_ID_TYPOGRAPHIC_SUBFAMILY,
     TT_NAME_ID_FONT_SUBFAMILY,
     TT_NAME_ID_TRADEMARK,
     TT_NAME_ID_MANUFACTURER,
@@ -1272,8 +1222,6 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
     int		    nfamily_lang = 0;
     int		    nstyle = 0;
     int		    nstyle_lang = 0;
-    int		    nfullname = 0;
-    int		    nfullname_lang = 0;
     unsigned int    p, n;
 
     FcChar8	    *style = 0;
@@ -1300,7 +1248,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 
 	/* All color fonts are designed to be scaled, even if they only have
 	 * bitmap strikes.  Client is responsible to scale the bitmaps.  This
-	 * is in constrast to non-color strikes... */
+	 * is in contrast to non-color strikes... */
 	if (!FcPatternObjectAddBool (pat, FC_SCALABLE_OBJECT, has_outline || has_color))
 	    goto bail1;
     }
@@ -1495,8 +1443,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 		 * and treat the instance's nameid as FONT_SUBFAMILY.
 		 * Postscript name is automatically handled by FreeType. */
 		if (nameid == TT_NAME_ID_WWS_SUBFAMILY ||
-		    nameid == TT_NAME_ID_PREFERRED_SUBFAMILY ||
-		    nameid == TT_NAME_ID_FULL_NAME)
+		    nameid == TT_NAME_ID_TYPOGRAPHIC_SUBFAMILY)
 		    continue;
 
 		if (nameid == TT_NAME_ID_FONT_SUBFAMILY)
@@ -1512,7 +1459,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	    {
 		switch (nameid) {
 		case TT_NAME_ID_WWS_FAMILY:
-		case TT_NAME_ID_PREFERRED_FAMILY:
+		case TT_NAME_ID_TYPOGRAPHIC_FAMILY:
 		case TT_NAME_ID_FONT_FAMILY:
 #if 0	
 		case TT_NAME_ID_UNIQUE_ID:
@@ -1527,22 +1474,8 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 		    np = &nfamily;
 		    nlangp = &nfamily_lang;
 		    break;
-		case TT_NAME_ID_MAC_FULL_NAME:
-		case TT_NAME_ID_FULL_NAME:
-		    if (variable)
-			break;
-		    if (FcDebug () & FC_DBG_SCANV)
-			printf ("found full   (n %2d p %d e %d l 0x%04x)",
-				sname.name_id, sname.platform_id,
-				sname.encoding_id, sname.language_id);
-
-		    obj = FC_FULLNAME_OBJECT;
-		    objlang = FC_FULLNAMELANG_OBJECT;
-		    np = &nfullname;
-		    nlangp = &nfullname_lang;
-		    break;
 		case TT_NAME_ID_WWS_SUBFAMILY:
-		case TT_NAME_ID_PREFERRED_SUBFAMILY:
+		case TT_NAME_ID_TYPOGRAPHIC_SUBFAMILY:
 		case TT_NAME_ID_FONT_SUBFAMILY:
 		    if (variable)
 			break;
@@ -1644,13 +1577,26 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	++nfamily;
     }
 
-    if (!variable && !nstyle && face->style_name &&
-	FcStrCmpIgnoreBlanksAndCase ((FcChar8 *) face->style_name, (FcChar8 *) "") != 0)
+    if (!variable && !nstyle)
     {
-	if (FcDebug () & FC_DBG_SCANV)
-	    printf ("using FreeType style \"%s\"\n", face->style_name);
+	const FcChar8 *style_regular = (const FcChar8 *) "Regular";
+	const FcChar8 *ss;
 
-	if (!FcPatternObjectAddString (pat, FC_STYLE_OBJECT, (FcChar8 *) face->style_name))
+	if (face->style_name &&
+	    FcStrCmpIgnoreBlanksAndCase ((FcChar8 *) face->style_name, (FcChar8 *) "") != 0)
+	{
+	    if (FcDebug () & FC_DBG_SCANV)
+		printf ("using FreeType style \"%s\"\n", face->style_name);
+
+	    ss = (const FcChar8 *) face->style_name;
+	}
+	else
+	{
+	    if (FcDebug () & FC_DBG_SCANV)
+		printf ("applying default style Regular\n");
+	    ss = style_regular;
+	}
+	if (!FcPatternObjectAddString (pat, FC_STYLE_OBJECT, ss))
 	    goto bail1;
 	if (!FcPatternObjectAddString (pat, FC_STYLELANG_OBJECT, (FcChar8 *) "en"))
 	    goto bail1;
@@ -1681,65 +1627,15 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	    free (family);
 	    goto bail1;
 	}
+	if (!FcPatternObjectAddString (pat, FC_FAMILYLANG_OBJECT, (FcChar8 *) "en"))
+	{
+	    free (family);
+	    goto bail1;
+	}
 	free (family);
 	++nfamily;
     }
 
-    /* Add the fullname into the cache */
-    if (!variable && !nfullname)
-    {
-	FcChar8 *family, *style, *lang;
-	int n = 0;
-	size_t len, i;
-	FcStrBuf sbuf;
-
-	while (FcPatternObjectGetString (pat, FC_FAMILYLANG_OBJECT, n, &lang) == FcResultMatch)
-	{
-	    if (FcStrCmp (lang, (const FcChar8 *) "en") == 0)
-		break;
-	    n++;
-	    lang = NULL;
-	}
-	if (!lang)
-	    n = 0;
-	if (FcPatternObjectGetString (pat, FC_FAMILY_OBJECT, n, &family) != FcResultMatch)
-	    goto bail1;
-	len = strlen ((const char *) family);
-	for (i = len; i > 0; i--)
-	{
-	    if (!isspace (family[i]))
-		break;
-	}
-	family[i] = 0;
-	while (FcPatternObjectGetString (pat, FC_STYLELANG_OBJECT, n, &lang) == FcResultMatch)
-	{
-	    if (FcStrCmp (lang, (const FcChar8 *) "en") == 0)
-		break;
-	    n++;
-	    lang = NULL;
-	}
-	if (!lang)
-	    n = 0;
-	if (FcPatternObjectGetString (pat, FC_STYLE_OBJECT, n, &style) != FcResultMatch)
-	    goto bail1;
-	len = strlen ((const char *) style);
-	for (i = 0; style[i] != 0 && isspace (style[i]); i++)
-	    break;
-	memcpy (style, &style[i], len - i);
-	FcStrBufInit (&sbuf, NULL, 0);
-	FcStrBufString (&sbuf, family);
-	FcStrBufChar (&sbuf, ' ');
-	FcStrBufString (&sbuf, style);
-	if (!FcPatternObjectAddString (pat, FC_FULLNAME_OBJECT, FcStrBufDoneStatic (&sbuf)))
-	{
-	    FcStrBufDestroy (&sbuf);
-	    goto bail1;
-	}
-	FcStrBufDestroy (&sbuf);
-	if (!FcPatternObjectAddString (pat, FC_FULLNAMELANG_OBJECT, (const FcChar8 *) "en"))
-	    goto bail1;
-	++nfullname;
-    }
     /* Add the PostScript name into the cache */
     if (!variable)
     {

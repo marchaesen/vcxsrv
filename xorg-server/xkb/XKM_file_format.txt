@@ -77,8 +77,8 @@ specific fields listed underneath value 1.
 3. XKM Format
 
 The XKM format is a binary format with structs usually being padded to a
-multiple of 4 bytes. No provisions for endianess are provided, the parser is
-left to guess the endianess of the XKM file.
+multiple of 4 bytes. No provisions for endianness are provided, the parser is
+left to guess the endianness of the XKM file.
 
                               ❧❧❧❧❧❧❧❧❧❧❧
 3.1 Common data types
@@ -399,7 +399,7 @@ The number of keysyms present is max_keycode - min_keycode + 1.
 
 Presence of names is conditional on the XkmKeyHasTypes flag. The number of
 strings is equal to the number of group bits in group_names_mask in the
-preceeding XKMSymbols section.
+preceding XKMSymbols section.
 The number of elements in syms is equal to width * num_groups.
 Presence of behavior is conditional on the XkmKeyHasBehavior flag.
 

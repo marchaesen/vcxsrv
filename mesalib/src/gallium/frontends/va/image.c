@@ -32,6 +32,7 @@
 #include "util/u_handle_table.h"
 #include "util/u_surface.h"
 #include "util/u_video.h"
+#include "util/u_process.h"
 
 #include "vl/vl_winsys.h"
 #include "vl/vl_video_buffer.h"
@@ -201,11 +202,23 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
    VAImage *img;
    struct pipe_screen *screen;
    struct pipe_surface **surfaces;
+   struct pipe_video_buffer *new_buffer = NULL;
    int w;
    int h;
    int i;
    unsigned stride = 0;
    unsigned offset = 0;
+
+   /* This function is used by some programs to test for hardware decoding, but on
+    * AMD devices, the buffers default to interlaced, which causes this function to fail.
+    * Some programs expect this function to fail, while others, assume this means
+    * hardware acceleration is not available and give up without trying the fall-back 
+    * vaCreateImage + vaPutImage 
+    */
+   const char *proc = util_get_process_name();
+   const char *derive_interlaced_allowlist[] = {
+         "vlc",
+   };
 
    if (!ctx)
       return VA_STATUS_ERROR_INVALID_CONTEXT;
@@ -225,8 +238,14 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
    if (!surf || !surf->buffer)
       return VA_STATUS_ERROR_INVALID_SURFACE;
 
-   if (surf->buffer->interlaced)
-     return VA_STATUS_ERROR_OPERATION_FAILED;
+   if (surf->buffer->interlaced) {
+      for (i = 0; i < ARRAY_SIZE(derive_interlaced_allowlist); i++)
+         if ((strcmp(derive_interlaced_allowlist[i], proc) == 0))
+            break;
+
+      if (i >= ARRAY_SIZE(derive_interlaced_allowlist))
+         return VA_STATUS_ERROR_OPERATION_FAILED;
+   }
 
    surfaces = surf->buffer->get_surfaces(surf->buffer);
    if (!surfaces || !surfaces[0]->texture)
@@ -262,11 +281,15 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
          offset = 0;
    }
 
+   img->num_planes = 1;
+   img->offsets[0] = offset;
+
    switch (img->format.fourcc) {
    case VA_FOURCC('U','Y','V','Y'):
    case VA_FOURCC('Y','U','Y','V'):
       img->pitches[0] = stride > 0 ? stride : w * 2;
       assert(img->pitches[0] >= (w * 2));
+      img->data_size  = img->pitches[0] * h;
       break;
 
    case VA_FOURCC('B','G','R','A'):
@@ -275,6 +298,49 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
    case VA_FOURCC('R','G','B','X'):
       img->pitches[0] = stride > 0 ? stride : w * 4;
       assert(img->pitches[0] >= (w * 4));
+      img->data_size  = img->pitches[0] * h;
+      break;
+
+   case VA_FOURCC('N','V','1','2'):
+   case VA_FOURCC('P','0','1','0'):
+   case VA_FOURCC('P','0','1','6'):
+      if (surf->buffer->interlaced) {
+         struct u_rect src_rect, dst_rect;
+         struct pipe_video_buffer new_template;
+
+         new_template = surf->templat;
+         new_template.interlaced = false;
+         new_buffer = drv->pipe->create_video_buffer(drv->pipe, &new_template);
+
+         /* convert the interlaced to the progressive */
+         src_rect.x0 = dst_rect.x0 = 0;
+         src_rect.x1 = dst_rect.x1 = surf->templat.width;
+         src_rect.y0 = dst_rect.y0 = 0;
+         src_rect.y1 = dst_rect.y1 = surf->templat.height;
+
+         vl_compositor_yuv_deint_full(&drv->cstate, &drv->compositor,
+                           surf->buffer, new_buffer,
+                           &src_rect, &dst_rect,
+                           VL_COMPOSITOR_WEAVE);
+
+         /* recalculate the values now that we have a new surface */
+         surfaces = surf->buffer->get_surfaces(new_buffer);
+         if (screen->resource_get_info) {
+            screen->resource_get_info(screen, surfaces[0]->texture, &stride,
+                                    &offset);
+            if (!stride)
+               offset = 0;
+         }
+
+         w = align(new_buffer->width, 2);
+         h = align(new_buffer->height, 2);
+      }
+
+      img->num_planes = 2;
+      img->pitches[0] = stride > 0 ? stride : w;
+      img->pitches[1] = stride > 0 ? stride : w;
+      img->offsets[1] = (stride > 0 ? stride : w) * h;
+      img->data_size  = (stride > 0 ? stride : w) * h * 3 / 2;
       break;
 
    default:
@@ -284,10 +350,6 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
       mtx_unlock(&drv->mutex);
       return VA_STATUS_ERROR_OPERATION_FAILED;
    }
-
-   img->num_planes = 1;
-   img->offsets[0] = offset;
-   img->data_size  = img->pitches[0] * h;
 
    img_buf = CALLOC(1, sizeof(vlVaBuffer));
    if (!img_buf) {
@@ -303,6 +365,7 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
    img_buf->num_elements = 1;
 
    pipe_resource_reference(&img_buf->derived_surface.resource, surfaces[0]->texture);
+   img_buf->derived_image_buffer = new_buffer;
 
    img->buf = handle_table_add(VL_VA_DRIVER(ctx)->htab, img_buf);
    mtx_unlock(&drv->mutex);
@@ -465,7 +528,7 @@ vlVaGetImage(VADriverContextP ctx, VASurfaceID surface, int x, int y,
          struct pipe_transfer *transfer;
          uint8_t *map;
          map = drv->pipe->transfer_map(drv->pipe, views[i]->texture, 0,
-                  PIPE_TRANSFER_READ, &box, &transfer);
+                  PIPE_MAP_READ, &box, &transfer);
          if (!map) {
             mtx_unlock(&drv->mutex);
             return VA_STATUS_ERROR_OPERATION_FAILED;
@@ -602,8 +665,8 @@ vlVaPutImage(VADriverContextP ctx, VASurfaceID surface, VAImageID image,
             map = drv->pipe->transfer_map(drv->pipe,
                                           tex,
                                           0,
-                                          PIPE_TRANSFER_WRITE |
-                                          PIPE_TRANSFER_DISCARD_RANGE,
+                                          PIPE_MAP_WRITE |
+                                          PIPE_MAP_DISCARD_RANGE,
                                           &dst_box, &transfer);
             if (map == NULL) {
                mtx_unlock(&drv->mutex);
@@ -616,7 +679,7 @@ vlVaPutImage(VADriverContextP ctx, VASurfaceID surface, VAImageID image,
             pipe_transfer_unmap(drv->pipe, transfer);
          } else {
             drv->pipe->texture_subdata(drv->pipe, tex, 0,
-                                       PIPE_TRANSFER_WRITE, &dst_box,
+                                       PIPE_MAP_WRITE, &dst_box,
                                        data[i] + pitches[i] * j,
                                        pitches[i] * views[i]->texture->array_size, 0);
          }

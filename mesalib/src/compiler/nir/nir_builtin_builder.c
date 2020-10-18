@@ -52,21 +52,6 @@ nir_cross4(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y)
 }
 
 nir_ssa_def*
-nir_length(nir_builder *b, nir_ssa_def *vec)
-{
-   nir_ssa_def *finf = nir_imm_floatN_t(b, INFINITY, vec->bit_size);
-
-   nir_ssa_def *abs = nir_fabs(b, vec);
-   if (vec->num_components == 1)
-      return abs;
-
-   nir_ssa_def *maxc = nir_fmax_abs_vec_comp(b, abs);
-   abs = nir_fdiv(b, abs, maxc);
-   nir_ssa_def *res = nir_fmul(b, nir_fsqrt(b, nir_fdot(b, abs, abs)), maxc);
-   return nir_bcsel(b, nir_feq(b, maxc, finf), maxc, res);
-}
-
-nir_ssa_def*
 nir_fast_length(nir_builder *b, nir_ssa_def *vec)
 {
    switch (vec->num_components) {
@@ -74,6 +59,8 @@ nir_fast_length(nir_builder *b, nir_ssa_def *vec)
    case 2: return nir_fsqrt(b, nir_fdot2(b, vec, vec));
    case 3: return nir_fsqrt(b, nir_fdot3(b, vec, vec));
    case 4: return nir_fsqrt(b, nir_fdot4(b, vec, vec));
+   case 8: return nir_fsqrt(b, nir_fdot8(b, vec, vec));
+   case 16: return nir_fsqrt(b, nir_fdot16(b, vec, vec));
    default:
       unreachable("Invalid number of components");
    }
@@ -126,23 +113,6 @@ nir_normalize(nir_builder *b, nir_ssa_def *vec)
    nir_ssa_def *res = nir_fmul(b, temp, nir_frsq(b, nir_fdot(b, temp, temp)));
 
    return nir_bcsel(b, nir_feq(b, maxc, f0), vec, res);
-}
-
-nir_ssa_def*
-nir_rotate(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y)
-{
-   nir_ssa_def *shift_mask = nir_imm_int(b, x->bit_size - 1);
-
-   if (y->bit_size != 32)
-      y = nir_u2u32(b, y);
-
-   nir_ssa_def *lshift = nir_iand(b, y, shift_mask);
-   nir_ssa_def *rshift = nir_isub(b, nir_imm_int(b, x->bit_size), lshift);
-
-   nir_ssa_def *hi = nir_ishl(b, x, lshift);
-   nir_ssa_def *lo = nir_ushr(b, x, rshift);
-
-   return nir_ior(b, hi, lo);
 }
 
 nir_ssa_def*

@@ -417,7 +417,7 @@ util_font_create_fixed_8x13(struct pipe_context *pipe,
       return FALSE;
    }
 
-   map = pipe_transfer_map(pipe, tex, 0, 0, PIPE_TRANSFER_WRITE, 0, 0,
+   map = pipe_transfer_map(pipe, tex, 0, 0, PIPE_MAP_WRITE, 0, 0,
                            tex->width0, tex->height0, &transfer);
    if (!map) {
       pipe_resource_reference(&tex, NULL);

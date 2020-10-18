@@ -67,6 +67,9 @@ mir_pipeline_ins(
         if (node >= SSA_FIXED_MINIMUM)
                 return false;
 
+        if (node == ctx->blend_src1)
+                return false;
+
         /* Analyze the bundle for a per-byte read mask */
 
         for (unsigned j = 0; j < bundle->instruction_count; ++j) {

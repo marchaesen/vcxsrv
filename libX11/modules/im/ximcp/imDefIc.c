@@ -350,7 +350,7 @@ _XimProtoGetICValues(
 	     + sizeof(INT16)
 	     + XIM_PAD(2 + buf_size);
 
-    if (!(buf = Xmalloc(buf_size)))
+    if (!(buf = Xcalloc(buf_size, 1)))
 	return arg->name;
     buf_s = (CARD16 *)&buf[XIM_HEADER_SIZE];
 
@@ -708,6 +708,7 @@ _XimProtoSetICValues(
 #endif /* XIM_CONNECTABLE */
 
     _XimGetCurrentICValues(ic, &ic_values);
+    memset(tmp_buf, 0, sizeof(tmp_buf32));
     buf = tmp_buf;
     buf_size = XIM_HEADER_SIZE
 	+ sizeof(CARD16) + sizeof(CARD16) + sizeof(INT16) + sizeof(CARD16);
@@ -730,7 +731,7 @@ _XimProtoSetICValues(
 
 	buf_size += ret_len;
 	if (buf == tmp_buf) {
-	    if (!(tmp = Xmalloc(buf_size + data_len))) {
+	    if (!(tmp = Xcalloc(buf_size + data_len, 1))) {
 		return tmp_name;
 	    }
 	    memcpy(tmp, buf, buf_size);
@@ -740,6 +741,7 @@ _XimProtoSetICValues(
 		Xfree(buf);
 		return tmp_name;
 	    }
+            memset(&tmp[buf_size], 0, data_len);
 	    buf = tmp;
 	}
     }

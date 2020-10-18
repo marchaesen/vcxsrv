@@ -24,7 +24,7 @@
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_builder.h"
 
-void midgard_nir_lod_errata(nir_shader *shader);
+bool midgard_nir_lod_errata(nir_shader *shader);
 
 /* Workarounds errata pertaining to early Midgard chips where the settings for
  * min_lod/max_lod/lod_bias are ignored in the sampler descriptor when
@@ -32,12 +32,18 @@ void midgard_nir_lod_errata(nir_shader *shader);
  * constants in as system values and perform the bias/clamp in the shader.
  */
 
-static void
-mir_lod_errata_body(nir_builder *b, nir_tex_instr *tex)
+static bool
+nir_lod_errata_instr(nir_builder *b, nir_instr *instr, void *data)
 {
+        if (instr->type != nir_instr_type_tex)
+                return false;
+
+        nir_tex_instr *tex = nir_instr_as_tex(instr);
+        b->cursor = nir_before_instr(instr);
+
         /* The errata only applies to textureLod ("TEXGRD") */
         if (tex->op != nir_texop_txl)
-                return;
+                return false;
 
         /* Let's grab the sampler parameters */
         nir_intrinsic_instr *l = nir_intrinsic_instr_create(b->shader,
@@ -56,7 +62,7 @@ mir_lod_errata_body(nir_builder *b, nir_tex_instr *tex)
         nir_ssa_def *min_lod = nir_channel(b, params, 0);
         nir_ssa_def *max_lod = nir_channel(b, params, 1);
         nir_ssa_def *lod_bias = nir_channel(b, params, 2);
-        
+
         /* Rewrite the LOD with bias/clamps. Order sensitive. */
         for (unsigned i = 0; i < tex->num_srcs; i++) {
                 if (tex->src[i].src_type != nir_tex_src_lod)
@@ -71,28 +77,15 @@ mir_lod_errata_body(nir_builder *b, nir_tex_instr *tex)
                 nir_instr_rewrite_src(&tex->instr, &tex->src[i].src,
                                 nir_src_for_ssa(clamped));
         }
+
+        return true;
 }
 
-void
+bool
 midgard_nir_lod_errata(nir_shader *shader)
 {
-        nir_foreach_function(function, shader) {
-                if (!function->impl) continue;
-
-                nir_builder b;
-                nir_builder_init(&b, function->impl);
-
-                nir_foreach_block(block, function->impl) {
-                        nir_foreach_instr_safe(instr, block) {
-                                if (instr->type != nir_instr_type_tex) continue;
-
-                                nir_tex_instr *tex = nir_instr_as_tex(instr);
-                                b.cursor = nir_before_instr(instr);
-                                mir_lod_errata_body(&b, tex);
-                        }
-                }
-
-                nir_metadata_preserve(function->impl, nir_metadata_block_index | nir_metadata_dominance);
-
-        }
+        return nir_shader_instructions_pass(shader,
+                                            nir_lod_errata_instr,
+                                            nir_metadata_block_index | nir_metadata_dominance,
+                                            NULL);
 }

@@ -10,7 +10,6 @@
    faq
    relnotes
    thanks
-   conform
 
 .. toctree::
    :maxdepth: 2
@@ -28,7 +27,6 @@
 
    lists
    bugs
-   webmaster
    Mesa/DRI Wiki <https://dri.freedesktop.org/>
 
 .. toctree::
@@ -44,9 +42,7 @@
    debugging
    perf
    extensions
-   llvmpipe
    vmware-guest
-   postprocess
    application-issues
    viewperf
    xlibdriver
@@ -67,6 +63,15 @@
    release-calendar
    sourcedocs
    dispatch
+   gallium/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Testing
+   :hidden:
+
+   conform
+   ci/index
 
 .. toctree::
    :maxdepth: 1

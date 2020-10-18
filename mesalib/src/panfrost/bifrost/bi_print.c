@@ -25,103 +25,19 @@
  */
 
 #include "bi_print.h"
+#include "bi_print_common.h"
 
-const char *
-bi_clause_type_name(enum bifrost_clause_type T)
+static const char *
+bi_segment_name(enum bi_segment seg)
 {
-        switch (T) {
-        case BIFROST_CLAUSE_NONE: return "";
-        case BIFROST_CLAUSE_LOAD_VARY: return "load_vary";
-        case BIFROST_CLAUSE_UBO: return "ubo";
-        case BIFROST_CLAUSE_TEX: return "tex";
-        case BIFROST_CLAUSE_SSBO_LOAD: return "load";
-        case BIFROST_CLAUSE_SSBO_STORE: return "store";
-        case BIFROST_CLAUSE_BLEND: return "blend";
-        case BIFROST_CLAUSE_FRAGZ: return "fragz";
-        case BIFROST_CLAUSE_ATEST: return "atest";
-        case BIFROST_CLAUSE_64BIT: return "64";
-        default: return "??";
-        }
-}
-
-const char *
-bi_output_mod_name(enum bifrost_outmod mod)
-{
-        switch (mod) {
-        case BIFROST_NONE: return "";
-        case BIFROST_POS: return ".pos";
-        case BIFROST_SAT_SIGNED: return ".sat_signed";
-        case BIFROST_SAT: return ".sat";
+        switch (seg) {
+        case BI_SEGMENT_NONE: return "global";
+        case BI_SEGMENT_WLS:  return "wls";
+        case BI_SEGMENT_UBO:  return "ubo";
+        case BI_SEGMENT_TLS:  return "tls";
         default: return "invalid";
         }
 }
-
-const char *
-bi_minmax_mode_name(enum bifrost_minmax_mode mod)
-{
-        switch (mod) {
-        case BIFROST_MINMAX_NONE: return "";
-        case BIFROST_NAN_WINS: return ".nan_wins";
-        case BIFROST_SRC1_WINS: return ".src1_wins";
-        case BIFROST_SRC0_WINS: return ".src0_wins";
-        default: return "invalid";
-        }
-}
-
-const char *
-bi_round_mode_name(enum bifrost_roundmode mod)
-{
-        switch (mod) {
-        case BIFROST_RTE: return "";
-        case BIFROST_RTP: return ".rtp";
-        case BIFROST_RTN: return ".rtn";
-        case BIFROST_RTZ: return ".rtz";
-        default: return "invalid";
-        }
-}
-
-const char *
-bi_csel_cond_name(enum bifrost_csel_cond cond)
-{
-        switch (cond) {
-        case BIFROST_FEQ_F: return "feq.f";
-        case BIFROST_FGT_F: return "fgt.f";
-        case BIFROST_FGE_F: return "fge.f";
-        case BIFROST_IEQ_F: return "ieq.f";
-        case BIFROST_IGT_I: return "igt.i";
-        case BIFROST_IGE_I: return "uge.i";
-        case BIFROST_UGT_I: return "ugt.i";
-        case BIFROST_UGE_I: return "uge.i";
-        default: return "invalid";
-        }
-}
-
-const char *
-bi_interp_mode_name(enum bifrost_interp_mode mode)
-{
-        switch (mode) {
-        case BIFROST_INTERP_PER_FRAG: return ".per_frag";
-        case BIFROST_INTERP_CENTROID: return ".centroid";
-        case BIFROST_INTERP_DEFAULT: return "";
-        case BIFROST_INTERP_EXPLICIT: return ".explicit";
-        default: return ".unknown";
-        }
-}
-
-const char *
-bi_ldst_type_name(enum bifrost_ldst_type type)
-{
-        switch (type) {
-        case BIFROST_LDST_F16: return "f16";
-        case BIFROST_LDST_F32: return "f32";
-        case BIFROST_LDST_I32: return "i32";
-        case BIFROST_LDST_U32: return "u32";
-        default: return "invalid";
-        }
-}
-
-/* The remaining functions in this file are for IR-internal
- * structures; the disassembler doesn't use them */
 
 const char *
 bi_class_name(enum bi_class cl)
@@ -146,16 +62,19 @@ bi_class_name(enum bi_class cl)
         case BI_LOAD_ATTR: return "load_attr";
         case BI_LOAD_VAR: return "load_var";
         case BI_LOAD_VAR_ADDRESS: return "load_var_address";
+        case BI_LOAD_TILE: return "load_tile";
         case BI_MINMAX: return "minmax";
         case BI_MOV: return "mov";
         case BI_SELECT: return "select";
-        case BI_SHIFT: return "shift";
         case BI_STORE: return "store";
         case BI_STORE_VAR: return "store_var";
         case BI_SPECIAL: return "special";
         case BI_TABLE: return "table";
-        case BI_TEX: return "tex";
+        case BI_TEXS: return "texs";
+        case BI_TEXC: return "texc";
+        case BI_TEXC_DUAL: return "texc_dual";
         case BI_ROUND: return "round";
+        case BI_IMUL: return "imul";
         default: return "unknown_class";
         }
 }
@@ -207,10 +126,13 @@ bi_print_src(FILE *fp, bi_instruction *ins, unsigned s)
         if (abs)
                 fprintf(fp, "abs(");
 
-        if (ins->type == BI_BITWISE && ins->bitwise.src_invert[s])
-                fprintf(fp, "~");
-
         bi_print_index(fp, ins, src, s);
+
+        if (ins->type == BI_BITWISE && s == 1 && ins->bitwise.src1_invert) {
+                /* For XOR, just use the destination invert */
+                assert(ins->op.bitwise != BI_BITWISE_XOR);
+                fprintf(fp, ".not");
+        }
 
         if (abs)
                 fprintf(fp, ")");
@@ -286,17 +208,6 @@ bi_frexp_op_name(enum bi_frexp_op op)
         }
 }
 
-const char *
-bi_tex_op_name(enum bi_tex_op op)
-{
-        switch (op) {
-        case BI_TEX_NORMAL: return "normal";
-        case BI_TEX_COMPACT: return "compact";
-        case BI_TEX_DUAL: return "dual";
-        default: return "invalid";
-        }
-}
-
 static void
 bi_print_load_vary(struct bi_load_vary *load, FILE *fp)
 {
@@ -327,8 +238,9 @@ bi_cond_name(enum bi_cond cond)
 static void
 bi_print_texture(struct bi_texture *tex, FILE *fp)
 {
-        fprintf(fp, " - texture %u, sampler %u",
-                        tex->texture_index, tex->sampler_index);
+        fprintf(fp, " - texture %u, sampler %u%s",
+                        tex->texture_index, tex->sampler_index,
+                        tex->compute_lod ? ", compute lod" : "");
 }
 
 void
@@ -360,19 +272,26 @@ bi_print_instruction(bi_instruction *ins, FILE *fp)
                 bi_print_load_vary(&ins->load_vary, fp);
         else if (ins->type == BI_BLEND)
                 fprintf(fp, ".loc%u", ins->blend_location);
-        else if (ins->type == BI_TEX) {
-                fprintf(fp, ".%s", bi_tex_op_name(ins->op.texture));
-        } else if (ins->type == BI_BITWISE)
+        else if (ins->type == BI_BITWISE)
                 fprintf(fp, ".%cshift", ins->bitwise.rshift ? 'r' : 'l');
 
         if (bi_class_props[ins->type] & BI_CONDITIONAL)
                 fprintf(fp, ".%s", bi_cond_name(ins->cond));
 
+        if (ins->skip)
+                fprintf(fp, ".skip");
+
         if (ins->vector_channels)
                 fprintf(fp, ".v%u", ins->vector_channels);
 
+        if (ins->segment)
+                fprintf(fp, ".%s", bi_segment_name(ins->segment));
+
         if (ins->dest)
                 pan_print_alu_type(ins->dest_type, fp);
+
+        if (ins->format && ins->dest != ins->format)
+                pan_print_alu_type(ins->format, fp);
 
         if (bi_has_outmod(ins))
                 fprintf(fp, "%s", bi_output_mod_name(ins->outmod));
@@ -380,8 +299,11 @@ bi_print_instruction(bi_instruction *ins, FILE *fp)
         if (bi_class_props[ins->type] & BI_ROUNDMODE)
                 fprintf(fp, "%s", bi_round_mode_name(ins->roundmode));
 
+        if (ins->type == BI_BITWISE && ins->bitwise.dest_invert)
+                fprintf(fp, ".not");
+
         fprintf(fp, " ");
-        bool succ = bi_print_dest_index(fp, ins, ins->dest);
+        ASSERTED bool succ = bi_print_dest_index(fp, ins, ins->dest);
         assert(succ);
 
         if (ins->dest_offset)
@@ -407,31 +329,47 @@ bi_print_instruction(bi_instruction *ins, FILE *fp)
                 } else {
                         fprintf(fp, "-> void");
                 }
-        } else if (ins->type == BI_TEX) {
+        } else if (ins->type == BI_TEXS) {
                 bi_print_texture(&ins->texture, fp);
         }
 
         fprintf(fp, "\n");
 }
 
+static const char *
+bi_reg_op_name(enum bifrost_reg_op op)
+{
+        switch (op) {
+        case BIFROST_OP_IDLE: return "idle";
+        case BIFROST_OP_READ: return "read";
+        case BIFROST_OP_WRITE: return "write";
+        case BIFROST_OP_WRITE_LO: return "write lo";
+        case BIFROST_OP_WRITE_HI: return "write hi";
+        default: return "invalid";
+        }
+}
+
 void
-bi_print_ports(bi_registers *regs, FILE *fp)
+bi_print_slots(bi_registers *regs, FILE *fp)
 {
         for (unsigned i = 0; i < 2; ++i) {
                 if (regs->enabled[i])
-                        fprintf(fp, "port %u: %u\n", i, regs->port[i]);
+                        fprintf(fp, "slot %u: %u\n", i, regs->slot[i]);
         }
 
-        if (regs->write_fma || regs->write_add) {
-                fprintf(fp, "port 2 (%s): %u\n",
-                                regs->write_add ? "ADD" : "FMA",
-                                regs->port[2]);
+        if (regs->slot23.slot2) {
+                fprintf(fp, "slot 2 (%s%s): %u\n",
+                                bi_reg_op_name(regs->slot23.slot2),
+                                regs->slot23.slot2 >= BIFROST_OP_WRITE ?
+                                        " FMA": "",
+                                regs->slot[2]);
         }
 
-        if ((regs->write_fma && regs->write_add) || regs->read_port3) {
-                fprintf(fp, "port 3 (%s): %u\n",
-                                regs->read_port3 ? "read" : "FMA",
-                                regs->port[3]);
+        if (regs->slot23.slot3) {
+                fprintf(fp, "slot 3 (%s %s): %u\n",
+                                bi_reg_op_name(regs->slot23.slot3),
+                                regs->slot23.slot3_fma ? "FMA" : "ADD",
+                                regs->slot[3]);
         }
 }
 
@@ -464,11 +402,13 @@ bi_print_clause(bi_clause *clause, FILE *fp)
                 fprintf(fp, ")");
         }
 
-        if (!clause->back_to_back)
-                fprintf(fp, " nbb %s", clause->branch_conditional ? "branch-cond" : "branch-uncond");
+        fprintf(fp, " %s", bi_flow_control_name(clause->flow_control));
 
-        if (clause->data_register_write_barrier)
-                fprintf(fp, " drwb");
+        if (!clause->next_clause_prefetch)
+               fprintf(fp, " no_prefetch");
+
+        if (clause->staging_barrier)
+                fprintf(fp, " osrb");
 
         fprintf(fp, "\n");
 

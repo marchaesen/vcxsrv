@@ -43,6 +43,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "mi.h"
 #include "mipointer.h"
 #include "inpututils.h"
+#include "dixgrabs.h"
 #define EXTENSION_EVENT_BASE 64
 
 DevPrivateKeyRec xkbDevicePrivateKeyRec;
@@ -993,6 +994,45 @@ _XkbFilterSwitchScreen(XkbSrvInfoPtr xkbi,
 }
 
 static int
+XkbHandlePrivate(DeviceIntPtr dev, KeyCode keycode, XkbAction *pAction)
+{
+    XkbAnyAction *xkb_act = &(pAction->any);
+
+    if (xkb_act->type == XkbSA_XFree86Private) {
+        char msgbuf[XkbAnyActionDataSize + 1];
+
+        memcpy(msgbuf, xkb_act->data, XkbAnyActionDataSize);
+        msgbuf[XkbAnyActionDataSize] = '\0';
+
+        if (strcasecmp(msgbuf, "prgrbs") == 0) {
+            DeviceIntPtr tmp;
+
+            LogMessage(X_INFO, "Printing all currently active device grabs:\n");
+            for (tmp = inputInfo.devices; tmp; tmp = tmp->next)
+                if (tmp->deviceGrab.grab)
+                    PrintDeviceGrabInfo(tmp);
+            LogMessage(X_INFO, "End list of active device grabs\n");
+
+            PrintPassiveGrabs();
+        }
+        else if (strcasecmp(msgbuf, "ungrab") == 0) {
+            LogMessage(X_INFO, "Ungrabbing devices\n");
+            UngrabAllDevices(FALSE);
+        }
+        else if (strcasecmp(msgbuf, "clsgrb") == 0) {
+            LogMessage(X_INFO, "Clear grabs\n");
+            UngrabAllDevices(TRUE);
+        }
+        else if (strcasecmp(msgbuf, "prwins") == 0) {
+            LogMessage(X_INFO, "Printing window tree\n");
+            PrintWindowTree();
+        }
+    }
+
+    return XkbDDXPrivate(dev, keycode, pAction);
+}
+
+static int
 _XkbFilterXF86Private(XkbSrvInfoPtr xkbi,
                       XkbFilterPtr filter, unsigned keycode, XkbAction *pAction)
 {
@@ -1006,7 +1046,7 @@ _XkbFilterXF86Private(XkbSrvInfoPtr xkbi,
         filter->active = 1;
         filter->filterOthers = 0;
         filter->filter = _XkbFilterXF86Private;
-        XkbDDXPrivate(dev, keycode, pAction);
+        XkbHandlePrivate(dev, keycode, pAction);
         return 0;
     }
     else if (filter->keycode == keycode) {

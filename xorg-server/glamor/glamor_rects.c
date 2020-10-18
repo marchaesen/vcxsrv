@@ -27,8 +27,10 @@
 static const glamor_facet glamor_facet_polyfillrect_130 = {
     .name = "poly_fill_rect",
     .version = 130,
-    .vs_vars = "attribute vec4 primitive;\n",
-    .vs_exec = ("       vec2 pos = primitive.zw * vec2(gl_VertexID&1, (gl_VertexID&2)>>1);\n"
+    .source_name = "size",
+    .vs_vars = "attribute vec2 primitive;\n"
+               "attribute vec2 size;\n",
+    .vs_exec = ("       vec2 pos = size * vec2(gl_VertexID&1, (gl_VertexID&2)>>1);\n"
                 GLAMOR_POS(gl_Position, (primitive.xy + pos))),
 };
 
@@ -81,8 +83,13 @@ glamor_poly_fill_rect_gl(DrawablePtr drawable,
 
         glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
         glVertexAttribDivisor(GLAMOR_VERTEX_POS, 1);
-        glVertexAttribPointer(GLAMOR_VERTEX_POS, 4, GL_SHORT, GL_FALSE,
+        glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_SHORT, GL_FALSE,
                               4 * sizeof (short), vbo_offset);
+
+        glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+        glVertexAttribDivisor(GLAMOR_VERTEX_SOURCE, 1);
+        glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2, GL_UNSIGNED_SHORT, GL_FALSE,
+                              4 * sizeof (short), vbo_offset + 2 * sizeof (short));
 
         memcpy(v, prect, nrect * sizeof (xRectangle));
 
@@ -156,8 +163,11 @@ glamor_poly_fill_rect_gl(DrawablePtr drawable,
 
 bail:
     glDisable(GL_SCISSOR_TEST);
-    if (glamor_priv->glsl_version >= 130)
+    if (glamor_priv->glsl_version >= 130) {
+        glVertexAttribDivisor(GLAMOR_VERTEX_SOURCE, 0);
+        glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
         glVertexAttribDivisor(GLAMOR_VERTEX_POS, 0);
+    }
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
     return ret;

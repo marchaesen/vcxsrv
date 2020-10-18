@@ -966,13 +966,12 @@ _mesa_handle_bind_buffer_gen(struct gl_context *ctx,
       /* If this is a new buffer object id, or one which was generated but
        * never used before, allocate a buffer object now.
        */
-      buf = ctx->Driver.NewBufferObject(ctx, buffer);
-      if (!buf) {
+      *buf_handle = ctx->Driver.NewBufferObject(ctx, buffer);
+      if (!*buf_handle) {
 	 _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", caller);
 	 return false;
       }
-      _mesa_HashInsert(ctx->Shared->BufferObjects, buffer, buf);
-      *buf_handle = buf;
+      _mesa_HashInsert(ctx->Shared->BufferObjects, buffer, *buf_handle, buf != NULL);
    }
 
    return true;
@@ -1622,7 +1621,6 @@ _mesa_DeleteBuffers(GLsizei n, const GLuint *ids)
 static void
 create_buffers(struct gl_context *ctx, GLsizei n, GLuint *buffers, bool dsa)
 {
-   GLuint first;
    struct gl_buffer_object *buf;
 
    if (!buffers)
@@ -1633,14 +1631,13 @@ create_buffers(struct gl_context *ctx, GLsizei n, GLuint *buffers, bool dsa)
     */
    _mesa_HashLockMutex(ctx->Shared->BufferObjects);
 
-   first = _mesa_HashFindFreeKeyBlock(ctx->Shared->BufferObjects, n);
+   _mesa_HashFindFreeKeys(ctx->Shared->BufferObjects, buffers, n);
 
    /* Insert the ID and pointer into the hash table. If non-DSA, insert a
     * DummyBufferObject.  Otherwise, create a new buffer object and insert
     * it.
     */
    for (int i = 0; i < n; i++) {
-      buffers[i] = first + i;
       if (dsa) {
          assert(ctx->Driver.NewBufferObject);
          buf = ctx->Driver.NewBufferObject(ctx, buffers[i]);
@@ -1653,7 +1650,7 @@ create_buffers(struct gl_context *ctx, GLsizei n, GLuint *buffers, bool dsa)
       else
          buf = &DummyBufferObject;
 
-      _mesa_HashInsertLocked(ctx->Shared->BufferObjects, buffers[i], buf);
+      _mesa_HashInsertLocked(ctx->Shared->BufferObjects, buffers[i], buf, true);
    }
 
    _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);

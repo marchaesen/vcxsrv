@@ -36,6 +36,8 @@
 #include "ir3_compiler.h"
 #include "ir3_nir.h"
 
+#include "disasm.h"
+
 int
 ir3_glsl_type_size(const struct glsl_type *type, bool bindless)
 {
@@ -122,18 +124,12 @@ fixup_regfootprint(struct ir3_shader_variant *v)
  */
 void * ir3_shader_assemble(struct ir3_shader_variant *v)
 {
-	unsigned gpu_id = v->shader->compiler->gpu_id;
+	const struct ir3_compiler *compiler = v->shader->compiler;
 	void *bin;
 
 	bin = ir3_assemble(v);
 	if (!bin)
 		return NULL;
-
-	if (gpu_id >= 400) {
-		v->instrlen = v->info.sizedwords / (2 * 16);
-	} else {
-		v->instrlen = v->info.sizedwords / (2 * 4);
-	}
 
 	/* NOTE: if relative addressing is used, we set constlen in
 	 * the compiler (to worst-case value) since we don't know in
@@ -145,7 +141,7 @@ void * ir3_shader_assemble(struct ir3_shader_variant *v)
 	 * uploads are in units of 4 dwords. Round it up here to make calculations
 	 * regarding the shared constlen simpler.
 	 */
-	if (gpu_id >= 400)
+	if (compiler->gpu_id >= 400)
 		v->constlen = align(v->constlen, 4);
 
 	fixup_regfootprint(v);
@@ -176,13 +172,15 @@ compile_variant(struct ir3_shader_variant *v)
 {
 	int ret = ir3_compile_shader_nir(v->shader->compiler, v);
 	if (ret) {
-		debug_error("compile failed!");
+		_debug_printf("compile failed! (%s:%s)", v->shader->nir->info.name,
+				v->shader->nir->info.label);
 		return false;
 	}
 
 	assemble_variant(v);
 	if (!v->bin) {
-		debug_error("assemble failed!");
+		_debug_printf("assemble failed! (%s:%s)", v->shader->nir->info.name,
+				v->shader->nir->info.label);
 		return false;
 	}
 
@@ -340,6 +338,8 @@ ir3_setup_used_key(struct ir3_shader *shader)
 
 	key->safe_constlen = true;
 
+	key->ucp_enables = 0xff;
+
 	if (info->stage == MESA_SHADER_FRAGMENT) {
 		key->fsaturate_s = ~0;
 		key->fsaturate_t = ~0;
@@ -350,6 +350,14 @@ ir3_setup_used_key(struct ir3_shader *shader)
 		if (info->inputs_read & VARYING_BITS_COLOR) {
 			key->rasterflat = true;
 			key->color_two_side = true;
+		}
+
+		if (info->inputs_read & VARYING_BIT_LAYER) {
+			key->layer_zero = true;
+		}
+
+		if (info->inputs_read & VARYING_BIT_VIEWPORT) {
+			key->view_zero = true;
 		}
 
 		if ((info->outputs_written & ~(FRAG_RESULT_DEPTH |
@@ -394,7 +402,7 @@ trim_constlens(unsigned *constlens,
       cur_total += constlens[i];
    }
 
-   unsigned max_stage;
+   unsigned max_stage = 0;
    unsigned max_const = 0;
    uint32_t trimmed = 0;
 
@@ -561,13 +569,13 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 	}
 
 	const struct ir3_const_state *const_state = ir3_const_state(so);
-	for (i = 0; i < const_state->immediates_count; i++) {
+	for (i = 0; i < DIV_ROUND_UP(const_state->immediates_count, 4); i++) {
 		fprintf(out, "@const(c%d.x)\t", const_state->offsets.immediate + i);
 		fprintf(out, "0x%08x, 0x%08x, 0x%08x, 0x%08x\n",
-				const_state->immediates[i].val[0],
-				const_state->immediates[i].val[1],
-				const_state->immediates[i].val[2],
-				const_state->immediates[i].val[3]);
+				const_state->immediates[i * 4 + 0],
+				const_state->immediates[i * 4 + 1],
+				const_state->immediates[i * 4 + 2],
+				const_state->immediates[i * 4 + 3]);
 	}
 
 	disasm_a3xx(bin, so->info.sizedwords, 0, out, ir->compiler->gpu_id);
@@ -610,6 +618,17 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 			so->info.max_half_reg + 1,
 			so->info.max_reg + 1,
 			so->constlen);
+
+	fprintf(out, "; %s prog %d/%d: %u cat0, %u cat1, %u cat2, %u cat3, %u cat4, %u cat5, %u cat6, %u cat7, \n",
+			type, so->shader->id, so->id,
+			so->info.instrs_per_cat[0],
+			so->info.instrs_per_cat[1],
+			so->info.instrs_per_cat[2],
+			so->info.instrs_per_cat[3],
+			so->info.instrs_per_cat[4],
+			so->info.instrs_per_cat[5],
+			so->info.instrs_per_cat[6],
+			so->info.instrs_per_cat[7]);
 
 	fprintf(out, "; %s prog %d/%d: %u sstall, %u (ss), %u (sy), %d max_sun, %d loops\n",
 			type, so->shader->id, so->id,

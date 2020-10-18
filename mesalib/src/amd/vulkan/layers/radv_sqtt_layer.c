@@ -300,7 +300,7 @@ struct rgp_sqtt_marker_barrier_end {
 	union {
 		struct {
 			uint32_t sync_cp_dma : 1;
-			uint32_t inval_ccp : 1;
+			uint32_t inval_tcp : 1;
 			uint32_t inval_sqI : 1;
 			uint32_t inval_sqK : 1;
 			uint32_t flush_tcc : 1;
@@ -355,27 +355,27 @@ static void
 radv_write_begin_general_api_marker(struct radv_cmd_buffer *cmd_buffer,
 				    enum rgp_sqtt_marker_general_api_type api_type)
 {
-	struct rgp_sqtt_marker_general_api marker = {};
+	struct rgp_sqtt_marker_general_api marker = {0};
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 
 	marker.identifier = RGP_SQTT_MARKER_IDENTIFIER_GENERAL_API;
 	marker.api_type = api_type;
 
-	radv_emit_thread_trace_userdata(cs, &marker, sizeof(marker) / 4);
+	radv_emit_thread_trace_userdata(cmd_buffer->device, cs, &marker, sizeof(marker) / 4);
 }
 
 static void
 radv_write_end_general_api_marker(struct radv_cmd_buffer *cmd_buffer,
 				  enum rgp_sqtt_marker_general_api_type api_type)
 {
-	struct rgp_sqtt_marker_general_api marker = {};
+	struct rgp_sqtt_marker_general_api marker = {0};
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 
 	marker.identifier = RGP_SQTT_MARKER_IDENTIFIER_GENERAL_API;
 	marker.api_type = api_type;
 	marker.is_end = 1;
 
-	radv_emit_thread_trace_userdata(cs, &marker, sizeof(marker) / 4);
+	radv_emit_thread_trace_userdata(cmd_buffer->device, cs, &marker, sizeof(marker) / 4);
 }
 
 static void
@@ -385,7 +385,7 @@ radv_write_event_marker(struct radv_cmd_buffer *cmd_buffer,
 			uint32_t instance_offset_user_data,
 			uint32_t draw_index_user_data)
 {
-	struct rgp_sqtt_marker_event marker = {};
+	struct rgp_sqtt_marker_event marker = {0};
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 
 	marker.identifier = RGP_SQTT_MARKER_IDENTIFIER_EVENT;
@@ -406,7 +406,7 @@ radv_write_event_marker(struct radv_cmd_buffer *cmd_buffer,
 	marker.instance_offset_reg_idx = instance_offset_user_data;
 	marker.draw_index_reg_idx = draw_index_user_data;
 
-	radv_emit_thread_trace_userdata(cs, &marker, sizeof(marker) / 4);
+	radv_emit_thread_trace_userdata(cmd_buffer->device, cs, &marker, sizeof(marker) / 4);
 }
 
 static void
@@ -414,7 +414,7 @@ radv_write_event_with_dims_marker(struct radv_cmd_buffer *cmd_buffer,
 				  enum rgp_sqtt_marker_event_type api_type,
 				  uint32_t x, uint32_t y, uint32_t z)
 {
-	struct rgp_sqtt_marker_event_with_dims marker = {};
+	struct rgp_sqtt_marker_event_with_dims marker = {0};
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 
 	marker.event.identifier = RGP_SQTT_MARKER_IDENTIFIER_EVENT;
@@ -427,14 +427,14 @@ radv_write_event_with_dims_marker(struct radv_cmd_buffer *cmd_buffer,
 	marker.thread_y = y;
 	marker.thread_z = z;
 
-	radv_emit_thread_trace_userdata(cs, &marker, sizeof(marker) / 4);
+	radv_emit_thread_trace_userdata(cmd_buffer->device, cs, &marker, sizeof(marker) / 4);
 }
 
 void
 radv_describe_begin_cmd_buffer(struct radv_cmd_buffer *cmd_buffer)
 {
 	uint64_t device_id = (uintptr_t)cmd_buffer->device;
-	struct rgp_sqtt_marker_cb_start marker = {};
+	struct rgp_sqtt_marker_cb_start marker = {0};
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 
 	if (likely(!cmd_buffer->device->thread_trace_bo))
@@ -452,14 +452,14 @@ radv_describe_begin_cmd_buffer(struct radv_cmd_buffer *cmd_buffer)
 	if (cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL)
 		marker.queue_flags |= VK_QUEUE_GRAPHICS_BIT;
 
-	radv_emit_thread_trace_userdata(cs, &marker, sizeof(marker) / 4);
+	radv_emit_thread_trace_userdata(cmd_buffer->device, cs, &marker, sizeof(marker) / 4);
 }
 
 void
 radv_describe_end_cmd_buffer(struct radv_cmd_buffer *cmd_buffer)
 {
 	uint64_t device_id = (uintptr_t)cmd_buffer->device;
-	struct rgp_sqtt_marker_cb_end marker = {};
+	struct rgp_sqtt_marker_cb_end marker = {0};
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 
 	if (likely(!cmd_buffer->device->thread_trace_bo))
@@ -470,7 +470,7 @@ radv_describe_end_cmd_buffer(struct radv_cmd_buffer *cmd_buffer)
 	marker.device_id_low = device_id;
 	marker.device_id_high = device_id >> 32;
 
-	radv_emit_thread_trace_userdata(cs, &marker, sizeof(marker) / 4);
+	radv_emit_thread_trace_userdata(cmd_buffer->device, cs, &marker, sizeof(marker) / 4);
 }
 
 void
@@ -509,30 +509,16 @@ radv_describe_end_render_pass_clear(struct radv_cmd_buffer *cmd_buffer)
 }
 
 void
-radv_describe_barrier_start(struct radv_cmd_buffer *cmd_buffer,
-			   enum rgp_barrier_reason reason)
+radv_describe_barrier_end_delayed(struct radv_cmd_buffer *cmd_buffer)
 {
-	struct rgp_sqtt_marker_barrier_start marker = {};
+	struct rgp_sqtt_marker_barrier_end marker = {0};
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 
-	if (likely(!cmd_buffer->device->thread_trace_bo))
+	if (likely(!cmd_buffer->device->thread_trace_bo) ||
+	    !cmd_buffer->state.pending_sqtt_barrier_end)
 		return;
 
-	marker.identifier = RGP_SQTT_MARKER_IDENTIFIER_BARRIER_START;
-	marker.cb_id = 0;
-	marker.dword02 = reason;
-
-	radv_emit_thread_trace_userdata(cs, &marker, sizeof(marker) / 4);
-}
-
-void
-radv_describe_barrier_end(struct radv_cmd_buffer *cmd_buffer)
-{
-	struct rgp_sqtt_marker_barrier_end marker = {};
-	struct radeon_cmdbuf *cs = cmd_buffer->cs;
-
-	if (likely(!cmd_buffer->device->thread_trace_bo))
-		return;
+	cmd_buffer->state.pending_sqtt_barrier_end = false;
 
 	marker.identifier = RGP_SQTT_MARKER_IDENTIFIER_BARRIER_END;
 	marker.cb_id = 0;
@@ -540,17 +526,75 @@ radv_describe_barrier_end(struct radv_cmd_buffer *cmd_buffer)
 	marker.num_layout_transitions = cmd_buffer->state.num_layout_transitions;
 
 	/* TODO: fill pipeline stalls, cache flushes, etc */
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_WAIT_ON_EOP_TS)
+		marker.wait_on_eop_ts = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_VS_PARTIAL_FLUSH)
+		marker.vs_partial_flush = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_PS_PARTIAL_FLUSH)
+		marker.ps_partial_flush = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_CS_PARTIAL_FLUSH)
+		marker.cs_partial_flush = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_PFP_SYNC_ME)
+		marker.pfp_sync_me = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_SYNC_CP_DMA)
+		marker.sync_cp_dma = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_INVAL_VMEM_L0)
+		marker.inval_tcp = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_INVAL_ICACHE)
+		marker.inval_sqI = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_INVAL_SMEM_L0)
+		marker.inval_sqK = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_FLUSH_L2)
+		marker.flush_tcc = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_INVAL_L2)
+		marker.inval_tcc = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_FLUSH_CB)
+		marker.flush_cb = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_INVAL_CB)
+		marker.inval_cb = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_FLUSH_DB)
+		marker.flush_db = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_INVAL_DB)
+		marker.inval_db = true;
+	if (cmd_buffer->state.sqtt_flush_bits & RGP_FLUSH_INVAL_L1)
+		marker.inval_gl1 = true;
 
-	radv_emit_thread_trace_userdata(cs, &marker, sizeof(marker) / 4);
+	radv_emit_thread_trace_userdata(cmd_buffer->device, cs, &marker, sizeof(marker) / 4);
 
 	cmd_buffer->state.num_layout_transitions = 0;
+}
+
+void
+radv_describe_barrier_start(struct radv_cmd_buffer *cmd_buffer,
+			   enum rgp_barrier_reason reason)
+{
+	struct rgp_sqtt_marker_barrier_start marker = {0};
+	struct radeon_cmdbuf *cs = cmd_buffer->cs;
+
+	if (likely(!cmd_buffer->device->thread_trace_bo))
+		return;
+
+	radv_describe_barrier_end_delayed(cmd_buffer);
+	cmd_buffer->state.sqtt_flush_bits = 0;
+
+	marker.identifier = RGP_SQTT_MARKER_IDENTIFIER_BARRIER_START;
+	marker.cb_id = 0;
+	marker.dword02 = reason;
+
+	radv_emit_thread_trace_userdata(cmd_buffer->device, cs, &marker, sizeof(marker) / 4);
+}
+
+void
+radv_describe_barrier_end(struct radv_cmd_buffer *cmd_buffer)
+{
+	cmd_buffer->state.pending_sqtt_barrier_end = true;
 }
 
 void
 radv_describe_layout_transition(struct radv_cmd_buffer *cmd_buffer,
 				const struct radv_barrier_data *barrier)
 {
-	struct rgp_sqtt_marker_layout_transition marker = {};
+	struct rgp_sqtt_marker_layout_transition marker = {0};
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 
 	if (likely(!cmd_buffer->device->thread_trace_bo))
@@ -566,7 +610,7 @@ radv_describe_layout_transition(struct radv_cmd_buffer *cmd_buffer,
 	marker.fmask_color_expand = barrier->layout_transitions.fmask_color_expand;
 	marker.init_mask_ram = barrier->layout_transitions.init_mask_ram;
 
-	radv_emit_thread_trace_userdata(cs, &marker, sizeof(marker) / 4);
+	radv_emit_thread_trace_userdata(cmd_buffer->device, cs, &marker, sizeof(marker) / 4);
 
 	cmd_buffer->state.num_layout_transitions++;
 }
@@ -580,7 +624,7 @@ radv_handle_thread_trace(VkQueue _queue)
 	static uint64_t num_frames = 0;
 
 	if (thread_trace_enabled) {
-		struct radv_thread_trace thread_trace = {};
+		struct radv_thread_trace thread_trace = {0};
 
 		radv_end_thread_trace(queue);
 		thread_trace_enabled = false;
@@ -591,7 +635,20 @@ radv_handle_thread_trace(VkQueue _queue)
 		if (radv_get_thread_trace(queue, &thread_trace))
 			radv_dump_thread_trace(queue->device, &thread_trace);
 	} else {
-		if (num_frames == queue->device->thread_trace_start_frame) {
+		bool frame_trigger = num_frames == queue->device->thread_trace_start_frame;
+		bool file_trigger = false;
+		if (queue->device->thread_trace_trigger_file &&
+		    access(queue->device->thread_trace_trigger_file, W_OK) == 0) {
+			if (unlink(queue->device->thread_trace_trigger_file) == 0) {
+				file_trigger = true;
+			} else {
+				/* Do not enable tracing if we cannot remove the file,
+				 * because by then we'll trace every frame ... */
+				fprintf(stderr, "RADV: could not remove thread trace trigger file, ignoring\n");
+			}
+		}
+
+		if (frame_trigger || file_trigger) {
 			radv_begin_thread_trace(queue);
 			assert(!thread_trace_enabled);
 			thread_trace_enabled = true;

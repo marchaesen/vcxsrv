@@ -169,7 +169,7 @@ typedef void (*DRI2InvalidateProcPtr) (DrawablePtr pDraw, void *data, XID id);
  * support other swap_limits it has to implement supported limits with this
  * callback.
  *
- * \param pDraw drawable whos swap_limit is going to be changed
+ * \param pDraw drawable whose swap_limit is going to be changed
  * \param swap_limit new swap_limit that going to be set
  * \return TRUE if limit is support, FALSE if not.
  */
@@ -299,13 +299,13 @@ extern _X_EXPORT int DRI2CopyRegion(DrawablePtr pDraw,
  * the \c XF86ModuleData from a layered module, such a module will fail to
  * load (due to an unresolved symbol) if the DRI2 extension is not loaded.
  *
- * \param major  Location to store the major verion of the DRI2 extension
- * \param minor  Location to store the minor verion of the DRI2 extension
+ * \param major  Location to store the major version of the DRI2 extension
+ * \param minor  Location to store the minor version of the DRI2 extension
  *
  * \note
  * This interface was added some time after the initial release of the DRI2
  * module.  Layered modules that wish to use this interface must first test
- * its existance by calling \c xf86LoaderCheckSymbol.
+ * its existence by calling \c xf86LoaderCheckSymbol.
  */
 extern _X_EXPORT void DRI2Version(int *major, int *minor);
 

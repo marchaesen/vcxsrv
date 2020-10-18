@@ -184,7 +184,7 @@ as defined in the file
 <indexterm><primary>Headers</primary><secondary><filename class="headerfile">&lt;X11/X.h&gt;</filename></secondary></indexterm>
 These resources are created by requests and are destroyed
 (or freed) by requests or when connections are closed.
-Most of these resources are potentially sharable between
+Most of these resources are potentially shareable between
 applications, and in fact, windows are manipulated explicitly by
 window manager programs.
 Fonts and cursors are shared automatically across multiple screens.

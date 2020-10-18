@@ -795,7 +795,7 @@ LINEAR_RGB_InitSCCData(
 
     return(XcmsSuccess);
 
-FreeBlueTblElements:
+FreeBlueTblElements: _X_UNUSED
     Xfree(pScreenData->pBlueTbl->pBase);
 
 FreeBlueTbl:
@@ -1178,7 +1178,7 @@ _XcmsTableSearch(
 
 /*
  *	DESCRIPTION
- *		A binary search through the specificied table.
+ *		A binary search through the specified table.
  *
  *	RETURNS
  *		Returns 0 if failed; otherwise non-zero.

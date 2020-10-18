@@ -272,7 +272,7 @@ rbug_texture_read(struct rbug_rbug *tr_rbug, struct rbug_header *header, uint32_
    tex = tr_tex->resource;
    map = pipe_transfer_map(context, tex,
                            gptr->level, gptr->face + gptr->zslice,
-                           PIPE_TRANSFER_READ,
+                           PIPE_MAP_READ,
                            gptr->x, gptr->y, gptr->w, gptr->h, &t);
 
    rbug_send_texture_read_reply(tr_rbug->con, serial,

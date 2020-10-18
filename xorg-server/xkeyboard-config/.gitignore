@@ -52,8 +52,6 @@ po/*.gmo
 po/*.pot
 po/messages.mo
 po/stamp-po
-rules/base.extras.xml
-rules/base.xml
 rules/base.lst
 rules/base
 rules/sun.xml
@@ -89,7 +87,5 @@ tests/reg2ll.lstbase
 po/stamp-it
 rules/evdev
 rules/evdev.extras.xml
-rules/evdev.extras.xml.in
 rules/evdev.lst
 rules/evdev.xml
-rules/evdev.xml.in

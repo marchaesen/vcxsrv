@@ -1212,7 +1212,6 @@ static void
 create_textures(struct gl_context *ctx, GLenum target,
                 GLsizei n, GLuint *textures, const char *caller)
 {
-   GLuint first;
    GLint i;
 
    if (!textures)
@@ -1223,13 +1222,12 @@ create_textures(struct gl_context *ctx, GLenum target,
     */
    _mesa_HashLockMutex(ctx->Shared->TexObjects);
 
-   first = _mesa_HashFindFreeKeyBlock(ctx->Shared->TexObjects, n);
+   _mesa_HashFindFreeKeys(ctx->Shared->TexObjects, textures, n);
 
    /* Allocate new, empty texture objects */
    for (i = 0; i < n; i++) {
       struct gl_texture_object *texObj;
-      GLuint name = first + i;
-      texObj = ctx->Driver.NewTextureObject(ctx, name, target);
+      texObj = ctx->Driver.NewTextureObject(ctx, textures[i], target);
       if (!texObj) {
          _mesa_HashUnlockMutex(ctx->Shared->TexObjects);
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", caller);
@@ -1237,9 +1235,7 @@ create_textures(struct gl_context *ctx, GLenum target,
       }
 
       /* insert into hash table */
-      _mesa_HashInsertLocked(ctx->Shared->TexObjects, texObj->Name, texObj);
-
-      textures[i] = name;
+      _mesa_HashInsertLocked(ctx->Shared->TexObjects, texObj->Name, texObj, true);
    }
 
    _mesa_HashUnlockMutex(ctx->Shared->TexObjects);
@@ -1277,7 +1273,7 @@ create_textures_err(struct gl_context *ctx, GLenum target,
  *
  * \sa glGenTextures(), glCreateTextures().
  *
- * Calls _mesa_HashFindFreeKeyBlock() to find a block of free texture
+ * Calls _mesa_HashFindFreeKeys() to find a block of free texture
  * IDs which are stored in \p textures.  Corresponding empty texture
  * objects are also generated.
  */
@@ -1305,7 +1301,7 @@ _mesa_GenTextures(GLsizei n, GLuint *textures)
  *
  * \sa glCreateTextures(), glGenTextures().
  *
- * Calls _mesa_HashFindFreeKeyBlock() to find a block of free texture
+ * Calls _mesa_HashFindFreeKeys() to find a block of free texture
  * IDs which are stored in \p textures.  Corresponding empty texture
  * objects are also generated.
  */
@@ -1802,7 +1798,7 @@ _mesa_lookup_or_create_texture(struct gl_context *ctx, GLenum target,
          }
 
          /* and insert it into hash table */
-         _mesa_HashInsert(ctx->Shared->TexObjects, texName, newTexObj);
+         _mesa_HashInsert(ctx->Shared->TexObjects, texName, newTexObj, false);
       }
    }
 

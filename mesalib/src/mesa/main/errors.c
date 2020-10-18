@@ -86,7 +86,10 @@ output_if_debug(const char *prefixString, const char *outputString,
        * visible, so communicate with the debugger instead */
       {
          char buf[4096];
-         snprintf(buf, sizeof(buf), "%s: %s%s", prefixString, outputString, newline ? "\n" : "");
+         if (prefixString)
+            snprintf(buf, sizeof(buf), "%s: %s%s", prefixString, outputString, newline ? "\n" : "");
+         else
+            snprintf(buf, sizeof(buf), "%s%s", outputString, newline ? "\n" : "");
          OutputDebugStringA(buf);
       }
 #endif
@@ -399,7 +402,7 @@ _mesa_log(const char *fmtString, ...)
    va_start(args, fmtString);
    vsnprintf(s, MAX_DEBUG_MESSAGE_LENGTH, fmtString, args);
    va_end(args);
-   output_if_debug("", s, GL_FALSE);
+   output_if_debug(NULL, s, GL_FALSE);
 }
 
 

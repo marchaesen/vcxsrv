@@ -48,7 +48,6 @@ header = """/**
 
 
 #include "main/accum.h"
-#include "main/api_loopback.h"
 #include "main/api_exec.h"
 #include "main/arbprogram.h"
 #include "main/atifragshader.h"

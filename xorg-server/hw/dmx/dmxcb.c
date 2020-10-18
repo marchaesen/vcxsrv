@@ -193,7 +193,7 @@ dmxConnectionBlockCallback(void)
                             found[k] = TRUE;
                     }
                     else {
-                        /* Screen #k is detatched, so it always succeeds */
+                        /* Screen #k is detached, so it always succeeds */
                         found[k] = TRUE;
                     }
                 }

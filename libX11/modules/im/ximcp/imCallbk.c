@@ -265,7 +265,7 @@ _XimGeometryCallback(Xim im,
 {
     XICCallback* cb = &ic->core.geometry_callback;
 
-    /* invoke the callack
+    /* invoke the callback
      */
     if (cb && cb->callback) {
 	(*cb->callback)((XIC)ic, cb->client_data, (XPointer)NULL);
@@ -728,7 +728,7 @@ _XimPreeditStateNotifyCallback( Xim im, Xic ic, char* proto, int len )
 {
     XICCallback	*cb = &ic->core.preedit_attr.state_notify_callback;
 
-    /* invoke the callack
+    /* invoke the callback
      */
     if( cb  &&  cb->callback ) {
 	XIMPreeditStateNotifyCallbackStruct cbrec;

@@ -1108,7 +1108,7 @@ doPolyText(ClientPtr client, PTclosurePtr c)
         if (ClientIsAsleep(client)) {
             /* Client has died, but we cannot bail out right now.  We
                need to clean up after the work we did when going to
-               sleep.  Setting the drawable poiner to 0 makes this
+               sleep.  Setting the drawable pointer to 0 makes this
                happen without any attempts to render or perform other
                unnecessary activities.  */
             c->pDraw = (DrawablePtr) 0;

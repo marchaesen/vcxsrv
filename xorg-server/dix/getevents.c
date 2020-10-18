@@ -1328,7 +1328,7 @@ QueuePointerEvents(DeviceIntPtr device, int type,
  * rescaled to match Sx/Sy for [n..m]. In the simplest example, x of (m/2-1)
  * is the last coordinate on the first screen and must be rescaled for the
  * event to be m. XI2 clients that do their own coordinate mapping would
- * otherwise interpret the position of the device elsewere to the cursor.
+ * otherwise interpret the position of the device elsewhere to the cursor.
  * However, this scaling leads to losses:
  * if we have two ScreenRecs we scale from e.g. [0..44704]  (Wacom I4) to
  * [0..2048[. that gives us 2047.954 as desktop coord, or the per-screen
@@ -1446,7 +1446,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
 
     storeLastValuators(pDev, &mask, 0, 1, devx, devy);
 
-    /* Update the MD's co-ordinates, which are always in desktop space. */
+    /* Update the MD's coordinates, which are always in desktop space. */
     if (!IsMaster(pDev) && !IsFloating(pDev)) {
         DeviceIntPtr master = GetMaster(pDev, MASTER_POINTER);
 
@@ -1473,7 +1473,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
         event->detail.button = buttons;
     }
 
-    /* root_x and root_y must be in per-screen co-ordinates */
+    /* root_x and root_y must be in per-screen coordinates */
     event_set_root_coordinates(event, screenx - scr->x, screeny - scr->y);
 
     if (flags & POINTER_EMULATED) {
@@ -1931,7 +1931,7 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
     switch (type) {
     case XI_TouchBegin:
         event->type = ET_TouchBegin;
-        /* If we're starting a touch, we must have x & y co-ordinates. */
+        /* If we're starting a touch, we must have x & y coordinates. */
         if (!mask_in ||
             !valuator_mask_isset(mask_in, 0) ||
             !valuator_mask_isset(mask_in, 1)) {
@@ -1957,7 +1957,7 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
         return 0;
     }
 
-    /* Get our screen event co-ordinates (root_x/root_y/event_x/event_y):
+    /* Get our screen event coordinates (root_x/root_y/event_x/event_y):
      * these come from the touchpoint in Absolute mode, or the sprite in
      * Relative. */
     if (t->mode == XIDirectTouch) {
@@ -2003,7 +2003,7 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
     if (emulate_pointer)
         storeLastValuators(dev, &mask, 0, 1, devx, devy);
 
-    /* Update the MD's co-ordinates, which are always in desktop space. */
+    /* Update the MD's coordinates, which are always in desktop space. */
     if (emulate_pointer && !IsMaster(dev) && !IsFloating(dev)) {
 	    DeviceIntPtr master = GetMaster(dev, MASTER_POINTER);
 

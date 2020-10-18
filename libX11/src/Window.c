@@ -30,10 +30,10 @@ in this Software without prior written authorization from The Open Group.
 #include "Xlibint.h"
 
 void _XProcessWindowAttributes (
-    register Display *dpy,
+    Display *dpy,
     xChangeWindowAttributesReq *req,
-    register unsigned long valuemask,
-    register XSetWindowAttributes *attributes)
+    unsigned long valuemask,
+    XSetWindowAttributes *attributes)
 {
     unsigned long values[32];
     register unsigned long *value = values;

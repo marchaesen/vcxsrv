@@ -22,5 +22,5 @@
    PERFORMANCE OF THIS SOFTWARE.
 -->
 <!-- this is filled in at make time -->
-<!--@CONFDIR@-->
+<!--@BASECONFIGDIR@-->
 /etc/fonts

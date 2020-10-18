@@ -26,13 +26,16 @@
  * Simultaneously, remap existing UBO accesses by increasing their binding
  * point by 1.
  *
- * Both the base and the offset are interpreted as 16-byte units.
+ * Note that nir_intrinsic_load_uniform base/ranges can be set in different
+ * units, and the multiplier argument caters to supporting these different
+ * units.
  *
- * Note that locations can be set in different units, and the multiplier
- * argument caters to supporting these different units.
  * For example:
- * - st_glsl_to_nir uses dwords (4 bytes) so the multiplier should be 4
- * - tgsi_to_nir uses bytes, so the multiplier should be 16
+ * - st_glsl_to_nir for PIPE_CAP_PACKED_UNIFORMS uses dwords (4 bytes) so the
+ *   multiplier should be 4
+ * - st_glsl_to_nir for !PIPE_CAP_PACKED_UNIFORMS uses vec4s so the
+ *   multiplier should be 16
+ * - tgsi_to_nir uses vec4s, so the multiplier should be 16
  */
 
 #include "nir.h"
@@ -66,12 +69,32 @@ lower_instr(nir_intrinsic_instr *instr, nir_builder *b, int multiplier)
       load->src[0] = nir_src_for_ssa(ubo_idx);
       load->src[1] = nir_src_for_ssa(ubo_offset);
       assert(instr->dest.ssa.bit_size >= 8);
-      nir_intrinsic_set_align(load, instr->dest.ssa.bit_size / 8, 0);
+
+      /* If it's const, set the alignment to our known constant offset.  If
+       * not, set it to a pessimistic value based on the multiplier (or the
+       * scalar size, for qword loads).
+       *
+       * We could potentially set up stricter alignments for indirects by
+       * knowing what features are enabled in the APIs (see comment in
+       * nir_lower_ubo_vec4.c)
+       */
+      if (nir_src_is_const(instr->src[0])) {
+         nir_intrinsic_set_align(load, NIR_ALIGN_MUL_MAX,
+                                 (nir_src_as_uint(instr->src[0]) +
+                                  nir_intrinsic_base(instr) * multiplier) %
+                                 NIR_ALIGN_MUL_MAX);
+      } else {
+         nir_intrinsic_set_align(load, MAX2(multiplier,
+                                            instr->dest.ssa.bit_size / 8), 0);
+      }
       nir_ssa_dest_init(&load->instr, &load->dest,
                         load->num_components, instr->dest.ssa.bit_size,
                         instr->dest.ssa.name);
       nir_builder_instr_insert(b, &load->instr);
       nir_ssa_def_rewrite_uses(&instr->dest.ssa, nir_src_for_ssa(&load->dest.ssa));
+
+      nir_intrinsic_set_range_base(load, nir_intrinsic_base(instr) * multiplier);
+      nir_intrinsic_set_range(load, nir_intrinsic_range(instr) * multiplier);
 
       nir_instr_remove(&instr->instr);
       return true;
@@ -105,9 +128,12 @@ nir_lower_uniforms_to_ubo(nir_shader *shader, int multiplier)
 
    if (progress) {
       if (!shader->info.first_ubo_is_default_ubo) {
-         nir_foreach_variable(var, &shader->uniforms) {
-            if (var->data.mode == nir_var_mem_ubo)
-               var->data.binding++;
+         nir_foreach_variable_with_modes(var, shader, nir_var_mem_ubo) {
+            var->data.binding++;
+            /* only increment location for ubo arrays */
+            if (glsl_without_array(var->type) == var->interface_type &&
+                glsl_type_is_array(var->type))
+               var->data.location++;
          }
       }
       shader->info.num_ubos++;

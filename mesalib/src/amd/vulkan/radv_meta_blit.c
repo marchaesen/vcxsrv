@@ -299,8 +299,8 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
                struct radv_image *src_image,
                struct radv_image_view *src_iview,
 	       VkImageLayout src_image_layout,
-               VkOffset3D src_offset_0,
-               VkOffset3D src_offset_1,
+               float src_offset_0[3],
+               float src_offset_1[3],
                struct radv_image *dest_image,
                struct radv_image_view *dest_iview,
 	       VkImageLayout dest_image_layout,
@@ -319,11 +319,11 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 	assert(src_image->info.samples == dest_image->info.samples);
 
 	float vertex_push_constants[5] = {
-		(float)src_offset_0.x / (float)src_width,
-		(float)src_offset_0.y / (float)src_height,
-		(float)src_offset_1.x / (float)src_width,
-		(float)src_offset_1.y / (float)src_height,
-		(float)src_offset_0.z / (float)src_depth,
+		src_offset_0[0] / (float)src_width,
+		src_offset_0[1] / (float)src_height,
+		src_offset_1[0] / (float)src_width,
+		src_offset_1[1] / (float)src_height,
+		src_offset_0[2] / (float)src_depth,
 	};
 
 	radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
@@ -526,20 +526,17 @@ flip_coords(unsigned *src0, unsigned *src1, unsigned *dst0, unsigned *dst1)
 	return flip;
 }
 
-void radv_CmdBlitImage(
-	VkCommandBuffer                             commandBuffer,
-	VkImage                                     srcImage,
-	VkImageLayout                               srcImageLayout,
-	VkImage                                     destImage,
-	VkImageLayout                               destImageLayout,
-	uint32_t                                    regionCount,
-	const VkImageBlit*                          pRegions,
-	VkFilter                                    filter)
-
+static void
+blit_image(struct radv_cmd_buffer *cmd_buffer,
+	   struct radv_image *src_image,
+	   VkImageLayout src_image_layout,
+	   struct radv_image *dst_image,
+	   VkImageLayout dst_image_layout,
+	   const VkImageBlit2KHR *region,
+	   VkFilter filter)
 {
-	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
-	RADV_FROM_HANDLE(radv_image, src_image, srcImage);
-	RADV_FROM_HANDLE(radv_image, dest_image, destImage);
+	const VkImageSubresourceLayers *src_res = &region->srcSubresource;
+	const VkImageSubresourceLayers *dst_res = &region->dstSubresource;
 	struct radv_device *device = cmd_buffer->device;
 	struct radv_meta_saved_state saved_state;
 	bool old_predicating;
@@ -551,7 +548,7 @@ void radv_CmdBlitImage(
 	 *    destination images. Use vkCmdResolveImage for this purpose.
 	 */
 	assert(src_image->info.samples == 1);
-	assert(dest_image->info.samples == 1);
+	assert(dst_image->info.samples == 1);
 
 	radv_CreateSampler(radv_device_to_handle(device),
 			   &(VkSamplerCreateInfo) {
@@ -574,118 +571,121 @@ void radv_CmdBlitImage(
 	old_predicating = cmd_buffer->state.predicating;
 	cmd_buffer->state.predicating = false;
 
-	for (unsigned r = 0; r < regionCount; r++) {
-		const VkImageSubresourceLayers *src_res = &pRegions[r].srcSubresource;
-		const VkImageSubresourceLayers *dst_res = &pRegions[r].dstSubresource;
+	unsigned dst_start, dst_end;
+	if (dst_image->type == VK_IMAGE_TYPE_3D) {
+		assert(dst_res->baseArrayLayer == 0);
+		dst_start = region->dstOffsets[0].z;
+		dst_end = region->dstOffsets[1].z;
+	} else {
+		dst_start = dst_res->baseArrayLayer;
+		dst_end = dst_start + dst_res->layerCount;
+	}
 
-		unsigned dst_start, dst_end;
-		if (dest_image->type == VK_IMAGE_TYPE_3D) {
-			assert(dst_res->baseArrayLayer == 0);
-			dst_start = pRegions[r].dstOffsets[0].z;
-			dst_end = pRegions[r].dstOffsets[1].z;
-		} else {
-			dst_start = dst_res->baseArrayLayer;
-			dst_end = dst_start + dst_res->layerCount;
-		}
+	unsigned src_start, src_end;
+	if (src_image->type == VK_IMAGE_TYPE_3D) {
+		assert(src_res->baseArrayLayer == 0);
+		src_start = region->srcOffsets[0].z;
+		src_end = region->srcOffsets[1].z;
+	} else {
+		src_start = src_res->baseArrayLayer;
+		src_end = src_start + src_res->layerCount;
+	}
 
-		unsigned src_start, src_end;
-		if (src_image->type == VK_IMAGE_TYPE_3D) {
-			assert(src_res->baseArrayLayer == 0);
-			src_start = pRegions[r].srcOffsets[0].z;
-			src_end = pRegions[r].srcOffsets[1].z;
-		} else {
-			src_start = src_res->baseArrayLayer;
-			src_end = src_start + src_res->layerCount;
-		}
+	bool flip_z = flip_coords(&src_start, &src_end, &dst_start, &dst_end);
+	float src_z_step = (float)(src_end - src_start) /
+		(float)(dst_end - dst_start);
 
-		bool flip_z = flip_coords(&src_start, &src_end, &dst_start, &dst_end);
-		float src_z_step = (float)(src_end + 1 - src_start) /
-			(float)(dst_end + 1 - dst_start);
+	/* There is no interpolation to the pixel center during
+	 * rendering, so add the 0.5 offset ourselves here. */
+	float depth_center_offset = 0;
+	if (src_image->type == VK_IMAGE_TYPE_3D)
+		depth_center_offset = 0.5 / (dst_end - dst_start) * (src_end - src_start);
 
-		if (flip_z) {
-			src_start = src_end;
-			src_z_step *= -1;
-		}
+	if (flip_z) {
+		src_start = src_end;
+		src_z_step *= -1;
+		depth_center_offset *= -1;
+	}
 
-		unsigned src_x0 = pRegions[r].srcOffsets[0].x;
-		unsigned src_x1 = pRegions[r].srcOffsets[1].x;
-		unsigned dst_x0 = pRegions[r].dstOffsets[0].x;
-		unsigned dst_x1 = pRegions[r].dstOffsets[1].x;
+	unsigned src_x0 = region->srcOffsets[0].x;
+	unsigned src_x1 = region->srcOffsets[1].x;
+	unsigned dst_x0 = region->dstOffsets[0].x;
+	unsigned dst_x1 = region->dstOffsets[1].x;
 
-		unsigned src_y0 = pRegions[r].srcOffsets[0].y;
-		unsigned src_y1 = pRegions[r].srcOffsets[1].y;
-		unsigned dst_y0 = pRegions[r].dstOffsets[0].y;
-		unsigned dst_y1 = pRegions[r].dstOffsets[1].y;
+	unsigned src_y0 = region->srcOffsets[0].y;
+	unsigned src_y1 = region->srcOffsets[1].y;
+	unsigned dst_y0 = region->dstOffsets[0].y;
+	unsigned dst_y1 = region->dstOffsets[1].y;
 
-		VkRect2D dest_box;
-		dest_box.offset.x = MIN2(dst_x0, dst_x1);
-		dest_box.offset.y = MIN2(dst_y0, dst_y1);
-		dest_box.extent.width = dst_x1 - dst_x0;
-		dest_box.extent.height = dst_y1 - dst_y0;
+	VkRect2D dst_box;
+	dst_box.offset.x = MIN2(dst_x0, dst_x1);
+	dst_box.offset.y = MIN2(dst_y0, dst_y1);
+	dst_box.extent.width = dst_x1 - dst_x0;
+	dst_box.extent.height = dst_y1 - dst_y0;
 
-		const unsigned num_layers = dst_end - dst_start;
-		for (unsigned i = 0; i < num_layers; i++) {
-			struct radv_image_view dest_iview, src_iview;
+	const unsigned num_layers = dst_end - dst_start;
+	for (unsigned i = 0; i < num_layers; i++) {
+		struct radv_image_view dst_iview, src_iview;
 
-			const VkOffset2D dest_offset_0 = {
-				.x = dst_x0,
-				.y = dst_y0,
-			};
-			const VkOffset2D dest_offset_1 = {
-				.x = dst_x1,
-				.y = dst_y1,
-			};
-			VkOffset3D src_offset_0 = {
-				.x = src_x0,
-				.y = src_y0,
-				.z = src_start + i * src_z_step,
-			};
-			VkOffset3D src_offset_1 = {
-				.x = src_x1,
-				.y = src_y1,
-				.z = src_start + i * src_z_step,
-			};
-			const uint32_t dest_array_slice = dst_start + i;
+		const VkOffset2D dst_offset_0 = {
+			.x = dst_x0,
+			.y = dst_y0,
+		};
+		const VkOffset2D dst_offset_1 = {
+			.x = dst_x1,
+			.y = dst_y1,
+		};
 
-			/* 3D images have just 1 layer */
-			const uint32_t src_array_slice = src_image->type == VK_IMAGE_TYPE_3D ? 0 : src_start + i;
+		float src_offset_0[3] = {
+			src_x0,
+			src_y0,
+			src_start + i * src_z_step + depth_center_offset,
+		};
+		float src_offset_1[3] = {
+			src_x1,
+			src_y1,
+			src_start + i * src_z_step + depth_center_offset,
+		};
+		const uint32_t dst_array_slice = dst_start + i;
 
-			radv_image_view_init(&dest_iview, cmd_buffer->device,
-					     &(VkImageViewCreateInfo) {
-						     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-							     .image = destImage,
-							     .viewType = radv_meta_get_view_type(dest_image),
-							     .format = dest_image->vk_format,
-							     .subresourceRange = {
-							     .aspectMask = dst_res->aspectMask,
-							     .baseMipLevel = dst_res->mipLevel,
-							     .levelCount = 1,
-							     .baseArrayLayer = dest_array_slice,
-							     .layerCount = 1
-						     },
-					     }, NULL);
-			radv_image_view_init(&src_iview, cmd_buffer->device,
-					     &(VkImageViewCreateInfo) {
-						.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-							.image = srcImage,
-							.viewType = radv_meta_get_view_type(src_image),
-							.format = src_image->vk_format,
-							.subresourceRange = {
-							.aspectMask = src_res->aspectMask,
-							.baseMipLevel = src_res->mipLevel,
-							.levelCount = 1,
-							.baseArrayLayer = src_array_slice,
-							.layerCount = 1
-						},
-					}, NULL);
-			meta_emit_blit(cmd_buffer,
-				       src_image, &src_iview, srcImageLayout,
-				       src_offset_0, src_offset_1,
-				       dest_image, &dest_iview, destImageLayout,
-				       dest_offset_0, dest_offset_1,
-				       dest_box,
-				       sampler);
-		}
+		/* 3D images have just 1 layer */
+		const uint32_t src_array_slice = src_image->type == VK_IMAGE_TYPE_3D ? 0 : src_start + i;
+
+		radv_image_view_init(&dst_iview, cmd_buffer->device,
+				     &(VkImageViewCreateInfo) {
+					     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+						     .image = radv_image_to_handle(dst_image),
+						     .viewType = radv_meta_get_view_type(dst_image),
+						     .format = dst_image->vk_format,
+						     .subresourceRange = {
+						     .aspectMask = dst_res->aspectMask,
+						     .baseMipLevel = dst_res->mipLevel,
+						     .levelCount = 1,
+						     .baseArrayLayer = dst_array_slice,
+						     .layerCount = 1
+					     },
+				     }, NULL);
+		radv_image_view_init(&src_iview, cmd_buffer->device,
+				     &(VkImageViewCreateInfo) {
+					.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+						.image = radv_image_to_handle(src_image),
+						.viewType = radv_meta_get_view_type(src_image),
+						.format = src_image->vk_format,
+						.subresourceRange = {
+						.aspectMask = src_res->aspectMask,
+						.baseMipLevel = src_res->mipLevel,
+						.levelCount = 1,
+						.baseArrayLayer = src_array_slice,
+						.layerCount = 1
+					},
+				}, NULL);
+		meta_emit_blit(cmd_buffer,
+			       src_image, &src_iview, src_image_layout,
+			       src_offset_0, src_offset_1,
+			       dst_image, &dst_iview, dst_image_layout,
+			       dst_offset_0, dst_offset_1,
+			       dst_box,
+			       sampler);
 	}
 
 	/* Restore conditional rendering. */
@@ -695,6 +695,60 @@ void radv_CmdBlitImage(
 
 	radv_DestroySampler(radv_device_to_handle(device), sampler,
 			    &cmd_buffer->pool->alloc);
+}
+
+void radv_CmdBlitImage(
+	VkCommandBuffer                             commandBuffer,
+	VkImage                                     srcImage,
+	VkImageLayout                               srcImageLayout,
+	VkImage                                     dstImage,
+	VkImageLayout                               dstImageLayout,
+	uint32_t                                    regionCount,
+	const VkImageBlit*                          pRegions,
+	VkFilter                                    filter)
+
+{
+	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
+	RADV_FROM_HANDLE(radv_image, src_image, srcImage);
+	RADV_FROM_HANDLE(radv_image, dst_image, dstImage);
+
+	for (unsigned r = 0; r < regionCount; r++) {
+		VkImageBlit2KHR blit = {
+			.sType          = VK_STRUCTURE_TYPE_IMAGE_BLIT_2_KHR,
+			.srcSubresource = pRegions[r].srcSubresource,
+			.srcOffsets     = {
+				pRegions[r].srcOffsets[0],
+				pRegions[r].srcOffsets[1],
+			},
+			.dstSubresource = pRegions[r].dstSubresource,
+			.dstOffsets     = {
+				pRegions[r].dstOffsets[0],
+				pRegions[r].dstOffsets[1],
+			},
+		};
+
+		blit_image(cmd_buffer,
+			   src_image, srcImageLayout,
+			   dst_image, dstImageLayout,
+			   &blit, filter);
+	}
+}
+
+void radv_CmdBlitImage2KHR(
+	VkCommandBuffer                             commandBuffer,
+	const VkBlitImageInfo2KHR*                  pBlitImageInfo)
+{
+	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
+	RADV_FROM_HANDLE(radv_image, src_image, pBlitImageInfo->srcImage);
+	RADV_FROM_HANDLE(radv_image, dst_image, pBlitImageInfo->dstImage);
+
+	for (unsigned r = 0; r < pBlitImageInfo->regionCount; r++) {
+		blit_image(cmd_buffer,
+			   src_image, pBlitImageInfo->srcImageLayout,
+			   dst_image, pBlitImageInfo->dstImageLayout,
+			   &pBlitImageInfo->pRegions[r],
+			   pBlitImageInfo->filter);
+	}
 }
 
 void

@@ -285,7 +285,7 @@ util_resource_copy_region(struct pipe_context *pipe,
    src_map = pipe->transfer_map(pipe,
                                 src,
                                 src_level,
-                                PIPE_TRANSFER_READ,
+                                PIPE_MAP_READ,
                                 &src_box, &src_trans);
    assert(src_map);
    if (!src_map) {
@@ -295,8 +295,8 @@ util_resource_copy_region(struct pipe_context *pipe,
    dst_map = pipe->transfer_map(pipe,
                                 dst,
                                 dst_level,
-                                PIPE_TRANSFER_WRITE |
-                                PIPE_TRANSFER_DISCARD_RANGE, &dst_box,
+                                PIPE_MAP_WRITE |
+                                PIPE_MAP_DISCARD_RANGE, &dst_box,
                                 &dst_trans);
    assert(dst_map);
    if (!dst_map) {
@@ -358,7 +358,7 @@ util_clear_color_texture(struct pipe_context *pipe,
    dst_map = pipe_transfer_map_3d(pipe,
                                   texture,
                                   level,
-                                  PIPE_TRANSFER_WRITE,
+                                  PIPE_MAP_WRITE,
                                   dstx, dsty, dstz,
                                   width, height, depth,
                                   &dst_trans);
@@ -410,7 +410,7 @@ util_clear_render_target(struct pipe_context *pipe,
       dst_map = pipe_transfer_map(pipe,
                                   dst->texture,
                                   0, 0,
-                                  PIPE_TRANSFER_WRITE,
+                                  PIPE_MAP_WRITE,
                                   dx, 0, w, 1,
                                   &dst_trans);
       if (dst_map) {
@@ -561,8 +561,8 @@ util_clear_depth_stencil_texture(struct pipe_context *pipe,
    dst_map = pipe_transfer_map_3d(pipe,
                                   texture,
                                   level,
-                                  (need_rmw ? PIPE_TRANSFER_READ_WRITE :
-                                              PIPE_TRANSFER_WRITE),
+                                  (need_rmw ? PIPE_MAP_READ_WRITE :
+                                              PIPE_MAP_WRITE),
                                   dstx, dsty, dstz,
                                   width, height, depth, &dst_trans);
    assert(dst_map);

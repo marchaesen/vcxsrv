@@ -41,6 +41,7 @@ xkb_symbols "sun_type6" {
     key	<AE03> { [		3,      numerosign, 3,  numbersign	] };
     key	<AE04> { [		4,       percent, 4,      dollar 	] };
     key	<AE05> { [		5,	     colon, 5, percent	] };
+    key	<AE06> { [		6,	     comma, 6, asciicircum	] };
     key	<AE07> { [		7,	    period, 7, ampersand	] };
     key	<AE08> { [		8,	 semicolon, 8, asterisk 	] };
     key	<BKSL> { [           slash,        question, backslash,             bar	] };

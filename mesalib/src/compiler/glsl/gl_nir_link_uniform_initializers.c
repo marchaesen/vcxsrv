@@ -265,7 +265,7 @@ gl_nir_set_uniform_initializers(struct gl_context *ctx,
       nir_shader *nir = sh->Program->nir;
       assert(nir);
 
-      nir_foreach_variable(var, &nir->uniforms) {
+      nir_foreach_gl_uniform_variable(var, nir) {
          if (var->constant_initializer) {
             struct set_uniform_initializer_closure data = {
                .shader_prog = prog,

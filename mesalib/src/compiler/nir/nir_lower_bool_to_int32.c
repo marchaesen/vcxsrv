@@ -59,6 +59,8 @@ lower_alu_instr(nir_alu_instr *alu)
    case nir_op_iand:
    case nir_op_ior:
    case nir_op_ixor:
+      if (alu->dest.dest.ssa.bit_size != 1)
+         return false;
       /* These we expect to have booleans but the opcode doesn't change */
       break;
 
@@ -77,7 +79,7 @@ lower_alu_instr(nir_alu_instr *alu)
    case nir_op_flt: alu->op = nir_op_flt32; break;
    case nir_op_fge: alu->op = nir_op_fge32; break;
    case nir_op_feq: alu->op = nir_op_feq32; break;
-   case nir_op_fne: alu->op = nir_op_fne32; break;
+   case nir_op_fneu: alu->op = nir_op_fneu32; break;
    case nir_op_ilt: alu->op = nir_op_ilt32; break;
    case nir_op_ige: alu->op = nir_op_ige32; break;
    case nir_op_ieq: alu->op = nir_op_ieq32; break;

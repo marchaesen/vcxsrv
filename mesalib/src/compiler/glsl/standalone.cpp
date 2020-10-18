@@ -441,6 +441,7 @@ standalone_compile_shader(const struct standalone_options *_options,
          options->LowerPrecisionFloat16 = true;
          options->LowerPrecisionInt16 = true;
          options->LowerPrecisionDerivatives = true;
+         options->LowerPrecisionConstants = true;
       }
    }
 

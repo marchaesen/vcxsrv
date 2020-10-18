@@ -39,37 +39,35 @@
 bool
 nir_can_move_instr(nir_instr *instr, nir_move_options options)
 {
-   if ((options & nir_move_const_undef) && instr->type == nir_instr_type_load_const) {
-      return true;
+   switch (instr->type) {
+   case nir_instr_type_load_const:
+   case nir_instr_type_ssa_undef: {
+      return options & nir_move_const_undef;
    }
-
-   if (instr->type == nir_instr_type_intrinsic) {
-       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-      if ((options & nir_move_load_ubo) && intrin->intrinsic == nir_intrinsic_load_ubo)
-         return true;
-
-      if ((options & nir_move_load_input) &&
-          (intrin->intrinsic == nir_intrinsic_load_interpolated_input ||
-           intrin->intrinsic == nir_intrinsic_load_input ||
-           intrin->intrinsic == nir_intrinsic_load_per_vertex_input))
-         return true;
+   case nir_instr_type_alu: {
+      if (nir_op_is_vec(nir_instr_as_alu(instr)->op) ||
+          nir_instr_as_alu(instr)->op == nir_op_b2i32)
+         return options & nir_move_copies;
+      if (nir_alu_instr_is_comparison(nir_instr_as_alu(instr)))
+         return options & nir_move_comparisons;
+      return false;
    }
-
-   if ((options & nir_move_const_undef) && instr->type == nir_instr_type_ssa_undef) {
-      return true;
+   case nir_instr_type_intrinsic: {
+      nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+      switch (intrin->intrinsic) {
+      case nir_intrinsic_load_ubo:
+         return options & nir_move_load_ubo;
+      case nir_intrinsic_load_input:
+      case nir_intrinsic_load_interpolated_input:
+      case nir_intrinsic_load_per_vertex_input:
+         return options & nir_move_load_input;
+      default:
+         return false;
+      }
    }
-
-   if ((options & nir_move_copies) && instr->type == nir_instr_type_alu &&
-       nir_instr_as_alu(instr)->op == nir_op_mov) {
-      return true;
+   default:
+      return false;
    }
-
-   if ((options & nir_move_comparisons) && instr->type == nir_instr_type_alu &&
-       nir_alu_instr_is_comparison(nir_instr_as_alu(instr))) {
-      return true;
-   }
-
-   return false;
 }
 
 static nir_loop *

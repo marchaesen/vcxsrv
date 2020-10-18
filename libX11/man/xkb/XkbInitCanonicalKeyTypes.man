@@ -22,7 +22,7 @@
 .\"
 .TH XkbInitCanonicalKeyTypes __libmansuffix__ __xorgversion__ "XKB FUNCTIONS"
 .SH NAME
-XkbInitCanonicalKeyTypes \- Set the definitions of the canonical key types in a 
+XkbInitCanonicalKeyTypes \- Set the definitions of the canonical key types in a
 client map to their default values
 .SH SYNOPSIS
 .HP
@@ -44,39 +44,39 @@ mask of types to initialize
 index of NumLock virtual modifier
 .SH DESCRIPTION
 .LP
-.I XkbInitCanonicalKeyTypes 
-initializes the first XkbNumRequiredTypes key types of the keyboard specified by 
-the 
-.I xkb 
-parameter to their default values. The 
-.I which 
-parameter specifies what canonical key types to initialize and is a bitwise 
-inclusive OR of the following masks: XkbOneLevelMask, XkbTwoLevelMask, 
-XkbAlphabeticMask, and XkbKeypadMask. Only those canonical types specified by 
-the 
-.I which 
+.I XkbInitCanonicalKeyTypes
+initializes the first XkbNumRequiredTypes key types of the keyboard specified by
+the
+.I xkb
+parameter to their default values. The
+.I which
+parameter specifies what canonical key types to initialize and is a bitwise
+inclusive OR of the following masks: XkbOneLevelMask, XkbTwoLevelMask,
+XkbAlphabeticMask, and XkbKeypadMask. Only those canonical types specified by
+the
+.I which
 mask are initialized.
 
-If XkbKeypadMask is set in the 
-.I which 
-parameter, 
-.I XkbInitCanonicalKeyTypes 
-looks up the NumLock named virtual modifier to determine which virtual modifier 
-to use when initializing the KEYPAD key type. If the NumLock virtual modifier 
-does not exist, 
-.I XkbInitCanonicalKeyTypes 
+If XkbKeypadMask is set in the
+.I which
+parameter,
+.I XkbInitCanonicalKeyTypes
+looks up the NumLock named virtual modifier to determine which virtual modifier
+to use when initializing the KEYPAD key type. If the NumLock virtual modifier
+does not exist,
+.I XkbInitCanonicalKeyTypes
 creates it.
 
-.I XkbInitCanonicalKeyTypes 
-normally returns Success. It returns BadAccess if the Xkb extension has not been 
-properly initialized, and BadAccess if the 
+.I XkbInitCanonicalKeyTypes
+normally returns Success. It returns BadAccess if the Xkb extension has not been
+properly initialized, and BadAccess if the
 xkb parameter is not valid.
 .SH "RETURN VALUES"
 .TP 15
 Success
-The 
-.I XkbInitCanonicalKeyTypes 
-funtion return Success if the Xkb extension has been properly initialized and 
+The
+.I XkbInitCanonicalKeyTypes
+function return Success if the Xkb extension has been properly initialized and
 the xkb parameter is valid.
 .SH DIAGNOSTICS
 .TP 15

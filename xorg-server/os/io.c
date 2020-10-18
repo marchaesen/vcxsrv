@@ -323,7 +323,7 @@ ReadRequestFromClient(ClientPtr client)
                 /* save the data we've already read */
                 memmove(oci->buffer, oci->bufptr, gotnow);
             if (needed > oci->size) {
-                /* make buffer bigger to accomodate request */
+                /* make buffer bigger to accommodate request */
                 char *ibuf;
 
                 ibuf = (char *) realloc(oci->buffer, needed);
@@ -343,7 +343,7 @@ ReadRequestFromClient(ClientPtr client)
          *  never get here in those circumstances.
          */
         if (!oc->trans_conn) {
-            /*  treat as if an error occured on the read, which is what
+            /*  treat as if an error occurred on the read, which is what
              *  used to happen
              */
             YieldControlDeath();
@@ -814,7 +814,7 @@ WriteToClient(ClientPtr who, int count, const void *__buf)
  /********************
  * FlushClient()
  *    If the client isn't keeping up with us, then we try to continue
- *    buffering the data and set the apropriate bit in ClientsWritable
+ *    buffering the data and set the appropriate bit in ClientsWritable
  *    (which is used by WaitFor in the select).  If the connection yields
  *    a permanent error, or we can't allocate any more space, we then
  *    close the connection.

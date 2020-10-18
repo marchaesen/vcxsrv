@@ -402,7 +402,7 @@ miPointerWarpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 }
 
 /**
- * Syncronize the sprite with the cursor.
+ * Synchronize the sprite with the cursor.
  *
  * @param pDev The device to sync
  */
@@ -699,8 +699,8 @@ miPointerSetPosition(DeviceIntPtr pDev, int mode, double *screenx,
 /**
  * Get the current position of the device in desktop coordinates.
  *
- * @param x Return value for the current x coordinate in desktop coordiates.
- * @param y Return value for the current y coordinate in desktop coordiates.
+ * @param x Return value for the current x coordinate in desktop coordinates.
+ * @param y Return value for the current y coordinate in desktop coordinates.
  */
 void
 miPointerGetPosition(DeviceIntPtr pDev, int *x, int *y)

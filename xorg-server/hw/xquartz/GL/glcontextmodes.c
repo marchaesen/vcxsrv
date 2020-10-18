@@ -114,7 +114,7 @@ _gl_convert_to_x_visual_type(int visualType)
 /**
  * Copy a GLX visual config structure to a GL context mode structure.  All
  * of the fields in \c config are copied to \c mode.  Additional fields in
- * \c mode that can be derrived from the fields of \c config (i.e.,
+ * \c mode that can be derived from the fields of \c config (i.e.,
  * \c haveDepthBuffer) are also filled in.  The remaining fields in \c mode
  * that cannot be derived are set to default values.
  *
@@ -408,10 +408,10 @@ _gl_get_context_mode_data(const __GLcontextModes *mode, int attribute,
  * \param count         Number of structures to allocate.
  * \param minimum_size  Minimum size of a structure to allocate.  This allows
  *                      for differences in the version of the
- *                      \c __GLcontextModes stucture used in libGL and in a
+ *                      \c __GLcontextModes structure used in libGL and in a
  *                      DRI-based driver.
  * \returns A pointer to the first element in a linked list of \c count
- *          stuctures on success, or \c NULL on failure.
+ *          structures on success, or \c NULL on failure.
  *
  * \warning Use of \c minimum_size does \b not guarantee binary compatibility.
  *          The fundamental assumption is that if the \c minimum_size
@@ -469,7 +469,7 @@ _gl_context_modes_create(unsigned count, size_t minimum_size)
  * Destroy a linked list of \c __GLcontextModes structures created by
  * \c _gl_context_modes_create.
  *
- * \param modes  Linked list of structures to be destroyed.  All structres
+ * \param modes  Linked list of structures to be destroyed.  All structures
  *               in the list will be freed.
  */
 void

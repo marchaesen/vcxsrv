@@ -23,6 +23,31 @@
  */
 
 #include "nir.h"
+#include "nir_builder.h"
+
+static bool
+nir_lower_discard_to_demote_instr(nir_builder *b, nir_instr *instr, void *data)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+   switch (intrin->intrinsic) {
+   case nir_intrinsic_discard:
+      intrin->intrinsic = nir_intrinsic_demote;
+      b->shader->info.fs.uses_demote = true;
+      return true;
+   case nir_intrinsic_discard_if:
+      intrin->intrinsic = nir_intrinsic_demote_if;
+      b->shader->info.fs.uses_demote = true;
+      return true;
+   case nir_intrinsic_load_helper_invocation:
+      intrin->intrinsic = nir_intrinsic_is_helper_invocation;
+      return true;
+   default:
+      return false;
+   }
+}
 
 /**
  * This pass is intended as workaround for game bugs to force correct
@@ -38,34 +63,8 @@ nir_lower_discard_to_demote(nir_shader *shader)
    if (shader->info.stage != MESA_SHADER_FRAGMENT)
       return false;
 
-   bool progress = false;
-
-   nir_foreach_function(function, shader) {
-      nir_foreach_block(block, function->impl) {
-         nir_foreach_instr(instr, block) {
-            if (instr->type != nir_instr_type_intrinsic)
-               continue;
-
-            nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-            switch (intrin->intrinsic) {
-            case nir_intrinsic_discard:
-               intrin->intrinsic = nir_intrinsic_demote;
-               shader->info.fs.uses_demote = true;
-               break;
-            case nir_intrinsic_discard_if:
-               intrin->intrinsic = nir_intrinsic_demote_if;
-               shader->info.fs.uses_demote = true;
-               break;
-            case nir_intrinsic_load_helper_invocation:
-               intrin->intrinsic = nir_intrinsic_is_helper_invocation;
-               break;
-            default:
-               continue;
-            }
-            progress = true;
-         }
-      }
-   }
-
-   return progress;
+   return nir_shader_instructions_pass(shader,
+                                       nir_lower_discard_to_demote_instr,
+                                       nir_metadata_all,
+                                       NULL);
 }

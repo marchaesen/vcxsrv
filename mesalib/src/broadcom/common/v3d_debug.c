@@ -56,6 +56,8 @@ static const struct debug_control debug_control[] = {
         { "cs",          V3D_DEBUG_CS},
         { "always_flush", V3D_DEBUG_ALWAYS_FLUSH},
         { "precompile",  V3D_DEBUG_PRECOMPILE},
+        { "ra",          V3D_DEBUG_RA},
+        { "dump_spirv",  V3D_DEBUG_DUMP_SPIRV},
         { NULL,    0 }
 };
 

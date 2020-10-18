@@ -40,7 +40,8 @@ wsi_device_init(struct wsi_device *wsi,
                 WSI_FN_GetPhysicalDeviceProcAddr proc_addr,
                 const VkAllocationCallbacks *alloc,
                 int display_fd,
-                const struct driOptionCache *dri_options)
+                const struct driOptionCache *dri_options,
+                bool sw_device)
 {
    const char *present_mode;
    UNUSED VkResult result;
@@ -49,7 +50,7 @@ wsi_device_init(struct wsi_device *wsi,
 
    wsi->instance_alloc = *alloc;
    wsi->pdevice = pdevice;
-
+   wsi->sw = sw_device;
 #define WSI_GET_CB(func) \
    PFN_vk##func func = (PFN_vk##func)proc_addr(pdevice, "vk" #func)
    WSI_GET_CB(GetPhysicalDeviceProperties2);
@@ -94,13 +95,16 @@ wsi_device_init(struct wsi_device *wsi,
    WSI_GET_CB(GetImageDrmFormatModifierPropertiesEXT);
    WSI_GET_CB(GetImageMemoryRequirements);
    WSI_GET_CB(GetImageSubresourceLayout);
-   WSI_GET_CB(GetMemoryFdKHR);
+   if (!wsi->sw)
+      WSI_GET_CB(GetMemoryFdKHR);
    WSI_GET_CB(GetPhysicalDeviceFormatProperties);
    WSI_GET_CB(GetPhysicalDeviceFormatProperties2KHR);
    WSI_GET_CB(GetPhysicalDeviceImageFormatProperties2);
    WSI_GET_CB(ResetFences);
    WSI_GET_CB(QueueSubmit);
    WSI_GET_CB(WaitForFences);
+   WSI_GET_CB(MapMemory);
+   WSI_GET_CB(UnmapMemory);
 #undef WSI_GET_CB
 
 #ifdef VK_USE_PLATFORM_XCB_KHR
@@ -125,6 +129,8 @@ wsi_device_init(struct wsi_device *wsi,
    if (present_mode) {
       if (!strcmp(present_mode, "fifo")) {
          wsi->override_present_mode = VK_PRESENT_MODE_FIFO_KHR;
+      } else if (!strcmp(present_mode, "relaxed")) {
+          wsi->override_present_mode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
       } else if (!strcmp(present_mode, "mailbox")) {
          wsi->override_present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
       } else if (!strcmp(present_mode, "immediate")) {
@@ -575,18 +581,21 @@ wsi_create_native_image(const struct wsi_swapchain *chain,
    if (result != VK_SUCCESS)
       goto fail;
 
-   const VkMemoryGetFdInfoKHR memory_get_fd_info = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR,
-      .pNext = NULL,
-      .memory = image->memory,
-      .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT,
-   };
-   int fd;
-   result = wsi->GetMemoryFdKHR(chain->device, &memory_get_fd_info, &fd);
-   if (result != VK_SUCCESS)
-      goto fail;
+   int fd = -1;
+   if (!wsi->sw) {
+      const VkMemoryGetFdInfoKHR memory_get_fd_info = {
+         .sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR,
+         .pNext = NULL,
+         .memory = image->memory,
+         .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT,
+      };
 
-   if (num_modifier_lists > 0) {
+      result = wsi->GetMemoryFdKHR(chain->device, &memory_get_fd_info, &fd);
+      if (result != VK_SUCCESS)
+         goto fail;
+   }
+
+   if (!wsi->sw && num_modifier_lists > 0) {
       VkImageDrmFormatModifierPropertiesEXT image_mod_props = {
          .sType = VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT,
       };
@@ -1100,7 +1109,7 @@ wsi_common_acquire_next_image2(const struct wsi_device *wsi,
 
    VkResult result = swapchain->acquire_next_image(swapchain, pAcquireInfo,
                                                    pImageIndex);
-   if (result != VK_SUCCESS)
+   if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
       return result;
 
    if (wsi->set_memory_ownership) {
@@ -1124,7 +1133,7 @@ wsi_common_acquire_next_image2(const struct wsi_device *wsi,
                                    image->memory);
    }
 
-   return VK_SUCCESS;
+   return result;
 }
 
 VkResult
@@ -1226,7 +1235,7 @@ wsi_common_queue_present(const struct wsi_device *wsi,
          region = &regions->pRegions[i];
 
       result = swapchain->queue_present(swapchain, image_index, region);
-      if (result != VK_SUCCESS)
+      if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
          goto fail_present;
 
       if (wsi->set_memory_ownership) {

@@ -98,7 +98,7 @@ panfrost_minmax_cache_invalidate(struct panfrost_minmax_cache *cache, struct pip
         if (!cache)
                 return;
 
-        if (!(transfer->usage & PIPE_TRANSFER_WRITE))
+        if (!(transfer->usage & PIPE_MAP_WRITE))
                 return;
 
         unsigned valid_count = 0;

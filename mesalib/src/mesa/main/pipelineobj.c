@@ -153,7 +153,7 @@ static void
 save_pipeline_object(struct gl_context *ctx, struct gl_pipeline_object *obj)
 {
    if (obj->Name > 0) {
-      _mesa_HashInsertLocked(ctx->Pipeline.Objects, obj->Name, obj);
+      _mesa_HashInsertLocked(ctx->Pipeline.Objects, obj->Name, obj, true);
    }
 }
 
@@ -596,19 +596,17 @@ create_program_pipelines(struct gl_context *ctx, GLsizei n, GLuint *pipelines,
                          bool dsa)
 {
    const char *func = dsa ? "glCreateProgramPipelines" : "glGenProgramPipelines";
-   GLuint first;
    GLint i;
 
    if (!pipelines)
       return;
 
-   first = _mesa_HashFindFreeKeyBlock(ctx->Pipeline.Objects, n);
+   _mesa_HashFindFreeKeys(ctx->Pipeline.Objects, pipelines, n);
 
    for (i = 0; i < n; i++) {
       struct gl_pipeline_object *obj;
-      GLuint name = first + i;
 
-      obj = _mesa_new_pipeline_object(ctx, name);
+      obj = _mesa_new_pipeline_object(ctx, pipelines[i]);
       if (!obj) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
          return;
@@ -620,7 +618,6 @@ create_program_pipelines(struct gl_context *ctx, GLsizei n, GLuint *pipelines,
       }
 
       save_pipeline_object(ctx, obj);
-      pipelines[i] = first + i;
    }
 }
 

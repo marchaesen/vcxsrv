@@ -84,12 +84,12 @@ typedef struct _Pixmap {
 #endif
     unsigned usage_hint;        /* see CREATE_PIXMAP_USAGE_* */
 
-    PixmapPtr master_pixmap;    /* pointer to master copy of pixmap for pixmap sharing */
+    PixmapPtr primary_pixmap;    /* pointer to primary copy of pixmap for pixmap sharing */
 } PixmapRec;
 
 typedef struct _PixmapDirtyUpdate {
     DrawablePtr src;            /* Root window / shared pixmap */
-    PixmapPtr slave_dst;        /* Shared / scanout pixmap */
+    PixmapPtr secondary_dst;    /* Shared / scanout pixmap */
     int x, y;
     DamagePtr damage;
     struct xorg_list ent;

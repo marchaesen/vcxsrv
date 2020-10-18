@@ -29,10 +29,6 @@
 
 #include "freedreno_layout.h"
 
-#define RGB_TILE_WIDTH_ALIGNMENT 64
-#define RGB_TILE_HEIGHT_ALIGNMENT 16
-#define UBWC_PLANE_SIZE_ALIGNMENT 4096
-
 static bool
 is_r8g8(struct fdl_layout *layout)
 {
@@ -103,10 +99,9 @@ fdl6_layout(struct fdl_layout *layout,
 		enum pipe_format format, uint32_t nr_samples,
 		uint32_t width0, uint32_t height0, uint32_t depth0,
 		uint32_t mip_levels, uint32_t array_size, bool is_3d,
-		struct fdl_slice *plane_layout)
+		struct fdl_explicit_layout *explicit_layout)
 {
-	uint32_t offset, pitch0;
-	uint32_t pitchalign, heightalign;
+	uint32_t offset = 0, heightalign;
 	uint32_t ubwc_blockwidth, ubwc_blockheight;
 
 	assert(nr_samples > 0);
@@ -126,6 +121,9 @@ fdl6_layout(struct fdl_layout *layout,
 
 	if (depth0 > 1 || ubwc_blockwidth == 0)
 		layout->ubwc = false;
+
+	if (layout->ubwc || util_format_is_depth_or_stencil(format))
+		layout->tile_all = true;
 
 	/* in layer_first layout, the level (slice) contains just one
 	 * layer (since in fact the layer contains the slices)
@@ -152,24 +150,20 @@ fdl6_layout(struct fdl_layout *layout,
 		/* when possible, use a bit more alignment than necessary
 		 * presumably this is better for performance?
 		 */
-		if (!plane_layout)
+		if (!explicit_layout)
 			layout->pitchalign = fdl_cpp_shift(layout);
 
 		/* not used, avoid "may be used uninitialized" warning */
 		heightalign = 1;
 	}
 
-	pitchalign = 64 << layout->pitchalign;
+	fdl_set_pitchalign(layout, layout->pitchalign + 6);
 
-	if (plane_layout) {
-		offset = plane_layout->offset;
-		pitch0 = plane_layout->pitch;
-		if (align(pitch0, pitchalign) != pitch0)
+	if (explicit_layout) {
+		offset = explicit_layout->offset;
+		layout->pitch0 = explicit_layout->pitch;
+		if (align(layout->pitch0, 1 << layout->pitchalign) != layout->pitch0)
 			return false;
-	} else {
-		uint32_t nblocksx = util_format_get_nblocksx(format, width0);
-		offset = 0;
-		pitch0 = util_align_npot(nblocksx * layout->cpp, pitchalign);
 	}
 
 	uint32_t ubwc_width0 = width0;
@@ -185,8 +179,8 @@ fdl6_layout(struct fdl_layout *layout,
 		ubwc_height0 = util_next_power_of_two(height0);
 		ubwc_tile_height_alignment = 64;
 	}
-	ubwc_width0 = align(DIV_ROUND_UP(ubwc_width0, ubwc_blockwidth),
-			RGB_TILE_WIDTH_ALIGNMENT);
+	layout->ubwc_width0 = align(DIV_ROUND_UP(ubwc_width0, ubwc_blockwidth),
+								RGB_TILE_WIDTH_ALIGNMENT);
 	ubwc_height0 = align(DIV_ROUND_UP(ubwc_height0, ubwc_blockheight),
 			ubwc_tile_height_alignment);
 
@@ -195,6 +189,7 @@ fdl6_layout(struct fdl_layout *layout,
 		struct fdl_slice *slice = &layout->slices[level];
 		struct fdl_slice *ubwc_slice = &layout->ubwc_slices[level];
 		uint32_t tile_mode = fdl_tile_mode(layout, level);
+		uint32_t pitch = fdl_pitch(layout, level);
 		uint32_t height;
 
 		/* tiled levels of 3D textures are rounded up to PoT dimensions: */
@@ -218,8 +213,7 @@ fdl6_layout(struct fdl_layout *layout,
 		if (level == mip_levels - 1)
 			height = align(nblocksy, 4);
 
-		slice->offset = layout->size;
-		slice->pitch = align(u_minify(pitch0, level), pitchalign);
+		slice->offset = offset + layout->size;
 
 		/* 1d array and 2d array textures must all have the same layer size
 		 * for each miplevel on a6xx. 3d textures can have different layer
@@ -229,12 +223,12 @@ fdl6_layout(struct fdl_layout *layout,
 		 */
 		if (is_3d) {
 			if (level < 1 || layout->slices[level - 1].size0 > 0xf000) {
-				slice->size0 = align(nblocksy * slice->pitch, 4096);
+				slice->size0 = align(nblocksy * pitch, 4096);
 			} else {
 				slice->size0 = layout->slices[level - 1].size0;
 			}
 		} else {
-			slice->size0 = nblocksy * slice->pitch;
+			slice->size0 = nblocksy * pitch;
 		}
 
 		layout->size += slice->size0 * depth * layers_in_level;
@@ -243,13 +237,11 @@ fdl6_layout(struct fdl_layout *layout,
 			/* with UBWC every level is aligned to 4K */
 			layout->size = align(layout->size, 4096);
 
-			uint32_t meta_pitch = align(u_minify(ubwc_width0, level),
-					RGB_TILE_WIDTH_ALIGNMENT);
+			uint32_t meta_pitch = fdl_ubwc_pitch(layout, level);
 			uint32_t meta_height = align(u_minify(ubwc_height0, level),
 					ubwc_tile_height_alignment);
 
 			ubwc_slice->size0 = align(meta_pitch * meta_height, UBWC_PLANE_SIZE_ALIGNMENT);
-			ubwc_slice->pitch = meta_pitch;
 			ubwc_slice->offset = offset + layout->ubwc_layer_size;
 			layout->ubwc_layer_size += ubwc_slice->size0;
 		}

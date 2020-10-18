@@ -83,14 +83,12 @@ nir_lower_global_vars_to_local(nir_shader *shader)
       }
    }
 
-   nir_foreach_variable_safe(var, &shader->globals) {
+   nir_foreach_variable_with_modes_safe(var, shader, nir_var_shader_temp) {
       struct hash_entry *entry = _mesa_hash_table_search(var_func_table, var);
       if (!entry)
          continue;
 
       nir_function_impl *impl = entry->data;
-
-      assert(var->data.mode == nir_var_shader_temp);
 
       if (impl != NULL) {
          exec_node_remove(&var->node);

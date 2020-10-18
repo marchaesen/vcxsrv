@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<database xmlns="http://nouveau.freedesktop.org/"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
+
+<!--
+	This documents the internal register space used by the CP firmware since
+	the afuc instruction set was introduced.
+-->
+
+<domain name="A5XX_CONTROL_REG" width="32">
+	<reg64 name="IB1_BASE" offset="0x0b0"/>
+	<reg32 name="IB1_DWORDS" offset="0x0b2"/>
+	<reg64 name="IB2_BASE" offset="0x0b4"/>
+	<reg32 name="IB2_DWORDS" offset="0x0b6"/>
+
+	<doc>
+		To use these, write the address and number of dwords, then read
+		the result from $addr.
+	</doc>
+	<reg64 name="MEM_READ_ADDR" offset="0x0b8"/>
+	<reg32 name="MEM_READ_DWORDS" offset="0x0ba"/>
+</domain>
+
+<domain name="A6XX_CONTROL_REG" width="32">
+	<reg32 name="RB_RPTR" offset="0x001"/>
+	<doc>
+		Instruction to jump to when the CP is preempted to perform a
+		context switch, initialized to entry 15 of the jump table at
+		bootup.
+	</doc>
+	<reg32 name="PREEMPT_INSTR" offset="0x004"/>
+
+	<reg64 name="IB1_BASE" offset="0x010"/>
+	<reg32 name="IB1_DWORDS" offset="0x012"/>
+	<reg64 name="IB2_BASE" offset="0x014"/>
+	<reg32 name="IB2_DWORDS" offset="0x016"/>
+
+	<reg64 name="MEM_READ_ADDR" offset="0x018"/>
+	<reg32 name="MEM_READ_DWORDS" offset="0x01a"/>
+
+	<reg32 name="REG_WRITE_ADDR" offset="0x024"/>
+	<doc>
+		Writing to this triggers a register write and auto-increments
+		REG_WRITE_ADDR.
+	</doc>
+	<reg32 name="REG_WRITE" offset="0x025"/>
+
+	<doc> After setting these, read result from $addr2 </doc>
+	<reg32 name="REG_READ_DWORDS" offset="0x026"/>
+	<reg32 name="REG_READ_ADDR" offset="0x027"/>
+
+        <doc>
+                Write to increase WFI_PEND_CTR, decremented by WFI_PEND_DECR
+                pipe register.
+        </doc>
+	<reg32 name="WFI_PEND_INCR" offset="0x030"/>
+	<reg32 name="QUERY_PEND_INCR" offset="0x031"/>
+	<reg32 name="CACHE_FLUSH_PEND_INCR" offset="0x031"/>
+
+	<reg32 name="WFI_PEND_CTR" offset="0x038"/>
+	<reg32 name="QUERY_PEND_CTR" offset="0x039"/>
+	<reg32 name="CACHE_FLUSH_PEND_CTR" offset="0x03a"/>
+
+	<reg32 name="DRAW_STATE_SEL" offset="0x041"/>
+	<reg32 name="DRAW_STATE_ACTIVE_BITMASK" offset="0x049"/>
+	<reg32 name="DRAW_STATE_SET" offset="0x04a"/>
+
+	<doc> Controls whether RB, IB1, or IB2 is executed </doc>
+	<reg32 name="IB_LEVEL" offset="0x054"/>
+
+	<doc> Controls high 32 bits used by load and store afuc instructions </doc>
+	<reg32 name="LOAD_STORE_HI" offset="0x058"/>
+
+	<doc> Used to initialize the jump table for handling packets at bootup </doc>
+	<reg32 name="PACKET_TABLE_WRITE_ADDR" offset="0x060"/>
+	<reg32 name="PACKET_TABLE_WRITE" offset="0x061"/>
+
+	<reg32 name="PREEMPT_ENABLE" offset="0x071"/>
+	<reg32 name="SECURE_MODE" offset="0x075"/>
+
+	<!--
+		Note: I think that registers above 0x100 are actually just a
+		scratch space which can be used by firmware however it wants,
+		so these might change if the the firmware is updated.
+        -->
+
+	<doc>
+		These are addresses of various preemption records for the
+		current context. When context switching, the CP will save the
+		current state into these buffers, restore the state of the
+		next context from the buffers in the corresponding
+		CP_CONTEXT_SWITCH_PRIV_* registers written by the kernel,
+		then set these internal registers to the contents of
+		those registers. The kernel sets the initial values via
+		CP_SET_PSEUDO_REG on startup, and from then on the firmware
+		keeps track of them.
+	</doc>
+	<reg64 name="SAVE_REGISTER_SMMU_INFO" offset="0x110"/>
+	<reg64 name="SAVE_REGISTER_PRIV_NON_SECURE" offset="0x112"/>
+	<reg64 name="SAVE_REGISTER_PRIV_SECURE" offset="0x114"/>
+	<reg64 name="SAVE_REGISTER_NON_PRIV" offset="0x116"/>
+	<reg64 name="SAVE_REGISTER_COUNTER" offset="0x118"/>
+
+	<doc>
+		Used only during preemption, saved and restored from the "info"
+		field of a6xx_preemption_record. From the downstream kernel:
+
+		"Type of record. Written non-zero (usually) by CP.
+		we must set to zero for all ringbuffers."
+	</doc>
+
+	<reg32 name="PREEMPTION_INFO" offset="0x126"/>
+
+	<doc>
+		Set by SET_MARKER, used to conditionally execute
+		CP_COND_REG_EXEC and draw states.
+	</doc>
+	<reg32 name="MODE_BITMASK" offset="0x12b"/>
+
+	<reg32 name="SCRATCH_REG0" offset="0x170"/>
+	<reg32 name="SCRATCH_REG1" offset="0x171"/>
+	<reg32 name="SCRATCH_REG2" offset="0x172"/>
+	<reg32 name="SCRATCH_REG3" offset="0x173"/>
+	<reg32 name="SCRATCH_REG4" offset="0x174"/>
+	<reg32 name="SCRATCH_REG5" offset="0x175"/>
+	<reg32 name="SCRATCH_REG6" offset="0x176"/>
+	<reg32 name="SCRATCH_REG7" offset="0x177"/>
+</domain>
+
+</database>

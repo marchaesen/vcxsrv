@@ -173,7 +173,8 @@ struct entry {
       uint64_t offset; /* sign-extended */
       int64_t offset_signed;
    };
-   uint32_t best_align;
+   uint32_t align_mul;
+   uint32_t align_offset;
 
    nir_instr *instr;
    nir_intrinsic_instr *intrin;
@@ -331,17 +332,6 @@ type_scalar_size_bytes(const struct glsl_type *type)
    return glsl_type_is_boolean(type) ? 4u : glsl_get_bit_size(type) / 8u;
 }
 
-static int
-get_array_stride(const struct glsl_type *type)
-{
-   unsigned explicit_stride = glsl_get_explicit_stride(type);
-   if ((glsl_type_is_matrix(type) &&
-        glsl_matrix_type_is_row_major(type)) ||
-       (glsl_type_is_vector(type) && explicit_stride == 0))
-      return type_scalar_size_bytes(type);
-   return explicit_stride;
-}
-
 static uint64_t
 mask_sign_extend(uint64_t val, unsigned bit_size)
 {
@@ -413,11 +403,7 @@ create_entry_key_from_deref(void *mem_ctx,
       case nir_deref_type_ptr_as_array: {
          assert(parent);
          nir_ssa_def *index = deref->arr.index.ssa;
-         uint32_t stride;
-         if (deref->deref_type == nir_deref_type_ptr_as_array)
-            stride = nir_deref_instr_ptr_as_array_stride(deref);
-         else
-            stride = get_array_stride(parent->type);
+         uint32_t stride = nir_deref_instr_array_stride(deref);
 
          nir_ssa_def *base = index;
          uint64_t offset = 0, base_mul = 1;
@@ -552,6 +538,25 @@ aliasing_modes(nir_variable_mode modes)
    return modes;
 }
 
+static void
+calc_alignment(struct entry *entry)
+{
+   uint32_t align_mul = 31;
+   for (unsigned i = 0; i < entry->key->offset_def_count; i++) {
+      if (entry->key->offset_defs_mul[i])
+         align_mul = MIN2(align_mul, ffsll(entry->key->offset_defs_mul[i]));
+   }
+
+   entry->align_mul = 1u << (align_mul - 1);
+   bool has_align = nir_intrinsic_infos[entry->intrin->intrinsic].index_map[NIR_INTRINSIC_ALIGN_MUL];
+   if (!has_align || entry->align_mul >= nir_intrinsic_align_mul(entry->intrin)) {
+      entry->align_offset = entry->offset % entry->align_mul;
+   } else {
+      entry->align_mul = nir_intrinsic_align_mul(entry->intrin);
+      entry->align_offset = nir_intrinsic_align_offset(entry->intrin);
+   }
+}
+
 static struct entry *
 create_entry(struct vectorize_ctx *ctx,
              const struct intrinsic_info *info,
@@ -561,7 +566,6 @@ create_entry(struct vectorize_ctx *ctx,
    entry->intrin = intrin;
    entry->instr = &intrin->instr;
    entry->info = info;
-   entry->best_align = UINT32_MAX;
    entry->is_store = entry->info->value_src >= 0;
 
    if (entry->info->deref_src >= 0) {
@@ -574,7 +578,7 @@ create_entry(struct vectorize_ctx *ctx,
       nir_ssa_def *base = entry->info->base_src >= 0 ?
                           intrin->src[entry->info->base_src].ssa : NULL;
       uint64_t offset = 0;
-      if (nir_intrinsic_infos[intrin->intrinsic].index_map[NIR_INTRINSIC_BASE])
+      if (nir_intrinsic_has_base(intrin))
          offset += nir_intrinsic_base(intrin);
       entry->key = create_entry_key_from_offset(entry, base, 1, &offset);
       entry->offset = offset;
@@ -586,7 +590,7 @@ create_entry(struct vectorize_ctx *ctx,
    if (entry->info->resource_src >= 0)
       entry->key->resource = intrin->src[entry->info->resource_src].ssa;
 
-   if (nir_intrinsic_infos[intrin->intrinsic].index_map[NIR_INTRINSIC_ACCESS])
+   if (nir_intrinsic_has_access(intrin))
       entry->access = nir_intrinsic_access(intrin);
    else if (entry->key->var)
       entry->access = entry->key->var->data.access;
@@ -597,6 +601,8 @@ create_entry(struct vectorize_ctx *ctx,
    restrict_modes |= nir_var_system_value | nir_var_mem_shared;
    if (get_variable_mode(entry) & restrict_modes)
       entry->access |= ACCESS_RESTRICT;
+
+   calc_alignment(entry);
 
    return entry;
 }
@@ -617,59 +623,6 @@ cast_deref(nir_builder *b, unsigned num_components, unsigned bit_size, nir_deref
       return deref;
 
    return nir_build_deref_cast(b, &deref->dest.ssa, deref->mode, type, 0);
-}
-
-/* Return true if the write mask "write_mask" of a store with "old_bit_size"
- * bits per element can be represented for a store with "new_bit_size" bits per
- * element. */
-static bool
-writemask_representable(unsigned write_mask, unsigned old_bit_size, unsigned new_bit_size)
-{
-   while (write_mask) {
-      int start, count;
-      u_bit_scan_consecutive_range(&write_mask, &start, &count);
-      start *= old_bit_size;
-      count *= old_bit_size;
-      if (start % new_bit_size != 0)
-         return false;
-      if (count % new_bit_size != 0)
-         return false;
-   }
-   return true;
-}
-
-static uint64_t
-gcd(uint64_t a, uint64_t b)
-{
-   while (b) {
-      uint64_t old_b = b;
-      b = a % b;
-      a = old_b;
-   }
-   return a;
-}
-
-static uint32_t
-get_best_align(struct entry *entry)
-{
-   if (entry->best_align != UINT32_MAX)
-      return entry->best_align;
-
-   uint64_t best_align = entry->offset;
-   for (unsigned i = 0; i < entry->key->offset_def_count; i++) {
-      if (!best_align)
-         best_align = entry->key->offset_defs_mul[i];
-      else if (entry->key->offset_defs_mul[i])
-         best_align = gcd(best_align, entry->key->offset_defs_mul[i]);
-   }
-
-   if (nir_intrinsic_infos[entry->intrin->intrinsic].index_map[NIR_INTRINSIC_ALIGN_MUL])
-      best_align = MAX2(best_align, nir_intrinsic_align(entry->intrin));
-
-   /* ensure the result is a power of two that fits in a int32_t */
-   entry->best_align = gcd(best_align, 1u << 30);
-
-   return entry->best_align;
 }
 
 /* Return true if "new_bit_size" is a usable bit size for a vectorized load/store
@@ -695,8 +648,10 @@ new_bitsize_acceptable(struct vectorize_ctx *ctx, unsigned new_bit_size,
    if (new_bit_size / common_bit_size > NIR_MAX_VEC_COMPONENTS)
       return false;
 
-   if (!ctx->callback(get_best_align(low), new_bit_size, new_num_components,
-                      high_offset, low->intrin, high->intrin))
+   if (!ctx->callback(low->align_mul,
+                      low->align_offset,
+                      new_bit_size, new_num_components,
+                      low->intrin, high->intrin))
       return false;
 
    if (low->is_store) {
@@ -709,31 +664,15 @@ new_bitsize_acceptable(struct vectorize_ctx *ctx, unsigned new_bit_size,
          return false;
 
       unsigned write_mask = nir_intrinsic_write_mask(low->intrin);
-      if (!writemask_representable(write_mask, low_size, new_bit_size))
+      if (!nir_component_mask_can_reinterpret(write_mask, get_bit_size(low), new_bit_size))
          return false;
 
       write_mask = nir_intrinsic_write_mask(high->intrin);
-      if (!writemask_representable(write_mask, high_size, new_bit_size))
+      if (!nir_component_mask_can_reinterpret(write_mask, get_bit_size(high), new_bit_size))
          return false;
    }
 
    return true;
-}
-
-/* Updates a write mask, "write_mask", so that it can be used with a
- * "new_bit_size"-bit store instead of a "old_bit_size"-bit store. */
-static uint32_t
-update_writemask(unsigned write_mask, unsigned old_bit_size, unsigned new_bit_size)
-{
-   uint32_t res = 0;
-   while (write_mask) {
-      int start, count;
-      u_bit_scan_consecutive_range(&write_mask, &start, &count);
-      start = start * old_bit_size / new_bit_size;
-      count = count * old_bit_size / new_bit_size;
-      res |= ((1 << count) - 1) << start;
-   }
-   return res;
 }
 
 static nir_deref_instr *subtract_deref(nir_builder *b, nir_deref_instr *deref, int64_t offset)
@@ -741,8 +680,8 @@ static nir_deref_instr *subtract_deref(nir_builder *b, nir_deref_instr *deref, i
    /* avoid adding another deref to the path */
    if (deref->deref_type == nir_deref_type_ptr_as_array &&
        nir_src_is_const(deref->arr.index) &&
-       offset % nir_deref_instr_ptr_as_array_stride(deref) == 0) {
-      unsigned stride = nir_deref_instr_ptr_as_array_stride(deref);
+       offset % nir_deref_instr_array_stride(deref) == 0) {
+      unsigned stride = nir_deref_instr_array_stride(deref);
       nir_ssa_def *index = nir_imm_intN_t(b, nir_src_as_int(deref->arr.index) - offset / stride,
                                           deref->dest.ssa.bit_size);
       return nir_build_deref_ptr_as_array(b, nir_deref_instr_parent(deref), index);
@@ -762,20 +701,6 @@ static nir_deref_instr *subtract_deref(nir_builder *b, nir_deref_instr *deref, i
                                 glsl_scalar_type(GLSL_TYPE_UINT8), 1);
    return nir_build_deref_ptr_as_array(
       b, deref, nir_imm_intN_t(b, -offset, deref->dest.ssa.bit_size));
-}
-
-static bool update_align(struct entry *entry)
-{
-   bool has_align_index =
-      nir_intrinsic_infos[entry->intrin->intrinsic].index_map[NIR_INTRINSIC_ALIGN_MUL];
-   if (has_align_index) {
-      unsigned align = get_best_align(entry);
-      if (align != nir_intrinsic_align(entry->intrin)) {
-         nir_intrinsic_set_align(entry->intrin, align, 0);
-         return true;
-      }
-   }
-   return false;
 }
 
 static void
@@ -850,17 +775,24 @@ vectorize_loads(nir_builder *b, struct vectorize_ctx *ctx,
    }
 
    /* update base/align */
-   bool has_base_index =
-      nir_intrinsic_infos[first->intrin->intrinsic].index_map[NIR_INTRINSIC_BASE];
-
-   if (first != low && has_base_index)
+   if (first != low && nir_intrinsic_has_base(first->intrin))
       nir_intrinsic_set_base(first->intrin, nir_intrinsic_base(low->intrin));
+
+   if (nir_intrinsic_has_range_base(first->intrin)) {
+      uint32_t low_base = nir_intrinsic_range_base(low->intrin);
+      uint32_t high_base = nir_intrinsic_range_base(high->intrin);
+      uint32_t low_end = low_base + nir_intrinsic_range(low->intrin);
+      uint32_t high_end = high_base + nir_intrinsic_range(high->intrin);
+
+      nir_intrinsic_set_range_base(first->intrin, low_base);
+      nir_intrinsic_set_range(first->intrin, MAX2(low_end, high_end) - low_base);
+   }
 
    first->key = low->key;
    first->offset = low->offset;
-   first->best_align = get_best_align(low);
 
-   update_align(first);
+   first->align_mul = low->align_mul;
+   first->align_offset = low->align_offset;
 
    nir_instr_remove(second->instr);
 }
@@ -880,8 +812,12 @@ vectorize_stores(nir_builder *b, struct vectorize_ctx *ctx,
    /* get new writemasks */
    uint32_t low_write_mask = nir_intrinsic_write_mask(low->intrin);
    uint32_t high_write_mask = nir_intrinsic_write_mask(high->intrin);
-   low_write_mask = update_writemask(low_write_mask, get_bit_size(low), new_bit_size);
-   high_write_mask = update_writemask(high_write_mask, get_bit_size(high), new_bit_size);
+   low_write_mask = nir_component_mask_reinterpret(low_write_mask,
+                                                   get_bit_size(low),
+                                                   new_bit_size);
+   high_write_mask = nir_component_mask_reinterpret(high_write_mask,
+                                                    get_bit_size(high),
+                                                    new_bit_size);
    high_write_mask <<= high_start / new_bit_size;
 
    uint32_t write_mask = low_write_mask | high_write_mask;
@@ -935,17 +871,14 @@ vectorize_stores(nir_builder *b, struct vectorize_ctx *ctx,
    }
 
    /* update base/align */
-   bool has_base_index =
-      nir_intrinsic_infos[second->intrin->intrinsic].index_map[NIR_INTRINSIC_BASE];
-
-   if (second != low && has_base_index)
+   if (second != low && nir_intrinsic_has_base(second->intrin))
       nir_intrinsic_set_base(second->intrin, nir_intrinsic_base(low->intrin));
 
    second->key = low->key;
    second->offset = low->offset;
-   second->best_align = get_best_align(low);
 
-   update_align(second);
+   second->align_mul = low->align_mul;
+   second->align_offset = low->align_offset;
 
    list_del(&first->head);
    nir_instr_remove(first->instr);
@@ -1154,6 +1087,18 @@ try_vectorize(nir_function_impl *impl, struct vectorize_ctx *ctx,
 }
 
 static bool
+update_align(struct entry *entry)
+{
+   if (nir_intrinsic_has_align_mul(entry->intrin) &&
+       (entry->align_mul != nir_intrinsic_align_mul(entry->intrin) ||
+        entry->align_offset != nir_intrinsic_align_offset(entry->intrin))) {
+      nir_intrinsic_set_align(entry->intrin, entry->align_mul, entry->align_offset);
+      return true;
+   }
+   return false;
+}
+
+static bool
 vectorize_entries(struct vectorize_ctx *ctx, nir_function_impl *impl, struct hash_table *ht)
 {
    if (!ht)
@@ -1169,31 +1114,39 @@ vectorize_entries(struct vectorize_ctx *ctx, nir_function_impl *impl, struct has
             util_dynarray_num_elements(arr, struct entry *),
             sizeof(struct entry *), &sort_entries);
 
-      unsigned i = 0;
-      for (; i < util_dynarray_num_elements(arr, struct entry*) - 1; i++) {
-         struct entry *low = *util_dynarray_element(arr, struct entry *, i);
-         struct entry *high = *util_dynarray_element(arr, struct entry *, i + 1);
+      unsigned num_entries = util_dynarray_num_elements(arr, struct entry *);
 
-         uint64_t diff = high->offset_signed - low->offset_signed;
-         if (diff > get_bit_size(low) / 8u * low->intrin->num_components) {
-            progress |= update_align(low);
+      for (unsigned first_idx = 0; first_idx < num_entries; first_idx++) {
+         struct entry *low = *util_dynarray_element(arr, struct entry *, first_idx);
+         if (!low)
             continue;
+
+         for (unsigned second_idx = first_idx + 1; second_idx < num_entries; second_idx++) {
+            struct entry *high = *util_dynarray_element(arr, struct entry *, second_idx);
+            if (!high)
+               continue;
+
+            uint64_t diff = high->offset_signed - low->offset_signed;
+            if (diff > get_bit_size(low) / 8u * low->intrin->num_components)
+               break;
+
+            struct entry *first = low->index < high->index ? low : high;
+            struct entry *second = low->index < high->index ? high : low;
+
+            if (try_vectorize(impl, ctx, low, high, first, second)) {
+               low = low->is_store ? second : first;
+               *util_dynarray_element(arr, struct entry *, second_idx) = NULL;
+               progress = true;
+            }
          }
 
-         struct entry *first = low->index < high->index ? low : high;
-         struct entry *second = low->index < high->index ? high : low;
-
-         if (try_vectorize(impl, ctx, low, high, first, second)) {
-            *util_dynarray_element(arr, struct entry *, i) = NULL;
-            *util_dynarray_element(arr, struct entry *, i + 1) = low->is_store ? second : first;
-            progress = true;
-         } else {
-            progress |= update_align(low);
-         }
+         *util_dynarray_element(arr, struct entry *, first_idx) = low;
       }
 
-      struct entry *last = *util_dynarray_element(arr, struct entry *, i);
-      progress |= update_align(last);
+      util_dynarray_foreach(arr, struct entry *, elem) {
+         if (*elem)
+            progress |= update_align(*elem);
+      }
    }
 
    _mesa_hash_table_clear(ht, delete_entry_dynarray);
@@ -1217,6 +1170,13 @@ handle_barrier(struct vectorize_ctx *ctx, bool *progress, nir_function_impl *imp
       /* prevent speculative loads/stores */
       case nir_intrinsic_discard_if:
       case nir_intrinsic_discard:
+      case nir_intrinsic_terminate_if:
+      case nir_intrinsic_terminate:
+         modes = nir_var_all;
+         break;
+      case nir_intrinsic_demote_if:
+      case nir_intrinsic_demote:
+         acquire = false;
          modes = nir_var_all;
          break;
       case nir_intrinsic_memory_barrier_buffer:
@@ -1226,10 +1186,12 @@ handle_barrier(struct vectorize_ctx *ctx, bool *progress, nir_function_impl *imp
          modes = nir_var_mem_shared;
          break;
       case nir_intrinsic_scoped_barrier:
-	 if (nir_intrinsic_memory_scope(intrin) == NIR_SCOPE_NONE)
+         if (nir_intrinsic_memory_scope(intrin) == NIR_SCOPE_NONE)
             break;
 
-         modes = nir_intrinsic_memory_modes(intrin);
+         modes = nir_intrinsic_memory_modes(intrin) & (nir_var_mem_ssbo |
+                                                       nir_var_mem_shared |
+                                                       nir_var_mem_global);
          acquire = nir_intrinsic_memory_semantics(intrin) & NIR_MEMORY_ACQUIRE;
          release = nir_intrinsic_memory_semantics(intrin) & NIR_MEMORY_RELEASE;
          switch (nir_intrinsic_memory_scope(intrin)) {
@@ -1359,12 +1321,12 @@ nir_opt_load_store_vectorize(nir_shader *shader, nir_variable_mode modes,
    ctx->callback = callback;
    ctx->robust_modes = robust_modes;
 
-   nir_index_vars(shader, NULL, modes);
+   nir_shader_index_vars(shader, modes);
 
    nir_foreach_function(function, shader) {
       if (function->impl) {
          if (modes & nir_var_function_temp)
-            nir_index_vars(shader, function->impl, nir_var_function_temp);
+            nir_function_impl_index_vars(function->impl);
 
          nir_foreach_block(block, function->impl)
             progress |= process_block(function->impl, ctx, block);
