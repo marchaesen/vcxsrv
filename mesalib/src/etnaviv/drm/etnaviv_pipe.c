@@ -26,11 +26,6 @@
 
 #include "etnaviv_priv.h"
 
-int etna_pipe_wait(struct etna_pipe *pipe, uint32_t timestamp, uint32_t ms)
-{
-	return etna_pipe_wait_ns(pipe, timestamp, ms * 1000000);
-}
-
 int etna_pipe_wait_ns(struct etna_pipe *pipe, uint32_t timestamp, uint64_t ns)
 {
 	struct etna_device *dev = pipe->gpu->dev;

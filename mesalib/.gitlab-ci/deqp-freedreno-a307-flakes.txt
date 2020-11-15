@@ -11,4 +11,5 @@ dEQP-GLES3.functional.shaders.linkage.varying.interpolation.centroid
 dEQP-GLES3.functional.shaders.texture_functions.texturegradoffset.*
 dEQP-GLES3.functional.shaders.texture_functions.textureprojgradoffset.*
 dEQP-GLES3.functional.texture.units.4_units.only_3d.*
+dEQP-GLES3.functional.transform_feedback.random.interleaved.triangles.8
 dEQP-GLES3.functional.vertex_arrays.single_attribute.*

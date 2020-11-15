@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = libXext.la libXvidmode.la
+noinst_LTLIBRARIES = libXext.la libXvidmode.la libhashtable.la
 
 AM_CFLAGS = $(DIX_CFLAGS)
 
@@ -35,7 +35,7 @@ BUILTIN_SRCS  += $(XV_SRCS)
 endif
 
 # XResource extension: lets clients get data about per-client resource usage
-RES_SRCS = hashtable.c hashtable.h xres.c
+RES_SRCS = xres.c
 if RES
 BUILTIN_SRCS  += $(RES_SRCS)
 endif
@@ -95,9 +95,15 @@ endif
 
 libXext_la_SOURCES =		$(BUILTIN_SRCS)
 libXext_la_LIBADD =		$(BUILTIN_LIBS)
+if RES
+libXext_la_LIBADD += libhashtable.la
+endif
 
 # XVidMode extension
 libXvidmode_la_SOURCES = vidmode.c
+
+#Hashtable
+libhashtable_la_SOURCES = hashtable.c hashtable.h
 
 EXTRA_DIST = \
 	$(MITSHM_SRCS) \

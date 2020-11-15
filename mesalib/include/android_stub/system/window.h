@@ -34,14 +34,15 @@
 #include <cutils/native_handle.h>
 #include <errno.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/cdefs.h>
 #include <system/graphics.h>
 #include <unistd.h>
-#include <stdbool.h>
 
-// system/window.h is a superset of the vndk
+// system/window.h is a superset of the vndk and apex apis
+#include <apex/window.h>
 #include <vndk/window.h>
 
 
@@ -62,9 +63,9 @@ __BEGIN_DECLS
 
 /* attributes queriable with query() */
 enum {
-    NATIVE_WINDOW_WIDTH     = 0,
-    NATIVE_WINDOW_HEIGHT    = 1,
-    NATIVE_WINDOW_FORMAT    = 2,
+    NATIVE_WINDOW_WIDTH = 0,
+    NATIVE_WINDOW_HEIGHT = 1,
+    NATIVE_WINDOW_FORMAT = 2,
 
     /* see ANativeWindowQuery in vndk/window.h */
     NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS = ANATIVEWINDOW_QUERY_MIN_UNDEQUEUED_BUFFERS,
@@ -91,7 +92,6 @@ enum {
      * likely be removed in the near future.
      */
     NATIVE_WINDOW_CONCRETE_TYPE = 5,
-
 
     /*
      * Default width and height of ANativeWindow buffers, these are the
@@ -147,11 +147,15 @@ enum {
 
     /*
      * Returns the duration of the last dequeueBuffer call in microseconds
+     * Deprecated: please use NATIVE_WINDOW_GET_LAST_DEQUEUE_DURATION in
+     * perform() instead, which supports nanosecond precision.
      */
     NATIVE_WINDOW_LAST_DEQUEUE_DURATION = 14,
 
     /*
      * Returns the duration of the last queueBuffer call in microseconds
+     * Deprecated: please use NATIVE_WINDOW_GET_LAST_QUEUE_DURATION in
+     * perform() instead, which supports nanosecond precision.
      */
     NATIVE_WINDOW_LAST_QUEUE_DURATION = 15,
 
@@ -203,41 +207,54 @@ enum {
  */
 enum {
     // clang-format off
-    NATIVE_WINDOW_SET_USAGE                     =  0,   /* deprecated */
-    NATIVE_WINDOW_CONNECT                       =  1,   /* deprecated */
-    NATIVE_WINDOW_DISCONNECT                    =  2,   /* deprecated */
-    NATIVE_WINDOW_SET_CROP                      =  3,   /* private */
-    NATIVE_WINDOW_SET_BUFFER_COUNT              =  4,
-    NATIVE_WINDOW_SET_BUFFERS_GEOMETRY          =  5,   /* deprecated */
-    NATIVE_WINDOW_SET_BUFFERS_TRANSFORM         =  6,
-    NATIVE_WINDOW_SET_BUFFERS_TIMESTAMP         =  7,
-    NATIVE_WINDOW_SET_BUFFERS_DIMENSIONS        =  8,
-    NATIVE_WINDOW_SET_BUFFERS_FORMAT            =  9,
-    NATIVE_WINDOW_SET_SCALING_MODE              = 10,   /* private */
-    NATIVE_WINDOW_LOCK                          = 11,   /* private */
-    NATIVE_WINDOW_UNLOCK_AND_POST               = 12,   /* private */
-    NATIVE_WINDOW_API_CONNECT                   = 13,   /* private */
-    NATIVE_WINDOW_API_DISCONNECT                = 14,   /* private */
-    NATIVE_WINDOW_SET_BUFFERS_USER_DIMENSIONS   = 15,   /* private */
-    NATIVE_WINDOW_SET_POST_TRANSFORM_CROP       = 16,   /* deprecated, unimplemented */
-    NATIVE_WINDOW_SET_BUFFERS_STICKY_TRANSFORM  = 17,   /* private */
-    NATIVE_WINDOW_SET_SIDEBAND_STREAM           = 18,
-    NATIVE_WINDOW_SET_BUFFERS_DATASPACE         = 19,
-    NATIVE_WINDOW_SET_SURFACE_DAMAGE            = 20,   /* private */
-    NATIVE_WINDOW_SET_SHARED_BUFFER_MODE        = 21,
-    NATIVE_WINDOW_SET_AUTO_REFRESH              = 22,
-    NATIVE_WINDOW_GET_REFRESH_CYCLE_DURATION    = 23,
-    NATIVE_WINDOW_GET_NEXT_FRAME_ID             = 24,
-    NATIVE_WINDOW_ENABLE_FRAME_TIMESTAMPS       = 25,
-    NATIVE_WINDOW_GET_COMPOSITOR_TIMING         = 26,
-    NATIVE_WINDOW_GET_FRAME_TIMESTAMPS          = 27,
-    NATIVE_WINDOW_GET_WIDE_COLOR_SUPPORT        = 28,
-    NATIVE_WINDOW_GET_HDR_SUPPORT               = 29,
-    NATIVE_WINDOW_SET_USAGE64                   = 30,
-    NATIVE_WINDOW_GET_CONSUMER_USAGE64          = 31,
-    NATIVE_WINDOW_SET_BUFFERS_SMPTE2086_METADATA = 32,
-    NATIVE_WINDOW_SET_BUFFERS_CTA861_3_METADATA = 33,
+    NATIVE_WINDOW_SET_USAGE                       =  ANATIVEWINDOW_PERFORM_SET_USAGE,   /* deprecated */
+    NATIVE_WINDOW_CONNECT                         =  1,   /* deprecated */
+    NATIVE_WINDOW_DISCONNECT                      =  2,   /* deprecated */
+    NATIVE_WINDOW_SET_CROP                        =  3,   /* private */
+    NATIVE_WINDOW_SET_BUFFER_COUNT                =  4,
+    NATIVE_WINDOW_SET_BUFFERS_GEOMETRY            =  ANATIVEWINDOW_PERFORM_SET_BUFFERS_GEOMETRY,   /* deprecated */
+    NATIVE_WINDOW_SET_BUFFERS_TRANSFORM           =  6,
+    NATIVE_WINDOW_SET_BUFFERS_TIMESTAMP           =  7,
+    NATIVE_WINDOW_SET_BUFFERS_DIMENSIONS          =  8,
+    NATIVE_WINDOW_SET_BUFFERS_FORMAT              =  ANATIVEWINDOW_PERFORM_SET_BUFFERS_FORMAT,
+    NATIVE_WINDOW_SET_SCALING_MODE                = 10,   /* private */
+    NATIVE_WINDOW_LOCK                            = 11,   /* private */
+    NATIVE_WINDOW_UNLOCK_AND_POST                 = 12,   /* private */
+    NATIVE_WINDOW_API_CONNECT                     = 13,   /* private */
+    NATIVE_WINDOW_API_DISCONNECT                  = 14,   /* private */
+    NATIVE_WINDOW_SET_BUFFERS_USER_DIMENSIONS     = 15,   /* private */
+    NATIVE_WINDOW_SET_POST_TRANSFORM_CROP         = 16,   /* deprecated, unimplemented */
+    NATIVE_WINDOW_SET_BUFFERS_STICKY_TRANSFORM    = 17,   /* private */
+    NATIVE_WINDOW_SET_SIDEBAND_STREAM             = 18,
+    NATIVE_WINDOW_SET_BUFFERS_DATASPACE           = 19,
+    NATIVE_WINDOW_SET_SURFACE_DAMAGE              = 20,   /* private */
+    NATIVE_WINDOW_SET_SHARED_BUFFER_MODE          = 21,
+    NATIVE_WINDOW_SET_AUTO_REFRESH                = 22,
+    NATIVE_WINDOW_GET_REFRESH_CYCLE_DURATION      = 23,
+    NATIVE_WINDOW_GET_NEXT_FRAME_ID               = 24,
+    NATIVE_WINDOW_ENABLE_FRAME_TIMESTAMPS         = 25,
+    NATIVE_WINDOW_GET_COMPOSITOR_TIMING           = 26,
+    NATIVE_WINDOW_GET_FRAME_TIMESTAMPS            = 27,
+    NATIVE_WINDOW_GET_WIDE_COLOR_SUPPORT          = 28,
+    NATIVE_WINDOW_GET_HDR_SUPPORT                 = 29,
+    NATIVE_WINDOW_SET_USAGE64                     = ANATIVEWINDOW_PERFORM_SET_USAGE64,
+    NATIVE_WINDOW_GET_CONSUMER_USAGE64            = 31,
+    NATIVE_WINDOW_SET_BUFFERS_SMPTE2086_METADATA  = 32,
+    NATIVE_WINDOW_SET_BUFFERS_CTA861_3_METADATA   = 33,
     NATIVE_WINDOW_SET_BUFFERS_HDR10_PLUS_METADATA = 34,
+    NATIVE_WINDOW_SET_AUTO_PREROTATION            = 35,
+    NATIVE_WINDOW_GET_LAST_DEQUEUE_START          = 36,    /* private */
+    NATIVE_WINDOW_SET_DEQUEUE_TIMEOUT             = 37,    /* private */
+    NATIVE_WINDOW_GET_LAST_DEQUEUE_DURATION       = 38,    /* private */
+    NATIVE_WINDOW_GET_LAST_QUEUE_DURATION         = 39,    /* private */
+    NATIVE_WINDOW_SET_FRAME_RATE                  = 40,
+    NATIVE_WINDOW_SET_CANCEL_INTERCEPTOR          = 41,    /* private */
+    NATIVE_WINDOW_SET_DEQUEUE_INTERCEPTOR         = 42,    /* private */
+    NATIVE_WINDOW_SET_PERFORM_INTERCEPTOR         = 43,    /* private */
+    NATIVE_WINDOW_SET_QUEUE_INTERCEPTOR           = 44,    /* private */
+    NATIVE_WINDOW_ALLOCATE_BUFFERS                = 45,    /* private */
+    NATIVE_WINDOW_GET_LAST_QUEUED_BUFFER          = 46,    /* private */
+    NATIVE_WINDOW_SET_QUERY_INTERCEPTOR           = 47,    /* private */
     // clang-format on
 };
 
@@ -983,6 +1000,101 @@ static inline int native_window_get_hdr_support(struct ANativeWindow* window,
 static inline int native_window_get_consumer_usage(struct ANativeWindow* window,
                                                    uint64_t* outUsage) {
     return window->perform(window, NATIVE_WINDOW_GET_CONSUMER_USAGE64, outUsage);
+}
+
+/*
+ * native_window_set_auto_prerotation(..., autoPrerotation)
+ * Enable/disable the auto prerotation at buffer allocation when the buffer size
+ * is driven by the consumer.
+ *
+ * When buffer size is driven by the consumer and the transform hint specifies
+ * a 90 or 270 degree rotation, if auto prerotation is enabled, the width and
+ * height used for dequeueBuffer will be additionally swapped.
+ */
+static inline int native_window_set_auto_prerotation(struct ANativeWindow* window,
+                                                     bool autoPrerotation) {
+    return window->perform(window, NATIVE_WINDOW_SET_AUTO_PREROTATION, autoPrerotation);
+}
+
+static inline int native_window_set_frame_rate(struct ANativeWindow* window, float frameRate,
+                                               int8_t compatibility) {
+    return window->perform(window, NATIVE_WINDOW_SET_FRAME_RATE, (double)frameRate,
+                           (int)compatibility);
+}
+
+// ------------------------------------------------------------------------------------------------
+// Candidates for APEX visibility
+// These functions are planned to be made stable for APEX modules, but have not
+// yet been stabilized to a specific api version.
+// ------------------------------------------------------------------------------------------------
+
+/**
+ * Retrieves the last queued buffer for this window, along with the fence that
+ * fires when the buffer is ready to be read, and the 4x4 coordinate
+ * transform matrix that should be applied to the buffer's content. The
+ * transform matrix is represented in column-major order.
+ *
+ * If there was no buffer previously queued, then outBuffer will be NULL and
+ * the value of outFence will be -1.
+ *
+ * Note that if outBuffer is not NULL, then the caller will hold a reference
+ * onto the buffer. Accordingly, the caller must call AHardwareBuffer_release
+ * when the buffer is no longer needed so that the system may reclaim the
+ * buffer.
+ *
+ * \return NO_ERROR on success.
+ * \return NO_MEMORY if there was insufficient memory.
+ */
+static inline int ANativeWindow_getLastQueuedBuffer(ANativeWindow* window,
+                                                    AHardwareBuffer** outBuffer, int* outFence,
+                                                    float outTransformMatrix[16]) {
+    return window->perform(window, NATIVE_WINDOW_GET_LAST_QUEUED_BUFFER, outBuffer, outFence,
+                           outTransformMatrix);
+}
+
+/**
+ * Retrieves an identifier for the next frame to be queued by this window.
+ *
+ * \return the next frame id.
+ */
+static inline int64_t ANativeWindow_getNextFrameId(ANativeWindow* window) {
+    int64_t value;
+    window->perform(window, NATIVE_WINDOW_GET_NEXT_FRAME_ID, &value);
+    return value;
+}
+
+/**
+ * Prototype of the function that an ANativeWindow implementation would call
+ * when ANativeWindow_query is called.
+ */
+typedef int (*ANativeWindow_queryFn)(const ANativeWindow* window, int what, int* value);
+
+/**
+ * Prototype of the function that intercepts an invocation of
+ * ANativeWindow_queryFn, along with a data pointer that's passed by the
+ * caller who set the interceptor, as well as arguments that would be
+ * passed to ANativeWindow_queryFn if it were to be called.
+ */
+typedef int (*ANativeWindow_queryInterceptor)(const ANativeWindow* window,
+                                                ANativeWindow_queryFn perform, void* data,
+                                                int what, int* value);
+
+/**
+ * Registers an interceptor for ANativeWindow_query. Instead of calling
+ * the underlying query function, instead the provided interceptor is
+ * called, which may optionally call the underlying query function. An
+ * optional data pointer is also provided to side-channel additional arguments.
+ *
+ * Note that usage of this should only be used for specialized use-cases by
+ * either the system partition or to Mainline modules. This should never be
+ * exposed to NDK or LL-NDK.
+ *
+ * Returns NO_ERROR on success, -errno if registration failed.
+ */
+static inline int ANativeWindow_setQueryInterceptor(ANativeWindow* window,
+                                            ANativeWindow_queryInterceptor interceptor,
+                                            void* data) {
+    return window->perform(window, NATIVE_WINDOW_SET_QUERY_INTERCEPTOR, interceptor, data);
 }
 
 __END_DECLS

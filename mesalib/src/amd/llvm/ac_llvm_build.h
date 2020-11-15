@@ -118,6 +118,7 @@ struct ac_llvm_context {
     * False = demoted lanes
     */
    LLVMValueRef postponed_kill;
+   bool conditional_demote_seen;
 
    /* Since ac_nir_translate makes a local copy of ac_llvm_context, there
     * are two ac_llvm_contexts. Declare a pointer here, so that the control
@@ -466,8 +467,6 @@ void ac_build_else(struct ac_llvm_context *ctx, int lable_id);
 void ac_build_endif(struct ac_llvm_context *ctx, int lable_id);
 void ac_build_endloop(struct ac_llvm_context *ctx, int lable_id);
 void ac_build_ifcc(struct ac_llvm_context *ctx, LLVMValueRef cond, int label_id);
-void ac_build_if(struct ac_llvm_context *ctx, LLVMValueRef value, int lable_id);
-void ac_build_uif(struct ac_llvm_context *ctx, LLVMValueRef value, int lable_id);
 
 LLVMValueRef ac_build_alloca(struct ac_llvm_context *ac, LLVMTypeRef type, const char *name);
 LLVMValueRef ac_build_alloca_undef(struct ac_llvm_context *ac, LLVMTypeRef type, const char *name);

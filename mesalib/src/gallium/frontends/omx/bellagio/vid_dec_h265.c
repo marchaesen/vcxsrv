@@ -598,6 +598,9 @@ static void picture_parameter_set(vid_dec_PrivateType *priv,
       }
    }
 
+   if (vl_vlc_bits_left(&rbsp->nal) == 0)
+      return;
+
    /* pps_scaling_list_data_present_flag */
    if (vl_rbsp_u(rbsp, 1))
       scaling_list_data(priv, rbsp, sps);

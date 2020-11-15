@@ -221,10 +221,11 @@ enum bifrost_minmax_mode {
 };
 
 enum bifrost_interp_mode {
-        BIFROST_INTERP_PER_FRAG = 0x0,
+        BIFROST_INTERP_CENTER = 0x0,
         BIFROST_INTERP_CENTROID = 0x1,
-        BIFROST_INTERP_DEFAULT  = 0x2,
-        BIFROST_INTERP_EXPLICIT = 0x3
+        BIFROST_INTERP_SAMPLE  = 0x2,
+        BIFROST_INTERP_EXPLICIT = 0x3,
+        BIFROST_INTERP_NONE = 0x4,
 };
 
 /* Fixed location for gl_FragCoord.zw */

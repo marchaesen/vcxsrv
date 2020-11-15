@@ -1111,10 +1111,14 @@ force_unroll_array_access(loop_info_state *state, nir_deref_instr *deref)
 {
    unsigned array_size = find_array_access_via_induction(state, deref, NULL);
    if (array_size) {
-      if (array_size == state->loop->info->max_trip_count)
+      if ((array_size == state->loop->info->max_trip_count) &&
+          nir_deref_mode_must_be(deref, nir_var_shader_in |
+                                        nir_var_shader_out |
+                                        nir_var_shader_temp |
+                                        nir_var_function_temp))
          return true;
 
-      if (deref->mode & state->indirect_mask)
+      if (nir_deref_mode_must_be(deref, state->indirect_mask))
          return true;
    }
 

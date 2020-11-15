@@ -60,8 +60,7 @@ xkb_symbols "zawgyi" {
 
 	name[Group1]="Burmese Zawgyi";
 	include "level3(ralt_switch)"
-	
-	// Alphanumeric section
+
 	key <AE01> { [ U1041, U100D, U100E, U106F ] };
 	key <AE02> { [ U1042, U1091, U106D ] };
 	key <AE03> { [ U1043, U100B, U106C ] };
@@ -112,7 +111,7 @@ xkb_symbols "zawgyi" {
 	key <AB10> { [ U104B, U104A ] };
 
 	key <BKSL> { [ U104F, U1092 ] };
-	// End alphanumeric section
+
 	include "mm(tilde_switch)"
 };
 

@@ -1,0 +1,18 @@
+# Note: skips lists for CI are just a list of lines that, when
+# non-zero-length and not starting with '#', will regex match to
+# delete lines from the test list.  Be careful.
+
+# Skip the perf/stress tests to keep runtime manageable
+dEQP-GLES[0-9]*.performance.*
+dEQP-GLES[0-9]*.stress.*
+
+# These are really slow on tiling architectures (including llvmpipe).
+dEQP-GLES[0-9]*.functional.flush_finish.*
+
+# Timeout on what looks like an infinite loop in ir3's mark_kill_path()
+dEQP-VK.geometry.layered.cube_array.36_36_12.secondary_cmd_buffer_inherit_framebuffer
+# More timeouts, possibly the same.
+dEQP-VK.geometry.layered.3d.64_64_8.secondary_cmd_buffer_inherit_framebuffer
+dEQP-VK.geometry.layered.cube_array.64_64_12.secondary_cmd_buffer_inherit_framebuffer
+dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_tesse
+dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_odd_spacing

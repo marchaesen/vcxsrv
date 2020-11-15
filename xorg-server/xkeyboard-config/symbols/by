@@ -1,6 +1,4 @@
-// based on
-// belarusian standard keyboard
-// Alexander Mikhailian <mikhailian@altern.org>
+// Belarusian standard keyboard, by Alexander Mikhailian <mikhailian@altern.org>.
 // Reworked to use winkeys by default and russian keymap as base by Paul Lubetsky <vegeek@gmail.com>
 // Added Belarusian-Russian and Russian-Belarusian variants, by Pavel Senchanka <pavel.senchanka@gmail.com>
 // See freedesktop.org bug #23604
@@ -29,8 +27,6 @@ xkb_symbols "legacy" {
 	key <AB10> {        [           slash,        question      ]       };
 	key <BKSL> {        [       backslash,             bar      ]       };
 };
-
-// based on a keyboard map from an 'xkb/symbols/iso3335-3' file
 
 partial alphanumeric_keys
 xkb_symbols "latin" {

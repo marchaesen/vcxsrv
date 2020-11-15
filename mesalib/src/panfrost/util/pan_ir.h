@@ -81,6 +81,9 @@ panfrost_nir_assign_sysvals(struct panfrost_sysvals *ctx, void *memctx, nir_shad
 int
 panfrost_sysval_for_instr(nir_instr *instr, nir_dest *dest);
 
+bool
+nir_undef_to_zero(nir_shader *shader);
+
 typedef struct {
         int work_register_count;
         int uniform_cutoff;
@@ -229,5 +232,14 @@ void pan_print_alu_type(nir_alu_type t, FILE *fp);
 /* Until it can be upstreamed.. */
 bool pan_has_source_mod(nir_alu_src *src, nir_op op);
 bool pan_has_dest_mod(nir_dest **dest, nir_op op);
+
+/* NIR passes to do some backend-specific lowering */
+
+#define PAN_WRITEOUT_C 1
+#define PAN_WRITEOUT_Z 2
+#define PAN_WRITEOUT_S 4
+
+bool pan_nir_reorder_writeout(nir_shader *nir);
+bool pan_nir_lower_zs_store(nir_shader *nir);
 
 #endif

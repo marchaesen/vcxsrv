@@ -81,6 +81,9 @@
     <value name="ETC2 R11 UNORM" value="2"/>
     <value name="ETC2 RGBA8" value="3"/>
     <value name="ETC2 RG11 UNORM" value="4"/>
+    <!--- Formats 5-6 new in v7 *-->
+    <value name="R4A4 UNORM" value="5"/>
+    <value name="A4R4 UNORM" value="6"/>
     <value name="BC1 UNORM" value="7"/>
     <value name="BC2 UNORM" value="8"/>
     <value name="BC3 UNORM" value="9"/>
@@ -98,104 +101,214 @@
     <value name="ASTC 3D HDR" value="21"/>
     <value name="ASTC 2D LDR" value="22"/>
     <value name="ASTC 2D HDR" value="23"/>
+    <!--- Formats 24-31 new in v7 * *-->
+    <value name="R8A8 UNORM" value="24"/>
+    <value name="A8R8 UNORM" value="25"/>
+    <value name="A8 UNORM" value="26"/>
+    <value name="RAW10" value="28"/>
+    <value name="RAW12" value="29"/>
+    <value name="R8G8B8G8" value="30"/>
+    <value name="G8R8G8B8" value="31"/>
     <value name="RGB565" value="64"/>
-    <value name="RGB5 X1 UNORM" value="65"/>
-    <value name="RGB5 A1 UNORM" value="66"/>
+    <value name="RGB5 A1 UNORM" value="65"/>
+    <value name="A1 BGR5 UNORM" value="66"/>
     <value name="RGB10 A2 UNORM" value="67"/>
+    <value name="A2 BGR10 UNORM" value="68"/>
     <value name="RGB10 A2 SNORM" value="69"/>
+    <value name="A2 BGR10 SNORM" value="70"/>
     <value name="RGB10 A2UI" value="71"/>
+    <value name="A2 BGR10UI" value="72"/>
     <value name="RGB10 A2I" value="73"/>
+    <value name="A2 BGR10I" value="74"/>
     <value name="RGB332 UNORM" value="75"/>
-    <value name="RGB233 UNORM" value="76"/>
+    <value name="BGR233 UNORM" value="76"/>
     <value name="Z24X8 UNORM" value="77"/>
+    <value name="X8Z24" value="78"/>
+    <value name="X32 S8X24" value="79"/>
+    <value name="X24S8 X32" value="80"/>
     <value name="R32 FIXED" value="81"/>
     <value name="RG32 FIXED" value="82"/>
     <value name="RGB32 FIXED" value="83"/>
     <value name="RGBA32 FIXED" value="84"/>
+    <!--- On v7, X24S8 -->
+    <value name="Tilebuffer Native" value="85"/>
+    <value name="S8X24" value="86"/>
+    <value name="Z32 X32" value="87"/>
+    <value name="X32 Z32" value="88"/>
     <value name="R11F G11F B10F" value="89"/>
+    <value name="B10F G11F R11F" value="90"/>
     <value name="R9F G9F B9F E5F" value="91"/>
-    <value name="VARYING POS" value="94"/>
-    <value name="VARYING DISCARD" value="95"/>
+    <value name="E5F B9F G9F R9F" value="92"/>
+    <!--- Format 93 avaible v7+. On Midgard, acts as a RG16F + snap -->
+    <value name="S8" value="93"/>
+    <!--- RGBA32F + snap to 2^-8, used for vertex writes -->
+    <value name="Snap 4" value="94"/>
+    <value name="Constant" value="95"/>
+    <value name="R1 SNORM" value="96"/>
+    <value name="R2 SNORM" value="97"/>
+    <value name="R4 SNORM" value="98"/>
     <value name="R8 SNORM" value="99"/>
     <value name="R16 SNORM" value="100"/>
     <value name="R32 SNORM" value="101"/>
+    <value name="R64 SNORM" value="102"/>
+    <!--- 103 reserved -->
+    <value name="RG1 SNORM" value="104"/>
+    <value name="RG2 SNORM" value="105"/>
+    <value name="RG4 SNORM" value="106"/>
     <value name="RG8 SNORM" value="107"/>
     <value name="RG16 SNORM" value="108"/>
     <value name="RG32 SNORM" value="109"/>
+    <value name="RG64 SNORM" value="110"/>
+    <!-- 111 reserved -->
+    <value name="RGB1 SNORM" value="112"/>
+    <value name="RGB2 SNORM" value="113"/>
+    <value name="RGB4 SNORM" value="114"/>
     <value name="RGB8 SNORM" value="115"/>
     <value name="RGB16 SNORM" value="116"/>
     <value name="RGB32 SNORM" value="117"/>
+    <value name="RGB64 SNORM" value="118"/>
+    <!-- 119 reserved -->
+    <value name="RGBA1 SNORM" value="120"/>
+    <value name="RGBA2 SNORM" value="121"/>
+    <value name="RGBA4 SNORM" value="122"/>
     <value name="RGBA8 SNORM" value="123"/>
     <value name="RGBA16 SNORM" value="124"/>
     <value name="RGBA32 SNORM" value="125"/>
+    <value name="RGBA64 SNORM" value="126"/>
+    <!-- 127 reserved -->
+    <value name="R1UI" value="128"/>
+    <value name="R2UI" value="129"/>
+    <value name="R4UI" value="130"/>
     <value name="R8UI" value="131"/>
     <value name="R16UI" value="132"/>
     <value name="R32UI" value="133"/>
+    <value name="R64UI" value="134"/>
+    <value name="R64F" value="135"/>
+    <value name="RG1UI" value="136"/>
+    <value name="RG2UI" value="137"/>
+    <value name="RG4UI" value="138"/>
     <value name="RG8UI" value="139"/>
     <value name="RG16UI" value="140"/>
     <value name="RG32UI" value="141"/>
+    <value name="RG64UI" value="142"/>
+    <value name="RG64F" value="143"/>
+    <value name="RGB1UI" value="144"/>
+    <value name="RGB2UI" value="145"/>
+    <value name="RGB4UI" value="146"/>
     <value name="RGB8UI" value="147"/>
     <value name="RGB16UI" value="148"/>
     <value name="RGB32UI" value="149"/>
+    <value name="RGB64UI" value="150"/>
+    <value name="RGB64F" value="151"/>
+    <value name="RGBA1UI" value="152"/>
+    <value name="RGBA2UI" value="153"/>
+    <value name="RGBA4UI" value="154"/>
     <value name="RGBA8UI" value="155"/>
     <value name="RGBA16UI" value="156"/>
     <value name="RGBA32UI" value="157"/>
+    <value name="RGBA64UI" value="158"/>
+    <value name="RGBA64F" value="159"/>
+    <value name="R1 UNORM" value="160"/>
+    <value name="R2 UNORM" value="161"/>
+    <value name="R4 UNORM" value="162"/>
     <value name="R8 UNORM" value="163"/>
     <value name="R16 UNORM" value="164"/>
     <value name="R32 UNORM" value="165"/>
+    <value name="R64 UNORM" value="166"/>
     <value name="R32F" value="167"/>
+    <value name="RG1 UNORM" value="168"/>
+    <value name="RG2 UNORM" value="169"/>
+    <value name="RG4 UNORM" value="170"/>
     <value name="RG8 UNORM" value="171"/>
     <value name="RG16 UNORM" value="172"/>
     <value name="RG32 UNORM" value="173"/>
+    <value name="RG64 UNORM" value="174"/>
     <value name="RG32F" value="175"/>
+    <value name="RGB1 UNORM" value="176"/>
+    <value name="RGB2 UNORM" value="177"/>
+    <value name="RGB4 UNORM" value="178"/>
     <value name="RGB8 UNORM" value="179"/>
     <value name="RGB16 UNORM" value="180"/>
     <value name="RGB32 UNORM" value="181"/>
+    <value name="RGB64 UNORM" value="182"/>
     <value name="RGB32F" value="183"/>
+    <value name="RGBA1 UNORM" value="184"/>
+    <value name="RGBA2 UNORM" value="185"/>
     <value name="RGBA4 UNORM" value="186"/>
     <value name="RGBA8 UNORM" value="187"/>
     <value name="RGBA16 UNORM" value="188"/>
     <value name="RGBA32 UNORM" value="189"/>
+    <value name="RGBA64 UNORM" value="190"/>
     <value name="RGBA32F" value="191"/>
+    <value name="R1I" value="192"/>
+    <value name="R2I" value="193"/>
+    <value name="R4I" value="194"/>
     <value name="R8I" value="195"/>
     <value name="R16I" value="196"/>
     <value name="R32I" value="197"/>
+    <value name="R64I" value="198"/>
     <value name="R16F" value="199"/>
+    <value name="RG1I" value="200"/>
+    <value name="RG2I" value="201"/>
+    <value name="RG4I" value="202"/>
     <value name="RG8I" value="203"/>
     <value name="RG16I" value="204"/>
     <value name="RG32I" value="205"/>
+    <value name="RG64I" value="206"/>
     <value name="RG16F" value="207"/>
+    <value name="RGB1I" value="208"/>
+    <value name="RGB2I" value="209"/>
+    <value name="RGB4I" value="210"/>
     <value name="RGB8I" value="211"/>
     <value name="RGB16I" value="212"/>
     <value name="RGB32I" value="213"/>
+    <value name="RGB64I" value="214"/>
     <value name="RGB16F" value="215"/>
+    <value name="RGBA1I" value="216"/>
+    <value name="RGBA2I" value="217"/>
+    <value name="RGBA4I" value="218"/>
     <value name="RGBA8I" value="219"/>
     <value name="RGBA16I" value="220"/>
     <value name="RGBA32I" value="221"/>
+    <value name="RGBA64I" value="222"/>
     <value name="RGBA16F" value="223"/>
-    <value name="RGB5 A1" value="224"/>
-    <value name="R5G6B5" value="226"/>
-    <value name="RGBA4" value="232"/>
-    <value name="RGBA8 2" value="237"/>
-    <value name="RGB10 A2 2" value="238"/>
+    <value name="RGB5 A1 AU" value="224"/>
+    <value name="RGB5 A1 PU" value="225"/>
+    <value name="R5G6B5 AU" value="226"/>
+    <value name="R5G6B5 PU" value="227"/>
+    <value name="Snap4 V" value="230"/>
+    <value name="R32F RTZ" value="231"/>
+    <value name="RGBA4 AU" value="232"/>
+    <value name="RGBA4 PU" value="233"/>
+    <value name="RGBA8 TB" value="237"/>
+    <value name="RGB10 A2 TB" value="238"/>
+    <value name="RG32F RTZ" value="239"/>
+    <value name="Tess Vertex Pack" value="240"/>
+    <value name="RGB8 A2 AU" value="241"/>
+    <value name="RGB8 A2 PU" value="242"/>
+    <value name="RGB32F RTZ" value="247"/>
+    <value name="RGBA32F RTZ" value="255"/>
   </enum>
 
   <enum name="RGB Component Order">
     <value name="RGBA" value="0"/>
-    <value name="BRGA" value="2"/>
+    <value name="GRBA" value="2"/>
     <value name="BGRA" value="4"/>
     <value name="ARGB" value="8"/>
+    <value name="AGRB" value="10"/>
+    <value name="ABGR" value="12"/>
     <value name="RGB1" value="16"/>
     <value name="GRB1" value="18"/>
     <value name="BGR1" value="20"/>
     <value name="1RGB" value="24"/>
     <value name="1GRB" value="26"/>
     <value name="1BGR" value="28"/>
-    <value name="Intensity" value="226"/>
-    <value name="Luma" value="227"/>
-    <value name="Luma Alpha" value="228"/>
-    <value name="Alpha" value="229"/>
-    <value name="Zero" value="231"/>
+    <value name="RRRR" value="226"/>
+    <value name="RRR1" value="227"/>
+    <value name="RRRA" value="228"/>
+    <value name="000A" value="229"/>
+    <value name="0001" value="230"/>
+    <value name="0000" value="231"/>
     <value name="Snap4 v9" value="232"/>
     <value name="Snap4 v10" value="233"/>
     <value name="Snap4 v11" value="234"/>
@@ -243,17 +356,6 @@
     <value name="Weak Early" value="2"/>
     <value name="Force Late" value="3"/>
   </enum>
-
-  <struct name="Pixel Format" no-direct-packing="true">
-    <field name="RGB Component Order" size="8" start="0" type="RGB Component Order"/>
-    <field name="YUV Component Order" size="3" start="0" type="YUV Swizzle"/>
-    <field name="YUV Component Swap" size="1" start="3" type="bool"/>
-    <field name="YUV Cr Siting" size="3" start="0" type="YUV Cr Siting"/>
-    <field name="Swizzle" size="12" start="0" type="uint"/>
-    <field name="Format" size="8" start="12" type="Format"/>
-    <field name="sRGB" size="1" start="20" type="bool"/>
-    <field name="Big Endian" size="1" start="21" type="bool"/>
-  </struct>
 
   <enum name="Block Format">
     <!--- 16x16 block u-interleaved -->
@@ -345,7 +447,7 @@
 
   <struct name="Attribute">
     <field name="Buffer index" size="9" start="0" type="uint"/>
-    <field name="Unknown" size="1" start="9" type="bool" default="true"/>
+    <field name="Offset enable" size="1" start="9" type="bool" default="true"/>
     <field name="Format" size="22" start="10" type="uint"/>
     <field name="Offset" size="32" start="32" type="int"/>
   </struct>
@@ -438,7 +540,7 @@
   </struct>
 
   <struct name="Bifrost Internal Conversion" size="1">
-    <field name="Memory Format" size="22" start="0" type="Pixel Format"/>
+    <field name="Memory Format" size="22" start="0" type="uint"/>
     <field name="Raw" size="1" start="22" type="bool"/>
     <field name="Register Format" size="3" start="24" type="Bifrost Register File Format"/>
   </struct>
@@ -633,31 +735,56 @@
     <field name="Multisample count" size="3" start="3:13" type="Sample Count" default="Samples 1x"/>
     <field name="Maximum LOD" size="13" start="3:16" type="uint" default="0"/>
     <field name="Surfaces" size="64" start="4:0" type="address"/>
+    <field name="Array size" size="16" start="6:0" type="uint" modifier="minus(1)" default="1"/>
+  </struct>
+
+  <enum name="FP Mode">
+    <value name="GL Inf/NaN Allowed" value="0"/>
+    <value name="GL Inf/NaN Suppressed" value="1"/>
+    <value name="CL" value="2"/>
+    <value name="D3D11" value="3"/>
+  </enum>
+
+  <struct name="Midgard Renderer Properties" size="1" no-direct-packing="true">
+    <field name="Force early-z" size="1" start="10" type="bool"/>
+    <field name="Shader contains discard" size="1" start="12" type="bool"/>
+    <field name="Shader has side-effects" size="1" start="13" type="bool"/>
+    <field name="Shader reads tilebuffer" size="1" start="14" type="bool"/>
+    <field name="Forward pixel kill" size="1" start="15" type="bool"/>
+    <field name="Work register count" size="5" start="16" type="uint"/>
+    <field name="Uniform count" size="5" start="21" type="uint"/>
+    <field name="FP mode" size="3" start="29" type="FP Mode"/>
+  </struct>
+
+  <enum name="Shader Register Allocation">
+    <value name="64 Per Thread" value="0"/>
+    <value name="32 Per Thread" value="2"/>
+  </enum>
+
+  <struct name="Bifrost Renderer Properties" size="1" no-direct-packing="true">
+    <field name="Shader register allocation" size="2" start="12" type="Shader Register Allocation"/>
+    <field name="Secondary shader register allocation" size="2" start="14" type="Shader Register Allocation"/>
+    <field name="Shader modifies coverage" size="1" start="16" type="bool"/>
+    <field name="Allow forward pixel to kill" size="1" start="19" type="bool"/>
+    <field name="Allow forward pixel to be killed" size="1" start="20" type="bool"/>
+    <field name="Pixel kill operation" size="2" start="21" type="Pixel Kill"/>
+    <field name="ZS update operation" size="2" start="23" type="Pixel Kill"/>
+    <field name="Point sprite coord origin max Y" size="1" start="27" type="bool"/>
+    <field name="Shader wait dependency 6" size="1" start="30" type="bool"/>
+    <field name="Shader wait dependency 7" size="1" start="31" type="bool"/>
   </struct>
 
   <struct name="Renderer Properties" size="1">
+    <field name="Midgard" size="32" start="0" type="Midgard Renderer Properties"/>
+    <field name="Bifrost" size="32" start="0" type="Bifrost Renderer Properties"/>
     <field name="Uniform buffer count" size="8" start="0" type="uint"/>
     <field name="Depth source" size="2" start="8" type="Depth Source" default="None"/>
-    <field name="Midgard Early-z enable" size="1" start="10" type="bool" default="false"/>
-    <field name="Helper invocation enable" size="1" start="11" type="bool" default="false"/>
-    <field name="Reads depth/stencil" size="1" start="12" type="bool" default="false"/>
-    <field name="Writes globals" size="1" start="13" type="bool" default="false"/>
-    <field name="Full thread" size="1" start="13" type="bool" default="false"/>
-    <field name="Reads tilebuffer" size="1" start="14" type="bool" default="false"/>
-    <field name="Work register count" size="5" start="16" type="uint"/>
-    <field name="Shader modifies coverage" size="1" start="16" type="bool"/>
-    <field name="Allow forward pixel to kill" size="1" start="19" type="bool" default="false"/>
-    <field name="Allow forward pixel to be killed" size="1" start="20" type="bool" default="false"/>
-    <field name="Pixel kill operation" size="2" start="21" type="Pixel Kill" default="Force early"/>
-    <field name="Uniform count" size="5" start="21" type="uint"/>
+    <field name="Shader contains barrier" size="1" start="11" type="bool"/>
     <field name="Stencil from shader" size="1" start="28" type="bool"/>
-    <field name="Suppress Inf/NaN" size="1" start="29" type="bool"/>
-    <field name="First ATEST" size="1" start="30" type="bool" default="false"/>
-    <!-- XXX: This is awful -->
-    <field name="Unknown" size="32" start="0" type="uint"/>
   </struct>
 
-  <struct name="Preload" size="1">
+  <struct name="Compute Preload" size="1" no-direct-packing="true">
+    <field name="PC" size="1" start="6" type="bool"/>
     <field name="Local Invocation XY" size="1" start="7" type="bool"/>
     <field name="Local Invocation Z" size="1" start="8" type="bool"/>
     <field name="Work group X" size="1" start="9" type="bool"/>
@@ -666,13 +793,37 @@
     <field name="Global Invocation X" size="1" start="12" type="bool"/>
     <field name="Global Invocation Y" size="1" start="13" type="bool"/>
     <field name="Global Invocation Z" size="1" start="14" type="bool"/>
+  </struct>
+
+  <enum name="Warp Limit">
+    <value name="None" value="0"/>
+    <value name="2" value="1"/>
+    <value name="4" value="2"/>
+    <value name="8" value="3"/>
+  </enum>
+
+  <struct name="Vertex Preload" size="1" no-direct-packing="true">
+    <field name="Warp limit" size="2" start="0" type="Warp Limit"/>
+    <field name="PC" size="1" start="6" type="bool"/>
+    <field name="Position result address lo" size="1" start="10" type="bool"/>
+    <field name="Position result address hi" size="1" start="11" type="bool"/>
     <field name="Vertex ID" size="1" start="13" type="bool"/>
     <field name="Instance ID" size="1" start="14" type="bool"/>
-    <field name="Unknown" size="1" start="7" type="bool"/>
+  </struct>
+
+  <struct name="Fragment Preload" size="1" no-direct-packing="true">
+    <field name="PC" size="1" start="6" type="bool"/>
+    <field name="Coverage" size="1" start="7" type="bool"/>
     <field name="Primitive ID" size="1" start="9" type="bool"/>
-    <field name="Front facing" size="1" start="10" type="bool"/>
+    <field name="Primitive flags" size="1" start="10" type="bool"/>
     <field name="Fragment position" size="1" start="11" type="bool"/>
-    <field name="Sample mask/ID" size="1" start="12" type="bool"/>
+    <field name="Sample mask/ID" size="1" start="13" type="bool"/>
+  </struct>
+
+  <struct name="Preload" size="1">
+    <field name="Compute" size="32" start="0" type="Compute Preload"/>
+    <field name="Vertex" size="32" start="0" type="Vertex Preload"/>
+    <field name="Fragment" size="32" start="0" type="Fragment Preload"/>
     <field name="Uniform count" size="7" start="15" type="uint"/>
   </struct>
 
@@ -689,8 +840,8 @@
     <field name="Multisample enable" size="1" start="16" type="bool"/>
     <field name="Multisample late coverage" size="1" start="17" type="bool"/>
     <field name="Evaluate per-sample" size="1" start="18" type="bool"/>
-    <field name="Unknown 1" size="1" start="19" type="bool"/>
-    <field name="Unknown 2" size="1" start="20" type="bool"/>
+    <field name="Fixed-function depth range fixed" size="1" start="19" type="bool"/>
+    <field name="Shader depth range fixed" size="1" start="20" type="bool"/>
     <field name="SFBD Load destination" size="1" start="21" type="bool"/>
     <field name="SFBD Blend shader" size="1" start="22" type="bool"/>
     <field name="SFBD Blend shader discard" size="1" start="23" type="bool"/>
@@ -710,10 +861,10 @@
     <field name="Alpha-to-coverage Invert" size="1" start="18" type="bool"/>
     <field name="Alpha to one" size="1" start="19" type="bool"/>
     <field name="SFBD Write enable" size="1" start="20" type="bool"/>
-    <field name="Unknown 1" size="3" start="21" type="uint"/>
+    <field name="Alpha test compare function" size="3" start="21" type="Func"/>
     <field name="SFBD sRGB" size="1" start="24" type="bool"/>
     <field name="SFBD Dither disable" size="1" start="25" type="bool"/>
-    <field name="Unknown 2" size="1" start="26" type="bool"/>
+    <field name="Force seamless cubemaps" size="1" start="26" type="bool"/>
     <field name="Depth Range 1" size="1" start="28" type="bool"/>
     <field name="Depth Range 2" size="1" start="29" type="bool"/>
     <field name="Single-sampled lines" size="1" start="30" type="bool"/>
@@ -1227,6 +1378,25 @@
     <field name="Weight7" size="16" start="7:16" type="uint"/>
   </struct>
 
+  <struct name="Bifrost Tiler State" size="16">
+    <field name="Word0" size="32" start="0:0" type="uint"/>
+    <field name="Word1" size="32" start="1:0" type="uint"/>
+    <field name="Word2" size="32" start="2:0" type="uint"/>
+    <field name="Word3" size="32" start="3:0" type="uint"/>
+    <field name="Word4" size="32" start="4:0" type="uint"/>
+    <field name="Word5" size="32" start="5:0" type="uint"/>
+    <field name="Word6" size="32" start="6:0" type="uint"/>
+    <field name="Word7" size="32" start="7:0" type="uint"/>
+    <field name="Word8" size="32" start="8:0" type="uint"/>
+    <field name="Word9" size="32" start="9:0" type="uint"/>
+    <field name="Word10" size="32" start="10:0" type="uint"/>
+    <field name="Word11" size="32" start="11:0" type="uint"/>
+    <field name="Word12" size="32" start="12:0" type="uint"/>
+    <field name="Word13" size="32" start="13:0" type="uint"/>
+    <field name="Word14" size="32" start="14:0" type="uint"/>
+    <field name="Word15" size="32" start="15:0" type="uint"/>
+  </struct>
+
   <struct name="Bifrost Tiler" size="48">
     <field name="Polygon List" size="64" start="0:0" type="address"/>
     <field name="Hierarchy Mask" size="13" start="2:0" type="uint"/>
@@ -1236,6 +1406,7 @@
     <field name="FB Height" size="16" start="3:16" type="uint" modifier="minus(1)"/>
     <field name="Heap" size="64" start="6:0" type="address"/>
     <field name="Weights" size="256" start="8:0" type="Bifrost Tiler Weights"/>
+    <field name="State" size="512" start="32:0" type="Bifrost Tiler State"/>
   </struct>
 
   <struct name="Bifrost Tiler Pointer">

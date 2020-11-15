@@ -30,6 +30,7 @@
 
 #include "util/u_handle_table.h"
 #include "util/u_video.h"
+#include "util/u_memory.h"
 
 #include "vl/vl_vlc.h"
 #include "vl/vl_winsys.h"
@@ -262,9 +263,21 @@ bufHasStartcode(vlVaBuffer *buf, unsigned int code, unsigned int bits)
 }
 
 static void
+handleVAProtectedSliceDataBufferType(vlVaContext *context, vlVaBuffer *buf)
+{
+	uint8_t* encrypted_data = (uint8_t*) buf->data;
+
+	unsigned int drm_key_size = 56 * 4;
+
+	context->desc.base.decrypt_key = CALLOC(1, drm_key_size);
+	memcpy(context->desc.base.decrypt_key, encrypted_data, drm_key_size);
+	context->desc.base.protected_playback = true;
+}
+
+static void
 handleVASliceDataBufferType(vlVaContext *context, vlVaBuffer *buf)
 {
-   enum pipe_video_format format;
+   enum pipe_video_format format = u_reduce_video_profile(context->templat.profile);
    unsigned num_buffers = 0;
    void * const *buffers[3];
    unsigned sizes[3];
@@ -274,55 +287,64 @@ handleVASliceDataBufferType(vlVaContext *context, vlVaBuffer *buf)
    static const uint8_t eoi_jpeg[] = { 0xff, 0xd9 };
 
    format = u_reduce_video_profile(context->templat.profile);
-   switch (format) {
-   case PIPE_VIDEO_FORMAT_MPEG4_AVC:
-      if (bufHasStartcode(buf, 0x000001, 24))
-         break;
+   if (!context->desc.base.protected_playback) {
+      switch (format) {
+      case PIPE_VIDEO_FORMAT_MPEG4_AVC:
+         if (bufHasStartcode(buf, 0x000001, 24))
+            break;
 
-      buffers[num_buffers] = (void *const)&start_code_h264;
-      sizes[num_buffers++] = sizeof(start_code_h264);
-      break;
-   case PIPE_VIDEO_FORMAT_HEVC:
-      if (bufHasStartcode(buf, 0x000001, 24))
+         buffers[num_buffers] = (void *const)&start_code_h264;
+         sizes[num_buffers++] = sizeof(start_code_h264);
          break;
+      case PIPE_VIDEO_FORMAT_HEVC:
+         if (bufHasStartcode(buf, 0x000001, 24))
+            break;
 
-      buffers[num_buffers] = (void *const)&start_code_h265;
-      sizes[num_buffers++] = sizeof(start_code_h265);
-      break;
-   case PIPE_VIDEO_FORMAT_VC1:
-      if (bufHasStartcode(buf, 0x0000010d, 32) ||
-          bufHasStartcode(buf, 0x0000010c, 32) ||
-          bufHasStartcode(buf, 0x0000010b, 32))
+         buffers[num_buffers] = (void *const)&start_code_h265;
+         sizes[num_buffers++] = sizeof(start_code_h265);
          break;
+      case PIPE_VIDEO_FORMAT_VC1:
+         if (bufHasStartcode(buf, 0x0000010d, 32) ||
+             bufHasStartcode(buf, 0x0000010c, 32) ||
+             bufHasStartcode(buf, 0x0000010b, 32))
+            break;
 
-      if (context->decoder->profile == PIPE_VIDEO_PROFILE_VC1_ADVANCED) {
-         buffers[num_buffers] = (void *const)&start_code_vc1;
-         sizes[num_buffers++] = sizeof(start_code_vc1);
+         if (context->decoder->profile == PIPE_VIDEO_PROFILE_VC1_ADVANCED) {
+            buffers[num_buffers] = (void *const)&start_code_vc1;
+            sizes[num_buffers++] = sizeof(start_code_vc1);
+         }
+         break;
+      case PIPE_VIDEO_FORMAT_MPEG4:
+         if (bufHasStartcode(buf, 0x000001, 24))
+            break;
+
+         vlVaDecoderFixMPEG4Startcode(context);
+         buffers[num_buffers] = (void *)context->mpeg4.start_code;
+         sizes[num_buffers++] = context->mpeg4.start_code_size;
+         break;
+      case PIPE_VIDEO_FORMAT_JPEG:
+         vlVaGetJpegSliceHeader(context);
+         buffers[num_buffers] = (void *)context->mjpeg.slice_header;
+         sizes[num_buffers++] = context->mjpeg.slice_header_size;
+         break;
+      case PIPE_VIDEO_FORMAT_VP9:
+         vlVaDecoderVP9BitstreamHeader(context, buf);
+         break;
+      default:
+         break;
       }
-      break;
-   case PIPE_VIDEO_FORMAT_MPEG4:
-      if (bufHasStartcode(buf, 0x000001, 24))
-         break;
-
-      vlVaDecoderFixMPEG4Startcode(context);
-      buffers[num_buffers] = (void *)context->mpeg4.start_code;
-      sizes[num_buffers++] = context->mpeg4.start_code_size;
-      break;
-   case PIPE_VIDEO_FORMAT_JPEG:
-      vlVaGetJpegSliceHeader(context);
-      buffers[num_buffers] = (void *)context->mjpeg.slice_header;
-      sizes[num_buffers++] = context->mjpeg.slice_header_size;
-      break;
-   case PIPE_VIDEO_FORMAT_VP9:
-      vlVaDecoderVP9BitstreamHeader(context, buf);
-      break;
-   default:
-      break;
    }
 
-   buffers[num_buffers] = buf->data;
-   sizes[num_buffers] = buf->size;
-   ++num_buffers;
+   if (context->desc.base.protected_playback && PIPE_VIDEO_FORMAT_VP9 == format){
+        vlVaDecoderVP9BitstreamHeader(context, buf);
+        buffers[num_buffers] = buf->data + context->desc.vp9.picture_parameter.frame_header_length_in_bytes;
+        sizes[num_buffers] = buf->size - context->desc.vp9.picture_parameter.frame_header_length_in_bytes;
+        ++num_buffers;
+   } else {
+        buffers[num_buffers] = buf->data;
+        sizes[num_buffers] = buf->size;
+        ++num_buffers;
+   }
 
    if (format == PIPE_VIDEO_FORMAT_JPEG) {
       buffers[num_buffers] = (void *const)&eoi_jpeg;
@@ -531,12 +553,20 @@ vlVaRenderPicture(VADriverContextP ctx, VAContextID context_id, VABufferID *buff
       return VA_STATUS_ERROR_INVALID_CONTEXT;
    }
 
+   /* Always process VAProtectedSliceDataBufferType first because it changes the state */
    for (i = 0; i < num_buffers; ++i) {
       vlVaBuffer *buf = handle_table_get(drv->htab, buffers[i]);
       if (!buf) {
          mtx_unlock(&drv->mutex);
          return VA_STATUS_ERROR_INVALID_BUFFER;
       }
+
+      if (buf->type == VAProtectedSliceDataBufferType)
+         handleVAProtectedSliceDataBufferType(context, buf);
+   }
+
+   for (i = 0; i < num_buffers; ++i) {
+      vlVaBuffer *buf = handle_table_get(drv->htab, buffers[i]);
 
       switch (buf->type) {
       case VAPictureParameterBufferType:
@@ -554,6 +584,7 @@ vlVaRenderPicture(VADriverContextP ctx, VAContextID context_id, VABufferID *buff
       case VASliceDataBufferType:
          handleVASliceDataBufferType(context, buf);
          break;
+
       case VAProcPipelineParameterBufferType:
          vaStatus = vlVaHandleVAProcPipelineParameterBufferType(drv, context, buf);
          break;
@@ -669,6 +700,15 @@ vlVaEndPicture(VADriverContextP ctx, VAContextID context_id)
          mtx_unlock(&drv->mutex);
          return VA_STATUS_ERROR_INVALID_SURFACE;
       }
+   }
+
+   if ((surf->templat.bind & PIPE_BIND_PROTECTED) != context->desc.base.protected_playback) {
+      if (context->desc.base.protected_playback) {
+         surf->templat.bind |= PIPE_BIND_PROTECTED;
+      }
+      else
+         surf->templat.bind &= ~PIPE_BIND_PROTECTED;
+      realloc = true;
    }
 
    if (realloc) {

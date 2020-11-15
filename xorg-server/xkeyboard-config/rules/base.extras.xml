@@ -1300,6 +1300,16 @@
             </languageList>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>san-misc</name>
+            <shortDescription>sas</shortDescription>
+            <description>Sanskrit symbols</description>
+            <languageList>
+              <iso639Id>san</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
   </layoutList>

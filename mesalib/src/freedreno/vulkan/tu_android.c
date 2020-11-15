@@ -37,6 +37,7 @@
 
 #include "drm-uapi/drm_fourcc.h"
 
+#include "util/libsync.h"
 #include "util/os_file.h"
 
 static int
@@ -114,33 +115,21 @@ tu_hal_close(struct hw_device_t *dev)
    return -1;
 }
 
-/**
- * Creates the VkImage using the gralloc handle in *gralloc_info.
- *
- * We support two different grallocs here, gbm_gralloc, and the qcom gralloc
- * used on Android phones.
- */
+/* get dma-buf and modifier from gralloc info */
 VkResult
-tu_image_from_gralloc(VkDevice device_h,
-                      const VkImageCreateInfo *base_info,
-                      const VkNativeBufferANDROID *gralloc_info,
-                      const VkAllocationCallbacks *alloc,
-                      VkImage *out_image_h)
+tu_gralloc_info(struct tu_device *device,
+                const VkNativeBufferANDROID *gralloc_info,
+                int *dma_buf,
+                uint64_t *modifier)
 
 {
-   TU_FROM_HANDLE(tu_device, device, device_h);
-   VkImage image_h = VK_NULL_HANDLE;
-   struct tu_image *image = NULL;
-   VkResult result;
-   bool ubwc = false;
-
    const uint32_t *handle_fds = (uint32_t *)gralloc_info->handle->data;
    const uint32_t *handle_data = &handle_fds[gralloc_info->handle->numFds];
-   int dma_buf;
+   bool ubwc = false;
 
    if (gralloc_info->handle->numFds == 1) {
       /* gbm_gralloc.  TODO: modifiers support */
-      dma_buf = handle_fds[0];
+      *dma_buf = handle_fds[0];
    } else if (gralloc_info->handle->numFds == 2) {
       /* Qualcomm gralloc, find it at:
        *
@@ -173,7 +162,7 @@ tu_image_from_gralloc(VkDevice device_h,
        * of CPU-side metadata.  I haven't found any need for the metadata buffer
        * yet.  See qdMetaData.h for what's in the metadata fd.
        */
-      dma_buf = handle_fds[0];
+      *dma_buf = handle_fds[0];
    } else {
       return vk_errorf(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE,
                        "VkNativeBufferANDROID::handle::numFds is %d, "
@@ -181,13 +170,27 @@ tu_image_from_gralloc(VkDevice device_h,
                        gralloc_info->handle->numFds);
    }
 
-   result = tu_image_create(device_h, base_info, alloc, &image_h,
-                            ubwc ?
-                            DRM_FORMAT_MOD_QCOM_COMPRESSED :
-                            DRM_FORMAT_MOD_LINEAR,
-                            NULL);
-   if (result != VK_SUCCESS)
-      return result;
+   *modifier = ubwc ? DRM_FORMAT_MOD_QCOM_COMPRESSED : DRM_FORMAT_MOD_LINEAR;
+   return VK_SUCCESS;
+
+
+}
+
+/**
+ * Creates the VkImage using the gralloc handle in *gralloc_info.
+ *
+ * We support two different grallocs here, gbm_gralloc, and the qcom gralloc
+ * used on Android phones.
+ */
+VkResult
+tu_import_memory_from_gralloc_handle(VkDevice device_h,
+                                     int dma_buf,
+                                     const VkAllocationCallbacks *alloc,
+                                     VkImage image_h)
+
+{
+   struct tu_image *image = NULL;
+   VkResult result;
 
    image = tu_image_from_handle(image_h);
 
@@ -222,8 +225,6 @@ tu_image_from_gralloc(VkDevice device_h,
    tu_BindImageMemory(device_h, image_h, memory_h, 0);
 
    image->owned_memory = memory_h;
-   /* Don't clobber the out-parameter until success is certain. */
-   *out_image_h = image_h;
 
    return VK_SUCCESS;
 

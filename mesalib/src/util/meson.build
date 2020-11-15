@@ -61,6 +61,8 @@ files_mesa_util = files(
   'list.h',
   'log.c',
   'macros.h',
+  'memstream.c',
+  'memstream.h',
   'mesa-sha1.c',
   'mesa-sha1.h',
   'os_time.c',
@@ -72,6 +74,7 @@ files_mesa_util = files(
   'os_socket.h',
   'u_process.c',
   'u_process.h',
+  'rwlock.h',
   'sha1/sha1.c',
   'sha1/sha1.h',
   'ralloc.c',
@@ -197,7 +200,7 @@ idep_mesautil = declare_dependency(
 )
 
 xmlconfig_deps = []
-if not with_platform_android
+if not (with_platform_android or with_platform_windows)
   xmlconfig_deps += dep_expat
 endif
 

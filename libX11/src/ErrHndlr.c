@@ -84,3 +84,28 @@ XSetIOErrorHandler(XIOErrorHandler handler)
 
     return (XIOErrorHandler) oldhandler;
 }
+
+/*
+ * XSetIOErrorExitHandler - This procedure sets the X fatal I/O error
+ * exit function to be the specified routine. If NULL is passed in
+ * the original error exit function is restored. The default routine
+ * calls exit(3).
+ */
+void
+XSetIOErrorExitHandler(
+    Display *dpy,
+    XIOErrorExitHandler handler,
+    void *user_data)
+{
+    LockDisplay(dpy);
+
+    if (handler != NULL) {
+	dpy->exit_handler = handler;
+	dpy->exit_handler_data = user_data;
+    }
+    else {
+	dpy->exit_handler = _XDefaultIOErrorExit;
+	dpy->exit_handler_data = NULL;
+    }
+    UnlockDisplay(dpy);
+}

@@ -169,7 +169,6 @@ _XlcDefaultMapModifiers(
 typedef struct _XLCdListRec {
     struct _XLCdListRec *next;
     XLCd lcd;
-    int ref_count;
 } XLCdListRec, *XLCdList;
 
 static XLCdList lcd_list = NULL;
@@ -279,7 +278,6 @@ _XOpenLC(
     for (cur = lcd_list; cur; cur = cur->next) {
 	if (!strcmp (cur->lcd->core->name, name)) {
 	    lcd = cur->lcd;
-	    cur->ref_count++;
 	    goto found;
 	}
     }
@@ -296,7 +294,6 @@ _XOpenLC(
 	    cur = Xmalloc (sizeof(XLCdListRec));
 	    if (cur) {
 		cur->lcd = lcd;
-		cur->ref_count = 1;
 		cur->next = lcd_list;
 		lcd_list = cur;
 	    } else {
@@ -323,23 +320,7 @@ void
 _XCloseLC(
     XLCd lcd)
 {
-    XLCdList cur, *prev;
-
-    for (prev = &lcd_list; (cur = *prev); prev = &cur->next) {
-	if (cur->lcd == lcd) {
-	    if (--cur->ref_count < 1) {
-		_XlcDestroyLC(lcd);
-		*prev = cur->next;
-		Xfree(cur);
-	    }
-	    break;
-	}
-    }
-
-    if(loader_list) {
-	_XlcDeInitLoader();
-	loader_list = NULL;
-    }
+    (void) lcd;
 }
 
 /*
@@ -349,17 +330,7 @@ _XCloseLC(
 XLCd
 _XlcCurrentLC(void)
 {
-    XLCd lcd;
-    static XLCd last_lcd = NULL;
-
-    lcd = _XOpenLC((char *) NULL);
-
-    if (last_lcd)
-	_XCloseLC(last_lcd);
-
-    last_lcd = lcd;
-
-    return lcd;
+    return _XOpenLC(NULL);
 }
 
 XrmMethods

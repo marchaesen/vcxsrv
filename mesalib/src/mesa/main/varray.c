@@ -459,8 +459,7 @@ static const uint16_t vertex_formats[][4][4] = {
  */
 static enum pipe_format
 vertex_format_to_pipe_format(GLubyte size, GLenum16 type, GLenum16 format,
-                             GLboolean normalized, GLboolean integer,
-                             GLboolean doubles)
+                             bool normalized, bool integer, bool doubles)
 {
    assert(size >= 1 && size <= 4);
    assert(format == GL_RGBA || format == GL_BGRA);
@@ -674,8 +673,8 @@ validate_array_format(struct gl_context *ctx, const char *func,
                       struct gl_vertex_array_object *vao,
                       GLuint attrib, GLbitfield legalTypesMask,
                       GLint sizeMin, GLint sizeMax,
-                      GLint size, GLenum type, GLboolean normalized,
-                      GLboolean integer, GLboolean doubles,
+                      GLint size, GLenum type, bool normalized,
+                      bool integer, bool doubles,
                       GLuint relativeOffset, GLenum format)
 {
    GLbitfield typeBit;
@@ -3930,7 +3929,7 @@ _mesa_init_varray(struct gl_context *ctx)
  * Callback for deleting an array object.  Called by _mesa_HashDeleteAll().
  */
 static void
-delete_arrayobj_cb(GLuint id, void *data, void *userData)
+delete_arrayobj_cb(void *data, void *userData)
 {
    struct gl_vertex_array_object *vao = (struct gl_vertex_array_object *) data;
    struct gl_context *ctx = (struct gl_context *) userData;

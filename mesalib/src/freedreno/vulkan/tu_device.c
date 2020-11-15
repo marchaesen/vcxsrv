@@ -28,7 +28,7 @@
 #include "tu_private.h"
 
 #include <fcntl.h>
-#include <libsync.h>
+#include <poll.h>
 #include <stdbool.h>
 #include <string.h>
 #include <sys/sysinfo.h>
@@ -43,6 +43,12 @@
 
 /* for fd_get_driver/device_uuid() */
 #include "freedreno/common/freedreno_uuid.h"
+
+#define TU_HAS_SURFACE \
+   (VK_USE_PLATFORM_WAYLAND_KHR || \
+    VK_USE_PLATFORM_XCB_KHR || \
+    VK_USE_PLATFORM_XLIB_KHR || \
+    VK_USE_PLATFORM_DISPLAY_KHR)
 
 static int
 tu_device_get_cache_uuid(uint16_t family, void *uuid)
@@ -74,29 +80,10 @@ tu_physical_device_init(struct tu_physical_device *device,
    switch (device->gpu_id) {
    case 615:
    case 618:
-      device->ccu_offset_gmem = 0x7c000; /* 0x7e000 in some cases? */
-      device->ccu_offset_bypass = 0x10000;
-      device->tile_align_w = 32;
-      device->magic.PC_UNKNOWN_9805 = 0x0;
-      device->magic.SP_UNKNOWN_A0F8 = 0x0;
-      device->supports_multiview_mask = false; /* TODO */
-      break;
    case 630:
    case 640:
-      device->ccu_offset_gmem = 0xf8000;
-      device->ccu_offset_bypass = 0x20000;
-      device->tile_align_w = 32;
-      device->magic.PC_UNKNOWN_9805 = 0x1;
-      device->magic.SP_UNKNOWN_A0F8 = 0x1;
-      device->supports_multiview_mask = device->gpu_id != 630;
-      break;
    case 650:
-      device->ccu_offset_gmem = 0x114000;
-      device->ccu_offset_bypass = 0x30000;
-      device->tile_align_w = 96;
-      device->magic.PC_UNKNOWN_9805 = 0x2;
-      device->magic.SP_UNKNOWN_A0F8 = 0x2;
-      device->supports_multiview_mask = true;
+      freedreno_dev_info_init(&device->info, device->gpu_id);
       break;
    default:
       result = vk_startup_errorf(instance, VK_ERROR_INITIALIZATION_FAILED,
@@ -124,16 +111,13 @@ tu_physical_device_init(struct tu_physical_device *device,
 
    tu_physical_device_get_supported_extensions(device, &device->supported_extensions);
 
-   if (result != VK_SUCCESS) {
-      vk_error(instance, result);
-      goto fail;
-   }
-
+#if TU_HAS_SURFACE
    result = tu_wsi_init(device);
    if (result != VK_SUCCESS) {
       vk_startup_errorf(instance, result, "WSI init failure");
       goto fail;
    }
+#endif
 
    return VK_SUCCESS;
 
@@ -147,7 +131,9 @@ fail:
 static void
 tu_physical_device_finish(struct tu_physical_device *device)
 {
+#if TU_HAS_SURFACE
    tu_wsi_finish(device);
+#endif
 
    disk_cache_destroy(device->disk_cache);
    close(device->local_fd);
@@ -418,8 +404,8 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
       .shaderStorageImageArrayDynamicIndexing = true,
       .shaderStorageImageReadWithoutFormat = true,
       .shaderStorageImageWriteWithoutFormat = true,
-      .shaderClipDistance = false,
-      .shaderCullDistance = false,
+      .shaderClipDistance = true,
+      .shaderCullDistance = true,
       .shaderFloat64 = false,
       .shaderInt64 = false,
       .shaderInt16 = false,
@@ -577,7 +563,7 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
          VkPhysicalDeviceTransformFeedbackFeaturesEXT *features =
             (VkPhysicalDeviceTransformFeedbackFeaturesEXT *) ext;
          features->transformFeedback = true;
-         features->geometryStreams = false;
+         features->geometryStreams = true;
          break;
       }
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT: {
@@ -824,8 +810,8 @@ tu_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
          properties->maxTransformFeedbackBufferDataSize = 512;
          properties->maxTransformFeedbackBufferDataStride = 512;
          properties->transformFeedbackQueries = true;
-         properties->transformFeedbackStreamsLinesTriangles = false;
-         properties->transformFeedbackRasterizationStreamSelect = false;
+         properties->transformFeedbackStreamsLinesTriangles = true;
+         properties->transformFeedbackRasterizationStreamSelect = true;
          properties->transformFeedbackDraw = true;
          break;
       }

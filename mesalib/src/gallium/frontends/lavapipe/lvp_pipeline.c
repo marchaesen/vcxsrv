@@ -789,10 +789,8 @@ lvp_graphics_pipeline_init(struct lvp_pipeline *pipeline,
 
    if (has_fragment_shader == false) {
       /* create a dummy fragment shader for this pipeline. */
-      nir_builder b;
-
-      nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_FRAGMENT, NULL);
-      b.shader->info.name = ralloc_strdup(b.shader, "dummy_frag");
+      nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, NULL,
+                                                     "dummy_frag");
 
       pipeline->pipeline_nir[MESA_SHADER_FRAGMENT] = b.shader;
       struct pipe_shader_state shstate = {};

@@ -107,12 +107,12 @@ partial alphanumeric_keys
 
 partial alphanumeric_keys
 	xkb_symbols "Sundeadkeys" {
-	include "de(Sundeadkeys)"
+	include "de(basic)"
 };
 
 partial alphanumeric_keys
 	xkb_symbols "sundeadkeys" {
-	include "de(sundeadkeys)"
+	include "de(basic)"
 };
 
 partial alphanumeric_keys

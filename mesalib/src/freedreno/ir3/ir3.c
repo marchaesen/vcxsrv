@@ -84,7 +84,7 @@ static uint32_t reg(struct ir3_register *reg, struct ir3_info *info,
 	reg_t val = { .dummy32 = 0 };
 
 	if (reg->flags & ~valid_flags) {
-		debug_printf("INVALID FLAGS: %x vs %x\n",
+		mesa_logd("INVALID FLAGS: %x vs %x",
 				reg->flags, valid_flags);
 	}
 
@@ -997,7 +997,7 @@ void * ir3_assemble(struct ir3_shader_variant *v)
 	return ptr;
 
 fail:
-	free(ptr);
+	ralloc_free(ptr);
 	return NULL;
 }
 

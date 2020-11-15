@@ -33,7 +33,7 @@ is_trivial_deref_cast(nir_deref_instr *cast)
    if (!parent)
       return false;
 
-   return cast->mode == parent->mode &&
+   return cast->modes == parent->modes &&
           cast->type == parent->type &&
           cast->dest.ssa.num_components == parent->dest.ssa.num_components &&
           cast->dest.ssa.bit_size == parent->dest.ssa.bit_size;
@@ -410,17 +410,17 @@ nir_fixup_deref_modes(nir_shader *shader)
             if (deref->deref_type == nir_deref_type_cast)
                continue;
 
-            nir_variable_mode parent_mode;
+            nir_variable_mode parent_modes;
             if (deref->deref_type == nir_deref_type_var) {
-               parent_mode = deref->var->data.mode;
+               parent_modes = deref->var->data.mode;
             } else {
                assert(deref->parent.is_ssa);
                nir_deref_instr *parent =
                   nir_instr_as_deref(deref->parent.ssa->parent_instr);
-               parent_mode = parent->mode;
+               parent_modes = parent->modes;
             }
 
-            deref->mode = parent_mode;
+            deref->modes = parent_modes;
          }
       }
    }
@@ -430,17 +430,12 @@ static bool
 modes_may_alias(nir_variable_mode a, nir_variable_mode b)
 {
    /* Generic pointers can alias with SSBOs */
-   if ((a == nir_var_mem_ssbo || a == nir_var_mem_global) &&
-       (b == nir_var_mem_ssbo || b == nir_var_mem_global))
+   if ((a & (nir_var_mem_ssbo | nir_var_mem_global)) &&
+       (b & (nir_var_mem_ssbo | nir_var_mem_global)))
       return true;
 
-   /* In the general case, pointers can only alias if they have the same mode.
-    *
-    * NOTE: In future, with things like OpenCL generic pointers, this may not
-    * be true and will have to be re-evaluated.  However, with graphics only,
-    * it should be safe.
-    */
-   return a == b;
+   /* Pointers can only alias if they share a mode. */
+   return a & b;
 }
 
 static bool
@@ -469,7 +464,7 @@ nir_deref_compare_result
 nir_compare_deref_paths(nir_deref_path *a_path,
                         nir_deref_path *b_path)
 {
-   if (!modes_may_alias(b_path->path[0]->mode, a_path->path[0]->mode))
+   if (!modes_may_alias(b_path->path[0]->modes, a_path->path[0]->modes))
       return nir_derefs_do_not_alias;
 
    if (a_path->path[0]->deref_type != b_path->path[0]->deref_type)
@@ -482,8 +477,8 @@ nir_compare_deref_paths(nir_deref_path *a_path,
           */
          static const nir_variable_mode temp_var_modes =
             nir_var_shader_temp | nir_var_function_temp;
-         if ((a_path->path[0]->mode & temp_var_modes) ||
-             (b_path->path[0]->mode & temp_var_modes))
+         if (!(a_path->path[0]->modes & ~temp_var_modes) ||
+             !(b_path->path[0]->modes & ~temp_var_modes))
             return nir_derefs_do_not_alias;
 
          /* If they are both declared coherent or have coherent somewhere in
@@ -670,7 +665,7 @@ rematerialize_deref_in_block(nir_deref_instr *deref,
    nir_builder *b = &state->builder;
    nir_deref_instr *new_deref =
       nir_deref_instr_create(b->shader, deref->deref_type);
-   new_deref->mode = deref->mode;
+   new_deref->modes = deref->modes;
    new_deref->type = deref->type;
 
    if (deref->deref_type == nir_deref_type_var) {
@@ -937,6 +932,30 @@ opt_remove_cast_cast(nir_deref_instr *cast)
 
    nir_instr_rewrite_src(&cast->instr, &cast->parent,
                          nir_src_for_ssa(first_cast->parent.ssa));
+   return true;
+}
+
+/* Restrict variable modes in casts.
+ *
+ * If we know from something higher up the deref chain that the deref has a
+ * specific mode, we can cast to more general and back but we can never cast
+ * across modes.  For non-cast derefs, we should only ever do anything here if
+ * the parent eventually comes from a cast that we restricted earlier.
+ */
+static bool
+opt_restrict_deref_modes(nir_deref_instr *deref)
+{
+   if (deref->deref_type == nir_deref_type_var) {
+      assert(deref->modes == deref->var->data.mode);
+      return false;
+   }
+
+   nir_deref_instr *parent = nir_src_as_deref(deref->parent);
+   if (parent == NULL || parent->modes == deref->modes)
+      return false;
+
+   assert(parent->modes & deref->modes);
+   deref->modes &= parent->modes;
    return true;
 }
 
@@ -1249,6 +1268,30 @@ opt_store_vec_deref(nir_builder *b, nir_intrinsic_instr *store)
    return false;
 }
 
+static bool
+opt_known_deref_mode_is(nir_builder *b, nir_intrinsic_instr *intrin)
+{
+   nir_variable_mode modes = nir_intrinsic_memory_modes(intrin);
+   nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+   if (deref == NULL)
+      return false;
+
+   nir_ssa_def *deref_is = NULL;
+
+   if (nir_deref_mode_must_be(deref, modes))
+      deref_is = nir_imm_true(b);
+
+   if (!nir_deref_mode_may_be(deref, modes))
+      deref_is = nir_imm_false(b);
+
+   if (deref_is == NULL)
+      return false;
+
+   nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(deref_is));
+   nir_instr_remove(&intrin->instr);
+   return true;
+}
+
 bool
 nir_opt_deref_impl(nir_function_impl *impl)
 {
@@ -1264,6 +1307,10 @@ nir_opt_deref_impl(nir_function_impl *impl)
          switch (instr->type) {
          case nir_instr_type_deref: {
             nir_deref_instr *deref = nir_instr_as_deref(instr);
+
+            if (opt_restrict_deref_modes(deref))
+               progress = true;
+
             switch (deref->deref_type) {
             case nir_deref_type_ptr_as_array:
                if (opt_deref_ptr_as_array(&b, deref))
@@ -1292,6 +1339,11 @@ nir_opt_deref_impl(nir_function_impl *impl)
 
             case nir_intrinsic_store_deref:
                if (opt_store_vec_deref(&b, intrin))
+                  progress = true;
+               break;
+
+            case nir_intrinsic_deref_mode_is:
+               if (opt_known_deref_mode_is(&b, intrin))
                   progress = true;
                break;
 

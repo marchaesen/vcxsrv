@@ -37,12 +37,20 @@ static inline bool
 qinst_writes_tmu(struct qinst *inst)
 {
         return (inst->dst.file == QFILE_MAGIC &&
-                v3d_qpu_magic_waddr_is_tmu(inst->dst.index));
+                v3d_qpu_magic_waddr_is_tmu(inst->dst.index)) ||
+                inst->qpu.sig.wrtmuc;
 }
 
 static bool
-is_last_ldtmu(struct qinst *inst, struct qblock *block)
+is_end_of_tmu_sequence(struct qinst *inst, struct qblock *block)
 {
+        if (inst->qpu.type == V3D_QPU_INSTR_TYPE_ALU &&
+            inst->qpu.alu.add.op == V3D_QPU_A_TMUWT)
+                return true;
+
+        if (!inst->qpu.sig.ldtmu)
+                return false;
+
         list_for_each_entry_from(struct qinst, scan_inst, inst->link.next,
                                  &block->instructions, link) {
                 if (scan_inst->qpu.sig.ldtmu)
@@ -78,14 +86,13 @@ v3d_choose_spill_node(struct v3d_compile *c, struct ra_graph *g,
         /* XXX: Scale the cost up when inside of a loop. */
         vir_for_each_block(block, c) {
                 vir_for_each_inst(inst, block) {
-                        /* We can't insert a new TMU operation while currently
-                         * in a TMU operation, and we can't insert new thread
-                         * switches after starting output writes.
+                        /* We can't insert new thread switches after
+                         * starting output writes.
                          */
                         bool no_spilling =
-                                (in_tmu_operation ||
-                                 (c->threads > 1 && started_last_seg));
+                                c->threads > 1 && started_last_seg;
 
+                        /* Discourage spilling of TMU operations */
                         for (int i = 0; i < vir_get_nsrc(inst); i++) {
                                 if (inst->src[i].file != QFILE_TEMP)
                                         continue;
@@ -94,8 +101,11 @@ v3d_choose_spill_node(struct v3d_compile *c, struct ra_graph *g,
                                 if (vir_is_mov_uniform(c, temp)) {
                                         spill_costs[temp] += block_scale;
                                 } else if (!no_spilling) {
+                                        float tmu_op_scale = in_tmu_operation ?
+                                                3.0 : 1.0;
                                         spill_costs[temp] += (block_scale *
-                                                              tmu_scale);
+                                                              tmu_scale *
+                                                              tmu_op_scale);
                                 } else {
                                         BITSET_CLEAR(c->spillable, temp);
                                 }
@@ -133,16 +143,10 @@ v3d_choose_spill_node(struct v3d_compile *c, struct ra_graph *g,
                                 started_last_seg = true;
 
                         /* Track when we're in between a TMU setup and the
-                         * final LDTMU or TMUWT from that TMU setup.  We can't
-                         * spill/fill any temps during that time, because that
-                         * involves inserting a new TMU setup/LDTMU sequence.
+                         * final LDTMU or TMUWT from that TMU setup.  We
+                         * penalize spills during that time.
                          */
-                        if (inst->qpu.sig.ldtmu &&
-                            is_last_ldtmu(inst, block))
-                                in_tmu_operation = false;
-
-                        if (inst->qpu.type == V3D_QPU_INSTR_TYPE_ALU &&
-                            inst->qpu.alu.add.op == V3D_QPU_A_TMUWT)
+                        if (is_end_of_tmu_sequence(inst, block))
                                 in_tmu_operation = false;
 
                         if (qinst_writes_tmu(inst))
@@ -205,6 +209,23 @@ v3d_emit_spill_tmua(struct v3d_compile *c, uint32_t spill_offset)
                      vir_uniform_ui(c, spill_offset));
 }
 
+
+static void
+v3d_emit_tmu_spill(struct v3d_compile *c, struct qinst *inst,
+                   struct qinst *position, uint32_t spill_offset)
+{
+        c->cursor = vir_after_inst(position);
+        inst->dst.index = c->num_temps++;
+        vir_MOV_dest(c, vir_reg(QFILE_MAGIC,
+                                V3D_QPU_WADDR_TMUD),
+                     inst->dst);
+        v3d_emit_spill_tmua(c, spill_offset);
+        vir_emit_thrsw(c);
+        vir_TMUWT(c);
+        c->spills++;
+        c->tmu_dirty_rcl = true;
+}
+
 static void
 v3d_spill_reg(struct v3d_compile *c, int spill_temp)
 {
@@ -233,62 +254,91 @@ v3d_spill_reg(struct v3d_compile *c, int spill_temp)
                 uniform_index = orig_unif->uniform;
         }
 
-        vir_for_each_inst_inorder_safe(inst, c) {
-                for (int i = 0; i < vir_get_nsrc(inst); i++) {
-                        if (inst->src[i].file != QFILE_TEMP ||
-                            inst->src[i].index != spill_temp) {
-                                continue;
+        struct qinst *start_of_tmu_sequence = NULL;
+        struct qinst *postponed_spill = NULL;
+        vir_for_each_block(block, c) {
+                vir_for_each_inst_safe(inst, block) {
+                        /* Track when we're in between a TMU setup and the final
+                         * LDTMU or TMUWT from that TMU setup. We can't spill/fill any
+                         * temps during that time, because that involves inserting a
+                         * new TMU setup/LDTMU sequence, so we postpone the spill or
+                         * move the fill up to not intrude in the middle of the TMU
+                         * sequence.
+                         */
+                        if (is_end_of_tmu_sequence(inst, block)) {
+                                if (postponed_spill) {
+                                        v3d_emit_tmu_spill(c, postponed_spill,
+                                                           inst, spill_offset);
+                                }
+
+                                start_of_tmu_sequence = NULL;
+                                postponed_spill = NULL;
                         }
 
-                        c->cursor = vir_before_inst(inst);
+                        if (!start_of_tmu_sequence && qinst_writes_tmu(inst))
+                                start_of_tmu_sequence = inst;
 
-                        if (is_uniform) {
-                                struct qreg unif =
-                                        vir_uniform(c,
-                                                    c->uniform_contents[uniform_index],
-                                                    c->uniform_data[uniform_index]);
-                                inst->src[i] = unif;
-                        } else {
-                                v3d_emit_spill_tmua(c, spill_offset);
+                        /* fills */
+                        for (int i = 0; i < vir_get_nsrc(inst); i++) {
+                                if (inst->src[i].file != QFILE_TEMP ||
+                                    inst->src[i].index != spill_temp) {
+                                        continue;
+                                }
+
+                                c->cursor = vir_before_inst(inst);
+
+                                if (is_uniform) {
+                                        struct qreg unif =
+                                                vir_uniform(c,
+                                                            c->uniform_contents[uniform_index],
+                                                            c->uniform_data[uniform_index]);
+                                        inst->src[i] = unif;
+                                } else {
+                                        /* If we have a postponed spill, we don't need
+                                         * a fill as the temp would not have been
+                                         * spilled yet.
+                                         */
+                                        if (postponed_spill)
+                                                continue;
+                                        if (start_of_tmu_sequence)
+                                                c->cursor = vir_before_inst(start_of_tmu_sequence);
+
+                                        v3d_emit_spill_tmua(c, spill_offset);
+                                        vir_emit_thrsw(c);
+                                        inst->src[i] = vir_LDTMU(c);
+                                        c->fills++;
+                                }
+                        }
+
+                        /* spills */
+                        if (inst->dst.file == QFILE_TEMP &&
+                            inst->dst.index == spill_temp) {
+                                if (is_uniform) {
+                                        c->cursor.link = NULL;
+                                        vir_remove_instruction(c, inst);
+                                } else {
+                                        if (start_of_tmu_sequence)
+                                                postponed_spill = inst;
+                                        else
+                                                v3d_emit_tmu_spill(c, inst, inst,
+                                                                   spill_offset);
+                                }
+                        }
+
+                        /* If we didn't have a last-thrsw inserted by nir_to_vir and
+                         * we've been inserting thrsws, then insert a new last_thrsw
+                         * right before we start the vpm/tlb sequence for the last
+                         * thread segment.
+                         */
+                        if (!is_uniform && !last_thrsw && c->last_thrsw &&
+                            (v3d_qpu_writes_vpm(&inst->qpu) ||
+                             v3d_qpu_uses_tlb(&inst->qpu))) {
+                                c->cursor = vir_before_inst(inst);
                                 vir_emit_thrsw(c);
-                                inst->src[i] = vir_LDTMU(c);
-                                c->fills++;
+
+                                last_thrsw = c->last_thrsw;
+                                last_thrsw->is_last_thrsw = true;
                         }
-                }
-
-                if (inst->dst.file == QFILE_TEMP &&
-                    inst->dst.index == spill_temp) {
-                        if (is_uniform) {
-                                c->cursor.link = NULL;
-                                vir_remove_instruction(c, inst);
-                        } else {
-                                c->cursor = vir_after_inst(inst);
-
-                                inst->dst.index = c->num_temps++;
-                                vir_MOV_dest(c, vir_reg(QFILE_MAGIC,
-                                                        V3D_QPU_WADDR_TMUD),
-                                             inst->dst);
-                                v3d_emit_spill_tmua(c, spill_offset);
-                                vir_emit_thrsw(c);
-                                vir_TMUWT(c);
-                                c->spills++;
-                                c->tmu_dirty_rcl = true;
-                        }
-                }
-
-                /* If we didn't have a last-thrsw inserted by nir_to_vir and
-                 * we've been inserting thrsws, then insert a new last_thrsw
-                 * right before we start the vpm/tlb sequence for the last
-                 * thread segment.
-                 */
-                if (!is_uniform && !last_thrsw && c->last_thrsw &&
-                    (v3d_qpu_writes_vpm(&inst->qpu) ||
-                     v3d_qpu_uses_tlb(&inst->qpu))) {
-                        c->cursor = vir_before_inst(inst);
-                        vir_emit_thrsw(c);
-
-                        last_thrsw = c->last_thrsw;
-                        last_thrsw->is_last_thrsw = true;
                 }
         }
 

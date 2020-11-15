@@ -33,6 +33,7 @@
 
 #include "sid.h"
 #include "sid_tables.h"
+#include "util/memstream.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
 #include "util/u_string.h"
@@ -584,10 +585,12 @@ void ac_parse_ib_chunk(FILE *f, uint32_t *ib_ptr, int num_dw, const int *trace_i
 
    char *out;
    size_t outsize;
-   FILE *memf = open_memstream(&out, &outsize);
+   struct u_memstream mem;
+   u_memstream_open(&mem, &out, &outsize);
+   FILE *const memf = u_memstream_get(&mem);
    ib.f = memf;
    ac_do_parse_ib(memf, &ib);
-   fclose(memf);
+   u_memstream_close(&mem);
 
    if (out) {
       format_ib_output(f, out);

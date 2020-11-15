@@ -72,7 +72,7 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
          case nir_intrinsic_load_deref: {
             nir_deref_instr *const deref = nir_src_as_deref(intrin->src[0]);
 
-            switch (deref->mode) {
+            switch (deref->modes) {
             case nir_var_shader_in:
             case nir_var_uniform:
                /* Don't try to remove flow control around an indirect load

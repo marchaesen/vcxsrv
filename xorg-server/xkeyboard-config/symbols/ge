@@ -73,7 +73,6 @@ xkb_symbols "basic" {
     key <AB10> { [ slash,         question,      0x010010fb    ] };
 
     include "level3(ralt_switch)"
-
 };
 
 partial alphanumeric_keys
@@ -140,7 +139,6 @@ xkb_symbols "ergonomic" {
     key <AB10> { [ Georgian_cil,  noSymbol, 0x010010fb    ] };
 
     include "level3(ralt_switch)"
-
 };
 
 partial alphanumeric_keys
@@ -200,7 +198,6 @@ xkb_symbols "mess" {
     key <AB10> { [ Georgian_jil,  question, 0x010010fb ] };
 
     include "level3(ralt_switch)"
-
 };
 
 partial alphanumeric_keys
@@ -259,7 +256,6 @@ xkb_symbols "ru" {
     key <AB08> { [ Georgian_ban,   less            ]       };
     key <AB09> { [ Georgian_qar,   greater         ]       };
     key <AB10> { [ Georgian_hae,   question        ]       };
-
 };
 
 partial alphanumeric_keys
@@ -268,5 +264,4 @@ xkb_symbols "os" {
     include "ru(os_legacy)"
 
     name[Group1]= "Ossetian (Georgia)";
-
 };

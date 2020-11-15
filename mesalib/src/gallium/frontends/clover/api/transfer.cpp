@@ -806,7 +806,7 @@ clEnqueueMapBuffer(cl_command_queue d_q, cl_mem d_mem, cl_bool blocking,
    validate_object(q, mem, obj_origin, obj_pitch, region);
    validate_map_flags(mem, flags);
 
-   void *map = mem.resource_in(q).add_map(q, flags, blocking, obj_origin, region);
+   auto *map = mem.resource_in(q).add_map(q, flags, blocking, obj_origin, region);
 
    auto hev = create<hard_event>(q, CL_COMMAND_MAP_BUFFER, deps);
    if (blocking)
@@ -814,7 +814,7 @@ clEnqueueMapBuffer(cl_command_queue d_q, cl_mem d_mem, cl_bool blocking,
 
    ret_object(rd_ev, hev);
    ret_error(r_errcode, CL_SUCCESS);
-   return map;
+   return *map;
 
 } catch (error &e) {
    ret_error(r_errcode, e);
@@ -838,7 +838,16 @@ clEnqueueMapImage(cl_command_queue d_q, cl_mem d_mem, cl_bool blocking,
    validate_object(q, img, origin, region);
    validate_map_flags(img, flags);
 
-   void *map = img.resource_in(q).add_map(q, flags, blocking, origin, region);
+   if (!row_pitch)
+      throw error(CL_INVALID_VALUE);
+
+   if (img.slice_pitch() && !slice_pitch)
+      throw error(CL_INVALID_VALUE);
+
+   auto *map = img.resource_in(q).add_map(q, flags, blocking, origin, region);
+   *row_pitch = map->pitch()[1];
+   if (slice_pitch)
+      *slice_pitch = map->pitch()[2];
 
    auto hev = create<hard_event>(q, CL_COMMAND_MAP_IMAGE, deps);
    if (blocking)
@@ -846,7 +855,7 @@ clEnqueueMapImage(cl_command_queue d_q, cl_mem d_mem, cl_bool blocking,
 
    ret_object(rd_ev, hev);
    ret_error(r_errcode, CL_SUCCESS);
-   return map;
+   return *map;
 
 } catch (error &e) {
    ret_error(r_errcode, e);

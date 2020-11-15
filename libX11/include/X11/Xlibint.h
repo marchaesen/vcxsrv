@@ -205,6 +205,9 @@ struct _XDisplay
 
 	/* avoid recursion on requests sequence number synchronization */
 	Bool req_seq_syncing; /* requests syncing is in-progress */
+
+	XIOErrorExitHandler exit_handler;
+	void *exit_handler_data;
 };
 
 #define XAllocIDs(dpy,ids,n) (*(dpy)->idlist_alloc)(dpy,ids,n)
@@ -929,7 +932,7 @@ extern int _XError(
 );
 extern int _XIOError(
     Display*	/* dpy */
-) _X_NORETURN;
+);
 extern int (*_XIOErrorFunction)(
     Display*	/* dpy */
 );
@@ -1384,6 +1387,10 @@ extern int _XDefaultError(
 
 extern int _XDefaultIOError(
         Display *dpy);
+
+extern void _XDefaultIOErrorExit(
+    Display *dpy,
+    void *user_data);
 
 extern void _XSetClipRectangles (
     Display *dpy,

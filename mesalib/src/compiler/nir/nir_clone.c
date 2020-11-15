@@ -312,7 +312,7 @@ clone_deref_instr(clone_state *state, const nir_deref_instr *deref)
 
    __clone_dst(state, &nderef->instr, &nderef->dest, &deref->dest);
 
-   nderef->mode = deref->mode;
+   nderef->modes = deref->modes;
    nderef->type = deref->type;
 
    if (deref->deref_type == nir_deref_type_var) {

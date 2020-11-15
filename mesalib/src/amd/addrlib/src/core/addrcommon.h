@@ -36,14 +36,6 @@
 
 #include "addrinterface.h"
 
-#if !defined(DEBUG)
-#ifdef NDEBUG
-#define DEBUG 0
-#else
-#define DEBUG 1
-#endif
-#endif
-
 // ADDR_LNX_KERNEL_BUILD is for internal build
 // Moved from addrinterface.h so __KERNEL__ is not needed any more
 #if ADDR_LNX_KERNEL_BUILD // || (defined(__GNUC__) && defined(__KERNEL__))
@@ -55,6 +47,22 @@
 
 #include <assert.h>
 #include "util/macros.h"
+#include "util/u_endian.h"
+
+#if !defined(DEBUG)
+#ifdef NDEBUG
+#define DEBUG 0
+#else
+#define DEBUG 1
+#endif
+#endif
+
+#if UTIL_ARCH_LITTLE_ENDIAN
+#define LITTLEENDIAN_CPU
+#elif UTIL_ARCH_BIG_ENDIAN
+#define BIGENDIAN_CPU
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Platform specific debug break defines
@@ -68,7 +76,7 @@
         #define ADDR_DBG_BREAK()    { __debugbreak(); }
     #endif
 #else
-    #define ADDR_DBG_BREAK() do {} while(0)
+    #define ADDR_DBG_BREAK()
 #endif
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -81,10 +89,29 @@
     #define ADDR_ANALYSIS_ASSUME(expr) do { (void)(expr); } while (0)
 #endif
 
-#define ADDR_ASSERT(__e) assert(__e)
-#define ADDR_ASSERT_ALWAYS() ADDR_DBG_BREAK()
-#define ADDR_UNHANDLED_CASE() ADDR_ASSERT(!"Unhandled case")
-#define ADDR_NOT_IMPLEMENTED() ADDR_ASSERT(!"Not implemented");
+#if DEBUG
+    #if defined( _WIN32 )
+        #define ADDR_ASSERT(__e)                                \
+        {                                                       \
+            ADDR_ANALYSIS_ASSUME(__e);                          \
+            if ( !((__e) ? TRUE : FALSE)) { ADDR_DBG_BREAK(); } \
+        }
+    #else
+        #define ADDR_ASSERT(__e) if ( !((__e) ? TRUE : FALSE)) { ADDR_DBG_BREAK(); }
+    #endif
+    #define ADDR_ASSERT_ALWAYS() ADDR_DBG_BREAK()
+    #define ADDR_UNHANDLED_CASE() ADDR_ASSERT(!"Unhandled case")
+    #define ADDR_NOT_IMPLEMENTED() ADDR_ASSERT(!"Not implemented");
+#else //DEBUG
+    #if defined( _WIN32 )
+        #define ADDR_ASSERT(__e) { ADDR_ANALYSIS_ASSUME(__e); }
+    #else
+        #define ADDR_ASSERT(__e)
+    #endif
+    #define ADDR_ASSERT_ALWAYS()
+    #define ADDR_UNHANDLED_CASE()
+    #define ADDR_NOT_IMPLEMENTED()
+#endif //DEBUG
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -107,6 +134,7 @@
 #define ADDR_INFO(cond, a)         \
 { if (!(cond)) { ADDR_PRNT(a); } }
 
+
 /// @brief Macro for reporting error warning messages
 /// @ingroup util
 ///
@@ -124,6 +152,7 @@
   { ADDR_PRNT(a);                  \
     ADDR_PRNT(("  WARNING in file %s, line %d\n", __FILE__, __LINE__)); \
 } }
+
 
 /// @brief Macro for reporting fatal error conditions
 /// @ingroup util
@@ -147,20 +176,24 @@
 
 #define ADDRDPF 1 ? (void)0 : (void)
 
-#define ADDR_PRNT(a) do {} while(0)
+#define ADDR_PRNT(a)
 
-#define ADDR_DBG_BREAK() do {} while(0)
+#define ADDR_DBG_BREAK()
 
-#define ADDR_INFO(cond, a) do {} while(0)
+#define ADDR_INFO(cond, a)
 
-#define ADDR_WARN(cond, a) do {} while(0)
+#define ADDR_WARN(cond, a)
 
-#define ADDR_EXIT(cond, a) do {} while(0)
+#define ADDR_EXIT(cond, a)
 
 #endif // DEBUG
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define ADDR_C_ASSERT(__e) STATIC_ASSERT(__e)
+#if defined(static_assert)
+#define ADDR_C_ASSERT(__e) static_assert(__e, "")
+#else
+#define ADDR_C_ASSERT(__e) typedef char __ADDR_C_ASSERT__[(__e) ? 1 : -1]
+#endif
 
 namespace Addr
 {
@@ -205,21 +238,6 @@ static const UINT_32 MaxSurfaceHeight = 16384;
 
 /// Helper macros to select a single bit from an int (undefined later in section)
 #define _BIT(v,b)      (((v) >> (b) ) & 1)
-
-/**
-****************************************************************************************************
-* @brief Enums to identify AddrLib type
-****************************************************************************************************
-*/
-enum LibClass
-{
-    BASE_ADDRLIB = 0x0,
-    R600_ADDRLIB = 0x6,
-    R800_ADDRLIB = 0x8,
-    SI_ADDRLIB   = 0xa,
-    CI_ADDRLIB   = 0xb,
-    AI_ADDRLIB   = 0xd,
-};
 
 /**
 ****************************************************************************************************
@@ -270,8 +288,9 @@ union ConfigFlags
         UINT_32 disableLinearOpt       : 1;    ///< Disallow tile modes to be optimized to linear
         UINT_32 use32bppFor422Fmt      : 1;    ///< View 422 formats as 32 bits per pixel element
         UINT_32 forceDccAndTcCompat    : 1;    ///< Force enable DCC and TC compatibility
-        UINT_32 nonPower2MemConfig     : 1;    ///< Physical video memory size is not power of 2
-        UINT_32 reserved               : 19;   ///< Reserved bits for future use
+        UINT_32 nonPower2MemConfig     : 1;    ///< Video memory bit width is not power of 2
+        UINT_32 enableAltTiling        : 1;    ///< Enable alt tile mode
+        UINT_32 reserved               : 18;   ///< Reserved bits for future use
     };
 
     UINT_32 value;
@@ -854,6 +873,7 @@ static inline VOID InitChannel(
     pChanSet->channel = channel;
     pChanSet->index = index;
 }
+
 
 /**
 ****************************************************************************************************

@@ -1,13 +1,8 @@
-// Basic layout based on converted file, from keytable file to xkb/symbols/ file
+// Basic layout, based on converted file, from keytable file to xkb/symbols/ file
 // with mk_xkb by root@linux.chanae.stben.be Tue Sep 30 00:53:29 MET DST 1997
-
+//
 // Converted from the nl-latin.map of the Linux kbd package by
 // Pablo Saratxaga <srtxg@f2219.n293.z2.fidonet.org>
-
-// Official layout by Benno Schulenberg <bensberg@justemail.net>, January 2007,
-// based on http://www.xs4all.nl/~koospol/public/Xmodmap-nl-deadkeys.gz
-
-
 default partial alphanumeric_keys
 xkb_symbols "basic" {
 
@@ -53,6 +48,8 @@ xkb_symbols "basic" {
 };
 
 
+// Official layout, by Benno Schulenberg <bensberg@justemail.net>, January 2007,
+// based on ftp://ftp.software.ibm.com/software/globalization/keyboards/KBD143.pdf.
 partial alphanumeric_keys
 xkb_symbols "std" {
 
@@ -84,10 +81,9 @@ xkb_symbols "std" {
     key <AD10>  { [              p,              P                 ] };
     key <AD11>  { [ dead_diaeresis, dead_circumflex                ] };
     key <AD12>  { [       asterisk,            bar                 ] };
-    key <BKSL>  { [           less,        greater                 ] };
 
     key <AC01>  { [              a,              A                 ] };
-    key <AC02>  { [              s,              S,  ssharp, U1E9E ] };
+    key <AC02>  { [              s,              S,         ssharp ] };
     key <AC03>  { [              d,              D                 ] };
     key <AC04>  { [              f,              F                 ] };
     key <AC05>  { [              g,              G                 ] };
@@ -97,8 +93,9 @@ xkb_symbols "std" {
     key <AC09>  { [              l,              L                 ] };
     key <AC10>  { [           plus,      plusminus                 ] };
     key <AC11>  { [     dead_acute,     dead_grave                 ] };
+    key <BKSL>  { [           less,        greater                 ] };
 
-    key <LSGT>  { [   bracketright,    bracketleft,            bar ] };
+    key <LSGT>  { [   bracketright,    bracketleft,      brokenbar ] };
     key <AB01>  { [              z,              Z,  guillemotleft ] };
     key <AB02>  { [              x,              X, guillemotright ] };
     key <AB03>  { [              c,              C,           cent ] };
@@ -113,23 +110,6 @@ xkb_symbols "std" {
     include "level3(ralt_switch)"
 };
 
-
-partial alphanumeric_keys
-xkb_symbols "Sundeadkeys" {
-
-    // For naming consistency
-
-    include "nl(basic)"
-};
-
-partial alphanumeric_keys
-xkb_symbols "sundeadkeys" {
-
-     // For naming consistency
-
-    include "nl(Sundeadkeys)"
-    name[Group1]="Dutch (Sun dead keys)";
-};
 
 // Copied from macintosh_vndr/nl
 partial alphanumeric_keys

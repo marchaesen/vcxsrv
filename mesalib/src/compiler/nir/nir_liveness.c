@@ -43,7 +43,6 @@
  */
 
 struct live_ssa_defs_state {
-   unsigned num_ssa_defs;
    unsigned bitset_words;
 
    /* Used in propagate_across_edge() */
@@ -51,19 +50,6 @@ struct live_ssa_defs_state {
 
    nir_block_worklist worklist;
 };
-
-static bool
-index_ssa_def(nir_ssa_def *def, void *void_state)
-{
-   struct live_ssa_defs_state *state = void_state;
-
-   if (def->parent_instr->type == nir_instr_type_ssa_undef)
-      def->live_index = 0;
-   else
-      def->live_index = state->num_ssa_defs++;
-
-   return true;
-}
 
 /* Initialize the liveness data to zero and add the given block to the
  * worklist.
@@ -93,7 +79,7 @@ set_src_live(nir_src *src, void *void_live)
    if (!src->is_ssa)
       return true;
 
-   if (src->ssa->live_index == 0)
+   if (src->ssa->parent_instr->type == nir_instr_type_ssa_undef)
       return true;   /* undefined variables are never live */
 
    BITSET_SET(live, src->ssa->index);
@@ -165,15 +151,10 @@ nir_live_ssa_defs_impl(nir_function_impl *impl)
    };
    state.tmp_live = rzalloc_array(impl, BITSET_WORD, state.bitset_words),
 
-   /* We start at 1 because we reserve the index value of 0 for ssa_undef
-    * instructions.  Those are never live, so their liveness information
-    * can be compacted into a single bit.
+   /* Number the instructions so we can do cheap interference tests using the
+    * instruction index.
     */
-   state.num_ssa_defs = 1;
-   nir_foreach_block(block, impl) {
-      nir_foreach_instr(instr, block)
-         nir_foreach_ssa_def(instr, index_ssa_def, &state);
-   }
+   nir_metadata_require(impl, nir_metadata_instr_index);
 
    nir_block_worklist_init(&state.worklist, impl->num_blocks, NULL);
 
@@ -295,12 +276,88 @@ nir_ssa_defs_interfere(nir_ssa_def *a, nir_ssa_def *b)
        * least one isn't dead.
        */
       return true;
-   } else if (a->live_index == 0 || b->live_index == 0) {
+   } else if (a->parent_instr->type == nir_instr_type_ssa_undef ||
+              b->parent_instr->type == nir_instr_type_ssa_undef) {
       /* If either variable is an ssa_undef, then there's no interference */
       return false;
-   } else if (a->live_index < b->live_index) {
+   } else if (a->parent_instr->index < b->parent_instr->index) {
       return nir_ssa_def_is_live_at(a, b->parent_instr);
    } else {
       return nir_ssa_def_is_live_at(b, a->parent_instr);
    }
+}
+
+/* Takes an SSA def's defs and uses and expands the live interval to cover
+ * that range.  Control flow effects are handled separately.
+ */
+static bool def_cb(nir_ssa_def *def, void *state)
+{
+   nir_instr_liveness *liveness = state;
+   nir_instr *instr = def->parent_instr;
+   int index = def->index;
+
+   liveness->defs[index].start = MIN2(liveness->defs[index].start, instr->index);
+
+   nir_foreach_use(src, def) {
+      liveness->defs[index].end = MAX2(liveness->defs[index].end,
+                                       src->parent_instr->index);
+   }
+
+   return true;
+}
+
+nir_instr_liveness *
+nir_live_ssa_defs_per_instr(nir_function_impl *impl)
+{
+   /* We'll use block-level live_ssa_defs to expand our per-instr ranges for
+    * control flow.
+    */
+   nir_metadata_require(impl,
+                        nir_metadata_block_index |
+                        nir_metadata_instr_index |
+                        nir_metadata_live_ssa_defs);
+
+   /* Make our struct. */
+   nir_instr_liveness *liveness = ralloc(NULL, nir_instr_liveness);
+   liveness->defs = rzalloc_array(liveness, nir_liveness_bounds,
+                                  impl->ssa_alloc);
+
+   /* Set our starts so we can use MIN2() as we accumulate bounds. */
+   for (int i = 0; i < impl->ssa_alloc; i++)
+      liveness->defs->start = ~0;
+
+   unsigned last_instr = 0;
+   nir_foreach_block(block, impl) {
+      unsigned index;
+      BITSET_FOREACH_SET(index, block->live_in, impl->ssa_alloc) {
+         liveness->defs[index].start = MIN2(liveness->defs[index].start,
+                                            last_instr);
+      }
+
+      nir_foreach_instr(instr, block) {
+         nir_foreach_ssa_def(instr, def_cb, liveness);
+
+         last_instr = instr->index;
+      };
+
+      /* track an if src's use.  We need to make sure that our value is live
+       * across the if reference, where we don't have an instr->index
+       * representing the use.  Mark it as live through the next real
+       * instruction.
+       */
+      nir_if *nif = nir_block_get_following_if(block);
+      if (nif) {
+         if (nif->condition.is_ssa) {
+            liveness->defs[nif->condition.ssa->index].end = MAX2(
+               liveness->defs[nif->condition.ssa->index].end,
+               last_instr + 1);
+         }
+      }
+
+      BITSET_FOREACH_SET(index, block->live_out, impl->ssa_alloc) {
+         liveness->defs[index].end = MAX2(liveness->defs[index].end, last_instr);
+      }
+   }
+
+   return liveness;
 }

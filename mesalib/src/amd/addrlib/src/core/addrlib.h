@@ -370,8 +370,6 @@ private:
     VOID SetMaxAlignments();
 
 protected:
-    LibClass    m_class;        ///< Store class type (HWL type)
-
     ChipFamily  m_chipFamily;   ///< Chip family translated from the one in atiid.h
 
     UINT_32     m_chipRevision; ///< Revision id from xxx_id.h

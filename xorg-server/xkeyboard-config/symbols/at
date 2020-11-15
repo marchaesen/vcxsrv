@@ -1,5 +1,3 @@
-// based on a keyboard map from an 'xkb/symbols/de' file
-
 default
 xkb_symbols "basic" {
 
@@ -23,12 +21,3 @@ xkb_symbols "mac" {
 
     name[Group1]= "German (Austria, Macintosh)";
 };
-
-partial alphanumeric_keys
-xkb_symbols "sundeadkeys" {
-
-    include "de(Sundeadkeys)"
-
-    name[Group1]="German (Austria, Sun dead keys)";
-};
-

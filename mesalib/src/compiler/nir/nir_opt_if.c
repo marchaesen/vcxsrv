@@ -635,14 +635,13 @@ opt_simplify_bcsel_of_phi(nir_builder *b, nir_loop *loop)
 
       bool match = true;
       for (unsigned i = 0; i < 3; i++) {
-         /* FINISHME: The abs and negate cases could be handled by adding
-          * move instructions at the bottom of the continue block and more
-          * phi nodes in the header_block.
+         /* FINISHME: The abs, negate and swizzled cases could be handled by
+          * adding move instructions at the bottom of the continue block and
+          * more phi nodes in the header_block.
           */
-         if (!bcsel->src[i].src.is_ssa ||
+         if (!nir_alu_src_is_trivial_ssa(bcsel, i) ||
              bcsel->src[i].src.ssa->parent_instr->type != nir_instr_type_phi ||
-             bcsel->src[i].src.ssa->parent_instr->block != header_block ||
-             bcsel->src[i].negate || bcsel->src[i].abs) {
+             bcsel->src[i].src.ssa->parent_instr->block != header_block) {
             match = false;
             break;
          }

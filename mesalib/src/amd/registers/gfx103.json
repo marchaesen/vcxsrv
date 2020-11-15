@@ -3098,6 +3098,12 @@
   },
   {
    "chips": ["gfx103"],
+   "map": {"at": 163940, "to": "mm"},
+   "name": "DB_VRS_OVERRIDE_CNTL",
+   "type_ref": "DB_VRS_OVERRIDE_CNTL"
+  },
+  {
+   "chips": ["gfx103"],
    "map": {"at": 163944, "to": "mm"},
    "name": "DB_Z_READ_BASE_HI",
    "type_ref": "DB_Z_READ_BASE_HI"
@@ -5099,6 +5105,12 @@
    "map": {"at": 165956, "to": "mm"},
    "name": "PA_STATE_STEREO_X",
    "type_ref": "PA_STATE_STEREO_X"
+  },
+  {
+   "chips": ["gfx103"],
+   "map": {"at": 165960, "to": "mm"},
+   "name": "PA_CL_VRS_CNTL",
+   "type_ref": "PA_CL_VRS_CNTL"
   },
   {
    "chips": ["gfx103"],
@@ -12429,7 +12441,8 @@
     {"bits": [24, 25], "name": "RESOURCE_TYPE"},
     {"bits": [26, 26], "name": "CMASK_PIPE_ALIGNED"},
     {"bits": [27, 29], "name": "RESOURCE_LEVEL"},
-    {"bits": [30, 30], "name": "DCC_PIPE_ALIGNED"}
+    {"bits": [30, 30], "name": "DCC_PIPE_ALIGNED"},
+    {"bits": [31, 31], "name": "VRS_RATE_HINT_ENABLE"}
    ]
   },
   "CB_COLOR0_BASE_EXT": {
@@ -13950,7 +13963,8 @@
     {"bits": [10, 15], "name": "RESERVED_FIELD_5"},
     {"bits": [16, 16], "name": "DST_OUTSIDE_ZERO_TO_ONE"},
     {"bits": [17, 17], "name": "RESERVED_FIELD_6"},
-    {"bits": [18, 18], "name": "PIPE_ALIGNED"}
+    {"bits": [18, 18], "name": "PIPE_ALIGNED"},
+    {"bits": [19, 20], "name": "VRS_HTILE_ENCODING"}
    ]
   },
   "DB_OCCLUSION_COUNT0_HI": {
@@ -14031,6 +14045,7 @@
     {"bits": [22, 22], "name": "PRESERVE_SRESULTS"},
     {"bits": [23, 23], "name": "DISABLE_FAST_PASS"},
     {"bits": [25, 25], "name": "ALLOW_PARTIAL_RES_HIER_KILL"},
+    {"bits": [26, 26], "name": "FORCE_VRS_RATE_FINE"},
     {"bits": [27, 28], "name": "CENTROID_COMPUTATION_MODE"}
    ]
   },
@@ -14067,7 +14082,11 @@
     {"bits": [18, 19], "enum_ref": "ReadPolicy", "name": "S_RD_POLICY"},
     {"bits": [20, 21], "enum_ref": "ReadPolicy", "name": "HTILE_RD_POLICY"},
     {"bits": [24, 24], "name": "Z_BIG_PAGE"},
-    {"bits": [25, 25], "name": "S_BIG_PAGE"}
+    {"bits": [25, 25], "name": "S_BIG_PAGE"},
+    {"bits": [26, 26], "name": "Z_NOALLOC"},
+    {"bits": [27, 27], "name": "S_NOALLOC"},
+    {"bits": [28, 28], "name": "HTILE_NOALLOC"},
+    {"bits": [29, 29], "name": "ZPCPSD_NOALLOC"}
    ]
   },
   "DB_SHADER_CONTROL": {
@@ -14149,6 +14168,13 @@
     {"bits": [20, 20], "name": "ITERATE_256"},
     {"bits": [27, 27], "name": "ALLOW_EXPCLEAR"},
     {"bits": [29, 29], "name": "TILE_STENCIL_DISABLE"}
+   ]
+  },
+  "DB_VRS_OVERRIDE_CNTL": {
+   "fields": [
+    {"bits": [0, 2], "name": "VRS_OVERRIDE_RATE_COMBINER_MODE"},
+    {"bits": [4, 5], "name": "VRS_OVERRIDE_RATE_X"},
+    {"bits": [6, 7], "name": "VRS_OVERRIDE_RATE_Y"}
    ]
   },
   "DB_Z_INFO": {
@@ -14710,6 +14736,16 @@
     {"bits": [0, 31], "name": "VPORT_ZSCALE"}
    ]
   },
+  "PA_CL_VRS_CNTL": {
+   "fields": [
+    {"bits": [0, 2], "name": "VERTEX_RATE_COMBINER_MODE"},
+    {"bits": [3, 5], "name": "PRIMITIVE_RATE_COMBINER_MODE"},
+    {"bits": [6, 8], "name": "HTILE_RATE_COMBINER_MODE"},
+    {"bits": [9, 11], "name": "SAMPLE_ITER_COMBINER_MODE"},
+    {"bits": [13, 13], "name": "EXPOSE_VRS_PIXELS_MASK"},
+    {"bits": [14, 14], "name": "CMASK_RATE_HINT_FORCE_ZERO"}
+   ]
+  },
   "PA_CL_VS_OUT_CNTL": {
    "fields": [
     {"bits": [0, 0], "name": "CLIP_DIST_ENA_0"},
@@ -14739,6 +14775,7 @@
     {"bits": [24, 24], "name": "VS_OUT_MISC_SIDE_BUS_ENA"},
     {"bits": [25, 25], "name": "USE_VTX_GS_CUT_FLAG"},
     {"bits": [27, 27], "name": "USE_VTX_LINE_WIDTH"},
+    {"bits": [28, 28], "name": "USE_VTX_VRS_RATE"},
     {"bits": [29, 29], "name": "BYPASS_VTX_RATE_COMBINER"},
     {"bits": [30, 30], "name": "BYPASS_PRIM_RATE_COMBINER"}
    ]

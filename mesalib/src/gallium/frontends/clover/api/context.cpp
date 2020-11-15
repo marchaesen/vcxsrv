@@ -142,3 +142,21 @@ clGetContextInfo(cl_context d_ctx, cl_context_info param,
 } catch (error &e) {
    return e.get();
 }
+
+CLOVER_API cl_int
+clSetContextDestructorCallback(cl_context d_ctx,
+                               void (CL_CALLBACK *pfn_notify)(cl_context, void *),
+                               void *user_data) try {
+   CLOVER_NOT_SUPPORTED_UNTIL("3.0");
+   auto &ctx = obj(d_ctx);
+
+   if (!pfn_notify)
+      return CL_INVALID_VALUE;
+
+   ctx.destroy_notify([=]{ pfn_notify(d_ctx, user_data); });
+
+   return CL_SUCCESS;
+
+} catch (error &e) {
+   return e.get();
+}

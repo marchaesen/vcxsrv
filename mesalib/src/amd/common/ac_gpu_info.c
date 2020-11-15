@@ -842,192 +842,194 @@ void ac_compute_device_uuid(struct radeon_info *info, char *uuid, size_t size)
    uint_uuid[3] = info->pci_func;
 }
 
-void ac_print_gpu_info(struct radeon_info *info)
+void ac_print_gpu_info(struct radeon_info *info, FILE *f)
 {
-   printf("Device info:\n");
-   printf("    pci (domain:bus:dev.func): %04x:%02x:%02x.%x\n", info->pci_domain, info->pci_bus,
-          info->pci_dev, info->pci_func);
+   fprintf(f, "Device info:\n");
+   fprintf(f, "    pci (domain:bus:dev.func): %04x:%02x:%02x.%x\n", info->pci_domain, info->pci_bus,
+           info->pci_dev, info->pci_func);
 
-   printf("    name = %s\n", info->name);
-   printf("    marketing_name = %s\n", info->marketing_name);
-   printf("    is_pro_graphics = %u\n", info->is_pro_graphics);
-   printf("    pci_id = 0x%x\n", info->pci_id);
-   printf("    pci_rev_id = 0x%x\n", info->pci_rev_id);
-   printf("    family = %i\n", info->family);
-   printf("    chip_class = %i\n", info->chip_class);
-   printf("    family_id = %i\n", info->family_id);
-   printf("    chip_external_rev = %i\n", info->chip_external_rev);
-   printf("    clock_crystal_freq = %i\n", info->clock_crystal_freq);
+   fprintf(f, "    name = %s\n", info->name);
+   fprintf(f, "    marketing_name = %s\n", info->marketing_name);
+   fprintf(f, "    is_pro_graphics = %u\n", info->is_pro_graphics);
+   fprintf(f, "    pci_id = 0x%x\n", info->pci_id);
+   fprintf(f, "    pci_rev_id = 0x%x\n", info->pci_rev_id);
+   fprintf(f, "    family = %i\n", info->family);
+   fprintf(f, "    chip_class = %i\n", info->chip_class);
+   fprintf(f, "    family_id = %i\n", info->family_id);
+   fprintf(f, "    chip_external_rev = %i\n", info->chip_external_rev);
+   fprintf(f, "    clock_crystal_freq = %i\n", info->clock_crystal_freq);
 
-   printf("Features:\n");
-   printf("    has_graphics = %i\n", info->has_graphics);
-   printf("    num_rings[RING_GFX] = %i\n", info->num_rings[RING_GFX]);
-   printf("    num_rings[RING_DMA] = %i\n", info->num_rings[RING_DMA]);
-   printf("    num_rings[RING_COMPUTE] = %u\n", info->num_rings[RING_COMPUTE]);
-   printf("    num_rings[RING_UVD] = %i\n", info->num_rings[RING_UVD]);
-   printf("    num_rings[RING_VCE] = %i\n", info->num_rings[RING_VCE]);
-   printf("    num_rings[RING_UVD_ENC] = %i\n", info->num_rings[RING_UVD_ENC]);
-   printf("    num_rings[RING_VCN_DEC] = %i\n", info->num_rings[RING_VCN_DEC]);
-   printf("    num_rings[RING_VCN_ENC] = %i\n", info->num_rings[RING_VCN_ENC]);
-   printf("    num_rings[RING_VCN_JPEG] = %i\n", info->num_rings[RING_VCN_JPEG]);
-   printf("    has_clear_state = %u\n", info->has_clear_state);
-   printf("    has_distributed_tess = %u\n", info->has_distributed_tess);
-   printf("    has_dcc_constant_encode = %u\n", info->has_dcc_constant_encode);
-   printf("    has_rbplus = %u\n", info->has_rbplus);
-   printf("    rbplus_allowed = %u\n", info->rbplus_allowed);
-   printf("    has_load_ctx_reg_pkt = %u\n", info->has_load_ctx_reg_pkt);
-   printf("    has_out_of_order_rast = %u\n", info->has_out_of_order_rast);
-   printf("    cpdma_prefetch_writes_memory = %u\n", info->cpdma_prefetch_writes_memory);
-   printf("    has_gfx9_scissor_bug = %i\n", info->has_gfx9_scissor_bug);
-   printf("    has_tc_compat_zrange_bug = %i\n", info->has_tc_compat_zrange_bug);
-   printf("    has_msaa_sample_loc_bug = %i\n", info->has_msaa_sample_loc_bug);
-   printf("    has_ls_vgpr_init_bug = %i\n", info->has_ls_vgpr_init_bug);
+   fprintf(f, "Features:\n");
+   fprintf(f, "    has_graphics = %i\n", info->has_graphics);
+   fprintf(f, "    num_rings[RING_GFX] = %i\n", info->num_rings[RING_GFX]);
+   fprintf(f, "    num_rings[RING_DMA] = %i\n", info->num_rings[RING_DMA]);
+   fprintf(f, "    num_rings[RING_COMPUTE] = %u\n", info->num_rings[RING_COMPUTE]);
+   fprintf(f, "    num_rings[RING_UVD] = %i\n", info->num_rings[RING_UVD]);
+   fprintf(f, "    num_rings[RING_VCE] = %i\n", info->num_rings[RING_VCE]);
+   fprintf(f, "    num_rings[RING_UVD_ENC] = %i\n", info->num_rings[RING_UVD_ENC]);
+   fprintf(f, "    num_rings[RING_VCN_DEC] = %i\n", info->num_rings[RING_VCN_DEC]);
+   fprintf(f, "    num_rings[RING_VCN_ENC] = %i\n", info->num_rings[RING_VCN_ENC]);
+   fprintf(f, "    num_rings[RING_VCN_JPEG] = %i\n", info->num_rings[RING_VCN_JPEG]);
+   fprintf(f, "    has_clear_state = %u\n", info->has_clear_state);
+   fprintf(f, "    has_distributed_tess = %u\n", info->has_distributed_tess);
+   fprintf(f, "    has_dcc_constant_encode = %u\n", info->has_dcc_constant_encode);
+   fprintf(f, "    has_rbplus = %u\n", info->has_rbplus);
+   fprintf(f, "    rbplus_allowed = %u\n", info->rbplus_allowed);
+   fprintf(f, "    has_load_ctx_reg_pkt = %u\n", info->has_load_ctx_reg_pkt);
+   fprintf(f, "    has_out_of_order_rast = %u\n", info->has_out_of_order_rast);
+   fprintf(f, "    cpdma_prefetch_writes_memory = %u\n", info->cpdma_prefetch_writes_memory);
+   fprintf(f, "    has_gfx9_scissor_bug = %i\n", info->has_gfx9_scissor_bug);
+   fprintf(f, "    has_tc_compat_zrange_bug = %i\n", info->has_tc_compat_zrange_bug);
+   fprintf(f, "    has_msaa_sample_loc_bug = %i\n", info->has_msaa_sample_loc_bug);
+   fprintf(f, "    has_ls_vgpr_init_bug = %i\n", info->has_ls_vgpr_init_bug);
 
-   printf("Display features:\n");
-   printf("    use_display_dcc_unaligned = %u\n", info->use_display_dcc_unaligned);
-   printf("    use_display_dcc_with_retile_blit = %u\n", info->use_display_dcc_with_retile_blit);
+   fprintf(f, "Display features:\n");
+   fprintf(f, "    use_display_dcc_unaligned = %u\n", info->use_display_dcc_unaligned);
+   fprintf(f, "    use_display_dcc_with_retile_blit = %u\n", info->use_display_dcc_with_retile_blit);
 
-   printf("Memory info:\n");
-   printf("    pte_fragment_size = %u\n", info->pte_fragment_size);
-   printf("    gart_page_size = %u\n", info->gart_page_size);
-   printf("    gart_size = %i MB\n", (int)DIV_ROUND_UP(info->gart_size, 1024 * 1024));
-   printf("    vram_size = %i MB\n", (int)DIV_ROUND_UP(info->vram_size, 1024 * 1024));
-   printf("    vram_vis_size = %i MB\n", (int)DIV_ROUND_UP(info->vram_vis_size, 1024 * 1024));
-   printf("    vram_type = %i\n", info->vram_type);
-   printf("    vram_bit_width = %i\n", info->vram_bit_width);
-   printf("    gds_size = %u kB\n", info->gds_size / 1024);
-   printf("    gds_gfx_partition_size = %u kB\n", info->gds_gfx_partition_size / 1024);
-   printf("    max_alloc_size = %i MB\n", (int)DIV_ROUND_UP(info->max_alloc_size, 1024 * 1024));
-   printf("    min_alloc_size = %u\n", info->min_alloc_size);
-   printf("    address32_hi = %u\n", info->address32_hi);
-   printf("    has_dedicated_vram = %u\n", info->has_dedicated_vram);
-   printf("    num_sdp_interfaces = %u\n", info->num_sdp_interfaces);
-   printf("    num_tcc_blocks = %i\n", info->num_tcc_blocks);
-   printf("    tcc_cache_line_size = %u\n", info->tcc_cache_line_size);
-   printf("    tcc_harvested = %u\n", info->tcc_harvested);
-   printf("    pc_lines = %u\n", info->pc_lines);
-   printf("    lds_size_per_workgroup = %u\n", info->lds_size_per_workgroup);
-   printf("    lds_granularity = %i\n", info->lds_granularity);
-   printf("    max_memory_clock = %i\n", info->max_memory_clock);
-   printf("    ce_ram_size = %i\n", info->ce_ram_size);
-   printf("    l1_cache_size = %i\n", info->l1_cache_size);
-   printf("    l2_cache_size = %i\n", info->l2_cache_size);
+   fprintf(f, "Memory info:\n");
+   fprintf(f, "    pte_fragment_size = %u\n", info->pte_fragment_size);
+   fprintf(f, "    gart_page_size = %u\n", info->gart_page_size);
+   fprintf(f, "    gart_size = %i MB\n", (int)DIV_ROUND_UP(info->gart_size, 1024 * 1024));
+   fprintf(f, "    vram_size = %i MB\n", (int)DIV_ROUND_UP(info->vram_size, 1024 * 1024));
+   fprintf(f, "    vram_vis_size = %i MB\n", (int)DIV_ROUND_UP(info->vram_vis_size, 1024 * 1024));
+   fprintf(f, "    vram_type = %i\n", info->vram_type);
+   fprintf(f, "    vram_bit_width = %i\n", info->vram_bit_width);
+   fprintf(f, "    gds_size = %u kB\n", info->gds_size / 1024);
+   fprintf(f, "    gds_gfx_partition_size = %u kB\n", info->gds_gfx_partition_size / 1024);
+   fprintf(f, "    max_alloc_size = %i MB\n", (int)DIV_ROUND_UP(info->max_alloc_size, 1024 * 1024));
+   fprintf(f, "    min_alloc_size = %u\n", info->min_alloc_size);
+   fprintf(f, "    address32_hi = %u\n", info->address32_hi);
+   fprintf(f, "    has_dedicated_vram = %u\n", info->has_dedicated_vram);
+   fprintf(f, "    num_sdp_interfaces = %u\n", info->num_sdp_interfaces);
+   fprintf(f, "    num_tcc_blocks = %i\n", info->num_tcc_blocks);
+   fprintf(f, "    tcc_cache_line_size = %u\n", info->tcc_cache_line_size);
+   fprintf(f, "    tcc_harvested = %u\n", info->tcc_harvested);
+   fprintf(f, "    pc_lines = %u\n", info->pc_lines);
+   fprintf(f, "    lds_size_per_workgroup = %u\n", info->lds_size_per_workgroup);
+   fprintf(f, "    lds_granularity = %i\n", info->lds_granularity);
+   fprintf(f, "    max_memory_clock = %i\n", info->max_memory_clock);
+   fprintf(f, "    ce_ram_size = %i\n", info->ce_ram_size);
+   fprintf(f, "    l1_cache_size = %i\n", info->l1_cache_size);
+   fprintf(f, "    l2_cache_size = %i\n", info->l2_cache_size);
 
-   printf("CP info:\n");
-   printf("    gfx_ib_pad_with_type2 = %i\n", info->gfx_ib_pad_with_type2);
-   printf("    ib_alignment = %u\n", info->ib_alignment);
-   printf("    me_fw_version = %i\n", info->me_fw_version);
-   printf("    me_fw_feature = %i\n", info->me_fw_feature);
-   printf("    pfp_fw_version = %i\n", info->pfp_fw_version);
-   printf("    pfp_fw_feature = %i\n", info->pfp_fw_feature);
-   printf("    ce_fw_version = %i\n", info->ce_fw_version);
-   printf("    ce_fw_feature = %i\n", info->ce_fw_feature);
+   fprintf(f, "CP info:\n");
+   fprintf(f, "    gfx_ib_pad_with_type2 = %i\n", info->gfx_ib_pad_with_type2);
+   fprintf(f, "    ib_alignment = %u\n", info->ib_alignment);
+   fprintf(f, "    me_fw_version = %i\n", info->me_fw_version);
+   fprintf(f, "    me_fw_feature = %i\n", info->me_fw_feature);
+   fprintf(f, "    pfp_fw_version = %i\n", info->pfp_fw_version);
+   fprintf(f, "    pfp_fw_feature = %i\n", info->pfp_fw_feature);
+   fprintf(f, "    ce_fw_version = %i\n", info->ce_fw_version);
+   fprintf(f, "    ce_fw_feature = %i\n", info->ce_fw_feature);
 
-   printf("Multimedia info:\n");
-   printf("    has_hw_decode = %u\n", info->has_hw_decode);
-   printf("    uvd_enc_supported = %u\n", info->uvd_enc_supported);
-   printf("    uvd_fw_version = %u\n", info->uvd_fw_version);
-   printf("    vce_fw_version = %u\n", info->vce_fw_version);
-   printf("    vce_harvest_config = %i\n", info->vce_harvest_config);
+   fprintf(f, "Multimedia info:\n");
+   fprintf(f, "    has_hw_decode = %u\n", info->has_hw_decode);
+   fprintf(f, "    uvd_enc_supported = %u\n", info->uvd_enc_supported);
+   fprintf(f, "    uvd_fw_version = %u\n", info->uvd_fw_version);
+   fprintf(f, "    vce_fw_version = %u\n", info->vce_fw_version);
+   fprintf(f, "    vce_harvest_config = %i\n", info->vce_harvest_config);
 
-   printf("Kernel & winsys capabilities:\n");
-   printf("    drm = %i.%i.%i\n", info->drm_major, info->drm_minor, info->drm_patchlevel);
-   printf("    has_userptr = %i\n", info->has_userptr);
-   printf("    has_syncobj = %u\n", info->has_syncobj);
-   printf("    has_syncobj_wait_for_submit = %u\n", info->has_syncobj_wait_for_submit);
-   printf("    has_timeline_syncobj = %u\n", info->has_timeline_syncobj);
-   printf("    has_fence_to_handle = %u\n", info->has_fence_to_handle);
-   printf("    has_ctx_priority = %u\n", info->has_ctx_priority);
-   printf("    has_local_buffers = %u\n", info->has_local_buffers);
-   printf("    kernel_flushes_hdp_before_ib = %u\n", info->kernel_flushes_hdp_before_ib);
-   printf("    htile_cmask_support_1d_tiling = %u\n", info->htile_cmask_support_1d_tiling);
-   printf("    si_TA_CS_BC_BASE_ADDR_allowed = %u\n", info->si_TA_CS_BC_BASE_ADDR_allowed);
-   printf("    has_bo_metadata = %u\n", info->has_bo_metadata);
-   printf("    has_gpu_reset_status_query = %u\n", info->has_gpu_reset_status_query);
-   printf("    has_eqaa_surface_allocator = %u\n", info->has_eqaa_surface_allocator);
-   printf("    has_format_bc1_through_bc7 = %u\n", info->has_format_bc1_through_bc7);
-   printf("    kernel_flushes_tc_l2_after_ib = %u\n", info->kernel_flushes_tc_l2_after_ib);
-   printf("    has_indirect_compute_dispatch = %u\n", info->has_indirect_compute_dispatch);
-   printf("    has_unaligned_shader_loads = %u\n", info->has_unaligned_shader_loads);
-   printf("    has_sparse_vm_mappings = %u\n", info->has_sparse_vm_mappings);
-   printf("    has_2d_tiling = %u\n", info->has_2d_tiling);
-   printf("    has_read_registers_query = %u\n", info->has_read_registers_query);
-   printf("    has_gds_ordered_append = %u\n", info->has_gds_ordered_append);
-   printf("    has_scheduled_fence_dependency = %u\n", info->has_scheduled_fence_dependency);
-   printf("    mid_command_buffer_preemption_enabled = %u\n",
-          info->mid_command_buffer_preemption_enabled);
-	printf("    has_tmz_support = %u\n", info->has_tmz_support);
+   fprintf(f, "Kernel & winsys capabilities:\n");
+   fprintf(f, "    drm = %i.%i.%i\n", info->drm_major, info->drm_minor, info->drm_patchlevel);
+   fprintf(f, "    has_userptr = %i\n", info->has_userptr);
+   fprintf(f, "    has_syncobj = %u\n", info->has_syncobj);
+   fprintf(f, "    has_syncobj_wait_for_submit = %u\n", info->has_syncobj_wait_for_submit);
+   fprintf(f, "    has_timeline_syncobj = %u\n", info->has_timeline_syncobj);
+   fprintf(f, "    has_fence_to_handle = %u\n", info->has_fence_to_handle);
+   fprintf(f, "    has_ctx_priority = %u\n", info->has_ctx_priority);
+   fprintf(f, "    has_local_buffers = %u\n", info->has_local_buffers);
+   fprintf(f, "    kernel_flushes_hdp_before_ib = %u\n", info->kernel_flushes_hdp_before_ib);
+   fprintf(f, "    htile_cmask_support_1d_tiling = %u\n", info->htile_cmask_support_1d_tiling);
+   fprintf(f, "    si_TA_CS_BC_BASE_ADDR_allowed = %u\n", info->si_TA_CS_BC_BASE_ADDR_allowed);
+   fprintf(f, "    has_bo_metadata = %u\n", info->has_bo_metadata);
+   fprintf(f, "    has_gpu_reset_status_query = %u\n", info->has_gpu_reset_status_query);
+   fprintf(f, "    has_eqaa_surface_allocator = %u\n", info->has_eqaa_surface_allocator);
+   fprintf(f, "    has_format_bc1_through_bc7 = %u\n", info->has_format_bc1_through_bc7);
+   fprintf(f, "    kernel_flushes_tc_l2_after_ib = %u\n", info->kernel_flushes_tc_l2_after_ib);
+   fprintf(f, "    has_indirect_compute_dispatch = %u\n", info->has_indirect_compute_dispatch);
+   fprintf(f, "    has_unaligned_shader_loads = %u\n", info->has_unaligned_shader_loads);
+   fprintf(f, "    has_sparse_vm_mappings = %u\n", info->has_sparse_vm_mappings);
+   fprintf(f, "    has_2d_tiling = %u\n", info->has_2d_tiling);
+   fprintf(f, "    has_read_registers_query = %u\n", info->has_read_registers_query);
+   fprintf(f, "    has_gds_ordered_append = %u\n", info->has_gds_ordered_append);
+   fprintf(f, "    has_scheduled_fence_dependency = %u\n", info->has_scheduled_fence_dependency);
+   fprintf(f, "    mid_command_buffer_preemption_enabled = %u\n",
+           info->mid_command_buffer_preemption_enabled);
+   fprintf(f, "    has_tmz_support = %u\n", info->has_tmz_support);
 
-   printf("Shader core info:\n");
-   printf("    max_shader_clock = %i\n", info->max_shader_clock);
-   printf("    num_good_compute_units = %i\n", info->num_good_compute_units);
-   printf("    max_good_cu_per_sa = %i\n", info->max_good_cu_per_sa);
-   printf("    min_good_cu_per_sa = %i\n", info->min_good_cu_per_sa);
-   printf("    max_se = %i\n", info->max_se);
-   printf("    max_sh_per_se = %i\n", info->max_sh_per_se);
-   printf("    max_wave64_per_simd = %i\n", info->max_wave64_per_simd);
-   printf("    num_physical_sgprs_per_simd = %i\n", info->num_physical_sgprs_per_simd);
-   printf("    num_physical_wave64_vgprs_per_simd = %i\n",
-          info->num_physical_wave64_vgprs_per_simd);
-   printf("    num_simd_per_compute_unit = %i\n", info->num_simd_per_compute_unit);
-   printf("    min_sgpr_alloc = %i\n", info->min_sgpr_alloc);
-   printf("    max_sgpr_alloc = %i\n", info->max_sgpr_alloc);
-   printf("    sgpr_alloc_granularity = %i\n", info->sgpr_alloc_granularity);
-   printf("    min_wave64_vgpr_alloc = %i\n", info->min_wave64_vgpr_alloc);
-   printf("    max_vgpr_alloc = %i\n", info->max_vgpr_alloc);
-   printf("    wave64_vgpr_alloc_granularity = %i\n", info->wave64_vgpr_alloc_granularity);
+   fprintf(f, "Shader core info:\n");
+   fprintf(f, "    max_shader_clock = %i\n", info->max_shader_clock);
+   fprintf(f, "    num_good_compute_units = %i\n", info->num_good_compute_units);
+   fprintf(f, "    max_good_cu_per_sa = %i\n", info->max_good_cu_per_sa);
+   fprintf(f, "    min_good_cu_per_sa = %i\n", info->min_good_cu_per_sa);
+   fprintf(f, "    max_se = %i\n", info->max_se);
+   fprintf(f, "    max_sh_per_se = %i\n", info->max_sh_per_se);
+   fprintf(f, "    max_wave64_per_simd = %i\n", info->max_wave64_per_simd);
+   fprintf(f, "    num_physical_sgprs_per_simd = %i\n", info->num_physical_sgprs_per_simd);
+   fprintf(f, "    num_physical_wave64_vgprs_per_simd = %i\n",
+           info->num_physical_wave64_vgprs_per_simd);
+   fprintf(f, "    num_simd_per_compute_unit = %i\n", info->num_simd_per_compute_unit);
+   fprintf(f, "    min_sgpr_alloc = %i\n", info->min_sgpr_alloc);
+   fprintf(f, "    max_sgpr_alloc = %i\n", info->max_sgpr_alloc);
+   fprintf(f, "    sgpr_alloc_granularity = %i\n", info->sgpr_alloc_granularity);
+   fprintf(f, "    min_wave64_vgpr_alloc = %i\n", info->min_wave64_vgpr_alloc);
+   fprintf(f, "    max_vgpr_alloc = %i\n", info->max_vgpr_alloc);
+   fprintf(f, "    wave64_vgpr_alloc_granularity = %i\n", info->wave64_vgpr_alloc_granularity);
 
-   printf("Render backend info:\n");
-   printf("    pa_sc_tile_steering_override = 0x%x\n", info->pa_sc_tile_steering_override);
-   printf("    num_render_backends = %i\n", info->num_render_backends);
-   printf("    num_tile_pipes = %i\n", info->num_tile_pipes);
-   printf("    pipe_interleave_bytes = %i\n", info->pipe_interleave_bytes);
-   printf("    enabled_rb_mask = 0x%x\n", info->enabled_rb_mask);
-   printf("    max_alignment = %u\n", (unsigned)info->max_alignment);
-   printf("    pbb_max_alloc_count = %u\n", info->pbb_max_alloc_count);
+   fprintf(f, "Render backend info:\n");
+   fprintf(f, "    pa_sc_tile_steering_override = 0x%x\n", info->pa_sc_tile_steering_override);
+   fprintf(f, "    num_render_backends = %i\n", info->num_render_backends);
+   fprintf(f, "    num_tile_pipes = %i\n", info->num_tile_pipes);
+   fprintf(f, "    pipe_interleave_bytes = %i\n", info->pipe_interleave_bytes);
+   fprintf(f, "    enabled_rb_mask = 0x%x\n", info->enabled_rb_mask);
+   fprintf(f, "    max_alignment = %u\n", (unsigned)info->max_alignment);
+   fprintf(f, "    pbb_max_alloc_count = %u\n", info->pbb_max_alloc_count);
 
-   printf("GB_ADDR_CONFIG: 0x%08x\n", info->gb_addr_config);
+   fprintf(f, "GB_ADDR_CONFIG: 0x%08x\n", info->gb_addr_config);
    if (info->chip_class >= GFX10) {
-      printf("    num_pipes = %u\n", 1 << G_0098F8_NUM_PIPES(info->gb_addr_config));
-      printf("    pipe_interleave_size = %u\n",
-             256 << G_0098F8_PIPE_INTERLEAVE_SIZE_GFX9(info->gb_addr_config));
-      printf("    max_compressed_frags = %u\n",
-             1 << G_0098F8_MAX_COMPRESSED_FRAGS(info->gb_addr_config));
+      fprintf(f, "    num_pipes = %u\n", 1 << G_0098F8_NUM_PIPES(info->gb_addr_config));
+      fprintf(f, "    pipe_interleave_size = %u\n",
+              256 << G_0098F8_PIPE_INTERLEAVE_SIZE_GFX9(info->gb_addr_config));
+      fprintf(f, "    max_compressed_frags = %u\n",
+              1 << G_0098F8_MAX_COMPRESSED_FRAGS(info->gb_addr_config));
+      if (info->chip_class >= GFX10_3)
+         fprintf(f, "    num_pkrs = %u\n", 1 << G_0098F8_NUM_PKRS(info->gb_addr_config));
    } else if (info->chip_class == GFX9) {
-      printf("    num_pipes = %u\n", 1 << G_0098F8_NUM_PIPES(info->gb_addr_config));
-      printf("    pipe_interleave_size = %u\n",
-             256 << G_0098F8_PIPE_INTERLEAVE_SIZE_GFX9(info->gb_addr_config));
-      printf("    max_compressed_frags = %u\n",
-             1 << G_0098F8_MAX_COMPRESSED_FRAGS(info->gb_addr_config));
-      printf("    bank_interleave_size = %u\n",
-             1 << G_0098F8_BANK_INTERLEAVE_SIZE(info->gb_addr_config));
-      printf("    num_banks = %u\n", 1 << G_0098F8_NUM_BANKS(info->gb_addr_config));
-      printf("    shader_engine_tile_size = %u\n",
-             16 << G_0098F8_SHADER_ENGINE_TILE_SIZE(info->gb_addr_config));
-      printf("    num_shader_engines = %u\n",
-             1 << G_0098F8_NUM_SHADER_ENGINES_GFX9(info->gb_addr_config));
-      printf("    num_gpus = %u (raw)\n", G_0098F8_NUM_GPUS_GFX9(info->gb_addr_config));
-      printf("    multi_gpu_tile_size = %u (raw)\n",
-             G_0098F8_MULTI_GPU_TILE_SIZE(info->gb_addr_config));
-      printf("    num_rb_per_se = %u\n", 1 << G_0098F8_NUM_RB_PER_SE(info->gb_addr_config));
-      printf("    row_size = %u\n", 1024 << G_0098F8_ROW_SIZE(info->gb_addr_config));
-      printf("    num_lower_pipes = %u (raw)\n", G_0098F8_NUM_LOWER_PIPES(info->gb_addr_config));
-      printf("    se_enable = %u (raw)\n", G_0098F8_SE_ENABLE(info->gb_addr_config));
+      fprintf(f, "    num_pipes = %u\n", 1 << G_0098F8_NUM_PIPES(info->gb_addr_config));
+      fprintf(f, "    pipe_interleave_size = %u\n",
+              256 << G_0098F8_PIPE_INTERLEAVE_SIZE_GFX9(info->gb_addr_config));
+      fprintf(f, "    max_compressed_frags = %u\n",
+              1 << G_0098F8_MAX_COMPRESSED_FRAGS(info->gb_addr_config));
+      fprintf(f, "    bank_interleave_size = %u\n",
+              1 << G_0098F8_BANK_INTERLEAVE_SIZE(info->gb_addr_config));
+      fprintf(f, "    num_banks = %u\n", 1 << G_0098F8_NUM_BANKS(info->gb_addr_config));
+      fprintf(f, "    shader_engine_tile_size = %u\n",
+              16 << G_0098F8_SHADER_ENGINE_TILE_SIZE(info->gb_addr_config));
+      fprintf(f, "    num_shader_engines = %u\n",
+              1 << G_0098F8_NUM_SHADER_ENGINES_GFX9(info->gb_addr_config));
+      fprintf(f, "    num_gpus = %u (raw)\n", G_0098F8_NUM_GPUS_GFX9(info->gb_addr_config));
+      fprintf(f, "    multi_gpu_tile_size = %u (raw)\n",
+              G_0098F8_MULTI_GPU_TILE_SIZE(info->gb_addr_config));
+      fprintf(f, "    num_rb_per_se = %u\n", 1 << G_0098F8_NUM_RB_PER_SE(info->gb_addr_config));
+      fprintf(f, "    row_size = %u\n", 1024 << G_0098F8_ROW_SIZE(info->gb_addr_config));
+      fprintf(f, "    num_lower_pipes = %u (raw)\n", G_0098F8_NUM_LOWER_PIPES(info->gb_addr_config));
+      fprintf(f, "    se_enable = %u (raw)\n", G_0098F8_SE_ENABLE(info->gb_addr_config));
    } else {
-      printf("    num_pipes = %u\n", 1 << G_0098F8_NUM_PIPES(info->gb_addr_config));
-      printf("    pipe_interleave_size = %u\n",
-             256 << G_0098F8_PIPE_INTERLEAVE_SIZE_GFX6(info->gb_addr_config));
-      printf("    bank_interleave_size = %u\n",
-             1 << G_0098F8_BANK_INTERLEAVE_SIZE(info->gb_addr_config));
-      printf("    num_shader_engines = %u\n",
-             1 << G_0098F8_NUM_SHADER_ENGINES_GFX6(info->gb_addr_config));
-      printf("    shader_engine_tile_size = %u\n",
-             16 << G_0098F8_SHADER_ENGINE_TILE_SIZE(info->gb_addr_config));
-      printf("    num_gpus = %u (raw)\n", G_0098F8_NUM_GPUS_GFX6(info->gb_addr_config));
-      printf("    multi_gpu_tile_size = %u (raw)\n",
-             G_0098F8_MULTI_GPU_TILE_SIZE(info->gb_addr_config));
-      printf("    row_size = %u\n", 1024 << G_0098F8_ROW_SIZE(info->gb_addr_config));
-      printf("    num_lower_pipes = %u (raw)\n", G_0098F8_NUM_LOWER_PIPES(info->gb_addr_config));
+      fprintf(f, "    num_pipes = %u\n", 1 << G_0098F8_NUM_PIPES(info->gb_addr_config));
+      fprintf(f, "    pipe_interleave_size = %u\n",
+              256 << G_0098F8_PIPE_INTERLEAVE_SIZE_GFX6(info->gb_addr_config));
+      fprintf(f, "    bank_interleave_size = %u\n",
+              1 << G_0098F8_BANK_INTERLEAVE_SIZE(info->gb_addr_config));
+      fprintf(f, "    num_shader_engines = %u\n",
+              1 << G_0098F8_NUM_SHADER_ENGINES_GFX6(info->gb_addr_config));
+      fprintf(f, "    shader_engine_tile_size = %u\n",
+              16 << G_0098F8_SHADER_ENGINE_TILE_SIZE(info->gb_addr_config));
+      fprintf(f, "    num_gpus = %u (raw)\n", G_0098F8_NUM_GPUS_GFX6(info->gb_addr_config));
+      fprintf(f, "    multi_gpu_tile_size = %u (raw)\n",
+              G_0098F8_MULTI_GPU_TILE_SIZE(info->gb_addr_config));
+      fprintf(f, "    row_size = %u\n", 1024 << G_0098F8_ROW_SIZE(info->gb_addr_config));
+      fprintf(f, "    num_lower_pipes = %u (raw)\n", G_0098F8_NUM_LOWER_PIPES(info->gb_addr_config));
    }
 }
 

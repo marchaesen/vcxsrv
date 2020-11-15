@@ -1,5 +1,3 @@
-// based on a keyboard map from an 'xkb/symbols/se' file
-
 default partial alphanumeric_keys
 xkb_symbols "basic" {
     include "latin(type2)"
@@ -369,7 +367,6 @@ xkb_symbols "dvorak_a5" {
 	key <AB10> { [ z,          Z,          guillemotleft,       none ] };
 
 	key <BKSL> { [ apostrophe, asterisk,   asterisk,            none ] };
-
 };
 
 partial alphanumeric_keys
@@ -408,4 +405,3 @@ xkb_symbols "us_dvorak" {
   include "kpdl(comma)"
   include "level3(ralt_switch)"
 };
-

@@ -48,6 +48,7 @@
 #include "compiler/shader_enums.h"
 #include "util/macros.h"
 #include "util/list.h"
+#include "util/rwlock.h"
 #include "util/xmlconfig.h"
 #include "vk_alloc.h"
 #include "vk_debug_report.h"
@@ -299,9 +300,6 @@ struct radv_physical_device {
 	/* Whether to enable NGG. */
 	bool use_ngg;
 
-	/* Whether to enable NGG GS. */
-	bool use_ngg_gs;
-
 	/* Whether to enable NGG streamout. */
 	bool use_ngg_streamout;
 
@@ -321,6 +319,7 @@ struct radv_physical_device {
 	VkPhysicalDeviceMemoryProperties memory_properties;
 	enum radeon_bo_domain memory_domains[VK_MAX_MEMORY_TYPES];
 	enum radeon_bo_flag memory_flags[VK_MAX_MEMORY_TYPES];
+	unsigned heaps;
 
 	drmPciBusInfo bus_info;
 
@@ -741,7 +740,7 @@ struct radv_queue {
 struct radv_bo_list {
 	struct radv_winsys_bo_list list;
 	unsigned capacity;
-	pthread_rwlock_t rwlock;
+	struct u_rwlock rwlock;
 };
 
 VkResult radv_bo_list_add(struct radv_device *device,
@@ -1648,6 +1647,8 @@ struct radv_shader_module;
 #define RADV_HASH_SHADER_PS_WAVE32           (1 << 2)
 #define RADV_HASH_SHADER_GE_WAVE32           (1 << 3)
 #define RADV_HASH_SHADER_LLVM                (1 << 4)
+#define RADV_HASH_SHADER_DISCARD_TO_DEMOTE   (1 << 5)
+#define RADV_HASH_SHADER_MRT_NAN_FIXUP       (1 << 6)
 
 void
 radv_hash_shaders(unsigned char *hash,

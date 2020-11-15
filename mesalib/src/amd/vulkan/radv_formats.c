@@ -105,6 +105,9 @@ uint32_t radv_translate_buffer_dataformat(const struct vk_format_description *de
 			return V_008F0C_BUF_DATA_FORMAT_32_32_32_32;
 		}
 		break;
+	case 64:
+		if (desc->nr_channels == 1)
+			return V_008F0C_BUF_DATA_FORMAT_32_32;
 	}
 
 	return V_008F0C_BUF_DATA_FORMAT_INVALID;
@@ -367,6 +370,11 @@ uint32_t radv_translate_tex_dataformat(VkFormat format,
 		case 4:
 			return V_008F14_IMG_DATA_FORMAT_32_32_32_32;
 		}
+		break;
+	case 64:
+		if (desc->nr_channels == 1)
+			return V_008F14_IMG_DATA_FORMAT_32_32;
+		break;
 	}
 
 out_unknown:
@@ -474,7 +482,8 @@ static bool radv_is_sampler_format_supported(VkFormat format, bool *linear_sampl
 {
 	const struct vk_format_description *desc = vk_format_description(format);
 	uint32_t num_format;
-	if (!desc || format == VK_FORMAT_UNDEFINED)
+	if (!desc || format == VK_FORMAT_UNDEFINED ||
+	    format == VK_FORMAT_R64_UINT || format == VK_FORMAT_R64_SINT)
 		return false;
 	num_format = radv_translate_tex_numformat(format, desc,
 						  vk_format_get_first_non_void_channel(format));
@@ -685,10 +694,12 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 	}
 
 	if (radv_is_buffer_format_supported(format, &scaled)) {
-		buffer |= VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
-		if (!scaled)
-			buffer |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT |
-				VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
+		if (format != VK_FORMAT_R64_UINT && format != VK_FORMAT_R64_SINT) {
+			buffer |= VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
+			if (!scaled)
+				buffer |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
+		}
+		buffer |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
 	}
 
 	if (vk_format_is_depth_or_stencil(format)) {
@@ -758,7 +769,9 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 
 	if (format == VK_FORMAT_R32_UINT ||
 	    format == VK_FORMAT_R32_SINT ||
-	    format == VK_FORMAT_R32_SFLOAT) {
+	    format == VK_FORMAT_R32_SFLOAT ||
+	    format == VK_FORMAT_R64_UINT ||
+	    format == VK_FORMAT_R64_SINT) {
 		buffer |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;
 		linear |= VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;
 		tiled |= VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;

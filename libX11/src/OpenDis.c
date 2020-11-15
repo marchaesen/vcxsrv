@@ -188,6 +188,7 @@ XOpenDisplay (
 	dpy->flushes		= NULL;
 	dpy->xcmisc_opcode	= 0;
 	dpy->xkb_info		= NULL;
+	dpy->exit_handler_data	= NULL;
 
 /*
  * Setup other information in this display structure.
@@ -202,6 +203,7 @@ XOpenDisplay (
 	dpy->default_screen = iscreen;  /* Value returned by ConnectDisplay */
 	dpy->last_req = (char *)&_dummy_request;
 	dpy->req_seq_syncing = False;
+	dpy->exit_handler = _XDefaultIOErrorExit;
 
 	/* Initialize the display lock */
 	if (InitDisplayLock(dpy) != 0) {

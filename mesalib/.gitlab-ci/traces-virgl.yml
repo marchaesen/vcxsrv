@@ -9,7 +9,7 @@ traces:
   - path: glmark2/jellyfish.rdc
     expectations:
       - device: gl-virgl
-        checksum: e0fe979fee129c0ed42a3059d1a4e1c9
+        checksum: ebaa1e2d04d7dfe5a91499510722c46e
   - path: glxgears/glxgears-2.trace
     expectations:
       - device: gl-virgl
@@ -21,7 +21,7 @@ traces:
   - path: gputest/pixmark-piano.trace
     expectations:
       - device: gl-virgl
-        checksum: 24eb95484e5b8288b3d5d65117c98641
+        checksum: 8293e59b818715ddf1c23e9f60b17851
   - path: gputest/triangle.trace
     expectations:
       - device: gl-virgl
@@ -29,4 +29,4 @@ traces:
   - path: humus/Portals.trace
     expectations:
       - device: gl-virgl
-        checksum: 7caf9a1b50b7fc312a623be7c45553cb
+        checksum: 6d78eed6749f01cc5625dec0ad129c66

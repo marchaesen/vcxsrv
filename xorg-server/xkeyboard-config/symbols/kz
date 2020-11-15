@@ -302,4 +302,3 @@ key.type[group1] = "ALPHABETIC";
     key <AB06> { [ n,                       N ] };
     key <AB07> { [ m,                       M ] };
 };
-

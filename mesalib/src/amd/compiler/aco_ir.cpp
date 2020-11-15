@@ -310,14 +310,14 @@ bool can_use_opsel(chip_class chip, aco_opcode op, int idx, bool high)
    case aco_opcode::v_sub_i16:
    case aco_opcode::v_add_u16_e64:
    case aco_opcode::v_sub_u16_e64:
-   case aco_opcode::v_cvt_pknorm_i16_f16:
-   case aco_opcode::v_cvt_pknorm_u16_f16:
    case aco_opcode::v_lshlrev_b16_e64:
    case aco_opcode::v_lshrrev_b16_e64:
    case aco_opcode::v_ashrrev_i16_e64:
    case aco_opcode::v_mul_lo_u16_e64:
       return true;
    case aco_opcode::v_pack_b32_f16:
+   case aco_opcode::v_cvt_pknorm_i16_f16:
+   case aco_opcode::v_cvt_pknorm_u16_f16:
       return idx != -1;
    case aco_opcode::v_mad_u32_u16:
    case aco_opcode::v_mad_i32_i16:

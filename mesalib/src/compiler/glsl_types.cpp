@@ -1034,6 +1034,60 @@ glsl_type::get_image_instance(enum glsl_sampler_dim dim,
       case GLSL_SAMPLER_DIM_EXTERNAL:
          return error_type;
       }
+   case GLSL_TYPE_INT64:
+      switch (dim) {
+      case GLSL_SAMPLER_DIM_1D:
+         return (array ? i64image1DArray_type : i64image1D_type);
+      case GLSL_SAMPLER_DIM_2D:
+         return (array ? i64image2DArray_type : i64image2D_type);
+      case GLSL_SAMPLER_DIM_3D:
+         if (array)
+            return error_type;
+         return i64image3D_type;
+      case GLSL_SAMPLER_DIM_CUBE:
+         return (array ? i64imageCubeArray_type : i64imageCube_type);
+      case GLSL_SAMPLER_DIM_RECT:
+         if (array)
+            return error_type;
+         return i64image2DRect_type;
+      case GLSL_SAMPLER_DIM_BUF:
+         if (array)
+            return error_type;
+         return i64imageBuffer_type;
+      case GLSL_SAMPLER_DIM_MS:
+         return (array ? i64image2DMSArray_type : i64image2DMS_type);
+      case GLSL_SAMPLER_DIM_SUBPASS:
+      case GLSL_SAMPLER_DIM_SUBPASS_MS:
+      case GLSL_SAMPLER_DIM_EXTERNAL:
+         return error_type;
+      }
+   case GLSL_TYPE_UINT64:
+      switch (dim) {
+      case GLSL_SAMPLER_DIM_1D:
+         return (array ? u64image1DArray_type : u64image1D_type);
+      case GLSL_SAMPLER_DIM_2D:
+         return (array ? u64image2DArray_type : u64image2D_type);
+      case GLSL_SAMPLER_DIM_3D:
+         if (array)
+            return error_type;
+         return u64image3D_type;
+      case GLSL_SAMPLER_DIM_CUBE:
+         return (array ? u64imageCubeArray_type : u64imageCube_type);
+      case GLSL_SAMPLER_DIM_RECT:
+         if (array)
+            return error_type;
+         return u64image2DRect_type;
+      case GLSL_SAMPLER_DIM_BUF:
+         if (array)
+            return error_type;
+         return u64imageBuffer_type;
+      case GLSL_SAMPLER_DIM_MS:
+         return (array ? u64image2DMSArray_type : u64image2DMS_type);
+      case GLSL_SAMPLER_DIM_SUBPASS:
+      case GLSL_SAMPLER_DIM_SUBPASS_MS:
+      case GLSL_SAMPLER_DIM_EXTERNAL:
+         return error_type;
+      }
    case GLSL_TYPE_VOID:
       switch (dim) {
       case GLSL_SAMPLER_DIM_1D:
@@ -2472,13 +2526,18 @@ const glsl_type *
 glsl_type::get_explicit_type_for_size_align(glsl_type_size_align_func type_info,
                                             unsigned *size, unsigned *alignment) const
 {
-   if (this->is_scalar()) {
+   if (this->is_image() || this->is_sampler()) {
+      type_info(this, size, alignment);
+      assert(*alignment > 0);
+      return this;
+   } else if (this->is_scalar()) {
       type_info(this, size, alignment);
       assert(*size == explicit_type_scalar_byte_size(this));
       assert(*alignment == explicit_type_scalar_byte_size(this));
       return this;
    } else if (this->is_vector()) {
       type_info(this, size, alignment);
+      assert(*alignment > 0);
       assert(*alignment % explicit_type_scalar_byte_size(this) == 0);
       return glsl_type::get_instance(this->base_type, this->vector_elements,
                                      1, 0, false, *alignment);
@@ -2532,6 +2591,7 @@ glsl_type::get_explicit_type_for_size_align(glsl_type_size_align_func type_info,
 
       *size = this->matrix_columns * stride;
       /* Matrix and column alignments match. See glsl_type::column_type() */
+      assert(col_align > 0);
       *alignment = col_align;
       return glsl_type::get_instance(this->base_type, this->vector_elements,
                                      this->matrix_columns, stride, false, *alignment);

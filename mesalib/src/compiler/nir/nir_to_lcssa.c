@@ -250,7 +250,7 @@ convert_loop_exit_for_ssa(nir_ssa_def *def, void *void_state)
          nir_deref_instr_create(state->shader, nir_deref_type_cast);
 
       nir_deref_instr *instr = nir_instr_as_deref(def->parent_instr);
-      cast->mode = instr->mode;
+      cast->modes = instr->modes;
       cast->type = instr->type;
       cast->parent = nir_src_for_ssa(&phi->dest.ssa);
       cast->cast.ptr_stride = nir_deref_instr_array_stride(instr);
@@ -313,8 +313,18 @@ convert_to_lcssa(nir_cf_node *cf_node, lcssa_state *state)
       foreach_list_typed(nir_cf_node, nested_node, node, &loop->body)
          convert_to_lcssa(nested_node, state);
 
+      state->loop = loop;
+
       /* mark loop-invariant instructions */
       if (state->skip_invariants) {
+         /* Without a loop all instructions are invariant.
+          * For outer loops, multiple breaks can still create phis.
+          * The variance then depends on all (nested) break conditions.
+          * We don't consider this, but assume all not_invariant.
+          */
+         if (nir_loop_first_block(loop)->predecessors->entries == 1)
+            goto end;
+
          nir_foreach_block_in_cf_node(block, cf_node) {
             nir_foreach_instr(instr, block) {
                if (instr->pass_flags == undefined)
@@ -323,7 +333,6 @@ convert_to_lcssa(nir_cf_node *cf_node, lcssa_state *state)
          }
       }
 
-      state->loop = loop;
       nir_foreach_block_in_cf_node(block, cf_node) {
          nir_foreach_instr(instr, block) {
             nir_foreach_ssa_def(instr, convert_loop_exit_for_ssa, state);
@@ -334,6 +343,7 @@ convert_to_lcssa(nir_cf_node *cf_node, lcssa_state *state)
          }
       }
 
+end:
       /* For outer loops, the LCSSA-phi should be considered not invariant */
       if (state->skip_invariants) {
          nir_block *block_after_loop =

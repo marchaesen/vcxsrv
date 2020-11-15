@@ -3613,7 +3613,7 @@ _FcConfigParse (FcConfig	*config,
 #elif HAVE_STRERROR
 	    char *tmp = strerror (errno_);
 	    size_t len = strlen (tmp);
-	    strncpy (ebuf, tmp, FC_MIN (BUFSIZ, len));
+	    memcpy (ebuf, tmp, FC_MIN (BUFSIZ, len));
 	    ebuf[FC_MIN (BUFSIZ, len)] = 0;
 #else
 	    ebuf[0] = 0;

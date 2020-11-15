@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/utsname.h>
+#include <sys/stat.h>
 
 #include "util/mesa-sha1.h"
 #include "sid.h"
@@ -43,6 +44,8 @@
 #define COLOR_GREEN	"\033[1;32m"
 #define COLOR_YELLOW	"\033[1;33m"
 #define COLOR_CYAN	"\033[1;36m"
+
+#define RADV_DUMP_DIR "radv_dumps"
 
 /* Trace BO layout (offsets are 4 bytes):
  *
@@ -80,19 +83,10 @@ radv_init_trace(struct radv_device *device)
 }
 
 static void
-radv_dump_trace(struct radv_device *device, struct radeon_cmdbuf *cs)
+radv_dump_trace(struct radv_device *device, struct radeon_cmdbuf *cs, FILE *f)
 {
-	const char *filename = getenv("RADV_TRACE_FILE");
-	FILE *f = fopen(filename, "w");
-
-	if (!f) {
-		fprintf(stderr, "Failed to write trace dump to %s\n", filename);
-		return;
-	}
-
 	fprintf(f, "Trace ID: %x\n", *device->trace_id_ptr);
 	device->ws->cs_dump(cs, f, (const int*)device->trace_id_ptr, 2);
-	fclose(f);
 }
 
 static void
@@ -485,21 +479,25 @@ radv_dump_queue_state(struct radv_queue *queue, FILE *f)
 }
 
 static void
-radv_dump_dmesg(FILE *f)
+radv_dump_cmd(const char *cmd, FILE *f)
 {
-	char line[2000];
+	char line[2048];
 	FILE *p;
 
-	p = popen("dmesg | tail -n60", "r");
-	if (!p)
-		return;
+	p = popen(cmd, "r");
+	if (p) {
+		while (fgets(line, sizeof(line), p))
+			fputs(line, f);
+		fprintf(f, "\n");
+		pclose(p);
+	}
+}
 
+static void
+radv_dump_dmesg(FILE *f)
+{
 	fprintf(f, "\nLast 60 lines of dmesg:\n\n");
-	while (fgets(line, sizeof(line), p))
-		fputs(line, f);
-	fprintf(f, "\n");
-
-	pclose(p);
+	radv_dump_cmd("dmesg | tail -n60", f);
 }
 
 void
@@ -550,6 +548,42 @@ radv_dump_device_name(struct radv_device *device, FILE *f)
 		kernel_version);
 }
 
+static void
+radv_dump_umr_ring(struct radv_queue *queue, FILE *f)
+{
+	enum ring_type ring = radv_queue_family_to_ring(queue->queue_family_index);
+	struct radv_device *device = queue->device;
+	char cmd[128];
+
+	/* TODO: Dump compute ring. */
+	if (ring != RING_GFX)
+		return;
+
+	sprintf(cmd, "umr -R %s 2>&1",
+		device->physical_device->rad_info.chip_class >= GFX10 ? "gfx_0.0.0" : "gfx");
+
+	fprintf(f, "\nUMR GFX ring:\n\n");
+	radv_dump_cmd(cmd, f);
+}
+
+static void
+radv_dump_umr_waves(struct radv_queue *queue, FILE *f)
+{
+	enum ring_type ring = radv_queue_family_to_ring(queue->queue_family_index);
+	struct radv_device *device = queue->device;
+	char cmd[128];
+
+	/* TODO: Dump compute ring. */
+	if (ring != RING_GFX)
+		return;
+
+	sprintf(cmd, "umr -O bits,halt_waves -wa %s 2>&1",
+		device->physical_device->rad_info.chip_class >= GFX10 ? "gfx_0.0.0" : "gfx");
+
+	fprintf(f, "\nUMR GFX waves:\n\n");
+	radv_dump_cmd(cmd, f);
+}
+
 static bool
 radv_gpu_hang_occured(struct radv_queue *queue, enum ring_type ring)
 {
@@ -565,8 +599,10 @@ void
 radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_cmdbuf *cs)
 {
 	struct radv_device *device = queue->device;
+	char dump_dir[256], dump_path[512];
 	enum ring_type ring;
 	uint64_t addr;
+	FILE *f;
 
 	ring = radv_queue_family_to_ring(queue->queue_family_index);
 
@@ -578,23 +614,96 @@ radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_cmdbuf *cs)
 	if (!hang_occurred && !vm_fault_occurred)
 		return;
 
-	radv_dump_trace(queue->device, cs);
+	fprintf(stderr, "radv: GPU hang detected...\n");
 
-	fprintf(stderr, "GPU hang report:\n\n");
-	radv_dump_device_name(device, stderr);
-	ac_print_gpu_info(&device->physical_device->rad_info);
-
-	radv_dump_enabled_options(device, stderr);
-	radv_dump_dmesg(stderr);
-
-	if (vm_fault_occurred) {
-		fprintf(stderr, "VM fault report.\n\n");
-		fprintf(stderr, "Failing VM page: 0x%08"PRIx64"\n\n", addr);
+	/* Create a directory into $HOME/radv_dumps_<pid> to save various
+	 * debugging info about that GPU hang.
+	 */
+	snprintf(dump_dir, sizeof(dump_dir), "%s/"RADV_DUMP_DIR"_%d",
+		 debug_get_option("HOME", "."), getpid());
+	if (mkdir(dump_dir, 0774) && errno != EEXIST) {
+		fprintf(stderr, "radv: can't create directory '%s' (%i).\n",
+			dump_dir, errno);
+		abort();
 	}
 
-	radv_dump_debug_registers(device, stderr);
-	radv_dump_queue_state(queue, stderr);
+	/* Dump trace file. */
+	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "trace.log");
+	f = fopen(dump_path, "w+");
+	if (f) {
+		radv_dump_trace(queue->device, cs, f);
+		fclose(f);
+	}
 
+	/* Dump pipeline state. */
+	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "pipeline.log");
+	f = fopen(dump_path, "w+");
+	if (f) {
+		radv_dump_queue_state(queue, f);
+		fclose(f);
+	}
+
+	/* Dump UMR ring. */
+	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "umr_ring.log");
+	f = fopen(dump_path, "w+");
+	if (f) {
+		radv_dump_umr_ring(queue, f);
+		fclose(f);
+	}
+
+	/* Dump UMR waves. */
+	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "umr_waves.log");
+	f = fopen(dump_path, "w+");
+	if (f) {
+		radv_dump_umr_waves(queue, f);
+		fclose(f);
+	}
+
+	/* Dump debug registers. */
+	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "registers.log");
+	f = fopen(dump_path, "w+");
+	if (f) {
+		radv_dump_debug_registers(device, f);
+		fclose(f);
+	}
+
+	/* Dump VM fault info. */
+	if (vm_fault_occurred) {
+		snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "vm_fault.log");
+		f = fopen(dump_path, "w+");
+		if (f) {
+			fprintf(f, "VM fault report.\n\n");
+			fprintf(f, "Failing VM page: 0x%08"PRIx64"\n\n", addr);
+			fclose(f);
+		}
+	}
+
+	/* Dump enabled debug/perftest options. */
+	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "options.log");
+	f = fopen(dump_path, "w+");
+	if (f) {
+		radv_dump_enabled_options(device, f);
+		fclose(f);
+	}
+
+	/* Dump GPU info. */
+	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "gpu_info.log");
+	f = fopen(dump_path, "w+");
+	if (f) {
+		radv_dump_device_name(device, f);
+		ac_print_gpu_info(&device->physical_device->rad_info, f);
+		fclose(f);
+	}
+
+	/* Dump dmesg. */
+	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "dmesg.log");
+	f = fopen(dump_path, "w+");
+	if (f) {
+		radv_dump_dmesg(f);
+		fclose(f);
+	}
+
+	fprintf(stderr, "radv: GPU hang report saved to '%s'!\n", dump_dir);
 	abort();
 }
 
@@ -602,8 +711,7 @@ void
 radv_print_spirv(const char *data, uint32_t size, FILE *fp)
 {
 	char path[] = "/tmp/fileXXXXXX";
-	char line[2048], command[128];
-	FILE *p;
+	char command[128];
 	int fd;
 
 	/* Dump the binary into a temporary file. */
@@ -614,15 +722,9 @@ radv_print_spirv(const char *data, uint32_t size, FILE *fp)
 	if (write(fd, data, size) == -1)
 		goto fail;
 
-	sprintf(command, "spirv-dis %s", path);
-
 	/* Disassemble using spirv-dis if installed. */
-	p = popen(command, "r");
-	if (p) {
-		while (fgets(line, sizeof(line), p))
-			fprintf(fp, "%s", line);
-		pclose(p);
-	}
+	sprintf(command, "spirv-dis %s", path);
+	radv_dump_cmd(command, fp);
 
 fail:
 	close(fd);

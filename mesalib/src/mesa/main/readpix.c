@@ -910,8 +910,7 @@ read_pixels_es3_error_check(struct gl_context *ctx, GLenum format, GLenum type,
    const GLenum data_type = _mesa_get_format_datatype(rb->Format);
    GLboolean is_unsigned_int = GL_FALSE;
    GLboolean is_signed_int = GL_FALSE;
-   GLboolean is_float_depth = (internalFormat == GL_DEPTH_COMPONENT32F) ||
-         (internalFormat == GL_DEPTH32F_STENCIL8);
+   GLboolean is_float_depth = _mesa_has_depth_float_channel(internalFormat);
 
    is_unsigned_int = _mesa_is_enum_format_unsigned_int(internalFormat);
    if (!is_unsigned_int) {

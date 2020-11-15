@@ -122,7 +122,7 @@ os_get_command_line(char *cmdline, size_t size)
    }
 #elif defined(PIPE_OS_LINUX)
    int f = open("/proc/self/cmdline", O_RDONLY);
-   if (f) {
+   if (f != -1) {
       const int n = read(f, cmdline, size - 1);
       int i;
       assert(n < size);

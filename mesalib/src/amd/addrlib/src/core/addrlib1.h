@@ -354,6 +354,7 @@ protected:
         const ADDR_COMPUTE_SURFACE_INFO_INPUT* pIn,
         UINT_32* pPitchAlign, UINT_32* pHeightAlign, UINT_32* pSizeAlign) const = 0;
 
+
     virtual VOID HwlOverrideTileMode(ADDR_COMPUTE_SURFACE_INFO_INPUT* pInOut) const
     {
         // not supported in hwl layer

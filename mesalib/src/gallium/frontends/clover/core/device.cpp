@@ -49,6 +49,14 @@ namespace {
 
 device::device(clover::platform &platform, pipe_loader_device *ldev) :
    platform(platform), clc_cache(NULL), ldev(ldev) {
+   unsigned major = 1, minor = 1;
+   debug_get_version_option("CLOVER_DEVICE_VERSION_OVERRIDE", &major, &minor);
+   version = CL_MAKE_VERSION(major, minor, 0);
+
+   major = 1, minor = 1;
+   debug_get_version_option("CLOVER_DEVICE_CLC_VERSION_OVERRIDE", &major, &minor);
+   clc_version = CL_MAKE_VERSION(major, minor, 0);
+
    pipe = pipe_loader_create_screen(ldev);
    if (pipe && pipe->get_param(pipe, PIPE_CAP_COMPUTE)) {
       if (supports_ir(PIPE_SHADER_IR_NATIVE))
@@ -109,7 +117,7 @@ device::vendor_id() const {
 
 size_t
 device::max_images_read() const {
-   return PIPE_MAX_SHADER_IMAGES;
+   return PIPE_MAX_SHADER_SAMPLER_VIEWS;
 }
 
 size_t
@@ -312,17 +320,19 @@ device::endianness() const {
 }
 
 std::string
-device::device_version() const {
-   static const std::string device_version =
-         debug_get_option("CLOVER_DEVICE_VERSION_OVERRIDE", "1.1");
-   return device_version;
+device::device_version_as_string() const {
+   static const std::string version_string =
+      std::to_string(CL_VERSION_MAJOR(version)) + "." +
+      std::to_string(CL_VERSION_MINOR(version));
+   return version_string;
 }
 
 std::string
-device::device_clc_version() const {
-   static const std::string device_clc_version =
-         debug_get_option("CLOVER_DEVICE_CLC_VERSION_OVERRIDE", "1.1");
-   return device_clc_version;
+device::device_clc_version_as_string() const {
+   static const std::string version_string =
+      std::to_string(CL_VERSION_MAJOR(clc_version)) + "." +
+      std::to_string(CL_VERSION_MINOR(clc_version));
+   return version_string;
 }
 
 bool
@@ -331,22 +341,82 @@ device::supports_ir(enum pipe_shader_ir ir) const {
                                  PIPE_SHADER_CAP_SUPPORTED_IRS) & (1 << ir);
 }
 
-std::string
+std::vector<cl_name_version>
 device::supported_extensions() const {
-   return
-      "cl_khr_byte_addressable_store"
-      " cl_khr_global_int32_base_atomics"
-      " cl_khr_global_int32_extended_atomics"
-      " cl_khr_local_int32_base_atomics"
-      " cl_khr_local_int32_extended_atomics"
-      + std::string(has_int64_atomics() ? " cl_khr_int64_base_atomics" : "")
-      + std::string(has_int64_atomics() ? " cl_khr_int64_extended_atomics" : "")
-      + std::string(has_doubles() ? " cl_khr_fp64" : "")
-      + std::string(has_halves() ? " cl_khr_fp16" : "")
-      + std::string(svm_support() ? " cl_arm_shared_virtual_memory" : "");
+   std::vector<cl_name_version> vec;
+
+   vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 0, 0), "cl_khr_byte_addressable_store" } );
+   vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 0, 0), "cl_khr_global_int32_base_atomics" } );
+   vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 0, 0), "cl_khr_global_int32_extended_atomics" } );
+   vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 0, 0), "cl_khr_local_int32_base_atomics" } );
+   vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 0, 0), "cl_khr_local_int32_extended_atomics" } );
+   if (has_int64_atomics()) {
+      vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 0, 0), "cl_khr_int64_base_atomics" } );
+      vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 0, 0), "cl_khr_int64_extended_atomics" } );
+   }
+   if (has_doubles())
+      vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 0, 0), "cl_khr_fp64" } );
+   if (has_halves())
+      vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 0, 0), "cl_khr_fp16" } );
+   if (svm_support())
+      vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 0, 0), "cl_arm_shared_virtual_memory" } );
+   return vec;
+}
+
+std::string
+device::supported_extensions_as_string() const {
+   static std::string extensions_string;
+
+   if (!extensions_string.empty())
+      return extensions_string;
+
+   const auto extension_list = supported_extensions();
+   for (const auto &extension : extension_list) {
+      if (!extensions_string.empty())
+         extensions_string += " ";
+      extensions_string += extension.name;
+   }
+   return extensions_string;
 }
 
 const void *
 device::get_compiler_options(enum pipe_shader_ir ir) const {
    return pipe->get_compiler_options(pipe, ir, PIPE_SHADER_COMPUTE);
+}
+
+cl_version
+device::device_version() const {
+   return version;
+}
+
+cl_version
+device::device_clc_version() const {
+   return clc_version;
+}
+
+std::vector<cl_name_version>
+device::opencl_c_all_versions() const {
+   std::vector<cl_name_version> vec;
+   vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 0, 0), "OpenCL C" } );
+   vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 1, 0), "OpenCL C" } );
+
+   if (CL_VERSION_MAJOR(clc_version) == 1 &&
+       CL_VERSION_MINOR(clc_version) == 2)
+      vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 2, 0), "OpenCL C" } );
+   if (CL_VERSION_MAJOR(clc_version) == 3) {
+      vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 2, 0), "OpenCL C" } );
+      vec.push_back( (cl_name_version){ CL_MAKE_VERSION(3, 0, 0), "OpenCL C" } );
+   }
+   return vec;
+}
+
+std::vector<cl_name_version>
+device::opencl_c_features() const {
+   std::vector<cl_name_version> vec;
+
+   vec.push_back( (cl_name_version) {CL_MAKE_VERSION(3, 0, 0), "__opencl_c_int64" });
+   if (has_doubles())
+      vec.push_back( (cl_name_version) {CL_MAKE_VERSION(3, 0, 0), "__opencl_c_fp64" });
+
+   return vec;
 }

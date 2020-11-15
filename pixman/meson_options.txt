@@ -82,7 +82,7 @@ option(
 option(
   'openmp',
   type : 'feature',
-  description : 'Enable openmp support',
+  description : 'Enable OpenMP for tests',
 )
 option(
   'timers',
@@ -99,12 +99,12 @@ option(
 option(
   'gtk',
   type : 'feature',
-  description : 'Enable tests using GTK',
+  description : 'Enable demos using GTK',
 )
 option(
   'libpng',
   type : 'feature',
-  description : 'Use libpng'
+  description : 'Use libpng in tests'
 )
 option(
   'tests',

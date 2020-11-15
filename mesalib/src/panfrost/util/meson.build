@@ -23,10 +23,12 @@ libpanfrost_util_files = files(
   'lcra.c',
   'lcra.h',
   'nir_mod_helpers.c',
+  'nir_undef_to_zero.c',
   'pan_ir.c',
   'pan_ir.h',
   'pan_liveness.c',
   'pan_lower_framebuffer.c',
+  'pan_lower_writeout.c',
   'pan_sysval.c',
 )
 

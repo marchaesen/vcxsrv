@@ -146,7 +146,8 @@ struct loader_dri3_drawable {
 
    struct loader_dri3_buffer *buffers[LOADER_DRI3_NUM_BUFFERS];
    int cur_back;
-   int num_back;
+   int cur_num_back;
+   int max_num_back;
    int cur_blit_source;
 
    uint32_t *stamp;
@@ -166,6 +167,8 @@ struct loader_dri3_drawable {
    unsigned int swap_method;
    unsigned int back_format;
    xcb_present_complete_mode_t last_present_mode;
+
+   bool is_protected_content;
 
    /* Currently protects the following fields:
     * event_cnd, has_event_waiter,

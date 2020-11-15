@@ -111,7 +111,30 @@ def generate(env):
         # and `llvm-config --libs engine coroutines` for LLVM>=8.0
         # LLVMAggressiveInstCombine library part of engine component since LLVM 6 is only needed by Mesa3D for LLVM>=8.
         # While not directly needed by Mesa3D, this library is needed by LLVMipo which is part of coroutines component.
-        if llvm_version >= distutils.version.LooseVersion('10.0'):
+        if llvm_version >= distutils.version.LooseVersion('11.0'):
+            env.Prepend(LIBS = [
+                'LLVMX86Disassembler', 'LLVMX86AsmParser',
+                'LLVMX86CodeGen', 'LLVMSelectionDAG', 'LLVMAsmPrinter',
+                'LLVMDebugInfoCodeView', 'LLVMCodeGen',
+                'LLVMScalarOpts', 'LLVMInstCombine',
+                'LLVMTransformUtils',
+                'LLVMBitWriter', 'LLVMX86Desc',
+                'LLVMMCDisassembler', 'LLVMX86Info',
+                'LLVMMCJIT', 'LLVMExecutionEngine', 'LLVMTarget',
+                'LLVMAnalysis', 'LLVMProfileData',
+                'LLVMRuntimeDyld', 'LLVMObject', 'LLVMMCParser',
+                'LLVMBitReader', 'LLVMMC', 'LLVMCore',
+                'LLVMSupport',
+                'LLVMIRReader', 'LLVMAsmParser',
+                'LLVMDemangle', 'LLVMGlobalISel', 'LLVMDebugInfoMSF',
+                'LLVMBinaryFormat',
+                'LLVMRemarks', 'LLVMBitstreamReader', 'LLVMDebugInfoDWARF',
+                'LLVMAggressiveInstCombine','LLVMLinker', 'LLVMVectorize',
+                'LLVMInstrumentation', 'LLVMipo', 'LLVMCoroutines',
+                'LLVMCFGuard', 'LLVMTextAPI',
+                'LLVMFrontendOpenMP',
+            ])
+        elif llvm_version >= distutils.version.LooseVersion('10.0'):
             env.Prepend(LIBS = [
                 'LLVMX86Disassembler', 'LLVMX86AsmParser',
                 'LLVMX86CodeGen', 'LLVMSelectionDAG', 'LLVMAsmPrinter',

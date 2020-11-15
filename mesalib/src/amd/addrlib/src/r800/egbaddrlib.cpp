@@ -32,8 +32,6 @@
 
 #include "egbaddrlib.h"
 
-#include "util/macros.h"
-
 namespace Addr
 {
 namespace V1
@@ -435,6 +433,7 @@ BOOL_32 EgBasedLib::ComputeSurfaceInfoMicroTiled(
                                                               &expPitch,
                                                               &expHeight);
 
+
     pOut->pitch = expPitch;
     pOut->height = expHeight;
     pOut->depth = expNumSlices;
@@ -445,6 +444,7 @@ BOOL_32 EgBasedLib::ComputeSurfaceInfoMicroTiled(
 
     return valid;
 }
+
 
 /**
 ****************************************************************************************************
@@ -750,6 +750,7 @@ BOOL_32 EgBasedLib::ComputeSurfaceAlignmentsMicroTiled(
     return valid;
 }
 
+
 /**
 ****************************************************************************************************
 *   EgBasedLib::HwlReduceBankWidthHeight
@@ -975,7 +976,7 @@ BOOL_32 EgBasedLib::SanityCheckMacroTiled(
     ) const
 {
     BOOL_32 valid       = TRUE;
-    ASSERTED UINT_32 numPipes = HwlGetPipes(pTileInfo);
+    UINT_32 numPipes    = HwlGetPipes(pTileInfo);
 
     switch (pTileInfo->banks)
     {
@@ -1089,7 +1090,6 @@ AddrTileMode EgBasedLib::ComputeSurfaceMipLevelTileMode(
     ) const
 {
     UINT_64 bytesPerSlice;
-    (void)bytesPerSlice;
     UINT_32 bytesPerTile;
 
     AddrTileMode expTileMode = baseTileMode;
@@ -1811,6 +1811,7 @@ UINT_64 EgBasedLib::ComputeSurfaceAddrFromCoordMacroTiled(
                                 tileSplitSlice,
                                 pTileInfo);
 
+
     //
     // Split the offset to put some bits below the pipe+bank bits and some above.
     //
@@ -2154,6 +2155,7 @@ VOID EgBasedLib::HwlComputePixelCoordFromOffset(
     *pSlice += z;
 }
 
+
 /**
 ****************************************************************************************************
 *   EgBasedLib::DispatchComputeSurfaceCoordFromAddrDispatch
@@ -2298,6 +2300,7 @@ VOID EgBasedLib::DispatchComputeSurfaceCoordFromAddr(
     }
 }
 
+
 /**
 ****************************************************************************************************
 *   EgBasedLib::ComputeSurfaceCoordFromAddrMacroTiled
@@ -2341,6 +2344,7 @@ VOID EgBasedLib::ComputeSurfaceCoordFromAddrMacroTiled(
     UINT_64 macroTileIndex;
     UINT_32 tileIndex;
     UINT_64 totalOffset;
+
 
     UINT_32 bank;
     UINT_32 pipe;
@@ -2663,6 +2667,7 @@ ADDR_E_RETURNCODE EgBasedLib::HwlExtractBankPipeSwizzle(
     return ADDR_OK;
 }
 
+
 /**
 ****************************************************************************************************
 *   EgBasedLib::HwlCombineBankPipeSwizzle
@@ -2724,7 +2729,6 @@ ADDR_E_RETURNCODE EgBasedLib::HwlComputeBaseSwizzle(
     };
 
     UINT_32 pipes = HwlGetPipes(pTileInfo);
-    (void)pipes;
     UINT_32 banks = pTileInfo ? pTileInfo->banks : 2;
     UINT_32 hwNumBanks;
 
@@ -3032,6 +3036,7 @@ UINT_32 EgBasedLib::ComputeBankFromCoord(
             break;
     }
 
+
     //
     // Compute bank rotation for the tile split slice.
     //
@@ -3129,6 +3134,8 @@ UINT_32 EgBasedLib::ComputePipeRotation(
     return rotation;
 }
 
+
+
 /**
 ****************************************************************************************************
 *   EgBasedLib::ComputeBankRotation
@@ -3170,6 +3177,7 @@ UINT_32 EgBasedLib::ComputeBankRotation(
 
     return rotation;
 }
+
 
 /**
 ****************************************************************************************************
@@ -4095,7 +4103,7 @@ UINT_64 EgBasedLib::HwlGetSizeAdjustmentMicroTiled(
     ) const
 {
     UINT_64 logicalSliceSize;
-    ASSERTED UINT_64 physicalSliceSize;
+    UINT_64 physicalSliceSize;
 
     UINT_32 pitch   = *pPitch;
     UINT_32 height  = *pHeight;

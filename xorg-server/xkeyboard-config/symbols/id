@@ -67,8 +67,7 @@ xkb_symbols "phonetic" {
     key <AB08> { [ Arabic_comma,   greater,               comma,            0x100066b        ] }; // decimal_separator
     key <AB09> { [ period,         less,                  Arabic_fullstop,  0x100066c        ] }; // thousands_separator
     key <AB10> { [ slash,          Arabic_question_mark,  0x100060d,        question         ] }; // date_separator
-    
-    
+
     include "level3(ralt_switch)"
 };
 
@@ -102,4 +101,3 @@ xkb_symbols "phoneticx" {
     key <AB02> { [ NoSymbol,  NoSymbol,  0x100065b,     0x100065C                 ] }; // inverted_small_v_above, dot_below
     key <AB03> { [ NoSymbol,  NoSymbol,  Arabic_sukun,  0x10006E1                 ] }; // small_high_dotless_head_of_khah
 };
-

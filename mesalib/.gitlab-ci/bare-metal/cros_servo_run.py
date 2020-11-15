@@ -28,6 +28,7 @@ from serial_buffer import SerialBuffer
 import sys
 import threading
 
+
 class CrosServoRun:
     def __init__(self, cpu, ec):
         # Merged FIFO for the two serial buffers, fed by threads.
@@ -35,13 +36,17 @@ class CrosServoRun:
         self.sentinel = object()
         self.threads_done = 0
 
-        self.ec_ser = SerialBuffer(ec, "results/serial-ec.txt", "R SERIAL-EC> ")
-        self.cpu_ser = SerialBuffer(cpu, "results/serial.txt", "R SERIAL-CPU> ")
+        self.ec_ser = SerialBuffer(
+            ec, "results/serial-ec.txt", "R SERIAL-EC> ")
+        self.cpu_ser = SerialBuffer(
+            cpu, "results/serial.txt", "R SERIAL-CPU> ")
 
-        self.iter_feed_ec = threading.Thread(target=self.iter_feed_queue, daemon=True, args=(self.ec_ser.lines(),))
+        self.iter_feed_ec = threading.Thread(
+            target=self.iter_feed_queue, daemon=True, args=(self.ec_ser.lines(),))
         self.iter_feed_ec.start()
 
-        self.iter_feed_cpu = threading.Thread(target=self.iter_feed_queue, daemon=True, args=(self.cpu_ser.lines(),))
+        self.iter_feed_cpu = threading.Thread(
+            target=self.iter_feed_queue, daemon=True, args=(self.cpu_ser.lines(),))
         self.iter_feed_cpu.start()
 
     # Feed lines from our serial queues into the merged queue, marking when our
@@ -119,10 +124,13 @@ class CrosServoRun:
         print("Reached the end of the CPU serial log without finding a result")
         return 1
 
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cpu', type=str, help='CPU Serial device', required=True)
-    parser.add_argument('--ec', type=str, help='EC Serial device', required=True)
+    parser.add_argument('--cpu', type=str,
+                        help='CPU Serial device', required=True)
+    parser.add_argument(
+        '--ec', type=str, help='EC Serial device', required=True)
     args = parser.parse_args()
 
     servo = CrosServoRun(args.cpu, args.ec)
@@ -136,6 +144,7 @@ def main():
     servo.ec_write("power off\n")
 
     sys.exit(retval)
+
 
 if __name__ == '__main__':
     main()

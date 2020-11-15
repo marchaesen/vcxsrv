@@ -1704,6 +1704,7 @@ get_value_size(enum value_type type, const union value *v)
    case TYPE_MATRIX_T:
       return sizeof (GLfloat) * 16;
    default:
+      assert(!"invalid value_type given for get_value_size()");
       return -1;
    }
 }
@@ -2349,9 +2350,6 @@ _mesa_GetUnsignedBytevEXT(GLenum pname, GLubyte *data)
 
    d = find_value(func, pname, &p, &v);
    size = get_value_size(d->type, &v);
-   if (size <= 0) {
-      _mesa_problem(ctx, "invalid value type in GetUnsignedBytevEXT()");
-   }
 
    switch (d->type) {
    case TYPE_BIT_0:
@@ -3262,9 +3260,6 @@ _mesa_GetUnsignedBytei_vEXT(GLenum target, GLuint index, GLubyte *data)
 
    type = find_value_indexed(func, target, index, &v);
    size = get_value_size(type, &v);
-   if (size <= 0) {
-      _mesa_problem(ctx, "invalid value type in GetUnsignedBytei_vEXT()");
-   }
 
    switch (type) {
    case TYPE_UINT:

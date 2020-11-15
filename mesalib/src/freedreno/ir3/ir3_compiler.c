@@ -94,6 +94,9 @@ ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id)
 		 */
 		compiler->max_const_compute = 256;
 
+		/* TODO: implement clip+cull distances on earlier gen's */
+		compiler->has_clip_cull = true;
+
 		if (compiler->gpu_id == 650)
 			compiler->tess_use_shared = true;
 	} else {

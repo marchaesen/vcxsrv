@@ -57,39 +57,17 @@
  *      bytes/thread = npot(max(size, 16))
  *      allocated = (# of bytes/thread) * (# of threads/core) * (# of cores)
  *
- * The size of Thread Local Storage is signaled to the GPU in a dedicated
- * log_stack_size field. Since stack sizes are powers of two, it follows that
- * stack_size is logarithmic. Consider some sample values:
- *
- *      stack size | log_stack_size
- *      ---------------------------
- *             256 | 4
- *             512 | 5
- *            1024 | 6
- *
- *  Noting that log2(256) = 8, we have the relation:
- *
- *      stack_size <= 2^(log_stack_size + 4)
- *
- *  Given the constraints about powers-of-two and the minimum of 256, we thus
- *  derive a formula for log_stack_size in terms of stack size (s), where s is
- *  positive:
- *
- *      log_stack_size = ceil(log2(max(s, 16))) - 4
- *
- * There are other valid characterisations of this formula, of course, but this
- * is computationally simple, so good enough for our purposes. If s=0, since
- * there is no spilling used whatsoever, we may set log_stack_size to 0 to
- * disable the stack.
+ * The size of Thread Local Storage is signaled to the GPU in the tls_size
+ * field, which has a log2 modifier and is in units of 16 bytes.
  */
 
-/* Computes log_stack_size = ceil(log2(max(s, 16))) - 4 */
+/* Computes log_stack_size = log2(ceil(s / 16)) */
 
 unsigned
 panfrost_get_stack_shift(unsigned stack_size)
 {
         if (stack_size)
-                return util_logbase2_ceil(MAX2(stack_size, 16)) - 4;
+                return util_logbase2_ceil(DIV_ROUND_UP(stack_size, 16));
         else
                 return 0;
 }

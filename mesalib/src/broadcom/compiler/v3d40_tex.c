@@ -61,7 +61,9 @@ static const struct V3D41_TMU_CONFIG_PARAMETER_2 p2_unpacked_default = {
 void
 v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
 {
-        unsigned unit = instr->texture_index;
+        unsigned texture_idx = instr->texture_index;
+        unsigned sampler_idx = instr->sampler_index;
+
         int tmu_writes = 0;
 
         struct V3D41_TMU_CONFIG_PARAMETER_0 p0_unpacked = {
@@ -175,9 +177,10 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
         /* Limit the number of channels returned to both how many the NIR
          * instruction writes and how many the instruction could produce.
          */
-        assert(instr->dest.is_ssa);
         p0_unpacked.return_words_of_texture_data =
-                nir_ssa_def_components_read(&instr->dest.ssa);
+                instr->dest.is_ssa ?
+                nir_ssa_def_components_read(&instr->dest.ssa) :
+                (1 << instr->dest.reg.reg->num_components) - 1;
 
         assert(p0_unpacked.return_words_of_texture_data != 0);
 
@@ -198,11 +201,11 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
         if (instr->op == nir_texop_lod)
            p2_packed |= 1UL << 24;
 
-        /* Load unit number into the high bits of the texture address field,
+        /* Load texture_idx number into the high bits of the texture address field,
          * which will be be used by the driver to decide which texture to put
          * in the actual address field.
          */
-        p0_packed |= unit << 24;
+        p0_packed |= texture_idx << 24;
 
         vir_WRTMUC(c, QUNIFORM_TMU_CONFIG_P0, p0_packed);
 
@@ -210,7 +213,7 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
          * itself, we still need to add the sampler configuration
          * parameter if the output is 32 bit
          */
-        bool output_type_32_bit = (c->key->tex[unit].return_size == 32 &&
+        bool output_type_32_bit = (c->key->sampler[sampler_idx].return_size == 32 &&
                                    !instr->is_shadow);
 
         /*
@@ -247,12 +250,12 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                                                   &p1_unpacked);
 
                 if (nir_tex_instr_need_sampler(instr)) {
-                        /* Load unit number into the high bits of the sampler
-                         * address field, which will be be used by the driver
-                         * to decide which sampler to put in the actual
+                        /* Load sampler_idx number into the high bits of the
+                         * sampler address field, which will be be used by the
+                         * driver to decide which sampler to put in the actual
                          * address field.
                          */
-                        p1_packed |= unit << 24;
+                        p1_packed |= sampler_idx << 24;
 
                         vir_WRTMUC(c, QUNIFORM_TMU_CONFIG_P1, p1_packed);
                 } else {

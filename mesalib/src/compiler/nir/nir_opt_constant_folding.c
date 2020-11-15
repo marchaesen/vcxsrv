@@ -41,11 +41,11 @@ struct constant_fold_state {
 };
 
 static bool
-try_fold_alu(nir_builder *b, nir_alu_instr *instr)
+try_fold_alu(nir_builder *b, nir_alu_instr *alu)
 {
    nir_const_value src[NIR_MAX_VEC_COMPONENTS][NIR_MAX_VEC_COMPONENTS];
 
-   if (!instr->dest.dest.is_ssa)
+   if (!alu->dest.dest.is_ssa)
       return false;
 
    /* In the case that any outputs/inputs have unsized types, then we need to
@@ -58,55 +58,55 @@ try_fold_alu(nir_builder *b, nir_alu_instr *instr)
     * (although it still requires to receive a valid bit-size).
     */
    unsigned bit_size = 0;
-   if (!nir_alu_type_get_type_size(nir_op_infos[instr->op].output_type))
-      bit_size = instr->dest.dest.ssa.bit_size;
+   if (!nir_alu_type_get_type_size(nir_op_infos[alu->op].output_type))
+      bit_size = alu->dest.dest.ssa.bit_size;
 
-   for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++) {
-      if (!instr->src[i].src.is_ssa)
+   for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; i++) {
+      if (!alu->src[i].src.is_ssa)
          return false;
 
       if (bit_size == 0 &&
-          !nir_alu_type_get_type_size(nir_op_infos[instr->op].input_types[i]))
-         bit_size = instr->src[i].src.ssa->bit_size;
+          !nir_alu_type_get_type_size(nir_op_infos[alu->op].input_types[i]))
+         bit_size = alu->src[i].src.ssa->bit_size;
 
-      nir_instr *src_instr = instr->src[i].src.ssa->parent_instr;
+      nir_instr *src_instr = alu->src[i].src.ssa->parent_instr;
 
       if (src_instr->type != nir_instr_type_load_const)
          return false;
       nir_load_const_instr* load_const = nir_instr_as_load_const(src_instr);
 
-      for (unsigned j = 0; j < nir_ssa_alu_instr_src_components(instr, i);
+      for (unsigned j = 0; j < nir_ssa_alu_instr_src_components(alu, i);
            j++) {
-         src[i][j] = load_const->value[instr->src[i].swizzle[j]];
+         src[i][j] = load_const->value[alu->src[i].swizzle[j]];
       }
 
       /* We shouldn't have any source modifiers in the optimization loop. */
-      assert(!instr->src[i].abs && !instr->src[i].negate);
+      assert(!alu->src[i].abs && !alu->src[i].negate);
    }
 
    if (bit_size == 0)
       bit_size = 32;
 
    /* We shouldn't have any saturate modifiers in the optimization loop. */
-   assert(!instr->dest.saturate);
+   assert(!alu->dest.saturate);
 
    nir_const_value dest[NIR_MAX_VEC_COMPONENTS];
    nir_const_value *srcs[NIR_MAX_VEC_COMPONENTS];
    memset(dest, 0, sizeof(dest));
-   for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; ++i)
+   for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; ++i)
       srcs[i] = src[i];
-   nir_eval_const_opcode(instr->op, dest, instr->dest.dest.ssa.num_components,
+   nir_eval_const_opcode(alu->op, dest, alu->dest.dest.ssa.num_components,
                          bit_size, srcs,
                          b->shader->info.float_controls_execution_mode);
 
-   b->cursor = nir_before_instr(&instr->instr);
-   nir_ssa_def *imm = nir_build_imm(b, instr->dest.dest.ssa.num_components,
-                                       instr->dest.dest.ssa.bit_size,
+   b->cursor = nir_before_instr(&alu->instr);
+   nir_ssa_def *imm = nir_build_imm(b, alu->dest.dest.ssa.num_components,
+                                       alu->dest.dest.ssa.bit_size,
                                        dest);
-   nir_ssa_def_rewrite_uses(&instr->dest.dest.ssa, nir_src_for_ssa(imm));
-   nir_instr_remove(&instr->instr);
+   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(imm));
+   nir_instr_remove(&alu->instr);
 
-   ralloc_free(instr);
+   ralloc_free(alu);
 
    return true;
 }
@@ -114,7 +114,7 @@ try_fold_alu(nir_builder *b, nir_alu_instr *instr)
 static nir_const_value *
 const_value_for_deref(nir_deref_instr *deref)
 {
-   if (deref->mode != nir_var_mem_constant)
+   if (!nir_deref_mode_is(deref, nir_var_mem_constant))
       return NULL;
 
    nir_deref_path path;
@@ -180,86 +180,130 @@ fail:
 }
 
 static bool
-try_fold_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
+try_fold_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin,
                    struct constant_fold_state *state)
 {
-   bool progress = false;
-
-   if ((instr->intrinsic == nir_intrinsic_demote_if ||
-        instr->intrinsic == nir_intrinsic_discard_if ||
-        instr->intrinsic == nir_intrinsic_terminate_if) &&
-       nir_src_is_const(instr->src[0])) {
-      if (nir_src_as_bool(instr->src[0])) {
-         b->cursor = nir_before_instr(&instr->instr);
-         nir_intrinsic_op op;
-         switch (instr->intrinsic) {
-         case nir_intrinsic_discard_if:
-            op = nir_intrinsic_discard;
-            break;
-         case nir_intrinsic_demote_if:
-            op = nir_intrinsic_demote;
-            break;
-         case nir_intrinsic_terminate_if:
-            op = nir_intrinsic_terminate;
-            break;
-         default:
-            unreachable("invalid intrinsic");
+   switch (intrin->intrinsic) {
+   case nir_intrinsic_demote_if:
+   case nir_intrinsic_discard_if:
+   case nir_intrinsic_terminate_if:
+      if (nir_src_is_const(intrin->src[0])) {
+         if (nir_src_as_bool(intrin->src[0])) {
+            b->cursor = nir_before_instr(&intrin->instr);
+            nir_intrinsic_op op;
+            switch (intrin->intrinsic) {
+            case nir_intrinsic_discard_if:
+               op = nir_intrinsic_discard;
+               break;
+            case nir_intrinsic_demote_if:
+               op = nir_intrinsic_demote;
+               break;
+            case nir_intrinsic_terminate_if:
+               op = nir_intrinsic_terminate;
+               break;
+            default:
+               unreachable("invalid intrinsic");
+            }
+            nir_intrinsic_instr *new_instr =
+               nir_intrinsic_instr_create(b->shader, op);
+            nir_builder_instr_insert(b, &new_instr->instr);
          }
-         nir_intrinsic_instr *new_instr =
-            nir_intrinsic_instr_create(b->shader, op);
-         nir_builder_instr_insert(b, &new_instr->instr);
+         nir_instr_remove(&intrin->instr);
+         return true;
       }
-      nir_instr_remove(&instr->instr);
-      progress = true;
-   } else if (instr->intrinsic == nir_intrinsic_load_deref) {
-      nir_deref_instr *deref = nir_src_as_deref(instr->src[0]);
+      return false;
+
+   case nir_intrinsic_load_deref: {
+      nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
       nir_const_value *v = const_value_for_deref(deref);
       if (v) {
-         b->cursor = nir_before_instr(&instr->instr);
-         nir_ssa_def *val = nir_build_imm(b, instr->dest.ssa.num_components,
-                                             instr->dest.ssa.bit_size, v);
-         nir_ssa_def_rewrite_uses(&instr->dest.ssa, nir_src_for_ssa(val));
-         nir_instr_remove(&instr->instr);
-         progress = true;
+         b->cursor = nir_before_instr(&intrin->instr);
+         nir_ssa_def *val = nir_build_imm(b, intrin->dest.ssa.num_components,
+                                             intrin->dest.ssa.bit_size, v);
+         nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(val));
+         nir_instr_remove(&intrin->instr);
+         return true;
       }
-   } else if (instr->intrinsic == nir_intrinsic_load_constant) {
+      return false;
+   }
+
+   case nir_intrinsic_load_constant: {
       state->has_load_constant = true;
 
-      if (!nir_src_is_const(instr->src[0])) {
+      if (!nir_src_is_const(intrin->src[0])) {
          state->has_indirect_load_const = true;
-         return progress;
+         return false;
       }
 
-      unsigned offset = nir_src_as_uint(instr->src[0]);
-      unsigned base = nir_intrinsic_base(instr);
-      unsigned range = nir_intrinsic_range(instr);
+      unsigned offset = nir_src_as_uint(intrin->src[0]);
+      unsigned base = nir_intrinsic_base(intrin);
+      unsigned range = nir_intrinsic_range(intrin);
       assert(base + range <= b->shader->constant_data_size);
 
-      b->cursor = nir_before_instr(&instr->instr);
+      b->cursor = nir_before_instr(&intrin->instr);
       nir_ssa_def *val;
       if (offset >= range) {
-         val = nir_ssa_undef(b, instr->dest.ssa.num_components,
-                                instr->dest.ssa.bit_size);
+         val = nir_ssa_undef(b, intrin->dest.ssa.num_components,
+                                intrin->dest.ssa.bit_size);
       } else {
          nir_const_value imm[NIR_MAX_VEC_COMPONENTS];
          memset(imm, 0, sizeof(imm));
          uint8_t *data = (uint8_t*)b->shader->constant_data + base;
-         for (unsigned i = 0; i < instr->num_components; i++) {
-            unsigned bytes = instr->dest.ssa.bit_size / 8;
+         for (unsigned i = 0; i < intrin->num_components; i++) {
+            unsigned bytes = intrin->dest.ssa.bit_size / 8;
             bytes = MIN2(bytes, range - offset);
 
             memcpy(&imm[i].u64, data + offset, bytes);
             offset += bytes;
          }
-         val = nir_build_imm(b, instr->dest.ssa.num_components,
-                                instr->dest.ssa.bit_size, imm);
+         val = nir_build_imm(b, intrin->dest.ssa.num_components,
+                                intrin->dest.ssa.bit_size, imm);
       }
-      nir_ssa_def_rewrite_uses(&instr->dest.ssa, nir_src_for_ssa(val));
-      nir_instr_remove(&instr->instr);
-      progress = true;
+      nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(val));
+      nir_instr_remove(&intrin->instr);
+      return true;
    }
 
-   return progress;
+   case nir_intrinsic_vote_any:
+   case nir_intrinsic_vote_all:
+   case nir_intrinsic_read_invocation:
+   case nir_intrinsic_read_first_invocation:
+   case nir_intrinsic_shuffle:
+   case nir_intrinsic_shuffle_xor:
+   case nir_intrinsic_shuffle_up:
+   case nir_intrinsic_shuffle_down:
+   case nir_intrinsic_quad_broadcast:
+   case nir_intrinsic_quad_swap_horizontal:
+   case nir_intrinsic_quad_swap_vertical:
+   case nir_intrinsic_quad_swap_diagonal:
+   case nir_intrinsic_quad_swizzle_amd:
+   case nir_intrinsic_masked_swizzle_amd:
+      /* All of these have the data payload in the first source.  They may
+       * have a second source with a shuffle index but that doesn't matter if
+       * the data is constant.
+       */
+      if (nir_src_is_const(intrin->src[0])) {
+         nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
+                                  nir_src_for_ssa(intrin->src[0].ssa));
+         nir_instr_remove(&intrin->instr);
+         return true;
+      }
+      return false;
+
+   case nir_intrinsic_vote_feq:
+   case nir_intrinsic_vote_ieq:
+      if (nir_src_is_const(intrin->src[0])) {
+         b->cursor = nir_before_instr(&intrin->instr);
+         nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
+                                  nir_src_for_ssa(nir_imm_true(b)));
+         nir_instr_remove(&intrin->instr);
+         return true;
+      }
+      return false;
+
+   default:
+      return false;
+   }
 }
 
 static bool

@@ -27,6 +27,17 @@
 
 #include "nir.h"
 #include "nir_builder.h"
+#include "util/u_math.h"
+#include "util/set.h"
+
+struct lower_sysval_state {
+   const nir_lower_compute_system_values_options *options;
+
+   /* List of intrinsics that have already been lowered and shouldn't be
+    * lowered again.
+    */
+   struct set *lower_once_list;
+};
 
 static nir_ssa_def *
 sanitize_32bit_sysval(nir_builder *b, nir_intrinsic_instr *intrin)
@@ -110,17 +121,23 @@ lower_system_value_instr(nir_builder *b, nir_instr *instr, void *_state)
 
    case nir_intrinsic_load_deref: {
       nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-      if (deref->mode != nir_var_system_value)
+      if (!nir_deref_mode_is(deref, nir_var_system_value))
          return NULL;
 
+      nir_ssa_def *column = NULL;
       if (deref->deref_type != nir_deref_type_var) {
-         /* The only one system value that is an array and that is
-          * gl_SampleMask which is always an array of one element.
+         /* The only one system values that aren't plane variables are
+          * gl_SampleMask which is always an array of one element and a
+          * couple of ray-tracing intrinsics which are matrices.
           */
          assert(deref->deref_type == nir_deref_type_array);
+         assert(deref->arr.index.is_ssa);
+         column = deref->arr.index.ssa;
          deref = nir_deref_instr_parent(deref);
          assert(deref->deref_type == nir_deref_type_var);
-         assert(deref->var->data.location == SYSTEM_VALUE_SAMPLE_MASK_IN);
+         assert(deref->var->data.location == SYSTEM_VALUE_SAMPLE_MASK_IN ||
+                deref->var->data.location == SYSTEM_VALUE_RAY_OBJECT_TO_WORLD ||
+                deref->var->data.location == SYSTEM_VALUE_RAY_WORLD_TO_OBJECT);
       }
       nir_variable *var = deref->var;
 
@@ -186,9 +203,25 @@ lower_system_value_instr(nir_builder *b, nir_instr *instr, void *_state)
 
       nir_intrinsic_op sysval_op =
          nir_intrinsic_from_system_value(var->data.location);
-      return nir_load_system_value(b, sysval_op, 0,
+      if (glsl_type_is_matrix(var->type)) {
+         assert(nir_intrinsic_infos[sysval_op].index_map[NIR_INTRINSIC_COLUMN] > 0);
+         unsigned num_cols = glsl_get_matrix_columns(var->type);
+         ASSERTED unsigned num_rows = glsl_get_vector_elements(var->type);
+         assert(num_rows == intrin->dest.ssa.num_components);
+
+         nir_ssa_def *cols[4];
+         for (unsigned i = 0; i < num_cols; i++) {
+            cols[i] = nir_load_system_value(b, sysval_op, i,
+                                            intrin->dest.ssa.num_components,
+                                            intrin->dest.ssa.bit_size);
+            assert(cols[i]->num_components == num_rows);
+         }
+         return nir_select_from_ssa_def_array(b, cols, num_cols, column);
+      } else {
+         return nir_load_system_value(b, sysval_op, 0,
                                       intrin->dest.ssa.num_components,
                                       intrin->dest.ssa.bit_size);
+      }
    }
 
    default:
@@ -217,17 +250,18 @@ nir_lower_system_values(nir_shader *shader)
 }
 
 static bool
-lower_compute_system_value_filter(const nir_instr *instr, const void *_options)
+lower_compute_system_value_filter(const nir_instr *instr, const void *_state)
 {
    return instr->type == nir_instr_type_intrinsic;
 }
 
 static nir_ssa_def *
 lower_compute_system_value_instr(nir_builder *b,
-                                 nir_instr *instr, void *_options)
+                                 nir_instr *instr, void *_state)
 {
    nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-   const nir_lower_compute_system_values_options *options = _options;
+   struct lower_sysval_state *state = (struct lower_sysval_state *)_state;
+   const nir_lower_compute_system_values_options *options = state->options;
 
    /* All the intrinsics we care about are loads */
    if (!nir_intrinsic_infos[intrin->intrinsic].has_dest)
@@ -276,15 +310,91 @@ lower_compute_system_value_instr(nir_builder *b,
                             nir_imul(b, nir_channel(b, local_size, 0),
                                         nir_channel(b, local_size, 1)));
          return nir_u2u(b, nir_vec3(b, id_x, id_y, id_z), bit_size);
-      } else {
-         return NULL;
       }
+      if (options && options->shuffle_local_ids_for_quad_derivatives &&
+          b->shader->info.cs.derivative_group == DERIVATIVE_GROUP_QUADS &&
+          _mesa_set_search(state->lower_once_list, instr) == NULL) {
+         nir_ssa_def *ids = nir_load_local_invocation_id(b);
+         _mesa_set_add(state->lower_once_list, ids->parent_instr);
+
+         nir_ssa_def *x = nir_channel(b, ids, 0);
+         nir_ssa_def *y = nir_channel(b, ids, 1);
+         nir_ssa_def *z = nir_channel(b, ids, 2);
+         unsigned size_x = b->shader->info.cs.local_size[0];
+         nir_ssa_def *size_x_imm;
+
+         if (b->shader->info.cs.local_size_variable)
+            size_x_imm = nir_channel(b, nir_load_local_group_size(b), 0);
+         else
+            size_x_imm = nir_imm_int(b, size_x);
+
+         /* Remap indices from:
+          *    | 0| 1| 2| 3|
+          *    | 4| 5| 6| 7|
+          *    | 8| 9|10|11|
+          *    |12|13|14|15|
+          * to:
+          *    | 0| 1| 4| 5|
+          *    | 2| 3| 6| 7|
+          *    | 8| 9|12|13|
+          *    |10|11|14|15|
+          *
+          * That's the layout required by AMD hardware for derivatives to
+          * work. Other hardware may work differently.
+          *
+          * It's a classic tiling pattern that can be implemented by inserting
+          * bit y[0] between bits x[0] and x[1] like this:
+          *
+          *    x[0],y[0],x[1],...x[last],y[1],...,y[last]
+          *
+          * If the width is a power of two, use:
+          *    i = ((x & 1) | ((y & 1) << 1) | ((x & ~1) << 1)) | ((y & ~1) << logbase2(size_x))
+          *
+          * If the width is not a power of two or the local size is variable, use:
+          *    i = ((x & 1) | ((y & 1) << 1) | ((x & ~1) << 1)) + ((y & ~1) * size_x)
+          *
+          * GL_NV_compute_shader_derivatives requires that the width and height
+          * are a multiple of two, which is also a requirement for the second
+          * expression to work.
+          *
+          * The 2D result is: (x,y) = (i % w, i / w)
+          */
+
+         nir_ssa_def *one = nir_imm_int(b, 1);
+         nir_ssa_def *inv_one = nir_imm_int(b, ~1);
+         nir_ssa_def *x_bit0 = nir_iand(b, x, one);
+         nir_ssa_def *y_bit0 = nir_iand(b, y, one);
+         nir_ssa_def *x_bits_1n = nir_iand(b, x, inv_one);
+         nir_ssa_def *y_bits_1n = nir_iand(b, y, inv_one);
+         nir_ssa_def *bits_01 = nir_ior(b, x_bit0, nir_ishl(b, y_bit0, one));
+         nir_ssa_def *bits_01x = nir_ior(b, bits_01,
+                                         nir_ishl(b, x_bits_1n, one));
+         nir_ssa_def *i;
+
+         if (!b->shader->info.cs.local_size_variable &&
+             util_is_power_of_two_nonzero(size_x)) {
+            nir_ssa_def *log2_size_x = nir_imm_int(b, util_logbase2(size_x));
+            i = nir_ior(b, bits_01x, nir_ishl(b, y_bits_1n, log2_size_x));
+         } else {
+            i = nir_iadd(b, bits_01x, nir_imul(b, y_bits_1n, size_x_imm));
+         }
+
+         /* This should be fast if size_x is an immediate or even a power
+          * of two.
+          */
+         x = nir_umod(b, i, size_x_imm);
+         y = nir_udiv(b, i, size_x_imm);
+
+         return nir_vec3(b, x, y, z);
+      }
+      return NULL;
 
    case nir_intrinsic_load_local_invocation_index:
       /* If lower_cs_local_index_from_id is true, then we derive the local
        * index from the local id.
        */
-      if (b->shader->options->lower_cs_local_index_from_id) {
+      if (b->shader->options->lower_cs_local_index_from_id ||
+          (options && options->lower_local_invocation_index)) {
          /* From the GLSL man page for gl_LocalInvocationIndex:
           *
           *    "The value of gl_LocalInvocationIndex is equal to
@@ -396,8 +506,21 @@ nir_lower_compute_system_values(nir_shader *shader,
        shader->info.stage != MESA_SHADER_KERNEL)
       return false;
 
-   return nir_shader_lower_instructions(shader,
-                                        lower_compute_system_value_filter,
-                                        lower_compute_system_value_instr,
-                                        (void*)options);
+   struct lower_sysval_state state;
+   state.options = options;
+   state.lower_once_list = _mesa_pointer_set_create(NULL);
+
+   bool progress =
+      nir_shader_lower_instructions(shader,
+                                    lower_compute_system_value_filter,
+                                    lower_compute_system_value_instr,
+                                    (void*)&state);
+   ralloc_free(state.lower_once_list);
+
+   /* Update this so as not to lower it again. */
+   if (options && options->shuffle_local_ids_for_quad_derivatives &&
+       shader->info.cs.derivative_group == DERIVATIVE_GROUP_QUADS)
+      shader->info.cs.derivative_group = DERIVATIVE_GROUP_LINEAR;
+
+   return progress;
 }

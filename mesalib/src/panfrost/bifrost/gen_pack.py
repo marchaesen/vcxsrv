@@ -76,7 +76,7 @@ def pack_widen(mod, opts, body, pack_exprs):
             sz = 16 if op[0] == 'h' else 8
 
             # Condition on the swizzle
-            conds = ['ins->swizzle[{}][{}] == {}'.format(marg, idx, lane) for idx, lane in enumerate(op[1:])]
+            conds = ['(ins->swizzle[{}][{}] % 4) == {}'.format(marg, idx, lane) for idx, lane in enumerate(op[1:])]
             cond = " && ".join(conds)
 
             body.append('{}if ({}_sz == {} && {}) {}_temp = {};'.format(t_else, mod, sz, cond, mod, i))
@@ -277,6 +277,20 @@ modifier_map = {
         "divzero": lambda a,b,c,d: '0',
         "sem": lambda a,b,c,d: '0', # IEEE 754 compliant NaN rules
 
+        # For +ZS_EMIT, infer modifiers from specified sources
+        "z": lambda a,b,c,d: '(ins->src[0] != 0)',
+        "stencil": lambda a,b,c,d: '(ins->src[1] != 0)',
+
+        # For +LD_VAR, infer sample from load_vary.interp_mode
+        "sample": lambda a,b,c,d: 'ins->load_vary.interp_mode',
+
+        # +CLPER
+        "lane_op": lambda a,b,c,d: 'ins->special.clper.lane_op_mod',
+        "inactive_result": lambda a,b,c,d: 'ins->special.clper.inactive_res',
+
+        # +CLPER and +WMASK
+        "subgroup": lambda a,b,c,d: 'ins->special.subgroup_sz',
+
         # We don't support these in the IR yet (TODO)
         "saturate": lambda a,b,c,d: '0', # clamp to min/max int
         "mask": lambda a,b,c,d: '0', # clz(~0) = ~0
@@ -292,18 +306,12 @@ modifier_map = {
         "func": lambda a,b,c,d: '0', # pow special case thing
         "h": lambda a,b,c,d: '0', # VN_ASST1.f16
         "l": lambda a,b,c,d: '0', # VN_ASST1.f16
-        "sample": lambda a,b,c,d: '0', # LD_VAR center
         "function": lambda a,b,c,d: '3', # LD_VAR_FLAT none
         "preserve_null": lambda a,b,c,d: '0', # SEG_ADD none
         "bytes2": lambda a,b,c,d: '0', # NIR shifts are in bits
         "result_word": lambda a,b,c,d: '0', # 32-bit only shifts for now (TODO)
         "source": lambda a,b,c,d: '7', # cycle_counter for LD_GCLK
-        "lane_op": lambda a,b,c,d: '0', # CLPER none
-        "subgroup": lambda a,b,c,d: '1', # CLPER subgroup4
-        "inactive_result": lambda a,b,c,d: '0', # CLPER zero
         "threads": lambda a,b,c,d: '0', # IMULD odd
-        "stencil": lambda a,b,c,d: '1', # ZS_EMIT stencil
-        "z": lambda a,b,c,d: '1', # ZS_EMIT z
         "combine": lambda a,b,c,d: '0', # BRANCHC any
         "format": lambda a,b,c,d: '1', # LEA_TEX_IMM u32
         "test_mode": lambda a,b,c,d: '0', # JUMP_EX z

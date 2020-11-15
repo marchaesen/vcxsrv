@@ -37,12 +37,10 @@
 //
 // Make sure the necessary endian defines are there.
 //
-#include "util/u_endian.h"
-
-#if UTIL_ARCH_LITTLE_ENDIAN
-#define LITTLEENDIAN_CPU
-#elif UTIL_ARCH_BIG_ENDIAN
-#define BIGENDIAN_CPU
+#if defined(LITTLEENDIAN_CPU)
+#elif defined(BIGENDIAN_CPU)
+#else
+#error "BIGENDIAN_CPU or LITTLEENDIAN_CPU must be defined"
 #endif
 
 union GB_ADDR_CONFIG_gfx9 {

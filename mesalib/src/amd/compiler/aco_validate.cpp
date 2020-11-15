@@ -27,6 +27,8 @@
 #include <array>
 #include <map>
 
+#include "util/memstream.h"
+
 namespace aco {
 
 static void aco_log(Program *program, enum radv_compiler_debug_level level,
@@ -78,13 +80,15 @@ bool validate_ir(Program* program)
       if (!check) {
          char *out;
          size_t outsize;
-         FILE *memf = open_memstream(&out, &outsize);
+         struct u_memstream mem;
+         u_memstream_open(&mem, &out, &outsize);
+         FILE *const memf = u_memstream_get(&mem);
 
          fprintf(memf, "%s: ", msg);
          aco_print_instr(instr, memf);
-         fclose(memf);
+         u_memstream_close(&mem);
 
-         aco_err(program, out);
+         aco_err(program, "%s", out);
          free(out);
 
          is_valid = false;
@@ -328,7 +332,7 @@ bool validate_ir(Program* program)
                   if (!instr->definitions[i].regClass().is_subdword())
                      continue;
                   Operand op = instr->operands[i];
-                  check(!op.isLiteral(), "Sub-dword copies cannot take literals", instr.get());
+                  check(program->chip_class >= GFX9 || !op.isLiteral(), "Sub-dword copies cannot take literals", instr.get());
                   if (op.isConstant() || (op.hasRegClass() && op.regClass().type() == RegType::sgpr))
                      check(program->chip_class >= GFX9, "Sub-dword pseudo instructions can only take constants or SGPRs on GFX9+", instr.get());
                }
@@ -395,6 +399,19 @@ bool validate_ir(Program* program)
                   check(!op.isTemp() || op.getTemp().is_linear(), "Wrong Operand type", instr.get());
                check(instr->operands.size() == block.linear_preds.size(), "Number of Operands does not match number of predecessors", instr.get());
             }
+            break;
+         }
+         case Format::PSEUDO_REDUCTION: {
+            for (const Operand &op : instr->operands)
+               check(op.regClass().type() == RegType::vgpr, "All operands of PSEUDO_REDUCTION instructions must be in VGPRs.", instr.get());
+
+            unsigned cluster_size = static_cast<Pseudo_reduction_instruction *>(instr.get())->cluster_size;
+
+            if (instr->opcode == aco_opcode::p_reduce && cluster_size == program->wave_size)
+               check(instr->definitions[0].regClass().type() == RegType::sgpr, "The result of unclustered reductions must go into an SGPR.", instr.get());
+            else
+               check(instr->definitions[0].regClass().type() == RegType::vgpr, "The result of scans and clustered reductions must go into a VGPR.", instr.get());
+
             break;
          }
          case Format::SMEM: {
@@ -520,7 +537,9 @@ bool ra_fail(Program *program, Location loc, Location loc2, const char *fmt, ...
 
    char *out;
    size_t outsize;
-   FILE *memf = open_memstream(&out, &outsize);
+   struct u_memstream mem;
+   u_memstream_open(&mem, &out, &outsize);
+   FILE *const memf = u_memstream_get(&mem);
 
    fprintf(memf, "RA error found at instruction in BB%d:\n", loc.block->index);
    if (loc.instr) {
@@ -534,9 +553,9 @@ bool ra_fail(Program *program, Location loc, Location loc2, const char *fmt, ...
       aco_print_instr(loc2.instr, memf);
    }
    fprintf(memf, "\n\n");
-   fclose(memf);
+   u_memstream_close(&mem);
 
-   aco_err(program, out);
+   aco_err(program, "%s", out);
    free(out);
 
    return true;

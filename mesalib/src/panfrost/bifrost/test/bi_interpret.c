@@ -582,7 +582,8 @@ bit_step(struct bit_state *s, bi_instruction *ins, bool FMA)
                 break;
         }
 
-        case BI_SPECIAL: {
+        case BI_SPECIAL_FMA:
+        case BI_SPECIAL_ADD: {
                 assert(nir_alu_type_get_base_type(ins->dest_type) == nir_type_float);
                 assert(ins->dest_type != nir_type_float64);
 

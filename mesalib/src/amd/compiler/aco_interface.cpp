@@ -23,11 +23,11 @@
 
 #include "aco_interface.h"
 #include "aco_ir.h"
+#include "util/memstream.h"
 #include "vulkan/radv_shader.h"
 #include "vulkan/radv_shader_args.h"
 
 #include <iostream>
-#include <sstream>
 
 static aco_compiler_statistic_info statistic_infos[] = {
    [aco::statistic_hash] = {"Hash", "CRC32 hash of code and constant data"},
@@ -110,11 +110,12 @@ void aco_compile_shader(unsigned shader_count,
    if (args->options->record_ir) {
       char *data = NULL;
       size_t size = 0;
-      FILE *f = open_memstream(&data, &size);
-      if (f) {
-         aco_print_program(program.get(), f);
-         fputc(0, f);
-         fclose(f);
+      u_memstream mem;
+      if (u_memstream_open(&mem, &data, &size)) {
+         FILE *const memf = u_memstream_get(&mem);
+         aco_print_program(program.get(), memf);
+         fputc(0, memf);
+         u_memstream_close(&mem);
       }
 
       llvm_ir = std::string(data, data + size);
@@ -155,6 +156,9 @@ void aco_compile_shader(unsigned shader_count,
    aco::insert_wait_states(program.get());
    aco::insert_NOPs(program.get());
 
+   if (program->chip_class >= GFX10)
+      aco::form_hard_clauses(program.get());
+
    if (program->collect_statistics)
       aco::collect_preasm_stats(program.get());
 
@@ -171,16 +175,25 @@ void aco_compile_shader(unsigned shader_count,
 
    std::string disasm;
    if (get_disasm) {
-      std::ostringstream stream;
-      if (aco::print_asm(program.get(), code, exec_size / 4u, stream)) {
-         std::cerr << "Failed to disassemble program:\n";
-         aco_print_program(program.get(), stderr);
-         std::cerr << stream.str() << std::endl;
-         abort();
+      char *data = NULL;
+      size_t disasm_size = 0;
+      FILE *f = open_memstream(&data, &disasm_size);
+      if (f) {
+         bool fail = aco::print_asm(program.get(), code, exec_size / 4u, f);
+         fputc(0, f);
+         fclose(f);
+
+         if (fail) {
+            fprintf(stderr, "Failed to disassemble program:\n");
+            aco_print_program(program.get(), stderr);
+            fputs(data, stderr);
+            abort();
+         }
       }
-      stream << '\0';
-      disasm = stream.str();
-      size += disasm.size();
+
+      disasm = std::string(data, data + disasm_size);
+      size += disasm_size;
+      free(data);
    }
 
    size_t stats_size = 0;

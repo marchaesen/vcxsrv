@@ -16,7 +16,7 @@ xkb_symbols "basic" {
     key <AE10> {  [       0x1000660,       parenleft, 0      ]       };
     key <AE11> {  [           minus,      underscore      ]     };
     key <AE12> {  [           equal,            plus      ]     };
-						
+
 // Alphabets
 
     key <AD01> {  [      Arabic_dad,     U0686     ]     };
@@ -61,8 +61,6 @@ xkb_symbols "basic" {
    key <ESC>  { [ Escape ] };
 
     include "level3(ralt_switch)"
-
-    // End alphanumeric section
 };
 
 
@@ -96,7 +94,7 @@ xkb_symbols "phonetic"
         key <AB04> { [    U06CF, Arabic_zah                   ] };
         key <AB05> { [    Arabic_beh, Arabic_peh              ] };
         key <AB06> { [    Arabic_noon, U06BD                  ] };
-        key <AB07> { [    Arabic_meem, Arabic_madonalef       ] };
+        key <AB07> { [    Arabic_meem, Arabic_maddaonalef     ] };
         key <AB08> { [    Arabic_comma, rightcaret            ] };
         key <AB09> { [    period, leftcaret                   ] };
         key <AB10> { [    slash, Arabic_question_mark         ] };
@@ -127,13 +125,9 @@ xkb_symbols "phonetic"
         key <AD12> { [     bracketleft, braceleft             ] };
         key <AD13> { [     backslash,             bar         ] };
 
-        
 //others
-        
+
    key <ESC>  { [ Escape ] }; 
-        
+
     include "level3(ralt_switch)"
-        
-    // End alphanumeric section
-        
-};      
+};

@@ -88,7 +88,8 @@ typedef int            INT;
 
 #ifndef ADDR_FASTCALL
     #if defined(__GNUC__)
-        #define ADDR_FASTCALL __attribute__((regparm(0)))
+        // We don't care about the performance of call instructions in addrlib
+        #define ADDR_FASTCALL
     #else
         #define ADDR_FASTCALL __fastcall
     #endif
@@ -106,6 +107,7 @@ typedef int            INT;
     #define GC_FASTCALL  ADDR_FASTCALL
 #endif
 
+
 #if defined(__GNUC__)
     #define ADDR_INLINE static inline   // inline needs to be static to link
 #else
@@ -113,11 +115,7 @@ typedef int            INT;
     #define ADDR_INLINE   __inline
 #endif // #if defined(__GNUC__)
 
-#if defined(__amd64__) || defined(__x86_64__) || defined(__i386__)
-    #define ADDR_API ADDR_FASTCALL // default call convention is fast call
-#else
-    #define ADDR_API
-#endif
+#define ADDR_API ADDR_FASTCALL //default call convention is fast call
 
 /**
 ****************************************************************************************************
@@ -205,9 +203,10 @@ typedef enum _AddrTileMode
 * @note
 *
 *   ADDR_SW_LINEAR linear aligned addressing mode, for 1D/2D/3D resource
-*   ADDR_SW_256B_* addressing block aligned size is 256B, for 2D/3D resource
+*   ADDR_SW_256B_* addressing block aligned size is 256B, for 2D resource
 *   ADDR_SW_4KB_*  addressing block aligned size is 4KB, for 2D/3D resource
-*   ADDR_SW_64KB_* addressing block aligned size is 64KB, for 2D/3D resource
+*   ADDR_SW_64KB_* addressing block aligned size is 64KB, for 1D/2D/3D resource
+*   ADDR_SW_VAR_*  addressing block aligned size is ASIC specific
 *
 *   ADDR_SW_*_Z    For GFX9:
                    - for 2D resource, represents Z-order swizzle mode for depth/stencil/FMask
@@ -244,10 +243,10 @@ typedef enum _AddrSwizzleMode
     ADDR_SW_64KB_S          = 9,
     ADDR_SW_64KB_D          = 10,
     ADDR_SW_64KB_R          = 11,
-    ADDR_SW_RESERVED0       = 12,
-    ADDR_SW_RESERVED1       = 13,
-    ADDR_SW_RESERVED2       = 14,
-    ADDR_SW_RESERVED3       = 15,
+    ADDR_SW_MISCDEF12       = 12,
+    ADDR_SW_MISCDEF13       = 13,
+    ADDR_SW_MISCDEF14       = 14,
+    ADDR_SW_MISCDEF15       = 15,
     ADDR_SW_64KB_Z_T        = 16,
     ADDR_SW_64KB_S_T        = 17,
     ADDR_SW_64KB_D_T        = 18,
@@ -260,12 +259,23 @@ typedef enum _AddrSwizzleMode
     ADDR_SW_64KB_S_X        = 25,
     ADDR_SW_64KB_D_X        = 26,
     ADDR_SW_64KB_R_X        = 27,
-    ADDR_SW_VAR_Z_X         = 28,
-    ADDR_SW_RESERVED4       = 29,
-    ADDR_SW_RESERVED5       = 30,
-    ADDR_SW_VAR_R_X         = 31,
+    ADDR_SW_MISCDEF28       = 28,
+    ADDR_SW_MISCDEF29       = 29,
+    ADDR_SW_MISCDEF30       = 30,
+    ADDR_SW_MISCDEF31       = 31,
     ADDR_SW_LINEAR_GENERAL  = 32,
     ADDR_SW_MAX_TYPE        = 33,
+
+    ADDR_SW_RESERVED0       = ADDR_SW_MISCDEF12,
+    ADDR_SW_RESERVED1       = ADDR_SW_MISCDEF13,
+    ADDR_SW_RESERVED2       = ADDR_SW_MISCDEF14,
+    ADDR_SW_RESERVED3       = ADDR_SW_MISCDEF15,
+    ADDR_SW_RESERVED4       = ADDR_SW_MISCDEF29,
+    ADDR_SW_RESERVED5       = ADDR_SW_MISCDEF30,
+
+    ADDR_SW_VAR_Z_X         = ADDR_SW_MISCDEF28,
+    ADDR_SW_VAR_R_X         = ADDR_SW_MISCDEF31,
+
 } AddrSwizzleMode;
 
 /**
@@ -553,6 +563,7 @@ typedef enum _AddrHtileBlockSize
     ADDR_HTILE_BLOCKSIZE_8 = 8,
 } AddrHtileBlockSize;
 
+
 /**
 ****************************************************************************************************
 *   AddrPipeCfg
@@ -638,7 +649,7 @@ typedef enum _AddrTileType
 #endif
 
 #ifndef INT_8
-#define INT_8   char
+#define INT_8   signed char
 #endif
 
 #ifndef UINT_8
@@ -715,6 +726,7 @@ typedef enum _AddrTileType
 #define ADDR64D "lld" OR "I64d"
 #endif
 
+
 /// @brief Union for storing a 32-bit float or 32-bit integer
 /// @ingroup type
 ///
@@ -729,6 +741,7 @@ typedef union {
     UINT_32  u;
     float    f;
 } ADDR_FLT_32;
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //

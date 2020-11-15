@@ -649,7 +649,7 @@ static const struct ac_reg_range Gfx103ContextShadowRange[] = {
    },
    {
       R_02882C_PA_SU_PRIM_FILTER_CNTL,
-      0x028848 - R_02882C_PA_SU_PRIM_FILTER_CNTL + 4,
+      R_028848_PA_CL_VRS_CNTL - R_02882C_PA_SU_PRIM_FILTER_CNTL + 4,
    },
    {
       R_028A00_PA_SU_POINT_SIZE,

@@ -45,7 +45,7 @@ v3dv_wsi_init(struct v3dv_physical_device *physical_device)
                             v3dv_physical_device_to_handle(physical_device),
                             v3dv_wsi_proc_addr,
                             &physical_device->instance->alloc,
-                            physical_device->display_fd, NULL, false);
+                            physical_device->master_fd, NULL, false);
 
    if (result != VK_SUCCESS)
       return result;
@@ -91,7 +91,7 @@ VkResult v3dv_GetPhysicalDeviceSurfaceSupportKHR(
 }
 
 static void
-contraint_surface_capabilities(VkSurfaceCapabilitiesKHR *caps)
+constraint_surface_capabilities(VkSurfaceCapabilitiesKHR *caps)
 {
    /* Our display pipeline requires that images are linear, so we cannot
     * ensure that our swapchain images can be sampled. If we are running under
@@ -115,7 +115,7 @@ VkResult v3dv_GetPhysicalDeviceSurfaceCapabilitiesKHR(
    result = wsi_common_get_surface_capabilities(&device->wsi_device,
                                                 surface,
                                                 pSurfaceCapabilities);
-   contraint_surface_capabilities(pSurfaceCapabilities);
+   constraint_surface_capabilities(pSurfaceCapabilities);
    return result;
 }
 
@@ -130,7 +130,7 @@ VkResult v3dv_GetPhysicalDeviceSurfaceCapabilities2KHR(
    result = wsi_common_get_surface_capabilities2(&device->wsi_device,
                                                  pSurfaceInfo,
                                                  pSurfaceCapabilities);
-   contraint_surface_capabilities(&pSurfaceCapabilities->surfaceCapabilities);
+   constraint_surface_capabilities(&pSurfaceCapabilities->surfaceCapabilities);
    return result;
 }
 
@@ -178,9 +178,15 @@ VkResult v3dv_CreateSwapchainKHR(
     VkSwapchainKHR*                              pSwapchain)
 {
    V3DV_FROM_HANDLE(v3dv_device, device, _device);
-   struct wsi_device *wsi_device = &device->instance->physicalDevice.wsi_device;
-   const VkAllocationCallbacks *alloc;
+   struct v3dv_instance *instance = device->instance;
+   struct v3dv_physical_device *pdevice = &instance->physicalDevice;
+   struct wsi_device *wsi_device = &pdevice->wsi_device;
 
+   VkResult result = v3dv_physical_device_acquire_display(instance, pdevice);
+   if (result != VK_SUCCESS)
+      return result;
+
+   const VkAllocationCallbacks *alloc;
    if (pAllocator)
      alloc = pAllocator;
    else
@@ -254,9 +260,9 @@ VkResult v3dv_AcquireNextImage2KHR(
 
    if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {
       if (fence)
-         drmSyncobjSignal(device->render_fd, &fence->sync, 1);
+         drmSyncobjSignal(pdevice->render_fd, &fence->sync, 1);
       if (semaphore)
-         drmSyncobjSignal(device->render_fd, &semaphore->sync, 1);
+         drmSyncobjSignal(pdevice->render_fd, &semaphore->sync, 1);
    }
 
    return result;

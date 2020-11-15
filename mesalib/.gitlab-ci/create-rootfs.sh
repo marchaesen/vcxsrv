@@ -11,7 +11,8 @@ elif [ $DEBIAN_ARCH = amd64 ]; then
     echo "deb https://apt.llvm.org/buster/ llvm-toolchain-buster-10 main" >/etc/apt/sources.list.d/llvm10.list
     apt-get update
 
-    ARCH_PACKAGES="libelf1
+    ARCH_PACKAGES="firmware-amd-graphics
+                   libelf1
                    libllvm10
                    libxcb-dri2-0
                    libxcb-dri3-0
@@ -19,29 +20,28 @@ elif [ $DEBIAN_ARCH = amd64 ]; then
                    libxcb-sync1
                    libxcb-xfixes0
                    libxshmfence1
-                   firmware-amd-graphics
                   "
 fi
 
 apt-get -y install --no-install-recommends \
+    $ARCH_PACKAGES \
     ca-certificates \
     curl \
     initramfs-tools \
-    libpng16-16 \
-    strace \
-    libsensors5 \
     libexpat1 \
+    libpng16-16 \
+    libpython3.7 \
+    libsensors5 \
     libx11-6 \
     libx11-xcb1 \
-    $ARCH_PACKAGES \
     netcat-openbsd \
     python3 \
-    libpython3.7 \
     python3-pil \
     python3-pytest \
     python3-requests \
     python3-yaml \
     sntp \
+    strace \
     wget \
     xz-utils
 

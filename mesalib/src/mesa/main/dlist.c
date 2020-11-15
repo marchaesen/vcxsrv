@@ -884,6 +884,7 @@ alloc_bitmap_atlas(struct gl_context *ctx, GLuint listBase, bool isGenName)
    atlas = calloc(1, sizeof(*atlas));
    if (atlas) {
       _mesa_HashInsert(ctx->Shared->BitmapAtlas, listBase, atlas, isGenName);
+      atlas->Id = listBase;
    }
 
    return atlas;
@@ -1406,10 +1407,11 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
  * deleted belongs to a bitmap texture atlas.
  */
 static void
-check_atlas_for_deleted_list(GLuint atlas_id, void *data, void *userData)
+check_atlas_for_deleted_list(void *data, void *userData)
 {
    struct gl_bitmap_atlas *atlas = (struct gl_bitmap_atlas *) data;
    GLuint list_id = *((GLuint *) userData);  /* the list being deleted */
+   const GLuint atlas_id = atlas->Id;
 
    /* See if the list_id falls in the range contained in this texture atlas */
    if (atlas->complete &&

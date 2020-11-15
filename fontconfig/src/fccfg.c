@@ -67,14 +67,15 @@ retry:
 static void
 unlock_config (void)
 {
-    FcMutexUnlock (_lock);
+    FcMutex *lock;
+    lock = fc_atomic_ptr_get (&_lock);
+    FcMutexUnlock (lock);
 }
 
 static void
 free_lock (void)
 {
     FcMutex *lock;
-
     lock = fc_atomic_ptr_get (&_lock);
     if (lock && fc_atomic_ptr_cmpexch (&_lock, lock, NULL))
     {

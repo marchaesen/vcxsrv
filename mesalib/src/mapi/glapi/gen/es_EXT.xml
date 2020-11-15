@@ -819,6 +819,11 @@
 
 <xi:include href="EXT_multisampled_render_to_texture.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<!-- 110. GL_ANGLE_pack_reverse_row_order -->
+<category name="GL_ANGLE_pack_reverse_row_order" number="110">
+    <enum name="PACK_REVERSE_ROW_ORDER_ANGLE"           value="0x93A4"/>
+</category>
+
 <!-- 111. GL_ANGLE_texture_compression_dxt -->
 <category name="GL_ANGLE_texture_compression_dxt" number="111">
     <enum name="COMPRESSED_RGBA_S3TC_DXT3_ANGLE"        value="0x83F2"/>

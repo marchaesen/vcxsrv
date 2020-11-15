@@ -85,7 +85,11 @@ nir_lower_array_deref_of_vec_impl(nir_function_impl *impl,
             continue;
 
          nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-         if (!(deref->mode & modes))
+
+         /* We choose to be conservative here.  If the deref contains any
+          * modes which weren't specified, we bail and don't bother lowering.
+          */
+         if (!nir_deref_mode_must_be(deref, modes))
             continue;
 
          /* We only care about array derefs that act on vectors */

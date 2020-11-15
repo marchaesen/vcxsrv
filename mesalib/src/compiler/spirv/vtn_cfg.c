@@ -984,10 +984,8 @@ vtn_switch_case_condition(struct vtn_builder *b, struct vtn_switch *swtch,
       return nir_inot(&b->nb, any);
    } else {
       nir_ssa_def *cond = nir_imm_false(&b->nb);
-      util_dynarray_foreach(&cse->values, uint64_t, val) {
-         nir_ssa_def *imm = nir_imm_intN_t(&b->nb, *val, sel->bit_size);
-         cond = nir_ior(&b->nb, cond, nir_ieq(&b->nb, sel, imm));
-      }
+      util_dynarray_foreach(&cse->values, uint64_t, val)
+         cond = nir_ior(&b->nb, cond, nir_ieq_imm(&b->nb, sel, *val));
       return cond;
    }
 }
@@ -1303,10 +1301,8 @@ vtn_emit_cf_func_unstructured(struct vtn_builder *b, struct vtn_function *func,
             }
 
             nir_ssa_def *cond = nir_imm_false(&b->nb);
-            util_dynarray_foreach(&cse->values, uint64_t, val) {
-               nir_ssa_def *imm = nir_imm_intN_t(&b->nb, *val, sel->bit_size);
-               cond = nir_ior(&b->nb, cond, nir_ieq(&b->nb, sel, imm));
-            }
+            util_dynarray_foreach(&cse->values, uint64_t, val)
+               cond = nir_ior(&b->nb, cond, nir_ieq_imm(&b->nb, sel, *val));
 
             /* block for the next check */
             nir_block *e = vtn_new_unstructured_block(b, func);

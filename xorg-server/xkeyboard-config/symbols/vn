@@ -1,12 +1,10 @@
-// based on:
-// vn,  TCVN 5712:1993
-// Le Hong Boi <le.hong.boi@bigfoot.com>
+// Vietnamese keyboard layout, somehow based on TCVN 5712:1993.
+// Originally by Le Hong Boi <le.hong.boi@bigfoot.com>
 // August 1999
 // Further modified by Ashley Clark <aclark@debian.org>
 // July 2000 for X 4.0
-// Fix accents into combining marks by Samuel Thibault <samuel.thibault@ens-lyon.org>
+// Changed accents into combining marks by Samuel Thibault <samuel.thibault@ens-lyon.org>
 // July 2009
-
 
 default partial alphanumeric_keys
 xkb_symbols "basic" {

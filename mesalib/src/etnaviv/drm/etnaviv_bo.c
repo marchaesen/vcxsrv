@@ -257,10 +257,14 @@ void etna_bo_del(struct etna_bo *bo)
 
 	struct etna_device *dev = bo->dev;
 
-	if (!p_atomic_dec_zero(&bo->refcnt))
-		return;
-
 	pthread_mutex_lock(&etna_drm_table_lock);
+
+	/* Must test under table lock to avoid racing with the from_dmabuf/name
+	 * paths, which rely on the BO refcount to be stable over the lookup, so
+	 * they can grab a reference when the BO is found in the hash.
+	 */
+	if (!p_atomic_dec_zero(&bo->refcnt))
+	   goto out;
 
 	if (bo->reuse && (etna_bo_cache_free(&dev->bo_cache, bo) == 0))
 		goto out;

@@ -58,6 +58,8 @@ struct v3dv_bo {
    int32_t dumb_handle;
 };
 
+void v3dv_bo_init(struct v3dv_bo *bo, uint32_t handle, uint32_t size, uint32_t offset, const char *name, bool private);
+
 struct v3dv_bo *v3dv_bo_alloc(struct v3dv_device *device, uint32_t size, const char *name, bool private);
 
 bool v3dv_bo_free(struct v3dv_device *device, struct v3dv_bo *bo);

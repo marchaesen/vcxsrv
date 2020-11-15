@@ -36,7 +36,7 @@ static struct panfrost_bo *
 bit_bo_create(struct panfrost_device *dev, size_t size)
 {
         struct panfrost_bo *bo = panfrost_bo_create(dev, size, PAN_BO_EXECUTE);
-        pandecode_inject_mmap(bo->gpu, bo->cpu, bo->size, NULL);
+        pandecode_inject_mmap(bo->ptr.gpu, bo->ptr.cpu, bo->size, NULL);
         return bo;
 }
 
@@ -64,11 +64,11 @@ bit_submit(struct panfrost_device *dev,
                 struct panfrost_bo **bos, size_t bo_count, enum bit_debug debug)
 {
         struct panfrost_bo *job = bit_bo_create(dev, 4096);
-        pan_pack(job->cpu, JOB_HEADER, cfg) {
+        pan_pack(job->ptr.cpu, JOB_HEADER, cfg) {
                 cfg.type = T;
                 cfg.index = 1;
         }
-        memcpy(job->cpu + MALI_JOB_HEADER_LENGTH, payload, payload_size);
+        memcpy(job->ptr.cpu + MALI_JOB_HEADER_LENGTH, payload, payload_size);
 
         uint32_t *bo_handles = calloc(sizeof(uint32_t), bo_count);
 
@@ -82,7 +82,7 @@ bit_submit(struct panfrost_device *dev,
         assert(!ret);
 
         struct drm_panfrost_submit submit = {
-                .jc = job->gpu,
+                .jc = job->ptr.gpu,
                 .bo_handles = (uintptr_t) bo_handles,
                 .bo_handle_count = bo_count,
                 .out_sync = syncobj,
@@ -106,12 +106,12 @@ bool
 bit_sanity_check(struct panfrost_device *dev)
 {
         struct panfrost_bo *scratch = bit_bo_create(dev, 65536);
-        ((uint32_t *) scratch->cpu)[0] = 0xAA;
+        ((uint32_t *) scratch->ptr.cpu)[0] = 0xAA;
 
         struct mali_write_value_job_payload_packed payload;
 
         pan_pack(&payload, WRITE_VALUE_JOB_PAYLOAD, cfg) {
-                cfg.address = scratch->gpu;
+                cfg.address = scratch->ptr.gpu;
                 cfg.type = MALI_WRITE_VALUE_TYPE_ZERO;
         };
 
@@ -119,71 +119,71 @@ bit_sanity_check(struct panfrost_device *dev)
         bool success = bit_submit(dev, MALI_JOB_TYPE_WRITE_VALUE,
                         &payload, sizeof(payload), bos, 1, false);
 
-        return success && (((uint8_t *) scratch->cpu)[0] == 0x0);
+        return success && (((uint8_t *) scratch->ptr.cpu)[0] == 0x0);
 }
 
 /* Constructs a vertex job */
 
 bool
-bit_vertex(struct panfrost_device *dev, panfrost_program prog,
+bit_vertex(struct panfrost_device *dev, panfrost_program *prog,
                 uint32_t *iubo, size_t sz_ubo,
                 uint32_t *iattr, size_t sz_attr,
                 uint32_t *expected, size_t sz_expected, enum bit_debug debug)
 {
-        struct panfrost_bo *shader = bit_bo_create(dev, prog.compiled.size);
+        struct panfrost_bo *shader = bit_bo_create(dev, prog->compiled.size);
         struct panfrost_bo *shader_desc = bit_bo_create(dev, 4096);
         struct panfrost_bo *ubo = bit_bo_create(dev, 4096);
         struct panfrost_bo *var = bit_bo_create(dev, 4096);
         struct panfrost_bo *attr = bit_bo_create(dev, 4096);
 
-        pan_pack(attr->cpu, ATTRIBUTE, cfg) {
+        pan_pack(attr->ptr.cpu, ATTRIBUTE, cfg) {
                 cfg.format = (MALI_RGBA32UI << 12);
-                cfg.unknown = true;
+                cfg.offset_enable = true;
         }
 
-        pan_pack(var->cpu, ATTRIBUTE, cfg) {
+        pan_pack(var->ptr.cpu, ATTRIBUTE, cfg) {
                 cfg.format = (MALI_RGBA32UI << 12);
-                cfg.unknown = false;
+                cfg.offset_enable = false;
         }
 
-        pan_pack(var->cpu + 256, ATTRIBUTE_BUFFER, cfg) {
-                cfg.pointer = (var->gpu + 1024);
+        pan_pack(var->ptr.cpu + 256, ATTRIBUTE_BUFFER, cfg) {
+                cfg.pointer = (var->ptr.gpu + 1024);
                 cfg.size = 1024;
         }
 
-        pan_pack(attr->cpu + 256, ATTRIBUTE_BUFFER, cfg) {
-                cfg.pointer = (attr->gpu + 1024);
+        pan_pack(attr->ptr.cpu + 256, ATTRIBUTE_BUFFER, cfg) {
+                cfg.pointer = (attr->ptr.gpu + 1024);
                 cfg.size = 1024;
         }
 
-        pan_pack(ubo->cpu, UNIFORM_BUFFER, cfg) {
+        pan_pack(ubo->ptr.cpu, UNIFORM_BUFFER, cfg) {
                 cfg.entries = sz_ubo / 16;
-                cfg.pointer = ubo->gpu + 1024;
+                cfg.pointer = ubo->ptr.gpu + 1024;
         }
 
         if (sz_ubo)
-                memcpy(ubo->cpu + 1024, iubo, sz_ubo);
+                memcpy(ubo->ptr.cpu + 1024, iubo, sz_ubo);
 
         if (sz_attr)
-                memcpy(attr->cpu + 1024, iattr, sz_attr);
+                memcpy(attr->ptr.cpu + 1024, iattr, sz_attr);
 
         struct panfrost_bo *shmem = bit_bo_create(dev, 4096);
 
-        pan_pack(shmem->cpu, LOCAL_STORAGE, cfg) {
+        pan_pack(shmem->ptr.cpu, LOCAL_STORAGE, cfg) {
                 cfg.wls_instances = MALI_LOCAL_STORAGE_NO_WORKGROUP_MEM;
         }
 
-        pan_pack(shader_desc->cpu, RENDERER_STATE, cfg) {
-                cfg.shader.shader = shader->gpu;
+        pan_pack(shader_desc->ptr.cpu, RENDERER_STATE, cfg) {
+                cfg.shader.shader = shader->ptr.gpu;
                 cfg.shader.attribute_count = cfg.shader.varying_count = 1;
                 cfg.properties.uniform_buffer_count = 1;
-                cfg.properties.uniform_count = 4;
-                cfg.preload.vertex_id = true;
-                cfg.preload.instance_id = true;
+                cfg.properties.bifrost.zs_update_operation = MALI_PIXEL_KILL_STRONG_EARLY;
+                cfg.preload.vertex.vertex_id = true;
+                cfg.preload.vertex.instance_id = true;
                 cfg.preload.uniform_count = (sz_ubo / 16);
         }
 
-        memcpy(shader->cpu, prog.compiled.data, prog.compiled.size);
+        memcpy(shader->ptr.cpu, prog->compiled.data, prog->compiled.size);
 
         struct mali_compute_job_packed job;
 
@@ -193,14 +193,14 @@ bit_vertex(struct panfrost_device *dev, panfrost_program prog,
 
         pan_section_pack(&job, COMPUTE_JOB, DRAW, cfg) {
                 cfg.draw_descriptor_is_64b = true;
-                cfg.thread_storage = shmem->gpu;
-                cfg.state = shader_desc->gpu;
-                cfg.push_uniforms = ubo->gpu + 1024;
-                cfg.uniform_buffers = ubo->gpu;
-                cfg.attributes = attr->gpu;
-                cfg.attribute_buffers = attr->gpu + 256;
-                cfg.varyings = var->gpu;
-                cfg.varying_buffers = var->gpu + 256;
+                cfg.thread_storage = shmem->ptr.gpu;
+                cfg.state = shader_desc->ptr.gpu;
+                cfg.push_uniforms = ubo->ptr.gpu + 1024;
+                cfg.uniform_buffers = ubo->ptr.gpu;
+                cfg.attributes = attr->ptr.gpu;
+                cfg.attribute_buffers = attr->ptr.gpu + 256;
+                cfg.varyings = var->ptr.gpu;
+                cfg.varying_buffers = var->ptr.gpu + 256;
         }
  
         void *invocation = pan_section_ptr(&job, COMPUTE_JOB, INVOCATION);
@@ -220,7 +220,7 @@ bit_vertex(struct panfrost_device *dev, panfrost_program prog,
 
         /* Check the output varyings */
 
-        uint32_t *output = (uint32_t *) (var->cpu + 1024);
+        uint32_t *output = (uint32_t *) (var->ptr.cpu + 1024);
         float *foutput = (float *) output;
         float *fexpected = (float *) expected;
 

@@ -49,7 +49,6 @@ xkb_symbols "hausa" {
     key <AB07> { [     ntilde,     Ntilde,         m,           M ] };
     key <AB09> { [   ccedilla,   Ccedilla,    period,     greater ] };
     key <AB10> { [   scedilla,   Scedilla,     slash,    question ] };
-
 };
 
 partial alphanumeric_keys

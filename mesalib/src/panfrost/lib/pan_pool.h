@@ -27,6 +27,7 @@
 
 #include <stddef.h>
 #include <midgard_pack.h>
+#include "pan_bo.h"
 
 #include "util/u_dynarray.h"
 
@@ -72,24 +73,19 @@ panfrost_pool_get_bo_handles(struct pan_pool *pool, uint32_t *handles);
 /* Represents a fat pointer for GPU-mapped memory, returned from the transient
  * allocator and not used for much else */
 
-struct panfrost_transfer {
-        uint8_t *cpu;
-        mali_ptr gpu;
-};
-
-struct panfrost_transfer
+struct panfrost_ptr
 panfrost_pool_alloc_aligned(struct pan_pool *pool, size_t sz, unsigned alignment);
 
 /* Default to self-alignment */
 
-static inline struct panfrost_transfer
+static inline struct panfrost_ptr
 panfrost_pool_alloc(struct pan_pool *pool, size_t sz)
 {
         assert(sz == util_next_power_of_two(sz));
         return panfrost_pool_alloc_aligned(pool, sz, sz);
 }
 
-struct panfrost_transfer
+struct panfrost_ptr
 panfrost_pool_alloc(struct pan_pool *pool, size_t sz);
 
 mali_ptr

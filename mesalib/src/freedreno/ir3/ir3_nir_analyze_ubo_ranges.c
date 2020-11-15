@@ -457,3 +457,76 @@ ir3_nir_lower_ubo_loads(nir_shader *nir, struct ir3_shader_variant *v)
 
 	return progress;
 }
+
+
+static bool
+fixup_load_uniform_filter(const nir_instr *instr, const void *arg)
+{
+	if (instr->type != nir_instr_type_intrinsic)
+		return false;
+	return nir_instr_as_intrinsic(instr)->intrinsic == nir_intrinsic_load_uniform;
+}
+
+static nir_ssa_def *
+fixup_load_uniform_instr(struct nir_builder *b, nir_instr *instr, void *arg)
+{
+	nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+
+	/* We don't need to worry about non-indirect case: */
+	if (nir_src_is_const(intr->src[0]))
+		return NULL;
+
+	const unsigned base_offset_limit = (1 << 10);  /* 10 bits */
+	unsigned base_offset = nir_intrinsic_base(intr);
+
+	/* Or cases were base offset is lower than the hw limit: */
+	if (base_offset < base_offset_limit)
+		return NULL;
+
+	b->cursor = nir_before_instr(instr);
+
+	nir_ssa_def *offset = nir_ssa_for_src(b, intr->src[0], 1);
+
+	/* We'd like to avoid a sequence like:
+	 *
+	 *   vec4 32 ssa_18 = intrinsic load_uniform (ssa_4) (1024, 0, 0)
+	 *   vec4 32 ssa_19 = intrinsic load_uniform (ssa_4) (1072, 0, 0)
+	 *   vec4 32 ssa_20 = intrinsic load_uniform (ssa_4) (1120, 0, 0)
+	 *
+	 * From turning into a unique offset value (which requires reloading
+	 * a0.x for each instruction).  So instead of just adding the constant
+	 * base_offset to the non-const offset, be a bit more clever and only
+	 * extract the part that cannot be encoded.  Afterwards CSE should
+	 * turn the result into:
+	 *
+	 *   vec1 32 ssa_5 = load_const (1024)
+	 *   vec4 32 ssa_6  = iadd ssa4_, ssa_5
+	 *   vec4 32 ssa_18 = intrinsic load_uniform (ssa_5) (0, 0, 0)
+	 *   vec4 32 ssa_19 = intrinsic load_uniform (ssa_5) (48, 0, 0)
+	 *   vec4 32 ssa_20 = intrinsic load_uniform (ssa_5) (96, 0, 0)
+	 */
+	unsigned new_base_offset = base_offset % base_offset_limit;
+
+	nir_intrinsic_set_base(intr, new_base_offset);
+	offset = nir_iadd_imm(b, offset, base_offset - new_base_offset);
+
+	nir_instr_rewrite_src(instr, &intr->src[0], nir_src_for_ssa(offset));
+
+	return NIR_LOWER_INSTR_PROGRESS;
+}
+
+/**
+ * For relative CONST file access, we can only encode 10b worth of fixed offset,
+ * so in cases where the base offset is larger, we need to peel it out into
+ * ALU instructions.
+ *
+ * This should run late, after constant folding has had a chance to do it's
+ * thing, so we can actually know if it is an indirect uniform offset or not.
+ */
+bool
+ir3_nir_fixup_load_uniform(nir_shader *nir)
+{
+	return nir_shader_lower_instructions(nir,
+			fixup_load_uniform_filter, fixup_load_uniform_instr,
+			NULL);
+}

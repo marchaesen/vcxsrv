@@ -6,4 +6,8 @@ fccache = executable('fc-cache', ['fc-cache.c', fcstdint_h, alias_headers, ft_al
 )
 
 tools_man_pages += ['fc-cache']
-meson.add_install_script('../install-cache.py', fccache.full_path())
+
+# Do not try to execute target's fc-cache on host when cross compiling
+if not meson.is_cross_build()
+  meson.add_install_script('../install-cache.py', fccache.full_path())
+endif

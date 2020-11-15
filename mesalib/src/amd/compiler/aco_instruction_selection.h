@@ -59,9 +59,9 @@ struct isel_context {
    nir_shader *shader;
    uint32_t constant_data_offset;
    Block *block;
-   std::unique_ptr<Temp[]> allocated;
+   uint32_t first_temp_id;
    std::unordered_map<unsigned, std::array<Temp,NIR_MAX_VEC_COMPONENTS>> allocated_vec;
-   Stage stage; /* Stage */
+   Stage stage;
    bool has_gfx10_wave64_bpermute = false;
    struct {
       bool has_branch;
@@ -84,6 +84,10 @@ struct isel_context {
       std::unique_ptr<unsigned[]> nir_to_aco; /* NIR block index to ACO block index */
    } cf_info;
 
+   /* NIR range analysis. */
+   struct hash_table *range_ht;
+   nir_unsigned_upper_bound_config ub_config;
+
    uint32_t resource_flag_offsets[MAX_SETS];
    std::vector<uint8_t> buffer_resource_flags;
 
@@ -95,6 +99,7 @@ struct isel_context {
    /* GS inputs */
    bool ngg_nogs_early_prim_export = false;
    bool ngg_gs_early_alloc = false;
+   bool ngg_gs_known_vtxcnt[4] = {false, false, false, false};
    Temp gs_wave_id;
    unsigned ngg_gs_emit_addr = 0;
    unsigned ngg_gs_emit_vtx_bytes = 0;
@@ -210,6 +215,7 @@ inline bool can_subdword_ssbo_store_use_smem(nir_intrinsic_instr *intrin)
 }
 
 void init_context(isel_context *ctx, nir_shader *shader);
+void cleanup_context(isel_context *ctx);
 
 isel_context
 setup_isel_context(Program* program,

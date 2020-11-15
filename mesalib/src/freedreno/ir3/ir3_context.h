@@ -35,7 +35,7 @@
 #define COND(bool, val) ((bool) ? (val) : 0)
 
 #define DBG(fmt, ...) \
-		do { debug_printf("%s:%d: "fmt "\n", \
+		do { mesa_logd("%s:%d: "fmt, \
 				__FUNCTION__, __LINE__, ##__VA_ARGS__); } while (0)
 
 /**

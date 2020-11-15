@@ -781,7 +781,10 @@ replacement_list:
 junk:
 	/* empty */
 |	pp_tokens {
-		glcpp_error(&@1, parser, "extra tokens at end of directive");
+		if (parser->gl_ctx->Const.AllowExtraPPTokens)
+			glcpp_warning(&@1, parser, "extra tokens at end of directive");
+		else
+			glcpp_error(&@1, parser, "extra tokens at end of directive");
 	}
 ;
 

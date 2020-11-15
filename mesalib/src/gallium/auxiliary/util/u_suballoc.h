@@ -33,6 +33,10 @@
 
 struct u_suballocator;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct u_suballocator *
 u_suballocator_create(struct pipe_context *pipe, unsigned size, unsigned bind,
                       enum pipe_resource_usage usage, unsigned flags,
@@ -45,5 +49,9 @@ void
 u_suballocator_alloc(struct u_suballocator *allocator, unsigned size,
                      unsigned alignment, unsigned *out_offset,
                      struct pipe_resource **outbuf);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

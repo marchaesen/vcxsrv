@@ -85,6 +85,7 @@ ACO_FILES = \
 	compiler/aco_ir.cpp \
 	compiler/aco_ir.h \
 	compiler/aco_assembler.cpp \
+	compiler/aco_form_hard_clauses.cpp \
 	compiler/aco_insert_exec_mask.cpp \
 	compiler/aco_insert_NOPs.cpp \
 	compiler/aco_insert_waitcnt.cpp \

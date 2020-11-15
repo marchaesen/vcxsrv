@@ -39,7 +39,7 @@
 extern "C" {
 #endif
 
-#define STRING_CONF_MAXLEN 25
+#define STRING_CONF_MAXLEN 1024
 
 /** \brief Option data types */
 typedef enum driOptionType {

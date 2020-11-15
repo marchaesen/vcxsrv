@@ -200,7 +200,7 @@ and then install with ``sudo ninja install``.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If Mesa can't use its hardware accelerated drivers it falls back on one
-of its software renderers. (eg. classic swrast, softpipe or llvmpipe)
+of its software renderers. (e.g. classic swrast, softpipe or llvmpipe)
 
 You can run the ``glxinfo`` program to learn about your OpenGL library.
 Look for the ``OpenGL vendor`` and ``OpenGL renderer`` values. That will
@@ -296,10 +296,10 @@ searching the archives) is a good way to get information.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Oh but it is! Prior to 2nd October 2017, the Mesa project did not
-include s3tc support due to intellectual property (IP) and/or patent
-issues around the s3tc algorithm.
+include S3TC support due to intellectual property (IP) and/or patent
+issues around the S3TC algorithm.
 
-As of Mesa 17.3.0, Mesa now officially supports s3tc, as the patent has
+As of Mesa 17.3.0, Mesa now officially supports S3TC, as the patent has
 expired.
 
 In versions prior to this, a 3rd party `plug-in

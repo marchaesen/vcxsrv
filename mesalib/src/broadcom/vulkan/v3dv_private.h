@@ -138,10 +138,13 @@ struct v3dv_physical_device {
    char *name;
    int32_t render_fd;
    int32_t display_fd;
+   int32_t master_fd;
 
    uint8_t pipeline_cache_uuid[VK_UUID_SIZE];
    uint8_t device_uuid[VK_UUID_SIZE];
    uint8_t driver_uuid[VK_UUID_SIZE];
+
+   mtx_t mutex;
 
    struct wsi_device wsi_device;
 
@@ -158,6 +161,9 @@ struct v3dv_physical_device {
       bool merge_jobs;
    } options;
 };
+
+VkResult v3dv_physical_device_acquire_display(struct v3dv_instance *instance,
+                                              struct v3dv_physical_device *pdevice);
 
 VkResult v3dv_wsi_init(struct v3dv_physical_device *physical_device);
 void v3dv_wsi_finish(struct v3dv_physical_device *physical_device);
@@ -257,6 +263,7 @@ struct v3dv_meta_depth_clear_pipeline {
 struct v3dv_meta_blit_pipeline {
    VkPipeline pipeline;
    VkRenderPass pass;
+   VkRenderPass pass_no_load;
    uint8_t key[V3DV_META_BLIT_CACHE_KEY_SIZE];
 };
 
@@ -285,12 +292,11 @@ struct v3dv_device {
    VkAllocationCallbacks alloc;
 
    struct v3dv_instance *instance;
+   struct v3dv_physical_device *pdevice;
 
    struct v3dv_device_extension_table enabled_extensions;
    struct v3dv_device_dispatch_table dispatch;
 
-   int32_t render_fd;
-   int32_t display_fd;
    struct v3d_device_info devinfo;
    struct v3dv_queue queue;
 
@@ -424,7 +430,7 @@ struct v3dv_image {
    uint32_t array_size;
    uint32_t samples;
    VkImageUsageFlags usage;
-   VkImageCreateFlags create_flags;
+   VkImageCreateFlags flags;
    VkImageTiling tiling;
 
    VkFormat vk_format;
@@ -555,14 +561,21 @@ struct v3dv_render_pass {
    struct v3dv_subpass_attachment *subpass_attachments;
 };
 
-void v3dv_subpass_get_granularity(struct v3dv_render_pass *pass,
-                                  uint32_t subpass_idx,
-                                  VkExtent2D *granularity);
-
 struct v3dv_framebuffer {
    uint32_t width;
    uint32_t height;
    uint32_t layers;
+
+   /* Typically, edge tiles in the framebuffer have padding depending on the
+    * underlying tiling layout. One consequnce of this is that when the
+    * framebuffer dimensions are not aligned to tile boundaries, tile stores
+    * would still write full tiles on the edges and write to the padded area.
+    * If the framebuffer is aliasing a smaller region of a larger image, then
+    * we need to be careful with this though, as we won't have padding on the
+    * edge tiles (which typically means that we need to load the tile buffer
+    * before we store).
+    */
+   bool has_edge_padding;
 
    uint32_t attachment_count;
    uint32_t color_attachment_count;
@@ -590,6 +603,10 @@ void v3dv_framebuffer_compute_internal_bpp_msaa(const struct v3dv_framebuffer *f
                                                 const struct v3dv_subpass *subpass,
                                                 uint8_t *max_bpp, bool *msaa);
 
+bool v3dv_subpass_area_is_tile_aligned(const VkRect2D *area,
+                                       struct v3dv_framebuffer *fb,
+                                       struct v3dv_render_pass *pass,
+                                       uint32_t subpass_idx);
 struct v3dv_cmd_pool {
    VkAllocationCallbacks alloc;
    struct list_head cmd_buffers;
@@ -732,6 +749,7 @@ enum v3dv_job_type {
    V3DV_JOB_TYPE_CPU_CLEAR_ATTACHMENTS,
    V3DV_JOB_TYPE_CPU_COPY_BUFFER_TO_IMAGE,
    V3DV_JOB_TYPE_CPU_CSD_INDIRECT,
+   V3DV_JOB_TYPE_CPU_TIMESTAMP_QUERY,
 };
 
 struct v3dv_reset_query_cpu_job_info {
@@ -796,6 +814,11 @@ struct v3dv_csd_indirect_cpu_job_info {
    uint32_t wg_size;
    uint32_t *wg_uniform_offsets[3];
    bool needs_wg_uniform_rewrite;
+};
+
+struct v3dv_timestamp_query_cpu_job_info {
+   struct v3dv_query_pool *pool;
+   uint32_t query;
 };
 
 struct v3dv_job {
@@ -869,6 +892,7 @@ struct v3dv_job {
       struct v3dv_clear_attachments_cpu_job_info    clear_attachments;
       struct v3dv_copy_buffer_to_image_cpu_job_info copy_buffer_to_image;
       struct v3dv_csd_indirect_cpu_job_info         csd_indirect;
+      struct v3dv_timestamp_query_cpu_job_info      query_timestamp;
    } cpu;
 
    /* Job specs for TFU jobs */
@@ -963,6 +987,11 @@ struct v3dv_cmd_buffer_state {
     */
    bool has_barrier;
    bool has_bcl_barrier;
+
+   /* Secondary command buffer state */
+   struct {
+      bool occlusion_query_enable;
+   } inheritance;
 
    /* Command buffer state saved during a meta operation */
    struct {
@@ -1072,10 +1101,14 @@ struct v3dv_resource {
 
 struct v3dv_query {
    bool maybe_available;
-   struct v3dv_bo *bo;
+   union {
+      struct v3dv_bo *bo; /* Used by GPU queries (occlusion) */
+      uint64_t value; /* Used by CPU queries (timestamp) */
+   };
 };
 
 struct v3dv_query_pool {
+   VkQueryType query_type;
    uint32_t query_count;
    struct v3dv_query *queries;
 };
@@ -1130,6 +1163,7 @@ struct v3dv_cmd_buffer {
    /* Per-command buffer resources for meta operations. */
    struct {
       struct {
+         /* The current descriptor pool for blit sources */
          VkDescriptorPool dspool;
       } blit;
    } meta;
@@ -1465,10 +1499,10 @@ struct v3dv_descriptor_map {
    int array_index[64];
    int array_size[64];
 
-   /* The following makes sense for textures, but this is the easier place to
-    * put it
+   /* NOTE: the following is only for sampler, but this is the easier place to
+    * put it.
     */
-   bool is_shadow[64];
+   uint8_t return_size[64];
 };
 
 struct v3dv_sampler {
@@ -1483,7 +1517,19 @@ struct v3dv_sampler {
    uint8_t sampler_state[cl_packet_length(SAMPLER_STATE)];
 };
 
-#define V3DV_NO_SAMPLER_IDX 666
+/* We keep two special values for the sampler idx that represents exactly when a
+ * sampler is not needed/provided. The main use is that even if we don't have
+ * sampler, we still need to do the output unpacking (through
+ * nir_lower_tex). The easier way to do this is to add those special "no
+ * sampler" in the sampler_map, and then use the proper unpacking for that
+ * case.
+ *
+ * We have one when we want a 16bit output size, and other when we want a
+ * 32bit output size. We use the info coming from the RelaxedPrecision
+ * decoration to decide between one and the other.
+ */
+#define V3DV_NO_SAMPLER_16BIT_IDX 0
+#define V3DV_NO_SAMPLER_32BIT_IDX 1
 
 /*
  * Following two methods are using on the combined to/from texture/sampler
@@ -1571,21 +1617,6 @@ struct v3dv_pipeline {
 
    struct v3dv_descriptor_map sampler_map;
    struct v3dv_descriptor_map texture_map;
-
-   /*
-    * Vulkan has separate texture and sampler objects. Previous sampler and
-    * texture map uses a sampler and texture index respectively, that can be
-    * different. But OpenGL combine both (or in other words, they are the
-    * same). The v3d compiler and all the nir lowerings that they use were
-    * written under that assumption. In order to not update all those, we
-    * combine the indexes, and we use the following maps to get one or the
-    * other. In general the driver side uses the tex/sampler indexes to gather
-    * resources, and the compiler side uses the combined index (so the v3d key
-    * texture info will be indexed using the combined index).
-    */
-   struct hash_table *combined_index_map;
-   uint32_t combined_index_to_key_map[32];
-   uint32_t next_combined_index;
 
    /* FIXME: this bo is another candidate to data to be uploaded using a
     * resource manager, instead of a individual bo
@@ -1733,8 +1764,6 @@ v3dv_device_entrypoint_is_enabled(int index, uint32_t core_version,
 void *v3dv_lookup_entrypoint(const struct v3d_device_info *devinfo,
                              const char *name);
 
-#define v3dv_printflike(a, b) __attribute__((__format__(__printf__, a, b)))
-
 VkResult __vk_errorf(struct v3dv_instance *instance, VkResult error,
                      const char *file, int line,
                      const char *format, ...);
@@ -1742,11 +1771,12 @@ VkResult __vk_errorf(struct v3dv_instance *instance, VkResult error,
 #define vk_error(instance, error) __vk_errorf(instance, error, __FILE__, __LINE__, NULL);
 #define vk_errorf(instance, error, format, ...) __vk_errorf(instance, error, __FILE__, __LINE__, format, ## __VA_ARGS__);
 
-void v3dv_loge(const char *format, ...) v3dv_printflike(1, 2);
-void v3dv_loge_v(const char *format, va_list va);
-
+#ifdef DEBUG
 #define v3dv_debug_ignored_stype(sType) \
-   v3dv_loge("%s: ignored VkStructureType %u:%s\n", __func__, (sType), vk_StructureType_to_str(sType))
+   fprintf(stderr, "%s: ignored VkStructureType %u:%s\n\n", __func__, (sType), vk_StructureType_to_str(sType))
+#else
+#define v3dv_debug_ignored_stype(sType)
+#endif
 
 const struct v3dv_format *v3dv_get_format(VkFormat);
 const uint8_t *v3dv_get_format_swizzle(VkFormat f);
@@ -1776,10 +1806,6 @@ struct v3dv_cl_reloc v3dv_write_uniforms(struct v3dv_cmd_buffer *cmd_buffer,
 struct v3dv_cl_reloc v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
                                                     struct v3dv_pipeline_stage *p_stage,
                                                     uint32_t **wg_count_offsets);
-
-void v3d_key_update_return_size(struct v3dv_pipeline *pipeline,
-                                struct v3d_key *key,
-                                uint32_t return_size);
 
 struct v3dv_shader_variant *
 v3dv_get_shader_variant(struct v3dv_pipeline_stage *p_stage,

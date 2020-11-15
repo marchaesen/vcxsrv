@@ -1,0 +1,2 @@
+dEQP-GLES31.functional.shaders.opaque_type_indexing.sampler.const_literal.geometry.isampler2darray
+dEQP-GLES31.functional.shaders.opaque_type_indexing.sampler.const_literal.geometry.isampler3d

@@ -534,8 +534,7 @@ st_translate_vertex_program(struct st_context *st,
          /* For st_draw_feedback, we need to generate TGSI too if draw doesn't
           * use LLVM.
           */
-         /* TODO: Draw can't handle lowered IO. */
-         if (draw_has_llvm() && !stp->Base.info.io_lowered) {
+         if (draw_has_llvm()) {
             st_prepare_vertex_program(stp);
             return true;
          }
@@ -715,9 +714,7 @@ st_create_vp_variant(struct st_context *st,
    state.stream_output = stvp->state.stream_output;
 
    if (stvp->state.type == PIPE_SHADER_IR_NIR &&
-       (!key->is_draw_shader ||
-        /* TODO: Draw can't handle lowered IO. */
-        (draw_has_llvm() && !stvp->Base.info.io_lowered))) {
+       (!key->is_draw_shader || draw_has_llvm())) {
       bool finalize = false;
 
       state.type = PIPE_SHADER_IR_NIR;
@@ -1250,7 +1247,7 @@ st_create_fp_variant(struct st_context *st,
          finalize = true;
       }
 
-      if (key->lower_alpha_func != COMPARE_FUNC_NEVER) {
+      if (key->lower_alpha_func != COMPARE_FUNC_ALWAYS) {
          _mesa_add_state_reference(params, alpha_ref_state);
          NIR_PASS_V(state.ir.nir, nir_lower_alpha_test, key->lower_alpha_func,
                     false, alpha_ref_state);
@@ -1853,7 +1850,7 @@ destroy_program_variants(struct st_context *st, struct gl_program *target)
  * which match the given context.
  */
 static void
-destroy_shader_program_variants_cb(GLuint key, void *data, void *userData)
+destroy_shader_program_variants_cb(void *data, void *userData)
 {
    struct st_context *st = (struct st_context *) userData;
    struct gl_shader *shader = (struct gl_shader *) data;
@@ -1888,7 +1885,7 @@ destroy_shader_program_variants_cb(GLuint key, void *data, void *userData)
  * the given context.
  */
 static void
-destroy_program_variants_cb(GLuint key, void *data, void *userData)
+destroy_program_variants_cb(void *data, void *userData)
 {
    struct st_context *st = (struct st_context *) userData;
    struct gl_program *program = (struct gl_program *) data;
@@ -1946,6 +1943,7 @@ st_precompile_shader_variant(struct st_context *st,
       memset(&key, 0, sizeof(key));
 
       key.st = st->has_shareable_shaders ? NULL : st;
+      key.lower_alpha_func = COMPARE_FUNC_ALWAYS;
       st_get_fp_variant(st, p, &key);
       break;
    }

@@ -262,6 +262,8 @@ descriptor=[
 # Enums in GLES2, GLES3
 { "apis": ["GLES2", "GLES3"], "params": [
   [ "GPU_DISJOINT_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_disjoint_timer_query" ],
+# ANGLE_pack_reverse_row_order
+  [ "PACK_REVERSE_ROW_ORDER_ANGLE", "CONTEXT_BOOL(Pack.Invert), NO_EXTRA" ],
 ]},
 
 { "apis": ["GL", "GL_CORE", "GLES2"], "params": [

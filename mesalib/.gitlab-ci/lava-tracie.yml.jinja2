@@ -77,8 +77,7 @@ actions:
           - echo "nameserver 8.8.8.8" > /etc/resolv.conf
           - for i in 1 2 3; do sntp -sS pool.ntp.org && break || sleep 2; done
 
-          # amdgpu failed to find its firmware during boot, rebind
-          - echo 0000:00:01.0 > /sys/bus/pci/drivers/amdgpu/bind || true
+          - modprobe amdgpu || true
 
 {% if env_vars %}
           - export {{ env_vars }}

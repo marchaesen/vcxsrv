@@ -35,6 +35,8 @@ Feature releases
 ----------------
 
 -  Available approximately every three months.
+-  Feature releases are branched on or around the second Wednesday of
+   January, April, July, and October.
 -  Initial time plan available 2-4 weeks before the planned branchpoint
    (rc1) on the mesa-announce@ mailing list.
 -  Typically, the final release will happen after 4 candidates.
@@ -129,7 +131,7 @@ good contact point.
 
        ralloc: don't leave out the alignment factor
 
-       Experimentation shows that without alignment factor gcc and clang choose
+       Experimentation shows that without alignment factor GCC and Clang choose
        ...
 
        (cherry picked from commit ff494fe999510ea40e3ed5827e7818550b6de126)

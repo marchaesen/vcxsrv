@@ -50,7 +50,9 @@ var_info_cmp(const void *_a, const void *_b)
    uint32_t a_size = a->constant_data_size;
    uint32_t b_size = b->constant_data_size;
 
-   if (a_size < b_size) {
+   if (a->is_constant != b->is_constant) {
+      return (int)a->is_constant - (int)b->is_constant;
+   } else if (a_size < b_size) {
       return -1;
    } else if (a_size > b_size) {
       return 1;
@@ -206,7 +208,7 @@ nir_opt_large_constants(nir_shader *shader,
              */
             nir_deref_instr *deref = nir_instr_as_deref(instr);
             if (deref->deref_type == nir_deref_type_var &&
-                deref->mode == nir_var_function_temp &&
+                deref->var->data.mode == nir_var_function_temp &&
                 nir_deref_instr_has_complex_use(deref))
                var_infos[deref->var->index].is_constant = false;
             continue;
@@ -239,7 +241,7 @@ nir_opt_large_constants(nir_shader *shader,
             continue;
          }
 
-         if (dst_deref && dst_deref->mode == nir_var_function_temp) {
+         if (dst_deref && nir_deref_mode_is(dst_deref, nir_var_function_temp)) {
             nir_variable *var = nir_deref_instr_get_variable(dst_deref);
             if (var == NULL)
                continue;
@@ -267,7 +269,7 @@ nir_opt_large_constants(nir_shader *shader,
             }
          }
 
-         if (src_deref && src_deref->mode == nir_var_function_temp) {
+         if (src_deref && nir_deref_mode_is(src_deref, nir_var_function_temp)) {
             nir_variable *var = nir_deref_instr_get_variable(src_deref);
             if (var == NULL)
                continue;
@@ -352,7 +354,7 @@ nir_opt_large_constants(nir_shader *shader,
          switch (intrin->intrinsic) {
          case nir_intrinsic_load_deref: {
             nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-            if (deref->mode != nir_var_function_temp)
+            if (!nir_deref_mode_is(deref, nir_var_function_temp))
                continue;
 
             nir_variable *var = nir_deref_instr_get_variable(deref);
@@ -373,7 +375,7 @@ nir_opt_large_constants(nir_shader *shader,
 
          case nir_intrinsic_store_deref: {
             nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-            if (deref->mode != nir_var_function_temp)
+            if (!nir_deref_mode_is(deref, nir_var_function_temp))
                continue;
 
             nir_variable *var = nir_deref_instr_get_variable(deref);

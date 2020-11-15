@@ -206,7 +206,10 @@ class Opcode(object):
       op_dtype_sizes['i16'] = 32
       op_dtype_sizes['u16'] = 32
 
-      self.operand_size = op_dtype_sizes.get(op_dtype, 0)
+      # If we can't tell the definition size and the operand size, default to
+      # 32. Some opcodes can have a larger definition size, but
+      # get_subdword_definition_info() handles that.
+      self.operand_size = op_dtype_sizes.get(op_dtype, 32)
       self.definition_size = def_dtype_sizes.get(def_dtype, self.operand_size)
 
       # exceptions
@@ -227,9 +230,6 @@ class Opcode(object):
          self.operand_size = 32
          self.definition_size = 32
       elif '_pknorm_' in name:
-         self.definition_size = 32
-      elif format == Format.PSEUDO_REDUCTION:
-         # 64-bit reductions can have a larger definition size, but get_subdword_definition_info() handles that
          self.definition_size = 32
 
 

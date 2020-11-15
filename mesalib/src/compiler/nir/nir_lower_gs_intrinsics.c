@@ -293,20 +293,25 @@ append_set_vertex_and_primitive_count(nir_block *end_block, struct state *state)
          /* When it's not per-stream, we only need to write one variable. */
          if (!state->per_stream && stream != 0)
             continue;
-         /* When it's per-stream, make sure not to use inactive streams. */
-         if (state->per_stream && !(shader->info.gs.active_stream_mask & (1 << stream)))
-            continue;
 
-         if (state->overwrite_incomplete)
-            overwrite_incomplete_primitives(state, stream);
-
-         nir_ssa_def *vtx_cnt = nir_load_var(b, state->vertex_count_vars[stream]);
+         nir_ssa_def *vtx_cnt;
          nir_ssa_def *prim_cnt;
 
-         if (state->count_prims)
-            prim_cnt = nir_load_var(b, state->primitive_count_vars[stream]);
-         else
-            prim_cnt = nir_ssa_undef(b, 1, 32);
+         if (state->per_stream && !(shader->info.gs.active_stream_mask & (1 << stream))) {
+            /* Inactive stream: vertex count is 0, primitive count is 0 or undef. */
+            vtx_cnt = nir_imm_int(b, 0);
+            prim_cnt = state->count_prims
+                       ? nir_imm_int(b, 0)
+                       : nir_ssa_undef(b, 1, 32);
+         } else {
+            if (state->overwrite_incomplete)
+               overwrite_incomplete_primitives(state, stream);
+
+            vtx_cnt = nir_load_var(b, state->vertex_count_vars[stream]);
+            prim_cnt = state->count_prims
+                       ? nir_load_var(b, state->primitive_count_vars[stream])
+                       : nir_ssa_undef(b, 1, 32);
+         }
 
          nir_intrinsic_instr *set_cnt_intrin =
             nir_intrinsic_instr_create(shader,

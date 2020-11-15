@@ -20,6 +20,10 @@
 
 files_vulkan_wsi = files('wsi_common.c')
 
+if dep_libdrm.found()
+  files_vulkan_wsi += files('wsi_common_drm.c')
+endif
+
 if with_platform_x11
   files_vulkan_wsi += files('wsi_common_x11.c')
 endif

@@ -155,6 +155,64 @@ __bitset_next_set(unsigned i, BITSET_WORD *tmp,
       for (__i = 0; \
            (__i = __bitset_next_set(__i, &__tmp, __set, __size)) < __size;)
 
+static inline void
+__bitset_next_range(unsigned *start, unsigned *end, const BITSET_WORD *set,
+                    unsigned size)
+{
+   /* To find the next start, start searching from end. In the first iteration
+    * it will be at 0, in every subsequent iteration it will be at the first
+    * 0-bit after the range.
+    */
+   unsigned word = BITSET_BITWORD(*end);
+   BITSET_WORD tmp = set[word] & ~(BITSET_BIT(*end) - 1);
+   while (!tmp) {
+      word++;
+      if (word >= BITSET_WORDS(size)) {
+         *start = *end = size;
+         return;
+      }
+      tmp = set[word];
+   }
+
+   *start = word * BITSET_WORDBITS + ffs(tmp) - 1;
+
+   /* Now do the opposite to find end. Here we can start at start + 1, because
+    * we know that the bit at start is 1 and we're searching for the first
+    * 0-bit.
+    */
+   word = BITSET_BITWORD(*start + 1);
+   tmp = set[word] | (BITSET_BIT(*start + 1) - 1);
+   while (~tmp == 0) {
+      word++;
+      if (word >= BITSET_WORDS(size)) {
+         *end = size;
+         return;
+      }
+      tmp = set[word];
+   }
+
+   /* Cap "end" at "size" in case there are extra bits past "size" set in the
+    * word. This is only necessary for "end" because we terminate the loop if
+    * "start" goes past "size".
+    */
+   *end = MIN2(word * BITSET_WORDBITS + ffs(~tmp) - 1, size);
+}
+
+/**
+ * Iterates over each contiguous range of set bits in a set
+ *
+ * @param __start the first 1 bit of the current range
+ * @param __end   the bit after the last 1 bit of the current range
+ * @param __set   the bitset to iterate (will not be modified)
+ * @param __size  number of bits in the set to consider
+ */
+#define BITSET_FOREACH_RANGE(__start, __end, __set, __size) \
+   for (__start = 0, __end = 0, \
+        __bitset_next_range(&__start, &__end, __set, __size); \
+        __start < __size; \
+        __bitset_next_range(&__start, &__end, __set, __size))
+
+
 #ifdef __cplusplus
 
 /**

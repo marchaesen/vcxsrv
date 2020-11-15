@@ -40,29 +40,33 @@
 #include "nir_builtin_builder.h"
 #include "nir_format_convert.h"
 
-static float bt601_csc_coeffs[9] = {
-   1.16438356f,  1.16438356f, 1.16438356f,
-   0.0f,        -0.39176229f, 2.01723214f,
-   1.59602678f, -0.81296764f, 0.0f,
-};
-static float bt709_csc_coeffs[9] = {
-   1.16438356f,  1.16438356f, 1.16438356f,
-   0.0f       , -0.21324861f, 2.11240179f,
-   1.79274107f, -0.53290933f, 0.0f,
-};
-static float bt2020_csc_coeffs[9] = {
-   1.16438356f,  1.16438356f, 1.16438356f,
-   0.0f       , -0.18732610f, 2.14177232f,
-   1.67867411f, -0.65042432f, 0.0f,
-};
+typedef struct nir_const_value_3_4 {
+   nir_const_value v[3][4];
+} nir_const_value_3_4;
 
-static float bt601_csc_offsets[3] = {
+static const nir_const_value_3_4 bt601_csc_coeffs = { {
+   { { .f32 = 1.16438356f }, { .f32 =  1.16438356f }, { .f32 = 1.16438356f } },
+   { { .f32 = 0.0f        }, { .f32 = -0.39176229f }, { .f32 = 2.01723214f } },
+   { { .f32 = 1.59602678f }, { .f32 = -0.81296764f }, { .f32 = 0.0f        } },
+} };
+static const nir_const_value_3_4 bt709_csc_coeffs = { {
+   { { .f32 = 1.16438356f }, { .f32 =  1.16438356f }, { .f32 = 1.16438356f } },
+   { { .f32 = 0.0f        }, { .f32 = -0.21324861f }, { .f32 = 2.11240179f } },
+   { { .f32 = 1.79274107f }, { .f32 = -0.53290933f }, { .f32 = 0.0f        } },
+} };
+static const nir_const_value_3_4 bt2020_csc_coeffs = { {
+   { { .f32 = 1.16438356f }, { .f32 =  1.16438356f }, { .f32 = 1.16438356f } },
+   { { .f32 = 0.0f        }, { .f32 = -0.18732610f }, { .f32 = 2.14177232f } },
+   { { .f32 = 1.67867411f }, { .f32 = -0.65042432f }, { .f32 = 0.0f        } },
+} };
+
+static const float bt601_csc_offsets[3] = {
    -0.874202218f, 0.531667823f, -1.085630789f
 };
-static float bt709_csc_offsets[3] = {
+static const float bt709_csc_offsets[3] = {
    -0.972945075f, 0.301482665f, -1.133402218f
 };
-static float bt2020_csc_offsets[3] = {
+static const float bt2020_csc_offsets[3] = {
    -0.915687932f, 0.347458499f, -1.148145075f
 };
 
@@ -286,25 +290,20 @@ convert_yuv_to_rgb(nir_builder *b, nir_tex_instr *tex,
                    const nir_lower_tex_options *options)
 {
 
-   float *offset_vals;
-   float *m_vals;
+   const float *offset_vals;
+   const nir_const_value_3_4 *m;
    assert((options->bt709_external & options->bt2020_external) == 0);
    if (options->bt709_external & (1 << tex->texture_index)) {
-      m_vals = bt709_csc_coeffs;
+      m = &bt709_csc_coeffs;
       offset_vals = bt709_csc_offsets;
    } else if (options->bt2020_external & (1 << tex->texture_index)) {
-      m_vals = bt2020_csc_coeffs;
+      m = &bt2020_csc_coeffs;
       offset_vals = bt2020_csc_offsets;
    } else {
-      m_vals = bt601_csc_coeffs;
+      m = &bt601_csc_coeffs;
       offset_vals = bt601_csc_offsets;
    }
 
-   nir_const_value m[3][4] = {
-      { { .f32 = m_vals[0] }, { .f32 =  m_vals[1] }, { .f32 = m_vals[2] }, { .f32 = 0.0f } },
-      { { .f32 = m_vals[3] }, { .f32 =  m_vals[4] }, { .f32 = m_vals[5] }, { .f32 = 0.0f } },
-      { { .f32 = m_vals[6] }, { .f32 =  m_vals[7] }, { .f32 = m_vals[8] }, { .f32 = 0.0f } },
-   };
    unsigned bit_size = nir_dest_bit_size(tex->dest);
 
    nir_ssa_def *offset =
@@ -316,9 +315,9 @@ convert_yuv_to_rgb(nir_builder *b, nir_tex_instr *tex,
 
    offset = nir_f2fN(b, offset, bit_size);
 
-   nir_ssa_def *m0 = nir_f2fN(b, nir_build_imm(b, 4, 32, m[0]), bit_size);
-   nir_ssa_def *m1 = nir_f2fN(b, nir_build_imm(b, 4, 32, m[1]), bit_size);
-   nir_ssa_def *m2 = nir_f2fN(b, nir_build_imm(b, 4, 32, m[2]), bit_size);
+   nir_ssa_def *m0 = nir_f2fN(b, nir_build_imm(b, 4, 32, m->v[0]), bit_size);
+   nir_ssa_def *m1 = nir_f2fN(b, nir_build_imm(b, 4, 32, m->v[1]), bit_size);
+   nir_ssa_def *m2 = nir_f2fN(b, nir_build_imm(b, 4, 32, m->v[2]), bit_size);
 
    nir_ssa_def *result =
       nir_ffma(b, y, m0, nir_ffma(b, u, m1, nir_ffma(b, v, m2, offset)));

@@ -29,6 +29,11 @@
 #include "Xlibint.h"
 #include "XlcPubI.h"
 #include <stdio.h>
+#include "locking.h"
+
+#ifdef XTHREADS
+LockInfoPtr _conv_lock;
+#endif
 
 typedef struct _XlcConverterListRec {
     XLCd from_lcd;
@@ -58,6 +63,9 @@ get_converter(
     XrmQuark to_type)
 {
     XlcConverterList list, prev = NULL;
+    XlcConv conv = NULL;
+
+    _XLockMutex(_conv_lock);
 
     for (list = conv_list; list; list = list->next) {
 	if (list->from_lcd == from_lcd && list->to_lcd == to_lcd
@@ -69,13 +77,16 @@ get_converter(
 		conv_list = list;
 	    }
 
-	    return (*list->converter)(from_lcd, list->from, to_lcd, list->to);
+	    conv = (*list->converter)(from_lcd, list->from, to_lcd, list->to);
+	    break;
 	}
 
 	prev = list;
     }
 
-    return (XlcConv) NULL;
+    _XUnlockMutex(_conv_lock);
+
+    return conv;
 }
 
 Bool
@@ -92,18 +103,20 @@ _XlcSetConverter(
     from_type = XrmStringToQuark(from);
     to_type = XrmStringToQuark(to);
 
+    _XLockMutex(_conv_lock);
+
     for (list = conv_list; list; list = list->next) {
 	if (list->from_lcd == from_lcd && list->to_lcd == to_lcd
 	    && list->from_type == from_type && list->to_type == to_type) {
 
 	    list->converter = converter;
-	    return True;
+	    goto ret;
 	}
     }
 
     list = Xmalloc(sizeof(XlcConverterListRec));
     if (list == NULL)
-	return False;
+	goto ret;
 
     list->from_lcd = from_lcd;
     list->from = from;
@@ -115,7 +128,9 @@ _XlcSetConverter(
     list->next = conv_list;
     conv_list = list;
 
-    return True;
+ret:
+    _XUnlockMutex(_conv_lock);
+    return list != NULL;
 }
 
 typedef struct _ConvRec {

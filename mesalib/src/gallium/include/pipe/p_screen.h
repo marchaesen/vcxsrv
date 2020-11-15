@@ -250,6 +250,12 @@ struct pipe_screen {
     * the resource into a format compatible for sharing. The use case is
     * OpenGL-OpenCL interop. The context parameter is allowed to be NULL.
     *
+    * NOTE: for multi-planar resources (which may or may not have the planes
+    * chained through the pipe_resource next pointer) the frontend will
+    * always call this function with the first resource of the chain. It is
+    * the pipe drivers responsibility to walk the resources as needed when
+    * called with handle->plane != 0.
+    *
     * NOTE: in the case of WINSYS_HANDLE_TYPE_FD handles, the caller
     * takes ownership of the FD.  (This is consistent with
     * EGL_MESA_image_dma_buf_export)
@@ -277,6 +283,7 @@ struct pipe_screen {
                               struct pipe_resource *resource,
                               unsigned plane,
                               unsigned layer,
+                              unsigned level,
                               enum pipe_resource_param param,
                               unsigned handle_usage,
                               uint64_t *value);
@@ -552,6 +559,44 @@ struct pipe_screen {
     */
    void (*unmap_memory)(struct pipe_screen *screen,
                         struct pipe_memory_allocation *pmem);
+
+   /**
+    * Determine whether the screen supports the specified modifier
+    *
+    * Query whether the driver supports a \p modifier in combination with
+    * \p format.  If \p external_only is not NULL, the value it points to will
+    * be set to 0 or a non-zero value to indicate whether the modifier and
+    * format combination is supported only with external, or also with non-
+    * external texture targets respectively.  The \p external_only parameter is
+    * not used when the function returns false.
+    *
+    * \return true if the format+modifier pair is supported on \p screen, false
+    *         otherwise.
+    */
+   bool (*is_dmabuf_modifier_supported)(struct pipe_screen *screen,
+                                        uint64_t modifier, enum pipe_format,
+                                        bool *external_only);
+
+   /**
+    * Get the number of planes required for a given modifier/format pair.
+    *
+    * If not NULL, this function returns the number of planes needed to
+    * represent \p format in the layout specified by \p modifier, including
+    * any driver-specific auxiliary data planes.
+    *
+    * Must only be called on a modifier supported by the screen for the
+    * specified format.
+    *
+    * If NULL, no auxiliary planes are required for any modifier+format pairs
+    * supported by \p screen.  Hence, the plane count can be derived directly
+    * from \p format.
+    *
+    * \return Number of planes needed to store image data in the layout defined
+    *         by \p format and \p modifier.
+    */
+   unsigned int (*get_dmabuf_modifier_planes)(struct pipe_screen *screen,
+                                              uint64_t modifier,
+                                              enum pipe_format format);
 };
 
 

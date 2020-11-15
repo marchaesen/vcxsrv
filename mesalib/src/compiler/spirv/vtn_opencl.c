@@ -533,6 +533,8 @@ handle_special(struct vtn_builder *b, uint32_t opcode,
       return nir_normalize(nb, srcs[0]);
    case OpenCLstd_Clz:
       return nir_clz_u(nb, srcs[0]);
+   case OpenCLstd_Ctz:
+      return nir_ctz_u(nb, srcs[0]);
    case OpenCLstd_Select:
       return nir_select(nb, srcs[0], srcs[1], srcs[2]);
    case OpenCLstd_S_Upsample:
@@ -876,6 +878,7 @@ vtn_handle_opencl_instruction(struct vtn_builder *b, SpvOp ext_opcode,
    case OpenCLstd_S_Upsample:
    case OpenCLstd_U_Upsample:
    case OpenCLstd_Clz:
+   case OpenCLstd_Ctz:
    case OpenCLstd_Native_exp:
    case OpenCLstd_Native_exp10:
    case OpenCLstd_Native_log:

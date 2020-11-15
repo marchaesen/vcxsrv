@@ -1107,7 +1107,7 @@ Bug fixes:
 -  fixed bad teximage error check conditional (bug 476846)
 -  fixed demos readtex.c compilation problem on Windows (Karl Schultz)
 -  added missing glGet() query for GL_MAX_TEXTURE_LOD_BIAS_EXT
--  silence some compiler warnings (gcc 2.96)
+-  silence some compiler warnings (GCC 2.96)
 -  enable the #define GL_VERSION_1_3 in GL/gl.h
 -  added GL 1.3 and GLX 1.4 entries to gl_mangle.h and glx_mangle.h
 -  fixed glu.h typedef problem found with MSDev 6.0
@@ -1442,7 +1442,7 @@ New:
 -  glColor3 functions sometimes resulted in undefined alpha values
 -  fixed FP divide by zero error seen on VMS with xlockmore, others
 -  fixed vertex/fragment program debug problem (bug 873011)
--  building on AIX with gcc works now
+-  building on AIX with GCC works now
 -  glDeleteProgramsARB failed for ARB fragment programs (bug 876160)
 -  glDrawRangeElements tried to modify potentially read-only storage
 -  updated files for building on Windows
@@ -1470,7 +1470,7 @@ Bug fixes:
 -  two-sided lighting and vertex program didn't work (bug 887330)
 -  stores to program parameter registers in vertex state programs didn't
    work.
--  fixed glOrtho bug found with gcc 3.2.2 (RH9)
+-  fixed glOrtho bug found with GCC 3.2.2 (RH9)
 -  glXCreateWindow() wasn't fully implemented (bug 890894)
 -  generic vertex attribute arrays didn't work in display lists
 -  vertex buffer objects' default usage and access fields were wrong
@@ -1573,7 +1573,7 @@ Bug fixes:
 
 Changes:
 
--  fixed a bunch of compiler warnings found with gcc 3.4
+-  fixed a bunch of compiler warnings found with GCC 3.4
 -  bug reports should to go bugzilla.freedesktop.org
 
 6.3 July 20, 2005

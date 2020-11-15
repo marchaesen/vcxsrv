@@ -1,7 +1,7 @@
 #!/bin/sh
 
 while true; do
-  devcds=`find /sys/devices/virtual/devcoredump/ -name data`
+  devcds=`find /sys/devices/virtual/devcoredump/ -name data 2>/dev/null`
   for i in $devcds; do
     echo "Found a devcoredump at $i."
     if cp $i /results/first.devcore; then

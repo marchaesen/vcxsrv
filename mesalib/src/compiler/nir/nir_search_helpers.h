@@ -226,6 +226,22 @@ is_not_fmul(struct hash_table *ht, nir_alu_instr *instr, unsigned src,
 }
 
 static inline bool
+is_fmul(struct hash_table *ht, nir_alu_instr *instr, unsigned src,
+        UNUSED unsigned num_components, UNUSED const uint8_t *swizzle)
+{
+   nir_alu_instr *src_alu =
+      nir_src_as_alu_instr(instr->src[src].src);
+
+   if (src_alu == NULL)
+      return false;
+
+   if (src_alu->op == nir_op_fneg)
+      return is_fmul(ht, src_alu, 0, 0, NULL);
+
+   return src_alu->op == nir_op_fmul;
+}
+
+static inline bool
 is_fsign(nir_alu_instr *instr, unsigned src,
          UNUSED unsigned num_components, UNUSED const uint8_t *swizzle)
 {

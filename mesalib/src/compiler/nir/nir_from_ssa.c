@@ -44,17 +44,33 @@ struct from_ssa_state {
    bool progress;
 };
 
+/* Returns if def @a comes after def @b.
+ *
+ * We treat SSA undefs as always coming before other instruction types.
+ */
+static bool
+def_after(nir_ssa_def *a, nir_ssa_def *b)
+{
+   if (a->parent_instr->type == nir_instr_type_ssa_undef)
+      return false;
+
+   if (b->parent_instr->type == nir_instr_type_ssa_undef)
+      return true;
+
+   return a->parent_instr->index > b->parent_instr->index;
+}
+
 /* Returns true if a dominates b */
 static bool
 ssa_def_dominates(nir_ssa_def *a, nir_ssa_def *b)
 {
-   if (a->live_index == 0) {
+   if (a->parent_instr->type == nir_instr_type_ssa_undef) {
       /* SSA undefs always dominate */
       return true;
-   } else if (b->live_index < a->live_index) {
+   } if (def_after(a, b)) {
       return false;
    } else if (a->parent_instr->block == b->parent_instr->block) {
-      return a->live_index <= b->live_index;
+      return def_after(b, a);
    } else {
       return nir_block_dominates(a->parent_instr->block,
                                  b->parent_instr->block);
@@ -157,7 +173,7 @@ merge_merge_sets(merge_set *a, merge_set *b)
       merge_node *b_node = exec_node_data(merge_node, bn, node);
 
       if (exec_node_is_tail_sentinel(an) ||
-          a_node->def->live_index > b_node->def->live_index) {
+          def_after(a_node->def, b_node->def)) {
          struct exec_node *next = bn->next;
          exec_node_remove(bn);
          exec_node_insert_node_before(an, bn);
@@ -202,7 +218,7 @@ merge_sets_interfere(merge_set *a, merge_set *b)
          merge_node *a_node = exec_node_data(merge_node, an, node);
          merge_node *b_node = exec_node_data(merge_node, bn, node);
 
-         if (a_node->def->live_index <= b_node->def->live_index) {
+         if (def_after(b_node->def, a_node->def)) {
             current = a_node;
             an = an->next;
          } else {
@@ -785,7 +801,8 @@ nir_convert_from_ssa_impl(nir_function_impl *impl, bool phi_webs_only)
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
 
-   nir_metadata_require(impl, nir_metadata_live_ssa_defs |
+   nir_metadata_require(impl, nir_metadata_instr_index |
+                              nir_metadata_live_ssa_defs |
                               nir_metadata_dominance);
 
    nir_foreach_block(block, impl) {

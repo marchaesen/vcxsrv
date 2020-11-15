@@ -101,7 +101,7 @@ fail:
 }
 
 static void
-free_performance_monitor(GLuint key, void *data, void *user)
+free_performance_monitor(void *data, void *user)
 {
    struct gl_perf_monitor_object *m = data;
    struct gl_context *ctx = user;

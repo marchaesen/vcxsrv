@@ -1748,7 +1748,7 @@ ir_dereference::is_lvalue(const struct _mesa_glsl_parse_state *state) const
 {
    ir_variable *var = this->variable_referenced();
 
-   /* Every l-value derference chain eventually ends in a variable.
+   /* Every l-value dereference chain eventually ends in a variable.
     */
    if ((var == NULL) || var->data.read_only)
       return false;
@@ -2025,6 +2025,7 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.has_initializer = false;
    this->data.is_implicit_initializer = false;
    this->data.is_unmatched_generic_inout = false;
+   this->data.is_xfb = false;
    this->data.is_xfb_only = false;
    this->data.explicit_xfb_buffer = false;
    this->data.explicit_xfb_offset = false;

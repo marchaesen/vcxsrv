@@ -172,14 +172,14 @@ compile_variant(struct ir3_shader_variant *v)
 {
 	int ret = ir3_compile_shader_nir(v->shader->compiler, v);
 	if (ret) {
-		_debug_printf("compile failed! (%s:%s)", v->shader->nir->info.name,
+		mesa_loge("compile failed! (%s:%s)", v->shader->nir->info.name,
 				v->shader->nir->info.label);
 		return false;
 	}
 
 	assemble_variant(v);
 	if (!v->bin) {
-		_debug_printf("assemble failed! (%s:%s)", v->shader->nir->info.name,
+		mesa_loge("assemble failed! (%s:%s)", v->shader->nir->info.name,
 				v->shader->nir->info.label);
 		return false;
 	}
@@ -338,7 +338,12 @@ ir3_setup_used_key(struct ir3_shader *shader)
 
 	key->safe_constlen = true;
 
-	key->ucp_enables = 0xff;
+	/* When clip/cull distances are natively supported, we only use
+	 * ucp_enables to determine whether to lower legacy clip planes to
+	 * gl_ClipDistance.
+	 */
+	if (info->stage != MESA_SHADER_FRAGMENT || !shader->compiler->has_clip_cull)
+		key->ucp_enables = 0xff;
 
 	if (info->stage == MESA_SHADER_FRAGMENT) {
 		key->fsaturate_s = ~0;

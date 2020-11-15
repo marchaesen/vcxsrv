@@ -1,5 +1,3 @@
-// based on a keyboard map from an 'xkb/symbols/be' file
-
 default partial alphanumeric_keys
 xkb_symbols "basic" {
 
@@ -132,34 +130,19 @@ xkb_symbols "oss_latin9" {
     key <AB10>  { [            equal,             plus,           dead_tilde,                 minus ] }; // = + ~ -
 };
 
-
-partial alphanumeric_keys
-xkb_symbols "oss_Sundeadkeys" {
-
-    // Modifies the basic be(oss) layout to use the Sun dead keys
-
-    include "be(oss)"
-
-    // First row
-    key <AE04>	{ [       apostrophe,                4,        dead_cedilla,             0x1002014 ] }; // ' 4 ¸ — (tiret cadratin)
-
-    // Second row
-    key <AD11>	{ [     dead_circumflex,  dead_diaeresis,          bracketleft,        dead_abovering ] }; // ^ ̈ [ ˚
-
-    //Third row
-    key <AC11>	{ [           ugrave,          percent,          dead_acute,                Ugrave ] }; // ù % ' Ù
-    key <BKSL>	{ [              mu,          sterling,          dead_grave,           dead_macron ] }; // µ £ ` ̄
-
-    // Fourth row
-    key <AB10>  { [            equal,             plus,          dead_tilde,             0x1002212 ] }; // = + ~ −
-};
-
 partial alphanumeric_keys
 xkb_symbols "oss_sundeadkeys" {
 
-    include "be(oss_Sundeadkeys)"
+    // Modifies the basic be(oss) layout to use the Sun dead keys.
 
+    include "be(oss)"
     name[Group1]="Belgian (Sun dead keys, alt.)";
+
+    key <AE04> { [        apostrophe,                4,         dead_cedilla,             0x1002014 ] }; // ' 4 ¸ — (tiret cadratin)
+    key <AD11> { [   dead_circumflex,   dead_diaeresis,          bracketleft,        dead_abovering ] }; // ^ ¨ [ ˚
+    key <AC11> { [            ugrave,          percent,           dead_acute,                Ugrave ] }; // ù % ' Ù
+    key <BKSL> { [                mu,         sterling,           dead_grave,           dead_macron ] }; // µ £ ` ¯
+    key <AB10> { [             equal,             plus,           dead_tilde,             0x1002212 ] }; // = + ~ −
 };
 
 
@@ -178,26 +161,14 @@ xkb_symbols "iso-alternate" {
 
 partial alphanumeric_keys
 xkb_symbols "sundeadkeys" {
-
-    // Use the Sun dead keys
-
     include "be(basic)"
     name[Group1]="Belgian (Sun dead keys)";
 
-    key <AD11>	{ [dead_circumflex, dead_diaeresis, bracketleft, bracketleft] };
-    key <AC11>	{ [    ugrave,    percent,  dead_acute,  dead_acute ]	};
-    key <BKSL>	{ [        mu,   sterling,  dead_grave,  dead_grave ]	};
-    key <AB07>	{ [     comma,  question, dead_cedilla, dead_cedilla]	};
-    key <AB10>	{ [     equal,       plus,  dead_tilde,  dead_tilde ]	};
-};
-
-partial alphanumeric_keys
-xkb_symbols "Sundeadkeys" {
-
-    // Use the Sun dead keys
-
-    include "be(sundeadkeys)"
-
+    key <AD11>	{ [ dead_circumflex, dead_diaeresis,  bracketleft,  bracketleft ] };
+    key <AC11>	{ [          ugrave,        percent,   dead_acute,   dead_acute ] };
+    key <BKSL>	{ [              mu,       sterling,   dead_grave,   dead_grave ] };
+    key <AB07>	{ [           comma,       question, dead_cedilla, dead_cedilla ] };
+    key <AB10>	{ [           equal,           plus,   dead_tilde,   dead_tilde ] };
 };
 
 partial alphanumeric_keys

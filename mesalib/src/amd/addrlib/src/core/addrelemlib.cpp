@@ -347,6 +347,7 @@ VOID ElemLib::Int32sToPixel(
     UINT_32 elemMask=0;
     UINT_32 elementXor = 0;  // address xor when reading bytes from elements
 
+
     // @@ NOTE: assert if called on a compressed format!
 
     if (properties.byteAligned)    // Components are all byte-sized
@@ -1272,7 +1273,6 @@ VOID ElemLib::RestoreSurfaceInfo(
     UINT_32 bpp;
 
     BOOL_32 bBCnFormat = FALSE;
-    (void)bBCnFormat;
 
     ADDR_ASSERT(pBpp != NULL);
     ADDR_ASSERT(pWidth != NULL && pHeight != NULL);
@@ -1744,6 +1744,7 @@ BOOL_32 ElemLib::IsBlockCompressed(
     return (((format >= ADDR_FMT_BC1) && (format <= ADDR_FMT_BC7)) ||
             ((format >= ADDR_FMT_ASTC_4x4) && (format <= ADDR_FMT_ETC2_128BPP)));
 }
+
 
 /**
 ****************************************************************************************************

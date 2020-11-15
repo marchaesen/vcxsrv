@@ -3871,9 +3871,12 @@ struct gl_constants
    GLboolean AllowHigherCompatVersion;
 
    /**
-    * Allow layout qualifiers on function parameters.
+    * Allow extra tokens at end of preprocessor directives. The CTS now tests
+    * to make sure these are not allowed. However, previously drivers would
+    * allow them to exist and just issue a warning so some old applications
+    * depend on this.
     */
-   GLboolean AllowLayoutQualifiersOnFunctionParameters;
+   GLboolean AllowExtraPPTokens;
 
    /**
     * Force computing the absolute value for sqrt() and inversesqrt() to follow
@@ -4442,7 +4445,6 @@ struct gl_extensions
    GLboolean KHR_texture_compression_astc_sliced_3d;
    GLboolean MESA_framebuffer_flip_y;
    GLboolean MESA_tile_raster_order;
-   GLboolean MESA_pack_invert;
    GLboolean EXT_shader_framebuffer_fetch;
    GLboolean EXT_shader_framebuffer_fetch_non_coherent;
    GLboolean MESA_shader_integer_functions;

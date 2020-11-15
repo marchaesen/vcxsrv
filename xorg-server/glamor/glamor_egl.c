@@ -362,6 +362,9 @@ glamor_make_pixmap_exportable(PixmapPtr pixmap, Bool modifiers_ok)
      */
     glamor_egl_exchange_buffers(pixmap, exported);
 
+    /* Swap the devKind into the original pixmap, reflecting the bo's stride */
+    screen->ModifyPixmapHeader(pixmap, 0, 0, 0, 0, exported->devKind, NULL);
+
     screen->DestroyPixmap(exported);
 
     return TRUE;

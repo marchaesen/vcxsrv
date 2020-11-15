@@ -67,6 +67,8 @@ namespace clover {
       /// Serialize a hardware event with respect to the previous ones,
       /// and push it to the pending list.
       void sequence(hard_event &ev);
+      // Use this instead of flush() if `queued_events_mutex` is acquired.
+      void flush_unlocked();
 
       cl_command_queue_properties props;
       pipe_context *pipe;

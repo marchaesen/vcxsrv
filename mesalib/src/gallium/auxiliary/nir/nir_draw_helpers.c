@@ -71,11 +71,10 @@ nir_lower_pstipple_block(nir_block *block,
 
    b->cursor = nir_before_block(block);
 
-   nir_ssa_def *div32 = nir_imm_vec2(b, 1.0/32.0, 1.0/32.0);
-
    nir_ssa_def *frag_coord = state->fs_pos_is_sysval ? nir_load_frag_coord(b) : load_frag_coord(b);
 
-   texcoord = nir_fmul(b, frag_coord, div32);
+   texcoord = nir_fmul(b, nir_channels(b, frag_coord, 0x3),
+                       nir_imm_vec2(b, 1.0/32.0, 1.0/32.0));
 
    nir_tex_instr *tex = nir_tex_instr_create(b->shader, 1);
    tex->op = nir_texop_tex;

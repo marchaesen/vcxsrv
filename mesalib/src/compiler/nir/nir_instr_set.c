@@ -152,7 +152,7 @@ static uint32_t
 hash_deref(uint32_t hash, const nir_deref_instr *instr)
 {
    hash = HASH(hash, instr->deref_type);
-   hash = HASH(hash, instr->mode);
+   hash = HASH(hash, instr->modes);
    hash = HASH(hash, instr->type);
 
    if (instr->deref_type == nir_deref_type_var)
@@ -602,7 +602,7 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
       nir_deref_instr *deref2 = nir_instr_as_deref(instr2);
 
       if (deref1->deref_type != deref2->deref_type ||
-          deref1->mode != deref2->mode ||
+          deref1->modes != deref2->modes ||
           deref1->type != deref2->type)
          return false;
 

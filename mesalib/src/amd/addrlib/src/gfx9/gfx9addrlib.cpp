@@ -37,8 +37,6 @@
 
 #include "amdgpu_asic_addr.h"
 
-#include "util/macros.h"
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -131,7 +129,6 @@ Gfx9Lib::Gfx9Lib(const Client* pClient)
     :
     Lib(pClient)
 {
-    m_class = AI_ADDRLIB;
     memset(&m_settings, 0, sizeof(m_settings));
     memcpy(m_swizzleModeTable, SwizzleModeTable, sizeof(SwizzleModeTable));
     memset(m_cachedMetaEqKey, 0, sizeof(m_cachedMetaEqKey));
@@ -663,6 +660,7 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeDccInfo(
         pOut->metaBlkWidth = metaBlkDim.w;
         pOut->metaBlkHeight = metaBlkDim.h;
         pOut->metaBlkDepth = metaBlkDim.d;
+        pOut->metaBlkSize = numCompressBlkPerMetaBlk * numFrags;
 
         pOut->metaBlkNumPerSlice = numMetaBlkX * numMetaBlkY;
         pOut->fastClearSizePerSlice =
@@ -803,6 +801,7 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeCmaskAddrFromCoord(
 
         pOut->addr = address >> 1;
         pOut->bitPosition = static_cast<UINT_32>((address & 1) << 2);
+
 
         UINT_32 numPipeBits = GetPipeLog2ForMetaAddressing(pIn->cMaskFlags.pipeAligned,
                                                            pIn->swizzleMode);
@@ -1205,6 +1204,7 @@ BOOL_32 Gfx9Lib::HwlInitGlobalParams(
              ((m_pipesLog2 == 2) && ((m_seLog2 == 1) || (m_seLog2 == 2)))))
         {
             ADDR_ASSERT(m_settings.isVega10 == FALSE);
+
             ADDR_ASSERT(m_settings.isRaven == FALSE);
 
             ADDR_ASSERT(m_settings.isVega20 == FALSE);
@@ -1288,18 +1288,19 @@ ChipFamily Gfx9Lib::HwlConvertChipFamily(
                 m_settings.applyAliasFix = 1;
             }
 
+            m_settings.isDcn1 = m_settings.isRaven;
+
             if (ASICREV_IS_RENOIR(uChipRevision))
             {
                 m_settings.isRaven = 1;
+                m_settings.isDcn2  = 1;
             }
-
-            m_settings.isDcn1 = m_settings.isRaven;
 
             m_settings.metaBaseAlignFix = 1;
             break;
 
         default:
-            ADDR_ASSERT(!"This should be a Fusion");
+            ADDR_ASSERT(!"No Chip found");
             break;
     }
 
@@ -1975,7 +1976,7 @@ VOID Gfx9Lib::GenMetaEquation(
             }
         }
 
-         bool rbAppendedWithPipeBits[1 << (MaxSeLog2 + MaxRbPerSeLog2)] = {};
+         bool rbAppendedWithPipeBits[1 << (MaxSeLog2 + MaxRbPerSeLog2)] = {0};
 
         // Loop through each bit of the channel, get the smallest coordinate,
         // and remove it from the metaaddr, and rb_equation
@@ -2302,8 +2303,8 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeBlock256Equation(
     ADDR_CHANNEL_SETTING* pixelBit = &pEquation->addr[elementBytesLog2];
 
     const UINT_32 maxBitsUsed = 4;
-    ADDR_CHANNEL_SETTING x[maxBitsUsed] = {};
-    ADDR_CHANNEL_SETTING y[maxBitsUsed] = {};
+    ADDR_CHANNEL_SETTING x[maxBitsUsed] = {0};
+    ADDR_CHANNEL_SETTING y[maxBitsUsed] = {0};
 
     for (i = 0; i < maxBitsUsed; i++)
     {
@@ -2465,7 +2466,7 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeBlock256Equation(
     // Post validation
     if (ret == ADDR_OK)
     {
-        ASSERTED Dim2d microBlockDim = Block256_2d[elementBytesLog2];
+        Dim2d microBlockDim = Block256_2d[elementBytesLog2];
         ADDR_ASSERT((2u << GetMaxValidChannelIndex(pEquation->addr, 8, 0)) ==
                     (microBlockDim.w * (1 << elementBytesLog2)));
         ADDR_ASSERT((2u << GetMaxValidChannelIndex(pEquation->addr, 8, 1)) == microBlockDim.h);
@@ -2512,12 +2513,12 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeThinEquation(
 
     const UINT_32 maxBitsUsed = 14;
     ADDR_ASSERT((2 * maxBitsUsed) >= maxXorBits);
-    ADDR_CHANNEL_SETTING x[maxBitsUsed] = {};
-    ADDR_CHANNEL_SETTING y[maxBitsUsed] = {};
+    ADDR_CHANNEL_SETTING x[maxBitsUsed] = {0};
+    ADDR_CHANNEL_SETTING y[maxBitsUsed] = {0};
 
     const UINT_32 extraXorBits = 16;
     ADDR_ASSERT(extraXorBits >= maxXorBits - blockSizeLog2);
-    ADDR_CHANNEL_SETTING xorExtra[extraXorBits] = {};
+    ADDR_CHANNEL_SETTING xorExtra[extraXorBits] = {0};
 
     for (UINT_32 i = 0; i < maxBitsUsed; i++)
     {
@@ -2671,13 +2672,13 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeThickEquation(
 
     const UINT_32 maxBitsUsed = 12;
     ADDR_ASSERT((3 * maxBitsUsed) >= maxXorBits);
-    ADDR_CHANNEL_SETTING x[maxBitsUsed] = {};
-    ADDR_CHANNEL_SETTING y[maxBitsUsed] = {};
-    ADDR_CHANNEL_SETTING z[maxBitsUsed] = {};
+    ADDR_CHANNEL_SETTING x[maxBitsUsed] = {0};
+    ADDR_CHANNEL_SETTING y[maxBitsUsed] = {0};
+    ADDR_CHANNEL_SETTING z[maxBitsUsed] = {0};
 
     const UINT_32 extraXorBits = 24;
     ADDR_ASSERT(extraXorBits >= maxXorBits - blockSizeLog2);
-    ADDR_CHANNEL_SETTING xorExtra[extraXorBits] = {};
+    ADDR_CHANNEL_SETTING xorExtra[extraXorBits] = {0};
 
     for (UINT_32 i = 0; i < maxBitsUsed; i++)
     {
@@ -2917,54 +2918,39 @@ BOOL_32 Gfx9Lib::IsValidDisplaySwizzleMode(
 {
     BOOL_32 support = FALSE;
 
+    const UINT_32 swizzleMask = 1 << pIn->swizzleMode;
+
     if (m_settings.isDce12)
     {
-        switch (pIn->swizzleMode)
+        if (pIn->bpp == 32)
         {
-            case ADDR_SW_256B_D:
-            case ADDR_SW_256B_R:
-                support = (pIn->bpp == 32);
-                break;
-
-            case ADDR_SW_LINEAR:
-            case ADDR_SW_4KB_D:
-            case ADDR_SW_4KB_R:
-            case ADDR_SW_64KB_D:
-            case ADDR_SW_64KB_R:
-            case ADDR_SW_4KB_D_X:
-            case ADDR_SW_4KB_R_X:
-            case ADDR_SW_64KB_D_X:
-            case ADDR_SW_64KB_R_X:
-                support = (pIn->bpp <= 64);
-                break;
-
-            default:
-                break;
+            support = (Dce12Bpp32SwModeMask & swizzleMask) ? TRUE : FALSE;
+        }
+        else if (pIn->bpp <= 64)
+        {
+            support = (Dce12NonBpp32SwModeMask & swizzleMask) ? TRUE : FALSE;
         }
     }
     else if (m_settings.isDcn1)
     {
-        switch (pIn->swizzleMode)
+        if (pIn->bpp < 64)
         {
-            case ADDR_SW_4KB_D:
-            case ADDR_SW_64KB_D:
-            case ADDR_SW_64KB_D_T:
-            case ADDR_SW_4KB_D_X:
-            case ADDR_SW_64KB_D_X:
-                support = (pIn->bpp == 64);
-                break;
-
-            case ADDR_SW_LINEAR:
-            case ADDR_SW_4KB_S:
-            case ADDR_SW_64KB_S:
-            case ADDR_SW_64KB_S_T:
-            case ADDR_SW_4KB_S_X:
-            case ADDR_SW_64KB_S_X:
-                support = (pIn->bpp <= 64);
-                break;
-
-            default:
-                break;
+            support = (Dcn1NonBpp64SwModeMask & swizzleMask) ? TRUE : FALSE;
+        }
+        else if (pIn->bpp == 64)
+        {
+            support = (Dcn1Bpp64SwModeMask & swizzleMask) ? TRUE : FALSE;
+        }
+    }
+    else if (m_settings.isDcn2)
+    {
+        if (pIn->bpp < 64)
+        {
+            support = (Dcn2NonBpp64SwModeMask & swizzleMask) ? TRUE : FALSE;
+        }
+        else if (pIn->bpp == 64)
+        {
+            support = (Dcn2Bpp64SwModeMask & swizzleMask) ? TRUE : FALSE;
         }
     }
     else
@@ -3393,7 +3379,7 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlGetPreferredSurfaceSetting(
     const BOOL_32 displayRsrc  = pIn->flags.display || pIn->flags.rotated;
 
     // Pre sanity check on non swizzle mode parameters
-    ADDR2_COMPUTE_SURFACE_INFO_INPUT localIn = {};
+    ADDR2_COMPUTE_SURFACE_INFO_INPUT localIn = {0};
     localIn.flags        = pIn->flags;
     localIn.resourceType = pOut->resourceType;
     localIn.format       = pIn->format;
@@ -3408,7 +3394,7 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlGetPreferredSurfaceSetting(
     if (ValidateNonSwModeParams(&localIn))
     {
         // Forbid swizzle mode(s) by client setting
-        ADDR2_SWMODE_SET allowedSwModeSet = {};
+        ADDR2_SWMODE_SET allowedSwModeSet = {0};
         allowedSwModeSet.value |= pIn->forbiddenBlock.linear ? 0 : Gfx9LinearSwModeMask;
         allowedSwModeSet.value |= pIn->forbiddenBlock.micro  ? 0 : Gfx9Blk256BSwModeMask;
         allowedSwModeSet.value |=
@@ -3577,6 +3563,10 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlGetPreferredSurfaceSetting(
             {
                 allowedSwModeSet.value &= (bpp == 64) ? Dcn1Bpp64SwModeMask : Dcn1NonBpp64SwModeMask;
             }
+            else if (m_settings.isDcn2)
+            {
+                allowedSwModeSet.value &= (bpp == 64) ? Dcn2Bpp64SwModeMask : Dcn2NonBpp64SwModeMask;
+            }
             else
             {
                 ADDR_NOT_IMPLEMENTED();
@@ -3630,10 +3620,10 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlGetPreferredSurfaceSetting(
 
                 ADDR2_BLOCK_SET allowedBlockSet = GetAllowedBlockSet(allowedSwModeSet, pOut->resourceType);
 
-                // Determine block size if there is 2 or more block type candidates
+                // Determine block size if there are 2 or more block type candidates
                 if (IsPow2(allowedBlockSet.value) == FALSE)
                 {
-                    AddrSwizzleMode swMode[AddrBlockMaxTiledType] = { ADDR_SW_LINEAR };
+                    AddrSwizzleMode swMode[AddrBlockMaxTiledType] = {ADDR_SW_LINEAR};
 
                     swMode[AddrBlockMicro]    = ADDR_SW_256B_D;
                     swMode[AddrBlockThin4KB]  = ADDR_SW_4KB_D;
@@ -3645,8 +3635,8 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlGetPreferredSurfaceSetting(
                         swMode[AddrBlockThick64KB] = ADDR_SW_64KB_S;
                     }
 
-                    Dim3d   blkDim[AddrBlockMaxTiledType]  = {{0}, {0}, {0}, {0}, {0}, {0}};
-                    Dim3d   padDim[AddrBlockMaxTiledType]  = {{0}, {0}, {0}, {0}, {0}, {0}};
+                    Dim3d   blkDim[AddrBlockMaxTiledType]  = {0};
+                    Dim3d   padDim[AddrBlockMaxTiledType]  = {0};
                     UINT_64 padSize[AddrBlockMaxTiledType] = {0};
 
                     const UINT_32 ratioLow           = pIn->flags.minimizeAlign ? 1 : (pIn->flags.opt4space ? 3 : 2);
@@ -3725,7 +3715,7 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlGetPreferredSurfaceSetting(
 
                 ADDR2_SWTYPE_SET allowedSwSet = GetAllowedSwSet(allowedSwModeSet);
 
-                // Determine swizzle type if there is 2 or more swizzle type candidates
+                // Determine swizzle type if there are 2 or more swizzle type candidates
                 if (IsPow2(allowedSwSet.value) == FALSE)
                 {
                     if (ElemLib::IsBlockCompressed(pIn->format))

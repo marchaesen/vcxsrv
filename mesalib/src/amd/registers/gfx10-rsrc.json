@@ -174,7 +174,7 @@
     {"name": "SQ_EXP_PARAM", "value": 32}
    ]
   },
-  "SQ_IMG_RSRC_WORD4__BC_SWIZZLE": {
+  "SQ_IMG_RSRC_WORD3__BC_SWIZZLE": {
    "entries": [
     {"name": "BC_SWIZZLE_XYZW", "value": 0},
     {"name": "BC_SWIZZLE_XWYZ", "value": 1},
@@ -211,10 +211,16 @@
    "name": "SQ_BUF_RSRC_WORD2"
   },
   {
-   "chips": ["gfx10", "gfx103"],
+   "chips": ["gfx10"],
    "map": {"at": 36620, "to": "mm"},
    "name": "SQ_BUF_RSRC_WORD3",
    "type_ref": "SQ_BUF_RSRC_WORD3"
+  },
+  {
+   "chips": ["gfx103"],
+   "map": {"at": 36620, "to": "mm"},
+   "name": "SQ_BUF_RSRC_WORD3",
+   "type_ref": "SQ_BUF_RSRC_WORD3_gfx103"
   },
   {
    "chips": ["gfx10", "gfx103"],
@@ -246,22 +252,40 @@
    "type_ref": "SQ_IMG_RSRC_WORD3"
   },
   {
-   "chips": ["gfx10", "gfx103"],
+   "chips": ["gfx10"],
    "map": {"at": 40976, "to": "mm"},
    "name": "SQ_IMG_RSRC_WORD4",
    "type_ref": "SQ_IMG_RSRC_WORD4"
   },
   {
-   "chips": ["gfx10", "gfx103"],
+   "chips": ["gfx103"],
+   "map": {"at": 40976, "to": "mm"},
+   "name": "SQ_IMG_RSRC_WORD4",
+   "type_ref": "SQ_IMG_RSRC_WORD4_gfx103"
+  },
+  {
+   "chips": ["gfx10"],
    "map": {"at": 40980, "to": "mm"},
    "name": "SQ_IMG_RSRC_WORD5",
    "type_ref": "SQ_IMG_RSRC_WORD5"
   },
   {
-   "chips": ["gfx10", "gfx103"],
+   "chips": ["gfx103"],
+   "map": {"at": 40980, "to": "mm"},
+   "name": "SQ_IMG_RSRC_WORD5",
+   "type_ref": "SQ_IMG_RSRC_WORD5_gfx103"
+  },
+  {
+   "chips": ["gfx10"],
    "map": {"at": 40984, "to": "mm"},
    "name": "SQ_IMG_RSRC_WORD6",
    "type_ref": "SQ_IMG_RSRC_WORD6"
+  },
+  {
+   "chips": ["gfx103"],
+   "map": {"at": 40984, "to": "mm"},
+   "name": "SQ_IMG_RSRC_WORD6",
+   "type_ref": "SQ_IMG_RSRC_WORD6_gfx103"
   },
   {
    "chips": ["gfx10", "gfx103"],
@@ -316,6 +340,21 @@
     {"bits": [30, 31], "comment": "must be 0", "name": "TYPE"}
    ]
   },
+  "SQ_BUF_RSRC_WORD3_gfx103": {
+   "fields": [
+    {"bits": [0, 2], "name": "DST_SEL_X"},
+    {"bits": [3, 5], "name": "DST_SEL_Y"},
+    {"bits": [6, 8], "name": "DST_SEL_Z"},
+    {"bits": [9, 11], "name": "DST_SEL_W"},
+    {"bits": [12, 18], "enum_ref": "IMG_FORMAT", "name": "FORMAT"},
+    {"bits": [21, 22], "name": "INDEX_STRIDE"},
+    {"bits": [23, 23], "name": "ADD_TID_ENABLE"},
+    {"bits": [24, 24], "comment": "must be 1", "name": "RESOURCE_LEVEL"},
+    {"bits": [26, 27], "name": "LLC_NOALLOC"},
+    {"bits": [28, 29], "enum_ref": "SQ_BUF_RSRC_WORD3__OOB_SELECT", "name": "OOB_SELECT"},
+    {"bits": [30, 31], "comment": "must be 0", "name": "TYPE"}
+   ]
+  },
   "SQ_EXP_0": {
    "fields": [
     {"bits": [0, 3], "name": "EN"},
@@ -335,8 +374,8 @@
   },
   "SQ_IMG_RSRC_WORD2": {
    "fields": [
-    {"bits": [0, 13], "name": "WIDTH_HI"},
-    {"bits": [14, 29], "name": "HEIGHT"},
+    {"bits": [0, 11], "name": "WIDTH_HI"},
+    {"bits": [14, 27], "name": "HEIGHT"},
     {"bits": [31, 31], "comment": "must be 1", "name": "RESOURCE_LEVEL"}
    ]
   },
@@ -349,17 +388,35 @@
     {"bits": [12, 15], "name": "BASE_LEVEL"},
     {"bits": [16, 19], "name": "LAST_LEVEL"},
     {"bits": [20, 24], "name": "SW_MODE"},
-    {"bits": [25, 27], "enum_ref": "SQ_IMG_RSRC_WORD4__BC_SWIZZLE", "name": "BC_SWIZZLE"},
+    {"bits": [25, 27], "enum_ref": "SQ_IMG_RSRC_WORD3__BC_SWIZZLE", "name": "BC_SWIZZLE"},
     {"bits": [28, 31], "name": "TYPE"}
    ]
   },
   "SQ_IMG_RSRC_WORD4": {
    "fields": [
-    {"bits": [0, 15], "name": "DEPTH"},
-    {"bits": [16, 31], "name": "BASE_ARRAY"}
+    {"bits": [0, 12], "name": "DEPTH"},
+    {"bits": [16, 28], "name": "BASE_ARRAY"}
+   ]
+  },
+  "SQ_IMG_RSRC_WORD4_gfx103": {
+   "fields": [
+    {"bits": [0, 12], "name": "DEPTH"},
+    {"bits": [0, 13], "comment": "only for 1D, 2D, and 2D_MSAA if pitch > width", "name": "PITCH"},
+    {"bits": [16, 28], "name": "BASE_ARRAY"}
    ]
   },
   "SQ_IMG_RSRC_WORD5": {
+   "fields": [
+    {"bits": [0, 3], "name": "ARRAY_PITCH"},
+    {"bits": [4, 7], "name": "MAX_MIP"},
+    {"bits": [8, 19], "name": "MIN_LOD_WARN"},
+    {"bits": [20, 22], "name": "PERF_MOD"},
+    {"bits": [23, 23], "name": "CORNER_SAMPLES"},
+    {"bits": [25, 25], "name": "LOD_HDW_CNT_EN"},
+    {"bits": [26, 26], "name": "PRT_DEFAULT"}
+   ]
+  },
+  "SQ_IMG_RSRC_WORD5_gfx103": {
    "fields": [
     {"bits": [0, 3], "name": "ARRAY_PITCH"},
     {"bits": [4, 7], "name": "MAX_MIP"},
@@ -374,6 +431,21 @@
   "SQ_IMG_RSRC_WORD6": {
    "fields": [
     {"bits": [0, 7], "name": "COUNTER_BANK_ID"},
+    {"bits": [10, 10], "name": "ITERATE_256"},
+    {"bits": [15, 16], "name": "MAX_UNCOMPRESSED_BLOCK_SIZE"},
+    {"bits": [17, 18], "name": "MAX_COMPRESSED_BLOCK_SIZE"},
+    {"bits": [19, 19], "name": "META_PIPE_ALIGNED"},
+    {"bits": [20, 20], "name": "WRITE_COMPRESS_ENABLE"},
+    {"bits": [21, 21], "name": "COMPRESSION_EN"},
+    {"bits": [22, 22], "name": "ALPHA_IS_ON_MSB"},
+    {"bits": [23, 23], "name": "COLOR_TRANSFORM"},
+    {"bits": [24, 31], "name": "META_DATA_ADDRESS_LO"}
+   ]
+  },
+  "SQ_IMG_RSRC_WORD6_gfx103": {
+   "fields": [
+    {"bits": [0, 7], "name": "COUNTER_BANK_ID"},
+    {"bits": [8, 9], "name": "LLC_NOALLOC"},
     {"bits": [10, 10], "name": "ITERATE_256"},
     {"bits": [15, 16], "name": "MAX_UNCOMPRESSED_BLOCK_SIZE"},
     {"bits": [17, 18], "name": "MAX_COMPRESSED_BLOCK_SIZE"},

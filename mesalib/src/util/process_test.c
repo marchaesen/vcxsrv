@@ -52,10 +52,14 @@ expect_equal_str(const char *expected, const char *actual, const char *test)
 static void
 test_util_get_process_name (void)
 {
-   #if !DETECT_OS_WINDOWS
-   const char* name = util_get_process_name();
-   expect_equal_str("process_test", name, "util_get_process_name");
-   #endif
+#if DETECT_OS_WINDOWS
+   const char *expected = "process_test.exe";
+#else
+   const char *expected = "process_test";
+#endif
+
+   const char *name = util_get_process_name();
+   expect_equal_str(expected, name, "util_get_process_name");
 }
 
 /* This test gets the real path from Meson (BUILD_FULL_PATH env var),

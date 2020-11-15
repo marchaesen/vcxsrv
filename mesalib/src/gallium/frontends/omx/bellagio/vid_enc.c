@@ -887,6 +887,7 @@ static OMX_ERRORTYPE vid_enc_EncodeFrame(omx_base_PortType *port, OMX_BUFFERHEAD
       picture_type = PIPE_H264_ENC_PICTURE_TYPE_IDR;
       priv->force_pic_type.IntraRefreshVOP = OMX_FALSE;
       priv->frame_num = 0;
+      priv->pic_order_cnt = 0;
    } else if (priv->codec->profile == PIPE_VIDEO_PROFILE_MPEG4_AVC_BASELINE ||
               !(priv->pic_order_cnt % OMX_VID_ENC_P_PERIOD_DEFAULT) ||
               (buf->nFlags & OMX_BUFFERFLAG_EOS)) {

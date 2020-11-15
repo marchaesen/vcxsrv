@@ -1257,7 +1257,7 @@ struct update_programs_in_pipeline_params
 };
 
 static void
-update_programs_in_pipeline(GLuint key, void *data, void *userData)
+update_programs_in_pipeline(void *data, void *userData)
 {
    struct update_programs_in_pipeline_params *params =
       (struct update_programs_in_pipeline_params *) userData;

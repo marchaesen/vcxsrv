@@ -877,7 +877,7 @@ v3d_field_iterator_next(struct clif_dump *clif, struct v3d_field_iterator *iter)
                 if (iter->field->minus_one)
                         value++;
                 if (strcmp(iter->field->name, "Vec size") == 0 && value == 0)
-                        value = 1 << (e - s);
+                        value = 1 << (e - s + 1);
                 snprintf(iter->value, sizeof(iter->value), "%u", value);
                 enum_name = v3d_get_enum_name(&iter->field->inline_enum, value);
                 break;

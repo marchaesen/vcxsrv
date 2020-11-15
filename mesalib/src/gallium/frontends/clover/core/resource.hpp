@@ -53,8 +53,8 @@ namespace clover {
       void clear(command_queue &q, const vector &origin, const vector &region,
                  const std::string &data);
 
-      void *add_map(command_queue &q, cl_map_flags flags, bool blocking,
-                    const vector &origin, const vector &region);
+      mapping *add_map(command_queue &q, cl_map_flags flags, bool blocking,
+                       const vector &origin, const vector &region);
       void del_map(void *p);
       unsigned map_count() const;
 
@@ -74,6 +74,8 @@ namespace clover {
 
       pipe_surface *bind_surface(command_queue &q, bool rw);
       void unbind_surface(command_queue &q, pipe_surface *st);
+
+      pipe_image_view create_image_view(command_queue &q);
 
       pipe_resource *pipe;
       vector offset;

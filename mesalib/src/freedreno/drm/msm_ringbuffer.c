@@ -150,15 +150,12 @@ append_bo(struct msm_submit *submit, struct fd_bo *bo)
 			/* found */
 			idx = (uint32_t)(uintptr_t)entry->data;
 		} else {
-			idx = APPEND(submit, submit_bos);
-			idx = APPEND(submit, bos);
-
-			submit->submit_bos[idx].flags = bo->flags &
-					(MSM_SUBMIT_BO_READ | MSM_SUBMIT_BO_WRITE);
-			submit->submit_bos[idx].handle = bo->handle;
-			submit->submit_bos[idx].presumed = 0;
-
-			submit->bos[idx] = fd_bo_ref(bo);
+			idx = APPEND(submit, submit_bos, (struct drm_msm_gem_submit_bo){
+				.flags = bo->flags & (MSM_SUBMIT_BO_READ | MSM_SUBMIT_BO_WRITE),
+				.handle = bo->handle,
+				.presumed = 0,
+			});
+			APPEND(submit, bos, fd_bo_ref(bo));
 
 			_mesa_hash_table_insert_pre_hashed(submit->bo_table, hash, bo,
 					(void *)(uintptr_t)idx);
@@ -464,12 +461,9 @@ finalize_current_cmd(struct fd_ringbuffer *ring)
 
 	debug_assert(msm_ring->cmd->ring_bo == msm_ring->ring_bo);
 
-	unsigned idx = APPEND(&msm_ring->u, cmds);
-
-	msm_ring->u.cmds[idx] = msm_ring->cmd;
+	msm_ring->cmd->size = offset_bytes(ring->cur, ring->start);
+	APPEND(&msm_ring->u, cmds, msm_ring->cmd);
 	msm_ring->cmd = NULL;
-
-	msm_ring->u.cmds[idx]->size = offset_bytes(ring->cur, ring->start);
 }
 
 static void
@@ -501,9 +495,7 @@ msm_ringbuffer_emit_reloc(struct fd_ringbuffer *ring,
 	unsigned reloc_idx;
 
 	if (ring->flags & _FD_RINGBUFFER_OBJECT) {
-		unsigned idx = APPEND(&msm_ring->u, reloc_bos);
-
-		msm_ring->u.reloc_bos[idx] = fd_bo_ref(reloc->bo);
+		unsigned idx = APPEND(&msm_ring->u, reloc_bos, fd_bo_ref(reloc->bo));
 
 		/* this gets fixed up at submit->flush() time, since this state-
 		 * object rb can be used with many different submits
@@ -520,30 +512,24 @@ msm_ringbuffer_emit_reloc(struct fd_ringbuffer *ring,
 		pipe = msm_ring->u.submit->pipe;
 	}
 
-	struct drm_msm_gem_submit_reloc *r;
-	unsigned idx = APPEND(msm_ring->cmd, relocs);
-
-	r = &msm_ring->cmd->relocs[idx];
-
-	r->reloc_idx = reloc_idx;
-	r->reloc_offset = reloc->offset;
-	r->or = reloc->or;
-	r->shift = reloc->shift;
-	r->submit_offset = offset_bytes(ring->cur, ring->start) +
-			msm_ring->offset;
+	APPEND(msm_ring->cmd, relocs, (struct drm_msm_gem_submit_reloc){
+		.reloc_idx = reloc_idx,
+		.reloc_offset = reloc->offset,
+		.or = reloc->or,
+		.shift = reloc->shift,
+		.submit_offset = offset_bytes(ring->cur, ring->start) + msm_ring->offset,
+	});
 
 	ring->cur++;
 
 	if (pipe->gpu_id >= 500) {
-		idx = APPEND(msm_ring->cmd, relocs);
-		r = &msm_ring->cmd->relocs[idx];
-
-		r->reloc_idx = reloc_idx;
-		r->reloc_offset = reloc->offset;
-		r->or = reloc->orhi;
-		r->shift = reloc->shift - 32;
-		r->submit_offset = offset_bytes(ring->cur, ring->start) +
-				msm_ring->offset;
+		APPEND(msm_ring->cmd, relocs, (struct drm_msm_gem_submit_reloc){
+			.reloc_idx = reloc_idx,
+			.reloc_offset = reloc->offset,
+			.or = reloc->orhi,
+			.shift = reloc->shift - 32,
+			.submit_offset = offset_bytes(ring->cur, ring->start) + msm_ring->offset,
+		});
 
 		ring->cur++;
 	}

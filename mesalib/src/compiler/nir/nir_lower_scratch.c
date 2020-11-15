@@ -112,7 +112,7 @@ nir_lower_vars_to_scratch(nir_shader *shader,
                continue;
 
             nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-            if (!(deref->mode & modes))
+            if (!nir_deref_mode_is_one_of(deref, modes))
                continue;
 
             if (!nir_deref_instr_has_indirect(nir_src_as_deref(intrin->src[0])))

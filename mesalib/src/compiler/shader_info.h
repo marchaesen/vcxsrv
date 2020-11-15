@@ -49,10 +49,12 @@ struct spirv_supported_capabilities {
    bool float64_atomic_add;
    bool fragment_shader_sample_interlock;
    bool fragment_shader_pixel_interlock;
+   bool generic_pointers;
    bool geometry_streams;
    bool image_ms_array;
    bool image_read_without_format;
    bool image_write_without_format;
+   bool image_atomic_int64;
    bool int8;
    bool int16;
    bool int64;
@@ -65,6 +67,9 @@ struct spirv_supported_capabilities {
    bool multiview;
    bool physical_storage_buffer_address;
    bool post_depth_coverage;
+   bool ray_tracing;
+   bool ray_query;
+   bool ray_traversal_primitive_culling;
    bool runtime_descriptor_array;
    bool float_controls;
    bool shader_clock;
@@ -92,6 +97,9 @@ struct spirv_supported_capabilities {
    bool amd_image_read_write_lod;
    bool amd_shader_explicit_vertex_parameter;
    bool amd_image_gather_bias_lod;
+
+   bool intel_subgroup_shuffle;
+   bool intel_subgroup_buffer_block_io;
 };
 
 typedef struct shader_info {
@@ -186,10 +194,9 @@ typedef struct shader_info {
     */
    bool uses_fddx_fddy:1;
 
-   /**
-    * True if this shader uses 64-bit ALU operations
-    */
-   bool uses_64bit:1;
+   /* Bitmask of bit-sizes used with ALU instructions. */
+   uint8_t bit_sizes_float;
+   uint8_t bit_sizes_int;
 
    /* Whether the first UBO is the default uniform buffer, i.e. uniforms. */
    bool first_ubo_is_default_ubo:1;
@@ -265,7 +272,13 @@ typedef struct shader_info {
           * instructions which do implicit derivatives, and the use of quad
           * subgroup operations.
           */
-         bool needs_helper_invocations:1;
+         bool needs_quad_helper_invocations:1;
+
+         /**
+          * True if this fragment shader requires helper invocations for
+          * all subgroup operations, not just quad ops and derivatives.
+          */
+         bool needs_all_helper_invocations:1;
 
          /**
           * Whether any inputs are declared with the "sample" qualifier.

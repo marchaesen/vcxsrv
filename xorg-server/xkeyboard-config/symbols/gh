@@ -43,7 +43,6 @@ xkb_symbols "ewe" {
     key <BKSL> { [ 0x01000256, 0x01000189,  backslash,  backslash ] };
     key <AC07> { [ 0x01000192, 0x01000191,          j,          J ] };
     key <AC05> { [          g,          G, 0x01000263, 0x01000194 ] };
-
 };
 
 partial alphanumeric_keys
@@ -64,7 +63,6 @@ xkb_symbols "fula" {
     key <AB07> { [     ntilde,     Ntilde,         m,           M ] };
     key <AB09> { [   ccedilla,   Ccedilla,    period,     greater ] };
     key <AB10> { [   scedilla,   Scedilla,     slash,    question ] };
-
 };
 
 partial alphanumeric_keys
@@ -90,7 +88,6 @@ xkb_symbols "generic" {
     key <AB04> { [          v,          V, 0x0100028B, 0x010001B2 ] };
 	key <AE04> { [          4,     dollar, 0x010020B5,       cent ] };
     include "level3(ralt_switch)"
-
 };
 
 partial alphanumeric_keys
@@ -113,7 +110,6 @@ xkb_symbols "avn" {
     key <AB03> { [ 0x01000254,      0x01000186                           ] }; // ɔ, Ɔ
 
     include "level3(ralt_switch)"
-
 };
 
 // This keyboard layout fully imitates the 'Ghana Unicode' layout which is used in GILLBT on Windows with Keyman.

@@ -200,8 +200,7 @@ lower_ishl64(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y)
       nir_pack_64_2x32_split(b, nir_imm_int(b, 0),
                                 nir_ishl(b, x_lo, reverse_count));
 
-   return nir_bcsel(b,
-                    nir_ieq(b, y, nir_imm_int(b, 0)), x,
+   return nir_bcsel(b, nir_ieq_imm(b, y, 0), x,
                     nir_bcsel(b, nir_uge(b, y, nir_imm_int(b, 32)),
                                  res_if_ge_32, res_if_lt_32));
 }
@@ -245,8 +244,7 @@ lower_ishr64(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y)
       nir_pack_64_2x32_split(b, nir_ishr(b, x_hi, reverse_count),
                                 nir_ishr(b, x_hi, nir_imm_int(b, 31)));
 
-   return nir_bcsel(b,
-                    nir_ieq(b, y, nir_imm_int(b, 0)), x,
+   return nir_bcsel(b, nir_ieq_imm(b, y, 0), x,
                     nir_bcsel(b, nir_uge(b, y, nir_imm_int(b, 32)),
                                  res_if_ge_32, res_if_lt_32));
 }
@@ -289,8 +287,7 @@ lower_ushr64(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y)
       nir_pack_64_2x32_split(b, nir_ushr(b, x_hi, reverse_count),
                                 nir_imm_int(b, 0));
 
-   return nir_bcsel(b,
-                    nir_ieq(b, y, nir_imm_int(b, 0)), x,
+   return nir_bcsel(b, nir_ieq_imm(b, y, 0), x,
                     nir_bcsel(b, nir_uge(b, y, nir_imm_int(b, 32)),
                                  res_if_ge_32, res_if_lt_32));
 }
@@ -522,7 +519,7 @@ lower_udiv64_mod64(nir_builder *b, nir_ssa_def *n, nir_ssa_def *d,
     * denom == 0.
     */
    nir_ssa_def *need_high_div =
-      nir_iand(b, nir_ieq(b, d_hi, nir_imm_int(b, 0)), nir_uge(b, n_hi, d_lo));
+      nir_iand(b, nir_ieq_imm(b, d_hi, 0), nir_uge(b, n_hi, d_lo));
    nir_push_if(b, nir_bany(b, need_high_div));
    {
       /* If we only have one component, then the bany above goes away and
@@ -630,7 +627,7 @@ lower_imod64(nir_builder *b, nir_ssa_def *n, nir_ssa_def *d)
 
    nir_ssa_def *rem = nir_bcsel(b, n_is_neg, nir_ineg(b, r), r);
 
-   return nir_bcsel(b, nir_ieq(b, r, nir_imm_int64(b, 0)), nir_imm_int64(b, 0),
+   return nir_bcsel(b, nir_ieq_imm(b, r, 0), nir_imm_int64(b, 0),
           nir_bcsel(b, nir_ieq(b, n_is_neg, d_is_neg), rem,
                        nir_iadd(b, rem, d)));
 }

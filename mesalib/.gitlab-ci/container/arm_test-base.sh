@@ -18,19 +18,19 @@ apt-get install -y --no-remove \
         ccache \
         cmake \
         cpio \
-        g++ \
         debootstrap \
         fastboot \
         flex \
+        g++ \
         git \
         netcat \
         nginx-full \
+        pkg-config \
+        procps \
         python3-distutils \
         python3-minimal \
         python3-serial \
         python3.7 \
-        pkg-config \
-        procps \
         rsync \
         u-boot-tools \
         unzip

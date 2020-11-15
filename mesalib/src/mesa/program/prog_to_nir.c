@@ -969,7 +969,7 @@ prog_to_nir(const struct gl_program *prog,
       return NULL;
    c->prog = prog;
 
-   nir_builder_init_simple_shader(&c->build, NULL, stage, options);
+   c->build = nir_builder_init_simple_shader(stage, options, NULL);
 
    /* Copy the shader_info from the gl_program */
    c->build.shader->info = prog->info;

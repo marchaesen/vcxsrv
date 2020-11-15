@@ -79,9 +79,21 @@ enum pan_blit_type {
 
 #define PAN_BLIT_NUM_TARGETS (12)
 
+struct pan_blit_shader {
+        mali_ptr shader;
+        uint32_t blend_ret_addr;
+};
+
 struct pan_blit_shaders {
         struct panfrost_bo *bo;
-        mali_ptr loads[PAN_BLIT_NUM_TARGETS][PAN_BLIT_NUM_TYPES][2];
+        struct pan_blit_shader loads[PAN_BLIT_NUM_TARGETS][PAN_BLIT_NUM_TYPES][2];
+};
+
+typedef uint32_t mali_pixel_format;
+
+struct panfrost_format {
+        mali_pixel_format hw;
+        unsigned bind;
 };
 
 struct panfrost_device {
@@ -91,10 +103,14 @@ struct panfrost_device {
         int fd;
 
         /* Properties of the GPU in use */
+        unsigned arch;
         unsigned gpu_id;
         unsigned core_count;
         unsigned thread_tls_alloc;
         unsigned quirks;
+
+        /* Table of formats, indexed by a PIPE format */
+        const struct panfrost_format *formats;
 
         /* Bitmask of supported compressed texture formats */
         uint32_t compressed_formats;

@@ -83,6 +83,8 @@ kernel::launch(command_queue &q,
 
    q.pipe->set_sampler_views(q.pipe, PIPE_SHADER_COMPUTE, 0,
                              exec.sviews.size(), exec.sviews.data());
+   q.pipe->set_shader_images(q.pipe, PIPE_SHADER_COMPUTE, 0,
+                             exec.iviews.size(), exec.iviews.data());
    q.pipe->set_compute_resources(q.pipe, 0, exec.resources.size(),
                                  exec.resources.data());
    q.pipe->set_global_binding(q.pipe, 0, exec.g_buffers.size(),
@@ -99,6 +101,8 @@ kernel::launch(command_queue &q,
 
    q.pipe->set_global_binding(q.pipe, 0, exec.g_buffers.size(), NULL, NULL);
    q.pipe->set_compute_resources(q.pipe, 0, exec.resources.size(), NULL);
+   q.pipe->set_shader_images(q.pipe, PIPE_SHADER_COMPUTE, 0,
+                             exec.iviews.size(), NULL);
    q.pipe->set_sampler_views(q.pipe, PIPE_SHADER_COMPUTE, 0,
                              exec.sviews.size(), NULL);
    q.pipe->bind_sampler_states(q.pipe, PIPE_SHADER_COMPUTE, 0,
@@ -279,6 +283,7 @@ kernel::exec_context::unbind() {
    input.clear();
    samplers.clear();
    sviews.clear();
+   iviews.clear();
    resources.clear();
    g_buffers.clear();
    g_handles.clear();
@@ -599,20 +604,17 @@ kernel::image_wr_argument::set(size_t size, const void *value) {
 void
 kernel::image_wr_argument::bind(exec_context &ctx,
                                 const module::argument &marg) {
-   auto v = bytes(ctx.resources.size());
+   auto v = bytes(ctx.iviews.size());
 
    extend(v, module::argument::zero_ext, marg.target_size);
    byteswap(v, ctx.q->device().endianness());
    align(ctx.input, marg.target_align);
    insert(ctx.input, v);
-
-   st = img->resource_in(*ctx.q).bind_surface(*ctx.q, true);
-   ctx.resources.push_back(st);
+   ctx.iviews.push_back(img->resource_in(*ctx.q).create_image_view(*ctx.q));
 }
 
 void
 kernel::image_wr_argument::unbind(exec_context &ctx) {
-   img->resource_in(*ctx.q).unbind_surface(*ctx.q, st);
 }
 
 void

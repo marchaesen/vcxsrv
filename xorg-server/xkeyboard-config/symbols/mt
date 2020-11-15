@@ -72,7 +72,6 @@ xkb_symbols "us" {
     key <AC01>	{ [         a,          A,       agrave,       Agrave ]	};
 
     include "level3(ralt_switch)"
-
 };
 
 // Alternative Maltese keyboard map (US-based layout using AltGr)

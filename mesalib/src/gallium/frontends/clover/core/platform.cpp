@@ -21,12 +21,17 @@
 //
 
 #include "core/platform.hpp"
+#include "util/u_debug.h"
 
 using namespace clover;
 
 platform::platform() : adaptor_range(evals(), devs) {
    int n = pipe_loader_probe(NULL, 0);
    std::vector<pipe_loader_device *> ldevs(n);
+
+   unsigned major = 1, minor = 1;
+   debug_get_version_option("CLOVER_PLATFORM_VERSION_OVERRIDE", &major, &minor);
+   version = CL_MAKE_VERSION(major, minor, 0);
 
    pipe_loader_probe(&ldevs.front(), n);
 
@@ -40,7 +45,39 @@ platform::platform() : adaptor_range(evals(), devs) {
    }
 }
 
-std::string
+std::vector<cl_name_version>
 platform::supported_extensions() const {
-   return "cl_khr_icd";
+   std::vector<cl_name_version> vec;
+
+   vec.push_back( (cl_name_version){ CL_MAKE_VERSION(1, 0, 0), "cl_khr_icd" } );
+   return vec;
+}
+
+std::string
+platform::supported_extensions_as_string() const {
+   static std::string extensions_string;
+
+   if (!extensions_string.empty())
+      return extensions_string;
+
+   const auto extension_list = supported_extensions();
+   for (const auto &extension : extension_list) {
+      if (!extensions_string.empty())
+         extensions_string += " ";
+      extensions_string += extension.name;
+   }
+   return extensions_string;
+}
+
+std::string
+platform::platform_version_as_string() const {
+   static const std::string version_string =
+      std::to_string(CL_VERSION_MAJOR(version)) + "." +
+      std::to_string(CL_VERSION_MINOR(version));
+   return version_string;
+}
+
+cl_version
+platform::platform_version() const {
+   return version;
 }

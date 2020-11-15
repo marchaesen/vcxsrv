@@ -36,8 +36,6 @@
 
 #include "addrcommon.h"
 
-#include "util/macros.h"
-
 using namespace Addr;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,6 +65,8 @@ ADDR_E_RETURNCODE ADDR_API AddrCreate(
     return returnCode;
 }
 
+
+
 /**
 ****************************************************************************************************
 *   AddrDestroy
@@ -95,6 +95,8 @@ ADDR_E_RETURNCODE ADDR_API AddrDestroy(
 
     return returnCode;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                    Surface functions
@@ -131,6 +133,8 @@ ADDR_E_RETURNCODE ADDR_API AddrComputeSurfaceInfo(
 
     return returnCode;
 }
+
+
 
 /**
 ****************************************************************************************************
@@ -195,6 +199,8 @@ ADDR_E_RETURNCODE ADDR_API AddrComputeSurfaceCoordFromAddr(
 
     return returnCode;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                   HTile functions
@@ -296,6 +302,8 @@ ADDR_E_RETURNCODE ADDR_API AddrComputeHtileCoordFromAddr(
 
     return returnCode;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                     C-mask functions
@@ -399,6 +407,8 @@ ADDR_E_RETURNCODE ADDR_API AddrComputeCmaskCoordFromAddr(
     return returnCode;
 }
 
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                     F-mask functions
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -499,6 +509,8 @@ ADDR_E_RETURNCODE ADDR_API AddrComputeFmaskCoordFromAddr(
     return returnCode;
 }
 
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                     DCC key functions
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -532,6 +544,8 @@ ADDR_E_RETURNCODE ADDR_API AddrComputeDccInfo(
 
     return returnCode;
 }
+
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Below functions are element related or helper functions
@@ -819,7 +833,7 @@ BOOL_32 ADDR_API ElemGetExportNorm(
     Addr::Lib* pLib = Lib::GetLib(hLib);
     BOOL_32 enabled = FALSE;
 
-    ASSERTED ADDR_E_RETURNCODE returnCode = ADDR_OK;
+    ADDR_E_RETURNCODE returnCode = ADDR_OK;
 
     if (pLib != NULL)
     {
@@ -1118,6 +1132,7 @@ ADDR_E_RETURNCODE ADDR_API AddrGetMaxMetaAlignments(
     return returnCode;
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                    Surface functions for Addr2
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1154,6 +1169,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeSurfaceInfo(
     return returnCode;
 }
 
+
 /**
 ****************************************************************************************************
 *   Addr2ComputeSurfaceAddrFromCoord
@@ -1186,6 +1202,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeSurfaceAddrFromCoord(
     return returnCode;
 }
 
+
 /**
 ****************************************************************************************************
 *   Addr2ComputeSurfaceCoordFromAddr
@@ -1217,6 +1234,8 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeSurfaceCoordFromAddr(
 
     return returnCode;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                   HTile functions for Addr2
@@ -1254,6 +1273,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeHtileInfo(
     return returnCode;
 }
 
+
 /**
 ****************************************************************************************************
 *   Addr2ComputeHtileAddrFromCoord
@@ -1285,6 +1305,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeHtileAddrFromCoord(
 
     return returnCode;
 }
+
 
 /**
 ****************************************************************************************************
@@ -1318,6 +1339,8 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeHtileCoordFromAddr(
 
     return returnCode;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                     C-mask functions for Addr2
@@ -1356,6 +1379,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeCmaskInfo(
     return returnCode;
 }
 
+
 /**
 ****************************************************************************************************
 *   Addr2ComputeCmaskAddrFromCoord
@@ -1387,6 +1411,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeCmaskAddrFromCoord(
 
     return returnCode;
 }
+
 
 /**
 ****************************************************************************************************
@@ -1420,6 +1445,8 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeCmaskCoordFromAddr(
 
     return returnCode;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                     F-mask functions for Addr2
@@ -1457,6 +1484,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeFmaskInfo(
     return returnCode;
 }
 
+
 /**
 ****************************************************************************************************
 *   Addr2ComputeFmaskAddrFromCoord
@@ -1489,6 +1517,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeFmaskAddrFromCoord(
     return returnCode;
 }
 
+
 /**
 ****************************************************************************************************
 *   Addr2ComputeFmaskCoordFromAddr
@@ -1520,6 +1549,8 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeFmaskCoordFromAddr(
 
     return returnCode;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                     DCC key functions for Addr2
@@ -1723,7 +1754,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2IsValidDisplaySwizzleMode(
 
     if (pLib != NULL)
     {
-        ADDR2_COMPUTE_SURFACE_INFO_INPUT in;
+        ADDR2_COMPUTE_SURFACE_INFO_INPUT in = {0};
         in.resourceType = ADDR_RSRC_TEX_2D;
         in.swizzleMode = swizzleMode;
         in.bpp = bpp;

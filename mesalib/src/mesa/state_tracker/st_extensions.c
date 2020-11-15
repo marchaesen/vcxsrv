@@ -1079,7 +1079,6 @@ void st_init_extensions(struct pipe_screen *screen,
    extensions->ATI_texture_env_combine3 = GL_TRUE;
 
    extensions->MESA_framebuffer_flip_y = GL_TRUE;
-   extensions->MESA_pack_invert = GL_TRUE;
 
    extensions->NV_copy_image = GL_TRUE;
    extensions->NV_fog_distance = GL_TRUE;
@@ -1132,6 +1131,8 @@ void st_init_extensions(struct pipe_screen *screen,
        options->force_glsl_version <= GLSLVersion) {
       consts->ForceGLSLVersion = options->force_glsl_version;
    }
+
+   consts->AllowExtraPPTokens = options->allow_extra_pp_tokens;
 
    consts->AllowHigherCompatVersion = options->allow_higher_compat_version;
 
@@ -1423,9 +1424,6 @@ void st_init_extensions(struct pipe_screen *screen,
 
    if (options->allow_glsl_relaxed_es)
       consts->AllowGLSLRelaxedES = GL_TRUE;
-
-   if (options->allow_glsl_layout_qualifier_on_function_parameters)
-      consts->AllowLayoutQualifiersOnFunctionParameters = GL_TRUE;
 
    consts->MinMapBufferAlignment =
       screen->get_param(screen, PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT);

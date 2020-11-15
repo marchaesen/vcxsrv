@@ -49,6 +49,7 @@ struct pipe_debug_callback;
 struct pipe_depth_stencil_alpha_state;
 struct pipe_device_reset_callback;
 struct pipe_draw_info;
+struct pipe_draw_start_count;
 struct pipe_grid_info;
 struct pipe_fence_handle;
 struct pipe_framebuffer_state;
@@ -108,6 +109,41 @@ struct pipe_context {
    /*@{*/
    void (*draw_vbo)( struct pipe_context *pipe,
                      const struct pipe_draw_info *info );
+
+   /**
+    * Direct multi draw specifying "start" and "count" for each draw.
+    *
+    * For indirect multi draws, use draw_vbo, which supports them through
+    * "info->indirect".
+    *
+    * Differences against draw_vbo:
+    * - "start" and "count" are taken from "draws", not "info"
+    * - "info->has_user_indices" is always false
+    * - "info->indirect" and "info->count_from_stream_output" are always NULL
+    *
+    * Differences against glMultiDraw:
+    * - "info->draw_id" is 0 and should be 0 for every draw
+    *   (we could make this configurable)
+    * - "info->index_bias" is always constant due to hardware performance
+    *   concerns (this is very important) and the lack of apps using
+    *   glMultiDrawElementsBaseVertex.
+    *
+    * The main use case is to optimize applications that submit many
+    * back-to-back draws or when mesa/main or st/mesa eliminates redundant
+    * state changes, resulting in back-to-back draws in the driver. It requires
+    * DrawID = 0 for every draw. u_threaded_context is the module that converts
+    * back-to-back draws into a multi draw. It's done trivially by looking
+    * ahead within a gallium command buffer and collapsing draws.
+    *
+    * \param pipe          context
+    * \param info          draw info
+    * \param draws         array of (start, count) pairs
+    * \param num_draws     number of draws
+    */
+   void (*multi_draw)(struct pipe_context *pipe,
+                      const struct pipe_draw_info *info,
+                      const struct pipe_draw_start_count *draws,
+                      unsigned num_draws);
    /*@}*/
 
    /**

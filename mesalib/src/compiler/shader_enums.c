@@ -43,6 +43,14 @@ gl_shader_stage_name(gl_shader_stage stage)
       ENUM(MESA_SHADER_GEOMETRY),
       ENUM(MESA_SHADER_FRAGMENT),
       ENUM(MESA_SHADER_COMPUTE),
+      ENUM(MESA_SHADER_TASK),
+      ENUM(MESA_SHADER_MESH),
+      ENUM(MESA_SHADER_RAYGEN),
+      ENUM(MESA_SHADER_ANY_HIT),
+      ENUM(MESA_SHADER_CLOSEST_HIT),
+      ENUM(MESA_SHADER_MISS),
+      ENUM(MESA_SHADER_INTERSECTION),
+      ENUM(MESA_SHADER_CALLABLE),
       ENUM(MESA_SHADER_KERNEL),
    };
    STATIC_ASSERT(ARRAY_SIZE(names) == MESA_ALL_SHADER_STAGES);
@@ -64,6 +72,14 @@ _mesa_shader_stage_to_string(unsigned stage)
    case MESA_SHADER_KERNEL:   return "kernel";
    case MESA_SHADER_TESS_CTRL: return "tessellation control";
    case MESA_SHADER_TESS_EVAL: return "tessellation evaluation";
+   case MESA_SHADER_TASK:         return "task";
+   case MESA_SHADER_MESH:         return "mesh";
+   case MESA_SHADER_RAYGEN:       return "raygen";
+   case MESA_SHADER_ANY_HIT:      return "any hit";
+   case MESA_SHADER_CLOSEST_HIT:  return "closest hit";
+   case MESA_SHADER_MISS:         return "miss";
+   case MESA_SHADER_INTERSECTION: return "intersection";
+   case MESA_SHADER_CALLABLE:     return "callable";
    }
 
    unreachable("Unknown shader stage.");
@@ -84,6 +100,14 @@ _mesa_shader_stage_to_abbrev(unsigned stage)
    case MESA_SHADER_KERNEL:   return "CL";
    case MESA_SHADER_TESS_CTRL: return "TCS";
    case MESA_SHADER_TESS_EVAL: return "TES";
+   case MESA_SHADER_TASK:         return "TASK";
+   case MESA_SHADER_MESH:         return "MESH";
+   case MESA_SHADER_RAYGEN:       return "RGEN";
+   case MESA_SHADER_ANY_HIT:      return "RAHIT";
+   case MESA_SHADER_CLOSEST_HIT:  return "RCHIT";
+   case MESA_SHADER_MISS:         return "RMISS";
+   case MESA_SHADER_INTERSECTION: return "RINT";
+   case MESA_SHADER_CALLABLE:     return "RCALL";
    }
 
    unreachable("Unknown shader stage.");
@@ -265,6 +289,19 @@ gl_system_value_name(gl_system_value sysval)
      ENUM(SYSTEM_VALUE_BARYCENTRIC_LINEAR_CENTROID),
      ENUM(SYSTEM_VALUE_BARYCENTRIC_LINEAR_SAMPLE),
      ENUM(SYSTEM_VALUE_BARYCENTRIC_PULL_MODEL),
+     ENUM(SYSTEM_VALUE_RAY_LAUNCH_ID),
+     ENUM(SYSTEM_VALUE_RAY_LAUNCH_SIZE),
+     ENUM(SYSTEM_VALUE_RAY_WORLD_ORIGIN),
+     ENUM(SYSTEM_VALUE_RAY_WORLD_DIRECTION),
+     ENUM(SYSTEM_VALUE_RAY_OBJECT_ORIGIN),
+     ENUM(SYSTEM_VALUE_RAY_OBJECT_DIRECTION),
+     ENUM(SYSTEM_VALUE_RAY_T_MIN),
+     ENUM(SYSTEM_VALUE_RAY_T_MAX),
+     ENUM(SYSTEM_VALUE_RAY_OBJECT_TO_WORLD),
+     ENUM(SYSTEM_VALUE_RAY_WORLD_TO_OBJECT),
+     ENUM(SYSTEM_VALUE_RAY_HIT_KIND),
+     ENUM(SYSTEM_VALUE_RAY_FLAGS),
+     ENUM(SYSTEM_VALUE_RAY_GEOMETRY_INDEX),
      ENUM(SYSTEM_VALUE_GS_HEADER_IR3),
      ENUM(SYSTEM_VALUE_TCS_HEADER_IR3),
    };

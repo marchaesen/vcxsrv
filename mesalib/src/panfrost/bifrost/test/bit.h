@@ -45,7 +45,7 @@ enum bit_debug {
 };
 
 bool
-bit_vertex(struct panfrost_device *dev, panfrost_program prog,
+bit_vertex(struct panfrost_device *dev, panfrost_program *prog,
                 uint32_t *iubo, size_t sz_ubo,
                 uint32_t *iattr, size_t sz_attr,
                 uint32_t *expected, size_t sz_expected, enum bit_debug debug);

@@ -90,12 +90,12 @@ partial alphanumeric_keys
 
 partial alphanumeric_keys
 	xkb_symbols "Sundeadkeys" {
-	include "nl(Sundeadkeys)"
+	include "nl(basic)"
 };
 
 partial alphanumeric_keys
 	xkb_symbols "sundeadkeys" {
-	include "nl(sundeadkeys)"
+	include "nl(basic)"
 };
 
 partial alphanumeric_keys

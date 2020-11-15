@@ -25,18 +25,19 @@
 
 #include "compiler/nir/nir_builder.h"
 #include "compiler/glsl/gl_nir.h"
+#include "nir/nir_to_tgsi.h"
 
 struct pipe_shader_state *
 st_nir_finish_builtin_shader(struct st_context *st,
-                             nir_shader *nir,
-                             const char *name)
+                             nir_shader *nir)
 {
    struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = pipe->screen;
+   gl_shader_stage stage = nir->info.stage;
+   enum pipe_shader_type sh = pipe_shader_type_from_mesa(stage);
 
-   nir->info.name = ralloc_strdup(nir, name);
    nir->info.separate_shader = true;
-   if (nir->info.stage == MESA_SHADER_FRAGMENT)
+   if (stage == MESA_SHADER_FRAGMENT)
       nir->info.fs.untyped_color_outputs = true;
 
    NIR_PASS_V(nir, nir_lower_global_vars_to_local);
@@ -47,8 +48,8 @@ st_nir_finish_builtin_shader(struct st_context *st,
 
    if (nir->options->lower_to_scalar) {
       nir_variable_mode mask =
-         (nir->info.stage > MESA_SHADER_VERTEX ? nir_var_shader_in : 0) |
-         (nir->info.stage < MESA_SHADER_FRAGMENT ? nir_var_shader_out : 0);
+          (stage > MESA_SHADER_VERTEX ? nir_var_shader_in : 0) |
+          (stage < MESA_SHADER_FRAGMENT ? nir_var_shader_out : 0);
 
       NIR_PASS_V(nir, nir_lower_io_to_scalar_early, mask);
    }
@@ -73,7 +74,14 @@ st_nir_finish_builtin_shader(struct st_context *st,
       .ir.nir = nir,
    };
 
-   switch (nir->info.stage) {
+   if (PIPE_SHADER_IR_NIR !=
+       screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_PREFERRED_IR)) {
+      state.type = PIPE_SHADER_IR_TGSI;
+      state.tokens = nir_to_tgsi(nir, screen);
+      ralloc_free(nir);
+   }
+
+   switch (stage) {
    case MESA_SHADER_VERTEX:
       return pipe->create_vs_state(pipe, &state);
    case MESA_SHADER_TESS_CTRL:
@@ -103,12 +111,12 @@ st_nir_make_passthrough_shader(struct st_context *st,
                                unsigned *interpolation_modes,
                                unsigned sysval_mask)
 {
-   struct nir_builder b;
    const struct glsl_type *vec4 = glsl_vec4_type();
    const nir_shader_compiler_options *options =
-      st->ctx->Const.ShaderCompilerOptions[stage].NirOptions;
+      st_get_nir_compiler_options(st, stage);
 
-   nir_builder_init_simple_shader(&b, NULL, stage, options);
+   nir_builder b = nir_builder_init_simple_shader(stage, options,
+                                                  "%s", shader_name);
 
    char var_name[15];
 
@@ -118,7 +126,6 @@ st_nir_make_passthrough_shader(struct st_context *st,
          snprintf(var_name, sizeof(var_name), "sys_%u", input_locations[i]);
          in = nir_variable_create(b.shader, nir_var_system_value,
                                   glsl_int_type(), var_name);
-         in->data.interpolation = INTERP_MODE_FLAT;
       } else {
          snprintf(var_name, sizeof(var_name), "in_%u", input_locations[i]);
          in = nir_variable_create(b.shader, nir_var_shader_in, vec4, var_name);
@@ -136,5 +143,5 @@ st_nir_make_passthrough_shader(struct st_context *st,
       nir_copy_var(&b, out, in);
    }
 
-   return st_nir_finish_builtin_shader(st, b.shader, shader_name);
+   return st_nir_finish_builtin_shader(st, b.shader);
 }

@@ -45,7 +45,7 @@ mesa_to_vk_shader_stage(gl_shader_stage mesa_stage)
         stage = __builtin_ffs(__tmp) - 1, __tmp; __tmp &= ~(1 << (stage)))
 
 static inline enum a3xx_msaa_samples
-tu_msaa_samples(VkSampleCountFlagBits samples)
+tu_msaa_samples(uint32_t samples)
 {
    assert(__builtin_popcount(samples) == 1);
    return util_logbase2(samples);

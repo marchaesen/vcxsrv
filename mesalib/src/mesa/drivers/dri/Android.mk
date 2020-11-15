@@ -51,6 +51,7 @@ MESA_DRI_SHARED_LIBRARIES := \
 	libdl \
 	libglapi \
 	liblog \
+	libsync \
 	libz
 
 # If Android version >=8 MESA should static link libexpat else should dynamic link

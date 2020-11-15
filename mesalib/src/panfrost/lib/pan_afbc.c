@@ -92,17 +92,14 @@ panfrost_format_supports_afbc(enum pipe_format format)
         if (util_format_is_rgba8_variant(desc))
                 return true;
 
-        /* Only Z24S8 variants are compressible as Z/S */
-
-        if (panfrost_is_z24s8_variant(format))
-                return true;
-
-        /* Lookup special formats */
         switch (format) {
         case PIPE_FORMAT_R8G8B8_UNORM:
         case PIPE_FORMAT_B8G8R8_UNORM:
         case PIPE_FORMAT_R5G6B5_UNORM:
         case PIPE_FORMAT_B5G6R5_UNORM:
+        case PIPE_FORMAT_Z24_UNORM_S8_UINT:
+        case PIPE_FORMAT_Z24X8_UNORM:
+        case PIPE_FORMAT_Z16_UNORM:
                 return true;
         default:
                 return false;

@@ -399,7 +399,7 @@ dump_shader(const char *ext, void *buf, int bufsz)
 {
 	if (options->dump_shaders) {
 		static int n = 0;
-		char filename[8];
+		char filename[16];
 		int fd;
 		sprintf(filename, "%04d.%s", n++, ext);
 		fd = open(filename, O_WRONLY| O_TRUNC | O_CREAT, 0644);

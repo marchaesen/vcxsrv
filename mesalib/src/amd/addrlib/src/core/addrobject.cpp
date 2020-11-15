@@ -230,6 +230,7 @@ VOID Object::DebugPrint(
         m_client.callbacks.debugPrint(&debugPrintInput);
 
         va_end(ap);
+        va_end(debugPrintInput.ap);
     }
 #endif
 }

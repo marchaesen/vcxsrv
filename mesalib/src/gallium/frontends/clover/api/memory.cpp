@@ -20,6 +20,7 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#include "util/format/u_format.h"
 #include "util/u_math.h"
 #include "api/util.hpp"
 #include "core/memory.hpp"
@@ -179,6 +180,9 @@ clCreateImage(cl_context d_ctx, cl_mem_flags d_flags,
 
    ret_error(r_errcode, CL_SUCCESS);
 
+   const size_t row_pitch = desc->image_row_pitch ? desc->image_row_pitch :
+      util_format_get_blocksize(translate_format(*format)) * desc->image_width;
+
    switch (desc->image_type) {
    case CL_MEM_OBJECT_IMAGE2D:
       if (!desc->image_width || !desc->image_height)
@@ -193,9 +197,9 @@ clCreateImage(cl_context d_ctx, cl_mem_flags d_flags,
 
       return new image2d(ctx, flags, format,
                          desc->image_width, desc->image_height,
-                         desc->image_row_pitch, host_ptr);
+                         row_pitch, host_ptr);
 
-   case CL_MEM_OBJECT_IMAGE3D:
+   case CL_MEM_OBJECT_IMAGE3D: {
       if (!desc->image_width || !desc->image_height || !desc->image_depth)
          throw error(CL_INVALID_IMAGE_SIZE);
 
@@ -207,10 +211,14 @@ clCreateImage(cl_context d_ctx, cl_mem_flags d_flags,
             }, ctx.devices()))
          throw error(CL_INVALID_IMAGE_SIZE);
 
+      const size_t slice_pitch = desc->image_slice_pitch ?
+         desc->image_slice_pitch : row_pitch * desc->image_height;
+
       return new image3d(ctx, flags, format,
                          desc->image_width, desc->image_height,
-                         desc->image_depth, desc->image_row_pitch,
-                         desc->image_slice_pitch, host_ptr);
+                         desc->image_depth, row_pitch,
+                         slice_pitch, host_ptr);
+   }
 
    case CL_MEM_OBJECT_IMAGE1D:
    case CL_MEM_OBJECT_IMAGE1D_ARRAY:
@@ -234,7 +242,7 @@ clCreateImage2D(cl_context d_ctx, cl_mem_flags d_flags,
                 size_t width, size_t height, size_t row_pitch,
                 void *host_ptr, cl_int *r_errcode) {
    const cl_image_desc desc = { CL_MEM_OBJECT_IMAGE2D, width, height, 0, 0,
-                                row_pitch, 0, 0, 0, { NULL } };
+                                row_pitch, 0, 0, 0, NULL };
 
    return clCreateImage(d_ctx, d_flags, format, &desc, host_ptr, r_errcode);
 }
@@ -246,7 +254,7 @@ clCreateImage3D(cl_context d_ctx, cl_mem_flags d_flags,
                 size_t row_pitch, size_t slice_pitch,
                 void *host_ptr, cl_int *r_errcode) {
    const cl_image_desc desc = { CL_MEM_OBJECT_IMAGE3D, width, height, depth, 0,
-                                row_pitch, slice_pitch, 0, 0, { NULL } };
+                                row_pitch, slice_pitch, 0, 0, NULL };
 
    return clCreateImage(d_ctx, d_flags, format, &desc, host_ptr, r_errcode);
 }
@@ -260,7 +268,7 @@ clGetSupportedImageFormats(cl_context d_ctx, cl_mem_flags flags,
 
    validate_flags(NULL, flags, false);
 
-   if (r_buf && !r_count)
+   if (r_buf && !count)
       throw error(CL_INVALID_VALUE);
 
    if (r_buf)

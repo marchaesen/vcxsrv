@@ -125,7 +125,7 @@ st_update_fp( struct st_context *st )
                             st->ctx->Light.ShadeModel == GL_FLAT;
 
       /* _NEW_COLOR */
-      key.lower_alpha_func = COMPARE_FUNC_NEVER;
+      key.lower_alpha_func = COMPARE_FUNC_ALWAYS;
       if (st->lower_alpha_test && _mesa_is_alpha_test_enabled(st->ctx))
          key.lower_alpha_func = st->ctx->Color.AlphaFunc;
 
@@ -160,7 +160,9 @@ st_update_fp( struct st_context *st )
 
       key.external = st_get_external_sampler_key(st, &stfp->Base);
 
+      simple_mtx_lock(&st->ctx->Shared->Mutex);
       shader = st_get_fp_variant(st, stfp, &key)->base.driver_shader;
+      simple_mtx_unlock(&st->ctx->Shared->Mutex);
    }
 
    st_reference_prog(st, &st->fp, stfp);
@@ -232,7 +234,9 @@ st_update_vp( struct st_context *st )
           !st->ctx->GeometryProgram._Current)
          key.lower_ucp = st->ctx->Transform.ClipPlanesEnabled;
 
+      simple_mtx_lock(&st->ctx->Shared->Mutex);
       st->vp_variant = st_get_vp_variant(st, stvp, &key);
+      simple_mtx_unlock(&st->ctx->Shared->Mutex);
    }
 
    st_reference_prog(st, &st->vp, stvp);
@@ -291,7 +295,11 @@ st_update_common_program(struct st_context *st, struct gl_program *prog,
          key.lower_ucp = st->ctx->Transform.ClipPlanesEnabled;
    }
 
-   return st_get_common_variant(st, stp, &key)->driver_shader;
+   simple_mtx_lock(&st->ctx->Shared->Mutex);
+   void *result = st_get_common_variant(st, stp, &key)->driver_shader;
+   simple_mtx_unlock(&st->ctx->Shared->Mutex);
+
+   return result;
 }
 
 

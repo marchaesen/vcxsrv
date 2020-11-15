@@ -146,14 +146,18 @@ __vk_outarray_next(struct __vk_outarray *a, size_t elem_size)
    __vk_outarray_init(&(a)->base, (data), (len))
 
 #define VK_OUTARRAY_MAKE(name, data, len) \
-   vk_outarray(__typeof__((data)[0])) name; \
+   VK_OUTARRAY_MAKE_TYPED(__typeof__((data)[0]), name, data, len)
+#define VK_OUTARRAY_MAKE_TYPED(type, name, data, len) \
+   vk_outarray(type) name; \
    vk_outarray_init(&name, (data), (len))
 
 #define vk_outarray_status(a) \
    __vk_outarray_status(&(a)->base)
 
 #define vk_outarray_next(a) \
-   ((vk_outarray_typeof_elem(a) *) \
+   vk_outarray_next_typed(vk_outarray_typeof_elem(a), a)
+#define vk_outarray_next_typed(type, a) \
+   ((type *) \
       __vk_outarray_next(&(a)->base, vk_outarray_sizeof_elem(a)))
 
 /**
@@ -176,7 +180,9 @@ __vk_outarray_next(struct __vk_outarray *a, size_t elem_size)
  * points to the newly appended element.
  */
 #define vk_outarray_append(a, elem) \
-   for (vk_outarray_typeof_elem(a) *elem = vk_outarray_next(a); \
+   vk_outarray_append_typed(vk_outarray_typeof_elem(a), a, elem)
+#define vk_outarray_append_typed(type, a, elem) \
+   for (type *elem = vk_outarray_next_typed(type, a); \
         elem != NULL; elem = NULL)
 
 static inline void *

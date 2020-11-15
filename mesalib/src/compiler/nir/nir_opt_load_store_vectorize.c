@@ -513,8 +513,8 @@ get_variable_mode(struct entry *entry)
 {
    if (entry->info->mode)
       return entry->info->mode;
-   assert(entry->deref);
-   return entry->deref->mode;
+   assert(entry->deref && util_bitcount(entry->deref->modes) == 1);
+   return entry->deref->modes;
 }
 
 static unsigned
@@ -622,7 +622,7 @@ cast_deref(nir_builder *b, unsigned num_components, unsigned bit_size, nir_deref
    if (deref->type == type)
       return deref;
 
-   return nir_build_deref_cast(b, &deref->dest.ssa, deref->mode, type, 0);
+   return nir_build_deref_cast(b, &deref->dest.ssa, deref->modes, type, 0);
 }
 
 /* Return true if "new_bit_size" is a usable bit size for a vectorized load/store
@@ -697,7 +697,7 @@ static nir_deref_instr *subtract_deref(nir_builder *b, nir_deref_instr *deref, i
    }
 
 
-   deref = nir_build_deref_cast(b, &deref->dest.ssa, deref->mode,
+   deref = nir_build_deref_cast(b, &deref->dest.ssa, deref->modes,
                                 glsl_scalar_type(GLSL_TYPE_UINT8), 1);
    return nir_build_deref_ptr_as_array(
       b, deref, nir_imm_intN_t(b, -offset, deref->dest.ssa.bit_size));
@@ -1263,7 +1263,7 @@ process_block(nir_function_impl *impl, struct vectorize_ctx *ctx, nir_block *blo
 
       nir_variable_mode mode = info->mode;
       if (!mode)
-         mode = nir_src_as_deref(intrin->src[info->deref_src])->mode;
+         mode = nir_src_as_deref(intrin->src[info->deref_src])->modes;
       if (!(mode & aliasing_modes(ctx->modes)))
          continue;
       unsigned mode_index = mode_to_index(mode);

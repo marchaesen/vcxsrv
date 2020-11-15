@@ -143,7 +143,7 @@ vlVdpVideoMixerCreate(VdpDevice device,
    }
    ret = VDP_STATUS_INVALID_VALUE;
    if (vmixer->max_layers > 4) {
-      VDPAU_MSG(VDPAU_WARN, "[VDPAU] Max layers > 4 not supported\n", vmixer->max_layers);
+      VDPAU_MSG(VDPAU_WARN, "[VDPAU] Max layers %u > 4 not supported\n", vmixer->max_layers);
       goto no_params;
    }
 

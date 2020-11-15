@@ -344,13 +344,17 @@ struct v3d_key {
         void *shader_state;
         struct {
                 uint8_t swizzle[4];
-                uint8_t return_size;
-                uint8_t return_channels;
                 bool clamp_s:1;
                 bool clamp_t:1;
                 bool clamp_r:1;
         } tex[V3D_MAX_TEXTURE_SAMPLERS];
+        struct {
+                uint8_t return_size;
+                uint8_t return_channels;
+        } sampler[V3D_MAX_TEXTURE_SAMPLERS];
+
         uint8_t num_tex_used;
+        uint8_t num_samplers_used;
         uint8_t ucp_enables;
         bool is_last_geometry_stage;
         bool robust_buffer_access;
@@ -360,7 +364,6 @@ struct v3d_key {
 
 struct v3d_fs_key {
         struct v3d_key base;
-        bool depth_enabled;
         bool is_points;
         bool is_lines;
         bool line_smoothing;
@@ -419,7 +422,7 @@ struct v3d_vs_key {
          * vertex attributes. Since the hardware doesn't provide any
          * means to swizzle vertex attributes we need to do it in the shader.
          */
-        uint16_t va_swap_rb_mask;
+        uint32_t va_swap_rb_mask;
 
         bool is_coord;
         bool per_vertex_point_size;

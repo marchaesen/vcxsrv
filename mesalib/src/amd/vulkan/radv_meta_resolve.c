@@ -35,12 +35,9 @@ static nir_shader *
 build_nir_fs(void)
 {
 	const struct glsl_type *vec4 = glsl_vec4_type();
-	nir_builder b;
 	nir_variable *f_color; /* vec4, fragment output color */
 
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_FRAGMENT, NULL);
-	b.shader->info.name = ralloc_asprintf(b.shader,
-					       "meta_resolve_fs");
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, NULL, "meta_resolve_fs");
 
 	f_color = nir_variable_create(b.shader, nir_var_shader_out, vec4,
 				      "f_color");

@@ -299,6 +299,49 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
       break;
    }
 
+   case SpvOpSubgroupShuffleINTEL:
+   case SpvOpSubgroupShuffleXorINTEL: {
+      nir_intrinsic_op op = opcode == SpvOpSubgroupShuffleINTEL ?
+         nir_intrinsic_shuffle : nir_intrinsic_shuffle_xor;
+      vtn_push_ssa_value(b, w[2],
+         vtn_build_subgroup_instr(b, op, vtn_ssa_value(b, w[3]),
+                                  vtn_get_nir_ssa(b, w[4]), 0, 0));
+      break;
+   }
+
+   case SpvOpSubgroupShuffleUpINTEL:
+   case SpvOpSubgroupShuffleDownINTEL: {
+      /* TODO: Move this lower on the compiler stack, where we can move the
+       * current/other data to adjacent registers to avoid doing a shuffle
+       * twice.
+       */
+
+      nir_builder *nb = &b->nb;
+      nir_ssa_def *size = nir_load_subgroup_size(nb);
+      nir_ssa_def *delta = vtn_get_nir_ssa(b, w[5]);
+
+      /* Rewrite UP in terms of DOWN.
+       *
+       *   UP(a, b, delta) == DOWN(a, b, size - delta)
+       */
+      if (opcode == SpvOpSubgroupShuffleUpINTEL)
+         delta = nir_isub(nb, size, delta);
+
+      nir_ssa_def *index = nir_iadd(nb, nir_load_subgroup_invocation(nb), delta);
+      struct vtn_ssa_value *current =
+         vtn_build_subgroup_instr(b, nir_intrinsic_shuffle, vtn_ssa_value(b, w[3]),
+                                  index, 0, 0);
+
+      struct vtn_ssa_value *next =
+         vtn_build_subgroup_instr(b, nir_intrinsic_shuffle, vtn_ssa_value(b, w[4]),
+                                  nir_isub(nb, index, size), 0, 0);
+
+      nir_ssa_def *cond = nir_ilt(nb, index, size);
+      vtn_push_nir_ssa(b, w[2], nir_bcsel(nb, cond, current->def, next->def));
+
+      break;
+   }
+
    case SpvOpGroupNonUniformQuadBroadcast:
       vtn_push_ssa_value(b, w[2],
          vtn_build_subgroup_instr(b, nir_intrinsic_quad_broadcast,

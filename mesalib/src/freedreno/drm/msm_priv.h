@@ -117,25 +117,25 @@ static inline void get_abs_timeout(struct drm_msm_timespec *tv, uint64_t ns)
  * Stupid/simple growable array implementation:
  */
 
-static inline void *
-grow(void *ptr, uint16_t nr, uint16_t *max, uint16_t sz)
+static inline void
+grow(void **ptr, uint16_t nr, uint16_t *max, uint16_t sz)
 {
 	if ((nr + 1) > *max) {
 		if ((*max * 2) < (nr + 1))
 			*max = nr + 5;
 		else
 			*max = *max * 2;
-		ptr = realloc(ptr, *max * sz);
+		*ptr = realloc(*ptr, *max * sz);
 	}
-	return ptr;
 }
 
 #define DECLARE_ARRAY(type, name) \
 	unsigned short nr_ ## name, max_ ## name; \
 	type * name;
 
-#define APPEND(x, name) ({ \
-	(x)->name = grow((x)->name, (x)->nr_ ## name, &(x)->max_ ## name, sizeof((x)->name[0])); \
+#define APPEND(x, name, ...) ({ \
+	grow((void **)&(x)->name, (x)->nr_ ## name, &(x)->max_ ## name, sizeof((x)->name[0])); \
+	(x)->name[(x)->nr_ ## name] = __VA_ARGS__; \
 	(x)->nr_ ## name ++; \
 })
 

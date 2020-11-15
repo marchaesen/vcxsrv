@@ -541,7 +541,7 @@ def binop_horiz(name, out_size, out_type, src1_size, src1_type, src2_size,
           False, "", const_expr)
 
 def binop_reduce(name, output_size, output_type, src_type, prereduce_expr,
-                 reduce_expr, final_expr):
+                 reduce_expr, final_expr, suffix=""):
    def final(src):
       return final_expr.format(src= "(" + src + ")")
    def reduce_(src0, src1):
@@ -552,14 +552,14 @@ def binop_reduce(name, output_size, output_type, src_type, prereduce_expr,
    def pairwise_reduce(start, size):
       if (size == 1):
          return srcs[start]
-      return reduce_(pairwise_reduce(start, size // 2), pairwise_reduce(start + size // 2, size // 2))
+      return reduce_(pairwise_reduce(start + size // 2, size // 2), pairwise_reduce(start, size // 2))
    for size in [2, 4, 8, 16]:
-      opcode(name + str(size), output_size, output_type,
+      opcode(name + str(size) + suffix, output_size, output_type,
              [size, size], [src_type, src_type], False, _2src_commutative,
              final(pairwise_reduce(0, size)))
-   opcode(name + "3", output_size, output_type,
+   opcode(name + "3" + suffix, output_size, output_type,
           [3, 3], [src_type, src_type], False, _2src_commutative,
-          final(reduce_(reduce_(srcs[0], srcs[1]), srcs[2])))
+          final(reduce_(reduce_(srcs[2], srcs[1]), srcs[0])))
 
 def binop_reduce_all_sizes(name, output_size, src_type, prereduce_expr,
                            reduce_expr, final_expr):
@@ -825,8 +825,9 @@ binop("ixor", tuint, _2src_commutative + associative, "src0 ^ src1")
 binop_reduce("fdot", 1, tfloat, tfloat, "{src0} * {src1}", "{src0} + {src1}",
              "{src}")
 
-binop_reduce("fdot_replicated", 4, tfloat, tfloat,
-             "{src0} * {src1}", "{src0} + {src1}", "{src}")
+binop_reduce("fdot", 4, tfloat, tfloat,
+             "{src0} * {src1}", "{src0} + {src1}", "{src}",
+             suffix="_replicated")
 
 opcode("fdph", 1, tfloat, [3, 4], [tfloat, tfloat], False, "",
        "src0.x * src1.x + src0.y * src1.y + src0.z * src1.z + src1.w")

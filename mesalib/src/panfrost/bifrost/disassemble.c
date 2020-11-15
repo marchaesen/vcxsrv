@@ -226,10 +226,10 @@ bi_disasm_dest_add(FILE *fp, struct bifrost_regs *next_regs, bool last)
     struct bifrost_reg_ctrl ctrl = DecodeRegCtrl(fp, *next_regs, last);
 
     if (ctrl.slot23.slot3 >= BIFROST_OP_WRITE && !ctrl.slot23.slot3_fma) {
-        fprintf(fp, "r%u:t0", next_regs->reg3);
+        fprintf(fp, "r%u:t1", next_regs->reg3);
         bi_disasm_dest_mask(fp, ctrl.slot23.slot3);
     } else
-        fprintf(fp, "t0");
+        fprintf(fp, "t1");
 }
 
 static void dump_const_imm(FILE *fp, uint32_t imm)

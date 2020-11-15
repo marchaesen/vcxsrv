@@ -27,7 +27,7 @@
  * \author Felix Kuehling
  */
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(_WIN32)
 #define WITH_XMLCONFIG 0
 #else
 #define WITH_XMLCONFIG 1
@@ -43,14 +43,14 @@
 #include <assert.h>
 #if WITH_XMLCONFIG
 #include <expat.h>
-#endif
-#include <fcntl.h>
-#include <math.h>
 #include <unistd.h>
 #include <errno.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <regex.h>
+#endif
+#include <fcntl.h>
+#include <math.h>
 #include "strndup.h"
 #include "xmlconfig.h"
 #include "u_process.h"
@@ -377,6 +377,10 @@ driParseOptionInfo(driOptionCache *info,
       char *envVal = getenv(name);
       if (envVal != NULL) {
          driOptionValue v;
+
+         /* make sure the value is initialized to something sensible */
+         v._string = NULL;
+
          if (parseValue(&v, opt->info.type, envVal) &&
              checkValue(&v, optinfo)) {
             /* don't use XML_WARNING, we want the user to see this! */

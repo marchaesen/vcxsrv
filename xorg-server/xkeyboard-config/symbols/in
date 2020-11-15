@@ -27,8 +27,6 @@
 // - Ol Chiki:
 //    http://www.unicode.org/L2/L2005/05243r-n2984-ol-chiki.pdf (fig. 9)
 
-// based on a keyboard map from an 'xkb/symbols/dev' file
-
 // Devangari is the default. Kill me if I am wrong:)
 default partial alphanumeric_keys
 xkb_symbols "deva" {
@@ -176,8 +174,6 @@ xkb_symbols "bolnagri" {
     include "level3(ralt_switch)"
     include "rupeesign(4)"
 };
-
-// based on a keyboard map from an 'xkb/symbols/ben' file
 
 partial alphanumeric_keys
 xkb_symbols "ben" {
@@ -1053,8 +1049,7 @@ xkb_symbols "ori" {
     include "level3(ralt_switch)"
 };
 
-// based on a keyboard map from an 'xkb/symbols/tml' file
-// INSCRIPT
+
 partial alphanumeric_keys
 xkb_symbols "tam" {
       name[Group1]= "Tamil (Inscript)";
@@ -1523,8 +1518,6 @@ xkb_symbols "urd-winkeys" {
     include "pk(urd-nla)"
     name[Group1]= "Urdu (Windows)";
 };
-
-// based on a keyboard map from an 'xkb/symbols/gur' file
 
 partial alphanumeric_keys
 xkb_symbols "guru" {
@@ -2212,11 +2205,12 @@ xkb_symbols "eeyek" {
 
 // This layout is developed by Niranjan Tambe in July 2019
 // for typing Indic languages in International Phonetic Alphabet (IPA).
+// Contact - niranjanvikastambe@gmail.com
 
 partial alphanumeric_keys modifier_keys
 xkb_symbols "iipa" {
 
-    name[Group1]= "Indic (phonetic, IPA)";
+    name[Group1]= "Indic IPA";
     key <AE01>	{ [	1,		exclam]	};
     key <AE02>	{ [	2,		at]	};
     key <AE03>	{ [	3,		numbersign]	};
@@ -2267,11 +2261,11 @@ xkb_symbols "iipa" {
     key <AB08>	{ [	comma,		U0282]	}; // [ʂ]
     key <AB09>	{ [	period,		U02D0]	}; // [ː] Long sound
     key <AB10>	{ [	j,			slash] }; // [j]
-
 };
 
 // This layout is developed by Niranjan Tambe in July 2019
 // for typing Marathi language with some necessary symbols.
+// Contact - niranjanvikastambe@gmail.com
 
 xkb_symbols "marathi" {
 	name[Group1]="Marathi (enhanced Inscript)";
@@ -2326,9 +2320,76 @@ xkb_symbols "marathi" {
 	key <AB09> { [ period, U0964, U0965, U093d ] };
 	key <AB10> { [ U092f, question, slash, question ] };
 };
-
 // EXTRAS:
+// Vedic and Miscellaneous symbols
+// This layout covers 'Extended Devanagari' and 'Vedic Extensions' Unicode blocks.
+// This is helpful for including all the required symbols when typing complex texts such as those from Samaveda and Yajurveda.
+// This layout only includes signs and symbols. Text needs to be typed seperately.
+// Created by : Abhishek Deshpande     <abhishekdeshpande128@gmail.com>
+// Date : 27th October, 2020
+partial alphanumeric_keys
+xkb_symbols "san-misc" {
+     name[Group1] = "Sanskrit symbols";
+     key.type="FOUR_LEVEL";
 
+    // Roman digits
+    key <TLDE>  { [   U1CD0,  UA8FA  ] };
+    key <AE01>  { [   UA8E1,  U1CD1  ] };
+    key <AE02>  { [   UA8E2,  UA8F2  ] };
+    key <AE03>  { [   UA8E3,  UA8F3  ] };
+    key <AE04>  { [   UA8E4,  UA8F4  ] };
+    key <AE05>  { [   UA8E5,  UA8F5  ] };
+    key <AE06>  { [   UA8E6,  UA8F6  ] };
+    key <AE07>  { [   UA8E7,  UA8F7  ] };
+    key <AE08>  { [   UA8E8,  UA8F8  ] };
+    key <AE09>  { [   UA8E9,  UA8F9  ] };
+    key <AE10>  { [   UA8E0,  UA8FC  ] };
+    key <AE11>  { [   UA8FB,  U1CD2  ] };
+    key <AE12>  { [   U1CF2,  U1CF3   ] };
+    key <BKSL>  { [   U1CF8,  U1CF9   ] };
+
+    //Q Row
+    key <AD01>  { [   U1CD4,  U1CD5  ] };
+    key <AD02>  { [   U1CD6,  U1CD7  ] };
+    key <AD03>  { [   U1CD8,  U1CD9  ] };
+    key <AD04>  { [   UA8EF  ] };
+    key <AD05>  { [   U1CDA,  U1CDB  ] };
+    key <AD06>  { [   UA8FE,   UA8FF  ] };
+    key <AD07>  { [   UA8EB  ] };
+    key <AD08>  { [   U1CDC,  U1CDD ] };
+    key <AD09>  { [   U1CDE,  U1CDF  ] };
+    key <AD10>  { [   UA8EE  ] };
+    key <AD11>  { [   U1CE0  ] };
+    key <AD12>  { [   U1CE1  ] };
+
+    //A Row
+    key <AC01>  { [   UA8EA  ] };
+    key <AC02>  { [   UA8F1  ] };
+    key <AC03>  { [   U1CE2  ] };
+    key <AC04>  { [   U1CE3,  U1CE4  ] };
+    key <AC05>  { [   U1CE5,  U1CE6  ] };
+    key <AC06>  { [   U1CE7,  U1CE8  ] };
+    key <AC07>  { [   U1CE9,  U1CEA  ] };
+    key <AC08>  { [   UA8EC  ] };
+    key <AC09>  { [   U1CEB,  U1CEC  ] };
+    key <AC10>  { [   U1CEE,  U1CEF  ] };
+    key <AC11>  { [   U1CF0,  U1CF1  ] };
+    
+    //Z Row
+    key <AB01>  { [   U1CED  ] };
+    key <AB02>  { [   U1CF4  ] };
+    key <AB03>  { [   U1CF5  ] };
+    key <AB04>  { [   UA8F0  ] };
+    key <AB05>  { [   U1CF6  ] }; 
+    key <AB06>  { [   UA8ED  ] };
+    key <AB07>  { [   U0950,  UA8FD  ] };
+    key <AB08>  { [   U1CF7,  U093D  ] };
+    key <AB09>  { [   U1CFA,  U2638  ] };
+    key <AB10>  { [   U0FD5,  U2740  ] };
+
+    include "rupeesign(4)"
+    include "level3(ralt_switch)"
+};
 //           Modi is an ancient Indian script that is used to write texts in Marathi, Hindi and Sanskrit. It is most commonly used to write Marathi language in Maharashtra.
 //           This keyboard layout is Based on Marathi KaGaPa phonetic layout. Just the characters which are not applicable in Modi, are ommited.
 //

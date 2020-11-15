@@ -62,9 +62,7 @@ xkb_symbols "Javanese" {
     key <AB07> { [ UA9A9,  UA980         ] }; // ma, CANDRABINDU
     key <AB08> { [ UA9C8,  UA986          ] }; // lingsa, LETTER I
     key <AB09> { [ UA9C9,  UA987       ] }; // lungsi, LETTER II
-    key <AB10> { [ UA982,  question_mark ] }; // layar (r)
-    
-    
+    key <AB10> { [ UA982,  question ] }; // layar (r)
+
     include "level3(ralt_switch)"
 };
-

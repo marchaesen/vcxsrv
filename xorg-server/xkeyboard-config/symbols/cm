@@ -487,4 +487,3 @@ xkb_symbols "solidus_switch" {
    modifier_map Mod5	{ ISO_Level3_Latch };
 };
 // ------- end of Mmuock keyboard map --------------------------------------------
-

@@ -635,6 +635,11 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
                              &registry_listener, xwl_screen);
     xwl_screen_roundtrip(xwl_screen);
 
+    if (!xwl_screen->rootless && !xwl_screen->xdg_wm_base) {
+        ErrorF("missing XDG-WM-Base protocol\n");
+        return FALSE;
+    }
+
     bpc = xwl_screen->depth / 3;
     green_bpc = xwl_screen->depth - 2 * bpc;
     blue_mask = (1 << bpc) - 1;

@@ -920,7 +920,7 @@ radv_amdgpu_winsys_cs_submit_chained(struct radeon_winsys_ctx *_ctx,
 	}
 
 	if (aws->debug_all_bos)
-			pthread_rwlock_rdlock(&aws->global_bo_list_lock);
+		u_rwlock_rdlock(&aws->global_bo_list_lock);
 
 	/* Get the BO list. */
 	result = radv_amdgpu_get_bo_list(cs0->ws, cs_array, cs_count, NULL, 0,
@@ -961,7 +961,7 @@ radv_amdgpu_winsys_cs_submit_chained(struct radeon_winsys_ctx *_ctx,
 
 fail:
 	if (aws->debug_all_bos)
-			pthread_rwlock_unlock(&aws->global_bo_list_lock);
+		u_rwlock_rdunlock(&aws->global_bo_list_lock);
 	return result;
 }
 
@@ -995,7 +995,7 @@ radv_amdgpu_winsys_cs_submit_fallback(struct radeon_winsys_ctx *_ctx,
 	number_of_ibs = cs_count + !!initial_preamble_cs;
 
 	if (aws->debug_all_bos)
-			pthread_rwlock_rdlock(&aws->global_bo_list_lock);
+		u_rwlock_rdlock(&aws->global_bo_list_lock);
 
 	/* Get the BO list. */
 	result = radv_amdgpu_get_bo_list(cs0->ws, &cs_array[0], cs_count, NULL, 0,
@@ -1051,7 +1051,7 @@ radv_amdgpu_winsys_cs_submit_fallback(struct radeon_winsys_ctx *_ctx,
 
 fail:
 	if (aws->debug_all_bos)
-		pthread_rwlock_unlock(&aws->global_bo_list_lock);
+		u_rwlock_rdunlock(&aws->global_bo_list_lock);
 	return result;
 }
 
@@ -1209,7 +1209,7 @@ radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 		}
 
 		if (aws->debug_all_bos)
-			pthread_rwlock_rdlock(&aws->global_bo_list_lock);
+			u_rwlock_rdlock(&aws->global_bo_list_lock);
 
 		result = radv_amdgpu_get_bo_list(cs0->ws, &cs_array[i], cnt,
 						 (struct radv_amdgpu_winsys_bo **)bos,
@@ -1220,7 +1220,7 @@ radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 			free(ibs);
 			free(bos);
 			if (aws->debug_all_bos)
-				pthread_rwlock_unlock(&aws->global_bo_list_lock);
+				u_rwlock_rdunlock(&aws->global_bo_list_lock);
 			return result;
 		}
 
@@ -1239,7 +1239,7 @@ radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 
 		free(request.handles);
 		if (aws->debug_all_bos)
-			pthread_rwlock_unlock(&aws->global_bo_list_lock);
+			u_rwlock_rdunlock(&aws->global_bo_list_lock);
 
 		for (unsigned j = 0; j < number_of_ibs; j++) {
 			ws->buffer_destroy(bos[j]);
@@ -1310,17 +1310,17 @@ static void *radv_amdgpu_winsys_get_cpu_addr(void *_cs, uint64_t addr)
 		}
 	}
 	if(cs->ws->debug_all_bos) {
-		pthread_rwlock_rdlock(&cs->ws->global_bo_list_lock);
+		u_rwlock_rdlock(&cs->ws->global_bo_list_lock);
 		list_for_each_entry(struct radv_amdgpu_winsys_bo, bo,
 		                    &cs->ws->global_bo_list, global_list_item) {
 			if (addr >= bo->base.va && addr - bo->base.va < bo->size) {
 				if (amdgpu_bo_cpu_map(bo->bo, &ret) == 0) {
-					pthread_rwlock_unlock(&cs->ws->global_bo_list_lock);
+					u_rwlock_rdunlock(&cs->ws->global_bo_list_lock);
 					return (char *)ret + (addr - bo->base.va);
 				}
 			}
 		}
-		pthread_rwlock_unlock(&cs->ws->global_bo_list_lock);
+		u_rwlock_rdunlock(&cs->ws->global_bo_list_lock);
 	}
 	return ret;
 }

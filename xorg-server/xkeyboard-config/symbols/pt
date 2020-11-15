@@ -23,19 +23,14 @@ xkb_symbols "basic" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "Sundeadkeys" {
+xkb_symbols "sundeadkeys" {
 
     include "pt(basic)"
+    name[Group1]="Portuguese (Sun dead keys)";
 
     key <AD11> { [          plus,        asterisk, dead_diaeresis,   dead_diaeresis ] };
     key <AD12> { [    dead_acute,      dead_grave                                   ] };
     key <BKSL> { [    dead_tilde, dead_circumflex                                   ] };
-};
-
-partial alphanumeric_keys
-xkb_symbols "sundeadkeys" {
-    include "pt(Sundeadkeys)"
-    name[Group1]="Portuguese (Sun dead keys)";
 };
 
 partial alphanumeric_keys

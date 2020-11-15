@@ -75,7 +75,6 @@ midgard_FILES := \
         midgard/mir.c \
         midgard/mir_promote_uniforms.c \
         midgard/mir_squeeze.c \
-        midgard/nir_undef_to_zero.c \
         midgard/nir_fuse_io_16.c \
 
 midgard_disasm_FILES := \
@@ -95,8 +94,10 @@ util_FILES := \
         util/lcra.c \
         util/lcra.h \
         util/nir_mod_helpers.c \
+        util/nir_undef_to_zero.c \
         util/pan_ir.c \
         util/pan_ir.h \
         util/pan_liveness.c \
         util/pan_lower_framebuffer.c \
+        util/pan_lower_writeout.c \
         util/pan_sysval.c \

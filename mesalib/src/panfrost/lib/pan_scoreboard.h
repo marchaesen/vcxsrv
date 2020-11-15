@@ -40,6 +40,12 @@ struct pan_scoreboard {
         /* A CPU-side pointer to the previous job for next_job linking */
         struct mali_job_header_packed *prev_job;
 
+        /* A CPU-side pointer to the first tiler job for dep updates when
+         * injecting a reload tiler job.
+         */
+        struct mali_job_header_packed *first_tiler;
+        uint32_t first_tiler_dep1;
+
         /* The dependency for tiler jobs (i.e. the index of the last emitted
          * tiler job, or zero if none have been emitted) */
         unsigned tiler_dep;
@@ -55,7 +61,7 @@ panfrost_add_job(
                 enum mali_job_type type,
                 bool barrier,
                 unsigned local_dep,
-                const struct panfrost_transfer *job,
+                const struct panfrost_ptr *job,
                 bool inject);
 
 void panfrost_scoreboard_initialize_tiler(

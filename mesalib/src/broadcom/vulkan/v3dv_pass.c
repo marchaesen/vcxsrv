@@ -255,10 +255,10 @@ v3dv_DestroyRenderPass(VkDevice _device,
    vk_free2(&device->alloc, pAllocator, pass);
 }
 
-void
-v3dv_subpass_get_granularity(struct v3dv_render_pass *pass,
-                             uint32_t subpass_idx,
-                             VkExtent2D *granularity)
+static void
+subpass_get_granularity(struct v3dv_render_pass *pass,
+                        uint32_t subpass_idx,
+                        VkExtent2D *granularity)
 {
    static const uint8_t tile_sizes[] = {
       64, 64,
@@ -273,7 +273,7 @@ v3dv_subpass_get_granularity(struct v3dv_render_pass *pass,
    /* Our tile size depends on the number of color attachments and the maximum
     * bpp across them.
     */
-   assert(subpass_idx >= 0 && subpass_idx < pass->subpass_count);
+   assert(subpass_idx < pass->subpass_count);
    struct v3dv_subpass *subpass = &pass->subpasses[subpass_idx];
    const uint32_t color_attachment_count = subpass->color_count;
 
@@ -321,8 +321,50 @@ v3dv_GetRenderAreaGranularity(VkDevice device,
 
    for (uint32_t i = 0; i < pass->subpass_count; i++) {
       VkExtent2D sg;
-      v3dv_subpass_get_granularity(pass, i, &sg);
+      subpass_get_granularity(pass, i, &sg);
       pGranularity->width = MIN2(pGranularity->width, sg.width);
       pGranularity->height = MIN2(pGranularity->height, sg.height);
    }
+}
+
+/* Checks whether the render area rectangle covers a region that is aligned to
+ * tile boundaries. This means that we are writing to all pixels covered by
+ * all tiles in that area (except for pixels on edge tiles that are outside
+ * the framebuffer dimensions).
+ *
+ * When our framebuffer is aligned to tile boundaries we know we are writing
+ * valid data to all all pixels in each tile and we can apply certain
+ * optimizations, like avoiding tile loads, since we know that none of the
+ * original pixel values in each tile for that area need to be preserved.
+ * We also use this to decide if we can use TLB clears, as these clear whole
+ * tiles so we can't use them if the render area is not aligned.
+ *
+ * Note that when an image is created it will possibly include padding blocks
+ * depending on its tiling layout. When the framebuffer dimensions are not
+ * aligned to tile boundaries then edge tiles are only partially covered by the
+ * framebuffer pixels, but tile stores still seem to store full tiles
+ * writing to the padded sections. This is important when the framebuffer
+ * is aliasing a smaller section of a larger image, as in that case the edge
+ * tiles of the framebuffer would overwrite valid pixels in the larger image.
+ * In that case, we can't flag the area as being aligned.
+ */
+bool
+v3dv_subpass_area_is_tile_aligned(const VkRect2D *area,
+                                  struct v3dv_framebuffer *fb,
+                                  struct v3dv_render_pass *pass,
+                                  uint32_t subpass_idx)
+{
+   assert(subpass_idx < pass->subpass_count);
+
+   VkExtent2D granularity;
+   subpass_get_granularity(pass, subpass_idx, &granularity);
+
+   return area->offset.x % granularity.width == 0 &&
+          area->offset.y % granularity.height == 0 &&
+         (area->extent.width % granularity.width == 0 ||
+          (fb->has_edge_padding &&
+           area->offset.x + area->extent.width >= fb->width)) &&
+         (area->extent.height % granularity.height == 0 ||
+          (fb->has_edge_padding &&
+           area->offset.y + area->extent.height >= fb->height));
 }

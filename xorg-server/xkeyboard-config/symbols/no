@@ -1,5 +1,3 @@
-// based on a keyboard map from an 'xkb/symbols/no' file
-
 default partial alphanumeric_keys
 xkb_symbols "basic" {
 

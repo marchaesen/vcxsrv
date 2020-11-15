@@ -89,15 +89,10 @@ write_tmu_p0(struct v3dv_cmd_buffer *cmd_buffer,
              struct v3dv_cl_out **uniforms,
              uint32_t data)
 {
-   int unit = v3d_unit_data_get_unit(data);
-   uint32_t texture_idx;
+   uint32_t texture_idx = v3d_unit_data_get_unit(data);
    struct v3dv_job *job = cmd_buffer->state.job;
    struct v3dv_descriptor_state *descriptor_state =
       &cmd_buffer->state.descriptor_state[v3dv_pipeline_get_binding_point(pipeline)];
-
-   v3dv_pipeline_combined_index_key_unpack(pipeline->combined_index_to_key_map[unit],
-                                           &texture_idx,
-                                           NULL);
 
    /* We need to ensure that the texture bo is added to the job */
    struct v3dv_bo *texture_bo =
@@ -125,15 +120,13 @@ write_tmu_p1(struct v3dv_cmd_buffer *cmd_buffer,
              struct v3dv_cl_out **uniforms,
              uint32_t data)
 {
-   uint32_t unit = v3d_unit_data_get_unit(data);
-   uint32_t sampler_idx;
+   uint32_t sampler_idx = v3d_unit_data_get_unit(data);
    struct v3dv_job *job = cmd_buffer->state.job;
    struct v3dv_descriptor_state *descriptor_state =
       &cmd_buffer->state.descriptor_state[v3dv_pipeline_get_binding_point(pipeline)];
 
-   v3dv_pipeline_combined_index_key_unpack(pipeline->combined_index_to_key_map[unit],
-                                           NULL, &sampler_idx);
-   assert(sampler_idx != V3DV_NO_SAMPLER_IDX);
+   assert(sampler_idx != V3DV_NO_SAMPLER_16BIT_IDX &&
+          sampler_idx != V3DV_NO_SAMPLER_32BIT_IDX);
 
    struct v3dv_cl_reloc sampler_state_reloc =
       v3dv_descriptor_map_get_sampler_state(descriptor_state, &pipeline->sampler_map,
@@ -285,14 +278,9 @@ get_texture_size(struct v3dv_cmd_buffer *cmd_buffer,
                  enum quniform_contents contents,
                  uint32_t data)
 {
-   int unit = v3d_unit_data_get_unit(data);
-   uint32_t texture_idx;
+   uint32_t texture_idx = v3d_unit_data_get_unit(data);
    struct v3dv_descriptor_state *descriptor_state =
       &cmd_buffer->state.descriptor_state[v3dv_pipeline_get_binding_point(pipeline)];
-
-   v3dv_pipeline_combined_index_key_unpack(pipeline->combined_index_to_key_map[unit],
-                                           &texture_idx,
-                                           NULL);
 
    struct v3dv_descriptor *descriptor =
       v3dv_descriptor_map_get_descriptor(descriptor_state,

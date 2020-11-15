@@ -313,17 +313,17 @@ struct wait_ctx {
       pending_flat_vm |= other->pending_flat_vm;
       pending_s_buffer_store |= other->pending_s_buffer_store;
 
-      for (std::pair<PhysReg,wait_entry> entry : other->gpr_map)
+      for (const auto& entry : other->gpr_map)
       {
-         std::map<PhysReg,wait_entry>::iterator it = gpr_map.find(entry.first);
          if (entry.second.logical != logical)
             continue;
 
-         if (it != gpr_map.end()) {
-            changed |= it->second.join(entry.second);
-         } else {
-            gpr_map.insert(entry);
+         using iterator = std::map<PhysReg,wait_entry>::iterator;
+         const std::pair<iterator, bool> insert_pair = gpr_map.insert(entry);
+         if (insert_pair.second) {
             changed = true;
+         } else {
+            changed |= insert_pair.first->second.join(entry.second);
          }
       }
 
@@ -335,16 +335,19 @@ struct wait_ctx {
 
       /* these are used for statistics, so don't update "changed" */
       for (unsigned i = 0; i < num_counters; i++) {
-         for (std::pair<Instruction *, unsigned> instr : other->unwaited_instrs[i]) {
-            auto pos = unwaited_instrs[i].find(instr.first);
-            if (pos == unwaited_instrs[i].end())
-               unwaited_instrs[i].insert(instr);
-            else
+         for (const auto& instr : other->unwaited_instrs[i]) {
+            using iterator = std::map<Instruction *, unsigned>::iterator;
+            const std::pair<iterator, bool> insert_pair = unwaited_instrs[i].insert(instr);
+            if (!insert_pair.second) {
+               const iterator pos = insert_pair.first;
                pos->second = std::min(pos->second, instr.second);
+            }
          }
-         /* don't use a foreach loop to avoid copies */
-         for (auto it = other->reg_instrs[i].begin(); it != other->reg_instrs[i].end(); ++it)
-            reg_instrs[i][it->first].insert(it->second.begin(), it->second.end());
+         for (const auto& instr_pair : other->reg_instrs[i]) {
+            const PhysReg reg = instr_pair.first;
+            const std::set<Instruction *>& instrs = instr_pair.second;
+            reg_instrs[i][reg].insert(instrs.begin(), instrs.end());
+         }
       }
 
       return changed;
@@ -365,7 +368,7 @@ struct wait_ctx {
                wait_distances[event_idx].push_back(distance);
             }
 
-            unwaited_instrs[counter_idx].erase(instr);
+            unwaited_instrs[counter_idx].erase(pos);
          }
          reg_instrs[counter_idx][reg].clear();
       }
@@ -376,8 +379,8 @@ struct wait_ctx {
    void advance_unwaited_instrs()
    {
       for (unsigned i = 0; i < num_counters; i++) {
-         for (auto it = unwaited_instrs[i].begin(); it != unwaited_instrs[i].end(); ++it)
-            it->second++;
+         for (std::pair<Instruction * const, unsigned>& instr : unwaited_instrs[i])
+            instr.second++;
       }
    }
 };

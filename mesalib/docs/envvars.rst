@@ -39,7 +39,7 @@ Core Mesa environment variables
    if set, disables Intel SSE optimizations
 ``MESA_NO_ERROR``
    if set to 1, error checking is disabled as per ``KHR_no_error``. This
-   will result in undefined behavior for invalid use of the api, but
+   will result in undefined behavior for invalid use of the API, but
    can reduce CPU use for apps that are known to be error free.
 ``MESA_DEBUG``
    if set, error messages are printed to stderr. For example, if the
@@ -57,7 +57,7 @@ Core Mesa environment variables
    ``incomplete_tex``
       extra debug messages when a texture is incomplete
    ``incomplete_fbo``
-      extra debug messages when a fbo is incomplete
+      extra debug messages when a FBO is incomplete
    ``context``
       create a debug context (see ``GLX_CONTEXT_DEBUG_BIT_ARB``) and
       print error and performance messages to stderr (or
@@ -370,21 +370,21 @@ Gallium environment variables
    driver statistics, performance counters, etc. Set
    ``GALLIUM_HUD=help`` and run e.g. ``glxgears`` for more info.
 ``GALLIUM_HUD_PERIOD``
-   sets the hud update rate in seconds (float). Use zero to update every
+   sets the HUD update rate in seconds (float). Use zero to update every
    frame. The default period is 1/2 second.
 ``GALLIUM_HUD_VISIBLE``
    control default visibility, defaults to true.
 ``GALLIUM_HUD_TOGGLE_SIGNAL``
    toggle visibility via user specified signal. Especially useful to
-   toggle hud at specific points of application and disable for
+   toggle HUD at specific points of application and disable for
    unencumbered viewing the rest of the time. For example, set
    ``GALLIUM_HUD_VISIBLE`` to ``false`` and
    ``GALLIUM_HUD_TOGGLE_SIGNAL`` to ``10`` (``SIGUSR1``). Use
-   ``kill -10 <pid>`` to toggle the hud as desired.
+   ``kill -10 <pid>`` to toggle the HUD as desired.
 ``GALLIUM_HUD_SCALE``
-   Scale hud by an integer factor, for high DPI displays. Default is 1.
+   Scale HUD by an integer factor, for high DPI displays. Default is 1.
 ``GALLIUM_HUD_DUMP_DIR``
-   specifies a directory for writing the displayed hud values into
+   specifies a directory for writing the displayed HUD values into
    files.
 ``GALLIUM_DRIVER``
    useful in combination with ``LIBGL_ALWAYS_SOFTWARE=true`` for
@@ -451,6 +451,9 @@ Softpipe driver environment variables
    ``use_llvm``
       the softpipe driver will try to use LLVM JIT for vertex
       shading processing.
+   ``use_tgsi``
+      if set, the softpipe driver will ask to directly consume TGSI, instead
+      of NIR.
 
 LLVMpipe driver environment variables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -551,6 +554,11 @@ RADV driver environment variables
    ``forcecompress``
       Enables DCC,FMASK,CMASK,HTILE in situations where the driver supports it
       but normally does not deem it beneficial.
+   ``hang``
+      enable GPU hangs detection and dump a report to $HOME/radv_dumps_<pid>
+      if a GPU hang is detected
+   ``img``
+      Print image info
    ``info``
       show GPU-related information
    ``metashaders``
@@ -597,7 +605,7 @@ RADV driver environment variables
       initialize all memory allocated in VRAM as zero
 
 ``RADV_FORCE_FAMILY``
-   create a null device to compile shaders without a AMD GPU (eg.
+   create a null device to compile shaders without a AMD GPU (e.g.
    gfx900)
 ``RADV_PERFTEST``
    a comma-separated list of named flags, which do various things:
@@ -621,8 +629,6 @@ RADV driver environment variables
 
 ``RADV_TEX_ANISO``
    force anisotropy filter (up to 16)
-``RADV_TRACE_FILE``
-   generate cmdbuffer tracefiles when a GPU hang is detected
 ``ACO_DEBUG``
    a comma-separated list of named flags, which do various things:
 
@@ -653,8 +659,6 @@ radeonsi driver environment variables
    Disable SDMA clears
 ``nodmacopyimage``
    Disable SDMA image copies
-``zerovram``
-   Clear VRAM allocations.
 ``nodcc``
    Disable DCC.
 ``nodccclear``
@@ -673,8 +677,6 @@ radeonsi driver environment variables
    Disable MSAA compression
 ``nohyperz``
    Disable Hyper-Z
-``norbplus``
-   Disable RB+.
 ``no2d``
    Disable 2D tiling
 ``info``

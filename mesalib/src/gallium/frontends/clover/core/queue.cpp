@@ -65,10 +65,15 @@ command_queue::~command_queue() {
 
 void
 command_queue::flush() {
+   std::lock_guard<std::mutex> lock(queued_events_mutex);
+   flush_unlocked();
+}
+
+void
+command_queue::flush_unlocked() {
    pipe_screen *screen = device().pipe;
    pipe_fence_handle *fence = NULL;
 
-   std::lock_guard<std::mutex> lock(queued_events_mutex);
    if (!queued_events.empty()) {
       pipe->flush(pipe, &fence, 0);
 
@@ -99,4 +104,10 @@ command_queue::sequence(hard_event &ev) {
       queued_events.back()().chain(ev);
 
    queued_events.push_back(ev);
+
+   // Arbitrary threshold.
+   // The CTS tends to run a lot of subtests without flushing with the image
+   // tests, so flush regulary to prevent stack overflows.
+   if (queued_events.size() > 1000)
+      flush_unlocked();
 }

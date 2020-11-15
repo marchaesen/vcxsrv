@@ -546,11 +546,9 @@ radv_meta_build_nir_vs_generate_vertices(void)
 {
 	const struct glsl_type *vec4 = glsl_vec4_type();
 
-	nir_builder b;
 	nir_variable *v_position;
 
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_VERTEX, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, "meta_vs_gen_verts");
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_VERTEX, NULL, "meta_vs_gen_verts");
 
 	nir_ssa_def *outvec = radv_meta_gen_rect_vertices(&b);
 
@@ -566,11 +564,7 @@ radv_meta_build_nir_vs_generate_vertices(void)
 nir_shader *
 radv_meta_build_nir_fs_noop(void)
 {
-	nir_builder b;
-
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_FRAGMENT, NULL);
-	b.shader->info.name = ralloc_asprintf(b.shader,
-					       "meta_noop_fs");
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, NULL, "meta_noop_fs");
 
 	return b.shader;
 }
@@ -614,14 +608,14 @@ void radv_meta_build_resolve_shader_core(nir_builder *b,
 		tex_all_same->src[0].src = nir_src_for_ssa(img_coord);
 		tex_all_same->src[1].src_type = nir_tex_src_texture_deref;
 		tex_all_same->src[1].src = nir_src_for_ssa(input_img_deref);
-		tex_all_same->dest_type = nir_type_float;
+		tex_all_same->dest_type = nir_type_uint;
 		tex_all_same->is_array = false;
 		tex_all_same->coord_components = 2;
 
-		nir_ssa_dest_init(&tex_all_same->instr, &tex_all_same->dest, 1, 32, "tex");
+		nir_ssa_dest_init(&tex_all_same->instr, &tex_all_same->dest, 1, 1, "tex");
 		nir_builder_instr_insert(b, &tex_all_same->instr);
 
-		nir_ssa_def *all_same = nir_ieq(b, &tex_all_same->dest.ssa, nir_imm_int(b, 0));
+		nir_ssa_def *all_same = nir_ieq(b, &tex_all_same->dest.ssa, nir_imm_bool(b, false));
 		nir_push_if(b, all_same);
 		for (int i = 1; i < samples; i++) {
 			nir_tex_instr *tex_add = nir_tex_instr_create(b->shader, 3);

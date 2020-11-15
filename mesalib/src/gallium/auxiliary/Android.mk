@@ -53,6 +53,7 @@ LOCAL_CPPFLAGS += -std=c++14
 
 # We need libmesa_nir to get NIR's generated include directories.
 LOCAL_MODULE := libmesa_gallium
+LOCAL_SHARED_LIBRARIES += libsync
 LOCAL_STATIC_LIBRARIES += libmesa_nir
 
 LOCAL_WHOLE_STATIC_LIBRARIES += cpufeatures

@@ -11,7 +11,6 @@ xkb_symbols "basic" {
     key <AC10>	{ [         m,          M,         U014B,       U014A ]	}; // m M ŋ Ŋ
     key <AD02>	{ [         z,          Z,         U017E,       U017d ]	}; // z Z ž Ž
     key <AD03>	{ [         e,          E,         U025B,       U0190 ]	}; // e E ɛ Ɛ
-
 };
 
 partial alphanumeric_keys
@@ -56,7 +55,6 @@ xkb_symbols "us-mac" {
     key <AC07> { [	   j,          J,         U0272,            U019D ] }; // j J ɲ Ɲ
     key <AC08> { [	   k,          K,         U014B,            U014A ] }; // k K ŋ Ŋ
     key <AD09> { [	   o,          O,         U0254,            U0186 ] }; // o O ɔ Ɔ
-
 };
 
 partial alphanumeric_keys
@@ -79,5 +77,4 @@ xkb_symbols "us-intl" {
     key <AC07> { [	   j,	       J,		  U014B,            U014A ]	}; // j J ŋ Ŋ
     key <AD02> { [	   w,          W,         U025B,            U0190 ] }; // w W ɛ Ɛ
     key <AD09> { [	   o,          O,         U0254,            U0186 ] }; // o O ɔ Ɔ
-
 };

@@ -451,6 +451,17 @@ tu_physical_device_get_format_properties(
    if (tu6_pipe2depth(format) != (enum a6xx_depth_format)~0)
       optimal |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
+   /* no tiling for special UBWC formats
+    * TODO: NV12 can be UBWC but has a special UBWC format for accessing the Y plane aspect
+    * for 3plane, tiling/UBWC might be supported, but the blob doesn't use tiling
+    */
+   if (format == VK_FORMAT_G8B8G8R8_422_UNORM ||
+       format == VK_FORMAT_B8G8R8G8_422_UNORM ||
+       format == VK_FORMAT_G8_B8R8_2PLANE_420_UNORM ||
+       format == VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM) {
+      optimal = 0;
+   }
+
    /* D32_SFLOAT_S8_UINT is tiled as two images, so no linear format
     * blob enables some linear features, but its not useful, so don't bother.
     */
@@ -480,15 +491,20 @@ tu_GetPhysicalDeviceFormatProperties2(
       VK_OUTARRAY_MAKE(out, list->pDrmFormatModifierProperties,
                        &list->drmFormatModifierCount);
 
-      vk_outarray_append(&out, mod_props) {
-         mod_props->drmFormatModifier = DRM_FORMAT_MOD_LINEAR;
-         mod_props->drmFormatModifierPlaneCount = 1;
+      if (pFormatProperties->formatProperties.linearTilingFeatures) {
+         vk_outarray_append(&out, mod_props) {
+            mod_props->drmFormatModifier = DRM_FORMAT_MOD_LINEAR;
+            mod_props->drmFormatModifierPlaneCount = 1;
+         }
       }
 
-      /* TODO: any cases where this should be disabled? */
-      vk_outarray_append(&out, mod_props) {
-         mod_props->drmFormatModifier = DRM_FORMAT_MOD_QCOM_COMPRESSED;
-         mod_props->drmFormatModifierPlaneCount = 1;
+      /* note: ubwc_possible() argument values to be ignored except for format */
+      if (pFormatProperties->formatProperties.optimalTilingFeatures &&
+          ubwc_possible(format, VK_IMAGE_TYPE_2D, 0, false)) {
+         vk_outarray_append(&out, mod_props) {
+            mod_props->drmFormatModifier = DRM_FORMAT_MOD_QCOM_COMPRESSED;
+            mod_props->drmFormatModifierPlaneCount = 1;
+         }
       }
    }
 }
@@ -515,20 +531,34 @@ tu_get_image_format_properties(
       format_feature_flags = format_props.linearTilingFeatures;
       break;
 
-   case VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT:
-      /* The only difference between optimal and linear is currently whether
-       * depth/stencil attachments are allowed on depth/stencil formats.
-       * There's no reason to allow importing depth/stencil textures, so just
-       * disallow it and then this annoying edge case goes away.
-       *
-       * TODO: If anyone cares, we could enable this by looking at the
-       * modifier and checking if it's LINEAR or not.
-       */
-      if (vk_format_is_depth_or_stencil(info->format))
-         goto unsupported;
+   case VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT: {
+      const VkPhysicalDeviceImageDrmFormatModifierInfoEXT *drm_info =
+         vk_find_struct_const(info->pNext, PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT);
 
-      assert(format_props.optimalTilingFeatures == format_props.linearTilingFeatures);
-      /* fallthrough */
+      switch (drm_info->drmFormatModifier) {
+      case DRM_FORMAT_MOD_QCOM_COMPRESSED:
+         /* falling back to linear/non-UBWC isn't possible with explicit modifier */
+
+         /* formats which don't support tiling */
+         if (!format_props.optimalTilingFeatures)
+            return VK_ERROR_FORMAT_NOT_SUPPORTED;
+
+         /* for mutable formats, its very unlikely to be possible to use UBWC */
+         if (info->flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT)
+            return VK_ERROR_FORMAT_NOT_SUPPORTED;
+
+         if (!ubwc_possible(info->format, info->type, info->usage, physical_device->limited_z24s8))
+            return VK_ERROR_FORMAT_NOT_SUPPORTED;
+
+         format_feature_flags = format_props.optimalTilingFeatures;
+         break;
+      case DRM_FORMAT_MOD_LINEAR:
+         format_feature_flags = format_props.linearTilingFeatures;
+         break;
+      default:
+         return VK_ERROR_FORMAT_NOT_SUPPORTED;
+      }
+   } break;
    case VK_IMAGE_TILING_OPTIMAL:
       format_feature_flags = format_props.optimalTilingFeatures;
       break;

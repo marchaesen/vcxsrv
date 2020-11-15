@@ -509,7 +509,9 @@ retry:
 static void
 unlock_cache (void)
 {
-  FcMutexUnlock (cache_lock);
+  FcMutex *lock;
+  lock = fc_atomic_ptr_get (&cache_lock);
+  FcMutexUnlock (lock);
 }
 
 static void

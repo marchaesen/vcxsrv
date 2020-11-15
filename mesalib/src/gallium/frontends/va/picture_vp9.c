@@ -339,7 +339,7 @@ void vlVaDecoderVP9BitstreamHeader(vlVaContext *context, vlVaBuffer *buf)
    /* update_data */
    if (vp9_u(&vlc, 1)) {
       /* abs_delta */
-      vp9_u(&vlc, 1);
+      context->desc.vp9.picture_parameter.abs_delta = vp9_u(&vlc, 1);
       for (i = 0; i < 8; ++i) {
          /* Use alternate quantizer */
          if ((context->desc.vp9.slice_parameter.seg_param[i].alt_quant_enabled = vp9_u(&vlc, 1)))

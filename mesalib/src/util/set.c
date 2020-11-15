@@ -223,13 +223,17 @@ _mesa_set_clear(struct set *set, void (*delete_function)(struct set_entry *entry
    if (!set)
       return;
 
-   set_foreach (set, entry) {
-      if (delete_function)
+   struct set_entry *entry;
+
+   for (entry = set->table; entry != set->table + set->size; entry++) {
+      if (entry_is_present(entry) && delete_function != NULL)
          delete_function(entry);
-      entry->key = deleted_key;
+
+      entry->key = NULL;
    }
 
-   set->entries = set->deleted_entries = 0;
+   set->entries = 0;
+   set->deleted_entries = 0;
 }
 
 /**

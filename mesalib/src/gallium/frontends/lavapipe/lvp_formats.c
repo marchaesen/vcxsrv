@@ -201,13 +201,16 @@ lvp_physical_device_get_format_properties(struct lvp_physical_device *physical_d
    if (physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
                                                      PIPE_TEXTURE_2D, 0, 0, PIPE_BIND_SAMPLER_VIEW)) {
       features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
-      features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+      if (!util_format_is_pure_integer(pformat))
+         features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
    }
 
    if (physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
                                                      PIPE_TEXTURE_2D, 0, 0, PIPE_BIND_RENDER_TARGET)) {
       features |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
-      features |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
+      /* SNORM blending on llvmpipe fails CTS - disable for now */
+      if (!util_format_is_snorm(pformat))
+         features |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
       features |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
    }
 

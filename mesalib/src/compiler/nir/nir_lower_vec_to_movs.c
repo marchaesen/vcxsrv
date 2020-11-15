@@ -107,9 +107,9 @@ insert_mov(nir_alu_instr *vec, unsigned start_idx, nir_shader *shader)
 static bool
 has_replicated_dest(nir_alu_instr *alu)
 {
-   return alu->op == nir_op_fdot_replicated2 ||
-          alu->op == nir_op_fdot_replicated3 ||
-          alu->op == nir_op_fdot_replicated4 ||
+   return alu->op == nir_op_fdot2_replicated ||
+          alu->op == nir_op_fdot3_replicated ||
+          alu->op == nir_op_fdot4_replicated ||
           alu->op == nir_op_fdph_replicated;
 }
 

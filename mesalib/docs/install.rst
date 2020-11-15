@@ -30,7 +30,7 @@ The following compilers are known to work, if you know of others or
 you're willing to maintain support for other compiler get in touch.
 
 -  GCC 4.2.0 or later (some parts of Mesa may require later versions)
--  clang - exact minimum requirement is currently unknown.
+-  Clang - exact minimum requirement is currently unknown.
 -  Microsoft Visual Studio 2015 or later is required, for building on
    Windows.
 
@@ -57,7 +57,7 @@ Third party/extra tools.
 
 .. note::
 
-   Some versions can be buggy (eg. Flex 2.6.2) so do try others
+   Some versions can be buggy (e.g. Flex 2.6.2) so do try others
    if things fail.
 
 1.2 Requirements

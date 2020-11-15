@@ -71,7 +71,4 @@ xkb_symbols "basic" {
              key <AB06>	{ [	n,		N,		U014B,		U014A 	] };	// U014B = ŋ (small), U014A = Ŋ (capital)
              key <AB09> { [	colon,		slash,		dead_macron		] };
              key <AB10>	{ [	exclam,		section,	dead_tilde		] };
-
-
-
 };

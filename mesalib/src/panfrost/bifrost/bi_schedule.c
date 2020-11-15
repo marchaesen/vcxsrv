@@ -83,6 +83,9 @@ bi_message_type_for_ins(bi_instruction *ins)
         case BI_ATEST:
                 return BIFROST_MESSAGE_ATEST;
 
+        case BI_ZS_EMIT:
+                return BIFROST_MESSAGE_Z_STENCIL;
+
         default:
                 unreachable("Invalid high-latency class");
         }
@@ -163,6 +166,66 @@ bi_back_to_back(bi_block *block)
         return (count == 1);
 }
 
+/* Insert a clause wrapping a single instruction */
+
+bi_clause *
+bi_make_singleton(void *memctx, bi_instruction *ins,
+                bi_block *block,
+                unsigned scoreboard_id,
+                unsigned dependencies,
+                bool osrb)
+{
+        unsigned props = bi_class_props[ins->type];
+
+        bi_clause *u = rzalloc(memctx, bi_clause);
+        u->bundle_count = 1;
+
+        /* Check for scheduling restrictions */
+
+        bool can_fma = props & BI_SCHED_FMA;
+        ASSERTED bool can_add = props & BI_SCHED_ADD;
+
+        can_fma &= !bi_ambiguous_abs(ins);
+        can_fma &= !bi_icmp(ins);
+        can_fma &= !bi_imath_small(ins);
+
+        assert(can_fma || can_add);
+
+        if (can_fma)
+                u->bundles[0].fma = ins;
+        else
+                u->bundles[0].add = ins;
+
+        u->scoreboard_id = scoreboard_id;
+        u->staging_barrier = osrb;
+        u->dependencies = dependencies;
+
+        if (ins->type == BI_ATEST)
+                u->dependencies |= (1 << 6);
+
+        if (ins->type == BI_BLEND)
+                u->dependencies |= (1 << 6) | (1 << 7);
+
+        /* Let's be optimistic, we'll fix up later */
+        u->flow_control = BIFROST_FLOW_NBTB;
+
+        u->constant_count = 1;
+        u->constants[0] = ins->constant.u64;
+
+        if (ins->type == BI_BRANCH && ins->branch_target)
+                u->branch_constant = true;
+
+        /* We always prefetch except unconditional branches */
+        u->next_clause_prefetch = !(
+                        (ins->type == BI_BRANCH) &&
+                        (ins->cond == BI_COND_ALWAYS));
+
+        u->message_type = bi_message_type_for_ins(ins);
+        u->block = block;
+
+        return u;
+}
+
 /* Eventually, we'll need a proper scheduling, grouping instructions
  * into clauses and ordering/assigning grouped instructions to the
  * appropriate FMA/ADD slots. Right now we do the dumbest possible
@@ -172,8 +235,6 @@ bi_back_to_back(bi_block *block)
 void
 bi_schedule(bi_context *ctx)
 {
-        unsigned ids = 0;
-        unsigned last_id = 0;
         bool is_first = true;
 
         bi_foreach_block(ctx, block) {
@@ -185,63 +246,11 @@ bi_schedule(bi_context *ctx)
                         /* Convenient time to lower */
                         bi_lower_fmov(ins);
 
-                        unsigned props = bi_class_props[ins->type];
+                        bi_clause *u = bi_make_singleton(ctx, ins,
+                                        bblock, 0, (1 << 0),
+                                        !is_first);
 
-                        bi_clause *u = rzalloc(ctx, bi_clause);
-                        u->bundle_count = 1;
-
-                        /* Check for scheduling restrictions */
-
-                        bool can_fma = props & BI_SCHED_FMA;
-                        ASSERTED bool can_add = props & BI_SCHED_ADD;
-
-                        can_fma &= !bi_ambiguous_abs(ins);
-                        can_fma &= !bi_icmp(ins);
-                        can_fma &= !bi_imath_small(ins);
-
-                        assert(can_fma || can_add);
-
-                        if (can_fma)
-                                u->bundles[0].fma = ins;
-                        else
-                                u->bundles[0].add = ins;
-
-                        u->scoreboard_id = ids++;
-
-                        if (is_first)
-                                is_first = false;
-                        else {
-                                /* Rule: first instructions cannot have write barriers */
-                                u->dependencies |= (1 << last_id);
-                                u->staging_barrier = true;
-                        }
-
-                        if (ins->type == BI_ATEST)
-                                u->dependencies |= (1 << 6);
-
-                        if (ins->type == BI_BLEND)
-                                u->dependencies |= (1 << 6) | (1 << 7);
-
-                        ids = ids & 1;
-                        last_id = u->scoreboard_id;
-
-                        /* Let's be optimistic, we'll fix up later */
-                        u->flow_control = BIFROST_FLOW_NBTB;
-
-                        u->constant_count = 1;
-                        u->constants[0] = ins->constant.u64;
-
-                        if (ins->type == BI_BRANCH && ins->branch_target)
-                                u->branch_constant = true;
-
-                        /* We always prefetch except unconditional branches */
-                        u->next_clause_prefetch = !(
-                                (ins->type == BI_BRANCH) &&
-                                (ins->cond == BI_COND_ALWAYS));
-
-                        u->message_type = bi_message_type_for_ins(ins);
-                        u->block = (struct bi_block *) block;
-
+                        is_first = false;
                         list_addtail(&u->link, &bblock->clauses);
                 }
 

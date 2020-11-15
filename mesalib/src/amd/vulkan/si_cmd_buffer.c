@@ -478,7 +478,9 @@ si_emit_graphics(struct radv_device *device,
 
 		if (physical_device->rad_info.chip_class >= GFX10_3) {
 			radeon_set_context_reg(cs, R_028750_SX_PS_DOWNCONVERT_CONTROL, 0xff);
-			radeon_set_context_reg(cs, 0x28848, 1 << 9); /* This fixes sample shading. */
+                        /* This allows sample shading. */
+			radeon_set_context_reg(cs, R_028848_PA_CL_VRS_CNTL,
+                                               S_028848_SAMPLE_ITER_COMBINER_MODE(1));
 		}
 
 		if (physical_device->rad_info.chip_class == GFX10) {

@@ -105,6 +105,9 @@ extern GLboolean
 _mesa_is_depth_or_stencil_format(GLenum format);
 
 extern GLboolean
+_mesa_has_depth_float_channel(GLenum internalFormat);
+
+extern GLboolean
 _mesa_is_compressed_format(const struct gl_context *ctx, GLenum format);
 
 extern GLboolean

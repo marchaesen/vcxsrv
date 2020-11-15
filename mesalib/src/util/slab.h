@@ -44,6 +44,10 @@
 
 #include "c11/threads.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct slab_element_header;
 struct slab_page_header;
 
@@ -90,5 +94,9 @@ void slab_create(struct slab_mempool *mempool,
 void slab_destroy(struct slab_mempool *mempool);
 void *slab_alloc_st(struct slab_mempool *mempool);
 void slab_free_st(struct slab_mempool *mempool, void *ptr);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -156,13 +156,16 @@ if with_gallium_lima
 else
   driver_lima = declare_dependency()
 endif
-
 if with_gallium_zink
   subdir('drivers/zink')
 else
   driver_zink = declare_dependency()
 endif
-
+if with_gallium_d3d12
+  subdir('drivers/d3d12')
+else
+  driver_d3d12 = declare_dependency()
+endif
 if with_gallium_opencl
   # TODO: this isn't really clover specific, but ATM clover is the only
   # consumer

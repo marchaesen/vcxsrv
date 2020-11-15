@@ -1,5 +1,3 @@
-// based on a keyboard map from an 'xkb/symbols/am' file
-
 default partial alphanumeric_keys
 xkb_symbols "basic" {
 
@@ -57,7 +55,6 @@ xkb_symbols "basic" {
     key <AB08> {	[ Armenian_khe,  	Armenian_KHE 	]       };
     key <AB09> {	[ Armenian_sha,  	Armenian_SHA 	]       };
     key <AB10> {	[ Armenian_ra,   	Armenian_RA  	]       };
-
 };
 
 partial alphanumeric_keys
@@ -120,7 +117,6 @@ xkb_symbols "phonetic" {
     key <AB08> {	[ 0x100002C,  		0x10000AB 	]       };
     key <AB09> {	[ 0x1002024,  		0x10000BB 	]       };
     key <AB10> {	[ 0x100002F,  		Armenian_question ]	};
-
 };
 
 partial alphanumeric_keys
@@ -130,7 +126,6 @@ xkb_symbols "phonetic-alt" {
 
     key <AE08> {	[ Armenian_re,    	Armenian_RE   	]	};
     key <LatR> {	[ Armenian_ra,    	Armenian_RA   	]	};
-
 };
 
 partial alphanumeric_keys
@@ -202,7 +197,6 @@ xkb_symbols "eastern" {
     key <AB08> {	[ Armenian_sha,  	Armenian_SHA ]	};
     key <AB09> {	[ Armenian_ghat,  	Armenian_GHAT ]	};
     key <AB10> {	[ Armenian_tsa,  	Armenian_TSA ]	};
-
 };
 
 partial alphanumeric_keys
@@ -224,7 +218,6 @@ xkb_symbols "western" {
     key <LatC> {	[ Armenian_gim,  	Armenian_GIM ]	};
     key <LatV> {	[ Armenian_vyun,  	Armenian_VYUN ]	};
     key <LatB> {	[ Armenian_pe,  	Armenian_PE ]	};
-
 };
 
 partial alphanumeric_keys
@@ -239,5 +232,4 @@ xkb_symbols "eastern-alt" {
 
     key <LatG> {	[ Armenian_ke,  	Armenian_KE ]	};
     key <LatC> {	[ Armenian_gim,  	Armenian_GIM ]	};
-
 };

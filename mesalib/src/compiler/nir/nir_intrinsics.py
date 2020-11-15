@@ -101,6 +101,8 @@ DESC_SET = "NIR_INTRINSIC_DESC_SET"
 BINDING = "NIR_INTRINSIC_BINDING"
 # Component offset
 COMPONENT = "NIR_INTRINSIC_COMPONENT"
+# Column index for matrix system values
+COLUMN = "NIR_INTRINSIC_COLUMN"
 # Interpolation mode (only meaningful for FS inputs)
 INTERP_MODE = "NIR_INTRINSIC_INTERP_MODE"
 # A binary nir_op to use when performing a reduction or scan operation
@@ -211,6 +213,13 @@ intrinsic("get_ssbo_size", src_comp=[-1], dest_comp=1,
           flags=[CAN_ELIMINATE, CAN_REORDER])
 intrinsic("get_ubo_size", src_comp=[-1], dest_comp=1,
           flags=[CAN_ELIMINATE, CAN_REORDER])
+
+# Intrinsics which provide a run-time mode-check.  Unlike the compile-time
+# mode checks, a pointer can only have exactly one mode at runtime.
+intrinsic("deref_mode_is", src_comp=[-1], dest_comp=1,
+          indices=[MEMORY_MODES], flags=[CAN_ELIMINATE, CAN_REORDER])
+intrinsic("addr_mode_is", src_comp=[-1], dest_comp=1,
+          indices=[MEMORY_MODES], flags=[CAN_ELIMINATE, CAN_REORDER])
 
 # a barrier is an intrinsic with no inputs/outputs but which can't be moved
 # around/optimized in general
@@ -363,6 +372,28 @@ intrinsic("emit_vertex_with_counter", src_comp=[1, 1], indices=[STREAM_ID])
 intrinsic("end_primitive_with_counter", src_comp=[1, 1], indices=[STREAM_ID])
 # Contains the final total vertex and primitive counts in the current GS thread.
 intrinsic("set_vertex_and_primitive_count", src_comp=[1, 1], indices=[STREAM_ID])
+
+# Trace a ray through an acceleration structure
+#
+# This instruction has a lot of parameters:
+#   0. Acceleration Structure
+#   1. Ray Flags
+#   2. Cull Mask
+#   3. SBT Offset
+#   4. SBT Stride
+#   5. Miss shader index
+#   6. Ray Origin
+#   7. Ray Tmin
+#   8. Ray Direction
+#   9. Ray Tmax
+#   10. Payload
+intrinsic("trace_ray", src_comp=[-1, 1, 1, 1, 1, 1, 3, 1, 3, 1, -1])
+# src[] = { hit_t, hit_kind }
+intrinsic("report_ray_intersection", src_comp=[1, 1], dest_comp=1)
+intrinsic("ignore_ray_intersection")
+intrinsic("terminate_ray")
+# src[] = { sbt_index, payload }
+intrinsic("execute_callable", src_comp=[1, -1])
 
 # Atomic counters
 #
@@ -623,7 +654,6 @@ system_value("base_work_group_id", 3, bit_sizes=[32, 64])
 system_value("user_clip_plane", 4, indices=[UCP_ID])
 system_value("num_work_groups", 3, bit_sizes=[32, 64])
 system_value("helper_invocation", 1, bit_sizes=[1, 32])
-system_value("alpha_ref_float", 1)
 system_value("layer_id", 1)
 system_value("view_index", 1)
 system_value("subgroup_size", 1)
@@ -650,6 +680,24 @@ system_value("aa_line_width", 1)
 # BASE=0 for global/shader, BASE=1 for local/function
 system_value("scratch_base_ptr", 0, bit_sizes=[32,64], indices=[BASE])
 system_value("constant_base_ptr", 0, bit_sizes=[32,64])
+system_value("shared_base_ptr", 0, bit_sizes=[32,64])
+
+# System values for ray tracing.
+system_value("ray_launch_id", 3)
+system_value("ray_launch_size", 3)
+system_value("ray_world_origin", 3)
+system_value("ray_world_direction", 3)
+system_value("ray_object_origin", 3)
+system_value("ray_object_direction", 3)
+system_value("ray_t_min", 1)
+system_value("ray_t_max", 1)
+system_value("ray_object_to_world", 3, indices=[COLUMN])
+system_value("ray_world_to_object", 3, indices=[COLUMN])
+system_value("ray_hit_kind", 1)
+system_value("ray_flags", 1)
+system_value("ray_geometry_index", 1)
+system_value("ray_instance_custom_index", 1)
+system_value("shader_record_ptr", 1, bit_sizes=[64])
 
 # Driver-specific viewport scale/offset parameters.
 #
@@ -897,6 +945,10 @@ load("global_ir3", [2, 1], indices=[ACCESS, ALIGN_MUL, ALIGN_OFFSET], flags=[CAN
 # Note that this doesn't actually turn into a HW instruction.
 intrinsic("bindless_resource_ir3", [1], dest_comp=1, indices=[DESC_SET], flags=[CAN_ELIMINATE, CAN_REORDER])
 
+# DXIL specific intrinsics
+# src[] = { index, 16-byte-based-offset }
+load("ubo_dxil", [1, 1], [], [CAN_ELIMINATE])
+
 # Intrinsics used by the Midgard/Bifrost blend pipeline. These are defined
 # within a blend shader to read/write the raw value from the tile buffer,
 # without applying any format conversion in the process. If the shader needs
@@ -911,7 +963,7 @@ intrinsic("bindless_resource_ir3", [1], dest_comp=1, indices=[DESC_SET], flags=[
 
 # src[] = { value }
 store("raw_output_pan", [], [])
-store("combined_output_pan", [1, 1, 1], [BASE, COMPONENT])
+store("combined_output_pan", [1, 1, 1], [BASE, COMPONENT, SRC_TYPE])
 load("raw_output_pan", [1], [BASE], [CAN_ELIMINATE, CAN_REORDER])
 
 # Loads the sampler paramaters <min_lod, max_lod, lod_bias>
@@ -969,3 +1021,27 @@ system_value("simd_width_intel", 1)
 # Load a relocatable 32-bit value
 intrinsic("load_reloc_const_intel", dest_comp=1, bit_sizes=[32],
           indices=[PARAM_IDX], flags=[CAN_ELIMINATE, CAN_REORDER])
+
+# OpSubgroupBlockReadINTEL and OpSubgroupBlockWriteINTEL from SPV_INTEL_subgroups.
+intrinsic("load_deref_block_intel", dest_comp=0, src_comp=[-1],
+          indices=[ACCESS], flags=[CAN_ELIMINATE])
+intrinsic("store_deref_block_intel", src_comp=[-1, 0], indices=[WRMASK, ACCESS])
+
+# src[] = { address }.
+load("global_block_intel", [1], [ACCESS, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
+
+# src[] = { buffer_index, offset }.
+load("ssbo_block_intel", [-1, 1], [ACCESS, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
+
+# src[] = { offset }.
+load("shared_block_intel", [1], [BASE, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
+
+# src[] = { value, address }.
+store("global_block_intel", [1], [WRMASK, ACCESS, ALIGN_MUL, ALIGN_OFFSET])
+
+# src[] = { value, block_index, offset }
+store("ssbo_block_intel", [-1, 1], [WRMASK, ACCESS, ALIGN_MUL, ALIGN_OFFSET])
+
+# src[] = { value, offset }.
+store("shared_block_intel", [1], [BASE, WRMASK, ALIGN_MUL, ALIGN_OFFSET])
+
