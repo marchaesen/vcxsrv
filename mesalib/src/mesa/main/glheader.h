@@ -157,6 +157,10 @@ typedef int GLclampx;
 #define GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_SAMPLES_EXT 0x8D6C
 #endif
 
+#ifndef GL_ANGLE_pack_reverse_row_order
+#define GL_PACK_REVERSE_ROW_ORDER_ANGLE 0x93A4
+#endif
+
 #ifdef __cplusplus
 }
 #endif

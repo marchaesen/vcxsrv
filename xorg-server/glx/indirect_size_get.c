@@ -310,7 +310,6 @@ _X_INTERNAL PURE FASTCALL GLint
 __glGetBooleanv_size( GLenum e )
 {
     switch( e ) {
-        case GL_FOG_COORDINATE_SOURCE:
         case GL_COMPRESSED_TEXTURE_FORMATS:
         case GL_MIN_PROGRAM_TEXEL_OFFSET:
         case GL_MAX_PROGRAM_TEXEL_OFFSET:
@@ -346,7 +345,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_SMOOTH_POINT_SIZE_GRANULARITY:
         case GL_LINE_SMOOTH:
         case GL_LINE_WIDTH:
-        case GL_LINE_WIDTH_GRANULARITY:
+        case GL_SMOOTH_LINE_WIDTH_GRANULARITY:
         case GL_LINE_STIPPLE:
         case GL_LINE_STIPPLE_PATTERN:
         case GL_LINE_STIPPLE_REPEAT:
@@ -523,7 +522,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_LIGHT6:
         case GL_LIGHT7:
         case GL_BLEND_EQUATION:
-/*      case GL_BLEND_EQUATION_EXT:*/
+/*      case GL_BLEND_EQUATION_RGB_EXT:*/
         case GL_CONVOLUTION_1D:
         case GL_CONVOLUTION_2D:
         case GL_SEPARABLE_2D:
@@ -631,9 +630,10 @@ __glGetBooleanv_size( GLenum e )
         case GL_DEBUG_GROUP_STACK_DEPTH:
         case GL_MAX_UNIFORM_LOCATIONS:
         case GL_MAX_LABEL_LENGTH:
+        case GL_FOG_COORD_SRC:
         case GL_CURRENT_FOG_COORD:
-        case GL_FOG_COORDINATE_ARRAY_TYPE:
-        case GL_FOG_COORDINATE_ARRAY_STRIDE:
+        case GL_FOG_COORD_ARRAY_TYPE:
+        case GL_FOG_COORD_ARRAY_STRIDE:
         case GL_FOG_COORD_ARRAY:
         case GL_COLOR_SUM_ARB:
         case GL_SECONDARY_COLOR_ARRAY_SIZE:
@@ -764,7 +764,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_SAMPLER_BINDING:
         case GL_TEXTURE_BINDING_1D_ARRAY_EXT:
         case GL_TEXTURE_BINDING_2D_ARRAY_EXT:
-        case GL_FRAMEBUFFER_BINDING:
+        case GL_DRAW_FRAMEBUFFER_BINDING:
 /*      case GL_DRAW_FRAMEBUFFER_BINDING_EXT:*/
         case GL_RENDERBUFFER_BINDING:
 /*      case GL_RENDERBUFFER_BINDING_EXT:*/
@@ -787,7 +787,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_RASTER_POSITION_UNCLIPPED_IBM:
             return 1;
         case GL_SMOOTH_POINT_SIZE_RANGE:
-        case GL_LINE_WIDTH_RANGE:
+        case GL_SMOOTH_LINE_WIDTH_RANGE:
         case GL_POLYGON_MODE:
         case GL_DEPTH_RANGE:
         case GL_MAX_VIEWPORT_DIMS:
@@ -1214,7 +1214,7 @@ __glGetFramebufferAttachmentParameteriv_size( GLenum e )
         case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE:
 /*      case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE_EXT:*/
         case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER:
-/*      case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_3D_ZOFFSET_EXT:*/
+/*      case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER_EXT:*/
             return 1;
         default: return 0;
     }

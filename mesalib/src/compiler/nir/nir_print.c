@@ -473,6 +473,10 @@ get_variable_mode_str(nir_variable_mode mode, bool want_local_global_mode)
       return want_local_global_mode ? "shader_temp" : "";
    case nir_var_function_temp:
       return want_local_global_mode ? "function_temp" : "";
+   case nir_var_shader_call_data:
+      return "shader_call_data";
+   case nir_var_ray_hit_attrib:
+      return "ray_hit_attrib";
    default:
       return "";
    }
@@ -723,9 +727,14 @@ print_deref_instr(nir_deref_instr *instr, print_state *state)
 
    print_deref_link(instr, false, state);
 
-   fprintf(fp, " (%s %s) ",
-           get_variable_mode_str(instr->mode, true),
-           glsl_get_type_name(instr->type));
+   fprintf(fp, " (");
+   unsigned modes = instr->modes;
+   while (modes) {
+      int m = u_bit_scan(&modes);
+      fprintf(fp, "%s%s", get_variable_mode_str(1 << m, true),
+                          modes ? "|" : "");
+   }
+   fprintf(fp, " %s) ", glsl_get_type_name(instr->type));
 
    if (instr->deref_type != nir_deref_type_var &&
        instr->deref_type != nir_deref_type_cast) {
@@ -758,6 +767,7 @@ vulkan_descriptor_type_name(VkDescriptorType type)
    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return "SSBO";
    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: return "input-att";
    case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT: return "inline-UBO";
+   case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: return "accel-struct";
    default: return "unknown";
    }
 }
@@ -824,6 +834,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       [NIR_INTRINSIC_DESC_SET] = "desc-set",
       [NIR_INTRINSIC_BINDING] = "binding",
       [NIR_INTRINSIC_COMPONENT] = "component",
+      [NIR_INTRINSIC_COLUMN] = "column",
       [NIR_INTRINSIC_INTERP_MODE] = "interp_mode",
       [NIR_INTRINSIC_REDUCTION_OP] = "reduction_op",
       [NIR_INTRINSIC_CLUSTER_SIZE] = "cluster_size",
@@ -895,6 +906,12 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
          break;
       }
 
+      case NIR_INTRINSIC_FORMAT: {
+         enum pipe_format format = nir_intrinsic_format(instr);
+         fprintf(fp, " format=%s ", util_format_short_name(format));
+         break;
+      }
+
       case NIR_INTRINSIC_DESC_TYPE: {
          VkDescriptorType desc_type = nir_intrinsic_desc_type(instr);
          fprintf(fp, " desc_type=%s", vulkan_descriptor_type_name(desc_type));
@@ -908,7 +925,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       }
 
       case NIR_INTRINSIC_DEST_TYPE: {
-         fprintf(fp, " src_type=");
+         fprintf(fp, " dest_type=");
          print_alu_type(nir_intrinsic_dest_type(instr), state);
          break;
       }
@@ -964,6 +981,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
          case NIR_SCOPE_DEVICE:       fprintf(fp, "DEVICE");       break;
          case NIR_SCOPE_QUEUE_FAMILY: fprintf(fp, "QUEUE_FAMILY"); break;
          case NIR_SCOPE_WORKGROUP:    fprintf(fp, "WORKGROUP");    break;
+         case NIR_SCOPE_SHADER_CALL:  fprintf(fp, "SHADER_CALL");  break;
          case NIR_SCOPE_SUBGROUP:     fprintf(fp, "SUBGROUP");     break;
          case NIR_SCOPE_INVOCATION:   fprintf(fp, "INVOCATION");   break;
          }
@@ -1592,6 +1610,27 @@ destroy_print_state(print_state *state)
    _mesa_set_destroy(state->syms, NULL);
 }
 
+static const char *
+primitive_name(unsigned primitive)
+{
+#define PRIM(X) case GL_ ## X : return #X
+   switch (primitive) {
+   PRIM(POINTS);
+   PRIM(LINES);
+   PRIM(LINE_LOOP);
+   PRIM(LINE_STRIP);
+   PRIM(TRIANGLES);
+   PRIM(TRIANGLE_STRIP);
+   PRIM(TRIANGLE_FAN);
+   PRIM(QUADS);
+   PRIM(QUAD_STRIP);
+   PRIM(POLYGON);
+   default:
+      return "UNKNOWN";
+   }
+}
+
+
 void
 nir_print_shader_annotated(nir_shader *shader, FILE *fp,
                            struct hash_table *annotations)
@@ -1628,6 +1667,16 @@ nir_print_shader_annotated(nir_shader *shader, FILE *fp,
       fprintf(fp, "scratch: %u\n", shader->scratch_size);
    if (shader->constant_data_size)
       fprintf(fp, "constants: %u\n", shader->constant_data_size);
+
+   if (shader->info.stage == MESA_SHADER_GEOMETRY) {
+      fprintf(fp, "invocations: %u\n", shader->info.gs.invocations);
+      fprintf(fp, "vertices in: %u\n", shader->info.gs.vertices_in);
+      fprintf(fp, "vertices out: %u\n", shader->info.gs.vertices_out);
+      fprintf(fp, "input primitive: %s\n", primitive_name(shader->info.gs.input_primitive));
+      fprintf(fp, "output primitive: %s\n", primitive_name(shader->info.gs.output_primitive));
+      fprintf(fp, "active_stream_mask: 0x%x\n", shader->info.gs.active_stream_mask);
+      fprintf(fp, "uses_end_primitive: %u\n", shader->info.gs.uses_end_primitive);
+   }
 
    nir_foreach_variable_in_shader(var, shader)
       print_var_decl(var, &state);

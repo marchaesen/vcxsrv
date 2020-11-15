@@ -691,6 +691,10 @@ util_memcpy_cpu_to_le32(void * restrict dest, const void * restrict src, size_t 
  *
  * \sa ROUND_DOWN_TO()
  */
+
+#if defined(ALIGN)
+#undef ALIGN
+#endif
 static inline uintptr_t
 ALIGN(uintptr_t value, int32_t alignment)
 {

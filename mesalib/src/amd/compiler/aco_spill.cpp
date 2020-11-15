@@ -245,8 +245,9 @@ bool should_rematerialize(aco_ptr<Instruction>& instr)
    /* TODO: rematerialization is only supported for VOP1, SOP1 and PSEUDO */
    if (instr->format != Format::VOP1 && instr->format != Format::SOP1 && instr->format != Format::PSEUDO && instr->format != Format::SOPK)
       return false;
-   /* TODO: pseudo-instruction rematerialization is only supported for p_create_vector */
-   if (instr->format == Format::PSEUDO && instr->opcode != aco_opcode::p_create_vector)
+   /* TODO: pseudo-instruction rematerialization is only supported for p_create_vector/p_parallelcopy */
+   if (instr->format == Format::PSEUDO && instr->opcode != aco_opcode::p_create_vector &&
+       instr->opcode != aco_opcode::p_parallelcopy)
       return false;
    if (instr->format == Format::SOPK && instr->opcode != aco_opcode::s_movk_i32)
       return false;
@@ -270,7 +271,7 @@ aco_ptr<Instruction> do_reload(spill_ctx& ctx, Temp tmp, Temp new_name, uint32_t
    if (remat != ctx.remat.end()) {
       Instruction *instr = remat->second.instr;
       assert((instr->format == Format::VOP1 || instr->format == Format::SOP1 || instr->format == Format::PSEUDO || instr->format == Format::SOPK) && "unsupported");
-      assert((instr->format != Format::PSEUDO || instr->opcode == aco_opcode::p_create_vector) && "unsupported");
+      assert((instr->format != Format::PSEUDO || instr->opcode == aco_opcode::p_create_vector || instr->opcode == aco_opcode::p_parallelcopy) && "unsupported");
       assert(instr->definitions.size() == 1 && "unsupported");
 
       aco_ptr<Instruction> res;

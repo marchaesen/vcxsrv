@@ -16,8 +16,9 @@ include:
   - local: '.gitlab-ci/test-source-dep.yml'
 
 stages:
-  - container+docs
+  - container
   - container-2
+  - sanity
   - git-archive
   - deploy
   - meson-x86_64
@@ -84,6 +85,7 @@ pages:
   artifacts:
     paths:
     - public
+  needs: []
   rules:
     - *ignore_scheduled_pipelines
     - if: *is-main-master
@@ -97,7 +99,8 @@ test-docs:
   extends: .docs-base
   # Cancel job if a newer commit is pushed to the same branch
   interruptible: true
-  stage: container+docs
+  stage: deploy
+  needs: []
   rules:
     - *ignore_scheduled_pipelines
     - if: *is-main-master
@@ -196,7 +199,7 @@ success:
 # repository's registry will be used there as well.
 
 .container:
-  stage: container+docs
+  stage: container
   extends:
     - .ci-run-policy
   rules:
@@ -240,7 +243,7 @@ x86_build-base:
     - .fdo.container-build@debian
     - .container
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_build-base "2020-10-06-clang10-2"
+    FDO_DISTRIBUTION_TAG: &x86_build-base "2020-11-05-kmod"
 
 .use-x86_build-base:
   extends:
@@ -258,7 +261,7 @@ x86_build:
   extends:
     - .use-x86_build-base
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_build "2020-10-09-spvtools-1"
+    FDO_DISTRIBUTION_TAG: &x86_build "2020-11-05-kmod"
 
 .use-x86_build:
   variables:
@@ -266,13 +269,14 @@ x86_build:
   image: "$CI_REGISTRY_IMAGE/debian/x86_build:$TAG"
   needs:
     - x86_build
+    - check mr
 
 # Debian 10 based i386 cross-build image
 i386_build:
   extends:
     - .use-x86_build-base
   variables:
-    FDO_DISTRIBUTION_TAG: &i386_build "2020-10-06-clang10-2"
+    FDO_DISTRIBUTION_TAG: &i386_build "2020-11-05-kmod"
 
 .use-i386_build:
   variables:
@@ -280,13 +284,14 @@ i386_build:
   image: "$CI_REGISTRY_IMAGE/debian/i386_build:$TAG"
   needs:
     - i386_build
+    - check mr
 
 # Debian 10 based ppc64el cross-build image
 ppc64el_build:
   extends:
     - .use-x86_build-base
   variables:
-    FDO_DISTRIBUTION_TAG: &ppc64el_build "2020-10-06-clang10-2"
+    FDO_DISTRIBUTION_TAG: &ppc64el_build "2020-11-05-kmod"
 
 .use-ppc64el_build:
   variables:
@@ -294,13 +299,14 @@ ppc64el_build:
   image: "$CI_REGISTRY_IMAGE/debian/ppc64el_build:$TAG"
   needs:
     - ppc64el_build
+    - check mr
 
 # Debian 10 based s390x cross-build image
 s390x_build:
   extends:
     - .use-x86_build-base
   variables:
-    FDO_DISTRIBUTION_TAG: &s390x_build "2020-10-06-clang10-2"
+    FDO_DISTRIBUTION_TAG: &s390x_build "2020-11-05-kmod"
 
 .use-s390x_build:
   variables:
@@ -308,13 +314,14 @@ s390x_build:
   image: "$CI_REGISTRY_IMAGE/debian/s390x_build:$TAG"
   needs:
     - s390x_build
+    - check mr
 
 # Android NDK cross-build image
 android_build:
   extends:
     - .use-x86_build-base
   variables:
-    FDO_DISTRIBUTION_TAG: &android_build "2020-10-05-shrink"
+    FDO_DISTRIBUTION_TAG: &android_build "2020-11-05-kmod"
 
 .use-android_build:
   variables:
@@ -322,12 +329,13 @@ android_build:
   image: "$CI_REGISTRY_IMAGE/debian/android_build:$TAG"
   needs:
     - android_build
+    - check mr
 
 # Debian 10 based x86 test image base
 x86_test-base:
   extends: x86_build-base
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_test-base "2020-10-06-clang10-2"
+    FDO_DISTRIBUTION_TAG: &x86_test-base "2020-11-05-kmod"
 
 .use-x86_test-base:
   extends:
@@ -344,19 +352,19 @@ x86_test-base:
 x86_test-gl:
   extends: .use-x86_test-base
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_test-gl "2020-10-09-spvtools-1"
+    FDO_DISTRIBUTION_TAG: &x86_test-gl "2020-11-06-deqp-version"
 
 # Debian 10 based x86 test image for VK
 x86_test-vk:
   extends: .use-x86_test-base
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_test-vk "2020-10-06-clang10-2"
+    FDO_DISTRIBUTION_TAG: &x86_test-vk "2020-11-06-deqp-version"
 
 # Debian 9 based x86 build image (old LLVM)
 x86_build_old:
   extends: x86_build-base
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_build_old "2020-08-13-gold"
+    FDO_DISTRIBUTION_TAG: &x86_build_old "2020-11-05-kmod"
     FDO_DISTRIBUTION_VERSION: stretch-slim
 
 .use-x86_build_old:
@@ -365,6 +373,7 @@ x86_build_old:
   image: "$CI_REGISTRY_IMAGE/debian/x86_build_old:$TAG"
   needs:
     - x86_build_old
+    - check mr
 
 # Debian 10 based ARM build image
 arm_build:
@@ -372,7 +381,7 @@ arm_build:
     - .fdo.container-build@debian@arm64v8
     - .container
   variables:
-    FDO_DISTRIBUTION_TAG: &arm_build "2020-09-10-libdrm"
+    FDO_DISTRIBUTION_TAG: &arm_build "2020-11-05-kmod"
 
 .use-arm_build:
   variables:
@@ -405,7 +414,7 @@ arm64_test:
   extends:
     - .use-arm_test-base
   variables:
-    FDO_DISTRIBUTION_TAG: &arm64_test "2020-09-28-deqp-surfaceless-fix"
+    FDO_DISTRIBUTION_TAG: &arm64_test "2020-11-09-db410c-net"
 
 .use-arm64_test:
   variables:
@@ -436,7 +445,7 @@ arm64_test:
   extends:
     - .container
     - .windows-docker-vs2019
-  stage: container+docs
+  stage: container
   variables:
     GIT_STRATEGY: fetch # we do actually need the full repository though
   timeout: 4h # LLVM takes ages
@@ -453,13 +462,21 @@ arm64_test:
   image: "$WINDOWS_IMAGE"
   needs:
     - windows_build_vs2019
+    - check mr
 
 git_archive:
   extends: .fdo.container-build@alpine
-  stage: container+docs
+  stage: container
   rules:
     - if: *is-scheduled-pipeline
       when: always
+    - if: *is-pre-merge
+      when: on_success
+    - changes: *all_paths
+      when: on_success
+    - if: *is-forked-branch
+      when: manual
+    # Other cases default to never
   variables:
     FDO_REPO_SUFFIX: &git-archive-suffix "alpine/git_archive"
     FDO_DISTRIBUTION_EXEC: 'pip3 install git+http://gitlab.freedesktop.org/freedesktop/ci-templates@6f5af7e5574509726c79109e3c147cee95e81366'
@@ -468,24 +485,26 @@ git_archive:
     FDO_DISTRIBUTION_TAG: &git-archive-tag "2020-07-07"
     FDO_DISTRIBUTION_PACKAGES: git py3-pip
 
-
-# Git archive
-
-make git archive:
-  stage: git-archive
+.use-git_archive:
   extends: .fdo.suffixed-image@alpine
-  rules:
-    - if: *is-scheduled-pipeline
-      when: on_success
-  # ensure we are running on packet
-  tags:
-    - packet.net
   variables:
     FDO_DISTRIBUTION_TAG: *git-archive-tag
     FDO_REPO_SUFFIX: *git-archive-suffix
   needs:
     - git_archive
 
+
+# Git archive
+
+make git archive:
+  extends: .use-git_archive
+  stage: git-archive
+  rules:
+    - if: *is-scheduled-pipeline
+      when: on_success
+  # ensure we are running on packet
+  tags:
+    - packet.net
   script:
     # compress the current folder
     - tar -cvzf ../$CI_PROJECT_NAME.tar.gz .
@@ -493,6 +512,43 @@ make git archive:
     # login with the JWT token
     - ci-fairy minio login $CI_JOB_JWT
     - ci-fairy minio cp ../$CI_PROJECT_NAME.tar.gz minio://minio-packet.freedesktop.org/git-cache/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/$CI_PROJECT_NAME.tar.gz
+
+
+# Sanity checks of MR settings and commit logs
+.sanity-check:
+  extends: .use-git_archive
+  stage: sanity
+  artifacts:
+    when: on_failure
+    reports:
+      junit: check-*.xml
+
+check mr:
+  extends: .sanity-check
+  rules:
+    - *ignore_scheduled_pipelines
+    - if: *is-pre-merge
+      when: on_success
+    - changes: *all_paths
+      when: on_success
+    # Other cases default to never
+  variables:
+    GIT_STRATEGY: none
+  script:
+    # Only run checks in pre-merge pipelines for MRs
+    - if test "x$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" != "x$CI_COMMIT_REF_NAME"; then exit 0; fi
+    - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=check-merge-request.xml
+
+.check commits:
+  extends: .sanity-check
+  rules:
+    - if: *is-pre-merge
+      when: on_success
+    - if: *is-forked-branch
+      when: manual
+    # Other cases default to never
+  script:
+    - ci-fairy check-commits --junit-xml=check-commits.xml
 
 
 # BUILD
@@ -689,6 +745,7 @@ meson-android:
     EXTRA_OPTION: >
       -D android-stub=true
       -D llvm=disabled
+      -D platform-sdk-version=26
     GALLIUM_ST: >
       -D dri3=disabled
       -D gallium-vdpau=disabled
@@ -734,6 +791,9 @@ meson-android:
   extends:
     - .meson-cross
     - .use-arm_build
+  needs:
+    - arm_build
+    - check mr
   variables:
     VULKAN_DRIVERS: freedreno,broadcom
     GALLIUM_DRIVERS: "etnaviv,freedreno,kmsro,lima,nouveau,panfrost,swrast,tegra,v3d,vc4"
@@ -778,6 +838,7 @@ meson-arm64-build-test:
     VULKAN_DRIVERS: "amd"
     EXTRA_OPTION: >
       -Dtools=panfrost
+      -D werror=true
   script:
     - .gitlab-ci/meson-build.sh
 
@@ -976,12 +1037,13 @@ piglit-cl:
   extends:
     - .piglit-test
     - .test-cl
+    - .llvmpipe-cl-rules
   variables:
     LP_CL: 1
     LP_NUM_THREADS: 1
     PIGLIT_PROFILES: cl
     PIGLIT_OPTIONS: >
-      -x bswap -x phatk
+      -x bswap -x phatk -x clz-optimizations
   script:
     - install/piglit/run_cl.sh
 
@@ -989,7 +1051,6 @@ piglit-quick_gl:
   extends: .piglit-test
   variables:
     LP_NUM_THREADS: 0
-    NIR_VALIDATE: 0
     PIGLIT_OPTIONS: >
       --process-isolation false
       -x egl_ext_device_
@@ -1005,14 +1066,12 @@ piglit-glslparser:
   extends: .piglit-test
   variables:
     LP_NUM_THREADS: 0
-    NIR_VALIDATE: 0
     PIGLIT_PROFILES: glslparser
 
 piglit-quick_shader:
   extends: .piglit-test
   variables:
     LP_NUM_THREADS: 1
-    NIR_VALIDATE: 0
     PIGLIT_PROFILES: quick_shader
 
 .deqp-test:
@@ -1046,7 +1105,6 @@ piglit-quick_shader:
 llvmpipe-gles2:
   variables:
     DEQP_VER: gles2
-    NIR_VALIDATE: 0
     # Don't use threads inside llvmpipe, we've already got all cores
     # busy at the deqp-runner level.
     LP_NUM_THREADS: 0
@@ -1064,6 +1122,7 @@ softpipe-gles2:
   variables:
     DEQP_EXPECTED_FAILS: deqp-softpipe-fails.txt
     DEQP_SKIPS: deqp-softpipe-skips.txt
+    DEQP_FLAKES: deqp-softpipe-flakes.txt
     GALLIUM_DRIVER: "softpipe"
     DEQP_EXPECTED_RENDERER: softpipe
 
@@ -1090,7 +1149,6 @@ softpipe-gl:
 virgl-gles2-on-gl:
   variables:
     DEQP_VER: gles2
-    NIR_VALIDATE: 0
     DEQP_NO_SAVE_RESULTS: 1
     DEQP_SKIPS: deqp-virgl-gl-skips.txt
     # Don't use threads inside llvmpipe, we've already got all cores
@@ -1181,9 +1239,11 @@ arm64_a630_gles2:
     BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 root=/dev/nfs rw nfsrootdebug nfsroot=,tcp,nfsvers=4.2 init=/init"
     DEQP_EXPECTED_FAILS: deqp-freedreno-a630-fails.txt
     DEQP_FLAKES: deqp-freedreno-a630-flakes.txt
+    DEQP_SKIPS: deqp-freedreno-a630-skips.txt
     GIT_STRATEGY: none
     DEQP_EXPECTED_RENDERER: FD630
     DEQP_NO_SAVE_RESULTS: ""
+    VK_DRIVER: freedreno
   tags:
     - google-freedreno-cheza
   script:
@@ -1193,35 +1253,11 @@ arm64_a630_gles31:
   extends: arm64_a630_gles2
   variables:
     DEQP_VER: gles31
-    # gles31 is about 12 minutes with validation enabled.
-    NIR_VALIDATE: 0
 
 arm64_a630_gles3:
   extends: arm64_a630_gles2
   variables:
     DEQP_VER: gles3
-    # gles3 is about 15 minutes with validation enabled.
-    NIR_VALIDATE: 0
-
-# We almost always manage to lower UBOs back to constant uploads in
-# the test suite, so get a little testing for it here.
-arm64_a630_noubo:
-  extends: arm64_a630_gles31
-  variables:
-    DEQP_VER: gles31
-    IR3_SHADER_DEBUG: nouboopt
-    DEQP_CASELIST_FILTER: "functional.*ubo"
-
-# The driver does some guessing as to whether to render using gmem
-# or bypass, and some GLES3.1 features interact with either one.
-# Do a little testing with gmem and bypass forced.
-arm64_a630_bypass:
-  extends: arm64_a630_gles31
-  variables:
-    CI_NODE_INDEX: 1
-    CI_NODE_TOTAL: 5
-    FD_MESA_DEBUG: nogmem
-    DEQP_EXPECTED_FAILS: deqp-freedreno-a630-bypass-fails.txt
 
 arm64_a630_traces:
   extends:
@@ -1240,59 +1276,22 @@ arm64_a630_traces:
     reports:
       junit: results/junit.xml
 
-# Along with checking gmem path, check that we don't get obvious nir
-# validation failures (though it's too expensive to have it on for the
-# full CTS)
-arm64_a630_gmem:
-  extends: arm64_a630_gles31
-  variables:
-    CI_NODE_INDEX: 1
-    CI_NODE_TOTAL: 5
-    FD_MESA_DEBUG: nobypass
-    NIR_VALIDATE: 1
-
 arm64_a630_gl:
   extends: arm64_a630_gles2
   variables:
     DEQP_VER: gl30
 
-# disabled pending https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/1859
-.arm64_a630_gles3_multisample:
-  extends: arm64_a630_gles3
+arm64_a630_gles_others:
+  extends: arm64_a630_gles2
   variables:
-    DEQP_CONFIG: rgba8888d24s8ms4
-    DEQP_VARIANT: multisample
-    DEQP_EXPECTED_FAILS: deqp-freedreno-a630-multisample-fails.txt
-
-# disabled pending https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/1859
-.arm64_a630_gles31_multisample:
-  extends: arm64_a630_gles31
-  variables:
-    DEQP_CONFIG: rgba8888d24s8ms4
-    DEQP_VARIANT: multisample
-    DEQP_EXPECTED_FAILS: deqp-freedreno-a630-multisample-fails.txt
-
-arm64_a630_gles3_565nozs:
-  extends: arm64_a630_gles3
-  variables:
-    DEQP_CONFIG: rgb565d0s0ms0
-    DEQP_VARIANT: 565-no-depth-no-stencil
-    DEQP_EXPECTED_FAILS: deqp-freedreno-a630-565nozs-fails.txt
-
-arm64_a630_gles31_565nozs:
-  extends: arm64_a630_gles31
-  variables:
-    DEQP_CONFIG: rgb565d0s0ms0
-    DEQP_VARIANT: 565-no-depth-no-stencil
-    DEQP_EXPECTED_FAILS: deqp-freedreno-a630-565nozs-fails.txt
+    BARE_METAL_TEST_SCRIPT: "/install/bare-metal/arm64_a630_gles_others.sh"
 
 arm64_a630_vk:
   extends: arm64_a630_gles2
+  parallel: 2
   variables:
     DEQP_VER: vk
-    CI_NODE_INDEX: 1
-    CI_NODE_TOTAL: 50
-    VK_DRIVER: freedreno
+    DEQP_FRACTION: 10
     # Force binning in the main run, which makes sure we render at
     # least 2 bins.  This is the path that impacts the most different
     # features.  However, we end up with flaky results in
@@ -1304,10 +1303,10 @@ arm64_a630_vk:
 # to click play on in their branches.
 arm64_a630_vk_sysmem:
   extends:
-    - arm64_a630_vk
+    - arm64_a630_gles2
   variables:
-    CI_NODE_INDEX: 1
-    CI_NODE_TOTAL: 10
+    DEQP_VER: vk
+    DEQP_FRACTION: 15
     DEQP_CASELIST_FILTER: "dEQP-VK.renderpass.*"
     DEQP_EXPECTED_FAILS: deqp-freedreno-a630-bypass-fails.txt
     TU_DEBUG: sysmem
@@ -1346,7 +1345,6 @@ arm64_a306_gles2:
     DEQP_EXPECTED_RENDERER: FD307
     # Since we can't get artifacts back yet, skip making them.
     DEQP_NO_SAVE_RESULTS: 1
-    # NIR_VALIDATE=0 left intentionally unset as a3xx is fast enough at its small testsuite.
   script:
     - ./install/bare-metal/fastboot.sh
   needs:
@@ -1362,9 +1360,7 @@ arm64_a306_gles3:
   variables:
     DEQP_VER: gles3
     DEQP_PARALLEL: 1
-    CI_NODE_INDEX: 1
-    CI_NODE_TOTAL: 25
-    NIR_VALIDATE: 0
+    DEQP_FRACTION: 25
 
 # Fractional runs with debug options.  Note that since we're not
 # hitting the iommu faults, we can run in parallel (derive from gles2, not gles3).
@@ -1376,7 +1372,7 @@ arm64_a306_gles3_options:
     # Check that the non-constbuf UBO case works.
     - DEQP_RUN_SUFFIX=-nouboopt IR3_SHADER_DEBUG=nouboopt DEQP_CASELIST_FILTER="functional.*ubo" ./install/bare-metal/fastboot.sh
 
-arm64_a530_gles2:
+.arm64_a530_deqp:
   extends:
     - arm64_a306_gles2
   variables:
@@ -1388,26 +1384,28 @@ arm64_a530_gles2:
     DEQP_EXPECTED_FAILS: deqp-freedreno-a530-fails.txt
     DEQP_FLAKES: deqp-freedreno-a530-flakes.txt
     DEQP_EXPECTED_RENDERER: FD530
-    NIR_VALIDATE: 0
   tags:
     - google-freedreno-db820c
 
+arm64_a530_gles2:
+  extends:
+    - .arm64_a530_deqp
+  parallel: 2
+
 arm64_a530_gles3:
   extends:
-    - arm64_a530_gles2
+    - .arm64_a530_deqp
   variables:
     DEQP_VER: gles3
     DEQP_PARALLEL: 1
-    CI_NODE_INDEX: 1
-    CI_NODE_TOTAL: 40
+    DEQP_FRACTION: 40
 
 arm64_a530_gles31:
   extends:
     - arm64_a530_gles3
   variables:
     DEQP_VER: gles31
-    CI_NODE_INDEX: 1
-    CI_NODE_TOTAL: 10
+    DEQP_FRACTION: 10
 
 # RADV CI
 .test-radv:

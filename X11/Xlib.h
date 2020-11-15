@@ -1858,6 +1858,16 @@ extern XIOErrorHandler XSetIOErrorHandler (
     XIOErrorHandler	/* handler */
 );
 
+typedef void (*XIOErrorExitHandler) ( /* WARNING, this type not in Xlib spec */
+    Display*,		/* display */
+    void*		/* user_data */
+);
+
+extern void XSetIOErrorExitHandler (
+    Display*,			/* display */
+    XIOErrorExitHandler,	/* handler */
+    void*			/* user_data */
+);
 
 extern XPixmapFormatValues *XListPixmapFormats(
     Display*		/* display */,

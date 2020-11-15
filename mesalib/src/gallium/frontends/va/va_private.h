@@ -46,6 +46,10 @@
 #include "util/u_dynarray.h"
 #include "os/os_thread.h"
 
+#ifndef VA_RT_FORMAT_YUV420_10
+#define VA_RT_FORMAT_YUV420_10  VA_RT_FORMAT_YUV420_10BPP
+#endif
+
 #define VL_VA_DRIVER(ctx) ((vlVaDriver *)ctx->pDriverData)
 #define VL_VA_PSCREEN(ctx) (VL_VA_DRIVER(ctx)->vscreen->pscreen)
 

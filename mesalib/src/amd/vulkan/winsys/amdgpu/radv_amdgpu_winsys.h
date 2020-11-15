@@ -32,6 +32,7 @@
 #include "ac_gpu_info.h"
 #include <amdgpu.h>
 #include "util/list.h"
+#include "util/rwlock.h"
 #include <pthread.h>
 
 struct radv_amdgpu_winsys {
@@ -49,7 +50,7 @@ struct radv_amdgpu_winsys {
 	bool use_llvm;
 	unsigned num_buffers;
 
-	pthread_rwlock_t global_bo_list_lock;
+	struct u_rwlock global_bo_list_lock;
 	struct list_head global_bo_list;
 
 	uint64_t allocated_vram;

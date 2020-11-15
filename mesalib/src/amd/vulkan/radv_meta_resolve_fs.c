@@ -35,10 +35,7 @@ static nir_shader *
 build_nir_vertex_shader(void)
 {
 	const struct glsl_type *vec4 = glsl_vec4_type();
-	nir_builder b;
-
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_VERTEX, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, "meta_resolve_vs");
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_VERTEX, NULL, "meta_resolve_vs");
 
 	nir_variable *pos_out = nir_variable_create(b.shader, nir_var_shader_out,
 						    vec4, "gl_Position");
@@ -53,17 +50,13 @@ build_nir_vertex_shader(void)
 static nir_shader *
 build_resolve_fragment_shader(struct radv_device *dev, bool is_integer, int samples)
 {
-	nir_builder b;
-	char name[64];
 	const struct glsl_type *vec4 = glsl_vec4_type();
 	const struct glsl_type *sampler_type = glsl_sampler_type(GLSL_SAMPLER_DIM_MS,
 								 false,
 								 false,
 								 GLSL_TYPE_FLOAT);
 
-	snprintf(name, 64, "meta_resolve_fs-%d-%s", samples, is_integer ? "int" : "float");
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_FRAGMENT, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, name);
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, NULL, "meta_resolve_fs-%d-%s", samples, is_integer ? "int" : "float");
 
 	nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform,
 						      sampler_type, "s_tex");
@@ -359,20 +352,16 @@ build_depth_stencil_resolve_fragment_shader(struct radv_device *dev, int samples
 					    int index,
 					    VkResolveModeFlagBits resolve_mode)
 {
-	nir_builder b;
-	char name[64];
 	const struct glsl_type *vec4 = glsl_vec4_type();
 	const struct glsl_type *sampler_type = glsl_sampler_type(GLSL_SAMPLER_DIM_2D,
 								 false,
 								 false,
 								 GLSL_TYPE_FLOAT);
 
-	snprintf(name, 64, "meta_resolve_fs_%s-%s-%d",
-		 index == DEPTH_RESOLVE ? "depth" : "stencil",
-		 get_resolve_mode_str(resolve_mode), samples);
-
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_FRAGMENT, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, name);
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, NULL,
+						       "meta_resolve_fs_%s-%s-%d",
+						       index == DEPTH_RESOLVE ? "depth" : "stencil",
+						       get_resolve_mode_str(resolve_mode), samples);
 
 	nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform,
 						      sampler_type, "s_tex");

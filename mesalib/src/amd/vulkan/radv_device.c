@@ -56,6 +56,13 @@
 #include "compiler/glsl_types.h"
 #include "util/driconf.h"
 
+/* The number of IBs per submit isn't infinite, it depends on the ring type
+ * (ie. some initial setup needed for a submit) and the number of IBs (4 DW).
+ * This limit is arbitrary but should be safe for now.  Ideally, we should get
+ * this limit from the KMD.
+*/
+#define RADV_MAX_IBS_PER_SUBMIT 192
+
 /* The "RAW" clocks on Linux are called "FAST" on FreeBSD */
 #if !defined(CLOCK_MONOTONIC_RAW) && defined(CLOCK_MONOTONIC_FAST)
 #define CLOCK_MONOTONIC_RAW CLOCK_MONOTONIC_FAST
@@ -154,6 +161,13 @@ radv_get_vram_size(struct radv_physical_device *device)
 	return radv_get_adjusted_vram_size(device) - device->rad_info.vram_vis_size;
 }
 
+enum radv_heap {
+	RADV_HEAP_VRAM     = 1 << 0,
+	RADV_HEAP_GTT      = 1 << 1,
+	RADV_HEAP_VRAM_VIS = 1 << 2,
+	RADV_HEAP_MAX      = 1 << 3,
+};
+
 static void
 radv_physical_device_init_mem_types(struct radv_physical_device *device)
 {
@@ -161,8 +175,13 @@ radv_physical_device_init_mem_types(struct radv_physical_device *device)
 	uint64_t vram_size = radv_get_vram_size(device);
 	int vram_index = -1, visible_vram_index = -1, gart_index = -1;
 	device->memory_properties.memoryHeapCount = 0;
-	if (vram_size > 0) {
+	device->heaps = 0;
+
+	/* Only get a VRAM heap if it is significant, not if it is a 16 MiB
+	 * remainder above visible VRAM. */
+	if (vram_size > 0 && vram_size * 9 >= visible_vram_size) {
 		vram_index = device->memory_properties.memoryHeapCount++;
+		device->heaps |= RADV_HEAP_VRAM;
 		device->memory_properties.memoryHeaps[vram_index] = (VkMemoryHeap) {
 			.size = vram_size,
 			.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
@@ -171,6 +190,7 @@ radv_physical_device_init_mem_types(struct radv_physical_device *device)
 
 	if (device->rad_info.gart_size > 0) {
 		gart_index = device->memory_properties.memoryHeapCount++;
+		device->heaps |= RADV_HEAP_GTT;
 		device->memory_properties.memoryHeaps[gart_index] = (VkMemoryHeap) {
 			.size = device->rad_info.gart_size,
 			.flags = 0,
@@ -179,6 +199,7 @@ radv_physical_device_init_mem_types(struct radv_physical_device *device)
 
 	if (visible_vram_size) {
 		visible_vram_index = device->memory_properties.memoryHeapCount++;
+		device->heaps |= RADV_HEAP_VRAM_VIS;
 		device->memory_properties.memoryHeaps[visible_vram_index] = (VkMemoryHeap) {
 			.size = visible_vram_size,
 			.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
@@ -402,8 +423,6 @@ radv_physical_device_try_create(struct radv_instance *instance,
 			  device->rad_info.has_dedicated_vram &&
 			  !(device->instance->debug_flags & RADV_DEBUG_NO_NGG);
 
-	/* FIXME: ACO NGG GS randomly hangs the GPU with CTS. */
-	device->use_ngg_gs = device->use_ngg && device->use_llvm;
 	device->use_ngg_streamout = false;
 
 	/* Determine the number of threads per wave for all stages. */
@@ -432,7 +451,7 @@ radv_physical_device_try_create(struct radv_instance *instance,
 		device->bus_info = *drm_device->businfo.pci;
 
 	if ((device->instance->debug_flags & RADV_DEBUG_INFO))
-		ac_print_gpu_info(&device->rad_info);
+		ac_print_gpu_info(&device->rad_info, stdout);
 
 	/* The WSI is structured as a layer on top of the driver, so this has
 	 * to be the last part of initialization (at least until we get other
@@ -529,8 +548,11 @@ static const struct debug_control radv_debug_options[] = {
 	{"allentrypoints", RADV_DEBUG_ALL_ENTRYPOINTS},
 	{"metashaders", RADV_DEBUG_DUMP_META_SHADERS},
 	{"nomemorycache", RADV_DEBUG_NO_MEMORY_CACHE},
+	{"discardtodemote", RADV_DEBUG_DISCARD_TO_DEMOTE},
 	{"llvm", RADV_DEBUG_LLVM},
 	{"forcecompress", RADV_DEBUG_FORCE_COMPRESS},
+	{"hang", RADV_DEBUG_HANG},
+	{"img", RADV_DEBUG_IMG},
 	{NULL, 0}
 };
 
@@ -887,7 +909,8 @@ VkResult radv_EnumeratePhysicalDevices(
 	VkPhysicalDevice*                           pPhysicalDevices)
 {
 	RADV_FROM_HANDLE(radv_instance, instance, _instance);
-	VK_OUTARRAY_MAKE(out, pPhysicalDevices, pPhysicalDeviceCount);
+	VK_OUTARRAY_MAKE_TYPED(VkPhysicalDevice, out, pPhysicalDevices,
+			       pPhysicalDeviceCount);
 
 	VkResult result = radv_enumerate_physical_devices(instance);
 	if (result != VK_SUCCESS)
@@ -895,7 +918,7 @@ VkResult radv_EnumeratePhysicalDevices(
 
 	list_for_each_entry(struct radv_physical_device, pdevice,
 			    &instance->physical_devices, link) {
-		vk_outarray_append(&out, i) {
+		vk_outarray_append_typed(VkPhysicalDevice , &out, i) {
 			*i = radv_physical_device_to_handle(pdevice);
 		}
 	}
@@ -909,8 +932,9 @@ VkResult radv_EnumeratePhysicalDeviceGroups(
     VkPhysicalDeviceGroupProperties*            pPhysicalDeviceGroupProperties)
 {
 	RADV_FROM_HANDLE(radv_instance, instance, _instance);
-	VK_OUTARRAY_MAKE(out, pPhysicalDeviceGroupProperties,
-			      pPhysicalDeviceGroupCount);
+	VK_OUTARRAY_MAKE_TYPED(VkPhysicalDeviceGroupProperties, out,
+			       pPhysicalDeviceGroupProperties,
+			       pPhysicalDeviceGroupCount);
 
 	VkResult result = radv_enumerate_physical_devices(instance);
 	if (result != VK_SUCCESS)
@@ -918,7 +942,7 @@ VkResult radv_EnumeratePhysicalDeviceGroups(
 
 	list_for_each_entry(struct radv_physical_device, pdevice,
 			    &instance->physical_devices, link) {
-		vk_outarray_append(&out, p) {
+		vk_outarray_append_typed(VkPhysicalDeviceGroupProperties, &out, p) {
 			p->physicalDeviceCount = 1;
 			memset(p->physicalDevices, 0, sizeof(p->physicalDevices));
 			p->physicalDevices[0] = radv_physical_device_to_handle(pdevice);
@@ -1423,6 +1447,19 @@ void radv_GetPhysicalDeviceFeatures2(
 				(VkPhysicalDevice4444FormatsFeaturesEXT *)ext;
 			features->formatA4R4G4B4 = true;
 			features->formatA4B4G4R4 = true;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_TERMINATE_INVOCATION_FEATURES_KHR: {
+			VkPhysicalDeviceShaderTerminateInvocationFeaturesKHR *features =
+				(VkPhysicalDeviceShaderTerminateInvocationFeaturesKHR *)ext;
+			features->shaderTerminateInvocation = true;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_ATOMIC_INT64_FEATURES_EXT: {
+			VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT *features =
+				(VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT *)ext;
+			features->shaderImageInt64Atomics = LLVM_VERSION_MAJOR >= 11 || !pdevice->use_llvm;
+			features->sparseImageInt64Atomics = false;
 			break;
 		}
 		default:
@@ -2187,10 +2224,6 @@ radv_get_memory_budget_properties(VkPhysicalDevice physicalDevice,
 {
 	RADV_FROM_HANDLE(radv_physical_device, device, physicalDevice);
 	VkPhysicalDeviceMemoryProperties *memory_properties = &device->memory_properties;
-	uint64_t visible_vram_size = radv_get_visible_vram_size(device);
-	uint64_t vram_size = radv_get_vram_size(device);
-	uint64_t gtt_size = device->rad_info.gart_size;
-	uint64_t heap_budget, heap_usage;
 
 	/* For all memory heaps, the computation of budget is as follow:
 	 *	heap_budget = heap_size - global_heap_usage + app_heap_usage
@@ -2201,43 +2234,38 @@ radv_get_memory_budget_properties(VkPhysicalDevice physicalDevice,
 	 * Note that the application heap usages are not really accurate (eg.
 	 * in presence of shared buffers).
 	 */
-	for (int i = 0; i < device->memory_properties.memoryTypeCount; i++) {
-		uint32_t heap_index = device->memory_properties.memoryTypes[i].heapIndex;
+	unsigned mask = device->heaps;
+	unsigned heap = 0;
+	while (mask) {
+		uint64_t internal_usage = 0, total_usage = 0;
+		unsigned type = 1u << u_bit_scan(&mask);
 
-		if ((device->memory_domains[i] & RADEON_DOMAIN_VRAM) && (device->memory_flags[i] & RADEON_FLAG_NO_CPU_ACCESS)) {
-			heap_usage = device->ws->query_value(device->ws,
-							     RADEON_ALLOCATED_VRAM);
-
-			heap_budget = vram_size -
-				MIN2(vram_size, device->ws->query_value(device->ws, RADEON_VRAM_USAGE)) +
-				heap_usage;
-
-			memoryBudget->heapBudget[heap_index] = heap_budget;
-			memoryBudget->heapUsage[heap_index] = heap_usage;
-		} else if (device->memory_domains[i] & RADEON_DOMAIN_VRAM) {
-			heap_usage = device->ws->query_value(device->ws,
-							     RADEON_ALLOCATED_VRAM_VIS);
-
-			heap_budget = visible_vram_size -
-				MIN2(visible_vram_size, device->ws->query_value(device->ws, RADEON_VRAM_VIS_USAGE)) +
-				heap_usage;
-
-			memoryBudget->heapBudget[heap_index] = heap_budget;
-			memoryBudget->heapUsage[heap_index] = heap_usage;
-		} else {
-			assert(device->memory_domains[i] & RADEON_DOMAIN_GTT);
-
-			heap_usage = device->ws->query_value(device->ws,
-							     RADEON_ALLOCATED_GTT);
-
-			heap_budget = gtt_size -
-				device->ws->query_value(device->ws, RADEON_GTT_USAGE) +
-				heap_usage;
-
-			memoryBudget->heapBudget[heap_index] = heap_budget;
-			memoryBudget->heapUsage[heap_index] = heap_usage;
+		switch(type) {
+		case RADV_HEAP_VRAM:
+			internal_usage = device->ws->query_value(device->ws, RADEON_ALLOCATED_VRAM);
+			total_usage = device->ws->query_value(device->ws, RADEON_VRAM_USAGE);
+			break;
+		case RADV_HEAP_VRAM_VIS:
+			internal_usage = device->ws->query_value(device->ws, RADEON_ALLOCATED_VRAM_VIS);
+			if (!(device->heaps & RADV_HEAP_VRAM))
+				internal_usage += device->ws->query_value(device->ws, RADEON_ALLOCATED_VRAM);
+			total_usage = device->ws->query_value(device->ws, RADEON_VRAM_VIS_USAGE);
+			break;
+		case RADV_HEAP_GTT:
+			internal_usage = device->ws->query_value(device->ws, RADEON_ALLOCATED_GTT);
+			total_usage = device->ws->query_value(device->ws, RADEON_GTT_USAGE);
+			break;
 		}
+
+		uint64_t free_space = device->memory_properties.memoryHeaps[heap].size -
+			MIN2(device->memory_properties.memoryHeaps[heap].size,
+			     total_usage);
+		memoryBudget->heapBudget[heap] = free_space + internal_usage;
+		memoryBudget->heapUsage[heap] = internal_usage;
+		++heap;
 	}
+
+	assert(heap == memory_properties->memoryHeapCount);
 
 	/* The heapBudget and heapUsage values must be zero for array elements
 	 * greater than or equal to
@@ -2386,7 +2414,7 @@ radv_queue_finish(struct radv_queue *queue)
 static void
 radv_bo_list_init(struct radv_bo_list *bo_list)
 {
-	pthread_rwlock_init(&bo_list->rwlock, NULL);
+	u_rwlock_init(&bo_list->rwlock);
 	bo_list->list.count = bo_list->capacity = 0;
 	bo_list->list.bos = NULL;
 }
@@ -2395,7 +2423,7 @@ static void
 radv_bo_list_finish(struct radv_bo_list *bo_list)
 {
 	free(bo_list->list.bos);
-	pthread_rwlock_destroy(&bo_list->rwlock);
+	u_rwlock_destroy(&bo_list->rwlock);
 }
 
 VkResult radv_bo_list_add(struct radv_device *device,
@@ -2409,13 +2437,13 @@ VkResult radv_bo_list_add(struct radv_device *device,
 	if (unlikely(!device->use_global_bo_list))
 		return VK_SUCCESS;
 
-	pthread_rwlock_wrlock(&bo_list->rwlock);
+	u_rwlock_wrlock(&bo_list->rwlock);
 	if (bo_list->list.count == bo_list->capacity) {
 		unsigned capacity = MAX2(4, bo_list->capacity * 2);
 		void *data = realloc(bo_list->list.bos, capacity * sizeof(struct radeon_winsys_bo*));
 
 		if (!data) {
-			pthread_rwlock_unlock(&bo_list->rwlock);
+			u_rwlock_wrunlock(&bo_list->rwlock);
 			return VK_ERROR_OUT_OF_HOST_MEMORY;
 		}
 
@@ -2424,7 +2452,7 @@ VkResult radv_bo_list_add(struct radv_device *device,
 	}
 
 	bo_list->list.bos[bo_list->list.count++] = bo;
-	pthread_rwlock_unlock(&bo_list->rwlock);
+	u_rwlock_wrunlock(&bo_list->rwlock);
 	return VK_SUCCESS;
 }
 
@@ -2439,7 +2467,7 @@ void radv_bo_list_remove(struct radv_device *device,
 	if (unlikely(!device->use_global_bo_list))
 		return;
 
-	pthread_rwlock_wrlock(&bo_list->rwlock);
+	u_rwlock_wrlock(&bo_list->rwlock);
 	/* Loop the list backwards so we find the most recently added
 	 * memory first. */
 	for(unsigned i = bo_list->list.count; i-- > 0;) {
@@ -2449,7 +2477,7 @@ void radv_bo_list_remove(struct radv_device *device,
 			break;
 		}
 	}
-	pthread_rwlock_unlock(&bo_list->rwlock);
+	u_rwlock_wrunlock(&bo_list->rwlock);
 }
 
 static void
@@ -2789,18 +2817,24 @@ VkResult radv_CreateDevice(
 		device->physical_device->rad_info.family == CHIP_HAWAII ? 4096 : 8192;
 
 	if (getenv("RADV_TRACE_FILE")) {
-		const char *filename = getenv("RADV_TRACE_FILE");
+		fprintf(stderr, "***********************************************************************************\n");
+		fprintf(stderr, "* WARNING: RADV_TRACE_FILE=<file> is deprecated and replaced by RADV_DEBUG=hang *\n");
+		fprintf(stderr, "***********************************************************************************\n");
+		abort();
+	}
 
+	if (device->instance->debug_flags & RADV_DEBUG_HANG) {
+		/* Enable GPU hangs detection and dump logs if a GPU hang is
+		 * detected.
+		 */
 		keep_shader_info = true;
 
 		if (!radv_init_trace(device))
 			goto fail;
 
 		fprintf(stderr, "*****************************************************************************\n");
-		fprintf(stderr, "* WARNING: RADV_TRACE_FILE is costly and should only be used for debugging! *\n");
+		fprintf(stderr, "* WARNING: RADV_DEBUG=hang is costly and should only be used for debugging! *\n");
 		fprintf(stderr, "*****************************************************************************\n");
-
-		fprintf(stderr, "Trace file will be dumped to %s\n", filename);
 
 		/* Wait for idle after every draw/dispatch to identify the
 		 * first bad call.
@@ -4574,7 +4608,7 @@ radv_queue_submit_deferred(struct radv_deferred_queue_submission *submission,
 			sem_info.cs_emit_signal = j + advance == submission->cmd_buffer_count;
 
 			if (unlikely(queue->device->use_global_bo_list)) {
-				pthread_rwlock_rdlock(&queue->device->bo_list.rwlock);
+				u_rwlock_rdlock(&queue->device->bo_list.rwlock);
 				bo_list = &queue->device->bo_list.list;
 			}
 
@@ -4584,7 +4618,7 @@ radv_queue_submit_deferred(struct radv_deferred_queue_submission *submission,
 							      can_patch, base_fence);
 
 			if (unlikely(queue->device->use_global_bo_list))
-				pthread_rwlock_unlock(&queue->device->bo_list.rwlock);
+				u_rwlock_rdunlock(&queue->device->bo_list.rwlock);
 
 			if (result != VK_SUCCESS)
 				goto fail;
@@ -4965,11 +4999,12 @@ VkResult radv_EnumerateInstanceExtensionProperties(
     uint32_t*                                   pPropertyCount,
     VkExtensionProperties*                      pProperties)
 {
-	VK_OUTARRAY_MAKE(out, pProperties, pPropertyCount);
+	VK_OUTARRAY_MAKE_TYPED(VkExtensionProperties, out, pProperties,
+			       pPropertyCount);
 
 	for (int i = 0; i < RADV_INSTANCE_EXTENSION_COUNT; i++) {
 		if (radv_instance_extensions_supported.extensions[i]) {
-			vk_outarray_append(&out, prop) {
+			vk_outarray_append_typed(VkExtensionProperties, &out, prop) {
 				*prop = radv_instance_extensions[i];
 			}
 		}
@@ -4985,11 +5020,12 @@ VkResult radv_EnumerateDeviceExtensionProperties(
     VkExtensionProperties*                      pProperties)
 {
 	RADV_FROM_HANDLE(radv_physical_device, device, physicalDevice);
-	VK_OUTARRAY_MAKE(out, pProperties, pPropertyCount);
+	VK_OUTARRAY_MAKE_TYPED(VkExtensionProperties, out, pProperties,
+			       pPropertyCount);
 
 	for (int i = 0; i < RADV_DEVICE_EXTENSION_COUNT; i++) {
 		if (device->supported_extensions.extensions[i]) {
-			vk_outarray_append(&out, prop) {
+			vk_outarray_append_typed(VkExtensionProperties, &out, prop) {
 				*prop = radv_device_extensions[i];
 			}
 		}
@@ -5238,7 +5274,8 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 		}
 
 		if (mem->image && mem->image->plane_count == 1 &&
-		    !vk_format_is_depth_or_stencil(mem->image->vk_format)) {
+		    !vk_format_is_depth_or_stencil(mem->image->vk_format) &&
+		    mem->image->info.samples == 1) {
 			struct radeon_bo_metadata metadata;
 			device->ws->buffer_get_metadata(mem->bo, &metadata);
 
@@ -7955,10 +7992,11 @@ VkResult radv_GetPhysicalDeviceCalibrateableTimeDomainsEXT(
 	VkTimeDomainEXT                              *pTimeDomains)
 {
 	int d;
-	VK_OUTARRAY_MAKE(out, pTimeDomains, pTimeDomainCount);
+	VK_OUTARRAY_MAKE_TYPED(VkTimeDomainEXT, out, pTimeDomains,
+			       pTimeDomainCount);
 
 	for (d = 0; d < ARRAY_SIZE(radv_time_domains); d++) {
-		vk_outarray_append(&out, i) {
+		vk_outarray_append_typed(VkTimeDomainEXT, &out, i) {
 			*i = radv_time_domains[d];
 		}
 	}

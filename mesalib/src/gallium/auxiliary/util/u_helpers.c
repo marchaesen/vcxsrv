@@ -157,53 +157,6 @@ util_upload_index_buffer(struct pipe_context *pipe,
    return *out_buffer != NULL;
 }
 
-/**
- * Called by MakeCurrent. Used to notify the driver that the application
- * thread may have been changed.
- *
- * The function pins the current thread and driver threads to a group of
- * CPU cores that share the same L3 cache. This is needed for good multi-
- * threading performance on AMD Zen CPUs.
- *
- * \param upper_thread  thread in gallium frontends that also needs to be
- *                      pinned.
- */
-void
-util_pin_driver_threads_to_random_L3(struct pipe_context *ctx,
-                                     thrd_t *upper_thread)
-{
-   /* If pinning has no effect, don't do anything. */
-   if (util_cpu_caps.nr_cpus == util_cpu_caps.cores_per_L3)
-      return;
-
-   unsigned num_L3_caches = util_cpu_caps.nr_cpus /
-                            util_cpu_caps.cores_per_L3;
-
-   /* Get a semi-random number. */
-   int64_t t = os_time_get_nano();
-   unsigned cache = (t ^ (t >> 8) ^ (t >> 16)) % num_L3_caches;
-
-   /* Tell the driver to pin its threads to the selected L3 cache. */
-   if (ctx->set_context_param) {
-      ctx->set_context_param(ctx, PIPE_CONTEXT_PARAM_PIN_THREADS_TO_L3_CACHE,
-                             cache);
-   }
-
-   /* Do the same for the upper level thread if there is any (e.g. glthread) */
-   if (upper_thread)
-      util_pin_thread_to_L3(*upper_thread, cache, util_cpu_caps.cores_per_L3);
-
-   /* Optionally pin the application thread to the same L3 to get maximum
-    * performance with glthread on AMD Zen. (this function is only called
-    * with glthread) This is used to estimate and remove the overhead of
-    * Infinity Fabric between L3 caches.
-    */
-#if defined(HAVE_PTHREAD)
-   if (debug_get_bool_option("pin_app_thread", false))
-      util_pin_thread_to_L3(pthread_self(), cache, util_cpu_caps.cores_per_L3);
-#endif
-}
-
 /* This is a helper for hardware bring-up. Don't remove. */
 struct pipe_query *
 util_begin_pipestat_query(struct pipe_context *ctx)

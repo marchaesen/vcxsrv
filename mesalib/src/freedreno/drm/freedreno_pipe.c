@@ -77,7 +77,7 @@ struct fd_pipe * fd_pipe_ref(struct fd_pipe *pipe)
 
 void fd_pipe_del(struct fd_pipe *pipe)
 {
-	if (!atomic_dec_and_test(&pipe->refcnt))
+	if (!p_atomic_dec_zero(&pipe->refcnt))
 		return;
 	pipe->funcs->destroy(pipe);
 }

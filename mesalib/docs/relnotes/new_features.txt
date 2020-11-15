@@ -1,11 +1,3 @@
-GL 4.5 on llvmpipe
-GL_INTEL_blackhole_render on radeonsi
-GL_NV_copy_depth_to_color for NIR
-GL_NV_half_float
-GL_NV_shader_atomic_int64 on radeonsi
-EGL_KHR_swap_buffers_with_damage on X11 (DRI3)
-VK_PRESENT_MODE_FIFO_RELAXED on X11
-GLX_EXT_swap_control for DRI2 and DRI3
-GLX_EXT_swap_control_tear for DRI3
-VK_KHR_copy_commands2 on RADV
-NGG GS support in ACO
+GL_EXT_demote_to_helper_invocation on radeonsi
+EGL_MESA_platform_xcb
+driconf: remove glx_disable_oml_sync_control, glx_disable_sgi_video_sync, and glx_disable_ext_buffer_age

@@ -32,6 +32,9 @@
 
 #include "pipe/p_compiler.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void
 util_format_s8_uint_unpack_s_8uint(uint8_t *dst_row, unsigned dst_stride, const uint8_t *src_row, unsigned src_stride, unsigned width, unsigned height);
@@ -240,4 +243,9 @@ util_format_x32_s8x24_uint_unpack_s_8uint(uint8_t *dst_row, unsigned dst_stride,
 
 void
 util_format_x32_s8x24_uint_pack_s_8uint(uint8_t *dst_row, unsigned dst_sride, const uint8_t *src_row, unsigned src_stride, unsigned width, unsigned height);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* U_FORMAT_ZS_H_ */

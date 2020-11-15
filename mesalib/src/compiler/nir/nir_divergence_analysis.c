@@ -119,7 +119,6 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_load_draw_id:
    case nir_intrinsic_load_is_indexed_draw:
    case nir_intrinsic_load_viewport_scale:
-   case nir_intrinsic_load_alpha_ref_float:
    case nir_intrinsic_load_user_clip_plane:
    case nir_intrinsic_load_viewport_x_scale:
    case nir_intrinsic_load_viewport_y_scale:

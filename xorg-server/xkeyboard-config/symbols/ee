@@ -1,7 +1,4 @@
-// based on
-// Estonian XKB-keymap by Ville Hallik <ville@linux.ee>
-//
-
+// Estonian keyboard layout, by Ville Hallik <ville@linux.ee>.
 default partial alphanumeric_keys
 xkb_symbols "basic" {
 

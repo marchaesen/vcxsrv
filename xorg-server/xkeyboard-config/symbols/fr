@@ -60,21 +60,15 @@ xkb_symbols "olpc" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "Sundeadkeys" {
+xkb_symbols "sundeadkeys" {
 
-    // Modifies the basic French layout to use the Sun dead keys
+    // Modifies the basic French layout to use the Sun dead keys.
 
     include "fr(basic)"
-
-    key <AD11>	{ [dead_circumflex, dead_diaeresis ]	};
-    key <AB07>	{ [comma,   question,  dead_acute, dead_doubleacute ]	};
-};
-
-partial alphanumeric_keys
-xkb_symbols "sundeadkeys" {
-    include "fr(Sundeadkeys)"
-
     name[Group1]="French (Sun dead keys)";
+
+    key <AD11>	{ [dead_circumflex, dead_diaeresis                                ] };
+    key <AB07>	{ [          comma,       question,  dead_acute, dead_doubleacute ] };
 };
 
 partial alphanumeric_keys
@@ -229,26 +223,17 @@ xkb_symbols "oss_latin9" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "oss_Sundeadkeys" {
-
-    // Modifies the basic fr(oss) layout to use the Sun dead keys
-
-    include "fr(oss)"
-
-    key <TLDE>	{ [      twosuperior,    threesuperior,          onesuperior,          dead_cedilla ] }; // ¹ ² ³ ¸
-
-    key <AD11>	{ [  dead_circumflex,   dead_diaeresis,           dead_tilde,        dead_abovering ] }; // ^ ̈ ̃ ˚
-
-    key <AC11>	{ [           ugrave,          percent,           dead_acute,                Ugrave ] }; // ù % ' Ù
-    key <BKSL>	{ [         asterisk,               mu,           dead_grave,           dead_macron ] }; // * µ ` ̄
-};
-
-partial alphanumeric_keys
 xkb_symbols "oss_sundeadkeys" {
 
-    include "fr(oss_Sundeadkeys)"
+    // Modifies the basic fr(oss) layout to use the Sun dead keys.
 
+    include "fr(oss)"
     name[Group1]="French (alt., Sun dead keys)";
+
+    key <TLDE>	{ [      twosuperior,    threesuperior,          onesuperior,          dead_cedilla ] }; // ¹ ² ³ ¸
+    key <AD11>	{ [  dead_circumflex,   dead_diaeresis,           dead_tilde,        dead_abovering ] }; // ^ ¨ ~ ˚
+    key <AC11>	{ [           ugrave,          percent,           dead_acute,                Ugrave ] }; // ù % ' Ù
+    key <BKSL>	{ [         asterisk,               mu,           dead_grave,           dead_macron ] }; // * µ ` ¯
 };
 
 partial alphanumeric_keys
@@ -403,23 +388,16 @@ xkb_symbols "latin9" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "latin9_Sundeadkeys" {
+xkb_symbols "latin9_sundeadkeys" {
 
     // Modifies the basic fr-latin9 layout to use the Sun dead keys
 
     include "fr(latin9)"
+    name[Group1]="French (legacy, alt., Sun dead keys)";
 
     key <AE01>	{ [       ampersand,               1,         dead_acute,       periodcentered ] };
     key <AE07>	{ [          egrave,               7,         dead_grave,               Egrave ] };
     key <AD11>	{ [ dead_circumflex,  dead_diaeresis,         dead_tilde,           apostrophe ] };
-};
-
-partial alphanumeric_keys
-xkb_symbols "latin9_sundeadkeys" {
-
-    include "fr(latin9_Sundeadkeys)"
-
-    name[Group1]="French (legacy, alt., Sun dead keys)";
 };
 
 partial alphanumeric_keys
@@ -1062,7 +1040,6 @@ xkb_symbols "geo" {
     key <AB08> { [ Georgian_shin,  S              ] };
     key <AB09> { [ Georgian_ghan,  noSymbol       ] };
     key <AB10> { [ Georgian_char,  noSymbol       ] };
-
 };
 
 // US keyboard made French
@@ -1219,7 +1196,6 @@ xkb_symbols "us-alt" {
     key <TLDE> { [dead_grave, asciitilde,         grave ] };
     key <AE06> { [dead_circumflex, asciicircum,       6 ] };
     key <AE04> { [         4,     dollar,      EuroSign,         currency ] }; // € ¤
-
 };
 
 // For physically modified US keyboard (Q <-> A, W <-> Z and ; <-> M)

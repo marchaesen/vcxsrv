@@ -392,7 +392,9 @@ add_var_use_deref(nir_deref_instr *deref, struct hash_table *live,
 
    deref = path.path[0];
    if (deref->deref_type != nir_deref_type_var ||
-       deref->mode & ~(nir_var_uniform | nir_var_mem_ubo | nir_var_mem_ssbo)) {
+       !nir_deref_mode_is_one_of(deref, nir_var_uniform |
+                                        nir_var_mem_ubo |
+                                        nir_var_mem_ssbo)) {
       nir_deref_path_finish(&path);
       return;
    }
@@ -482,7 +484,7 @@ add_var_use_deref(nir_deref_instr *deref, struct hash_table *live,
       util_dynarray_append(ainfo->deref_list, nir_deref_instr *, deref);
    }
 
-   assert(deref->mode == deref->var->data.mode);
+   assert(deref->modes == deref->var->data.mode);
    _mesa_hash_table_insert(live, deref->var->name, ainfo);
 }
 

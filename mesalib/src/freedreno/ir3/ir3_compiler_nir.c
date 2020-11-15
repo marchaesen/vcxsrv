@@ -3045,11 +3045,31 @@ pack_inlocs(struct ir3_context *ctx)
 	unsigned actual_in = 0;
 	unsigned inloc = 0;
 
+	/* for clip+cull distances, unused components can't be eliminated because
+	 * they're read by fixed-function, even if there's a hole.  Note that
+	 * clip/cull distance arrays must be declared in the FS, so we can just
+	 * use the NIR clip/cull distances to avoid reading ucp_enables in the
+	 * shader key.
+	 */
+	unsigned clip_cull_size =
+		ctx->so->shader->nir->info.clip_distance_array_size +
+		ctx->so->shader->nir->info.cull_distance_array_size;
+	unsigned clip_cull_mask = MASK(clip_cull_size);
+
 	for (unsigned i = 0; i < so->inputs_count; i++) {
 		unsigned compmask = 0, maxcomp = 0;
 
 		so->inputs[i].inloc = inloc;
 		so->inputs[i].bary = false;
+
+		if (so->inputs[i].slot == VARYING_SLOT_CLIP_DIST0 ||
+			so->inputs[i].slot == VARYING_SLOT_CLIP_DIST1) {
+			if (so->inputs[i].slot == VARYING_SLOT_CLIP_DIST0)
+				compmask = clip_cull_mask & 0xf;
+			else
+				compmask = clip_cull_mask >> 4;
+			used_components[i] = compmask;
+		}
 
 		for (unsigned j = 0; j < 4; j++) {
 			if (!(used_components[i] & (1 << j)))
@@ -3319,6 +3339,14 @@ emit_instructions(struct ir3_context *ctx)
 	 */
 	ctx->so->num_samp = util_last_bit(ctx->s->info.textures_used) + ctx->s->info.num_images;
 
+	/* Save off clip+cull information. Note that in OpenGL clip planes may
+	 * be individually enabled/disabled, so we can't use the
+	 * clip_distance_array_size for them.
+	 */
+	ctx->so->clip_mask = ctx->so->key.ucp_enables;
+	ctx->so->cull_mask = MASK(ctx->s->info.cull_distance_array_size) <<
+		ctx->s->info.clip_distance_array_size;
+
 	/* NOTE: need to do something more clever when we support >1 fxn */
 	nir_foreach_register (reg, &fxn->registers) {
 		ir3_declare_array(ctx, reg);
@@ -3362,6 +3390,13 @@ fixup_astc_srgb(struct ir3_context *ctx)
 	}
 }
 
+static bool
+output_slot_used_for_binning(gl_varying_slot slot)
+{
+	return slot == VARYING_SLOT_POS || slot == VARYING_SLOT_PSIZ ||
+		   slot == VARYING_SLOT_CLIP_DIST0 || slot == VARYING_SLOT_CLIP_DIST1;
+}
+
 static void
 fixup_binning_pass(struct ir3_context *ctx)
 {
@@ -3376,8 +3411,7 @@ fixup_binning_pass(struct ir3_context *ctx)
 		unsigned outidx = out->collect.outidx;
 		unsigned slot = so->outputs[outidx].slot;
 
-		/* throw away everything but first position/psize */
-		if ((slot == VARYING_SLOT_POS) || (slot == VARYING_SLOT_PSIZ)) {
+		if (output_slot_used_for_binning(slot)) {
 			ir->outputs[j] = ir->outputs[i];
 			j++;
 		}
@@ -3390,8 +3424,7 @@ fixup_binning_pass(struct ir3_context *ctx)
 	for (i = 0, j = 0; i < so->outputs_count; i++) {
 		unsigned slot = so->outputs[i].slot;
 
-		/* throw away everything but first position/psize */
-		if ((slot == VARYING_SLOT_POS) || (slot == VARYING_SLOT_PSIZ)) {
+		if (output_slot_used_for_binning(slot)) {
 			so->outputs[j] = so->outputs[i];
 
 			/* fixup outidx to point to new output table entry: */
@@ -3787,7 +3820,7 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 	collect_tex_prefetches(ctx, ir);
 
 	if (so->type == MESA_SHADER_FRAGMENT &&
-			ctx->s->info.fs.needs_helper_invocations)
+			ctx->s->info.fs.needs_quad_helper_invocations)
 		so->need_pixlod = true;
 
 out:

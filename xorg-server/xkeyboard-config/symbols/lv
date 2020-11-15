@@ -115,7 +115,6 @@ xkb_symbols "apostrophe" {
 	key <AC11> {[ISO_Level3_Latch, quotedbl, apostrophe, quotedbl]};
 	key <SPCE> {[space, space, apostrophe]};
 	modifier_map Mod5 { <AC11> };
-
 };
 
 partial alphanumeric_keys modifier_keys
@@ -128,7 +127,6 @@ xkb_symbols "tilde" {
 	key <TLDE> {[ISO_Level3_Latch, asciitilde, grave, acute]};
 	key <SPCE> {[space, space, asciitilde]};
 	modifier_map Mod5 { <TLDE> };
-
 };
 
 partial alphanumeric_keys modifier_keys
@@ -141,7 +139,6 @@ xkb_symbols "fkey" {
 	key <AC04> {[ISO_Level3_Latch, ISO_Level3_Latch, f, F]};
 	key <SPCE> {[space, space, f, F]};
 	modifier_map Mod5 { <AC04> };
-
 };
 
 //============================================================================
@@ -398,7 +395,6 @@ xkb_symbols "ykeydvorak" {
 	key <AD05> {[ISO_Level3_Latch, ISO_Level3_Latch, y, Y]};
 	key <SPCE> {[space, space, y, Y]};
 	modifier_map Mod5 { <AD05> };
-
 };
 
 partial alphanumeric_keys modifier_keys
@@ -411,7 +407,6 @@ xkb_symbols "minuskeydvorak" {
 	key <AC11> {[ISO_Level3_Latch, ISO_Level3_Latch, minus, underscore]};
 	key <SPCE> {[space, space, minus, underscore]};
 	modifier_map Mod5 { <AR11> };
-
 };
 
 //============================================================================
@@ -457,7 +452,6 @@ xkb_symbols "ykeydvorakprogr" {
 	key <AD05> {[ISO_Level3_Latch, ISO_Level3_Latch, y, Y]};
 	key <SPCE> {[space, space, y, Y]};
 	modifier_map Mod5 { <AD05> };
-
 };
 
 partial alphanumeric_keys modifier_keys
@@ -470,7 +464,6 @@ xkb_symbols "minuskeydvorakprogr" {
 	key <AC11> {[ISO_Level3_Latch, ISO_Level3_Latch, minus, underscore]};
 	key <SPCE> {[space, space, minus, underscore]};
 	modifier_map Mod5 { <AC11> };
-
 };
 
 //============================================================================
@@ -517,7 +510,6 @@ xkb_symbols "apostrophecolemak" {
 	key <AC11> {[ISO_Level3_Latch, quotedbl, apostrophe, quotedbl]};
 	key <SPCE> {[space, space, apostrophe]};
 	modifier_map Mod5 { <AC11> };
-
 };
 
 partial alphanumeric_keys

@@ -56,13 +56,13 @@ void vid_dec_NeedTarget(vid_dec_PrivateType *priv)
       templat.height = priv->codec->height;
       templat.buffer_format = pscreen->get_video_param(
             pscreen,
-            PIPE_VIDEO_PROFILE_UNKNOWN,
+            priv->profile,
             PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
             PIPE_VIDEO_CAP_PREFERED_FORMAT
       );
       templat.interlaced = pscreen->get_video_param(
           pscreen,
-          PIPE_VIDEO_PROFILE_UNKNOWN,
+          priv->profile,
           PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
           PIPE_VIDEO_CAP_PREFERS_INTERLACED
       );

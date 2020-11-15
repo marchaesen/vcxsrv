@@ -132,7 +132,7 @@ files_libnir = files(
   'nir_lower_clip_halfz.c',
   'nir_lower_convert_alu_types.c',
   'nir_lower_variable_initializers.c',
-  'nir_lower_discard_to_demote.c',
+  'nir_lower_discard_or_demote.c',
   'nir_lower_double_ops.c',
   'nir_lower_drawpixels.c',
   'nir_lower_fb_read.c',
@@ -451,6 +451,19 @@ if with_tests
     executable(
       'nir_opt_if_tests',
       files('tests/opt_if_tests.cpp'),
+      cpp_args : [cpp_msvc_compat_args],
+      gnu_symbol_visibility : 'hidden',
+      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
+      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
+    ),
+    suite : ['compiler', 'nir'],
+  )
+
+  test(
+    'nir_lower_returns',
+    executable(
+      'nir_lower_returns_tests',
+      files('tests/lower_returns_tests.cpp'),
       cpp_args : [cpp_msvc_compat_args],
       gnu_symbol_visibility : 'hidden',
       include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],

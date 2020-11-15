@@ -67,7 +67,7 @@ entry_current_get(void)
 #ifdef MAPI_MODE_BRIDGE
    return GET_DISPATCH();
 #else
-   return u_current_get_table();
+   return u_current_get_table_internal();
 #endif
 }
 

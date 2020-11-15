@@ -57,7 +57,7 @@ traces:
   - path: 0ad/0ad.trace
     expectations:
       - device: gl-panfrost-t860
-        checksum: b906fb7b106ff287a1d49614015b6653
+        checksum: e159a06f423998ea7fcc0107f0e62f15
   - path: glmark2/buffer-columns=200:interleave=false:update-dispersion=0.9:update-fraction=0.5:update-method=map.rdc
     expectations:
       - device: gl-panfrost-t860
@@ -169,7 +169,7 @@ traces:
   - path: glmark2/terrain.rdc
     expectations:
       - device: gl-panfrost-t860
-        checksum: 2e625ceb1a7fdc3cdefae57297999492
+        checksum: 3ad257e1db7ad3e5dfd88fb1091ddeae
   - path: glmark2/texture-texture-filter=linear.rdc
     expectations:
       - device: gl-panfrost-t860

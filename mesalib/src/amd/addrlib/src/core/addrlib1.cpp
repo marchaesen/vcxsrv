@@ -147,9 +147,11 @@ Lib* Lib::GetLib(
     return static_cast<Lib*>(hLib);
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                               Surface Methods
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 /**
 ****************************************************************************************************
@@ -1228,6 +1230,8 @@ UINT_32 Lib::Thickness(
     return ModeFlags[tileMode].thickness;
 }
 
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                               CMASK/HTILE
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2008,6 +2012,7 @@ ADDR_E_RETURNCODE Lib::ComputeCmaskInfo(
     *pPitchOut = (pitchIn + macroWidth - 1) & ~(macroWidth - 1);
     *pHeightOut = (heightIn + macroHeight - 1) & ~(macroHeight - 1);
 
+
     sliceBytes = ComputeCmaskBytes(*pPitchOut,
                                    *pHeightOut,
                                    1);
@@ -2186,7 +2191,6 @@ VOID Lib::HwlComputeXmaskCoordFromAddr(
     UINT_32 pipe;
     UINT_32 numPipes;
     UINT_32 numGroupBits;
-    (void)numGroupBits;
     UINT_32 numPipeBits;
     UINT_32 macroTilePitch;
     UINT_32 macroTileHeight;
@@ -2234,6 +2238,7 @@ VOID Lib::HwlComputeXmaskCoordFromAddr(
 
     UINT_32 groupBits = 8 * m_pipeInterleaveBytes;
     UINT_32 pipes = numPipes;
+
 
     //
     // Compute the micro tile size, in bits. And macro tile pitch and height.
@@ -2287,16 +2292,19 @@ VOID Lib::HwlComputeXmaskCoordFromAddr(
     pitch = pitchAligned;
     height = heightAligned;
 
+
     //
     // Convert byte address to bit address.
     //
     bitAddr = BYTES_TO_BITS(addr) + bitPosition;
+
 
     //
     // Remove pipe bits from address.
     //
 
     bitAddr = (bitAddr % groupBits) + ((bitAddr/groupBits/pipes)*groupBits);
+
 
     elemOffset = bitAddr / elemBits;
 
@@ -2315,6 +2323,7 @@ VOID Lib::HwlComputeXmaskCoordFromAddr(
     macroY = static_cast<UINT_32>((macroNumber % macrosPerSlice) / macrosPerPitch);
     macroZ = static_cast<UINT_32>((macroNumber / macrosPerSlice));
 
+
     microX = microNumber % (macroTilePitch / factor / MicroTileWidth);
     microY = (microNumber / (macroTilePitch / factor / MicroTileHeight));
 
@@ -2324,6 +2333,7 @@ VOID Lib::HwlComputeXmaskCoordFromAddr(
 
     microTileCoordY = ComputeXmaskCoordYFromPipe(pipe,
                                                  *pX/MicroTileWidth);
+
 
     //
     // Assemble final coordinates.
@@ -2383,6 +2393,7 @@ UINT_64 Lib::HwlComputeXmaskAddrFromCoord(
     UINT_64 offsetLo;
     UINT_64 offsetHi;
     UINT_64 groupMask;
+
 
     UINT_32 elemBits = 0;
 
@@ -3346,6 +3357,7 @@ VOID Lib::PadDimensions(
                      heightAlign);
 }
 
+
 /**
 ****************************************************************************************************
 *   Lib::HwlPreHandleBaseLvl3xPitch
@@ -3406,6 +3418,7 @@ UINT_32 Lib::HwlPostHandleBaseLvl3xPitch(
 
     return expPitch;
 }
+
 
 /**
 ****************************************************************************************************
@@ -3523,7 +3536,6 @@ VOID Lib::ComputeMipLevel(
 {
     // Check if HWL has handled
     BOOL_32 hwlHandled = FALSE;
-    (void)hwlHandled;
 
     if (ElemLib::IsBlockCompressed(pIn->format))
     {
@@ -3926,6 +3938,7 @@ VOID Lib::ComputeQbStereoInfo(
 
     // 1D surface on SI may break this rule, but we can force it to meet by checking .qbStereo.
 }
+
 
 /**
 ****************************************************************************************************

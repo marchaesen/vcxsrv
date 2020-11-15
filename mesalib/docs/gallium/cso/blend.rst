@@ -101,7 +101,7 @@ alpha_to_one
    is enabled or the destination buffer is multisampled.
 max_rt
    The index of the max render target (irrespecitive of whether independent
-   blend is enabled), ie. the number of MRTs minus one.  This is provided
+   blend is enabled), i.e. the number of MRTs minus one.  This is provided
    so that the driver can avoid the overhead of programming unused MRTs.
 
 

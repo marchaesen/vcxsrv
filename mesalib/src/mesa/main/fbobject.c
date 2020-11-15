@@ -60,20 +60,6 @@
 
 
 
-/*
- * When glGenRender/FramebuffersEXT() is called we insert pointers to
- * these placeholder objects into the hash table.
- * Later, when the object ID is first bound, we replace the placeholder
- * with the real frame/renderbuffer.
- */
-static struct gl_framebuffer DummyFramebuffer;
-static struct gl_renderbuffer DummyRenderbuffer;
-
-/* We bind this framebuffer when applications pass a NULL
- * drawable/surface in make current. */
-static struct gl_framebuffer IncompleteFramebuffer;
-
-
 static void
 delete_dummy_renderbuffer(struct gl_context *ctx, struct gl_renderbuffer *rb)
 {
@@ -87,16 +73,28 @@ delete_dummy_framebuffer(struct gl_framebuffer *fb)
 }
 
 
-void
-_mesa_init_fbobjects(struct gl_context *ctx)
-{
-   simple_mtx_init(&DummyFramebuffer.Mutex, mtx_plain);
-   simple_mtx_init(&DummyRenderbuffer.Mutex, mtx_plain);
-   simple_mtx_init(&IncompleteFramebuffer.Mutex, mtx_plain);
-   DummyFramebuffer.Delete = delete_dummy_framebuffer;
-   DummyRenderbuffer.Delete = delete_dummy_renderbuffer;
-   IncompleteFramebuffer.Delete = delete_dummy_framebuffer;
-}
+/*
+ * When glGenRender/FramebuffersEXT() is called we insert pointers to
+ * these placeholder objects into the hash table.
+ * Later, when the object ID is first bound, we replace the placeholder
+ * with the real frame/renderbuffer.
+ */
+static struct gl_framebuffer DummyFramebuffer = {
+   .Mutex = _SIMPLE_MTX_INITIALIZER_NP,
+   .Delete = delete_dummy_framebuffer,
+};
+static struct gl_renderbuffer DummyRenderbuffer = {
+   .Mutex = _SIMPLE_MTX_INITIALIZER_NP,
+   .Delete = delete_dummy_renderbuffer,
+};
+
+/* We bind this framebuffer when applications pass a NULL
+ * drawable/surface in make current. */
+static struct gl_framebuffer IncompleteFramebuffer = {
+   .Mutex = _SIMPLE_MTX_INITIALIZER_NP,
+   .Delete = delete_dummy_framebuffer,
+};
+
 
 struct gl_framebuffer *
 _mesa_get_incomplete_framebuffer(void)
@@ -2433,7 +2431,7 @@ _mesa_base_fbo_format(const struct gl_context *ctx, GLenum internalFormat)
  * Invalidate a renderbuffer attachment.  Called from _mesa_HashWalk().
  */
 static void
-invalidate_rb(GLuint key, void *data, void *userData)
+invalidate_rb(void *data, void *userData)
 {
    struct gl_framebuffer *fb = (struct gl_framebuffer *) data;
    struct gl_renderbuffer *rb = (struct gl_renderbuffer *) userData;

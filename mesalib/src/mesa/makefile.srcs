@@ -13,7 +13,7 @@ builddir=.
 top_srcdir=../..
 top_builddir=../..
 
-PYTHON_GEN = python
+PYTHON_GEN = $(PYTHON3)
 
 main/get_hash.h: ../mapi/glapi/gen/gl_and_es_API.xml main/get_hash_params.py \
                  main/get_hash_generator.py

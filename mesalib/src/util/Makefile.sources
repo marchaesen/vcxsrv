@@ -59,6 +59,8 @@ MESA_UTIL_FILES := \
 	log.c \
 	log.h \
 	macros.h \
+	memstream.c \
+	memstream.h \
 	mesa-sha1.c \
 	mesa-sha1.h \
 	os_time.c \

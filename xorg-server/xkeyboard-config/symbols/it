@@ -1,4 +1,3 @@
-// based on a keyboard map from an 'xkb/symbols/it' file
 // 17 May 2003 Modified by Sebastiano Vigna (vigna@dsi.unimi.it)
 // 03 December 2017 - Added it(intl) and it(scn), please refer to
 //                    Cadèmia Siciliana <l10n@cademiasiciliana.org>
@@ -303,7 +302,6 @@ partial alphanumeric_keys
     key <BKSL>	{ [    ugrave,    section,   dead_grave,   dead_breve ]	};
 
     key <LSGT>	{ [      less,    greater,guillemotleft,guillemotright] };
-
 };
 
 // EXTRAS:
@@ -325,7 +323,6 @@ partial alphanumeric_keys
     key <AC02> { [ s, S, sacute, Sacute ] };
 
     key <AB03> { [ c, C, cacute, Cacute ] };
-
 };
 
 partial alphanumeric_keys

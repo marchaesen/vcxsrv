@@ -17,7 +17,7 @@ traces:
   - path: 0ad/0ad.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: c6261e56f37cc5d73b83d493561df646
+        checksum: 79634d7a6d48d36165ef12fde2901dfc
   - path: pathfinder/demo.trace
     expectations:
       - device: gl-radeonsi-stoney
@@ -33,11 +33,11 @@ traces:
   - path: gputest/furmark.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: d71c0d8e6c46c8f29d1aa8d0ed7d3c87
+        checksum: 84c499203944cdc59e70450c324bb8df
   - path: gputest/pixmark-piano.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 014b88f3357d32af0c306d4a14eb36ef
+        checksum: 7bfbac352caf8a83a09687b2a93933e5
   - path: gputest/triangle.trace
     expectations:
       - device: gl-radeonsi-stoney
@@ -45,7 +45,7 @@ traces:
   - path: humus/Portals.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: b6f00f39566152c3c8462903b7a1f258
+        checksum: fc7d00efe380cacbd4e9ef9b231aea2f
   - path: glmark2/buffer-columns=200:interleave=false:update-dispersion=0.9:update-fraction=0.5:update-method=map.rdc
     expectations:
       - device: gl-radeonsi-stoney
@@ -65,7 +65,7 @@ traces:
   - path: glmark2/bump-bump-render=high-poly.rdc
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: e2e83a59d4eb6763d2fe922932aa14b5
+        checksum: 0793212ea545bccd39c89d9a6680d9b1
   - path: glmark2/bump-bump-render=normals.rdc
     expectations:
       - device: gl-radeonsi-stoney
@@ -113,7 +113,7 @@ traces:
   - path: glmark2/ideas-speed=duration.rdc
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 966191b52dc4885cfc56c0e7c80856b2
+        checksum: 74f9323bd703e9d3f6440dc3d141fc9f
   - path: glmark2/loop-fragment-loop=false:fragment-steps=5:vertex-steps=5.rdc
     expectations:
       - device: gl-radeonsi-stoney
@@ -133,11 +133,11 @@ traces:
   - path: glmark2/refract.rdc
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: db300d3a8afb6cecc19ae8e38c7b87c6
+        checksum: 6184a3ce8de6605c6ab8a894b80cf5bf
   - path: glmark2/shading-shading=blinn-phong-inf.rdc
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 36b193b33127144f8080aa60d582e65e
+        checksum: 1752c09718288a5fc0f1f8f81d7dd558
   - path: glmark2/shading-shading=cel.rdc
     expectations:
       - device: gl-radeonsi-stoney
@@ -145,7 +145,7 @@ traces:
   - path: glmark2/shading-shading=gouraud.rdc
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 22bd04eb9862eb4ecff525ac83b2826d
+        checksum: 3558380167441cd395d010afe533a277
   - path: glmark2/shading-shading=phong.rdc
     expectations:
       - device: gl-radeonsi-stoney
@@ -157,7 +157,7 @@ traces:
   - path: glmark2/terrain.rdc
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 52f19a65bd77ae03b5f51ee0038a2982
+        checksum: 8ccd48a1085a23059573f3541840d295
   - path: glmark2/texture-texture-filter=linear.rdc
     expectations:
       - device: gl-radeonsi-stoney
@@ -169,15 +169,15 @@ traces:
   - path: glmark2/texture-texture-filter=nearest.rdc
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: bd00656bf6683dae40bfa26a6416061d
+        checksum: 555cf351afb193a725afa56204bbcf35
   - path: godot/Material Testers.x86_64_2020.04.08_13.38_frame799.rdc
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 41a0b6eddecdf1df645ccf34082aac88
+        checksum: 02f654ad77c0c1106e1b31e1c86c93bb
   - path: gputest/gimark.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 98e742377cef049e98014300a34d7bba
+        checksum: 4442dbd44a9704c499da4817fffce306
   - path: gputest/pixmark-julia-fp32.trace
     expectations:
       - device: gl-radeonsi-stoney
@@ -189,7 +189,7 @@ traces:
   - path: gputest/pixmark-volplosion.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 708f92a8ac8aef23a4a544cc5ec755d6
+        checksum: c8321043b7c05156b71f9837b54e7b50
   - path: gputest/plot3d.trace
     expectations:
       - device: gl-radeonsi-stoney
@@ -197,11 +197,11 @@ traces:
   - path: gputest/tessmark.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: d6597f93caa383c492d8290036c60919
+        checksum: cdcf984e81f2cda9ca7f56e3a4addaa7
   - path: humus/AmbientAperture.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 56291d097c4be9c079fb771c849c6a2e
+        checksum: 664ea58a62b27737b7d0ae9e86ab85c0
   - path: humus/CelShading.trace
     expectations:
       - device: gl-radeonsi-stoney
@@ -209,7 +209,7 @@ traces:
   - path: humus/DynamicBranching3.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 0f02743d054c66f04da404add87d67dc
+        checksum: 5a5addfb1c7acc22104c0ecb29f45174
   - path: humus/HDR.trace
     expectations:
       - device: gl-radeonsi-stoney
@@ -217,15 +217,15 @@ traces:
   - path: humus/RaytracedShadows.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 4209605af96a1d7c20aa7324aa93839f
+        checksum: 2e2e58e0b32329d6cf90ab0ec71108fd
   - path: humus/VolumetricFogging2.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 12ad73ad05b01854da65eb0094612ebf
+        checksum: 1a9b3aa90d2c4a0d3937ecacca2da052
   - path: supertuxkart/supertuxkart-antediluvian-abyss.rdc
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: a2c4c127873f93b7db4ef48ea9fb7689
+        checksum: 499e93c37e33cc6430c7a9f94266f2f7
   - path: supertuxkart/supertuxkart-menu.rdc
     expectations:
       - device: gl-radeonsi-stoney
@@ -233,4 +233,4 @@ traces:
   - path: supertuxkart/supertuxkart-ravenbridge-mansion.rdc
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: c8f9eae92c67c7d53db4d69a703e3914
+        checksum: 38a9f26c60a0bc4245b97d32da84ef75

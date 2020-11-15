@@ -32,7 +32,7 @@
 #include "bifrost_compile.h"
 #include "test/bit.h"
 
-static panfrost_program
+static panfrost_program *
 compile_shader(char **argv, bool vertex_only)
 {
         struct gl_shader_program *prog;
@@ -53,7 +53,7 @@ compile_shader(char **argv, bool vertex_only)
         prog = standalone_compile_shader(&options, 2, argv, &local_ctx);
         prog->_LinkedShaders[MESA_SHADER_FRAGMENT]->Program->info.stage = MESA_SHADER_FRAGMENT;
 
-        panfrost_program compiled;
+        panfrost_program *compiled;
         for (unsigned i = 0; i < 2; ++i) {
                 nir[i] = glsl_to_nir(&local_ctx, prog, shader_types[i], &bifrost_nir_options);
                 NIR_PASS_V(nir[i], nir_lower_global_vars_to_local);
@@ -71,7 +71,7 @@ compile_shader(char **argv, bool vertex_only)
                         .gpu_id = 0x7212, /* Mali G52 */
                 };
 
-                bifrost_compile_shader_nir(nir[i], &compiled, &inputs);
+                compiled = bifrost_compile_shader_nir(NULL, nir[i], &inputs);
 
                 if (vertex_only)
                         return compiled;
@@ -161,7 +161,7 @@ run(const char *filename)
                 },
         };
 
-        bit_vertex(dev, prog, NULL, 0, NULL, 0, NULL, 0, BIT_DEBUG_ALL);
+        bit_vertex(dev, &prog, NULL, 0, NULL, 0, NULL, 0, BIT_DEBUG_ALL);
 
         free(code);
 }

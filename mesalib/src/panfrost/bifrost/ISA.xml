@@ -25,6 +25,7 @@
 
   <ins name="*ARSHIFT.i32" mask="0x7ff838" exact="0x335018">
     <src start="0" mask="0xfb"/>
+    <src start="3" mask="0x8"/>
     <src start="6"/>
     <mod name="lane2" start="9" size="2" default="b0">
       <opt>b0</opt>
@@ -36,6 +37,7 @@
 
   <ins name="*ARSHIFT.v2i16">
     <src start="0" mask="0xfb"/>
+    <src start="3" mask="0x8"/>
     <src start="6"/>
     <mod name="lanes2" size="3" default="b02">
       <opt>b00</opt>
@@ -77,6 +79,7 @@
 
   <ins name="*ARSHIFT.v4i8">
     <src start="0" mask="0xfb"/>
+    <src start="3" mask="0x8"/>
     <src start="6"/>
     <mod name="lanes2" size="3" default="b0123">
       <opt>b0123</opt>
@@ -3677,7 +3680,12 @@
     <src start="6" mask="0xf7"/>
   </ins>
 
-  <ins name="+CLPER.i32" mask="0xfc000" exact="0x7c000">
+  <ins name="+CLPER_V6.i32" mask="0xfffc0" exact="0x3f0c0">
+    <src start="0" mask="0x7"/>
+    <src start="3"/>
+  </ins>
+
+  <ins name="+CLPER_V7.i32" mask="0xfc000" exact="0x7c000">
     <src start="0" mask="0x7"/>
     <src start="3"/>
     <mod name="lane_op" start="6" size="2">

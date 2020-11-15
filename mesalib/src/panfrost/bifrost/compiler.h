@@ -73,13 +73,15 @@ enum bi_class {
         BI_SELECT,
         BI_STORE,
         BI_STORE_VAR,
-        BI_SPECIAL, /* _FAST on supported GPUs */
+        BI_SPECIAL_ADD, /* _FAST on supported GPUs */
+        BI_SPECIAL_FMA, /* _FAST on supported GPUs */
         BI_TABLE,
         BI_TEXS,
         BI_TEXC,
         BI_TEXC_DUAL,
         BI_ROUND,
         BI_IMUL,
+        BI_ZS_EMIT,
         BI_NUM_CLASSES
 };
 
@@ -191,7 +193,8 @@ enum bi_minmax_op {
 enum bi_bitwise_op {
         BI_BITWISE_AND,
         BI_BITWISE_OR,
-        BI_BITWISE_XOR
+        BI_BITWISE_XOR,
+        BI_BITWISE_ARSHIFT,
 };
 
 enum bi_imath_op {
@@ -232,6 +235,16 @@ enum bi_special_op {
          * the second, it takes x itself. */
         BI_SPECIAL_EXP2_LOW,
         BI_SPECIAL_IABS,
+
+        /* cubemap coordinates extraction helpers */
+        BI_SPECIAL_CUBEFACE1,
+        BI_SPECIAL_CUBEFACE2,
+        BI_SPECIAL_CUBE_SSEL,
+        BI_SPECIAL_CUBE_TSEL,
+
+        /* Cross-lane permute, used to implement dFd{x,y} */
+        BI_SPECIAL_CLPER_V6,
+        BI_SPECIAL_CLPER_V7,
 };
 
 struct bi_bitwise {
@@ -248,6 +261,46 @@ struct bi_texture {
         /* Should the LOD be computed based on neighboring pixels? Only valid
          * in fragment shaders. */
         bool compute_lod;
+};
+
+enum bi_clper_lane_op_mod {
+        BI_CLPER_LANE_OP_MOD_NONE,
+        BI_CLPER_LANE_OP_MOD_XOR,
+        BI_CLPER_LANE_OP_MOD_ACCUMULATE,
+        BI_CLPER_LANE_OP_MOD_SHIFT,
+};
+
+enum bi_subgroup_sz {
+        BI_CLPER_SUBGROUP_SZ_2,
+        BI_CLPER_SUBGROUP_SZ_4,
+        BI_CLPER_SUBGROUP_SZ_8,
+};
+
+enum bi_clper_inactive_res {
+        BI_CLPER_INACTIVE_RES_ZERO,
+        BI_CLPER_INACTIVE_RES_UMAX,
+        BI_CLPER_INACTIVE_RES_I1,
+        BI_CLPER_INACTIVE_RES_V2I1,
+        BI_CLPER_INACTIVE_RES_SMIN,
+        BI_CLPER_INACTIVE_RES_SMAX,
+        BI_CLPER_INACTIVE_RES_V2SMIN,
+        BI_CLPER_INACTIVE_RES_V2SMAX,
+        BI_CLPER_INACTIVE_RES_V4SMIN,
+        BI_CLPER_INACTIVE_RES_V4SMAX,
+        BI_CLPER_INACTIVE_RES_F1,
+        BI_CLPER_INACTIVE_RES_V2F1,
+        BI_CLPER_INACTIVE_RES_INFN,
+        BI_CLPER_INACTIVE_RES_INF,
+        BI_CLPER_INACTIVE_RES_V2INFN,
+        BI_CLPER_INACTIVE_RES_V2INF,
+};
+
+struct bi_special {
+        struct {
+                enum bi_clper_lane_op_mod lane_op_mod;
+                enum bi_clper_inactive_res inactive_res;
+        } clper;
+        enum bi_subgroup_sz subgroup_sz;
 };
 
 typedef struct {
@@ -314,6 +367,10 @@ typedef struct {
         /* For memory ops, base address */
         enum bi_segment segment;
 
+        /* Can we spill the value written here? Used to prevent
+         * useless double fills */
+        bool no_spill;
+
         /* A class-specific op from which the actual opcode can be derived
          * (along with the above information) */
 
@@ -342,6 +399,7 @@ typedef struct {
 
                 struct bi_bitwise bitwise;
                 struct bi_texture texture;
+                struct bi_special special;
         };
 } bi_instruction;
 
@@ -446,6 +504,8 @@ typedef struct {
        struct list_head blocks; /* list of bi_block */
        struct panfrost_sysvals sysvals;
        uint32_t quirks;
+       unsigned arch;
+       unsigned tls_size;
 
        /* Is internally a blend shader? Depends on stage == FRAGMENT */
        bool is_blend;
@@ -477,6 +537,8 @@ typedef struct {
        /* Stats for shader-db */
        unsigned instruction_count;
        unsigned loop_count;
+       unsigned spills;
+       unsigned fills;
 } bi_context;
 
 static inline bi_instruction *
@@ -519,12 +581,26 @@ bi_remove_instruction(bi_instruction *ins)
 #define BIR_INDEX_ZERO     (1 << 28)
 #define BIR_INDEX_PASS     (1 << 27)
 #define BIR_INDEX_BLEND    (1 << 26)
+#define BIR_INDEX_FAU      (1 << 25)
+
+enum bir_fau {
+        BIR_FAU_ZERO = 0,
+        BIR_FAU_LANE_ID = 1,
+        BIR_FAU_WRAP_ID = 2,
+        BIR_FAU_CORE_ID = 3,
+        BIR_FAU_FB_EXTENT = 4,
+        BIR_FAU_ATEST_PARAM = 5,
+        BIR_FAU_SAMPLE_POS_ARRAY = 6,
+        BIR_FAU_TYPE_MASK = 15,
+        BIR_FAU_HI = (1 << 8),
+};
 
 /* Keep me synced please so we can check src & BIR_SPECIAL */
 
 #define BIR_SPECIAL        (BIR_INDEX_REGISTER | BIR_INDEX_UNIFORM | \
                             BIR_INDEX_CONSTANT | BIR_INDEX_ZERO | \
-                            BIR_INDEX_PASS | BIR_INDEX_BLEND)
+                            BIR_INDEX_PASS | BIR_INDEX_BLEND | \
+                            BIR_INDEX_FAU)
 
 static inline unsigned
 bi_max_temp(bi_context *ctx)
@@ -577,6 +653,9 @@ bi_make_temp_reg(bi_context *ctx)
 #define bi_foreach_clause_in_block(block, v) \
         list_for_each_entry(bi_clause, v, &(block)->clauses, link)
 
+#define bi_foreach_clause_in_block_safe(block, v) \
+        list_for_each_entry_safe(bi_clause, v, &(block)->clauses, link)
+
 #define bi_foreach_clause_in_block_from(block, v, from) \
         list_for_each_entry_from(bi_clause, v, from, &(block)->clauses, link)
 
@@ -627,6 +706,7 @@ pan_next_block(pan_block *block)
 
 void bi_emit_fexp2(bi_context *ctx, nir_alu_instr *instr);
 void bi_emit_flog2(bi_context *ctx, nir_alu_instr *instr);
+void bi_emit_deriv(bi_context *ctx, nir_alu_instr *instr);
 
 /* BIR manipulation */
 
@@ -648,6 +728,12 @@ void bi_lower_combine(bi_context *ctx, bi_block *block);
 bool bi_opt_dead_code_eliminate(bi_context *ctx, bi_block *block);
 void bi_schedule(bi_context *ctx);
 void bi_register_allocate(bi_context *ctx);
+
+bi_clause *bi_make_singleton(void *memctx, bi_instruction *ins,
+                bi_block *block,
+                unsigned scoreboard_id,
+                unsigned dependencies,
+                bool osrb);
 
 /* Liveness */
 

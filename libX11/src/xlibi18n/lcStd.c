@@ -36,11 +36,11 @@ _Xlcmbtowc(
     char *str,
     int len)
 {
-    static XLCd last_lcd = NULL;
-    static XlcConv conv = NULL;
+    XlcConv conv;
     XPointer from, to;
     int from_left, to_left;
     wchar_t tmp_wc;
+    int ret;
 
     if (lcd == NULL) {
 	lcd = _XlcCurrentLC();
@@ -50,18 +50,9 @@ _Xlcmbtowc(
     if (str == NULL)
 	return XLC_PUBLIC(lcd, is_state_depend);
 
-    if (conv && lcd != last_lcd) {
-	_XlcCloseConverter(conv);
-	conv = NULL;
-    }
-
-    last_lcd = lcd;
-
-    if (conv == NULL) {
-	conv = _XlcOpenConverter(lcd, XlcNMultiByte, lcd, XlcNWideChar);
-	if (conv == NULL)
+    conv = _XlcOpenConverter(lcd, XlcNMultiByte, lcd, XlcNWideChar);
+    if (conv == NULL)
 	    return -1;
-    }
 
     from = (XPointer) str;
     from_left = len;
@@ -69,9 +60,12 @@ _Xlcmbtowc(
     to_left = 1;
 
     if (_XlcConvert(conv, &from, &from_left, &to, &to_left, NULL, 0) < 0)
-	return -1;
+	ret = -1;
+    else
+	ret = len - from_left;
 
-    return (len - from_left);
+    _XlcCloseConverter(conv);
+    return ret;
 }
 
 int
@@ -80,10 +74,10 @@ _Xlcwctomb(
     char *str,
     wchar_t wc)
 {
-    static XLCd last_lcd = NULL;
-    static XlcConv conv = NULL;
+    XlcConv conv;
     XPointer from, to;
     int from_left, to_left, length;
+    int ret;
 
     if (lcd == NULL) {
 	lcd = _XlcCurrentLC();
@@ -93,18 +87,9 @@ _Xlcwctomb(
     if (str == NULL)
 	return XLC_PUBLIC(lcd, is_state_depend);
 
-    if (conv && lcd != last_lcd) {
-	_XlcCloseConverter(conv);
-	conv = NULL;
-    }
-
-    last_lcd = lcd;
-
-    if (conv == NULL) {
-	conv = _XlcOpenConverter(lcd, XlcNWideChar, lcd, XlcNMultiByte);
-	if (conv == NULL)
-	    return -1;
-    }
+    conv = _XlcOpenConverter(lcd, XlcNWideChar, lcd, XlcNMultiByte);
+    if (conv == NULL)
+	return -1;
 
     from = (XPointer) &wc;
     from_left = 1;
@@ -112,9 +97,12 @@ _Xlcwctomb(
     length = to_left = XLC_PUBLIC(lcd, mb_cur_max);
 
     if (_XlcConvert(conv, &from, &from_left, &to, &to_left, NULL, 0) < 0)
-	return -1;
+	ret = -1;
+    else
+        ret = length - to_left;
 
-    return (length - to_left);
+    _XlcCloseConverter(conv);
+    return ret;
 }
 
 int

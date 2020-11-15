@@ -188,6 +188,11 @@ private:
         return ((m_settings.isVolcanicIslands == TRUE) || (m_configFlags.forceDccAndTcCompat == TRUE));
     }
 
+    BOOL_32 AltTilingEnabled() const
+    {
+        return (m_configFlags.enableAltTiling == TRUE);
+    }
+
     static const UINT_32    MacroTileTableSize = 16;
     static const UINT_32    PrtMacroModeOffset = MacroTileTableSize / 2;
     static const INT_32     MinDepth2DThinIndex = 0;

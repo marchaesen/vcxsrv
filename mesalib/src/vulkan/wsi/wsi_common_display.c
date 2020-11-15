@@ -1210,8 +1210,8 @@ wsi_display_wait_thread(void *data)
       if (ret > 0) {
          pthread_mutex_lock(&wsi->wait_mutex);
          (void) drmHandleEvent(wsi->fd, &event_context);
-         pthread_mutex_unlock(&wsi->wait_mutex);
          pthread_cond_broadcast(&wsi->wait_cond);
+         pthread_mutex_unlock(&wsi->wait_mutex);
       }
    }
    return NULL;

@@ -244,7 +244,7 @@ util_framebuffer_get_num_samples(const struct pipe_framebuffer_state *fb)
                   fb->zsbuf->nr_samples);
    }
 
-   return 1;
+   return MAX2(fb->samples, 1);
 }
 
 

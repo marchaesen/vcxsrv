@@ -971,7 +971,7 @@ pandecode_vertex_tiler_postfix_pre(
                 if (is_bifrost)
                         uniform_count = state.preload.uniform_count;
                 else
-                        uniform_count = state.properties.uniform_count;
+                        uniform_count = state.properties.midgard.uniform_count;
 
                 pandecode_shader_prop("texture_count", texture_count, info.texture_count, false);
                 pandecode_shader_prop("sampler_count", sampler_count, info.sampler_count, false);

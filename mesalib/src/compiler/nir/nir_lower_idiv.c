@@ -120,7 +120,7 @@ convert_instr(nir_builder *bld, nir_alu_instr *alu)
             q = nir_imul(bld, q, denom);
             q = nir_isub(bld, numer, q);
             if (op == nir_op_imod) {
-               q = nir_bcsel(bld, nir_ieq(bld, q, nir_imm_int(bld, 0)),
+               q = nir_bcsel(bld, nir_ieq_imm(bld, q, 0),
                              nir_imm_int(bld, 0),
                              nir_bcsel(bld, r, nir_iadd(bld, q, denom), q));
             }
@@ -195,7 +195,7 @@ emit_idiv(nir_builder *bld, nir_ssa_def *numer, nir_ssa_def *denom, nir_op op)
       res = nir_ixor(bld, res, lh_sign);
       res = nir_isub(bld, res, lh_sign);
       if (op == nir_op_imod) {
-         nir_ssa_def *cond = nir_ieq(bld, res, nir_imm_int(bld, 0));
+         nir_ssa_def *cond = nir_ieq_imm(bld, res, 0);
          cond = nir_ior(bld, nir_ieq(bld, lh_sign, rh_sign), cond);
          res = nir_bcsel(bld, cond, res, nir_iadd(bld, res, denom));
       }

@@ -17,6 +17,9 @@ check_minio "${CI_PROJECT_PATH}"
 
 . .gitlab-ci/container/container_pre_build.sh
 
+# Install rust, which we'll be using for deqp-runner.  It will be cleaned up at the end.
+. .gitlab-ci/build-rust.sh
+
 if [[ "$DEBIAN_ARCH" = "arm64" ]]; then
     GCC_ARCH="aarch64-linux-gnu"
     KERNEL_ARCH="arm64"
@@ -43,17 +46,24 @@ if [[ -e /cross_file-$DEBIAN_ARCH.txt ]]; then
     EXTRA_MESON_ARGS="--cross-file /cross_file-$DEBIAN_ARCH.txt"
     EXTRA_CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=/toolchain-$DEBIAN_ARCH.cmake"
 
+    if [ $DEBIAN_ARCH = arm64 ]; then
+        RUST_TARGET="aarch64-unknown-linux-gnu"
+    elif [ $DEBIAN_ARCH = armhf ]; then
+        RUST_TARGET="armv7-unknown-linux-gnueabihf"
+    fi
+    rustup target add $RUST_TARGET
+    export EXTRA_CARGO_ARGS="--target $RUST_TARGET"
+
     export ARCH=${KERNEL_ARCH}
     export CROSS_COMPILE="${GCC_ARCH}-"
 fi
 
 apt-get update
 apt-get install -y automake \
-                   git \
                    bc \
                    cmake \
-                   wget \
                    debootstrap \
+                   git \
                    libboost-dev \
                    libegl1-mesa-dev \
                    libgbm-dev \
@@ -69,25 +79,27 @@ apt-get install -y automake \
                    python3-serial \
                    qt5-default \
                    qt5-qmake \
-                   qtbase5-dev
+                   qtbase5-dev \
+                   wget
 
 
 if [[ "$DEBIAN_ARCH" = "armhf" ]]; then
-	apt-get install -y libboost-dev:armhf \
-		libegl1-mesa-dev:armhf \
-		libelf-dev:armhf \
-		libgbm-dev:armhf \
-		libgles2-mesa-dev:armhf \
-		libpcre3-dev:armhf \
-		libpng-dev:armhf \
-		libpython3-dev:armhf \
-		libvulkan-dev:armhf \
-		libxcb-keysyms1-dev:armhf \
-               qtbase5-dev:armhf
+    apt-get install -y libegl1-mesa-dev:armhf \
+                       libelf-dev:armhf \
+                       libgbm-dev:armhf \
+                       libgles2-mesa-dev:armhf \
+                       libpcre3-dev:armhf \
+                       libpng-dev:armhf \
+                       libpython3-dev:armhf \
+                       libvulkan-dev:armhf \
+                       libxcb-keysyms1-dev:armhf \
+                       libboost-dev:armhf \
+                       qtbase5-dev:armhf
 fi
 
 ############### Build dEQP runner
-. .gitlab-ci/build-cts-runner.sh
+
+. .gitlab-ci/build-deqp-runner.sh
 mkdir -p /lava-files/rootfs-${DEBIAN_ARCH}/usr/bin
 mv /usr/local/bin/deqp-runner /lava-files/rootfs-${DEBIAN_ARCH}/usr/bin/.
 
@@ -141,14 +153,29 @@ for i in /usr/bin/*-ld /usr/bin/ld; do
 done
 export PATH=`pwd`/ld-links:$PATH
 
+if [ -n "$INSTALL_KERNEL_MODULES" ]; then
+    # Disable all modules in defconfig, so we only build the ones we want
+    sed -i 's/=m/=n/g' ${DEFCONFIG}
+fi
+
+# Force db410c to host mode instead of OTG (which is otherwise selected by
+# default due to our micro cable for fastboot)
+sed -i 's/dr_mode = "otg"/dr_mode = "host"/' arch/arm64/boot/dts/qcom/apq8016-sbc.dtsi
+
 ./scripts/kconfig/merge_config.sh ${DEFCONFIG} ../.gitlab-ci/${KERNEL_ARCH}.config
 make ${KERNEL_IMAGE_NAME}
 for image in ${KERNEL_IMAGE_NAME}; do
     cp arch/${KERNEL_ARCH}/boot/${image} /lava-files/.
 done
+
 if [[ -n ${DEVICE_TREES} ]]; then
     make dtbs
     cp ${DEVICE_TREES} /lava-files/.
+fi
+
+if [ -n "$INSTALL_KERNEL_MODULES" ]; then
+    make modules
+    INSTALL_MOD_PATH=/lava-files/rootfs-${DEBIAN_ARCH}/ make modules_install
 fi
 
 if [[ ${DEBIAN_ARCH} = "arm64" ]] && which mkimage > /dev/null; then
@@ -165,6 +192,9 @@ fi
 
 popd
 rm -rf kernel
+
+############### Delete rust, since the tests won't be compiling anything.
+rm -rf /root/.rustup /root/.cargo
 
 ############### Create rootfs
 set +e

@@ -484,8 +484,7 @@ xkb_symbols "dyalog_box" {
 	key <KP8>  { [ U252c ] };	// box drawing light down and horizontal
 	key <KP9>  { [ U2510 ] };	// box drawing light down and left
 	key <KPDL> { [ U2502 ] };	// box drawing light vertical
-
-}; 
+};
 
 hidden partial
 xkb_symbols "dyalog_codes" {

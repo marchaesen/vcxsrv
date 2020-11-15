@@ -67,8 +67,6 @@ static nir_ssa_def *radv_meta_build_resolve_srgb_conversion(nir_builder *b,
 static nir_shader *
 build_resolve_compute_shader(struct radv_device *dev, bool is_integer, bool is_srgb, int samples)
 {
-	nir_builder b;
-	char name[64];
 	const struct glsl_type *sampler_type = glsl_sampler_type(GLSL_SAMPLER_DIM_MS,
 								 false,
 								 false,
@@ -76,9 +74,10 @@ build_resolve_compute_shader(struct radv_device *dev, bool is_integer, bool is_s
 	const struct glsl_type *img_type = glsl_image_type(GLSL_SAMPLER_DIM_2D,
 							   false,
 							   GLSL_TYPE_FLOAT);
-	snprintf(name, 64, "meta_resolve_cs-%d-%s", samples, is_integer ? "int" : (is_srgb ? "srgb" : "float"));
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, name);
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL,
+						       "meta_resolve_cs-%d-%s",
+						       samples,
+						       is_integer ? "int" : (is_srgb ? "srgb" : "float"));
 	b.shader->info.cs.local_size[0] = 16;
 	b.shader->info.cs.local_size[1] = 16;
 	b.shader->info.cs.local_size[2] = 1;
@@ -166,8 +165,6 @@ build_depth_stencil_resolve_compute_shader(struct radv_device *dev, int samples,
 					   int index,
 					   VkResolveModeFlagBits resolve_mode)
 {
-	nir_builder b;
-	char name[64];
 	const struct glsl_type *sampler_type = glsl_sampler_type(GLSL_SAMPLER_DIM_MS,
 								 false,
 								 false,
@@ -175,12 +172,11 @@ build_depth_stencil_resolve_compute_shader(struct radv_device *dev, int samples,
 	const struct glsl_type *img_type = glsl_image_type(GLSL_SAMPLER_DIM_2D,
 							   false,
 							   GLSL_TYPE_FLOAT);
-	snprintf(name, 64, "meta_resolve_cs_%s-%s-%d",
-		 index == DEPTH_RESOLVE ? "depth" : "stencil",
-		 get_resolve_mode_str(resolve_mode), samples);
 
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, name);
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL,
+						       "meta_resolve_cs_%s-%s-%d",
+						       index == DEPTH_RESOLVE ? "depth" : "stencil",
+						       get_resolve_mode_str(resolve_mode), samples);
 	b.shader->info.cs.local_size[0] = 16;
 	b.shader->info.cs.local_size[1] = 16;
 	b.shader->info.cs.local_size[2] = 1;

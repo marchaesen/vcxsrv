@@ -577,9 +577,17 @@ void nir_tgsi_scan_shader(const struct nir_shader *nir,
       info->num_inputs = util_bitcount64(nir->info.inputs_read);
       if (nir->info.inputs_read_indirectly)
          info->indirect_files |= 1 << TGSI_FILE_INPUT;
+      info->file_max[TGSI_FILE_INPUT] = info->num_inputs - 1;
+   } else {
+      int max = -1;
+      nir_foreach_shader_in_variable(var, nir) {
+	 int slots = glsl_count_attribute_slots(var->type, false);
+	 int tmax = var->data.driver_location + slots - 1;
+	 if (tmax > max)
+	    max = tmax;
+	 info->file_max[TGSI_FILE_INPUT] = max;
+      }
    }
-
-   info->file_max[TGSI_FILE_INPUT] = info->num_inputs - 1;
 
    i = 0;
    uint64_t processed_outputs = 0;

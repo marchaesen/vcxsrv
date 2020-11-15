@@ -112,7 +112,6 @@ SiLib::SiLib(const Client* pClient)
     m_noOfEntries(0),
     m_numEquations(0)
 {
-    m_class = SI_ADDRLIB;
     memset(&m_settings, 0, sizeof(m_settings));
 }
 
@@ -1930,7 +1929,7 @@ ChipFamily SiLib::HwlConvertChipFamily(
             m_settings.isHainan     = ASICREV_IS_HAINAN_V(uChipRevision);
             break;
         default:
-            ADDR_ASSERT(!"This should be a Fusion");
+            ADDR_ASSERT(!"No Chip found");
             break;
     }
 

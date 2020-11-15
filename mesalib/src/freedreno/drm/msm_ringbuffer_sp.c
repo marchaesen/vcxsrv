@@ -45,7 +45,6 @@
 struct msm_submit_sp {
 	struct fd_submit base;
 
-	DECLARE_ARRAY(struct drm_msm_gem_submit_bo, submit_bos);
 	DECLARE_ARRAY(struct fd_bo *, bos);
 
 	/* maps fd_bo to idx in bos table: */
@@ -117,8 +116,8 @@ msm_submit_append_bo(struct msm_submit_sp *submit, struct fd_bo *bo)
 	 */
 	idx = READ_ONCE(msm_bo->idx);
 
-	if (unlikely((idx >= submit->nr_submit_bos) ||
-			(submit->submit_bos[idx].handle != bo->handle))) {
+	if (unlikely((idx >= submit->nr_bos) ||
+			(submit->bos[idx] != bo))) {
 		uint32_t hash = _mesa_hash_pointer(bo);
 		struct hash_entry *entry;
 
@@ -127,14 +126,7 @@ msm_submit_append_bo(struct msm_submit_sp *submit, struct fd_bo *bo)
 			/* found */
 			idx = (uint32_t)(uintptr_t)entry->data;
 		} else {
-			idx = APPEND(submit, submit_bos);
-			idx = APPEND(submit, bos);
-
-			submit->submit_bos[idx].flags = bo->flags;
-			submit->submit_bos[idx].handle = bo->handle;
-			submit->submit_bos[idx].presumed = 0;
-
-			submit->bos[idx] = fd_bo_ref(bo);
+			idx = APPEND(submit, bos, fd_bo_ref(bo));
 
 			_mesa_hash_table_insert_pre_hashed(submit->bo_table, hash, bo,
 					(void *)(uintptr_t)idx);
@@ -259,9 +251,27 @@ msm_submit_sp_flush(struct fd_submit *submit, int in_fence_fd,
 		req.flags |= MSM_SUBMIT_FENCE_FD_OUT;
 	}
 
-	/* needs to be after get_cmd() as that could create bos/cmds table: */
-	req.bos = VOID2U64(msm_submit->submit_bos),
-	req.nr_bos = msm_submit->nr_submit_bos;
+	/* Needs to be after get_cmd() as that could create bos/cmds table:
+	 *
+	 * NOTE allocate on-stack in the common case, but with an upper-
+	 * bound to limit on-stack allocation to 4k:
+	 */
+	const unsigned bo_limit = sizeof(struct drm_msm_gem_submit_bo) / 4096;
+	bool bos_on_stack = msm_submit->nr_bos < bo_limit;
+	struct drm_msm_gem_submit_bo _submit_bos[bos_on_stack ? msm_submit->nr_bos : 0];
+	struct drm_msm_gem_submit_bo *submit_bos;
+	if (bos_on_stack) {
+		submit_bos = _submit_bos;
+	} else {
+		submit_bos = malloc(msm_submit->nr_bos * sizeof(submit_bos[0]));
+	}
+	for (unsigned i = 0; i < msm_submit->nr_bos; i++) {
+		submit_bos[i].flags    = msm_submit->bos[i]->flags;
+		submit_bos[i].handle   = msm_submit->bos[i]->handle;
+		submit_bos[i].presumed = 0;
+	}
+	req.bos = VOID2U64(submit_bos),
+	req.nr_bos = msm_submit->nr_bos;
 	req.cmds = VOID2U64(cmds),
 	req.nr_cmds = primary->u.nr_cmds;
 
@@ -279,6 +289,9 @@ msm_submit_sp_flush(struct fd_submit *submit, int in_fence_fd,
 		if (out_fence_fd)
 			*out_fence_fd = req.fence_fd;
 	}
+
+	if (!bos_on_stack)
+		free(submit_bos);
 
 	return ret;
 }
@@ -303,7 +316,6 @@ msm_submit_sp_destroy(struct fd_submit *submit)
 	for (unsigned i = 0; i < msm_submit->nr_bos; i++)
 		fd_bo_del(msm_submit->bos[i]);
 
-	free(msm_submit->submit_bos);
 	free(msm_submit->bos);
 	free(msm_submit);
 }
@@ -352,10 +364,10 @@ finalize_current_cmd(struct fd_ringbuffer *ring)
 	debug_assert(!(ring->flags & _FD_RINGBUFFER_OBJECT));
 
 	struct msm_ringbuffer_sp *msm_ring = to_msm_ringbuffer_sp(ring);
-	unsigned idx = APPEND(&msm_ring->u, cmds);
-
-	msm_ring->u.cmds[idx].ring_bo = fd_bo_ref(msm_ring->ring_bo);
-	msm_ring->u.cmds[idx].size = offset_bytes(ring->cur, ring->start);
+	APPEND(&msm_ring->u, cmds, (struct msm_cmd_sp){
+		.ring_bo = fd_bo_ref(msm_ring->ring_bo),
+		.size = offset_bytes(ring->cur, ring->start),
+	});
 }
 
 static void
@@ -399,8 +411,7 @@ msm_ringbuffer_sp_emit_reloc(struct fd_ringbuffer *ring,
 			}
 		}
 		if (!found) {
-			unsigned idx = APPEND(&msm_ring->u, reloc_bos);
-			msm_ring->u.reloc_bos[idx] = fd_bo_ref(reloc->bo);
+			APPEND(&msm_ring->u, reloc_bos, fd_bo_ref(reloc->bo));
 		}
 
 		pipe = msm_ring->u.pipe;
@@ -460,10 +471,7 @@ msm_ringbuffer_sp_emit_reloc_ring(struct fd_ringbuffer *ring,
 
 	if (ring->flags & _FD_RINGBUFFER_OBJECT) {
 		for (unsigned i = 0; i < msm_target->u.nr_reloc_bos; i++) {
-			unsigned idx = APPEND(&msm_ring->u, reloc_bos);
-
-			msm_ring->u.reloc_bos[idx] =
-				fd_bo_ref(msm_target->u.reloc_bos[i]);
+			APPEND(&msm_ring->u, reloc_bos, fd_bo_ref(msm_target->u.reloc_bos[i]));
 		}
 	} else {
 		// TODO it would be nice to know whether we have already

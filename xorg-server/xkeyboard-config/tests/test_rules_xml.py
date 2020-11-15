@@ -89,3 +89,13 @@ def test_duplicate_layouts(rules_xml):
             assert vci.name not in variants, \
                 f'{rules_xml}: duplicate variant {ci.name}({vci.name}):\n{prettyxml(variant)}'
             variants[vci.name] = True
+
+
+def test_duplicate_models(rules_xml):
+    tree = ET.parse(rules_xml)
+    root = tree.getroot()
+    models = {}
+    for model in root.iter('model'):
+        ci = ConfigItem.from_elem(model)
+        assert ci.name not in models, f'Duplicate model {ci.name}'
+        models[ci.name] = True

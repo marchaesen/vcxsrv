@@ -23,6 +23,8 @@
 #ifndef CLOVER_CORE_CONTEXT_HPP
 #define CLOVER_CORE_CONTEXT_HPP
 
+#include <stack>
+
 #include "core/object.hpp"
 #include "core/device.hpp"
 #include "core/property.hpp"
@@ -36,6 +38,8 @@ namespace clover {
       typedef clover::property_list<cl_context_properties> property_list;
 
    public:
+      ~context();
+
       typedef std::function<void (const char *)> notify_action;
 
       context(const property_list &props, const ref_vector<device> &devs,
@@ -50,6 +54,8 @@ namespace clover {
       bool
       operator!=(const context &ctx) const;
 
+      void destroy_notify(std::function<void ()> f);
+
       const property_list &
       properties() const;
 
@@ -61,6 +67,7 @@ namespace clover {
    private:
       property_list props;
       const std::vector<intrusive_ref<device>> devs;
+      std::stack<std::function<void ()>> _destroy_notify;
    };
 }
 

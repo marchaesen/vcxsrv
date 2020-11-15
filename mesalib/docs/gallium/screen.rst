@@ -592,6 +592,7 @@ The integer capabilities:
 * ``PIPE_CAP_NIR_ATOMICS_AS_DEREF``: Whether NIR atomics instructions should reference atomics as NIR derefs instead of by indices.
 * ``PIPE_CAP_NO_CLIP_ON_COPY_TEX``: Driver doesn't want x/y/width/height clipped based on src size when doing a copy texture operation (eg: may want out-of-bounds reads that produce 0 instead of leaving the texture content undefined)
 * ``PIPE_CAP_MAX_TEXTURE_MB``: Maximum texture size in MB (default is 1024)
+* ``PIPE_CAP_DEVICE_PROTECTED_CONTENT``: Whether the device support protected / encrypted content.
 
 .. _pipe_capf:
 
@@ -1030,6 +1031,28 @@ Returns a pointer to a driver-specific on-disk shader cache. If the driver
 failed to create the cache or does not support an on-disk shader cache NULL is
 returned. The callback itself may also be NULL if the driver doesn't support
 an on-disk shader cache.
+
+
+is_dmabuf_modifier_supported
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Query whether the driver supports a **modifier** in combination with a
+**format**, and whether it is only supported with "external" texture targets.
+If the combination is supported in any fashion, true is returned.  If the
+**external_only** parameter is not NULL, the bool it points to is set to
+false if non-external texture targets are supported with the specified modifier+
+format, or true if only external texture targets are supported.
+
+
+get_dmabuf_modifier_planes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Query the number of planes required by the image layout specified by the
+**modifier** and **format** parameters.  The value returned includes both planes
+dictated by **format** and any additional planes required for driver-specific
+auxiliary data necessary for the layout defined by **modifier**.
+If the proc is NULL, no auxiliary planes are required for any layout supported by
+**screen** and the number of planes can be derived directly from **format**.
 
 
 Thread safety

@@ -61,10 +61,13 @@ tu_spirv_to_nir(struct tu_device *dev,
          .transform_feedback = true,
          .tessellation = true,
          .draw_parameters = true,
+         .image_read_without_format = true,
+         .image_write_without_format = true,
          .variable_pointers = true,
          .stencil_export = true,
          .multiview = true,
          .shader_viewport_index_layer = true,
+         .geometry_streams = true,
       },
    };
    const nir_shader_compiler_options *nir_options =
@@ -172,6 +175,8 @@ tu_spirv_to_nir(struct tu_device *dev,
    NIR_PASS_V(nir, nir_lower_system_values);
    NIR_PASS_V(nir, nir_lower_compute_system_values, NULL);
 
+   NIR_PASS_V(nir, nir_lower_clip_cull_distance_arrays);
+
    NIR_PASS_V(nir, nir_lower_frexp);
 
    ir3_optimize_loop(nir);
@@ -274,7 +279,7 @@ lower_ssbo_ubo_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin)
 
    for (unsigned i = 0; i < MAX_SETS + 1; i++) {
       /* if (base_idx == i) { ... */
-      nir_if *nif = nir_push_if(b, nir_ieq(b, base_idx, nir_imm_int(b, i)));
+      nir_if *nif = nir_push_if(b, nir_ieq_imm(b, base_idx, i));
 
       nir_intrinsic_instr *bindless =
          nir_intrinsic_instr_create(b->shader,
@@ -702,8 +707,12 @@ tu_gather_xfb_info(nir_shader *nir, struct ir3_stream_output_info *info)
    assert(xfb->output_count < IR3_MAX_SO_OUTPUTS);
    info->num_outputs = xfb->output_count;
 
-   for (int i = 0; i < IR3_MAX_SO_BUFFERS; i++)
+   for (int i = 0; i < IR3_MAX_SO_BUFFERS; i++) {
       info->stride[i] = xfb->buffers[i].stride / 4;
+      info->buffer_to_stream[i] = xfb->buffer_to_stream[i];
+   }
+
+   info->streams_written = xfb->streams_written;
 
    for (int i = 0; i < xfb->output_count; i++) {
       info->output[i].register_index = output_map[xfb->outputs[i].location];

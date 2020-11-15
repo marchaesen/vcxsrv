@@ -161,7 +161,7 @@ to the array index which is used for sampling.
 
   Sampler views outside of ``[start_slot, start_slot + num_views)`` are
   unmodified.  If ``views`` is NULL, the behavior is the same as if
-  ``views[n]`` was NULL for the entire range, ie. releasing the reference
+  ``views[n]`` was NULL for the entire range, i.e. releasing the reference
   for all the sampler views in the specified range.
 
 * ``create_sampler_view`` creates a new sampler view. ``texture`` is associated

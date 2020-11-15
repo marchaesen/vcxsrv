@@ -288,7 +288,7 @@ class glx_server_enum_function(glx_enum_function):
         printer.common_emit_fixups(fixup)
 
         print('')
-        print('    compsize = __gl%s_size(%s);' % (f.name, string.join(f.count_parameter_list, ",")))
+        print('    compsize = __gl%s_size(%s);' % (f.name, ",".join(f.count_parameter_list)))
         p = f.variable_length_parameter()
         print('    return safe_pad(%s);' % (p.size_string()))
 

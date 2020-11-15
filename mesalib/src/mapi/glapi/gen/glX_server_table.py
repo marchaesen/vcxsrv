@@ -106,7 +106,7 @@ class function_table:
                 empty = 0
 
                 for j in range(i, i + op_count):
-                    if self.functions.has_key(j):
+                    if j in self.functions:
                         used += 1;
                     else:
                         empty += 1;
@@ -155,7 +155,7 @@ class function_table:
 
     def is_empty_leaf(self, base_opcode, M):
         for op in range(base_opcode, base_opcode + (1 << M)):
-            if self.functions.has_key(op):
+            if op in self.functions:
                 return 0
                 break
 
@@ -193,7 +193,7 @@ class function_table:
                     print('    LEAF(%u),' % (len(self.lookup_table)))
 
                     for op in range(child_base_opcode, child_base_opcode + (1 << child_M)):
-                        if self.functions.has_key(op):
+                        if op in self.functions:
                             func = self.functions[op]
                             size = func.command_fixed_length()
 

@@ -118,10 +118,13 @@ meson-static-build:
 meson-mingw-w64-build:
   image: fedora:latest
   stage: build
+  # allow failure until https://gitlab.freedesktop.org/fontconfig/fontconfig/-/issues/263 is resolved
+  allow_failure: true
   script:
     - export BUILD_ID="fontconfig-$CI_JOB_NAME_$CI_COMMIT_SHA-$CI_JOB_ID"
     - export PREFIX="$(pwd)/prefix-$BUILD_ID"
     - export BUILDDIR="$(pwd)/build-$BUILD_ID"
+    - eval `rpm --eval %{mingw64_env}`
     - meson --prefix="$PREFIX" "$BUILDDIR" --cross-file .gitlab-ci/linux-mingw-w64-64bit.txt
     - ninja -C "$BUILDDIR"
     - ninja -C "$BUILDDIR" test

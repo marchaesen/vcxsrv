@@ -1335,6 +1335,15 @@ _mesa_is_depth_or_stencil_format(GLenum format)
    }
 }
 
+/**
+ * Test if the given image format has a floating-point depth component.
+ */
+GLboolean
+_mesa_has_depth_float_channel(GLenum internalFormat)
+{
+   return internalFormat == GL_DEPTH32F_STENCIL8 ||
+          internalFormat == GL_DEPTH_COMPONENT32F;
+}
 
 /**
  * Test if an image format is a supported compressed format.

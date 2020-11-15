@@ -81,6 +81,12 @@ For example:
 Option \*qZaphodHeads\*q \*qLVDS,VGA-0\*q
 will assign xrandr outputs LVDS and VGA-0 to this instance of the driver.
 .TP
+.BI "Option \*qUseGammaLUT\*q \*q" boolean \*q
+Enable or disable use of the GAMMA_LUT property, when available.
+When enabled, this option allows the driver to use gamma ramps with more
+entries, if supported by the kernel.
+Default: on.
+.TP
 .SH "SEE ALSO"
 @xservername@(@appmansuffix@), @xconfigfile@(@filemansuffix@), Xserver(@appmansuffix@),
 X(@miscmansuffix@)

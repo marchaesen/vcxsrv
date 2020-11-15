@@ -2670,7 +2670,11 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x9105" name="VPC_GS_LAYER_CNTL" type="a6xx_vpc_xs_layer_cntl"/>
 	<reg32 offset="0x9106" name="VPC_DS_LAYER_CNTL" type="a6xx_vpc_xs_layer_cntl"/>
 
-	<reg32 offset="0x9107" name="VPC_UNKNOWN_9107" pos="2"/>
+	<reg32 offset="0x9107" name="VPC_UNKNOWN_9107">
+		<!-- this mirrors PC_RASTER_CNTL::DISCARD, although it seems it's unused -->
+		<bitfield name="RASTER_DISCARD" pos="0" type="boolean"/>
+		<bitfield name="UNK2" pos="2" type="boolean"/>
+	</reg32>
 	<reg32 offset="0x9108" name="VPC_POLYGON_MODE">
 		<bitfield name="MODE" low="0" high="1" type="a6xx_polygon_mode"/>
 	</reg32>
@@ -2692,9 +2696,32 @@ to upconvert to 32b float internally?
 	</array>
 
 	<reg32 offset="0x9216" name="VPC_SO_CNTL">
-		<bitfield name="UNK0" low="0" high="7"/>
-		<!-- always 0x10000 when SO enabled.. -->
-		<bitfield name="ENABLE" pos="16" type="boolean"/>
+		<!--
+			Choose which DWORD to write to. There is an array of
+			(4 * 64) DWORD's, dumped in the devcoredump at
+			HLSQ_INST_RAM dword 0x400. Each DWORD corresponds to a
+			(VPC location, stream) pair like so:
+
+			location 0, stream 0
+			location 2, stream 0
+			...
+			location 126, stream 0
+			location 0, stream 1
+			location 2, stream 1
+			...
+			location 126, stream 1
+			location 0, stream 2
+			...
+
+			When EmitStreamVertex(N) happens, the HW goes to DWORD
+			64 * N and then "executes" the next 64 DWORD's.
+
+			This field is auto-incremented when VPC_SO_PROG is
+			written to.
+		-->
+		<bitfield name="ADDR" low="0" high="7" type="hex"/>
+		<!-- clear all A_EN and B_EN bits for all DWORD's -->
+		<bitfield name="RESET" pos="16" type="boolean"/>
 	</reg32>
 	<!-- special register, write multiple times to load SO program (not readable) -->
 	<reg32 offset="0x9217" name="VPC_SO_PROG">
@@ -2769,14 +2796,15 @@ to upconvert to 32b float internally?
 		</bitfield>
 	</reg32>
 
-	<reg32 offset="0x9305" name="VPC_SO_BUF_CNTL">
-		<!-- TODO: the first 12 bits are valid, likely 3-bit enum instead of bools -->
-		<bitfield name="BUF0" pos="0" type="boolean"/>
-		<bitfield name="BUF1" pos="3" type="boolean"/>
-		<bitfield name="BUF2" pos="6" type="boolean"/>
-		<bitfield name="BUF3" pos="9" type="boolean"/>
-		<bitfield name="ENABLE" pos="15" type="boolean"/>
-		<bitfield name="UNK16" low="16" high="19"/>
+	<reg32 offset="0x9305" name="VPC_SO_STREAM_CNTL">
+		<!--
+		It's offset by 1, and 0 means "disabled"
+		-->
+		<bitfield name="BUF0_STREAM" low="0" high="2" type="uint"/>
+		<bitfield name="BUF1_STREAM" low="3" high="5" type="uint"/>
+		<bitfield name="BUF2_STREAM" low="6" high="8" type="uint"/>
+		<bitfield name="BUF3_STREAM" low="9" high="11" type="uint"/>
+		<bitfield name="STREAM_ENABLE" low="15" high="18" type="hex"/>
 	</reg32>
 	<reg32 offset="0x9306" name="VPC_SO_DISABLE">
 		<bitfield name="DISABLE" pos="0" type="boolean"/>
@@ -2852,7 +2880,13 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x9981" name="PC_POLYGON_MODE">
 		<bitfield name="MODE" low="0" high="1" type="a6xx_polygon_mode"/>
 	</reg32>
-	<reg32 offset="0x9980" name="PC_UNKNOWN_9980" low="0" high="2"/>
+
+	<reg32 offset="0x9980" name="PC_RASTER_CNTL">
+		<!-- which stream to send to GRAS -->
+		<bitfield name="STREAM" low="0" high="1" type="uint"/>
+		<!-- discard primitives before rasterization -->
+		<bitfield name="DISCARD" pos="2" type="boolean"/>
+	</reg32>
 
 	<!-- 0x9982-0x9aff invalid -->
 

@@ -60,6 +60,13 @@ enum tc_call_id {
    TC_NUM_CALLS,
 };
 
+/* This is actually variable-sized, because indirect isn't allocated if it's
+ * not needed. */
+struct tc_full_draw_info {
+   struct pipe_draw_info draw;
+   struct pipe_draw_indirect_info indirect;
+};
+
 typedef void (*tc_execute)(struct pipe_context *pipe, union tc_payload *payload);
 
 static const tc_execute execute_func[TC_NUM_CALLS];
@@ -80,6 +87,19 @@ tc_debug_check(struct threaded_context *tc)
    }
 }
 
+static bool
+is_next_call_a_mergeable_draw(struct tc_full_draw_info *first_info,
+                              struct tc_call *next,
+                              struct tc_full_draw_info **next_info)
+{
+   return next->call_id == TC_CALL_draw_vbo &&
+          (*next_info = (struct tc_full_draw_info*)&next->payload) &&
+          /* All fields must be the same except start and count. */
+          memcmp((uint32_t*)&first_info->draw + 2,
+                 (uint32_t*)&(*next_info)->draw + 2,
+                 sizeof(struct pipe_draw_info) - 8) == 0;
+}
+
 static void
 tc_batch_execute(void *job, UNUSED int thread_index)
 {
@@ -91,10 +111,57 @@ tc_batch_execute(void *job, UNUSED int thread_index)
 
    assert(!batch->token);
 
-   for (struct tc_call *iter = batch->call; iter != last;
-        iter += iter->num_call_slots) {
+   for (struct tc_call *iter = batch->call; iter != last;) {
       tc_assert(iter->sentinel == TC_SENTINEL);
+
+      /* Draw call merging. */
+      if (iter->call_id == TC_CALL_draw_vbo) {
+         struct tc_call *first = iter;
+         struct tc_call *next = first + first->num_call_slots;
+         struct tc_full_draw_info *first_info =
+            (struct tc_full_draw_info*)&first->payload;
+         struct tc_full_draw_info *next_info;
+
+         /* If at least 2 consecutive draw calls can be merged... */
+         if (next != last && next->call_id == TC_CALL_draw_vbo &&
+             first_info->draw.drawid == 0 &&
+             !first_info->draw.indirect &&
+             !first_info->draw.count_from_stream_output &&
+             is_next_call_a_mergeable_draw(first_info, next, &next_info)) {
+            /* Merge up to 256 draw calls. */
+            struct pipe_draw_start_count multi[256];
+            unsigned num_draws = 2;
+
+            multi[0].start = first_info->draw.start;
+            multi[0].count = first_info->draw.count;
+            multi[1].start = next_info->draw.start;
+            multi[1].count = next_info->draw.count;
+
+            if (next_info->draw.index_size)
+               pipe_resource_reference(&next_info->draw.index.resource, NULL);
+
+            /* Find how many other draws can be merged. */
+            next = next + next->num_call_slots;
+            for (; next != last && num_draws < ARRAY_SIZE(multi) &&
+                 is_next_call_a_mergeable_draw(first_info, next, &next_info);
+                 next += next->num_call_slots, num_draws++) {
+               multi[num_draws].start = next_info->draw.start;
+               multi[num_draws].count = next_info->draw.count;
+
+               if (next_info->draw.index_size)
+                  pipe_resource_reference(&next_info->draw.index.resource, NULL);
+            }
+
+            pipe->multi_draw(pipe, &first_info->draw, multi, num_draws);
+            if (first_info->draw.index_size)
+               pipe_resource_reference(&first_info->draw.index.resource, NULL);
+            iter = next;
+            continue;
+         }
+      }
+
       execute_func[iter->call_id](pipe, &iter->payload);
+      iter += iter->num_call_slots;
    }
 
    tc_batch_check(batch);
@@ -677,7 +744,7 @@ tc_set_constant_buffer(struct pipe_context *_pipe,
     * set_constant_buffer to the driver if it was done afterwards.
     */
    if (cb && cb->user_buffer) {
-      u_upload_data(tc->base.const_uploader, 0, cb->buffer_size, 64,
+      u_upload_data(tc->base.const_uploader, 0, cb->buffer_size, tc->ubo_alignment,
                     cb->user_buffer, &offset, &buffer);
       u_upload_unmap(tc->base.const_uploader);
    }
@@ -1499,7 +1566,8 @@ tc_transfer_map(struct pipe_context *_pipe,
 
          u_upload_alloc(tc->base.stream_uploader, 0,
                         box->width + (box->x % tc->map_buffer_alignment),
-                        64, &ttrans->offset, &ttrans->staging, (void**)&map);
+                        tc->map_buffer_alignment, &ttrans->offset,
+                        &ttrans->staging, (void**)&map);
          if (!map) {
             slab_free(&tc->pool_transfers, ttrans);
             return NULL;
@@ -2002,8 +2070,9 @@ tc_set_context_param(struct pipe_context *_pipe,
 
    if (param == PIPE_CONTEXT_PARAM_PIN_THREADS_TO_L3_CACHE) {
       /* Pin the gallium thread as requested. */
-      util_pin_thread_to_L3(tc->queue.threads[0], value,
-                            util_cpu_caps.cores_per_L3);
+      util_set_thread_affinity(tc->queue.threads[0],
+                               util_cpu_caps.L3_affinity_mask[value],
+                               NULL, UTIL_MAX_CPUS);
 
       /* Execute this immediately (without enqueuing).
        * It's required to be thread-safe.
@@ -2123,13 +2192,6 @@ out_of_memory:
       tc_flush_queries(tc);
    pipe->flush(pipe, fence, flags);
 }
-
-/* This is actually variable-sized, because indirect isn't allocated if it's
- * not needed. */
-struct tc_full_draw_info {
-   struct pipe_draw_info draw;
-   struct pipe_draw_indirect_info indirect;
-};
 
 static void
 tc_call_draw_vbo(struct pipe_context *pipe, union tc_payload *payload)
@@ -2683,6 +2745,8 @@ threaded_context_create(struct pipe_context *pipe,
    tc->create_fence = create_fence;
    tc->map_buffer_alignment =
       pipe->screen->get_param(pipe->screen, PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT);
+   tc->ubo_alignment =
+      MAX2(pipe->screen->get_param(pipe->screen, PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT), 64);
    tc->base.priv = pipe; /* priv points to the wrapped driver context */
    tc->base.screen = pipe->screen;
    tc->base.destroy = tc_destroy;

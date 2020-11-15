@@ -108,6 +108,7 @@
 #define AMDGPU_RANGE_HELPER(val, min, max) ((val >= min) && (val < max))
 #define AMDGPU_IN_RANGE(val, ...)   AMDGPU_EXPAND_FIX(AMDGPU_RANGE_HELPER(val, __VA_ARGS__))
 
+
 // ASICREV_IS(eRevisionId, revisionName)
 #define ASICREV_IS(r, rn)              AMDGPU_IN_RANGE(r, AMDGPU_##rn##_RANGE)
 #define ASICREV_IS_TAHITI_P(r)         ASICREV_IS(r, TAHITI)
@@ -148,8 +149,8 @@
 #define ASICREV_IS_RENOIR(r)           ASICREV_IS(r, RENOIR)
 
 #define ASICREV_IS_NAVI10_P(r)         ASICREV_IS(r, NAVI10)
-#define ASICREV_IS_NAVI12(r)           ASICREV_IS(r, NAVI12)
-#define ASICREV_IS_NAVI14(r)           ASICREV_IS(r, NAVI14)
+#define ASICREV_IS_NAVI12_P(r)         ASICREV_IS(r, NAVI12)
+#define ASICREV_IS_NAVI14_M(r)         ASICREV_IS(r, NAVI14)
 #define ASICREV_IS_SIENNA_CICHLID(r)   ASICREV_IS(r, SIENNA_CICHLID)
 #define ASICREV_IS_NAVY_FLOUNDER(r)    ASICREV_IS(r, NAVY_FLOUNDER)
 #define ASICREV_IS_DIMGREY_CAVEFISH(r) ASICREV_IS(r, DIMGREY_CAVEFISH)

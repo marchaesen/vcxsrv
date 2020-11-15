@@ -81,7 +81,7 @@ libglx_la_SOURCES = \
         unpack.h \
         xfont.c
 
-libglx_la_LIBADD = $(DLOPEN_LIBS)
+libglx_la_LIBADD = $(DLOPEN_LIBS) $(top_builddir)/Xext/libhashtable.la
 
 libglxvnd_la_SOURCES = \
 	vndcmds.c \
@@ -89,5 +89,7 @@ libglxvnd_la_SOURCES = \
 	vndservermapping.c \
 	vndservervendor.h \
 	vndservervendor.c
+
+libglxvnd_la_LIBADD = $(top_builddir)/Xext/libhashtable.la
 
 EXTRA_DIST = vnd_dispatch_stubs.c

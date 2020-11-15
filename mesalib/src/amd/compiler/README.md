@@ -200,10 +200,10 @@ So, think about these as two independent shader programs slapped together.
 
 | GFX10/NGG HW stages:    | LSHS      | NGG GS             | PS | ACO terminology |
 | -----------------------:|:----------|:-------------------|:---|:----------------|
-| SW stages: only VS+PS:  |           | VS                 | FS | `ngg_vertex_gs`, `fragment_fs` |
-|            with tess:   | VS + TCS  | TES                | FS | `vertex_tess_control_hs`, `ngg_tess_eval_gs`, `fragment_fs` |
-|            with GS:     |           | VS + GS            | FS | `ngg_vertex_geometry_gs`, `fragment_fs` |
-|            with both:   | VS + TCS  | TES + GS           | FS | `vertex_tess_control_hs`, `ngg_tess_eval_geometry_gs`, `fragment_fs` |
+| SW stages: only VS+PS:  |           | VS                 | FS | `vertex_ngg`, `fragment_fs` |
+|            with tess:   | VS + TCS  | TES                | FS | `vertex_tess_control_hs`, `tess_eval_ngg`, `fragment_fs` |
+|            with GS:     |           | VS + GS            | FS | `vertex_geometry_ngg`, `fragment_fs` |
+|            with both:   | VS + TCS  | TES + GS           | FS | `vertex_tess_control_hs`, `tess_eval_geometry_ngg`, `fragment_fs` |
 
 #### Compute pipeline
 

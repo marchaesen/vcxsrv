@@ -547,6 +547,7 @@ loader_open_driver(const char *driver_name,
       search_paths = DEFAULT_DRIVER_DIR;
 
    void *driver = NULL;
+   char *dl_error = NULL;
    end = search_paths + strlen(search_paths);
    for (char *p = search_paths; p < end; p = next + 1) {
       int len;
@@ -562,9 +563,11 @@ loader_open_driver(const char *driver_name,
       if (driver == NULL) {
          snprintf(path, sizeof(path), "%.*s/%s_dri.so", len, p, driver_name);
          driver = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
-         if (driver == NULL)
+         if (driver == NULL) {
+            dl_error = dlerror();
             log_(_LOADER_DEBUG, "MESA-LOADER: failed to open %s: %s\n",
-                 path, dlerror());
+                 path, dl_error);
+         }
       }
       /* not need continue to loop all paths once the driver is found */
       if (driver != NULL)
@@ -572,8 +575,8 @@ loader_open_driver(const char *driver_name,
    }
 
    if (driver == NULL) {
-      log_(_LOADER_WARNING, "MESA-LOADER: failed to open %s (search paths %s)\n",
-           driver_name, search_paths);
+      log_(_LOADER_WARNING, "MESA-LOADER: failed to open %s: %s (search paths %s)\n",
+           driver_name, dl_error, search_paths);
       *out_driver_handle = NULL;
       return NULL;
    }

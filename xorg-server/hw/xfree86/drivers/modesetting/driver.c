@@ -140,6 +140,7 @@ static const OptionInfoRec Options[] = {
     {OPTION_DOUBLE_SHADOW, "DoubleShadow", OPTV_BOOLEAN, {0}, FALSE},
     {OPTION_ATOMIC, "Atomic", OPTV_BOOLEAN, {0}, FALSE},
     {OPTION_VARIABLE_REFRESH, "VariableRefresh", OPTV_BOOLEAN, {0}, FALSE},
+    {OPTION_USE_GAMMA_LUT, "UseGammaLUT", OPTV_BOOLEAN, {0}, FALSE},
     {-1, NULL, OPTV_NONE, {0}, FALSE}
 };
 

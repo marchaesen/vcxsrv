@@ -83,11 +83,11 @@ get_block_array_index(nir_builder *b, nir_deref_instr *deref,
 
    unsigned num_blocks;
    struct gl_uniform_block **blocks;
-   if (deref->mode == nir_var_mem_ubo) {
+   if (nir_deref_mode_is(deref, nir_var_mem_ubo)) {
       num_blocks = linked_shader->Program->info.num_ubos;
       blocks = linked_shader->Program->sh.UniformBlocks;
    } else {
-      assert(deref->mode == nir_var_mem_ssbo);
+      assert(nir_deref_mode_is(deref, nir_var_mem_ssbo));
       num_blocks = linked_shader->Program->info.num_ssbos;
       blocks = linked_shader->Program->sh.ShaderStorageBlocks;
    }
@@ -170,7 +170,8 @@ lower_buffer_interface_derefs_impl(nir_function_impl *impl,
          switch (instr->type) {
          case nir_instr_type_deref: {
             nir_deref_instr *deref = nir_instr_as_deref(instr);
-            if (!(deref->mode & (nir_var_mem_ubo | nir_var_mem_ssbo)))
+            if (!nir_deref_mode_is_one_of(deref, nir_var_mem_ubo |
+                                                 nir_var_mem_ssbo))
                break;
 
             /* We use nir_address_format_32bit_index_offset */
@@ -208,7 +209,7 @@ lower_buffer_interface_derefs_impl(nir_function_impl *impl,
                break;
             }
 
-            nir_deref_instr *cast = nir_build_deref_cast(&b, ptr, deref->mode,
+            nir_deref_instr *cast = nir_build_deref_cast(&b, ptr, deref->modes,
                                                          deref->type, 0);
             /* Set the alignment on the cast so that we get good alignment out
              * of nir_lower_explicit_io.  Our offset to the start of the UBO
@@ -229,7 +230,8 @@ lower_buffer_interface_derefs_impl(nir_function_impl *impl,
             switch (intrin->intrinsic) {
             case nir_intrinsic_load_deref: {
                nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-               if (!(deref->mode & (nir_var_mem_ubo | nir_var_mem_ssbo)))
+               if (!nir_deref_mode_is_one_of(deref, nir_var_mem_ubo |
+                                                    nir_var_mem_ssbo))
                   break;
 
                /* UBO and SSBO Booleans are 32-bit integers where any non-zero
@@ -254,7 +256,8 @@ lower_buffer_interface_derefs_impl(nir_function_impl *impl,
 
             case nir_intrinsic_store_deref: {
                nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-               if (!(deref->mode & (nir_var_mem_ubo | nir_var_mem_ssbo)))
+               if (!nir_deref_mode_is_one_of(deref, nir_var_mem_ubo |
+                                                    nir_var_mem_ssbo))
                   break;
 
                /* SSBO Booleans are 32-bit integers where any non-zero value

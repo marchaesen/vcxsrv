@@ -20,12 +20,13 @@
 
 clover_cpp_args = []
 clover_opencl_cpp_args = [
-  '-DCL_TARGET_OPENCL_VERSION=220',
+  '-DCL_TARGET_OPENCL_VERSION=300',
   '-DCL_USE_DEPRECATED_OPENCL_1_0_APIS',
   '-DCL_USE_DEPRECATED_OPENCL_1_1_APIS',
   '-DCL_USE_DEPRECATED_OPENCL_1_2_APIS',
   '-DCL_USE_DEPRECATED_OPENCL_2_0_APIS',
   '-DCL_USE_DEPRECATED_OPENCL_2_1_APIS',
+  '-DCL_USE_DEPRECATED_OPENCL_2_2_APIS',
   '-DLIBCLC_INCLUDEDIR="@0@/"'.format(dep_clc.get_variable(pkgconfig : 'includedir')),
   '-DLIBCLC_LIBEXECDIR="@0@/"'.format(dep_clc.get_variable(pkgconfig : 'libexecdir'))
 ]

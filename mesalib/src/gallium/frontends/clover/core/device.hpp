@@ -84,13 +84,19 @@ namespace clover {
       cl_uint address_bits() const;
       std::string device_name() const;
       std::string vendor_name() const;
-      std::string device_version() const;
-      std::string device_clc_version() const;
+      std::string device_version_as_string() const;
+      std::string device_clc_version_as_string() const;
       enum pipe_shader_ir ir_format() const;
       std::string ir_target() const;
       enum pipe_endian endianness() const;
       bool supports_ir(enum pipe_shader_ir ir) const;
-      std::string supported_extensions() const;
+      std::string supported_extensions_as_string() const;
+      cl_version device_version() const;
+      cl_version device_clc_version() const;
+      std::vector<cl_name_version> opencl_c_all_versions() const;
+      std::vector<cl_name_version> supported_extensions() const;
+
+      std::vector<cl_name_version> opencl_c_features() const;
 
       friend class command_queue;
       friend class root_resource;
@@ -108,6 +114,8 @@ namespace clover {
 
       lazy<std::shared_ptr<nir_shader>> clc_nir;
       disk_cache *clc_cache;
+      cl_version version;
+      cl_version clc_version;
    private:
       pipe_screen *pipe;
       pipe_loader_device *ldev;

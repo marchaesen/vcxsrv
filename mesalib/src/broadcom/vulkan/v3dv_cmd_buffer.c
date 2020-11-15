@@ -319,12 +319,6 @@ cmd_buffer_free_resources(struct v3dv_cmd_buffer *cmd_buffer)
       cmd_buffer_destroy_private_obj(cmd_buffer, pobj);
    }
 
-   if (cmd_buffer->meta.blit.dspool) {
-      v3dv_DestroyDescriptorPool(v3dv_device_to_handle(cmd_buffer->device),
-                                 cmd_buffer->meta.blit.dspool,
-                                 &cmd_buffer->device->alloc);
-   }
-
    if (cmd_buffer->state.meta.attachments) {
          assert(cmd_buffer->state.meta.attachment_alloc_count > 0);
          vk_free(&cmd_buffer->device->alloc, cmd_buffer->state.meta.attachments);
@@ -826,6 +820,12 @@ v3dv_job_init(struct v3dv_job *job,
        */
       cmd_buffer->state.dirty = ~0;
 
+      /* Honor inheritance of occlussion queries in secondaries if requested */
+      if (cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_SECONDARY &&
+          cmd_buffer->state.inheritance.occlusion_query_enable) {
+         cmd_buffer->state.dirty &= ~V3DV_CMD_DIRTY_OCCLUSION_QUERY;
+      }
+
       /* Keep track of the first subpass that we are recording in this new job.
        * We will use this when we emit the RCL to decide how to emit our loads
        * and stores.
@@ -963,6 +963,17 @@ v3dv_DestroyCommandPool(VkDevice _device,
    vk_free2(&device->alloc, pAllocator, pool);
 }
 
+void
+v3dv_TrimCommandPool(VkDevice device,
+                     VkCommandPool commandPool,
+                     VkCommandPoolTrimFlags flags)
+{
+   /* We don't need to do anything here, our command pools never hold on to
+    * any resources from command buffers that are freed or reset.
+    */
+}
+
+
 static void
 cmd_buffer_subpass_handle_pending_resolves(struct v3dv_cmd_buffer *cmd_buffer)
 {
@@ -1064,10 +1075,15 @@ cmd_buffer_begin_render_pass_secondary(
    cmd_buffer->state.framebuffer =
       v3dv_framebuffer_from_handle(inheritance_info->framebuffer);
 
+   assert(inheritance_info->subpass < cmd_buffer->state.pass->subpass_count);
+   cmd_buffer->state.subpass_idx = inheritance_info->subpass;
+
+   cmd_buffer->state.inheritance.occlusion_query_enable =
+      inheritance_info->occlusionQueryEnable;
+
    /* Secondaries that execute inside a render pass won't start subpasses
     * so we want to create a job for them here.
     */
-   assert(inheritance_info->subpass < cmd_buffer->state.pass->subpass_count);
    struct v3dv_job *job =
       v3dv_cmd_buffer_start_job(cmd_buffer, inheritance_info->subpass,
                                 V3DV_JOB_TYPE_GPU_CL_SECONDARY);
@@ -1075,8 +1091,6 @@ cmd_buffer_begin_render_pass_secondary(
       v3dv_flag_oom(cmd_buffer, NULL);
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
-
-   cmd_buffer->state.subpass_idx = inheritance_info->subpass;
 
    /* Secondary command buffers don't know about the render area, but our
     * scissor setup accounts for it, so let's make sure we make it large
@@ -1126,12 +1140,6 @@ v3dv_BeginCommandBuffer(VkCommandBuffer commandBuffer,
          if (result != VK_SUCCESS)
             return result;
       }
-
-      /* If the primary may have an active occlusion query we need to honor
-       * that in the secondary.
-       */
-      if (pBeginInfo->pInheritanceInfo->occlusionQueryEnable)
-         cmd_buffer->state.dirty &= ~V3DV_CMD_DIRTY_OCCLUSION_QUERY;
    }
 
    cmd_buffer->status = V3DV_CMD_BUFFER_STATUS_RECORDING;
@@ -1181,11 +1189,6 @@ emit_clip_window(struct v3dv_job *job, const VkRect2D *rect)
    }
 }
 
-/* Checks whether the render area rectangle covers a region that is aligned to
- * tile boundaries, which means that for all tiles covered by the render area
- * region, there are no uncovered pixels (unless they are also outside the
- * framebuffer).
- */
 static void
 cmd_buffer_update_tile_alignment(struct v3dv_cmd_buffer *cmd_buffer)
 {
@@ -1200,24 +1203,11 @@ cmd_buffer_update_tile_alignment(struct v3dv_cmd_buffer *cmd_buffer)
     * always have framebuffer information available.
     */
    assert(cmd_buffer->state.framebuffer);
-
-   const VkExtent2D fb_extent = {
-      .width = cmd_buffer->state.framebuffer->width,
-      .height = cmd_buffer->state.framebuffer->height
-   };
-
-   VkExtent2D granularity;
-   v3dv_subpass_get_granularity(cmd_buffer->state.pass,
-                                cmd_buffer->state.subpass_idx,
-                                &granularity);
-
    cmd_buffer->state.tile_aligned_render_area =
-      rect->offset.x % granularity.width == 0 &&
-      rect->offset.y % granularity.height == 0 &&
-      (rect->extent.width % granularity.width == 0 ||
-       rect->offset.x + rect->extent.width >= fb_extent.width) &&
-      (rect->extent.height % granularity.height == 0 ||
-       rect->offset.y + rect->extent.height >= fb_extent.height);
+      v3dv_subpass_area_is_tile_aligned(rect,
+                                        cmd_buffer->state.framebuffer,
+                                        cmd_buffer->state.pass,
+                                        cmd_buffer->state.subpass_idx);
 
    if (!cmd_buffer->state.tile_aligned_render_area) {
       perf_debug("Render area for subpass %d of render pass %p doesn't "
@@ -2023,7 +2013,6 @@ cmd_buffer_emit_render_pass_rcl(struct v3dv_cmd_buffer *cmd_buffer)
    assert(state->subpass_idx < state->pass->subpass_count);
    const struct v3dv_render_pass *pass = state->pass;
    const struct v3dv_subpass *subpass = &pass->subpasses[state->subpass_idx];
-
    struct v3dv_cl *rcl = &job->rcl;
 
    /* Comon config must be the first TILE_RENDERING_MODE_CFG and
@@ -2031,7 +2020,6 @@ cmd_buffer_emit_render_pass_rcl(struct v3dv_cmd_buffer *cmd_buffer)
     * updates to the previous HW state.
     */
    const uint32_t ds_attachment_idx = subpass->ds_attachment.attachment;
-
    cl_emit(rcl, TILE_RENDERING_MODE_CFG_COMMON, config) {
       config.image_width_pixels = framebuffer->width;
       config.image_height_pixels = framebuffer->height;
@@ -2558,7 +2546,12 @@ cmd_buffer_execute_inside_pass(struct v3dv_cmd_buffer *primary,
 {
    assert(primary->state.job);
 
-   if (primary->state.dirty & V3DV_CMD_DIRTY_OCCLUSION_QUERY)
+   /* Emit occlusion query state if needed so the draw calls inside our
+    * secondaries update the counters.
+    */
+   bool has_occlusion_query =
+      primary->state.dirty & V3DV_CMD_DIRTY_OCCLUSION_QUERY;
+   if (has_occlusion_query)
       emit_occlusion_query(primary);
 
    /* FIXME: if our primary job tiling doesn't enable MSSA but any of the
@@ -2607,6 +2600,12 @@ cmd_buffer_execute_inside_pass(struct v3dv_cmd_buffer *primary,
                   cmd_buffer_subpass_split_for_barrier(primary,
                                                        needs_bcl_barrier);
                v3dv_return_if_oom(primary, NULL);
+
+               /* Since we have created a new primary we need to re-emit
+                * occlusion query state.
+                */
+               if (has_occlusion_query)
+                  emit_occlusion_query(primary);
             }
 
             /* Make sure our primary job has all required BO references */
@@ -2893,226 +2892,6 @@ job_update_ez_state(struct v3dv_job *job,
    if (job->first_ez_state == VC5_EZ_UNDECIDED &&
        job->ez_state != VC5_EZ_DISABLED) {
       job->first_ez_state = job->ez_state;
-   }
-}
-
-/* Note that the following poopulate methods doesn't do a detailed fill-up of
- * the v3d_fs_key. Here we just fill-up cmd_buffer specific info. All info
- * coming from the pipeline create info was alredy filled up when the pipeline
- * was created
- */
-static void
-cmd_buffer_populate_v3d_key(struct v3d_key *key,
-                            struct v3dv_cmd_buffer *cmd_buffer,
-                            VkPipelineBindPoint pipeline_binding)
-{
-   if (cmd_buffer->state.pipeline->combined_index_map != NULL) {
-      struct v3dv_descriptor_map *texture_map = &cmd_buffer->state.pipeline->texture_map;
-      struct v3dv_descriptor_map *sampler_map = &cmd_buffer->state.pipeline->sampler_map;
-      struct v3dv_descriptor_state *descriptor_state =
-         &cmd_buffer->state.descriptor_state[pipeline_binding];
-
-      /* At pipeline creation time it was pre-generated an all-16 bit and an
-       * all-32 bit variant, so let's do the same here to avoid as much as
-       * possible a new compilation.
-       */
-      uint32_t v3d_key_return_size = 16;
-      hash_table_foreach(cmd_buffer->state.pipeline->combined_index_map, entry) {
-         uint32_t combined_idx = (uint32_t)(uintptr_t) (entry->data);
-         uint32_t combined_idx_key =
-            cmd_buffer->state.pipeline->combined_index_to_key_map[combined_idx];
-         uint32_t texture_idx;
-         uint32_t sampler_idx;
-
-         v3dv_pipeline_combined_index_key_unpack(combined_idx_key,
-                                                 &texture_idx, &sampler_idx);
-
-         VkFormat vk_format;
-         const struct v3dv_format *format;
-
-         format =
-            v3dv_descriptor_map_get_texture_format(descriptor_state,
-                                                   texture_map,
-                                                   cmd_buffer->state.pipeline->layout,
-                                                   texture_idx,
-                                                   &vk_format);
-
-         const struct v3dv_sampler *sampler = NULL;
-         if (sampler_idx != V3DV_NO_SAMPLER_IDX) {
-            sampler =
-               v3dv_descriptor_map_get_sampler(descriptor_state,
-                                               sampler_map,
-                                               cmd_buffer->state.pipeline->layout,
-                                               sampler_idx);
-            assert(sampler);
-         }
-
-         key->tex[combined_idx].return_size =
-            v3dv_get_tex_return_size(format,
-                                     sampler ? sampler->compare_enable : false);
-
-         if (key->tex[combined_idx].return_size == 32) {
-            v3d_key_return_size = 32;
-         }
-
-         /* Note: In general, we don't need to do anything for the swizzle, as
-          * that is handled with the swizzle info at the Texture State, and the
-          * default values for key->tex[].swizzle were already filled up at
-          * the pipeline creation time.
-          *
-          * The only exeption in which we want to apply a texture swizzle
-          * lowering in the shader is to force alpha to 1 when using clamp
-          * to border with transparent black in combination with specific
-          * formats.
-          */
-         if (sampler && sampler->clamp_to_transparent_black_border) {
-            switch (vk_format) {
-            case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32:
-            case VK_FORMAT_B10G11R11_UFLOAT_PACK32:
-               key->tex[combined_idx].swizzle[3] = PIPE_SWIZZLE_1;
-               break;
-            default:
-               break;
-            }
-         }
-      }
-      v3d_key_update_return_size(cmd_buffer->state.pipeline, key,
-                                 v3d_key_return_size);
-   }
-}
-
-static void
-update_fs_variant(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_shader_variant *variant;
-   struct v3dv_pipeline_stage *p_stage = cmd_buffer->state.pipeline->fs;
-   struct v3d_fs_key local_key;
-
-   /* We start with a copy of the original pipeline key */
-   memcpy(&local_key, &p_stage->key.fs, sizeof(struct v3d_fs_key));
-
-   cmd_buffer_populate_v3d_key(&local_key.base, cmd_buffer,
-                               VK_PIPELINE_BIND_POINT_GRAPHICS);
-
-   VkResult vk_result;
-   variant = v3dv_get_shader_variant(p_stage, NULL, &local_key.base,
-                                     sizeof(struct v3d_fs_key),
-                                     &cmd_buffer->device->alloc,
-                                     &vk_result);
-   /* At this point we are not creating a vulkan object to return to the
-    * API user, so we can't really return back a OOM error
-    */
-   assert(variant);
-   assert(vk_result == VK_SUCCESS);
-
-   if (p_stage->current_variant != variant) {
-      v3dv_shader_variant_unref(cmd_buffer->device, p_stage->current_variant);
-   }
-   p_stage->current_variant = variant;
-}
-
-static void
-update_vs_variant(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_shader_variant *variant;
-   struct v3dv_pipeline_stage *p_stage;
-   struct v3d_vs_key local_key;
-   VkResult vk_result;
-
-   /* We start with a copy of the original pipeline key */
-   p_stage = cmd_buffer->state.pipeline->vs;
-   memcpy(&local_key, &p_stage->key.vs, sizeof(struct v3d_vs_key));
-
-   cmd_buffer_populate_v3d_key(&local_key.base, cmd_buffer,
-                               VK_PIPELINE_BIND_POINT_GRAPHICS);
-
-   variant = v3dv_get_shader_variant(p_stage, NULL, &local_key.base,
-                                     sizeof(struct v3d_vs_key),
-                                     &cmd_buffer->device->alloc,
-                                     &vk_result);
-   /* At this point we are not creating a vulkan object to return to the
-    * API user, so we can't really return back a OOM error
-    */
-   assert(variant);
-   assert(vk_result == VK_SUCCESS);
-
-   if (p_stage->current_variant != variant) {
-      v3dv_shader_variant_unref(cmd_buffer->device, p_stage->current_variant);
-   }
-   p_stage->current_variant = variant;
-
-   /* Now the vs_bin */
-   p_stage = cmd_buffer->state.pipeline->vs_bin;
-   memcpy(&local_key, &p_stage->key.vs, sizeof(struct v3d_vs_key));
-
-   cmd_buffer_populate_v3d_key(&local_key.base, cmd_buffer,
-                               VK_PIPELINE_BIND_POINT_GRAPHICS);
-   variant = v3dv_get_shader_variant(p_stage, NULL, &local_key.base,
-                                     sizeof(struct v3d_vs_key),
-                                     &cmd_buffer->device->alloc,
-                                     &vk_result);
-
-   /* At this point we are not creating a vulkan object to return to the
-    * API user, so we can't really return back a OOM error
-    */
-   assert(variant);
-   assert(vk_result == VK_SUCCESS);
-
-   if (p_stage->current_variant != variant) {
-      v3dv_shader_variant_unref(cmd_buffer->device, p_stage->current_variant);
-   }
-   p_stage->current_variant = variant;
-}
-
-static void
-update_cs_variant(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_shader_variant *variant;
-   struct v3dv_pipeline_stage *p_stage = cmd_buffer->state.pipeline->cs;
-   struct v3d_key local_key;
-
-   /* We start with a copy of the original pipeline key */
-   memcpy(&local_key, &p_stage->key.base, sizeof(struct v3d_key));
-
-   cmd_buffer_populate_v3d_key(&local_key, cmd_buffer,
-                               VK_PIPELINE_BIND_POINT_COMPUTE);
-
-   VkResult result;
-   variant = v3dv_get_shader_variant(p_stage, NULL, &local_key,
-                                     sizeof(struct v3d_key),
-                                     &cmd_buffer->device->alloc,
-                                     &result);
-   /* At this point we are not creating a vulkan object to return to the
-    * API user, so we can't really return back a OOM error
-    */
-   assert(variant);
-   assert(result == VK_SUCCESS);
-
-   if (p_stage->current_variant != variant) {
-      v3dv_shader_variant_unref(cmd_buffer->device, p_stage->current_variant);
-   }
-   p_stage->current_variant = variant;
-}
-
-/*
- * Some updates on the cmd buffer requires also updates on the shader being
- * compiled at the pipeline. The poster boy here are textures, as the compiler
- * needs to do certain things depending on the texture format. So here we
- * re-create the v3d_keys and update the variant. Note that internally the
- * pipeline has a variant cache (hash table) to avoid unneeded compilations
- *
- */
-static void
-update_pipeline_variants(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   assert(cmd_buffer->state.pipeline);
-
-   if (v3dv_pipeline_get_binding_point(cmd_buffer->state.pipeline) ==
-       VK_PIPELINE_BIND_POINT_GRAPHICS) {
-      update_fs_variant(cmd_buffer);
-      update_vs_variant(cmd_buffer);
-   } else {
-      update_cs_variant(cmd_buffer);
    }
 }
 
@@ -4271,13 +4050,6 @@ cmd_buffer_emit_pre_draw(struct v3dv_cmd_buffer *cmd_buffer)
    job = cmd_buffer_pre_draw_split_job(cmd_buffer);
    job->draw_count++;
 
-   /* We may need to compile shader variants based on bound textures */
-   uint32_t *dirty = &cmd_buffer->state.dirty;
-   if (*dirty & (V3DV_CMD_DIRTY_PIPELINE |
-                 V3DV_CMD_DIRTY_DESCRIPTOR_SETS)) {
-      update_pipeline_variants(cmd_buffer);
-   }
-
    /* GL shader state binds shaders, uniform and vertex attribute state. The
     * compiler injects uniforms to handle some descriptor types (such as
     * textures), so we need to regen that when descriptor state changes.
@@ -4285,6 +4057,7 @@ cmd_buffer_emit_pre_draw(struct v3dv_cmd_buffer *cmd_buffer)
     * We also need to emit new shader state if we have a dirty viewport since
     * that will require that we new uniform state for QUNIFORM_VIEWPORT_*.
     */
+   uint32_t *dirty = &cmd_buffer->state.dirty;
    if (*dirty & (V3DV_CMD_DIRTY_PIPELINE |
                  V3DV_CMD_DIRTY_VERTEX_BUFFER |
                  V3DV_CMD_DIRTY_DESCRIPTOR_SETS |
@@ -5057,7 +4830,30 @@ v3dv_CmdWriteTimestamp(VkCommandBuffer commandBuffer,
                        VkQueryPool queryPool,
                        uint32_t query)
 {
-   unreachable("Timestamp queries are not supported.");
+   V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
+   V3DV_FROM_HANDLE(v3dv_query_pool, query_pool, queryPool);
+
+   /* If this is called inside a render pass we need to finish the current
+    * job here...
+    */
+   if (cmd_buffer->state.pass)
+      v3dv_cmd_buffer_finish_job(cmd_buffer);
+
+   struct v3dv_job *job =
+      v3dv_cmd_buffer_create_cpu_job(cmd_buffer->device,
+                                     V3DV_JOB_TYPE_CPU_TIMESTAMP_QUERY,
+                                     cmd_buffer, -1);
+   v3dv_return_if_oom(cmd_buffer, NULL);
+
+   job->cpu.query_timestamp.pool = query_pool;
+   job->cpu.query_timestamp.query = query;
+
+   list_addtail(&job->list_link, &cmd_buffer->jobs);
+   cmd_buffer->state.job = NULL;
+
+   /* ...and resume the subpass after the timestamp */
+   if (cmd_buffer->state.pass)
+      v3dv_cmd_buffer_subpass_resume(cmd_buffer, cmd_buffer->state.subpass_idx);
 }
 
 static void
@@ -5066,13 +4862,7 @@ cmd_buffer_emit_pre_dispatch(struct v3dv_cmd_buffer *cmd_buffer)
    assert(cmd_buffer->state.pipeline);
    assert(cmd_buffer->state.pipeline->active_stages == VK_SHADER_STAGE_COMPUTE_BIT);
 
-   /* We may need to compile shader variants based on bound textures */
    uint32_t *dirty = &cmd_buffer->state.dirty;
-   if (*dirty & (V3DV_CMD_DIRTY_PIPELINE |
-                 V3DV_CMD_DIRTY_COMPUTE_DESCRIPTOR_SETS)) {
-      update_pipeline_variants(cmd_buffer);
-   }
-
    *dirty &= ~(V3DV_CMD_DIRTY_PIPELINE |
                V3DV_CMD_DIRTY_COMPUTE_DESCRIPTOR_SETS);
 }

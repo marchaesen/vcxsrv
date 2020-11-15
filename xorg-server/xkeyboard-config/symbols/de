@@ -1,5 +1,3 @@
-// based on a keyboard map from an 'xkb/symbols/de' file
-
 default
 xkb_symbols "basic" {
 
@@ -293,36 +291,34 @@ xkb_symbols "T3" {
 
 partial alphanumeric_keys
 xkb_symbols "ro" {
-    // add romanian-specific letters to the basic German layout.
-    // Romanian symbols are accessible with combination of <AltGr> and
+    // Adds Romanian-specific letters to the German basic layout.
+    // Romanian symbols are accessible by combining <AltGr> and
     // 'a', 's', 't', 'i', 'ä (&auml)' (+<Shift> for capital letters).
-    // To view romanian-specific symbols, add "export LC_CTYPE=ro_RO"
-    // or "export LC_CTYPE=de_DE.utf8" to your .profile.
 
     include "de(basic)"
 
     name[Group1]="Romanian (Germany)";
 
-    key <AD05> { [         t,    T,           tcedilla,     Tcedilla    ] };
+    key <AD05> { [         t,    T,              U021b,        U021a    ] };
     key <AD08> { [         i,    I,        icircumflex,  Icircumflex    ] };
     key <AC01> { [         a,    A,        acircumflex,  Acircumflex    ] };
-    key <AC02> { [         s,    S,           scedilla,     Scedilla    ] };
+    key <AC02> { [         s,    S,              U0219,        U0218    ] };
     key <AC11> { [ adiaeresis,   Adiaeresis,    abreve,       Abreve    ] };
 };
 
 partial alphanumeric_keys
 xkb_symbols "ro_nodeadkeys" {
-    // add romanian-specific letters to the German nodeadkeys layout.
+    // Adds Romanian-specific letters to the German nodeadkeys layout.
     // Read the comment for de_ro !
 
     include "de(nodeadkeys)"
     name[Group1]="Romanian (Germany, no dead keys)";
 
-    key <AD05> { [         t,    T,           tcedilla,     Tcedilla    ] };
+    key <AD05> { [         t,    T,              U021b,        U021a    ] };
     key <AD08> { [         i,    I,        icircumflex,  Icircumflex    ] };
     key <AC01> { [         a,    A,        acircumflex,  Acircumflex    ] };
-    key <AC02> { [         s,    S,           scedilla,     Scedilla    ] };
-    key <AC11> { [ adiaeresis,   Adiaeresis, abreve,       Abreve       ] };
+    key <AC02> { [         s,    S,              U0219,        U0218    ] };
+    key <AC11> { [ adiaeresis,   Adiaeresis,    abreve,       Abreve    ] };
 };
 
 // German Dvorak keymap by Thorsten Staerk (www.staerk.de/thorsten)
@@ -382,25 +378,6 @@ xkb_symbols "dvorak" {
     key <LSGT> { [ adiaeresis, Adiaeresis, bar ] };
 
     include "level3(ralt_switch)"
-};
-
-partial alphanumeric_keys
-xkb_symbols "Sundeadkeys" {
-
-    // For naming consistency
-
-    include "de(basic)"
-
-};
-
-partial alphanumeric_keys
-xkb_symbols "sundeadkeys" {
-
-    // For naming consistency
-
-    include "de(Sundeadkeys)"
-
-    name[Group1]="German (Sun dead keys)";
 };
 
 
@@ -612,7 +589,6 @@ xkb_symbols "mac" {
     key <AC09>	{ [         l,          L,           at       ]	};
     key <AC10>	{ [ odiaeresis, Odiaeresis,  dead_acute       ]	};
     key <AB06>	{ [         n,          N,   asciitilde       ]	};
-
 };
 
 partial alphanumeric_keys
@@ -894,7 +870,6 @@ xkb_symbols "tr" {
     key <AC02>  { [    s,      S,      U015F,  U015E   ] };
     key <AC05>  { [    g,      G,      U011F,  U011E   ] };
     key <AB03>  { [    c,      C,      U0E7,   U0C7    ] };
-
 };
 
 partial alphanumeric_keys
@@ -1225,5 +1200,4 @@ partial alphanumeric_keys
     name[Group1] = "German (Ladin)";
 
     key <AD10> { [ p, P, ediaeresis, Ediaeresis ] };
-
 };

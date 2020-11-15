@@ -316,6 +316,15 @@ int ANativeWindow_setSharedBufferMode(ANativeWindow* window, bool sharedBufferMo
  */
 int ANativeWindow_setAutoRefresh(ANativeWindow* window, bool autoRefresh);
 
+/*
+ * Enable/disable the auto prerotation at buffer allocation when the buffer size
+ * is driven by the consumer.
+ *
+ * When buffer size is driven by the consumer and the transform hint specifies
+ * a 90 or 270 degree rotation, if auto prerotation is enabled, the width and
+ * height used for dequeueBuffer will be additionally swapped.
+ */
+int ANativeWindow_setAutoPrerotation(ANativeWindow* window, bool autoPrerotation);
 
 /*****************************************************************************/
 

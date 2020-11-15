@@ -1,0 +1,8 @@
+dEQP-GLES2.functional.shaders.indexing.tmp_array.float_const_write_dynamic_loop_read_fragment,Crash
+dEQP-GLES2.functional.shaders.indexing.tmp_array.float_const_write_dynamic_loop_read_vertex,Crash
+dEQP-GLES2.functional.shaders.indexing.tmp_array.float_const_write_dynamic_read_fragment,Crash
+dEQP-GLES2.functional.shaders.indexing.tmp_array.float_const_write_dynamic_read_vertex,Crash
+dEQP-GLES2.functional.shaders.indexing.tmp_array.vec2_const_write_dynamic_loop_read_fragment,Crash
+dEQP-GLES2.functional.shaders.indexing.tmp_array.vec2_const_write_dynamic_loop_read_vertex,Crash
+dEQP-GLES2.functional.shaders.indexing.tmp_array.vec2_const_write_dynamic_read_fragment,Crash
+dEQP-GLES2.functional.shaders.indexing.tmp_array.vec2_const_write_dynamic_read_vertex,Crash

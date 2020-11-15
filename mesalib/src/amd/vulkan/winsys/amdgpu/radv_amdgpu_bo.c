@@ -297,10 +297,10 @@ static void radv_amdgpu_winsys_bo_destroy(struct radeon_winsys_bo *_bo)
 		free(bo->ranges);
 	} else {
 		if (bo->ws->debug_all_bos) {
-			pthread_rwlock_wrlock(&bo->ws->global_bo_list_lock);
+			u_rwlock_wrlock(&bo->ws->global_bo_list_lock);
 			list_del(&bo->global_list_item);
 			bo->ws->num_buffers--;
-			pthread_rwlock_unlock(&bo->ws->global_bo_list_lock);
+			u_rwlock_wrunlock(&bo->ws->global_bo_list_lock);
 		}
 		radv_amdgpu_bo_va_op(bo->ws, bo->bo, 0, bo->size, bo->base.va,
 				     0, 0, AMDGPU_VA_OP_UNMAP);
@@ -330,10 +330,10 @@ static void radv_amdgpu_add_buffer_to_global_list(struct radv_amdgpu_winsys_bo *
 	struct radv_amdgpu_winsys *ws = bo->ws;
 
 	if (bo->ws->debug_all_bos) {
-		pthread_rwlock_wrlock(&ws->global_bo_list_lock);
+		u_rwlock_wrlock(&ws->global_bo_list_lock);
 		list_addtail(&bo->global_list_item, &ws->global_bo_list);
 		ws->num_buffers++;
-		pthread_rwlock_unlock(&ws->global_bo_list_lock);
+		u_rwlock_wrunlock(&ws->global_bo_list_lock);
 	}
 }
 

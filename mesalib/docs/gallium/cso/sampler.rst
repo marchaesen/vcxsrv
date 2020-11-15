@@ -105,8 +105,8 @@ border_color
     PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK, in which case special care has to be
     taken (see description of the cap).
 max_anisotropy
-    Maximum anistropy ratio to use when sampling from textures.  For example,
-    if max_anistropy=4, a region of up to 1 by 4 texels will be sampled.
+    Maximum anisotropy ratio to use when sampling from textures.  For example,
+    if max_anisotropy=4, a region of up to 1 by 4 texels will be sampled.
     Set to zero to disable anisotropic filtering.  Any other setting enables
     anisotropic filtering, however it's not unexpected some drivers only will
     change their filtering with a setting of 2 and higher.

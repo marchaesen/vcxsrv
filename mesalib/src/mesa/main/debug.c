@@ -393,10 +393,9 @@ _mesa_dump_texture(GLuint texture, GLuint writeImages)
 
 
 static void
-dump_texture_cb(GLuint id, void *data, void *userData)
+dump_texture_cb(void *data, UNUSED void *userData)
 {
    struct gl_texture_object *texObj = (struct gl_texture_object *) data;
-   (void) userData;
    dump_texture(texObj, WriteImages);
 }
 
@@ -427,10 +426,9 @@ dump_renderbuffer(const struct gl_renderbuffer *rb, GLboolean writeImage)
 
 
 static void
-dump_renderbuffer_cb(GLuint id, void *data, void *userData)
+dump_renderbuffer_cb(void *data, UNUSED void *userData)
 {
    const struct gl_renderbuffer *rb = (const struct gl_renderbuffer *) data;
-   (void) userData;
    dump_renderbuffer(rb, WriteImages);
 }
 

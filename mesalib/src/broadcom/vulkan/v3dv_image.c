@@ -327,7 +327,7 @@ v3dv_CreateImage(VkDevice _device,
    image->array_size = pCreateInfo->arrayLayers;
    image->samples = pCreateInfo->samples;
    image->usage = pCreateInfo->usage;
-   image->create_flags = pCreateInfo->flags;
+   image->flags = pCreateInfo->flags;
 
    image->drm_format_mod = modifier;
    image->tiling = tiling;
@@ -596,6 +596,13 @@ v3dv_CreateImageView(VkDevice _device,
    case VK_IMAGE_TYPE_3D:
       assert(range->baseArrayLayer + v3dv_layer_count(image, range) - 1
              <= u_minify(image->extent.depth, range->baseMipLevel));
+      /* VK_KHR_maintenance1 */
+      assert(pCreateInfo->viewType != VK_IMAGE_VIEW_TYPE_2D ||
+             ((image->flags & VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT) &&
+              range->levelCount == 1 && range->layerCount == 1));
+      assert(pCreateInfo->viewType != VK_IMAGE_VIEW_TYPE_2D_ARRAY ||
+             ((image->flags & VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT) &&
+              range->levelCount == 1));
       break;
    default:
       unreachable("bad VkImageType");
@@ -658,7 +665,6 @@ v3dv_CreateImageView(VkDevice _device,
    iview->vk_format = format;
    iview->format = v3dv_get_format(format);
    assert(iview->format && iview->format->supported);
-   iview->swap_rb = iview->format->swizzle[0] == PIPE_SWIZZLE_Z;
 
    if (vk_format_is_depth_or_stencil(iview->vk_format)) {
       iview->internal_type = v3dv_get_internal_depth_type(iview->vk_format);
@@ -671,6 +677,7 @@ v3dv_CreateImageView(VkDevice _device,
    const uint8_t *format_swizzle = v3dv_get_format_swizzle(format);
    util_format_compose_swizzles(format_swizzle, image_view_swizzle,
                                 iview->swizzle);
+   iview->swap_rb = iview->swizzle[0] == PIPE_SWIZZLE_Z;
 
    pack_texture_shader_state(device, iview);
 

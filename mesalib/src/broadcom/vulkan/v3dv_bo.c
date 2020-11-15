@@ -137,7 +137,7 @@ bo_free(struct v3dv_device *device,
    struct drm_gem_close c;
    memset(&c, 0, sizeof(c));
    c.handle = bo->handle;
-   int ret = v3dv_ioctl(device->render_fd, DRM_IOCTL_GEM_CLOSE, &c);
+   int ret = v3dv_ioctl(device->pdevice->render_fd, DRM_IOCTL_GEM_CLOSE, &c);
    if (ret != 0)
       fprintf(stderr, "close object %d: %s\n", bo->handle, strerror(errno));
 
@@ -173,6 +173,25 @@ bo_cache_free_all(struct v3dv_device *device,
    if (with_lock)
       mtx_unlock(&cache->lock);
 
+}
+
+void
+v3dv_bo_init(struct v3dv_bo *bo,
+             uint32_t handle,
+             uint32_t size,
+             uint32_t offset,
+             const char *name,
+             bool private)
+{
+   bo->handle = handle;
+   bo->size = size;
+   bo->offset = offset;
+   bo->map = NULL;
+   bo->map_size = 0;
+   bo->name = name;
+   bo->private = private;
+   bo->dumb_handle = -1;
+   list_inithead(&bo->list_link);
 }
 
 struct v3dv_bo *
@@ -214,7 +233,8 @@ v3dv_bo_alloc(struct v3dv_device *device,
       .size = size
    };
 
-   int ret = v3dv_ioctl(device->render_fd, DRM_IOCTL_V3D_CREATE_BO, &create);
+   int ret = v3dv_ioctl(device->pdevice->render_fd,
+                        DRM_IOCTL_V3D_CREATE_BO, &create);
    if (ret != 0) {
       if (!list_is_empty(&device->bo_cache.time_list) &&
           !cleared_and_retried) {
@@ -231,15 +251,7 @@ v3dv_bo_alloc(struct v3dv_device *device,
    assert(create.offset % page_align == 0);
    assert((create.offset & 0xffffffff) == create.offset);
 
-   bo->handle = create.handle;
-   bo->size = size;
-   bo->offset = create.offset;
-   bo->map = NULL;
-   bo->map_size = 0;
-   bo->name = name;
-   bo->private = private;
-   bo->dumb_handle = -1;
-   list_inithead(&bo->list_link);
+   v3dv_bo_init(bo, create.handle, size, create.offset, name, private);
 
    device->bo_count++;
    device->bo_size += bo->size;
@@ -264,14 +276,15 @@ v3dv_bo_map_unsynchronized(struct v3dv_device *device,
    struct drm_v3d_mmap_bo map;
    memset(&map, 0, sizeof(map));
    map.handle = bo->handle;
-   int ret = v3dv_ioctl(device->render_fd, DRM_IOCTL_V3D_MMAP_BO, &map);
+   int ret = v3dv_ioctl(device->pdevice->render_fd,
+                        DRM_IOCTL_V3D_MMAP_BO, &map);
    if (ret != 0) {
       fprintf(stderr, "map ioctl failure\n");
       return false;
    }
 
    bo->map = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                  device->render_fd, map.offset);
+                  device->pdevice->render_fd, map.offset);
    if (bo->map == MAP_FAILED) {
       fprintf(stderr, "mmap of bo %d (offset 0x%016llx, size %d) failed\n",
               bo->handle, (long long)map.offset, (uint32_t)bo->size);
@@ -293,7 +306,8 @@ v3dv_bo_wait(struct v3dv_device *device,
       .handle = bo->handle,
       .timeout_ns = timeout_ns,
    };
-   return v3dv_ioctl(device->render_fd, DRM_IOCTL_V3D_WAIT_BO, &wait) == 0;
+   return v3dv_ioctl(device->pdevice->render_fd,
+                     DRM_IOCTL_V3D_WAIT_BO, &wait) == 0;
 }
 
 bool

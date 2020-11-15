@@ -148,11 +148,13 @@ make_drawpix_z_stencil_program_nir(struct st_context *st,
                                    bool write_depth,
                                    bool write_stencil)
 {
-   struct nir_builder b;
    const nir_shader_compiler_options *options =
-      st->ctx->Const.ShaderCompilerOptions[MESA_SHADER_FRAGMENT].NirOptions;
+      st_get_nir_compiler_options(st, MESA_SHADER_FRAGMENT);
 
-   nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_FRAGMENT, options);
+   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, options,
+                                                  "drawpixels %s%s",
+                                                  write_depth ? "Z" : "",
+                                                  write_stencil ? "S" : "");
 
    nir_variable *texcoord =
       nir_variable_create(b.shader, nir_var_shader_in, glsl_vec_type(2),
@@ -191,22 +193,18 @@ make_drawpix_z_stencil_program_nir(struct st_context *st,
       nir_store_var(&b, out, stencil, 0x1);
    }
 
-   char name[14];
-   snprintf(name, 14, "drawpixels %s%s",
-            write_depth ? "Z" : "", write_stencil ? "S" : "");
-
-   return st_nir_finish_builtin_shader(st, b.shader, name);
+   return st_nir_finish_builtin_shader(st, b.shader);
 }
 
 static void *
 make_drawpix_zs_to_color_program_nir(struct st_context *st,
                                    bool rgba)
 {
-   struct nir_builder b;
    const nir_shader_compiler_options *options =
-      st->ctx->Const.ShaderCompilerOptions[MESA_SHADER_FRAGMENT].NirOptions;
+      st_get_nir_compiler_options(st, MESA_SHADER_FRAGMENT);
 
-   nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_FRAGMENT, options);
+   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, options,
+                                                  "copypixels ZStoC");
 
    nir_variable *texcoord =
       nir_variable_create(b.shader, nir_var_shader_in, glsl_vec_type(2),
@@ -251,70 +249,7 @@ make_drawpix_zs_to_color_program_nir(struct st_context *st,
       nir_store_var(&b, color_out, swizzled_ds, 0xf);
    }
 
-   char name[17];
-   snprintf(name, 17, "copypixels ZStoC");
-
-   return st_nir_finish_builtin_shader(st, b.shader, name);
-}
-
-static void *
-make_drawpix_z_stencil_program_tgsi(struct st_context *st,
-                                    bool write_depth,
-                                    bool write_stencil)
-{
-   struct ureg_program *ureg;
-   struct ureg_src depth_sampler, stencil_sampler;
-   struct ureg_src texcoord, color;
-   struct ureg_dst out_color, out_depth, out_stencil;
-
-   ureg = ureg_create(PIPE_SHADER_FRAGMENT);
-   if (ureg == NULL)
-      return NULL;
-
-   ureg_property(ureg, TGSI_PROPERTY_FS_COLOR0_WRITES_ALL_CBUFS, TRUE);
-
-   if (write_depth) {
-      color = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_COLOR, 0,
-                                 TGSI_INTERPOLATE_COLOR);
-      out_color = ureg_DECL_output(ureg, TGSI_SEMANTIC_COLOR, 0);
-
-      depth_sampler = ureg_DECL_sampler(ureg, 0);
-      ureg_DECL_sampler_view(ureg, 0, TGSI_TEXTURE_2D,
-                             TGSI_RETURN_TYPE_FLOAT,
-                             TGSI_RETURN_TYPE_FLOAT,
-                             TGSI_RETURN_TYPE_FLOAT,
-                             TGSI_RETURN_TYPE_FLOAT);
-      out_depth = ureg_DECL_output(ureg, TGSI_SEMANTIC_POSITION, 0);
-   }
-
-   if (write_stencil) {
-      stencil_sampler = ureg_DECL_sampler(ureg, 1);
-      ureg_DECL_sampler_view(ureg, 1, TGSI_TEXTURE_2D,
-                             TGSI_RETURN_TYPE_UINT,
-                             TGSI_RETURN_TYPE_UINT,
-                             TGSI_RETURN_TYPE_UINT,
-                             TGSI_RETURN_TYPE_UINT);
-      out_stencil = ureg_DECL_output(ureg, TGSI_SEMANTIC_STENCIL, 0);
-   }
-
-   texcoord = ureg_DECL_fs_input(ureg,
-                                 st->needs_texcoord_semantic ?
-                                    TGSI_SEMANTIC_TEXCOORD :
-                                    TGSI_SEMANTIC_GENERIC,
-                                 0, TGSI_INTERPOLATE_LINEAR);
-
-   if (write_depth) {
-      ureg_TEX(ureg, ureg_writemask(out_depth, TGSI_WRITEMASK_Z),
-               TGSI_TEXTURE_2D, texcoord, depth_sampler);
-      ureg_MOV(ureg, out_color, color);
-   }
-
-   if (write_stencil)
-      ureg_TEX(ureg, ureg_writemask(out_stencil, TGSI_WRITEMASK_Y),
-               TGSI_TEXTURE_2D, texcoord, stencil_sampler);
-
-   ureg_END(ureg);
-   return ureg_create_shader_and_destroy(ureg, st->pipe);
+   return st_nir_finish_builtin_shader(st, b.shader);
 }
 
 
@@ -331,7 +266,6 @@ get_drawpix_z_stencil_program(struct st_context *st,
                               bool write_depth,
                               bool write_stencil)
 {
-   struct pipe_screen *pscreen = st->pipe->screen;
    const GLuint shaderIndex = write_depth * 2 + write_stencil;
    void *cso;
 
@@ -342,14 +276,7 @@ get_drawpix_z_stencil_program(struct st_context *st,
       return st->drawpix.zs_shaders[shaderIndex];
    }
 
-   enum pipe_shader_ir preferred_ir =
-      pscreen->get_shader_param(pscreen, PIPE_SHADER_FRAGMENT,
-                                PIPE_SHADER_CAP_PREFERRED_IR);
-
-   if (preferred_ir == PIPE_SHADER_IR_NIR)
-      cso = make_drawpix_z_stencil_program_nir(st, write_depth, write_stencil);
-   else
-      cso = make_drawpix_z_stencil_program_tgsi(st, write_depth, write_stencil);
+   cso = make_drawpix_z_stencil_program_nir(st, write_depth, write_stencil);
 
    /* save the new shader */
    st->drawpix.zs_shaders[shaderIndex] = cso;
@@ -367,7 +294,6 @@ static void *
 get_drawpix_zs_to_color_program(struct st_context *st,
                               bool rgba)
 {
-   struct pipe_screen *pscreen = st->pipe->screen;
    void *cso;
    GLuint shaderIndex;
 
@@ -383,14 +309,7 @@ get_drawpix_zs_to_color_program(struct st_context *st,
       return st->drawpix.zs_shaders[shaderIndex];
    }
 
-   enum pipe_shader_ir preferred_ir =
-      pscreen->get_shader_param(pscreen, PIPE_SHADER_FRAGMENT,
-                                PIPE_SHADER_CAP_PREFERRED_IR);
-
-   if (preferred_ir == PIPE_SHADER_IR_NIR)
-      cso = make_drawpix_zs_to_color_program_nir(st, rgba);
-   else
-      return NULL;
+   cso = make_drawpix_zs_to_color_program_nir(st, rgba);
 
    /* save the new shader */
    st->drawpix.zs_shaders[shaderIndex] = cso;
@@ -404,39 +323,18 @@ get_drawpix_zs_to_color_program(struct st_context *st,
 void
 st_make_passthrough_vertex_shader(struct st_context *st)
 {
-   struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
-
    if (st->passthrough_vs)
       return;
 
-   enum pipe_shader_ir preferred_ir =
-      screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
-                               PIPE_SHADER_CAP_PREFERRED_IR);
+   unsigned inputs[] =
+      {  VERT_ATTRIB_POS, VERT_ATTRIB_COLOR0, VERT_ATTRIB_GENERIC0 };
+   unsigned outputs[] =
+      { VARYING_SLOT_POS,  VARYING_SLOT_COL0,    VARYING_SLOT_TEX0 };
 
-   if (preferred_ir == PIPE_SHADER_IR_NIR) {
-      unsigned inputs[] =
-         {  VERT_ATTRIB_POS, VERT_ATTRIB_COLOR0, VERT_ATTRIB_GENERIC0 };
-      unsigned outputs[] =
-         { VARYING_SLOT_POS,  VARYING_SLOT_COL0,    VARYING_SLOT_TEX0 };
-
-      st->passthrough_vs =
-         st_nir_make_passthrough_shader(st, "drawpixels VS",
-                                        MESA_SHADER_VERTEX, 3,
-                                        inputs, outputs, NULL, 0);
-   } else {
-      const enum tgsi_semantic semantic_names[] = {
-         TGSI_SEMANTIC_POSITION,
-         TGSI_SEMANTIC_COLOR,
-         st->needs_texcoord_semantic ? TGSI_SEMANTIC_TEXCOORD :
-                                       TGSI_SEMANTIC_GENERIC
-      };
-      const uint semantic_indexes[] = { 0, 0, 0 };
-
-      st->passthrough_vs =
-         util_make_vertex_passthrough_shader(st->pipe, 3, semantic_names,
-                                             semantic_indexes, false);
-   }
+   st->passthrough_vs =
+      st_nir_make_passthrough_shader(st, "drawpixels VS",
+                                     MESA_SHADER_VERTEX, 3,
+                                     inputs, outputs, NULL, 0);
 }
 
 
@@ -1245,6 +1143,7 @@ get_color_fp_variant(struct st_context *st)
    key.pixelMaps = ctx->Pixel.MapColorFlag;
    key.clamp_color = st->clamp_frag_color_in_shader &&
                      ctx->Color._ClampFragmentColor;
+   key.lower_alpha_func = COMPARE_FUNC_ALWAYS;
 
    fpv = st_get_fp_variant(st, st->fp, &key);
 
@@ -1274,6 +1173,7 @@ get_color_index_fp_variant(struct st_context *st)
    key.pixelMaps = 0;
    key.clamp_color = st->clamp_frag_color_in_shader &&
                      ctx->Color._ClampFragmentColor;
+   key.lower_alpha_func = COMPARE_FUNC_ALWAYS;
 
    fpv = st_get_fp_variant(st, st->fp, &key);
 

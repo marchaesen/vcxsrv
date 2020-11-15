@@ -180,6 +180,7 @@ thread_id_equal(thread_id t1, thread_id t2)
 #endif
 }
 
+static thread_id knownID;
 
 /**
  * We should call this periodically from a function such as glXMakeCurrent
@@ -188,7 +189,6 @@ thread_id_equal(thread_id t1, thread_id t2)
 void
 u_current_init(void)
 {
-   static thread_id knownID;
    static int firstCall = 1;
 
    if (ThreadSafe)
@@ -249,7 +249,12 @@ u_current_get_context_internal(void)
 #if defined(USE_ELF_TLS)
    return u_current_context;
 #else
-   return ThreadSafe ? tss_get(u_current_context_tsd) : u_current_context;
+   if (ThreadSafe)
+      return tss_get(u_current_context_tsd);
+   else if (!thread_id_equal(knownID, get_thread_id()))
+      return NULL;
+   else
+      return u_current_context;
 #endif
 }
 
@@ -287,6 +292,8 @@ u_current_get_table_internal(void)
 #else
    if (ThreadSafe)
       return (struct _glapi_table *) tss_get(u_current_table_tsd);
+   else if (!thread_id_equal(knownID, get_thread_id()))
+      return (struct _glapi_table *) table_noop_array;
    else
       return (struct _glapi_table *) u_current_table;
 #endif

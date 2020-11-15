@@ -33,8 +33,6 @@
 #include "freedreno_drmif.h"
 #include "freedreno_priv.h"
 
-static pthread_mutex_t table_lock = PTHREAD_MUTEX_INITIALIZER;
-
 struct fd_device * kgsl_device_new(int fd);
 struct fd_device * msm_device_new(int fd);
 
@@ -110,6 +108,9 @@ struct fd_device * fd_device_ref(struct fd_device *dev)
 static void fd_device_del_impl(struct fd_device *dev)
 {
 	int close_fd = dev->closefd ? dev->fd : -1;
+
+	simple_mtx_assert_locked(&table_lock);
+
 	fd_bo_cache_cleanup(&dev->bo_cache, 0);
 	fd_bo_cache_cleanup(&dev->ring_cache, 0);
 	_mesa_hash_table_destroy(dev->handle_table, NULL);
@@ -121,18 +122,18 @@ static void fd_device_del_impl(struct fd_device *dev)
 
 void fd_device_del_locked(struct fd_device *dev)
 {
-	if (!atomic_dec_and_test(&dev->refcnt))
+	if (!p_atomic_dec_zero(&dev->refcnt))
 		return;
 	fd_device_del_impl(dev);
 }
 
 void fd_device_del(struct fd_device *dev)
 {
-	if (!atomic_dec_and_test(&dev->refcnt))
+	if (!p_atomic_dec_zero(&dev->refcnt))
 		return;
-	pthread_mutex_lock(&table_lock);
+	simple_mtx_lock(&table_lock);
 	fd_device_del_impl(dev);
-	pthread_mutex_unlock(&table_lock);
+	simple_mtx_unlock(&table_lock);
 }
 
 int fd_device_fd(struct fd_device *dev)

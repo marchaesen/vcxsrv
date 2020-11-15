@@ -85,7 +85,7 @@ tcs_add_output_reads(nir_shader *shader, uint64_t *read, uint64_t *patches_read)
                continue;
 
             nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-            if (deref->mode != nir_var_shader_out)
+            if (!nir_deref_mode_is(deref, nir_var_shader_out))
                continue;
 
             nir_variable *var = nir_deref_instr_get_variable(deref);
@@ -475,7 +475,11 @@ cmp_varying_component(const void *comp1_v, const void *comp2_v)
       return comp1->interp_loc - comp2->interp_loc;
 
    /* If everything else matches just use the original location to sort */
-   return comp1->var->data.location - comp2->var->data.location;
+   const struct nir_variable_data *const data1 = &comp1->var->data;
+   const struct nir_variable_data *const data2 = &comp2->var->data;
+   if (data1->location != data2->location)
+      return data1->location - data2->location;
+   return (int)data1->location_frac - (int)data2->location_frac;
 }
 
 static void
@@ -536,7 +540,7 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
             continue;
 
          nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
-         if (deref->mode != nir_var_shader_in)
+         if (!nir_deref_mode_is(deref, nir_var_shader_in))
             continue;
 
          /* We only remap things that aren't builtins. */
@@ -593,7 +597,7 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
                continue;
 
             nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
-            if (deref->mode != nir_var_shader_out)
+            if (!nir_deref_mode_is(deref, nir_var_shader_out))
                continue;
 
             /* We only remap things that aren't builtins. */
@@ -924,7 +928,7 @@ replace_constant_input(nir_shader *shader, nir_intrinsic_instr *store_intr)
             continue;
 
          nir_deref_instr *in_deref = nir_src_as_deref(intr->src[0]);
-         if (in_deref->mode != nir_var_shader_in)
+         if (!nir_deref_mode_is(in_deref, nir_var_shader_in))
             continue;
 
          nir_variable *in_var = nir_deref_instr_get_variable(in_deref);
@@ -976,7 +980,7 @@ replace_duplicate_input(nir_shader *shader, nir_variable *input_var,
             continue;
 
          nir_deref_instr *in_deref = nir_src_as_deref(intr->src[0]);
-         if (in_deref->mode != nir_var_shader_in)
+         if (!nir_deref_mode_is(in_deref, nir_var_shader_in))
             continue;
 
          nir_variable *in_var = nir_deref_instr_get_variable(in_deref);
@@ -1027,7 +1031,7 @@ nir_link_opt_varyings(nir_shader *producer, nir_shader *consumer)
          continue;
 
       nir_deref_instr *out_deref = nir_src_as_deref(intr->src[0]);
-      if (out_deref->mode != nir_var_shader_out)
+      if (!nir_deref_mode_is(out_deref, nir_var_shader_out))
          continue;
 
       nir_variable *out_var = nir_deref_instr_get_variable(out_deref);

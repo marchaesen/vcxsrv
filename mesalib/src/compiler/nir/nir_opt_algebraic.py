@@ -102,10 +102,17 @@ optimizations = [
    (('idiv', a, 1), a),
    (('umod', a, 1), 0),
    (('imod', a, 1), 0),
+   (('imod', a, -1), 0),
+   (('irem', a, 1), 0),
+   (('irem', a, -1), 0),
    (('udiv', a, '#b(is_pos_power_of_two)'), ('ushr', a, ('find_lsb', b)), '!options->lower_bitops'),
    (('idiv', a, '#b(is_pos_power_of_two)'), ('imul', ('isign', a), ('ushr', ('iabs', a), ('find_lsb', b))), '!options->lower_bitops'),
    (('idiv', a, '#b(is_neg_power_of_two)'), ('ineg', ('imul', ('isign', a), ('ushr', ('iabs', a), ('find_lsb', ('iabs', b))))), '!options->lower_bitops'),
    (('umod', a, '#b(is_pos_power_of_two)'),    ('iand', a, ('isub', b, 1))),
+   (('imod', a, '#b(is_pos_power_of_two)'),    ('iand', a, ('isub', b, 1))),
+   (('imod', a, '#b(is_neg_power_of_two)'),    ('ior', a, b)),
+   (('irem', a, '#b(is_pos_power_of_two)'),    ('bcsel', ('ige', a, 0), ('iand', a, ('isub', b, 1)), ('ior', a, ('ineg', b)))),
+   (('irem', a, '#b(is_neg_power_of_two)'),    ('bcsel', ('ige', a, 0), ('iand', a, ('inot', b)), ('ior', a, b))),
 
    (('~fneg', ('fneg', a)), a),
    (('ineg', ('ineg', a)), a),
@@ -301,6 +308,9 @@ optimizations.extend([
    # 'a<<c' to be CSE'd.  It also helps architectures that have an ISHLADD
    # instruction or a constant offset field for in load / store instructions.
    (('ishl', ('iadd', a, '#b'), '#c'), ('iadd', ('ishl', a, c), ('ishl', b, c))),
+
+   # (a + #b) * #c
+   (('imul', ('iadd(is_used_once)', a, '#b'), '#c'), ('iadd', ('imul', a, c), ('imul', b, c))),
 
    # Comparison simplifications
    (('~inot', ('flt', a, b)), ('fge', a, b)),
@@ -1241,6 +1251,8 @@ optimizations.extend([
    # Propagate constants up multiplication chains
    (('~fmul(is_used_once)', ('fmul(is_used_once)', 'a(is_not_const)', 'b(is_not_const)'), '#c'), ('fmul', ('fmul', a, c), b)),
    (('imul(is_used_once)', ('imul(is_used_once)', 'a(is_not_const)', 'b(is_not_const)'), '#c'), ('imul', ('imul', a, c), b)),
+   # Prefer moving out a multiplication for more MAD/FMA-friendly code
+   (('~fadd(is_used_once)', ('fadd(is_used_once)', 'a(is_not_const)', 'b(is_fmul)'), '#c'), ('fadd', ('fadd', a, c), b)),
    (('~fadd(is_used_once)', ('fadd(is_used_once)', 'a(is_not_const)', 'b(is_not_const)'), '#c'), ('fadd', ('fadd', a, c), b)),
    (('iadd(is_used_once)', ('iadd(is_used_once)', 'a(is_not_const)', 'b(is_not_const)'), '#c'), ('iadd', ('iadd', a, c), b)),
 
@@ -1393,6 +1405,10 @@ optimizations.extend([
     ('bcsel', ('ult', 31, 'bits'), 'value',
               ('ubfe', 'value', 'offset', 'bits')),
     'options->lower_bitfield_extract'),
+
+   # (src0 & src1) | (~src0 & src2). Constant fold if src2 is 0.
+   (('bitfield_select', a, b, 0), ('iand', a, b)),
+   (('bitfield_select', a, ('iand', a, b), c), ('bitfield_select', a, b, c)),
 
    # Note that these opcodes are defined to only use the five least significant bits of 'offset' and 'bits'
    (('ubfe', 'value', 'offset', ('iand', 31, 'bits')), ('ubfe', 'value', 'offset', 'bits')),
@@ -2074,9 +2090,9 @@ late_optimizations = [
 
    (('~fadd', ('fneg(is_used_once)', ('fsat(is_used_once)', 'a(is_not_fmul)')), 1.0), ('fsat', ('fadd', 1.0, ('fneg', a)))),
 
-   (('fdot2', a, b), ('fdot_replicated2', a, b), 'options->fdot_replicates'),
-   (('fdot3', a, b), ('fdot_replicated3', a, b), 'options->fdot_replicates'),
-   (('fdot4', a, b), ('fdot_replicated4', a, b), 'options->fdot_replicates'),
+   (('fdot2', a, b), ('fdot2_replicated', a, b), 'options->fdot_replicates'),
+   (('fdot3', a, b), ('fdot3_replicated', a, b), 'options->fdot_replicates'),
+   (('fdot4', a, b), ('fdot4_replicated', a, b), 'options->fdot_replicates'),
    (('fdph', a, b), ('fdph_replicated', a, b), 'options->fdot_replicates'),
 
    (('~flrp', ('fadd(is_used_once)', a, b), ('fadd(is_used_once)', a, c), d), ('fadd', ('flrp', b, c, d), a)),
@@ -2252,9 +2268,9 @@ distribute_src_mods = [
    # Try to remove some spurious negations rather than pushing them down.
    (('fmul', ('fneg', a), ('fneg', b)), ('fmul', a, b)),
    (('ffma', ('fneg', a), ('fneg', b), c), ('ffma', a, b, c)),
-   (('fdot_replicated2', ('fneg', a), ('fneg', b)), ('fdot_replicated2', a, b)),
-   (('fdot_replicated3', ('fneg', a), ('fneg', b)), ('fdot_replicated3', a, b)),
-   (('fdot_replicated4', ('fneg', a), ('fneg', b)), ('fdot_replicated4', a, b)),
+   (('fdot2_replicated', ('fneg', a), ('fneg', b)), ('fdot2_replicated', a, b)),
+   (('fdot3_replicated', ('fneg', a), ('fneg', b)), ('fdot3_replicated', a, b)),
+   (('fdot4_replicated', ('fneg', a), ('fneg', b)), ('fdot4_replicated', a, b)),
    (('fneg', ('fneg', a)), a),
 
    (('fneg', ('fmul(is_used_once)', a, b)), ('fmul', ('fneg', a), b)),
@@ -2269,9 +2285,9 @@ distribute_src_mods = [
    (('fneg', ('fmin(is_used_once)', a, b)), ('fmax', ('fneg', a), ('fneg', b))),
    (('fneg', ('fmax(is_used_once)', a, b)), ('fmin', ('fneg', a), ('fneg', b))),
 
-   (('fneg', ('fdot_replicated2(is_used_once)', a, b)), ('fdot_replicated2', ('fneg', a), b)),
-   (('fneg', ('fdot_replicated3(is_used_once)', a, b)), ('fdot_replicated3', ('fneg', a), b)),
-   (('fneg', ('fdot_replicated4(is_used_once)', a, b)), ('fdot_replicated4', ('fneg', a), b)),
+   (('fneg', ('fdot2_replicated(is_used_once)', a, b)), ('fdot2_replicated', ('fneg', a), b)),
+   (('fneg', ('fdot3_replicated(is_used_once)', a, b)), ('fdot3_replicated', ('fneg', a), b)),
+   (('fneg', ('fdot4_replicated(is_used_once)', a, b)), ('fdot4_replicated', ('fneg', a), b)),
 
    # fdph works mostly like fdot, but to get the correct result, the negation
    # must be applied to the second source.

@@ -93,7 +93,7 @@ partial alphanumeric_keys
 
 partial alphanumeric_keys
 	xkb_symbols "oss_Sundeadkeys" {
-	include "be(oss_Sundeadkeys)"
+	include "be(oss_sundeadkeys)"
 };
 
 partial alphanumeric_keys
@@ -107,13 +107,13 @@ partial alphanumeric_keys
 };
 
 partial alphanumeric_keys
-	xkb_symbols "sundeadkeys" {
+	xkb_symbols "Sundeadkeys" {
 	include "be(sundeadkeys)"
 };
 
 partial alphanumeric_keys
-	xkb_symbols "Sundeadkeys" {
-	include "be(Sundeadkeys)"
+	xkb_symbols "sundeadkeys" {
+	include "be(sundeadkeys)"
 };
 
 partial alphanumeric_keys

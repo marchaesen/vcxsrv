@@ -1367,8 +1367,7 @@ struct __DRIdri2ExtensionRec {
  * could be read after a flush."
  */
 #define __DRI_IMAGE_USE_BACKBUFFER      0x0010
-/* Whether to expect explicit flushes for external consumers. */
-#define __DRI_IMAGE_USE_FLUSH_EXTERNAL  0x0020
+#define __DRI_IMAGE_USE_PROTECTED       0x0020
 
 
 #define __DRI_IMAGE_TRANSFER_READ            0x1
@@ -1487,6 +1486,11 @@ enum __DRIChromaSiting {
 
 #define __BLIT_FLAG_FLUSH		0x0001
 #define __BLIT_FLAG_FINISH		0x0002
+
+/**
+ * Flags for createImageFromDmaBufs3
+ */
+#define __DRI_IMAGE_PROTECTED_CONTENT_FLAG 0x00000001
 
 /**
  * queryDmaBufFormatModifierAttribs attributes
@@ -1771,52 +1775,25 @@ struct __DRIimageExtensionRec {
                                                 void *loaderPrivate,
                                                 unsigned *error);
 
-    /**
-     * Flush the image for external consumers. This is called when
-     * the current context is the producer.
-     *
-     * \since 18
-     */
-    void (*imageFlushExternal)(__DRIcontext *context, __DRIimage *image,
-                               unsigned flags);
-
-    /**
-     * This call indicates that the image has been modified outside of
-     * the current context. This is called when the current context is
-     * the consumer of the image.
-     *
-     * \since 18
-     */
-    void (*imageInvalidateExternal)(__DRIcontext *context, __DRIimage *image,
-                                    unsigned flags);
-
-    /**
-     * Same as createImageFromName, but also specifies use.
-     *
-     * \since 18
-     */
-    __DRIimage *(*createImageFromName2)(__DRIscreen *screen,
-				       int width, int height, int format,
-				       int name, int pitch, unsigned use,
-				       void *loaderPrivate);
-
-    /**
-     * Same as createImageFromDmaBufs, but also specifies modifier and use.
-     * Set modifier to DRM_FORMAT_MOD_INVALID if not using it.
-     *
-     * \since 18
-     */
-    __DRIimage *(*createImageFromDmaBufs3)(__DRIscreen *screen,
-                                           int width, int height, int fourcc,
-                                           uint64_t modifier, unsigned use,
-                                           int *fds, int num_fds,
-                                           int *strides, int *offsets,
-                                           enum __DRIYUVColorSpace color_space,
-                                           enum __DRISampleRange sample_range,
-                                           enum __DRIChromaSiting horiz_siting,
-                                           enum __DRIChromaSiting vert_siting,
-                                           unsigned *error,
-                                           void *loaderPrivate);
+   /*
+    * Like createImageFromDmaBufs2, but with an added flags parameter.
+    *
+    * See __DRI_IMAGE_*_FLAG for valid definitions of flags.
+    *
+    * \since 18
+    */
+   __DRIimage *(*createImageFromDmaBufs3)(__DRIscreen *screen,
+                                          int width, int height, int fourcc,
+                                          uint64_t modifier,
+                                          int *fds, int num_fds,
+                                          int *strides, int *offsets,
+                                          enum __DRIYUVColorSpace color_space,
+                                          enum __DRISampleRange sample_range,
+                                          enum __DRIChromaSiting horiz_siting,
+                                          enum __DRIChromaSiting vert_siting,
+                                          uint32_t flags,
+                                          unsigned *error,
+                                          void *loaderPrivate);
 };
 
 
@@ -1844,7 +1821,7 @@ struct __DRIimageLookupExtensionRec {
  * This extension allows for common DRI2 options
  */
 #define __DRI2_CONFIG_QUERY "DRI_CONFIG_QUERY"
-#define __DRI2_CONFIG_QUERY_VERSION 1
+#define __DRI2_CONFIG_QUERY_VERSION 2
 
 typedef struct __DRI2configQueryExtensionRec __DRI2configQueryExtension;
 struct __DRI2configQueryExtensionRec {
@@ -1853,6 +1830,7 @@ struct __DRI2configQueryExtensionRec {
    int (*configQueryb)(__DRIscreen *screen, const char *var, unsigned char *val);
    int (*configQueryi)(__DRIscreen *screen, const char *var, int *val);
    int (*configQueryf)(__DRIscreen *screen, const char *var, float *val);
+   int (*configQuerys)(__DRIscreen *screen, const char *var, char **val);
 };
 
 /**
@@ -1979,6 +1957,8 @@ typedef struct __DRIDriverVtableExtensionRec {
 #define   __DRI2_RENDERER_HAS_CONTEXT_PRIORITY_LOW            (1 << 0)
 #define   __DRI2_RENDERER_HAS_CONTEXT_PRIORITY_MEDIUM         (1 << 1)
 #define   __DRI2_RENDERER_HAS_CONTEXT_PRIORITY_HIGH           (1 << 2)
+
+#define __DRI2_RENDERER_HAS_PROTECTED_CONTENT                 0x000e
 
 typedef struct __DRI2rendererQueryExtensionRec __DRI2rendererQueryExtension;
 struct __DRI2rendererQueryExtensionRec {

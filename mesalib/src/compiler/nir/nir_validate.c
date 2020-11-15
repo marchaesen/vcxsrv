@@ -409,7 +409,7 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
 {
    if (instr->deref_type == nir_deref_type_var) {
       /* Variable dereferences are stupid simple. */
-      validate_assert(state, instr->mode == instr->var->data.mode);
+      validate_assert(state, instr->modes == instr->var->data.mode);
       validate_assert(state, instr->type == instr->var->type);
       validate_var_use(instr->var, state);
    } else if (instr->deref_type == nir_deref_type_cast) {
@@ -418,8 +418,22 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
        */
       validate_src(&instr->parent, state, 0, 0);
 
-      /* We just validate that the type and mode are there */
-      validate_assert(state, instr->mode);
+      /* Most variable modes in NIR can only exist by themselves. */
+      if (instr->modes & ~nir_var_mem_generic)
+         validate_assert(state, util_bitcount(instr->modes) == 1);
+
+      nir_deref_instr *parent = nir_src_as_deref(instr->parent);
+      if (parent) {
+         /* Casts can change the mode but it can't change completely.  The new
+          * mode must have some bits in common with the old.
+          */
+         validate_assert(state, instr->modes & parent->modes);
+      } else {
+         /* If our parent isn't a deref, just assert the mode is there */
+         validate_assert(state, instr->modes != 0);
+      }
+
+      /* We just validate that the type is there */
       validate_assert(state, instr->type);
       if (instr->cast.align_mul > 0) {
          validate_assert(state, util_is_power_of_two_nonzero(instr->cast.align_mul));
@@ -444,7 +458,7 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
 
       nir_deref_instr *parent = nir_instr_as_deref(parent_instr);
 
-      validate_assert(state, instr->mode == parent->mode);
+      validate_assert(state, instr->modes == parent->modes);
 
       switch (instr->deref_type) {
       case nir_deref_type_struct:
@@ -457,11 +471,9 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
 
       case nir_deref_type_array:
       case nir_deref_type_array_wildcard:
-         if (instr->mode == nir_var_mem_ubo ||
-             instr->mode == nir_var_mem_ssbo ||
-             instr->mode == nir_var_mem_shared ||
-             instr->mode == nir_var_mem_global ||
-             instr->mode == nir_var_mem_push_const) {
+         if (instr->modes & (nir_var_mem_ubo | nir_var_mem_ssbo |
+                             nir_var_mem_shared | nir_var_mem_global |
+                             nir_var_mem_push_const)) {
             /* Shared variables and UBO/SSBOs have a bit more relaxed rules
              * because we need to be able to handle array derefs on vectors.
              * Fortunately, nir_lower_io handles these just fine.
@@ -518,10 +530,10 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
     */
    nir_foreach_use(use, &instr->dest.ssa) {
       if (use->parent_instr->type == nir_instr_type_phi) {
-         validate_assert(state, instr->mode != nir_var_shader_in &&
-                                instr->mode != nir_var_shader_out &&
-                                instr->mode != nir_var_shader_out &&
-                                instr->mode != nir_var_uniform);
+         validate_assert(state, !(instr->modes & (nir_var_shader_in |
+                                                  nir_var_shader_out |
+                                                  nir_var_shader_out |
+                                                  nir_var_uniform)));
       }
    }
 }
@@ -539,6 +551,24 @@ vectorized_intrinsic(nir_intrinsic_instr *intr)
          return true;
 
    return false;
+}
+
+/** Returns the image format or PIPE_FORMAT_COUNT for incomplete derefs
+ *
+ * We use PIPE_FORMAT_COUNT for incomplete derefs because PIPE_FORMAT_NONE
+ * indicates that we found the variable but it has no format specified.
+ */
+static enum pipe_format
+image_intrin_format(nir_intrinsic_instr *instr)
+{
+   if (nir_intrinsic_has_format(instr))
+      return nir_intrinsic_format(instr);
+
+   nir_variable *var = nir_intrinsic_get_var(instr, 0);
+   if (var == NULL)
+      return PIPE_FORMAT_COUNT;
+
+   return var->data.image.format;
 }
 
 static void
@@ -570,7 +600,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       nir_deref_instr *src = nir_src_as_deref(instr->src[0]);
       assert(src);
       validate_assert(state, glsl_type_is_vector_or_scalar(src->type) ||
-                      (src->mode == nir_var_uniform &&
+                      (src->modes == nir_var_uniform &&
                        glsl_get_base_type(src->type) == GLSL_TYPE_SUBROUTINE));
       validate_assert(state, instr->num_components ==
                              glsl_get_vector_elements(src->type));
@@ -591,8 +621,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       /* Also allow 32-bit boolean store operations */
       if (glsl_type_is_boolean(dst->type))
          src_bit_sizes[1] |= 32;
-      validate_assert(state, (dst->mode & (nir_var_shader_in |
-                                           nir_var_uniform)) == 0);
+      validate_assert(state, !nir_deref_mode_may_be(dst, nir_var_read_only_modes));
       validate_assert(state, (nir_intrinsic_write_mask(instr) & ~((1 << instr->num_components) - 1)) == 0);
       break;
    }
@@ -602,8 +631,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       nir_deref_instr *src = nir_src_as_deref(instr->src[1]);
       validate_assert(state, glsl_get_bare_type(dst->type) ==
                              glsl_get_bare_type(src->type));
-      validate_assert(state, (dst->mode & (nir_var_shader_in |
-                                           nir_var_uniform)) == 0);
+      validate_assert(state, !nir_deref_mode_may_be(dst, nir_var_read_only_modes));
       break;
    }
 
@@ -659,6 +687,77 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       /* All memory store operations must store at least a byte */
       validate_assert(state, nir_src_bit_size(instr->src[0]) >= 8);
       break;
+
+   case nir_intrinsic_deref_mode_is:
+   case nir_intrinsic_addr_mode_is:
+      validate_assert(state,
+         util_bitcount(nir_intrinsic_memory_modes(instr)) == 1);
+      break;
+
+   case nir_intrinsic_image_deref_atomic_add:
+   case nir_intrinsic_image_deref_atomic_imin:
+   case nir_intrinsic_image_deref_atomic_umin:
+   case nir_intrinsic_image_deref_atomic_imax:
+   case nir_intrinsic_image_deref_atomic_umax:
+   case nir_intrinsic_image_deref_atomic_and:
+   case nir_intrinsic_image_deref_atomic_or:
+   case nir_intrinsic_image_deref_atomic_xor:
+   case nir_intrinsic_image_deref_atomic_comp_swap:
+   case nir_intrinsic_image_atomic_add:
+   case nir_intrinsic_image_atomic_imin:
+   case nir_intrinsic_image_atomic_umin:
+   case nir_intrinsic_image_atomic_imax:
+   case nir_intrinsic_image_atomic_umax:
+   case nir_intrinsic_image_atomic_and:
+   case nir_intrinsic_image_atomic_or:
+   case nir_intrinsic_image_atomic_xor:
+   case nir_intrinsic_image_atomic_comp_swap:
+   case nir_intrinsic_bindless_image_atomic_add:
+   case nir_intrinsic_bindless_image_atomic_imin:
+   case nir_intrinsic_bindless_image_atomic_umin:
+   case nir_intrinsic_bindless_image_atomic_imax:
+   case nir_intrinsic_bindless_image_atomic_umax:
+   case nir_intrinsic_bindless_image_atomic_and:
+   case nir_intrinsic_bindless_image_atomic_or:
+   case nir_intrinsic_bindless_image_atomic_xor:
+   case nir_intrinsic_bindless_image_atomic_comp_swap: {
+      enum pipe_format format = image_intrin_format(instr);
+      if (format != PIPE_FORMAT_COUNT) {
+         validate_assert(state, format == PIPE_FORMAT_R32_UINT ||
+                                format == PIPE_FORMAT_R32_SINT ||
+                                format == PIPE_FORMAT_R64_UINT ||
+                                format == PIPE_FORMAT_R64_SINT);
+         validate_assert(state, nir_dest_bit_size(instr->dest) ==
+                                util_format_get_blocksizebits(format));
+      }
+      break;
+   }
+
+   case nir_intrinsic_image_deref_atomic_exchange:
+   case nir_intrinsic_image_atomic_exchange:
+   case nir_intrinsic_bindless_image_atomic_exchange: {
+      enum pipe_format format = image_intrin_format(instr);
+      if (format != PIPE_FORMAT_COUNT) {
+         validate_assert(state, format == PIPE_FORMAT_R32_UINT ||
+                                format == PIPE_FORMAT_R32_SINT ||
+                                format == PIPE_FORMAT_R32_FLOAT ||
+                                format == PIPE_FORMAT_R64_UINT ||
+                                format == PIPE_FORMAT_R64_SINT);
+         validate_assert(state, nir_dest_bit_size(instr->dest) ==
+                                util_format_get_blocksizebits(format));
+      }
+      break;
+   }
+
+   case nir_intrinsic_image_deref_atomic_fadd:
+   case nir_intrinsic_image_atomic_fadd:
+   case nir_intrinsic_bindless_image_atomic_fadd: {
+      enum pipe_format format = image_intrin_format(instr);
+      validate_assert(state, format == PIPE_FORMAT_COUNT ||
+                             format == PIPE_FORMAT_R32_FLOAT);
+      validate_assert(state, nir_dest_bit_size(instr->dest) == 32);
+      break;
+   }
 
    default:
       break;
@@ -949,6 +1048,25 @@ validate_phi_srcs(nir_block *block, nir_block *succ, validate_state *state)
 static void
 collect_blocks(struct exec_list *cf_list, validate_state *state)
 {
+   /* We walk the blocks manually here rather than using nir_foreach_block for
+    * a few reasons:
+    *
+    *  1. nir_foreach_block() doesn't work properly for unstructured NIR and
+    *     we need to be able to handle all forms of NIR here.
+    *
+    *  2. We want to call exec_list_validate() on every linked list in the IR
+    *     which means we need to touch every linked and just walking blocks
+    *     with nir_foreach_block() would make that difficult.  In particular,
+    *     we want to validate each list before the first time we walk it so
+    *     that we catch broken lists in exec_list_validate() instead of
+    *     getting stuck in a hard-to-debug infinite loop in the validator.
+    *
+    *  3. nir_foreach_block() depends on several invariants of the CF node
+    *     hierarchy which nir_validate_shader() is responsible for verifying.
+    *     If we used nir_foreach_block() in nir_validate_shader(), we could
+    *     end up blowing up on a bad list walk instead of throwing the much
+    *     easier to debug validation error.
+    */
    exec_list_validate(cf_list);
    foreach_list_typed(nir_cf_node, node, node, cf_list) {
       switch (node->type) {
@@ -1399,6 +1517,7 @@ validate_function_impl(nir_function_impl *impl, validate_state *state)
                                     sizeof(BITSET_WORD));
 
    _mesa_set_clear(state->blocks, NULL);
+   _mesa_set_resize(state->blocks, impl->num_blocks);
    collect_blocks(&impl->body, state);
    _mesa_set_add(state->blocks, impl->end_block);
    validate_assert(state, !exec_list_is_empty(&impl->body));
@@ -1515,6 +1634,14 @@ nir_validate_shader(nir_shader *shader, const char *when)
       nir_var_mem_shared |
       nir_var_mem_push_const |
       nir_var_mem_constant;
+
+   if (gl_shader_stage_is_callable(shader->info.stage))
+      valid_modes |= nir_var_shader_call_data;
+
+   if (shader->info.stage == MESA_SHADER_ANY_HIT ||
+       shader->info.stage == MESA_SHADER_CLOSEST_HIT ||
+       shader->info.stage == MESA_SHADER_INTERSECTION)
+      valid_modes |= nir_var_ray_hit_attrib;
 
    exec_list_validate(&shader->variables);
    nir_foreach_variable_in_shader(var, shader)

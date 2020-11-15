@@ -43,7 +43,7 @@ _mesa_init_performance_queries(struct gl_context *ctx)
 }
 
 static void
-free_performance_query(GLuint key, void *data, void *user)
+free_performance_query(void *data, void *user)
 {
    struct gl_perf_query_object *m = data;
    struct gl_context *ctx = user;

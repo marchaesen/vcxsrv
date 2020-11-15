@@ -37,6 +37,8 @@ nir_metadata_require(nir_function_impl *impl, nir_metadata required, ...)
 
    if (NEEDS_UPDATE(nir_metadata_block_index))
       nir_index_blocks(impl);
+   if (NEEDS_UPDATE(nir_metadata_instr_index))
+      nir_index_instrs(impl);
    if (NEEDS_UPDATE(nir_metadata_dominance))
       nir_calc_dominance_impl(impl);
    if (NEEDS_UPDATE(nir_metadata_live_ssa_defs))

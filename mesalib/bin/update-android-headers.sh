@@ -27,6 +27,7 @@ cp -av platform-frameworks-native/libs/nativewindow/include/vndk        \
     platform-system-core/libbacktrace/include/backtrace                 \
     platform-system-core/libsystem/include/system                       \
     platform-system-core/liblog/include/log                             \
+    platform-frameworks-native/libs/nativewindow/include/apex           \
     platform-frameworks-native/libs/nativewindow/include/system         \
     platform-frameworks-native/libs/nativebase/include/nativebase       \
     ${dest}
@@ -35,7 +36,7 @@ cp -av platform-frameworks-native/libs/nativewindow/include/vndk        \
 # We only need a few files from these big directories so just copy those
 
 mkdir ${dest}/hardware
-cp -av platform-hardware-libhardware/include/hardware/{hardware,gralloc,fb}.h ${dest}/hardware
+cp -av platform-hardware-libhardware/include/hardware/{hardware,gralloc,gralloc1,fb}.h ${dest}/hardware
 cp -av platform-frameworks-native/vulkan/include/hardware/hwvulkan.h ${dest}/hardware
 
 mkdir ${dest}/cutils

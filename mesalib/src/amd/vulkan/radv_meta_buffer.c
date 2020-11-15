@@ -7,10 +7,8 @@
 static nir_shader *
 build_buffer_fill_shader(struct radv_device *dev)
 {
-	nir_builder b;
-
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, "meta_buffer_fill");
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL,
+						       "meta_buffer_fill");
 	b.shader->info.cs.local_size[0] = 64;
 	b.shader->info.cs.local_size[1] = 1;
 	b.shader->info.cs.local_size[2] = 1;
@@ -55,10 +53,8 @@ build_buffer_fill_shader(struct radv_device *dev)
 static nir_shader *
 build_buffer_copy_shader(struct radv_device *dev)
 {
-	nir_builder b;
-
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, "meta_buffer_copy");
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL,
+						       "meta_buffer_copy");
 	b.shader->info.cs.local_size[0] = 64;
 	b.shader->info.cs.local_size[1] = 1;
 	b.shader->info.cs.local_size[2] = 1;

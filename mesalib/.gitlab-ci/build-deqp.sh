@@ -5,14 +5,11 @@ set -ex
 git config --global user.email "mesa@example.com"
 git config --global user.name "Mesa CI"
 git clone \
-    https://github.com/KhronosGroup/VK-GL-CTS.git \
-    -b vulkan-cts-1.2.3.2 \
+    https://github.com/anholt/VK-GL-CTS.git \
+    -b vulkan-cts-1.2.4.1-mesa-ci-2020-11-06 \
+    --depth 1 \
     /VK-GL-CTS
 pushd /VK-GL-CTS
-
-# cherry-pick fix for surfaceless config choosing:
-git cherry-pick -x 8f3bfc6c7def0c0cb452d5dadf31aa7fef242365
-
 
 # --insecure is due to SSL cert failures hitting sourceforge for zlib and
 # libpng (sigh).  The archives get their checksums checked anyway, and git

@@ -135,6 +135,23 @@ __getProgramName()
 }
 
 #    define GET_PROGRAM_NAME() __getProgramName()
+#elif defined(WIN32)
+static const char *
+__getProgramName()
+{
+   static const char *progname;
+   if (progname == NULL) {
+      static char buf[MAX_PATH];
+      GetModuleFileNameA(NULL, buf, sizeof(buf));
+      progname = strrchr(buf, '\\');
+      if (progname)
+         progname++;
+      else
+         progname = buf;
+   }
+   return progname;
+}
+#        define GET_PROGRAM_NAME() __getProgramName()
 #endif
 
 #if !defined(GET_PROGRAM_NAME)

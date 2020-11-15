@@ -389,10 +389,12 @@ void process_block(vn_ctx& ctx, Block& block)
       }
 
       /* simple copy-propagation through renaming */
-      if ((instr->opcode == aco_opcode::s_mov_b32 || instr->opcode == aco_opcode::s_mov_b64 || instr->opcode == aco_opcode::v_mov_b32) &&
-          !instr->definitions[0].isFixed() && instr->operands[0].isTemp() && instr->operands[0].regClass() == instr->definitions[0].regClass() &&
-          !instr->isDPP() && !((int)instr->format & (int)Format::SDWA)) {
+      bool copy_instr = instr->opcode == aco_opcode::p_parallelcopy ||
+                        (instr->opcode == aco_opcode::p_create_vector && instr->operands.size() == 1);
+      if (copy_instr && !instr->definitions[0].isFixed() && instr->operands[0].isTemp() &&
+          instr->operands[0].regClass() == instr->definitions[0].regClass()) {
          ctx.renames[instr->definitions[0].tempId()] = instr->operands[0].getTemp();
+         continue;
       }
 
       instr->pass_flags = ctx.exec_id;

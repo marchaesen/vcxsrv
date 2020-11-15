@@ -65,6 +65,7 @@ EXTENSIONS = [
     Extension('VK_KHR_external_memory_fd',                1, True),
     Extension('VK_KHR_get_physical_device_properties2',   1, True),
     Extension('VK_KHR_get_surface_capabilities2',         1, 'V3DV_HAS_SURFACE'),
+    Extension('VK_KHR_maintenance1',                      2, True),
     Extension('VK_KHR_surface',                          25, 'V3DV_HAS_SURFACE'),
     Extension('VK_KHR_swapchain',                        68, 'V3DV_HAS_SURFACE'),
     Extension('VK_KHR_wayland_surface',                   6, 'VK_USE_PLATFORM_WAYLAND_KHR'),

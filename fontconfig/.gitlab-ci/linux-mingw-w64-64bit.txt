@@ -5,8 +5,9 @@ cpu = 'x86_64'
 endian = 'little'
 
 [properties]
-c_args = []
-c_link_args = []
+# Will be picked up from env vars if not defined here
+#c_args = []
+#c_link_args = []
 
 [binaries]
 c = 'x86_64-w64-mingw32-gcc'

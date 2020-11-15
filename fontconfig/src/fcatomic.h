@@ -43,28 +43,23 @@
 
 #if 0
 
+typedef <type> fc_atomic_int_t;
+#define FC_ATOMIC_INT_FORMAT		"<printf format for fc_atomic_int_t>"
+#define fc_atomic_int_add(AI, V)	o = (AI), (AI) += (V), o // atomic acquire/release
+
+#define fc_atomic_ptr_get(P)		*(P) // atomic acquire
+#define fc_atomic_ptr_cmpexch(P,O,N)	*(P) == (O) ? (*(P) = (N), FcTrue) : FcFalse // atomic release
+
 
 #elif !defined(FC_NO_MT) && defined(_MSC_VER) || defined(__MINGW32__)
 
 #include "fcwindows.h"
 
-/* MinGW has a convoluted history of supporting MemoryBarrier
- * properly.  As such, define a function to wrap the whole
- * thing. */
-static inline void _FCMemoryBarrier (void) {
-#if !defined(MemoryBarrier)
-  long dummy = 0;
-  InterlockedExchange (&dummy, 1);
-#else
-  MemoryBarrier ();
-#endif
-}
-
 typedef LONG fc_atomic_int_t;
 #define FC_ATOMIC_INT_FORMAT		"ld"
 #define fc_atomic_int_add(AI, V)	InterlockedExchangeAdd (&(AI), (V))
 
-#define fc_atomic_ptr_get(P)		(_FCMemoryBarrier (), (void *) *(P))
+#define fc_atomic_ptr_get(P)		(InterlockedCompareExchangePointerAcquire ((void **) (P), NULL, NULL))
 #define fc_atomic_ptr_cmpexch(P,O,N)	(InterlockedCompareExchangePointer ((void **) (P), (void *) (N), (void *) (O)) == (void *) (O))
 
 
@@ -77,12 +72,21 @@ typedef int fc_atomic_int_t;
 #define FC_ATOMIC_INT_FORMAT		"d"
 #define fc_atomic_int_add(AI, V)	(OSAtomicAdd32Barrier ((V), &(AI)) - (V))
 
-#define fc_atomic_ptr_get(P)		(OSMemoryBarrier (), (void *) *(P))
 #if (MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_4 || __IPHONE_OS_VERSION_MIN_REQUIRED >= 20100)
+
+#if SIZEOF_VOID_P == 8
+#define fc_atomic_ptr_get(P)		OSAtomicAdd64Barrier (0, (int64_t*)(P))
+#elif SIZEOF_VOID_P == 4
+#define fc_atomic_ptr_get(P)		OSAtomicAdd32Barrier (0, (int32_t*)(P))
+#else
+#error "SIZEOF_VOID_P not 4 or 8 (assumes CHAR_BIT is 8)"
+#endif
 #define fc_atomic_ptr_cmpexch(P,O,N)	OSAtomicCompareAndSwapPtrBarrier ((void *) (O), (void *) (N), (void **) (P))
+
 #else
 #error "Your macOS / iOS targets are too old"
 #endif
+
 
 #elif !defined(FC_NO_MT) && defined(HAVE_INTEL_ATOMIC_PRIMITIVES)
 
@@ -90,7 +94,7 @@ typedef int fc_atomic_int_t;
 #define FC_ATOMIC_INT_FORMAT		"d"
 #define fc_atomic_int_add(AI, V)	__sync_fetch_and_add (&(AI), (V))
 
-#define fc_atomic_ptr_get(P)		(void *) (__sync_synchronize (), *(P))
+#define fc_atomic_ptr_get(P)		(void *) (__sync_fetch_and_add ((P), 0))
 #define fc_atomic_ptr_cmpexch(P,O,N)	__sync_bool_compare_and_swap ((P), (O), (N))
 
 

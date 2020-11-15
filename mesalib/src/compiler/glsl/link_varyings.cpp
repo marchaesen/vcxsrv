@@ -875,10 +875,40 @@ cross_validate_outputs_to_inputs(struct gl_context *ctx,
             /* Check for input vars with unmatched output vars in prev stage
              * taking into account that interface blocks could have a matching
              * output but with different name, so we ignore them.
+             *
+             * Section 4.3.4 (Inputs) of the GLSL 4.10 specifications say:
+             *
+             *   "Only the input variables that are actually read need to be
+             *    written by the previous stage; it is allowed to have
+             *    superfluous declarations of input variables."
+             *
+             * However it's not defined anywhere as to how we should handle
+             * inputs that are not written in the previous stage and it's not
+             * clear what "actually read" means.
+             *
+             * The GLSL 4.20 spec however is much clearer:
+             *
+             *    "Only the input variables that are statically read need to
+             *     be written by the previous stage; it is allowed to have
+             *     superfluous declarations of input variables."
+             *
+             * It also has a table that states it is an error to statically
+             * read an input that is not defined in the previous stage. While
+             * it is not an error to not statically write to the output (it
+             * just needs to be defined to not be an error).
+             *
+             * The text in the GLSL 4.20 spec was an attempt to clarify the
+             * previous spec iterations. However given the difference in spec
+             * and that some applications seem to depend on not erroring when
+             * the input is not actually read in control flow we only apply
+             * this rule to GLSL 4.00 and higher. GLSL 4.00 was chosen as
+             * a 3.30 shader is the highest version of GLSL we have seen in
+             * the wild dependant on the less strict interpretation.
              */
             assert(!input->data.assigned);
             if (input->data.used && !input->get_interface_type() &&
-                !input->data.explicit_location)
+                !input->data.explicit_location &&
+                (prog->data->Version >= (prog->IsES ? 0 : 400)))
                linker_error(prog,
                             "%s shader input `%s' "
                             "has no matching output in the previous stage\n",

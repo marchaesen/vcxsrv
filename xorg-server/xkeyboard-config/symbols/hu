@@ -649,6 +649,6 @@ xkb_symbols "oldhun_magic_numpad" {
     key <KPPT> {[ KP_Separator, KP_Separator, KP_Separator, KP_Separator ]};
     key <KPDV> {[ KP_Divide, KP_Divide, KP_Divide, KP_Divide ]};
     key <KPMU> {[ KP_Multiply, KP_Multiply, KP_Multiply, KP_Multiply ]};
-    key <KPSU> {[ KP_Subtract, KP_Subtract,	KP_Suptract, KP_Subtract ]};
+    key <KPSU> {[ KP_Subtract, KP_Subtract,	KP_Subtract, KP_Subtract ]};
     key <KPAD> {[ KP_Add, KP_Add, KP_Add, KP_Add ]};
 };

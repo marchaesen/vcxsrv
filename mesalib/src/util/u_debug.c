@@ -216,6 +216,30 @@ debug_get_num_option(const char *name, long dfault)
    return result;
 }
 
+void
+debug_get_version_option(const char *name, unsigned *major, unsigned *minor)
+{
+   const char *str;
+
+   str = os_get_option(name);
+   if (str) {
+      unsigned v_maj, v_min;
+      int n;
+
+      n = sscanf(str, "%u.%u", &v_maj, &v_min);
+      if (n != 2) {
+         debug_printf("Illegal version specified for %s : %s\n", name, str);
+         return;
+      }
+      *major = v_maj;
+      *minor = v_min;
+   }
+
+   if (debug_get_option_should_print())
+      debug_printf("%s: %s = %u.%u\n", __FUNCTION__, name, *major, *minor);
+
+   return;
+}
 
 static bool
 str_has_option(const char *str, const char *name)

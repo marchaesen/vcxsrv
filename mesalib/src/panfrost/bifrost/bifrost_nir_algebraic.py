@@ -42,6 +42,14 @@ for isz in ('8', '16', '32'):
         for osz in ('16', '32', '64'):
                 algebraic_late += [(('b2f' + osz, 'a@' + isz), ('b' + isz + 'csel', a, 1.0, 0.0))]
 
+# There's no native integer min/max instruction, lower those to cmp+bcsel
+for sz in ('8', '16', '32'):
+    for t in ('i', 'u'):
+        algebraic_late += [
+            ((t + 'min', 'a@' + sz, 'b@' + sz), ('b' + sz + 'csel', (t + 'lt' + sz, a, b), a, b)),
+            ((t + 'max', 'a@' + sz, 'b@' + sz), ('b' + sz + 'csel', (t + 'lt' + sz, b, a), a, b))
+        ]
+
 # Midgard is able to type convert down by only one "step" per instruction; if
 # NIR wants more than one step, we need to break up into multiple instructions
 

@@ -980,23 +980,81 @@ uint32_t get_intersection_mask(int a_start, int a_size,
    return u_bit_consecutive(intersection_start, intersection_end - intersection_start) & mask;
 }
 
-void copy_16bit_literal(lower_context *ctx, Builder& bld, Definition def, Operand op)
+void copy_constant(lower_context *ctx, Builder& bld, Definition dst, Operand op)
 {
-   if (ctx->program->chip_class < GFX10 || !(ctx->block->fp_mode.denorm16_64 & fp_denorm_keep_in)) {
-      unsigned offset = def.physReg().byte() * 8u;
-      def = Definition(PhysReg(def.physReg().reg()), v1);
-      Operand def_op(def.physReg(), v1);
-      bld.vop2(aco_opcode::v_and_b32, def, Operand(~(0xffffu << offset)), def_op);
-      bld.vop2(aco_opcode::v_or_b32, def, Operand(op.constantValue() << offset), def_op);
-   } else if (def.physReg().byte() == 2) {
-      Operand def_lo(def.physReg().advance(-2), v2b);
-      Instruction* instr = bld.vop3(aco_opcode::v_pack_b32_f16, def, def_lo, op);
-      static_cast<VOP3A_instruction*>(instr)->opsel = 0;
+   assert(op.bytes() == dst.bytes());
+
+   if (dst.regClass() == s1 && op.isLiteral()) {
+      uint32_t imm = op.constantValue();
+      if (imm >= 0xffff8000 || imm <= 0x7fff) {
+         bld.sopk(aco_opcode::s_movk_i32, dst, imm & 0xFFFFu);
+         return;
+      } else if (util_bitreverse(imm) <= 64 || util_bitreverse(imm) >= 0xFFFFFFF0) {
+         uint32_t rev = util_bitreverse(imm);
+         bld.sop1(aco_opcode::s_brev_b32, dst, Operand(rev));
+         return;
+      } else if (imm != 0) {
+         unsigned start = (ffs(imm) - 1) & 0x1f;
+         unsigned size = util_bitcount(imm) & 0x1f;
+         if ((((1u << size) - 1u) << start) == imm) {
+            bld.sop2(aco_opcode::s_bfm_b32, dst, Operand(size), Operand(start));
+            return;
+         }
+      }
+   }
+
+   if (op.bytes() == 4 && op.constantEquals(0x3e22f983) && ctx->program->chip_class >= GFX8)
+      op.setFixed(PhysReg{248}); /* it can be an inline constant on GFX8+ */
+
+   if (dst.regClass() == s1) {
+      bld.sop1(aco_opcode::s_mov_b32, dst, op);
+   } else if (dst.regClass() == s2) {
+      bld.sop1(aco_opcode::s_mov_b64, dst, op);
+   } else if (dst.regClass() == v1) {
+      bld.vop1(aco_opcode::v_mov_b32, dst, op);
+   } else if (dst.regClass() == v1b) {
+      assert(ctx->program->chip_class >= GFX8);
+      uint8_t val = op.constantValue();
+      Operand op32((uint32_t)val | (val & 0x80u ? 0xffffff00u : 0u));
+      aco_ptr<SDWA_instruction> sdwa;
+      if (op32.isLiteral()) {
+         uint32_t a = (uint32_t)int8_mul_table[val * 2];
+         uint32_t b = (uint32_t)int8_mul_table[val * 2 + 1];
+         bld.vop2_sdwa(aco_opcode::v_mul_u32_u24, dst,
+                       Operand(a | (a & 0x80u ? 0xffffff00u : 0x0u)),
+                       Operand(b | (b & 0x80u ? 0xffffff00u : 0x0u)));
+      } else {
+         bld.vop1_sdwa(aco_opcode::v_mov_b32, dst, op32);
+      }
+   } else if (dst.regClass() == v2b && op.isConstant() && !op.isLiteral()) {
+      assert(ctx->program->chip_class >= GFX8);
+      if (op.constantValue() >= 0xfff0 || op.constantValue() <= 64) {
+         /* use v_mov_b32 to avoid possible issues with denormal flushing or
+          * NaN. v_add_f16 is still needed for float constants. */
+         uint32_t val32 = (int32_t)(int16_t)op.constantValue();
+         bld.vop1_sdwa(aco_opcode::v_mov_b32, dst, Operand(val32));
+      } else {
+         bld.vop2_sdwa(aco_opcode::v_add_f16, dst, op, Operand(0u));
+      }
+   } else if (dst.regClass() == v2b && op.isLiteral()) {
+      if (ctx->program->chip_class < GFX10 || !(ctx->block->fp_mode.denorm16_64 & fp_denorm_keep_in)) {
+         unsigned offset = dst.physReg().byte() * 8u;
+         dst = Definition(PhysReg(dst.physReg().reg()), v1);
+         Operand def_op(dst.physReg(), v1);
+         bld.vop2(aco_opcode::v_and_b32, dst, Operand(~(0xffffu << offset)), def_op);
+         bld.vop2(aco_opcode::v_or_b32, dst, Operand(op.constantValue() << offset), def_op);
+      } else if (dst.physReg().byte() == 2) {
+         Operand def_lo(dst.physReg().advance(-2), v2b);
+         Instruction* instr = bld.vop3(aco_opcode::v_pack_b32_f16, dst, def_lo, op);
+         static_cast<VOP3A_instruction*>(instr)->opsel = 0;
+      } else {
+         assert(dst.physReg().byte() == 0);
+         Operand def_hi(dst.physReg().advance(2), v2b);
+         Instruction* instr = bld.vop3(aco_opcode::v_pack_b32_f16, dst, op, def_hi);
+         static_cast<VOP3A_instruction*>(instr)->opsel = 2;
+      }
    } else {
-      assert(def.physReg().byte() == 0);
-      Operand def_hi(def.physReg().advance(2), v2b);
-      Instruction* instr = bld.vop3(aco_opcode::v_pack_b32_f16, def, op, def_hi);
-      static_cast<VOP3A_instruction*>(instr)->opsel = 2;
+      unreachable("unsupported copy");
    }
 }
 
@@ -1016,44 +1074,48 @@ bool do_copy(lower_context* ctx, Builder& bld, const copy_operation& copy, bool 
       if (def.physReg() == scc) {
          bld.sopc(aco_opcode::s_cmp_lg_i32, def, op, Operand(0u));
          *preserve_scc = true;
-      } else if (def.bytes() == 8 && def.getTemp().type() == RegType::sgpr) {
-         bld.sop1(aco_opcode::s_mov_b64, def, Operand(op.physReg(), s2));
+      } else if (op.isConstant()) {
+         copy_constant(ctx, bld, def, op);
+      } else if (def.regClass() == v1) {
+         bld.vop1(aco_opcode::v_mov_b32, def, op);
+      } else if (def.regClass() == s1) {
+         bld.sop1(aco_opcode::s_mov_b32, def, op);
+      } else if (def.regClass() == s2) {
+         bld.sop1(aco_opcode::s_mov_b64, def, op);
       } else if (def.regClass().is_subdword() && ctx->program->chip_class < GFX8) {
          if (op.physReg().byte()) {
             assert(def.physReg().byte() == 0);
             bld.vop2(aco_opcode::v_lshrrev_b32, def, Operand(op.physReg().byte() * 8), op);
-         } else if (def.physReg().byte() == 2) {
+         } else if (def.physReg().byte()) {
             assert(op.physReg().byte() == 0);
             /* preserve the target's lower half */
-            def = Definition(def.physReg().advance(-2), v1);
-            bld.vop2(aco_opcode::v_and_b32, Definition(op.physReg(), v1), Operand(0xFFFFu), op);
-            if (def.physReg().reg() != op.physReg().reg())
-               bld.vop2(aco_opcode::v_and_b32, def, Operand(0xFFFFu), Operand(def.physReg(), v2b));
-            bld.vop2(aco_opcode::v_cvt_pk_u16_u32, def, Operand(def.physReg(), v2b), op);
-         } else if (def.physReg().byte()) {
-            unsigned bits = def.physReg().byte() * 8;
-            assert(op.physReg().byte() == 0);
-            def = Definition(def.physReg().advance(-def.physReg().byte()), v1);
-            bld.vop2(aco_opcode::v_and_b32, def, Operand((1 << bits) - 1u), Operand(def.physReg(), op.regClass()));
+            uint32_t bits = def.physReg().byte() * 8;
+            PhysReg lo_reg = PhysReg(def.physReg().reg());
+            Definition lo_half = Definition(lo_reg, RegClass::get(RegType::vgpr, def.physReg().byte()));
+            Definition dst = Definition(lo_reg, RegClass::get(RegType::vgpr, lo_half.bytes() + op.bytes()));
+
             if (def.physReg().reg() == op.physReg().reg()) {
-               if (bits < 24) {
-                  bld.vop2(aco_opcode::v_mul_u32_u24, def, Operand((1 << bits) + 1u), op);
-               } else {
+               bld.vop2(aco_opcode::v_and_b32, lo_half, Operand((1 << bits) - 1u), Operand(lo_reg, lo_half.regClass()));
+               if (def.physReg().byte() == 1) {
+                  bld.vop2(aco_opcode::v_mul_u32_u24, dst, Operand((1 << bits) + 1u), op);
+               } else if (def.physReg().byte() == 2) {
+                  bld.vop2(aco_opcode::v_cvt_pk_u16_u32, dst, Operand(lo_reg, v2b), op);
+               } else if (def.physReg().byte() == 3) {
                   bld.sop1(aco_opcode::s_mov_b32, Definition(scratch_sgpr, s1), Operand((1 << bits) + 1u));
-                  bld.vop3(aco_opcode::v_mul_lo_u32, def, Operand(scratch_sgpr, s1), op);
+                  bld.vop3(aco_opcode::v_mul_lo_u32, dst, Operand(scratch_sgpr, s1), op);
                }
             } else {
-               bld.vop2(aco_opcode::v_lshlrev_b32, Definition(op.physReg(), def.regClass()), Operand(bits), op);
-               bld.vop2(aco_opcode::v_or_b32, def, Operand(def.physReg(), op.regClass()), op);
-               bld.vop2(aco_opcode::v_lshrrev_b32, Definition(op.physReg(), def.regClass()), Operand(bits), op);
+               lo_half.setFixed(lo_half.physReg().advance(4 - def.physReg().byte()));
+               bld.vop2(aco_opcode::v_lshlrev_b32, lo_half, Operand(32 - bits), Operand(lo_reg, lo_half.regClass()));
+               bld.vop3(aco_opcode::v_alignbyte_b32, dst, op, Operand(lo_half.physReg(), lo_half.regClass()), Operand(4 - def.physReg().byte()));
             }
          } else {
             bld.vop1(aco_opcode::v_mov_b32, def, op);
          }
-      } else if (def.regClass() == v2b && op.isLiteral()) {
-         copy_16bit_literal(ctx, bld, def, op);
+      } else if (def.regClass().is_subdword()) {
+         bld.vop1_sdwa(aco_opcode::v_mov_b32, def, op);
       } else {
-         bld.copy(def, op);
+         unreachable("unsupported copy");
       }
 
       did_copy = true;
@@ -1134,14 +1196,8 @@ void do_swap(lower_context *ctx, Builder& bld, const copy_operation& copy, bool 
          bld.sop2(aco_opcode::s_xor_b64, op_as_def, Definition(scc, s1), op, def_as_op);
          if (preserve_scc)
             bld.sopc(aco_opcode::s_cmp_lg_i32, Definition(scc, s1), Operand(pi->scratch_sgpr, s1), Operand(0u));
-      } else if (ctx->program->chip_class >= GFX9 && def.bytes() == 2 && def.physReg().reg() == op.physReg().reg()) {
-         aco_ptr<VOP3P_instruction> vop3p{create_instruction<VOP3P_instruction>(aco_opcode::v_pk_add_u16, Format::VOP3P, 2, 1)};
-         vop3p->operands[0] = Operand(PhysReg{op.physReg().reg()}, v1);
-         vop3p->operands[1] = Operand(0u);
-         vop3p->definitions[0] = Definition(PhysReg{op.physReg().reg()}, v1);
-         vop3p->opsel_lo = 0x1;
-         vop3p->opsel_hi = 0x2;
-         bld.insert(std::move(vop3p));
+      } else if (def.bytes() == 2 && def.physReg().reg() == op.physReg().reg()) {
+         bld.vop3(aco_opcode::v_alignbyte_b32, Definition(def.physReg(), v1), def_as_op, op, Operand(2u));
       } else {
          assert(def.regClass().is_subdword());
          bld.vop2_sdwa(aco_opcode::v_xor_b32, op_as_def, op, def_as_op);
@@ -1165,40 +1221,100 @@ void do_swap(lower_context *ctx, Builder& bld, const copy_operation& copy, bool 
 void do_pack_2x16(lower_context *ctx, Builder& bld, Definition def, Operand lo, Operand hi)
 {
    if (lo.isConstant() && hi.isConstant()) {
-      bld.copy(def, Operand(lo.constantValue() | (hi.constantValue() << 16)));
-      return;
-   } else if (lo.isLiteral() && ctx->program->chip_class < GFX10) {
-      if (def.physReg().reg() != hi.physReg().reg())
-         bld.copy(def, Operand(lo.constantValue()));
-      bld.copy(Definition(def.physReg().advance(2), v2b), hi);
-      if (def.physReg().reg() == hi.physReg().reg()) //TODO: create better code in this case with a v_lshlrev_b32+v_or_b32
-         copy_16bit_literal(ctx, bld, Definition(def.physReg(), v2b), lo);
-      return;
-   } else if (hi.isLiteral() && ctx->program->chip_class < GFX10) {
-      if (def.physReg().reg() != lo.physReg().reg())
-         bld.copy(def, Operand(hi.constantValue() << 16));
-      bld.copy(Definition(def.physReg(), v2b), lo);
-      if (def.physReg().reg() == lo.physReg().reg())
-         copy_16bit_literal(ctx, bld, Definition(def.physReg().advance(2), v2b), hi);
+      copy_constant(ctx, bld, def, Operand(lo.constantValue() | (hi.constantValue() << 16)));
       return;
    }
 
-   if (ctx->program->chip_class >= GFX9 && (ctx->block->fp_mode.denorm16_64 & fp_denorm_keep_in)) {
+   bool can_use_pack = (ctx->block->fp_mode.denorm16_64 & fp_denorm_keep_in) &&
+                       (ctx->program->chip_class >= GFX10 ||
+                        (ctx->program->chip_class >= GFX9 &&
+                         !lo.isLiteral() && !hi.isLiteral()));
+
+   if (can_use_pack) {
       Instruction* instr = bld.vop3(aco_opcode::v_pack_b32_f16, def, lo, hi);
       /* opsel: 0 = select low half, 1 = select high half. [0] = src0, [1] = src1 */
       static_cast<VOP3A_instruction*>(instr)->opsel = hi.physReg().byte() | (lo.physReg().byte() >> 1);
-   } else if (ctx->program->chip_class >= GFX8) {
-      // TODO: optimize with v_mov_b32 / v_lshlrev_b32
-      PhysReg reg = def.physReg();
-      bld.copy(Definition(reg, v2b), lo);
-      reg.reg_b += 2;
-      bld.copy(Definition(reg, v2b), hi);
-   } else {
-      assert(lo.physReg().byte() == 0 && hi.physReg().byte() == 0);
-      bld.vop2(aco_opcode::v_and_b32, Definition(lo.physReg(), v1), Operand(0xFFFFu), lo);
-      bld.vop2(aco_opcode::v_and_b32, Definition(hi.physReg(), v1), Operand(0xFFFFu), hi);
-      bld.vop2(aco_opcode::v_cvt_pk_u16_u32, def, lo, hi);
+      return;
    }
+
+   /* a single alignbyte can be sufficient: hi can be a 32-bit integer constant */
+   if (lo.physReg().byte() == 2 && hi.physReg().byte() == 0 &&
+       (!hi.isConstant() || !Operand(hi.constantValue()).isLiteral() ||
+        ctx->program->chip_class >= GFX10)) {
+      bld.vop3(aco_opcode::v_alignbyte_b32, def, hi, lo, Operand(2u));
+      return;
+   }
+
+   Definition def_lo = Definition(def.physReg(), v2b);
+   Definition def_hi = Definition(def.physReg().advance(2), v2b);
+
+   if (lo.isConstant()) {
+      /* move hi and zero low bits */
+      if (hi.physReg().byte() == 0)
+         bld.vop2(aco_opcode::v_lshlrev_b32, def_hi, Operand(16u), hi);
+      else
+         bld.vop2(aco_opcode::v_and_b32, def_hi, Operand(~0xFFFFu), hi);
+      bld.vop2(aco_opcode::v_or_b32, def, Operand(lo.constantValue()), Operand(def.physReg(), v1));
+      return;
+   }
+   if (hi.isConstant()) {
+      /* move lo and zero high bits */
+      if (lo.physReg().byte() == 2)
+         bld.vop2(aco_opcode::v_lshrrev_b32, def_lo, Operand(16u), lo);
+      else
+         bld.vop2(aco_opcode::v_and_b32, def_lo, Operand(0xFFFFu), lo);
+      bld.vop2(aco_opcode::v_or_b32, def, Operand(hi.constantValue() << 16u), Operand(def.physReg(), v1));
+      return;
+   }
+
+   if (lo.physReg().reg() == def.physReg().reg()) {
+      /* lo is in the high bits of def */
+      assert(lo.physReg().byte() == 2);
+      bld.vop2(aco_opcode::v_lshrrev_b32, def_lo, Operand(16u), lo);
+      lo.setFixed(def.physReg());
+   } else if (hi.physReg() == def.physReg()) {
+      /* hi is in the low bits of def */
+      assert(hi.physReg().byte() == 0);
+      bld.vop2(aco_opcode::v_lshlrev_b32, def_hi, Operand(16u), hi);
+      hi.setFixed(def.physReg().advance(2));
+   } else if (ctx->program->chip_class >= GFX8) {
+      /* either lo or hi can be placed with just a v_mov */
+      assert(lo.physReg().byte() == 0 || hi.physReg().byte() == 2);
+      Operand& op = lo.physReg().byte() == 0 ? lo : hi;
+      PhysReg reg = def.physReg().advance(op.physReg().byte());
+      bld.vop1(aco_opcode::v_mov_b32, Definition(reg, v2b), op);
+      op.setFixed(reg);
+   }
+
+   if (ctx->program->chip_class >= GFX8) {
+      /* either hi or lo are already placed correctly */
+      if (lo.physReg().reg() == def.physReg().reg())
+         bld.vop1_sdwa(aco_opcode::v_mov_b32, def_hi, hi);
+      else
+         bld.vop1_sdwa(aco_opcode::v_mov_b32, def_lo, lo);
+      return;
+   }
+
+   /* alignbyte needs the operands in the following way:
+    * | xx hi | lo xx | >> 2 byte */
+   if (lo.physReg().byte() != hi.physReg().byte()) {
+      /* | xx lo | hi xx | => | lo hi | lo hi | */
+      assert(lo.physReg().byte() == 0 && hi.physReg().byte() == 2);
+      bld.vop3(aco_opcode::v_alignbyte_b32, def, lo, hi, Operand(2u));
+      lo = Operand(def_hi.physReg(), v2b);
+      hi = Operand(def_lo.physReg(), v2b);
+   } else if (lo.physReg().byte() == 0) {
+      /* | xx hi | xx lo | => | xx hi | lo 00 | */
+      bld.vop2(aco_opcode::v_lshlrev_b32, def_hi, Operand(16u), lo);
+      lo = Operand(def_hi.physReg(), v2b);
+   } else {
+      /* | hi xx | lo xx | => | 00 hi | lo xx | */
+      assert(hi.physReg().byte() == 2);
+      bld.vop2(aco_opcode::v_lshrrev_b32, def_lo, Operand(16u), hi);
+      hi = Operand(def_lo.physReg(), v2b);
+   }
+   /* perform the alignbyte */
+   bld.vop3(aco_opcode::v_alignbyte_b32, def, hi, lo, Operand(2u));
 }
 
 void handle_operands(std::map<PhysReg, copy_operation>& copy_map, lower_context* ctx, chip_class chip_class, Pseudo_instruction *pi)
@@ -1297,9 +1413,12 @@ void handle_operands(std::map<PhysReg, copy_operation>& copy_map, lower_context*
          std::map<PhysReg, copy_operation>::iterator other = copy_map.find(reg_hi);
          if (other != copy_map.end() && other->second.bytes == 2) {
             /* check if the target register is otherwise unused */
-            // TODO: also do this for self-intersecting registers
-            bool unused_lo = !it->second.is_used;
-            bool unused_hi = !other->second.is_used;
+            bool unused_lo = !it->second.is_used ||
+                             (it->second.is_used == 0x0101 &&
+                              other->second.op.physReg() == it->first);
+            bool unused_hi = !other->second.is_used ||
+                             (other->second.is_used == 0x0101 &&
+                              it->second.op.physReg() == reg_hi);
             if (unused_lo && unused_hi) {
                Operand lo = it->second.op;
                Operand hi = other->second.op;
@@ -1726,7 +1845,7 @@ void lower_to_hw_instr(Program* program)
                /* don't bother with an early exit near the end of the program */
                if ((block->instructions.size() - 1 - j) <= 4 &&
                     block->instructions.back()->opcode == aco_opcode::s_endpgm) {
-                  unsigned null_exp_dest = (ctx.program->stage & hw_fs) ? 9 /* NULL */ : V_008DFC_SQ_EXP_POS;
+                  unsigned null_exp_dest = (ctx.program->stage.hw == HWStage::FS) ? 9 /* NULL */ : V_008DFC_SQ_EXP_POS;
                   bool ignore_early_exit = true;
 
                   for (unsigned k = j + 1; k < block->instructions.size(); ++k) {

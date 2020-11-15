@@ -111,8 +111,7 @@ no ``parallel`` field set and:
 .. code-block:: yaml
 
     variables:
-      CI_NODE_INDEX: 1
-      CI_NODE_TOTAL: 10
+      DEQP_FRACTION: 10
 
 to just run 1/10th of the test list.
 

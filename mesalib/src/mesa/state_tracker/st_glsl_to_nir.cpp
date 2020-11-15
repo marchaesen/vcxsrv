@@ -370,7 +370,7 @@ st_nir_preprocess(struct st_context *st, struct gl_program *prog,
    }
 
    nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
-   if (!st->ctx->SoftFP64 && nir->info.uses_64bit &&
+   if (!st->ctx->SoftFP64 && ((nir->info.bit_sizes_int | nir->info.bit_sizes_float) & 64) &&
        (options->lower_doubles_options & nir_lower_fp64_full_software) != 0) {
       st->ctx->SoftFP64 = glsl_float64_funcs_to_nir(st->ctx, options);
    }
@@ -828,6 +828,19 @@ st_link_nir(struct gl_context *ctx,
       struct gl_linked_shader *shader = linked_shader[i];
       struct gl_program *prog = shader->Program;
       struct st_program *stp = st_program(prog);
+
+      /* Make sure that prog->info is in sync with nir->info, but st/mesa
+       * expects some of the values to be from before lowering.
+       */
+      shader_info old_info = prog->info;
+      prog->info = prog->nir->info;
+      prog->info.name = old_info.name;
+      prog->info.label = old_info.label;
+      prog->info.num_ssbos = old_info.num_ssbos;
+      prog->info.num_ubos = old_info.num_ubos;
+      prog->info.num_abos = old_info.num_abos;
+      if (prog->info.stage == MESA_SHADER_VERTEX)
+         prog->info.inputs_read = old_info.inputs_read;
 
       /* Initialize st_vertex_program members. */
       if (shader->Stage == MESA_SHADER_VERTEX)

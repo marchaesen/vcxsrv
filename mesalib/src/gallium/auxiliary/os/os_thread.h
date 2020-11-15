@@ -155,21 +155,4 @@ pipe_tsd_set(pipe_tsd *tsd, void *value)
    }
 }
 
-
-
-/*
- * Thread statistics.
- */
-
-/* Return the time of the current thread's CPU time clock. */
-static inline int64_t
-pipe_current_thread_get_time_nano(void)
-{
-#if defined(HAVE_PTHREAD)
-   return u_thread_get_time_nano(pthread_self());
-#else
-   return 0;
-#endif
-}
-
 #endif /* OS_THREAD_H_ */

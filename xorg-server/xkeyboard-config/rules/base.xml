@@ -1330,20 +1330,6 @@
        <vendor>Google</vendor>
      </configItem>
     </model>
-    <model>
-      <configItem>
-       <name>teck227</name>
-       <description>Truly Ergonomic Computer Keyboard Model 227 (Wide Alt keys)</description>
-       <vendor>Megawin Technology</vendor>
-     </configItem>
-    </model>
-    <model>
-      <configItem>
-       <name>teck229</name>
-       <description>Truly Ergonomic Computer Keyboard Model 229 (Standard sized Alt keys, additional Super and Menu key)</description>
-       <vendor>Megawin Technology</vendor>
-     </configItem>
-    </model>
   </modelList>
   <layoutList>
     <layout>
@@ -1744,12 +1730,6 @@
           <configItem>
             <name>nodeadkeys</name>
             <description>German (Austria, no dead keys)</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
-            <name>sundeadkeys</name>
-            <description>German (Austria, Sun dead keys)</description>
           </configItem>
         </variant>
         <variant>
@@ -2295,7 +2275,7 @@
         <variant>
           <configItem>
             <name>iipa</name>
-            <description>Indic (phonetic, IPA)</description>
+            <description>Indic IPA</description>
             <languageList>
               <iso639Id>inc</iso639Id>
             </languageList>
@@ -2436,14 +2416,14 @@
       <configItem>
         <name>dz</name>
         <shortDescription>kab</shortDescription>
-        <description>Kabylian (azerty layout, no dead keys)</description>
+        <description>Kabyle (azerty layout, no dead keys)</description>
       </configItem>
       <variantList>
         <variant>
           <configItem>
             <name>azerty-deadkeys</name>
             <shortDescription>kab</shortDescription>
-            <description>Kabylian (azerty layout, with dead keys)</description>
+            <description>Kabyle (azerty layout, with dead keys)</description>
             <languageList>
               <iso639Id>kab</iso639Id>
             </languageList>
@@ -2453,7 +2433,7 @@
           <configItem>
             <name>qwerty-gb-deadkeys</name>
             <shortDescription>kab</shortDescription>
-            <description>Kabylian (qwerty-gb layout, with dead keys)</description>
+            <description>Kabyle (qwerty-gb layout, with dead keys)</description>
             <languageList>
               <iso639Id>kab</iso639Id>
             </languageList>
@@ -2463,7 +2443,7 @@
           <configItem>
             <name>qwerty-us-deadkeys</name>
             <shortDescription>kab</shortDescription>
-            <description>Kabylian (qwerty-us layout, with dead keys)</description>
+            <description>Kabyle (qwerty-us layout, with dead keys)</description>
             <languageList>
               <iso639Id>kab</iso639Id>
             </languageList>
@@ -2473,7 +2453,7 @@
           <configItem>
             <name>ber</name>
             <shortDescription>kab</shortDescription>
-            <description>Kabylian (Algeria, Tifinagh)</description>
+            <description>Kabyle (Algeria, Tifinagh)</description>
             <languageList>
               <iso639Id>kab</iso639Id>
             </languageList>
@@ -3055,12 +3035,6 @@
       <variantList>
         <variant>
           <configItem>
-            <name>sundeadkeys</name>
-            <description>Dutch (Sun dead keys)</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
             <name>mac</name>
             <description>Dutch (Macintosh)</description>
           </configItem>
@@ -3534,11 +3508,9 @@
     <layout>
       <configItem>
         <name>gn</name>
-        <!-- Keyboard indicator for French layouts -->
-        <shortDescription>fr</shortDescription>
-        <description>French (Guinea)</description>
+        <description>N'Ko (azerty)</description>
         <languageList>
-          <iso639Id>fra</iso639Id>
+          <iso639Id>nqo</iso639Id>
         </languageList>
       </configItem>
       <variantList/>
@@ -3663,12 +3635,6 @@
           <configItem>
             <name>dvorak</name>
             <description>German (Dvorak)</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
-            <name>sundeadkeys</name>
-            <description>German (Sun dead keys)</description>
           </configItem>
         </variant>
         <variant>
@@ -4741,20 +4707,8 @@
       <variantList>
         <variant>
           <configItem>
-            <name>cedilla</name>
-            <description>Romanian (cedilla)</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
             <name>std</name>
             <description>Romanian (standard)</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
-            <name>std_cedilla</name>
-            <description>Romanian (standard cedilla)</description>
           </configItem>
         </variant>
         <variant>
@@ -5487,12 +5441,6 @@
           <configItem>
             <name>alt</name>
             <description>Turkish (Alt-Q)</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
-            <name>sundeadkeys</name>
-            <description>Turkish (Sun dead keys)</description>
           </configItem>
         </variant>
         <variant>

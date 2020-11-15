@@ -157,6 +157,9 @@ debug_disable_error_message_boxes(void);
 long
 debug_get_num_option(const char *name, long dfault);
 
+void
+debug_get_version_option(const char *name, unsigned *major, unsigned *minor);
+
 #ifdef _MSC_VER
 __declspec(noreturn)
 #endif

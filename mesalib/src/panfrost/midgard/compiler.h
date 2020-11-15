@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2019-2020 Collabora, Ltd.
  * Copyright (C) 2019 Alyssa Rosenzweig <alyssa@rosenzweig.io>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -70,10 +71,6 @@ typedef struct midgard_branch {
                 int target_continue;
         };
 } midgard_branch;
-
-#define PAN_WRITEOUT_C 1
-#define PAN_WRITEOUT_Z 2
-#define PAN_WRITEOUT_S 4
 
 /* Generic in-memory data type repesenting a single logical instruction, rather
  * than a single instruction group. This is the preferred form for code gen.
@@ -659,8 +656,6 @@ void emit_binary_bundle(
         struct util_dynarray *emission,
         int next_tag);
 
-bool
-nir_undef_to_zero(nir_shader *shader);
 bool nir_fuse_io_16(nir_shader *shader);
 
 bool midgard_nir_lod_errata(nir_shader *shader);

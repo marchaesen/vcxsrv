@@ -79,7 +79,7 @@ Operand get_ssa(Program *program, unsigned block_idx, ssa_state *state, bool bef
       Temp res = Temp(program->allocateTmp(program->lane_mask));
       state->latest[block_idx] = Operand(res);
 
-      Operand ops[pred];
+      Operand *const ops = (Operand *)alloca(pred * sizeof(Operand));
       for (unsigned i = 0; i < pred; i++)
          ops[i] = get_ssa(program, block.linear_preds[i], state, false);
 
@@ -128,7 +128,7 @@ void build_merge_code(Program *program, Block *block, Definition dst, Operand pr
    bld.reset(&block->instructions, std::prev(it.base()));
 
    if (prev.isUndefined()) {
-      bld.sop1(Builder::s_mov, dst, cur);
+      bld.copy(dst, cur);
       return;
    }
 
@@ -150,16 +150,16 @@ void build_merge_code(Program *program, Block *block, Definition dst, Operand pr
       if (!cur_is_constant)
          bld.sop2(Builder::s_orn2, dst, bld.def(s1, scc), cur, Operand(exec, bld.lm));
       else if (cur.constantValue64(true))
-         bld.sop1(Builder::s_mov, dst, program->wave_size == 64 ? Operand(UINT64_MAX) : Operand(UINT32_MAX));
+         bld.copy(dst, Operand(UINT32_MAX, bld.lm == s2));
       else
          bld.sop1(Builder::s_not, dst, bld.def(s1, scc), Operand(exec, bld.lm));
    } else {
       if (!cur_is_constant)
          bld.sop2(Builder::s_and, dst, bld.def(s1, scc), cur, Operand(exec, bld.lm));
       else if (cur.constantValue64(true))
-         bld.sop1(Builder::s_mov, dst, Operand(exec, bld.lm));
+         bld.copy(dst, Operand(exec, bld.lm));
       else
-         bld.sop1(Builder::s_mov, dst, program->wave_size == 64 ? Operand((uint64_t)0u) : Operand(0u));
+         bld.copy(dst, Operand(0u, bld.lm == s2));
    }
 }
 
@@ -266,7 +266,7 @@ void lower_subdword_phis(Program *program, Block *block, aco_ptr<Instruction>& p
 
       assert(phi_src.regClass().type() == RegType::sgpr);
       Temp tmp = bld.tmp(RegClass(RegType::vgpr, phi_src.size()));
-      insert_before_logical_end(pred, bld.pseudo(aco_opcode::p_create_vector, Definition(tmp), phi_src).get_ptr());
+      insert_before_logical_end(pred, bld.copy(Definition(tmp), phi_src).get_ptr());
       Temp new_phi_src = bld.tmp(phi->definitions[0].regClass());
       insert_before_logical_end(pred, bld.pseudo(aco_opcode::p_extract_vector, Definition(new_phi_src), tmp, Operand(0u)).get_ptr());
 

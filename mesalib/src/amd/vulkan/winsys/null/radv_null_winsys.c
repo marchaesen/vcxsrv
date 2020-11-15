@@ -35,37 +35,38 @@
 static const struct {
 	uint32_t pci_id;
 	uint32_t num_render_backends;
+	bool has_dedicated_vram;
 } gpu_info[] = {
-	[CHIP_TAHITI] = { 0x6780, 8 },
-	[CHIP_PITCAIRN] = { 0x6800, 8, },
-	[CHIP_VERDE] = { 0x6820, 4 },
-	[CHIP_OLAND] = { 0x6060, 2 },
-	[CHIP_HAINAN] = { 0x6660, 2 },
-	[CHIP_BONAIRE] = { 0x6640, 4 },
-	[CHIP_KAVERI] = { 0x1304, 2 },
-	[CHIP_KABINI] = { 0x9830, 2 },
-	[CHIP_HAWAII] = { 0x67A0, 16 },
-	[CHIP_TONGA] = { 0x6920, 8 },
-	[CHIP_ICELAND] = { 0x6900, 2 },
-	[CHIP_CARRIZO] = { 0x9870, 2 },
-	[CHIP_FIJI] = { 0x7300, 16 },
-	[CHIP_STONEY] = { 0x98E4, 2 },
-	[CHIP_POLARIS10] = { 0x67C0, 8 },
-	[CHIP_POLARIS11] = { 0x67E0, 4 },
-	[CHIP_POLARIS12] = { 0x6980, 4 },
-	[CHIP_VEGAM] = { 0x694C, 4 },
-	[CHIP_VEGA10] = { 0x6860, 16 },
-	[CHIP_VEGA12] = { 0x69A0, 8 },
-	[CHIP_VEGA20] = { 0x66A0, 16 },
-	[CHIP_RAVEN] = { 0x15DD, 2 },
-	[CHIP_RENOIR] = { 0x1636, 2 },
-	[CHIP_ARCTURUS] = { 0x738C, 2 },
-	[CHIP_NAVI10] = { 0x7310, 16 },
-	[CHIP_NAVI12] = { 0x7360, 8 },
-	[CHIP_NAVI14] = { 0x7340, 8 },
+	[CHIP_TAHITI] = { 0x6780, 8, true },
+	[CHIP_PITCAIRN] = { 0x6800, 8, true },
+	[CHIP_VERDE] = { 0x6820, 4, true },
+	[CHIP_OLAND] = { 0x6060, 2, true },
+	[CHIP_HAINAN] = { 0x6660, 2, true },
+	[CHIP_BONAIRE] = { 0x6640, 4, true },
+	[CHIP_KAVERI] = { 0x1304, 2, false },
+	[CHIP_KABINI] = { 0x9830, 2, false },
+	[CHIP_HAWAII] = { 0x67A0, 16, true },
+	[CHIP_TONGA] = { 0x6920, 8, true },
+	[CHIP_ICELAND] = { 0x6900, 2, true },
+	[CHIP_CARRIZO] = { 0x9870, 2, false },
+	[CHIP_FIJI] = { 0x7300, 16, true },
+	[CHIP_STONEY] = { 0x98E4, 2, false },
+	[CHIP_POLARIS10] = { 0x67C0, 8, true },
+	[CHIP_POLARIS11] = { 0x67E0, 4, true },
+	[CHIP_POLARIS12] = { 0x6980, 4, true },
+	[CHIP_VEGAM] = { 0x694C, 4, true },
+	[CHIP_VEGA10] = { 0x6860, 16, true },
+	[CHIP_VEGA12] = { 0x69A0, 8, true },
+	[CHIP_VEGA20] = { 0x66A0, 16, true },
+	[CHIP_RAVEN] = { 0x15DD, 2, false },
+	[CHIP_RENOIR] = { 0x1636, 2, false },
+	[CHIP_ARCTURUS] = { 0x738C, 2, true },
+	[CHIP_NAVI10] = { 0x7310, 16, true },
+	[CHIP_NAVI12] = { 0x7360, 8, true },
+	[CHIP_NAVI14] = { 0x7340, 8, true },
 	/* TODO: fill with real info. */
-	[CHIP_SIENNA_CICHLID] = { 0xffff, 8 },
-	[CHIP_NAVY_FLOUNDER] = { 0xffff, 8 },
+	[CHIP_SIENNA_CICHLID] = { 0xffff, 8, true },
+	[CHIP_NAVY_FLOUNDER] = { 0xffff, 8, true },
 };
 
 static void radv_null_winsys_query_info(struct radeon_winsys *rws,
@@ -126,6 +127,8 @@ static void radv_null_winsys_query_info(struct radeon_winsys *rws,
 	info->num_simd_per_compute_unit = info->chip_class >= GFX10 ? 2 : 4;
 	info->lds_size_per_workgroup = info->chip_class >= GFX10 ? 128 * 1024 : 64 * 1024;
 	info->num_render_backends = gpu_info[info->family].num_render_backends;
+
+	info->has_dedicated_vram = gpu_info[info->family].has_dedicated_vram;
 }
 
 static void radv_null_winsys_destroy(struct radeon_winsys *rws)

@@ -53,18 +53,30 @@ nir_builder_init(nir_builder *build, nir_function_impl *impl)
    build->shader = impl->function->shader;
 }
 
-static inline void
-nir_builder_init_simple_shader(nir_builder *build, void *mem_ctx,
-                               gl_shader_stage stage,
-                               const nir_shader_compiler_options *options)
+static inline nir_builder MUST_CHECK PRINTFLIKE(3, 4)
+nir_builder_init_simple_shader(gl_shader_stage stage,
+                               const nir_shader_compiler_options *options,
+                               const char *name, ...)
 {
-   memset(build, 0, sizeof(*build));
-   build->shader = nir_shader_create(mem_ctx, stage, options, NULL);
-   nir_function *func = nir_function_create(build->shader, "main");
+   nir_builder b;
+
+   memset(&b, 0, sizeof(b));
+   b.shader = nir_shader_create(NULL, stage, options, NULL);
+
+   if (name) {
+      va_list args;
+      va_start(args, name);
+      b.shader->info.name = ralloc_vasprintf(b.shader, name, args);
+      va_end(args);
+   }
+
+   nir_function *func = nir_function_create(b.shader, "main");
    func->is_entrypoint = true;
-   build->exact = false;
-   build->impl = nir_function_impl_create(func);
-   build->cursor = nir_after_cf_list(&build->impl->body);
+   b.exact = false;
+   b.impl = nir_function_impl_create(func);
+   b.cursor = nir_after_cf_list(&b.impl->body);
+
+   return b;
 }
 
 typedef bool (*nir_instr_pass_cb)(struct nir_builder *, nir_instr *, void *);
@@ -644,17 +656,25 @@ nir_channels(nir_builder *b, nir_ssa_def *def, nir_component_mask_t mask)
 }
 
 static inline nir_ssa_def *
-_nir_vector_extract_helper(nir_builder *b, nir_ssa_def *vec, nir_ssa_def *c,
-                           unsigned start, unsigned end)
+_nir_select_from_array_helper(nir_builder *b, nir_ssa_def **arr,
+                              nir_ssa_def *idx,
+                              unsigned start, unsigned end)
 {
    if (start == end - 1) {
-      return nir_channel(b, vec, start);
+      return arr[start];
    } else {
       unsigned mid = start + (end - start) / 2;
-      return nir_bcsel(b, nir_ilt(b, c, nir_imm_intN_t(b, mid, c->bit_size)),
-                       _nir_vector_extract_helper(b, vec, c, start, mid),
-                       _nir_vector_extract_helper(b, vec, c, mid, end));
+      return nir_bcsel(b, nir_ilt(b, idx, nir_imm_intN_t(b, mid, idx->bit_size)),
+                       _nir_select_from_array_helper(b, arr, idx, start, mid),
+                       _nir_select_from_array_helper(b, arr, idx, mid, end));
    }
+}
+
+static inline nir_ssa_def *
+nir_select_from_ssa_def_array(nir_builder *b, nir_ssa_def **arr,
+                              unsigned arr_len, nir_ssa_def *idx)
+{
+   return _nir_select_from_array_helper(b, arr, idx, 0, arr_len);
 }
 
 static inline nir_ssa_def *
@@ -668,7 +688,10 @@ nir_vector_extract(nir_builder *b, nir_ssa_def *vec, nir_ssa_def *c)
       else
          return nir_ssa_undef(b, 1, vec->bit_size);
    } else {
-      return _nir_vector_extract_helper(b, vec, c, 0, vec->num_components);
+      nir_ssa_def *comps[NIR_MAX_VEC_COMPONENTS];
+      for (unsigned i = 0; i < vec->num_components; i++)
+         comps[i] = nir_channel(b, vec, i);
+      return nir_select_from_ssa_def_array(b, comps, vec->num_components, c);
    }
 }
 
@@ -768,6 +791,13 @@ nir_iadd_imm(nir_builder *build, nir_ssa_def *x, uint64_t y)
    } else {
       return nir_iadd(build, x, nir_imm_intN_t(build, y, x->bit_size));
    }
+}
+
+
+static inline nir_ssa_def *
+nir_ieq_imm(nir_builder *build, nir_ssa_def *x, uint64_t y)
+{
+   return nir_ieq(build, x, nir_imm_intN_t(build, y, x->bit_size));
 }
 
 static inline nir_ssa_def *
@@ -1049,17 +1079,11 @@ nir_ssa_for_src(nir_builder *build, nir_src src, int num_components)
 static inline nir_ssa_def *
 nir_ssa_for_alu_src(nir_builder *build, nir_alu_instr *instr, unsigned srcn)
 {
-   static uint8_t trivial_swizzle[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-   STATIC_ASSERT(ARRAY_SIZE(trivial_swizzle) == NIR_MAX_VEC_COMPONENTS);
+   if (nir_alu_src_is_trivial_ssa(instr, srcn))
+      return instr->src[srcn].src.ssa;
 
    nir_alu_src *src = &instr->src[srcn];
    unsigned num_components = nir_ssa_alu_instr_src_components(instr, srcn);
-
-   if (src->src.is_ssa && (src->src.ssa->num_components == num_components) &&
-       !src->abs && !src->negate &&
-       (memcmp(src->swizzle, trivial_swizzle, num_components) == 0))
-      return src->src.ssa;
-
    return nir_mov_alu(build, *src, num_components);
 }
 
@@ -1077,7 +1101,7 @@ nir_build_deref_var(nir_builder *build, nir_variable *var)
    nir_deref_instr *deref =
       nir_deref_instr_create(build->shader, nir_deref_type_var);
 
-   deref->mode = (nir_variable_mode)var->data.mode;
+   deref->modes = (nir_variable_mode)var->data.mode;
    deref->type = var->type;
    deref->var = var;
 
@@ -1102,7 +1126,7 @@ nir_build_deref_array(nir_builder *build, nir_deref_instr *parent,
    nir_deref_instr *deref =
       nir_deref_instr_create(build->shader, nir_deref_type_array);
 
-   deref->mode = parent->mode;
+   deref->modes = parent->modes;
    deref->type = glsl_get_array_element(parent->type);
    deref->parent = nir_src_for_ssa(&parent->dest.ssa);
    deref->arr.index = nir_src_for_ssa(index);
@@ -1140,7 +1164,7 @@ nir_build_deref_ptr_as_array(nir_builder *build, nir_deref_instr *parent,
    nir_deref_instr *deref =
       nir_deref_instr_create(build->shader, nir_deref_type_ptr_as_array);
 
-   deref->mode = parent->mode;
+   deref->modes = parent->modes;
    deref->type = parent->type;
    deref->parent = nir_src_for_ssa(&parent->dest.ssa);
    deref->arr.index = nir_src_for_ssa(index);
@@ -1163,7 +1187,7 @@ nir_build_deref_array_wildcard(nir_builder *build, nir_deref_instr *parent)
    nir_deref_instr *deref =
       nir_deref_instr_create(build->shader, nir_deref_type_array_wildcard);
 
-   deref->mode = parent->mode;
+   deref->modes = parent->modes;
    deref->type = glsl_get_array_element(parent->type);
    deref->parent = nir_src_for_ssa(&parent->dest.ssa);
 
@@ -1185,7 +1209,7 @@ nir_build_deref_struct(nir_builder *build, nir_deref_instr *parent,
    nir_deref_instr *deref =
       nir_deref_instr_create(build->shader, nir_deref_type_struct);
 
-   deref->mode = parent->mode;
+   deref->modes = parent->modes;
    deref->type = glsl_get_struct_field(parent->type, index);
    deref->parent = nir_src_for_ssa(&parent->dest.ssa);
    deref->strct.index = index;
@@ -1201,13 +1225,13 @@ nir_build_deref_struct(nir_builder *build, nir_deref_instr *parent,
 
 static inline nir_deref_instr *
 nir_build_deref_cast(nir_builder *build, nir_ssa_def *parent,
-                     nir_variable_mode mode, const struct glsl_type *type,
+                     nir_variable_mode modes, const struct glsl_type *type,
                      unsigned ptr_stride)
 {
    nir_deref_instr *deref =
       nir_deref_instr_create(build->shader, nir_deref_type_cast);
 
-   deref->mode = mode;
+   deref->modes = modes;
    deref->type = type;
    deref->parent = nir_src_for_ssa(parent);
    deref->cast.ptr_stride = ptr_stride;
@@ -1227,7 +1251,7 @@ nir_alignment_deref_cast(nir_builder *build, nir_deref_instr *parent,
    nir_deref_instr *deref =
       nir_deref_instr_create(build->shader, nir_deref_type_cast);
 
-   deref->mode = parent->mode;
+   deref->modes = parent->modes;
    deref->type = parent->type;
    deref->parent = nir_src_for_ssa(&parent->dest.ssa);
    deref->cast.ptr_stride = nir_deref_instr_array_stride(deref);
@@ -1406,6 +1430,19 @@ nir_memcpy_deref(nir_builder *build, nir_deref_instr *dest,
    nir_memcpy_deref_with_access(build, dest, src, size,
                                 (enum gl_access_qualifier)0,
                                 (enum gl_access_qualifier)0);
+}
+
+static inline nir_ssa_def *
+nir_build_deref_mode_is(nir_builder *build, nir_deref_instr *deref,
+                        nir_variable_mode mode)
+{
+   nir_intrinsic_instr *intrin =
+      nir_intrinsic_instr_create(build->shader, nir_intrinsic_deref_mode_is);
+   intrin->src[0] = nir_src_for_ssa(&deref->dest.ssa);
+   nir_intrinsic_set_memory_modes(intrin, mode);
+   nir_ssa_dest_init(&intrin->instr, &intrin->dest, 1, 1, NULL);
+   nir_builder_instr_insert(build, &intrin->instr);
+   return &intrin->dest.ssa;
 }
 
 static inline nir_ssa_def *

@@ -106,5 +106,4 @@ xkb_symbols "grab_debug" {
 	type="CTRL+ALT",
 	symbols[Group1]= [ F12, F12, F12, F12, XF86LogWindowTree ]
     };
-
 };

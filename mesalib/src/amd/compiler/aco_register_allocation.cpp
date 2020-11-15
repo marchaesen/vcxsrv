@@ -38,8 +38,10 @@
 namespace aco {
 namespace {
 
+struct ra_ctx;
+
 unsigned get_subdword_operand_stride(chip_class chip, const aco_ptr<Instruction>& instr, unsigned idx, RegClass rc);
-void add_subdword_operand(chip_class chip, aco_ptr<Instruction>& instr, unsigned idx, unsigned byte, RegClass rc);
+void add_subdword_operand(ra_ctx& ctx, aco_ptr<Instruction>& instr, unsigned idx, unsigned byte, RegClass rc);
 std::pair<unsigned, unsigned> get_subdword_definition_info(Program *program, const aco_ptr<Instruction>& instr, RegClass rc);
 void add_subdword_definition(Program *program, aco_ptr<Instruction>& instr, unsigned idx, PhysReg reg, bool is_partial);
 
@@ -352,8 +354,22 @@ unsigned get_subdword_operand_stride(chip_class chip, const aco_ptr<Instruction>
    return 4;
 }
 
-void add_subdword_operand(chip_class chip, aco_ptr<Instruction>& instr, unsigned idx, unsigned byte, RegClass rc)
+void update_phi_map(ra_ctx& ctx, Instruction *old, Instruction *instr)
 {
+   for (Operand& op : instr->operands) {
+      if (!op.isTemp())
+         continue;
+      std::unordered_map<unsigned, phi_info>::iterator phi = ctx.phi_map.find(op.tempId());
+      if (phi != ctx.phi_map.end()) {
+         phi->second.uses.erase(old);
+         phi->second.uses.emplace(instr);
+      }
+   }
+}
+
+void add_subdword_operand(ra_ctx& ctx, aco_ptr<Instruction>& instr, unsigned idx, unsigned byte, RegClass rc)
+{
+   chip_class chip = ctx.program->chip_class;
    if (instr->format == Format::PSEUDO || byte == 0)
       return;
 
@@ -376,7 +392,9 @@ void add_subdword_operand(chip_class chip, aco_ptr<Instruction>& instr, unsigned
       }
       return;
    } else if (can_use_SDWA(chip, instr)) {
-      convert_to_SDWA(chip, instr);
+      aco_ptr<Instruction> tmp = convert_to_SDWA(chip, instr);
+      if (tmp)
+         update_phi_map(ctx, tmp.get(), instr.get());
       return;
    } else if (rc.bytes() == 2 && can_use_opsel(chip, instr->opcode, idx, byte / 2)) {
       VOP3A_instruction *vop3 = static_cast<VOP3A_instruction *>(instr.get());
@@ -438,6 +456,7 @@ std::pair<unsigned, unsigned> get_subdword_definition_info(Program *program, con
    default:
       break;
    }
+   bytes_written = bytes_written > 4 ? align(bytes_written, 4) : bytes_written;
    bytes_written = MAX2(bytes_written, instr_info.definition_size[(int)instr->opcode] / 8u);
 
    if (can_use_SDWA(chip, instr)) {
@@ -1331,7 +1350,7 @@ PhysReg get_reg_create_vector(ra_ctx& ctx,
                PhysReg reg;
                reg.reg_b = j * 4;
                unsigned bytes_left = bytes - (j - reg_lo) * 4;
-               for (unsigned k = 0; k < MIN2(bytes_left, 4); k++, reg.reg_b++)
+               for (unsigned byte_idx = 0; byte_idx < MIN2(bytes_left, 4); byte_idx++, reg.reg_b++)
                   k += reg_file.test(reg, 1);
             } else {
                k += 4;
@@ -1595,7 +1614,7 @@ Temp handle_live_in(ra_ctx& ctx, Temp val, Block* block)
       new_val = read_variable(ctx, val, preds[0]);
    } else {
       /* there are multiple predecessors and the block is sealed */
-      Temp ops[preds.size()];
+      Temp *const ops = (Temp *)alloca(preds.size() * sizeof(Temp));
 
       /* get the rename from each predecessor and check if they are the same */
       bool needs_phi = false;
@@ -2233,7 +2252,7 @@ void register_allocation(Program *program, std::vector<IDSet>& live_out_per_bloc
             if (op.isTemp() && op.isFirstKill() && op.isLateKill())
                register_file.clear(op);
             if (op.isTemp() && op.physReg().byte() != 0)
-               add_subdword_operand(program->chip_class, instr, i, op.physReg().byte(), op.regClass());
+               add_subdword_operand(ctx, instr, i, op.physReg().byte(), op.regClass());
          }
 
          /* emit parallelcopy */
@@ -2366,19 +2385,9 @@ void register_allocation(Program *program, std::vector<IDSet>& live_out_per_bloc
             aco_ptr<Instruction> tmp = std::move(instr);
             Format format = asVOP3(tmp->format);
             instr.reset(create_instruction<VOP3A_instruction>(tmp->opcode, format, tmp->operands.size(), tmp->definitions.size()));
-            for (unsigned i = 0; i < instr->operands.size(); i++) {
-               Operand& operand = tmp->operands[i];
-               instr->operands[i] = operand;
-               /* keep phi_map up to date */
-               if (operand.isTemp()) {
-                  std::unordered_map<unsigned, phi_info>::iterator phi = ctx.phi_map.find(operand.tempId());
-                  if (phi != ctx.phi_map.end()) {
-                     phi->second.uses.erase(tmp.get());
-                     phi->second.uses.emplace(instr.get());
-                  }
-               }
-            }
+            std::copy(tmp->operands.begin(), tmp->operands.end(), instr->operands.begin());
             std::copy(tmp->definitions.begin(), tmp->definitions.end(), instr->definitions.begin());
+            update_phi_map(ctx, tmp.get(), instr.get());
          }
 
          instructions.emplace_back(std::move(*it));

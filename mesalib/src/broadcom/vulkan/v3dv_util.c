@@ -38,26 +38,6 @@
 #include "vk_enum_to_str.h"
 #include "v3dv_private.h"
 
-/** Log an error message.  */
-void v3dv_printflike(1, 2)
-   v3dv_loge(const char *format, ...)
-{
-   va_list va;
-
-   va_start(va, format);
-   v3dv_loge_v(format, va);
-   va_end(va);
-}
-
-/** \see v3dv_loge() */
-void
-v3dv_loge_v(const char *format, va_list va)
-{
-   fprintf(stderr, "vk: error: ");
-   vfprintf(stderr, format, va);
-   fprintf(stderr, "\n");
-}
-
 VkResult
 __vk_errorf(struct v3dv_instance *instance, VkResult error, const char *file,
             int line, const char *format, ...)

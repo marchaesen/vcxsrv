@@ -30,6 +30,13 @@ context::context(const property_list &props,
    notify(notify), props(props), devs(devs) {
 }
 
+context::~context() {
+   while (_destroy_notify.size()) {
+      _destroy_notify.top()();
+      _destroy_notify.pop();
+   }
+}
+
 bool
 context::operator==(const context &ctx) const {
    return this == &ctx;
@@ -38,6 +45,11 @@ context::operator==(const context &ctx) const {
 bool
 context::operator!=(const context &ctx) const {
    return this != &ctx;
+}
+
+void
+context::destroy_notify(std::function<void ()> f) {
+   _destroy_notify.push(f);
 }
 
 const context::property_list &

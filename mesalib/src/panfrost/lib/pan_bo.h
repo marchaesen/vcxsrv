@@ -68,6 +68,14 @@
 /* BO is accessed by the fragment job. */
 #define PAN_BO_ACCESS_FRAGMENT        (1 << 4)
 
+struct panfrost_ptr {
+        /* CPU address */
+        void *cpu;
+
+        /* GPU address */
+        mali_ptr gpu;
+};
+
 struct panfrost_bo {
         /* Must be first for casting */
         struct list_head bucket_link;
@@ -86,10 +94,7 @@ struct panfrost_bo {
         struct panfrost_device *dev;
 
         /* Mapping for the entire object (all levels) */
-        uint8_t *cpu;
-
-        /* GPU address for the object */
-        mali_ptr gpu;
+        struct panfrost_ptr ptr;
 
         /* Size of all entire trees */
         size_t size;

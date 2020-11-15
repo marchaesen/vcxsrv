@@ -1,3 +1,7 @@
+SUBDIRS = man
+
+DIST_SUBDIRS = man
+
 bindir = @xwayland_path@
 bin_PROGRAMS = Xwayland
 

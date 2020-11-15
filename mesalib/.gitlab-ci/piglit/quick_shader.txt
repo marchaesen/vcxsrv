@@ -238,15 +238,23 @@ spec/arb_gpu_shader_fp64/execution/inout/vs-out-fs-in-s2/3-double-float: crash
 spec/arb_gpu_shader_fp64/execution/inout/vs-out-fs-in-s2/3-dvec2-float: crash
 spec/arb_gpu_shader_fp64/execution/inout/vs-out-fs-in-s2/3-dvec3-float: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-float-float-i64vec2: crash
-spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-float-float-i64vec3: fail
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-float-float-i64vec3: crash
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-float-float-int64_t: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-float-float-u64vec2: crash
-spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-i64vec2: fail
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-float-float-u64vec3: crash
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-float-float-uint64_t: crash
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-i64vec2: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-i64vec3: crash
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-int64_t/3/2: crash
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-u64vec2: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-u64vec3: crash
-spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-uint64_t/3/2: fail
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float-uint64_t/3/2: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float/3-i64vec2: crash
-spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float/3-i64vec3: fail
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float/3-i64vec3: crash
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float/3-int64_t: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float/3-u64vec2: crash
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float/3-u64vec3: crash
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-float/3-uint64_t: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-s2/2-s3/2-float-int64_t: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-s2/2-s3/2-float-uint64_t: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-s2/2-s3/2-vec3-int64_t: crash
@@ -262,8 +270,12 @@ spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-s2/3-u64vec2-float: cr
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-s2/3-u64vec3-float: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-s2/3-uint64_t-float: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-vec3-i64vec2: crash
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-vec3-i64vec3: crash
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-vec3-int64_t: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-vec3-int64_t/3/2: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-vec3-u64vec2: crash
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-vec3-u64vec3: crash
+spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-vec3-uint64_t: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s1-vec3-uint64_t/3/2: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s2/2-s3/2-float-int64_t: crash
 spec/arb_gpu_shader_int64/execution/inout/vs-out-fs-in-s2/2-s3/2-float-uint64_t: crash
@@ -557,9 +569,9 @@ spec/nv_viewport_swizzle/viewport_swizzle: skip
 summary:
        name:  results
        ----  --------
-       pass:    15819
-       fail:       87
-      crash:      154
+       pass:    15807
+       fail:       83
+      crash:      170
        skip:      315
     timeout:        0
        warn:        0

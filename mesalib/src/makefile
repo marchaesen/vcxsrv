@@ -6,7 +6,7 @@ top_srcdir:=..
 
 $(OBJDIR)/git_sha1.h:
 	@echo "updating $@"
-	@python $(top_srcdir)/bin/git_sha1_gen.py --output $@
+	@$(PYTHON3) $(top_srcdir)/bin/git_sha1_gen.py --output $@
 
 ifdef HAVE_OPENGL
 gldir = $(includedir)/GL

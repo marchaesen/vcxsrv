@@ -101,6 +101,56 @@ enum ADataSpace {
      * Use full range, SMPTE 2084 (PQ) transfer and BT2020 standard
      */
     ADATASPACE_BT2020_PQ = 163971072, // STANDARD_BT2020 | TRANSFER_ST2084 | RANGE_FULL
+
+    /**
+     * Adobe RGB
+     *
+     * Use full range, gamma 2.2 transfer and Adobe RGB primaries
+     * Note: Application is responsible for gamma encoding the data as
+     * a 2.2 gamma encoding is not supported in HW.
+     */
+    ADATASPACE_ADOBE_RGB = 151715840, // STANDARD_ADOBE_RGB | TRANSFER_GAMMA2_2 | RANGE_FULL
+
+    /**
+     * ITU-R Recommendation 2020 (BT.2020)
+     *
+     * Ultra High-definition television
+     *
+     * Use full range, BT.709 transfer and BT2020 standard
+     */
+    ADATASPACE_BT2020 = 147193856, // STANDARD_BT2020 | TRANSFER_SMPTE_170M | RANGE_FULL
+
+    /**
+     * ITU-R Recommendation 709 (BT.709)
+     *
+     * High-definition television
+     *
+     * Use limited range, BT.709 transfer and BT.709 standard.
+     */
+    ADATASPACE_BT709 = 281083904, // STANDARD_BT709 | TRANSFER_SMPTE_170M | RANGE_LIMITED
+
+    /**
+     * SMPTE EG 432-1 and SMPTE RP 431-2.
+     *
+     * Digital Cinema DCI-P3
+     *
+     * Use full range, gamma 2.6 transfer and D65 DCI-P3 standard
+     * Note: Application is responsible for gamma encoding the data as
+     * a 2.6 gamma encoding is not supported in HW.
+     */
+    ADATASPACE_DCI_P3 = 155844608, // STANDARD_DCI_P3 | TRANSFER_GAMMA2_6 | RANGE_FULL
+
+    /**
+     * sRGB linear encoding:
+     *
+     * The red, green, and blue components are stored in sRGB space, but
+     * are linear, not gamma-encoded.
+     * The RGB primaries and the white point are the same as BT.709.
+     *
+     * The values are encoded using the full range ([0,255] for 8-bit) for all
+     * components.
+     */
+    ADATASPACE_SRGB_LINEAR = 138477568, // STANDARD_BT709 | TRANSFER_LINEAR | RANGE_FULL
 };
 
 __END_DECLS

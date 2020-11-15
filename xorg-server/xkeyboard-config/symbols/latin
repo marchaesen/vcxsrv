@@ -53,7 +53,6 @@ xkb_symbols "basic" {
     key <AB08>	{ [     comma,       less, horizconnector,   multiply ]	};
     key <AB09>	{ [    period,    greater, periodcentered,   division ]	};
     key <AB10>	{ [     slash,   question, dead_belowdot, dead_abovedot ] };
-
 };
 
 // Northern Europe ( Danish, Finnish, Norwegian, Swedish) common layout
@@ -252,5 +251,4 @@ xkb_symbols "intl" {
     key <AB08>	{ [     comma,       less, singlelowquotemark, doublelowquotemark ]	};
     key <AB09>	{ [    period,    greater, ellipsis, periodcentered ]	};
     key <AB10>	{ [     slash,   question, U2044,  questiondown ]     };  // U+2044 is FRACTION SLASH
-
 };

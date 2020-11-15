@@ -113,10 +113,10 @@ print('Generating ', outFilename, file=sys.stderr)
 startTime = None
 def startTimer():
     global startTime
-    startTime = time.clock()
+    startTime = time.time()
 def endTimer(msg):
     global startTime
-    endTime = time.clock()
+    endTime = time.time()
     if (timeit):
         print(msg, endTime - startTime)
         startTime = None

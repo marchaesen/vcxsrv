@@ -80,7 +80,7 @@ panfrost_bo_alloc(struct panfrost_device *dev, size_t size,
         assert(!memcmp(bo, &((struct panfrost_bo){}), sizeof(*bo)));
 
         bo->size = create_bo.size;
-        bo->gpu = create_bo.offset;
+        bo->ptr.gpu = create_bo.offset;
         bo->gem_handle = create_bo.handle;
         bo->flags = flags;
         bo->dev = dev;
@@ -322,7 +322,7 @@ panfrost_bo_mmap(struct panfrost_bo *bo)
         struct drm_panfrost_mmap_bo mmap_bo = { .handle = bo->gem_handle };
         int ret;
 
-        if (bo->cpu)
+        if (bo->ptr.cpu)
                 return;
 
         ret = drmIoctl(bo->dev->fd, DRM_IOCTL_PANFROST_MMAP_BO, &mmap_bo);
@@ -331,10 +331,10 @@ panfrost_bo_mmap(struct panfrost_bo *bo)
                 assert(0);
         }
 
-        bo->cpu = os_mmap(NULL, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                          bo->dev->fd, mmap_bo.offset);
-        if (bo->cpu == MAP_FAILED) {
-                fprintf(stderr, "mmap failed: %p %m\n", bo->cpu);
+        bo->ptr.cpu = os_mmap(NULL, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED,
+                              bo->dev->fd, mmap_bo.offset);
+        if (bo->ptr.cpu == MAP_FAILED) {
+                fprintf(stderr, "mmap failed: %p %m\n", bo->ptr.cpu);
                 assert(0);
         }
 }
@@ -342,15 +342,15 @@ panfrost_bo_mmap(struct panfrost_bo *bo)
 static void
 panfrost_bo_munmap(struct panfrost_bo *bo)
 {
-        if (!bo->cpu)
+        if (!bo->ptr.cpu)
                 return;
 
-        if (os_munmap((void *) (uintptr_t)bo->cpu, bo->size)) {
+        if (os_munmap((void *) (uintptr_t)bo->ptr.cpu, bo->size)) {
                 perror("munmap");
                 abort();
         }
 
-        bo->cpu = NULL;
+        bo->ptr.cpu = NULL;
 }
 
 struct panfrost_bo *
@@ -398,9 +398,9 @@ panfrost_bo_create(struct panfrost_device *dev, size_t size,
 
         if (dev->debug & (PAN_DBG_TRACE | PAN_DBG_SYNC)) {
                 if (flags & PAN_BO_INVISIBLE)
-                        pandecode_inject_mmap(bo->gpu, NULL, bo->size, NULL);
+                        pandecode_inject_mmap(bo->ptr.gpu, NULL, bo->size, NULL);
                 else if (!(flags & PAN_BO_DELAY_MMAP))
-                        pandecode_inject_mmap(bo->gpu, bo->cpu, bo->size, NULL);
+                        pandecode_inject_mmap(bo->ptr.gpu, bo->ptr.cpu, bo->size, NULL);
         }
 
         return bo;
@@ -466,7 +466,7 @@ panfrost_bo_import(struct panfrost_device *dev, int fd)
                 assert(!ret);
 
                 bo->dev = dev;
-                bo->gpu = (mali_ptr) get_bo_offset.offset;
+                bo->ptr.gpu = (mali_ptr) get_bo_offset.offset;
                 bo->size = lseek(fd, 0, SEEK_END);
                 bo->flags = PAN_BO_SHARED;
                 bo->gem_handle = gem_handle;
@@ -489,7 +489,7 @@ panfrost_bo_import(struct panfrost_device *dev, int fd)
                         p_atomic_set(&bo->refcnt, 1);
                 else
                         panfrost_bo_reference(bo);
-                assert(bo->cpu);
+                assert(bo->ptr.cpu);
         }
         pthread_mutex_unlock(&dev->bo_map_lock);
 

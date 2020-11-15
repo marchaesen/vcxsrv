@@ -543,6 +543,7 @@ tu_CreateDescriptorPool(VkDevice _device,
    struct tu_descriptor_pool *pool;
    uint64_t size = sizeof(struct tu_descriptor_pool);
    uint64_t bo_size = 0, bo_count = 0, dynamic_count = 0;
+   VkResult ret;
 
    for (unsigned i = 0; i < pCreateInfo->poolSizeCount; ++i) {
       if (pCreateInfo->pPoolSizes[i].type != VK_DESCRIPTOR_TYPE_SAMPLER)
@@ -581,19 +582,25 @@ tu_CreateDescriptorPool(VkDevice _device,
    }
 
    if (bo_size) {
-      VkResult ret;
-
       ret = tu_bo_init_new(device, &pool->bo, bo_size, true);
-      assert(ret == VK_SUCCESS);
+      if (ret)
+         goto fail_alloc;
 
       ret = tu_bo_map(device, &pool->bo);
-      assert(ret == VK_SUCCESS);
+      if (ret)
+         goto fail_map;
    }
    pool->size = bo_size;
    pool->max_entry_count = pCreateInfo->maxSets;
 
    *pDescriptorPool = tu_descriptor_pool_to_handle(pool);
    return VK_SUCCESS;
+
+fail_map:
+   tu_bo_finish(device, &pool->bo);
+fail_alloc:
+   vk_object_free(&device->vk, pAllocator, pool);
+   return ret;
 }
 
 void

@@ -834,8 +834,7 @@ NineSurface9_SetResourceResize( struct NineSurface9 *This,
 
     pipe_surface_reference(&This->surface[0], NULL);
     pipe_surface_reference(&This->surface[1], NULL);
-    if (resource)
-        NineSurface9_CreatePipeSurfaces(This);
+    NineSurface9_CreatePipeSurfaces(This);
 }
 
 

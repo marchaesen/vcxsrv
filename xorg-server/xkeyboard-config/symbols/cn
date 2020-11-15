@@ -113,7 +113,6 @@ xkb_symbols "tib" {
     key <AB08> { [ 0x1000f50, 0x1000f4b, 0x1000fa0, 0x1000f9b ] }; # ཐ ཋ ྠ ྛ
     key <AB09> { [ 0x1000f47, 0x1000f3a, 0x1000f97, 0x1000f8b ] }; # ཇ ༺ ྗ ྋ
     key <AB10> { [ 0x1000f49, 0x1000f3b, 0x1000f99, 0x1000f8a ] }; # ཉ ༻ ྙ ྊ
-
 };
 
 // Tibetan Standard Keyboard with ASCII numerals

@@ -78,6 +78,30 @@
       when: on_success
     - when: never
 
+.llvmpipe-cl-rules:
+  stage: llvmpipe
+  rules:
+    - *ignore_scheduled_pipelines
+    - changes:
+      - .gitlab-ci.yml
+      - .gitlab-ci/**/*
+      - meson.build
+      - include/**/*
+      - src/compiler/**/*
+      - src/include/**/*
+      - src/util/**/*
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+        *llvmpipe_file_list
+      when: on_success
+    - changes: &clover_file_list
+      - src/gallium/frontends/clover/**/*
+      when: on_success
+    - when: never
+
 .freedreno-rules:
   stage: freedreno
   rules:

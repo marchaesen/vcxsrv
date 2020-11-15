@@ -219,6 +219,10 @@ static uint32_t get_hash_flags(const struct radv_device *device)
 		hash_flags |= RADV_HASH_SHADER_GE_WAVE32;
 	if (device->physical_device->use_llvm)
 		hash_flags |= RADV_HASH_SHADER_LLVM;
+	if (device->instance->debug_flags & RADV_DEBUG_DISCARD_TO_DEMOTE)
+		hash_flags |= RADV_HASH_SHADER_DISCARD_TO_DEMOTE;
+	if (device->instance->enable_mrt_output_nan_fixup)
+		hash_flags |= RADV_HASH_SHADER_MRT_NAN_FIXUP;
 	return hash_flags;
 }
 
@@ -2308,9 +2312,6 @@ radv_link_shaders(struct radv_pipeline *pipeline, nir_shader **shaders,
 			}
 		}
 	}
-
-	for (int i = 0; i < shader_count; ++i)
-		radv_optimize_nir(ordered_shaders[i], optimize_conservatively, false);
 }
 
 static void
@@ -2619,15 +2620,6 @@ radv_fill_shader_keys(struct radv_device *device,
 			keys[MESA_SHADER_TESS_EVAL].vs_common_out.as_ngg = false;
 		}
 
-		if (!device->physical_device->use_ngg_gs) {
-			if (nir[MESA_SHADER_GEOMETRY]) {
-				if (nir[MESA_SHADER_TESS_CTRL])
-					keys[MESA_SHADER_TESS_EVAL].vs_common_out.as_ngg = false;
-				else
-					keys[MESA_SHADER_VERTEX].vs_common_out.as_ngg = false;
-			}
-		}
-
 		gl_shader_stage last_xfb_stage = MESA_SHADER_VERTEX;
 
 		for (int i = MESA_SHADER_VERTEX; i <= MESA_SHADER_GEOMETRY; i++) {
@@ -2911,6 +2903,114 @@ void radv_stop_feedback(VkPipelineCreationFeedbackEXT *feedback, bool cache_hit)
 	                   (cache_hit ? VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT_EXT : 0);
 }
 
+static bool
+mem_vectorize_callback(unsigned align_mul, unsigned align_offset,
+                       unsigned bit_size,
+                       unsigned num_components,
+                       nir_intrinsic_instr *low, nir_intrinsic_instr *high)
+{
+	if (num_components > 4)
+		return false;
+
+	/* >128 bit loads are split except with SMEM */
+	if (bit_size * num_components > 128)
+		return false;
+
+	uint32_t align;
+	if (align_offset)
+		align = 1 << (ffs(align_offset) - 1);
+	else
+		align = align_mul;
+
+	switch (low->intrinsic) {
+	case nir_intrinsic_load_global:
+	case nir_intrinsic_store_global:
+	case nir_intrinsic_store_ssbo:
+	case nir_intrinsic_load_ssbo:
+	case nir_intrinsic_load_ubo:
+	case nir_intrinsic_load_push_constant:
+		return align % (bit_size == 8 ? 2 : 4) == 0;
+	case nir_intrinsic_load_deref:
+	case nir_intrinsic_store_deref:
+		assert(nir_deref_mode_is(nir_src_as_deref(low->src[0]),
+		                         nir_var_mem_shared));
+		/* fallthrough */
+	case nir_intrinsic_load_shared:
+	case nir_intrinsic_store_shared:
+		if (bit_size * num_components > 64) /* 96 and 128 bit loads require 128 bit alignment and are split otherwise */
+			return align % 16 == 0;
+		else
+			return align % (bit_size == 8 ? 2 : 4) == 0;
+	default:
+		return false;
+	}
+	return false;
+}
+
+static unsigned
+lower_bit_size_callback(const nir_instr *instr, void *_)
+{
+	struct radv_device *device = _;
+	enum chip_class chip = device->physical_device->rad_info.chip_class;
+
+	if (instr->type != nir_instr_type_alu)
+		return 0;
+	nir_alu_instr *alu = nir_instr_as_alu(instr);
+
+	if (alu->dest.dest.ssa.bit_size & (8 | 16)) {
+		unsigned bit_size = alu->dest.dest.ssa.bit_size;
+		switch (alu->op) {
+		case nir_op_iabs:
+		case nir_op_bitfield_select:
+		case nir_op_udiv:
+		case nir_op_idiv:
+		case nir_op_umod:
+		case nir_op_imod:
+		case nir_op_imul_high:
+		case nir_op_umul_high:
+		case nir_op_ineg:
+		case nir_op_irem:
+		case nir_op_isign:
+			return 32;
+		case nir_op_imax:
+		case nir_op_umax:
+		case nir_op_imin:
+		case nir_op_umin:
+		case nir_op_ishr:
+		case nir_op_ushr:
+		case nir_op_ishl:
+		case nir_op_uadd_sat:
+			return (bit_size == 8 ||
+			        !(chip >= GFX8 && nir_dest_is_divergent(alu->dest.dest))) ? 32 : 0;
+		default:
+			return 0;
+		}
+	}
+
+	if (nir_src_bit_size(alu->src[0].src) & (8 | 16)) {
+		unsigned bit_size = nir_src_bit_size(alu->src[0].src);
+		switch (alu->op) {
+		case nir_op_bit_count:
+		case nir_op_find_lsb:
+		case nir_op_ufind_msb:
+		case nir_op_i2b1:
+			return 32;
+		case nir_op_ilt:
+		case nir_op_ige:
+		case nir_op_ieq:
+		case nir_op_ine:
+		case nir_op_ult:
+		case nir_op_uge:
+			return (bit_size == 8 ||
+			        !(chip >= GFX8 && nir_dest_is_divergent(alu->dest.dest))) ? 32 : 0;
+		default:
+			return 0;
+		}
+	}
+
+	return 0;
+}
+
 VkResult radv_create_shaders(struct radv_pipeline *pipeline,
                              struct radv_device *device,
                              struct radv_pipeline_cache *cache,
@@ -2973,9 +3073,7 @@ VkResult radv_create_shaders(struct radv_pipeline *pipeline,
 	}
 
 	if (!modules[MESA_SHADER_FRAGMENT] && !modules[MESA_SHADER_COMPUTE]) {
-		nir_builder fs_b;
-		nir_builder_init_simple_shader(&fs_b, NULL, MESA_SHADER_FRAGMENT, NULL);
-		fs_b.shader->info.name = ralloc_strdup(fs_b.shader, "noop_fs");
+		nir_builder fs_b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, NULL, "noop_fs");
 		fs_m.nir = fs_b.shader;
 		modules[MESA_SHADER_FRAGMENT] = &fs_m;
 	}
@@ -3019,18 +3117,25 @@ VkResult radv_create_shaders(struct radv_pipeline *pipeline,
 		merge_tess_info(&nir[MESA_SHADER_TESS_EVAL]->info, &nir[MESA_SHADER_TESS_CTRL]->info);
 	}
 
-	radv_link_shaders(pipeline, nir, flags & VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT);
+	bool optimize_conservatively = flags & VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT;
+
+	radv_link_shaders(pipeline, nir, optimize_conservatively);
+
+	for (int i = 0; i < MESA_SHADER_STAGES; ++i) {
+		if (nir[i]) {
+			radv_start_feedback(stage_feedbacks[i]);
+			radv_optimize_nir(nir[i], optimize_conservatively, false);
+			radv_stop_feedback(stage_feedbacks[i], false);
+		}
+	}
 
 	radv_set_driver_locations(pipeline, nir, infos);
 
 	for (int i = 0; i < MESA_SHADER_STAGES; ++i) {
 		if (nir[i]) {
-			/* do this again since information such as outputs_read can be out-of-date */
-			nir_shader_gather_info(nir[i], nir_shader_get_entrypoint(nir[i]));
+			radv_start_feedback(stage_feedbacks[i]);
 
-			if (radv_use_llvm_for_stage(device, i)) {
-				NIR_PASS_V(nir[i], nir_lower_bool_to_int32);
-			} else {
+			if (!radv_use_llvm_for_stage(device, i)) {
 				NIR_PASS_V(nir[i], nir_lower_non_uniform_access,
 				           nir_lower_non_uniform_ubo_access |
 				           nir_lower_non_uniform_ssbo_access |
@@ -3039,7 +3144,99 @@ VkResult radv_create_shaders(struct radv_pipeline *pipeline,
 			}
 			NIR_PASS_V(nir[i], nir_lower_memory_model);
 
+			bool lower_to_scalar = false;
+			bool lower_pack = false;
+			nir_variable_mode robust_modes = (nir_variable_mode)0;
+
+			if (device->robust_buffer_access) {
+				robust_modes = nir_var_mem_ubo |
+					       nir_var_mem_ssbo |
+					       nir_var_mem_global |
+					       nir_var_mem_push_const;
+			}
+
+			if (nir_opt_load_store_vectorize(nir[i],
+							 nir_var_mem_ssbo | nir_var_mem_ubo |
+							 nir_var_mem_push_const | nir_var_mem_shared |
+							 nir_var_mem_global,
+							 mem_vectorize_callback, robust_modes)) {
+				lower_to_scalar = true;
+				lower_pack = true;
+			}
+
+			/* do this again since information such as outputs_read can be out-of-date */
+			nir_shader_gather_info(nir[i], nir_shader_get_entrypoint(nir[i]));
+
 			radv_lower_io(device, nir[i]);
+
+			lower_to_scalar |= nir_opt_shrink_vectors(nir[i]);
+
+			if (lower_to_scalar)
+				nir_lower_alu_to_scalar(nir[i], NULL, NULL);
+			if (lower_pack)
+				nir_lower_pack(nir[i]);
+
+			/* lower ALU operations */
+			/* TODO: Some 64-bit tests crash inside LLVM. */
+			if (!radv_use_llvm_for_stage(device, i))
+				nir_lower_int64(nir[i]);
+
+			/* TODO: Implement nir_op_uadd_sat with LLVM. */
+			if (!radv_use_llvm_for_stage(device, i))
+				nir_opt_idiv_const(nir[i], 32);
+			nir_lower_idiv(nir[i], nir_lower_idiv_precise);
+
+			/* optimize the lowered ALU operations */
+			bool more_algebraic = true;
+			while (more_algebraic) {
+				more_algebraic = false;
+				NIR_PASS_V(nir[i], nir_copy_prop);
+				NIR_PASS_V(nir[i], nir_opt_dce);
+				NIR_PASS_V(nir[i], nir_opt_constant_folding);
+				NIR_PASS(more_algebraic, nir[i], nir_opt_algebraic);
+			}
+
+			/* Do late algebraic optimization to turn add(a,
+			 * neg(b)) back into subs, then the mandatory cleanup
+			 * after algebraic.  Note that it may produce fnegs,
+			 * and if so then we need to keep running to squash
+			 * fneg(fneg(a)).
+			 */
+			bool more_late_algebraic = true;
+			while (more_late_algebraic) {
+				more_late_algebraic = false;
+				NIR_PASS(more_late_algebraic, nir[i], nir_opt_algebraic_late);
+				NIR_PASS_V(nir[i], nir_opt_constant_folding);
+				NIR_PASS_V(nir[i], nir_copy_prop);
+				NIR_PASS_V(nir[i], nir_opt_dce);
+				NIR_PASS_V(nir[i], nir_opt_cse);
+			}
+
+			if (nir[i]->info.bit_sizes_int & (8 | 16)) {
+				if (device->physical_device->rad_info.chip_class >= GFX8) {
+					nir_convert_to_lcssa(nir[i], true, true);
+					nir_divergence_analysis(nir[i]);
+				}
+
+				if (nir_lower_bit_size(nir[i], lower_bit_size_callback, device)) {
+					nir_lower_idiv(nir[i], nir_lower_idiv_precise);
+					nir_opt_constant_folding(nir[i]);
+					nir_opt_dce(nir[i]);
+				}
+
+				if (device->physical_device->rad_info.chip_class >= GFX8)
+					nir_opt_remove_phis(nir[i]); /* cleanup LCSSA phis */
+			}
+
+			/* cleanup passes */
+			nir_lower_load_const_to_scalar(nir[i]);
+			nir_move_options move_opts = (nir_move_options)(
+				nir_move_const_undef | nir_move_load_ubo | nir_move_load_input |
+				nir_move_comparisons | nir_move_copies);
+			nir_opt_sink(nir[i], move_opts);
+			nir_opt_move(nir[i], move_opts);
+
+			radv_stop_feedback(stage_feedbacks[i], false);
 		}
 	}
 

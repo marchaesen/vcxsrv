@@ -128,7 +128,7 @@ gpu_queue_wait_idle(struct v3dv_queue *queue)
    uint32_t last_job_sync = device->last_job_sync;
    mtx_unlock(&device->mutex);
 
-   int ret = drmSyncobjWait(device->render_fd,
+   int ret = drmSyncobjWait(device->pdevice->render_fd,
                             &last_job_sync, 1, INT64_MAX, 0, NULL);
    if (ret)
       return VK_ERROR_DEVICE_LOST;
@@ -154,22 +154,37 @@ static VkResult
 handle_reset_query_cpu_job(struct v3dv_job *job)
 {
    /* We are about to reset query counters so we need to make sure that
-    * The GPU is not using them.
+    * The GPU is not using them. The exception is timestamp queries, since
+    * we handle those in the CPU.
     *
     * FIXME: we could avoid blocking the main thread for this if we use
     *        submission thread.
     */
-   VkResult result = gpu_queue_wait_idle(&job->device->queue);
-   if (result != VK_SUCCESS)
-      return result;
-
    struct v3dv_reset_query_cpu_job_info *info = &job->cpu.query_reset;
+   assert(info->pool);
+
+   if (info->pool->query_type == VK_QUERY_TYPE_OCCLUSION) {
+      VkResult result = gpu_queue_wait_idle(&job->device->queue);
+      if (result != VK_SUCCESS)
+         return result;
+   }
+
    for (uint32_t i = info->first; i < info->first + info->count; i++) {
       assert(i < info->pool->query_count);
       struct v3dv_query *query = &info->pool->queries[i];
       query->maybe_available = false;
-      uint32_t *counter = (uint32_t *) query->bo->map;
-      *counter = 0;
+      switch (info->pool->query_type) {
+      case VK_QUERY_TYPE_OCCLUSION: {
+         uint32_t *counter = (uint32_t *) query->bo->map;
+         *counter = 0;
+         break;
+      }
+      case VK_QUERY_TYPE_TIMESTAMP:
+         query->value = 0;
+         break;
+      default:
+         unreachable("Unsupported query type");
+      }
    }
 
    return VK_SUCCESS;
@@ -420,6 +435,26 @@ handle_copy_buffer_to_image_cpu_job(struct v3dv_job *job)
 }
 
 static VkResult
+handle_timestamp_query_cpu_job(struct v3dv_job *job)
+{
+   assert(job->type == V3DV_JOB_TYPE_CPU_TIMESTAMP_QUERY);
+   struct v3dv_timestamp_query_cpu_job_info *info = &job->cpu.query_timestamp;
+
+   /* Wait for completion of all work queued before the timestamp query */
+   v3dv_QueueWaitIdle(v3dv_queue_to_handle(&job->device->queue));
+
+   /* Compute timestamp */
+   struct timespec t;
+   clock_gettime(CLOCK_MONOTONIC, &t);
+   assert(info->query < info->pool->query_count);
+   struct v3dv_query *query = &info->pool->queries[info->query];
+   query->maybe_available = true;
+   query->value = t.tv_sec * 1000000000ull + t.tv_nsec;
+
+   return VK_SUCCESS;
+}
+
+static VkResult
 handle_csd_job(struct v3dv_queue *queue,
                struct v3dv_job *job,
                bool do_sem_wait);
@@ -467,9 +502,11 @@ process_semaphores_to_signal(struct v3dv_device *device,
    if (count == 0)
       return VK_SUCCESS;
 
+   int render_fd = device->pdevice->render_fd;
+
    int fd;
    mtx_lock(&device->mutex);
-   drmSyncobjExportSyncFile(device->render_fd, device->last_job_sync, &fd);
+   drmSyncobjExportSyncFile(render_fd, device->last_job_sync, &fd);
    mtx_unlock(&device->mutex);
    if (fd == -1)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -481,7 +518,7 @@ process_semaphores_to_signal(struct v3dv_device *device,
          close(sem->fd);
       sem->fd = -1;
 
-      int ret = drmSyncobjImportSyncFile(device->render_fd, sem->sync, fd);
+      int ret = drmSyncobjImportSyncFile(render_fd, sem->sync, fd);
       if (ret)
          return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
@@ -503,14 +540,16 @@ process_fence_to_signal(struct v3dv_device *device, VkFence _fence)
       close(fence->fd);
    fence->fd = -1;
 
+   int render_fd = device->pdevice->render_fd;
+
    int fd;
    mtx_lock(&device->mutex);
-   drmSyncobjExportSyncFile(device->render_fd, device->last_job_sync, &fd);
+   drmSyncobjExportSyncFile(render_fd, device->last_job_sync, &fd);
    mtx_unlock(&device->mutex);
    if (fd == -1)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   int ret = drmSyncobjImportSyncFile(device->render_fd, fence->sync, fd);
+   int ret = drmSyncobjImportSyncFile(render_fd, fence->sync, fd);
    if (ret)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
@@ -592,7 +631,8 @@ handle_cl_job(struct v3dv_queue *queue,
    submit.in_sync_rcl = needs_rcl_sync ? device->last_job_sync : 0;
    submit.out_sync = device->last_job_sync;
    v3dv_clif_dump(device, job, &submit);
-   int ret = v3dv_ioctl(device->render_fd, DRM_IOCTL_V3D_SUBMIT_CL, &submit);
+   int ret = v3dv_ioctl(device->pdevice->render_fd,
+                        DRM_IOCTL_V3D_SUBMIT_CL, &submit);
    mtx_unlock(&queue->device->mutex);
 
    static bool warned = false;
@@ -622,7 +662,8 @@ handle_tfu_job(struct v3dv_queue *queue,
    mtx_lock(&device->mutex);
    job->tfu.in_sync = needs_sync ? device->last_job_sync : 0;
    job->tfu.out_sync = device->last_job_sync;
-   int ret = v3dv_ioctl(device->render_fd, DRM_IOCTL_V3D_SUBMIT_TFU, &job->tfu);
+   int ret = v3dv_ioctl(device->pdevice->render_fd,
+                        DRM_IOCTL_V3D_SUBMIT_TFU, &job->tfu);
    mtx_unlock(&device->mutex);
 
    if (ret != 0) {
@@ -658,7 +699,8 @@ handle_csd_job(struct v3dv_queue *queue,
    mtx_lock(&queue->device->mutex);
    submit->in_sync = needs_sync ? device->last_job_sync : 0;
    submit->out_sync = device->last_job_sync;
-   int ret = v3dv_ioctl(device->render_fd, DRM_IOCTL_V3D_SUBMIT_CSD, submit);
+   int ret = v3dv_ioctl(device->pdevice->render_fd,
+                        DRM_IOCTL_V3D_SUBMIT_CSD, submit);
    mtx_unlock(&queue->device->mutex);
 
    static bool warned = false;
@@ -705,6 +747,8 @@ queue_submit_job(struct v3dv_queue *queue,
       return handle_copy_buffer_to_image_cpu_job(job);
    case V3DV_JOB_TYPE_CPU_CSD_INDIRECT:
       return handle_csd_indirect_cpu_job(queue, job, do_sem_wait);
+   case V3DV_JOB_TYPE_CPU_TIMESTAMP_QUERY:
+      return handle_timestamp_query_cpu_job(job);
    default:
       unreachable("Unhandled job type");
    }
@@ -834,7 +878,7 @@ queue_submit_cmd_buffer(struct v3dv_queue *queue,
                         pthread_t *wait_thread)
 {
    assert(cmd_buffer);
-   assert(cmd_buffer->status = V3DV_CMD_BUFFER_STATUS_EXECUTABLE);
+   assert(cmd_buffer->status == V3DV_CMD_BUFFER_STATUS_EXECUTABLE);
 
    if (list_is_empty(&cmd_buffer->jobs))
       return queue_submit_noop_job(queue, pSubmit);
@@ -1089,7 +1133,7 @@ v3dv_CreateSemaphore(VkDevice _device,
 
    sem->fd = -1;
 
-   int ret = drmSyncobjCreate(device->render_fd, 0, &sem->sync);
+   int ret = drmSyncobjCreate(device->pdevice->render_fd, 0, &sem->sync);
    if (ret) {
       vk_free2(&device->alloc, pAllocator, sem);
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -1111,7 +1155,7 @@ v3dv_DestroySemaphore(VkDevice _device,
    if (sem == NULL)
       return;
 
-   drmSyncobjDestroy(device->render_fd, sem->sync);
+   drmSyncobjDestroy(device->pdevice->render_fd, sem->sync);
 
    if (sem->fd != -1)
       close(sem->fd);
@@ -1138,7 +1182,7 @@ v3dv_CreateFence(VkDevice _device,
    unsigned flags = 0;
    if (pCreateInfo->flags & VK_FENCE_CREATE_SIGNALED_BIT)
       flags |= DRM_SYNCOBJ_CREATE_SIGNALED;
-   int ret = drmSyncobjCreate(device->render_fd, flags, &fence->sync);
+   int ret = drmSyncobjCreate(device->pdevice->render_fd, flags, &fence->sync);
    if (ret) {
       vk_free2(&device->alloc, pAllocator, fence);
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -1162,7 +1206,7 @@ v3dv_DestroyFence(VkDevice _device,
    if (fence == NULL)
       return;
 
-   drmSyncobjDestroy(device->render_fd, fence->sync);
+   drmSyncobjDestroy(device->pdevice->render_fd, fence->sync);
 
    if (fence->fd != -1)
       close(fence->fd);
@@ -1176,7 +1220,7 @@ v3dv_GetFenceStatus(VkDevice _device, VkFence _fence)
    V3DV_FROM_HANDLE(v3dv_device, device, _device);
    V3DV_FROM_HANDLE(v3dv_fence, fence, _fence);
 
-   int ret = drmSyncobjWait(device->render_fd, &fence->sync, 1,
+   int ret = drmSyncobjWait(device->pdevice->render_fd, &fence->sync, 1,
                             0, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_FOR_SUBMIT, NULL);
    if (ret == -ETIME)
       return VK_NOT_READY;
@@ -1201,7 +1245,7 @@ v3dv_ResetFences(VkDevice _device, uint32_t fenceCount, const VkFence *pFences)
       syncobjs[i] = fence->sync;
    }
 
-   int ret = drmSyncobjReset(device->render_fd, syncobjs, fenceCount);
+   int ret = drmSyncobjReset(device->pdevice->render_fd, syncobjs, fenceCount);
 
    vk_free(&device->alloc, syncobjs);
 
@@ -1238,7 +1282,7 @@ v3dv_WaitForFences(VkDevice _device,
 
    int ret;
    do {
-      ret = drmSyncobjWait(device->render_fd, syncobjs, fenceCount,
+      ret = drmSyncobjWait(device->pdevice->render_fd, syncobjs, fenceCount,
                            timeout, flags, NULL);
    } while (ret == -ETIME && gettime_ns() < abs_timeout);
 

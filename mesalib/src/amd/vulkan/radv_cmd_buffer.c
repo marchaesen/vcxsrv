@@ -3850,7 +3850,6 @@ radv_bind_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
 	radv_set_descriptor_set(cmd_buffer, bind_point, set, idx);
 
 	assert(set);
-	assert(!(set->layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR));
 
 	if (!cmd_buffer->device->use_global_bo_list) {
 		for (unsigned j = 0; j < set->buffer_count; ++j)
@@ -3881,17 +3880,17 @@ void radv_CmdBindDescriptorSets(
 		radv_get_descriptors_state(cmd_buffer, pipelineBindPoint);
 
 	for (unsigned i = 0; i < descriptorSetCount; ++i) {
-		unsigned idx = i + firstSet;
+		unsigned set_idx = i + firstSet;
 		RADV_FROM_HANDLE(radv_descriptor_set, set, pDescriptorSets[i]);
 
 		/* If the set is already bound we only need to update the
 		 * (potentially changed) dynamic offsets. */
-		if (descriptors_state->sets[idx] != set ||
-		    !(descriptors_state->valid & (1u << idx))) {
-			radv_bind_descriptor_set(cmd_buffer, pipelineBindPoint, set, idx);
+		if (descriptors_state->sets[set_idx] != set ||
+		    !(descriptors_state->valid & (1u << set_idx))) {
+			radv_bind_descriptor_set(cmd_buffer, pipelineBindPoint, set, set_idx);
 		}
 
-		for(unsigned j = 0; j < set->layout->dynamic_offset_count; ++j, ++dyn_idx) {
+		for(unsigned j = 0; j < layout->set[set_idx].dynamic_offset_count; ++j, ++dyn_idx) {
 			unsigned idx = j + layout->set[i + firstSet].dynamic_offset_start;
 			uint32_t *dst = descriptors_state->dynamic_buffers + idx * 4;
 			assert(dyn_idx < dynamicOffsetCount);
@@ -3920,8 +3919,7 @@ void radv_CmdBindDescriptorSets(
 				}
 			}
 
-			cmd_buffer->push_constant_stages |=
-			                     set->layout->dynamic_shader_stages;
+			cmd_buffer->push_constant_stages |= layout->set[set_idx].dynamic_offset_stages;
 		}
 	}
 }
@@ -6076,7 +6074,9 @@ static void radv_handle_color_image_transition(struct radv_cmd_buffer *cmd_buffe
 			fce_eliminate = true;
 		}
 
-		if (radv_image_has_fmask(image)) {
+		if (radv_image_has_fmask(image) &&
+		    (image->usage & (VK_IMAGE_USAGE_STORAGE_BIT |
+				     VK_IMAGE_USAGE_TRANSFER_DST_BIT))) {
 			if (src_layout != VK_IMAGE_LAYOUT_GENERAL &&
 			    dst_layout == VK_IMAGE_LAYOUT_GENERAL) {
 				/* A FMASK decompress is required before doing

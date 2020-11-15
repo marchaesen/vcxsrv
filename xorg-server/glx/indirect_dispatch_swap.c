@@ -56,34 +56,10 @@ extern void __glXClearErrorOccured( void );
 
 static const unsigned dummy_answer[2] = {0, 0};
 
-static _X_UNUSED GLsizei
-bswap_CARD32(const void * src)
+static _X_UNUSED GLdouble
+bswap_FLOAT64(const void * src)
 {
-    union { uint32_t dst; GLsizei ret; } x;
-    x.dst = bswap_32(*(uint32_t *) src);
-    return x.ret;
-}
-
-static _X_UNUSED GLshort
-bswap_CARD16(const void * src)
-{
-    union { uint16_t dst; GLshort ret; } x;
-    x.dst = bswap_16(*(uint16_t *) src);
-    return x.ret;
-}
-
-static _X_UNUSED GLenum
-bswap_ENUM(const void * src)
-{
-    union { uint32_t dst; GLenum ret; } x;
-    x.dst = bswap_32(*(uint32_t *) src);
-    return x.ret;
-}
-
-static _X_UNUSED GLsync
-bswap_CARD64(const void * src)
-{
-    union { uint64_t dst; GLsync ret; } x;
+    union { uint64_t dst; GLdouble ret; } x;
     x.dst = bswap_64(*(uint64_t *) src);
     return x.ret;
 }
@@ -96,19 +72,43 @@ bswap_FLOAT16(const void * src)
     return x.ret;
 }
 
-static _X_UNUSED GLdouble
-bswap_FLOAT64(const void * src)
-{
-    union { uint64_t dst; GLdouble ret; } x;
-    x.dst = bswap_64(*(uint64_t *) src);
-    return x.ret;
-}
-
 static _X_UNUSED GLfloat
 bswap_FLOAT32(const void * src)
 {
     union { uint32_t dst; GLfloat ret; } x;
     x.dst = bswap_32(*(uint32_t *) src);
+    return x.ret;
+}
+
+static _X_UNUSED GLint
+bswap_CARD32(const void * src)
+{
+    union { uint32_t dst; GLint ret; } x;
+    x.dst = bswap_32(*(uint32_t *) src);
+    return x.ret;
+}
+
+static _X_UNUSED GLenum
+bswap_ENUM(const void * src)
+{
+    union { uint32_t dst; GLenum ret; } x;
+    x.dst = bswap_32(*(uint32_t *) src);
+    return x.ret;
+}
+
+static _X_UNUSED GLshort
+bswap_CARD16(const void * src)
+{
+    union { uint16_t dst; GLshort ret; } x;
+    x.dst = bswap_16(*(uint16_t *) src);
+    return x.ret;
+}
+
+static _X_UNUSED GLsync
+bswap_CARD64(const void * src)
+{
+    union { uint64_t dst; GLsync ret; } x;
+    x.dst = bswap_64(*(uint64_t *) src);
     return x.ret;
 }
 

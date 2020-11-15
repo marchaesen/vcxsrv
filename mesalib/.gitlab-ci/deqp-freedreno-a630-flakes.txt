@@ -5,6 +5,9 @@
 # Flakes reported more than once during Jan-Feb 2020
 dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array
 
+# Started appearing with the new deqp runner.  possibly different test order?
+dEQP-GLES3.functional.fbo.blit.conversion.rg8i_to_r16i
+
 # We have longstanding intermittent failures with compswap.
 dEQP-GLES31.functional.compute.shared_var.atomic.compswap.highp_int
 dEQP-GLES31.functional.compute.shared_var.atomic.compswap.highp_uint

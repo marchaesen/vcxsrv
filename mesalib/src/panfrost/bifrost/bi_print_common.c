@@ -91,9 +91,9 @@ const char *
 bi_interp_mode_name(enum bifrost_interp_mode mode)
 {
         switch (mode) {
-        case BIFROST_INTERP_PER_FRAG: return ".per_frag";
+        case BIFROST_INTERP_CENTER: return ".center";
         case BIFROST_INTERP_CENTROID: return ".centroid";
-        case BIFROST_INTERP_DEFAULT: return "";
+        case BIFROST_INTERP_SAMPLE: return ".sample";
         case BIFROST_INTERP_EXPLICIT: return ".explicit";
         default: return ".unknown";
         }

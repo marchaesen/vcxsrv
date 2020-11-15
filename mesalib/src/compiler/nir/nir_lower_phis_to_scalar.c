@@ -87,12 +87,12 @@ is_phi_src_scalarizable(nir_phi_src *src,
 
       switch (src_intrin->intrinsic) {
       case nir_intrinsic_load_deref: {
+         /* Don't scalarize if we see a load of a local variable because it
+          * might turn into one of the things we can't scalarize.
+          */
          nir_deref_instr *deref = nir_src_as_deref(src_intrin->src[0]);
-         return deref->mode == nir_var_shader_in ||
-                deref->mode == nir_var_uniform ||
-                deref->mode == nir_var_mem_ubo ||
-                deref->mode == nir_var_mem_ssbo ||
-                deref->mode == nir_var_mem_global;
+         return !nir_deref_mode_may_be(deref, nir_var_function_temp |
+                                              nir_var_shader_temp);
       }
 
       case nir_intrinsic_interp_deref_at_centroid:

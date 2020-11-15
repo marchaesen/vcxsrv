@@ -637,9 +637,9 @@ union packed_instr {
       unsigned instr_type:4;
       unsigned deref_type:3;
       unsigned cast_type_same_as_last:1;
-      unsigned mode:12; /* deref_var redefines this */
+      unsigned modes:14; /* deref_var redefines this */
       unsigned packed_src_ssa_16bit:1; /* deref_var redefines this */
-      unsigned _pad:3;  /* deref_var redefines this */
+      unsigned _pad:1;  /* deref_var redefines this */
       unsigned dest:8;
    } deref;
    struct {
@@ -984,7 +984,7 @@ static void
 write_deref(write_ctx *ctx, const nir_deref_instr *deref)
 {
    assert(deref->deref_type < 8);
-   assert(deref->mode < (1 << 12));
+   assert(deref->modes < (1 << 14));
 
    union packed_instr header;
    header.u32 = 0;
@@ -993,7 +993,7 @@ write_deref(write_ctx *ctx, const nir_deref_instr *deref)
    header.deref.deref_type = deref->deref_type;
 
    if (deref->deref_type == nir_deref_type_cast) {
-      header.deref.mode = deref->mode;
+      header.deref.modes = deref->modes;
       header.deref.cast_type_same_as_last = deref->type == ctx->last_type;
    }
 
@@ -1127,12 +1127,12 @@ read_deref(read_ctx *ctx, union packed_instr header)
    }
 
    if (deref_type == nir_deref_type_var) {
-      deref->mode = deref->var->data.mode;
+      deref->modes = deref->var->data.mode;
    } else if (deref->deref_type == nir_deref_type_cast) {
-      deref->mode = header.deref.mode;
+      deref->modes = header.deref.modes;
    } else {
       assert(deref->parent.is_ssa);
-      deref->mode = nir_instr_as_deref(deref->parent.ssa->parent_instr)->mode;
+      deref->modes = nir_instr_as_deref(deref->parent.ssa->parent_instr)->modes;
    }
 
    return deref;

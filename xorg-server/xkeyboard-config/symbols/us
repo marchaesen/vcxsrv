@@ -84,7 +84,6 @@ xkb_symbols "ibm238l" {
 partial alphanumeric_keys
 xkb_symbols "intl" {
 
-    include "us(basic)"
     name[Group1]= "English (US, intl., with dead keys)";
 
     key <TLDE> { [dead_grave, dead_tilde,         grave,       asciitilde ] };
@@ -122,7 +121,6 @@ xkb_symbols "intl" {
     key <AC06> { [	   h,          H,             h,                H ] };
     key <AC07> { [	   j,          J,             j,                J ] };
     key <AC08> { [	   k,          K,            oe,               OE ] };
-
     key <AC09> { [	   l,          L,        oslash,         Ooblique ] };
     key <AC10> { [ semicolon,      colon,     paragraph,           degree ] };
     key <AC11> { [dead_acute, dead_diaeresis, apostrophe,        quotedbl ] };
@@ -198,8 +196,6 @@ xkb_symbols "alt-intl" {
 
   include "level3(ralt_switch)"
 };
-
-// based on a keyboard map from an 'xkb/symbols/dk' file
 
 partial alphanumeric_keys
 xkb_symbols "dvorak" {
@@ -673,8 +669,8 @@ key.type[group1]="FOUR_LEVEL_ALPHABETIC";
 partial alphanumeric_keys
 xkb_symbols "mac" {
 
-    include "us(basic)"
     name[Group1]= "English (Macintosh)";
+
     key.type[group1]="FOUR_LEVEL";
 
     // Slightly improvised from http://homepage.mac.com/thgewecke/kblayout.jpg
@@ -715,7 +711,6 @@ xkb_symbols "mac" {
     key <AC06> { [	   h,          H, dead_abovedot,    dead_belowdot ] };
     key <AC07> { [	   j,          J,         U2206,          onehalf ] };
     key <AC08> { [	   k,          K,dead_abovering,            UF8FF ] };
-
     key <AC09> { [	   l,          L,       notsign,            THORN ] };
     key <AC10> { [ semicolon,      colon,         U2026,            thorn ] };
     key <AC11> { [apostrophe,   quotedbl,            ae,               AE ] };
@@ -741,7 +736,6 @@ xkb_symbols "mac" {
 partial alphanumeric_keys
 xkb_symbols "colemak" {
 
-    include "us"
     name[Group1]= "English (Colemak)";
 
     key <TLDE> { [        grave,   asciitilde,      dead_tilde,       asciitilde ] };
@@ -1395,7 +1389,6 @@ xkb_symbols "carpalx" {
 partial alphanumeric_keys
 xkb_symbols "carpalx-intl" {
 
-    include "us(carpalx)"
     name[Group1]= "English (Carpalx, intl., with dead keys)";
 
     key <TLDE> { [dead_grave, dead_tilde,         grave,       asciitilde ] };
@@ -1465,16 +1458,10 @@ xkb_symbols "carpalx-altgr-intl" {
    include "us(carpalx-intl)"
    name[Group1]= "English (Carpalx, intl., with AltGr dead keys)";
 
-// five dead keys moved into level3:
-
    key <TLDE> { [    grave, asciitilde,  dead_grave,   dead_tilde      ] };
    key <AC11> { [apostrophe,quotedbl,    dead_acute,   dead_diaeresis  ] };
 
-// diversions from the MS Intl keyboard:
-
    key <AE01> { [        1, exclam,      onesuperior,  exclamdown      ] };
-
-// onequarter etc (not in iso8859-15) moved to get three unshifted deadkeys:
 
    key <AE06> { [        6, asciicircum, dead_circumflex, onequarter    ] };
    key <AE07> { [        7, ampersand,   dead_horn,       onehalf       ] };
@@ -1603,7 +1590,6 @@ xkb_symbols "symbolic" {
  key <LSGT> { [ U230A,     U230B, U2308, U2309      ] }; // ⌊ ⌋ ⌈ ⌉
 
  include "level3(ralt_switch)"
-
 };
 
 // EXTRAS:
@@ -1679,8 +1665,8 @@ xkb_symbols "scn" {
 // deadkeys.  This variation does not deviate from the lame MS-style
 // US-intl layout; but it uses AltGr for combining, like altgr-intl.
 //
-// This might break your font layout layout systems (because they
-// suck), caveat emptor.  Also, most of today's software will count
+// This might break your font layout systems (because they suck),
+// caveat emptor.  Also, most of today's software will count
 // individual combining marks for selection, deletion, character
 // counting &c., and won't be smart enough to do canonical equivalence
 // when searching, &c.
@@ -1702,41 +1688,26 @@ xkb_symbols "intl-unicode" {
 
  name[Group1]= "English (US, intl., AltGr Unicode combining)";
 
- // grave, tilde
- key <TLDE> { [grave, asciitilde, U0300, U0303 ] };
- // double acute
- key <AE02> { [ 2, at, twosuperior, U030B ] };
- // macron
- key <AE03> { [ 3, numbersign, threesuperior, U0304 ] };
- // circumflex
- key <AE06> { [ 6, asciicircum, onequarter, U0302 ] };
- // horn
- key <AE07> { [ 7, ampersand, onehalf, U031B ] };
- // ogonek
- key <AE08> { [ 8, asterisk, threequarters, U0328 ] };
- // breve
- key <AE09> { [	 9, parenleft, leftsinglequotemark, U0306 ] };
- // abovering
- key <AE10> { [	 0, parenright, rightsinglequotemark, U030A ] };
+ key <TLDE> { [ grave, asciitilde, U0300, U0303 ] }; // grave, tilde
+ key <AE02> { [ 2, at, twosuperior, U030B ] }; // double acute
+ key <AE03> { [ 3, numbersign, threesuperior, U0304 ] }; // macron
+ key <AE06> { [ 6, asciicircum, onequarter, U0302 ] }; // circumflex
+ key <AE07> { [ 7, ampersand, onehalf, U031B ] }; // horn
+ key <AE08> { [ 8, asterisk, threequarters, U0328 ] }; // ogonek
+ key <AE09> { [ 9, parenleft, leftsinglequotemark, U0306 ] }; // breve
+ key <AE10> { [ 0, parenright, rightsinglequotemark, U030A ] }; // abovering
 
- // belowdot
- key <AE11> { [ minus, underscore, yen, U0323 ] };
- // acute, diaeresis
- key <AC11> { [apostrophe, quotedbl, U0301, U0308 ] };
- // abovedot, caron
- key <AB09> { [ period, greater, U0307, U030C ] };
- // hook
- key <AB10> { [ slash, question, questiondown, U0309 ] };
+ key <AE11> { [ minus, underscore, yen, U0323 ] }; // belowdot
+ key <AC11> { [ apostrophe, quotedbl, U0301, U0308 ] }; // acute, diaeresis
+ key <AB09> { [ period, greater, U0307, U030C ] }; // abovedot, caron
+ key <AB10> { [ slash, question, questiondown, U0309 ] }; // hook
 
  // alt-intl compatibility
- // cedilla, caron
- key <AB08> { [ comma, less,	 U0327, U030C ] };
- // ogonek, diaeresis
- key <AC10> { [ semicolon, colon,	 U0328, U0308 ] };
- // doubleacute, horn
- key <AE12> { [ equal, plus,	 U030B, U031B ] };
+ key <AB08> { [ comma, less, U0327, U030C ] }; // cedilla, caron
+ key <AC10> { [ semicolon, colon, U0328, U0308 ] }; // ogonek, diaeresis
+ key <AE12> { [ equal, plus, U030B, U031B ] }; // doubleacute, horn
 
- // we don't do combining latin letters and combining enclosures
+ // We don't do combining latin letters and combining enclosures,
  // because support for those is very rare.
 };
 
@@ -1758,7 +1729,6 @@ xkb_symbols "alt-intl-unicode" {
 
  // belowdot, abovedot (caron at coma/less key, per above)
  key <AB09> { [ period, greater, U0323, U0307 ] };
-
 };
 
 partial alphanumeric_keys
@@ -1969,7 +1939,7 @@ xkb_symbols "drix" {
 	// Second row
 	key <AD01> {[ q,           Q,              oslash,               Ooblique              ]}; // q Q ø Ø
 	key <AD02> {[ w,           W,              w,                    uparrow               ]}; // w W w ↑
-	key <AD03> {[ e,           E,              EuroSign,             EuroS                 ]}; // e E € €
+	key <AD03> {[ e,           E,              EuroSign,             EuroSign              ]}; // e E € €
 	key <AD04> {[ r,           R,              registered,           0x10020bd             ]}; // r R ® ₽
 	key <AD05> {[ t,           T,              trademark,            Greek_tau             ]}; // t T ™ τ
 	key <AD06> {[ y,           Y,              yen,                  yen                   ]}; // y Y ¥ ¥

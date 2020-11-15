@@ -31,6 +31,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -205,7 +206,7 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
 void ac_compute_driver_uuid(char *uuid, size_t size);
 
 void ac_compute_device_uuid(struct radeon_info *info, char *uuid, size_t size);
-void ac_print_gpu_info(struct radeon_info *info);
+void ac_print_gpu_info(struct radeon_info *info, FILE *f);
 int ac_get_gs_table_depth(enum chip_class chip_class, enum radeon_family family);
 void ac_get_raster_config(struct radeon_info *info, uint32_t *raster_config_p,
                           uint32_t *raster_config_1_p, uint32_t *se_tile_repeat_p);

@@ -4,11 +4,9 @@ api/clenqueuefillbuffer: skip
 api/clenqueuefillimage: skip
 api/clenqueuemigratememobjects: skip
 api/clgetextensionfunctionaddressforplatform: skip
-api/clgetimageinfo: skip
 api/clgetkernelarginfo: skip
 api/cllinkprogram: skip
 api/clsetkernelarg/set kernel argument for cl_int3: fail
-api/clsetkernelarg/set kernel argument for sampler: skip
 interop/egl_khr_cl_event2: skip
 program/build/include-directories: fail
 program/build/printf: skip
@@ -20,8 +18,6 @@ program/execute/amdgcn-callee-saved-registers: skip
 program/execute/amdgcn-f16-inline-immediates: skip
 program/execute/amdgcn-f32-inline-immediates/add integer 64: fail
 program/execute/amdgcn-i16-inline-immediates: skip
-program/execute/amdgcn-mubuf-negative-vaddr: crash
-program/execute/amdgcn.sign_extend_inreg: crash
 program/execute/atomic_int64_add-global: skip
 program/execute/atomic_int64_add-global-return: skip
 program/execute/atomic_int64_add-local: skip
@@ -55,201 +51,57 @@ program/execute/atomic_int64_xchg-local: skip
 program/execute/atomic_int64_xor-global: skip
 program/execute/atomic_int64_xor-global-return: skip
 program/execute/atomic_int64_xor-local: skip
-program/execute/builtin/builtin-char-mad_hi-1.0.generated/mad_hi char1: fail
-program/execute/builtin/builtin-char-mad_hi-1.0.generated/mad_hi char16: fail
-program/execute/builtin/builtin-char-mad_hi-1.0.generated/mad_hi char2: fail
-program/execute/builtin/builtin-char-mad_hi-1.0.generated/mad_hi char4: fail
-program/execute/builtin/builtin-char-mad_hi-1.0.generated/mad_hi char8: fail
-program/execute/builtin/builtin-char-mul_hi-1.0.generated/mul_hi char1: fail
-program/execute/builtin/builtin-char-mul_hi-1.0.generated/mul_hi char16: fail
-program/execute/builtin/builtin-char-mul_hi-1.0.generated/mul_hi char2: fail
-program/execute/builtin/builtin-char-mul_hi-1.0.generated/mul_hi char4: fail
-program/execute/builtin/builtin-char-mul_hi-1.0.generated/mul_hi char8: fail
 program/execute/builtin/builtin-char-popcount-1.2.generated: skip
-program/execute/builtin/builtin-char-rotate-1.0.generated: crash
-program/execute/builtin/builtin-float-cos-1.0.generated: crash
-program/execute/builtin/builtin-float-fma-1.0.generated: crash
-program/execute/builtin/builtin-float-fmax-1.0.generated/fmax float1: fail
-program/execute/builtin/builtin-float-fmax-1.0.generated/fmax float16: fail
-program/execute/builtin/builtin-float-fmax-1.0.generated/fmax float2: fail
-program/execute/builtin/builtin-float-fmax-1.0.generated/fmax float4: fail
-program/execute/builtin/builtin-float-fmax-1.0.generated/fmax float8: fail
-program/execute/builtin/builtin-float-fmax-1.0.generated/tss_fmax float16: fail
-program/execute/builtin/builtin-float-fmax-1.0.generated/tss_fmax float2: fail
-program/execute/builtin/builtin-float-fmax-1.0.generated/tss_fmax float4: fail
-program/execute/builtin/builtin-float-fmax-1.0.generated/tss_fmax float8: fail
-program/execute/builtin/builtin-float-fmin-1.0.generated/fmin float1: fail
-program/execute/builtin/builtin-float-fmin-1.0.generated/fmin float16: fail
-program/execute/builtin/builtin-float-fmin-1.0.generated/fmin float2: fail
-program/execute/builtin/builtin-float-fmin-1.0.generated/fmin float4: fail
-program/execute/builtin/builtin-float-fmin-1.0.generated/fmin float8: fail
-program/execute/builtin/builtin-float-fmin-1.0.generated/tss_fmin float16: fail
-program/execute/builtin/builtin-float-fmin-1.0.generated/tss_fmin float2: fail
-program/execute/builtin/builtin-float-fmin-1.0.generated/tss_fmin float4: fail
-program/execute/builtin/builtin-float-fmin-1.0.generated/tss_fmin float8: fail
-program/execute/builtin/builtin-float-fract-1.0.generated: crash
-program/execute/builtin/builtin-float-frexp-1.0.generated: crash
+program/execute/builtin/builtin-float-cos-1.0.generated: timeout
 program/execute/builtin/builtin-float-isfinite-1.0.generated: crash
 program/execute/builtin/builtin-float-isnormal-1.0.generated: crash
 program/execute/builtin/builtin-float-ldexp-1.0.generated: fail
-program/execute/builtin/builtin-float-lgamma-1.0.generated: crash
-program/execute/builtin/builtin-float-lgamma_r-1.0.generated: crash
-program/execute/builtin/builtin-float-maxmag-1.1.generated/maxmag float1: fail
-program/execute/builtin/builtin-float-maxmag-1.1.generated/maxmag float16: fail
-program/execute/builtin/builtin-float-maxmag-1.1.generated/maxmag float2: fail
-program/execute/builtin/builtin-float-maxmag-1.1.generated/maxmag float4: fail
-program/execute/builtin/builtin-float-maxmag-1.1.generated/maxmag float8: fail
-program/execute/builtin/builtin-float-minmag-1.1.generated/minmag float1: fail
-program/execute/builtin/builtin-float-minmag-1.1.generated/minmag float16: fail
-program/execute/builtin/builtin-float-minmag-1.1.generated/minmag float2: fail
-program/execute/builtin/builtin-float-minmag-1.1.generated/minmag float4: fail
-program/execute/builtin/builtin-float-minmag-1.1.generated/minmag float8: fail
-program/execute/builtin/builtin-float-mix-1.0.generated: crash
-program/execute/builtin/builtin-float-modf-1.0.generated: crash
-program/execute/builtin/builtin-float-remquo-1.0.generated: crash
-program/execute/builtin/builtin-float-sin-1.0.generated: crash
+program/execute/builtin/builtin-float-sin-1.0.generated: timeout
 program/execute/builtin/builtin-float-sincos-1.0.generated: timeout
-program/execute/builtin/builtin-float-tan-1.0.generated: crash
-program/execute/builtin/builtin-float-tgamma-1.0.generated: crash
+program/execute/builtin/builtin-float-tan-1.0.generated: timeout
 program/execute/builtin/builtin-int-popcount-1.2.generated: skip
-program/execute/builtin/builtin-long-mad_hi-1.0.generated/mad_hi long1: fail
-program/execute/builtin/builtin-long-mad_hi-1.0.generated/mad_hi long16: fail
-program/execute/builtin/builtin-long-mad_hi-1.0.generated/mad_hi long2: fail
-program/execute/builtin/builtin-long-mad_hi-1.0.generated/mad_hi long4: fail
-program/execute/builtin/builtin-long-mad_hi-1.0.generated/mad_hi long8: fail
-program/execute/builtin/builtin-long-mad_sat-1.0.generated/mad_sat long1: fail
-program/execute/builtin/builtin-long-mad_sat-1.0.generated/mad_sat long16: fail
-program/execute/builtin/builtin-long-mad_sat-1.0.generated/mad_sat long2: fail
-program/execute/builtin/builtin-long-mad_sat-1.0.generated/mad_sat long4: fail
-program/execute/builtin/builtin-long-mad_sat-1.0.generated/mad_sat long8: fail
-program/execute/builtin/builtin-long-mul_hi-1.0.generated/mul_hi long1: fail
-program/execute/builtin/builtin-long-mul_hi-1.0.generated/mul_hi long16: fail
-program/execute/builtin/builtin-long-mul_hi-1.0.generated/mul_hi long2: fail
-program/execute/builtin/builtin-long-mul_hi-1.0.generated/mul_hi long4: fail
-program/execute/builtin/builtin-long-mul_hi-1.0.generated/mul_hi long8: fail
 program/execute/builtin/builtin-long-popcount-1.2.generated: skip
-program/execute/builtin/builtin-short-mad_hi-1.0.generated/mad_hi short1: fail
-program/execute/builtin/builtin-short-mad_hi-1.0.generated/mad_hi short16: fail
-program/execute/builtin/builtin-short-mad_hi-1.0.generated/mad_hi short2: fail
-program/execute/builtin/builtin-short-mad_hi-1.0.generated/mad_hi short4: fail
-program/execute/builtin/builtin-short-mad_hi-1.0.generated/mad_hi short8: fail
-program/execute/builtin/builtin-short-mul_hi-1.0.generated/mul_hi short1: fail
-program/execute/builtin/builtin-short-mul_hi-1.0.generated/mul_hi short16: fail
-program/execute/builtin/builtin-short-mul_hi-1.0.generated/mul_hi short2: fail
-program/execute/builtin/builtin-short-mul_hi-1.0.generated/mul_hi short4: fail
-program/execute/builtin/builtin-short-mul_hi-1.0.generated/mul_hi short8: fail
 program/execute/builtin/builtin-short-popcount-1.2.generated: skip
-program/execute/builtin/builtin-short-upsample-1.0.generated: crash
 program/execute/builtin/builtin-shuffle-half-ushort: skip
 program/execute/builtin/builtin-shuffle2-half-ushort: skip
-program/execute/builtin/builtin-uchar-mad_hi-1.0.generated/mad_hi uchar1: fail
-program/execute/builtin/builtin-uchar-mad_hi-1.0.generated/mad_hi uchar16: fail
-program/execute/builtin/builtin-uchar-mad_hi-1.0.generated/mad_hi uchar2: fail
-program/execute/builtin/builtin-uchar-mad_hi-1.0.generated/mad_hi uchar4: fail
-program/execute/builtin/builtin-uchar-mad_hi-1.0.generated/mad_hi uchar8: fail
-program/execute/builtin/builtin-uchar-mul_hi-1.0.generated/mul_hi uchar1: fail
-program/execute/builtin/builtin-uchar-mul_hi-1.0.generated/mul_hi uchar16: fail
-program/execute/builtin/builtin-uchar-mul_hi-1.0.generated/mul_hi uchar2: fail
-program/execute/builtin/builtin-uchar-mul_hi-1.0.generated/mul_hi uchar4: fail
-program/execute/builtin/builtin-uchar-mul_hi-1.0.generated/mul_hi uchar8: fail
 program/execute/builtin/builtin-uchar-popcount-1.2.generated: skip
-program/execute/builtin/builtin-uchar-rotate-1.0.generated: crash
 program/execute/builtin/builtin-uint-popcount-1.2.generated: skip
-program/execute/builtin/builtin-ulong-mad_hi-1.0.generated/mad_hi ulong1: fail
-program/execute/builtin/builtin-ulong-mad_hi-1.0.generated/mad_hi ulong16: fail
-program/execute/builtin/builtin-ulong-mad_hi-1.0.generated/mad_hi ulong2: fail
-program/execute/builtin/builtin-ulong-mad_hi-1.0.generated/mad_hi ulong4: fail
-program/execute/builtin/builtin-ulong-mad_hi-1.0.generated/mad_hi ulong8: fail
-program/execute/builtin/builtin-ulong-mul_hi-1.0.generated/mul_hi ulong1: fail
-program/execute/builtin/builtin-ulong-mul_hi-1.0.generated/mul_hi ulong16: fail
-program/execute/builtin/builtin-ulong-mul_hi-1.0.generated/mul_hi ulong2: fail
-program/execute/builtin/builtin-ulong-mul_hi-1.0.generated/mul_hi ulong4: fail
-program/execute/builtin/builtin-ulong-mul_hi-1.0.generated/mul_hi ulong8: fail
 program/execute/builtin/builtin-ulong-popcount-1.2.generated: skip
-program/execute/builtin/builtin-ushort-mad_hi-1.0.generated/mad_hi ushort1: fail
-program/execute/builtin/builtin-ushort-mad_hi-1.0.generated/mad_hi ushort16: fail
-program/execute/builtin/builtin-ushort-mad_hi-1.0.generated/mad_hi ushort2: fail
-program/execute/builtin/builtin-ushort-mad_hi-1.0.generated/mad_hi ushort4: fail
-program/execute/builtin/builtin-ushort-mad_hi-1.0.generated/mad_hi ushort8: fail
-program/execute/builtin/builtin-ushort-mul_hi-1.0.generated/mul_hi ushort1: fail
-program/execute/builtin/builtin-ushort-mul_hi-1.0.generated/mul_hi ushort16: fail
-program/execute/builtin/builtin-ushort-mul_hi-1.0.generated/mul_hi ushort2: fail
-program/execute/builtin/builtin-ushort-mul_hi-1.0.generated/mul_hi ushort4: fail
-program/execute/builtin/builtin-ushort-mul_hi-1.0.generated/mul_hi ushort8: fail
 program/execute/builtin/builtin-ushort-popcount-1.2.generated: skip
-program/execute/builtin/builtin-ushort-upsample-1.0.generated: crash
 program/execute/call-clobbers-amdgcn: skip
 program/execute/calls-large-struct: crash
-program/execute/calls-struct: crash
-program/execute/gegl-rgb-gamma-u8-to-ragabaf: crash
+program/execute/calls-struct/regs struct: fail
+program/execute/calls-struct/small struct in regs: fail
 program/execute/global-offset/3d, input dependent: fail
-program/execute/i32-stack-array: crash
-program/execute/image-attributes: skip
-program/execute/image-read-2d: skip
-program/execute/image-write-2d: skip
-program/execute/load-hi16: crash
+program/execute/image-attributes: crash
+program/execute/image-read-2d/read float from cl_float cl_rgba image.: fail
+program/execute/image-read-2d/read signed integer from cl_signed_int8 cl_rgba image.: fail
+program/execute/image-read-2d/read unsigned integer from cl_unsigned_int8 cl_rgba image.: fail
+program/execute/image-write-2d: crash
 program/execute/load-hi16-generic: skip
-program/execute/load-lo16: crash
 program/execute/load-lo16-generic: skip
 program/execute/mad-mix: skip
-program/execute/multiple-stack-objects: crash
-program/execute/negative-private-base-pointer: crash
 program/execute/program-tester-check-local-size-test-should-skip/this test should skip: skip
-program/execute/pyrit-wpa-psk: crash
-program/execute/realign-stack: crash
-program/execute/reference: crash
-program/execute/sampler: skip
+program/execute/sampler/read from image using clamp_to_edge addressing mode: fail
+program/execute/sampler/read from image using linear filtering and normalized coords: fail
+program/execute/sampler/read from image using linear filtering and unnormalized coords: fail
 program/execute/scalar-logical-float: skip
 program/execute/store-hi16-generic: skip
-program/execute/v2i32-stack: crash
-program/execute/v3i32-stack: crash
-program/execute/v3i32-stack-array: crash
-program/execute/v4i32-stack: crash
-program/execute/vload/vload-char-private: crash
-program/execute/vload/vload-double-private: crash
-program/execute/vload/vload-float-private: crash
 program/execute/vload/vload-half-constant: skip
 program/execute/vload/vload-half-global: skip
 program/execute/vload/vload-half-local: skip
 program/execute/vload/vload-half-private: skip
-program/execute/vload/vload-int-private: crash
-program/execute/vload/vload-long-private: crash
-program/execute/vload/vload-short-private: crash
-program/execute/vload/vload-uchar-private: crash
-program/execute/vload/vload-uint-private: crash
-program/execute/vload/vload-ulong-private: crash
-program/execute/vload/vload-ushort-private: crash
-program/execute/vload/vload_half-float-private: crash
-program/execute/vload/vloada_half-float-private: crash
-program/execute/vstore/vstore-char-private: crash
-program/execute/vstore/vstore-double-private: crash
-program/execute/vstore/vstore-float-private: crash
 program/execute/vstore/vstore-half-global: skip
 program/execute/vstore/vstore-half-local: skip
 program/execute/vstore/vstore-half-private: skip
-program/execute/vstore/vstore-int-private: crash
-program/execute/vstore/vstore-long-private: crash
-program/execute/vstore/vstore-short-private: crash
-program/execute/vstore/vstore-uchar-private: crash
-program/execute/vstore/vstore-uint-private: crash
-program/execute/vstore/vstore-ulong-private: crash
-program/execute/vstore/vstore-ushort-private: crash
-program/execute/vstore/vstore_half-double-global: crash
-program/execute/vstore/vstore_half-double-local: crash
-program/execute/vstore/vstore_half-double-private: crash
-program/execute/vstore/vstore_half-float-private: crash
-program/execute/vstore/vstorea_half-double-global: crash
-program/execute/vstore/vstorea_half-double-local: crash
-program/execute/vstore/vstorea_half-double-private: crash
-program/execute/vstore/vstorea_half-float-private: crash
 summary:
        name:  results
        ----  --------
-       pass:     2967
-       fail:       99
-      crash:       65
-       skip:       79
-    timeout:        1
+       pass:     3764
+       fail:       14
+      crash:        5
+       skip:       73
+    timeout:        4
        warn:        0
  incomplete:        0
  dmesg-warn:        0
@@ -257,4 +109,4 @@ summary:
     changes:        0
       fixes:        0
 regressions:        0
-      total:     3211
+      total:     3860

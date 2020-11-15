@@ -85,8 +85,6 @@ ds_pattern_bitmode(unsigned and_mask, unsigned or_mask, unsigned xor_mask)
 
 aco_ptr<Instruction> create_s_mov(Definition dst, Operand src);
 
-extern uint8_t int8_mul_table[512];
-
 enum sendmsg {
    sendmsg_none = 0,
    _sendmsg_gs = 2,
@@ -354,6 +352,12 @@ public:
    }
 
 % endfor
+
+   Operand set16bit(Operand op) {
+       op.set16bit(true);
+       return op;
+   }
+
    /* hand-written helpers */
    Temp as_uniform(Op op)
    {
@@ -386,88 +390,15 @@ public:
       return v_mul_imm(dst, tmp, imm, true);
    }
 
-   Result copy(Definition dst, Op op_) {
-      Operand op = op_.op;
-      assert(op.bytes() == dst.bytes());
-      if (dst.regClass() == s1 && op.size() == 1 && op.isLiteral()) {
-         uint32_t imm = op.constantValue();
-         if (imm == 0x3e22f983) {
-            if (program->chip_class >= GFX8)
-               op.setFixed(PhysReg{248}); /* it can be an inline constant on GFX8+ */
-         } else if (imm >= 0xffff8000 || imm <= 0x7fff) {
-            return sopk(aco_opcode::s_movk_i32, dst, imm & 0xFFFFu);
-         } else if (util_bitreverse(imm) <= 64 || util_bitreverse(imm) >= 0xFFFFFFF0) {
-            uint32_t rev = util_bitreverse(imm);
-            return dst.regClass() == v1 ?
-                   vop1(aco_opcode::v_bfrev_b32, dst, Operand(rev)) :
-                   sop1(aco_opcode::s_brev_b32, dst, Operand(rev));
-         } else if (imm != 0) {
-            unsigned start = (ffs(imm) - 1) & 0x1f;
-            unsigned size = util_bitcount(imm) & 0x1f;
-            if ((((1u << size) - 1u) << start) == imm)
-                return sop2(aco_opcode::s_bfm_b32, dst, Operand(size), Operand(start));
-         }
-      }
-
-      if (dst.regClass() == s1) {
-        return sop1(aco_opcode::s_mov_b32, dst, op);
-      } else if (dst.regClass() == s2) {
-        return sop1(aco_opcode::s_mov_b64, dst, op);
-      } else if (dst.regClass() == v1 || dst.regClass() == v1.as_linear()) {
-        return vop1(aco_opcode::v_mov_b32, dst, op);
-      } else if (op.bytes() > 2 || (op.isLiteral() && dst.regClass().is_subdword())) {
-         return pseudo(aco_opcode::p_create_vector, dst, op);
-      } else if (op.bytes() == 1 && op.isConstant()) {
-        uint8_t val = op.constantValue();
-        Operand op32((uint32_t)val | (val & 0x80u ? 0xffffff00u : 0u));
-        aco_ptr<SDWA_instruction> sdwa;
-        if (op32.isLiteral()) {
-            sdwa.reset(create_instruction<SDWA_instruction>(aco_opcode::v_mul_u32_u24, asSDWA(Format::VOP2), 2, 1));
-            uint32_t a = (uint32_t)int8_mul_table[val * 2];
-            uint32_t b = (uint32_t)int8_mul_table[val * 2 + 1];
-            sdwa->operands[0] = Operand(a | (a & 0x80u ? 0xffffff00u : 0x0u));
-            sdwa->operands[1] = Operand(b | (b & 0x80u ? 0xffffff00u : 0x0u));
-        } else {
-            sdwa.reset(create_instruction<SDWA_instruction>(aco_opcode::v_mov_b32, asSDWA(Format::VOP1), 1, 1));
-            sdwa->operands[0] = op32;
-        }
-        sdwa->definitions[0] = dst;
-        sdwa->sel[0] = sdwa_udword;
-        sdwa->sel[1] = sdwa_udword;
-        sdwa->dst_sel = sdwa_ubyte;
-        sdwa->dst_preserve = true;
-        return insert(std::move(sdwa));
-      } else if (op.bytes() == 2 && op.isConstant() && !op.isLiteral()) {
-        aco_ptr<SDWA_instruction> sdwa{create_instruction<SDWA_instruction>(aco_opcode::v_add_f16, asSDWA(Format::VOP2), 2, 1)};
-        sdwa->operands[0] = op;
-        sdwa->operands[1] = Operand(0u);
-        sdwa->definitions[0] = dst;
-        sdwa->sel[0] = sdwa_uword;
-        sdwa->sel[1] = sdwa_udword;
-        sdwa->dst_sel = dst.bytes() == 1 ? sdwa_ubyte : sdwa_uword;
-        sdwa->dst_preserve = true;
-        return insert(std::move(sdwa));
-      } else if (dst.regClass().is_subdword()) {
-        if (program->chip_class >= GFX8) {
-            aco_ptr<SDWA_instruction> sdwa{create_instruction<SDWA_instruction>(aco_opcode::v_mov_b32, asSDWA(Format::VOP1), 1, 1)};
-            sdwa->operands[0] = op;
-            sdwa->definitions[0] = dst;
-            sdwa->sel[0] = op.bytes() == 1 ? sdwa_ubyte : sdwa_uword;
-            sdwa->dst_sel = dst.bytes() == 1 ? sdwa_ubyte : sdwa_uword;
-            sdwa->dst_preserve = true;
-            return insert(std::move(sdwa));
-        } else {
-            return vop1(aco_opcode::v_mov_b32, dst, op);
-        }
-      } else {
-        unreachable("Unhandled case in bld.copy()");
-      }
+   Result copy(Definition dst, Op op) {
+      return pseudo(aco_opcode::p_parallelcopy, dst, op);
    }
 
    Result vadd32(Definition dst, Op a, Op b, bool carry_out=false, Op carry_in=Op(Operand(s2)), bool post_ra=false) {
       if (!b.op.isTemp() || b.op.regClass().type() != RegType::vgpr)
          std::swap(a, b);
-      assert((post_ra || b.op.hasRegClass()) && b.op.regClass().type() == RegType::vgpr);
+      if (!post_ra && (!b.op.hasRegClass() || b.op.regClass().type() == RegType::sgpr))
+         b = copy(def(v1), b);
 
       if (!carry_in.op.isUndefined())
          return vop2(aco_opcode::v_addc_co_u32, Definition(dst), hint_vcc(def(lm)), a, b, carry_in);
@@ -487,7 +418,8 @@ public:
       bool reverse = !b.op.isTemp() || b.op.regClass().type() != RegType::vgpr;
       if (reverse)
          std::swap(a, b);
-      assert(b.op.isTemp() && b.op.regClass().type() == RegType::vgpr);
+      if (!b.op.hasRegClass() || b.op.regClass().type() == RegType::sgpr)
+         b = copy(def(v1), b);
 
       aco_opcode op;
       Temp carry;
@@ -559,6 +491,7 @@ formats = [("pseudo", [Format.PSEUDO], 'Pseudo_instruction', list(itertools.prod
            ("barrier", [Format.PSEUDO_BARRIER], 'Pseudo_barrier_instruction', [(0, 0)]),
            ("reduction", [Format.PSEUDO_REDUCTION], 'Pseudo_reduction_instruction', [(3, 2)]),
            ("vop1", [Format.VOP1], 'VOP1_instruction', [(0, 0), (1, 1), (2, 2)]),
+           ("vop1_sdwa", [Format.VOP1, Format.SDWA], 'SDWA_instruction', [(1, 1)]),
            ("vop2", [Format.VOP2], 'VOP2_instruction', itertools.product([1, 2], [2, 3])),
            ("vop2_sdwa", [Format.VOP2, Format.SDWA], 'SDWA_instruction', itertools.product([1, 2], [2, 3])),
            ("vopc", [Format.VOPC], 'VOPC_instruction', itertools.product([1, 2], [2])),

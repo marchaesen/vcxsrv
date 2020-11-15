@@ -203,7 +203,9 @@ unsigned ac_get_type_size(LLVMTypeRef type)
 
 static LLVMTypeRef to_integer_type_scalar(struct ac_llvm_context *ctx, LLVMTypeRef t)
 {
-   if (t == ctx->i8)
+   if (t == ctx->i1)
+      return ctx->i1;
+   else if (t == ctx->i8)
       return ctx->i8;
    else if (t == ctx->f16 || t == ctx->i16)
       return ctx->i16;
@@ -435,6 +437,9 @@ LLVMValueRef ac_build_ballot(struct ac_llvm_context *ctx, LLVMValueRef value)
 {
    const char *name;
 
+   if (LLVMTypeOf(value) == ctx->i1)
+      value = LLVMBuildZExt(ctx->builder, value, ctx->i32, "");
+
    if (LLVM_VERSION_MAJOR >= 9) {
       if (ctx->wave_size == 64)
          name = "llvm.amdgcn.icmp.i64.i32";
@@ -567,7 +572,7 @@ static LLVMValueRef ac_build_expand(struct ac_llvm_context *ctx, LLVMValueRef va
                                     unsigned src_channels, unsigned dst_channels)
 {
    LLVMTypeRef elemtype;
-   LLVMValueRef chan[dst_channels];
+   LLVMValueRef *const chan = alloca(dst_channels * sizeof(LLVMValueRef));
 
    if (LLVMGetTypeKind(LLVMTypeOf(value)) == LLVMVectorTypeKind) {
       unsigned vec_size = LLVMGetVectorSize(LLVMTypeOf(value));
@@ -600,7 +605,7 @@ static LLVMValueRef ac_build_expand(struct ac_llvm_context *ctx, LLVMValueRef va
 LLVMValueRef ac_extract_components(struct ac_llvm_context *ctx, LLVMValueRef value, unsigned start,
                                    unsigned channels)
 {
-   LLVMValueRef chan[channels];
+   LLVMValueRef *const chan = alloca(channels * sizeof(LLVMValueRef));
 
    for (unsigned i = 0; i < channels; i++)
       chan[i] = ac_llvm_extract_elem(ctx, value, i + start);
@@ -2117,7 +2122,7 @@ LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx, struct ac_image_
    char data_type_str[8];
 
    if (atomic) {
-      data_type = ctx->i32;
+      data_type = LLVMTypeOf(a->data[0]);
    } else if (a->opcode == ac_image_store || a->opcode == ac_image_store_mip) {
       /* Image stores might have been shrinked using the format. */
       data_type = LLVMTypeOf(a->data[0]);
@@ -2253,7 +2258,7 @@ LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx, struct ac_image_
 
    LLVMTypeRef retty;
    if (atomic)
-      retty = ctx->i32;
+      retty = data_type;
    else if (a->opcode == ac_image_store || a->opcode == ac_image_store_mip)
       retty = ctx->voidt;
    else
@@ -3133,6 +3138,22 @@ void ac_build_else(struct ac_llvm_context *ctx, int label_id)
    current_branch->next_block = endif_block;
 }
 
+/* Invoked after a branch is exited. */
+static void ac_branch_exited(struct ac_llvm_context *ctx)
+{
+   if (ctx->flow->depth == 0 && ctx->conditional_demote_seen) {
+      /* The previous conditional branch contained demote. Kill threads
+       * after all conditional blocks because amdgcn.wqm.vote doesn't
+       * return usable values inside the blocks.
+       *
+       * This is an optional optimization that only kills whole inactive quads.
+       */
+      LLVMValueRef cond = LLVMBuildLoad(ctx->builder, ctx->postponed_kill, "");
+      ac_build_kill_if_false(ctx, ac_build_wqm_vote(ctx, cond));
+      ctx->conditional_demote_seen = false;
+   }
+}
+
 void ac_build_endif(struct ac_llvm_context *ctx, int label_id)
 {
    struct ac_llvm_flow *current_branch = get_current_flow(ctx);
@@ -3144,6 +3165,7 @@ void ac_build_endif(struct ac_llvm_context *ctx, int label_id)
    set_basicblock_name(current_branch->next_block, "endif", label_id);
 
    ctx->flow->depth--;
+   ac_branch_exited(ctx);
 }
 
 void ac_build_endloop(struct ac_llvm_context *ctx, int label_id)
@@ -3157,6 +3179,7 @@ void ac_build_endloop(struct ac_llvm_context *ctx, int label_id)
    LLVMPositionBuilderAtEnd(ctx->builder, current_loop->next_block);
    set_basicblock_name(current_loop->next_block, "endloop", label_id);
    ctx->flow->depth--;
+   ac_branch_exited(ctx);
 }
 
 void ac_build_ifcc(struct ac_llvm_context *ctx, LLVMValueRef cond, int label_id)
@@ -3169,19 +3192,6 @@ void ac_build_ifcc(struct ac_llvm_context *ctx, LLVMValueRef cond, int label_id)
    set_basicblock_name(if_block, "if", label_id);
    LLVMBuildCondBr(ctx->builder, cond, if_block, flow->next_block);
    LLVMPositionBuilderAtEnd(ctx->builder, if_block);
-}
-
-void ac_build_if(struct ac_llvm_context *ctx, LLVMValueRef value, int label_id)
-{
-   LLVMValueRef cond = LLVMBuildFCmp(ctx->builder, LLVMRealUNE, value, ctx->f32_0, "");
-   ac_build_ifcc(ctx, cond, label_id);
-}
-
-void ac_build_uif(struct ac_llvm_context *ctx, LLVMValueRef value, int label_id)
-{
-   LLVMValueRef cond =
-      LLVMBuildICmp(ctx->builder, LLVMIntNE, ac_to_integer(ctx, value), ctx->i32_0, "");
-   ac_build_ifcc(ctx, cond, label_id);
 }
 
 LLVMValueRef ac_build_alloca_undef(struct ac_llvm_context *ac, LLVMTypeRef type, const char *name)
@@ -3224,7 +3234,7 @@ LLVMValueRef ac_trim_vector(struct ac_llvm_context *ctx, LLVMValueRef value, uns
    if (count == num_components)
       return value;
 
-   LLVMValueRef masks[MAX2(count, 2)];
+   LLVMValueRef *const masks = alloca(MAX2(count, 2) * sizeof(LLVMValueRef));
    masks[0] = ctx->i32_0;
    masks[1] = ctx->i32_1;
    for (unsigned i = 2; i < count; i++)
@@ -3631,7 +3641,18 @@ static LLVMValueRef ac_build_set_inactive(struct ac_llvm_context *ctx, LLVMValue
 static LLVMValueRef get_reduction_identity(struct ac_llvm_context *ctx, nir_op op,
                                            unsigned type_size)
 {
-   if (type_size == 1) {
+
+   if (type_size == 0) {
+      switch (op) {
+      case nir_op_ior:
+      case nir_op_ixor:
+         return LLVMConstInt(ctx->i1, 0, 0);
+      case nir_op_iand:
+         return LLVMConstInt(ctx->i1, 1, 0);
+      default:
+         unreachable("bad reduction intrinsic");
+      }
+   } else if (type_size == 1) {
       switch (op) {
       case nir_op_iadd:
          return ctx->i8_0;
@@ -4366,8 +4387,7 @@ LLVMValueRef ac_build_load_helper_invocation(struct ac_llvm_context *ctx)
 {
    LLVMValueRef result =
       ac_build_intrinsic(ctx, "llvm.amdgcn.ps.live", ctx->i1, NULL, 0, AC_FUNC_ATTR_READNONE);
-   result = LLVMBuildNot(ctx->builder, result, "");
-   return LLVMBuildSExt(ctx->builder, result, ctx->i32, "");
+   return LLVMBuildNot(ctx->builder, result, "");
 }
 
 LLVMValueRef ac_build_is_helper_invocation(struct ac_llvm_context *ctx)
@@ -4380,10 +4400,7 @@ LLVMValueRef ac_build_is_helper_invocation(struct ac_llvm_context *ctx)
       ac_build_intrinsic(ctx, "llvm.amdgcn.ps.live", ctx->i1, NULL, 0, AC_FUNC_ATTR_READNONE);
 
    LLVMValueRef postponed = LLVMBuildLoad(ctx->builder, ctx->postponed_kill, "");
-   LLVMValueRef result = LLVMBuildAnd(ctx->builder, exact, postponed, "");
-
-   return LLVMBuildSelect(ctx->builder, result, ctx->i32_0,
-                          LLVMConstInt(ctx->i32, 0xFFFFFFFF, false), "");
+   return LLVMBuildNot(ctx->builder, LLVMBuildAnd(ctx->builder, exact, postponed, ""), "");
 }
 
 LLVMValueRef ac_build_call(struct ac_llvm_context *ctx, LLVMValueRef func, LLVMValueRef *args,

@@ -846,7 +846,6 @@ init_attrib_groups(struct gl_context *ctx)
    _mesa_init_debug_output( ctx );
    _mesa_init_display_list( ctx );
    _mesa_init_eval( ctx );
-   _mesa_init_fbobjects( ctx );
    _mesa_init_feedback( ctx );
    _mesa_init_fog( ctx );
    _mesa_init_hint( ctx );

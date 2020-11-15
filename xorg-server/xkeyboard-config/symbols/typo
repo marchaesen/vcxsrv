@@ -67,5 +67,4 @@ xkb_symbols "base" {
     // U+22C5 DOT OPERATOR
     // U+25CA LOZENGE
     // U+2212 MINUS SIGN
-
 };

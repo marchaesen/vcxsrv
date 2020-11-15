@@ -130,7 +130,7 @@ v3dv_descriptor_map_get_descriptor_bo(struct v3dv_descriptor_state *descriptor_s
                                       uint32_t index,
                                       VkDescriptorType *out_type)
 {
-   assert(index >= 0 && index < map->num_desc);
+   assert(index < map->num_desc);
 
    uint32_t set_number = map->set[index];
    assert(descriptor_state->valid & 1 << set_number);
@@ -172,7 +172,7 @@ v3dv_descriptor_map_get_sampler(struct v3dv_descriptor_state *descriptor_state,
                                 struct v3dv_pipeline_layout *pipeline_layout,
                                 uint32_t index)
 {
-   assert(index >= 0 && index < map->num_desc);
+   assert(index < map->num_desc);
 
    uint32_t set_number = map->set[index];
    assert(descriptor_state->valid & 1 << set_number);

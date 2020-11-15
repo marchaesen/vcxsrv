@@ -62,8 +62,7 @@ void st_nir_lower_uniforms(struct st_context *st, struct nir_shader *nir);
 
 struct pipe_shader_state *
 st_nir_finish_builtin_shader(struct st_context *st,
-                             struct nir_shader *nir,
-                             const char *name);
+                             struct nir_shader *nir);
 
 struct pipe_shader_state *
 st_nir_make_passthrough_shader(struct st_context *st,

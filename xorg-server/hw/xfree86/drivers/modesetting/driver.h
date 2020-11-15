@@ -57,6 +57,7 @@ typedef enum {
     OPTION_DOUBLE_SHADOW,
     OPTION_ATOMIC,
     OPTION_VARIABLE_REFRESH,
+    OPTION_USE_GAMMA_LUT,
 } modesettingOpts;
 
 typedef struct

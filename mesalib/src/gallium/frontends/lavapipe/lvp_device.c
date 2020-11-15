@@ -36,6 +36,7 @@
 #include "util/u_thread.h"
 #include "util/u_atomic.h"
 #include "util/timespec.h"
+#include "os_time.h"
 
 static VkResult
 lvp_physical_device_init(struct lvp_physical_device *device,
@@ -311,7 +312,7 @@ void lvp_GetPhysicalDeviceFeatures(
       .depthBounds                              = (pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_DEPTH_BOUNDS_TEST) != 0),
       .wideLines                                = false,
       .largePoints                              = true,
-      .alphaToOne                               = false,
+      .alphaToOne                               = true,
       .multiViewport                            = true,
       .samplerAnisotropy                        = false, /* FINISHME */
       .textureCompressionETC2                   = false,
@@ -464,7 +465,7 @@ void lvp_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
       .maxSamplerAnisotropy                     = 16,
       .maxViewports                             = pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_MAX_VIEWPORTS),
       .maxViewportDimensions                    = { (1 << 14), (1 << 14) },
-      .viewportBoundsRange                      = { -16384.0, 16384.0 },
+      .viewportBoundsRange                      = { -32768.0, 32768.0 },
       .viewportSubPixelBits                     = pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_VIEWPORT_SUBPIXEL_BITS),
       .minMemoryMapAlignment                    = 4096, /* A page */
       .minTexelBufferOffsetAlignment            = pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT),
@@ -498,9 +499,9 @@ void lvp_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
       .maxCombinedClipAndCullDistances          = 8,
       .discreteQueuePriorities                  = 2,
       .pointSizeRange                           = { 0.0, pdevice->pscreen->get_paramf(pdevice->pscreen, PIPE_CAPF_MAX_POINT_WIDTH) },
-      .lineWidthRange                           = { 0.0, pdevice->pscreen->get_paramf(pdevice->pscreen, PIPE_CAPF_MAX_LINE_WIDTH) },
+      .lineWidthRange                           = { 1.0, 1.0 },
       .pointSizeGranularity                     = (1.0 / 8.0),
-      .lineWidthGranularity                     = (1.0 / 128.0),
+      .lineWidthGranularity                     = 0.0,
       .strictLines                              = false, /* FINISHME */
       .standardSampleLocations                  = true,
       .optimalBufferCopyOffsetAlignment         = 128,
@@ -1026,14 +1027,14 @@ static VkResult queue_wait_idle(struct lvp_queue *queue, uint64_t timeout)
       return p_atomic_read(&queue->count) == 0 ? VK_SUCCESS : VK_TIMEOUT;
    if (timeout == UINT64_MAX)
       while (p_atomic_read(&queue->count))
-         usleep(100);
+         os_time_sleep(100);
    else {
       struct timespec t, current;
       clock_gettime(CLOCK_MONOTONIC, &current);
       timespec_add_nsec(&t, &current, timeout);
       bool timedout = false;
       while (p_atomic_read(&queue->count) && !(timedout = timespec_passed(CLOCK_MONOTONIC, &t)))
-         usleep(10);
+         os_time_sleep(10);
       if (timedout)
          return VK_TIMEOUT;
    }

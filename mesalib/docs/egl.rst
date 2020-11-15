@@ -122,7 +122,7 @@ The code basically consists of two things:
 
 Two of API functions are optional (``eglQuerySurface()`` and
 ``eglSwapInterval()``); the former provides fallback for all the
-platform-agnostic attributes (ie. everything except ``EGL_WIDTH``
+platform-agnostic attributes (i.e. everything except ``EGL_WIDTH``
 & ``EGL_HEIGHT``), and the latter just silently pretends the API call
 succeeded (as per EGL spec).
 

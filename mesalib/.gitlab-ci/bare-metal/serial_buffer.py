@@ -22,11 +22,12 @@
 # IN THE SOFTWARE.
 
 import argparse
-from datetime import datetime,timezone
+from datetime import datetime, timezone
 import queue
 import serial
 import threading
 import time
+
 
 class SerialBuffer:
     def __init__(self, dev, filename, prefix):
@@ -45,12 +46,15 @@ class SerialBuffer:
         self.sentinel = object()
 
         if self.dev:
-            self.read_thread = threading.Thread(target=self.serial_read_thread_loop, daemon=True)
+            self.read_thread = threading.Thread(
+                target=self.serial_read_thread_loop, daemon=True)
         else:
-            self.read_thread = threading.Thread(target=self.serial_file_read_thread_loop, daemon=True)
+            self.read_thread = threading.Thread(
+                target=self.serial_file_read_thread_loop, daemon=True)
         self.read_thread.start()
 
-        self.lines_thread = threading.Thread(target=self.serial_lines_thread_loop, daemon=True)
+        self.lines_thread = threading.Thread(
+            target=self.serial_lines_thread_loop, daemon=True)
         self.lines_thread.start()
 
     # Thread that just reads the bytes from the serial device to try to keep from
@@ -91,7 +95,7 @@ class SerialBuffer:
             if bytes == self.sentinel:
                 self.read_thread.join()
                 self.line_queue.put(self.sentinel)
-                break;
+                break
 
             # Write our data to the output file if we're the ones reading from
             # the serial device
@@ -105,7 +109,8 @@ class SerialBuffer:
                     line = line.decode(errors="replace")
 
                     time = datetime.now().strftime('%y-%m-%d %H:%M:%S')
-                    print("{time} {prefix}{line}".format(time=time, prefix=self.prefix, line=line), flush=True, end='')
+                    print("{endc}{time} {prefix}{line}".format(
+                        time=time, prefix=self.prefix, line=line, endc='\033[0m'), flush=True, end='')
 
                     self.line_queue.put(line)
                     line = bytearray()
@@ -119,12 +124,15 @@ class SerialBuffer:
     def lines(self):
         return iter(self.get_line, self.sentinel)
 
+
 def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--dev', type=str, help='Serial device')
-    parser.add_argument('--file', type=str, help='Filename for serial output', required=True)
-    parser.add_argument('--prefix', type=str, help='Prefix for logging serial to stdout', nargs='?')
+    parser.add_argument('--file', type=str,
+                        help='Filename for serial output', required=True)
+    parser.add_argument('--prefix', type=str,
+                        help='Prefix for logging serial to stdout', nargs='?')
 
     args = parser.parse_args()
 
@@ -133,6 +141,7 @@ def main():
         # We're just using this as a logger, so eat the produced lines and drop
         # them
         pass
+
 
 if __name__ == '__main__':
     main()

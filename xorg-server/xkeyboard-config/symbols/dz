@@ -44,12 +44,12 @@ xkb_symbols "la" {
 
 partial alphanumeric_keys
 xkb_symbols "azerty-deadkeys" {
-     // Kabylian keyboard with dead keys    
+     // Kabyle keyboard with dead keys    
      // 2020 by Louis Gostiaux <louis.gostiaux@free.fr>
 
     include "fr"
 
-    name[Group1]= "Kabylian (azerty layout with dead keys)";
+    name[Group1]= "Kabyle (azerty layout with dead keys)";
 
     key <AD01>	{ [     a,       A,     U025B, U0190  ]}; // a A ɛ Ɛ
     key <AD02>  { [ 	z,  	 Z,  	U2D63 	      ] }; // ⵣ
@@ -59,17 +59,16 @@ xkb_symbols "azerty-deadkeys" {
     		  // dead-below dot for ḍ,ṭ,ẓ,ḥ and dead-caron for č and ǧ  
 
     include "level3(ralt_switch)"
-
 };
 
 partial alphanumeric_keys
 xkb_symbols "qwerty-gb-deadkeys" {
-     // Kabylian keyboard, uk international with dead keys     
+     // Kabyle keyboard, uk international with dead keys     
      // 2020 by Louis Gostiaux <louis.gostiaux@free.fr>
 
     include "gb(intl)"
 
-    name[Group1]= "Kabylian (qwerty-gb layout with dead keys)";
+    name[Group1]= "Kabyle (qwerty-gb layout with dead keys)";
 
     key <AC01>	{ [     a,       A,     U025B, U0190  ]}; // a A ɛ Ɛ
     key <AD01>	{ [     q,       Q,     U0263, U0194  ] }; // q Q ɣ Ɣ
@@ -82,12 +81,12 @@ xkb_symbols "qwerty-gb-deadkeys" {
 
 partial alphanumeric_keys
 xkb_symbols "qwerty-us-deadkeys" {
-     // Kabylian keyboard, us international with dead keys     
+     // Kabyle keyboard, us international with dead keys     
      // 2020 by Louis Gostiaux <louis.gostiaux@free.fr>
 
     include "us(intl)"
 
-    name[Group1]= "Kabylian (qwerty-us layout with dead keys)";
+    name[Group1]= "Kabyle (qwerty-us layout with dead keys)";
 
     key <AC01>	{ [     a,       A,     U025B, U0190  ]	}; // a A ɛ Ɛ
     key <AD01>	{ [     q,       Q,     U0263, U0194  ] }; // q Q ɣ Ɣ
@@ -97,7 +96,6 @@ xkb_symbols "qwerty-us-deadkeys" {
 
     include "level3(ralt_switch)"
 };
-
 
 
 //

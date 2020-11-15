@@ -501,6 +501,7 @@ enum pipe_flush_flags
 #define PIPE_BIND_SCANOUT     (1 << 19) /*  */
 #define PIPE_BIND_SHARED      (1 << 20) /* get_texture_handle ??? */
 #define PIPE_BIND_LINEAR      (1 << 21)
+#define PIPE_BIND_PROTECTED   (1 << 22) /* Resource will be protected/encrypted */
 
 
 /**
@@ -969,6 +970,7 @@ enum pipe_cap
    PIPE_CAP_NO_CLIP_ON_COPY_TEX,
    PIPE_CAP_MAX_TEXTURE_MB,
    PIPE_CAP_SHADER_ATOMIC_INT64,
+   PIPE_CAP_DEVICE_PROTECTED_CONTENT,
 };
 
 /**
@@ -1114,6 +1116,7 @@ enum pipe_resource_param
    PIPE_RESOURCE_PARAM_HANDLE_TYPE_SHARED,
    PIPE_RESOURCE_PARAM_HANDLE_TYPE_KMS,
    PIPE_RESOURCE_PARAM_HANDLE_TYPE_FD,
+   PIPE_RESOURCE_PARAM_LAYER_STRIDE,
 };
 
 /**

@@ -321,11 +321,11 @@ clGetDeviceInfo(cl_device_id d_dev, cl_device_info param,
       break;
 
    case CL_DEVICE_VERSION:
-      buf.as_string() = "OpenCL " + dev.device_version() + " Mesa " PACKAGE_VERSION MESA_GIT_SHA1;
+      buf.as_string() = "OpenCL " + dev.device_version_as_string() + " Mesa " PACKAGE_VERSION MESA_GIT_SHA1;
       break;
 
    case CL_DEVICE_EXTENSIONS:
-      buf.as_string() = dev.supported_extensions();
+      buf.as_string() = dev.supported_extensions_as_string();
       break;
 
    case CL_DEVICE_PLATFORM:
@@ -365,7 +365,7 @@ clGetDeviceInfo(cl_device_id d_dev, cl_device_info param,
       break;
 
    case CL_DEVICE_OPENCL_C_VERSION:
-      buf.as_string() = "OpenCL C " + dev.device_clc_version() + " ";
+      buf.as_string() = "OpenCL C " + dev.device_clc_version_as_string() + " ";
       break;
 
    case CL_DEVICE_PRINTF_BUFFER_SIZE:
@@ -407,6 +407,22 @@ clGetDeviceInfo(cl_device_id d_dev, cl_device_info param,
    case CL_DEVICE_SVM_CAPABILITIES:
    case CL_DEVICE_SVM_CAPABILITIES_ARM:
       buf.as_scalar<cl_device_svm_capabilities>() = dev.svm_support();
+      break;
+
+   case CL_DEVICE_NUMERIC_VERSION:
+      buf.as_scalar<cl_version>() = dev.device_version();
+      break;
+
+   case CL_DEVICE_OPENCL_C_ALL_VERSIONS:
+      buf.as_vector<cl_name_version>() = dev.opencl_c_all_versions();
+      break;
+
+   case CL_DEVICE_EXTENSIONS_WITH_VERSION:
+      buf.as_vector<cl_name_version>() = dev.supported_extensions();
+      break;
+
+   case CL_DEVICE_OPENCL_C_FEATURES:
+      buf.as_vector<cl_name_version>() = dev.opencl_c_features();
       break;
 
    default:

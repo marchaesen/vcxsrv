@@ -333,7 +333,7 @@ query_api_thread_busy_status(struct hud_graph *gr, struct pipe_context *pipe)
          int64_t thread_now;
 
          if (info->main_thread) {
-            thread_now = pipe_current_thread_get_time_nano();
+            thread_now = util_current_thread_get_time_nano();
          } else {
             struct util_queue_monitoring *mon = gr->pane->hud->monitored_queue;
 
@@ -360,7 +360,7 @@ query_api_thread_busy_status(struct hud_graph *gr, struct pipe_context *pipe)
    } else {
       /* initialize */
       info->last_time = now;
-      info->last_thread_time = pipe_current_thread_get_time_nano();
+      info->last_thread_time = util_current_thread_get_time_nano();
    }
 }
 

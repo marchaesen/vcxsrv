@@ -1326,6 +1326,8 @@ struct dd_function_table {
    void (*SetMaxShaderCompilerThreads)(struct gl_context *ctx, unsigned count);
    bool (*GetShaderProgramCompletionStatus)(struct gl_context *ctx,
                                             struct gl_shader_program *shprog);
+
+   void (*PinDriverToL3Cache)(struct gl_context *ctx, unsigned L3_cache);
 };
 
 

@@ -15,7 +15,6 @@ Contents:
    context
    cso
    distro
-   drivers
    postprocess
    glossary
 

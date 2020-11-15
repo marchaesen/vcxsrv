@@ -24,8 +24,8 @@ apt-get install -y --no-remove \
       git \
       git-lfs \
       libexpat1 \
-      libllvm9 \
       libllvm10 \
+      libllvm9 \
       liblz4-1 \
       libpcre32-3 \
       libpng16-16 \
@@ -34,8 +34,8 @@ apt-get install -y --no-remove \
       libwayland-client0 \
       libwayland-server0 \
       libxcb-ewmh2 \
-      libxcb-randr0 \
       libxcb-keysyms1 \
+      libxcb-randr0 \
       libxcb-xfixes0 \
       libxkbcommon0 \
       libxrandr2 \

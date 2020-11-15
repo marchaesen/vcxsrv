@@ -39,12 +39,12 @@ class PrintFunctionTable(gl_XML.gl_print_base):
 
 
     def printRealHeader(self):
-        print """
+        print("""
 #include "glapitable.h"
 #include "glapi.h"
 #include "u_thread.h"
 #include "dispatch.h"
-"""
+""")
         return
 
     def printBody(self, api):
@@ -72,13 +72,13 @@ class PrintFunctionTable(gl_XML.gl_print_base):
                 comma=", "
                 arg_string+="a%d"%nrParams
 
-            print '#define gl%s(%s) CALL_%s(GET_DISPATCH(), (%s))' % (f.name, arg_string, f.name, arg_string)
+            print('#define gl%s(%s) CALL_%s(GET_DISPATCH(), (%s))' % (f.name, arg_string, f.name, arg_string))
 
         return
 
 
 def show_usage():
-    print "Usage: %s [-f input_file_name]" % sys.argv[0]
+    print("Usage: %s [-f input_file_name]" % sys.argv[0])
     sys.exit(1)
 
 if __name__ == '__main__':
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
     try:
         (args, trail) = getopt.getopt(sys.argv[1:], "f:")
-    except Exception,e:
+    except Exception as e:
         show_usage()
 
     for (arg,val) in args:

@@ -194,8 +194,8 @@ public:
 
 class loop_terminator : public exec_node {
 public:
-   loop_terminator()
-      : ir(NULL), iterations(-1)
+   loop_terminator(ir_if *ir, bool continue_from_then)
+      : ir(ir), iterations(-1), continue_from_then(continue_from_then)
    {
    }
 

@@ -244,13 +244,13 @@ void
 _mesa_hash_table_clear(struct hash_table *ht,
                        void (*delete_function)(struct hash_entry *entry))
 {
+   if (!ht)
+      return;
+
    struct hash_entry *entry;
 
    for (entry = ht->table; entry != ht->table + ht->size; entry++) {
-      if (entry->key == NULL)
-         continue;
-
-      if (delete_function != NULL && entry->key != ht->deleted_key)
+      if (entry_is_present(ht, entry) && delete_function != NULL)
          delete_function(entry);
 
       entry->key = NULL;

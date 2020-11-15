@@ -99,7 +99,7 @@ struct ttn_compile {
 #define ttn_channel(b, src, swiz) \
    nir_channel(b, src, TGSI_SWIZZLE_##swiz)
 
-static gl_varying_slot
+gl_varying_slot
 tgsi_varying_semantic_to_slot(unsigned semantic, unsigned index)
 {
    switch (semantic) {
@@ -2299,9 +2299,8 @@ ttn_compile_init(const void *tgsi_tokens,
          screen->get_compiler_options(screen, PIPE_SHADER_IR_NIR, scan.processor);
    }
 
-   nir_builder_init_simple_shader(&c->build, NULL,
-                                  tgsi_processor_to_shader_stage(scan.processor),
-                                  options);
+   c->build = nir_builder_init_simple_shader(tgsi_processor_to_shader_stage(scan.processor),
+                                             options, "TTN");
 
    s = c->build.shader;
 

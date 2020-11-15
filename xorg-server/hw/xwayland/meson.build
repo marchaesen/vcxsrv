@@ -148,3 +148,10 @@ configure_file(
                             get_option('libdir'),
                             'pkgconfig'),
 )
+
+xwayland_manpage = configure_file(
+    input: 'man/Xwayland.man',
+    output: 'Xwayland.1',
+    configuration: manpage_config,
+)
+install_man(xwayland_manpage)

@@ -14,7 +14,7 @@ export BISON_PKGDATADIR
 
 YACC_GEN = bison.exe -v
 LEX_GEN = flex.exe --nounistd
-PYTHON_GEN = python
+PYTHON_GEN = $(PYTHON3)
 
 glsl/glsl_parser.cpp: glsl/glsl_parser.yy
 	$(YACC_GEN) -o $@ -p "_mesa_glsl_" --defines=$(builddir)/glsl/glsl_parser.h $(srcdir)/glsl/glsl_parser.yy

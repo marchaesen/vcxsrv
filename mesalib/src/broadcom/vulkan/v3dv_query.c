@@ -31,12 +31,12 @@ v3dv_CreateQueryPool(VkDevice _device,
 {
    V3DV_FROM_HANDLE(v3dv_device, device, _device);
 
-   assert(pCreateInfo->queryType == VK_QUERY_TYPE_OCCLUSION);
+   assert(pCreateInfo->queryType == VK_QUERY_TYPE_OCCLUSION ||
+          pCreateInfo->queryType == VK_QUERY_TYPE_TIMESTAMP);
    assert(pCreateInfo->queryCount > 0);
 
-
    /* FIXME: the hw allows us to allocate up to 16 queries in a single block
-    *        so we should try to use that.
+    *        for occlussion queries so we should try to use that.
     */
    struct v3dv_query_pool *pool =
       vk_alloc2(&device->alloc, pAllocator, sizeof(*pool), 8,
@@ -44,6 +44,7 @@ v3dv_CreateQueryPool(VkDevice _device,
    if (pool == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
+   pool->query_type = pCreateInfo->queryType;
    pool->query_count = pCreateInfo->queryCount;
 
    VkResult result;
@@ -59,16 +60,24 @@ v3dv_CreateQueryPool(VkDevice _device,
    uint32_t i;
    for (i = 0; i < pool->query_count; i++) {
       pool->queries[i].maybe_available = false;
-      pool->queries[i].bo = v3dv_bo_alloc(device, 4096, "query", true);
-      if (!pool->queries[i].bo) {
-         result = vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
-         goto fail_alloc_bo;
-      }
-
-      /* For occlusion queries we only need a 4-byte counter */
-      if (!v3dv_bo_map(device, pool->queries[i].bo, 4)) {
-         result = vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
-         goto fail_alloc_bo;
+      switch (pool->query_type) {
+      case VK_QUERY_TYPE_OCCLUSION:
+         pool->queries[i].bo = v3dv_bo_alloc(device, 4096, "query", true);
+         if (!pool->queries[i].bo) {
+            result = vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+            goto fail_alloc_bo;
+         }
+         /* For occlusion queries we only need a 4-byte counter */
+         if (!v3dv_bo_map(device, pool->queries[i].bo, 4)) {
+            result = vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+            goto fail_alloc_bo;
+         }
+         break;
+      case VK_QUERY_TYPE_TIMESTAMP:
+         pool->queries[i].value = 0;
+         break;
+      default:
+         unreachable("Unsupported query type");
       }
    }
 
@@ -98,21 +107,105 @@ v3dv_DestroyQueryPool(VkDevice _device,
    if (!pool)
       return;
 
-   for (uint32_t i = 0; i < pool->query_count; i++)
-      v3dv_bo_free(device, pool->queries[i].bo);
+   if (pool->query_type == VK_QUERY_TYPE_OCCLUSION) {
+      for (uint32_t i = 0; i < pool->query_count; i++)
+         v3dv_bo_free(device, pool->queries[i].bo);
+   }
+
    vk_free2(&device->alloc, pAllocator, pool->queries);
    vk_free2(&device->alloc, pAllocator, pool);
 }
 
 static void
-write_query_result(void *dst, uint32_t idx, bool do_64bit, uint32_t value)
+write_query_result(void *dst, uint32_t idx, bool do_64bit, uint64_t value)
 {
    if (do_64bit) {
       uint64_t *dst64 = (uint64_t *) dst;
       dst64[idx] = value;
    } else {
       uint32_t *dst32 = (uint32_t *) dst;
-      dst32[idx] = value;
+      dst32[idx] = (uint32_t) value;
+   }
+}
+
+static uint64_t
+get_occlusion_query_result(struct v3dv_device *device,
+                           struct v3dv_query_pool *pool,
+                           uint32_t query,
+                           bool do_wait,
+                           bool *available)
+{
+   assert(pool && pool->query_type == VK_QUERY_TYPE_OCCLUSION);
+
+   struct v3dv_query *q = &pool->queries[query];
+   assert(q->bo && q->bo->map);
+
+   if (do_wait) {
+      /* From the Vulkan 1.0 spec:
+       *
+       *    "If VK_QUERY_RESULT_WAIT_BIT is set, (...) If the query does not
+       *     become available in a finite amount of time (e.g. due to not
+       *     issuing a query since the last reset), a VK_ERROR_DEVICE_LOST
+       *     error may occur."
+       */
+      if (!q->maybe_available)
+         return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
+
+      if (!v3dv_bo_wait(device, q->bo, 0xffffffffffffffffull))
+         return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
+
+      *available = true;
+   } else {
+      *available = q->maybe_available && v3dv_bo_wait(device, q->bo, 0);
+   }
+
+   return (uint64_t) *((uint32_t *) q->bo->map);
+}
+
+static uint64_t
+get_timestamp_query_result(struct v3dv_device *device,
+                           struct v3dv_query_pool *pool,
+                           uint32_t query,
+                           bool do_wait,
+                           bool *available)
+{
+   assert(pool && pool->query_type == VK_QUERY_TYPE_TIMESTAMP);
+
+   struct v3dv_query *q = &pool->queries[query];
+
+   if (do_wait) {
+      /* From the Vulkan 1.0 spec:
+       *
+       *    "If VK_QUERY_RESULT_WAIT_BIT is set, (...) If the query does not
+       *     become available in a finite amount of time (e.g. due to not
+       *     issuing a query since the last reset), a VK_ERROR_DEVICE_LOST
+       *     error may occur."
+       */
+      if (!q->maybe_available)
+         return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
+
+      *available = true;
+   } else {
+      *available = q->maybe_available;
+   }
+
+   return q->value;
+}
+
+static uint64_t
+get_query_result(struct v3dv_device *device,
+                 struct v3dv_query_pool *pool,
+                 uint32_t query,
+                 bool do_wait,
+                 bool *available)
+{
+   switch (pool->query_type) {
+   case VK_QUERY_TYPE_OCCLUSION:
+      return get_occlusion_query_result(device, pool, query, do_wait, available);
+   case VK_QUERY_TYPE_TIMESTAMP:
+      return get_timestamp_query_result(device, pool, query, do_wait, available);
+   default:
+      unreachable("Unsupported query type");
    }
 }
 
@@ -135,30 +228,8 @@ v3dv_get_query_pool_results_cpu(struct v3dv_device *device,
 
    VkResult result = VK_SUCCESS;
    for (uint32_t i = first; i < first + count; i++) {
-      assert(pool->queries[i].bo && pool->queries[i].bo->map);
-      struct v3dv_bo *bo = pool->queries[i].bo;
-      const uint32_t *counter = (const uint32_t *) bo->map;
-
       bool available;
-      if (do_wait) {
-         /* From the Vulkan 1.0 spec:
-          *
-          *    "If VK_QUERY_RESULT_WAIT_BIT is set, (...) If the query does not
-          *     become available in a finite amount of time (e.g. due to not
-          *     issuing a query since the last reset), a VK_ERROR_DEVICE_LOST
-          *     error may occur."
-          */
-         if (!pool->queries[i].maybe_available)
-            return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
-
-         if (!v3dv_bo_wait(device, bo, 0xffffffffffffffffull))
-            return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
-
-         available = true;
-      } else {
-         available = pool->queries[i].maybe_available &&
-                     v3dv_bo_wait(device, bo, 0);
-      }
+      uint64_t value = get_query_result(device, pool, i, do_wait, &available);
 
       /**
        * From the Vulkan 1.0 spec:
@@ -174,7 +245,7 @@ v3dv_get_query_pool_results_cpu(struct v3dv_device *device,
 
       const bool write_result = available || do_partial;
       if (write_result)
-         write_query_result(data, slot, do_64bit, *counter);
+         write_query_result(data, slot, do_64bit, value);
       slot++;
 
       if (flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT)

@@ -91,7 +91,7 @@ panfrost_pool_get_bo_handles(struct pan_pool *pool, uint32_t *handles)
         }
 }
 
-struct panfrost_transfer
+struct panfrost_ptr
 panfrost_pool_alloc_aligned(struct pan_pool *pool, size_t sz, unsigned alignment)
 {
         assert(alignment == util_next_power_of_two(alignment));
@@ -109,9 +109,9 @@ panfrost_pool_alloc_aligned(struct pan_pool *pool, size_t sz, unsigned alignment
 
         pool->transient_offset = offset + sz;
 
-        struct panfrost_transfer ret = {
-                .cpu = bo->cpu + offset,
-                .gpu = bo->gpu + offset,
+        struct panfrost_ptr ret = {
+                .cpu = bo->ptr.cpu + offset,
+                .gpu = bo->ptr.gpu + offset,
         };
 
         return ret;
@@ -126,7 +126,7 @@ panfrost_pool_upload(struct pan_pool *pool, const void *data, size_t sz)
 mali_ptr
 panfrost_pool_upload_aligned(struct pan_pool *pool, const void *data, size_t sz, unsigned alignment)
 {
-        struct panfrost_transfer transfer = panfrost_pool_alloc_aligned(pool, sz, alignment);
+        struct panfrost_ptr transfer = panfrost_pool_alloc_aligned(pool, sz, alignment);
         memcpy(transfer.cpu, data, sz);
         return transfer.gpu;
 }

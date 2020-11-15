@@ -82,12 +82,12 @@ partial alphanumeric_keys
 
 partial alphanumeric_keys
 	xkb_symbols "Sundeadkeys" {
-	include "tr(Sundeadkeys)"
+	include "tr(basic)"
 };
 
 partial alphanumeric_keys
 	xkb_symbols "sundeadkeys" {
-	include "tr(sundeadkeys)"
+	include "tr(basic)"
 };
 
 partial alphanumeric_keys

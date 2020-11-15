@@ -67,6 +67,9 @@ enum drmmode_connector_property {
 enum drmmode_crtc_property {
     DRMMODE_CRTC_ACTIVE,
     DRMMODE_CRTC_MODE_ID,
+    DRMMODE_CRTC_GAMMA_LUT,
+    DRMMODE_CRTC_GAMMA_LUT_SIZE,
+    DRMMODE_CRTC_CTM,
     DRMMODE_CRTC__COUNT
 };
 
@@ -130,6 +133,7 @@ typedef struct {
     Bool present_enable;
 
     uint32_t vrr_prop_id;
+    Bool use_ctm;
 } drmmode_rec, *drmmode_ptr;
 
 typedef struct {
@@ -141,6 +145,7 @@ typedef struct {
 typedef struct {
     const char *name;
     uint32_t prop_id;
+    uint64_t value;
     unsigned int num_enum_values;
     drmmode_prop_enum_info_rec *enum_values;
 } drmmode_prop_info_rec, *drmmode_prop_info_ptr;
@@ -198,6 +203,7 @@ typedef struct {
     Bool flipping_active;
 
     Bool vrr_enabled;
+    Bool use_gamma_lut;
 } drmmode_crtc_private_rec, *drmmode_crtc_private_ptr;
 
 typedef struct {
@@ -222,6 +228,8 @@ typedef struct {
     int enc_mask;
     int enc_clone_mask;
     xf86CrtcPtr current_crtc;
+    Atom ctm_atom;
+    struct drm_color_ctm ctm;
 } drmmode_output_private_rec, *drmmode_output_private_ptr;
 
 typedef struct {

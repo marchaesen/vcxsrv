@@ -76,7 +76,7 @@ bi_emit_fexp2_new(bi_context *ctx, nir_alu_instr *instr)
         /* FEXP2_FAST T, T, X */
 
         bi_instruction fexp = {
-                .type = BI_SPECIAL,
+                .type = BI_SPECIAL_ADD,
                 .op = { .special = BI_SPECIAL_EXP2_LOW },
                 .dest = pan_dest_index(&instr->dest.dest),
                 .dest_type = nir_type_float32,
@@ -180,4 +180,99 @@ bi_emit_flog2(bi_context *ctx, nir_alu_instr *instr)
 {
         /* TODO: G71 */
         bi_emit_flog2_new(ctx, instr);
+}
+
+void
+bi_emit_deriv(bi_context *ctx, nir_alu_instr *instr)
+{
+        bi_instruction cur_lane = {
+                .type = BI_MOV,
+                .dest = bi_make_temp(ctx),
+                .dest_type = nir_type_uint32,
+                .src = { BIR_INDEX_FAU | BIR_FAU_LANE_ID },
+                .src_types = { nir_type_uint32 }
+        };
+
+        bi_instruction lane1 = {
+                .type = BI_BITWISE,
+                .op.bitwise = BI_BITWISE_AND,
+                .dest = bi_make_temp(ctx),
+                .dest_type = nir_type_uint32,
+                .src = {
+                        cur_lane.dest,
+                        BIR_INDEX_CONSTANT | 0,
+                        BIR_INDEX_ZERO,
+                },
+                .src_types = {
+                        nir_type_uint32,
+                        nir_type_uint32,
+                        nir_type_uint8,
+                },
+                .constant.u64 = instr->op == nir_op_fddx ? 2 : 1,
+        };
+
+        bi_instruction lane2 = {
+                .type = BI_IMATH,
+                .op.imath = BI_IMATH_ADD,
+                .dest = bi_make_temp(ctx),
+                .dest_type = nir_type_uint32,
+                .src = {
+                        lane1.dest,
+                        BIR_INDEX_CONSTANT | 0,
+                        BIR_INDEX_ZERO,
+                },
+                .src_types = {
+                        nir_type_uint32,
+                        nir_type_uint32,
+                        nir_type_uint32,
+                },
+                .constant.u64 = instr->op == nir_op_fddx ? 1 : 2,
+        };
+
+        unsigned src = pan_src_index(&instr->src[0].src);
+
+        bi_instruction clper1 = {
+                .type = BI_SPECIAL_ADD,
+                .op.special = ctx->arch == 6 ? BI_SPECIAL_CLPER_V6 : BI_SPECIAL_CLPER_V7,
+                .special.subgroup_sz = BI_CLPER_SUBGROUP_SZ_4,
+                .special.clper.lane_op_mod = BI_CLPER_LANE_OP_MOD_NONE,
+                .special.clper.inactive_res = BI_CLPER_INACTIVE_RES_ZERO,
+                .dest = bi_make_temp(ctx),
+                .dest_type = nir_type_uint32,
+                .src = { src, lane1.dest },
+                .src_types = { nir_type_uint32, nir_type_uint32 },
+                .swizzle[0][0] = instr->src[0].swizzle[0],
+        };
+
+        bi_instruction clper2 = {
+                .type = BI_SPECIAL_ADD,
+                .op.special = ctx->arch == 6 ? BI_SPECIAL_CLPER_V6 : BI_SPECIAL_CLPER_V7,
+                .special.subgroup_sz = BI_CLPER_SUBGROUP_SZ_4,
+                .special.clper.lane_op_mod = BI_CLPER_LANE_OP_MOD_NONE,
+                .special.clper.inactive_res = BI_CLPER_INACTIVE_RES_ZERO,
+                .dest = bi_make_temp(ctx),
+                .dest_type = nir_type_uint32,
+                .src = { src, lane2.dest },
+                .src_types = { nir_type_uint32, nir_type_uint32 },
+                .swizzle[0][0] = instr->src[0].swizzle[0],
+        };
+
+        nir_alu_type type = nir_type_float |
+                            nir_dest_bit_size(instr->dest.dest);
+
+        bi_instruction sub = {
+                .type = BI_ADD,
+                .src = { clper2.dest, clper1.dest },
+                .src_types = { type, type },
+                .src_neg[1] = true,
+                .dest = pan_dest_index(&instr->dest.dest),
+                .dest_type = type,
+        };
+
+        bi_emit(ctx, cur_lane);
+        bi_emit(ctx, lane1);
+        bi_emit(ctx, lane2);
+        bi_emit(ctx, clper1);
+        bi_emit(ctx, clper2);
+        bi_emit(ctx, sub);
 }

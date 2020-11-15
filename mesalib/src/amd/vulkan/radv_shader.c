@@ -25,6 +25,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "util/memstream.h"
 #include "util/mesa-sha1.h"
 #include "util/u_atomic.h"
 #include "radv_debug.h"
@@ -61,6 +62,9 @@ static const struct nir_shader_compiler_options nir_options = {
 	.lower_pack_unorm_2x16 = true,
 	.lower_pack_unorm_4x8 = true,
 	.lower_pack_half_2x16 = true,
+	.lower_pack_64_2x32 = true,
+	.lower_pack_64_4x16 = true,
+	.lower_pack_32_2x16 = true,
 	.lower_unpack_snorm_2x16 = true,
 	.lower_unpack_snorm_4x8 = true,
 	.lower_unpack_unorm_2x16 = true,
@@ -179,7 +183,6 @@ radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively,
 		NIR_PASS(progress, shader, nir_shrink_vec_array_vars, nir_var_function_temp);
 
                 NIR_PASS_V(shader, nir_lower_vars_to_ssa);
-		NIR_PASS_V(shader, nir_lower_pack);
 
 		if (allow_copies) {
 			/* Only run this pass in the first call to
@@ -426,6 +429,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.float32_atomic_add = true,
 				.float64 = true,
 				.geometry_streams = true,
+				.image_atomic_int64 = true,
 				.image_ms_array = true,
 				.image_read_without_format = true,
 				.image_write_without_format = true,
@@ -531,8 +535,8 @@ radv_shader_compile_to_nir(struct radv_device *device,
 
 		NIR_PASS_V(nir, nir_lower_clip_cull_distance_arrays);
 
-		if (device->instance->debug_flags & RADV_DEBUG_DISCARD_TO_DEMOTE)
-			NIR_PASS_V(nir, nir_lower_discard_to_demote);
+		NIR_PASS_V(nir, nir_lower_discard_or_demote,
+			   device->instance->debug_flags & RADV_DEBUG_DISCARD_TO_DEMOTE);
 
 		nir_lower_doubles_options lower_doubles =
 			nir->options->lower_doubles_options;
@@ -556,7 +560,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 	if (nir->info.stage == MESA_SHADER_GEOMETRY) {
 		unsigned nir_gs_flags = nir_lower_gs_intrinsics_per_stream;
 
-		if (device->physical_device->use_ngg_gs && !radv_use_llvm_for_stage(device, stage)) {
+		if (device->physical_device->use_ngg && !radv_use_llvm_for_stage(device, stage)) {
 			/* ACO needs NIR to do some of the hard lifting */
 			nir_gs_flags |= nir_lower_gs_intrinsics_count_primitives |
 			                nir_lower_gs_intrinsics_count_vertices_per_primitive |
@@ -1224,11 +1228,12 @@ radv_dump_nir_shaders(struct nir_shader * const *shaders,
 	char *data = NULL;
 	char *ret = NULL;
 	size_t size = 0;
-	FILE *f = open_memstream(&data, &size);
-	if (f) {
+	struct u_memstream mem;
+	if (u_memstream_open(&mem, &data, &size)) {
+		FILE *const memf = u_memstream_get(&mem);
 		for (int i = 0; i < shader_count; ++i)
-			nir_print_shader(shaders[i], f);
-		fclose(f);
+			nir_print_shader(shaders[i], memf);
+		u_memstream_close(&mem);
 	}
 
 	ret = malloc(size + 1);
@@ -1398,9 +1403,7 @@ radv_create_trap_handler_shader(struct radv_device *device)
 	struct radv_shader_binary *binary = NULL;
 	struct radv_shader_info info = {0};
 
-	nir_builder b;
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, "meta_trap_handler");
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "meta_trap_handler");
 
 	options.explicit_scratch_args = true;
 	info.wave_size = 64;
@@ -1601,13 +1604,15 @@ radv_GetShaderInfoAMD(VkDevice _device,
 	case VK_SHADER_INFO_TYPE_DISASSEMBLY_AMD: {
 		char *out;
 	        size_t outsize;
-	        FILE *memf = open_memstream(&out, &outsize);
+		struct u_memstream mem;
+		u_memstream_open(&mem, &out, &outsize);
+		FILE *const memf = u_memstream_get(&mem);
 
 		fprintf(memf, "%s:\n", radv_get_shader_name(&variant->info, stage));
 		fprintf(memf, "%s\n\n", variant->ir_string);
 		fprintf(memf, "%s\n\n", variant->disasm_string);
 		radv_dump_shader_stats(device, pipeline, stage, memf);
-		fclose(memf);
+		u_memstream_close(&mem);
 
 		/* Need to include the null terminator. */
 		size_t length = outsize + 1;

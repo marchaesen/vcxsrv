@@ -160,7 +160,7 @@ COMMON = $(API_XML) \
 
 COMMON_GLX = $(COMMON) glX_API.xml glX_XML.py glX_proto_common.py
 
-PYTHON_GEN = python
+PYTHON_GEN = $(PYTHON3)
 
 ########################################################################################
 

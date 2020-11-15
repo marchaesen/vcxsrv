@@ -312,7 +312,7 @@ timespec_after(const struct timespec *a, const struct timespec *b)
       (a->tv_sec > b->tv_sec);
 }
 
-#ifndef _WIN32
+#ifndef _MSC_VER
 /**
  * Checks whether a timespec value is after the current time
  *

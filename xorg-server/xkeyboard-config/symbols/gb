@@ -1,5 +1,3 @@
-// based on a keyboard map from an 'xkb/symbols/gb' file
-
 default partial alphanumeric_keys
 xkb_symbols "basic" {
 
@@ -232,8 +230,7 @@ xkb_symbols "pl" {
     key <AB02>  { [         x,          X,       zacute,       Zacute ] };
     key <AB03>  { [         c,          C,       cacute,       Cacute ] };
     key <AB06>  { [         n,          N,       nacute,       Nacute ] };
-    
-    
+
     include "level3(ralt_switch)"
 };
 

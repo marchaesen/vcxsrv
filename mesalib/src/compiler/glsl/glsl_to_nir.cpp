@@ -1830,7 +1830,7 @@ nir_visitor::visit(ir_expression *ir)
       deref->accept(this);
 
       nir_intrinsic_op op;
-      if (this->deref->mode == nir_var_shader_in) {
+      if (nir_deref_mode_is(this->deref, nir_var_shader_in)) {
          switch (ir->operation) {
          case ir_unop_interpolate_at_centroid:
             op = nir_intrinsic_interp_deref_at_centroid;
@@ -1851,7 +1851,7 @@ nir_visitor::visit(ir_expression *ir)
           * sense, we'll just turn it into a load which will probably
           * eventually end up as an SSA definition.
           */
-         assert(this->deref->mode == nir_var_shader_temp);
+         assert(nir_deref_mode_is(this->deref, nir_var_shader_temp));
          op = nir_intrinsic_load_deref;
       }
 
@@ -2302,7 +2302,7 @@ nir_visitor::visit(ir_expression *ir)
       result = nir_channel(&b, srcs[0], 0);
       for (unsigned i = 1; i < ir->operands[0]->type->vector_elements; i++) {
          nir_ssa_def *swizzled = nir_channel(&b, srcs[0], i);
-         result = nir_bcsel(&b, nir_ieq(&b, srcs[1], nir_imm_int(&b, i)),
+         result = nir_bcsel(&b, nir_ieq_imm(&b, srcs[1], i),
                             swizzled, result);
       }
       break;
@@ -2468,7 +2468,7 @@ nir_visitor::visit(ir_texture *ir)
    nir_deref_instr *sampler_deref = evaluate_deref(ir->sampler);
 
    /* check for bindless handles */
-   if (sampler_deref->mode != nir_var_uniform ||
+   if (!nir_deref_mode_is(sampler_deref, nir_var_uniform) ||
        nir_deref_instr_get_variable(sampler_deref)->data.bindless) {
       nir_ssa_def *load = nir_load_deref(&b, sampler_deref);
       instr->src[0].src = nir_src_for_ssa(load);

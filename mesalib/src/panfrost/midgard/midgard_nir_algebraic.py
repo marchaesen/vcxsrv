@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2018 Alyssa Rosenzweig
+# Copyright (C) 2019-2020 Collabora, Ltd.
 #
 # Copyright (C) 2016 Intel Corporation
 #

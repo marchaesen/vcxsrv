@@ -31,16 +31,16 @@
 #include "shader_enums.h"
 
 static bool
-get_intrinsic_info(nir_intrinsic_instr *intrin, nir_variable_mode *mode,
+get_intrinsic_info(nir_intrinsic_instr *intrin, nir_variable_mode *modes,
                    bool *reads, bool *writes)
 {
    switch (intrin->intrinsic) {
    case nir_intrinsic_image_deref_load:
-      *mode = nir_src_as_deref(intrin->src[0])->mode;
+      *modes = nir_src_as_deref(intrin->src[0])->modes;
       *reads = true;
       break;
    case nir_intrinsic_image_deref_store:
-      *mode = nir_src_as_deref(intrin->src[0])->mode;
+      *modes = nir_src_as_deref(intrin->src[0])->modes;
       *writes = true;
       break;
    case nir_intrinsic_image_deref_atomic_add:
@@ -53,16 +53,16 @@ get_intrinsic_info(nir_intrinsic_instr *intrin, nir_variable_mode *mode,
    case nir_intrinsic_image_deref_atomic_xor:
    case nir_intrinsic_image_deref_atomic_exchange:
    case nir_intrinsic_image_deref_atomic_comp_swap:
-      *mode = nir_src_as_deref(intrin->src[0])->mode;
+      *modes = nir_src_as_deref(intrin->src[0])->modes;
       *reads = true;
       *writes = true;
       break;
    case nir_intrinsic_load_ssbo:
-      *mode = nir_var_mem_ssbo;
+      *modes = nir_var_mem_ssbo;
       *reads = true;
       break;
    case nir_intrinsic_store_ssbo:
-      *mode = nir_var_mem_ssbo;
+      *modes = nir_var_mem_ssbo;
       *writes = true;
       break;
    case nir_intrinsic_ssbo_atomic_add:
@@ -75,16 +75,16 @@ get_intrinsic_info(nir_intrinsic_instr *intrin, nir_variable_mode *mode,
    case nir_intrinsic_ssbo_atomic_xor:
    case nir_intrinsic_ssbo_atomic_exchange:
    case nir_intrinsic_ssbo_atomic_comp_swap:
-      *mode = nir_var_mem_ssbo;
+      *modes = nir_var_mem_ssbo;
       *reads = true;
       *writes = true;
       break;
    case nir_intrinsic_load_global:
-      *mode = nir_var_mem_global;
+      *modes = nir_var_mem_global;
       *reads = true;
       break;
    case nir_intrinsic_store_global:
-      *mode = nir_var_mem_global;
+      *modes = nir_var_mem_global;
       *writes = true;
       break;
    case nir_intrinsic_global_atomic_add:
@@ -97,16 +97,16 @@ get_intrinsic_info(nir_intrinsic_instr *intrin, nir_variable_mode *mode,
    case nir_intrinsic_global_atomic_xor:
    case nir_intrinsic_global_atomic_exchange:
    case nir_intrinsic_global_atomic_comp_swap:
-      *mode = nir_var_mem_global;
+      *modes = nir_var_mem_global;
       *reads = true;
       *writes = true;
       break;
    case nir_intrinsic_load_deref:
-      *mode = nir_src_as_deref(intrin->src[0])->mode;
+      *modes = nir_src_as_deref(intrin->src[0])->modes;
       *reads = true;
       break;
    case nir_intrinsic_store_deref:
-      *mode = nir_src_as_deref(intrin->src[0])->mode;
+      *modes = nir_src_as_deref(intrin->src[0])->modes;
       *writes = true;
       break;
    case nir_intrinsic_deref_atomic_add:
@@ -119,7 +119,7 @@ get_intrinsic_info(nir_intrinsic_instr *intrin, nir_variable_mode *mode,
    case nir_intrinsic_deref_atomic_xor:
    case nir_intrinsic_deref_atomic_exchange:
    case nir_intrinsic_deref_atomic_comp_swap:
-      *mode = nir_src_as_deref(intrin->src[0])->mode;
+      *modes = nir_src_as_deref(intrin->src[0])->modes;
       *reads = true;
       *writes = true;
       break;
@@ -149,9 +149,9 @@ visit_instr(nir_instr *instr, uint32_t *cur_modes, unsigned vis_avail_sem)
    if (!*cur_modes)
       return false; /* early exit */
 
-   nir_variable_mode mode;
+   nir_variable_mode modes;
    bool reads = false, writes = false;
-   if (!get_intrinsic_info(intrin, &mode, &reads, &writes))
+   if (!get_intrinsic_info(intrin, &modes, &reads, &writes))
       return false;
 
    if (!reads && vis_avail_sem == NIR_MEMORY_MAKE_VISIBLE)
@@ -167,7 +167,7 @@ visit_instr(nir_instr *instr, uint32_t *cur_modes, unsigned vis_avail_sem)
    if (access & (ACCESS_NON_READABLE | ACCESS_NON_WRITEABLE | ACCESS_CAN_REORDER | ACCESS_COHERENT))
       return false;
 
-   if (*cur_modes & mode) {
+   if (*cur_modes & modes) {
       nir_intrinsic_set_access(intrin, access | ACCESS_COHERENT);
       return true;
    }

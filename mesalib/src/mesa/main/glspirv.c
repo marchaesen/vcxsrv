@@ -295,6 +295,13 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
    }
    assert(exec_list_length(&nir->functions) == 1);
 
+   /* Now that we've deleted all but the main function, we can go ahead and
+    * lower the rest of the constant initializers.  We do this here so that
+    * nir_remove_dead_variables and split_per_member_structs below see the
+    * corresponding stores.
+    */
+   NIR_PASS_V(nir, nir_lower_variable_initializers, ~0);
+
    /* Split member structs.  We do this before lower_io_to_temporaries so that
     * it doesn't lower system values to temporaries by accident.
     */

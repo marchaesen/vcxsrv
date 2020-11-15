@@ -152,17 +152,6 @@ xkb_symbols "alt" {
 };
 
 
-partial alphanumeric_keys
-xkb_symbols "Sundeadkeys" {
-    include "tr(basic)"
-};
-
-partial alphanumeric_keys
-xkb_symbols "sundeadkeys" {
-    include "tr(Sundeadkeys)"
-    name[Group1]="Turkish (Sun dead keys)";
-};
-
 // Kurdish Q layout
 // Erdal Ronahi <erdal.ronahi@gmail.com>, 2006
 // http://ferheng.org

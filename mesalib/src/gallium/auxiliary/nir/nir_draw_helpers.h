@@ -25,6 +25,11 @@
 
 #ifndef NIR_DRAW_HELPERS_H
 #define NIR_DRAW_HELPERS_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct nir_shader;
 void
 nir_lower_pstipple_fs(struct nir_shader *shader,
@@ -37,4 +42,9 @@ nir_lower_aaline_fs(struct nir_shader *shader, int *varying);
 
 void
 nir_lower_aapoint_fs(struct nir_shader *shader, int *varying);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

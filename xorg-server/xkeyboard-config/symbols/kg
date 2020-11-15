@@ -129,5 +129,4 @@ xkb_symbols "phonetic" {
     key	<LatO> {	[      	Cyrillic_o,		Cyrillic_O		]	};
     key	<LatL> {	[     	Cyrillic_el,     	Cyrillic_EL		]	};
     key	<LatP> {	[     	Cyrillic_pe,     	Cyrillic_PE		]	};
-
 };

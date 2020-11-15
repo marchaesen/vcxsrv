@@ -167,14 +167,48 @@ void lvp_GetImageSubresourceLayout(
 {
    LVP_FROM_HANDLE(lvp_device, device, _device);
    LVP_FROM_HANDLE(lvp_image, image, _image);
-   uint32_t stride, offset;
-   device->pscreen->resource_get_info(device->pscreen,
-                                      image->bo,
-                                      &stride, &offset);
-   pLayout->offset = offset;
-   pLayout->rowPitch = stride;
-   pLayout->arrayPitch = 0;
+   uint64_t value;
+
+   device->pscreen->resource_get_param(device->pscreen,
+                                       NULL,
+                                       image->bo,
+                                       0,
+                                       pSubresource->arrayLayer,
+                                       pSubresource->mipLevel,
+                                       PIPE_RESOURCE_PARAM_STRIDE,
+                                       0, &value);
+
+   pLayout->rowPitch = value;
+
+   device->pscreen->resource_get_param(device->pscreen,
+                                       NULL,
+                                       image->bo,
+                                       0,
+                                       pSubresource->arrayLayer,
+                                       pSubresource->mipLevel,
+                                       PIPE_RESOURCE_PARAM_OFFSET,
+                                       0, &value);
+
+   pLayout->offset = value;
+
+   device->pscreen->resource_get_param(device->pscreen,
+                                       NULL,
+                                       image->bo,
+                                       0,
+                                       pSubresource->arrayLayer,
+                                       pSubresource->mipLevel,
+                                       PIPE_RESOURCE_PARAM_LAYER_STRIDE,
+                                       0, &value);
+
+   if (image->bo->target == PIPE_TEXTURE_3D) {
+      pLayout->depthPitch = value;
+      pLayout->arrayPitch = 0;
+   } else {
+      pLayout->depthPitch = 0;
+      pLayout->arrayPitch = value;
+   }
    pLayout->size = image->size;
+
    switch (pSubresource->aspectMask) {
    case VK_IMAGE_ASPECT_COLOR_BIT:
       break;

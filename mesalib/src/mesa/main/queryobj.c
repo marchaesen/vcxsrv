@@ -1057,7 +1057,7 @@ _mesa_init_queryobj(struct gl_context *ctx)
  * Callback for deleting a query object.  Called by _mesa_HashDeleteAll().
  */
 static void
-delete_queryobj_cb(GLuint id, void *data, void *userData)
+delete_queryobj_cb(void *data, void *userData)
 {
    struct gl_query_object *q= (struct gl_query_object *) data;
    struct gl_context *ctx = (struct gl_context *)userData;

@@ -413,6 +413,7 @@ trace_screen_resource_get_param(struct pipe_screen *_screen,
                                 struct pipe_resource *resource,
                                 unsigned plane,
                                 unsigned layer,
+                                unsigned level,
                                 enum pipe_resource_param param,
                                 unsigned handle_usage,
                                 uint64_t *value)
@@ -424,7 +425,7 @@ trace_screen_resource_get_param(struct pipe_screen *_screen,
    /* TODO trace call */
 
    return screen->resource_get_param(screen, tr_pipe ? tr_pipe->pipe : NULL,
-                                     resource, plane, layer, param,
+                                     resource, plane, layer, level, param,
                                      handle_usage, value);
 }
 

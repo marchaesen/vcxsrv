@@ -8,7 +8,7 @@ libxcb_errors_la_SOURCES = src/xcb_errors.c $(OBJDIR)/extensions.c
 pkgconfig_DATA = xcb-errors.pc
 
 $(OBJDIR)/extensions.c: src/extensions.py
-	python src/extensions.py $@ ${XCBPROTO_XCBINCLUDEDIR}/*.xml
+	$(PYTHON3) src/extensions.py $@ $(wildcard ${XCBPROTO_XCBINCLUDEDIR}/*.xml)
 
 LIBRARY = $(lib_LTLIBRARIES:.la=)
 

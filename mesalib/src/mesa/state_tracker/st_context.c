@@ -89,7 +89,7 @@
 #include "util/u_memory.h"
 #include "cso_cache/cso_context.h"
 #include "compiler/glsl/glsl_parser_extras.h"
-
+#include "nir/nir_to_tgsi.h"
 
 DEBUG_GET_ONCE_BOOL_OPTION(mesa_mvp_dp4, "MESA_MVP_DP4", FALSE)
 
@@ -98,7 +98,7 @@ DEBUG_GET_ONCE_BOOL_OPTION(mesa_mvp_dp4, "MESA_MVP_DP4", FALSE)
  * Called via ctx->Driver.Enable()
  */
 static void
-st_Enable(struct gl_context *ctx, GLenum cap, GLboolean state)
+st_Enable(struct gl_context *ctx, GLenum cap, UNUSED GLboolean state)
 {
    struct st_context *st = st_context(ctx);
 
@@ -909,6 +909,16 @@ st_get_driver_uuid(struct gl_context *ctx, char *uuid)
 
 
 static void
+st_pin_driver_to_l3_cache(struct gl_context *ctx, unsigned L3_cache)
+{
+   struct pipe_context *pipe = st_context(ctx)->pipe;
+
+   pipe->set_context_param(pipe, PIPE_CONTEXT_PARAM_PIN_THREADS_TO_L3_CACHE,
+                           L3_cache);
+}
+
+
+static void
 st_init_driver_functions(struct pipe_screen *screen,
                          struct dd_function_table *functions)
 {
@@ -999,6 +1009,9 @@ st_create_context(gl_api api, struct pipe_context *pipe,
    memset(&funcs, 0, sizeof(funcs));
    st_init_driver_functions(pipe->screen, &funcs);
 
+   if (pipe->set_context_param)
+      funcs.PinDriverToL3Cache = st_pin_driver_to_l3_cache;
+
    ctx = calloc(1, sizeof(struct gl_context));
    if (!ctx)
       return NULL;
@@ -1036,7 +1049,7 @@ st_create_context(gl_api api, struct pipe_context *pipe,
  * texture's sampler views which belong to the context.
  */
 static void
-destroy_tex_sampler_cb(GLuint id, void *data, void *userData)
+destroy_tex_sampler_cb(void *data, void *userData)
 {
    struct gl_texture_object *texObj = (struct gl_texture_object *) data;
    struct st_context *st = (struct st_context *) userData;
@@ -1045,7 +1058,7 @@ destroy_tex_sampler_cb(GLuint id, void *data, void *userData)
 }
 
 static void
-destroy_framebuffer_attachment_sampler_cb(GLuint id, void *data, void *userData)
+destroy_framebuffer_attachment_sampler_cb(void *data, void *userData)
 {
    struct gl_framebuffer* glfb = (struct gl_framebuffer*) data;
    struct st_context *st = (struct st_context *) userData;
@@ -1145,5 +1158,20 @@ st_destroy_context(struct st_context *st)
    } else {
       /* Restore the current context and draw/read buffers (may be NULL) */
       _mesa_make_current(save_ctx, save_drawbuffer, save_readbuffer);
+   }
+}
+
+const struct nir_shader_compiler_options *
+st_get_nir_compiler_options(struct st_context *st, gl_shader_stage stage)
+{
+   const struct nir_shader_compiler_options *options =
+      st->ctx->Const.ShaderCompilerOptions[stage].NirOptions;
+
+   if (options) {
+      return options;
+   } else {
+      return nir_to_tgsi_get_compiler_options(st->pipe->screen,
+                                              PIPE_SHADER_IR_NIR,
+                                              pipe_shader_type_from_mesa(stage));
    }
 }

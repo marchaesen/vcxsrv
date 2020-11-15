@@ -244,7 +244,7 @@ nir_select(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *s)
       uint64_t mask = 1ull << (s->bit_size - 1);
       s = nir_iand(b, s, nir_imm_intN_t(b, mask, s->bit_size));
    }
-   return nir_bcsel(b, nir_ieq(b, s, nir_imm_intN_t(b, 0, s->bit_size)), x, y);
+   return nir_bcsel(b, nir_ieq_imm(b, s, 0), x, y);
 }
 
 static inline nir_ssa_def *
@@ -259,6 +259,16 @@ nir_clz_u(nir_builder *b, nir_ssa_def *a)
    nir_ssa_def *val;
    val = nir_isub(b, nir_imm_intN_t(b, a->bit_size - 1, 32), nir_ufind_msb(b, a));
    return nir_u2u(b, val, a->bit_size);
+}
+
+static inline nir_ssa_def *
+nir_ctz_u(nir_builder *b, nir_ssa_def *a)
+{
+   nir_ssa_def *cond = nir_ieq(b, a, nir_imm_intN_t(b, 0, a->bit_size));
+
+   return nir_bcsel(b, cond,
+                    nir_imm_intN_t(b, a->bit_size, a->bit_size),
+                    nir_u2u(b, nir_find_lsb(b, a), a->bit_size));
 }
 
 #ifdef __cplusplus

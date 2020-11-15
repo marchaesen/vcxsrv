@@ -744,24 +744,17 @@ static LLVMValueRef load_sample_mask_in(struct ac_shader_abi *abi)
 		log2_ps_iter_samples = ctx->args->options->key.fs.log2_ps_iter_samples;
 	}
 
-	/* The bit pattern matches that used by fixed function fragment
-	 * processing. */
-	static const uint16_t ps_iter_masks[] = {
-		0xffff, /* not used */
-		0x5555,
-		0x1111,
-		0x0101,
-		0x0001,
-	};
-	assert(log2_ps_iter_samples < ARRAY_SIZE(ps_iter_masks));
-
-	uint32_t ps_iter_mask = ps_iter_masks[log2_ps_iter_samples];
-
 	LLVMValueRef result, sample_id;
-	sample_id = ac_unpack_param(&ctx->ac, ac_get_arg(&ctx->ac, ctx->args->ac.ancillary), 8, 4);
-	sample_id = LLVMBuildShl(ctx->ac.builder, LLVMConstInt(ctx->ac.i32, ps_iter_mask, false), sample_id, "");
-	result = LLVMBuildAnd(ctx->ac.builder, sample_id,
-			      ac_get_arg(&ctx->ac, ctx->args->ac.sample_coverage), "");
+	if (log2_ps_iter_samples) {
+		/* gl_SampleMaskIn[0] = (SampleCoverage & (1 << gl_SampleID)). */
+		sample_id = ac_unpack_param(&ctx->ac, ac_get_arg(&ctx->ac, ctx->args->ac.ancillary), 8, 4);
+		sample_id = LLVMBuildShl(ctx->ac.builder, LLVMConstInt(ctx->ac.i32, 1, false), sample_id, "");
+		result = LLVMBuildAnd(ctx->ac.builder, sample_id,
+				      ac_get_arg(&ctx->ac, ctx->args->ac.sample_coverage), "");
+	} else {
+		result = ac_get_arg(&ctx->ac, ctx->args->ac.sample_coverage);
+	}
+
 	return result;
 }
 

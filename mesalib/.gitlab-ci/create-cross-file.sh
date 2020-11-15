@@ -12,6 +12,23 @@ fi
 # Rely on qemu-user being configured in binfmt_misc on the host
 sed -i -e '/\[properties\]/a\' -e "needs_exe_wrapper = False" "$cross_file"
 
+# Add a line for rustc, which debcrossgen is missing.
+cc=`sed -n 's|c = .\(.*\).|\1|p' < $cross_file`
+if [[ "$arch" = "arm64" ]]; then
+    rust_target=aarch64-unknown-linux-gnu
+elif [[ "$arch" = "armhf" ]]; then
+    rust_target=armv7-unknown-linux-gnueabihf
+elif [[ "$arch" = "i386" ]]; then
+    rust_target=i686-unknown-linux-gnu
+elif [[ "$arch" = "ppc64el" ]]; then
+    rust_target=powerpc64le-unknown-linux-gnu
+elif [[ "$arch" = "s390x" ]]; then
+    rust_target=s390x-unknown-linux-gnu
+else
+    echo "Needs rustc target mapping"
+fi
+sed -i -e '/\[binaries\]/a\' -e "rust = ['rustc', '--target=$rust_target', '-C', 'linker=$cc']" "$cross_file"
+
 # Set up cmake cross compile toolchain file for dEQP builds
 toolchain_file="/toolchain-$arch.cmake"
 if [[ "$arch" = "arm64" ]]; then

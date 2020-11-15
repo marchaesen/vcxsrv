@@ -1,31 +1,56 @@
 # vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0:
 
+.templates_sha: &template_sha d303fafa66bbca44cc5bdb337d5773b5f019b70d # see https://docs.gitlab.com/ee/ci/yaml/#includefile
+
+
+include:
+  # Arch container builder template
+  - project: 'freedesktop/ci-templates'
+    ref: *template_sha
+    file: '/templates/arch.yml'
+
+
 # global variables to be used by most/all jobs.
 variables:
-  # minimal set of packages required to build xkeyboard-config. extra packages
-  # will be installed in the tests where required.
-  ARCH_PKGS: 'xorg-util-macros autoconf automake make gettext pkg-config gcc grep m4 python meson ninja git'
+  FDO_UPSTREAM_REPO: 'xkeyboard-config/xkeyboard-config'
+
   BUILDDIR: '_build'
   # installation directory must be inside $CI_PROJECT_DIR to allow for artifact caching
   INSTDIR: '$CI_PROJECT_DIR/_inst'
   # Override these in the jobs to pass commands to configure/make
   CONFIGURE_ARGS: ''
   MAKE_EXTRA_ARG: ''
-  FDO_UPSTREAM_REPO: 'xkeyboard-config/xkeyboard-config'
+
+  # Changing the tag will rebuild the container images. The value is just a
+  # string, but we use the date for human benefits.
+  FDO_DISTRIBUTION_TAG: '2020-11-06.0'
+
 
 stages:
+  - prep
   - build
+  - dist
   - test
   - gitlab
 
-# We use arch because the image updates frequently and we're not stuck
-# forever in the update phase
+
+container-prep:
+  extends:
+    - .fdo.container-build@arch
+  stage: prep
+  variables:
+    GIT_STRATEGY: none
+    # minimal set of packages required to build xkeyboard-config.
+    BASE_PACKAGES: 'xorg-util-macros autoconf automake make gettext pkg-config gcc grep m4 python meson ninja git'
+    # extra packages we need for various tests
+    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest'
+    FDO_DISTRIBUTION_PACKAGES: $BASE_PACKAGES $EXTRA_PACKAGES
+
+
 .default_setup:
-  image: archlinux/base
-  before_script:
-    - pacman -S --refresh
-    - pacman -S --sysupgrade --noconfirm
-    - pacman -S --noconfirm $ARCH_PKGS
+  extends:
+    - .fdo.distribution-image@arch
+
 
 .default_build:
   extends: .default_setup
@@ -43,6 +68,11 @@ stages:
 .meson_build:
   extends: .default_setup
   script:
+    - if [ x"$TARBALL" != "x" ]; then
+        mkdir tarball;
+        tar xf "$BUILDDIR/$TARBALL" -C tarball/ --strip-components=1;
+        pushd tarball > /dev/null;
+      fi
     - meson "$BUILDDIR" -Dprefix="$INSTDIR"
     - meson configure "$BUILDDIR"
     - ninja -C "$BUILDDIR"
@@ -72,11 +102,10 @@ make_install:
   variables:
       MAKE_EXTRA_COMMAND: "install"
   after_script:
-    - pacman -S --noconfirm tree
     - tree $INSTDIR
   artifacts:
     name: installed files
-    expire_in: 20 min
+    expire_in: 2 weeks
     paths:
       - $INSTDIR/
 
@@ -90,7 +119,13 @@ make_distcheck:
   extends: .default_build
   stage: build
   variables:
-      MAKE_EXTRA_COMMAND: "distcheck"
+      # pass VERSION to make so our tarball has a fixed name.
+      MAKE_EXTRA_COMMAND: "VERSION=master distcheck"
+  artifacts:
+    name: tarball
+    expire_in: 2 weeks
+    paths:
+      - $BUILDDIR/xkeyboard-config-master.tar.bz2
 
 meson_build:
   extends: .meson_build
@@ -98,11 +133,10 @@ meson_build:
   variables:
       NINJA_EXTRA_COMMAND: "install"
   after_script:
-    - pacman -S --noconfirm tree
     - tree $INSTDIR
   artifacts:
     name: installed files
-    expire_in: 20 min
+    expire_in: 2 weeks
     paths:
       - $INSTDIR/
 
@@ -118,15 +152,21 @@ meston_dist:
   variables:
       NINJA_EXTRA_COMMAND: "dist"
 
+meson_from_tarball:
+  extends: .meson_build
+  stage: dist
+  dependencies:
+    - make_distcheck
+  variables:
+    TARBALL: "xkeyboard-config-master.tar.bz2"
+    GIT_STRATEGY: none
+
 xmllint:
-  image: archlinux/base
+  extends:
+    - .default_setup
   dependencies: ['make_install']
   needs: ['make_install']
   stage: test
-  before_script:
-    - pacman -S --refresh
-    - pacman -S --sysupgrade --noconfirm
-    - pacman -S --noconfirm libxml2
   script:
     - xmllint --dtdvalid "$INSTDIR/share/X11/xkb/rules/xkb.dtd" $INSTDIR/share/X11/xkb/rules/*.xml > /dev/null
 
@@ -139,7 +179,6 @@ layout_tests:
   stage: test
   needs: ["make_install"]
   script:
-    - pacman -S --noconfirm git meson bison gcc
     - git clone https://github.com/xkbcommon/libxkbcommon
     - pushd libxkbcommon > /dev/null
     - meson builddir -Denable-wayland=false -Denable-x11=false -Denable-docs=false -Dxkb-config-root="$INSTDIR/share/X11/xkb"
@@ -160,7 +199,6 @@ keymap_tests:
   extends: .default_setup
   stage: test
   script:
-    - pacman -S --noconfirm xorg-xkbcomp python-pytest
     - export XKB_CONFIG_ROOT="$INSTDIR/share/X11/xkb"
     - pytest --junitxml=results.xml
   artifacts:

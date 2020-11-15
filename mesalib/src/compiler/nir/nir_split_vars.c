@@ -219,7 +219,7 @@ split_struct_derefs_impl(nir_function_impl *impl,
             continue;
 
          nir_deref_instr *deref = nir_instr_as_deref(instr);
-         if (!(deref->mode & modes))
+         if (!nir_deref_mode_may_be(deref, modes))
             continue;
 
          /* Clean up any dead derefs we find lying around.  They may refer to
@@ -232,6 +232,14 @@ split_struct_derefs_impl(nir_function_impl *impl,
             continue;
 
          nir_variable *base_var = nir_deref_instr_get_variable(deref);
+         /* If we can't chase back to the variable, then we're a complex use.
+          * This should have been detected by get_complex_used_vars() and the
+          * variable should not have been split.  However, we have no way of
+          * knowing that here, so we just have to trust it.
+          */
+         if (base_var == NULL)
+            continue;
+
          struct hash_entry *entry =
             _mesa_hash_table_search(var_field_map, base_var);
          if (!entry)
@@ -436,7 +444,7 @@ get_array_deref_info(nir_deref_instr *deref,
                      struct hash_table *var_info_map,
                      nir_variable_mode modes)
 {
-   if (!(deref->mode & modes))
+   if (!nir_deref_mode_may_be(deref, modes))
       return NULL;
 
    nir_variable *var = nir_deref_instr_get_variable(deref);
@@ -765,7 +773,7 @@ split_array_access_impl(nir_function_impl *impl,
              * to variables we're planning to split.
              */
             nir_deref_instr *deref = nir_instr_as_deref(instr);
-            if (deref->mode & modes)
+            if (nir_deref_mode_may_be(deref, modes))
                nir_deref_instr_remove_if_unused(deref);
             continue;
          }
@@ -1021,7 +1029,11 @@ get_vec_deref_usage(nir_deref_instr *deref,
                     nir_variable_mode modes,
                     bool add_usage_entry, void *mem_ctx)
 {
-   if (!(deref->mode & modes))
+   if (!nir_deref_mode_may_be(deref, modes))
+      return NULL;
+
+   nir_variable *var = nir_deref_instr_get_variable(deref);
+   if (var == NULL)
       return NULL;
 
    return get_vec_var_usage(nir_deref_instr_get_variable(deref),
@@ -1034,13 +1046,13 @@ mark_deref_if_complex(nir_deref_instr *deref,
                       nir_variable_mode modes,
                       void *mem_ctx)
 {
-   if (!(deref->mode & modes))
-      return;
-
    /* Only bother with var derefs because nir_deref_instr_has_complex_use is
     * recursive.
     */
    if (deref->deref_type != nir_deref_type_var)
+      return;
+
+   if (!(deref->var->data.mode & modes))
       return;
 
    if (!nir_deref_instr_has_complex_use(deref))
@@ -1063,7 +1075,7 @@ mark_deref_used(nir_deref_instr *deref,
                 nir_variable_mode modes,
                 void *mem_ctx)
 {
-   if (!(deref->mode & modes))
+   if (!nir_deref_mode_may_be(deref, modes))
       return;
 
    nir_variable *var = nir_deref_instr_get_variable(deref);
@@ -1470,7 +1482,7 @@ shrink_vec_var_access_impl(nir_function_impl *impl,
          switch (instr->type) {
          case nir_instr_type_deref: {
             nir_deref_instr *deref = nir_instr_as_deref(instr);
-            if (!(deref->mode & modes))
+            if (!nir_deref_mode_may_be(deref, modes))
                break;
 
             /* Clean up any dead derefs we find lying around.  They may refer
@@ -1523,7 +1535,7 @@ shrink_vec_var_access_impl(nir_function_impl *impl,
                continue;
 
             nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-            if (!(deref->mode & modes))
+            if (!nir_deref_mode_may_be(deref, modes))
                continue;
 
             struct vec_var_usage *usage =

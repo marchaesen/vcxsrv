@@ -153,9 +153,7 @@ build_occlusion_query_shader(struct radv_device *device) {
 	 * 	}
 	 * }
 	 */
-	nir_builder b;
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, "occlusion_query");
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "occlusion_query");
 	b.shader->info.cs.local_size[0] = 64;
 	b.shader->info.cs.local_size[1] = 1;
 	b.shader->info.cs.local_size[2] = 1;
@@ -321,9 +319,7 @@ build_pipeline_statistics_query_shader(struct radv_device *device) {
 	 * 	}
 	 * }
 	 */
-	nir_builder b;
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, "pipeline_statistics_query");
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "pipeline_statistics_query");
 	b.shader->info.cs.local_size[0] = 64;
 	b.shader->info.cs.local_size[1] = 1;
 	b.shader->info.cs.local_size[2] = 1;
@@ -516,9 +512,7 @@ build_tfb_query_shader(struct radv_device *device)
 	 * 	}
 	 * }
 	 */
-	nir_builder b;
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, "tfb_query");
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "tfb_query");
 	b.shader->info.cs.local_size[0] = 64;
 	b.shader->info.cs.local_size[1] = 1;
 	b.shader->info.cs.local_size[2] = 1;
@@ -695,9 +689,7 @@ build_timestamp_query_shader(struct radv_device *device)
 	 * 	}
 	 * }
 	 */
-	nir_builder b;
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, "timestamp_query");
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "timestamp_query");
 	b.shader->info.cs.local_size[0] = 64;
 	b.shader->info.cs.local_size[1] = 1;
 	b.shader->info.cs.local_size[2] = 1;
@@ -1134,7 +1126,7 @@ radv_query_pool_needs_gds(struct radv_device *device,
 	 * TODO: fix use of NGG GS and non-NGG GS inside the same begin/end
 	 * query.
 	 */
-	return device->physical_device->use_ngg_gs &&
+	return device->physical_device->use_ngg &&
 	       (pool->pipeline_stats_mask & VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT);
 }
 

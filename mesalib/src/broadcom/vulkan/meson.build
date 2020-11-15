@@ -105,6 +105,11 @@ if with_platform_x11
   libv3dv_files += files('v3dv_wsi_x11.c')
 endif
 
+if system_has_kms_drm and not with_platform_android
+ v3dv_flags += '-DVK_USE_PLATFORM_DISPLAY_KHR'
+ libv3dv_files += files('v3dv_wsi_display.c')
+endif
+
 libvulkan_broadcom = shared_library(
   'vulkan_broadcom',
   [libv3dv_files, v3dv_entrypoints, v3dv_extensions_c, v3dv_extensions_h, sha1_h],

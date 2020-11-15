@@ -1101,13 +1101,11 @@ texture_size(const struct gl_texture_object *texObj)
  * Callback called from _mesa_HashWalk()
  */
 static void
-count_tex_size(GLuint key, void *data, void *userData)
+count_tex_size(void *data, void *userData)
 {
    const struct gl_texture_object *texObj =
       (const struct gl_texture_object *) data;
    GLuint *total = (GLuint *) userData;
-
-   (void) key;
 
    *total = *total + texture_size(texObj);
 }
@@ -1822,7 +1820,7 @@ bind_texture(struct gl_context *ctx, GLenum target, GLuint texName,
 {
    struct gl_texture_object *newTexObj =
       _mesa_lookup_or_create_texture(ctx, target, texName, no_error, false,
-                                     "glBindTexture");
+                                     caller);
    if (!newTexObj)
       return;
 

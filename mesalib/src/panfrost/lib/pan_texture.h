@@ -127,7 +127,7 @@ panfrost_new_texture_bifrost(
         unsigned swizzle,
         mali_ptr base,
         struct panfrost_slice *slices,
-        struct panfrost_bo *payload);
+        const struct panfrost_ptr *payload);
 
 
 unsigned
@@ -138,15 +138,16 @@ panfrost_texture_offset(struct panfrost_slice *slices, bool is_3d, unsigned cube
 
 /* Formats */
 
-struct panfrost_format {
-        enum mali_format hw;
-        unsigned bind;
+struct pan_blendable_format {
+        enum mali_color_buffer_internal_format internal;
+        enum mali_mfbd_color_format writeback;
 };
 
-extern struct panfrost_format panfrost_pipe_format_table[PIPE_FORMAT_COUNT];
+struct pan_blendable_format
+panfrost_blend_format(enum pipe_format format);
 
-bool
-panfrost_is_z24s8_variant(enum pipe_format fmt);
+extern const struct panfrost_format panfrost_pipe_format_v6[PIPE_FORMAT_COUNT];
+extern const struct panfrost_format panfrost_pipe_format_v7[PIPE_FORMAT_COUNT];
 
 enum mali_z_internal_format
 panfrost_get_z_internal_format(enum pipe_format fmt);
@@ -157,22 +158,26 @@ panfrost_translate_swizzle_4(const unsigned char swizzle[4]);
 void
 panfrost_invert_swizzle(const unsigned char *in, unsigned char *out);
 
+/* Helpers to construct swizzles */
+
+#define PAN_V6_SWIZZLE(R, G, B, A) ( \
+        ((MALI_CHANNEL_ ## R) << 0) | \
+        ((MALI_CHANNEL_ ## G) << 3) | \
+        ((MALI_CHANNEL_ ## B) << 6) | \
+        ((MALI_CHANNEL_ ## A) << 9))
+
 static inline unsigned
 panfrost_get_default_swizzle(unsigned components)
 {
         switch (components) {
         case 1:
-                return (MALI_CHANNEL_R << 0) | (MALI_CHANNEL_0 << 3) |
-                        (MALI_CHANNEL_0 << 6) | (MALI_CHANNEL_1 << 9);
+                return PAN_V6_SWIZZLE(R, 0, 0, 1);
         case 2:
-                return (MALI_CHANNEL_R << 0) | (MALI_CHANNEL_G << 3) |
-                        (MALI_CHANNEL_0 << 6) | (MALI_CHANNEL_1 << 9);
+                return PAN_V6_SWIZZLE(R, G, 0, 1);
         case 3:
-                return (MALI_CHANNEL_R << 0) | (MALI_CHANNEL_G << 3) |
-                        (MALI_CHANNEL_B << 6) | (MALI_CHANNEL_1 << 9);
+                return PAN_V6_SWIZZLE(R, G, B, 1);
         case 4:
-                return (MALI_CHANNEL_R << 0) | (MALI_CHANNEL_G << 3) |
-                        (MALI_CHANNEL_B << 6) | (MALI_CHANNEL_A << 9);
+                return PAN_V6_SWIZZLE(R, G, B, A);
         default:
                 unreachable("Invalid number of components");
         }
@@ -185,8 +190,10 @@ panfrost_bifrost_swizzle(unsigned components)
         return components < 4 ? 0x10 : 0x00;
 }
 
-enum mali_format
-panfrost_format_to_bifrost_blend(const struct util_format_description *desc);
+unsigned
+panfrost_format_to_bifrost_blend(const struct panfrost_device *dev,
+                                 const struct util_format_description *desc,
+                                 bool dither);
 
 struct pan_pool;
 struct pan_scoreboard;
@@ -203,6 +210,16 @@ panfrost_load_midg(
                 mali_ptr coordinates, unsigned vertex_count,
                 struct pan_image *image,
                 unsigned loc);
+
+void
+panfrost_load_bifrost(struct pan_pool *pool,
+                      struct pan_scoreboard *scoreboard,
+                      mali_ptr blend_shader,
+                      mali_ptr thread_storage,
+                      mali_ptr tiler,
+                      mali_ptr coordinates, unsigned vertex_count,
+                      struct pan_image *image,
+                      unsigned loc);
 
 /* DRM modifier helper */
 

@@ -168,6 +168,10 @@ bi_writes_component(bi_instruction *ins, unsigned comp)
         return comp < bi_get_component_count(ins, -1);
 }
 
+/* Determine effective writemask for RA/DCE, noting that we currently act
+ * per-register hence aligning. TODO: when real write masks are handled in
+ * packing (not for a while), update this routine, removing the align */
+
 unsigned
 bi_writemask(bi_instruction *ins)
 {
@@ -175,7 +179,7 @@ bi_writemask(bi_instruction *ins)
         unsigned size = nir_alu_type_get_type_size(T);
         unsigned bytes_per_comp = size / 8;
         unsigned components = bi_get_component_count(ins, -1);
-        unsigned bytes = bytes_per_comp * components;
+        unsigned bytes = ALIGN_POT(bytes_per_comp * components, 4);
         unsigned mask = (1 << bytes) - 1;
         unsigned shift = ins->dest_offset * 4; /* 32-bit words */
         return (mask << shift);

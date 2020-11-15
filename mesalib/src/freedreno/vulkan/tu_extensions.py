@@ -70,7 +70,7 @@ EXTENSIONS = [
     Extension('VK_KHR_external_memory',                   1, True),
     Extension('VK_KHR_external_memory_fd',                1, True),
     Extension('VK_EXT_external_memory_dma_buf',           1, True),
-    Extension('VK_EXT_image_drm_format_modifier',         1, False),
+    Extension('VK_EXT_image_drm_format_modifier',         1, True),
     Extension('VK_EXT_sample_locations',                  1, 'device->gpu_id == 650'),
     Extension('VK_EXT_sampler_filter_minmax',             1, True),
     Extension('VK_EXT_transform_feedback',                1, True),
@@ -99,6 +99,7 @@ EXTENSIONS = [
     Extension('VK_EXT_extended_dynamic_state',            1, True),
     Extension('VK_KHR_push_descriptor',                   1, True),
     Extension('VK_KHR_incremental_present',               1, 'TU_HAS_SURFACE'),
+    Extension('VK_KHR_image_format_list',                 1, True),
 ]
 
 MAX_API_VERSION = VkVersion(MAX_API_VERSION)

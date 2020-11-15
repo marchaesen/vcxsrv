@@ -325,6 +325,7 @@ enum vtn_base_type {
    vtn_base_type_image,
    vtn_base_type_sampler,
    vtn_base_type_sampled_image,
+   vtn_base_type_accel_struct,
    vtn_base_type_function,
    vtn_base_type_event,
 };
@@ -487,10 +488,18 @@ enum vtn_variable_mode {
    vtn_variable_mode_push_constant,
    vtn_variable_mode_workgroup,
    vtn_variable_mode_cross_workgroup,
+   vtn_variable_mode_generic,
    vtn_variable_mode_constant,
    vtn_variable_mode_input,
    vtn_variable_mode_output,
    vtn_variable_mode_image,
+   vtn_variable_mode_accel_struct,
+   vtn_variable_mode_call_data,
+   vtn_variable_mode_call_data_in,
+   vtn_variable_mode_ray_payload,
+   vtn_variable_mode_ray_payload_in,
+   vtn_variable_mode_hit_attrib,
+   vtn_variable_mode_shader_record,
 };
 
 struct vtn_pointer {
@@ -834,6 +843,9 @@ nir_deref_instr *vtn_pointer_to_deref(struct vtn_builder *b,
 nir_ssa_def *
 vtn_pointer_to_offset(struct vtn_builder *b, struct vtn_pointer *ptr,
                       nir_ssa_def **index_out);
+
+nir_deref_instr *
+vtn_get_call_payload_for_location(struct vtn_builder *b, uint32_t location_id);
 
 struct vtn_ssa_value *
 vtn_local_load(struct vtn_builder *b, nir_deref_instr *src,

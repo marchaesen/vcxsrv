@@ -135,6 +135,22 @@ html_extra_path = [
   'README.WIN32',
 ]
 
+html_redirects = [
+  ('gallium/drivers/freedreno', 'drivers/freedreno.html'),
+  ('gallium/drivers/freedreno/ir3-notes', 'drivers/freedreno/ir3-notes.html'),
+  ('gallium/drivers/llvmpipe', 'drivers/llvmpipe.html'),
+  ('gallium/drivers/openswr', 'drivers/openswr.html'),
+  ('gallium/drivers/openswr/faq', 'drivers/openswr/faq.html'),
+  ('gallium/drivers/openswr/knobs', 'drivers/openswr/knobs.html'),
+  ('gallium/drivers/openswr/profiling', 'drivers/openswr/profiling.html'),
+  ('gallium/drivers/openswr/usage', 'drivers/openswr/usage.html'),
+  ('gallium/drivers/zink', 'drivers/zink.html'),
+  ('llvmpipe', 'drivers/llvmpipe.html'),
+  ('postprocess', 'gallium/postprocess.html'),
+  ('vmware-guest', 'drivers/vmware-guest.html'),
+  ('webmaster', 'https://www.mesa3d.org/website/'),
+]
+
 
 # -- Options for HTMLHelp output ------------------------------------------
 

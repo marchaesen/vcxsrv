@@ -81,7 +81,6 @@ xkb_symbols "basic" {
 
 // third level with right-Alt
     include "level3(ralt_switch)"
-
 };
 
 

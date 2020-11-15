@@ -207,7 +207,8 @@ rbug_shader_create(struct rbug_context *rb_context,
 
    rb_shader->type = type;
    rb_shader->shader = result;
-   rb_shader->tokens = tgsi_dup_tokens(state->tokens);
+   if (state->tokens)
+           rb_shader->tokens = tgsi_dup_tokens(state->tokens);
 
    /* works on context as well since its just a macro */
    rbug_screen_add_to_list(rb_context, shaders, rb_shader);

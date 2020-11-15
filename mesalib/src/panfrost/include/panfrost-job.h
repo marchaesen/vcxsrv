@@ -96,6 +96,8 @@ typedef uint64_t mali_ptr;
 #define MALI_CHANNEL_FLOAT 7
 #define MALI_EXTRACT_BITS(fmt) (fmt & 0x7)
 
+#define MALI_EXTRACT_INDEX(pixfmt) (((pixfmt) >> 12) & 0xFF)
+
 /* The raw Midgard blend payload can either be an equation or a shader
  * address, depending on the context */
 

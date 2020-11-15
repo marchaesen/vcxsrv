@@ -484,7 +484,9 @@ vlVaQuerySurfaceAttributes(VADriverContextP ctx, VAConfigID config_id,
       attribs[i].value.value.i = VA_FOURCC_NV12;
       i++;
    }
-   if (config->rt_format & VA_RT_FORMAT_YUV420_10BPP) {
+   if (config->rt_format & VA_RT_FORMAT_YUV420_10 ||
+       (config->rt_format & VA_RT_FORMAT_YUV420 &&
+        config->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE)) {
       attribs[i].type = VASurfaceAttribPixelFormat;
       attribs[i].value.type = VAGenericValueTypeInteger;
       attribs[i].flags = VA_SURFACE_ATTRIB_GETTABLE | VA_SURFACE_ATTRIB_SETTABLE;
@@ -599,6 +601,7 @@ surface_from_external_memory(VADriverContextP ctx, vlVaSurface *surface,
    memset(&whandle, 0, sizeof(struct winsys_handle));
    whandle.type = WINSYS_HANDLE_TYPE_FD;
    whandle.handle = memory_attribute->buffers[index];
+   whandle.modifier = DRM_FORMAT_MOD_INVALID;
 
    // Create a resource for each plane.
    memset(resources, 0, sizeof resources);
@@ -677,6 +680,7 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
    int expected_fourcc;
    VAStatus vaStatus;
    vlVaSurface *surf;
+   bool protected;
 
    if (!ctx)
       return VA_STATUS_ERROR_INVALID_CONTEXT;
@@ -731,6 +735,9 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
       }
    }
 
+   protected = format & VA_RT_FORMAT_PROTECTED;
+   format &= ~VA_RT_FORMAT_PROTECTED;
+
    if (VA_RT_FORMAT_YUV420 != format &&
        VA_RT_FORMAT_YUV422 != format &&
        VA_RT_FORMAT_YUV444 != format &&
@@ -778,6 +785,8 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
 
    templat.width = width;
    templat.height = height;
+   if (protected)
+      templat.bind |= PIPE_BIND_PROTECTED;
 
    memset(surfaces, VA_INVALID_ID, num_surfaces * sizeof(VASurfaceID));
 

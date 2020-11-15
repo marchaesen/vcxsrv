@@ -57,6 +57,7 @@ namespace clover {
          std::vector<uint8_t> input;
          std::vector<void *> samplers;
          std::vector<pipe_sampler_view *> sviews;
+         std::vector<pipe_image_view> iviews;
          std::vector<pipe_surface *> resources;
          std::vector<pipe_resource *> g_buffers;
          std::vector<size_t> g_handles;
@@ -226,9 +227,6 @@ namespace clover {
          virtual void bind(exec_context &ctx,
                            const module::argument &marg);
          virtual void unbind(exec_context &ctx);
-
-      private:
-         pipe_surface *st;
       };
 
       class sampler_argument : public argument {

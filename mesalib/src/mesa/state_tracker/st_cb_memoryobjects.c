@@ -59,7 +59,8 @@ st_memoryobj_free(struct gl_context *ctx,
    struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = pipe->screen;
 
-   screen->memobj_destroy(screen, st_obj->memory);
+   if (st_obj->memory)
+      screen->memobj_destroy(screen, st_obj->memory);
    _mesa_delete_memory_object(ctx, obj);
 }
 

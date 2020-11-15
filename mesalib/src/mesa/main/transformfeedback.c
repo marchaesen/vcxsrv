@@ -52,7 +52,7 @@ struct using_program_tuple
 };
 
 static void
-active_xfb_object_references_program(GLuint key, void *data, void *user_data)
+active_xfb_object_references_program(void *data, void *user_data)
 {
    struct using_program_tuple *callback_data = user_data;
    struct gl_transform_feedback_object *obj = data;
@@ -78,7 +78,7 @@ _mesa_transform_feedback_is_using_program(struct gl_context *ctx,
                         active_xfb_object_references_program, &callback_data);
 
    /* Also check DefaultObject, as it's not in the Objects hash table. */
-   active_xfb_object_references_program(0, ctx->TransformFeedback.DefaultObject,
+   active_xfb_object_references_program(ctx->TransformFeedback.DefaultObject,
                                         &callback_data);
 
    return callback_data.found;
@@ -153,7 +153,7 @@ _mesa_init_transform_feedback(struct gl_context *ctx)
  * Callback for _mesa_HashDeleteAll().
  */
 static void
-delete_cb(GLuint key, void *data, void *userData)
+delete_cb(void *data, void *userData)
 {
    struct gl_context *ctx = (struct gl_context *) userData;
    struct gl_transform_feedback_object *obj =

@@ -81,10 +81,17 @@ struct logger;
 
 log_id_t android_logger_get_id(struct logger* logger);
 
+/* Clears the given log buffer. */
 int android_logger_clear(struct logger* logger);
+/* Return the allotted size for the given log buffer. */
 long android_logger_get_log_size(struct logger* logger);
+/* Set the allotted size for the given log buffer. */
 int android_logger_set_log_size(struct logger* logger, unsigned long size);
+/* Return the actual, uncompressed size that can be read from the given log buffer. */
 long android_logger_get_log_readable_size(struct logger* logger);
+/* Return the actual, compressed size that the given log buffer is consuming. */
+long android_logger_get_log_consumed_size(struct logger* logger);
+/* Deprecated.  Always returns '4' regardless of input. */
 int android_logger_get_log_version(struct logger* logger);
 
 struct logger_list;

@@ -127,9 +127,10 @@ v3d33_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
         /* Limit the number of channels returned to both how many the NIR
          * instruction writes and how many the instruction could produce.
          */
-        assert(instr->dest.is_ssa);
         p1_unpacked.return_words_of_texture_data =
-                nir_ssa_def_components_read(&instr->dest.ssa);
+                instr->dest.is_ssa ?
+                nir_ssa_def_components_read(&instr->dest.ssa) :
+                (1 << instr->dest.reg.reg->num_components) - 1;
 
         uint32_t p0_packed;
         V3D33_TEXTURE_UNIFORM_PARAMETER_0_CFG_MODE1_pack(NULL,

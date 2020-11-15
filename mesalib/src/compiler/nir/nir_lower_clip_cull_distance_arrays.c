@@ -127,8 +127,10 @@ nir_lower_clip_cull_distance_arrays(nir_shader *nir)
    if (nir->info.stage <= MESA_SHADER_GEOMETRY)
       progress |= combine_clip_cull(nir, nir_var_shader_out, true);
 
-   if (nir->info.stage > MESA_SHADER_VERTEX)
-      progress |= combine_clip_cull(nir, nir_var_shader_in, false);
+   if (nir->info.stage > MESA_SHADER_VERTEX) {
+      progress |= combine_clip_cull(nir, nir_var_shader_in,
+                                    nir->info.stage == MESA_SHADER_FRAGMENT);
+   }
 
    nir_foreach_function(function, nir) {
       if (!function->impl)

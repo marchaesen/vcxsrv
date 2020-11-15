@@ -12,11 +12,6 @@ DEQP_OPTIONS="$DEQP_OPTIONS --deqp-surface-type=pbuffer"
 DEQP_OPTIONS="$DEQP_OPTIONS --deqp-gl-config-name=$DEQP_CONFIG"
 DEQP_OPTIONS="$DEQP_OPTIONS --deqp-visibility=hidden"
 
-# deqp's shader cache (for vulkan) is not multiprocess safe for a common
-# filename, see:
-# https://gitlab.freedesktop.org/mesa/parallel-deqp-runner/-/merge_requests/13
-DEQP_OPTIONS="$DEQP_OPTIONS --deqp-shadercache=disable"
-
 if [ -z "$DEQP_VER" ]; then
    echo 'DEQP_VER must be set to something like "gles2", "gles31" or "vk" for the test run'
    exit 1
@@ -45,7 +40,7 @@ export VK_ICD_FILENAMES=`pwd`/install/share/vulkan/icd.d/"$VK_DRIVER"_icd.`uname
 # I never figured out.
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
-RESULTS=`pwd`/results
+RESULTS=`pwd`/${DEQP_RESULTS_DIR:-results}
 mkdir -p $RESULTS
 
 # Generate test case list file.
@@ -62,8 +57,15 @@ else
    SUITE=KHR
 fi
 
-# If the job is parallel, take the corresponding fraction of the caselist.
-# Note: N~M is a gnu sed extension to match every nth line (first line is #1).
+# If the caselist is too long to run in a reasonable amount of time, let the job
+# specify what fraction (1/n) of the caselist we should run.  Note: N~M is a gnu
+# sed extension to match every nth line (first line is #1).
+if [ -n "$DEQP_FRACTION" ]; then
+   sed -ni 1~$DEQP_FRACTION"p" /tmp/case-list.txt
+fi
+
+# If the job is parallel at the gitab job level, take the corresponding fraction
+# of the caselist.
 if [ -n "$CI_NODE_INDEX" ]; then
    sed -ni $CI_NODE_INDEX~$CI_NODE_TOTAL"p" /tmp/case-list.txt
 fi
@@ -78,42 +80,60 @@ if [ ! -s /tmp/case-list.txt ]; then
 fi
 
 if [ -n "$DEQP_EXPECTED_FAILS" ]; then
-    XFAIL="--xfail-list $INSTALL/$DEQP_EXPECTED_FAILS"
+    BASELINE="--baseline $INSTALL/$DEQP_EXPECTED_FAILS"
+fi
+
+if [ -n "$DEQP_FLAKES" ]; then
+    FLAKES="--flakes $INSTALL/$DEQP_FLAKES"
 fi
 
 set +e
 
 if [ -n "$DEQP_PARALLEL" ]; then
-   JOB="--job $DEQP_PARALLEL"
+   JOB="--jobs $DEQP_PARALLEL"
 elif [ -n "$FDO_CI_CONCURRENT" ]; then
-   JOB="--job $FDO_CI_CONCURRENT"
+   JOB="--jobs $FDO_CI_CONCURRENT"
 else
-   JOB="--job 4"
+   JOB="--jobs 4"
 fi
+
+# If this CI lab lacks artifacts support, print the whole list of failures/flakes.
+if [ -z "$DEQP_NO_SAVE_RESULTS" ]; then
+   SUMMARY_LIMIT="--summary-limit 0"
+fi
+
+# Silence the debug output for apps triggering GL errors, since dEQP will do a lot of that.
+export MESA_DEBUG=silent
 
 run_cts() {
     deqp=$1
     caselist=$2
     output=$3
     deqp-runner \
+        run \
         --deqp $deqp \
-        --output $output \
+        --output $RESULTS \
         --caselist $caselist \
-        --exclude-list $INSTALL/$DEQP_SKIPS \
-        --compact-display false \
-        $XFAIL \
+        --skips $INSTALL/$DEQP_SKIPS \
+        $BASELINE \
+        $FLAKES \
         $JOB \
-	--allow-flakes true \
+        $SUMMARY_LIMIT \
 	$DEQP_RUNNER_OPTIONS \
         -- \
         $DEQP_OPTIONS
 }
 
 report_flakes() {
+    flakes=`grep ",Flake" $1 | sed 's|,Flake.*||g'`
+    if [ -z "$flakes" ]; then
+        return 0
+    fi
+
     if [ -z "$FLAKES_CHANNEL" ]; then
         return 0
     fi
-    flakes=$1
+
     # The nick needs to be something unique so that multiple runners
     # connecting at the same time don't race for one nick and get blocked.
     # freenode has a 16-char limit on nicks (9 is the IETF standard, but
@@ -138,57 +158,13 @@ report_flakes() {
         desc="$desc on branch $CI_COMMIT_BRANCH ($CI_COMMIT_TITLE)"
     fi
     echo "PRIVMSG $channel :$desc"
-    for flake in `cat $flakes`; do
+    for flake in $flakes; do
         echo "PRIVMSG $channel :$flake"
     done
     echo "PRIVMSG $channel :See $CI_JOB_URL/artifacts/browse/results/"
     echo "QUIT"
     ) | nc irc.freenode.net 6667 > /dev/null
 
-}
-
-extract_xml_result() {
-    testcase=$1
-    shift 1
-    qpas=$*
-    start="#beginTestCaseResult $testcase"
-
-    # Pick the first QPA mentioning our testcase
-    qpa=`grep -l "$start" $qpas | head -n 1`
-
-    # If we found one, go extract just that testcase's contents from the QPA
-    # to a new QPA, then do testlog-to-xml on that.
-    if [ -n "$qpa" ]; then
-        while IFS= read -r line; do
-            if [ "$line" = "$start" ]; then
-                dst="$testcase.qpa"
-                echo "#beginSession" > $dst
-                echo "$line" >> $dst
-                while IFS= read -r line; do
-                    if [ "$line" = "#endTestCaseResult" ]; then
-                        echo "$line" >> $dst
-                        echo "#endSession" >> $dst
-                        /deqp/executor/testlog-to-xml $dst "$RESULTS/$testcase$DEQP_RUN_SUFFIX.xml"
-                        # copy the stylesheets here so they only end up in artifacts
-                        # if we have one or more result xml in artifacts
-                        cp /deqp/testlog.css "$RESULTS/"
-                        cp /deqp/testlog.xsl "$RESULTS/"
-                        return 0
-                    fi
-                    echo "$line" >> $dst
-                done
-                return 1
-            fi
-        done < $qpa
-    fi
-}
-
-extract_xml_results() {
-    qpas=$*
-    while IFS= read -r testcase; do
-        testcase=${testcase%,*}
-        extract_xml_result $testcase $qpas
-    done
 }
 
 # Generate junit results
@@ -278,74 +254,39 @@ else
     quiet check_renderer
 fi
 
-RESULTSFILE=$RESULTS/cts-runner-results$DEQP_RUN_SUFFIX.txt
-UNEXPECTED_RESULTSFILE=$RESULTS/cts-runner-unexpected-results$DEQP_RUN_SUFFIX.txt
-FLAKESFILE=$RESULTS/cts-runner-flakes$DEQP_RUN_SUFFIX.txt
+RESULTS_CSV=$RESULTS/results.csv
+FAILURES_CSV=$RESULTS/failures.csv
 
-run_cts $DEQP /tmp/case-list.txt $RESULTSFILE
+run_cts $DEQP /tmp/case-list.txt $RESULTS_CSV
 DEQP_EXITCODE=$?
 
 echo "System load: $(cut -d' ' -f1-3 < /proc/loadavg)"
 echo "# of CPU cores: $(cat /proc/cpuinfo | grep processor | wc -l)"
 
+# Remove the shader cache, no need to include in the artifacts.
+find $RESULTS -name \*.shader_cache | xargs rm -f
+
 # junit is disabled, because it overloads gitlab.freedesktop.org to parse it.
-#quiet generate_junit $RESULTSFILE > $RESULTS/results.xml
+# quiet generate_junit $RESULTS_CSV > $RESULTS/results.xml
 
-if [ $DEQP_EXITCODE -ne 0 ]; then
-    # preserve caselist files in case of failures:
-    cp /tmp/deqp_runner.*.txt $RESULTS/
-    egrep -v ",Pass|,Skip|,ExpectedFail" $RESULTSFILE > $UNEXPECTED_RESULTSFILE
+# Turn up to the first 50 individual test QPA files from failures or flakes into
+# XML results you can view from the browser.
+qpas=`find $RESULTS -name \*.qpa -a ! -name deqp-info.qpa`
+if [ -n "$qpas" ]; then
+    shard_qpas=`echo "$qpas" | grep dEQP- | head -n 50`
+    for qpa in $shard_qpas; do
+        xml=`echo $qpa | sed 's|\.qpa|.xml|'`
+        /deqp/executor/testlog-to-xml $qpa $xml
+    done
 
-    # deqp-runner's flake detection won't perfectly detect all flakes, so
-    # allow the driver to list some known flakes that won't intermittently
-    # fail people's pipelines (while still allowing them to run and be
-    # reported to IRC in the usual flake detection path).  If we had some
-    # fails listed (so this wasn't a total runner failure), then filter out
-    # the known flakes and see if there are any issues left.
-    if [ -n "$DEQP_FLAKES" -a -s $UNEXPECTED_RESULTSFILE ]; then
-        set +x
-        while read line; do
-            line=`echo $line | sed 's|#.*||g'`
-            if [ -n "$line" ]; then
-                sed -i "/$line/d" $UNEXPECTED_RESULTSFILE
-            fi
-        done < $INSTALL/$DEQP_FLAKES
-        set -x
+    cp /deqp/testlog.css "$RESULTS/"
+    cp /deqp/testlog.xsl "$RESULTS/"
 
-        if [ ! -s $UNEXPECTED_RESULTSFILE ]; then
-            exit 0
-        fi
-    fi
-
-    if [ -z "$DEQP_NO_SAVE_RESULTS" ]; then
-        echo "Some unexpected results found (see cts-runner-results.txt in artifacts for full results):"
-        head -n 50 $UNEXPECTED_RESULTSFILE
-
-        # Save the logs for up to the first 50 unexpected results:
-        head -n 50 $UNEXPECTED_RESULTSFILE | quiet extract_xml_results /tmp/*.qpa
-    else
-        echo "Unexpected results found:"
-        cat $UNEXPECTED_RESULTSFILE
-    fi
-else
-    grep ",Flake" $RESULTSFILE > $FLAKESFILE
-
-    count=`cat $FLAKESFILE | wc -l`
-    if [ $count -gt 0 ]; then
-        echo "Some flakes found (see cts-runner-flakes.txt in artifacts for full results):"
-        head -n 50 $FLAKESFILE
-
-        if [ -z "$DEQP_NO_SAVE_RESULTS" ]; then
-            # Save the logs for up to the first 50 flakes:
-            head -n 50 $FLAKESFILE | quiet extract_xml_results /tmp/*.qpa
-        fi
-
-        # Report the flakes to IRC channel for monitoring (if configured):
-        quiet report_flakes $FLAKESFILE
-    else
-        # no flakes, so clean-up:
-        rm $FLAKESFILE
-    fi
+    # Remove all the QPA files (extracted or not) now that we have the XML we want.
+    echo $qpas | xargs rm -f
 fi
+
+# Report the flakes to the IRC channel for monitoring (if configured):
+quiet report_flakes $RESULTS_CSV
 
 exit $DEQP_EXITCODE

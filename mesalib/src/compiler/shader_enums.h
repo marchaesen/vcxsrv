@@ -51,14 +51,35 @@ typedef enum
    MESA_SHADER_GEOMETRY = 3,
    MESA_SHADER_FRAGMENT = 4,
    MESA_SHADER_COMPUTE = 5,
+
+   /* Vulkan-only stages. */
+   MESA_SHADER_TASK         = 6,
+   MESA_SHADER_MESH         = 7,
+   MESA_SHADER_RAYGEN       = 8,
+   MESA_SHADER_ANY_HIT      = 9,
+   MESA_SHADER_CLOSEST_HIT  = 10,
+   MESA_SHADER_MISS         = 11,
+   MESA_SHADER_INTERSECTION = 12,
+   MESA_SHADER_CALLABLE     = 13,
+
    /* must be last so it doesn't affect the GL pipeline */
-   MESA_SHADER_KERNEL = 6,
+   MESA_SHADER_KERNEL = 14,
 } gl_shader_stage;
 
 static inline bool
 gl_shader_stage_is_compute(gl_shader_stage stage)
 {
    return stage == MESA_SHADER_COMPUTE || stage == MESA_SHADER_KERNEL;
+}
+
+static inline bool
+gl_shader_stage_is_callable(gl_shader_stage stage)
+{
+   return stage == MESA_SHADER_ANY_HIT ||
+          stage == MESA_SHADER_CLOSEST_HIT ||
+          stage == MESA_SHADER_MISS ||
+          stage == MESA_SHADER_INTERSECTION ||
+          stage == MESA_SHADER_CALLABLE;
 }
 
 /**
@@ -87,6 +108,11 @@ const char *_mesa_shader_stage_to_abbrev(unsigned stage);
  * GL related stages (not including CL)
  */
 #define MESA_SHADER_STAGES (MESA_SHADER_COMPUTE + 1)
+
+/**
+ * Vulkan stages (not including CL)
+ */
+#define MESA_VULKAN_SHADER_STAGES (MESA_SHADER_CALLABLE + 1)
 
 /**
  * All stages
@@ -359,6 +385,7 @@ const char *gl_varying_slot_name(gl_varying_slot slot);
 #define SYSTEM_BIT_SAMPLE_POS ((uint64_t)1 << SYSTEM_VALUE_SAMPLE_POS)
 #define SYSTEM_BIT_SAMPLE_MASK_IN ((uint64_t)1 << SYSTEM_VALUE_SAMPLE_MASK_IN)
 #define SYSTEM_BIT_LOCAL_INVOCATION_ID ((uint64_t)1 << SYSTEM_VALUE_LOCAL_INVOCATION_ID)
+#define SYSTEM_BIT_FRONT_FACE ((uint64_t)1 << SYSTEM_VALUE_FRONT_FACE)
 
 /**
  * If the gl_register_file is PROGRAM_SYSTEM_VALUE, the register index will be
@@ -652,6 +679,26 @@ typedef enum
    SYSTEM_VALUE_BARYCENTRIC_LINEAR_CENTROID,
    SYSTEM_VALUE_BARYCENTRIC_LINEAR_SAMPLE,
    SYSTEM_VALUE_BARYCENTRIC_PULL_MODEL,
+
+   /**
+    * \name Ray tracing shader system values
+    */
+   /*@{*/
+   SYSTEM_VALUE_RAY_LAUNCH_ID,
+   SYSTEM_VALUE_RAY_LAUNCH_SIZE,
+   SYSTEM_VALUE_RAY_WORLD_ORIGIN,
+   SYSTEM_VALUE_RAY_WORLD_DIRECTION,
+   SYSTEM_VALUE_RAY_OBJECT_ORIGIN,
+   SYSTEM_VALUE_RAY_OBJECT_DIRECTION,
+   SYSTEM_VALUE_RAY_T_MIN,
+   SYSTEM_VALUE_RAY_T_MAX,
+   SYSTEM_VALUE_RAY_OBJECT_TO_WORLD,
+   SYSTEM_VALUE_RAY_WORLD_TO_OBJECT,
+   SYSTEM_VALUE_RAY_HIT_KIND,
+   SYSTEM_VALUE_RAY_FLAGS,
+   SYSTEM_VALUE_RAY_GEOMETRY_INDEX,
+   SYSTEM_VALUE_RAY_INSTANCE_CUSTOM_INDEX,
+   /*@}*/
 
    /**
     * IR3 specific geometry shader and tesselation control shader system

@@ -145,6 +145,8 @@
  *    another resource's backing storage. The threaded context uses it to
  *    implement buffer invalidation. This call is always queued.
  *
+ * pipe_context::multi_draw() must be implemented.
+ *
  *
  * Performance gotchas
  * -------------------
@@ -354,6 +356,7 @@ struct threaded_context {
    tc_replace_buffer_storage_func replace_buffer_storage;
    tc_create_fence_func create_fence;
    unsigned map_buffer_alignment;
+   unsigned ubo_alignment;
 
    struct list_head unflushed_queries;
 

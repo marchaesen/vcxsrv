@@ -88,6 +88,12 @@ XCOMM on some keyboards.
 <Multi_key> <minus> <space>      	: "~"   asciitilde # TILDE
 <Multi_key> <space> <minus>      	: "~"   asciitilde # TILDE
 
+<Multi_key> <L> <T>                 : "<"   less # LESS-THAN
+<Multi_key> <l> <t>                 : "<"   less # LESS-THAN
+
+<Multi_key> <G> <T>                 : ">"   greater # GREATER-THAN
+<Multi_key> <g> <t>                 : ">"   greater # GREATER-THAN
+
 XCOMM Spaces
 <Multi_key> <space> <space>      	: " "   nobreakspace # NO-BREAK SPACE
 <Multi_key> <space> <period>     	: " "   U2008 # PUNCTUATION SPACE
@@ -876,18 +882,22 @@ XCOMM Part 3
 <Multi_key> <c> <period> 		: "ċ"   U010B # LATIN SMALL LETTER C WITH DOT ABOVE
 <dead_caron> <C>                 	: "Č"   U010C # LATIN CAPITAL LETTER C WITH CARON
 <Multi_key> <c> <C>              	: "Č"   U010C # LATIN CAPITAL LETTER C WITH CARON
+<Multi_key> <v> <C>              	: "Č"   U010C # LATIN CAPITAL LETTER C WITH CARON
 <Multi_key> <less> <C> 			: "Č"   U010C # LATIN CAPITAL LETTER C WITH CARON
 <Multi_key> <C> <less> 			: "Č"   U010C # LATIN CAPITAL LETTER C WITH CARON
 <dead_caron> <c>                 	: "č"   U010D # LATIN SMALL LETTER C WITH CARON
 <Multi_key> <c> <c>              	: "č"   U010D # LATIN SMALL LETTER C WITH CARON
+<Multi_key> <v> <c>              	: "č"   U010D # LATIN SMALL LETTER C WITH CARON
 <Multi_key> <less> <c> 			: "č"   U010D # LATIN SMALL LETTER C WITH CARON
 <Multi_key> <c> <less> 			: "č"   U010D # LATIN SMALL LETTER C WITH CARON
 <dead_caron> <D>                 	: "Ď"   U010E # LATIN CAPITAL LETTER D WITH CARON
 <Multi_key> <c> <D>              	: "Ď"   U010E # LATIN CAPITAL LETTER D WITH CARON
+<Multi_key> <v> <D>              	: "Ď"   U010E # LATIN CAPITAL LETTER D WITH CARON
 <Multi_key> <less> <D> 			: "Ď"   U010E # LATIN CAPITAL LETTER D WITH CARON
 <Multi_key> <D> <less> 			: "Ď"   U010E # LATIN CAPITAL LETTER D WITH CARON
 <dead_caron> <d>                 	: "ď"   U010F # LATIN SMALL LETTER D WITH CARON
 <Multi_key> <c> <d>              	: "ď"   U010F # LATIN SMALL LETTER D WITH CARON
+<Multi_key> <v> <d>              	: "ď"   U010F # LATIN SMALL LETTER D WITH CARON
 <Multi_key> <less> <d> 			: "ď"   U010F # LATIN SMALL LETTER D WITH CARON
 <Multi_key> <d> <less> 			: "ď"   U010F # LATIN SMALL LETTER D WITH CARON
 <dead_stroke> <D>               	: "Đ"   Dstroke # LATIN CAPITAL LETTER D WITH STROKE
@@ -936,10 +946,12 @@ XCOMM Part 3
 <Multi_key> <e> <comma> 		: "ę"   U0119 # LATIN SMALL LETTER E WITH OGONEK
 <dead_caron> <E>                 	: "Ě"   U011A # LATIN CAPITAL LETTER E WITH CARON
 <Multi_key> <c> <E>              	: "Ě"   U011A # LATIN CAPITAL LETTER E WITH CARON
+<Multi_key> <v> <E>              	: "Ě"   U011A # LATIN CAPITAL LETTER E WITH CARON
 <Multi_key> <less> <E> 			: "Ě"   U011A # LATIN CAPITAL LETTER E WITH CARON
 <Multi_key> <E> <less> 			: "Ě"   U011A # LATIN CAPITAL LETTER E WITH CARON
 <dead_caron> <e>                 	: "ě"   U011B # LATIN SMALL LETTER E WITH CARON
 <Multi_key> <c> <e>              	: "ě"   U011B # LATIN SMALL LETTER E WITH CARON
+<Multi_key> <v> <e>              	: "ě"   U011B # LATIN SMALL LETTER E WITH CARON
 <Multi_key> <less> <e> 			: "ě"   U011B # LATIN SMALL LETTER E WITH CARON
 <Multi_key> <e> <less> 			: "ě"   U011B # LATIN SMALL LETTER E WITH CARON
 <dead_circumflex> <G>            	: "Ĝ"   U011C # LATIN CAPITAL LETTER G WITH CIRCUMFLEX
@@ -1087,10 +1099,12 @@ XCOMM Part 3
 <Multi_key> <cedilla> <n>          	: "ņ"   U0146 # LATIN SMALL LETTER N WITH CEDILLA
 <dead_caron> <N>                 	: "Ň"   U0147 # LATIN CAPITAL LETTER N WITH CARON
 <Multi_key> <c> <N>              	: "Ň"   U0147 # LATIN CAPITAL LETTER N WITH CARON
+<Multi_key> <v> <N>              	: "Ň"   U0147 # LATIN CAPITAL LETTER N WITH CARON
 <Multi_key> <less> <N> 			: "Ň"   U0147 # LATIN CAPITAL LETTER N WITH CARON
 <Multi_key> <N> <less> 			: "Ň"   U0147 # LATIN CAPITAL LETTER N WITH CARON
 <dead_caron> <n>                 	: "ň"   U0148 # LATIN SMALL LETTER N WITH CARON
 <Multi_key> <c> <n>              	: "ň"   U0148 # LATIN SMALL LETTER N WITH CARON
+<Multi_key> <v> <n>              	: "ň"   U0148 # LATIN SMALL LETTER N WITH CARON
 <Multi_key> <less> <n> 			: "ň"   U0148 # LATIN SMALL LETTER N WITH CARON
 <Multi_key> <n> <less> 			: "ň"   U0148 # LATIN SMALL LETTER N WITH CARON
 <Multi_key> <N> <G>              	: "Ŋ"   U014A # LATIN CAPITAL LETTER ENG
@@ -1135,10 +1149,12 @@ XCOMM Part 3
 <Multi_key> <cedilla> <r>          	: "ŗ"   U0157 # LATIN SMALL LETTER R WITH CEDILLA
 <dead_caron> <R>                 	: "Ř"   U0158 # LATIN CAPITAL LETTER R WITH CARON
 <Multi_key> <c> <R>              	: "Ř"   U0158 # LATIN CAPITAL LETTER R WITH CARON
+<Multi_key> <v> <R>              	: "Ř"   U0158 # LATIN CAPITAL LETTER R WITH CARON
 <Multi_key> <less> <R> 			: "Ř"   U0158 # LATIN CAPITAL LETTER R WITH CARON
 <Multi_key> <R> <less> 			: "Ř"   U0158 # LATIN CAPITAL LETTER R WITH CARON
 <dead_caron> <r>                 	: "ř"   U0159 # LATIN SMALL LETTER R WITH CARON
 <Multi_key> <c> <r>              	: "ř"   U0159 # LATIN SMALL LETTER R WITH CARON
+<Multi_key> <v> <r>              	: "ř"   U0159 # LATIN SMALL LETTER R WITH CARON
 <Multi_key> <less> <r> 			: "ř"   U0159 # LATIN SMALL LETTER R WITH CARON
 <Multi_key> <r> <less> 			: "ř"   U0159 # LATIN SMALL LETTER R WITH CARON
 <dead_acute> <S>                 	: "Ś"   U015A # LATIN CAPITAL LETTER S WITH ACUTE
@@ -1164,10 +1180,12 @@ XCOMM Part 3
 <Multi_key> <s> <cedilla> 		: "ş"   U015F # LATIN SMALL LETTER S WITH CEDILLA
 <dead_caron> <S>                 	: "Š"   U0160 # LATIN CAPITAL LETTER S WITH CARON
 <Multi_key> <c> <S>              	: "Š"   U0160 # LATIN CAPITAL LETTER S WITH CARON
+<Multi_key> <v> <S>              	: "Š"   U0160 # LATIN CAPITAL LETTER S WITH CARON
 <Multi_key> <less> <S> 			: "Š"   U0160 # LATIN CAPITAL LETTER S WITH CARON
 <Multi_key> <S> <less> 			: "Š"   U0160 # LATIN CAPITAL LETTER S WITH CARON
 <dead_caron> <s>                 	: "š"   U0161 # LATIN SMALL LETTER S WITH CARON
 <Multi_key> <c> <s>              	: "š"   U0161 # LATIN SMALL LETTER S WITH CARON
+<Multi_key> <v> <s>              	: "š"   U0161 # LATIN SMALL LETTER S WITH CARON
 <Multi_key> <less> <s> 			: "š"   U0161 # LATIN SMALL LETTER S WITH CARON
 <Multi_key> <s> <less> 			: "š"   U0161 # LATIN SMALL LETTER S WITH CARON
 <dead_cedilla> <T>               	: "Ţ"   U0162 # LATIN CAPITAL LETTER T WITH CEDILLA
@@ -1180,10 +1198,12 @@ XCOMM Part 3
 <Multi_key> <cedilla> <t>          	: "ţ"   U0163 # LATIN SMALL LETTER T WITH CEDILLA
 <dead_caron> <T>                 	: "Ť"   U0164 # LATIN CAPITAL LETTER T WITH CARON
 <Multi_key> <c> <T>              	: "Ť"   U0164 # LATIN CAPITAL LETTER T WITH CARON
+<Multi_key> <v> <T>              	: "Ť"   U0164 # LATIN CAPITAL LETTER T WITH CARON
 <Multi_key> <less> <T> 			: "Ť"   U0164 # LATIN CAPITAL LETTER T WITH CARON
 <Multi_key> <T> <less> 			: "Ť"   U0164 # LATIN CAPITAL LETTER T WITH CARON
 <dead_caron> <t>                 	: "ť"   U0165 # LATIN SMALL LETTER T WITH CARON
 <Multi_key> <c> <t>              	: "ť"   U0165 # LATIN SMALL LETTER T WITH CARON
+<Multi_key> <v> <t>              	: "ť"   U0165 # LATIN SMALL LETTER T WITH CARON
 <Multi_key> <less> <t> 			: "ť"   U0165 # LATIN SMALL LETTER T WITH CARON
 <Multi_key> <t> <less> 			: "ť"   U0165 # LATIN SMALL LETTER T WITH CARON
 <dead_stroke> <T>               	: "Ŧ"   U0166 # LATIN CAPITAL LETTER T WITH STROKE
@@ -1307,20 +1327,28 @@ XCOMM Part 3
 <Multi_key> <KP_Divide> <z>      	: "ƶ"   U01B6 # LATIN SMALL LETTER Z WITH STROKE
 <dead_caron> <A>                 	: "Ǎ"   U01CD # LATIN CAPITAL LETTER A WITH CARON
 <Multi_key> <c> <A>              	: "Ǎ"   U01CD # LATIN CAPITAL LETTER A WITH CARON
+<Multi_key> <v> <A>              	: "Ǎ"   U01CD # LATIN CAPITAL LETTER A WITH CARON
 <dead_caron> <a>                 	: "ǎ"   U01CE # LATIN SMALL LETTER A WITH CARON
 <Multi_key> <c> <a>              	: "ǎ"   U01CE # LATIN SMALL LETTER A WITH CARON
+<Multi_key> <v> <a>              	: "ǎ"   U01CE # LATIN SMALL LETTER A WITH CARON
 <dead_caron> <I>                 	: "Ǐ"   U01CF # LATIN CAPITAL LETTER I WITH CARON
 <Multi_key> <c> <I>              	: "Ǐ"   U01CF # LATIN CAPITAL LETTER I WITH CARON
+<Multi_key> <v> <I>              	: "Ǐ"   U01CF # LATIN CAPITAL LETTER I WITH CARON
 <dead_caron> <i>                 	: "ǐ"   U01D0 # LATIN SMALL LETTER I WITH CARON
 <Multi_key> <c> <i>              	: "ǐ"   U01D0 # LATIN SMALL LETTER I WITH CARON
+<Multi_key> <v> <i>              	: "ǐ"   U01D0 # LATIN SMALL LETTER I WITH CARON
 <dead_caron> <O>                 	: "Ǒ"   U01D1 # LATIN CAPITAL LETTER O WITH CARON
 <Multi_key> <c> <O>              	: "Ǒ"   U01D1 # LATIN CAPITAL LETTER O WITH CARON
+<Multi_key> <v> <O>              	: "Ǒ"   U01D1 # LATIN CAPITAL LETTER O WITH CARON
 <dead_caron> <o>                 	: "ǒ"   U01D2 # LATIN SMALL LETTER O WITH CARON
 <Multi_key> <c> <o>              	: "ǒ"   U01D2 # LATIN SMALL LETTER O WITH CARON
+<Multi_key> <v> <o>              	: "ǒ"   U01D2 # LATIN SMALL LETTER O WITH CARON
 <dead_caron> <U>                 	: "Ǔ"   U01D3 # LATIN CAPITAL LETTER U WITH CARON
 <Multi_key> <c> <U>              	: "Ǔ"   U01D3 # LATIN CAPITAL LETTER U WITH CARON
+<Multi_key> <v> <U>              	: "Ǔ"   U01D3 # LATIN CAPITAL LETTER U WITH CARON
 <dead_caron> <u>                 	: "ǔ"   U01D4 # LATIN SMALL LETTER U WITH CARON
 <Multi_key> <c> <u>              	: "ǔ"   U01D4 # LATIN SMALL LETTER U WITH CARON
+<Multi_key> <v> <u>              	: "ǔ"   U01D4 # LATIN SMALL LETTER U WITH CARON
 <dead_macron> <Udiaeresis>           	: "Ǖ"   U01D5 # LATIN CAPITAL LETTER U WITH DIAERESIS AND MACRON
 <Multi_key> <macron> <Udiaeresis>    	: "Ǖ"   U01D5 # LATIN CAPITAL LETTER U WITH DIAERESIS AND MACRON
 <Multi_key> <underscore> <Udiaeresis> 	: "Ǖ"   U01D5 # LATIN CAPITAL LETTER U WITH DIAERESIS AND MACRON
@@ -1431,12 +1459,16 @@ XCOMM Part 3
 <Multi_key> <KP_Divide> <g>      	: "ǥ"   U01E5 # LATIN SMALL LETTER G WITH STROKE
 <dead_caron> <G>                 	: "Ǧ"   U01E6 # LATIN CAPITAL LETTER G WITH CARON
 <Multi_key> <c> <G>              	: "Ǧ"   U01E6 # LATIN CAPITAL LETTER G WITH CARON
+<Multi_key> <v> <G>              	: "Ǧ"   U01E6 # LATIN CAPITAL LETTER G WITH CARON
 <dead_caron> <g>                 	: "ǧ"   U01E7 # LATIN SMALL LETTER G WITH CARON
 <Multi_key> <c> <g>              	: "ǧ"   U01E7 # LATIN SMALL LETTER G WITH CARON
+<Multi_key> <v> <g>              	: "ǧ"   U01E7 # LATIN SMALL LETTER G WITH CARON
 <dead_caron> <K>                 	: "Ǩ"   U01E8 # LATIN CAPITAL LETTER K WITH CARON
 <Multi_key> <c> <K>              	: "Ǩ"   U01E8 # LATIN CAPITAL LETTER K WITH CARON
+<Multi_key> <v> <K>              	: "Ǩ"   U01E8 # LATIN CAPITAL LETTER K WITH CARON
 <dead_caron> <k>                 	: "ǩ"   U01E9 # LATIN SMALL LETTER K WITH CARON
 <Multi_key> <c> <k>              	: "ǩ"   U01E9 # LATIN SMALL LETTER K WITH CARON
+<Multi_key> <v> <k>              	: "ǩ"   U01E9 # LATIN SMALL LETTER K WITH CARON
 <dead_ogonek> <O>                	: "Ǫ"   U01EA # LATIN CAPITAL LETTER O WITH OGONEK
 <Multi_key> <semicolon> <O>      	: "Ǫ"   U01EA # LATIN CAPITAL LETTER O WITH OGONEK
 <Multi_key> <O> <semicolon>      	: "Ǫ"   U01EA # LATIN CAPITAL LETTER O WITH OGONEK
@@ -1467,10 +1499,13 @@ XCOMM Part 3
 <Multi_key> <underscore> <semicolon> <o> 	: "ǭ"   U01ED # LATIN SMALL LETTER O WITH OGONEK AND MACRON
 <dead_caron> <EZH>         	: "Ǯ"   U01EE # LATIN CAPITAL LETTER EZH WITH CARON
 <Multi_key> <c> <EZH>      	: "Ǯ"   U01EE # LATIN CAPITAL LETTER EZH WITH CARON
+<Multi_key> <v> <EZH>      	: "Ǯ"   U01EE # LATIN CAPITAL LETTER EZH WITH CARON
 <dead_caron> <ezh>         	: "ǯ"   U01EF # LATIN SMALL LETTER EZH WITH CARON
 <Multi_key> <c> <ezh>      	: "ǯ"   U01EF # LATIN SMALL LETTER EZH WITH CARON
+<Multi_key> <v> <ezh>      	: "ǯ"   U01EF # LATIN SMALL LETTER EZH WITH CARON
 <dead_caron> <j>                 	: "ǰ"   U01F0 # LATIN SMALL LETTER J WITH CARON
 <Multi_key> <c> <j>              	: "ǰ"   U01F0 # LATIN SMALL LETTER J WITH CARON
+<Multi_key> <v> <j>              	: "ǰ"   U01F0 # LATIN SMALL LETTER J WITH CARON
 <dead_acute> <G>                 	: "Ǵ"   U01F4 # LATIN CAPITAL LETTER G WITH ACUTE
 <Multi_key> <acute> <G>          	: "Ǵ"   U01F4 # LATIN CAPITAL LETTER G WITH ACUTE
 <Multi_key> <apostrophe> <G>     	: "Ǵ"   U01F4 # LATIN CAPITAL LETTER G WITH ACUTE
@@ -1551,8 +1586,10 @@ XCOMM Part 3
 <dead_invertedbreve> <u>                  	: "ȗ"   U0217 # LATIN SMALL LETTER U WITH INVERTED BREVE
 <dead_caron> <H>                 	: "Ȟ"   U021E # LATIN CAPITAL LETTER H WITH CARON
 <Multi_key> <c> <H>              	: "Ȟ"   U021E # LATIN CAPITAL LETTER H WITH CARON
+<Multi_key> <v> <H>              	: "Ȟ"   U021E # LATIN CAPITAL LETTER H WITH CARON
 <dead_caron> <h>                 	: "ȟ"   U021F # LATIN SMALL LETTER H WITH CARON
 <Multi_key> <c> <h>              	: "ȟ"   U021F # LATIN SMALL LETTER H WITH CARON
+<Multi_key> <v> <h>              	: "ȟ"   U021F # LATIN SMALL LETTER H WITH CARON
 <dead_abovedot> <A>              	: "Ȧ"   U0226 # LATIN CAPITAL LETTER A WITH DOT ABOVE
 <Multi_key> <period> <A>         	: "Ȧ"   U0226 # LATIN CAPITAL LETTER A WITH DOT ABOVE
 <dead_abovedot> <a>              	: "ȧ"   U0227 # LATIN SMALL LETTER A WITH DOT ABOVE
@@ -4550,7 +4587,11 @@ XCOMM Part 3
 <Multi_key> <slash> <U2194>  	: "↮"   U21AE # LEFT RIGHT ARROW WITH STROKE
 <Multi_key> <KP_Divide> <U2194> 	: "↮"   U21AE # LEFT RIGHT ARROW WITH STROKE
 <Multi_key> <less> <minus> 	: "←" U2190 # LEFTWARDS ARROW
+<Multi_key> <bar> <asciicircum> : "↑" U2191 # UPWARDS ARROW
+<Multi_key> <asciicircum> <bar> : "↑" U2191 # UPWARDS ARROW
 <Multi_key> <minus> <greater> 	: "→" U2192 # RIGHTWARDS ARROW
+<Multi_key> <bar> <v>           : "↓" U2193 # DOWNWARDS ARROW
+<Multi_key> <v> <bar>           : "↓" U2193 # DOWNWARDS ARROW
 <Multi_key> <equal> <greater> 	: "⇒" U21D2 # RIGHTWARDS DOUBLE ARROW
 <Multi_key> <U2203> <U0338> 	: "∄"   U2204 # THERE DOES NOT EXIST
 <Multi_key> <braceleft> <braceright>	: "∅"   U2205 # EMPTY SET
@@ -5899,6 +5940,7 @@ XCOMM Characters from "Mathematical Operators"
 <Multi_key> <v> <slash>                         : "√"   U221a   # v / SQUARE ROOT
 <Multi_key> <slash> <v>                         : "√"   U221a   # / v SQUARE ROOT
 <Multi_key> <8> <8>                             : "∞"   U221e   # 8 8 INFINITY
+<Multi_key> <asciitilde> <asciitilde>           : "≈"   U2248   # ~ ~ ALMOST EQUAL TO
 <Multi_key> <equal> <underscore>                : "≡"   U2261   # = _ IDENTICAL TO
 <Multi_key> <underscore> <U2260>                : "≢"   U2262   # _ ≠ NOT IDENTICAL TO
 <Multi_key> <U2260> <underscore>                : "≢"   U2262   # ≠ _ NOT IDENTICAL TO

@@ -30,7 +30,7 @@
 
 /**
  * This pass uses the enabled clip planes from the rasterizer state to rewrite
- * vertex shader store operations and store an undef to the corresponding gl_ClipDistance[n]
+ * vertex shader store operations and store a 0 to the corresponding gl_ClipDistance[n]
  * value if the plane is disabled
  */
 
@@ -45,7 +45,7 @@ recursive_if_chain(nir_builder *b, nir_deref_instr *deref, nir_ssa_def *value, u
       if (clip_plane_enable & (1 << start))
          nir_store_deref(b, deref, value, 1 << start);
       else
-         nir_store_deref(b, deref, nir_ssa_undef(b, 1, 32), 1 << start);
+         nir_store_deref(b, deref, nir_imm_int(b, 0), 1 << start);
       return;
    }
 
@@ -58,7 +58,7 @@ recursive_if_chain(nir_builder *b, nir_deref_instr *deref, nir_ssa_def *value, u
 }
 
 /* vulkan (and some drivers) provides no concept of enabling clip planes through api,
- * so we rewrite disabled clip planes to an undefined value in order to disable them
+ * so we rewrite disabled clip planes to a zero value in order to disable them
  */
 static bool
 lower_clip_plane_store(nir_intrinsic_instr *instr, unsigned clip_plane_enable, nir_builder *b)
@@ -72,19 +72,36 @@ lower_clip_plane_store(nir_intrinsic_instr *instr, unsigned clip_plane_enable, n
    nir_deref_instr *deref = nir_src_as_deref(instr->src[0]);
 
    out = nir_deref_instr_get_variable(deref);
-   if ((out->data.location != VARYING_SLOT_CLIP_DIST0) ||
+   if ((out->data.location != VARYING_SLOT_CLIP_DIST0 &&
+        out->data.location != VARYING_SLOT_CLIP_DIST1) ||
         out->data.mode != nir_var_shader_out)
       return false;
 
    b->cursor = nir_after_instr(&instr->instr);
-   if (nir_src_is_const(deref->arr.index)) {
+   if (deref->deref_type == nir_deref_type_var) {
+      int wrmask = nir_intrinsic_write_mask(instr);
+
+      nir_ssa_def *components[4];
+      int start = out->data.location == VARYING_SLOT_CLIP_DIST1 ? 4 : 0;
+      /* rewrite components as zeroes for planes that aren't enabled */
+      for (int i = 0; i < 4; i++) {
+         if (wrmask & (1 << i)) {
+            if (!(clip_plane_enable & (1 << (start + i))))
+               components[i] = nir_imm_int(b, 0);
+            else
+               components[i] = nir_channel(b, nir_ssa_for_src(b, instr->src[1], nir_src_num_components(instr->src[1])), i);
+         } else
+            components[i] = nir_ssa_undef(b, 1, 32);
+      }
+      nir_store_deref(b, deref, nir_vec(b, components, instr->num_components), wrmask);
+   } else  if (nir_src_is_const(deref->arr.index)) {
       /* storing using a constant index */
       plane = nir_src_as_uint(deref->arr.index);
       /* no need to make changes if the clip plane is enabled */
       if (clip_plane_enable & (1 << plane))
          return false;
 
-      nir_store_deref(b, deref, nir_ssa_undef(b, 1, 32), 1 << plane);
+      nir_store_deref(b, deref, nir_imm_int(b, 0), 1 << plane);
    } else {
       /* storing using a variable index */
       nir_ssa_def *index = nir_ssa_for_src(b, deref->arr.index, 1);
@@ -101,14 +118,11 @@ nir_lower_clip_disable(nir_shader *shader, unsigned clip_plane_enable)
 {
    bool progress = false;
 
-   nir_foreach_shader_out_variable(var, shader) {
-      if (var->data.location == VARYING_SLOT_CLIP_DIST0) {
-         unsigned size = glsl_get_length(var->type);
-         /* if currently-enabled planes match used planes then no-op */
-         if (clip_plane_enable == (1u << size) - 1)
-            return false;
-      }
-   }
+   /* if all user planes are enabled in API that are written in the array, always ignore;
+    * this explicitly covers the 2x vec4 case
+    */
+   if (clip_plane_enable == u_bit_consecutive(0, shader->info.clip_distance_array_size))
+      return false;
 
    nir_foreach_function(function, shader) {
       if (function->impl) {

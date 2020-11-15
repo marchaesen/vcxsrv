@@ -94,8 +94,12 @@ pixel_storei(GLenum pname, GLint param, bool no_error)
          ctx->Pack.Alignment = param;
          break;
       case GL_PACK_INVERT_MESA:
-         if (!no_error &&
-             (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.MESA_pack_invert))
+         if (!no_error && !_mesa_is_desktop_gl(ctx))
+            goto invalid_enum_error;
+         ctx->Pack.Invert = param;
+         break;
+      case GL_PACK_REVERSE_ROW_ORDER_ANGLE:
+         if (!no_error && !_mesa_is_gles(ctx))
             goto invalid_enum_error;
          ctx->Pack.Invert = param;
          break;

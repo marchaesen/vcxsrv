@@ -12,7 +12,7 @@ specific ideas and areas where help would be appreciated:
    helpful.
 #. **Driver debugging.** There are plenty of open bugs in the `bug
    database <https://gitlab.freedesktop.org/mesa/mesa/-/issues>`__.
-#. **Remove aliasing warnings.** Enable gcc's
+#. **Remove aliasing warnings.** Enable GCC's
    ``-Wstrict-aliasing=2 -fstrict-aliasing`` arguments, and track down
    aliasing issues in the code.
 #. **Contribute more tests to**

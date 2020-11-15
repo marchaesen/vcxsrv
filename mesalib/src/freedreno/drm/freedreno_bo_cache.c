@@ -28,7 +28,7 @@
 #include "freedreno_priv.h"
 
 void bo_del(struct fd_bo *bo);
-extern pthread_mutex_t table_lock;
+extern simple_mtx_t table_lock;
 
 static void
 add_bucket(struct fd_bo_cache *cache, int size)
@@ -140,7 +140,7 @@ static struct fd_bo *find_in_bucket(struct fd_bo_bucket *bucket, uint32_t flags)
 	 * NOTE that intel takes ALLOC_FOR_RENDER bo's from the list tail
 	 * (MRU, since likely to be in GPU cache), rather than head (LRU)..
 	 */
-	pthread_mutex_lock(&table_lock);
+	simple_mtx_lock(&table_lock);
 	if (!list_is_empty(&bucket->list)) {
 		bo = LIST_ENTRY(struct fd_bo, bucket->list.next, list);
 		/* TODO check for compatible flags? */
@@ -150,7 +150,7 @@ static struct fd_bo *find_in_bucket(struct fd_bo_bucket *bucket, uint32_t flags)
 			bo = NULL;
 		}
 	}
-	pthread_mutex_unlock(&table_lock);
+	simple_mtx_unlock(&table_lock);
 
 	return bo;
 }
@@ -174,9 +174,9 @@ retry:
 			VG_BO_OBTAIN(bo);
 			if (bo->funcs->madvise(bo, true) <= 0) {
 				/* we've lost the backing pages, delete and try again: */
-				pthread_mutex_lock(&table_lock);
+				simple_mtx_lock(&table_lock);
 				bo_del(bo);
-				pthread_mutex_unlock(&table_lock);
+				simple_mtx_unlock(&table_lock);
 				goto retry;
 			}
 			p_atomic_set(&bo->refcnt, 1);

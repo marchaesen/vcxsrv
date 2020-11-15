@@ -111,15 +111,17 @@ struct rendering_state {
 
    uint8_t push_constants[128 * 4];
 
-   struct lvp_render_pass *pass;
+   const struct lvp_render_pass *pass;
    uint32_t subpass;
-   struct lvp_framebuffer *vk_framebuffer;
+   const struct lvp_framebuffer *vk_framebuffer;
    VkRect2D render_area;
 
    uint32_t sample_mask;
    unsigned min_samples;
 
-   struct lvp_attachment_state *attachments;
+   const struct lvp_attachment_state *attachments;
+   VkImageAspectFlags *pending_clear_aspects;
+   int num_pending_aspects;
 };
 
 static void emit_compute_state(struct rendering_state *state)
@@ -426,6 +428,7 @@ static void handle_graphics_pipeline(struct lvp_cmd_buffer_entry *cmd,
       state->rs_state.clip_halfz = true;
       state->rs_state.half_pixel_center = true;
       state->rs_state.scissor = true;
+      state->rs_state.no_ms_sample_mask_out = true;
 
       if (!dynamic_states[VK_DYNAMIC_STATE_LINE_WIDTH])
          state->rs_state.line_width = rsc->lineWidth;
@@ -1082,14 +1085,14 @@ attachment_needs_clear(struct rendering_state *state,
                        uint32_t a)
 {
    return (a != VK_ATTACHMENT_UNUSED &&
-           state->attachments[a].pending_clear_aspects);
+           state->pending_clear_aspects[a]);
 }
 
 static bool
 subpass_needs_clear(struct rendering_state *state)
 {
    uint32_t a;
-   struct lvp_subpass *subpass = &state->pass->subpasses[state->subpass];
+   const struct lvp_subpass *subpass = &state->pass->subpasses[state->subpass];
    for (uint32_t i = 0; i < subpass->color_count; i++) {
       a = subpass->color_attachments[i].attachment;
       if (attachment_needs_clear(state, a))
@@ -1105,7 +1108,7 @@ subpass_needs_clear(struct rendering_state *state)
 
 static void render_subpass_clear(struct rendering_state *state)
 {
-   struct lvp_subpass *subpass = &state->pass->subpasses[state->subpass];
+   const struct lvp_subpass *subpass = &state->pass->subpasses[state->subpass];
 
    if (!subpass_needs_clear(state))
       return;
@@ -1134,7 +1137,7 @@ static void render_subpass_clear(struct rendering_state *state)
                                        state->render_area.extent.width, state->render_area.extent.height,
                                        false);
 
-      state->attachments[a].pending_clear_aspects = 0;
+      state->pending_clear_aspects[a] = 0;
    }
 
    if (subpass->depth_stencil_attachment) {
@@ -1171,7 +1174,7 @@ static void render_subpass_clear(struct rendering_state *state)
                                              state->render_area.offset.x, state->render_area.offset.y,
                                              state->render_area.extent.width, state->render_area.extent.height,
                                              false);
-         state->attachments[ds].pending_clear_aspects = 0;
+         state->pending_clear_aspects[ds] = 0;
       }
    }
 
@@ -1179,7 +1182,7 @@ static void render_subpass_clear(struct rendering_state *state)
 
 static void render_pass_resolve(struct rendering_state *state)
 {
-   struct lvp_subpass *subpass = &state->pass->subpasses[state->subpass];
+   const struct lvp_subpass *subpass = &state->pass->subpasses[state->subpass];
    if (!subpass->has_color_resolve)
       return;
    for (uint32_t i = 0; i < subpass->color_count; i++) {
@@ -1222,7 +1225,7 @@ static void begin_render_subpass(struct rendering_state *state,
 
    state->framebuffer.nr_cbufs = 0;
 
-   struct lvp_subpass *subpass = &state->pass->subpasses[subpass_idx];
+   const struct lvp_subpass *subpass = &state->pass->subpasses[subpass_idx];
    for (unsigned i = 0; i < subpass->color_count; i++) {
       struct lvp_subpass_attachment *color_att = &subpass->color_attachments[i];
       if (color_att->attachment != VK_ATTACHMENT_UNUSED) {
@@ -1262,6 +1265,14 @@ static void handle_begin_render_pass(struct lvp_cmd_buffer_entry *cmd,
    state->framebuffer.height = state->vk_framebuffer->height;
    state->framebuffer.layers = state->vk_framebuffer->layers;
 
+   if (state->num_pending_aspects < state->pass->attachment_count) {
+      state->pending_clear_aspects = realloc(state->pending_clear_aspects, sizeof(VkImageAspectFlags) * state->pass->attachment_count);
+      state->num_pending_aspects = state->pass->attachment_count;
+   }
+
+   for (unsigned a = 0; a < state->pass->attachment_count; a++) {
+      state->pending_clear_aspects[a] = state->attachments[a].pending_clear_aspects;
+   }
    begin_render_subpass(state, 0);
 }
 
@@ -1556,9 +1567,10 @@ static void handle_copy_image_to_buffer(struct lvp_cmd_buffer_entry *cmd,
       if (buffer_image_height == 0)
          buffer_image_height = copycmd->regions[i].imageExtent.height;
 
+      unsigned img_stride = util_format_get_2d_size(dst_format, buffer_row_len, buffer_image_height);
       if (src_format != dst_format) {
          copy_depth_box(dst_data, dst_format,
-                        buffer_row_len, buffer_row_len * buffer_image_height,
+                        buffer_row_len, img_stride,
                         0, 0, 0,
                         copycmd->regions[i].imageExtent.width,
                         copycmd->regions[i].imageExtent.height,
@@ -1566,7 +1578,7 @@ static void handle_copy_image_to_buffer(struct lvp_cmd_buffer_entry *cmd,
                         src_data, src_format, src_t->stride, src_t->layer_stride, 0, 0, 0);
       } else {
          util_copy_box((ubyte *)dst_data, src_format,
-                       buffer_row_len, buffer_row_len * buffer_image_height,
+                       buffer_row_len, img_stride,
                        0, 0, 0,
                        copycmd->regions[i].imageExtent.width,
                        copycmd->regions[i].imageExtent.height,
@@ -1636,6 +1648,7 @@ static void handle_copy_buffer_to_image(struct lvp_cmd_buffer_entry *cmd,
       if (buffer_image_height == 0)
          buffer_image_height = copycmd->regions[i].imageExtent.height;
 
+      unsigned img_stride = util_format_get_2d_size(src_format, buffer_row_len, buffer_image_height);
       if (src_format != dst_format) {
          copy_depth_box(dst_data, dst_format,
                         dst_t->stride, dst_t->layer_stride,
@@ -1644,7 +1657,7 @@ static void handle_copy_buffer_to_image(struct lvp_cmd_buffer_entry *cmd,
                         copycmd->regions[i].imageExtent.height,
                         box.depth,
                         src_data, src_format,
-                        buffer_row_len, buffer_row_len * buffer_image_height, 0, 0, 0);
+                        buffer_row_len, img_stride, 0, 0, 0);
       } else {
          util_copy_box(dst_data, dst_format,
                        dst_t->stride, dst_t->layer_stride,
@@ -1653,7 +1666,7 @@ static void handle_copy_buffer_to_image(struct lvp_cmd_buffer_entry *cmd,
                        copycmd->regions[i].imageExtent.height,
                        box.depth,
                        src_data,
-                       buffer_row_len, buffer_row_len * buffer_image_height, 0, 0, 0);
+                       buffer_row_len, img_stride, 0, 0, 0);
       }
       state->pctx->transfer_unmap(state->pctx, src_t);
       state->pctx->transfer_unmap(state->pctx, dst_t);
@@ -1720,18 +1733,22 @@ static void handle_blit_image(struct lvp_cmd_buffer_entry *cmd,
    info.mask = util_format_is_depth_or_stencil(info.src.format) ? PIPE_MASK_ZS : PIPE_MASK_RGBA;
    info.filter = blitcmd->filter == VK_FILTER_NEAREST ? PIPE_TEX_FILTER_NEAREST : PIPE_TEX_FILTER_LINEAR;
    for (i = 0; i < blitcmd->region_count; i++) {
-      int srcX0, srcX1, srcY0, srcY1;
-      unsigned dstX0, dstX1, dstY0, dstY1;
+      int srcX0, srcX1, srcY0, srcY1, srcZ0, srcZ1;
+      unsigned dstX0, dstX1, dstY0, dstY1, dstZ0, dstZ1;
 
       srcX0 = blitcmd->regions[i].srcOffsets[0].x;
       srcX1 = blitcmd->regions[i].srcOffsets[1].x;
       srcY0 = blitcmd->regions[i].srcOffsets[0].y;
       srcY1 = blitcmd->regions[i].srcOffsets[1].y;
+      srcZ0 = blitcmd->regions[i].srcOffsets[0].z;
+      srcZ1 = blitcmd->regions[i].srcOffsets[1].z;
 
       dstX0 = blitcmd->regions[i].dstOffsets[0].x;
       dstX1 = blitcmd->regions[i].dstOffsets[1].x;
       dstY0 = blitcmd->regions[i].dstOffsets[0].y;
       dstY1 = blitcmd->regions[i].dstOffsets[1].y;
+      dstZ0 = blitcmd->regions[i].dstOffsets[0].z;
+      dstZ1 = blitcmd->regions[i].dstOffsets[1].z;
 
       if (dstX0 < dstX1) {
          info.dst.box.x = dstX0;
@@ -1756,19 +1773,28 @@ static void handle_blit_image(struct lvp_cmd_buffer_entry *cmd,
          info.dst.box.height = dstY0 - dstY1;
          info.src.box.height = srcY0 - srcY1;
       }
-      info.src.level = blitcmd->regions[i].srcSubresource.mipLevel;
-      info.src.box.z = blitcmd->regions[i].srcOffsets[0].z + blitcmd->regions[i].srcSubresource.baseArrayLayer;
-      if (blitcmd->src->bo->target == PIPE_TEXTURE_3D)
-         info.src.box.depth = blitcmd->regions[i].srcOffsets[1].z - blitcmd->regions[i].srcOffsets[0].z;
-      else
-         info.src.box.depth = blitcmd->regions[i].srcSubresource.layerCount;
 
-      info.dst.level = blitcmd->regions[i].dstSubresource.mipLevel;
-      info.dst.box.z = blitcmd->regions[i].dstOffsets[0].z + blitcmd->regions[i].dstSubresource.baseArrayLayer;
-      if (blitcmd->dst->bo->target == PIPE_TEXTURE_3D)
-         info.dst.box.depth = blitcmd->regions[i].dstOffsets[1].z - blitcmd->regions[i].dstOffsets[0].z;
-      else
+      if (blitcmd->src->bo->target == PIPE_TEXTURE_3D) {
+         if (dstZ0 < dstZ1) {
+            info.dst.box.z = dstZ0;
+            info.src.box.z = srcZ0;
+            info.dst.box.depth = dstZ1 - dstZ0;
+            info.src.box.depth = srcZ1 - srcZ0;
+         } else {
+            info.dst.box.z = dstZ1;
+            info.src.box.z = srcZ1;
+            info.dst.box.depth = dstZ0 - dstZ1;
+            info.src.box.depth = srcZ0 - srcZ1;
+         }
+      } else {
+         info.src.box.z = blitcmd->regions[i].srcSubresource.baseArrayLayer;
+         info.dst.box.z = blitcmd->regions[i].dstSubresource.baseArrayLayer;
+         info.src.box.depth = blitcmd->regions[i].srcSubresource.layerCount;
          info.dst.box.depth = blitcmd->regions[i].dstSubresource.layerCount;
+      }
+
+      info.src.level = blitcmd->regions[i].srcSubresource.mipLevel;
+      info.dst.level = blitcmd->regions[i].dstSubresource.mipLevel;
       state->pctx->blit(state->pctx, &info);
    }
 }
@@ -1777,25 +1803,19 @@ static void handle_fill_buffer(struct lvp_cmd_buffer_entry *cmd,
                                struct rendering_state *state)
 {
    struct lvp_cmd_fill_buffer *fillcmd = &cmd->u.fill_buffer;
-   uint32_t *dst;
-   struct pipe_transfer *dst_t;
-   struct pipe_box box;
    uint32_t size = fillcmd->fill_size;
 
-   if (fillcmd->fill_size == VK_WHOLE_SIZE)
+   if (fillcmd->fill_size == VK_WHOLE_SIZE) {
       size = fillcmd->buffer->bo->width0 - fillcmd->offset;
+      size = ROUND_DOWN_TO(size, 4);
+   }
 
-   u_box_1d(fillcmd->offset, size, &box);
-   dst = state->pctx->transfer_map(state->pctx,
-                                   fillcmd->buffer->bo,
-                                   0,
-                                   PIPE_MAP_WRITE,
-                                   &box,
-                                   &dst_t);
-
-   for (unsigned i = 0; i < size / 4; i++)
-      dst[i] = fillcmd->data;
-   state->pctx->transfer_unmap(state->pctx, dst_t);
+   state->pctx->clear_buffer(state->pctx,
+                             fillcmd->buffer->bo,
+                             fillcmd->offset,
+                             size,
+                             &fillcmd->data,
+                             4);
 }
 
 static void handle_update_buffer(struct lvp_cmd_buffer_entry *cmd,
@@ -2177,7 +2197,7 @@ static void handle_clear_attachments(struct lvp_cmd_buffer_entry *cmd,
 {
    for (uint32_t a = 0; a < cmd->u.clear_attachments.attachment_count; a++) {
       VkClearAttachment *att = &cmd->u.clear_attachments.attachments[a];
-      struct lvp_subpass *subpass = &state->pass->subpasses[state->subpass];
+      const struct lvp_subpass *subpass = &state->pass->subpasses[state->subpass];
       struct lvp_image_view *imgv;
 
       if (att->aspectMask == VK_IMAGE_ASPECT_COLOR_BIT) {
@@ -2473,5 +2493,6 @@ VkResult lvp_execute_cmds(struct lvp_device *device,
       state.pctx->set_shader_images(state.pctx, s, 0, device->physical_device->max_images, NULL);
    }
 
+   free(state.pending_clear_aspects);
    return VK_SUCCESS;
 }

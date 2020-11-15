@@ -21,6 +21,7 @@ apt-get -y install \
 	flex \
 	g++ \
 	git \
+	kmod \
 	lavacli \
 	libdrm-dev \
 	libelf-dev \
@@ -30,8 +31,8 @@ apt-get -y install \
 	python \
 	python3-mako \
 	python3-pil \
-	python3-requests \
 	python3-pip \
+	python3-requests \
 	python3-setuptools \
 	unzip \
 	wget \

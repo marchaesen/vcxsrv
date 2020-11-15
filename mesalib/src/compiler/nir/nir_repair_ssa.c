@@ -125,7 +125,7 @@ repair_ssa_def(nir_ssa_def *def, void *void_state)
                                    nir_deref_type_cast);
 
          nir_deref_instr *deref = nir_instr_as_deref(def->parent_instr);
-         cast->mode = deref->mode;
+         cast->modes = deref->modes;
          cast->type = deref->type;
          cast->parent = nir_src_for_ssa(block_def);
          cast->cast.ptr_stride = nir_deref_instr_array_stride(deref);

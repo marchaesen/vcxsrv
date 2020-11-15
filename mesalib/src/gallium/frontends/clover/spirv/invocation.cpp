@@ -651,16 +651,19 @@ namespace {
    }
 
    spv_target_env
-   convert_opencl_str_to_target_env(const std::string &opencl_version) {
-      if (opencl_version == "2.2") {
+   convert_opencl_version_to_target_env(const cl_version opencl_version) {
+      // Pick 1.2 for 3.0 for now
+      if (opencl_version == CL_MAKE_VERSION(3, 0, 0)) {
+         return SPV_ENV_OPENCL_1_2;
+      } else if (opencl_version == CL_MAKE_VERSION(2, 2, 0)) {
          return SPV_ENV_OPENCL_2_2;
-      } else if (opencl_version == "2.1") {
+      } else if (opencl_version == CL_MAKE_VERSION(2, 1, 0)) {
          return SPV_ENV_OPENCL_2_1;
-      } else if (opencl_version == "2.0") {
+      } else if (opencl_version == CL_MAKE_VERSION(2, 0, 0)) {
          return SPV_ENV_OPENCL_2_0;
-      } else if (opencl_version == "1.2" ||
-                 opencl_version == "1.1" ||
-                 opencl_version == "1.0") {
+      } else if (opencl_version == CL_MAKE_VERSION(1, 2, 0) ||
+                 opencl_version == CL_MAKE_VERSION(1, 1, 0) ||
+                 opencl_version == CL_MAKE_VERSION(1, 0, 0)) {
          // SPIR-V is only defined for OpenCL >= 1.2, however some drivers
          // might use it with OpenCL 1.0 and 1.1.
          return SPV_ENV_OPENCL_1_2;
@@ -748,9 +751,9 @@ clover::spirv::link_program(const std::vector<module> &modules,
 
    std::vector<uint32_t> linked_binary;
 
-   const std::string opencl_version = dev.device_version();
+   const cl_version opencl_version = dev.device_version();
    const spv_target_env target_env =
-      convert_opencl_str_to_target_env(opencl_version);
+      convert_opencl_version_to_target_env(opencl_version);
 
    const spvtools::MessageConsumer consumer = validator_consumer;
    spvtools::Context context(target_env);
@@ -780,7 +783,7 @@ clover::spirv::link_program(const std::vector<module> &modules,
 
 bool
 clover::spirv::is_valid_spirv(const std::vector<char> &binary,
-                              const std::string &opencl_version,
+                              const cl_version opencl_version,
                               std::string &r_log) {
    auto const validator_consumer =
       [&r_log](spv_message_level_t level, const char *source,
@@ -789,7 +792,7 @@ clover::spirv::is_valid_spirv(const std::vector<char> &binary,
    };
 
    const spv_target_env target_env =
-      convert_opencl_str_to_target_env(opencl_version);
+      convert_opencl_version_to_target_env(opencl_version);
    spvtools::SpirvTools spvTool(target_env);
    spvTool.SetMessageConsumer(validator_consumer);
 
@@ -799,9 +802,9 @@ clover::spirv::is_valid_spirv(const std::vector<char> &binary,
 
 std::string
 clover::spirv::print_module(const std::vector<char> &binary,
-                            const std::string &opencl_version) {
+                            const cl_version opencl_version) {
    const spv_target_env target_env =
-      convert_opencl_str_to_target_env(opencl_version);
+      convert_opencl_version_to_target_env(opencl_version);
    spvtools::SpirvTools spvTool(target_env);
    spv_context spvContext = spvContextCreate(target_env);
    if (!spvContext)
@@ -836,7 +839,7 @@ clover::spirv::supported_versions() {
 #else
 bool
 clover::spirv::is_valid_spirv(const std::vector<char> &/*binary*/,
-                              const std::string &/*opencl_version*/,
+                              const cl_version opencl_version,
                               std::string &/*r_log*/) {
    return false;
 }
@@ -859,7 +862,7 @@ clover::spirv::link_program(const std::vector<module> &/*modules*/,
 
 std::string
 clover::spirv::print_module(const std::vector<char> &binary,
-                            const std::string &opencl_version) {
+                            const cl_version opencl_version) {
    return std::string();
 }
 

@@ -62,6 +62,9 @@ predicate_following(nir_cf_node *node, struct lower_returns_state *state)
        * conditional break.
        */
       nir_jump(b, nir_jump_break);
+
+      nir_block *block = nir_cursor_current_block(b->cursor);
+      nir_insert_phi_undef(block->successors[0], block);
    } else {
       /* Otherwise, we need to actually move everything into the else case
        * of the if statement.
@@ -205,6 +208,8 @@ lower_returns_in_block(nir_block *block, struct lower_returns_state *state)
    if (state->loop) {
       /* We're in a loop;  we need to break out of it. */
       nir_jump(b, nir_jump_break);
+
+      nir_insert_phi_undef(block->successors[0], block);
    } else {
       /* Not in a loop;  we'll deal with predicating later*/
       assert(nir_cf_node_next(&block->cf_node) == NULL);

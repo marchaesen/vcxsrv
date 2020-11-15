@@ -14,8 +14,8 @@ BAREMETAL_EPHEMERAL=" \
         automake \
         crossbuild-essential-$arch \
         git-lfs \
-        libdrm-dev:$arch \
         libboost-dev:$arch \
+        libdrm-dev:$arch \
         libegl1-mesa-dev:$arch \
         libelf-dev:$arch \
         libexpat1-dev:$arch \
@@ -28,10 +28,8 @@ BAREMETAL_EPHEMERAL=" \
         libpython3-dev:$arch \
         libstdc++6:$arch \
         libtinfo-dev:$arch \
-        libegl1-mesa-dev:$arch \
         libvulkan-dev:$arch \
         libxcb-keysyms1-dev:$arch \
-        libpython3-dev:$arch \
         python3-dev \
         qt5-default \
         qt5-qmake \

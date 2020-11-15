@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2019 Alyssa Rosenzweig <alyssa@rosenzweig.io>
+ * Copyright (C) 2019-2020 Collabora, Ltd.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -26,7 +27,7 @@
 
 void mir_rewrite_index_src_single(midgard_instruction *ins, unsigned old, unsigned new)
 {
-        for (unsigned i = 0; i < ARRAY_SIZE(ins->src); ++i) {
+        mir_foreach_src(ins, i) {
                 if (ins->src[i] == old)
                         ins->src[i] = new;
         }

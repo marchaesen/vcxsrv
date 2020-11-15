@@ -40,14 +40,8 @@ build_color_shaders(struct nir_shader **out_vs,
                     struct nir_shader **out_fs,
                     uint32_t frag_output)
 {
-	nir_builder vs_b;
-	nir_builder fs_b;
-
-	nir_builder_init_simple_shader(&vs_b, NULL, MESA_SHADER_VERTEX, NULL);
-	nir_builder_init_simple_shader(&fs_b, NULL, MESA_SHADER_FRAGMENT, NULL);
-
-	vs_b.shader->info.name = ralloc_strdup(vs_b.shader, "meta_clear_color_vs");
-	fs_b.shader->info.name = ralloc_strdup(fs_b.shader, "meta_clear_color_fs");
+	nir_builder vs_b = nir_builder_init_simple_shader(MESA_SHADER_VERTEX, NULL, "meta_clear_color_vs");
+	nir_builder fs_b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, NULL, "meta_clear_color_fs");
 
 	const struct glsl_type *position_type = glsl_vec4_type();
 	const struct glsl_type *color_type = glsl_vec4_type();
@@ -507,17 +501,13 @@ build_depthstencil_shader(struct nir_shader **out_vs,
 			  struct nir_shader **out_fs,
 			  bool unrestricted)
 {
-	nir_builder vs_b, fs_b;
+	nir_builder vs_b = nir_builder_init_simple_shader(MESA_SHADER_VERTEX, NULL,
+							  unrestricted ? "meta_clear_depthstencil_unrestricted_vs"
+							  : "meta_clear_depthstencil_vs");
+	nir_builder fs_b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, NULL,
+							  unrestricted ? "meta_clear_depthstencil_unrestricted_fs"
+							  : "meta_clear_depthstencil_fs");
 
-	nir_builder_init_simple_shader(&vs_b, NULL, MESA_SHADER_VERTEX, NULL);
-	nir_builder_init_simple_shader(&fs_b, NULL, MESA_SHADER_FRAGMENT, NULL);
-
-	vs_b.shader->info.name = ralloc_strdup(vs_b.shader,
-					       unrestricted ? "meta_clear_depthstencil_unrestricted_vs"
-							    : "meta_clear_depthstencil_vs");
-	fs_b.shader->info.name = ralloc_strdup(fs_b.shader,
-					       unrestricted ? "meta_clear_depthstencil_unrestricted_fs"
-							    : "meta_clear_depthstencil_fs");
 	const struct glsl_type *position_out_type = glsl_vec4_type();
 
 	nir_variable *vs_out_pos =
@@ -1166,10 +1156,7 @@ radv_fast_clear_depth(struct radv_cmd_buffer *cmd_buffer,
 static nir_shader *
 build_clear_htile_mask_shader()
 {
-	nir_builder b;
-
-	nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_COMPUTE, NULL);
-	b.shader->info.name = ralloc_strdup(b.shader, "meta_clear_htile_mask");
+	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "meta_clear_htile_mask");
 	b.shader->info.cs.local_size[0] = 64;
 	b.shader->info.cs.local_size[1] = 1;
 	b.shader->info.cs.local_size[2] = 1;

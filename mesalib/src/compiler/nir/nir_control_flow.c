@@ -226,8 +226,8 @@ rewrite_phi_preds(nir_block *block, nir_block *old_pred, nir_block *new_pred)
    }
 }
 
-static void
-insert_phi_undef(nir_block *block, nir_block *pred)
+void
+nir_insert_phi_undef(nir_block *block, nir_block *pred)
 {
    nir_function_impl *impl = nir_cf_node_get_function(&block->cf_node);
    nir_foreach_instr(instr, block) {
@@ -298,7 +298,7 @@ block_add_normal_succs(nir_block *block)
          nir_block *head_block = nir_loop_first_block(loop);
 
          link_blocks(block, head_block, NULL);
-         insert_phi_undef(head_block, block);
+         nir_insert_phi_undef(head_block, block);
       } else {
          nir_function_impl *impl = nir_cf_node_as_function(parent);
          link_blocks(block, impl->end_block, NULL);
@@ -318,7 +318,7 @@ block_add_normal_succs(nir_block *block)
          nir_block *first_block = nir_loop_first_block(next_loop);
 
          link_blocks(block, first_block, NULL);
-         insert_phi_undef(first_block, block);
+         nir_insert_phi_undef(first_block, block);
       }
    }
 }

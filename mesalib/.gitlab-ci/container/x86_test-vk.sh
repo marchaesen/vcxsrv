@@ -30,11 +30,11 @@ STABLE_EPHEMERAL=" \
 # Unfortunately, gfxreconstruct needs the -dev packages:
 # https://github.com/LunarG/gfxreconstruct/issues/402
 apt-get install -y --no-remove \
+      $STABLE_EPHEMERAL \
       libwayland-dev \
       libx11-xcb-dev \
       libxcb-keysyms1-dev \
-      libxcb1-dev \
-      $STABLE_EPHEMERAL
+      libxcb1-dev
 
 # We need multiarch for Wine
 dpkg --add-architecture i386
@@ -107,16 +107,16 @@ wine \
 
 . .gitlab-ci/container/container_pre_build.sh
 
-############### Build dEQP runner
-
-. .gitlab-ci/build-cts-runner.sh
+############### Build dEQP runner (and install rust temporarily for it)
+. .gitlab-ci/build-rust.sh
+. .gitlab-ci/build-deqp-runner.sh
+rm -rf /root/.rustup /root/.cargo
 
 ############### Build Fossilize
 
 . .gitlab-ci/build-fossilize.sh
 
 ############### Build dEQP VK
-
 . .gitlab-ci/build-deqp.sh
 
 ############### Build gfxreconstruct

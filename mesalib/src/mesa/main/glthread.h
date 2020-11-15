@@ -134,6 +134,9 @@ struct glthread_state
    /** Whether GLThread is inside a display list generation. */
    bool inside_dlist;
 
+   /** For L3 cache pinning. */
+   unsigned pin_thread_counter;
+
    /** The ring of batches in memory. */
    struct glthread_batch batches[MARSHAL_MAX_BATCHES];
 

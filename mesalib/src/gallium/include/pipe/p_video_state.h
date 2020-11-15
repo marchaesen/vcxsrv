@@ -151,6 +151,8 @@ struct pipe_picture_desc
 {
    enum pipe_video_profile profile;
    enum pipe_video_entrypoint entry_point;
+   bool protected_playback;
+   uint8_t *decrypt_key;
 };
 
 struct pipe_quant_matrix
@@ -769,6 +771,7 @@ struct pipe_vp9_picture_desc
       int8_t y_dc_delta_q;
       int8_t uv_ac_delta_q;
       int8_t uv_dc_delta_q;
+      uint8_t abs_delta;
    } picture_parameter;
 
    struct {

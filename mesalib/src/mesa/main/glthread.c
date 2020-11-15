@@ -38,6 +38,7 @@
 #include "main/hash.h"
 #include "util/u_atomic.h"
 #include "util/u_thread.h"
+#include "util/u_cpu_detect.h"
 
 
 static void
@@ -132,7 +133,7 @@ _mesa_glthread_init(struct gl_context *ctx)
 }
 
 static void
-free_vao(GLuint key, void *data, void *userData)
+free_vao(void *data, UNUSED void *userData)
 {
    free(data);
 }
@@ -194,6 +195,25 @@ _mesa_glthread_flush_batch(struct gl_context *ctx)
    struct glthread_batch *next = glthread->next_batch;
    if (!next->used)
       return;
+
+   /* Pin threads regularly to the same Zen CCX that the main thread is
+    * running on. The main thread can move between CCXs.
+    */
+   if (util_cpu_caps.nr_cpus != util_cpu_caps.cores_per_L3 &&
+       /* driver support */
+       ctx->Driver.PinDriverToL3Cache &&
+       ++glthread->pin_thread_counter % 128 == 0) {
+      int cpu = util_get_current_cpu();
+
+      if (cpu >= 0) {
+         unsigned L3_cache = util_cpu_caps.cpu_to_L3[cpu];
+
+         util_set_thread_affinity(glthread->queue.threads[0],
+                                  util_cpu_caps.L3_affinity_mask[L3_cache],
+                                  NULL, UTIL_MAX_CPUS);
+         ctx->Driver.PinDriverToL3Cache(ctx, L3_cache);
+      }
+   }
 
    /* Debug: execute the batch immediately from this thread.
     *

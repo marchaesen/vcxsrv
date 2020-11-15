@@ -28,6 +28,7 @@
 #define FREEDRENO_RINGBUFFER_H_
 
 #include <stdio.h>
+#include "util/u_atomic.h"
 #include "util/u_debug.h"
 #include "util/u_dynarray.h"
 
@@ -127,7 +128,7 @@ struct fd_ringbuffer * fd_ringbuffer_new_object(struct fd_pipe *pipe,
 static inline void
 fd_ringbuffer_del(struct fd_ringbuffer *ring)
 {
-	if (--ring->refcnt > 0)
+	if (!p_atomic_dec_zero(&ring->refcnt))
 		return;
 
 	ring->funcs->destroy(ring);
@@ -137,7 +138,7 @@ static inline
 struct fd_ringbuffer *
 fd_ringbuffer_ref(struct fd_ringbuffer *ring)
 {
-	ring->refcnt++;
+	p_atomic_inc(&ring->refcnt);
 	return ring;
 }
 
