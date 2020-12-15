@@ -128,7 +128,6 @@ The
 .B XIconSize
 structure contains:
 .LP
-.IN "XIconSize" "" "@DEF@"
 .EX
 typedef struct {
         int min_width, min_height;

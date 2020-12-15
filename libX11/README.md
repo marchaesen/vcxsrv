@@ -1,11 +1,11 @@
-libX11 - Core X11 protocol client library
------------------------------------------
+# libX11 - Core X11 protocol client library
 
 Documentation for this library can be found in the included man pages,
 and in the Xlib spec from the specs subdirectory, also available at:
 
-  https://www.x.org/releases/current/doc/libX11/libX11/libX11.html
-  https://www.x.org/releases/current/doc/libX11/libX11/libX11.pdf
+ - https://www.x.org/releases/current/doc/libX11/libX11/libX11.html
+
+ - https://www.x.org/releases/current/doc/libX11/libX11/libX11.pdf
 
 and the O'Reilly Xlib books, which they have made freely available online,
 though only for older versions of X11:
@@ -31,3 +31,47 @@ For patch submission instructions, see:
 
   https://www.x.org/wiki/Development/Documentation/SubmittingPatches
 
+
+## Release 1.7.0
+
+Version 1.7.0 includes a new API, hence the change from the 1.6 series
+to 1.7:
+
+ * XSetIOErrorExitHandler which provides a mechanism for applications
+   to recover from I/O error conditions instead of being forced to
+   exit. Thanks to Carlos Garnacho for this.
+
+This release includes a bunch of bug fixes, some which have been pending for over three years:
+
+ * A bunch of nls cleanups to remove obsolete entries and clean up
+   formatting of the ist. Thanks to Benno Schulenberg for these.
+
+ * Warning fixes and other cleanups across a huge swath of the
+   library. Thanks to Alan Coopersmith for these.
+
+ * Memory allocation bugs, including leaks and use after free in the
+   locale code. Thanks to Krzesimir Nowak, Jacek Caban and Vittorio
+   Zecca for these.
+
+ * Thread safety fixes in the locale code. Thanks to Jacek Caban for
+   these.
+
+ * poll_for_response race condition fix. Thanks to Frediano Ziglio for
+   the bulk of this effort, and to Peter Hutterer for careful review
+   and improvements.
+
+Version 1.7.0 includes a couple of new locales:
+
+ * ia and ie locales. Thanks to Carmina16 for these.
+
+There are also numerous compose entries added, including:
+
+ * |^ or ^| for ↑, |v or v| for ↓, ~~ for ≈. Thanks to Antti
+    Savolainen for this.
+
+ * Allowing use of 'v' for caron, in addition to 'c', so things like
+   vC for Č, vc for č. Thanks to Benno Schulenberg for this.
+
+ * Compose sequences LT, lt for '<', and GT, gt for '>' for keyboards
+   where those are difficult to access. Thanks to Jonathan Belsewir
+   for this.

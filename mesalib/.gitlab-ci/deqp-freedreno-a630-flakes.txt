@@ -41,9 +41,6 @@ dEQP-VK.memory_model.write_after_read.core11.u32.coherent.fence_fence.atomicwrit
 # https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/2017
 dEQP-VK.renderpass.*separate_channels.*
 
-# These tests are broken (does not respect our minStorageBufferOffsetAlignment of 64)
-dEQP-VK.pipeline.push_descriptor.compute.*
-
 # Undiagnosed flakes appearing more than once in the last 2 months as
 # of 2020-08-19, in descending order of frequency.
 dEQP-GLES3.functional.fbo.msaa.2_samples.stencil_index8

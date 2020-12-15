@@ -123,12 +123,12 @@ calls or their equivalent:
 .nf
 
     typedef struct _XkbComponentNames {
-        char *         keymap;           /\(** keymap names */
-        char *         keycodes;         /\(** keycode names */
-        char *         types;            /\(** type names */
-        char *         compat;           /\(** compatibility map names */
-        char *         symbols;          /\(** symbol names */
-        char *         geometry;         /\(** geometry names */
+        char *         keymap;           /\&* keymap names */
+        char *         keycodes;         /\&* keycode names */
+        char *         types;            /\&* type names */
+        char *         compat;           /\&* compatibility map names */
+        char *         symbols;          /\&* symbol names */
+        char *         geometry;         /\&* geometry names */
     } XkbComponentNamesRec, *XkbComponentNamesPtr;
     
 .fi    
@@ -137,23 +137,23 @@ returns a pointer to an XkbComponentListRec:
 .nf
 
     typedef struct _XkbComponentList {
-        int                      num_keymaps;  /\(** number of entries in keymap */
-        int                      num_keycodes; /\(** number of entries in keycodes */
-        int                      num_types;    /\(** number of entries in types */
-        int                      num_compat;   /\(** number of entries in compat */
-        int                      num_symbols;  /\(** number of entries in symbols */
-        int                      num_geometry; /\(** number of entries in geometry;
-        XkbComponentNamePtr      keymap;       /\(** keymap names */
-        XkbComponentNamePtr      keycodes;     /\(** keycode names */
-        XkbComponentNamePtr      types;        /\(** type names */
-        XkbComponentNamePtr      compat;       /\(** compatibility map names */
-        XkbComponentNamePtr      symbols;      /\(** symbol names */
-        XkbComponentNamePtr      geometry;     /\(** geometry names */
+        int                      num_keymaps;  /\&* number of entries in keymap */
+        int                      num_keycodes; /\&* number of entries in keycodes */
+        int                      num_types;    /\&* number of entries in types */
+        int                      num_compat;   /\&* number of entries in compat */
+        int                      num_symbols;  /\&* number of entries in symbols */
+        int                      num_geometry; /\&* number of entries in geometry;
+        XkbComponentNamePtr      keymap;       /\&* keymap names */
+        XkbComponentNamePtr      keycodes;     /\&* keycode names */
+        XkbComponentNamePtr      types;        /\&* type names */
+        XkbComponentNamePtr      compat;       /\&* compatibility map names */
+        XkbComponentNamePtr      symbols;      /\&* symbol names */
+        XkbComponentNamePtr      geometry;     /\&* geometry names */
     } XkbComponentListRec, *XkbComponentListPtr;
     
     typedef struct _XkbComponentName {
-        unsigned short           flags;        /\(** hints regarding component name */
-        char *                   name;         /\(** name of component */
+        unsigned short           flags;        /\&* hints regarding component name */
+        char *                   name;         /\&* name of component */
     } XkbComponentNameRec, *XkbComponentNamePtr;
     
 .fi   

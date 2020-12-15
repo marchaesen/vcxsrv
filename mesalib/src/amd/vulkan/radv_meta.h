@@ -85,6 +85,11 @@ struct radv_meta_saved_state {
 			VkCompareOp compare_op;
 		} back;
 	} stencil_op;
+
+	struct {
+		VkExtent2D size;
+		VkFragmentShadingRateCombinerOpKHR combiner_ops[2];
+	} fragment_shading_rate;
 };
 
 VkResult radv_device_init_meta_clear_state(struct radv_device *device, bool on_demand);

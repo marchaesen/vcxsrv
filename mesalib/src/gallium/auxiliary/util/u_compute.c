@@ -92,8 +92,8 @@ void util_compute_blit(struct pipe_context *ctx, struct pipe_blit_info *blit_inf
    float y_scale = blit_info->src.box.height / (float)blit_info->dst.box.height;
    float z_scale = blit_info->src.box.depth / (float)blit_info->dst.box.depth;
 
-   unsigned data[] = {u_bitcast_f2u((blit_info->src.box.x + 0.5) / (float)src->width0),
-                      u_bitcast_f2u((blit_info->src.box.y + 0.5) / (float)src->height0),
+   unsigned data[] = {u_bitcast_f2u(blit_info->src.box.x / (float)src->width0),
+                      u_bitcast_f2u(blit_info->src.box.y / (float)src->height0),
                       u_bitcast_f2u(blit_info->src.box.z),
                       u_bitcast_f2u(0),
                       u_bitcast_f2u(x_scale / src->width0),

@@ -1087,6 +1087,8 @@ static const FT_UShort nameid_order[] = {
     TT_NAME_ID_WWS_FAMILY,
     TT_NAME_ID_TYPOGRAPHIC_FAMILY,
     TT_NAME_ID_FONT_FAMILY,
+    TT_NAME_ID_MAC_FULL_NAME,
+    TT_NAME_ID_FULL_NAME,
     TT_NAME_ID_WWS_SUBFAMILY,
     TT_NAME_ID_TYPOGRAPHIC_SUBFAMILY,
     TT_NAME_ID_FONT_SUBFAMILY,
@@ -1222,6 +1224,8 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
     int		    nfamily_lang = 0;
     int		    nstyle = 0;
     int		    nstyle_lang = 0;
+    int		    nfullname = 0;
+    int		    nfullname_lang = 0;
     unsigned int    p, n;
 
     FcChar8	    *style = 0;
@@ -1443,7 +1447,8 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 		 * and treat the instance's nameid as FONT_SUBFAMILY.
 		 * Postscript name is automatically handled by FreeType. */
 		if (nameid == TT_NAME_ID_WWS_SUBFAMILY ||
-		    nameid == TT_NAME_ID_TYPOGRAPHIC_SUBFAMILY)
+		    nameid == TT_NAME_ID_TYPOGRAPHIC_SUBFAMILY ||
+		    nameid == TT_NAME_ID_FULL_NAME)
 		    continue;
 
 		if (nameid == TT_NAME_ID_FONT_SUBFAMILY)
@@ -1473,6 +1478,20 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 		    objlang = FC_FAMILYLANG_OBJECT;
 		    np = &nfamily;
 		    nlangp = &nfamily_lang;
+		    break;
+		case TT_NAME_ID_MAC_FULL_NAME:
+		case TT_NAME_ID_FULL_NAME:
+		    if (variable)
+			break;
+		    if (FcDebug () & FC_DBG_SCANV)
+			printf ("found full   (n %2d p %d e %d l 0x%04x)",
+				sname.name_id, sname.platform_id,
+				sname.encoding_id, sname.language_id);
+
+		    obj = FC_FULLNAME_OBJECT;
+		    objlang = FC_FULLNAMELANG_OBJECT;
+		    np = &nfullname;
+		    nlangp = &nfullname_lang;
 		    break;
 		case TT_NAME_ID_WWS_SUBFAMILY:
 		case TT_NAME_ID_TYPOGRAPHIC_SUBFAMILY:

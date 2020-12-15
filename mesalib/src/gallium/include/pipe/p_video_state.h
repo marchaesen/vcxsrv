@@ -784,6 +784,174 @@ struct pipe_vp9_picture_desc
    } slice_parameter;
 };
 
+struct pipe_av1_picture_desc
+{
+   struct pipe_picture_desc base;
+
+   struct pipe_video_buffer *ref[16];
+
+   struct {
+      uint8_t profile;
+      uint8_t order_hint_bits_minus_1;
+      uint8_t bit_depth_idx;
+
+      struct {
+         uint32_t use_128x128_superblock:1;
+         uint32_t enable_filter_intra:1;
+         uint32_t enable_intra_edge_filter:1;
+         uint32_t enable_interintra_compound:1;
+         uint32_t enable_masked_compound:1;
+         uint32_t enable_dual_filter:1;
+         uint32_t enable_order_hint:1;
+         uint32_t enable_jnt_comp:1;
+         uint32_t mono_chrome:1;
+         uint32_t ref_frame_mvs:1;
+      } seq_info_fields;
+
+      uint32_t current_frame_id;
+
+      uint16_t frame_width;
+      uint16_t frame_height;
+      uint16_t max_width;
+      uint16_t max_height;
+
+      uint8_t ref_frame_idx[7];
+      uint8_t primary_ref_frame;
+      uint8_t order_hint;
+
+      struct {
+         struct {
+            uint32_t enabled:1;
+            uint32_t update_map:1;
+            uint32_t temporal_update:1;
+         } segment_info_fields;
+
+         int16_t feature_data[8][8];
+         uint8_t feature_mask[8];
+      } seg_info;
+
+      struct {
+         struct {
+            uint32_t apply_grain:1;
+            uint32_t chroma_scaling_from_luma:1;
+            uint32_t grain_scaling_minus_8:2;
+            uint32_t ar_coeff_lag:2;
+            uint32_t ar_coeff_shift_minus_6:2;
+            uint32_t grain_scale_shift:2;
+            uint32_t overlap_flag:1;
+            uint32_t clip_to_restricted_range:1;
+         } film_grain_info_fields;
+
+         uint16_t grain_seed;
+         uint8_t num_y_points;
+         uint8_t point_y_value[14];
+         uint8_t point_y_scaling[14];
+         uint8_t num_cb_points;
+         uint8_t point_cb_value[10];
+         uint8_t point_cb_scaling[10];
+         uint8_t num_cr_points;
+         uint8_t point_cr_value[10];
+         uint8_t point_cr_scaling[10];
+         int8_t ar_coeffs_y[24];
+         int8_t ar_coeffs_cb[25];
+         int8_t ar_coeffs_cr[25];
+         uint8_t cb_mult;
+         uint8_t cb_luma_mult;
+         uint16_t cb_offset;
+         uint8_t cr_mult;
+         uint8_t cr_luma_mult;
+         uint16_t cr_offset;
+      } film_grain_info;
+
+      uint8_t tile_cols;
+      uint8_t tile_rows;
+      uint32_t tile_col_start_sb[65];
+      uint32_t tile_row_start_sb[65];
+      uint16_t context_update_tile_id;
+
+      struct {
+         uint32_t frame_type:2;
+         uint32_t show_frame:1;
+         uint32_t error_resilient_mode:1;
+         uint32_t disable_cdf_update:1;
+         uint32_t allow_screen_content_tools:1;
+         uint32_t force_integer_mv:1;
+         uint32_t allow_intrabc:1;
+         uint32_t use_superres:1;
+         uint32_t allow_high_precision_mv:1;
+         uint32_t is_motion_mode_switchable:1;
+         uint32_t use_ref_frame_mvs:1;
+         uint32_t disable_frame_end_update_cdf:1;
+         uint32_t allow_warped_motion:1;
+      } pic_info_fields;
+
+      uint8_t superres_scale_denominator;
+
+      uint8_t interp_filter;
+      uint8_t filter_level[2];
+      uint8_t filter_level_u;
+      uint8_t filter_level_v;
+      struct {
+         uint8_t sharpness_level:3;
+         uint8_t mode_ref_delta_enabled:1;
+         uint8_t mode_ref_delta_update:1;
+      } loop_filter_info_fields;
+
+      int8_t ref_deltas[8];
+      int8_t mode_deltas[2];
+
+      uint8_t base_qindex;
+      int8_t y_dc_delta_q;
+      int8_t u_dc_delta_q;
+      int8_t u_ac_delta_q;
+      int8_t v_dc_delta_q;
+      int8_t v_ac_delta_q;
+
+      struct {
+         uint16_t qm_y:4;
+         uint16_t qm_u:4;
+         uint16_t qm_v:4;
+      } qmatrix_fields;
+
+      struct {
+         uint32_t delta_q_present_flag:1;
+         uint32_t log2_delta_q_res:2;
+         uint32_t delta_lf_present_flag:1;
+         uint32_t log2_delta_lf_res:2;
+         uint32_t delta_lf_multi:1;
+         uint32_t tx_mode:2;
+         uint32_t reference_select:1;
+         uint32_t reduced_tx_set_used:1;
+         uint32_t skip_mode_present:1;
+      } mode_control_fields;
+
+      uint8_t cdef_damping_minus_3;
+      uint8_t cdef_bits;
+      uint8_t cdef_y_strengths[8];
+      uint8_t cdef_uv_strengths[8];
+
+      struct {
+         uint16_t yframe_restoration_type:2;
+         uint16_t cbframe_restoration_type:2;
+         uint16_t crframe_restoration_type:2;
+      } loop_restoration_fields;
+
+      uint16_t lr_unit_size[3];
+
+      struct {
+         uint32_t wmtype;
+         int32_t wmmat[8];
+      } wm[7];
+
+      uint32_t refresh_frame_flags;
+   } picture_parameter;
+
+   struct {
+      uint32_t slice_data_size[256];
+      uint32_t slice_data_offset[256];
+   } slice_parameter;
+};
+
 #ifdef __cplusplus
 }
 #endif

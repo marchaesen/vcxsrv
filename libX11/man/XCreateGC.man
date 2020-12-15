@@ -160,7 +160,7 @@ The
 .B XGetGCValues
 function returns the components specified by valuemask for the specified GC.
 If the valuemask contains a valid set of GC mask bits
-.Pn ( GCFunction ,
+.RB ( GCFunction ,
 .BR GCPlaneMask ,
 .BR GCForeground ,
 .BR GCBackground ,
@@ -332,7 +332,6 @@ T}	T{
 (1L<<22)
 T}
 .TE
-.IN "XGCValues" "" "@DEF@"
 .LP
 .EX
 /\&* Values */
@@ -373,7 +372,7 @@ is typically the most useful because it will work on a color display,
 but special applications may use other functions,
 particularly in concert with particular planes of a color display.
 The 16 GC functions, defined in
-.hN X11/X.h ,
+.BR X11/X.h ,
 are:
 .\" are listed in Table 5-1 along with the
 .\"the associated hexadecimal code
@@ -506,10 +505,8 @@ _
 .TE
 .LP
 Many graphics operations depend on either pixel values or planes in a GC.
-.IN "Pixel value"
 The planes attribute is of type long, and it specifies which planes of the
 destination are to be modified, one bit per plane.
-.IN "Plane" "mask"
 A monochrome display has only one plane and
 will be the least significant bit of the word.
 As planes are added to the display hardware, they will occupy more
@@ -623,7 +620,6 @@ T}
 .TE
 .LP
 The cap-style defines how the endpoints of a path are drawn:
-.IN "Graphics context" "path"
 .TS
 lw(1.0i) lw(4.5i).
 T{

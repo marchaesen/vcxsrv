@@ -254,6 +254,7 @@ typedef struct _DriverRec {
 #undef BUS_PCI
 #undef BUS_SBUS
 #undef BUS_PLATFORM
+#undef BUS_USB
 #undef BUS_last
 #endif
 
@@ -262,6 +263,7 @@ typedef enum {
     BUS_PCI,
     BUS_SBUS,
     BUS_PLATFORM,
+    BUS_USB,
     BUS_last                    /* Keep last */
 } BusType;
 

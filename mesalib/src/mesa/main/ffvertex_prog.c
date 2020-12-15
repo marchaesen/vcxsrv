@@ -189,19 +189,19 @@ static void make_state_key( struct gl_context *ctx, struct state_key *key )
       mask = ctx->Light._EnabledLights;
       while (mask) {
          const int i = u_bit_scan(&mask);
-         struct gl_light *light = &ctx->Light.Light[i];
+         struct gl_light_uniforms *lu = &ctx->Light.LightSource[i];
 
          key->unit[i].light_enabled = 1;
 
-         if (light->EyePosition[3] == 0.0F)
+         if (lu->EyePosition[3] == 0.0F)
             key->unit[i].light_eyepos3_is_zero = 1;
 
-         if (light->SpotCutoff == 180.0F)
+         if (lu->SpotCutoff == 180.0F)
             key->unit[i].light_spotcutoff_is_180 = 1;
 
-         if (light->ConstantAttenuation != 1.0F ||
-             light->LinearAttenuation != 0.0F ||
-             light->QuadraticAttenuation != 0.0F)
+         if (lu->ConstantAttenuation != 1.0F ||
+             lu->LinearAttenuation != 0.0F ||
+             lu->QuadraticAttenuation != 0.0F)
             key->unit[i].light_attenuated = 1;
       }
 
@@ -299,6 +299,7 @@ struct ureg {
 struct tnl_program {
    const struct state_key *state;
    struct gl_program *program;
+   struct gl_program_parameter_list *state_params;
    GLuint max_inst;  /** number of instructions allocated for program */
    GLboolean mvp_with_dp4;
 
@@ -407,12 +408,11 @@ static void release_temps( struct tnl_program *p )
 }
 
 
-static struct ureg register_param5(struct tnl_program *p,
+static struct ureg register_param4(struct tnl_program *p,
 				   GLint s0,
 				   GLint s1,
 				   GLint s2,
-				   GLint s3,
-                                   GLint s4)
+				   GLint s3)
 {
    gl_state_index16 tokens[STATE_LENGTH];
    GLint idx;
@@ -420,16 +420,14 @@ static struct ureg register_param5(struct tnl_program *p,
    tokens[1] = s1;
    tokens[2] = s2;
    tokens[3] = s3;
-   tokens[4] = s4;
-   idx = _mesa_add_state_reference(p->program->Parameters, tokens );
+   idx = _mesa_add_state_reference(p->state_params, tokens);
    return make_ureg(PROGRAM_STATE_VAR, idx);
 }
 
 
-#define register_param1(p,s0)          register_param5(p,s0,0,0,0,0)
-#define register_param2(p,s0,s1)       register_param5(p,s0,s1,0,0,0)
-#define register_param3(p,s0,s1,s2)    register_param5(p,s0,s1,s2,0,0)
-#define register_param4(p,s0,s1,s2,s3) register_param5(p,s0,s1,s2,s3,0)
+#define register_param1(p,s0)          register_param4(p,s0,0,0,0)
+#define register_param2(p,s0,s1)       register_param4(p,s0,s1,0,0)
+#define register_param3(p,s0,s1,s2)    register_param4(p,s0,s1,s2,0)
 
 
 
@@ -503,7 +501,6 @@ static void register_matrix_param5( struct tnl_program *p,
 				    GLint s1, /* texture matrix number */
 				    GLint s2, /* first row */
 				    GLint s3, /* last row */
-				    GLint s4, /* inverse, transpose, etc */
 				    struct ureg *matrix )
 {
    GLint i;
@@ -512,7 +509,7 @@ static void register_matrix_param5( struct tnl_program *p,
     * matrix out in one go:
     */
    for (i = 0; i <= s3 - s2; i++)
-      matrix[i] = register_param5( p, s0, s1, i, i, s4 );
+      matrix[i] = register_param4(p, s0, s1, i, i);
 }
 
 
@@ -717,13 +714,13 @@ static struct ureg get_eye_position( struct tnl_program *p )
 
       if (p->mvp_with_dp4) {
 	 register_matrix_param5( p, STATE_MODELVIEW_MATRIX, 0, 0, 3,
-                                 0, modelview );
+                                 modelview );
 
 	 emit_matrix_transform_vec4(p, p->eye_position, modelview, pos);
       }
       else {
-	 register_matrix_param5( p, STATE_MODELVIEW_MATRIX, 0, 0, 3,
-				 STATE_MATRIX_TRANSPOSE, modelview );
+	 register_matrix_param5( p, STATE_MODELVIEW_MATRIX_TRANSPOSE, 0, 0, 3,
+				 modelview );
 
 	 emit_transpose_matrix_transform_vec4(p, p->eye_position, modelview, pos);
       }
@@ -745,7 +742,7 @@ static struct ureg get_eye_position_z( struct tnl_program *p )
       p->eye_position_z = reserve_temp(p);
 
       register_matrix_param5( p, STATE_MODELVIEW_MATRIX, 0, 0, 3,
-                              0, modelview );
+                              modelview );
 
       emit_op2(p, OPCODE_DP4, p->eye_position_z, 0, pos, modelview[2]);
    }
@@ -782,8 +779,8 @@ static struct ureg get_transformed_normal( struct tnl_program *p )
       struct ureg transformed_normal = reserve_temp(p);
 
       if (p->state->need_eye_coords) {
-         register_matrix_param5( p, STATE_MODELVIEW_MATRIX, 0, 0, 2,
-                                 STATE_MATRIX_INVTRANS, mvinv );
+         register_matrix_param5( p, STATE_MODELVIEW_MATRIX_INVTRANS, 0, 0, 2,
+                                 mvinv );
 
          /* Transform to eye space:
           */
@@ -823,12 +820,12 @@ static void build_hpos( struct tnl_program *p )
 
    if (p->mvp_with_dp4) {
       register_matrix_param5( p, STATE_MVP_MATRIX, 0, 0, 3,
-			      0, mvp );
+			      mvp );
       emit_matrix_transform_vec4( p, hpos, mvp, pos );
    }
    else {
-      register_matrix_param5( p, STATE_MVP_MATRIX, 0, 0, 3,
-			      STATE_MATRIX_TRANSPOSE, mvp );
+      register_matrix_param5( p, STATE_MVP_MATRIX_TRANSPOSE, 0, 0, 3,
+			      mvp );
       emit_transpose_matrix_transform_vec4( p, hpos, mvp, pos );
    }
 }
@@ -836,7 +833,20 @@ static void build_hpos( struct tnl_program *p )
 
 static GLuint material_attrib( GLuint side, GLuint property )
 {
-   return (property - STATE_AMBIENT) * 2 + side;
+   switch (property) {
+   case STATE_AMBIENT:
+      return MAT_ATTRIB_FRONT_AMBIENT + side;
+   case STATE_DIFFUSE:
+      return MAT_ATTRIB_FRONT_DIFFUSE + side;
+   case STATE_SPECULAR:
+      return MAT_ATTRIB_FRONT_SPECULAR + side;
+   case STATE_EMISSION:
+      return MAT_ATTRIB_FRONT_EMISSION + side;
+   case STATE_SHININESS:
+      return MAT_ATTRIB_FRONT_SHININESS + side;
+   default:
+      unreachable("invalid value");
+   }
 }
 
 
@@ -1486,12 +1496,12 @@ static void build_texture_transform( struct tnl_program *p )
 			      register_input(p, VERT_ATTRIB_TEX0+i));
 	    if (p->mvp_with_dp4) {
 	       register_matrix_param5( p, STATE_TEXTURE_MATRIX, i, 0, 3,
-				       0, texmat );
+				       texmat );
 	       emit_matrix_transform_vec4( p, out, texmat, in );
 	    }
 	    else {
-	       register_matrix_param5( p, STATE_TEXTURE_MATRIX, i, 0, 3,
-				       STATE_MATRIX_TRANSPOSE, texmat );
+	       register_matrix_param5( p, STATE_TEXTURE_MATRIX_TRANSPOSE, i, 0, 3,
+				       texmat );
 	       emit_transpose_matrix_transform_vec4( p, out, texmat, in );
 	    }
 	 }
@@ -1635,8 +1645,12 @@ create_new_program( const struct state_key *key,
    p.program->Parameters = _mesa_new_parameter_list();
    p.program->info.inputs_read = 0;
    p.program->info.outputs_written = 0;
+   p.state_params = _mesa_new_parameter_list();
 
    build_tnl_program( &p );
+
+   _mesa_add_separate_state_parameters(p.program, p.state_params);
+   _mesa_free_parameter_list(p.state_params);
 }
 
 

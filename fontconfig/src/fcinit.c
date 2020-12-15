@@ -42,7 +42,7 @@ FcInitFallbackConfig (const FcChar8 *sysroot)
     FcChar8 fallback[1024];
     snprintf(fallback, sizeof(fallback), ""	\
 	"<fontconfig>" \
-	"  <dir>%s</dir>" \
+	"  %s" \
 	"  <dir prefix=\"xdg\">fonts</dir>" \
 	"  <cachedir>%s</cachedir>" \
 	"  <cachedir prefix=\"xdg\">fontconfig</cachedir>" \

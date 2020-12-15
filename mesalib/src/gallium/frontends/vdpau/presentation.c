@@ -268,7 +268,7 @@ vlVdpPresentationQueueDisplay(VdpPresentationQueue presentation_queue,
    //  to back buffer so the texture can be copied in flush_frontbuffer
    pipe->screen->fence_reference(pipe->screen, &surf->fence, NULL);
    pipe->flush(pipe, &surf->fence, 0);
-   pipe->screen->flush_frontbuffer(pipe->screen, tex, 0, 0,
+   pipe->screen->flush_frontbuffer(pipe->screen, pipe, tex, 0, 0,
                                    vscreen->get_private(vscreen), NULL);
 
    pq->last_surf = surf;

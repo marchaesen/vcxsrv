@@ -73,8 +73,8 @@ enum GLmatrixtype {
  * Matrix type to represent 4x4 transformation matrices.
  */
 typedef struct {
-   GLfloat *m;		/**< 16 matrix elements (16-byte aligned) */
-   GLfloat *inv;	/**< 16-element inverse (16-byte aligned) */
+   ALIGN16 GLfloat m[16];	/**< 16 matrix elements (16-byte aligned) */
+   ALIGN16 GLfloat inv[16];	/**< 16-element inverse (16-byte aligned) */
    GLuint flags;        /**< possible values determined by (of \link
                          * MatFlags MAT_FLAG_* flags\endlink)
                          */
@@ -86,9 +86,6 @@ typedef struct {
 
 extern void
 _math_matrix_ctr( GLmatrix *m );
-
-extern void
-_math_matrix_dtr( GLmatrix *m );
 
 extern void
 _math_matrix_mul_matrix( GLmatrix *dest, const GLmatrix *a, const GLmatrix *b );
@@ -136,6 +133,9 @@ _math_matrix_set_identity( GLmatrix *dest );
 
 extern void
 _math_matrix_copy( GLmatrix *to, const GLmatrix *from );
+
+extern void
+_math_matrix_push_copy(GLmatrix *to, GLmatrix *from);
 
 extern void
 _math_matrix_analyse( GLmatrix *mat );

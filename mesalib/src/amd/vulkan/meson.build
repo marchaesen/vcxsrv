@@ -50,15 +50,6 @@ amd_vk_format_table_c = custom_target(
 
 libradv_files = files(
   'layers/radv_sqtt_layer.c',
-  'winsys/amdgpu/radv_amdgpu_bo.c',
-  'winsys/amdgpu/radv_amdgpu_bo.h',
-  'winsys/amdgpu/radv_amdgpu_cs.c',
-  'winsys/amdgpu/radv_amdgpu_cs.h',
-  'winsys/amdgpu/radv_amdgpu_surface.c',
-  'winsys/amdgpu/radv_amdgpu_surface.h',
-  'winsys/amdgpu/radv_amdgpu_winsys.c',
-  'winsys/amdgpu/radv_amdgpu_winsys.h',
-  'winsys/amdgpu/radv_amdgpu_winsys_public.h',
   'winsys/null/radv_null_bo.c',
   'winsys/null/radv_null_bo.h',
   'winsys/null/radv_null_cs.c',
@@ -113,8 +104,22 @@ libradv_files = files(
   'vk_format.h',
 )
 
+if not with_platform_windows
+  libradv_files += files(
+    'winsys/amdgpu/radv_amdgpu_bo.c',
+    'winsys/amdgpu/radv_amdgpu_bo.h',
+    'winsys/amdgpu/radv_amdgpu_cs.c',
+    'winsys/amdgpu/radv_amdgpu_cs.h',
+    'winsys/amdgpu/radv_amdgpu_surface.c',
+    'winsys/amdgpu/radv_amdgpu_surface.h',
+    'winsys/amdgpu/radv_amdgpu_winsys.c',
+    'winsys/amdgpu/radv_amdgpu_winsys.h',
+    'winsys/amdgpu/radv_amdgpu_winsys_public.h',
+  )
+endif
+
 radv_deps = []
-radv_flags = []
+radv_flags = cc.get_supported_arguments(['-Wshadow'])
 
 if with_platform_x11
   radv_deps += dep_xcb_dri3
@@ -145,6 +150,13 @@ if with_platform_android
   radv_deps += dep_android
   radv_flags += [
     '-DVK_USE_PLATFORM_ANDROID_KHR'
+  ]
+endif
+
+if with_platform_windows
+  radv_flags += [
+    '-DVK_USE_PLATFORM_WIN32_KHR',
+    '-DVK_NO_PROTOTYPES',
   ]
 endif
 

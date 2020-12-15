@@ -125,7 +125,6 @@ The
 .B XClassHint
 structure contains:
 .LP
-.IN "XClassHint" "" "@DEF@"
 .EX
 typedef struct {
         char *res_name;

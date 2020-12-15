@@ -33,7 +33,7 @@ radv_null_winsys_bo_create(struct radeon_winsys *_ws,
 			   uint64_t size,
 			   unsigned alignment,
 			   enum radeon_bo_domain initial_domain,
-			   unsigned flags,
+			   enum radeon_bo_flag flags,
 			   unsigned priority)
 {
 	struct radv_null_winsys_bo *bo;

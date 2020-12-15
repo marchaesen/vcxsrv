@@ -70,28 +70,6 @@
 
 
 /**
- * Set the restart index.
- */
-static void
-setup_primitive_restart(struct gl_context *ctx, struct pipe_draw_info *info)
-{
-   if (ctx->Array._PrimitiveRestart) {
-      unsigned index_size = info->index_size;
-
-      info->restart_index = ctx->Array._RestartIndex[index_size - 1];
-
-      /* Enable primitive restart only when the restart index can have an
-       * effect. This is required for correctness in radeonsi GFX8 support.
-       * Other hardware may also benefit from taking a faster, non-restart path
-       * when possible.
-       */
-      if (index_size == 4 || info->restart_index < (1 << (index_size * 8)))
-         info->primitive_restart = true;
-   }
-}
-
-
-/**
  * Translate OpenGL primtive type (GL_POINTS, GL_TRIANGLE_STRIP, etc) to
  * the corresponding Gallium type.
  */
@@ -158,15 +136,15 @@ prepare_draw(struct st_context *st, struct gl_context *ctx)
 static void
 st_draw_vbo(struct gl_context *ctx,
             const struct _mesa_prim *prims,
-            GLuint nr_prims,
+            unsigned nr_prims,
             const struct _mesa_index_buffer *ib,
-	    GLboolean index_bounds_valid,
-            GLuint min_index,
-            GLuint max_index,
-            GLuint num_instances,
-            GLuint base_instance,
-            struct gl_transform_feedback_object *tfb_vertcount,
-            unsigned stream)
+	    bool index_bounds_valid,
+            bool primitive_restart,
+            unsigned restart_index,
+            unsigned min_index,
+            unsigned max_index,
+            unsigned num_instances,
+            unsigned base_instance)
 {
    struct st_context *st = st_context(ctx);
    struct pipe_draw_info info;
@@ -178,8 +156,6 @@ st_draw_vbo(struct gl_context *ctx,
    /* Initialize pipe_draw_info. */
    info.primitive_restart = false;
    info.vertices_per_patch = ctx->TessCtrlProgram.patch_vertices;
-   info.indirect = NULL;
-   info.count_from_stream_output = NULL;
    info.restart_index = 0;
    info.start_instance = base_instance;
    info.instance_count = num_instances;
@@ -191,10 +167,12 @@ st_draw_vbo(struct gl_context *ctx,
       /* Get index bounds for user buffers. */
       if (!index_bounds_valid && st->draw_needs_minmax_index) {
          vbo_get_minmax_indices(ctx, prims, ib, &min_index, &max_index,
-                                nr_prims);
+                                nr_prims, primitive_restart, restart_index);
+         index_bounds_valid = true;
       }
 
       info.index_size = 1 << ib->index_size_shift;
+      info.index_bounds_valid = index_bounds_valid;
       info.min_index = min_index;
       info.max_index = max_index;
 
@@ -216,47 +194,36 @@ st_draw_vbo(struct gl_context *ctx,
          info.index.user = ib->ptr;
       }
 
-      setup_primitive_restart(ctx, &info);
+      info.restart_index = restart_index;
+      info.primitive_restart = primitive_restart;
    }
    else {
       info.index_size = 0;
       info.has_user_indices = false;
-
-      /* Transform feedback drawing is always non-indexed. */
-      /* Set info.count_from_stream_output. */
-      if (tfb_vertcount) {
-         if (!st_transform_feedback_draw_init(tfb_vertcount, stream, &info))
-            return;
-      }
    }
 
    /* do actual drawing */
    for (i = 0; i < nr_prims; i++) {
-      info.count = prims[i].count;
+      struct pipe_draw_start_count draw;
+
+      draw.count = prims[i].count;
 
       /* Skip no-op draw calls. */
-      if (!info.count && !tfb_vertcount)
+      if (!draw.count)
          continue;
 
+      draw.start = start + prims[i].start;
+
       info.mode = translate_prim(ctx, prims[i].mode);
-      info.start = start + prims[i].start;
       info.index_bias = prims[i].basevertex;
       info.drawid = prims[i].draw_id;
       if (!ib) {
-         info.min_index = info.start;
-         info.max_index = info.start + info.count - 1;
-      }
-
-      if (ST_DEBUG & DEBUG_DRAW) {
-         debug_printf("st/draw: mode %s  start %u  count %u  index_size %d\n",
-                      u_prim_name(info.mode),
-                      info.start,
-                      info.count,
-                      info.index_size);
+         info.min_index = draw.start;
+         info.max_index = draw.start + draw.count - 1;
       }
 
       /* Don't call u_trim_pipe_prim. Drivers should do it if they need it. */
-      cso_draw_vbo(st->cso_context, &info);
+      cso_draw_vbo(st->cso_context, &info, NULL, draw);
    }
 }
 
@@ -269,18 +236,20 @@ st_indirect_draw_vbo(struct gl_context *ctx,
                      unsigned stride,
                      struct gl_buffer_object *indirect_draw_count,
                      GLsizeiptr indirect_draw_count_offset,
-                     const struct _mesa_index_buffer *ib)
+                     const struct _mesa_index_buffer *ib,
+                     bool primitive_restart,
+                     unsigned restart_index)
 {
    struct st_context *st = st_context(ctx);
    struct pipe_draw_info info;
    struct pipe_draw_indirect_info indirect;
+   struct pipe_draw_start_count draw = {0};
 
    assert(stride);
    prepare_draw(st, ctx);
 
    memset(&indirect, 0, sizeof(indirect));
    util_draw_init_info(&info);
-   info.start = 0; /* index offset / index size */
    info.max_index = ~0u; /* so that u_vbuf can tell that it's unknown */
 
    if (ib) {
@@ -291,24 +260,16 @@ st_indirect_draw_vbo(struct gl_context *ctx,
 
       info.index_size = 1 << ib->index_size_shift;
       info.index.resource = st_buffer_object(bufobj)->buffer;
-      info.start = pointer_to_offset(ib->ptr) >> ib->index_size_shift;
+      draw.start = pointer_to_offset(ib->ptr) >> ib->index_size_shift;
 
-      /* Primitive restart is not handled by the VBO module in this case. */
-      setup_primitive_restart(ctx, &info);
+      info.restart_index = restart_index;
+      info.primitive_restart = primitive_restart;
    }
 
    info.mode = translate_prim(ctx, mode);
    info.vertices_per_patch = ctx->TessCtrlProgram.patch_vertices;
-   info.indirect = &indirect;
    indirect.buffer = st_buffer_object(indirect_data)->buffer;
    indirect.offset = indirect_offset;
-
-   if (ST_DEBUG & DEBUG_DRAW) {
-      debug_printf("st/draw indirect: mode %s drawcount %d index_size %d\n",
-                   u_prim_name(info.mode),
-                   draw_count,
-                   info.index_size);
-   }
 
    if (!st->has_multi_draw_indirect) {
       int i;
@@ -317,7 +278,7 @@ st_indirect_draw_vbo(struct gl_context *ctx,
       indirect.draw_count = 1;
       for (i = 0; i < draw_count; i++) {
          info.drawid = i;
-         cso_draw_vbo(st->cso_context, &info);
+         cso_draw_vbo(st->cso_context, &info, &indirect, draw);
          indirect.offset += stride;
       }
    } else {
@@ -328,16 +289,43 @@ st_indirect_draw_vbo(struct gl_context *ctx,
             st_buffer_object(indirect_draw_count)->buffer;
          indirect.indirect_draw_count_offset = indirect_draw_count_offset;
       }
-      cso_draw_vbo(st->cso_context, &info);
+      cso_draw_vbo(st->cso_context, &info, &indirect, draw);
    }
 }
 
+static void
+st_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
+                           unsigned num_instances, unsigned stream,
+                           struct gl_transform_feedback_object *tfb_vertcount)
+{
+   struct st_context *st = st_context(ctx);
+   struct pipe_draw_info info;
+   struct pipe_draw_indirect_info indirect;
+   struct pipe_draw_start_count draw = {0};
+
+   prepare_draw(st, ctx);
+
+   memset(&indirect, 0, sizeof(indirect));
+   util_draw_init_info(&info);
+   info.max_index = ~0u; /* so that u_vbuf can tell that it's unknown */
+   info.mode = translate_prim(ctx, mode);
+   info.vertices_per_patch = ctx->TessCtrlProgram.patch_vertices;
+   info.instance_count = num_instances;
+
+   /* Transform feedback drawing is always non-indexed. */
+   /* Set info.count_from_stream_output. */
+   if (!st_transform_feedback_draw_init(tfb_vertcount, stream, &indirect))
+      return;
+
+   cso_draw_vbo(st->cso_context, &info, &indirect, draw);
+}
 
 void
 st_init_draw_functions(struct dd_function_table *functions)
 {
    functions->Draw = st_draw_vbo;
    functions->DrawIndirect = st_indirect_draw_vbo;
+   functions->DrawTransformFeedback = st_draw_transform_feedback;
 }
 
 

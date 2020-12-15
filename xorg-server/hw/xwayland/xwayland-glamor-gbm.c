@@ -973,30 +973,32 @@ xwl_glamor_gbm_init_egl(struct xwl_screen *xwl_screen)
             xwl_screen->egl_display, NULL, EGL_NO_CONTEXT, NULL);
     }
 
-    if (xwl_screen->egl_context == EGL_NO_CONTEXT) {
-        ErrorF("Failed to create EGL context with GL\n");
-        goto error;
-    }
-
-    if (!eglMakeCurrent(xwl_screen->egl_display,
+    if (xwl_screen->egl_context != EGL_NO_CONTEXT &&
+        !eglMakeCurrent(xwl_screen->egl_display,
                         EGL_NO_SURFACE, EGL_NO_SURFACE,
                         xwl_screen->egl_context)) {
         ErrorF("Failed to make EGL context current with GL\n");
         goto error;
     }
 
-    /* glamor needs either big-GL 2.1 or GLES2 */
-    if (epoxy_gl_version() < 21) {
+    /* glamor needs either big-GL 2.1 or GLES2. Note that we can't rely only
+     * on calling epoxy_gl_version() here if eglBindAPI(EGL_OPENGL_API) above
+     * failed. Calling epoxy_gl_version() here makes GLES only devices fail
+     * below
+     */
+    if (xwl_screen->egl_context == EGL_NO_CONTEXT || epoxy_gl_version() < 21) {
         const EGLint gles_attribs[] = {
             EGL_CONTEXT_CLIENT_VERSION,
             2,
             EGL_NONE,
         };
 
-        /* Recreate the context with GLES2 instead */
-        eglMakeCurrent(xwl_screen->egl_display,EGL_NO_SURFACE,
-                       EGL_NO_SURFACE, EGL_NO_CONTEXT);
-        eglDestroyContext(xwl_screen->egl_display, xwl_screen->egl_context);
+        if (xwl_screen->egl_context != EGL_NO_CONTEXT) {
+            /* Recreate the context with GLES2 instead */
+            eglMakeCurrent(xwl_screen->egl_display,EGL_NO_SURFACE,
+                           EGL_NO_SURFACE, EGL_NO_CONTEXT);
+            eglDestroyContext(xwl_screen->egl_display, xwl_screen->egl_context);
+        }
 
         eglBindAPI(EGL_OPENGL_ES_API);
         xwl_screen->egl_context = eglCreateContext(xwl_screen->egl_display,

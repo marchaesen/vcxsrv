@@ -256,6 +256,8 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpSwitch:
    case SpvOpKill:
    case SpvOpTerminateInvocation:
+   case SpvOpIgnoreIntersectionKHR:
+   case SpvOpTerminateRayKHR:
    case SpvOpReturn:
    case SpvOpReturnValue:
    case SpvOpUnreachable:
@@ -687,12 +689,21 @@ vtn_process_block(struct vtn_builder *b,
       return NULL;
 
    case SpvOpKill:
-      b->has_kill = true;
+      b->has_early_terminate = true;
       block->branch_type = vtn_branch_type_discard;
       return NULL;
 
    case SpvOpTerminateInvocation:
-      block->branch_type = vtn_branch_type_terminate;
+      b->has_early_terminate = true;
+      block->branch_type = vtn_branch_type_terminate_invocation;
+      return NULL;
+
+   case SpvOpIgnoreIntersectionKHR:
+      block->branch_type = vtn_branch_type_ignore_intersection;
+      return NULL;
+
+   case SpvOpTerminateRayKHR:
+      block->branch_type = vtn_branch_type_terminate_ray;
       return NULL;
 
    case SpvOpBranchConditional: {
@@ -948,20 +959,23 @@ vtn_emit_branch(struct vtn_builder *b, enum vtn_branch_type branch_type,
    case vtn_branch_type_return:
       nir_jump(&b->nb, nir_jump_return);
       break;
-   case vtn_branch_type_discard: {
-      nir_intrinsic_op op =
-         b->convert_discard_to_demote ? nir_intrinsic_demote : nir_intrinsic_discard;
-      nir_intrinsic_instr *discard =
-         nir_intrinsic_instr_create(b->nb.shader, op);
-      nir_builder_instr_insert(&b->nb, &discard->instr);
+   case vtn_branch_type_discard:
+      if (b->convert_discard_to_demote)
+         nir_demote(&b->nb);
+      else
+         nir_discard(&b->nb);
       break;
-   }
-   case vtn_branch_type_terminate: {
-      nir_intrinsic_instr *terminate =
-         nir_intrinsic_instr_create(b->nb.shader, nir_intrinsic_terminate);
-      nir_builder_instr_insert(&b->nb, &terminate->instr);
+   case vtn_branch_type_terminate_invocation:
+      nir_terminate(&b->nb);
       break;
-   }
+   case vtn_branch_type_ignore_intersection:
+      nir_ignore_ray_intersection(&b->nb);
+      nir_jump(&b->nb, nir_jump_halt);
+      break;
+   case vtn_branch_type_terminate_ray:
+      nir_terminate_ray(&b->nb);
+      nir_jump(&b->nb, nir_jump_halt);
+      break;
    default:
       vtn_fail("Invalid branch type");
    }
@@ -1063,9 +1077,7 @@ vtn_emit_cf_list_structured(struct vtn_builder *b, struct list_head *cf_list,
 
          vtn_foreach_instruction(b, block_start, block_end, handler);
 
-         block->end_nop = nir_intrinsic_instr_create(b->nb.shader,
-                                                     nir_intrinsic_nop);
-         nir_builder_instr_insert(&b->nb, &block->end_nop->instr);
+         block->end_nop = nir_nop(&b->nb);
 
          vtn_emit_ret_store(b, block);
 
@@ -1254,9 +1266,7 @@ vtn_emit_cf_func_unstructured(struct vtn_builder *b, struct vtn_function *func,
       block_start = vtn_foreach_instruction(b, block_start, block_end,
                                             vtn_handle_phis_first_pass);
       vtn_foreach_instruction(b, block_start, block_end, handler);
-      block->end_nop = nir_intrinsic_instr_create(b->nb.shader,
-                                                  nir_intrinsic_nop);
-      nir_builder_instr_insert(&b->nb, &block->end_nop->instr);
+      block->end_nop = nir_nop(&b->nb);
 
       SpvOp op = *block_end & SpvOpCodeMask;
       switch (op) {
@@ -1322,9 +1332,7 @@ vtn_emit_cf_func_unstructured(struct vtn_builder *b, struct vtn_function *func,
       }
 
       case SpvOpKill: {
-         nir_intrinsic_instr *discard =
-            nir_intrinsic_instr_create(b->nb.shader, nir_intrinsic_discard);
-         nir_builder_instr_insert(&b->nb, &discard->instr);
+         nir_discard(&b->nb);
          nir_goto(&b->nb, b->func->impl->end_block);
          break;
       }
@@ -1377,7 +1385,8 @@ vtn_function_emit(struct vtn_builder *b, struct vtn_function *func,
     * but instructions in the continue may use SSA defs in the loop body.
     * Therefore, we need to repair SSA to insert the needed phi nodes.
     */
-   if (b->func->impl->structured && (b->has_loop_continue || b->has_kill))
+   if (b->func->impl->structured &&
+       (b->has_loop_continue || b->has_early_terminate))
       nir_repair_ssa_impl(func->impl);
 
    func->emitted = true;

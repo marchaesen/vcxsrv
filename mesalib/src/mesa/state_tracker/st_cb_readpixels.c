@@ -97,11 +97,12 @@ static bool
 try_pbo_readpixels(struct st_context *st, struct st_renderbuffer *strb,
                    bool invert_y,
                    GLint x, GLint y, GLsizei width, GLsizei height,
+                   GLenum gl_format,
                    enum pipe_format src_format, enum pipe_format dst_format,
                    const struct gl_pixelstore_attrib *pack, void *pixels)
 {
    struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
    struct cso_context *cso = st->cso_context;
    struct pipe_surface *surface = strb->surface;
    struct pipe_resource *texture = strb->texture;
@@ -110,6 +111,12 @@ try_pbo_readpixels(struct st_context *st, struct st_renderbuffer *strb,
    struct pipe_framebuffer_state fb;
    enum pipe_texture_target view_target;
    bool success = false;
+
+   /* Make sure we have stencil format in case of GL_STENCIL_INDEX to
+    * create correct type of a sampler view.
+    */
+   if (gl_format == GL_STENCIL_INDEX)
+      src_format = util_format_stencil_only(src_format);
 
    if (texture->nr_samples > 1)
       return false;
@@ -264,8 +271,7 @@ blit_to_staging(struct st_context *st, struct st_renderbuffer *strb,
                    GLenum format,
                    enum pipe_format src_format, enum pipe_format dst_format)
 {
-   struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
    struct pipe_resource dst_templ;
    struct pipe_resource *dst;
    struct pipe_blit_info blit;
@@ -406,7 +412,7 @@ st_ReadPixels(struct gl_context *ctx, GLint x, GLint y,
          _mesa_get_read_renderbuffer_for_format(ctx, format);
    struct st_renderbuffer *strb = st_renderbuffer(rb);
    struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
    struct pipe_resource *src;
    struct pipe_resource *dst = NULL;
    enum pipe_format dst_format, src_format;
@@ -474,7 +480,7 @@ st_ReadPixels(struct gl_context *ctx, GLint x, GLint y,
       if (try_pbo_readpixels(st, strb,
                              st_fb_orientation(ctx->ReadBuffer) == Y_0_TOP,
                              x, y, width, height,
-                             src_format, dst_format,
+                             format, src_format, dst_format,
                              pack, pixels))
          return;
    }

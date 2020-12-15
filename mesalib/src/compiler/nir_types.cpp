@@ -701,6 +701,31 @@ glsl_uint16_type(const struct glsl_type *type)
    return type->get_uint16_type();
 }
 
+static void
+glsl_size_align_handle_array_and_structs(const struct glsl_type *type,
+                                         glsl_type_size_align_func size_align,
+                                         unsigned *size, unsigned *align)
+{
+   if (type->base_type == GLSL_TYPE_ARRAY) {
+      unsigned elem_size = 0, elem_align = 0;
+      size_align(type->fields.array, &elem_size, &elem_align);
+      *align = elem_align;
+      *size = type->length * ALIGN_POT(elem_size, elem_align);
+   } else {
+      assert(type->base_type == GLSL_TYPE_STRUCT ||
+             type->base_type == GLSL_TYPE_INTERFACE);
+
+      *size = 0;
+      *align = 0;
+      for (unsigned i = 0; i < type->length; i++) {
+         unsigned elem_size = 0, elem_align = 0;
+         size_align(type->fields.structure[i].type, &elem_size, &elem_align);
+         *align = MAX2(*align, elem_align);
+         *size = ALIGN_POT(*size, elem_align) + elem_size;
+      }
+   }
+}
+
 void
 glsl_get_natural_size_align_bytes(const struct glsl_type *type,
                                   unsigned *size, unsigned *align)
@@ -731,26 +756,12 @@ glsl_get_natural_size_align_bytes(const struct glsl_type *type,
       break;
    }
 
-   case GLSL_TYPE_ARRAY: {
-      unsigned elem_size = 0, elem_align = 0;
-      glsl_get_natural_size_align_bytes(type->fields.array,
-                                        &elem_size, &elem_align);
-      *align = elem_align;
-      *size = type->length * ALIGN_POT(elem_size, elem_align);
-      break;
-   }
-
+   case GLSL_TYPE_ARRAY:
    case GLSL_TYPE_INTERFACE:
    case GLSL_TYPE_STRUCT:
-      *size = 0;
-      *align = 0;
-      for (unsigned i = 0; i < type->length; i++) {
-         unsigned elem_size = 0, elem_align = 0;
-         glsl_get_natural_size_align_bytes(type->fields.structure[i].type,
-                                           &elem_size, &elem_align);
-         *align = MAX2(*align, elem_align);
-         *size = ALIGN_POT(*size, elem_align) + elem_size;
-      }
+      glsl_size_align_handle_array_and_structs(type,
+                                               glsl_get_natural_size_align_bytes,
+                                               size, align);
       break;
 
    case GLSL_TYPE_SAMPLER:
@@ -766,6 +777,59 @@ glsl_get_natural_size_align_bytes(const struct glsl_type *type,
    case GLSL_TYPE_ERROR:
    case GLSL_TYPE_FUNCTION:
       unreachable("type does not have a natural size");
+   }
+}
+
+/**
+ * Returns a byte size/alignment for a type where each array element or struct
+ * field is aligned to 16 bytes.
+ */
+void
+glsl_get_vec4_size_align_bytes(const struct glsl_type *type,
+                               unsigned *size, unsigned *align)
+{
+   switch (type->base_type) {
+   case GLSL_TYPE_BOOL:
+      /* We special-case Booleans to 32 bits to not cause heartburn for
+       * drivers that suddenly get an 8-bit load.
+       */
+      *size = 4 * type->components();
+      *align = 16;
+      break;
+
+   case GLSL_TYPE_UINT8:
+   case GLSL_TYPE_INT8:
+   case GLSL_TYPE_UINT16:
+   case GLSL_TYPE_INT16:
+   case GLSL_TYPE_FLOAT16:
+   case GLSL_TYPE_UINT:
+   case GLSL_TYPE_INT:
+   case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_DOUBLE:
+   case GLSL_TYPE_UINT64:
+   case GLSL_TYPE_INT64: {
+      unsigned N = glsl_get_bit_size(type) / 8;
+      *size = 16 * (type->matrix_columns - 1) + N * type->vector_elements;
+      *align = 16;
+      break;
+   }
+
+   case GLSL_TYPE_ARRAY:
+   case GLSL_TYPE_INTERFACE:
+   case GLSL_TYPE_STRUCT:
+      glsl_size_align_handle_array_and_structs(type,
+                                               glsl_get_vec4_size_align_bytes,
+                                               size, align);
+      break;
+
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
+   case GLSL_TYPE_ATOMIC_UINT:
+   case GLSL_TYPE_SUBROUTINE:
+   case GLSL_TYPE_VOID:
+   case GLSL_TYPE_ERROR:
+   case GLSL_TYPE_FUNCTION:
+      unreachable("type does not make sense for glsl_get_vec4_size_align_bytes()");
    }
 }
 

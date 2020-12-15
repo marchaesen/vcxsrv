@@ -1240,65 +1240,65 @@ mesa_bufferiv(struct gl_shader_program *shProg, GLenum type,
    case GL_UNIFORM_BLOCK_BINDING:
    case GL_ATOMIC_COUNTER_BUFFER_BINDING:
       _mesa_program_resource_prop(shProg, res, index, GL_BUFFER_BINDING,
-                                  params, caller);
+                                  params, false, caller);
       return;
    case GL_UNIFORM_BLOCK_DATA_SIZE:
    case GL_ATOMIC_COUNTER_BUFFER_DATA_SIZE:
       _mesa_program_resource_prop(shProg, res, index, GL_BUFFER_DATA_SIZE,
-                                  params, caller);
+                                  params, false, caller);
       return;
    case GL_UNIFORM_BLOCK_NAME_LENGTH:
       _mesa_program_resource_prop(shProg, res, index, GL_NAME_LENGTH,
-                                  params, caller);
+                                  params, false, caller);
       return;
    case GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS:
    case GL_ATOMIC_COUNTER_BUFFER_ACTIVE_ATOMIC_COUNTERS:
       _mesa_program_resource_prop(shProg, res, index, GL_NUM_ACTIVE_VARIABLES,
-                                  params, caller);
+                                  params, false, caller);
       return;
    case GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES:
    case GL_ATOMIC_COUNTER_BUFFER_ACTIVE_ATOMIC_COUNTER_INDICES:
       _mesa_program_resource_prop(shProg, res, index, GL_ACTIVE_VARIABLES,
-                                  params, caller);
+                                  params, false, caller);
       return;
    case GL_UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER:
    case GL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_VERTEX_SHADER:
       _mesa_program_resource_prop(shProg, res, index,
                                   GL_REFERENCED_BY_VERTEX_SHADER, params,
-                                  caller);
+                                  false, caller);
       return;
 
    case GL_UNIFORM_BLOCK_REFERENCED_BY_TESS_CONTROL_SHADER:
    case GL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_CONTROL_SHADER:
       _mesa_program_resource_prop(shProg, res, index,
                                   GL_REFERENCED_BY_TESS_CONTROL_SHADER, params,
-                                  caller);
+                                  false, caller);
       return;
 
    case GL_UNIFORM_BLOCK_REFERENCED_BY_TESS_EVALUATION_SHADER:
    case GL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_EVALUATION_SHADER:
       _mesa_program_resource_prop(shProg, res, index,
                                   GL_REFERENCED_BY_TESS_EVALUATION_SHADER, params,
-                                  caller);
+                                  false, caller);
       return;
 
    case GL_UNIFORM_BLOCK_REFERENCED_BY_GEOMETRY_SHADER:
    case GL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_GEOMETRY_SHADER:
       _mesa_program_resource_prop(shProg, res, index,
                                   GL_REFERENCED_BY_GEOMETRY_SHADER, params,
-                                  caller);
+                                  false, caller);
       return;
    case GL_UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER:
    case GL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_FRAGMENT_SHADER:
       _mesa_program_resource_prop(shProg, res, index,
                                   GL_REFERENCED_BY_FRAGMENT_SHADER, params,
-                                  caller);
+                                  false, caller);
       return;
    case GL_UNIFORM_BLOCK_REFERENCED_BY_COMPUTE_SHADER:
    case GL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER:
       _mesa_program_resource_prop(shProg, res, index,
                                   GL_REFERENCED_BY_COMPUTE_SHADER, params,
-                                  caller);
+                                  false, caller);
       return;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM,
@@ -1362,7 +1362,7 @@ _mesa_GetActiveUniformBlockName(GLuint program,
    if (uniformBlockName)
       _mesa_get_program_resource_name(shProg, GL_UNIFORM_BLOCK,
                                       uniformBlockIndex, bufSize, length,
-                                      uniformBlockName,
+                                      uniformBlockName, false,
                                       "glGetActiveUniformBlockName");
 }
 
@@ -1392,7 +1392,8 @@ _mesa_GetActiveUniformName(GLuint program, GLuint uniformIndex,
       return;
 
    _mesa_get_program_resource_name(shProg, GL_UNIFORM, uniformIndex, bufSize,
-                                   length, uniformName, "glGetActiveUniformName");
+                                   length, uniformName, false,
+                                   "glGetActiveUniformName");
 }
 
 void GLAPIENTRY

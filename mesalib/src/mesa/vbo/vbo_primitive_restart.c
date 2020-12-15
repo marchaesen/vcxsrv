@@ -166,7 +166,9 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
                          const struct _mesa_index_buffer *ib,
                          GLuint num_instances, GLuint base_instance,
                          struct gl_buffer_object *indirect,
-                         GLsizeiptr indirect_offset)
+                         GLsizeiptr indirect_offset,
+                         bool primitive_restart,
+                         unsigned restart_index)
 {
    GLuint prim_num;
    struct _mesa_prim new_prim;
@@ -177,7 +179,6 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
    GLuint sub_prim_num;
    GLuint end_index;
    GLuint sub_end_index;
-   GLuint restart_index = ctx->Array._RestartIndex[(1 << ib->index_size_shift) - 1];
    struct _mesa_prim temp_prim;
    GLboolean map_ib = ib->obj && !ib->obj->Mappings[MAP_INTERNAL].Pointer;
    const void *ptr;
@@ -252,15 +253,13 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
             temp_prim.count = MIN2(sub_end_index, end_index) - temp_prim.start;
             if ((temp_prim.start == sub_prim->start) &&
                 (temp_prim.count == sub_prim->count)) {
-               ctx->Driver.Draw(ctx, &temp_prim, 1, ib, GL_TRUE,
+               ctx->Driver.Draw(ctx, &temp_prim, 1, ib, true, false, 0,
                                 sub_prim->min_index, sub_prim->max_index,
-                                num_instances, base_instance,
-                                NULL, 0);
+                                num_instances, base_instance);
             } else {
                ctx->Driver.Draw(ctx, &temp_prim, 1, ib,
-                                GL_FALSE, -1, -1,
-                                num_instances, base_instance,
-                                NULL, 0);
+                                false, false, 0, -1, -1,
+                                num_instances, base_instance);
             }
          }
          if (sub_end_index >= end_index) {

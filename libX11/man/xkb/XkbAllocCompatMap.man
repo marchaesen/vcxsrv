@@ -78,12 +78,12 @@ is NULL, or BadAlloc if errors are encountered when attempting to allocate stora
 .nf
 
     typedef struct {
-        KeySym            sym;          /\(** keysym of interest or NULL */
-        unsigned char     flags;        /\(** XkbSI_AutoRepeat, XkbSI_LockingKey */
-        unsigned char     match;        /\(** specifies how mods is interpreted */
-        unsigned char     mods;         /\(** modifier bits, correspond to eight real modifiers */
-        unsigned char     virtual_mod;  /\(** 1 modifier to add to key virtual mod map */
-        XkbAnyAction      act;          /\(** action to bind to symbol position on key */
+        KeySym            sym;          /\&* keysym of interest or NULL */
+        unsigned char     flags;        /\&* XkbSI_AutoRepeat, XkbSI_LockingKey */
+        unsigned char     match;        /\&* specifies how mods is interpreted */
+        unsigned char     mods;         /\&* modifier bits, correspond to eight real modifiers */
+        unsigned char     virtual_mod;  /\&* 1 modifier to add to key virtual mod map */
+        XkbAnyAction      act;          /\&* action to bind to symbol position on key */
     } XkbSymInterpretRec,*XkbSymInterpretPtr;
     
 .fi

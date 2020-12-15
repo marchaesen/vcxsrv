@@ -103,6 +103,8 @@ variable:
    current directory, and print a message with the filename to stderr.
 ``tgsi``
    Print the TGSI form of TGSI shaders to stderr.
+``validation``
+   Dump Validation layer output.
 
 Vulkan Validation Layers
 ^^^^^^^^^^^^^^^^^^^^^^^^

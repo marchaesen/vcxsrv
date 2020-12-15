@@ -447,7 +447,7 @@ TouchEventHistoryReplay(TouchPointInfoPtr ti, DeviceIntPtr dev, XID resource)
     if (!ti->history)
         return;
 
-    TouchDeliverDeviceClassesChangedEvent(ti, ti->history[0].time, resource);
+    DeliverDeviceClassesChangedEvent(ti->sourceid, ti->history[0].time);
 
     for (i = 0; i < ti->history_elements; i++) {
         DeviceEvent *ev = &ti->history[i];
@@ -471,36 +471,11 @@ TouchEventHistoryReplay(TouchPointInfoPtr ti, DeviceIntPtr dev, XID resource)
     }
 }
 
-void
-TouchDeliverDeviceClassesChangedEvent(TouchPointInfoPtr ti, Time time,
-                                      XID resource)
-{
-    DeviceIntPtr dev;
-    int num_events = 0;
-    InternalEvent dcce;
-
-    dixLookupDevice(&dev, ti->sourceid, serverClient, DixWriteAccess);
-
-    if (!dev)
-        return;
-
-    /* UpdateFromMaster generates at most one event */
-    UpdateFromMaster(&dcce, dev, DEVCHANGE_POINTER_EVENT, &num_events);
-    BUG_WARN(num_events > 1);
-
-    if (num_events) {
-        dcce.any.time = time;
-        /* FIXME: This doesn't do anything */
-        dev->public.processInputProc(&dcce, dev);
-    }
-}
-
 Bool
 TouchBuildDependentSpriteTrace(DeviceIntPtr dev, SpritePtr sprite)
 {
     int i;
     TouchClassPtr t = dev->touch;
-    WindowPtr *trace;
     SpritePtr srcsprite;
 
     /* All touches should have the same sprite trace, so find and reuse an
@@ -516,21 +491,7 @@ TouchBuildDependentSpriteTrace(DeviceIntPtr dev, SpritePtr sprite)
     else
         return FALSE;
 
-    if (srcsprite->spriteTraceGood > sprite->spriteTraceSize) {
-        trace = reallocarray(sprite->spriteTrace,
-                             srcsprite->spriteTraceSize, sizeof(*trace));
-        if (!trace) {
-            sprite->spriteTraceGood = 0;
-            return FALSE;
-        }
-        sprite->spriteTrace = trace;
-        sprite->spriteTraceSize = srcsprite->spriteTraceGood;
-    }
-    memcpy(sprite->spriteTrace, srcsprite->spriteTrace,
-           srcsprite->spriteTraceGood * sizeof(*trace));
-    sprite->spriteTraceGood = srcsprite->spriteTraceGood;
-
-    return TRUE;
+    return CopySprite(srcsprite, sprite);
 }
 
 /**
@@ -721,7 +682,7 @@ TouchRemoveListener(TouchPointInfoPtr ti, XID resource)
             ti->listeners[j] = ti->listeners[j + 1];
         ti->num_listeners--;
         ti->listeners[ti->num_listeners].listener = 0;
-        ti->listeners[ti->num_listeners].state = LISTENER_AWAITING_BEGIN;
+        ti->listeners[ti->num_listeners].state = TOUCH_LISTENER_AWAITING_BEGIN;
 
         return TRUE;
     }
@@ -732,7 +693,7 @@ static void
 TouchAddGrabListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
                      InternalEvent *ev, GrabPtr grab)
 {
-    enum TouchListenerType type = LISTENER_GRAB;
+    enum TouchListenerType type = TOUCH_LISTENER_GRAB;
 
     /* FIXME: owner_events */
 
@@ -740,16 +701,16 @@ TouchAddGrabListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
         if (!xi2mask_isset(grab->xi2mask, dev, XI_TouchOwnership))
             TouchEventHistoryAllocate(ti);
         if (!xi2mask_isset(grab->xi2mask, dev, XI_TouchBegin))
-            type = LISTENER_POINTER_GRAB;
+            type = TOUCH_LISTENER_POINTER_GRAB;
     }
     else if (grab->grabtype == XI || grab->grabtype == CORE) {
         TouchEventHistoryAllocate(ti);
-        type = LISTENER_POINTER_GRAB;
+        type = TOUCH_LISTENER_POINTER_GRAB;
     }
 
     /* grab listeners are always RT_NONE since we keep the grab pointer */
     TouchAddListener(ti, grab->resource, RT_NONE, grab->grabtype,
-                     type, LISTENER_AWAITING_BEGIN, grab->window, grab);
+                     type, TOUCH_LISTENER_AWAITING_BEGIN, grab->window, grab);
 }
 
 /**
@@ -777,7 +738,7 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
     InputClients *iclients = NULL;
     OtherInputMasks *inputMasks = NULL;
     uint16_t evtype = 0;        /* may be event type or emulated event type */
-    enum TouchListenerType type = LISTENER_REGULAR;
+    enum TouchListenerType type = TOUCH_LISTENER_REGULAR;
     int mask;
 
     evtype = GetXI2Type(ev->any.type);
@@ -788,7 +749,7 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
         mask = EventIsDeliverable(dev, TouchGetPointerEventType(ev), win);
         if (mask) {
             evtype = GetXI2Type(TouchGetPointerEventType(ev));
-            type = LISTENER_POINTER_REGULAR;
+            type = TOUCH_LISTENER_POINTER_REGULAR;
         }
     }
     if (!mask)
@@ -805,7 +766,7 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
                 TouchEventHistoryAllocate(ti);
 
             TouchAddListener(ti, iclients->resource, RT_INPUTCLIENT, XI2,
-                             type, LISTENER_AWAITING_BEGIN, win, NULL);
+                             type, TOUCH_LISTENER_AWAITING_BEGIN, win, NULL);
             return TRUE;
         }
     }
@@ -820,7 +781,8 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
 
             TouchEventHistoryAllocate(ti);
             TouchAddListener(ti, iclients->resource, RT_INPUTCLIENT, XI,
-                             LISTENER_POINTER_REGULAR, LISTENER_AWAITING_BEGIN,
+                             TOUCH_LISTENER_POINTER_REGULAR,
+                             TOUCH_LISTENER_AWAITING_BEGIN,
                              win, NULL);
             return TRUE;
         }
@@ -835,7 +797,8 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
         if (IsMaster(dev) && (win->eventMask & core_filter)) {
             TouchEventHistoryAllocate(ti);
             TouchAddListener(ti, win->drawable.id, RT_WINDOW, CORE,
-                             LISTENER_POINTER_REGULAR, LISTENER_AWAITING_BEGIN,
+                             TOUCH_LISTENER_POINTER_REGULAR,
+                             TOUCH_LISTENER_AWAITING_BEGIN,
                              win, NULL);
             return TRUE;
         }
@@ -847,7 +810,7 @@ TouchAddRegularListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
 
             TouchEventHistoryAllocate(ti);
             TouchAddListener(ti, oclients->resource, RT_OTHERCLIENT, CORE,
-                             type, LISTENER_AWAITING_BEGIN, win, NULL);
+                             type, TOUCH_LISTENER_AWAITING_BEGIN, win, NULL);
             return TRUE;
         }
     }
@@ -914,7 +877,7 @@ TouchRemovePointerGrab(DeviceIntPtr dev)
 {
     TouchPointInfoPtr ti;
     GrabPtr grab;
-    DeviceEvent *ev;
+    InternalEvent *ev;
 
     if (!dev->touch)
         return;
@@ -924,10 +887,10 @@ TouchRemovePointerGrab(DeviceIntPtr dev)
         return;
 
     ev = dev->deviceGrab.sync.event;
-    if (!IsTouchEvent((InternalEvent *) ev))
+    if (!IsTouchEvent(ev))
         return;
 
-    ti = TouchFindByClientID(dev, ev->touchid);
+    ti = TouchFindByClientID(dev, ev->device_event.touchid);
     if (!ti)
         return;
 
@@ -989,7 +952,7 @@ TouchListenerAcceptReject(DeviceIntPtr dev, TouchPointInfoPtr ti, int listener,
         if (mode == XIRejectTouch)
             TouchRejected(dev, ti, ti->listeners[listener].listener, NULL);
         else
-            ti->listeners[listener].state = LISTENER_EARLY_ACCEPT;
+            ti->listeners[listener].state = TOUCH_LISTENER_EARLY_ACCEPT;
 
         return Success;
     }
@@ -1088,7 +1051,7 @@ TouchEmitTouchEnd(DeviceIntPtr dev, TouchPointInfoPtr ti, int flags, XID resourc
     flags |= TOUCH_CLIENT_ID;
     if (ti->emulate_pointer)
         flags |= TOUCH_POINTER_EMULATED;
-    TouchDeliverDeviceClassesChangedEvent(ti, GetTimeInMillis(), resource);
+    DeliverDeviceClassesChangedEvent(ti->sourceid, GetTimeInMillis());
     GetDixTouchEnd(&event, dev, ti, flags);
     DeliverTouchEvents(dev, ti, &event, resource);
     if (ti->num_grabs == 0)

@@ -1677,5 +1677,6 @@
 #define glFogCoordhvNV(a1) CALL_FogCoordhvNV(GET_DISPATCH(), (a1))
 #define glSecondaryColor3hNV(a1, a2, a3) CALL_SecondaryColor3hNV(GET_DISPATCH(), (a1, a2, a3))
 #define glSecondaryColor3hvNV(a1) CALL_SecondaryColor3hvNV(GET_DISPATCH(), (a1))
+#define glInternalSetError(a1) CALL_InternalSetError(GET_DISPATCH(), (a1))
 
 #endif /* !defined( __GLFUNCTIONS_H__ ) */

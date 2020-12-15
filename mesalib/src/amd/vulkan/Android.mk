@@ -157,7 +157,7 @@ LOCAL_WHOLE_STATIC_LIBRARIES := \
 	libmesa_vulkan_util \
 	libmesa_aco
 
-LOCAL_SHARED_LIBRARIES += $(RADV_SHARED_LIBRARIES) libz libsync liblog
+LOCAL_SHARED_LIBRARIES += $(RADV_SHARED_LIBRARIES) libz libsync liblog libcutils
 
 # If Android version >=8 MESA should static link libexpat else should dynamic link
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 27; echo $$?), 0)

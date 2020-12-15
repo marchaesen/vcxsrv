@@ -44,7 +44,7 @@ asm = executable(
     afuc_parser,
   ],
   include_directories: [
-    inc_freedreno_rnn,
+    inc_freedreno_rnn, inc_include, inc_src, inc_util,
   ],
   link_with: [
     libfreedreno_rnn,
@@ -58,7 +58,7 @@ disasm = executable(
   'afuc-disasm',
   'disasm.c',
   include_directories: [
-    inc_freedreno_rnn,
+    inc_freedreno_rnn, inc_include, inc_src, inc_util,
   ],
   link_with: [
     libfreedreno_rnn,

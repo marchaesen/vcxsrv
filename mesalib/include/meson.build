@@ -96,7 +96,7 @@ if with_egl
   )
 endif
 
-if with_osmesa != 'none'
+if with_osmesa
   install_headers('GL/osmesa.h', subdir : 'GL')
 endif
 

@@ -402,13 +402,6 @@
     <value name="Counter" value="3"/>
   </enum>
 
-  <enum name="Sample Count">
-    <value name="Samples 1x" value="0"/>
-    <value name="Samples 4x" value="2"/>
-    <value name="Samples 8x" value="3"/>
-    <value name="Samples 16x" value="4"/>
-  </enum>
-
   <enum name="Stencil Op">
     <value name="Keep" value="0"/>
     <value name="Replace" value="1"/>
@@ -625,7 +618,7 @@
     <field name="Indices" size="64" start="4:0" type="address"/>
   </struct>
 
-  <struct name="Draw" size="32">
+  <struct name="Draw" size="30">
     <field name="Four Components Per Vertex" size="1" start="0:0" type="bool"/>
     <field name="Draw Descriptor Is 64b" size="1" start="0:1" type="bool"/>
     <field name="Texture Descriptor Is 64b" size="1" start="0:2" type="bool"/>
@@ -657,6 +650,9 @@
     <field name="FBD" size="64" start="28:0" type="address"/>
   </struct>
 
+  <struct name="Draw Padding" size="2">
+  </struct>
+
   <struct name="Midgard Sampler">
     <field name="Magnify Nearest" size="1" start="0" type="bool" default="true"/>
     <field name="Minify Nearest" size="1" start="1" type="bool" default="true"/>
@@ -679,14 +675,15 @@
   <struct name="Midgard Texture" size="8">
     <field name="Width" size="16" start="0:0" type="uint" modifier="minus(1)"/>
     <field name="Height" size="16" start="0:16" type="uint" modifier="minus(1)"/>
-    <field name="Depth" size="16" start="1:0" type="uint" modifier="minus(1)"/>
+    <field name="Depth" size="16" start="1:0" type="uint" modifier="minus(1)" default="1"/>
+    <field name="Sample count" size="16" start="1:0" type="uint" modifier="minus(1)" default="1"/>
     <field name="Array size" size="16" start="1:16" type="uint" modifier="minus(1)"/>
     <field name="Format" size="22" start="2:0" type="uint"/>
     <field name="Dimension" size="2" start="2:22" type="Texture Dimension"/>
     <field name="Texel ordering" size="4" start="2:24" type="Texture Layout"/>
-    <field name="Unknown" size="1" start="2:28" type="bool" default="true"/>
+    <field name="Surface pointer is 64b" size="1" start="2:28" type="bool" default="true"/>
     <field name="Manual stride" size="1" start="2:29" type="bool" default="false"/>
-    <field name="Levels" size="8" start="3:24" type="uint"/>
+    <field name="Levels" size="8" start="3:24" type="uint" modifier="minus(1)" default="1"/>
     <field name="Swizzle" size="12" start="4:0" type="uint"/>
   </struct>
 
@@ -729,13 +726,14 @@
     <field name="Height" size="16" start="1:16" type="uint" modifier="minus(1)"/>
     <field name="Swizzle" size="12" start="2:0" type="uint"/>
     <field name="Texel ordering" size="4" start="2:12" type="Texture Layout"/>
-    <field name="Levels" size="5" start="2:16" type="uint"/>
+    <field name="Levels" size="5" start="2:16" type="uint" default="1" modifier="minus(1)"/>
     <field name="Minimum level" size="5" start="2:24" type="uint"/>
     <field name="Minimum LOD" size="13" start="3:0" type="uint" default="0"/>
-    <field name="Multisample count" size="3" start="3:13" type="Sample Count" default="Samples 1x"/>
+    <field name="Sample count" size="3" start="3:13" type="uint" default="1" modifier="log2"/>
     <field name="Maximum LOD" size="13" start="3:16" type="uint" default="0"/>
     <field name="Surfaces" size="64" start="4:0" type="address"/>
     <field name="Array size" size="16" start="6:0" type="uint" modifier="minus(1)" default="1"/>
+    <field name="Depth" size="16" start="7:0" type="uint" modifier="minus(1)" default="1"/>
   </struct>
 
   <enum name="FP Mode">
@@ -1196,12 +1194,15 @@
     <field name="ZS Block Format" size="2" start="3:4" type="Block Format"/>
     <field name="ZS Block Format v7" size="2" start="3:4" type="Block Format v7"/>
     <field name="ZS MSAA" size="2" start="3:6" default="Single" type="MSAA"/>
+    <field name="ZS MSAA v7" size="2" start="3:8" default="Single" type="MSAA"/>
     <field name="ZS Big Endian" size="1" start="3:8" type="bool"/>
     <field name="ZS Clean Pixel Write Enable" size="1" start="3:10" type="bool"/>
     <field name="CRC Render Target" size="4" start="3:11" type="uint"/>
     <field name="S Write Format" size="4" start="3:16" type="S Format"/>
     <field name="S Block Format" size="2" start="3:20" type="Block Format"/>
+    <field name="S Block Format v7" size="4" start="3:20" type="Block Format v7"/>
     <field name="S MSAA" size="2" start="3:22" default="Single" type="MSAA"/>
+    <field name="S MSAA v7" size="2" start="3:24" default="Single" type="MSAA"/>
     <field name="ZS Preload Format" size="4" start="3:28" type="ZS Preload Format"/>
     <field name="ZS Writeback Base" size="64" start="4:0" type="address"/>
     <field name="ZS Writeback Row Stride" size="32" start="6:0" type="uint"/>
@@ -1491,6 +1492,7 @@
     <section name="Invocation" offset="32" type="Invocation"/>
     <section name="Parameters" offset="40" type="Compute Job Parameters"/>
     <section name="Draw" offset="64" type="Draw"/>
+    <section name="Draw Padding" offset="184" type="Draw Padding"/>
   </aggregate>
 
   <struct name="Primitive Size">
@@ -1517,5 +1519,6 @@
     <section name="Tiler" offset="72" type="Bifrost Tiler Pointer"/>
     <section name="Padding" offset="80" type="Bifrost Tiler Job Padding"/>
     <section name="Draw" offset="128" type="Draw"/>
+    <section name="Draw Padding" offset="248" type="Draw Padding"/>
   </aggregate>
 </panxml>

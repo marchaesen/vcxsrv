@@ -28,6 +28,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 
 
+--------------------------------------------------------------------------------
 fontconfig/fc-case/CaseFolding.txt
 
 © 2019 Unicode®, Inc.
@@ -35,6 +36,7 @@ Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U
 For terms of use, see http://www.unicode.org/terms_of_use.html
 
 
+--------------------------------------------------------------------------------
 fontconfig/src/fcatomic.h
 
 /*
@@ -69,6 +71,7 @@ fontconfig/src/fcatomic.h
  */
 
 
+--------------------------------------------------------------------------------
 fontconfig/src/fcfoundry.h
 
 /*
@@ -94,6 +97,7 @@ fontconfig/src/fcfoundry.h
 */
 
 
+--------------------------------------------------------------------------------
 fontconfig/src/fcmd5.h
 
 /*
@@ -114,6 +118,7 @@ fontconfig/src/fcmd5.h
  */
 
 
+--------------------------------------------------------------------------------
 fontconfig/src/fcmutex.h
 
 /*
@@ -148,6 +153,7 @@ fontconfig/src/fcmutex.h
  */
 
 
+--------------------------------------------------------------------------------
 fontconfig/src/ftglue.[ch]
 
 /* ftglue.c: Glue code for compiling the OpenType code from

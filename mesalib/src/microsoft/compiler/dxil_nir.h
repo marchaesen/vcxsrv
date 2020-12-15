@@ -32,6 +32,14 @@ bool dxil_nir_lower_8bit_conv(nir_shader *shader);
 bool dxil_nir_lower_16bit_conv(nir_shader *shader);
 bool dxil_nir_lower_x2b(nir_shader *shader);
 bool dxil_nir_lower_inot(nir_shader *shader);
+bool dxil_nir_lower_ubo_to_temp(nir_shader *shader);
+bool dxil_nir_lower_loads_stores_to_dxil(nir_shader *shader);
+bool dxil_nir_lower_atomics_to_dxil(nir_shader *shader);
+bool dxil_nir_lower_deref_ssbo(nir_shader *shader);
+bool dxil_nir_opt_alu_deref_srcs(nir_shader *shader);
+bool dxil_nir_lower_memcpy_deref(nir_shader *shader);
+bool dxil_nir_lower_upcast_phis(nir_shader *shader, unsigned min_bit_size);
+bool dxil_nir_lower_fp16_casts(nir_shader *shader);
 
 nir_ssa_def *
 build_load_ubo_dxil(nir_builder *b, nir_ssa_def *buffer,

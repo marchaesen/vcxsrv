@@ -87,7 +87,7 @@ get_named_matrix_stack(struct gl_context *ctx, GLenum mode, const char* caller)
          if (m <= ctx->Const.MaxProgramMatrices)
             return &ctx->ProgramMatrixStack[m];
       }
-      /* fallthrough */
+      FALLTHROUGH;
    default:
       break;
    }
@@ -322,11 +322,10 @@ push_matrix(struct gl_context *ctx, struct gl_matrix_stack *stack,
       stack->StackSize = new_stack_size;
    }
 
-   _math_matrix_copy( &stack->Stack[stack->Depth + 1],
-                      &stack->Stack[stack->Depth] );
+   _math_matrix_push_copy(&stack->Stack[stack->Depth + 1],
+                          &stack->Stack[stack->Depth]);
    stack->Depth++;
    stack->Top = &(stack->Stack[stack->Depth]);
-   ctx->NewState |= stack->DirtyFlag;
 }
 
 
@@ -372,8 +371,17 @@ pop_matrix( struct gl_context *ctx, struct gl_matrix_stack *stack )
       return GL_FALSE;
 
    stack->Depth--;
+
+   /* If the popped matrix is the same as the current one, treat it as
+    * a no-op change.
+    */
+   if (memcmp(stack->Top, &stack->Stack[stack->Depth],
+              sizeof(GLmatrix))) {
+      FLUSH_VERTICES(ctx, 0);
+      ctx->NewState |= stack->DirtyFlag;
+   }
+
    stack->Top = &(stack->Stack[stack->Depth]);
-   ctx->NewState |= stack->DirtyFlag;
    return GL_TRUE;
 }
 
@@ -392,8 +400,6 @@ _mesa_PopMatrix( void )
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_matrix_stack *stack = ctx->CurrentStack;
-
-   FLUSH_VERTICES(ctx, 0);
 
    if (MESA_VERBOSE&VERBOSE_API)
       _mesa_debug(ctx, "glPopMatrix %s\n",
@@ -554,7 +560,12 @@ static void
 matrix_mult(struct gl_matrix_stack *stack, const GLfloat *m, const char* caller)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (!m) return;
+   if (!m ||
+       (m[0]  == 1 && m[1]  == 0 && m[2]  == 0 && m[3]  == 0 &&
+        m[4]  == 0 && m[5]  == 1 && m[6]  == 0 && m[7]  == 0 &&
+        m[8]  == 0 && m[9]  == 0 && m[10] == 1 && m[11] == 0 &&
+        m[12] == 0 && m[13] == 0 && m[14] == 0 && m[15] == 1))
+      return;
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx,
           "%s(%f %f %f %f, %f %f %f %f, %f %f %f %f, %f %f %f %f\n",
@@ -1012,17 +1023,10 @@ init_matrix_stack(struct gl_matrix_stack *stack,
  * Free matrix stack.
  *
  * \param stack matrix stack.
- *
- * Calls _math_matrix_dtr() for each element of the matrix stack and
- * frees the array.
  */
 static void
 free_matrix_stack( struct gl_matrix_stack *stack )
 {
-   GLuint i;
-   for (i = 0; i < stack->StackSize; i++) {
-      _math_matrix_dtr(&stack->Stack[i]);
-   }
    free(stack->Stack);
    stack->Stack = stack->Top = NULL;
    stack->StackSize = 0;
@@ -1071,8 +1075,7 @@ void _mesa_init_matrix( struct gl_context * ctx )
  *
  * \param ctx GL context.
  *
- * Frees each of the matrix stacks and the combined modelview-projection
- * matrix.
+ * Frees each of the matrix stacks.
  */
 void _mesa_free_matrix_data( struct gl_context *ctx )
 {
@@ -1084,8 +1087,6 @@ void _mesa_free_matrix_data( struct gl_context *ctx )
       free_matrix_stack(&ctx->TextureMatrixStack[i]);
    for (i = 0; i < ARRAY_SIZE(ctx->ProgramMatrixStack); i++)
       free_matrix_stack(&ctx->ProgramMatrixStack[i]);
-   /* combined Modelview*Projection matrix */
-   _math_matrix_dtr( &ctx->_ModelProjectMatrix );
 
 }
 

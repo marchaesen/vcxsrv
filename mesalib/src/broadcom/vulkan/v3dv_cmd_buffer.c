@@ -26,6 +26,7 @@
 #include "util/half_float.h"
 #include "util/u_pack_color.h"
 #include "vk_format_info.h"
+#include "vk_util.h"
 
 const struct v3dv_dynamic_state default_dynamic_state = {
    .viewport = {
@@ -85,15 +86,15 @@ v3dv_CreateCommandPool(VkDevice _device,
    /* We only support one queue */
    assert(pCreateInfo->queueFamilyIndex == 0);
 
-   pool = vk_alloc2(&device->alloc, pAllocator, sizeof(*pool), 8,
-                     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   pool = vk_object_zalloc(&device->vk, pAllocator, sizeof(*pool),
+                           VK_OBJECT_TYPE_COMMAND_POOL);
    if (pool == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    if (pAllocator)
       pool->alloc = *pAllocator;
    else
-      pool->alloc = device->alloc;
+      pool->alloc = device->vk.alloc;
 
    list_inithead(&pool->cmd_buffers);
 
@@ -108,13 +109,13 @@ cmd_buffer_init(struct v3dv_cmd_buffer *cmd_buffer,
                 struct v3dv_cmd_pool *pool,
                 VkCommandBufferLevel level)
 {
-   /* Do not reset the loader data header! If we are calling this from
-    * a command buffer reset that would reset the loader's dispatch table for
-    * the command buffer.
+   /* Do not reset the base object! If we are calling this from a command
+    * buffer reset that would reset the loader's dispatch table for the
+    * command buffer, and any other relevant info from vk_object_base
     */
-   const uint32_t ld_size = sizeof(VK_LOADER_DATA);
-   uint8_t *cmd_buffer_driver_start = ((uint8_t *) cmd_buffer) + ld_size;
-   memset(cmd_buffer_driver_start, 0, sizeof(*cmd_buffer) - ld_size);
+   const uint32_t base_size = sizeof(struct vk_object_base);
+   uint8_t *cmd_buffer_driver_start = ((uint8_t *) cmd_buffer) + base_size;
+   memset(cmd_buffer_driver_start, 0, sizeof(*cmd_buffer) - base_size);
 
    cmd_buffer->device = device;
    cmd_buffer->pool = pool;
@@ -140,14 +141,14 @@ cmd_buffer_create(struct v3dv_device *device,
                   VkCommandBuffer *pCommandBuffer)
 {
    struct v3dv_cmd_buffer *cmd_buffer;
-   cmd_buffer = vk_alloc(&pool->alloc, sizeof(*cmd_buffer), 8,
-                         VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   cmd_buffer = vk_object_zalloc(&device->vk,
+                                 &pool->alloc,
+                                 sizeof(*cmd_buffer),
+                                 VK_OBJECT_TYPE_COMMAND_BUFFER);
    if (cmd_buffer == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    cmd_buffer_init(cmd_buffer, device, pool, level);
-
-   cmd_buffer->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
 
    *pCommandBuffer = v3dv_cmd_buffer_to_handle(cmd_buffer);
 
@@ -181,17 +182,17 @@ job_destroy_cloned_gpu_cl_resources(struct v3dv_job *job)
 
    list_for_each_entry_safe(struct v3dv_bo, bo, &job->bcl.bo_list, list_link) {
       list_del(&bo->list_link);
-      vk_free(&job->device->alloc, bo);
+      vk_free(&job->device->vk.alloc, bo);
    }
 
    list_for_each_entry_safe(struct v3dv_bo, bo, &job->rcl.bo_list, list_link) {
       list_del(&bo->list_link);
-      vk_free(&job->device->alloc, bo);
+      vk_free(&job->device->vk.alloc, bo);
    }
 
    list_for_each_entry_safe(struct v3dv_bo, bo, &job->indirect.bo_list, list_link) {
       list_del(&bo->list_link);
-      vk_free(&job->device->alloc, bo);
+      vk_free(&job->device->vk.alloc, bo);
    }
 }
 
@@ -214,7 +215,7 @@ job_destroy_cpu_wait_events_resources(struct v3dv_job *job)
 {
    assert(job->type == V3DV_JOB_TYPE_CPU_WAIT_EVENTS);
    assert(job->cmd_buffer);
-   vk_free(&job->cmd_buffer->device->alloc, job->cpu.event_wait.events);
+   vk_free(&job->cmd_buffer->device->vk.alloc, job->cpu.event_wait.events);
 }
 
 static void
@@ -260,7 +261,7 @@ v3dv_job_destroy(struct v3dv_job *job)
          job_destroy_cloned_gpu_cl_resources(job);
    }
 
-   vk_free(&job->device->alloc, job);
+   vk_free(&job->device->vk.alloc, job);
 }
 
 void
@@ -269,7 +270,7 @@ v3dv_cmd_buffer_add_private_obj(struct v3dv_cmd_buffer *cmd_buffer,
                                 v3dv_cmd_buffer_private_obj_destroy_cb destroy_cb)
 {
    struct v3dv_cmd_buffer_private_obj *pobj =
-      vk_alloc(&cmd_buffer->device->alloc, sizeof(*pobj), 8,
+      vk_alloc(&cmd_buffer->device->vk.alloc, sizeof(*pobj), 8,
                VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    if (!pobj) {
       v3dv_flag_oom(cmd_buffer, NULL);
@@ -289,9 +290,9 @@ cmd_buffer_destroy_private_obj(struct v3dv_cmd_buffer *cmd_buffer,
    assert(pobj && pobj->obj && pobj->destroy_cb);
    pobj->destroy_cb(v3dv_device_to_handle(cmd_buffer->device),
                     pobj->obj,
-                    &cmd_buffer->device->alloc);
+                    &cmd_buffer->device->vk.alloc);
    list_del(&pobj->list_link);
-   vk_free(&cmd_buffer->device->alloc, pobj);
+   vk_free(&cmd_buffer->device->vk.alloc, pobj);
 }
 
 static void
@@ -309,7 +310,7 @@ cmd_buffer_free_resources(struct v3dv_cmd_buffer *cmd_buffer)
       vk_free(&cmd_buffer->pool->alloc, cmd_buffer->state.attachments);
 
    if (cmd_buffer->state.query.end.alloc_count > 0)
-      vk_free(&cmd_buffer->device->alloc, cmd_buffer->state.query.end.states);
+      vk_free(&cmd_buffer->device->vk.alloc, cmd_buffer->state.query.end.states);
 
    if (cmd_buffer->push_constants_resource.bo)
       v3dv_bo_free(cmd_buffer->device, cmd_buffer->push_constants_resource.bo);
@@ -321,7 +322,7 @@ cmd_buffer_free_resources(struct v3dv_cmd_buffer *cmd_buffer)
 
    if (cmd_buffer->state.meta.attachments) {
          assert(cmd_buffer->state.meta.attachment_alloc_count > 0);
-         vk_free(&cmd_buffer->device->alloc, cmd_buffer->state.meta.attachments);
+         vk_free(&cmd_buffer->device->vk.alloc, cmd_buffer->state.meta.attachments);
    }
 }
 
@@ -330,7 +331,7 @@ cmd_buffer_destroy(struct v3dv_cmd_buffer *cmd_buffer)
 {
    list_del(&cmd_buffer->pool_link);
    cmd_buffer_free_resources(cmd_buffer);
-   vk_free(&cmd_buffer->pool->alloc, cmd_buffer);
+   vk_object_free(&cmd_buffer->device->vk, &cmd_buffer->pool->alloc, cmd_buffer);
 }
 
 void
@@ -636,7 +637,7 @@ v3dv_cmd_buffer_create_cpu_job(struct v3dv_device *device,
                                struct v3dv_cmd_buffer *cmd_buffer,
                                uint32_t subpass_idx)
 {
-   struct v3dv_job *job = vk_zalloc(&device->alloc,
+   struct v3dv_job *job = vk_zalloc(&device->vk.alloc,
                                     sizeof(struct v3dv_job), 8,
                                     VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    if (!job) {
@@ -857,7 +858,7 @@ v3dv_cmd_buffer_start_job(struct v3dv_cmd_buffer *cmd_buffer,
       v3dv_cmd_buffer_finish_job(cmd_buffer);
 
    assert(cmd_buffer->state.job == NULL);
-   struct v3dv_job *job = vk_zalloc(&cmd_buffer->device->alloc,
+   struct v3dv_job *job = vk_zalloc(&cmd_buffer->device->vk.alloc,
                                     sizeof(struct v3dv_job), 8,
                                     VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
 
@@ -960,7 +961,7 @@ v3dv_DestroyCommandPool(VkDevice _device,
       cmd_buffer_destroy(cmd_buffer);
    }
 
-   vk_free2(&device->alloc, pAllocator, pool);
+   vk_object_free(&device->vk, pAllocator, pool);
 }
 
 void
@@ -1351,12 +1352,12 @@ cmd_buffer_ensure_render_pass_attachment_state(struct v3dv_cmd_buffer *cmd_buffe
    if (state->attachment_alloc_count < pass->attachment_count) {
       if (state->attachments > 0) {
          assert(state->attachment_alloc_count > 0);
-         vk_free(&cmd_buffer->device->alloc, state->attachments);
+         vk_free(&cmd_buffer->device->vk.alloc, state->attachments);
       }
 
       uint32_t size = sizeof(struct v3dv_cmd_buffer_attachment_state) *
                       pass->attachment_count;
-      state->attachments = vk_zalloc(&cmd_buffer->device->alloc, size, 8,
+      state->attachments = vk_zalloc(&cmd_buffer->device->vk.alloc, size, 8,
                                      VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
       if (!state->attachments) {
          v3dv_flag_oom(cmd_buffer, NULL);
@@ -2473,7 +2474,7 @@ clone_bo_list(struct v3dv_cmd_buffer *cmd_buffer,
    list_inithead(dst);
    list_for_each_entry(struct v3dv_bo, bo, src, list_link) {
       struct v3dv_bo *clone_bo =
-         vk_alloc(&cmd_buffer->device->alloc, sizeof(struct v3dv_bo), 8,
+         vk_alloc(&cmd_buffer->device->vk.alloc, sizeof(struct v3dv_bo), 8,
                   VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
       if (!clone_bo) {
          v3dv_flag_oom(cmd_buffer, NULL);
@@ -2495,7 +2496,7 @@ static struct v3dv_job *
 job_clone_in_cmd_buffer(struct v3dv_job *job,
                         struct v3dv_cmd_buffer *cmd_buffer)
 {
-   struct v3dv_job *clone_job = vk_alloc(&job->device->alloc,
+   struct v3dv_job *clone_job = vk_alloc(&job->device->vk.alloc,
                                          sizeof(struct v3dv_job), 8,
                                          VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    if (!clone_job) {
@@ -3506,6 +3507,22 @@ emit_configuration_bits(struct v3dv_cmd_buffer *cmd_buffer)
 }
 
 static void
+update_uniform_state(struct v3dv_cmd_buffer *cmd_buffer)
+{
+   struct v3dv_pipeline *pipeline = cmd_buffer->state.pipeline;
+   assert(pipeline);
+
+   cmd_buffer->state.uniforms.fs =
+      v3dv_write_uniforms(cmd_buffer, pipeline->fs);
+
+   cmd_buffer->state.uniforms.vs =
+      v3dv_write_uniforms(cmd_buffer, pipeline->vs);
+
+   cmd_buffer->state.uniforms.vs_bin =
+      v3dv_write_uniforms(cmd_buffer, pipeline->vs_bin);
+}
+
+static void
 emit_gl_shader_state(struct v3dv_cmd_buffer *cmd_buffer)
 {
    struct v3dv_job *job = cmd_buffer->state.job;
@@ -3514,16 +3531,6 @@ emit_gl_shader_state(struct v3dv_cmd_buffer *cmd_buffer)
    struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
    struct v3dv_pipeline *pipeline = state->pipeline;
    assert(pipeline);
-
-   /* Upload the uniforms to the indirect CL first */
-   struct v3dv_cl_reloc fs_uniforms =
-      v3dv_write_uniforms(cmd_buffer, pipeline->fs);
-
-   struct v3dv_cl_reloc vs_uniforms =
-      v3dv_write_uniforms(cmd_buffer, pipeline->vs);
-
-   struct v3dv_cl_reloc vs_bin_uniforms =
-      v3dv_write_uniforms(cmd_buffer, pipeline->vs_bin);
 
    /* Update the cache dirty flag based on the shader progs data */
    job->tmu_dirty_rcl |= pipeline->vs_bin->current_variant->prog_data.vs->base.tmu_dirty_rcl;
@@ -3561,9 +3568,9 @@ emit_gl_shader_state(struct v3dv_cmd_buffer *cmd_buffer)
       shader.fragment_shader_code_address =
          v3dv_cl_address(pipeline->fs->current_variant->assembly_bo, 0);
 
-      shader.coordinate_shader_uniforms_address = vs_bin_uniforms;
-      shader.vertex_shader_uniforms_address = vs_uniforms;
-      shader.fragment_shader_uniforms_address = fs_uniforms;
+      shader.coordinate_shader_uniforms_address = cmd_buffer->state.uniforms.vs_bin;
+      shader.vertex_shader_uniforms_address = cmd_buffer->state.uniforms.vs;
+      shader.fragment_shader_uniforms_address = cmd_buffer->state.uniforms.fs;
 
       shader.address_of_default_attribute_values =
          v3dv_cl_address(pipeline->default_attribute_values, 0);
@@ -3719,9 +3726,9 @@ v3dv_cmd_buffer_meta_state_push(struct v3dv_cmd_buffer *cmd_buffer,
          attachment_state_item_size * state->attachment_alloc_count;
       if (state->meta.attachment_alloc_count < state->attachment_alloc_count) {
          if (state->meta.attachment_alloc_count > 0)
-            vk_free(&cmd_buffer->device->alloc, state->meta.attachments);
+            vk_free(&cmd_buffer->device->vk.alloc, state->meta.attachments);
 
-         state->meta.attachments = vk_zalloc(&cmd_buffer->device->alloc,
+         state->meta.attachments = vk_zalloc(&cmd_buffer->device->vk.alloc,
                                              attachment_state_total_size, 8,
                                              VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
          if (!state->meta.attachments) {
@@ -4002,7 +4009,7 @@ cmd_buffer_restart_job_for_msaa_if_needed(struct v3dv_cmd_buffer *cmd_buffer)
    struct v3dv_job *old_job = cmd_buffer->state.job;
    cmd_buffer->state.job = NULL;
 
-   struct v3dv_job *job = vk_zalloc(&cmd_buffer->device->alloc,
+   struct v3dv_job *job = vk_zalloc(&cmd_buffer->device->vk.alloc,
                                     sizeof(struct v3dv_job), 8,
                                     VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    if (!job) {
@@ -4058,13 +4065,16 @@ cmd_buffer_emit_pre_draw(struct v3dv_cmd_buffer *cmd_buffer)
     * that will require that we new uniform state for QUNIFORM_VIEWPORT_*.
     */
    uint32_t *dirty = &cmd_buffer->state.dirty;
-   if (*dirty & (V3DV_CMD_DIRTY_PIPELINE |
-                 V3DV_CMD_DIRTY_VERTEX_BUFFER |
-                 V3DV_CMD_DIRTY_DESCRIPTOR_SETS |
-                 V3DV_CMD_DIRTY_PUSH_CONSTANTS |
-                 V3DV_CMD_DIRTY_VIEWPORT)) {
+
+   const bool dirty_uniforms = *dirty & (V3DV_CMD_DIRTY_PIPELINE |
+                                         V3DV_CMD_DIRTY_PUSH_CONSTANTS |
+                                         V3DV_CMD_DIRTY_DESCRIPTOR_SETS |
+                                         V3DV_CMD_DIRTY_VIEWPORT);
+   if (dirty_uniforms)
+      update_uniform_state(cmd_buffer);
+
+   if (dirty_uniforms || (*dirty & V3DV_CMD_DIRTY_VERTEX_BUFFER))
       emit_gl_shader_state(cmd_buffer);
-   }
 
    if (*dirty & (V3DV_CMD_DIRTY_PIPELINE)) {
       emit_configuration_bits(cmd_buffer);
@@ -4527,10 +4537,10 @@ v3dv_CmdPushConstants(VkCommandBuffer commandBuffer,
 {
    V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
 
-   if (!memcmp(cmd_buffer->push_constants_data + offset, pValues, size))
+   if (!memcmp((uint8_t *) cmd_buffer->push_constants_data + offset, pValues, size))
       return;
 
-   memcpy((void*) cmd_buffer->push_constants_data + offset, pValues, size);
+   memcpy((uint8_t *) cmd_buffer->push_constants_data + offset, pValues, size);
 
    cmd_buffer->state.dirty |= V3DV_CMD_DIRTY_PUSH_CONSTANTS;
 }
@@ -4594,7 +4604,7 @@ ensure_array_state(struct v3dv_cmd_buffer *cmd_buffer,
 
       const uint32_t new_slot_count = MAX2(*alloc_count * 2, 4);
       const uint32_t bytes = new_slot_count * slot_size;
-      *ptr = vk_alloc(&cmd_buffer->device->alloc, bytes, 8,
+      *ptr = vk_alloc(&cmd_buffer->device->vk.alloc, bytes, 8,
                       VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
       if (*ptr == NULL) {
          fprintf(stderr, "Error: failed to allocate CPU buffer for query.\n");
@@ -4706,7 +4716,7 @@ v3dv_cmd_buffer_add_tfu_job(struct v3dv_cmd_buffer *cmd_buffer,
                             struct drm_v3d_submit_tfu *tfu)
 {
    struct v3dv_device *device = cmd_buffer->device;
-   struct v3dv_job *job = vk_zalloc(&device->alloc,
+   struct v3dv_job *job = vk_zalloc(&device->vk.alloc,
                                     sizeof(struct v3dv_job), 8,
                                     VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    if (!job) {
@@ -4797,7 +4807,7 @@ v3dv_CmdWaitEvents(VkCommandBuffer commandBuffer,
    const uint32_t event_list_size = sizeof(struct v3dv_event *) * eventCount;
 
    job->cpu.event_wait.events =
-      vk_alloc(&cmd_buffer->device->alloc, event_list_size, 8,
+      vk_alloc(&cmd_buffer->device->vk.alloc, event_list_size, 8,
                VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    if (!job->cpu.event_wait.events) {
       v3dv_flag_oom(cmd_buffer, NULL);
@@ -4939,7 +4949,7 @@ cmd_buffer_create_csd_job(struct v3dv_cmd_buffer *cmd_buffer,
    struct v3dv_pipeline *pipeline = cmd_buffer->state.pipeline;
    assert(pipeline && pipeline->cs && pipeline->cs->nir);
 
-   struct v3dv_job *job = vk_zalloc(&cmd_buffer->device->alloc,
+   struct v3dv_job *job = vk_zalloc(&cmd_buffer->device->vk.alloc,
                                     sizeof(struct v3dv_job), 8,
                                     VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    if (!job) {

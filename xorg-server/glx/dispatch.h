@@ -65,7 +65,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1643
+#define _gloffset_COUNT 1644
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -475,7 +475,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 1235
+#define driDispatchRemapTable_size 1236
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1713,6 +1713,7 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define FogCoordhvNV_remap_index 1232
 #define SecondaryColor3hNV_remap_index 1233
 #define SecondaryColor3hvNV_remap_index 1234
+#define InternalSetError_remap_index 1235
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2949,6 +2950,7 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_FogCoordhvNV driDispatchRemapTable[FogCoordhvNV_remap_index]
 #define _gloffset_SecondaryColor3hNV driDispatchRemapTable[SecondaryColor3hNV_remap_index]
 #define _gloffset_SecondaryColor3hvNV driDispatchRemapTable[SecondaryColor3hvNV_remap_index]
+#define _gloffset_InternalSetError driDispatchRemapTable[InternalSetError_remap_index]
 
 typedef void (GLAPIENTRYP _glptr_NewList)(GLuint, GLenum);
 #define CALL_NewList(disp, parameters) \
@@ -21021,6 +21023,17 @@ static INLINE _glptr_SecondaryColor3hvNV GET_SecondaryColor3hvNV(struct _glapi_t
 
 static INLINE void SET_SecondaryColor3hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(const GLhalfNV *)) {
    SET_by_offset(disp, _gloffset_SecondaryColor3hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_InternalSetError)(GLenum);
+#define CALL_InternalSetError(disp, parameters) \
+    (* GET_InternalSetError(disp)) parameters
+static INLINE _glptr_InternalSetError GET_InternalSetError(struct _glapi_table *disp) {
+   return (_glptr_InternalSetError) (GET_by_offset(disp, _gloffset_InternalSetError));
+}
+
+static INLINE void SET_InternalSetError(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum)) {
+   SET_by_offset(disp, _gloffset_InternalSetError, fn);
 }
 
 

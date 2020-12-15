@@ -389,14 +389,14 @@ xf86Int10FreePages(xf86Int10InfoPtr pInt, void *pbase, int num)
 
 #define VRAM(addr) ((addr >= V_RAM) && (addr < (V_RAM + VRAM_SIZE)))
 #define V_ADDR_RB(addr) \
-	(VRAM(addr)) ? MMIO_IN8((uint8_t*)VRAM_BASE,VRAM_ADDR(addr)) \
-	   : *(uint8_t*) V_ADDR(addr)
+	((VRAM(addr)) ? MMIO_IN8((uint8_t*)VRAM_BASE,VRAM_ADDR(addr)) \
+	   : *(uint8_t*) V_ADDR(addr))
 #define V_ADDR_RW(addr) \
-	(VRAM(addr)) ? MMIO_IN16((uint16_t*)VRAM_BASE,VRAM_ADDR(addr)) \
-	   : ldw_u((void *)V_ADDR(addr))
+	((VRAM(addr)) ? MMIO_IN16((uint16_t*)VRAM_BASE,VRAM_ADDR(addr)) \
+	   : ldw_u((void *)V_ADDR(addr)))
 #define V_ADDR_RL(addr) \
-	(VRAM(addr)) ? MMIO_IN32((uint32_t*)VRAM_BASE,VRAM_ADDR(addr)) \
-	   : ldl_u((void *)V_ADDR(addr))
+	((VRAM(addr)) ? MMIO_IN32((uint32_t*)VRAM_BASE,VRAM_ADDR(addr)) \
+	   : ldl_u((void *)V_ADDR(addr)))
 
 #define V_ADDR_WB(addr,val) \
 	if(VRAM(addr)) \

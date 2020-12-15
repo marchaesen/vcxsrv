@@ -48,6 +48,9 @@ struct ntt_compile {
 
    unsigned loop_label;
 
+   /* if condition set up at the end of a block, for ntt_emit_if(). */
+   struct ureg_src if_cond;
+
    /* TGSI temps for our NIR SSA and register values. */
    struct ureg_dst *reg_temp;
    struct ureg_dst *ssa_temp;
@@ -2046,7 +2049,7 @@ static void
 ntt_emit_if(struct ntt_compile *c, nir_if *if_stmt)
 {
    unsigned label;
-   ureg_UIF(c->ureg, ntt_get_src(c, if_stmt->condition), &label);
+   ureg_UIF(c->ureg, c->if_cond, &label);
    ntt_emit_cf_list(c, &if_stmt->then_list);
 
    if (!exec_list_is_empty(&if_stmt->else_list)) {
@@ -2116,6 +2119,15 @@ ntt_emit_block(struct ntt_compile *c, nir_block *block)
       nir_foreach_src(instr, ntt_src_live_interval_end_cb, c);
    }
 
+   /* Set up the if condition for ntt_emit_if(), which we have to do before
+    * freeing up the temps (the "if" is treated as inside the block for liveness
+    * purposes, despite not being an instruction)
+    */
+   nir_if *nif = nir_block_get_following_if(block);
+   if (nif)
+      c->if_cond = ntt_get_src(c, nif->condition);
+
+   /* Free up any SSA temps that are unused at the end of the block. */
    unsigned index;
    BITSET_FOREACH_SET(index, block->live_out, BITSET_WORDS(c->impl->ssa_alloc)) {
       unsigned def_end_ip = c->liveness->defs[index].end;
@@ -2155,14 +2167,6 @@ ntt_emit_cf_list(struct ntt_compile *c, struct exec_list *list)
 static void
 ntt_emit_impl(struct ntt_compile *c, nir_function_impl *impl)
 {
-   /* reindex values so the numbers are reasonably small despite
-    * optimization having deleted most of them.
-    */
-   nir_index_ssa_defs(impl);
-   nir_index_local_regs(impl);
-
-   nir_index_instrs(impl);
-
    c->impl = impl;
    c->liveness = nir_live_ssa_defs_per_instr(impl);
 

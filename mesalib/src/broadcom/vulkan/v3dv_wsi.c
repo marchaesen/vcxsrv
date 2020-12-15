@@ -182,7 +182,9 @@ VkResult v3dv_CreateSwapchainKHR(
    struct v3dv_physical_device *pdevice = &instance->physicalDevice;
    struct wsi_device *wsi_device = &pdevice->wsi_device;
 
-   VkResult result = v3dv_physical_device_acquire_display(instance, pdevice);
+   ICD_FROM_HANDLE(VkIcdSurfaceBase, surface, pCreateInfo->surface);
+   VkResult result =
+      v3dv_physical_device_acquire_display(instance, pdevice, surface);
    if (result != VK_SUCCESS)
       return result;
 
@@ -190,7 +192,7 @@ VkResult v3dv_CreateSwapchainKHR(
    if (pAllocator)
      alloc = pAllocator;
    else
-     alloc = &device->alloc;
+     alloc = &device->vk.alloc;
 
    return wsi_common_create_swapchain(wsi_device, _device,
                                       pCreateInfo, alloc, pSwapchain);
@@ -207,7 +209,7 @@ void v3dv_DestroySwapchainKHR(
    if (pAllocator)
      alloc = pAllocator;
    else
-     alloc = &device->alloc;
+     alloc = &device->vk.alloc;
 
    wsi_common_destroy_swapchain(_device, swapchain, alloc);
 }

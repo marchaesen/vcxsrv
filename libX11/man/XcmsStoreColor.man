@@ -96,7 +96,7 @@ structure into RGB values.
 It then uses this RGB specification in an
 .B XColor
 structure, whose three flags
-.Pn ( DoRed ,
+.RB ( DoRed ,
 .BR DoGreen ,
 and
 .BR DoBlue )
@@ -145,7 +145,7 @@ function converts the colors specified in the array of
 structures into RGB values and then uses these RGB specifications in
 .B XColor
 structures, whose three flags
-.Pn ( DoRed ,
+.RB ( DoRed ,
 .BR DoGreen ,
 and
 .BR DoBlue )

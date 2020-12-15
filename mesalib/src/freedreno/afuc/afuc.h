@@ -24,6 +24,8 @@
 #ifndef _AFUC_H_
 #define _AFUC_H_
 
+#include "util/macros.h"
+
 /*
 TODO kernel debugfs to inject packet into rb for easier experimentation.  It
 should trigger reloading pfp/me and resetting gpu..
@@ -33,9 +35,6 @@ should be restricted to CAP_ADMIN and probably compile option too (default=n).
 if flag set, copy cmdstream bo contents into RB instead of IB'ing to it from
 RB.
  */
-
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
-#define PACKED __attribute__((__packed__))
 
 /* The opcode is encoded variable length.  Opcodes less than 0x30
  * are encoded as 5 bits followed by (rep) flag.  Opcodes >= 0x30

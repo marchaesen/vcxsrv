@@ -50,7 +50,7 @@
 XAnyEvent, XEvent \- generic X event structures
 .SH STRUCTURES
 All the event structures declared in
-.Pn < X11/Xlib.h >
+.RB < X11/Xlib.h >
 have the following common members:
 .EX
 typedef struct {

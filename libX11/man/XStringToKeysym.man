@@ -78,7 +78,7 @@ Specifies the name of the KeySym that is to be converted.
 Returns the uppercase form of keysym, or keysym.
 .SH DESCRIPTION
 Standard KeySym names are obtained from
-.hN X11/keysymdef.h
+.B X11/keysymdef.h
 by removing the XK_ prefix from each name.
 KeySyms that are not part of the Xlib standard also may be obtained
 with this function.

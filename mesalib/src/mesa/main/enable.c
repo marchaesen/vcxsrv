@@ -47,11 +47,31 @@
 void
 _mesa_update_derived_primitive_restart_state(struct gl_context *ctx)
 {
-   ctx->Array._PrimitiveRestart = ctx->Array.PrimitiveRestart ||
-                                  ctx->Array.PrimitiveRestartFixedIndex;
-   ctx->Array._RestartIndex[0] = _mesa_primitive_restart_index(ctx, 1);
-   ctx->Array._RestartIndex[1] = _mesa_primitive_restart_index(ctx, 2);
-   ctx->Array._RestartIndex[3] = _mesa_primitive_restart_index(ctx, 4);
+   if (ctx->Array.PrimitiveRestart ||
+       ctx->Array.PrimitiveRestartFixedIndex) {
+      unsigned restart_index[3] = {
+         _mesa_primitive_restart_index(ctx, 1),
+         _mesa_primitive_restart_index(ctx, 2),
+         _mesa_primitive_restart_index(ctx, 4),
+      };
+
+      ctx->Array._RestartIndex[0] = restart_index[0];
+      ctx->Array._RestartIndex[1] = restart_index[1];
+      ctx->Array._RestartIndex[2] = restart_index[2];
+
+      /* Enable primitive restart only when the restart index can have an
+       * effect. This is required for correctness in AMD GFX8 support.
+       * Other hardware may also benefit from taking a faster, non-restart path
+       * when possible.
+       */
+      ctx->Array._PrimitiveRestart[0] = true && restart_index[0] <= UINT8_MAX;
+      ctx->Array._PrimitiveRestart[1] = true && restart_index[1] <= UINT16_MAX;
+      ctx->Array._PrimitiveRestart[2] = true;
+   } else {
+      ctx->Array._PrimitiveRestart[0] = false;
+      ctx->Array._PrimitiveRestart[1] = false;
+      ctx->Array._PrimitiveRestart[2] = false;
+   }
 }
 
 
@@ -117,7 +137,6 @@ client_state(struct gl_context *ctx, struct gl_vertex_array_object* vao,
          if (ctx->Array.PrimitiveRestart == state)
             return;
 
-         FLUSH_VERTICES(ctx, 0);
          ctx->Array.PrimitiveRestart = state;
          _mesa_update_derived_primitive_restart_state(ctx);
          return;
@@ -1028,11 +1047,10 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          ctx->Transform.RasterPositionUnclipped = state;
          break;
 
-      /* GL_NV_point_sprite */
-      case GL_POINT_SPRITE_NV:
+      /* GL_ARB_point_sprite */
+      case GL_POINT_SPRITE:
          if (!(ctx->API == API_OPENGL_COMPAT &&
-               (_mesa_has_ARB_point_sprite(ctx) ||
-                _mesa_has_NV_point_sprite(ctx))) &&
+               _mesa_has_ARB_point_sprite(ctx)) &&
              !_mesa_has_OES_point_sprite(ctx))
             goto invalid_enum_error;
          if (ctx->Point.PointSprite == state)
@@ -1218,7 +1236,6 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          }
          if (ctx->Array.PrimitiveRestart != state) {
-            FLUSH_VERTICES(ctx, 0);
             ctx->Array.PrimitiveRestart = state;
             _mesa_update_derived_primitive_restart_state(ctx);
          }
@@ -1228,7 +1245,6 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          if (!_mesa_is_gles3(ctx) && !_mesa_has_ARB_ES3_compatibility(ctx))
             goto invalid_enum_error;
          if (ctx->Array.PrimitiveRestartFixedIndex != state) {
-            FLUSH_VERTICES(ctx, 0);
             ctx->Array.PrimitiveRestartFixedIndex = state;
             _mesa_update_derived_primitive_restart_state(ctx);
          }
@@ -1807,11 +1823,10 @@ _mesa_IsEnabled( GLenum cap )
             goto invalid_enum_error;
          return ctx->Transform.RasterPositionUnclipped;
 
-      /* GL_NV_point_sprite */
-      case GL_POINT_SPRITE_NV:
+      /* GL_ARB_point_sprite */
+      case GL_POINT_SPRITE:
          if (!(ctx->API == API_OPENGL_COMPAT &&
-               (_mesa_has_ARB_point_sprite(ctx) ||
-                _mesa_has_NV_point_sprite(ctx))) &&
+               _mesa_has_ARB_point_sprite(ctx)) &&
              !_mesa_has_OES_point_sprite(ctx))
             goto invalid_enum_error;
          return ctx->Point.PointSprite;

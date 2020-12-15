@@ -67,11 +67,10 @@ os_time_get_nano(void)
 
 #elif DETECT_OS_WINDOWS
 
-   static LARGE_INTEGER frequency;
+   LARGE_INTEGER frequency;
    LARGE_INTEGER counter;
    int64_t secs, nanosecs;
-   if(!frequency.QuadPart)
-      QueryPerformanceFrequency(&frequency);
+   QueryPerformanceFrequency(&frequency);
    QueryPerformanceCounter(&counter);
    /* Compute seconds and nanoseconds parts separately to
     * reduce severity of precision loss.

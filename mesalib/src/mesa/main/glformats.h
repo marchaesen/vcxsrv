@@ -30,6 +30,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <GL/gl.h>
 
 

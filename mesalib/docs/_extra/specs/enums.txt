@@ -11,8 +11,6 @@ GL blocks allocated to Mesa:
        0x8BB0-0x8BBF
 
 Unused EGL blocks allocated to Mesa:
-       0x31DC
-       0x31DE
        0x31DF
        0x3290-0x329F
 
@@ -102,3 +100,8 @@ EGL_WL_bind_wayland_display
         EGL_TEXTURE_Y_UV_WL                     0x31D8
         EGL_TEXTURE_Y_XUXV_WL                   0x31D9
         EGL_WAYLAND_Y_INVERTED_WL               0x31DB
+
+EGL_MESA_platform_xcb
+
+        EGL_PLATFORM_XCB_EXT                    0x31DC
+        EGL_PLATFORM_XCB_SCREEN_EXT             0x31DE

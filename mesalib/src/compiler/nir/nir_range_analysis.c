@@ -864,6 +864,7 @@ analyze_expression(const nir_alu_instr *instr, unsigned src,
 
       case eq_zero:
          assert(r.is_integral);
+         FALLTHROUGH;
       case gt_zero:
       case ge_zero:
          /* The fsat doesn't add any information in these cases. */
@@ -1102,6 +1103,7 @@ static uint64_t mul_clamp(uint32_t a, uint32_t b)
       return a * b;
 }
 
+/* recursively gather at most "buf_size" phi/bcsel sources */
 static unsigned
 search_phi_bcsel(nir_ssa_scalar scalar, nir_ssa_scalar *buf, unsigned buf_size, struct set *visited)
 {
@@ -1112,15 +1114,18 @@ search_phi_bcsel(nir_ssa_scalar scalar, nir_ssa_scalar *buf, unsigned buf_size, 
    if (scalar.def->parent_instr->type == nir_instr_type_phi) {
       nir_phi_instr *phi = nir_instr_as_phi(scalar.def->parent_instr);
       unsigned num_sources_left = exec_list_length(&phi->srcs);
-      unsigned total_added = 0;
-      nir_foreach_phi_src(src, phi) {
-         unsigned added = search_phi_bcsel(
-            (nir_ssa_scalar){src->src.ssa, 0}, buf + total_added, buf_size - num_sources_left, visited);
-         buf_size -= added;
-         total_added += added;
-         num_sources_left--;
+      if (buf_size >= num_sources_left) {
+         unsigned total_added = 0;
+         nir_foreach_phi_src(src, phi) {
+            num_sources_left--;
+            unsigned added = search_phi_bcsel(
+               (nir_ssa_scalar){src->src.ssa, 0}, buf + total_added, buf_size - num_sources_left, visited);
+            assert(added <= buf_size);
+            buf_size -= added;
+            total_added += added;
+         }
+         return total_added;
       }
-      return total_added;
    }
 
    if (nir_ssa_scalar_is_alu(scalar)) {

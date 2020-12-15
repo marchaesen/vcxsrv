@@ -101,6 +101,12 @@ os_get_total_physical_memory(uint64_t *size);
 bool
 os_get_available_system_memory(uint64_t *size);
 
+/*
+ * Size of a page
+ */
+bool
+os_get_page_size(uint64_t *size);
+
 
 #ifdef	__cplusplus
 }

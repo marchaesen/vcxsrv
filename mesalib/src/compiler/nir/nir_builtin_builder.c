@@ -76,15 +76,37 @@ nir_nextafter(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y)
    nir_ssa_def *conddir = nir_flt(b, x, y);
    nir_ssa_def *condzero = nir_feq(b, x, zero);
 
+   uint64_t sign_mask = 1 << (x->bit_size - 1);
+   uint64_t min_abs = 1;
+
+   if (nir_is_denorm_flush_to_zero(b->shader->info.float_controls_execution_mode, x->bit_size)) {
+      switch (x->bit_size) {
+      case 16:
+         min_abs = 1 << 10;
+         break;
+      case 32:
+         min_abs = 1 << 23;
+         break;
+      case 64:
+         min_abs = 1ULL << 52;
+         break;
+      }
+
+      /* Flush denorm to zero to avoid returning a denorm when condeq is true. */
+      x = nir_fmul(b, x, nir_imm_floatN_t(b, 1.0, x->bit_size));
+   }
+
    /* beware of: +/-0.0 - 1 == NaN */
    nir_ssa_def *xn =
       nir_bcsel(b,
                 condzero,
-                nir_imm_intN_t(b, (1 << (x->bit_size - 1)) + 1, x->bit_size),
+                nir_imm_intN_t(b, sign_mask | min_abs, x->bit_size),
                 nir_isub(b, x, one));
 
    /* beware of -0.0 + 1 == -0x1p-149 */
-   nir_ssa_def *xp = nir_bcsel(b, condzero, one, nir_iadd(b, x, one));
+   nir_ssa_def *xp = nir_bcsel(b, condzero,
+                               nir_imm_intN_t(b, min_abs, x->bit_size),
+                               nir_iadd(b, x, one));
 
    /* nextafter can be implemented by just +/- 1 on the int value */
    nir_ssa_def *res =

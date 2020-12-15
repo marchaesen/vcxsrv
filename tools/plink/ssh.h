@@ -997,6 +997,8 @@ extern const ssh_kex ssh_ec_kex_nistp521;
 extern const ssh_kexes ssh_ecdh_kex;
 extern const ssh_keyalg ssh_dss;
 extern const ssh_keyalg ssh_rsa;
+extern const ssh_keyalg ssh_rsa_sha256;
+extern const ssh_keyalg ssh_rsa_sha512;
 extern const ssh_keyalg ssh_ecdsa_ed25519;
 extern const ssh_keyalg ssh_ecdsa_ed448;
 extern const ssh_keyalg ssh_ecdsa_nistp256;
@@ -1228,6 +1230,8 @@ int rsa1_loadpub_s(BinarySource *src, BinarySink *bs,
 int rsa1_loadpub_f(const Filename *filename, BinarySink *bs,
                    char **commentptr, const char **errorstr);
 
+extern const ssh_keyalg *const all_keyalgs[];
+extern const size_t n_keyalgs;
 const ssh_keyalg *find_pubkey_alg(const char *name);
 const ssh_keyalg *find_pubkey_alg_len(ptrlen name);
 
@@ -1410,6 +1414,7 @@ void platform_ssh_share_cleanup(const char *name);
     X(y, SSH2_MSG_DEBUG, 4)                                             \
     X(y, SSH2_MSG_SERVICE_REQUEST, 5)                                   \
     X(y, SSH2_MSG_SERVICE_ACCEPT, 6)                                    \
+    X(y, SSH2_MSG_EXT_INFO, 7)                                          \
     X(y, SSH2_MSG_KEXINIT, 20)                                          \
     X(y, SSH2_MSG_NEWKEYS, 21)                                          \
     K(y, SSH2_MSG_KEXDH_INIT, 30, SSH2_PKTCTX_DHGROUP)                  \

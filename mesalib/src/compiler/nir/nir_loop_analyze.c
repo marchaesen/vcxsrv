@@ -24,6 +24,7 @@
 #include "nir.h"
 #include "nir_constant_expressions.h"
 #include "nir_loop_analyze.h"
+#include "util/bitset.h"
 
 typedef enum {
    undefined,
@@ -66,6 +67,7 @@ typedef struct {
 
    /* Loop_variable for all ssa_defs in function */
    nir_loop_variable *loop_vars;
+   BITSET_WORD *loop_vars_init;
 
    /* A list of the loop_vars to analyze */
    struct list_head process_list;
@@ -77,7 +79,22 @@ typedef struct {
 static nir_loop_variable *
 get_loop_var(nir_ssa_def *value, loop_info_state *state)
 {
-   return &(state->loop_vars[value->index]);
+   nir_loop_variable *var = &(state->loop_vars[value->index]);
+
+   if (!BITSET_TEST(state->loop_vars_init, value->index)) {
+      var->in_loop = false;
+      var->def = value;
+      var->in_if_branch = false;
+      var->in_nested_loop = false;
+      if (value->parent_instr->type == nir_instr_type_load_const)
+         var->type = invariant;
+      else
+         var->type = undefined;
+
+      BITSET_SET(state->loop_vars_init, value->index);
+   }
+
+   return var;
 }
 
 typedef struct {
@@ -389,24 +406,6 @@ compute_induction_information(loop_info_state *state)
       }
    }
    return found_induction_var;
-}
-
-static bool
-initialize_ssa_def(nir_ssa_def *def, void *void_state)
-{
-   loop_info_state *state = void_state;
-   nir_loop_variable *var = get_loop_var(def, state);
-
-   var->in_loop = false;
-   var->def = def;
-
-   if (def->parent_instr->type == nir_instr_type_load_const) {
-      var->type = invariant;
-   } else {
-      var->type = undefined;
-   }
-
-   return true;
 }
 
 static bool
@@ -1160,14 +1159,6 @@ get_loop_info(loop_info_state *state, nir_function_impl *impl)
    nir_shader *shader = impl->function->shader;
    const nir_shader_compiler_options *options = shader->options;
 
-   /* Initialize all variables to "outside_loop". This also marks defs
-    * invariant and constant if they are nir_instr_type_load_consts
-    */
-   nir_foreach_block(block, impl) {
-      nir_foreach_instr(instr, block)
-         nir_foreach_ssa_def(instr, initialize_ssa_def, state);
-   }
-
    /* Add all entries in the outermost part of the loop to the processing list
     * Mark the entries in conditionals or in nested loops accordingly
     */
@@ -1231,8 +1222,10 @@ initialize_loop_info_state(nir_loop *loop, void *mem_ctx,
                            nir_function_impl *impl)
 {
    loop_info_state *state = rzalloc(mem_ctx, loop_info_state);
-   state->loop_vars = rzalloc_array(mem_ctx, nir_loop_variable,
-                                    impl->ssa_alloc);
+   state->loop_vars = ralloc_array(mem_ctx, nir_loop_variable,
+                                   impl->ssa_alloc);
+   state->loop_vars_init = rzalloc_array(mem_ctx, BITSET_WORD,
+                                         BITSET_WORDS(impl->ssa_alloc));
    state->loop = loop;
 
    list_inithead(&state->process_list);

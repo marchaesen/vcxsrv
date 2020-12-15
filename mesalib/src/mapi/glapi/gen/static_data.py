@@ -1676,7 +1676,7 @@ offsets = {
     "FogCoordhvNV": 1640,
     "SecondaryColor3hNV": 1641,
     "SecondaryColor3hvNV": 1642,
-    "GetFBConfigsSGIX": 1643,
+    "InternalSetError": 1643,
     "CreateContextWithConfigSGIX": 1644,
     "CreateGLXPixmapWithConfigSGIX": 1645,
     "CreateGLXPbufferSGIX": 1646,
@@ -1724,6 +1724,7 @@ offsets = {
     "SwapIntervalSGI": 1688,
     "MakeCurrentReadSGI": 1689,
     "QueryContextInfoEXT": 1690,
+    "GetFBConfigsSGIX": 1691,
 }
 
 functions = [

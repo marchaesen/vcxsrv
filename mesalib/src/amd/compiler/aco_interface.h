@@ -39,7 +39,7 @@ struct aco_compiler_statistic_info {
 
 struct aco_compiler_statistics {
    unsigned count;
-   struct aco_compiler_statistic_info *infos;
+   const struct aco_compiler_statistic_info *infos;
    uint32_t values[];
 };
 

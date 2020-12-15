@@ -42,7 +42,6 @@
 #include "util/u_math.h"
 #include "util/u_memory.h"
 
-#include <amdgpu.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -464,7 +463,7 @@ bool ac_get_supported_modifiers(const struct radeon_info *info,
               AMD_FMT_MOD_SET(PIPE, pipes))
 
       if (util_format_get_blocksize(format) == 4) {
-         if (info->num_render_backends == 1) {
+         if (info->max_render_backends == 1) {
             ADD_MOD(AMD_FMT_MOD |
                     AMD_FMT_MOD_SET(TILE, AMD_FMT_MOD_TILE_GFX9_64K_S_X) |
                     AMD_FMT_MOD_SET(TILE_VERSION, AMD_FMT_MOD_TILE_VER_GFX9) |
@@ -526,7 +525,7 @@ bool ac_get_supported_modifiers(const struct radeon_info *info,
       if (info->family == CHIP_NAVI12 || info->family == CHIP_NAVI14 || info->chip_class >= GFX10_3) {
          bool independent_128b = info->chip_class >= GFX10_3;
 
-         if (info->num_render_backends == 1) {
+         if (info->max_render_backends == 1) {
             ADD_MOD(AMD_FMT_MOD | common_dcc |
                     AMD_FMT_MOD_SET(DCC_PIPE_ALIGN, 1) |
                     AMD_FMT_MOD_SET(DCC_INDEPENDENT_64B, 1) |
@@ -593,7 +592,7 @@ static ADDR_E_RETURNCODE ADDR_API freeSysMem(const ADDR_FREESYSMEM_INPUT *pInput
 }
 
 struct ac_addrlib *ac_addrlib_create(const struct radeon_info *info,
-                                     const struct amdgpu_gpu_info *amdinfo, uint64_t *max_alignment)
+                                     uint64_t *max_alignment)
 {
    ADDR_CREATE_INPUT addrCreateInput = {0};
    ADDR_CREATE_OUTPUT addrCreateOutput = {0};
@@ -605,7 +604,7 @@ struct ac_addrlib *ac_addrlib_create(const struct radeon_info *info,
    addrCreateInput.size = sizeof(ADDR_CREATE_INPUT);
    addrCreateOutput.size = sizeof(ADDR_CREATE_OUTPUT);
 
-   regValue.gbAddrConfig = amdinfo->gb_addr_cfg;
+   regValue.gbAddrConfig = info->gb_addr_config;
    createFlags.value = 0;
 
    addrCreateInput.chipFamily = info->family_id;
@@ -617,18 +616,18 @@ struct ac_addrlib *ac_addrlib_create(const struct radeon_info *info,
    if (addrCreateInput.chipFamily >= FAMILY_AI) {
       addrCreateInput.chipEngine = CIASICIDGFXENGINE_ARCTICISLAND;
    } else {
-      regValue.noOfBanks = amdinfo->mc_arb_ramcfg & 0x3;
-      regValue.noOfRanks = (amdinfo->mc_arb_ramcfg & 0x4) >> 2;
+      regValue.noOfBanks = info->mc_arb_ramcfg & 0x3;
+      regValue.noOfRanks = (info->mc_arb_ramcfg & 0x4) >> 2;
 
-      regValue.backendDisables = amdinfo->enabled_rb_pipes_mask;
-      regValue.pTileConfig = amdinfo->gb_tile_mode;
-      regValue.noOfEntries = ARRAY_SIZE(amdinfo->gb_tile_mode);
+      regValue.backendDisables = info->enabled_rb_mask;
+      regValue.pTileConfig = info->si_tile_mode_array;
+      regValue.noOfEntries = ARRAY_SIZE(info->si_tile_mode_array);
       if (addrCreateInput.chipFamily == FAMILY_SI) {
          regValue.pMacroTileConfig = NULL;
          regValue.noOfMacroEntries = 0;
       } else {
-         regValue.pMacroTileConfig = amdinfo->gb_macro_tile_mode;
-         regValue.noOfMacroEntries = ARRAY_SIZE(amdinfo->gb_macro_tile_mode);
+         regValue.pMacroTileConfig = info->cik_macrotile_mode_array;
+         regValue.noOfMacroEntries = ARRAY_SIZE(info->cik_macrotile_mode_array);
       }
 
       createFlags.useTileIndex = 1;
@@ -1405,6 +1404,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib, const struct radeon_info *i
 
       surf->fmask_size = fout.fmaskBytes;
       surf->fmask_alignment = fout.baseAlign;
+      surf->fmask_slice_size = fout.sliceSize;
       surf->fmask_tile_swizzle = 0;
 
       surf->u.legacy.fmask.slice_tile_max = (fout.pitch * fout.height) / 64;
@@ -1414,7 +1414,6 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib, const struct radeon_info *i
       surf->u.legacy.fmask.tiling_index = fout.tileIndex;
       surf->u.legacy.fmask.bankh = fout.pTileInfo->bankHeight;
       surf->u.legacy.fmask.pitch_in_pixels = fout.pitch;
-      surf->u.legacy.fmask.slice_size = fout.sliceSize;
 
       /* Compute tile swizzle for FMASK. */
       if (config->info.fmask_surf_index && !(surf->flags & RADEON_SURF_SHAREABLE)) {
@@ -1974,6 +1973,7 @@ static int gfx9_compute_miptree(struct ac_addrlib *addrlib, const struct radeon_
          surf->u.gfx9.fmask.epitch = fout.pitch - 1;
          surf->fmask_size = fout.fmaskBytes;
          surf->fmask_alignment = fout.baseAlign;
+         surf->fmask_slice_size = fout.sliceSize;
 
          /* Compute tile swizzle for the FMASK surface. */
          if (config->info.fmask_surf_index && fin.swizzleMode >= ADDR_SW_64KB_Z_T &&

@@ -42,6 +42,13 @@
 #include "util/u_math.h"
 #include "util/u_memory.h"
 
+enum {
+   STATE_MATRIX_NO_MODIFIER,
+   STATE_MATRIX_INVERSE,
+   STATE_MATRIX_TRANSPOSE,
+   STATE_MATRIX_INVTRANS,
+};
+
 extern void *yy_scan_string(char *);
 extern void yy_delete_buffer(void *);
 
@@ -1456,21 +1463,19 @@ statePointProperty: SIZE_TOK
 
 stateMatrixRow: stateMatrixItem ROW '[' stateMatrixRowNum ']'
 	{
-	   $$[0] = $1[0];
+	   $$[0] = $1[0] + $1[2];
 	   $$[1] = $1[1];
 	   $$[2] = $4;
 	   $$[3] = $4;
-	   $$[4] = $1[2];
 	}
 	;
 
 stateMatrixRows: stateMatrixItem optMatrixRows
 	{
-	   $$[0] = $1[0];
+	   $$[0] = $1[0] + $1[2];
 	   $$[1] = $1[1];
 	   $$[2] = $2[2];
 	   $$[3] = $2[3];
-	   $$[4] = $1[2];
 	}
 	;
 
@@ -1507,7 +1512,7 @@ stateMatrixItem: MATRIX stateMatrixName stateOptMatModifier
 
 stateOptMatModifier:
 	{
-	   $$ = 0;
+	   $$ = STATE_MATRIX_NO_MODIFIER;
 	}
 	| stateMatModifier
 	{
@@ -2338,11 +2343,8 @@ initialize_symbol_from_state(struct gl_program *prog,
    /* If we are adding a STATE_MATRIX that has multiple rows, we need to
     * unroll it and call add_state_reference() for each row
     */
-   if ((state_tokens[0] == STATE_MODELVIEW_MATRIX ||
-	state_tokens[0] == STATE_PROJECTION_MATRIX ||
-	state_tokens[0] == STATE_MVP_MATRIX ||
-	state_tokens[0] == STATE_TEXTURE_MATRIX ||
-	state_tokens[0] == STATE_PROGRAM_MATRIX)
+   if (state_tokens[0] >= STATE_MODELVIEW_MATRIX &&
+       state_tokens[0] <= STATE_PROGRAM_MATRIX_INVTRANS
        && (state_tokens[2] != state_tokens[3])) {
       int row;
       const int first_row = state_tokens[2];

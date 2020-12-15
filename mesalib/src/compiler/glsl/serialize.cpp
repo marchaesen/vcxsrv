@@ -1044,6 +1044,9 @@ write_shader_parameters(struct blob *metadata,
                     sizeof(gl_constant_value) * params->NumParameterValues);
 
    blob_write_uint32(metadata, params->StateFlags);
+   blob_write_uint32(metadata, params->UniformBytes);
+   blob_write_uint32(metadata, params->LastUniformIndex);
+   blob_write_uint32(metadata, params->FirstStateVarIndex);
 }
 
 static void
@@ -1054,7 +1057,7 @@ read_shader_parameters(struct blob_reader *metadata,
    uint32_t i = 0;
    uint32_t num_parameters = blob_read_uint32(metadata);
 
-   _mesa_reserve_parameter_storage(params, num_parameters);
+   _mesa_reserve_parameter_storage(params, num_parameters, num_parameters);
    while (i < num_parameters) {
       gl_register_file type = (gl_register_file) blob_read_uint32(metadata);
       const char *name = blob_read_string(metadata);
@@ -1078,6 +1081,9 @@ read_shader_parameters(struct blob_reader *metadata,
                    sizeof(gl_constant_value) * params->NumParameterValues);
 
    params->StateFlags = blob_read_uint32(metadata);
+   params->UniformBytes = blob_read_uint32(metadata);
+   params->LastUniformIndex = blob_read_uint32(metadata);
+   params->FirstStateVarIndex = blob_read_uint32(metadata);
 }
 
 static void

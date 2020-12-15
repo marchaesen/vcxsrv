@@ -140,7 +140,7 @@ The bits are represented by
 or
 .B YNegative
 and are defined in
-.hN X11/Xutil.h .
+.BR X11/Xutil.h .
 They will be set whenever one of the values is defined
 or one of the signs is set.
 .LP
@@ -158,7 +158,7 @@ function combines any geometry information (given in the format used by
 specified by the user and by the calling program with size hints
 (usually the ones to be stored in WM_NORMAL_HINTS) and returns the position,
 size, and gravity
-.Pn ( NorthWestGravity ,
+.RB ( NorthWestGravity ,
 .BR NorthEastGravity ,
 .BR SouthEastGravity ,
 or

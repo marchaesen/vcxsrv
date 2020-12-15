@@ -59,8 +59,8 @@ public:
    *   \param[in]   data      Pointer to the underlying data array
    *   \param[in]   length    The size of the span
    */
-   constexpr span(uint16_t offset, const size_type length)
-       : offset{ offset } , length{ length } {}
+   constexpr span(uint16_t offset_, const size_type length_)
+       : offset{ offset_ } , length{ length_ } {}
 
    /*! \brief                 Returns an iterator to the begin of the span
    *   \return                data

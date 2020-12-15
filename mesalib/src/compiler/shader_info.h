@@ -49,6 +49,7 @@ struct spirv_supported_capabilities {
    bool float64_atomic_add;
    bool fragment_shader_sample_interlock;
    bool fragment_shader_pixel_interlock;
+   bool fragment_shading_rate;
    bool generic_pointers;
    bool geometry_streams;
    bool image_ms_array;
@@ -286,6 +287,11 @@ typedef struct shader_info {
          bool uses_sample_qualifier:1;
 
          /**
+          * Whether sample shading is used.
+          */
+         bool uses_sample_shading:1;
+
+         /**
           * Whether early fragment tests are enabled as defined by
           * ARB_shader_image_load_store.
           */
@@ -347,6 +353,7 @@ typedef struct shader_info {
 
       struct {
          uint16_t local_size[3];
+         uint16_t local_size_hint[3];
 
          bool local_size_variable:1;
          uint8_t user_data_components_amd:3;

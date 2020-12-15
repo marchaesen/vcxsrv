@@ -443,26 +443,36 @@ _mesa_lookup_shader_program(struct gl_context *ctx, GLuint name)
  * As above, but record an error if program is not found.
  */
 struct gl_shader_program *
-_mesa_lookup_shader_program_err(struct gl_context *ctx, GLuint name,
-                                const char *caller)
+_mesa_lookup_shader_program_err_glthread(struct gl_context *ctx, GLuint name,
+                                         bool glthread, const char *caller)
 {
    if (!name) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "%s", caller);
+      _mesa_error_glthread_safe(ctx, GL_INVALID_VALUE, glthread, "%s", caller);
       return NULL;
    }
    else {
       struct gl_shader_program *shProg = (struct gl_shader_program *)
          _mesa_HashLookup(ctx->Shared->ShaderObjects, name);
       if (!shProg) {
-         _mesa_error(ctx, GL_INVALID_VALUE, "%s", caller);
+         _mesa_error_glthread_safe(ctx, GL_INVALID_VALUE, glthread,
+                                   "%s", caller);
          return NULL;
       }
       if (shProg->Type != GL_SHADER_PROGRAM_MESA) {
-         _mesa_error(ctx, GL_INVALID_OPERATION, "%s", caller);
+         _mesa_error_glthread_safe(ctx, GL_INVALID_OPERATION, glthread,
+                                   "%s", caller);
          return NULL;
       }
       return shProg;
    }
+}
+
+
+struct gl_shader_program *
+_mesa_lookup_shader_program_err(struct gl_context *ctx, GLuint name,
+                                const char *caller)
+{
+   return _mesa_lookup_shader_program_err_glthread(ctx, name, false, caller);
 }
 
 

@@ -110,18 +110,18 @@ structures in the XkbDescRec represent the major Xkb components.
 
 .nf
 typedef struct {
-   struct _XDisplay * display;      /\(** connection to X server */
-   unsigned short     flags;        /\(** private to Xkb, do not modify */
-   unsigned short     device_spec;  /\(** device of interest */
-   KeyCode            min_key_code; /\(** minimum keycode for device */
-   KeyCode            max_key_code; /\(** maximum keycode for device */
-   XkbControlsPtr     ctrls;        /\(** controls */
-   XkbServerMapPtr    server;       /\(** server keymap */
-   XkbClientMapPtr    map;          /\(** client keymap */
-   XkbIndicatorPtr    indicators;   /\(** indicator map */
-   XkbNamesPtr        names;        /\(** names for all components */
-   XkbCompatMapPtr    compat;       /\(** compatibility map */
-   XkbGeometryPtr     geom;         /\(** physical geometry of keyboard */
+   struct _XDisplay * display;      /\&* connection to X server */
+   unsigned short     flags;        /\&* private to Xkb, do not modify */
+   unsigned short     device_spec;  /\&* device of interest */
+   KeyCode            min_key_code; /\&* minimum keycode for device */
+   KeyCode            max_key_code; /\&* maximum keycode for device */
+   XkbControlsPtr     ctrls;        /\&* controls */
+   XkbServerMapPtr    server;       /\&* server keymap */
+   XkbClientMapPtr    map;          /\&* client keymap */
+   XkbIndicatorPtr    indicators;   /\&* indicator map */
+   XkbNamesPtr        names;        /\&* names for all components */
+   XkbCompatMapPtr    compat;       /\&* compatibility map */
+   XkbGeometryPtr     geom;         /\&* physical geometry of keyboard */
 } XkbDescRec, *XkbDescPtr;
 
 .fi
@@ -173,15 +173,15 @@ type XkbServerMapRec:
 .nf
 \&#define XkbNumVirtualMods          16
 
-typedef struct {                    /\(** Server Map */
-    unsigned short    num_acts;     /\(** # of occupied entries in acts */
-    unsigned short    size_acts;    /\(** # of entries in acts */
-    XkbAction *       acts;         /\(** linear 2d tables of key actions, 1 per keycode */
-    XkbBehavior *     behaviors;    /\(** key behaviors,1 per keycode */
-    unsigned short *  key_acts;     /\(** index into acts, 1 per keycode */
-    unsigned char *   explicit;     /\(** explicit overrides of core remapping, 1 per key */
-    unsigned char     vmods[XkbNumVirtualMods]; /\(** real mods bound to virtual mods */
-    unsigned short *  vmodmap;      /\(** virtual mods bound to key, 1 per keycode*/
+typedef struct {                    /\&* Server Map */
+    unsigned short    num_acts;     /\&* # of occupied entries in acts */
+    unsigned short    size_acts;    /\&* # of entries in acts */
+    XkbAction *       acts;         /\&* linear 2d tables of key actions, 1 per keycode */
+    XkbBehavior *     behaviors;    /\&* key behaviors,1 per keycode */
+    unsigned short *  key_acts;     /\&* index into acts, 1 per keycode */
+    unsigned char *   explicit;     /\&* explicit overrides of core remapping, 1 per key */
+    unsigned char     vmods[XkbNumVirtualMods]; /\&* real mods bound to virtual mods */
+    unsigned short *  vmodmap;      /\&* virtual mods bound to key, 1 per keycode*/
 } XkbServerMapRec, *XkbServerMapPtr;
 
 .fi

@@ -1,0 +1,12 @@
+EXPORTS
+    clc_context_new
+    clc_free_context
+    clc_context_serialize
+    clc_context_free_serialized
+    clc_context_deserialize
+    clc_compile
+    clc_link
+    clc_free_object
+    clc_to_dxil
+    clc_free_dxil_object
+    clc_compiler_get_version

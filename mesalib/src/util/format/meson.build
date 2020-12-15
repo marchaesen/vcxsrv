@@ -53,7 +53,9 @@ libmesa_format = static_library(
   'mesa_format',
   [files_mesa_format, u_format_table_c, u_format_pack_h],
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-  dependencies : dep_m,
+  # NOTE dep_valgrind used here instead of idep_mesautil due to chicken/egg
+  # dependencies between util and util/format
+  dependencies : [dep_m, dep_valgrind],
   c_args : [c_msvc_compat_args],
   gnu_symbol_visibility : 'hidden',
   build_by_default : false

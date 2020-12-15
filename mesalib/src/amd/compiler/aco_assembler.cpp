@@ -18,7 +18,7 @@ struct asm_context {
    const int16_t* opcode;
    // TODO: keep track of branch instructions referring blocks
    // and, when emitting the block, correct the offset in instr
-   asm_context(Program* program) : program(program), chip_class(program->chip_class) {
+   asm_context(Program* program_) : program(program_), chip_class(program->chip_class) {
       if (chip_class <= GFX7)
          opcode = &instr_info.opcode_gfx7[0];
       else if (chip_class <= GFX9)
@@ -82,18 +82,18 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
 
    uint32_t opcode = ctx.opcode[(int)instr->opcode];
    if (opcode == (uint32_t)-1) {
-      char *out;
+      char *outmem;
       size_t outsize;
       struct u_memstream mem;
-      u_memstream_open(&mem, &out, &outsize);
+      u_memstream_open(&mem, &outmem, &outsize);
       FILE *const memf = u_memstream_get(&mem);
 
       fprintf(memf, "Unsupported opcode: ");
       aco_print_instr(instr, memf);
       u_memstream_close(&mem);
 
-      aco_err(ctx.program, out);
-      free(out);
+      aco_err(ctx.program, outmem);
+      free(outmem);
 
       abort();
    }

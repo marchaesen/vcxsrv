@@ -1184,6 +1184,13 @@ reg_assign(struct ir3_ra_ctx *ctx, struct ir3_register *reg,
 static bool
 should_assign(struct ir3_ra_ctx *ctx, struct ir3_instruction *instr)
 {
+	/* Array regs are precolored completely separately, and we need to keep
+	 * their array-ness until the end to be able to compute the array reg's
+	 * live interval in the scalar pass.
+	 */
+	if (instr->regs[0]->flags & IR3_REG_ARRAY)
+		return ctx->scalar_pass;
+
 	if ((instr->opc == OPC_META_SPLIT) &&
 			(util_bitcount(instr->regs[1]->wrmask) > 1))
 		return !ctx->scalar_pass;
@@ -1207,15 +1214,14 @@ ra_block_alloc(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 		foreach_src_n (reg, n, instr) {
 			struct ir3_instruction *src = reg->instr;
 
-			if (src && !should_assign(ctx, src) && !should_assign(ctx, instr))
-				continue;
-
 			if (src && should_assign(ctx, instr))
 				reg_assign(ctx, src->regs[0], src);
 
 			/* Note: reg->instr could be null for IR3_REG_ARRAY */
-			if (src || (reg->flags & IR3_REG_ARRAY))
+			if (((reg->flags & IR3_REG_ARRAY) && ctx->scalar_pass) ||
+				(src && should_assign(ctx, src))) {
 				reg_assign(ctx, instr->regs[n+1], src);
+			}
 		}
 	}
 

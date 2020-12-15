@@ -3012,8 +3012,9 @@ void ac_print_shadowed_regs(const struct radeon_info *info)
 
             const char *name = ac_get_register_name(info->chip_class, offset);
             unsigned value = -1;
-            char cmd[1024];
 
+#ifndef _WIN32
+            char cmd[1024];
             snprintf(cmd, sizeof(cmd), "umr -r 0x%x", offset);
             FILE *p = popen(cmd, "r");
             if (p) {
@@ -3021,6 +3022,7 @@ void ac_print_shadowed_regs(const struct radeon_info *info)
                assert(r == 1);
                pclose(p);
             }
+#endif
 
             printf("0x%X %s = 0x%X\n", offset, name, value);
          }

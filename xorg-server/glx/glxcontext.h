@@ -104,6 +104,11 @@ struct __GLXcontext {
      */
     GLenum releaseBehavior;
 
+    /**
+     * Context render type
+     */
+    int renderType;
+
     /*
      ** Buffers for feedback and selection.
      */

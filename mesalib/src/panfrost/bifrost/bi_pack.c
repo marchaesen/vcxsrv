@@ -711,6 +711,23 @@ bi_pack_add_special(bi_clause *clause, bi_instruction *ins, bi_registers *regs)
 }
 
 static unsigned
+bi_pack_add_ld_var(bi_clause *clause, bi_instruction *ins, bi_registers *regs)
+{
+        if (ins->load_vary.special)
+                return pan_pack_add_ld_var_special(clause, ins, regs);
+
+        if (ins->load_vary.flat) {
+                return ins->load_vary.immediate ?
+                       pan_pack_add_ld_var_flat_imm(clause, ins, regs) :
+                       pan_pack_add_ld_var_flat(clause, ins, regs);
+        }
+
+        return ins->load_vary.immediate ?
+               pan_pack_add_ld_var_imm(clause, ins, regs) :
+               pan_pack_add_ld_var(clause, ins, regs);
+}
+
+static unsigned
 bi_pack_add(bi_clause *clause, bi_bundle bundle, bi_registers *regs, gl_shader_stage stage)
 {
         if (!bundle.add)
@@ -846,7 +863,9 @@ bi_pack_add(bi_clause *clause, bi_bundle bundle, bi_registers *regs, gl_shader_s
                                 pan_pack_add_isub_s32(clause, bundle.add, regs);
                 }
         case BI_LOAD_ATTR:
-                return pan_pack_add_ld_attr_imm(clause, bundle.add, regs);
+                return bundle.add->attribute.immediate ?
+                       pan_pack_add_ld_attr_imm(clause, bundle.add, regs) :
+                       pan_pack_add_ld_attr(clause, bundle.add, regs);
         case BI_LOAD:
         case BI_LOAD_UNIFORM:
                 assert(u32 || s32 || f32);
@@ -858,21 +877,11 @@ bi_pack_add(bi_clause *clause, bi_bundle bundle, bi_registers *regs, gl_shader_s
                 default: unreachable("Invalid channel count");
                 }
         case BI_LOAD_VAR:
-                if (bundle.add->src[0] & BIR_INDEX_CONSTANT) {
-                        if (bi_get_immediate(bundle.add, 0) >= 20)
-                                return pan_pack_add_ld_var_special(clause, bundle.add, regs);
-                        else if (bundle.add->load_vary.flat)
-                                return pan_pack_add_ld_var_flat_imm(clause, bundle.add, regs);
-                        else
-                                return pan_pack_add_ld_var_imm(clause, bundle.add, regs);
-                } else {
-                        if (bundle.add->load_vary.flat)
-                                return pan_pack_add_ld_var_flat(clause, bundle.add, regs);
-                        else
-                                return pan_pack_add_ld_var(clause, bundle.add, regs);
-                }
+                return bi_pack_add_ld_var(clause, bundle.add, regs);
         case BI_LOAD_VAR_ADDRESS:
-                return pan_pack_add_lea_attr_imm(clause, bundle.add, regs);
+                return bundle.add->attribute.immediate ?
+                       pan_pack_add_lea_attr_imm(clause, bundle.add, regs) :
+                       pan_pack_add_lea_attr(clause, bundle.add, regs);
         case BI_LOAD_TILE:
                 return pan_pack_add_ld_tile(clause, bundle.add, regs);
         case BI_MINMAX:

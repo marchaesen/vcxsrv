@@ -100,6 +100,15 @@ MAIN_FILES = \
 	main/format_info.h \
 	main/format_pack.h \
 	main/format_pack.c \
+	main/marshal_generated0.c \
+	main/marshal_generated1.c \
+	main/marshal_generated2.c \
+	main/marshal_generated3.c \
+	main/marshal_generated4.c \
+	main/marshal_generated5.c \
+	main/marshal_generated6.c \
+	main/marshal_generated7.c \
+	main/marshal_generated.h \
 	main/format_unpack.h \
 	main/format_unpack.c \
 	main/formatquery.c \
@@ -120,6 +129,7 @@ MAIN_FILES = \
 	main/glformats.h \
 	main/glspirv.c \
 	main/glspirv.h \
+	main/glthread.c \
 	main/glthread_bufferobj.c \
 	main/glthread_draw.c \
 	main/glthread_marshal.h \
@@ -530,8 +540,6 @@ STATETRACKER_FILES = \
 	state_tracker/st_glsl_to_tgsi_temprename.h \
 	state_tracker/st_manager.c \
 	state_tracker/st_manager.h \
-	state_tracker/st_mesa_to_tgsi.c \
-	state_tracker/st_mesa_to_tgsi.h \
 	state_tracker/st_nir.h \
 	state_tracker/st_nir_builtins.c \
 	state_tracker/st_nir_lower_builtin.c \

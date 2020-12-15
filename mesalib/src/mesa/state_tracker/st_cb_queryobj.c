@@ -373,7 +373,7 @@ static uint64_t
 st_GetTimestamp(struct gl_context *ctx)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st_context(ctx)->screen;
 
    /* Prefer the per-screen function */
    if (screen->get_timestamp) {

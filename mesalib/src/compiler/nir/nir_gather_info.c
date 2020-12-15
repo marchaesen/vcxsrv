@@ -29,10 +29,10 @@ static bool
 src_is_invocation_id(const nir_src *src)
 {
    assert(src->is_ssa);
-   if (src->parent_instr->type != nir_instr_type_intrinsic)
+   if (src->ssa->parent_instr->type != nir_instr_type_intrinsic)
       return false;
 
-   return nir_instr_as_intrinsic(src->parent_instr)->intrinsic ==
+   return nir_instr_as_intrinsic(src->ssa->parent_instr)->intrinsic ==
              nir_intrinsic_load_invocation_id;
 }
 
@@ -53,11 +53,7 @@ get_deref_info(nir_shader *shader, nir_variable *var, nir_deref_instr *deref,
    /* Vertex index is the outermost array index. */
    if (per_vertex) {
       assert((*p)->deref_type == nir_deref_type_array);
-      nir_instr *vertex_index_instr = (*p)->arr.index.ssa->parent_instr;
-      *cross_invocation =
-         vertex_index_instr->type != nir_instr_type_intrinsic ||
-         nir_instr_as_intrinsic(vertex_index_instr)->intrinsic !=
-            nir_intrinsic_load_invocation_id;
+      *cross_invocation = !src_is_invocation_id(&(*p)->arr.index);
       p++;
    }
 
@@ -313,13 +309,26 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    if (nir_intrinsic_infos[instr->intrinsic].index_map[NIR_INTRINSIC_IO_SEMANTICS] > 0) {
       nir_io_semantics semantics = nir_intrinsic_io_semantics(instr);
 
+      if (semantics.location >= VARYING_SLOT_PATCH0) {
+         /* Generic per-patch I/O. */
+         assert((shader->info.stage == MESA_SHADER_TESS_EVAL &&
+                 instr->intrinsic == nir_intrinsic_load_input) ||
+                (shader->info.stage == MESA_SHADER_TESS_CTRL &&
+                 (instr->intrinsic == nir_intrinsic_load_output ||
+                  instr->intrinsic == nir_intrinsic_store_output)));
+
+         semantics.location -= VARYING_SLOT_PATCH0;
+      }
+
       slot_mask = BITFIELD64_RANGE(semantics.location, semantics.num_slots);
+      assert(util_bitcount64(slot_mask) == semantics.num_slots);
    }
 
    switch (instr->intrinsic) {
    case nir_intrinsic_demote:
    case nir_intrinsic_demote_if:
       shader->info.fs.uses_demote = true;
+      FALLTHROUGH;
    /* fallthrough - quads with helper lanes only might be discarded entirely */
    case nir_intrinsic_discard:
    case nir_intrinsic_discard_if:
@@ -437,7 +446,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
       shader->info.inputs_read |=
          BITFIELD64_BIT(VARYING_SLOT_COL0 <<
                         (instr->intrinsic == nir_intrinsic_load_color1));
-      /* fall through */
+      FALLTHROUGH;
    case nir_intrinsic_load_subgroup_size:
    case nir_intrinsic_load_subgroup_invocation:
    case nir_intrinsic_load_subgroup_eq_mask:
@@ -457,6 +466,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_load_draw_id:
    case nir_intrinsic_load_invocation_id:
    case nir_intrinsic_load_frag_coord:
+   case nir_intrinsic_load_frag_shading_rate:
    case nir_intrinsic_load_point_coord:
    case nir_intrinsic_load_line_coord:
    case nir_intrinsic_load_front_face:
@@ -564,7 +574,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_end_primitive_with_counter:
       assert(shader->info.stage == MESA_SHADER_GEOMETRY);
       shader->info.gs.uses_end_primitive = 1;
-      /* fall through */
+      FALLTHROUGH;
 
    case nir_intrinsic_emit_vertex:
    case nir_intrinsic_emit_vertex_with_counter:
@@ -728,7 +738,7 @@ gather_alu_info(nir_alu_instr *instr, nir_shader *shader)
    case nir_op_fddx:
    case nir_op_fddy:
       shader->info.uses_fddx_fddy = true;
-      /* Fall through */
+      FALLTHROUGH;
    case nir_op_fddx_fine:
    case nir_op_fddy_fine:
    case nir_op_fddx_coarse:
@@ -849,4 +859,15 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
       gather_info_block(block, shader, dead_ctx);
    }
    ralloc_free(dead_ctx);
+
+   if (shader->info.stage == MESA_SHADER_FRAGMENT &&
+       (shader->info.fs.uses_sample_qualifier ||
+        (shader->info.system_values_read & BITFIELD64_BIT(SYSTEM_VALUE_SAMPLE_ID)) ||
+         shader->info.system_values_read & BITFIELD64_BIT(SYSTEM_VALUE_SAMPLE_POS))) {
+      /* This shouldn't be cleared because if optimizations remove all
+       * sample-qualified inputs and that pass is run again, the sample
+       * shading must stay enabled.
+       */
+      shader->info.fs.uses_sample_shading = true;
+   }
 }

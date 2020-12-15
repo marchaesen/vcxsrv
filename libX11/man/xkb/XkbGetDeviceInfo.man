@@ -226,19 +226,19 @@ XkbDeviceInfoRec structure:
 .nf
 
 typedef struct {
-    char *               name;          /\(** name for device */
-    Atom                 type;          /\(** name for class of devices */
-    unsigned short       device_spec;   /\(** device of interest */
-    Bool                 has_own_state; /\(** True=>this device has its own state */
-    unsigned short       supported;     /\(** bits indicating supported capabilities */
-    unsigned short       unsupported;   /\(** bits indicating unsupported capabilities */
-    unsigned short       num_btns;      /\(** number of entries in btn_acts */
-    XkbAction *          btn_acts;      /\(** button actions */
-    unsigned short       sz_leds;       /\(** total number of entries in LEDs vector */
-    unsigned short       num_leds;      /\(** number of valid entries in LEDs vector */
-    unsigned short       dflt_kbd_fb;   /\(** input extension ID of default (core kbd) indicator */
-    unsigned short       dflt_led_fb;   /\(** input extension ID of default indicator feedback */
-    XkbDeviceLedInfoPtr  leds;          /\(** LED descriptions */
+    char *               name;          /\&* name for device */
+    Atom                 type;          /\&* name for class of devices */
+    unsigned short       device_spec;   /\&* device of interest */
+    Bool                 has_own_state; /\&* True=>this device has its own state */
+    unsigned short       supported;     /\&* bits indicating supported capabilities */
+    unsigned short       unsupported;   /\&* bits indicating unsupported capabilities */
+    unsigned short       num_btns;      /\&* number of entries in btn_acts */
+    XkbAction *          btn_acts;      /\&* button actions */
+    unsigned short       sz_leds;       /\&* total number of entries in LEDs vector */
+    unsigned short       num_leds;      /\&* number of valid entries in LEDs vector */
+    unsigned short       dflt_kbd_fb;   /\&* input extension ID of default (core kbd) indicator */
+    unsigned short       dflt_led_fb;   /\&* input extension ID of default indicator feedback */
+    XkbDeviceLedInfoPtr  leds;          /\&* LED descriptions */
 } XkbDeviceInfoRec, *XkbDeviceInfoPtr;
     
 .fi

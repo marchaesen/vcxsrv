@@ -18,6 +18,9 @@ namespace {
 bool print_asm_gfx6_gfx7(Program *program, std::vector<uint32_t>& binary,
                          FILE *output)
 {
+#ifdef _WIN32
+   return true;
+#else
    char path[] = "/tmp/fileXXXXXX";
    char line[2048], command[128];
    const char *gpu_type;
@@ -90,6 +93,7 @@ fail:
    close(fd);
    unlink(path);
    return true;
+#endif
 }
 
 std::pair<bool, size_t> disasm_instr(chip_class chip, LLVMDisasmContextRef disasm,

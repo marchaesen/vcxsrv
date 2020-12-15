@@ -109,6 +109,8 @@ static PixmapFormatRec g_PixmapFormats[] = {
 };
 
 #if defined(GLXEXT) && defined(XWIN_WINDOWS_DRI)
+static Bool noDriExtension;
+
 static const ExtensionModule xwinExtensions[] = {
   { WindowsDRIExtensionInit, "Windows-DRI", &noDriExtension },
 };

@@ -3130,7 +3130,8 @@ vertex_array_vertex_buffers(struct gl_context *ctx,
     *       their parameters are valid and no other error occurs."
     */
 
-   _mesa_HashLockMutex(ctx->Shared->BufferObjects);
+   _mesa_HashLockMaybeLocked(ctx->Shared->BufferObjects,
+                             ctx->BufferObjectsLocked);
 
    for (i = 0; i < count; i++) {
       struct gl_buffer_object *vbo;
@@ -3187,7 +3188,8 @@ vertex_array_vertex_buffers(struct gl_context *ctx,
                                vbo, offsets[i], strides[i], false, false);
    }
 
-   _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
+   _mesa_HashUnlockMaybeLocked(ctx->Shared->BufferObjects,
+                               ctx->BufferObjectsLocked);
 }
 
 

@@ -261,6 +261,7 @@ enum_map = {
     "TOPOLOGY": ["VGT_TESS_TOPOLOGY"],
     "TYPE": ["SQ_RSRC_BUF_TYPE", "SQ_BUF_RSRC_WORD3", "SQ_RSRC_IMG_TYPE", "SQ_IMG_RSRC_WORD3", "VGT_TESS_TYPE", "VGT_TF_PARAM"],
     "UNCERTAINTY_REGION_MODE": ["ScUncertaintyRegionMode"],
+    "VRS_HTILE_ENCODING": ["VRSHtileEncoding"],
     "VS_EN": ["VGT_STAGES_VS_EN"],
     "XY_MAG_FILTER": ["SQ_TEX_XY_FILTER"],
     "XY_MIN_FILTER": ["SQ_TEX_XY_FILTER"],
@@ -271,6 +272,12 @@ enum_map = {
     "ZPCPSD_WR_POLICY": ["WritePolicy"],
     "Z_RD_POLICY": ["ReadPolicy"],
     "Z_WR_POLICY": ["WritePolicy"],
+
+    "VERTEX_RATE_COMBINER_MODE": ["VRSCombinerMode"],
+    "PRIMITIVE_RATE_COMBINER_MODE": ["VRSCombinerMode"],
+    "HTILE_RATE_COMBINER_MODE": ["VRSCombinerMode"],
+    "SAMPLE_ITER_COMBINER_MODE": ["VRSCombinerMode"],
+    "VRS_OVERRIDE_RATE_COMBINER_MODE": ["VRSCombinerMode"],
 }
 
 # Enum definitions that are incomplete or missing in kernel headers
@@ -381,6 +388,24 @@ IMG_DATA_FORMAT_STENCIL = {
  "entries": [
   {"name": "IMG_DATA_FORMAT_S8_16", "value": 59},
   {"name": "IMG_DATA_FORMAT_S8_32", "value": 60},
+ ]
+}
+
+VRSCombinerMode = {
+ "entries": [
+  {"name": "VRS_COMB_MODE_PASSTHRU", "value": 0},
+  {"name": "VRS_COMB_MODE_OVERRIDE", "value": 1},
+  {"name": "VRS_COMB_MODE_MIN", "value": 2},
+  {"name": "VRS_COMB_MODE_MAX", "value": 3},
+  {"name": "VRS_COMB_MODE_SATURATE", "value": 4},
+ ]
+}
+
+VRSHtileEncoding = {
+ "entries": [
+  {"name": "VRS_HTILE_DISABLE", "value": 0},
+  {"name": "VRS_HTILE_2BIT_ENCODING", "value": 1},
+  {"name": "VRS_HTILE_4BIT_ENCODING", "value": 2},
  ]
 }
 
@@ -565,6 +590,8 @@ enums_missing = {
     "DB_DFSM_CONTROL__PUNCHOUT_MODE": DB_DFSM_CONTROL__PUNCHOUT_MODE,
     "ThreadTraceRegInclude": ThreadTraceRegInclude,
     "ThreadTraceTokenExclude": ThreadTraceTokenExclude,
+    "VRSCombinerMode": VRSCombinerMode,
+    "VRSHtileEncoding": VRSHtileEncoding,
   },
 }
 

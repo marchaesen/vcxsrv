@@ -24,10 +24,18 @@
 #define DEVICE_SELECT_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "xf86drm.h"
 
+/* We don't use `drmPciDeviceInfo` because it uses 16-bit ids,
+ * instead of Vulkan's 32-bit ones. */
+struct device_info {
+  uint32_t vendor_id;
+  uint32_t device_id;
+};
+
 struct device_pci_info {
-  drmPciDeviceInfo dev_info;
+  struct device_info dev_info;
   drmPciBusInfo bus_info;
   bool has_bus_info;
   bool cpu_device;

@@ -70,4 +70,7 @@ size_t xi2mask_mask_size(const XI2Mask *mask);
 void xi2mask_set_one_mask(XI2Mask *xi2mask, int deviceid,
                           const unsigned char *mask, size_t mask_size);
 const unsigned char *xi2mask_get_one_mask(const XI2Mask *xi2mask, int deviceid);
+
+Bool CopySprite(SpritePtr src, SpritePtr dst);
+
 #endif

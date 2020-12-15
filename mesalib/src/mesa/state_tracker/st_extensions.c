@@ -92,11 +92,11 @@ void st_init_limits(struct pipe_screen *screen,
 
    c->Max3DTextureLevels
       = _min(screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_3D_LEVELS),
-            MAX_3D_TEXTURE_LEVELS);
+            MAX_TEXTURE_LEVELS);
 
    c->MaxCubeTextureLevels
       = _min(screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS),
-            MAX_CUBE_TEXTURE_LEVELS);
+            MAX_TEXTURE_LEVELS);
 
    c->MaxTextureRectSize = _min(c->MaxTextureSize, MAX_TEXTURE_RECT_SIZE);
 
@@ -820,8 +820,6 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(NV_viewport_array2),               PIPE_CAP_VIEWPORT_MASK                    },
       { o(NV_viewport_swizzle),              PIPE_CAP_VIEWPORT_SWIZZLE                 },
       { o(NVX_gpu_memory_info),              PIPE_CAP_QUERY_MEMORY_INFO                },
-      /* GL_NV_point_sprite is not supported by gallium because we don't
-       * support the GL_POINT_SPRITE_R_MODE_NV option. */
 
       { o(OES_standard_derivatives),         PIPE_CAP_FRAGMENT_SHADER_DERIVATIVES      },
       { o(OES_texture_float_linear),         PIPE_CAP_TEXTURE_FLOAT_LINEAR             },
@@ -1743,6 +1741,7 @@ void st_init_extensions(struct pipe_screen *screen,
       spirv_caps->atomic_storage             = extensions->ARB_shader_atomic_counters;
       spirv_caps->demote_to_helper_invocation = extensions->EXT_demote_to_helper_invocation;
       spirv_caps->draw_parameters            = extensions->ARB_shader_draw_parameters;
+      spirv_caps->derivative_group           = extensions->NV_compute_shader_derivatives;
       spirv_caps->float64                    = extensions->ARB_gpu_shader_fp64;
       spirv_caps->geometry_streams           = extensions->ARB_gpu_shader5;
       spirv_caps->image_ms_array             = extensions->ARB_shader_image_load_store &&
@@ -1770,6 +1769,7 @@ void st_init_extensions(struct pipe_screen *screen,
    }
 
    consts->AllowDrawOutOfOrder = options->allow_draw_out_of_order;
+   consts->AllowIncorrectPrimitiveId = options->allow_incorrect_primitive_id;
 
    bool prefer_nir = PIPE_SHADER_IR_NIR ==
          screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT, PIPE_SHADER_CAP_PREFERRED_IR);

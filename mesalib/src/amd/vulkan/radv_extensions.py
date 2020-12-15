@@ -78,6 +78,7 @@ EXTENSIONS = [
     Extension('VK_KHR_external_semaphore',                1, 'device->rad_info.has_syncobj'),
     Extension('VK_KHR_external_semaphore_capabilities',   1, True),
     Extension('VK_KHR_external_semaphore_fd',             1, 'device->rad_info.has_syncobj'),
+    Extension('VK_KHR_fragment_shading_rate',             1, 'device->rad_info.chip_class >= GFX10_3'),
     Extension('VK_KHR_get_display_properties2',           1, 'VK_USE_PLATFORM_DISPLAY_KHR'),
     Extension('VK_KHR_get_memory_requirements2',          1, True),
     Extension('VK_KHR_get_physical_device_properties2',   1, True),
@@ -151,8 +152,7 @@ EXTENSIONS = [
     Extension('VK_EXT_private_data',                      1, True),
     Extension('VK_EXT_queue_family_foreign',              1, True),
     Extension('VK_EXT_robustness2',                       1, True),
-    # Disable sample locations on GFX10 until the CTS failures have been resolved.
-    Extension('VK_EXT_sample_locations',                  1, 'device->rad_info.chip_class < GFX10'),
+    Extension('VK_EXT_sample_locations',                  1, True),
     Extension('VK_EXT_sampler_filter_minmax',             2, True),
     Extension('VK_EXT_scalar_block_layout',               1, 'device->rad_info.chip_class >= GFX7'),
     Extension('VK_EXT_shader_atomic_float',               1, True),
@@ -191,6 +191,7 @@ EXTENSIONS = [
     Extension('VK_GOOGLE_user_type',                      1, True),
     Extension('VK_NV_compute_shader_derivatives',         1, True),
     Extension('VK_EXT_4444_formats',                      1, True),
+    Extension('VK_VALVE_mutable_descriptor_type',         1, True),
 ]
 
 MAX_API_VERSION = VkVersion('0.0.0')

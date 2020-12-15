@@ -123,7 +123,7 @@ a call to
 .B XCopyPlane
 initiated the request.
 These constants are defined in
-.hN X11/Xproto.h .
+.BR X11/Xproto.h .
 The minor_code member,
 like the major_code member,
 indicates which graphics request was initiated by

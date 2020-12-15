@@ -334,7 +334,8 @@ nir_build_deref_offset(nir_builder *b, nir_deref_instr *deref,
    nir_ssa_def *offset = nir_imm_intN_t(b, 0, deref->dest.ssa.bit_size);
    for (nir_deref_instr **p = &path.path[1]; *p; p++) {
       switch ((*p)->deref_type) {
-      case nir_deref_type_array: {
+      case nir_deref_type_array:
+      case nir_deref_type_ptr_as_array: {
          nir_ssa_def *index = nir_ssa_for_src(b, (*p)->arr.index, 1);
          int stride = type_get_array_stride((*p)->type, size_align);
          offset = nir_iadd(b, offset, nir_amul_imm(b, index, stride));
@@ -638,6 +639,26 @@ nir_compare_derefs(nir_deref_instr *a, nir_deref_instr *b)
    nir_deref_path_finish(&b_path);
 
    return result;
+}
+
+nir_deref_path *nir_get_deref_path(void *mem_ctx, nir_deref_and_path *deref)
+{
+   if (!deref->_path) {
+      deref->_path = ralloc(mem_ctx, nir_deref_path);
+      nir_deref_path_init(deref->_path, deref->instr, mem_ctx);
+   }
+   return deref->_path;
+}
+
+nir_deref_compare_result nir_compare_derefs_and_paths(void *mem_ctx,
+                                                      nir_deref_and_path *a,
+                                                      nir_deref_and_path *b)
+{
+   if (a->instr == b->instr) /* nir_compare_derefs has a fast path if a == b */
+      return nir_compare_derefs(a->instr, b->instr);
+
+   return nir_compare_deref_paths(nir_get_deref_path(mem_ctx, a),
+                                  nir_get_deref_path(mem_ctx, b));
 }
 
 struct rematerialize_deref_state {

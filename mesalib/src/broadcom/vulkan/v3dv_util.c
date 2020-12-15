@@ -45,11 +45,11 @@ __vk_errorf(struct v3dv_instance *instance, VkResult error, const char *file,
    va_list ap;
    char buffer[256];
 
-   const char *error_str = vk_Result_to_str(error);
-
 #ifndef DEBUG
       return error;
 #endif
+
+   const char *error_str = vk_Result_to_str(error);
 
    if (format) {
       va_start(ap, format);

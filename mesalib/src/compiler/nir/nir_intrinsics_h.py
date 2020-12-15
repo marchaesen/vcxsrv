@@ -36,9 +36,18 @@ typedef enum {
    nir_num_intrinsics = nir_last_intrinsic + 1
 } nir_intrinsic_op;
 
+typedef enum {
+% for index in INTR_INDICES:
+   NIR_INTRINSIC_${index.name.upper()},
+% endfor
+   NIR_INTRINSIC_NUM_INDEX_FLAGS,
+} nir_intrinsic_index_flag;
+
+extern const char *nir_intrinsic_index_names[NIR_INTRINSIC_NUM_INDEX_FLAGS];
+
 #endif /* _NIR_INTRINSICS_ */"""
 
-from nir_intrinsics import INTR_OPCODES
+from nir_intrinsics import INTR_OPCODES, INTR_INDICES
 from mako.template import Template
 import argparse
 import os
@@ -53,7 +62,7 @@ def main():
 
     path = os.path.join(args.outdir, 'nir_intrinsics.h')
     with open(path, 'wb') as f:
-        f.write(Template(template, output_encoding='utf-8').render(INTR_OPCODES=INTR_OPCODES))
+        f.write(Template(template, output_encoding='utf-8').render(INTR_OPCODES=INTR_OPCODES, INTR_INDICES=INTR_INDICES))
 
 if __name__ == '__main__':
     main()

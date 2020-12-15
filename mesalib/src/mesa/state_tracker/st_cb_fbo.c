@@ -114,7 +114,7 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
                               GLuint width, GLuint height)
 {
    struct st_context *st = st_context(ctx);
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
    struct st_renderbuffer *strb = st_renderbuffer(rb);
    enum pipe_format format = PIPE_FORMAT_NONE;
    struct pipe_resource templ;
@@ -702,7 +702,7 @@ static void
 st_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
 {
    struct st_context *st = st_context(ctx);
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
    const struct gl_renderbuffer_attachment *depth =
          &fb->Attachment[BUFFER_DEPTH];
    const struct gl_renderbuffer_attachment *stencil =

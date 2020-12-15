@@ -1,6 +1,7 @@
 /*
  * Copyright 2008 Tungsten Graphics, Inc., Cedar Park, Texas.
  * Copyright 2011 Dave Airlie
+ * Copyright 2019 NVIDIA CORPORATION
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -26,6 +27,8 @@
  *
  * Original Author: Alan Hourihane <alanh@tungstengraphics.com>
  * Rewrite: Dave Airlie <airlied@redhat.com>
+ * Additional contributors:
+ *   Aaron Plattner <aplattner@nvidia.com>
  *
  */
 

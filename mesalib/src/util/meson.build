@@ -33,6 +33,7 @@ files_mesa_util = files(
   'blob.h',
   'build_id.c',
   'build_id.h',
+  'cnd_monotonic.h',
   'compiler.h',
   'crc32.c',
   'crc32.h',
@@ -196,7 +197,7 @@ _libmesa_util = static_library(
 idep_mesautil = declare_dependency(
   link_with : _libmesa_util,
   include_directories : inc_util,
-  dependencies : [dep_zlib, dep_clock, dep_thread, dep_atomic, dep_m],
+  dependencies : [dep_zlib, dep_clock, dep_thread, dep_atomic, dep_m, dep_valgrind],
 )
 
 xmlconfig_deps = []
@@ -242,6 +243,10 @@ if with_tests
         cpp_args: ['-Wno-write-strings']
       ),
       suite : ['util'],
+      env: ['HOME=' + join_paths(meson.current_source_dir(),
+                                 'tests', 'drirc_home'),
+            'DRIRC_CONFIGDIR=' + join_paths(meson.current_source_dir(),
+                                            'tests', 'drirc_configdir')]
         )
   endif
 

@@ -60,7 +60,7 @@ export           WAYLAND_RELEASES=https://wayland.freedesktop.org/releases
 export         XORGMACROS_VERSION=util-macros-1.19.0
 export           XCBPROTO_VERSION=xcb-proto-1.13
 export             LIBXCB_VERSION=libxcb-1.13
-export         LIBWAYLAND_VERSION=wayland-1.17.0
+export         LIBWAYLAND_VERSION=wayland-1.18.0
 export  WAYLAND_PROTOCOLS_VERSION=wayland-protocols-1.12
 
 wget $XORG_RELEASES/util/$XORGMACROS_VERSION.tar.bz2

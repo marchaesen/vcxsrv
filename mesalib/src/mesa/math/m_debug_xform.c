@@ -160,9 +160,9 @@ static void init_matrix( GLfloat *m )
    m[3] = 11.0; m[7] = 23.0; m[11] = 91.0; m[15] =  9.0;
 }
 
-ALIGN16(static GLfloat, s[TEST_COUNT][4]);
-ALIGN16(static GLfloat, d[TEST_COUNT][4]);
-ALIGN16(static GLfloat, r[TEST_COUNT][4]);
+ALIGN16 static GLfloat s[TEST_COUNT][4];
+ALIGN16 static GLfloat d[TEST_COUNT][4];
+ALIGN16 static GLfloat r[TEST_COUNT][4];
 
 static int test_transform_function( transform_func func, int psize,
 				    int mtype, unsigned long *cycles )

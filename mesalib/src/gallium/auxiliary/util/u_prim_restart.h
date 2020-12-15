@@ -49,11 +49,15 @@ util_translate_prim_restart_data(unsigned index_size,
 enum pipe_error
 util_translate_prim_restart_ib(struct pipe_context *context,
                                const struct pipe_draw_info *info,
+                               const struct pipe_draw_indirect_info *indirect,
+                               const struct pipe_draw_start_count *draw,
                                struct pipe_resource **dst_buffer);
 
 enum pipe_error
 util_draw_vbo_without_prim_restart(struct pipe_context *context,
-                                   const struct pipe_draw_info *info);
+                                   const struct pipe_draw_info *info,
+                                   const struct pipe_draw_indirect_info *indirect,
+                                   const struct pipe_draw_start_count *draw);
 
 static inline unsigned
 util_prim_restart_index_from_size(unsigned index_size)

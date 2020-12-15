@@ -74,8 +74,8 @@ Useful for people behind strict proxies
 
 You can use `personal access
 tokens <https://gitlab.freedesktop.org/profile/personal_access_tokens>`__
-to push over HTTPS if ssh will does not suit your needs. In this case,
-create a token, and put it in the URL as shown here:
+to push over HTTPS if ssh does not suit your needs. In this case, create
+a token, and put it in the URL as shown here:
 
 ::
 

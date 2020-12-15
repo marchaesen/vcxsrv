@@ -72,7 +72,7 @@ int *\fIfont_ascent_return\fP, int *\fIfont_descent_return\fP\^, XCharStruct
 .SH ARGUMENTS
 .IP \fIdirection_return\fP 1i
 Returns the value of the direction hint
-.Pn ( FontLeftToRight
+.RB ( FontLeftToRight
 or
 .BR FontRightToLeft ).
 .IP \fIdisplay\fP 1i

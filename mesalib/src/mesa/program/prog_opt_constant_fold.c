@@ -90,7 +90,7 @@ src_regs_are_same(const struct prog_src_register *a,
 static void
 get_value(struct gl_program *prog, struct prog_src_register *r, float *data)
 {
-   unsigned pvo = prog->Parameters->ParameterValueOffset[r->Index];
+   unsigned pvo = prog->Parameters->Parameters[r->Index].ValueOffset;
    const gl_constant_value *const value =
       prog->Parameters->ParameterValues + pvo;
 

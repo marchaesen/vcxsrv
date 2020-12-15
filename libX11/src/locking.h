@@ -149,6 +149,18 @@ typedef struct _LockInfoRec {
 	xmutex_t	lock;
 } LockInfoRec;
 
+/* A list of threads currently invoking error handlers on this display
+ * LockDisplay operates differently for these threads, avoiding
+ * generating any requests or reading any events as that can cause
+ * recursion into the error handling code, which will deadlock the
+ * thread.
+ */
+struct _XErrorThreadInfo
+{
+    struct _XErrorThreadInfo *next;
+    xthread_t error_thread;
+};
+
 /* XOpenDis.c */
 extern int (*_XInitDisplayLock_fn)(Display *dpy);
 extern void (*_XFreeDisplayLock_fn)(Display *dpy);

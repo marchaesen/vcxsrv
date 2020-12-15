@@ -523,7 +523,7 @@ dri2_allocate_textures(struct dri_context *ctx,
             if (!screen->auto_fake_front) {
                continue; /* invalid attachment */
             }
-            /* fallthrough */
+            FALLTHROUGH;
          case __DRI_BUFFER_FAKE_FRONT_LEFT:
             statt = ST_ATTACHMENT_FRONT_LEFT;
             break;
@@ -758,6 +758,8 @@ dri2_create_image_from_winsys(__DRIscreen *_screen,
    if (pscreen->is_format_supported(pscreen, map->pipe_format, screen->target, 0, 0,
                                     PIPE_BIND_SAMPLER_VIEW))
       tex_usage |= PIPE_BIND_SAMPLER_VIEW;
+   if (is_protected_content)
+      tex_usage |= PIPE_BIND_PROTECTED;
 
    /* For NV12, see if we have support for sampling r8_b8g8 */
    if (!tex_usage && map->pipe_format == PIPE_FORMAT_NV12 &&
@@ -849,6 +851,7 @@ dri2_create_image_from_winsys(__DRIscreen *_screen,
    img->layer = 0;
    img->use = 0;
    img->loader_private = loaderPrivate;
+   img->sPriv = _screen;
 
    return img;
 }
@@ -1057,6 +1060,7 @@ dri2_create_image_common(__DRIscreen *_screen,
    img->use = use;
 
    img->loader_private = loaderPrivate;
+   img->sPriv = _screen;
    return img;
 }
 
@@ -1309,6 +1313,7 @@ dri2_dup_image(__DRIimage *image, void *loaderPrivate)
    /* This should be 0 for sub images, but dup is also used for base images. */
    img->dri_components = image->dri_components;
    img->loader_private = loaderPrivate;
+   img->sPriv = image->sPriv;
 
    return img;
 }
@@ -1902,7 +1907,7 @@ dri2_interop_export_object(__DRIcontext *_ctx,
           *    section 3.8.10 (Texture Completeness) of the OpenGL 2.1
           *    specification and section 3.7.10 of the OpenGL ES 2.0."
           */
-         if (in->miplevel < obj->BaseLevel || in->miplevel > obj->_MaxLevel) {
+         if (in->miplevel < obj->Attrib.BaseLevel || in->miplevel > obj->_MaxLevel) {
             simple_mtx_unlock(&ctx->Shared->Mutex);
             return MESA_GLINTEROP_INVALID_MIP_LEVEL;
          }

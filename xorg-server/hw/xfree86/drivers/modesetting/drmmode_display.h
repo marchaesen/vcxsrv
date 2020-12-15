@@ -1,5 +1,6 @@
 /*
  * Copyright © 2007 Red Hat, Inc.
+ * Copyright © 2019 NVIDIA CORPORATION
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -22,6 +23,7 @@
  *
  * Authors:
  *     Dave Airlie <airlied@redhat.com>
+ *     Aaron Plattner <aplattner@nvidia.com>
  *
  */
 #ifndef DRMMODE_DISPLAY_H

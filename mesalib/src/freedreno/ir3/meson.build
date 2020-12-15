@@ -112,7 +112,7 @@ libfreedreno_ir3 = static_library(
   include_directories : [inc_freedreno, inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
   c_args : [no_override_init_args],
   gnu_symbol_visibility : 'hidden',
-  dependencies : [idep_nir_headers, dep_dl],
+  dependencies : [idep_nir_headers, dep_dl, idep_mesautil],
   build_by_default : false,
 )
 

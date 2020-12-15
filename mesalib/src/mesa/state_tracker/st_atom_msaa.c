@@ -57,8 +57,8 @@ update_sample_locations(struct st_context *st)
          PIPE_MAX_SAMPLE_LOCATION_GRID_SIZE *
          PIPE_MAX_SAMPLE_LOCATION_GRID_SIZE * 32];
 
-      st->pipe->screen->get_sample_pixel_grid(
-         st->pipe->screen, samples, &grid_width, &grid_height);
+      st->screen->get_sample_pixel_grid(st->screen, samples,
+                                        &grid_width, &grid_height);
       size = grid_width * grid_height * samples;
 
       /**
@@ -90,7 +90,7 @@ update_sample_locations(struct st_context *st)
       }
 
       util_sample_locations_flip_y(
-         st->pipe->screen, st->state.fb_height, samples, locations);
+         st->screen, st->state.fb_height, samples, locations);
 
       if (!st->state.enable_sample_locations ||
           st->state.sample_locations_samples != samples ||

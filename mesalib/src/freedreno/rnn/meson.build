@@ -42,7 +42,7 @@ libfreedreno_rnn = static_library(
     '-DRNN_DEF_PATH="' + rnn_path + '"',
   ],
   gnu_symbol_visibility: 'hidden',
-  dependencies: [ dep_libxml2 ],
+  dependencies: [ dep_libxml2, idep_mesautil ],
   build_by_default: false,
 )
 

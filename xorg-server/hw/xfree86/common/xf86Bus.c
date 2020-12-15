@@ -268,6 +268,8 @@ StringToBusType(const char *busID, const char **retID)
         ret = BUS_SBUS;
     if (!xf86NameCmp(p, "platform"))
         ret = BUS_PLATFORM;
+    if (!xf86NameCmp(p, "usb"))
+        ret = BUS_USB;
     if (ret != BUS_NONE)
         if (retID)
             *retID = busID + strlen(p) + 1;

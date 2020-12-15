@@ -233,12 +233,12 @@ The XkbSymInterpretRec structure specifies a symbol interpretation:
 .nf
  
 typedef struct {
-    KeySym        sym;         /\(** keysym of interest or NULL */
-    unsigned char flags;       /\(** XkbSI_AutoRepeat, XkbSI_LockingKey */
-    unsigned char match;       /\(** specifies how mods is interpreted */
-    unsigned char mods;        /\(** modifier bits, correspond to eight real modifiers */
-    unsigned char virtual_mod; /\(** 1 modifier to add to key virtual mod map */
-    XkbAnyAction  act;         /\(** action to bind to symbol position on key */
+    KeySym        sym;         /\&* keysym of interest or NULL */
+    unsigned char flags;       /\&* XkbSI_AutoRepeat, XkbSI_LockingKey */
+    unsigned char match;       /\&* specifies how mods is interpreted */
+    unsigned char mods;        /\&* modifier bits, correspond to eight real modifiers */
+    unsigned char virtual_mod; /\&* 1 modifier to add to key virtual mod map */
+    XkbAnyAction  act;         /\&* action to bind to symbol position on key */
 } XkbSymInterpretRec,*XkbSymInterpretPtr;
     
 .fi    
@@ -303,7 +303,7 @@ and
 are ignored and the symbol matches a condition where no modifiers are set.
 .nf
 
-\&#define XkbSI_LevelOneOnly  (0x80)  /\(** use mods + match only if sym is level 1 */
+\&#define XkbSI_LevelOneOnly  (0x80)  /\&* use mods + match only if sym is level 1 */
     
 .fi    
 If no matching symbol interpretation is found, the server uses a default 
@@ -343,8 +343,8 @@ If the matching symbol is in position G1L1 of the key, two bits in the flags fie
 additional behavior modifications:
 .nf
 
-\&#define  XkbSI_AutoRepeat  (1<<0)  /\(** key repeats if sym is in position G1L1 */
-\&#define  XkbSI_LockingKey  (1<<1)  /\(** set KB_Lock behavior if sym is in psn G1L1 */
+\&#define  XkbSI_AutoRepeat  (1<<0)  /\&* key repeats if sym is in position G1L1 */
+\&#define  XkbSI_LockingKey  (1<<1)  /\&* set KB_Lock behavior if sym is in psn G1L1 */
     
 .fi
 If the Xkb keyboard map for the key does not have its ExplicitAutoRepeat control set, its auto repeat behavior 

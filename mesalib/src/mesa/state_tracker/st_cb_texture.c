@@ -422,7 +422,7 @@ st_UnmapTextureImage(struct gl_context *ctx,
 static GLuint
 default_bindings(struct st_context *st, enum pipe_format format)
 {
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
    const unsigned target = PIPE_TEXTURE_2D;
    unsigned bindings;
 
@@ -546,7 +546,7 @@ allocate_full_mipmap(const struct st_texture_object *stObj,
       return FALSE;
    }
 
-   if (stImage->base.Level > 0 || stObj->base.GenerateMipmap)
+   if (stImage->base.Level > 0 || stObj->base.Attrib.GenerateMipmap)
       return TRUE;
 
    /* If the application has explicitly called glTextureParameter to set
@@ -556,8 +556,8 @@ allocate_full_mipmap(const struct st_texture_object *stObj,
     * Core Mesa will initialize MaxLevel to value much larger than
     * MAX_TEXTURE_LEVELS, so we check that to see if it's been set at all.
     */
-   if (stObj->base.MaxLevel < MAX_TEXTURE_LEVELS &&
-       stObj->base.MaxLevel - stObj->base.BaseLevel > 0)
+   if (stObj->base.Attrib.MaxLevel < MAX_TEXTURE_LEVELS &&
+       stObj->base.Attrib.MaxLevel - stObj->base.Attrib.BaseLevel > 0)
       return TRUE;
 
    if (stImage->base._BaseFormat == GL_DEPTH_COMPONENT ||
@@ -565,11 +565,11 @@ allocate_full_mipmap(const struct st_texture_object *stObj,
       /* depth/stencil textures are seldom mipmapped */
       return FALSE;
 
-   if (stObj->base.BaseLevel == 0 && stObj->base.MaxLevel == 0)
+   if (stObj->base.Attrib.BaseLevel == 0 && stObj->base.Attrib.MaxLevel == 0)
       return FALSE;
 
-   if (stObj->base.Sampler.MinFilter == GL_NEAREST ||
-       stObj->base.Sampler.MinFilter == GL_LINEAR)
+   if (stObj->base.Sampler.Attrib.MinFilter == GL_NEAREST ||
+       stObj->base.Sampler.Attrib.MinFilter == GL_LINEAR)
       /* not a mipmap minification filter */
       return FALSE;
 
@@ -582,7 +582,7 @@ allocate_full_mipmap(const struct st_texture_object *stObj,
     * allocate a mipmapped texture by default. This may cause texture
     * reallocation later, but GL_NEAREST_MIPMAP_LINEAR is pretty rare.
     */
-   if (stObj->base.Sampler.MinFilter == GL_NEAREST_MIPMAP_LINEAR)
+   if (stObj->base.Sampler.Attrib.MinFilter == GL_NEAREST_MIPMAP_LINEAR)
       return FALSE;
 
    if (stObj->base.Target == GL_TEXTURE_3D)
@@ -1372,7 +1372,7 @@ try_pbo_upload(struct gl_context *ctx, GLuint dims,
    struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
    struct pipe_resource *texture = stImage->pt;
    struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
    struct pipe_surface *surface = NULL;
    struct st_pbo_addresses addr;
    enum pipe_format src_format;
@@ -1485,7 +1485,7 @@ st_TexSubImage(struct gl_context *ctx, GLuint dims,
    struct st_texture_image *stImage = st_texture_image(texImage);
    struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
    struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
    struct pipe_resource *dst = stImage->pt;
    struct pipe_resource *src = NULL;
    struct pipe_resource src_templ;
@@ -1790,7 +1790,7 @@ st_CompressedTexSubImage(struct gl_context *ctx, GLuint dims,
    struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
    struct pipe_resource *texture = stImage->pt;
    struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
    struct pipe_resource *dst = stImage->pt;
    struct pipe_surface *surface = NULL;
    struct compressed_pixelstore store;
@@ -1968,7 +1968,7 @@ st_GetTexSubImage(struct gl_context * ctx,
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
    struct st_texture_image *stImage = st_texture_image(texImage);
    struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
    struct pipe_resource *src = stObj->pt;
@@ -2506,7 +2506,7 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
    struct st_renderbuffer *strb = st_renderbuffer(rb);
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
    struct pipe_blit_info blit;
    enum pipe_format dst_format;
    GLboolean do_flip = (st_fb_orientation(ctx->ReadBuffer) == Y_0_TOP);
@@ -2676,14 +2676,14 @@ st_finalize_texture(struct gl_context *ctx,
    if (tObj->_MipmapComplete)
       stObj->lastLevel = stObj->base._MaxLevel;
    else if (tObj->_BaseComplete)
-      stObj->lastLevel = stObj->base.BaseLevel;
+      stObj->lastLevel = stObj->base.Attrib.BaseLevel;
 
    /* Skip the loop over images in the common case of no images having
     * changed.  But if the GL_BASE_LEVEL or GL_MAX_LEVEL change to something we
     * haven't looked at, then we do need to look at those new images.
     */
    if (!stObj->needs_validation &&
-       stObj->base.BaseLevel >= stObj->validated_first_level &&
+       stObj->base.Attrib.BaseLevel >= stObj->validated_first_level &&
        stObj->lastLevel <= stObj->validated_last_level) {
       return GL_TRUE;
    }
@@ -2694,7 +2694,7 @@ st_finalize_texture(struct gl_context *ctx,
    }
 
    firstImage = st_texture_image_const(stObj->base.Image[cubeMapFace]
-                                       [stObj->base.BaseLevel]);
+                                       [stObj->base.Attrib.BaseLevel]);
    assert(firstImage);
 
    /* If both firstImage and stObj point to a texture which can contain
@@ -2817,7 +2817,7 @@ st_finalize_texture(struct gl_context *ctx,
     */
    for (face = 0; face < nr_faces; face++) {
       GLuint level;
-      for (level = stObj->base.BaseLevel; level <= stObj->lastLevel; level++) {
+      for (level = stObj->base.Attrib.BaseLevel; level <= stObj->lastLevel; level++) {
          struct st_texture_image *stImage =
             st_texture_image(stObj->base.Image[face][level]);
 
@@ -2850,7 +2850,7 @@ st_finalize_texture(struct gl_context *ctx,
       }
    }
 
-   stObj->validated_first_level = stObj->base.BaseLevel;
+   stObj->validated_first_level = stObj->base.Attrib.BaseLevel;
    stObj->validated_last_level = stObj->lastLevel;
    stObj->needs_validation = false;
 
@@ -2879,7 +2879,7 @@ st_texture_create_from_memory(struct st_context *st,
                               GLuint bind)
 {
    struct pipe_resource pt, *newtex;
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
 
    assert(target < PIPE_MAX_TEXTURE_TYPES);
    assert(width0 > 0);
@@ -2939,7 +2939,7 @@ st_texture_storage(struct gl_context *ctx,
    struct st_context *st = st_context(ctx);
    struct st_texture_object *stObj = st_texture_object(texObj);
    struct st_memory_object *smObj = st_memory_object(memObj);
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
    unsigned ptWidth, bindings;
    uint16_t ptHeight, ptDepth, ptLayers;
    enum pipe_format fmt;
@@ -3063,14 +3063,13 @@ st_TestProxyTexImage(struct gl_context *ctx, GLenum target,
                      GLint width, GLint height, GLint depth)
 {
    struct st_context *st = st_context(ctx);
-   struct pipe_context *pipe = st->pipe;
 
    if (width == 0 || height == 0 || depth == 0) {
       /* zero-sized images are legal, and always fit! */
       return GL_TRUE;
    }
 
-   if (pipe->screen->can_create_resource) {
+   if (st->screen->can_create_resource) {
       /* Ask the gallium driver if the texture is too large */
       struct gl_texture_object *texObj =
          _mesa_get_current_tex_object(ctx, target);
@@ -3094,8 +3093,8 @@ st_TestProxyTexImage(struct gl_context *ctx, GLenum target,
          /* For immutable textures we know the final number of mip levels */
          pt.last_level = numLevels - 1;
       }
-      else if (level == 0 && (texObj->Sampler.MinFilter == GL_LINEAR ||
-                              texObj->Sampler.MinFilter == GL_NEAREST)) {
+      else if (level == 0 && (texObj->Sampler.Attrib.MinFilter == GL_LINEAR ||
+                              texObj->Sampler.Attrib.MinFilter == GL_NEAREST)) {
          /* assume just one mipmap level */
          pt.last_level = 0;
       }
@@ -3104,7 +3103,7 @@ st_TestProxyTexImage(struct gl_context *ctx, GLenum target,
          pt.last_level = util_logbase2(MAX3(width, height, depth));
       }
 
-      return pipe->screen->can_create_resource(pipe->screen, &pt);
+      return st->screen->can_create_resource(st->screen, &pt);
    }
    else {
       /* Use core Mesa fallback */

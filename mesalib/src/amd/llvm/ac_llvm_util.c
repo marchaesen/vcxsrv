@@ -40,7 +40,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static void ac_init_llvm_target()
+static void ac_init_llvm_target(void)
 {
    LLVMInitializeAMDGPUTargetInfo();
    LLVMInitializeAMDGPUTarget();

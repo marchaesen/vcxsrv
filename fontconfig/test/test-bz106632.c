@@ -221,6 +221,7 @@ main (void)
 	ret = 1;
 	goto bail;
     }
+    FcFontSetDestroy (fs);
     fprintf (stderr, "D: Removing %s\n", fontdir);
     snprintf (cmd, 512, "sleep 1; rm -f %s%s*; sleep 1", fontdir, FC_DIR_SEPARATOR_S);
     (void) system (cmd);
@@ -243,6 +244,8 @@ main (void)
 	ret = 3;
 	goto bail;
     }
+    FcConfigDestroy (config);
+
     config = FcConfigCreate ();
     if (!FcConfigParseAndLoadFromMemory (config, (const FcChar8 *) conf, FcTrue))
     {
@@ -266,6 +269,7 @@ main (void)
 	ret = 1;
 	goto bail;
     }
+    FcFontSetDestroy (fs);
     fprintf (stderr, "D: Copying %s to %s\n", FONTFILE, fontdir);
     snprintf (cmd, 512, "sleep 1; cp -a %s %s; sleep 1", FONTFILE, fontdir);
     (void) system (cmd);
@@ -288,6 +292,8 @@ main (void)
 	ret = 3;
 	goto bail;
     }
+    FcConfigDestroy (config);
+
     config = FcConfigCreate ();
     if (!FcConfigParseAndLoadFromMemory (config, (const FcChar8 *) conf, FcTrue))
     {
@@ -311,6 +317,8 @@ main (void)
 	ret = 1;
 	goto bail;
     }
+    FcFontSetDestroy (fs);
+    FcConfigDestroy (config);
 
 bail:
     fprintf (stderr, "Cleaning up\n");

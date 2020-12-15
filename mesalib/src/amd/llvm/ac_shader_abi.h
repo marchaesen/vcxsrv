@@ -86,7 +86,7 @@ struct ac_shader_abi {
                                       LLVMValueRef vertex_index, LLVMValueRef param_index,
                                       unsigned driver_location, unsigned component,
                                       unsigned num_components,
-                                      bool load_inputs);
+                                      bool load_inputs, bool vertex_index_is_invoc_id);
 
    void (*store_tcs_outputs)(struct ac_shader_abi *abi,
                              LLVMValueRef vertex_index, LLVMValueRef param_index,
@@ -145,7 +145,7 @@ struct ac_shader_abi {
 
    LLVMValueRef (*load_sample_mask_in)(struct ac_shader_abi *abi);
 
-   LLVMValueRef (*load_base_vertex)(struct ac_shader_abi *abi);
+   LLVMValueRef (*load_base_vertex)(struct ac_shader_abi *abi, bool non_indexed_is_zero);
 
    LLVMValueRef (*emit_fbfetch)(struct ac_shader_abi *abi);
 
@@ -165,6 +165,11 @@ struct ac_shader_abi {
 
    /* Clamp div by 0 (so it won't produce NaN) */
    bool clamp_div_by_zero;
+
+   /* Whether gl_FragCoord.z should be adjusted for VRS due to a hw bug on
+    * some GFX10.3 chips.
+    */
+   bool adjust_frag_coord_z;
 };
 
 #endif /* AC_SHADER_ABI_H */

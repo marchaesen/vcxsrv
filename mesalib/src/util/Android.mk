@@ -58,7 +58,7 @@ LOCAL_SHARED_LIBRARIES := \
 	libexpat
 endif
 
-LOCAL_SHARED_LIBRARIES += liblog libsync
+LOCAL_SHARED_LIBRARIES += liblog libsync libcutils
 
 # Generated sources
 

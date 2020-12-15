@@ -98,16 +98,18 @@ libamd_common = static_library(
 idep_amdgfxregs_h = declare_dependency(sources : [amdgfxregs_h])
 
 
-test(
-  'ac_surface_modifier_test',
-  executable(
+if with_tests
+  test(
     'ac_surface_modifier_test',
-    ['ac_surface_modifier_test.c'],
-    link_with: [libamd_common, libamdgpu_addrlib],
-    include_directories : [
-      inc_amd, inc_gallium, inc_include, inc_src,
-    ],
-    dependencies: [idep_amdgfxregs_h, dep_libdrm_amdgpu],
-  ),
-  suite: ['amd']
-)
+    executable(
+      'ac_surface_modifier_test',
+      ['ac_surface_modifier_test.c'],
+      link_with: [libamd_common, libamdgpu_addrlib],
+      include_directories : [
+        inc_amd, inc_gallium, inc_include, inc_src,
+      ],
+      dependencies: [idep_amdgfxregs_h, dep_libdrm_amdgpu, idep_mesautil],
+    ),
+    suite: ['amd']
+  )
+endif

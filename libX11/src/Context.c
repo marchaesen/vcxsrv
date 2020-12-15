@@ -146,6 +146,7 @@ static void _XFreeContextDB(Display *display)
 	Xfree(db->table);
 	_XFreeMutex(&db->linfo);
 	Xfree(db);
+	display->context_db = NULL;
     }
 }
 

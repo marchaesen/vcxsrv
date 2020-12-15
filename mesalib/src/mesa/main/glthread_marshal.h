@@ -43,7 +43,7 @@ struct marshal_cmd_base
    uint16_t cmd_id;
 
    /**
-    * Size of command, in multiples of 4 bytes, including cmd_base.
+    * Number of uint64_t elements used by the command.
     */
    uint16_t cmd_size;
 };
@@ -54,22 +54,20 @@ extern const _mesa_unmarshal_func _mesa_unmarshal_dispatch[NUM_DISPATCH_CMD];
 static inline void *
 _mesa_glthread_allocate_command(struct gl_context *ctx,
                                 uint16_t cmd_id,
-                                int size)
+                                unsigned size)
 {
    struct glthread_state *glthread = &ctx->GLThread;
-   struct glthread_batch *next = glthread->next_batch;
-   struct marshal_cmd_base *cmd_base;
+   const unsigned num_elements = align(size, 8) / 8;
 
-   if (unlikely(next->used + size > MARSHAL_MAX_CMD_SIZE)) {
+   if (unlikely(glthread->used + num_elements > MARSHAL_MAX_CMD_SIZE / 8))
       _mesa_glthread_flush_batch(ctx);
-      next = glthread->next_batch;
-   }
 
-   const int aligned_size = align(size, 8);
-   cmd_base = (struct marshal_cmd_base *)&next->buffer[next->used];
-   next->used += aligned_size;
+   struct glthread_batch *next = glthread->next_batch;
+   struct marshal_cmd_base *cmd_base =
+      (struct marshal_cmd_base *)&next->buffer[glthread->used];
+   glthread->used += num_elements;
    cmd_base->cmd_id = cmd_id;
-   cmd_base->cmd_size = aligned_size;
+   cmd_base->cmd_size = num_elements;
    return cmd_base;
 }
 
@@ -261,7 +259,7 @@ _mesa_texenv_enum_to_count(GLenum pname)
    case GL_RGB_SCALE:
    case GL_ALPHA_SCALE:
    case GL_TEXTURE_LOD_BIAS_EXT:
-   case GL_COORD_REPLACE_NV:
+   case GL_COORD_REPLACE:
       return 1;
    case GL_TEXTURE_ENV_COLOR:
       return 4;
@@ -312,7 +310,6 @@ _mesa_point_param_enum_to_count(GLenum pname)
    case GL_POINT_SIZE_MIN_EXT:
    case GL_POINT_SIZE_MAX_EXT:
    case GL_POINT_FADE_THRESHOLD_SIZE_EXT:
-   case GL_POINT_SPRITE_R_MODE_NV:
    case GL_POINT_SPRITE_COORD_ORIGIN:
       return 1;
    default:

@@ -97,6 +97,9 @@ ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id)
 		/* TODO: implement clip+cull distances on earlier gen's */
 		compiler->has_clip_cull = true;
 
+		/* TODO: implement private memory on earlier gen's */
+		compiler->has_pvtmem = true;
+
 		if (compiler->gpu_id == 650)
 			compiler->tess_use_shared = true;
 	} else {

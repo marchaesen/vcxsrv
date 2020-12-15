@@ -53,7 +53,8 @@
  * [1]: secondary trace ID
  * [2-3]: 64-bit GFX ring pipeline pointer
  * [4-5]: 64-bit COMPUTE ring pipeline pointer
- * [6-7]: 64-bit descriptor set #0 pointer
+ * [6-7]: Vertex descriptors pointer
+ * [8-9]: 64-bit descriptor set #0 pointer
  * ...
  * [68-69]: 64-bit descriptor set #31 pointer
  */
@@ -242,7 +243,7 @@ radv_dump_descriptors(struct radv_device *device, FILE *f)
 	fprintf(f, "Descriptors:\n");
 	for (i = 0; i < MAX_SETS; i++) {
 		struct radv_descriptor_set *set =
-			*(struct radv_descriptor_set **)(ptr + i + 3);
+			*(struct radv_descriptor_set **)(ptr + i + 4);
 
 		radv_dump_descriptor_set(device, set, i, f);
 	}
@@ -378,8 +379,9 @@ radv_dump_annotated_shaders(struct radv_pipeline *pipeline,
 		"\n\n", num_waves);
 
 	/* Dump annotated active graphics shaders. */
-	while (active_stages) {
-		int stage = u_bit_scan(&active_stages);
+	unsigned stages = active_stages;
+	while (stages) {
+		int stage = u_bit_scan(&stages);
 
 		radv_dump_annotated_shader(pipeline->shaders[stage],
 					   stage, waves, num_waves, f);
@@ -446,10 +448,36 @@ radv_dump_shaders(struct radv_pipeline *pipeline,
 		  VkShaderStageFlagBits active_stages, FILE *f)
 {
 	/* Dump active graphics shaders. */
-	while (active_stages) {
-		int stage = u_bit_scan(&active_stages);
+	unsigned stages = active_stages;
+	while (stages) {
+		int stage = u_bit_scan(&stages);
 
 		radv_dump_shader(pipeline, pipeline->shaders[stage], stage, f);
+	}
+}
+
+static void
+radv_dump_vertex_descriptors(struct radv_pipeline *pipeline, FILE *f)
+{
+	void *ptr = (uint64_t *)pipeline->device->trace_id_ptr;
+	uint32_t count = pipeline->num_vertex_bindings;
+	uint32_t *vb_ptr = &((uint32_t *)ptr)[3];
+
+	if (!count)
+		return;
+
+	fprintf(f, "Num vertex bindings: %d\n", count);
+	for (uint32_t i = 0; i < count; i++) {
+		uint32_t *desc = &((uint32_t *)vb_ptr)[i * 4];
+		uint64_t va = 0;
+
+		va |= desc[0];
+		va |= (uint64_t)G_008F04_BASE_ADDRESS_HI(desc[1]) << 32;
+
+		fprintf(f, "VBO#%d:\n", i);
+		fprintf(f, "\tVA: 0x%"PRIx64"\n", va);
+		fprintf(f, "\tStride: %d\n", G_008F04_STRIDE(desc[1]));
+		fprintf(f, "\tNum records: %d (0x%x)\n", desc[2], desc[2]);
 	}
 }
 
@@ -473,7 +501,9 @@ radv_dump_queue_state(struct radv_queue *queue, FILE *f)
 	pipeline = radv_get_saved_pipeline(queue->device, ring);
 	if (pipeline) {
 		radv_dump_shaders(pipeline, pipeline->active_stages, f);
-		radv_dump_annotated_shaders(pipeline, pipeline->active_stages, f);
+		if (!(queue->device->instance->debug_flags & RADV_DEBUG_NO_UMR))
+			radv_dump_annotated_shaders(pipeline, pipeline->active_stages, f);
+		radv_dump_vertex_descriptors(pipeline, f);
 		radv_dump_descriptors(queue->device, f);
 	}
 }
@@ -526,6 +556,23 @@ radv_dump_enabled_options(struct radv_device *device, FILE *f)
 		}
 		fprintf(f, "\n");
 	}
+}
+
+static void
+radv_dump_app_info(struct radv_device *device, FILE *f)
+{
+	struct radv_instance *instance = device->instance;
+
+	fprintf(f, "Application name: %s\n", instance->applicationName);
+	fprintf(f, "Application version: %d\n", instance->applicationVersion);
+	fprintf(f, "Engine name: %s\n", instance->engineName);
+	fprintf(f, "Engine version: %d\n", instance->engineVersion);
+	fprintf(f, "API version: %d.%d.%d\n",
+		VK_VERSION_MAJOR(instance->apiVersion),
+		VK_VERSION_MINOR(instance->apiVersion),
+		VK_VERSION_PATCH(instance->apiVersion));
+
+	radv_dump_enabled_options(device, f);
 }
 
 static void
@@ -616,16 +663,26 @@ radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_cmdbuf *cs)
 
 	fprintf(stderr, "radv: GPU hang detected...\n");
 
-	/* Create a directory into $HOME/radv_dumps_<pid> to save various
-	 * debugging info about that GPU hang.
+	/* Create a directory into $HOME/radv_dumps_<pid>_<time> to save
+	 * various debugging info about that GPU hang.
 	 */
-	snprintf(dump_dir, sizeof(dump_dir), "%s/"RADV_DUMP_DIR"_%d",
-		 debug_get_option("HOME", "."), getpid());
+	struct tm *timep, result;
+	time_t raw_time;
+	char buf_time[128];
+
+	time(&raw_time);
+	timep = os_localtime(&raw_time, &result);
+	strftime(buf_time, sizeof(buf_time), "%Y.%m.%d_%H.%M.%S", timep);
+
+	snprintf(dump_dir, sizeof(dump_dir), "%s/"RADV_DUMP_DIR"_%d_%s",
+		 debug_get_option("HOME", "."), getpid(), buf_time);
 	if (mkdir(dump_dir, 0774) && errno != EEXIST) {
 		fprintf(stderr, "radv: can't create directory '%s' (%i).\n",
 			dump_dir, errno);
 		abort();
 	}
+
+	fprintf(stderr, "radv: GPU hang report will be saved to '%s'!\n", dump_dir);
 
 	/* Dump trace file. */
 	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "trace.log");
@@ -643,20 +700,22 @@ radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_cmdbuf *cs)
 		fclose(f);
 	}
 
-	/* Dump UMR ring. */
-	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "umr_ring.log");
-	f = fopen(dump_path, "w+");
-	if (f) {
-		radv_dump_umr_ring(queue, f);
-		fclose(f);
-	}
+	if (!(device->instance->debug_flags & RADV_DEBUG_NO_UMR)) {
+		/* Dump UMR ring. */
+		snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "umr_ring.log");
+		f = fopen(dump_path, "w+");
+		if (f) {
+			radv_dump_umr_ring(queue, f);
+			fclose(f);
+		}
 
-	/* Dump UMR waves. */
-	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "umr_waves.log");
-	f = fopen(dump_path, "w+");
-	if (f) {
-		radv_dump_umr_waves(queue, f);
-		fclose(f);
+		/* Dump UMR waves. */
+		snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "umr_waves.log");
+		f = fopen(dump_path, "w+");
+		if (f) {
+			radv_dump_umr_waves(queue, f);
+			fclose(f);
+		}
 	}
 
 	/* Dump debug registers. */
@@ -664,6 +723,14 @@ radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_cmdbuf *cs)
 	f = fopen(dump_path, "w+");
 	if (f) {
 		radv_dump_debug_registers(device, f);
+		fclose(f);
+	}
+
+	/* Dump BO ranges. */
+	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "bo_ranges.log");
+	f = fopen(dump_path, "w+");
+	if (f) {
+		device->ws->dump_bo_ranges(device->ws, f);
 		fclose(f);
 	}
 
@@ -678,11 +745,11 @@ radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_cmdbuf *cs)
 		}
 	}
 
-	/* Dump enabled debug/perftest options. */
-	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "options.log");
+	/* Dump app info. */
+	snprintf(dump_path, sizeof(dump_path), "%s/%s", dump_dir, "app_info.log");
 	f = fopen(dump_path, "w+");
 	if (f) {
-		radv_dump_enabled_options(device, f);
+		radv_dump_app_info(device, f);
 		fclose(f);
 	}
 
@@ -703,7 +770,7 @@ radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_cmdbuf *cs)
 		fclose(f);
 	}
 
-	fprintf(stderr, "radv: GPU hang report saved to '%s'!\n", dump_dir);
+	fprintf(stderr, "radv: GPU hang report saved successfully!\n");
 	abort();
 }
 
@@ -793,8 +860,16 @@ radv_get_faulty_shader(struct radv_device *device, uint64_t faulty_pc)
 	struct radv_shader_variant *shader = NULL;
 
 	mtx_lock(&device->shader_slab_mutex);
+
 	list_for_each_entry(struct radv_shader_slab, slab, &device->shader_slabs, slabs) {
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+#endif
 		list_for_each_entry(struct radv_shader_variant, s, &slab->shaders, slab_list) {
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 			uint64_t offset = align_u64(s->bo_offset + s->code_size, 256);
 			uint64_t va = radv_buffer_get_va(s->bo);
 

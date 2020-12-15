@@ -105,4 +105,5 @@ void _XFreeX11XCBStructure(Display *dpy)
 	xcondition_free(dpy->xcb->event_notify);
 	xcondition_free(dpy->xcb->reply_notify);
 	Xfree(dpy->xcb);
+	dpy->xcb = NULL;
 }

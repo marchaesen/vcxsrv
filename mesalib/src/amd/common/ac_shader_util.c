@@ -316,7 +316,8 @@ unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
    return num_input_vgprs;
 }
 
-void ac_choose_spi_color_formats(unsigned format, unsigned swap, unsigned ntype, bool is_depth,
+void ac_choose_spi_color_formats(unsigned format, unsigned swap, unsigned ntype,
+                                 bool is_depth, bool use_rbplus,
                                  struct ac_spi_color_formats *formats)
 {
    /* Alpha is needed for alpha-to-coverage.
@@ -349,6 +350,15 @@ void ac_choose_spi_color_formats(unsigned format, unsigned swap, unsigned ntype,
          alpha = blend = blend_alpha = normal = V_028714_SPI_SHADER_SINT16_ABGR;
       else
          alpha = blend = blend_alpha = normal = V_028714_SPI_SHADER_FP16_ABGR;
+
+      if (!use_rbplus && format == V_028C70_COLOR_8 &&
+          ntype != V_028C70_NUMBER_SRGB && swap == V_028C70_SWAP_STD) /* R */ {
+         /* When RB+ is enabled, R8_UNORM should use FP16_ABGR for 2x
+          * exporting performance. Otherwise, use 32_R to remove useless
+          * instructions needed for 16-bit compressed exports.
+          */
+         blend = normal = V_028714_SPI_SHADER_32_R;
+      }
       break;
 
    case V_028C70_COLOR_16:

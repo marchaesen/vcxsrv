@@ -39,6 +39,12 @@
 extern "C" {
 #endif
 
+#if defined(ANDROID) || defined(_WIN32)
+#define WITH_XMLCONFIG 0
+#else
+#define WITH_XMLCONFIG 1
+#endif
+
 #define STRING_CONF_MAXLEN 1024
 
 /** \brief Option data types */
@@ -156,6 +162,10 @@ int driQueryOptioni(const driOptionCache *cache, const char *name);
 float driQueryOptionf(const driOptionCache *cache, const char *name);
 /** \brief Query a string option value */
 char *driQueryOptionstr(const driOptionCache *cache, const char *name);
+
+/* Overrides for the unit tests to control drirc parsing. */
+void driInjectDataDir(const char *dir);
+void driInjectExecName(const char *exec);
 
 /**
  * Returns a hash of the options for this application.

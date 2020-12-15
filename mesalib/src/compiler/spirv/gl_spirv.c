@@ -238,7 +238,7 @@ gl_spirv_validation(const uint32_t *words, size_t word_count,
       return false;
 
    /* See also _vtn_fail() */
-   if (setjmp(b->fail_jump)) {
+   if (vtn_setjmp(b->fail_jump)) {
       ralloc_free(b);
       return false;
    }

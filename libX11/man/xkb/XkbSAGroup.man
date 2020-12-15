@@ -47,10 +47,10 @@ pressed and released:
 .nf
 .ft CW
     typedef struct _XkbGroupAction {
-        unsigned char    type;       /\(** XkbSA_{Set|Latch|Lock}Group */
-        unsigned char    flags;      /\(** with type, controls the effect on groups 
+        unsigned char    type;       /\&* XkbSA_{Set|Latch|Lock}Group */
+        unsigned char    flags;      /\&* with type, controls the effect on groups 
 */
-        char             group_XXX;  /\(** represents a group index or delta */
+        char             group_XXX;  /\&* represents a group index or delta */
     } XkbGroupAction;
 .ft
 .fi

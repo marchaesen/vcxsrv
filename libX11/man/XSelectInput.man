@@ -69,7 +69,6 @@ Events are reported relative to a window.
 If a window is not interested in a device event, it usually propagates to
 the closest ancestor that is interested,
 unless the do_not_propagate mask prohibits it.
-.IN "Event" "propagation"
 .LP
 Setting the event-mask attribute of a window overrides any previous call
 for the same window but not for other clients.

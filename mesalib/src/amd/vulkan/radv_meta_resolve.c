@@ -285,7 +285,7 @@ radv_device_init_meta_resolve_state(struct radv_device *device, bool on_demand)
 
 	for (uint32_t i = 0; i < NUM_META_FS_KEYS; ++i) {
 		VkFormat format = radv_fs_key_format_exemplars[i];
-		unsigned fs_key = radv_format_meta_fs_key(format);
+		unsigned fs_key = radv_format_meta_fs_key(device, format);
 		res = create_pass(device, format, &state->resolve.pass[fs_key]);
 		if (res != VK_SUCCESS)
 			goto fail;
@@ -316,7 +316,7 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_device *device = cmd_buffer->device;
 	VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
-	unsigned fs_key = radv_format_meta_fs_key(vk_format);
+	unsigned fs_key = radv_format_meta_fs_key(device, vk_format);
 
 	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB;
 
@@ -442,7 +442,7 @@ radv_meta_resolve_hardware_image(struct radv_cmd_buffer *cmd_buffer,
 	if (src_image->info.array_size > 1)
 		radv_finishme("vkCmdResolveImage: multisample array images");
 
-	unsigned fs_key = radv_format_meta_fs_key(dst_image->vk_format);
+	unsigned fs_key = radv_format_meta_fs_key(device, dst_image->vk_format);
 
 	/* From the Vulkan 1.0 spec:
 	 *
@@ -859,7 +859,7 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 
 		radv_cmd_buffer_set_subpass(cmd_buffer, &resolve_subpass);
 
-		VkResult ret = build_resolve_pipeline(cmd_buffer->device, radv_format_meta_fs_key(dest_iview->vk_format));
+		VkResult ret = build_resolve_pipeline(cmd_buffer->device, radv_format_meta_fs_key(cmd_buffer->device, dest_iview->vk_format));
 		if (ret != VK_SUCCESS) {
 			cmd_buffer->record_result = ret;
 			continue;

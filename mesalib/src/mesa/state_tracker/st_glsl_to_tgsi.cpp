@@ -50,7 +50,6 @@
 #include "util/u_math.h"
 #include "util/u_memory.h"
 #include "st_program.h"
-#include "st_mesa_to_tgsi.h"
 #include "st_format.h"
 #include "st_glsl_to_tgsi_temprename.h"
 
@@ -430,6 +429,85 @@ swizzle_for_size(int size)
 
    assert((size >= 1) && (size <= 4));
    return size_swizzles[size - 1];
+}
+
+
+/**
+ * Map mesa texture target to TGSI texture target.
+ */
+static enum tgsi_texture_type
+st_translate_texture_target(gl_texture_index textarget, GLboolean shadow)
+{
+   if (shadow) {
+      switch (textarget) {
+      case TEXTURE_1D_INDEX:
+         return TGSI_TEXTURE_SHADOW1D;
+      case TEXTURE_2D_INDEX:
+         return TGSI_TEXTURE_SHADOW2D;
+      case TEXTURE_RECT_INDEX:
+         return TGSI_TEXTURE_SHADOWRECT;
+      case TEXTURE_1D_ARRAY_INDEX:
+         return TGSI_TEXTURE_SHADOW1D_ARRAY;
+      case TEXTURE_2D_ARRAY_INDEX:
+         return TGSI_TEXTURE_SHADOW2D_ARRAY;
+      case TEXTURE_CUBE_INDEX:
+         return TGSI_TEXTURE_SHADOWCUBE;
+      case TEXTURE_CUBE_ARRAY_INDEX:
+         return TGSI_TEXTURE_SHADOWCUBE_ARRAY;
+      default:
+         break;
+      }
+   }
+
+   switch (textarget) {
+   case TEXTURE_2D_MULTISAMPLE_INDEX:
+      return TGSI_TEXTURE_2D_MSAA;
+   case TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX:
+      return TGSI_TEXTURE_2D_ARRAY_MSAA;
+   case TEXTURE_BUFFER_INDEX:
+      return TGSI_TEXTURE_BUFFER;
+   case TEXTURE_1D_INDEX:
+      return TGSI_TEXTURE_1D;
+   case TEXTURE_2D_INDEX:
+      return TGSI_TEXTURE_2D;
+   case TEXTURE_3D_INDEX:
+      return TGSI_TEXTURE_3D;
+   case TEXTURE_CUBE_INDEX:
+      return TGSI_TEXTURE_CUBE;
+   case TEXTURE_CUBE_ARRAY_INDEX:
+      return TGSI_TEXTURE_CUBE_ARRAY;
+   case TEXTURE_RECT_INDEX:
+      return TGSI_TEXTURE_RECT;
+   case TEXTURE_1D_ARRAY_INDEX:
+      return TGSI_TEXTURE_1D_ARRAY;
+   case TEXTURE_2D_ARRAY_INDEX:
+      return TGSI_TEXTURE_2D_ARRAY;
+   case TEXTURE_EXTERNAL_INDEX:
+      return TGSI_TEXTURE_2D;
+   default:
+      debug_assert(!"unexpected texture target index");
+      return TGSI_TEXTURE_1D;
+   }
+}
+
+
+/**
+ * Map GLSL base type to TGSI return type.
+ */
+static enum tgsi_return_type
+st_translate_texture_type(enum glsl_base_type type)
+{
+   switch (type) {
+   case GLSL_TYPE_INT:
+      return TGSI_RETURN_TYPE_SINT;
+   case GLSL_TYPE_UINT:
+      return TGSI_RETURN_TYPE_UINT;
+   case GLSL_TYPE_FLOAT:
+      return TGSI_RETURN_TYPE_FLOAT;
+   default:
+      assert(!"unexpected texture type");
+      return TGSI_RETURN_TYPE_UNKNOWN;
+   }
 }
 
 
@@ -6399,7 +6477,7 @@ emit_wpos(struct st_context *st,
           struct ureg_program *ureg,
           int wpos_transform_const)
 {
-   struct pipe_screen *pscreen = st->pipe->screen;
+   struct pipe_screen *pscreen = st->screen;
    GLfloat adjX = 0.0f;
    GLfloat adjY[2] = { 0.0f, 0.0f };
    boolean invert = FALSE;
@@ -6580,7 +6658,7 @@ st_translate_program(
    const ubyte outputSemanticName[],
    const ubyte outputSemanticIndex[])
 {
-   struct pipe_screen *screen = st_context(ctx)->pipe->screen;
+   struct pipe_screen *screen = st_context(ctx)->screen;
    struct st_translate *t;
    unsigned i;
    struct gl_program_constants *frag_const =
@@ -6826,7 +6904,7 @@ st_translate_program(
                 * inconsistency, we insert a U2F.
                 */
                struct st_context *st = st_context(ctx);
-               struct pipe_screen *pscreen = st->pipe->screen;
+               struct pipe_screen *pscreen = st->screen;
                assert(procType == PIPE_SHADER_VERTEX);
                assert(pscreen->get_shader_param(pscreen, PIPE_SHADER_VERTEX, PIPE_SHADER_CAP_INTEGERS));
                (void) pscreen;
@@ -6871,7 +6949,7 @@ st_translate_program(
       t->num_constants = proginfo->Parameters->NumParameters;
 
       for (i = 0; i < proginfo->Parameters->NumParameters; i++) {
-         unsigned pvo = proginfo->Parameters->ParameterValueOffset[i];
+         unsigned pvo = proginfo->Parameters->Parameters[i].ValueOffset;
 
          switch (proginfo->Parameters->Parameters[i].Type) {
          case PROGRAM_STATE_VAR:
@@ -7015,7 +7093,7 @@ get_mesa_program_tgsi(struct gl_context *ctx,
    struct gl_program *prog;
    struct gl_shader_compiler_options *options =
          &ctx->Const.ShaderCompilerOptions[shader->Stage];
-   struct pipe_screen *pscreen = ctx->st->pipe->screen;
+   struct pipe_screen *pscreen = st_context(ctx)->screen;
    enum pipe_shader_type ptarget = pipe_shader_type_from_mesa(shader->Stage);
    unsigned skip_merge_registers;
 
@@ -7166,7 +7244,8 @@ get_mesa_program_tgsi(struct gl_context *ctx,
     * storage is only associated with the original parameter list.
     * This should be enough for Bitmap and DrawPixels constants.
     */
-   _mesa_reserve_parameter_storage(prog->Parameters, 8);
+   _mesa_reserve_parameter_storage(prog->Parameters, 8, 8);
+   _mesa_disallow_parameter_storage_realloc(prog->Parameters);
 
    /* This has to be done last.  Any operation the can cause
     * prog->ParameterValues to get reallocated (e.g., anything that adds a
@@ -7244,7 +7323,7 @@ has_unsupported_control_flow(exec_list *ir,
 GLboolean
 st_link_tgsi(struct gl_context *ctx, struct gl_shader_program *prog)
 {
-   struct pipe_screen *pscreen = ctx->st->pipe->screen;
+   struct pipe_screen *pscreen = st_context(ctx)->screen;
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *shader = prog->_LinkedShaders[i];

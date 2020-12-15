@@ -86,8 +86,8 @@ function.
 .nf
 
     typedef struct _XkbColor {
-        unsigned int    pixel;      /\(** color */
-        char *          spec;       /\(** color name */
+        unsigned int    pixel;      /\&* color */
+        char *          spec;       /\&* color name */
     } XkbColorRec,*XkbColorPtr;
     
 .fi

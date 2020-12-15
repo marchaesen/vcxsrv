@@ -31,10 +31,8 @@
 static bool
 bi_is_fragz(bi_instruction *ins)
 {
-        if (!(ins->src[0] & BIR_INDEX_CONSTANT))
-                return false;
-
-        return (ins->constant.u32 == BIFROST_FRAGZ);
+        return ins->load_vary.special &&
+               ins->load_vary.var_id == BIFROST_SPECIAL_VAR_FRAGZ;
 }
 
 static enum bifrost_message_type

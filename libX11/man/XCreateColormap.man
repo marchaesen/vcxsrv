@@ -226,7 +226,6 @@ display hardware.
 The server scales these values down to the range used by the hardware.
 Black is represented by (0,0,0),
 and white is represented by (65535,65535,65535).
-.IN "Color"
 In some functions,
 the flags member controls which of the red, green, and blue members is used
 and can be the inclusive OR of zero or more of

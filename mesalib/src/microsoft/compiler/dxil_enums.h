@@ -320,6 +320,8 @@ enum dxil_sync_scope {
 extern "C" {
 #endif
 
+struct glsl_type;
+
 enum dxil_component_type dxil_get_comp_type(const struct glsl_type *type);
 
 enum dxil_prog_sig_comp_type dxil_get_prog_sig_comp_type(const struct glsl_type *type);

@@ -229,6 +229,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_CLEAR_SCISSORED:
    case PIPE_CAP_DRAW_PARAMETERS:
    case PIPE_CAP_TGSI_PACK_HALF_FLOAT:
+   case PIPE_CAP_MULTI_DRAW:
    case PIPE_CAP_MULTI_DRAW_INDIRECT:
    case PIPE_CAP_MULTI_DRAW_INDIRECT_PARAMS:
    case PIPE_CAP_TGSI_FS_POSITION_IS_SYSVAL:
@@ -439,6 +440,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_ALPHA_TO_COVERAGE_DITHER_CONTROL:
    case PIPE_CAP_NO_CLIP_ON_COPY_TEX:
    case PIPE_CAP_MAX_TEXTURE_MB:
+   case PIPE_CAP_PREFER_REAL_BUFFER_IN_CONSTBUF0:
       return 0;
 
    case PIPE_CAP_SHADER_ATOMIC_INT64:

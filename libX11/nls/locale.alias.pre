@@ -16,6 +16,7 @@ Cextend:					en_US.ISO8859-1
 Cextend.en:					en_US.ISO8859-1
 English_United-States.437:			C
 C.UTF-8:					en_US.UTF-8
+C.utf8:						en_US.UTF-8
 XCOMM a3 is not an ISO 639 language code, but in Cyrillic, "Z" looks like "3".
 a3:						az_AZ.KOI8-C
 a3_AZ:						az_AZ.KOI8-C

@@ -324,11 +324,10 @@ vbo_get_minmax_index(struct gl_context *ctx,
                      const struct _mesa_prim *prim,
                      const struct _mesa_index_buffer *ib,
                      GLuint *min_index, GLuint *max_index,
-                     const GLuint count)
+                     const GLuint count,
+                     bool primitive_restart,
+                     unsigned restart_index)
 {
-   const GLboolean restart = ctx->Array._PrimitiveRestart;
-   const GLuint restartIndex =
-      ctx->Array._RestartIndex[(1 << ib->index_size_shift) - 1];
    const char *indices;
    GLintptr offset = 0;
 
@@ -346,8 +345,8 @@ vbo_get_minmax_index(struct gl_context *ctx,
                                            MAP_INTERNAL);
    }
 
-   vbo_get_minmax_index_mapped(count, 1 << ib->index_size_shift, restartIndex,
-                               restart, indices, min_index, max_index);
+   vbo_get_minmax_index_mapped(count, 1 << ib->index_size_shift, restart_index,
+                               primitive_restart, indices, min_index, max_index);
 
    if (ib->obj) {
       vbo_minmax_cache_store(ctx, ib->obj, 1 << ib->index_size_shift, offset,
@@ -365,7 +364,9 @@ vbo_get_minmax_indices(struct gl_context *ctx,
                        const struct _mesa_index_buffer *ib,
                        GLuint *min_index,
                        GLuint *max_index,
-                       GLuint nr_prims)
+                       GLuint nr_prims,
+                       bool primitive_restart,
+                       unsigned restart_index)
 {
    GLuint tmp_min, tmp_max;
    GLuint i;
@@ -385,7 +386,8 @@ vbo_get_minmax_indices(struct gl_context *ctx,
          count += prims[i+1].count;
          i++;
       }
-      vbo_get_minmax_index(ctx, start_prim, ib, &tmp_min, &tmp_max, count);
+      vbo_get_minmax_index(ctx, start_prim, ib, &tmp_min, &tmp_max, count,
+                           primitive_restart, restart_index);
       *min_index = MIN2(*min_index, tmp_min);
       *max_index = MAX2(*max_index, tmp_max);
    }

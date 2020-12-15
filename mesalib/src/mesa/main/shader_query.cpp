@@ -166,11 +166,11 @@ _mesa_GetActiveAttrib(GLuint program, GLuint desired_index,
 
    if (size)
       _mesa_program_resource_prop(shProg, res, desired_index, GL_ARRAY_SIZE,
-                                  size, "glGetActiveAttrib");
+                                  size, false, "glGetActiveAttrib");
 
    if (type)
       _mesa_program_resource_prop(shProg, res, desired_index, GL_TYPE,
-                                  (GLint *) type, "glGetActiveAttrib");
+                                  (GLint *) type, false, "glGetActiveAttrib");
 }
 
 GLint GLAPIENTRY
@@ -517,7 +517,7 @@ valid_array_index(const GLchar *name, unsigned *array_index)
    long idx = 0;
    const GLchar *out_base_name_end;
 
-   idx = parse_program_resource_name(name, &out_base_name_end);
+   idx = parse_program_resource_name(name, strlen(name), &out_base_name_end);
    if (idx < 0)
       return false;
 
@@ -528,17 +528,9 @@ valid_array_index(const GLchar *name, unsigned *array_index)
 }
 
 static uint32_t
-compute_resource_key(GLenum programInterface, const char *name)
+compute_resource_key(GLenum programInterface, const char *name, size_t len)
 {
-   struct mesa_sha1 ctx;
-   unsigned char sha1[20];
-
-   _mesa_sha1_init(&ctx);
-   _mesa_sha1_update(&ctx, &programInterface, sizeof(programInterface));
-   _mesa_sha1_update(&ctx, name, strlen(name));
-   _mesa_sha1_final(&ctx, sha1);
-
-   return _mesa_hash_data(sha1, sizeof(sha1));
+   return _mesa_hash_data_with_seed(name, len, programInterface + len);
 }
 
 static struct gl_program_resource *
@@ -547,7 +539,8 @@ search_resource_hash(struct gl_shader_program *shProg,
                      unsigned *array_index)
 {
    const char *base_name_end;
-   long index = parse_program_resource_name(name, &base_name_end);
+   size_t len = strlen(name);
+   long index = parse_program_resource_name(name, len, &base_name_end);
    char *name_copy;
 
    /* If dealing with array, we need to get the basename. */
@@ -555,11 +548,12 @@ search_resource_hash(struct gl_shader_program *shProg,
       name_copy = (char *) malloc(base_name_end - name + 1);
       memcpy(name_copy, name, base_name_end - name);
       name_copy[base_name_end - name] = '\0';
+      len = base_name_end - name;
    } else {
       name_copy = (char*) name;
    }
 
-   uint32_t key = compute_resource_key(programInterface, name_copy);
+   uint32_t key = compute_resource_key(programInterface, name_copy, len);
    struct gl_program_resource *res = (struct gl_program_resource *)
       _mesa_hash_table_u64_search(shProg->data->ProgramResourceHash, key);
 
@@ -967,7 +961,8 @@ bool
 _mesa_get_program_resource_name(struct gl_shader_program *shProg,
                                 GLenum programInterface, GLuint index,
                                 GLsizei bufSize, GLsizei *length,
-                                GLchar *name, const char *caller)
+                                GLchar *name, bool glthread,
+                                const char *caller)
 {
    GET_CURRENT_CONTEXT(ctx);
 
@@ -980,12 +975,14 @@ _mesa_get_program_resource_name(struct gl_shader_program *shProg,
    * <programInterface>.
    */
    if (!res) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "%s(index %u)", caller, index);
+      _mesa_error_glthread_safe(ctx, GL_INVALID_VALUE, glthread,
+                                "%s(index %u)", caller, index);
       return false;
    }
 
    if (bufSize < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "%s(bufSize %d)", caller, bufSize);
+      _mesa_error_glthread_safe(ctx, GL_INVALID_VALUE, glthread,
+                                "%s(bufSize %d)", caller, bufSize);
       return false;
    }
 
@@ -1188,7 +1185,7 @@ is_resource_referenced(struct gl_shader_program *shProg,
 static unsigned
 get_buffer_property(struct gl_shader_program *shProg,
                     struct gl_program_resource *res, const GLenum prop,
-                    GLint *val, const char *caller)
+                    GLint *val, bool glthread, const char *caller)
 {
    GET_CURRENT_CONTEXT(ctx);
    if (res->Type != GL_UNIFORM_BLOCK &&
@@ -1335,9 +1332,10 @@ get_buffer_property(struct gl_shader_program *shProg,
    assert(!"support for property type not implemented");
 
 invalid_operation:
-   _mesa_error(ctx, GL_INVALID_OPERATION, "%s(%s prop %s)", caller,
-               _mesa_enum_to_string(res->Type),
-               _mesa_enum_to_string(prop));
+   _mesa_error_glthread_safe(ctx, GL_INVALID_OPERATION, glthread,
+                             "%s(%s prop %s)", caller,
+                             _mesa_enum_to_string(res->Type),
+                             _mesa_enum_to_string(prop));
 
    return 0;
 }
@@ -1345,7 +1343,8 @@ invalid_operation:
 unsigned
 _mesa_program_resource_prop(struct gl_shader_program *shProg,
                             struct gl_program_resource *res, GLuint index,
-                            const GLenum prop, GLint *val, const char *caller)
+                            const GLenum prop, GLint *val, bool glthread,
+                            const char *caller)
 {
    GET_CURRENT_CONTEXT(ctx);
 
@@ -1450,7 +1449,7 @@ _mesa_program_resource_prop(struct gl_shader_program *shProg,
    case GL_BUFFER_DATA_SIZE:
    case GL_NUM_ACTIVE_VARIABLES:
    case GL_ACTIVE_VARIABLES:
-      return get_buffer_property(shProg, res, prop, val, caller);
+      return get_buffer_property(shProg, res, prop, val, glthread, caller);
    case GL_REFERENCED_BY_COMPUTE_SHADER:
       if (!_mesa_has_compute_shaders(ctx))
          goto invalid_enum;
@@ -1587,15 +1586,17 @@ _mesa_program_resource_prop(struct gl_shader_program *shProg,
 #undef VALIDATE_TYPE_2
 
 invalid_enum:
-   _mesa_error(ctx, GL_INVALID_ENUM, "%s(%s prop %s)", caller,
-               _mesa_enum_to_string(res->Type),
-               _mesa_enum_to_string(prop));
+   _mesa_error_glthread_safe(ctx, GL_INVALID_ENUM, glthread,
+                             "%s(%s prop %s)", caller,
+                             _mesa_enum_to_string(res->Type),
+                             _mesa_enum_to_string(prop));
    return 0;
 
 invalid_operation:
-   _mesa_error(ctx, GL_INVALID_OPERATION, "%s(%s prop %s)", caller,
-               _mesa_enum_to_string(res->Type),
-               _mesa_enum_to_string(prop));
+   _mesa_error_glthread_safe(ctx, GL_INVALID_OPERATION, glthread,
+                             "%s(%s prop %s)", caller,
+                             _mesa_enum_to_string(res->Type),
+                             _mesa_enum_to_string(prop));
    return 0;
 }
 
@@ -1625,7 +1626,7 @@ _mesa_get_program_resourceiv(struct gl_shader_program *shProg,
    for (int i = 0; i < propCount && i < bufSize; i++, val++, prop++) {
       int props_written =
          _mesa_program_resource_prop(shProg, res, index, *prop, val,
-                                     "glGetProgramResourceiv");
+                                     false, "glGetProgramResourceiv");
 
       /* Error happened. */
       if (props_written == 0)
@@ -1920,7 +1921,7 @@ _mesa_create_program_resource_hash(struct gl_shader_program *shProg)
    for (unsigned i = 0; i < shProg->data->NumProgramResourceList; i++, res++) {
       const char *name = _mesa_program_resource_name(res);
       if (name) {
-         uint32_t key = compute_resource_key(res->Type, name);
+         uint32_t key = compute_resource_key(res->Type, name, strlen(name));
          _mesa_hash_table_u64_insert(shProg->data->ProgramResourceHash, key,
                                      res);
       }

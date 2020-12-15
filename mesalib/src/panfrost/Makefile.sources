@@ -94,7 +94,6 @@ util_FILES := \
         util/lcra.c \
         util/lcra.h \
         util/nir_mod_helpers.c \
-        util/nir_undef_to_zero.c \
         util/pan_ir.c \
         util/pan_ir.h \
         util/pan_liveness.c \

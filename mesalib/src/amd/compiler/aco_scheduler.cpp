@@ -910,9 +910,9 @@ void schedule_program(Program *program, live& live_vars)
    else
       ctx.num_waves = 7;
    ctx.num_waves = std::max<uint16_t>(ctx.num_waves, program->min_waves);
-   ctx.num_waves = std::min<uint16_t>(ctx.num_waves, program->max_waves);
+   ctx.num_waves = std::min<uint16_t>(ctx.num_waves, program->num_waves);
 
-   assert(ctx.num_waves > 0 && ctx.num_waves <= program->num_waves);
+   assert(ctx.num_waves > 0);
    ctx.mv.max_registers = { int16_t(get_addr_vgpr_from_waves(program, ctx.num_waves) - 2),
                             int16_t(get_addr_sgpr_from_waves(program, ctx.num_waves))};
 

@@ -113,8 +113,6 @@ vbo_exec_init(struct gl_context *ctx, bool use_buffer_objects)
 {
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
 
-   exec->ctx = ctx;
-
    vbo_exec_vtx_init(exec, use_buffer_objects);
 
    ctx->Driver.NeedFlush = 0;
@@ -320,7 +318,7 @@ vbo_copy_vertices(struct gl_context *ctx,
          assert(last_prim->start > 0);
          src -= vertex_size;
       }
-      /* fall-through */
+      FALLTHROUGH;
    case GL_TRIANGLE_FAN:
    case GL_POLYGON:
       if (count == 0) {
@@ -337,7 +335,7 @@ vbo_copy_vertices(struct gl_context *ctx,
    case GL_TRIANGLE_STRIP:
       /* Draw an even number of triangles to keep front/back facing the same. */
       last_prim->count -= count % 2;
-      /* fallthrough */
+      FALLTHROUGH;
    case GL_QUAD_STRIP:
       if (count <= 1)
          copy = count;

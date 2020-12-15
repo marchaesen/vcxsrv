@@ -28,7 +28,7 @@
 
 VkResult vk_debug_report_instance_init(struct vk_debug_report_instance *instance)
 {
-   if (pthread_mutex_init(&instance->callbacks_mutex, NULL) != 0) {
+   if (mtx_init(&instance->callbacks_mutex, mtx_plain) != 0) {
       return VK_ERROR_INITIALIZATION_FAILED;
    }
 
@@ -39,7 +39,7 @@ VkResult vk_debug_report_instance_init(struct vk_debug_report_instance *instance
 
 void vk_debug_report_instance_destroy(struct vk_debug_report_instance *instance)
 {
-   pthread_mutex_destroy(&instance->callbacks_mutex);
+   mtx_destroy(&instance->callbacks_mutex);
 }
 
 VkResult
@@ -62,9 +62,9 @@ vk_create_debug_report_callback(struct vk_debug_report_instance *instance,
    cb->callback = pCreateInfo->pfnCallback;
    cb->data = pCreateInfo->pUserData;
 
-   pthread_mutex_lock(&instance->callbacks_mutex);
+   mtx_lock(&instance->callbacks_mutex);
    list_addtail(&cb->link, &instance->callbacks);
-   pthread_mutex_unlock(&instance->callbacks_mutex);
+   mtx_unlock(&instance->callbacks_mutex);
 
    *pCallback = (VkDebugReportCallbackEXT)(uintptr_t)cb;
 
@@ -84,10 +84,10 @@ vk_destroy_debug_report_callback(struct vk_debug_report_instance *instance,
             (struct vk_debug_report_callback *)(uintptr_t)_callback;
 
    /* Remove from list and destroy given callback. */
-   pthread_mutex_lock(&instance->callbacks_mutex);
+   mtx_lock(&instance->callbacks_mutex);
    list_del(&callback->link);
    vk_free2(instance_allocator, pAllocator, callback);
-   pthread_mutex_unlock(&instance->callbacks_mutex);
+   mtx_unlock(&instance->callbacks_mutex);
 }
 
 
@@ -105,7 +105,7 @@ vk_debug_report(struct vk_debug_report_instance *instance,
    if (!instance || list_is_empty(&instance->callbacks))
       return;
 
-   pthread_mutex_lock(&instance->callbacks_mutex);
+   mtx_lock(&instance->callbacks_mutex);
 
    /* Section 33.2 of the Vulkan 1.0.59 spec says:
     *
@@ -121,5 +121,5 @@ vk_debug_report(struct vk_debug_report_instance *instance,
                       pLayerPrefix, pMessage, cb->data);
    }
 
-   pthread_mutex_unlock(&instance->callbacks_mutex);
+   mtx_unlock(&instance->callbacks_mutex);
 }

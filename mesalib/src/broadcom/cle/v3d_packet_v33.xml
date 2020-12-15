@@ -473,6 +473,7 @@
 
     <field name="R/B swap" size="1" start="20" type="bool"/>
     <field name="Channel Reverse" size="1" start="19" type="bool"/>
+    <field name="Force alpha 1" size="1" start="18" type="bool"/>
 
     <field name="Input Image Format" size="6" start="12" type="Output Image Format"/>
 

@@ -189,10 +189,7 @@ void fill_desc_set_info(isel_context *ctx, nir_function_impl *impl)
             res = intrin->src[0].ssa;
             break;
          case nir_intrinsic_store_ssbo:
-            if (nir_src_is_divergent(intrin->src[2]) ||
-                ctx->program->chip_class < GFX8 || ctx->program->chip_class >= GFX10_3 ||
-                (intrin->src[0].ssa->bit_size < 32 && !can_subdword_ssbo_store_use_smem(intrin)))
-               flags |= glc ? has_glc_vmem_store : has_nonglc_vmem_store;
+            flags |= glc ? has_glc_vmem_store : has_nonglc_vmem_store;
             res = intrin->src[1].ssa;
             break;
          case nir_intrinsic_load_global:
@@ -330,7 +327,8 @@ setup_vs_output_info(isel_context *ctx, nir_shader *nir,
 
    outinfo->param_exports = 0;
    int pos_written = 0x1;
-   if (outinfo->writes_pointsize || outinfo->writes_viewport_index || outinfo->writes_layer)
+   if (outinfo->writes_pointsize || outinfo->writes_viewport_index || outinfo->writes_layer ||
+       outinfo->writes_primitive_shading_rate)
       pos_written |= 1 << 1;
 
    uint64_t mask = nir->info.outputs_written;
@@ -419,7 +417,8 @@ void setup_gs_variables(isel_context *ctx, nir_shader *nir)
       ctx->program->config->lds_size = (total_lds_bytes + ctx->program->lds_alloc_granule - 1) / ctx->program->lds_alloc_granule;
 
       /* Make sure we have enough room for emitted GS vertices */
-      assert((ngg_emit_bytes % (ctx->ngg_gs_emit_vtx_bytes * nir->info.gs.vertices_out)) == 0);
+      if (nir->info.gs.vertices_out)
+         assert((ngg_emit_bytes % (ctx->ngg_gs_emit_vtx_bytes * nir->info.gs.vertices_out)) == 0);
 
       /* See if the number of vertices and primitives are compile-time known */
       nir_gs_count_vertices_and_primitives(nir, ctx->ngg_gs_const_vtxcnt, ctx->ngg_gs_const_prmcnt, 4u);
@@ -740,7 +739,7 @@ void init_context(isel_context *ctx, nir_shader *shader)
                      break;
                   case nir_op_bcsel:
                      type = nir_dest_is_divergent(alu_instr->dest.dest) ? RegType::vgpr : RegType::sgpr;
-                     /* fallthrough */
+                     FALLTHROUGH;
                   default:
                      for (unsigned i = 0; i < nir_op_infos[alu_instr->op].num_inputs; i++) {
                         if (regclasses[alu_instr->src[i].src.ssa->index].type() == RegType::vgpr)
@@ -799,6 +798,7 @@ void init_context(isel_context *ctx, nir_shader *shader)
                   case nir_intrinsic_load_barycentric_at_offset:
                   case nir_intrinsic_load_interpolated_input:
                   case nir_intrinsic_load_frag_coord:
+                  case nir_intrinsic_load_frag_shading_rate:
                   case nir_intrinsic_load_sample_pos:
                   case nir_intrinsic_load_layer_id:
                   case nir_intrinsic_load_local_invocation_id:
@@ -909,9 +909,19 @@ void init_context(isel_context *ctx, nir_shader *shader)
                            spi_ps_inputs |= S_0286CC_POS_X_FLOAT_ENA(1) << i;
 
                      }
+
+                     if (ctx->options->adjust_frag_coord_z &&
+                         intrinsic->intrinsic == nir_intrinsic_load_frag_coord &&
+                         G_0286CC_POS_Z_FLOAT_ENA(spi_ps_inputs)) {
+                        /* Enable ancillary for adjusting gl_FragCoord.z for
+                         * VRS due to a hw bug on some GFX10.3 chips.
+                         */
+                        spi_ps_inputs |= S_0286CC_ANCILLARY_ENA(1);
+                     }
                      break;
                   }
                   case nir_intrinsic_load_sample_id:
+                  case nir_intrinsic_load_frag_shading_rate:
                      spi_ps_inputs |= S_0286CC_ANCILLARY_ENA(1);
                      break;
                   case nir_intrinsic_load_sample_mask_in:

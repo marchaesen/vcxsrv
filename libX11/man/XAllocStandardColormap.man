@@ -198,7 +198,6 @@ T}	T{
 T}
 .TE
 /\&* Values */
-.IN "XStandardColormap" "" "@DEF@"
 .EX
 typedef struct {
         Colormap colormap;

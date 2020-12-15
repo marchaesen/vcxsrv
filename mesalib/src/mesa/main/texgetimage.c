@@ -964,7 +964,7 @@ dimensions_error_check(struct gl_context *ctx,
                      "%s(1D, height = %d)", caller, height);
          return true;
       }
-      /* fall-through */
+      FALLTHROUGH;
    case GL_TEXTURE_1D_ARRAY:
    case GL_TEXTURE_2D:
    case GL_TEXTURE_RECTANGLE:

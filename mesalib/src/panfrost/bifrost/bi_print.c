@@ -240,11 +240,31 @@ bi_print_load_vary(struct bi_load_vary *load, FILE *fp)
 {
         fprintf(fp, "%s", bi_interp_mode_name(load->interp_mode));
 
+        if (load->special) {
+                switch (load->var_id) {
+                case BIFROST_SPECIAL_VAR_POINT: fprintf(fp, ".point"); break;
+                case BIFROST_SPECIAL_VAR_FRAGZ: fprintf(fp, ".fragz"); break;
+                case BIFROST_SPECIAL_VAR_FRAGW: fprintf(fp, ".fragw"); break;
+                default: unreachable("Invalid varying ID");
+                }
+        }
+
         if (load->reuse)
                 fprintf(fp, ".reuse");
 
         if (load->flat)
                 fprintf(fp, ".flat");
+
+        if (load->immediate)
+                fprintf(fp, ".imm(%d)", load->index);
+
+        switch (load->update_mode) {
+        case BIFROST_UPDATE_STORE: fprintf(fp, ".store"); break;
+        case BIFROST_UPDATE_RETRIEVE: fprintf(fp, ".retrieve"); break;
+        case BIFROST_UPDATE_CONDITIONAL: fprintf(fp, ".conditional"); break;
+        case BIFROST_UPDATE_CLOBBER: fprintf(fp, ".clobber"); break;
+        default: unreachable("Invalid update mode");
+        }
 }
 
 const char *

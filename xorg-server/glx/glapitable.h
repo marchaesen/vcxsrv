@@ -1687,6 +1687,7 @@ struct _glapi_table
    void (GLAPIENTRYP FogCoordhvNV)(const GLhalfNV * v); /* 1640 */
    void (GLAPIENTRYP SecondaryColor3hNV)(GLhalfNV red, GLhalfNV green, GLhalfNV blue); /* 1641 */
    void (GLAPIENTRYP SecondaryColor3hvNV)(const GLhalfNV * v); /* 1642 */
+   void (GLAPIENTRYP InternalSetError)(GLenum error); /* 1643 */
 };
 
 #ifdef __cplusplus

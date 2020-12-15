@@ -66,7 +66,7 @@ st_texture_create(struct st_context *st,
                   GLuint bind)
 {
    struct pipe_resource pt, *newtex;
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
 
    assert(target < PIPE_MAX_TEXTURE_TYPES);
    assert(width0 > 0);

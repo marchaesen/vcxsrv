@@ -142,9 +142,8 @@ ms_present_queue_vblank(RRCrtcPtr crtc,
     if (!ms_queue_vblank(xf86_crtc, MS_QUEUE_ABSOLUTE, msc, NULL, seq))
         return BadAlloc;
 
-    DebugPresent(("\t\tmq %lld seq %u msc %llu (hw msc %u)\n",
-                 (long long) event_id, seq, (long long) msc,
-                 vbl.request.sequence));
+    DebugPresent(("\t\tmq %lld seq %u msc %llu\n",
+                 (long long) event_id, seq, (long long) msc));
     return Success;
 }
 

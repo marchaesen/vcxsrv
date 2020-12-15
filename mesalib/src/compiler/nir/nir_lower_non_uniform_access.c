@@ -24,18 +24,59 @@
 #include "nir.h"
 #include "nir_builder.h"
 
-static nir_ssa_def *
-read_first_invocation(nir_builder *b, nir_ssa_def *x)
+struct nu_handle {
+   nir_src *src;
+   nir_ssa_def *handle;
+   nir_deref_instr *parent_deref;
+   nir_ssa_def *first;
+};
+
+static bool
+nu_handle_init(struct nu_handle *h, nir_src *src)
 {
-   nir_intrinsic_instr *first =
-      nir_intrinsic_instr_create(b->shader,
-                                 nir_intrinsic_read_first_invocation);
-   first->num_components = x->num_components;
-   first->src[0] = nir_src_for_ssa(x);
-   nir_ssa_dest_init(&first->instr, &first->dest,
-                     x->num_components, x->bit_size, NULL);
-   nir_builder_instr_insert(b, &first->instr);
-   return &first->dest.ssa;
+   assert(nir_src_num_components(*src) == 1);
+   h->src = src;
+
+   nir_deref_instr *deref = nir_src_as_deref(*src);
+   if (deref) {
+      if (deref->deref_type == nir_deref_type_var)
+         return false;
+
+      nir_deref_instr *parent = nir_deref_instr_parent(deref);
+      assert(parent->deref_type == nir_deref_type_var);
+
+      assert(deref->deref_type == nir_deref_type_array);
+      if (nir_src_is_const(deref->arr.index))
+         return false;
+
+      assert(deref->arr.index.is_ssa);
+      h->handle = deref->arr.index.ssa;
+      h->parent_deref = parent;
+
+      return true;
+   } else {
+      if (nir_src_is_const(*src))
+         return false;
+
+      assert(src->is_ssa);
+      h->handle = src->ssa;
+      h->parent_deref = NULL;
+
+      return true;
+   }
+}
+
+static void
+nu_handle_rewrite(nir_builder *b, struct nu_handle *h)
+{
+   if (h->parent_deref) {
+      /* Replicate the deref. */
+      nir_deref_instr *deref =
+         nir_build_deref_array(b, h->parent_deref, h->first);
+      *(h->src) = nir_src_for_ssa(&deref->dest.ssa);
+   } else {
+      *(h->src) = nir_src_for_ssa(h->first);
+   }
 }
 
 static bool
@@ -45,11 +86,8 @@ lower_non_uniform_tex_access(nir_builder *b, nir_tex_instr *tex)
       return false;
 
    /* We can have at most one texture and one sampler handle */
-   nir_ssa_def *handles[2];
-   nir_deref_instr *parent_derefs[2];
-   int texture_deref_handle = -1;
-   int sampler_deref_handle = -1;
-   unsigned handle_count = 0;
+   unsigned num_handles = 0;
+   struct nu_handle handles[2];
    for (unsigned i = 0; i < tex->num_srcs; i++) {
       switch (tex->src[i].src_type) {
       case nir_tex_src_texture_offset:
@@ -70,36 +108,12 @@ lower_non_uniform_tex_access(nir_builder *b, nir_tex_instr *tex)
          continue;
       }
 
-      assert(handle_count < 2);
-      assert(tex->src[i].src.is_ssa);
-      nir_ssa_def *handle = tex->src[i].src.ssa;
-      if (handle->parent_instr->type == nir_instr_type_deref) {
-         nir_deref_instr *deref = nir_instr_as_deref(handle->parent_instr);
-         nir_deref_instr *parent = nir_deref_instr_parent(deref);
-         if (deref->deref_type == nir_deref_type_var)
-            continue;
-
-         assert(parent->deref_type == nir_deref_type_var);
-         assert(deref->deref_type == nir_deref_type_array);
-
-         /* If it's constant, it's automatically uniform; don't bother. */
-         if (nir_src_is_const(deref->arr.index))
-            continue;
-
-         handle = deref->arr.index.ssa;
-
-         parent_derefs[handle_count] = parent;
-         if (tex->src[i].src_type == nir_tex_src_texture_deref)
-            texture_deref_handle = handle_count;
-         else
-            sampler_deref_handle = handle_count;
-      }
-      assert(handle->num_components == 1);
-
-      handles[handle_count++] = handle;
+      assert(num_handles <= ARRAY_SIZE(handles));
+      if (nu_handle_init(&handles[num_handles], &tex->src[i].src))
+         num_handles++;
    }
 
-   if (handle_count == 0)
+   if (num_handles == 0)
       return false;
 
    b->cursor = nir_instr_remove(&tex->instr);
@@ -107,32 +121,29 @@ lower_non_uniform_tex_access(nir_builder *b, nir_tex_instr *tex)
    nir_push_loop(b);
 
    nir_ssa_def *all_equal_first = nir_imm_true(b);
-   nir_ssa_def *first[2];
-   for (unsigned i = 0; i < handle_count; i++) {
-      first[i] = read_first_invocation(b, handles[i]);
-      nir_ssa_def *equal_first = nir_ieq(b, first[i], handles[i]);
+   for (unsigned i = 0; i < num_handles; i++) {
+      if (i && handles[i].handle == handles[0].handle) {
+         handles[i].first = handles[0].first;
+         continue;
+      }
+
+      handles[i].first = nir_read_first_invocation(b, handles[i].handle);
+
+      nir_ssa_def *equal_first =
+         nir_ieq(b, handles[i].first, handles[i].handle);
       all_equal_first = nir_iand(b, all_equal_first, equal_first);
    }
 
    nir_push_if(b, all_equal_first);
 
-   /* Replicate the derefs. */
-   if (texture_deref_handle >= 0) {
-      int src_idx = nir_tex_instr_src_index(tex, nir_tex_src_texture_deref);
-      nir_deref_instr *deref = parent_derefs[texture_deref_handle];
-      deref = nir_build_deref_array(b, deref, first[texture_deref_handle]);
-      tex->src[src_idx].src = nir_src_for_ssa(&deref->dest.ssa);
-   }
-
-   if (sampler_deref_handle >= 0) {
-      int src_idx = nir_tex_instr_src_index(tex, nir_tex_src_sampler_deref);
-      nir_deref_instr *deref = parent_derefs[sampler_deref_handle];
-      deref = nir_build_deref_array(b, deref, first[sampler_deref_handle]);
-      tex->src[src_idx].src = nir_src_for_ssa(&deref->dest.ssa);
-   }
+   for (unsigned i = 0; i < num_handles; i++)
+      nu_handle_rewrite(b, &handles[i]);
 
    nir_builder_instr_insert(b, &tex->instr);
    nir_jump(b, nir_jump_break);
+
+   tex->texture_non_uniform = false;
+   tex->sampler_non_uniform = false;
 
    return true;
 }
@@ -144,42 +155,25 @@ lower_non_uniform_access_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
    if (!(nir_intrinsic_access(intrin) & ACCESS_NON_UNIFORM))
       return false;
 
-   assert(intrin->src[handle_src].is_ssa);
-   nir_ssa_def *handle = intrin->src[handle_src].ssa;
-   nir_deref_instr *parent_deref = NULL;
-   if (handle->parent_instr->type == nir_instr_type_deref) {
-      nir_deref_instr *deref = nir_instr_as_deref(handle->parent_instr);
-      parent_deref = nir_deref_instr_parent(deref);
-      if (deref->deref_type == nir_deref_type_var)
-         return false;
-
-      assert(parent_deref->deref_type == nir_deref_type_var);
-      assert(deref->deref_type == nir_deref_type_array);
-
-      handle = deref->arr.index.ssa;
-   }
-
-   /* If it's constant, it's automatically uniform; don't bother. */
-   if (handle->parent_instr->type == nir_instr_type_load_const)
+   struct nu_handle handle;
+   if (!nu_handle_init(&handle, &intrin->src[handle_src]))
       return false;
 
    b->cursor = nir_instr_remove(&intrin->instr);
 
    nir_push_loop(b);
 
-   assert(handle->num_components == 1);
+   assert(handle.handle->num_components == 1);
 
-   nir_ssa_def *first = read_first_invocation(b, handle);
-   nir_push_if(b, nir_ieq(b, first, handle));
+   handle.first = nir_read_first_invocation(b, handle.handle);
+   nir_push_if(b, nir_ieq(b, handle.first, handle.handle));
 
-   /* Replicate the deref. */
-   if (parent_deref) {
-      nir_deref_instr *deref = nir_build_deref_array(b, parent_deref, first);
-      intrin->src[handle_src] = nir_src_for_ssa(&deref->dest.ssa);
-   }
+   nu_handle_rewrite(b, &handle);
 
    nir_builder_instr_insert(b, &intrin->instr);
    nir_jump(b, nir_jump_break);
+
+   nir_intrinsic_set_access(intrin, nir_intrinsic_access(intrin) & ~ACCESS_NON_UNIFORM);
 
    return true;
 }

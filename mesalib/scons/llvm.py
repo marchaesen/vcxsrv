@@ -322,6 +322,9 @@ def generate(env):
             if llvm_version >= distutils.version.LooseVersion('8.0'):
                 components.append('coroutines')
 
+            if llvm_version >= distutils.version.LooseVersion('12.0'):
+                components.append('native')
+
             env.ParseConfig('%s --libs ' % llvm_config + ' '.join(components))
             env.ParseConfig('%s --ldflags' % llvm_config)
             env.ParseConfig('%s --system-libs' % llvm_config)

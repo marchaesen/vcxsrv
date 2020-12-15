@@ -73,7 +73,7 @@ update_framebuffer_size(struct pipe_framebuffer_state *framebuffer,
 static unsigned
 framebuffer_quantize_num_samples(struct st_context *st, unsigned num_samples)
 {
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
    int quantized_samples = 0;
    unsigned msaa_mode;
 

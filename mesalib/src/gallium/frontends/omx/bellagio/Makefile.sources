@@ -6,5 +6,6 @@ C_SOURCES := \
 	vid_dec_mpeg12.c \
 	vid_dec_h264.c \
 	vid_dec_h265.c \
+	vid_dec_av1.c \
 	vid_enc.c \
 	vid_enc.h

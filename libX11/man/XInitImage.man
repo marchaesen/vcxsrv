@@ -175,7 +175,7 @@ The basic functions used to get a pixel, set a pixel, create a subimage,
 and add a constant value to an image are defined in the image object.
 The functions in this section are really macro invocations of the functions
 in the image object and are defined in
-.hN X11/Xutil.h .
+.BR X11/Xutil.h .
 .LP
 The
 .B XGetPixel

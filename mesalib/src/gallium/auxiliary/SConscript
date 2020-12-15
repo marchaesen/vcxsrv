@@ -28,6 +28,20 @@ env.CodeGenerate(
     command = python_cmd + ' $SCRIPT > $TARGET'
 )
 
+env.CodeGenerate(
+    target = 'util/u_tracepoints.c',
+    script = 'util/u_tracepoints.py',
+    source = [],
+    command = python_cmd + ' $SCRIPT -p ' + Dir('#').abspath + '/src/gallium/auxiliary/util -C $TARGET'
+)
+
+env.CodeGenerate(
+    target = 'util/u_tracepoints.h',
+    script = 'util/u_tracepoints.py',
+    source = [],
+    command = python_cmd + ' $SCRIPT -p ' + Dir('#').abspath + '/src/gallium/auxiliary/util -H $TARGET'
+)
+
 source = env.ParseSourceList('Makefile.sources', [
     'C_SOURCES',
     'NIR_SOURCES',

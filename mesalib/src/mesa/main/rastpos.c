@@ -154,6 +154,7 @@ shade_rastpos(struct gl_context *ctx,
    while (mask) {
       const int i = u_bit_scan(&mask);
       struct gl_light *light = &ctx->Light.Light[i];
+      struct gl_light_uniforms *lu = &ctx->Light.LightSource[i];
       GLfloat attenuation = 1.0;
       GLfloat VP[3]; /* vector from vertex to light pos */
       GLfloat n_dot_VP;
@@ -179,18 +180,18 @@ shade_rastpos(struct gl_context *ctx,
 	 }
 
          /* atti */
-	 attenuation = 1.0F / (light->ConstantAttenuation + d *
-			       (light->LinearAttenuation + d *
-				light->QuadraticAttenuation));
+	 attenuation = 1.0F / (lu->ConstantAttenuation + d *
+			       (lu->LinearAttenuation + d *
+				lu->QuadraticAttenuation));
 
 	 if (light->_Flags & LIGHT_SPOT) {
 	    GLfloat PV_dot_dir = - DOT3(VP, light->_NormSpotDirection);
 
-	    if (PV_dot_dir<light->_CosCutoff) {
+	    if (PV_dot_dir<lu->_CosCutoff) {
 	       continue;
 	    }
 	    else {
-               GLfloat spot = powf(PV_dot_dir, light->SpotExponent);
+               GLfloat spot = powf(PV_dot_dir, lu->SpotExponent);
 	       attenuation *= spot;
 	    }
 	 }

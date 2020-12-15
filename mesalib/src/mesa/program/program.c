@@ -551,3 +551,37 @@ gl_external_samplers(const struct gl_program *prog)
 
    return external_samplers;
 }
+
+void
+_mesa_add_separate_state_parameters(struct gl_program *prog,
+                                    struct gl_program_parameter_list *state_params)
+{
+   /* Add state parameters to the end of the parameter list. */
+   unsigned num_constants = prog->Parameters->NumParameters;
+   unsigned num_state_params = state_params->NumParameters;
+
+   for (unsigned i = 0; i < num_state_params; i++) {
+      _mesa_add_parameter(prog->Parameters, PROGRAM_STATE_VAR,
+                          state_params->Parameters[i].Name,
+                          state_params->Parameters[i].Size,
+                          GL_NONE, NULL,
+                          state_params->Parameters[i].StateIndexes,
+                          state_params->Parameters[i].Padded);
+      prog->Parameters->StateFlags |=
+         _mesa_program_state_flags(state_params->Parameters[i].StateIndexes);
+   }
+
+   /* Fix up state parameter offsets in instructions. */
+   int num_instr = prog->arb.NumInstructions;
+   struct prog_instruction *instrs = prog->arb.Instructions;
+
+   for (unsigned i = 0; i < num_instr; i++) {
+      struct prog_instruction *inst = instrs + i;
+      unsigned num_src = _mesa_num_inst_src_regs(inst->Opcode);
+
+      for (unsigned j = 0; j < num_src; j++) {
+         if (inst->SrcReg[j].File == PROGRAM_STATE_VAR)
+            inst->SrcReg[j].Index += num_constants;
+      }
+   }
+}

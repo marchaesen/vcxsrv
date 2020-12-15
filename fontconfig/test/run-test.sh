@@ -48,13 +48,13 @@ TEST=""
 
 clean_exit() {
     rc=$?
-    trap - SIGINT SIGTERM SIGABRT EXIT
+    trap - INT TERM ABRT EXIT
     if [ "x$TEST" != "x" ]; then
         echo "Aborting from '$TEST' with the exit code $rc"
     fi
     exit $rc
 }
-trap clean_exit SIGINT SIGTERM SIGABRT EXIT
+trap clean_exit INT TERM ABRT EXIT
 
 check () {
     {
@@ -155,9 +155,9 @@ dotest "Keep mtime of the font directory"
 prep
 cp "$FONT1" "$FONTDIR"
 touch -d @0 "$FONTDIR"
-stat "$FONTDIR" | grep Modify > out1
+stat -c '%y' "$FONTDIR" > out1
 $FCCACHE "$FONTDIR"
-stat "$FONTDIR" | grep Modify > out2
+stat -c '%y' "$FONTDIR" > out2
 if cmp out1 out2 > /dev/null ; then : ; else
     echo "*** Test failed: $TEST"
     echo "mtime was modified"

@@ -144,6 +144,11 @@ void * ir3_shader_assemble(struct ir3_shader_variant *v)
 	if (compiler->gpu_id >= 400)
 		v->constlen = align(v->constlen, 4);
 
+	/* Use the per-wave layout by default on a6xx. It should result in better
+	 * performance when loads/stores are to a uniform index.
+	 */
+	v->pvtmem_per_wave = compiler->gpu_id >= 600 && !v->info.multi_dword_ldp_stp;
+
 	fixup_regfootprint(v);
 
 	return bin;

@@ -73,19 +73,11 @@ nir_lower_ubo_vec4_filter(const nir_instr *instr, const void *data)
 }
 
 static nir_intrinsic_instr *
-nir_load_ubo_vec4(nir_builder *b, nir_ssa_def *block, nir_ssa_def *offset,
-                  unsigned bit_size, unsigned num_components)
+create_load(nir_builder *b, nir_ssa_def *block, nir_ssa_def *offset,
+            unsigned bit_size, unsigned num_components)
 {
-   nir_intrinsic_instr *load =
-      nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_ubo_vec4);
-   load->src[0] = nir_src_for_ssa(block);
-   load->src[1] = nir_src_for_ssa(offset);
-
-   nir_ssa_dest_init(&load->instr, &load->dest, num_components, bit_size, NULL);
-   load->num_components = num_components;
-   nir_builder_instr_insert(b, &load->instr);
-
-   return load;
+   nir_ssa_def *def = nir_load_ubo_vec4(b, num_components, bit_size, block, offset);
+   return nir_instr_as_intrinsic(def->parent_instr);
 }
 
 static nir_ssa_def *
@@ -117,10 +109,9 @@ nir_lower_ubo_vec4_lower(nir_builder *b, nir_instr *instr, void *data)
    if (!aligned_mul)
       num_components = chans_per_vec4;
 
-   nir_intrinsic_instr *load = nir_load_ubo_vec4(b, intr->src[0].ssa,
-                                                 vec4_offset,
-                                                 intr->dest.ssa.bit_size,
-                                                 num_components);
+   nir_intrinsic_instr *load = create_load(b, intr->src[0].ssa, vec4_offset,
+                                           intr->dest.ssa.bit_size,
+                                           num_components);
 
    nir_ssa_def *result = &load->dest.ssa;
 
@@ -159,10 +150,9 @@ nir_lower_ubo_vec4_lower(nir_builder *b, nir_instr *instr, void *data)
        */
       assert(num_components == 4);
       nir_ssa_def *next_vec4_offset = nir_iadd_imm(b, vec4_offset, 1);
-      nir_intrinsic_instr *next_load = nir_load_ubo_vec4(b, intr->src[0].ssa,
-                                                         next_vec4_offset,
-                                                         intr->dest.ssa.bit_size,
-                                                         num_components);
+      nir_intrinsic_instr *next_load = create_load(b, intr->src[0].ssa, next_vec4_offset,
+                                                   intr->dest.ssa.bit_size,
+                                                   num_components);
 
       nir_ssa_def *channels[NIR_MAX_VEC_COMPONENTS];
       for (unsigned i = 0; i < intr->num_components; i++) {

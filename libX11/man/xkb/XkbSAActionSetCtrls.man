@@ -135,16 +135,16 @@ from
 .nf
 
     typedef struct _XkbCtrlsAction {
-        unsigned char    type;    /\(** XkbSA_SetControls, XkbSA_LockControls */
-        unsigned char    flags;   /\(** with type, controls enabling and disabling 
+        unsigned char    type;    /\&* XkbSA_SetControls, XkbSA_LockControls */
+        unsigned char    flags;   /\&* with type, controls enabling and disabling 
 of controls */
-        unsigned char    ctrls3;  /\(** ctrls0 through ctrls3 represent the boolean 
+        unsigned char    ctrls3;  /\&* ctrls0 through ctrls3 represent the boolean 
 controls */
-        unsigned char    ctrls2;  /\(** ctrls0 through ctrls3 represent the boolean 
+        unsigned char    ctrls2;  /\&* ctrls0 through ctrls3 represent the boolean 
 controls */
-        unsigned char    ctrls1;  /\(** ctrls0 through ctrls3 represent the boolean 
+        unsigned char    ctrls1;  /\&* ctrls0 through ctrls3 represent the boolean 
 controls */
-        unsigned char    ctrls0;  /\(** ctrls0 through ctrls3 represent the boolean 
+        unsigned char    ctrls0;  /\&* ctrls0 through ctrls3 represent the boolean 
 controls */
     } XkbCtrlsAction;
 .fi

@@ -299,17 +299,6 @@ struct gl_material
  */
 struct gl_light
 {
-   GLfloat Ambient[4];		/**< ambient color */
-   GLfloat Diffuse[4];		/**< diffuse color */
-   GLfloat Specular[4];		/**< specular color */
-   GLfloat EyePosition[4];	/**< position in eye coordinates */
-   GLfloat SpotDirection[4];	/**< spotlight direction in eye coordinates */
-   GLfloat SpotExponent;
-   GLfloat SpotCutoff;		/**< in degrees */
-   GLfloat _CosCutoff;		/**< = MAX(0, cos(SpotCutoff)) */
-   GLfloat ConstantAttenuation;
-   GLfloat LinearAttenuation;
-   GLfloat QuadraticAttenuation;
    GLboolean Enabled;		/**< On/off flag */
 
    /**
@@ -606,11 +595,36 @@ struct gl_hint_attrib
 };
 
 
+struct gl_light_uniforms {
+   /* These must be in the same order as the STATE_* enums,
+    * which should also match the order of gl_LightSource members.
+    */
+   GLfloat Ambient[4];           /**< STATE_AMBIENT */
+   GLfloat Diffuse[4];           /**< STATE_DIFFUSE */
+   GLfloat Specular[4];          /**< STATE_SPECULAR */
+   GLfloat EyePosition[4];       /**< STATE_POSITION in eye coordinates */
+   GLfloat _HalfVector[4];       /**< STATE_HALF_VECTOR */
+   GLfloat SpotDirection[3];     /**< STATE_SPOT_DIRECTION in eye coordinates */
+   GLfloat _CosCutoff;           /**< = MAX(0, cos(SpotCutoff)) */
+   GLfloat ConstantAttenuation;  /**< STATE_ATTENUATION */
+   GLfloat LinearAttenuation;
+   GLfloat QuadraticAttenuation;
+   GLfloat SpotExponent;
+   GLfloat SpotCutoff;           /**< STATE_SPOT_CUTOFF in degrees */
+};
+
+
 /**
  * Lighting attribute group (GL_LIGHT_BIT).
  */
 struct gl_light_attrib
 {
+   /* gl_LightSource uniforms */
+   union {
+      struct gl_light_uniforms LightSource[MAX_LIGHTS];
+      GLfloat LightSourceData[(sizeof(struct gl_light_uniforms) / 4) * MAX_LIGHTS];
+   };
+
    struct gl_light Light[MAX_LIGHTS];	/**< Array of light sources */
    struct gl_lightmodel Model;		/**< Lighting model */
 
@@ -768,7 +782,6 @@ struct gl_point_attrib
    GLboolean _Attenuated;	/**< True if Params != [1, 0, 0] */
    GLboolean PointSprite;	/**< GL_NV/ARB_point_sprite */
    GLbitfield CoordReplace;     /**< GL_ARB_point_sprite*/
-   GLenum16 SpriteRMode;	/**< GL_NV_point_sprite (only!) */
    GLenum16 SpriteOrigin;	/**< GL_ARB_point_sprite */
 };
 
@@ -919,6 +932,47 @@ typedef enum
    MAX_FACES = 6
 } gl_face_index;
 
+/**
+ * Sampler state saved and restore by glPush/PopAttrib.
+ *
+ * Don't put fields here that glPushAttrib shouldn't save.
+ * E.g. no GLES fields because GLES doesn't have glPushAttrib.
+ */
+struct gl_sampler_attrib
+{
+   GLenum16 WrapS;		/**< S-axis texture image wrap mode */
+   GLenum16 WrapT;		/**< T-axis texture image wrap mode */
+   GLenum16 WrapR;		/**< R-axis texture image wrap mode */
+   GLenum16 MinFilter;		/**< minification filter */
+   GLenum16 MagFilter;		/**< magnification filter */
+   GLenum16 sRGBDecode;         /**< GL_DECODE_EXT or GL_SKIP_DECODE_EXT */
+   union gl_color_union BorderColor;  /**< Interpreted according to texture format */
+   GLfloat MinLod;		/**< min lambda, OpenGL 1.2 */
+   GLfloat MaxLod;		/**< max lambda, OpenGL 1.2 */
+   GLfloat LodBias;		/**< OpenGL 1.4 */
+   GLfloat MaxAnisotropy;	/**< GL_EXT_texture_filter_anisotropic */
+   GLenum16 CompareMode;	/**< GL_ARB_shadow */
+   GLenum16 CompareFunc;	/**< GL_ARB_shadow */
+   GLboolean CubeMapSeamless;   /**< GL_AMD_seamless_cubemap_per_texture */
+};
+
+/**
+ * Texture state saved and restored by glPush/PopAttrib.
+ *
+ * Don't put fields here that glPushAttrib shouldn't save.
+ * E.g. no GLES fields because GLES doesn't have glPushAttrib.
+ */
+struct gl_texture_object_attrib
+{
+   GLfloat Priority;           /**< in [0,1] */
+   GLint BaseLevel;            /**< min mipmap level, OpenGL 1.2 */
+   GLint MaxLevel;             /**< max mipmap level (max=1000), OpenGL 1.2 */
+   GLenum Swizzle[4];          /**< GL_EXT_texture_swizzle */
+   GLushort _Swizzle;          /**< same as Swizzle, but SWIZZLE_* format */
+   GLenum16 DepthMode;         /**< GL_ARB_depth_texture */
+   bool StencilSampling;       /**< Should we sample stencil instead of depth? */
+   GLboolean GenerateMipmap;   /**< GL_SGIS_generate_mipmap */
+};
 
 /**
  * Sampler object state.  These objects are new with GL_ARB_sampler_objects
@@ -931,20 +985,7 @@ struct gl_sampler_object
    GLchar *Label;               /**< GL_KHR_debug */
    GLint RefCount;
 
-   GLenum16 WrapS;		/**< S-axis texture image wrap mode */
-   GLenum16 WrapT;		/**< T-axis texture image wrap mode */
-   GLenum16 WrapR;		/**< R-axis texture image wrap mode */
-   GLenum16 MinFilter;		/**< minification filter */
-   GLenum16 MagFilter;		/**< magnification filter */
-   GLenum16 sRGBDecode;         /**< GL_DECODE_EXT or GL_SKIP_DECODE_EXT */
-   union gl_color_union BorderColor;  /**< Interpreted according to texture format */
-   GLfloat MinLod;		/**< min lambda, OpenGL 1.2 */
-   GLfloat MaxLod;		/**< max lambda, OpenGL 1.2 */
-   GLfloat LodBias;		/**< OpenGL 1.4 */
-   GLfloat MaxAnisotropy;	/**< GL_EXT_texture_filter_anisotropic */
-   GLenum16 CompareMode;		/**< GL_ARB_shadow */
-   GLenum16 CompareFunc;		/**< GL_ARB_shadow */
-   GLboolean CubeMapSeamless;   /**< GL_AMD_seamless_cubemap_per_texture */
+   struct gl_sampler_attrib Attrib;  /**< State saved by glPushAttrib */
 
    /** GL_ARB_bindless_texture */
    bool HandleAllocated;
@@ -962,23 +1003,17 @@ struct gl_texture_object
    GLint RefCount;             /**< reference count */
    GLuint Name;                /**< the user-visible texture object ID */
    GLenum16 Target;            /**< GL_TEXTURE_1D, GL_TEXTURE_2D, etc. */
-   GLenum16 DepthMode;         /**< GL_ARB_depth_texture */
    GLchar *Label;              /**< GL_KHR_debug */
 
    struct gl_sampler_object Sampler;
+   struct gl_texture_object_attrib Attrib;  /**< State saved by glPushAttrib */
 
    gl_texture_index TargetIndex; /**< The gl_texture_unit::CurrentTex index.
                                       Only valid when Target is valid. */
-   GLfloat Priority;           /**< in [0,1] */
-   GLint MaxLevel;           /**< max mipmap level (max=1000), OpenGL 1.2 */
-   GLint BaseLevel;           /**< min mipmap level, OpenGL 1.2 */
    GLbyte _MaxLevel;           /**< actual max mipmap level (q in the spec) */
    GLfloat _MaxLambda;         /**< = _MaxLevel - BaseLevel (q - p in spec) */
    GLint CropRect[4];          /**< GL_OES_draw_texture */
-   GLenum Swizzle[4];          /**< GL_EXT_texture_swizzle */
-   GLushort _Swizzle;          /**< same as Swizzle, but SWIZZLE_* format */
    GLbyte ImmutableLevels;     /**< ES 3.0 / ARB_texture_view */
-   GLboolean GenerateMipmap;   /**< GL_SGIS_generate_mipmap */
    GLboolean _BaseComplete;    /**< Is the base texture level valid? */
    GLboolean _MipmapComplete;  /**< Is the whole mipmap valid? */
    GLboolean _IsIntegerFormat; /**< Does the texture store integer values? */
@@ -988,7 +1023,6 @@ struct gl_texture_object
    GLboolean Immutable;        /**< GL_ARB_texture_storage */
    GLboolean _IsFloat;         /**< GL_OES_float_texture */
    GLboolean _IsHalfFloat;     /**< GL_OES_half_float_texture */
-   bool StencilSampling;       /**< Should we sample stencil instead of depth? */
    bool HandleAllocated;       /**< GL_ARB_bindless_texture */
 
    /** GL_OES_EGL_image_external */
@@ -1631,9 +1665,9 @@ struct gl_array_attrib
    /*@{*/
    GLboolean PrimitiveRestart;
    GLboolean PrimitiveRestartFixedIndex;
-   GLboolean _PrimitiveRestart;
+   GLboolean _PrimitiveRestart[3]; /**< Enable indexed by index_size_shift. */
    GLuint RestartIndex;
-   GLuint _RestartIndex[4]; /**< Restart indices for index_size - 1. */
+   GLuint _RestartIndex[3]; /**< Restart indices indexed by index_size_shift. */
    /*@}*/
 
    /* GL_ARB_vertex_buffer_object */
@@ -4197,6 +4231,10 @@ struct gl_constants
    /** Whether out-of-order draw (Begin/End) optimizations are allowed. */
    bool AllowDrawOutOfOrder;
 
+   /** Whether draw merging optimizations are allowed (might cause
+    *  incorrect results). */
+   bool AllowIncorrectPrimitiveId;
+
    /** Whether to allow the fast path for frequently updated VAOs. */
    bool AllowDynamicVAOFastPath;
 
@@ -4234,7 +4272,6 @@ struct gl_extensions
 {
    GLboolean dummy;  /* don't remove this! */
    GLboolean dummy_true;  /* Set true by _mesa_init_extensions(). */
-   GLboolean dummy_false; /* Set false by _mesa_init_extensions(). */
    GLboolean ANGLE_texture_compression_dxt;
    GLboolean ARB_ES2_compatibility;
    GLboolean ARB_ES3_compatibility;
@@ -4456,7 +4493,6 @@ struct gl_extensions
    GLboolean NV_copy_image;
    GLboolean NV_fill_rectangle;
    GLboolean NV_fog_distance;
-   GLboolean NV_point_sprite;
    GLboolean NV_primitive_restart;
    GLboolean NV_shader_atomic_float;
    GLboolean NV_shader_atomic_int64;
@@ -4914,6 +4950,145 @@ struct vbo_context {
 };
 
 /**
+ * glEnable node for the attribute stack. (glPushAttrib/glPopAttrib)
+ */
+struct gl_enable_attrib_node
+{
+   GLboolean AlphaTest;
+   GLboolean AutoNormal;
+   GLboolean Blend;
+   GLbitfield ClipPlanes;
+   GLboolean ColorMaterial;
+   GLboolean CullFace;
+   GLboolean DepthClampNear;
+   GLboolean DepthClampFar;
+   GLboolean DepthTest;
+   GLboolean Dither;
+   GLboolean Fog;
+   GLboolean Light[MAX_LIGHTS];
+   GLboolean Lighting;
+   GLboolean LineSmooth;
+   GLboolean LineStipple;
+   GLboolean IndexLogicOp;
+   GLboolean ColorLogicOp;
+
+   GLboolean Map1Color4;
+   GLboolean Map1Index;
+   GLboolean Map1Normal;
+   GLboolean Map1TextureCoord1;
+   GLboolean Map1TextureCoord2;
+   GLboolean Map1TextureCoord3;
+   GLboolean Map1TextureCoord4;
+   GLboolean Map1Vertex3;
+   GLboolean Map1Vertex4;
+   GLboolean Map2Color4;
+   GLboolean Map2Index;
+   GLboolean Map2Normal;
+   GLboolean Map2TextureCoord1;
+   GLboolean Map2TextureCoord2;
+   GLboolean Map2TextureCoord3;
+   GLboolean Map2TextureCoord4;
+   GLboolean Map2Vertex3;
+   GLboolean Map2Vertex4;
+
+   GLboolean Normalize;
+   GLboolean PixelTexture;
+   GLboolean PointSmooth;
+   GLboolean PolygonOffsetPoint;
+   GLboolean PolygonOffsetLine;
+   GLboolean PolygonOffsetFill;
+   GLboolean PolygonSmooth;
+   GLboolean PolygonStipple;
+   GLboolean RescaleNormals;
+   GLbitfield Scissor;
+   GLboolean Stencil;
+   GLboolean StencilTwoSide;          /* GL_EXT_stencil_two_side */
+   GLboolean MultisampleEnabled;      /* GL_ARB_multisample */
+   GLboolean SampleAlphaToCoverage;   /* GL_ARB_multisample */
+   GLboolean SampleAlphaToOne;        /* GL_ARB_multisample */
+   GLboolean SampleCoverage;          /* GL_ARB_multisample */
+   GLboolean RasterPositionUnclipped; /* GL_IBM_rasterpos_clip */
+
+   GLbitfield Texture[MAX_TEXTURE_UNITS];
+   GLbitfield TexGen[MAX_TEXTURE_UNITS];
+
+   /* GL_ARB_vertex_program */
+   GLboolean VertexProgram;
+   GLboolean VertexProgramPointSize;
+   GLboolean VertexProgramTwoSide;
+
+   /* GL_ARB_fragment_program */
+   GLboolean FragmentProgram;
+
+   /* GL_ARB_point_sprite */
+   GLboolean PointSprite;
+   GLboolean FragmentShaderATI;
+
+   /* GL_ARB_framebuffer_sRGB / GL_EXT_framebuffer_sRGB */
+   GLboolean sRGBEnabled;
+
+   /* GL_NV_conservative_raster */
+   GLboolean ConservativeRasterization;
+};
+
+/**
+ * Texture node for the attribute stack. (glPushAttrib/glPopAttrib)
+ */
+struct gl_texture_attrib_node
+{
+   GLuint CurrentUnit;   /**< GL_ACTIVE_TEXTURE */
+   GLbitfield8 _TexGenEnabled;
+   GLbitfield8 _GenFlags;
+   struct gl_fixedfunc_texture_unit FixedFuncUnit[MAX_TEXTURE_COORD_UNITS];
+   GLfloat LodBias[MAX_TEXTURE_UNITS];
+
+   /** to save per texture object state (wrap modes, filters, etc): */
+   struct gl_texture_object SavedObj[MAX_TEXTURE_UNITS][NUM_TEXTURE_TARGETS];
+
+   /* We need to keep a reference to the shared state.  That's where the
+    * default texture objects are kept.  We don't want that state to be
+    * freed while the attribute stack contains pointers to any default
+    * texture objects.
+    */
+   struct gl_shared_state *SharedRef;
+};
+
+
+/**
+ * Node for the attribute stack. (glPushAttrib/glPopAttrib)
+ */
+struct gl_attrib_node
+{
+   GLbitfield Mask;
+   struct gl_accum_attrib Accum;
+   struct gl_colorbuffer_attrib Color;
+   struct gl_current_attrib Current;
+   struct gl_depthbuffer_attrib Depth;
+   struct gl_enable_attrib_node Enable;
+   struct gl_eval_attrib Eval;
+   struct gl_fog_attrib Fog;
+   struct gl_hint_attrib Hint;
+   struct gl_light_attrib Light;
+   struct gl_line_attrib Line;
+   struct gl_list_attrib List;
+   struct gl_pixel_attrib Pixel;
+   struct gl_point_attrib Point;
+   struct gl_polygon_attrib Polygon;
+   GLuint PolygonStipple[32];
+   struct gl_scissor_attrib Scissor;
+   struct gl_stencil_attrib Stencil;
+   struct gl_transform_attrib Transform;
+   struct gl_multisample_attrib Multisample;
+   struct gl_texture_attrib_node Texture;
+
+   struct viewport_state
+   {
+      struct gl_viewport_attrib ViewportArray[MAX_VIEWPORTS];
+      GLuint SubpixelPrecisionBias[2];
+   } Viewport;
+};
+
+/**
  * Mesa rendering context.
  *
  * This is the central context data structure for Mesa.  Almost all
@@ -4925,6 +5100,11 @@ struct gl_context
 {
    /** State possibly shared with other contexts in the address space */
    struct gl_shared_state *Shared;
+
+   /** Whether Shared->BufferObjects has already been locked for this context. */
+   bool BufferObjectsLocked;
+   /** Whether Shared->TexMutex has already been locked for this context. */
+   bool TexturesLocked;
 
    /** \name API function pointer tables */
    /*@{*/
@@ -5203,6 +5383,8 @@ struct gl_context
 
    GLboolean ViewportInitialized;  /**< has viewport size been initialized? */
    GLboolean _AllowDrawOutOfOrder;
+   /* Is gl_PrimitiveID unused by the current shaders? */
+   bool _PrimitiveIDIsUnused;
 
    GLbitfield varying_vp_inputs;  /**< mask of VERT_BIT_* flags */
 

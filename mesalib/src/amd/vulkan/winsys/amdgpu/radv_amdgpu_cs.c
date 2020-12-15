@@ -288,8 +288,7 @@ static void radv_amdgpu_cs_destroy(struct radeon_cmdbuf *rcs)
 		cs->ws->base.buffer_destroy(cs->old_ib_buffers[i]);
 
 	for (unsigned i = 0; i < cs->num_old_cs_buffers; ++i) {
-		struct radeon_cmdbuf *rcs = &cs->old_cs_buffers[i];
-		free(rcs->buf);
+		free(cs->old_cs_buffers[i].buf);
 	}
 
 	free(cs->old_cs_buffers);
@@ -638,7 +637,7 @@ static void radv_amdgpu_cs_add_virtual_buffer(struct radeon_cmdbuf *_cs,
 			MAX2(2, cs->max_num_virtual_buffers * 2);
 		struct radeon_winsys_bo **virtual_buffers =
 			realloc(cs->virtual_buffers,
-				sizeof(struct radv_amdgpu_virtual_virtual_buffer*) * max_num_virtual_buffers);
+				sizeof(struct radeon_winsys_bo*) * max_num_virtual_buffers);
 		if (!virtual_buffers) {
 			cs->status = VK_ERROR_OUT_OF_HOST_MEMORY;
 			return;
@@ -1091,7 +1090,6 @@ radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 		unsigned number_of_ibs;
 		uint32_t *ptr;
 		unsigned cnt = 0;
-		unsigned size = 0;
 		unsigned pad_words = 0;
 
 		/* Compute the number of IBs for this submit. */
@@ -1166,6 +1164,8 @@ radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 			cnt++;
 			free(new_cs_array);
 		} else {
+			unsigned size = 0;
+
 			if (preamble_cs)
 				size += preamble_cs->cdw;
 
@@ -1194,9 +1194,9 @@ radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 			}
 
 			for (unsigned j = 0; j < cnt; ++j) {
-				struct radv_amdgpu_cs *cs = radv_amdgpu_cs(cs_array[i + j]);
-				memcpy(ptr, cs->base.buf, 4 * cs->base.cdw);
-				ptr += cs->base.cdw;
+				struct radv_amdgpu_cs *cs2 = radv_amdgpu_cs(cs_array[i + j]);
+				memcpy(ptr, cs2->base.buf, 4 * cs2->base.cdw);
+				ptr += cs2->base.cdw;
 
 			}
 

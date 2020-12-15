@@ -140,18 +140,18 @@ structures in the XkbDescRec represent the major Xkb components.
 
 .nf
 typedef struct {
-   struct _XDisplay * display;      /\(** connection to X server */
-   unsigned short     flags;        /\(** private to Xkb, do not modify */
-   unsigned short     device_spec;  /\(** device of interest */
-   KeyCode            min_key_code; /\(** minimum keycode for device */
-   KeyCode            max_key_code; /\(** maximum keycode for device */
-   XkbControlsPtr     ctrls;        /\(** controls */
-   XkbServerMapPtr    server;       /\(** server keymap */
-   XkbClientMapPtr    map;          /\(** client keymap */
-   XkbIndicatorPtr    indicators;   /\(** indicator map */
-   XkbNamesPtr        names;        /\(** names for all components */
-   XkbCompatMapPtr    compat;       /\(** compatibility map */
-   XkbGeometryPtr     geom;         /\(** physical geometry of keyboard */
+   struct _XDisplay * display;      /\&* connection to X server */
+   unsigned short     flags;        /\&* private to Xkb, do not modify */
+   unsigned short     device_spec;  /\&* device of interest */
+   KeyCode            min_key_code; /\&* minimum keycode for device */
+   KeyCode            max_key_code; /\&* maximum keycode for device */
+   XkbControlsPtr     ctrls;        /\&* controls */
+   XkbServerMapPtr    server;       /\&* server keymap */
+   XkbClientMapPtr    map;          /\&* client keymap */
+   XkbIndicatorPtr    indicators;   /\&* indicator map */
+   XkbNamesPtr        names;        /\&* names for all components */
+   XkbCompatMapPtr    compat;       /\&* compatibility map */
+   XkbGeometryPtr     geom;         /\&* physical geometry of keyboard */
 } XkbDescRec, *XkbDescPtr;
 
 .fi

@@ -36,21 +36,6 @@
 
 #include "u_suballoc.h"
 
-
-struct u_suballocator {
-   struct pipe_context *pipe;
-
-   unsigned size;          /* Size of the whole buffer, in bytes. */
-   unsigned bind;          /* Bitmask of PIPE_BIND_* flags. */
-   enum pipe_resource_usage usage;
-   unsigned flags;         /* bitmask of PIPE_RESOURCE_FLAG_x */
-   boolean zero_buffer_memory; /* If the buffer contents should be zeroed. */
-
-   struct pipe_resource *buffer;   /* The buffer we suballocate from. */
-   unsigned offset; /* Aligned offset pointing at the first unused byte. */
-};
-
-
 /**
  * Create a suballocator.
  *
@@ -59,14 +44,14 @@ struct u_suballocator {
  *                            cleared to 0 after the allocation.
  *
  */
-struct u_suballocator *
-u_suballocator_create(struct pipe_context *pipe, unsigned size, unsigned bind,
-                      enum pipe_resource_usage usage, unsigned flags,
-		      boolean zero_buffer_memory)
+void
+u_suballocator_init(struct u_suballocator *allocator,
+                    struct pipe_context *pipe,
+                    unsigned size, unsigned bind,
+                    enum pipe_resource_usage usage, unsigned flags,
+                    boolean zero_buffer_memory)
 {
-   struct u_suballocator *allocator = CALLOC_STRUCT(u_suballocator);
-   if (!allocator)
-      return NULL;
+   memset(allocator, 0, sizeof(*allocator));
 
    allocator->pipe = pipe;
    allocator->size = size;
@@ -74,14 +59,12 @@ u_suballocator_create(struct pipe_context *pipe, unsigned size, unsigned bind,
    allocator->usage = usage;
    allocator->flags = flags;
    allocator->zero_buffer_memory = zero_buffer_memory;
-   return allocator;
 }
 
 void
 u_suballocator_destroy(struct u_suballocator *allocator)
 {
    pipe_resource_reference(&allocator->buffer, NULL);
-   FREE(allocator);
 }
 
 void

@@ -143,13 +143,14 @@ void util_set_shader_buffers_mask(struct pipe_shader_buffer *dst,
 bool
 util_upload_index_buffer(struct pipe_context *pipe,
                          const struct pipe_draw_info *info,
+                         const struct pipe_draw_start_count *draw,
                          struct pipe_resource **out_buffer,
                          unsigned *out_offset, unsigned alignment)
 {
-   unsigned start_offset = info->start * info->index_size;
+   unsigned start_offset = draw->start * info->index_size;
 
    u_upload_data(pipe->stream_uploader, start_offset,
-                 info->count * info->index_size, alignment,
+                 draw->count * info->index_size, alignment,
                  (char*)info->index.user + start_offset,
                  out_offset, out_buffer);
    u_upload_unmap(pipe->stream_uploader);

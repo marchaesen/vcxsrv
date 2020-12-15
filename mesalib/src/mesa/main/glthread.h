@@ -53,6 +53,10 @@
 #include "compiler/shader_enums.h"
 #include "main/config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct gl_context;
 struct gl_buffer_object;
 struct _mesa_HashTable;
@@ -96,16 +100,16 @@ struct glthread_batch
    /** The worker thread will access the context with this. */
    struct gl_context *ctx;
 
-   /** Amount of data used by batch commands, in bytes. */
-   int used;
+   /**
+    * Number of uint64_t elements filled already.
+    * This is 0 when it's being filled because glthread::used holds the real
+    * value temporarily, and glthread::used is copied to this variable when
+    * the batch is submitted.
+    */
+   unsigned used;
 
    /** Data contained in the command buffer. */
-#ifdef _MSC_VER
-   __declspec(align(8))
-#else
-   __attribute__((aligned(8)))
-#endif
-   uint8_t buffer[MARSHAL_MAX_CMD_SIZE];
+   uint64_t buffer[MARSHAL_MAX_CMD_SIZE / 8];
 };
 
 struct glthread_client_attrib {
@@ -149,6 +153,9 @@ struct glthread_state
    /** Index of the batch being filled and about to be submitted. */
    unsigned next;
 
+   /** Number of uint64_t elements filled already. */
+   unsigned used;
+
    /** Upload buffer. */
    struct gl_buffer_object *upload_buffer;
    uint8_t *upload_ptr;
@@ -178,6 +185,12 @@ struct glthread_state
    /** Currently-bound buffer object IDs. */
    GLuint CurrentArrayBufferName;
    GLuint CurrentDrawIndirectBufferName;
+
+   /**
+    * The batch index of the last occurence of glLinkProgram or
+    * glDeleteProgram or -1 if there is no such enqueued call.
+    */
+   int LastProgramChangeBatch;
 };
 
 void _mesa_glthread_init(struct gl_context *ctx);
@@ -193,6 +206,8 @@ void _mesa_glthread_upload(struct gl_context *ctx, const void *data,
                            struct gl_buffer_object **out_buffer,
                            uint8_t **out_ptr);
 void _mesa_glthread_reset_vao(struct glthread_vao *vao);
+void _mesa_error_glthread_safe(struct gl_context *ctx, GLenum error,
+                               bool glthread, const char *format, ...);
 
 void _mesa_glthread_BindBuffer(struct gl_context *ctx, GLenum target,
                                GLuint buffer);
@@ -249,5 +264,10 @@ void _mesa_glthread_PopClientAttrib(struct gl_context *ctx);
 void _mesa_glthread_ClientAttribDefault(struct gl_context *ctx, GLbitfield mask);
 void _mesa_glthread_InterleavedArrays(struct gl_context *ctx, GLenum format,
                                       GLsizei stride, const GLvoid *pointer);
+void _mesa_glthread_ProgramChanged(struct gl_context *ctx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _GLTHREAD_H*/

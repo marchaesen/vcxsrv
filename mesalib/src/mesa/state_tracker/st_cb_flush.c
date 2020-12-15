@@ -73,9 +73,9 @@ st_finish(struct st_context *st)
    st_flush(st, &fence, PIPE_FLUSH_ASYNC | PIPE_FLUSH_HINT_FINISH);
 
    if (fence) {
-      st->pipe->screen->fence_finish(st->pipe->screen, NULL, fence,
-                                     PIPE_TIMEOUT_INFINITE);
-      st->pipe->screen->fence_reference(st->pipe->screen, &fence, NULL);
+      st->screen->fence_finish(st->screen, NULL, fence,
+                               PIPE_TIMEOUT_INFINITE);
+      st->screen->fence_reference(st->screen, &fence, NULL);
    }
 
    st_manager_flush_swapbuffers();

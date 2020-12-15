@@ -57,7 +57,7 @@ static struct gl_sync_object *st_new_sync_object(struct gl_context *ctx)
 static void st_delete_sync_object(struct gl_context *ctx,
                                   struct gl_sync_object *obj)
 {
-   struct pipe_screen *screen = st_context(ctx)->pipe->screen;
+   struct pipe_screen *screen = st_context(ctx)->screen;
    struct st_sync_object *so = (struct st_sync_object*)obj;
 
    screen->fence_reference(screen, &so->fence, NULL);
@@ -84,7 +84,7 @@ static void st_client_wait_sync(struct gl_context *ctx,
                                 GLbitfield flags, GLuint64 timeout)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st_context(ctx)->screen;
    struct st_sync_object *so = (struct st_sync_object*)obj;
    struct pipe_fence_handle *fence = NULL;
 
@@ -133,7 +133,7 @@ static void st_server_wait_sync(struct gl_context *ctx,
                                 GLbitfield flags, GLuint64 timeout)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st_context(ctx)->screen;
    struct st_sync_object *so = (struct st_sync_object*)obj;
    struct pipe_fence_handle *fence = NULL;
 

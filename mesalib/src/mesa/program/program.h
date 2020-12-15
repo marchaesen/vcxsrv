@@ -161,6 +161,9 @@ _mesa_shader_stage_to_program(unsigned stage)
 GLbitfield
 gl_external_samplers(const struct gl_program *prog);
 
+void
+_mesa_add_separate_state_parameters(struct gl_program *prog,
+                                    struct gl_program_parameter_list *state_params);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -585,6 +585,7 @@ AC_ARG_WITH(xwayland-path, AS_HELP_STRING([--with-xwayland-path=PATH], [Director
 AC_ARG_ENABLE(standalone-xpbproxy, AS_HELP_STRING([--enable-standalone-xpbproxy], [Build a standalone xpbproxy (in addition to the one integrated into Xquartz as a separate thread) (default: no)]), [STANDALONE_XPBPROXY=$enableval], [STANDALONE_XPBPROXY=no])
 AC_ARG_ENABLE(xwin,    	      AS_HELP_STRING([--enable-xwin], [Build XWin server (default: auto)]), [XWIN=$enableval], [XWIN=auto])
 AC_ARG_ENABLE(glamor,         AS_HELP_STRING([--enable-glamor], [Build glamor dix module (default: auto)]), [GLAMOR=$enableval], [GLAMOR=auto])
+AC_ARG_ENABLE(xf86-input-inputtest, AS_HELP_STRING([--enable-xf86-input-inputtest], [Build Xorg test input driver (default: yes)]), [XORG_DRIVER_INPUT_INPUTTEST=$enableval], [XORG_DRIVER_INPUT_INPUTTEST=yes])
 dnl kdrive and its subsystems
 AC_ARG_ENABLE(kdrive,         AS_HELP_STRING([--enable-kdrive], [Build kdrive servers (default: no)]), [KDRIVE=$enableval], [KDRIVE=no])
 AC_ARG_ENABLE(xephyr,         AS_HELP_STRING([--enable-xephyr], [Build the kdrive Xephyr server (default: auto)]), [XEPHYR=$enableval], [XEPHYR=auto])
@@ -1947,7 +1948,7 @@ if test "x$XORG" = xyes; then
 	        XORG_SYS_LIBS="$XORG_SYS_LIBS $XORG_MODULES_LIBS"
 	fi
 
-	if test "x$DRM" = xyes; then
+	if test "x$DRM" = xyes -a "x$DRI2" = xyes; then
 		XORG_DRIVER_MODESETTING=yes
 	fi
 
@@ -2019,6 +2020,7 @@ AM_CONDITIONAL([SOLARIS_VT], [test "x$solaris_vt" = xyes])
 AM_CONDITIONAL([DGA], [test "x$DGA" = xyes])
 AM_CONDITIONAL([XORG_BUS_PLATFORM], [test "x$CONFIG_UDEV_KMS" = xyes])
 AM_CONDITIONAL([XORG_DRIVER_MODESETTING], [test "x$XORG_DRIVER_MODESETTING" = xyes])
+AM_CONDITIONAL([XORG_DRIVER_INPUT_INPUTTEST], [test "x$XORG_DRIVER_INPUT_INPUTTEST" = xyes])
 
 dnl glamor
 if test "x$GLAMOR" = xauto; then
@@ -2458,6 +2460,7 @@ hw/xfree86/dri/Makefile
 hw/xfree86/dri2/Makefile
 hw/xfree86/dri2/pci_ids/Makefile
 hw/xfree86/drivers/Makefile
+hw/xfree86/drivers/inputtest/Makefile
 hw/xfree86/drivers/modesetting/Makefile
 hw/xfree86/exa/Makefile
 hw/xfree86/exa/man/Makefile

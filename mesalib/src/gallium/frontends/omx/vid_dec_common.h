@@ -34,6 +34,8 @@
 #include "vl/vl_rbsp.h"
 #include "vl/vl_zscan.h"
 
+#include "bellagio/vid_dec_av1.h"
+
 #include <OMX_Core.h>
 #include <OMX_Types.h>
 
@@ -86,12 +88,14 @@ DERIVEDCLASS(vid_dec_PrivateType, omx_base_filter_PrivateType)
          struct list_head dpb_list; \
          unsigned dpb_num; \
       } h265; \
+      struct dec_av1 av1; \
    } codec_data; \
    union { \
       struct pipe_picture_desc base; \
       struct pipe_mpeg12_picture_desc mpeg12; \
       struct pipe_h264_picture_desc h264; \
       struct pipe_h265_picture_desc h265; \
+      struct pipe_av1_picture_desc av1; \
    } picture; \
    unsigned num_in_buffers; \
    OMX_BUFFERHEADERTYPE *in_buffers[2]; \

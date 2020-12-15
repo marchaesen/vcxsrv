@@ -342,7 +342,7 @@ radv_amdgpu_winsys_bo_create(struct radeon_winsys *_ws,
 			     uint64_t size,
 			     unsigned alignment,
 			     enum radeon_bo_domain initial_domain,
-			     unsigned flags,
+			     enum radeon_bo_flag flags,
 			     unsigned priority)
 {
 	struct radv_amdgpu_winsys *ws = radv_amdgpu_winsys(_ws);
@@ -855,6 +855,42 @@ radv_amdgpu_winsys_bo_get_metadata(struct radeon_winsys_bo *_bo,
 	memcpy(md->metadata, info.metadata.umd_metadata, sizeof(md->metadata));
 }
 
+static int radv_amdgpu_bo_va_compare(const void *a, const void *b)
+{
+	const struct radv_amdgpu_winsys_bo *bo_a = *(const struct radv_amdgpu_winsys_bo * const*)a;
+	const struct radv_amdgpu_winsys_bo *bo_b = *(const struct radv_amdgpu_winsys_bo * const*)b;
+	return bo_a->base.va < bo_b->base.va ? -1 : bo_a->base.va > bo_b->base.va ? 1 : 0;
+}
+
+static void radv_amdgpu_dump_bo_ranges(struct radeon_winsys *_ws, FILE *file)
+{
+	struct radv_amdgpu_winsys *ws = radv_amdgpu_winsys(_ws);
+	if (ws->debug_all_bos) {
+		struct radv_amdgpu_winsys_bo *bo;
+		struct radv_amdgpu_winsys_bo **bos = NULL;
+		int i = 0;
+
+		u_rwlock_rdlock(&ws->global_bo_list_lock);
+		bos = malloc(sizeof(*bos) * ws->num_buffers);
+		if (!bos) {
+			u_rwlock_rdunlock(&ws->global_bo_list_lock);
+			fprintf(file, "  Failed to allocate memory to sort VA ranges for dumping\n");
+			return;
+		}
+		LIST_FOR_EACH_ENTRY(bo, &ws->global_bo_list, global_list_item) {
+			bos[i++] = bo;
+		}
+		qsort(bos, ws->num_buffers, sizeof(bos[0]), radv_amdgpu_bo_va_compare);
+		for (i = 0; i < ws->num_buffers; ++i) {
+			fprintf(file, "  VA=%.16llx-%.16llx, handle=%d%s\n",
+			        (long long)bos[i]->base.va, (long long)(bos[i]->base.va + bos[i]->size),
+				bos[i]->bo_handle, bos[i]->is_virtual ? " sparse" : "");
+		}
+		free(bos);
+		u_rwlock_rdunlock(&ws->global_bo_list_lock);
+	} else
+		fprintf(file, "  To get BO VA ranges, please specify RADV_DEBUG=allbos\n");
+}
 void radv_amdgpu_bo_init_functions(struct radv_amdgpu_winsys *ws)
 {
 	ws->base.buffer_create = radv_amdgpu_winsys_bo_create;
@@ -868,4 +904,5 @@ void radv_amdgpu_bo_init_functions(struct radv_amdgpu_winsys *ws)
 	ws->base.buffer_get_metadata = radv_amdgpu_winsys_bo_get_metadata;
 	ws->base.buffer_virtual_bind = radv_amdgpu_winsys_bo_virtual_bind;
 	ws->base.buffer_get_flags_from_fd = radv_amdgpu_bo_get_flags_from_fd;
+	ws->base.dump_bo_ranges = radv_amdgpu_dump_bo_ranges;
 }

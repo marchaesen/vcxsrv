@@ -123,8 +123,9 @@ struct st_context
    struct st_context_iface iface;
 
    struct gl_context *ctx;
-
+   struct pipe_screen *screen;
    struct pipe_context *pipe;
+   struct cso_context *cso_context;
 
    struct draw_context *draw;  /**< For selection/feedback/rastpos only */
    struct draw_stage *feedback_stage;  /**< For GL_FEEDBACK rendermode */
@@ -153,6 +154,7 @@ struct st_context
    boolean lower_point_size;
    boolean lower_two_sided_color;
    boolean lower_ucp;
+   boolean prefer_real_buffer_in_constbuf0;
 
    /* There are consequences for drivers wanting to call st_finalize_nir
     * twice, once before shader caching and once after lowering for shader
@@ -201,10 +203,7 @@ struct st_context
       struct pipe_sampler_view *frag_sampler_views[PIPE_MAX_SAMPLERS];
       GLuint num_sampler_views[PIPE_SHADER_TYPES];
       struct pipe_clip_state clip;
-      struct {
-         void *ptr;
-         unsigned size;
-      } constants[PIPE_SHADER_TYPES];
+      unsigned constbuf0_enabled_shader_mask;
       unsigned fb_width;
       unsigned fb_height;
       unsigned fb_num_samples;
@@ -334,8 +333,6 @@ struct st_context
 
    enum pipe_texture_target internal_target;
 
-   struct cso_context *cso_context;
-
    void *winsys_drawable_handle;
 
    /* The number of vertex buffers from the last call of validate_arrays. */
@@ -376,7 +373,6 @@ struct st_context
       struct st_zombie_shader_node list;
       simple_mtx_t mutex;
    } zombie_shaders;
-
 };
 
 

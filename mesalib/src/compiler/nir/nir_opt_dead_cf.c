@@ -218,15 +218,17 @@ node_is_dead(nir_cf_node *node)
          if (instr->type == nir_instr_type_call)
             return false;
 
-         /* Return instructions can cause us to skip over other side-effecting
-          * instructions after the loop, so consider them to have side effects
-          * here.
+         /* Return and halt instructions can cause us to skip over other
+          * side-effecting instructions after the loop, so consider them to
+          * have side effects here.
           *
           * When the block is not inside a loop, break and continue might also
           * cause a skip.
           */
          if (instr->type == nir_instr_type_jump &&
-             (!inside_loop || nir_instr_as_jump(instr)->type == nir_jump_return))
+             (!inside_loop ||
+              nir_instr_as_jump(instr)->type == nir_jump_return ||
+              nir_instr_as_jump(instr)->type == nir_jump_halt))
             return false;
 
          if (instr->type == nir_instr_type_intrinsic) {

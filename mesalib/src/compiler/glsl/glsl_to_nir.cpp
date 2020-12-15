@@ -663,7 +663,7 @@ nir_visitor::visit(ir_variable *ir)
 
       ir_state_slot *state_slots = ir->get_state_slots();
       for (unsigned i = 0; i < var->num_state_slots; i++) {
-         for (unsigned j = 0; j < 5; j++)
+         for (unsigned j = 0; j < 4; j++)
             var->state_slots[i].tokens[j] = state_slots[i].tokens[j];
          var->state_slots[i].swizzle = state_slots[i].swizzle;
       }
@@ -811,44 +811,28 @@ nir_visitor::visit(ir_discard *ir)
     * discards will be immediately followed by a return.
     */
 
-   nir_intrinsic_instr *discard;
-   if (ir->condition) {
-      discard = nir_intrinsic_instr_create(this->shader,
-                                           nir_intrinsic_discard_if);
-      discard->src[0] =
-         nir_src_for_ssa(evaluate_rvalue(ir->condition));
-   } else {
-      discard = nir_intrinsic_instr_create(this->shader, nir_intrinsic_discard);
-   }
-
-   nir_builder_instr_insert(&b, &discard->instr);
+   if (ir->condition)
+      nir_discard_if(&b, evaluate_rvalue(ir->condition));
+   else
+      nir_discard(&b);
 }
 
 void
 nir_visitor::visit(ir_demote *ir)
 {
-   nir_intrinsic_instr *demote =
-      nir_intrinsic_instr_create(this->shader, nir_intrinsic_demote);
-
-   nir_builder_instr_insert(&b, &demote->instr);
+   nir_demote(&b);
 }
 
 void
 nir_visitor::visit(ir_emit_vertex *ir)
 {
-   nir_intrinsic_instr *instr =
-      nir_intrinsic_instr_create(this->shader, nir_intrinsic_emit_vertex);
-   nir_intrinsic_set_stream_id(instr, ir->stream_id());
-   nir_builder_instr_insert(&b, &instr->instr);
+   nir_emit_vertex(&b, (unsigned)ir->stream_id());
 }
 
 void
 nir_visitor::visit(ir_end_primitive *ir)
 {
-   nir_intrinsic_instr *instr =
-      nir_intrinsic_instr_create(this->shader, nir_intrinsic_end_primitive);
-   nir_intrinsic_set_stream_id(instr, ir->stream_id());
-   nir_builder_instr_insert(&b, &instr->instr);
+   nir_end_primitive(&b, (unsigned)ir->stream_id());
 }
 
 void
@@ -2648,21 +2632,12 @@ nir_visitor::visit(ir_dereference_array *ir)
 void
 nir_visitor::visit(ir_barrier *)
 {
-   if (shader->info.stage == MESA_SHADER_COMPUTE) {
-      nir_intrinsic_instr *shared_barrier =
-         nir_intrinsic_instr_create(this->shader,
-                                    nir_intrinsic_memory_barrier_shared);
-      nir_builder_instr_insert(&b, &shared_barrier->instr);
-   } else if (shader->info.stage == MESA_SHADER_TESS_CTRL) {
-      nir_intrinsic_instr *patch_barrier =
-         nir_intrinsic_instr_create(this->shader,
-                                    nir_intrinsic_memory_barrier_tcs_patch);
-      nir_builder_instr_insert(&b, &patch_barrier->instr);
-   }
+   if (shader->info.stage == MESA_SHADER_COMPUTE)
+      nir_memory_barrier_shared(&b);
+   else if (shader->info.stage == MESA_SHADER_TESS_CTRL)
+      nir_memory_barrier_tcs_patch(&b);
 
-   nir_intrinsic_instr *instr =
-      nir_intrinsic_instr_create(this->shader, nir_intrinsic_control_barrier);
-   nir_builder_instr_insert(&b, &instr->instr);
+   nir_control_barrier(&b);
 }
 
 nir_shader *

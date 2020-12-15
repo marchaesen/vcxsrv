@@ -52,18 +52,9 @@ lower_load_store(nir_builder *b,
    size_align(deref->type, &size, &align);
 
    if (intrin->intrinsic == nir_intrinsic_load_deref) {
-      nir_intrinsic_instr *load =
-         nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_scratch);
-      load->num_components = intrin->num_components;
-      load->src[0] = nir_src_for_ssa(offset);
-      nir_intrinsic_set_align(load, align, 0);
       unsigned bit_size = intrin->dest.ssa.bit_size;
-      nir_ssa_dest_init(&load->instr, &load->dest,
-                        intrin->dest.ssa.num_components,
-                        bit_size == 1 ? 32 : bit_size, NULL);
-      nir_builder_instr_insert(b, &load->instr);
-
-      nir_ssa_def *value = &load->dest.ssa;
+      nir_ssa_def *value = nir_load_scratch(
+         b, intrin->num_components, bit_size == 1 ? 32 : bit_size, offset, .align_mul=align);
       if (bit_size == 1)
          value = nir_b2b1(b, value);
 
@@ -77,14 +68,8 @@ lower_load_store(nir_builder *b,
       if (value->bit_size == 1)
          value = nir_b2b32(b, value);
 
-      nir_intrinsic_instr *store =
-         nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_scratch);
-      store->num_components = intrin->num_components;
-      store->src[0] = nir_src_for_ssa(value);
-      store->src[1] = nir_src_for_ssa(offset);
-      nir_intrinsic_set_write_mask(store, nir_intrinsic_write_mask(intrin));
-      nir_intrinsic_set_align(store, align, 0);
-      nir_builder_instr_insert(b, &store->instr);
+      nir_store_scratch(b, value, offset, .align_mul=align,
+                           .write_mask=nir_intrinsic_write_mask(intrin));
    }
 
    nir_instr_remove(&intrin->instr);

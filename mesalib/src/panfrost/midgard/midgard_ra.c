@@ -950,6 +950,51 @@ mir_spill_register(
         }
 }
 
+static void
+mir_demote_uniforms(compiler_context *ctx, unsigned new_cutoff)
+{
+        unsigned old_work_count = 16 - MAX2((ctx->uniform_cutoff - 8), 0);
+        unsigned work_count = 16 - MAX2((new_cutoff - 8), 0);
+
+        unsigned min_demote = SSA_FIXED_REGISTER(old_work_count);
+        unsigned max_demote = SSA_FIXED_REGISTER(work_count);
+
+        ctx->uniform_cutoff = new_cutoff;
+
+        mir_foreach_block(ctx, _block) {
+                midgard_block *block = (midgard_block *) _block;
+                mir_foreach_instr_in_block(block, ins) {
+                        mir_foreach_src(ins, i) {
+                                if (ins->src[i] < min_demote || ins->src[i] >= max_demote)
+                                        continue;
+
+                                midgard_instruction *before = ins;
+
+                                unsigned temp = make_compiler_temp(ctx);
+
+                                midgard_instruction ld = {
+                                        .type = TAG_LOAD_STORE_4,
+                                        .mask = 0xF,
+                                        .dest = temp,
+                                        .dest_type = ins->src_types[i],
+                                        .src = { ~0, ~0, ~0, ~0 },
+                                        .swizzle = SWIZZLE_IDENTITY_4,
+                                        .op = midgard_op_ld_ubo_int4,
+                                        .load_store = {
+                                                .arg_2 = 0x1E,
+                                        },
+                                };
+
+                                ld.constants.u32[0] = (23 - SSA_REG_FROM_FIXED(ins->src[i])) * 16;
+
+                                mir_insert_instruction_before_scheduled(ctx, block, before, ld);
+
+                                mir_rewrite_index_src_single(ins, ins->src[i], temp);
+                        }
+                }
+        }
+}
+
 /* Run register allocation in a loop, spilling until we succeed */
 
 void
@@ -969,13 +1014,19 @@ mir_ra(compiler_context *ctx)
                 if (spilled) {
                         signed spill_node = mir_choose_spill_node(ctx, l);
 
-                        if (spill_node == -1) {
+                        /* It's a lot cheaper to demote uniforms to get more
+                         * work registers than to spill to TLS. */
+                        if (l->spill_class == REG_CLASS_WORK &&
+                            ctx->uniform_cutoff > 8) {
+
+                                mir_demote_uniforms(ctx, MAX2(ctx->uniform_cutoff - 4, 8));
+                        } else if (spill_node == -1) {
                                 fprintf(stderr, "ERROR: Failed to choose spill node\n");
                                 lcra_free(l);
                                 return;
+                        } else {
+                                mir_spill_register(ctx, spill_node, l->spill_class, &spill_count);
                         }
-
-                        mir_spill_register(ctx, spill_node, l->spill_class, &spill_count);
                 }
 
                 mir_squeeze_index(ctx);

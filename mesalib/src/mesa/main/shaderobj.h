@@ -98,6 +98,10 @@ extern struct gl_shader_program *
 _mesa_lookup_shader_program(struct gl_context *ctx, GLuint name);
 
 extern struct gl_shader_program *
+_mesa_lookup_shader_program_err_glthread(struct gl_context *ctx, GLuint name,
+                                         bool glthread, const char *caller);
+
+extern struct gl_shader_program *
 _mesa_lookup_shader_program_err(struct gl_context *ctx, GLuint name,
                                 const char *caller);
 

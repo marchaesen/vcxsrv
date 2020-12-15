@@ -78,7 +78,7 @@ or
 .BR RevertToNone .
 .IP \fIrevert_to_return\fP 1i
 Returns the current focus state
-.Pn ( RevertToParent ,
+.RB ( RevertToParent ,
 .BR RevertToPointerRoot ,
 or
 .BR RevertToNone ).
@@ -93,7 +93,7 @@ function changes the input focus and the last-focus-change time.
 It has no effect if the specified time is earlier than the current
 last-focus-change time or is later than the current X server time.
 Otherwise, the last-focus-change time is set to the specified time
-.Pn ( CurrentTime
+.RB ( CurrentTime
 is replaced by the current X server time).
 .B XSetInputFocus
 causes the X server to generate

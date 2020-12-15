@@ -1026,11 +1026,11 @@ _mesa_GetTransformFeedbackVarying(GLuint program, GLuint index,
    if (type)
       _mesa_program_resource_prop((struct gl_shader_program *) shProg,
                                   res, index, GL_TYPE, (GLint*) type,
-                                  "glGetTransformFeedbackVarying");
+                                  false, "glGetTransformFeedbackVarying");
    if (size)
       _mesa_program_resource_prop((struct gl_shader_program *) shProg,
                                   res, index, GL_ARRAY_SIZE, (GLint*) size,
-                                  "glGetTransformFeedbackVarying");
+                                  false, "glGetTransformFeedbackVarying");
 }
 
 

@@ -160,7 +160,7 @@ VkResult lvp_CreateRenderPass(
    attachments_offset = size;
    size += pCreateInfo->attachmentCount * sizeof(pass->attachments[0]);
 
-   pass = vk_alloc2(&device->alloc, pAllocator, size, 8,
+   pass = vk_alloc2(&device->vk.alloc, pAllocator, size, 8,
                     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (pass == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -194,11 +194,11 @@ VkResult lvp_CreateRenderPass(
 
    if (subpass_attachment_count) {
       pass->subpass_attachments =
-         vk_alloc2(&device->alloc, pAllocator,
+         vk_alloc2(&device->vk.alloc, pAllocator,
                    subpass_attachment_count * sizeof(struct lvp_subpass_attachment), 8,
                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
       if (pass->subpass_attachments == NULL) {
-         vk_free2(&device->alloc, pAllocator, pass);
+         vk_free2(&device->vk.alloc, pAllocator, pass);
          return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
       }
    } else
@@ -277,8 +277,8 @@ void lvp_DestroyRenderPass(
    if (!_pass)
       return;
    vk_object_base_finish(&pass->base);
-   vk_free2(&device->alloc, pAllocator, pass->subpass_attachments);
-   vk_free2(&device->alloc, pAllocator, pass);
+   vk_free2(&device->vk.alloc, pAllocator, pass->subpass_attachments);
+   vk_free2(&device->vk.alloc, pAllocator, pass);
 }
 
 void lvp_GetRenderAreaGranularity(

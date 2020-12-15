@@ -60,7 +60,12 @@
 #include "util/algorithm.hpp"
 
 
-using namespace clover;
+using clover::module;
+using clover::device;
+using clover::build_error;
+using clover::invalid_build_options_error;
+using clover::map;
+using clover::header_map;
 using namespace clover::llvm;
 
 using ::llvm::Function;
@@ -346,13 +351,13 @@ namespace {
 #ifdef HAVE_CLOVER_SPIRV
    SPIRV::TranslatorOpts
    get_spirv_translator_options(const device &dev) {
-      const auto supported_versions = spirv::supported_versions();
+      const auto supported_versions = clover::spirv::supported_versions();
       const auto maximum_spirv_version =
          std::min(static_cast<SPIRV::VersionNumber>(supported_versions.back()),
                   SPIRV::VersionNumber::MaximumVersion);
 
       SPIRV::TranslatorOpts::ExtensionsStatusMap spirv_extensions;
-      for (auto &ext : spirv::supported_extensions()) {
+      for (auto &ext : clover::spirv::supported_extensions()) {
          #define EXT(X) if (ext == #X) spirv_extensions.insert({ SPIRV::ExtensionID::X, true });
          #include <LLVMSPIRVLib/LLVMSPIRVExtensions.inc>
          #undef EXT

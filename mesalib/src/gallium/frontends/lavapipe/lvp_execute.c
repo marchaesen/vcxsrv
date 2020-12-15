@@ -40,6 +40,8 @@
 #include "util/u_inlines.h"
 #include "util/format/u_format_zs.h"
 
+#include "vk_util.h"
+
 struct rendering_state {
    struct pipe_context *pctx;
 
@@ -60,6 +62,7 @@ struct rendering_state {
    bool min_samples_dirty;
    struct pipe_draw_indirect_info indirect_info;
    struct pipe_draw_info info;
+   struct pipe_draw_start_count draw;
 
    struct pipe_grid_info dispatch_info;
    struct pipe_framebuffer_state framebuffer;
@@ -518,6 +521,12 @@ static void handle_graphics_pipeline(struct lvp_cmd_buffer_entry *cmd,
    if (pipeline->graphics_create_info.pColorBlendState) {
       const VkPipelineColorBlendStateCreateInfo *cb = pipeline->graphics_create_info.pColorBlendState;
       int i;
+
+      if (cb->logicOpEnable) {
+         state->blend_state.logicop_enable = VK_TRUE;
+         state->blend_state.logicop_func = vk_conv_logic_op(cb->logicOp);
+      }
+
       if (cb->attachmentCount > 1)
          state->blend_state.independent_blend_enable = true;
       for (i = 0; i < cb->attachmentCount; i++) {
@@ -556,6 +565,9 @@ static void handle_graphics_pipeline(struct lvp_cmd_buffer_entry *cmd,
    {
       const VkPipelineVertexInputStateCreateInfo *vi = pipeline->graphics_create_info.pVertexInputState;
       int i;
+      const VkPipelineVertexInputDivisorStateCreateInfoEXT *div_state =
+         vk_find_struct_const(vi->pNext,
+                              PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT);
 
       for (i = 0; i < vi->vertexBindingDescriptionCount; i++) {
          state->vb[i].stride = vi->pVertexBindingDescriptions[i].stride;
@@ -567,7 +579,28 @@ static void handle_graphics_pipeline(struct lvp_cmd_buffer_entry *cmd,
          state->ve[location].src_offset = vi->pVertexAttributeDescriptions[i].offset;
          state->ve[location].vertex_buffer_index = vi->pVertexAttributeDescriptions[i].binding;
          state->ve[location].src_format = vk_format_to_pipe(vi->pVertexAttributeDescriptions[i].format);
-         state->ve[location].instance_divisor = vi->pVertexBindingDescriptions[vi->pVertexAttributeDescriptions[i].binding].inputRate;
+
+         switch (vi->pVertexBindingDescriptions[vi->pVertexAttributeDescriptions[i].binding].inputRate) {
+         case VK_VERTEX_INPUT_RATE_VERTEX:
+            state->ve[location].instance_divisor = 0;
+            break;
+         case VK_VERTEX_INPUT_RATE_INSTANCE:
+            if (div_state) {
+               for (unsigned j = 0; j < div_state->vertexBindingDivisorCount; j++) {
+                  const VkVertexInputBindingDivisorDescriptionEXT *desc =
+                     &div_state->pVertexBindingDivisors[j];
+                  if (desc->binding == state->ve[location].vertex_buffer_index) {
+                     state->ve[location].instance_divisor = desc->divisor;
+                     break;
+                  }
+               }
+            } else
+               state->ve[location].instance_divisor = 1;
+            break;
+         default:
+            assert(0);
+            break;
+         }
 
          if ((int)location > max_location)
             max_location = location;
@@ -711,7 +744,7 @@ static void fill_sampler_stage(struct rendering_state *state,
                                gl_shader_stage stage,
                                enum pipe_shader_type p_stage,
                                int array_idx,
-                               const struct lvp_descriptor *descriptor,
+                               const union lvp_descriptor_info *descriptor,
                                const struct lvp_descriptor_set_binding_layout *binding)
 {
    int ss_idx = binding->stage[stage].sampler_index;
@@ -719,7 +752,7 @@ static void fill_sampler_stage(struct rendering_state *state,
       return;
    ss_idx += array_idx;
    ss_idx += dyn_info->stage[stage].sampler_count;
-   fill_sampler(&state->ss[p_stage][ss_idx], descriptor->sampler);
+   fill_sampler(&state->ss[p_stage][ss_idx], binding->immutable_samplers ? binding->immutable_samplers[array_idx] : descriptor->sampler);
    if (state->num_sampler_states[p_stage] <= ss_idx)
       state->num_sampler_states[p_stage] = ss_idx + 1;
    state->ss_dirty[p_stage] = true;
@@ -730,7 +763,7 @@ static void fill_sampler_view_stage(struct rendering_state *state,
                                     gl_shader_stage stage,
                                     enum pipe_shader_type p_stage,
                                     int array_idx,
-                                    const struct lvp_descriptor *descriptor,
+                                    const union lvp_descriptor_info *descriptor,
                                     const struct lvp_descriptor_set_binding_layout *binding)
 {
    int sv_idx = binding->stage[stage].sampler_view_index;
@@ -738,7 +771,7 @@ static void fill_sampler_view_stage(struct rendering_state *state,
       return;
    sv_idx += array_idx;
    sv_idx += dyn_info->stage[stage].sampler_view_count;
-   struct lvp_image_view *iv = descriptor->image_view;
+   struct lvp_image_view *iv = descriptor->iview;
    struct pipe_sampler_view templ;
 
    enum pipe_format pformat;
@@ -789,7 +822,7 @@ static void fill_sampler_buffer_view_stage(struct rendering_state *state,
                                            gl_shader_stage stage,
                                            enum pipe_shader_type p_stage,
                                            int array_idx,
-                                           const struct lvp_descriptor *descriptor,
+                                           const union lvp_descriptor_info *descriptor,
                                            const struct lvp_descriptor_set_binding_layout *binding)
 {
    int sv_idx = binding->stage[stage].sampler_view_index;
@@ -824,10 +857,10 @@ static void fill_image_view_stage(struct rendering_state *state,
                                   gl_shader_stage stage,
                                   enum pipe_shader_type p_stage,
                                   int array_idx,
-                                  const struct lvp_descriptor *descriptor,
+                                  const union lvp_descriptor_info *descriptor,
                                   const struct lvp_descriptor_set_binding_layout *binding)
 {
-   struct lvp_image_view *iv = descriptor->image_view;
+   struct lvp_image_view *iv = descriptor->iview;
    int idx = binding->stage[stage].image_index;
    if (idx == -1)
       return;
@@ -859,7 +892,7 @@ static void fill_image_buffer_view_stage(struct rendering_state *state,
                                          gl_shader_stage stage,
                                          enum pipe_shader_type p_stage,
                                          int array_idx,
-                                         const struct lvp_descriptor *descriptor,
+                                         const union lvp_descriptor_info *descriptor,
                                          const struct lvp_descriptor_set_binding_layout *binding)
 {
    struct lvp_buffer_view *bv = descriptor->buffer_view;
@@ -883,12 +916,13 @@ static void handle_descriptor(struct rendering_state *state,
                               gl_shader_stage stage,
                               enum pipe_shader_type p_stage,
                               int array_idx,
-                              const struct lvp_descriptor *descriptor)
+                              VkDescriptorType type,
+                              const union lvp_descriptor_info *descriptor)
 {
-   bool is_dynamic = descriptor->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-      descriptor->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+   bool is_dynamic = type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
+      type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
 
-   switch (descriptor->type) {
+   switch (type) {
    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
    case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE: {
       fill_image_view_stage(state, dyn_info, stage, p_stage, array_idx, descriptor, binding);
@@ -901,16 +935,16 @@ static void handle_descriptor(struct rendering_state *state,
          return;
       idx += array_idx;
       idx += dyn_info->stage[stage].const_buffer_count;
-      state->const_buffer[p_stage][idx].buffer = descriptor->buf.buffer->bo;
-      state->const_buffer[p_stage][idx].buffer_offset = descriptor->buf.offset + descriptor->buf.buffer->offset;
+      state->const_buffer[p_stage][idx].buffer = descriptor->buffer->bo;
+      state->const_buffer[p_stage][idx].buffer_offset = descriptor->offset + descriptor->buffer->offset;
       if (is_dynamic) {
          uint32_t offset = dyn_info->dynamic_offsets[dyn_info->dyn_index + binding->dynamic_index + array_idx];
          state->const_buffer[p_stage][idx].buffer_offset += offset;
       }
-      if (descriptor->buf.range == VK_WHOLE_SIZE)
-         state->const_buffer[p_stage][idx].buffer_size = descriptor->buf.buffer->bo->width0 - state->const_buffer[p_stage][idx].buffer_offset;
+      if (descriptor->range == VK_WHOLE_SIZE)
+         state->const_buffer[p_stage][idx].buffer_size = descriptor->buffer->bo->width0 - state->const_buffer[p_stage][idx].buffer_offset;
       else
-         state->const_buffer[p_stage][idx].buffer_size = descriptor->buf.range;
+         state->const_buffer[p_stage][idx].buffer_size = descriptor->range;
       if (state->num_const_bufs[p_stage] <= idx)
          state->num_const_bufs[p_stage] = idx + 1;
       state->constbuf_dirty[p_stage] = true;
@@ -923,16 +957,16 @@ static void handle_descriptor(struct rendering_state *state,
          return;
       idx += array_idx;
       idx += dyn_info->stage[stage].shader_buffer_count;
-      state->sb[p_stage][idx].buffer = descriptor->buf.buffer->bo;
-      state->sb[p_stage][idx].buffer_offset = descriptor->buf.offset + descriptor->buf.buffer->offset;
+      state->sb[p_stage][idx].buffer = descriptor->buffer->bo;
+      state->sb[p_stage][idx].buffer_offset = descriptor->offset + descriptor->buffer->offset;
       if (is_dynamic) {
          uint32_t offset = dyn_info->dynamic_offsets[dyn_info->dyn_index + binding->dynamic_index + array_idx];
          state->sb[p_stage][idx].buffer_offset += offset;
       }
-      if (descriptor->buf.range == VK_WHOLE_SIZE)
-         state->sb[p_stage][idx].buffer_size = descriptor->buf.buffer->bo->width0 - state->sb[p_stage][idx].buffer_offset;
+      if (descriptor->range == VK_WHOLE_SIZE)
+         state->sb[p_stage][idx].buffer_size = descriptor->buffer->bo->width0 - state->sb[p_stage][idx].buffer_offset;
       else
-         state->sb[p_stage][idx].buffer_size = descriptor->buf.range;
+         state->sb[p_stage][idx].buffer_size = descriptor->range;
       if (state->num_shader_buffers[p_stage] <= idx)
          state->num_shader_buffers[p_stage] = idx + 1;
       state->sb_dirty[p_stage] = true;
@@ -957,7 +991,7 @@ static void handle_descriptor(struct rendering_state *state,
       fill_image_buffer_view_stage(state, dyn_info, stage, p_stage, array_idx, descriptor, binding);
       break;
    default:
-      fprintf(stderr, "Unhandled descriptor set %d\n", descriptor->type);
+      fprintf(stderr, "Unhandled descriptor set %d\n", type);
       break;
    }
 }
@@ -977,7 +1011,7 @@ static void handle_set_stage(struct rendering_state *state,
       if (binding->valid) {
          for (int i = 0; i < binding->array_size; i++) {
             descriptor = &set->descriptors[binding->descriptor_index + i];
-            handle_descriptor(state, dyn_info, binding, stage, p_stage, i, descriptor);
+            handle_descriptor(state, dyn_info, binding, stage, p_stage, i, descriptor->type, &descriptor->info);
          }
       }
    }
@@ -1301,13 +1335,12 @@ static void handle_draw(struct lvp_cmd_buffer_entry *cmd,
                         struct rendering_state *state)
 {
    state->info.index_size = 0;
-   state->info.indirect = NULL;
    state->info.index.resource = NULL;
-   state->info.start = cmd->u.draw.first_vertex;
-   state->info.count = cmd->u.draw.vertex_count;
+   state->draw.start = cmd->u.draw.first_vertex;
+   state->draw.count = cmd->u.draw.vertex_count;
    state->info.start_instance = cmd->u.draw.first_instance;
    state->info.instance_count = cmd->u.draw.instance_count;
-   state->pctx->draw_vbo(state->pctx, &state->info);
+   state->pctx->draw_vbo(state->pctx, &state->info, NULL, &state->draw, 1);
 }
 
 static void handle_set_viewport(struct lvp_cmd_buffer_entry *cmd,
@@ -1841,13 +1874,13 @@ static void handle_update_buffer(struct lvp_cmd_buffer_entry *cmd,
 static void handle_draw_indexed(struct lvp_cmd_buffer_entry *cmd,
                                 struct rendering_state *state)
 {
-   state->info.indirect = NULL;
+   state->info.index_bounds_valid = false;
    state->info.min_index = 0;
    state->info.max_index = ~0;
    state->info.index_size = state->index_size;
    state->info.index.resource = state->index_buffer;
-   state->info.start = (state->index_offset / state->index_size) + cmd->u.draw_indexed.first_index;
-   state->info.count = cmd->u.draw_indexed.index_count;
+   state->draw.start = (state->index_offset / state->index_size) + cmd->u.draw_indexed.first_index;
+   state->draw.count = cmd->u.draw_indexed.index_count;
    state->info.start_instance = cmd->u.draw_indexed.first_instance;
    state->info.instance_count = cmd->u.draw_indexed.instance_count;
    state->info.index_bias = cmd->u.draw_indexed.vertex_offset;
@@ -1859,13 +1892,14 @@ static void handle_draw_indexed(struct lvp_cmd_buffer_entry *cmd,
          state->info.restart_index = 0xffff;
    }
 
-   state->pctx->draw_vbo(state->pctx, &state->info);
+   state->pctx->draw_vbo(state->pctx, &state->info, NULL, &state->draw, 1);
 }
 
 static void handle_draw_indirect(struct lvp_cmd_buffer_entry *cmd,
                                  struct rendering_state *state, bool indexed)
 {
    if (indexed) {
+      state->info.index_bounds_valid = false;
       state->info.index_size = state->index_size;
       state->info.index.resource = state->index_buffer;
       state->info.max_index = ~0;
@@ -1875,8 +1909,7 @@ static void handle_draw_indirect(struct lvp_cmd_buffer_entry *cmd,
    state->indirect_info.stride = cmd->u.draw_indirect.stride;
    state->indirect_info.draw_count = cmd->u.draw_indirect.draw_count;
    state->indirect_info.buffer = cmd->u.draw_indirect.buffer->bo;
-   state->info.indirect = &state->indirect_info;
-   state->pctx->draw_vbo(state->pctx, &state->info);
+   state->pctx->draw_vbo(state->pctx, &state->info, &state->indirect_info, &state->draw, 1);
 }
 
 static void handle_index_buffer(struct lvp_cmd_buffer_entry *cmd,
@@ -2283,6 +2316,109 @@ static void handle_resolve_image(struct lvp_cmd_buffer_entry *cmd,
    }
 }
 
+static void handle_draw_indirect_count(struct lvp_cmd_buffer_entry *cmd,
+                                       struct rendering_state *state, bool indexed)
+{
+   if (indexed) {
+      state->info.index_bounds_valid = false;
+      state->info.index_size = state->index_size;
+      state->info.index.resource = state->index_buffer;
+      state->info.max_index = ~0;
+   } else
+      state->info.index_size = 0;
+   state->indirect_info.offset = cmd->u.draw_indirect_count.offset;
+   state->indirect_info.stride = cmd->u.draw_indirect_count.stride;
+   state->indirect_info.draw_count = cmd->u.draw_indirect_count.max_draw_count;
+   state->indirect_info.buffer = cmd->u.draw_indirect_count.buffer->bo;
+   state->indirect_info.indirect_draw_count_offset = cmd->u.draw_indirect_count.count_buffer_offset;
+   state->indirect_info.indirect_draw_count = cmd->u.draw_indirect_count.count_buffer->bo;
+   state->pctx->draw_vbo(state->pctx, &state->info, &state->indirect_info, &state->draw, 1);
+}
+
+static void handle_compute_push_descriptor_set(struct lvp_cmd_buffer_entry *cmd,
+                                               struct dyn_info *dyn_info,
+                                               struct rendering_state *state)
+{
+   struct lvp_cmd_push_descriptor_set *pds = &cmd->u.push_descriptor_set;
+   struct lvp_descriptor_set_layout *layout = pds->layout->set[pds->set].layout;
+
+   if (!(layout->shader_stages & VK_SHADER_STAGE_COMPUTE_BIT))
+      return;
+
+   unsigned info_idx = 0;
+   for (unsigned i = 0; i < pds->descriptor_write_count; i++) {
+      struct lvp_write_descriptor *desc = &pds->descriptors[i];
+      struct lvp_descriptor_set_binding_layout *binding = &layout->binding[desc->dst_binding];
+
+      if (!binding->valid)
+         continue;
+
+      for (unsigned j = 0; j < desc->descriptor_count; j++) {
+         union lvp_descriptor_info *info = &pds->infos[info_idx + j];
+
+         handle_descriptor(state, dyn_info, binding,
+                           MESA_SHADER_COMPUTE, PIPE_SHADER_COMPUTE,
+                           j, desc->descriptor_type,
+                           info);
+      }
+      info_idx += desc->descriptor_count;
+   }
+}
+
+static void handle_push_descriptor_set(struct lvp_cmd_buffer_entry *cmd,
+                                       struct rendering_state *state)
+{
+   struct lvp_cmd_push_descriptor_set *pds = &cmd->u.push_descriptor_set;
+   struct lvp_descriptor_set_layout *layout = pds->layout->set[pds->set].layout;
+   struct dyn_info dyn_info;
+
+   memset(&dyn_info.stage, 0, sizeof(dyn_info.stage));
+   dyn_info.dyn_index = 0;
+   if (pds->bind_point == VK_PIPELINE_BIND_POINT_COMPUTE) {
+      handle_compute_push_descriptor_set(cmd, &dyn_info, state);
+   }
+
+   unsigned info_idx = 0;
+   for (unsigned i = 0; i < pds->descriptor_write_count; i++) {
+      struct lvp_write_descriptor *desc = &pds->descriptors[i];
+      struct lvp_descriptor_set_binding_layout *binding = &layout->binding[desc->dst_binding];
+
+      if (!binding->valid)
+         continue;
+
+      for (unsigned j = 0; j < desc->descriptor_count; j++) {
+         union lvp_descriptor_info *info = &pds->infos[info_idx + j];
+
+         if (layout->shader_stages & VK_SHADER_STAGE_VERTEX_BIT)
+            handle_descriptor(state, &dyn_info, binding,
+                              MESA_SHADER_VERTEX, PIPE_SHADER_VERTEX,
+                              j, desc->descriptor_type,
+                              info);
+         if (layout->shader_stages & VK_SHADER_STAGE_FRAGMENT_BIT)
+            handle_descriptor(state, &dyn_info, binding,
+                              MESA_SHADER_FRAGMENT, PIPE_SHADER_FRAGMENT,
+                              j, desc->descriptor_type,
+                              info);
+         if (layout->shader_stages & VK_SHADER_STAGE_GEOMETRY_BIT)
+            handle_descriptor(state, &dyn_info, binding,
+                              MESA_SHADER_GEOMETRY, PIPE_SHADER_GEOMETRY,
+                              j, desc->descriptor_type,
+                              info);
+         if (layout->shader_stages & VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT)
+            handle_descriptor(state, &dyn_info, binding,
+                              MESA_SHADER_TESS_CTRL, PIPE_SHADER_TESS_CTRL,
+                              j, desc->descriptor_type,
+                              info);
+         if (layout->shader_stages & VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT)
+            handle_descriptor(state, &dyn_info, binding,
+                              MESA_SHADER_TESS_EVAL, PIPE_SHADER_TESS_EVAL,
+                              j, desc->descriptor_type,
+                              info);
+      }
+      info_idx += desc->descriptor_count;
+   }
+}
+
 static void lvp_execute_cmd_buffer(struct lvp_cmd_buffer *cmd_buffer,
                                    struct rendering_state *state)
 {
@@ -2425,6 +2561,17 @@ static void lvp_execute_cmd_buffer(struct lvp_cmd_buffer *cmd_buffer,
          break;
       case LVP_CMD_EXECUTE_COMMANDS:
          handle_execute_commands(cmd, state);
+         break;
+      case LVP_CMD_DRAW_INDIRECT_COUNT:
+         emit_state(state);
+         handle_draw_indirect_count(cmd, state, false);
+         break;
+      case LVP_CMD_DRAW_INDEXED_INDIRECT_COUNT:
+         emit_state(state);
+         handle_draw_indirect_count(cmd, state, true);
+         break;
+      case LVP_CMD_PUSH_DESCRIPTOR_SET:
+         handle_push_descriptor_set(cmd, state);
          break;
       }
    }

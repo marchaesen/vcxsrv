@@ -4,58 +4,63 @@
 #include "sid.h"
 #include "ac_shader_util.h"
 
+#include <array>
+
 namespace aco {
 
-static const char *reduce_ops[] = {
-   [iadd8] = "iadd8",
-   [iadd16] = "iadd16",
-   [iadd32] = "iadd32",
-   [iadd64] = "iadd64",
-   [imul8] = "imul8",
-   [imul16] = "imul16",
-   [imul32] = "imul32",
-   [imul64] = "imul64",
-   [fadd16] = "fadd16",
-   [fadd32] = "fadd32",
-   [fadd64] = "fadd64",
-   [fmul16] = "fmul16",
-   [fmul32] = "fmul32",
-   [fmul64] = "fmul64",
-   [imin8] = "imin8",
-   [imin16] = "imin16",
-   [imin32] = "imin32",
-   [imin64] = "imin64",
-   [imax8] = "imax8",
-   [imax16] = "imax16",
-   [imax32] = "imax32",
-   [imax64] = "imax64",
-   [umin8] = "umin8",
-   [umin16] = "umin16",
-   [umin32] = "umin32",
-   [umin64] = "umin64",
-   [umax8] = "umax8",
-   [umax16] = "umax16",
-   [umax32] = "umax32",
-   [umax64] = "umax64",
-   [fmin16] = "fmin16",
-   [fmin32] = "fmin32",
-   [fmin64] = "fmin64",
-   [fmax16] = "fmax16",
-   [fmax32] = "fmax32",
-   [fmax64] = "fmax64",
-   [iand8] = "iand8",
-   [iand16] = "iand16",
-   [iand32] = "iand32",
-   [iand64] = "iand64",
-   [ior8] = "ior8",
-   [ior16] = "ior16",
-   [ior32] = "ior32",
-   [ior64] = "ior64",
-   [ixor8] = "ixor8",
-   [ixor16] = "ixor16",
-   [ixor32] = "ixor32",
-   [ixor64] = "ixor64",
-};
+const std::array<const char*, num_reduce_ops> reduce_ops = []()
+{
+   std::array<const char*, num_reduce_ops> ret{};
+   ret[iadd8] = "iadd8";
+   ret[iadd16] = "iadd16";
+   ret[iadd32] = "iadd32";
+   ret[iadd64] = "iadd64";
+   ret[imul8] = "imul8";
+   ret[imul16] = "imul16";
+   ret[imul32] = "imul32";
+   ret[imul64] = "imul64";
+   ret[fadd16] = "fadd16";
+   ret[fadd32] = "fadd32";
+   ret[fadd64] = "fadd64";
+   ret[fmul16] = "fmul16";
+   ret[fmul32] = "fmul32";
+   ret[fmul64] = "fmul64";
+   ret[imin8] = "imin8";
+   ret[imin16] = "imin16";
+   ret[imin32] = "imin32";
+   ret[imin64] = "imin64";
+   ret[imax8] = "imax8";
+   ret[imax16] = "imax16";
+   ret[imax32] = "imax32";
+   ret[imax64] = "imax64";
+   ret[umin8] = "umin8";
+   ret[umin16] = "umin16";
+   ret[umin32] = "umin32";
+   ret[umin64] = "umin64";
+   ret[umax8] = "umax8";
+   ret[umax16] = "umax16";
+   ret[umax32] = "umax32";
+   ret[umax64] = "umax64";
+   ret[fmin16] = "fmin16";
+   ret[fmin32] = "fmin32";
+   ret[fmin64] = "fmin64";
+   ret[fmax16] = "fmax16";
+   ret[fmax32] = "fmax32";
+   ret[fmax64] = "fmax64";
+   ret[iand8] = "iand8";
+   ret[iand16] = "iand16";
+   ret[iand32] = "iand32";
+   ret[iand64] = "iand64";
+   ret[ior8] = "ior8";
+   ret[ior16] = "ior16";
+   ret[ior32] = "ior32";
+   ret[ior64] = "ior64";
+   ret[ixor8] = "ixor8";
+   ret[ixor16] = "ixor16";
+   ret[ixor32] = "ixor32";
+   ret[ixor64] = "ixor64";
+   return ret;
+}();
 
 static void print_reg_class(const RegClass rc, FILE *output)
 {
@@ -170,6 +175,8 @@ void aco_print_operand(const Operand *operand, FILE *output)
          fprintf(output, "(latekill)");
       if (operand->is16bit())
          fprintf(output, "(is16bit)");
+      if (operand->is24bit())
+         fprintf(output, "(is24bit)");
 
       fprintf(output, "%%%d", operand->tempId());
 

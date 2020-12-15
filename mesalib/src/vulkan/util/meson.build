@@ -43,7 +43,7 @@ libvulkan_util = static_library(
   'vulkan_util',
   [files_vulkan_util, vk_enum_to_str],
   include_directories : [inc_include, inc_src, inc_gallium],
-  dependencies : vulkan_wsi_deps,
+  dependencies : [vulkan_wsi_deps, idep_mesautil],
   c_args : [vulkan_wsi_args],
   gnu_symbol_visibility : 'hidden',
   build_by_default : false,

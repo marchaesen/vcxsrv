@@ -24,11 +24,11 @@
 #include "wsi_common_private.h"
 #include "util/macros.h"
 #include "util/os_file.h"
+#include "util/os_time.h"
 #include "util/xmlconfig.h"
 #include "vk_util.h"
 
 #include <time.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -671,7 +671,5 @@ wsi_common_queue_present(const struct wsi_device *wsi,
 uint64_t
 wsi_common_get_current_time(void)
 {
-   struct timespec current;
-   clock_gettime(CLOCK_MONOTONIC, &current);
-   return current.tv_nsec + current.tv_sec * 1000000000ull;
+   return os_time_get_nano();
 }

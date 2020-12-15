@@ -214,7 +214,8 @@ st_end_transform_feedback(struct gl_context *ctx,
 
 bool
 st_transform_feedback_draw_init(struct gl_transform_feedback_object *obj,
-                                unsigned stream, struct pipe_draw_info *out)
+                                unsigned stream,
+                                struct pipe_draw_indirect_info *out)
 {
    struct st_transform_feedback_object *sobj =
          st_transform_feedback_object(obj);

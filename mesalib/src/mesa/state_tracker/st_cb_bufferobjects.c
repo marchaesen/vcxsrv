@@ -284,7 +284,7 @@ bufferobj_data(struct gl_context *ctx,
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
    struct st_buffer_object *st_obj = st_buffer_object(obj);
    struct st_memory_object *st_mem_obj = st_memory_object(memObj);
    bool is_mapped = _mesa_bufferobj_mapped(obj, MAP_USER);
@@ -496,6 +496,8 @@ st_access_flags_to_transfer_flags(GLbitfield access, bool wholeBuffer)
       flags |= PIPE_MAP_DONTBLOCK;
    if (access & MESA_MAP_THREAD_SAFE_BIT)
       flags |= PIPE_MAP_THREAD_SAFE;
+   if (access & MESA_MAP_ONCE)
+      flags |= PIPE_MAP_ONCE;
 
    return flags;
 }

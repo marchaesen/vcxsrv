@@ -136,8 +136,8 @@ ddxProcessArgument(int argc, char *argv[], int i)
         if (!isdigit(*argv[i + 1]))
             return 0;
 
-        LogMessage(X_WARNING, "Option \"-listen\" for file descriptors is deprecated\n"
-                              "Please use \"-listenfd\" instead.\n");
+        LogMessageVerb(X_WARNING, 0, "Option \"-listen\" for file descriptors is deprecated\n"
+                                     "Please use \"-listenfd\" instead.\n");
 
         xwl_add_listen_fd (argc, argv, i);
         return 2;

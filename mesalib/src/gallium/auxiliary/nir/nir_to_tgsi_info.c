@@ -351,7 +351,7 @@ static void scan_instruction(const struct nir_shader *nir,
                if (glsl_base_type_is_integer(base_type))
                   break;
 
-               /* fall-through */
+               FALLTHROUGH;
             case INTERP_MODE_SMOOTH:
                if (var->data.sample)
                   info->uses_persp_sample = true;
@@ -551,7 +551,7 @@ void nir_tgsi_scan_shader(const struct nir_shader *nir,
                info->input_interpolate[i] = TGSI_INTERPOLATE_COLOR;
                break;
             }
-            /* fall-through */
+            FALLTHROUGH;
 
          case INTERP_MODE_SMOOTH:
             assert(!glsl_base_type_is_integer(base_type));

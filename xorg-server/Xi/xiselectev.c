@@ -44,7 +44,9 @@
  * - If A has XIAllMasterDevices, B may select on XIAllDevices
  * - if A has device X, B may select on XIAllDevices/XIAllMasterDevices
  */
-static int check_for_touch_selection_conflicts(ClientPtr B, WindowPtr win, int deviceid)
+static int
+check_for_touch_selection_conflicts(ClientPtr B, WindowPtr win, int deviceid,
+                                    int evtype)
 {
     OtherInputMasks *inputMasks = wOtherInputMasks(win);
     InputClients *A = NULL;
@@ -67,19 +69,19 @@ static int check_for_touch_selection_conflicts(ClientPtr B, WindowPtr win, int d
             return BadImplementation;       /* this shouldn't happen */
 
         /* A has XIAllDevices */
-        if (xi2mask_isset_for_device(A->xi2mask, inputInfo.all_devices, XI_TouchBegin)) {
+        if (xi2mask_isset_for_device(A->xi2mask, inputInfo.all_devices, evtype)) {
             if (deviceid == XIAllDevices)
                 return BadAccess;
         }
 
         /* A has XIAllMasterDevices */
-        if (xi2mask_isset_for_device(A->xi2mask, inputInfo.all_master_devices, XI_TouchBegin)) {
+        if (xi2mask_isset_for_device(A->xi2mask, inputInfo.all_master_devices, evtype)) {
             if (deviceid == XIAllMasterDevices)
                 return BadAccess;
         }
 
         /* A has this device */
-        if (xi2mask_isset_for_device(A->xi2mask, tmp, XI_TouchBegin))
+        if (xi2mask_isset_for_device(A->xi2mask, tmp, evtype))
             return BadAccess;
     }
 
@@ -230,7 +232,8 @@ ProcXISelectEvents(ClientPtr client)
             if (BitIsOn(bits, XI_TouchBegin)) {
                 rc = check_for_touch_selection_conflicts(client,
                                                          win,
-                                                         evmask->deviceid);
+                                                         evmask->deviceid,
+                                                         XI_TouchBegin);
                 if (rc != Success)
                     return rc;
             }

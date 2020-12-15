@@ -356,6 +356,7 @@ rbug_screen_resource_destroy(struct pipe_screen *screen,
 
 static void
 rbug_screen_flush_frontbuffer(struct pipe_screen *_screen,
+                              struct pipe_context *_ctx,
                               struct pipe_resource *_resource,
                               unsigned level, unsigned layer,
                               void *context_private, struct pipe_box *sub_box)
@@ -364,8 +365,10 @@ rbug_screen_flush_frontbuffer(struct pipe_screen *_screen,
    struct rbug_resource *rb_resource = rbug_resource(_resource);
    struct pipe_screen *screen = rb_screen->screen;
    struct pipe_resource *resource = rb_resource->resource;
+   struct pipe_context *ctx = _ctx ? rbug_context(_ctx)->pipe : NULL;
 
    screen->flush_frontbuffer(screen,
+                             ctx,
                              resource,
                              level, layer,
                              context_private, sub_box);

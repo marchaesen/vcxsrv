@@ -11,6 +11,11 @@ extern "C" {
 #define WINSYS_HANDLE_TYPE_FD     2
 #define WINSYS_HANDLE_TYPE_SHMID   3
 
+#ifdef _WIN32
+#include <unknwn.h>
+#define WINSYS_HANDLE_TYPE_D3D12_RES 4
+#endif
+
 /**
  * For use with pipe_screen::{texture_from_handle|texture_get_handle}.
  */
@@ -60,6 +65,14 @@ struct winsys_handle
     * Output from resource_get_handle.
     */
    uint64_t modifier;
+
+#ifdef _WIN32
+   /**
+    * Input to resource_from_handle.
+    * Output for resource_get_handle.
+    */
+   IUnknown *com_obj;
+#endif
 };
 
 #ifdef __cplusplus

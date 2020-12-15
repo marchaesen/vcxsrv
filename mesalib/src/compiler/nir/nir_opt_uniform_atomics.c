@@ -153,53 +153,20 @@ is_atomic_already_optimized(nir_shader *shader, nir_intrinsic_instr *instr)
    return (dims & dims_needed) == dims_needed || dims & 0x8;
 }
 
-static nir_ssa_def *
-emit_scalar_intrinsic(nir_builder *b, nir_intrinsic_op op, unsigned bit_size)
-{
-   nir_intrinsic_instr *intrin = nir_intrinsic_instr_create(b->shader, op);
-   nir_ssa_dest_init(&intrin->instr, &intrin->dest, 1, bit_size, NULL);
-   nir_builder_instr_insert(b, &intrin->instr);
-   return &intrin->dest.ssa;
-}
-
-static nir_ssa_def *
-emit_read_invocation(nir_builder *b, nir_ssa_def *data, nir_ssa_def *lane)
-{
-   nir_intrinsic_instr *ri = nir_intrinsic_instr_create(
-         b->shader, lane ? nir_intrinsic_read_invocation : nir_intrinsic_read_first_invocation);
-   nir_ssa_dest_init(&ri->instr, &ri->dest, 1, data->bit_size, NULL);
-   ri->num_components = 1;
-   ri->src[0] = nir_src_for_ssa(data);
-   if (lane)
-      ri->src[1] = nir_src_for_ssa(lane);
-   nir_builder_instr_insert(b, &ri->instr);
-   return &ri->dest.ssa;
-}
-
 /* Perform a reduction and/or exclusive scan. */
 static void
 reduce_data(nir_builder *b, nir_op op, nir_ssa_def *data,
             nir_ssa_def **reduce, nir_ssa_def **scan)
 {
-   nir_intrinsic_op intrin_op = scan ? nir_intrinsic_exclusive_scan : nir_intrinsic_reduce;
-   nir_intrinsic_instr *intrin =
-      nir_intrinsic_instr_create(b->shader, intrin_op);
-   intrin->num_components = 1;
-   intrin->src[0] = nir_src_for_ssa(data);
-   nir_intrinsic_set_reduction_op(intrin, op);
-   nir_ssa_dest_init(&intrin->instr, &intrin->dest, 1, data->bit_size, NULL);
-   nir_builder_instr_insert(b, &intrin->instr);
-
-   if (scan)
-      *scan = &intrin->dest.ssa;
-
-   if (scan && reduce) {
-      *scan = &intrin->dest.ssa;
-      nir_ssa_def *last_lane = emit_scalar_intrinsic(b, nir_intrinsic_last_invocation, 32);
-      nir_ssa_def *res = nir_build_alu(b, op, *scan, data, NULL, NULL);
-      *reduce = emit_read_invocation(b, res, last_lane);
-   } else if (reduce) {
-      *reduce = &intrin->dest.ssa;
+   if (scan) {
+      *scan = nir_exclusive_scan(b, data, .reduction_op=op);
+      if (reduce) {
+         nir_ssa_def *last_lane = nir_last_invocation(b);
+         nir_ssa_def *res = nir_build_alu(b, op, *scan, data, NULL, NULL);
+         *reduce = nir_read_invocation(b, res, last_lane);
+      }
+   } else {
+      *reduce = nir_reduce(b, data, .reduction_op=op);
    }
 }
 
@@ -218,7 +185,7 @@ optimize_atomic(nir_builder *b, nir_intrinsic_instr *intrin, bool return_prev)
    nir_instr_rewrite_src(&intrin->instr, &intrin->src[data_src], nir_src_for_ssa(reduce));
    nir_update_instr_divergence(b->shader, &intrin->instr);
 
-   nir_ssa_def *cond = emit_scalar_intrinsic(b, nir_intrinsic_elect, 1);
+   nir_ssa_def *cond = nir_elect(b, 1);
 
    nir_if *nif = nir_push_if(b, cond);
 
@@ -232,7 +199,7 @@ optimize_atomic(nir_builder *b, nir_intrinsic_instr *intrin, bool return_prev)
 
       nir_pop_if(b, nif);
       nir_ssa_def *result = nir_if_phi(b, &intrin->dest.ssa, undef);
-      result = emit_read_invocation(b, result, NULL);
+      result = nir_read_first_invocation(b, result);
 
       if (!combined_scan_reduce)
          reduce_data(b, op, data, NULL, &scan);
@@ -249,7 +216,7 @@ optimize_and_rewrite_atomic(nir_builder *b, nir_intrinsic_instr *intrin)
 {
    nir_if *helper_nif = NULL;
    if (b->shader->info.stage == MESA_SHADER_FRAGMENT) {
-      nir_ssa_def *helper = emit_scalar_intrinsic(b, nir_intrinsic_is_helper_invocation, 1);
+      nir_ssa_def *helper = nir_is_helper_invocation(b, 1);
       helper_nif = nir_push_if(b, nir_inot(b, helper));
    }
 

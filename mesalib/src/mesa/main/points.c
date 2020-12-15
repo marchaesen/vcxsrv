@@ -117,9 +117,8 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
     * If point parameters aren't supported, then this function shouldn't even
     * exist.
     */
-   assert(!(ctx->Extensions.ARB_point_sprite
-            || ctx->Extensions.NV_point_sprite)
-          || ctx->Extensions.EXT_point_parameters);
+   assert(!ctx->Extensions.ARB_point_sprite ||
+          ctx->Extensions.EXT_point_parameters);
 
    if (!ctx->Extensions.EXT_point_parameters) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
@@ -169,29 +168,6 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
             return;
          FLUSH_VERTICES(ctx, _NEW_POINT);
          ctx->Point.Threshold = params[0];
-         break;
-      case GL_POINT_SPRITE_R_MODE_NV:
-         /* This is one area where ARB_point_sprite and NV_point_sprite
-	  * differ.  In ARB_point_sprite the POINT_SPRITE_R_MODE is
-	  * always ZERO.  NV_point_sprite adds the S and R modes.
-	  */
-         if (_mesa_is_desktop_gl(ctx) && ctx->Extensions.NV_point_sprite) {
-            GLenum value = (GLenum) params[0];
-            if (value != GL_ZERO && value != GL_S && value != GL_R) {
-               _mesa_error(ctx, GL_INVALID_VALUE,
-                           "glPointParameterf[v]{EXT,ARB}(param)");
-               return;
-            }
-            if (ctx->Point.SpriteRMode == value)
-               return;
-            FLUSH_VERTICES(ctx, _NEW_POINT);
-            ctx->Point.SpriteRMode = value;
-         }
-         else {
-            _mesa_error(ctx, GL_INVALID_ENUM,
-                        "glPointParameterf[v]{EXT,ARB}(pname)");
-            return;
-         }
          break;
       case GL_POINT_SPRITE_COORD_ORIGIN:
 	 /* GL_POINT_SPRITE_COORD_ORIGIN was added to point sprites when the
@@ -263,7 +239,6 @@ _mesa_init_point(struct gl_context *ctx)
    ctx->Point.PointSprite = (ctx->API == API_OPENGL_CORE ||
                              ctx->API == API_OPENGLES2);
 
-   ctx->Point.SpriteRMode = GL_ZERO; /* GL_NV_point_sprite (only!) */
    ctx->Point.SpriteOrigin = GL_UPPER_LEFT; /* GL_ARB_point_sprite */
-   ctx->Point.CoordReplace = 0; /* GL_ARB/NV_point_sprite */
+   ctx->Point.CoordReplace = 0; /* GL_ARB_point_sprite */
 }

@@ -36,7 +36,9 @@ LOCAL_SRC_FILES := \
 	$(VL_STUB_SOURCES)
 
 ifeq ($(USE_LIBBACKTRACE),true)
-	LOCAL_SRC_FILES += util/u_debug_stack_android.cpp
+	LOCAL_CFLAGS += -DHAVE_ANDROID_PLATFORM
+	LOCAL_SHARED_LIBRARIES += libbacktrace
+	LOCAL_SRC_FILES += ../../util/u_debug_stack_android.cpp
 endif
 
 LOCAL_C_INCLUDES := \
@@ -64,13 +66,31 @@ LOCAL_MODULE_CLASS := STATIC_LIBRARIES
 intermediates := $(call local-generated-sources-dir)
 LOCAL_GENERATED_SOURCES := $(addprefix $(intermediates)/, $(GENERATED_SOURCES))
 
-$(LOCAL_GENERATED_SOURCES): PRIVATE_PYTHON := $(MESA_PYTHON2)
-$(LOCAL_GENERATED_SOURCES): PRIVATE_CUSTOM_TOOL = $(PRIVATE_PYTHON) $^ > $@
+u_indices_gen_deps := \
+	$(MESA_TOP)/src/gallium/auxiliary/indices/u_indices_gen.py
 
-$(intermediates)/indices/u_indices_gen.c \
-$(intermediates)/indices/u_unfilled_gen.c \
-$(intermediates)/util/u_format_srgb.c: $(intermediates)/%.c: $(LOCAL_PATH)/%.py
-	$(transform-generated-source)
+$(intermediates)/indices/u_indices_gen.c: $(u_indices_gen_deps)
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON3) $< > $@
+
+u_unfilled_gen_deps := \
+	$(MESA_TOP)/src/gallium/auxiliary/indices/u_unfilled_gen.py
+
+$(intermediates)/indices/u_unfilled_gen.c: $(u_unfilled_gen_deps)
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON3) $< > $@
+
+u_tracepoints_deps := \
+	$(MESA_TOP)/src/gallium/auxiliary/util/u_tracepoints.py \
+	$(MESA_TOP)/src/gallium/auxiliary/util/u_trace.py
+
+u_tracepoints_c := $(intermediates)/util/u_tracepoints.c
+u_tracepoints_h := $(intermediates)/util/u_tracepoints.h
+
+$(intermediates)/util/u_tracepoints.c \
+$(intermediates)/util/u_tracepoints.h: $(u_tracepoints_deps)
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON3) $< -p $(MESA_TOP)/src/gallium/auxiliary/util -C $(u_tracepoints_c) -H $(u_tracepoints_h)
 
 LOCAL_GENERATED_SOURCES += $(MESA_GEN_NIR_H)
 

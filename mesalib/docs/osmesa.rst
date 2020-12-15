@@ -11,11 +11,10 @@ renderings: OSMesaCreateContext(), OSMesaMakeCurrent(), and
 OSMesaDestroyContext(). See the Mesa/include/GL/osmesa.h header for more
 information about the API functions.
 
-The OSMesa interface may be used with any of three software renderers:
+The OSMesa interface may be used with the gallium software renderers:
 
 #. llvmpipe - this is the high-performance Gallium LLVM driver
 #. softpipe - this it the reference Gallium software driver
-#. swrast - this is the legacy Mesa software rasterizer
 
 There are several examples of OSMesa in the mesa/demos repository.
 
@@ -26,7 +25,7 @@ Configure and build Mesa with something like:
 
 ::
 
-   meson builddir -Dosmesa=gallium -Dgallium-drivers=swrast -Ddri-drivers=[] -Dvulkan-drivers=[] -Dprefix=$PWD/builddir/install
+   meson builddir -Dosmesa=true -Dgallium-drivers=swrast -Ddri-drivers=[] -Dvulkan-drivers=[] -Dprefix=$PWD/builddir/install
    ninja -C builddir install
 
 Make sure you have LLVM installed first if you want to use the llvmpipe
@@ -36,8 +35,7 @@ When the build is complete you should find:
 
 ::
 
-   $PWD/builddir/install/lib/libOSMesa.so  (swrast-based OSMesa)
-   $PWD/builddir/install/lib/gallium/libOSMsea.so  (Gallium-based OSMesa)
+   $PWD/builddir/install/lib/libOSMesa.so
 
 Set your LD_LIBRARY_PATH to point to $PWD/builddir/install to use the
 libraries

@@ -50,6 +50,7 @@ _XFreeAtomTable(Display *dpy)
 		Xfree(e);
 	}
 	Xfree(dpy->atoms);
+	dpy->atoms = NULL;
     }
 }
 

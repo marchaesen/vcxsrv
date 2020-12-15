@@ -86,7 +86,7 @@ gl_shader_stage_is_callable(gl_shader_stage stage)
  * Number of STATE_* values we need to address any GL state.
  * Used to dimension arrays.
  */
-#define STATE_LENGTH 5
+#define STATE_LENGTH 4
 
 typedef short gl_state_index16; /* see enum gl_state_index */
 
@@ -288,7 +288,8 @@ typedef enum
    VARYING_SLOT_BOUNDING_BOX1, /* Only appears as TCS output. */
    VARYING_SLOT_VIEW_INDEX,
    VARYING_SLOT_VIEWPORT_MASK, /* Does not appear in FS */
-   VARYING_SLOT_VAR0, /* First generic varying slot */
+   VARYING_SLOT_PRIMITIVE_SHADING_RATE = VARYING_SLOT_FACE, /* Does not appear in FS. */
+   VARYING_SLOT_VAR0 = 32, /* First generic varying slot */
    /* the remaining are simply for the benefit of gl_varying_slot_name()
     * and not to be construed as an upper bound:
     */
@@ -332,6 +333,9 @@ typedef enum
 #define MAX_VARYINGS_INCL_PATCH (VARYING_SLOT_TESS_MAX - VARYING_SLOT_VAR0)
 
 const char *gl_varying_slot_name(gl_varying_slot slot);
+const char *gl_varying_slot_name_for_stage(gl_varying_slot slot,
+                                           gl_shader_stage stage);
+
 
 /**
  * Bitflags for varying slots.
@@ -708,6 +712,11 @@ typedef enum
    SYSTEM_VALUE_GS_HEADER_IR3,
    SYSTEM_VALUE_TCS_HEADER_IR3,
 
+   /**
+    * Fragment shading rate used for KHR_fragment_shading_rate (Vulkan).
+    */
+   SYSTEM_VALUE_FRAG_SHADING_RATE,
+
    SYSTEM_VALUE_MAX             /**< Number of values */
 } gl_system_value;
 
@@ -798,7 +807,11 @@ enum gl_access_qualifier
    ACCESS_COHERENT      = (1 << 0),
    ACCESS_RESTRICT      = (1 << 1),
    ACCESS_VOLATILE      = (1 << 2),
+
+   /* The memory used by the access/variable is not read. */
    ACCESS_NON_READABLE  = (1 << 3),
+
+   /* The memory used by the access/variable is not written. */
    ACCESS_NON_WRITEABLE = (1 << 4),
 
    /** The access may use a non-uniform buffer or image index */
@@ -807,8 +820,7 @@ enum gl_access_qualifier
    /* This has the same semantics as NIR_INTRINSIC_CAN_REORDER, only to be
     * used with loads. In other words, it means that the load can be
     * arbitrarily reordered, or combined with other loads to the same address.
-    * It is implied by ACCESS_NON_WRITEABLE together with ACCESS_RESTRICT, and
-    * a lack of ACCESS_COHERENT and ACCESS_VOLATILE.
+    * It is implied by ACCESS_NON_WRITEABLE and a lack of ACCESS_VOLATILE.
     */
    ACCESS_CAN_REORDER = (1 << 6),
 

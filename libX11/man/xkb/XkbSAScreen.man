@@ -86,9 +86,9 @@ converted to a signed int.
 .nf
 
     typedef struct _XkbSwitchScreenAction {
-        unsigned char    type;        /\(** XkbSA_SwitchScreen */
-        unsigned char    flags;       /\(** controls screen switching */
-        char             screenXXX;   /\(** screen number or delta */
+        unsigned char    type;        /\&* XkbSA_SwitchScreen */
+        unsigned char    flags;       /\&* controls screen switching */
+        char             screenXXX;   /\&* screen number or delta */
     } XkbSwitchScreenAction;
 
 .fi

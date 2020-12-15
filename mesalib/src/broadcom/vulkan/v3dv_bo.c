@@ -152,7 +152,7 @@ bo_free(struct v3dv_device *device,
       bo_dump_stats(device);
    }
 
-   vk_free(&device->alloc, bo);
+   vk_free(&device->vk.alloc, bo);
 
    return ret == 0;
 }
@@ -217,7 +217,7 @@ v3dv_bo_alloc(struct v3dv_device *device,
       }
    }
 
-   bo = vk_alloc(&device->alloc, sizeof(struct v3dv_bo), 8,
+   bo = vk_alloc(&device->vk.alloc, sizeof(struct v3dv_bo), 8,
                  VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 
    if (!bo) {
@@ -243,7 +243,7 @@ v3dv_bo_alloc(struct v3dv_device *device,
          goto retry;
       }
 
-      vk_free(&device->alloc, bo);
+      vk_free(&device->vk.alloc, bo);
       fprintf(stderr, "Failed to allocate device memory for BO\n");
       return NULL;
    }
@@ -346,7 +346,7 @@ reallocate_size_list(struct v3dv_bo_cache *cache,
                      uint32_t size)
 {
    struct list_head *new_list =
-      vk_alloc(&device->alloc, sizeof(struct list_head) * size, 8,
+      vk_alloc(&device->vk.alloc, sizeof(struct list_head) * size, 8,
                VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 
    if (!new_list) {
@@ -374,7 +374,7 @@ reallocate_size_list(struct v3dv_bo_cache *cache,
 
    cache->size_list = new_list;
    cache->size_list_size = size;
-   vk_free(&device->alloc, old_list);
+   vk_free(&device->vk.alloc, old_list);
 
    return true;
 }
@@ -409,7 +409,7 @@ void
 v3dv_bo_cache_destroy(struct v3dv_device *device)
 {
    bo_cache_free_all(device, true);
-   vk_free(&device->alloc, device->bo_cache.size_list);
+   vk_free(&device->vk.alloc, device->bo_cache.size_list);
 
    if (dump_stats) {
       fprintf(stderr, "BO stats after screen destroy:\n");

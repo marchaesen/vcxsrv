@@ -25,6 +25,8 @@
 
 #include "radv_meta.h"
 
+#include "vk_util.h"
+
 #include <fcntl.h>
 #include <limits.h>
 #include <pwd.h>
@@ -83,6 +85,10 @@ radv_meta_save(struct radv_meta_saved_state *state,
 		state->stencil_op.back.fail_op = cmd_buffer->state.dynamic.stencil_op.back.fail_op;
 		state->stencil_op.back.pass_op = cmd_buffer->state.dynamic.stencil_op.back.pass_op;
 		state->stencil_op.back.depth_fail_op = cmd_buffer->state.dynamic.stencil_op.back.depth_fail_op;
+
+		state->fragment_shading_rate.size = cmd_buffer->state.dynamic.fragment_shading_rate.size;
+		state->fragment_shading_rate.combiner_ops[0] = cmd_buffer->state.dynamic.fragment_shading_rate.combiner_ops[0];
+		state->fragment_shading_rate.combiner_ops[1] = cmd_buffer->state.dynamic.fragment_shading_rate.combiner_ops[1];
 	}
 
 	if (state->flags & RADV_META_SAVE_SAMPLE_LOCATIONS) {
@@ -165,6 +171,10 @@ radv_meta_restore(const struct radv_meta_saved_state *state,
 		cmd_buffer->state.dynamic.stencil_op.back.pass_op = state->stencil_op.back.pass_op;
 		cmd_buffer->state.dynamic.stencil_op.back.depth_fail_op = state->stencil_op.back.depth_fail_op;
 
+		cmd_buffer->state.dynamic.fragment_shading_rate.size = state->fragment_shading_rate.size;
+		cmd_buffer->state.dynamic.fragment_shading_rate.combiner_ops[0] = state->fragment_shading_rate.combiner_ops[0];
+		cmd_buffer->state.dynamic.fragment_shading_rate.combiner_ops[1] = state->fragment_shading_rate.combiner_ops[1];
+
 		cmd_buffer->state.dirty |= RADV_CMD_DIRTY_DYNAMIC_VIEWPORT |
 					   RADV_CMD_DIRTY_DYNAMIC_SCISSOR |
 					   RADV_CMD_DIRTY_DYNAMIC_CULL_MODE |
@@ -175,7 +185,8 @@ radv_meta_restore(const struct radv_meta_saved_state *state,
 					   RADV_CMD_DIRTY_DYNAMIC_DEPTH_COMPARE_OP |
 					   RADV_CMD_DIRTY_DYNAMIC_DEPTH_BOUNDS_TEST_ENABLE |
 					   RADV_CMD_DIRTY_DYNAMIC_STENCIL_TEST_ENABLE |
-					   RADV_CMD_DIRTY_DYNAMIC_STENCIL_OP;
+					   RADV_CMD_DIRTY_DYNAMIC_STENCIL_OP |
+					   RADV_CMD_DIRTY_DYNAMIC_FRAGMENT_SHADING_RATE;
 	}
 
 	if (state->flags & RADV_META_SAVE_SAMPLE_LOCATIONS) {
@@ -279,7 +290,7 @@ static void
 meta_free(void* _device, void *data)
 {
 	struct radv_device *device = _device;
-	return device->vk.alloc.pfnFree(device->vk.alloc.pUserData, data);
+	device->vk.alloc.pfnFree(device->vk.alloc.pUserData, data);
 }
 
 static bool
@@ -505,9 +516,7 @@ radv_device_finish_meta(struct radv_device *device)
 nir_ssa_def *radv_meta_gen_rect_vertices_comp2(nir_builder *vs_b, nir_ssa_def *comp2)
 {
 
-	nir_intrinsic_instr *vertex_id = nir_intrinsic_instr_create(vs_b->shader, nir_intrinsic_load_vertex_id_zero_base);
-	nir_ssa_dest_init(&vertex_id->instr, &vertex_id->dest, 1, 32, "vertexid");
-	nir_builder_instr_insert(vs_b, &vertex_id->instr);
+	nir_ssa_def *vertex_id = nir_load_vertex_id_zero_base(vs_b);
 
 	/* vertex 0 - -1.0, -1.0 */
 	/* vertex 1 - -1.0, 1.0 */
@@ -515,10 +524,8 @@ nir_ssa_def *radv_meta_gen_rect_vertices_comp2(nir_builder *vs_b, nir_ssa_def *c
 	/* so channel 0 is vertex_id != 2 ? -1.0 : 1.0
 	   channel 1 is vertex id != 1 ? -1.0 : 1.0 */
 
-	nir_ssa_def *c0cmp = nir_ine(vs_b, &vertex_id->dest.ssa,
-				     nir_imm_int(vs_b, 2));
-	nir_ssa_def *c1cmp = nir_ine(vs_b, &vertex_id->dest.ssa,
-				     nir_imm_int(vs_b, 1));
+	nir_ssa_def *c0cmp = nir_ine(vs_b, vertex_id, nir_imm_int(vs_b, 2));
+	nir_ssa_def *c1cmp = nir_ine(vs_b, vertex_id, nir_imm_int(vs_b, 1));
 
 	nir_ssa_def *comp[4];
 	comp[0] = nir_bcsel(vs_b, c0cmp,
@@ -651,16 +658,7 @@ void radv_meta_build_resolve_shader_core(nir_builder *b,
 nir_ssa_def *
 radv_meta_load_descriptor(nir_builder *b, unsigned desc_set, unsigned binding)
 {
-	nir_intrinsic_instr *rsrc =
-		nir_intrinsic_instr_create(b->shader,
-					   nir_intrinsic_vulkan_resource_index);
-
-	rsrc->src[0] = nir_src_for_ssa(nir_imm_int(b, 0));
-	rsrc->num_components = 2;
-	nir_intrinsic_set_desc_set(rsrc, desc_set);
-	nir_intrinsic_set_binding(rsrc, binding);
-	nir_ssa_dest_init(&rsrc->instr, &rsrc->dest, rsrc->num_components, 32, NULL);
-	nir_builder_instr_insert(b, &rsrc->instr);
-
-	return nir_channel(b, &rsrc->dest.ssa, 0);
+	nir_ssa_def *rsrc = nir_vulkan_resource_index(
+		b, 2, 32, nir_imm_int(b, 0), .desc_set=desc_set, .binding=binding);
+	return nir_channel(b, rsrc, 0);
 }

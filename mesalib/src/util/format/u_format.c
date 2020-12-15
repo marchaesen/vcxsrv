@@ -125,6 +125,18 @@ util_format_has_alpha(enum pipe_format format)
           desc->swizzle[3] != PIPE_SWIZZLE_1;
 }
 
+/** Test if format has alpha as 1 (like RGBX) */
+boolean
+util_format_has_alpha1(enum pipe_format format)
+{
+   const struct util_format_description *desc =
+      util_format_description(format);
+
+   return (desc->colorspace == UTIL_FORMAT_COLORSPACE_RGB ||
+           desc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB) &&
+           desc->nr_channels == 4 &&
+           desc->swizzle[3] == PIPE_SWIZZLE_1;
+}
 
 boolean
 util_format_is_luminance(enum pipe_format format)

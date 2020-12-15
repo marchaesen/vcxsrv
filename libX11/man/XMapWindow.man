@@ -104,7 +104,6 @@ a full-window exposure is always generated.
 Otherwise, only visible regions may be reported.
 Similar tiling and exposure take place for any newly viewable inferiors.
 .LP
-.IN "XMapWindow"
 If the window is an
 .B InputOutput
 window,
@@ -154,7 +153,6 @@ error.
 .LP
 The
 .B XMapSubwindows
-.IN "XMapSubwindows"
 function maps all subwindows for a specified window in top-to-bottom stacking
 order.
 The X server generates

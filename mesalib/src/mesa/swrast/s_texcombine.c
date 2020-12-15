@@ -660,9 +660,9 @@ _swrast_texture_span( struct gl_context *ctx, SWspan *span )
 
          /* adjust texture lod (lambda) */
          if (span->arrayMask & SPAN_LAMBDA) {
-            if (texUnit->LodBias + samp->LodBias != 0.0F) {
+            if (texUnit->LodBias + samp->Attrib.LodBias != 0.0F) {
                /* apply LOD bias, but don't clamp yet */
-               const GLfloat bias = CLAMP(texUnit->LodBias + samp->LodBias,
+               const GLfloat bias = CLAMP(texUnit->LodBias + samp->Attrib.LodBias,
                                           -ctx->Const.MaxTextureLodBias,
                                           ctx->Const.MaxTextureLodBias);
                GLuint i;
@@ -671,11 +671,11 @@ _swrast_texture_span( struct gl_context *ctx, SWspan *span )
                }
             }
 
-            if (samp->MinLod != -1000.0F ||
-                samp->MaxLod != 1000.0F) {
+            if (samp->Attrib.MinLod != -1000.0F ||
+                samp->Attrib.MaxLod != 1000.0F) {
                /* apply LOD clamping to lambda */
-               const GLfloat min = samp->MinLod;
-               const GLfloat max = samp->MaxLod;
+               const GLfloat min = samp->Attrib.MinLod;
+               const GLfloat max = samp->Attrib.MaxLod;
                GLuint i;
                for (i = 0; i < span->end; i++) {
                   GLfloat l = lambda[i];
@@ -683,8 +683,8 @@ _swrast_texture_span( struct gl_context *ctx, SWspan *span )
                }
             }
          }
-         else if (samp->MaxAnisotropy > 1.0F &&
-                  samp->MinFilter == GL_LINEAR_MIPMAP_LINEAR) {
+         else if (samp->Attrib.MaxAnisotropy > 1.0F &&
+                  samp->Attrib.MinFilter == GL_LINEAR_MIPMAP_LINEAR) {
             /* sample_lambda_2d_aniso is beeing used as texture_sample_func,
              * it requires the current SWspan *span as an additional parameter.
              * In order to keep the same function signature, the unused lambda
@@ -702,8 +702,8 @@ _swrast_texture_span( struct gl_context *ctx, SWspan *span )
                                       span->end, texcoords, lambda, texels );
 
          /* GL_EXT_texture_swizzle */
-         if (curObj->_Swizzle != SWIZZLE_NOOP) {
-            swizzle_texels(curObj->_Swizzle, span->end, texels);
+         if (curObj->Attrib._Swizzle != SWIZZLE_NOOP) {
+            swizzle_texels(curObj->Attrib._Swizzle, span->end, texels);
          }
       }
    }

@@ -73,8 +73,8 @@ xwl_window_set_allow_commits_from_property(struct xwl_window *xwl_window,
         xwl_window_set_allow_commits(xwl_window, TRUE, "WM fault");
 
         if (!warned) {
-            LogMessage(X_WARNING, "Window manager is misusing property %s.\n",
-                       NameForAtom(prop->propertyName));
+            LogMessageVerb(X_WARNING, 0, "Window manager is misusing property %s.\n",
+                           NameForAtom(prop->propertyName));
             warned = TRUE;
         }
         return;

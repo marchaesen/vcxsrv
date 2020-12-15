@@ -97,6 +97,8 @@ dri_fill_st_options(struct dri_screen *screen)
       driQueryOptionb(optionCache, "allow_glsl_cross_stage_interpolation_mismatch");
    options->allow_draw_out_of_order =
       driQueryOptionb(optionCache, "allow_draw_out_of_order");
+   options->allow_incorrect_primitive_id =
+      driQueryOptionb(optionCache, "allow_incorrect_primitive_id");
    options->force_gl_names_reuse =
       driQueryOptionb(optionCache, "force_gl_names_reuse");
 

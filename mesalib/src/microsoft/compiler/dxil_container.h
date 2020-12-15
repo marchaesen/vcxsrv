@@ -93,6 +93,8 @@ dxil_container_init(struct dxil_container *c);
 void
 dxil_container_finish(struct dxil_container *c);
 
+struct dxil_features;
+
 bool
 dxil_container_add_features(struct dxil_container *c,
                             const struct dxil_features *features);

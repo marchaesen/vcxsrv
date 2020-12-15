@@ -91,23 +91,23 @@ a geometry, use
 .nf
 
 typedef struct _XkbSection {
-    Atom                    name;        /\(** section name */
-    unsigned char           priority;    /\(** drawing priority, 0=>highest, 255=>lowest */
-    short                   top;         /\(** top coordinate of section origin */
-    short                   left;        /\(** left coordinate of row origin */
-    unsigned short          width;       /\(** section width, in mm/10 */
-    unsigned short          height;      /\(** section height, in mm/10 */
-    short                   angle;       /\(** angle of section rotation, counterclockwise */
-    unsigned short          num_rows;    /\(** number of rows in the rows array */
-    unsigned short          num_doodads; /\(** number of doodads in the doodads array */
-    unsigned short          num_overlays; /\(** number of overlays in the overlays array */
-    unsigned short          sz_rows;      /\(** size of the rows array */
-    unsigned short          sz_doodads;   /\(** size of the doodads array */
-    unsigned short          sz_overlays;  /\(** size of the overlays array */
-    XkbRowPtr               rows;         /\(** section rows array */
-    XkbDoodadPtr            doodads;      /\(** section doodads array */
-    XkbBoundsRec            bounds;       /\(** bounding box for the section, before rotation*/
-    XkbOverlayPtr           overlays;     /\(** section overlays array */
+    Atom                    name;        /\&* section name */
+    unsigned char           priority;    /\&* drawing priority, 0=>highest, 255=>lowest */
+    short                   top;         /\&* top coordinate of section origin */
+    short                   left;        /\&* left coordinate of row origin */
+    unsigned short          width;       /\&* section width, in mm/10 */
+    unsigned short          height;      /\&* section height, in mm/10 */
+    short                   angle;       /\&* angle of section rotation, counterclockwise */
+    unsigned short          num_rows;    /\&* number of rows in the rows array */
+    unsigned short          num_doodads; /\&* number of doodads in the doodads array */
+    unsigned short          num_overlays; /\&* number of overlays in the overlays array */
+    unsigned short          sz_rows;      /\&* size of the rows array */
+    unsigned short          sz_doodads;   /\&* size of the doodads array */
+    unsigned short          sz_overlays;  /\&* size of the overlays array */
+    XkbRowPtr               rows;         /\&* section rows array */
+    XkbDoodadPtr            doodads;      /\&* section doodads array */
+    XkbBoundsRec            bounds;       /\&* bounding box for the section, before rotation*/
+    XkbOverlayPtr           overlays;     /\&* section overlays array */
 } XkbSectionRec, *XkbSectionPtr;
 
 .fi

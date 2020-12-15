@@ -53,4 +53,3 @@ program/program_parse.tab.h: program/program_parse.y
 matypes.h: gen_matypes
 	./gen_matypes > $@
 
-

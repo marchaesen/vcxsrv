@@ -200,7 +200,6 @@ T}	T{
  WindowGroupHint)
 T}
 .TE
-.IN "XWMHints" "" "@DEF@"
 .EX
 /\&* Values */
 

@@ -1009,7 +1009,8 @@ tfeedback_decl::init(struct gl_context *ctx, const void *mem_ctx,
 
    /* Parse a declaration. */
    const char *base_name_end;
-   long subscript = parse_program_resource_name(input, &base_name_end);
+   long subscript = parse_program_resource_name(input, strlen(input),
+                                                &base_name_end);
    this->var_name = ralloc_strndup(mem_ctx, input, base_name_end - input);
    if (this->var_name == NULL) {
       _mesa_error_no_memory(__func__);

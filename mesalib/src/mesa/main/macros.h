@@ -307,10 +307,13 @@ COPY_4UBV(GLubyte dst[4], const GLubyte src[4])
 #define COPY_SZ_4V(DST, SZ, SRC)                  \
 do {                                              \
    switch (SZ) {                                  \
-   case 4: (DST)[3] = (SRC)[3]; /* fallthrough */ \
-   case 3: (DST)[2] = (SRC)[2]; /* fallthrough */ \
-   case 2: (DST)[1] = (SRC)[1]; /* fallthrough */ \
-   case 1: (DST)[0] = (SRC)[0]; /* fallthrough */ \
+   case 4: (DST)[3] = (SRC)[3];                   \
+           FALLTHROUGH;                           \
+   case 3: (DST)[2] = (SRC)[2];                   \
+           FALLTHROUGH;                           \
+   case 2: (DST)[1] = (SRC)[1];                   \
+           FALLTHROUGH;                           \
+   case 1: (DST)[0] = (SRC)[0];                   \
    }                                              \
 } while(0)
 

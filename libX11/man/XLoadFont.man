@@ -190,7 +190,7 @@ if the property was not defined or
 if it was defined.
 A set of predefined atoms exists for font properties,
 which can be found in
-.hN X11/Xatom.h .
+.BR X11/Xatom.h .
 This set contains the standard properties associated with
 a font.
 Although it is not guaranteed,
@@ -222,7 +222,6 @@ and
 .B XCharStruct
 structures contain:
 .LP
-.IN "XCharStruct" "" "@DEF@"
 .EX
 typedef struct {
 	short lbearing;	/\&* origin to left edge of raster */
@@ -234,7 +233,6 @@ typedef struct {
 } XCharStruct;
 .EE
 .LP
-.IN "XFontProp" "" "@DEF@"
 .EX
 typedef struct {
 	Atom	name;
@@ -242,7 +240,6 @@ typedef struct {
 } XFontProp;
 .EE
 .LP
-.IN "XChar2b" "" "@DEF@"
 .EX
 typedef struct {	/\&* normal 16 bit characters are two bytes */
     unsigned char byte1;
@@ -250,7 +247,6 @@ typedef struct {	/\&* normal 16 bit characters are two bytes */
 } XChar2b;
 .EE
 .LP
-.IN "XFontStruct" "" "@DEF@"
 .EX
 typedef struct {
 	XExtData *ext_data;	/\&* hook for extension to hang data */
@@ -305,9 +301,9 @@ It is just a hint as to whether most
 .B XCharStruct
 elements
 have a positive
-.Pn ( FontLeftToRight )
+.RB ( FontLeftToRight )
 or a negative
-.Pn ( FontRightToLeft )
+.RB ( FontRightToLeft )
 character width
 metric.
 The core protocol defines no support for vertical text.

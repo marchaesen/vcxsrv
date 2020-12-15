@@ -468,10 +468,10 @@ _mesa_is_image_unit_valid(struct gl_context *ctx, struct gl_image_unit *u)
    if (!t->_BaseComplete && !t->_MipmapComplete)
        _mesa_test_texobj_completeness(ctx, t);
 
-   if (u->Level < t->BaseLevel ||
+   if (u->Level < t->Attrib.BaseLevel ||
        u->Level > t->_MaxLevel ||
-       (u->Level == t->BaseLevel && !t->_BaseComplete) ||
-       (u->Level != t->BaseLevel && !t->_MipmapComplete))
+       (u->Level == t->Attrib.BaseLevel && !t->_BaseComplete) ||
+       (u->Level != t->Attrib.BaseLevel && !t->_MipmapComplete))
       return GL_FALSE;
 
    if (_mesa_tex_target_is_layered(t->Target) &&

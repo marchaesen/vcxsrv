@@ -953,6 +953,10 @@ clover::EnqueueSVMFree(cl_command_queue d_q,
       return CL_INVALID_VALUE;
 
    auto &q = obj(d_q);
+
+   if (!q.device().svm_support())
+      return CL_INVALID_OPERATION;
+
    bool can_emulate = q.device().has_system_svm();
    auto deps = objs<wait_list_tag>(event_wait_list, num_events_in_wait_list);
 
@@ -1012,6 +1016,10 @@ clover::EnqueueSVMMemcpy(cl_command_queue d_q,
                          const cl_event *event_wait_list,
                          cl_event *event,
                          cl_int cmd) try {
+   auto &q = obj(d_q);
+
+   if (!q.device().svm_support())
+      return CL_INVALID_OPERATION;
 
    if (dst_ptr == nullptr || src_ptr == nullptr)
       return CL_INVALID_VALUE;
@@ -1020,7 +1028,7 @@ clover::EnqueueSVMMemcpy(cl_command_queue d_q,
                                reinterpret_cast<ptrdiff_t>(src_ptr))) < size)
       return CL_MEM_COPY_OVERLAP;
 
-   auto &q = obj(d_q);
+
    bool can_emulate = q.device().has_system_svm();
    auto deps = objs<wait_list_tag>(event_wait_list, num_events_in_wait_list);
 
@@ -1070,6 +1078,10 @@ clover::EnqueueSVMMemFill(cl_command_queue d_q,
                           const cl_event *event_wait_list,
                           cl_event *event,
                           cl_int cmd) try {
+   auto &q = obj(d_q);
+
+   if (!q.device().svm_support())
+      return CL_INVALID_OPERATION;
 
    if (svm_ptr == nullptr || pattern == nullptr ||
        !util_is_power_of_two_nonzero(pattern_size) ||
@@ -1078,7 +1090,6 @@ clover::EnqueueSVMMemFill(cl_command_queue d_q,
        size % pattern_size)
       return CL_INVALID_VALUE;
 
-   auto &q = obj(d_q);
    bool can_emulate = q.device().has_system_svm();
    auto deps = objs<wait_list_tag>(event_wait_list, num_events_in_wait_list);
 
@@ -1130,11 +1141,14 @@ clover::EnqueueSVMMap(cl_command_queue d_q,
                       const cl_event *event_wait_list,
                       cl_event *event,
                       cl_int cmd) try {
+   auto &q = obj(d_q);
+
+   if (!q.device().svm_support())
+      return CL_INVALID_OPERATION;
 
    if (svm_ptr == nullptr || size == 0)
       return CL_INVALID_VALUE;
 
-   auto &q = obj(d_q);
    bool can_emulate = q.device().has_system_svm();
    auto deps = objs<wait_list_tag>(event_wait_list, num_events_in_wait_list);
 
@@ -1177,11 +1191,14 @@ clover::EnqueueSVMUnmap(cl_command_queue d_q,
                         const cl_event *event_wait_list,
                         cl_event *event,
                         cl_int cmd) try {
+   auto &q = obj(d_q);
+
+   if (!q.device().svm_support())
+      return CL_INVALID_OPERATION;
 
    if (svm_ptr == nullptr)
       return CL_INVALID_VALUE;
 
-   auto &q = obj(d_q);
    bool can_emulate = q.device().has_system_svm();
    auto deps = objs<wait_list_tag>(event_wait_list, num_events_in_wait_list);
 
@@ -1222,6 +1239,11 @@ clEnqueueSVMMigrateMem(cl_command_queue d_q,
                        cl_uint  num_events_in_wait_list,
                        const cl_event *event_wait_list,
                        cl_event *event) {
+   auto &q = obj(d_q);
+
+   if (!q.device().svm_support())
+      return CL_INVALID_OPERATION;
+
    CLOVER_NOT_SUPPORTED_UNTIL("2.1");
    return CL_INVALID_VALUE;
 }

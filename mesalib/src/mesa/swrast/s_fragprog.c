@@ -87,12 +87,12 @@ fetch_texel_lod( struct gl_context *ctx, const GLfloat texcoord[4], GLfloat lamb
       GLfloat rgba[4];
       const struct gl_sampler_object *samp = _mesa_get_samplerobj(ctx, unit);
 
-      lambda = CLAMP(lambda, samp->MinLod, samp->MaxLod);
+      lambda = CLAMP(lambda, samp->Attrib.MinLod, samp->Attrib.MaxLod);
 
       swrast->TextureSample[unit](ctx, samp, ctx->Texture.Unit[unit]._Current,
                                   1, (const GLfloat (*)[4]) texcoord,
                                   &lambda, &rgba);
-      swizzle_texel(rgba, color, texObj->_Swizzle);
+      swizzle_texel(rgba, color, texObj->Attrib._Swizzle);
    }
    else {
       ASSIGN_4V(color, 0.0F, 0.0F, 0.0F, 1.0F);
@@ -133,14 +133,14 @@ fetch_texel_deriv( struct gl_context *ctx, const GLfloat texcoord[4],
                                       texcoord[0], texcoord[1], texcoord[3],
                                       1.0F / texcoord[3]);
 
-      lambda += lodBias + texUnit->LodBias + samp->LodBias;
+      lambda += lodBias + texUnit->LodBias + samp->Attrib.LodBias;
 
-      lambda = CLAMP(lambda, samp->MinLod, samp->MaxLod);
+      lambda = CLAMP(lambda, samp->Attrib.MinLod, samp->Attrib.MaxLod);
 
       swrast->TextureSample[unit](ctx, samp, ctx->Texture.Unit[unit]._Current,
                                   1, (const GLfloat (*)[4]) texcoord,
                                   &lambda, &rgba);
-      swizzle_texel(rgba, color, texObj->_Swizzle);
+      swizzle_texel(rgba, color, texObj->Attrib._Swizzle);
    }
    else {
       ASSIGN_4V(color, 0.0F, 0.0F, 0.0F, 1.0F);

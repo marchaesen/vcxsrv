@@ -38,50 +38,26 @@
  * able to kick in to reduce stuff consuming the zero.
  */
 
-#include "compiler/nir/nir.h"
-#include "compiler/nir/nir_builder.h"
+#include "nir_builder.h"
 
-bool nir_undef_to_zero(nir_shader *shader);
-
-bool
-nir_undef_to_zero(nir_shader *shader)
+static bool
+lower_undef_instr_to_zero(nir_builder *b, nir_instr *instr, UNUSED void *_state)
 {
-   bool progress = false;
+   if (instr->type != nir_instr_type_ssa_undef)
+      return false;
 
-   nir_foreach_function(function, shader) {
-      if (!function->impl) continue;
-
-      nir_builder b;
-      nir_builder_init(&b, function->impl);
-
-      nir_foreach_block(block, function->impl) {
-         nir_foreach_instr_safe(instr, block) {
-            if (instr->type != nir_instr_type_ssa_undef) continue;
-
-            nir_ssa_undef_instr *und = nir_instr_as_ssa_undef(instr);
-
-            /* Get the required size */
-            unsigned c = und->def.num_components;
-            unsigned s = und->def.bit_size;
-
-            nir_const_value v[NIR_MAX_VEC_COMPONENTS];
-            memset(v, 0, sizeof(v));
-
-            b.cursor = nir_before_instr(instr);
-            nir_ssa_def *zero = nir_build_imm(&b, c, s, v);
-            nir_src zerosrc = nir_src_for_ssa(zero);
-
-            nir_ssa_def_rewrite_uses(&und->def, zerosrc);
-
-            progress |= true;
-         }
-      }
-
-      nir_metadata_preserve(function->impl, nir_metadata_block_index | nir_metadata_dominance);
-
-   }
-
-   return progress;
+   nir_ssa_undef_instr *und = nir_instr_as_ssa_undef(instr);
+   b->cursor = nir_instr_remove(&und->instr);
+   nir_ssa_def *zero = nir_imm_zero(b, und->def.num_components,
+                                       und->def.bit_size);
+   nir_ssa_def_rewrite_uses(&und->def, nir_src_for_ssa(zero));
+   return true;
 }
 
-
+bool
+nir_lower_undef_to_zero(nir_shader *shader)
+{
+   return nir_shader_instructions_pass(shader, lower_undef_instr_to_zero,
+                                       nir_metadata_block_index |
+                                       nir_metadata_dominance, NULL);
+}

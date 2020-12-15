@@ -1,11 +1,166 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.13.91 (2.14 RC1)
-                              2019-06-10
+                      Version 2.13.93 (2.14 RC3)
+                              2020-11-28
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new.
+
+2.13.93 (2.14 RC3)
+
+Akira TAGOH (48):
+      Affect FC_FONT_HAS_HINT property to score on matcher
+      Do not return FcFalse from FcConfigParseAndLoad*() if complain is set to false
+      Warn as well if no directory name for cachedir provided
+      Take effect sysroot functionality to the default config file
+      Read latest cache in paths
+      Fix a memory leak caused by the previous commit
+      Use FcConfigReference/Destroy appropriately instead of FcConfigGetCurrent
+      Fix potential race condition in FcConfigSetCurrent and FcConfigReference
+      Fix gcc warnings with -Wpointer-sign
+      Don't add a value for FC_FULLNAME in meta face
+      Fix a test fail when no bwrap was available
+      Add proper fullname for named-instances
+      Fix the process substitution doesn't work with FONTCONFIG_FILE
+      Fix memory leaks
+      Fix assertion in FcFini()
+      Set exact boolean value to color property
+      Fix assertion in FcCacheFini() again
+      Fix errors on shellcheck
+      Fix cache conflicts on OSTree based system
+      Drop unmaintained files
+      Drop elements with its namespace from conf
+      Add FC_ORDER property into cache
+      Drop Bitstream Vera fonts from 60-latin.conf
+      Fix a typo in doc/confdir.sgml.in
+      Fix empty XDG_CACHE_HOME Behavior
+      Fix build issues regarding formatter for Win32
+      Add some tweaks into runtest.sh to see progress
+      Integrate python scripts to autotools build
+      Make sure a minimum version of python
+      Make more clearer the license terms
+      Add CONFIGDIR to the fallback config where can be specified by --with-configdir
+      fc-scan: add --sysroot option
+      Construct fullname from family and style
+      Add fullname later once FcConfigSubstitute() is done
+      Update meson.build
+      Add Regular style when no meta data available to guess a style
+      Make sure a combination of family and familylang is available
+      Split up a code again coming from different copyright notice
+      Update COPYING
+      Use memcpy instead of strcpy
+      Evaluate mingw64_env to setup properly on CI
+      Add examples section in fc-match(1)
+      Drop duplicated BUILT_SOURCES in doc/Makefile.am
+      Initialize shell variables to be sure
+      Update README that missed changes mistakenly
+      new-version.sh: update version in meson.build
+      Update version in meson.build to sync up with configure.ac
+      new-version.sh: commit meson.build when bumpping
+
+Alan Coopersmith (1):
+      Fix some typos/spelling errors
+
+Ben Wagner (2):
+      Replace FT_UNUSED with FC_UNUSED.
+      Fix fc_atomic_ptr_get and use.
+
+Chun-wei Fan (2):
+      meson: Look for FreeType using CMake too
+      meson: Don't use .def files for Visual Studio builds
+
+James Lee (1):
+      Fix 'meson install' when cross compiling
+
+Jan Tojnar (4):
+      conf: Add JoyPixels emoji font
+      Correct reset-dirs in DTD
+      Drop elements with its namespace from fonts.conf.in
+      Turn unknown attributes into warning
+
+Jonathan Kew (1):
+      Set name_mapping to NULL after freeing
+
+Mathieu Duponchelle (1):
+      Some build fixes to support compilation with MSVC on Windows
+
+Matthias Clasen (17):
+      Avoid a crash in FcPatternHash with ranges
+      Special-case some of the string walking code
+      Add a hash function for families
+      Use a hash table for family matching
+      Add a shortcut for FcQualAny matching
+      Speed up fonthashint matching
+      Speed up FcConfigCompareValue
+      Speed up FcConfigCompareValue
+      Speed up FcCompareLang and FcCompareBool
+      Use a hash table for families in FcConfigSubstitute
+      Use __builtin_expect in a few places
+      Fixup: Promote ints to ranges when appropriate
+      Add FC_LIKELY and FC_UNLIKELY macros
+      Use FC_UNLIKELY
+      Fixup: Handle patterns without family
+      Fix up FC_LIKELY macros
+      Fix a problem in FcConfigSubstitute
+
+Nicolas Mailhot (1):
+      Use an URN for DTD ID
+
+Niklas Guertler (3):
+      Allow multiple default system font directories in the fallback config, and set them to the default dirs on Darwin.
+      Add <dir> XML tags to default values for FC_DEFAULT_FONTS on non-Darwin systems
+      Increased timeout for meson tests to 600sec to make tests work on Darwin
+
+Nirbheek Chauhan (2):
+      fcatomic: Fix EXC_BAD_ACCESS on iOS ARM64
+      meson: Fix build failure with gcc10 on mingw
+
+Szunti (1):
+      Add missing return type for FcFontSet* functions
+
+Tim-Philipp Müller (8):
+      doc: fix FcPatternFilter documentation
+      Use FC_PATH_MAX to fix build on Windows
+      Fix build on Windows some more
+      fccompat: fix build on Windows without unistd.h
+      Guard dirent.h includes
+      Add Meson build system
+      meson: print configuration summary()
+      ci: allow meson mingw build to fail
+
+Xavier Claessens (3):
+      meson: Fix build when 'tools' option is disabled
+      meson: Use version comparison function
+      meson: Fix build failure when compiler is not in PATH
+
+xiota (1):
+      Add Courier Std aliases.  Fixes #262.
+
+2.13.92 (2.14 RC2)
+
+Akira TAGOH (18):
+      Fix a typo on masking face id
+      Don't clean up pre-built docs if no docbook installed.
+      Fix obtaining real path from pre-defined names for Win32
+      Fix a crash when running with FC_DEBUG=256
+      Improve the performance a bit
+      Fix a typo
+      Add English name first into a cache
+      FcConfigParseAndLoad*() should returns false on config errors
+      Clean up temporary directory for tests
+      Add docs for missing properties
+      Fix the fail on fc-cache
+      Fix memory leaks
+      Fix a memory leak in FcFreeTypeQuery*()
+      Add 35-lang-normalize.conf
+      Add FC_FONT_HAS_HINT property to see if font has hinting or not.
+      Fix failing the check of prep table in some fonts
+      Fix the fails of make check when SOURCE_DATE_EPOCH is set
+      Improve the performance a bit
+
+Egmont Koblinger (1):
+      Fix the linear interpolation during weight mapping
 
 2.13.91 (2.14 RC1)
 

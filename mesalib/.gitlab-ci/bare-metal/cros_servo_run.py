@@ -114,6 +114,12 @@ class CrosServoRun:
                     print("Detected intermittent tftp failure, restarting run...")
                     return 2
 
+            # There are very infrequent bus errors during power management transitions
+            # on cheza, which we don't expect to be the case on future boards.
+            if re.search("Kernel panic - not syncing: Asynchronous SError Interrupt", line):
+                print("Detected cheza power management bus error, restarting run...")
+                return 2
+
             result = re.search("bare-metal result: (\S*)", line)
             if result:
                 if result.group(1) == "pass":

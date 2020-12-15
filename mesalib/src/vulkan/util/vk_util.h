@@ -23,6 +23,9 @@
 #ifndef VK_UTIL_H
 #define VK_UTIL_H
 
+#include "util/macros.h"
+#include <string.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -231,6 +234,11 @@ struct vk_pipeline_cache_header {
    ((__enum) >= VK_EXT_OFFSET ? ((((__enum) - VK_EXT_OFFSET) / 1000UL) + 1) : 0)
 #define VK_ENUM_OFFSET(__enum) \
    ((__enum) >= VK_EXT_OFFSET ? ((__enum) % 1000) : (__enum))
+
+#define typed_memcpy(dest, src, count) do { \
+   STATIC_ASSERT(sizeof(*(src)) == sizeof(*(dest))); \
+   memcpy((dest), (src), (count) * sizeof(*(src))); \
+} while (0)
 
 #ifdef __cplusplus
 }

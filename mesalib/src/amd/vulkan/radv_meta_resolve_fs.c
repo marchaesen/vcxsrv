@@ -68,17 +68,11 @@ build_resolve_fragment_shader(struct radv_device *dev, bool is_integer, int samp
 	color_out->data.location = FRAG_RESULT_DATA0;
 
 	nir_ssa_def *pos_in = nir_channels(&b, nir_load_frag_coord(&b), 0x3);
-	nir_intrinsic_instr *src_offset = nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_push_constant);
-	nir_intrinsic_set_base(src_offset, 0);
-	nir_intrinsic_set_range(src_offset, 8);
-	src_offset->src[0] = nir_src_for_ssa(nir_imm_int(&b, 0));
-	src_offset->num_components = 2;
-	nir_ssa_dest_init(&src_offset->instr, &src_offset->dest, 2, 32, "src_offset");
-	nir_builder_instr_insert(&b, &src_offset->instr);
+	nir_ssa_def *src_offset = nir_load_push_constant(&b, 2, 32, nir_imm_int(&b, 0), 0, 8);
 
 	nir_ssa_def *pos_int = nir_f2i32(&b, pos_in);
 
-	nir_ssa_def *img_coord = nir_channels(&b, nir_iadd(&b, pos_int, &src_offset->dest.ssa), 0x3);
+	nir_ssa_def *img_coord = nir_channels(&b, nir_iadd(&b, pos_int, src_offset), 0x3);
 	nir_variable *color = nir_local_variable_create(b.impl, glsl_vec4_type(), "color");
 
 	radv_meta_build_resolve_shader_core(&b, is_integer, samples, input_img,
@@ -152,7 +146,7 @@ create_resolve_pipeline(struct radv_device *device,
 {
 	mtx_lock(&device->meta_state.mtx);
 
-	unsigned fs_key = radv_format_meta_fs_key(format);
+	unsigned fs_key = radv_format_meta_fs_key(device, format);
 	VkPipeline *pipeline = &device->meta_state.resolve_fragment.rc[samples_log2].pipeline[fs_key];
 	if (*pipeline) {
 		mtx_unlock(&device->meta_state.mtx);
@@ -376,17 +370,11 @@ build_depth_stencil_resolve_fragment_shader(struct radv_device *dev, int samples
 
 	nir_ssa_def *pos_in = nir_channels(&b, nir_load_frag_coord(&b), 0x3);
 
-	nir_intrinsic_instr *src_offset = nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_push_constant);
-	nir_intrinsic_set_base(src_offset, 0);
-	nir_intrinsic_set_range(src_offset, 8);
-	src_offset->src[0] = nir_src_for_ssa(nir_imm_int(&b, 0));
-	src_offset->num_components = 2;
-	nir_ssa_dest_init(&src_offset->instr, &src_offset->dest, 2, 32, "src_offset");
-	nir_builder_instr_insert(&b, &src_offset->instr);
+	nir_ssa_def *src_offset = nir_load_push_constant(&b, 2, 32, nir_imm_int(&b, 0), 0, 8);
 
 	nir_ssa_def *pos_int = nir_f2i32(&b, pos_in);
 
-	nir_ssa_def *img_coord = nir_channels(&b, nir_iadd(&b, pos_int, &src_offset->dest.ssa), 0x3);
+	nir_ssa_def *img_coord = nir_channels(&b, nir_iadd(&b, pos_int, src_offset), 0x3);
 
 	nir_ssa_def *input_img_deref = &nir_build_deref_var(&b, input_img)->dest.ssa;
 
@@ -818,7 +806,7 @@ radv_get_resolve_pipeline(struct radv_cmd_buffer *cmd_buffer,
 			  struct radv_image_view *dst_iview)
 {
 	struct radv_device *device = cmd_buffer->device;
-	unsigned fs_key = radv_format_meta_fs_key(dst_iview->vk_format);
+	unsigned fs_key = radv_format_meta_fs_key(cmd_buffer->device, dst_iview->vk_format);
 	const uint32_t samples = src_iview->image->info.samples;
 	const uint32_t samples_log2 = ffs(samples) - 1;
 	VkPipeline *pipeline;
@@ -1022,7 +1010,7 @@ void radv_meta_resolve_fragment_image(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_meta_saved_state saved_state;
 	const uint32_t samples = src_image->info.samples;
 	const uint32_t samples_log2 = ffs(samples) - 1;
-	unsigned fs_key = radv_format_meta_fs_key(dest_image->vk_format);
+	unsigned fs_key = radv_format_meta_fs_key(cmd_buffer->device, dest_image->vk_format);
 	unsigned dst_layout = radv_meta_dst_layout_from_layout(dest_image_layout);
 	VkRenderPass rp;
 

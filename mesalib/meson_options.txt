@@ -23,8 +23,7 @@ option(
   type : 'array',
   value : ['auto'],
   choices : [
-    'auto', 'x11', 'wayland', 'drm', 'surfaceless', 'haiku', 'android',
-    'windows',
+    'auto', 'x11', 'wayland', 'haiku', 'android', 'windows',
   ],
   description : 'window systems to support. If this is set to `auto`, all platforms applicable will be enabled.'
 )
@@ -157,6 +156,12 @@ option(
   description : 'build gallium "clover" OpenCL frontend with SPIR-V binary support.',
 )
 option(
+  'opencl-native',
+  type : 'boolean',
+  value : true,
+  description : 'build gallium "clover" OpenCL frontend with native LLVM codegen support.',
+)
+option(
   'static-libclc',
   type : 'array',
   value : [],
@@ -186,8 +191,25 @@ option(
   'shader-cache',
   type : 'combo',
   value : 'auto',
-  choices : ['auto', 'true', 'false', 'enabled', 'disabled', 'default-disabled'],
-  description : 'Build with on-disk shader cache support. If set to default-disabled, the feature is only activated when environment variable MESA_GLSL_CACHE_DISABLE is set to false'
+  choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
+  description : 'Build with on-disk shader cache support.',
+)
+option(
+  'shader-cache-default',
+  type : 'boolean',
+  value : true,
+  description : 'If set to false, the feature is only activated when environment variable MESA_GLSL_CACHE_DISABLE is set to false',
+)
+option(
+  'shader-cache-max-size',
+  type : 'string',
+  value : '',
+  description : '''Default value for MESA_GLSL_CACHE_MAX_SIZE enviroment variable.
+   If set, determines the maximum size of the on-disk cache of compiled
+   GLSL programs, can be overriden by enviroment variable if needed. Should be set to a number optionally followed by
+   ``K``, ``M``, or ``G`` to specify a size in kilobytes, megabytes, or
+   gigabytes. By default, gigabytes will be assumed. And if unset, a
+   maximum size of 1GB will be used.'''
 )
 option(
   'vulkan-icd-dir',
@@ -262,6 +284,18 @@ option(
   description : 'Enable GLVND support.'
 )
 option(
+  'microsoft-clc',
+  type : 'feature',
+  value : 'auto',
+  description : 'Build support for the Microsoft CLC to DXIL compiler'
+)
+option(
+  'glvnd-vendor-name',
+  type : 'string',
+  value : 'mesa',
+  description : 'Vendor name string to use for glvnd libraries'
+)
+option(
    'glx-read-only-text',
    type : 'boolean',
    value : false,
@@ -328,9 +362,8 @@ option(
 )
 option(
   'osmesa',
-  type : 'combo',
-  value : 'none',
-  choices : ['none', 'classic', 'gallium'],
+  type : 'boolean',
+  value : false,
   description : 'Build OSmesa.'
 )
 option(
@@ -412,4 +445,16 @@ option(
   choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   value : 'auto',
   description : 'Use ZSTD instead of ZLIB in some cases.'
+)
+option(
+   'zlib',
+   type : 'feature',
+   value : 'enabled',
+   description : 'Use ZLIB to build driver. Default: enabled'
+)
+option(
+  'sse2',
+  type : 'boolean',
+  value : true,
+  description : 'use msse2 flag for mingw x86. Default: true',
 )

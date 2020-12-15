@@ -378,6 +378,64 @@ bool ssh2_common_filter_queue(PacketProtocolLayer *ppl)
             pq_pop(ppl->in_pq);
             break;
 
+          case SSH2_MSG_EXT_INFO: {
+            /*
+             * The BPP enforces that these turn up only at legal
+             * points in the protocol. In particular, it will not pass
+             * an EXT_INFO on to us if it arrives before encryption is
+             * enabled (which is when a MITM could inject one
+             * maliciously).
+             *
+             * However, one of the criteria for legality is that a
+             * server is permitted to send this message immediately
+             * _before_ USERAUTH_SUCCESS. So we may receive this
+             * message not yet knowing whether it's legal to have sent
+             * it - we won't know until the BPP processes the next
+             * packet.
+             *
+             * But that should be OK, because firstly, an
+             * out-of-sequence EXT_INFO that's still within the
+             * encrypted session is only a _protocol_ violation, not
+             * an attack; secondly, any data we set in response to
+             * such an illegal EXT_INFO won't have a chance to affect
+             * the session before the BPP aborts it anyway.
+             */
+            uint32_t nexts = get_uint32(pktin);
+            for (uint32_t i = 0; i < nexts && !get_err(pktin); i++) {
+                ptrlen extname = get_string(pktin);
+                ptrlen extvalue = get_string(pktin);
+                if (ptrlen_eq_string(extname, "server-sig-algs")) {
+                    /*
+                     * Server has sent a list of signature algorithms
+                     * it will potentially accept for user
+                     * authentication keys. Check in particular
+                     * whether the RFC 8332 improved versions of
+                     * ssh-rsa are in the list, and set flags in the
+                     * BPP if so.
+                     *
+                     * TODO: another thing we _could_ do here is to
+                     * record a full list of the algorithm identifiers
+                     * we've seen, whether we understand them
+                     * ourselves or not. Then we could use that as a
+                     * pre-filter during userauth, to skip keys in the
+                     * SSH agent if we already know the server can't
+                     * possibly accept them. (Even if the key
+                     * algorithm is one that the agent and the server
+                     * both understand but we do not.)
+                     */
+                    ptrlen algname;
+                    while (get_commasep_word(&extvalue, &algname)) {
+                        if (ptrlen_eq_string(algname, "rsa-sha2-256"))
+                            ppl->bpp->ext_info_rsa_sha256_ok = true;
+                        if (ptrlen_eq_string(algname, "rsa-sha2-512"))
+                            ppl->bpp->ext_info_rsa_sha512_ok = true;
+                    }
+                }
+            }
+            pq_pop(ppl->in_pq);
+            break;
+          }
+
           default:
             return false;
         }
@@ -569,10 +627,27 @@ static void ssh2_write_kexinit_lists(
          * host keys we actually have.
          */
         for (i = 0; i < our_nhostkeys; i++) {
+            const ssh_keyalg *keyalg = ssh_key_alg(our_hostkeys[i]);
+
             alg = ssh2_kexinit_addalg(kexlists[KEXLIST_HOSTKEY],
-                                      ssh_key_alg(our_hostkeys[i])->ssh_id);
-            alg->u.hk.hostkey = ssh_key_alg(our_hostkeys[i]);
+                                      keyalg->ssh_id);
+            alg->u.hk.hostkey = keyalg;
+            alg->u.hk.hkflags = 0;
             alg->u.hk.warn = false;
+
+            if (keyalg == &ssh_rsa) {
+                alg = ssh2_kexinit_addalg(kexlists[KEXLIST_HOSTKEY],
+                                          "rsa-sha2-256");
+                alg->u.hk.hostkey = keyalg;
+                alg->u.hk.hkflags = SSH_AGENT_RSA_SHA2_256;
+                alg->u.hk.warn = false;
+
+                alg = ssh2_kexinit_addalg(kexlists[KEXLIST_HOSTKEY],
+                                          "rsa-sha2-512");
+                alg->u.hk.hostkey = keyalg;
+                alg->u.hk.hkflags = SSH_AGENT_RSA_SHA2_512;
+                alg->u.hk.warn = false;
+            }
         }
     } else if (first_time) {
         /*
@@ -762,6 +837,12 @@ static void ssh2_write_kexinit_lists(
                 add_to_commasep(list, kexlists[i][j].name);
             }
         }
+        if (i == KEXLIST_KEX && first_time) {
+            if (our_hostkeys)          /* we're the server */
+                add_to_commasep(list, "ext-info-s");
+            else                       /* we're the client */
+                add_to_commasep(list, "ext-info-c");
+        }
         put_stringsb(pktout, list);
     }
     /* List client->server languages. Empty list. */
@@ -777,7 +858,8 @@ static bool ssh2_scan_kexinits(
     transport_direction *cs, transport_direction *sc,
     bool *warn_kex, bool *warn_hk, bool *warn_cscipher, bool *warn_sccipher,
     Ssh *ssh, bool *ignore_guess_cs_packet, bool *ignore_guess_sc_packet,
-    int *n_server_hostkeys, int server_hostkeys[MAXKEXLIST])
+    int *n_server_hostkeys, int server_hostkeys[MAXKEXLIST], unsigned *hkflags,
+    bool *can_send_ext_info)
 {
     BinarySource client[1], server[1];
     int i;
@@ -938,6 +1020,7 @@ static bool ssh2_scan_kexinits(
                 continue;
 
             *hostkey_alg = alg->u.hk.hostkey;
+            *hkflags = alg->u.hk.hkflags;
             *warn_hk = alg->u.hk.warn;
             break;
 
@@ -974,6 +1057,20 @@ static bool ssh2_scan_kexinits(
           default:
             unreachable("Bad list index in scan_kexinits");
         }
+    }
+
+    /*
+     * Check whether the other side advertised support for EXT_INFO.
+     */
+    {
+        ptrlen extinfo_advert =
+            (server_hostkeys ? PTRLEN_LITERAL("ext-info-c") :
+             PTRLEN_LITERAL("ext-info-s"));
+        ptrlen list = (server_hostkeys ? clists[KEXLIST_KEX] :
+                       slists[KEXLIST_KEX]);
+        for (ptrlen word; get_commasep_word(&list, &word) ;)
+            if (ptrlen_eq_ptrlen(word, extinfo_advert))
+                *can_send_ext_info = true;
     }
 
     if (server_hostkeys) {
@@ -1146,7 +1243,8 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
                 ptrlen_from_strbuf(s->server_kexinit),
                 s->kexlists, &s->kex_alg, &s->hostkey_alg, s->cstrans,
                 s->sctrans, &s->warn_kex, &s->warn_hk, &s->warn_cscipher,
-                &s->warn_sccipher, s->ppl.ssh, NULL, &s->ignorepkt, &nhk, hks))
+                &s->warn_sccipher, s->ppl.ssh, NULL, &s->ignorepkt, &nhk, hks,
+                &s->hkflags, &s->can_send_ext_info))
             return; /* false means a fatal error function was called */
 
         /*
@@ -1343,6 +1441,40 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
         strbuf_free(cipher_key);
         strbuf_free(cipher_iv);
         strbuf_free(mac_key);
+    }
+
+    /*
+     * If that was our first key exchange, this is the moment to send
+     * our EXT_INFO, if we're sending one.
+     */
+    if (!s->post_newkeys_ext_info) {
+        s->post_newkeys_ext_info = true; /* never do this again */
+        if (s->can_send_ext_info) {
+            strbuf *extinfo = strbuf_new();
+            uint32_t n_exts = 0;
+
+            if (s->ssc) {
+                /* Server->client EXT_INFO lists our supported user
+                 * key algorithms. */
+                n_exts++;
+                put_stringz(extinfo, "server-sig-algs");
+                strbuf *list = strbuf_new();
+                for (size_t i = 0; i < n_keyalgs; i++)
+                    add_to_commasep(list, all_keyalgs[i]->ssh_id);
+                put_stringsb(extinfo, list);
+            } else {
+                /* Client->server EXT_INFO is currently not sent, but here's
+                 * where we should put things in it if we ever want to. */
+            }
+
+            /* Only send EXT_INFO if it's non-empty */
+            if (n_exts) {
+                pktout = ssh_bpp_new_pktout(s->ppl.bpp, SSH2_MSG_EXT_INFO);
+                put_uint32(pktout, n_exts);
+                put_datapl(pktout, ptrlen_from_strbuf(extinfo));
+                pq_push(s->ppl.out_pq, pktout);
+            }
+        }
     }
 
     /*

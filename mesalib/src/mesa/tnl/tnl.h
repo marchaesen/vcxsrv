@@ -112,11 +112,11 @@ _tnl_draw_prims(struct gl_context *ctx,
 
 void
 _tnl_draw(struct gl_context *ctx,
-          const struct _mesa_prim *prim, GLuint nr_prims,
+          const struct _mesa_prim *prim, unsigned nr_prims,
           const struct _mesa_index_buffer *ib,
-          GLboolean index_bounds_valid, GLuint min_index, GLuint max_index,
-          GLuint num_instances, GLuint base_instance,
-          struct gl_transform_feedback_object *tfb_vertcount, unsigned stream);
+          bool index_bounds_valid, bool primitive_restart,
+          unsigned restart_index, unsigned min_index, unsigned max_index,
+          unsigned num_instances, unsigned base_instance);
 
 extern void
 _tnl_RasterPos(struct gl_context *ctx, const GLfloat vObj[4]);

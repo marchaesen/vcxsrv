@@ -67,13 +67,14 @@ static bool
 valid_filter_for_float(const struct gl_context *ctx,
                        const struct gl_texture_object *obj)
 {
-   switch (obj->Sampler.MagFilter) {
+   switch (obj->Sampler.Attrib.MagFilter) {
    case GL_LINEAR:
       if (obj->_IsHalfFloat && !ctx->Extensions.OES_texture_half_float_linear) {
          return false;
       } else if (obj->_IsFloat && !ctx->Extensions.OES_texture_float_linear) {
          return false;
       }
+      FALLTHROUGH;
    case GL_NEAREST:
    case GL_NEAREST_MIPMAP_NEAREST:
       break;
@@ -81,7 +82,7 @@ valid_filter_for_float(const struct gl_context *ctx,
       unreachable("Invalid mag filter");
    }
 
-   switch (obj->Sampler.MinFilter) {
+   switch (obj->Sampler.Attrib.MinFilter) {
    case GL_LINEAR:
    case GL_NEAREST_MIPMAP_LINEAR:
    case GL_LINEAR_MIPMAP_NEAREST:
@@ -91,6 +92,7 @@ valid_filter_for_float(const struct gl_context *ctx,
       } else if (obj->_IsFloat && !ctx->Extensions.OES_texture_float_linear) {
          return false;
       }
+      FALLTHROUGH;
    case GL_NEAREST:
    case GL_NEAREST_MIPMAP_NEAREST:
       break;
@@ -321,9 +323,9 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
    else {
       obj->TargetIndex = NUM_TEXTURE_TARGETS; /* invalid/error value */
    }
-   obj->Priority = 1.0F;
-   obj->BaseLevel = 0;
-   obj->MaxLevel = 1000;
+   obj->Attrib.Priority = 1.0F;
+   obj->Attrib.BaseLevel = 0;
+   obj->Attrib.MaxLevel = 1000;
 
    /* must be one; no support for (YUV) planes in separate buffers */
    obj->RequiredTextureImageUnits = 1;
@@ -331,34 +333,34 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
    /* sampler state */
    if (target == GL_TEXTURE_RECTANGLE_NV ||
        target == GL_TEXTURE_EXTERNAL_OES) {
-      obj->Sampler.WrapS = GL_CLAMP_TO_EDGE;
-      obj->Sampler.WrapT = GL_CLAMP_TO_EDGE;
-      obj->Sampler.WrapR = GL_CLAMP_TO_EDGE;
-      obj->Sampler.MinFilter = GL_LINEAR;
+      obj->Sampler.Attrib.WrapS = GL_CLAMP_TO_EDGE;
+      obj->Sampler.Attrib.WrapT = GL_CLAMP_TO_EDGE;
+      obj->Sampler.Attrib.WrapR = GL_CLAMP_TO_EDGE;
+      obj->Sampler.Attrib.MinFilter = GL_LINEAR;
    }
    else {
-      obj->Sampler.WrapS = GL_REPEAT;
-      obj->Sampler.WrapT = GL_REPEAT;
-      obj->Sampler.WrapR = GL_REPEAT;
-      obj->Sampler.MinFilter = GL_NEAREST_MIPMAP_LINEAR;
+      obj->Sampler.Attrib.WrapS = GL_REPEAT;
+      obj->Sampler.Attrib.WrapT = GL_REPEAT;
+      obj->Sampler.Attrib.WrapR = GL_REPEAT;
+      obj->Sampler.Attrib.MinFilter = GL_NEAREST_MIPMAP_LINEAR;
    }
-   obj->Sampler.MagFilter = GL_LINEAR;
-   obj->Sampler.MinLod = -1000.0;
-   obj->Sampler.MaxLod = 1000.0;
-   obj->Sampler.LodBias = 0.0;
-   obj->Sampler.MaxAnisotropy = 1.0;
-   obj->Sampler.CompareMode = GL_NONE;         /* ARB_shadow */
-   obj->Sampler.CompareFunc = GL_LEQUAL;       /* ARB_shadow */
-   obj->DepthMode = ctx->API == API_OPENGL_CORE ? GL_RED : GL_LUMINANCE;
-   obj->StencilSampling = false;
-   obj->Sampler.CubeMapSeamless = GL_FALSE;
+   obj->Sampler.Attrib.MagFilter = GL_LINEAR;
+   obj->Sampler.Attrib.MinLod = -1000.0;
+   obj->Sampler.Attrib.MaxLod = 1000.0;
+   obj->Sampler.Attrib.LodBias = 0.0;
+   obj->Sampler.Attrib.MaxAnisotropy = 1.0;
+   obj->Sampler.Attrib.CompareMode = GL_NONE;         /* ARB_shadow */
+   obj->Sampler.Attrib.CompareFunc = GL_LEQUAL;       /* ARB_shadow */
+   obj->Attrib.DepthMode = ctx->API == API_OPENGL_CORE ? GL_RED : GL_LUMINANCE;
+   obj->Attrib.StencilSampling = false;
+   obj->Sampler.Attrib.CubeMapSeamless = GL_FALSE;
    obj->Sampler.HandleAllocated = GL_FALSE;
-   obj->Swizzle[0] = GL_RED;
-   obj->Swizzle[1] = GL_GREEN;
-   obj->Swizzle[2] = GL_BLUE;
-   obj->Swizzle[3] = GL_ALPHA;
-   obj->_Swizzle = SWIZZLE_NOOP;
-   obj->Sampler.sRGBDecode = GL_DECODE_EXT;
+   obj->Attrib.Swizzle[0] = GL_RED;
+   obj->Attrib.Swizzle[1] = GL_GREEN;
+   obj->Attrib.Swizzle[2] = GL_BLUE;
+   obj->Attrib.Swizzle[3] = GL_ALPHA;
+   obj->Attrib._Swizzle = SWIZZLE_NOOP;
+   obj->Sampler.Attrib.sRGBDecode = GL_DECODE_EXT;
    obj->BufferObjectFormat = GL_R8;
    obj->_BufferObjectFormat = MESA_FORMAT_R_UNORM8;
    obj->ImageFormatCompatibilityType = GL_IMAGE_FORMAT_COMPATIBILITY_BY_SIZE;
@@ -387,16 +389,16 @@ finish_texture_init(struct gl_context *ctx, GLenum target,
       case GL_TEXTURE_2D_MULTISAMPLE:
       case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
          filter = GL_NEAREST;
-         /* fallthrough */
+         FALLTHROUGH;
 
       case GL_TEXTURE_RECTANGLE_NV:
       case GL_TEXTURE_EXTERNAL_OES:
          /* have to init wrap and filter state here - kind of klunky */
-         obj->Sampler.WrapS = GL_CLAMP_TO_EDGE;
-         obj->Sampler.WrapT = GL_CLAMP_TO_EDGE;
-         obj->Sampler.WrapR = GL_CLAMP_TO_EDGE;
-         obj->Sampler.MinFilter = filter;
-         obj->Sampler.MagFilter = filter;
+         obj->Sampler.Attrib.WrapS = GL_CLAMP_TO_EDGE;
+         obj->Sampler.Attrib.WrapT = GL_CLAMP_TO_EDGE;
+         obj->Sampler.Attrib.WrapR = GL_CLAMP_TO_EDGE;
+         obj->Sampler.Attrib.MinFilter = filter;
+         obj->Sampler.Attrib.MagFilter = filter;
          if (ctx->Driver.TexParameter) {
             /* XXX we probably don't need to make all these calls */
             ctx->Driver.TexParameter(ctx, obj, GL_TEXTURE_WRAP_S);
@@ -454,56 +456,6 @@ _mesa_delete_texture_object(struct gl_context *ctx,
 
    /* free this object */
    free(texObj);
-}
-
-
-/**
- * Copy texture object state from one texture object to another.
- * Use for glPush/PopAttrib.
- *
- * \param dest destination texture object.
- * \param src source texture object.
- */
-void
-_mesa_copy_texture_object( struct gl_texture_object *dest,
-                           const struct gl_texture_object *src )
-{
-   dest->Target = src->Target;
-   dest->TargetIndex = src->TargetIndex;
-   dest->Name = src->Name;
-   dest->Priority = src->Priority;
-   dest->Sampler.BorderColor.f[0] = src->Sampler.BorderColor.f[0];
-   dest->Sampler.BorderColor.f[1] = src->Sampler.BorderColor.f[1];
-   dest->Sampler.BorderColor.f[2] = src->Sampler.BorderColor.f[2];
-   dest->Sampler.BorderColor.f[3] = src->Sampler.BorderColor.f[3];
-   dest->Sampler.WrapS = src->Sampler.WrapS;
-   dest->Sampler.WrapT = src->Sampler.WrapT;
-   dest->Sampler.WrapR = src->Sampler.WrapR;
-   dest->Sampler.MinFilter = src->Sampler.MinFilter;
-   dest->Sampler.MagFilter = src->Sampler.MagFilter;
-   dest->Sampler.MinLod = src->Sampler.MinLod;
-   dest->Sampler.MaxLod = src->Sampler.MaxLod;
-   dest->Sampler.LodBias = src->Sampler.LodBias;
-   dest->BaseLevel = src->BaseLevel;
-   dest->MaxLevel = src->MaxLevel;
-   dest->Sampler.MaxAnisotropy = src->Sampler.MaxAnisotropy;
-   dest->Sampler.CompareMode = src->Sampler.CompareMode;
-   dest->Sampler.CompareFunc = src->Sampler.CompareFunc;
-   dest->Sampler.CubeMapSeamless = src->Sampler.CubeMapSeamless;
-   dest->DepthMode = src->DepthMode;
-   dest->StencilSampling = src->StencilSampling;
-   dest->Sampler.sRGBDecode = src->Sampler.sRGBDecode;
-   dest->_MaxLevel = src->_MaxLevel;
-   dest->_MaxLambda = src->_MaxLambda;
-   dest->GenerateMipmap = src->GenerateMipmap;
-   dest->_BaseComplete = src->_BaseComplete;
-   dest->_MipmapComplete = src->_MipmapComplete;
-   COPY_4V(dest->Swizzle, src->Swizzle);
-   dest->_Swizzle = src->_Swizzle;
-   dest->_IsHalfFloat = src->_IsHalfFloat;
-   dest->_IsFloat = src->_IsFloat;
-
-   dest->RequiredTextureImageUnits = src->RequiredTextureImageUnits;
 }
 
 
@@ -680,7 +632,7 @@ void
 _mesa_test_texobj_completeness( const struct gl_context *ctx,
                                 struct gl_texture_object *t )
 {
-   const GLint baseLevel = t->BaseLevel;
+   const GLint baseLevel = t->Attrib.BaseLevel;
    const struct gl_texture_image *baseImage;
    GLint maxLevels = 0;
 
@@ -704,9 +656,9 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
       return;
    }
 
-   if (t->MaxLevel < baseLevel) {
+   if (t->Attrib.MaxLevel < baseLevel) {
       incomplete(t, MIPMAP, "MAX_LEVEL (%d) < BASE_LEVEL (%d)",
-		 t->MaxLevel, baseLevel);
+		 t->Attrib.MaxLevel, baseLevel);
       return;
    }
 
@@ -748,7 +700,7 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
 
    assert(maxLevels > 0);
 
-   t->_MaxLevel = MIN3(t->MaxLevel,
+   t->_MaxLevel = MIN3(t->Attrib.MaxLevel,
                        /* 'p' in the GL spec */
                        (int) (baseLevel + baseImage->MaxNumLevels - 1),
                        /* 'q' in the GL spec */
@@ -924,7 +876,7 @@ _mesa_cube_level_complete(const struct gl_texture_object *texObj,
 GLboolean
 _mesa_cube_complete(const struct gl_texture_object *texObj)
 {
-   return _mesa_cube_level_complete(texObj, texObj->BaseLevel);
+   return _mesa_cube_level_complete(texObj, texObj->Attrib.BaseLevel);
 }
 
 /**
@@ -1032,8 +984,8 @@ _mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex)
          return NULL;
 
       assert(texObj->RefCount == 1);
-      texObj->Sampler.MinFilter = GL_NEAREST;
-      texObj->Sampler.MagFilter = GL_NEAREST;
+      texObj->Sampler.Attrib.MinFilter = GL_NEAREST;
+      texObj->Sampler.Attrib.MagFilter = GL_NEAREST;
 
       texFormat = ctx->Driver.ChooseTextureFormat(ctx, target,
                                                   GL_RGBA, GL_RGBA,
@@ -1170,7 +1122,7 @@ invalidate_tex_image_error_check(struct gl_context *ctx, GLuint texture,
     *     of the maximum texture width, height, or depth, the error
     *     INVALID_VALUE is generated."
     */
-   if (level < 0 || level > t->MaxLevel) {
+   if (level < 0 || level > t->Attrib.MaxLevel) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s(level)", name);
       return NULL;
    }
@@ -2087,7 +2039,7 @@ _mesa_PrioritizeTextures( GLsizei n, const GLuint *texName,
       if (texName[i] > 0) {
          struct gl_texture_object *t = _mesa_lookup_texture(ctx, texName[i]);
          if (t) {
-            t->Priority = CLAMP( priorities[i], 0.0F, 1.0F );
+            t->Attrib.Priority = CLAMP( priorities[i], 0.0F, 1.0F );
          }
       }
    }
@@ -2193,7 +2145,8 @@ _mesa_IsTexture( GLuint texture )
 void
 _mesa_lock_context_textures( struct gl_context *ctx )
 {
-   mtx_lock(&ctx->Shared->TexMutex);
+   if (!ctx->TexturesLocked)
+      mtx_lock(&ctx->Shared->TexMutex);
 
    if (ctx->Shared->TextureStateStamp != ctx->TextureStateTimestamp) {
       ctx->NewState |= _NEW_TEXTURE_OBJECT;
@@ -2206,7 +2159,8 @@ void
 _mesa_unlock_context_textures( struct gl_context *ctx )
 {
    assert(ctx->Shared->TextureStateStamp == ctx->TextureStateTimestamp);
-   mtx_unlock(&ctx->Shared->TexMutex);
+   if (!ctx->TexturesLocked)
+      mtx_unlock(&ctx->Shared->TexMutex);
 }
 
 

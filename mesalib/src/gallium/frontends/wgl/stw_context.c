@@ -446,13 +446,11 @@ stw_make_current(HDC hDrawDC, HDC hReadDC, DHGLRC dhglrc)
          }
       } else {
          if (old_ctx->shared) {
-            struct pipe_fence_handle *fence = NULL;
-            old_ctx->st->flush(old_ctx->st,
-                               ST_FLUSH_FRONT | ST_FLUSH_WAIT, &fence,
-                               NULL, NULL);
-         }
-         else {
-            old_ctx->st->flush(old_ctx->st, ST_FLUSH_FRONT, NULL, NULL, NULL);
+            stw_st_flush(old_ctx->st, old_ctx->current_framebuffer->stfb,
+                         ST_FLUSH_FRONT | ST_FLUSH_WAIT);
+         } else {
+            stw_st_flush(old_ctx->st, old_ctx->current_framebuffer->stfb,
+                         ST_FLUSH_FRONT);
          }
       }
    }

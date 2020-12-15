@@ -911,6 +911,7 @@ _XFreeKeyBindings(
 	Xfree(p->modifiers);
 	Xfree(p);
     }
+    dpy->key_bindings = NULL;
 }
 
 int

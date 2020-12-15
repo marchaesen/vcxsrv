@@ -46,8 +46,6 @@ enum resource_flags {
    has_nonglc_vmem_store = 0x8,
 
    has_vmem_store = has_glc_vmem_store | has_nonglc_vmem_store,
-   has_vmem_loadstore = has_vmem_store | has_glc_vmem_load | has_nonglc_vmem_load,
-   has_nonglc_vmem_loadstore = has_nonglc_vmem_load | has_nonglc_vmem_store,
 
    buffer_is_restrict = 0x10,
 };
@@ -135,48 +133,34 @@ inline Temp get_arg(isel_context *ctx, struct ac_arg arg)
 }
 
 inline void get_buffer_resource_flags(isel_context *ctx, nir_ssa_def *def, unsigned access,
-                               uint8_t **flags, uint32_t *count)
+                                      uint8_t **flags, uint32_t *count)
 {
-   int desc_set = -1;
-   unsigned binding = 0;
+   nir_binding binding = {0};
+   /* global resources (def=NULL) are considered aliasing with all other buffers and
+    * buffer images */
+   // TODO: only merge flags of resources which can really alias.
+   if (def)
+      binding = nir_chase_binding(nir_src_for_ssa(def));
 
-   if (!def) {
-      /* global resources are considered aliasing with all other buffers and
-       * buffer images */
-      // TODO: only merge flags of resources which can really alias.
-   } else if (def->parent_instr->type == nir_instr_type_alu) {
-      nir_alu_instr* mov_instr = nir_instr_as_alu(def->parent_instr);
-      if (mov_instr->op == nir_op_mov && mov_instr->src[0].swizzle[0] == 0 &&
-          mov_instr->src[0].src.ssa->parent_instr->type == nir_instr_type_intrinsic) {
-         nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(mov_instr->src[0].src.ssa->parent_instr);
-         if (intrin->intrinsic == nir_intrinsic_vulkan_resource_index) {
-            desc_set = nir_intrinsic_desc_set(intrin);
-            binding = nir_intrinsic_binding(intrin);
-         }
-      }
-   } else if (def->parent_instr->type == nir_instr_type_deref) {
-      nir_deref_instr *deref = nir_instr_as_deref(def->parent_instr);
-      assert(deref->type->is_image());
-      if (deref->type->sampler_dimensionality != GLSL_SAMPLER_DIM_BUF) {
+   if (binding.var) {
+      const glsl_type *type = binding.var->type->without_array();
+      assert(type->is_image());
+      if (type->sampler_dimensionality != GLSL_SAMPLER_DIM_BUF) {
          *flags = NULL;
          *count = 0;
          return;
       }
-
-      nir_variable *var = nir_deref_instr_get_variable(deref);
-      desc_set = var->data.descriptor_set;
-      binding = var->data.binding;
    }
 
-   if (desc_set < 0) {
+   if (!binding.success) {
       *flags = ctx->buffer_resource_flags.data();
       *count = ctx->buffer_resource_flags.size();
       return;
    }
 
-   unsigned set_offset = ctx->resource_flag_offsets[desc_set];
+   unsigned set_offset = ctx->resource_flag_offsets[binding.desc_set];
 
-   if (!(ctx->buffer_resource_flags[set_offset + binding] & buffer_is_restrict)) {
+   if (!(ctx->buffer_resource_flags[set_offset + binding.binding] & buffer_is_restrict)) {
       /* Non-restrict buffers alias only with other non-restrict buffers.
        * We reserve flags[0] for these. */
       *flags = ctx->buffer_resource_flags.data();
@@ -184,7 +168,7 @@ inline void get_buffer_resource_flags(isel_context *ctx, nir_ssa_def *def, unsig
       return;
    }
 
-   *flags = ctx->buffer_resource_flags.data() + set_offset + binding;
+   *flags = ctx->buffer_resource_flags.data() + set_offset + binding.binding;
    *count = 1;
 }
 
@@ -198,20 +182,6 @@ inline uint8_t get_all_buffer_resource_flags(isel_context *ctx, nir_ssa_def *def
    for (unsigned i = 0; i < count; i++)
       res |= flags[i];
    return res;
-}
-
-inline bool can_subdword_ssbo_store_use_smem(nir_intrinsic_instr *intrin)
-{
-   unsigned wrmask = nir_intrinsic_write_mask(intrin);
-   if (util_last_bit(wrmask) != util_bitcount(wrmask) ||
-       util_bitcount(wrmask) * intrin->src[0].ssa->bit_size % 32 ||
-       util_bitcount(wrmask) != intrin->src[0].ssa->num_components)
-      return false;
-
-   if (nir_intrinsic_align_mul(intrin) % 4 || nir_intrinsic_align_offset(intrin) % 4)
-      return false;
-
-   return true;
 }
 
 void init_context(isel_context *ctx, nir_shader *shader);

@@ -180,8 +180,6 @@ v3dv_pipeline_cache_init(struct v3dv_pipeline_cache *cache,
                          struct v3dv_device *device,
                          bool cache_enabled)
 {
-   cache->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
-
    cache->device = device;
    pthread_mutex_init(&cache->mutex, NULL);
 
@@ -442,9 +440,9 @@ v3dv_CreatePipelineCache(VkDevice _device,
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO);
    assert(pCreateInfo->flags == 0);
 
-   cache = vk_alloc2(&device->alloc, pAllocator,
-                     sizeof(*cache), 8,
-                     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   cache = vk_object_zalloc(&device->vk, pAllocator,
+                            sizeof(*cache),
+                            VK_OBJECT_TYPE_PIPELINE_CACHE);
 
    if (cache == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -500,7 +498,7 @@ v3dv_DestroyPipelineCache(VkDevice _device,
 
    v3dv_pipeline_cache_finish(cache);
 
-   vk_free2(&device->alloc, pAllocator, cache);
+   vk_object_free(&device->vk, pAllocator, cache);
 }
 
 VkResult

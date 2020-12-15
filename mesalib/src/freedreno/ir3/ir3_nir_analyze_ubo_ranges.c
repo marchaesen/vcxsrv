@@ -530,3 +530,94 @@ ir3_nir_fixup_load_uniform(nir_shader *nir)
 			fixup_load_uniform_filter, fixup_load_uniform_instr,
 			NULL);
 }
+static nir_ssa_def *
+ir3_nir_lower_load_const_instr(nir_builder *b, nir_instr *in_instr, void *data)
+{
+	struct ir3_const_state *const_state = data;
+	nir_intrinsic_instr *instr = nir_instr_as_intrinsic(in_instr);
+
+	/* Pick a UBO index to use as our constant data.  Skip UBO 0 since that's
+	 * reserved for gallium's cb0.
+	 */
+	if (const_state->constant_data_ubo == -1) {
+		if (b->shader->info.num_ubos == 0)
+			b->shader->info.num_ubos++;
+		const_state->constant_data_ubo = b->shader->info.num_ubos++;
+	}
+
+	unsigned num_components = instr->num_components;
+	if (nir_dest_bit_size(instr->dest) == 16) {
+		/* We can't do 16b loads -- either from LDC (32-bit only in any of our
+		 * traces, and disasm that doesn't look like it really supports it) or
+		 * from the constant file (where CONSTANT_DEMOTION_ENABLE means we get
+		 * automatic 32b-to-16b conversions when we ask for 16b from it).
+		 * Instead, we'll load 32b from a UBO and unpack from there.
+		 */
+		num_components = DIV_ROUND_UP(num_components, 2);
+	}
+	unsigned base = nir_intrinsic_base(instr);
+	nir_intrinsic_instr *load =
+		nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_ubo);
+	load->num_components = num_components;
+	nir_ssa_dest_init(&load->instr, &load->dest,
+			load->num_components, 32,
+			instr->dest.ssa.name);
+
+	load->src[0] = nir_src_for_ssa(nir_imm_int(b,
+					const_state->constant_data_ubo));
+	load->src[1] = nir_src_for_ssa(nir_iadd_imm(b,
+					nir_ssa_for_src(b, instr->src[0], 1), base));
+
+	nir_intrinsic_set_align(load,
+			nir_intrinsic_align_mul(instr),
+			nir_intrinsic_align_offset(instr));
+	nir_intrinsic_set_range_base(load, base);
+	nir_intrinsic_set_range(load, nir_intrinsic_range(instr));
+
+	nir_builder_instr_insert(b, &load->instr);
+
+	nir_ssa_def *result = &load->dest.ssa;
+	if (nir_dest_bit_size(instr->dest) == 16) {
+		result = nir_bitcast_vector(b, result, 16);
+		result = nir_channels(b, result, BITSET_MASK(instr->num_components));
+	}
+
+	return result;
+}
+
+static bool
+ir3_lower_load_const_filter(const nir_instr *instr, const void *data)
+{
+        return (instr->type == nir_instr_type_intrinsic &&
+                nir_instr_as_intrinsic(instr)->intrinsic == nir_intrinsic_load_constant);
+}
+
+/* Lowers load_constant intrinsics to UBO accesses so we can run them through
+ * the general "upload to const file or leave as UBO access" code.
+ */
+bool
+ir3_nir_lower_load_constant(nir_shader *nir, struct ir3_shader_variant *v)
+{
+	struct ir3_const_state *const_state = ir3_const_state(v);
+
+	const_state->constant_data_ubo = -1;
+
+	bool progress = nir_shader_lower_instructions(nir,
+			ir3_lower_load_const_filter, ir3_nir_lower_load_const_instr,
+			const_state);
+
+	if (progress) {
+		struct ir3_compiler *compiler = v->shader->compiler;
+
+		/* Save a copy of the NIR constant data to the variant for
+			* inclusion in the final assembly.
+			*/
+		v->constant_data_size = align(nir->constant_data_size,
+				compiler->const_upload_unit * 4 * sizeof(uint32_t));
+		v->constant_data = rzalloc_size(v, v->constant_data_size);
+		memcpy(v->constant_data, nir->constant_data,
+				nir->constant_data_size);
+	}
+
+	return progress;
+}

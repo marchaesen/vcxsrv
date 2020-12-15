@@ -27,21 +27,24 @@
 /// executable code as an ELF object file.
 ///
 
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Support/TargetRegistry.h>
+#include <llvm/Transforms/Utils/Cloning.h>
+
 #include "llvm/codegen.hpp"
 #include "llvm/compat.hpp"
 #include "llvm/util.hpp"
 #include "core/error.hpp"
 
-#include <llvm/Target/TargetMachine.h>
-#include <llvm/Support/TargetRegistry.h>
-#include <llvm/Transforms/Utils/Cloning.h>
+using clover::module;
+using clover::build_error;
+using namespace clover::llvm;
+using ::llvm::TargetMachine;
+
+#ifdef HAVE_CLOVER_NATIVE
 
 #include <libelf.h>
 #include <gelf.h>
-
-using namespace clover;
-using namespace clover::llvm;
-using ::llvm::TargetMachine;
 
 namespace {
    namespace elf {
@@ -161,3 +164,20 @@ clover::llvm::print_module_native(const ::llvm::Module &mod,
       return "Couldn't output native disassembly: " + log;
    }
 }
+
+#else
+
+module
+clover::llvm::build_module_native(::llvm::Module &mod, const target &target,
+                                  const clang::CompilerInstance &c,
+                                  std::string &r_log) {
+   unreachable("Native codegen support disabled at build time");
+}
+
+std::string
+clover::llvm::print_module_native(const ::llvm::Module &mod,
+                                  const target &target) {
+   unreachable("Native codegen support disabled at build time");
+}
+
+#endif

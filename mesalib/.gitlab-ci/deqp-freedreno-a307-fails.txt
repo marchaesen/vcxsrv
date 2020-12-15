@@ -388,10 +388,6 @@ dEQP-GLES3.functional.shaders.derivate.fwidth.nicest.fbo_msaa4.vec3_highp,Fail
 dEQP-GLES3.functional.shaders.derivate.fwidth.nicest.fbo_msaa4.vec3_mediump,Fail
 dEQP-GLES3.functional.shaders.derivate.fwidth.nicest.fbo_msaa4.vec4_highp,Fail
 dEQP-GLES3.functional.shaders.derivate.fwidth.nicest.fbo_msaa4.vec4_mediump,Fail
-dEQP-GLES2.functional.shaders.indexing.tmp_array.vec3_const_write_dynamic_loop_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.tmp_array.vec3_const_write_dynamic_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.tmp_array.vec4_const_write_dynamic_loop_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.tmp_array.vec4_const_write_dynamic_read_fragment,Fail
 dEQP-GLES3.functional.shaders.linkage.varying.rules.differing_interpolation_2,Fail
 dEQP-GLES3.functional.shaders.texture_functions.texturegradoffset.isampler2d_vertex,Fail
 dEQP-GLES3.functional.shaders.texture_functions.texturegradoffset.isampler3d_vertex,Fail

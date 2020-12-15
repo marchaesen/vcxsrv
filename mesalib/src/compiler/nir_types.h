@@ -228,6 +228,8 @@ const struct glsl_type *glsl_uint16_type(const struct glsl_type *type);
 
 void glsl_get_natural_size_align_bytes(const struct glsl_type *type,
                                        unsigned *size, unsigned *align);
+void glsl_get_vec4_size_align_bytes(const struct glsl_type *type,
+                                    unsigned *size, unsigned *align);
 
 const struct glsl_type *glsl_atomic_uint_type(void);
 

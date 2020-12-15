@@ -76,7 +76,7 @@ bi_allocate_registers(bi_context *ctx, bool *success)
         } else {
                 /* R0 - R63, all 32-bit */
                 l->class_start[BI_REG_CLASS_WORK] = 0;
-                l->class_size[BI_REG_CLASS_WORK] = 64 * 4;
+                l->class_size[BI_REG_CLASS_WORK] = 63 * 4;
         }
 
         bi_foreach_instr_global(ctx, ins) {
@@ -366,6 +366,7 @@ bi_register_allocate(bi_context *ctx)
                 unsigned both = BI_DATA_REG_SRC | BI_DATA_REG_DEST;
                 if ((props & both) != both) continue;
 
+                assert(ins->src[0] & PAN_IS_REG);
                 bi_rewrite_uses(ctx, ins->dest, 0, ins->src[0], 0);
                 ins->dest = ins->src[0];
         }

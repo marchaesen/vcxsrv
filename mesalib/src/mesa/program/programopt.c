@@ -58,10 +58,10 @@ insert_mvp_dp4_code(struct gl_context *ctx, struct gl_program *vprog)
     * XXX we should check if these state vars are already declared.
     */
    static const gl_state_index16 mvpState[4][STATE_LENGTH] = {
-      { STATE_MVP_MATRIX, 0, 0, 0, 0 },  /* state.matrix.mvp.row[0] */
-      { STATE_MVP_MATRIX, 0, 1, 1, 0 },  /* state.matrix.mvp.row[1] */
-      { STATE_MVP_MATRIX, 0, 2, 2, 0 },  /* state.matrix.mvp.row[2] */
-      { STATE_MVP_MATRIX, 0, 3, 3, 0 },  /* state.matrix.mvp.row[3] */
+      { STATE_MVP_MATRIX, 0, 0, 0 },  /* state.matrix.mvp.row[0] */
+      { STATE_MVP_MATRIX, 0, 1, 1 },  /* state.matrix.mvp.row[1] */
+      { STATE_MVP_MATRIX, 0, 2, 2 },  /* state.matrix.mvp.row[2] */
+      { STATE_MVP_MATRIX, 0, 3, 3 },  /* state.matrix.mvp.row[3] */
    };
    GLint mvpRef[4];
 
@@ -126,10 +126,10 @@ insert_mvp_mad_code(struct gl_context *ctx, struct gl_program *vprog)
     * XXX we should check if these state vars are already declared.
     */
    static const gl_state_index16 mvpState[4][STATE_LENGTH] = {
-      { STATE_MVP_MATRIX, 0, 0, 0, STATE_MATRIX_TRANSPOSE },
-      { STATE_MVP_MATRIX, 0, 1, 1, STATE_MATRIX_TRANSPOSE },
-      { STATE_MVP_MATRIX, 0, 2, 2, STATE_MATRIX_TRANSPOSE },
-      { STATE_MVP_MATRIX, 0, 3, 3, STATE_MATRIX_TRANSPOSE },
+      { STATE_MVP_MATRIX_TRANSPOSE, 0, 0, 0 },
+      { STATE_MVP_MATRIX_TRANSPOSE, 0, 1, 1 },
+      { STATE_MVP_MATRIX_TRANSPOSE, 0, 2, 2 },
+      { STATE_MVP_MATRIX_TRANSPOSE, 0, 3, 3 },
    };
    GLint mvpRef[4];
 
@@ -248,9 +248,9 @@ _mesa_append_fog_code(struct gl_context *ctx, struct gl_program *fprog,
                       GLenum fog_mode, GLboolean saturate)
 {
    static const gl_state_index16 fogPStateOpt[STATE_LENGTH]
-      = { STATE_INTERNAL, STATE_FOG_PARAMS_OPTIMIZED, 0, 0, 0 };
+      = { STATE_INTERNAL, STATE_FOG_PARAMS_OPTIMIZED, 0, 0 };
    static const gl_state_index16 fogColorState[STATE_LENGTH]
-      = { STATE_FOG_COLOR, 0, 0, 0, 0};
+      = { STATE_FOG_COLOR, 0, 0, 0 };
    struct prog_instruction *newInst, *inst;
    const GLuint origLen = fprog->arb.NumInstructions;
    const GLuint newLen = origLen + 5;

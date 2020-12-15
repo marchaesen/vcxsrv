@@ -184,7 +184,7 @@ VkResult lvp_CreateCommandPool(
    LVP_FROM_HANDLE(lvp_device, device, _device);
    struct lvp_cmd_pool *pool;
 
-   pool = vk_alloc2(&device->alloc, pAllocator, sizeof(*pool), 8,
+   pool = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*pool), 8,
                     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (pool == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -194,7 +194,7 @@ VkResult lvp_CreateCommandPool(
    if (pAllocator)
       pool->alloc = *pAllocator;
    else
-      pool->alloc = device->alloc;
+      pool->alloc = device->vk.alloc;
 
    list_inithead(&pool->cmd_buffers);
    list_inithead(&pool->free_cmd_buffers);
@@ -226,7 +226,7 @@ void lvp_DestroyCommandPool(
    }
 
    vk_object_base_finish(&pool->base);
-   vk_free2(&device->alloc, pAllocator, pool);
+   vk_free2(&device->vk.alloc, pAllocator, pool);
 }
 
 VkResult lvp_ResetCommandPool(
@@ -1415,5 +1415,230 @@ void lvp_CmdPipelineBarrier(
    cmd->u.pipeline_barrier.image_memory_barrier_count = imageMemoryBarrierCount;
 
    /* TODO finish off this */
+   cmd_buf_queue(cmd_buffer, cmd);
+}
+
+void lvp_CmdDrawIndirectCount(
+    VkCommandBuffer                             commandBuffer,
+    VkBuffer                                    buffer,
+    VkDeviceSize                                offset,
+    VkBuffer                                    countBuffer,
+    VkDeviceSize                                countBufferOffset,
+    uint32_t                                    maxDrawCount,
+    uint32_t                                    stride)
+{
+   LVP_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
+   LVP_FROM_HANDLE(lvp_buffer, buf, buffer);
+   LVP_FROM_HANDLE(lvp_buffer, count_buf, countBuffer);
+   struct lvp_cmd_buffer_entry *cmd;
+
+   cmd = cmd_buf_entry_alloc(cmd_buffer, LVP_CMD_DRAW_INDIRECT_COUNT);
+   if (!cmd)
+      return;
+
+   cmd->u.draw_indirect_count.offset = offset;
+   cmd->u.draw_indirect_count.buffer = buf;
+   cmd->u.draw_indirect_count.count_buffer_offset = countBufferOffset;
+   cmd->u.draw_indirect_count.count_buffer = count_buf;
+   cmd->u.draw_indirect_count.max_draw_count = maxDrawCount;
+   cmd->u.draw_indirect_count.stride = stride;
+
+   cmd_buf_queue(cmd_buffer, cmd);
+}
+
+void lvp_CmdDrawIndexedIndirectCount(
+    VkCommandBuffer                             commandBuffer,
+    VkBuffer                                    buffer,
+    VkDeviceSize                                offset,
+    VkBuffer                                    countBuffer,
+    VkDeviceSize                                countBufferOffset,
+    uint32_t                                    maxDrawCount,
+    uint32_t                                    stride)
+{
+   LVP_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
+   LVP_FROM_HANDLE(lvp_buffer, buf, buffer);
+   LVP_FROM_HANDLE(lvp_buffer, count_buf, countBuffer);
+   struct lvp_cmd_buffer_entry *cmd;
+
+   cmd = cmd_buf_entry_alloc(cmd_buffer, LVP_CMD_DRAW_INDEXED_INDIRECT_COUNT);
+   if (!cmd)
+      return;
+
+   cmd->u.draw_indirect_count.offset = offset;
+   cmd->u.draw_indirect_count.buffer = buf;
+   cmd->u.draw_indirect_count.count_buffer_offset = countBufferOffset;
+   cmd->u.draw_indirect_count.count_buffer = count_buf;
+   cmd->u.draw_indirect_count.max_draw_count = maxDrawCount;
+   cmd->u.draw_indirect_count.stride = stride;
+
+   cmd_buf_queue(cmd_buffer, cmd);
+}
+
+void lvp_CmdPushDescriptorSetKHR(
+   VkCommandBuffer                             commandBuffer,
+   VkPipelineBindPoint                         pipelineBindPoint,
+   VkPipelineLayout                            _layout,
+   uint32_t                                    set,
+   uint32_t                                    descriptorWriteCount,
+   const VkWriteDescriptorSet*                 pDescriptorWrites)
+{
+   LVP_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
+   LVP_FROM_HANDLE(lvp_pipeline_layout, layout, _layout);
+   struct lvp_cmd_buffer_entry *cmd;
+   int cmd_size = 0;
+
+   cmd_size += descriptorWriteCount * sizeof(struct lvp_write_descriptor);
+
+   int count_descriptors = 0;
+
+   for (unsigned i = 0; i < descriptorWriteCount; i++) {
+      count_descriptors += pDescriptorWrites[i].descriptorCount;
+   }
+   cmd_size += count_descriptors * sizeof(union lvp_descriptor_info);
+   cmd = cmd_buf_entry_alloc_size(cmd_buffer, cmd_size, LVP_CMD_PUSH_DESCRIPTOR_SET);
+   if (!cmd)
+      return;
+
+   cmd->u.push_descriptor_set.bind_point = pipelineBindPoint;
+   cmd->u.push_descriptor_set.layout = layout;
+   cmd->u.push_descriptor_set.set = set;
+   cmd->u.push_descriptor_set.descriptor_write_count = descriptorWriteCount;
+   cmd->u.push_descriptor_set.descriptors = (struct lvp_write_descriptor *)(cmd + 1);
+   cmd->u.push_descriptor_set.infos = (union lvp_descriptor_info *)(cmd->u.push_descriptor_set.descriptors + descriptorWriteCount);
+
+   unsigned descriptor_index = 0;
+
+   for (unsigned i = 0; i < descriptorWriteCount; i++) {
+      struct lvp_write_descriptor *desc = &cmd->u.push_descriptor_set.descriptors[i];
+
+      /* dstSet is ignored */
+      desc->dst_binding = pDescriptorWrites[i].dstBinding;
+      desc->dst_array_element = pDescriptorWrites[i].dstArrayElement;
+      desc->descriptor_count = pDescriptorWrites[i].descriptorCount;
+      desc->descriptor_type = pDescriptorWrites[i].descriptorType;
+
+      for (unsigned j = 0; j < desc->descriptor_count; j++) {
+         union lvp_descriptor_info *info = &cmd->u.push_descriptor_set.infos[descriptor_index + j];
+         switch (desc->descriptor_type) {
+         case VK_DESCRIPTOR_TYPE_SAMPLER:
+            info->sampler = lvp_sampler_from_handle(pDescriptorWrites[i].pImageInfo[j].sampler);
+            break;
+         case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+            info->sampler = lvp_sampler_from_handle(pDescriptorWrites[i].pImageInfo[j].sampler);
+            info->iview = lvp_image_view_from_handle(pDescriptorWrites[i].pImageInfo[j].imageView);
+            info->image_layout = pDescriptorWrites[i].pImageInfo[j].imageLayout;
+            break;
+         case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+         case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+         case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+            info->iview = lvp_image_view_from_handle(pDescriptorWrites[i].pImageInfo[j].imageView);
+            info->image_layout = pDescriptorWrites[i].pImageInfo[j].imageLayout;
+            break;
+         case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+         case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+            info->buffer_view = lvp_buffer_view_from_handle(pDescriptorWrites[i].pTexelBufferView[j]);
+            break;
+         case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+         case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+         case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+         case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+         default:
+            info->buffer = lvp_buffer_from_handle(pDescriptorWrites[i].pBufferInfo[j].buffer);
+            info->offset = pDescriptorWrites[i].pBufferInfo[j].offset;
+            info->range = pDescriptorWrites[i].pBufferInfo[j].range;
+            break;
+         }
+      }
+      descriptor_index += desc->descriptor_count;
+   }
+   cmd_buf_queue(cmd_buffer, cmd);
+}
+
+void lvp_CmdPushDescriptorSetWithTemplateKHR(
+   VkCommandBuffer                             commandBuffer,
+   VkDescriptorUpdateTemplate                  descriptorUpdateTemplate,
+   VkPipelineLayout                            _layout,
+   uint32_t                                    set,
+   const void*                                 pData)
+{
+   LVP_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
+   LVP_FROM_HANDLE(lvp_descriptor_update_template, templ, descriptorUpdateTemplate);
+   int cmd_size = 0;
+   struct lvp_cmd_buffer_entry *cmd;
+
+   cmd_size += templ->entry_count * sizeof(struct lvp_write_descriptor);
+
+   int count_descriptors = 0;
+   for (unsigned i = 0; i < templ->entry_count; i++) {
+      VkDescriptorUpdateTemplateEntry *entry = &templ->entry[i];
+      count_descriptors += entry->descriptorCount;
+   }
+   cmd_size += count_descriptors * sizeof(union lvp_descriptor_info);
+
+   cmd = cmd_buf_entry_alloc_size(cmd_buffer, cmd_size, LVP_CMD_PUSH_DESCRIPTOR_SET);
+   if (!cmd)
+      return;
+
+   cmd->u.push_descriptor_set.bind_point = templ->bind_point;
+   cmd->u.push_descriptor_set.layout = templ->pipeline_layout;
+   cmd->u.push_descriptor_set.set = templ->set;
+   cmd->u.push_descriptor_set.descriptor_write_count = templ->entry_count;
+   cmd->u.push_descriptor_set.descriptors = (struct lvp_write_descriptor *)(cmd + 1);
+   cmd->u.push_descriptor_set.infos = (union lvp_descriptor_info *)(cmd->u.push_descriptor_set.descriptors + templ->entry_count);
+
+   unsigned descriptor_index = 0;
+
+   for (unsigned i = 0; i < templ->entry_count; i++) {
+      struct lvp_write_descriptor *desc = &cmd->u.push_descriptor_set.descriptors[i];
+      struct VkDescriptorUpdateTemplateEntry *entry = &templ->entry[i];
+      const uint8_t *pSrc = ((const uint8_t *) pData) + entry->offset;
+
+      /* dstSet is ignored */
+      desc->dst_binding = entry->dstBinding;
+      desc->dst_array_element = entry->dstArrayElement;
+      desc->descriptor_count = entry->descriptorCount;
+      desc->descriptor_type = entry->descriptorType;
+
+      for (unsigned j = 0; j < desc->descriptor_count; j++) {
+         union lvp_descriptor_info *info = &cmd->u.push_descriptor_set.infos[descriptor_index + j];
+         switch (desc->descriptor_type) {
+         case VK_DESCRIPTOR_TYPE_SAMPLER:
+            info->sampler = lvp_sampler_from_handle(*(VkSampler *)pSrc);
+            break;
+         case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: {
+            VkDescriptorImageInfo *image_info = (VkDescriptorImageInfo *)pSrc;
+            info->sampler = lvp_sampler_from_handle(image_info->sampler);
+            info->iview = lvp_image_view_from_handle(image_info->imageView);
+            info->image_layout = image_info->imageLayout;
+            break;
+         }
+         case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+         case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+         case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: {
+            VkDescriptorImageInfo *image_info = (VkDescriptorImageInfo *)pSrc;
+            info->iview = lvp_image_view_from_handle(image_info->imageView);
+            info->image_layout = image_info->imageLayout;
+            break;
+         }
+         case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+         case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+            info->buffer_view = lvp_buffer_view_from_handle(*(VkBufferView *)pSrc);
+            break;
+         case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+         case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+         case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+         case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+         default: {
+            VkDescriptorBufferInfo *buffer_info = (VkDescriptorBufferInfo *)pSrc;
+            info->buffer = lvp_buffer_from_handle(buffer_info->buffer);
+            info->offset = buffer_info->offset;
+            info->range = buffer_info->range;
+            break;
+         }
+         }
+         pSrc += entry->stride;
+      }
+      descriptor_index += desc->descriptor_count;
+   }
    cmd_buf_queue(cmd_buffer, cmd);
 }

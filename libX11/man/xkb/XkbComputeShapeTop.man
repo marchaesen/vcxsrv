@@ -68,8 +68,8 @@ is NULL or if there are no outlines for the shape; otherwise, it returns True.
 .nf
 
 typedef struct _XkbBounds {
-	short	x1,y1;	/\(** upper left corner of the bounds, in mm/10 */
-	short	x2,y2;	/\(** lower right corner of the bounds, in mm/10 */
+	short	x1,y1;	/\&* upper left corner of the bounds, in mm/10 */
+	short	x2,y2;	/\&* lower right corner of the bounds, in mm/10 */
 } XkbBoundsRec, *XkbBoundsPtr;
 
 .fi

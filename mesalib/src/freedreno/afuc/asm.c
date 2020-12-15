@@ -33,6 +33,7 @@
 #include <assert.h>
 #include <getopt.h>
 
+#include "util/macros.h"
 #include "afuc.h"
 #include "rnn.h"
 #include "rnndec.h"
@@ -298,7 +299,7 @@ static void emit_instructions(int outfd)
 			opc = OPC_WIN;
 			break;
 		default:
-			assert(0);
+			unreachable("");
 		}
 
 		afuc_set_opc(&instr, opc, ai->rep);

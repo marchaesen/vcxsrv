@@ -110,6 +110,7 @@ static void TAG(light_rgba_spec)( struct gl_context *ctx,
       while (mask) {
          const int l = u_bit_scan(&mask);
          struct gl_light *light = &ctx->Light.Light[l];
+         struct gl_light_uniforms *lu = &ctx->Light.LightSource[l];
 	 GLfloat n_dot_h;
 	 GLfloat correction;
 	 GLint side;
@@ -137,19 +138,19 @@ static void TAG(light_rgba_spec)( struct gl_context *ctx,
 	       SELF_SCALE_SCALAR_3V(VP, invd);
 	    }
 
-	    attenuation = 1.0F / (light->ConstantAttenuation + d *
-				  (light->LinearAttenuation + d *
-				   light->QuadraticAttenuation));
+	    attenuation = 1.0F / (lu->ConstantAttenuation + d *
+				  (lu->LinearAttenuation + d *
+				   lu->QuadraticAttenuation));
 
 	    /* spotlight attenuation */
 	    if (light->_Flags & LIGHT_SPOT) {
 	       GLfloat PV_dot_dir = - DOT3(VP, light->_NormSpotDirection);
 
-	       if (PV_dot_dir<light->_CosCutoff) {
+	       if (PV_dot_dir<lu->_CosCutoff) {
 		  continue; /* this light makes no contribution */
 	       }
 	       else {
-                  GLfloat spot = powf(PV_dot_dir, light->SpotExponent);
+                  GLfloat spot = powf(PV_dot_dir, lu->SpotExponent);
 		  attenuation *= spot;
 	       }
 	    }
@@ -289,6 +290,7 @@ static void TAG(light_rgba)( struct gl_context *ctx,
       while (mask) {
          const int l = u_bit_scan(&mask);
          struct gl_light *light = &ctx->Light.Light[l];
+         struct gl_light_uniforms *lu = &ctx->Light.LightSource[l];
 	 GLfloat n_dot_h;
 	 GLfloat correction;
 	 GLint side;
@@ -316,19 +318,19 @@ static void TAG(light_rgba)( struct gl_context *ctx,
 	       SELF_SCALE_SCALAR_3V(VP, invd);
 	    }
 
-            attenuation = 1.0F / (light->ConstantAttenuation + d *
-                                  (light->LinearAttenuation + d *
-                                   light->QuadraticAttenuation));
+            attenuation = 1.0F / (lu->ConstantAttenuation + d *
+                                  (lu->LinearAttenuation + d *
+                                   lu->QuadraticAttenuation));
 
 	    /* spotlight attenuation */
 	    if (light->_Flags & LIGHT_SPOT) {
 	       GLfloat PV_dot_dir = - DOT3(VP, light->_NormSpotDirection);
 
-	       if (PV_dot_dir<light->_CosCutoff) {
+	       if (PV_dot_dir<lu->_CosCutoff) {
 		  continue; /* this light makes no contribution */
 	       }
 	       else {
-                  GLfloat spot = powf(PV_dot_dir, light->SpotExponent);
+                  GLfloat spot = powf(PV_dot_dir, lu->SpotExponent);
 		  attenuation *= spot;
 	       }
 	    }

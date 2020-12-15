@@ -285,8 +285,6 @@ opcode("p_demote_to_helper")
 opcode("p_is_helper")
 opcode("p_exit_early_if")
 
-opcode("p_fs_buffer_store_smem", format=Format.SMEM)
-
 # simulates proper bpermute behavior when it's unsupported, eg. GFX10 wave64
 opcode("p_bpermute")
 
@@ -704,9 +702,9 @@ VOP2 = {
    (  -1,   -1, 0x31, 0x31,   -1, "v_min_u16", False),
    (  -1,   -1, 0x32, 0x32,   -1, "v_min_i16", False),
    (  -1,   -1, 0x33, 0x33, 0x3b, "v_ldexp_f16", False),
-   (  -1,   -1, 0x34, 0x34, 0x25, "v_add_u32", False), # v_add_nc_u32 in RDNA
-   (  -1,   -1, 0x35, 0x35, 0x26, "v_sub_u32", False), # v_sub_nc_u32 in RDNA
-   (  -1,   -1, 0x36, 0x36, 0x27, "v_subrev_u32", False), # v_subrev_nc_u32 in RDNA
+   (  -1,   -1,   -1, 0x34, 0x25, "v_add_u32", False), # use v_add_co_u32 on GFX8, called v_add_nc_u32 in RDNA
+   (  -1,   -1,   -1, 0x35, 0x26, "v_sub_u32", False), # use v_sub_co_u32 on GFX8, called v_sub_nc_u32 in RDNA
+   (  -1,   -1,   -1, 0x36, 0x27, "v_subrev_u32", False), # use v_subrev_co_u32 on GFX8, called v_subrev_nc_u32 in RDNA
    (  -1,   -1,   -1,   -1, 0x36, "v_fmac_f16", False),
    (  -1,   -1,   -1,   -1, 0x37, "v_fmamk_f16", False),
    (  -1,   -1,   -1,   -1, 0x38, "v_fmaak_f16", False),

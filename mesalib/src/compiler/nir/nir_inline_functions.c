@@ -36,9 +36,7 @@ void nir_inline_function_impl(struct nir_builder *b,
    /* Insert a nop at the cursor so we can keep track of where things are as
     * we add/remove stuff from the CFG.
     */
-   nir_intrinsic_instr *nop =
-      nir_intrinsic_instr_create(b->shader, nir_intrinsic_nop);
-   nir_builder_instr_insert(b, &nop->instr);
+   nir_intrinsic_instr *nop = nir_nop(b);
 
    exec_list_append(&b->impl->locals, &copy->locals);
    exec_list_append(&b->impl->registers, &copy->registers);

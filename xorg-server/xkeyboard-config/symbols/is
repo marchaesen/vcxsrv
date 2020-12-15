@@ -38,43 +38,6 @@ xkb_symbols "basic" {
     include "level3(ralt_switch)"
 };
 
-partial alphanumeric_keys
-xkb_symbols "Sundeadkeys" {
-
-    // modify the basic Icelandic layout to use Sun dead keys
-
-    include "is(basic)"
-
-    name[Group1]="Icelandic (Sun dead keys)";
-
-    key <TLDE>	{ [dead_circumflex,     degree,      notsign,    notsign ]	};
-    key <AE12>	{ [dead_acute, dead_grave, dead_cedilla, dead_cedilla ] };
-    key <AD11>	{ [udiaeresis, Udiaeresis, dead_diaeresis, dead_diaeresis ] };
-    key <AD12>	{ [      plus,   asterisk,  dead_tilde,  dead_macron ]	};
-    key <AC10>	{ [odiaeresis, Odiaeresis,  dead_acute,  dead_acute ]	};
-    key <AC11>	{ [adiaeresis, Adiaeresis, dead_circumflex, dead_circumflex ]	};
-    key <BKSL>	{ [numbersign,      acute,  dead_grave,  dead_grave ]	};
-};
-
-partial alphanumeric_keys
-xkb_symbols "nodeadkeys" {
-
-    // modify the basic Icelandic layout to not have any dead keys
-
-    include "is(basic)"
-
-    name[Group1]="Icelandic (no dead keys)";
-
-    key <TLDE>	{ [asciicircum,    degree,      notsign,      notsign ]	};
-    key <AE12>	{ [apostrophe,      grave,      cedilla,      cedilla ]	};
-    key <AD11>	{ [udiaeresis, Udiaeresis,    diaeresis,    diaeresis ]	};
-    key <AD12>	{ [      plus,   asterisk,   asciitilde,       macron ]	};
-    key <AC10>	{ [odiaeresis, Odiaeresis,        acute,        acute ]	};
-    key <AC11>	{ [adiaeresis, Adiaeresis,  asciicircum,  asciicircum ]	};
-    key <BKSL>	{ [numbersign,      acute,        grave,        grave ]	};
-    key <AB10>	{ [     thorn,      THORN, dead_belowdot,    abovedot ]	};
-};
-
 // Copyright (C) 2004, 2006 Ævar Arnfjörð Bjarmason <avarab@gmail.com>
 //
 // = HISTORY

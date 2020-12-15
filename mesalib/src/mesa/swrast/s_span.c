@@ -504,13 +504,13 @@ interpolate_texcoords(struct gl_context *ctx, SWspan *span)
                swrast_texture_image_const(img);
             const struct gl_sampler_object *samp = _mesa_get_samplerobj(ctx, u);
 
-            needLambda = (samp->MinFilter != samp->MagFilter)
+            needLambda = (samp->Attrib.MinFilter != samp->Attrib.MagFilter)
                || _swrast_use_fragment_program(ctx);
             /* LOD is calculated directly in the ansiotropic filter, we can
              * skip the normal lambda function as the result is ignored.
              */
-            if (samp->MaxAnisotropy > 1.0F &&
-                samp->MinFilter == GL_LINEAR_MIPMAP_LINEAR) {
+            if (samp->Attrib.MaxAnisotropy > 1.0F &&
+                samp->Attrib.MinFilter == GL_LINEAR_MIPMAP_LINEAR) {
                needLambda = GL_FALSE;
             }
             texW = swImg->WidthScale;

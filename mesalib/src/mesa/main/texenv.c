@@ -398,7 +398,7 @@ _mesa_texenvfv_indexed( struct gl_context* ctx, GLuint texunit, GLenum target,
    const GLint iparam0 = (GLint) param[0];
    GLuint maxUnit;
 
-   maxUnit = (target == GL_POINT_SPRITE_NV && pname == GL_COORD_REPLACE_NV)
+   maxUnit = (target == GL_POINT_SPRITE && pname == GL_COORD_REPLACE)
       ? ctx->Const.MaxTextureCoordUnits : ctx->Const.MaxCombinedTextureImageUnits;
    if (texunit >= maxUnit) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glTexEnvfv(texunit=%d)", texunit);
@@ -477,14 +477,13 @@ _mesa_texenvfv_indexed( struct gl_context* ctx, GLuint texunit, GLenum target,
 	 return;
       }
    }
-   else if (target == GL_POINT_SPRITE_NV) {
-      /* GL_ARB_point_sprite / GL_NV_point_sprite */
-      if (!ctx->Extensions.NV_point_sprite
-	  && !ctx->Extensions.ARB_point_sprite) {
+   else if (target == GL_POINT_SPRITE) {
+      /* GL_ARB_point_sprite */
+      if (!ctx->Extensions.ARB_point_sprite) {
 	 _mesa_error( ctx, GL_INVALID_ENUM, "glTexEnv(target=0x%x)", target );
 	 return;
       }
-      if (pname == GL_COORD_REPLACE_NV) {
+      if (pname == GL_COORD_REPLACE) {
          /* It's kind of weird to set point state via glTexEnv,
           * but that's what the spec calls for.
           */
@@ -720,7 +719,7 @@ _mesa_gettexenvfv_indexed( GLuint texunit, GLenum target, GLenum pname, GLfloat 
    GLuint maxUnit;
    GET_CURRENT_CONTEXT(ctx);
 
-   maxUnit = (target == GL_POINT_SPRITE_NV && pname == GL_COORD_REPLACE_NV)
+   maxUnit = (target == GL_POINT_SPRITE && pname == GL_COORD_REPLACE)
       ? ctx->Const.MaxTextureCoordUnits : ctx->Const.MaxCombinedTextureImageUnits;
    if (texunit >= maxUnit) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glGetTexEnvfv(texunit=%d)", texunit);
@@ -764,14 +763,13 @@ _mesa_gettexenvfv_indexed( GLuint texunit, GLenum target, GLenum pname, GLfloat 
 	 return;
       }
    }
-   else if (target == GL_POINT_SPRITE_NV) {
-      /* GL_ARB_point_sprite / GL_NV_point_sprite */
-      if (!ctx->Extensions.NV_point_sprite
-	  && !ctx->Extensions.ARB_point_sprite) {
+   else if (target == GL_POINT_SPRITE) {
+      /* GL_ARB_point_sprite */
+      if (!ctx->Extensions.ARB_point_sprite) {
          _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexEnvfv(target)" );
          return;
       }
-      if (pname == GL_COORD_REPLACE_NV) {
+      if (pname == GL_COORD_REPLACE) {
          if (ctx->Point.CoordReplace & (1u << texunit))
             *params = 1.0f;
          else
@@ -796,7 +794,7 @@ _mesa_gettexenviv_indexed( GLuint texunit, GLenum target,
    GLuint maxUnit;
    GET_CURRENT_CONTEXT(ctx);
 
-   maxUnit = (target == GL_POINT_SPRITE_NV && pname == GL_COORD_REPLACE_NV)
+   maxUnit = (target == GL_POINT_SPRITE && pname == GL_COORD_REPLACE)
       ? ctx->Const.MaxTextureCoordUnits : ctx->Const.MaxCombinedTextureImageUnits;
    if (texunit >= maxUnit) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glGetTexEnviv(texunit=%d)",
@@ -841,14 +839,13 @@ _mesa_gettexenviv_indexed( GLuint texunit, GLenum target,
 	 return;
       }
    }
-   else if (target == GL_POINT_SPRITE_NV) {
-      /* GL_ARB_point_sprite / GL_NV_point_sprite */
-      if (!ctx->Extensions.NV_point_sprite
-	  && !ctx->Extensions.ARB_point_sprite) {
+   else if (target == GL_POINT_SPRITE) {
+      /* GL_ARB_point_sprite */
+      if (!ctx->Extensions.ARB_point_sprite) {
          _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexEnviv(target)" );
          return;
       }
-      if (pname == GL_COORD_REPLACE_NV) {
+      if (pname == GL_COORD_REPLACE) {
          if (ctx->Point.CoordReplace & (1u << texunit))
             *params = GL_TRUE;
          else

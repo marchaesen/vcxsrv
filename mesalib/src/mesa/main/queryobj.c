@@ -228,7 +228,7 @@ get_query_binding_point(struct gl_context *ctx, GLenum target, GLuint index)
    case GL_GEOMETRY_SHADER_INVOCATIONS:
       /* GL_GEOMETRY_SHADER_INVOCATIONS is defined in a non-sequential order */
       target = GL_VERTICES_SUBMITTED + MAX_PIPELINE_STATISTICS - 1;
-      /* fallthrough */
+      FALLTHROUGH;
    case GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED:
       if (_mesa_has_geometry_shaders(ctx))
          return get_pipe_stats_binding_point(ctx, target);
@@ -671,7 +671,7 @@ _mesa_GetQueryIndexediv(GLenum target, GLuint index, GLenum pname,
       case GL_QUERY_COUNTER_BITS:
          if (_mesa_has_EXT_disjoint_timer_query(ctx))
             break;
-         /* fallthrough */
+         FALLTHROUGH;
       default:
          _mesa_error(ctx, GL_INVALID_ENUM, "glGetQueryivEXT(%s)",
                      _mesa_enum_to_string(pname));

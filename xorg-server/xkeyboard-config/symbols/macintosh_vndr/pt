@@ -39,9 +39,9 @@ xkb_symbols "Sundeadkeys" {
     include "macintosh_vndr/pt(basic)" // for consistent naming
     name[Group1]= "Portugal - Mac, Sun dead keys";
     
-    key <AE12> {	[	     plus,        asterisk,  SunFA_Diaeresis, SunFA_Diaeresis      ]	};
-    key <AC11> {	[     SunFA_Tilde,    SunFA_Circum	]	};
-    key <AD12> {	[     SunFA_Acute,     SunFA_Grave 	]	};
+    key <AE12> {[       plus,        asterisk, dead_diaeresis, dead_diaeresis ]};
+    key <AC11> {[ dead_tilde, dead_circumflex  ]};
+    key <AD12> {[ dead_acute,      dead_grave  ]};
 };
 
 partial alphanumeric_keys 

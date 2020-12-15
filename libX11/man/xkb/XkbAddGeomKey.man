@@ -64,11 +64,11 @@ number of keys to a row, use
 .LP
 .nf
 
-    typedef struct _XkbKey {              /\(** key in a row */
-        XkbKeyNameRec   name;             /\(** key name */
-        short           gap;              /\(** gap in mm/10 from previous key in row */
-        unsigned char   shape_ndx;        /\(** index of shape for key */
-        unsigned char   color_ndx;        /\(** index of color for key body */
+    typedef struct _XkbKey {              /\&* key in a row */
+        XkbKeyNameRec   name;             /\&* key name */
+        short           gap;              /\&* gap in mm/10 from previous key in row */
+        unsigned char   shape_ndx;        /\&* index of shape for key */
+        unsigned char   color_ndx;        /\&* index of color for key body */
     } XkbKeyRec, *XkbKeyPtr;
     
 .fi

@@ -64,6 +64,16 @@ panfrost_query_raw(
 static unsigned
 panfrost_query_gpu_version(int fd)
 {
+#ifndef NDEBUG
+        /* In debug builds, allow overriding the GPU ID, for example to run
+         * Bifrost shader-db on a Midgard machine. This is a bit less heavy
+         * handed than setting up the entirety of drm-shim */
+        char *override_version = getenv("PAN_GPU_ID");
+
+        if (override_version)
+                return strtol(override_version, NULL, 16);
+#endif
+
         return panfrost_query_raw(fd, DRM_PANFROST_PARAM_GPU_PROD_ID, true, 0);
 }
 

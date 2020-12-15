@@ -775,11 +775,7 @@ void trace_dump_draw_info(const struct pipe_draw_info *state)
 
    trace_dump_member(uint, state, index_size);
    trace_dump_member(uint, state, has_user_indices);
-
    trace_dump_member(uint, state, mode);
-   trace_dump_member(uint, state, start);
-   trace_dump_member(uint, state, count);
-
    trace_dump_member(uint, state, start_instance);
    trace_dump_member(uint, state, instance_count);
 
@@ -793,19 +789,38 @@ void trace_dump_draw_info(const struct pipe_draw_info *state)
    trace_dump_member(uint, state, restart_index);
 
    trace_dump_member(ptr, state, index.resource);
-   trace_dump_member(ptr, state, count_from_stream_output);
+   trace_dump_struct_end();
+}
 
-   if (!state->indirect) {
-      trace_dump_member(ptr, state, indirect);
-   } else {
-      trace_dump_member(uint, state, indirect->offset);
-      trace_dump_member(uint, state, indirect->stride);
-      trace_dump_member(uint, state, indirect->draw_count);
-      trace_dump_member(uint, state, indirect->indirect_draw_count_offset);
-      trace_dump_member(ptr, state, indirect->buffer);
-      trace_dump_member(ptr, state, indirect->indirect_draw_count);
+void trace_dump_draw_start_count(const struct pipe_draw_start_count *state)
+{
+   if (!trace_dumping_enabled_locked())
+      return;
+
+   trace_dump_struct_begin("pipe_draw_start_count");
+   trace_dump_member(uint, state, start);
+   trace_dump_member(uint, state, count);
+   trace_dump_struct_end();
+}
+
+void trace_dump_draw_indirect_info(const struct pipe_draw_indirect_info *state)
+{
+   if (!trace_dumping_enabled_locked())
+      return;
+
+   if (!state) {
+      trace_dump_null();
+      return;
    }
 
+   trace_dump_struct_begin("pipe_draw_indirect_info");
+   trace_dump_member(uint, state, offset);
+   trace_dump_member(uint, state, stride);
+   trace_dump_member(uint, state, draw_count);
+   trace_dump_member(uint, state, indirect_draw_count_offset);
+   trace_dump_member(ptr, state, buffer);
+   trace_dump_member(ptr, state, indirect_draw_count);
+   trace_dump_member(ptr, state, count_from_stream_output);
    trace_dump_struct_end();
 }
 

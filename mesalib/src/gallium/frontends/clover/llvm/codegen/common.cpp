@@ -30,6 +30,8 @@
 /// understood by pipe drivers.
 ///
 
+#include <llvm/Support/Allocator.h>
+
 #include "llvm/codegen.hpp"
 #include "llvm/metadata.hpp"
 
@@ -40,7 +42,8 @@
 
 #include <clang/Basic/TargetInfo.h>
 
-using namespace clover;
+using clover::module;
+using clover::detokenize;
 using namespace clover::llvm;
 
 using ::llvm::Module;
@@ -69,7 +72,7 @@ namespace {
    module::arg_info create_arg_info(const std::string &arg_name,
                                     const std::string &type_name,
                                     const std::string &type_qualifier,
-                                    const int address_qualifier,
+                                    const uint64_t address_qualifier,
                                     const std::string &access_qualifier) {
 
       cl_kernel_arg_type_qualifier cl_type_qualifier =

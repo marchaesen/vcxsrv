@@ -38,6 +38,7 @@
 #include "stw_device.h"
 #include "stw_pixelformat.h"
 #include "stw_tls.h"
+#include "stw_winsys.h"
 
 
 struct stw_pf_color_info
@@ -112,6 +113,13 @@ stw_pf_doublebuffer[] = {
 };
 
 
+static const stw_pfd_flag
+stw_pf_flag[] = {
+   stw_pfd_double_buffer,
+   stw_pfd_gdi_support,
+};
+
+
 const unsigned
 stw_pf_multisample[] = {
    0,
@@ -128,6 +136,7 @@ stw_pixelformat_add(struct stw_device *stw_dev,
                     const struct stw_pf_depth_info *depth,
                     unsigned accum,
                     boolean doublebuffer,
+                    boolean gdi,
                     unsigned samples)
 {
    struct stw_pixelformat_info *pfi;
@@ -162,6 +171,9 @@ stw_pixelformat_add(struct stw_device *stw_dev,
 
    if (doublebuffer)
       pfi->pfd.dwFlags |= PFD_DOUBLEBUFFER | PFD_SWAP_EXCHANGE;
+
+   if (gdi)
+      pfi->pfd.dwFlags |= PFD_SUPPORT_GDI;
 
    pfi->pfd.iPixelType = PFD_TYPE_RGBA;
 
@@ -229,10 +241,14 @@ add_color_format_variants(const struct stw_pf_color_info *color_formats,
                           unsigned num_color_formats, boolean extended)
 {
    struct pipe_screen *screen = stw_dev->screen;
-   unsigned cfmt, ms, db, ds, acc;
+   unsigned cfmt, ms, db, ds, acc, f;
    unsigned bind_flags = PIPE_BIND_RENDER_TARGET;
    unsigned num_added = 0;
    int force_samples = 0;
+
+   unsigned supported_flags = 0;
+   if (stw_dev->stw_winsys && stw_dev->stw_winsys->get_pfd_flags)
+      supported_flags = stw_dev->stw_winsys->get_pfd_flags(screen);
 
    /* Since GLUT for Windows doesn't support MSAA we have an env var
     * to force all pixel formats to have a particular number of samples.
@@ -273,11 +289,16 @@ add_color_format_variants(const struct stw_pf_color_info *color_formats,
                   continue;
                }
 
-               for (acc = 0; acc < 2; acc++) {
-                  stw_pixelformat_add(stw_dev, extended, &color_formats[cfmt],
-                                      depth,
-                                      acc * 16, doublebuffer, samples);
-                  num_added++;
+               for (f = 0; f < ARRAY_SIZE(stw_pf_flag); f++) {
+                  stw_pfd_flag flag = stw_pf_flag[f];
+                  if (!(supported_flags & flag) || (flag == stw_pfd_double_buffer && !doublebuffer))
+                     continue;
+                  for (acc = 0; acc < 2; acc++) {
+                     stw_pixelformat_add(stw_dev, extended, &color_formats[cfmt],
+                                         depth, acc * 16, doublebuffer,
+                                         (flag == stw_pfd_gdi_support), samples);
+                     num_added++;
+                  }
                }
             }
          }
@@ -311,9 +332,9 @@ stw_pixelformat_init(void)
 
 
 uint
-stw_pixelformat_get_count(void)
+stw_pixelformat_get_count(HDC hdc)
 {
-   if (!stw_init_screen())
+   if (!stw_init_screen(hdc))
       return 0;
 
    return stw_dev->pixelformat_count;
@@ -321,9 +342,9 @@ stw_pixelformat_get_count(void)
 
 
 uint
-stw_pixelformat_get_extended_count(void)
+stw_pixelformat_get_extended_count(HDC hdc)
 {
-   if (!stw_init_screen())
+   if (!stw_init_screen(hdc))
       return 0;
 
    return stw_dev->pixelformat_extended_count;
@@ -355,12 +376,10 @@ DrvDescribePixelFormat(HDC hdc, INT iPixelFormat, ULONG cjpfd,
    uint count;
    const struct stw_pixelformat_info *pfi;
 
-   (void) hdc;
-
    if (!stw_dev)
       return 0;
 
-   count = stw_pixelformat_get_count();
+   count = stw_pixelformat_get_count(hdc);
 
    if (ppfd == NULL)
       return count;
@@ -425,9 +444,7 @@ stw_pixelformat_choose(HDC hdc, CONST PIXELFORMATDESCRIPTOR *ppfd)
    uint bestindex;
    uint bestdelta;
 
-   (void) hdc;
-
-   count = stw_pixelformat_get_extended_count();
+   count = stw_pixelformat_get_extended_count(hdc);
    bestindex = 0;
    bestdelta = ~0U;
 

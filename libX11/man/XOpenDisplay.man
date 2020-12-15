@@ -61,7 +61,6 @@ Specifies the hardware display name, which determines the display
 and communications domain to be used.
 On a POSIX-conformant system, if the display_name is NULL,
 it defaults to the value of the DISPLAY environment variable.
-.IN "Environment" "DISPLAY"
 .SH DESCRIPTION
 The
 .B XOpenDisplay
@@ -74,8 +73,6 @@ about that X server.
 connects your application to the X server through TCP
 or DECnet communications protocols,
 or through some local inter-process communication protocol.
-.IN "Protocol" "TCP"
-.IN "Protocol" "DECnet"
 If the hostname is a host machine name and a single colon (:)
 separates the hostname and display number,
 .B XOpenDisplay
@@ -91,14 +88,13 @@ simultaneously.
 A particular Xlib implementation can support many more of these transport
 mechanisms.
 .LP
-.IN "Display"
 If successful,
 .B XOpenDisplay
 returns a pointer to a
 .B Display
 structure,
 which is defined in
-.hN X11/Xlib.h .
+.BR X11/Xlib.h .
 If
 .B XOpenDisplay
 does not succeed, it returns NULL.
@@ -127,7 +123,7 @@ The
 function closes the connection to the X server for the display specified in the
 .B Display
 structure and destroys all windows, resource IDs
-.Pn ( Window ,
+.RB ( Window ,
 .BR Font ,
 .BR Pixmap ,
 .BR Colormap ,
@@ -147,8 +143,6 @@ explicitly so that any pending errors are reported as
 performs a final
 .B XSync
 operation.
-.IN "Resource IDs"
-.IN "XCloseDisplay"
 .LP
 .B XCloseDisplay
 can generate a

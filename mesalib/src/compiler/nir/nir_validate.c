@@ -471,9 +471,7 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
 
       case nir_deref_type_array:
       case nir_deref_type_array_wildcard:
-         if (instr->modes & (nir_var_mem_ubo | nir_var_mem_ssbo |
-                             nir_var_mem_shared | nir_var_mem_global |
-                             nir_var_mem_push_const)) {
+         if (instr->modes & nir_var_vec_indexable_modes) {
             /* Shared variables and UBO/SSBOs have a bit more relaxed rules
              * because we need to be able to handle array derefs on vectors.
              * Fortunately, nir_lower_io handles these just fine.
@@ -646,7 +644,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
    case nir_intrinsic_load_ubo:
       /* Make sure that the creator didn't forget to set the range_base+range. */
       validate_assert(state, nir_intrinsic_range(instr) != 0);
-      /* Fall through */
+      FALLTHROUGH;
    case nir_intrinsic_load_ssbo:
    case nir_intrinsic_load_shared:
    case nir_intrinsic_load_global:
@@ -658,7 +656,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
          util_is_power_of_two_nonzero(nir_intrinsic_align_mul(instr)));
       validate_assert(state, nir_intrinsic_align_offset(instr) <
                              nir_intrinsic_align_mul(instr));
-      /* Fall through */
+      FALLTHROUGH;
 
    case nir_intrinsic_load_uniform:
    case nir_intrinsic_load_input:
@@ -680,7 +678,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
          util_is_power_of_two_nonzero(nir_intrinsic_align_mul(instr)));
       validate_assert(state, nir_intrinsic_align_offset(instr) <
                              nir_intrinsic_align_mul(instr));
-      /* Fall through */
+      FALLTHROUGH;
 
    case nir_intrinsic_store_output:
    case nir_intrinsic_store_per_vertex_output:
@@ -778,7 +776,9 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
 
    if (nir_intrinsic_infos[instr->intrinsic].has_dest) {
       unsigned components_written = nir_intrinsic_dest_components(instr);
-      unsigned bit_sizes = nir_intrinsic_infos[instr->intrinsic].dest_bit_sizes;
+      unsigned bit_sizes = info->dest_bit_sizes;
+      if (!bit_sizes && info->bit_size_src >= 0)
+         bit_sizes = nir_src_bit_size(instr->src[info->bit_size_src]);
 
       validate_num_components(state, components_written);
       if (dest_bit_size && bit_sizes)
@@ -908,6 +908,7 @@ validate_jump_instr(nir_jump_instr *instr, validate_state *state)
 
    switch (instr->type) {
    case nir_jump_return:
+   case nir_jump_halt:
       validate_assert(state, block->successors[0] == state->impl->end_block);
       validate_assert(state, block->successors[1] == NULL);
       validate_assert(state, instr->target == NULL);

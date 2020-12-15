@@ -447,7 +447,7 @@ Status XvMCPutSurface(Display *dpy, XvMCSurface *surface, Drawable drawable,
 
    XVMC_MSG(XVMC_TRACE, "[XvMC] Submitted surface %p for display. Pushing to front buffer.\n", surface);
 
-   pipe->screen->flush_frontbuffer(pipe->screen, tex, 0, 0,
+   pipe->screen->flush_frontbuffer(pipe->screen, pipe, tex, 0, 0,
                                    vscreen->get_private(vscreen), NULL);
 
    if(dump_window == -1) {

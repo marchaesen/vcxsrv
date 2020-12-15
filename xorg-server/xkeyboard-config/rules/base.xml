@@ -3884,18 +3884,6 @@
       <variantList>
         <variant>
           <configItem>
-            <name>Sundeadkeys</name>
-            <description>Icelandic (Sun dead keys)</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
-            <name>nodeadkeys</name>
-            <description>Icelandic (no dead keys)</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
             <name>mac_legacy</name>
             <description>Icelandic (Macintosh, legacy)</description>
           </configItem>

@@ -144,7 +144,7 @@ _legal_parameters(struct gl_context *ctx, GLenum target, GLenum internalformat,
                      _mesa_enum_to_string(pname));
          return false;
       }
-      /* fallthrough */
+      FALLTHROUGH;
    case GL_INTERNALFORMAT_SUPPORTED:
    case GL_INTERNALFORMAT_PREFERRED:
    case GL_INTERNALFORMAT_RED_SIZE:
@@ -883,7 +883,7 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
 
    switch (pname) {
    case GL_SAMPLES:
-      /* fall-through */
+      FALLTHROUGH;
    case GL_NUM_SAMPLE_COUNTS:
       /* The ARB_internalformat_query2 sets the response as 'unsupported' for
        * SAMPLES and NUM_SAMPLE_COUNTS:
@@ -995,7 +995,7 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
              target != GL_RENDERBUFFER &&
              target != GL_TEXTURE_BUFFER)
             goto end;
-         /* fallthrough */
+         FALLTHROUGH;
       case GL_INTERNALFORMAT_RED_SIZE:
       case GL_INTERNALFORMAT_GREEN_SIZE:
       case GL_INTERNALFORMAT_BLUE_SIZE:
@@ -1007,7 +1007,7 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
       case GL_INTERNALFORMAT_DEPTH_TYPE:
          if (!_mesa_has_ARB_texture_float(ctx))
             goto end;
-         /* fallthrough */
+         FALLTHROUGH;
       case GL_INTERNALFORMAT_RED_TYPE:
       case GL_INTERNALFORMAT_GREEN_TYPE:
       case GL_INTERNALFORMAT_BLUE_TYPE:
@@ -1159,7 +1159,7 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
       if (!_mesa_has_EXT_texture_array(ctx) ||
           _legal_target_for_framebuffer_texture_layer(ctx, target))
          goto end;
-      /* fallthrough */
+      FALLTHROUGH;
    case GL_FRAMEBUFFER_RENDERABLE:
    case GL_FRAMEBUFFER_BLEND:
       if (!_mesa_has_ARB_framebuffer_object(ctx))
@@ -1312,7 +1312,7 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
       if (!_mesa_has_ARB_texture_gather(ctx))
          goto end;
 
-      /* fallthrough */
+      FALLTHROUGH;
    case GL_TEXTURE_SHADOW:
       /* Only depth or depth-stencil image formats make sense in shadow
          samplers */

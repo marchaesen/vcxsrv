@@ -52,6 +52,7 @@ struct nir_to_dxil_options {
    bool disable_math_refactoring;
    unsigned ubo_binding_offset;
    unsigned provoking_vertex;
+   unsigned num_kernel_globals;
 };
 
 bool

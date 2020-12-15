@@ -29,7 +29,14 @@ BUILT_SOURCES = \
 	$(MESA_GLAPI_ASM_OUTPUTS) \
 	$(MESA_DIR)/main/enums.c \
 	$(MESA_DIR)/main/api_exec.c \
-	$(MESA_DIR)/main/marshal_generated.c \
+	$(MESA_DIR)/main/marshal_generated0.c \
+	$(MESA_DIR)/main/marshal_generated1.c \
+	$(MESA_DIR)/main/marshal_generated2.c \
+	$(MESA_DIR)/main/marshal_generated3.c \
+	$(MESA_DIR)/main/marshal_generated4.c \
+	$(MESA_DIR)/main/marshal_generated5.c \
+	$(MESA_DIR)/main/marshal_generated6.c \
+	$(MESA_DIR)/main/marshal_generated7.c \
 	$(MESA_DIR)/main/marshal_generated.h \
 	$(MESA_DIR)/main/dispatch.h \
 	$(MESA_DIR)/main/remap_helper.h \
@@ -199,8 +206,29 @@ $(MESA_DIR)/main/enums.c: gl_enums.py $(srcdir)/../registry/gl.xml
 $(MESA_DIR)/main/api_exec.c: gl_genexec.py apiexec.py $(COMMON)
 	$(PYTHON_GEN) $(srcdir)/gl_genexec.py -f $(srcdir)/gl_and_es_API.xml > $@
 
-$(MESA_DIR)/main/marshal_generated.c: gl_marshal.py marshal_XML.py $(COMMON)
-	$(PYTHON_GEN) $(srcdir)/gl_marshal.py -f $(srcdir)/gl_and_es_API.xml > $@
+$(MESA_DIR)/main/marshal_generated0.c: gl_marshal.py marshal_XML.py $(COMMON)
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py -f $(srcdir)/gl_and_es_API.xml -i 0 -n 8 > $@
+
+$(MESA_DIR)/main/marshal_generated1.c: gl_marshal.py marshal_XML.py $(COMMON)
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py -f $(srcdir)/gl_and_es_API.xml -i 1 -n 8 > $@
+
+$(MESA_DIR)/main/marshal_generated2.c: gl_marshal.py marshal_XML.py $(COMMON)
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py -f $(srcdir)/gl_and_es_API.xml -i 2 -n 8 > $@
+
+$(MESA_DIR)/main/marshal_generated3.c: gl_marshal.py marshal_XML.py $(COMMON)
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py -f $(srcdir)/gl_and_es_API.xml -i 3 -n 8 > $@
+
+$(MESA_DIR)/main/marshal_generated4.c: gl_marshal.py marshal_XML.py $(COMMON)
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py -f $(srcdir)/gl_and_es_API.xml -i 4 -n 8 > $@
+
+$(MESA_DIR)/main/marshal_generated5.c: gl_marshal.py marshal_XML.py $(COMMON)
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py -f $(srcdir)/gl_and_es_API.xml -i 5 -n 8 > $@
+
+$(MESA_DIR)/main/marshal_generated6.c: gl_marshal.py marshal_XML.py $(COMMON)
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py -f $(srcdir)/gl_and_es_API.xml -i 6 -n 8 > $@
+
+$(MESA_DIR)/main/marshal_generated7.c: gl_marshal.py marshal_XML.py $(COMMON)
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py -f $(srcdir)/gl_and_es_API.xml -i 7 -n 8 > $@
 
 $(MESA_DIR)/main/marshal_generated.h: gl_marshal_h.py marshal_XML.py $(COMMON)
 	$(PYTHON_GEN) $(srcdir)/gl_marshal_h.py -f $(srcdir)/gl_and_es_API.xml > $@
@@ -244,14 +272,14 @@ $(XORG_GLX_DIR)/indirect_dispatch.h: glX_proto_recv.py gl_and_glX_API.xml $(COMM
 
 $(XORG_GLX_DIR)/indirect_size_get.h: glX_proto_size.py $(COMMON_GLX)
 	$(PYTHON_GEN) $< -f $(srcdir)/gl_API.xml -m size_h \
-           --only-get --header-tag '_INDIRECT_SIZE_GET_H_' > $@
+           --only-get --header-tag _INDIRECT_SIZE_GET_H_ > $@
 
 $(XORG_GLX_DIR)/indirect_size_get.c: glX_proto_size.py $(COMMON_GLX)
 	$(PYTHON_GEN) $< -f $(srcdir)/gl_API.xml -m size_c  > $@
 
 $(XORG_GLX_DIR)/indirect_reqsize.h: glX_proto_size.py $(COMMON_GLX)
 	$(PYTHON_GEN) $< -f $(srcdir)/gl_API.xml -m reqsize_h \
-           --only-get --header-tag '_INDIRECT_SIZE_GET_H_' > $@
+           --only-get --header-tag _INDIRECT_SIZE_GET_H_ > $@
 
 $(XORG_GLX_DIR)/indirect_reqsize.c: glX_proto_size.py $(COMMON_GLX)
 	$(PYTHON_GEN) $< -f $(srcdir)/gl_API.xml -m reqsize_c > $@

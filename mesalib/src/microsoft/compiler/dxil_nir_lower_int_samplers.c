@@ -25,7 +25,7 @@
 #include "nir_builder.h"
 #include "nir_builtin_builder.h"
 
-bool
+static bool
 lower_sample_to_txf_for_integer_tex_filter(const nir_instr *instr,
                                            UNUSED const void *_options)
 {
@@ -42,7 +42,7 @@ lower_sample_to_txf_for_integer_tex_filter(const nir_instr *instr,
    return (tex->dest_type & (nir_type_int | nir_type_uint));
 }
 
-nir_ssa_def *
+static nir_ssa_def *
 dx_get_texture_lod(nir_builder *b, nir_tex_instr *tex)
 {
    nir_tex_instr *tql;
@@ -249,7 +249,7 @@ load_bordercolor(nir_builder *b, nir_tex_instr *tex, dxil_wrap_sampler_state *ac
    return nir_build_imm(b, ndest_comp, 32, const_value);
 }
 
-nir_tex_instr *
+static nir_tex_instr *
 create_txf_from_tex(nir_builder *b, nir_tex_instr *tex)
 {
    nir_tex_instr *txf;

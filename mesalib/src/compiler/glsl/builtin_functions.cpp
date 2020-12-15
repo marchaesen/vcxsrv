@@ -64,10 +64,10 @@
  * MinGW 4.6.3 (in Ubuntu 13.10) does not have this bug.
  * MinGW 5.3.1 (in Ubuntu 16.04) definitely has this bug.
  * MinGW 6.2.0 (in Ubuntu 16.10) definitely has this bug.
- * MinGW x.y.z - don't know.  Assume versions after 4.6.x are buggy
+ * MinGW 7.3.0 (in Ubuntu 18.04) does not have this bug.  Assume versions before 7.3.x are buggy
  */
 
-#if defined(__MINGW32__) && ((__GNUC__ * 100) + __GNUC_MINOR >= 407)
+#if defined(__MINGW32__) && ((__GNUC__ * 100) + __GNUC_MINOR < 703)
 #warning "disabling optimizations for this file to work around compiler bug"
 #pragma GCC optimize("O1")
 #endif

@@ -450,6 +450,10 @@ DeliverGrabbedEvent(InternalEvent * /* event */ ,
                     Bool /* deactivateGrab */ );
 
 extern void
+FreezeThisEventIfNeededForSyncGrab(DeviceIntPtr thisDev,
+                                   InternalEvent *event);
+
+extern void
 FixKeyState(DeviceEvent * /* event */ ,
             DeviceIntPtr /* keybd */ );
 

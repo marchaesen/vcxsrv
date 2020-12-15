@@ -47,6 +47,8 @@ freedreno_dev_info_init(struct freedreno_dev_info *info, uint32_t gpu_id)
 		switch (gpu_id) {
 		case 615:
 		case 618:
+			info->num_sp_cores = 1;
+			info->fibers_per_sp = 128 * 16;
 			info->a6xx.ccu_offset_gmem = 0x7c000;
 			info->a6xx.ccu_offset_bypass = 0x10000;
 			info->a6xx.ccu_cntl_gmem_unk2 = true;
@@ -56,6 +58,8 @@ freedreno_dev_info_init(struct freedreno_dev_info *info, uint32_t gpu_id)
 			info->a6xx.magic.SP_UNKNOWN_A0F8 = 0;
 			break;
 		case 630:
+			info->num_sp_cores = 2;
+			info->fibers_per_sp = 128 * 16;
 			info->a6xx.ccu_offset_gmem = 0xf8000;
 			info->a6xx.ccu_offset_bypass = 0x20000;
 			info->a6xx.ccu_cntl_gmem_unk2 = true;
@@ -65,6 +69,19 @@ freedreno_dev_info_init(struct freedreno_dev_info *info, uint32_t gpu_id)
 			info->a6xx.magic.SP_UNKNOWN_A0F8 = 1;
 			break;
 		case 640:
+			info->num_sp_cores = 2;
+			/* The wavefront ID returned by the getwid instruction has a
+			 * maximum of 3 * 10 - 1, or so it seems. However the swizzled
+			 * index used in the mem offset calcuation is
+			 * "(wid / 3) | ((wid % 3) << 4)", so that the actual max is
+			 * around 3 * 16. Furthermore, with the per-fiber layout, the HW
+			 * swizzles the wavefront index and fiber index itself, and it
+			 * pads the number of wavefronts to 4 * 16 to make the swizzling
+			 * simpler, so we have to bump the number of wavefronts to 4 * 16
+			 * for the per-fiber layout. We could theoretically reduce it for
+			 * the per-wave layout though.
+			 */
+			info->fibers_per_sp = 128 * 4 * 16;
 			info->a6xx.ccu_offset_gmem = 0xf8000;
 			info->a6xx.ccu_offset_bypass = 0x20000;
 			info->a6xx.supports_multiview_mask = true;
@@ -73,6 +90,8 @@ freedreno_dev_info_init(struct freedreno_dev_info *info, uint32_t gpu_id)
 			info->a6xx.magic.SP_UNKNOWN_A0F8 = 1;
 			break;
 		case 650:
+			info->num_sp_cores = 3;
+			info->fibers_per_sp = 128 * 2 * 16;
 			info->a6xx.ccu_offset_gmem = 0x114000;
 			info->a6xx.ccu_offset_bypass = 0x30000;
 			info->a6xx.supports_multiview_mask = true;

@@ -28,6 +28,7 @@
 
 #include "main/glheader.h"
 #include "compiler/shader_enums.h"
+#include <stdint.h>
 
 
 #ifdef __cplusplus
@@ -51,7 +52,8 @@ struct gl_program_parameter_list;
 typedef enum gl_state_index_ {
    STATE_MATERIAL = 100,  /* start at 100 so small ints are seen as ints */
 
-   STATE_LIGHT,
+   STATE_LIGHT,         /* One gl_light attribute. */
+   STATE_LIGHT_ATTRIBS, /* Multiple gl_light attributes loaded at once. */
    STATE_LIGHTMODEL_AMBIENT,
    STATE_LIGHTMODEL_SCENECOLOR,
    STATE_LIGHTPROD,
@@ -67,25 +69,44 @@ typedef enum gl_state_index_ {
    STATE_POINT_ATTENUATION,
 
    STATE_MODELVIEW_MATRIX,
-   STATE_PROJECTION_MATRIX,
-   STATE_MVP_MATRIX,
-   STATE_TEXTURE_MATRIX,
-   STATE_PROGRAM_MATRIX,
-   STATE_MATRIX_INVERSE,
-   STATE_MATRIX_TRANSPOSE,
-   STATE_MATRIX_INVTRANS,
+   STATE_MODELVIEW_MATRIX_INVERSE,
+   STATE_MODELVIEW_MATRIX_TRANSPOSE,
+   STATE_MODELVIEW_MATRIX_INVTRANS,
 
+   STATE_PROJECTION_MATRIX,
+   STATE_PROJECTION_MATRIX_INVERSE,
+   STATE_PROJECTION_MATRIX_TRANSPOSE,
+   STATE_PROJECTION_MATRIX_INVTRANS,
+
+   STATE_MVP_MATRIX,
+   STATE_MVP_MATRIX_INVERSE,
+   STATE_MVP_MATRIX_TRANSPOSE,
+   STATE_MVP_MATRIX_INVTRANS,
+
+   STATE_TEXTURE_MATRIX,
+   STATE_TEXTURE_MATRIX_INVERSE,
+   STATE_TEXTURE_MATRIX_TRANSPOSE,
+   STATE_TEXTURE_MATRIX_INVTRANS,
+
+   STATE_PROGRAM_MATRIX,
+   STATE_PROGRAM_MATRIX_INVERSE,
+   STATE_PROGRAM_MATRIX_TRANSPOSE,
+   STATE_PROGRAM_MATRIX_INVTRANS,
+
+   /* These 8 enums must be in the same order as the gl_light union members,
+    * which should also match the order of gl_LightSource members.
+    */
    STATE_AMBIENT,
    STATE_DIFFUSE,
    STATE_SPECULAR,
+   STATE_POSITION,       /**< xyzw = position */
+   STATE_HALF_VECTOR,
+   STATE_SPOT_DIRECTION, /**< xyz = direction, w = cos(cutoff) */
+   STATE_ATTENUATION,    /**< xyz = attenuation, w = spot exponent */
+   STATE_SPOT_CUTOFF,    /**< x = cutoff, yzw = undefined */
+
    STATE_EMISSION,
    STATE_SHININESS,
-   STATE_HALF_VECTOR,
-
-   STATE_POSITION,       /**< xyzw = position */
-   STATE_ATTENUATION,    /**< xyz = attenuation, w = spot exponent */
-   STATE_SPOT_DIRECTION, /**< xyz = direction, w = cos(cutoff) */
-   STATE_SPOT_CUTOFF,    /**< x = cutoff, yzw = undefined */
 
    STATE_TEXGEN_EYE_S,
    STATE_TEXGEN_EYE_T,
@@ -138,6 +159,14 @@ typedef enum gl_state_index_ {
 extern void
 _mesa_load_state_parameters(struct gl_context *ctx,
                             struct gl_program_parameter_list *paramList);
+
+extern void
+_mesa_upload_state_parameters(struct gl_context *ctx,
+                              struct gl_program_parameter_list *paramList,
+                              uint32_t *dst);
+
+extern void
+_mesa_optimize_state_parameters(struct gl_program_parameter_list *list);
 
 extern unsigned
 _mesa_program_state_value_size(const gl_state_index16 state[STATE_LENGTH]);

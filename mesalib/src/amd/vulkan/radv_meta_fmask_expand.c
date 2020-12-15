@@ -88,16 +88,8 @@ build_fmask_expand_compute_shader(struct radv_device *device, int samples)
 	for (uint32_t i = 0; i < samples; i++) {
 		nir_ssa_def *outval = &tex_instr[i]->dest.ssa;
 
-		nir_intrinsic_instr *store =
-			nir_intrinsic_instr_create(b.shader,
-						   nir_intrinsic_image_deref_store);
-		store->num_components = 4;
-		store->src[0] = nir_src_for_ssa(output_img_deref);
-		store->src[1] = nir_src_for_ssa(global_id);
-		store->src[2] = nir_src_for_ssa(nir_imm_int(&b, i));
-		store->src[3] = nir_src_for_ssa(outval);
-		store->src[4] = nir_src_for_ssa(nir_imm_int(&b, 0));
-		nir_builder_instr_insert(&b, &store->instr);
+		nir_image_deref_store(&b, output_img_deref, global_id, nir_imm_int(&b, i),
+		                      outval, nir_imm_int(&b, 0));
 	}
 
 	return b.shader;

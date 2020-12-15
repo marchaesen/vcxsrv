@@ -99,7 +99,7 @@ vlVaQueryConfigEntrypoints(VADriverContextP ctx, VAProfile profile,
 				PIPE_VIDEO_CAP_SUPPORTED))
       entrypoint_list[(*num_entrypoints)++] = VAEntrypointEncSlice;
 
-   if (num_entrypoints == 0)
+   if (*num_entrypoints == 0)
       return VA_STATUS_ERROR_UNSUPPORTED_PROFILE;
 
    assert(*num_entrypoints <= ctx->max_entrypoints);

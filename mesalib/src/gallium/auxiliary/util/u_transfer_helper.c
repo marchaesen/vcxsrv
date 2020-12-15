@@ -402,7 +402,7 @@ flush_region(struct pipe_context *pctx, struct pipe_transfer *ptrans,
                                                       src,
                                                       ptrans->stride,
                                                       width, height);
-      /* fallthru */
+      FALLTHROUGH;
    case PIPE_FORMAT_X32_S8X24_UINT:
       dst = (uint8_t *)trans->ptr2 +
             (box->y * trans->trans2->stride) +
@@ -419,7 +419,7 @@ flush_region(struct pipe_context *pctx, struct pipe_transfer *ptrans,
       util_format_z32_unorm_unpack_z_32unorm(dst, trans->trans->stride,
                                              src, ptrans->stride,
                                              width, height);
-      /* fallthru */
+      FALLTHROUGH;
    case PIPE_FORMAT_X24S8_UINT:
       dst = (uint8_t *)trans->ptr2 +
             (box->y * trans->trans2->stride) +

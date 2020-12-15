@@ -23,6 +23,7 @@ computerator_files = [
   'ir3_asm.c',
   'main.c',
   freedreno_xml_header_files,
+  ir3_parser[1],
 ]
 
 computerator = executable(

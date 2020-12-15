@@ -92,32 +92,32 @@ and clients.
 .nf
 
 typedef struct _XkbMapChanges {
-    unsigned short   changed;            /\(** identifies valid components in 
+    unsigned short   changed;            /\&* identifies valid components in 
 structure */
-    KeyCode          min_key_code;       /\(** lowest numbered keycode for device 
+    KeyCode          min_key_code;       /\&* lowest numbered keycode for device 
 */
-    KeyCode          max_key_code;       /\(** highest numbered keycode for device 
+    KeyCode          max_key_code;       /\&* highest numbered keycode for device 
 */
-    unsigned char    first_type;         /\(** index of first key type modified */
-    unsigned char    num_types;          /\(** # types modified */
-    KeyCode          first_key_sym;      /\(** first key whose key_sym_map changed 
+    unsigned char    first_type;         /\&* index of first key type modified */
+    unsigned char    num_types;          /\&* # types modified */
+    KeyCode          first_key_sym;      /\&* first key whose key_sym_map changed 
 */
-    unsigned char    num_key_syms;       /\(** # key_sym_map entries changed */
-    KeyCode          first_key_act;      /\(** first key whose key_acts entry 
+    unsigned char    num_key_syms;       /\&* # key_sym_map entries changed */
+    KeyCode          first_key_act;      /\&* first key whose key_acts entry 
 changed */
-    unsigned char    num_key_acts;       /\(** # key_acts entries changed */
-    KeyCode          first_key_behavior; /\(** first key whose behaviors changed */
-    unsigned char    num_key_behaviors;  /\(** # behaviors entries changed */
-    KeyCode          first_key_explicit; /\(** first key whose explicit entry 
+    unsigned char    num_key_acts;       /\&* # key_acts entries changed */
+    KeyCode          first_key_behavior; /\&* first key whose behaviors changed */
+    unsigned char    num_key_behaviors;  /\&* # behaviors entries changed */
+    KeyCode          first_key_explicit; /\&* first key whose explicit entry 
 changed */
-    unsigned char    num_key_explicit;   /\(** # explicit entries changed */
-    KeyCode          first_modmap_key;   /\(** first key whose modmap entry changed 
+    unsigned char    num_key_explicit;   /\&* # explicit entries changed */
+    KeyCode          first_modmap_key;   /\&* first key whose modmap entry changed 
 */
-    unsigned char    num_modmap_keys;    /\(** # modmap entries changed */
-    KeyCode          first_vmodmap_key;  /\(** first key whose vmodmap changed */
-    unsigned char    num_vmodmap_keys;   /\(** # vmodmap entries changed */
-    unsigned char    pad1;               /\(** reserved */
-    unsigned short   vmods;              /\(** mask indicating which vmods changed 
+    unsigned char    num_modmap_keys;    /\&* # modmap entries changed */
+    KeyCode          first_vmodmap_key;  /\&* first key whose vmodmap changed */
+    unsigned char    num_vmodmap_keys;   /\&* # vmodmap entries changed */
+    unsigned char    pad1;               /\&* reserved */
+    unsigned short   vmods;              /\&* mask indicating which vmods changed 
 */
 } XkbMapChangesRec,*XkbMapChangesPtr;
 

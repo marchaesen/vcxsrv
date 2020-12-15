@@ -65,6 +65,9 @@ nir/nir_intrinsics.h: nir/nir_intrinsics.py nir/nir_intrinsics_h.py
 nir/nir_intrinsics.c: nir/nir_intrinsics.py nir/nir_intrinsics_c.py
 	$(PYTHON_GEN) $(srcdir)/nir/nir_intrinsics_c.py --outdir nir
 
+nir/nir_intrinsics_indices.h: nir/nir_intrinsics.py nir/nir_intrinsics_indices_h.py
+	$(PYTHON_GEN) $(srcdir)/nir/nir_intrinsics_indices_h.py --outdir nir
+
 spirv/spirv_info.c: spirv/spirv_info_c.py spirv/spirv.core.grammar.json
 	$(PYTHON_GEN) $(srcdir)/spirv/spirv_info_c.py $(srcdir)/spirv/spirv.core.grammar.json $@
 

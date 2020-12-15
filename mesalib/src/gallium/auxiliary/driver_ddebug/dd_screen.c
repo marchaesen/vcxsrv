@@ -167,14 +167,16 @@ dd_screen_can_create_resource(struct pipe_screen *_screen,
 
 static void
 dd_screen_flush_frontbuffer(struct pipe_screen *_screen,
+                            struct pipe_context *_pipe,
                             struct pipe_resource *resource,
                             unsigned level, unsigned layer,
                             void *context_private,
                             struct pipe_box *sub_box)
 {
    struct pipe_screen *screen = dd_screen(_screen)->screen;
+   struct pipe_context *pipe = _pipe ? dd_context(_pipe)->pipe : NULL;
 
-   screen->flush_frontbuffer(screen, resource, level, layer, context_private,
+   screen->flush_frontbuffer(screen, pipe, resource, level, layer, context_private,
                              sub_box);
 }
 

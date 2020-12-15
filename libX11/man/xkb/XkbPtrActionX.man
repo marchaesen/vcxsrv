@@ -93,12 +93,12 @@ structures.
 .nf
 
     typedef struct _XkbPtrAction {
-        unsigned char    type;         /\(** XkbSA_MovePtr */
-        unsigned char    flags;        /\(** determines type of pointer motion */
-        unsigned char    high_XXX;     /\(** x coordinate, high bits*/
-        unsigned char    low_XXX;      /\(** y coordinate, low bits */
-        unsigned char    high_YYY;     /\(** x coordinate, high bits */
-        unsigned char    low_YYY;      /\(** y coordinate, low bits */
+        unsigned char    type;         /\&* XkbSA_MovePtr */
+        unsigned char    flags;        /\&* determines type of pointer motion */
+        unsigned char    high_XXX;     /\&* x coordinate, high bits*/
+        unsigned char    low_XXX;      /\&* y coordinate, low bits */
+        unsigned char    high_YYY;     /\&* x coordinate, high bits */
+        unsigned char    low_YYY;      /\&* y coordinate, low bits */
     } XkbPtrAction;
 
 .fi    

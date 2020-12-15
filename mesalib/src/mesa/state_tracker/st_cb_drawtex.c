@@ -96,7 +96,7 @@ lookup_shader(struct st_context *st,
               const uint *semantic_indexes)
 {
    struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
    GLuint i, j;
 
    /* look for existing shader with same attributes */

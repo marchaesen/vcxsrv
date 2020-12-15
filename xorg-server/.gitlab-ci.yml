@@ -1,5 +1,5 @@
-# DEBIAN_TAG is the tag of the docker image used for the build jobs. If the
-# image doesn't exist yet, the docker-image stage generates it.
+# FDO_DISTRIBUTION_TAG is the tag of the docker image used for the build jobs.
+# If the image doesn't exist yet, the docker-image stage generates it.
 #
 # In order to generate a new image, one should generally change the tag.
 # While removing the image from the registry would also work, that's not
@@ -7,23 +7,15 @@
 # image after a significant amount of time might pull in newer versions of
 # gcc/clang or other packages, which might break the build with older commits
 # using the same tag.
-#
-# After merging a change resulting in generating a new image to the main
-# repository, it's recommended to remove the image from the source repository's
-# container registry, so that the image from the main repository's registry
-# will be used there as well.  You can manage your images on your fork of:
-# https://gitlab.freedesktop.org/xorg/xserver/container_registry
 variables:
     UPSTREAM_REPO: xorg/xserver
-    DEBIAN_VERSION: testing-slim
-    DEBIAN_EXEC: 'bash .gitlab-ci/debian-install.sh'
-
-    DEBIAN_TAG: "2020-04-21"
-    IMAGE_LOCAL: "$CI_REGISTRY_IMAGE/debian/$DEBIAN_VERSION:$DEBIAN_TAG"
+    FDO_DISTRIBUTION_VERSION: buster-slim
+    FDO_DISTRIBUTION_EXEC: 'env FDO_CI_CONCURRENT=${FDO_CI_CONCURRENT} bash .gitlab-ci/debian-install.sh'
+    FDO_DISTRIBUTION_TAG: "2020-11-16"
 
 include:
   - project: 'freedesktop/ci-templates'
-    ref: b7030c2cd0d6ccc5f6d4f8299bafa4daa9240d71
+    ref: 4f06663cd1507136a0f8440925a2521098adb298
     file: '/templates/debian.yml'
 
 stages:
@@ -39,16 +31,19 @@ stages:
   # Cancel CI run if a newer commit is pushed to the same branch
   interruptible: true
 
-debian-testing:
+debian-buster:
   extends:
-    - .debian@container-ifnot-exists
+    - .fdo.container-build@debian
     - .ci-run-policy
   stage: docker-image
+  variables:
+    GIT_STRATEGY: none
 
 .common-build-and-test:
-    extends: .ci-run-policy
+    extends:
+        - .fdo.distribution-image@debian
+        - .ci-run-policy
     stage: build-and-test
-    image: $IMAGE_LOCAL
     artifacts:
         when: on_failure
         paths:
@@ -70,8 +65,8 @@ autotools:
         - mkdir build/
         - cd build/
         - ../autogen.sh --prefix=/usr CFLAGS="-fno-common"
-        - make -j4 distcheck
-        - PIGLIT_DIR=/root/piglit XTEST_DIR=/root/xts make -j4 check
+        - make -j${FDO_CI_CONCURRENT:-4} distcheck
+        - PIGLIT_DIR=/root/piglit XTEST_DIR=/root/xts make -j${FDO_CI_CONCURRENT:-4} check
         - cd ..
         - .gitlab-ci/manpages-check
 
@@ -82,8 +77,8 @@ meson:
         XTEST_DIR: /root/xts
     script:
         - meson -Dc_args="-fno-common" -Dprefix=/usr -Dxephyr=true -Dwerror=true $MESON_EXTRA_OPTIONS build/
-        - ninja -j4 -C build/ install
-        - ninja -j4 -C build/ test
+        - ninja -j${FDO_CI_CONCURRENT:-4} -C build/ install
+        - ninja -j${FDO_CI_CONCURRENT:-4} -C build/ test
         - .gitlab-ci/manpages-check
 
 meson-noglamor:

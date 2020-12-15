@@ -302,20 +302,6 @@ static int significand_match( GLfloat a, GLfloat b )
 
 enum { NIL = 0, ONE = 1, NEG = -1, VAR = 2 };
 
-/* Ensure our arrays are correctly aligned.
- */
-#if defined(__GNUC__)
-#  define ALIGN16(type, array)	type array __attribute__ ((aligned (16)))
-#elif defined(_MSC_VER)
-#  define ALIGN16(type, array)	type array __declspec(align(16)) /* GH: Does this work? */
-#elif defined(__xlC__)
-#  define ALIGN16(type, array)       type __align (16) array 
-#else
-#  warning "ALIGN16 will not 16-byte align!\n"
-#  define ALIGN16
-#endif
-
-
 #endif /* DEBUG_MATH */
 
 #endif /* __M_DEBUG_UTIL_H__ */

@@ -126,6 +126,8 @@ enum chip_class
    GFX9,
    GFX10,
    GFX10_3,
+
+   NUM_GFX_VERSIONS,
 };
 
 enum ring_type

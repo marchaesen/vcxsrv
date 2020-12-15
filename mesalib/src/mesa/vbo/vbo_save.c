@@ -40,8 +40,6 @@ void vbo_save_init( struct gl_context *ctx )
    struct vbo_context *vbo = vbo_context(ctx);
    struct vbo_save_context *save = &vbo->save;
 
-   save->ctx = ctx;
-
    vbo_save_api_init( save );
 
    for (gl_vertex_processing_mode vpm = VP_MODE_FF; vpm < VP_MODE_MAX; ++vpm)

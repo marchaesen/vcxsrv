@@ -46,6 +46,10 @@ stw_st_create_framebuffer(struct stw_framebuffer *fb);
 void
 stw_st_destroy_framebuffer_locked(struct st_framebuffer_iface *stfb);
 
+void
+stw_st_flush(struct st_context_iface *st, struct st_framebuffer_iface *stfb,
+             unsigned flags);
+
 bool
 stw_st_swap_framebuffer_locked(HDC hdc, struct st_context_iface *stctx,
                                struct st_framebuffer_iface *stfb);

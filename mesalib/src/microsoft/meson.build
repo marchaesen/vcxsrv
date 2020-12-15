@@ -20,4 +20,7 @@
 # IN THE SOFTWARE.
 
 subdir('compiler')
+if with_microsoft_clc
+  subdir('clc')
+endif
 subdir('resource_state_manager')

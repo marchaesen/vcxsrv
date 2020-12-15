@@ -195,6 +195,32 @@ output is requested.</para>
   </refsect1>
 
   <refsect1>
+    <title>EXAMPLES</title>
+
+    <variablelist>
+      <varlistentry>
+	<term>fc-match sans</term>
+	<listitem><para>Display the best matching font categorized into sans-serif generic family, filtered by current locale</para></listitem>
+      </varlistentry>
+    </variablelist>
+
+    <variablelist>
+      <varlistentry>
+	<term>fc-match sans:lang=en</term>
+	<listitem><para>Display the best matching font categorized into sans-serif generic family, filtered by English language</para></listitem>
+      </varlistentry>
+    </variablelist>
+
+    <variablelist>
+      <varlistentry>
+	<term>fc-match sans:lang=en:weight=bold</term>
+	<listitem><para>Display the best matching font categorized into sans-serif generic family, filtered by English language and weight is bold.</para></listitem>
+      </varlistentry>
+    </variablelist>
+
+  </refsect1>
+  
+  <refsect1>
     <title>SEE ALSO</title>
 
     <para>

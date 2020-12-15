@@ -110,23 +110,23 @@ st_convert_sampler(const struct st_context *st,
                    struct pipe_sampler_state *sampler)
 {
    memset(sampler, 0, sizeof(*sampler));
-   sampler->wrap_s = gl_wrap_xlate(msamp->WrapS);
-   sampler->wrap_t = gl_wrap_xlate(msamp->WrapT);
-   sampler->wrap_r = gl_wrap_xlate(msamp->WrapR);
+   sampler->wrap_s = gl_wrap_xlate(msamp->Attrib.WrapS);
+   sampler->wrap_t = gl_wrap_xlate(msamp->Attrib.WrapT);
+   sampler->wrap_r = gl_wrap_xlate(msamp->Attrib.WrapR);
 
    if (texobj->_IsIntegerFormat && st->ctx->Const.ForceIntegerTexNearest) {
       sampler->min_img_filter = gl_filter_to_img_filter(GL_NEAREST);
       sampler->mag_img_filter = gl_filter_to_img_filter(GL_NEAREST);
    } else {
-      sampler->min_img_filter = gl_filter_to_img_filter(msamp->MinFilter);
-      sampler->mag_img_filter = gl_filter_to_img_filter(msamp->MagFilter);
+      sampler->min_img_filter = gl_filter_to_img_filter(msamp->Attrib.MinFilter);
+      sampler->mag_img_filter = gl_filter_to_img_filter(msamp->Attrib.MagFilter);
    }
-   sampler->min_mip_filter = gl_filter_to_mip_filter(msamp->MinFilter);
+   sampler->min_mip_filter = gl_filter_to_mip_filter(msamp->Attrib.MinFilter);
 
    if (texobj->Target != GL_TEXTURE_RECTANGLE_ARB)
       sampler->normalized_coords = 1;
 
-   sampler->lod_bias = msamp->LodBias + tex_unit_lod_bias;
+   sampler->lod_bias = msamp->Attrib.LodBias + tex_unit_lod_bias;
    /* Reduce the number of states by allowing only the values that AMD GCN
     * can represent. Apps use lod_bias for smooth transitions to bigger mipmap
     * levels.
@@ -134,8 +134,8 @@ st_convert_sampler(const struct st_context *st,
    sampler->lod_bias = CLAMP(sampler->lod_bias, -16, 16);
    sampler->lod_bias = roundf(sampler->lod_bias * 256) / 256;
 
-   sampler->min_lod = MAX2(msamp->MinLod, 0.0f);
-   sampler->max_lod = msamp->MaxLod;
+   sampler->min_lod = MAX2(msamp->Attrib.MinLod, 0.0f);
+   sampler->max_lod = msamp->Attrib.MaxLod;
    if (sampler->max_lod < sampler->min_lod) {
       /* The GL spec doesn't seem to specify what to do in this case.
        * Swap the values.
@@ -161,14 +161,14 @@ st_convert_sampler(const struct st_context *st,
    /* For non-black borders... */
    if (/* This is true if wrap modes are using the border color: */
        (sampler->wrap_s | sampler->wrap_t | sampler->wrap_r) & 0x1 &&
-       (msamp->BorderColor.ui[0] ||
-        msamp->BorderColor.ui[1] ||
-        msamp->BorderColor.ui[2] ||
-        msamp->BorderColor.ui[3])) {
+       (msamp->Attrib.BorderColor.ui[0] ||
+        msamp->Attrib.BorderColor.ui[1] ||
+        msamp->Attrib.BorderColor.ui[2] ||
+        msamp->Attrib.BorderColor.ui[3])) {
       const GLboolean is_integer = texobj->_IsIntegerFormat;
       GLenum texBaseFormat = _mesa_base_tex_image(texobj)->_BaseFormat;
 
-      if (texobj->StencilSampling)
+      if (texobj->Attrib.StencilSampling)
          texBaseFormat = GL_STENCIL_INDEX;
 
       if (st->apply_texture_swizzle_to_border_color) {
@@ -187,34 +187,34 @@ st_convert_sampler(const struct st_context *st,
                view->swizzle_a,
             };
 
-            st_translate_color(&msamp->BorderColor, &tmp,
+            st_translate_color(&msamp->Attrib.BorderColor, &tmp,
                                texBaseFormat, is_integer);
 
             util_format_apply_color_swizzle(&sampler->border_color,
                                             &tmp, swz, is_integer);
          } else {
-            st_translate_color(&msamp->BorderColor,
+            st_translate_color(&msamp->Attrib.BorderColor,
                                &sampler->border_color,
                                texBaseFormat, is_integer);
          }
       } else {
-         st_translate_color(&msamp->BorderColor,
+         st_translate_color(&msamp->Attrib.BorderColor,
                             &sampler->border_color,
                             texBaseFormat, is_integer);
       }
    }
 
-   sampler->max_anisotropy = (msamp->MaxAnisotropy == 1.0 ?
-                              0 : (GLuint) msamp->MaxAnisotropy);
+   sampler->max_anisotropy = (msamp->Attrib.MaxAnisotropy == 1.0 ?
+                              0 : (GLuint) msamp->Attrib.MaxAnisotropy);
 
    /* If sampling a depth texture and using shadow comparison */
-   if (msamp->CompareMode == GL_COMPARE_R_TO_TEXTURE) {
+   if (msamp->Attrib.CompareMode == GL_COMPARE_R_TO_TEXTURE) {
       GLenum texBaseFormat = _mesa_base_tex_image(texobj)->_BaseFormat;
 
       if (texBaseFormat == GL_DEPTH_COMPONENT ||
-          (texBaseFormat == GL_DEPTH_STENCIL && !texobj->StencilSampling)) {
+          (texBaseFormat == GL_DEPTH_STENCIL && !texobj->Attrib.StencilSampling)) {
          sampler->compare_mode = PIPE_TEX_COMPARE_R_TO_TEXTURE;
-         sampler->compare_func = st_compare_func_to_pipe(msamp->CompareFunc);
+         sampler->compare_func = st_compare_func_to_pipe(msamp->Attrib.CompareFunc);
       }
    }
 
@@ -222,7 +222,7 @@ st_convert_sampler(const struct st_context *st,
     * enable should be ignored and treated as disabled when using texture
     * handles, as specified by ARB_bindless_texture.
     */
-   sampler->seamless_cube_map = msamp->CubeMapSeamless;
+   sampler->seamless_cube_map = msamp->Attrib.CubeMapSeamless;
 }
 
 /**
@@ -318,7 +318,7 @@ update_shader_samplers(struct st_context *st,
          if (stObj->pt->format == PIPE_FORMAT_R8_G8B8_420_UNORM)
             /* no additional views needed */
             break;
-         /* fallthrough */
+         FALLTHROUGH;
       case PIPE_FORMAT_P010:
       case PIPE_FORMAT_P012:
       case PIPE_FORMAT_P016:
