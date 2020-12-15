@@ -551,8 +551,8 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
    /* Constants, may be overriden (usually only reduced) by device drivers */
    consts->MaxTextureMbytes = MAX_TEXTURE_MBYTES;
    consts->MaxTextureSize = 1 << (MAX_TEXTURE_LEVELS - 1);
-   consts->Max3DTextureLevels = MAX_3D_TEXTURE_LEVELS;
-   consts->MaxCubeTextureLevels = MAX_CUBE_TEXTURE_LEVELS;
+   consts->Max3DTextureLevels = MAX_TEXTURE_LEVELS;
+   consts->MaxCubeTextureLevels = MAX_TEXTURE_LEVELS;
    consts->MaxTextureRectSize = MAX_TEXTURE_RECT_SIZE;
    consts->MaxArrayTextureLayers = MAX_ARRAY_TEXTURE_LAYERS;
    consts->MaxTextureCoordUnits = MAX_TEXTURE_COORD_UNITS;
@@ -793,13 +793,9 @@ check_context_limits(struct gl_context *ctx)
 
    /* Texture size checks */
    assert(ctx->Const.MaxTextureSize <= (1 << (MAX_TEXTURE_LEVELS - 1)));
-   assert(ctx->Const.Max3DTextureLevels <= MAX_3D_TEXTURE_LEVELS);
-   assert(ctx->Const.MaxCubeTextureLevels <= MAX_CUBE_TEXTURE_LEVELS);
+   assert(ctx->Const.Max3DTextureLevels <= MAX_TEXTURE_LEVELS);
+   assert(ctx->Const.MaxCubeTextureLevels <= MAX_TEXTURE_LEVELS);
    assert(ctx->Const.MaxTextureRectSize <= MAX_TEXTURE_RECT_SIZE);
-
-   /* Texture level checks */
-   assert(MAX_TEXTURE_LEVELS >= MAX_3D_TEXTURE_LEVELS);
-   assert(MAX_TEXTURE_LEVELS >= MAX_CUBE_TEXTURE_LEVELS);
 
    /* Max texture size should be <= max viewport size (render to texture) */
    assert(ctx->Const.MaxTextureSize <= ctx->Const.MaxViewportWidth);
@@ -885,6 +881,7 @@ init_attrib_groups(struct gl_context *ctx)
    ctx->ErrorValue = GL_NO_ERROR;
    ctx->ShareGroupReset = false;
    ctx->varying_vp_inputs = VERT_BIT_ALL;
+   ctx->IntelBlackholeRender = env_var_as_boolean("INTEL_BLACKHOLE_DEFAULT", false);
 
    return GL_TRUE;
 }
@@ -1266,7 +1263,7 @@ _mesa_initialize_context(struct gl_context *ctx,
       if (!ctx->BeginEnd || !ctx->Save)
          goto fail;
 
-      /* fall-through */
+      FALLTHROUGH;
    case API_OPENGL_CORE:
       break;
    case API_OPENGLES:
@@ -1293,6 +1290,7 @@ _mesa_initialize_context(struct gl_context *ctx,
    }
 
    ctx->FirstTimeCurrent = GL_TRUE;
+   ctx->_PrimitiveIDIsUnused = true;
 
    return GL_TRUE;
 

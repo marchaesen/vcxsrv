@@ -29,8 +29,12 @@
 #include "core/error.hpp"
 #include "core/property.hpp"
 #include "util/algorithm.hpp"
+#include "util/detect_os.h"
 
-#ifdef HAVE_CLOVER_ICD
+#if DETECT_OS_WINDOWS
+#define CLOVER_API
+#define CLOVER_ICD_API
+#elif HAVE_CLOVER_ICD
 #define CLOVER_API
 #define CLOVER_ICD_API PUBLIC
 #else

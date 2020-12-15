@@ -310,6 +310,7 @@ struct tu_bo
 enum global_shader {
    GLOBAL_SH_VS,
    GLOBAL_SH_FS_BLIT,
+   GLOBAL_SH_FS_BLIT_ZSCALE,
    GLOBAL_SH_FS_CLEAR0,
    GLOBAL_SH_FS_CLEAR_MAX = GLOBAL_SH_FS_CLEAR0 + MAX_RTS,
    GLOBAL_SH_COUNT,
@@ -1156,10 +1157,18 @@ void tu6_emit_window_scissor(struct tu_cs *cs, uint32_t x1, uint32_t y1, uint32_
 
 void tu6_emit_window_offset(struct tu_cs *cs, uint32_t x1, uint32_t y1);
 
+struct tu_pvtmem_config {
+   uint64_t iova;
+   uint32_t per_fiber_size;
+   uint32_t per_sp_size;
+   bool per_wave;
+};
+
 void
 tu6_emit_xs_config(struct tu_cs *cs,
                    gl_shader_stage stage,
                    const struct ir3_shader_variant *xs,
+                   const struct tu_pvtmem_config *pvtmem,
                    uint64_t binary_iova);
 
 void
@@ -1448,6 +1457,8 @@ struct tu_subpass
 {
    uint32_t input_count;
    uint32_t color_count;
+   uint32_t resolve_count;
+   bool resolve_depth_stencil;
    struct tu_subpass_attachment *input_attachments;
    struct tu_subpass_attachment *color_attachments;
    struct tu_subpass_attachment *resolve_attachments;
@@ -1501,6 +1512,9 @@ struct tu_query_pool
    uint32_t pipeline_statistics;
    struct tu_bo bo;
 };
+
+uint32_t
+tu_subpass_get_attachment_to_resolve(const struct tu_subpass *subpass, uint32_t index);
 
 void
 tu_update_descriptor_sets(VkDescriptorSet overrideSet,

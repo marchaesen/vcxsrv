@@ -57,31 +57,31 @@ extension in an XkbDeviceInfoRec structure:
 .nf
 
     typedef struct {
-        char *               name;          /\(** name for device */
-        Atom                 type;          /\(** name for class of devices */
-        unsigned short       device_spec;   /\(** device of interest */
-        Bool                 has_own_state; /\(** True=>this device has its own state */
-        unsigned short       supported;     /\(** bits indicating supported capabilities */
-        unsigned short       unsupported;   /\(** bits indicating unsupported capabilities */
-        unsigned short       num_btns;      /\(** number of entries in btn_acts */
-        XkbAction *          btn_acts;      /\(** button actions */
-        unsigned short       sz_leds;       /\(** total number of entries in LEDs vector */
-        unsigned short       num_leds;      /\(** number of valid entries in LEDs vector */
-        unsigned short       dflt_kbd_fb;   /\(** input extension ID of default (core kbd) indicator */
-        unsigned short       dflt_led_fb;   /\(** input extension ID of default indicator feedback */
-        XkbDeviceLedInfoPtr  leds;          /\(** LED descriptions */
+        char *               name;          /\&* name for device */
+        Atom                 type;          /\&* name for class of devices */
+        unsigned short       device_spec;   /\&* device of interest */
+        Bool                 has_own_state; /\&* True=>this device has its own state */
+        unsigned short       supported;     /\&* bits indicating supported capabilities */
+        unsigned short       unsupported;   /\&* bits indicating unsupported capabilities */
+        unsigned short       num_btns;      /\&* number of entries in btn_acts */
+        XkbAction *          btn_acts;      /\&* button actions */
+        unsigned short       sz_leds;       /\&* total number of entries in LEDs vector */
+        unsigned short       num_leds;      /\&* number of valid entries in LEDs vector */
+        unsigned short       dflt_kbd_fb;   /\&* input extension ID of default (core kbd) indicator */
+        unsigned short       dflt_led_fb;   /\&* input extension ID of default indicator feedback */
+        XkbDeviceLedInfoPtr  leds;          /\&* LED descriptions */
     } XkbDeviceInfoRec, *XkbDeviceInfoPtr;
     
 
     typedef struct {
-        unsigned short      led_class;        /\(** class for this LED device*/
-        unsigned short      led_id;           /\(** ID for this LED device */
-        unsigned int        phys_indicators;  /\(** bits for which LEDs physically present */
-        unsigned int        maps_present;     /\(** bits for which LEDs have maps in maps */
-        unsigned int        names_present;    /\(** bits for which LEDs are in names */
-        unsigned int        state;            /\(** 1 bit => corresponding LED is on */
-        Atom                names[XkbNumIndicators];   /\(** names for LEDs */
-        XkbIndicatorMapRec  maps;             /\(** indicator maps for each LED */
+        unsigned short      led_class;        /\&* class for this LED device*/
+        unsigned short      led_id;           /\&* ID for this LED device */
+        unsigned int        phys_indicators;  /\&* bits for which LEDs physically present */
+        unsigned int        maps_present;     /\&* bits for which LEDs have maps in maps */
+        unsigned int        names_present;    /\&* bits for which LEDs are in names */
+        unsigned int        state;            /\&* 1 bit => corresponding LED is on */
+        Atom                names[XkbNumIndicators];   /\&* names for LEDs */
+        XkbIndicatorMapRec  maps;             /\&* indicator maps for each LED */
     } XkbDeviceLedInfoRec, *XkbDeviceLedInfoPtr;
 
 .fi    
@@ -89,12 +89,12 @@ Each indicator has its own set of attributes that specify whether clients can ex
 .nf
 
     typedef struct {
-        unsigned char   flags;            /\(** how the indicator can be changed */
-        unsigned char   which_groups;     /\(** match criteria for groups */
-        unsigned char   groups;           /\(** which keyboard groups the indicator watches */
-        unsigned char   which_mods;       /\(** match criteria for modifiers */
-        XkbModsRec      mods;             /\(** which modifiers the indicator watches */
-        unsigned int    ctrls;            /\(** which controls the indicator watches */
+        unsigned char   flags;            /\&* how the indicator can be changed */
+        unsigned char   which_groups;     /\&* match criteria for groups */
+        unsigned char   groups;           /\&* which keyboard groups the indicator watches */
+        unsigned char   which_mods;       /\&* match criteria for modifiers */
+        XkbModsRec      mods;             /\&* which modifiers the indicator watches */
+        unsigned int    ctrls;            /\&* which controls the indicator watches */
     } XkbIndicatorMapRec, *XkbIndicatorMapPtr;
     
 .fi    

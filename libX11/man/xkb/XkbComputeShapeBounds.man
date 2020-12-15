@@ -62,18 +62,18 @@ If you add or delete a key to or from a row, or if you update the shape of one o
 .nf
 
 typedef struct _XkbShape {
-    Atom           name;         /\(** shape's name */
-    unsigned short num_outlines; /\(** number of outlines for the shape */
-    unsigned short sz_outlines;  /\(** size of the outlines array */
-    XkbOutlinePtr  outlines;     /\(** array of outlines for the shape */
-    XkbOutlinePtr  approx;       /\(** pointer into the array to the approximating outline */
-    XkbOutlinePtr  primary;      /\(** pointer into the array to the primary outline */
-    XkbBoundsRec   bounds;       /\(** bounding box for the shape; encompasses all outlines */
+    Atom           name;         /\&* shape's name */
+    unsigned short num_outlines; /\&* number of outlines for the shape */
+    unsigned short sz_outlines;  /\&* size of the outlines array */
+    XkbOutlinePtr  outlines;     /\&* array of outlines for the shape */
+    XkbOutlinePtr  approx;       /\&* pointer into the array to the approximating outline */
+    XkbOutlinePtr  primary;      /\&* pointer into the array to the primary outline */
+    XkbBoundsRec   bounds;       /\&* bounding box for the shape; encompasses all outlines */
 } XkbShapeRec, *XkbShapePtr;
 
 typedef struct _XkbBounds {
-    short	x1,y1;	/\(** upper left corner of the bounds, in mm/10 */
-    short	x2,y2;	/\(** lower right corner of the bounds, in mm/10 */
+    short	x1,y1;	/\&* upper left corner of the bounds, in mm/10 */
+    short	x2,y2;	/\&* lower right corner of the bounds, in mm/10 */
 } XkbBoundsRec, *XkbBoundsPtr;
 
 .fi

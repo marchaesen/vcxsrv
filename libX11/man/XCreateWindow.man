@@ -170,8 +170,6 @@ The new window initially uses the same cursor as
 its parent.
 A new cursor can be defined for the new window by calling
 .BR XDefineCursor .
-.IN "Cursor" "Initial State"
-.IN "XDefineCursor"
 The window will not be visible on the screen unless it and all of its
 ancestors are mapped and it is not obscured by any of its ancestors.
 .LP
@@ -331,7 +329,6 @@ T}	T{
 (1L<<14)
 T}
 .TE
-.IN "XSetWindowAttributes" "" "@DEF@"
 .EX
 /\&* Values */
 

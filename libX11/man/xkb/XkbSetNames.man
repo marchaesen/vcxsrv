@@ -100,24 +100,24 @@ effectively reduces the amount of traffic sent to the server:
 .nf
 
     typedef struct _XkbNameChanges {
-        unsigned int   changed;          /\(** name components that have changed */
-        unsigned char  first_type;       /\(** first key type with a new name */
-        unsigned char  num_types;        /\(** number of types with new names */
-        unsigned char  first_lvl;        /\(** first key type with new level names 
+        unsigned int   changed;          /\&* name components that have changed */
+        unsigned char  first_type;       /\&* first key type with a new name */
+        unsigned char  num_types;        /\&* number of types with new names */
+        unsigned char  first_lvl;        /\&* first key type with new level names 
 */
-        unsigned char  num_lvls;         /\(** number of key types with new level 
+        unsigned char  num_lvls;         /\&* number of key types with new level 
 names */
-        unsigned char  num_aliases;      /\(** if key aliases changed, total number 
+        unsigned char  num_aliases;      /\&* if key aliases changed, total number 
 of key aliases */
-        unsigned char  num_rg;           /\(** if radio groups changed, total 
+        unsigned char  num_rg;           /\&* if radio groups changed, total 
 number of radio groups */
-        unsigned char  first_key;        /\(** first key with a new name */
-        unsigned char  num_keys;         /\(** number of keys with new names */
-        unsigned short changed_vmods;    /\(** mask of virtual modifiers for which 
+        unsigned char  first_key;        /\&* first key with a new name */
+        unsigned char  num_keys;         /\&* number of keys with new names */
+        unsigned short changed_vmods;    /\&* mask of virtual modifiers for which 
 names have changed */
-        unsigned long  changed_indicators; /\(** mask of indicators for which names 
+        unsigned long  changed_indicators; /\&* mask of indicators for which names 
 were changed */
-        unsigned char  changed_groups;     /\(** mask of groups for which names 
+        unsigned char  changed_groups;     /\&* mask of groups for which names 
 were changed */
     } XkbNameChangesRec, *XkbNameChangesPtr
     

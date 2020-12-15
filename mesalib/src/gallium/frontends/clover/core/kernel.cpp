@@ -44,7 +44,7 @@ kernel::kernel(clover::program &prog, const std::string &name,
          continue;
 
       auto mconst = find(f, m.secs);
-      auto rb = std::make_unique<root_buffer>(prog.context(),
+      auto rb = std::make_unique<root_buffer>(prog.context(), std::vector<cl_mem_properties>(),
                                               CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY,
                                               mconst.size, mconst.data.data());
       _constant_buffers.emplace(&dev, std::move(rb));

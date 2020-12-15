@@ -71,10 +71,10 @@ space. To allocate space for an arbitrary number of outlines to a shape, use
 .nf
 
     typedef struct _XkbOutline {
-        unsigned short    num_points;      /\(** number of points in the outline */
-        unsigned short    sz_points;       /\(** size of the points array */
-        unsigned short    corner_radius;   /\(** draw corners as circles with this radius */
-        XkbPointPtr       points;          /\(** array of points defining the outline */
+        unsigned short    num_points;      /\&* number of points in the outline */
+        unsigned short    sz_points;       /\&* size of the points array */
+        unsigned short    corner_radius;   /\&* draw corners as circles with this radius */
+        XkbPointPtr       points;          /\&* array of points defining the outline */
     } XkbOutlineRec, *XkbOutlinePtr;
     
 .fi

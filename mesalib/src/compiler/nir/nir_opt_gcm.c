@@ -207,7 +207,7 @@ gcm_pin_instructions(nir_function_impl *impl, struct gcm_state *state)
                   instr->pass_flags = GCM_INSTR_PINNED;
                   break;
                }
-               /* fallthrough */
+               FALLTHROUGH;
 
             default:
                instr->pass_flags = 0;

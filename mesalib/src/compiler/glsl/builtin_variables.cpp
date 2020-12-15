@@ -192,56 +192,40 @@ static const struct gl_builtin_uniform_element gl_CurrentAttribFragMESA_elements
    {NULL, {STATE_INTERNAL, STATE_CURRENT_ATTRIB_MAYBE_VP_CLAMPED, 0}, SWIZZLE_XYZW},
 };
 
-#define MATRIX(name, statevar, modifier)				\
+#define MATRIX(name, statevar)				\
    static const struct gl_builtin_uniform_element name ## _elements[] = { \
-      { NULL, { statevar, 0, 0, 0, modifier}, SWIZZLE_XYZW },		\
-      { NULL, { statevar, 0, 1, 1, modifier}, SWIZZLE_XYZW },		\
-      { NULL, { statevar, 0, 2, 2, modifier}, SWIZZLE_XYZW },		\
-      { NULL, { statevar, 0, 3, 3, modifier}, SWIZZLE_XYZW },		\
+      { NULL, { statevar, 0, 0, 0}, SWIZZLE_XYZW },		\
+      { NULL, { statevar, 0, 1, 1}, SWIZZLE_XYZW },		\
+      { NULL, { statevar, 0, 2, 2}, SWIZZLE_XYZW },		\
+      { NULL, { statevar, 0, 3, 3}, SWIZZLE_XYZW },		\
    }
 
-MATRIX(gl_ModelViewMatrix,
-       STATE_MODELVIEW_MATRIX, STATE_MATRIX_TRANSPOSE);
-MATRIX(gl_ModelViewMatrixInverse,
-       STATE_MODELVIEW_MATRIX, STATE_MATRIX_INVTRANS);
-MATRIX(gl_ModelViewMatrixTranspose,
-       STATE_MODELVIEW_MATRIX, 0);
-MATRIX(gl_ModelViewMatrixInverseTranspose,
-       STATE_MODELVIEW_MATRIX, STATE_MATRIX_INVERSE);
+MATRIX(gl_ModelViewMatrix, STATE_MODELVIEW_MATRIX_TRANSPOSE);
+MATRIX(gl_ModelViewMatrixInverse, STATE_MODELVIEW_MATRIX_INVTRANS);
+MATRIX(gl_ModelViewMatrixTranspose, STATE_MODELVIEW_MATRIX);
+MATRIX(gl_ModelViewMatrixInverseTranspose, STATE_MODELVIEW_MATRIX_INVERSE);
 
-MATRIX(gl_ProjectionMatrix,
-       STATE_PROJECTION_MATRIX, STATE_MATRIX_TRANSPOSE);
-MATRIX(gl_ProjectionMatrixInverse,
-       STATE_PROJECTION_MATRIX, STATE_MATRIX_INVTRANS);
-MATRIX(gl_ProjectionMatrixTranspose,
-       STATE_PROJECTION_MATRIX, 0);
-MATRIX(gl_ProjectionMatrixInverseTranspose,
-       STATE_PROJECTION_MATRIX, STATE_MATRIX_INVERSE);
+MATRIX(gl_ProjectionMatrix, STATE_PROJECTION_MATRIX_TRANSPOSE);
+MATRIX(gl_ProjectionMatrixInverse, STATE_PROJECTION_MATRIX_INVTRANS);
+MATRIX(gl_ProjectionMatrixTranspose, STATE_PROJECTION_MATRIX);
+MATRIX(gl_ProjectionMatrixInverseTranspose, STATE_PROJECTION_MATRIX_INVERSE);
 
-MATRIX(gl_ModelViewProjectionMatrix,
-       STATE_MVP_MATRIX, STATE_MATRIX_TRANSPOSE);
-MATRIX(gl_ModelViewProjectionMatrixInverse,
-       STATE_MVP_MATRIX, STATE_MATRIX_INVTRANS);
-MATRIX(gl_ModelViewProjectionMatrixTranspose,
-       STATE_MVP_MATRIX, 0);
-MATRIX(gl_ModelViewProjectionMatrixInverseTranspose,
-       STATE_MVP_MATRIX, STATE_MATRIX_INVERSE);
+MATRIX(gl_ModelViewProjectionMatrix, STATE_MVP_MATRIX_TRANSPOSE);
+MATRIX(gl_ModelViewProjectionMatrixInverse, STATE_MVP_MATRIX_INVTRANS);
+MATRIX(gl_ModelViewProjectionMatrixTranspose, STATE_MVP_MATRIX);
+MATRIX(gl_ModelViewProjectionMatrixInverseTranspose, STATE_MVP_MATRIX_INVERSE);
 
-MATRIX(gl_TextureMatrix,
-       STATE_TEXTURE_MATRIX, STATE_MATRIX_TRANSPOSE);
-MATRIX(gl_TextureMatrixInverse,
-       STATE_TEXTURE_MATRIX, STATE_MATRIX_INVTRANS);
-MATRIX(gl_TextureMatrixTranspose,
-       STATE_TEXTURE_MATRIX, 0);
-MATRIX(gl_TextureMatrixInverseTranspose,
-       STATE_TEXTURE_MATRIX, STATE_MATRIX_INVERSE);
+MATRIX(gl_TextureMatrix, STATE_TEXTURE_MATRIX_TRANSPOSE);
+MATRIX(gl_TextureMatrixInverse, STATE_TEXTURE_MATRIX_INVTRANS);
+MATRIX(gl_TextureMatrixTranspose, STATE_TEXTURE_MATRIX);
+MATRIX(gl_TextureMatrixInverseTranspose, STATE_TEXTURE_MATRIX_INVERSE);
 
 static const struct gl_builtin_uniform_element gl_NormalMatrix_elements[] = {
-   { NULL, { STATE_MODELVIEW_MATRIX, 0, 0, 0, STATE_MATRIX_INVERSE},
+   { NULL, { STATE_MODELVIEW_MATRIX_INVERSE, 0, 0, 0},
      MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_Y, SWIZZLE_Z, SWIZZLE_Z) },
-   { NULL, { STATE_MODELVIEW_MATRIX, 0, 1, 1, STATE_MATRIX_INVERSE},
+   { NULL, { STATE_MODELVIEW_MATRIX_INVERSE, 0, 1, 1},
      MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_Y, SWIZZLE_Z, SWIZZLE_Z) },
-   { NULL, { STATE_MODELVIEW_MATRIX, 0, 2, 2, STATE_MATRIX_INVERSE},
+   { NULL, { STATE_MODELVIEW_MATRIX_INVERSE, 0, 2, 2},
      MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_Y, SWIZZLE_Z, SWIZZLE_Z) },
 };
 

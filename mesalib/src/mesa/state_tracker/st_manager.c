@@ -471,7 +471,7 @@ st_framebuffer_create(struct st_context *st,
     * is also expressed by using the same extension flag
     */
    if (_mesa_has_EXT_framebuffer_sRGB(st->ctx)) {
-      struct pipe_screen *screen = st->pipe->screen;
+      struct pipe_screen *screen = st->screen;
       const enum pipe_format srgb_format =
          util_format_srgb(stfbi->visual->color_format);
 
@@ -674,9 +674,9 @@ st_context_flush(struct st_context_iface *stctxi, unsigned flags,
    st_flush(st, fence, pipe_flags);
 
    if ((flags & ST_FLUSH_WAIT) && fence && *fence) {
-      st->pipe->screen->fence_finish(st->pipe->screen, NULL, *fence,
+      st->screen->fence_finish(st->screen, NULL, *fence,
                                      PIPE_TIMEOUT_INFINITE);
-      st->pipe->screen->fence_reference(st->pipe->screen, fence, NULL);
+      st->screen->fence_reference(st->screen, fence, NULL);
    }
 
    if (flags & ST_FLUSH_FRONT)
@@ -973,7 +973,7 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
       }
    }
 
-   st->can_scissor_clear = !!st->pipe->screen->get_param(st->pipe->screen, PIPE_CAP_CLEAR_SCISSORED);
+   st->can_scissor_clear = !!st->screen->get_param(st->screen, PIPE_CAP_CLEAR_SCISSORED);
 
    st->invalidate_on_gl_viewport =
       smapi->get_param(smapi, ST_MANAGER_BROKEN_INVALIDATE);
@@ -989,6 +989,10 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
    st->iface.cso_context = st->cso_context;
    st->iface.pipe = st->pipe;
    st->iface.state_manager = smapi;
+
+   if (st->ctx->IntelBlackholeRender &&
+       st->screen->get_param(st->screen, PIPE_CAP_FRONTEND_NOOP))
+      st->pipe->set_frontend_noop(st->pipe, st->ctx->IntelBlackholeRender);
 
    *error = ST_CONTEXT_SUCCESS;
    return &st->iface;

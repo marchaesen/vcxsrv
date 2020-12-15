@@ -155,12 +155,12 @@ pan_format_class(const struct util_format_description *desc, unsigned quirks, bo
  * replicate to fill */
 
 static nir_ssa_def *
-pan_pack_pure_32(nir_builder *b, nir_ssa_def *v)
+pan_pack_pure_32(nir_builder *b, nir_ssa_def *v, unsigned num_components)
 {
         nir_ssa_def *replicated[4];
 
         for (unsigned i = 0; i < 4; ++i)
-                replicated[i] = nir_channel(b, v, i % v->num_components);
+                replicated[i] = nir_channel(b, v, i % num_components);
 
         return nir_vec(b, replicated, 4);
 }
@@ -175,7 +175,7 @@ pan_unpack_pure_32(nir_builder *b, nir_ssa_def *pack, unsigned num_components)
  * upper/lower halves of course */
 
 static nir_ssa_def *
-pan_pack_pure_16(nir_builder *b, nir_ssa_def *v)
+pan_pack_pure_16(nir_builder *b, nir_ssa_def *v, unsigned num_components)
 {
         nir_ssa_def *replicated[4];
 
@@ -183,8 +183,8 @@ pan_pack_pure_16(nir_builder *b, nir_ssa_def *v)
                 unsigned c = 2 * i;
 
                 nir_ssa_def *parts[2] = {
-                        nir_channel(b, v, (c + 0) % v->num_components),
-                        nir_channel(b, v, (c + 1) % v->num_components)
+                        nir_channel(b, v, (c + 0) % num_components),
+                        nir_channel(b, v, (c + 1) % num_components)
                 };
 
                 replicated[i] = nir_pack_32_2x16(b, nir_vec(b, parts, 2));
@@ -219,13 +219,13 @@ pan_unpack_pure_16(nir_builder *b, nir_ssa_def *pack, unsigned num_components)
  * 4-channel vector from a scalar via replication */
 
 static nir_ssa_def *
-pan_fill_4(nir_builder *b, nir_ssa_def *v)
+pan_fill_4(nir_builder *b, nir_ssa_def *v, unsigned num_components)
 {
         nir_ssa_def *q[4];
         assert(v->num_components <= 4);
 
         for (unsigned j = 0; j < 4; ++j)
-                q[j] = nir_channel(b, v, j % v->num_components);
+                q[j] = nir_channel(b, v, j % num_components);
 
         return nir_vec(b, q, 4);
 }
@@ -254,9 +254,9 @@ pan_replicate_4(nir_builder *b, nir_ssa_def *v)
 }
 
 static nir_ssa_def *
-pan_pack_pure_8(nir_builder *b, nir_ssa_def *v)
+pan_pack_pure_8(nir_builder *b, nir_ssa_def *v, unsigned num_components)
 {
-        return pan_replicate_4(b, nir_pack_32_4x8(b, pan_fill_4(b, v)));
+        return pan_replicate_4(b, nir_pack_32_4x8(b, pan_fill_4(b, v, num_components)));
 }
 
 static nir_ssa_def *
@@ -276,7 +276,7 @@ pan_pack_unorm_8(nir_builder *b, nir_ssa_def *v)
 {
         return pan_replicate_4(b, nir_pack_32_4x8(b,
                 nir_f2u8(b, nir_fround_even(b, nir_fmul(b, nir_fsat(b,
-                        pan_fill_4(b, v)), nir_imm_float16(b, 255.0))))));
+                        pan_fill_4(b, v, v->num_components)), nir_imm_float16(b, 255.0))))));
 }
 
 static nir_ssa_def *
@@ -302,7 +302,7 @@ static nir_ssa_def *
 pan_pack_unorm_small(nir_builder *b, nir_ssa_def *v,
                 nir_ssa_def *scales, nir_ssa_def *shifts)
 {
-        nir_ssa_def *f = nir_fmul(b, nir_fsat(b, pan_fill_4(b, v)), scales);
+        nir_ssa_def *f = nir_fmul(b, nir_fsat(b, pan_fill_4(b, v, v->num_components)), scales);
         nir_ssa_def *u8 = nir_f2u8(b, nir_fround_even(b, f));
         nir_ssa_def *s = nir_ishl(b, u8, shifts);
         nir_ssa_def *repl = nir_pack_32_4x8(b, s);
@@ -612,11 +612,11 @@ pan_pack(nir_builder *b,
                         assert(!d.normalized);
                         assert(d.type == UTIL_FORMAT_TYPE_FLOAT || d.pure_integer);
 
-                        return d.size == 32 ? pan_pack_pure_32(b, unpacked) :
-                                pan_pack_pure_16(b, unpacked);
+                        return d.size == 32 ? pan_pack_pure_32(b, unpacked, desc->nr_channels) :
+                                pan_pack_pure_16(b, unpacked, desc->nr_channels);
                 } else if (d.size == 8) {
                         assert(d.pure_integer);
-                        return pan_pack_pure_8(b, unpacked);
+                        return pan_pack_pure_8(b, unpacked, desc->nr_channels);
                 } else {
                         unreachable("Unrenderable size");
                 }

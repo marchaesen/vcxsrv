@@ -44,11 +44,6 @@
 #include <util/timespec.h>
 #include <util/u_vector.h>
 
-#define typed_memcpy(dest, src, count) ({ \
-   STATIC_ASSERT(sizeof(*src) == sizeof(*dest)); \
-   memcpy((dest), (src), (count) * sizeof(*(src))); \
-})
-
 struct wsi_wayland;
 
 struct wsi_wl_display_drm {

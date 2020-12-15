@@ -276,16 +276,22 @@ free_charset(
     int num;
 
     Xfree(gen->mb_parse_table);
+    gen->mb_parse_table = NULL;
     if ((num = gen->mb_parse_list_num) > 0) {
         for (parse_info = gen->mb_parse_list; num-- > 0; parse_info++) {
             Xfree((*parse_info)->encoding);
             Xfree(*parse_info);
         }
         Xfree(gen->mb_parse_list);
+        gen->mb_parse_list = NULL;
+        gen->mb_parse_list_num = 0;
     }
 
-    if ((num = gen->codeset_num) > 0)
+    if ((num = gen->codeset_num) > 0) {
         Xfree(gen->codeset_list);
+        gen->codeset_list = NULL;
+        gen->codeset_num = 0;
+    }
 }
 
 /* For VW/UDC */

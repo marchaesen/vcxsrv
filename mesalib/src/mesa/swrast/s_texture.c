@@ -268,7 +268,7 @@ _swrast_map_texture(struct gl_context *ctx, struct gl_texture_object *texObj)
    GLuint face, level;
 
    for (face = 0; face < faces; face++) {
-      for (level = texObj->BaseLevel; level < MAX_TEXTURE_LEVELS; level++) {
+      for (level = texObj->Attrib.BaseLevel; level < MAX_TEXTURE_LEVELS; level++) {
          struct gl_texture_image *texImage = texObj->Image[face][level];
          struct swrast_texture_image *swImage = swrast_texture_image(texImage);
          unsigned int i, slices;
@@ -328,7 +328,7 @@ _swrast_unmap_texture(struct gl_context *ctx, struct gl_texture_object *texObj)
    GLuint face, level;
 
    for (face = 0; face < faces; face++) {
-      for (level = texObj->BaseLevel; level < MAX_TEXTURE_LEVELS; level++) {
+      for (level = texObj->Attrib.BaseLevel; level < MAX_TEXTURE_LEVELS; level++) {
          struct gl_texture_image *texImage = texObj->Image[face][level];
          struct swrast_texture_image *swImage = swrast_texture_image(texImage);
          unsigned int i, slices;

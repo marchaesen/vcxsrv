@@ -27,11 +27,6 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
-#define typed_memcpy(dest, src, count) ({ \
-   STATIC_ASSERT(sizeof(*src) == sizeof(*dest)); \
-   memcpy((dest), (src), (count) * sizeof(*(src))); \
-})
-
 VkResult
 wsi_display_get_physical_device_display_properties(
    VkPhysicalDevice physical_device,

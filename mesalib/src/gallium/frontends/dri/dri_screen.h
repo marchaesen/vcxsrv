@@ -118,6 +118,8 @@ struct __DRIimageRec {
    enum __DRIChromaSiting horizontal_siting;
    enum __DRIChromaSiting vertical_siting;
 
+   /* DRI loader screen */
+   __DRIscreen *sPriv;
 };
 
 static inline boolean

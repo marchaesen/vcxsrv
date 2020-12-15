@@ -228,7 +228,7 @@ st_nir_assign_uniform_locations(struct gl_context *ctx,
          if (ctx->Const.PackedDriverUniformStorage) {
             loc = _mesa_add_sized_state_reference(prog->Parameters,
                                                   stateTokens, comps, false);
-            loc = prog->Parameters->ParameterValueOffset[loc];
+            loc = prog->Parameters->Parameters[loc].ValueOffset;
          } else {
             loc = _mesa_add_state_reference(prog->Parameters, stateTokens);
          }
@@ -240,7 +240,7 @@ st_nir_assign_uniform_locations(struct gl_context *ctx,
           * only contains opaque types.
           */
          if (loc >= 0 && ctx->Const.PackedDriverUniformStorage) {
-            loc = prog->Parameters->ParameterValueOffset[loc];
+            loc = prog->Parameters->Parameters[loc].ValueOffset;
          }
       }
 
@@ -348,7 +348,7 @@ st_nir_preprocess(struct st_context *st, struct gl_program *prog,
                   struct gl_shader_program *shader_program,
                   gl_shader_stage stage)
 {
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
    const nir_shader_compiler_options *options =
       st->ctx->Const.ShaderCompilerOptions[prog->info.stage].NirOptions;
    assert(options);
@@ -422,6 +422,43 @@ st_nir_preprocess(struct st_context *st, struct gl_program *prog,
    NIR_PASS_V(nir, nir_opt_constant_folding);
 }
 
+static bool
+dest_is_64bit(nir_dest *dest, void *state)
+{
+   bool *lower = (bool *)state;
+   if (dest && (nir_dest_bit_size(*dest) == 64)) {
+      *lower = true;
+      return false;
+   }
+   return true;
+}
+
+static bool
+src_is_64bit(nir_src *src, void *state)
+{
+   bool *lower = (bool *)state;
+   if (src && (nir_src_bit_size(*src) == 64)) {
+      *lower = true;
+      return false;
+   }
+   return true;
+}
+
+static bool
+filter_64_bit_instr(const nir_instr *const_instr, UNUSED const void *data)
+{
+   bool lower = false;
+   /* lower_alu_to_scalar required nir_instr to be const, but nir_foreach_*
+    * doesn't have const variants, so do the ugly const_cast here. */
+   nir_instr *instr = const_cast<nir_instr *>(const_instr);
+
+   nir_foreach_dest(instr, dest_is_64bit, &lower);
+   if (lower)
+      return true;
+   nir_foreach_src(instr, src_is_64bit, &lower);
+   return lower;
+}
+
 /* Second third of converting glsl_to_nir. This creates uniforms, gathers
  * info on varyings, etc after NIR link time opts have been applied.
  */
@@ -430,7 +467,7 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
                          struct gl_shader_program *shader_program)
 {
    nir_shader *nir = prog->nir;
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
 
    /* Make a pass over the IR to add state references for any built-in
     * uniforms that are used.  This has to be done now (during linking).
@@ -467,7 +504,8 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
     * storage is only associated with the original parameter list.
     * This should be enough for Bitmap and DrawPixels constants.
     */
-   _mesa_reserve_parameter_storage(prog->Parameters, 8);
+   _mesa_reserve_parameter_storage(prog->Parameters, 16, 16);
+   _mesa_disallow_parameter_storage_realloc(prog->Parameters);
 
    /* This has to be done last.  Any operation the can cause
     * prog->ParameterValues to get reallocated (e.g., anything that adds a
@@ -494,6 +532,15 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
    if (nir->options->lower_int64_options ||
        nir->options->lower_doubles_options) {
       bool lowered_64bit_ops = false;
+
+      /* nir_lower_doubles is not prepared for vector ops, so if the backend doesn't
+       * request lower_alu_to_scalar until now, lower all 64 bit ops, and try to
+       * vectorize them afterwards again */
+      if (!nir->options->lower_to_scalar) {
+         NIR_PASS_V(nir, nir_lower_alu_to_scalar, filter_64_bit_instr, nullptr);
+         NIR_PASS_V(nir, nir_lower_phis_to_scalar);
+      }
+
       if (nir->options->lower_doubles_options) {
          NIR_PASS(lowered_64bit_ops, nir, nir_lower_doubles,
                   st->ctx->SoftFP64, nir->options->lower_doubles_options);
@@ -501,8 +548,11 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
       if (nir->options->lower_int64_options)
          NIR_PASS(lowered_64bit_ops, nir, nir_lower_int64);
 
-      if (lowered_64bit_ops)
+      if (lowered_64bit_ops) {
+         if (!nir->options->lower_to_scalar)
+            NIR_PASS_V(nir, nir_opt_vectorize, nullptr, nullptr);
          st_nir_opts(nir);
+      }
    }
 
    nir_variable_mode mask =
@@ -752,7 +802,13 @@ st_link_nir(struct gl_context *ctx,
       struct gl_linked_shader *shader = linked_shader[i];
       nir_shader *nir = shader->Program->nir;
 
-      NIR_PASS_V(nir, nir_opt_access);
+      /* don't infer ACCESS_NON_READABLE so that Program->sh.ImageAccess is
+       * correct: https://gitlab.freedesktop.org/mesa/mesa/-/issues/3278
+       */
+      nir_opt_access_options opt_access_options;
+      opt_access_options.is_vulkan = false;
+      opt_access_options.infer_non_readable = false;
+      NIR_PASS_V(nir, nir_opt_access, &opt_access_options);
 
       /* This needs to run after the initial pass of nir_lower_vars_to_ssa, so
        * that the buffer indices are constants in nir where they where
@@ -768,7 +824,7 @@ st_link_nir(struct gl_context *ctx,
          nir_remap_dual_slot_attributes(nir, &shader->Program->DualSlotInputs);
 
       NIR_PASS_V(nir, st_nir_lower_wpos_ytransform, shader->Program,
-                 st->pipe->screen);
+                 st->screen);
 
       NIR_PASS_V(nir, nir_lower_system_values);
       NIR_PASS_V(nir, nir_lower_compute_system_values, NULL);
@@ -956,7 +1012,7 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
                 struct gl_shader_program *shader_program,
                 nir_shader *nir, bool finalize_by_driver)
 {
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
 
    NIR_PASS_V(nir, nir_split_var_copies);
    NIR_PASS_V(nir, nir_lower_var_copies);

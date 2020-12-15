@@ -43,7 +43,6 @@
 #include "st_context.h"
 #include "st_debug.h"
 #include "st_program.h"
-#include "st_mesa_to_tgsi.h"
 #include "st_cb_program.h"
 #include "st_glsl_to_ir.h"
 #include "st_atifs_to_tgsi.h"
@@ -151,7 +150,7 @@ st_new_ati_fs(struct gl_context *ctx, struct ati_fragment_shader *curProg)
 static void
 st_max_shader_compiler_threads(struct gl_context *ctx, unsigned count)
 {
-   struct pipe_screen *screen = st_context(ctx)->pipe->screen;
+   struct pipe_screen *screen = st_context(ctx)->screen;
 
    if (screen->set_max_shader_compiler_threads)
       screen->set_max_shader_compiler_threads(screen, count);
@@ -161,7 +160,7 @@ static bool
 st_get_shader_program_completion_status(struct gl_context *ctx,
                                         struct gl_shader_program *shprog)
 {
-   struct pipe_screen *screen = st_context(ctx)->pipe->screen;
+   struct pipe_screen *screen = st_context(ctx)->screen;
 
    if (!screen->is_parallel_shader_compilation_finished)
       return true;

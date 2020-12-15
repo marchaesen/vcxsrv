@@ -94,14 +94,8 @@
 /** Max memory to allow for a single texture image (in megabytes) */
 #define MAX_TEXTURE_MBYTES 1024
 
-/** Number of 1D/2D texture mipmap levels */
+/** Number of texture mipmap levels */
 #define MAX_TEXTURE_LEVELS 15
-
-/** Number of 3D texture mipmap levels */
-#define MAX_3D_TEXTURE_LEVELS 15
-
-/** Number of cube texture mipmap levels - GL_ARB_texture_cube_map */
-#define MAX_CUBE_TEXTURE_LEVELS 15
 
 /** Maximum rectangular texture size - GL_NV_texture_rectangle */
 #define MAX_TEXTURE_RECT_SIZE 16384

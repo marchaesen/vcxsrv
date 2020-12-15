@@ -286,7 +286,6 @@ draw_bitmap_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
                  const GLfloat *color)
 {
    struct st_context *st = st_context(ctx);
-   struct pipe_context *pipe = st->pipe;
    const float fb_width = (float) st->state.fb_width;
    const float fb_height = (float) st->state.fb_height;
    const float x0 = (float) x;
@@ -306,7 +305,7 @@ draw_bitmap_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
        * it up into chunks.
        */
       ASSERTED GLuint maxSize =
-         pipe->screen->get_param(pipe->screen, PIPE_CAP_MAX_TEXTURE_2D_SIZE);
+         st->screen->get_param(st->screen, PIPE_CAP_MAX_TEXTURE_2D_SIZE);
       assert(width <= (GLsizei) maxSize);
       assert(height <= (GLsizei) maxSize);
    }
@@ -536,8 +535,7 @@ accum_bitmap(struct gl_context *ctx,
 static void
 init_bitmap_state(struct st_context *st)
 {
-   struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
 
    /* This function should only be called once */
    assert(!st->bitmap.tex_format);

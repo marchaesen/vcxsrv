@@ -549,25 +549,27 @@ extern int AllocXTestDevice(ClientPtr client, const char *name,
 extern BOOL IsXTestDevice(DeviceIntPtr dev, DeviceIntPtr master);
 extern DeviceIntPtr GetXTestDevice(DeviceIntPtr master);
 extern void SendDevicePresenceEvent(int deviceid, int type);
+extern void DeliverDeviceClassesChangedEvent(int sourceid, Time time);
 extern _X_EXPORT InputAttributes *DuplicateInputAttributes(InputAttributes *
                                                            attrs);
 extern _X_EXPORT void FreeInputAttributes(InputAttributes * attrs);
 
 enum TouchListenerState {
-    LISTENER_AWAITING_BEGIN = 0,   /**< Waiting for a TouchBegin event */
-    LISTENER_AWAITING_OWNER,       /**< Waiting for a TouchOwnership event */
-    LISTENER_EARLY_ACCEPT,         /**< Waiting for ownership, has already
-                                        accepted */
-    LISTENER_IS_OWNER,             /**< Is the current owner, hasn't accepted */
-    LISTENER_HAS_ACCEPTED,         /**< Is the current owner, has accepted */
-    LISTENER_HAS_END,              /**< Has already received the end event */
+    TOUCH_LISTENER_AWAITING_BEGIN = 0, /**< Waiting for a TouchBegin event */
+    TOUCH_LISTENER_AWAITING_OWNER,     /**< Waiting for a TouchOwnership event */
+    TOUCH_LISTENER_EARLY_ACCEPT,       /**< Waiting for ownership, has already
+                                            accepted */
+    TOUCH_LISTENER_IS_OWNER,           /**< Is the current owner, hasn't
+                                            accepted */
+    TOUCH_LISTENER_HAS_ACCEPTED,       /**< Is the current owner, has accepted */
+    TOUCH_LISTENER_HAS_END,            /**< Has already received the end event */
 };
 
 enum TouchListenerType {
-    LISTENER_GRAB,
-    LISTENER_POINTER_GRAB,
-    LISTENER_REGULAR,
-    LISTENER_POINTER_REGULAR,
+    TOUCH_LISTENER_GRAB,
+    TOUCH_LISTENER_POINTER_GRAB,
+    TOUCH_LISTENER_REGULAR,
+    TOUCH_LISTENER_POINTER_REGULAR,
 };
 
 extern void TouchInitDDXTouchPoint(DeviceIntPtr dev,
@@ -612,8 +614,6 @@ extern int TouchListenerAcceptReject(DeviceIntPtr dev, TouchPointInfoPtr ti,
 extern int TouchAcceptReject(ClientPtr client, DeviceIntPtr dev, int mode,
                              uint32_t touchid, Window grab_window, XID *error);
 extern void TouchEndPhysicallyActiveTouches(DeviceIntPtr dev);
-extern void TouchDeliverDeviceClassesChangedEvent(TouchPointInfoPtr ti,
-                                                  Time time, XID resource);
 extern void TouchEmitTouchEnd(DeviceIntPtr dev, TouchPointInfoPtr ti, int flags, XID resource);
 extern void TouchAcceptAndEnd(DeviceIntPtr dev, int touchid);
 
@@ -630,6 +630,9 @@ extern WindowPtr XYToWindow(SpritePtr pSprite, int x, int y);
 extern int EventIsDeliverable(DeviceIntPtr dev, int evtype, WindowPtr win);
 extern Bool ActivatePassiveGrab(DeviceIntPtr dev, GrabPtr grab,
                                 InternalEvent *ev, InternalEvent *real_event);
+extern void ActivateGrabNoDelivery(DeviceIntPtr dev, GrabPtr grab,
+                                   InternalEvent *event,
+                                   InternalEvent *real_event);
 /**
  * Masks specifying the type of event to deliver for an InternalEvent; used
  * by EventIsDeliverable.

@@ -52,9 +52,9 @@ current group state when keys are pressed and released:
 .nf
 .ft CW
     typedef struct _XkbGroupAction {
-        unsigned char    type;       /\(** XkbSA_{Set|Latch|Lock}Group */
-        unsigned char    flags;      /\(** with type, controls the effect on groups */
-        char             group_XXX;  /\(** represents a group index or delta */
+        unsigned char    type;       /\&* XkbSA_{Set|Latch|Lock}Group */
+        unsigned char    flags;      /\&* with type, controls the effect on groups */
+        char             group_XXX;  /\&* represents a group index or delta */
     } XkbGroupAction;
 .ft
 .fi

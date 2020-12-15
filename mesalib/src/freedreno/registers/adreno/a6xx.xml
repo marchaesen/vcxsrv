@@ -3148,21 +3148,90 @@ to upconvert to 32b float internally?
 		</reg32>
 	</array>
 
-	<reg32 offset="0xa81b" name="SP_UNKNOWN_A81B"/>
+	<bitset name="a6xx_sp_xs_pvt_mem_param" inline="yes">
+		<bitfield name="MEMSIZEPERITEM" low="0" high="7" shr="9">
+			<doc>The size of memory that ldp/stp can address.</doc>
+		</bitfield>
+		<bitfield name="HWSTACKSIZEPERTHREAD" low="24" high="31">
+                        <doc>
+				Seems to be the same as a3xx. The maximum stack
+				size in units of 4 calls, so a call depth of 7
+				would result in a value of 2.
+				TODO: What's the actual size per call, i.e. the
+				size of the PC? a3xx docs say it's 16 bits
+				there, but the length register now takes 28 bits
+				so it's probably been bumped to 32 bits.
+                        </doc>
+		</bitfield>
+	</bitset>
+
+	<bitset name="a6xx_sp_xs_pvt_mem_size" inline="yes">
+		<bitfield name="TOTALPVTMEMSIZE" low="0" high="17" shr="12"/>
+		<bitfield name="PERWAVEMEMLAYOUT" pos="31" type="boolean">
+			<doc>
+				There are four indices used to compute the
+				private memory location for an access:
+
+				- stp/ldp offset
+				- fiber id
+				- wavefront id (a swizzled version of what "getwid" returns)
+				- SP ID (the same as what "getspid" returns)
+
+				The stride for the SP ID is always set by
+				TOTALPVTMEMSIZE. In the per-wave layout, the
+				indices are used in this order:
+
+				- offset % 4 (offset within dword)
+				- fiber id
+				- offset / 4
+				- wavefront id
+				- SP ID
+
+				and the stride for the wavefront ID is
+				MEMSIZEPERITEM, multiplied by 128 (fibers per
+				wavefront). In the per-fiber layout, the indices
+				are used in this order:
+
+				- offset
+				- fiber id % 4
+				- wavefront id
+				- fiber id / 4
+				- SP ID
+
+				and the stride for the fiber id/wavefront id
+				combo is MEMSIZEPERITEM.
+
+				Note: Accesses of more than 1 dword do not work
+				with per-fiber layout. The blob will fall back
+				to per-wave instead.
+			</doc>
+		</bitfield>
+	</bitset>
+
+	<reg32 offset="0xa81b" name="SP_VS_OBJ_FIRST_EXEC_OFFSET" type="uint"/>
 	<reg32 offset="0xa81c" name="SP_VS_OBJ_START_LO"/>
 	<reg32 offset="0xa81d" name="SP_VS_OBJ_START_HI"/>
+	<reg32 offset="0xa81e" name="SP_VS_PVT_MEM_PARAM" type="a6xx_sp_xs_pvt_mem_param"/>
+	<reg64 offset="0xa81f" name="SP_VS_PVT_MEM_ADDR" type="waddress" align="32"/>
+	<reg32 offset="0xa821" name="SP_VS_PVT_MEM_SIZE" type="a6xx_sp_xs_pvt_mem_size"/>
 	<reg32 offset="0xa822" name="SP_VS_TEX_COUNT" type="uint"/>
 	<reg32 offset="0xa823" name="SP_VS_CONFIG" type="a6xx_sp_xs_config"/>
 	<reg32 offset="0xa824" name="SP_VS_INSTRLEN" type="uint"/>
+	<reg32 offset="0xa825" name="SP_VS_PVT_MEM_HW_STACK_OFFSET" low="0" high="18" shr="11"/>
 
 	<reg32 offset="0xa830" name="SP_HS_CTRL_REG0" type="a6xx_sp_xs_ctrl_reg0"/>
 	<reg32 offset="0xa831" name="SP_HS_UNKNOWN_A831"/>
-	<reg32 offset="0xa833" name="SP_HS_UNKNOWN_A833"/>
+
+	<reg32 offset="0xa833" name="SP_HS_OBJ_FIRST_EXEC_OFFSET" type="uint"/>
 	<reg32 offset="0xa834" name="SP_HS_OBJ_START_LO"/>
 	<reg32 offset="0xa835" name="SP_HS_OBJ_START_HI"/>
+	<reg32 offset="0xa836" name="SP_HS_PVT_MEM_PARAM" type="a6xx_sp_xs_pvt_mem_param"/>
+	<reg64 offset="0xa837" name="SP_HS_PVT_MEM_ADDR" type="waddress" align="32"/>
+	<reg32 offset="0xa839" name="SP_HS_PVT_MEM_SIZE" type="a6xx_sp_xs_pvt_mem_size"/>
 	<reg32 offset="0xa83a" name="SP_HS_TEX_COUNT" type="uint"/>
 	<reg32 offset="0xa83b" name="SP_HS_CONFIG" type="a6xx_sp_xs_config"/>
 	<reg32 offset="0xa83c" name="SP_HS_INSTRLEN" type="uint"/>
+	<reg32 offset="0xa83d" name="SP_HS_PVT_MEM_HW_STACK_OFFSET" low="0" high="18" shr="11"/>
 
 	<reg32 offset="0xa840" name="SP_DS_CTRL_REG0" type="a6xx_sp_xs_ctrl_reg0"/>
 	<reg32 offset="0xa842" name="SP_DS_PRIMITIVE_CNTL">
@@ -3186,12 +3255,16 @@ to upconvert to 32b float internally?
 		</reg32>
 	</array>
 
-	<reg32 offset="0xa85b" name="SP_DS_UNKNOWN_A85B"/>
+	<reg32 offset="0xa85b" name="SP_DS_OBJ_FIRST_EXEC_OFFSET" type="uint"/>
 	<reg32 offset="0xa85c" name="SP_DS_OBJ_START_LO"/>
 	<reg32 offset="0xa85d" name="SP_DS_OBJ_START_HI"/>
+	<reg32 offset="0xa85e" name="SP_DS_PVT_MEM_PARAM" type="a6xx_sp_xs_pvt_mem_param"/>
+	<reg64 offset="0xa85f" name="SP_DS_PVT_MEM_ADDR" type="waddress" align="32"/>
+	<reg32 offset="0xa861" name="SP_DS_PVT_MEM_SIZE" type="a6xx_sp_xs_pvt_mem_size"/>
 	<reg32 offset="0xa862" name="SP_DS_TEX_COUNT" type="uint"/>
 	<reg32 offset="0xa863" name="SP_DS_CONFIG" type="a6xx_sp_xs_config"/>
 	<reg32 offset="0xa864" name="SP_DS_INSTRLEN" type="uint"/>
+	<reg32 offset="0xa865" name="SP_DS_PVT_MEM_HW_STACK_OFFSET" low="0" high="18" shr="11"/>
 
 	<reg32 offset="0xa870" name="SP_GS_CTRL_REG0" type="a6xx_sp_xs_ctrl_reg0"/>
 	<reg32 offset="0xa871" name="SP_GS_PRIM_SIZE">
@@ -3228,11 +3301,16 @@ to upconvert to 32b float internally?
 		</reg32>
 	</array>
 
+	<reg32 offset="0xa88c" name="SP_GS_OBJ_FIRST_EXEC_OFFSET" type="uint"/>
 	<reg32 offset="0xa88d" name="SP_GS_OBJ_START_LO"/>
 	<reg32 offset="0xa88e" name="SP_GS_OBJ_START_HI"/>
+	<reg32 offset="0xa88f" name="SP_GS_PVT_MEM_PARAM" type="a6xx_sp_xs_pvt_mem_param"/>
+	<reg64 offset="0xa890" name="SP_GS_PVT_MEM_ADDR" type="waddress" align="32"/>
+	<reg32 offset="0xa892" name="SP_GS_PVT_MEM_SIZE" type="a6xx_sp_xs_pvt_mem_size"/>
 	<reg32 offset="0xa893" name="SP_GS_TEX_COUNT" type="uint"/>
 	<reg32 offset="0xa894" name="SP_GS_CONFIG" type="a6xx_sp_xs_config"/>
 	<reg32 offset="0xa895" name="SP_GS_INSTRLEN" type="uint"/>
+	<reg32 offset="0xa896" name="SP_GS_PVT_MEM_HW_STACK_OFFSET" low="0" high="18" shr="11"/>
 
 	<reg32 offset="0xa8a0" name="SP_VS_TEX_SAMP_LO"/>
 	<reg32 offset="0xa8a1" name="SP_VS_TEX_SAMP_HI"/>
@@ -3258,9 +3336,13 @@ to upconvert to 32b float internally?
 		bit N corresponds to brac.N
 		 -->
 	</reg32>
-	<reg32 offset="0xa982" name="SP_UNKNOWN_A982"/>
+
+	<reg32 offset="0xa982" name="SP_FS_OBJ_FIRST_EXEC_OFFSET" type="uint"/>
 	<reg32 offset="0xa983" name="SP_FS_OBJ_START_LO"/>
 	<reg32 offset="0xa984" name="SP_FS_OBJ_START_HI"/>
+	<reg32 offset="0xa985" name="SP_FS_PVT_MEM_PARAM" type="a6xx_sp_xs_pvt_mem_param"/>
+	<reg64 offset="0xa986" name="SP_FS_PVT_MEM_ADDR" type="waddress" align="32"/>
+	<reg32 offset="0xa988" name="SP_FS_PVT_MEM_SIZE" type="a6xx_sp_xs_pvt_mem_size"/>
 
 	<reg32 offset="0xa989" name="SP_BLEND_CNTL">
 		<bitfield name="ENABLED" pos="0" type="boolean"/>
@@ -3346,6 +3428,8 @@ to upconvert to 32b float internally?
 	<!-- always 0x0 ? -->
 	<reg32 offset="0xa9a8" name="SP_UNKNOWN_A9A8"/>
 
+	<reg32 offset="0xa9a9" name="SP_FS_PVT_MEM_HW_STACK_OFFSET" low="0" high="18" shr="11"/>
+
 	<!-- set for compute shaders, always 0x41 -->
 	<reg32 offset="0xa9b1" name="SP_CS_UNKNOWN_A9B1" type="uint">
 		<doc>
@@ -3357,9 +3441,6 @@ to upconvert to 32b float internally?
 		</doc>
 		<bitfield name="SHARED_SIZE_2K" pos="0" type="uint"/>
 	</reg32>
-
-	<!-- set for compute shaders, always 0x0 -->
-	<reg32 offset="0xa9b3" name="SP_CS_UNKNOWN_A9B3" type="uint"/>
 
 	<reg32 offset="0xa9ba" name="SP_CS_TEX_COUNT" type="uint"/>
 
@@ -3385,10 +3466,23 @@ to upconvert to 32b float internally?
 	</array>
 
 	<reg32 offset="0xa9b0" name="SP_CS_CTRL_REG0" type="a6xx_sp_xs_ctrl_reg0"/>
+	<reg32 offset="0xa9b3" name="SP_CS_OBJ_FIRST_EXEC_OFFSET" type="uint"/>
 	<reg32 offset="0xa9b4" name="SP_CS_OBJ_START_LO"/>
 	<reg32 offset="0xa9b5" name="SP_CS_OBJ_START_HI"/>
+	<reg32 offset="0xa9b6" name="SP_CS_PVT_MEM_PARAM" type="a6xx_sp_xs_pvt_mem_param"/>
+	<reg64 offset="0xa9b7" name="SP_CS_PVT_MEM_ADDR" align="32"/>
+	<reg32 offset="0xa9b9" name="SP_CS_PVT_MEM_SIZE" type="a6xx_sp_xs_pvt_mem_size"/>
 	<reg32 offset="0xa9bb" name="SP_CS_CONFIG" type="a6xx_sp_xs_config"/>
 	<reg32 offset="0xa9bc" name="SP_CS_INSTRLEN" type="uint"/>
+	<reg32 offset="0xa9bd" name="SP_CS_PVT_MEM_HW_STACK_OFFSET" low="0" high="18" shr="11">
+		<doc>
+			This seems to be be the equivalent of HWSTACKOFFSET in
+			a3xx. The offset formula isn't affected by
+			HWSTACKOFFSETPERTHREAD at all, so the HW return address
+			stack seems to be after all the normal per-SP private
+			memory.
+		</doc>
+	</reg32>
 
 	<!--
 	IBO state for compute shader:

@@ -25,6 +25,7 @@
 
 #include "ac_binary.h"
 #include "ac_gpu_info.h"
+#include "util/compiler.h"
 #include "util/u_dynarray.h"
 #include "util/u_math.h"
 
@@ -79,17 +80,13 @@ struct ac_rtld_part {
    unsigned num_sections;
 };
 
-static void report_erroraf(const char *fmt, va_list va)
+static void report_errorvf(const char *fmt, va_list va)
 {
-   char *msg;
-   int ret = vasprintf(&msg, fmt, va);
-   if (ret < 0)
-      msg = "(vasprintf failed)";
+   fprintf(stderr, "ac_rtld error: ");
 
-   fprintf(stderr, "ac_rtld error: %s\n", msg);
+   vfprintf(stderr, fmt, va);
 
-   if (ret >= 0)
-      free(msg);
+   fprintf(stderr, "\n");
 }
 
 static void report_errorf(const char *fmt, ...) PRINTFLIKE(1, 2);
@@ -98,7 +95,7 @@ static void report_errorf(const char *fmt, ...)
 {
    va_list va;
    va_start(va, fmt);
-   report_erroraf(fmt, va);
+   report_errorvf(fmt, va);
    va_end(va);
 }
 
@@ -108,7 +105,7 @@ static void report_elf_errorf(const char *fmt, ...)
 {
    va_list va;
    va_start(va, fmt);
-   report_erroraf(fmt, va);
+   report_errorvf(fmt, va);
    va_end(va);
 
    fprintf(stderr, "ELF error: %s\n", elf_errmsg(elf_errno()));
@@ -691,6 +688,7 @@ static bool apply_relocs(const struct ac_rtld_upload_info *u, unsigned part_idx,
       switch (r_type) {
       case R_AMDGPU_ABS32:
          assert((uint32_t)abs == abs);
+         FALLTHROUGH;
       case R_AMDGPU_ABS32_LO:
          *(uint32_t *)dst_ptr = util_cpu_to_le32(abs);
          break;
@@ -702,6 +700,7 @@ static bool apply_relocs(const struct ac_rtld_upload_info *u, unsigned part_idx,
          break;
       case R_AMDGPU_REL32:
          assert((int64_t)(int32_t)(abs - va) == (int64_t)(abs - va));
+         FALLTHROUGH;
       case R_AMDGPU_REL32_LO:
          *(uint32_t *)dst_ptr = util_cpu_to_le32(abs - va);
          break;

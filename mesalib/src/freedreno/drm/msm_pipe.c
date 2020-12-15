@@ -117,12 +117,11 @@ static int msm_pipe_wait(struct fd_pipe *pipe, uint32_t timestamp,
 	get_abs_timeout(&req.timeout, timeout);
 
 	ret = drmCommandWrite(dev->fd, DRM_MSM_WAIT_FENCE, &req, sizeof(req));
-	if (ret) {
+	if (ret && (ret != -ETIMEDOUT)) {
 		ERROR_MSG("wait-fence failed! %d (%s)", ret, strerror(errno));
-		return ret;
 	}
 
-	return 0;
+	return ret;
 }
 
 static int open_submitqueue(struct fd_pipe *pipe, uint32_t prio)

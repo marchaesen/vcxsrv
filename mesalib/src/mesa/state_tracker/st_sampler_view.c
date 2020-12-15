@@ -396,7 +396,7 @@ get_texture_format_swizzle(const struct st_context *st,
 {
    GLenum baseFormat = _mesa_base_tex_image(&stObj->base)->_BaseFormat;
    unsigned tex_swizzle;
-   GLenum depth_mode = stObj->base.DepthMode;
+   GLenum depth_mode = stObj->base.Attrib.DepthMode;
 
    /* In ES 3.0, DEPTH_TEXTURE_MODE is expected to be GL_RED for textures
     * with depth component data specified with a sized internal format.
@@ -417,7 +417,7 @@ get_texture_format_swizzle(const struct st_context *st,
                                                 glsl130_or_later);
 
    /* Combine the texture format swizzle with user's swizzle */
-   return swizzle_swizzle(stObj->base._Swizzle, tex_swizzle);
+   return swizzle_swizzle(stObj->base.Attrib._Swizzle, tex_swizzle);
 }
 
 
@@ -479,7 +479,7 @@ get_sampler_view_format(struct st_context *st,
    if (baseFormat == GL_DEPTH_COMPONENT ||
        baseFormat == GL_DEPTH_STENCIL ||
        baseFormat == GL_STENCIL_INDEX) {
-      if (stObj->base.StencilSampling || baseFormat == GL_STENCIL_INDEX)
+      if (stObj->base.Attrib.StencilSampling || baseFormat == GL_STENCIL_INDEX)
          format = util_format_stencil_only(format);
 
       return format;
@@ -500,7 +500,7 @@ get_sampler_view_format(struct st_context *st,
          format = PIPE_FORMAT_R8_G8B8_420_UNORM;
          break;
       }
-      /* fallthrough */
+      FALLTHROUGH;
    case PIPE_FORMAT_IYUV:
       format = PIPE_FORMAT_R8_UNORM;
       break;
@@ -541,7 +541,7 @@ st_create_texture_sampler_view_from_stobj(struct st_context *st,
    if (stObj->level_override >= 0) {
       templ.u.tex.first_level = templ.u.tex.last_level = stObj->level_override;
    } else {
-      templ.u.tex.first_level = stObj->base.MinLevel + stObj->base.BaseLevel;
+      templ.u.tex.first_level = stObj->base.MinLevel + stObj->base.Attrib.BaseLevel;
       templ.u.tex.last_level = last_level(stObj);
    }
    if (stObj->layer_override >= 0) {
@@ -573,7 +573,7 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
    const struct st_sampler_view *sv;
    bool srgb_skip_decode = false;
 
-   if (!ignore_srgb_decode && samp->sRGBDecode == GL_SKIP_DECODE_EXT)
+   if (!ignore_srgb_decode && samp->Attrib.sRGBDecode == GL_SKIP_DECODE_EXT)
       srgb_skip_decode = true;
 
    sv = st_texture_get_current_sampler_view(st, stObj);
@@ -590,7 +590,7 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
       assert(get_sampler_view_format(st, stObj, srgb_skip_decode) == view->format);
       assert(gl_target_to_pipe(stObj->base.Target) == view->target);
       assert(stObj->level_override >= 0 ||
-             stObj->base.MinLevel + stObj->base.BaseLevel == view->u.tex.first_level);
+             stObj->base.MinLevel + stObj->base.Attrib.BaseLevel == view->u.tex.first_level);
       assert(stObj->level_override >= 0 || last_level(stObj) == view->u.tex.last_level);
       assert(stObj->layer_override >= 0 || stObj->base.MinLayer == view->u.tex.first_layer);
       assert(stObj->layer_override >= 0 || last_layer(stObj) == view->u.tex.last_layer);

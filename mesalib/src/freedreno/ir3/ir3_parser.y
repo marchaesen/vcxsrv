@@ -439,6 +439,8 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %token <tok> T_OP_STIB
 %token <tok> T_OP_LDC
 %token <tok> T_OP_LDLV
+%token <tok> T_OP_GETSPID
+%token <tok> T_OP_GETWID
 
 /* type qualifiers: */
 %token <tok> T_TYPE_F16
@@ -778,19 +780,19 @@ cat6_type:         '.' type  { instr->cat6.type = $2; }
 cat6_offset:       offset    { instr->cat6.src_offset = $1; }
 cat6_immed:        integer   { instr->cat6.iim_val = $1; }
 
-cat6_load:         T_OP_LDG  { new_instr(OPC_LDG); }  cat6_type dst_reg ',' 'g' '[' reg cat6_offset ']' ',' cat6_immed
-|                  T_OP_LDP  { new_instr(OPC_LDP); }  cat6_type dst_reg ',' 'p' '[' reg cat6_offset ']' ',' cat6_immed
-|                  T_OP_LDL  { new_instr(OPC_LDL); }  cat6_type dst_reg ',' 'l' '[' reg cat6_offset ']' ',' cat6_immed
-|                  T_OP_LDLW { new_instr(OPC_LDLW); } cat6_type dst_reg ',' 'l' '[' reg cat6_offset ']' ',' cat6_immed
-|                  T_OP_LDLV { new_instr(OPC_LDLV); } cat6_type dst_reg ',' 'l' '[' reg cat6_offset ']' ',' cat6_immed
+cat6_load:         T_OP_LDG  { new_instr(OPC_LDG); }  cat6_type dst_reg ',' 'g' '[' reg cat6_offset ']' ',' immediate
+|                  T_OP_LDP  { new_instr(OPC_LDP); }  cat6_type dst_reg ',' 'p' '[' reg cat6_offset ']' ',' immediate
+|                  T_OP_LDL  { new_instr(OPC_LDL); }  cat6_type dst_reg ',' 'l' '[' reg cat6_offset ']' ',' immediate
+|                  T_OP_LDLW { new_instr(OPC_LDLW); } cat6_type dst_reg ',' 'l' '[' reg cat6_offset ']' ',' immediate
+|                  T_OP_LDLV { new_instr(OPC_LDLV); } cat6_type dst_reg ',' 'l' '[' reg cat6_offset ']' ',' immediate
 
 // TODO some of the cat6 instructions have different syntax for a6xx..
 //|                  T_OP_LDIB { new_instr(OPC_LDIB); } cat6_type dst_reg cat6_offset ',' reg ',' cat6_immed
 
-cat6_store:        T_OP_STG  { new_instr(OPC_STG); }  cat6_type 'g' '[' dst_reg cat6_offset ']' ',' reg ',' cat6_immed
-|                  T_OP_STP  { new_instr(OPC_STP); }  cat6_type 'p' '[' dst_reg cat6_offset ']' ',' reg ',' cat6_immed
-|                  T_OP_STL  { new_instr(OPC_STL); }  cat6_type 'l' '[' dst_reg cat6_offset ']' ',' reg ',' cat6_immed
-|                  T_OP_STLW { new_instr(OPC_STLW); } cat6_type 'l' '[' dst_reg cat6_offset ']' ',' reg ',' cat6_immed
+cat6_store:        T_OP_STG  { new_instr(OPC_STG); dummy_dst(); }  cat6_type 'g' '[' reg cat6_offset ']' ',' reg ',' immediate
+|                  T_OP_STP  { new_instr(OPC_STP); dummy_dst(); }  cat6_type 'p' '[' reg cat6_offset ']' ',' reg ',' immediate
+|                  T_OP_STL  { new_instr(OPC_STL); dummy_dst(); }  cat6_type 'l' '[' reg cat6_offset ']' ',' reg ',' immediate
+|                  T_OP_STLW { new_instr(OPC_STLW); dummy_dst(); } cat6_type 'l' '[' reg cat6_offset ']' ',' reg ',' immediate
 
 cat6_storeib:      T_OP_STIB { new_instr(OPC_STIB); dummy_dst(); } cat6_typed cat6_dim cat6_type '.' cat6_immed'g' '[' immediate ']' '+' reg ',' reg
 
@@ -811,6 +813,12 @@ cat6_atomic:       T_OP_ATOMIC_ADD     { new_instr(OPC_ATOMIC_ADD); }    cat6_at
 |                  T_OP_ATOMIC_OR      { new_instr(OPC_ATOMIC_OR); }     cat6_atomic_l_g cat6_type dst_reg ',' 'l' '[' reg cat6_offset ']' ',' cat6_immed
 |                  T_OP_ATOMIC_XOR     { new_instr(OPC_ATOMIC_XOR); }    cat6_atomic_l_g cat6_type dst_reg ',' 'l' '[' reg cat6_offset ']' ',' cat6_immed
 
+cat6_id_opc:
+                   T_OP_GETSPID { new_instr(OPC_GETSPID); }
+|                  T_OP_GETWID  { new_instr(OPC_GETWID); }
+
+cat6_id:           cat6_id_opc cat6_type dst_reg
+
 cat6_todo:         T_OP_G2L                 { new_instr(OPC_G2L); }
 |                  T_OP_L2G                 { new_instr(OPC_L2G); }
 |                  T_OP_RESFMT              { new_instr(OPC_RESFMT); }
@@ -824,6 +832,7 @@ cat6_instr:        cat6_load
 |                  cat6_storeib
 |                  cat6_prefetch
 |                  cat6_atomic
+|                  cat6_id
 |                  cat6_todo
 
 reg:               T_REGISTER     { $$ = new_reg($1, 0); }

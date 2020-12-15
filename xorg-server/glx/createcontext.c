@@ -350,6 +350,7 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
     ctx->renderMode = GL_RENDER;
     ctx->resetNotificationStrategy = reset;
     ctx->releaseBehavior = flush;
+    ctx->renderType = render_type;
 
     /* Add the new context to the various global tables of GLX contexts.
      */

@@ -517,7 +517,12 @@ config_udev_odev_setup_attribs(struct udev_device *udev_device, const char *path
 
     value = udev_device_get_property_value(udev_device, "ID_PATH");
     if (value && (str = strrstr(value, "pci-"))) {
-        attribs->busid = XNFstrdup(str);
+        value = str;
+
+        if ((str = strstr(value, "usb-")))
+            value = str;
+
+        attribs->busid = XNFstrdup(value);
         attribs->busid[3] = ':';
     }
 

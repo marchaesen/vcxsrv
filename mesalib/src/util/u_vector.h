@@ -84,10 +84,6 @@ u_vector_finish(struct u_vector *queue)
    free(queue->data);
 }
 
-#if !defined(__GNUC__) || defined(__cplusplus)
-#define __builtin_types_compatible_p(t1, t2) 1
-#endif
-
 #define u_vector_foreach(elem, queue)                                  \
    STATIC_ASSERT(__builtin_types_compatible_p(__typeof__(queue), struct u_vector *)); \
    for (uint32_t __u_vector_offset = (queue)->tail;                                \

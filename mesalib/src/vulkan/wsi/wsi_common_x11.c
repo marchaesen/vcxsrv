@@ -46,11 +46,6 @@
 #include "wsi_common_x11.h"
 #include "wsi_common_queue.h"
 
-#define typed_memcpy(dest, src, count) ({ \
-   STATIC_ASSERT(sizeof(*src) == sizeof(*dest)); \
-   memcpy((dest), (src), (count) * sizeof(*(src))); \
-})
-
 struct wsi_x11_connection {
    bool has_dri3;
    bool has_dri3_modifiers;

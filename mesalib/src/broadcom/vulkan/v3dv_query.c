@@ -39,8 +39,8 @@ v3dv_CreateQueryPool(VkDevice _device,
     *        for occlussion queries so we should try to use that.
     */
    struct v3dv_query_pool *pool =
-      vk_alloc2(&device->alloc, pAllocator, sizeof(*pool), 8,
-                VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+      vk_object_zalloc(&device->vk, pAllocator, sizeof(*pool),
+                       VK_OBJECT_TYPE_QUERY_POOL);
    if (pool == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
@@ -50,7 +50,7 @@ v3dv_CreateQueryPool(VkDevice _device,
    VkResult result;
 
    const uint32_t pool_bytes = sizeof(struct v3dv_query) * pool->query_count;
-   pool->queries = vk_alloc2(&device->alloc, pAllocator, pool_bytes, 8,
+   pool->queries = vk_alloc2(&device->vk.alloc, pAllocator, pool_bytes, 8,
                              VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (pool->queries == NULL) {
       result = vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -88,10 +88,10 @@ v3dv_CreateQueryPool(VkDevice _device,
 fail_alloc_bo:
    for (uint32_t j = 0; j < i; j++)
       v3dv_bo_free(device, pool->queries[j].bo);
-   vk_free2(&device->alloc, pAllocator, pool->queries);
+   vk_free2(&device->vk.alloc, pAllocator, pool->queries);
 
 fail_alloc_bo_list:
-   vk_free2(&device->alloc, pAllocator, pool);
+   vk_object_free(&device->vk, pAllocator, pool);
 
    return result;
 }
@@ -112,8 +112,8 @@ v3dv_DestroyQueryPool(VkDevice _device,
          v3dv_bo_free(device, pool->queries[i].bo);
    }
 
-   vk_free2(&device->alloc, pAllocator, pool->queries);
-   vk_free2(&device->alloc, pAllocator, pool);
+   vk_free2(&device->vk.alloc, pAllocator, pool->queries);
+   vk_object_free(&device->vk, pAllocator, pool);
 }
 
 static void

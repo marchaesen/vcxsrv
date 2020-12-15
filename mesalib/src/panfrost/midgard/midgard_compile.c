@@ -63,7 +63,8 @@ static const struct debug_named_value debug_options[] = {
 
 DEBUG_GET_ONCE_FLAGS_OPTION(midgard_debug, "MIDGARD_MESA_DEBUG", debug_options, 0)
 
-unsigned SHADER_DB_COUNT = 0;
+/* TODO: This is not thread safe!! */
+static unsigned SHADER_DB_COUNT = 0;
 
 int midgard_debug = 0;
 
@@ -300,7 +301,7 @@ optimise_nir(nir_shader *nir, unsigned quirks, bool is_blend)
                 }
 
                 NIR_PASS(progress, nir, nir_opt_undef);
-                NIR_PASS(progress, nir, nir_undef_to_zero);
+                NIR_PASS(progress, nir, nir_lower_undef_to_zero);
 
                 NIR_PASS(progress, nir, nir_opt_loop_unroll,
                          nir_var_shader_in |
@@ -1315,11 +1316,13 @@ compute_builtin_arg(nir_op op)
 }
 
 static void
-emit_fragment_store(compiler_context *ctx, unsigned src, unsigned src_z, unsigned src_s, enum midgard_rt_id rt)
+emit_fragment_store(compiler_context *ctx, unsigned src, unsigned src_z, unsigned src_s,
+                    enum midgard_rt_id rt, unsigned sample_iter)
 {
         assert(rt < ARRAY_SIZE(ctx->writeout_branch));
+        assert(sample_iter < ARRAY_SIZE(ctx->writeout_branch[0]));
 
-        midgard_instruction *br = ctx->writeout_branch[rt];
+        midgard_instruction *br = ctx->writeout_branch[rt][sample_iter];
 
         assert(!br);
 
@@ -1335,7 +1338,12 @@ emit_fragment_store(compiler_context *ctx, unsigned src, unsigned src_z, unsigne
         /* Add dependencies */
         ins.src[0] = src;
         ins.src_types[0] = nir_type_uint32;
-        ins.constants.u32[0] = depth_only ? 0xFF : (rt - MIDGARD_COLOR_RT0) * 0x100;
+
+        if (depth_only)
+                ins.constants.u32[0] = 0xFF;
+        else
+                ins.constants.u32[0] = ((rt - MIDGARD_COLOR_RT0) << 8) | sample_iter;
+
         for (int i = 0; i < 4; ++i)
                 ins.swizzle[0][i] = i;
 
@@ -1355,7 +1363,7 @@ emit_fragment_store(compiler_context *ctx, unsigned src, unsigned src_z, unsigne
         /* Emit the branch */
         br = emit_mir_instruction(ctx, ins);
         schedule_barrier(ctx);
-        ctx->writeout_branch[rt] = br;
+        ctx->writeout_branch[rt][sample_iter] = br;
 
         /* Push our current location = current block count - 1 = where we'll
          * jump to. Maybe a bit too clever for my own good */
@@ -1692,7 +1700,7 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
                                         reg_s = nir_src_index(ctx, &instr->src[3]);
                         }
 
-                        emit_fragment_store(ctx, reg, reg_z, reg_s, rt);
+                        emit_fragment_store(ctx, reg, reg_z, reg_s, rt, 0);
                 } else if (ctx->stage == MESA_SHADER_VERTEX) {
                         assert(instr->intrinsic == nir_intrinsic_store_output);
 
@@ -1756,7 +1764,8 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
         case nir_intrinsic_store_raw_output_pan:
                 assert (ctx->stage == MESA_SHADER_FRAGMENT);
                 reg = nir_src_index(ctx, &instr->src[0]);
-                emit_fragment_store(ctx, reg, ~0, ~0, ctx->blend_rt);
+                for (unsigned s = 0; s < ctx->blend_sample_iterations; s++)
+                        emit_fragment_store(ctx, reg, ~0, ~0, ctx->blend_rt, s);
                 break;
 
         case nir_intrinsic_store_global:
@@ -1903,6 +1912,150 @@ mdg_texture_mode(nir_tex_instr *instr)
 }
 
 static void
+set_tex_coord(compiler_context *ctx, nir_tex_instr *instr,
+              midgard_instruction *ins)
+{
+        int coord_idx = nir_tex_instr_src_index(instr, nir_tex_src_coord);
+
+        assert(coord_idx >= 0);
+
+        int comparator_idx = nir_tex_instr_src_index(instr, nir_tex_src_comparator);
+        int ms_idx = nir_tex_instr_src_index(instr, nir_tex_src_ms_index);
+        assert(comparator_idx < 0 || ms_idx < 0);
+        int ms_or_comparator_idx = ms_idx >= 0 ? ms_idx : comparator_idx;
+
+        unsigned coords = nir_src_index(ctx, &instr->src[coord_idx].src);
+
+        emit_explicit_constant(ctx, coords, coords);
+
+        ins->src_types[1] = nir_tex_instr_src_type(instr, coord_idx) |
+                            nir_src_bit_size(instr->src[coord_idx].src);
+
+        unsigned nr_comps = instr->coord_components;
+        unsigned written_mask = 0, write_mask = 0;
+
+        /* Initialize all components to coord.x which is expected to always be
+         * present. Swizzle is updated below based on the texture dimension
+         * and extra attributes that are packed in the coordinate argument.
+         */
+        for (unsigned c = 0; c < MIR_VEC_COMPONENTS; c++)
+                ins->swizzle[1][c] = COMPONENT_X;
+
+        /* Shadow ref value is part of the coordinates if there's no comparator
+         * source, in that case it's always placed in the last component.
+         * Midgard wants the ref value in coord.z.
+         */
+        if (instr->is_shadow && comparator_idx < 0) {
+                ins->swizzle[1][COMPONENT_Z] = --nr_comps;
+                write_mask |= 1 << COMPONENT_Z;
+        }
+
+        /* The array index is the last component if there's no shadow ref value
+         * or second last if there's one. We already decremented the number of
+         * components to account for the shadow ref value above.
+         * Midgard wants the array index in coord.w.
+         */
+        if (instr->is_array) {
+                ins->swizzle[1][COMPONENT_W] = --nr_comps;
+                write_mask |= 1 << COMPONENT_W;
+        }
+
+        if (instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE) {
+                /* texelFetch is undefined on samplerCube */
+                assert(ins->op != TEXTURE_OP_TEXEL_FETCH);
+
+                ins->src[1] = make_compiler_temp_reg(ctx);
+
+                /* For cubemaps, we use a special ld/st op to select the face
+                 * and copy the xy into the texture register
+                 */
+                midgard_instruction ld = m_ld_cubemap_coords(ins->src[1], 0);
+                ld.src[1] = coords;
+                ld.src_types[1] = ins->src_types[1];
+                ld.mask = 0x3; /* xy */
+                ld.load_store.arg_1 = 0x20;
+                ld.swizzle[1][3] = COMPONENT_X;
+                emit_mir_instruction(ctx, ld);
+
+                /* We packed cube coordiates (X,Y,Z) into (X,Y), update the
+                 * written mask accordingly and decrement the number of
+                 * components
+                 */
+                nr_comps--;
+                written_mask |= 3;
+        }
+
+        /* Now flag tex coord components that have not been written yet */
+        write_mask |= mask_of(nr_comps) & ~written_mask;
+        for (unsigned c = 0; c < nr_comps; c++)
+                ins->swizzle[1][c] = c;
+
+        /* Sample index and shadow ref are expected in coord.z */
+        if (ms_or_comparator_idx >= 0) {
+                assert(!((write_mask | written_mask) & (1 << COMPONENT_Z)));
+
+                unsigned sample_or_ref =
+                        nir_src_index(ctx, &instr->src[ms_or_comparator_idx].src);
+
+                emit_explicit_constant(ctx, sample_or_ref, sample_or_ref);
+
+                if (ins->src[1] == ~0)
+                        ins->src[1] = make_compiler_temp_reg(ctx);
+
+                midgard_instruction mov = v_mov(sample_or_ref, ins->src[1]);
+
+                for (unsigned c = 0; c < MIR_VEC_COMPONENTS; c++)
+                        mov.swizzle[1][c] = COMPONENT_X;
+
+                mov.mask = 1 << COMPONENT_Z;
+                written_mask |= 1 << COMPONENT_Z;
+                ins->swizzle[1][COMPONENT_Z] = COMPONENT_Z;
+                emit_mir_instruction(ctx, mov);
+        }
+
+        /* Texelfetch coordinates uses all four elements (xyz/index) regardless
+         * of texture dimensionality, which means it's necessary to zero the
+         * unused components to keep everything happy.
+         */
+        if (ins->op == TEXTURE_OP_TEXEL_FETCH &&
+            (written_mask | write_mask) != 0xF) {
+                if (ins->src[1] == ~0)
+                        ins->src[1] = make_compiler_temp_reg(ctx);
+
+                /* mov index.zw, #0, or generalized */
+                midgard_instruction mov =
+                        v_mov(SSA_FIXED_REGISTER(REGISTER_CONSTANT), ins->src[1]);
+                mov.has_constants = true;
+                mov.mask = (written_mask | write_mask) ^ 0xF;
+                emit_mir_instruction(ctx, mov);
+                for (unsigned c = 0; c < MIR_VEC_COMPONENTS; c++) {
+                        if (mov.mask & (1 << c))
+                                ins->swizzle[1][c] = c;
+                }
+        }
+
+        if (ins->src[1] == ~0) {
+                /* No temporary reg created, use the src coords directly */
+                ins->src[1] = coords;
+	} else if (write_mask) {
+                /* Move the remaining coordinates to the temporary reg */
+                midgard_instruction mov = v_mov(coords, ins->src[1]);
+
+                for (unsigned c = 0; c < MIR_VEC_COMPONENTS; c++) {
+                        if ((1 << c) & write_mask) {
+                                mov.swizzle[1][c] = ins->swizzle[1][c];
+                                ins->swizzle[1][c] = c;
+                        } else {
+                                mov.swizzle[1][c] = COMPONENT_X;
+                        }
+                }
+
+                mov.mask = write_mask;
+                emit_mir_instruction(ctx, mov);
+        }
+}
+
+static void
 emit_texop_native(compiler_context *ctx, nir_tex_instr *instr,
                   unsigned midgard_texop)
 {
@@ -1944,105 +2097,15 @@ emit_texop_native(compiler_context *ctx, nir_tex_instr *instr,
            for (int i = 0; i < 4; ++i)
               ins.swizzle[0][i] = COMPONENT_X;
 
-        /* We may need a temporary for the coordinate */
-
-        bool needs_temp_coord =
-                (midgard_texop == TEXTURE_OP_TEXEL_FETCH) ||
-                (instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE) ||
-                (instr->is_shadow);
-
-        unsigned coords = needs_temp_coord ? make_compiler_temp_reg(ctx) : 0;
-
         for (unsigned i = 0; i < instr->num_srcs; ++i) {
                 int index = nir_src_index(ctx, &instr->src[i].src);
-                unsigned nr_components = nir_src_num_components(instr->src[i].src);
                 unsigned sz = nir_src_bit_size(instr->src[i].src);
                 nir_alu_type T = nir_tex_instr_src_type(instr, i) | sz;
 
                 switch (instr->src[i].src_type) {
-                case nir_tex_src_coord: {
-                        emit_explicit_constant(ctx, index, index);
-
-                        unsigned coord_mask = mask_of(instr->coord_components);
-
-                        bool flip_zw = (instr->sampler_dim == GLSL_SAMPLER_DIM_2D) && (coord_mask & (1 << COMPONENT_Z));
-
-                        if (flip_zw)
-                                coord_mask ^= ((1 << COMPONENT_Z) | (1 << COMPONENT_W));
-
-                        if (instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE) {
-                                /* texelFetch is undefined on samplerCube */
-                                assert(midgard_texop != TEXTURE_OP_TEXEL_FETCH);
-
-                                /* For cubemaps, we use a special ld/st op to
-                                 * select the face and copy the xy into the
-                                 * texture register */
-
-                                midgard_instruction ld = m_ld_cubemap_coords(coords, 0);
-                                ld.src[1] = index;
-                                ld.src_types[1] = T;
-                                ld.mask = 0x3; /* xy */
-                                ld.load_store.arg_1 = 0x20;
-                                ld.swizzle[1][3] = COMPONENT_X;
-                                emit_mir_instruction(ctx, ld);
-
-                                /* xyzw -> xyxx */
-                                ins.swizzle[1][2] = instr->is_shadow ? COMPONENT_Z : COMPONENT_X;
-                                ins.swizzle[1][3] = COMPONENT_X;
-                        } else if (needs_temp_coord) {
-                                /* mov coord_temp, coords */
-                                midgard_instruction mov = v_mov(index, coords);
-                                mov.mask = coord_mask;
-
-                                if (flip_zw)
-                                        mov.swizzle[1][COMPONENT_W] = COMPONENT_Z;
-
-                                emit_mir_instruction(ctx, mov);
-                        } else {
-                                coords = index;
-                        }
-
-                        ins.src[1] = coords;
-                        ins.src_types[1] = T;
-
-                        /* Texelfetch coordinates uses all four elements
-                         * (xyz/index) regardless of texture dimensionality,
-                         * which means it's necessary to zero the unused
-                         * components to keep everything happy */
-
-                        if (midgard_texop == TEXTURE_OP_TEXEL_FETCH) {
-                                /* mov index.zw, #0, or generalized */
-                                midgard_instruction mov =
-                                        v_mov(SSA_FIXED_REGISTER(REGISTER_CONSTANT), coords);
-                                mov.has_constants = true;
-                                mov.mask = coord_mask ^ 0xF;
-                                emit_mir_instruction(ctx, mov);
-                        }
-
-                        if (instr->sampler_dim == GLSL_SAMPLER_DIM_2D) {
-                                /* Array component in w but NIR wants it in z,
-                                 * but if we have a temp coord we already fixed
-                                 * that up */
-
-                                if (nr_components == 3) {
-                                        ins.swizzle[1][2] = COMPONENT_Z;
-                                        ins.swizzle[1][3] = needs_temp_coord ? COMPONENT_W : COMPONENT_Z;
-                                } else if (nr_components == 2) {
-                                        ins.swizzle[1][2] =
-                                                instr->is_shadow ? COMPONENT_Z : COMPONENT_X;
-                                        ins.swizzle[1][3] = COMPONENT_X;
-                                } else
-                                        unreachable("Invalid texture 2D components");
-                        }
-
-                        if (midgard_texop == TEXTURE_OP_TEXEL_FETCH) {
-                                /* We zeroed */
-                                ins.swizzle[1][2] = COMPONENT_Z;
-                                ins.swizzle[1][3] = COMPONENT_W;
-                        }
-
+                case nir_tex_src_coord:
+                        set_tex_coord(ctx, instr, &ins);
                         break;
-                }
 
                 case nir_tex_src_bias:
                 case nir_tex_src_lod: {
@@ -2077,19 +2140,9 @@ emit_texop_native(compiler_context *ctx, nir_tex_instr *instr,
                 };
 
                 case nir_tex_src_comparator:
-                case nir_tex_src_ms_index: {
-                        unsigned comp = COMPONENT_Z;
-
-                        /* mov coord_temp.foo, coords */
-                        midgard_instruction mov = v_mov(index, coords);
-                        mov.mask = 1 << comp;
-
-                        for (unsigned i = 0; i < MIR_VEC_COMPONENTS; ++i)
-                                mov.swizzle[1][i] = COMPONENT_X;
-
-                        emit_mir_instruction(ctx, mov);
+                case nir_tex_src_ms_index:
+                        /* Nothing to do, handled in set_tex_coord() */
                         break;
-                }
 
                 default: {
                         fprintf(stderr, "Unknown texture source type: %d\n", instr->src[i].src_type);
@@ -2450,10 +2503,10 @@ midgard_legalize_invert(compiler_context *ctx, midgard_block *block)
 }
 
 static unsigned
-emit_fragment_epilogue(compiler_context *ctx, unsigned rt)
+emit_fragment_epilogue(compiler_context *ctx, unsigned rt, unsigned sample_iter)
 {
         /* Loop to ourselves */
-        midgard_instruction *br = ctx->writeout_branch[rt];
+        midgard_instruction *br = ctx->writeout_branch[rt][sample_iter];
         struct midgard_instruction ins = v_branch(false, false);
         ins.writeout = br->writeout;
         ins.branch.target_block = ctx->block_count - 1;
@@ -2682,27 +2735,38 @@ static void
 mir_add_writeout_loops(compiler_context *ctx)
 {
         for (unsigned rt = 0; rt < ARRAY_SIZE(ctx->writeout_branch); ++rt) {
-                midgard_instruction *br = ctx->writeout_branch[rt];
-                if (!br) continue;
+                for (unsigned s = 0; s < MIDGARD_MAX_SAMPLE_ITER; ++s) {
+                        midgard_instruction *br = ctx->writeout_branch[rt][s];
+                        if (!br) continue;
 
-                unsigned popped = br->branch.target_block;
-                pan_block_add_successor(&(mir_get_block(ctx, popped - 1)->base), &ctx->current_block->base);
-                br->branch.target_block = emit_fragment_epilogue(ctx, rt);
-                br->branch.target_type = TARGET_GOTO;
+                        unsigned popped = br->branch.target_block;
+                        pan_block_add_successor(&(mir_get_block(ctx, popped - 1)->base),
+                                                &ctx->current_block->base);
+                        br->branch.target_block = emit_fragment_epilogue(ctx, rt, s);
+                        br->branch.target_type = TARGET_GOTO;
 
-                /* If we have more RTs, we'll need to restore back after our
-                 * loop terminates */
+                        /* If we have more RTs, we'll need to restore back after our
+                         * loop terminates */
+                        midgard_instruction *next_br = NULL;
 
-                if ((rt + 1) < ARRAY_SIZE(ctx->writeout_branch) && ctx->writeout_branch[rt + 1]) {
-                        midgard_instruction uncond = v_branch(false, false);
-                        uncond.branch.target_block = popped;
-                        uncond.branch.target_type = TARGET_GOTO;
-                        emit_mir_instruction(ctx, uncond);
-                        pan_block_add_successor(&ctx->current_block->base, &(mir_get_block(ctx, popped)->base));
-                        schedule_barrier(ctx);
-                } else {
-                        /* We're last, so we can terminate here */
-                        br->last_writeout = true;
+                        if ((s + 1) < MIDGARD_MAX_SAMPLE_ITER)
+                                next_br = ctx->writeout_branch[rt][s + 1];
+
+                        if (!next_br && (rt + 1) < ARRAY_SIZE(ctx->writeout_branch))
+			        next_br = ctx->writeout_branch[rt + 1][0];
+
+                        if (next_br) {
+                                midgard_instruction uncond = v_branch(false, false);
+                                uncond.branch.target_block = popped;
+                                uncond.branch.target_type = TARGET_GOTO;
+                                emit_mir_instruction(ctx, uncond);
+                                pan_block_add_successor(&ctx->current_block->base,
+                                                        &(mir_get_block(ctx, popped)->base));
+                                schedule_barrier(ctx);
+                        } else {
+                                /* We're last, so we can terminate here */
+                                br->last_writeout = true;
+                        }
                 }
         }
 }
@@ -2724,6 +2788,15 @@ midgard_compile_shader_nir(void *mem_ctx, nir_shader *nir,
         ctx->stage = nir->info.stage;
         ctx->is_blend = inputs->is_blend;
         ctx->blend_rt = MIDGARD_COLOR_RT0 + inputs->blend.rt;
+        if (inputs->is_blend) {
+                unsigned nr_samples = MAX2(inputs->blend.nr_samples, 1);
+                const struct util_format_description *desc =
+                        util_format_description(inputs->rt_formats[inputs->blend.rt]);
+
+                /* We have to split writeout in 128 bit chunks */
+                ctx->blend_sample_iterations =
+                        DIV_ROUND_UP(desc->block.bits * nr_samples, 128);
+        }
         memcpy(ctx->blend_constants, inputs->blend.constants, sizeof(ctx->blend_constants));
         ctx->blend_input = ~0;
         ctx->blend_src1 = ~0;

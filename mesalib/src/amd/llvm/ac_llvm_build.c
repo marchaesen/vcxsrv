@@ -388,7 +388,7 @@ void ac_build_optimization_barrier(struct ac_llvm_context *ctx, LLVMValueRef *pv
    LLVMBuilderRef builder = ctx->builder;
    char code[16];
 
-   snprintf(code, sizeof(code), "; %d", p_atomic_inc_return(&counter));
+   snprintf(code, sizeof(code), "; %d", (int)p_atomic_inc_return(&counter));
 
    if (!pvgpr) {
       LLVMTypeRef ftype = LLVMFunctionType(ctx->voidt, NULL, 0, false);
@@ -3219,6 +3219,13 @@ LLVMValueRef ac_build_alloca(struct ac_llvm_context *ac, LLVMTypeRef type, const
 {
    LLVMValueRef ptr = ac_build_alloca_undef(ac, type, name);
    LLVMBuildStore(ac->builder, LLVMConstNull(type), ptr);
+   return ptr;
+}
+
+LLVMValueRef ac_build_alloca_init(struct ac_llvm_context *ac, LLVMValueRef val, const char *name)
+{
+   LLVMValueRef ptr = ac_build_alloca_undef(ac, LLVMTypeOf(val), name);
+   LLVMBuildStore(ac->builder, val, ptr);
    return ptr;
 }
 

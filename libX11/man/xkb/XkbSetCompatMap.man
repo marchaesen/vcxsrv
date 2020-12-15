@@ -34,19 +34,18 @@ XkbSetCompatMap \- Modify the server's compatibility map
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I  display
 connection to server
 .TP
-.I \- which
+.I which
 mask of compat map components to set
 .TP
-.I \- xkb
+.I xkb
 source for compat map components
 .TP
-.I \- update_actions
+.I  update_actions
 True => apply to server's keyboard map 
 .SH DESCRIPTION
-.LP
 To modify the server's compatibility map, first modify a local copy of the Xkb 
 compatibility map, then call 
 .I XkbSetCompatMap. 
@@ -57,19 +56,18 @@ adjust the
 .I device_spec 
 field in the XkbDescRec accordingly. Note that symbol interpretations in a 
 compatibility map (
-.I sym_interpret, 
+.IR sym_interpret  , 
 the vector of XkbSymInterpretRec structures) are also allocated using this same 
 function.
-
 .I XkbSetCompatMap 
 copies compatibility map information from the keyboard description in 
 .I xkb 
 to the server specified in 
-.I display
-'s compatibility map for the device specified by the 
+.I display's 
+compatibility map for the device specified by the 
 .I device_spec 
 field of 
-.I xkb. 
+.IR xkb . 
 Unless you have specifically modified this field, it is the default keyboard 
 device. 
 .I which 
@@ -106,7 +104,6 @@ specifying
 as zero and 
 .I update_actions 
 as True. 
-
 .I XkbSetCompatMap 
 returns True if successful and False if unsuccessful. The server may report 
 problems it encounters when processing the request subsequently via protocol 
@@ -123,32 +120,33 @@ The
 .I XkbSetCompatMap 
 function returns False if unsuccessful.
 .SH STRUCTURES
-.LP
 The complete description of an Xkb keyboard is given by an XkbDescRec. The 
 component 
 structures in the XkbDescRec represent the major Xkb components.
 
 .nf
 typedef struct {
-   struct _XDisplay * display;      /\(** connection to X server */
-   unsigned short     flags;        /\(** private to Xkb, do not modify */
-   unsigned short     device_spec;  /\(** device of interest */
-   KeyCode            min_key_code; /\(** minimum keycode for device */
-   KeyCode            max_key_code; /\(** maximum keycode for device */
-   XkbControlsPtr     ctrls;        /\(** controls */
-   XkbServerMapPtr    server;       /\(** server keymap */
-   XkbClientMapPtr    map;          /\(** client keymap */
-   XkbIndicatorPtr    indicators;   /\(** indicator map */
-   XkbNamesPtr        names;        /\(** names for all components */
-   XkbCompatMapPtr    compat;       /\(** compatibility map */
-   XkbGeometryPtr     geom;         /\(** physical geometry of keyboard */
+   struct _XDisplay  *display;      /\&* connection to X server */
+   unsigned short     flags;        /\&* private to Xkb, do not modify */
+   unsigned short     device_spec;  /\&* device of interest */
+   KeyCode            min_key_code; /\&* minimum keycode for device */
+   KeyCode            max_key_code; /\&* maximum keycode for device */
+   XkbControlsPtr     ctrls;        /\&* controls */
+   XkbServerMapPtr    server;       /\&* server keymap */
+   XkbClientMapPtr    map;          /\&* client keymap */
+   XkbIndicatorPtr    indicators;   /\&* indicator map */
+   XkbNamesPtr        names;        /\&* names for all components */
+   XkbCompatMapPtr    compat;       /\&* compatibility map */
+   XkbGeometryPtr     geom;         /\&* physical geometry of keyboard */
 } XkbDescRec, *XkbDescPtr;
 
 .fi
+
 The 
 .I display 
 field points to an X display structure. The 
-.I flags field is private to the library: modifying 
+.I flags 
+field is private to the library: modifying 
 .I flags 
 may yield unpredictable results. The 
 .I device_spec 
@@ -161,12 +159,9 @@ fields specify the least and greatest keycode that can be returned by the
 keyboard. 
 
 Each structure component has a corresponding mask bit that is used in function 
-calls to 
-indicate that the structure should be manipulated in some manner, such as 
-allocating it 
-or freeing it. These masks and their relationships to the fields in the 
-XkbDescRec are 
-shown in Table 2.
+calls to indicate that the structure should be manipulated in some manner, such as 
+allocating it or freeing it. These masks and their relationships to the fields in the 
+XkbDescRec are shown in Table 2.
 
 .TS
 c s s
@@ -187,17 +182,17 @@ XkbAllComponentsMask	All Fields	(0x7f)
 .TE
 
 The XkbSymInterpretRec structure specifies a symbol interpretation:
-.nf
+.EX
  
     typedef struct {
-        KeySym        sym;         /\(** keysym of interest or NULL */
-        unsigned char flags;       /\(** XkbSI_AutoRepeat, XkbSI_LockingKey */
-        unsigned char match;       /\(** specifies how mods is interpreted */
-        unsigned char mods;        /\(** modifier bits, correspond to eight real modifiers */
-        unsigned char virtual_mod; /\(** 1 modifier to add to key virtual mod map */
-        XkbAnyAction  act;         /\(** action to bind to symbol position on key */
+        KeySym        sym;         /\&* keysym of interest or NULL */
+        unsigned char flags;       /\&* XkbSI_AutoRepeat, XkbSI_LockingKey */
+        unsigned char match;       /\&* specifies how mods is interpreted */
+        unsigned char mods;        /\&* modifier bits, correspond to eight real modifiers */
+        unsigned char virtual_mod; /\&* 1 modifier to add to key virtual mod map */
+        XkbAnyAction  act;         /\&* action to bind to symbol position on key */
     } XkbSymInterpretRec,*XkbSymInterpretPtr;
-    
-.fi    
+.EN    
+
 .SH "SEE ALSO"
 .BR XkbAllocCompatMap (__libmansuffix__)

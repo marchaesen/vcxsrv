@@ -203,9 +203,9 @@ static clip_func ref_cliptest[5] = {
  * Cliptest tests
  */
 
-ALIGN16(static GLfloat, s[TEST_COUNT][4]);
-ALIGN16(static GLfloat, d[TEST_COUNT][4]);
-ALIGN16(static GLfloat, r[TEST_COUNT][4]);
+ALIGN16 static GLfloat s[TEST_COUNT][4];
+ALIGN16 static GLfloat d[TEST_COUNT][4];
+ALIGN16 static GLfloat r[TEST_COUNT][4];
 
 
 /**

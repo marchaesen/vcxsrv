@@ -37,6 +37,7 @@ if with_gallium_omx == 'bellagio'
     'bellagio/vid_dec_mpeg12.c',
     'bellagio/vid_dec_h264.c',
     'bellagio/vid_dec_h265.c',
+    'bellagio/vid_dec_av1.c',
     'bellagio/vid_enc.c'
   )
 elif with_gallium_omx == 'tizonia'
@@ -68,5 +69,5 @@ libomx_st = static_library(
   c_args : ['-fcommon'],
   gnu_symbol_visibility : 'hidden',
   include_directories : inc_st_omx,
-  dependencies : dep_st_omx,
+  dependencies : [dep_st_omx, idep_mesautil],
 )

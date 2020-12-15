@@ -928,12 +928,16 @@ static void compute_swapchain_display(struct swapchain_data *data)
    ImGui::NewFrame();
    position_layer(data);
    ImGui::Begin("Mesa overlay");
-   ImGui::Text("Device: %s", device_data->properties.deviceName);
+   if (instance_data->params.enabled[OVERLAY_PARAM_ENABLED_device])
+      ImGui::Text("Device: %s", device_data->properties.deviceName);
 
-   const char *format_name = vk_Format_to_str(data->format);
-   format_name = format_name ? (format_name + strlen("VK_FORMAT_")) : "unknown";
-   ImGui::Text("Swapchain format: %s", format_name);
-   ImGui::Text("Frames: %" PRIu64, data->n_frames);
+   if (instance_data->params.enabled[OVERLAY_PARAM_ENABLED_format]) {
+      const char *format_name = vk_Format_to_str(data->format);
+      format_name = format_name ? (format_name + strlen("VK_FORMAT_")) : "unknown";
+      ImGui::Text("Swapchain format: %s", format_name);
+   }
+   if (instance_data->params.enabled[OVERLAY_PARAM_ENABLED_frame])
+      ImGui::Text("Frames: %" PRIu64, data->n_frames);
    if (instance_data->params.enabled[OVERLAY_PARAM_ENABLED_fps])
       ImGui::Text("FPS: %.2f" , data->fps);
 
@@ -1326,7 +1330,7 @@ static struct overlay_draw *render_swapchain_display(struct swapchain_data *data
    if (device_data->graphic_queue->family_index != present_queue->family_index)
    {
       /* Transfer the image back to the present queue family
-       * image layout was already changed to present by the render pass 
+       * image layout was already changed to present by the render pass
        */
       imb.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
       imb.pNext = nullptr;

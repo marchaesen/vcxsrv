@@ -342,7 +342,7 @@ struct vn_ctx {
     */
    uint32_t exec_id = 1;
 
-   vn_ctx(Program* program) : program(program) {
+   vn_ctx(Program* program_) : program(program_) {
       static_assert(sizeof(Temp) == 4, "Temp must fit in 32bits");
       unsigned size = 0;
       for (Block& block : program->blocks)

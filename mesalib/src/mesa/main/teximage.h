@@ -174,7 +174,7 @@ _mesa_get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat);
 static inline const struct gl_texture_image *
 _mesa_base_tex_image(const struct gl_texture_object *texObj)
 {
-   return texObj->Image[0][texObj->BaseLevel];
+   return texObj->Image[0][texObj->Attrib.BaseLevel];
 }
 
 

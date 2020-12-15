@@ -312,7 +312,7 @@ set_fetch_functions(const struct gl_sampler_object *samp,
 {
    mesa_format format = texImage->Base.TexFormat;
 
-   if (samp->sRGBDecode == GL_SKIP_DECODE_EXT)
+   if (samp->Attrib.sRGBDecode == GL_SKIP_DECODE_EXT)
       format = _mesa_get_srgb_format_linear(format);
 
    texImage->FetchTexel = NULL;

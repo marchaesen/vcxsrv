@@ -78,12 +78,12 @@ function.
 .nf
 
     typedef struct _XkbOverlayRec {
-        Atom                  name;            /\(** overlay name */
-        XkbSectionPtr         section_under;   /\(** the section under this overlay */
-        unsigned short        num_rows;        /\(** number of rows in the rows array */
-        unsigned short        sz_rows;         /\(** size of the rows array */
-        XkbOverlayRowPtr      rows;            /\(** array of rows in the overlay */
-        XkbBoundsPtr          bounds;          /\(** bounding box for the overlay */
+        Atom                  name;            /\&* overlay name */
+        XkbSectionPtr         section_under;   /\&* the section under this overlay */
+        unsigned short        num_rows;        /\&* number of rows in the rows array */
+        unsigned short        sz_rows;         /\&* size of the rows array */
+        XkbOverlayRowPtr      rows;            /\&* array of rows in the overlay */
+        XkbBoundsPtr          bounds;          /\&* bounding box for the overlay */
     } XkbOverlayRec,*XkbOverlayPtr;
     
 .fi

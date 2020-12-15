@@ -319,7 +319,7 @@ void lvp_GetPhysicalDeviceFeatures(
       .textureCompressionASTC_LDR               = false,
       .textureCompressionBC                     = true,
       .occlusionQueryPrecise                    = true,
-      .pipelineStatisticsQuery                  = false,
+      .pipelineStatisticsQuery                  = true,
       .vertexPipelineStoresAndAtomics           = (pdevice->pscreen->get_shader_param(pdevice->pscreen, PIPE_SHADER_VERTEX, PIPE_SHADER_CAP_MAX_SHADER_BUFFERS) != 0),
       .fragmentStoresAndAtomics                 = (pdevice->pscreen->get_shader_param(pdevice->pscreen, PIPE_SHADER_FRAGMENT, PIPE_SHADER_CAP_MAX_SHADER_BUFFERS) != 0),
       .shaderTessellationAndGeometryPointSize   = true,
@@ -347,6 +347,7 @@ void lvp_GetPhysicalDeviceFeatures2(
    VkPhysicalDevice                            physicalDevice,
    VkPhysicalDeviceFeatures2                  *pFeatures)
 {
+   LVP_FROM_HANDLE(lvp_physical_device, pdevice, physicalDevice);
    lvp_GetPhysicalDeviceFeatures(physicalDevice, &pFeatures->features);
 
    vk_foreach_struct(ext, pFeatures->pNext) {
@@ -366,6 +367,25 @@ void lvp_GetPhysicalDeviceFeatures2(
          features->storageInputOutput16 = false;
          break;
       }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIVATE_DATA_FEATURES_EXT: {
+         VkPhysicalDevicePrivateDataFeaturesEXT *features =
+            (VkPhysicalDevicePrivateDataFeaturesEXT *)ext;
+         features->privateData = true;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT: {
+         VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT *features =
+            (VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT *)ext;
+         features->vertexAttributeInstanceRateZeroDivisor = false;
+         if (pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR) != 0) {
+            features->vertexAttributeInstanceRateDivisor = true;
+         } else {
+            features->vertexAttributeInstanceRateDivisor = false;
+         }
+         break;
+      }
+
       default:
          break;
       }
@@ -457,8 +477,8 @@ void lvp_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
       .maxComputeWorkGroupInvocations           = max_threads_per_block,
       .maxComputeWorkGroupSize = { block_size[0], block_size[1], block_size[2] },
       .subPixelPrecisionBits                    = pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_RASTERIZER_SUBPIXEL_BITS),
-      .subTexelPrecisionBits                    = 4 /* FIXME */,
-      .mipmapPrecisionBits                      = 4 /* FIXME */,
+      .subTexelPrecisionBits                    = 8,
+      .mipmapPrecisionBits                      = 8,
       .maxDrawIndexedIndexValue                 = UINT32_MAX,
       .maxDrawIndirectCount                     = UINT32_MAX,
       .maxSamplerLodBias                        = 16,
@@ -528,11 +548,18 @@ void lvp_GetPhysicalDeviceProperties2(
    VkPhysicalDevice                            physicalDevice,
    VkPhysicalDeviceProperties2                *pProperties)
 {
+   LVP_FROM_HANDLE(lvp_physical_device, pdevice, physicalDevice);
    lvp_GetPhysicalDeviceProperties(physicalDevice, &pProperties->properties);
 
    vk_foreach_struct(ext, pProperties->pNext) {
       switch (ext->sType) {
 
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES_KHR: {
+         VkPhysicalDevicePushDescriptorPropertiesKHR *properties =
+            (VkPhysicalDevicePushDescriptorPropertiesKHR *) ext;
+         properties->maxPushDescriptors = MAX_PUSH_DESCRIPTORS;
+         break;
+      }
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES: {
          VkPhysicalDeviceMaintenance3Properties *properties =
             (VkPhysicalDeviceMaintenance3Properties*)ext;
@@ -561,6 +588,15 @@ void lvp_GetPhysicalDeviceProperties2(
          VkPhysicalDevicePointClippingProperties *properties =
             (VkPhysicalDevicePointClippingProperties*)ext;
          properties->pointClippingBehavior = VK_POINT_CLIPPING_BEHAVIOR_ALL_CLIP_PLANES;
+         break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT: {
+         VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT *props =
+            (VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT *)ext;
+         if (pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR) != 0)
+            props->maxVertexAttribDivisor = UINT32_MAX;
+         else
+            props->maxVertexAttribDivisor = 1;
          break;
       }
       default:
@@ -840,19 +876,17 @@ VkResult lvp_CreateDevice(
    if (!device)
       return vk_error(physical_device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
+   vk_device_init(&device->vk, pCreateInfo,
+                  &physical_device->instance->alloc, pAllocator);
+
    device->instance = physical_device->instance;
    device->physical_device = physical_device;
-
-   if (pAllocator)
-      device->alloc = *pAllocator;
-   else
-      device->alloc = physical_device->instance->alloc;
 
    for (uint32_t i = 0; i < pCreateInfo->enabledExtensionCount; i++) {
       const char *ext_name = pCreateInfo->ppEnabledExtensionNames[i];
       int index = lvp_get_device_extension_index(ext_name);
       if (index < 0 || !physical_device->supported_extensions.extensions[index]) {
-         vk_free(&device->alloc, device);
+         vk_free(&device->vk.alloc, device);
          return vk_error(physical_device->instance, VK_ERROR_EXTENSION_NOT_PRESENT);
       }
 
@@ -878,7 +912,7 @@ void lvp_DestroyDevice(
    LVP_FROM_HANDLE(lvp_device, device, _device);
 
    lvp_queue_finish(&device->queue);
-   vk_free(&device->alloc, device);
+   vk_free(&device->vk.alloc, device);
 }
 
 VkResult lvp_EnumerateInstanceExtensionProperties(
@@ -1073,7 +1107,7 @@ VkResult lvp_AllocateMemory(
       return VK_SUCCESS;
    }
 
-   mem = vk_alloc2(&device->alloc, pAllocator, sizeof(*mem), 8,
+   mem = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*mem), 8,
                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (mem == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -1082,7 +1116,7 @@ VkResult lvp_AllocateMemory(
                        VK_OBJECT_TYPE_DEVICE_MEMORY);
    mem->pmem = device->pscreen->allocate_memory(device->pscreen, pAllocateInfo->allocationSize);
    if (!mem->pmem) {
-      vk_free2(&device->alloc, pAllocator, mem);
+      vk_free2(&device->vk.alloc, pAllocator, mem);
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
    }
 
@@ -1106,7 +1140,7 @@ void lvp_FreeMemory(
 
    device->pscreen->free_memory(device->pscreen, mem->pmem);
    vk_object_base_finish(&mem->base);
-   vk_free2(&device->alloc, pAllocator, mem);
+   vk_free2(&device->vk.alloc, pAllocator, mem);
 
 }
 
@@ -1352,7 +1386,7 @@ VkResult lvp_CreateFence(
    LVP_FROM_HANDLE(lvp_device, device, _device);
    struct lvp_fence *fence;
 
-   fence = vk_alloc2(&device->alloc, pAllocator, sizeof(*fence), 8,
+   fence = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*fence), 8,
                      VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (fence == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -1380,7 +1414,7 @@ void lvp_DestroyFence(
       device->pscreen->fence_reference(device->pscreen, &fence->handle, NULL);
 
    vk_object_base_finish(&fence->base);
-   vk_free2(&device->alloc, pAllocator, fence);
+   vk_free2(&device->vk.alloc, pAllocator, fence);
 }
 
 VkResult lvp_ResetFences(
@@ -1443,7 +1477,7 @@ VkResult lvp_CreateFramebuffer(
 
    size_t size = sizeof(*framebuffer) +
       sizeof(struct lvp_image_view *) * pCreateInfo->attachmentCount;
-   framebuffer = vk_alloc2(&device->alloc, pAllocator, size, 8,
+   framebuffer = vk_alloc2(&device->vk.alloc, pAllocator, size, 8,
                            VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (framebuffer == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -1476,7 +1510,7 @@ void lvp_DestroyFramebuffer(
    if (!fb)
       return;
    vk_object_base_finish(&fb->base);
-   vk_free2(&device->alloc, pAllocator, fb);
+   vk_free2(&device->vk.alloc, pAllocator, fb);
 }
 
 VkResult lvp_WaitForFences(
@@ -1527,7 +1561,7 @@ VkResult lvp_CreateSemaphore(
 {
    LVP_FROM_HANDLE(lvp_device, device, _device);
 
-   struct lvp_semaphore *sema = vk_alloc2(&device->alloc, pAllocator,
+   struct lvp_semaphore *sema = vk_alloc2(&device->vk.alloc, pAllocator,
                                           sizeof(*sema), 8,
                                           VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
@@ -1551,7 +1585,7 @@ void lvp_DestroySemaphore(
    if (!_semaphore)
       return;
    vk_object_base_finish(&semaphore->base);
-   vk_free2(&device->alloc, pAllocator, semaphore);
+   vk_free2(&device->vk.alloc, pAllocator, semaphore);
 }
 
 VkResult lvp_CreateEvent(
@@ -1561,7 +1595,7 @@ VkResult lvp_CreateEvent(
    VkEvent*                                    pEvent)
 {
    LVP_FROM_HANDLE(lvp_device, device, _device);
-   struct lvp_event *event = vk_alloc2(&device->alloc, pAllocator,
+   struct lvp_event *event = vk_alloc2(&device->vk.alloc, pAllocator,
                                        sizeof(*event), 8,
                                        VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
@@ -1586,7 +1620,7 @@ void lvp_DestroyEvent(
       return;
 
    vk_object_base_finish(&event->base);
-   vk_free2(&device->alloc, pAllocator, event);
+   vk_free2(&device->vk.alloc, pAllocator, event);
 }
 
 VkResult lvp_GetEventStatus(
@@ -1630,7 +1664,7 @@ VkResult lvp_CreateSampler(
 
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
 
-   sampler = vk_alloc2(&device->alloc, pAllocator, sizeof(*sampler), 8,
+   sampler = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*sampler), 8,
                        VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!sampler)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -1654,7 +1688,7 @@ void lvp_DestroySampler(
    if (!_sampler)
       return;
    vk_object_base_finish(&sampler->base);
-   vk_free2(&device->alloc, pAllocator, sampler);
+   vk_free2(&device->vk.alloc, pAllocator, sampler);
 }
 
 VkResult lvp_CreatePrivateDataSlotEXT(

@@ -34,7 +34,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <assert.h>
 
@@ -42,6 +41,7 @@
 
 #include "util/list.h"
 #include "util/macros.h"
+#include "util/simple_mtx.h"
 #include "util/timespec.h"
 #include "util/u_atomic.h"
 #include "util/u_debug.h"
@@ -49,6 +49,8 @@
 
 #include "etnaviv_drmif.h"
 #include "drm-uapi/etnaviv_drm.h"
+
+extern simple_mtx_t etna_drm_table_lock;
 
 struct etna_bo_bucket {
 	uint32_t size;

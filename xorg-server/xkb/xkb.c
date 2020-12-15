@@ -2382,6 +2382,93 @@ SetVirtualModMap(XkbSrvInfoPtr xkbi,
     return (char *) wire;
 }
 
+#define _add_check_len(new) \
+    if (len > UINT32_MAX - (new) || len > req_len - (new)) goto bad; \
+    else len += new
+
+/**
+ * Check the length of the SetMap request
+ */
+static int
+_XkbSetMapCheckLength(xkbSetMapReq *req)
+{
+    size_t len = sz_xkbSetMapReq, req_len = req->length << 2;
+    xkbKeyTypeWireDesc *keytype;
+    xkbSymMapWireDesc *symmap;
+    BOOL preserve;
+    int i, map_count, nSyms;
+
+    if (req_len < len)
+        goto bad;
+    /* types */
+    if (req->present & XkbKeyTypesMask) {
+        keytype = (xkbKeyTypeWireDesc *)(req + 1);
+        for (i = 0; i < req->nTypes; i++) {
+            _add_check_len(XkbPaddedSize(sz_xkbKeyTypeWireDesc));
+            if (req->flags & XkbSetMapResizeTypes) {
+                _add_check_len(keytype->nMapEntries
+                               * sz_xkbKTSetMapEntryWireDesc);
+                preserve = keytype->preserve;
+                map_count = keytype->nMapEntries;
+                if (preserve) {
+                    _add_check_len(map_count * sz_xkbModsWireDesc);
+                }
+                keytype += 1;
+                keytype = (xkbKeyTypeWireDesc *)
+                          ((xkbKTSetMapEntryWireDesc *)keytype + map_count);
+                if (preserve)
+                    keytype = (xkbKeyTypeWireDesc *)
+                              ((xkbModsWireDesc *)keytype + map_count);
+            }
+        }
+    }
+    /* syms */
+    if (req->present & XkbKeySymsMask) {
+        symmap = (xkbSymMapWireDesc *)((char *)req + len);
+        for (i = 0; i < req->nKeySyms; i++) {
+            _add_check_len(sz_xkbSymMapWireDesc);
+            nSyms = symmap->nSyms;
+            _add_check_len(nSyms*sizeof(CARD32));
+            symmap += 1;
+            symmap = (xkbSymMapWireDesc *)((CARD32 *)symmap + nSyms);
+        }
+    }
+    /* actions */
+    if (req->present & XkbKeyActionsMask) {
+        _add_check_len(req->totalActs * sz_xkbActionWireDesc 
+                       + XkbPaddedSize(req->nKeyActs));
+    }
+    /* behaviours */
+    if (req->present & XkbKeyBehaviorsMask) {
+        _add_check_len(req->totalKeyBehaviors * sz_xkbBehaviorWireDesc);
+    }
+    /* vmods */
+    if (req->present & XkbVirtualModsMask) {
+        _add_check_len(XkbPaddedSize(Ones(req->virtualMods)));
+    }
+    /* explicit */
+    if (req->present & XkbExplicitComponentsMask) {
+        /* two bytes per non-zero explicit componen */
+        _add_check_len(XkbPaddedSize(req->totalKeyExplicit * sizeof(CARD16)));
+    }
+    /* modmap */
+    if (req->present & XkbModifierMapMask) {
+         /* two bytes per non-zero modmap component */
+        _add_check_len(XkbPaddedSize(req->totalModMapKeys * sizeof(CARD16)));
+    }
+    /* vmodmap */
+    if (req->present & XkbVirtualModMapMask) {
+        _add_check_len(req->totalVModMapKeys * sz_xkbVModMapWireDesc);
+    }
+    if (len == req_len)
+        return Success;
+bad:
+    ErrorF("[xkb] BOGUS LENGTH in SetMap: expected %ld got %ld\n",
+           len, req_len);
+    return BadLength;
+}
+
+
 /**
  * Check if the given request can be applied to the given device but don't
  * actually do anything, except swap values when client->swapped and doswap are both true.
@@ -2641,6 +2728,11 @@ ProcXkbSetMap(ClientPtr client)
 
     CHK_KBD_DEVICE(dev, stuff->deviceSpec, client, DixManageAccess);
     CHK_MASK_LEGAL(0x01, stuff->present, XkbAllMapComponentsMask);
+
+    /* first verify the request length carefully */
+    rc = _XkbSetMapCheckLength(stuff);
+    if (rc != Success)
+        return rc;
 
     tmp = (char *) &stuff[1];
 
@@ -6536,7 +6628,9 @@ SetDeviceIndicators(char *wire,
                     unsigned changed,
                     int num,
                     int *status_rtrn,
-                    ClientPtr client, xkbExtensionDeviceNotify * ev)
+                    ClientPtr client,
+                    xkbExtensionDeviceNotify * ev,
+                    xkbSetDeviceInfoReq * stuff)
 {
     xkbDeviceLedsWireDesc *ledWire;
     int i;
@@ -6557,6 +6651,11 @@ SetDeviceIndicators(char *wire,
         xkbIndicatorMapWireDesc *mapWire;
         XkbSrvLedInfoPtr sli;
 
+        if (!_XkbCheckRequestBounds(client, stuff, ledWire, ledWire + 1)) {
+            *status_rtrn = BadLength;
+            return (char *) ledWire;
+        }
+
         namec = mapc = statec = 0;
         sli = XkbFindSrvLedInfo(dev, ledWire->ledClass, ledWire->ledID,
                                 XkbXI_IndicatorMapsMask);
@@ -6575,6 +6674,10 @@ SetDeviceIndicators(char *wire,
             memset((char *) sli->names, 0, XkbNumIndicators * sizeof(Atom));
             for (n = 0, bit = 1; n < XkbNumIndicators; n++, bit <<= 1) {
                 if (ledWire->namesPresent & bit) {
+                    if (!_XkbCheckRequestBounds(client, stuff, atomWire, atomWire + 1)) {
+                        *status_rtrn = BadLength;
+                        return (char *) atomWire;
+                    }
                     sli->names[n] = (Atom) *atomWire;
                     if (sli->names[n] == None)
                         ledWire->namesPresent &= ~bit;
@@ -6592,6 +6695,10 @@ SetDeviceIndicators(char *wire,
         if (ledWire->mapsPresent) {
             for (n = 0, bit = 1; n < XkbNumIndicators; n++, bit <<= 1) {
                 if (ledWire->mapsPresent & bit) {
+                    if (!_XkbCheckRequestBounds(client, stuff, mapWire, mapWire + 1)) {
+                        *status_rtrn = BadLength;
+                        return (char *) mapWire;
+                    }
                     sli->maps[n].flags = mapWire->flags;
                     sli->maps[n].which_groups = mapWire->whichGroups;
                     sli->maps[n].groups = mapWire->groups;
@@ -6671,7 +6778,7 @@ _XkbSetDeviceInfoCheck(ClientPtr client, DeviceIntPtr dev,
     ed.deviceID = dev->id;
     wire = (char *) &stuff[1];
     if (stuff->change & XkbXI_ButtonActionsMask) {
-        int nBtns, sz, i;
+	int nBtns, sz, i;
         XkbAction *acts;
         DeviceIntPtr kbd;
 
@@ -6683,7 +6790,11 @@ _XkbSetDeviceInfoCheck(ClientPtr client, DeviceIntPtr dev,
                 return BadAlloc;
             dev->button->xkb_acts = acts;
         }
+        if (stuff->firstBtn + stuff->nBtns > nBtns)
+            return BadValue;
         sz = stuff->nBtns * SIZEOF(xkbActionWireDesc);
+        if (!_XkbCheckRequestBounds(client, stuff, wire, (char *) wire + sz))
+            return BadLength;
         memcpy((char *) &acts[stuff->firstBtn], (char *) wire, sz);
         wire += sz;
         ed.reason |= XkbXI_ButtonActionsMask;
@@ -6704,7 +6815,8 @@ _XkbSetDeviceInfoCheck(ClientPtr client, DeviceIntPtr dev,
         int status = Success;
 
         wire = SetDeviceIndicators(wire, dev, stuff->change,
-                                   stuff->nDeviceLedFBs, &status, client, &ed);
+                                   stuff->nDeviceLedFBs, &status, client, &ed,
+                                   stuff);
         if (status != Success)
             return status;
     }

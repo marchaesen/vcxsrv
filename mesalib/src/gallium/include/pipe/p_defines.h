@@ -363,6 +363,11 @@ enum pipe_map_flags
    PIPE_MAP_STENCIL_ONLY = 1 << 17,
 
    /**
+    * Mapping will be used only once (never remapped).
+    */
+   PIPE_MAP_ONCE = 1 << 18,
+
+   /**
     * This and higher bits are reserved for private use by drivers. Drivers
     * should use this as (PIPE_MAP_DRV_PRV << i).
     */
@@ -837,6 +842,7 @@ enum pipe_cap
    PIPE_CAP_CLEAR_SCISSORED,
    PIPE_CAP_DRAW_PARAMETERS,
    PIPE_CAP_TGSI_PACK_HALF_FLOAT,
+   PIPE_CAP_MULTI_DRAW,
    PIPE_CAP_MULTI_DRAW_INDIRECT,
    PIPE_CAP_MULTI_DRAW_INDIRECT_PARAMS,
    PIPE_CAP_TGSI_FS_POSITION_IS_SYSVAL,
@@ -971,6 +977,7 @@ enum pipe_cap
    PIPE_CAP_MAX_TEXTURE_MB,
    PIPE_CAP_SHADER_ATOMIC_INT64,
    PIPE_CAP_DEVICE_PROTECTED_CONTENT,
+   PIPE_CAP_PREFER_REAL_BUFFER_IN_CONSTBUF0,
 };
 
 /**

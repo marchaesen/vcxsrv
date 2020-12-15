@@ -192,10 +192,13 @@ static nir_ssa_def *
 lower_alu_conversion(nir_builder *b, nir_instr *instr, UNUSED void *_data)
 {
    nir_alu_instr *alu = nir_instr_as_alu(instr);
-   return nir_convert_alu_types(b, nir_ssa_for_alu_src(b, alu, 0),
-                                nir_op_infos[alu->op].input_types[0],
-                                nir_op_infos[alu->op].output_type,
-                                nir_rounding_mode_undef, false);
+   nir_ssa_def *src = nir_ssa_for_alu_src(b, alu, 0);
+   nir_alu_type src_type = nir_op_infos[alu->op].input_types[0] | src->bit_size;
+   nir_alu_type dst_type = nir_op_infos[alu->op].output_type;
+   return nir_convert_alu_types(b, alu->dest.dest.ssa.bit_size, src,
+                                .src_type = src_type, .dest_type = dst_type,
+                                .rounding_mode = nir_rounding_mode_undef,
+                                .saturate = false);
 }
 
 bool

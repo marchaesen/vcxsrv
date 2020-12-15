@@ -292,7 +292,6 @@ void generate_hash(struct ac_addrlib *ac_addrlib,
 }
 
 static void test_modifier(const struct radeon_info *info,
-                          const struct amdgpu_gpu_info *amdinfo,
            const char *name,
                           struct ac_addrlib *addrlib,
                           uint64_t modifier,
@@ -386,21 +385,21 @@ static void test_modifier(const struct radeon_info *info,
          uint64_t dcc_align = 1;
          unsigned block_bits;
          if (info->chip_class >= GFX10) {
-            unsigned num_pipes = G_0098F8_NUM_PIPES(amdinfo->gb_addr_cfg);
+            unsigned num_pipes = G_0098F8_NUM_PIPES(info->gb_addr_config);
             if (info->chip_class == GFX10_3 &&
-                G_0098F8_NUM_PKRS(amdinfo->gb_addr_cfg) == num_pipes && num_pipes > 1)
+                G_0098F8_NUM_PKRS(info->gb_addr_config) == num_pipes && num_pipes > 1)
                ++num_pipes;
             block_bits = 16 +
                num_pipes +
-               G_0098F8_PIPE_INTERLEAVE_SIZE_GFX9(amdinfo->gb_addr_cfg);
+               G_0098F8_PIPE_INTERLEAVE_SIZE_GFX9(info->gb_addr_config);
             block_bits = MAX2(block_bits, 20);
             dcc_align = MAX2(4096, 256 <<
                                   (num_pipes +
-                                   G_0098F8_PIPE_INTERLEAVE_SIZE_GFX9(amdinfo->gb_addr_cfg)));
+                                   G_0098F8_PIPE_INTERLEAVE_SIZE_GFX9(info->gb_addr_config)));
          } else {
             block_bits = 18 +
-               G_0098F8_NUM_RB_PER_SE(amdinfo->gb_addr_cfg) +
-               G_0098F8_NUM_SHADER_ENGINES_GFX9(amdinfo->gb_addr_cfg);
+               G_0098F8_NUM_RB_PER_SE(info->gb_addr_config) +
+               G_0098F8_NUM_SHADER_ENGINES_GFX9(info->gb_addr_config);
             block_bits = MAX2(block_bits, 20);
             dcc_align = 65536;
          }
@@ -428,11 +427,7 @@ static void test_modifier(const struct radeon_info *info,
 
 static void run_gpu_test(struct u_vector *test_entries, const char *name, const struct radeon_info *info)
 {
-   struct amdgpu_gpu_info amdinfo = {
-      .gb_addr_cfg = info->gb_addr_config
-   };
-
-   struct ac_addrlib *addrlib = ac_addrlib_create(info, &amdinfo, NULL);
+   struct ac_addrlib *addrlib = ac_addrlib_create(info, NULL);
    assert(addrlib);
 
    const struct ac_modifier_options options = {
@@ -455,7 +450,7 @@ static void run_gpu_test(struct u_vector *test_entries, const char *name, const 
       ac_get_supported_modifiers(info, &options, formats[j], &mod_count, modifiers);
 
       for (unsigned i = 0; i < mod_count; ++i) {
-         test_modifier(info, &amdinfo, name, addrlib, modifiers[i], formats[j], test_entries);
+         test_modifier(info, name, addrlib, modifiers[i], formats[j], test_entries);
       }
 
       free(modifiers);
@@ -521,7 +516,7 @@ int main()
 
       testcases[i].init(&info);
 
-      info.num_render_backends = 1u << (testcases[i].se +
+      info.max_render_backends = 1u << (testcases[i].se +
                                         testcases[i].rb_per_se);
       switch(info.chip_class) {
       case GFX10:

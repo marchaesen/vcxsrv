@@ -307,7 +307,8 @@ extern bool
 _mesa_get_program_resource_name(struct gl_shader_program *shProg,
                                 GLenum programInterface, GLuint index,
                                 GLsizei bufSize, GLsizei *length,
-                                GLchar *name, const char *caller);
+                                GLchar *name, bool glthread,
+                                const char *caller);
 
 extern unsigned
 _mesa_program_resource_name_len(struct gl_program_resource *res);
@@ -323,7 +324,8 @@ _mesa_program_resource_location_index(struct gl_shader_program *shProg,
 extern unsigned
 _mesa_program_resource_prop(struct gl_shader_program *shProg,
                             struct gl_program_resource *res, GLuint index,
-                            const GLenum prop, GLint *val, const char *caller);
+                            const GLenum prop, GLint *val, bool glthread,
+                            const char *caller);
 
 extern void
 _mesa_get_program_resourceiv(struct gl_shader_program *shProg,

@@ -166,11 +166,9 @@ static inline void list_validate(const struct list_head *list)
  *
  * 'sample' MUST be initialized, or else the result is undefined!
  */
-#ifndef container_of
-#define container_of(ptr, sample, member)				\
+#define list_container_of(ptr, sample, member)				\
     (void *)((char *)(ptr)						\
 	     - ((char *)&(sample)->member - (char *)(sample)))
-#endif
 
 #define list_first_entry(ptr, type, member) \
         LIST_ENTRY(type, (ptr)->next, member)
@@ -180,31 +178,31 @@ static inline void list_validate(const struct list_head *list)
 
 
 #define LIST_FOR_EACH_ENTRY(pos, head, member)				\
-   for (pos = NULL, pos = container_of((head)->next, pos, member);	\
+   for (pos = NULL, pos = list_container_of((head)->next, pos, member);	\
 	&pos->member != (head);						\
-	pos = container_of(pos->member.next, pos, member))
+	pos = list_container_of(pos->member.next, pos, member))
 
 #define LIST_FOR_EACH_ENTRY_SAFE(pos, storage, head, member)	\
-   for (pos = NULL, pos = container_of((head)->next, pos, member),	\
-	storage = container_of(pos->member.next, pos, member);	\
+   for (pos = NULL, pos = list_container_of((head)->next, pos, member),	\
+	storage = list_container_of(pos->member.next, pos, member);	\
 	&pos->member != (head);						\
-	pos = storage, storage = container_of(storage->member.next, storage, member))
+	pos = storage, storage = list_container_of(storage->member.next, storage, member))
 
 #define LIST_FOR_EACH_ENTRY_SAFE_REV(pos, storage, head, member)	\
-   for (pos = NULL, pos = container_of((head)->prev, pos, member),	\
-	storage = container_of(pos->member.prev, pos, member);		\
+   for (pos = NULL, pos = list_container_of((head)->prev, pos, member),	\
+	storage = list_container_of(pos->member.prev, pos, member);		\
 	&pos->member != (head);						\
-	pos = storage, storage = container_of(storage->member.prev, storage, member))
+	pos = storage, storage = list_container_of(storage->member.prev, storage, member))
 
 #define LIST_FOR_EACH_ENTRY_FROM(pos, start, head, member)		\
-   for (pos = NULL, pos = container_of((start), pos, member);		\
+   for (pos = NULL, pos = list_container_of((start), pos, member);		\
 	&pos->member != (head);						\
-	pos = container_of(pos->member.next, pos, member))
+	pos = list_container_of(pos->member.next, pos, member))
 
 #define LIST_FOR_EACH_ENTRY_FROM_REV(pos, start, head, member)		\
-   for (pos = NULL, pos = container_of((start), pos, member);		\
+   for (pos = NULL, pos = list_container_of((start), pos, member);		\
 	&pos->member != (head);						\
-	pos = container_of(pos->member.prev, pos, member))
+	pos = list_container_of(pos->member.prev, pos, member))
 
 #define list_for_each_entry(type, pos, head, member)                    \
    for (type *pos = LIST_ENTRY(type, (head)->next, member),             \

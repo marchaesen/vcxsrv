@@ -164,7 +164,7 @@ namespace clover {
       /// Extract the int metadata node \p name corresponding to the kernel
       /// argument given by \p arg.
       ///
-      inline uint
+      inline uint64_t
       get_uint_argument_metadata(const ::llvm::Function &f,
                             const ::llvm::Argument &arg,
                             const std::string &name) {

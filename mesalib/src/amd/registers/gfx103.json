@@ -902,6 +902,22 @@
     {"name": "TESS_QUAD", "value": 2}
    ]
   },
+  "VRSCombinerMode": {
+   "entries": [
+    {"name": "VRS_COMB_MODE_PASSTHRU", "value": 0},
+    {"name": "VRS_COMB_MODE_OVERRIDE", "value": 1},
+    {"name": "VRS_COMB_MODE_MIN", "value": 2},
+    {"name": "VRS_COMB_MODE_MAX", "value": 3},
+    {"name": "VRS_COMB_MODE_SATURATE", "value": 4}
+   ]
+  },
+  "VRSHtileEncoding": {
+   "entries": [
+    {"name": "VRS_HTILE_DISABLE", "value": 0},
+    {"name": "VRS_HTILE_2BIT_ENCODING", "value": 1},
+    {"name": "VRS_HTILE_4BIT_ENCODING", "value": 2}
+   ]
+  },
   "WritePolicy": {
    "entries": [
     {"name": "CACHE_LRU_WR", "value": 0},
@@ -8204,6 +8220,12 @@
   },
   {
    "chips": ["gfx103"],
+   "map": {"at": 199052, "to": "mm"},
+   "name": "GE_VRS_RATE",
+   "type_ref": "GE_VRS_RATE"
+  },
+  {
+   "chips": ["gfx103"],
    "map": {"at": 199168, "to": "mm"},
    "name": "PA_SU_LINE_STIPPLE_VALUE",
    "type_ref": "PA_SU_LINE_STIPPLE_VALUE"
@@ -13964,7 +13986,7 @@
     {"bits": [16, 16], "name": "DST_OUTSIDE_ZERO_TO_ONE"},
     {"bits": [17, 17], "name": "RESERVED_FIELD_6"},
     {"bits": [18, 18], "name": "PIPE_ALIGNED"},
-    {"bits": [19, 20], "name": "VRS_HTILE_ENCODING"}
+    {"bits": [19, 20], "enum_ref": "VRSHtileEncoding", "name": "VRS_HTILE_ENCODING"}
    ]
   },
   "DB_OCCLUSION_COUNT0_HI": {
@@ -14172,7 +14194,7 @@
   },
   "DB_VRS_OVERRIDE_CNTL": {
    "fields": [
-    {"bits": [0, 2], "name": "VRS_OVERRIDE_RATE_COMBINER_MODE"},
+    {"bits": [0, 2], "enum_ref": "VRSCombinerMode", "name": "VRS_OVERRIDE_RATE_COMBINER_MODE"},
     {"bits": [4, 5], "name": "VRS_OVERRIDE_RATE_X"},
     {"bits": [6, 7], "name": "VRS_OVERRIDE_RATE_Y"}
    ]
@@ -14468,6 +14490,12 @@
     {"bits": [2, 2], "name": "EN_USER_VGPR3"}
    ]
   },
+  "GE_VRS_RATE": {
+   "fields": [
+    {"bits": [0, 1], "name": "RATE_X"},
+    {"bits": [4, 5], "name": "RATE_Y"}
+   ]
+  },
   "GRBM_GFX_INDEX": {
    "fields": [
     {"bits": [0, 7], "name": "INSTANCE_INDEX"},
@@ -14738,10 +14766,10 @@
   },
   "PA_CL_VRS_CNTL": {
    "fields": [
-    {"bits": [0, 2], "name": "VERTEX_RATE_COMBINER_MODE"},
-    {"bits": [3, 5], "name": "PRIMITIVE_RATE_COMBINER_MODE"},
-    {"bits": [6, 8], "name": "HTILE_RATE_COMBINER_MODE"},
-    {"bits": [9, 11], "name": "SAMPLE_ITER_COMBINER_MODE"},
+    {"bits": [0, 2], "enum_ref": "VRSCombinerMode", "name": "VERTEX_RATE_COMBINER_MODE"},
+    {"bits": [3, 5], "enum_ref": "VRSCombinerMode", "name": "PRIMITIVE_RATE_COMBINER_MODE"},
+    {"bits": [6, 8], "enum_ref": "VRSCombinerMode", "name": "HTILE_RATE_COMBINER_MODE"},
+    {"bits": [9, 11], "enum_ref": "VRSCombinerMode", "name": "SAMPLE_ITER_COMBINER_MODE"},
     {"bits": [13, 13], "name": "EXPOSE_VRS_PIXELS_MASK"},
     {"bits": [14, 14], "name": "CMASK_RATE_HINT_FORCE_ZERO"}
    ]
@@ -16509,7 +16537,8 @@
    "fields": [
     {"bits": [1, 1], "name": "EN_REG_RT_INDEX"},
     {"bits": [3, 3], "name": "EN_PRIM_PAYLOAD"},
-    {"bits": [4, 4], "name": "EN_DRAW_VP"}
+    {"bits": [4, 4], "name": "EN_DRAW_VP"},
+    {"bits": [6, 6], "name": "EN_VRS_RATE"}
    ]
   },
   "VGT_ENHANCE": {

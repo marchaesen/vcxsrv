@@ -199,6 +199,7 @@ namespace {
             default:
                break;
             }
+            break;
 
          case SpvOpDecorate: {
             const auto id = get<SpvId>(inst, 1);

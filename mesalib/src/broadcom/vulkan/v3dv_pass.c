@@ -117,12 +117,11 @@ v3dv_CreateRenderPass(VkDevice _device,
    size_t attachments_offset = size;
    size += pCreateInfo->attachmentCount * sizeof(pass->attachments[0]);
 
-   pass = vk_alloc2(&device->alloc, pAllocator, size, 8,
-                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   pass = vk_object_zalloc(&device->vk, pAllocator, size,
+                           VK_OBJECT_TYPE_RENDER_PASS);
    if (pass == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   memset(pass, 0, size);
    pass->attachment_count = pCreateInfo->attachmentCount;
    pass->attachments = (void *) pass + attachments_offset;
    pass->subpass_count = pCreateInfo->subpassCount;
@@ -141,10 +140,10 @@ v3dv_CreateRenderPass(VkDevice _device,
       const size_t subpass_attachment_bytes =
          subpass_attachment_count * sizeof(struct v3dv_subpass_attachment);
       pass->subpass_attachments =
-         vk_alloc2(&device->alloc, pAllocator, subpass_attachment_bytes, 8,
+         vk_alloc2(&device->vk.alloc, pAllocator, subpass_attachment_bytes, 8,
                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
       if (pass->subpass_attachments == NULL) {
-         vk_free2(&device->alloc, pAllocator, pass);
+         vk_object_free(&device->vk, pAllocator, pass);
          return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
       }
    } else {
@@ -251,8 +250,8 @@ v3dv_DestroyRenderPass(VkDevice _device,
    if (!_pass)
       return;
 
-   vk_free2(&device->alloc, pAllocator, pass->subpass_attachments);
-   vk_free2(&device->alloc, pAllocator, pass);
+   vk_free2(&device->vk.alloc, pAllocator, pass->subpass_attachments);
+   vk_object_free(&device->vk, pAllocator, pass);
 }
 
 static void

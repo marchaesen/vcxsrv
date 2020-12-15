@@ -3,47 +3,149 @@
 set -e
 set -o xtrace
 
-echo 'deb-src https://deb.debian.org/debian testing main' > /etc/apt/sources.list.d/deb-src.list
-apt-get update
+# Packages which are needed by this script, but not for the xserver build
+EPHEMERAL="
+	git
+	libcairo2-dev
+	libevdev-dev
+	libexpat-dev
+	libgles2-mesa-dev
+	libinput-dev
+	libxkbcommon-dev
+	x11-utils
+	x11-xserver-utils
+	xauth
+	xvfb
+	"
+
 apt-get install -y \
+	$EPHEMERAL \
 	autoconf \
 	automake \
+	bison \
+	build-essential \
 	ca-certificates \
 	ccache \
-	git \
-	libgl1 \
+	flex \
+	libaudit-dev \
+	libbsd-dev \
+	libcairo2 \
+	libdbus-1-dev \
+	libdmx-dev \
+	libdrm-dev \
+	libegl1-mesa-dev \
+	libepoxy-dev \
+	libevdev2 \
+	libexpat1 \
+	libffi-dev \
+	libgbm-dev \
+	libgcrypt-dev \
+	libgl1-mesa-dev \
+	libgles2 \
 	libglx-mesa0 \
+	libinput10 \
 	libnvidia-egl-wayland-dev \
+	libpciaccess-dev \
+	libpixman-1-dev \
+	libselinux1-dev \
+	libsystemd-dev \
 	libtool \
-	libxkbcommon-dev \
+	libudev-dev \
+	libunwind-dev \
+	libx11-dev \
+	libx11-xcb-dev \
+	libxau-dev \
+	libxaw7-dev \
+	libxcb-glx0-dev \
+	libxcb-icccm4-dev \
+	libxcb-image0-dev \
+	libxcb-keysyms1-dev \
+	libxcb-randr0-dev \
+	libxcb-render-util0-dev \
+	libxcb-render0-dev \
+	libxcb-shape0-dev \
+	libxcb-shm0-dev \
+	libxcb-util0-dev \
+	libxcb-xf86dri0-dev \
+	libxcb-xkb-dev \
+	libxcb-xv0-dev \
+	libxcb1-dev \
+	libxdmcp-dev \
+	libxext-dev \
+	libxfixes-dev \
+	libxfont-dev \
+	libxi-dev \
+	libxinerama-dev \
+	libxkbcommon0 \
+	libxkbfile-dev \
+	libxmu-dev \
+	libxmuu-dev \
+	libxpm-dev \
+	libxrender-dev \
+	libxres-dev \
+	libxshmfence-dev \
+	libxt-dev \
+	libxtst-dev \
+	libxv-dev \
+	mesa-common-dev \
 	meson \
+	nettle-dev \
+	pkg-config \
 	python3-mako \
 	python3-numpy \
 	python3-six \
-	x11-utils \
-	x11-xserver-utils \
-	xauth \
-	xvfb \
-
-apt-get build-dep -y xorg-server
+	x11-xkb-utils \
+	x11proto-dev \
+	xfonts-utils \
+	xkb-data \
+	xtrans-dev \
+	xutils-dev
 
 cd /root
+
+# weston 9.0 requires libwayland >= 1.18
+git clone https://gitlab.freedesktop.org/wayland/wayland.git --depth 1 --branch=1.18.0
+cd wayland
+meson _build -D{documentation,dtd_validation}=false
+ninja -C _build -j${FDO_CI_CONCURRENT:-4} install
+cd ..
+rm -rf wayland
+
+# Xwayland requires wayland-protocols >= 1.18, but Debian buster has 1.17 only
+git clone https://gitlab.freedesktop.org/wayland/wayland-protocols.git --depth 1 --branch=1.18
+cd wayland-protocols
+./autogen.sh
+make -j${FDO_CI_CONCURRENT:-4} install
+cd ..
+rm -rf wayland-protocols
+
+# Xwayland requires weston > 5.0, but Debian buster has 5.0 only
+git clone https://gitlab.freedesktop.org/wayland/weston.git --depth 1 --branch=9.0
+cd weston
+meson _build -Dbackend-{drm,drm-screencast-vaapi,fbdev,rdp,wayland,x11}=false \
+      -Dbackend-default=headless -Dcolor-management-{colord,lcms}=false \
+      -Ddemo-clients=false -Dimage-{jpeg,webp}=false \
+      -D{pipewire,remoting,screenshare,test-junit-xml,wcap-decode,weston-launch,xwayland}=false \
+      -Dshell-{fullscreen,ivi,kiosk}=false -Dsimple-clients=
+ninja -C _build -j${FDO_CI_CONCURRENT:-4} install
+cd ..
+rm -rf weston
 
 git clone https://gitlab.freedesktop.org/mesa/piglit.git --depth 1
 
 git clone https://gitlab.freedesktop.org/xorg/test/xts --depth 1
 cd xts
 ./autogen.sh
-xvfb-run make -j4
+xvfb-run make -j${FDO_CI_CONCURRENT:-4}
 cd ..
 
 git clone https://gitlab.freedesktop.org/xorg/test/rendercheck --depth 1
 cd rendercheck
 meson build
-ninja -j4 -C build install
+ninja -j${FDO_CI_CONCURRENT:-4} -C build install
 cd ..
 
-rm -rf piglit/.git xts/.git piglit/tests/spec/
+rm -rf piglit/.git xts/.git piglit/tests/spec/ rendercheck/
 
 echo '[xts]' > piglit/piglit.conf
 echo 'path=/root/xts' >> piglit/piglit.conf
@@ -52,11 +154,6 @@ find -name \*.a -o -name \*.o -o -name \*.c -o -name \*.h -o -name \*.la\* | xar
 strip xts/xts5/*/.libs/*
 
 apt-get purge -y \
-	git \
-	libxkbcommon-dev \
-	x11-utils \
-	x11-xserver-utils \
-	xauth \
-	xvfb \
+	$EPHEMERAL
 
 apt-get autoremove -y --purge

@@ -11,6 +11,8 @@ mount -t tmpfs tmpfs /tmp
 
 . /set-job-env-vars.sh
 
+[ -z "$BM_KERNEL_MODULES" ] || modprobe "$BM_KERNEL_MODULES"
+
 # Store Mesa's disk cache under /tmp, rather than sending it out over NFS.
 export XDG_CACHE_HOME=/tmp
 

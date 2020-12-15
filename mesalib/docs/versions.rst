@@ -1,5 +1,197 @@
+Mesa Versions
+=============
+
+Major Versions
+--------------
+
+This is a summary of the major versions of Mesa. Mesa's major version
+number has been incremented whenever a new version of the OpenGL
+specification is implemented.
+
+Version 12.x features
+^^^^^^^^^^^^^^^^^^^^^
+
+Version 12.x of Mesa implements the OpenGL 4.3 API, but not all drivers
+support OpenGL 4.3.
+
+Initial support for Vulkan is also included.
+
+Version 11.x features
+^^^^^^^^^^^^^^^^^^^^^
+
+Version 11.x of Mesa implements the OpenGL 4.1 API, but not all drivers
+support OpenGL 4.1.
+
+Version 10.x features
+^^^^^^^^^^^^^^^^^^^^^
+
+Version 10.x of Mesa implements the OpenGL 3.3 API, but not all drivers
+support OpenGL 3.3.
+
+Version 9.x features
+^^^^^^^^^^^^^^^^^^^^
+
+Version 9.x of Mesa implements the OpenGL 3.1 API. While the driver for
+Intel Sandy Bridge and Ivy Bridge is the only driver to support OpenGL
+3.1, many developers across the open-source community contributed
+features required for OpenGL 3.1. The primary features added since the
+Mesa 8.0 release are GL_ARB_texture_buffer_object and
+GL_ARB_uniform_buffer_object.
+
+Version 9.0 of Mesa also included the first release of the Clover state
+tracker for OpenCL.
+
+Version 8.x features
+^^^^^^^^^^^^^^^^^^^^
+
+Version 8.x of Mesa implements the OpenGL 3.0 API. The developers at
+Intel deserve a lot of credit for implementing most of the OpenGL 3.0
+features in core Mesa, the GLSL compiler as well as the i965 driver.
+
+Version 7.x features
+^^^^^^^^^^^^^^^^^^^^
+
+Version 7.x of Mesa implements the OpenGL 2.1 API. The main feature of
+OpenGL 2.x is the OpenGL Shading Language.
+
+Version 6.x features
+^^^^^^^^^^^^^^^^^^^^
+
+Version 6.x of Mesa implements the OpenGL 1.5 API with the following
+extensions incorporated as standard features:
+
+-  GL_ARB_occlusion_query
+-  GL_ARB_vertex_buffer_object
+-  GL_EXT_shadow_funcs
+
+Also note that several OpenGL tokens were renamed in OpenGL 1.5 for the
+sake of consistency. The old tokens are still available.
+
+::
+
+   New Token                   Old Token
+   ------------------------------------------------------------
+   GL_FOG_COORD_SRC            GL_FOG_COORDINATE_SOURCE
+   GL_FOG_COORD                GL_FOG_COORDINATE
+   GL_CURRENT_FOG_COORD        GL_CURRENT_FOG_COORDINATE
+   GL_FOG_COORD_ARRAY_TYPE     GL_FOG_COORDINATE_ARRAY_TYPE
+   GL_FOG_COORD_ARRAY_STRIDE   GL_FOG_COORDINATE_ARRAY_STRIDE
+   GL_FOG_COORD_ARRAY_POINTER  GL_FOG_COORDINATE_ARRAY_POINTER
+   GL_FOG_COORD_ARRAY          GL_FOG_COORDINATE_ARRAY
+   GL_SRC0_RGB                 GL_SOURCE0_RGB
+   GL_SRC1_RGB                 GL_SOURCE1_RGB
+   GL_SRC2_RGB                 GL_SOURCE2_RGB
+   GL_SRC0_ALPHA               GL_SOURCE0_ALPHA
+   GL_SRC1_ALPHA               GL_SOURCE1_ALPHA
+   GL_SRC2_ALPHA               GL_SOURCE2_ALPHA
+
+See the `OpenGL
+specification <https://www.opengl.org/documentation/spec.html>`__ for
+more details.
+
+Version 5.x features
+^^^^^^^^^^^^^^^^^^^^
+
+Version 5.x of Mesa implements the OpenGL 1.4 API with the following
+extensions incorporated as standard features:
+
+-  GL_ARB_depth_texture
+-  GL_ARB_shadow
+-  GL_ARB_texture_env_crossbar
+-  GL_ARB_texture_mirror_repeat
+-  GL_ARB_window_pos
+-  GL_EXT_blend_color
+-  GL_EXT_blend_func_separate
+-  GL_EXT_blend_logic_op
+-  GL_EXT_blend_minmax
+-  GL_EXT_blend_subtract
+-  GL_EXT_fog_coord
+-  GL_EXT_multi_draw_arrays
+-  GL_EXT_point_parameters
+-  GL_EXT_secondary_color
+-  GL_EXT_stencil_wrap
+-  GL_EXT_texture_lod_bias (plus, a per-texture LOD bias parameter)
+-  GL_SGIS_generate_mipmap
+
+Version 4.x features
+^^^^^^^^^^^^^^^^^^^^
+
+Version 4.x of Mesa implements the OpenGL 1.3 API with the following
+extensions incorporated as standard features:
+
+-  GL_ARB_multisample
+-  GL_ARB_multitexture
+-  GL_ARB_texture_border_clamp
+-  GL_ARB_texture_compression
+-  GL_ARB_texture_cube_map
+-  GL_ARB_texture_env_add
+-  GL_ARB_texture_env_combine
+-  GL_ARB_texture_env_dot3
+-  GL_ARB_transpose_matrix
+
+Version 3.x features
+^^^^^^^^^^^^^^^^^^^^
+
+Version 3.x of Mesa implements the OpenGL 1.2 API with the following
+features:
+
+-  BGR, BGRA and packed pixel formats
+-  New texture border clamp mode
+-  glDrawRangeElements()
+-  standard 3-D texturing
+-  advanced MIPMAP control
+-  separate specular color interpolation
+
+Version 2.x features
+^^^^^^^^^^^^^^^^^^^^
+
+Version 2.x of Mesa implements the OpenGL 1.1 API with the following
+features.
+
+-  Texture mapping:
+
+   -  glAreTexturesResident
+   -  glBindTexture
+   -  glCopyTexImage1D
+   -  glCopyTexImage2D
+   -  glCopyTexSubImage1D
+   -  glCopyTexSubImage2D
+   -  glDeleteTextures
+   -  glGenTextures
+   -  glIsTexture
+   -  glPrioritizeTextures
+   -  glTexSubImage1D
+   -  glTexSubImage2D
+
+-  Vertex Arrays:
+
+   -  glArrayElement
+   -  glColorPointer
+   -  glDrawElements
+   -  glEdgeFlagPointer
+   -  glIndexPointer
+   -  glInterleavedArrays
+   -  glNormalPointer
+   -  glTexCoordPointer
+   -  glVertexPointer
+
+-  Client state management:
+
+   -  glDisableClientState
+   -  glEnableClientState
+   -  glPopClientAttrib
+   -  glPushClientAttrib
+
+-  Misc:
+
+   -  glGetPointer
+   -  glIndexub
+   -  glIndexubv
+   -  glPolygonOffset
+
+
 Mesa Version History
-====================
+--------------------
 
 .. note::
 
@@ -7,12 +199,12 @@ Mesa Version History
    :doc:`release notes <relnotes>` file.
 
 1.0 beta February 1995
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 -  Initial release
 
 1.1 beta March 4, 1995
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 Changes:
 
@@ -28,7 +220,7 @@ New:
 -  GLUT support
 
 1.1.1 beta March 7, 1995
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Changes:
 
@@ -37,7 +229,7 @@ Changes:
 -  more Makefile changes
 
 1.1.2 beta March 14, 1995
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -54,7 +246,7 @@ Changes:
 -  faster transformation arithmetic
 
 1.1.3 beta March 31, 1995
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -70,7 +262,7 @@ Changes:
 -  more bug fixes
 
 1.1.4 beta April 20, 1995
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Bug fixes:
 
@@ -91,7 +283,7 @@ New features:
 -  Implemented gluPartialDisk()
 
 1.2 May 22, 1995
-----------------
+^^^^^^^^^^^^^^^^
 
 Bug fixes:
 
@@ -116,7 +308,7 @@ New features:
 -  better GLX error checking
 
 1.2.1 June 22, 1995
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 Bug fixes:
 
@@ -144,7 +336,7 @@ Changes:
 -  use GLubytes to store arrays of colors instead of GLints
 
 1.2.2 August 2, 1995
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 New features:
 
@@ -177,7 +369,7 @@ Changes:
 -  Removed GLUenum type as it's not in OpenGL
 
 1.2.3 September 26, 1995
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 New features:
 
@@ -198,7 +390,7 @@ Bug fixes:
 -  fixed some widget compilation problems
 
 1.2.4 November 17, 1995
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
 New features:
 
@@ -230,7 +422,7 @@ Bug fixes:
 -  fixed bug when blending lines, points, bitmaps outside of window
 
 1.2.5 November 30, 1995
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
 New Features:
 
@@ -247,7 +439,7 @@ Bug fixes:
 -  a polygon optimization introduced an occasional sampling problem
 
 1.2.6 January 26, 1996
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 New Features:
 
@@ -270,7 +462,7 @@ Bug fixes:
 -  reading pixels from an unmapped X window caused a BadMatch error
 
 1.2.7 March 5, 1996
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -300,7 +492,7 @@ Bug fixes:
 -  polygon edge flags weren't always used correctly
 
 1.2.8 May 22, 1996
-------------------
+^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -339,7 +531,7 @@ Bug fixes:
 -  glIsList() didn't always work correctly
 
 2.0 October 10, 1996
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -365,7 +557,7 @@ Bug fixes:
 -  glDrawBuffer(GL_NONE) works now
 
 2.1 December 14, 1996
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -412,7 +604,7 @@ Changes:
 -  NeXT driver updated for Mesa 2.x
 
 2.2 March 14, 1997
-------------------
+^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -460,7 +652,7 @@ Changes:
 -  fixed many compiler warnings in the demo programs
 
 2.3 June 30, 1997
------------------
+^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -516,7 +708,7 @@ Changes:
 -  optimized changing of GL_SHININESS parameter
 
 2.4 September 18, 1997
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -554,7 +746,7 @@ Changes:
 -  fixed a few cygnus build problems (src/Makefile.cygnus, src/wmesa.c)
 
 2.5 November 20, 1997
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -594,7 +786,7 @@ Changes:
 -  separate linux-glide and linux-386-glide configurations
 
 2.6 February 12, 1998
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -633,7 +825,7 @@ Changes:
 -  renamed directories: demos -> xdemos, gdemos -> demos
 
 3.0 September 17, 1998
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -719,7 +911,7 @@ Changes:
 -  IRIX -n32 and -64 libs go in lib32/ and lib64/ directories
 
 3.1 beta 1 November 19, 1998
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -753,7 +945,7 @@ Changes:
 -  removed GL_EXT_multitexture extension
 
 3.1 beta 2 May 24, 1999
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -791,7 +983,7 @@ Changes:
 -  new copyright on core Mesa code
 
 3.1 beta 3 September 17, 1999
------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -814,7 +1006,7 @@ Changes:
 -  New Makefile-system (autoconf,automake,libtool)
 
 3.1 final December 14, 1999
----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -831,7 +1023,7 @@ Bug Fixes:
 -  glCopyPixels with pixel zooming now works
 
 3.2 final April 24, 2000
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Bug fixes:
 
@@ -850,7 +1042,7 @@ Changes:
 -  re-enabled the optimized persp_textured_triangle() function
 
 3.2.1 July 19, 2000
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 Bug fixes:
 
@@ -878,7 +1070,7 @@ Changes:
 -  updated Win32 build files
 
 3.3 July 21, 2000
------------------
+^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -919,7 +1111,7 @@ Changes:
 -  moved programs from 3Dfx/demos/ into demos/ directory
 
 3.4 November 3, 2000
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -950,7 +1142,7 @@ Changes:
 -  finished internal support for compressed textures for DRI
 
 3.4.1 February 14, 2001
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -983,7 +1175,7 @@ Known problems:
 -  NURBS or evaluator surfaces inside display lists don't always work
 
 3.4.2 May 17, 2001
-------------------
+^^^^^^^^^^^^^^^^^^
 
 Bug fixes:
 
@@ -1014,7 +1206,7 @@ Changes:
 -  increased max viewport size to 2048 x 2048
 
 3.5 June 21, 2001
------------------
+^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1059,7 +1251,7 @@ Changes:
 -  new libOSMesa.so library, contains the OSMesa driver interface
 
 4.0 October 22, 2001
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1093,7 +1285,7 @@ Bug fixes:
 -  fixed 3DNow! code to not read past end of arrays (Andrew Lewycky)
 
 4.0.1 December 17, 2001
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1126,7 +1318,7 @@ Bug fixes:
 -  fixed separate_specular color bug found in Chimera (18 Dec 2001)
 
 4.0.2 April 2, 2002
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1159,7 +1351,7 @@ Known bugs:
 -  mipmap LOD computation
 
 4.0.3 June 25, 2002
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1195,7 +1387,7 @@ Known bugs:
 -  mipmap LOD computation (fixed for Mesa 4.1)
 
 4.0.4 October 3, 2002
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1230,7 +1422,7 @@ Changes:
 -  removed unfinished GL_MESA_sprite_point extension code
 
 4.1 October 29, 2002
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1282,7 +1474,7 @@ Changes:
 -  updated demos/stex3d with new options
 
 5.0 November 13, 2002
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1310,7 +1502,7 @@ Bug fixes:
 -  fixed color overflow problem in DOT3 texture env mode
 
 5.0.1 March 30, 2003
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1350,7 +1542,7 @@ Changes:
 -  GLU fixes for OS/2 (Evgeny Kotsuba)
 
 5.0.2 September 5, 2003
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
 Bug fixes:
 
@@ -1382,7 +1574,7 @@ Changes:
 -  build GLUT with -fexceptions so C++ apps propogate exceptions
 
 5.1 December 17, 2003
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1428,7 +1620,7 @@ Changes:
 -  disable SPARC asm code on Linux (bug 852204)
 
 6.0 January 16, 2004
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1448,7 +1640,7 @@ New:
 -  updated files for building on Windows
 
 6.0.1 April 2, 2004
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1486,7 +1678,7 @@ Bug fixes:
 -  ARB_fragment_program KIL instruction was incorrect
 
 6.1 August 18, 2004
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1529,7 +1721,7 @@ Bug fixes:
 -  fixed a number of minor memory leaks (bug #1002030)
 
 6.2 October 2, 2004
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1556,7 +1748,7 @@ Bug fixes:
 -  fixed color index mode glDrawPixels bug (Karl Schultz)
 
 6.2.1 December 9, 2004
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 Bug fixes:
 
@@ -1577,7 +1769,7 @@ Changes:
 -  bug reports should to go bugzilla.freedesktop.org
 
 6.3 July 20, 2005
------------------
+^^^^^^^^^^^^^^^^^
 
 New:
 
@@ -1621,13 +1813,13 @@ Bug fixes:
 -  fixed a few Darwin compilation problems
 
 6.3.1
------
+^^^^^
 
 This was an intermediate release for X.org which wasn't otherwise
 released.)
 
 6.3.2 August 19, 2005
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 New:
 

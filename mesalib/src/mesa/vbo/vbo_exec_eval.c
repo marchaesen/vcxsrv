@@ -31,6 +31,7 @@
 #include "math/m_eval.h"
 #include "main/dispatch.h"
 #include "vbo_exec.h"
+#include "vbo_private.h"
 
 
 static void clear_active_eval1( struct vbo_exec_context *exec, GLuint attr ) 
@@ -67,7 +68,7 @@ static void set_active_eval2( struct vbo_exec_context *exec, GLuint attr, GLuint
 
 void vbo_exec_eval_update( struct vbo_exec_context *exec )
 {
-   struct gl_context *ctx = exec->ctx;
+   struct gl_context *ctx = gl_context_from_vbo_exec(exec);
    GLuint attr;
 
    /* Vertex program maps have priority over conventional attribs */
@@ -124,6 +125,7 @@ void vbo_exec_eval_update( struct vbo_exec_context *exec )
 
 void vbo_exec_do_EvalCoord1f(struct vbo_exec_context *exec, GLfloat u)
 {
+   struct gl_context *ctx = gl_context_from_vbo_exec(exec);
    GLuint attr;
 
    for (attr = 1; attr <= VBO_ATTRIB_TEX7; attr++) {
@@ -159,9 +161,9 @@ void vbo_exec_do_EvalCoord1f(struct vbo_exec_context *exec, GLfloat u)
 				map->Order);
 
       if (exec->eval.map1[0].sz == 4) 
-	 CALL_Vertex4fv(exec->ctx->CurrentServerDispatch, ( vertex ));
+	 CALL_Vertex4fv(ctx->CurrentServerDispatch, ( vertex ));
       else
-	 CALL_Vertex3fv(exec->ctx->CurrentServerDispatch, ( vertex ));
+	 CALL_Vertex3fv(ctx->CurrentServerDispatch, ( vertex ));
    }
 }
 
@@ -170,6 +172,7 @@ void vbo_exec_do_EvalCoord1f(struct vbo_exec_context *exec, GLfloat u)
 void vbo_exec_do_EvalCoord2f( struct vbo_exec_context *exec, 
 			      GLfloat u, GLfloat v )
 {   
+   struct gl_context *ctx = gl_context_from_vbo_exec(exec);
    GLuint attr;
 
    for (attr = 1; attr <= VBO_ATTRIB_TEX7; attr++) {
@@ -204,7 +207,7 @@ void vbo_exec_do_EvalCoord2f( struct vbo_exec_context *exec,
 
       ASSIGN_4V(vertex, 0, 0, 0, 1);
 
-      if (exec->ctx->Eval.AutoNormal) {
+      if (ctx->Eval.AutoNormal) {
 	 fi_type normal[4];
          GLfloat du[4], dv[4];
 
@@ -239,9 +242,9 @@ void vbo_exec_do_EvalCoord2f( struct vbo_exec_context *exec,
       }
 
       if (exec->vtx.attr[VBO_ATTRIB_POS].size == 4)
-	 CALL_Vertex4fv(exec->ctx->CurrentServerDispatch, ( vertex ));
+	 CALL_Vertex4fv(ctx->CurrentServerDispatch, ( vertex ));
       else
-	 CALL_Vertex3fv(exec->ctx->CurrentServerDispatch, ( vertex ));
+	 CALL_Vertex3fv(ctx->CurrentServerDispatch, ( vertex ));
    }
 }
 

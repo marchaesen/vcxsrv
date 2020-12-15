@@ -61,7 +61,7 @@ st_GetProgrammableSampleCaps(struct gl_context *ctx, const struct gl_framebuffer
                              GLuint *outBits, GLuint *outWidth, GLuint *outHeight)
 {
    struct st_context *st = st_context(ctx);
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
 
    st_validate_state(st, ST_PIPELINE_UPDATE_FRAMEBUFFER);
 

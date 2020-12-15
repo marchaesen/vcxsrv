@@ -33,6 +33,7 @@
 #include "pipe/p_shader_tokens.h"
 #include "pipe/p_state.h"
 #include "pipe/p_screen.h"
+#include "util/compiler.h"
 #include "util/u_debug.h"
 #include "util/u_debug_describe.h"
 #include "util/u_debug_refcnt.h"
@@ -708,7 +709,7 @@ util_max_layer(const struct pipe_resource *r, unsigned level)
       return u_minify(r->depth0, level) - 1;
    case PIPE_TEXTURE_CUBE:
       assert(r->array_size == 6);
-      /* fall-through */
+      FALLTHROUGH;
    case PIPE_TEXTURE_1D_ARRAY:
    case PIPE_TEXTURE_2D_ARRAY:
    case PIPE_TEXTURE_CUBE_ARRAY:

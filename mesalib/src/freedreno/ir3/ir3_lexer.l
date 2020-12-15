@@ -264,6 +264,8 @@ static int parse_reg(const char *str)
 "stib"                            return TOKEN(T_OP_STIB);
 "ldc"                             return TOKEN(T_OP_LDC);
 "ldlv"                            return TOKEN(T_OP_LDLV);
+"getspid"                         return TOKEN(T_OP_GETSPID);
+"getwid"                          return TOKEN(T_OP_GETWID);
 
 "f16"                             return TOKEN(T_TYPE_F16);
 "f32"                             return TOKEN(T_TYPE_F32);

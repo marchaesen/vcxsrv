@@ -57,17 +57,18 @@ fcobjshash_h = custom_target('fcobjshash.h',
   command: [gperf, '--pic', '-m', '100', '@INPUT@', '--output-file', '@OUTPUT@']
 )
 
-# write def file with exports for windows
-cdata_def = configuration_data()
-cdata_def.set('DEF_VERSION', defversion)
-fontconfig_def = configure_file(input: 'fontconfig.def.in', output: 'fontconfig.def', configuration: cdata_def)
+# Define FcPublic appropriately for exports on windows
+fc_extra_c_args = []
+
+if cc.get_argument_syntax() == 'msvc'
+  fc_extra_c_args += '-DFcPublic=__declspec(dllexport)'
+endif
 
 libfontconfig = library('fontconfig',
   fc_sources, alias_headers, ft_alias_headers, fclang_h, fccase_h, fcobjshash_h,
-  c_args: c_args,
+  c_args: c_args + fc_extra_c_args,
   include_directories: incbase,
   dependencies: deps,
-  vs_module_defs: fontconfig_def,
   install: true,
   soversion: soversion,
   version: libversion,

@@ -1,5 +1,6 @@
 variables:
   FDO_UPSTREAM_REPO: mesa/mesa
+  MESA_TEMPLATES_COMMIT: &ci-templates-commit 43ac932d5b8ebf43040d302de3c6e734df178384
   CI_PRE_CLONE_SCRIPT: |-
           set -o xtrace
           /usr/bin/wget -q -O- ${CI_PROJECT_URL}/-/raw/${CI_COMMIT_SHA}/.gitlab-ci/download-git-cache.sh | sh -
@@ -7,31 +8,30 @@ variables:
 
 include:
   - project: 'freedesktop/ci-templates'
-    ref: &ci-templates-sha 52dd4a94044449c8481d18dcdc221a3c636366d2
-    file: '/templates/debian.yml'
+    ref: *ci-templates-commit
+    file:
+      - '/templates/ci-fairy.yml'
   - project: 'freedesktop/ci-templates'
-    ref: *ci-templates-sha
-    file: '/templates/alpine.yml'
+    ref: 52dd4a94044449c8481d18dcdc221a3c636366d2
+    file:
+      - '/templates/debian.yml'
   - local: '.gitlab-ci/lava-gitlab-ci.yml'
   - local: '.gitlab-ci/test-source-dep.yml'
 
 stages:
+  - sanity
   - container
   - container-2
-  - sanity
   - git-archive
-  - deploy
   - meson-x86_64
-  - scons
-  - meson-misc
-  - llvmpipe
-  - softpipe
+  - build-misc
+  - amd
+  - arm
   - freedreno
-  - panfrost
-  - radv
-  - lima
-  - virgl
-  - radeonsi
+  - raspberrypi
+  - software-renderer
+  - layered-backends
+  - deploy
   - success
 
 # Generic rule to not run the job during scheduled pipelines
@@ -72,10 +72,11 @@ stages:
 
 
 .docs-base:
-  extends: .ci-run-policy
-  image: alpine
+  extends:
+    - .fdo.ci-fairy
+    - .ci-run-policy
   script:
-  - apk --no-cache add py3-pip graphviz
+  - apk --no-cache add graphviz
   - pip3 install sphinx sphinx_rtd_theme
   - sphinx-build -b html docs public
 
@@ -103,16 +104,21 @@ test-docs:
   needs: []
   rules:
     - *ignore_scheduled_pipelines
-    - if: *is-main-master
+    - if: *is-forked-branch
       changes: *docs-or-ci
-      when: never
+      when: manual
+    # Other cases default to never
+
+test-docs-mr:
+  extends:
+    - test-docs
+  needs:
+    - sanity
+  rules:
     - if: *is-pre-merge-for-marge
       changes: *docs-or-ci
       when: on_success
-    - if: *is-post-merge-not-for-marge
-      changes: *docs-or-ci
-      when: on_success
-    - if: *is-forked-branch-or-pre-merge
+    - if: *is-pre-merge
       changes: *docs-or-ci
       when: manual
     # Other cases default to never
@@ -183,7 +189,7 @@ success:
 
 # Build the CI docker images.
 #
-# FDO_DISTRIBUTION_TAG is the tag of the docker image used by later stage jobs. If the
+# MESA_IMAGE_TAG is the tag of the docker image used by later stage jobs. If the
 # image doesn't exist yet, the container stage job generates it.
 #
 # In order to generate a new image, one should generally change the tag.
@@ -231,11 +237,21 @@ success:
     # Otherwise, container jobs won't run
     - when: never
   variables:
+    FDO_DISTRIBUTION_TAG: "${MESA_IMAGE_TAG}-${MESA_TEMPLATES_COMMIT}"
     FDO_DISTRIBUTION_VERSION: buster-slim
     FDO_REPO_SUFFIX: "debian/$CI_JOB_NAME"
     FDO_DISTRIBUTION_EXEC: 'env FDO_CI_CONCURRENT=${FDO_CI_CONCURRENT} bash .gitlab-ci/container/${CI_JOB_NAME}.sh'
     # no need to pull the whole repo to build the container image
     GIT_STRATEGY: none
+
+.use-base-image:
+  extends:
+    - .container
+    # Don't want the .container rules
+    - .ci-run-policy
+  stage: container-2
+  variables:
+    FDO_BASE_IMAGE: "${CI_REGISTRY_IMAGE}/${MESA_BASE_IMAGE}:${MESA_BASE_TAG}-${MESA_TEMPLATES_COMMIT}"
 
 # Debian 10 based x86 build image base
 x86_build-base:
@@ -243,16 +259,15 @@ x86_build-base:
     - .fdo.container-build@debian
     - .container
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_build-base "2020-11-05-kmod"
+    MESA_IMAGE_TAG: &x86_build-base "2020-12-02"
 
 .use-x86_build-base:
   extends:
-    - x86_build-base
-    - .ci-run-policy
-  stage: container-2
+    - .fdo.container-build@debian
+    - .use-base-image
   variables:
-    BASE_TAG: *x86_build-base
-    FDO_BASE_IMAGE: "$CI_REGISTRY_IMAGE/debian/x86_build-base:$BASE_TAG"
+    MESA_BASE_IMAGE: "debian/x86_build-base"
+    MESA_BASE_TAG: *x86_build-base
   needs:
     - x86_build-base
 
@@ -261,90 +276,84 @@ x86_build:
   extends:
     - .use-x86_build-base
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_build "2020-11-05-kmod"
+    MESA_IMAGE_TAG: &x86_build "2020-12-09"
 
 .use-x86_build:
   variables:
     TAG: *x86_build
-  image: "$CI_REGISTRY_IMAGE/debian/x86_build:$TAG"
+  image: "$CI_REGISTRY_IMAGE/debian/x86_build:${TAG}-${MESA_TEMPLATES_COMMIT}"
   needs:
     - x86_build
-    - check mr
 
 # Debian 10 based i386 cross-build image
 i386_build:
   extends:
     - .use-x86_build-base
   variables:
-    FDO_DISTRIBUTION_TAG: &i386_build "2020-11-05-kmod"
+    MESA_IMAGE_TAG: &i386_build "2020-12-02"
 
 .use-i386_build:
   variables:
     TAG: *i386_build
-  image: "$CI_REGISTRY_IMAGE/debian/i386_build:$TAG"
+  image: "$CI_REGISTRY_IMAGE/debian/i386_build:${TAG}-${MESA_TEMPLATES_COMMIT}"
   needs:
     - i386_build
-    - check mr
 
 # Debian 10 based ppc64el cross-build image
 ppc64el_build:
   extends:
     - .use-x86_build-base
   variables:
-    FDO_DISTRIBUTION_TAG: &ppc64el_build "2020-11-05-kmod"
+    MESA_IMAGE_TAG: &ppc64el_build "2020-12-02"
 
 .use-ppc64el_build:
   variables:
     TAG: *ppc64el_build
-  image: "$CI_REGISTRY_IMAGE/debian/ppc64el_build:$TAG"
+  image: "$CI_REGISTRY_IMAGE/debian/ppc64el_build:${TAG}-${MESA_TEMPLATES_COMMIT}"
   needs:
     - ppc64el_build
-    - check mr
 
 # Debian 10 based s390x cross-build image
 s390x_build:
   extends:
     - .use-x86_build-base
   variables:
-    FDO_DISTRIBUTION_TAG: &s390x_build "2020-11-05-kmod"
+    MESA_IMAGE_TAG: &s390x_build "2020-12-02"
 
 .use-s390x_build:
   variables:
     TAG: *s390x_build
-  image: "$CI_REGISTRY_IMAGE/debian/s390x_build:$TAG"
+  image: "$CI_REGISTRY_IMAGE/debian/s390x_build:${TAG}-${MESA_TEMPLATES_COMMIT}"
   needs:
     - s390x_build
-    - check mr
 
 # Android NDK cross-build image
 android_build:
   extends:
     - .use-x86_build-base
   variables:
-    FDO_DISTRIBUTION_TAG: &android_build "2020-11-05-kmod"
+    MESA_IMAGE_TAG: &android_build "2020-12-02"
 
 .use-android_build:
   variables:
     TAG: *android_build
-  image: "$CI_REGISTRY_IMAGE/debian/android_build:$TAG"
+  image: "$CI_REGISTRY_IMAGE/debian/android_build:${TAG}-${MESA_TEMPLATES_COMMIT}"
   needs:
     - android_build
-    - check mr
 
 # Debian 10 based x86 test image base
 x86_test-base:
   extends: x86_build-base
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_test-base "2020-11-05-kmod"
+    MESA_IMAGE_TAG: &x86_test-base "2020-12-02"
 
 .use-x86_test-base:
   extends:
-    - x86_build-base
-    - .ci-run-policy
-  stage: container-2
+    - .fdo.container-build@debian
+    - .use-base-image
   variables:
-    BASE_TAG: *x86_test-base
-    FDO_BASE_IMAGE: "$CI_REGISTRY_IMAGE/debian/x86_test-base:$BASE_TAG"
+    MESA_BASE_IMAGE: "debian/x86_test-base"
+    MESA_BASE_TAG: *x86_test-base
   needs:
     - x86_test-base
 
@@ -352,28 +361,13 @@ x86_test-base:
 x86_test-gl:
   extends: .use-x86_test-base
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_test-gl "2020-11-06-deqp-version"
+    MESA_IMAGE_TAG: &x86_test-gl "2020-11-06-deqp-version"
 
 # Debian 10 based x86 test image for VK
 x86_test-vk:
   extends: .use-x86_test-base
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_test-vk "2020-11-06-deqp-version"
-
-# Debian 9 based x86 build image (old LLVM)
-x86_build_old:
-  extends: x86_build-base
-  variables:
-    FDO_DISTRIBUTION_TAG: &x86_build_old "2020-11-05-kmod"
-    FDO_DISTRIBUTION_VERSION: stretch-slim
-
-.use-x86_build_old:
-  variables:
-    TAG: *x86_build_old
-  image: "$CI_REGISTRY_IMAGE/debian/x86_build_old:$TAG"
-  needs:
-    - x86_build_old
-    - check mr
+    MESA_IMAGE_TAG: &x86_test-vk "2020-12-10-shm"
 
 # Debian 10 based ARM build image
 arm_build:
@@ -381,12 +375,12 @@ arm_build:
     - .fdo.container-build@debian@arm64v8
     - .container
   variables:
-    FDO_DISTRIBUTION_TAG: &arm_build "2020-11-05-kmod"
+    MESA_IMAGE_TAG: &arm_build "2020-12-02"
 
 .use-arm_build:
   variables:
     TAG: *arm_build
-  image: "$CI_REGISTRY_IMAGE/debian/arm_build:$TAG"
+  image: "$CI_REGISTRY_IMAGE/debian/arm_build:${TAG}-${MESA_TEMPLATES_COMMIT}"
   needs:
     - arm_build
 
@@ -396,16 +390,15 @@ arm_test-base:
     - .fdo.container-build@debian
     - .container
   variables:
-    FDO_DISTRIBUTION_TAG: &arm_test-base "2020-10-06-clang10-2"
+    MESA_IMAGE_TAG: &arm_test-base "2020-12-03-expect"
 
 .use-arm_test-base:
   extends:
-    - arm_test-base
-    - .ci-run-policy
-  stage: container-2
+    - .fdo.container-build@debian
+    - .use-base-image
   variables:
-    BASE_TAG: *arm_test-base
-    FDO_BASE_IMAGE: "$CI_REGISTRY_IMAGE/debian/arm_test-base:$BASE_TAG"
+    MESA_BASE_IMAGE: "debian/arm_test-base"
+    MESA_BASE_TAG: *arm_test-base
   needs:
     - arm_test-base
 
@@ -414,14 +407,28 @@ arm64_test:
   extends:
     - .use-arm_test-base
   variables:
-    FDO_DISTRIBUTION_TAG: &arm64_test "2020-11-09-db410c-net"
+    MESA_IMAGE_TAG: &arm64_test "2020-12-03-expect"
 
 .use-arm64_test:
   variables:
     TAG: *arm64_test
-  image: "$CI_REGISTRY_IMAGE/debian/arm64_test:$TAG"
+  image: "$CI_REGISTRY_IMAGE/debian/arm64_test:${TAG}-${MESA_TEMPLATES_COMMIT}"
   needs:
     - arm64_test
+
+# x86 image with armhf rootfs for baremetal testing
+armhf_test:
+  extends:
+    - .use-arm_test-base
+  variables:
+    MESA_IMAGE_TAG: &armhf_test "2020-12-03-expect"
+
+.use-armhf_test:
+  variables:
+    TAG: *armhf_test
+  image: "$CI_REGISTRY_IMAGE/debian/armhf_test:${TAG}-${MESA_TEMPLATES_COMMIT}"
+  needs:
+    - armhf_test
 
 # Native Windows docker builds
 #
@@ -437,18 +444,18 @@ arm64_test:
 
 .windows-docker-vs2019:
   variables:
-    WINDOWS_TAG: "2020-05-05-llvm"
-    WINDOWS_IMAGE: "$CI_REGISTRY_IMAGE/windows/x64_build:$WINDOWS_TAG"
-    WINDOWS_UPSTREAM_IMAGE: "$CI_REGISTRY/$FDO_UPSTREAM_REPO/windows/x64_build:$WINDOWS_TAG"
+    WINDOWS_TAG: "2020-12-02"
+    WINDOWS_IMAGE: "$CI_REGISTRY_IMAGE/windows/x64_build:${WINDOWS_TAG}-${MESA_TEMPLATES_COMMIT}"
+    WINDOWS_UPSTREAM_IMAGE: "$CI_REGISTRY/$FDO_UPSTREAM_REPO/windows/x64_build:${WINDOWS_TAG}-${MESA_TEMPLATES_COMMIT}"
 
-.windows_build_vs2019:
+windows_build_vs2019:
   extends:
     - .container
     - .windows-docker-vs2019
   stage: container
   variables:
     GIT_STRATEGY: fetch # we do actually need the full repository though
-  timeout: 4h # LLVM takes ages
+  timeout: 2h # LLVM + piglit takes ages
   tags:
     - windows
     - shell
@@ -462,42 +469,13 @@ arm64_test:
   image: "$WINDOWS_IMAGE"
   needs:
     - windows_build_vs2019
-    - check mr
-
-git_archive:
-  extends: .fdo.container-build@alpine
-  stage: container
-  rules:
-    - if: *is-scheduled-pipeline
-      when: always
-    - if: *is-pre-merge
-      when: on_success
-    - changes: *all_paths
-      when: on_success
-    - if: *is-forked-branch
-      when: manual
-    # Other cases default to never
-  variables:
-    FDO_REPO_SUFFIX: &git-archive-suffix "alpine/git_archive"
-    FDO_DISTRIBUTION_EXEC: 'pip3 install git+http://gitlab.freedesktop.org/freedesktop/ci-templates@6f5af7e5574509726c79109e3c147cee95e81366'
-    # no need to pull the whole repo to build the container image
-    GIT_STRATEGY: none
-    FDO_DISTRIBUTION_TAG: &git-archive-tag "2020-07-07"
-    FDO_DISTRIBUTION_PACKAGES: git py3-pip
-
-.use-git_archive:
-  extends: .fdo.suffixed-image@alpine
-  variables:
-    FDO_DISTRIBUTION_TAG: *git-archive-tag
-    FDO_REPO_SUFFIX: *git-archive-suffix
-  needs:
-    - git_archive
 
 
 # Git archive
 
 make git archive:
-  extends: .use-git_archive
+  extends:
+    - .fdo.ci-fairy
   stage: git-archive
   rules:
     - if: *is-scheduled-pipeline
@@ -506,6 +484,8 @@ make git archive:
   tags:
     - packet.net
   script:
+    # Compactify the .git directory
+    - git gc --aggressive
     # compress the current folder
     - tar -cvzf ../$CI_PROJECT_NAME.tar.gz .
 
@@ -515,40 +495,23 @@ make git archive:
 
 
 # Sanity checks of MR settings and commit logs
-.sanity-check:
-  extends: .use-git_archive
+sanity:
+  extends:
+    - .fdo.ci-fairy
   stage: sanity
-  artifacts:
-    when: on_failure
-    reports:
-      junit: check-*.xml
-
-check mr:
-  extends: .sanity-check
   rules:
-    - *ignore_scheduled_pipelines
     - if: *is-pre-merge
-      when: on_success
-    - changes: *all_paths
       when: on_success
     # Other cases default to never
   variables:
     GIT_STRATEGY: none
   script:
-    # Only run checks in pre-merge pipelines for MRs
-    - if test "x$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" != "x$CI_COMMIT_REF_NAME"; then exit 0; fi
+    # ci-fairy check-commits --junit-xml=check-commits.xml
     - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=check-merge-request.xml
-
-.check commits:
-  extends: .sanity-check
-  rules:
-    - if: *is-pre-merge
-      when: on_success
-    - if: *is-forked-branch
-      when: manual
-    # Other cases default to never
-  script:
-    - ci-fairy check-commits --junit-xml=check-commits.xml
+  artifacts:
+    when: on_failure
+    reports:
+      junit: check-*.xml
 
 
 # BUILD
@@ -608,7 +571,7 @@ check mr:
   extends:
     - .build-linux
     - .use-x86_build
-  stage: scons
+  stage: build-misc
   script:
     - env SCONSFLAGS="-j${FDO_CI_CONCURRENT:-4}" .gitlab-ci/scons-build.sh
 
@@ -626,7 +589,7 @@ meson-testing:
     GALLIUM_ST: >
       -D dri3=enabled
     GALLIUM_DRIVERS: "swrast,virgl,radeonsi"
-    VULKAN_DRIVERS: amd
+    VULKAN_DRIVERS: "swrast,amd"
     BUILDTYPE: "debugoptimized"
     EXTRA_OPTION: >
       -D werror=true
@@ -652,6 +615,8 @@ meson-clover-testing:
       -D opencl-spirv=true
     GALLIUM_DRIVERS: "swrast"
     BUILDTYPE: "debugoptimized"
+    EXTRA_OPTION: >
+      -D werror=true
   script:
     - .gitlab-ci/meson-build.sh
     - .gitlab-ci/prepare-artifacts.sh
@@ -678,7 +643,7 @@ meson-gallium:
     GALLIUM_DRIVERS: "iris,nouveau,kmsro,r300,r600,freedreno,swr,swrast,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink"
     VULKAN_DRIVERS: swrast
     EXTRA_OPTION: >
-      -D osmesa=gallium
+      -D osmesa=true
       -D tools=all
       -D werror=true
   script:
@@ -707,29 +672,14 @@ meson-release:
       -D gallium-nine=false
       -D gallium-opencl=disabled
       -D llvm=false
-    GALLIUM_DRIVERS: "nouveau,kmsro,r300,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink"
+    GALLIUM_DRIVERS: "nouveau,kmsro,freedreno,r300,svga,swrast,v3d,vc4,virgl,etnaviv,panfrost,lima,zink"
     BUILDTYPE: "release"
     EXTRA_OPTION: >
-      -D osmesa=none
+      -D osmesa=true
       -D tools=all
       -D werror=true
   script:
     - .gitlab-ci/meson-build.sh
-
-meson-classic:
-  extends: .meson-build
-  variables:
-    UNWIND: "enabled"
-    DRI_LOADERS: >
-      -D glx=dri
-      -D gbm=enabled
-      -D egl=enabled
-      -D platforms=x11,wayland,drm,surfaceless
-    DRI_DRIVERS: "auto"
-    EXTRA_OPTION: >
-      -D osmesa=classic
-      -D tools=all
-      -D werror=true
 
 meson-android:
   extends:
@@ -768,7 +718,7 @@ meson-android:
 .meson-cross:
   extends:
     - .meson-build
-  stage: meson-misc
+  stage: build-misc
   variables:
     UNWIND: "disabled"
     DRI_LOADERS: >
@@ -776,7 +726,7 @@ meson-android:
       -D gbm=disabled
       -D egl=enabled
       -D platforms=[]
-      -D osmesa=none
+      -D osmesa=false
     GALLIUM_ST: >
       -D dri3=disabled
       -D gallium-vdpau=disabled
@@ -793,7 +743,6 @@ meson-android:
     - .use-arm_build
   needs:
     - arm_build
-    - check mr
   variables:
     VULKAN_DRIVERS: freedreno,broadcom
     GALLIUM_DRIVERS: "etnaviv,freedreno,kmsro,lima,nouveau,panfrost,swrast,tegra,v3d,vc4"
@@ -854,13 +803,40 @@ meson-clang:
     CC: "ccache clang-10"
     CXX: "ccache clang++-10"
 
-.meson-windows-vs2019:
+meson-windows-vs2019:
   extends:
     - .build-windows
     - .use-windows_build_vs2019
-  stage: meson-misc
+    - .windows-build-rules
+  stage: build-misc
   script:
     - . .\.gitlab-ci\windows\mesa_build.ps1
+  artifacts:
+    paths:
+      - _install/
+
+test-d3d12-windows:
+  extends:
+    - .build-windows
+    - .use-windows_build_vs2019
+    - .windows-test-rules
+  stage: layered-backends
+  dependencies:
+    - meson-windows-vs2019
+  needs:
+    - meson-windows-vs2019
+  variables:
+    GIT_STRATEGY: none # testing doesn't build anything from source
+    GALLIUM_DRIVER: d3d12
+    PIGLIT_PROFILE: quick_gl
+    PIGLIT_OPTIONS: -x nv_copy_depth_to_color
+  script:
+    - . _install/piglit_run.ps1
+  artifacts:
+    when: on_failure
+    name: "mesa_${CI_JOB_NAME}"
+    paths:
+      - summary/
 
 scons-win64:
   extends: .scons-build
@@ -887,6 +863,8 @@ meson-clover:
       -D gallium-xa=disabled
       -D gallium-nine=false
       -D gallium-opencl=icd
+    EXTRA_OPTION: >
+      -D werror=true
   script:
     - LLVM_VERSION=8 .gitlab-ci/meson-build.sh
     - LLVM_VERSION=9 .gitlab-ci/meson-build.sh
@@ -901,7 +879,7 @@ meson-vulkan:
       -D gbm=disabled
       -D egl=disabled
       -D platforms=x11,wayland
-      -D osmesa=none
+      -D osmesa=false
     GALLIUM_ST: >
       -D dri3=enabled
       -D gallium-vdpau=disabled
@@ -918,6 +896,7 @@ meson-vulkan:
     VULKAN_DRIVERS: intel,amd,freedreno,broadcom
     EXTRA_OPTION: >
       -D vulkan-overlay-layer=true
+      -D vulkan-device-select-layer=true
       -D build-aco-tests=true
       -D werror=true
 
@@ -931,6 +910,7 @@ meson-i386:
     GALLIUM_DRIVERS: "iris,r300,radeonsi,swrast,virgl"
     EXTRA_OPTION: >
       -D vulkan-overlay-layer=true
+      -D vulkan-device-select-layer=true
       -D werror=true
 
 meson-s390x:
@@ -957,14 +937,14 @@ meson-ppc64el:
 
 meson-mingw32-x86_64:
   extends: .meson-build
-  stage: meson-misc
+  stage: build-misc
   variables:
     UNWIND: "disabled"
     DRI_DRIVERS: ""
     GALLIUM_DRIVERS: "swrast"
     EXTRA_OPTION: >
       -Dllvm=disabled
-      -Dosmesa=gallium
+      -Dosmesa=true
       --cross-file=.gitlab-ci/x86_64-w64-mingw32
 
 .test:
@@ -990,7 +970,7 @@ meson-mingw32-x86_64:
     - .test
   variables:
     TAG: *x86_test-gl
-  image: "$CI_REGISTRY_IMAGE/debian/x86_test-gl:$TAG"
+  image: "$CI_REGISTRY_IMAGE/debian/x86_test-gl:${TAG}-${MESA_TEMPLATES_COMMIT}"
   needs:
     - x86_test-gl
 
@@ -1006,7 +986,7 @@ meson-mingw32-x86_64:
     - .test
   variables:
     TAG: *x86_test-vk
-  image: "$CI_REGISTRY_IMAGE/debian/x86_test-vk:$TAG"
+  image: "$CI_REGISTRY_IMAGE/debian/x86_test-vk:${TAG}-${MESA_TEMPLATES_COMMIT}"
   needs:
     - meson-testing
     - x86_test-vk
@@ -1033,7 +1013,7 @@ meson-mingw32-x86_64:
   script:
     - install/piglit/run.sh
 
-piglit-cl:
+llvmpipe-piglit-cl:
   extends:
     - .piglit-test
     - .test-cl
@@ -1047,7 +1027,7 @@ piglit-cl:
   script:
     - install/piglit/run_cl.sh
 
-piglit-quick_gl:
+llvmpipe-piglit-quick_gl:
   extends: .piglit-test
   variables:
     LP_NUM_THREADS: 0
@@ -1062,13 +1042,13 @@ piglit-quick_gl:
       -x maxsize
     PIGLIT_PROFILES: quick_gl
 
-piglit-glslparser:
+llvmpipe-piglit-glslparser:
   extends: .piglit-test
   variables:
     LP_NUM_THREADS: 0
     PIGLIT_PROFILES: glslparser
 
-piglit-quick_shader:
+llvmpipe-piglit-quick_shader:
   extends: .piglit-test
   variables:
     LP_NUM_THREADS: 1
@@ -1206,6 +1186,8 @@ virgl-gl32-on-gl:
         *all_paths
       when: manual
     - when: never
+  variables:
+    GIT_STRATEGY: none
 
 virgl-gles2-on-gles:
   variables:
@@ -1407,10 +1389,46 @@ arm64_a530_gles31:
     DEQP_VER: gles31
     DEQP_FRACTION: 10
 
+vc4-rpi3-gles2:armhf:
+  extends:
+    - .baremetal-test
+    - .use-armhf_test
+    - .vc4-rules
+  parallel: 4
+  variables:
+    BARE_METAL_TEST_SCRIPT: "/install/deqp-runner.sh"
+    BM_BOOTFS: /boot/armhf
+    BM_KERNEL_MODULES: vc4
+    BM_ROOTFS: /lava-files/rootfs-armhf
+    BM_ROOTFS_EXTRA: /modules/armhf
+    DEQP_EXPECTED_FAILS: deqp-vc4-rpi3-fails.txt
+    DEQP_EXPECTED_RENDERER: VC4
+    DEQP_FLAKES: deqp-vc4-rpi3-flakes.txt
+    DEQP_SKIPS: deqp-vc4-rpi3-skips.txt
+    DEQP_VER: gles2
+  script:
+    - ./install/bare-metal/poe-powered.sh
+  needs:
+    - armhf_test
+    - meson-armhf
+  tags:
+    - igalia-rpi3
+
+lavapipe-vk:
+  stage: software-renderer
+  extends:
+    - .llvmpipe-rules
+    - .deqp-test-vk
+  variables:
+    DEQP_EXPECTED_FAILS: deqp-lvp-fails.txt
+    DEQP_FLAKES: deqp-lvp-flakes.txt
+    VK_DRIVER: lvp
+    DEQP_FRACTION: 10
+
 # RADV CI
 .test-radv:
   extends: .radv-rules
-  stage: radv
+  stage: amd
   variables:
     VK_DRIVER: radeon
     ACO_DEBUG: validateir,validatera

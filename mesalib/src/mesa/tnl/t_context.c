@@ -113,8 +113,6 @@ _tnl_DestroyContext( struct gl_context *ctx )
    struct tnl_shine_tab *s, *tmps;
    TNLcontext *tnl = TNL_CONTEXT(ctx);
 
-   _math_matrix_dtr(&tnl->_WindowMap);
-
    /* Free lighting shininess exponentiation table */
    foreach_s( s, tmps, tnl->_ShineTabList ) {
       free( s );

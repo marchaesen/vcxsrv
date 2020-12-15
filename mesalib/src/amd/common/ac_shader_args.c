@@ -52,3 +52,19 @@ void ac_add_arg(struct ac_shader_args *info, enum ac_arg_regfile regfile, unsign
 
    info->arg_count++;
 }
+
+void ac_add_return(struct ac_shader_args *info, enum ac_arg_regfile regfile)
+{
+   assert(info->return_count < AC_MAX_ARGS);
+
+   if (regfile == AC_ARG_SGPR) {
+      /* SGPRs must be inserted before VGPRs. */
+      assert(info->num_vgprs_returned == 0);
+      info->num_sgprs_returned++;;
+   } else {
+      assert(regfile == AC_ARG_VGPR);
+      info->num_vgprs_returned++;
+   }
+
+   info->return_count++;
+}

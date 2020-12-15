@@ -47,7 +47,7 @@
     when: never
 
 .softpipe-rules:
-  stage: softpipe
+  stage: software-renderer
   rules:
     - *ignore_scheduled_pipelines
     - changes:
@@ -63,7 +63,7 @@
     - when: never
 
 .llvmpipe-rules:
-  stage: llvmpipe
+  stage: software-renderer
   rules:
     - *ignore_scheduled_pipelines
     - changes:
@@ -79,7 +79,7 @@
     - when: never
 
 .llvmpipe-cl-rules:
-  stage: llvmpipe
+  stage: software-renderer
   rules:
     - *ignore_scheduled_pipelines
     - changes:
@@ -131,7 +131,7 @@
     - when: never
 
 .panfrost-rules:
-  stage: panfrost
+  stage: arm
   rules:
     - *ignore_scheduled_pipelines
     - changes:
@@ -147,8 +147,26 @@
       when: on_success
     - when: never
 
+.vc4-rules:
+  stage: raspberrypi
+  rules:
+    - *ignore_scheduled_pipelines
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+      - src/broadcom/**/*
+      - src/gallium/drivers/vc4/**/*
+      - src/gallium/winsys/kmsro/**/*
+      - src/gallium/winsys/vc4/**/*
+      when: on_success
+    - when: never
+
 .lima-rules:
-  stage: lima
+  stage: arm
   rules:
     - *ignore_scheduled_pipelines
     - changes:
@@ -177,7 +195,7 @@
     - when: never
 
 .virgl-rules:
-  stage: virgl
+  stage: layered-backends
   rules:
     - *ignore_scheduled_pipelines
     - changes:
@@ -196,7 +214,7 @@
     - when: never
 
 .radeonsi-rules:
-  stage: radeonsi
+  stage: amd
   rules:
     - *ignore_scheduled_pipelines
     - changes:
@@ -213,5 +231,38 @@
       - src/amd/common/**/*
       - src/amd/llvm/**/*
       - src/amd/registers/**/*
+      when: on_success
+    - when: never
+
+# Unfortunately YAML doesn't let us concatenate arrays, so we have to do the
+# rules duplication manually
+.windows-build-rules:
+  rules:
+    - changes: 
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes: &d3d12_file_list
+      - src/gallium/drivers/d3d12/**/*
+      - src/microsoft/**/*
+      - src/gallium/frontends/wgl/*
+      - src/gallium/winsys/d3d12/wgl/*
+      - src/gallium/targets/libgl-gdi/*
+      - src/gallium/targets/libgl-d3d12/*
+      when: on_success
+    - when: never
+
+.windows-test-rules:
+  rules:
+    - *ignore_scheduled_pipelines
+    - changes: 
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes: *d3d12_file_list
       when: on_success
     - when: never

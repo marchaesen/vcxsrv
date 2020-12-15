@@ -40,6 +40,11 @@
 
 #include <stdarg.h>
 #include <string.h>
+#if !defined(_WIN32)
+#include <sys/types.h>
+#include <unistd.h>
+#endif
+
 #include "util/os_misc.h"
 #include "util/detect_os.h"
 #include "util/macros.h"
@@ -54,11 +59,7 @@ extern "C" {
 #endif
 
 
-#if defined(__GNUC__)
-#define _util_printf_format(fmt, list) __attribute__ ((format (printf, fmt, list)))
-#else
-#define _util_printf_format(fmt, list)
-#endif
+#define _util_printf_format(fmt, list) PRINTFLIKE(fmt, list)
 
 void _debug_vprintf(const char *format, va_list ap);
    
@@ -414,6 +415,39 @@ debug_get_option_ ## suffix (void) \
       value = debug_get_option(name, dfault); \
    } \
    return value; \
+}
+
+static inline bool
+__check_suid(void)
+{
+#if !defined(_WIN32)
+   if (geteuid() != getuid())
+      return true;
+#endif
+   return false;
+}
+
+/**
+ * Define a getter for a debug option which specifies a 'FILE *'
+ * to open, with additional checks for suid executables.  Note
+ * that if the return is not NULL, the caller owns the 'FILE *'
+ * reference.
+ */
+#define DEBUG_GET_ONCE_FILE_OPTION(suffix, name, dfault, mode) \
+static FILE * \
+debug_get_option_ ## suffix (void) \
+{ \
+   static bool first = true; \
+   static const char * value; \
+   if (__check_suid()) \
+      return NULL; \
+   if (first) { \
+      first = false; \
+      value = debug_get_option(name, dfault); \
+   } \
+   if (!value) \
+      return NULL; \
+   return fopen(value, mode); \
 }
 
 #define DEBUG_GET_ONCE_BOOL_OPTION(sufix, name, dfault) \

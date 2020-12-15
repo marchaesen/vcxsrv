@@ -36,7 +36,6 @@ def generate(env):
         'X11',
         'Xext',
         'Xxf86vm',
-        'Xdamage',
         'Xfixes',
     ])
 

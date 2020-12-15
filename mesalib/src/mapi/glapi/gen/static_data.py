@@ -1676,6 +1676,7 @@ offsets = {
     "FogCoordhvNV": 1640,
     "SecondaryColor3hNV": 1641,
     "SecondaryColor3hvNV": 1642,
+    "InternalSetError": 1643,
 }
 
 functions = [

@@ -45,7 +45,7 @@ extern "C" {
 GLboolean
 st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 {
-   struct pipe_screen *pscreen = ctx->st->pipe->screen;
+   struct pipe_screen *pscreen = st_context(ctx)->screen;
 
    enum pipe_shader_ir preferred_ir = (enum pipe_shader_ir)
       pscreen->get_shader_param(pscreen, PIPE_SHADER_VERTEX,

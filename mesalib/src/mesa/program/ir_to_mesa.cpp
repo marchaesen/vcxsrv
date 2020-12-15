@@ -2391,7 +2391,7 @@ add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
    if (is_dual_slot)
       num_params *= 2;
 
-   _mesa_reserve_parameter_storage(params, num_params);
+   _mesa_reserve_parameter_storage(params, num_params, num_params);
    index = params->NumParameters;
 
    if (ctx->Const.PackedDriverUniformStorage) {
@@ -2556,7 +2556,7 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
             break;
          }
 
-         unsigned pvo = params->ParameterValueOffset[i];
+         unsigned pvo = params->Parameters[i].ValueOffset;
          _mesa_uniform_attach_driver_storage(storage, dmul * columns, dmul,
                                              format,
                                              &params->ParameterValues[pvo]);

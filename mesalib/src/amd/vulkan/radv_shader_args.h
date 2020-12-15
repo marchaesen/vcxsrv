@@ -34,36 +34,9 @@ struct radv_shader_args {
 
 	struct ac_arg descriptor_sets[MAX_SETS];
 	struct ac_arg ring_offsets;
-	struct ac_arg scratch_offset;
-
-	struct ac_arg vertex_buffers;
-	struct ac_arg rel_auto_id;
-	struct ac_arg vs_prim_id;
-	struct ac_arg es2gs_offset;
-
-	struct ac_arg oc_lds;
-	struct ac_arg merged_wave_info;
-	struct ac_arg tess_factor_offset;
-	struct ac_arg tes_rel_patch_id;
-	struct ac_arg tes_u;
-	struct ac_arg tes_v;
-
-	/* HW GS */
-	/* On gfx10:
-	 *  - bits 0..11: ordered_wave_id
-	 *  - bits 12..20: number of vertices in group
-	 *  - bits 22..30: number of primitives in group
-	 */
-	struct ac_arg gs_tg_info;
-	struct ac_arg gs2vs_offset;
-	struct ac_arg gs_wave_id;
-	struct ac_arg gs_vtx_offset[6];
 
 	/* Streamout */
 	struct ac_arg streamout_buffers;
-	struct ac_arg streamout_write_idx;
-	struct ac_arg streamout_config;
-	struct ac_arg streamout_offset[4];
 
 	/* NGG GS */
 	struct ac_arg ngg_gs_state;
@@ -75,8 +48,7 @@ struct radv_shader_args {
 static inline struct radv_shader_args *
 radv_shader_args_from_ac(struct ac_shader_args *args)
 {
-	struct radv_shader_args *radv_args = NULL;
-	return (struct radv_shader_args *) container_of(args, radv_args, ac);
+	return container_of(args, struct radv_shader_args, ac);
 }
 
 void radv_declare_shader_args(struct radv_shader_args *args,

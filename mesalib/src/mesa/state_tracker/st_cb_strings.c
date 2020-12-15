@@ -43,7 +43,7 @@ static const GLubyte *
 st_get_string(struct gl_context * ctx, GLenum name)
 {
    struct st_context *st = st_context(ctx);
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
 
    switch (name) {
    case GL_VENDOR: {

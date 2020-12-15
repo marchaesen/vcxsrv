@@ -70,7 +70,7 @@ pks(XKeyboardState * ks)
 int
 main(int argc, char **argv)
 {
-    Display *display = XOpenDisplay(NULL);
+    Display *display;
     XKeyboardControl kc;
     XKeyboardState ks;
     unsigned long vm;
@@ -85,6 +85,13 @@ main(int argc, char **argv)
     kc.bell_percent = atoi(argv[2]);
     kc.bell_pitch = atoi(argv[3]);
     kc.bell_duration = atoi(argv[4]);
+
+    display = XOpenDisplay(NULL);
+    if (display == NULL) {
+        fprintf (stderr, "%s: unable to open display \"%s\".\n",
+                 argv[0], XDisplayName (NULL));
+        exit(1);
+    }
 
     printf("Setting:\n");
     pkc(&kc, vm);

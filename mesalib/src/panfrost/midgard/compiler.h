@@ -233,6 +233,8 @@ enum midgard_rt_id {
         MIDGARD_NUM_RTS,
 };
 
+#define MIDGARD_MAX_SAMPLE_ITER 16
+
 typedef struct compiler_context {
         nir_shader *nir;
         gl_shader_stage stage;
@@ -242,6 +244,9 @@ typedef struct compiler_context {
 
         /* Render target number for a keyed blend shader. Depends on is_blend */
         unsigned blend_rt;
+
+        /* Number of samples for a keyed blend shader. Depends on is_blend */
+        unsigned blend_sample_iterations;
 
         /* Index to precolour to r0 for an input blend colour */
         unsigned blend_input;
@@ -313,7 +318,7 @@ typedef struct compiler_context {
         uint32_t quirks;
 
         /* Writeout instructions for each render target */
-        midgard_instruction *writeout_branch[MIDGARD_NUM_RTS];
+        midgard_instruction *writeout_branch[MIDGARD_NUM_RTS][MIDGARD_MAX_SAMPLE_ITER];
 
         struct panfrost_sysvals sysvals;
 } compiler_context;

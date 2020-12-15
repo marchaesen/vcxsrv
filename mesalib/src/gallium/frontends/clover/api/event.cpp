@@ -272,6 +272,7 @@ clGetEventProfilingInfo(cl_event d_ev, cl_profiling_info param,
       break;
 
    case CL_PROFILING_COMMAND_END:
+   case CL_PROFILING_COMMAND_COMPLETE:
       buf.as_scalar<cl_ulong>() = hev.time_end();
       break;
 

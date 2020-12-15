@@ -71,7 +71,7 @@ fallback_required(struct gl_context *ctx, GLenum target,
       return true;
    }
 
-   srcLevel = texObj->BaseLevel;
+   srcLevel = texObj->Attrib.BaseLevel;
    baseImage = _mesa_select_tex_image(texObj, target, srcLevel);
    if (!baseImage) {
       _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_HIGH,
@@ -149,10 +149,10 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
 {
    struct gen_mipmap_state *mipmap = &ctx->Meta->Mipmap;
    struct vertex verts[4];
-   const GLuint baseLevel = texObj->BaseLevel;
-   const GLuint maxLevel = texObj->MaxLevel;
-   const GLint maxLevelSave = texObj->MaxLevel;
-   const GLboolean genMipmapSave = texObj->GenerateMipmap;
+   const GLuint baseLevel = texObj->Attrib.BaseLevel;
+   const GLuint maxLevel = texObj->Attrib.MaxLevel;
+   const GLint maxLevelSave = texObj->Attrib.MaxLevel;
+   const GLboolean genMipmapSave = texObj->Attrib.GenerateMipmap;
    const GLboolean use_glsl_version = ctx->Extensions.ARB_vertex_shader &&
                                       ctx->Extensions.ARB_fragment_shader;
    GLenum faceTarget;
@@ -226,7 +226,7 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
 
    if (ctx->Extensions.EXT_texture_sRGB_decode) {
       const struct gl_texture_image *baseImage =
-         _mesa_select_tex_image(texObj, target, texObj->BaseLevel);
+         _mesa_select_tex_image(texObj, target, texObj->Attrib.BaseLevel);
       const bool srgb = _mesa_is_format_srgb(baseImage->TexFormat);
 
       _mesa_set_sampler_srgb_decode(ctx, mipmap->samp_obj,
@@ -241,9 +241,9 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
 
    _mesa_texture_parameteriv(ctx, texObj, GL_GENERATE_MIPMAP, &always_false, false);
 
-   if (texObj->_Swizzle != SWIZZLE_NOOP) {
+   if (texObj->Attrib._Swizzle != SWIZZLE_NOOP) {
       static const GLint swizzleNoop[4] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
-      memcpy(swizzle, texObj->Swizzle, sizeof(swizzle));
+      memcpy(swizzle, texObj->Attrib.Swizzle, sizeof(swizzle));
       swizzleSaved = GL_TRUE;
       _mesa_texture_parameteriv(ctx, texObj, GL_TEXTURE_SWIZZLE_RGBA,
                                 swizzleNoop, false);

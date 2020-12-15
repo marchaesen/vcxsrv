@@ -176,6 +176,47 @@ static inline unsigned vk_conv_blend_func(enum VkBlendOp op)
    }
 }
 
+static inline unsigned vk_conv_logic_op(enum VkLogicOp op)
+{
+   switch (op) {
+   case VK_LOGIC_OP_CLEAR:
+       return PIPE_LOGICOP_CLEAR;
+   case VK_LOGIC_OP_NOR:
+       return PIPE_LOGICOP_NOR;
+   case VK_LOGIC_OP_AND_INVERTED:
+       return PIPE_LOGICOP_AND_INVERTED;
+   case VK_LOGIC_OP_COPY_INVERTED:
+       return PIPE_LOGICOP_COPY_INVERTED;
+   case VK_LOGIC_OP_AND_REVERSE:
+       return PIPE_LOGICOP_AND_REVERSE;
+   case VK_LOGIC_OP_INVERT:
+       return PIPE_LOGICOP_INVERT;
+   case VK_LOGIC_OP_XOR:
+       return PIPE_LOGICOP_XOR;
+   case VK_LOGIC_OP_NAND:
+       return PIPE_LOGICOP_NAND;
+   case VK_LOGIC_OP_AND:
+       return PIPE_LOGICOP_AND;
+   case VK_LOGIC_OP_EQUIVALENT:
+       return PIPE_LOGICOP_EQUIV;
+   case VK_LOGIC_OP_NO_OP:
+       return PIPE_LOGICOP_NOOP;
+   case VK_LOGIC_OP_OR_INVERTED:
+       return PIPE_LOGICOP_OR_INVERTED;
+   case VK_LOGIC_OP_COPY:
+       return PIPE_LOGICOP_COPY;
+   case VK_LOGIC_OP_OR_REVERSE:
+       return PIPE_LOGICOP_OR_REVERSE;
+   case VK_LOGIC_OP_OR:
+       return PIPE_LOGICOP_OR;
+   case VK_LOGIC_OP_SET:
+       return PIPE_LOGICOP_SET;
+   default:
+      assert(0);
+      return 0;
+   }
+}
+
 static inline enum pipe_swizzle vk_conv_swizzle(VkComponentSwizzle swiz)
 {
    switch (swiz) {

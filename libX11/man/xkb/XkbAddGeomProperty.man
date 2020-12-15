@@ -77,8 +77,8 @@ function.
 .nf
 
     typedef struct _XkbProperty {
-        char *         name;       /\(** property name */
-        char *         value;      /\(** property value */
+        char *         name;       /\&* property name */
+        char *         value;      /\&* property value */
     } XkbPropertyRec,*XkbPropertyPtr;
 
 .fi

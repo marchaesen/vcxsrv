@@ -233,7 +233,7 @@ static int label_idx(uint32_t offset, bool create)
 static const char *
 label_name(uint32_t offset, bool allow_jt)
 {
-	static char name[8];
+	static char name[12];
 	int lidx;
 
 	if (allow_jt) {
@@ -279,7 +279,7 @@ static int fxn_idx(uint32_t offset, bool create)
 static const char *
 fxn_name(uint32_t offset)
 {
-	static char name[8];
+	static char name[14];
 	int fidx = fxn_idx(offset, false);
 	if (fidx < 0)
 		return NULL;

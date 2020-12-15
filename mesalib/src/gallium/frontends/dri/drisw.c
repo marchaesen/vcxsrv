@@ -198,7 +198,7 @@ drisw_put_image_shm(struct dri_drawable *drawable,
 }
 
 static inline void
-drisw_present_texture(__DRIdrawable *dPriv,
+drisw_present_texture(struct pipe_context *pipe, __DRIdrawable *dPriv,
                       struct pipe_resource *ptex, struct pipe_box *sub_box)
 {
    struct dri_drawable *drawable = dri_drawable(dPriv);
@@ -207,7 +207,7 @@ drisw_present_texture(__DRIdrawable *dPriv,
    if (screen->swrast_no_present)
       return;
 
-   screen->base.screen->flush_frontbuffer(screen->base.screen, ptex, 0, 0, drawable, sub_box);
+   screen->base.screen->flush_frontbuffer(screen->base.screen, pipe, ptex, 0, 0, drawable, sub_box);
 }
 
 static inline void
@@ -221,10 +221,11 @@ drisw_invalidate_drawable(__DRIdrawable *dPriv)
 }
 
 static inline void
-drisw_copy_to_front(__DRIdrawable * dPriv,
+drisw_copy_to_front(struct pipe_context *pipe,
+                    __DRIdrawable * dPriv,
                     struct pipe_resource *ptex)
 {
-   drisw_present_texture(dPriv, ptex, NULL);
+   drisw_present_texture(pipe, dPriv, ptex, NULL);
 
    drisw_invalidate_drawable(dPriv);
 }
@@ -261,7 +262,7 @@ drisw_swap_buffers(__DRIdrawable *dPriv)
                        drawable->msaa_textures[ST_ATTACHMENT_BACK_LEFT]);
       }
 
-      drisw_copy_to_front(dPriv, ptex);
+      drisw_copy_to_front(ctx->st->pipe, dPriv, ptex);
    }
 }
 
@@ -285,7 +286,7 @@ drisw_copy_sub_buffer(__DRIdrawable *dPriv, int x, int y,
       ctx->st->flush(ctx->st, ST_FLUSH_FRONT, NULL, NULL, NULL);
 
       u_box_2d(x, dPriv->h - y - h, w, h, &box);
-      drisw_present_texture(dPriv, ptex, &box);
+      drisw_present_texture(ctx->st->pipe, dPriv, ptex, &box);
    }
 }
 
@@ -308,7 +309,7 @@ drisw_flush_frontbuffer(struct dri_context *ctx,
    ptex = drawable->textures[statt];
 
    if (ptex) {
-      drisw_copy_to_front(ctx->dPriv, ptex);
+      drisw_copy_to_front(ctx->st->pipe, ctx->dPriv, ptex);
    }
 }
 

@@ -25,6 +25,5 @@
 #define windowsdri_h
 
 void WindowsDRIExtensionInit(void);
-Bool noDriExtension;
 
 #endif /* windowsdri_h */

@@ -498,7 +498,6 @@ EXTRA_EXT(ARB_texture_cube_map);
 EXTRA_EXT(EXT_texture_array);
 EXTRA_EXT(NV_fog_distance);
 EXTRA_EXT(EXT_texture_filter_anisotropic);
-EXTRA_EXT(NV_point_sprite);
 EXTRA_EXT(NV_texture_rectangle);
 EXTRA_EXT(EXT_stencil_two_side);
 EXTRA_EXT(EXT_depth_bounds_test);
@@ -516,7 +515,7 @@ EXTRA_EXT(EXT_transform_feedback);
 EXTRA_EXT(ARB_transform_feedback3);
 EXTRA_EXT(EXT_pixel_buffer_object);
 EXTRA_EXT(ARB_vertex_program);
-EXTRA_EXT2(NV_point_sprite, ARB_point_sprite);
+EXTRA_EXT(ARB_point_sprite);
 EXTRA_EXT2(ARB_vertex_program, ARB_fragment_program);
 EXTRA_EXT(ARB_color_buffer_float);
 EXTRA_EXT(EXT_framebuffer_sRGB);
@@ -1731,19 +1730,19 @@ _mesa_GetBooleanv(GLenum pname, GLboolean *params)
       params[6] = FLOAT_TO_BOOLEAN(((GLfloat *) p)[6]);
       params[5] = FLOAT_TO_BOOLEAN(((GLfloat *) p)[5]);
       params[4] = FLOAT_TO_BOOLEAN(((GLfloat *) p)[4]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_4:
    case TYPE_FLOATN_4:
       params[3] = FLOAT_TO_BOOLEAN(((GLfloat *) p)[3]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_3:
    case TYPE_FLOATN_3:
       params[2] = FLOAT_TO_BOOLEAN(((GLfloat *) p)[2]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_2:
    case TYPE_FLOATN_2:
       params[1] = FLOAT_TO_BOOLEAN(((GLfloat *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT:
    case TYPE_FLOATN:
       params[0] = FLOAT_TO_BOOLEAN(((GLfloat *) p)[0]);
@@ -1751,7 +1750,7 @@ _mesa_GetBooleanv(GLenum pname, GLboolean *params)
 
    case TYPE_DOUBLEN_2:
       params[1] = FLOAT_TO_BOOLEAN(((GLdouble *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_DOUBLEN:
       params[0] = FLOAT_TO_BOOLEAN(((GLdouble *) p)[0]);
       break;
@@ -1759,16 +1758,16 @@ _mesa_GetBooleanv(GLenum pname, GLboolean *params)
    case TYPE_INT_4:
    case TYPE_UINT_4:
       params[3] = INT_TO_BOOLEAN(((GLint *) p)[3]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_3:
    case TYPE_UINT_3:
       params[2] = INT_TO_BOOLEAN(((GLint *) p)[2]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_2:
    case TYPE_UINT_2:
    case TYPE_ENUM_2:
       params[1] = INT_TO_BOOLEAN(((GLint *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT:
    case TYPE_UINT:
    case TYPE_ENUM:
@@ -1848,19 +1847,19 @@ _mesa_GetFloatv(GLenum pname, GLfloat *params)
       params[6] = ((GLfloat *) p)[6];
       params[5] = ((GLfloat *) p)[5];
       params[4] = ((GLfloat *) p)[4];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_4:
    case TYPE_FLOATN_4:
       params[3] = ((GLfloat *) p)[3];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_3:
    case TYPE_FLOATN_3:
       params[2] = ((GLfloat *) p)[2];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_2:
    case TYPE_FLOATN_2:
       params[1] = ((GLfloat *) p)[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT:
    case TYPE_FLOATN:
       params[0] = ((GLfloat *) p)[0];
@@ -1868,21 +1867,21 @@ _mesa_GetFloatv(GLenum pname, GLfloat *params)
 
    case TYPE_DOUBLEN_2:
       params[1] = (GLfloat) (((GLdouble *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_DOUBLEN:
       params[0] = (GLfloat) (((GLdouble *) p)[0]);
       break;
 
    case TYPE_INT_4:
       params[3] = (GLfloat) (((GLint *) p)[3]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_3:
       params[2] = (GLfloat) (((GLint *) p)[2]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_2:
    case TYPE_ENUM_2:
       params[1] = (GLfloat) (((GLint *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT:
    case TYPE_ENUM:
       params[0] = (GLfloat) (((GLint *) p)[0]);
@@ -1899,13 +1898,13 @@ _mesa_GetFloatv(GLenum pname, GLfloat *params)
 
    case TYPE_UINT_4:
       params[3] = (GLfloat) (((GLuint *) p)[3]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT_3:
       params[2] = (GLfloat) (((GLuint *) p)[2]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT_2:
       params[1] = (GLfloat) (((GLuint *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT:
       params[0] = (GLfloat) (((GLuint *) p)[0]);
       break;
@@ -1974,36 +1973,36 @@ _mesa_GetIntegerv(GLenum pname, GLint *params)
       params[6] = lroundf(((GLfloat *) p)[6]);
       params[5] = lroundf(((GLfloat *) p)[5]);
       params[4] = lroundf(((GLfloat *) p)[4]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_4:
       params[3] = lroundf(((GLfloat *) p)[3]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_3:
       params[2] = lroundf(((GLfloat *) p)[2]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_2:
       params[1] = lroundf(((GLfloat *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT:
       params[0] = lroundf(((GLfloat *) p)[0]);
       break;
 
    case TYPE_FLOATN_4:
       params[3] = FLOAT_TO_INT(((GLfloat *) p)[3]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOATN_3:
       params[2] = FLOAT_TO_INT(((GLfloat *) p)[2]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOATN_2:
       params[1] = FLOAT_TO_INT(((GLfloat *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOATN:
       params[0] = FLOAT_TO_INT(((GLfloat *) p)[0]);
       break;
 
    case TYPE_DOUBLEN_2:
       params[1] = FLOAT_TO_INT(((GLdouble *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_DOUBLEN:
       params[0] = FLOAT_TO_INT(((GLdouble *) p)[0]);
       break;
@@ -2011,16 +2010,16 @@ _mesa_GetIntegerv(GLenum pname, GLint *params)
    case TYPE_INT_4:
    case TYPE_UINT_4:
       params[3] = ((GLint *) p)[3];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_3:
    case TYPE_UINT_3:
       params[2] = ((GLint *) p)[2];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_2:
    case TYPE_UINT_2:
    case TYPE_ENUM_2:
       params[1] = ((GLint *) p)[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT:
    case TYPE_UINT:
    case TYPE_ENUM:
@@ -2100,50 +2099,50 @@ _mesa_GetInteger64v(GLenum pname, GLint64 *params)
       params[6] = llround(((GLfloat *) p)[6]);
       params[5] = llround(((GLfloat *) p)[5]);
       params[4] = llround(((GLfloat *) p)[4]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_4:
       params[3] = llround(((GLfloat *) p)[3]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_3:
       params[2] = llround(((GLfloat *) p)[2]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_2:
       params[1] = llround(((GLfloat *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT:
       params[0] = llround(((GLfloat *) p)[0]);
       break;
 
    case TYPE_FLOATN_4:
       params[3] = FLOAT_TO_INT(((GLfloat *) p)[3]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOATN_3:
       params[2] = FLOAT_TO_INT(((GLfloat *) p)[2]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOATN_2:
       params[1] = FLOAT_TO_INT(((GLfloat *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOATN:
       params[0] = FLOAT_TO_INT(((GLfloat *) p)[0]);
       break;
 
    case TYPE_DOUBLEN_2:
       params[1] = FLOAT_TO_INT(((GLdouble *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_DOUBLEN:
       params[0] = FLOAT_TO_INT(((GLdouble *) p)[0]);
       break;
 
    case TYPE_INT_4:
       params[3] = ((GLint *) p)[3];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_3:
       params[2] = ((GLint *) p)[2];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_2:
    case TYPE_ENUM_2:
       params[1] = ((GLint *) p)[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT:
    case TYPE_ENUM:
       params[0] = ((GLint *) p)[0];
@@ -2160,13 +2159,13 @@ _mesa_GetInteger64v(GLenum pname, GLint64 *params)
 
    case TYPE_UINT_4:
       params[3] = ((GLuint *) p)[3];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT_3:
       params[2] = ((GLuint *) p)[2];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT_2:
       params[1] = ((GLuint *) p)[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT:
       params[0] = ((GLuint *) p)[0];
       break;
@@ -2227,19 +2226,19 @@ _mesa_GetDoublev(GLenum pname, GLdouble *params)
       params[6] = ((GLfloat *) p)[6];
       params[5] = ((GLfloat *) p)[5];
       params[4] = ((GLfloat *) p)[4];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_4:
    case TYPE_FLOATN_4:
       params[3] = ((GLfloat *) p)[3];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_3:
    case TYPE_FLOATN_3:
       params[2] = ((GLfloat *) p)[2];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_2:
    case TYPE_FLOATN_2:
       params[1] = ((GLfloat *) p)[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT:
    case TYPE_FLOATN:
       params[0] = ((GLfloat *) p)[0];
@@ -2247,21 +2246,21 @@ _mesa_GetDoublev(GLenum pname, GLdouble *params)
 
    case TYPE_DOUBLEN_2:
       params[1] = ((GLdouble *) p)[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_DOUBLEN:
       params[0] = ((GLdouble *) p)[0];
       break;
 
    case TYPE_INT_4:
       params[3] = ((GLint *) p)[3];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_3:
       params[2] = ((GLint *) p)[2];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_2:
    case TYPE_ENUM_2:
       params[1] = ((GLint *) p)[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT:
    case TYPE_ENUM:
       params[0] = ((GLint *) p)[0];
@@ -2278,13 +2277,13 @@ _mesa_GetDoublev(GLenum pname, GLdouble *params)
 
    case TYPE_UINT_4:
       params[3] = ((GLuint *) p)[3];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT_3:
       params[2] = ((GLuint *) p)[2];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT_2:
       params[1] = ((GLuint *) p)[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT:
       params[0] = ((GLuint *) p)[0];
       break;
@@ -2967,15 +2966,15 @@ _mesa_GetIntegeri_v( GLenum pname, GLuint index, GLint *params )
    case TYPE_FLOAT_4:
    case TYPE_FLOATN_4:
       params[3] = lroundf(v.value_float_4[3]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_3:
    case TYPE_FLOATN_3:
       params[2] = lroundf(v.value_float_4[2]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_2:
    case TYPE_FLOATN_2:
       params[1] = lroundf(v.value_float_4[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT:
    case TYPE_FLOATN:
       params[0] = lroundf(v.value_float_4[0]);
@@ -2983,7 +2982,7 @@ _mesa_GetIntegeri_v( GLenum pname, GLuint index, GLint *params )
 
    case TYPE_DOUBLEN_2:
       params[1] = lroundf(v.value_double_2[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_DOUBLEN:
       params[0] = lroundf(v.value_double_2[0]);
       break;
@@ -3054,15 +3053,15 @@ _mesa_GetFloati_v(GLenum pname, GLuint index, GLfloat *params)
    case TYPE_FLOAT_4:
    case TYPE_FLOATN_4:
       params[3] = v.value_float_4[3];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_3:
    case TYPE_FLOATN_3:
       params[2] = v.value_float_4[2];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_2:
    case TYPE_FLOATN_2:
       params[1] = v.value_float_4[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT:
    case TYPE_FLOATN:
       params[0] = v.value_float_4[0];
@@ -3070,21 +3069,21 @@ _mesa_GetFloati_v(GLenum pname, GLuint index, GLfloat *params)
 
    case TYPE_DOUBLEN_2:
       params[1] = (GLfloat) v.value_double_2[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_DOUBLEN:
       params[0] = (GLfloat) v.value_double_2[0];
       break;
 
    case TYPE_INT_4:
       params[3] = (GLfloat) v.value_int_4[3];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_3:
       params[2] = (GLfloat) v.value_int_4[2];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_2:
    case TYPE_ENUM_2:
       params[1] = (GLfloat) v.value_int_4[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT:
    case TYPE_ENUM:
    case TYPE_ENUM16:
@@ -3098,13 +3097,13 @@ _mesa_GetFloati_v(GLenum pname, GLuint index, GLfloat *params)
 
    case TYPE_UINT_4:
       params[3] = (GLfloat) ((GLuint) v.value_int_4[3]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT_3:
       params[2] = (GLfloat) ((GLuint) v.value_int_4[2]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT_2:
       params[1] = (GLfloat) ((GLuint) v.value_int_4[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT:
       params[0] = (GLfloat) ((GLuint) v.value_int_4[0]);
       break;
@@ -3155,15 +3154,15 @@ _mesa_GetDoublei_v(GLenum pname, GLuint index, GLdouble *params)
    case TYPE_FLOAT_4:
    case TYPE_FLOATN_4:
       params[3] = (GLdouble) v.value_float_4[3];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_3:
    case TYPE_FLOATN_3:
       params[2] = (GLdouble) v.value_float_4[2];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_2:
    case TYPE_FLOATN_2:
       params[1] = (GLdouble) v.value_float_4[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT:
    case TYPE_FLOATN:
       params[0] = (GLdouble) v.value_float_4[0];
@@ -3171,21 +3170,21 @@ _mesa_GetDoublei_v(GLenum pname, GLuint index, GLdouble *params)
 
    case TYPE_DOUBLEN_2:
       params[1] = v.value_double_2[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_DOUBLEN:
       params[0] = v.value_double_2[0];
       break;
 
    case TYPE_INT_4:
       params[3] = (GLdouble) v.value_int_4[3];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_3:
       params[2] = (GLdouble) v.value_int_4[2];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_2:
    case TYPE_ENUM_2:
       params[1] = (GLdouble) v.value_int_4[1];
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT:
    case TYPE_ENUM:
    case TYPE_ENUM16:
@@ -3199,13 +3198,13 @@ _mesa_GetDoublei_v(GLenum pname, GLuint index, GLdouble *params)
 
    case TYPE_UINT_4:
       params[3] = (GLdouble) ((GLuint) v.value_int_4[3]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT_3:
       params[2] = (GLdouble) ((GLuint) v.value_int_4[2]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT_2:
       params[1] = (GLdouble) ((GLuint) v.value_int_4[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_UINT:
       params[0] = (GLdouble) ((GLuint) v.value_int_4[0]);
       break;
@@ -3320,15 +3319,15 @@ _mesa_GetFixedv(GLenum pname, GLfixed *params)
    case TYPE_FLOAT_4:
    case TYPE_FLOATN_4:
       params[3] = FLOAT_TO_FIXED(((GLfloat *) p)[3]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_3:
    case TYPE_FLOATN_3:
       params[2] = FLOAT_TO_FIXED(((GLfloat *) p)[2]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT_2:
    case TYPE_FLOATN_2:
       params[1] = FLOAT_TO_FIXED(((GLfloat *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_FLOAT:
    case TYPE_FLOATN:
       params[0] = FLOAT_TO_FIXED(((GLfloat *) p)[0]);
@@ -3336,7 +3335,7 @@ _mesa_GetFixedv(GLenum pname, GLfixed *params)
 
    case TYPE_DOUBLEN_2:
       params[1] = FLOAT_TO_FIXED(((GLdouble *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_DOUBLEN:
       params[0] = FLOAT_TO_FIXED(((GLdouble *) p)[0]);
       break;
@@ -3344,16 +3343,16 @@ _mesa_GetFixedv(GLenum pname, GLfixed *params)
    case TYPE_INT_4:
    case TYPE_UINT_4:
       params[3] = INT_TO_FIXED(((GLint *) p)[3]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_3:
    case TYPE_UINT_3:
       params[2] = INT_TO_FIXED(((GLint *) p)[2]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT_2:
    case TYPE_UINT_2:
    case TYPE_ENUM_2:
       params[1] = INT_TO_FIXED(((GLint *) p)[1]);
-      /* fallthrough */
+      FALLTHROUGH;
    case TYPE_INT:
    case TYPE_UINT:
    case TYPE_ENUM:

@@ -289,6 +289,7 @@ nir_load_libclc_shader(unsigned ptr_bit_size,
     * already ready to lower.  This means we need to inline any function_temp
     * initializers and lower any early returns.
     */
+   nir->info.internal = true;
    NIR_PASS_V(nir, nir_lower_variable_initializers, nir_var_function_temp);
    NIR_PASS_V(nir, nir_lower_returns);
 

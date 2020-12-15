@@ -299,7 +299,7 @@ get_attachment(struct gl_context *ctx, struct gl_framebuffer *fb,
    case GL_DEPTH_STENCIL_ATTACHMENT:
       if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
          return NULL;
-      /* fall-through */
+      FALLTHROUGH;
    case GL_DEPTH_ATTACHMENT_EXT:
       return &fb->Attachment[BUFFER_DEPTH];
    case GL_STENCIL_ATTACHMENT_EXT:
@@ -5039,7 +5039,7 @@ invalidate_framebuffer_storage(struct gl_context *ctx,
              */
             if (_mesa_is_desktop_gl(ctx) || _mesa_is_gles3(ctx))
                break;
-            /* fallthrough */
+            FALLTHROUGH;
          case GL_COLOR_ATTACHMENT0:
          case GL_COLOR_ATTACHMENT1:
          case GL_COLOR_ATTACHMENT2:

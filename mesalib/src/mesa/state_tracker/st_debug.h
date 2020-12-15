@@ -34,20 +34,14 @@
 
 struct st_context;
 
-#define DEBUG_MESA      0x1
-#define DEBUG_PRINT_IR  0x2
-#define DEBUG_CONSTANTS 0x4
-#define DEBUG_PIPE      0x8
-#define DEBUG_TEX       0x10
-#define DEBUG_FALLBACK  0x20
-#define DEBUG_QUERY     0x40
-#define DEBUG_SCREEN    0x80
-#define DEBUG_DRAW      0x100
-#define DEBUG_BUFFER    0x200
-#define DEBUG_WIREFRAME 0x400
-#define DEBUG_PRECOMPILE   0x800
-#define DEBUG_GREMEDY   0x1000
-#define DEBUG_NOREADPIXCACHE 0x2000
+#define DEBUG_MESA            BITFIELD_BIT(0)
+#define DEBUG_PRINT_IR        BITFIELD_BIT(1)
+#define DEBUG_FALLBACK        BITFIELD_BIT(2)
+#define DEBUG_BUFFER          BITFIELD_BIT(3)
+#define DEBUG_WIREFRAME       BITFIELD_BIT(4)
+#define DEBUG_PRECOMPILE      BITFIELD_BIT(5)
+#define DEBUG_GREMEDY         BITFIELD_BIT(6)
+#define DEBUG_NOREADPIXCACHE  BITFIELD_BIT(7)
 
 extern int ST_DEBUG;
 

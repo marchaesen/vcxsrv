@@ -52,6 +52,6 @@
  * _math_matrix_set_identity().
  */
 #define MATRIX_M   0
-#define MATRIX_INV (MATRIX_M + MATH_ASM_PTR_SIZE)
+#define MATRIX_INV (MATRIX_M + 16 * 4)
 
 #endif /* _M_VECTOR_ASM_H */

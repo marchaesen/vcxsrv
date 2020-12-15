@@ -576,6 +576,12 @@ _mesa_hash_data(const void *data, size_t size)
 }
 
 uint32_t
+_mesa_hash_data_with_seed(const void *data, size_t size, uint32_t seed)
+{
+   return XXH32(data, size, seed);
+}
+
+uint32_t
 _mesa_hash_int(const void *key)
 {
    return XXH32(key, sizeof(int), 0);

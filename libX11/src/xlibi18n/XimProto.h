@@ -188,9 +188,9 @@ PERFORMANCE OF THIS SOFTWARE.
  * request packet header size
  */
 #define XIM_HEADER_SIZE						\
-	  sizeof(CARD8)		/* sizeof mejor-opcode */	\
+	( sizeof(CARD8)		/* sizeof major-opcode */	\
 	+ sizeof(CARD8)		/* sizeof minor-opcode */	\
-	+ sizeof(INT16)		/* sizeof length */
+	+ sizeof(INT16)	)	/* sizeof length */
 
 /*
  * Client Message data size

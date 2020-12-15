@@ -1393,7 +1393,7 @@ void util_blitter_draw_rectangle(struct blitter_context *blitter,
             ctx->vertices[i][1][2] = attrib->texcoord.z;
             ctx->vertices[i][1][3] = attrib->texcoord.w;
          }
-         /* fall through */
+         FALLTHROUGH;
       case UTIL_BLITTER_ATTRIB_TEXCOORD_XY:
          set_texcoords_in_vertices(attrib, &ctx->vertices[0][1][0], 8);
          break;

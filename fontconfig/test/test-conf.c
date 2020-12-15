@@ -158,7 +158,6 @@ static FcBool
 run_test (FcConfig *config, json_object *root)
 {
     json_object *tests;
-    FcFontSet *fs;
     int i, n, fail = 0;
 
     if (!json_object_object_get_ex (root, "tests", &tests) ||
@@ -167,15 +166,15 @@ run_test (FcConfig *config, json_object *root)
 	fprintf (stderr, "W: No test cases defined\n");
 	return FcFalse;
     }
-    fs = FcFontSetCreate ();
     n = json_object_array_length (tests);
     for (i = 0; i < n; i++)
     {
 	json_object *obj = json_object_array_get_idx (tests, i);
 	json_object_iter iter;
-	FcPattern *query, *result;
-	FcFontSet *result_fs;
-	const char *method;
+	FcPattern *query = NULL;
+	FcPattern *result = NULL;
+	FcFontSet *result_fs = NULL;
+	const char *method = NULL;
 
 	if (json_object_get_type (obj) != json_type_object)
 	    continue;

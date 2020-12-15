@@ -40,13 +40,16 @@ VkResult lvp_CreateQueryPool(
    case VK_QUERY_TYPE_TIMESTAMP:
       pipeq = PIPE_QUERY_TIMESTAMP;
       break;
+   case VK_QUERY_TYPE_PIPELINE_STATISTICS:
+      pipeq = PIPE_QUERY_PIPELINE_STATISTICS;
+      break;
    default:
       return VK_ERROR_FEATURE_NOT_PRESENT;
    }
    struct lvp_query_pool *pool;
    uint32_t pool_size = sizeof(*pool) + pCreateInfo->queryCount * sizeof(struct pipe_query *);
 
-   pool = vk_zalloc2(&device->alloc, pAllocator,
+   pool = vk_zalloc2(&device->vk.alloc, pAllocator,
                     pool_size, 8,
                     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!pool)
@@ -57,6 +60,7 @@ VkResult lvp_CreateQueryPool(
    pool->type = pCreateInfo->queryType;
    pool->count = pCreateInfo->queryCount;
    pool->base_type = pipeq;
+   pool->pipeline_stats = pCreateInfo->pipelineStatistics;
 
    *pQueryPool = lvp_query_pool_to_handle(pool);
    return VK_SUCCESS;
@@ -77,7 +81,7 @@ void lvp_DestroyQueryPool(
       if (pool->queries[i])
          device->queue.ctx->destroy_query(device->queue.ctx, pool->queries[i]);
    vk_object_base_finish(&pool->base);
-   vk_free2(&device->alloc, pAllocator, pool);
+   vk_free2(&device->vk.alloc, pAllocator, pool);
 }
 
 VkResult lvp_GetQueryPoolResults(
@@ -112,17 +116,46 @@ VkResult lvp_GetQueryPoolResults(
       if (!ready && !(flags & VK_QUERY_RESULT_PARTIAL_BIT))
           vk_result = VK_NOT_READY;
       if (flags & VK_QUERY_RESULT_64_BIT) {
-         if (ready || (flags & VK_QUERY_RESULT_PARTIAL_BIT))
-            *(uint64_t *)dptr = result.u64;
-         dptr += 8;
+         if (ready || (flags & VK_QUERY_RESULT_PARTIAL_BIT)) {
+            if (pool->type == VK_QUERY_TYPE_PIPELINE_STATISTICS) {
+               uint32_t mask = pool->pipeline_stats;
+               uint64_t *pstats = (uint64_t *)&result.pipeline_statistics;
+               while (mask) {
+                  uint32_t i = u_bit_scan(&mask);
+
+                  *(uint64_t *)dptr = pstats[i];
+                  dptr += 8;
+               }
+            } else {
+               *(uint64_t *)dptr = result.u64;
+               dptr += 8;
+            }
+         } else
+            dptr += stride;
+
       } else {
          if (ready || (flags & VK_QUERY_RESULT_PARTIAL_BIT)) {
-            if (result.u64 > UINT32_MAX)
-               *(uint32_t *)dptr = UINT32_MAX;
-            else
-               *(uint32_t *)dptr = result.u32;
-         }
-         dptr += 4;
+            if (pool->type == VK_QUERY_TYPE_PIPELINE_STATISTICS) {
+               uint32_t mask = pool->pipeline_stats;
+               uint64_t *pstats = (uint64_t *)&result.pipeline_statistics;
+               while (mask) {
+                  uint32_t i = u_bit_scan(&mask);
+
+                  if (pstats[i] > UINT32_MAX)
+                     *(uint32_t *)dptr = UINT32_MAX;
+                  else
+                     *(uint32_t *)dptr = pstats[i];
+                  dptr += 4;
+               }
+            } else {
+               if (result.u64 > UINT32_MAX)
+                  *(uint32_t *)dptr = UINT32_MAX;
+               else
+                  *(uint32_t *)dptr = result.u32;
+               dptr += 4;
+            }
+         } else
+            dptr += stride;
       }
 
       if (flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT) {

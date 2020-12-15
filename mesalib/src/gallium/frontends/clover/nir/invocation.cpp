@@ -455,8 +455,15 @@ module clover::nir::spirv_to_nir(const module &mod, const device &dev,
       NIR_PASS_V(nir, nir_opt_constant_folding);
 
       NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_mem_constant, NULL);
-      NIR_PASS_V(nir, nir_lower_mem_constant_vars,
+      NIR_PASS_V(nir, nir_lower_vars_to_explicit_types, nir_var_mem_constant,
                  glsl_get_cl_type_size_align);
+      if (nir->constant_data_size > 0) {
+         assert(nir->constant_data == NULL);
+         nir->constant_data = rzalloc_size(nir, nir->constant_data_size);
+         nir_gather_explicit_io_initializers(nir, nir->constant_data,
+                                             nir->constant_data_size,
+                                             nir_var_mem_constant);
+      }
       NIR_PASS_V(nir, nir_lower_explicit_io, nir_var_mem_constant,
                  spirv_options.constant_addr_format);
 

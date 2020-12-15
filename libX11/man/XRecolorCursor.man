@@ -112,7 +112,6 @@ The
 .B XQueryBestCursor
 function provides a way to find out what size cursors are actually
 possible on the display.
-.IN "Cursor" "limitations"
 It returns the largest size that can be displayed.
 Applications should be prepared to use smaller cursors on displays that
 cannot support large ones.

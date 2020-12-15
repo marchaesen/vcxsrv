@@ -241,7 +241,8 @@ __glXdirectContextCreate(__GLXscreen * screen,
 static int
 DoCreateContext(__GLXclientState * cl, GLXContextID gcId,
                 GLXContextID shareList, __GLXconfig * config,
-                __GLXscreen * pGlxScreen, GLboolean isDirect)
+                __GLXscreen * pGlxScreen, GLboolean isDirect,
+                int renderType)
 {
     ClientPtr client = cl->client;
     __GLXcontext *glxc, *shareglxc;
@@ -332,6 +333,7 @@ DoCreateContext(__GLXclientState * cl, GLXContextID gcId,
     glxc->idExists = GL_TRUE;
     glxc->isDirect = isDirect;
     glxc->renderMode = GL_RENDER;
+    glxc->renderType = renderType;
 
     /* The GLX_ARB_create_context_robustness spec says:
      *
@@ -381,7 +383,8 @@ __glXDisp_CreateContext(__GLXclientState * cl, GLbyte * pc)
         return err;
 
     return DoCreateContext(cl, req->context, req->shareList,
-                           config, pGlxScreen, req->isDirect);
+                           config, pGlxScreen, req->isDirect,
+                           GLX_RGBA_TYPE);
 }
 
 int
@@ -398,7 +401,8 @@ __glXDisp_CreateNewContext(__GLXclientState * cl, GLbyte * pc)
         return err;
 
     return DoCreateContext(cl, req->context, req->shareList,
-                           config, pGlxScreen, req->isDirect);
+                           config, pGlxScreen, req->isDirect,
+                           req->renderType);
 }
 
 int
@@ -419,7 +423,8 @@ __glXDisp_CreateContextWithConfigSGIX(__GLXclientState * cl, GLbyte * pc)
         return err;
 
     return DoCreateContext(cl, req->context, req->shareList,
-                           config, pGlxScreen, req->isDirect);
+                           config, pGlxScreen, req->isDirect,
+                           req->renderType);
 }
 
 int
@@ -1668,7 +1673,7 @@ DoQueryContext(__GLXclientState * cl, GLXContextID gcId)
     sendBuf[6] = GLX_FBCONFIG_ID;
     sendBuf[7] = (int) (ctx->config ? ctx->config->fbconfigID : 0);
     sendBuf[8] = GLX_RENDER_TYPE;
-    sendBuf[9] = (int) (ctx->config ? ctx->config->renderType : GLX_DONT_CARE);
+    sendBuf[9] = (int) (ctx->renderType);
 
     if (client->swapped) {
         int length = reply.length;

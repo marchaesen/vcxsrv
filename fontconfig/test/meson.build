@@ -39,7 +39,7 @@ foreach test_data : tests
     dependencies: extra_deps,
   )
 
-  test(test_name, exe)
+  test(test_name, exe, timeout: 600)
 endforeach
 
 # FIXME: run-test.sh stuff

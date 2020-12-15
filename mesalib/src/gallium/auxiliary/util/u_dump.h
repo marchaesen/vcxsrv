@@ -201,6 +201,13 @@ void
 util_dump_draw_info(FILE *stream, const struct pipe_draw_info *state);
 
 void
+util_dump_draw_start_count(FILE *stream, const struct pipe_draw_start_count *state);
+
+void
+util_dump_draw_indirect_info(FILE *stream,
+                             const struct pipe_draw_indirect_info *indirect);
+
+void
 util_dump_grid_info(FILE *stream, const struct pipe_grid_info *state);
 
 void

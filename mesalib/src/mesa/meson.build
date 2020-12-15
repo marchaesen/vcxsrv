@@ -581,8 +581,6 @@ files_libmesa_gallium = files(
   'state_tracker/st_glsl_to_tgsi_temprename.h',
   'state_tracker/st_manager.c',
   'state_tracker/st_manager.h',
-  'state_tracker/st_mesa_to_tgsi.c',
-  'state_tracker/st_mesa_to_tgsi.h',
   'state_tracker/st_nir.h',
   'state_tracker/st_nir_builtins.c',
   'state_tracker/st_nir_lower_builtin.c',
@@ -731,7 +729,7 @@ libmesa_common = static_library(
   cpp_args : [cpp_msvc_compat_args, _mesa_windows_args],
   gnu_symbol_visibility : 'hidden',
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_libmesa_asm, include_directories('main')],
-  dependencies : idep_nir_headers,
+  dependencies : [idep_nir_headers, idep_mesautil],
   build_by_default : false,
 )
 
@@ -743,7 +741,7 @@ libmesa_classic = static_library(
   gnu_symbol_visibility : 'hidden',
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_libmesa_asm, include_directories('main')],
   link_with : [libmesa_common, libglsl, libmesa_sse41],
-  dependencies : idep_nir_headers,
+  dependencies : [idep_nir_headers, idep_mesautil],
   build_by_default : false,
 )
 
@@ -755,14 +753,11 @@ libmesa_gallium = static_library(
   gnu_symbol_visibility : 'hidden',
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_libmesa_asm, include_directories('main')],
   link_with : [libmesa_common, libglsl, libmesa_sse41],
-  dependencies : [idep_nir_headers, dep_vdpau],
+  dependencies : [idep_nir_headers, dep_vdpau, idep_mesautil],
   build_by_default : false,
 )
 
 subdir('drivers/dri')
-if with_osmesa == 'classic'
-  subdir('drivers/osmesa')
-endif
 if with_glx == 'xlib'
   subdir('drivers/x11')
 endif

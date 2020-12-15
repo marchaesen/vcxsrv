@@ -149,6 +149,7 @@ allowed_android_version = {
     "VK_KHR_swapchain_mutable_format": 29,
     "VK_KHR_shader_atomic_int64": 29,
     "VK_KHR_vulkan_memory_model": 29,
+    "VK_KHR_performance_query": 30,
 
     "VK_GOOGLE_display_timing": 26,
     "VK_ANDROID_native_buffer": 26,

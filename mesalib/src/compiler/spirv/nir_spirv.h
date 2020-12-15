@@ -69,6 +69,11 @@ struct spirv_to_nir_options {
    /* Create a nir library. */
    bool create_library;
 
+   /* Initial value for shader_info::float_controls_execution_mode,
+    * indicates hardware requirements rather than shader author intent
+    */
+   uint16_t float_controls_execution_mode;
+
    struct spirv_supported_capabilities caps;
 
    /* Address format for various kinds of pointers. */

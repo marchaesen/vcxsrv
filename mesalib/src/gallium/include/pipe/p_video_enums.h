@@ -41,7 +41,8 @@ enum pipe_video_format
    PIPE_VIDEO_FORMAT_MPEG4_AVC,/**< H.264 */
    PIPE_VIDEO_FORMAT_HEVC,     /**< H.265 */
    PIPE_VIDEO_FORMAT_JPEG,     /**< JPEG */
-   PIPE_VIDEO_FORMAT_VP9       /**< VP9 */
+   PIPE_VIDEO_FORMAT_VP9,      /**< VP9 */
+   PIPE_VIDEO_FORMAT_AV1       /**< AV1 */
 };
 
 enum pipe_video_profile
@@ -71,6 +72,7 @@ enum pipe_video_profile
    PIPE_VIDEO_PROFILE_JPEG_BASELINE,
    PIPE_VIDEO_PROFILE_VP9_PROFILE0,
    PIPE_VIDEO_PROFILE_VP9_PROFILE2,
+   PIPE_VIDEO_PROFILE_AV1_MAIN,
    PIPE_VIDEO_PROFILE_MAX
 };
 

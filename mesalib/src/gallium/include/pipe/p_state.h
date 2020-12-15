@@ -111,7 +111,7 @@ struct pipe_rasterizer_state
    unsigned point_tri_clip:1; /** large points clipped as tris or points */
    unsigned point_size_per_vertex:1; /**< size computed in vertex shader */
    unsigned multisample:1;         /* XXX maybe more ms state in future */
-   unsigned no_ms_sample_mask_out;
+   unsigned no_ms_sample_mask_out:1;
    unsigned force_persample_interp:1;
    unsigned line_smooth:1;
    unsigned line_stipple_enable:1;
@@ -712,6 +712,8 @@ struct pipe_draw_indirect_info
     *     uint32_t start;
     *     uint32_t start_instance;
     *  };
+    *
+    * If NULL, count_from_stream_output != NULL.
     */
    struct pipe_resource *buffer;
 
@@ -719,64 +721,6 @@ struct pipe_draw_indirect_info
     * is to be used as the real draw_count.
     */
    struct pipe_resource *indirect_draw_count;
-};
-
-struct pipe_draw_start_count {
-   unsigned start;
-   unsigned count;
-};
-
-/**
- * Information to describe a draw_vbo call.
- */
-struct pipe_draw_info
-{
-   /**
-    * Direct draws: start is the index of the first vertex
-    * Non-indexed indirect draws: not used
-    * Indexed indirect draws: start is added to the indirect start.
-    */
-   unsigned start;
-   unsigned count;  /**< number of vertices */
-
-   enum pipe_prim_type mode:8;  /**< the mode of the primitive */
-   ubyte vertices_per_patch; /**< the number of vertices per patch */
-   ubyte index_size;  /**< if 0, the draw is not indexed. */
-   bool primitive_restart:1;
-   bool has_user_indices:1; /**< if true, use index.user_buffer */
-   char _pad:6;             /**< padding for memcmp */
-
-   unsigned start_instance; /**< first instance id */
-   unsigned instance_count; /**< number of instances */
-
-   unsigned drawid; /**< id of this draw in a multidraw */
-
-   /**
-    * For indexed drawing, these fields apply after index lookup.
-    */
-   int index_bias; /**< a bias to be added to each index */
-   unsigned min_index; /**< the min index */
-   unsigned max_index; /**< the max index */
-
-   /**
-    * Primitive restart enable/index (only applies to indexed drawing)
-    */
-   unsigned restart_index;
-
-   /* Pointers must be at the end for an optimal structure layout on 64-bit. */
-
-   /**
-    * An index buffer.  When an index buffer is bound, all indices to vertices
-    * will be looked up from the buffer.
-    *
-    * If has_user_indices, use index.user, else use index.resource.
-    */
-   union {
-      struct pipe_resource *resource;  /**< real buffer */
-      const void *user;  /**< pointer to a user buffer */
-   } index;
-
-   struct pipe_draw_indirect_info *indirect; /**< Indirect draw. */
 
    /**
     * Stream output target. If not NULL, it's used to provide the 'count'
@@ -793,6 +737,61 @@ struct pipe_draw_info
     * be set via set_vertex_buffers manually.
     */
    struct pipe_stream_output_target *count_from_stream_output;
+};
+
+struct pipe_draw_start_count {
+   unsigned start;
+   unsigned count;
+};
+
+/**
+ * Information to describe a draw_vbo call.
+ */
+struct pipe_draw_info
+{
+   enum pipe_prim_type mode:8;  /**< the mode of the primitive */
+   ubyte vertices_per_patch; /**< the number of vertices per patch */
+   ubyte index_size;  /**< if 0, the draw is not indexed. */
+   bool primitive_restart:1;
+   bool has_user_indices:1;   /**< if true, use index.user_buffer */
+   bool index_bounds_valid:1; /**< whether min_index and max_index are valid;
+                                   they're always invalid if index_size == 0 */
+   bool increment_draw_id:1;  /**< whether drawid increments for direct draws */
+   char _pad:4;               /**< padding for memcmp */
+
+   unsigned start_instance; /**< first instance id */
+   unsigned instance_count; /**< number of instances */
+
+   unsigned drawid; /**< id of this draw in a multidraw */
+
+   /**
+    * For indexed drawing, these fields apply after index lookup.
+    */
+   int index_bias; /**< a bias to be added to each index */
+
+   /**
+    * Primitive restart enable/index (only applies to indexed drawing)
+    */
+   unsigned restart_index;
+
+   /* Pointers must be placed appropriately for optimal structure packing on
+    * 64-bit CPUs.
+    */
+
+   /**
+    * An index buffer.  When an index buffer is bound, all indices to vertices
+    * will be looked up from the buffer.
+    *
+    * If has_user_indices, use index.user, else use index.resource.
+    */
+   union {
+      struct pipe_resource *resource;  /**< real buffer */
+      const void *user;  /**< pointer to a user buffer */
+   } index;
+
+   /* These must be last for better packing in u_threaded_context. */
+   unsigned min_index; /**< the min index */
+   unsigned max_index; /**< the max index */
 };
 
 

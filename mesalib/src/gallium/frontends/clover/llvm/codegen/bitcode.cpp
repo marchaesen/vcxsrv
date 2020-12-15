@@ -31,6 +31,8 @@
 /// after linking against other bitcode object files.
 ///
 
+#include <llvm/Support/Allocator.h>
+
 #include "llvm/codegen.hpp"
 #include "llvm/compat.hpp"
 #include "llvm/metadata.hpp"
@@ -47,7 +49,7 @@
 #endif
 #include <llvm/Support/raw_ostream.h>
 
-using namespace clover;
+using clover::module;
 using namespace clover::llvm;
 
 namespace {

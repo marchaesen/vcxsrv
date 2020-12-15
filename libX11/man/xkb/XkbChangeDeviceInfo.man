@@ -63,9 +63,9 @@ local copy of an Xkb extension device configuration. The changes structure is de
 .nf
 
 typedef struct _XkbDeviceChanges {
-    unsigned int         changed;        /\(** bits indicating what has changed */
-    unsigned short       first_btn;      /\(** number of first button which changed, if any */
-    unsigned short       num_btns;       /\(** number of buttons that have changed */
+    unsigned int         changed;        /\&* bits indicating what has changed */
+    unsigned short       first_btn;      /\&* number of first button which changed, if any */
+    unsigned short       num_btns;       /\&* number of buttons that have changed */
     XkbDeviceLedChangesRec leds;
 } XkbDeviceChangesRec,*XkbDeviceChangesPtr;
 

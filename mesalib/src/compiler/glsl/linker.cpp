@@ -498,6 +498,7 @@ linker_warning(gl_shader_program *prog, const char *fmt, ...)
  */
 long
 parse_program_resource_name(const GLchar *name,
+                            const size_t len,
                             const GLchar **out_base_name_end)
 {
    /* Section 7.3.1 ("Program Interfaces") of the OpenGL 4.3 spec says:
@@ -508,7 +509,6 @@ parse_program_resource_name(const GLchar *name,
     *     string will not include white space anywhere in the string."
     */
 
-   const size_t len = strlen(name);
    *out_base_name_end = name + len;
 
    if (len == 0 || name[len-1] != ']')

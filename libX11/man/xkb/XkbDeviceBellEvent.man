@@ -285,21 +285,21 @@ The structure for the XkbBellNotify event type contains:
 .nf
 
    typedef struct _XkbBellNotify {
-       int            type;        /\(** Xkb extension base event code */
-       unsigned long  serial;      /\(** X server serial number for event */
-       Bool           send_event;  /\(** True => synthetically generated */
-       Display *      display;     /\(** server connection where event generated */
-       Time           time;        /\(** server time when event generated */
-       int            xkb_type;    /\(** XkbBellNotify */
-       unsigned int   device;      /\(** Xkb device ID, will not be XkbUseCoreKbd */
-       int            percent;     /\(** requested volume as % of max */
-       int            pitch;       /\(** requested pitch in Hz */
-       int            duration;    /\(** requested duration in microseconds */
-       unsigned int   bell_class;  /\(** X input extension feedback class */
-       unsigned int   bell_id;     /\(** X input extension feedback ID */
-       Atom           name;        /\(** "name" of requested bell */
-       Window         window;      /\(** window associated with event */
-       Bool           event_only;  /\(** False -> the server did not produce a beep */
+       int            type;        /\&* Xkb extension base event code */
+       unsigned long  serial;      /\&* X server serial number for event */
+       Bool           send_event;  /\&* True => synthetically generated */
+       Display *      display;     /\&* server connection where event generated */
+       Time           time;        /\&* server time when event generated */
+       int            xkb_type;    /\&* XkbBellNotify */
+       unsigned int   device;      /\&* Xkb device ID, will not be XkbUseCoreKbd */
+       int            percent;     /\&* requested volume as % of max */
+       int            pitch;       /\&* requested pitch in Hz */
+       int            duration;    /\&* requested duration in microseconds */
+       unsigned int   bell_class;  /\&* X input extension feedback class */
+       unsigned int   bell_id;     /\&* X input extension feedback ID */
+       Atom           name;        /\&* "name" of requested bell */
+       Window         window;      /\&* window associated with event */
+       Bool           event_only;  /\&* False -> the server did not produce a beep */
    } XkbBellNotifyEvent;
    
 .fi   

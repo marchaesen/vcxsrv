@@ -5353,7 +5353,8 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="DeleteProgram" es2="2.0">
+    <function name="DeleteProgram" es2="2.0"
+              marshal_call_after="_mesa_glthread_ProgramChanged(ctx);">
         <param name="program" type="GLuint"/>
         <glx ignore="true"/>
     </function>
@@ -5394,7 +5395,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="GetActiveUniform" es2="2.0">
+    <function name="GetActiveUniform" es2="2.0" marshal="custom">
         <param name="program" type="GLuint"/>
         <param name="index" type="GLuint"/>
         <param name="bufSize" type="GLsizei"/>
@@ -5523,7 +5524,8 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="LinkProgram" es2="2.0" no_error="true">
+    <function name="LinkProgram" es2="2.0" no_error="true"
+              marshal_call_after="_mesa_glthread_ProgramChanged(ctx);">
         <param name="program" type="GLuint"/>
         <glx ignore="true"/>
     </function>
@@ -7701,7 +7703,8 @@
     <type name="charARB"   size="1" glx_name="CARD8"/>
     <type name="handleARB" size="4" glx_name="CARD32"/>
 
-    <function name="DeleteObjectARB">
+    <function name="DeleteObjectARB"
+              marshal_call_after="_mesa_glthread_ProgramChanged(ctx);">
         <param name="obj" type="GLhandleARB"/>
         <glx ignore="true"/>
     </function>
@@ -13304,6 +13307,11 @@
         <param name="size" type="GLsizeiptr"/>
         <param name="named" type="GLboolean"/>
         <param name="ext_dsa" type="GLboolean"/>
+    </function>
+
+    <!-- Set a GL error. Used by glthread to set errors without syncing. -->
+    <function name="InternalSetError" es2="2.0">
+        <param name="error" type="GLenum"/>
     </function>
 </category>
 

@@ -53,7 +53,9 @@ main (void)
 	fprintf (stderr, "There was one or more cachedirs\n");
 	return 1;
     }
+    FcStrListDone (l);
     FcConfigDestroy (cfg);
+
     cfg = FcConfigCreate ();
     if (!FcConfigParseAndLoadFromMemory (cfg, doc2, FcTrue))
     {
@@ -66,7 +68,7 @@ main (void)
 	fprintf (stderr, "There was one or more cachedirs (with prefix)\n");
 	return 1;
     }
-
+    FcStrListDone (l);
     FcConfigDestroy (cfg);
 
     return 0;

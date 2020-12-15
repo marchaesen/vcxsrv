@@ -286,7 +286,7 @@ static GLuint make_state_key( struct gl_context *ctx,  struct state_key *key )
       key->unit[i].source_index = texObj->TargetIndex;
 
       const struct gl_sampler_object *samp = _mesa_get_samplerobj(ctx, i);
-      if (samp->CompareMode == GL_COMPARE_R_TO_TEXTURE) {
+      if (samp->Attrib.CompareMode == GL_COMPARE_R_TO_TEXTURE) {
          const GLenum format = _mesa_texture_base_format(texObj);
          key->unit[i].shadow = (format == GL_DEPTH_COMPONENT ||
 				format == GL_DEPTH_STENCIL_EXT);

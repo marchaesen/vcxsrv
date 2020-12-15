@@ -3153,8 +3153,8 @@ decompress_texture_image(struct gl_context *ctx,
 
    {
       /* save texture object state */
-      const GLint baseLevelSave = texObj->BaseLevel;
-      const GLint maxLevelSave = texObj->MaxLevel;
+      const GLint baseLevelSave = texObj->Attrib.BaseLevel;
+      const GLint maxLevelSave = texObj->Attrib.MaxLevel;
 
       /* restrict sampling to the texture level of interest */
       if (target != GL_TEXTURE_RECTANGLE_ARB) {
@@ -3391,7 +3391,7 @@ _mesa_meta_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
          }
 
          texObj = ctx->Texture.Unit[i]._Current;
-         texImage = texObj->Image[0][texObj->BaseLevel];
+         texImage = texObj->Image[0][texObj->Attrib.BaseLevel];
          tw = texImage->Width2;
          th = texImage->Height2;
 

@@ -30,7 +30,7 @@
 #include "etnaviv_drmif.h"
 #include "etnaviv_priv.h"
 
-static pthread_mutex_t idx_lock = PTHREAD_MUTEX_INITIALIZER;
+static simple_mtx_t idx_lock = _SIMPLE_MTX_INITIALIZER_NP;
 
 static void *grow(void *ptr, uint32_t nr, uint32_t *max, uint32_t sz)
 {
@@ -154,6 +154,8 @@ static uint32_t append_bo(struct etna_cmd_stream *stream, struct etna_bo *bo)
 	struct etna_cmd_stream_priv *priv = etna_cmd_stream_priv(stream);
 	uint32_t idx;
 
+	simple_mtx_assert_locked(&idx_lock);
+
 	idx = APPEND(&priv->submit, bos);
 	idx = APPEND(priv, bos);
 
@@ -173,7 +175,7 @@ static uint32_t bo2idx(struct etna_cmd_stream *stream, struct etna_bo *bo,
 	struct etna_cmd_stream_priv *priv = etna_cmd_stream_priv(stream);
 	uint32_t idx;
 
-	pthread_mutex_lock(&idx_lock);
+	simple_mtx_lock(&idx_lock);
 
 	if (bo->current_stream == stream) {
 		idx = bo->idx;
@@ -195,7 +197,7 @@ static uint32_t bo2idx(struct etna_cmd_stream *stream, struct etna_bo *bo,
 		bo->current_stream = stream;
 		bo->idx = idx;
 	}
-	pthread_mutex_unlock(&idx_lock);
+	simple_mtx_unlock(&idx_lock);
 
 	if (flags & ETNA_RELOC_READ)
 		priv->submit.bos[idx].flags |= ETNA_SUBMIT_BO_READ;

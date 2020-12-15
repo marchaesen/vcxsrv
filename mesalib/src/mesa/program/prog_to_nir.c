@@ -166,12 +166,12 @@ ptn_get_src(struct ptn_compile *c, const struct prog_src_register *prog_src)
       case PROGRAM_CONSTANT:
          if ((c->prog->arb.IndirectRegisterFiles &
               (1 << PROGRAM_CONSTANT)) == 0) {
-            unsigned pvo = plist->ParameterValueOffset[prog_src->Index];
+            unsigned pvo = plist->Parameters[prog_src->Index].ValueOffset;
             float *v = (float *) plist->ParameterValues + pvo;
             src.src = nir_src_for_ssa(nir_imm_vec4(b, v[0], v[1], v[2], v[3]));
             break;
          }
-         /* FALLTHROUGH */
+         FALLTHROUGH;
       case PROGRAM_STATE_VAR: {
          assert(c->parameters != NULL);
 

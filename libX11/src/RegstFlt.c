@@ -68,6 +68,7 @@ _XFreeIMFilters(
         display->im_filters = fl->next;
         Xfree(fl);
     }
+    display->im_filters = NULL;
 }
 
 /*

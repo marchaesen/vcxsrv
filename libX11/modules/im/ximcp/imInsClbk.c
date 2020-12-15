@@ -162,6 +162,7 @@ _XimRegisterIMInstantiateCallback(
 {
     XimInstCallback	icb, tmp;
     XIM			xim;
+    char		*modifiers = NULL;
     Window		root;
     XWindowAttributes	attr;
 
@@ -171,11 +172,18 @@ _XimRegisterIMInstantiateCallback(
     icb = Xmalloc(sizeof(XimInstCallbackRec));
     if( !icb )
 	return( False );
+    if (lcd->core->modifiers) {
+	modifiers = strdup(lcd->core->modifiers);
+	if (!modifiers) {
+	    Xfree(icb);
+	    return( False );
+	}
+    }
     icb->call = icb->destroy = False;
     icb->display = display;
     icb->lcd = lcd;
     MakeLocale( lcd, icb->name );
-    icb->modifiers = lcd->core->modifiers;	/* XXXXX */
+    icb->modifiers = modifiers;
     icb->rdb = rdb;
     icb->res_name = res_name;
     icb->res_class = res_class;
@@ -258,6 +266,7 @@ _XimUnRegisterIMInstantiateCallback(
 		else
 		    picb->next = icb->next;
 		_XCloseLC( icb->lcd );
+		XFree( icb->modifiers );
 		XFree( icb );
 	    }
 	    return( True );

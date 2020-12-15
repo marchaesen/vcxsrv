@@ -59,8 +59,6 @@ CLEANFILES =			\
 	confdir.sgml		\
 	func.refs		\
 	$(NULL)
-BUILT_SOURCES =			\
-	$(NULL)
 SUFFIXES =	\
 	.fncs	\
 	.sgml	\

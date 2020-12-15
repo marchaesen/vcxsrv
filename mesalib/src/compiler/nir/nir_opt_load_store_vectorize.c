@@ -884,28 +884,27 @@ vectorize_stores(nir_builder *b, struct vectorize_ctx *ctx,
    nir_instr_remove(first->instr);
 }
 
-/* Returns true if it can prove that "a" and "b" point to different resources. */
+/* Returns true if it can prove that "a" and "b" point to different bindings. */
 static bool
-resources_different(nir_ssa_def *a, nir_ssa_def *b)
+bindings_different(nir_ssa_def *a, nir_ssa_def *b)
 {
    if (!a || !b)
       return false;
 
-   if (a->parent_instr->type == nir_instr_type_load_const &&
-       b->parent_instr->type == nir_instr_type_load_const) {
-      return nir_src_as_uint(nir_src_for_ssa(a)) != nir_src_as_uint(nir_src_for_ssa(b));
-   }
+   nir_binding a_res = nir_chase_binding(nir_src_for_ssa(a));
+   nir_binding b_res = nir_chase_binding(nir_src_for_ssa(b));
+   if (!a_res.success || !b_res.success)
+      return false;
 
-   if (a->parent_instr->type == nir_instr_type_intrinsic &&
-       b->parent_instr->type == nir_instr_type_intrinsic) {
-      nir_intrinsic_instr *aintrin = nir_instr_as_intrinsic(a->parent_instr);
-      nir_intrinsic_instr *bintrin = nir_instr_as_intrinsic(b->parent_instr);
-      if (aintrin->intrinsic == nir_intrinsic_vulkan_resource_index &&
-          bintrin->intrinsic == nir_intrinsic_vulkan_resource_index) {
-         return nir_intrinsic_desc_set(aintrin) != nir_intrinsic_desc_set(bintrin) ||
-                nir_intrinsic_binding(aintrin) != nir_intrinsic_binding(bintrin) ||
-                resources_different(aintrin->src[0].ssa, bintrin->src[0].ssa);
-      }
+   if (a_res.num_indices != b_res.num_indices ||
+       a_res.desc_set != b_res.desc_set ||
+       a_res.binding != b_res.binding)
+      return true;
+
+   for (unsigned i = 0; i < a_res.num_indices; i++) {
+      if (nir_src_is_const(a_res.indices[i]) && nir_src_is_const(b_res.indices[i]) &&
+          nir_src_as_uint(a_res.indices[i]) != nir_src_as_uint(b_res.indices[i]))
+         return true;
    }
 
    return false;
@@ -928,7 +927,7 @@ may_alias(struct entry *a, struct entry *b)
    /* if the resources/variables are definitively different and both have
     * ACCESS_RESTRICT, we can assume they do not alias. */
    bool res_different = a->key->var != b->key->var ||
-                        resources_different(a->key->resource, b->key->resource);
+                        bindings_different(a->key->resource, b->key->resource);
    if (res_different && (a->access & ACCESS_RESTRICT) && (b->access & ACCESS_RESTRICT))
       return false;
 

@@ -27,13 +27,14 @@ asm=./install/bin/afuc-asm
 disasm=./install/bin/afuc-disasm
 
 # helper to filter out paths that can change depending on
-# who is building:
+# who is building and assert messages that can change
+# depending on unrelated code changes:
 basepath=`dirname $0`
 basepath=`dirname $basepath`
 basepath=`pwd $basepath`
 filter() {
 	out=$1
-	grep -vF "$basepath" > $out
+	grep -vF "$basepath" | sed "s/.*: Assertion /Assertion /" > $out
 }
 
 #

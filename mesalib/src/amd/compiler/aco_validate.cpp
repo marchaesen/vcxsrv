@@ -76,8 +76,8 @@ void _aco_err(Program *program, const char *file, unsigned line,
 bool validate_ir(Program* program)
 {
    bool is_valid = true;
-   auto check = [&program, &is_valid](bool check, const char * msg, aco::Instruction * instr) -> void {
-      if (!check) {
+   auto check = [&program, &is_valid](bool success, const char * msg, aco::Instruction * instr) -> void {
+      if (!success) {
          char *out;
          size_t outsize;
          struct u_memstream mem;
@@ -95,8 +95,8 @@ bool validate_ir(Program* program)
       }
    };
 
-   auto check_block = [&program, &is_valid](bool check, const char * msg, aco::Block * block) -> void {
-      if (!check) {
+   auto check_block = [&program, &is_valid](bool success, const char * msg, aco::Block * block) -> void {
+      if (!success) {
          aco_err(program, "%s: BB%u", msg, block->index);
          is_valid = false;
       }
@@ -467,7 +467,7 @@ bool validate_ir(Program* program)
          }
          case Format::FLAT:
             check(instr->operands[1].isUndefined(), "Flat instructions don't support SADDR", instr.get());
-            /* fallthrough */
+            FALLTHROUGH;
          case Format::GLOBAL:
          case Format::SCRATCH: {
             check(instr->operands[0].isTemp() && instr->operands[0].regClass().type() == RegType::vgpr, "FLAT/GLOBAL/SCRATCH address must be vgpr", instr.get());

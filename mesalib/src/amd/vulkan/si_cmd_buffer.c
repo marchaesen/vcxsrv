@@ -154,7 +154,7 @@ static void
 si_set_raster_config(struct radv_physical_device *physical_device,
 		     struct radeon_cmdbuf *cs)
 {
-	unsigned num_rb = MIN2(physical_device->rad_info.num_render_backends, 16);
+	unsigned num_rb = MIN2(physical_device->rad_info.max_render_backends, 16);
 	unsigned rb_mask = physical_device->rad_info.enabled_rb_mask;
 	unsigned raster_config, raster_config_1;
 
@@ -347,9 +347,19 @@ si_emit_graphics(struct radv_device *device,
 			} else {
 				late_alloc_wave64 = (num_cu_per_sh - 2) * 4;
 
-				/* CU2 & CU3 disabled because of the dual CU design */
-				cu_mask_vs = 0xfff3;
-				cu_mask_gs = 0xfff3; /* NGG only */
+				/* Gfx10: CU2 & CU3 must be disabled to
+				 * prevent a hw deadlock.  Others: CU1 must be
+				 * disabled to prevent a hw deadlock.
+				 *
+				 * The deadlock is caused by late alloc, which
+				 * usually increases performance.
+				 */
+				cu_mask_vs &= physical_device->rad_info.chip_class == GFX10 ?
+					      ~BITFIELD_RANGE(2, 2) : ~BITFIELD_RANGE(1, 1);
+
+				if (physical_device->use_ngg) {
+					cu_mask_gs = cu_mask_vs;
+				}
 			}
 
 			late_alloc_wave64_gs = late_alloc_wave64;
@@ -426,7 +436,7 @@ si_emit_graphics(struct radv_device *device,
 		unsigned meta_write_policy, meta_read_policy;
 
 		/* TODO: investigate whether LRU improves performance on other chips too */
-		if (physical_device->rad_info.num_render_backends <= 4) {
+		if (physical_device->rad_info.max_render_backends <= 4) {
 			meta_write_policy = V_02807C_CACHE_LRU_WR; /* cache writes */
 			meta_read_policy =  V_02807C_CACHE_LRU_RD; /* cache reads */
 		} else {
@@ -481,6 +491,15 @@ si_emit_graphics(struct radv_device *device,
                         /* This allows sample shading. */
 			radeon_set_context_reg(cs, R_028848_PA_CL_VRS_CNTL,
                                                S_028848_SAMPLE_ITER_COMBINER_MODE(1));
+
+			/* This is the main VRS register and also the last
+			 * combiner, set it to passthrough mode because other
+			 * combiners are configured with PA_CL_VRS_CNTL.
+			 */
+			radeon_set_context_reg(cs, R_028064_DB_VRS_OVERRIDE_CNTL,
+					       S_028064_VRS_OVERRIDE_RATE_COMBINER_MODE(V_028064_VRS_COMB_MODE_PASSTHRU) |
+					       S_028064_VRS_OVERRIDE_RATE_X(0) |
+					       S_028064_VRS_OVERRIDE_RATE_Y(0));
 		}
 
 		if (physical_device->rad_info.chip_class == GFX10) {
@@ -1522,12 +1541,15 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 /* sets the CP predication state using a boolean stored at va */
 void
 si_emit_set_predication_state(struct radv_cmd_buffer *cmd_buffer,
-			      bool draw_visible, uint64_t va)
+			      bool draw_visible, unsigned pred_op, uint64_t va)
 {
 	uint32_t op = 0;
 
 	if (va) {
-		op = PRED_OP(PREDICATION_OP_BOOL64);
+		assert(pred_op == PREDICATION_OP_BOOL32 ||
+		       pred_op == PREDICATION_OP_BOOL64);
+
+		op = PRED_OP(pred_op);
 
 		/* PREDICATION_DRAW_VISIBLE means that if the 32-bit value is
 		 * zero, all rendering commands are discarded. Otherwise, they

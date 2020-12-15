@@ -119,14 +119,14 @@ The KeySymMapRec structure is defined as follows:
     #define XkbNumKbdGroups             4
     #define XkbMaxKbdGroup              (XkbNumKbdGroups-1)
     
-    typedef struct {                    /\(** map to keysyms for a single keycode 
+    typedef struct {                    /\&* map to keysyms for a single keycode 
 */
-        unsigned char       kt_index[XkbNumKbdGroups];  /\(** key type index for 
+        unsigned char       kt_index[XkbNumKbdGroups];  /\&* key type index for 
 each group */
-        unsigned char       group_info; /\(** # of groups and out of range group 
+        unsigned char       group_info; /\&* # of groups and out of range group 
 handling */
-        unsigned char       width;      /\(** max # of shift levels for key */
-        unsigned short      offset;     /\(** index to keysym table in syms array 
+        unsigned char       width;      /\&* max # of shift levels for key */
+        unsigned short      offset;     /\&* index to keysym table in syms array 
 */
 } XkbSymMapRec, *XkbSymMapPtr;
 

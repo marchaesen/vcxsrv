@@ -1220,3 +1220,28 @@ xi2mask_get_one_mask(const XI2Mask *mask, int deviceid)
 
     return mask->masks[deviceid];
 }
+
+/**
+ * Copies a sprite data from src to dst sprites.
+ *
+ * Returns FALSE on error.
+ */
+Bool
+CopySprite(SpritePtr src, SpritePtr dst)
+{
+    WindowPtr *trace;
+    if (src->spriteTraceGood > dst->spriteTraceSize) {
+        trace = reallocarray(dst->spriteTrace,
+                             src->spriteTraceSize, sizeof(*trace));
+        if (!trace) {
+            dst->spriteTraceGood = 0;
+            return FALSE;
+        }
+        dst->spriteTrace = trace;
+        dst->spriteTraceSize = src->spriteTraceGood;
+    }
+    memcpy(dst->spriteTrace, src->spriteTrace,
+           src->spriteTraceGood * sizeof(*trace));
+    dst->spriteTraceGood = src->spriteTraceGood;
+    return TRUE;
+}

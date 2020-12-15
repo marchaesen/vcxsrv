@@ -338,7 +338,6 @@ T}	T{
 T}
 .TE
 .ad
-.IN "XSizeHints" "" "@DEF@"
 .EX
 /\&* Values */
 

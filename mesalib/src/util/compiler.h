@@ -72,5 +72,18 @@
 
 #define IEEE_ONE 0x3f800000
 
+#ifndef __has_attribute
+#  define __has_attribute(x) 0
+#endif
+
+#if __cplusplus >= 201703L || __STDC_VERSION__ > 201710L
+/* Standard C++17/C23 attribute */
+#define FALLTHROUGH [[fallthrough]]
+#elif __has_attribute(fallthrough)
+/* Non-standard but supported by at least gcc and clang */
+#define FALLTHROUGH __attribute__((fallthrough))
+#else
+#define FALLTHROUGH do { } while(0)
+#endif
 
 #endif /* COMPILER_H */

@@ -170,8 +170,9 @@ util_set_thread_affinity(thrd_t thread,
       memset(old_mask, 0, num_mask_bits / 32);
 
       old_mask[0] = m;
-      if (sizeof(m) > 4)
-         old_mask[1] = m >> 32;
+#ifdef _WIN64
+      old_mask[1] = m >> 32;
+#endif
    }
 
    return true;

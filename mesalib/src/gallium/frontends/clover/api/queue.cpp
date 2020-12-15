@@ -91,7 +91,20 @@ clGetCommandQueueInfo(cl_command_queue d_q, cl_command_queue_info param,
       break;
 
    case CL_QUEUE_PROPERTIES:
-      buf.as_scalar<cl_command_queue_properties>() = q.properties();
+      buf.as_scalar<cl_command_queue_properties>() = q.props();
+      break;
+
+   case CL_QUEUE_PROPERTIES_ARRAY:
+      buf.as_vector<cl_queue_properties>() = q.properties();
+      break;
+
+   case CL_QUEUE_DEVICE_DEFAULT:
+      if (r_size)
+	 *r_size = 0;
+      break;
+
+   case CL_QUEUE_SIZE:
+      throw error(CL_INVALID_COMMAND_QUEUE);
       break;
 
    default:
@@ -114,22 +127,29 @@ clFlush(cl_command_queue d_q) try {
 }
 
 CLOVER_API cl_command_queue
-clCreateCommandQueueWithProperties(cl_context context, cl_device_id device,
-                                   const cl_queue_properties *properties,
-                                   cl_int *errcode_ret) try {
-   cl_command_queue_properties props = 0;
-   if (properties) {
-      for (auto idx = 0; properties[idx]; idx += 2) {
-         if (properties[idx] == CL_QUEUE_PROPERTIES)
-            props |= properties[idx + 1];
-         else
-            throw error(CL_INVALID_VALUE);
-      }
-   }
+clCreateCommandQueueWithProperties(cl_context d_ctx, cl_device_id d_dev,
+                                   const cl_queue_properties *d_properties,
+                                   cl_int *r_errcode) try {
+   auto &ctx = obj(d_ctx);
+   auto &dev = obj(d_dev);
 
-   return clCreateCommandQueue(context, device, props, errcode_ret);
+   if (!count(dev, ctx.devices()))
+      throw error(CL_INVALID_DEVICE);
+
+   ret_error(r_errcode, CL_SUCCESS);
+   std::vector<cl_queue_properties> properties;
+
+   if (d_properties) {
+      int idx = -1;
+      /* these come in pairs, bail if the first is 0 */
+      do {
+         idx++;
+         properties.push_back(d_properties[idx]);
+      } while (d_properties[idx & ~1]);
+   }
+   return new command_queue(ctx, dev, properties);
 
 } catch (error &e) {
-   ret_error(errcode_ret, e);
+   ret_error(r_errcode, e);
    return NULL;
 }

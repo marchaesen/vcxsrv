@@ -202,7 +202,7 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
          return false;
    }
 
-   if (addr->depth != 1 && st->pbo.use_gs && !st->pbo.gs) {
+   if (st->pbo.use_gs && !st->pbo.gs) {
       st->pbo.gs = st_pbo_create_gs(st);
       if (!st->pbo.gs)
          return false;
@@ -405,7 +405,7 @@ create_fs(struct st_context *st, bool download,
           enum pipe_texture_target target,
           enum st_pbo_conversion conversion)
 {
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
    const nir_shader_compiler_options *options =
       st_get_nir_compiler_options(st, MESA_SHADER_FRAGMENT);
    bool pos_is_sysval =
@@ -594,8 +594,7 @@ st_pbo_get_download_fs(struct st_context *st, enum pipe_texture_target target,
 void
 st_init_pbo_helpers(struct st_context *st)
 {
-   struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
 
    st->pbo.upload_enabled =
       screen->get_param(screen, PIPE_CAP_TEXTURE_BUFFER_OBJECTS) &&

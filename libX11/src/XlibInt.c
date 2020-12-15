@@ -218,12 +218,10 @@ void _XSeqSyncFunction(
     xGetInputFocusReply rep;
     _X_UNUSED register xReq *req;
 
-    if ((X_DPY_GET_REQUEST(dpy) - X_DPY_GET_LAST_REQUEST_READ(dpy)) >= (65535 - BUFSIZE/SIZEOF(xReq)) && !dpy->req_seq_syncing) {
-	dpy->req_seq_syncing = True;
+    if ((X_DPY_GET_REQUEST(dpy) - X_DPY_GET_LAST_REQUEST_READ(dpy)) >= (65535 - BUFSIZE/SIZEOF(xReq))) {
 	GetEmptyReq(GetInputFocus, req);
 	(void) _XReply (dpy, (xReply *)&rep, 0, xTrue);
 	sync_while_locked(dpy);
-	dpy->req_seq_syncing = False;
     } else if (sync_hazard(dpy))
 	_XSetPrivSyncFunction(dpy);
 }
@@ -652,11 +650,10 @@ _XFreeEventCookies(Display *dpy)
     head = (struct stored_event**)&dpy->cookiejar;
 
     DL_FOREACH_SAFE(*head, e, tmp) {
-        if (dpy->cookiejar == e)
-            dpy->cookiejar = NULL;
         XFree(e->ev.data);
         XFree(e);
     }
+    dpy->cookiejar = NULL;
 }
 
 /**
@@ -1494,6 +1491,11 @@ int _XError (
     if (_XErrorFunction != NULL) {
 	int rtn_val;
 #ifdef XTHREADS
+	struct _XErrorThreadInfo thread_info = {
+		.error_thread = xthread_self(),
+		.next = dpy->error_threads
+	}, **prev;
+	dpy->error_threads = &thread_info;
 	if (dpy->lock)
 	    (*dpy->lock->user_lock_display)(dpy);
 	UnlockDisplay(dpy);
@@ -1503,6 +1505,11 @@ int _XError (
 	LockDisplay(dpy);
 	if (dpy->lock)
 	    (*dpy->lock->user_unlock_display)(dpy);
+
+	/* unlink thread_info from the list */
+	for (prev = &dpy->error_threads; *prev != &thread_info; prev = &(*prev)->next)
+		;
+	*prev = thread_info.next;
 #endif
 	return rtn_val;
     } else {

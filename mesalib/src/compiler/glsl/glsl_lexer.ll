@@ -661,7 +661,7 @@ public		KEYWORD(110, 100, 0, 0, PUBLIC_TOK);
 static		KEYWORD(110, 100, 0, 0, STATIC);
 extern		KEYWORD(110, 100, 0, 0, EXTERN);
 external	KEYWORD(110, 100, 0, 0, EXTERNAL);
-interface	KEYWORD(110, 100, 0, 0, INTERFACE);
+interface	KEYWORD(110, 100, 0, 0, INTERFACE_TOK);
 long		KEYWORD(110, 100, 0, 0, LONG_TOK);
 short		KEYWORD(110, 100, 0, 0, SHORT_TOK);
 double		TYPE_WITH_ALT(130, 100, 130, 300, yyextra->ARB_gpu_shader_fp64_enable, glsl_type::double_type);

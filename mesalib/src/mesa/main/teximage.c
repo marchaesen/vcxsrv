@@ -1492,6 +1492,7 @@ _mesa_target_can_be_compressed(const struct gl_context *ctx, GLenum target,
       default:
          break;
       }
+      FALLTHROUGH;
    default:
       break;
    }
@@ -2744,9 +2745,9 @@ static inline void
 check_gen_mipmap(struct gl_context *ctx, GLenum target,
                  struct gl_texture_object *texObj, GLint level)
 {
-   if (texObj->GenerateMipmap &&
-       level == texObj->BaseLevel &&
-       level < texObj->MaxLevel) {
+   if (texObj->Attrib.GenerateMipmap &&
+       level == texObj->Attrib.BaseLevel &&
+       level < texObj->Attrib.MaxLevel) {
       assert(ctx->Driver.GenerateMipmap);
       ctx->Driver.GenerateMipmap(ctx, target, texObj);
    }
@@ -3574,11 +3575,11 @@ texture_sub_image(struct gl_context *ctx, GLuint dims,
          case 3:
             if (target != GL_TEXTURE_2D_ARRAY)
                zoffset += texImage->Border;
-            /* fall-through */
+            FALLTHROUGH;
          case 2:
             if (target != GL_TEXTURE_1D_ARRAY)
                yoffset += texImage->Border;
-            /* fall-through */
+            FALLTHROUGH;
          case 1:
             xoffset += texImage->Border;
          }
@@ -4203,11 +4204,11 @@ copy_texture_sub_image(struct gl_context *ctx, GLuint dims,
    case 3:
       if (target != GL_TEXTURE_2D_ARRAY)
          zoffset += texImage->Border;
-      /* fall-through */
+      FALLTHROUGH;
    case 2:
       if (target != GL_TEXTURE_1D_ARRAY)
          yoffset += texImage->Border;
-      /* fall-through */
+      FALLTHROUGH;
    case 1:
       xoffset += texImage->Border;
    }
@@ -5732,7 +5733,7 @@ compressed_tex_sub_image(unsigned dim, GLenum target, GLuint textureOrIndex,
          break;
       case TEX_MODE_CURRENT_NO_ERROR:
          no_error = true;
-         /* fallthrough */
+         FALLTHROUGH;
       case TEX_MODE_CURRENT_ERROR:
       default:
          assert(textureOrIndex == 0);

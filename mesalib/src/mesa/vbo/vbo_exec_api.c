@@ -81,11 +81,12 @@ vbo_exec_wrap_buffers(struct vbo_exec_context *exec)
       exec->vtx.buffer_ptr = exec->vtx.buffer_map;
    }
    else {
+      struct gl_context *ctx = gl_context_from_vbo_exec(exec);
       struct _mesa_prim *last_prim = &exec->vtx.prim[exec->vtx.prim_count - 1];
       const GLuint last_begin = last_prim->begin;
       GLuint last_count;
 
-      if (_mesa_inside_begin_end(exec->ctx)) {
+      if (_mesa_inside_begin_end(ctx)) {
          last_prim->count = exec->vtx.vert_count - last_prim->start;
       }
 
@@ -120,8 +121,8 @@ vbo_exec_wrap_buffers(struct vbo_exec_context *exec)
        */
       assert(exec->vtx.prim_count == 0);
 
-      if (_mesa_inside_begin_end(exec->ctx)) {
-         exec->vtx.prim[0].mode = exec->ctx->Driver.CurrentExecPrimitive;
+      if (_mesa_inside_begin_end(ctx)) {
+         exec->vtx.prim[0].mode = ctx->Driver.CurrentExecPrimitive;
          exec->vtx.prim[0].begin = 0;
          exec->vtx.prim[0].end = 0;
          exec->vtx.prim[0].start = 0;
@@ -175,7 +176,7 @@ vbo_exec_vtx_wrap(struct vbo_exec_context *exec)
 static void
 vbo_exec_copy_to_current(struct vbo_exec_context *exec)
 {
-   struct gl_context *ctx = exec->ctx;
+   struct gl_context *ctx = gl_context_from_vbo_exec(exec);
    struct vbo_context *vbo = vbo_context(ctx);
    GLbitfield64 enabled = exec->vtx.enabled & (~BITFIELD64_BIT(VBO_ATTRIB_POS));
 
@@ -253,7 +254,7 @@ static void
 vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
                              GLuint attr, GLuint newSize, GLenum newType)
 {
-   struct gl_context *ctx = exec->ctx;
+   struct gl_context *ctx = gl_context_from_vbo_exec(exec);
    struct vbo_context *vbo = vbo_context(ctx);
    const GLint lastcount = exec->vtx.vert_count;
    fi_type *old_attrptr[VBO_ATTRIB_MAX];
@@ -674,7 +675,7 @@ vbo_exec_Materialfv(GLenum face, GLenum pname, const GLfloat *params)
 static void
 vbo_exec_FlushVertices_internal(struct vbo_exec_context *exec, unsigned flags)
 {
-   struct gl_context *ctx = exec->ctx;
+   struct gl_context *ctx = gl_context_from_vbo_exec(exec);
 
    if (flags & FLUSH_STORED_VERTICES) {
       if (exec->vtx.vert_count) {
@@ -874,10 +875,11 @@ try_vbo_merge(struct vbo_exec_context *exec)
    vbo_try_prim_conversion(cur);
 
    if (exec->vtx.prim_count >= 2) {
+      struct gl_context *ctx = gl_context_from_vbo_exec(exec);
       struct _mesa_prim *prev = &exec->vtx.prim[exec->vtx.prim_count - 2];
       assert(prev == cur - 1);
 
-      if (vbo_merge_draws(exec->ctx, false, prev, cur))
+      if (vbo_merge_draws(ctx, false, prev, cur))
          exec->vtx.prim_count--;  /* drop the last primitive */
    }
 }
@@ -979,7 +981,7 @@ vbo_exec_PrimitiveRestartNV(void)
 static void
 vbo_exec_vtxfmt_init(struct vbo_exec_context *exec)
 {
-   struct gl_context *ctx = exec->ctx;
+   struct gl_context *ctx = gl_context_from_vbo_exec(exec);
    GLvertexformat *vfmt = &exec->vtxfmt;
 
 #define NAME_AE(x) _ae_##x
@@ -1011,7 +1013,7 @@ vbo_reset_all_attr(struct vbo_exec_context *exec)
 void
 vbo_exec_vtx_init(struct vbo_exec_context *exec, bool use_buffer_objects)
 {
-   struct gl_context *ctx = exec->ctx;
+   struct gl_context *ctx = gl_context_from_vbo_exec(exec);
 
    if (use_buffer_objects) {
       /* Use buffer objects for immediate mode. */
@@ -1042,7 +1044,7 @@ void
 vbo_exec_vtx_destroy(struct vbo_exec_context *exec)
 {
    /* using a real VBO for vertex data */
-   struct gl_context *ctx = exec->ctx;
+   struct gl_context *ctx = gl_context_from_vbo_exec(exec);
 
    /* True VBOs should already be unmapped
     */

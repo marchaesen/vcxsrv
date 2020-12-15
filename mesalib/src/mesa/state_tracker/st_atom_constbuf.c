@@ -72,7 +72,7 @@ st_upload_constants(struct st_context *st, struct gl_program *prog)
       unsigned c;
 
       for (c = 0; c < MAX_NUM_FRAGMENT_CONSTANTS_ATI; c++) {
-         unsigned offset = params->ParameterValueOffset[c];
+         unsigned offset = params->Parameters[c].ValueOffset;
          if (ati_fs->LocalConstDef & (1 << c))
             memcpy(params->ParameterValues + offset,
                    ati_fs->Constants[c], sizeof(GLfloat) * 4);
@@ -94,54 +94,95 @@ st_upload_constants(struct st_context *st, struct gl_program *prog)
       struct pipe_constant_buffer cb;
       const uint paramBytes = params->NumParameterValues * sizeof(GLfloat);
 
-      /* Update the constants which come from fixed-function state, such as
-       * transformation matrices, fog factors, etc.  The rest of the values in
-       * the parameters list are explicitly set by the user with glUniform,
-       * glProgramParameter(), etc.
-       */
-      if (params->StateFlags)
-         _mesa_load_state_parameters(st->ctx, params);
-
       _mesa_shader_write_subroutine_indices(st->ctx, stage);
 
       cb.buffer = NULL;
-      cb.user_buffer = params->ParameterValues;
+      cb.user_buffer = NULL;
       cb.buffer_offset = 0;
       cb.buffer_size = paramBytes;
 
-      if (ST_DEBUG & DEBUG_CONSTANTS) {
-         debug_printf("%s(shader=%d, numParams=%d, stateFlags=0x%x)\n",
-                      __func__, shader_type, params->NumParameters,
-                      params->StateFlags);
-         _mesa_print_parameter_list(params);
+      if (st->prefer_real_buffer_in_constbuf0) {
+         uint32_t *ptr;
+         /* fetch_state always stores 4 components (16 bytes) per matrix row,
+          * but matrix rows are sometimes allocated partially, so add 12
+          * to compensate for the fetch_state defect.
+          */
+         u_upload_alloc(st->pipe->const_uploader, 0, paramBytes + 12, 64,
+                        &cb.buffer_offset, &cb.buffer, (void**)&ptr);
+
+         int uniform_bytes = params->UniformBytes;
+         if (uniform_bytes)
+            memcpy(ptr, params->ParameterValues, uniform_bytes);
+
+         /* Upload the constants which come from fixed-function state, such as
+          * transformation matrices, fog factors, etc.
+          */
+         if (params->StateFlags)
+            _mesa_upload_state_parameters(st->ctx, params, ptr);
+
+         u_upload_unmap(st->pipe->const_uploader);
+         cso_set_constant_buffer(st->cso_context, shader_type, 0, &cb);
+         pipe_resource_reference(&cb.buffer, NULL);
+
+         /* Set inlinable constants. This is more involved because state
+          * parameters are uploaded directly above instead of being loaded
+          * into gl_program_parameter_list. The easiest way to get their values
+          * is to load them.
+          */
+         unsigned num_inlinable_uniforms = prog->info.num_inlinable_uniforms;
+         if (num_inlinable_uniforms) {
+            struct pipe_context *pipe = st->pipe;
+            uint32_t values[MAX_INLINABLE_UNIFORMS];
+            gl_constant_value *constbuf = params->ParameterValues;
+            bool loaded_state_vars = false;
+
+            for (unsigned i = 0; i < num_inlinable_uniforms; i++) {
+               unsigned dw_offset = prog->info.inlinable_uniform_dw_offsets[i];
+
+               if (dw_offset * 4 >= uniform_bytes && !loaded_state_vars) {
+                  _mesa_load_state_parameters(st->ctx, params);
+                  loaded_state_vars = true;
+               }
+
+               values[i] = constbuf[prog->info.inlinable_uniform_dw_offsets[i]].u;
+            }
+
+            pipe->set_inlinable_constants(pipe, shader_type,
+                                          prog->info.num_inlinable_uniforms,
+                                          values);
+         }
+      } else {
+         cb.user_buffer = params->ParameterValues;
+
+         /* Update the constants which come from fixed-function state, such as
+          * transformation matrices, fog factors, etc.
+          */
+         if (params->StateFlags)
+            _mesa_load_state_parameters(st->ctx, params);
+
+         cso_set_constant_buffer(st->cso_context, shader_type, 0, &cb);
+
+         /* Set inlinable constants. */
+         unsigned num_inlinable_uniforms = prog->info.num_inlinable_uniforms;
+         if (num_inlinable_uniforms) {
+            struct pipe_context *pipe = st->pipe;
+            uint32_t values[MAX_INLINABLE_UNIFORMS];
+            gl_constant_value *constbuf = params->ParameterValues;
+
+            for (unsigned i = 0; i < num_inlinable_uniforms; i++)
+               values[i] = constbuf[prog->info.inlinable_uniform_dw_offsets[i]].u;
+
+            pipe->set_inlinable_constants(pipe, shader_type,
+                                          prog->info.num_inlinable_uniforms,
+                                          values);
+         }
       }
 
-      cso_set_constant_buffer(st->cso_context, shader_type, 0, &cb);
-      pipe_resource_reference(&cb.buffer, NULL);
-
-      /* Set inlinable constants. */
-      unsigned num_inlinable_uniforms = prog->info.num_inlinable_uniforms;
-      if (num_inlinable_uniforms) {
-         struct pipe_context *pipe = st->pipe;
-         uint32_t values[MAX_INLINABLE_UNIFORMS];
-         gl_constant_value *constbuf = params->ParameterValues;
-
-         for (unsigned i = 0; i < num_inlinable_uniforms; i++)
-            values[i] = constbuf[prog->info.inlinable_uniform_dw_offsets[i]].u;
-
-         pipe->set_inlinable_constants(pipe, shader_type,
-                                       prog->info.num_inlinable_uniforms,
-                                       values);
-      }
-
-      st->state.constants[shader_type].ptr = params->ParameterValues;
-      st->state.constants[shader_type].size = paramBytes;
-   }
-   else if (st->state.constants[shader_type].ptr) {
+      st->state.constbuf0_enabled_shader_mask |= 1 << shader_type;
+   } else if (st->state.constbuf0_enabled_shader_mask & (1 << shader_type)) {
       /* Unbind. */
-      st->state.constants[shader_type].ptr = NULL;
-      st->state.constants[shader_type].size = 0;
       cso_set_constant_buffer(st->cso_context, shader_type, 0, NULL);
+      st->state.constbuf0_enabled_shader_mask &= ~(1 << shader_type);
    }
 }
 

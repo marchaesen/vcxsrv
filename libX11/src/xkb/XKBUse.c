@@ -612,6 +612,7 @@ _XkbFreeInfo(Display *dpy)
         if (xkbi->desc)
             XkbFreeKeyboard(xkbi->desc, XkbAllComponentsMask, True);
         Xfree(xkbi);
+        dpy->xkb_info = NULL;
     }
 }
 

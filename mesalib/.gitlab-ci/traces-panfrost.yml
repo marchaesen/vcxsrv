@@ -51,13 +51,13 @@ traces:
   - path: humus/Portals.trace
     expectations:
       - device: gl-panfrost-t860
-        checksum: 5415bbf2a69b605bb1052a0e0b0f7040
+        checksum: f83da726bff354684a576effa74ef681
       - device: gl-panfrost-t760
         checksum: a41f53e9318cbd32c27b48d304df1ea6
   - path: 0ad/0ad.trace
     expectations:
       - device: gl-panfrost-t860
-        checksum: e159a06f423998ea7fcc0107f0e62f15
+        checksum: 63fd6b8720a6dbc42f3c1281179d5e82
   - path: glmark2/buffer-columns=200:interleave=false:update-dispersion=0.9:update-fraction=0.5:update-method=map.rdc
     expectations:
       - device: gl-panfrost-t860
@@ -125,7 +125,7 @@ traces:
   - path: glmark2/ideas-speed=duration.rdc
     expectations:
       - device: gl-panfrost-t860
-        checksum: 2cf45bca36f4d168e96faf7f90a7e515
+        checksum: 458556bc1ade89323181e4d0483a7cd3
   - path: glmark2/loop-fragment-loop=false:fragment-steps=5:vertex-steps=5.rdc
     expectations:
       - device: gl-panfrost-t860
@@ -202,7 +202,7 @@ traces:
   - path: humus/CelShading.trace
     expectations:
       - device: gl-panfrost-t860
-        checksum: e44a7ac7442e82d85de583f2cdd68fdf
+        checksum: 521ca6a236b8400cf692e6817b91c739
   - path: humus/DynamicBranching3.trace
     expectations:
       - device: gl-panfrost-t860

@@ -26,8 +26,7 @@
 #ifndef VK_DEBUG_REPORT_H
 #define VK_DEBUG_REPORT_H
 
-#include <pthread.h>
-
+#include "c11/threads.h"
 #include "util/list.h"
 #include <vulkan/vulkan.h>
 
@@ -41,7 +40,7 @@ struct vk_debug_report_callback {
 
 struct vk_debug_report_instance {
    /* VK_EXT_debug_report debug callbacks */
-   pthread_mutex_t                             callbacks_mutex;
+   mtx_t                                       callbacks_mutex;
    struct list_head                            callbacks;
 };
 

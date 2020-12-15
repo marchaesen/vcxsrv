@@ -1106,7 +1106,7 @@ struct __DRIbufferRec {
 };
 
 #define __DRI_DRI2_LOADER "DRI_DRI2Loader"
-#define __DRI_DRI2_LOADER_VERSION 4
+#define __DRI_DRI2_LOADER_VERSION 5
 
 enum dri_loader_cap {
    /* Whether the loader handles RGBA channel ordering correctly. If not,
@@ -1177,6 +1177,15 @@ struct __DRIdri2LoaderExtensionRec {
      * \since 4
      */
     unsigned (*getCapability)(void *loaderPrivate, enum dri_loader_cap cap);
+
+    /**
+     * Clean up any loader state associated with an image.
+     *
+     * \param loaderPrivate  Loader's private data that was previously passed
+     *                       into a __DRIimageExtensionRec::createImage function
+     * \since 5
+     */
+    void (*destroyLoaderImageState)(void *loaderPrivate);
 };
 
 /**
@@ -2032,7 +2041,7 @@ struct __DRIimageList {
 };
 
 #define __DRI_IMAGE_LOADER "DRI_IMAGE_LOADER"
-#define __DRI_IMAGE_LOADER_VERSION 3
+#define __DRI_IMAGE_LOADER_VERSION 4
 
 struct __DRIimageLoaderExtensionRec {
     __DRIextension base;
@@ -2091,6 +2100,15 @@ struct __DRIimageLoaderExtensionRec {
      * \since 3
      */
     void (*flushSwapBuffers)(__DRIdrawable *driDrawable, void *loaderPrivate);
+
+    /**
+     * Clean up any loader state associated with an image.
+     *
+     * \param loaderPrivate  Loader's private data that was previously passed
+     *                       into a __DRIimageExtensionRec::createImage function
+     * \since 4
+     */
+    void (*destroyLoaderImageState)(void *loaderPrivate);
 };
 
 /**

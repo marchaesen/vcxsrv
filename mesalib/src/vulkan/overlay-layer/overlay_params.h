@@ -33,6 +33,8 @@ extern "C" {
 #include <stdbool.h>
 
 #define OVERLAY_PARAMS                               \
+   OVERLAY_PARAM_BOOL(device)                        \
+   OVERLAY_PARAM_BOOL(format)                        \
    OVERLAY_PARAM_BOOL(fps)                           \
    OVERLAY_PARAM_BOOL(frame)                         \
    OVERLAY_PARAM_BOOL(frame_timing)                  \

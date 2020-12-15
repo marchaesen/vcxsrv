@@ -42,6 +42,9 @@ struct freedreno_dev_info {
 	
 	uint32_t num_vsc_pipes;
 
+	/* Information for private memory calculations */
+	uint32_t num_sp_cores, fibers_per_sp;
+
 	union {
 		struct {
 			/* Whether the PC_MULTIVIEW_MASK register exists. */

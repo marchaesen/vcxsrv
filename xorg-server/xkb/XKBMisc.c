@@ -663,14 +663,14 @@ XkbVirtualModsToReal(XkbDescPtr xkb, unsigned virtual_mask, unsigned *mask_rtrn)
     register int i, bit;
     register unsigned mask;
 
-    if (xkb == NULL)
+    if ((xkb == NULL) || (xkb->server == NULL)) {
+        *mask_rtrn = 0;
         return FALSE;
+    }
     if (virtual_mask == 0) {
         *mask_rtrn = 0;
         return TRUE;
     }
-    if (xkb->server == NULL)
-        return FALSE;
     for (i = mask = 0, bit = 1; i < XkbNumVirtualMods; i++, bit <<= 1) {
         if (virtual_mask & bit)
             mask |= xkb->server->vmods[i];

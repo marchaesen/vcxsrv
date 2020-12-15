@@ -998,9 +998,9 @@ build_bitmap_atlas(struct gl_context *ctx, struct gl_bitmap_atlas *atlas,
       goto out_of_memory;
    }
 
-   atlas->texObj->Sampler.MinFilter = GL_NEAREST;
-   atlas->texObj->Sampler.MagFilter = GL_NEAREST;
-   atlas->texObj->MaxLevel = 0;
+   atlas->texObj->Sampler.Attrib.MinFilter = GL_NEAREST;
+   atlas->texObj->Sampler.Attrib.MagFilter = GL_NEAREST;
+   atlas->texObj->Attrib.MaxLevel = 0;
    atlas->texObj->Immutable = GL_TRUE;
 
    atlas->texImage = _mesa_get_tex_image(ctx, atlas->texObj,
@@ -3783,7 +3783,7 @@ save_PointParameterfEXT(GLenum pname, GLfloat param)
 }
 
 static void GLAPIENTRY
-save_PointParameteriNV(GLenum pname, GLint param)
+save_PointParameteri(GLenum pname, GLint param)
 {
    GLfloat parray[3];
    parray[0] = (GLfloat) param;
@@ -3792,7 +3792,7 @@ save_PointParameteriNV(GLenum pname, GLint param)
 }
 
 static void GLAPIENTRY
-save_PointParameterivNV(GLenum pname, const GLint * param)
+save_PointParameteriv(GLenum pname, const GLint * param)
 {
    GLfloat parray[3];
    parray[0] = (GLfloat) param[0];
@@ -11352,14 +11352,16 @@ _mesa_compile_error(struct gl_context *ctx, GLenum error, const char *s)
  * Test if ID names a display list.
  */
 static GLboolean
-islist(struct gl_context *ctx, GLuint list)
+islist(struct gl_context *ctx, GLuint list,
+       struct gl_display_list ** dlist)
 {
-   if (list > 0 && _mesa_lookup_list(ctx, list)) {
-      return GL_TRUE;
-   }
-   else {
-      return GL_FALSE;
-   }
+   struct gl_display_list * dl =
+      list > 0 ? _mesa_lookup_list(ctx, list) : NULL;
+
+   if (dlist)
+      *dlist = dl;
+
+   return dl != NULL;
 }
 
 
@@ -11382,17 +11384,13 @@ execute_list(struct gl_context *ctx, GLuint list)
    Node *n;
    GLboolean done;
 
-   if (list == 0 || !islist(ctx, list))
+   if (list == 0 || !islist(ctx, list, &dlist))
       return;
 
    if (ctx->ListState.CallDepth == MAX_LIST_NESTING) {
       /* raise an error? */
       return;
    }
-
-   dlist = _mesa_lookup_list(ctx, list);
-   if (!dlist)
-      return;
 
    ctx->ListState.CallDepth++;
 
@@ -13626,7 +13624,7 @@ _mesa_IsList(GLuint list)
    GET_CURRENT_CONTEXT(ctx);
    FLUSH_VERTICES(ctx, 0);      /* must be called before assert */
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, GL_FALSE);
-   return islist(ctx, list);
+   return islist(ctx, list, NULL);
 }
 
 
@@ -14281,9 +14279,9 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_BindFragmentShaderATI(table, save_BindFragmentShaderATI);
    SET_SetFragmentShaderConstantATI(table, save_SetFragmentShaderConstantATI);
 
-   /* 262. GL_NV_point_sprite */
-   SET_PointParameteri(table, save_PointParameteriNV);
-   SET_PointParameteriv(table, save_PointParameterivNV);
+   /* 262. GL_ARB_point_sprite */
+   SET_PointParameteri(table, save_PointParameteri);
+   SET_PointParameteriv(table, save_PointParameteriv);
 
    /* 268. GL_EXT_stencil_two_side */
    SET_ActiveStencilFaceEXT(table, save_ActiveStencilFaceEXT);
@@ -14696,13 +14694,8 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
          return;
    }
 
-   if (!islist(ctx, list)) {
+   if (!islist(ctx, list, &dlist)) {
       fprintf(f, "%u is not a display list ID\n", list);
-      goto out;
-   }
-
-   dlist = _mesa_lookup_list(ctx, list);
-   if (!dlist) {
       goto out;
    }
 

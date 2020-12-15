@@ -75,6 +75,13 @@ env.CodeGenerate(
     command = python_cmd + ' $SCRIPT --outdir ' + bldroot + '/nir'
 )
 
+env.CodeGenerate(
+    target = 'nir/nir_intrinsics_indices.h',
+    script = 'nir/nir_intrinsics_indices_h.py',
+    source = [],
+    command = python_cmd + ' $SCRIPT --outdir ' + bldroot + '/nir'
+)
+
 # parse Makefile.sources
 source_lists = env.ParseSourceList('Makefile.sources')
 

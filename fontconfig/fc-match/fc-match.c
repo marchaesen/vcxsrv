@@ -117,6 +117,7 @@ main (int argc, char **argv)
     int			brief = 0;
     int			sort = 0, all = 0;
     const FcChar8	*format = NULL;
+    const FcChar8	*format_optarg = NULL;
     int			i;
     FcObjectSet		*os = 0;
     FcFontSet		*fs;
@@ -146,7 +147,7 @@ main (int argc, char **argv)
 	    brief = 1;
 	    break;
 	case 'f':
-	    format = (FcChar8 *) strdup (optarg);
+	    format = format_optarg = (FcChar8 *) strdup (optarg);
 	    break;
 	case 'V':
 	    fprintf (stderr, "fontconfig version %d.%d.%d\n", 
@@ -268,6 +269,11 @@ main (int argc, char **argv)
 	FcObjectSetDestroy (os);
 
     FcFini ();
+
+    if (format_optarg) {
+	free ((void*)format_optarg);
+	format_optarg = NULL;
+    }
 
     return 0;
 }

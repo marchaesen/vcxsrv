@@ -331,7 +331,7 @@ bool
 v3dv_tfu_supports_tex_format(const struct v3d_device_info *devinfo,
                              uint32_t tex_format)
 {
-   assert(devinfo->ver >= 41);
+   assert(devinfo->ver >= 42);
 
    switch (tex_format) {
    case TEXTURE_DATA_FORMAT_R8:
@@ -355,12 +355,52 @@ v3dv_tfu_supports_tex_format(const struct v3d_device_info *devinfo,
    case TEXTURE_DATA_FORMAT_RGBA16F:
    case TEXTURE_DATA_FORMAT_R11F_G11F_B10F:
    case TEXTURE_DATA_FORMAT_R4:
+   case TEXTURE_DATA_FORMAT_RGB9_E5:
+   case TEXTURE_DATA_FORMAT_R32F:
+   case TEXTURE_DATA_FORMAT_RG32F:
+   case TEXTURE_DATA_FORMAT_RGBA32F:
+   case TEXTURE_DATA_FORMAT_RGB8_ETC2:
+   case TEXTURE_DATA_FORMAT_RGB8_PUNCHTHROUGH_ALPHA1:
+   case TEXTURE_DATA_FORMAT_RGBA8_ETC2_EAC:
+   case TEXTURE_DATA_FORMAT_R11_EAC:
+   case TEXTURE_DATA_FORMAT_SIGNED_R11_EAC:
+   case TEXTURE_DATA_FORMAT_RG11_EAC:
+   case TEXTURE_DATA_FORMAT_SIGNED_RG11_EAC:
       return true;
    default:
       return false;
    }
 }
 
+/* Some cases of transfer operations are raw data copies that don't depend
+ * on the semantics of the pixel format (no pixel format conversions are
+ * involved). In these cases, it is safe to choose any format supported by
+ * the TFU so long as it has the same texel size, which allows us to use the
+ * TFU paths with formats that are not TFU supported otherwise.
+ */
+const struct v3dv_format *
+v3dv_get_compatible_tfu_format(const struct v3d_device_info *devinfo,
+                               uint32_t bpp,
+                               VkFormat *out_vk_format)
+{
+   VkFormat vk_format;
+   switch (bpp) {
+   case 16: vk_format = VK_FORMAT_R32G32B32A32_SFLOAT;  break;
+   case 8:  vk_format = VK_FORMAT_R16G16B16A16_SFLOAT;  break;
+   case 4:  vk_format = VK_FORMAT_R32_SFLOAT;           break;
+   case 2:  vk_format = VK_FORMAT_R16_SFLOAT;           break;
+   case 1:  vk_format = VK_FORMAT_R8_UNORM;             break;
+   default: unreachable("unsupported format bit-size"); break;
+   };
+
+   if (out_vk_format)
+      *out_vk_format = vk_format;
+
+   const struct v3dv_format *format = v3dv_get_format(vk_format);
+   assert(v3dv_tfu_supports_tex_format(devinfo, format->tex_type));
+
+   return format;
+}
 
 static bool
 format_supports_blending(const struct v3dv_format *format)
@@ -503,6 +543,16 @@ buffer_format_features(VkFormat vk_format, const struct v3dv_format *v3dv_format
    }
 
    return flags;
+}
+
+bool
+v3dv_buffer_format_supports_features(VkFormat vk_format,
+                                     VkFormatFeatureFlags features)
+{
+   const struct v3dv_format *v3dv_format = v3dv_get_format(vk_format);
+   const VkFormatFeatureFlags supported =
+      buffer_format_features(vk_format, v3dv_format);
+   return (supported & features) == features;
 }
 
 void

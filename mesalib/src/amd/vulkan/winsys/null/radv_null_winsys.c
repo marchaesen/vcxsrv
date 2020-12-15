@@ -64,9 +64,10 @@ static const struct {
 	[CHIP_NAVI10] = { 0x7310, 16, true },
 	[CHIP_NAVI12] = { 0x7360, 8, true },
 	[CHIP_NAVI14] = { 0x7340, 8, true },
-	/* TODO: fill with real info. */
-	[CHIP_SIENNA_CICHLID] = { 0xffff, 8, true },
-	[CHIP_NAVY_FLOUNDER] = { 0xffff, 8, true },
+	[CHIP_SIENNA_CICHLID] = { 0x73A0, 8, true },
+	[CHIP_VANGOGH] = { 0x163F, 8, false },
+	[CHIP_NAVY_FLOUNDER] = { 0x73C0, 8, true },
+	[CHIP_DIMGREY_CAVEFISH] = { 0x73E0, 8, true },
 };
 
 static void radv_null_winsys_query_info(struct radeon_winsys *rws,
@@ -107,6 +108,7 @@ static void radv_null_winsys_query_info(struct radeon_winsys *rws,
 	info->pci_id = gpu_info[info->family].pci_id;
 	info->has_syncobj_wait_for_submit = true;
 	info->max_se = 4;
+        info->num_se = 4;
 	if (info->chip_class >= GFX10_3)
 		info->max_wave64_per_simd = 16;
 	else if (info->chip_class >= GFX10)
@@ -126,7 +128,7 @@ static void radv_null_winsys_query_info(struct radeon_winsys *rws,
 	info->num_physical_wave64_vgprs_per_simd = info->chip_class >= GFX10 ? 512 : 256;
 	info->num_simd_per_compute_unit = info->chip_class >= GFX10 ? 2 : 4;
 	info->lds_size_per_workgroup = info->chip_class >= GFX10 ? 128 * 1024 : 64 * 1024;
-	info->num_render_backends = gpu_info[info->family].num_render_backends;
+	info->max_render_backends = gpu_info[info->family].num_render_backends;
 
 	info->has_dedicated_vram = gpu_info[info->family].has_dedicated_vram;
 }

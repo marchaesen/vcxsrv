@@ -653,9 +653,9 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
                                                nir_rounding_mode_undef);
             dest->def = nir_build_alu(&b->nb, op, src[0], NULL, NULL, NULL);
          } else {
-            dest->def = nir_convert_alu_types(&b->nb, src[0], src_type,
-                                              dst_type, opts.rounding_mode,
-                                              opts.saturate);
+            dest->def = nir_convert_alu_types(&b->nb, dst_bit_size, src[0],
+                                              src_type, dst_type,
+                                              opts.rounding_mode, opts.saturate);
          }
       } else {
          vtn_fail_if(opts.rounding_mode != nir_rounding_mode_undef &&

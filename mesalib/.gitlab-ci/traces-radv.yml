@@ -11,13 +11,13 @@ traces:
   - path: LunarG-VulkanSamples/amd/polaris10/Hologram:-w:640:-h:480.gfxr
     expectations:
       - device: vk-amd-polaris10
-        checksum: cfde36cd7377068a739c30e3fd171d08
+        checksum: 7bc6948ef0388ae6ba368048c0eb6fed
       - device: vk-amd-raven
-        checksum: cfde36cd7377068a739c30e3fd171d08
+        checksum: 7bc6948ef0388ae6ba368048c0eb6fed
   - path: Wicked-Engine/Tests:Cloth_Physics_Test.trace-dxgi
     expectations:
       - device: vk-amd-polaris10
-        checksum: 6b6d27df609b8d086cc3335e6d103581
+        checksum: 24cddd40ee8afdf129a59e593bedd463
       - device: vk-amd-raven
-        checksum: f013465b97fd8ba0217bcde74c262384
+        checksum: 117880d4561af71c562a9fec27cdce22
 

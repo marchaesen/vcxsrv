@@ -145,7 +145,7 @@ VkResult lvp_CreateSwapchainKHR(
    if (pAllocator)
       alloc = pAllocator;
    else
-      alloc = &device->alloc;
+      alloc = &device->vk.alloc;
 
    return wsi_common_create_swapchain(&device->physical_device->wsi_device,
                                       lvp_device_to_handle(device),
@@ -165,7 +165,7 @@ void lvp_DestroySwapchainKHR(
    if (pAllocator)
       alloc = pAllocator;
    else
-      alloc = &device->alloc;
+      alloc = &device->vk.alloc;
 
    wsi_common_destroy_swapchain(_device, swapchain, alloc);
 }
@@ -213,19 +213,12 @@ VkResult lvp_AcquireNextImage2KHR(
                                                     _device,
                                                     pAcquireInfo,
                                                     pImageIndex);
-#if 0
+
    LVP_FROM_HANDLE(lvp_fence, fence, pAcquireInfo->fence);
 
    if (fence && (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)) {
-      if (fence->fence)
-         device->ws->signal_fence(fence->fence);
-      if (fence->temp_syncobj) {
-         device->ws->signal_syncobj(device->ws, fence->temp_syncobj);
-      } else if (fence->syncobj) {
-         device->ws->signal_syncobj(device->ws, fence->syncobj);
-      }
+      fence->signaled = true;
    }
-#endif
    return result;
 }
 

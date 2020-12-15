@@ -102,13 +102,7 @@ rewrite_emit_vertex(nir_intrinsic_instr *intrin, struct state *state)
     */
    nir_push_if(b, nir_ilt(b, count, max_vertices));
 
-   nir_intrinsic_instr *lowered =
-      nir_intrinsic_instr_create(b->shader,
-                                 nir_intrinsic_emit_vertex_with_counter);
-   nir_intrinsic_set_stream_id(lowered, stream);
-   lowered->src[0] = nir_src_for_ssa(count);
-   lowered->src[1] = nir_src_for_ssa(count_per_primitive);
-   nir_builder_instr_insert(b, &lowered->instr);
+   nir_emit_vertex_with_counter(b, count, count_per_primitive, stream);
 
    /* Increment the vertex count by 1 */
    nir_store_var(b, state->vertex_count_vars[stream],
@@ -217,13 +211,7 @@ rewrite_end_primitive(nir_intrinsic_instr *intrin, struct state *state)
    else
       count_per_primitive = nir_ssa_undef(b, count->num_components, count->bit_size);
 
-   nir_intrinsic_instr *lowered =
-      nir_intrinsic_instr_create(b->shader,
-                                 nir_intrinsic_end_primitive_with_counter);
-   nir_intrinsic_set_stream_id(lowered, stream);
-   lowered->src[0] = nir_src_for_ssa(count);
-   lowered->src[1] = nir_src_for_ssa(count_per_primitive);
-   nir_builder_instr_insert(b, &lowered->instr);
+   nir_end_primitive_with_counter(b, count, count_per_primitive, stream);
 
    if (state->count_prims) {
       /* Increment the primitive count by 1 */
@@ -313,14 +301,7 @@ append_set_vertex_and_primitive_count(nir_block *end_block, struct state *state)
                        : nir_ssa_undef(b, 1, 32);
          }
 
-         nir_intrinsic_instr *set_cnt_intrin =
-            nir_intrinsic_instr_create(shader,
-               nir_intrinsic_set_vertex_and_primitive_count);
-
-         nir_intrinsic_set_stream_id(set_cnt_intrin, stream);
-         set_cnt_intrin->src[0] = nir_src_for_ssa(vtx_cnt);
-         set_cnt_intrin->src[1] = nir_src_for_ssa(prim_cnt);
-         nir_builder_instr_insert(b, &set_cnt_intrin->instr);
+         nir_set_vertex_and_primitive_count(b, vtx_cnt, prim_cnt, stream);
       }
    }
 }

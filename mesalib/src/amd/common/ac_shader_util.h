@@ -97,7 +97,8 @@ enum ac_image_dim ac_get_image_dim(enum chip_class chip_class, enum glsl_sampler
 unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
                                   signed char *face_vgpr_index, signed char *ancillary_vgpr_index);
 
-void ac_choose_spi_color_formats(unsigned format, unsigned swap, unsigned ntype, bool is_depth,
+void ac_choose_spi_color_formats(unsigned format, unsigned swap, unsigned ntype,
+                                 bool is_depth, bool use_rbplus,
                                  struct ac_spi_color_formats *formats);
 
 #ifdef __cplusplus

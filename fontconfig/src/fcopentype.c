@@ -66,8 +66,7 @@ FcPatternAddFullname (FcPattern *pat)
 	if (FcPatternObjectGetString (pat, FC_STYLE_OBJECT, n, &style) != FcResultMatch)
 	    return FcFalse;
 	len = strlen ((const char *) style);
-	for (i = 0; style[i] != 0 && isspace (style[i]); i++)
-	    break;
+	for (i = 0; style[i] != 0 && isspace (style[i]); i++);
 	memcpy (style, &style[i], len - i);
 	FcStrBufInit (&sbuf, NULL, 0);
 	FcStrBufString (&sbuf, family);
@@ -76,12 +75,14 @@ FcPatternAddFullname (FcPattern *pat)
 	    FcStrBufChar (&sbuf, ' ');
 	    FcStrBufString (&sbuf, style);
 	}
+	FcPatternObjectDel (pat, FC_FULLNAME_OBJECT);
 	if (!FcPatternObjectAddString (pat, FC_FULLNAME_OBJECT, FcStrBufDoneStatic (&sbuf)))
 	{
 	    FcStrBufDestroy (&sbuf);
 	    return FcFalse;
 	}
 	FcStrBufDestroy (&sbuf);
+	FcPatternObjectDel (pat, FC_FULLNAMELANG_OBJECT);
 	if (!FcPatternObjectAddString (pat, FC_FULLNAMELANG_OBJECT, (const FcChar8 *) "en"))
 	    return FcFalse;
     }

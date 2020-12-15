@@ -233,6 +233,7 @@ void pageant_pubkey_free(struct pageant_pubkey *key);
 typedef void (*pageant_key_enum_fn_t)(void *ctx,
                                       const char *fingerprint,
                                       const char *comment,
+                                      uint32_t ext_flags,
                                       struct pageant_pubkey *key);
 int pageant_enum_keys(pageant_key_enum_fn_t callback, void *callback_ctx,
                       char **retstr);
@@ -242,3 +243,19 @@ int pageant_reencrypt_key(struct pageant_pubkey *key, char **retstr);
 int pageant_reencrypt_all_keys(char **retstr);
 int pageant_sign(struct pageant_pubkey *key, ptrlen message, strbuf *out,
                  uint32_t flags, char **retstr);
+
+/*
+ * Definitions for agent protocol extensions.
+ */
+#define PUTTYEXT(base) base "@putty.projects.tartarus.org"
+
+#define KNOWN_EXTENSIONS(X)                             \
+    X(EXT_QUERY, "query")                               \
+    X(EXT_ADD_PPK, PUTTYEXT("add-ppk"))                 \
+    X(EXT_REENCRYPT, PUTTYEXT("reencrypt"))             \
+    X(EXT_REENCRYPT_ALL, PUTTYEXT("reencrypt-all"))     \
+    X(EXT_LIST_EXTENDED, PUTTYEXT("list-extended"))     \
+    /* end of list */
+
+#define LIST_EXTENDED_FLAG_HAS_ENCRYPTED_KEY_FILE    1
+#define LIST_EXTENDED_FLAG_HAS_NO_CLEARTEXT_KEY      2

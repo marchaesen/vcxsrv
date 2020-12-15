@@ -45,6 +45,13 @@ struct ir3_block;
 
 struct ir3_info {
 	void *data;              /* used internally in ir3 assembler */
+	/* Size in bytes of the shader binary, including NIR constants and
+	 * padding
+	 */
+	uint32_t size;
+	/* byte offset from start of the shader to the NIR constant data. */
+	uint32_t constant_data_offset;
+	/* Size in dwords of the instructions. */
 	uint16_t sizedwords;
 	uint16_t instrs_count;   /* expanded to account for rpt's */
 	uint16_t nops_count;     /* # of nop instructions, including nopN */
@@ -57,6 +64,7 @@ struct ir3_info {
 	int8_t   max_reg;   /* highest GPR # used by shader */
 	int8_t   max_half_reg;
 	int16_t  max_const;
+	bool     multi_dword_ldp_stp;
 
 	/* number of sync bits: */
 	uint16_t ss, sy;
@@ -393,6 +401,8 @@ struct ir3_instruction {
 		IR3_BARRIER_BUFFER_W   = 1 << 6,
 		IR3_BARRIER_ARRAY_R    = 1 << 7,
 		IR3_BARRIER_ARRAY_W    = 1 << 8,
+		IR3_BARRIER_PRIVATE_R  = 1 << 9,
+		IR3_BARRIER_PRIVATE_W  = 1 << 10,
 	} barrier_class, barrier_conflict;
 
 	/* Entry in ir3_block's instruction list: */
@@ -1685,9 +1695,11 @@ INSTR2(LDLV)
 INSTR3(LDG)
 INSTR3(LDL)
 INSTR3(LDLW)
+INSTR3(LDP)
 INSTR3(STG)
 INSTR3(STL)
 INSTR3(STLW)
+INSTR3(STP)
 INSTR1(RESINFO)
 INSTR1(RESFMT)
 INSTR2(ATOMIC_ADD)

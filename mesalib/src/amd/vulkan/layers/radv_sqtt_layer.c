@@ -672,11 +672,11 @@ VkResult sqtt_QueuePresentKHR(
 	return VK_SUCCESS;
 }
 
-#define EVENT_MARKER(cmd_name, args...) \
+#define EVENT_MARKER(cmd_name, ...) \
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer); \
 	radv_write_begin_general_api_marker(cmd_buffer, ApiCmd##cmd_name); \
 	cmd_buffer->state.current_event_type = EventCmd##cmd_name; \
-	radv_Cmd##cmd_name(args); \
+	radv_Cmd##cmd_name(__VA_ARGS__); \
 	cmd_buffer->state.current_event_type = EventInternalUnknown; \
 	radv_write_end_general_api_marker(cmd_buffer, ApiCmd##cmd_name);
 
@@ -964,10 +964,10 @@ void sqtt_CmdCopyQueryPoolResults(
 }
 
 #undef EVENT_MARKER
-#define API_MARKER(cmd_name, args...) \
+#define API_MARKER(cmd_name, ...) \
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer); \
 	radv_write_begin_general_api_marker(cmd_buffer, ApiCmd##cmd_name); \
-	radv_Cmd##cmd_name(args); \
+	radv_Cmd##cmd_name(__VA_ARGS__); \
 	radv_write_end_general_api_marker(cmd_buffer, ApiCmd##cmd_name);
 
 void sqtt_CmdBindPipeline(

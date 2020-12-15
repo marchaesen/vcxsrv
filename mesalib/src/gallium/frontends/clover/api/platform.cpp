@@ -90,6 +90,10 @@ clover::GetPlatformInfo(cl_platform_id d_platform, cl_platform_info param,
       buf.as_vector<cl_name_version>() = platform.supported_extensions();
       break;
 
+   case CL_PLATFORM_HOST_TIMER_RESOLUTION:
+      buf.as_scalar<cl_ulong>() = 0;
+      break;
+
    default:
       throw error(CL_INVALID_VALUE);
    }

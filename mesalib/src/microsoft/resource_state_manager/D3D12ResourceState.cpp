@@ -256,7 +256,7 @@ void ResourceStateManager::ProcessTransitioningResource(ID3D12Resource* pTransit
    bool bAllSubresourcesAtOnce = CurrentState.AreAllSubresourcesSame() && DestinationState.AreAllSubresourcesSame();
 
    D3D12_RESOURCE_BARRIER TransitionDesc;
-   ZeroMemory(&TransitionDesc, sizeof(TransitionDesc));
+   memset(&TransitionDesc, 0, sizeof(TransitionDesc));
    TransitionDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
    TransitionDesc.Transition.pResource = pTransitioningResource;
 

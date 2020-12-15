@@ -162,11 +162,8 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 	case nir_intrinsic_load_num_subgroups:
 		info->cs.uses_local_invocation_idx = true;
 		break;
-	case nir_intrinsic_load_sample_id:
-		info->ps.force_persample = true;
-		break;
-	case nir_intrinsic_load_sample_pos:
-		info->ps.force_persample = true;
+	case nir_intrinsic_load_sample_mask_in:
+		info->ps.reads_sample_mask_in = true;
 		break;
 	case nir_intrinsic_load_view_index:
 		info->needs_multiview_view_index = true;
@@ -337,7 +334,6 @@ gather_info_input_decl_ps(const nir_shader *nir, const nir_variable *var,
 			  struct radv_shader_info *info)
 {
 	unsigned attrib_count = glsl_count_attribute_slots(var->type, false);
-	const struct glsl_type *type = glsl_without_array(var->type);
 	int idx = var->data.location;
 
 	switch (idx) {
@@ -359,11 +355,6 @@ gather_info_input_decl_ps(const nir_shader *nir, const nir_variable *var,
 		break;
 	default:
 		break;
-	}
-
-	if (glsl_get_base_type(type) == GLSL_TYPE_FLOAT) {
-		if (var->data.sample)
-			info->ps.force_persample = true;
 	}
 
 	if (var->data.compact) {
@@ -498,6 +489,9 @@ gather_info_output_decl(const nir_shader *nir, const nir_variable *var,
 			break;
 		case VARYING_SLOT_LAYER:
 			vs_info->writes_layer = true;
+			break;
+		case VARYING_SLOT_PRIMITIVE_SHADING_RATE:
+			vs_info->writes_primitive_shading_rate = true;
 			break;
 		default:
 			break;
@@ -657,6 +651,7 @@ radv_nir_shader_info_pass(const struct nir_shader *nir,
                 info->ps.early_fragment_test = nir->info.fs.early_fragment_tests;
                 info->ps.post_depth_coverage = nir->info.fs.post_depth_coverage;
                 info->ps.depth_layout = nir->info.fs.depth_layout;
+                info->ps.uses_sample_shading = nir->info.fs.uses_sample_shading;
                 break;
         case MESA_SHADER_GEOMETRY:
                 info->gs.vertices_in = nir->info.gs.vertices_in;

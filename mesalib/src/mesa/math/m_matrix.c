@@ -1400,7 +1400,7 @@ _math_matrix_analyse( GLmatrix *mat )
 	 analyse_from_flags( mat );
    }
 
-   if (mat->inv && (mat->flags & MAT_DIRTY_INVERSE)) {
+   if (mat->flags & MAT_DIRTY_INVERSE) {
       matrix_invert( mat );
       mat->flags &= ~MAT_DIRTY_INVERSE;
    }
@@ -1474,6 +1474,26 @@ _math_matrix_copy( GLmatrix *to, const GLmatrix *from )
 }
 
 /**
+ * Copy a matrix as part of glPushMatrix.
+ *
+ * The makes the source matrix canonical (inverse and flags are up-to-date),
+ * so that later glPopMatrix is evaluated as a no-op if there is no state
+ * change.
+ *
+ * It this wasn't done, a draw call would canonicalize the matrix, which
+ * would make it different from the pushed one and so glPopMatrix wouldn't be
+ * recognized as a no-op.
+ */
+void
+_math_matrix_push_copy(GLmatrix *to, GLmatrix *from)
+{
+   if (from->flags & MAT_DIRTY)
+      _math_matrix_analyse(from);
+
+   _math_matrix_copy(to, from);
+}
+
+/**
  * Loads a matrix array into GLmatrix.
  *
  * \param m matrix array.
@@ -1499,31 +1519,11 @@ _math_matrix_loadf( GLmatrix *mat, const GLfloat *m )
 void
 _math_matrix_ctr( GLmatrix *m )
 {
-   m->m = align_malloc( 16 * sizeof(GLfloat), 16 );
-   if (m->m)
-      memcpy( m->m, Identity, sizeof(Identity) );
-   m->inv = align_malloc( 16 * sizeof(GLfloat), 16 );
-   if (m->inv)
-      memcpy( m->inv, Identity, sizeof(Identity) );
+   memset(m, 0, sizeof(*m));
+   memcpy( m->m, Identity, sizeof(Identity) );
+   memcpy( m->inv, Identity, sizeof(Identity) );
    m->type = MATRIX_IDENTITY;
    m->flags = 0;
-}
-
-/**
- * Matrix destructor.
- *
- * \param m matrix.
- *
- * Frees the data in a GLmatrix.
- */
-void
-_math_matrix_dtr( GLmatrix *m )
-{
-   align_free( m->m );
-   m->m = NULL;
-
-   align_free( m->inv );
-   m->inv = NULL;
 }
 
 /*@}*/

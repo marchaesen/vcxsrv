@@ -74,6 +74,7 @@ EXTENSIONS = [
     Extension('VK_EXT_debug_report',                      9, True),
     Extension('VK_EXT_external_memory_dma_buf',           1, True),
     Extension('VK_EXT_image_drm_format_modifier',         1, False),
+    Extension('VK_EXT_private_data',                      1, True),
 ]
 
 # Sort the extension list the way we expect: KHR, then EXT, then vendors

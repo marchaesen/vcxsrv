@@ -165,6 +165,8 @@ parse_overlay_env(struct overlay_params *params,
    /* Visible by default */
    params->enabled[OVERLAY_PARAM_ENABLED_fps] = true;
    params->enabled[OVERLAY_PARAM_ENABLED_frame_timing] = true;
+   params->enabled[OVERLAY_PARAM_ENABLED_device] = true;
+   params->enabled[OVERLAY_PARAM_ENABLED_format] = true;
    params->fps_sampling_period = 500000; /* 500ms */
    params->width = params->height = 300;
    params->control = -1;

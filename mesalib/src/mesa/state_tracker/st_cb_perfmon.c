@@ -331,7 +331,7 @@ st_GetPerfMonitorResult(struct gl_context *ctx,
 bool
 st_have_perfmon(struct st_context *st)
 {
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
 
    if (!screen->get_driver_query_info || !screen->get_driver_query_group_info)
       return false;
@@ -344,7 +344,7 @@ st_InitPerfMonitorGroups(struct gl_context *ctx)
 {
    struct st_context *st = st_context(ctx);
    struct gl_perf_monitor_state *perfmon = &ctx->PerfMonitor;
-   struct pipe_screen *screen = st->pipe->screen;
+   struct pipe_screen *screen = st->screen;
    struct gl_perf_monitor_group *groups = NULL;
    struct st_perf_monitor_group *stgroups = NULL;
    int num_counters, num_groups;

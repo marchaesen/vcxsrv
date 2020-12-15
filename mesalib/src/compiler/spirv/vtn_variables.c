@@ -660,7 +660,7 @@ _vtn_variable_load_store(struct vtn_builder *b, bool load,
          }
          return;
       }
-      /* Fall through */
+      FALLTHROUGH;
 
    case GLSL_TYPE_INTERFACE:
    case GLSL_TYPE_ARRAY:
@@ -915,6 +915,7 @@ vtn_get_builtin_location(struct vtn_builder *b,
       set_mode_system_value(b, mode);
       break;
    case SpvBuiltInWorkgroupSize:
+   case SpvBuiltInEnqueuedWorkgroupSize:
       *location = SYSTEM_VALUE_LOCAL_GROUP_SIZE;
       set_mode_system_value(b, mode);
       break;
@@ -1106,6 +1107,19 @@ vtn_get_builtin_location(struct vtn_builder *b,
       *location = SYSTEM_VALUE_RAY_GEOMETRY_INDEX;
       set_mode_system_value(b, mode);
       break;
+   case SpvBuiltInShadingRateKHR:
+      *location = SYSTEM_VALUE_FRAG_SHADING_RATE;
+      set_mode_system_value(b, mode);
+      break;
+   case SpvBuiltInPrimitiveShadingRateKHR:
+      if (b->shader->info.stage == MESA_SHADER_VERTEX ||
+          b->shader->info.stage == MESA_SHADER_GEOMETRY) {
+         *location = VARYING_SLOT_PRIMITIVE_SHADING_RATE;
+         *mode = nir_var_shader_out;
+      } else {
+         vtn_fail("invalid stage for SpvBuiltInPrimitiveShadingRateKHR");
+      }
+      break;
    default:
       vtn_fail("Unsupported builtin: %s (%u)",
                spirv_builtin_to_string(builtin), builtin);
@@ -1183,6 +1197,7 @@ apply_var_decoration(struct vtn_builder *b,
       default:
          break;
       }
+      FALLTHROUGH;
    }
 
    case SpvDecorationSpecId:
@@ -1549,7 +1564,7 @@ vtn_mode_to_address_format(struct vtn_builder *b, enum vtn_variable_mode mode)
    case vtn_variable_mode_function:
       if (b->physical_ptrs)
          return b->options->temp_addr_format;
-      /* Fall through. */
+      FALLTHROUGH;
 
    case vtn_variable_mode_private:
    case vtn_variable_mode_uniform:
@@ -2445,13 +2460,7 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
          vtn_assert(ptr->block_index);
       }
 
-      nir_intrinsic_instr *instr =
-         nir_intrinsic_instr_create(b->nb.shader,
-                                    nir_intrinsic_get_ssbo_size);
-      instr->src[0] = nir_src_for_ssa(ptr->block_index);
-      nir_ssa_dest_init(&instr->instr, &instr->dest, 1, 32, NULL);
-      nir_builder_instr_insert(&b->nb, &instr->instr);
-      nir_ssa_def *buf_size = &instr->dest.ssa;
+      nir_ssa_def *buf_size = nir_get_ssbo_size(&b->nb, ptr->block_index);
 
       /* array_length = max(buffer_size - offset, 0) / stride */
       nir_ssa_def *array_length =
@@ -2545,7 +2554,7 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
                                nir_address_format_bit_size(addr_format),
                                nir_address_format_null_value(addr_format));
 
-      nir_ssa_def *valid = nir_build_deref_mode_is(&b->nb, src_deref, nir_mode);
+      nir_ssa_def *valid = nir_build_deref_mode_is(&b->nb, 1, &src_deref->dest.ssa, nir_mode);
       vtn_push_nir_ssa(b, w[2], nir_bcsel(&b->nb, valid,
                                                   &src_deref->dest.ssa,
                                                   null_value));
@@ -2569,13 +2578,13 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
       nir_deref_instr *src_deref = vtn_nir_deref(b, w[3]);
 
       nir_ssa_def *global_bit =
-         nir_bcsel(&b->nb, nir_build_deref_mode_is(&b->nb, src_deref,
+         nir_bcsel(&b->nb, nir_build_deref_mode_is(&b->nb, 1, &src_deref->dest.ssa,
                                                    nir_var_mem_global),
                    nir_imm_int(&b->nb, SpvMemorySemanticsCrossWorkgroupMemoryMask),
                    nir_imm_int(&b->nb, 0));
 
       nir_ssa_def *shared_bit =
-         nir_bcsel(&b->nb, nir_build_deref_mode_is(&b->nb, src_deref,
+         nir_bcsel(&b->nb, nir_build_deref_mode_is(&b->nb, 1, &src_deref->dest.ssa,
                                                    nir_var_mem_shared),
                    nir_imm_int(&b->nb, SpvMemorySemanticsWorkgroupMemoryMask),
                    nir_imm_int(&b->nb, 0));
@@ -2612,6 +2621,25 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
       store->src[1] = nir_src_for_ssa(data);
       store->num_components = data->num_components;
       nir_builder_instr_insert(&b->nb, &store->instr);
+      break;
+   }
+
+   case SpvOpConvertUToAccelerationStructureKHR: {
+      struct vtn_type *as_type = vtn_get_type(b, w[1]);
+      struct vtn_type *u_type = vtn_get_value_type(b, w[3]);
+      vtn_fail_if(!((u_type->base_type == vtn_base_type_vector &&
+                     u_type->type == glsl_vector_type(GLSL_TYPE_UINT, 2)) ||
+                    (u_type->base_type == vtn_base_type_scalar &&
+                     u_type->type == glsl_uint64_t_type())),
+                  "OpConvertUToAccelerationStructure may only be used to "
+                  "cast from a 64-bit scalar integer or a 2-component vector "
+                  "of 32-bit integers");
+      vtn_fail_if(as_type->base_type != vtn_base_type_accel_struct,
+                  "The result type of an OpConvertUToAccelerationStructure "
+                  "must be OpTypeAccelerationStructure");
+
+      nir_ssa_def *u = vtn_get_nir_ssa(b, w[3]);
+      vtn_push_nir_ssa(b, w[2], nir_sloppy_bitcast(&b->nb, u, as_type->type));
       break;
    }
 

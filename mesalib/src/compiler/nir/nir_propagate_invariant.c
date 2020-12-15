@@ -127,6 +127,7 @@ propagate_invariant_instr(nir_instr *instr, struct set *invariants)
          /* Nothing to do */
          break;
       }
+      FALLTHROUGH;
    }
 
    case nir_instr_type_deref:

@@ -100,6 +100,7 @@ EXTENSIONS = [
     Extension('VK_KHR_push_descriptor',                   1, True),
     Extension('VK_KHR_incremental_present',               1, 'TU_HAS_SURFACE'),
     Extension('VK_KHR_image_format_list',                 1, True),
+    Extension('VK_KHR_depth_stencil_resolve',             1, True),
 ]
 
 MAX_API_VERSION = VkVersion(MAX_API_VERSION)

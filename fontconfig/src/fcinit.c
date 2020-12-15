@@ -41,7 +41,7 @@ FcInitFallbackConfig (const FcChar8 *sysroot)
     FcConfig	*config;
     const FcChar8 *fallback = (const FcChar8 *) ""	\
 	"<fontconfig>" \
-	"  <dir>" FC_DEFAULT_FONTS "</dir>" \
+	FC_DEFAULT_FONTS \
 	"  <dir prefix=\"xdg\">fonts</dir>" \
 	"  <cachedir>" FC_CACHEDIR "</cachedir>" \
 	"  <cachedir prefix=\"xdg\">fontconfig</cachedir>" \

@@ -736,6 +736,7 @@ write_buffer_descriptor(uint32_t *dst, const VkDescriptorBufferInfo *buffer_info
 {
    TU_FROM_HANDLE(tu_buffer, buffer, buffer_info->buffer);
 
+   assert((buffer_info->offset & 63) == 0); /* minStorageBufferOffsetAlignment */
    uint64_t va = tu_buffer_iova(buffer) + buffer_info->offset;
    uint32_t range = get_range(buffer, buffer_info->offset, buffer_info->range);
    range = ALIGN_POT(range, 4) / 4;

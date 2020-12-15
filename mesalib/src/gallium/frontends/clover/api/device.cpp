@@ -425,6 +425,72 @@ clGetDeviceInfo(cl_device_id d_dev, cl_device_info param,
       buf.as_vector<cl_name_version>() = dev.opencl_c_features();
       break;
 
+   case CL_DEVICE_IL_VERSION:
+      buf.as_string() = "";
+      break;
+
+   case CL_DEVICE_ILS_WITH_VERSION:
+   case CL_DEVICE_BUILT_IN_KERNELS_WITH_VERSION:
+      if (r_size)
+         *r_size = 0;
+      break;
+
+   case CL_DEVICE_MAX_READ_WRITE_IMAGE_ARGS:
+   case CL_DEVICE_IMAGE_PITCH_ALIGNMENT:
+   case CL_DEVICE_IMAGE_BASE_ADDRESS_ALIGNMENT:
+   case CL_DEVICE_PREFERRED_PLATFORM_ATOMIC_ALIGNMENT:
+   case CL_DEVICE_PREFERRED_GLOBAL_ATOMIC_ALIGNMENT:
+   case CL_DEVICE_PREFERRED_LOCAL_ATOMIC_ALIGNMENT:
+   case CL_DEVICE_MAX_NUM_SUB_GROUPS:
+   case CL_DEVICE_QUEUE_ON_DEVICE_PREFERRED_SIZE:
+   case CL_DEVICE_QUEUE_ON_DEVICE_MAX_SIZE:
+   case CL_DEVICE_MAX_ON_DEVICE_QUEUES:
+   case CL_DEVICE_MAX_ON_DEVICE_EVENTS:
+   case CL_DEVICE_MAX_PIPE_ARGS:
+   case CL_DEVICE_PIPE_MAX_ACTIVE_RESERVATIONS:
+   case CL_DEVICE_PIPE_MAX_PACKET_SIZE:
+      buf.as_scalar<cl_uint>() = 0;
+      break;
+
+   case CL_DEVICE_MAX_GLOBAL_VARIABLE_SIZE:
+   case CL_DEVICE_GLOBAL_VARIABLE_PREFERRED_TOTAL_SIZE:
+      buf.as_scalar<size_t>() = 0;
+      break;
+
+   case CL_DEVICE_SUB_GROUP_INDEPENDENT_FORWARD_PROGRESS:
+   case CL_DEVICE_NON_UNIFORM_WORK_GROUP_SUPPORT:
+   case CL_DEVICE_WORK_GROUP_COLLECTIVE_FUNCTIONS_SUPPORT:
+   case CL_DEVICE_GENERIC_ADDRESS_SPACE_SUPPORT:
+   case CL_DEVICE_PIPE_SUPPORT:
+      buf.as_scalar<cl_bool>() = CL_FALSE;
+      break;
+
+   case CL_DEVICE_QUEUE_ON_DEVICE_PROPERTIES:
+      buf.as_scalar<cl_command_queue_properties>() = 0;
+      break;
+
+   case CL_DEVICE_ATOMIC_MEMORY_CAPABILITIES:
+      buf.as_scalar<cl_device_atomic_capabilities>() = (CL_DEVICE_ATOMIC_ORDER_RELAXED |
+                                                        CL_DEVICE_ATOMIC_SCOPE_WORK_GROUP);
+      break;
+   case CL_DEVICE_ATOMIC_FENCE_CAPABILITIES:
+      buf.as_scalar<cl_device_atomic_capabilities>() = (CL_DEVICE_ATOMIC_ORDER_RELAXED |
+                                                        CL_DEVICE_ATOMIC_ORDER_ACQ_REL |
+                                                        CL_DEVICE_ATOMIC_SCOPE_WORK_GROUP);
+      break;
+
+   case CL_DEVICE_DEVICE_ENQUEUE_CAPABILITIES:
+      buf.as_scalar<cl_device_device_enqueue_capabilities>() = 0;
+      break;
+
+   case CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE:
+      buf.as_scalar<size_t>() = 1;
+      break;
+
+   case CL_DEVICE_LATEST_CONFORMANCE_VERSION_PASSED:
+      buf.as_string() = "";
+      break;
+
    default:
       throw error(CL_INVALID_VALUE);
    }

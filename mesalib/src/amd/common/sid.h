@@ -81,6 +81,7 @@
 #define PREDICATION_OP_ZPASS     0x1
 #define PREDICATION_OP_PRIMCOUNT 0x2
 #define PREDICATION_OP_BOOL64    0x3
+#define PREDICATION_OP_BOOL32    0x4
 
 #define PRED_OP(x) ((x) << 16)
 

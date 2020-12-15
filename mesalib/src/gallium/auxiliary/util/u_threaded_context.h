@@ -145,7 +145,7 @@
  *    another resource's backing storage. The threaded context uses it to
  *    implement buffer invalidation. This call is always queued.
  *
- * pipe_context::multi_draw() must be implemented.
+ * PIPE_CAP_MULTI_DRAW must be supported.
  *
  *
  * Performance gotchas
@@ -282,6 +282,14 @@ struct threaded_resource {
     * are too large for the visible VRAM window.
     */
    int max_forced_staging_uploads;
+
+   /* If positive, then a staging transfer is in progress.
+    */
+   int pending_staging_uploads;
+   /* If staging uploads are pending, this will hold the union of the mapped
+    * ranges.
+    */
+   struct util_range pending_staging_uploads_range;
 };
 
 struct threaded_transfer {
@@ -315,12 +323,6 @@ union tc_payload {
    uint64_t handle;
    bool boolean;
 };
-
-#ifdef _MSC_VER
-#define ALIGN16 __declspec(align(16))
-#else
-#define ALIGN16 __attribute__((aligned(16)))
-#endif
 
 /* Each call slot should be aligned to its own size for optimal cache usage. */
 struct ALIGN16 tc_call {
@@ -364,6 +366,8 @@ struct threaded_context {
    unsigned num_offloaded_slots;
    unsigned num_direct_slots;
    unsigned num_syncs;
+
+   bool use_forced_staging_uploads;
 
    /* Estimation of how much vram/gtt bytes are mmap'd in
     * the current tc_batch.

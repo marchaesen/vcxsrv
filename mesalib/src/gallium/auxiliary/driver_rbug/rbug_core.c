@@ -47,9 +47,6 @@
 #define U642VOID(x) ((void *)(uintptr_t)(x))
 #define VOID2U64(x) ((uint64_t)(uintptr_t)(x))
 
-#define container_of(ptr, type, field) \
-   (type*)((char*)ptr - offsetof(type, field))
-
 struct rbug_rbug
 {
    struct rbug_screen *rb_screen;

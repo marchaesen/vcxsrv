@@ -50,7 +50,7 @@ build_program_resource_list(struct gl_context *ctx,
                             bool add_packed_varyings_only);
 
 extern long
-parse_program_resource_name(const GLchar *name,
+parse_program_resource_name(const GLchar *name, const size_t len,
                             const GLchar **out_base_name_end);
 
 #endif /* GLSL_PROGRAM_H */

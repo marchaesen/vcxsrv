@@ -107,7 +107,7 @@ allocate_function_from_predefined(struct dxil_module *mod,
                                        const char *name,
                                        enum overload_type overload)
 {
-   for (unsigned i = 0; i < ARRAYSIZE(predefined_funcs); ++i) {
+   for (unsigned i = 0; i < ARRAY_SIZE(predefined_funcs); ++i) {
       if (!strcmp(predefined_funcs[i].base_name, name)) {
          return dxil_alloc_func(mod, name, overload,
                                 predefined_funcs[i].retval_descr,

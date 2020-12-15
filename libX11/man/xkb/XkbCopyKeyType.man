@@ -78,14 +78,14 @@ and whose total number of valid entries is stored in
 Key types are defined using the following structure:
 .nf
 
-typedef struct {                   /\(** Key Type */
-    XkbModsRec        mods;        /\(** modifiers used to compute shift level */
-    unsigned char     num_levels;  /\(** total # shift levels, do not modify directly */
-    unsigned char     map_count;   /\(** # entries in map, preserve (if non-NULL) */
-    XkbKTMapEntryPtr  map;         /\(** vector of modifiers for each shift level */
-    XkbModsPtr        preserve;    /\(** mods to preserve for corresponding map entry */
-    Atom              name;        /\(** name of key type */
-    Atom *            level_names; /\(** array of names of each shift level */
+typedef struct {                   /\&* Key Type */
+    XkbModsRec        mods;        /\&* modifiers used to compute shift level */
+    unsigned char     num_levels;  /\&* total # shift levels, do not modify directly */
+    unsigned char     map_count;   /\&* # entries in map, preserve (if non-NULL) */
+    XkbKTMapEntryPtr  map;         /\&* vector of modifiers for each shift level */
+    XkbModsPtr        preserve;    /\&* mods to preserve for corresponding map entry */
+    Atom              name;        /\&* name of key type */
+    Atom *            level_names; /\&* array of names of each shift level */
 } XkbKeyTypeRec, *XkbKeyTypePtr;
 .fi
 .SH DIAGNOSTICS

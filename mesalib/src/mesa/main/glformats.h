@@ -29,6 +29,7 @@
 
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <GL/gl.h>
 
 

@@ -32,7 +32,7 @@ st_nir_finish_builtin_shader(struct st_context *st,
                              nir_shader *nir)
 {
    struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
    gl_shader_stage stage = nir->info.stage;
    enum pipe_shader_type sh = pipe_shader_type_from_mesa(stage);
 

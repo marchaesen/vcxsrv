@@ -55,6 +55,27 @@ vbo_context_const(const struct gl_context *ctx)
 }
 
 
+static inline struct gl_context *
+gl_context_from_vbo_exec(struct vbo_exec_context *exec)
+{
+   return container_of(exec, struct gl_context, vbo_context.exec);
+}
+
+
+static inline const struct gl_context *
+gl_context_from_vbo_exec_const(const struct vbo_exec_context *exec)
+{
+   return container_of(exec, struct gl_context, vbo_context.exec);
+}
+
+
+static inline struct gl_context *
+gl_context_from_vbo_save(struct vbo_save_context *save)
+{
+   return container_of(save, struct gl_context, vbo_context.save);
+}
+
+
 /**
  * Array to apply the fixed function material aliasing map to
  * an attribute value used in vbo processing inputs to an attribute
@@ -151,7 +172,7 @@ vbo_get_default_vals_as_union(GLenum format)
 static inline unsigned
 vbo_compute_max_verts(const struct vbo_exec_context *exec)
 {
-   unsigned n = (exec->ctx->Const.glBeginEndBufferSize -
+   unsigned n = (gl_context_from_vbo_exec_const(exec)->Const.glBeginEndBufferSize -
                  exec->vtx.buffer_used) /
                 (exec->vtx.vertex_size * sizeof(GLfloat));
    if (n == 0)

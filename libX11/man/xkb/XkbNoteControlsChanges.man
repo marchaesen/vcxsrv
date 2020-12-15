@@ -178,21 +178,21 @@ into the changes record specified by
 The structure for the XkbControlsNotify event is defined as follows:
 
 typedef struct {
-    int           type;          /\(** Xkb extension base event code */
-    unsigned long serial;        /\(** X server serial number for event */
-    Bool          send_event;    /\(** True => synthetically generated */
-    Display *     display;       /\(** server connection where event generated */
-    Time          time;          /\(** server time when event generated */
-    int           xkb_type;      /\(** XkbCompatMapNotify */
-    int           device;        /\(** Xkb device ID, will not be XkbUseCoreKbd */
-    unsigned int  changed_ctrls; /\(** bits indicating which controls data have changed*/
-    unsigned int  enabled_ctrls; /\(** controls currently enabled in server */
-    unsigned int  enabled_ctrl_changes; /\(** bits indicating enabled/disabled controls */
-    int           num_groups;    /\(** current number of keyboard groups */
-    KeyCode       keycode;       /\(** != 0 => keycode of key causing change */
-    char          event_type;    /\(** Type of event causing change */
-    char          req_major;     /\(** major event code of event causing change */
-    char          req_minor;     /\(** minor event code of event causing change */
+    int           type;          /\&* Xkb extension base event code */
+    unsigned long serial;        /\&* X server serial number for event */
+    Bool          send_event;    /\&* True => synthetically generated */
+    Display *     display;       /\&* server connection where event generated */
+    Time          time;          /\&* server time when event generated */
+    int           xkb_type;      /\&* XkbCompatMapNotify */
+    int           device;        /\&* Xkb device ID, will not be XkbUseCoreKbd */
+    unsigned int  changed_ctrls; /\&* bits indicating which controls data have changed*/
+    unsigned int  enabled_ctrls; /\&* controls currently enabled in server */
+    unsigned int  enabled_ctrl_changes; /\&* bits indicating enabled/disabled controls */
+    int           num_groups;    /\&* current number of keyboard groups */
+    KeyCode       keycode;       /\&* != 0 => keycode of key causing change */
+    char          event_type;    /\&* Type of event causing change */
+    char          req_major;     /\&* major event code of event causing change */
+    char          req_minor;     /\&* minor event code of event causing change */
 } XkbControlsNotifyEvent;
 .fi
 .SH "SEE ALSO"

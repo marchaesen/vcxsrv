@@ -495,7 +495,7 @@ mark_array_usage_impl(nir_function_impl *impl,
          case nir_intrinsic_copy_deref:
             mark_array_deref_used(nir_src_as_deref(intrin->src[1]),
                                   var_info_map, modes, mem_ctx);
-            /* Fall Through */
+            FALLTHROUGH;
 
          case nir_intrinsic_load_deref:
          case nir_intrinsic_store_deref:

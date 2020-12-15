@@ -553,7 +553,7 @@ affine_span(struct gl_context *ctx, SWspan *span,
    info.smask = texImg->Width - 1;					\
    info.tmask = texImg->Height - 1;					\
    info.format = texImg->TexFormat;					\
-   info.filter = obj->Sampler.MinFilter;				\
+   info.filter = obj->Sampler.Attrib.MinFilter;				\
    info.envmode = unit->EnvMode;					\
    info.er = 0;					\
    info.eg = 0;					\
@@ -820,7 +820,7 @@ fast_persp_span(struct gl_context *ctx, SWspan *span,
    info.smask = texImg->Width - 1;					\
    info.tmask = texImg->Height - 1;					\
    info.format = texImg->TexFormat;					\
-   info.filter = obj->Sampler.MinFilter;				\
+   info.filter = obj->Sampler.Attrib.MinFilter;				\
    info.envmode = unit->EnvMode;					\
    info.er = 0;					\
    info.eg = 0;					\
@@ -1064,8 +1064,8 @@ _swrast_choose_triangle( struct gl_context *ctx )
          swImg = swrast_texture_image_const(texImg);
 
          format = texImg ? texImg->TexFormat : MESA_FORMAT_NONE;
-         minFilter = texObj2D ? samp->MinFilter : GL_NONE;
-         magFilter = texObj2D ? samp->MagFilter : GL_NONE;
+         minFilter = texObj2D ? samp->Attrib.MinFilter : GL_NONE;
+         magFilter = texObj2D ? samp->Attrib.MagFilter : GL_NONE;
          envMode = ctx->Texture.FixedFuncUnit[0].EnvMode;
 
          /* First see if we can use an optimized 2-D texture function */
@@ -1074,9 +1074,9 @@ _swrast_choose_triangle( struct gl_context *ctx )
              && !_mesa_ati_fragment_shader_enabled(ctx)
              && ctx->Texture._MaxEnabledTexImageUnit == 0
              && ctx->Texture.Unit[0]._Current->Target == GL_TEXTURE_2D
-             && samp->WrapS == GL_REPEAT
-             && samp->WrapT == GL_REPEAT
-             && texObj2D->_Swizzle == SWIZZLE_NOOP
+             && samp->Attrib.WrapS == GL_REPEAT
+             && samp->Attrib.WrapT == GL_REPEAT
+             && texObj2D->Attrib._Swizzle == SWIZZLE_NOOP
              && swImg->_IsPowerOfTwo
              && texImg->Border == 0
              && (_mesa_format_row_stride(format, texImg->Width) ==

@@ -202,7 +202,7 @@ XOpenDisplay (
 	X_DPY_SET_LAST_REQUEST_READ(dpy, 0);
 	dpy->default_screen = iscreen;  /* Value returned by ConnectDisplay */
 	dpy->last_req = (char *)&_dummy_request;
-	dpy->req_seq_syncing = False;
+	dpy->error_threads = NULL;
 	dpy->exit_handler = _XDefaultIOErrorExit;
 
 	/* Initialize the display lock */

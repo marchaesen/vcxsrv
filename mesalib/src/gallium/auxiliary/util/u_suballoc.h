@@ -31,16 +31,31 @@
 #ifndef U_SUBALLOC
 #define U_SUBALLOC
 
-struct u_suballocator;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct u_suballocator *
-u_suballocator_create(struct pipe_context *pipe, unsigned size, unsigned bind,
-                      enum pipe_resource_usage usage, unsigned flags,
-		      boolean zero_buffer_memory);
+struct pipe_context;
+
+struct u_suballocator {
+   struct pipe_context *pipe;
+
+   unsigned size;          /* Size of the whole buffer, in bytes. */
+   unsigned bind;          /* Bitmask of PIPE_BIND_* flags. */
+   enum pipe_resource_usage usage;
+   unsigned flags;         /* bitmask of PIPE_RESOURCE_FLAG_x */
+   boolean zero_buffer_memory; /* If the buffer contents should be zeroed. */
+
+   struct pipe_resource *buffer;   /* The buffer we suballocate from. */
+   unsigned offset; /* Aligned offset pointing at the first unused byte. */
+};
+
+void
+u_suballocator_init(struct u_suballocator *allocator,
+                    struct pipe_context *pipe,
+                    unsigned size, unsigned bind,
+                    enum pipe_resource_usage usage, unsigned flags,
+                    boolean zero_buffer_memory);
 
 void
 u_suballocator_destroy(struct u_suballocator *allocator);

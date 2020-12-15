@@ -75,7 +75,7 @@ It is the number that was the value of
 immediately before the failing call was made.
 The request_code member is a protocol request
 of the procedure that failed, as defined in
-.hN X11/Xproto.h .
+.BR X11/Xproto.h .
 .SH "SEE ALSO"
 AllPlanes(__libmansuffix__),
 XAnyEvent(__libmansuffix__),

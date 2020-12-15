@@ -501,7 +501,7 @@ typedef struct _GrabInfoRec {
         Bool frozen;
         int state;
         GrabPtr other;          /* if other grab has this frozen */
-        DeviceEvent *event;     /* saved to be replayed */
+        InternalEvent *event;   /* saved to be replayed */
     } sync;
 } GrabInfoRec, *GrabInfoPtr;
 

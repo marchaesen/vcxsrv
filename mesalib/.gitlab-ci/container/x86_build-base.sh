@@ -50,7 +50,6 @@ apt-get install -y --no-remove \
         libvulkan-dev \
         libx11-dev \
         libx11-xcb-dev \
-        libxdamage-dev \
         libxext-dev \
         libxml2-utils \
         libxrandr-dev \

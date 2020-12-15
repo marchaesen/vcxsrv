@@ -109,6 +109,8 @@ _mesa_gl_debug(struct gl_context *ctx,
    }                                                                      \
 } while (0)
 
+void GLAPIENTRY
+_mesa_InternalSetError(GLenum error);
 
 #ifdef __cplusplus
 }

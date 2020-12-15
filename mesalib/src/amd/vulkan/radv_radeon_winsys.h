@@ -299,6 +299,8 @@ struct radeon_winsys {
 
 	void (*cs_dump)(struct radeon_cmdbuf *cs, FILE* file, const int *trace_ids, int trace_id_count);
 
+	void (*dump_bo_ranges)(struct radeon_winsys *ws, FILE *file);
+
 	int (*surface_init)(struct radeon_winsys *ws,
 			    const struct ac_surf_info *surf_info,
 			    struct radeon_surf *surf);

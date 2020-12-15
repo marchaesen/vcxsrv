@@ -73,7 +73,7 @@ or
 .BR DefaultExposures .
 .IP \fIallow_exposures_return\fP 1i
 Returns the current screen save control value
-.Pn ( DontAllowExposures ,
+.RB ( DontAllowExposures ,
 .BR AllowExposures ,
 or
 .BR DefaultExposures ).
@@ -98,7 +98,7 @@ or
 .BR DefaultBlanking .
 .IP \fIprefer_blanking_return\fP 1i
 Returns the current screen blanking preference
-.Pn ( DontPreferBlanking ,
+.RB ( DontPreferBlanking ,
 .BR PreferBlanking ,
 or
 .BR DefaultBlanking ).

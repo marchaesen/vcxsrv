@@ -95,10 +95,10 @@ structures.
 .nf
 
     typedef struct _XkbPtrDfltAction {
-        unsigned char    type;      /\(** XkbSA_SetPtrDflt */
-        unsigned char    flags;     /\(** controls the pointer button number */
-        unsigned char    affect;    /\(** XkbSA_AffectDfltBtn */
-        char             valueXXX;  /\(** new default button member */
+        unsigned char    type;      /\&* XkbSA_SetPtrDflt */
+        unsigned char    flags;     /\&* controls the pointer button number */
+        unsigned char    affect;    /\&* XkbSA_AffectDfltBtn */
+        char             valueXXX;  /\&* new default button member */
     } XkbPtrDfltAction;
 
 .fi

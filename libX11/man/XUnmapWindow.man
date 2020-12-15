@@ -63,8 +63,6 @@ The
 .B XUnmapWindow
 function unmaps the specified window and causes the X server to generate an
 .B UnmapNotify
-.IN "UnmapNotify Event"
-.IN "XUnmapWindow"
 event.
 If the specified window is already unmapped,
 .B XUnmapWindow
@@ -92,7 +90,6 @@ It causes the X server to generate an
 event on each subwindow and
 .B Expose
 events on formerly obscured windows.
-.IN "UnmapNotify Event"
 Using this function is much more efficient than unmapping multiple windows
 one at a time because the server needs to perform much of the work
 only once, for all of the windows, rather than for each window.

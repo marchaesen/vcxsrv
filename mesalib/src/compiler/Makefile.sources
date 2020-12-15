@@ -199,6 +199,7 @@ NIR_GENERATED_FILES = \
 	nir/nir_constant_expressions.c \
 	nir/nir_intrinsics.c \
 	nir/nir_intrinsics.h \
+	nir/nir_intrinsics_indices.h \
 	nir/nir_opcodes.c \
 	nir/nir_opcodes.h \
 	nir/nir_opt_algebraic.c
@@ -300,6 +301,7 @@ NIR_FILES = \
 	nir/nir_lower_two_sided_color.c \
 	nir/nir_lower_ubo_vec4.c \
 	nir/nir_lower_uniforms_to_ubo.c \
+	nir/nir_lower_undef_to_zero.c \
 	nir/nir_lower_vars_to_ssa.c \
 	nir/nir_lower_var_copies.c \
 	nir/nir_lower_vec_to_movs.c \

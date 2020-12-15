@@ -40,6 +40,7 @@ struct xwl_window_buffer {
     PixmapPtr pixmap;
     RegionPtr damage_region;
     Bool recycle_on_release;
+    int refcnt;
     uint32_t time;
     struct xorg_list link_buffer;
 };
@@ -79,6 +80,7 @@ xwl_window_buffer_new(struct xwl_window *xwl_window)
     xwl_window_buffer->xwl_window = xwl_window;
     xwl_window_buffer->damage_region = RegionCreate(NullBox, 1);
     xwl_window_buffer->pixmap = NullPixmap;
+    xwl_window_buffer->refcnt = 1;
 
     xorg_list_append(&xwl_window_buffer->link_buffer,
                      &xwl_window->window_buffers_available);
@@ -96,9 +98,14 @@ xwl_window_buffer_destroy_pixmap(struct xwl_window_buffer *xwl_window_buffer)
     xwl_window_buffer->pixmap = NullPixmap;
 }
 
-static void
+static Bool
 xwl_window_buffer_dispose(struct xwl_window_buffer *xwl_window_buffer)
 {
+    assert(xwl_window_buffer->refcnt > 0);
+
+    if (--xwl_window_buffer->refcnt)
+        return FALSE;
+
     RegionDestroy(xwl_window_buffer->damage_region);
 
     if (xwl_window_buffer->pixmap)
@@ -106,6 +113,8 @@ xwl_window_buffer_dispose(struct xwl_window_buffer *xwl_window_buffer)
 
     xorg_list_del(&xwl_window_buffer->link_buffer);
     free(xwl_window_buffer);
+
+    return TRUE;
 }
 
 static void
@@ -187,6 +196,12 @@ xwl_window_buffer_release_callback(void *data)
     struct xwl_window *xwl_window = xwl_window_buffer->xwl_window;
     struct xwl_window_buffer *oldest_available_buffer;
 
+    /* Drop the reference on the buffer we took in get_pixmap. If that
+     * frees the window buffer, we're done.
+     */
+    if (xwl_window_buffer_dispose(xwl_window_buffer))
+        return;
+
     if (xwl_window_buffer->recycle_on_release)
         xwl_window_buffer_recycle(xwl_window_buffer);
 
@@ -250,15 +265,21 @@ xwl_window_buffers_dispose(struct xwl_window *xwl_window)
 {
     struct xwl_window_buffer *xwl_window_buffer, *tmp;
 
+    /* This is called prior to free the xwl_window, make sure to untie
+     * the buffers from the xwl_window so that we don't point at freed
+     * memory if we get a release buffer later.
+     */
     xorg_list_for_each_entry_safe(xwl_window_buffer, tmp,
                                   &xwl_window->window_buffers_available,
                                   link_buffer) {
+        xorg_list_del(&xwl_window_buffer->link_buffer);
         xwl_window_buffer_dispose(xwl_window_buffer);
     }
 
     xorg_list_for_each_entry_safe(xwl_window_buffer, tmp,
                                   &xwl_window->window_buffers_unavailable,
                                   link_buffer) {
+        xorg_list_del(&xwl_window_buffer->link_buffer);
         xwl_window_buffer_dispose(xwl_window_buffer);
     }
 
@@ -329,6 +350,8 @@ xwl_window_buffers_get_pixmap(struct xwl_window *xwl_window,
 
     RegionEmpty(xwl_window_buffer->damage_region);
 
+    /* Hold a reference on the buffer until it's released by the compositor */
+    xwl_window_buffer->refcnt++;
     xwl_pixmap_set_buffer_release_cb(xwl_window_buffer->pixmap,
                                      xwl_window_buffer_release_callback,
                                      xwl_window_buffer);

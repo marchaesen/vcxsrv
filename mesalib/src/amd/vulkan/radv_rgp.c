@@ -132,7 +132,7 @@ radv_sqtt_fill_header(struct sqtt_file_header *header)
 	header->chunk_offset = sizeof(*header);
 
 	time(&raw_time);
-	timep = localtime_r(&raw_time, &result);
+	timep = os_localtime(&raw_time, &result);
 
 	header->second = timep->tm_sec;
 	header->minute = timep->tm_min;
@@ -361,7 +361,7 @@ radv_fill_sqtt_asic_info(struct radv_device *device,
 	chunk->sgprs_per_simd = rad_info->num_physical_sgprs_per_simd;
 	chunk->shader_engines = rad_info->max_se;
 	chunk->compute_unit_per_shader_engine = rad_info->min_good_cu_per_sa *
-	                                        rad_info->max_sh_per_se;
+	                                        rad_info->max_sa_per_se;
 	chunk->simd_per_compute_unit = rad_info->num_simd_per_compute_unit;
 	chunk->wavefronts_per_simd = rad_info->max_wave64_per_simd;
 

@@ -379,6 +379,8 @@ CLOVER_API cl_int
 clSetKernelArgSVMPointer(cl_kernel d_kern,
                          cl_uint arg_index,
                          const void *arg_value) try {
+  if (!any_of(std::mem_fn(&device::svm_support), obj(d_kern).program().devices()))
+      return CL_INVALID_OPERATION;
    obj(d_kern).args().at(arg_index).set_svm(arg_value);
    return CL_SUCCESS;
 
@@ -394,7 +396,12 @@ clSetKernelExecInfo(cl_kernel d_kern,
                     cl_kernel_exec_info param_name,
                     size_t param_value_size,
                     const void *param_value) try {
+
+   if (!any_of(std::mem_fn(&device::svm_support), obj(d_kern).program().devices()))
+      return CL_INVALID_OPERATION;
+
    auto &kern = obj(d_kern);
+
    const bool has_system_svm = all_of(std::mem_fn(&device::has_system_svm),
                                       kern.program().context().devices());
 

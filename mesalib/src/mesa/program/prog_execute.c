@@ -123,7 +123,7 @@ get_src_register_pointer(const struct prog_src_register *source,
       if (reg >= (GLint) prog->Parameters->NumParameters)
          return ZeroVec;
 
-      unsigned pvo = prog->Parameters->ParameterValueOffset[reg];
+      unsigned pvo = prog->Parameters->Parameters[reg].ValueOffset;
       return (GLfloat *) prog->Parameters->ParameterValues + pvo;
    }
    case PROGRAM_SYSTEM_VALUE:

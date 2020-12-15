@@ -136,10 +136,6 @@ The corresponding colormap cell is read-only.
 In addition,
 .B XAllocColor
 returns nonzero if it succeeded or zero if it failed.
-.IN "Color map"
-.IN "Color" "allocation"
-.IN "Allocation" "colormap"
-.IN "read-only colormap cells"
 Multiple clients that request the same effective RGB value can be assigned
 the same read-only entry, thus allowing entries to be shared.
 When the last client deallocates a shared cell, it is deallocated.
@@ -284,10 +280,6 @@ The set of all pixels is produced by ORing together subsets of
 the planes argument with the pixels.
 The request frees all of these pixels that
 were allocated by the client (using
-.IN XAllocColor
-.IN XAllocNamedColor
-.IN XAllocColorCells
-.IN XAllocColorPlanes
 .BR XAllocColor ,
 .BR XAllocNamedColor ,
 .BR XAllocColorCells ,

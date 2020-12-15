@@ -235,7 +235,6 @@ FcCompareSize (const FcValue *v1, const FcValue *v2, FcValue *bestValue)
         b1 = e1 = value1.u.d;
 	break;
     case FcTypeRange:
-	abort();
 	b1 = value1.u.r->begin;
 	e1 = value1.u.r->end;
 	break;

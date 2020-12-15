@@ -69,6 +69,7 @@ libpanfrost_decode = static_library(
   'panfrost_decode',
   [libpanfrost_decode_files, midgard_pack],
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_panfrost],
+  dependencies : idep_mesautil,
   c_args : [no_override_init_args],
   gnu_symbol_visibility : 'hidden',
   build_by_default : false,

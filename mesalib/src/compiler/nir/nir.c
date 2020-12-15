@@ -1741,7 +1741,7 @@ nir_block_cf_tree_next(nir_block *block)
 
       assert(block == nir_if_last_else_block(if_stmt));
    }
-   /* fallthrough */
+   FALLTHROUGH;
 
    case nir_cf_node_loop:
       return nir_cf_node_as_block(nir_cf_node_next(parent));
@@ -1779,7 +1779,7 @@ nir_block_cf_tree_prev(nir_block *block)
 
       assert(block == nir_if_first_then_block(if_stmt));
    }
-   /* fallthrough */
+   FALLTHROUGH;
 
    case nir_cf_node_loop:
       return nir_cf_node_as_block(nir_cf_node_prev(parent));
@@ -1946,12 +1946,12 @@ nir_index_instrs(nir_function_impl *impl)
    unsigned index = 0;
 
    nir_foreach_block(block, impl) {
-      block->start_ip = index;
+      block->start_ip = index++;
 
       nir_foreach_instr(instr, block)
          instr->index = index++;
 
-      block->end_ip = index;
+      block->end_ip = index++;
    }
 
    return index;
@@ -2247,6 +2247,8 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_ray_geometry_index;
    case SYSTEM_VALUE_RAY_INSTANCE_CUSTOM_INDEX:
       return nir_intrinsic_load_ray_instance_custom_index;
+   case SYSTEM_VALUE_FRAG_SHADING_RATE:
+      return nir_intrinsic_load_frag_shading_rate;
    default:
       unreachable("system value does not directly correspond to intrinsic");
    }
@@ -2382,6 +2384,8 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_RAY_GEOMETRY_INDEX;
    case nir_intrinsic_load_ray_instance_custom_index:
       return SYSTEM_VALUE_RAY_INSTANCE_CUSTOM_INDEX;
+   case nir_intrinsic_load_frag_shading_rate:
+      return SYSTEM_VALUE_FRAG_SHADING_RATE;
    default:
       unreachable("intrinsic doesn't produce a system value");
    }
@@ -2516,4 +2520,108 @@ nir_get_shader_call_payload_src(nir_intrinsic_instr *call)
       unreachable("Not a call intrinsic");
       return NULL;
    }
+}
+
+nir_binding nir_chase_binding(nir_src rsrc)
+{
+   nir_binding res = {0};
+   if (rsrc.ssa->parent_instr->type == nir_instr_type_deref) {
+      const struct glsl_type *type = glsl_without_array(nir_src_as_deref(rsrc)->type);
+      bool is_image = glsl_type_is_image(type) || glsl_type_is_sampler(type);
+      while (rsrc.ssa->parent_instr->type == nir_instr_type_deref) {
+         nir_deref_instr *deref = nir_src_as_deref(rsrc);
+
+         if (deref->deref_type == nir_deref_type_var) {
+            res.success = true;
+            res.var = deref->var;
+            res.desc_set = deref->var->data.descriptor_set;
+            res.binding = deref->var->data.binding;
+            return res;
+         } else if (deref->deref_type == nir_deref_type_array && is_image) {
+            if (res.num_indices == ARRAY_SIZE(res.indices))
+               return (nir_binding){0};
+            res.indices[res.num_indices++] = deref->arr.index;
+         }
+
+         rsrc = deref->parent;
+      }
+   }
+
+   /* Skip copies and trimming. Trimming can appear as nir_op_mov instructions
+    * when removing the offset from addresses. We also consider nir_op_is_vec()
+    * instructions to skip trimming of vec2_index_32bit_offset addresses after
+    * lowering ALU to scalar.
+    */
+   while (true) {
+      nir_alu_instr *alu = nir_src_as_alu_instr(rsrc);
+      nir_intrinsic_instr *intrin = nir_src_as_intrinsic(rsrc);
+      if (alu && alu->op == nir_op_mov) {
+         for (unsigned i = 0; i < alu->dest.dest.ssa.num_components; i++) {
+            if (alu->src[0].swizzle[i] != i)
+               return (nir_binding){0};
+         }
+         rsrc = alu->src[0].src;
+      } else if (alu && nir_op_is_vec(alu->op)) {
+         for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; i++) {
+            if (alu->src[i].swizzle[0] != i || alu->src[i].src.ssa != alu->src[0].src.ssa)
+               return (nir_binding){0};
+         }
+         rsrc = alu->src[0].src;
+      } else if (intrin && intrin->intrinsic == nir_intrinsic_read_first_invocation) {
+         /* The caller might want to be aware if only the first invocation of
+          * the indices are used.
+          */
+         res.read_first_invocation = true;
+         rsrc = intrin->src[0];
+      } else {
+         break;
+      }
+   }
+
+   if (nir_src_is_const(rsrc)) {
+      /* GL binding model after deref lowering */
+      res.success = true;
+      res.binding = nir_src_as_uint(rsrc);
+      return res;
+   }
+
+   /* otherwise, must be Vulkan binding model after deref lowering or GL bindless */
+
+   nir_intrinsic_instr *intrin = nir_src_as_intrinsic(rsrc);
+   if (!intrin)
+      return (nir_binding){0};
+
+   /* skip load_vulkan_descriptor */
+   if (intrin->intrinsic == nir_intrinsic_load_vulkan_descriptor) {
+      intrin = nir_src_as_intrinsic(intrin->src[0]);
+      if (!intrin)
+         return (nir_binding){0};
+   }
+
+   if (intrin->intrinsic != nir_intrinsic_vulkan_resource_index)
+      return (nir_binding){0};
+
+   assert(res.num_indices == 0);
+   res.success = true;
+   res.desc_set = nir_intrinsic_desc_set(intrin);
+   res.binding = nir_intrinsic_binding(intrin);
+   res.num_indices = 1;
+   res.indices[0] = intrin->src[0];
+   return res;
+}
+
+nir_variable *nir_get_binding_variable(nir_shader *shader, nir_binding binding)
+{
+   if (!binding.success)
+      return NULL;
+
+   if (binding.var)
+      return binding.var;
+
+   nir_foreach_variable_with_modes(var, shader, nir_var_mem_ubo | nir_var_mem_ssbo) {
+      if (var->data.descriptor_set == binding.desc_set && var->data.binding == binding.binding)
+         return var;
+   }
+
+   return NULL;
 }

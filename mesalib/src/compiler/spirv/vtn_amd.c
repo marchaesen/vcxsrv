@@ -39,12 +39,7 @@ vtn_handle_amd_gcn_shader_instruction(struct vtn_builder *b, SpvOp ext_opcode,
       def = nir_cube_face_coord(&b->nb, vtn_get_nir_ssa(b, w[5]));
       break;
    case TimeAMD: {
-      nir_intrinsic_instr *intrin = nir_intrinsic_instr_create(b->nb.shader,
-                                    nir_intrinsic_shader_clock);
-      nir_ssa_dest_init(&intrin->instr, &intrin->dest, 2, 32, NULL);
-      nir_intrinsic_set_memory_scope(intrin, NIR_SCOPE_SUBGROUP);
-      nir_builder_instr_insert(&b->nb, &intrin->instr);
-      def = nir_pack_64_2x32(&b->nb, &intrin->dest.ssa);
+      def = nir_pack_64_2x32(&b->nb, nir_shader_clock(&b->nb, NIR_SCOPE_SUBGROUP));
       break;
    }
    default:

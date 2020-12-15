@@ -459,10 +459,13 @@ present_wnmd_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
 
             /* Set update region as damaged */
             if (vblank->update) {
-                damage = vblank->update;
+                damage = RegionDuplicate(vblank->update);
+                /* Translate update region to screen space */
+                assert(vblank->x_off == 0 && vblank->y_off == 0);
+                RegionTranslate(damage, window->drawable.x, window->drawable.y);
                 RegionIntersect(damage, damage, &window->clipList);
             } else
-                damage = &window->clipList;
+                damage = RegionDuplicate(&window->clipList);
 
             /* Try to flip - the vblank is now pending
              */
@@ -484,6 +487,7 @@ present_wnmd_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
 
                 /* Report damage */
                 DamageDamageRegion(&vblank->window->drawable, damage);
+                RegionDestroy(damage);
                 return;
             }
 

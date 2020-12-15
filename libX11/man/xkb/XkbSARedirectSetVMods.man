@@ -96,14 +96,14 @@ from
 .nf
 
     typedef struct_XkbRedirectKeyAction {
-        unsigned char   type;        /\(** XkbSA_RedirectKey */
-        unsigned char   new_key;     /\(** keycode to be put in event */
-        unsigned char   mods_mask;   /\(** mask of real mods to be reset */
-        unsigned char   mods;        /\(** mask of real mods to take values from */
-        unsigned char   vmods_mask0; /\(** first half of mask of virtual mods to be reset */
-        unsigned char   vmods_mask1; /\(** other half of mask of virtual mods to be reset */
-        unsigned char   vmods0;      /\(** first half of mask of virtual mods to take values from */
-        unsigned char   vmods1;      /\(** other half of mask of virtual mods to take values from */
+        unsigned char   type;        /\&* XkbSA_RedirectKey */
+        unsigned char   new_key;     /\&* keycode to be put in event */
+        unsigned char   mods_mask;   /\&* mask of real mods to be reset */
+        unsigned char   mods;        /\&* mask of real mods to take values from */
+        unsigned char   vmods_mask0; /\&* first half of mask of virtual mods to be reset */
+        unsigned char   vmods_mask1; /\&* other half of mask of virtual mods to be reset */
+        unsigned char   vmods0;      /\&* first half of mask of virtual mods to take values from */
+        unsigned char   vmods1;      /\&* other half of mask of virtual mods to take values from */
     } XkbRedirectKeyAction;
     
 .fi

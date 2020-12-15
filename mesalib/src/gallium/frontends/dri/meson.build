@@ -55,5 +55,8 @@ libdri = static_library(
   ],
   c_args : [libdri_c_args],
   gnu_symbol_visibility : 'hidden',
-  dependencies : dep_libdrm,
+  dependencies : [
+    dep_libdrm,
+    idep_mesautil,
+  ],
 )

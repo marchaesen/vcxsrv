@@ -74,8 +74,8 @@ returns NULL.
 .nf
 
     typedef struct _XkbOverlayKey {
-        XkbKeyNameRec           over;      /\(** name of this overlay key */
-        XkbKeyNameRec           under;     /\(** name of the key under this overlay key */
+        XkbKeyNameRec           over;      /\&* name of this overlay key */
+        XkbKeyNameRec           under;     /\&* name of the key under this overlay key */
     } XkbOverlayKeyRec,*XkbOverlayKeyPtr;
 .fi
 

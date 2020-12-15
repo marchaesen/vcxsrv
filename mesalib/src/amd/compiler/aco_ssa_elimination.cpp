@@ -39,7 +39,7 @@ struct ssa_elimination_ctx {
    std::vector<bool> empty_blocks;
    Program* program;
 
-   ssa_elimination_ctx(Program* program) : empty_blocks(program->blocks.size(), true), program(program) {}
+   ssa_elimination_ctx(Program* program_) : empty_blocks(program_->blocks.size(), true), program(program_) {}
 };
 
 void collect_phi_info(ssa_elimination_ctx& ctx)

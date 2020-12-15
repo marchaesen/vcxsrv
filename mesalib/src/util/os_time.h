@@ -37,6 +37,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,6 +60,17 @@ static inline int64_t
 os_time_get(void)
 {
    return os_time_get_nano() / 1000;
+}
+
+
+static inline struct tm *
+os_localtime(const time_t *timer, struct tm *buf)
+{
+#ifdef _WIN32
+   return localtime_s(buf, timer) ? NULL : buf;
+#else
+   return localtime_r(timer, buf);
+#endif
 }
 
 

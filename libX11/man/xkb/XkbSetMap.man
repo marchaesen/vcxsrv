@@ -34,45 +34,40 @@ server.
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- which
+.I which
 mask selecting subcomponents to update
 .TP
-.I \- xkb
+.I xkb
 description from which new values are taken
 .SH DESCRIPTION
 .LP
 There are two ways to make changes to map components: either change a local copy 
-of the keyboard map and 
-call 
+of the keyboard map and call 
 .I XkbSetMap 
 to send the modified map to the server, or, to reduce network traffic, use an 
-XkbMapChangesRec structure 
-and call 
+XkbMapChangesRec structure and call 
 .I XkbChangeMap.
 
 Use 
 .I XkbSetMap 
 to send a complete new set of values for entire components (for example, all 
-symbols, all actions, and so 
-on) to the server. The 
+symbols, all actions, and so on) to the server. The 
 .I which 
 parameter specifies the components to be sent to the server, and is a bitwise 
-inclusive OR of the masks 
-listed in Table 1. The 
+inclusive OR of the masks listed in Table 1. The 
 .I xkb 
 parameter is a pointer to an XkbDescRec structure and contains the information 
-to be copied to the server. 
-For each bit set in the 
+to be copied to the server. For each bit set in the 
 .I which 
 parameter, 
 .I XkbSetMap 
 takes the corresponding structure values from the 
 .I xkb 
 parameter and sends it to the server specified by 
-.I dpy. 
+.IR dpy . 
 
 If any components specified by 
 .I which 
@@ -86,9 +81,8 @@ True.
 can generate BadAlloc, BadLength, and BadValue protocol errors.
 
 Key types, symbol maps, and actions are all interrelated; changes in one require 
-changes in the others. Xkb 
-provides functions to make it easier to edit these components and handle the 
-interdependencies. Table 1 
+changes in the others. Xkb provides functions to make it easier to edit these 
+components and handle the interdependencies. Table 1 
 lists these helper functions and provides a pointer to where they are defined.
 
 .TS
@@ -262,33 +256,31 @@ is not present in the
 .I xkb 
 parameter.
 .SH STRUCTURES
-.LP
-
 Use the XkbMapChangesRec structure to identify and track partial modifications 
 to the mapping components 
 and to reduce the amount of traffic between the server and clients.
 .nf
 
 typedef struct _XkbMapChanges {
-    unsigned short   changed;            /\(** identifies valid components in structure */
-    KeyCode          min_key_code;       /\(** lowest numbered keycode for device */
-    KeyCode          max_key_code;       /\(** highest numbered keycode for device */
-    unsigned char    first_type;         /\(** index of first key type modified */
-    unsigned char    num_types;          /\(** # types modified */
-    KeyCode          first_key_sym;      /\(** first key whose key_sym_map changed */
-    unsigned char    num_key_syms;       /\(** # key_sym_map entries changed */
-    KeyCode          first_key_act;      /\(** first key whose key_acts entry changed */
-    unsigned char    num_key_acts;       /\(** # key_acts entries changed */
-    KeyCode          first_key_behavior; /\(** first key whose behaviors changed */
-    unsigned char    num_key_behaviors;  /\(** # behaviors entries changed */
-    KeyCode          first_key_explicit; /\(** first key whose explicit entry changed */
-    unsigned char    num_key_explicit;   /\(** # explicit entries changed */
-    KeyCode          first_modmap_key;   /\(** first key whose modmap entry changed */
-    unsigned char    num_modmap_keys;    /\(** # modmap entries changed */
-    KeyCode          first_vmodmap_key;  /\(** first key whose vmodmap changed */
-    unsigned char    num_vmodmap_keys;   /\(** # vmodmap entries changed */
-    unsigned char    pad1;               /\(** reserved */
-    unsigned short   vmods;              /\(** mask indicating which vmods changed */
+    unsigned short   changed;            /\&* identifies valid components in structure */
+    KeyCode          min_key_code;       /\&* lowest numbered keycode for device */
+    KeyCode          max_key_code;       /\&* highest numbered keycode for device */
+    unsigned char    first_type;         /\&* index of first key type modified */
+    unsigned char    num_types;          /\&* # types modified */
+    KeyCode          first_key_sym;      /\&* first key whose key_sym_map changed */
+    unsigned char    num_key_syms;       /\&* # key_sym_map entries changed */
+    KeyCode          first_key_act;      /\&* first key whose key_acts entry changed */
+    unsigned char    num_key_acts;       /\&* # key_acts entries changed */
+    KeyCode          first_key_behavior; /\&* first key whose behaviors changed */
+    unsigned char    num_key_behaviors;  /\&* # behaviors entries changed */
+    KeyCode          first_key_explicit; /\&* first key whose explicit entry changed */
+    unsigned char    num_key_explicit;   /\&* # explicit entries changed */
+    KeyCode          first_modmap_key;   /\&* first key whose modmap entry changed */
+    unsigned char    num_modmap_keys;    /\&* # modmap entries changed */
+    KeyCode          first_vmodmap_key;  /\&* first key whose vmodmap changed */
+    unsigned char    num_vmodmap_keys;   /\&* # vmodmap entries changed */
+    unsigned char    pad1;               /\&* reserved */
+    unsigned short   vmods;              /\&* mask indicating which vmods changed */
 } XkbMapChangesRec,*XkbMapChangesPtr;
 
 .fi
@@ -299,18 +291,18 @@ structures in the XkbDescRec represent the major Xkb components.
 
 .nf
 typedef struct {
-   struct _XDisplay * display;      /\(** connection to X server */
-   unsigned short     flags;        /\(** private to Xkb, do not modify */
-   unsigned short     device_spec;  /\(** device of interest */
-   KeyCode            min_key_code; /\(** minimum keycode for device */
-   KeyCode            max_key_code; /\(** maximum keycode for device */
-   XkbControlsPtr     ctrls;        /\(** controls */
-   XkbServerMapPtr    server;       /\(** server keymap */
-   XkbClientMapPtr    map;          /\(** client keymap */
-   XkbIndicatorPtr    indicators;   /\(** indicator map */
-   XkbNamesPtr        names;        /\(** names for all components */
-   XkbCompatMapPtr    compat;       /\(** compatibility map */
-   XkbGeometryPtr     geom;         /\(** physical geometry of keyboard */
+   struct _XDisplay * display;      /\&* connection to X server */
+   unsigned short     flags;        /\&* private to Xkb, do not modify */
+   unsigned short     device_spec;  /\&* device of interest */
+   KeyCode            min_key_code; /\&* minimum keycode for device */
+   KeyCode            max_key_code; /\&* maximum keycode for device */
+   XkbControlsPtr     ctrls;        /\&* controls */
+   XkbServerMapPtr    server;       /\&* server keymap */
+   XkbClientMapPtr    map;          /\&* client keymap */
+   XkbIndicatorPtr    indicators;   /\&* indicator map */
+   XkbNamesPtr        names;        /\&* names for all components */
+   XkbCompatMapPtr    compat;       /\&* compatibility map */
+   XkbGeometryPtr     geom;         /\&* physical geometry of keyboard */
 } XkbDescRec, *XkbDescPtr;
 
 .fi
@@ -330,12 +322,9 @@ fields specify the least and greatest keycode that can be returned by the
 keyboard. 
 
 Each structure component has a corresponding mask bit that is used in function 
-calls to 
-indicate that the structure should be manipulated in some manner, such as 
-allocating it 
-or freeing it. These masks and their relationships to the fields in the 
-XkbDescRec are 
-shown in Table 3.
+calls to indicate that the structure should be manipulated in some manner, such as 
+allocating it or freeing it. These masks and their relationships to the fields in the 
+XkbDescRec are shown in Table 3.
 .bp
 .TS
 c s s

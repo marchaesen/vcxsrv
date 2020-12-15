@@ -44,6 +44,11 @@ typedef struct {
    nir_deref_instr **path;
 } nir_deref_path;
 
+typedef struct {
+   nir_deref_instr *instr;
+   nir_deref_path *_path;
+} nir_deref_and_path;
+
 void nir_deref_path_init(nir_deref_path *path,
                          nir_deref_instr *deref, void *mem_ctx);
 void nir_deref_path_finish(nir_deref_path *path);
@@ -53,6 +58,8 @@ unsigned nir_deref_instr_get_const_offset(nir_deref_instr *deref,
 
 nir_ssa_def *nir_build_deref_offset(nir_builder *b, nir_deref_instr *deref,
                                     glsl_type_size_align_func size_align);
+
+nir_deref_path *nir_get_deref_path(void *mem_ctx, nir_deref_and_path *deref);
 
 typedef enum {
    nir_derefs_do_not_alias     = 0,
@@ -64,6 +71,9 @@ typedef enum {
 
 nir_deref_compare_result nir_compare_deref_paths(nir_deref_path *a_path, nir_deref_path *b_path);
 nir_deref_compare_result nir_compare_derefs(nir_deref_instr *a, nir_deref_instr *b);
+nir_deref_compare_result nir_compare_derefs_and_paths(void *mem_ctx,
+                                                      nir_deref_and_path *a,
+                                                      nir_deref_and_path *b);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -1,0 +1,102 @@
+# vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0 filetype=yaml:
+#
+# This CI uses the freedesktop.org ci-templates.
+# Please see the ci-templates documentation for details:
+# https://freedesktop.pages.freedesktop.org/ci-templates/
+
+.templates_sha: &template_sha c7702b1ae8507c5d5f34edcbf280f287ab541e8e # see https://docs.gitlab.com/ee/ci/yaml/#includefile
+
+
+include:
+  # Arch container builder template
+  - project: 'freedesktop/ci-templates'
+    ref: *template_sha
+    file: '/templates/arch.yml'
+
+
+stages:
+  - prep             # prep work like rebuilding the container images if there is a change
+  - build            # for actually building and testing things in a container
+  - deploy
+
+
+variables:
+  FDO_UPSTREAM_REPO: 'xorg/lib/libX11'
+  # The tag should be updated each time the list of packages is updated.
+  # Changing a tag forces the associated image to be rebuilt.
+  # Note: the tag has no meaning, we use a date format purely for readability
+  FDO_DISTRIBUTION_TAG:  '2020-11-16.0'
+  FDO_DISTRIBUTION_PACKAGES:  'git gcc pkgconf autoconf automake make xorg-util-macros xtrans xorgproto libxcb'
+
+
+#
+# Template for an image with ci-fairy installed
+#
+.ci_fairy_image:
+  image: python:alpine
+  before_script:
+    - apk add git
+    - pip install git+http://gitlab.freedesktop.org/freedesktop/ci-templates
+
+#
+# Verify that commit messages are as expected, signed-off, etc.
+#
+check-commits:
+  extends:
+    - .ci_fairy_image
+  stage: prep
+  script:
+    - ci-fairy check-commits --signed-off-by --junit-xml=results.xml
+  except:
+    - master@xorg/lib/libX11
+  variables:
+    GIT_DEPTH: 100
+  artifacts:
+    reports:
+      junit: results.xml
+
+#
+# Verify that the merge request has the allow-collaboration checkbox ticked
+#
+check-merge-request:
+  extends:
+    - .ci_fairy_image
+  stage: deploy
+  script:
+    - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=results.xml
+  artifacts:
+    when: on_failure
+    reports:
+      junit: results.xml
+  allow_failure: true
+
+
+#
+# Build a container with the given tag and the packages pre-installed.
+# This only happens if when the tag changes, otherwise the existing image is
+# re-used.
+#
+container-prep:
+  extends:
+    - .fdo.container-build@arch
+  stage: prep
+  variables:
+    GIT_STRATEGY: none
+
+
+#
+# The default build, runs on the image built above.
+#
+build:
+  stage: build
+  extends:
+    - .fdo.distribution-image@arch
+  script:
+    - autoreconf -ivf
+    - mkdir _builddir
+    - pushd _builddir > /dev/null
+    - ../configure --disable-silent-rules
+    - make
+    - make check
+    - make distcheck
+    - popd > /dev/null

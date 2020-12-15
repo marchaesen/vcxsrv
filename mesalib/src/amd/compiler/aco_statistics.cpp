@@ -72,7 +72,8 @@ void collect_preasm_stats(Program *program)
          /* TODO: this incorrectly assumes instructions always take 4 cycles */
          /* assume loops execute 4 times (TODO: it would be nice to be able to consider loop unrolling) */
          unsigned iter = 1 << (block.loop_nest_depth * 2);
-         program->statistics[statistic_cycles] += 4 * iter;
+         unsigned cycles = instr->opcode == aco_opcode::v_mul_lo_u32 ? 16 : 4;
+         program->statistics[statistic_cycles] += cycles * iter;
       }
 
       program->statistics[statistic_vmem_clauses] += vmem_clause_res.size();

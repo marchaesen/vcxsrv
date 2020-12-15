@@ -25,7 +25,7 @@ libdricommon = static_library(
   files('utils.c', 'utils.h', 'dri_util.c', 'dri_util.h'),
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_util],
   gnu_symbol_visibility : 'hidden',
-  dependencies : dep_libdrm,
+  dependencies : [dep_libdrm, idep_mesautil],
   build_by_default : false,
 )
 

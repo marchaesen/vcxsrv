@@ -282,11 +282,11 @@ tu_RegisterDeviceEventEXT(VkDevice                    _device,
                                       allocator,
                                       NULL,
                                       sync_fd);
+
+      close(sync_fd);
    } else {
       ret = VK_ERROR_OUT_OF_HOST_MEMORY;
    }
-
-   close(sync_fd);
 
    if (ret != VK_SUCCESS)
       tu_DestroyFence(_device, *_fence, allocator);
@@ -319,11 +319,11 @@ tu_RegisterDisplayEventEXT(VkDevice                           _device,
                                        allocator,
                                        NULL,
                                        sync_fd);
+
+      close(sync_fd);
    } else {
       ret = VK_ERROR_OUT_OF_HOST_MEMORY;
    }
-
-   close(sync_fd);
 
    if (ret != VK_SUCCESS)
       tu_DestroyFence(_device, *_fence, allocator);

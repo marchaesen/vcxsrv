@@ -537,53 +537,57 @@ static int emit_cat5(struct ir3_instruction *instr, void *ptr,
 static int emit_cat6_a6xx(struct ir3_instruction *instr, void *ptr,
 		struct ir3_info *info)
 {
-	struct ir3_register *ssbo;
 	instr_cat6_a6xx_t *cat6 = ptr;
 
-	ssbo = instr->regs[1];
-
 	cat6->type      = instr->cat6.type;
-	cat6->d         = instr->cat6.d - (instr->opc == OPC_LDC ? 0 : 1);
-	cat6->typed     = instr->cat6.typed;
-	cat6->type_size = instr->cat6.iim_val - 1;
 	cat6->opc       = instr->opc;
 	cat6->jmp_tgt   = !!(instr->flags & IR3_INSTR_JP);
 	cat6->sync      = !!(instr->flags & IR3_INSTR_SY);
 	cat6->opc_cat   = 6;
 
-	cat6->ssbo = reg(ssbo, info, instr->repeat, IR3_REG_IMMED);
-
-	/* For unused sources in an opcode, initialize contents with the ir3 dest
-	 * reg
-	 */
-	switch (instr->opc) {
-	case OPC_RESINFO:
-		cat6->src1 = reg(instr->regs[0], info, instr->repeat, 0);
+	if (instr->opc == OPC_GETWID || instr->opc == OPC_GETSPID) {
 		cat6->src2 = reg(instr->regs[0], info, instr->repeat, 0);
-		break;
-	case OPC_LDC:
-	case OPC_LDIB:
-		cat6->src1 = reg(instr->regs[2], info, instr->repeat, 0);
-		cat6->src2 = reg(instr->regs[0], info, instr->repeat, 0);
-		break;
-	default:
-		cat6->src1 = reg(instr->regs[2], info, instr->repeat, 0);
-		cat6->src2 = reg(instr->regs[3], info, instr->repeat, 0);
-		break;
-	}
-
-	if (instr->flags & IR3_INSTR_B) {
-		if (ssbo->flags & IR3_REG_IMMED) {
-			cat6->desc_mode = CAT6_BINDLESS_IMM;
-		} else {
-			cat6->desc_mode = CAT6_BINDLESS_UNIFORM;
-		}
-		cat6->base = instr->cat6.base;
+		cat6->src1 = cat6->ssbo = 0;
+		cat6->d = cat6->typed = cat6->type_size = 0;
 	} else {
-		if (ssbo->flags & IR3_REG_IMMED)
-			cat6->desc_mode = CAT6_IMM;
-		else
-			cat6->desc_mode = CAT6_UNIFORM;
+		struct ir3_register *ssbo = instr->regs[1];
+		cat6->d         = instr->cat6.d - (instr->opc == OPC_LDC ? 0 : 1);
+		cat6->typed     = instr->cat6.typed;
+		cat6->type_size = instr->cat6.iim_val - 1;
+		cat6->ssbo = reg(ssbo, info, instr->repeat, IR3_REG_IMMED);
+
+		/* For unused sources in an opcode, initialize contents with the ir3
+		 * dest reg
+		 */
+		switch (instr->opc) {
+		case OPC_RESINFO:
+			cat6->src1 = reg(instr->regs[0], info, instr->repeat, 0);
+			cat6->src2 = reg(instr->regs[0], info, instr->repeat, 0);
+			break;
+		case OPC_LDC:
+		case OPC_LDIB:
+			cat6->src1 = reg(instr->regs[2], info, instr->repeat, 0);
+			cat6->src2 = reg(instr->regs[0], info, instr->repeat, 0);
+			break;
+		default:
+			cat6->src1 = reg(instr->regs[2], info, instr->repeat, 0);
+			cat6->src2 = reg(instr->regs[3], info, instr->repeat, 0);
+			break;
+		}
+
+		if (instr->flags & IR3_INSTR_B) {
+			if (ssbo->flags & IR3_REG_IMMED) {
+				cat6->desc_mode = CAT6_BINDLESS_IMM;
+			} else {
+				cat6->desc_mode = CAT6_BINDLESS_UNIFORM;
+			}
+			cat6->base = instr->cat6.base;
+		} else {
+			if (ssbo->flags & IR3_REG_IMMED)
+				cat6->desc_mode = CAT6_IMM;
+			else
+				cat6->desc_mode = CAT6_UNIFORM;
+		}
 	}
 
 	switch (instr->opc) {
@@ -599,23 +603,25 @@ static int emit_cat6_a6xx(struct ir3_instruction *instr, void *ptr,
 	case OPC_ATOMIC_OR:
 	case OPC_ATOMIC_XOR:
 		cat6->pad1 = 0x1;
-		cat6->pad3 = 0xc;
+		cat6->pad3 = 0x6;
 		cat6->pad5 = 0x3;
 		break;
 	case OPC_STIB:
 		cat6->pad1 = 0x0;
-		cat6->pad3 = 0xc;
+		cat6->pad3 = 0x6;
 		cat6->pad5 = 0x2;
 		break;
 	case OPC_LDIB:
 	case OPC_RESINFO:
 		cat6->pad1 = 0x1;
-		cat6->pad3 = 0xc;
+		cat6->pad3 = 0x6;
 		cat6->pad5 = 0x2;
 		break;
 	case OPC_LDC:
+	case OPC_GETWID:
+	case OPC_GETSPID:
 		cat6->pad1 = 0x0;
-		cat6->pad3 = 0x8;
+		cat6->pad3 = 0x4;
 		cat6->pad5 = 0x2;
 		break;
 	default:
@@ -658,6 +664,8 @@ static int emit_cat6(struct ir3_instruction *instr, void *ptr,
 		case OPC_LDIB:
 		case OPC_LDC:
 		case OPC_RESINFO:
+		case OPC_GETSPID:
+		case OPC_GETWID:
 			return emit_cat6_a6xx(instr, ptr, info);
 		default:
 			break;
@@ -719,6 +727,11 @@ static int emit_cat6(struct ir3_instruction *instr, void *ptr,
 		dst  = instr->regs[0];
 		src1 = instr->regs[1];
 		src2 = (instr->regs_count >= 3) ? instr->regs[2] : NULL;
+	}
+
+	if ((instr->opc == OPC_STP || instr->opc == OPC_LDP) &&
+		src2->iim_val * type_size(instr->cat6.type) > 32) {
+		info->multi_dword_ldp_stp = true;
 	}
 
 	/* TODO we need a more comprehensive list about which instructions
@@ -828,7 +841,8 @@ static int emit_cat6(struct ir3_instruction *instr, void *ptr,
 
 		return 0;
 	} else if (instr->cat6.src_offset || (instr->opc == OPC_LDG) ||
-			(instr->opc == OPC_LDL) || (instr->opc == OPC_LDLW)) {
+			(instr->opc == OPC_LDL) || (instr->opc == OPC_LDLW) ||
+			(instr->opc == OPC_LDP)) {
 		struct ir3_register *src3 = instr->regs[3];
 		instr_cat6a_t *cat6a = ptr;
 
@@ -866,7 +880,8 @@ static int emit_cat6(struct ir3_instruction *instr, void *ptr,
 	}
 
 	if (instr->cat6.dst_offset || (instr->opc == OPC_STG) ||
-			(instr->opc == OPC_STL) || (instr->opc == OPC_STLW)) {
+			(instr->opc == OPC_STL) || (instr->opc == OPC_STLW) ||
+			(instr->opc == OPC_STP)) {
 		instr_cat6c_t *cat6c = ptr;
 		cat6->dst_off = true;
 		cat6c->dst = reg(dst, info, instr->repeat, IR3_REG_R | IR3_REG_HALF);
@@ -928,6 +943,7 @@ void * ir3_assemble(struct ir3_shader_variant *v)
 	info->max_reg       = -1;
 	info->max_half_reg  = -1;
 	info->max_const     = -1;
+	info->multi_dword_ldp_stp = false;
 
 	uint32_t instr_count = 0;
 	foreach_block (block, &shader->block_list) {
@@ -938,10 +954,28 @@ void * ir3_assemble(struct ir3_shader_variant *v)
 
 	v->instrlen = DIV_ROUND_UP(instr_count, compiler->instr_align);
 
-	/* Pad out with NOPs to instrlen. */
-	info->sizedwords = v->instrlen * compiler->instr_align * sizeof(instr_t) / 4;
+	/* Pad out with NOPs to instrlen, including at least 4 so that cffdump
+	 * doesn't try to decode the following data as instructions (such as the
+	 * next stage's shader in turnip)
+	 */
+	info->size = MAX2(v->instrlen * compiler->instr_align, instr_count + 4) *
+		sizeof(instr_t);
+	info->sizedwords = info->size / 4;
 
-	ptr = dwords = rzalloc_size(v, 4 * info->sizedwords);
+	if (v->constant_data_size) {
+		/* Make sure that where we're about to place the constant_data is safe
+		 * to indirectly upload from.
+		 */
+		info->constant_data_offset = align(info->size, v->shader->compiler->const_upload_unit * 16);
+		info->size = info->constant_data_offset + v->constant_data_size;
+	}
+
+	/* Pad out the size so that when turnip uploads the shaders in
+	 * sequence, the starting offset of the next one is properly aligned.
+	 */
+	info->size = align(info->size, compiler->instr_align * sizeof(instr_t));
+
+	ptr = dwords = rzalloc_size(v, info->size);
 
 	foreach_block (block, &shader->block_list) {
 		unsigned sfu_delay = 0;
@@ -993,6 +1027,14 @@ void * ir3_assemble(struct ir3_shader_variant *v)
 			}
 		}
 	}
+
+	/* Append the immediates after the end of the program.  This lets us emit
+	 * the immediates as an indirect load, while avoiding creating another BO.
+	 */
+	if (v->constant_data_size)
+		memcpy(&ptr[info->constant_data_offset / 4], v->constant_data, v->constant_data_size);
+	ralloc_free(v->constant_data);
+	v->constant_data = NULL;
 
 	return ptr;
 
@@ -1426,6 +1468,12 @@ ir3_valid_flags(struct ir3_instruction *instr, unsigned n,
 				return false;
 
 			if ((instr->opc == OPC_STL) && (n != 2))
+				return false;
+
+			if ((instr->opc == OPC_LDP) && (n == 0))
+				return false;
+
+			if ((instr->opc == OPC_STP) && (n != 2))
 				return false;
 
 			if (instr->opc == OPC_STLW && n == 0)

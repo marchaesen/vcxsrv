@@ -103,6 +103,11 @@ xf86PlatformDeviceCheckBusID(struct xf86_platform_device *device, const char *bu
             return FALSE;
         return TRUE;
     }
+    else if (bustype == BUS_USB) {
+        if (strcasecmp(busid, device->attribs->busid))
+            return FALSE;
+        return TRUE;
+    }
     return FALSE;
 }
 

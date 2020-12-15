@@ -118,18 +118,18 @@ structures in the XkbDescRec represent the major Xkb components.
 
 .nf
 typedef struct {
-   struct _XDisplay * display;      /\(** connection to X server */
-   unsigned short     flags;        /\(** private to Xkb, do not modify */
-   unsigned short     device_spec;  /\(** device of interest */
-   KeyCode            min_key_code; /\(** minimum keycode for device */
-   KeyCode            max_key_code; /\(** maximum keycode for device */
-   XkbControlsPtr     ctrls;        /\(** controls */
-   XkbServerMapPtr    server;       /\(** server keymap */
-   XkbClientMapPtr    map;          /\(** client keymap */
-   XkbIndicatorPtr    indicators;   /\(** indicator map */
-   XkbNamesPtr        names;        /\(** names for all components */
-   XkbCompatMapPtr    compat;       /\(** compatibility map */
-   XkbGeometryPtr     geom;         /\(** physical geometry of keyboard */
+   struct _XDisplay * display;      /\&* connection to X server */
+   unsigned short     flags;        /\&* private to Xkb, do not modify */
+   unsigned short     device_spec;  /\&* device of interest */
+   KeyCode            min_key_code; /\&* minimum keycode for device */
+   KeyCode            max_key_code; /\&* maximum keycode for device */
+   XkbControlsPtr     ctrls;        /\&* controls */
+   XkbServerMapPtr    server;       /\&* server keymap */
+   XkbClientMapPtr    map;          /\&* client keymap */
+   XkbIndicatorPtr    indicators;   /\&* indicator map */
+   XkbNamesPtr        names;        /\&* names for all components */
+   XkbCompatMapPtr    compat;       /\&* compatibility map */
+   XkbGeometryPtr     geom;         /\&* physical geometry of keyboard */
 } XkbDescRec, *XkbDescPtr;
 
 .fi
@@ -181,15 +181,15 @@ map, which is
 of type XkbClientMapRec:
 .nf
  
-   typedef struct {                   /\(** Client Map */
-      unsigned char     size_types;   /\(** # occupied entries in types */
-      unsigned char     num_types;    /\(** # entries in types */
-      XkbKeyTypePtr     types;        /\(** vector of key types used by this keymap */
-      unsigned short    size_syms;    /\(** length of the syms array */
-      unsigned short    num_syms;     /\(** # entries in syms */
-      KeySym *          syms;         /\(** linear 2d tables of keysyms, 1 per key */
-      XkbSymMapPtr      key_sym_map;  /\(** 1 per keycode, maps keycode to syms */
-      unsigned char *   modmap;       /\(** 1 per keycode, real mods bound to key */
+   typedef struct {                   /\&* Client Map */
+      unsigned char     size_types;   /\&* # occupied entries in types */
+      unsigned char     num_types;    /\&* # entries in types */
+      XkbKeyTypePtr     types;        /\&* vector of key types used by this keymap */
+      unsigned short    size_syms;    /\&* length of the syms array */
+      unsigned short    num_syms;     /\&* # entries in syms */
+      KeySym *          syms;         /\&* linear 2d tables of keysyms, 1 per key */
+      XkbSymMapPtr      key_sym_map;  /\&* 1 per keycode, maps keycode to syms */
+      unsigned char *   modmap;       /\&* 1 per keycode, real mods bound to key */
 } XkbClientMapRec, *XkbClientMapPtr;
 
 .fi

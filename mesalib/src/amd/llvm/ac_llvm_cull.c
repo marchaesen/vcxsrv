@@ -132,8 +132,7 @@ static LLVMValueRef cull_bbox(struct ac_llvm_context *ctx, LLVMValueRef pos[3][4
     * W is negative.
     */
    LLVMValueRef cond = LLVMBuildAnd(builder, initially_accepted, w->all_w_positive, "");
-   LLVMValueRef accepted_var = ac_build_alloca_undef(ctx, ctx->i1, "");
-   LLVMBuildStore(builder, initially_accepted, accepted_var);
+   LLVMValueRef accepted_var = ac_build_alloca_init(ctx, initially_accepted, "");
 
    ac_build_ifcc(ctx, cond, 10000000 /* does this matter? */);
    {

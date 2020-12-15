@@ -17,7 +17,7 @@ kernel+rootfs_amd64:
   extends:
     - .use-x86_build-base
     - .kernel+rootfs
-  image: "$CI_REGISTRY_IMAGE/debian/x86_build-base:$BASE_TAG"
+  image: "$CI_REGISTRY_IMAGE/debian/x86_build-base:${MESA_BASE_TAG}-${MESA_TEMPLATES_COMMIT}"
   variables:
     DEBIAN_ARCH: "amd64"
 
@@ -130,6 +130,7 @@ kernel+rootfs_armhf:
     - .use-arm_build
   needs:
     - kernel+rootfs_amd64
+    - arm_build
     - meson-testing
 
 .lava-traces-base:

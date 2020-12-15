@@ -19,6 +19,7 @@ apt-get install -y --no-remove \
         cmake \
         cpio \
         debootstrap \
+        expect \
         fastboot \
         flex \
         g++ \
@@ -32,6 +33,7 @@ apt-get install -y --no-remove \
         python3-serial \
         python3.7 \
         rsync \
+        telnet \
         u-boot-tools \
         unzip
 

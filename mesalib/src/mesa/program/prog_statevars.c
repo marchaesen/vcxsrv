@@ -45,6 +45,31 @@
 
 #define ONE_DIV_SQRT_LN2 (1.201122408786449815)
 
+static ALWAYS_INLINE void
+copy_matrix(float *value, const float *m, unsigned firstRow, unsigned lastRow)
+{
+   unsigned i, row;
+
+   assert(firstRow < 4);
+   assert(lastRow < 4);
+
+   for (i = 0, row = firstRow; row <= lastRow; row++) {
+      value[i++] = m[row + 0];
+      value[i++] = m[row + 4];
+      value[i++] = m[row + 8];
+      value[i++] = m[row + 12];
+   }
+}
+
+static ALWAYS_INLINE void
+copy_matrix_transposed(float *value, const float *m, unsigned firstRow, unsigned lastRow)
+{
+   assert(firstRow < 4);
+   assert(lastRow < 4);
+
+   memcpy(value, &m[firstRow * 4],
+          (lastRow - firstRow + 1) * 4 * sizeof(GLfloat));
+}
 
 /**
  * Use the list of tokens in the state[] array to find global GL state
@@ -92,7 +117,7 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
             value[3] = 1.0F;
             return;
          default:
-            _mesa_problem(ctx, "Invalid material state in fetch_state");
+            unreachable("Invalid material state in fetch_state");
             return;
          }
       }
@@ -101,52 +126,21 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
          /* state[1] is the light number */
          const GLuint ln = (GLuint) state[1];
          /* state[2] is the light attribute */
-         switch (state[2]) {
-         case STATE_AMBIENT:
-            COPY_4V(value, ctx->Light.Light[ln].Ambient);
-            return;
-         case STATE_DIFFUSE:
-            COPY_4V(value, ctx->Light.Light[ln].Diffuse);
-            return;
-         case STATE_SPECULAR:
-            COPY_4V(value, ctx->Light.Light[ln].Specular);
-            return;
-         case STATE_POSITION:
-            COPY_4V(value, ctx->Light.Light[ln].EyePosition);
-            return;
-         case STATE_ATTENUATION:
-            value[0] = ctx->Light.Light[ln].ConstantAttenuation;
-            value[1] = ctx->Light.Light[ln].LinearAttenuation;
-            value[2] = ctx->Light.Light[ln].QuadraticAttenuation;
-            value[3] = ctx->Light.Light[ln].SpotExponent;
-            return;
-         case STATE_SPOT_DIRECTION:
-            COPY_3V(value, ctx->Light.Light[ln].SpotDirection);
-            value[3] = ctx->Light.Light[ln]._CosCutoff;
-            return;
-         case STATE_SPOT_CUTOFF:
-            value[0] = ctx->Light.Light[ln].SpotCutoff;
-            return;
-         case STATE_HALF_VECTOR:
-            {
-               static const GLfloat eye_z[] = {0, 0, 1};
-               GLfloat p[3];
-               /* Compute infinite half angle vector:
-                *   halfVector = normalize(normalize(lightPos) + (0, 0, 1))
-		* light.EyePosition.w should be 0 for infinite lights.
-                */
-               COPY_3V(p, ctx->Light.Light[ln].EyePosition);
-               NORMALIZE_3FV(p);
-	       ADD_3V(value, p, eye_z);
-	       NORMALIZE_3FV(value);
-	       value[3] = 1.0;
-            }
-            return;
-         default:
-            _mesa_problem(ctx, "Invalid light state in fetch_state");
-            return;
-         }
+         const unsigned index = state[2] - STATE_AMBIENT;
+         assert(index < 8);
+         if (index != STATE_SPOT_CUTOFF)
+            COPY_4V(value, (float*)&ctx->Light.LightSource[ln] + index * 4);
+         else
+            value[0] = ctx->Light.LightSource[ln].SpotCutoff;
+         return;
       }
+   case STATE_LIGHT_ATTRIBS:
+      /* state[1] is the index of the first value */
+      /* state[2] is the number of values */
+      assert(state[1] + state[2] <= ARRAY_SIZE(ctx->Light.LightSourceData));
+      memcpy(value, &ctx->Light.LightSourceData[state[1]],
+             state[2] * sizeof(float));
+      return;
    case STATE_LIGHTMODEL_AMBIENT:
       COPY_4V(value, ctx->Light.Model.Ambient);
       return;
@@ -181,7 +175,7 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
          switch (state[3]) {
             case STATE_AMBIENT:
                for (i = 0; i < 3; i++) {
-                  value[i] = ctx->Light.Light[ln].Ambient[i] *
+                  value[i] = ctx->Light.LightSource[ln].Ambient[i] *
                      ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_AMBIENT+face][i];
                }
                /* [3] = material alpha */
@@ -189,7 +183,7 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
                return;
             case STATE_DIFFUSE:
                for (i = 0; i < 3; i++) {
-                  value[i] = ctx->Light.Light[ln].Diffuse[i] *
+                  value[i] = ctx->Light.LightSource[ln].Diffuse[i] *
                      ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_DIFFUSE+face][i];
                }
                /* [3] = material alpha */
@@ -197,14 +191,14 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
                return;
             case STATE_SPECULAR:
                for (i = 0; i < 3; i++) {
-                  value[i] = ctx->Light.Light[ln].Specular[i] *
+                  value[i] = ctx->Light.LightSource[ln].Specular[i] *
                      ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_SPECULAR+face][i];
                }
                /* [3] = material alpha */
                value[3] = ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_SPECULAR+face][3];
                return;
             default:
-               _mesa_problem(ctx, "Invalid lightprod state in fetch_state");
+               unreachable("Invalid lightprod state in fetch_state");
                return;
          }
       }
@@ -239,7 +233,7 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
             COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenQ.ObjectPlane);
             return;
          default:
-            _mesa_problem(ctx, "Invalid texgen state in fetch_state");
+            unreachable("Invalid texgen state in fetch_state");
             return;
          }
       }
@@ -283,77 +277,128 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
       value[2] = ctx->Point.Params[2];
       value[3] = 1.0F;
       return;
-   case STATE_MODELVIEW_MATRIX:
-   case STATE_PROJECTION_MATRIX:
-   case STATE_MVP_MATRIX:
-   case STATE_TEXTURE_MATRIX:
-   case STATE_PROGRAM_MATRIX:
-      {
-         /* state[0] = modelview, projection, texture, etc. */
-         /* state[1] = which texture matrix or program matrix */
-         /* state[2] = first row to fetch */
-         /* state[3] = last row to fetch */
-         /* state[4] = transpose, inverse or invtrans */
-         const GLmatrix *matrix;
-         const gl_state_index mat = state[0];
-         const GLuint index = (GLuint) state[1];
-         const GLuint firstRow = (GLuint) state[2];
-         const GLuint lastRow = (GLuint) state[3];
-         const gl_state_index modifier = state[4];
-         const GLfloat *m;
-         GLuint row, i;
-         assert(firstRow < 4);
-         assert(lastRow < 4);
-         if (mat == STATE_MODELVIEW_MATRIX) {
-            matrix = ctx->ModelviewMatrixStack.Top;
-         }
-         else if (mat == STATE_PROJECTION_MATRIX) {
-            matrix = ctx->ProjectionMatrixStack.Top;
-         }
-         else if (mat == STATE_MVP_MATRIX) {
-            matrix = &ctx->_ModelProjectMatrix;
-         }
-         else if (mat == STATE_TEXTURE_MATRIX) {
-            assert(index < ARRAY_SIZE(ctx->TextureMatrixStack));
-            matrix = ctx->TextureMatrixStack[index].Top;
-         }
-         else if (mat == STATE_PROGRAM_MATRIX) {
-            assert(index < ARRAY_SIZE(ctx->ProgramMatrixStack));
-            matrix = ctx->ProgramMatrixStack[index].Top;
-         }
-         else {
-            _mesa_problem(ctx, "Bad matrix name in fetch_state()");
-            return;
-         }
-         if (modifier == STATE_MATRIX_INVERSE ||
-             modifier == STATE_MATRIX_INVTRANS) {
-            /* Be sure inverse is up to date:
-	     */
-	    _math_matrix_analyse( (GLmatrix*) matrix );
-            m = matrix->inv;
-         }
-         else {
-            m = matrix->m;
-         }
-         if (modifier == STATE_MATRIX_TRANSPOSE ||
-             modifier == STATE_MATRIX_INVTRANS) {
-            for (i = 0, row = firstRow; row <= lastRow; row++) {
-               value[i++] = m[row * 4 + 0];
-               value[i++] = m[row * 4 + 1];
-               value[i++] = m[row * 4 + 2];
-               value[i++] = m[row * 4 + 3];
-            }
-         }
-         else {
-            for (i = 0, row = firstRow; row <= lastRow; row++) {
-               value[i++] = m[row + 0];
-               value[i++] = m[row + 4];
-               value[i++] = m[row + 8];
-               value[i++] = m[row + 12];
-            }
-         }
-      }
+   /* state[0] = modelview, projection, texture, etc. */
+   /* state[1] = which texture matrix or program matrix */
+   /* state[2] = first row to fetch */
+   /* state[3] = last row to fetch */
+   case STATE_MODELVIEW_MATRIX: {
+      const GLmatrix *matrix = ctx->ModelviewMatrixStack.Top;
+      copy_matrix(value, matrix->m, state[2], state[3]);
       return;
+   }
+   case STATE_MODELVIEW_MATRIX_INVERSE: {
+      const GLmatrix *matrix = ctx->ModelviewMatrixStack.Top;
+      copy_matrix(value, matrix->inv, state[2], state[3]);
+      return;
+   }
+   case STATE_MODELVIEW_MATRIX_TRANSPOSE: {
+      const GLmatrix *matrix = ctx->ModelviewMatrixStack.Top;
+      copy_matrix_transposed(value, matrix->m, state[2], state[3]);
+      return;
+   }
+   case STATE_MODELVIEW_MATRIX_INVTRANS: {
+      const GLmatrix *matrix = ctx->ModelviewMatrixStack.Top;
+      copy_matrix_transposed(value, matrix->inv, state[2], state[3]);
+      return;
+   }
+   case STATE_PROJECTION_MATRIX: {
+      const GLmatrix *matrix = ctx->ProjectionMatrixStack.Top;
+      copy_matrix(value, matrix->m, state[2], state[3]);
+      return;
+   }
+   case STATE_PROJECTION_MATRIX_INVERSE: {
+      const GLmatrix *matrix = ctx->ProjectionMatrixStack.Top;
+      copy_matrix(value, matrix->inv, state[2], state[3]);
+      return;
+   }
+   case STATE_PROJECTION_MATRIX_TRANSPOSE: {
+      const GLmatrix *matrix = ctx->ProjectionMatrixStack.Top;
+      copy_matrix_transposed(value, matrix->m, state[2], state[3]);
+      return;
+   }
+   case STATE_PROJECTION_MATRIX_INVTRANS: {
+      const GLmatrix *matrix = ctx->ProjectionMatrixStack.Top;
+      copy_matrix_transposed(value, matrix->inv, state[2], state[3]);
+      return;
+   }
+   case STATE_MVP_MATRIX: {
+      const GLmatrix *matrix = &ctx->_ModelProjectMatrix;
+      copy_matrix(value, matrix->m, state[2], state[3]);
+      return;
+   }
+   case STATE_MVP_MATRIX_INVERSE: {
+      const GLmatrix *matrix = &ctx->_ModelProjectMatrix;
+      copy_matrix(value, matrix->inv, state[2], state[3]);
+      return;
+   }
+   case STATE_MVP_MATRIX_TRANSPOSE: {
+      const GLmatrix *matrix = &ctx->_ModelProjectMatrix;
+      copy_matrix_transposed(value, matrix->m, state[2], state[3]);
+      return;
+   }
+   case STATE_MVP_MATRIX_INVTRANS: {
+      const GLmatrix *matrix = &ctx->_ModelProjectMatrix;
+      copy_matrix_transposed(value, matrix->inv, state[2], state[3]);
+      return;
+   }
+   case STATE_TEXTURE_MATRIX: {
+      const GLuint index = (GLuint) state[1];
+      assert(index < ARRAY_SIZE(ctx->TextureMatrixStack));
+      const GLmatrix *matrix = ctx->TextureMatrixStack[index].Top;
+      copy_matrix(value, matrix->m, state[2], state[3]);
+      return;
+   }
+   case STATE_TEXTURE_MATRIX_INVERSE: {
+      const GLuint index = (GLuint) state[1];
+      assert(index < ARRAY_SIZE(ctx->TextureMatrixStack));
+      const GLmatrix *matrix = ctx->TextureMatrixStack[index].Top;
+      copy_matrix(value, matrix->inv, state[2], state[3]);
+      return;
+   }
+   case STATE_TEXTURE_MATRIX_TRANSPOSE: {
+      const GLuint index = (GLuint) state[1];
+      assert(index < ARRAY_SIZE(ctx->TextureMatrixStack));
+      const GLmatrix *matrix = ctx->TextureMatrixStack[index].Top;
+      copy_matrix_transposed(value, matrix->m, state[2], state[3]);
+      return;
+   }
+   case STATE_TEXTURE_MATRIX_INVTRANS: {
+      const GLuint index = (GLuint) state[1];
+      assert(index < ARRAY_SIZE(ctx->TextureMatrixStack));
+      const GLmatrix *matrix = ctx->TextureMatrixStack[index].Top;
+      copy_matrix_transposed(value, matrix->inv, state[2], state[3]);
+      return;
+   }
+   case STATE_PROGRAM_MATRIX: {
+      const GLuint index = (GLuint) state[1];
+      assert(index < ARRAY_SIZE(ctx->ProgramMatrixStack));
+      const GLmatrix *matrix = ctx->ProgramMatrixStack[index].Top;
+      copy_matrix(value, matrix->m, state[2], state[3]);
+      return;
+   }
+   case STATE_PROGRAM_MATRIX_INVERSE: {
+      const GLuint index = (GLuint) state[1];
+      assert(index < ARRAY_SIZE(ctx->ProgramMatrixStack));
+      const GLmatrix *matrix = ctx->ProgramMatrixStack[index].Top;
+      _math_matrix_analyse((GLmatrix*)matrix); /* Be sure inverse is up to date: */
+      copy_matrix(value, matrix->inv, state[2], state[3]);
+      return;
+   }
+   case STATE_PROGRAM_MATRIX_TRANSPOSE: {
+      const GLuint index = (GLuint) state[1];
+      assert(index < ARRAY_SIZE(ctx->ProgramMatrixStack));
+      const GLmatrix *matrix = ctx->ProgramMatrixStack[index].Top;
+      copy_matrix_transposed(value, matrix->m, state[2], state[3]);
+      return;
+   }
+   case STATE_PROGRAM_MATRIX_INVTRANS: {
+      const GLuint index = (GLuint) state[1];
+      assert(index < ARRAY_SIZE(ctx->ProgramMatrixStack));
+      const GLmatrix *matrix = ctx->ProgramMatrixStack[index].Top;
+      _math_matrix_analyse((GLmatrix*)matrix); /* Be sure inverse is up to date: */
+      copy_matrix_transposed(value, matrix->inv, state[2], state[3]);
+      return;
+   }
    case STATE_NUM_SAMPLES:
       val[0].i = MAX2(1, _mesa_geometric_samples(ctx->DrawBuffer));
       return;
@@ -386,7 +431,7 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
                        ctx->FragmentProgram.Current->arb.LocalParams[idx]);
                return;
             default:
-               _mesa_problem(ctx, "Bad state switch in fetch_state()");
+               unreachable("Bad state switch in fetch_state()");
                return;
          }
       }
@@ -415,7 +460,7 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
                        ctx->VertexProgram.Current->arb.LocalParams[idx]);
                return;
             default:
-               _mesa_problem(ctx, "Bad state switch in fetch_state()");
+               unreachable("Bad state switch in fetch_state()");
                return;
          }
       }
@@ -458,7 +503,7 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
                    1);
          return;
 
-      case STATE_FOG_PARAMS_OPTIMIZED:
+      case STATE_FOG_PARAMS_OPTIMIZED: {
          /* for simpler per-vertex/pixel fog calcs. POW (for EXP/EXP2 fog)
           * might be more expensive than EX2 on some hw, plus it needs
           * another constant (e) anyway. Linear fog can now be done with a
@@ -467,12 +512,14 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
           * exp: 2^-(density/ln(2) * fogcoord)
           * exp2: 2^-((density/(sqrt(ln(2))) * fogcoord)^2)
           */
-         value[0] = (ctx->Fog.End == ctx->Fog.Start)
+         float val =  (ctx->Fog.End == ctx->Fog.Start)
             ? 1.0f : (GLfloat)(-1.0F / (ctx->Fog.End - ctx->Fog.Start));
-         value[1] = ctx->Fog.End * -value[0];
+         value[0] = val;
+         value[1] = ctx->Fog.End * -val;
          value[2] = (GLfloat)(ctx->Fog.Density * M_LOG2E); /* M_LOG2E == 1/ln(2) */
          value[3] = (GLfloat)(ctx->Fog.Density * ONE_DIV_SQRT_LN2);
          return;
+      }
 
       case STATE_POINT_SIZE_CLAMPED:
          {
@@ -512,7 +559,7 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
             /* pre-normalize spot dir */
             const GLuint ln = (GLuint) state[2];
             COPY_3V(value, ctx->Light.Light[ln]._NormSpotDirection);
-            value[3] = ctx->Light.Light[ln]._CosCutoff;
+            value[3] = ctx->Light.LightSource[ln]._CosCutoff;
          }
          return;
 
@@ -526,8 +573,10 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
       case STATE_LIGHT_POSITION_NORMALIZED:
          {
             const GLuint ln = (GLuint) state[2];
-            COPY_4V(value, ctx->Light.Light[ln]._Position);
-            NORMALIZE_3FV( value );
+            float p[4];
+            COPY_4V(p, ctx->Light.Light[ln]._Position);
+            NORMALIZE_3FV(p);
+            COPY_4V(value, p);
          }
          return;
 
@@ -541,8 +590,9 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
              */
             COPY_3V(p, ctx->Light.Light[ln]._Position);
             NORMALIZE_3FV(p);
-            ADD_3V(value, p, ctx->_EyeZDir);
-            NORMALIZE_3FV(value);
+            ADD_3V(p, p, ctx->_EyeZDir);
+            NORMALIZE_3FV(p);
+            COPY_3V(value, p);
             value[3] = 1.0;
          }
          return;
@@ -625,7 +675,7 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
       return;
 
    default:
-      _mesa_problem(ctx, "Invalid state in _mesa_fetch_state");
+      unreachable("Invalid state in _mesa_fetch_state");
       return;
    }
 }
@@ -658,6 +708,7 @@ _mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH])
       return _NEW_LIGHT | _NEW_CURRENT_ATTRIB;
 
    case STATE_LIGHT:
+   case STATE_LIGHT_ATTRIBS:
    case STATE_LIGHTMODEL_AMBIENT:
       return _NEW_LIGHT;
 
@@ -679,14 +730,29 @@ _mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH])
       return _NEW_POINT;
 
    case STATE_MODELVIEW_MATRIX:
+   case STATE_MODELVIEW_MATRIX_INVERSE:
+   case STATE_MODELVIEW_MATRIX_TRANSPOSE:
+   case STATE_MODELVIEW_MATRIX_INVTRANS:
       return _NEW_MODELVIEW;
    case STATE_PROJECTION_MATRIX:
+   case STATE_PROJECTION_MATRIX_INVERSE:
+   case STATE_PROJECTION_MATRIX_TRANSPOSE:
+   case STATE_PROJECTION_MATRIX_INVTRANS:
       return _NEW_PROJECTION;
    case STATE_MVP_MATRIX:
+   case STATE_MVP_MATRIX_INVERSE:
+   case STATE_MVP_MATRIX_TRANSPOSE:
+   case STATE_MVP_MATRIX_INVTRANS:
       return _NEW_MODELVIEW | _NEW_PROJECTION;
    case STATE_TEXTURE_MATRIX:
+   case STATE_TEXTURE_MATRIX_INVERSE:
+   case STATE_TEXTURE_MATRIX_TRANSPOSE:
+   case STATE_TEXTURE_MATRIX_INVTRANS:
       return _NEW_TEXTURE_MATRIX;
    case STATE_PROGRAM_MATRIX:
+   case STATE_PROGRAM_MATRIX_INVERSE:
+   case STATE_PROGRAM_MATRIX_TRANSPOSE:
+   case STATE_PROGRAM_MATRIX_INVTRANS:
       return _NEW_TRACK_MATRIX;
 
    case STATE_NUM_SAMPLES:
@@ -772,10 +838,13 @@ append_token(char *dst, gl_state_index k)
 {
    switch (k) {
    case STATE_MATERIAL:
-      append(dst, "material");
+      append(dst, "material.");
       break;
    case STATE_LIGHT:
       append(dst, "light");
+      break;
+   case STATE_LIGHT_ATTRIBS:
+      append(dst, "light.attribs");
       break;
    case STATE_LIGHTMODEL_AMBIENT:
       append(dst, "lightmodel.ambient");
@@ -804,82 +873,119 @@ append_token(char *dst, gl_state_index k)
       append(dst, "point.attenuation");
       break;
    case STATE_MODELVIEW_MATRIX:
-      append(dst, "matrix.modelview");
+      append(dst, "matrix.modelview.");
+      break;
+   case STATE_MODELVIEW_MATRIX_INVERSE:
+      append(dst, "matrix.modelview.inverse.");
+      break;
+   case STATE_MODELVIEW_MATRIX_TRANSPOSE:
+      append(dst, "matrix.modelview.transpose.");
+      break;
+   case STATE_MODELVIEW_MATRIX_INVTRANS:
+      append(dst, "matrix.modelview.invtrans.");
       break;
    case STATE_PROJECTION_MATRIX:
-      append(dst, "matrix.projection");
+      append(dst, "matrix.projection.");
+      break;
+   case STATE_PROJECTION_MATRIX_INVERSE:
+      append(dst, "matrix.projection.inverse.");
+      break;
+   case STATE_PROJECTION_MATRIX_TRANSPOSE:
+      append(dst, "matrix.projection.transpose.");
+      break;
+   case STATE_PROJECTION_MATRIX_INVTRANS:
+      append(dst, "matrix.projection.invtrans.");
       break;
    case STATE_MVP_MATRIX:
-      append(dst, "matrix.mvp");
+      append(dst, "matrix.mvp.");
+      break;
+   case STATE_MVP_MATRIX_INVERSE:
+      append(dst, "matrix.mvp.inverse.");
+      break;
+   case STATE_MVP_MATRIX_TRANSPOSE:
+      append(dst, "matrix.mvp.transpose.");
+      break;
+   case STATE_MVP_MATRIX_INVTRANS:
+      append(dst, "matrix.mvp.invtrans.");
       break;
    case STATE_TEXTURE_MATRIX:
       append(dst, "matrix.texture");
       break;
+   case STATE_TEXTURE_MATRIX_INVERSE:
+      append(dst, "matrix.texture.inverse");
+      break;
+   case STATE_TEXTURE_MATRIX_TRANSPOSE:
+      append(dst, "matrix.texture.transpose");
+      break;
+   case STATE_TEXTURE_MATRIX_INVTRANS:
+      append(dst, "matrix.texture.invtrans");
+      break;
    case STATE_PROGRAM_MATRIX:
       append(dst, "matrix.program");
       break;
-   case STATE_MATRIX_INVERSE:
-      append(dst, ".inverse");
+   case STATE_PROGRAM_MATRIX_INVERSE:
+      append(dst, "matrix.program.inverse");
       break;
-   case STATE_MATRIX_TRANSPOSE:
-      append(dst, ".transpose");
+   case STATE_PROGRAM_MATRIX_TRANSPOSE:
+      append(dst, "matrix.program.transpose");
       break;
-   case STATE_MATRIX_INVTRANS:
-      append(dst, ".invtrans");
+   case STATE_PROGRAM_MATRIX_INVTRANS:
+      append(dst, "matrix.program.invtrans");
+      break;
       break;
    case STATE_AMBIENT:
-      append(dst, ".ambient");
+      append(dst, "ambient");
       break;
    case STATE_DIFFUSE:
-      append(dst, ".diffuse");
+      append(dst, "diffuse");
       break;
    case STATE_SPECULAR:
-      append(dst, ".specular");
+      append(dst, "specular");
       break;
    case STATE_EMISSION:
-      append(dst, ".emission");
+      append(dst, "emission");
       break;
    case STATE_SHININESS:
-      append(dst, "lshininess");
+      append(dst, "shininess");
       break;
    case STATE_HALF_VECTOR:
-      append(dst, ".half");
+      append(dst, "half");
       break;
    case STATE_POSITION:
-      append(dst, ".position");
+      append(dst, "position");
       break;
    case STATE_ATTENUATION:
-      append(dst, ".attenuation");
+      append(dst, "attenuation");
       break;
    case STATE_SPOT_DIRECTION:
-      append(dst, ".spot.direction");
+      append(dst, "spot.direction");
       break;
    case STATE_SPOT_CUTOFF:
-      append(dst, ".spot.cutoff");
+      append(dst, "spot.cutoff");
       break;
    case STATE_TEXGEN_EYE_S:
-      append(dst, ".eye.s");
+      append(dst, "eye.s");
       break;
    case STATE_TEXGEN_EYE_T:
-      append(dst, ".eye.t");
+      append(dst, "eye.t");
       break;
    case STATE_TEXGEN_EYE_R:
-      append(dst, ".eye.r");
+      append(dst, "eye.r");
       break;
    case STATE_TEXGEN_EYE_Q:
-      append(dst, ".eye.q");
+      append(dst, "eye.q");
       break;
    case STATE_TEXGEN_OBJECT_S:
-      append(dst, ".object.s");
+      append(dst, "object.s");
       break;
    case STATE_TEXGEN_OBJECT_T:
-      append(dst, ".object.t");
+      append(dst, "object.t");
       break;
    case STATE_TEXGEN_OBJECT_R:
-      append(dst, ".object.r");
+      append(dst, "object.r");
       break;
    case STATE_TEXGEN_OBJECT_Q:
-      append(dst, ".object.q");
+      append(dst, "object.q");
       break;
    case STATE_TEXENV_COLOR:
       append(dst, "texenv");
@@ -901,7 +1007,7 @@ append_token(char *dst, gl_state_index k)
       break;
    /* BEGIN internal state vars */
    case STATE_INTERNAL:
-      append(dst, ".internal.");
+      append(dst, "internal.");
       break;
    case STATE_CURRENT_ATTRIB:
       append(dst, "current");
@@ -967,10 +1073,10 @@ append_face(char *dst, GLint face)
 }
 
 static void
-append_index(char *dst, GLint index)
+append_index(char *dst, GLint index, bool structure)
 {
    char s[20];
-   sprintf(s, "[%d]", index);
+   sprintf(s, "[%d]%s", index, structure ? "." : "");
    append(dst, s);
 }
 
@@ -994,11 +1100,14 @@ _mesa_program_state_string(const gl_state_index16 state[STATE_LENGTH])
       append_token(str, state[2]);
       break;
    case STATE_LIGHT:
-      append_index(str, state[1]); /* light number [i]. */
+      append_index(str, state[1], true); /* light number [i]. */
       append_token(str, state[2]); /* coefficients */
       break;
+   case STATE_LIGHT_ATTRIBS:
+      sprintf(tmp, "[%d..%d]", state[1], state[1] + state[2] - 1);
+      append(str, tmp);
+      break;
    case STATE_LIGHTMODEL_AMBIENT:
-      append(str, "lightmodel.ambient");
       break;
    case STATE_LIGHTMODEL_SCENECOLOR:
       if (state[1] == 0) {
@@ -1009,48 +1118,59 @@ _mesa_program_state_string(const gl_state_index16 state[STATE_LENGTH])
       }
       break;
    case STATE_LIGHTPROD:
-      append_index(str, state[1]); /* light number [i]. */
+      append_index(str, state[1], true); /* light number [i]. */
       append_face(str, state[2]);
       append_token(str, state[3]);
       break;
    case STATE_TEXGEN:
-      append_index(str, state[1]); /* tex unit [i] */
+      append_index(str, state[1], true); /* tex unit [i] */
       append_token(str, state[2]); /* plane coef */
       break;
    case STATE_TEXENV_COLOR:
-      append_index(str, state[1]); /* tex unit [i] */
+      append_index(str, state[1], true); /* tex unit [i] */
       append(str, "color");
       break;
    case STATE_CLIPPLANE:
-      append_index(str, state[1]); /* plane [i] */
-      append(str, ".plane");
+      append_index(str, state[1], true); /* plane [i] */
+      append(str, "plane");
       break;
    case STATE_MODELVIEW_MATRIX:
+   case STATE_MODELVIEW_MATRIX_INVERSE:
+   case STATE_MODELVIEW_MATRIX_TRANSPOSE:
+   case STATE_MODELVIEW_MATRIX_INVTRANS:
    case STATE_PROJECTION_MATRIX:
+   case STATE_PROJECTION_MATRIX_INVERSE:
+   case STATE_PROJECTION_MATRIX_TRANSPOSE:
+   case STATE_PROJECTION_MATRIX_INVTRANS:
    case STATE_MVP_MATRIX:
+   case STATE_MVP_MATRIX_INVERSE:
+   case STATE_MVP_MATRIX_TRANSPOSE:
+   case STATE_MVP_MATRIX_INVTRANS:
    case STATE_TEXTURE_MATRIX:
+   case STATE_TEXTURE_MATRIX_INVERSE:
+   case STATE_TEXTURE_MATRIX_TRANSPOSE:
+   case STATE_TEXTURE_MATRIX_INVTRANS:
    case STATE_PROGRAM_MATRIX:
+   case STATE_PROGRAM_MATRIX_INVERSE:
+   case STATE_PROGRAM_MATRIX_TRANSPOSE:
+   case STATE_PROGRAM_MATRIX_INVTRANS:
       {
          /* state[0] = modelview, projection, texture, etc. */
          /* state[1] = which texture matrix or program matrix */
          /* state[2] = first row to fetch */
          /* state[3] = last row to fetch */
-         /* state[4] = transpose, inverse or invtrans */
          const gl_state_index mat = state[0];
          const GLuint index = (GLuint) state[1];
          const GLuint firstRow = (GLuint) state[2];
          const GLuint lastRow = (GLuint) state[3];
-         const gl_state_index modifier = state[4];
          if (index ||
-             mat == STATE_TEXTURE_MATRIX ||
-             mat == STATE_PROGRAM_MATRIX)
-            append_index(str, index);
-         if (modifier)
-            append_token(str, modifier);
+             (mat >= STATE_TEXTURE_MATRIX &&
+              mat <= STATE_PROGRAM_MATRIX_INVTRANS))
+            append_index(str, index, true);
          if (firstRow == lastRow)
-            sprintf(tmp, ".row[%d]", firstRow);
+            sprintf(tmp, "row[%d]", firstRow);
          else
-            sprintf(tmp, ".row[%d..%d]", firstRow, lastRow);
+            sprintf(tmp, "row[%d..%d]", firstRow, lastRow);
          append(str, tmp);
       }
       break;
@@ -1071,14 +1191,15 @@ _mesa_program_state_string(const gl_state_index16 state[STATE_LENGTH])
       /* state[1] = {STATE_ENV, STATE_LOCAL} */
       /* state[2] = parameter index          */
       append_token(str, state[1]);
-      append_index(str, state[2]);
+      append_index(str, state[2], false);
       break;
    case STATE_NORMAL_SCALE:
       break;
    case STATE_INTERNAL:
       append_token(str, state[1]);
-      if (state[1] == STATE_CURRENT_ATTRIB)
-         append_index(str, state[2]);
+      if (state[1] == STATE_CURRENT_ATTRIB ||
+          state[1] == STATE_CURRENT_ATTRIB_MAYBE_VP_CLAMPED)
+         append_index(str, state[2], false);
        break;
    default:
       _mesa_problem(NULL, "Invalid state in _mesa_program_state_string");
@@ -1101,16 +1222,167 @@ void
 _mesa_load_state_parameters(struct gl_context *ctx,
                             struct gl_program_parameter_list *paramList)
 {
-   GLuint i;
-
    if (!paramList)
       return;
 
-   for (i = 0; i < paramList->NumParameters; i++) {
-      if (paramList->Parameters[i].Type == PROGRAM_STATE_VAR) {
-         unsigned pvo = paramList->ParameterValueOffset[i];
-         fetch_state(ctx, paramList->Parameters[i].StateIndexes,
-                     paramList->ParameterValues + pvo);
+   assert(paramList->LastUniformIndex < paramList->FirstStateVarIndex);
+   int num = paramList->NumParameters;
+
+   for (int i = paramList->FirstStateVarIndex; i < num; i++) {
+      unsigned pvo = paramList->Parameters[i].ValueOffset;
+      fetch_state(ctx, paramList->Parameters[i].StateIndexes,
+                  paramList->ParameterValues + pvo);
+   }
+}
+
+void
+_mesa_upload_state_parameters(struct gl_context *ctx,
+                              struct gl_program_parameter_list *paramList,
+                              uint32_t *dst)
+{
+   assert(paramList->LastUniformIndex < paramList->FirstStateVarIndex);
+   int num = paramList->NumParameters;
+
+   for (int i = paramList->FirstStateVarIndex; i < num; i++) {
+      unsigned pvo = paramList->Parameters[i].ValueOffset;
+      fetch_state(ctx, paramList->Parameters[i].StateIndexes,
+                  (gl_constant_value*)(dst + pvo));
+   }
+}
+
+/* Merge consecutive state vars into one for the state vars that allow
+ * multiple vec4s.
+ *
+ * This should be done after shader compilation, so that drivers don't
+ * have to deal with multi-slot state parameters in their backends.
+ * It's only meant to optimize _mesa_load/upload_state_parameters.
+ */
+void
+_mesa_optimize_state_parameters(struct gl_program_parameter_list *list)
+{
+   assert(list->LastUniformIndex < list->FirstStateVarIndex);
+
+   for (int first_param = list->FirstStateVarIndex;
+        first_param < (int)list->NumParameters; first_param++) {
+      int last_param = first_param;
+      int param_diff = 0;
+
+      assert(list->Parameters[first_param].Type == PROGRAM_STATE_VAR);
+
+      switch (list->Parameters[first_param].StateIndexes[0]) {
+      case STATE_MODELVIEW_MATRIX:
+      case STATE_MODELVIEW_MATRIX_INVERSE:
+      case STATE_MODELVIEW_MATRIX_TRANSPOSE:
+      case STATE_MODELVIEW_MATRIX_INVTRANS:
+      case STATE_PROJECTION_MATRIX:
+      case STATE_PROJECTION_MATRIX_INVERSE:
+      case STATE_PROJECTION_MATRIX_TRANSPOSE:
+      case STATE_PROJECTION_MATRIX_INVTRANS:
+      case STATE_MVP_MATRIX:
+      case STATE_MVP_MATRIX_INVERSE:
+      case STATE_MVP_MATRIX_TRANSPOSE:
+      case STATE_MVP_MATRIX_INVTRANS:
+      case STATE_TEXTURE_MATRIX:
+      case STATE_TEXTURE_MATRIX_INVERSE:
+      case STATE_TEXTURE_MATRIX_TRANSPOSE:
+      case STATE_TEXTURE_MATRIX_INVTRANS:
+      case STATE_PROGRAM_MATRIX:
+      case STATE_PROGRAM_MATRIX_INVERSE:
+      case STATE_PROGRAM_MATRIX_TRANSPOSE:
+      case STATE_PROGRAM_MATRIX_INVTRANS:
+         /* Skip unaligned state vars. */
+         if (list->Parameters[first_param].Size % 4)
+            break;
+
+         /* Search for adjacent state vars that refer to adjacent rows. */
+         for (int i = first_param + 1; i < (int)list->NumParameters; i++) {
+            if (list->Parameters[i].StateIndexes[0] ==
+                list->Parameters[i - 1].StateIndexes[0] &&
+                list->Parameters[i].StateIndexes[1] ==
+                list->Parameters[i - 1].StateIndexes[1] &&
+                list->Parameters[i].StateIndexes[2] ==         /* FirstRow */
+                list->Parameters[i - 1].StateIndexes[3] + 1 && /* LastRow + 1 */
+                list->Parameters[i].Size == 4) {
+               last_param = i;
+               continue;
+            }
+            break; /* The adjacent state var is incompatible. */
+         }
+         if (last_param > first_param) {
+            int first_vec = list->Parameters[first_param].StateIndexes[2];
+            int last_vec = list->Parameters[last_param].StateIndexes[3];
+
+            assert(first_vec < last_vec);
+            assert(last_vec - first_vec == last_param - first_param);
+
+            /* Update LastRow. */
+            list->Parameters[first_param].StateIndexes[3] = last_vec;
+            list->Parameters[first_param].Size = (last_vec - first_vec + 1) * 4;
+
+            param_diff = last_param - first_param;
+         }
+         break;
+
+      case STATE_LIGHT:
+         /* Skip trimmed state vars. (this shouldn't occur though) */
+         if (list->Parameters[first_param].Size !=
+             _mesa_program_state_value_size(list->Parameters[first_param].StateIndexes))
+            break;
+
+         /* Search for light attributes that are adjacent in memory. */
+         for (int i = first_param + 1; i < (int)list->NumParameters; i++) {
+            if (list->Parameters[i].StateIndexes[0] == STATE_LIGHT &&
+                /* Consecutive attributes of the same light: */
+                ((list->Parameters[i].StateIndexes[1] ==
+                  list->Parameters[i - 1].StateIndexes[1] &&
+                  list->Parameters[i].StateIndexes[2] ==
+                  list->Parameters[i - 1].StateIndexes[2] + 1) ||
+                 /* Consecutive attributes between 2 lights: */
+                 (list->Parameters[i].StateIndexes[1] ==
+                  list->Parameters[i - 1].StateIndexes[1] + 1 &&
+                  list->Parameters[i].StateIndexes[2] == STATE_AMBIENT &&
+                  list->Parameters[i - 1].StateIndexes[2] == STATE_SPOT_CUTOFF))) {
+               last_param = i;
+               continue;
+            }
+            break; /* The adjacent state var is incompatible. */
+         }
+         if (last_param > first_param) {
+            /* Convert the state var to STATE_LIGHT_ATTRIBS. */
+            list->Parameters[first_param].StateIndexes[0] = STATE_LIGHT_ATTRIBS;
+            /* Set the offset in floats. */
+            list->Parameters[first_param].StateIndexes[1] =
+               list->Parameters[first_param].StateIndexes[1] * /* light index */
+               sizeof(struct gl_light_uniforms) / 4 +
+               (list->Parameters[first_param].StateIndexes[2] - STATE_AMBIENT) * 4;
+            /* Set the size in floats. */
+            list->Parameters[first_param].StateIndexes[2] =
+            list->Parameters[first_param].Size =
+               list->Parameters[last_param].Size +
+               list->Parameters[last_param].ValueOffset -
+               list->Parameters[first_param].ValueOffset;
+
+            param_diff = last_param - first_param;
+         }
+         break;
+      }
+
+      if (param_diff) {
+         /* Update the name. */
+         free((void*)list->Parameters[first_param].Name);
+         list->Parameters[first_param].Name =
+            _mesa_program_state_string(list->Parameters[first_param].StateIndexes);
+
+         /* Free names that we are going to overwrite. */
+         for (int i = first_param + 1; i <= last_param; i++)
+            free((char*)list->Parameters[i].Name);
+
+         /* Remove the merged state vars. */
+         memmove(&list->Parameters[first_param + 1],
+                 &list->Parameters[last_param + 1],
+                 sizeof(list->Parameters[0]) *
+                 (list->NumParameters - last_param - 1));
+         list->NumParameters -= param_diff;
       }
    }
 }

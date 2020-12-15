@@ -203,8 +203,7 @@ struct _XDisplay
 	unsigned long request_upper32bit;
 #endif
 
-	/* avoid recursion on requests sequence number synchronization */
-	Bool req_seq_syncing; /* requests syncing is in-progress */
+	struct _XErrorThreadInfo *error_threads;
 
 	XIOErrorExitHandler exit_handler;
 	void *exit_handler_data;

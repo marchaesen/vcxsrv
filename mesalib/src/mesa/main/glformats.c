@@ -1236,7 +1236,7 @@ _mesa_is_color_format(GLenum format)
       case GL_RGB10_A2UI:
          return GL_TRUE;
       case GL_YCBCR_MESA:  /* not considered to be RGB */
-         /* fall-through */
+         FALLTHROUGH;
       default:
          return GL_FALSE;
    }
@@ -1895,7 +1895,7 @@ _mesa_error_check_format_and_type(const struct gl_context *ctx,
       case GL_RED:
          if (_mesa_has_rg_textures(ctx))
             return GL_NO_ERROR;
-         /* fallthrough */
+         FALLTHROUGH;
       default:
          return GL_INVALID_OPERATION;
       }
@@ -2190,7 +2190,7 @@ _mesa_es_error_check_format_and_type(const struct gl_context *ctx,
    case GL_RG:
       if (!_mesa_has_rg_textures(ctx))
          return GL_INVALID_VALUE;
-      /* fallthrough */
+      FALLTHROUGH;
    case GL_ALPHA:
    case GL_LUMINANCE:
    case GL_LUMINANCE_ALPHA:
@@ -2590,7 +2590,7 @@ _mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat)
       case GL_R32UI:
          if (!_mesa_has_integer_textures(ctx))
             break;
-         /* FALLTHROUGH */
+         FALLTHROUGH;
       case GL_R8:
       case GL_R16:
       case GL_RED:
@@ -2613,7 +2613,7 @@ _mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat)
       case GL_RG32UI:
          if (!_mesa_has_integer_textures(ctx))
             break;
-         /* FALLTHROUGH */
+         FALLTHROUGH;
       case GL_RG:
       case GL_RG8:
       case GL_RG16:
@@ -2744,7 +2744,7 @@ gles_effective_internal_format_for_format_and_type(GLenum format,
    case GL_FLOAT:
       if (format == GL_DEPTH_COMPONENT)
          return GL_DEPTH_COMPONENT32F;
-      /* fall through */
+      FALLTHROUGH;
    case GL_HALF_FLOAT_OES:
       switch (format) {
       case GL_RGBA:

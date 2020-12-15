@@ -44,6 +44,8 @@
  * corrupt, etc) we will use a fallback path to compile and link the IR.
  */
 
+#include "util/os_misc.h"
+
 #include "compiler/shader_info.h"
 #include "glsl_symbol_table.h"
 #include "glsl_parser_extras.h"
@@ -188,7 +190,7 @@ shader_cache_read_program_metadata(struct gl_context *ctx,
     * preprocessor could result in different output and we could load the
     * wrong shader.
     */
-   char *ext_override = getenv("MESA_EXTENSION_OVERRIDE");
+   const char *ext_override = os_get_option("MESA_EXTENSION_OVERRIDE");
    if (ext_override) {
       ralloc_asprintf_append(&buf, "ext:%s", ext_override);
    }

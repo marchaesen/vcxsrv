@@ -77,8 +77,8 @@ function.
 .nf
 
     typedef struct {
-        char            real[XkbKeyNameLength];   /\(** this key name must be in the keys array */
-        char            alias[XkbKeyNameLength];  /\(** symbolic key name as alias for the key */
+        char            real[XkbKeyNameLength];   /\&* this key name must be in the keys array */
+        char            alias[XkbKeyNameLength];  /\&* symbolic key name as alias for the key */
     } XkbKeyAliasRec,*XkbKeyAliasPtr;
 .fi
 .SH "SEE ALSO"

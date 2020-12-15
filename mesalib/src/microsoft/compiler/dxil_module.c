@@ -30,6 +30,7 @@
 #include "util/rb_tree.h"
 
 #include <assert.h>
+#include <stdio.h>
 
 void
 dxil_module_init(struct dxil_module *m, void *ralloc_ctx)
@@ -63,7 +64,7 @@ dxil_module_release(struct dxil_module *m)
    dxil_buffer_finish(&m->buf);
 }
 
-bool
+static bool
 emit_bits64(struct dxil_buffer *b, uint64_t data, unsigned width)
 {
    if (data > UINT32_MAX) {
@@ -808,15 +809,14 @@ dxil_module_get_res_type(struct dxil_module *m, enum dxil_resource_kind kind,
    case DXIL_RESOURCE_KIND_TEXTURECUBE:
    case DXIL_RESOURCE_KIND_TEXTURECUBE_ARRAY:
    {
-      const struct dxil_type *int32_type = dxil_module_get_int_type(m, 32);
       const struct dxil_type *component_type = dxil_module_get_type_from_comp_type(m, comp_type);
       const struct dxil_type *vec_type = dxil_module_get_vector_type(m, component_type, 4);
       char class_name[64] = { 0 };
-      sprintf_s(class_name, 64, "class.%s%s<vector<%s, 4>%s>",
-                readwrite ? "RW" : "",
-                get_res_dimension_type_name(kind),
-                get_res_comp_type_name(comp_type),
-                get_res_ms_postfix(kind));
+      snprintf(class_name, 64, "class.%s%s<vector<%s, 4>%s>",
+               readwrite ? "RW" : "",
+               get_res_dimension_type_name(kind),
+               get_res_comp_type_name(comp_type),
+               get_res_ms_postfix(kind));
       return dxil_module_get_struct_type(m, class_name, &vec_type, 1);
    }
 
@@ -907,12 +907,12 @@ enum type_codes {
   TYPE_CODE_FUNCTION = 21
 };
 
-#define LITERAL(x) { DXIL_OP_LITERAL, (x) }
-#define FIXED(x) { DXIL_OP_FIXED, (x) }
-#define VBR(x) { DXIL_OP_VBR, (x) }
-#define ARRAY { DXIL_OP_ARRAY, 0 }
-#define CHAR6 { DXIL_OP_CHAR6, 0 }
-#define BLOB { DXIL_OP_BLOB, 0 }
+#define LITERAL(x) { DXIL_OP_LITERAL, { (x) } }
+#define FIXED(x) { DXIL_OP_FIXED, { (x) } }
+#define VBR(x) { DXIL_OP_VBR, { (x) } }
+#define ARRAY { DXIL_OP_ARRAY, { 0 } }
+#define CHAR6 { DXIL_OP_CHAR6, { 0 } }
+#define BLOB { DXIL_OP_BLOB, { 0 } }
 
 #define TYPE_INDEX FIXED(32)
 
@@ -1261,7 +1261,6 @@ emit_attrib_group(struct dxil_module *m, int id, uint32_t slot,
    size_t size = 2;
 
    for (int i = 0; i < num_attrs; ++i) {
-      uint64_t kind;
       switch (attrs[i].type) {
       case DXIL_ATTR_ENUM:
          assert(size < ARRAY_SIZE(record) - 2);
@@ -1828,8 +1827,8 @@ static unsigned
 get_attr_set(struct dxil_module *m, enum dxil_attr_kind attr)
 {
    struct dxil_attrib attrs[2] = {
-      { DXIL_ATTR_ENUM, DXIL_ATTR_KIND_NO_UNWIND },
-      { DXIL_ATTR_ENUM, attr }
+      { DXIL_ATTR_ENUM, { DXIL_ATTR_KIND_NO_UNWIND } },
+      { DXIL_ATTR_ENUM, { attr } }
    };
 
    int index = 1;
@@ -1997,7 +1996,7 @@ emit_undef_value(struct dxil_module *m)
    return emit_record_no_abbrev(&m->buf, CST_CODE_UNDEF, NULL, 0);
 }
 
-uint64_t
+static uint64_t
 encode_signed(int64_t value)
 {
    return value >= 0 ?
@@ -2105,7 +2104,7 @@ emit_consts(struct dxil_module *m)
    return true;
 }
 
-bool
+static bool
 emit_module_consts(struct dxil_module *m)
 {
    return enter_subblock(m, DXIL_CONST_BLOCK, 4) &&
@@ -2274,12 +2273,12 @@ dxil_get_metadata_node(struct dxil_module *m,
 
    n = create_mdnode(m, MD_NODE);
    if (n) {
-      n->node.subnodes = ralloc_array(n, struct dxil_mdnode *, num_subnodes);
-      if (!n->node.subnodes)
+      void *tmp = ralloc_array(n, struct dxil_mdnode *, num_subnodes);
+      if (!tmp)
          return NULL;
 
-      memcpy(n->node.subnodes, subnodes, sizeof(struct dxil_mdnode *) *
-             num_subnodes);
+      memcpy(tmp, subnodes, sizeof(struct dxil_mdnode *) * num_subnodes);
+      n->node.subnodes = tmp;
       n->node.num_subnodes = num_subnodes;
    }
    return n;
@@ -2355,12 +2354,12 @@ dxil_add_metadata_named_node(struct dxil_module *m, const char *name,
    if (!n->name)
       return false;
 
-   n->subnodes = ralloc_array(n, struct dxil_mdnode *, num_subnodes);
-   if (!n->subnodes)
+   void *tmp = ralloc_array(n, struct dxil_mdnode *, num_subnodes);
+   if (!tmp)
       return false;
 
-   memcpy(n->subnodes, subnodes, sizeof(struct dxil_mdnode *) *
-          num_subnodes);
+   memcpy(tmp, subnodes, sizeof(struct dxil_mdnode *) * num_subnodes);
+   n->subnodes = tmp;
    n->num_subnodes = num_subnodes;
 
    list_addtail(&n->head, &m->md_named_node_list);
@@ -2989,7 +2988,7 @@ emit_cast(struct dxil_module *m, struct dxil_instr *instr)
                                   data, ARRAY_SIZE(data));
 }
 
-bool
+static bool
 emit_branch(struct dxil_module *m, struct dxil_instr *instr)
 {
    assert(instr->type == INSTR_BR);
@@ -3015,7 +3014,7 @@ emit_branch(struct dxil_module *m, struct dxil_instr *instr)
                                 data, ARRAY_SIZE(data));
 }
 
-bool
+static bool
 emit_phi(struct dxil_module *m, struct dxil_instr *instr)
 {
    assert(instr->type == INSTR_PHI);

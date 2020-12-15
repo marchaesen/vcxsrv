@@ -228,6 +228,14 @@ gl_varying_slot_name(gl_varying_slot slot)
 }
 
 const char *
+gl_varying_slot_name_for_stage(gl_varying_slot slot, gl_shader_stage stage)
+{
+   if (stage != MESA_SHADER_FRAGMENT && slot == VARYING_SLOT_PRIMITIVE_SHADING_RATE)
+      return "VARYING_SLOT_PRIMITIVE_SHADING_RATE";
+   return gl_varying_slot_name(slot);
+}
+
+const char *
 gl_system_value_name(gl_system_value sysval)
 {
    static const char *names[] = {
@@ -304,6 +312,7 @@ gl_system_value_name(gl_system_value sysval)
      ENUM(SYSTEM_VALUE_RAY_GEOMETRY_INDEX),
      ENUM(SYSTEM_VALUE_GS_HEADER_IR3),
      ENUM(SYSTEM_VALUE_TCS_HEADER_IR3),
+     ENUM(SYSTEM_VALUE_FRAG_SHADING_RATE),
    };
    STATIC_ASSERT(ARRAY_SIZE(names) == SYSTEM_VALUE_MAX);
    return NAME(sysval);

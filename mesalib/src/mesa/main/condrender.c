@@ -73,7 +73,7 @@ begin_conditional_render(struct gl_context *ctx, GLuint queryId, GLenum mode,
       case GL_QUERY_BY_REGION_NO_WAIT_INVERTED:
          if (ctx->Extensions.ARB_conditional_render_inverted)
             break; /* OK */
-         /* fallthrough - invalid */
+         FALLTHROUGH;
       default:
          _mesa_error(ctx, GL_INVALID_ENUM, "glBeginConditionalRender(mode=%s)",
                      _mesa_enum_to_string(mode));

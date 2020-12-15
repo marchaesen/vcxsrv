@@ -74,6 +74,9 @@ struct _mesa_index_buffer;
 /* Mapping a buffer is allowed from any thread. */
 #define MESA_MAP_THREAD_SAFE_BIT  0x8000
 
+/* This buffer will only be mapped/unmapped once */
+#define MESA_MAP_ONCE            0x10000
+
 
 /**
  * Device driver function table.
@@ -541,23 +544,15 @@ struct dd_function_table {
     * \param max_index  highest vertex index used
     * \param num_instances  instance count from ARB_draw_instanced
     * \param base_instance  base instance from ARB_base_instance
-    * \param tfb_vertcount  if non-null, indicates which transform feedback
-    *                       object has the vertex count.
-    * \param tfb_stream  If called via DrawTransformFeedbackStream, specifies
-    *                    the vertex stream buffer from which to get the vertex
-    *                    count.
-    * \param indirect  If any prims are indirect, this specifies the buffer
-    *                  to find the "DrawArrays/ElementsIndirectCommand" data.
-    *                  This may be deprecated in the future
     */
    void (*Draw)(struct gl_context *ctx,
-                const struct _mesa_prim *prims, GLuint nr_prims,
+                const struct _mesa_prim *prims, unsigned nr_prims,
                 const struct _mesa_index_buffer *ib,
-                GLboolean index_bounds_valid,
-                GLuint min_index, GLuint max_index,
-                GLuint num_instances, GLuint base_instance,
-                struct gl_transform_feedback_object *tfb_vertcount,
-                unsigned tfb_stream);
+                bool index_bounds_valid,
+                bool primitive_restart,
+                unsigned restart_index,
+                unsigned min_index, unsigned max_index,
+                unsigned num_instances, unsigned base_instance);
 
 
    /**
@@ -583,7 +578,24 @@ struct dd_function_table {
                         unsigned stride,
                         struct gl_buffer_object *indirect_draw_count_buffer,
                         GLsizeiptr indirect_draw_count_offset,
-                        const struct _mesa_index_buffer *ib);
+                        const struct _mesa_index_buffer *ib,
+                        bool primitive_restart,
+                        unsigned restart_index);
+
+   /**
+    * Driver implementation of glDrawTransformFeedback.
+    *
+    * \param mode    Primitive type
+    * \param num_instances  instance count from ARB_draw_instanced
+    * \param stream  If called via DrawTransformFeedbackStream, specifies
+    *                the vertex stream buffer from which to get the vertex
+    *                count.
+    * \param tfb_vertcount  if non-null, indicates which transform feedback
+    *                       object has the vertex count.
+    */
+   void (*DrawTransformFeedback)(struct gl_context *ctx, GLenum mode,
+                                 unsigned num_instances, unsigned stream,
+                                 struct gl_transform_feedback_object *tfb_vertcount);
    /*@}*/
 
 

@@ -1052,6 +1052,57 @@ emit_intrinsic_atomic_shared(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	return atomic;
 }
 
+/* src[] = { offset }. */
+static void
+emit_intrinsic_load_scratch(struct ir3_context *ctx, nir_intrinsic_instr *intr,
+		struct ir3_instruction **dst)
+{
+	struct ir3_block *b = ctx->block;
+	struct ir3_instruction *ldp, *offset;
+
+	offset = ir3_get_src(ctx, &intr->src[0])[0];
+
+	ldp = ir3_LDP(b, offset, 0,
+			create_immed(b, intr->num_components), 0,
+			create_immed(b, 0), 0);
+
+	ldp->cat6.type = utype_dst(intr->dest);
+	ldp->regs[0]->wrmask = MASK(intr->num_components);
+
+	ldp->barrier_class = IR3_BARRIER_PRIVATE_R;
+	ldp->barrier_conflict = IR3_BARRIER_PRIVATE_W;
+
+	ir3_split_dest(b, dst, ldp, 0, intr->num_components);
+}
+
+/* src[] = { value, offset }. const_index[] = { write_mask } */
+static void
+emit_intrinsic_store_scratch(struct ir3_context *ctx, nir_intrinsic_instr *intr)
+{
+	struct ir3_block *b = ctx->block;
+	struct ir3_instruction *stp, *offset;
+	struct ir3_instruction * const *value;
+	unsigned wrmask, ncomp;
+
+	value  = ir3_get_src(ctx, &intr->src[0]);
+	offset = ir3_get_src(ctx, &intr->src[1])[0];
+
+	wrmask = nir_intrinsic_write_mask(intr);
+	ncomp  = ffs(~wrmask) - 1;
+
+	assert(wrmask == BITFIELD_MASK(intr->num_components));
+
+	stp = ir3_STP(b, offset, 0,
+		ir3_create_collect(ctx, value, ncomp), 0,
+		create_immed(b, ncomp), 0);
+	stp->cat6.dst_offset = 0;
+	stp->cat6.type = utype_src(intr->src[0]);
+	stp->barrier_class = IR3_BARRIER_PRIVATE_W;
+	stp->barrier_conflict = IR3_BARRIER_PRIVATE_R | IR3_BARRIER_PRIVATE_W;
+
+	array_insert(b, b->keeps, stp);
+}
+
 struct tex_src_info {
 	/* For prefetch */
 	unsigned tex_base, samp_base, tex_idx, samp_idx;
@@ -1713,6 +1764,12 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	case nir_intrinsic_shared_atomic_exchange:
 	case nir_intrinsic_shared_atomic_comp_swap:
 		dst[0] = emit_intrinsic_atomic_shared(ctx, intr);
+		break;
+	case nir_intrinsic_load_scratch:
+		emit_intrinsic_load_scratch(ctx, intr, dst);
+		break;
+	case nir_intrinsic_store_scratch:
+		emit_intrinsic_store_scratch(ctx, intr);
 		break;
 	case nir_intrinsic_image_load:
 		emit_intrinsic_load_image(ctx, intr, dst);
@@ -3346,6 +3403,8 @@ emit_instructions(struct ir3_context *ctx)
 	ctx->so->clip_mask = ctx->so->key.ucp_enables;
 	ctx->so->cull_mask = MASK(ctx->s->info.cull_distance_array_size) <<
 		ctx->s->info.clip_distance_array_size;
+
+	ctx->so->pvtmem_size = ctx->s->scratch_size;
 
 	/* NOTE: need to do something more clever when we support >1 fxn */
 	nir_foreach_register (reg, &fxn->registers) {

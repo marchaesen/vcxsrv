@@ -613,6 +613,7 @@ nir_lower_io_block(nir_block *block,
          if (options->use_interpolated_input_intrinsics ||
              options->lower_interpolate_at)
             break;
+         FALLTHROUGH;
       default:
          /* We can't lower the io for this nir instrinsic, so skip it */
          continue;
@@ -880,11 +881,11 @@ build_addr_for_var(nir_builder *b, nir_variable *var,
       nir_ssa_def *base_addr;
       switch (var->data.mode) {
       case nir_var_shader_temp:
-         base_addr = nir_load_scratch_base_ptr(b, 0, num_comps, bit_size);
+         base_addr = nir_load_scratch_base_ptr(b, num_comps, bit_size, 0);
          break;
 
       case nir_var_function_temp:
-         base_addr = nir_load_scratch_base_ptr(b, 1, num_comps, bit_size);
+         base_addr = nir_load_scratch_base_ptr(b, num_comps, bit_size, 1);
          break;
 
       case nir_var_mem_constant:
@@ -1992,14 +1993,8 @@ lower_explicit_io_array_length(nir_builder *b, nir_intrinsic_instr *intrin,
    nir_ssa_def *index = addr_to_index(b, addr, addr_format);
    nir_ssa_def *offset = addr_to_offset(b, addr, addr_format);
 
-   nir_intrinsic_instr *bsize =
-      nir_intrinsic_instr_create(b->shader, nir_intrinsic_get_ssbo_size);
-   bsize->src[0] = nir_src_for_ssa(index);
-   nir_ssa_dest_init(&bsize->instr, &bsize->dest, 1, 32, NULL);
-   nir_builder_instr_insert(b, &bsize->instr);
-
    nir_ssa_def *arr_size =
-      nir_idiv(b, nir_isub(b, &bsize->dest.ssa, offset),
+      nir_idiv(b, nir_isub(b, nir_get_ssbo_size(b, index), offset),
                   nir_imm_int(b, stride));
 
    nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(arr_size));
@@ -2240,6 +2235,10 @@ lower_vars_to_explicit(nir_shader *shader,
    case nir_var_mem_constant:
       offset = shader->constant_data_size;
       break;
+   case nir_var_shader_call_data:
+   case nir_var_ray_hit_attrib:
+      offset = 0;
+      break;
    default:
       unreachable("Unsupported mode");
    }
@@ -2276,6 +2275,9 @@ lower_vars_to_explicit(nir_shader *shader,
    case nir_var_mem_constant:
       shader->constant_data_size = offset;
       break;
+   case nir_var_shader_call_data:
+   case nir_var_ray_hit_attrib:
+      break;
    default:
       unreachable("Unsupported mode");
    }
@@ -2298,8 +2300,9 @@ nir_lower_vars_to_explicit_types(nir_shader *shader,
     * - interface types
     */
    ASSERTED nir_variable_mode supported =
-      nir_var_mem_shared | nir_var_mem_global |
-      nir_var_shader_temp | nir_var_function_temp | nir_var_uniform;
+      nir_var_mem_shared | nir_var_mem_global | nir_var_mem_constant |
+      nir_var_shader_temp | nir_var_function_temp | nir_var_uniform |
+      nir_var_shader_call_data | nir_var_ray_hit_attrib;
    assert(!(modes & ~supported) && "unsupported");
 
    bool progress = false;
@@ -2310,6 +2313,12 @@ nir_lower_vars_to_explicit_types(nir_shader *shader,
       progress |= lower_vars_to_explicit(shader, &shader->variables, nir_var_mem_shared, type_info);
    if (modes & nir_var_shader_temp)
       progress |= lower_vars_to_explicit(shader, &shader->variables, nir_var_shader_temp, type_info);
+   if (modes & nir_var_mem_constant)
+      progress |= lower_vars_to_explicit(shader, &shader->variables, nir_var_mem_constant, type_info);
+   if (modes & nir_var_shader_call_data)
+      progress |= lower_vars_to_explicit(shader, &shader->variables, nir_var_shader_call_data, type_info);
+   if (modes & nir_var_ray_hit_attrib)
+      progress |= lower_vars_to_explicit(shader, &shader->variables, nir_var_ray_hit_attrib, type_info);
 
    nir_foreach_function(function, shader) {
       if (function->impl) {
@@ -2324,7 +2333,8 @@ nir_lower_vars_to_explicit_types(nir_shader *shader,
 }
 
 static void
-write_constant(void *dst, const nir_constant *c, const struct glsl_type *type)
+write_constant(void *dst, size_t dst_size,
+               const nir_constant *c, const struct glsl_type *type)
 {
    if (glsl_type_is_vector_or_scalar(type)) {
       const unsigned num_components = glsl_get_vector_elements(type);
@@ -2334,6 +2344,7 @@ write_constant(void *dst, const nir_constant *c, const struct glsl_type *type)
           *
           * TODO: Make the native bool bit_size an option.
           */
+         assert(num_components * 4 <= dst_size);
          for (unsigned i = 0; i < num_components; i++) {
             int32_t b32 = -(int)c->values[i].b;
             memcpy((char *)dst + i * 4, &b32, 4);
@@ -2341,6 +2352,7 @@ write_constant(void *dst, const nir_constant *c, const struct glsl_type *type)
       } else {
          assert(bit_size >= 8 && bit_size % 8 == 0);
          const unsigned byte_size = bit_size / 8;
+         assert(num_components * byte_size <= dst_size);
          for (unsigned i = 0; i < num_components; i++) {
             /* Annoyingly, thanks to packed structs, we can't make any
              * assumptions about the alignment of dst.  To avoid any strange
@@ -2354,53 +2366,42 @@ write_constant(void *dst, const nir_constant *c, const struct glsl_type *type)
       const unsigned stride = glsl_get_explicit_stride(type);
       assert(stride > 0);
       const struct glsl_type *elem_type = glsl_get_array_element(type);
-      for (unsigned i = 0; i < array_len; i++)
-         write_constant((char *)dst + i * stride, c->elements[i], elem_type);
+      for (unsigned i = 0; i < array_len; i++) {
+         unsigned elem_offset = i * stride;
+         assert(elem_offset < dst_size);
+         write_constant((char *)dst + elem_offset, dst_size - elem_offset,
+                        c->elements[i], elem_type);
+      }
    } else {
       assert(glsl_type_is_struct_or_ifc(type));
       const unsigned num_fields = glsl_get_length(type);
       for (unsigned i = 0; i < num_fields; i++) {
          const int field_offset = glsl_get_struct_field_offset(type, i);
-         assert(field_offset >= 0);
+         assert(field_offset >= 0 && field_offset < dst_size);
          const struct glsl_type *field_type = glsl_get_struct_field(type, i);
-         write_constant((char *)dst + field_offset, c->elements[i], field_type);
+         write_constant((char *)dst + field_offset, dst_size - field_offset,
+                        c->elements[i], field_type);
       }
    }
 }
 
-bool
-nir_lower_mem_constant_vars(nir_shader *shader,
-                            glsl_type_size_align_func type_info)
+void
+nir_gather_explicit_io_initializers(nir_shader *shader,
+                                    void *dst, size_t dst_size,
+                                    nir_variable_mode mode)
 {
-   bool progress = false;
+   /* It doesn't really make sense to gather initializers for more than one
+    * mode at a time.  If this ever becomes well-defined, we can drop the
+    * assert then.
+    */
+   assert(util_bitcount(mode) == 1);
 
-   unsigned old_constant_data_size = shader->constant_data_size;
-   if (lower_vars_to_explicit(shader, &shader->variables,
-                              nir_var_mem_constant, type_info)) {
-      assert(shader->constant_data_size > old_constant_data_size);
-      shader->constant_data = rerzalloc_size(shader, shader->constant_data,
-                                             old_constant_data_size,
-                                             shader->constant_data_size);
-
-      nir_foreach_variable_with_modes(var, shader, nir_var_mem_constant) {
-         write_constant((char *)shader->constant_data +
-                           var->data.driver_location,
-                        var->constant_initializer, var->type);
-      }
-      progress = true;
+   nir_foreach_variable_with_modes(var, shader, mode) {
+      assert(var->data.driver_location < dst_size);
+      write_constant((char *)dst + var->data.driver_location,
+                     dst_size - var->data.driver_location,
+                     var->constant_initializer, var->type);
    }
-
-   nir_foreach_function(function, shader) {
-      if (!function->impl)
-         continue;
-
-      if (nir_lower_vars_to_explicit_types_impl(function->impl,
-                                                nir_var_mem_constant,
-                                                type_info))
-         progress = true;
-   }
-
-   return progress;
 }
 
 /**

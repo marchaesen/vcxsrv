@@ -43,7 +43,6 @@ extern "C" {
 #endif
 
 struct gl_context;
-struct vbo_module;
 
 /**
  * Max number of primitives (number of glBegin/End pairs) per VBO.
@@ -81,7 +80,6 @@ struct vbo_exec_copied_vtx {
 
 struct vbo_exec_context
 {
-   struct gl_context *ctx;
    GLvertexformat vtxfmt;
    GLvertexformat vtxfmt_noop;
 
@@ -134,7 +132,6 @@ struct vbo_save_copied_vtx {
 };
 
 struct vbo_save_context {
-   struct gl_context *ctx;
    GLvertexformat vtxfmt;
    GLvertexformat vtxfmt_noop;  /**< Used if out_of_memory is true */
 
@@ -228,7 +225,9 @@ vbo_get_minmax_index_mapped(unsigned count, unsigned index_size,
 void
 vbo_get_minmax_indices(struct gl_context *ctx, const struct _mesa_prim *prim,
                        const struct _mesa_index_buffer *ib,
-                       GLuint *min_index, GLuint *max_index, GLuint nr_prims);
+                       GLuint *min_index, GLuint *max_index, GLuint nr_prims,
+                       bool primitive_restart,
+                       unsigned restart_index);
 
 void
 vbo_sw_primitive_restart(struct gl_context *ctx,
@@ -237,7 +236,9 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
                          const struct _mesa_index_buffer *ib,
                          GLuint num_instances, GLuint base_instance,
                          struct gl_buffer_object *indirect,
-                         GLsizeiptr indirect_offset);
+                         GLsizeiptr indirect_offset,
+                         bool primitive_restart,
+                         unsigned restart_index);
 
 
 const struct gl_array_attributes*

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ -z "$BM_POE_INTERFACE" ]; then
+    echo "Must supply the PoE Interface to power up"
+    exit 1
+fi
+
+flock /var/run/poe.lock -c "$CI_PROJECT_DIR/install/bare-metal/poe-set $BM_POE_INTERFACE reset"

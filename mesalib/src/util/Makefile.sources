@@ -9,6 +9,7 @@ MESA_UTIL_FILES := \
 	blob.h \
 	build_id.c \
 	build_id.h \
+	cnd_monotonic.h \
 	compiler.h \
 	crc32.c \
 	crc32.h \

@@ -51,7 +51,7 @@ _mesa_get_samplerobj(struct gl_context *ctx, GLuint unit)
 static inline GLboolean
 _mesa_is_mipmap_filter(const struct gl_sampler_object *samp)
 {
-   return samp->MinFilter != GL_NEAREST && samp->MinFilter != GL_LINEAR;
+   return samp->Attrib.MinFilter != GL_NEAREST && samp->Attrib.MinFilter != GL_LINEAR;
 }
 
 

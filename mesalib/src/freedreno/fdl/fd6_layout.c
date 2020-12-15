@@ -211,7 +211,7 @@ fdl6_layout(struct fdl_layout *layout,
 		 * may not be. note this only matters if last level is linear
 		 */
 		if (level == mip_levels - 1)
-			height = align(nblocksy, 4);
+			nblocksy = align(nblocksy, 4);
 
 		slice->offset = offset + layout->size;
 

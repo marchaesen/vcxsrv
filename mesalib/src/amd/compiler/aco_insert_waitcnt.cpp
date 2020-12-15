@@ -203,9 +203,9 @@ struct wait_entry {
    bool has_vmem_nosampler:1;
    bool has_vmem_sampler:1;
 
-   wait_entry(wait_event event, wait_imm imm, bool logical, bool wait_on_read)
-           : imm(imm), events(event), counters(get_counters_for_event(event)),
-             wait_on_read(wait_on_read), logical(logical),
+   wait_entry(wait_event event_, wait_imm imm_, bool logical_, bool wait_on_read_)
+           : imm(imm_), events(event_), counters(get_counters_for_event(event_)),
+             wait_on_read(wait_on_read_), logical(logical_),
              has_vmem_nosampler(false), has_vmem_sampler(false) {}
 
    bool join(const wait_entry& other)
@@ -329,7 +329,7 @@ struct wait_ctx {
 
       for (unsigned i = 0; i < storage_count; i++) {
          changed |= barrier_imm[i].combine(other->barrier_imm[i]);
-         changed |= other->barrier_events[i] & ~barrier_events[i];
+         changed |= (other->barrier_events[i] & ~barrier_events[i]) != 0;
          barrier_events[i] |= other->barrier_events[i];
       }
 

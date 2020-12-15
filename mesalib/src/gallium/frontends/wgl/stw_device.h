@@ -38,6 +38,9 @@
 
 #define STW_MAX_PIXELFORMATS   256
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct pipe_screen;
 struct st_api;
@@ -91,7 +94,7 @@ struct stw_device
 extern struct stw_device *stw_dev;
 
 boolean
-stw_init_screen(void);
+stw_init_screen(HDC hdc);
 
 static inline struct stw_context *
 stw_lookup_context_locked( DHGLRC dhglrc )
@@ -129,5 +132,8 @@ stw_unlock_framebuffers(struct stw_device *stw_dev)
    LeaveCriticalSection(&stw_dev->fb_mutex);
 }
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* STW_DEVICE_H_ */

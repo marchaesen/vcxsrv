@@ -99,6 +99,12 @@ const struct radv_dynamic_state default_dynamic_state = {
 	.cull_mode = 0u,
 	.front_face = 0u,
 	.primitive_topology = 0u,
+	.fragment_shading_rate = {
+		.size = (VkExtent2D) { 1u, 1u },
+		.combiner_ops = { VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
+				  VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR
+		},
+	},
 };
 
 static void
@@ -296,6 +302,15 @@ radv_bind_dynamic_state(struct radv_cmd_buffer *cmd_buffer,
 		}
 	}
 
+	if (copy_mask & RADV_DYNAMIC_FRAGMENT_SHADING_RATE) {
+		if (memcmp(&dest->fragment_shading_rate,
+			   &src->fragment_shading_rate,
+			   sizeof(src->fragment_shading_rate))) {
+			dest->fragment_shading_rate = src->fragment_shading_rate;
+			dest_mask |= RADV_DYNAMIC_FRAGMENT_SHADING_RATE;
+		}
+	}
+
 	cmd_buffer->state.dirty |= dest_mask;
 }
 
@@ -440,7 +455,7 @@ radv_reset_cmd_buffer(struct radv_cmd_buffer *cmd_buffer)
 
 	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9 &&
 	    cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL) {
-		unsigned num_db = cmd_buffer->device->physical_device->rad_info.num_render_backends;
+		unsigned num_db = cmd_buffer->device->physical_device->rad_info.max_render_backends;
 		unsigned fence_offset, eop_bug_offset;
 		void *fence_ptr;
 
@@ -656,6 +671,23 @@ radv_save_pipeline(struct radv_cmd_buffer *cmd_buffer,
 	radv_emit_write_data_packet(cmd_buffer, va, 2, data);
 }
 
+static void
+radv_save_vertex_descriptors(struct radv_cmd_buffer *cmd_buffer,
+			     uint64_t vb_ptr)
+{
+	struct radv_device *device = cmd_buffer->device;
+	uint32_t data[2];
+	uint64_t va;
+
+	va = radv_buffer_get_va(device->trace_bo);
+	va += 24;
+
+	data[0] = vb_ptr;
+	data[1] = vb_ptr >> 32;
+
+	radv_emit_write_data_packet(cmd_buffer, va, 2, data);
+}
+
 void radv_set_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
 			     VkPipelineBindPoint bind_point,
 			     struct radv_descriptor_set *set,
@@ -680,7 +712,7 @@ radv_save_descriptors(struct radv_cmd_buffer *cmd_buffer,
 	uint32_t data[MAX_SETS * 2] = {0};
 	uint64_t va;
 	unsigned i;
-	va = radv_buffer_get_va(device->trace_bo) + 24;
+	va = radv_buffer_get_va(device->trace_bo) + 32;
 
 	for_each_bit(i, descriptors_state->valid) {
 		struct radv_descriptor_set *set = descriptors_state->sets[i];
@@ -812,9 +844,9 @@ radv_compute_centroid_priority(struct radv_cmd_buffer *cmd_buffer,
 			       VkOffset2D *sample_locs,
 			       uint32_t num_samples)
 {
-	uint32_t centroid_priorities[num_samples];
+	uint32_t *centroid_priorities = alloca(num_samples * sizeof(*centroid_priorities));
 	uint32_t sample_mask = num_samples - 1;
-	uint32_t distances[num_samples];
+	uint32_t *distances = alloca(num_samples * sizeof(*distances));
 	uint64_t centroid_priority = 0;
 
 	/* Compute the distances from center for each sample. */
@@ -1118,6 +1150,11 @@ radv_emit_rbplus_state(struct radv_cmd_buffer *cmd_buffer)
 			has_rgb = false;
 			has_alpha = false;
 		}
+
+		/* The HW doesn't quite blend correctly with rgb9e5 if we disable the alpha
+		 * optimization, even though it has no alpha. */
+		if (has_rgb && format == V_028C70_COLOR_5_9_9_9)
+			has_alpha = true;
 
 		/* Disable value checking for disabled channels. */
 		if (!has_rgb)
@@ -1545,6 +1582,28 @@ radv_emit_stencil_control(struct radv_cmd_buffer *cmd_buffer)
 }
 
 static void
+radv_emit_fragment_shading_rate(struct radv_cmd_buffer *cmd_buffer)
+{
+	struct radv_pipeline *pipeline = cmd_buffer->state.pipeline;
+	struct radv_dynamic_state *d = &cmd_buffer->state.dynamic;
+	uint32_t rate_x = MIN2(2, d->fragment_shading_rate.size.width) - 1;
+	uint32_t rate_y = MIN2(2, d->fragment_shading_rate.size.height) - 1;
+	uint32_t pa_cl_vrs_cntl = pipeline->graphics.vrs.pa_cl_vrs_cntl;
+
+	/* Emit per-draw VRS rate which is the first combiner. */
+	radeon_set_uconfig_reg(cmd_buffer->cs, R_03098C_GE_VRS_RATE,
+			       S_03098C_RATE_X(rate_x) |
+			       S_03098C_RATE_Y(rate_y));
+
+	/* VERTEX_RATE_COMBINER_MODE controls the combiner mode between the
+	 * draw rate and the vertex rate.
+	 */
+	pa_cl_vrs_cntl |= S_028848_VERTEX_RATE_COMBINER_MODE(d->fragment_shading_rate.combiner_ops[0]);
+
+	radeon_set_context_reg(cmd_buffer->cs, R_028848_PA_CL_VRS_CNTL, pa_cl_vrs_cntl);
+}
+
+static void
 radv_emit_fb_color_state(struct radv_cmd_buffer *cmd_buffer,
 			 int index,
 			 struct radv_color_buffer_info *cb,
@@ -1872,11 +1931,12 @@ radv_set_ds_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 			   VkImageAspectFlags aspects)
 {
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
-	uint64_t va = radv_get_ds_clear_value_va(image, range->baseMipLevel);
 	uint32_t level_count = radv_get_levelCount(image, range);
 
 	if (aspects == (VK_IMAGE_ASPECT_DEPTH_BIT |
 		        VK_IMAGE_ASPECT_STENCIL_BIT)) {
+		uint64_t va = radv_get_ds_clear_value_va(image, range->baseMipLevel);
+
 		/* Use the fastest way when both aspects are used. */
 		radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 2 + 2 * level_count, cmd_buffer->state.predicating));
 		radeon_emit(cs, S_370_DST_SEL(V_370_MEM) |
@@ -2230,6 +2290,74 @@ radv_load_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 	}
 }
 
+/* GFX9+ metadata cache flushing workaround. metadata cache coherency is
+ * broken if the CB caches data of multiple mips of the same image at the
+ * same time.
+ *
+ * Insert some flushes to avoid this.
+ */
+static void
+radv_emit_fb_mip_change_flush(struct radv_cmd_buffer *cmd_buffer)
+{
+	struct radv_framebuffer *framebuffer = cmd_buffer->state.framebuffer;
+	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
+	bool color_mip_changed = false;
+
+	/* Entire workaround is not applicable before GFX9 */
+	if (cmd_buffer->device->physical_device->rad_info.chip_class < GFX9)
+		return;
+
+	if (!framebuffer)
+		return;
+
+	for (int i = 0; i < subpass->color_count; ++i) {
+		int idx = subpass->color_attachments[i].attachment;
+		if (idx == VK_ATTACHMENT_UNUSED)
+			continue;
+
+		struct radv_image_view *iview = cmd_buffer->state.attachments[idx].iview;
+
+		if ((radv_image_has_CB_metadata(iview->image) ||
+		     radv_image_has_dcc(iview->image)) &&
+		    cmd_buffer->state.cb_mip[i] != iview->base_mip)
+			color_mip_changed = true;
+
+		cmd_buffer->state.cb_mip[i] = iview->base_mip;
+	}
+
+	if (color_mip_changed) {
+		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
+		                                RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+	}
+}
+
+/* This function does the flushes for mip changes if the levels are not zero for
+ * all render targets. This way we can assume at the start of the next cmd_buffer
+ * that rendering to mip 0 doesn't need any flushes. As that is the most common
+ * case that saves some flushes. */
+static void
+radv_emit_mip_change_flush_default(struct radv_cmd_buffer *cmd_buffer)
+{
+	/* Entire workaround is not applicable before GFX9 */
+	if (cmd_buffer->device->physical_device->rad_info.chip_class < GFX9)
+		return;
+
+	bool need_color_mip_flush = false;
+	for (unsigned i = 0; i < 8; ++i) {
+		if (cmd_buffer->state.cb_mip[i]) {
+			need_color_mip_flush = true;
+			break;
+		}
+	}
+
+	if (need_color_mip_flush) {
+		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
+		                                RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+	}
+
+	memset(cmd_buffer->state.cb_mip, 0, sizeof(cmd_buffer->state.cb_mip));
+}
+
 static void
 radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer)
 {
@@ -2465,6 +2593,9 @@ radv_cmd_buffer_flush_dynamic_state(struct radv_cmd_buffer *cmd_buffer)
 
 	if (states & RADV_CMD_DIRTY_DYNAMIC_STENCIL_OP)
 		radv_emit_stencil_control(cmd_buffer);
+
+	if (states & RADV_CMD_DIRTY_DYNAMIC_FRAGMENT_SHADING_RATE)
+		radv_emit_fragment_shading_rate(cmd_buffer);
 
 	cmd_buffer->state.dirty &= ~states;
 }
@@ -2762,6 +2893,9 @@ radv_flush_vertex_descriptors(struct radv_cmd_buffer *cmd_buffer,
 		cmd_buffer->state.vb_va = va;
 		cmd_buffer->state.vb_size = count * 16;
 		cmd_buffer->state.prefetch_L2_mask |= RADV_PREFETCH_VBO_DESCRIPTORS;
+
+		if (unlikely(cmd_buffer->device->trace_bo))
+			radv_save_vertex_descriptors(cmd_buffer, (uintptr_t)vb_ptr);
 	}
 	cmd_buffer->state.dirty &= ~RADV_CMD_DIRTY_VERTEX_BUFFER;
 }
@@ -3227,7 +3361,7 @@ radv_dst_access_flush(struct radv_cmd_buffer *cmd_buffer,
 			flush_bits |= RADV_CMD_FLAG_INV_VCACHE;
 			/* Unlike LLVM, ACO uses SMEM for SSBOs and we have to
 			 * invalidate the scalar cache. */
-			if (!cmd_buffer->device->physical_device->use_llvm)
+			if (!cmd_buffer->device->physical_device->use_llvm && !image)
 				flush_bits |= RADV_CMD_FLAG_INV_SCACHE;
 
 			if (!image_is_coherent)
@@ -4069,6 +4203,8 @@ VkResult radv_EndCommandBuffer(
 {
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 
+	radv_emit_mip_change_flush_default(cmd_buffer);
+
 	if (cmd_buffer->queue_family_index != RADV_QUEUE_TRANSFER) {
 		if (cmd_buffer->device->physical_device->rad_info.chip_class == GFX6)
 			cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_PS_PARTIAL_FLUSH | RADV_CMD_FLAG_WB_L2;
@@ -4179,14 +4315,15 @@ void radv_CmdBindPipeline(
 		/* Prefetch all pipeline shaders at first draw time. */
 		cmd_buffer->state.prefetch_L2_mask |= RADV_PREFETCH_SHADERS;
 
-		if (cmd_buffer->device->physical_device->rad_info.chip_class == GFX10 &&
+		if ((cmd_buffer->device->physical_device->rad_info.chip_class == GFX10 ||
+		     cmd_buffer->device->physical_device->rad_info.family == CHIP_SIENNA_CICHLID) &&
 		    cmd_buffer->state.emitted_pipeline &&
 		    radv_pipeline_has_ngg(cmd_buffer->state.emitted_pipeline) &&
 		    !radv_pipeline_has_ngg(cmd_buffer->state.pipeline)) {
 			/* Transitioning from NGG to legacy GS requires
-			 * VGT_FLUSH on Navi10-14.  VGT_FLUSH is also emitted
-			 * at the beginning of IBs when legacy GS ring pointers
-			 * are set.
+			 * VGT_FLUSH on GFX10 and Sienna Cichlid. VGT_FLUSH
+			 * is also emitted at the beginning of IBs when legacy
+			 * GS ring pointers are set.
 			 */
 			cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_VGT_FLUSH;
 		}
@@ -4639,6 +4776,21 @@ void radv_CmdSetStencilOpEXT(
 	state->dirty |= RADV_CMD_DIRTY_DYNAMIC_STENCIL_OP;
 }
 
+void radv_CmdSetFragmentShadingRateKHR(
+	VkCommandBuffer                             commandBuffer,
+	const VkExtent2D*                           pFragmentSize,
+	const VkFragmentShadingRateCombinerOpKHR    combinerOps[2])
+{
+	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
+	struct radv_cmd_state *state = &cmd_buffer->state;
+
+	state->dynamic.fragment_shading_rate.size = *pFragmentSize;
+	for (unsigned i = 0; i < 2; i++)
+		state->dynamic.fragment_shading_rate.combiner_ops[i] = combinerOps[i];
+
+	state->dirty |= RADV_CMD_DIRTY_DYNAMIC_FRAGMENT_SHADING_RATE;
+}
+
 void radv_CmdExecuteCommands(
 	VkCommandBuffer                             commandBuffer,
 	uint32_t                                    commandBufferCount,
@@ -4647,6 +4799,8 @@ void radv_CmdExecuteCommands(
 	RADV_FROM_HANDLE(radv_cmd_buffer, primary, commandBuffer);
 
 	assert(commandBufferCount > 0);
+
+	radv_emit_mip_change_flush_default(primary);
 
 	/* Emit pending flushes on primary prior to executing secondary */
 	si_emit_cache_flush(primary);
@@ -4680,6 +4834,7 @@ void radv_CmdExecuteCommands(
 			 * has been recorded without a framebuffer, otherwise
 			 * fast color/depth clears can't work.
 			 */
+			radv_emit_fb_mip_change_flush(primary);
 			radv_emit_framebuffer_state(primary);
 		}
 
@@ -5286,6 +5441,10 @@ radv_draw(struct radv_cmd_buffer *cmd_buffer,
 		if (unlikely(!info->count && !info->strmout_buffer))
 			return;
 	}
+
+	/* Need to apply this workaround early as it can set flush flags. */
+	if (cmd_buffer->state.dirty & RADV_CMD_DIRTY_FRAMEBUFFER)
+		radv_emit_fb_mip_change_flush(cmd_buffer);
 
 	/* Use optimal packet order based on whether we need to sync the
 	 * pipeline.
@@ -6423,10 +6582,9 @@ void radv_CmdBeginConditionalRenderingEXT(
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 	RADV_FROM_HANDLE(radv_buffer, buffer, pConditionalRenderingBegin->buffer);
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
+	unsigned pred_op = PREDICATION_OP_BOOL32;
 	bool draw_visible = true;
-	uint64_t pred_value = 0;
-	uint64_t va, new_va;
-	unsigned pred_offset;
+	uint64_t va;
 
 	va = radv_buffer_get_va(buffer->bo) + pConditionalRenderingBegin->offset;
 
@@ -6442,51 +6600,65 @@ void radv_CmdBeginConditionalRenderingEXT(
 
 	si_emit_cache_flush(cmd_buffer);
 
-	/* From the Vulkan spec 1.1.107:
-	 *
-	 * "If the 32-bit value at offset in buffer memory is zero, then the
-	 *  rendering commands are discarded, otherwise they are executed as
-	 *  normal. If the value of the predicate in buffer memory changes while
-	 *  conditional rendering is active, the rendering commands may be
-	 *  discarded in an implementation-dependent way. Some implementations
-	 *  may latch the value of the predicate upon beginning conditional
-	 *  rendering while others may read it before every rendering command."
-	 *
-	 * But, the AMD hardware treats the predicate as a 64-bit value which
-	 * means we need a workaround in the driver. Luckily, it's not required
-	 * to support if the value changes when predication is active.
-	 *
-	 * The workaround is as follows:
-	 * 1) allocate a 64-value in the upload BO and initialize it to 0
-	 * 2) copy the 32-bit predicate value to the upload BO
-	 * 3) use the new allocated VA address for predication
-	 *
-	 * Based on the conditionalrender demo, it's faster to do the COPY_DATA
-	 * in ME  (+ sync PFP) instead of PFP.
-	 */
-	radv_cmd_buffer_upload_data(cmd_buffer, 8, 16, &pred_value, &pred_offset);
+	if (cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL &&
+	    !cmd_buffer->device->physical_device->rad_info.has_32bit_predication) {
+		uint64_t pred_value = 0, pred_va;
+		unsigned pred_offset;
 
-	new_va = radv_buffer_get_va(cmd_buffer->upload.upload_bo) + pred_offset;
+		/* From the Vulkan spec 1.1.107:
+		 *
+		 * "If the 32-bit value at offset in buffer memory is zero,
+		 *  then the rendering commands are discarded, otherwise they
+		 *  are executed as normal. If the value of the predicate in
+		 *  buffer memory changes while conditional rendering is
+		 *  active, the rendering commands may be discarded in an
+		 *  implementation-dependent way. Some implementations may
+		 *  latch the value of the predicate upon beginning conditional
+		 *  rendering while others may read it before every rendering
+		 *  command."
+		 *
+		 * But, the AMD hardware treats the predicate as a 64-bit
+		 * value which means we need a workaround in the driver.
+		 * Luckily, it's not required to support if the value changes
+		 * when predication is active.
+		 *
+		 * The workaround is as follows:
+		 * 1) allocate a 64-value in the upload BO and initialize it
+		 *    to 0
+		 * 2) copy the 32-bit predicate value to the upload BO
+		 * 3) use the new allocated VA address for predication
+		 *
+		 * Based on the conditionalrender demo, it's faster to do the
+		 * COPY_DATA in ME  (+ sync PFP) instead of PFP.
+		 */
+		radv_cmd_buffer_upload_data(cmd_buffer, 8, 16, &pred_value, &pred_offset);
 
-	radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
-	radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_SRC_MEM) |
-			COPY_DATA_DST_SEL(COPY_DATA_DST_MEM) |
-			COPY_DATA_WR_CONFIRM);
-	radeon_emit(cs, va);
-	radeon_emit(cs, va >> 32);
-	radeon_emit(cs, new_va);
-	radeon_emit(cs, new_va >> 32);
+		pred_va = radv_buffer_get_va(cmd_buffer->upload.upload_bo) + pred_offset;
 
-	radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
-	radeon_emit(cs, 0);
+		radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
+		radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_SRC_MEM) |
+				COPY_DATA_DST_SEL(COPY_DATA_DST_MEM) |
+				COPY_DATA_WR_CONFIRM);
+		radeon_emit(cs, va);
+		radeon_emit(cs, va >> 32);
+		radeon_emit(cs, pred_va);
+		radeon_emit(cs, pred_va >> 32);
+
+		radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
+		radeon_emit(cs, 0);
+
+		va = pred_va;
+		pred_op = PREDICATION_OP_BOOL64;
+	}
 
 	/* Enable predication for this command buffer. */
-	si_emit_set_predication_state(cmd_buffer, draw_visible, new_va);
+	si_emit_set_predication_state(cmd_buffer, draw_visible, pred_op, va);
 	cmd_buffer->state.predicating = true;
 
 	/* Store conditional rendering user info. */
 	cmd_buffer->state.predication_type = draw_visible;
-	cmd_buffer->state.predication_va = new_va;
+	cmd_buffer->state.predication_op = pred_op;
+	cmd_buffer->state.predication_va = va;
 }
 
 void radv_CmdEndConditionalRenderingEXT(
@@ -6495,11 +6667,12 @@ void radv_CmdEndConditionalRenderingEXT(
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 
 	/* Disable predication for this command buffer. */
-	si_emit_set_predication_state(cmd_buffer, false, 0);
+	si_emit_set_predication_state(cmd_buffer, false, 0, 0);
 	cmd_buffer->state.predicating = false;
 
 	/* Reset conditional rendering user info. */
 	cmd_buffer->state.predication_type = -1;
+	cmd_buffer->state.predication_op = 0;
 	cmd_buffer->state.predication_va = 0;
 }
 

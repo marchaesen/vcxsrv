@@ -281,7 +281,7 @@ struct dxil_mdnode {
       } value;
 
       struct {
-         struct dxil_mdnode **subnodes;
+         const struct dxil_mdnode **subnodes;
          size_t num_subnodes;
       } node;
    };
@@ -292,7 +292,7 @@ struct dxil_mdnode {
 
 struct dxil_named_node {
    char *name;
-   struct dxil_mdnode **subnodes;
+   const struct dxil_mdnode **subnodes;
    size_t num_subnodes;
    struct list_head head;
 };

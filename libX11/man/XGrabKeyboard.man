@@ -153,7 +153,7 @@ or later than the current X server time,
 it fails and returns
 .BR GrabInvalidTime .
 Otherwise, the last-keyboard-grab time is set to the specified time
-.Pn ( CurrentTime
+.RB ( CurrentTime
 is replaced by the current X server time).
 .LP
 .B XGrabKeyboard

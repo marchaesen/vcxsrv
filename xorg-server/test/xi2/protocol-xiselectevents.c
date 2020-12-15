@@ -142,7 +142,7 @@ request_XISelectEvents_masks(xXISelectEventsReq * req)
 {
     int i, j;
     xXIEventMask *mask;
-    int nmasks = (XI2LASTEVENT + 7) / 8;
+    int nmasks = XI2MASKSIZE;
     unsigned char *bits;
 
     mask = (xXIEventMask *) &req[1];

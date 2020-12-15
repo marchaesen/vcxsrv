@@ -120,7 +120,7 @@ sprite_point(struct gl_context *ctx, const SWvertex *vert)
    span.attrStepY[VARYING_SLOT_POS][3] = 0.0F;
 
    {
-      GLfloat s, r, dsdx;
+      GLfloat s, dsdx;
 
       /* texcoord / pointcoord interpolants */
       s = 0.0F;
@@ -143,16 +143,9 @@ sprite_point(struct gl_context *ctx, const SWvertex *vert)
             if (ctx->Point.CoordReplace & (1u << u)) {
                tCoords[numTcoords++] = attr;
 
-               if (ctx->Point.SpriteRMode == GL_ZERO)
-                  r = 0.0F;
-               else if (ctx->Point.SpriteRMode == GL_S)
-                  r = vert->attrib[attr][0];
-               else /* GL_R */
-                  r = vert->attrib[attr][2];
-
                span.attrStart[attr][0] = s;
                span.attrStart[attr][1] = 0.0; /* overwritten below */
-               span.attrStart[attr][2] = r;
+               span.attrStart[attr][2] = 0.0;
                span.attrStart[attr][3] = 1.0;
 
                span.attrStepX[attr][0] = dsdx;

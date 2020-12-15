@@ -1185,6 +1185,7 @@ static void print_instr_cat6_a6xx(struct disasm_ctx *ctx, instr_t *instr)
 	instr_cat6_a6xx_t *cat6 = &instr->cat6_a6xx;
 	struct reginfo src1, src2, ssbo;
 	uint32_t opc = _OPC(6, cat6->opc);
+	bool is_id = opc == OPC_GETSPID || opc == OPC_GETWID;
 	bool uses_type = opc != OPC_LDC;
 
 	static const struct {
@@ -1229,35 +1230,44 @@ static void print_instr_cat6_a6xx(struct disasm_ctx *ctx, instr_t *instr)
 	memset(&ssbo, 0, sizeof(ssbo));
 
 	if (uses_type) {
-		fprintf(ctx->out, ".%s", cat6->typed ? "typed" : "untyped");
-		fprintf(ctx->out, ".%dd", cat6->d + 1);
+		if (!is_id) {
+			fprintf(ctx->out, ".%s", cat6->typed ? "typed" : "untyped");
+			fprintf(ctx->out, ".%dd", cat6->d + 1);
+		}
 		fprintf(ctx->out, ".%s", type[cat6->type]);
 	} else {
 		fprintf(ctx->out, ".offset%d", cat6->d);
 	}
-	fprintf(ctx->out, ".%u", cat6->type_size + 1);
 
-	fprintf(ctx->out, ".%s", desc_features[cat6->desc_mode].name);
-	if (bindless)
-		fprintf(ctx->out, ".base%d", cat6->base);
+	if (!is_id) {
+		fprintf(ctx->out, ".%u", cat6->type_size + 1);
+		fprintf(ctx->out, ".%s", desc_features[cat6->desc_mode].name);
+
+		if (bindless)
+			fprintf(ctx->out, ".base%d", cat6->base);
+	}
+
 	fprintf(ctx->out, " ");
 
 	src2.reg = (reg_t)(cat6->src2);
 	src2.full = type_full;
 	print_src(ctx, &src2);
-	fprintf(ctx->out, ", ");
 
-	if (opc != OPC_RESINFO) {
-		src1.reg = (reg_t)(cat6->src1);
-		src1.full = true; // XXX
-		print_src(ctx, &src1);
+	if (!is_id) {
 		fprintf(ctx->out, ", ");
-	}
 
-	ssbo.reg = (reg_t)(cat6->ssbo);
-	ssbo.im = !indirect_ssbo;
-	ssbo.full = true;
-	print_src(ctx, &ssbo);
+		if (opc != OPC_RESINFO) {
+			src1.reg = (reg_t)(cat6->src1);
+			src1.full = true; // XXX
+			print_src(ctx, &src1);
+			fprintf(ctx->out, ", ");
+		}
+
+		ssbo.reg = (reg_t)(cat6->ssbo);
+		ssbo.im = !indirect_ssbo;
+		ssbo.full = true;
+		print_src(ctx, &ssbo);
+	}
 
 	if (debug & PRINT_VERBOSE) {
 		fprintf(ctx->out, " (pad1=%x, pad2=%x, pad3=%x, pad4=%x, pad5=%x)",
@@ -1476,6 +1486,12 @@ static const struct opc_info {
 	OPC(6, OPC_STIB,         stib),
 	OPC(6, OPC_LDC,          ldc),
 	OPC(6, OPC_LDLV,         ldlv),
+	OPC(6, OPC_PIPR,         pipr),
+	OPC(6, OPC_PIPC,         pipc),
+	OPC(6, OPC_EMIT2,        emit),
+	OPC(6, OPC_ENDLS,        endls),
+	OPC(6, OPC_GETSPID,      getspid),
+	OPC(6, OPC_GETWID,       getwid),
 
 	OPC(7, OPC_BAR,          bar),
 	OPC(7, OPC_FENCE,        fence),

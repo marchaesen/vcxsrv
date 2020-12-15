@@ -2581,6 +2581,7 @@ _mesa_use_program(struct gl_context *ctx, gl_shader_stage stage,
                                      shProg);
       _mesa_reference_program(ctx, target, prog);
       _mesa_update_allow_draw_out_of_order(ctx);
+      _mesa_update_primitive_id_is_unused(ctx);
       if (stage == MESA_SHADER_VERTEX)
          _mesa_update_vertex_processing_mode(ctx);
       return;
@@ -2936,7 +2937,7 @@ _mesa_GetActiveSubroutineUniformName(GLuint program, GLenum shadertype,
    /* get program resource name */
    _mesa_get_program_resource_name(shProg, resource_type,
                                    index, bufsize,
-                                   length, name, api_name);
+                                   length, name, false, api_name);
 }
 
 
@@ -2968,7 +2969,7 @@ _mesa_GetActiveSubroutineName(GLuint program, GLenum shadertype,
    resource_type = _mesa_shader_stage_to_subroutine(stage);
    _mesa_get_program_resource_name(shProg, resource_type,
                                    index, bufsize,
-                                   length, name, api_name);
+                                   length, name, false, api_name);
 }
 
 GLvoid GLAPIENTRY

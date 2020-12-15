@@ -71,7 +71,7 @@ OMX_ERRORTYPE vid_dec_LoaderComponent(stLoaderComponentType *comp)
    comp->componentVersion.s.nVersionMinor = 0;
    comp->componentVersion.s.nRevision = 0;
    comp->componentVersion.s.nStep = 1;
-   comp->name_specific_length = 3;
+   comp->name_specific_length = 4;
 
    comp->name = CALLOC(1, OMX_MAX_STRINGNAME_SIZE);
    if (comp->name == NULL)
@@ -97,6 +97,10 @@ OMX_ERRORTYPE vid_dec_LoaderComponent(stLoaderComponentType *comp)
    if (comp->name_specific[2] == NULL)
       goto error_specific;
 
+   comp->name_specific[3] = CALLOC(1, OMX_MAX_STRINGNAME_SIZE);
+   if (comp->name_specific[3] == NULL)
+      goto error_specific;
+
    comp->role_specific[0] = CALLOC(1, OMX_MAX_STRINGNAME_SIZE);
    if (comp->role_specific[0] == NULL)
       goto error_specific;
@@ -109,23 +113,31 @@ OMX_ERRORTYPE vid_dec_LoaderComponent(stLoaderComponentType *comp)
    if (comp->role_specific[2] == NULL)
       goto error_specific;
 
+   comp->role_specific[3] = CALLOC(1, OMX_MAX_STRINGNAME_SIZE);
+   if (comp->role_specific[3] == NULL)
+      goto error_specific;
+
    strcpy(comp->name, OMX_VID_DEC_BASE_NAME);
    strcpy(comp->name_specific[0], OMX_VID_DEC_MPEG2_NAME);
    strcpy(comp->name_specific[1], OMX_VID_DEC_AVC_NAME);
    strcpy(comp->name_specific[2], OMX_VID_DEC_HEVC_NAME);
+   strcpy(comp->name_specific[3], OMX_VID_DEC_AV1_NAME);
 
    strcpy(comp->role_specific[0], OMX_VID_DEC_MPEG2_ROLE);
    strcpy(comp->role_specific[1], OMX_VID_DEC_AVC_ROLE);
    strcpy(comp->role_specific[2], OMX_VID_DEC_HEVC_ROLE);
+   strcpy(comp->role_specific[3], OMX_VID_DEC_AV1_ROLE);
 
    comp->constructor = vid_dec_Constructor;
 
    return OMX_ErrorNone;
 
 error_specific:
+   FREE(comp->role_specific[3]);
    FREE(comp->role_specific[2]);
    FREE(comp->role_specific[1]);
    FREE(comp->role_specific[0]);
+   FREE(comp->name_specific[3]);
    FREE(comp->name_specific[2]);
    FREE(comp->name_specific[1]);
    FREE(comp->name_specific[0]);
@@ -168,7 +180,13 @@ static OMX_ERRORTYPE vid_dec_Constructor(OMX_COMPONENTTYPE *comp, OMX_STRING nam
    if (!strcmp(name, OMX_VID_DEC_HEVC_NAME))
       priv->profile = PIPE_VIDEO_PROFILE_HEVC_MAIN;
 
-   priv->BufferMgmtCallback = vid_dec_FrameDecoded;
+   if (!strcmp(name, OMX_VID_DEC_AV1_NAME))
+      priv->profile = PIPE_VIDEO_PROFILE_AV1_MAIN;
+
+   if (priv->profile == PIPE_VIDEO_PROFILE_AV1_MAIN)
+      priv->BufferMgmtCallback = vid_dec_av1_FrameDecoded;
+   else
+      priv->BufferMgmtCallback = vid_dec_FrameDecoded;
    priv->messageHandler = vid_dec_MessageHandler;
    priv->destructor = vid_dec_Destructor;
 
@@ -221,8 +239,12 @@ static OMX_ERRORTYPE vid_dec_Constructor(OMX_COMPONENTTYPE *comp, OMX_STRING nam
    port->sPortParam.format.video.eCompressionFormat = OMX_VIDEO_CodingMPEG2;
    port->sVideoParam.eCompressionFormat = OMX_VIDEO_CodingMPEG2;
    port->Port_SendBufferFunction = vid_dec_DecodeBuffer;
-   port->Port_FreeBuffer = vid_dec_FreeDecBuffer;
+   if (priv->profile == PIPE_VIDEO_PROFILE_AV1_MAIN) {
+      port->Port_AllocateBuffer = vid_dec_av1_AllocateInBuffer;
+      port->Port_UseBuffer = vid_dec_av1_UseInBuffer;
+   }
 
+   port->Port_FreeBuffer = vid_dec_FreeDecBuffer;
    port = (omx_base_video_PortType *)priv->ports[OMX_BASE_FILTER_OUTPUTPORT_INDEX];
    port->sPortParam.nBufferCountActual = 8;
    port->sPortParam.nBufferCountMin = 4;
@@ -238,6 +260,9 @@ static OMX_ERRORTYPE vid_dec_Destructor(OMX_COMPONENTTYPE *comp)
 {
    vid_dec_PrivateType* priv = comp->pComponentPrivate;
    int i;
+
+   if (priv->profile == PIPE_VIDEO_PROFILE_AV1_MAIN)
+      vid_dec_av1_ReleaseTasks(priv);
 
    if (priv->ports) {
       for (i = 0; i < priv->sPortTypesParam[OMX_PortDomainVideo].nPorts; ++i) {
@@ -309,6 +334,8 @@ static OMX_ERRORTYPE vid_dec_SetParameter(OMX_HANDLETYPE handle, OMX_INDEXTYPE i
          priv->profile = PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH;
       } else if (!strcmp((char *)role->cRole, OMX_VID_DEC_HEVC_ROLE)) {
          priv->profile = PIPE_VIDEO_PROFILE_HEVC_MAIN;
+      } else if (!strcmp((char *)role->cRole, OMX_VID_DEC_AV1_ROLE)) {
+         priv->profile = PIPE_VIDEO_PROFILE_AV1_MAIN;
       } else {
          return OMX_ErrorBadParameter;
       }
@@ -359,6 +386,8 @@ static OMX_ERRORTYPE vid_dec_GetParameter(OMX_HANDLETYPE handle, OMX_INDEXTYPE i
          strcpy((char *)role->cRole, OMX_VID_DEC_AVC_ROLE);
       else if (priv->profile == PIPE_VIDEO_PROFILE_HEVC_MAIN)
          strcpy((char *)role->cRole, OMX_VID_DEC_HEVC_ROLE);
+      else if (priv->profile == PIPE_VIDEO_PROFILE_AV1_MAIN)
+         strcpy((char *)role->cRole, OMX_VID_DEC_AV1_ROLE);
 
       break;
    }
@@ -406,6 +435,9 @@ static OMX_ERRORTYPE vid_dec_MessageHandler(OMX_COMPONENTTYPE* comp, internalReq
             vid_dec_h264_Init(priv);
          else if (priv->profile == PIPE_VIDEO_PROFILE_HEVC_MAIN)
             vid_dec_h265_Init(priv);
+         else if (priv->profile == PIPE_VIDEO_PROFILE_AV1_MAIN) {
+            vid_dec_av1_Init(priv);
+         }
 
       } else if ((msg->messageParam == OMX_StateLoaded) && (priv->state == OMX_StateIdle)) {
          if (priv->shadow) {
@@ -469,7 +501,10 @@ static OMX_ERRORTYPE vid_dec_DecodeBuffer(omx_base_PortType *port, OMX_BUFFERHEA
          priv->in_buffers[0]->nFilledLen = priv->in_buffers[0]->nAllocLen;
          r = base_port_SendBufferFunction(port, priv->in_buffers[0]);
       } else if (eos) {
-         vid_dec_FreeInputPortPrivate(priv->in_buffers[0]);
+         if (priv->profile == PIPE_VIDEO_PROFILE_AV1_MAIN)
+            vid_dec_av1_FreeInputPortPrivate(priv, priv->in_buffers[0]);
+         else
+            vid_dec_FreeInputPortPrivate(priv->in_buffers[0]);
          priv->in_buffers[0]->nFilledLen = priv->in_buffers[0]->nAllocLen;
          r = base_port_SendBufferFunction(port, priv->in_buffers[0]);
       } else {
@@ -495,7 +530,14 @@ static OMX_ERRORTYPE vid_dec_DecodeBuffer(omx_base_PortType *port, OMX_BUFFERHEA
 
 static OMX_ERRORTYPE vid_dec_FreeDecBuffer(omx_base_PortType *port, OMX_U32 idx, OMX_BUFFERHEADERTYPE *buf)
 {
-   vid_dec_FreeInputPortPrivate(buf);
+   OMX_COMPONENTTYPE* comp = port->standCompContainer;
+   vid_dec_PrivateType *priv = comp->pComponentPrivate;
+
+   if (priv->profile == PIPE_VIDEO_PROFILE_AV1_MAIN)
+      vid_dec_av1_FreeInputPortPrivate(priv, buf);
+   else
+      vid_dec_FreeInputPortPrivate(buf);
+
    return base_port_FreeBuffer(port, idx, buf);
 }
 

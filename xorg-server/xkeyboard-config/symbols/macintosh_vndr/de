@@ -60,14 +60,14 @@ xkb_symbols "Sundeadkeys" {
     include "macintosh_vndr/de(basic)"
     name[Group1]= "Germany - Mac, Sun dead keys";
 
-    key <TLDE> {	[ SunFA_Circum,	degree,      notsign 			]	};
-    key <AE12> {	[ SunFA_Acute,	SunFA_Grave, SunFA_Cedilla		]	};
-    key <AD11> {	[ udiaeresis,	Udiaeresis,  SunFA_Diaeresis		]	};
-    key <AD12> {	[       plus,	asterisk,    SunFA_Tilde,  dead_macron	]	};
-    key <AC10> {	[ odiaeresis,	Odiaeresis,  SunFA_Acute		]	};
-    key <AC11> {	[ adiaeresis,	Adiaeresis,  SunFA_Circum		]	};
+    key <TLDE> {[ dead_circumflex, degree,      notsign         ]};
+    key <AE12> {[      dead_acute, dead_grave,  dead_cedilla    ]};
+    key <AD11> {[      udiaeresis, Udiaeresis,  dead_diaeresis  ]};
+    key <AD12> {[            plus, asterisk,    dead_tilde,     dead_macron ]};
+    key <AC10> {[      odiaeresis, Odiaeresis,  dead_acute      ]};
+    key <AC11> {[      adiaeresis, Adiaeresis,  dead_circumflex ]};
 
-    key <BKSL> {	[ numbersign,	acute,       SunFA_Grave		]	};
+    key <BKSL> {[      numbersign, acute,       dead_grave      ]};
 };
 
 partial alphanumeric_keys 

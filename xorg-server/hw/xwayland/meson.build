@@ -112,7 +112,7 @@ if build_glx
     wayland_inc += glx_inc
 endif
 
-executable(
+xwayland_server = executable(
     'Xwayland',
     srcs,
     include_directories: wayland_inc,

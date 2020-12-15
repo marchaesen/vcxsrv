@@ -176,6 +176,7 @@ _XimFreeTransIntrCallback(
 	Xfree(rec);
 	rec = next;
     }
+    spec->intr_cb = NULL;
     return;
 }
 

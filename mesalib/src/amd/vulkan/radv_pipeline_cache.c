@@ -49,7 +49,7 @@ radv_pipeline_cache_lock(struct radv_pipeline_cache *cache)
 	if (cache->flags & VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT_EXT)
 		return;
 
-	pthread_mutex_lock(&cache->mutex);
+	mtx_lock(&cache->mutex);
 }
 
 static void
@@ -58,7 +58,7 @@ radv_pipeline_cache_unlock(struct radv_pipeline_cache *cache)
 	if (cache->flags & VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT_EXT)
 		return;
 
-	pthread_mutex_unlock(&cache->mutex);
+	mtx_unlock(&cache->mutex);
 }
 
 void
@@ -66,7 +66,7 @@ radv_pipeline_cache_init(struct radv_pipeline_cache *cache,
 			 struct radv_device *device)
 {
 	cache->device = device;
-	pthread_mutex_init(&cache->mutex, NULL);
+	mtx_init(&cache->mutex, mtx_plain);
 	cache->flags = 0;
 
 	cache->modified = false;
@@ -98,7 +98,7 @@ radv_pipeline_cache_finish(struct radv_pipeline_cache *cache)
 			}
 			vk_free(&cache->alloc, cache->hash_table[i]);
 		}
-	pthread_mutex_destroy(&cache->mutex);
+	mtx_destroy(&cache->mutex);
 	free(cache->hash_table);
 }
 
@@ -483,19 +483,19 @@ radv_pipeline_cache_load(struct radv_pipeline_cache *cache,
 	while (end - p >= sizeof(struct cache_entry)) {
 		struct cache_entry *entry = (struct cache_entry*)p;
 		struct cache_entry *dest_entry;
-		size_t size = entry_size(entry);
-		if(end - p < size)
+		size_t size_of_entry = entry_size(entry);
+		if(end - p < size_of_entry)
 			break;
 
-		dest_entry = vk_alloc(&cache->alloc, size,
+		dest_entry = vk_alloc(&cache->alloc, size_of_entry,
 					8, VK_SYSTEM_ALLOCATION_SCOPE_CACHE);
 		if (dest_entry) {
-			memcpy(dest_entry, entry, size);
+			memcpy(dest_entry, entry, size_of_entry);
 			for (int i = 0; i < MESA_SHADER_STAGES; ++i)
 				dest_entry->variants[i] = NULL;
 			radv_pipeline_cache_add_entry(cache, dest_entry);
 		}
-		p += size;
+		p += size_of_entry;
 	}
 
 	return true;
@@ -594,16 +594,16 @@ VkResult radv_GetPipelineCacheData(
 		if (!cache->hash_table[i])
 			continue;
 		entry = cache->hash_table[i];
-		const uint32_t size = entry_size(entry);
-		if (end < p + size) {
+		const uint32_t size_of_entry = entry_size(entry);
+		if (end < p + size_of_entry) {
 			result = VK_INCOMPLETE;
 			break;
 		}
 
-		memcpy(p, entry, size);
+		memcpy(p, entry, size_of_entry);
 		for(int j = 0; j < MESA_SHADER_STAGES; ++j)
 			((struct cache_entry*)p)->variants[j] = NULL;
-		p += size;
+		p += size_of_entry;
 	}
 	*pDataSize = p - pData;
 

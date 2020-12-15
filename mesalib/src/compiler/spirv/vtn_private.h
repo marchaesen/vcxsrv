@@ -40,6 +40,15 @@
 struct vtn_builder;
 struct vtn_decoration;
 
+/* setjmp/longjmp is broken on MinGW: https://sourceforge.net/p/mingw-w64/bugs/406/ */
+#ifdef __MINGW32__
+  #define vtn_setjmp __builtin_setjmp
+  #define vtn_longjmp __builtin_longjmp
+#else
+  #define vtn_setjmp setjmp
+  #define vtn_longjmp longjmp
+#endif
+
 void vtn_log(struct vtn_builder *b, enum nir_spirv_debug_level level,
              size_t spirv_offset, const char *message);
 
@@ -130,7 +139,9 @@ enum vtn_branch_type {
    vtn_branch_type_loop_continue,
    vtn_branch_type_loop_back_edge,
    vtn_branch_type_discard,
-   vtn_branch_type_terminate,
+   vtn_branch_type_terminate_invocation,
+   vtn_branch_type_ignore_intersection,
+   vtn_branch_type_terminate_ray,
    vtn_branch_type_return,
 };
 
@@ -693,7 +704,19 @@ struct vtn_builder {
    unsigned func_param_idx;
 
    bool has_loop_continue;
-   bool has_kill;
+
+   /** True if this shader has any early termination instructions like OpKill
+    *
+    * In the SPIR-V, the following instructions are block terminators:
+    *
+    *  - OpKill
+    *  - OpTerminateInvocation
+    *
+    * However, in NIR, they're represented by regular intrinsics with no
+    * control-flow semantics.  This means that the SSA form from the SPIR-V
+    * may not 100% match NIR and we have to fix it up at the end.
+    */
+   bool has_early_terminate;
 
    /* false by default, set to true by the ContractionOff execution mode */
    bool exact;

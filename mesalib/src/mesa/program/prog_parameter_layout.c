@@ -95,12 +95,12 @@ copy_indirect_accessed_array(struct gl_program_parameter_list *src,
       memcpy(&dst->Parameters[j], curr,
 	     sizeof(dst->Parameters[j]));
 
-      dst->ParameterValueOffset[j] = dst->NumParameterValues;
+      dst->Parameters[j].ValueOffset = dst->NumParameterValues;
 
       gl_constant_value *pv_dst =
-         dst->ParameterValues + dst->ParameterValueOffset[j];
+         dst->ParameterValues + dst->Parameters[j].ValueOffset;
       gl_constant_value *pv_src =
-         src->ParameterValues + src->ParameterValueOffset[i];
+         src->ParameterValues + src->Parameters[i].ValueOffset;
 
       memcpy(pv_dst, pv_src, MIN2(src->Parameters[i].Size, 4) *
              sizeof(GLfloat));
@@ -128,96 +128,110 @@ _mesa_layout_parameters(struct asm_parser_state *state)
 {
    struct gl_program_parameter_list *layout;
    struct asm_instruction *inst;
-   unsigned i;
 
    layout =
       _mesa_new_parameter_list_sized(state->prog->Parameters->NumParameters);
 
-   /* PASS 1:  Move any parameters that are accessed indirectly from the
-    * original parameter list to the new parameter list.
-    */
-   for (inst = state->inst_head; inst != NULL; inst = inst->next) {
-      for (i = 0; i < 3; i++) {
-	 if (inst->SrcReg[i].Base.RelAddr) {
-	    /* Only attempt to add the to the new parameter list once.
-	     */
-	    if (!inst->SrcReg[i].Symbol->pass1_done) {
-	       const int new_begin =
-		  copy_indirect_accessed_array(state->prog->Parameters, layout,
-		      inst->SrcReg[i].Symbol->param_binding_begin,
-		      inst->SrcReg[i].Symbol->param_binding_length);
+   for (unsigned f = 0; f < 2; f++) {
+      unsigned file = !f ? PROGRAM_CONSTANT : PROGRAM_STATE_VAR;
 
-	       if (new_begin < 0) {
-		  _mesa_free_parameter_list(layout);
-		  return GL_FALSE;
-	       }
+      /* PASS 1:  Move any parameters that are accessed indirectly from the
+       * original parameter list to the new parameter list.
+       */
+      for (inst = state->inst_head; inst != NULL; inst = inst->next) {
+         for (unsigned i = 0; i < 3; i++) {
+            if (inst->SrcReg[i].Base.RelAddr) {
+               unsigned begin = inst->SrcReg[i].Symbol->param_binding_begin;
+               if (state->prog->Parameters->Parameters[begin].Type != file)
+                  continue;
 
-	       inst->SrcReg[i].Symbol->param_binding_begin = new_begin;
-	       inst->SrcReg[i].Symbol->pass1_done = 1;
-	    }
+               /* Only attempt to add the to the new parameter list once.
+                */
+               if (!inst->SrcReg[i].Symbol->pass1_done) {
+                  const int new_begin =
+                     copy_indirect_accessed_array(state->prog->Parameters, layout,
+                         inst->SrcReg[i].Symbol->param_binding_begin,
+                         inst->SrcReg[i].Symbol->param_binding_length);
 
-	    /* Previously the Index was just the offset from the parameter
-	     * array.  Now that the base of the parameter array is known, the
-	     * index can be updated to its actual value.
-	     */
-	    inst->Base.SrcReg[i] = inst->SrcReg[i].Base;
-	    inst->Base.SrcReg[i].Index +=
-	       inst->SrcReg[i].Symbol->param_binding_begin;
-	 }
+                  if (new_begin < 0) {
+                     _mesa_free_parameter_list(layout);
+                     return GL_FALSE;
+                  }
+
+                  inst->SrcReg[i].Symbol->param_binding_begin = new_begin;
+                  inst->SrcReg[i].Symbol->pass1_done = 1;
+               }
+
+               /* Previously the Index was just the offset from the parameter
+                * array.  Now that the base of the parameter array is known, the
+                * index can be updated to its actual value.
+                */
+               inst->Base.SrcReg[i] = inst->SrcReg[i].Base;
+               inst->Base.SrcReg[i].Index +=
+                  inst->SrcReg[i].Symbol->param_binding_begin;
+            }
+         }
+      }
+
+      /* PASS 2:  Move any parameters that are not accessed indirectly from the
+       * original parameter list to the new parameter list.
+       */
+      for (inst = state->inst_head; inst != NULL; inst = inst->next) {
+         for (unsigned i = 0; i < 3; i++) {
+            const struct gl_program_parameter *p;
+            const int idx = inst->SrcReg[i].Base.Index;
+            unsigned swizzle = SWIZZLE_NOOP;
+
+            /* All relative addressed operands were processed on the first
+             * pass.  Just skip them here.
+             */
+            if (inst->SrcReg[i].Base.RelAddr) {
+               continue;
+            }
+
+            p = &state->prog->Parameters->Parameters[idx];
+
+            if ((inst->SrcReg[i].Base.File <= PROGRAM_OUTPUT)
+                || (inst->SrcReg[i].Base.File >= PROGRAM_WRITE_ONLY)) {
+               continue;
+            }
+
+            if (p->Type != file) {
+               continue;
+            }
+
+            inst->Base.SrcReg[i] = inst->SrcReg[i].Base;
+
+            switch (p->Type) {
+            case PROGRAM_CONSTANT: {
+               unsigned pvo = state->prog->Parameters->Parameters[idx].ValueOffset;
+               const gl_constant_value *const v =
+                  state->prog->Parameters->ParameterValues + pvo;
+
+               inst->Base.SrcReg[i].Index =
+                  _mesa_add_unnamed_constant(layout, v, p->Size, & swizzle);
+
+               inst->Base.SrcReg[i].Swizzle =
+                  _mesa_combine_swizzles(swizzle, inst->Base.SrcReg[i].Swizzle);
+               break;
+            }
+
+            case PROGRAM_STATE_VAR:
+               inst->Base.SrcReg[i].Index =
+                  _mesa_add_state_reference(layout, p->StateIndexes);
+               break;
+
+            default:
+               break;
+            }
+
+            inst->SrcReg[i].Base.File = p->Type;
+            inst->Base.SrcReg[i].File = p->Type;
+         }
       }
    }
 
-   /* PASS 2:  Move any parameters that are not accessed indirectly from the
-    * original parameter list to the new parameter list.
-    */
-   for (inst = state->inst_head; inst != NULL; inst = inst->next) {
-      for (i = 0; i < 3; i++) {
-	 const struct gl_program_parameter *p;
-	 const int idx = inst->SrcReg[i].Base.Index;
-	 unsigned swizzle = SWIZZLE_NOOP;
-
-	 /* All relative addressed operands were processed on the first
-	  * pass.  Just skip them here.
-	  */
-	 if (inst->SrcReg[i].Base.RelAddr) {
-	    continue;
-	 }
-
-	 if ((inst->SrcReg[i].Base.File <= PROGRAM_OUTPUT)
-	     || (inst->SrcReg[i].Base.File >= PROGRAM_WRITE_ONLY)) {
-	    continue;
-	 }
-
-	 inst->Base.SrcReg[i] = inst->SrcReg[i].Base;
-	 p = & state->prog->Parameters->Parameters[idx];
-
-	 switch (p->Type) {
-	 case PROGRAM_CONSTANT: {
-            unsigned pvo = state->prog->Parameters->ParameterValueOffset[idx];
-            const gl_constant_value *const v =
-               state->prog->Parameters->ParameterValues + pvo;
-
-	    inst->Base.SrcReg[i].Index =
-	       _mesa_add_unnamed_constant(layout, v, p->Size, & swizzle);
-
-	    inst->Base.SrcReg[i].Swizzle =
-	       _mesa_combine_swizzles(swizzle, inst->Base.SrcReg[i].Swizzle);
-	    break;
-	 }
-
-	 case PROGRAM_STATE_VAR:
-	    inst->Base.SrcReg[i].Index =
-	       _mesa_add_state_reference(layout, p->StateIndexes);
-	    break;
-
-	 default:
-	    break;
-	 }
-
-	 inst->SrcReg[i].Base.File = p->Type;
-	 inst->Base.SrcReg[i].File = p->Type;
-      }
-   }
+   _mesa_recompute_parameter_bounds(layout);
 
    layout->StateFlags = state->prog->Parameters->StateFlags;
    _mesa_free_parameter_list(state->prog->Parameters);

@@ -50,7 +50,7 @@ dxil_buffer_emit_vbr_bits(struct dxil_buffer *b, uint64_t data,
 bool
 dxil_buffer_align(struct dxil_buffer *b);
 
-static bool
+static inline bool
 dxil_buffer_emit_abbrev_id(struct dxil_buffer *b, uint32_t id)
 {
    return dxil_buffer_emit_bits(b, id, b->abbrev_width);

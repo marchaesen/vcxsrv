@@ -56,8 +56,7 @@ st_memoryobj_free(struct gl_context *ctx,
 {
    struct st_memory_object *st_obj = st_memory_object(obj);
    struct st_context *st = st_context(ctx);
-   struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
 
    if (st_obj->memory)
       screen->memobj_destroy(screen, st_obj->memory);
@@ -73,8 +72,7 @@ st_import_memoryobj_fd(struct gl_context *ctx,
 {
    struct st_memory_object *st_obj = st_memory_object(obj);
    struct st_context *st = st_context(ctx);
-   struct pipe_context *pipe = st->pipe;
-   struct pipe_screen *screen = pipe->screen;
+   struct pipe_screen *screen = st->screen;
    struct winsys_handle whandle = {
       .type = WINSYS_HANDLE_TYPE_FD,
       .handle = fd,

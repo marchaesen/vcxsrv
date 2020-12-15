@@ -57,25 +57,10 @@ build_nir_vertex_shader(void)
 
 	nir_store_var(&b, pos_out, outvec, 0xf);
 
-	nir_intrinsic_instr *src_box = nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_push_constant);
-	src_box->src[0] = nir_src_for_ssa(nir_imm_int(&b, 0));
-	nir_intrinsic_set_base(src_box, 0);
-	nir_intrinsic_set_range(src_box, 16);
-	src_box->num_components = 4;
-	nir_ssa_dest_init(&src_box->instr, &src_box->dest, 4, 32, "src_box");
-	nir_builder_instr_insert(&b, &src_box->instr);
+	nir_ssa_def *src_box = nir_load_push_constant(&b, 4, 32, nir_imm_int(&b, 0), .range=16);
+	nir_ssa_def *src0_z = nir_load_push_constant(&b, 1, 32, nir_imm_int(&b, 0), .base=16, .range=4);
 
-	nir_intrinsic_instr *src0_z = nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_push_constant);
-	src0_z->src[0] = nir_src_for_ssa(nir_imm_int(&b, 0));
-	nir_intrinsic_set_base(src0_z, 16);
-	nir_intrinsic_set_range(src0_z, 4);
-	src0_z->num_components = 1;
-	nir_ssa_dest_init(&src0_z->instr, &src0_z->dest, 1, 32, "src0_z");
-	nir_builder_instr_insert(&b, &src0_z->instr);
-
-	nir_intrinsic_instr *vertex_id = nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_vertex_id_zero_base);
-	nir_ssa_dest_init(&vertex_id->instr, &vertex_id->dest, 1, 32, "vertexid");
-	nir_builder_instr_insert(&b, &vertex_id->instr);
+	nir_ssa_def *vertex_id = nir_load_vertex_id_zero_base(&b);
 
 	/* vertex 0 - src0_x, src0_y, src0_z */
 	/* vertex 1 - src0_x, src1_y, src0_z*/
@@ -83,20 +68,18 @@ build_nir_vertex_shader(void)
 	/* so channel 0 is vertex_id != 2 ? src_x : src_x + w
 	   channel 1 is vertex id != 1 ? src_y : src_y + w */
 
-	nir_ssa_def *c0cmp = nir_ine(&b, &vertex_id->dest.ssa,
-				     nir_imm_int(&b, 2));
-	nir_ssa_def *c1cmp = nir_ine(&b, &vertex_id->dest.ssa,
-				     nir_imm_int(&b, 1));
+	nir_ssa_def *c0cmp = nir_ine(&b, vertex_id, nir_imm_int(&b, 2));
+	nir_ssa_def *c1cmp = nir_ine(&b, vertex_id, nir_imm_int(&b, 1));
 
 	nir_ssa_def *comp[4];
 	comp[0] = nir_bcsel(&b, c0cmp,
-			    nir_channel(&b, &src_box->dest.ssa, 0),
-			    nir_channel(&b, &src_box->dest.ssa, 2));
+			    nir_channel(&b, src_box, 0),
+			    nir_channel(&b, src_box, 2));
 
 	comp[1] = nir_bcsel(&b, c1cmp,
-			    nir_channel(&b, &src_box->dest.ssa, 1),
-			    nir_channel(&b, &src_box->dest.ssa, 3));
-	comp[2] = &src0_z->dest.ssa;
+			    nir_channel(&b, src_box, 1),
+			    nir_channel(&b, src_box, 3));
+	comp[2] = src0_z;
 	comp[3] = nir_imm_float(&b, 1.0);
 	nir_ssa_def *out_tex_vec = nir_vec(&b, comp, 4);
 	nir_store_var(&b, tex_pos_out, out_tex_vec, 0xf);
@@ -327,7 +310,7 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 	switch (src_iview->aspect_mask) {
 	case VK_IMAGE_ASPECT_COLOR_BIT: {
 		unsigned dst_layout = radv_meta_dst_layout_from_layout(dest_image_layout);
-		fs_key = radv_format_meta_fs_key(dest_image->vk_format);
+		fs_key = radv_format_meta_fs_key(device, dest_image->vk_format);
 
 		radv_cmd_buffer_begin_render_pass(cmd_buffer,
 						  &(VkRenderPassBeginInfo) {
@@ -964,7 +947,7 @@ radv_device_init_meta_blit_color(struct radv_device *device, bool on_demand)
 	VkResult result;
 
 	for (unsigned i = 0; i < NUM_META_FS_KEYS; ++i) {
-		unsigned key = radv_format_meta_fs_key(radv_fs_key_format_exemplars[i]);
+		unsigned key = radv_format_meta_fs_key(device, radv_fs_key_format_exemplars[i]);
 		for(unsigned j = 0; j < RADV_META_DST_LAYOUT_COUNT; ++j) {
 			VkImageLayout layout = radv_meta_dst_layout_to_layout(j);
 			result = radv_CreateRenderPass(radv_device_to_handle(device),

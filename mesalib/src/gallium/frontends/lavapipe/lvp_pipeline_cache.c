@@ -35,7 +35,7 @@ VkResult lvp_CreatePipelineCache(
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO);
    assert(pCreateInfo->flags == 0);
 
-   cache = vk_alloc2(&device->alloc, pAllocator,
+   cache = vk_alloc2(&device->vk.alloc, pAllocator,
                        sizeof(*cache), 8,
                        VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (cache == NULL)
@@ -46,7 +46,7 @@ VkResult lvp_CreatePipelineCache(
    if (pAllocator)
      cache->alloc = *pAllocator;
    else
-     cache->alloc = device->alloc;
+     cache->alloc = device->vk.alloc;
 
    cache->device = device;
    *pPipelineCache = lvp_pipeline_cache_to_handle(cache);
@@ -66,7 +66,7 @@ void lvp_DestroyPipelineCache(
       return;
 //   lvp_pipeline_cache_finish(cache);
    vk_object_base_finish(&cache->base);
-   vk_free2(&device->alloc, pAllocator, cache);
+   vk_free2(&device->vk.alloc, pAllocator, cache);
 }
 
 VkResult lvp_GetPipelineCacheData(

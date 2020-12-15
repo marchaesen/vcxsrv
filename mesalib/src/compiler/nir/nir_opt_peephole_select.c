@@ -26,6 +26,7 @@
  */
 
 #include "nir.h"
+#include "nir/nir_builder.h"
 #include "nir_control_flow.h"
 #include "nir_search_helpers.h"
 
@@ -91,6 +92,28 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
          }
 
          case nir_intrinsic_load_uniform:
+         case nir_intrinsic_load_helper_invocation:
+         case nir_intrinsic_is_helper_invocation:
+         case nir_intrinsic_load_front_face:
+         case nir_intrinsic_load_view_index:
+         case nir_intrinsic_load_layer_id:
+         case nir_intrinsic_load_frag_coord:
+         case nir_intrinsic_load_sample_pos:
+         case nir_intrinsic_load_sample_id:
+         case nir_intrinsic_load_sample_mask_in:
+         case nir_intrinsic_load_vertex_id_zero_base:
+         case nir_intrinsic_load_first_vertex:
+         case nir_intrinsic_load_base_instance:
+         case nir_intrinsic_load_instance_id:
+         case nir_intrinsic_load_draw_id:
+         case nir_intrinsic_load_num_work_groups:
+         case nir_intrinsic_load_work_group_id:
+         case nir_intrinsic_load_local_invocation_id:
+         case nir_intrinsic_load_local_invocation_index:
+         case nir_intrinsic_load_subgroup_id:
+         case nir_intrinsic_load_subgroup_invocation:
+         case nir_intrinsic_load_num_subgroups:
+         case nir_intrinsic_load_frag_shading_rate:
             if (!alu_ok)
                return false;
             break;
@@ -104,6 +127,7 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
 
       case nir_instr_type_deref:
       case nir_instr_type_load_const:
+      case nir_instr_type_ssa_undef:
          break;
 
       case nir_instr_type_alu: {
@@ -189,6 +213,131 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
    return true;
 }
 
+/**
+ * Try to collapse nested ifs:
+ * This optimization turns
+ *
+ * if (cond1) {
+ *   <allowed instruction>
+ *   if (cond2) {
+ *     <any code>
+ *   } else {
+ *   }
+ * } else {
+ * }
+ *
+ * into
+ *
+ * <allowed instruction>
+ * if (cond1 && cond2) {
+ *   <any code>
+ * } else {
+ * }
+ *
+ */
+static bool
+nir_opt_collapse_if(nir_if *if_stmt, nir_shader *shader, unsigned limit,
+                    bool indirect_load_ok, bool expensive_alu_ok)
+{
+   /* the if has to be nested */
+   if (if_stmt->cf_node.parent->type != nir_cf_node_if)
+      return false;
+
+   nir_if *parent_if = nir_cf_node_as_if(if_stmt->cf_node.parent);
+   if (parent_if->control == nir_selection_control_dont_flatten)
+      return false;
+
+   /* check if the else block is empty */
+   if (!nir_cf_list_is_empty_block(&if_stmt->else_list))
+      return false;
+
+   /* this opt doesn't make much sense if the branch is empty */
+   if (nir_cf_list_is_empty_block(&if_stmt->then_list))
+      return false;
+
+   /* the nested if has to be the only cf_node:
+    * i.e. <block> <if_stmt> <block> */
+   if (exec_list_length(&parent_if->then_list) != 3)
+      return false;
+
+   /* check if the else block of the parent if is empty */
+   if (!nir_cf_list_is_empty_block(&parent_if->else_list))
+      return false;
+
+   /* check if the block after the nested if is empty except for phis */
+   nir_block *last = nir_if_last_then_block(parent_if);
+   nir_instr *last_instr = nir_block_last_instr(last);
+   if (last_instr && last_instr->type != nir_instr_type_phi)
+      return false;
+
+   /* check if all outer phis become trivial after merging the ifs */
+   nir_foreach_instr(instr, last) {
+      if (parent_if->control == nir_selection_control_flatten)
+         break;
+
+      nir_phi_instr *phi = nir_instr_as_phi(instr);
+      nir_phi_src *else_src =
+         nir_phi_get_src_from_block(phi, nir_if_first_else_block(if_stmt));
+
+      nir_foreach_use (src, &phi->dest.ssa) {
+         assert(src->parent_instr->type == nir_instr_type_phi);
+         nir_phi_src *phi_src =
+            nir_phi_get_src_from_block(nir_instr_as_phi(src->parent_instr),
+                                       nir_if_first_else_block(parent_if));
+         if (phi_src->src.ssa != else_src->src.ssa)
+            return false;
+      }
+   }
+
+   if (parent_if->control == nir_selection_control_flatten) {
+      /* Override driver defaults */
+      indirect_load_ok = true;
+      expensive_alu_ok = true;
+   }
+
+   /* check if the block before the nested if matches the requirements */
+   nir_block *first = nir_if_first_then_block(parent_if);
+   unsigned count = 0;
+   if (!block_check_for_allowed_instrs(first, &count, limit != 0,
+                                       indirect_load_ok, expensive_alu_ok))
+      return false;
+
+   if (count > limit && parent_if->control != nir_selection_control_flatten)
+      return false;
+
+   /* trivialize succeeding phis */
+   nir_foreach_instr(instr, last) {
+      nir_phi_instr *phi = nir_instr_as_phi(instr);
+      nir_phi_src *else_src =
+         nir_phi_get_src_from_block(phi, nir_if_first_else_block(if_stmt));
+      nir_foreach_use_safe(src, &phi->dest.ssa) {
+         nir_phi_src *phi_src =
+            nir_phi_get_src_from_block(nir_instr_as_phi(src->parent_instr),
+                                       nir_if_first_else_block(parent_if));
+         if (phi_src->src.ssa == else_src->src.ssa)
+            nir_instr_rewrite_src(src->parent_instr, &phi_src->src,
+                                  nir_src_for_ssa(&phi->dest.ssa));
+      }
+   }
+
+   /* combine the conditions */
+   struct nir_builder b;
+   nir_builder_init(&b, nir_cf_node_get_function(&if_stmt->cf_node)->function->impl);
+   b.cursor = nir_before_cf_node(&if_stmt->cf_node);
+   nir_ssa_def *cond = nir_iand(&b, if_stmt->condition.ssa,
+                                parent_if->condition.ssa);
+   nir_if_rewrite_condition(if_stmt, nir_src_for_ssa(cond));
+
+   /* move the whole inner if before the parent if */
+   nir_cf_list tmp;
+   nir_cf_extract(&tmp, nir_before_block(first),
+                        nir_after_block(last));
+   nir_cf_reinsert(&tmp, nir_before_cf_node(&parent_if->cf_node));
+
+   /* The now empty parent if will be cleaned up by other passes */
+   return true;
+}
+
 static bool
 nir_opt_peephole_select_block(nir_block *block, nir_shader *shader,
                               unsigned limit, bool indirect_load_ok,
@@ -202,6 +351,11 @@ nir_opt_peephole_select_block(nir_block *block, nir_shader *shader,
       return false;
 
    nir_if *if_stmt = nir_cf_node_as_if(prev_node);
+
+   /* first, try to collapse the if */
+   if (nir_opt_collapse_if(if_stmt, shader, limit,
+                           indirect_load_ok, expensive_alu_ok))
+      return true;
 
    if (if_stmt->control == nir_selection_control_dont_flatten)
       return false;

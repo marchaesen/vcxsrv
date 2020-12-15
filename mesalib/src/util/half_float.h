@@ -123,7 +123,7 @@ struct float16_t {
    uint16_t bits;
    float16_t(float f) : bits(_mesa_float_to_half(f)) {}
    float16_t(double d) : bits(_mesa_float_to_half(d)) {}
-   float16_t(uint16_t bits) : bits(bits) {}
+   float16_t(uint16_t raw_bits) : bits(raw_bits) {}
    static float16_t one() { return float16_t(FP16_ONE); }
    static float16_t zero() { return float16_t(FP16_ZERO); }
 };

@@ -2307,7 +2307,9 @@ FcParseCacheDir (FcConfigParse *parse)
     if (data[0] == 0)
     {
 	FcConfigMessage (parse, FcSevereWarning, "empty cache directory name ignored");
-	return;
+	FcStrFree (data);
+	data = prefix;
+	goto bail;
     }
     if (prefix)
     {
