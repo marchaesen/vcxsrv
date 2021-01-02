@@ -2,7 +2,8 @@ SHAREDLIB = swrast_dri
 
 top_srcdir:=..
 
-#LINKFLAGS := $(LINKFLAGS:/LTCG:STATUS=/LTCG:OFF)
+#Currently disable link global optimisations since it crashes the linker 
+LINKFLAGS := $(LINKFLAGS:/LTCG:STATUS=/LTCG:OFF)
 
 #SUBDIRS = . gtest util mapi/glapi/gen mapi
 

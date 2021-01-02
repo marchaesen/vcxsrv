@@ -13,11 +13,11 @@ XCBPROTO_XCBPYTHONDIR = ../xcb-proto
 XCBPROTO_XCBINCLUDEDIR = ../xcb-proto/src
 
 %.h: $(XCBPROTO_XCBINCLUDEDIR)\%.xml
-	python c_client.py -c "$(PACKAGE_STRING)" -l "$(XORG_MAN_PAGE)" \
+	$(PYTHON3) c_client.py -c "$(PACKAGE_STRING)" -l "$(XORG_MAN_PAGE)" \
 		-s "$(LIB_MAN_SUFFIX)" -p $(XCBPROTO_XCBPYTHONDIR) $(subst $/,/,$<)
 
 %.c: $(XCBPROTO_XCBINCLUDEDIR)\%.xml
-	python c_client.py -c "$(PACKAGE_STRING)" -l "$(XORG_MAN_PAGE)" \
+	$(PYTHON3) c_client.py -c "$(PACKAGE_STRING)" -l "$(XORG_MAN_PAGE)" \
 		-s "$(LIB_MAN_SUFFIX)" -p $(XCBPROTO_XCBPYTHONDIR) $(subst $/,/,$<)
 
 CLEANRULEPOSTFIX=noobjs
