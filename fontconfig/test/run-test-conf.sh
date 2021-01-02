@@ -33,6 +33,12 @@ BUILDTESTDIR=${builddir-"$MyPWD"}
 
 RUNNER=../test/test-conf$EXEEXT
 
+if [ ! -f ${RUNNER} ]; then
+    echo "${RUNNER} not found!\n"
+    echo "Building this test requires libjson-c development files to be available."
+    exit 77 # SKIP
+fi
+
 for i in \
 	60-generic.conf \
 	90-synthetic.conf \

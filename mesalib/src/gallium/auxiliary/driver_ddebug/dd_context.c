@@ -350,7 +350,7 @@ DD_SHADER_NOCREATE(COMPUTE, compute)
    }
 
 DD_IMM_STATE(blend_color, const struct pipe_blend_color, *state, state)
-DD_IMM_STATE(stencil_ref, const struct pipe_stencil_ref, *state, state)
+DD_IMM_STATE(stencil_ref, const struct pipe_stencil_ref, state, state)
 DD_IMM_STATE(clip_state, const struct pipe_clip_state, *state, state)
 DD_IMM_STATE(sample_mask, unsigned, sample_mask, sample_mask)
 DD_IMM_STATE(min_samples, unsigned, min_samples, min_samples)

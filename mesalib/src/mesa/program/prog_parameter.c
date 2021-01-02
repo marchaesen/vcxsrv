@@ -141,7 +141,6 @@ _mesa_new_parameter_list(void)
       return NULL;
 
    list->UniformBytes = 0;
-   list->LastUniformIndex = -1;
    list->FirstStateVarIndex = INT_MAX;
    return list;
 }
@@ -224,8 +223,12 @@ _mesa_reserve_parameter_storage(struct gl_program_parameter_list *paramList,
       paramList->ParameterValues = (gl_constant_value *)
          align_realloc(paramList->ParameterValues,         /* old buf */
                        oldNum * 4 * sizeof(gl_constant_value),/* old sz */
-                       paramList->SizeValues * 4 * sizeof(gl_constant_value),/*new*/
-                       16);
+                       /* Overallocate the size by 12 because matrix rows can
+                        * be allocated partially but fetch_state always writes
+                        * 4 components (16 bytes).
+                        */
+                       paramList->SizeValues * 4 * sizeof(gl_constant_value) +
+                       12, 16);
    }
 }
 
@@ -326,11 +329,11 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
    if (state) {
       for (unsigned i = 0; i < STATE_LENGTH; i++)
          paramList->Parameters[oldNum].StateIndexes[i] = state[i];
+   } else {
+      paramList->Parameters[oldNum].StateIndexes[0] = STATE_NOT_STATE_VAR;
    }
 
    if (type == PROGRAM_UNIFORM || type == PROGRAM_CONSTANT) {
-      paramList->LastUniformIndex =
-         MAX2(paramList->LastUniformIndex, oldNum);
       paramList->UniformBytes =
          MAX2(paramList->UniformBytes, paramList->NumParameterValues * 4);
    } else if (type == PROGRAM_STATE_VAR) {
@@ -452,15 +455,12 @@ void
 _mesa_recompute_parameter_bounds(struct gl_program_parameter_list *list)
 {
    list->FirstStateVarIndex = INT_MAX;
-   list->LastUniformIndex = -1;
 
    for (int i = 0; i < (int)list->NumParameters; i++) {
       if (list->Parameters[i].Type == PROGRAM_STATE_VAR) {
          list->FirstStateVarIndex = MIN2(list->FirstStateVarIndex, i);
       } else {
-         list->LastUniformIndex = MAX2(list->LastUniformIndex, i);
          list->UniformBytes = MAX2(list->UniformBytes, list->NumParameterValues * 4);
       }
    }
-   assert(list->LastUniformIndex < list->FirstStateVarIndex);
 }

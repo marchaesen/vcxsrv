@@ -2,6 +2,8 @@ SHAREDLIB = swrast_dri
 
 top_srcdir:=..
 
+#LINKFLAGS := $(LINKFLAGS:/LTCG:STATUS=/LTCG:OFF)
+
 #SUBDIRS = . gtest util mapi/glapi/gen mapi
 
 $(OBJDIR)/git_sha1.h:
@@ -35,7 +37,7 @@ INCLUDELIBFILES = compiler\$(OBJDIR)\libcompiler.lib
 INCLUDELIBFILES += mesa\$(OBJDIR)\libmesa.lib
 INCLUDELIBFILES += util\$(OBJDIR)\libutil.lib
 INCLUDELIBFILES += mapi\$(OBJDIR)\libmapi.lib
-INCLUDELIBFILES += mesa\drivers\dri\swrast\$(OBJDIR)\libswrast_dri.lib
+INCLUDELIBFILES += gallium\targets\dri\$(OBJDIR)\libgallium.lib
 INCLUDELIBFILES += mesa\drivers\dri\common\$(OBJDIR)\libdricommon.lib
 INCLUDELIBFILES += $(MHMAKECONF)\expat\lib\$(OBJDIR)\libexpat.lib
 INCLUDELIBFILES += $(MHMAKECONF)\libregex\$(OBJDIR)\libregex.lib

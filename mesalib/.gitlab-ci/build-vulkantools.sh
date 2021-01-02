@@ -10,7 +10,7 @@ git checkout "$VULKANTOOLS_VERSION"
 ./update_external_sources.sh
 mkdir _build
 ./scripts/update_deps.py --dir=_build --config=release --generator=Ninja
-cmake -G Ninja -B_build -H. \
+cmake -S . -B _build -G Ninja \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/VulkanTools/build \
       -DBUILD_TESTS=OFF \

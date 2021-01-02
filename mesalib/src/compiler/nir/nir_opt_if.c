@@ -295,6 +295,39 @@ alu_instr_is_type_conversion(const nir_alu_instr *alu)
           nir_op_infos[alu->op].output_type != nir_op_infos[alu->op].input_types[0];
 }
 
+static bool
+is_trivial_bcsel(const nir_instr *instr, bool allow_non_phi_src)
+{
+   if (instr->type != nir_instr_type_alu)
+      return false;
+
+   nir_alu_instr *const bcsel = nir_instr_as_alu(instr);
+   if (bcsel->op != nir_op_bcsel &&
+       bcsel->op != nir_op_b32csel &&
+       bcsel->op != nir_op_fcsel)
+      return false;
+
+   for (unsigned i = 0; i < 3; i++) {
+      if (!nir_alu_src_is_trivial_ssa(bcsel, i) ||
+          bcsel->src[i].src.ssa->parent_instr->block != instr->block)
+         return false;
+
+      if (bcsel->src[i].src.ssa->parent_instr->type != nir_instr_type_phi) {
+         /* opt_split_alu_of_phi() is able to peel that src from the loop */
+         if (i == 0 || !allow_non_phi_src)
+            return false;
+         allow_non_phi_src = false;
+      }
+   }
+
+   nir_foreach_phi_src(src, nir_instr_as_phi(bcsel->src[0].src.ssa->parent_instr)) {
+      if (!nir_src_is_const(src->src))
+         return false;
+   }
+
+   return true;
+}
+
 /**
  * Splits ALU instructions that have a source that is a phi node
  *
@@ -306,11 +339,12 @@ alu_instr_is_type_conversion(const nir_alu_instr *alu)
  *
  * - At least one source of the instruction is a phi node from the header block.
  *
- * - The phi node selects a constant or undef from the block before the loop.
- *
  * - Any non-phi sources of the ALU instruction come from a block that
  *   dominates the block before the loop.  The most common failure mode for
  *   this check is sources that are generated in the loop header block.
+ *
+ * - The phi node selects a constant or undef from the block before the loop or
+ *   the only ALU user is a trivial bcsel that gets removed by peeling the ALU
  *
  * The split process splits the original ALU instruction into two, one at the
  * bottom of the loop and one at the block before the loop. The instruction
@@ -450,60 +484,72 @@ opt_split_alu_of_phi(nir_builder *b, nir_loop *loop)
          }
       }
 
-      if (has_phi_src_from_prev_block && all_non_phi_exist_in_prev_block &&
-          (is_prev_result_undef || is_prev_result_const)) {
-         nir_block *const continue_block = find_continue_block(loop);
+      if (!has_phi_src_from_prev_block || !all_non_phi_exist_in_prev_block)
+         continue;
 
-         b->cursor = nir_after_block(prev_block);
-         nir_ssa_def *prev_value = clone_alu_and_replace_src_defs(b, alu, prev_srcs);
+      if (!is_prev_result_undef && !is_prev_result_const) {
+         /* check if the only user is a trivial bcsel */
+         if (!list_is_empty(&alu->dest.dest.ssa.if_uses) ||
+             !list_is_singular(&alu->dest.dest.ssa.uses))
+            continue;
 
-         /* Make a copy of the original ALU instruction.  Replace the sources
-          * of the new instruction that read a phi with an undef source from
-          * prev_block with the non-undef source of that phi.
-          *
-          * Insert the new instruction at the end of the continue block.
-          */
-         b->cursor = nir_after_block_before_jump(continue_block);
-
-         nir_ssa_def *const alu_copy =
-            clone_alu_and_replace_src_defs(b, alu, continue_srcs);
-
-         /* Make a new phi node that selects a value from prev_block and the
-          * result of the new instruction from continue_block.
-          */
-         nir_phi_instr *const phi = nir_phi_instr_create(b->shader);
-         nir_phi_src *phi_src;
-
-         phi_src = ralloc(phi, nir_phi_src);
-         phi_src->pred = prev_block;
-         phi_src->src = nir_src_for_ssa(prev_value);
-         exec_list_push_tail(&phi->srcs, &phi_src->node);
-
-         phi_src = ralloc(phi, nir_phi_src);
-         phi_src->pred = continue_block;
-         phi_src->src = nir_src_for_ssa(alu_copy);
-         exec_list_push_tail(&phi->srcs, &phi_src->node);
-
-         nir_ssa_dest_init(&phi->instr, &phi->dest,
-                           alu_copy->num_components, alu_copy->bit_size, NULL);
-
-         b->cursor = nir_after_phis(header_block);
-         nir_builder_instr_insert(b, &phi->instr);
-
-         /* Modify all readers of the original ALU instruction to read the
-          * result of the phi.
-          */
-         nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa,
-                                  nir_src_for_ssa(&phi->dest.ssa));
-
-         /* Since the original ALU instruction no longer has any readers, just
-          * remove it.
-          */
-         nir_instr_remove_v(&alu->instr);
-         ralloc_free(alu);
-
-         progress = true;
+         nir_src *use = list_first_entry(&alu->dest.dest.ssa.uses, nir_src, use_link);
+         if (!is_trivial_bcsel(use->parent_instr, true))
+            continue;
       }
+
+      /* Split ALU of Phi */
+      nir_block *const continue_block = find_continue_block(loop);
+
+      b->cursor = nir_after_block(prev_block);
+      nir_ssa_def *prev_value = clone_alu_and_replace_src_defs(b, alu, prev_srcs);
+
+      /* Make a copy of the original ALU instruction.  Replace the sources
+       * of the new instruction that read a phi with an undef source from
+       * prev_block with the non-undef source of that phi.
+       *
+       * Insert the new instruction at the end of the continue block.
+       */
+      b->cursor = nir_after_block_before_jump(continue_block);
+
+      nir_ssa_def *const alu_copy =
+         clone_alu_and_replace_src_defs(b, alu, continue_srcs);
+
+      /* Make a new phi node that selects a value from prev_block and the
+       * result of the new instruction from continue_block.
+       */
+      nir_phi_instr *const phi = nir_phi_instr_create(b->shader);
+      nir_phi_src *phi_src;
+
+      phi_src = ralloc(phi, nir_phi_src);
+      phi_src->pred = prev_block;
+      phi_src->src = nir_src_for_ssa(prev_value);
+      exec_list_push_tail(&phi->srcs, &phi_src->node);
+
+      phi_src = ralloc(phi, nir_phi_src);
+      phi_src->pred = continue_block;
+      phi_src->src = nir_src_for_ssa(alu_copy);
+      exec_list_push_tail(&phi->srcs, &phi_src->node);
+
+      nir_ssa_dest_init(&phi->instr, &phi->dest,
+                        alu_copy->num_components, alu_copy->bit_size, NULL);
+
+      b->cursor = nir_after_phis(header_block);
+      nir_builder_instr_insert(b, &phi->instr);
+
+      /* Modify all readers of the original ALU instruction to read the
+       * result of the phi.
+       */
+      nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa,
+                               nir_src_for_ssa(&phi->dest.ssa));
+
+      /* Since the original ALU instruction no longer has any readers, just
+       * remove it.
+       */
+      nir_instr_remove_v(&alu->instr);
+      ralloc_free(alu);
+
+      progress = true;
    }
 
    return progress;
@@ -609,32 +655,10 @@ opt_simplify_bcsel_of_phi(nir_builder *b, nir_loop *loop)
     * https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/170#note_110305
     */
    nir_foreach_instr_safe(instr, header_block) {
-      if (instr->type != nir_instr_type_alu)
+      if (!is_trivial_bcsel(instr, false))
          continue;
 
       nir_alu_instr *const bcsel = nir_instr_as_alu(instr);
-      if (bcsel->op != nir_op_bcsel &&
-          bcsel->op != nir_op_b32csel &&
-          bcsel->op != nir_op_fcsel)
-         continue;
-
-      bool match = true;
-      for (unsigned i = 0; i < 3; i++) {
-         /* FINISHME: The abs, negate and swizzled cases could be handled by
-          * adding move instructions at the bottom of the continue block and
-          * more phi nodes in the header_block.
-          */
-         if (!nir_alu_src_is_trivial_ssa(bcsel, i) ||
-             bcsel->src[i].src.ssa->parent_instr->type != nir_instr_type_phi ||
-             bcsel->src[i].src.ssa->parent_instr->block != header_block) {
-            match = false;
-            break;
-         }
-      }
-
-      if (!match)
-         continue;
-
       nir_phi_instr *const cond_phi =
          nir_instr_as_phi(bcsel->src[0].src.ssa->parent_instr);
 

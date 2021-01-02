@@ -29,6 +29,7 @@
 #include "lvp_lower_vulkan_resource.h"
 #include "pipe/p_state.h"
 #include "pipe/p_context.h"
+#include "nir/nir_xfb_info.h"
 
 #define SPIR_V_MAGIC_NUMBER 0x07230203
 
@@ -499,12 +500,17 @@ lvp_shader_compile_to_ir(struct lvp_pipeline *pipeline,
          .int64 = (pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_INT64) == 1),
          .tessellation = true,
          .image_ms_array = true,
+         .image_read_without_format = true,
+         .image_write_without_format = true,
          .storage_image_ms = true,
          .geometry_streams = true,
          .storage_16bit = true,
          .variable_pointers = true,
          .stencil_export = true,
          .post_depth_coverage = true,
+         .transform_feedback = true,
+         .geometry_streams = true,
+         .device_group = true,
       },
       .ubo_addr_format = nir_address_format_32bit_index_offset,
       .ssbo_addr_format = nir_address_format_32bit_index_offset,
@@ -699,6 +705,39 @@ lvp_pipeline_compile(struct lvp_pipeline *pipeline,
    } else {
       struct pipe_shader_state shstate = {};
       fill_shader_prog(&shstate, stage, pipeline);
+
+      nir_xfb_info *xfb_info = NULL;
+      if (stage == MESA_SHADER_VERTEX ||
+          stage == MESA_SHADER_GEOMETRY ||
+          stage == MESA_SHADER_TESS_EVAL) {
+         xfb_info = nir_gather_xfb_info(pipeline->pipeline_nir[stage], NULL);
+         if (xfb_info) {
+            unsigned num_outputs = 0;
+            uint8_t output_mapping[VARYING_SLOT_TESS_MAX];
+            memset(output_mapping, 0, sizeof(output_mapping));
+
+            for (unsigned attr = 0; attr < VARYING_SLOT_MAX; attr++) {
+               if (pipeline->pipeline_nir[stage]->info.outputs_written & BITFIELD64_BIT(attr))
+                  output_mapping[attr] = num_outputs++;
+            }
+
+            shstate.stream_output.num_outputs = xfb_info->output_count;
+            for (unsigned i = 0; i < PIPE_MAX_SO_BUFFERS; i++) {
+               if (xfb_info->buffers_written & (1 << i)) {
+                  shstate.stream_output.stride[i] = xfb_info->buffers[i].stride / 4;
+               }
+            }
+            for (unsigned i = 0; i < xfb_info->output_count; i++) {
+               shstate.stream_output.output[i].output_buffer = xfb_info->outputs[i].buffer;
+               shstate.stream_output.output[i].dst_offset = xfb_info->outputs[i].offset / 4;
+               shstate.stream_output.output[i].register_index = output_mapping[xfb_info->outputs[i].location];
+               shstate.stream_output.output[i].num_components = util_bitcount(xfb_info->outputs[i].component_mask);
+               shstate.stream_output.output[i].start_component = ffs(xfb_info->outputs[i].component_mask) - 1;
+               shstate.stream_output.output[i].stream = xfb_info->buffer_to_stream[xfb_info->outputs[i].buffer];
+            }
+         }
+      }
+
       switch (stage) {
       case MESA_SHADER_FRAGMENT:
          pipeline->shader_cso[PIPE_SHADER_FRAGMENT] = device->queue.ctx->create_fs_state(device->queue.ctx, &shstate);

@@ -565,5 +565,7 @@ int main()
    }
    assert(!mismatched_duplicates);
 
+   u_vector_finish(&test_entries);
+
    return 0;
 }

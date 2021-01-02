@@ -3765,13 +3765,6 @@ spec/arb_viewport_array/scissor-check: skip
 spec/arb_viewport_array/scissor-indices: skip
 spec/arb_viewport_array/viewport-indices: skip
 spec/ati_envmap_bumpmap/ati_envmap_bumpmap-bump: skip
-spec/ati_fragment_shader/ati_fragment_shader-render-constants: crash
-spec/ati_fragment_shader/ati_fragment_shader-render-default: crash
-spec/ati_fragment_shader/ati_fragment_shader-render-fog: crash
-spec/ati_fragment_shader/ati_fragment_shader-render-notexture: crash
-spec/ati_fragment_shader/ati_fragment_shader-render-precedence: crash
-spec/ati_fragment_shader/ati_fragment_shader-render-sources: crash
-spec/ati_fragment_shader/ati_fragment_shader-render-textargets: crash
 spec/ati_texture_compression_3dc/fbo-generatemipmap-formats: skip
 spec/ati_texture_compression_3dc/texwrap formats: skip
 spec/ati_texture_compression_3dc/texwrap formats bordercolor: skip
@@ -4749,9 +4742,9 @@ wgl/wgl-sanity: skip
 summary:
        name:  results
        ----  --------
-       pass:    13248
+       pass:    13254
        fail:      539
-      crash:       75
+      crash:       68
        skip:     4114
     timeout:        0
        warn:       10
@@ -4761,4 +4754,4 @@ summary:
     changes:        0
       fixes:        0
 regressions:        0
-      total:    17996
+      total:    17995

@@ -670,6 +670,50 @@ tu_lower_io(nir_shader *shader, struct tu_shader *tu_shader,
    return progress;
 }
 
+static bool
+lower_image_size_filter(const nir_instr *instr, UNUSED const void *data)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+   if(intrin->intrinsic != nir_intrinsic_bindless_image_size)
+      return false;
+
+   return (intrin->num_components == 3 && nir_intrinsic_image_dim(intrin) == GLSL_SAMPLER_DIM_CUBE);
+}
+
+/* imageSize() expects the last component of the return value to be the
+ * number of layers in the texture array. In the case of cube map array,
+ * it will return a ivec3, with the third component being the number of
+ * layer-faces. Therefore, we need to divide it by 6 (# faces of the
+ * cube map).
+ */
+static nir_ssa_def *
+lower_image_size_lower(nir_builder *b, nir_instr *instr, UNUSED void *data)
+{
+   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+   b->cursor = nir_after_instr(&intrin->instr);
+   nir_ssa_def *channels[NIR_MAX_VEC_COMPONENTS];
+   for (unsigned i = 0; i < intrin->num_components; i++) {
+      channels[i] = nir_vector_extract(b, &intrin->dest.ssa, nir_imm_int(b, i));
+   }
+
+   channels[2] = nir_idiv(b, channels[2], nir_imm_int(b, 6u));
+   nir_ssa_def *result = nir_vec(b, channels, intrin->num_components);
+
+   return result;
+}
+
+static bool
+tu_lower_image_size(nir_shader *shader)
+{
+   return nir_shader_lower_instructions(shader,
+                                        lower_image_size_filter,
+                                        lower_image_size_lower,
+                                        NULL);
+}
+
 static void
 shared_type_info(const struct glsl_type *type, unsigned *size, unsigned *align)
 {
@@ -792,6 +836,8 @@ tu_shader_create(struct tu_device *dev,
    nir_assign_io_var_locations(nir, nir_var_shader_out, &nir->num_outputs, nir->info.stage);
 
    NIR_PASS_V(nir, tu_lower_io, shader, layout);
+
+   NIR_PASS_V(nir, tu_lower_image_size);
 
    nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
 

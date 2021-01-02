@@ -85,6 +85,7 @@ and other operating systems.
    drivers/freedreno
    drivers/llvmpipe
    drivers/openswr
+   drivers/panfrost
    drivers/v3d
    drivers/vc4
    drivers/vmware-guest

@@ -111,12 +111,20 @@ static inline bool list_is_empty(const struct list_head *list)
    return list->next == list;
 }
 
+static inline bool list_is_linked(const struct list_head *list)
+{
+   /* both must be NULL or both must be not NULL */
+   assert((list->prev != NULL) == (list->next != NULL));
+
+   return list->next != NULL;
+}
+
 /**
  * Returns whether the list has exactly one element.
  */
 static inline bool list_is_singular(const struct list_head *list)
 {
-   return list->next != NULL && list->next != list && list->next->next == list;
+   return list_is_linked(list) && !list_is_empty(list) && list->next->next == list;
 }
 
 static inline unsigned list_length(const struct list_head *list)
@@ -153,6 +161,7 @@ static inline void list_splicetail(struct list_head *src, struct list_head *dst)
 static inline void list_validate(const struct list_head *list)
 {
    struct list_head *node;
+   assert(list_is_linked(list));
    assert(list->next->prev == list && list->prev->next == list);
    for (node = list->next; node != list; node = node->next)
       assert(node->next->prev == node && node->prev->next == node);

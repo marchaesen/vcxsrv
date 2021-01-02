@@ -24,3 +24,6 @@ if with_microsoft_clc
   subdir('clc')
 endif
 subdir('resource_state_manager')
+if with_spirv_to_dxil
+  subdir('spirv_to_dxil')
+endif

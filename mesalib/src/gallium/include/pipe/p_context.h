@@ -337,7 +337,7 @@ struct pipe_context {
                             const struct pipe_blend_color * );
 
    void (*set_stencil_ref)( struct pipe_context *,
-                            const struct pipe_stencil_ref * );
+                            const struct pipe_stencil_ref ref);
 
    void (*set_sample_mask)( struct pipe_context *,
                             unsigned sample_mask );
@@ -516,6 +516,8 @@ struct pipe_context {
                               unsigned num_targets,
                               struct pipe_stream_output_target **targets,
                               const unsigned *offsets);
+
+   uint32_t (*stream_output_target_offset)(struct pipe_stream_output_target *target);
 
    /*@}*/
 

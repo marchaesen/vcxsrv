@@ -57,7 +57,7 @@ endif
 
 liblavapipe_st = static_library(
   'lavapipe_st',
-  [liblvp_files, lvp_entrypoints, lvp_extensions_c ],
+  [liblvp_files, lvp_entrypoints, lvp_extensions_c, sha1_h],
   link_with : [ libvulkan_wsi ],
   c_args : [ lvp_flags ],
   gnu_symbol_visibility : 'hidden',

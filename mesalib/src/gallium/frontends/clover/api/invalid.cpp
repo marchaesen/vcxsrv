@@ -91,15 +91,6 @@ clSetProgramReleaseCallback(cl_program d_prog,
    return CL_INVALID_OPERATION;
 }
 
-CLOVER_API cl_program
-clCreateProgramWithIL(cl_context context,
-		      const void *il,
-		      size_t length,
-		      cl_int *r_errorcode) {
-   *r_errorcode = CL_INVALID_OPERATION;
-   return nullptr;
-}
-
 CLOVER_API cl_int
 clSetProgramSpecializationConstant(cl_program program,
 				   cl_uint spec_id,

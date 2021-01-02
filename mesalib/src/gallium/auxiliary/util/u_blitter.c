@@ -242,9 +242,9 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
    ctx->dsa_keep_depth_stencil =
       pipe->create_depth_stencil_alpha_state(pipe, &dsa);
 
-   dsa.depth.enabled = 1;
-   dsa.depth.writemask = 1;
-   dsa.depth.func = PIPE_FUNC_ALWAYS;
+   dsa.depth_enabled = 1;
+   dsa.depth_writemask = 1;
+   dsa.depth_func = PIPE_FUNC_ALWAYS;
    ctx->dsa_write_depth_keep_stencil =
       pipe->create_depth_stencil_alpha_state(pipe, &dsa);
 
@@ -258,8 +258,8 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
    ctx->dsa_write_depth_stencil =
       pipe->create_depth_stencil_alpha_state(pipe, &dsa);
 
-   dsa.depth.enabled = 0;
-   dsa.depth.writemask = 0;
+   dsa.depth_enabled = 0;
+   dsa.depth_writemask = 0;
    ctx->dsa_keep_depth_write_stencil =
       pipe->create_depth_stencil_alpha_state(pipe, &dsa);
 
@@ -714,7 +714,7 @@ void util_blitter_restore_fragment_states(struct blitter_context *blitter)
    /* Miscellaneous states. */
    /* XXX check whether these are saved and whether they need to be restored
     * (depending on the operation) */
-   pipe->set_stencil_ref(pipe, &ctx->base.saved_stencil_ref);
+   pipe->set_stencil_ref(pipe, ctx->base.saved_stencil_ref);
 
    if (!blitter->skip_viewport_restore)
       pipe->set_viewport_states(pipe, 0, 1, &ctx->base.saved_viewport);
@@ -1496,7 +1496,7 @@ static void util_blitter_clear_custom(struct blitter_context *blitter,
                                    custom_blend, custom_dsa);
 
    sr.ref_value[0] = stencil & 0xff;
-   pipe->set_stencil_ref(pipe, &sr);
+   pipe->set_stencil_ref(pipe, sr);
 
    bind_fs_write_all_cbufs(ctx);
 
@@ -2363,7 +2363,7 @@ void util_blitter_clear_depth_stencil(struct blitter_context *blitter,
    if ((clear_flags & PIPE_CLEAR_DEPTHSTENCIL) == PIPE_CLEAR_DEPTHSTENCIL) {
       sr.ref_value[0] = stencil & 0xff;
       pipe->bind_depth_stencil_alpha_state(pipe, ctx->dsa_write_depth_stencil);
-      pipe->set_stencil_ref(pipe, &sr);
+      pipe->set_stencil_ref(pipe, sr);
    }
    else if (clear_flags & PIPE_CLEAR_DEPTH) {
       pipe->bind_depth_stencil_alpha_state(pipe, ctx->dsa_write_depth_keep_stencil);
@@ -2371,7 +2371,7 @@ void util_blitter_clear_depth_stencil(struct blitter_context *blitter,
    else if (clear_flags & PIPE_CLEAR_STENCIL) {
       sr.ref_value[0] = stencil & 0xff;
       pipe->bind_depth_stencil_alpha_state(pipe, ctx->dsa_keep_depth_write_stencil);
-      pipe->set_stencil_ref(pipe, &sr);
+      pipe->set_stencil_ref(pipe, sr);
    }
    else
       /* hmm that should be illegal probably, or make it a no-op somewhere */
@@ -2802,7 +2802,7 @@ get_stencil_blit_fallback_dsa(struct blitter_context_priv *ctx, unsigned i)
    assert(i < ARRAY_SIZE(ctx->dsa_replicate_stencil_bit));
    if (!ctx->dsa_replicate_stencil_bit[i]) {
       struct pipe_depth_stencil_alpha_state dsa = { 0 };
-      dsa.depth.func = PIPE_FUNC_ALWAYS;
+      dsa.depth_func = PIPE_FUNC_ALWAYS;
       dsa.stencil[0].enabled = 1;
       dsa.stencil[0].func = PIPE_FUNC_ALWAYS;
       dsa.stencil[0].fail_op = PIPE_STENCIL_OP_REPLACE;
@@ -2892,7 +2892,7 @@ util_blitter_stencil_fallback(struct blitter_context *blitter,
                                      UTIL_FORMAT_COLORSPACE_ZS, 1);
 
    struct pipe_stencil_ref sr = { { (1u << stencil_bits) - 1 } };
-   pipe->set_stencil_ref(pipe, &sr);
+   pipe->set_stencil_ref(pipe, sr);
 
    union blitter_attrib coord;
    get_texcoords(src_view, src->width0, src->height0,

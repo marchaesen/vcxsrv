@@ -5364,12 +5364,14 @@ void visit_load_push_constant(isel_context *ctx, nir_intrinsic_instr *instr)
    case 3:
       vec = bld.tmp(s4);
       trim = true;
+      FALLTHROUGH;
    case 4:
       op = aco_opcode::s_load_dwordx4;
       break;
    case 6:
       vec = bld.tmp(s8);
       trim = true;
+      FALLTHROUGH;
    case 8:
       op = aco_opcode::s_load_dwordx8;
       break;

@@ -358,7 +358,7 @@ Unicode characters which is supposed to be blank in an <literal>&lt;int&gt;</lit
 Characters outside of this set which are drawn as blank will be elided from
 the set of characters supported by the font.
   </para></refsect2>
-  <refsect2><title><literal>&lt;remap-dir prefix="default" as-path="" salt=""&lt;</literal></title><para>
+  <refsect2><title><literal>&lt;remap-dir prefix="default" as-path="" salt=""&gt;</literal></title><para>
 This element contains a directory name where will be mapped
 as the path 'as-path' in cached information.
 This is useful if the directory name is an alias

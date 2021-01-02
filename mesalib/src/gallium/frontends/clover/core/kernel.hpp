@@ -27,6 +27,7 @@
 #include <memory>
 
 #include "core/object.hpp"
+#include "core/printf.hpp"
 #include "core/program.hpp"
 #include "core/memory.hpp"
 #include "core/sampler.hpp"
@@ -53,6 +54,7 @@ namespace clover {
 
          kernel &kern;
          intrusive_ptr<command_queue> q;
+         std::unique_ptr<printf_handler> print_handler;
 
          std::vector<uint8_t> input;
          std::vector<void *> samplers;

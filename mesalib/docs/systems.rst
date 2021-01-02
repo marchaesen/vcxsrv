@@ -23,8 +23,7 @@ Hardware drivers include:
    V3D <https://anholt.github.io/twivc4/>`__
 -  ARM Mali Utgard. See `Lima
    Wiki <https://gitlab.freedesktop.org/lima/web/wikis/home>`__
--  ARM Mali Midgard, Bifrost. See `Panfrost
-   Site <https://panfrost.freedesktop.org/>`__
+-  ARM Mali Midgard, Bifrost. See :doc:`Panfrost <drivers/panfrost>`
 -  Vivante GCxxx. See `Etnaviv
    Wiki <https://github.com/laanwj/etna_viv/wiki>`__
 -  NVIDIA Tegra (K1 and later).

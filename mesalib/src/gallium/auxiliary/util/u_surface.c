@@ -765,7 +765,8 @@ util_can_blit_via_copy_region(const struct pipe_blit_info *blit,
        blit->filter != PIPE_TEX_FILTER_NEAREST ||
        blit->scissor_enable ||
        blit->num_window_rectangles > 0 ||
-       blit->alpha_blend) {
+       blit->alpha_blend ||
+       blit->render_condition_enable) {
       return FALSE;
    }
 

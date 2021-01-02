@@ -35,12 +35,12 @@ nine_convert_dsa_state(struct pipe_depth_stencil_alpha_state *dsa_state,
     memset(&dsa, 0, sizeof(dsa)); /* memcmp safety */
 
     if (rs[D3DRS_ZENABLE]) {
-        dsa.depth.enabled = 1;
-        dsa.depth.func = d3dcmpfunc_to_pipe_func(rs[D3DRS_ZFUNC]);
+        dsa.depth_enabled = 1;
+        dsa.depth_func = d3dcmpfunc_to_pipe_func(rs[D3DRS_ZFUNC]);
         /* Disable depth write if no change can occur */
-        dsa.depth.writemask = !!rs[D3DRS_ZWRITEENABLE] &&
-            dsa.depth.func != PIPE_FUNC_EQUAL &&
-            dsa.depth.func != PIPE_FUNC_NEVER;
+        dsa.depth_writemask = !!rs[D3DRS_ZWRITEENABLE] &&
+            dsa.depth_func != PIPE_FUNC_EQUAL &&
+            dsa.depth_func != PIPE_FUNC_NEVER;
     }
 
     if (rs[D3DRS_STENCILENABLE]) {
@@ -64,9 +64,9 @@ nine_convert_dsa_state(struct pipe_depth_stencil_alpha_state *dsa_state,
     }
 
     if (rs[D3DRS_ALPHATESTENABLE]) {
-        dsa.alpha.enabled = 1;
-        dsa.alpha.func = d3dcmpfunc_to_pipe_func(rs[D3DRS_ALPHAFUNC]);
-        dsa.alpha.ref_value = (float)rs[D3DRS_ALPHAREF] / 255.0f;
+        dsa.alpha_enabled = 1;
+        dsa.alpha_func = d3dcmpfunc_to_pipe_func(rs[D3DRS_ALPHAFUNC]);
+        dsa.alpha_ref_value = (float)rs[D3DRS_ALPHAREF] / 255.0f;
     }
 
     *dsa_state = dsa;

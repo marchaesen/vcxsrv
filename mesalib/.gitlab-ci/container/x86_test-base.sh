@@ -17,6 +17,15 @@ echo "deb https://apt.llvm.org/buster/ llvm-toolchain-buster-10 main" >/etc/apt/
 sed -i -e 's/http:\/\/deb/https:\/\/deb/g' /etc/apt/sources.list
 echo 'deb https://deb.debian.org/debian buster-backports main' >/etc/apt/sources.list.d/backports.list
 
+# Ephemeral packages (installed for this script and removed again at
+# the end)
+STABLE_EPHEMERAL=" \
+      python3-dev \
+      python3-pip \
+      python3-setuptools \
+      python3-wheel \
+      "
+
 apt-get update
 apt-get dist-upgrade -y
 
@@ -57,7 +66,15 @@ apt-get install -y --no-remove \
       xvfb \
       zlib1g
 
+apt-get install -y --no-install-recommends \
+      $STABLE_EPHEMERAL
+
+# Needed for ci-fairy, this revision is able to upload files to MinIO
+# and doesn't depend on git
+pip3 install git+http://gitlab.freedesktop.org/freedesktop/ci-templates@0f1abc24c043e63894085a6bd12f14263e8b29eb
+
 apt-get purge -y \
+      $STABLE_EPHEMERAL \
       gnupg
 
 apt-get autoremove -y --purge

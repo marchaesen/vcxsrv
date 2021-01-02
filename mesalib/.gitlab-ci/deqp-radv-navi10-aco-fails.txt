@@ -1,6 +1,0 @@
-dEQP-VK.api.copy_and_blit.core.resolve_image.whole_array_image.4_bit,Fail
-dEQP-VK.api.copy_and_blit.core.resolve_image.whole_array_image_one_region.4_bit,Fail
-dEQP-VK.api.copy_and_blit.core.resolve_image.whole_copy_before_resolving.4_bit,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.resolve_image.whole_array_image.4_bit,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.resolve_image.whole_array_image_one_region.4_bit,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.resolve_image.whole_copy_before_resolving.4_bit,Fail

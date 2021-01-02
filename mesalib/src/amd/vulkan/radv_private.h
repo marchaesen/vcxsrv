@@ -1291,6 +1291,7 @@ struct radv_attachment_state {
 	VkImageLayout                                current_layout;
 	VkImageLayout                                current_stencil_layout;
 	bool                                         current_in_render_loop;
+	bool                                         disable_dcc;
 	struct radv_sample_locations_state	     sample_location;
 
 	union {
@@ -1927,7 +1928,8 @@ bool radv_layout_is_htile_compressed(const struct radv_image *image,
                                      bool in_render_loop,
                                      unsigned queue_mask);
 
-bool radv_layout_can_fast_clear(const struct radv_image *image,
+bool radv_layout_can_fast_clear(const struct radv_device *device,
+				const struct radv_image *image,
 			        VkImageLayout layout,
 			        bool in_render_loop,
 			        unsigned queue_mask);
@@ -2627,8 +2629,14 @@ si_conv_gl_prim_to_vertices(unsigned gl_prim)
 	}
 }
 
+
+struct radv_extra_render_pass_begin_info {
+	bool disable_dcc;
+};
+
 void radv_cmd_buffer_begin_render_pass(struct radv_cmd_buffer *cmd_buffer,
-				       const VkRenderPassBeginInfo *pRenderPassBegin);
+				       const VkRenderPassBeginInfo *pRenderPassBegin,
+				       const struct radv_extra_render_pass_begin_info *extra_info);
 void radv_cmd_buffer_end_render_pass(struct radv_cmd_buffer *cmd_buffer);
 
 static inline uint32_t si_translate_prim(unsigned topology)

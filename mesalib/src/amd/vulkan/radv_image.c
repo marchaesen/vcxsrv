@@ -94,12 +94,9 @@ radv_use_tc_compat_htile_for_image(struct radv_device *device,
 		return false;
 
 	/* FIXME: for some reason TC compat with 2/4/8 samples breaks some cts
-	 * tests - disable for now. On GFX10 D32_SFLOAT is affected as well.
+	 * tests - disable for now.
 	 */
-	if (pCreateInfo->samples >= 2 &&
-	    (format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
-	     (format == VK_FORMAT_D32_SFLOAT &&
-	      device->physical_device->rad_info.chip_class >= GFX10)))
+	if (pCreateInfo->samples >= 2 && format == VK_FORMAT_D32_SFLOAT_S8_UINT)
 		return false;
 
 	/* GFX9 supports both 32-bit and 16-bit depth surfaces, while GFX8 only
@@ -110,29 +107,6 @@ radv_use_tc_compat_htile_for_image(struct radv_device *device,
 	    format != VK_FORMAT_D32_SFLOAT &&
 	    format != VK_FORMAT_D16_UNORM)
 		return false;
-
-	if (pCreateInfo->flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) {
-		const struct VkImageFormatListCreateInfo *format_list =
-			(const struct  VkImageFormatListCreateInfo *)
-				vk_find_struct_const(pCreateInfo->pNext,
-						     IMAGE_FORMAT_LIST_CREATE_INFO);
-
-		/* We have to ignore the existence of the list if viewFormatCount = 0 */
-		if (format_list && format_list->viewFormatCount) {
-			/* compatibility is transitive, so we only need to check
-			 * one format with everything else.
-			 */
-			for (unsigned i = 0; i < format_list->viewFormatCount; ++i) {
-				if (format_list->pViewFormats[i] == VK_FORMAT_UNDEFINED)
-					continue;
-
-				if (format != format_list->pViewFormats[i])
-					return false;
-			}
-		} else {
-			return false;
-		}
-	}
 
 	return true;
 }
@@ -1278,15 +1252,11 @@ static void
 radv_image_alloc_values(const struct radv_device *device, struct radv_image *image)
 {
 	if (radv_image_has_dcc(image)) {
-		unsigned pred_size = 8;
-		if (device->physical_device->rad_info.has_32bit_predication)
-			pred_size = 4;
-
 		image->fce_pred_offset = image->size;
-		image->size += pred_size * image->info.levels;
+		image->size += 8 * image->info.levels;
 
 		image->dcc_pred_offset = image->size;
-		image->size += pred_size * image->info.levels;
+		image->size += 8 * image->info.levels;
 	}
 
 	if (radv_image_has_dcc(image) || radv_image_has_cmask(image) ||
@@ -1805,11 +1775,16 @@ bool radv_layout_is_htile_compressed(const struct radv_image *image,
 	         queue_mask == (1u << RADV_QUEUE_GENERAL)));
 }
 
-bool radv_layout_can_fast_clear(const struct radv_image *image,
+bool radv_layout_can_fast_clear(const struct radv_device *device,
+				const struct radv_image *image,
 			        VkImageLayout layout,
 				bool in_render_loop,
 			        unsigned queue_mask)
 {
+	if (radv_image_has_dcc(image) &&
+	    !radv_layout_dcc_compressed(device, image, layout, in_render_loop, queue_mask))
+		return false;
+
 	return layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL &&
 	       queue_mask == (1u << RADV_QUEUE_GENERAL);
 }
@@ -1821,11 +1796,14 @@ bool radv_layout_dcc_compressed(const struct radv_device *device,
 			        unsigned queue_mask)
 {
 	/* Don't compress compute transfer dst, as image stores are not supported. */
-	if (layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+	if ((layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL ||
+	     layout == VK_IMAGE_LAYOUT_GENERAL) &&
 	    (queue_mask & (1u << RADV_QUEUE_COMPUTE)))
 		return false;
 
-	return radv_image_has_dcc(image) && layout != VK_IMAGE_LAYOUT_GENERAL;
+	return radv_image_has_dcc(image) &&
+	       (device->physical_device->rad_info.chip_class >= GFX10 ||
+	        layout != VK_IMAGE_LAYOUT_GENERAL);
 }
 
 

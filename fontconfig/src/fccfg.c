@@ -1714,6 +1714,7 @@ FcConfigMatchValueList (FcPattern	*p,
     FcExpr	    *e = t->expr;
     FcValue	    value;
     FcValueList	    *v;
+    FcOp            op;
 
     while (e)
     {
@@ -1731,10 +1732,23 @@ FcConfigMatchValueList (FcPattern	*p,
 
         if (t->object == FC_FAMILY_OBJECT && table)
         {
-            if (!FamilyTableLookup (table, t->op, FcValueString (&value)))
+            op = FC_OP_GET_OP (t->op);
+            if (op == FcOpEqual || op == FcOpListing)
             {
+                if (!FamilyTableLookup (table, t->op, FcValueString (&value)))
+                {
                     ret = 0;
                     goto done;
+                }
+            }
+            if (op == FcOpNotEqual && t->qual == FcQualAll)
+            {
+                ret = 0;
+                if (!FamilyTableLookup (table, t->op, FcValueString (&value)))
+                {
+                    ret = values;
+                }
+                goto done;
             }
         }
 	for (v = values; v; v = FcValueListNext(v))

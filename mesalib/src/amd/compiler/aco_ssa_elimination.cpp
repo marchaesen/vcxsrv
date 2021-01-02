@@ -134,6 +134,7 @@ bool is_empty_block(Block* block, bool ignore_exec_writes)
          case aco_opcode::s_andn2_b32:
             if (ignore_exec_writes && instr->definitions[0].physReg() == exec)
                break;
+            return false;
          default:
             return false;
       }

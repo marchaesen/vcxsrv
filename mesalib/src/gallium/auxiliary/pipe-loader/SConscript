@@ -1,0 +1,33 @@
+Import('*')
+
+env = env.Clone()
+
+env.MSVC2013Compat()
+
+env.Append(CPPPATH = [
+    '#/src/loader',
+    '#/src/gallium/winsys',
+])
+
+env.Append(CPPDEFINES = [
+    ('HAVE_PIPE_LOADER_DRI', '1'),
+    ('DROP_PIPE_LOADER_MISC', '1'),
+    ('GALLIUM_STATIC_TARGETS', '1'),
+])
+
+source = env.ParseSourceList('Makefile.sources', 'COMMON_SOURCES')
+
+if env['HAVE_DRM']:
+    source += env.ParseSourceList('Makefile.sources', 'DRM_SOURCES')
+
+    env.PkgUseModules('DRM')
+    env.Append(LIBS = [libloader])
+
+pipe_loader = env.ConvenienceLibrary(
+    target = 'pipe_loader',
+    source = source,
+)
+
+env.Alias('pipe_loader', pipe_loader)
+
+Export('pipe_loader')

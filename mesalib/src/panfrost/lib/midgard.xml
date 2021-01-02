@@ -379,6 +379,12 @@
     <value name="Trilinear" value="3"/>
   </enum>
 
+  <enum name="LOD Algorithm">
+    <value name="Isotropic" value="0"/>
+      <!--- 1, 2 reserved -->
+    <value name="Anisotropic" value="3"/>
+  </enum>
+
   <enum name="MSAA">
     <value name="Single" value="0"/>
     <!-- N samples, 1 surface, resolved -->
@@ -707,9 +713,9 @@
     <field name="Minimum LOD" size="13" start="1:0" type="uint" default="0"/>
     <field name="Compare Function" size="3" start="1:13" type="Func" default="Never"/>
     <field name="Maximum LOD" size="13" start="1:16" type="uint" default="0"/>
-    <field name="LOD bias" size="16" start="2:0" type="uint" default="0"/>
-    <field name="Maximum anisotropy" size="5" start="2:16" type="uint"/>
-    <field name="Anisotropy" size="1" start="2:25" type="bool"/>
+    <field name="LOD bias" size="16" start="2:0" type="int" default="0"/>
+    <field name="Maximum anisotropy" size="5" start="2:16" type="uint" default="1" modifier="minus(1)"/>
+    <field name="LOD algorithm" size="2" start="2:24" type="LOD Algorithm" default="Isotropic"/>
     <field name="Border Color R" size="32" start="4:0" type="float" default="0.0"/>
     <field name="Border Color G" size="32" start="5:0" type="float" default="0.0"/>
     <field name="Border Color B" size="32" start="6:0" type="float" default="0.0"/>

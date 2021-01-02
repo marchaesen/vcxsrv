@@ -29,7 +29,7 @@ struct state {
 	uint32_t topology;
 
 	struct primitive_map {
-		unsigned loc[32];
+		unsigned loc[32 + 4]; /* +POSITION +PSIZE +CLIP_DIST0 +CLIP_DIST1 */
 		unsigned stride;
 	} map;
 

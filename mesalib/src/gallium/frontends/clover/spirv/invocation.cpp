@@ -49,12 +49,6 @@ using namespace clover;
 #ifdef HAVE_CLOVER_SPIRV
 namespace {
 
-   uint32_t
-   make_spirv_version(uint8_t major, uint8_t minor) {
-      return (static_cast<uint32_t>(major) << 16u) |
-             (static_cast<uint32_t>(minor) << 8u);
-   }
-
    template<typename T>
    T get(const char *source, size_t index) {
       const uint32_t *word_ptr = reinterpret_cast<const uint32_t *>(source);
@@ -113,7 +107,7 @@ namespace {
    }
 
    module::section
-   make_text_section(const std::vector<char> &code,
+   make_text_section(const std::string &code,
                      enum module::section::type section_type) {
       const pipe_binary_program_header header { uint32_t(code.size()) };
       module::section text { 0, section_type, header.num_bytes, {} };
@@ -126,7 +120,7 @@ namespace {
    }
 
    module
-   create_module_from_spirv(const std::vector<char> &source,
+   create_module_from_spirv(const std::string &source,
                             size_t pointer_byte_size,
                             std::string &err) {
       const size_t length = source.size() / sizeof(uint32_t);
@@ -471,7 +465,33 @@ namespace {
    }
 
    bool
-   check_capabilities(const device &dev, const std::vector<char> &source,
+   check_spirv_version(const device &dev, const char *binary,
+                       std::string &r_log) {
+      const auto spirv_version = get<uint32_t>(binary, 1u);
+      const auto supported_spirv_versions = clover::spirv::supported_versions();
+      const auto compare_versions =
+         [module_version =
+            clover::spirv::to_opencl_version_encoding(spirv_version)](const cl_name_version &supported){
+         return supported.version == module_version;
+      };
+
+      if (std::find_if(supported_spirv_versions.cbegin(),
+                       supported_spirv_versions.cend(),
+                       compare_versions) != supported_spirv_versions.cend())
+         return true;
+
+      r_log += "SPIR-V version " +
+               clover::spirv::version_to_string(spirv_version) +
+               " is not supported; supported versions:";
+      for (const auto &version : supported_spirv_versions) {
+         r_log += " " + clover::spirv::version_to_string(version.version);
+      }
+      r_log += "\n";
+      return false;
+   }
+
+   bool
+   check_capabilities(const device &dev, const std::string &source,
                       std::string &r_log) {
       const size_t length = source.size() / sizeof(uint32_t);
       size_t i = SPIRV_HEADER_WORD_SIZE; // Skip header
@@ -541,7 +561,7 @@ namespace {
    }
 
    bool
-   check_extensions(const device &dev, const std::vector<char> &source,
+   check_extensions(const device &dev, const std::string &source,
                     std::string &r_log) {
       const size_t length = source.size() / sizeof(uint32_t);
       size_t i = SPIRV_HEADER_WORD_SIZE; // Skip header
@@ -572,7 +592,7 @@ namespace {
    }
 
    bool
-   check_memory_model(const device &dev, const std::vector<char> &source,
+   check_memory_model(const device &dev, const std::string &source,
                       std::string &r_log) {
       const size_t length = source.size() / sizeof(uint32_t);
       size_t i = SPIRV_HEADER_WORD_SIZE; // Skip header
@@ -605,8 +625,8 @@ namespace {
    }
 
    // Copies the input binary and convert it to the endianness of the host CPU.
-   std::vector<char>
-   spirv_to_cpu(const std::vector<char> &binary)
+   std::string
+   spirv_to_cpu(const std::string &binary)
    {
       const uint32_t first_word = get<uint32_t>(binary.data(), 0u);
       if (first_word == SpvMagicNumber)
@@ -619,7 +639,8 @@ namespace {
             util_bswap32(word);
       }
 
-      return cpu_endianness_binary;
+      return std::string(cpu_endianness_binary.begin(),
+                         cpu_endianness_binary.end());
    }
 
 #ifdef HAVE_CLOVER_SPIRV
@@ -676,15 +697,39 @@ namespace {
 
 }
 
+bool
+clover::spirv::is_binary_spirv(const std::string &binary)
+{
+   // A SPIR-V binary is at the very least 5 32-bit words, which represent the
+   // SPIR-V header.
+   if (binary.size() < 20u)
+      return false;
+
+   const uint32_t first_word =
+      reinterpret_cast<const uint32_t *>(binary.data())[0u];
+   return (first_word == SpvMagicNumber) ||
+          (util_bswap32(first_word) == SpvMagicNumber);
+}
+
+std::string
+clover::spirv::version_to_string(uint32_t version) {
+   const uint32_t major_version = (version >> 16) & 0xff;
+   const uint32_t minor_version = (version >> 8) & 0xff;
+   return std::to_string(major_version) + '.' +
+      std::to_string(minor_version);
+}
+
 module
-clover::spirv::compile_program(const std::vector<char> &binary,
+clover::spirv::compile_program(const std::string &binary,
                                const device &dev, std::string &r_log,
                                bool validate) {
-   std::vector<char> source = spirv_to_cpu(binary);
+   std::string source = spirv_to_cpu(binary);
 
    if (validate && !is_valid_spirv(source, dev.device_version(), r_log))
       throw build_error();
 
+   if (!check_spirv_version(dev, source.data(), r_log))
+      throw build_error();
    if (!check_capabilities(dev, source, r_log))
       throw build_error();
    if (!check_extensions(dev, source, r_log))
@@ -746,6 +791,9 @@ clover::spirv::link_program(const std::vector<module> &modules,
       const auto c_il = ((struct pipe_binary_program_header*)msec.data.data())->blob;
       const auto length = msec.size;
 
+      if (!check_spirv_version(dev, c_il, r_log))
+         throw error(CL_LINK_PROGRAM_FAILURE);
+
       sections.push_back(reinterpret_cast<const uint32_t *>(c_il));
       lengths.push_back(length / sizeof(uint32_t));
    }
@@ -764,7 +812,7 @@ clover::spirv::link_program(const std::vector<module> &modules,
             &linked_binary, linker_options) != SPV_SUCCESS)
       throw error(CL_LINK_PROGRAM_FAILURE);
 
-   std::vector<char> final_binary{
+   std::string final_binary{
          reinterpret_cast<char *>(linked_binary.data()),
          reinterpret_cast<char *>(linked_binary.data() +
                linked_binary.size()) };
@@ -783,7 +831,7 @@ clover::spirv::link_program(const std::vector<module> &modules,
 }
 
 bool
-clover::spirv::is_valid_spirv(const std::vector<char> &binary,
+clover::spirv::is_valid_spirv(const std::string &binary,
                               const cl_version opencl_version,
                               std::string &r_log) {
    auto const validator_consumer =
@@ -802,7 +850,7 @@ clover::spirv::is_valid_spirv(const std::vector<char> &binary,
 }
 
 std::string
-clover::spirv::print_module(const std::vector<char> &binary,
+clover::spirv::print_module(const std::string &binary,
                             const cl_version opencl_version) {
    const spv_target_env target_env =
       convert_opencl_version_to_target_env(opencl_version);
@@ -832,21 +880,44 @@ clover::spirv::supported_extensions() {
    };
 }
 
-std::vector<uint32_t>
+std::vector<cl_name_version>
 clover::spirv::supported_versions() {
-   return { make_spirv_version(1u, 0u) };
+   return { cl_name_version { CL_MAKE_VERSION(1u, 0u, 0u), "SPIR-V" } };
+}
+
+cl_version
+clover::spirv::to_opencl_version_encoding(uint32_t version) {
+      return CL_MAKE_VERSION((version >> 16u) & 0xff,
+                             (version >> 8u) & 0xff, 0u);
+}
+
+uint32_t
+clover::spirv::to_spirv_version_encoding(cl_version version) {
+   return ((CL_VERSION_MAJOR(version) & 0xff) << 16u) |
+          ((CL_VERSION_MINOR(version) & 0xff) << 8u);
 }
 
 #else
 bool
-clover::spirv::is_valid_spirv(const std::vector<char> &/*binary*/,
+clover::spirv::is_binary_spirv(const std::string &binary)
+{
+   return false;
+}
+
+bool
+clover::spirv::is_valid_spirv(const std::string &/*binary*/,
                               const cl_version opencl_version,
                               std::string &/*r_log*/) {
    return false;
 }
 
+std::string
+clover::spirv::version_to_string(uint32_t version) {
+   return "";
+}
+
 module
-clover::spirv::compile_program(const std::vector<char> &binary,
+clover::spirv::compile_program(const std::string &binary,
                                const device &dev, std::string &r_log,
                                bool validate) {
    r_log += "SPIR-V support in clover is not enabled.\n";
@@ -862,7 +933,7 @@ clover::spirv::link_program(const std::vector<module> &/*modules*/,
 }
 
 std::string
-clover::spirv::print_module(const std::vector<char> &binary,
+clover::spirv::print_module(const std::string &binary,
                             const cl_version opencl_version) {
    return std::string();
 }
@@ -872,8 +943,18 @@ clover::spirv::supported_extensions() {
    return {};
 }
 
-std::vector<uint32_t>
+std::vector<cl_name_version>
 clover::spirv::supported_versions() {
    return {};
+}
+
+cl_version
+clover::spirv::to_opencl_version_encoding(uint32_t version) {
+   return CL_MAKE_VERSION(0u, 0u, 0u);
+}
+
+uint32_t
+clover::spirv::to_spirv_version_encoding(cl_version version) {
+   return 0u;
 }
 #endif

@@ -674,6 +674,12 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
       }
       return;
 
+   case STATE_NOT_STATE_VAR:
+      /* Most likely PROGRAM_CONSTANT. This only happens in rare cases, e.g.
+       * ARB_vp with ARL, which can't sort parameters by type.
+       */
+      return;
+
    default:
       unreachable("Invalid state in _mesa_fetch_state");
       return;
@@ -811,6 +817,9 @@ _mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH])
          */
 	 return 0;
       }
+
+   case STATE_NOT_STATE_VAR:
+      return 0;
 
    default:
       _mesa_problem(NULL, "unexpected state[0] in make_state_flags()");
@@ -1201,6 +1210,9 @@ _mesa_program_state_string(const gl_state_index16 state[STATE_LENGTH])
           state[1] == STATE_CURRENT_ATTRIB_MAYBE_VP_CLAMPED)
          append_index(str, state[2], false);
        break;
+   case STATE_NOT_STATE_VAR:
+      append(str, "not_state");
+      break;
    default:
       _mesa_problem(NULL, "Invalid state in _mesa_program_state_string");
       break;
@@ -1225,7 +1237,6 @@ _mesa_load_state_parameters(struct gl_context *ctx,
    if (!paramList)
       return;
 
-   assert(paramList->LastUniformIndex < paramList->FirstStateVarIndex);
    int num = paramList->NumParameters;
 
    for (int i = paramList->FirstStateVarIndex; i < num; i++) {
@@ -1240,7 +1251,6 @@ _mesa_upload_state_parameters(struct gl_context *ctx,
                               struct gl_program_parameter_list *paramList,
                               uint32_t *dst)
 {
-   assert(paramList->LastUniformIndex < paramList->FirstStateVarIndex);
    int num = paramList->NumParameters;
 
    for (int i = paramList->FirstStateVarIndex; i < num; i++) {
@@ -1260,14 +1270,10 @@ _mesa_upload_state_parameters(struct gl_context *ctx,
 void
 _mesa_optimize_state_parameters(struct gl_program_parameter_list *list)
 {
-   assert(list->LastUniformIndex < list->FirstStateVarIndex);
-
    for (int first_param = list->FirstStateVarIndex;
         first_param < (int)list->NumParameters; first_param++) {
       int last_param = first_param;
       int param_diff = 0;
-
-      assert(list->Parameters[first_param].Type == PROGRAM_STATE_VAR);
 
       switch (list->Parameters[first_param].StateIndexes[0]) {
       case STATE_MODELVIEW_MATRIX:

@@ -26,7 +26,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include <d3d12.h>
+#include <directx/d3d12.h>
 #include <dxgi1_4.h>
 #include <gtest/gtest.h>
 #include <wrl.h>

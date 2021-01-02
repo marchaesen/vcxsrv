@@ -1271,7 +1271,7 @@ try_pbo_upload_common(struct gl_context *ctx,
    bool success = false;
    void *fs;
 
-   fs = st_pbo_get_upload_fs(st, src_format, surface->format);
+   fs = st_pbo_get_upload_fs(st, src_format, surface->format, addr->depth != 1);
    if (!fs)
       return false;
 
@@ -3262,6 +3262,7 @@ st_TexParameter(struct gl_context *ctx,
    struct st_texture_object *stObj = st_texture_object(texObj);
 
    switch (pname) {
+   case GL_ALL_ATTRIB_BITS: /* meaning is all pnames, internal */
    case GL_TEXTURE_BASE_LEVEL:
    case GL_TEXTURE_MAX_LEVEL:
    case GL_DEPTH_TEXTURE_MODE:

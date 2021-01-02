@@ -1454,7 +1454,7 @@ emit_tfu_job(struct v3dv_cmd_buffer *cmd_buffer,
              const struct v3dv_format *format)
 {
    const struct v3d_resource_slice *src_slice = &src->slices[src_mip_level];
-   const struct v3d_resource_slice *dst_slice = &dst->slices[src_mip_level];
+   const struct v3d_resource_slice *dst_slice = &dst->slices[dst_mip_level];
 
    assert(dst->mem && dst->mem->bo);
    const struct v3dv_bo *dst_bo = dst->mem->bo;
@@ -1466,7 +1466,7 @@ emit_tfu_job(struct v3dv_cmd_buffer *cmd_buffer,
       .ios = (height << 16) | width,
       .bo_handles = {
          dst_bo->handle,
-         src != dst ? src_bo->handle : 0
+         src_bo->handle != dst_bo->handle ? src_bo->handle : 0
       },
    };
 
@@ -2640,7 +2640,7 @@ copy_buffer_to_image_tfu(struct v3dv_cmd_buffer *cmd_buffer,
          .ios = (height << 16) | width,
          .bo_handles = {
             dst_bo->handle,
-            src_bo != dst_bo ? src_bo->handle : 0
+            src_bo->handle != dst_bo->handle ? src_bo->handle : 0
          },
       };
 

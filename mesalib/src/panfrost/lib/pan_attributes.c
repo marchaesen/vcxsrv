@@ -40,10 +40,10 @@
 static unsigned
 panfrost_small_padded_vertex_count(unsigned idx)
 {
-        if (idx == 11 || idx == 13 || idx == 15 || idx == 19)
-                return idx + 1;
-        else
+        if (idx < 10)
                 return idx;
+        else
+                return (idx + 1) & ~1;
 }
 
 static unsigned

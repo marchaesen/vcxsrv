@@ -300,9 +300,9 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
       struct pipe_depth_stencil_alpha_state depth_stencil;
       memset(&depth_stencil, 0, sizeof(depth_stencil));
       if (clear_buffers & PIPE_CLEAR_DEPTH) {
-         depth_stencil.depth.enabled = 1;
-         depth_stencil.depth.writemask = 1;
-         depth_stencil.depth.func = PIPE_FUNC_ALWAYS;
+         depth_stencil.depth_enabled = 1;
+         depth_stencil.depth_writemask = 1;
+         depth_stencil.depth_func = PIPE_FUNC_ALWAYS;
       }
 
       if (clear_buffers & PIPE_CLEAR_STENCIL) {
@@ -316,7 +316,7 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
          depth_stencil.stencil[0].valuemask = 0xff;
          depth_stencil.stencil[0].writemask = ctx->Stencil.WriteMask[0] & 0xff;
          stencil_ref.ref_value[0] = ctx->Stencil.Clear;
-         cso_set_stencil_ref(cso, &stencil_ref);
+         cso_set_stencil_ref(cso, stencil_ref);
       }
 
       cso_set_depth_stencil_alpha(cso, &depth_stencil);

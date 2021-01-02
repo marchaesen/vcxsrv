@@ -22,10 +22,10 @@
 
 import sys
 import itertools
-from isa_parse import parse_instructions, opname_to_c, expand_states
+from bifrost_isa import parse_instructions, opname_to_c, expand_states
 from mako.template import Template
 
-instructions = parse_instructions(sys.argv[1])
+instructions = parse_instructions(sys.argv[1], include_unused = True)
 
 # Constructs a reserved mask for a derived to cull impossible encodings
 
@@ -66,6 +66,8 @@ def decode_op(instructions, is_fma):
     template = """void
 bi_disasm_${unit}(FILE *fp, unsigned bits, struct bifrost_regs *srcs, struct bifrost_regs *next_regs, unsigned staging_register, unsigned branch_offset, struct bi_constants *consts, bool last)
 {
+    fputs("    ", fp);
+
 % for (i, (name, (emask, ebits), derived)) in enumerate(options):
 % if len(derived) > 0:
     ${"else " if i > 0 else ""}if (unlikely(((bits & ${hex(emask)}) == ${hex(ebits)})
@@ -79,7 +81,9 @@ bi_disasm_${unit}(FILE *fp, unsigned bits, struct bifrost_regs *srcs, struct bif
         bi_disasm_${name}(fp, bits, srcs, next_regs, staging_register, branch_offset, consts, last);
 % endfor
     else
-        fprintf(fp, "INSTR_INVALID_ENC ${unit} %X\\n", bits);
+        fprintf(fp, "INSTR_INVALID_ENC ${unit} %X", bits);
+
+    fputs("\\n", fp);
 }"""
 
     return Template(template).render(options = mapped, unit = "fma" if is_fma else "add")
@@ -341,7 +345,6 @@ def disasm_op(name, op):
     if desc.get('staging'):
         body += '    fprintf(fp, ", @r%u", staging_register);\n'
 
-    body += '    fputs("\\n", fp);\n'
     return disasm_op_template.render(c_name = opname_to_c(name), body = body)
 
 print('#include "util/macros.h"')

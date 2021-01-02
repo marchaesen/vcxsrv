@@ -154,7 +154,7 @@ _mesa_symbol_table_symbol_scope(struct _mesa_symbol_table *table,
 
    if (sym) {
       assert(sym->depth <= table->depth);
-      return sym->depth - table->depth;
+      return table->depth - sym->depth;
    }
 
    return -1;

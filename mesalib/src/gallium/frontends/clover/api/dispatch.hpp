@@ -100,6 +100,10 @@ namespace clover {
                    const cl_event *event_wait_list,
                    cl_event *event,
                    cl_int cmd);
+
+   cl_program
+   CreateProgramWithILKHR(cl_context d_ctx, const void *il,
+                          size_t length, cl_int *r_errcode);
 }
 
 #endif

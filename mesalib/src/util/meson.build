@@ -126,6 +126,8 @@ files_mesa_util = files(
   'u_debug_memory.c',
   'u_cpu_detect.c',
   'u_cpu_detect.h',
+  'u_printf.cpp',
+  'u_printf.h',
   'vma.c',
   'vma.h',
   'xxhash.h',

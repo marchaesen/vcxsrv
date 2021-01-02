@@ -4727,6 +4727,21 @@ static void visit_cf_list(struct ac_nir_context *ctx, struct exec_list *list);
 
 static void visit_block(struct ac_nir_context *ctx, nir_block *block)
 {
+   LLVMBasicBlockRef blockref = LLVMGetInsertBlock(ctx->ac.builder);
+   LLVMValueRef first = LLVMGetFirstInstruction(blockref);
+   if (first) {
+      /* ac_branch_exited() might have already inserted non-phis */
+      LLVMPositionBuilderBefore(ctx->ac.builder, LLVMGetFirstInstruction(blockref));
+   }
+
+   nir_foreach_instr(instr, block) {
+      if (instr->type != nir_instr_type_phi)
+         break;
+      visit_phi(ctx, nir_instr_as_phi(instr));
+   }
+
+   LLVMPositionBuilderAtEnd(ctx->ac.builder, blockref);
+
    nir_foreach_instr (instr, block) {
       switch (instr->type) {
       case nir_instr_type_alu:
@@ -4742,7 +4757,6 @@ static void visit_block(struct ac_nir_context *ctx, nir_block *block)
          visit_tex(ctx, nir_instr_as_tex(instr));
          break;
       case nir_instr_type_phi:
-         visit_phi(ctx, nir_instr_as_phi(instr));
          break;
       case nir_instr_type_ssa_undef:
          visit_ssa_undef(ctx, nir_instr_as_ssa_undef(instr));

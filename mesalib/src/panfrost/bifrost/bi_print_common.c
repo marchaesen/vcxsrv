@@ -52,54 +52,6 @@ bi_message_type_name(enum bifrost_message_type T)
 }
 
 const char *
-bi_output_mod_name(enum bifrost_outmod mod)
-{
-        switch (mod) {
-        case BIFROST_NONE: return "";
-        case BIFROST_POS: return ".pos";
-        case BIFROST_SAT_SIGNED: return ".sat_signed";
-        case BIFROST_SAT: return ".sat";
-        default: return "invalid";
-        }
-}
-
-const char *
-bi_minmax_mode_name(enum bifrost_minmax_mode mod)
-{
-        switch (mod) {
-        case BIFROST_MINMAX_NONE: return "";
-        case BIFROST_NAN_WINS: return ".nan_wins";
-        case BIFROST_SRC1_WINS: return ".src1_wins";
-        case BIFROST_SRC0_WINS: return ".src0_wins";
-        default: return "invalid";
-        }
-}
-
-const char *
-bi_round_mode_name(enum bifrost_roundmode mod)
-{
-        switch (mod) {
-        case BIFROST_RTE: return "";
-        case BIFROST_RTP: return ".rtp";
-        case BIFROST_RTN: return ".rtn";
-        case BIFROST_RTZ: return ".rtz";
-        default: return "invalid";
-        }
-}
-
-const char *
-bi_interp_mode_name(enum bifrost_interp_mode mode)
-{
-        switch (mode) {
-        case BIFROST_INTERP_CENTER: return ".center";
-        case BIFROST_INTERP_CENTROID: return ".centroid";
-        case BIFROST_INTERP_SAMPLE: return ".sample";
-        case BIFROST_INTERP_EXPLICIT: return ".explicit";
-        default: return ".unknown";
-        }
-}
-
-const char *
 bi_flow_control_name(enum bifrost_flow mode)
 {
         switch (mode) {

@@ -119,7 +119,7 @@ if not with_platform_windows
 endif
 
 radv_deps = []
-radv_flags = cc.get_supported_arguments(['-Wshadow'])
+radv_flags = cc.get_supported_arguments(['-Wimplicit-fallthrough', '-Wshadow'])
 
 if with_platform_x11
   radv_deps += dep_xcb_dri3

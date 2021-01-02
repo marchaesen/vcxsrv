@@ -26,6 +26,7 @@
  */
 
 #include "tu_private.h"
+#include "tu_cs.h"
 
 #include <fcntl.h>
 #include <poll.h>
@@ -185,6 +186,7 @@ static const struct debug_control tu_debug_options[] = {
    { "noubwc", TU_DEBUG_NOUBWC },
    { "nomultipos", TU_DEBUG_NOMULTIPOS },
    { "nolrz", TU_DEBUG_NOLRZ },
+   { "perfc", TU_DEBUG_PERFC },
    { NULL, 0 }
 };
 
@@ -614,6 +616,14 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
          features->extendedDynamicState = true;
          break;
       }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_FEATURES_KHR: {
+         VkPhysicalDevicePerformanceQueryFeaturesKHR *feature =
+            (VkPhysicalDevicePerformanceQueryFeaturesKHR *)ext;
+         feature->performanceCounterQueryPools = true;
+         feature->performanceCounterMultipleQueryPools = false;
+         break;
+      }
+
       default:
          break;
       }
@@ -867,6 +877,12 @@ tu_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
          props->supportedStencilResolveModes = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
          break;
       }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_PROPERTIES_KHR: {
+         VkPhysicalDevicePerformanceQueryPropertiesKHR *properties =
+            (VkPhysicalDevicePerformanceQueryPropertiesKHR *)ext;
+         properties->allowCommandBufferQueryCopies = false;
+         break;
+      }
       default:
          break;
       }
@@ -986,6 +1002,7 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
    VkResult result;
    struct tu_device *device;
    bool custom_border_colors = false;
+   bool perf_query_pools = false;
 
    /* Check enabled features */
    if (pCreateInfo->pEnabledFeatures) {
@@ -1008,6 +1025,12 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CUSTOM_BORDER_COLOR_FEATURES_EXT: {
          const VkPhysicalDeviceCustomBorderColorFeaturesEXT *border_color_features = (const void *)ext;
          custom_border_colors = border_color_features->customBorderColors;
+         break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_FEATURES_KHR: {
+         const VkPhysicalDevicePerformanceQueryFeaturesKHR *feature =
+            (VkPhysicalDevicePerformanceQueryFeaturesKHR *)ext;
+         perf_query_pools = feature->performanceCounterQueryPools;
          break;
       }
       default:
@@ -1132,6 +1155,46 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
       goto fail_pipeline_cache;
    }
 
+   if (perf_query_pools) {
+      /* Prepare command streams setting pass index to the PERF_CNTRS_REG
+       * from 0 to 31. One of these will be picked up at cmd submit time
+       * when the perf query is executed.
+       */
+      struct tu_cs *cs;
+
+      if (!(device->perfcntrs_pass_cs = calloc(1, sizeof(struct tu_cs)))) {
+         result = vk_startup_errorf(device->instance,
+               VK_ERROR_OUT_OF_HOST_MEMORY, "OOM");
+         goto fail_perfcntrs_pass_alloc;
+      }
+
+      device->perfcntrs_pass_cs_entries = calloc(32, sizeof(struct tu_cs_entry));
+      if (!device->perfcntrs_pass_cs_entries) {
+         result = vk_startup_errorf(device->instance,
+               VK_ERROR_OUT_OF_HOST_MEMORY, "OOM");
+         goto fail_perfcntrs_pass_entries_alloc;
+      }
+
+      cs = device->perfcntrs_pass_cs;
+      tu_cs_init(cs, device, TU_CS_MODE_SUB_STREAM, 96);
+
+      for (unsigned i = 0; i < 32; i++) {
+         struct tu_cs sub_cs;
+
+         result = tu_cs_begin_sub_stream(cs, 3, &sub_cs);
+         if (result != VK_SUCCESS) {
+            vk_startup_errorf(device->instance, result,
+                  "failed to allocate commands streams");
+            goto fail_prepare_perfcntrs_pass_cs;
+         }
+
+         tu_cs_emit_regs(&sub_cs, A6XX_CP_SCRATCH_REG(PERF_CNTRS_REG, 1 << i));
+         tu_cs_emit_pkt7(&sub_cs, CP_WAIT_FOR_ME, 0);
+
+         device->perfcntrs_pass_cs_entries[i] = tu_cs_end_sub_stream(cs, &sub_cs);
+      }
+   }
+
    device->mem_cache = tu_pipeline_cache_from_handle(pc);
 
    for (unsigned i = 0; i < ARRAY_SIZE(device->scratch_bos); i++)
@@ -1142,12 +1205,19 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
    *pDevice = tu_device_to_handle(device);
    return VK_SUCCESS;
 
+fail_prepare_perfcntrs_pass_cs:
+   free(device->perfcntrs_pass_cs_entries);
+   tu_cs_finish(device->perfcntrs_pass_cs);
+fail_perfcntrs_pass_entries_alloc:
+   free(device->perfcntrs_pass_cs);
+fail_perfcntrs_pass_alloc:
+   tu_DestroyPipelineCache(tu_device_to_handle(device), pc, NULL);
 fail_pipeline_cache:
 fail_global_bo_map:
    tu_bo_finish(device, &device->global_bo);
 
 fail_global_bo:
-   ralloc_free(device->compiler);
+   ir3_compiler_destroy(device->compiler);
 
 fail_queues:
    for (unsigned i = 0; i < TU_MAX_QUEUE_FAMILIES; i++) {
@@ -1185,6 +1255,12 @@ tu_DestroyDevice(VkDevice _device, const VkAllocationCallbacks *pAllocator)
 
    VkPipelineCache pc = tu_pipeline_cache_to_handle(device->mem_cache);
    tu_DestroyPipelineCache(tu_device_to_handle(device), pc, NULL);
+
+   if (device->perfcntrs_pass_cs) {
+      free(device->perfcntrs_pass_cs_entries);
+      tu_cs_finish(device->perfcntrs_pass_cs);
+      free(device->perfcntrs_pass_cs);
+   }
 
    vk_free(&device->vk.alloc, device->bo_list);
    vk_free(&device->vk.alloc, device->bo_idx);

@@ -301,16 +301,6 @@ pipe_shader_state_from_tgsi(struct pipe_shader_state *state,
    memset(&state->stream_output, 0, sizeof(state->stream_output));
 }
 
-struct pipe_depth_state
-{
-   unsigned enabled:1;         /**< depth test enabled? */
-   unsigned writemask:1;       /**< allow depth buffer writes? */
-   unsigned func:3;            /**< depth test func (PIPE_FUNC_x) */
-   unsigned bounds_test:1;     /**< depth bounds test enabled? */
-   float bounds_min;           /**< minimum depth bound */
-   float bounds_max;           /**< maximum depth bound */
-};
-
 
 struct pipe_stencil_state
 {
@@ -324,19 +314,21 @@ struct pipe_stencil_state
 };
 
 
-struct pipe_alpha_state
-{
-   unsigned enabled:1;
-   unsigned func:3;     /**< PIPE_FUNC_x */
-   float ref_value;     /**< reference value */
-};
-
-
 struct pipe_depth_stencil_alpha_state
 {
-   struct pipe_depth_state depth;
    struct pipe_stencil_state stencil[2]; /**< [0] = front, [1] = back */
-   struct pipe_alpha_state alpha;
+
+   unsigned alpha_enabled:1;         /**< alpha test enabled? */
+   unsigned alpha_func:3;            /**< PIPE_FUNC_x */
+
+   unsigned depth_enabled:1;         /**< depth test enabled? */
+   unsigned depth_writemask:1;       /**< allow depth buffer writes? */
+   unsigned depth_func:3;            /**< depth test func (PIPE_FUNC_x) */
+   unsigned depth_bounds_test:1;     /**< depth bounds test enabled? */
+
+   float alpha_ref_value;            /**< reference value */
+   float depth_bounds_min;           /**< minimum depth bound */
+   float depth_bounds_max;           /**< maximum depth bound */
 };
 
 
@@ -880,6 +872,11 @@ struct pipe_grid_info
     * Determine the layout of the grid (in block units) to be used.
     */
    uint grid[3];
+
+   /**
+    * Base offsets to launch grids from
+    */
+   uint grid_base[3];
 
    /* Indirect compute parameters resource: If not NULL, block sizes are taken
     * from this buffer instead, which is laid out as follows:

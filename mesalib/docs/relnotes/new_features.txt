@@ -7,3 +7,6 @@ Removed support for loading DRI drivers older than Mesa 8.0, including all DRI1 
 Add support for VK_VALVE_mutable_descriptor_type on RADV
 Removed classic OSMesa in favor of the newly improved gallium OSMesa
 VK_KHR_fragment_shading_rate on RADV (RDNA2 only)
+Freedreno a6xx exposes GL 3.2
+Classic swrast dri driver removed in favor of gallium swrast (llvmpipe or softpipe)
+Panfrost t760/t860 exposes GL 3.0

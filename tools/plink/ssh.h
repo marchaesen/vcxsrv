@@ -294,11 +294,10 @@ struct ConnectionLayerVtable {
      * channel) what its preference for line-discipline options is. */
     void (*set_ldisc_option)(ConnectionLayer *cl, int option, bool value);
 
-    /* Communicate to the connection layer whether X and agent
-     * forwarding were successfully enabled (for purposes of
-     * knowing whether to accept subsequent channel-opens). */
+    /* Communicate to the connection layer whether X forwarding was
+     * successfully enabled (for purposes of knowing whether to accept
+     * subsequent channel-opens). */
     void (*enable_x_fwd)(ConnectionLayer *cl);
-    void (*enable_agent_fwd)(ConnectionLayer *cl);
 
     /* Communicate to the connection layer whether the main session
      * channel currently wants user input. */
@@ -370,8 +369,6 @@ static inline void ssh_set_ldisc_option(ConnectionLayer *cl, int opt, bool val)
 { cl->vt->set_ldisc_option(cl, opt, val); }
 static inline void ssh_enable_x_fwd(ConnectionLayer *cl)
 { cl->vt->enable_x_fwd(cl); }
-static inline void ssh_enable_agent_fwd(ConnectionLayer *cl)
-{ cl->vt->enable_agent_fwd(cl); }
 static inline void ssh_set_wants_user_input(ConnectionLayer *cl, bool wanted)
 { cl->vt->set_wants_user_input(cl, wanted); }
 
@@ -751,6 +748,7 @@ struct ssh_hashalg {
     const char *text_basename;     /* the semantic name of the hash */
     const char *annotation;   /* extra info, e.g. which of multiple impls */
     const char *text_name;    /* both combined, e.g. "SHA-n (unaccelerated)" */
+    const void *extra;        /* private to the hash implementation */
 };
 
 static inline ssh_hash *ssh_hash_new(const ssh_hashalg *alg)
@@ -978,7 +976,11 @@ extern const ssh_hashalg ssh_sha256;
 extern const ssh_hashalg ssh_sha256_hw;
 extern const ssh_hashalg ssh_sha256_sw;
 extern const ssh_hashalg ssh_sha384;
+extern const ssh_hashalg ssh_sha384_hw;
+extern const ssh_hashalg ssh_sha384_sw;
 extern const ssh_hashalg ssh_sha512;
+extern const ssh_hashalg ssh_sha512_hw;
+extern const ssh_hashalg ssh_sha512_sw;
 extern const ssh_hashalg ssh_sha3_224;
 extern const ssh_hashalg ssh_sha3_256;
 extern const ssh_hashalg ssh_sha3_384;
@@ -1022,6 +1024,7 @@ extern const ssh_compression_alg ssh_zlib;
 bool platform_aes_hw_available(void);
 bool platform_sha256_hw_available(void);
 bool platform_sha1_hw_available(void);
+bool platform_sha512_hw_available(void);
 
 /*
  * PuTTY version number formatted as an SSH version string.

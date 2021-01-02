@@ -26,6 +26,7 @@ apt-get update
 
 apt-get install -y --no-remove \
       $STABLE_EPHEMERAL \
+      libasan5 \
       libarchive-dev \
       libclang-cpp10-dev \
       liblua5.3-dev \
@@ -104,7 +105,7 @@ rm -rf libglvnd-v$GLVND_VERSION
 
 git clone https://github.com/KhronosGroup/SPIRV-LLVM-Translator -b llvm_release_100 --depth 1
 pushd SPIRV-LLVM-Translator
-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-fPIC -DCMAKE_CXX_FLAGS=-fPIC
+cmake -S . -B . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-fPIC -DCMAKE_CXX_FLAGS=-fPIC
 ninja
 ninja install
 popd

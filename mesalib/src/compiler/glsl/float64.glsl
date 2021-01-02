@@ -40,7 +40,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#version 430
+#version 330
 #extension GL_ARB_gpu_shader_int64 : enable
 #extension GL_ARB_shader_bit_encoding : enable
 #extension GL_EXT_shader_integer_mix : enable
@@ -1655,7 +1655,7 @@ __fround64(uint64_t __a)
    if (unbiasedExp < 20) {
       if (unbiasedExp < 0) {
          if ((aHi & 0x80000000u) != 0u && aLo == 0u) {
-            return 0;
+            return 0ul;
          }
          aHi &= 0x80000000u;
          if ((a.y & 0x000FFFFFu) == 0u && a.x == 0u) {

@@ -197,9 +197,9 @@ copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
 							.baseArrayLayer = region->imageSubresource.baseArrayLayer,
 							.layerCount = region->imageSubresource.layerCount,
 						});
+			img_bsurf.disable_compression = true;
 		}
 		img_bsurf.format = vk_format_for_size(vk_format_get_blocksize(img_bsurf.format));
-		img_bsurf.current_layout = VK_IMAGE_LAYOUT_GENERAL;
 	}
 
 	struct radv_meta_blit2d_buffer buf_bsurf = {
@@ -364,9 +364,9 @@ copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 							.baseArrayLayer = region->imageSubresource.baseArrayLayer,
 							.layerCount = region->imageSubresource.layerCount,
 						});
+			img_info.disable_compression = true;
 		}
 		img_info.format = vk_format_for_size(vk_format_get_blocksize(img_info.format));
-		img_info.current_layout = VK_IMAGE_LAYOUT_GENERAL;
 	}
 
 	struct radv_meta_blit2d_buffer buf_info = {
@@ -526,7 +526,7 @@ copy_image(struct radv_cmd_buffer *cmd_buffer,
 						.layerCount = region->dstSubresource.layerCount,
 				});
 			b_dst.format = b_src.format;
-			b_dst.current_layout = VK_IMAGE_LAYOUT_GENERAL;
+			b_dst.disable_compression = true;
 		}
 
 

@@ -95,8 +95,7 @@ actions:
           - wget -S --progress=dot:giga -O- {{ mesa_url }} | tar -xz
 
           - export DEQP_NO_SAVE_RESULTS=1
-          - export DEQP_EXPECTED_FAILS=deqp-{{ gpu_version }}-fails.txt
-          - export DEQP_SKIPS=deqp-{{ gpu_version }}-skips.txt
+          - export GPU_VERSION={{ gpu_version }}
           - export DEQP_VER={{ deqp_version }}
           - export LIBGL_DRIVERS_PATH=`pwd`/install/lib/dri
 

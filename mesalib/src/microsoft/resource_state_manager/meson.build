@@ -28,7 +28,7 @@ libd3d12_resource_state = static_library(
   files_libd3d12_resource_state,
   gnu_symbol_visibility : 'hidden',
   include_directories : [inc_include, inc_src, inc_mesa],
-  dependencies: [],
+  dependencies: [dep_dxheaders],
 )
 
 idep_libd3d12_resource_state = declare_dependency(

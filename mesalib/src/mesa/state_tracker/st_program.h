@@ -147,7 +147,7 @@ struct st_fp_variant_key
    unsigned lower_alpha_func:3;
 
    /** needed for ATI_fragment_shader */
-   char texture_targets[MAX_NUM_FRAGMENT_REGISTERS_ATI];
+   uint8_t texture_index[MAX_NUM_FRAGMENT_REGISTERS_ATI];
 
    struct st_external_sampler_key external;
 };

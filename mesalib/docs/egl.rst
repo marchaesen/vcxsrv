@@ -21,9 +21,9 @@ Build EGL
    .. code-block:: console
 
       $ meson configure \
-              -D egl=true \
-              -D gles1=true \
-              -D gles2=true \
+              -D egl=enabled \
+              -D gles1=enabled \
+              -D gles2=enabled \
               -D dri-drivers=... \
               -D gallium-drivers=...
 
@@ -43,7 +43,7 @@ Configure Options
 There are several options that control the build of EGL at configuration
 time
 
-``-D egl=true``
+``-D egl=enabled``
    By default, EGL is enabled. When disabled, the main library and the
    drivers will not be built.
 
@@ -60,11 +60,11 @@ time
    Unless for special needs, the build system should select the right
    platforms automatically.
 
-``-D gles1=true`` and ``-D gles2=true``
+``-D gles1=enabled`` and ``-D gles2=enabled``
    These options enable OpenGL ES support in OpenGL. The result is one
    big internal library that supports multiple APIs.
 
-``-D shared-glapi=true``
+``-D shared-glapi=enabled``
    By default, ``libGL`` has its own copy of ``libglapi``. This options
    makes ``libGL`` use the shared ``libglapi``. This is required if
    applications mix OpenGL and OpenGL ES.

@@ -1,0 +1,59 @@
+Import('*')
+
+env = drienv.Clone()
+
+if env['suncc']:
+    print('warning: not building dri-vmwgfx')
+    Return()
+
+env.Append(CPPPATH = [
+    '#/src/loader',
+    '#/src/mapi',
+    '#/src/mesa',
+    '#/src/mesa/drivers/dri/common',
+    '#/src/gallium/frontends/dri',
+])
+
+if env['llvm']:
+    env.Append(CPPDEFINES = 'GALLIUM_LLVMPIPE')
+    env.Prepend(LIBS = [llvmpipe])
+
+env.PkgUseModules('DRM')
+
+env.Append(CPPDEFINES = [
+    'GALLIUM_VMWGFX',
+    'GALLIUM_SOFTPIPE',
+])
+
+env.Prepend(LIBS = [
+    st_dri,
+    svgadrm,
+    svga,
+    ws_dri,
+    softpipe,
+    pipe_loader,
+    libloader,
+    mesautil,
+    compiler,
+    mesa,
+    glsl,
+    nir,
+    spirv,
+    gallium,
+    megadrivers_stub,
+    dri_common,
+])
+
+module = env.LoadableModule(
+    target = 'gallium_dri.so',
+    source = 'target.c',
+    SHLIBPREFIX = '',
+)
+
+# vmwgfx_dri.so
+env.Command('vmwgfx_dri.so', 'gallium_dri.so', "ln -f ${SOURCE} ${TARGET}")
+# swrast_dri.so
+env.Command('swrast_dri.so', 'gallium_dri.so', "ln -f ${SOURCE} ${TARGET}")
+
+env.Alias('dri-vmwgfx', module)
+env.Alias('dri-swrast', module)

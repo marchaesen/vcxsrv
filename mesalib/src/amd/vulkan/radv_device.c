@@ -1365,7 +1365,10 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->bresenhamLines = true;
 			features->smoothLines = false;
 			features->stippledRectangularLines = false;
-			features->stippledBresenhamLines = true;
+			/* FIXME: Some stippled Bresenham CTS fails on Vega10
+			 * but work on Raven.
+			 */
+			features->stippledBresenhamLines = pdevice->rad_info.chip_class != GFX9;
 			features->stippledSmoothLines = false;
 			break;
 		}
@@ -2147,12 +2150,8 @@ void radv_GetPhysicalDeviceProperties2(
 			props->fragmentShadingRateNonTrivialCombinerOps = true;
 			props->maxFragmentSize = (VkExtent2D) { 2, 2 };
 			props->maxFragmentSizeAspectRatio = 1;
-			props->maxFragmentShadingRateCoverageSamples = 1;
-			props->maxFragmentShadingRateRasterizationSamples =
-				VK_SAMPLE_COUNT_1_BIT |
-				VK_SAMPLE_COUNT_2_BIT |
-				VK_SAMPLE_COUNT_4_BIT |
-				VK_SAMPLE_COUNT_8_BIT;
+			props->maxFragmentShadingRateCoverageSamples = 2 * 2;
+			props->maxFragmentShadingRateRasterizationSamples = VK_SAMPLE_COUNT_8_BIT;
 			props->fragmentShadingRateWithShaderDepthStencilWrites = false;
 			props->fragmentShadingRateWithSampleMask = true;
 			props->fragmentShadingRateWithShaderSampleMask = false;

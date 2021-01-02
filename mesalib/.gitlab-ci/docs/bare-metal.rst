@@ -42,8 +42,8 @@ at /tftp in the container.
 
 Since we're going the TFTP route, we also use NFS root.  This avoids
 packing the rootfs and sending it to the board as a ramdisk, which
-means we can support larger rootfses (for piglit or tracie testing),
-at the cost of needing more storage on the runner.
+means we can support larger rootfses (for piglit testing), at the cost
+of needing more storage on the runner.
 
 Telling the board about where its TFTP and NFS should come from is
 done using dnsmasq on the runner host.  For example, this snippet in
@@ -116,7 +116,10 @@ required by your bare-metal script, something like::
 
   [[runners]]
     name = "google-freedreno-db410c-1"
-    environment = ["BM_SERIAL=/dev/ttyDB410c8", "BM_POWERUP=google-power-up.sh 8", "BM_FASTBOOT_SERIAL=15e9e390"]
+    environment = ["BM_SERIAL=/dev/ttyDB410c8", "BM_POWERUP=google-power-up.sh 8", "BM_FASTBOOT_SERIAL=15e9e390", "FDO_CI_CONCURRENT=4"]
+
+The ``FDO_CI_CONCURRENT`` variable should be set to the number of CPU threads on
+the board, which is used for auto-tuning of job parallelism.
 
 If you want to collect the results for fastboot you need to add the following
 two board-specific environment variables ``BM_WEBDAV_IP`` and ``BM_WEBDAV_PORT``.

@@ -1,0 +1,3 @@
+C_SOURCES := \
+	virgl_resource_cache.h \
+	virgl_resource_cache.c

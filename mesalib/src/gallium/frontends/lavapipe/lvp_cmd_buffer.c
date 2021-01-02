@@ -793,6 +793,9 @@ void lvp_CmdDispatch(
    cmd->u.dispatch.x = x;
    cmd->u.dispatch.y = y;
    cmd->u.dispatch.z = z;
+   cmd->u.dispatch.base_x = 0;
+   cmd->u.dispatch.base_y = 0;
+   cmd->u.dispatch.base_z = 0;
 
    cmd_buf_queue(cmd_buffer, cmd);
 }
@@ -1640,5 +1643,160 @@ void lvp_CmdPushDescriptorSetWithTemplateKHR(
       }
       descriptor_index += desc->descriptor_count;
    }
+   cmd_buf_queue(cmd_buffer, cmd);
+}
+
+void lvp_CmdBindTransformFeedbackBuffersEXT(
+    VkCommandBuffer                             commandBuffer,
+    uint32_t                                    firstBinding,
+    uint32_t                                    bindingCount,
+    const VkBuffer*                             pBuffers,
+    const VkDeviceSize*                         pOffsets,
+    const VkDeviceSize*                         pSizes)
+{
+   LVP_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
+   struct lvp_cmd_buffer_entry *cmd;
+   uint32_t cmd_size = 0;
+
+   cmd_size += bindingCount * (sizeof(struct lvp_buffer *) + sizeof(VkDeviceSize) * 2);
+
+   cmd = cmd_buf_entry_alloc_size(cmd_buffer, cmd_size, LVP_CMD_BIND_TRANSFORM_FEEDBACK_BUFFERS);
+   if (!cmd)
+      return;
+
+   cmd->u.bind_transform_feedback_buffers.first_binding = firstBinding;
+   cmd->u.bind_transform_feedback_buffers.binding_count = bindingCount;
+   cmd->u.bind_transform_feedback_buffers.buffers = (struct lvp_buffer **)(cmd + 1);
+   cmd->u.bind_transform_feedback_buffers.offsets = (VkDeviceSize *)(cmd->u.bind_transform_feedback_buffers.buffers + bindingCount);
+   cmd->u.bind_transform_feedback_buffers.sizes = (VkDeviceSize *)(cmd->u.bind_transform_feedback_buffers.offsets + bindingCount);
+
+   for (unsigned i = 0; i < bindingCount; i++) {
+      cmd->u.bind_transform_feedback_buffers.buffers[i] = lvp_buffer_from_handle(pBuffers[i]);
+      cmd->u.bind_transform_feedback_buffers.offsets[i] = pOffsets[i];
+      cmd->u.bind_transform_feedback_buffers.sizes[i] = pSizes[i];
+   }
+   cmd_buf_queue(cmd_buffer, cmd);
+}
+
+void lvp_CmdBeginTransformFeedbackEXT(
+    VkCommandBuffer                             commandBuffer,
+    uint32_t                                    firstCounterBuffer,
+    uint32_t                                    counterBufferCount,
+    const VkBuffer*                             pCounterBuffers,
+    const VkDeviceSize*                         pCounterBufferOffsets)
+{
+   LVP_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
+   struct lvp_cmd_buffer_entry *cmd;
+   uint32_t cmd_size = 0;
+
+   cmd_size += counterBufferCount * (sizeof(struct lvp_buffer *) + sizeof(VkDeviceSize));
+
+   cmd = cmd_buf_entry_alloc_size(cmd_buffer, cmd_size, LVP_CMD_BEGIN_TRANSFORM_FEEDBACK);
+   if (!cmd)
+      return;
+
+   cmd->u.begin_transform_feedback.first_counter_buffer = firstCounterBuffer;
+   cmd->u.begin_transform_feedback.counter_buffer_count = counterBufferCount;
+   cmd->u.begin_transform_feedback.counter_buffers = (struct lvp_buffer **)(cmd + 1);
+   cmd->u.begin_transform_feedback.counter_buffer_offsets = (VkDeviceSize *)(cmd->u.begin_transform_feedback.counter_buffers + counterBufferCount);
+
+   for (unsigned i = 0; i < counterBufferCount; i++) {
+      cmd->u.begin_transform_feedback.counter_buffers[i] = lvp_buffer_from_handle(pCounterBuffers[i]);
+      if (pCounterBufferOffsets)
+         cmd->u.begin_transform_feedback.counter_buffer_offsets[i] = pCounterBufferOffsets[i];
+      else
+         cmd->u.begin_transform_feedback.counter_buffer_offsets[i] = 0;
+   }
+   cmd_buf_queue(cmd_buffer, cmd);
+}
+
+void lvp_CmdEndTransformFeedbackEXT(
+    VkCommandBuffer                             commandBuffer,
+    uint32_t                                    firstCounterBuffer,
+    uint32_t                                    counterBufferCount,
+    const VkBuffer*                             pCounterBuffers,
+    const VkDeviceSize*                         pCounterBufferOffsets)
+{
+   LVP_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
+   struct lvp_cmd_buffer_entry *cmd;
+   uint32_t cmd_size = 0;
+
+   cmd_size += counterBufferCount * (sizeof(struct lvp_buffer *) + sizeof(VkDeviceSize));
+
+   cmd = cmd_buf_entry_alloc_size(cmd_buffer, cmd_size, LVP_CMD_END_TRANSFORM_FEEDBACK);
+   if (!cmd)
+      return;
+
+   cmd->u.begin_transform_feedback.first_counter_buffer = firstCounterBuffer;
+   cmd->u.begin_transform_feedback.counter_buffer_count = counterBufferCount;
+   cmd->u.begin_transform_feedback.counter_buffers = (struct lvp_buffer **)(cmd + 1);
+   cmd->u.begin_transform_feedback.counter_buffer_offsets = (VkDeviceSize *)(cmd->u.begin_transform_feedback.counter_buffers + counterBufferCount);
+
+   for (unsigned i = 0; i < counterBufferCount; i++) {
+      cmd->u.begin_transform_feedback.counter_buffers[i] = lvp_buffer_from_handle(pCounterBuffers[i]);
+      if (pCounterBufferOffsets)
+         cmd->u.begin_transform_feedback.counter_buffer_offsets[i] = pCounterBufferOffsets[i];
+      else
+         cmd->u.begin_transform_feedback.counter_buffer_offsets[i] = 0;
+   }
+   cmd_buf_queue(cmd_buffer, cmd);
+}
+
+void lvp_CmdDrawIndirectByteCountEXT(
+    VkCommandBuffer                             commandBuffer,
+    uint32_t                                    instanceCount,
+    uint32_t                                    firstInstance,
+    VkBuffer                                    counterBuffer,
+    VkDeviceSize                                counterBufferOffset,
+    uint32_t                                    counterOffset,
+    uint32_t                                    vertexStride)
+{
+   LVP_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
+   struct lvp_cmd_buffer_entry *cmd;
+
+   cmd = cmd_buf_entry_alloc(cmd_buffer, LVP_CMD_DRAW_INDIRECT_BYTE_COUNT);
+   if (!cmd)
+      return;
+
+   cmd->u.draw_indirect_byte_count.instance_count = instanceCount;
+   cmd->u.draw_indirect_byte_count.first_instance = firstInstance;
+   cmd->u.draw_indirect_byte_count.counter_buffer = lvp_buffer_from_handle(counterBuffer);
+   cmd->u.draw_indirect_byte_count.counter_buffer_offset = counterBufferOffset;
+   cmd->u.draw_indirect_byte_count.counter_offset = counterOffset;
+   cmd->u.draw_indirect_byte_count.vertex_stride = vertexStride;
+
+   cmd_buf_queue(cmd_buffer, cmd);
+}
+
+void lvp_CmdSetDeviceMask(
+   VkCommandBuffer commandBuffer,
+   uint32_t deviceMask)
+{
+   /* No-op */
+}
+
+void lvp_CmdDispatchBase(
+   VkCommandBuffer                             commandBuffer,
+   uint32_t                                    base_x,
+   uint32_t                                    base_y,
+   uint32_t                                    base_z,
+   uint32_t                                    x,
+   uint32_t                                    y,
+   uint32_t                                    z)
+{
+   LVP_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
+   struct lvp_cmd_buffer_entry *cmd;
+
+   cmd = cmd_buf_entry_alloc(cmd_buffer, LVP_CMD_DISPATCH);
+   if (!cmd)
+      return;
+
+   cmd->u.dispatch.x = x;
+   cmd->u.dispatch.y = y;
+   cmd->u.dispatch.z = z;
+   cmd->u.dispatch.base_x = base_x;
+   cmd->u.dispatch.base_y = base_y;
+   cmd->u.dispatch.base_z = base_z;
+
    cmd_buf_queue(cmd_buffer, cmd);
 }

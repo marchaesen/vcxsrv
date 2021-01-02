@@ -4,3 +4,6 @@
 
 # TODO: fix me
 dEQP-VK.texture.filtering.3d.sizes.3x7x5.linear_mipmap_linear
+
+# Timeout (VK-GL-CTS 1.2.5.0)
+dEQP-VK.tessellation.invariance.outer_triangle_set.quads_fractional_odd_spacing

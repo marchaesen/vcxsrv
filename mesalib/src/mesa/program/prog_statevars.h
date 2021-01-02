@@ -50,6 +50,8 @@ struct gl_program_parameter_list;
  * always be the array index.
  */
 typedef enum gl_state_index_ {
+   STATE_NOT_STATE_VAR = 0,
+
    STATE_MATERIAL = 100,  /* start at 100 so small ints are seen as ints */
 
    STATE_LIGHT,         /* One gl_light attribute. */

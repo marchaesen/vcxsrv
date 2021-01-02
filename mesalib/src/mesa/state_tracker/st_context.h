@@ -316,8 +316,8 @@ struct st_context
       struct pipe_blend_state upload_blend;
       void *vs;
       void *gs;
-      void *upload_fs[3];
-      void *download_fs[3][PIPE_MAX_TEXTURE_TYPES];
+      void *upload_fs[3][2];
+      void *download_fs[3][PIPE_MAX_TEXTURE_TYPES][2];
       bool upload_enabled;
       bool download_enabled;
       bool rgba_only;

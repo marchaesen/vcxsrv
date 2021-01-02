@@ -1,0 +1,108 @@
+job_name: mesa-piglit-{{ gpu_version }} {{ pipeline_info }}
+device_type: {{ device_type }}
+context:
+  extra_nfsroot_args: " init=/init rootwait"
+timeouts:
+  job:
+    minutes: 40
+  action:
+   minutes: 10
+  actions:
+    power-off:
+      seconds: 30
+priority: 75
+visibility: public
+{% if tags %}
+{% set lavatags = tags.split(',') %}
+tags:
+{% for tag in lavatags %}
+  - {{ tag }}
+{% endfor %}
+{% endif %}
+actions:
+- deploy:
+    timeout:
+      minutes: 10
+    to: tftp
+    kernel:
+      url: {{ base_artifacts_url }}/{{ kernel_image_name }}
+{% if kernel_image_type %}
+      {{ kernel_image_type }}
+{% endif %}
+    nfsrootfs:
+      url: {{ base_artifacts_url }}/lava-rootfs.tgz
+      compression: gz
+{% if dtb %}
+    dtb:
+      url: {{ base_artifacts_url }}/{{ dtb }}.dtb
+{% endif %}
+    os: oe
+- boot:
+    timeout:
+      minutes: 5
+    method: {{ boot_method }}
+{% if boot_method == "fastboot" %}
+{#
+   For fastboot, LAVA doesn't know how to unpack the rootfs/apply overlay/repack,
+   so we transfer the overlay over the network after boot.
+#}
+    transfer_overlay:
+      download_command: wget -S --progress=dot:giga
+      unpack_command: tar -C / -xzf
+{% else %}
+    commands: nfs
+{% endif %}
+    prompts:
+      - 'lava-shell:'
+- test:
+    timeout:
+      minutes: 60
+    definitions:
+    - repository:
+        metadata:
+          format: Lava-Test Test Definition 1.0
+          name: piglit
+          description: "Mesa piglit test plan"
+          os:
+          - oe
+          scope:
+          - functional
+        run:
+          steps:
+          - mount -t proc none /proc
+          - mount -t sysfs none /sys
+          - mount -t devtmpfs none /dev || echo possibly already mounted
+          - mkdir -p /dev/pts
+          - mount -t devpts devpts /dev/pts
+          - echo "nameserver 8.8.8.8" > /etc/resolv.conf
+          - for i in 1 2 3; do sntp -sS pool.ntp.org && break || sleep 2; done
+
+          - modprobe amdgpu || true
+
+{% if env_vars %}
+          - export {{ env_vars }}
+{% endif %}
+          # piglit/run.sh assumes some stuff is in pwd
+          - cd /
+
+          - wget -S --progress=dot:giga -O- {{ mesa_url }} | tar -xz
+
+          - export PYTHONPATH=$(python3 -c "import sys;print(\":\".join(sys.path))")
+          - export LIBGL_DRIVERS_PATH=`pwd`/install/lib/dri
+          - export PIGLIT_REPLAY_EXTRA_ARGS="--keep-image"
+          - export PIGLIT_REPLAY_REFERENCE_IMAGES_BASE_URL="/mesa-tracie-results/${CI_PROJECT_PATH}"
+          - export PIGLIT_REPLAY_ARTIFACTS_BASE_URL="/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}/${CI_JOB_ID}"
+          - export PIGLIT_REPLAY_DESCRIPTION_FILE="/install/traces-${DRIVER_NAME}.yml"
+          - export PIGLIT_REPLAY_DEVICE_NAME=gl-{{ gpu_version }}
+          - export PIGLIT_RESULTS={{ gpu_version }}-${PIGLIT_PROFILES}
+
+          - "if sh /install/piglit/run.sh; then
+                  echo 'piglit: pass';
+             else
+                  echo 'piglit: fail';
+             fi"
+        parse:
+          pattern: '(?P<test_case_id>\S*):\s+(?P<result>(pass|fail))'
+      from: inline
+      name: piglit
+      path: inline/mesa-piglit.yaml

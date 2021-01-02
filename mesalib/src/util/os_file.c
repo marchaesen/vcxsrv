@@ -79,16 +79,12 @@ os_dupfd_cloexec(int fd)
 }
 #endif
 
-
-#if DETECT_OS_LINUX
-
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <sys/syscall.h>
-#include <unistd.h>
 
-/* copied from <linux/kcmp.h> */
-#define KCMP_FILE 0
+#if DETECT_OS_WINDOWS
+typedef ptrdiff_t ssize_t;
+#endif
 
 static ssize_t
 readN(int fd, char *buf, size_t len)
@@ -185,6 +181,14 @@ os_read_file(const char *filename, size_t *size)
    return buf;
 }
 
+#if DETECT_OS_LINUX
+
+#include <sys/syscall.h>
+#include <unistd.h>
+
+/* copied from <linux/kcmp.h> */
+#define KCMP_FILE 0
+
 int
 os_same_file_description(int fd1, int fd2)
 {
@@ -198,15 +202,6 @@ os_same_file_description(int fd1, int fd2)
 }
 
 #else
-
-#include "u_debug.h"
-
-char *
-os_read_file(const char *filename, size_t *size)
-{
-   errno = -ENOSYS;
-   return NULL;
-}
 
 int
 os_same_file_description(int fd1, int fd2)

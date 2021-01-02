@@ -696,7 +696,7 @@ trace_context_set_blend_color(struct pipe_context *_pipe,
 
 static void
 trace_context_set_stencil_ref(struct pipe_context *_pipe,
-                              const struct pipe_stencil_ref *state)
+                              const struct pipe_stencil_ref state)
 {
    struct trace_context *tr_ctx = trace_context(_pipe);
    struct pipe_context *pipe = tr_ctx->pipe;
@@ -704,7 +704,7 @@ trace_context_set_stencil_ref(struct pipe_context *_pipe,
    trace_dump_call_begin("pipe_context", "set_stencil_ref");
 
    trace_dump_arg(ptr, pipe);
-   trace_dump_arg(stencil_ref, state);
+   trace_dump_arg(stencil_ref, &state);
 
    pipe->set_stencil_ref(pipe, state);
 

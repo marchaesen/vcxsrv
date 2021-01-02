@@ -34,7 +34,7 @@ void enc_ReleaseTasks(struct list_head *head)
 {
    struct encode_task *i, *next;
 
-   if (!head || !head->next)
+   if (!head || !list_is_linked(head))
       return;
 
    LIST_FOR_EACH_ENTRY_SAFE(i, next, head, list) {

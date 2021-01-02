@@ -1106,7 +1106,7 @@ emit_global(
         bool is_read,
         unsigned srcdest,
         nir_src *offset,
-        bool is_shared)
+        unsigned seg)
 {
         /* TODO: types */
 
@@ -1117,7 +1117,7 @@ emit_global(
         else
                 ins = m_st_int4(srcdest, 0);
 
-        mir_set_offset(ctx, &ins, offset, is_shared);
+        mir_set_offset(ctx, &ins, offset, seg);
         mir_set_intr_mask(instr, &ins, is_read);
 
         /* Set a valid swizzle for masked out components */
@@ -1178,7 +1178,7 @@ emit_atomic(
                 if (is_shared)
                         ins.load_store.arg_1 |= 0x6E;
         } else {
-                mir_set_offset(ctx, &ins, src_offset, is_shared);
+                mir_set_offset(ctx, &ins, src_offset, is_shared ? LDST_SHARED : LDST_GLOBAL);
         }
 
         mir_set_intr_mask(&instr->instr, &ins, true);
@@ -1310,6 +1310,9 @@ compute_builtin_arg(nir_op op)
                 return 0x14;
         case nir_intrinsic_load_local_invocation_id:
                 return 0x10;
+        case nir_intrinsic_load_global_invocation_id:
+        case nir_intrinsic_load_global_invocation_id_zero_base:
+                return 0x18;
         default:
                 unreachable("Invalid compute paramater loaded");
         }
@@ -1497,26 +1500,32 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
         case nir_intrinsic_load_uniform:
         case nir_intrinsic_load_ubo:
         case nir_intrinsic_load_global:
+        case nir_intrinsic_load_global_constant:
         case nir_intrinsic_load_shared:
+        case nir_intrinsic_load_scratch:
         case nir_intrinsic_load_input:
+        case nir_intrinsic_load_kernel_input:
         case nir_intrinsic_load_interpolated_input: {
                 bool is_uniform = instr->intrinsic == nir_intrinsic_load_uniform;
                 bool is_ubo = instr->intrinsic == nir_intrinsic_load_ubo;
-                bool is_global = instr->intrinsic == nir_intrinsic_load_global;
+                bool is_global = instr->intrinsic == nir_intrinsic_load_global ||
+                        instr->intrinsic == nir_intrinsic_load_global_constant;
                 bool is_shared = instr->intrinsic == nir_intrinsic_load_shared;
+                bool is_scratch = instr->intrinsic == nir_intrinsic_load_scratch;
                 bool is_flat = instr->intrinsic == nir_intrinsic_load_input;
+                bool is_kernel = instr->intrinsic == nir_intrinsic_load_kernel_input;
                 bool is_interp = instr->intrinsic == nir_intrinsic_load_interpolated_input;
 
                 /* Get the base type of the intrinsic */
                 /* TODO: Infer type? Does it matter? */
                 nir_alu_type t =
-                        (is_ubo || is_global || is_shared) ? nir_type_uint :
                         (is_interp) ? nir_type_float :
-                        nir_intrinsic_dest_type(instr);
+                        (is_uniform || is_flat) ? nir_intrinsic_dest_type(instr) :
+                        nir_type_uint;
 
                 t = nir_alu_type_get_base_type(t);
 
-                if (!(is_ubo || is_global)) {
+                if (!(is_ubo || is_global || is_scratch)) {
                         offset = nir_intrinsic_base(instr);
                 }
 
@@ -1537,6 +1546,8 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
 
                 if (is_uniform && !ctx->is_blend) {
                         emit_ubo_read(ctx, &instr->instr, reg, (ctx->sysvals.sysval_count + offset) * 16, indirect_offset, 4, 0);
+                } else if (is_kernel) {
+                        emit_ubo_read(ctx, &instr->instr, reg, (ctx->sysvals.sysval_count * 16) + offset, indirect_offset, 0, 0);
                 } else if (is_ubo) {
                         nir_src index = instr->src[0];
 
@@ -1545,8 +1556,9 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
 
                         uint32_t uindex = nir_src_as_uint(index) + 1;
                         emit_ubo_read(ctx, &instr->instr, reg, offset, indirect_offset, 0, uindex);
-                } else if (is_global || is_shared) {
-                        emit_global(ctx, &instr->instr, true, reg, src_offset, is_shared);
+                } else if (is_global || is_shared || is_scratch) {
+                        unsigned seg = is_global ? LDST_GLOBAL : (is_shared ? LDST_SHARED : LDST_SCRATCH);
+                        emit_global(ctx, &instr->instr, true, reg, src_offset, seg);
                 } else if (ctx->stage == MESA_SHADER_FRAGMENT && !ctx->is_blend) {
                         emit_varying_read(ctx, reg, offset, nr_comp, component, indirect_offset, t | nir_dest_bit_size(instr->dest), is_flat);
                 } else if (ctx->is_blend) {
@@ -1770,10 +1782,19 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
 
         case nir_intrinsic_store_global:
         case nir_intrinsic_store_shared:
+        case nir_intrinsic_store_scratch:
                 reg = nir_src_index(ctx, &instr->src[0]);
                 emit_explicit_constant(ctx, reg, reg);
 
-                emit_global(ctx, &instr->instr, false, reg, &instr->src[1], instr->intrinsic == nir_intrinsic_store_shared);
+                unsigned seg;
+                if (instr->intrinsic == nir_intrinsic_store_global)
+                        seg = LDST_GLOBAL;
+                else if (instr->intrinsic == nir_intrinsic_store_shared)
+                        seg = LDST_SHARED;
+                else
+                        seg = LDST_SCRATCH;
+
+                emit_global(ctx, &instr->instr, false, reg, &instr->src[1], seg);
                 break;
 
         case nir_intrinsic_load_ssbo_address:
@@ -1793,6 +1814,8 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
 
         case nir_intrinsic_load_work_group_id:
         case nir_intrinsic_load_local_invocation_id:
+        case nir_intrinsic_load_global_invocation_id:
+        case nir_intrinsic_load_global_invocation_id_zero_base:
                 emit_compute_builtin(ctx, instr);
                 break;
 
@@ -1811,6 +1834,7 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
 
         case nir_intrinsic_memory_barrier_buffer:
         case nir_intrinsic_memory_barrier_shared:
+        case nir_intrinsic_group_memory_barrier:
                 break;
 
         case nir_intrinsic_control_barrier:
@@ -2830,7 +2854,7 @@ midgard_compile_shader_nir(void *mem_ctx, nir_shader *nir,
         NIR_PASS_V(nir, nir_lower_var_copies);
         NIR_PASS_V(nir, nir_lower_vars_to_ssa);
 
-        unsigned pan_quirks = panfrost_get_quirks(inputs->gpu_id);
+        unsigned pan_quirks = panfrost_get_quirks(inputs->gpu_id, 0);
         NIR_PASS_V(nir, pan_lower_framebuffer,
                    inputs->rt_formats, inputs->is_blend, pan_quirks);
 
@@ -2838,6 +2862,8 @@ midgard_compile_shader_nir(void *mem_ctx, nir_shader *nir,
                         glsl_type_size, 0);
         NIR_PASS_V(nir, nir_lower_ssbo);
         NIR_PASS_V(nir, pan_nir_lower_zs_store);
+
+        NIR_PASS_V(nir, pan_nir_lower_64bit_intrin);
 
         /* Optimisation passes */
 
@@ -2855,6 +2881,7 @@ midgard_compile_shader_nir(void *mem_ctx, nir_shader *nir,
         panfrost_nir_assign_sysvals(&ctx->sysvals, ctx, nir);
         program->sysval_count = ctx->sysvals.sysval_count;
         memcpy(program->sysvals, ctx->sysvals.sysvals, sizeof(ctx->sysvals.sysvals[0]) * ctx->sysvals.sysval_count);
+        ctx->tls_size = nir->scratch_size;
 
         nir_foreach_function(func, nir) {
                 if (!func->impl)

@@ -353,13 +353,9 @@ void trace_dump_depth_stencil_alpha_state(const struct pipe_depth_stencil_alpha_
 
    trace_dump_struct_begin("pipe_depth_stencil_alpha_state");
 
-   trace_dump_member_begin("depth");
-   trace_dump_struct_begin("pipe_depth_state");
-   trace_dump_member(bool, &state->depth, enabled);
-   trace_dump_member(bool, &state->depth, writemask);
-   trace_dump_member(uint, &state->depth, func);
-   trace_dump_struct_end();
-   trace_dump_member_end();
+   trace_dump_member(bool, state, depth_enabled);
+   trace_dump_member(bool, state, depth_writemask);
+   trace_dump_member(uint, state, depth_func);
 
    trace_dump_member_begin("stencil");
    trace_dump_array_begin();
@@ -379,13 +375,9 @@ void trace_dump_depth_stencil_alpha_state(const struct pipe_depth_stencil_alpha_
    trace_dump_array_end();
    trace_dump_member_end();
 
-   trace_dump_member_begin("alpha");
-   trace_dump_struct_begin("pipe_alpha_state");
-   trace_dump_member(bool, &state->alpha, enabled);
-   trace_dump_member(uint, &state->alpha, func);
-   trace_dump_member(float, &state->alpha, ref_value);
-   trace_dump_struct_end();
-   trace_dump_member_end();
+   trace_dump_member(bool, state, alpha_enabled);
+   trace_dump_member(uint, state, alpha_func);
+   trace_dump_member(float, state, alpha_ref_value);
 
    trace_dump_struct_end();
 }

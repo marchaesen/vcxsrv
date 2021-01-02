@@ -4838,15 +4838,17 @@ glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
    variables = NULL;
 }
 
+static void *deletearg;
 static void var_destroy(struct hash_entry *entry)
 {
    variable_storage *storage = (variable_storage *)entry->data;
 
-   delete storage;
+   variable_storage::operator delete(storage, deletearg);
 }
 
 glsl_to_tgsi_visitor::~glsl_to_tgsi_visitor()
 {
+   deletearg=mem_ctx;
    _mesa_hash_table_destroy(variables, var_destroy);
    free(array_sizes);
    ralloc_free(mem_ctx);
@@ -5587,7 +5589,7 @@ glsl_to_tgsi_visitor::eliminate_dead_code(void)
 
       if ((inst->dst[0].writemask & ~inst->dead_mask) == 0) {
          inst->remove();
-         delete inst;
+         glsl_to_tgsi_instruction::operator delete(inst,mem_ctx);
          removed++;
       } else {
          if (glsl_base_type_is_64bit(inst->dst[0].type)) {
@@ -5653,7 +5655,7 @@ glsl_to_tgsi_visitor::merge_two_dsts(void)
 
       inst->dst[defined ^ 1] = inst2->dst[defined ^ 1];
       inst2->remove();
-      delete inst2;
+      glsl_to_tgsi_instruction::operator delete(inst2, mem_ctx);
    }
 }
 

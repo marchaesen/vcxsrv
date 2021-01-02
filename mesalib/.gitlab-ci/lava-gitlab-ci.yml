@@ -1,5 +1,5 @@
 variables:
-  DISTRIBUTION_TAG: "2020-11-09-deqp-uprev-3"
+  DISTRIBUTION_TAG: "2020-12-23-piglit"
 
 .kernel+rootfs:
   stage: container-2
@@ -10,6 +10,8 @@ variables:
     KERNEL_URL: "https://gitlab.freedesktop.org/tomeu/linux/-/archive/v5.10-rc2-for-mesa-ci/linux-v5.10-rc2-for-mesa-ci.tar.gz"
     UPLOAD_FOR_LAVA: 1
     INSTALL_KERNEL_MODULES: 1
+    INCLUDE_PIGLIT: 1
+    PIGLIT_BUILD_TARGETS: "piglit_replayer"
   script:
     - .gitlab-ci/container/lava_build.sh
 
@@ -44,14 +46,14 @@ kernel+rootfs_armhf:
   variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
     ENV_VARS: "DEQP_PARALLEL=6"
-    FIXED_ENV_VARS: "CI_PIPELINE_ID=${CI_PIPELINE_ID} CI_JOB_ID=${CI_JOB_ID} CI_PROJECT_PATH=${CI_PROJECT_PATH} CI_JOB_JWT=${CI_JOB_JWT} TRACIE_NO_UNIT_TESTS=1 TRACIE_UPLOAD_TO_MINIO=1 DRIVER_NAME=${DRIVER_NAME}"
+    FIXED_ENV_VARS: "CI_PIPELINE_ID=${CI_PIPELINE_ID} CI_JOB_ID=${CI_JOB_ID} CI_PROJECT_PATH=${CI_PROJECT_PATH} CI_JOB_JWT=${CI_JOB_JWT} CI_SERVER_URL=${CI_SERVER_URL} DRIVER_NAME=${DRIVER_NAME} FDO_UPSTREAM_REPO=${FDO_UPSTREAM_REPO} PIGLIT_NO_WINDOW=1 PIGLIT_REPLAY_UPLOAD_TO_MINIO=1 MINIO_HOST=${MINIO_HOST}"
     DEQP_VERSION: gles2
-    ARTIFACTS_PREFIX: "https://minio-packet.freedesktop.org/mesa-lava/"
-    MESA_URL: "https://minio-packet.freedesktop.org/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}/mesa-${ARCH}.tar.gz"
+    ARTIFACTS_PREFIX: "https://${MINIO_HOST}/mesa-lava/"
+    MESA_URL: "https://${MINIO_HOST}/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}/mesa-${ARCH}.tar.gz"
   script:
     # Try to use the kernel and rootfs built in mainline first, to save cycles
     - >
-      if wget -q --method=HEAD "${ARTIFACTS_PREFIX}/mesa/mesa/${DISTRIBUTION_TAG}/${ARCH}/done"; then
+      if wget -q --method=HEAD "${ARTIFACTS_PREFIX}/${FDO_UPSTREAM_REPO}/${DISTRIBUTION_TAG}/${ARCH}/done"; then
         ARTIFACTS_URL="${ARTIFACTS_PREFIX}/mesa/mesa/${DISTRIBUTION_TAG}/${ARCH}"
       else
         ARTIFACTS_URL="${ARTIFACTS_PREFIX}/${CI_PROJECT_PATH}/${DISTRIBUTION_TAG}/${ARCH}"
@@ -141,25 +143,26 @@ kernel+rootfs_armhf:
     reports:
       junit: artifacts/junit.xml
 
-.lava-traces:amd64:
+.lava-piglit:
   variables:
-    TEST_SUITE: "tracie"
+    TEST_SUITE: "piglit"
+
+.lava-piglit-traces:amd64:
   extends:
     - .lava-test:amd64
+    - .lava-piglit
     - .lava-traces-base
 
-.lava-traces:armhf:
-  variables:
-    TEST_SUITE: "tracie"
+.lava-piglit-traces:armhf:
   extends:
     - .lava-test:armhf
+    - .lava-piglit
     - .lava-traces-base
 
-.lava-traces:arm64:
-  variables:
-    TEST_SUITE: "tracie"
+.lava-piglit-traces:arm64:
   extends:
     - .lava-test:arm64
+    - .lava-piglit
     - .lava-traces-base
 
 panfrost-t720-gles2:arm64:
@@ -170,7 +173,7 @@ panfrost-t720-gles2:arm64:
     DEVICE_TYPE: sun50i-h6-pine-h64
     DTB: ${DEVICE_TYPE}
     GPU_VERSION: panfrost-t720
-    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T720 DEQP_FLAKES=deqp-panfrost-t720-flakes.txt"
+    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T720"
   tags:
     - mesa-ci-aarch64-lava-collabora
 
@@ -190,7 +193,7 @@ panfrost-t720-gles2:arm64:
 
 .panfrost-t760-traces:armhf:
   extends:
-    - .lava-traces:armhf
+    - .lava-piglit-traces:armhf
     - .panfrost-rules
   variables:
     DEVICE_TYPE: rk3288-veyron-jaq
@@ -199,7 +202,7 @@ panfrost-t720-gles2:arm64:
     DRIVER_NAME: panfrost
     BOOT_METHOD: depthcharge
     KERNEL_IMAGE_TYPE: ""
-    ENV_VARS: "PAN_MESA_DEBUG=deqp MESA_GLES_VERSION_OVERRIDE=3.1 MESA_GL_VERSION_OVERRIDE=3.3 MESA_GLSL_VERSION_OVERRIDE=330"
+    ENV_VARS: "PAN_MESA_DEBUG=deqp MESA_GLES_VERSION_OVERRIDE=3.1 MESA_GL_VERSION_OVERRIDE=3.3 MESA_GLSL_VERSION_OVERRIDE=330 EGL_PLATFORM=surfaceless PIGLIT_PROFILES=replay PIGLIT_HTML_SUMMARY=0 PIGLIT_JUNIT_RESULTS=1"
   tags:
     - mesa-ci-aarch64-lava-collabora
 
@@ -234,10 +237,10 @@ panfrost-t860-gles3:arm64:
 
 panfrost-t860-traces:arm64:
   extends:
-    - .lava-traces:arm64
+    - .lava-piglit-traces:arm64
     - .lava-rk3399-gru-kevin
   variables:
-    ENV_VARS: "PAN_MESA_DEBUG=deqp MESA_GLES_VERSION_OVERRIDE=3.1 MESA_GL_VERSION_OVERRIDE=3.3 MESA_GLSL_VERSION_OVERRIDE=330"
+    ENV_VARS: "PAN_MESA_DEBUG=deqp MESA_GLES_VERSION_OVERRIDE=3.1 MESA_GL_VERSION_OVERRIDE=3.3 MESA_GLSL_VERSION_OVERRIDE=330 EGL_PLATFORM=surfaceless PIGLIT_PROFILES=replay PIGLIT_HTML_SUMMARY=0 PIGLIT_JUNIT_RESULTS=1"
 
 panfrost-g52-gles2:arm64:
   extends:
@@ -325,7 +328,7 @@ radeonsi-stoney-gles31:amd64:
 
 radeonsi-stoney-traces:amd64:
   extends:
-    - .lava-traces:amd64
+    - .lava-piglit-traces:amd64
     - .radeonsi-rules
   variables:
     DEVICE_TYPE: hp-11A-G6-EE-grunt
@@ -334,5 +337,6 @@ radeonsi-stoney-traces:amd64:
     DRIVER_NAME: radeonsi
     BOOT_METHOD: depthcharge
     KERNEL_IMAGE_TYPE: ""
+    ENV_VARS: "EGL_PLATFORM=surfaceless PIGLIT_PROFILES=replay PIGLIT_HTML_SUMMARY=0 PIGLIT_JUNIT_RESULTS=1"
   tags:
     - mesa-ci-aarch64-lava-collabora

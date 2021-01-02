@@ -1283,7 +1283,7 @@ nine_update_state(struct NineDevice9 *device)
             struct pipe_stencil_ref ref;
             ref.ref_value[0] = context->rs[D3DRS_STENCILREF];
             ref.ref_value[1] = ref.ref_value[0];
-            pipe->set_stencil_ref(pipe, &ref);
+            pipe->set_stencil_ref(pipe, ref);
         }
     }
 

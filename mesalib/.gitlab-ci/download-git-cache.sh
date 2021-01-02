@@ -17,7 +17,7 @@ TMP_DIR=$(mktemp -d)
 
 echo "Downloading archived master..."
 /usr/bin/wget -O $TMP_DIR/mesa.tar.gz \
-              https://minio-packet.freedesktop.org/git-cache/mesa/mesa/mesa.tar.gz
+              https://${MINIO_HOST}/git-cache/${FDO_UPSTREAM_REPO}/mesa.tar.gz
 
 # check wget error code
 if [[ $? -ne 0 ]]

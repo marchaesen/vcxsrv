@@ -55,6 +55,11 @@ namespace clover {
          std::vector<char> data;
       };
 
+      struct printf_info {
+         std::vector<uint32_t> arg_sizes;
+         std::vector<uint8_t> strings;
+      };
+
       struct arg_info {
          arg_info(const std::string &arg_name, const std::string &type_name,
                   const cl_kernel_arg_type_qualifier type_qualifier,
@@ -98,7 +103,8 @@ namespace clover {
             grid_offset,
             image_size,
             image_format,
-            constant_buffer
+            constant_buffer,
+            printf_buffer
          };
 
          argument(enum type type, size_t size,
@@ -153,6 +159,9 @@ namespace clover {
 
       std::vector<symbol> syms;
       std::vector<section> secs;
+      std::vector<printf_info> printf_infos;
+      // printfs strings stored in output buffer
+      uint32_t printf_strings_in_buffer;
    };
 }
 

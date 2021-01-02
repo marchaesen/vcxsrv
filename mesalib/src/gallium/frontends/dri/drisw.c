@@ -367,7 +367,7 @@ drisw_allocate_textures(struct dri_context *stctx,
 
       /* if we don't do any present, no need for display targets */
       if (statts[i] != ST_ATTACHMENT_DEPTH_STENCIL && !screen->swrast_no_present)
-         bind |= PIPE_BIND_DISPLAY_TARGET | PIPE_BIND_LINEAR;
+         bind |= PIPE_BIND_DISPLAY_TARGET;
 
       if (format == PIPE_FORMAT_NONE)
          continue;

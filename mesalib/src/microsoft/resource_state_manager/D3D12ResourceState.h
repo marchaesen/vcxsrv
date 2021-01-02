@@ -24,9 +24,13 @@
 #ifndef D3D12_RESOURCE_STATE_H
 #define D3D12_RESOURCE_STATE_H
 
+#ifndef _WIN32
+#include <wsl/winadapter.h>
+#endif
+
 #include <vector>
 #include <assert.h>
-#include <d3d12.h>
+#include <directx/d3d12.h>
 
 #include "util/list.h"
 
@@ -138,6 +142,7 @@ struct TransitionableResourceState
    TransitionableResourceState(ID3D12Resource *pResource, UINT TotalSubresources, bool SupportsSimultaneousAccess) :
       m_DesiredState(TotalSubresources),
       m_TotalSubresources(TotalSubresources),
+      m_SupportsSimultaneousAccess(SupportsSimultaneousAccess),
       m_currentState(TotalSubresources, SupportsSimultaneousAccess),
       m_pResource(pResource)
    {

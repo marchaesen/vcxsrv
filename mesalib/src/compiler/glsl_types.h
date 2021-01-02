@@ -638,7 +638,7 @@ public:
     *    possible following the alignment required by the size/align func.
     *
     *  - All composite types (structures, matrices, and arrays) have an
-    *    alignment equal to the highest alighment of any member of the composite.
+    *    alignment equal to the highest alignment of any member of the composite.
     *
     * The types returned by this function are likely not suitable for most UBO
     * or SSBO layout because they do not add the extra array and substructure

@@ -1400,7 +1400,9 @@ create_iview(struct radv_cmd_buffer *cmd_buffer,
 					     .baseArrayLayer = surf->layer,
 					     .layerCount = 1
 				     },
-			     }, NULL);
+			     }, &(struct radv_image_view_extra_create_info) {
+				     .disable_compression = surf->disable_compression,
+			     });
 }
 
 static void

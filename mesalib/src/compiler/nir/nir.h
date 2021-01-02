@@ -625,7 +625,7 @@ typedef struct nir_variable {
     * Constant expression assigned in the initializer of the variable
     *
     * This field should only be used temporarily by creators of NIR shaders
-    * and then lower_constant_initializers can be used to get rid of them.
+    * and then nir_lower_variable_initializers can be used to get rid of them.
     * Most of the rest of NIR ignores this field or asserts that it's NULL.
     */
    nir_constant *constant_initializer;
@@ -633,7 +633,7 @@ typedef struct nir_variable {
    /**
     * Global variable assigned in the initializer of the variable
     * This field should only be used temporarily by creators of NIR shaders
-    * and then lower_constant_initializers can be used to get rid of them.
+    * and then nir_lower_variable_initializers can be used to get rid of them.
     * Most of the rest of NIR ignores this field or asserts that it's NULL.
     */
    struct nir_variable *pointer_initializer;
@@ -3010,6 +3010,13 @@ typedef struct {
    uint8_t bit_size;
 } nir_parameter;
 
+typedef struct nir_printf_info {
+   unsigned num_args;
+   unsigned *arg_sizes;
+   unsigned string_size;
+   char *strings;
+} nir_printf_info;
+
 typedef struct nir_function {
    struct exec_node node;
 
@@ -3407,6 +3414,9 @@ typedef struct nir_shader {
    void *constant_data;
    /** Size of the constant data associated with the shader, in bytes */
    unsigned constant_data_size;
+
+   unsigned printf_info_count;
+   nir_printf_info *printf_info;
 } nir_shader;
 
 #define nir_foreach_function(func, shader) \
@@ -4868,6 +4878,13 @@ bool nir_rematerialize_derefs_in_use_blocks_impl(nir_function_impl *impl);
 bool nir_lower_samplers(nir_shader *shader);
 bool nir_lower_ssbo(nir_shader *shader);
 
+typedef struct nir_lower_printf_options {
+   bool treat_doubles_as_floats : 1;
+   unsigned max_buffer_size;
+} nir_lower_printf_options;
+
+bool nir_lower_printf(nir_shader *nir, const nir_lower_printf_options *options);
+
 /* This is here for unit tests. */
 bool nir_opt_comparison_pre_impl(nir_function_impl *impl);
 
@@ -4961,8 +4978,8 @@ bool nir_lower_undef_to_zero(nir_shader *shader);
 
 bool nir_opt_uniform_atomics(nir_shader *shader);
 
-typedef bool (*nir_opt_vectorize_cb)(const nir_instr *a, const nir_instr *b,
-                                     void *data);
+typedef bool (*nir_opt_vectorize_cb)(const nir_instr *instr, void *data);
+
 bool nir_opt_vectorize(nir_shader *shader, nir_opt_vectorize_cb filter,
                        void *data);
 

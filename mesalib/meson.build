@@ -183,7 +183,6 @@ with_dri_i965 = dri_drivers.contains('i965')
 with_dri_r100 = dri_drivers.contains('r100')
 with_dri_r200 = dri_drivers.contains('r200')
 with_dri_nouveau = dri_drivers.contains('nouveau')
-with_dri_swrast = dri_drivers.contains('swrast')
 
 with_dri = dri_drivers.length() != 0
 
@@ -283,9 +282,6 @@ with_any_intel = with_dri_i965 or with_intel_vk or with_gallium_iris
 if with_swrast_vk and not with_gallium_softpipe
   error('swrast vulkan requires gallium swrast')
 endif
-if with_dri_swrast and (with_gallium_softpipe or with_gallium_swr)
-  error('Only one swrast provider can be built')
-endif
 if with_dri_i915 and with_gallium_i915
   error('Only one i915 provider can be built')
 endif
@@ -311,6 +307,8 @@ dep_clang = dependency(
 )
 with_microsoft_clc = dep_clang.found()
 with_clc = dep_clang.found()
+
+with_spirv_to_dxil = get_option('spirv-to-dxil')
 
 if host_machine.system() == 'darwin'
   with_dri_platform = 'apple'
@@ -572,8 +570,10 @@ if with_gallium_zink
   dep_vulkan = dependency('vulkan')
 endif
 
-if with_gallium_d3d12 and not cpp.check_header('d3d12.h')
-  error('The D3D12 driver requires d3d12.h from the Windows SDK')
+if with_gallium_d3d12 or with_microsoft_clc
+  dep_dxheaders = dependency('DirectX-Headers', fallback : ['DirectX-Headers', 'dep_dxheaders'],
+    required : with_gallium_d3d12
+  ) 
 endif
 
 if with_vulkan_overlay_layer or with_aco_tests

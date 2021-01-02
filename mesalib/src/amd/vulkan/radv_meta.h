@@ -147,6 +147,7 @@ struct radv_meta_blit2d_surf {
 	unsigned layer;
 	VkImageAspectFlags aspect_mask;
 	VkImageLayout current_layout;
+	bool disable_compression;
 };
 
 struct radv_meta_blit2d_buffer {
@@ -294,6 +295,28 @@ radv_is_hw_resolve_pipeline(struct radv_cmd_buffer *cmd_buffer)
 	for (uint32_t i = 0; i < NUM_META_FS_KEYS; ++i) {
 		if (radv_pipeline_to_handle(pipeline) == meta_state->resolve.pipeline[i])
 			return true;
+	}
+	return false;
+}
+
+/**
+ * Return whether the bound pipeline is a blit MSAA image pipeline.
+ */
+static inline bool
+radv_is_blit2d_msaa_pipeline(struct radv_cmd_buffer *cmd_buffer)
+{
+	struct radv_meta_state *meta_state = &cmd_buffer->device->meta_state;
+	struct radv_pipeline *pipeline = cmd_buffer->state.pipeline;
+
+	if (!pipeline)
+		return false;
+
+	for (uint32_t s = 1; s < MAX_SAMPLES_LOG2; s++) {
+		for (uint32_t i = 0; i < NUM_META_FS_KEYS; i++) {
+			if (radv_pipeline_to_handle(pipeline) == meta_state->blit2d[s].pipelines[0 /* IMAGE */][i] ||
+			    radv_pipeline_to_handle(pipeline) == meta_state->blit2d[s].pipelines[1 /* IMAGE_3D */][i])
+				return true;
+		}
 	}
 	return false;
 }

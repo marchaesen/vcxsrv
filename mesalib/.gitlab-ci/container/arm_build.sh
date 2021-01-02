@@ -26,6 +26,20 @@ apt-get -y install \
 	libdrm-dev \
 	libelf-dev \
 	libexpat1-dev \
+	libx11-dev \
+	libx11-xcb-dev \
+	libxcb-dri2-0-dev \
+	libxcb-dri3-dev \
+	libxcb-glx0-dev \
+	libxcb-present-dev \
+	libxcb-randr0-dev \
+	libxcb-shm0-dev \
+	libxcb-xfixes0-dev \
+	libxdamage-dev \
+	libxext-dev \
+	libxrandr-dev \
+	libxshmfence-dev \
+	libxxf86vm-dev \
 	llvm-8-dev \
 	pkg-config \
 	python \

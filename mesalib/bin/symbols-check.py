@@ -14,6 +14,8 @@ PLATFORM_SYMBOLS = [
     '__cxa_guard_acquire',
     '__cxa_guard_release',
     '__end__',
+    '__odr_asan._glapi_Context',
+    '__odr_asan._glapi_Dispatch',
     '_bss_end__',
     '_edata',
     '_end',

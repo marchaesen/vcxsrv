@@ -6,6 +6,7 @@ tests = [
   ['test-bz106618.c'],
   ['test-bz1744377.c'],
   ['test-issue180.c'],
+  ['test-family-matching.c'],
 ]
 
 if host_machine.system() != 'windows'

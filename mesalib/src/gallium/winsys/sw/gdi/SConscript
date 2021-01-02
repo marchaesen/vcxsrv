@@ -1,0 +1,24 @@
+#######################################################################
+# SConscript for xlib winsys
+
+
+Import('*')
+
+if env['platform'] == 'windows':
+
+    env = env.Clone()
+
+    env.Append(CPPPATH = [
+        '#/src/gallium/include',
+        '#/src/gallium/auxiliary',
+        '#/src/gallium/drivers',
+    ])
+
+    ws_gdi = env.ConvenienceLibrary(
+        target = 'ws_gdi',
+        source = [
+           'gdi_sw_winsys.c',
+        ]
+    )
+    env.Alias('ws_gdi', ws_gdi)
+    Export('ws_gdi')
