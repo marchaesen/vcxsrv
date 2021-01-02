@@ -38,8 +38,11 @@ namespace clover {
          evals, const std::vector<intrusive_ref<device>> &> device_range;
 
    public:
+      enum class il_type { none, source, spirv };
+
       program(clover::context &ctx,
-              const std::string &source);
+              std::string &&il,
+              enum il_type il_type);
       program(clover::context &ctx,
               const ref_vector<device> &devs = {},
               const std::vector<module> &binaries = {});
@@ -53,8 +56,8 @@ namespace clover {
       void link(const ref_vector<device> &devs, const std::string &opts,
                 const ref_vector<program> &progs);
 
-      const bool has_source;
       const std::string &source() const;
+      enum il_type il_type() const;
 
       device_range devices() const;
 
@@ -85,6 +88,7 @@ namespace clover {
       std::map<const device *, struct build> _builds;
       std::string _source;
       ref_counter _kernel_ref_counter;
+      enum il_type _il_type;
    };
 }
 

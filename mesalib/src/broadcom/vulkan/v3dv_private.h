@@ -41,8 +41,8 @@
 #include <xf86drm.h>
 
 #ifdef HAVE_VALGRIND
-#include <valgrind/valgrind.h>
-#include <valgrind/memcheck.h>
+#include <valgrind.h>
+#include <memcheck.h>
 #define VG(x) x
 #else
 #define VG(x) ((void)0)

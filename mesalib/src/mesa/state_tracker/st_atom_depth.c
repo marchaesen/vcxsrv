@@ -106,15 +106,15 @@ st_update_depth_stencil_alpha(struct st_context *st)
 
    if (ctx->DrawBuffer->Visual.depthBits > 0) {
       if (ctx->Depth.Test) {
-         dsa->depth.enabled = 1;
-         dsa->depth.func = st_compare_func_to_pipe(ctx->Depth.Func);
-         if (dsa->depth.func != PIPE_FUNC_EQUAL)
-            dsa->depth.writemask = ctx->Depth.Mask;
+         dsa->depth_enabled = 1;
+         dsa->depth_func = st_compare_func_to_pipe(ctx->Depth.Func);
+         if (dsa->depth_func != PIPE_FUNC_EQUAL)
+            dsa->depth_writemask = ctx->Depth.Mask;
       }
       if (ctx->Depth.BoundsTest) {
-         dsa->depth.bounds_test = 1;
-         dsa->depth.bounds_min = ctx->Depth.BoundsMin;
-         dsa->depth.bounds_max = ctx->Depth.BoundsMax;
+         dsa->depth_bounds_test = 1;
+         dsa->depth_bounds_min = ctx->Depth.BoundsMin;
+         dsa->depth_bounds_max = ctx->Depth.BoundsMax;
       }
    }
 
@@ -151,11 +151,11 @@ st_update_depth_stencil_alpha(struct st_context *st)
 
    if (ctx->Color.AlphaEnabled && !st->lower_alpha_test &&
        !(ctx->DrawBuffer->_IntegerBuffers & 0x1)) {
-      dsa->alpha.enabled = 1;
-      dsa->alpha.func = st_compare_func_to_pipe(ctx->Color.AlphaFunc);
-      dsa->alpha.ref_value = ctx->Color.AlphaRefUnclamped;
+      dsa->alpha_enabled = 1;
+      dsa->alpha_func = st_compare_func_to_pipe(ctx->Color.AlphaFunc);
+      dsa->alpha_ref_value = ctx->Color.AlphaRefUnclamped;
    }
 
    cso_set_depth_stencil_alpha(st->cso_context, dsa);
-   cso_set_stencil_ref(st->cso_context, &sr);
+   cso_set_stencil_ref(st->cso_context, sr);
 }

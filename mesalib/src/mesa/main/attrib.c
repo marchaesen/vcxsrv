@@ -598,11 +598,16 @@ pop_texture_group(struct gl_context *ctx, struct gl_texture_attrib_node *texstat
              * because we wouldn't get in this conditional block if it wasn't.
              */
             _mesa_BindTexture_no_error(savedObj->Target, savedObj->Name);
+            texObj = _mesa_get_tex_unit(ctx, u)->CurrentTex[tgt];
          }
 
          memcpy(&texObj->Sampler.Attrib, &savedObj->Sampler.Attrib,
                 sizeof(savedObj->Sampler.Attrib));
          memcpy(&texObj->Attrib, &savedObj->Attrib, sizeof(savedObj->Attrib));
+
+         /* GL_ALL_ATTRIB_BITS means all pnames. (internal) */
+         if (texObj->Name != 0 && ctx->Driver.TexParameter)
+            ctx->Driver.TexParameter(ctx, texObj, GL_ALL_ATTRIB_BITS);
       }
    }
 

@@ -1609,7 +1609,8 @@ radv_emit_fb_color_state(struct radv_cmd_buffer *cmd_buffer,
 			 struct radv_color_buffer_info *cb,
 			 struct radv_image_view *iview,
 			 VkImageLayout layout,
-			 bool in_render_loop)
+			 bool in_render_loop,
+			 bool disable_dcc)
 {
 	bool is_vi = cmd_buffer->device->physical_device->rad_info.chip_class >= GFX8;
 	uint32_t cb_color_info = cb->cb_color_info;
@@ -1618,11 +1619,12 @@ radv_emit_fb_color_state(struct radv_cmd_buffer *cmd_buffer,
 	if (!radv_layout_dcc_compressed(cmd_buffer->device, image, layout, in_render_loop,
 	                                radv_image_queue_family_mask(image,
 	                                                             cmd_buffer->queue_family_index,
-	                                                             cmd_buffer->queue_family_index))) {
+	                                                             cmd_buffer->queue_family_index)) ||
+	    disable_dcc) {
 		cb_color_info &= C_028C70_DCC_ENABLE;
 	}
 
-	if (!radv_layout_can_fast_clear(image, layout, in_render_loop,
+	if (!radv_layout_can_fast_clear(cmd_buffer->device, image, layout, in_render_loop,
 	                                radv_image_queue_family_mask(image,
 	                                                             cmd_buffer->queue_family_index,
 	                                                             cmd_buffer->queue_family_index))) {
@@ -1640,7 +1642,8 @@ radv_emit_fb_color_state(struct radv_cmd_buffer *cmd_buffer,
 
 	if (radv_image_has_fmask(image) &&
 	    (radv_is_fmask_decompress_pipeline(cmd_buffer) ||
-	     radv_is_hw_resolve_pipeline(cmd_buffer))) {
+	     radv_is_hw_resolve_pipeline(cmd_buffer) ||
+	     radv_is_blit2d_msaa_pipeline(cmd_buffer))) {
 		/* Make sure FMASK is enabled if it has been cleared because:
 		 *
 		 * 1) it's required for FMASK_DECOMPRESS operations to avoid
@@ -2385,7 +2388,8 @@ radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer)
 
 		assert(iview->aspect_mask & (VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_PLANE_0_BIT |
 		                                       VK_IMAGE_ASPECT_PLANE_1_BIT | VK_IMAGE_ASPECT_PLANE_2_BIT));
-		radv_emit_fb_color_state(cmd_buffer, i, &cmd_buffer->state.attachments[idx].cb, iview, layout, in_render_loop);
+		radv_emit_fb_color_state(cmd_buffer, i, &cmd_buffer->state.attachments[idx].cb, iview, layout,
+					 in_render_loop, cmd_buffer->state.attachments[idx].disable_dcc);
 
 		radv_load_color_clear_metadata(cmd_buffer, iview, i);
 	}
@@ -3634,7 +3638,8 @@ radv_cmd_state_setup_sample_locations(struct radv_cmd_buffer *cmd_buffer,
 static VkResult
 radv_cmd_state_setup_attachments(struct radv_cmd_buffer *cmd_buffer,
 				 struct radv_render_pass *pass,
-				 const VkRenderPassBeginInfo *info)
+				 const VkRenderPassBeginInfo *info,
+				 const struct radv_extra_render_pass_begin_info *extra)
 {
 	struct radv_cmd_state *state = &cmd_buffer->state;
 	const struct VkRenderPassAttachmentBeginInfo *attachment_info = NULL;
@@ -3694,6 +3699,7 @@ radv_cmd_state_setup_attachments(struct radv_cmd_buffer *cmd_buffer,
 		state->attachments[i].current_layout = att->initial_layout;
 		state->attachments[i].current_in_render_loop = false;
 		state->attachments[i].current_stencil_layout = att->stencil_initial_layout;
+		state->attachments[i].disable_dcc = extra && extra->disable_dcc;
 		state->attachments[i].sample_location.count = 0;
 
 		struct radv_image_view *iview;
@@ -3831,7 +3837,7 @@ VkResult radv_BeginCommandBuffer(
 			&cmd_buffer->state.pass->subpasses[pBeginInfo->pInheritanceInfo->subpass];
 
 		if (cmd_buffer->state.framebuffer) {
-			result = radv_cmd_state_setup_attachments(cmd_buffer, cmd_buffer->state.pass, NULL);
+			result = radv_cmd_state_setup_attachments(cmd_buffer, cmd_buffer->state.pass, NULL, NULL);
 			if (result != VK_SUCCESS)
 				return result;
 		}
@@ -5051,7 +5057,8 @@ radv_cmd_buffer_end_subpass(struct radv_cmd_buffer *cmd_buffer)
 
 void
 radv_cmd_buffer_begin_render_pass(struct radv_cmd_buffer *cmd_buffer,
-				  const VkRenderPassBeginInfo *pRenderPassBegin)
+				  const VkRenderPassBeginInfo *pRenderPassBegin,
+				  const struct radv_extra_render_pass_begin_info *extra_info)
 {
 	RADV_FROM_HANDLE(radv_render_pass, pass, pRenderPassBegin->renderPass);
 	RADV_FROM_HANDLE(radv_framebuffer, framebuffer, pRenderPassBegin->framebuffer);
@@ -5061,7 +5068,7 @@ radv_cmd_buffer_begin_render_pass(struct radv_cmd_buffer *cmd_buffer,
 	cmd_buffer->state.pass = pass;
 	cmd_buffer->state.render_area = pRenderPassBegin->renderArea;
 
-	result = radv_cmd_state_setup_attachments(cmd_buffer, pass, pRenderPassBegin);
+	result = radv_cmd_state_setup_attachments(cmd_buffer, pass, pRenderPassBegin, extra_info);
 	if (result != VK_SUCCESS)
 		return;
 
@@ -5077,7 +5084,7 @@ void radv_CmdBeginRenderPass(
 {
 	RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
 
-	radv_cmd_buffer_begin_render_pass(cmd_buffer, pRenderPassBegin);
+	radv_cmd_buffer_begin_render_pass(cmd_buffer, pRenderPassBegin, NULL);
 
 	radv_cmd_buffer_begin_subpass(cmd_buffer, 0);
 }
@@ -6159,7 +6166,7 @@ static void radv_init_color_image_metadata(struct radv_cmd_buffer *cmd_buffer,
 		 * layout).
 		 */
 		if (radv_image_has_fmask(image) &&
-		    radv_layout_can_fast_clear(image, dst_layout,
+		    radv_layout_can_fast_clear(cmd_buffer->device, image, dst_layout,
 					       dst_render_loop, dst_queue_mask)) {
 			value = 0xccccccccu;
 		}
@@ -6221,15 +6228,19 @@ static void radv_handle_color_image_transition(struct radv_cmd_buffer *cmd_buffe
 		} else if (radv_layout_dcc_compressed(cmd_buffer->device, image, src_layout, src_render_loop, src_queue_mask) &&
 		           !radv_layout_dcc_compressed(cmd_buffer->device, image, dst_layout, dst_render_loop, dst_queue_mask)) {
 			radv_decompress_dcc(cmd_buffer, image, range);
-		} else if (radv_layout_can_fast_clear(image, src_layout, src_render_loop, src_queue_mask) &&
-			   !radv_layout_can_fast_clear(image, dst_layout, dst_render_loop, dst_queue_mask)) {
+		} else if (radv_layout_can_fast_clear(cmd_buffer->device, image, src_layout,
+		                                      src_render_loop, src_queue_mask) &&
+		           !radv_layout_can_fast_clear(cmd_buffer->device, image, dst_layout,
+		                                       dst_render_loop, dst_queue_mask)) {
 			radv_fast_clear_flush_image_inplace(cmd_buffer, image, range);
 		}
 	} else if (radv_image_has_cmask(image) || radv_image_has_fmask(image)) {
 		bool fce_eliminate = false, fmask_expand = false;
 
-		if (radv_layout_can_fast_clear(image, src_layout, src_render_loop, src_queue_mask) &&
-		    !radv_layout_can_fast_clear(image, dst_layout, dst_render_loop, dst_queue_mask)) {
+		if (radv_layout_can_fast_clear(cmd_buffer->device, image, src_layout,
+		                               src_render_loop, src_queue_mask) &&
+		    !radv_layout_can_fast_clear(cmd_buffer->device, image, dst_layout,
+		                                dst_render_loop, dst_queue_mask)) {
 			fce_eliminate = true;
 		}
 
@@ -6290,7 +6301,7 @@ static void radv_handle_image_transition(struct radv_cmd_buffer *cmd_buffer,
 			return;
 	}
 
-	if (src_layout == dst_layout)
+	if (src_layout == dst_layout && src_render_loop == dst_render_loop)
 		return;
 
 	unsigned src_queue_mask =

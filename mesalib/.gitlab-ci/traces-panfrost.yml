@@ -182,11 +182,12 @@ traces:
     expectations:
       - device: gl-panfrost-t860
         checksum: 1c8ff59b40cefd4e66f18f6d0cc23536
-  - path: gputest/gimark.trace
-    expectations:
-      - device: gl-panfrost-t860
-        # Some blue rings are missing on the top-left corner, also the penguin watermark
-        checksum: 0020a77e25003e4e8db1ce929eed8914
+  # Flaky since the introduction of parallel trace replay
+  #- path: gputest/gimark.trace
+  #  expectations:
+  #   - device: gl-panfrost-t860
+  #      # Some blue rings are missing on the top-left corner, also the penguin watermark
+  #      checksum: 0020a77e25003e4e8db1ce929eed8914
   - path: gputest/pixmark-julia-fp32.trace
     expectations:
       - device: gl-panfrost-t860

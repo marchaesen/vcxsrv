@@ -809,9 +809,9 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
       dsa.stencil[0].zpass_op = PIPE_STENCIL_OP_REPLACE;
       if (write_depth) {
          /* writing depth+stencil: depth test always passes */
-         dsa.depth.enabled = 1;
-         dsa.depth.writemask = ctx->Depth.Mask;
-         dsa.depth.func = PIPE_FUNC_ALWAYS;
+         dsa.depth_enabled = 1;
+         dsa.depth_writemask = ctx->Depth.Mask;
+         dsa.depth_func = PIPE_FUNC_ALWAYS;
       }
       cso_set_depth_stencil_alpha(cso, &dsa);
 
@@ -956,14 +956,6 @@ draw_stencil_pixels(struct gl_context *ctx, GLint x, GLint y,
    struct gl_pixelstore_attrib clippedUnpack = *unpack;
    GLubyte *sValues;
    GLuint *zValues;
-
-   if (!zoom) {
-      if (!_mesa_clip_drawpixels(ctx, &x, &y, &width, &height,
-                                 &clippedUnpack)) {
-         /* totally clipped */
-         return;
-      }
-   }
 
    strb = st_renderbuffer(ctx->DrawBuffer->
                           Attachment[BUFFER_STENCIL].Renderbuffer);
@@ -1231,7 +1223,7 @@ setup_sampler_swizzle(struct pipe_sampler_view *sv, GLenum format, GLenum type)
 {
    if ((format == GL_RGBA || format == GL_BGRA) && type == GL_UNSIGNED_BYTE) {
       const struct util_format_description *desc =
-         util_format_description(sv->texture->format);
+         util_format_description(sv->format);
       unsigned c0, c1, c2, c3;
 
       /* Every gallium driver supports at least one 32-bit packed RGBA format.
@@ -1320,12 +1312,18 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
 
    st_validate_state(st, ST_PIPELINE_META);
 
+   clippedUnpack = *unpack;
+   unpack = &clippedUnpack;
+
+   /* Skip totally clipped DrawPixels. */
+   if (ctx->Pixel.ZoomX == 1 && ctx->Pixel.ZoomY == 1 &&
+       !_mesa_clip_drawpixels(ctx, &x, &y, &width, &height, &clippedUnpack))
+      return;
+
    /* Limit the size of the glDrawPixels to the max texture size.
     * Strictly speaking, that's not correct but since we don't handle
     * larger images yet, this is better than crashing.
     */
-   clippedUnpack = *unpack;
-   unpack = &clippedUnpack;
    clamp_size(st, &width, &height, &clippedUnpack);
 
    if (format == GL_DEPTH_STENCIL)
@@ -1377,16 +1375,21 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
       st_upload_constants(st, &st->fp->Base);
    }
 
-   /* create sampler view for the image */
-   sv[0] = st_create_texture_sampler_view(st->pipe, pt);
+   {
+      /* create sampler view for the image */
+      struct pipe_sampler_view templ;
+
+      u_sampler_view_default_template(&templ, pt, pt->format);
+      /* Set up the sampler view's swizzle */
+      setup_sampler_swizzle(&templ, format, type);
+
+      sv[0] = st->pipe->create_sampler_view(st->pipe, pt, &templ);
+   }
    if (!sv[0]) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glDrawPixels");
       pipe_resource_reference(&pt, NULL);
       return;
    }
-
-   /* Set up the sampler view's swizzle */
-   setup_sampler_swizzle(sv[0], format, type);
 
    /* Create a second sampler view to read stencil.  The stencil is
     * written using the shader stencil export functionality.
@@ -1558,15 +1561,17 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
          !ctx->Color.BlendEnabled &&
          !ctx->Color.AlphaEnabled &&
          (!ctx->Color.ColorLogicOpEnabled || ctx->Color.LogicOp == GL_COPY) &&
-         !ctx->Depth.Test &&
+         !ctx->Depth.BoundsTest &&
+         (!ctx->Depth.Test || (ctx->Depth.Func == GL_ALWAYS && !ctx->Depth.Mask)) &&
          !ctx->Fog.Enabled &&
-         !ctx->Stencil.Enabled &&
+         (!ctx->Stencil.Enabled ||
+          (ctx->Stencil.FailFunc[0] == GL_KEEP &&
+           ctx->Stencil.ZPassFunc[0] == GL_KEEP &&
+           ctx->Stencil.ZFailFunc[0] == GL_KEEP)) &&
          !ctx->FragmentProgram.Enabled &&
-         !ctx->VertexProgram.Enabled &&
          !ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT] &&
          !_mesa_ati_fragment_shader_enabled(ctx) &&
          ctx->DrawBuffer->_NumColorDrawBuffers == 1)) &&
-       !ctx->Query.CondRenderQuery &&
        !ctx->Query.CurrentOcclusionObject) {
       struct st_renderbuffer *rbRead, *rbDraw;
 
@@ -1651,6 +1656,7 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
          blit.dst.box.height = drawH;
          blit.dst.box.depth = 1;
          blit.filter = PIPE_TEX_FILTER_NEAREST;
+         blit.render_condition_enable = ctx->Query.CondRenderQuery != NULL;
 
          if (type == GL_COLOR)
             blit.mask |= PIPE_MASK_RGBA;

@@ -125,6 +125,8 @@ MESA_UTIL_FILES := \
 	u_debug_symbol.h \
 	u_cpu_detect.c \
 	u_cpu_detect.h \
+	u_printf.cpp \
+	u_printf.h \
 	os_memory_aligned.h \
 	os_memory_debug.h \
 	os_memory_stdc.h \

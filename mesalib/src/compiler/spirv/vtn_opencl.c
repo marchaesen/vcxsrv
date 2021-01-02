@@ -27,6 +27,7 @@
 #include "math.h"
 #include "nir/nir_builtin_builder.h"
 
+#include "util/u_printf.h"
 #include "vtn_private.h"
 #include "OpenCL.std.h"
 
@@ -723,13 +724,115 @@ vtn_handle_opencl_vstore_half_r(struct vtn_builder *b, enum OpenCLstd_Entrypoint
                         vtn_rounding_mode_to_nir(b, w[8]));
 }
 
-static nir_ssa_def *
-handle_printf(struct vtn_builder *b, uint32_t opcode,
-              unsigned num_srcs, nir_ssa_def **srcs, struct vtn_type **src_types,
-              const struct vtn_type *dest_type)
+static unsigned
+vtn_add_printf_string(struct vtn_builder *b, uint32_t id, nir_printf_info *info)
 {
-   /* hahah, yeah, right.. */
-   return nir_imm_int(&b->nb, -1);
+   nir_deref_instr *deref = vtn_nir_deref(b, id);
+
+   while (deref && deref->deref_type != nir_deref_type_var)
+      deref = nir_deref_instr_parent(deref);
+
+   vtn_fail_if(deref == NULL || !nir_deref_mode_is(deref, nir_var_mem_constant),
+               "Printf string argument must be a pointer to a constant variable");
+   vtn_fail_if(deref->var->constant_initializer == NULL,
+               "Printf string argument must have an initializer");
+   vtn_fail_if(!glsl_type_is_array(deref->var->type),
+               "Printf string must be an char array");
+   const struct glsl_type *char_type = glsl_get_array_element(deref->var->type);
+   vtn_fail_if(char_type != glsl_uint8_t_type() &&
+               char_type != glsl_int8_t_type(),
+               "Printf string must be an char array");
+
+   nir_constant *c = deref->var->constant_initializer;
+   assert(c->num_elements == glsl_get_length(deref->var->type));
+
+   unsigned idx = info->string_size;
+   info->strings = reralloc_size(b->shader, info->strings,
+                                 idx + c->num_elements);
+   info->string_size += c->num_elements;
+
+   char *str = &info->strings[idx];
+   bool found_null = false;
+   for (unsigned i = 0; i < c->num_elements; i++) {
+      memcpy((char *)str + i, c->elements[i]->values, 1);
+      if (str[i] == '\0')
+         found_null = true;
+   }
+   vtn_fail_if(!found_null, "Printf string must be null terminated");
+   return idx;
+}
+
+/* printf is special because there are no limits on args */
+static void
+handle_printf(struct vtn_builder *b, uint32_t opcode,
+              const uint32_t *w_src, unsigned num_srcs, const uint32_t *w_dest)
+{
+   if (!b->options->caps.printf) {
+      vtn_push_nir_ssa(b, w_dest[1], nir_imm_int(&b->nb, -1));
+      return;
+   }
+
+   /* Step 1. extract the format string */
+
+   /*
+    * info_idx is 1-based to match clover/llvm
+    * the backend indexes the info table at info_idx - 1.
+    */
+   b->shader->printf_info_count++;
+   unsigned info_idx = b->shader->printf_info_count;
+
+   b->shader->printf_info = reralloc(b->shader, b->shader->printf_info,
+                                     nir_printf_info, info_idx);
+   nir_printf_info *info = &b->shader->printf_info[info_idx - 1];
+
+   info->strings = NULL;
+   info->string_size = 0;
+
+   vtn_add_printf_string(b, w_src[0], info);
+
+   info->num_args = num_srcs - 1;
+   info->arg_sizes = ralloc_array(b->shader, unsigned, info->num_args);
+
+   /* Step 2, build an ad-hoc struct type out of the args */
+   unsigned field_offset = 0;
+   struct glsl_struct_field *fields =
+      rzalloc_array(b, struct glsl_struct_field, num_srcs - 1);
+   for (unsigned i = 1; i < num_srcs; ++i) {
+      struct vtn_value *val = vtn_untyped_value(b, w_src[i]);
+      struct vtn_type *src_type = val->type;
+      fields[i - 1].type = src_type->type;
+      fields[i - 1].name = ralloc_asprintf(b->shader, "arg_%u", i);
+      field_offset = align(field_offset, 4);
+      fields[i - 1].offset = field_offset;
+      info->arg_sizes[i - 1] = glsl_get_cl_size(src_type->type);
+      field_offset += glsl_get_cl_size(src_type->type);
+   }
+   const struct glsl_type *struct_type =
+      glsl_struct_type(fields, num_srcs - 1, "printf", true);
+
+   /* Step 3, create a variable of that type and populate its fields */
+   nir_variable *var = nir_local_variable_create(b->func->impl, struct_type, NULL);
+   nir_deref_instr *deref_var = nir_build_deref_var(&b->nb, var);
+   size_t fmt_pos = 0;
+   for (unsigned i = 1; i < num_srcs; ++i) {
+      nir_deref_instr *field_deref =
+         nir_build_deref_struct(&b->nb, deref_var, i - 1);
+      nir_ssa_def *field_src = vtn_ssa_value(b, w_src[i])->def;
+      /* extract strings */
+      fmt_pos = util_printf_next_spec_pos(info->strings, fmt_pos);
+      if (fmt_pos != -1 && info->strings[fmt_pos] == 's') {
+         unsigned idx = vtn_add_printf_string(b, w_src[i], info);
+         nir_store_deref(&b->nb, field_deref,
+                         nir_imm_intN_t(&b->nb, idx, field_src->bit_size),
+                         ~0 /* write_mask */);
+      } else
+         nir_store_deref(&b->nb, field_deref, field_src, ~0);
+   }
+
+   /* Lastly, the actual intrinsic */
+   nir_ssa_def *fmt_idx = nir_imm_int(&b->nb, info_idx);
+   nir_ssa_def *ret = nir_printf(&b->nb, fmt_idx, &deref_var->dest.ssa);
+   vtn_push_nir_ssa(b, w_dest[1], ret);
 }
 
 static nir_ssa_def *
@@ -977,7 +1080,7 @@ vtn_handle_opencl_instruction(struct vtn_builder *b, SpvOp ext_opcode,
       handle_instr(b, ext_opcode, w + 5, count - 5, w + 1, handle_round);
       return true;
    case OpenCLstd_Printf:
-      handle_instr(b, ext_opcode, w + 5, count - 5, w + 1, handle_printf);
+      handle_printf(b, ext_opcode, w + 5, count - 5, w + 1);
       return true;
    case OpenCLstd_Prefetch:
       /* TODO maybe add a nir instruction for this? */

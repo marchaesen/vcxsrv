@@ -40,6 +40,9 @@ VkResult lvp_CreateQueryPool(
    case VK_QUERY_TYPE_TIMESTAMP:
       pipeq = PIPE_QUERY_TIMESTAMP;
       break;
+   case VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT:
+      pipeq = PIPE_QUERY_SO_STATISTICS;
+      break;
    case VK_QUERY_TYPE_PIPELINE_STATISTICS:
       pipeq = PIPE_QUERY_PIPELINE_STATISTICS;
       break;
@@ -126,6 +129,11 @@ VkResult lvp_GetQueryPoolResults(
                   *(uint64_t *)dptr = pstats[i];
                   dptr += 8;
                }
+            } else if (pool->type == VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT) {
+               *(uint64_t *)dptr = result.so_statistics.num_primitives_written;
+               dptr += 8;
+               *(uint64_t *)dptr = result.so_statistics.primitives_storage_needed;
+               dptr += 8;
             } else {
                *(uint64_t *)dptr = result.u64;
                dptr += 8;
@@ -147,6 +155,17 @@ VkResult lvp_GetQueryPoolResults(
                      *(uint32_t *)dptr = pstats[i];
                   dptr += 4;
                }
+            } else if (pool->type == VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT) {
+               if (result.so_statistics.num_primitives_written > UINT32_MAX)
+                  *(uint32_t *)dptr = UINT32_MAX;
+               else
+                  *(uint32_t *)dptr = (uint32_t)result.so_statistics.num_primitives_written;
+               dptr += 4;
+               if (result.so_statistics.primitives_storage_needed > UINT32_MAX)
+                  *(uint32_t *)dptr = UINT32_MAX;
+               else
+                  *(uint32_t *)dptr = (uint32_t)result.so_statistics.primitives_storage_needed;
+               dptr += 4;
             } else {
                if (result.u64 > UINT32_MAX)
                   *(uint32_t *)dptr = UINT32_MAX;

@@ -99,9 +99,9 @@ NineBaseTexture9_dtor( struct NineBaseTexture9 *This )
     pipe_sampler_view_reference(&This->view[0], NULL);
     pipe_sampler_view_reference(&This->view[1], NULL);
 
-    if (This->list.prev != NULL && This->list.next != NULL)
+    if (list_is_linked(&This->list))
         list_del(&This->list);
-    if (This->list2.prev != NULL && This->list2.next != NULL)
+    if (list_is_linked(&This->list2))
         list_del(&This->list2);
 
     NineResource9_dtor(&This->base);

@@ -162,7 +162,7 @@ static struct bifrost_reg_ctrl DecodeRegCtrl(FILE *fp, struct bifrost_regs regs,
 static void dump_regs(FILE *fp, struct bifrost_regs srcs, bool first)
 {
         struct bifrost_reg_ctrl ctrl = DecodeRegCtrl(fp, srcs, first);
-        fprintf(fp, "# ");
+        fprintf(fp, "    # ");
         if (ctrl.read_reg0)
                 fprintf(fp, "slot 0: r%d ", get_reg0(srcs));
         if (ctrl.read_reg1)
@@ -664,7 +664,7 @@ static bool dump_clause(FILE *fp, uint32_t *words, unsigned *size, unsigned offs
                 memcpy((char *) &regs, (char *) &instrs[i].reg_bits, sizeof(regs));
 
                 if (verbose) {
-                        fprintf(fp, "# regs: %016" PRIx64 "\n", instrs[i].reg_bits);
+                        fprintf(fp, "    # regs: %016" PRIx64 "\n", instrs[i].reg_bits);
                         dump_regs(fp, regs, i == 0);
                 }
 
@@ -684,6 +684,8 @@ static bool dump_clause(FILE *fp, uint32_t *words, unsigned *size, unsigned offs
                         fprintf(fp, "# const%d: %08" PRIx64 "\n", 2 * i + 1, consts.raw[i] >> 32);
                 }
         }
+
+        fprintf(fp, "\n");
         return stopbit;
 }
 
@@ -694,16 +696,12 @@ void disassemble_bifrost(FILE *fp, uint8_t *code, size_t size, bool verbose)
         // used for displaying branch targets
         unsigned offset = 0;
         while (words != words_end) {
-                // we don't know what the program-end bit is quite yet, so for now just
-                // assume that an all-0 quadword is padding
-                uint32_t zero[4] = {};
-                if (memcmp(words, zero, 4 * sizeof(uint32_t)) == 0)
-                        break;
                 fprintf(fp, "clause_%d:\n", offset);
                 unsigned size;
-                if (dump_clause(fp, words, &size, offset, verbose) == true) {
+
+                if (dump_clause(fp, words, &size, offset, verbose))
                         break;
-                }
+
                 words += size * 4;
                 offset += size;
         }

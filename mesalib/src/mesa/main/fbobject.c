@@ -1318,15 +1318,33 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
             att_layer_count = att->Renderbuffer->Height;
          else
             att_layer_count = att->Renderbuffer->Depth;
+
+         /* From OpenGL ES 3.2 spec, chapter 9.4. FRAMEBUFFER COMPLETENESS:
+          *
+          *    "If any framebuffer attachment is layered, all populated
+          *    attachments must be layered. Additionally, all populated color
+          *    attachments must be from textures of the same target
+          *    (three-dimensional, one- or two-dimensional array, cube map, or
+          *    cube map array textures)."
+          *
+          * Same text can be found from OpenGL 4.6 spec.
+          *
+          * Setup the checked layer target with first color attachment here
+          * so that mismatch check below will not trigger between depth,
+          * stencil, only between color attachments.
+          */
+         if (i == 0)
+            layer_tex_target = att_tex_target;
+
       } else {
          att_layer_count = 0;
       }
       if (!layer_info_valid) {
          is_layered = att->Layered;
          max_layer_count = att_layer_count;
-         layer_tex_target = att_tex_target;
          layer_info_valid = true;
-      } else if (max_layer_count > 0 && layer_tex_target != att_tex_target) {
+      } else if (max_layer_count > 0 && layer_tex_target &&
+                 layer_tex_target != att_tex_target) {
          fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS;
          fbo_incomplete(ctx, "layered framebuffer has mismatched targets", i);
          return;

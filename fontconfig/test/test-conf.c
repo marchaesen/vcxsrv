@@ -69,22 +69,25 @@ build_pattern (json_object *obj)
 	}
 	else if (json_object_get_type (iter.val) == json_type_string)
 	{
-		const FcConstant *c = FcNameGetConstant ((const FcChar8 *) json_object_get_string (iter.val));
-	    FcBool b;
-
-	    if (c)
+	    const FcObjectType *o = FcNameGetObjectType (iter.key);
+	    if (o && (o->type == FcTypeRange || o->type == FcTypeDouble || o->type == FcTypeInteger))
 	    {
-		const FcObjectType *o;
-
-		if (strcmp (c->object, iter.key) != 0)
-		{
-		    fprintf (stderr, "E: invalid object type for const\n");
-		    fprintf (stderr, "   actual result: %s\n", iter.key);
-		    fprintf (stderr, "   expected result: %s\n", c->object);
+		const FcConstant *c = FcNameGetConstant ((const FcChar8 *) json_object_get_string (iter.val));
+		if (!c) {
+		    fprintf (stderr, "E: value is not a known constant\n");
+		    fprintf (stderr, "   key: %s\n", iter.key);
+		    fprintf (stderr, "   val: %s\n", json_object_get_string (iter.val));
 		    continue;
 		}
-		o = FcNameGetObjectType (c->object);
-		v.type = o->type;
+		if (strcmp (c->object, iter.key) != 0)
+		{
+		    fprintf (stderr, "E: value is a constant of different object\n");
+		    fprintf (stderr, "   key: %s\n", iter.key);
+		    fprintf (stderr, "   val: %s\n", json_object_get_string (iter.val));
+		    fprintf (stderr, "   key implied by value: %s\n", c->object);
+		    continue;
+		}
+		v.type = FcTypeInteger;
 		v.u.i = c->value;
 	    }
 	    else if (strcmp (json_object_get_string (iter.val), "DontCare") == 0)

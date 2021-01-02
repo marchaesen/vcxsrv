@@ -220,7 +220,8 @@ st_update_rasterizer(struct st_context *st)
                                  ctx->Const.MaxLineWidth);
    }
 
-   raster->line_stipple_enable = ctx->Line.StippleFlag;
+   /* When the pattern is all 1's, it means line stippling is disabled */
+   raster->line_stipple_enable = ctx->Line.StippleFlag && ctx->Line.StipplePattern != 0xffff;
    raster->line_stipple_pattern = ctx->Line.StipplePattern;
    /* GL stipple factor is in [1,256], remap to [0, 255] here */
    raster->line_stipple_factor = ctx->Line.StippleFactor - 1;

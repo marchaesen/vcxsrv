@@ -67,14 +67,21 @@ add_var_use_deref(nir_deref_instr *deref, struct set *live)
    if (deref->deref_type != nir_deref_type_var)
       return;
 
-   /* If it's not a local that never escapes the shader, then any access at
-    * all means we need to keep it alive.
+   /* Since these local variables don't escape the shader, writing doesn't
+    * make them live.  Only keep them if they are used by some intrinsic.
     */
-   if (!(deref->var->data.mode & (nir_var_function_temp |
-                                  nir_var_shader_temp |
-                                  nir_var_mem_shared)) ||
-       deref_used_for_not_store(deref))
-      _mesa_set_add(live, deref->var);
+   if ((deref->var->data.mode & (nir_var_function_temp |
+                                 nir_var_shader_temp |
+                                 nir_var_mem_shared)) &&
+       !deref_used_for_not_store(deref))
+      return;
+
+   nir_variable *var = deref->var;
+   do {
+      _mesa_set_add(live, var);
+      /* Also mark the chain of variables used to initialize it. */
+      var = var->pointer_initializer;
+   } while (var);
 }
 
 static void
@@ -93,7 +100,7 @@ add_var_use_shader(nir_shader *shader, struct set *live, nir_variable_mode modes
 }
 
 static void
-remove_dead_var_writes(nir_shader *shader, struct set *live)
+remove_dead_var_writes(nir_shader *shader)
 {
    nir_foreach_function(function, shader) {
       if (!function->impl)
@@ -193,12 +200,14 @@ nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes,
       }
    }
 
+   _mesa_set_destroy(live, NULL);
+
    nir_foreach_function(function, shader) {
       if (!function->impl)
          continue;
 
       if (progress) {
-         remove_dead_var_writes(shader, live);
+         remove_dead_var_writes(shader);
          nir_metadata_preserve(function->impl, nir_metadata_block_index |
                                                nir_metadata_dominance);
       } else {
@@ -206,6 +215,5 @@ nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes,
       }
    }
 
-   _mesa_set_destroy(live, NULL);
    return progress;
 }

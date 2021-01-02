@@ -13,13 +13,6 @@ dEQP-GLES[0-9]*.functional.flush_finish.*
 dEQP-GLES31.functional.draw_buffers_indexed.overwrite_indexed.common_color_mask_buffer_color_mask
 dEQP-GLES31.functional.fbo.no_attachments.maximums.all
 dEQP-GLES31.functional.fbo.no_attachments.maximums.size
-dEQP-GLES31.functional.geometry_shading.input.basic_primitive.points
-dEQP-GLES31.functional.shaders.builtin_functions.*geometry
-dEQP-GLES31.functional.shaders.linkage.es31.geometry.uniform.types.uvec4
-dEQP-GLES31.functional.shaders.linkage.es31.geometry.varying.types.uvec4
-dEQP-GLES31.functional.shaders.opaque_type_indexing.sampler.const_expression.geometry.usampler3d
-dEQP-GLES31.functional.shaders.opaque_type_indexing.sampler.dynamically_uniform.geometry.sampler2darray
-dEQP-GLES31.functional.primitive_bounding_box.wide_points.global_state.vertex_geometry_fragment.fbo_bbox_larger
 
 # This one is really slow and can time out (~56 seconds locally)
 KHR-GL33.texture_swizzle.smoke

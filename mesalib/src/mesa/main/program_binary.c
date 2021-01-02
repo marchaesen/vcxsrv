@@ -301,6 +301,8 @@ _mesa_program_binary(struct gl_context *ctx, struct gl_shader_program *sh_prog,
       return;
    }
 
+   _mesa_create_program_resource_hash(sh_prog);
+
    /* From section 7.3 (Program Objects) of the OpenGL 4.5 spec:
     *
     *    "If LinkProgram or ProgramBinary successfully re-links a program

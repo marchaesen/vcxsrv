@@ -97,7 +97,7 @@ util_set_blend_normal(struct cso_context *cso)
 static void
 util_set_dsa_disable(struct cso_context *cso)
 {
-   struct pipe_depth_stencil_alpha_state dsa = {{0}};
+   struct pipe_depth_stencil_alpha_state dsa = {{{0}}};
 
    cso_set_depth_stencil_alpha(cso, &dsa);
 }

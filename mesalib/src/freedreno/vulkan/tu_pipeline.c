@@ -1058,7 +1058,7 @@ tu6_emit_vpc(struct tu_cs *cs,
          unknown_a831 = DIV_ROUND_UP(total_size, wavesize);
       }
 
-      tu_cs_emit_pkt4(cs, REG_A6XX_SP_HS_UNKNOWN_A831, 1);
+      tu_cs_emit_pkt4(cs, REG_A6XX_SP_HS_WAVE_INPUT_SIZE, 1);
       tu_cs_emit(cs, unknown_a831);
 
       /* In SPIR-V generated from GLSL, the tessellation primitive params are
@@ -1563,7 +1563,7 @@ tu6_emit_program(struct tu_cs *cs,
       tu_cs_emit(cs, builder->multiview_mask);
    }
 
-   tu_cs_emit_pkt4(cs, REG_A6XX_SP_HS_UNKNOWN_A831, 1);
+   tu_cs_emit_pkt4(cs, REG_A6XX_SP_HS_WAVE_INPUT_SIZE, 1);
    tu_cs_emit(cs, 0);
 
    tu6_emit_vpc(cs, vs, hs, ds, gs, fs, cps_per_patch,
@@ -2431,11 +2431,12 @@ static void
 tu_pipeline_builder_parse_tessellation(struct tu_pipeline_builder *builder,
                                        struct tu_pipeline *pipeline)
 {
+   if (!(pipeline->active_stages & VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT) ||
+       !(pipeline->active_stages & VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT))
+      return;
+
    const VkPipelineTessellationStateCreateInfo *tess_info =
       builder->create_info->pTessellationState;
-
-   if (!tess_info)
-      return;
 
    assert(!(pipeline->dynamic_state_mask & BIT(TU_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY)));
 

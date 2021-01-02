@@ -64,6 +64,7 @@
 #include "a6xx.xml.h"
 #include "fdl/freedreno_layout.h"
 #include "common/freedreno_dev_info.h"
+#include "perfcntrs/freedreno_perfcntr.h"
 
 #include "tu_descriptor_set.h"
 #include "tu_extensions.h"
@@ -224,6 +225,7 @@ enum tu_debug_flags
    TU_DEBUG_NOUBWC = 1 << 6,
    TU_DEBUG_NOMULTIPOS = 1 << 7,
    TU_DEBUG_NOLRZ = 1 << 8,
+   TU_DEBUG_PERFC = 1 << 9,
 };
 
 struct tu_instance
@@ -393,6 +395,10 @@ struct tu_device
    uint32_t *bo_idx;
    uint32_t bo_count, bo_list_size, bo_idx_size;
    mtx_t bo_mutex;
+
+   /* Command streams to set pass index to a scratch reg */
+   struct tu_cs *perfcntrs_pass_cs;
+   struct tu_cs_entry *perfcntrs_pass_cs_entries;
 };
 
 VkResult _tu_device_set_lost(struct tu_device *device,
@@ -1502,6 +1508,17 @@ struct tu_render_pass
    struct tu_subpass subpasses[0];
 };
 
+#define PERF_CNTRS_REG 4
+
+struct tu_perf_query_data
+{
+   uint32_t gid;      /* group-id */
+   uint32_t cid;      /* countable-id within the group */
+   uint32_t cntr_reg; /* counter register within the group */
+   uint32_t pass;     /* pass index that countables can be requested */
+   uint32_t app_idx;  /* index provided by apps */
+};
+
 struct tu_query_pool
 {
    struct vk_object_base base;
@@ -1511,6 +1528,12 @@ struct tu_query_pool
    uint64_t size;
    uint32_t pipeline_statistics;
    struct tu_bo bo;
+
+   /* For performance query */
+   const struct fd_perfcntr_group *perf_group;
+   uint32_t perf_group_count;
+   uint32_t counter_index_count;
+   struct tu_perf_query_data perf_query_data[0];
 };
 
 uint32_t

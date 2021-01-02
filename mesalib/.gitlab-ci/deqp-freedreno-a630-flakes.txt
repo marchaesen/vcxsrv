@@ -25,21 +25,8 @@ dEQP-GLES31.functional.ssbo.atomic.compswap.mediump_uint
 # Non-sysmem flakes
 dEQP-VK.pipeline.spec_constant.compute.composite.matrix.mat3x2
 
-# Sysmem flakes
-dEQP-GLES31.functional.texture.multisample.samples_3.use_texture_depth_2d
-dEQP-GLES31.functional.texture.multisample.samples_4.use_texture_depth_2d_array
-dEQP-GLES31.functional.stencil_texturing.render.depth24_stencil8_draw
-
 # Fails NIR_VALIDATE so probably flaky
 dEQP-VK.memory_model.write_after_read.core11.u32.coherent.fence_fence.atomicwrite.workgroup.payload_nonlocal.workgroup.guard_local.buffer.comp
-
-# At least some of the separate_channels tests fail on sysmem due to an
-# interaction of use of a UBWC buffer as both a render target and a
-# texture.  Stores are done through both paths in separate channels,
-# and the UBWC updates don't get synced.  The current a650 blob also
-# fails these tests and qcom apparently noted the failure at one point
-# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/2017
-dEQP-VK.renderpass.*separate_channels.*
 
 # Undiagnosed flakes appearing more than once in the last 2 months as
 # of 2020-08-19, in descending order of frequency.

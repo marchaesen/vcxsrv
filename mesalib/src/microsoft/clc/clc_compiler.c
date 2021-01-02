@@ -1051,6 +1051,7 @@ clc_to_dxil(struct clc_context *ctx,
          .kernel = true,
          .kernel_image = true,
          .literal_sampler = true,
+         .printf = true,
       },
    };
    nir_shader_compiler_options nir_options =
@@ -1235,9 +1236,26 @@ clc_to_dxil(struct clc_context *ctx,
    // Lower memcpy
    NIR_PASS_V(nir, dxil_nir_lower_memcpy_deref);
 
-   bool has_printf = false;
-   //NIR_PASS(has_printf, nir, clc_nir_lower_printf, uav_id);
-   metadata->printf_uav_id = has_printf ? uav_id++ : -1;
+   // Ensure the printf struct has explicit types, but we'll throw away the scratch size, because we haven't
+   // necessarily removed all temp variables (e.g. the printf struct itself) at this point, so we'll rerun this later
+   assert(nir->scratch_size == 0);
+   NIR_PASS_V(nir, nir_lower_vars_to_explicit_types, nir_var_function_temp, glsl_get_cl_type_size_align);
+
+   nir_lower_printf_options printf_options = {
+      .treat_doubles_as_floats = true,
+      .max_buffer_size = 1024 * 1024
+   };
+   NIR_PASS_V(nir, nir_lower_printf, &printf_options);
+
+   metadata->printf.info_count = nir->printf_info_count;
+   metadata->printf.infos = calloc(nir->printf_info_count, sizeof(struct clc_printf_info));
+   for (unsigned i = 0; i < nir->printf_info_count; i++) {
+      metadata->printf.infos[i].str = malloc(nir->printf_info[i].string_size);
+      memcpy(metadata->printf.infos[i].str, nir->printf_info[i].strings, nir->printf_info[i].string_size);
+      metadata->printf.infos[i].num_args = nir->printf_info[i].num_args;
+      metadata->printf.infos[i].arg_sizes = malloc(nir->printf_info[i].num_args * sizeof(unsigned));
+      memcpy(metadata->printf.infos[i].arg_sizes, nir->printf_info[i].arg_sizes, nir->printf_info[i].num_args * sizeof(unsigned));
+   }
 
    // copy propagate to prepare for lower_explicit_io
    NIR_PASS_V(nir, nir_split_var_copies);
@@ -1258,8 +1276,8 @@ clc_to_dxil(struct clc_context *ctx,
               int_sampler_states, NULL, 14.0f);
 
    NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_mem_shared | nir_var_function_temp, NULL);
-   assert(nir->scratch_size == 0);
-   
+
+   nir->scratch_size = 0;
    NIR_PASS_V(nir, nir_lower_vars_to_explicit_types,
               nir_var_mem_shared | nir_var_function_temp | nir_var_uniform | nir_var_mem_global | nir_var_mem_constant,
               glsl_get_cl_type_size_align);
@@ -1267,6 +1285,11 @@ clc_to_dxil(struct clc_context *ctx,
    NIR_PASS_V(nir, dxil_nir_lower_ubo_to_temp);
    NIR_PASS_V(nir, clc_lower_constant_to_ssbo, dxil->kernel, &uav_id);
    NIR_PASS_V(nir, clc_lower_global_to_ssbo);
+
+   bool has_printf = false;
+   NIR_PASS(has_printf, nir, clc_lower_printf_base, uav_id);
+   metadata->printf.uav_id = has_printf ? uav_id++ : -1;
+
    NIR_PASS_V(nir, dxil_nir_lower_deref_ssbo);
 
    NIR_PASS_V(nir, split_unaligned_loads_stores);
@@ -1431,6 +1454,12 @@ void clc_free_dxil_object(struct clc_dxil_object *dxil)
 {
    for (unsigned i = 0; i < dxil->metadata.num_consts; i++)
       free(dxil->metadata.consts[i].data);
+
+   for (unsigned i = 0; i < dxil->metadata.printf.info_count; i++) {
+      free(dxil->metadata.printf.infos[i].arg_sizes);
+      free(dxil->metadata.printf.infos[i].str);
+   }
+   free(dxil->metadata.printf.infos);
 
    free(dxil->binary.data);
    free(dxil);

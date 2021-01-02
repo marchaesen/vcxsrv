@@ -173,7 +173,7 @@ kernel::module(const command_queue &q) const {
 }
 
 kernel::exec_context::exec_context(kernel &kern) :
-   kern(kern), q(NULL), mem_local(0), st(NULL), cs() {
+   kern(kern), q(NULL), print_handler(), mem_local(0), st(NULL), cs() {
 }
 
 kernel::exec_context::~exec_context() {
@@ -251,6 +251,17 @@ kernel::exec_context::bind(intrusive_ptr<command_queue> _q,
          arg->bind(*this, marg);
          break;
       }
+      case module::argument::printf_buffer: {
+         print_handler = printf_handler::create(q, m.printf_infos,
+                                                m.printf_strings_in_buffer,
+                                                q->device().max_printf_buffer_size());
+         cl_mem print_mem = print_handler->get_mem();
+
+         auto arg = argument::create(marg);
+         arg->set(sizeof(cl_mem), &print_mem);
+         arg->bind(*this, marg);
+         break;
+      }
       }
    }
 
@@ -277,6 +288,9 @@ kernel::exec_context::bind(intrusive_ptr<command_queue> _q,
 
 void
 kernel::exec_context::unbind() {
+   if (print_handler)
+      print_handler->print();
+
    for (auto &arg : kern.args())
       arg.unbind(*this);
 

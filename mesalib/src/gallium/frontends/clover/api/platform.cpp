@@ -204,6 +204,9 @@ ext_funcs = {
 
    // cl_khr_icd
    { "clIcdGetPlatformIDsKHR", reinterpret_cast<void *>(IcdGetPlatformIDsKHR) },
+
+   // cl_khr_il_program
+   { "clCreateProgramWithILKHR", reinterpret_cast<void *>(CreateProgramWithILKHR) },
 };
 
 } // anonymous namespace

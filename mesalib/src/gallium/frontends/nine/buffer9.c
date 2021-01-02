@@ -161,9 +161,9 @@ NineBuffer9_dtor( struct NineBuffer9 *This )
     if (This->base.pool == D3DPOOL_MANAGED) {
         if (This->managed.data)
             align_free(This->managed.data);
-        if (This->managed.list.prev != NULL && This->managed.list.next != NULL)
+        if (list_is_linked(&This->managed.list))
             list_del(&This->managed.list);
-        if (This->managed.list2.prev != NULL && This->managed.list2.next != NULL)
+        if (list_is_linked(&This->managed.list2))
             list_del(&This->managed.list2);
     }
 

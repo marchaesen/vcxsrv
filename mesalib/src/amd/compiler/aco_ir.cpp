@@ -406,4 +406,39 @@ uint32_t get_reduction_identity(ReduceOp op, unsigned idx)
    return 0;
 }
 
+bool needs_exec_mask(const Instruction* instr) {
+   if (instr->isSALU())
+      return instr->reads_exec();
+   if (instr->format == Format::SMEM || instr->isSALU())
+      return false;
+   if (instr->format == Format::PSEUDO_BARRIER)
+      return false;
+
+   if (instr->format == Format::PSEUDO) {
+      switch (instr->opcode) {
+      case aco_opcode::p_create_vector:
+      case aco_opcode::p_extract_vector:
+      case aco_opcode::p_split_vector:
+         for (Definition def : instr->definitions) {
+            if (def.getTemp().type() == RegType::vgpr)
+               return true;
+         }
+         return false;
+      case aco_opcode::p_spill:
+      case aco_opcode::p_reload:
+         return false;
+      default:
+         break;
+      }
+   }
+
+   if (instr->opcode == aco_opcode::v_readlane_b32 ||
+       instr->opcode == aco_opcode::v_readlane_b32_e64 ||
+       instr->opcode == aco_opcode::v_writelane_b32 ||
+       instr->opcode == aco_opcode::v_writelane_b32_e64)
+      return false;
+
+   return true;
+}
+
 }

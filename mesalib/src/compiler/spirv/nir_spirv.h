@@ -69,6 +69,11 @@ struct spirv_to_nir_options {
    /* Create a nir library. */
    bool create_library;
 
+   /* Whether to use nir_intrinsic_deref_buffer_array_length intrinsic instead
+    * of nir_intrinsic_get_ssbo_size to lower OpArrayLength.
+    */
+   bool use_deref_buffer_array_length;
+
    /* Initial value for shader_info::float_controls_execution_mode,
     * indicates hardware requirements rather than shader author intent
     */

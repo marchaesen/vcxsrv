@@ -31,6 +31,7 @@
 #include "tgsi/tgsi_info.h"
 #include "tgsi/tgsi_ureg.h"
 #include "util/debug.h"
+#include "util/u_memory.h"
 
 struct ntt_compile {
    nir_shader *s;
@@ -2052,7 +2053,7 @@ ntt_emit_if(struct ntt_compile *c, nir_if *if_stmt)
    ureg_UIF(c->ureg, c->if_cond, &label);
    ntt_emit_cf_list(c, &if_stmt->then_list);
 
-   if (!exec_list_is_empty(&if_stmt->else_list)) {
+   if (!nir_cf_list_is_empty_block(&if_stmt->else_list)) {
       ureg_fixup_label(c->ureg, label, ureg_get_instruction_number(c->ureg));
       ureg_ELSE(c->ureg, &label);
       ntt_emit_cf_list(c, &if_stmt->else_list);
@@ -2187,23 +2188,20 @@ type_size(const struct glsl_type *type, bool bindless)
  * can handle for 64-bit values in TGSI.
  */
 static bool
-ntt_should_vectorize_instr(const nir_instr *in_a, const nir_instr *in_b,
-                           void *data)
+ntt_should_vectorize_instr(const nir_instr *instr, void *data)
 {
-   if (in_a->type != nir_instr_type_alu)
+   if (instr->type != nir_instr_type_alu)
       return false;
 
-   nir_alu_instr *a = nir_instr_as_alu(in_a);
-   nir_alu_instr *b = nir_instr_as_alu(in_b);
+   nir_alu_instr *alu = nir_instr_as_alu(instr);
 
-   unsigned a_num_components = a->dest.dest.ssa.num_components;
-   unsigned b_num_components = b->dest.dest.ssa.num_components;
+   unsigned num_components = alu->dest.dest.ssa.num_components;
 
-   int src_bit_size = nir_src_bit_size(a->src[0].src);
-   int dst_bit_size = nir_dest_bit_size(a->dest.dest);
+   int src_bit_size = nir_src_bit_size(alu->src[0].src);
+   int dst_bit_size = nir_dest_bit_size(alu->dest.dest);
 
    if (src_bit_size == 64 || dst_bit_size == 64) {
-      if (a_num_components + b_num_components > 2)
+      if (num_components > 1)
          return false;
    }
 
@@ -2509,17 +2507,30 @@ nir_to_tgsi_lower_64bit_to_vec2(nir_shader *s)
 }
 
 static void
-ntt_sanity_check_driver_options(struct nir_shader *s)
+ntt_fix_nir_options(struct nir_shader *s)
 {
-   UNUSED const struct nir_shader_compiler_options *options = s->options;
+   const struct nir_shader_compiler_options *options = s->options;
 
-   assert(options->lower_extract_byte);
-   assert(options->lower_extract_word);
-   assert(options->lower_fdph);
-   assert(options->lower_flrp64);
-   assert(options->lower_fmod);
-   assert(options->lower_rotate);
-   assert(options->lower_vector_cmp);
+   if (!options->lower_extract_byte ||
+       !options->lower_extract_word ||
+       !options->lower_fdph ||
+       !options->lower_flrp64 ||
+       !options->lower_fmod ||
+       !options->lower_rotate ||
+       !options->lower_vector_cmp) {
+      struct nir_shader_compiler_options *new_options =
+         mem_dup(s->options, sizeof(*s->options));
+
+      new_options->lower_extract_byte = true;
+      new_options->lower_extract_word = true;
+      new_options->lower_fdph = true;
+      new_options->lower_flrp64 = true;
+      new_options->lower_fmod = true;
+      new_options->lower_rotate = true;
+      new_options->lower_vector_cmp = true;
+
+      s->options = new_options;
+   }
 }
 
 const void *
@@ -2533,8 +2544,9 @@ nir_to_tgsi(struct nir_shader *s,
    bool native_integers = screen->get_shader_param(screen,
                                                    pipe_shader_type_from_mesa(s->info.stage),
                                                    PIPE_SHADER_CAP_INTEGERS);
+   const struct nir_shader_compiler_options *original_options = s->options;
 
-   ntt_sanity_check_driver_options(s);
+   ntt_fix_nir_options(s);
 
    NIR_PASS_V(s, nir_lower_io, nir_var_shader_in | nir_var_shader_out,
               type_size, (nir_lower_io_options)0);
@@ -2646,6 +2658,11 @@ nir_to_tgsi(struct nir_shader *s,
    ureg_destroy(c->ureg);
 
    ralloc_free(c);
+
+   if (s->options != original_options) {
+      free((void*)s->options);
+      s->options = original_options;
+   }
 
    return tgsi_tokens;
 }

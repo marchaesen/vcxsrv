@@ -571,7 +571,7 @@ radv_meta_resolve_hardware_image(struct radv_cmd_buffer *cmd_buffer,
 							},
 							.clearValueCount = 0,
 							.pClearValues = NULL,
-					      });
+					      }, NULL);
 
 		radv_cmd_buffer_set_subpass(cmd_buffer,
 					    &cmd_buffer->state.pass->subpasses[0]);
@@ -787,6 +787,26 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 								      subpass->stencil_resolve_mode);
 			}
 		}
+
+		/* From the Vulkan spec 1.2.165:
+		 *
+		 * "VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT specifies
+		 *  write access to a color, resolve, or depth/stencil
+		 *  resolve attachment during a render pass or via
+		 *  certain subpass load and store operations."
+		 *
+		 * Yes, it's counterintuitive but it makes sense because ds
+		 * resolve operations happen late at the end of the subpass.
+		 *
+		 * That said, RADV is wrong because it executes the subpass
+		 * end barrier *before* any subpass resolves instead of after.
+		 *
+		 * TODO: Fix this properly by executing subpass end barriers
+		 * after subpass resolves.
+		 */
+		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB;
+		if (radv_image_has_htile(dst_iview->image))
+			cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;
 	}
 
 	if (!subpass->has_color_resolve)

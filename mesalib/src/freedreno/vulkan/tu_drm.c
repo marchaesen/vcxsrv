@@ -638,6 +638,11 @@ tu_QueueSubmit(VkQueue _queue,
       const VkSubmitInfo *submit = pSubmits + i;
       const bool last_submit = (i == submitCount - 1);
       uint32_t out_syncobjs_size = submit->signalSemaphoreCount;
+
+      const VkPerformanceQuerySubmitInfoKHR *perf_info =
+         vk_find_struct_const(pSubmits[i].pNext,
+                              PERFORMANCE_QUERY_SUBMIT_INFO_KHR);
+
       if (last_submit && fence)
          out_syncobjs_size += 1;
       /* note: assuming there won't be any very large semaphore counts */
@@ -671,6 +676,10 @@ tu_QueueSubmit(VkQueue _queue,
       uint32_t entry_count = 0;
       for (uint32_t j = 0; j < submit->commandBufferCount; ++j) {
          TU_FROM_HANDLE(tu_cmd_buffer, cmdbuf, submit->pCommandBuffers[j]);
+
+         if (perf_info)
+            entry_count++;
+
          entry_count += cmdbuf->cs.entry_count;
       }
 
@@ -681,6 +690,20 @@ tu_QueueSubmit(VkQueue _queue,
       for (uint32_t j = 0; j < submit->commandBufferCount; ++j) {
          TU_FROM_HANDLE(tu_cmd_buffer, cmdbuf, submit->pCommandBuffers[j]);
          struct tu_cs *cs = &cmdbuf->cs;
+
+         if (perf_info) {
+            struct tu_cs_entry *perf_cs_entry =
+               &cmdbuf->device->perfcntrs_pass_cs_entries[perf_info->counterPassIndex];
+            cmds[entry_idx].type = MSM_SUBMIT_CMD_BUF;
+            cmds[entry_idx].submit_idx =
+               queue->device->bo_idx[perf_cs_entry->bo->gem_handle];
+            cmds[entry_idx].submit_offset = perf_cs_entry->offset;
+            cmds[entry_idx].size = perf_cs_entry->size;
+            cmds[entry_idx].pad = 0;
+            cmds[entry_idx].nr_relocs = 0;
+            cmds[entry_idx++].relocs = 0;
+         }
+
          for (unsigned i = 0; i < cs->entry_count; ++i, ++entry_idx) {
             cmds[entry_idx].type = MSM_SUBMIT_CMD_BUF;
             cmds[entry_idx].submit_idx =

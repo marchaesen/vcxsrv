@@ -68,6 +68,7 @@ struct spirv_supported_capabilities {
    bool multiview;
    bool physical_storage_buffer_address;
    bool post_depth_coverage;
+   bool printf;
    bool ray_tracing;
    bool ray_query;
    bool ray_traversal_primitive_culling;
@@ -251,7 +252,7 @@ typedef struct shader_info {
          /** 1 .. MAX_GEOMETRY_SHADER_INVOCATIONS */
          uint8_t invocations;
 
-         /** The number of vertices recieves per input primitive (max. 6) */
+         /** The number of vertices received per input primitive (max. 6) */
          uint8_t vertices_in:3;
 
          /** Whether or not this shader uses EndPrimitive */

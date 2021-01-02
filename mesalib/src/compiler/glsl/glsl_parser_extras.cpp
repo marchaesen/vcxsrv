@@ -396,14 +396,13 @@ _mesa_glsl_parse_state::process_version_directive(YYLTYPE *locp, int version,
 {
    bool es_token_present = false;
    bool compat_token_present = false;
+   bool core_token_present = false;
    if (ident) {
       if (strcmp(ident, "es") == 0) {
          es_token_present = true;
       } else if (version >= 150) {
          if (strcmp(ident, "core") == 0) {
-            /* Accept the token.  There's no need to record that this is
-             * a core profile shader since that's the only profile we support.
-             */
+            core_token_present = true;
          } else if (strcmp(ident, "compatibility") == 0) {
             compat_token_present = true;
 
@@ -444,7 +443,8 @@ _mesa_glsl_parse_state::process_version_directive(YYLTYPE *locp, int version,
 
    this->compat_shader = compat_token_present ||
                          (this->ctx->API == API_OPENGL_COMPAT &&
-                          this->language_version == 140) ||
+                          this->language_version >= 140 &&
+                          !core_token_present) ||
                          (!this->es_shader && this->language_version < 140);
 
    bool supported = false;

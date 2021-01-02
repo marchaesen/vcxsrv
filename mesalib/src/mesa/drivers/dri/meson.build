@@ -22,11 +22,6 @@ subdir('common')
 
 _dri_drivers = []
 _dri_link = []
-if with_dri_swrast
-  subdir('swrast')
-  _dri_drivers += libswrast_dri
-  _dri_link += 'swrast_dri.so'
-endif
 if with_dri_i915
   subdir('i915')
   _dri_drivers += libi915

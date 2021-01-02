@@ -38,7 +38,7 @@ hash_table *glsl_type::function_types = NULL;
 hash_table *glsl_type::subroutine_types = NULL;
 
 /* There might be multiple users for types (e.g. application using OpenGL
- * and Vulkan simultanously or app using multiple Vulkan instances). Counter
+ * and Vulkan simultaneously or app using multiple Vulkan instances). Counter
  * is used to make sure we don't release the types if a user is still present.
  */
 static uint32_t glsl_type_users = 0;
@@ -174,6 +174,8 @@ glsl_type::glsl_type(const glsl_type *return_type,
 
    this->mem_ctx = ralloc_context(NULL);
    assert(this->mem_ctx != NULL);
+
+   this->name = ralloc_strdup(this->mem_ctx, "");
 
    this->fields.parameters = rzalloc_array(this->mem_ctx,
                                            glsl_function_param, num_params + 1);

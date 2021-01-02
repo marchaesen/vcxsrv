@@ -31,17 +31,26 @@
 
 namespace clover {
    namespace spirv {
+      // Returns whether the binary starts with the SPIR-V magic word.
+      //
+      // The first word is interpreted as little endian and big endian, but
+      // only one of them has to match.
+      bool is_binary_spirv(const std::string &binary);
+
       // Returns whether the given binary is considered valid for the given
       // OpenCL version.
       //
       // It uses SPIRV-Tools validator to do the validation, and potential
       // warnings and errors are appended to |r_log|.
-      bool is_valid_spirv(const std::vector<char> &binary,
+      bool is_valid_spirv(const std::string &binary,
                           const cl_version opencl_version,
                           std::string &r_log);
 
+      // Converts an integer SPIR-V version into its textual representation.
+      std::string version_to_string(uint32_t version);
+
       // Creates a clover module out of the given SPIR-V binary.
-      module compile_program(const std::vector<char> &binary,
+      module compile_program(const std::string &binary,
                              const device &dev, std::string &r_log,
                              bool validate = true);
 
@@ -51,7 +60,7 @@ namespace clover {
                           const std::string &opts, std::string &r_log);
 
       // Returns a textual representation of the given binary.
-      std::string print_module(const std::vector<char> &binary,
+      std::string print_module(const std::string &binary,
                                const cl_version opencl_version);
 
       // Returns a set of supported SPIR-V extensions.
@@ -59,7 +68,13 @@ namespace clover {
 
       // Returns a vector (sorted in increasing order) of supported SPIR-V
       // versions.
-      std::vector<uint32_t> supported_versions();
+      std::vector<cl_name_version> supported_versions();
+
+      // Converts a version number from SPIR-V's encoding to OpenCL's one.
+      cl_version to_opencl_version_encoding(uint32_t version);
+
+      // Converts a version number from OpenCL's encoding to SPIR-V's one.
+      uint32_t to_spirv_version_encoding(cl_version version);
    }
 }
 

@@ -64,10 +64,18 @@ rsync -a --delete $BM_ROOTFS/ rootfs/
 
 # Finally, pack it up into a cpio rootfs.  Skip the vulkan CTS since none of
 # these devices use it and it would take up space in the initrd.
+
+if [ -n "$PIGLIT_PROFILES" ]; then
+  EXCLUDE_FILTER="deqp|arb_gpu_shader5|arb_gpu_shader_fp64|arb_gpu_shader_int64|glsl-4.[0123456]0|arb_tessellation_shader"
+else
+  EXCLUDE_FILTER="piglit|python"
+fi
+
 pushd rootfs
 find -H | \
   egrep -v "external/(openglcts|vulkancts|amber|glslang|spirv-tools)" |
-  egrep -v "traces-db|apitrace|renderdoc|python" | \
+  egrep -v "traces-db|apitrace|renderdoc" | \
+  egrep -v $EXCLUDE_FILTER | \
   cpio -H newc -o | \
   xz --check=crc32 -T4 - > $CI_PROJECT_DIR/rootfs.cpio.gz
 popd

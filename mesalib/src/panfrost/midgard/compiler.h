@@ -533,7 +533,11 @@ void mir_insert_instruction_after_scheduled(compiler_context *ctx, midgard_block
 void mir_flip(midgard_instruction *ins);
 void mir_compute_temp_count(compiler_context *ctx);
 
-void mir_set_offset(compiler_context *ctx, midgard_instruction *ins, nir_src *offset, bool is_shared);
+#define LDST_GLOBAL 0x3E
+#define LDST_SHARED 0x2E
+#define LDST_SCRATCH 0x2A
+
+void mir_set_offset(compiler_context *ctx, midgard_instruction *ins, nir_src *offset, unsigned seg);
 
 /* 'Intrinsic' move for aliasing */
 

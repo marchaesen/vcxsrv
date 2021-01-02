@@ -32,6 +32,7 @@
 #define BIFROST_DBG_MSGS        0x0001
 #define BIFROST_DBG_SHADERS     0x0002
 #define BIFROST_DBG_SHADERDB    0x0004
+#define BIFROST_DBG_VERBOSE     0x0008
 
 extern int bifrost_debug;
 
@@ -179,69 +180,6 @@ struct bifrost_add_inst {
         unsigned src0 : 3;
         unsigned op   : 17;
 } __attribute__((packed));
-
-enum bifrost_outmod {
-        BIFROST_NONE = 0x0,
-        BIFROST_POS = 0x1,
-        BIFROST_SAT_SIGNED = 0x2,
-        BIFROST_SAT = 0x3,
-};
-
-enum bifrost_roundmode {
-        BIFROST_RTE = 0x0, /* round to even */
-        BIFROST_RTP = 0x1, /* round to positive */
-        BIFROST_RTN = 0x2, /* round to negative */
-        BIFROST_RTZ = 0x3 /* round to zero */
-};
-
-/* NONE: Same as fmax() and fmin() -- return the other
- * number if any number is NaN.  Also always return +0 if
- * one argument is +0 and the other is -0.
- *
- * NAN_WINS: Instead of never returning a NaN, always return
- * one. The "greater"/"lesser" NaN is always returned, first
- * by checking the sign and then the mantissa bits.
- *
- * SRC1_WINS: For max, implement src0 > src1 ? src0 : src1.
- * For min, implement src0 < src1 ? src0 : src1.  This
- * includes handling NaN's and signedness of 0 differently
- * from above, since +0 and -0 compare equal and comparisons
- * always return false for NaN's. As a result, this mode is
- * *not* commutative.
- *
- * SRC0_WINS: For max, implement src0 < src1 ? src1 : src0
- * For min, implement src0 > src1 ? src1 : src0
- */
-
-
-enum bifrost_minmax_mode {
-        BIFROST_MINMAX_NONE = 0x0,
-        BIFROST_NAN_WINS    = 0x1,
-        BIFROST_SRC1_WINS   = 0x2,
-        BIFROST_SRC0_WINS   = 0x3,
-};
-
-enum bifrost_interp_mode {
-        BIFROST_INTERP_CENTER = 0x0,
-        BIFROST_INTERP_CENTROID = 0x1,
-        BIFROST_INTERP_SAMPLE  = 0x2,
-        BIFROST_INTERP_EXPLICIT = 0x3,
-        BIFROST_INTERP_NONE = 0x4,
-};
-
-enum bifrost_update_mode {
-        BIFROST_UPDATE_STORE,
-        BIFROST_UPDATE_RETRIEVE,
-        BIFROST_UPDATE_CONDITIONAL,
-        BIFROST_UPDATE_CLOBBER,
-};
-
-/* Fixed location for gl_FragCoord.zw */
-enum bifrost_special_var_id {
-        BIFROST_SPECIAL_VAR_POINT = 0,
-        BIFROST_SPECIAL_VAR_FRAGW = 2,
-        BIFROST_SPECIAL_VAR_FRAGZ = 3,
-};
 
 enum branch_bit_size {
         BR_SIZE_32 = 0,

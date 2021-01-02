@@ -25,7 +25,7 @@
  */
 
 #include "compiler.h"
-#include "bi_print.h"
+#include "bi_builder.h"
 #include "panfrost/util/lcra.h"
 #include "util/u_memory.h"
 
@@ -42,10 +42,13 @@ bi_compute_interference(bi_context *ctx, struct lcra_state *l)
                         /* Mark all registers live after the instruction as
                          * interfering with the destination */
 
-                        if (ins->dest && (ins->dest < l->node_count)) {
+                        for (unsigned d = 0; d < ARRAY_SIZE(ins->dest); ++d) {
+                                if (bi_get_node(ins->dest[d]) >= l->node_count)
+                                        continue;
+
                                 for (unsigned i = 1; i < l->node_count; ++i) {
                                         if (live[i])
-                                                lcra_add_node_interference(l, ins->dest, bi_writemask(ins), i, live[i]);
+                                                lcra_add_node_interference(l, bi_get_node(ins->dest[d]), bi_writemask(ins), i, live[i]);
                                 }
                         }
 
@@ -76,15 +79,18 @@ bi_allocate_registers(bi_context *ctx, bool *success)
         } else {
                 /* R0 - R63, all 32-bit */
                 l->class_start[BI_REG_CLASS_WORK] = 0;
-                l->class_size[BI_REG_CLASS_WORK] = 63 * 4;
+                l->class_size[BI_REG_CLASS_WORK] = 59 * 4;
         }
 
         bi_foreach_instr_global(ctx, ins) {
-                unsigned dest = ins->dest;
+                unsigned dest = bi_get_node(ins->dest[0]);
 
                 /* Blend shaders expect the src colour to be in r0-r3 */
-                if (ins->type == BI_BLEND && !ctx->is_blend)
-                        l->solutions[ins->src[0]] = 0;
+                if (ins->op == BI_OPCODE_BLEND && !ctx->is_blend) {
+                        unsigned node = bi_get_node(ins->src[0]);
+                        assert(node < node_count);
+                        l->solutions[node] = 0;
+                }
 
                 if (!dest || (dest >= node_count))
                         continue;
@@ -102,136 +108,61 @@ bi_allocate_registers(bi_context *ctx, bool *success)
         return l;
 }
 
-static unsigned
-bi_reg_from_index(struct lcra_state *l, unsigned index, unsigned offset)
+static bi_index
+bi_reg_from_index(struct lcra_state *l, bi_index index)
 {
+        /* Offsets can only be applied when we register allocated an index, or
+         * alternatively for FAU's encoding */
+
+        ASSERTED bool is_offset = (index.offset > 0) &&
+                (index.type != BI_INDEX_FAU);
+
         /* Did we run RA for this index at all */
-        if (index >= l->node_count)
+        if (bi_get_node(index) >= l->node_count) {
+                assert(!is_offset);
                 return index;
+        }
 
         /* LCRA didn't bother solving this index (how lazy!) */
-        signed solution = l->solutions[index];
-        if (solution < 0)
+        signed solution = l->solutions[bi_get_node(index)];
+        if (solution < 0) {
+                assert(!is_offset);
                 return index;
+        }
 
         assert((solution & 0x3) == 0);
         unsigned reg = solution / 4;
-        reg += offset;
+        reg += index.offset;
 
-        return BIR_INDEX_REGISTER | reg;
-}
-
-static void
-bi_adjust_src_ra(bi_instruction *ins, struct lcra_state *l, unsigned src)
-{
-        if (ins->src[src] >= l->node_count)
-                return;
-
-        bool vector = (bi_class_props[ins->type] & BI_VECTOR) && src == 0;
-        unsigned offset = 0;
-
-        if (vector) {
-                /* TODO: Do we do anything here? */
-        } else {
-                /* Use the swizzle as component select */
-                unsigned components = bi_get_component_count(ins, src);
-
-                nir_alu_type T = ins->src_types[src];
-                unsigned size = nir_alu_type_get_type_size(T);
- 
-                /* TODO: 64-bit? */
-                unsigned components_per_word = MAX2(32 / size, 1);
-
-                for (unsigned i = 0; i < components; ++i) {
-                        unsigned off = ins->swizzle[src][i] / components_per_word;
-
-                        /* We can't cross register boundaries in a swizzle */
-                        if (i == 0)
-                                offset = off;
-                        else
-                                assert(off == offset);
-
-                        ins->swizzle[src][i] %= components_per_word;
-                }
-        }
-
-        ins->src[src] = bi_reg_from_index(l, ins->src[src], offset);
-}
-
-static void
-bi_adjust_dest_ra(bi_instruction *ins, struct lcra_state *l)
-{
-        if (ins->dest >= l->node_count)
-                return;
-
-        ins->dest = bi_reg_from_index(l, ins->dest, ins->dest_offset);
-        ins->dest_offset = 0;
+        /* todo: do we want to compose with the subword swizzle? */
+        bi_index new_index = bi_register(reg);
+        new_index.swizzle = index.swizzle;
+        new_index.abs = index.abs;
+        new_index.neg = index.neg;
+        return new_index;
 }
 
 static void
 bi_install_registers(bi_context *ctx, struct lcra_state *l)
 {
         bi_foreach_instr_global(ctx, ins) {
-                bi_adjust_dest_ra(ins, l);
+                ins->dest[0] = bi_reg_from_index(l, ins->dest[0]);
 
                 bi_foreach_src(ins, s)
-                        bi_adjust_src_ra(ins, l, s);
+                        ins->src[s] = bi_reg_from_index(l, ins->src[s]);
         }
 }
 
 static void
-bi_rewrite_index_src_single(bi_instruction *ins, unsigned old, unsigned new)
+bi_rewrite_index_src_single(bi_instr *ins, bi_index old, bi_index new)
 {
         bi_foreach_src(ins, i) {
-                if (ins->src[i] == old)
-                        ins->src[i] = new;
+                if (bi_is_equiv(ins->src[i], old)) {
+                        ins->src[i].type = new.type;
+                        ins->src[i].reg = new.reg;
+                        ins->src[i].value = new.value;
+                }
         }
-}
-
-static bi_instruction
-bi_spill(unsigned node, uint64_t offset, unsigned channels)
-{
-        bi_instruction store = {
-                .type = BI_STORE,
-                .segment = BI_SEGMENT_TLS,
-                .vector_channels = channels,
-                .src = {
-                        node,
-                        BIR_INDEX_CONSTANT,
-                        BIR_INDEX_CONSTANT | 32,
-                },
-                .src_types = {
-                        nir_type_uint32,
-                        nir_type_uint32,
-                        nir_type_uint32
-                },
-                .constant = { .u64 = offset },
-        };
-
-        return store;
-}
-
-static bi_instruction
-bi_fill(unsigned node, uint64_t offset, unsigned channels)
-{
-        bi_instruction load = {
-                .type = BI_LOAD,
-                .segment = BI_SEGMENT_TLS,
-                .vector_channels = channels,
-                .dest = node,
-                .dest_type = nir_type_uint32,
-                .src = {
-                        BIR_INDEX_CONSTANT,
-                        BIR_INDEX_CONSTANT | 32,
-                },
-                .src_types = {
-                        nir_type_uint32,
-                        nir_type_uint32
-                },
-                .constant = { .u64 = offset },
-        };
-
-        return load;
 }
 
 /* Get the single instruction in a singleton clause. Precondition: clause
@@ -241,37 +172,13 @@ bi_fill(unsigned node, uint64_t offset, unsigned channels)
  * that bridge when we get to it. For now, just grab the one and only
  * instruction in the clause */
 
-static bi_instruction *
+static bi_instr *
 bi_unwrap_singleton(bi_clause *clause)
 {
        assert(clause->bundle_count == 1);
        assert((clause->bundles[0].fma != NULL) ^ (clause->bundles[0].add != NULL));
 
-       return clause->bundles[0].fma ? clause->bundles[0].fma
-               : clause->bundles[0].add;
-}
-
-static inline void
-bi_insert_singleton(void *memctx, bi_clause *cursor, bi_block *block,
-                bi_instruction ins, bool before)
-{
-        bi_instruction *uins = rzalloc(memctx, bi_instruction);
-        memcpy(uins, &ins, sizeof(ins));
-
-        /* Get the instruction to pivot around. Should be first/last of clause
-         * depending on before setting, those coincide for singletons */
-        bi_instruction *cursor_ins = bi_unwrap_singleton(cursor);
-
-        bi_clause *clause = bi_make_singleton(memctx, uins,
-                        block, 0, (1 << 0), true);
-
-        if (before) {
-                list_addtail(&clause->link, &cursor->link);
-                list_addtail(&uins->link, &cursor_ins->link);
-        } else {
-                list_add(&clause->link, &cursor->link);
-                list_add(&uins->link, &cursor_ins->link);
-        }
+       return clause->bundles[0].fma ?: clause->bundles[0].add;
 }
 
 /* If register allocation fails, find the best spill node */
@@ -282,8 +189,10 @@ bi_choose_spill_node(bi_context *ctx, struct lcra_state *l)
         /* Pick a node satisfying bi_spill_register's preconditions */
 
         bi_foreach_instr_global(ctx, ins) {
-                if (ins->no_spill)
-                        lcra_set_node_spill_cost(l, ins->dest, -1);
+                if (ins->no_spill || ins->dest[0].offset || !bi_is_null(ins->dest[1])) {
+                        for (unsigned d = 0; d < ARRAY_SIZE(ins->dest); ++d)
+                                lcra_set_node_spill_cost(l, bi_get_node(ins->dest[0]), -1);
+                }
         }
 
         for (unsigned i = PAN_IS_REG; i < l->node_count; i += 2)
@@ -292,54 +201,75 @@ bi_choose_spill_node(bi_context *ctx, struct lcra_state *l)
         return lcra_get_best_spill_node(l);
 }
 
+static void
+bi_spill_dest(bi_builder *b, bi_index index, uint32_t offset,
+                bi_clause *clause, bi_block *block, bi_instr *ins,
+                uint32_t *channels)
+{
+        ins->dest[0] = bi_temp(b->shader);
+        ins->no_spill = true;
+
+        unsigned newc = util_last_bit(bi_writemask(ins)) >> 2;
+        *channels = MAX2(*channels, newc);
+
+        b->cursor = bi_after_instr(ins);
+
+        bi_instr *st = bi_store_to(b, (*channels) * 32, bi_null(),
+                        ins->dest[0], bi_imm_u32(offset), bi_zero(),
+                        BI_SEG_TL);
+
+        bi_clause *singleton = bi_singleton(b->shader, st, block, 0, (1 << 0),
+                        true);
+
+        list_add(&singleton->link, &clause->link);
+        b->shader->spills++;
+}
+
+static void
+bi_fill_src(bi_builder *b, bi_index index, uint32_t offset, bi_clause *clause,
+                bi_block *block, bi_instr *ins, unsigned channels)
+{
+        bi_index temp = bi_temp(b->shader);
+
+        b->cursor = bi_before_instr(ins);
+        bi_instr *ld = bi_load_to(b, channels * 32, temp, bi_imm_u32(offset),
+                        bi_zero(), BI_SEG_TL);
+        ld->no_spill = true;
+
+        bi_clause *singleton = bi_singleton(b->shader, ld, block, 0,
+                        (1 << 0), true);
+
+        list_addtail(&singleton->link, &clause->link);
+
+        /* Rewrite to use */
+        bi_rewrite_index_src_single(ins, index, temp);
+        b->shader->fills++;
+}
+
 /* Once we've chosen a spill node, spill it. Precondition: node is a valid
  * SSA node in the non-optimized scheduled IR that was not already
  * spilled (enforced by bi_choose_spill_node). Returns bytes spilled */
 
 static unsigned
-bi_spill_register(bi_context *ctx, unsigned node, unsigned offset)
+bi_spill_register(bi_context *ctx, bi_index index, uint32_t offset)
 {
-        assert(!(node & PAN_IS_REG));
+        assert(!index.reg);
 
+        bi_builder _b = { .shader = ctx };
         unsigned channels = 1;
 
-        /* Spill after every store */
+        /* Spill after every store, fill before every load */
         bi_foreach_block(ctx, _block) {
                 bi_block *block = (bi_block *) _block;
                 bi_foreach_clause_in_block_safe(block, clause) {
-                        bi_instruction *ins = bi_unwrap_singleton(clause);
+                        bi_instr *ins = bi_unwrap_singleton(clause);
+                        if (bi_is_equiv(ins->dest[0], index)) {
+                                bi_spill_dest(&_b, index, offset, clause,
+                                                block, ins, &channels);
+                        }
 
-                        if (ins->dest != node) continue;
-
-                        ins->dest = bi_make_temp(ctx);
-                        ins->no_spill = true;
-                        channels = MAX2(channels, ins->vector_channels);
-
-                        bi_instruction st = bi_spill(ins->dest, offset, channels);
-                        bi_insert_singleton(ctx, clause, block, st, false);
-                        ctx->spills++;
-                }
-        }
-
-        /* Fill before every use */
-        bi_foreach_block(ctx, _block) {
-                bi_block *block = (bi_block *) _block;
-                bi_foreach_clause_in_block_safe(block, clause) {
-                        bi_instruction *ins = bi_unwrap_singleton(clause);
-                        if (!bi_has_arg(ins, node)) continue;
-
-                        /* Don't rewrite spills themselves */
-                        if (ins->segment == BI_SEGMENT_TLS) continue;
-
-                        unsigned index = bi_make_temp(ctx);
-
-                        bi_instruction ld = bi_fill(index, offset, channels);
-                        ld.no_spill = true;
-                        bi_insert_singleton(ctx, clause, block, ld, true);
-
-                        /* Rewrite to use */
-                        bi_rewrite_index_src_single(ins, node, index);
-                        ctx->fills++;
+                        if (bi_has_arg(ins, index))
+                                bi_fill_src(&_b, index, offset, clause, block, ins, channels);
                 }
         }
 
@@ -352,24 +282,10 @@ bi_register_allocate(bi_context *ctx)
         struct lcra_state *l = NULL;
         bool success = false;
 
-        unsigned iter_count = 100; /* max iterations */
+        unsigned iter_count = 1000; /* max iterations */
 
         /* Number of bytes of memory we've spilled into */
         unsigned spill_count = 0;
-
-        /* For instructions that both read and write from a data register, it's
-         * the *same* data register. We enforce that constraint by just doing a
-         * quick rewrite. TODO: are there cases where this causes RA to have no
-         * solutions due to copyprop? */
-        bi_foreach_instr_global(ctx, ins) {
-                unsigned props = bi_class_props[ins->type];
-                unsigned both = BI_DATA_REG_SRC | BI_DATA_REG_DEST;
-                if ((props & both) != both) continue;
-
-                assert(ins->src[0] & PAN_IS_REG);
-                bi_rewrite_uses(ctx, ins->dest, 0, ins->src[0], 0);
-                ins->dest = ins->src[0];
-        }
 
         do {
                 if (l) {
@@ -377,11 +293,12 @@ bi_register_allocate(bi_context *ctx)
                         lcra_free(l);
                         l = NULL;
 
-
                         if (spill_node == -1)
                                 unreachable("Failed to choose spill node\n");
 
-                        spill_count += bi_spill_register(ctx, spill_node, spill_count);
+                        spill_count += bi_spill_register(ctx,
+                                        bi_node_to_index(spill_node, bi_max_temp(ctx)),
+                                        spill_count);
                 }
 
                 bi_invalidate_liveness(ctx);

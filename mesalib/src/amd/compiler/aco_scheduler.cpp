@@ -33,9 +33,9 @@
 #define VMEM_WINDOW_SIZE (1024 - ctx.num_waves * 64)
 #define POS_EXP_WINDOW_SIZE 512
 #define SMEM_MAX_MOVES (64 - ctx.num_waves * 4)
-#define VMEM_MAX_MOVES (128 - ctx.num_waves * 8)
+#define VMEM_MAX_MOVES (256 - ctx.num_waves * 16)
 /* creating clauses decreases def-use distances, so make it less aggressive the lower num_waves is */
-#define VMEM_CLAUSE_MAX_GRAB_DIST ((ctx.num_waves - 1) * 8)
+#define VMEM_CLAUSE_MAX_GRAB_DIST (ctx.num_waves * 8)
 #define POS_EXP_MAX_MOVES 512
 
 namespace aco {
@@ -363,6 +363,7 @@ struct memory_event_set {
 struct hazard_query {
    bool contains_spill;
    bool contains_sendmsg;
+   bool uses_exec;
    memory_event_set mem_events;
    unsigned aliasing_storage; /* storage classes which are accessed (non-SMEM) */
    unsigned aliasing_storage_smem; /* storage classes which are accessed (SMEM) */
@@ -371,6 +372,7 @@ struct hazard_query {
 void init_hazard_query(hazard_query *query) {
    query->contains_spill = false;
    query->contains_sendmsg = false;
+   query->uses_exec = false;
    memset(&query->mem_events, 0, sizeof(query->mem_events));
    query->aliasing_storage = 0;
    query->aliasing_storage_smem = 0;
@@ -411,6 +413,7 @@ void add_to_hazard_query(hazard_query *query, Instruction *instr)
    if (instr->opcode == aco_opcode::p_spill || instr->opcode == aco_opcode::p_reload)
       query->contains_spill = true;
    query->contains_sendmsg |= instr->opcode == aco_opcode::s_sendmsg;
+   query->uses_exec |= needs_exec_mask(instr);
 
    memory_sync_info sync = get_sync_info_with_hack(instr);
 
@@ -444,11 +447,15 @@ enum HazardResult {
 
 HazardResult perform_hazard_query(hazard_query *query, Instruction *instr, bool upwards)
 {
-   if (instr->opcode == aco_opcode::p_exit_early_if)
-      return hazard_fail_exec;
-   for (const Definition& def : instr->definitions) {
-      if (def.isFixed() && def.physReg() == exec)
-         return hazard_fail_exec;
+   /* don't schedule discards downwards */
+   if (!upwards && instr->opcode == aco_opcode::p_exit_early_if)
+      return hazard_fail_unreorderable;
+
+   if (query->uses_exec) {
+      for (const Definition& def : instr->definitions) {
+         if (def.isFixed() && def.physReg() == exec)
+            return hazard_fail_exec;
+      }
    }
 
    /* don't move exports so that they stay closer together */
@@ -726,7 +733,8 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
       }
       if (part_of_clause)
          add_to_hazard_query(&indep_hq, candidate_ptr);
-      k++;
+      else
+         k++;
       if (candidate_idx < ctx.last_SMEM_dep_idx)
          ctx.last_SMEM_stall++;
    }
@@ -775,6 +783,8 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
       if (is_dependency || !found_dependency) {
          if (found_dependency)
             add_to_hazard_query(&indep_hq, candidate.get());
+         else
+            k++;
          ctx.mv.upwards_skip();
          continue;
       }
@@ -848,6 +858,14 @@ void schedule_block(sched_ctx& ctx, Program *program, Block* block, live& live_v
    for (unsigned idx = 0; idx < block->instructions.size(); idx++) {
       Instruction* current = block->instructions[idx].get();
 
+      if (block->kind & block_kind_export_end && current->format == Format::EXP) {
+         unsigned target = static_cast<Export_instruction*>(current)->dest;
+         if (target >= V_008DFC_SQ_EXP_POS && target < V_008DFC_SQ_EXP_PRIM) {
+            ctx.mv.current = current;
+            schedule_position_export(ctx, block, live_vars.register_demand[block->index], current, idx);
+         }
+      }
+
       if (current->definitions.empty())
          continue;
 
@@ -859,23 +877,6 @@ void schedule_block(sched_ctx& ctx, Program *program, Block* block, live& live_v
       if (current->format == Format::SMEM) {
          ctx.mv.current = current;
          schedule_SMEM(ctx, block, live_vars.register_demand[block->index], current, idx);
-      }
-   }
-
-   if ((program->stage.hw == HWStage::VS || program->stage.hw == HWStage::NGG) &&
-       (block->kind & block_kind_export_end)) {
-      /* Try to move position exports as far up as possible, to reduce register
-       * usage and because ISA reference guides say so. */
-      for (unsigned idx = 0; idx < block->instructions.size(); idx++) {
-         Instruction* current = block->instructions[idx].get();
-
-         if (current->format == Format::EXP) {
-            unsigned target = static_cast<Export_instruction*>(current)->dest;
-            if (target >= V_008DFC_SQ_EXP_POS && target < V_008DFC_SQ_EXP_PARAM) {
-               ctx.mv.current = current;
-               schedule_position_export(ctx, block, live_vars.register_demand[block->index], current, idx);
-            }
-         }
       }
    }
 

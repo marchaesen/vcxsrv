@@ -239,6 +239,7 @@ struct clover_lower_nir_state {
    std::vector<module::argument> &args;
    uint32_t global_dims;
    nir_variable *constant_var;
+   nir_variable *printf_buffer;
    nir_variable *offset_vars[3];
 };
 
@@ -255,6 +256,20 @@ clover_lower_nir_instr(nir_builder *b, nir_instr *instr, void *_state)
    nir_intrinsic_instr *intrinsic = nir_instr_as_intrinsic(instr);
 
    switch (intrinsic->intrinsic) {
+   case nir_intrinsic_load_printf_buffer_address: {
+      if (!state->printf_buffer) {
+         unsigned location = state->args.size();
+         state->args.emplace_back(module::argument::global, sizeof(size_t),
+                                  8, 8, module::argument::zero_ext,
+                                  module::argument::printf_buffer);
+
+         const glsl_type *type = glsl_uint64_t_type();
+         state->printf_buffer = nir_variable_create(b->shader, nir_var_uniform,
+                                                    type, "global_printf_buffer");
+         state->printf_buffer->data.location = location;
+      }
+      return nir_load_var(b, state->printf_buffer);
+   }
    case nir_intrinsic_load_base_global_invocation_id: {
       nir_ssa_def *loads[3];
 
@@ -344,6 +359,7 @@ create_spirv_options(const device &dev, std::string &r_log)
    spirv_options.caps.int64_atomics = dev.has_int64_atomics();
    spirv_options.debug.func = &debug_function;
    spirv_options.debug.private_data = &r_log;
+   spirv_options.caps.printf = true;
    return spirv_options;
 }
 
@@ -437,13 +453,20 @@ module clover::nir::spirv_to_nir(const module &mod, const device &dev,
 
       NIR_PASS_V(nir, nir_lower_variable_initializers, ~nir_var_function_temp);
 
+      struct nir_lower_printf_options printf_options;
+      printf_options.treat_doubles_as_floats = false;
+      printf_options.max_buffer_size = dev.max_printf_buffer_size();
+
+      NIR_PASS_V(nir, nir_lower_printf, &printf_options);
+
+      NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_function_temp, NULL);
+
       // copy propagate to prepare for lower_explicit_io
       NIR_PASS_V(nir, nir_split_var_copies);
       NIR_PASS_V(nir, nir_opt_copy_prop_vars);
       NIR_PASS_V(nir, nir_lower_var_copies);
       NIR_PASS_V(nir, nir_lower_vars_to_ssa);
       NIR_PASS_V(nir, nir_opt_dce);
-
       NIR_PASS_V(nir, nir_lower_convert_alu_types, NULL);
 
       NIR_PASS_V(nir, nir_lower_system_values);
@@ -520,6 +543,12 @@ module clover::nir::spirv_to_nir(const module &mod, const device &dev,
          m.secs.push_back(constants);
       }
 
+      void *mem_ctx = ralloc_context(NULL);
+      unsigned printf_info_count = nir->printf_info_count;
+      nir_printf_info *printf_infos = nir->printf_info;
+
+      ralloc_steal(mem_ctx, printf_infos);
+
       struct blob blob;
       blob_init(&blob);
       nir_serialize(&blob, nir, false);
@@ -533,6 +562,22 @@ module clover::nir::spirv_to_nir(const module &mod, const device &dev,
       text.data.insert(text.data.end(), blob.data, blob.data + blob.size);
 
       free(blob.data);
+
+      m.printf_strings_in_buffer = false;
+      m.printf_infos.reserve(printf_info_count);
+      for (unsigned i = 0; i < printf_info_count; i++) {
+         module::printf_info info;
+
+         info.arg_sizes.reserve(printf_infos[i].num_args);
+         for (unsigned j = 0; j < printf_infos[i].num_args; j++)
+            info.arg_sizes.push_back(printf_infos[i].arg_sizes[j]);
+
+         info.strings.resize(printf_infos[i].string_size);
+         memcpy(info.strings.data(), printf_infos[i].strings, printf_infos[i].string_size);
+         m.printf_infos.push_back(info);
+      }
+
+      ralloc_free(mem_ctx);
 
       m.syms.emplace_back(sym.name, std::string(),
                           sym.reqd_work_group_size, section_id, 0, args);

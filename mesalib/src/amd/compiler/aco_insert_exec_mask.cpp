@@ -96,42 +96,6 @@ struct exec_ctx {
    exec_ctx(Program *program_) : program(program_), info(program->blocks.size()) {}
 };
 
-bool pred_by_exec_mask(aco_ptr<Instruction>& instr) {
-   if (instr->isSALU())
-      return instr->reads_exec();
-   if (instr->format == Format::SMEM || instr->isSALU())
-      return false;
-   if (instr->format == Format::PSEUDO_BARRIER)
-      return false;
-
-   if (instr->format == Format::PSEUDO) {
-      switch (instr->opcode) {
-      case aco_opcode::p_create_vector:
-      case aco_opcode::p_extract_vector:
-      case aco_opcode::p_split_vector:
-      case aco_opcode::p_parallelcopy:
-         for (Definition def : instr->definitions) {
-            if (def.getTemp().type() == RegType::vgpr)
-               return true;
-         }
-         return false;
-      case aco_opcode::p_spill:
-      case aco_opcode::p_reload:
-         return false;
-      default:
-         break;
-      }
-   }
-
-   if (instr->opcode == aco_opcode::v_readlane_b32 ||
-       instr->opcode == aco_opcode::v_readlane_b32_e64 ||
-       instr->opcode == aco_opcode::v_writelane_b32 ||
-       instr->opcode == aco_opcode::v_writelane_b32_e64)
-      return false;
-
-   return true;
-}
-
 bool needs_exact(aco_ptr<Instruction>& instr) {
    if (instr->format == Format::MUBUF) {
       MUBUF_instruction *mubuf = static_cast<MUBUF_instruction *>(instr.get());
@@ -165,6 +129,8 @@ void mark_block_wqm(wqm_ctx &ctx, unsigned block_idx)
       return;
 
    ctx.branch_wqm[block_idx] = true;
+   ctx.worklist.insert(block_idx);
+
    Block& block = ctx.program->blocks[block_idx];
 
    /* TODO: this sets more branch conditions to WQM than it needs to
@@ -216,7 +182,7 @@ void get_block_needs(wqm_ctx &ctx, exec_ctx &exec_ctx, Block* block)
       WQMState needs = needs_exact(instr) ? Exact : Unspecified;
       bool propagate_wqm = instr->opcode == aco_opcode::p_wqm;
       bool preserve_wqm = instr->opcode == aco_opcode::p_discard_if;
-      bool pred_by_exec = pred_by_exec_mask(instr);
+      bool pred_by_exec = needs_exec_mask(instr.get());
       for (const Definition& definition : instr->definitions) {
          if (!definition.isTemp())
             continue;
@@ -321,14 +287,7 @@ void transition_to_WQM(exec_ctx& ctx, Builder bld, unsigned idx)
       return;
    if (ctx.info[idx].exec.back().second & mask_type_global) {
       Temp exec_mask = ctx.info[idx].exec.back().first;
-      /* TODO: we might generate better code if we pass the uncopied "exec_mask"
-       * directly to the s_wqm (we still need to keep this parallelcopy for
-       * potential later uses of exec_mask though). We currently can't do this
-       * because of a RA bug. */
-      exec_mask = bld.pseudo(aco_opcode::p_parallelcopy, bld.def(bld.lm), bld.exec(exec_mask));
-      ctx.info[idx].exec.back().first = exec_mask;
-
-      exec_mask = bld.sop1(Builder::s_wqm, bld.def(bld.lm, exec), bld.def(s1, scc), exec_mask);
+      exec_mask = bld.sop1(Builder::s_wqm, bld.def(bld.lm, exec), bld.def(s1, scc), bld.exec(exec_mask));
       ctx.info[idx].exec.emplace_back(exec_mask, mask_type_global | mask_type_wqm);
       return;
    }

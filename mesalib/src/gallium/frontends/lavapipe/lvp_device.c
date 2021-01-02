@@ -386,6 +386,20 @@ void lvp_GetPhysicalDeviceFeatures2(
          break;
       }
 
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT: {
+         VkPhysicalDeviceIndexTypeUint8FeaturesEXT *features =
+            (VkPhysicalDeviceIndexTypeUint8FeaturesEXT *)ext;
+         features->indexTypeUint8 = true;
+         break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT: {
+         VkPhysicalDeviceTransformFeedbackFeaturesEXT *features =
+            (VkPhysicalDeviceTransformFeedbackFeaturesEXT*)ext;
+
+         features->transformFeedback = true;
+         features->geometryStreams = true;
+         break;
+      }
       default:
          break;
       }
@@ -598,6 +612,20 @@ void lvp_GetPhysicalDeviceProperties2(
          else
             props->maxVertexAttribDivisor = 1;
          break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_PROPERTIES_EXT: {
+         VkPhysicalDeviceTransformFeedbackPropertiesEXT *properties =
+            (VkPhysicalDeviceTransformFeedbackPropertiesEXT*)ext;
+         properties->maxTransformFeedbackStreams = pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_MAX_VERTEX_STREAMS);
+         properties->maxTransformFeedbackBuffers = pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS);
+         properties->maxTransformFeedbackBufferSize = UINT32_MAX;
+         properties->maxTransformFeedbackStreamDataSize = 512;
+         properties->maxTransformFeedbackBufferDataSize = 512;
+         properties->maxTransformFeedbackBufferDataStride = 512;
+         properties->transformFeedbackQueries = true;
+         properties->transformFeedbackStreamsLinesTriangles = false;
+         properties->transformFeedbackRasterizationStreamSelect = false;
+         properties->transformFeedbackDraw = true;
       }
       default:
          break;

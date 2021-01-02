@@ -5,8 +5,8 @@ set -ex
 git config --global user.email "mesa@example.com"
 git config --global user.name "Mesa CI"
 git clone \
-    https://github.com/anholt/VK-GL-CTS.git \
-    -b vulkan-cts-1.2.4.1-mesa-ci-2020-11-06 \
+    https://github.com/KhronosGroup/VK-GL-CTS.git \
+    -b vulkan-cts-1.2.5.0 \
     --depth 1 \
     /VK-GL-CTS
 pushd /VK-GL-CTS
@@ -23,11 +23,10 @@ cp doc/testlog-stylesheet/testlog.{css,xsl} /deqp
 popd
 
 pushd /deqp
-cmake -G Ninja \
+cmake -S /VK-GL-CTS -B . -G Ninja \
       -DDEQP_TARGET=${DEQP_TARGET:-x11_glx} \
       -DCMAKE_BUILD_TYPE=Release \
-      $EXTRA_CMAKE_ARGS \
-      /VK-GL-CTS
+      $EXTRA_CMAKE_ARGS
 ninja
 
 # Copy out the mustpass lists we want.

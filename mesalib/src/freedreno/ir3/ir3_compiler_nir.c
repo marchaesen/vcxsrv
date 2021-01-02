@@ -3200,7 +3200,11 @@ setup_output(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 			so->writes_pos = true;
 			break;
 		case FRAG_RESULT_COLOR:
-			so->color0_mrt = 1;
+			if (!ctx->s->info.fs.color_is_dual_source) {
+				so->color0_mrt = 1;
+			} else {
+				slot = FRAG_RESULT_DATA0 + io.dual_source_blend_index;
+			}
 			break;
 		case FRAG_RESULT_SAMPLE_MASK:
 			so->writes_smask = true;

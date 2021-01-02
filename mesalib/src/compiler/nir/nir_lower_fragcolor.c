@@ -48,7 +48,7 @@
  */
 
 static bool
-lower_fragcolor_instr(nir_intrinsic_instr *instr, nir_builder *b)
+lower_fragcolor_instr(nir_intrinsic_instr *instr, nir_builder *b, unsigned max_draw_buffers)
 {
    nir_variable *out;
    if (instr->intrinsic != nir_intrinsic_store_deref)
@@ -61,15 +61,21 @@ lower_fragcolor_instr(nir_intrinsic_instr *instr, nir_builder *b)
 
    nir_ssa_def *frag_color = nir_load_var(b, out);
    ralloc_free(out->name);
-   out->name = ralloc_strdup(out, "gl_FragData[0]");
+
+   const char *name = out->data.index == 0 ? "gl_FragData[0]" :
+                                             "gl_SecondaryFragDataEXT[0]";
+   const char *name_tmpl = out->data.index == 0 ? "gl_FragData[%u]" :
+                                                  "gl_SecondaryFragDataEXT[%u]";
+
+   out->name = ralloc_strdup(out, name);
 
    /* translate gl_FragColor -> gl_FragData since this is already handled */
    out->data.location = FRAG_RESULT_DATA0;
    nir_component_mask_t writemask = nir_intrinsic_write_mask(instr);
 
-   for (unsigned i = 1; i < 8; i++) {
-      char name[16];
-      snprintf(name, sizeof(name), "gl_FragData[%u]", i);
+   for (unsigned i = 1; i < max_draw_buffers; i++) {
+      char name[28];
+      snprintf(name, sizeof(name), name_tmpl, i);
       nir_variable *out_color = nir_variable_create(b->shader, nir_var_shader_out,
                                                    glsl_vec4_type(),
                                                    name);
@@ -89,6 +95,9 @@ nir_lower_fragcolor(nir_shader *shader)
    if (shader->info.stage != MESA_SHADER_FRAGMENT)
       return false;
 
+   const unsigned max_draw_buffers =
+      shader->info.fs.color_is_dual_source ? 1 : 8;
+
    nir_foreach_function(function, shader) {
       if (function->impl) {
          nir_builder builder;
@@ -97,7 +106,7 @@ nir_lower_fragcolor(nir_shader *shader)
             nir_foreach_instr_safe(instr, block) {
                if (instr->type == nir_instr_type_intrinsic)
                   progress |= lower_fragcolor_instr(nir_instr_as_intrinsic(instr),
-                                                    &builder);
+                                                    &builder, max_draw_buffers);
             }
          }
 

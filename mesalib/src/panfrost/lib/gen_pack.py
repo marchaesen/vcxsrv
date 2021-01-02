@@ -78,7 +78,7 @@ __gen_sint(int32_t v, uint32_t start, uint32_t end)
    }
 #endif
 
-   return ((uint32_t) v) << start;
+   return (((uint32_t) v) << start) & ((2ll << end) - 1);
 }
 
 static inline uint32_t

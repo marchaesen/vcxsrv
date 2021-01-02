@@ -45,7 +45,7 @@ option(
   'dri-drivers',
   type : 'array',
   value : ['auto'],
-  choices : ['auto', 'i915', 'i965', 'r100', 'r200', 'nouveau', 'swrast'],
+  choices : ['auto', 'i915', 'i965', 'r100', 'r200', 'nouveau'],
   description : 'List of dri drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
 option(
@@ -288,6 +288,12 @@ option(
   type : 'feature',
   value : 'auto',
   description : 'Build support for the Microsoft CLC to DXIL compiler'
+)
+option(
+  'spirv-to-dxil',
+  type : 'boolean',
+  value : false,
+  description : 'Build support for the SPIR-V to DXIL library'
 )
 option(
   'glvnd-vendor-name',

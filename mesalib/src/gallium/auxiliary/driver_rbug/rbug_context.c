@@ -605,7 +605,7 @@ rbug_set_blend_color(struct pipe_context *_pipe,
 
 static void
 rbug_set_stencil_ref(struct pipe_context *_pipe,
-                     const struct pipe_stencil_ref *stencil_ref)
+                     const struct pipe_stencil_ref stencil_ref)
 {
    struct rbug_context *rb_pipe = rbug_context(_pipe);
    struct pipe_context *pipe = rb_pipe->pipe;

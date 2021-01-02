@@ -147,7 +147,7 @@ static void noop_set_scissor_states(struct pipe_context *ctx,
 }
 
 static void noop_set_stencil_ref(struct pipe_context *ctx,
-                                 const struct pipe_stencil_ref *state)
+                                 const struct pipe_stencil_ref state)
 {
 }
 

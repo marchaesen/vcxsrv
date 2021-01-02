@@ -9,3 +9,7 @@ dEQP-GLES[0-9]*.stress.*
 # These are really slow on tiling architectures (including llvmpipe).
 dEQP-GLES[0-9]*.functional.flush_finish.*
 
+# Currently exactly 4096 bytes, which causes INSTR_INVALID_ENC for unknown
+# reasons. This needs to be sorted out asap to avoid creating flakes in the near
+# future, which would be a Very Bad Thing.
+dEQP-GLES2.functional.shaders.indexing.tmp_array.vec3_const_write_dynamic_loop_read_vertex

@@ -39,39 +39,38 @@ hash_src(uint32_t hash, const nir_src *src)
 }
 
 static uint32_t
-hash_alu_src(uint32_t hash, const nir_alu_src *src)
+hash_alu_src(uint32_t hash, const nir_alu_src *src,
+             uint32_t num_components, uint32_t max_vec)
 {
    assert(!src->abs && !src->negate);
 
-   /* intentionally don't hash swizzle */
+   /* hash whether a swizzle accesses elements beyond the maximum
+    * vectorization factor:
+    * For example accesses to .x and .y are considered different variables
+    * compared to accesses to .z and .w for 16-bit vec2.
+    */
+   uint32_t swizzle = (src->swizzle[0] & ~(max_vec - 1));
+   hash = HASH(hash, swizzle);
 
    return hash_src(hash, &src->src);
 }
 
 static uint32_t
-hash_alu(uint32_t hash, const nir_alu_instr *instr)
+hash_instr(const void *data)
 {
-   hash = HASH(hash, instr->op);
+   const nir_instr *instr = (nir_instr *) data;
+   assert(instr->type == nir_instr_type_alu);
+   nir_alu_instr *alu = nir_instr_as_alu(instr);
 
-   hash = HASH(hash, instr->dest.dest.ssa.bit_size);
+   uint32_t hash = HASH(0, alu->op);
+   hash = HASH(hash, alu->dest.dest.ssa.bit_size);
 
-   for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++)
-      hash = hash_alu_src(hash, &instr->src[i]);
+   for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; i++)
+      hash = hash_alu_src(hash, &alu->src[i],
+                          alu->dest.dest.ssa.num_components,
+                          instr->pass_flags);
 
    return hash;
-}
-
-static uint32_t
-hash_instr(const nir_instr *instr)
-{
-   uint32_t hash = 0;
-
-   switch (instr->type) {
-   case nir_instr_type_alu:
-      return hash_alu(hash, nir_instr_as_alu(instr));
-   default:
-      unreachable("bad instruction type");
-   }
 }
 
 static bool
@@ -85,45 +84,48 @@ srcs_equal(const nir_src *src1, const nir_src *src2)
 }
 
 static bool
-alu_srcs_equal(const nir_alu_src *src1, const nir_alu_src *src2)
+alu_srcs_equal(const nir_alu_src *src1, const nir_alu_src *src2,
+               uint32_t max_vec)
 {
    assert(!src1->abs);
    assert(!src1->negate);
    assert(!src2->abs);
    assert(!src2->negate);
 
+   uint32_t mask = ~(max_vec - 1);
+   if ((src1->swizzle[0] & mask) != (src2->swizzle[0] & mask))
+      return false;
+
    return srcs_equal(&src1->src, &src2->src);
 }
 
 static bool
-instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
+instrs_equal(const void *data1, const void *data2)
 {
-   switch (instr1->type) {
-   case nir_instr_type_alu: {
-      nir_alu_instr *alu1 = nir_instr_as_alu(instr1);
-      nir_alu_instr *alu2 = nir_instr_as_alu(instr2);
+   const nir_instr *instr1 = (nir_instr *) data1;
+   const nir_instr *instr2 = (nir_instr *) data2;
+   assert(instr1->type == nir_instr_type_alu);
+   assert(instr2->type == nir_instr_type_alu);
 
-      if (alu1->op != alu2->op)
+   nir_alu_instr *alu1 = nir_instr_as_alu(instr1);
+   nir_alu_instr *alu2 = nir_instr_as_alu(instr2);
+
+   if (alu1->op != alu2->op)
+      return false;
+
+   if (alu1->dest.dest.ssa.bit_size != alu2->dest.dest.ssa.bit_size)
+      return false;
+
+   for (unsigned i = 0; i < nir_op_infos[alu1->op].num_inputs; i++) {
+      if (!alu_srcs_equal(&alu1->src[i], &alu2->src[i], instr1->pass_flags))
          return false;
-
-      if (alu1->dest.dest.ssa.bit_size != alu2->dest.dest.ssa.bit_size)
-         return false;
-
-      for (unsigned i = 0; i < nir_op_infos[alu1->op].num_inputs; i++) {
-         if (!alu_srcs_equal(&alu1->src[i], &alu2->src[i]))
-            return false;
-      }
-
-      return true;
    }
 
-   default:
-      unreachable("bad instruction type");
-   }
+   return true;
 }
 
 static bool
-instr_can_rewrite(nir_instr *instr)
+instr_can_rewrite(nir_instr *instr, bool vectorize_16bit)
 {
    switch (instr->type) {
    case nir_instr_type_alu: {
@@ -136,12 +138,29 @@ instr_can_rewrite(nir_instr *instr)
       if (alu->op == nir_op_mov)
          return false;
 
+      /* no need to hash instructions which are already vectorized */
+      if (alu->dest.dest.ssa.num_components >= 4)
+         return false;
+
+      if (vectorize_16bit &&
+          (alu->dest.dest.ssa.num_components >= 2 ||
+           alu->dest.dest.ssa.bit_size != 16))
+         return false;
+
       if (nir_op_infos[alu->op].output_size != 0)
          return false;
 
       for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; i++) {
          if (nir_op_infos[alu->op].input_sizes[i] != 0)
             return false;
+
+         /* don't hash instructions which are already swizzled
+          * outside of max_components: these should better be scalarized */
+         uint32_t mask = vectorize_16bit ? ~1 : ~3;
+         for (unsigned j = 0; j < alu->dest.dest.ssa.num_components; j++) {
+            if ((alu->src[i].swizzle[0] & mask) != (alu->src[i].swizzle[i] & mask))
+               return false;
+         }
       }
 
       return true;
@@ -162,8 +181,8 @@ instr_can_rewrite(nir_instr *instr)
  */
 
 static nir_instr *
-instr_try_combine(struct nir_shader *nir, nir_instr *instr1, nir_instr *instr2,
-                  nir_opt_vectorize_cb filter, void *data)
+instr_try_combine(struct nir_shader *nir, struct set *instr_set,
+                  nir_instr *instr1, nir_instr *instr2)
 {
    assert(instr1->type == nir_instr_type_alu);
    assert(instr2->type == nir_instr_type_alu);
@@ -178,12 +197,10 @@ instr_try_combine(struct nir_shader *nir, nir_instr *instr1, nir_instr *instr2,
    if (total_components > 4)
       return NULL;
 
-   if (nir->options->vectorize_vec2_16bit &&
-       (total_components > 2 || alu1->dest.dest.ssa.bit_size != 16))
-      return NULL;
-
-   if (filter && !filter(&alu1->instr, &alu2->instr, data))
-      return NULL;
+   if (nir->options->vectorize_vec2_16bit) {
+      assert(total_components == 2);
+      assert(alu1->dest.dest.ssa.bit_size == 16);
+   }
 
    nir_builder b;
    nir_builder_init(&b, nir_cf_node_get_function(&instr1->block->cf_node));
@@ -193,6 +210,7 @@ instr_try_combine(struct nir_shader *nir, nir_instr *instr1, nir_instr *instr2,
    nir_ssa_dest_init(&new_alu->instr, &new_alu->dest.dest,
                      total_components, alu1->dest.dest.ssa.bit_size, NULL);
    new_alu->dest.write_mask = (1 << total_components) - 1;
+   new_alu->instr.pass_flags = alu1->instr.pass_flags;
 
    /* If either channel is exact, we have to preserve it even if it's
     * not optimal for other channels.
@@ -252,16 +270,24 @@ instr_try_combine(struct nir_shader *nir, nir_instr *instr1, nir_instr *instr2,
                                        alu2_components);
 
    nir_foreach_use_safe(src, &alu1->dest.dest.ssa) {
-      if (src->parent_instr->type == nir_instr_type_alu) {
+      nir_instr *user_instr = src->parent_instr;
+      if (user_instr->type == nir_instr_type_alu) {
+         /* Check if user is found in the hashset */
+         struct set_entry *entry = _mesa_set_search(instr_set, user_instr);
+
          /* For ALU instructions, rewrite the source directly to avoid a
           * round-trip through copy propagation.
           */
-
-         nir_instr_rewrite_src(src->parent_instr, src,
+         nir_instr_rewrite_src(user_instr, src,
                                nir_src_for_ssa(&new_alu->dest.dest.ssa));
+
+         /* Rehash user if it was found in the hashset */
+         if (entry && entry->key == user_instr) {
+            _mesa_set_remove(instr_set, entry);
+            _mesa_set_add(instr_set, src->parent_instr);
+         }
       } else {
-         nir_instr_rewrite_src(src->parent_instr, src,
-                               nir_src_for_ssa(new_alu1));
+         nir_instr_rewrite_src(user_instr, src, nir_src_for_ssa(new_alu1));
       }
    }
 
@@ -315,78 +341,10 @@ instr_try_combine(struct nir_shader *nir, nir_instr *instr1, nir_instr *instr2,
    return &new_alu->instr;
 }
 
-/*
- * Use an array to represent a stack of instructions that are equivalent.
- *
- * We push and pop instructions off the stack in dominance order. The first
- * element dominates the second element which dominates the third, etc. When
- * trying to add to the stack, first we try and combine the instruction with
- * each of the instructions on the stack and, if successful, replace the
- * instruction on the stack with the newly-combined instruction.
- */
-
-static struct util_dynarray *
-vec_instr_stack_create(void *mem_ctx)
-{
-   struct util_dynarray *stack = ralloc(mem_ctx, struct util_dynarray);
-   util_dynarray_init(stack, mem_ctx);
-   return stack;
-}
-
-/* returns true if we were able to successfully replace the instruction */
-
-static bool
-vec_instr_stack_push(struct nir_shader *nir, struct util_dynarray *stack,
-                     nir_instr *instr,
-                     nir_opt_vectorize_cb filter, void *data)
-{
-   /* Walk the stack from child to parent to make live ranges shorter by
-    * matching the closest thing we can
-    */
-   util_dynarray_foreach_reverse(stack, nir_instr *, stack_instr) {
-      nir_instr *new_instr = instr_try_combine(nir, *stack_instr, instr,
-                                               filter, data);
-      if (new_instr) {
-         *stack_instr = new_instr;
-         return true;
-      }
-   }
-
-   util_dynarray_append(stack, nir_instr *, instr);
-   return false;
-}
-
-static void
-vec_instr_stack_pop(struct util_dynarray *stack, nir_instr *instr)
-{
-   ASSERTED nir_instr *last = util_dynarray_pop(stack, nir_instr *);
-   assert(last == instr);
-}
-
-static bool
-cmp_func(const void *data1, const void *data2)
-{
-   const struct util_dynarray *arr1 = data1;
-   const struct util_dynarray *arr2 = data2;
-
-   const nir_instr *instr1 = *(nir_instr **)util_dynarray_begin(arr1);
-   const nir_instr *instr2 = *(nir_instr **)util_dynarray_begin(arr2);
-
-   return instrs_equal(instr1, instr2);
-}
-
-static uint32_t
-hash_stack(const void *data)
-{
-   const struct util_dynarray *stack = data;
-   const nir_instr *first = *(nir_instr **)util_dynarray_begin(stack);
-   return hash_instr(first);
-}
-
 static struct set *
 vec_instr_set_create(void)
 {
-   return _mesa_set_create(NULL, hash_stack, cmp_func);
+   return _mesa_set_create(NULL, hash_instr, instrs_equal);
 }
 
 static void
@@ -400,55 +358,31 @@ vec_instr_set_add_or_rewrite(struct nir_shader *nir, struct set *instr_set,
                              nir_instr *instr,
                              nir_opt_vectorize_cb filter, void *data)
 {
-   if (!instr_can_rewrite(instr))
+   if (!instr_can_rewrite(instr, nir->options->vectorize_vec2_16bit))
       return false;
 
-   struct util_dynarray *new_stack = vec_instr_stack_create(instr_set);
-   vec_instr_stack_push(nir, new_stack, instr, filter, data);
+   if (filter && !filter(instr, data))
+      return false;
 
-   struct set_entry *entry = _mesa_set_search(instr_set, new_stack);
+   /* set max vector to instr pass flags: this is used to hash swizzles */
+   instr->pass_flags = nir->options->vectorize_vec2_16bit ? 2 : 4;
 
+   struct set_entry *entry = _mesa_set_search(instr_set, instr);
    if (entry) {
-      ralloc_free(new_stack);
-      struct util_dynarray *stack = (struct util_dynarray *) entry->key;
-      return vec_instr_stack_push(nir, stack, instr, filter, data);
+      nir_instr *old_instr = (nir_instr *) entry->key;
+      _mesa_set_remove(instr_set, entry);
+      nir_instr *new_instr = instr_try_combine(nir, instr_set,
+                                               old_instr, instr);
+      if (new_instr) {
+         if (instr_can_rewrite(new_instr, nir->options->vectorize_vec2_16bit) &&
+             (!filter || filter(instr, data)))
+            _mesa_set_add(instr_set, new_instr);
+         return true;
+      }
    }
 
-   _mesa_set_add(instr_set, new_stack);
+   _mesa_set_add(instr_set, instr);
    return false;
-}
-
-static void
-vec_instr_set_remove(struct nir_shader *nir, struct set *instr_set,
-                     nir_instr *instr, nir_opt_vectorize_cb filter, void *data)
-{
-   if (!instr_can_rewrite(instr))
-      return;
-
-   /*
-    * It's pretty unfortunate that we have to do this, but it's a side effect
-    * of the hash set interfaces. The hash set assumes that we're only
-    * interested in storing one equivalent element at a time, and if we try to
-    * insert a duplicate element it will remove the original. We could hack up
-    * the comparison function to "know" which input is an instruction we
-    * passed in and which is an array that's part of the entry, but that
-    * wouldn't work because we need to pass an array to _mesa_set_add() in
-    * vec_instr_add_or_rewrite() above, and _mesa_set_add() will call our
-    * comparison function as well.
-    */
-   struct util_dynarray *temp = vec_instr_stack_create(instr_set);
-   vec_instr_stack_push(nir, temp, instr, filter, data);
-   struct set_entry *entry = _mesa_set_search(instr_set, temp);
-   ralloc_free(temp);
-
-   if (entry) {
-      struct util_dynarray *stack = (struct util_dynarray *) entry->key;
-
-      if (util_dynarray_num_elements(stack, nir_instr *) > 1)
-         vec_instr_stack_pop(stack, instr);
-      else
-         _mesa_set_remove(instr_set, entry);
-   }
 }
 
 static bool
@@ -468,8 +402,11 @@ vectorize_block(struct nir_shader *nir, nir_block *block,
       progress |= vectorize_block(nir, child, instr_set, filter, data);
    }
 
-   nir_foreach_instr_reverse(instr, block)
-      vec_instr_set_remove(nir, instr_set, instr, filter, data);
+   nir_foreach_instr_reverse(instr, block) {
+      if (instr_can_rewrite(instr, nir->options->vectorize_vec2_16bit) &&
+          (!filter || filter(instr, data)))
+         _mesa_set_remove_key(instr_set, instr);
+   }
 
    return progress;
 }

@@ -215,11 +215,13 @@ traces:
     expectations:
       - device: freedreno-a630
         checksum: 40387a4e89ef71c472a94413b175ff59
-  - path: humus/Portals.trace
-    expectations:
-      # Bad rendering -- some sort of gap in the upper right of the image.
-      - device: freedreno-a630
-        checksum: 773787656bdb83df21ff42cf9d98d7d2
+  # Started producing flaky results near that old gap in the upper right once
+  # the parallel trace runner landed.
+  #- path: humus/Portals.trace
+  #  expectations:
+  #    # Bad rendering -- some sort of gap in the upper right of the image.
+  #    - device: freedreno-a630
+  #      checksum: 773787656bdb83df21ff42cf9d98d7d2
   - path: humus/RaytracedShadows.trace
     expectations:
       - device: freedreno-a630

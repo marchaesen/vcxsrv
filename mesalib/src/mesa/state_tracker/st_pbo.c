@@ -202,7 +202,7 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
          return false;
    }
 
-   if (st->pbo.use_gs && !st->pbo.gs) {
+   if (addr->depth != 1 && st->pbo.use_gs && !st->pbo.gs) {
       st->pbo.gs = st_pbo_create_gs(st);
       if (!st->pbo.gs)
          return false;
@@ -403,7 +403,8 @@ sampler_type_for_target(enum pipe_texture_target target)
 static void *
 create_fs(struct st_context *st, bool download,
           enum pipe_texture_target target,
-          enum st_pbo_conversion conversion)
+          enum st_pbo_conversion conversion,
+          bool need_layer)
 {
    struct pipe_screen *screen = st->screen;
    const nir_shader_compiler_options *options =
@@ -432,11 +433,11 @@ create_fs(struct st_context *st, bool download,
    nir_ssa_def *coord = nir_load_var(&b, fragcoord);
 
    nir_ssa_def *layer = NULL;
-   if (st->pbo.layers && (!download || target == PIPE_TEXTURE_1D_ARRAY ||
-                                       target == PIPE_TEXTURE_2D_ARRAY ||
-                                       target == PIPE_TEXTURE_3D ||
-                                       target == PIPE_TEXTURE_CUBE ||
-                                       target == PIPE_TEXTURE_CUBE_ARRAY)) {
+   if (st->pbo.layers && need_layer && (!download || target == PIPE_TEXTURE_1D_ARRAY ||
+                                                     target == PIPE_TEXTURE_2D_ARRAY ||
+                                                     target == PIPE_TEXTURE_3D ||
+                                                     target == PIPE_TEXTURE_CUBE ||
+                                                     target == PIPE_TEXTURE_CUBE_ARRAY)) {
       nir_variable *var = nir_variable_create(b.shader, nir_var_shader_in,
                                               glsl_int_type(), "gl_Layer");
       var->data.location = VARYING_SLOT_LAYER;
@@ -563,32 +564,34 @@ get_pbo_conversion(enum pipe_format src_format, enum pipe_format dst_format)
 void *
 st_pbo_get_upload_fs(struct st_context *st,
                      enum pipe_format src_format,
-                     enum pipe_format dst_format)
+                     enum pipe_format dst_format,
+                     bool need_layer)
 {
    STATIC_ASSERT(ARRAY_SIZE(st->pbo.upload_fs) == ST_NUM_PBO_CONVERSIONS);
 
    enum st_pbo_conversion conversion = get_pbo_conversion(src_format, dst_format);
 
-   if (!st->pbo.upload_fs[conversion])
-      st->pbo.upload_fs[conversion] = create_fs(st, false, 0, conversion);
+   if (!st->pbo.upload_fs[conversion][need_layer])
+      st->pbo.upload_fs[conversion][need_layer] = create_fs(st, false, 0, conversion, need_layer);
 
-   return st->pbo.upload_fs[conversion];
+   return st->pbo.upload_fs[conversion][need_layer];
 }
 
 void *
 st_pbo_get_download_fs(struct st_context *st, enum pipe_texture_target target,
                        enum pipe_format src_format,
-                       enum pipe_format dst_format)
+                       enum pipe_format dst_format,
+                       bool need_layer)
 {
    STATIC_ASSERT(ARRAY_SIZE(st->pbo.download_fs) == ST_NUM_PBO_CONVERSIONS);
    assert(target < PIPE_MAX_TEXTURE_TYPES);
 
    enum st_pbo_conversion conversion = get_pbo_conversion(src_format, dst_format);
 
-   if (!st->pbo.download_fs[conversion][target])
-      st->pbo.download_fs[conversion][target] = create_fs(st, true, target, conversion);
+   if (!st->pbo.download_fs[conversion][target][need_layer])
+      st->pbo.download_fs[conversion][target][need_layer] = create_fs(st, true, target, conversion, need_layer);
 
-   return st->pbo.download_fs[conversion][target];
+   return st->pbo.download_fs[conversion][target][need_layer];
 }
 
 void
@@ -637,17 +640,21 @@ st_destroy_pbo_helpers(struct st_context *st)
    unsigned i;
 
    for (i = 0; i < ARRAY_SIZE(st->pbo.upload_fs); ++i) {
-      if (st->pbo.upload_fs[i]) {
-         st->pipe->delete_fs_state(st->pipe, st->pbo.upload_fs[i]);
-         st->pbo.upload_fs[i] = NULL;
+      for (unsigned j = 0; j < ARRAY_SIZE(st->pbo.upload_fs[0]); j++) {
+         if (st->pbo.upload_fs[i][j]) {
+            st->pipe->delete_fs_state(st->pipe, st->pbo.upload_fs[i][j]);
+            st->pbo.upload_fs[i][j] = NULL;
+         }
       }
    }
 
    for (i = 0; i < ARRAY_SIZE(st->pbo.download_fs); ++i) {
       for (unsigned j = 0; j < ARRAY_SIZE(st->pbo.download_fs[0]); ++j) {
-         if (st->pbo.download_fs[i][j]) {
-            st->pipe->delete_fs_state(st->pipe, st->pbo.download_fs[i][j]);
-            st->pbo.download_fs[i][j] = NULL;
+         for (unsigned k = 0; k < ARRAY_SIZE(st->pbo.download_fs[0][0]); k++) {
+            if (st->pbo.download_fs[i][j][k]) {
+               st->pipe->delete_fs_state(st->pipe, st->pbo.download_fs[i][j][k]);
+               st->pbo.download_fs[i][j][k] = NULL;
+            }
          }
       }
    }

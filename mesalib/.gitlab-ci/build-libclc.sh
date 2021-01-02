@@ -8,7 +8,7 @@ $LLVM_CONFIG --version
 
 git clone https://github.com/KhronosGroup/SPIRV-LLVM-Translator -b llvm_release_100 --depth 1 /SPIRV-LLVM-Translator
 pushd /SPIRV-LLVM-Translator
-cmake -G Ninja -DLLVM_BUILD_TOOLS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-fPIC -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=`$LLVM_CONFIG --prefix`
+cmake -S . -B . -G Ninja -DLLVM_BUILD_TOOLS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-fPIC -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=`$LLVM_CONFIG --prefix`
 ninja
 ninja install
 popd
@@ -23,7 +23,7 @@ git clone \
 
 mkdir /libclc
 pushd /libclc
-cmake -G Ninja -DLLVM_CONFIG=$LLVM_CONFIG -DLIBCLC_TARGETS_TO_BUILD="spirv-mesa3d-;spirv64-mesa3d-" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr /llvm-project/libclc
+cmake -S /llvm-project/libclc -B . -G Ninja -DLLVM_CONFIG=$LLVM_CONFIG -DLIBCLC_TARGETS_TO_BUILD="spirv-mesa3d-;spirv64-mesa3d-" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
 ninja
 ninja install
 popd

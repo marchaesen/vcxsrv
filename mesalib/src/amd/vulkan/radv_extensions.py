@@ -55,8 +55,7 @@ MAX_API_VERSION = None # Computed later
 # the those extension strings, then tests dEQP-VK.api.info.instance.extensions
 # and dEQP-VK.api.info.device fail due to the duplicated strings.
 EXTENSIONS = [
-    Extension('VK_ANDROID_external_memory_android_hardware_buffer', 3, 'RADV_SUPPORT_ANDROID_HARDWARE_BUFFER  && device->rad_info.has_syncobj_wait_for_submit'),
-    Extension('VK_ANDROID_native_buffer',                 5, 'ANDROID && device->rad_info.has_syncobj_wait_for_submit'),
+    Extension('VK_KHR_8bit_storage',                      1, True),
     Extension('VK_KHR_16bit_storage',                     1, True),
     Extension('VK_KHR_bind_memory2',                      1, True),
     Extension('VK_KHR_buffer_device_address',             1, True),
@@ -67,6 +66,7 @@ EXTENSIONS = [
     Extension('VK_KHR_descriptor_update_template',        1, True),
     Extension('VK_KHR_device_group',                      4, True),
     Extension('VK_KHR_device_group_creation',             1, True),
+    Extension('VK_KHR_display',                          23, 'VK_USE_PLATFORM_DISPLAY_KHR'),
     Extension('VK_KHR_draw_indirect_count',               1, True),
     Extension('VK_KHR_driver_properties',                 1, True),
     Extension('VK_KHR_external_fence',                    1, 'device->rad_info.has_syncobj_wait_for_submit'),
@@ -89,6 +89,7 @@ EXTENSIONS = [
     Extension('VK_KHR_maintenance1',                      2, True),
     Extension('VK_KHR_maintenance2',                      1, True),
     Extension('VK_KHR_maintenance3',                      1, True),
+    Extension('VK_KHR_multiview',                         1, True),
     Extension('VK_KHR_pipeline_executable_properties',    1, True),
     Extension('VK_KHR_push_descriptor',                   2, True),
     Extension('VK_KHR_relaxed_block_layout',              1, True),
@@ -98,8 +99,8 @@ EXTENSIONS = [
     Extension('VK_KHR_shader_atomic_int64',               1, 'LLVM_VERSION_MAJOR >= 9 || !device->use_llvm'),
     Extension('VK_KHR_shader_clock',                      1, True),
     Extension('VK_KHR_shader_draw_parameters',            1, True),
-    Extension('VK_KHR_shader_float_controls',             4, True),
     Extension('VK_KHR_shader_float16_int8',               1, True),
+    Extension('VK_KHR_shader_float_controls',             4, True),
     Extension('VK_KHR_shader_non_semantic_info',          1, True),
     Extension('VK_KHR_shader_subgroup_extended_types',    1, True),
     Extension('VK_KHR_shader_terminate_invocation',       1, True),
@@ -116,23 +117,21 @@ EXTENSIONS = [
     Extension('VK_KHR_wayland_surface',                   6, 'VK_USE_PLATFORM_WAYLAND_KHR'),
     Extension('VK_KHR_xcb_surface',                       6, 'VK_USE_PLATFORM_XCB_KHR'),
     Extension('VK_KHR_xlib_surface',                      6, 'VK_USE_PLATFORM_XLIB_KHR'),
-    Extension('VK_KHR_multiview',                         1, True),
-    Extension('VK_KHR_display',                          23, 'VK_USE_PLATFORM_DISPLAY_KHR'),
-    Extension('VK_KHR_8bit_storage',                      1, True),
-    Extension('VK_EXT_direct_mode_display',               1, 'VK_USE_PLATFORM_DISPLAY_KHR'),
+    Extension('VK_EXT_4444_formats',                      1, True),
     Extension('VK_EXT_acquire_xlib_display',              1, 'VK_USE_PLATFORM_XLIB_XRANDR_EXT'),
     Extension('VK_EXT_buffer_device_address',             2, True),
     Extension('VK_EXT_calibrated_timestamps',             1, True),
     Extension('VK_EXT_conditional_rendering',             2, True),
     Extension('VK_EXT_conservative_rasterization',        1, 'device->rad_info.chip_class >= GFX9'),
     Extension('VK_EXT_custom_border_color',               12, True),
-    Extension('VK_EXT_display_surface_counter',           1, 'VK_USE_PLATFORM_DISPLAY_KHR'),
-    Extension('VK_EXT_display_control',                   1, 'VK_USE_PLATFORM_DISPLAY_KHR && device->rad_info.has_syncobj_wait_for_submit'),
     Extension('VK_EXT_debug_report',                      9, True),
     Extension('VK_EXT_depth_clip_enable',                 1, True),
     Extension('VK_EXT_depth_range_unrestricted',          1, True),
     Extension('VK_EXT_descriptor_indexing',               2, True),
+    Extension('VK_EXT_direct_mode_display',               1, 'VK_USE_PLATFORM_DISPLAY_KHR'),
     Extension('VK_EXT_discard_rectangles',                1, True),
+    Extension('VK_EXT_display_control',                   1, 'VK_USE_PLATFORM_DISPLAY_KHR && device->rad_info.has_syncobj_wait_for_submit'),
+    Extension('VK_EXT_display_surface_counter',           1, 'VK_USE_PLATFORM_DISPLAY_KHR'),
     Extension('VK_EXT_extended_dynamic_state',            1, True),
     Extension('VK_EXT_external_memory_dma_buf',           1, True),
     Extension('VK_EXT_external_memory_host',              1, 'device->rad_info.has_userptr'),
@@ -141,8 +140,7 @@ EXTENSIONS = [
     Extension('VK_EXT_image_robustness',                  1, True),
     Extension('VK_EXT_index_type_uint8',                  1, 'device->rad_info.chip_class >= GFX8'),
     Extension('VK_EXT_inline_uniform_block',              1, True),
-    # Disable line rasterization on GFX9 until the CTS failures have been resolved.
-    Extension('VK_EXT_line_rasterization',                1, 'device->rad_info.chip_class != GFX9'),
+    Extension('VK_EXT_line_rasterization',                1, True),
     Extension('VK_EXT_memory_budget',                     1, True),
     Extension('VK_EXT_memory_priority',                   1, True),
     Extension('VK_EXT_pci_bus_info',                      2, True),
@@ -159,10 +157,10 @@ EXTENSIONS = [
     Extension('VK_EXT_shader_demote_to_helper_invocation',1, 'LLVM_VERSION_MAJOR >= 9 || !device->use_llvm'),
     # LLVM versions before 11 have a bug where compilation fails when the result of an atomic is used
     Extension('VK_EXT_shader_image_atomic_int64',         1, 'LLVM_VERSION_MAJOR >= 11 || !device->use_llvm'),
-    Extension('VK_EXT_shader_viewport_index_layer',       1, True),
     Extension('VK_EXT_shader_stencil_export',             1, True),
     Extension('VK_EXT_shader_subgroup_ballot',            1, True),
     Extension('VK_EXT_shader_subgroup_vote',              1, True),
+    Extension('VK_EXT_shader_viewport_index_layer',       1, True),
     Extension('VK_EXT_subgroup_size_control',             2, True),
     Extension('VK_EXT_texel_buffer_alignment',            1, True),
     Extension('VK_EXT_transform_feedback',                1, True),
@@ -181,18 +179,39 @@ EXTENSIONS = [
     Extension('VK_AMD_shader_core_properties',            2, True),
     Extension('VK_AMD_shader_core_properties2',           1, True),
     Extension('VK_AMD_shader_explicit_vertex_parameter',  1, True),
-    Extension('VK_AMD_shader_image_load_store_lod',       1, True),
     Extension('VK_AMD_shader_fragment_mask',              1, True),
+    Extension('VK_AMD_shader_image_load_store_lod',       1, True),
     Extension('VK_AMD_shader_info',                       1, True),
     Extension('VK_AMD_shader_trinary_minmax',             1, True),
     Extension('VK_AMD_texture_gather_bias_lod',           1, True),
+    Extension('VK_ANDROID_external_memory_android_hardware_buffer', 3, 'RADV_SUPPORT_ANDROID_HARDWARE_BUFFER  && device->rad_info.has_syncobj_wait_for_submit'),
+    Extension('VK_ANDROID_native_buffer',                 5, 'ANDROID && device->rad_info.has_syncobj_wait_for_submit'),
     Extension('VK_GOOGLE_decorate_string',                1, True),
     Extension('VK_GOOGLE_hlsl_functionality1',            1, True),
     Extension('VK_GOOGLE_user_type',                      1, True),
     Extension('VK_NV_compute_shader_derivatives',         1, True),
-    Extension('VK_EXT_4444_formats',                      1, True),
     Extension('VK_VALVE_mutable_descriptor_type',         1, True),
 ]
+
+# Sort the extension list the way we expect: KHR, then EXT, then vendors
+# alphabetically. For digits, read them as a whole number sort that.
+# eg.: VK_KHR_8bit_storage < VK_KHR_16bit_storage < VK_EXT_acquire_xlib_display
+def extension_order(ext):
+    order = []
+    for substring in re.split('(KHR|EXT|[0-9]+)', ext.name):
+        if substring == 'KHR':
+            order.append(1)
+        if substring == 'EXT':
+            order.append(2)
+        elif substring.isdigit():
+            order.append(int(substring))
+        else:
+            order.append(substring)
+    return order
+for i in range(len(EXTENSIONS) - 1):
+    if extension_order(EXTENSIONS[i + 1]) < extension_order(EXTENSIONS[i]):
+        print(EXTENSIONS[i + 1].name + ' should come before ' + EXTENSIONS[i].name)
+        exit(1)
 
 MAX_API_VERSION = VkVersion('0.0.0')
 for version in API_VERSIONS:

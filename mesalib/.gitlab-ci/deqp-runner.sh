@@ -24,8 +24,8 @@ if [ "$DEQP_VER" = "vk" ]; then
    fi
 fi
 
-if [ -z "$DEQP_SKIPS" ]; then
-   echo 'DEQP_SKIPS must be set to something like "deqp-default-skips.txt"'
+if [ -z "$GPU_VERSION" ]; then
+   echo 'GPU_VERSION must be set to something like "llvmpipe" or "freedreno-a630" (the name used in .gitlab-ci/deqp-gpu-version-*.txt)'
    exit 1
 fi
 
@@ -79,12 +79,18 @@ if [ ! -s /tmp/case-list.txt ]; then
     exit 1
 fi
 
-if [ -n "$DEQP_EXPECTED_FAILS" ]; then
-    BASELINE="--baseline $INSTALL/$DEQP_EXPECTED_FAILS"
+if [ -e "$INSTALL/deqp-$GPU_VERSION-fails.txt" ]; then
+    DEQP_RUNNER_OPTIONS="$DEQP_RUNNER_OPTIONS --baseline $INSTALL/deqp-$GPU_VERSION-fails.txt"
 fi
 
-if [ -n "$DEQP_FLAKES" ]; then
-    FLAKES="--flakes $INSTALL/$DEQP_FLAKES"
+if [ -e "$INSTALL/deqp-$GPU_VERSION-flakes.txt" ]; then
+    DEQP_RUNNER_OPTIONS="$DEQP_RUNNER_OPTIONS --flakes $INSTALL/deqp-$GPU_VERSION-flakes.txt"
+fi
+
+if [ -e "$INSTALL/deqp-$GPU_VERSION-skips.txt" ]; then
+    DEQP_RUNNER_OPTIONS="$DEQP_RUNNER_OPTIONS --skips $INSTALL/deqp-$GPU_VERSION-skips.txt"
+else
+    DEQP_RUNNER_OPTIONS="$DEQP_RUNNER_OPTIONS --skips $INSTALL/deqp-default-skips.txt"
 fi
 
 set +e
@@ -98,7 +104,7 @@ else
 fi
 
 # If this CI lab lacks artifacts support, print the whole list of failures/flakes.
-if [ -z "$DEQP_NO_SAVE_RESULTS" ]; then
+if [ -n "$DEQP_NO_SAVE_RESULTS" ]; then
    SUMMARY_LIMIT="--summary-limit 0"
 fi
 
@@ -114,9 +120,7 @@ run_cts() {
         --deqp $deqp \
         --output $RESULTS \
         --caselist $caselist \
-        --skips $INSTALL/$DEQP_SKIPS \
-        $BASELINE \
-        $FLAKES \
+        --testlog-to-xml  /deqp/executor/testlog-to-xml \
         $JOB \
         $SUMMARY_LIMIT \
 	$DEQP_RUNNER_OPTIONS \
@@ -167,31 +171,6 @@ report_flakes() {
 
 }
 
-# Generate junit results
-generate_junit() {
-    results=$1
-    echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-    echo "<testsuites>"
-    echo "<testsuite name=\"$DEQP_VER-$CI_NODE_INDEX\">"
-    while read line; do
-        testcase=${line%,*}
-        result=${line#*,}
-        # avoid counting Skip's in the # of tests:
-        if [ "$result" = "Skip" ]; then
-            continue;
-        fi
-        echo "<testcase name=\"$testcase\">"
-        if [ "$result" != "Pass" ]; then
-            echo "<failure type=\"$result\">"
-            echo "$result: See $CI_JOB_URL/artifacts/results/$testcase.xml"
-            echo "</failure>"
-        fi
-        echo "</testcase>"
-    done < $results
-    echo "</testsuite>"
-    echo "</testsuites>"
-}
-
 parse_renderer() {
     RENDERER=`grep -A1 TestCaseResult.\*info.renderer $RESULTS/deqp-info.qpa | grep '<Text' | sed 's|.*<Text>||g' | sed 's|</Text>||g'`
     VERSION=`grep -A1 TestCaseResult.\*info.version $RESULTS/deqp-info.qpa | grep '<Text' | sed 's|.*<Text>||g' | sed 's|</Text>||g'`
@@ -223,6 +202,11 @@ check_vk_device_name() {
         echo "Expected deviceName $DEQP_EXPECTED_RENDERER"
         exit 1
     fi
+}
+
+report_load() {
+    echo "System load: $(cut -d' ' -f1-3 < /proc/loadavg)"
+    echo "# of CPU cores: $(cat /proc/cpuinfo | grep processor | wc -l)"
 }
 
 # wrapper to supress +x to avoid spamming the log
@@ -260,31 +244,26 @@ FAILURES_CSV=$RESULTS/failures.csv
 run_cts $DEQP /tmp/case-list.txt $RESULTS_CSV
 DEQP_EXITCODE=$?
 
-echo "System load: $(cut -d' ' -f1-3 < /proc/loadavg)"
-echo "# of CPU cores: $(cat /proc/cpuinfo | grep processor | wc -l)"
+quiet report_load
 
-# Remove the shader cache, no need to include in the artifacts.
-find $RESULTS -name \*.shader_cache | xargs rm -f
+# Remove all but the first 50 individual XML files uploaded as artifacts, to
+# save fd.o space when you break everything.
+find $RESULTS -name \*.xml | \
+    sort -n |
+    sed -n '1,+49!p' | \
+    xargs rm -f
 
-# junit is disabled, because it overloads gitlab.freedesktop.org to parse it.
-# quiet generate_junit $RESULTS_CSV > $RESULTS/results.xml
+# If any QPA XMLs are there, then include the XSL/CSS in our artifacts.
+find $RESULTS -name \*.xml \
+    -exec cp /deqp/testlog.css /deqp/testlog.xsl "$RESULTS/" ";" \
+    -quit
 
-# Turn up to the first 50 individual test QPA files from failures or flakes into
-# XML results you can view from the browser.
-qpas=`find $RESULTS -name \*.qpa -a ! -name deqp-info.qpa`
-if [ -n "$qpas" ]; then
-    shard_qpas=`echo "$qpas" | grep dEQP- | head -n 50`
-    for qpa in $shard_qpas; do
-        xml=`echo $qpa | sed 's|\.qpa|.xml|'`
-        /deqp/executor/testlog-to-xml $qpa $xml
-    done
-
-    cp /deqp/testlog.css "$RESULTS/"
-    cp /deqp/testlog.xsl "$RESULTS/"
-
-    # Remove all the QPA files (extracted or not) now that we have the XML we want.
-    echo $qpas | xargs rm -f
-fi
+deqp-runner junit \
+   --testsuite $DEQP_VER \
+   --results $RESULTS/failures.csv \
+   --output $RESULTS/junit.xml \
+   --limit 50 \
+   --template "See https://$CI_PROJECT_NAMESPACE.pages.freedesktop.org/-/$CI_PROJECT_NAME/-/jobs/$CI_JOB_ID/artifacts/results/{{testcase}}.xml"
 
 # Report the flakes to the IRC channel for monitoring (if configured):
 quiet report_flakes $RESULTS_CSV

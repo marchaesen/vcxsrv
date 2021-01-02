@@ -61,15 +61,20 @@ The valuators are initialized in the same way as for \fBPointerAbsolute\fR type.
 .IP
 .BI Touch
 Initializes a touch device.
-It will have 3 valuators: an "Abs MT Position X" at axis 0,
-an "Abs MT Position Y" valuator at axis 1 and an "Abs MT Pressure" valuator
-at axis 2.
+It will have 5 valuators: an "Abs MT Position X" at axis 0,
+an "Abs MT Position Y" valuator at axis 1,
+a horizontal scroll valuator on axis 2,
+a vertical scroll valuator on axis 3 and an "Abs MT Pressure" valuator
+at axis 4.
 .TP 7
 .BI "Option \*qTouchCount\*q \*q" int \*q
 Sets the maximum number of simultaneous touches for touch devices.
 .TP 7
 .BI "Option \*qPointerButtonCount\*q \*q" int \*q
 Sets the maximum number of buttons in pointer devices.
+.TP 7
+.BI "Option \*qPointerHasPressure\*q \*q" bool \*q
+Selects whether "Abs Pressure" is available at the axis 4 in pointer devices.
 
 .SH INTERFACE WITH THE DRIVER
 The communication with the driver is a binary protocol defined in

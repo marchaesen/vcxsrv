@@ -518,4 +518,6 @@ st_feedback_draw_vbo(struct gl_context *ctx,
       draw_set_mapped_vertex_buffer(draw, buf, NULL, 0);
    }
    draw_set_vertex_buffers(draw, 0, num_vbuffers, NULL);
+
+   draw_bind_vertex_shader(draw, NULL);
 }

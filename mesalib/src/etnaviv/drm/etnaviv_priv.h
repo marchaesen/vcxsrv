@@ -217,7 +217,7 @@ static inline void get_abs_timeout(struct drm_etnaviv_timespec *tv, uint64_t ns)
 }
 
 #if HAVE_VALGRIND
-#  include <valgrind/memcheck.h>
+#  include <memcheck.h>
 
 /*
  * For tracking the backing memory (if valgrind enabled, we force a mmap

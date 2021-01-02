@@ -245,81 +245,48 @@ add_printf_var(struct nir_shader *nir, unsigned uav_id)
    nir_variable *var =
       nir_variable_create(nir, nir_var_mem_ssbo,
                           glsl_array_type(glsl_uint_type(), printf_array_size, sizeof(unsigned)),
-                          "kernel_work_properies");
+                          "printf");
    var->data.binding = uav_id;
    return var;
 }
 
-static void
-lower_printf_impl(nir_builder *b, nir_intrinsic_instr *instr, nir_variable *var)
+bool
+clc_lower_printf_base(nir_shader *nir, unsigned uav_id)
 {
-   /* Atomic add a buffer size counter to determine where to write.
-    * If overflowed, return -1, otherwise, store the arguments and return 0.
-    */
-   b->cursor = nir_before_instr(&instr->instr);
-   nir_deref_instr *ssbo_deref = nir_build_deref_var(b, var);
-   nir_deref_instr *counter_deref = nir_build_deref_array_imm(b, ssbo_deref, 0);
-   nir_deref_instr *struct_deref = nir_instr_as_deref(instr->src[1].ssa->parent_instr);
-   nir_variable *struct_var = nir_deref_instr_get_variable(struct_deref);
-   const struct glsl_type *struct_type = struct_var->type;
-   /* Align the struct size to 4 for natural SSBO alignment */
-   int struct_size = align(glsl_get_cl_size(struct_type), 4);
+   nir_variable *printf_var = NULL;
+   nir_ssa_def *printf_deref = NULL;
+   nir_foreach_function(func, nir) {
+      nir_builder b;
+      nir_builder_init(&b, func->impl);
+      b.cursor = nir_before_instr(nir_block_first_instr(nir_start_block(func->impl)));
+      bool progress = false;
 
-   /* Hardcoding 64bit pointers to simplify some code below */
-   assert(instr->src[0].ssa->num_components == 1 && instr->src[0].ssa->bit_size == 64);
+      nir_foreach_block(block, func->impl) {
+         nir_foreach_instr_safe(instr, block) {
+            if (instr->type != nir_instr_type_intrinsic)
+               continue;
+            nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+            if (intrin->intrinsic != nir_intrinsic_load_printf_buffer_address)
+               continue;
 
-   nir_intrinsic_instr *atomic = nir_intrinsic_instr_create(b->shader, nir_intrinsic_deref_atomic_add);
-   nir_ssa_dest_init(&atomic->instr, &atomic->dest, 1, 32, NULL);
-   atomic->src[0] = nir_src_for_ssa(&counter_deref->dest.ssa);
-   atomic->src[1] = nir_src_for_ssa(nir_imm_int(b, struct_size + sizeof(uint64_t)));
-   nir_builder_instr_insert(b, &atomic->instr);
-
-   int max_valid_offset =
-      glsl_get_cl_size(var->type) - /* buffer size */
-      struct_size - /* printf args size */
-      sizeof(uint64_t) - /* format string */
-      sizeof(int); /* the first int in the buffer is for the counter */
-   nir_push_if(b, nir_ilt(b, &atomic->dest.ssa, nir_imm_int(b, max_valid_offset)));
-   nir_ssa_def *printf_succ_val = nir_imm_int(b, 0);
-
-   nir_ssa_def *start_offset = nir_u2u64(b, nir_iadd(b, &atomic->dest.ssa, nir_imm_int(b, sizeof(int))));
-   nir_deref_instr *as_byte_array = nir_build_deref_cast(b, &ssbo_deref->dest.ssa, nir_var_mem_ssbo, glsl_uint8_t_type(), 1);
-   nir_deref_instr *as_offset_byte_array = nir_build_deref_ptr_as_array(b, as_byte_array, start_offset);
-   nir_deref_instr *format_string_write_deref =
-      nir_build_deref_cast(b, &as_offset_byte_array->dest.ssa, nir_var_mem_ssbo, glsl_uint64_t_type(), 8);
-   nir_store_deref(b, format_string_write_deref, instr->src[0].ssa, ~0);
-
-   for (unsigned i = 0; i < glsl_get_length(struct_type); ++i) {
-      nir_ssa_def *field_offset_from_start = nir_imm_int64(b, glsl_get_struct_field_offset(struct_type, i) + sizeof(uint64_t));
-      nir_ssa_def *field_offset = nir_iadd(b, start_offset, field_offset_from_start);
-
-      const struct glsl_type *field_type = glsl_get_struct_field(struct_type, i);
-      nir_deref_instr *field_read_deref = nir_build_deref_struct(b, struct_deref, i);
-      nir_ssa_def *field_value = nir_load_deref(b, field_read_deref);
-
-      /* Clang does promotion of arguments to their "native" size. That means that any floats
-       * have been converted to doubles for the call to printf. Since we don't support doubles,
-       * convert them back here; copy-prop and other optimizations should remove all hint of doubles.
-       */
-      if (glsl_get_base_type(field_type) == GLSL_TYPE_DOUBLE) {
-         field_value = nir_f2f32(b, field_value);
-         field_type = glsl_float_type();
+            if (!printf_var) {
+               printf_var = add_printf_var(nir, uav_id);
+               nir_deref_instr *deref = nir_build_deref_var(&b, printf_var);
+               printf_deref = &deref->dest.ssa;
+            }
+            nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(printf_deref));
+         }
       }
 
-      as_offset_byte_array = nir_build_deref_ptr_as_array(b, as_byte_array, field_offset);
-      nir_deref_instr *field_write_deref =
-         nir_build_deref_cast(b, &as_offset_byte_array->dest.ssa, nir_var_mem_ssbo, field_type, glsl_get_cl_size(field_type));
-
-      nir_store_deref(b, field_write_deref, field_value, ~0);
+      if (progress)
+         nir_metadata_preserve(func->impl, nir_metadata_loop_analysis |
+                                           nir_metadata_block_index |
+                                           nir_metadata_dominance);
+      else
+         nir_metadata_preserve(func->impl, nir_metadata_all);
    }
 
-   nir_push_else(b, NULL);
-   nir_ssa_def *printf_fail_val = nir_imm_int(b, -1);
-   nir_pop_if(b, NULL);
-
-   nir_ssa_def *return_value = nir_if_phi(b, printf_succ_val, printf_fail_val);
-   nir_ssa_def_rewrite_uses(&instr->dest.ssa, nir_src_for_ssa(return_value));
-   nir_instr_remove(&instr->instr);
+   return printf_var != NULL;
 }
 
 static nir_variable *

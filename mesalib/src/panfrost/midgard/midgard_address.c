@@ -36,11 +36,17 @@
  * This allows for fast indexing into arrays. This file tries to pattern match the offset in NIR with this form to reduce pressure on the ALU pipe.
  */
 
+enum index_type {
+        ITYPE_U64 = 1 << 6,
+        ITYPE_U32 = 2 << 6, // zero-extend
+        ITYPE_I32 = 3 << 6, // sign-extend
+};
+
 struct mir_address {
         nir_ssa_scalar A;
         nir_ssa_scalar B;
 
-        bool zext;
+        enum index_type type;
         unsigned shift;
         unsigned bias;
 };
@@ -49,7 +55,9 @@ static bool
 mir_args_ssa(nir_ssa_scalar s, unsigned count)
 {
         nir_alu_instr *alu = nir_instr_as_alu(s.def->parent_instr);
-        assert(count <= nir_op_infos[alu->op].num_inputs);
+
+        if (count > nir_op_infos[alu->op].num_inputs)
+                return false;
 
         for (unsigned i = 0; i < count; ++i) {
                 if (!alu->src[i].src.is_ssa)
@@ -105,7 +113,7 @@ mir_match_iadd(struct mir_address *address, bool first_free)
         }
 }
 
-/* Matches u2u64 and sets zext */
+/* Matches u2u64 and sets type */
 
 static void
 mir_match_u2u64(struct mir_address *address)
@@ -121,7 +129,26 @@ mir_match_u2u64(struct mir_address *address)
         nir_ssa_scalar arg = nir_ssa_scalar_chase_alu_src(address->B, 0);
 
         address->B = arg;
-        address->zext = true;
+        address->type = ITYPE_U32;
+}
+
+/* Matches i2i64 and sets type */
+
+static void
+mir_match_i2i64(struct mir_address *address)
+{
+        if (!address->B.def || !nir_ssa_scalar_is_alu(address->B))
+                return;
+
+        if (!mir_args_ssa(address->B, 1))
+                return;
+
+        nir_op op = nir_ssa_scalar_alu_op(address->B);
+        if (op != nir_op_i2i64) return;
+        nir_ssa_scalar arg = nir_ssa_scalar_chase_alu_src(address->B, 0);
+
+        address->B = arg;
+        address->type = ITYPE_I32;
 }
 
 /* Matches ishl to shift */
@@ -175,7 +202,8 @@ static struct mir_address
 mir_match_offset(nir_ssa_def *offset, bool first_free)
 {
         struct mir_address address = {
-                .B = { .def = offset }
+                .B = { .def = offset },
+                .type = ITYPE_U64,
         };
 
         mir_match_mov(&address);
@@ -184,6 +212,7 @@ mir_match_offset(nir_ssa_def *offset, bool first_free)
         mir_match_iadd(&address, first_free);
         mir_match_mov(&address);
         mir_match_u2u64(&address);
+        mir_match_i2i64(&address);
         mir_match_mov(&address);
         mir_match_ishl(&address);
 
@@ -191,34 +220,40 @@ mir_match_offset(nir_ssa_def *offset, bool first_free)
 }
 
 void
-mir_set_offset(compiler_context *ctx, midgard_instruction *ins, nir_src *offset, bool is_shared)
+mir_set_offset(compiler_context *ctx, midgard_instruction *ins, nir_src *offset, unsigned seg)
 {
         for(unsigned i = 0; i < 16; ++i) {
                 ins->swizzle[1][i] = 0;
                 ins->swizzle[2][i] = 0;
         }
 
-        bool force_zext = (nir_src_bit_size(*offset) < 64);
+        /* Sign extend instead of zero extend in case the address is something
+         * like `base + offset + 20`, where offset could be negative. */
+        bool force_sext = (nir_src_bit_size(*offset) < 64);
 
         if (!offset->is_ssa) {
-                ins->load_store.arg_1 |= is_shared ? 0x6E : 0x7E;
+                ins->load_store.arg_1 |= seg;
                 ins->src[2] = nir_src_index(ctx, offset);
                 ins->src_types[2] = nir_type_uint | nir_src_bit_size(*offset);
 
-                if (force_zext)
-                        ins->load_store.arg_1 |= 0x80;
+                if (force_sext)
+                        ins->load_store.arg_1 |= ITYPE_I32;
+                else
+                        ins->load_store.arg_1 |= ITYPE_U64;
 
                 return;
         }
 
-        struct mir_address match = mir_match_offset(offset->ssa, !is_shared);
+        bool first_free = (seg == LDST_GLOBAL);
+
+        struct mir_address match = mir_match_offset(offset->ssa, first_free);
 
         if (match.A.def) {
                 ins->src[1] = nir_ssa_index(match.A.def);
                 ins->swizzle[1][0] = match.A.comp;
                 ins->src_types[1] = nir_type_uint | match.A.def->bit_size;
         } else
-                ins->load_store.arg_1 |= is_shared ? 0x6E : 0x7E;
+                ins->load_store.arg_1 |= seg;
 
         if (match.B.def) {
                 ins->src[2] = nir_ssa_index(match.B.def);
@@ -227,8 +262,10 @@ mir_set_offset(compiler_context *ctx, midgard_instruction *ins, nir_src *offset,
         } else
                 ins->load_store.arg_2 = 0x1E;
 
-        if (match.zext || force_zext)
-                ins->load_store.arg_1 |= 0x80;
+        if (force_sext)
+                match.type = ITYPE_I32;
+
+        ins->load_store.arg_1 |= match.type;
 
         assert(match.shift <= 7);
         ins->load_store.arg_2 |= (match.shift) << 5;

@@ -430,7 +430,7 @@ threaded_context_unwrap_sync(struct pipe_context *pipe)
 TC_FUNC1(set_active_query_state, flags, , bool, , *)
 
 TC_FUNC1(set_blend_color, blend_color, const, struct pipe_blend_color, *, )
-TC_FUNC1(set_stencil_ref, stencil_ref, const, struct pipe_stencil_ref, *, )
+TC_FUNC1(set_stencil_ref, stencil_ref, const, struct pipe_stencil_ref, , *)
 TC_FUNC1(set_clip_state, clip_state, const, struct pipe_clip_state, *, )
 TC_FUNC1(set_sample_mask, sample_mask, , unsigned, , *)
 TC_FUNC1(set_min_samples, min_samples, , unsigned, , *)
@@ -469,7 +469,7 @@ tc_call_destroy_query(struct pipe_context *pipe, union tc_payload *payload)
 {
    struct threaded_query *tq = threaded_query(payload->query);
 
-   if (tq->head_unflushed.next)
+   if (list_is_linked(&tq->head_unflushed))
       list_del(&tq->head_unflushed);
 
    pipe->destroy_query(pipe, payload->query);
@@ -510,7 +510,7 @@ tc_call_end_query(struct pipe_context *pipe, union tc_payload *payload)
    struct tc_end_query_payload *p = (struct tc_end_query_payload *)payload;
    struct threaded_query *tq = threaded_query(p->query);
 
-   if (!tq->head_unflushed.next)
+   if (!list_is_linked(&tq->head_unflushed))
       list_add(&tq->head_unflushed, &p->tc->unflushed_queries);
 
    pipe->end_query(pipe, p->query);
@@ -548,7 +548,7 @@ tc_get_query_result(struct pipe_context *_pipe,
 
    if (success) {
       tq->flushed = true;
-      if (tq->head_unflushed.next) {
+      if (list_is_linked(&tq->head_unflushed)) {
          /* This is safe because it can only happen after we sync'd. */
          list_del(&tq->head_unflushed);
       }

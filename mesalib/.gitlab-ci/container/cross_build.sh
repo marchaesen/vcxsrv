@@ -21,6 +21,20 @@ apt-get install -y --no-remove \
         libffi-dev:$arch \
         libstdc++6:$arch \
         libtinfo-dev:$arch \
+        libx11-dev:$arch \
+        libx11-xcb-dev:$arch \
+        libxcb-dri2-0-dev:$arch \
+        libxcb-dri3-dev:$arch \
+        libxcb-glx0-dev:$arch \
+        libxcb-present-dev:$arch \
+        libxcb-randr0-dev:$arch \
+        libxcb-shm0-dev:$arch \
+        libxcb-xfixes0-dev:$arch \
+        libxdamage-dev:$arch \
+        libxext-dev:$arch \
+        libxrandr-dev:$arch \
+        libxshmfence-dev:$arch \
+        libxxf86vm-dev:$arch \
         wget
 
 if [[ $arch == "armhf" ]]; then

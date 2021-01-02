@@ -22,14 +22,6 @@
  */
 
 #include "compiler.h"
-#include "bi_print.h"
-#include "bi_generated_pack.h"
-
-#define RETURN_PACKED(str) { \
-        uint64_t temp = 0; \
-        memcpy(&temp, &str, sizeof(str)); \
-        return temp; \
-}
 
 /* This file contains the final passes of the compiler. Running after
  * scheduling and RA, the IR is now finalized, so we need to emit it to actual
@@ -49,7 +41,7 @@ bi_pack_header(bi_clause *clause, bi_clause *next_1, bi_clause *next_2, bool tdd
                         (next_1 == NULL) ? BIFROST_FLOW_END :
                         clause->flow_control,
                 .terminate_discarded_threads = tdd,
-                .next_clause_prefetch = clause->next_clause_prefetch,
+                .next_clause_prefetch = clause->next_clause_prefetch && next_1,
                 .staging_barrier = clause->staging_barrier,
                 .staging_register = clause->staging_register,
                 .dependency_wait = dependency_wait,
@@ -105,15 +97,23 @@ bi_constant_field(unsigned idx)
 static bool
 bi_assign_fau_idx_single(bi_registers *regs,
                          bi_clause *clause,
-                         bi_instruction *ins,
+                         bi_instr *ins,
                          bool assigned,
                          bool fast_zero)
 {
         if (!ins)
                 return assigned;
 
-        if (ins->type == BI_BRANCH && clause->branch_constant) {
-                /* By convention branch constant is last */
+        if (ins->op == BI_OPCODE_ATEST) {
+                /* ATEST FAU index must point to the ATEST parameter datum slot */
+                assert(!assigned && !clause->branch_constant);
+                regs->fau_idx = BIR_FAU_ATEST_PARAM;
+                return true;
+        }
+
+        if (ins->branch_target && clause->branch_constant) {
+                /* By convention branch constant is last XXX: this whole thing
+                 * is a hack, FIXME */
                 unsigned idx = clause->constant_count - 1;
 
                 /* We can only jump to clauses which are qword aligned so the
@@ -126,21 +126,29 @@ bi_assign_fau_idx_single(bi_registers *regs,
                 if (assigned && regs->fau_idx != C)
                         unreachable("Mismatched fau_idx: branch");
 
+                bi_foreach_src(ins, s) {
+                        if (ins->src[s].type == BI_INDEX_CONSTANT)
+                                ins->src[s] = bi_passthrough(BIFROST_SRC_FAU_HI);
+                }
+
                 regs->fau_idx = C;
                 return true;
         }
 
         bi_foreach_src(ins, s) {
-                if (s == 0 && (ins->type == BI_LOAD_VAR_ADDRESS || ins->type == BI_LOAD_ATTR)) continue;
-                if (s == 1 && (ins->type == BI_BRANCH)) continue;
-
-                if (ins->src[s] & BIR_INDEX_CONSTANT) {
-                        /* Let direct addresses through */
-                        if (ins->type == BI_LOAD_VAR)
-                                continue;
-
+                if (ins->src[s].type == BI_INDEX_CONSTANT) {
                         bool hi = false;
-                        uint32_t cons = bi_get_immediate(ins, s);
+                        uint32_t cons = ins->src[s].value;
+                        unsigned swizzle = ins->src[s].swizzle;
+
+                        /* FMA can encode zero for free */
+                        if (cons == 0 && fast_zero) {
+                                assert(!ins->src[s].abs && !ins->src[s].neg);
+                                ins->src[s] = bi_passthrough(BIFROST_SRC_STAGE);
+                                ins->src[s].swizzle = swizzle;
+                                continue;
+                        }
+
                         unsigned idx = bi_lookup_constant(clause, cons, &hi);
                         unsigned lo = clause->constants[idx] & 0xF;
                         unsigned f = bi_constant_field(idx) | lo;
@@ -149,47 +157,18 @@ bi_assign_fau_idx_single(bi_registers *regs,
                                 unreachable("Mismatched uniform/const field: imm");
 
                         regs->fau_idx = f;
-                        ins->src[s] = BIR_INDEX_PASS | (hi ? BIFROST_SRC_FAU_HI : BIFROST_SRC_FAU_LO);
+                        ins->src[s] = bi_passthrough(hi ? BIFROST_SRC_FAU_HI : BIFROST_SRC_FAU_LO);
+                        ins->src[s].swizzle = swizzle;
                         assigned = true;
-                } else if (ins->src[s] & BIR_INDEX_ZERO && (ins->type == BI_LOAD_UNIFORM || ins->type == BI_LOAD_VAR)) {
-                        /* XXX: HACK UNTIL WE HAVE HI MATCHING DUE TO OVERFLOW XXX */
-                        ins->src[s] = BIR_INDEX_PASS | BIFROST_SRC_FAU_HI;
-                } else if (ins->src[s] & BIR_INDEX_ZERO && !fast_zero) {
-                        /* FMAs have a fast zero slot, ADD needs to use the
-                         * uniform/const slot's special 0 mode handled here */
-                        unsigned f = 0;
+                } else if (ins->src[s].type == BI_INDEX_FAU) {
+                        bool hi = ins->src[s].offset > 0;
 
-                        if (assigned && regs->fau_idx != f)
-                                unreachable("Mismatched uniform/const field: 0");
-
-                        regs->fau_idx = f;
-                        ins->src[s] = BIR_INDEX_PASS | BIFROST_SRC_FAU_LO;
+                        assert(!assigned || regs->fau_idx == ins->src[s].value);
+                        assert(ins->src[s].swizzle == BI_SWIZZLE_H01);
+                        regs->fau_idx = ins->src[s].value;
+                        ins->src[s] = bi_passthrough(hi ? BIFROST_SRC_FAU_HI :
+                                        BIFROST_SRC_FAU_LO);
                         assigned = true;
-                } else if (ins->src[s] & BIR_INDEX_ZERO && fast_zero) {
-                        ins->src[s] = BIR_INDEX_PASS | BIFROST_SRC_STAGE;
-                } else if (ins->src[s] & BIR_INDEX_BLEND) {
-                        unsigned rt = ins->blend_location;
-
-                        assert(rt <= 7);
-                        assert((ins->src[s] & ~BIR_SPECIAL) == BIFROST_SRC_FAU_HI ||
-                               (ins->src[s] & ~BIR_SPECIAL) == BIFROST_SRC_FAU_LO);
-                        ins->src[s] = BIR_INDEX_PASS | (ins->src[s] & ~BIR_SPECIAL);
-                        if (assigned && regs->fau_idx != (8 | rt))
-                                unreachable("Mismatched FAU index");
-
-                        regs->fau_idx = 8 | rt;
-                        assigned = true;
-                } else if (ins->src[s] & BIR_INDEX_FAU) {
-                        unsigned index = ins->src[s] & BIR_FAU_TYPE_MASK;
-                        bool hi = !!(ins->src[s] & BIR_FAU_HI);
-
-                        assert(!assigned || regs->fau_idx == index);
-                        regs->fau_idx = index;
-                        ins->src[s] = BIR_INDEX_PASS |
-                                      (hi ? BIFROST_SRC_FAU_HI : BIFROST_SRC_FAU_LO);
-                        assigned = true;
-                } else if (s & BIR_INDEX_UNIFORM) {
-                        unreachable("Push uniforms not implemented yet");
                 }
         }
 
@@ -209,35 +188,33 @@ bi_assign_fau_idx(bi_clause *clause,
 /* Assigns a slot for reading, before anything is written */
 
 static void
-bi_assign_slot_read(bi_registers *regs, unsigned src)
+bi_assign_slot_read(bi_registers *regs, bi_index src)
 {
         /* We only assign for registers */
-        if (!(src & BIR_INDEX_REGISTER))
+        if (src.type != BI_INDEX_REGISTER)
                 return;
-
-        unsigned reg = src & ~BIR_INDEX_REGISTER;
 
         /* Check if we already assigned the slot */
         for (unsigned i = 0; i <= 1; ++i) {
-                if (regs->slot[i] == reg && regs->enabled[i])
+                if (regs->slot[i] == src.value && regs->enabled[i])
                         return;
         }
 
-        if (regs->slot[2] == reg && regs->slot23.slot2 == BIFROST_OP_READ)
+        if (regs->slot[2] == src.value && regs->slot23.slot2 == BIFROST_OP_READ)
                 return;
 
         /* Assign it now */
 
         for (unsigned i = 0; i <= 1; ++i) {
                 if (!regs->enabled[i]) {
-                        regs->slot[i] = reg;
+                        regs->slot[i] = src.value;
                         regs->enabled[i] = true;
                         return;
                 }
         }
 
         if (!regs->slot23.slot3) {
-                regs->slot[2] = reg;
+                regs->slot[2] = src.value;
                 regs->slot23.slot2 = BIFROST_OP_READ;
                 return;
         }
@@ -253,44 +230,52 @@ bi_assign_slots(bi_bundle *now, bi_bundle *prev)
          * use the data registers, which has its own mechanism entirely
          * and thus gets skipped over here. */
 
-        unsigned read_dreg = now->add &&
-                bi_class_props[now->add->type] & BI_DATA_REG_SRC;
+        bool read_dreg = now->add &&
+                bi_opcode_props[(now->add)->op].sr_read;
 
-        unsigned write_dreg = prev->add &&
-                bi_class_props[prev->add->type] & BI_DATA_REG_DEST;
+        bool write_dreg = now->add &&
+                bi_opcode_props[(now->add)->op].sr_write;
 
         /* First, assign reads */
 
         if (now->fma)
                 bi_foreach_src(now->fma, src)
-                        bi_assign_slot_read(&now->regs, now->fma->src[src]);
+                        bi_assign_slot_read(&now->regs, (now->fma)->src[src]);
 
         if (now->add) {
                 bi_foreach_src(now->add, src) {
                         if (!(src == 0 && read_dreg))
-                                bi_assign_slot_read(&now->regs, now->add->src[src]);
+                                bi_assign_slot_read(&now->regs, (now->add)->src[src]);
                 }
         }
 
-        /* Next, assign writes */
+        /* Next, assign writes. Staging writes are assigned separately, but
+         * +ATEST wants its destination written to both a staging register
+         * _and_ a regular write, because it may not generate a message */
 
-        if (prev->add && prev->add->dest & BIR_INDEX_REGISTER && !write_dreg) {
-                now->regs.slot[3] = prev->add->dest & ~BIR_INDEX_REGISTER;
-                now->regs.slot23.slot3 = BIFROST_OP_WRITE;
+        if (prev->add && (!write_dreg || prev->add->op == BI_OPCODE_ATEST)) {
+                bi_index idx = prev->add->dest[0];
+
+                if (idx.type == BI_INDEX_REGISTER) {
+                        now->regs.slot[3] = idx.value;
+                        now->regs.slot23.slot3 = BIFROST_OP_WRITE;
+                }
         }
 
-        if (prev->fma && prev->fma->dest & BIR_INDEX_REGISTER) {
-                unsigned r = prev->fma->dest & ~BIR_INDEX_REGISTER;
+        if (prev->fma) {
+                bi_index idx = (prev->fma)->dest[0];
 
-                if (now->regs.slot23.slot3) {
-                        /* Scheduler constraint: cannot read 3 and write 2 */
-                        assert(!now->regs.slot23.slot2);
-                        now->regs.slot[2] = r;
-                        now->regs.slot23.slot2 = BIFROST_OP_WRITE;
-                } else {
-                        now->regs.slot[3] = r;
-                        now->regs.slot23.slot3 = BIFROST_OP_WRITE;
-                        now->regs.slot23.slot3_fma = true;
+                if (idx.type == BI_INDEX_REGISTER) {
+                        if (now->regs.slot23.slot3) {
+                                /* Scheduler constraint: cannot read 3 and write 2 */
+                                assert(!now->regs.slot23.slot2);
+                                now->regs.slot[2] = idx.value;
+                                now->regs.slot23.slot2 = BIFROST_OP_WRITE;
+                        } else {
+                                now->regs.slot[3] = idx.value;
+                                now->regs.slot23.slot3 = BIFROST_OP_WRITE;
+                                now->regs.slot23.slot3_fma = true;
+                        }
                 }
         }
 
@@ -402,543 +387,6 @@ bi_pack_registers(bi_registers regs)
         return packed;
 }
 
-static unsigned
-bi_pack_fma_special(bi_clause *clause, bi_instruction *ins, bi_registers *regs)
-{
-        switch (ins->op.special) {
-        case BI_SPECIAL_CUBEFACE1:
-                return pan_pack_fma_cubeface1(clause, ins, regs);
-        default:
-                unreachable("Unknown special op");
-        }
-}
-
-#define BI_PACK_SHIFT(name)                                                      \
-static unsigned                                                                  \
-bi_pack_fma_ ## name(bi_clause *clause, bi_instruction *ins, bi_registers *regs) \
-{                                                                                \
-        switch (nir_alu_type_get_type_size(ins->dest_type)) {                    \
-        case 32:                                                                 \
-                return pan_pack_fma_ ## name ## _i32(clause, ins, regs);         \
-        case 16:                                                                 \
-                return pan_pack_fma_ ## name ## _v2i16(clause, ins, regs);       \
-        case 8:                                                                  \
-                return pan_pack_fma_ ## name ## _v4i8(clause, ins, regs);        \
-        default:                                                                 \
-                unreachable("Invalid dest size");                                \
-        }                                                                        \
-}
-
-BI_PACK_SHIFT(rshift_and)
-BI_PACK_SHIFT(lshift_and)
-BI_PACK_SHIFT(rshift_or)
-BI_PACK_SHIFT(lshift_or)
-BI_PACK_SHIFT(rshift_xor)
-BI_PACK_SHIFT(lshift_xor)
-BI_PACK_SHIFT(arshift)
-
-static unsigned
-bi_pack_fma_bitwise(bi_clause *clause, bi_instruction *ins, bi_registers *regs)
-{
-        switch (ins->op.bitwise) {
-        case BI_BITWISE_AND:
-                return ins->bitwise.rshift ?
-                       bi_pack_fma_rshift_and(clause, ins, regs) :
-                       bi_pack_fma_lshift_and(clause, ins, regs);
-        case BI_BITWISE_OR:
-                return ins->bitwise.rshift ?
-                       bi_pack_fma_rshift_or(clause, ins, regs) :
-                       bi_pack_fma_lshift_or(clause, ins, regs);
-        case BI_BITWISE_XOR:
-                return ins->bitwise.rshift ?
-                       bi_pack_fma_rshift_xor(clause, ins, regs) :
-                       bi_pack_fma_lshift_xor(clause, ins, regs);
-        case BI_BITWISE_ARSHIFT:
-                assert(ins->bitwise.rshift);
-                return bi_pack_fma_arshift(clause, ins, regs);
-        default:
-                unreachable("Invalid bitwise op");
-        }
-}
-
-static unsigned
-bi_pack_fma(bi_clause *clause, bi_bundle bundle, bi_registers *regs)
-{
-        if (!bundle.fma)
-                return pan_pack_fma_nop_i32(clause, NULL, regs);
-
-        bool f16 = bundle.fma->dest_type == nir_type_float16;
-        bool f32 = bundle.fma->dest_type == nir_type_float32;
-        bool u32 = bundle.fma->dest_type == nir_type_uint32 ||
-                bundle.fma->dest_type == nir_type_bool32;
-        bool u16 = bundle.fma->dest_type == nir_type_uint16;
-        bool s32 = bundle.fma->dest_type == nir_type_int32;
-        bool s16 = bundle.fma->dest_type == nir_type_int16;
-
-        bool src0_f16 = bundle.fma->src_types[0] == nir_type_float16;
-        bool src0_f32 = bundle.fma->src_types[0] == nir_type_float32;
-        bool src0_u16 = bundle.fma->src_types[0] == nir_type_uint16;
-        bool src0_s16 = bundle.fma->src_types[0] == nir_type_int16;
-        bool src0_s8 = bundle.fma->src_types[0] == nir_type_int8;
-        bool src0_u8 = bundle.fma->src_types[0] == nir_type_uint8;
-
-        enum bi_cond cond = bundle.fma->cond;
-        bool typeless_cond = (cond == BI_COND_EQ) || (cond == BI_COND_NE);
-
-        switch (bundle.fma->type) {
-        case BI_ADD:
-                if (bundle.fma->dest_type == nir_type_float32)
-                        return pan_pack_fma_fadd_f32(clause, bundle.fma, regs);
-                else if (bundle.fma->dest_type == nir_type_float16)
-                        return pan_pack_fma_fadd_v2f16(clause, bundle.fma, regs);
-
-                unreachable("TODO");
-        case BI_CMP:
-                assert (src0_f16 || src0_f32);
-
-                if (src0_f32)
-                        return pan_pack_fma_fcmp_f32(clause, bundle.fma, regs);
-                else
-                        return pan_pack_fma_fcmp_v2f16(clause, bundle.fma, regs);
-        case BI_BITWISE:
-                return bi_pack_fma_bitwise(clause, bundle.fma, regs);
-        case BI_CONVERT:
-                if (src0_s8) {
-                        assert(s32);
-                        return pan_pack_fma_s8_to_s32(clause, bundle.fma, regs);
-                } else if (src0_u8) {
-                        assert(u32);
-                        return pan_pack_fma_u8_to_u32(clause, bundle.fma, regs);
-                } else if (src0_s16) {
-                        assert(s32);
-                        return pan_pack_fma_s16_to_s32(clause, bundle.fma, regs);
-                } else if (src0_u16) {
-                        assert(u32);
-                        return pan_pack_fma_u16_to_u32(clause, bundle.fma, regs);
-                } else if (src0_f16) {
-                        assert(f32);
-                        return pan_pack_fma_f16_to_f32(clause, bundle.fma, regs);
-                } else if (src0_f32) {
-                        assert(f16);
-                        return pan_pack_fma_v2f32_to_v2f16(clause, bundle.fma, regs);
-                }
-
-                unreachable("Invalid FMA convert");
-        case BI_CSEL:
-                if (f32)
-                        return pan_pack_fma_csel_f32(clause, bundle.fma, regs);
-                else if (f16)
-                        return pan_pack_fma_csel_v2f16(clause, bundle.fma, regs);
-                else if ((u32 || s32) && typeless_cond)
-                        return pan_pack_fma_csel_i32(clause, bundle.fma, regs);
-                else if ((u16 || s16) && typeless_cond)
-                        return pan_pack_fma_csel_v2i16(clause, bundle.fma, regs);
-                else if (u32)
-                        return pan_pack_fma_csel_u32(clause, bundle.fma, regs);
-                else if (u16)
-                        return pan_pack_fma_csel_v2u16(clause, bundle.fma, regs);
-                else if (s32)
-                        return pan_pack_fma_csel_s32(clause, bundle.fma, regs);
-                else if (s16)
-                        return pan_pack_fma_csel_v2s16(clause, bundle.fma, regs);
-                else
-                        unreachable("Invalid csel type");
-        case BI_FMA:
-                if (bundle.fma->dest_type == nir_type_float32) {
-                        if (bundle.fma->op.mscale)
-                                return pan_pack_fma_fma_rscale_f32(clause, bundle.fma, regs);
-                        else
-                                return pan_pack_fma_fma_f32(clause, bundle.fma, regs);
-                } else {
-                        assert(bundle.fma->dest_type == nir_type_float16);
-
-                        if (bundle.fma->op.mscale)
-                                return pan_pack_fma_fma_rscale_v2f16(clause, bundle.fma, regs);
-                        else
-                                return pan_pack_fma_fma_v2f16(clause, bundle.fma, regs);
-                }
-        case BI_FREXP:
-                assert(src0_f32 || src0_f16);
-
-                if (src0_f32)
-                        return pan_pack_fma_frexpe_f32(clause, bundle.fma, regs);
-                else
-                        return pan_pack_fma_frexpe_v2f16(clause, bundle.fma, regs);
-        case BI_IMATH:
-                /* XXX: Only 32-bit, with carries/borrows forced */
-                assert(s32 || u32);
-
-                if (bundle.fma->op.imath == BI_IMATH_ADD)
-                        return pan_pack_fma_iaddc_i32(clause, bundle.fma, regs);
-                else
-                        return pan_pack_fma_isubb_i32(clause, bundle.fma, regs);
-        case BI_MOV:
-                return pan_pack_fma_mov_i32(clause, bundle.fma, regs);
-        case BI_SELECT:
-                if (nir_alu_type_get_type_size(bundle.fma->src_types[0]) == 16) {
-                        return pan_pack_fma_mkvec_v2i16(clause, bundle.fma, regs);
-                } else {
-                        assert(nir_alu_type_get_type_size(bundle.fma->src_types[0]) == 8);
-                        return pan_pack_fma_mkvec_v4i8(clause, bundle.fma, regs);
-                }
-        case BI_ROUND:
-                assert(f16 || f32);
-
-                if (f16)
-                        return pan_pack_fma_fround_v2f16(clause, bundle.fma, regs);
-                else
-                        return pan_pack_fma_fround_f32(clause, bundle.fma, regs);
-        case BI_REDUCE_FMA:
-                assert(src0_f32 && f32);
-                return pan_pack_fma_fadd_lscale_f32(clause, bundle.fma, regs);
-        case BI_IMUL:
-                return pan_pack_fma_imul_i32(clause, bundle.fma, regs);
-        case BI_SPECIAL_FMA:
-                return bi_pack_fma_special(clause, bundle.fma, regs);
-        default:
-                unreachable("Cannot encode class as FMA");
-        }
-}
-
-static unsigned
-bi_pack_add_branch_cond(bi_instruction *ins, bi_registers *regs)
-{
-        assert(ins->cond == BI_COND_EQ);
-        assert(ins->src[1] == BIR_INDEX_ZERO);
-
-        unsigned zero_ctrl = 0;
-        unsigned size = nir_alu_type_get_type_size(ins->src_types[0]);
-
-        if (size == 16) {
-                /* See BR_SIZE_ZERO swizzle disassembly */
-                zero_ctrl = ins->swizzle[0][0] ? 1 : 2;
-        } else {
-                assert(size == 32);
-        }
-
-        /* EQ swap to NE */
-        bool slot_swapped = false;
-
-        struct bifrost_branch pack = {
-                .src0 = bi_get_src(ins, regs, 0),
-                .src1 = (zero_ctrl << 1) | !slot_swapped,
-                .cond = BR_COND_EQ,
-                .size = BR_SIZE_ZERO,
-                .op = BIFROST_ADD_OP_BRANCH
-        };
-
-        if (ins->branch_target) {
-                /* We assigned the constant slot to fetch the branch offset so
-                 * we can just passthrough here. We put in the HI slot to match
-                 * the blob since that's where the magic flags end up
-                 */
-                assert(!ins->src[2]);
-                pack.src2 = BIFROST_SRC_FAU_HI;
-        } else {
-                pack.src2 = bi_get_src(ins, regs, 2);
-        }
-
-        RETURN_PACKED(pack);
-}
-
-static unsigned
-bi_pack_add_branch_uncond(bi_instruction *ins, bi_registers *regs)
-{
-        struct bifrost_branch pack = {
-                /* It's unclear what these bits actually mean */
-                .src0 = BIFROST_SRC_FAU_LO,
-                .src1 = BIFROST_SRC_PASS_FMA,
-
-                /* All ones in fact */
-                .cond = (BR_ALWAYS & 0x7),
-                .size = (BR_ALWAYS >> 3),
-                .op = BIFROST_ADD_OP_BRANCH
-        };
-
-        if (ins->branch_target) {
-                /* Offset is passed as a PC-relative offset through an
-                 * embedded constant.
-                 */
-                assert(!ins->src[2]);
-                pack.src2 = BIFROST_SRC_FAU_HI;
-        } else {
-                pack.src2 = bi_get_src(ins, regs, 2);
-        }
-
-        RETURN_PACKED(pack);
-}
-
-static unsigned
-bi_pack_add_branch(bi_instruction *ins, bi_registers *regs)
-{
-        if (ins->cond == BI_COND_ALWAYS)
-                return bi_pack_add_branch_uncond(ins, regs);
-        else
-                return bi_pack_add_branch_cond(ins, regs);
-}
-
-static unsigned
-bi_pack_add_special(bi_clause *clause, bi_instruction *ins, bi_registers *regs)
-{
-        bool f16 = ins->dest_type == nir_type_float16;
-
-        switch (ins->op.special) {
-        case BI_SPECIAL_FRCP:
-                return f16 ? pan_pack_add_frcp_f16(clause, ins, regs) :
-                             pan_pack_add_frcp_f32(clause, ins, regs);
-        case BI_SPECIAL_FRSQ:
-                return f16 ? pan_pack_add_frsq_f16(clause, ins, regs) :
-                             pan_pack_add_frsq_f32(clause, ins, regs);
-        case BI_SPECIAL_EXP2_LOW:
-                assert(!f16);
-                return pan_pack_add_fexp_f32(clause, ins, regs);
-        case BI_SPECIAL_IABS:
-                assert(ins->src_types[0] == nir_type_int32);
-                return pan_pack_add_iabs_s32(clause, ins, regs);
-        case BI_SPECIAL_CUBEFACE2:
-                return pan_pack_add_cubeface2(clause, ins, regs);
-        case BI_SPECIAL_CUBE_SSEL:
-                return pan_pack_add_cube_ssel(clause, ins, regs);
-        case BI_SPECIAL_CUBE_TSEL:
-                return pan_pack_add_cube_tsel(clause, ins, regs);
-        case BI_SPECIAL_CLPER_V6:
-                return pan_pack_add_clper_v6_i32(clause, ins, regs);
-        case BI_SPECIAL_CLPER_V7:
-                return pan_pack_add_clper_v7_i32(clause, ins, regs);
-        default:
-                unreachable("Unknown special op");
-        }
-}
-
-static unsigned
-bi_pack_add_ld_var(bi_clause *clause, bi_instruction *ins, bi_registers *regs)
-{
-        if (ins->load_vary.special)
-                return pan_pack_add_ld_var_special(clause, ins, regs);
-
-        if (ins->load_vary.flat) {
-                return ins->load_vary.immediate ?
-                       pan_pack_add_ld_var_flat_imm(clause, ins, regs) :
-                       pan_pack_add_ld_var_flat(clause, ins, regs);
-        }
-
-        return ins->load_vary.immediate ?
-               pan_pack_add_ld_var_imm(clause, ins, regs) :
-               pan_pack_add_ld_var(clause, ins, regs);
-}
-
-static unsigned
-bi_pack_add(bi_clause *clause, bi_bundle bundle, bi_registers *regs, gl_shader_stage stage)
-{
-        if (!bundle.add)
-                return pan_pack_add_nop_i32(clause, NULL, regs);
-
-        bool f16 = bundle.add->dest_type == nir_type_float16;
-        bool f32 = bundle.add->dest_type == nir_type_float32;
-        bool u32 = bundle.add->dest_type == nir_type_uint32 ||
-                bundle.add->dest_type == nir_type_bool32;
-        bool u16 = bundle.add->dest_type == nir_type_uint16;
-        bool s32 = bundle.add->dest_type == nir_type_int32;
-        bool s16 = bundle.add->dest_type == nir_type_int16;
-
-        bool src0_f16 = bundle.add->src_types[0] == nir_type_float16;
-        bool src0_f32 = bundle.add->src_types[0] == nir_type_float32;
-        bool src0_u32 = bundle.add->src_types[0] == nir_type_uint32;
-        bool src0_u16 = bundle.add->src_types[0] == nir_type_uint16;
-        bool src0_u8 = bundle.add->src_types[0] == nir_type_uint8;
-        bool src0_s32 = bundle.add->src_types[0] == nir_type_int32;
-        bool src0_s16 = bundle.add->src_types[0] == nir_type_int16;
-        bool src0_s8 = bundle.add->src_types[0] == nir_type_int8;
-
-        unsigned sz = nir_alu_type_get_type_size(bundle.add->dest_type);
-        enum bi_cond cond = bundle.add->cond;
-        bool typeless_cond = (cond == BI_COND_EQ) || (cond == BI_COND_NE);
-
-        switch (bundle.add->type) {
-        case BI_ADD:
-                if (bundle.add->dest_type == nir_type_float32)
-                        return pan_pack_add_fadd_f32(clause, bundle.add, regs);
-                else if (bundle.add->dest_type == nir_type_float16)
-                        return pan_pack_add_fadd_v2f16(clause, bundle.add, regs);
-
-                unreachable("TODO");
-        case BI_ATEST:
-                return pan_pack_add_atest(clause, bundle.add, regs);
-        case BI_BRANCH:
-                return bi_pack_add_branch(bundle.add, regs);
-        case BI_CMP:
-                if (src0_f32)
-                        return pan_pack_add_fcmp_f32(clause, bundle.add, regs);
-                else if (src0_f16)
-                        return pan_pack_add_fcmp_v2f16(clause, bundle.add, regs);
-                else if ((src0_u32 || src0_s32) && typeless_cond)
-                        return pan_pack_add_icmp_i32(clause, bundle.add, regs);
-                else if ((src0_u16 || src0_s16) && typeless_cond)
-                        return pan_pack_add_icmp_v2i16(clause, bundle.add, regs);
-                else if ((src0_u8 || src0_s8) && typeless_cond)
-                        return pan_pack_add_icmp_v4i8(clause, bundle.add, regs);
-                else if (src0_u32)
-                        return pan_pack_add_icmp_u32(clause, bundle.add, regs);
-                else if (src0_u16)
-                        return pan_pack_add_icmp_v2u16(clause, bundle.add, regs);
-                else if (src0_u8)
-                        return pan_pack_add_icmp_v4u8(clause, bundle.add, regs);
-                else if (src0_s32)
-                        return pan_pack_add_icmp_s32(clause, bundle.add, regs);
-                else if (src0_s16)
-                        return pan_pack_add_icmp_v2s16(clause, bundle.add, regs);
-                else if (src0_s8)
-                        return pan_pack_add_icmp_v4s8(clause, bundle.add, regs);
-                else
-                        unreachable("Invalid cmp type");
-        case BI_BLEND:
-                return pan_pack_add_blend(clause, bundle.add, regs);
-        case BI_BITWISE:
-                unreachable("Packing todo");
-        case BI_CONVERT:
-                if (src0_f16 && s16)
-                        return pan_pack_add_v2f16_to_v2s16(clause, bundle.add, regs);
-                else if (src0_f16 && u16)
-                        return pan_pack_add_v2f16_to_v2u16(clause, bundle.add, regs);
-                else if (src0_f16 && s32)
-                        return pan_pack_add_f16_to_s32(clause, bundle.add, regs);
-                else if (src0_f16 && u32)
-                        return pan_pack_add_f16_to_u32(clause, bundle.add, regs);
-                else if (src0_s16 && f16)
-                        return pan_pack_add_v2s16_to_v2f16(clause, bundle.add, regs);
-                else if (src0_u16 && f16)
-                        return pan_pack_add_v2u16_to_v2f16(clause, bundle.add, regs);
-                else if (src0_s8  && s16)
-                        return pan_pack_add_v2s8_to_v2s16(clause, bundle.add, regs);
-                else if (src0_u8  && u16)
-                        return pan_pack_add_v2u8_to_v2u16(clause, bundle.add, regs);
-                else if (src0_s8  && f16)
-                        return pan_pack_add_v2s8_to_v2f16(clause, bundle.add, regs);
-                else if (src0_u8  && f16)
-                        return pan_pack_add_v2u8_to_v2f16(clause, bundle.add, regs);
-                else if (src0_f32 && s32)
-                        return pan_pack_add_f32_to_s32(clause, bundle.add, regs);
-                else if (src0_f32 && u32)
-                        return pan_pack_add_f32_to_u32(clause, bundle.add, regs);
-                else if (src0_s8  && s32)
-                        return pan_pack_add_s8_to_s32(clause, bundle.add, regs);
-                else if (src0_u8  && u32)
-                        return pan_pack_add_u8_to_u32(clause, bundle.add, regs);
-                else if (src0_s8  && f32)
-                        return pan_pack_add_s8_to_f32(clause, bundle.add, regs);
-                else if (src0_u8  && f32)
-                        return pan_pack_add_u8_to_f32(clause, bundle.add, regs);
-                else if (src0_s32 && f32)
-                        return pan_pack_add_s32_to_f32(clause, bundle.add, regs);
-                else if (src0_u32 && f32)
-                        return pan_pack_add_u32_to_f32(clause, bundle.add, regs);
-                else if (src0_s16 && s32)
-                        return pan_pack_add_s16_to_s32(clause, bundle.add, regs);
-                else if (src0_u16 && u32)
-                        return pan_pack_add_u16_to_u32(clause, bundle.add, regs);
-                else if (src0_s16 && f32)
-                        return pan_pack_add_s16_to_f32(clause, bundle.add, regs);
-                else if (src0_u16 && f32)
-                        return pan_pack_add_u16_to_f32(clause, bundle.add, regs);
-                else if (src0_f16 && f32)
-                        return pan_pack_add_f16_to_f32(clause, bundle.add, regs);
-                else if (src0_f32 && f16)
-                        return pan_pack_add_v2f32_to_v2f16(clause, bundle.add, regs);
-                else
-                        unreachable("Invalid ADD convert");
-        case BI_DISCARD:
-                return pan_pack_add_discard_f32(clause, bundle.add, regs);
-        case BI_FREXP:
-                unreachable("Packing todo");
-        case BI_IMATH:
-                assert(sz == 8 || sz == 16 || sz == 32);
-
-                if (bundle.add->op.imath == BI_IMATH_ADD) {
-                        return (sz == 8) ? pan_pack_add_iadd_v4s8(clause, bundle.add, regs) :
-                                (sz == 16) ? pan_pack_add_iadd_v2s16(clause, bundle.add, regs) :
-                                pan_pack_add_iadd_s32(clause, bundle.add, regs);
-                } else {
-                        return (sz == 8) ? pan_pack_add_isub_v4s8(clause, bundle.add, regs) :
-                                (sz == 16) ? pan_pack_add_isub_v2s16(clause, bundle.add, regs) :
-                                pan_pack_add_isub_s32(clause, bundle.add, regs);
-                }
-        case BI_LOAD_ATTR:
-                return bundle.add->attribute.immediate ?
-                       pan_pack_add_ld_attr_imm(clause, bundle.add, regs) :
-                       pan_pack_add_ld_attr(clause, bundle.add, regs);
-        case BI_LOAD:
-        case BI_LOAD_UNIFORM:
-                assert(u32 || s32 || f32);
-                switch (bundle.add->vector_channels) {
-                case 1: return pan_pack_add_load_i32(clause, bundle.add, regs);
-                case 2: return pan_pack_add_load_i64(clause, bundle.add, regs);
-                case 3: return pan_pack_add_load_i96(clause, bundle.add, regs);
-                case 4: return pan_pack_add_load_i128(clause, bundle.add, regs);
-                default: unreachable("Invalid channel count");
-                }
-        case BI_LOAD_VAR:
-                return bi_pack_add_ld_var(clause, bundle.add, regs);
-        case BI_LOAD_VAR_ADDRESS:
-                return bundle.add->attribute.immediate ?
-                       pan_pack_add_lea_attr_imm(clause, bundle.add, regs) :
-                       pan_pack_add_lea_attr(clause, bundle.add, regs);
-        case BI_LOAD_TILE:
-                return pan_pack_add_ld_tile(clause, bundle.add, regs);
-        case BI_MINMAX:
-                if (bundle.add->op.minmax == BI_MINMAX_MIN) {
-                        if (bundle.add->dest_type == nir_type_float32)
-                                return pan_pack_add_fmin_f32(clause, bundle.add, regs);
-                        else if (bundle.add->dest_type == nir_type_float16)
-                                return pan_pack_add_fmin_v2f16(clause, bundle.add, regs);
-                        unreachable("TODO");
-                } else {
-                        if (bundle.add->dest_type == nir_type_float32)
-                                return pan_pack_add_fmax_f32(clause, bundle.add, regs);
-                        else if (bundle.add->dest_type == nir_type_float16)
-                                return pan_pack_add_fmax_v2f16(clause, bundle.add, regs);
-                        unreachable("TODO");
-                }
-        case BI_MOV:
-                unreachable("Packing todo");
-        case BI_STORE:
-                assert(src0_u32 || src0_s32 || src0_f32);
-                switch (bundle.add->vector_channels) {
-                case 1: return pan_pack_add_store_i32(clause, bundle.add, regs);
-                case 2: return pan_pack_add_store_i64(clause, bundle.add, regs);
-                case 3: return pan_pack_add_store_i96(clause, bundle.add, regs);
-                case 4: return pan_pack_add_store_i128(clause, bundle.add, regs);
-                default: unreachable("Invalid channel count");
-                }
-        case BI_STORE_VAR:
-                return pan_pack_add_st_cvt(clause, bundle.add, regs);
-        case BI_SPECIAL_ADD:
-                return bi_pack_add_special(clause, bundle.add, regs);
-        case BI_TABLE:
-                assert(bundle.add->dest_type == nir_type_float32);
-                return pan_pack_add_flogd_f32(clause, bundle.add, regs);
-        case BI_SELECT:
-                assert(nir_alu_type_get_type_size(bundle.add->src_types[0]) == 16);
-                return pan_pack_add_mkvec_v2i16(clause, bundle.add, regs);
-        case BI_TEXC:
-                return pan_pack_add_texc(clause, bundle.add, regs);
-        case BI_TEXC_DUAL:
-                unreachable("Packing todo");
-        case BI_TEXS:
-                assert(f16 || f32);
-
-                if (f16)
-                        return pan_pack_add_texs_2d_f16(clause, bundle.add, regs);
-                else
-                        return pan_pack_add_texs_2d_f32(clause, bundle.add, regs);
-case BI_ROUND:
-                unreachable("Packing todo");
-        case BI_ZS_EMIT:
-                return pan_pack_add_zs_emit(clause, bundle.add, regs);
-        default:
-                unreachable("Cannot encode class as ADD");
-        }
-}
-
 struct bi_packed_bundle {
         uint64_t lo;
         uint64_t hi;
@@ -964,39 +412,65 @@ bi_flip_slots(bi_registers *regs)
 static void
 bi_lower_cubeface2(bi_context *ctx, bi_bundle *bundle)
 {
+        bi_instr *old = bundle->add;
+
         /* Filter for +CUBEFACE2 */
-        if (!bundle->add || bundle->add->type != BI_SPECIAL_ADD
-                         || bundle->add->op.special != BI_SPECIAL_CUBEFACE2) {
+        if (!old || old->op != BI_OPCODE_CUBEFACE2)
                 return;
-        }
 
         /* This won't be used once we emit non-singletons, for now this is just
          * a fact of our scheduler and allows us to clobber FMA */
         assert(!bundle->fma);
 
         /* Construct an FMA op */
-        bi_instruction cubeface1 = {
-                .type = BI_SPECIAL_FMA,
-                .op.special = BI_SPECIAL_CUBEFACE1,
-                /* no dest, just to a temporary */
-                .dest_type = nir_type_float32,
-                .src_types = { nir_type_float32, nir_type_float32, nir_type_float32 },
-        };
-
-        /* Copy over the register allocated sources (coordinates). */
-        memcpy(&cubeface1.src, bundle->add->src, sizeof(cubeface1.src));
-
-        /* Zeroed by RA since this is all 32-bit */
-        for (unsigned i = 0; i < 3; ++i)
-                assert(bundle->add->swizzle[i][0] == 0);
+        bi_instr *new = rzalloc(ctx, bi_instr);
+        new->op = BI_OPCODE_CUBEFACE1;
+        /* no dest, just a temporary */
+        new->src[0] = old->src[0];
+        new->src[1] = old->src[1];
+        new->src[2] = old->src[2];
 
         /* Emit the instruction */
-        bundle->fma = bi_emit_before(ctx, bundle->add, cubeface1);
+        list_addtail(&new->link, &old->link);
+        bundle->fma = new;
 
         /* Now replace the sources of the CUBEFACE2 with a single passthrough
          * from the CUBEFACE1 (and a side-channel) */
-        bundle->add->src[0] = BIR_INDEX_PASS | BIFROST_SRC_STAGE;
-        bundle->add->src[1] = bundle->add->src[2] = 0;
+        old->src[0] = bi_passthrough(BIFROST_SRC_STAGE);
+        old->src[1] = old->src[2] = bi_null();
+}
+
+static inline enum bifrost_packed_src
+bi_get_src_slot(bi_registers *regs, unsigned reg)
+{
+        if (regs->slot[0] == reg && regs->enabled[0])
+                return BIFROST_SRC_PORT0;
+        else if (regs->slot[1] == reg && regs->enabled[1])
+                return BIFROST_SRC_PORT1;
+        else if (regs->slot[2] == reg && regs->slot23.slot2 == BIFROST_OP_READ)
+                return BIFROST_SRC_PORT2;
+        else
+                unreachable("Tried to access register with no port");
+}
+
+static inline enum bifrost_packed_src
+bi_get_src_new(bi_instr *ins, bi_registers *regs, unsigned s)
+{
+        if (!ins)
+                return 0;
+
+        bi_index src = ins->src[s];
+
+        if (src.type == BI_INDEX_REGISTER)
+                return bi_get_src_slot(regs, src.value);
+        else if (src.type == BI_INDEX_PASS)
+                return src.value;
+        else if (bi_is_null(src) && ins->op == BI_OPCODE_ZS_EMIT && s < 2)
+                return BIFROST_SRC_STAGE;
+        else {
+                /* TODO make safer */
+                return BIFROST_SRC_STAGE;
+        }
 }
 
 static struct bi_packed_bundle
@@ -1008,9 +482,38 @@ bi_pack_bundle(bi_clause *clause, bi_bundle bundle, bi_bundle prev, bool first_b
 
         bi_flip_slots(&bundle.regs);
 
+        bool sr_read = bundle.add &&
+                bi_opcode_props[(bundle.add)->op].sr_read;
+
         uint64_t reg = bi_pack_registers(bundle.regs);
-        uint64_t fma = bi_pack_fma(clause, bundle, &bundle.regs);
-        uint64_t add = bi_pack_add(clause, bundle, &bundle.regs, stage);
+        uint64_t fma = bi_pack_fma(bundle.fma,
+                        bi_get_src_new(bundle.fma, &bundle.regs, 0),
+                        bi_get_src_new(bundle.fma, &bundle.regs, 1),
+                        bi_get_src_new(bundle.fma, &bundle.regs, 2),
+                        bi_get_src_new(bundle.fma, &bundle.regs, 3));
+
+        uint64_t add = bi_pack_add(bundle.add,
+                        bi_get_src_new(bundle.add, &bundle.regs, sr_read + 0),
+                        bi_get_src_new(bundle.add, &bundle.regs, sr_read + 1),
+                        bi_get_src_new(bundle.add, &bundle.regs, sr_read + 2),
+                        0);
+
+        if (bundle.add) {
+                bi_instr *add = bundle.add;
+
+                bool sr_write = bi_opcode_props[add->op].sr_write;
+
+                if (sr_read) {
+                        assert(add->src[0].type == BI_INDEX_REGISTER);
+                        clause->staging_register = add->src[0].value;
+
+                        if (sr_write)
+                                assert(bi_is_equiv(add->src[0], add->dest[0]));
+                } else if (sr_write) {
+                        assert(add->dest[0].type == BI_INDEX_REGISTER);
+                        clause->staging_register = add->dest[0].value;
+                }
+        }
 
         struct bi_packed_bundle packed = {
                 .lo = reg | (fma << 35) | ((add & 0b111111) << 58),
@@ -1052,8 +555,8 @@ bi_pack_constants(bi_context *ctx, bi_clause *clause,
 
         /* Compute branch offset instead of a dummy 0 */
         if (branches) {
-                bi_instruction *br = clause->bundles[clause->bundle_count - 1].add;
-                assert(br && br->type == BI_BRANCH && br->branch_target);
+                bi_instr *br = clause->bundles[clause->bundle_count - 1].add;
+                assert(br && br->branch_target);
 
                 /* Put it in the high place */
                 int32_t qwords = bi_block_offset(ctx, clause, br->branch_target);
@@ -1104,7 +607,7 @@ bi_pack_clause(bi_context *ctx, bi_clause *clause,
                 struct util_dynarray *emission, gl_shader_stage stage,
                 bool tdd)
 {
-        /* After the deadline lowering */
+        /* TODO After the deadline lowering */
         bi_lower_cubeface2(ctx, &clause->bundles[0]);
 
         struct bi_packed_bundle ins_1 = bi_pack_bundle(clause, clause->bundles[0], clause->bundles[0], true, stage);
@@ -1178,9 +681,9 @@ bi_collect_blend_ret_addr(bi_context *ctx, struct util_dynarray *emission,
                 return;
 
         const bi_bundle *bundle = &clause->bundles[clause->bundle_count - 1];
-        const bi_instruction *ins = bundle->add;
+        const bi_instr *ins = bundle->add;
 
-        if (!ins || ins->type != BI_BLEND)
+        if (!ins || ins->op != BI_OPCODE_BLEND)
                 return;
 
         /* We don't support non-terminal blend instructions yet.
@@ -1190,11 +693,13 @@ bi_collect_blend_ret_addr(bi_context *ctx, struct util_dynarray *emission,
          */
         assert(0);
 
+#if 0
         assert(ins->blend_location < ARRAY_SIZE(ctx->blend_ret_offsets));
         assert(!ctx->blend_ret_offsets[ins->blend_location]);
         ctx->blend_ret_offsets[ins->blend_location] =
                 util_dynarray_num_elements(emission, uint8_t);
         assert(!(ctx->blend_ret_offsets[ins->blend_location] & 0x7));
+#endif
 }
 
 void

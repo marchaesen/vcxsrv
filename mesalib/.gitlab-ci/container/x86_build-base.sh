@@ -7,11 +7,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 apt-get install -y \
         ca-certificates \
-        gnupg \
-        python3-pip \
-        python3-setuptools \
-        unzip \
-        wget
+        gnupg
 
 # Upstream LLVM package repository
 apt-key add .gitlab-ci/container/llvm-snapshot.gpg.key
@@ -20,6 +16,14 @@ echo "deb https://apt.llvm.org/buster/ llvm-toolchain-buster-10 main" >/etc/apt/
 
 sed -i -e 's/http:\/\/deb/https:\/\/deb/g' /etc/apt/sources.list
 echo 'deb https://deb.debian.org/debian buster-backports main' >/etc/apt/sources.list.d/backports.list
+
+# Ephemeral packages (installed for this script and removed again at
+# the end)
+STABLE_EPHEMERAL=" \
+        python3-pip \
+        python3-setuptools \
+        unzip \
+        "
 
 apt-get update
 
@@ -64,11 +68,11 @@ apt-get install -y --no-remove \
         python-mako \
         python3-mako \
         python3-pil \
-        python3-pip \
         python3-requests \
-        python3-setuptools \
         qemu-user \
         scons \
+        valgrind \
+        wget \
         wine64-development \
         x11proto-dri2-dev \
         x11proto-gl-dev \
@@ -94,7 +98,7 @@ rm bin/glslangValidator glslang-master-linux-Release.zip
 ############### Uninstall ephemeral packages
 
 apt-get purge -y \
-        gnupg \
-        unzip
+        $STABLE_EPHEMERAL \
+        gnupg
 
 . .gitlab-ci/container/container_post_build.sh

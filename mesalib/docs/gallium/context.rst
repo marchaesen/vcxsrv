@@ -251,6 +251,10 @@ discussed above.
   for the purposes of the draw_auto stage. -1 means the buffer should
   be appended to, and everything else sets the internal offset.
 
+* ``stream_output_target_offset`` Retrieve the internal stream offset from
+  an streamout target. This is used to implement Vulkan pause/resume support
+  which needs to pass the internal offset to the API.
+
 NOTE: The currently-bound vertex or geometry shader must be compiled with
 the properly-filled-in structure pipe_stream_output_info describing which
 outputs should be written to buffers and how. The structure is part of

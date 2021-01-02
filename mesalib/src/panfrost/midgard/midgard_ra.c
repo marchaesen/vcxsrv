@@ -489,6 +489,12 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                 if (size == 16)
                         min_bound[dest] = 8;
 
+                mir_foreach_src(ins, s) {
+                        unsigned src_size = nir_alu_type_get_type_size(ins->src_types[s]);
+                        if (src_size == 16 && ins->src[s] < SSA_FIXED_MINIMUM)
+                                min_bound[ins->src[s]] = MAX2(min_bound[ins->src[s]], 8);
+                }
+
                 /* We don't have a swizzle for the conditional and we don't
                  * want to muck with the conditional itself, so just force
                  * alignment for now */
@@ -1048,7 +1054,7 @@ mir_ra(compiler_context *ctx)
         /* Report spilling information. spill_count is in 128-bit slots (vec4 x
          * fp32), but tls_size is in bytes, so multiply by 16 */
 
-        ctx->tls_size = spill_count * 16;
+        ctx->tls_size += spill_count * 16;
 
         install_registers(ctx, l);
 

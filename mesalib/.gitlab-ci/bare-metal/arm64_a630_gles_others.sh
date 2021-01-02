@@ -23,7 +23,7 @@ if ! env \
   DEQP_VER=gles31 \
   DEQP_FRACTION=5 \
   FD_MESA_DEBUG=nogmem \
-  DEQP_EXPECTED_FAILS=deqp-freedreno-a630-bypass-fails.txt \
+  GPU_VERSION=freedreno-a630-bypass \
   /install/deqp-runner.sh; then
     EXIT=1
 fi

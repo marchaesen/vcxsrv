@@ -5,6 +5,7 @@ variables:
           set -o xtrace
           /usr/bin/wget -q -O- ${CI_PROJECT_URL}/-/raw/${CI_COMMIT_SHA}/.gitlab-ci/download-git-cache.sh | sh -
           set +o xtrace
+  MINIO_HOST: minio-packet.freedesktop.org
 
 include:
   - project: 'freedesktop/ci-templates'
@@ -259,7 +260,7 @@ x86_build-base:
     - .fdo.container-build@debian
     - .container
   variables:
-    MESA_IMAGE_TAG: &x86_build-base "2020-12-02"
+    MESA_IMAGE_TAG: &x86_build-base "2020-12-17-use-ephemeral"
 
 .use-x86_build-base:
   extends:
@@ -276,7 +277,7 @@ x86_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &x86_build "2020-12-09"
+    MESA_IMAGE_TAG: &x86_build "2020-12-17-use-ephemeral"
 
 .use-x86_build:
   variables:
@@ -290,7 +291,7 @@ i386_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &i386_build "2020-12-02"
+    MESA_IMAGE_TAG: &i386_build "2020-12-23-opengl"
 
 .use-i386_build:
   variables:
@@ -304,7 +305,7 @@ ppc64el_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &ppc64el_build "2020-12-02"
+    MESA_IMAGE_TAG: &ppc64el_build "2020-12-23-opengl"
 
 .use-ppc64el_build:
   variables:
@@ -318,7 +319,7 @@ s390x_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &s390x_build "2020-12-02"
+    MESA_IMAGE_TAG: &s390x_build "2020-12-23-opengl"
 
 .use-s390x_build:
   variables:
@@ -332,7 +333,7 @@ android_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &android_build "2020-12-02"
+    MESA_IMAGE_TAG: &android_build "2020-12-17-use-ephemeral"
 
 .use-android_build:
   variables:
@@ -345,7 +346,7 @@ android_build:
 x86_test-base:
   extends: x86_build-base
   variables:
-    MESA_IMAGE_TAG: &x86_test-base "2020-12-02"
+    MESA_IMAGE_TAG: &x86_test-base "2020-12-17-install-ci-fairy"
 
 .use-x86_test-base:
   extends:
@@ -361,13 +362,13 @@ x86_test-base:
 x86_test-gl:
   extends: .use-x86_test-base
   variables:
-    MESA_IMAGE_TAG: &x86_test-gl "2020-11-06-deqp-version"
+    MESA_IMAGE_TAG: &x86_test-gl "2020-12-22-runner"
 
 # Debian 10 based x86 test image for VK
 x86_test-vk:
   extends: .use-x86_test-base
   variables:
-    MESA_IMAGE_TAG: &x86_test-vk "2020-12-10-shm"
+    MESA_IMAGE_TAG: &x86_test-vk "2020-12-22-runner"
 
 # Debian 10 based ARM build image
 arm_build:
@@ -375,7 +376,7 @@ arm_build:
     - .fdo.container-build@debian@arm64v8
     - .container
   variables:
-    MESA_IMAGE_TAG: &arm_build "2020-12-02"
+    MESA_IMAGE_TAG: &arm_build "2020-12-23-opengl"
 
 .use-arm_build:
   variables:
@@ -407,7 +408,7 @@ arm64_test:
   extends:
     - .use-arm_test-base
   variables:
-    MESA_IMAGE_TAG: &arm64_test "2020-12-03-expect"
+    MESA_IMAGE_TAG: &arm64_test "2020-12-23-piglit-2"
 
 .use-arm64_test:
   variables:
@@ -421,7 +422,7 @@ armhf_test:
   extends:
     - .use-arm_test-base
   variables:
-    MESA_IMAGE_TAG: &armhf_test "2020-12-03-expect"
+    MESA_IMAGE_TAG: &armhf_test "2020-12-23-piglit-2"
 
 .use-armhf_test:
   variables:
@@ -491,7 +492,7 @@ make git archive:
 
     # login with the JWT token
     - ci-fairy minio login $CI_JOB_JWT
-    - ci-fairy minio cp ../$CI_PROJECT_NAME.tar.gz minio://minio-packet.freedesktop.org/git-cache/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/$CI_PROJECT_NAME.tar.gz
+    - ci-fairy minio cp ../$CI_PROJECT_NAME.tar.gz minio://$MINIO_HOST/git-cache/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/$CI_PROJECT_NAME.tar.gz
 
 
 # Sanity checks of MR settings and commit logs
@@ -598,6 +599,14 @@ meson-testing:
   script:
     - .gitlab-ci/meson-build.sh
     - .gitlab-ci/prepare-artifacts.sh
+
+meson-testing-asan:
+  extends:
+    - meson-testing
+  variables:
+    EXTRA_OPTION: >
+      -D b_sanitize=address
+    UPLOAD_FOR_LAVA: ""
 
 meson-clover-testing:
   extends:
@@ -722,13 +731,13 @@ meson-android:
   variables:
     UNWIND: "disabled"
     DRI_LOADERS: >
-      -D glx=disabled
-      -D gbm=disabled
+      -D glx=dri
+      -D gbm=enabled
       -D egl=enabled
-      -D platforms=[]
+      -D platforms=x11
       -D osmesa=false
     GALLIUM_ST: >
-      -D dri3=disabled
+      -D dri3=enabled
       -D gallium-vdpau=disabled
       -D gallium-xvmc=disabled
       -D gallium-omx=disabled
@@ -829,7 +838,7 @@ test-d3d12-windows:
     GIT_STRATEGY: none # testing doesn't build anything from source
     GALLIUM_DRIVER: d3d12
     PIGLIT_PROFILE: quick_gl
-    PIGLIT_OPTIONS: -x nv_copy_depth_to_color
+    PIGLIT_OPTIONS: -x nv_copy_depth_to_color -x repeat-wait
   script:
     - . _install/piglit_run.ps1
   artifacts:
@@ -999,36 +1008,66 @@ meson-mingw32-x86_64:
     - meson-clover-testing
 
 .piglit-test:
-  extends:
-    - .test-gl
-    - .llvmpipe-rules
   artifacts:
     when: on_failure
     name: "mesa_${CI_JOB_NAME}"
     paths:
       - summary/
+      - results/*.txt
   variables:
-    LIBGL_ALWAYS_SOFTWARE: 1
     PIGLIT_NO_WINDOW: 1
   script:
     - install/piglit/run.sh
 
-llvmpipe-piglit-cl:
+.piglit-traces-test:
   extends:
     - .piglit-test
+  cache:
+    key: ${CI_JOB_NAME}
+    paths:
+      - replayer-db/
+  artifacts:
+    when: on_failure
+    name: "mesa_${CI_JOB_NAME}"
+    reports:
+      junit: results/junit.xml
+  variables:
+    PIGLIT_PROFILES: replay
+    PIGLIT_REPLAY_UPLOAD_TO_MINIO: 1
+    PIGLIT_REPLAY_EXTRA_ARGS:  --keep-image --db-path ${CI_PROJECT_DIR}/replayer-db/
+    PIGLIT_REPLAY_REFERENCE_IMAGES_BASE_URL: "/mesa-tracie-results/$CI_PROJECT_PATH"
+    PIGLIT_REPLAY_ARTIFACTS_BASE_URL: "/artifacts/$CI_PROJECT_PATH/$CI_PIPELINE_ID/$CI_JOB_ID"
+    PIGLIT_HTML_SUMMARY: 0
+    PIGLIT_JUNIT_RESULTS: 1
+
+.llvmpipe-test:
+  extends:
+    - .llvmpipe-rules
+  variables:
+    LIBGL_ALWAYS_SOFTWARE: "true"
+    GALLIUM_DRIVER: "llvmpipe"
+
+llvmpipe-piglit-cl:
+  extends:
     - .test-cl
+    - .piglit-test
+    - .llvmpipe-test
     - .llvmpipe-cl-rules
   variables:
     LP_CL: 1
     LP_NUM_THREADS: 1
     PIGLIT_PROFILES: cl
+    PIGLIT_RESULTS: "llvmpipe-cl"
     PIGLIT_OPTIONS: >
       -x bswap -x phatk -x clz-optimizations
   script:
     - install/piglit/run_cl.sh
 
 llvmpipe-piglit-quick_gl:
-  extends: .piglit-test
+  extends:
+    - .test-gl
+    - .piglit-test
+    - .llvmpipe-test
   variables:
     LP_NUM_THREADS: 0
     PIGLIT_OPTIONS: >
@@ -1041,39 +1080,117 @@ llvmpipe-piglit-quick_gl:
       -x max-texture-size
       -x maxsize
     PIGLIT_PROFILES: quick_gl
+    PIGLIT_RESULTS: "llvmpipe-quick_gl"
 
 llvmpipe-piglit-glslparser:
-  extends: .piglit-test
+  extends:
+    - .test-gl
+    - .piglit-test
+    - .llvmpipe-test
   variables:
     LP_NUM_THREADS: 0
     PIGLIT_PROFILES: glslparser
+    PIGLIT_RESULTS: "llvmpipe-glslparser"
 
 llvmpipe-piglit-quick_shader:
-  extends: .piglit-test
+  extends:
+    - .test-gl
+    - .piglit-test
+    - .llvmpipe-test
   variables:
     LP_NUM_THREADS: 1
     PIGLIT_PROFILES: quick_shader
+    PIGLIT_RESULTS: "llvmpipe-quick_shader"
 
-.deqp-test:
-  variables:
-    DEQP_SKIPS: deqp-default-skips.txt
-  script:
-    - ./install/deqp-runner.sh
-
-.deqp-test-gl:
+llvmpipe-traces:
   extends:
     - .test-gl
-    - .deqp-test
+    - .piglit-traces-test
+    - .llvmpipe-test
+  variables:
+    EGL_PLATFORM: "surfaceless"
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-llvmpipe.yml"
+    PIGLIT_REPLAY_DEVICE_NAME: "gl-vmware-llvmpipe"
+    PIGLIT_RESULTS: "llvmpipe-replay"
+
+.virgl-test:
+  extends:
+    - .test-gl
+    - .virgl-rules
+  variables:
+    LIBGL_ALWAYS_SOFTWARE: "true"
+    GALLIUM_DRIVER: "virpipe"
+
+virgl-traces:
+  extends:
+    - .piglit-traces-test
+    - .virgl-test
+  variables:
+    EGL_PLATFORM: "surfaceless"
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-virgl.yml"
+    PIGLIT_REPLAY_DEVICE_NAME: "gl-virgl"
+    PIGLIT_RESULTS: "virgl-replay"
+    MESA_GLES_VERSION_OVERRIDE: "3.1"
+    MESA_GLSL_VERSION_OVERRIDE: "310"
+
+arm64-a630-traces:
+  extends:
+    - .piglit-traces-test
+    - .arm64-a630-test
+  variables:
+    BARE_METAL_TEST_SCRIPT: "/install/piglit/run.sh"
+    EGL_PLATFORM: "surfaceless"
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/traces-freedreno.yml"
+    PIGLIT_REPLAY_DEVICE_NAME: "freedreno-a630"
+    PIGLIT_RESULTS: "freedreno-a630-replay"
+    # This lets us run several more traces which don't use any features we're
+    # missing.
+    MESA_GLSL_VERSION_OVERRIDE: "460"
+    MESA_GL_VERSION_OVERRIDE: "4.6"
+  artifacts:
+    reports:
+      junit: results/junit.xml
+
+radv-polaris10-traces:
+  extends:
+    - .piglit-traces-test
+    - .test-vk
+    - .test-radv
+    - .test-manual
+  variables:
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-radv.yml"
+    PIGLIT_REPLAY_DEVICE_NAME: "vk-amd-polaris10"
+    PIGLIT_RESULTS: "radv-polaris10-replay"
+  tags:
+    - polaris10
+
+radv-raven-traces:
+  extends:
+    - .piglit-traces-test
+    - .test-vk
+    - .test-radv
+    - .test-manual
+  variables:
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-radv.yml"
+    PIGLIT_REPLAY_DEVICE_NAME: "vk-amd-raven"
+    PIGLIT_RESULTS: "radv-raven-replay"
+  tags:
+    - raven
+
+.deqp-test:
+  script:
+    - ./install/deqp-runner.sh
+  artifacts:
+    reports:
+      junit: results/junit.xml
 
 .deqp-test-vk:
   extends:
-    - .test-vk
     - .deqp-test
   variables:
     DEQP_VER: vk
 
 .fossilize-test:
-  extends: .test-vk
   script:
     - ./install/fossilize-runner.sh
   artifacts:
@@ -1088,21 +1205,19 @@ llvmpipe-gles2:
     # Don't use threads inside llvmpipe, we've already got all cores
     # busy at the deqp-runner level.
     LP_NUM_THREADS: 0
-    DEQP_EXPECTED_FAILS: deqp-llvmpipe-fails.txt
-    LIBGL_ALWAYS_SOFTWARE: "true"
+    GPU_VERSION: llvmpipe
     DEQP_EXPECTED_RENDERER: llvmpipe
   extends:
-    - .deqp-test-gl
-    - .llvmpipe-rules
+    - .test-gl
+    - .deqp-test
+    - .llvmpipe-test
 
 softpipe-gles2:
   extends:
     - llvmpipe-gles2
     - .softpipe-rules
   variables:
-    DEQP_EXPECTED_FAILS: deqp-softpipe-fails.txt
-    DEQP_SKIPS: deqp-softpipe-skips.txt
-    DEQP_FLAKES: deqp-softpipe-flakes.txt
+    GPU_VERSION: softpipe
     GALLIUM_DRIVER: "softpipe"
     DEQP_EXPECTED_RENDERER: softpipe
 
@@ -1117,6 +1232,48 @@ softpipe-gles31:
     DEQP_VER: gles31
   extends: softpipe-gles2
 
+softpipe-piglit-quick:
+  extends:
+    - .piglit-test
+    - .test-gl
+    - .softpipe-rules
+  variables:
+    GALLIUM_DRIVER: softpipe
+    # rasterpos skipped until we uprev piglit (commit ff2a7650be7349)
+    # triangle-rasterization skipped due to flakes thanks to it using a time-based random seed.
+    # glx-multithread-texture is flaky, undiagnosed
+    PIGLIT_OPTIONS: >
+      --process-isolation false
+      -x rasterpos
+      -x triangle-rasterization
+      -x glx-multithread-texture
+      -x egl_ext_device_
+      -x egl_ext_platform_device
+      -x ext_timer_query@time-elapsed
+      -x glx-multithread-clearbuffer
+      -x glx-multithread-shader-compile
+      -x max-texture-size
+      -x maxsize
+      -x fs-execution-ordering
+      -x local-id-explosion
+      -x arb_pipeline_statistics_query-comp
+      -x streaming-texture-leak
+      -x longprim
+      -x shader-mem-barrier
+      -x arb_gpu_shader_fp64
+      -x arb_gpu_shader_int64
+      -x arb_tessellation_shader
+      -x glsl-4.00
+      -x glsl-4.10
+      -x glsl-4.20
+      -x glsl-4.30
+      -x glsl-4.40
+      -x glsl-4.50
+      -x gpu_shader4
+      -x gpu_shader5
+    PIGLIT_PROFILES: quick_gl quick_shader
+    PIGLIT_RESULTS: softpipe-quick
+
 # Note that KHR-GL3* test sets include all tests from the previous
 # version, so we only need to run one test list (unlike dEQP-GLES,
 # where the test sets are separate).
@@ -1130,18 +1287,15 @@ virgl-gles2-on-gl:
   variables:
     DEQP_VER: gles2
     DEQP_NO_SAVE_RESULTS: 1
-    DEQP_SKIPS: deqp-virgl-gl-skips.txt
+    GPU_VERSION: virgl-gl
     # Don't use threads inside llvmpipe, we've already got all cores
     # busy at the deqp-runner level.
     LP_NUM_THREADS: 0
-    DEQP_EXPECTED_FAILS: deqp-virgl-gl-fails.txt
     DEQP_OPTIONS: "--deqp-log-images=disable"
-    LIBGL_ALWAYS_SOFTWARE: "true"
-    GALLIUM_DRIVER: "virpipe"
     DEQP_EXPECTED_RENDERER: virgl
   extends:
-    - .deqp-test-gl
-    - .virgl-rules
+    - .deqp-test
+    - .virgl-test
 
 virgl-gles3-on-gl:
   variables:
@@ -1192,7 +1346,7 @@ virgl-gl32-on-gl:
 virgl-gles2-on-gles:
   variables:
     VIRGL_HOST_API: GLES
-    DEQP_EXPECTED_FAILS: deqp-virgl-gles-fails.txt
+    GPU_VERSION: virgl-gles
   extends:
     - virgl-gles2-on-gl
     - .test-manual
@@ -1200,7 +1354,7 @@ virgl-gles2-on-gles:
 virgl-gles3-on-gles:
   variables:
     VIRGL_HOST_API: GLES
-    DEQP_EXPECTED_FAILS: deqp-virgl-gles-fails.txt
+    GPU_VERSION: virgl-gles
   extends:
     - virgl-gles3-on-gl
     - .test-manual
@@ -1208,71 +1362,67 @@ virgl-gles3-on-gles:
 virgl-gles31-on-gles:
   variables:
     VIRGL_HOST_API: GLES
-    DEQP_EXPECTED_FAILS: deqp-virgl-gles-fails.txt
+    GPU_VERSION: virgl-gles
   extends:
     - virgl-gles31-on-gl
     - .test-manual
 
-arm64_a630_gles2:
+.arm64-a630-test:
   extends:
-    - arm64_a306_gles2
+    - .freedreno-test
   variables:
     BM_KERNEL: /lava-files/cheza-kernel
     BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 root=/dev/nfs rw nfsrootdebug nfsroot=,tcp,nfsvers=4.2 init=/init"
-    DEQP_EXPECTED_FAILS: deqp-freedreno-a630-fails.txt
-    DEQP_FLAKES: deqp-freedreno-a630-flakes.txt
-    DEQP_SKIPS: deqp-freedreno-a630-skips.txt
+    GPU_VERSION: freedreno-a630
+    BM_DTB: /lava-files/db820c.dtb
     GIT_STRATEGY: none
     DEQP_EXPECTED_RENDERER: FD630
-    DEQP_NO_SAVE_RESULTS: ""
-    VK_DRIVER: freedreno
   tags:
     - google-freedreno-cheza
   script:
     - ./install/bare-metal/cros-servo.sh
 
+arm64_a630_gles2:
+  extends:
+    - .baremetal-deqp-test
+    - .arm64-a630-test
+  variables:
+    DEQP_VER: gles2
+
 arm64_a630_gles31:
-  extends: arm64_a630_gles2
+  extends:
+    - .baremetal-deqp-test
+    - .arm64-a630-test
   variables:
     DEQP_VER: gles31
 
 arm64_a630_gles3:
-  extends: arm64_a630_gles2
+  extends:
+    - .baremetal-deqp-test
+    - .arm64-a630-test
   variables:
     DEQP_VER: gles3
 
-arm64_a630_traces:
-  extends:
-    - arm64_a630_gles2
-  variables:
-    BARE_METAL_TEST_SCRIPT: "/install/tracie-runner-gl.sh"
-    DEVICE_NAME: "freedreno-a630"
-    DRIVER_NAME: "freedreno"
-    TRACIE_NO_UNIT_TESTS: 1
-    TRACIE_UPLOAD_TO_MINIO: 1
-    # This lets us run several more traces which don't use any features we're
-    # missing.
-    MESA_GLSL_VERSION_OVERRIDE: "460"
-    MESA_GL_VERSION_OVERRIDE: "4.6"
-  artifacts:
-    reports:
-      junit: results/junit.xml
-
 arm64_a630_gl:
-  extends: arm64_a630_gles2
+  extends:
+    - .baremetal-deqp-test
+    - .arm64-a630-test
   variables:
-    DEQP_VER: gl30
+    DEQP_VER: gl32
 
 arm64_a630_gles_others:
-  extends: arm64_a630_gles2
+  extends:
+    - .baremetal-deqp-test
+    - .arm64-a630-test
   variables:
     BARE_METAL_TEST_SCRIPT: "/install/bare-metal/arm64_a630_gles_others.sh"
 
 arm64_a630_vk:
-  extends: arm64_a630_gles2
+  extends:
+    - .baremetal-deqp-test-freedreno-vk
+    - .arm64-a630-test
   parallel: 2
   variables:
-    DEQP_VER: vk
     DEQP_FRACTION: 10
     # Force binning in the main run, which makes sure we render at
     # least 2 bins.  This is the path that impacts the most different
@@ -1285,13 +1435,77 @@ arm64_a630_vk:
 # to click play on in their branches.
 arm64_a630_vk_sysmem:
   extends:
-    - arm64_a630_gles2
+    - .baremetal-deqp-test-freedreno-vk
+    - .arm64-a630-test
   variables:
-    DEQP_VER: vk
     DEQP_FRACTION: 15
     DEQP_CASELIST_FILTER: "dEQP-VK.renderpass.*"
-    DEQP_EXPECTED_FAILS: deqp-freedreno-a630-bypass-fails.txt
+    GPU_VERSION: freedreno-a630-bypass
     TU_DEBUG: sysmem
+
+.arm64_a630_piglit:
+  extends:
+    - .piglit-test
+    - .arm64-a630-test
+  variables:
+    BARE_METAL_TEST_SCRIPT: "/install/piglit/run.sh"
+    # Excluding various features we don't support to keep runtime down in
+    # deciding that they aren't supported.
+    #
+    # Also excluding some particularly slow tests (gl-1.3-texture-env takes 100s)
+    #
+    # Known flakes in the list are between "arb_blend_func_extended" and
+    # "varray-disabled"
+    PIGLIT_OPTIONS: >-
+      --process-isolation false
+      -x arb_blend_func_extended-fbo-extended-blend-pattern_gles2
+      -x clear-accum
+      -x copypixels-sync
+      -x copyteximage-border
+      -x copytexsubimage
+      -x draw-sync
+      -x getteximage-simple
+      -x gl30basic
+      -x tcs-input
+      -x tes-input
+      -x unaligned-blit
+      -x user-clip
+      -x varray-disabled
+      -x egl_ext_device_
+      -x egl_ext_platform_device
+      -x ext_timer_query@time-elapsed
+      -x glx-multithread-clearbuffer
+      -x glx-multithread-shader-compile
+      -x max-texture-size
+      -x maxsize
+      -x arb_gpu_shader_fp64
+      -x arb_gpu_shader_gpu5
+      -x arb_gpu_shader_int64
+      -x glsl-4.00
+      -x glsl-4.10
+      -x glsl-4.20
+      -x glsl-4.30
+      -x glsl-4.40
+      -x glsl-4.50
+      -x glsl-4.60
+      -x gl-1.3-texture-env
+    PIGLIT_PLATFORM: gbm
+
+# Takes ~20 minutes, so manual-only until we can sort out runtime.
+arm64_a630_piglit_gl:
+  extends:
+    - .arm64_a630_piglit
+    - .test-manual
+  variables:
+    PIGLIT_PROFILES: quick_gl
+    PIGLIT_RESULTS: freedreno-a630-gl
+
+arm64_a630_piglit_shader:
+  extends:
+    - .arm64_a630_piglit
+  variables:
+    PIGLIT_PROFILES: quick_shader
+    PIGLIT_RESULTS: freedreno-a630-shader
 
 .baremetal-test:
   extends:
@@ -1306,27 +1520,19 @@ arm64_a630_vk_sysmem:
     paths:
       - results/
       - serial*.txt
+    exclude:
+      - results/*.shader_cache
+    reports:
+      junit: results/junit.xml
 
-arm64_a306_gles2:
+.freedreno-test:
   extends:
     - .baremetal-test
     - .use-arm64_test
     - .freedreno-rules
   variables:
-    BM_KERNEL: /lava-files/Image.gz
-    BM_DTB: /lava-files/apq8016-sbc.dtb
     BM_ROOTFS: /lava-files/rootfs-arm64
-    BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8"
     FLAKES_CHANNEL: "#freedreno-ci"
-    BARE_METAL_TEST_SCRIPT: "/install/deqp-runner.sh"
-    DEQP_EXPECTED_FAILS: deqp-freedreno-a307-fails.txt
-    DEQP_SKIPS: deqp-default-skips.txt
-    DEQP_FLAKES: deqp-freedreno-a307-flakes.txt
-    DEQP_VER: gles2
-    DEQP_PARALLEL: 4
-    DEQP_EXPECTED_RENDERER: FD307
-    # Since we can't get artifacts back yet, skip making them.
-    DEQP_NO_SAVE_RESULTS: 1
   script:
     - ./install/bare-metal/fastboot.sh
   needs:
@@ -1335,10 +1541,41 @@ arm64_a306_gles2:
   tags:
     - google-freedreno-db410c
 
+.baremetal-deqp-test:
+  variables:
+    BARE_METAL_TEST_SCRIPT: "/install/deqp-runner.sh"
+    DEQP_SKIPS: deqp-default-skips.txt
+    DEQP_PARALLEL: 0 # Default to number of CPUs
+
+.baremetal-deqp-test-freedreno-vk:
+  extends:
+    - .baremetal-deqp-test
+  variables:
+    DEQP_VER: vk
+    VK_DRIVER: freedreno
+
+.arm64-a306-test:
+  extends:
+    - .freedreno-test
+  variables:
+    BM_KERNEL: /lava-files/Image.gz
+    BM_DTB: /lava-files/apq8016-sbc.dtb
+    BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8"
+    GPU_VERSION: freedreno-a307
+    DEQP_EXPECTED_RENDERER: FD307
+
+arm64_a306_gles2:
+  extends:
+    - .baremetal-deqp-test
+    - .arm64-a306-test
+  variables:
+    DEQP_VER: gles2
+
 # Fractional run, single threaded, due to flaky results
 arm64_a306_gles3:
   extends:
-    - arm64_a306_gles2
+    - .baremetal-deqp-test
+    - .arm64-a306-test
   variables:
     DEQP_VER: gles3
     DEQP_PARALLEL: 1
@@ -1347,39 +1584,44 @@ arm64_a306_gles3:
 # Fractional runs with debug options.  Note that since we're not
 # hitting the iommu faults, we can run in parallel (derive from gles2, not gles3).
 arm64_a306_gles3_options:
-  extends: arm64_a306_gles2
+  extends:
+    - .baremetal-deqp-test
+    - .arm64-a306-test
   variables:
     DEQP_VER: gles3
   script:
     # Check that the non-constbuf UBO case works.
     - DEQP_RUN_SUFFIX=-nouboopt IR3_SHADER_DEBUG=nouboopt DEQP_CASELIST_FILTER="functional.*ubo" ./install/bare-metal/fastboot.sh
 
-.arm64_a530_deqp:
+.arm64-a530-test:
   extends:
-    - arm64_a306_gles2
+    - .freedreno-test
   variables:
     BM_KERNEL: /lava-files/db820c-kernel
     BM_DTB: /lava-files/db820c.dtb
     # Disable SMP because only CPU 0 is at a freq higher than 19mhz on
     # current upstream kernel.
     BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 nosmp"
-    DEQP_EXPECTED_FAILS: deqp-freedreno-a530-fails.txt
-    DEQP_FLAKES: deqp-freedreno-a530-flakes.txt
+    FDO_CI_CONCURRENT: 1
+    GPU_VERSION: freedreno-a530
     DEQP_EXPECTED_RENDERER: FD530
   tags:
     - google-freedreno-db820c
 
 arm64_a530_gles2:
   extends:
-    - .arm64_a530_deqp
+    - .baremetal-deqp-test
+    - .arm64-a530-test
+  variables:
+    DEQP_VER: gles2
   parallel: 2
 
 arm64_a530_gles3:
   extends:
-    - .arm64_a530_deqp
+    - .baremetal-deqp-test
+    - .arm64-a530-test
   variables:
     DEQP_VER: gles3
-    DEQP_PARALLEL: 1
     DEQP_FRACTION: 40
 
 arm64_a530_gles31:
@@ -1388,6 +1630,67 @@ arm64_a530_gles31:
   variables:
     DEQP_VER: gles31
     DEQP_FRACTION: 10
+
+.arm64_a530_piglit:
+  extends:
+    - .piglit-test
+    - .arm64-a530-test
+  variables:
+    BARE_METAL_TEST_SCRIPT: "/install/piglit/run.sh"
+    # SMP is disabled in the current kernels for db820c.
+    FDO_CI_CONCURRENT: 1
+    # Excluding for flakes in multisample (MSAA fails covered well by deqp, we
+    # can enable it once we stabilize that.) and other flakes from
+    # atomic_counters through userclip in the list.
+    #
+    # Also excluding some particularly slow tests (gl-1.3-texture-env)
+    #
+    # Check fastboot.sh for more piglit tests being excluded!
+    PIGLIT_OPTIONS: >-
+      --process-isolation false
+      -x atomic_counters
+      -x gl-1.0-blend-func
+      -x glsl-1.30@execution@clipping
+      -x user-clip
+      -x arb_texture_multisample
+      -x ext_framebuffer_multisample
+      -x egl_ext_device_
+      -x egl_ext_platform_device
+      -x ext_timer_query@time-elapsed
+      -x glx-multithread-clearbuffer
+      -x glx-multithread-shader-compile
+      -x max-texture-size
+      -x maxsize
+      -x arb_gpu_shader5
+      -x arb_gpu_shader_fp64
+      -x arb_gpu_shader_int64
+      -x arb_tessellation_shader
+      -x glsl-1.50
+      -x glsl-4.00
+      -x glsl-4.10
+      -x glsl-4.20
+      -x glsl-4.30
+      -x glsl-4.40
+      -x glsl-4.50
+      -x glsl-4.60
+      -x gl-1.3-texture-env
+    PIGLIT_PLATFORM: gbm
+
+# Takes ~25 minutes, so manual-only until we can sort out runtime.
+arm64_a530_piglit_gl:
+  extends:
+    - .arm64_a530_piglit
+    - .test-manual
+  variables:
+    PIGLIT_PROFILES: quick_gl
+    PIGLIT_RESULTS: freedreno-a530-gl
+
+arm64_a530_piglit_shader:
+  extends:
+    - .arm64_a530_piglit
+  variables:
+    PIGLIT_PROFILES: quick_shader
+    PIGLIT_RESULTS: freedreno-a530-shader
 
 vc4-rpi3-gles2:armhf:
   extends:
@@ -1401,10 +1704,8 @@ vc4-rpi3-gles2:armhf:
     BM_KERNEL_MODULES: vc4
     BM_ROOTFS: /lava-files/rootfs-armhf
     BM_ROOTFS_EXTRA: /modules/armhf
-    DEQP_EXPECTED_FAILS: deqp-vc4-rpi3-fails.txt
+    GPU_VERSION: vc4-rpi3
     DEQP_EXPECTED_RENDERER: VC4
-    DEQP_FLAKES: deqp-vc4-rpi3-flakes.txt
-    DEQP_SKIPS: deqp-vc4-rpi3-skips.txt
     DEQP_VER: gles2
   script:
     - ./install/bare-metal/poe-powered.sh
@@ -1417,17 +1718,19 @@ vc4-rpi3-gles2:armhf:
 lavapipe-vk:
   stage: software-renderer
   extends:
+    - .test-vk
     - .llvmpipe-rules
     - .deqp-test-vk
   variables:
-    DEQP_EXPECTED_FAILS: deqp-lvp-fails.txt
-    DEQP_FLAKES: deqp-lvp-flakes.txt
+    GPU_VERSION: lvp
     VK_DRIVER: lvp
     DEQP_FRACTION: 10
 
 # RADV CI
 .test-radv:
-  extends: .radv-rules
+  extends:
+    - .test-vk
+    - .radv-rules
   stage: amd
   variables:
     VK_DRIVER: radeon
@@ -1441,7 +1744,7 @@ radv_polaris10_vkcts:
     - .test-radv
     - .test-manual
   variables:
-    DEQP_SKIPS: deqp-radv-polaris10-skips.txt
+    GPU_VERSION: radv-polaris10
   tags:
     - polaris10
 
@@ -1468,73 +1771,3 @@ radv-fossils:
     # Sienna Cichlid (GFX10)
     - export RADV_FORCE_FAMILY="gfx1030"
     - ./install/fossilize-runner.sh
-
-# Traces CI
-.traces-test:
-  cache:
-    key: ${CI_JOB_NAME}
-    paths:
-      - traces-db/
-  variables:
-    TRACIE_UPLOAD_TO_MINIO: 1
-  artifacts:
-    reports:
-      junit: results/junit.xml
-
-.traces-test-gl:
-  extends:
-    - .test-gl
-    - .traces-test
-  script:
-    - ./install/tracie-runner-gl.sh
-
-.traces-test-vk:
-  extends:
-    - .test-vk
-    - .traces-test
-  script:
-    - ./install/tracie-runner-vk.sh
-
-llvmpipe-traces:
-  extends:
-    - .traces-test-gl
-    - .llvmpipe-rules
-  variables:
-    LIBGL_ALWAYS_SOFTWARE: "true"
-    GALLIUM_DRIVER: "llvmpipe"
-    DEVICE_NAME: "gl-vmware-llvmpipe"
-    DRIVER_NAME: "llvmpipe"
-
-radv-polaris10-traces:
-  extends:
-    - .traces-test-vk
-    - .test-radv
-    - .test-manual
-  variables:
-    DEVICE_NAME: "vk-amd-polaris10"
-    DRIVER_NAME: "radv"
-  tags:
-    - polaris10
-
-radv-raven-traces:
-  extends:
-    - .traces-test-vk
-    - .test-radv
-    - .test-manual
-  variables:
-    DEVICE_NAME: "vk-amd-raven"
-    DRIVER_NAME: "radv"
-  tags:
-    - raven
-
-virgl-traces:
-  extends:
-    - .traces-test-gl
-    - .virgl-rules
-  variables:
-    LIBGL_ALWAYS_SOFTWARE: "true"
-    GALLIUM_DRIVER: "virpipe"
-    DEVICE_NAME: "gl-virgl"
-    DRIVER_NAME: "virgl"
-    MESA_GLES_VERSION_OVERRIDE: "3.1"
-    MESA_GLSL_VERSION_OVERRIDE: "310"

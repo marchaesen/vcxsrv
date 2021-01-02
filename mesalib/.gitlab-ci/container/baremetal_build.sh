@@ -5,6 +5,8 @@ set -o xtrace
 
 ROOTFS=/lava-files/rootfs-${arch}
 
+INCLUDE_PIGLIT=1
+
 dpkg --add-architecture $arch
 apt-get update
 
@@ -28,8 +30,11 @@ BAREMETAL_EPHEMERAL=" \
         libpython3-dev:$arch \
         libstdc++6:$arch \
         libtinfo-dev:$arch \
+        libudev-dev:$arch \
         libvulkan-dev:$arch \
+        libwaffle-dev:$arch \
         libxcb-keysyms1-dev:$arch \
+        libxkbcommon-dev:$arch \
         python3-dev \
         qt5-default \
         qt5-qmake \
