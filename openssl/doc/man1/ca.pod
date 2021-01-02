@@ -51,6 +51,7 @@ B<openssl> B<ca>
 [B<-engine id>]
 [B<-subj arg>]
 [B<-utf8>]
+[B<-sigopt nm:v>]
 [B<-create_serial>]
 [B<-rand_serial>]
 [B<-multivalue-rdn>]
@@ -134,6 +135,11 @@ The private key to sign requests with.
 The format of the data in the private key file.
 The default is PEM.
 
+=item B<-sigopt nm:v>
+
+Pass options to the signature algorithm during sign or verify operations.
+Names and values of these options are algorithm-specific.
+
 =item B<-key password>
 
 The password used to encrypt the private key. Since on some
@@ -213,7 +219,7 @@ DNs match the order of the request. This is not needed for Xenroll.
 =item B<-noemailDN>
 
 The DN of a certificate can contain the EMAIL field if present in the
-request DN, however it is good policy just having the e-mail set into
+request DN, however, it is good policy just having the e-mail set into
 the altName extension of the certificate. When this option is set the
 EMAIL field is removed from the certificate' subject and set only in
 the, eventually present, extensions. The B<email_in_dn> keyword can be
@@ -230,7 +236,7 @@ The section of the configuration file containing certificate extensions
 to be added when a certificate is issued (defaults to B<x509_extensions>
 unless the B<-extfile> option is used). If no extension section is
 present then, a V1 certificate is created. If the extension section
-is present (even if it is empty), then a V3 certificate is created. See the:w
+is present (even if it is empty), then a V3 certificate is created. See the
 L<x509v3_config(5)> manual page for details of the
 extension section format.
 
@@ -250,8 +256,10 @@ for all available algorithms.
 =item B<-subj arg>
 
 Supersedes subject name given in the request.
-The arg must be formatted as I</type0=value0/type1=value1/type2=...>,
-characters may be escaped by \ (backslash), no spaces are skipped.
+The arg must be formatted as I</type0=value0/type1=value1/type2=...>.
+Keyword characters may be escaped by \ (backslash), and whitespace is retained.
+Empty values are permitted, but the corresponding type will not be included
+in the resulting certificate.
 
 =item B<-utf8>
 
@@ -473,7 +481,7 @@ the B<-selfsign> command line option.
 
 Note that it is valid in some circumstances for certificates to be created
 without any subject. In the case where there are multiple certificates without
-subjects this does not count as a duplicate. 
+subjects this does not count as a duplicate.
 
 =item B<serial>
 
@@ -751,7 +759,7 @@ L<config(5)>, L<x509v3_config(5)>
 
 =head1 COPYRIGHT
 
-Copyright 2000-2018 The OpenSSL Project Authors. All Rights Reserved.
+Copyright 2000-2020 The OpenSSL Project Authors. All Rights Reserved.
 
 Licensed under the OpenSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy

@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2019 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -19,8 +19,8 @@
 #endif
 
 #include <openssl/x509.h>
-#include "internal/x509_int.h"
-#include "x509_lcl.h"
+#include "crypto/x509.h"
+#include "x509_local.h"
 
 struct lookup_dir_hashes_st {
     unsigned long hash;
@@ -73,7 +73,7 @@ static int dir_ctrl(X509_LOOKUP *ctx, int cmd, const char *argp, long argl,
     switch (cmd) {
     case X509_L_ADD_DIR:
         if (argl == X509_FILETYPE_DEFAULT) {
-            const char *dir = getenv(X509_get_default_cert_dir_env());
+            const char *dir = ossl_safe_getenv(X509_get_default_cert_dir_env());
 
             if (dir)
                 ret = add_cert_dir(ld, dir, X509_FILETYPE_PEM);
@@ -327,10 +327,10 @@ static int get_cert_by_subject(X509_LOOKUP *xl, X509_LOOKUP_TYPE type,
         /*
          * we have added it to the cache so now pull it out again
          */
-        CRYPTO_THREAD_write_lock(ctx->lock);
+        X509_STORE_lock(xl->store_ctx);
         j = sk_X509_OBJECT_find(xl->store_ctx->objs, &stmp);
         tmp = sk_X509_OBJECT_value(xl->store_ctx->objs, j);
-        CRYPTO_THREAD_unlock(ctx->lock);
+        X509_STORE_unlock(xl->store_ctx);
 
         /* If a CRL, update the last file suffix added for this */
 

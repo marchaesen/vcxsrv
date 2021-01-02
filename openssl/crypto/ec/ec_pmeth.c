@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2006-2019 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -12,9 +12,9 @@
 #include <openssl/asn1t.h>
 #include <openssl/x509.h>
 #include <openssl/ec.h>
-#include "ec_lcl.h"
+#include "ec_local.h"
 #include <openssl/evp.h>
-#include "internal/evp_int.h"
+#include "crypto/evp.h"
 
 /* EC pkey context structure */
 
@@ -209,7 +209,7 @@ static int pkey_ec_kdf_derive(EVP_PKEY_CTX *ctx,
     if (!pkey_ec_derive(ctx, ktmp, &ktmplen))
         goto err;
     /* Do KDF stuff */
-    if (!ECDH_KDF_X9_62(key, *keylen, ktmp, ktmplen,
+    if (!ecdh_KDF_X9_63(key, *keylen, ktmp, ktmplen,
                         dctx->kdf_ukm, dctx->kdf_ukmlen, dctx->kdf_md))
         goto err;
     rv = 1;
@@ -281,7 +281,7 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
     case EVP_PKEY_CTRL_EC_KDF_TYPE:
         if (p1 == -2)
             return dctx->kdf_type;
-        if (p1 != EVP_PKEY_ECDH_KDF_NONE && p1 != EVP_PKEY_ECDH_KDF_X9_62)
+        if (p1 != EVP_PKEY_ECDH_KDF_NONE && p1 != EVP_PKEY_ECDH_KDF_X9_63)
             return -2;
         dctx->kdf_type = p1;
         return 1;
@@ -323,7 +323,11 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
             EVP_MD_type((const EVP_MD *)p2) != NID_sha224 &&
             EVP_MD_type((const EVP_MD *)p2) != NID_sha256 &&
             EVP_MD_type((const EVP_MD *)p2) != NID_sha384 &&
-            EVP_MD_type((const EVP_MD *)p2) != NID_sha512) {
+            EVP_MD_type((const EVP_MD *)p2) != NID_sha512 &&
+            EVP_MD_type((const EVP_MD *)p2) != NID_sha3_224 &&
+            EVP_MD_type((const EVP_MD *)p2) != NID_sha3_256 &&
+            EVP_MD_type((const EVP_MD *)p2) != NID_sha3_384 &&
+            EVP_MD_type((const EVP_MD *)p2) != NID_sha3_512) {
             ECerr(EC_F_PKEY_EC_CTRL, EC_R_INVALID_DIGEST_TYPE);
             return 0;
         }

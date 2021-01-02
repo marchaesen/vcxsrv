@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2019 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved
  * Copyright 2005 Nokia. All rights reserved.
  *
@@ -17,7 +17,7 @@
 #include <openssl/crypto.h>
 #include <openssl/conf.h>
 #include "internal/nelem.h"
-#include "ssl_locl.h"
+#include "ssl_local.h"
 #include "internal/thread_once.h"
 #include "internal/cryptlib.h"
 
@@ -92,7 +92,7 @@ static CRYPTO_ONCE ssl_load_builtin_comp_once = CRYPTO_ONCE_STATIC_INIT;
 
 /*
  * Constant SSL_MAX_DIGEST equal to size of digests array should be defined
- * in the ssl_locl.h
+ * in the ssl_local.h
  */
 
 #define SSL_MD_NUM_IDX  SSL_MAX_DIGEST
@@ -171,6 +171,8 @@ static int ssl_mac_pkey_id[SSL_MD_NUM_IDX] = {
     EVP_PKEY_HMAC, EVP_PKEY_HMAC, EVP_PKEY_HMAC, NID_undef,
     /* GOST2012_512 */
     EVP_PKEY_HMAC,
+    /* MD5/SHA1, SHA224, SHA512 */
+    NID_undef, NID_undef, NID_undef
 };
 
 static size_t ssl_mac_secret_size[SSL_MD_NUM_IDX];
@@ -1301,7 +1303,7 @@ static int ciphersuite_cb(const char *elem, int len, void *arg)
     return 1;
 }
 
-int set_ciphersuites(STACK_OF(SSL_CIPHER) **currciphers, const char *str)
+static __owur int set_ciphersuites(STACK_OF(SSL_CIPHER) **currciphers, const char *str)
 {
     STACK_OF(SSL_CIPHER) *newciphers = sk_SSL_CIPHER_new_null();
 
@@ -1375,24 +1377,25 @@ int SSL_CTX_set_ciphersuites(SSL_CTX *ctx, const char *str)
 {
     int ret = set_ciphersuites(&(ctx->tls13_ciphersuites), str);
 
-    if (ret && ctx->cipher_list != NULL) {
-        /* We already have a cipher_list, so we need to update it */
+    if (ret && ctx->cipher_list != NULL)
         return update_cipher_list(&ctx->cipher_list, &ctx->cipher_list_by_id,
                                   ctx->tls13_ciphersuites);
-    }
 
     return ret;
 }
 
 int SSL_set_ciphersuites(SSL *s, const char *str)
 {
+    STACK_OF(SSL_CIPHER) *cipher_list;
     int ret = set_ciphersuites(&(s->tls13_ciphersuites), str);
 
-    if (ret && s->cipher_list != NULL) {
-        /* We already have a cipher_list, so we need to update it */
+    if (s->cipher_list == NULL) {
+        if ((cipher_list = SSL_get_ciphers(s)) != NULL)
+            s->cipher_list = sk_SSL_CIPHER_dup(cipher_list);
+    }
+    if (ret && s->cipher_list != NULL)
         return update_cipher_list(&s->cipher_list, &s->cipher_list_by_id,
                                   s->tls13_ciphersuites);
-    }
 
     return ret;
 }

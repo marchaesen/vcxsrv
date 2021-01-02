@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2019 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -9,8 +9,8 @@
 
 #include "internal/cryptlib.h"
 #include <openssl/rand.h>
-#include "rand_lcl.h"
-#include "internal/rand_int.h"
+#include "rand_local.h"
+#include "crypto/rand.h"
 #if defined(OPENSSL_SYS_WINDOWS) || defined(OPENSSL_SYS_WIN32)
 
 # ifndef OPENSSL_RAND_SEED_OS
@@ -18,8 +18,9 @@
 # endif
 
 # include <windows.h>
-/* On Windows 7 or higher use BCrypt instead of the legacy CryptoAPI */
-# if defined(_MSC_VER) && defined(_WIN32_WINNT) && _WIN32_WINNT >= 0x0601
+/* On Windows Vista or higher use BCrypt instead of the legacy CryptoAPI */
+# if defined(_MSC_VER) && _MSC_VER > 1500 /* 1500 = Visual Studio 2008 */ \
+     && defined(_WIN32_WINNT) && _WIN32_WINNT >= 0x0600
 #  define USE_BCRYPTGENRANDOM
 # endif
 
@@ -67,7 +68,7 @@ size_t rand_pool_acquire_entropy(RAND_POOL *pool)
     if (buffer != NULL) {
         size_t bytes = 0;
         if (BCryptGenRandom(NULL, buffer, bytes_needed,
-            BCRYPT_USE_SYSTEM_PREFERRED_RNG) == STATUS_SUCCESS)
+                            BCRYPT_USE_SYSTEM_PREFERRED_RNG) == STATUS_SUCCESS)
             bytes = bytes_needed;
 
         rand_pool_add_end(pool, bytes, 8 * bytes);
@@ -82,7 +83,7 @@ size_t rand_pool_acquire_entropy(RAND_POOL *pool)
         size_t bytes = 0;
         /* poll the CryptoAPI PRNG */
         if (CryptAcquireContextW(&hProvider, NULL, NULL, PROV_RSA_FULL,
-            CRYPT_VERIFYCONTEXT | CRYPT_SILENT) != 0) {
+                                 CRYPT_VERIFYCONTEXT | CRYPT_SILENT) != 0) {
             if (CryptGenRandom(hProvider, bytes_needed, buffer) != 0)
                 bytes = bytes_needed;
 
@@ -129,7 +130,7 @@ int rand_pool_add_nonce_data(RAND_POOL *pool)
 
     /*
      * Add process id, thread id, and a high resolution timestamp to
-     * ensure that the nonce is unique whith high probability for
+     * ensure that the nonce is unique with high probability for
      * different process instances.
      */
     data.pid = GetCurrentProcessId();

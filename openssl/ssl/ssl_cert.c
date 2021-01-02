@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2019 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
@@ -20,7 +20,7 @@
 #include <openssl/bn.h>
 #include <openssl/crypto.h>
 #include "internal/refcount.h"
-#include "ssl_locl.h"
+#include "ssl_local.h"
 #include "ssl_cert_table.h"
 #include "internal/thread_once.h"
 
@@ -154,8 +154,6 @@ CERT *ssl_cert_dup(CERT *cert)
         ret->client_sigalgslen = cert->client_sigalgslen;
     } else
         ret->client_sigalgs = NULL;
-    /* Shared sigalgs also NULL */
-    ret->shared_sigalgs = NULL;
     /* Copy any custom client certificate types */
     if (cert->ctype) {
         ret->ctype = OPENSSL_memdup(cert->ctype, cert->ctype_len);
@@ -240,7 +238,6 @@ void ssl_cert_free(CERT *c)
     ssl_cert_clear_certs(c);
     OPENSSL_free(c->conf_sigalgs);
     OPENSSL_free(c->client_sigalgs);
-    OPENSSL_free(c->shared_sigalgs);
     OPENSSL_free(c->ctype);
     X509_STORE_free(c->verify_store);
     X509_STORE_free(c->chain_store);
@@ -501,17 +498,17 @@ const STACK_OF(X509_NAME) *SSL_get0_CA_list(const SSL *s)
 
 void SSL_CTX_set_client_CA_list(SSL_CTX *ctx, STACK_OF(X509_NAME) *name_list)
 {
-    SSL_CTX_set0_CA_list(ctx, name_list);
+    set0_CA_list(&ctx->client_ca_names, name_list);
 }
 
 STACK_OF(X509_NAME) *SSL_CTX_get_client_CA_list(const SSL_CTX *ctx)
 {
-    return ctx->ca_names;
+    return ctx->client_ca_names;
 }
 
 void SSL_set_client_CA_list(SSL *s, STACK_OF(X509_NAME) *name_list)
 {
-    SSL_set0_CA_list(s, name_list);
+    set0_CA_list(&s->client_ca_names, name_list);
 }
 
 const STACK_OF(X509_NAME) *SSL_get0_peer_CA_list(const SSL *s)
@@ -523,7 +520,8 @@ STACK_OF(X509_NAME) *SSL_get_client_CA_list(const SSL *s)
 {
     if (!s->server)
         return s->s3 != NULL ?  s->s3->tmp.peer_ca_names : NULL;
-    return s->ca_names != NULL ?  s->ca_names : s->ctx->ca_names;
+    return s->client_ca_names != NULL ?  s->client_ca_names
+                                      : s->ctx->client_ca_names;
 }
 
 static int add_ca_name(STACK_OF(X509_NAME) **sk, const X509 *x)
@@ -561,12 +559,12 @@ int SSL_CTX_add1_to_CA_list(SSL_CTX *ctx, const X509 *x)
  */
 int SSL_add_client_CA(SSL *ssl, X509 *x)
 {
-    return add_ca_name(&ssl->ca_names, x);
+    return add_ca_name(&ssl->client_ca_names, x);
 }
 
 int SSL_CTX_add_client_CA(SSL_CTX *ctx, X509 *x)
 {
-    return add_ca_name(&ctx->ca_names, x);
+    return add_ca_name(&ctx->client_ca_names, x);
 }
 
 static int xname_cmp(const X509_NAME *a, const X509_NAME *b)
@@ -603,14 +601,6 @@ static unsigned long xname_hash(const X509_NAME *a)
     return X509_NAME_hash((X509_NAME *)a);
 }
 
-/**
- * Load CA certs from a file into a ::STACK. Note that it is somewhat misnamed;
- * it doesn't really have anything to do with clients (except that a common use
- * for a stack of CAs is to send it to the client). Actually, it doesn't have
- * much to do with CAs, either, since it will load any old cert.
- * \param file the file containing one or more certs.
- * \return a ::STACK containing the certs.
- */
 STACK_OF(X509_NAME) *SSL_load_client_CA_file(const char *file)
 {
     BIO *in = BIO_new(BIO_s_file());
@@ -668,15 +658,6 @@ STACK_OF(X509_NAME) *SSL_load_client_CA_file(const char *file)
     return ret;
 }
 
-/**
- * Add a file of certs to a stack.
- * \param stack the stack to add to.
- * \param file the file to add from. All certs in this file that are not
- * already in the stack will be added.
- * \return 1 for success, 0 for failure. Note that in the case of failure some
- * certs may have been added to \c stack.
- */
-
 int SSL_add_file_cert_subjects_to_stack(STACK_OF(X509_NAME) *stack,
                                         const char *file)
 {
@@ -726,17 +707,6 @@ int SSL_add_file_cert_subjects_to_stack(STACK_OF(X509_NAME) *stack,
     (void)sk_X509_NAME_set_cmp_func(stack, oldcmp);
     return ret;
 }
-
-/**
- * Add a directory of certs to a stack.
- * \param stack the stack to append to.
- * \param dir the directory to append from. All files in this directory will be
- * examined as potential certs. Any that are acceptable to
- * SSL_add_dir_cert_subjects_to_stack() that are not already in the stack will be
- * included.
- * \return 1 for success, 0 for failure. Note that in the case of failure some
- * certs may have been added to \c stack.
- */
 
 int SSL_add_dir_cert_subjects_to_stack(STACK_OF(X509_NAME) *stack,
                                        const char *dir)
@@ -951,8 +921,8 @@ static int ssl_security_default_callback(const SSL *s, const SSL_CTX *ctx,
             if (level >= 2 && c->algorithm_enc == SSL_RC4)
                 return 0;
             /* Level 3: forward secure ciphersuites only */
-            if (level >= 3 && (c->min_tls != TLS1_3_VERSION ||
-                               !(c->algorithm_mkey & (SSL_kEDH | SSL_kEECDH))))
+            if (level >= 3 && c->min_tls != TLS1_3_VERSION &&
+                               !(c->algorithm_mkey & (SSL_kEDH | SSL_kEECDH)))
                 return 0;
             break;
         }

@@ -5,6 +5,66 @@
   This file gives a brief overview of the major changes between each OpenSSL
   release. For more details please read the CHANGES file.
 
+  Major changes between OpenSSL 1.1.1h and OpenSSL 1.1.1i [8 Dec 2020]
+
+      o Fixed NULL pointer deref in GENERAL_NAME_cmp (CVE-2020-1971)
+
+  Major changes between OpenSSL 1.1.1g and OpenSSL 1.1.1h [22 Sep 2020]
+
+      o Disallow explicit curve parameters in verifications chains when
+        X509_V_FLAG_X509_STRICT is used
+      o Enable 'MinProtocol' and 'MaxProtocol' to configure both TLS and DTLS
+        contexts
+      o Oracle Developer Studio will start reporting deprecation warnings
+
+  Major changes between OpenSSL 1.1.1f and OpenSSL 1.1.1g [21 Apr 2020]
+
+      o Fixed segmentation fault in SSL_check_chain() (CVE-2020-1967)
+
+  Major changes between OpenSSL 1.1.1e and OpenSSL 1.1.1f [31 Mar 2020]
+
+      o Revert the unexpected EOF reporting via SSL_ERROR_SSL
+
+  Major changes between OpenSSL 1.1.1d and OpenSSL 1.1.1e [17 Mar 2020]
+
+      o Fixed an overflow bug in the x64_64 Montgomery squaring procedure
+        used in exponentiation with 512-bit moduli (CVE-2019-1551)
+      o Properly detect unexpected EOF while reading in libssl and report
+        it via SSL_ERROR_SSL
+
+  Major changes between OpenSSL 1.1.1c and OpenSSL 1.1.1d [10 Sep 2019]
+
+      o Fixed a fork protection issue (CVE-2019-1549)
+      o Fixed a padding oracle in PKCS7_dataDecode and CMS_decrypt_set1_pkey
+        (CVE-2019-1563)
+      o For built-in EC curves, ensure an EC_GROUP built from the curve name is
+        used even when parsing explicit parameters
+      o Compute ECC cofactors if not provided during EC_GROUP construction
+        (CVE-2019-1547)
+      o Early start up entropy quality from the DEVRANDOM seed source has been
+        improved for older Linux systems
+      o Correct the extended master secret constant on EBCDIC systems
+      o Use Windows installation paths in the mingw builds (CVE-2019-1552)
+      o Changed DH_check to accept parameters with order q and 2q subgroups
+      o Significantly reduce secure memory usage by the randomness pools
+      o Revert the DEVRANDOM_WAIT feature for Linux systems
+
+  Major changes between OpenSSL 1.1.1b and OpenSSL 1.1.1c [28 May 2019]
+
+      o Prevent over long nonces in ChaCha20-Poly1305 (CVE-2019-1543)
+
+  Major changes between OpenSSL 1.1.1a and OpenSSL 1.1.1b [26 Feb 2019]
+
+      o Change the info callback signals for the start and end of a post-handshake
+        message exchange in TLSv1.3.
+      o Fix a bug in DTLS over SCTP. This breaks interoperability with older versions
+        of OpenSSL like OpenSSL 1.1.0 and OpenSSL 1.0.2.
+
+  Major changes between OpenSSL 1.1.1 and OpenSSL 1.1.1a [20 Nov 2018]
+
+      o Timing vulnerability in DSA signature generation (CVE-2018-0734)
+      o Timing vulnerability in ECDSA signature generation (CVE-2018-0735)
+
   Major changes between OpenSSL 1.1.0i and OpenSSL 1.1.1 [11 Sep 2018]
 
       o Support for TLSv1.3 added (see https://wiki.openssl.org/index.php/TLS1.3
@@ -585,7 +645,7 @@
 
   Major changes between OpenSSL 0.9.7h and OpenSSL 0.9.7i [14 Oct 2005]:
 
-      o Give EVP_MAX_MD_SIZE it's old value, except for a FIPS build.
+      o Give EVP_MAX_MD_SIZE its old value, except for a FIPS build.
 
   Major changes between OpenSSL 0.9.7g and OpenSSL 0.9.7h [11 Oct 2005]:
 

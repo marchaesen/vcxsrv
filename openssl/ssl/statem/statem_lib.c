@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2020 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
@@ -11,8 +11,8 @@
 #include <limits.h>
 #include <string.h>
 #include <stdio.h>
-#include "../ssl_locl.h"
-#include "statem_locl.h"
+#include "../ssl_local.h"
+#include "statem_local.h"
 #include "internal/cryptlib.h"
 #include <openssl/buffer.h>
 #include <openssl/objects.h>
@@ -168,9 +168,19 @@ int tls_setup_handshake(SSL *s)
 static int get_cert_verify_tbs_data(SSL *s, unsigned char *tls13tbs,
                                     void **hdata, size_t *hdatalen)
 {
-    static const char *servercontext = "TLS 1.3, server CertificateVerify";
-    static const char *clientcontext = "TLS 1.3, client CertificateVerify";
-
+#ifdef CHARSET_EBCDIC
+    static const char servercontext[] = { 0x54, 0x4c, 0x53, 0x20, 0x31, 0x2e,
+     0x33, 0x2c, 0x20, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x20, 0x43, 0x65,
+     0x72, 0x74, 0x69, 0x66, 0x69, 0x63, 0x61, 0x74, 0x65, 0x56, 0x65, 0x72,
+     0x69, 0x66, 0x79, 0x00 };
+    static const char clientcontext[] = { 0x54, 0x4c, 0x53, 0x20, 0x31, 0x2e,
+     0x33, 0x2c, 0x20, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x20, 0x43, 0x65,
+     0x72, 0x74, 0x69, 0x66, 0x69, 0x63, 0x61, 0x74, 0x65, 0x56, 0x65, 0x72,
+     0x69, 0x66, 0x79, 0x00 };
+#else
+    static const char servercontext[] = "TLS 1.3, server CertificateVerify";
+    static const char clientcontext[] = "TLS 1.3, client CertificateVerify";
+#endif
     if (SSL_IS_TLS13(s)) {
         size_t hashlen;
 
@@ -203,9 +213,10 @@ static int get_cert_verify_tbs_data(SSL *s, unsigned char *tls13tbs,
         *hdatalen = TLS13_TBS_PREAMBLE_SIZE + hashlen;
     } else {
         size_t retlen;
+        long retlen_l;
 
-        retlen = BIO_get_mem_data(s->s3->handshake_buffer, hdata);
-        if (retlen <= 0) {
+        retlen = retlen_l = BIO_get_mem_data(s->s3->handshake_buffer, hdata);
+        if (retlen_l <= 0) {
             SSLfatal(s, SSL_AD_INTERNAL_ERROR, SSL_F_GET_CERT_VERIFY_TBS_DATA,
                      ERR_R_INTERNAL_ERROR);
             return 0;
@@ -395,7 +406,8 @@ MSG_PROCESS_RETURN tls_process_cert_verify(SSL *s, PACKET *pkt)
 
 #ifdef SSL_DEBUG
     if (SSL_USE_SIGALGS(s))
-        fprintf(stderr, "USING TLSv1.2 HASH %s\n", EVP_MD_name(md));
+        fprintf(stderr, "USING TLSv1.2 HASH %s\n",
+                md == NULL ? "n/a" : EVP_MD_name(md));
 #endif
 
     /* Check for broken implementations of GOST ciphersuites */
@@ -438,7 +450,8 @@ MSG_PROCESS_RETURN tls_process_cert_verify(SSL *s, PACKET *pkt)
     }
 
 #ifdef SSL_DEBUG
-    fprintf(stderr, "Using client verify alg %s\n", EVP_MD_name(md));
+    fprintf(stderr, "Using client verify alg %s\n",
+            md == NULL ? "n/a" : EVP_MD_name(md));
 #endif
     if (EVP_DigestVerifyInit(mctx, &pctx, md, NULL, pkey) <= 0) {
         SSLfatal(s, SSL_AD_INTERNAL_ERROR, SSL_F_TLS_PROCESS_CERT_VERIFY,
@@ -494,7 +507,18 @@ MSG_PROCESS_RETURN tls_process_cert_verify(SSL *s, PACKET *pkt)
         }
     }
 
-    ret = MSG_PROCESS_CONTINUE_READING;
+    /*
+     * In TLSv1.3 on the client side we make sure we prepare the client
+     * certificate after the CertVerify instead of when we get the
+     * CertificateRequest. This is because in TLSv1.3 the CertificateRequest
+     * comes *before* the Certificate message. In TLSv1.2 it comes after. We
+     * want to make sure that SSL_get_peer_certificate() will return the actual
+     * server certificate from the client_cert_cb callback.
+     */
+    if (!s->server && SSL_IS_TLS13(s) && s->s3->tmp.cert_req == 1)
+        ret = MSG_PROCESS_CONTINUE_PROCESSING;
+    else
+        ret = MSG_PROCESS_CONTINUE_READING;
  err:
     BIO_free(s->s3->handshake_buffer);
     s->s3->handshake_buffer = NULL;
@@ -600,13 +624,6 @@ MSG_PROCESS_RETURN tls_process_key_update(SSL *s, PACKET *pkt)
 {
     unsigned int updatetype;
 
-    s->key_update_count++;
-    if (s->key_update_count > MAX_KEY_UPDATE_MESSAGES) {
-        SSLfatal(s, SSL_AD_ILLEGAL_PARAMETER, SSL_F_TLS_PROCESS_KEY_UPDATE,
-                 SSL_R_TOO_MANY_KEY_UPDATES);
-        return MSG_PROCESS_ERROR;
-    }
-
     /*
      * A KeyUpdate message signals a key change so the end of the message must
      * be on a record boundary.
@@ -638,12 +655,9 @@ MSG_PROCESS_RETURN tls_process_key_update(SSL *s, PACKET *pkt)
     /*
      * If we get a request for us to update our sending keys too then, we need
      * to additionally send a KeyUpdate message. However that message should
-     * not also request an update (otherwise we get into an infinite loop). We
-     * ignore a request for us to update our sending keys too if we already
-     * sent close_notify.
+     * not also request an update (otherwise we get into an infinite loop).
      */
-    if (updatetype == SSL_KEY_UPDATE_REQUESTED
-            && (s->shutdown & SSL_SENT_SHUTDOWN) == 0)
+    if (updatetype == SSL_KEY_UPDATE_REQUESTED)
         s->key_update = SSL_KEY_UPDATE_NOT_REQUESTED;
 
     if (!tls13_update_key(s, 0)) {
@@ -830,9 +844,11 @@ MSG_PROCESS_RETURN tls_process_finished(SSL *s, PACKET *pkt)
                 return MSG_PROCESS_ERROR;
             }
         } else {
+            /* TLS 1.3 gets the secret size from the handshake md */
+            size_t dummy;
             if (!s->method->ssl3_enc->generate_master_secret(s,
                     s->master_secret, s->handshake_secret, 0,
-                    &s->session->master_key_length)) {
+                    &dummy)) {
                 /* SSLfatal() already called */
                 return MSG_PROCESS_ERROR;
             }
@@ -1016,16 +1032,28 @@ unsigned long ssl3_output_cert_chain(SSL *s, WPACKET *pkt, CERT_PKEY *cpk)
 WORK_STATE tls_finish_handshake(SSL *s, WORK_STATE wst, int clearbufs, int stop)
 {
     void (*cb) (const SSL *ssl, int type, int val) = NULL;
+    int cleanuphand = s->statem.cleanuphand;
 
     if (clearbufs) {
-        if (!SSL_IS_DTLS(s)) {
+        if (!SSL_IS_DTLS(s)
+#ifndef OPENSSL_NO_SCTP
             /*
-             * We don't do this in DTLS because we may still need the init_buf
+             * RFC6083: SCTP provides a reliable and in-sequence transport service for DTLS
+             * messages that require it. Therefore, DTLS procedures for retransmissions
+             * MUST NOT be used.
+             * Hence the init_buf can be cleared when DTLS over SCTP as transport is used.
+             */
+            || BIO_dgram_is_sctp(SSL_get_wbio(s))
+#endif
+            ) {
+            /*
+             * We don't do this in DTLS over UDP because we may still need the init_buf
              * in case there are any unexpected retransmits
              */
             BUF_MEM_free(s->init_buf);
             s->init_buf = NULL;
         }
+
         if (!ssl_free_wbio_buffer(s)) {
             SSLfatal(s, SSL_AD_INTERNAL_ERROR, SSL_F_TLS_FINISH_HANDSHAKE,
                      ERR_R_INTERNAL_ERROR);
@@ -1042,7 +1070,7 @@ WORK_STATE tls_finish_handshake(SSL *s, WORK_STATE wst, int clearbufs, int stop)
      * Only set if there was a Finished message and this isn't after a TLSv1.3
      * post handshake exchange
      */
-    if (s->statem.cleanuphand) {
+    if (cleanuphand) {
         /* skipped if we just sent a HelloRequest */
         s->renegotiate = 0;
         s->new_session = 0;
@@ -1062,15 +1090,6 @@ WORK_STATE tls_finish_handshake(SSL *s, WORK_STATE wst, int clearbufs, int stop)
             /* N.B. s->ctx may not equal s->session_ctx */
             tsan_counter(&s->ctx->stats.sess_accept_good);
             s->handshake_func = ossl_statem_accept;
-
-            if (SSL_IS_DTLS(s) && !s->hit) {
-                /*
-                 * We are finishing after the client. We start the timer going
-                 * in case there are any retransmits of our final flight
-                 * required.
-                 */
-                dtls1_start_timer(s);
-            }
         } else {
             if (SSL_IS_TLS13(s)) {
                 /*
@@ -1092,15 +1111,6 @@ WORK_STATE tls_finish_handshake(SSL *s, WORK_STATE wst, int clearbufs, int stop)
 
             s->handshake_func = ossl_statem_connect;
             tsan_counter(&s->session_ctx->stats.sess_connect_good);
-
-            if (SSL_IS_DTLS(s) && s->hit) {
-                /*
-                 * We are finishing after the server. We start the timer going
-                 * in case there are any retransmits of our final flight
-                 * required.
-                 */
-                dtls1_start_timer(s);
-            }
         }
 
         if (SSL_IS_DTLS(s)) {
@@ -1120,8 +1130,12 @@ WORK_STATE tls_finish_handshake(SSL *s, WORK_STATE wst, int clearbufs, int stop)
     /* The callback may expect us to not be in init at handshake done */
     ossl_statem_set_in_init(s, 0);
 
-    if (cb != NULL)
-        cb(s, SSL_CB_HANDSHAKE_DONE, 1);
+    if (cb != NULL) {
+        if (cleanuphand
+                || !SSL_IS_TLS13(s)
+                || SSL_IS_FIRST_HANDSHAKE(s))
+            cb(s, SSL_CB_HANDSHAKE_DONE, 1);
+    }
 
     if (!stop) {
         /* If we've got more work to do we go back into init */
@@ -1327,6 +1341,7 @@ int tls_get_message_body(SSL *s, size_t *len)
 static const X509ERR2ALERT x509table[] = {
     {X509_V_ERR_APPLICATION_VERIFICATION, SSL_AD_HANDSHAKE_FAILURE},
     {X509_V_ERR_CA_KEY_TOO_SMALL, SSL_AD_BAD_CERTIFICATE},
+    {X509_V_ERR_EC_KEY_EXPLICIT_PARAMS, SSL_AD_BAD_CERTIFICATE},
     {X509_V_ERR_CA_MD_TOO_WEAK, SSL_AD_BAD_CERTIFICATE},
     {X509_V_ERR_CERT_CHAIN_TOO_LONG, SSL_AD_UNKNOWN_CA},
     {X509_V_ERR_CERT_HAS_EXPIRED, SSL_AD_CERTIFICATE_EXPIRED},
@@ -1495,6 +1510,10 @@ static int ssl_method_error(const SSL *s, const SSL_METHOD *method)
 static int is_tls13_capable(const SSL *s)
 {
     int i;
+#ifndef OPENSSL_NO_EC
+    int curve;
+    EC_KEY *eckey;
+#endif
 
 #ifndef OPENSSL_NO_PSK
     if (s->psk_server_callback != NULL)
@@ -1515,8 +1534,25 @@ static int is_tls13_capable(const SSL *s)
         default:
             break;
         }
-        if (ssl_has_cert(s, i))
+        if (!ssl_has_cert(s, i))
+            continue;
+#ifndef OPENSSL_NO_EC
+        if (i != SSL_PKEY_ECC)
             return 1;
+        /*
+         * Prior to TLSv1.3 sig algs allowed any curve to be used. TLSv1.3 is
+         * more restrictive so check that our sig algs are consistent with this
+         * EC cert. See section 4.2.3 of RFC8446.
+         */
+        eckey = EVP_PKEY_get0_EC_KEY(s->cert->pkeys[SSL_PKEY_ECC].privatekey);
+        if (eckey == NULL)
+            continue;
+        curve = EC_GROUP_get_curve_name(EC_KEY_get0_group(eckey));
+        if (tls_check_sigalg_curve(s, curve))
+            return 1;
+#else
+        return 1;
+#endif
     }
 
     return 0;
@@ -1621,10 +1657,21 @@ int ssl_check_version_downgrade(SSL *s)
  */
 int ssl_set_version_bound(int method_version, int version, int *bound)
 {
+    int valid_tls;
+    int valid_dtls;
+
     if (version == 0) {
         *bound = version;
         return 1;
     }
+
+    valid_tls = version >= SSL3_VERSION && version <= TLS_MAX_VERSION;
+    valid_dtls =
+        DTLS_VERSION_LE(version, DTLS_MAX_VERSION) &&
+        DTLS_VERSION_GE(version, DTLS1_BAD_VER);
+
+    if (!valid_tls && !valid_dtls)
+        return 0;
 
     /*-
      * Restrict TLS methods to TLS protocol versions.
@@ -1636,31 +1683,24 @@ int ssl_set_version_bound(int method_version, int version, int *bound)
      * configurations.  If the MIN (supported) version ever rises, the user's
      * "floor" remains valid even if no longer available.  We don't expect the
      * MAX ceiling to ever get lower, so making that variable makes sense.
+     *
+     * We ignore attempts to set bounds on version-inflexible methods,
+     * returning success.
      */
     switch (method_version) {
     default:
-        /*
-         * XXX For fixed version methods, should we always fail and not set any
-         * bounds, always succeed and not set any bounds, or set the bounds and
-         * arrange to fail later if they are not met?  At present fixed-version
-         * methods are not subject to controls that disable individual protocol
-         * versions.
-         */
-        return 0;
+        break;
 
     case TLS_ANY_VERSION:
-        if (version < SSL3_VERSION || version > TLS_MAX_VERSION)
-            return 0;
+        if (valid_tls)
+            *bound = version;
         break;
 
     case DTLS_ANY_VERSION:
-        if (DTLS_VERSION_GT(version, DTLS_MAX_VERSION) ||
-            DTLS_VERSION_LT(version, DTLS1_BAD_VER))
-            return 0;
+        if (valid_dtls)
+            *bound = version;
         break;
     }
-
-    *bound = version;
     return 1;
 }
 
@@ -2261,10 +2301,24 @@ int parse_ca_names(SSL *s, PACKET *pkt)
     return 0;
 }
 
-int construct_ca_names(SSL *s, WPACKET *pkt)
+const STACK_OF(X509_NAME) *get_ca_names(SSL *s)
 {
-    const STACK_OF(X509_NAME) *ca_sk = SSL_get0_CA_list(s);
+    const STACK_OF(X509_NAME) *ca_sk = NULL;;
 
+    if (s->server) {
+        ca_sk = SSL_get_client_CA_list(s);
+        if (ca_sk != NULL && sk_X509_NAME_num(ca_sk) == 0)
+            ca_sk = NULL;
+    }
+
+    if (ca_sk == NULL)
+        ca_sk = SSL_get0_CA_list(s);
+
+    return ca_sk;
+}
+
+int construct_ca_names(SSL *s, const STACK_OF(X509_NAME) *ca_sk, WPACKET *pkt)
+{
     /* Start sub-packet for client CA list */
     if (!WPACKET_start_sub_packet_u16(pkt)) {
         SSLfatal(s, SSL_AD_INTERNAL_ERROR, SSL_F_CONSTRUCT_CA_NAMES,

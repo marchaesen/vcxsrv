@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2020 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved
  * Copyright 2005 Nokia. All rights reserved.
  *
@@ -180,9 +180,6 @@ static unsigned int psk_server_cb(SSL *ssl, const char *identity,
 }
 #endif
 
-#define TLS13_AES_128_GCM_SHA256_BYTES  ((const unsigned char *)"\x13\x01")
-#define TLS13_AES_256_GCM_SHA384_BYTES  ((const unsigned char *)"\x13\x02")
-
 static int psk_find_session_cb(SSL *ssl, const unsigned char *identity,
                                size_t identity_len, SSL_SESSION **sess)
 {
@@ -193,9 +190,8 @@ static int psk_find_session_cb(SSL *ssl, const unsigned char *identity,
 
     if (strlen(psk_identity) != identity_len
             || memcmp(psk_identity, identity, identity_len) != 0) {
-        BIO_printf(bio_s_out,
-                   "PSK warning: client identity not what we expected"
-                   " (got '%s' expected '%s')\n", identity, psk_identity);
+        *sess = NULL;
+        return 1;
     }
 
     if (psksess != NULL) {
@@ -752,7 +748,7 @@ typedef enum OPTION_choice {
     OPT_CERT2, OPT_KEY2, OPT_NEXTPROTONEG, OPT_ALPN,
     OPT_SRTP_PROFILES, OPT_KEYMATEXPORT, OPT_KEYMATEXPORTLEN,
     OPT_KEYLOG_FILE, OPT_MAX_EARLY, OPT_RECV_MAX_EARLY, OPT_EARLY_DATA,
-    OPT_S_NUM_TICKETS, OPT_ANTI_REPLAY, OPT_NO_ANTI_REPLAY,
+    OPT_S_NUM_TICKETS, OPT_ANTI_REPLAY, OPT_NO_ANTI_REPLAY, OPT_SCTP_LABEL_BUG,
     OPT_R_ENUM,
     OPT_S_ENUM,
     OPT_V_ENUM,
@@ -939,6 +935,7 @@ const OPTIONS s_server_options[] = {
 #endif
 #ifndef OPENSSL_NO_SCTP
     {"sctp", OPT_SCTP, '-', "Use SCTP"},
+    {"sctp_label_bug", OPT_SCTP_LABEL_BUG, '-', "Enable SCTP label length bug"},
 #endif
 #ifndef OPENSSL_NO_DH
     {"no_dhe", OPT_NO_DHE, '-', "Disable ephemeral DH"},
@@ -1048,6 +1045,9 @@ int s_server_main(int argc, char *argv[])
     const char *keylog_file = NULL;
     int max_early_data = -1, recv_max_early_data = -1;
     char *psksessf = NULL;
+#ifndef OPENSSL_NO_SCTP
+    int sctp_label_bug = 0;
+#endif
 
     /* Init of few remaining global variables */
     local_argc = argc;
@@ -1408,7 +1408,7 @@ int s_server_main(int argc, char *argv[])
             for (p = psk_key = opt_arg(); *p; p++) {
                 if (isxdigit(_UC(*p)))
                     continue;
-                BIO_printf(bio_err, "Not a hex number '%s'\n", *argv);
+                BIO_printf(bio_err, "Not a hex number '%s'\n", psk_key);
                 goto end;
             }
             break;
@@ -1489,6 +1489,11 @@ int s_server_main(int argc, char *argv[])
         case OPT_SCTP:
 #ifndef OPENSSL_NO_SCTP
             protocol = IPPROTO_SCTP;
+#endif
+            break;
+        case OPT_SCTP_LABEL_BUG:
+#ifndef OPENSSL_NO_SCTP
+            sctp_label_bug = 1;
 #endif
             break;
         case OPT_TIMEOUT:
@@ -1622,6 +1627,11 @@ int s_server_main(int argc, char *argv[])
         goto end;
     }
 #endif
+    if (early_data && (www > 0 || rev)) {
+        BIO_printf(bio_err,
+                   "Can't use -early_data in combination with -www, -WWW, -HTTP, or -rev\n");
+        goto end;
+    }
 
 #ifndef OPENSSL_NO_SCTP
     if (protocol == IPPROTO_SCTP) {
@@ -1788,6 +1798,12 @@ int s_server_main(int argc, char *argv[])
             goto end;
         }
     }
+
+#ifndef OPENSSL_NO_SCTP
+    if (protocol == IPPROTO_SCTP && sctp_label_bug == 1)
+        SSL_CTX_set_mode(ctx, SSL_MODE_DTLS_SCTP_LABEL_LENGTH_BUG);
+#endif
+
     if (min_version != 0
         && SSL_CTX_set_min_proto_version(ctx, min_version) == 0)
         goto end;
@@ -1888,7 +1904,7 @@ int s_server_main(int argc, char *argv[])
         BIO_printf(bio_s_out, "Setting secondary ctx parameters\n");
 
         if (sdebug)
-            ssl_ctx_security_debug(ctx, sdebug);
+            ssl_ctx_security_debug(ctx2, sdebug);
 
         if (session_id_prefix) {
             if (strlen(session_id_prefix) >= 32)
@@ -2750,6 +2766,8 @@ static int init_ssl_connection(SSL *con)
                     BIO_ADDR_free(client);
                     return 0;
                 }
+
+                (void)BIO_ctrl_set_connected(wbio, client);
                 BIO_ADDR_free(client);
                 dtlslisten = 0;
             } else {
@@ -3187,6 +3205,12 @@ static int www_body(int s, int stype, int prot, unsigned char *context)
                 if (e[0] == ' ')
                     break;
 
+                if (e[0] == ':') {
+                    /* Windows drive. We treat this the same way as ".." */
+                    dot = -1;
+                    break;
+                }
+
                 switch (dot) {
                 case 1:
                     dot = (e[0] == '.') ? 2 : 0;
@@ -3195,11 +3219,11 @@ static int www_body(int s, int stype, int prot, unsigned char *context)
                     dot = (e[0] == '.') ? 3 : 0;
                     break;
                 case 3:
-                    dot = (e[0] == '/') ? -1 : 0;
+                    dot = (e[0] == '/' || e[0] == '\\') ? -1 : 0;
                     break;
                 }
                 if (dot == 0)
-                    dot = (e[0] == '/') ? 1 : 0;
+                    dot = (e[0] == '/' || e[0] == '\\') ? 1 : 0;
             }
             dot = (dot == 3) || (dot == -1); /* filename contains ".."
                                               * component */
@@ -3213,11 +3237,11 @@ static int www_body(int s, int stype, int prot, unsigned char *context)
 
             if (dot) {
                 BIO_puts(io, text);
-                BIO_printf(io, "'%s' contains '..' reference\r\n", p);
+                BIO_printf(io, "'%s' contains '..' or ':'\r\n", p);
                 break;
             }
 
-            if (*p == '/') {
+            if (*p == '/' || *p == '\\') {
                 BIO_puts(io, text);
                 BIO_printf(io, "'%s' is an invalid path\r\n", p);
                 break;

@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Copyright 2017-2018 The OpenSSL Project Authors. All Rights Reserved.
+# Copyright 2017-2020 The OpenSSL Project Authors. All Rights Reserved.
 #
 # Licensed under the OpenSSL license (the "License").  You may not use
 # this file except in compliance with the License.  You can obtain a copy
@@ -432,9 +432,9 @@ SHA3_absorb:
 	lrvg	%r0,0($inp)
 	la	$inp,8($inp)
 	xg	%r0,0(%r1)
-	la	%r1,8(%r1)
 	a${g}hi	$len,-8
-	stg	%r0,-8(%r1)
+	stg	%r0,0(%r1)
+	la	%r1,8(%r1)
 	brct	$bsz,.Lblock_absorb
 
 	stm${g}	$inp,$len,$frame+3*$SIZE_T($sp)
@@ -557,4 +557,4 @@ ___
 $code =~ s/(srlg\s+)(%r[0-9]+),/$1$2,$2,/gm;
 
 print $code;
-close STDOUT;
+close STDOUT or die "error closing STDOUT: $!";

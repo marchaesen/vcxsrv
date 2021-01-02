@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2001-2020 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -8,7 +8,7 @@
  */
 
 #include "e_os.h"
-#include "eng_int.h"
+#include "eng_local.h"
 #include <openssl/rand.h>
 #include "internal/refcount.h"
 
@@ -124,7 +124,7 @@ static int int_cleanup_check(int create)
 static ENGINE_CLEANUP_ITEM *int_cleanup_item(ENGINE_CLEANUP_CB *cb)
 {
     ENGINE_CLEANUP_ITEM *item;
-    
+
     if ((item = OPENSSL_malloc(sizeof(*item))) == NULL) {
         ENGINEerr(ENGINE_F_INT_CLEANUP_ITEM, ERR_R_MALLOC_FAILURE);
         return NULL;
@@ -171,6 +171,7 @@ void engine_cleanup_int(void)
         cleanup_stack = NULL;
     }
     CRYPTO_THREAD_lock_free(global_engine_lock);
+    global_engine_lock = NULL;
 }
 
 /* Now the "ex_data" support */

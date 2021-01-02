@@ -9,9 +9,9 @@ x509 - Certificate display and signing utility
 
 B<openssl> B<x509>
 [B<-help>]
-[B<-inform DER|PEM|NET>]
-[B<-outform DER|PEM|NET>]
-[B<-keyform DER|PEM>]
+[B<-inform DER|PEM>]
+[B<-outform DER|PEM>]
+[B<-keyform DER|PEM|ENGINE>]
 [B<-CAform DER|PEM>]
 [B<-CAkeyform DER|PEM>]
 [B<-in filename>]
@@ -44,7 +44,7 @@ B<openssl> B<x509>
 [B<-setalias arg>]
 [B<-days arg>]
 [B<-set_serial n>]
-[B<-signkey filename>]
+[B<-signkey arg>]
 [B<-passin arg>]
 [B<-x509toreq>]
 [B<-req>]
@@ -61,6 +61,7 @@ B<openssl> B<x509>
 [B<-clrext>]
 [B<-extfile filename>]
 [B<-extensions section>]
+[B<-sigopt nm:v>]
 [B<-rand file...>]
 [B<-writerand file>]
 [B<-engine id>]
@@ -86,16 +87,15 @@ various sections.
 
 Print out a usage message.
 
-=item B<-inform DER|PEM|NET>
+=item B<-inform DER|PEM>
 
 This specifies the input format normally the command will expect an X509
 certificate but this can change if other options such as B<-req> are
 present. The DER format is the DER encoding of the certificate and PEM
 is the base64 encoding of the DER encoding with header and footer lines
-added. The NET option is an obscure Netscape server format that is now
-obsolete. The default format is PEM.
+added. The default format is PEM.
 
-=item B<-outform DER|PEM|NET>
+=item B<-outform DER|PEM>
 
 This specifies the output format, the options have the same meaning and default
 as the B<-inform> option.
@@ -174,7 +174,7 @@ options. See the B<TEXT OPTIONS> section for more information.
 
 =item B<-noout>
 
-This option prevents output of the encoded version of the request.
+This option prevents output of the encoded version of the certificate.
 
 =item B<-pubkey>
 
@@ -255,7 +255,7 @@ Prints out the start and expiry dates of a certificate.
 =item B<-checkend arg>
 
 Checks if the certificate expires within the next B<arg> seconds and exits
-non-zero if yes it will expire or zero if not.
+nonzero if yes it will expire or zero if not.
 
 =item B<-fingerprint>
 
@@ -350,10 +350,11 @@ can thus behave like a "mini CA".
 
 =over 4
 
-=item B<-signkey filename>
+=item B<-signkey arg>
 
 This option causes the input file to be self signed using the supplied
-private key.
+private key or engine. The private key's format is specified with the
+B<-keyform> option.
 
 If the input file is a certificate it sets the issuer name to the
 subject name (i.e.  makes it self signed) changes the public key to the
@@ -367,6 +368,11 @@ If the input is a certificate request then a self signed certificate
 is created using the supplied private key using the subject name in
 the request.
 
+=item B<-sigopt nm:v>
+
+Pass options to the signature algorithm during sign or verify operations.
+Names and values of these options are algorithm-specific.
+
 =item B<-passin arg>
 
 The key password source. For more information about the format of B<arg>
@@ -379,7 +385,7 @@ certificate is being created from another certificate (for example with
 the B<-signkey> or the B<-CA> options). Normally all extensions are
 retained.
 
-=item B<-keyform PEM|DER>
+=item B<-keyform PEM|DER|ENGINE>
 
 Specifies the format (DER or PEM) of the private key file used in the
 B<-signkey> option.
@@ -926,7 +932,7 @@ the old form must have their links rebuilt using B<c_rehash> or similar.
 
 =head1 COPYRIGHT
 
-Copyright 2000-2018 The OpenSSL Project Authors. All Rights Reserved.
+Copyright 2000-2020 The OpenSSL Project Authors. All Rights Reserved.
 
 Licensed under the OpenSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy

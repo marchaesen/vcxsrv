@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2017 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1999-2020 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -223,18 +223,20 @@ static int pad_unknown(void)
 static int rsa_setkey(RSA** key, unsigned char* ctext, int idx)
 {
     int clen = 0;
+
     *key = RSA_new();
-    switch (idx) {
-    case 0:
-        clen = key1(*key, ctext);
-        break;
-    case 1:
-        clen = key2(*key, ctext);
-        break;
-    case 2:
-        clen = key3(*key, ctext);
-        break;
-    }
+    if (*key != NULL)
+        switch (idx) {
+        case 0:
+            clen = key1(*key, ctext);
+            break;
+        case 1:
+            clen = key2(*key, ctext);
+            break;
+        case 2:
+            clen = key3(*key, ctext);
+            break;
+        }
     return clen;
 }
 
@@ -259,6 +261,36 @@ static int test_rsa_pkcs1(int idx)
         goto err;
 
     num = RSA_private_decrypt(num, ctext, ptext, key, RSA_PKCS1_PADDING);
+    if (!TEST_mem_eq(ptext, num, ptext_ex, plen))
+        goto err;
+
+    ret = 1;
+err:
+    RSA_free(key);
+    return ret;
+}
+
+static int test_rsa_sslv23(int idx)
+{
+    int ret = 0;
+    RSA *key;
+    unsigned char ptext[256];
+    unsigned char ctext[256];
+    static unsigned char ptext_ex[] = "\x54\x85\x9b\x34\x2c\x49\xea\x2a";
+    unsigned char ctext_ex[256];
+    int plen;
+    int clen = 0;
+    int num;
+
+    plen = sizeof(ptext_ex) - 1;
+    clen = rsa_setkey(&key, ctext_ex, idx);
+
+    num = RSA_public_encrypt(plen, ptext_ex, ctext, key,
+                             RSA_SSLV23_PADDING);
+    if (!TEST_int_eq(num, clen))
+        goto err;
+
+    num = RSA_private_decrypt(num, ctext, ptext, key, RSA_SSLV23_PADDING);
     if (!TEST_mem_eq(ptext, num, ptext_ex, plen))
         goto err;
 
@@ -332,6 +364,7 @@ err:
 int setup_tests(void)
 {
     ADD_ALL_TESTS(test_rsa_pkcs1, 3);
+    ADD_ALL_TESTS(test_rsa_sslv23, 3);
     ADD_ALL_TESTS(test_rsa_oaep, 3);
     return 1;
 }

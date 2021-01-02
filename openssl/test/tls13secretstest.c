@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2019 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -15,7 +15,7 @@
 # pragma names as_is,shortened
 #endif
 
-#include "../ssl/ssl_locl.h"
+#include "../ssl/ssl_local.h"
 
 #ifdef __VMS
 # pragma names restore
@@ -27,8 +27,8 @@
 #define KEYLEN  16
 
 /*
- * Based on the test vectors availble in:
- * https://tools.ietf.org/html/draft-ietf-tls-tls13-vectors-06 
+ * Based on the test vectors available in:
+ * https://tools.ietf.org/html/draft-ietf-tls-tls13-vectors-06
  */
 
 static unsigned char hs_start_hash[] = {
@@ -236,7 +236,7 @@ static int test_secret(SSL *s, unsigned char *prk,
     }
 
     if (!tls13_hkdf_expand(s, md, prk, label, labellen, hash, hashsize,
-                           gensecret, hashsize)) {
+                           gensecret, hashsize, 1)) {
         TEST_error("Secret generation failed");
         return 0;
     }

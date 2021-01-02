@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2015-2019 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -9,8 +9,8 @@
 
 #include "internal/cryptlib.h"
 #include <openssl/rand.h>
-#include "../ssl_locl.h"
-#include "statem_locl.h"
+#include "../ssl_local.h"
+#include "statem_local.h"
 #include <assert.h>
 
 /*
@@ -118,11 +118,12 @@ void ossl_statem_set_renegotiate(SSL *s)
 void ossl_statem_fatal(SSL *s, int al, int func, int reason, const char *file,
                        int line)
 {
+    ERR_put_error(ERR_LIB_SSL, func, reason, file, line);
     /* We shouldn't call SSLfatal() twice. Once is enough */
-    assert(s->statem.state != MSG_FLOW_ERROR);
+    if (s->statem.in_init && s->statem.state == MSG_FLOW_ERROR)
+      return;
     s->statem.in_init = 1;
     s->statem.state = MSG_FLOW_ERROR;
-    ERR_put_error(ERR_LIB_SSL, func, reason, file, line);
     if (al != SSL_AD_NO_ALERT
             && s->statem.enc_write_state != ENC_WRITE_STATE_INVALID)
         ssl3_send_alert(s, SSL3_AL_FATAL, al);
@@ -341,8 +342,10 @@ static int state_machine(SSL *s, int server)
         }
 
         s->server = server;
-        if (cb != NULL)
-            cb(s, SSL_CB_HANDSHAKE_START, 1);
+        if (cb != NULL) {
+            if (SSL_IS_FIRST_HANDSHAKE(s) || !SSL_IS_TLS13(s))
+                cb(s, SSL_CB_HANDSHAKE_START, 1);
+        }
 
         /*
          * Fatal errors in this block don't send an alert because we have

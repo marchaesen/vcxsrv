@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include "bio_lcl.h"
+#include "bio_local.h"
 #include "internal/cryptlib.h"
 
 #if defined(OPENSSL_SYS_WINCE)
@@ -408,4 +408,9 @@ static void xcloselog(BIO *bp)
 
 # endif                         /* Unix */
 
+#else                           /* NO_SYSLOG */
+const BIO_METHOD *BIO_s_log(void)
+{
+    return NULL;
+}
 #endif                          /* NO_SYSLOG */

@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2020 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved
  * Copyright 2005 Nokia. All rights reserved.
  *
@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <openssl/objects.h>
 #include "internal/nelem.h"
-#include "ssl_locl.h"
+#include "ssl_local.h"
 #include <openssl/md5.h>
 #include <openssl/dh.h>
 #include <openssl/rand.h>
@@ -3567,6 +3567,7 @@ long ssl3_ctrl(SSL *s, int cmd, long larg, void *parg)
 
     case SSL_CTRL_GET_CHAIN_CERTS:
         *(STACK_OF(X509) **)parg = s->cert->key->chain;
+        ret = 1;
         break;
 
     case SSL_CTRL_SELECT_CURRENT_CERT:
@@ -3601,8 +3602,8 @@ long ssl3_ctrl(SSL *s, int cmd, long larg, void *parg)
 
             if (!s->session)
                 return 0;
-            clist = s->session->ext.supportedgroups;
-            clistlen = s->session->ext.supportedgroups_len;
+            clist = s->ext.peer_supportedgroups;
+            clistlen = s->ext.peer_supportedgroups_len;
             if (parg) {
                 size_t i;
                 int *cptr = parg;
@@ -3681,9 +3682,15 @@ long ssl3_ctrl(SSL *s, int cmd, long larg, void *parg)
         *(int *)parg = s->s3->tmp.peer_sigalg->hash;
         return 1;
 
-    case SSL_CTRL_GET_SERVER_TMP_KEY:
+    case SSL_CTRL_GET_SIGNATURE_NID:
+        if (s->s3->tmp.sigalg == NULL)
+            return 0;
+        *(int *)parg = s->s3->tmp.sigalg->hash;
+        return 1;
+
+    case SSL_CTRL_GET_PEER_TMP_KEY:
 #if !defined(OPENSSL_NO_DH) || !defined(OPENSSL_NO_EC)
-        if (s->server || s->session == NULL || s->s3->peer_tmp == NULL) {
+        if (s->session == NULL || s->s3->peer_tmp == NULL) {
             return 0;
         } else {
             EVP_PKEY_up_ref(s->s3->peer_tmp);
@@ -3693,16 +3700,29 @@ long ssl3_ctrl(SSL *s, int cmd, long larg, void *parg)
 #else
         return 0;
 #endif
+
+    case SSL_CTRL_GET_TMP_KEY:
+#if !defined(OPENSSL_NO_DH) || !defined(OPENSSL_NO_EC)
+        if (s->session == NULL || s->s3->tmp.pkey == NULL) {
+            return 0;
+        } else {
+            EVP_PKEY_up_ref(s->s3->tmp.pkey);
+            *(EVP_PKEY **)parg = s->s3->tmp.pkey;
+            return 1;
+        }
+#else
+        return 0;
+#endif
+
 #ifndef OPENSSL_NO_EC
     case SSL_CTRL_GET_EC_POINT_FORMATS:
         {
-            SSL_SESSION *sess = s->session;
             const unsigned char **pformat = parg;
 
-            if (sess == NULL || sess->ext.ecpointformats == NULL)
+            if (s->ext.peer_ecpointformats == NULL)
                 return 0;
-            *pformat = sess->ext.ecpointformats;
-            return (int)sess->ext.ecpointformats_len;
+            *pformat = s->ext.peer_ecpointformats;
+            return (int)s->ext.peer_ecpointformats_len;
         }
 #endif
 
@@ -3761,7 +3781,7 @@ long ssl3_ctx_ctrl(SSL_CTX *ctx, int cmd, long larg, void *parg)
                                   EVP_PKEY_security_bits(pkdh), 0, pkdh)) {
                 SSLerr(SSL_F_SSL3_CTX_CTRL, SSL_R_DH_KEY_TOO_SMALL);
                 EVP_PKEY_free(pkdh);
-                return 1;
+                return 0;
             }
             EVP_PKEY_free(ctx->cert->dh_tmp);
             ctx->cert->dh_tmp = pkdh;
@@ -4052,9 +4072,10 @@ const SSL_CIPHER *ssl3_get_cipher_by_id(uint32_t id)
 
 const SSL_CIPHER *ssl3_get_cipher_by_std_name(const char *stdname)
 {
-    SSL_CIPHER *c = NULL, *tbl;
-    SSL_CIPHER *alltabs[] = {tls13_ciphers, ssl3_ciphers};
-    size_t i, j, tblsize[] = {TLS13_NUM_CIPHERS, SSL3_NUM_CIPHERS};
+    SSL_CIPHER *tbl;
+    SSL_CIPHER *alltabs[] = {tls13_ciphers, ssl3_ciphers, ssl3_scsvs};
+    size_t i, j, tblsize[] = {TLS13_NUM_CIPHERS, SSL3_NUM_CIPHERS,
+                              SSL3_NUM_SCSVS};
 
     /* this is not efficient, necessary to optimize this? */
     for (j = 0; j < OSSL_NELEM(alltabs); j++) {
@@ -4062,21 +4083,11 @@ const SSL_CIPHER *ssl3_get_cipher_by_std_name(const char *stdname)
             if (tbl->stdname == NULL)
                 continue;
             if (strcmp(stdname, tbl->stdname) == 0) {
-                c = tbl;
-                break;
+                return tbl;
             }
         }
     }
-    if (c == NULL) {
-        tbl = ssl3_scsvs;
-        for (i = 0; i < SSL3_NUM_SCSVS; i++, tbl++) {
-            if (strcmp(stdname, tbl->stdname) == 0) {
-                c = tbl;
-                break;
-            }
-        }
-    }
-    return c;
+    return NULL;
 }
 
 /*
@@ -4619,7 +4630,7 @@ int ssl_generate_master_secret(SSL *s, unsigned char *pms, size_t pmslen,
         OPENSSL_clear_free(s->s3->tmp.psk, psklen);
         s->s3->tmp.psk = NULL;
         if (!s->method->ssl3_enc->generate_master_secret(s,
-                    s->session->master_key,pskpms, pskpmslen,
+                    s->session->master_key, pskpms, pskpmslen,
                     &s->session->master_key_length)) {
             OPENSSL_clear_free(pskpms, pskpmslen);
             /* SSLfatal() already called */

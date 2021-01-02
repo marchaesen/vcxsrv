@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2000-2019 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -16,7 +16,8 @@
 # define _GNU_SOURCE            /* make sure dladdr is declared */
 #endif
 
-#include "dso_locl.h"
+#include "dso_local.h"
+#include "e_os.h"
 
 #ifdef DSO_DLFCN
 
@@ -26,8 +27,7 @@
 #  endif
 #  include <dlfcn.h>
 #  define HAVE_DLINFO 1
-#  if defined(__CYGWIN__) || \
-     defined(__SCO_VERSION__) || defined(_SCO_ELF) || \
+#  if defined(__SCO_VERSION__) || defined(_SCO_ELF) || \
      (defined(__osf__) && !defined(RTLD_NEXT))     || \
      (defined(__OpenBSD__) && !defined(RTLD_SELF)) || \
         defined(__ANDROID__)
@@ -99,6 +99,7 @@ static int dlfcn_load(DSO *dso)
     /* See applicable comments in dso_dl.c */
     char *filename = DSO_convert_filename(dso, NULL);
     int flags = DLOPEN_FLAG;
+    int saveerrno = get_last_sys_error();
 
     if (filename == NULL) {
         DSOerr(DSO_F_DLFCN_LOAD, DSO_R_NO_FILENAME);
@@ -118,6 +119,11 @@ static int dlfcn_load(DSO *dso)
         ERR_add_error_data(4, "filename(", filename, "): ", dlerror());
         goto err;
     }
+    /*
+     * Some dlopen() implementations (e.g. solaris) do no preserve errno, even
+     * on a successful call.
+     */
+    set_sys_error(saveerrno);
     if (!sk_void_push(dso->meth_data, (char *)ptr)) {
         DSOerr(DSO_F_DLFCN_LOAD, DSO_R_STACK_ERROR);
         goto err;
