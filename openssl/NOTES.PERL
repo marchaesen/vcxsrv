@@ -78,7 +78,7 @@
  ---------------------------------
 
  There are a number of ways to install a perl module.  In all
- descriptions below, Text::Template will server as an example.
+ descriptions below, Text::Template will serve as an example.
 
  1. for Linux users, the easiest is to install with the use of your
     favorite package manager.  Usually, all you need to do is search
@@ -109,7 +109,7 @@
 
         $ cpan -f -i Text::Template
 
-    Note: on VMS, you must quote any argument that contains upper case
+    Note: on VMS, you must quote any argument that contains uppercase
     characters, so the lines above would be:
 
         $ cpan -i "Text::Template"

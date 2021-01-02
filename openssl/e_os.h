@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2020 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -7,8 +7,8 @@
  * https://www.openssl.org/source/license.html
  */
 
-#ifndef HEADER_E_OS_H
-# define HEADER_E_OS_H
+#ifndef OSSL_E_OS_H
+# define OSSL_E_OS_H
 
 # include <limits.h>
 # include <openssl/opensslconf.h>
@@ -27,10 +27,35 @@
  * set this to a comma-separated list of 'random' device files to try out. By
  * default, we will try to read at least one of these files
  */
-#  if defined(__s390__)
-#   define DEVRANDOM "/dev/prandom","/dev/urandom","/dev/hwrng","/dev/random"
-#  else
-#   define DEVRANDOM "/dev/urandom","/dev/random","/dev/srandom"
+#  define DEVRANDOM "/dev/urandom", "/dev/random", "/dev/hwrng", "/dev/srandom"
+#  if defined(__linux) && !defined(__ANDROID__)
+#   ifndef DEVRANDOM_WAIT
+#    define DEVRANDOM_WAIT   "/dev/random"
+#   endif
+/*
+ * Linux kernels 4.8 and later changes how their random device works and there
+ * is no reliable way to tell that /dev/urandom has been seeded -- getentropy(2)
+ * should be used instead.
+ */
+#   ifndef DEVRANDOM_SAFE_KERNEL
+#    define DEVRANDOM_SAFE_KERNEL        4, 8
+#   endif
+/*
+ * Some operating systems do not permit select(2) on their random devices,
+ * defining this to zero will force the use of read(2) to extract one byte
+ * from /dev/random.
+ */
+#   ifndef DEVRANDM_WAIT_USE_SELECT
+#    define DEVRANDM_WAIT_USE_SELECT     1
+#   endif
+/*
+ * Define the shared memory identifier used to indicate if the operating
+ * system has properly seeded the DEVRANDOM source.
+ */
+#   ifndef OPENSSL_RAND_SEED_DEVRANDOM_SHM_ID
+#    define OPENSSL_RAND_SEED_DEVRANDOM_SHM_ID 114
+#   endif
+
 #  endif
 # endif
 # if !defined(OPENSSL_NO_EGD) && !defined(DEVRANDOM_EGD)
@@ -39,7 +64,7 @@
  * sockets will be tried in the order listed in case accessing the device
  * files listed in DEVRANDOM did not return enough randomness.
  */
-#  define DEVRANDOM_EGD "/var/run/egd-pool","/dev/egd-pool","/etc/egd-pool","/etc/entropy"
+#  define DEVRANDOM_EGD "/var/run/egd-pool", "/dev/egd-pool", "/etc/egd-pool", "/etc/entropy"
 # endif
 
 # if defined(OPENSSL_SYS_VXWORKS) || defined(OPENSSL_SYS_UEFI)
@@ -49,6 +74,7 @@
 
 # define get_last_sys_error()    errno
 # define clear_sys_error()       errno=0
+# define set_sys_error(e)        errno=(e)
 
 /********************************************************************
  The Microsoft section
@@ -66,8 +92,10 @@
 # ifdef WIN32
 #  undef get_last_sys_error
 #  undef clear_sys_error
+#  undef set_sys_error
 #  define get_last_sys_error()    GetLastError()
 #  define clear_sys_error()       SetLastError(0)
+#  define set_sys_error(e)        SetLastError(e)
 #  if !defined(WINNT)
 #   define WIN_CONSOLE_BUG
 #  endif
@@ -245,7 +273,7 @@ extern FILE *_imp___iob;
 
      Finally, we add the VMS C facility code 0x35a000, because there are some
      programs, such as Perl, that will reinterpret the code back to something
-     POSIXly.  'man perlvms' explains it further.
+     POSIX.  'man perlvms' explains it further.
 
      NOTE: the perlvms manual wants to turn all codes 2 to 255 into success
      codes (status type = 1).  I couldn't disagree more.  Fortunately, the
@@ -280,7 +308,7 @@ extern FILE *_imp___iob;
 # if defined(OPENSSL_SYS_WINDOWS)
 #  define strcasecmp _stricmp
 #  define strncasecmp _strnicmp
-#  if (_MSC_VER >= 1310)
+#  if (_MSC_VER >= 1310) && !defined(_WIN32_WCE)
 #   define open _open
 #   define fdopen _fdopen
 #   define close _close
@@ -317,8 +345,15 @@ struct servent *getservbyname(const char *name, const char *proto);
 # endif
 /* end vxworks */
 
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-# define CRYPTO_memcmp memcmp
-#endif
+# ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#  define CRYPTO_memcmp memcmp
+# endif
 
+/* unistd.h defines _POSIX_VERSION */
+# if !defined(OPENSSL_NO_SECURE_MEMORY) && defined(OPENSSL_SYS_UNIX) \
+     && ( (defined(_POSIX_VERSION) && _POSIX_VERSION >= 200112L)      \
+          || defined(__sun) || defined(__hpux) || defined(__sgi)      \
+          || defined(__osf__) )
+#  define OPENSSL_SECURE_MEMORY  /* secure memory is implemented */
+# endif
 #endif

@@ -8,7 +8,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include "eng_int.h"
+#include "eng_local.h"
 
 /*
  * The linked-list of pointers to engine types. engine_list_head incorporates
@@ -317,8 +317,7 @@ ENGINE *ENGINE_by_id(const char *id)
      * Prevent infinite recursion if we're looking for the dynamic engine.
      */
     if (strcmp(id, "dynamic")) {
-        if (OPENSSL_issetugid()
-                || (load_dir = getenv("OPENSSL_ENGINES")) == NULL)
+        if ((load_dir = ossl_safe_getenv("OPENSSL_ENGINES")) == NULL)
             load_dir = ENGINESDIR;
         iterator = ENGINE_by_id("dynamic");
         if (!iterator || !ENGINE_ctrl_cmd_string(iterator, "ID", id, 0) ||

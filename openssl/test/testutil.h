@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2014-2019 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -7,8 +7,8 @@
  * https://www.openssl.org/source/license.html
  */
 
-#ifndef HEADER_TESTUTIL_H
-# define HEADER_TESTUTIL_H
+#ifndef OSSL_TESTUTIL_H
+# define OSSL_TESTUTIL_H
 
 #include <stdarg.h>
 
@@ -454,4 +454,15 @@ void test_clearstanza(STANZA *s);
  */
 char *glue_strings(const char *list[], size_t *out_len);
 
-#endif                          /* HEADER_TESTUTIL_H */
+/*
+ * Pseudo random number generator of low quality but having repeatability
+ * across platforms.  The two calls are replacements for random(3) and
+ * srandom(3).
+ */
+uint32_t test_random(void);
+void test_random_seed(uint32_t sd);
+
+/* Create a file path from a directory and a filename */
+char *test_mk_file_path(const char *dir, const char *file);
+
+#endif                          /* OSSL_TESTUTIL_H */

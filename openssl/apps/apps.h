@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2019 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -7,8 +7,8 @@
  * https://www.openssl.org/source/license.html
  */
 
-#ifndef HEADER_APPS_H
-# define HEADER_APPS_H
+#ifndef OSSL_APPS_H
+# define OSSL_APPS_H
 
 # include "e_os.h" /* struct timeval for DTLS */
 # include "internal/nelem.h"
@@ -369,7 +369,7 @@ typedef struct string_int_pair_st {
 # define OPT_FMT_SMIME           (1L <<  3)
 # define OPT_FMT_ENGINE          (1L <<  4)
 # define OPT_FMT_MSBLOB          (1L <<  5)
-# define OPT_FMT_NETSCAPE        (1L <<  6)
+/* (1L <<  6) was OPT_FMT_NETSCAPE, but wasn't used */
 # define OPT_FMT_NSS             (1L <<  7)
 # define OPT_FMT_TEXT            (1L <<  8)
 # define OPT_FMT_HTTP            (1L <<  9)
@@ -378,8 +378,8 @@ typedef struct string_int_pair_st {
 # define OPT_FMT_PDS     (OPT_FMT_PEMDER | OPT_FMT_SMIME)
 # define OPT_FMT_ANY     ( \
         OPT_FMT_PEMDER | OPT_FMT_PKCS12 | OPT_FMT_SMIME | \
-        OPT_FMT_ENGINE | OPT_FMT_MSBLOB | OPT_FMT_NETSCAPE | \
-        OPT_FMT_NSS | OPT_FMT_TEXT | OPT_FMT_HTTP | OPT_FMT_PVK)
+        OPT_FMT_ENGINE | OPT_FMT_MSBLOB | OPT_FMT_NSS   | \
+        OPT_FMT_TEXT   | OPT_FMT_HTTP   | OPT_FMT_PVK)
 
 char *opt_progname(const char *argv0);
 char *opt_getprog(void);
@@ -444,11 +444,9 @@ void destroy_ui_method(void);
 const UI_METHOD *get_ui_method(void);
 
 int chopup_args(ARGS *arg, char *buf);
-# ifdef HEADER_X509_H
 int dump_cert_text(BIO *out, X509 *x);
 void print_name(BIO *out, const char *title, X509_NAME *nm,
                 unsigned long lflags);
-# endif
 void print_bignum_var(BIO *, const BIGNUM *, const char*,
                       int, unsigned char *);
 void print_array(BIO *, const char *, int, const unsigned char *);

@@ -1,4 +1,4 @@
-# Copyright 2016-2018 The OpenSSL Project Authors. All Rights Reserved.
+# Copyright 2016-2019 The OpenSSL Project Authors. All Rights Reserved.
 #
 # Licensed under the OpenSSL license (the "License").  You may not use
 # this file except in compliance with the License.  You can obtain a copy
@@ -19,6 +19,7 @@ use TLSProxy::ClientHello;
 use TLSProxy::ServerHello;
 use TLSProxy::EncryptedExtensions;
 use TLSProxy::Certificate;
+use TLSProxy::CertificateRequest;
 use TLSProxy::CertificateVerify;
 use TLSProxy::ServerKeyExchange;
 use TLSProxy::NewSessionTicket;
@@ -44,7 +45,7 @@ BEGIN
         $s->close();
     };
     if ($@ eq "") {
-        $IP_factory = sub { IO::Socket::INET6->new(@_); };
+        $IP_factory = sub { IO::Socket::INET6->new(Domain => AF_INET6, @_); };
         $have_IPv6 = 1;
     } else {
         eval {
@@ -451,7 +452,7 @@ sub clientstart
     } else {
         # It's a bit counter-intuitive spot to make next connection to
         # the s_server. Rationale is that established connection works
-        # as syncronization point, in sense that this way we know that
+        # as synchronization point, in sense that this way we know that
         # s_server is actually done with current session...
         $self->connect_to_server();
     }

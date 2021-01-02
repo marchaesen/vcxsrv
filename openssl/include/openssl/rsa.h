@@ -160,7 +160,7 @@ extern "C" {
 
 # define  EVP_PKEY_CTX_set_rsa_pss_keygen_md(ctx, md) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_RSA_PSS,  \
-                          EVP_PKEY_OP_TYPE_KEYGEN, EVP_PKEY_CTRL_MD,  \
+                          EVP_PKEY_OP_KEYGEN, EVP_PKEY_CTRL_MD,  \
                           0, (void *)(md))
 
 # define EVP_PKEY_CTRL_RSA_PADDING       (EVP_PKEY_ALG_CTRL + 1)
@@ -224,6 +224,7 @@ const BIGNUM *RSA_get0_q(const RSA *d);
 const BIGNUM *RSA_get0_dmp1(const RSA *r);
 const BIGNUM *RSA_get0_dmq1(const RSA *r);
 const BIGNUM *RSA_get0_iqmp(const RSA *r);
+const RSA_PSS_PARAMS *RSA_get0_pss_params(const RSA *r);
 void RSA_clear_flags(RSA *r, int flags);
 int RSA_test_flags(const RSA *r, int flags);
 void RSA_set_flags(RSA *r, int flags);
@@ -279,14 +280,14 @@ int RSA_pkey_ctx_ctrl(EVP_PKEY_CTX *ctx, int optype, int cmd, int p1, void *p2);
 DECLARE_ASN1_ENCODE_FUNCTIONS_const(RSA, RSAPublicKey)
 DECLARE_ASN1_ENCODE_FUNCTIONS_const(RSA, RSAPrivateKey)
 
-typedef struct rsa_pss_params_st {
+struct rsa_pss_params_st {
     X509_ALGOR *hashAlgorithm;
     X509_ALGOR *maskGenAlgorithm;
     ASN1_INTEGER *saltLength;
     ASN1_INTEGER *trailerField;
     /* Decoded hash algorithm from maskGenAlgorithm */
     X509_ALGOR *maskHash;
-} RSA_PSS_PARAMS;
+};
 
 DECLARE_ASN1_FUNCTIONS(RSA_PSS_PARAMS)
 
@@ -456,9 +457,9 @@ int RSA_meth_set_priv_dec(RSA_METHOD *rsa,
                                            unsigned char *to, RSA *rsa,
                                            int padding));
 int (*RSA_meth_get_mod_exp(const RSA_METHOD *meth))
-    (BIGNUM *r0, const BIGNUM *I, RSA *rsa, BN_CTX *ctx);
+    (BIGNUM *r0, const BIGNUM *i, RSA *rsa, BN_CTX *ctx);
 int RSA_meth_set_mod_exp(RSA_METHOD *rsa,
-                         int (*mod_exp) (BIGNUM *r0, const BIGNUM *I, RSA *rsa,
+                         int (*mod_exp) (BIGNUM *r0, const BIGNUM *i, RSA *rsa,
                                          BN_CTX *ctx));
 int (*RSA_meth_get_bn_mod_exp(const RSA_METHOD *meth))
     (BIGNUM *r, const BIGNUM *a, const BIGNUM *p,

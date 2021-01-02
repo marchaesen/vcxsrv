@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2020 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -605,7 +605,7 @@ end_of_options:
         /*
          * outdir is a directory spec, but access() for VMS demands a
          * filename.  We could use the DEC C routine to convert the
-         * directory syntax to Unixly, and give that to app_isdir,
+         * directory syntax to Unix, and give that to app_isdir,
          * but for now the fopen will catch the error if it's not a
          * directory
          */
@@ -722,7 +722,7 @@ end_of_options:
 
     /*****************************************************************/
     if (req || gencrl) {
-        if (spkac_file != NULL) {
+        if (spkac_file != NULL && outfile != NULL) {
             output_der = 1;
             batch = 1;
         }
@@ -976,7 +976,7 @@ end_of_options:
             BIO_printf(bio_err, "Write out database with %d new entries\n",
                        sk_X509_num(cert_sk));
 
-            if (!rand_ser
+            if (serialfile != NULL
                     && !save_serial(serialfile, "new", serial, NULL))
                 goto end;
 
@@ -1044,7 +1044,8 @@ end_of_options:
 
         if (sk_X509_num(cert_sk)) {
             /* Rename the database and the serial file */
-            if (!rotate_serial(serialfile, "new", "old"))
+            if (serialfile != NULL
+                    && !rotate_serial(serialfile, "new", "old"))
                 goto end;
 
             if (!rotate_index(dbfile, "new", "old"))
@@ -1177,10 +1178,9 @@ end_of_options:
         }
 
         /* we have a CRL number that need updating */
-        if (crlnumberfile != NULL)
-            if (!rand_ser
-                    && !save_serial(crlnumberfile, "new", crlnumber, NULL))
-                goto end;
+        if (crlnumberfile != NULL
+                && !save_serial(crlnumberfile, "new", crlnumber, NULL))
+            goto end;
 
         BN_free(crlnumber);
         crlnumber = NULL;
@@ -1195,9 +1195,10 @@ end_of_options:
 
         PEM_write_bio_X509_CRL(Sout, crl);
 
-        if (crlnumberfile != NULL) /* Rename the crlnumber file */
-            if (!rotate_serial(crlnumberfile, "new", "old"))
-                goto end;
+        /* Rename the crlnumber file */
+        if (crlnumberfile != NULL
+                && !rotate_serial(crlnumberfile, "new", "old"))
+            goto end;
 
     }
     /*****************************************************************/
@@ -1861,8 +1862,8 @@ static int do_body(X509 **xret, EVP_PKEY *pkey, X509 *x509,
     row[DB_exp_date][tm->length] = '\0';
     row[DB_rev_date] = NULL;
     row[DB_file] = OPENSSL_strdup("unknown");
-    if ((row[DB_type] == NULL) || (row[DB_exp_date] == NULL) ||
-        (row[DB_file] == NULL) || (row[DB_name] == NULL)) {
+    if ((row[DB_type] == NULL) || (row[DB_file] == NULL)
+        || (row[DB_name] == NULL)) {
         BIO_printf(bio_err, "Memory allocation failure\n");
         goto end;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2001-2020 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
@@ -12,8 +12,8 @@
 #include <openssl/err.h>
 
 #include "internal/cryptlib.h"
-#include "internal/bn_int.h"
-#include "ec_lcl.h"
+#include "crypto/bn.h"
+#include "ec_local.h"
 #include "internal/refcount.h"
 
 /*
@@ -206,8 +206,8 @@ int ec_scalar_mul_ladder(const EC_GROUP *group, EC_POINT *r,
      */
     cardinality_bits = BN_num_bits(cardinality);
     group_top = bn_get_top(cardinality);
-    if ((bn_wexpand(k, group_top + 1) == NULL)
-        || (bn_wexpand(lambda, group_top + 1) == NULL)) {
+    if ((bn_wexpand(k, group_top + 2) == NULL)
+        || (bn_wexpand(lambda, group_top + 2) == NULL)) {
         ECerr(EC_F_EC_SCALAR_MUL_LADDER, ERR_R_BN_LIB);
         goto err;
     }
@@ -244,7 +244,7 @@ int ec_scalar_mul_ladder(const EC_GROUP *group, EC_POINT *r,
      * k := scalar + 2*cardinality
      */
     kbit = BN_is_bit_set(lambda, cardinality_bits);
-    BN_consttime_swap(kbit, k, lambda, group_top + 1);
+    BN_consttime_swap(kbit, k, lambda, group_top + 2);
 
     group_top = bn_get_top(group->field);
     if ((bn_wexpand(s->X, group_top) == NULL)
@@ -260,17 +260,10 @@ int ec_scalar_mul_ladder(const EC_GROUP *group, EC_POINT *r,
         goto err;
     }
 
-    /*-
-     * Apply coordinate blinding for EC_POINT.
-     *
-     * The underlying EC_METHOD can optionally implement this function:
-     * ec_point_blind_coordinates() returns 0 in case of errors or 1 on
-     * success or if coordinate blinding is not implemented for this
-     * group.
-     */
-    if (!ec_point_blind_coordinates(group, p, ctx)) {
-        ECerr(EC_F_EC_SCALAR_MUL_LADDER, EC_R_POINT_COORDINATES_BLIND_FAILURE);
-        goto err;
+    /* ensure input point is in affine coords for ladder step efficiency */
+    if (!p->Z_is_one && !EC_POINT_make_affine(group, p, ctx)) {
+            ECerr(EC_F_EC_SCALAR_MUL_LADDER, ERR_R_EC_LIB);
+            goto err;
     }
 
     /* Initialize the Montgomery ladder */
@@ -378,7 +371,7 @@ int ec_scalar_mul_ladder(const EC_GROUP *group, EC_POINT *r,
 
  err:
     EC_POINT_free(p);
-    EC_POINT_free(s);
+    EC_POINT_clear_free(s);
     BN_CTX_end(ctx);
 
     return ret;
@@ -441,7 +434,7 @@ int ec_wNAF_mul(const EC_GROUP *group, EC_POINT *r, const BIGNUM *scalar,
          * scalar multiplication implementation based on a Montgomery ladder,
          * with various timing attack defenses.
          */
-        if ((scalar != NULL) && (num == 0)) {
+        if ((scalar != group->order) && (scalar != NULL) && (num == 0)) {
             /*-
              * In this case we want to compute scalar * GeneratorPoint: this
              * codepath is reached most prominently by (ephemeral) key
@@ -452,7 +445,7 @@ int ec_wNAF_mul(const EC_GROUP *group, EC_POINT *r, const BIGNUM *scalar,
              */
             return ec_scalar_mul_ladder(group, r, scalar, NULL, ctx);
         }
-        if ((scalar == NULL) && (num == 1)) {
+        if ((scalar == NULL) && (num == 1) && (scalars[0] != group->order)) {
             /*-
              * In this case we want to compute scalar * VariablePoint: this
              * codepath is reached most prominently by the second half of ECDH,
@@ -747,6 +740,20 @@ int ec_wNAF_mul(const EC_GROUP *group, EC_POINT *r, const BIGNUM *scalar,
                     if (r_is_at_infinity) {
                         if (!EC_POINT_copy(r, val_sub[i][digit >> 1]))
                             goto err;
+
+                        /*-
+                         * Apply coordinate blinding for EC_POINT.
+                         *
+                         * The underlying EC_METHOD can optionally implement this function:
+                         * ec_point_blind_coordinates() returns 0 in case of errors or 1 on
+                         * success or if coordinate blinding is not implemented for this
+                         * group.
+                         */
+                        if (!ec_point_blind_coordinates(group, r, ctx)) {
+                            ECerr(EC_F_EC_WNAF_MUL, EC_R_POINT_COORDINATES_BLIND_FAILURE);
+                            goto err;
+                        }
+
                         r_is_at_infinity = 0;
                     } else {
                         if (!EC_POINT_add
@@ -948,8 +955,7 @@ int ec_wNAF_precompute_mult(EC_GROUP *group, BN_CTX *ctx)
     ret = 1;
 
  err:
-    if (ctx != NULL)
-        BN_CTX_end(ctx);
+    BN_CTX_end(ctx);
     BN_CTX_free(new_ctx);
     EC_ec_pre_comp_free(pre_comp);
     if (points) {

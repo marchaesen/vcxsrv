@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2015-2019 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -17,9 +17,11 @@
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
+#include <openssl/kdf.h>
+#include <openssl/dh.h>
 #include "testutil.h"
 #include "internal/nelem.h"
-#include "internal/evp_int.h"
+#include "crypto/evp.h"
 
 /*
  * kExampleRSAKeyDER is an RSA private key in ASN.1, DER format. Of course, you
@@ -298,6 +300,21 @@ static const unsigned char kExampleECPubKeyDER[] = {
     0x56, 0x6a, 0xc6, 0xc8, 0xa5, 0x0b, 0xe5
 };
 
+/*
+ * kExampleBadECPubKeyDER is a sample EC public key with a wrong OID
+ * 1.2.840.10045.2.2 instead of 1.2.840.10045.2.1 - EC Public Key
+ */
+static const unsigned char kExampleBadECPubKeyDER[] = {
+    0x30, 0x59, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02,
+    0x02, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07, 0x03,
+    0x42, 0x00, 0x04, 0xba, 0xeb, 0x83, 0xfb, 0x3b, 0xb2, 0xff, 0x30, 0x53,
+    0xdb, 0xce, 0x32, 0xf2, 0xac, 0xae, 0x44, 0x0d, 0x3d, 0x13, 0x53, 0xb8,
+    0xd1, 0x68, 0x55, 0xde, 0x44, 0x46, 0x05, 0xa6, 0xc9, 0xd2, 0x04, 0xb7,
+    0xe3, 0xa2, 0x96, 0xc8, 0xb2, 0x5e, 0x22, 0x03, 0xd7, 0x03, 0x7a, 0x8b,
+    0x13, 0x5c, 0x42, 0x49, 0xc2, 0xab, 0x86, 0xd6, 0xac, 0x6b, 0x93, 0x20,
+    0x56, 0x6a, 0xc6, 0xc8, 0xa5, 0x0b, 0xe5
+};
+
 static const unsigned char pExampleECParamDER[] = {
     0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07
 };
@@ -493,6 +510,66 @@ static int test_d2i_AutoPrivateKey(int i)
 }
 
 #ifndef OPENSSL_NO_EC
+
+static const unsigned char ec_public_sect163k1_validxy[] = {
+    0x30, 0x40, 0x30, 0x10, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02,
+    0x01, 0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x01, 0x03, 0x2c, 0x00, 0x04,
+    0x02, 0x84, 0x58, 0xa6, 0xd4, 0xa0, 0x35, 0x2b, 0xae, 0xf0, 0xc0, 0x69,
+    0x05, 0xcf, 0x2a, 0x50, 0x33, 0xf9, 0xe3, 0x92, 0x79, 0x02, 0xd1, 0x7b,
+    0x9f, 0x22, 0x00, 0xf0, 0x3b, 0x0e, 0x5d, 0x2e, 0xb7, 0x23, 0x24, 0xf3,
+    0x6a, 0xd8, 0x17, 0x65, 0x41, 0x2f
+};
+
+static const unsigned char ec_public_sect163k1_badx[] = {
+    0x30, 0x40, 0x30, 0x10, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02,
+    0x01, 0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x01, 0x03, 0x2c, 0x00, 0x04,
+    0x0a, 0x84, 0x58, 0xa6, 0xd4, 0xa0, 0x35, 0x2b, 0xae, 0xf0, 0xc0, 0x69,
+    0x05, 0xcf, 0x2a, 0x50, 0x33, 0xf9, 0xe3, 0x92, 0xb0, 0x02, 0xd1, 0x7b,
+    0x9f, 0x22, 0x00, 0xf0, 0x3b, 0x0e, 0x5d, 0x2e, 0xb7, 0x23, 0x24, 0xf3,
+    0x6a, 0xd8, 0x17, 0x65, 0x41, 0x2f
+};
+
+static const unsigned char ec_public_sect163k1_bady[] = {
+    0x30, 0x40, 0x30, 0x10, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02,
+    0x01, 0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x01, 0x03, 0x2c, 0x00, 0x04,
+    0x02, 0x84, 0x58, 0xa6, 0xd4, 0xa0, 0x35, 0x2b, 0xae, 0xf0, 0xc0, 0x69,
+    0x05, 0xcf, 0x2a, 0x50, 0x33, 0xf9, 0xe3, 0x92, 0x79, 0x0a, 0xd1, 0x7b,
+    0x9f, 0x22, 0x00, 0xf0, 0x3b, 0x0e, 0x5d, 0x2e, 0xb7, 0x23, 0x24, 0xf3,
+    0x6a, 0xd8, 0x17, 0x65, 0x41, 0xe6
+};
+
+static struct ec_der_pub_keys_st {
+    const unsigned char *der;
+    size_t len;
+    int valid;
+} ec_der_pub_keys[] = {
+    { ec_public_sect163k1_validxy, sizeof(ec_public_sect163k1_validxy), 1 },
+    { ec_public_sect163k1_badx, sizeof(ec_public_sect163k1_badx), 0 },
+    { ec_public_sect163k1_bady, sizeof(ec_public_sect163k1_bady), 0 },
+};
+
+/*
+ * Tests the range of the decoded EC char2 public point.
+ * See ec_GF2m_simple_oct2point().
+ */
+static int test_invalide_ec_char2_pub_range_decode(int id)
+{
+    int ret = 0;
+    BIO *bio = NULL;
+    EC_KEY *eckey = NULL;
+
+    if (!TEST_ptr(bio = BIO_new_mem_buf(ec_der_pub_keys[id].der,
+                                        ec_der_pub_keys[id].len)))
+        goto err;
+    eckey = d2i_EC_PUBKEY_bio(bio, NULL);
+    ret = (ec_der_pub_keys[id].valid && TEST_ptr(eckey))
+          || TEST_ptr_null(eckey);
+err:
+    EC_KEY_free(eckey);
+    BIO_free(bio);
+    return ret;
+}
+
 /* Tests loading a bad key in PKCS8 format */
 static int test_EVP_PKCS82PKEY(void)
 {
@@ -918,6 +995,184 @@ static int test_EVP_PKEY_check(int i)
     return ret;
 }
 
+static int test_HKDF(void)
+{
+    EVP_PKEY_CTX *pctx;
+    unsigned char out[20];
+    size_t outlen;
+    int i, ret = 0;
+    unsigned char salt[] = "0123456789";
+    unsigned char key[] = "012345678901234567890123456789";
+    unsigned char info[] = "infostring";
+    const unsigned char expected[] = {
+        0xe5, 0x07, 0x70, 0x7f, 0xc6, 0x78, 0xd6, 0x54, 0x32, 0x5f, 0x7e, 0xc5,
+        0x7b, 0x59, 0x3e, 0xd8, 0x03, 0x6b, 0xed, 0xca
+    };
+    size_t expectedlen = sizeof(expected);
+
+    if (!TEST_ptr(pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL)))
+        goto done;
+
+    /* We do this twice to test reuse of the EVP_PKEY_CTX */
+    for (i = 0; i < 2; i++) {
+        outlen = sizeof(out);
+        memset(out, 0, outlen);
+
+        if (!TEST_int_gt(EVP_PKEY_derive_init(pctx), 0)
+                || !TEST_int_gt(EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha256()), 0)
+                || !TEST_int_gt(EVP_PKEY_CTX_set1_hkdf_salt(pctx, salt,
+                                                            sizeof(salt) - 1), 0)
+                || !TEST_int_gt(EVP_PKEY_CTX_set1_hkdf_key(pctx, key,
+                                                           sizeof(key) - 1), 0)
+                || !TEST_int_gt(EVP_PKEY_CTX_add1_hkdf_info(pctx, info,
+                                                            sizeof(info) - 1), 0)
+                || !TEST_int_gt(EVP_PKEY_derive(pctx, out, &outlen), 0)
+                || !TEST_mem_eq(out, outlen, expected, expectedlen))
+            goto done;
+    }
+
+    ret = 1;
+
+ done:
+    EVP_PKEY_CTX_free(pctx);
+
+    return ret;
+}
+
+#ifndef OPENSSL_NO_EC
+static int test_X509_PUBKEY_inplace(void)
+{
+  int ret = 0;
+  X509_PUBKEY *xp = NULL;
+  const unsigned char *p = kExampleECPubKeyDER;
+  size_t input_len = sizeof(kExampleECPubKeyDER);
+
+  if (!TEST_ptr(xp = d2i_X509_PUBKEY(NULL, &p, input_len)))
+    goto done;
+
+  if (!TEST_ptr(X509_PUBKEY_get0(xp)))
+    goto done;
+
+  p = kExampleBadECPubKeyDER;
+  input_len = sizeof(kExampleBadECPubKeyDER);
+
+  if (!TEST_ptr(xp = d2i_X509_PUBKEY(&xp, &p, input_len)))
+    goto done;
+
+  if (!TEST_true(X509_PUBKEY_get0(xp) == NULL))
+    goto done;
+
+  ret = 1;
+
+done:
+  X509_PUBKEY_free(xp);
+  return ret;
+}
+#endif
+
+#if !defined(OPENSSL_NO_CHACHA) && !defined(OPENSSL_NO_POLY1305)
+static int test_decrypt_null_chunks(void)
+{
+    EVP_CIPHER_CTX* ctx = NULL;
+    const unsigned char key[32] = {
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
+        0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+        0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1
+    };
+    unsigned char iv[12] = {
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b
+    };
+    unsigned char msg[] = "It was the best of times, it was the worst of times";
+    unsigned char ciphertext[80];
+    unsigned char plaintext[80];
+    /* We initialise tmp to a non zero value on purpose */
+    int ctlen, ptlen, tmp = 99;
+    int ret = 0;
+    const int enc_offset = 10, dec_offset = 20;
+
+    if (!TEST_ptr(ctx = EVP_CIPHER_CTX_new())
+            || !TEST_true(EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), NULL,
+                                             key, iv))
+            || !TEST_true(EVP_EncryptUpdate(ctx, ciphertext, &ctlen, msg,
+                                            enc_offset))
+            /* Deliberate add a zero length update */
+            || !TEST_true(EVP_EncryptUpdate(ctx, ciphertext + ctlen, &tmp, NULL,
+                                            0))
+            || !TEST_int_eq(tmp, 0)
+            || !TEST_true(EVP_EncryptUpdate(ctx, ciphertext + ctlen, &tmp,
+                                            msg + enc_offset,
+                                            sizeof(msg) - enc_offset))
+            || !TEST_int_eq(ctlen += tmp, sizeof(msg))
+            || !TEST_true(EVP_EncryptFinal(ctx, ciphertext + ctlen, &tmp))
+            || !TEST_int_eq(tmp, 0))
+        goto err;
+
+    /* Deliberately initialise tmp to a non zero value */
+    tmp = 99;
+    if (!TEST_true(EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), NULL, key,
+                                      iv))
+            || !TEST_true(EVP_DecryptUpdate(ctx, plaintext, &ptlen, ciphertext,
+                                            dec_offset))
+            /*
+             * Deliberately add a zero length update. We also deliberately do
+             * this at a different offset than for encryption.
+             */
+            || !TEST_true(EVP_DecryptUpdate(ctx, plaintext + ptlen, &tmp, NULL,
+                                            0))
+            || !TEST_int_eq(tmp, 0)
+            || !TEST_true(EVP_DecryptUpdate(ctx, plaintext + ptlen, &tmp,
+                                            ciphertext + dec_offset,
+                                            ctlen - dec_offset))
+            || !TEST_int_eq(ptlen += tmp, sizeof(msg))
+            || !TEST_true(EVP_DecryptFinal(ctx, plaintext + ptlen, &tmp))
+            || !TEST_int_eq(tmp, 0)
+            || !TEST_mem_eq(msg, sizeof(msg), plaintext, ptlen))
+        goto err;
+
+    ret = 1;
+ err:
+    EVP_CIPHER_CTX_free(ctx);
+    return ret;
+}
+#endif /* !defined(OPENSSL_NO_CHACHA) && !defined(OPENSSL_NO_POLY1305) */
+
+#ifndef OPENSSL_NO_DH
+static int test_EVP_PKEY_set1_DH(void)
+{
+    DH *x942dh, *pkcs3dh;
+    EVP_PKEY *pkey1, *pkey2;
+    int ret = 0;
+
+    x942dh = DH_get_2048_256();
+    pkcs3dh = DH_new_by_nid(NID_ffdhe2048);
+    pkey1 = EVP_PKEY_new();
+    pkey2 = EVP_PKEY_new();
+    if (!TEST_ptr(x942dh)
+            || !TEST_ptr(pkcs3dh)
+            || !TEST_ptr(pkey1)
+            || !TEST_ptr(pkey2))
+        goto err;
+
+    if(!TEST_true(EVP_PKEY_set1_DH(pkey1, x942dh))
+            || !TEST_int_eq(EVP_PKEY_id(pkey1), EVP_PKEY_DHX))
+        goto err;
+
+
+    if(!TEST_true(EVP_PKEY_set1_DH(pkey2, pkcs3dh))
+            || !TEST_int_eq(EVP_PKEY_id(pkey2), EVP_PKEY_DH))
+        goto err;
+
+    ret = 1;
+ err:
+    EVP_PKEY_free(pkey1);
+    EVP_PKEY_free(pkey2);
+    DH_free(x942dh);
+    DH_free(pkcs3dh);
+
+    return ret;
+}
+#endif
+
 int setup_tests(void)
 {
     ADD_TEST(test_EVP_DigestSignInit);
@@ -941,5 +1196,18 @@ int setup_tests(void)
     if (!TEST_int_eq(EVP_PKEY_meth_add0(custom_pmeth), 1))
         return 0;
     ADD_ALL_TESTS(test_EVP_PKEY_check, OSSL_NELEM(keycheckdata));
+    ADD_TEST(test_HKDF);
+#ifndef OPENSSL_NO_EC
+    ADD_TEST(test_X509_PUBKEY_inplace);
+    ADD_ALL_TESTS(test_invalide_ec_char2_pub_range_decode,
+                  OSSL_NELEM(ec_der_pub_keys));
+#endif
+#if !defined(OPENSSL_NO_CHACHA) && !defined(OPENSSL_NO_POLY1305)
+    ADD_TEST(test_decrypt_null_chunks);
+#endif
+#ifndef OPENSSL_NO_DH
+    ADD_TEST(test_EVP_PKEY_set1_DH);
+#endif
+
     return 1;
 }

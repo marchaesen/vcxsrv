@@ -51,7 +51,7 @@
 #endif
 
 /*
- * The POSIXly macro for the maximum number of characters in a file path is
+ * The POSIX macro for the maximum number of characters in a file path is
  * NAME_MAX.  However, some operating systems use PATH_MAX instead.
  * Therefore, it seems natural to first check for PATH_MAX and use that, and
  * if it doesn't exist, use NAME_MAX.
@@ -131,9 +131,8 @@ const char *LP_find_file(LP_DIR_CTX **ctx, const char *directory)
         return 0;
     }
 
-    strncpy((*ctx)->entry_name, direntry->d_name,
-            sizeof((*ctx)->entry_name) - 1);
-    (*ctx)->entry_name[sizeof((*ctx)->entry_name) - 1] = '\0';
+    OPENSSL_strlcpy((*ctx)->entry_name, direntry->d_name,
+                    sizeof((*ctx)->entry_name));
 #ifdef __VMS
     if ((*ctx)->expect_file_generations) {
         char *p = (*ctx)->entry_name + strlen((*ctx)->entry_name);

@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2020 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved
  * Copyright 2005 Nokia. All rights reserved.
  *
@@ -10,9 +10,9 @@
  */
 
 #include <stdio.h>
-#include "../ssl_locl.h"
-#include "statem_locl.h"
-#include "internal/constant_time_locl.h"
+#include "../ssl_local.h"
+#include "statem_local.h"
+#include "internal/constant_time.h"
 #include "internal/cryptlib.h"
 #include <openssl/buffer.h>
 #include <openssl/rand.h>
@@ -23,8 +23,23 @@
 #include <openssl/dh.h>
 #include <openssl/bn.h>
 #include <openssl/md5.h>
+#include <openssl/asn1t.h>
 
 #define TICKET_NONCE_SIZE       8
+
+typedef struct {
+  ASN1_TYPE *kxBlob;
+  ASN1_TYPE *opaqueBlob;
+} GOST_KX_MESSAGE;
+
+DECLARE_ASN1_FUNCTIONS(GOST_KX_MESSAGE)
+
+ASN1_SEQUENCE(GOST_KX_MESSAGE) = {
+  ASN1_SIMPLE(GOST_KX_MESSAGE,  kxBlob, ASN1_ANY),
+  ASN1_OPT(GOST_KX_MESSAGE, opaqueBlob, ASN1_ANY),
+} ASN1_SEQUENCE_END(GOST_KX_MESSAGE)
+
+IMPLEMENT_ASN1_FUNCTIONS(GOST_KX_MESSAGE)
 
 static int tls_construct_encrypted_extensions(SSL *s, WPACKET *pkt);
 
@@ -502,12 +517,6 @@ static WRITE_TRAN ossl_statem_server13_write_transition(SSL *s)
         return WRITE_TRAN_CONTINUE;
 
     case TLS_ST_SR_KEY_UPDATE:
-        if (s->key_update != SSL_KEY_UPDATE_NONE) {
-            st->hand_state = TLS_ST_SW_KEY_UPDATE;
-            return WRITE_TRAN_CONTINUE;
-        }
-        /* Fall through */
-
     case TLS_ST_SW_KEY_UPDATE:
         st->hand_state = TLS_ST_OK;
         return WRITE_TRAN_CONTINUE;
@@ -734,7 +743,15 @@ WORK_STATE ossl_statem_server_pre_work(SSL *s, WORK_STATE wst)
     case TLS_ST_SW_CHANGE:
         if (SSL_IS_TLS13(s))
             break;
-        s->session->cipher = s->s3->tmp.new_cipher;
+        /* Writes to s->session are only safe for initial handshakes */
+        if (s->session->cipher == NULL) {
+            s->session->cipher = s->s3->tmp.new_cipher;
+        } else if (s->session->cipher != s->s3->tmp.new_cipher) {
+            SSLfatal(s, SSL_AD_INTERNAL_ERROR,
+                     SSL_F_OSSL_STATEM_SERVER_PRE_WORK,
+                     ERR_R_INTERNAL_ERROR);
+            return WORK_ERROR;
+        }
         if (!s->method->ssl3_enc->setup_key_block(s)) {
             /* SSLfatal() already called */
             return WORK_ERROR;
@@ -773,6 +790,10 @@ static ossl_inline int conn_is_closed(void)
 #endif
 #if defined(ECONNRESET)
     case ECONNRESET:
+        return 1;
+#endif
+#if defined(WSAECONNRESET)
+    case WSAECONNRESET:
         return 1;
 #endif
     default:
@@ -830,6 +851,7 @@ WORK_STATE ossl_statem_server_post_work(SSL *s, WORK_STATE wst)
         if (SSL_IS_DTLS(s) && s->hit) {
             unsigned char sctpauthkey[64];
             char labelbuffer[sizeof(DTLS1_SCTP_AUTH_LABEL)];
+            size_t labellen;
 
             /*
              * Add new shared key for SCTP-Auth, will be ignored if no
@@ -838,9 +860,14 @@ WORK_STATE ossl_statem_server_post_work(SSL *s, WORK_STATE wst)
             memcpy(labelbuffer, DTLS1_SCTP_AUTH_LABEL,
                    sizeof(DTLS1_SCTP_AUTH_LABEL));
 
+            /* Don't include the terminating zero. */
+            labellen = sizeof(labelbuffer) - 1;
+            if (s->mode & SSL_MODE_DTLS_SCTP_LABEL_LENGTH_BUG)
+                labellen += 1;
+
             if (SSL_export_keying_material(s, sctpauthkey,
                                            sizeof(sctpauthkey), labelbuffer,
-                                           sizeof(labelbuffer), NULL, 0,
+                                           labellen, NULL, 0,
                                            0) <= 0) {
                 SSLfatal(s, SSL_AD_INTERNAL_ERROR,
                          SSL_F_OSSL_STATEM_SERVER_POST_WORK,
@@ -928,9 +955,11 @@ WORK_STATE ossl_statem_server_post_work(SSL *s, WORK_STATE wst)
         }
 #endif
         if (SSL_IS_TLS13(s)) {
+            /* TLS 1.3 gets the secret size from the handshake md */
+            size_t dummy;
             if (!s->method->ssl3_enc->generate_master_secret(s,
                         s->master_secret, s->handshake_secret, 0,
-                        &s->session->master_key_length)
+                        &dummy)
                 || !s->method->ssl3_enc->change_cipher_state(s,
                         SSL3_CC_APPLICATION | SSL3_CHANGE_CIPHER_SERVER_WRITE))
             /* SSLfatal() already called */
@@ -1519,8 +1548,10 @@ MSG_PROCESS_RETURN tls_process_client_hello(SSL *s, PACKET *pkt)
              * So check cookie length...
              */
             if (SSL_get_options(s) & SSL_OP_COOKIE_EXCHANGE) {
-                if (clienthello->dtls_cookie_len == 0)
+                if (clienthello->dtls_cookie_len == 0) {
+                    OPENSSL_free(clienthello);
                     return MSG_PROCESS_FINISHED_READING;
+                }
             }
         }
 
@@ -1915,14 +1946,14 @@ static int tls_early_post_process_client_hello(SSL *s)
                 && master_key_length > 0) {
             s->session->master_key_length = master_key_length;
             s->hit = 1;
-            s->session->ciphers = ciphers;
+            s->peer_ciphers = ciphers;
             s->session->verify_result = X509_V_OK;
 
             ciphers = NULL;
 
             /* check if some cipher was preferred by call back */
             if (pref_cipher == NULL)
-                pref_cipher = ssl3_choose_cipher(s, s->session->ciphers,
+                pref_cipher = ssl3_choose_cipher(s, s->peer_ciphers,
                                                  SSL_get_ciphers(s));
             if (pref_cipher == NULL) {
                 SSLfatal(s, SSL_AD_HANDSHAKE_FAILURE,
@@ -1933,9 +1964,9 @@ static int tls_early_post_process_client_hello(SSL *s)
 
             s->session->cipher = pref_cipher;
             sk_SSL_CIPHER_free(s->cipher_list);
-            s->cipher_list = sk_SSL_CIPHER_dup(s->session->ciphers);
+            s->cipher_list = sk_SSL_CIPHER_dup(s->peer_ciphers);
             sk_SSL_CIPHER_free(s->cipher_list_by_id);
-            s->cipher_list_by_id = sk_SSL_CIPHER_dup(s->session->ciphers);
+            s->cipher_list_by_id = sk_SSL_CIPHER_dup(s->peer_ciphers);
         }
     }
 
@@ -2035,12 +2066,12 @@ static int tls_early_post_process_client_hello(SSL *s)
 #endif
 
     /*
-     * Given s->session->ciphers and SSL_get_ciphers, we must pick a cipher
+     * Given s->peer_ciphers and SSL_get_ciphers, we must pick a cipher
      */
 
     if (!s->hit || SSL_IS_TLS13(s)) {
-        sk_SSL_CIPHER_free(s->session->ciphers);
-        s->session->ciphers = ciphers;
+        sk_SSL_CIPHER_free(s->peer_ciphers);
+        s->peer_ciphers = ciphers;
         if (ciphers == NULL) {
             SSLfatal(s, SSL_AD_INTERNAL_ERROR,
                      SSL_F_TLS_EARLY_POST_PROCESS_CLIENT_HELLO,
@@ -2245,7 +2276,7 @@ WORK_STATE tls_post_process_client_hello(SSL *s, WORK_STATE wst)
             /* In TLSv1.3 we selected the ciphersuite before resumption */
             if (!SSL_IS_TLS13(s)) {
                 cipher =
-                    ssl3_choose_cipher(s, s->session->ciphers, SSL_get_ciphers(s));
+                    ssl3_choose_cipher(s, s->peer_ciphers, SSL_get_ciphers(s));
 
                 if (cipher == NULL) {
                     SSLfatal(s, SSL_AD_HANDSHAKE_FAILURE,
@@ -2546,7 +2577,7 @@ int tls_construct_server_key_exchange(SSL *s, WPACKET *pkt)
 
         s->s3->tmp.pkey = ssl_generate_pkey(pkdhp);
         if (s->s3->tmp.pkey == NULL) {
-            /* SSLfatal() already called */
+            SSLfatal(s, SSL_AD_INTERNAL_ERROR, 0, ERR_R_INTERNAL_ERROR);
             goto err;
         }
 
@@ -2876,7 +2907,7 @@ int tls_construct_certificate_request(SSL *s, WPACKET *pkt)
         }
     }
 
-    if (!construct_ca_names(s, pkt)) {
+    if (!construct_ca_names(s, get_ca_names(s), pkt)) {
         /* SSLfatal() already called */
         return 0;
     }
@@ -3222,6 +3253,12 @@ static int tls_process_cke_ecdhe(SSL *s, PACKET *pkt)
                      SSL_R_LENGTH_MISMATCH);
             goto err;
         }
+        if (skey == NULL) {
+            SSLfatal(s, SSL_AD_INTERNAL_ERROR, SSL_F_TLS_PROCESS_CKE_ECDHE,
+                     SSL_R_MISSING_TMP_ECDH_KEY);
+            goto err;
+        }
+
         ckey = EVP_PKEY_new();
         if (ckey == NULL || EVP_PKEY_copy_parameters(ckey, skey) <= 0) {
             SSLfatal(s, SSL_AD_INTERNAL_ERROR, SSL_F_TLS_PROCESS_CKE_ECDHE,
@@ -3308,9 +3345,9 @@ static int tls_process_cke_gost(SSL *s, PACKET *pkt)
     const unsigned char *start;
     size_t outlen = 32, inlen;
     unsigned long alg_a;
-    unsigned int asn1id, asn1len;
+    GOST_KX_MESSAGE *pKX = NULL;
+    const unsigned char *ptr;
     int ret = 0;
-    PACKET encdata;
 
     /* Get our certificate private key */
     alg_a = s->s3->tmp.new_cipher->algorithm_auth;
@@ -3351,42 +3388,33 @@ static int tls_process_cke_gost(SSL *s, PACKET *pkt)
         if (EVP_PKEY_derive_set_peer(pkey_ctx, client_pub_pkey) <= 0)
             ERR_clear_error();
     }
-    /* Decrypt session key */
-    if (!PACKET_get_1(pkt, &asn1id)
-            || asn1id != (V_ASN1_SEQUENCE | V_ASN1_CONSTRUCTED)
-            || !PACKET_peek_1(pkt, &asn1len)) {
-        SSLfatal(s, SSL_AD_DECODE_ERROR, SSL_F_TLS_PROCESS_CKE_GOST,
-                 SSL_R_DECRYPTION_FAILED);
-        goto err;
-    }
-    if (asn1len == 0x81) {
-        /*
-         * Long form length. Should only be one byte of length. Anything else
-         * isn't supported.
-         * We did a successful peek before so this shouldn't fail
-         */
-        if (!PACKET_forward(pkt, 1)) {
-            SSLfatal(s, SSL_AD_INTERNAL_ERROR, SSL_F_TLS_PROCESS_CKE_GOST,
-                     SSL_R_DECRYPTION_FAILED);
-            goto err;
-        }
-    } else  if (asn1len >= 0x80) {
-        /*
-         * Indefinite length, or more than one long form length bytes. We don't
-         * support it
-         */
-        SSLfatal(s, SSL_AD_DECODE_ERROR, SSL_F_TLS_PROCESS_CKE_GOST,
-                 SSL_R_DECRYPTION_FAILED);
-        goto err;
-    } /* else short form length */
 
-    if (!PACKET_as_length_prefixed_1(pkt, &encdata)) {
-        SSLfatal(s, SSL_AD_DECODE_ERROR, SSL_F_TLS_PROCESS_CKE_GOST,
+    ptr = PACKET_data(pkt);
+    /* Some implementations provide extra data in the opaqueBlob
+     * We have nothing to do with this blob so we just skip it */
+    pKX = d2i_GOST_KX_MESSAGE(NULL, &ptr, PACKET_remaining(pkt));
+    if (pKX == NULL
+       || pKX->kxBlob == NULL
+       || ASN1_TYPE_get(pKX->kxBlob) != V_ASN1_SEQUENCE) {
+         SSLfatal(s, SSL_AD_DECODE_ERROR, SSL_F_TLS_PROCESS_CKE_GOST,
+                  SSL_R_DECRYPTION_FAILED);
+         goto err;
+    }
+
+    if (!PACKET_forward(pkt, ptr - PACKET_data(pkt))) {
+        SSLfatal(s, SSL_AD_INTERNAL_ERROR, SSL_F_TLS_PROCESS_CKE_GOST,
                  SSL_R_DECRYPTION_FAILED);
         goto err;
     }
-    inlen = PACKET_remaining(&encdata);
-    start = PACKET_data(&encdata);
+
+    if (PACKET_remaining(pkt) != 0) {
+        SSLfatal(s, SSL_AD_INTERNAL_ERROR, SSL_F_TLS_PROCESS_CKE_GOST,
+                 SSL_R_DECRYPTION_FAILED);
+        goto err;
+    }
+
+    inlen = pKX->kxBlob->value.sequence->length;
+    start = pKX->kxBlob->value.sequence->data;
 
     if (EVP_PKEY_decrypt(pkey_ctx, premaster_secret, &outlen, start,
                          inlen) <= 0) {
@@ -3408,6 +3436,7 @@ static int tls_process_cke_gost(SSL *s, PACKET *pkt)
     ret = 1;
  err:
     EVP_PKEY_CTX_free(pkey_ctx);
+    GOST_KX_MESSAGE_free(pKX);
     return ret;
 #else
     /* Should never happen */
@@ -3490,6 +3519,7 @@ WORK_STATE tls_post_process_client_key_exchange(SSL *s, WORK_STATE wst)
         if (SSL_IS_DTLS(s)) {
             unsigned char sctpauthkey[64];
             char labelbuffer[sizeof(DTLS1_SCTP_AUTH_LABEL)];
+            size_t labellen;
             /*
              * Add new shared key for SCTP-Auth, will be ignored if no SCTP
              * used.
@@ -3497,9 +3527,14 @@ WORK_STATE tls_post_process_client_key_exchange(SSL *s, WORK_STATE wst)
             memcpy(labelbuffer, DTLS1_SCTP_AUTH_LABEL,
                    sizeof(DTLS1_SCTP_AUTH_LABEL));
 
+            /* Don't include the terminating zero. */
+            labellen = sizeof(labelbuffer) - 1;
+            if (s->mode & SSL_MODE_DTLS_SCTP_LABEL_LENGTH_BUG)
+                labellen += 1;
+
             if (SSL_export_keying_material(s, sctpauthkey,
                                            sizeof(sctpauthkey), labelbuffer,
-                                           sizeof(labelbuffer), NULL, 0,
+                                           labellen, NULL, 0,
                                            0) <= 0) {
                 SSLfatal(s, SSL_AD_INTERNAL_ERROR,
                          SSL_F_TLS_POST_PROCESS_CLIENT_KEY_EXCHANGE,
@@ -4018,7 +4053,6 @@ int tls_construct_new_session_ticket(SSL *s, WPACKET *pkt)
         uint64_t nonce;
         static const unsigned char nonce_label[] = "resumption";
         const EVP_MD *md = ssl_handshake_md(s);
-        void (*cb) (const SSL *ssl, int type, int val) = NULL;
         int hashleni = EVP_MD_size(md);
 
         /* Ensure cast to size_t is safe */
@@ -4030,24 +4064,6 @@ int tls_construct_new_session_ticket(SSL *s, WPACKET *pkt)
         }
         hashlen = (size_t)hashleni;
 
-        if (s->info_callback != NULL)
-            cb = s->info_callback;
-        else if (s->ctx->info_callback != NULL)
-            cb = s->ctx->info_callback;
-
-        if (cb != NULL) {
-            /*
-             * We don't start and stop the handshake in between each ticket when
-             * sending more than one - but it should appear that way to the info
-             * callback.
-             */
-            if (s->sent_tickets != 0) {
-                ossl_statem_set_in_init(s, 0);
-                cb(s, SSL_CB_HANDSHAKE_DONE, 1);
-                ossl_statem_set_in_init(s, 1);
-            }
-            cb(s, SSL_CB_HANDSHAKE_START, 1);
-        }
         /*
          * If we already sent one NewSessionTicket, or we resumed then
          * s->session may already be in a cache and so we must not modify it.
@@ -4089,7 +4105,7 @@ int tls_construct_new_session_ticket(SSL *s, WPACKET *pkt)
                                tick_nonce,
                                TICKET_NONCE_SIZE,
                                s->session->master_key,
-                               hashlen)) {
+                               hashlen, 1)) {
             /* SSLfatal() already called */
             goto err;
         }

@@ -98,6 +98,7 @@ B<openssl> B<s_server>
 [B<-no_comp>]
 [B<-comp>]
 [B<-no_ticket>]
+[B<-num_tickets>]
 [B<-serverpref>]
 [B<-legacy_renegotiation>]
 [B<-no_renegotiation>]
@@ -172,6 +173,7 @@ B<openssl> B<s_server>
 [B<-dtls1>]
 [B<-dtls1_2>]
 [B<-sctp>]
+[B<-sctp_label_bug>]
 [B<-no_dhe>]
 [B<-nextprotoneg val>]
 [B<-use_srtp val>]
@@ -191,7 +193,7 @@ for connections on a given port using SSL/TLS.
 =head1 OPTIONS
 
 In addition to the options below the B<s_server> utility also supports the
-common and server only options documented in the
+common and server only options documented
 in the "Supported Command Line Commands" section of the L<SSL_CONF_cmd(3)>
 manual page.
 
@@ -405,13 +407,14 @@ Inhibit printing of session and certificate information.
 Sends a status message back to the client when it connects. This includes
 information about the ciphers used and various session parameters.
 The output is in HTML format so this option will normally be used with a
-web browser.
+web browser. Cannot be used in conjunction with B<-early_data>.
 
 =item B<-WWW>
 
 Emulates a simple web server. Pages will be resolved relative to the
 current directory, for example if the URL https://myhost/page.html is
-requested the file ./page.html will be loaded.
+requested the file ./page.html will be loaded. Cannot be used in conjunction
+with B<-early_data>.
 
 =item B<-tlsextdebug>
 
@@ -423,14 +426,15 @@ Emulates a simple web server. Pages will be resolved relative to the
 current directory, for example if the URL https://myhost/page.html is
 requested the file ./page.html will be loaded. The files loaded are
 assumed to contain a complete and correct HTTP response (lines that
-are part of the HTTP response line and headers must end with CRLF).
+are part of the HTTP response line and headers must end with CRLF). Cannot be
+used in conjunction with B<-early_data>.
 
 =item B<-id_prefix val>
 
 Generate SSL/TLS session IDs prefixed by B<val>. This is mostly useful
-for testing any SSL/TLS code (eg. proxies) that wish to deal with multiple
+for testing any SSL/TLS code (e.g. proxies) that wish to deal with multiple
 servers, when each of which might be generating a unique range of session
-IDs (eg. with a certain prefix).
+IDs (e.g. with a certain prefix).
 
 =item B<-rand file...>
 
@@ -488,7 +492,8 @@ output.
 =item B<-rev>
 
 Simple test server which just reverses the text received from the client
-and sends it back to the server. Also sets B<-brief>.
+and sends it back to the server. Also sets B<-brief>. Cannot be used in
+conjunction with B<-early_data>.
 
 =item B<-async>
 
@@ -537,7 +542,7 @@ OpenSSL was built.
 
 =item B<-bugs>
 
-There are several known bug in SSL and TLS implementations. Adding this
+There are several known bugs in SSL and TLS implementations. Adding this
 option enables various workarounds.
 
 =item B<-no_comp>
@@ -555,7 +560,14 @@ OpenSSL 1.1.0.
 
 =item B<-no_ticket>
 
-Disable RFC4507bis session ticket support.
+Disable RFC4507bis session ticket support. This option has no effect if TLSv1.3
+is negotiated. See B<-num_tickets>.
+
+=item B<-num_tickets>
+
+Control the number of tickets that will be sent to the client after a full
+handshake in TLSv1.3. The default number of tickets is 2. This option does not
+affect the number of tickets sent after a resumption handshake.
 
 =item B<-serverpref>
 
@@ -674,6 +686,14 @@ Use SCTP for the transport protocol instead of UDP in DTLS. Must be used in
 conjunction with B<-dtls>, B<-dtls1> or B<-dtls1_2>. This option is only
 available where OpenSSL has support for SCTP enabled.
 
+=item B<-sctp_label_bug>
+
+Use the incorrect behaviour of older OpenSSL implementations when computing
+endpoint-pair shared secrets for DTLS/SCTP. This allows communication with
+older broken implementations but breaks interoperability with correct
+implementations. Must be used in conjunction with B<-sctp>. This option is only
+available where OpenSSL has support for SCTP enabled.
+
 =item B<-no_dhe>
 
 If this option is set then no DH parameters will be loaded effectively
@@ -711,7 +731,8 @@ greater than or equal to 0.
 
 =item B<-early_data>
 
-Accept early data where possible.
+Accept early data where possible. Cannot be used in conjunction with B<-www>,
+B<-WWW>, B<-HTTP> or B<-rev>.
 
 =item B<-anti_replay>, B<-no_anti_replay>
 
@@ -813,18 +834,18 @@ unknown cipher suites a client says it supports.
 L<SSL_CONF_cmd(3)>, L<sess_id(1)>, L<s_client(1)>, L<ciphers(1)>
 L<SSL_CTX_set_max_send_fragment(3)>,
 L<SSL_CTX_set_split_send_fragment(3)>,
-L<SSL_CTX_set_max_pipelines(3)> 
+L<SSL_CTX_set_max_pipelines(3)>
 
 =head1 HISTORY
 
-The -no_alt_chains option was first added to OpenSSL 1.1.0.
+The -no_alt_chains option was added in OpenSSL 1.1.0.
 
-The -allow-no-dhe-kex and -prioritize_chacha options were first added to
-OpenSSL 1.1.1.
+The
+-allow-no-dhe-kex and -prioritize_chacha options were added in OpenSSL 1.1.1.
 
 =head1 COPYRIGHT
 
-Copyright 2000-2018 The OpenSSL Project Authors. All Rights Reserved.
+Copyright 2000-2020 The OpenSSL Project Authors. All Rights Reserved.
 
 Licensed under the OpenSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy

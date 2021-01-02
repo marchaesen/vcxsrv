@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2011-2020 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -15,11 +15,18 @@
 #include <openssl/obj_mac.h>
 #include <openssl/evp.h>
 #include <openssl/aes.h>
-#include "../crypto/rand/rand_lcl.h"
-#include "../crypto/include/internal/rand_int.h"
+#include "../crypto/rand/rand_local.h"
+#include "../include/crypto/rand.h"
 
 #if defined(_WIN32)
 # include <windows.h>
+#endif
+
+
+#if defined(OPENSSL_SYS_UNIX)
+# include <sys/types.h>
+# include <sys/wait.h>
+# include <unistd.h>
 #endif
 
 #include "testutil.h"
@@ -279,11 +286,10 @@ static int instantiate(RAND_DRBG *drbg, DRBG_SELFTEST_DATA *td,
  */
 static int error_check(DRBG_SELFTEST_DATA *td)
 {
-    static char zero[sizeof(RAND_DRBG)];
     RAND_DRBG *drbg = NULL;
     TEST_CTX t;
     unsigned char buff[1024];
-    unsigned int generate_counter_tmp;
+    unsigned int reseed_counter_tmp;
     int ret = 0;
 
     if (!TEST_ptr(drbg = RAND_DRBG_new(0, 0, NULL)))
@@ -293,18 +299,18 @@ static int error_check(DRBG_SELFTEST_DATA *td)
      * Personalisation string tests
      */
 
-    /* Test detection of too large personlisation string */
+    /* Test detection of too large personalisation string */
     if (!init(drbg, td, &t)
-            || RAND_DRBG_instantiate(drbg, td->pers, drbg->max_perslen + 1) > 0)
+            || !TEST_false(RAND_DRBG_instantiate(drbg, td->pers, drbg->max_perslen + 1)))
         goto err;
 
     /*
      * Entropy source tests
      */
 
-    /* Test entropy source failure detecion: i.e. returns no data */
+    /* Test entropy source failure detection: i.e. returns no data */
     t.entropylen = 0;
-    if (TEST_int_le(RAND_DRBG_instantiate(drbg, td->pers, td->perslen), 0))
+    if (!TEST_false(RAND_DRBG_instantiate(drbg, td->pers, td->perslen)))
         goto err;
 
     /* Try to generate output from uninstantiated DRBG */
@@ -314,16 +320,18 @@ static int error_check(DRBG_SELFTEST_DATA *td)
         goto err;
 
     /* Test insufficient entropy */
+    if (!init(drbg, td, &t))
+        goto err;
     t.entropylen = drbg->min_entropylen - 1;
-    if (!init(drbg, td, &t)
-            || RAND_DRBG_instantiate(drbg, td->pers, td->perslen) > 0
+    if (!TEST_false(RAND_DRBG_instantiate(drbg, td->pers, td->perslen))
             || !uninstantiate(drbg))
         goto err;
 
     /* Test too much entropy */
+    if (!init(drbg, td, &t))
+        goto err;
     t.entropylen = drbg->max_entropylen + 1;
-    if (!init(drbg, td, &t)
-            || RAND_DRBG_instantiate(drbg, td->pers, td->perslen) > 0
+    if (!TEST_false(RAND_DRBG_instantiate(drbg, td->pers, td->perslen))
             || !uninstantiate(drbg))
         goto err;
 
@@ -333,18 +341,20 @@ static int error_check(DRBG_SELFTEST_DATA *td)
 
     /* Test too small nonce */
     if (drbg->min_noncelen) {
+        if (!init(drbg, td, &t))
+            goto err;
         t.noncelen = drbg->min_noncelen - 1;
-        if (!init(drbg, td, &t)
-                || RAND_DRBG_instantiate(drbg, td->pers, td->perslen) > 0
+        if (!TEST_false(RAND_DRBG_instantiate(drbg, td->pers, td->perslen))
                 || !uninstantiate(drbg))
             goto err;
     }
 
     /* Test too large nonce */
     if (drbg->max_noncelen) {
+        if (!init(drbg, td, &t))
+            goto err;
         t.noncelen = drbg->max_noncelen + 1;
-        if (!init(drbg, td, &t)
-                || RAND_DRBG_instantiate(drbg, td->pers, td->perslen) > 0
+        if (!TEST_false(RAND_DRBG_instantiate(drbg, td->pers, td->perslen))
                 || !uninstantiate(drbg))
             goto err;
     }
@@ -370,7 +380,7 @@ static int error_check(DRBG_SELFTEST_DATA *td)
      * failure.
      */
     t.entropylen = 0;
-    if (TEST_false(RAND_DRBG_generate(drbg, buff, td->exlen, 1,
+    if (!TEST_false(RAND_DRBG_generate(drbg, buff, td->exlen, 1,
                                       td->adin, td->adinlen))
             || !uninstantiate(drbg))
         goto err;
@@ -378,7 +388,7 @@ static int error_check(DRBG_SELFTEST_DATA *td)
     /* Instantiate again with valid data */
     if (!instantiate(drbg, td, &t))
         goto err;
-    generate_counter_tmp = drbg->generate_counter;
+    reseed_counter_tmp = drbg->generate_counter;
     drbg->generate_counter = drbg->reseed_interval;
 
     /* Generate output and check entropy has been requested for reseed */
@@ -386,7 +396,7 @@ static int error_check(DRBG_SELFTEST_DATA *td)
     if (!TEST_true(RAND_DRBG_generate(drbg, buff, td->exlen, 0,
                                       td->adin, td->adinlen))
             || !TEST_int_eq(t.entropycnt, 1)
-            || !TEST_int_eq(drbg->generate_counter, generate_counter_tmp + 1)
+            || !TEST_int_eq(drbg->generate_counter, reseed_counter_tmp + 1)
             || !uninstantiate(drbg))
         goto err;
 
@@ -403,7 +413,7 @@ static int error_check(DRBG_SELFTEST_DATA *td)
     /* Test reseed counter works */
     if (!instantiate(drbg, td, &t))
         goto err;
-    generate_counter_tmp = drbg->generate_counter;
+    reseed_counter_tmp = drbg->generate_counter;
     drbg->generate_counter = drbg->reseed_interval;
 
     /* Generate output and check entropy has been requested for reseed */
@@ -411,7 +421,7 @@ static int error_check(DRBG_SELFTEST_DATA *td)
     if (!TEST_true(RAND_DRBG_generate(drbg, buff, td->exlen, 0,
                                       td->adin, td->adinlen))
             || !TEST_int_eq(t.entropycnt, 1)
-            || !TEST_int_eq(drbg->generate_counter, generate_counter_tmp + 1)
+            || !TEST_int_eq(drbg->generate_counter, reseed_counter_tmp + 1)
             || !uninstantiate(drbg))
         goto err;
 
@@ -420,34 +430,30 @@ static int error_check(DRBG_SELFTEST_DATA *td)
      */
 
     /* Test explicit reseed with too large additional input */
-    if (!init(drbg, td, &t)
-            || RAND_DRBG_reseed(drbg, td->adin, drbg->max_adinlen + 1, 0) > 0)
+    if (!instantiate(drbg, td, &t)
+            || !TEST_false(RAND_DRBG_reseed(drbg, td->adin, drbg->max_adinlen + 1, 0)))
         goto err;
 
     /* Test explicit reseed with entropy source failure */
     t.entropylen = 0;
-    if (!TEST_int_le(RAND_DRBG_reseed(drbg, td->adin, td->adinlen, 0), 0)
+    if (!TEST_false(RAND_DRBG_reseed(drbg, td->adin, td->adinlen, 0))
             || !uninstantiate(drbg))
         goto err;
 
     /* Test explicit reseed with too much entropy */
-    if (!init(drbg, td, &t))
+    if (!instantiate(drbg, td, &t))
         goto err;
     t.entropylen = drbg->max_entropylen + 1;
-    if (!TEST_int_le(RAND_DRBG_reseed(drbg, td->adin, td->adinlen, 0), 0)
+    if (!TEST_false(RAND_DRBG_reseed(drbg, td->adin, td->adinlen, 0))
             || !uninstantiate(drbg))
         goto err;
 
     /* Test explicit reseed with too little entropy */
-    if (!init(drbg, td, &t))
+    if (!instantiate(drbg, td, &t))
         goto err;
     t.entropylen = drbg->min_entropylen - 1;
-    if (!TEST_int_le(RAND_DRBG_reseed(drbg, td->adin, td->adinlen, 0), 0)
+    if (!TEST_false(RAND_DRBG_reseed(drbg, td->adin, td->adinlen, 0))
             || !uninstantiate(drbg))
-        goto err;
-
-    /* Standard says we have to check uninstantiate really zeroes */
-    if (!TEST_mem_eq(zero, sizeof(drbg->data), &drbg->data, sizeof(drbg->data)))
         goto err;
 
     ret = 1;
@@ -476,7 +482,7 @@ static int test_error_checks(int i)
     DRBG_SELFTEST_DATA *td = &drbg_test[i];
     int rv = 0;
 
-    if (error_check(td))
+    if (!error_check(td))
         goto err;
     rv = 1;
 
@@ -572,6 +578,8 @@ static void reset_drbg_hook_ctx(void)
  *       1:  it is expected that the specified DRBG is reseeded
  *       0:  it is expected that the specified DRBG is not reseeded
  *      -1:  don't check whether the specified DRBG was reseeded or not
+ * |reseed_time|: if nonzero, used instead of time(NULL) to set the
+ *                |before_reseed| time.
  */
 static int test_drbg_reseed(int expect_success,
                             RAND_DRBG *master,
@@ -579,7 +587,8 @@ static int test_drbg_reseed(int expect_success,
                             RAND_DRBG *private,
                             int expect_master_reseed,
                             int expect_public_reseed,
-                            int expect_private_reseed
+                            int expect_private_reseed,
+                            time_t reseed_time
                            )
 {
     unsigned char buf[32];
@@ -605,8 +614,11 @@ static int test_drbg_reseed(int expect_success,
      * step 2: generate random output
      */
 
+    if (reseed_time == 0)
+        reseed_time = time(NULL);
+
     /* Generate random output from the public and private DRBG */
-    before_reseed = expect_master_reseed == 1 ? time(NULL) : 0;
+    before_reseed = expect_master_reseed == 1 ? reseed_time : 0;
     if (!TEST_int_eq(RAND_bytes(buf, sizeof(buf)), expect_success)
         || !TEST_int_eq(RAND_priv_bytes(buf, sizeof(buf)), expect_success))
         return 0;
@@ -663,16 +675,51 @@ static int test_drbg_reseed(int expect_success,
     return 1;
 }
 
+
+#if defined(OPENSSL_SYS_UNIX)
+/*
+ * Test whether master, public and private DRBG are reseeded after
+ * forking the process.
+ */
+static int test_drbg_reseed_after_fork(RAND_DRBG *master,
+                                       RAND_DRBG *public,
+                                       RAND_DRBG *private)
+{
+    pid_t pid;
+    int status=0;
+
+    pid = fork();
+    if (!TEST_int_ge(pid, 0))
+        return 0;
+
+    if (pid > 0) {
+        /* I'm the parent; wait for the child and check its exit code */
+        return TEST_int_eq(waitpid(pid, &status, 0), pid) && TEST_int_eq(status, 0);
+    }
+
+    /* I'm the child; check whether all three DRBGs reseed. */
+    if (!TEST_true(test_drbg_reseed(1, master, public, private, 1, 1, 1, 0)))
+        status = 1;
+
+    /* Remove hooks  */
+    unhook_drbg(master);
+    unhook_drbg(public);
+    unhook_drbg(private);
+    exit(status);
+}
+#endif
+
 /*
  * Test whether the default rand_method (RAND_OpenSSL()) is
  * setup correctly, in particular whether reseeding  works
  * as designed.
  */
-static int test_rand_reseed(void)
+static int test_rand_drbg_reseed(void)
 {
     RAND_DRBG *master, *public, *private;
     unsigned char rand_add_buf[256];
     int rv=0;
+    time_t before_reseed;
 
     /* Check whether RAND_OpenSSL() is the default method */
     if (!TEST_ptr_eq(RAND_get_rand_method(), RAND_OpenSSL()))
@@ -707,7 +754,7 @@ static int test_rand_reseed(void)
     /*
      * Test initial seeding of shared DRBGs
      */
-    if (!TEST_true(test_drbg_reseed(1, master, public, private, 1, 1, 1)))
+    if (!TEST_true(test_drbg_reseed(1, master, public, private, 1, 1, 1, 0)))
         goto error;
     reset_drbg_hook_ctx();
 
@@ -715,7 +762,7 @@ static int test_rand_reseed(void)
     /*
      * Test initial state of shared DRBGs
      */
-    if (!TEST_true(test_drbg_reseed(1, master, public, private, 0, 0, 0)))
+    if (!TEST_true(test_drbg_reseed(1, master, public, private, 0, 0, 0, 0)))
         goto error;
     reset_drbg_hook_ctx();
 
@@ -724,7 +771,7 @@ static int test_rand_reseed(void)
      * reseed counters differ from the master's reseed counter.
      */
     master->reseed_counter++;
-    if (!TEST_true(test_drbg_reseed(1, master, public, private, 0, 1, 1)))
+    if (!TEST_true(test_drbg_reseed(1, master, public, private, 0, 1, 1, 0)))
         goto error;
     reset_drbg_hook_ctx();
 
@@ -734,7 +781,7 @@ static int test_rand_reseed(void)
      */
     master->reseed_counter++;
     private->reseed_counter++;
-    if (!TEST_true(test_drbg_reseed(1, master, public, private, 0, 1, 0)))
+    if (!TEST_true(test_drbg_reseed(1, master, public, private, 0, 1, 0, 0)))
         goto error;
     reset_drbg_hook_ctx();
 
@@ -744,19 +791,30 @@ static int test_rand_reseed(void)
      */
     master->reseed_counter++;
     public->reseed_counter++;
-    if (!TEST_true(test_drbg_reseed(1, master, public, private, 0, 0, 1)))
+    if (!TEST_true(test_drbg_reseed(1, master, public, private, 0, 0, 1, 0)))
         goto error;
     reset_drbg_hook_ctx();
 
+#if defined(OPENSSL_SYS_UNIX)
+    if (!TEST_true(test_drbg_reseed_after_fork(master, public, private)))
+        goto error;
+#endif
 
     /* fill 'randomness' buffer with some arbitrary data */
     memset(rand_add_buf, 'r', sizeof(rand_add_buf));
 
     /*
-     * Test whether all three DRBGs are reseeded by RAND_add()
+     * Test whether all three DRBGs are reseeded by RAND_add().
+     * The before_reseed time has to be measured here and passed into the
+     * test_drbg_reseed() test, because the master DRBG gets already reseeded
+     * in RAND_add(), whence the check for the condition
+     * before_reseed <= master->reseed_time will fail if the time value happens
+     * to increase between the RAND_add() and the test_drbg_reseed() call.
      */
+    before_reseed = time(NULL);
     RAND_add(rand_add_buf, sizeof(rand_add_buf), sizeof(rand_add_buf));
-    if (!TEST_true(test_drbg_reseed(1, master, public, private, 1, 1, 1)))
+    if (!TEST_true(test_drbg_reseed(1, master, public, private, 1, 1, 1,
+                                    before_reseed)))
         goto error;
     reset_drbg_hook_ctx();
 
@@ -767,7 +825,7 @@ static int test_rand_reseed(void)
     master_ctx.fail = 1;
     master->reseed_counter++;
     RAND_add(rand_add_buf, sizeof(rand_add_buf), sizeof(rand_add_buf));
-    if (!TEST_true(test_drbg_reseed(0, master, public, private, 0, 0, 0)))
+    if (!TEST_true(test_drbg_reseed(0, master, public, private, 0, 0, 0, 0)))
         goto error;
     reset_drbg_hook_ctx();
 
@@ -790,12 +848,15 @@ static void run_multi_thread_test(void)
 {
     unsigned char buf[256];
     time_t start = time(NULL);
-    RAND_DRBG *public, *private;
+    RAND_DRBG *public = NULL, *private = NULL;
 
-    public = RAND_DRBG_get0_public();
-    private = RAND_DRBG_get0_private();
-    RAND_DRBG_set_reseed_time_interval(public, 1);
+    if (!TEST_ptr(public = RAND_DRBG_get0_public())
+            || !TEST_ptr(private = RAND_DRBG_get0_private())) {
+        multi_thread_rand_bytes_succeeded = 0;
+        return;
+    }
     RAND_DRBG_set_reseed_time_interval(private, 1);
+    RAND_DRBG_set_reseed_time_interval(public, 1);
 
     do {
         if (RAND_bytes(buf, sizeof(buf)) <= 0)
@@ -813,6 +874,11 @@ typedef HANDLE thread_t;
 static DWORD WINAPI thread_run(LPVOID arg)
 {
     run_multi_thread_test();
+    /*
+     * Because we're linking with a static library, we must stop each
+     * thread explicitly, or so says OPENSSL_thread_stop(3)
+     */
+    OPENSSL_thread_stop();
     return 0;
 }
 
@@ -834,6 +900,11 @@ typedef pthread_t thread_t;
 static void *thread_run(void *arg)
 {
     run_multi_thread_test();
+    /*
+     * Because we're linking with a static library, we must stop each
+     * thread explicitly, or so says OPENSSL_thread_stop(3)
+     */
+    OPENSSL_thread_stop();
     return NULL;
 }
 
@@ -876,64 +947,69 @@ static int test_multi_thread(void)
 #endif
 
 /*
- * This function only returns the entropy already added with RAND_add(),
- * and does not get entropy from the OS.
+ * Test that instantiation with RAND_seed() works as expected
  *
- * Returns 0 on failure and the size of the buffer on success.
+ * If no os entropy source is available then RAND_seed(buffer, bufsize)
+ * is expected to succeed if and only if the buffer length is at least
+ * rand_drbg_seedlen(master) bytes.
+ *
+ * If an os entropy source is available then RAND_seed(buffer, bufsize)
+ * is expected to succeed always.
  */
-static size_t get_pool_entropy(RAND_DRBG *drbg,
-                               unsigned char **pout,
-                               int entropy, size_t min_len, size_t max_len,
-                               int prediction_resistance)
+static int test_rand_seed(void)
 {
-    if (drbg->pool == NULL)
+    RAND_DRBG *master = NULL;
+    unsigned char rand_buf[256];
+    size_t rand_buflen;
+    size_t required_seed_buflen = 0;
+
+    if (!TEST_ptr(master = RAND_DRBG_get0_master()))
         return 0;
 
-    if (drbg->pool->entropy < (size_t)entropy || drbg->pool->len < min_len
-        || drbg->pool->len > max_len)
-        return 0;
+#ifdef OPENSSL_RAND_SEED_NONE
+    required_seed_buflen = rand_drbg_seedlen(master);
+#endif
 
-    *pout = drbg->pool->buffer;
-    return drbg->pool->len;
+    memset(rand_buf, 0xCD, sizeof(rand_buf));
+
+    for ( rand_buflen = 256 ; rand_buflen > 0 ; --rand_buflen ) {
+        RAND_DRBG_uninstantiate(master);
+        RAND_seed(rand_buf, rand_buflen);
+
+        if (!TEST_int_eq(RAND_status(),
+                         (rand_buflen >= required_seed_buflen)))
+            return 0;
+    }
+
+    return 1;
 }
 
 /*
- * Clean up the entropy that get_pool_entropy() returned.
- */
-static void cleanup_pool_entropy(RAND_DRBG *drbg, unsigned char *out, size_t outlen)
-{
-    OPENSSL_secure_clear_free(drbg->pool->buffer, drbg->pool->max_len);
-    OPENSSL_free(drbg->pool);
-    drbg->pool = NULL;
-}
-
-/*
- * Test that instantiating works when OS entropy is not available and that
- * RAND_add() is enough to reseed it.
+ * Test that adding additional data with RAND_add() works as expected
+ * when the master DRBG is instantiated (and below its reseed limit).
+ *
+ * This should succeed regardless of whether an os entropy source is
+ * available or not.
  */
 static int test_rand_add(void)
 {
-    RAND_DRBG *master = RAND_DRBG_get0_master();
-    RAND_DRBG_get_entropy_fn old_get_entropy = master->get_entropy;
-    RAND_DRBG_cleanup_entropy_fn old_cleanup_entropy = master->cleanup_entropy;
-    int rv = 0;
-    unsigned char rand_add_buf[256];
+    unsigned char rand_buf[256];
+    size_t rand_buflen;
 
-    master->get_entropy = get_pool_entropy;
-    master->cleanup_entropy = cleanup_pool_entropy;
-    master->reseed_counter++;
-    RAND_DRBG_uninstantiate(master);
-    memset(rand_add_buf, 0xCD, sizeof(rand_add_buf));
-    RAND_add(rand_add_buf, sizeof(rand_add_buf), sizeof(rand_add_buf));
-    if (!TEST_true(RAND_DRBG_instantiate(master, NULL, 0)))
-        goto error;
+    memset(rand_buf, 0xCD, sizeof(rand_buf));
 
-    rv = 1;
+    /* make sure it's instantiated */
+    RAND_seed(rand_buf, sizeof(rand_buf));
+    if (!TEST_true(RAND_status()))
+        return 0;
 
-error:
-    master->get_entropy = old_get_entropy;
-    master->cleanup_entropy = old_cleanup_entropy;
-    return rv;
+    for ( rand_buflen = 256 ; rand_buflen > 0 ; --rand_buflen ) {
+        RAND_add(rand_buf, rand_buflen, 0.0);
+        if (!TEST_true(RAND_status()))
+            return 0;
+    }
+
+    return 1;
 }
 
 int setup_tests(void)
@@ -942,7 +1018,8 @@ int setup_tests(void)
 
     ADD_ALL_TESTS(test_kats, OSSL_NELEM(drbg_test));
     ADD_ALL_TESTS(test_error_checks, OSSL_NELEM(drbg_test));
-    ADD_TEST(test_rand_reseed);
+    ADD_TEST(test_rand_drbg_reseed);
+    ADD_TEST(test_rand_seed);
     ADD_TEST(test_rand_add);
 #if defined(OPENSSL_THREADS)
     ADD_TEST(test_multi_thread);

@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2019 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -123,7 +123,7 @@ static int getint(STANZA *s, int *out, const char *attribute)
 
     *out = (int)word;
     st = 1;
-err:
+ err:
     BN_free(ret);
     return st;
 }
@@ -138,7 +138,6 @@ static int equalBN(const char *op, const BIGNUM *expected, const BIGNUM *actual)
     return 0;
 }
 
-
 /*
  * Return a "random" flag for if a BN should be negated.
  */
@@ -149,7 +148,6 @@ static int rand_neg(void)
 
     return sign[(neg++) % 8];
 }
-
 
 static int test_swap(void)
 {
@@ -162,11 +160,12 @@ static int test_swap(void)
             || !TEST_ptr(d = BN_new()))
         goto err;
 
-    BN_bntest_rand(a, 1024, 1, 0);
-    BN_bntest_rand(b, 1024, 1, 0);
-    BN_copy(c, a);
-    BN_copy(d, b);
-    top = BN_num_bits(a)/BN_BITS2;
+    if (!(TEST_true(BN_bntest_rand(a, 1024, 1, 0))
+            && TEST_true(BN_bntest_rand(b, 1024, 1, 0))
+            && TEST_ptr(BN_copy(c, a))
+            && TEST_ptr(BN_copy(d, b))))
+        goto err;
+    top = BN_num_bits(a) / BN_BITS2;
 
     /* regular swap */
     BN_swap(a, b);
@@ -235,30 +234,30 @@ static int test_sub(void)
 
     for (i = 0; i < NUM0 + NUM1; i++) {
         if (i < NUM1) {
-            BN_bntest_rand(a, 512, 0, 0);
-            BN_copy(b, a);
-            if (!TEST_int_ne(BN_set_bit(a, i), 0))
+            if (!(TEST_true(BN_bntest_rand(a, 512, 0, 0)))
+                    && TEST_ptr(BN_copy(b, a))
+                    && TEST_int_ne(BN_set_bit(a, i), 0)
+                    && TEST_true(BN_add_word(b, i)))
                 goto err;
-            BN_add_word(b, i);
         } else {
-            BN_bntest_rand(b, 400 + i - NUM1, 0, 0);
+            if (!TEST_true(BN_bntest_rand(b, 400 + i - NUM1, 0, 0)))
+                goto err;
             BN_set_negative(a, rand_neg());
             BN_set_negative(b, rand_neg());
         }
-        BN_sub(c, a, b);
-        BN_add(c, c, b);
-        BN_sub(c, c, a);
-        if (!TEST_BN_eq_zero(c))
+        if (!(TEST_true(BN_sub(c, a, b))
+                && TEST_true(BN_add(c, c, b))
+                && TEST_true(BN_sub(c, c, a))
+                && TEST_BN_eq_zero(c)))
             goto err;
     }
     st = 1;
-err:
+ err:
     BN_free(a);
     BN_free(b);
     BN_free(c);
     return st;
 }
-
 
 static int test_div_recip(void)
 {
@@ -276,24 +275,27 @@ static int test_div_recip(void)
 
     for (i = 0; i < NUM0 + NUM1; i++) {
         if (i < NUM1) {
-            BN_bntest_rand(a, 400, 0, 0);
-            BN_copy(b, a);
-            BN_lshift(a, a, i);
-            BN_add_word(a, i);
-        } else
-            BN_bntest_rand(b, 50 + 3 * (i - NUM1), 0, 0);
+            if (!(TEST_true(BN_bntest_rand(a, 400, 0, 0))
+                    && TEST_ptr(BN_copy(b, a))
+                    && TEST_true(BN_lshift(a, a, i))
+                    && TEST_true(BN_add_word(a, i))))
+                goto err;
+        } else {
+            if (!(TEST_true(BN_bntest_rand(b, 50 + 3 * (i - NUM1), 0, 0))))
+                goto err;
+        }
         BN_set_negative(a, rand_neg());
         BN_set_negative(b, rand_neg());
-        BN_RECP_CTX_set(recp, b, ctx);
-        BN_div_recp(d, c, a, recp, ctx);
-        BN_mul(e, d, b, ctx);
-        BN_add(d, e, c);
-        BN_sub(d, d, a);
-        if (!TEST_BN_eq_zero(d))
+        if (!(TEST_true(BN_RECP_CTX_set(recp, b, ctx))
+                && TEST_true(BN_div_recp(d, c, a, recp, ctx))
+                && TEST_true(BN_mul(e, d, b, ctx))
+                && TEST_true(BN_add(d, e, c))
+                && TEST_true(BN_sub(d, d, a))
+                && TEST_BN_eq_zero(d)))
             goto err;
     }
     st = 1;
-err:
+ err:
     BN_free(a);
     BN_free(b);
     BN_free(c);
@@ -302,7 +304,6 @@ err:
     BN_RECP_CTX_free(recp);
     return st;
 }
-
 
 static int test_mod(void)
 {
@@ -316,19 +317,21 @@ static int test_mod(void)
             || !TEST_ptr(e = BN_new()))
         goto err;
 
-    BN_bntest_rand(a, 1024, 0, 0);
+    if (!(TEST_true(BN_bntest_rand(a, 1024, 0, 0))))
+        goto err;
     for (i = 0; i < NUM0; i++) {
-        BN_bntest_rand(b, 450 + i * 10, 0, 0);
+        if (!(TEST_true(BN_bntest_rand(b, 450 + i * 10, 0, 0))))
+            goto err;
         BN_set_negative(a, rand_neg());
         BN_set_negative(b, rand_neg());
-        BN_mod(c, a, b, ctx);
-        BN_div(d, e, a, b, ctx);
-        BN_sub(e, e, c);
-        if (!TEST_BN_eq_zero(e))
+        if (!(TEST_true(BN_mod(c, a, b, ctx))
+                && TEST_true(BN_div(d, e, a, b, ctx))
+                && TEST_true(BN_sub(e, e, c))
+                && TEST_BN_eq_zero(e)))
             goto err;
     }
     st = 1;
-err:
+ err:
     BN_free(a);
     BN_free(b);
     BN_free(c);
@@ -399,46 +402,52 @@ static int test_modexp_mont5(void)
             || !TEST_ptr(mont = BN_MONT_CTX_new()))
         goto err;
 
-    BN_bntest_rand(m, 1024, 0, 1); /* must be odd for montgomery */
-    /* Zero exponent */
-    BN_bntest_rand(a, 1024, 0, 0);
+    /* must be odd for montgomery */
+    if (!(TEST_true(BN_bntest_rand(m, 1024, 0, 1))
+            /* Zero exponent */
+            && TEST_true(BN_bntest_rand(a, 1024, 0, 0))))
+        goto err;
     BN_zero(p);
+
     if (!TEST_true(BN_mod_exp_mont_consttime(d, a, p, m, ctx, NULL)))
         goto err;
     if (!TEST_BN_eq_one(d))
         goto err;
 
     /* Regression test for carry bug in mulx4x_mont */
-    BN_hex2bn(&a,
+    if (!(TEST_true(BN_hex2bn(&a,
         "7878787878787878787878787878787878787878787878787878787878787878"
         "7878787878787878787878787878787878787878787878787878787878787878"
         "7878787878787878787878787878787878787878787878787878787878787878"
-        "7878787878787878787878787878787878787878787878787878787878787878");
-    BN_hex2bn(&b,
+        "7878787878787878787878787878787878787878787878787878787878787878"))
+        && TEST_true(BN_hex2bn(&b,
         "095D72C08C097BA488C5E439C655A192EAFB6380073D8C2664668EDDB4060744"
         "E16E57FB4EDB9AE10A0CEFCDC28A894F689A128379DB279D48A2E20849D68593"
         "9B7803BCF46CEBF5C533FB0DD35B080593DE5472E3FE5DB951B8BFF9B4CB8F03"
-        "9CC638A5EE8CDD703719F8000E6A9F63BEED5F2FCD52FF293EA05A251BB4AB81");
-    BN_hex2bn(&n,
+        "9CC638A5EE8CDD703719F8000E6A9F63BEED5F2FCD52FF293EA05A251BB4AB81"))
+        && TEST_true(BN_hex2bn(&n,
         "D78AF684E71DB0C39CFF4E64FB9DB567132CB9C50CC98009FEB820B26F2DED9B"
         "91B9B5E2B83AE0AE4EB4E0523CA726BFBE969B89FD754F674CE99118C3F2D1C5"
         "D81FDC7C54E02B60262B241D53C040E99E45826ECA37A804668E690E1AFC1CA4"
-        "2C9A15D84D4954425F0B7642FC0BD9D7B24E2618D2DCC9B729D944BADACFDDAF");
-    BN_MONT_CTX_set(mont, n, ctx);
-    BN_mod_mul_montgomery(c, a, b, mont, ctx);
-    BN_mod_mul_montgomery(d, b, a, mont, ctx);
-    if (!TEST_BN_eq(c, d))
+        "2C9A15D84D4954425F0B7642FC0BD9D7B24E2618D2DCC9B729D944BADACFDDAF"))))
+        goto err;
+
+    if (!(TEST_true(BN_MONT_CTX_set(mont, n, ctx))
+            && TEST_true(BN_mod_mul_montgomery(c, a, b, mont, ctx))
+            && TEST_true(BN_mod_mul_montgomery(d, b, a, mont, ctx))
+            && TEST_BN_eq(c, d)))
         goto err;
 
     /* Regression test for carry bug in sqr[x]8x_mont */
-    parse_bigBN(&n, bn1strings);
-    parse_bigBN(&a, bn2strings);
+    if (!(TEST_true(parse_bigBN(&n, bn1strings))
+            && TEST_true(parse_bigBN(&a, bn2strings))))
+        goto err;
     BN_free(b);
-    b = BN_dup(a);
-    BN_MONT_CTX_set(mont, n, ctx);
-    BN_mod_mul_montgomery(c, a, a, mont, ctx);
-    BN_mod_mul_montgomery(d, a, b, mont, ctx);
-    if (!TEST_BN_eq(c, d))
+    if (!(TEST_ptr(b = BN_dup(a))
+            && TEST_true(BN_MONT_CTX_set(mont, n, ctx))
+            && TEST_true(BN_mod_mul_montgomery(c, a, a, mont, ctx))
+            && TEST_true(BN_mod_mul_montgomery(d, a, b, mont, ctx))
+            && TEST_BN_eq(c, d)))
         goto err;
 
     /* Regression test for carry bug in bn_sqrx8x_internal */
@@ -474,53 +483,83 @@ static int test_modexp_mont5(void)
             NULL
         };
 
-        parse_bigBN(&a, ahex);
-        parse_bigBN(&n, nhex);
+        if (!(TEST_true(parse_bigBN(&a, ahex))
+                && TEST_true(parse_bigBN(&n, nhex))))
+            goto err;
     }
     BN_free(b);
-    b = BN_dup(a);
-    BN_MONT_CTX_set(mont, n, ctx);
+    if (!(TEST_ptr(b = BN_dup(a))
+            && TEST_true(BN_MONT_CTX_set(mont, n, ctx))))
+        goto err;
+
     if (!TEST_true(BN_mod_mul_montgomery(c, a, a, mont, ctx))
             || !TEST_true(BN_mod_mul_montgomery(d, a, b, mont, ctx))
             || !TEST_BN_eq(c, d))
         goto err;
 
     /* Regression test for bug in BN_from_montgomery_word */
-    BN_hex2bn(&a,
+    if (!(TEST_true(BN_hex2bn(&a,
         "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
         "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-    BN_hex2bn(&n,
+        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"))
+         && TEST_true(BN_hex2bn(&n,
         "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-    BN_MONT_CTX_set(mont, n, ctx);
-    if (!TEST_false(BN_mod_mul_montgomery(d, a, a, mont, ctx)))
+        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"))
+        && TEST_true(BN_MONT_CTX_set(mont, n, ctx))
+        && TEST_false(BN_mod_mul_montgomery(d, a, a, mont, ctx))))
         goto err;
 
     /* Regression test for bug in rsaz_1024_mul_avx2 */
-    BN_hex2bn(&a,
+    if (!(TEST_true(BN_hex2bn(&a,
         "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
         "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
         "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2020202020DF");
-    BN_hex2bn(&b,
+        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2020202020DF"))
+        && TEST_true(BN_hex2bn(&b,
         "2020202020202020202020202020202020202020202020202020202020202020"
         "2020202020202020202020202020202020202020202020202020202020202020"
         "20202020202020FF202020202020202020202020202020202020202020202020"
-        "2020202020202020202020202020202020202020202020202020202020202020");
-    BN_hex2bn(&n,
+        "2020202020202020202020202020202020202020202020202020202020202020"))
+        && TEST_true(BN_hex2bn(&n,
         "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
         "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
         "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2020202020FF");
-    BN_MONT_CTX_set(mont, n, ctx);
-    BN_mod_exp_mont_consttime(c, a, b, n, ctx, mont);
-    BN_mod_exp_mont(d, a, b, n, ctx, mont);
+        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2020202020FF"))
+        && TEST_true(BN_MONT_CTX_set(mont, n, ctx))
+        && TEST_true(BN_mod_exp_mont_consttime(c, a, b, n, ctx, mont))
+        && TEST_true(BN_mod_exp_mont(d, a, b, n, ctx, mont))
+        && TEST_BN_eq(c, d)))
+        goto err;
+
+    /*
+     * rsaz_1024_mul_avx2 expects fully-reduced inputs.
+     * BN_mod_exp_mont_consttime should reduce the input first.
+     */
+    if (!(TEST_true(BN_hex2bn(&a,
+        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2020202020DF"))
+        && TEST_true(BN_hex2bn(&b,
+        "1FA53F26F8811C58BE0357897AA5E165693230BC9DF5F01DFA6A2D59229EC69D"
+        "9DE6A89C36E3B6957B22D6FAAD5A3C73AE587B710DBE92E83D3A9A3339A085CB"
+        "B58F508CA4F837924BB52CC1698B7FDC2FD74362456A595A5B58E38E38E38E38"
+        "E38E38E38E38E38E38E38E38E38E38E38E38E38E38E38E38E38E38E38E38E38E"))
+        && TEST_true(BN_hex2bn(&n,
+        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2020202020DF"))
+        && TEST_true(BN_MONT_CTX_set(mont, n, ctx))
+        && TEST_true(BN_mod_exp_mont_consttime(c, a, b, n, ctx, mont))))
+        goto err;
+    BN_zero(d);
     if (!TEST_BN_eq(c, d))
         goto err;
 
     /* Zero input */
-    BN_bntest_rand(p, 1024, 0, 0);
+    if (!TEST_true(BN_bntest_rand(p, 1024, 0, 0)))
+        goto err;
     BN_zero(a);
     if (!TEST_true(BN_mod_exp_mont_consttime(d, a, p, m, ctx, NULL))
             || !TEST_BN_eq_zero(d))
@@ -531,8 +570,9 @@ static int test_modexp_mont5(void)
      * than the modulus m, in order to test the const time precomputation
      * scattering/gathering.
      */
-    BN_one(a);
-    BN_MONT_CTX_set(mont, m, ctx);
+    if (!(TEST_true(BN_one(a))
+            && TEST_true(BN_MONT_CTX_set(mont, m, ctx))))
+        goto err;
     if (!TEST_true(BN_from_montgomery(e, a, mont, ctx))
             || !TEST_true(BN_mod_exp_mont_consttime(d, e, p, m, ctx, NULL))
             || !TEST_true(BN_mod_exp_simple(a, e, p, m, ctx))
@@ -540,15 +580,15 @@ static int test_modexp_mont5(void)
         goto err;
 
     /* Finally, some regular test vectors. */
-    BN_bntest_rand(e, 1024, 0, 0);
-    if (!TEST_true(BN_mod_exp_mont_consttime(d, e, p, m, ctx, NULL))
-            || !TEST_true(BN_mod_exp_simple(a, e, p, m, ctx))
-            || !TEST_BN_eq(a, d))
+    if (!(TEST_true(BN_bntest_rand(e, 1024, 0, 0))
+            && TEST_true(BN_mod_exp_mont_consttime(d, e, p, m, ctx, NULL))
+            && TEST_true(BN_mod_exp_simple(a, e, p, m, ctx))
+            && TEST_BN_eq(a, d)))
         goto err;
 
     st = 1;
 
-err:
+ err:
     BN_MONT_CTX_free(mont);
     BN_free(a);
     BN_free(p);
@@ -573,18 +613,19 @@ static int test_gf2m_add(void)
         goto err;
 
     for (i = 0; i < NUM0; i++) {
-        BN_rand(a, 512, 0, 0);
-        BN_copy(b, BN_value_one());
+        if (!(TEST_true(BN_rand(a, 512, 0, 0))
+                && TEST_ptr(BN_copy(b, BN_value_one()))))
+            goto err;
         BN_set_negative(a, rand_neg());
         BN_set_negative(b, rand_neg());
-        BN_GF2m_add(c, a, b);
-        /* Test that two added values have the correct parity. */
-        if (!TEST_false((BN_is_odd(a) && BN_is_odd(c))
-                        || (!BN_is_odd(a) && !BN_is_odd(c))))
+        if (!(TEST_true(BN_GF2m_add(c, a, b))
+                /* Test that two added values have the correct parity. */
+                && TEST_false((BN_is_odd(a) && BN_is_odd(c))
+                        || (!BN_is_odd(a) && !BN_is_odd(c)))))
             goto err;
-        BN_GF2m_add(c, c, c);
-        /* Test that c + c = 0. */
-        if (!TEST_BN_eq_zero(c))
+        if (!(TEST_true(BN_GF2m_add(c, c, c))
+                /* Test that c + c = 0. */
+                && TEST_BN_eq_zero(c)))
             goto err;
     }
     st = 1;
@@ -608,17 +649,19 @@ static int test_gf2m_mod(void)
             || !TEST_ptr(e = BN_new()))
         goto err;
 
-    BN_GF2m_arr2poly(p0, b[0]);
-    BN_GF2m_arr2poly(p1, b[1]);
+    if (!(TEST_true(BN_GF2m_arr2poly(p0, b[0]))
+            && TEST_true(BN_GF2m_arr2poly(p1, b[1]))))
+        goto err;
 
     for (i = 0; i < NUM0; i++) {
-        BN_bntest_rand(a, 1024, 0, 0);
+        if (!TEST_true(BN_bntest_rand(a, 1024, 0, 0)))
+            goto err;
         for (j = 0; j < 2; j++) {
-            BN_GF2m_mod(c, a, b[j]);
-            BN_GF2m_add(d, a, c);
-            BN_GF2m_mod(e, d, b[j]);
-            /* Test that a + (a mod p) mod p == 0. */
-            if (!TEST_BN_eq_zero(e))
+            if (!(TEST_true(BN_GF2m_mod(c, a, b[j]))
+                    && TEST_true(BN_GF2m_add(d, a, c))
+                    && TEST_true(BN_GF2m_mod(e, d, b[j]))
+                    /* Test that a + (a mod p) mod p == 0. */
+                    && TEST_BN_eq_zero(e)))
                 goto err;
         }
     }
@@ -650,22 +693,24 @@ static int test_gf2m_mul(void)
             || !TEST_ptr(h = BN_new()))
         goto err;
 
-    BN_GF2m_arr2poly(p0, b[0]);
-    BN_GF2m_arr2poly(p1, b[1]);
+    if (!(TEST_true(BN_GF2m_arr2poly(p0, b[0]))
+            && TEST_true(BN_GF2m_arr2poly(p1, b[1]))))
+        goto err;
 
     for (i = 0; i < NUM0; i++) {
-        BN_bntest_rand(a, 1024, 0, 0);
-        BN_bntest_rand(c, 1024, 0, 0);
-        BN_bntest_rand(d, 1024, 0, 0);
+        if (!(TEST_true(BN_bntest_rand(a, 1024, 0, 0))
+                && TEST_true(BN_bntest_rand(c, 1024, 0, 0))
+                && TEST_true(BN_bntest_rand(d, 1024, 0, 0))))
+            goto err;
         for (j = 0; j < 2; j++) {
-            BN_GF2m_mod_mul(e, a, c, b[j], ctx);
-            BN_GF2m_add(f, a, d);
-            BN_GF2m_mod_mul(g, f, c, b[j], ctx);
-            BN_GF2m_mod_mul(h, d, c, b[j], ctx);
-            BN_GF2m_add(f, e, g);
-            BN_GF2m_add(f, f, h);
-            /* Test that (a+d)*c = a*c + d*c. */
-            if (!TEST_BN_eq_zero(f))
+            if (!(TEST_true(BN_GF2m_mod_mul(e, a, c, b[j], ctx))
+                    && TEST_true(BN_GF2m_add(f, a, d))
+                    && TEST_true(BN_GF2m_mod_mul(g, f, c, b[j], ctx))
+                    && TEST_true(BN_GF2m_mod_mul(h, d, c, b[j], ctx))
+                    && TEST_true(BN_GF2m_add(f, e, g))
+                    && TEST_true(BN_GF2m_add(f, f, h))
+                    /* Test that (a+d)*c = a*c + d*c. */
+                    && TEST_BN_eq_zero(f)))
                 goto err;
         }
     }
@@ -696,18 +741,20 @@ static int test_gf2m_sqr(void)
             || !TEST_ptr(d = BN_new()))
         goto err;
 
-    BN_GF2m_arr2poly(p0, b[0]);
-    BN_GF2m_arr2poly(p1, b[1]);
+    if (!(TEST_true(BN_GF2m_arr2poly(p0, b[0]))
+            && TEST_true(BN_GF2m_arr2poly(p1, b[1]))))
+        goto err;
 
     for (i = 0; i < NUM0; i++) {
-        BN_bntest_rand(a, 1024, 0, 0);
+        if (!TEST_true(BN_bntest_rand(a, 1024, 0, 0)))
+                goto err;
         for (j = 0; j < 2; j++) {
-            BN_GF2m_mod_sqr(c, a, b[j], ctx);
-            BN_copy(d, a);
-            BN_GF2m_mod_mul(d, a, d, b[j], ctx);
-            BN_GF2m_add(d, c, d);
-            /* Test that a*a = a^2. */
-            if (!TEST_BN_eq_zero(d))
+            if (!(TEST_true(BN_GF2m_mod_sqr(c, a, b[j], ctx))
+                    && TEST_true(BN_copy(d, a))
+                    && TEST_true(BN_GF2m_mod_mul(d, a, d, b[j], ctx))
+                    && TEST_true(BN_GF2m_add(d, c, d))
+                    /* Test that a*a = a^2. */
+                    && TEST_BN_eq_zero(d)))
                 goto err;
         }
     }
@@ -733,16 +780,18 @@ static int test_gf2m_modinv(void)
             || !TEST_ptr(d = BN_new()))
         goto err;
 
-    BN_GF2m_arr2poly(p0, b[0]);
-    BN_GF2m_arr2poly(p1, b[1]);
+    if (!(TEST_true(BN_GF2m_arr2poly(p0, b[0]))
+            && TEST_true(BN_GF2m_arr2poly(p1, b[1]))))
+        goto err;
 
     for (i = 0; i < NUM0; i++) {
-        BN_bntest_rand(a, 512, 0, 0);
+        if (!TEST_true(BN_bntest_rand(a, 512, 0, 0)))
+            goto err;
         for (j = 0; j < 2; j++) {
-            BN_GF2m_mod_inv(c, a, b[j], ctx);
-            BN_GF2m_mod_mul(d, a, c, b[j], ctx);
-            /* Test that ((1/a)*a) = 1. */
-            if (!TEST_BN_eq_one(d))
+            if (!(TEST_true(BN_GF2m_mod_inv(c, a, b[j], ctx))
+                    && TEST_true(BN_GF2m_mod_mul(d, a, c, b[j], ctx))
+                    /* Test that ((1/a)*a) = 1. */
+                    && TEST_BN_eq_one(d)))
                 goto err;
         }
     }
@@ -771,18 +820,20 @@ static int test_gf2m_moddiv(void)
             || !TEST_ptr(f = BN_new()))
         goto err;
 
-    BN_GF2m_arr2poly(p0, b[0]);
-    BN_GF2m_arr2poly(p1, b[1]);
+    if (!(TEST_true(BN_GF2m_arr2poly(p0, b[0]))
+            && TEST_true(BN_GF2m_arr2poly(p1, b[1]))))
+        goto err;
 
     for (i = 0; i < NUM0; i++) {
-        BN_bntest_rand(a, 512, 0, 0);
-        BN_bntest_rand(c, 512, 0, 0);
+        if (!(TEST_true(BN_bntest_rand(a, 512, 0, 0))
+                && TEST_true(BN_bntest_rand(c, 512, 0, 0))))
+            goto err;
         for (j = 0; j < 2; j++) {
-            BN_GF2m_mod_div(d, a, c, b[j], ctx);
-            BN_GF2m_mod_mul(e, d, c, b[j], ctx);
-            BN_GF2m_mod_div(f, a, e, b[j], ctx);
-            /* Test that ((a/c)*c)/a = 1. */
-            if (!TEST_BN_eq_one(f))
+            if (!(TEST_true(BN_GF2m_mod_div(d, a, c, b[j], ctx))
+                    && TEST_true(BN_GF2m_mod_mul(e, d, c, b[j], ctx))
+                    && TEST_true(BN_GF2m_mod_div(f, a, e, b[j], ctx))
+                    /* Test that ((a/c)*c)/a = 1. */
+                    && TEST_BN_eq_one(f)))
                 goto err;
         }
     }
@@ -813,22 +864,24 @@ static int test_gf2m_modexp(void)
             || !TEST_ptr(f = BN_new()))
         goto err;
 
-    BN_GF2m_arr2poly(p0, b[0]);
-    BN_GF2m_arr2poly(p1, b[1]);
+    if (!(TEST_true(BN_GF2m_arr2poly(p0, b[0]))
+            && TEST_true(BN_GF2m_arr2poly(p1, b[1]))))
+        goto err;
 
     for (i = 0; i < NUM0; i++) {
-        BN_bntest_rand(a, 512, 0, 0);
-        BN_bntest_rand(c, 512, 0, 0);
-        BN_bntest_rand(d, 512, 0, 0);
+        if (!(TEST_true(BN_bntest_rand(a, 512, 0, 0))
+                && TEST_true(BN_bntest_rand(c, 512, 0, 0))
+                && TEST_true(BN_bntest_rand(d, 512, 0, 0))))
+            goto err;
         for (j = 0; j < 2; j++) {
-            BN_GF2m_mod_exp(e, a, c, b[j], ctx);
-            BN_GF2m_mod_exp(f, a, d, b[j], ctx);
-            BN_GF2m_mod_mul(e, e, f, b[j], ctx);
-            BN_add(f, c, d);
-            BN_GF2m_mod_exp(f, a, f, b[j], ctx);
-            BN_GF2m_add(f, e, f);
-            /* Test that a^(c+d)=a^c*a^d. */
-            if (!TEST_BN_eq_zero(f))
+            if (!(TEST_true(BN_GF2m_mod_exp(e, a, c, b[j], ctx))
+                    && TEST_true(BN_GF2m_mod_exp(f, a, d, b[j], ctx))
+                    && TEST_true(BN_GF2m_mod_mul(e, e, f, b[j], ctx))
+                    && TEST_true(BN_add(f, c, d))
+                    && TEST_true(BN_GF2m_mod_exp(f, a, f, b[j], ctx))
+                    && TEST_true(BN_GF2m_add(f, e, f))
+                    /* Test that a^(c+d)=a^c*a^d. */
+                    && TEST_BN_eq_zero(f)))
                 goto err;
         }
     }
@@ -859,18 +912,21 @@ static int test_gf2m_modsqrt(void)
             || !TEST_ptr(f = BN_new()))
         goto err;
 
-    BN_GF2m_arr2poly(p0, b[0]);
-    BN_GF2m_arr2poly(p1, b[1]);
+    if (!(TEST_true(BN_GF2m_arr2poly(p0, b[0]))
+            && TEST_true(BN_GF2m_arr2poly(p1, b[1]))))
+        goto err;
 
     for (i = 0; i < NUM0; i++) {
-        BN_bntest_rand(a, 512, 0, 0);
+        if (!TEST_true(BN_bntest_rand(a, 512, 0, 0)))
+            goto err;
+
         for (j = 0; j < 2; j++) {
-            BN_GF2m_mod(c, a, b[j]);
-            BN_GF2m_mod_sqrt(d, a, b[j], ctx);
-            BN_GF2m_mod_sqr(e, d, b[j], ctx);
-            BN_GF2m_add(f, c, e);
-            /* Test that d^2 = a, where d = sqrt(a). */
-            if (!TEST_BN_eq_zero(f))
+            if (!(TEST_true(BN_GF2m_mod(c, a, b[j]))
+                    && TEST_true(BN_GF2m_mod_sqrt(d, a, b[j], ctx))
+                    && TEST_true(BN_GF2m_mod_sqr(e, d, b[j], ctx))
+                    && TEST_true(BN_GF2m_add(f, c, e))
+                    /* Test that d^2 = a, where d = sqrt(a). */
+                    && TEST_BN_eq_zero(f)))
                 goto err;
         }
     }
@@ -900,23 +956,26 @@ static int test_gf2m_modsolvequad(void)
             || !TEST_ptr(e = BN_new()))
         goto err;
 
-    BN_GF2m_arr2poly(p0, b[0]);
-    BN_GF2m_arr2poly(p1, b[1]);
+    if (!(TEST_true(BN_GF2m_arr2poly(p0, b[0]))
+            && TEST_true(BN_GF2m_arr2poly(p1, b[1]))))
+        goto err;
 
     for (i = 0; i < NUM0; i++) {
-        BN_bntest_rand(a, 512, 0, 0);
+        if (!TEST_true(BN_bntest_rand(a, 512, 0, 0)))
+            goto err;
         for (j = 0; j < 2; j++) {
             t = BN_GF2m_mod_solve_quad(c, a, b[j], ctx);
             if (t) {
                 s++;
-                BN_GF2m_mod_sqr(d, c, b[j], ctx);
-                BN_GF2m_add(d, c, d);
-                BN_GF2m_mod(e, a, b[j]);
-                BN_GF2m_add(e, e, d);
-                /*
-                 * Test that solution of quadratic c satisfies c^2 + c = a.
-                 */
-                if (!TEST_BN_eq_zero(e))
+                if (!(TEST_true(BN_GF2m_mod_sqr(d, c, b[j], ctx))
+                        && TEST_true(BN_GF2m_add(d, c, d))
+                        && TEST_true(BN_GF2m_mod(e, a, b[j]))
+                        && TEST_true(BN_GF2m_add(e, e, d))
+                        /*
+                         * Test that solution of quadratic c
+                         * satisfies c^2 + c = a.
+                         */
+                        && TEST_BN_eq_zero(e)))
                     goto err;
             }
         }
@@ -1116,7 +1175,7 @@ static int file_sum(STANZA *s)
     }
     st = 1;
 
-err:
+ err:
     BN_free(a);
     BN_free(b);
     BN_free(sum);
@@ -1165,7 +1224,7 @@ static int file_lshift1(STANZA *s)
         goto err;
 
     st = 1;
-err:
+ err:
     BN_free(a);
     BN_free(lshift1);
     BN_free(zero);
@@ -1194,7 +1253,7 @@ static int file_lshift(STANZA *s)
         goto err;
 
     st = 1;
-err:
+ err:
     BN_free(a);
     BN_free(lshift);
     BN_free(ret);
@@ -1224,7 +1283,7 @@ static int file_rshift(STANZA *s)
     }
     st = 1;
 
-err:
+ err:
     BN_free(a);
     BN_free(rshift);
     BN_free(ret);
@@ -1281,7 +1340,7 @@ static int file_square(STANZA *s)
 #endif
 
     st = 1;
-err:
+ err:
     BN_free(a);
     BN_free(square);
     BN_free(zero);
@@ -1318,7 +1377,7 @@ static int file_product(STANZA *s)
         goto err;
 
     st = 1;
-err:
+ err:
     BN_free(a);
     BN_free(b);
     BN_free(product);
@@ -1401,7 +1460,7 @@ static int file_quotient(STANZA *s)
     }
 
     st = 1;
-err:
+ err:
     BN_free(a);
     BN_free(b);
     BN_free(quotient);
@@ -1455,7 +1514,7 @@ static int file_modmul(STANZA *s)
     }
 
     st = 1;
-err:
+ err:
     BN_free(a);
     BN_free(b);
     BN_free(m);
@@ -1507,7 +1566,7 @@ static int file_modexp(STANZA *s)
         goto err;
 
     st = 1;
-err:
+ err:
     BN_free(a);
     BN_free(b);
     BN_free(c);
@@ -1535,7 +1594,7 @@ static int file_exp(STANZA *s)
         goto err;
 
     st = 1;
-err:
+ err:
     BN_free(a);
     BN_free(e);
     BN_free(exp);
@@ -1566,12 +1625,36 @@ static int file_modsqrt(STANZA *s)
         goto err;
 
     st = 1;
-err:
+ err:
     BN_free(a);
     BN_free(p);
     BN_free(mod_sqrt);
     BN_free(ret);
     BN_free(ret2);
+    return st;
+}
+
+static int file_gcd(STANZA *s)
+{
+    BIGNUM *a = NULL, *b = NULL, *gcd = NULL, *ret = NULL;
+    int st = 0;
+
+    if (!TEST_ptr(a = getBN(s, "A"))
+            || !TEST_ptr(b = getBN(s, "B"))
+            || !TEST_ptr(gcd = getBN(s, "GCD"))
+            || !TEST_ptr(ret = BN_new()))
+        goto err;
+
+    if (!TEST_true(BN_gcd(ret, a, b, ctx))
+            || !equalBN("gcd(A,B)", gcd, ret))
+        goto err;
+
+    st = 1;
+ err:
+    BN_free(a);
+    BN_free(b);
+    BN_free(gcd);
+    BN_free(ret);
     return st;
 }
 
@@ -1596,8 +1679,8 @@ static int test_bn2padded(void)
 
     /* Test a random numbers at various byte lengths. */
     for (size_t bytes = 128 - 7; bytes <= 128; bytes++) {
-#define TOP_BIT_ON 0
-#define BOTTOM_BIT_NOTOUCH 0
+# define TOP_BIT_ON 0
+# define BOTTOM_BIT_NOTOUCH 0
         if (!TEST_true(BN_rand(n, bytes * 8, TOP_BIT_ON, BOTTOM_BIT_NOTOUCH)))
             goto err;
         if (!TEST_int_eq(BN_num_bytes(n),A) bytes
@@ -1628,7 +1711,7 @@ static int test_bn2padded(void)
     }
 
     st = 1;
-err:
+ err:
     BN_free(n);
     return st;
 #else
@@ -1700,7 +1783,7 @@ static int test_dec2bn(void)
         goto err;
 
     st = 1;
-err:
+ err:
     BN_free(bn);
     return st;
 }
@@ -1766,7 +1849,7 @@ static int test_hex2bn(void)
         goto err;
     st = 1;
 
-err:
+ err:
     BN_free(bn);
     return st;
 }
@@ -1820,7 +1903,7 @@ static int test_asc2bn(void)
         goto err;
 
     st = 1;
-err:
+ err:
     BN_free(bn);
     return st;
 }
@@ -1864,7 +1947,7 @@ static int test_mpi(int i)
     BN_free(bn2);
 
     st = 1;
-err:
+ err:
     BN_free(bn);
     return st;
 }
@@ -1890,7 +1973,7 @@ static int test_rand(void)
         goto err;
 
     st = 1;
-err:
+ err:
     BN_free(bn);
     return st;
 }
@@ -1954,7 +2037,7 @@ static int test_negzero(void)
         goto err;
     st = 1;
 
-err:
+ err:
     BN_free(a);
     BN_free(b);
     BN_free(c);
@@ -1995,7 +2078,7 @@ static int test_badmod(void)
     ERR_clear_error();
 
     if (!TEST_false(BN_mod_exp_mont_consttime(a, BN_value_one(), BN_value_one(),
-                                             zero, ctx, NULL)))
+                                              zero, ctx, NULL)))
         goto err;
     ERR_clear_error();
 
@@ -2017,12 +2100,12 @@ static int test_badmod(void)
     ERR_clear_error();
 
     if (!TEST_false(BN_mod_exp_mont_consttime(a, BN_value_one(), BN_value_one(),
-                                  b, ctx, NULL)))
+                                              b, ctx, NULL)))
         goto err;
     ERR_clear_error();
 
     st = 1;
-err:
+ err:
     BN_free(a);
     BN_free(b);
     BN_free(zero);
@@ -2056,7 +2139,7 @@ static int test_expmodzero(void)
         goto err;
 
     st = 1;
-err:
+ err:
     BN_free(zero);
     BN_free(a);
     BN_free(r);
@@ -2102,7 +2185,7 @@ static int test_expmodone(void)
     }
 
     ret = 1;
-err:
+ err:
     BN_free(r);
     BN_free(a);
     BN_free(p);
@@ -2110,20 +2193,52 @@ err:
     return ret;
 }
 
-static int test_smallprime(void)
+static int test_smallprime(int kBits)
 {
-    static const int kBits = 10;
     BIGNUM *r;
     int st = 0;
 
-    if (!TEST_ptr(r = BN_new())
-            || !TEST_true(BN_generate_prime_ex(r, (int)kBits, 0,
-                                               NULL, NULL, NULL))
-            || !TEST_int_eq(BN_num_bits(r), kBits))
+    if (!TEST_ptr(r = BN_new()))
         goto err;
 
+    if (kBits <= 1) {
+        if (!TEST_false(BN_generate_prime_ex(r, kBits, 0,
+                                             NULL, NULL, NULL)))
+            goto err;
+    } else {
+        if (!TEST_true(BN_generate_prime_ex(r, kBits, 0,
+                                            NULL, NULL, NULL))
+                || !TEST_int_eq(BN_num_bits(r), kBits))
+            goto err;
+    }
+
     st = 1;
-err:
+ err:
+    BN_free(r);
+    return st;
+}
+
+static int test_smallsafeprime(int kBits)
+{
+    BIGNUM *r;
+    int st = 0;
+
+    if (!TEST_ptr(r = BN_new()))
+        goto err;
+
+    if (kBits <= 5 && kBits != 3) {
+        if (!TEST_false(BN_generate_prime_ex(r, kBits, 1,
+                                             NULL, NULL, NULL)))
+            goto err;
+    } else {
+        if (!TEST_true(BN_generate_prime_ex(r, kBits, 1,
+                                            NULL, NULL, NULL))
+                || !TEST_int_eq(BN_num_bits(r), kBits))
+            goto err;
+    }
+
+    st = 1;
+ err:
     BN_free(r);
     return st;
 }
@@ -2147,7 +2262,7 @@ static int test_is_prime(int i)
     }
 
     ret = 1;
-err:
+ err:
     BN_free(r);
     return ret;
 }
@@ -2170,9 +2285,405 @@ static int test_not_prime(int i)
     }
 
     ret = 1;
-err:
+ err:
     BN_free(r);
     return ret;
+}
+
+static int test_ctx_set_ct_flag(BN_CTX *c)
+{
+    int st = 0;
+    size_t i;
+    BIGNUM *b[15];
+
+    BN_CTX_start(c);
+    for (i = 0; i < OSSL_NELEM(b); i++) {
+        if (!TEST_ptr(b[i] = BN_CTX_get(c)))
+            goto err;
+        if (i % 2 == 1)
+            BN_set_flags(b[i], BN_FLG_CONSTTIME);
+    }
+
+    st = 1;
+ err:
+    BN_CTX_end(c);
+    return st;
+}
+
+static int test_ctx_check_ct_flag(BN_CTX *c)
+{
+    int st = 0;
+    size_t i;
+    BIGNUM *b[30];
+
+    BN_CTX_start(c);
+    for (i = 0; i < OSSL_NELEM(b); i++) {
+        if (!TEST_ptr(b[i] = BN_CTX_get(c)))
+            goto err;
+        if (!TEST_false(BN_get_flags(b[i], BN_FLG_CONSTTIME)))
+            goto err;
+    }
+
+    st = 1;
+ err:
+    BN_CTX_end(c);
+    return st;
+}
+
+static int test_ctx_consttime_flag(void)
+{
+    /*-
+     * The constant-time flag should not "leak" among BN_CTX frames:
+     *
+     * - test_ctx_set_ct_flag() starts a frame in the given BN_CTX and
+     *   sets the BN_FLG_CONSTTIME flag on some of the BIGNUMs obtained
+     *   from the frame before ending it.
+     * - test_ctx_check_ct_flag() then starts a new frame and gets a
+     *   number of BIGNUMs from it. In absence of leaks, none of the
+     *   BIGNUMs in the new frame should have BN_FLG_CONSTTIME set.
+     *
+     * In actual BN_CTX usage inside libcrypto the leak could happen at
+     * any depth level in the BN_CTX stack, with varying results
+     * depending on the patterns of sibling trees of nested function
+     * calls sharing the same BN_CTX object, and the effect of
+     * unintended BN_FLG_CONSTTIME on the called BN_* functions.
+     *
+     * This simple unit test abstracts away this complexity and verifies
+     * that the leak does not happen between two sibling functions
+     * sharing the same BN_CTX object at the same level of nesting.
+     *
+     */
+    BN_CTX *nctx = NULL;
+    BN_CTX *sctx = NULL;
+    size_t i = 0;
+    int st = 0;
+
+    if (!TEST_ptr(nctx = BN_CTX_new())
+            || !TEST_ptr(sctx = BN_CTX_secure_new()))
+        goto err;
+
+    for (i = 0; i < 2; i++) {
+        BN_CTX *c = i == 0 ? nctx : sctx;
+        if (!TEST_true(test_ctx_set_ct_flag(c))
+                || !TEST_true(test_ctx_check_ct_flag(c)))
+            goto err;
+    }
+
+    st = 1;
+ err:
+    BN_CTX_free(nctx);
+    BN_CTX_free(sctx);
+    return st;
+}
+
+static int test_gcd_prime(void)
+{
+    BIGNUM *a = NULL, *b = NULL, *gcd = NULL;
+    int i, st = 0;
+
+    if (!TEST_ptr(a = BN_new())
+            || !TEST_ptr(b = BN_new())
+            || !TEST_ptr(gcd = BN_new()))
+        goto err;
+
+    if (!TEST_true(BN_generate_prime_ex(a, 1024, 0, NULL, NULL, NULL)))
+            goto err;
+    for (i = 0; i < NUM0; i++) {
+        if (!TEST_true(BN_generate_prime_ex(b, 1024, 0,
+                                            NULL, NULL, NULL))
+                || !TEST_true(BN_gcd(gcd, a, b, ctx))
+                || !TEST_true(BN_is_one(gcd)))
+            goto err;
+    }
+
+    st = 1;
+ err:
+    BN_free(a);
+    BN_free(b);
+    BN_free(gcd);
+    return st;
+}
+
+typedef struct mod_exp_test_st
+{
+  const char *base;
+  const char *exp;
+  const char *mod;
+  const char *res;
+} MOD_EXP_TEST;
+
+static const MOD_EXP_TEST ModExpTests[] = {
+   /* original test vectors for rsaz_512_sqr bug, by OSS-Fuzz */
+   {
+       "1166180238001879113042182292626169621106255558914000595999312084"
+       "4627946820899490684928760491249738643524880720584249698100907201"
+       "002086675047927600340800371",
+       "8000000000000000000000000000000000000000000000000000000000000000"
+       "0000000000000000000000000000000000000000000000000000000000000000"
+       "00000000",
+       "1340780792684523720980737645613191762604395855615117867483316354"
+       "3294276330515137663421134775482798690129946803802212663956180562"
+       "088664022929883876655300863",
+       "8243904058268085430037326628480645845409758077568738532059032482"
+       "8294114415890603594730158120426756266457928475330450251339773498"
+       "26758407619521544102068438"
+   },
+   {
+       "4974270041410803822078866696159586946995877618987010219312844726"
+       "0284386121835740784990869050050504348861513337232530490826340663"
+       "197278031692737429054",
+       "4974270041410803822078866696159586946995877428188754995041148539"
+       "1663243362592271353668158565195557417149981094324650322556843202"
+       "946445882670777892608",
+       "1340780716511420227215592830971452482815377482627251725537099028"
+       "4429769497230131760206012644403029349547320953206103351725462999"
+       "947509743623340557059752191",
+       "5296244594780707015616522701706118082963369547253192207884519362"
+       "1767869984947542695665420219028522815539559194793619684334900442"
+       "49304558011362360473525933"
+   },
+   /* test vectors for rsaz_512_srq bug, with rcx/rbx=1 */
+   {   /* between first and second iteration */
+       "5148719036160389201525610950887605325980251964889646556085286545"
+       "3931548809178823413169359635978762036512397113080988070677858033"
+       "36463909753993540214027190",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042158",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042159",
+       "1"
+   },
+   {   /* between second and third iteration */
+       "8908340854353752577419678771330460827942371434853054158622636544"
+       "8151360109722890949471912566649465436296659601091730745087014189"
+       "2672764191218875181826063",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042158",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042159",
+       "1"
+   },
+   {   /* between third and fourth iteration */
+       "3427446396505596330634350984901719674479522569002785244080234738"
+       "4288743635435746136297299366444548736533053717416735379073185344"
+       "26985272974404612945608761",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042158",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042159",
+       "1"
+   },
+   {   /* between fourth and fifth iteration */
+       "3472743044917564564078857826111874560045331237315597383869652985"
+       "6919870028890895988478351133601517365908445058405433832718206902"
+       "4088133164805266956353542",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042158",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042159",
+       "1"
+   },
+   {   /* between fifth and sixth iteration */
+       "3608632990153469264412378349742339216742409743898601587274768025"
+       "0110772032985643555192767717344946174122842255204082586753499651"
+       "14483434992887431333675068",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042158",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042159",
+       "1"
+   },
+   {   /* between sixth and seventh iteration */
+       "8455374370234070242910508226941981520235709767260723212165264877"
+       "8689064388017521524568434328264431772644802567028663962962025746"
+       "9283458217850119569539086",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042158",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042159",
+       "1"
+   },
+   {   /* between seventh and eighth iteration */
+       "5155371529688532178421209781159131443543419764974688878527112131"
+       "7446518205609427412336183157918981038066636807317733319323257603"
+       "04416292040754017461076359",
+       "1005585594745694782468051874865438459560952436544429503329267108"
+       "2791323022555160232601405723625177570767523893639864538140315412"
+       "108959927459825236754563832",
+       "1005585594745694782468051874865438459560952436544429503329267108"
+       "2791323022555160232601405723625177570767523893639864538140315412"
+       "108959927459825236754563833",
+       "1"
+   },
+   /* test vectors for rsaz_512_srq bug, with rcx/rbx=2 */
+   {   /* between first and second iteration */
+       "3155666506033786929967309937640790361084670559125912405342594979"
+       "4345142818528956285490897841406338022378565972533508820577760065"
+       "58494345853302083699912572",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042158",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042159",
+       "1"
+   },
+   {   /* between second and third iteration */
+       "3789819583801342198190405714582958759005991915505282362397087750"
+       "4213544724644823098843135685133927198668818185338794377239590049"
+       "41019388529192775771488319",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042158",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042159",
+       "1"
+   },
+   {   /* between third and forth iteration */
+       "4695752552040706867080542538786056470322165281761525158189220280"
+       "4025547447667484759200742764246905647644662050122968912279199065"
+       "48065034299166336940507214",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042158",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042159",
+       "1"
+   },
+   {   /* between forth and fifth iteration */
+       "2159140240970485794188159431017382878636879856244045329971239574"
+       "8919691133560661162828034323196457386059819832804593989740268964"
+       "74502911811812651475927076",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042158",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042159",
+       "1"
+   },
+   {   /* between fifth and sixth iteration */
+       "5239312332984325668414624633307915097111691815000872662334695514"
+       "5436533521392362443557163429336808208137221322444780490437871903"
+       "99972784701334569424519255",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042158",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042159",
+       "1"
+   },
+   {   /* between sixth and seventh iteration */
+       "1977953647322612860406858017869125467496941904523063466791308891"
+       "1172796739058531929470539758361774569875505293428856181093904091"
+       "33788264851714311303725089",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042158",
+       "6703903964971298549787012499102923063739682910296196688861780721"
+       "8608820150367734884009371490834517138450159290932430254268769414"
+       "05973284973216824503042159",
+       "1"
+   },
+   {   /* between seventh and eighth iteration */
+       "6456987954117763835533395796948878140715006860263624787492985786"
+       "8514630216966738305923915688821526449499763719943997120302368211"
+       "04813318117996225041943964",
+       "1340780792994259709957402499820584612747936582059239337772356144"
+       "3721764030073546976801874298166903427690031858186486050853753882"
+       "811946551499689575296532556",
+       "1340780792994259709957402499820584612747936582059239337772356144"
+       "3721764030073546976801874298166903427690031858186486050853753882"
+       "811946551499689575296532557",
+       "1"
+   }
+};
+
+static int test_mod_exp(int i)
+{
+    const MOD_EXP_TEST *test = &ModExpTests[i];
+    int res = 0;
+    BIGNUM* result = NULL;
+    BIGNUM *base = NULL, *exponent = NULL, *modulo = NULL;
+    char *s = NULL;
+
+    if (!TEST_ptr(result = BN_new())
+            || !TEST_true(BN_dec2bn(&base, test->base))
+            || !TEST_true(BN_dec2bn(&exponent, test->exp))
+            || !TEST_true(BN_dec2bn(&modulo, test->mod)))
+        goto err;
+
+    if (!TEST_int_eq(BN_mod_exp(result, base, exponent, modulo, ctx), 1))
+        goto err;
+
+    if (!TEST_ptr(s = BN_bn2dec(result)))
+        goto err;
+
+    if (!TEST_mem_eq(s, strlen(s), test->res, strlen(test->res)))
+        goto err;
+
+    res = 1;
+
+ err:
+    OPENSSL_free(s);
+    BN_free(result);
+    BN_free(base);
+    BN_free(exponent);
+    BN_free(modulo);
+    return res;
+}
+
+static int test_mod_exp_consttime(int i)
+{
+    const MOD_EXP_TEST *test = &ModExpTests[i];
+    int res = 0;
+    BIGNUM* result = NULL;
+    BIGNUM *base = NULL, *exponent = NULL, *modulo = NULL;
+    char *s = NULL;
+
+    if (!TEST_ptr(result = BN_new())
+            || !TEST_true(BN_dec2bn(&base, test->base))
+            || !TEST_true(BN_dec2bn(&exponent, test->exp))
+            || !TEST_true(BN_dec2bn(&modulo, test->mod)))
+        goto err;
+
+    BN_set_flags(base, BN_FLG_CONSTTIME);
+    BN_set_flags(exponent, BN_FLG_CONSTTIME);
+    BN_set_flags(modulo, BN_FLG_CONSTTIME);
+
+    if (!TEST_int_eq(BN_mod_exp(result, base, exponent, modulo, ctx), 1))
+        goto err;
+
+    if (!TEST_ptr(s = BN_bn2dec(result)))
+        goto err;
+
+    if (!TEST_mem_eq(s, strlen(s), test->res, strlen(test->res)))
+        goto err;
+
+    res = 1;
+
+ err:
+    OPENSSL_free(s);
+    BN_free(result);
+    BN_free(base);
+    BN_free(exponent);
+    BN_free(modulo);
+    return res;
 }
 
 static int file_test_run(STANZA *s)
@@ -2189,6 +2700,7 @@ static int file_test_run(STANZA *s)
         {"ModExp", file_modexp},
         {"Exp", file_exp},
         {"ModSqrt", file_modsqrt},
+        {"GCD", file_gcd},
     };
     int numtests = OSSL_NELEM(filetests);
     const FILETEST *tp = filetests;
@@ -2260,8 +2772,10 @@ int setup_tests(void)
         ADD_TEST(test_badmod);
         ADD_TEST(test_expmodzero);
         ADD_TEST(test_expmodone);
-        ADD_TEST(test_smallprime);
+        ADD_ALL_TESTS(test_smallprime, 16);
+        ADD_ALL_TESTS(test_smallsafeprime, 16);
         ADD_TEST(test_swap);
+        ADD_TEST(test_ctx_consttime_flag);
 #ifndef OPENSSL_NO_EC2M
         ADD_TEST(test_gf2m_add);
         ADD_TEST(test_gf2m_mod);
@@ -2275,6 +2789,9 @@ int setup_tests(void)
 #endif
         ADD_ALL_TESTS(test_is_prime, (int)OSSL_NELEM(primes));
         ADD_ALL_TESTS(test_not_prime, (int)OSSL_NELEM(not_primes));
+        ADD_TEST(test_gcd_prime);
+        ADD_ALL_TESTS(test_mod_exp, (int)OSSL_NELEM(ModExpTests));
+        ADD_ALL_TESTS(test_mod_exp_consttime, (int)OSSL_NELEM(ModExpTests));
     } else {
         ADD_ALL_TESTS(run_file_tests, n);
     }

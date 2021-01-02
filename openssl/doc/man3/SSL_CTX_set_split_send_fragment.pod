@@ -41,7 +41,7 @@ capability is known as "pipelining" within OpenSSL.
 
 In order to benefit from the pipelining capability. You need to have an engine
 that provides ciphers that support this. The OpenSSL "dasync" engine provides
-AES128-SHA based ciphers that have this capability. However these are for
+AES128-SHA based ciphers that have this capability. However, these are for
 development and test purposes only.
 
 SSL_CTX_set_max_send_fragment() and SSL_set_max_send_fragment() set the
@@ -162,6 +162,10 @@ SSL_set_default_read_buffer_len(), SSL_CTX_set_tlsext_max_fragment_length(),
 SSL_set_tlsext_max_fragment_length() and SSL_SESSION_get_max_fragment_length()
 all these functions are implemented using macros.
 
+=head1 SEE ALSO
+
+L<SSL_CTX_set_read_ahead(3)>, L<SSL_pending(3)>
+
 =head1 HISTORY
 
 The SSL_CTX_set_max_pipelines(), SSL_set_max_pipelines(),
@@ -169,16 +173,12 @@ SSL_CTX_set_split_send_fragment(), SSL_set_split_send_fragment(),
 SSL_CTX_set_default_read_buffer_len() and  SSL_set_default_read_buffer_len()
 functions were added in OpenSSL 1.1.0.
 
-SSL_CTX_set_tlsext_max_fragment_length(), SSL_set_tlsext_max_fragment_length()
-and SSL_SESSION_get_max_fragment_length() were added in OpenSSL 1.1.1.
-
-=head1 SEE ALSO
-
-L<SSL_CTX_set_read_ahead(3)>, L<SSL_pending(3)>
+The SSL_CTX_set_tlsext_max_fragment_length(), SSL_set_tlsext_max_fragment_length()
+and SSL_SESSION_get_max_fragment_length() functions were added in OpenSSL 1.1.1.
 
 =head1 COPYRIGHT
 
-Copyright 2016-2017 The OpenSSL Project Authors. All Rights Reserved.
+Copyright 2016-2020 The OpenSSL Project Authors. All Rights Reserved.
 
 Licensed under the OpenSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy

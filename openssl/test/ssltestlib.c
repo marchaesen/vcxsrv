@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2019 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -17,18 +17,28 @@
 #ifdef OPENSSL_SYS_UNIX
 # include <unistd.h>
 
-static ossl_inline void ossl_sleep(unsigned int millis) {
+static ossl_inline void ossl_sleep(unsigned int millis)
+{
+# ifdef OPENSSL_SYS_VXWORKS
+    struct timespec ts;
+    ts.tv_sec = (long int) (millis / 1000);
+    ts.tv_nsec = (long int) (millis % 1000) * 1000000ul;
+    nanosleep(&ts, NULL);
+# else
     usleep(millis * 1000);
+# endif
 }
 #elif defined(_WIN32)
 # include <windows.h>
 
-static ossl_inline void ossl_sleep(unsigned int millis) {
+static ossl_inline void ossl_sleep(unsigned int millis)
+{
     Sleep(millis);
 }
 #else
 /* Fallback to a busy wait */
-static ossl_inline void ossl_sleep(unsigned int millis) {
+static ossl_inline void ossl_sleep(unsigned int millis)
+{
     struct timeval start, now;
     unsigned int elapsedms;
 
@@ -52,9 +62,11 @@ static int tls_dump_puts(BIO *bp, const char *str);
 /* Choose a sufficiently large type likely to be unused for this custom BIO */
 #define BIO_TYPE_TLS_DUMP_FILTER  (0x80 | BIO_TYPE_FILTER)
 #define BIO_TYPE_MEMPACKET_TEST    0x81
+#define BIO_TYPE_ALWAYS_RETRY      0x82
 
 static BIO_METHOD *method_tls_dump = NULL;
 static BIO_METHOD *meth_mem = NULL;
+static BIO_METHOD *meth_always_retry = NULL;
 
 /* Note: Not thread safe! */
 const BIO_METHOD *bio_f_tls_dump_filter(void)
@@ -284,6 +296,7 @@ typedef struct mempacket_test_ctx_st {
     unsigned int noinject;
     unsigned int dropepoch;
     int droprec;
+    int duprec;
 } MEMPACKET_TEST_CTX;
 
 static int mempacket_test_new(BIO *bi);
@@ -426,10 +439,25 @@ int mempacket_test_inject(BIO *bio, const char *in, int inl, int pktnum,
                           int type)
 {
     MEMPACKET_TEST_CTX *ctx = BIO_get_data(bio);
-    MEMPACKET *thispkt, *looppkt, *nextpkt;
-    int i;
+    MEMPACKET *thispkt = NULL, *looppkt, *nextpkt, *allpkts[3];
+    int i, duprec;
+    const unsigned char *inu = (const unsigned char *)in;
+    size_t len = ((inu[RECORD_LEN_HI] << 8) | inu[RECORD_LEN_LO])
+                 + DTLS1_RT_HEADER_LENGTH;
 
     if (ctx == NULL)
+        return -1;
+
+    if ((size_t)inl < len)
+        return -1;
+
+    if ((size_t)inl == len)
+        duprec = 0;
+    else
+        duprec = ctx->duprec > 0;
+
+    /* We don't support arbitrary injection when duplicating records */
+    if (duprec && pktnum != -1)
         return -1;
 
     /* We only allow injection before we've started writing any data */
@@ -441,25 +469,36 @@ int mempacket_test_inject(BIO *bio, const char *in, int inl, int pktnum,
         ctx->noinject = 1;
     }
 
-    if (!TEST_ptr(thispkt = OPENSSL_malloc(sizeof(*thispkt))))
-        return -1;
-    if (!TEST_ptr(thispkt->data = OPENSSL_malloc(inl))) {
-        mempacket_free(thispkt);
-        return -1;
-    }
+    for (i = 0; i < (duprec ? 3 : 1); i++) {
+        if (!TEST_ptr(allpkts[i] = OPENSSL_malloc(sizeof(*thispkt))))
+            goto err;
+        thispkt = allpkts[i];
 
-    memcpy(thispkt->data, in, inl);
-    thispkt->len = inl;
-    thispkt->num = (pktnum >= 0) ? (unsigned int)pktnum : ctx->lastpkt;
-    thispkt->type = type;
+        if (!TEST_ptr(thispkt->data = OPENSSL_malloc(inl)))
+            goto err;
+        /*
+         * If we are duplicating the packet, we duplicate it three times. The
+         * first two times we drop the first record if there are more than one.
+         * In this way we know that libssl will not be able to make progress
+         * until it receives the last packet, and hence will be forced to
+         * buffer these records.
+         */
+        if (duprec && i != 2) {
+            memcpy(thispkt->data, in + len, inl - len);
+            thispkt->len = inl - len;
+        } else {
+            memcpy(thispkt->data, in, inl);
+            thispkt->len = inl;
+        }
+        thispkt->num = (pktnum >= 0) ? (unsigned int)pktnum : ctx->lastpkt + i;
+        thispkt->type = type;
+    }
 
     for(i = 0; (looppkt = sk_MEMPACKET_value(ctx->pkts, i)) != NULL; i++) {
         /* Check if we found the right place to insert this packet */
         if (looppkt->num > thispkt->num) {
-            if (sk_MEMPACKET_insert(ctx->pkts, thispkt, i) == 0) {
-                mempacket_free(thispkt);
-                return -1;
-            }
+            if (sk_MEMPACKET_insert(ctx->pkts, thispkt, i) == 0)
+                goto err;
             /* If we're doing up front injection then we're done */
             if (pktnum >= 0)
                 return inl;
@@ -480,7 +519,7 @@ int mempacket_test_inject(BIO *bio, const char *in, int inl, int pktnum,
         } else if (looppkt->num == thispkt->num) {
             if (!ctx->noinject) {
                 /* We injected two packets with the same packet number! */
-                return -1;
+                goto err;
             }
             ctx->lastpkt++;
             thispkt->num++;
@@ -490,15 +529,21 @@ int mempacket_test_inject(BIO *bio, const char *in, int inl, int pktnum,
      * We didn't find any packets with a packet number equal to or greater than
      * this one, so we just add it onto the end
      */
-    if (!sk_MEMPACKET_push(ctx->pkts, thispkt)) {
-        mempacket_free(thispkt);
-        return -1;
+    for (i = 0; i < (duprec ? 3 : 1); i++) {
+        thispkt = allpkts[i];
+        if (!sk_MEMPACKET_push(ctx->pkts, thispkt))
+            goto err;
+
+        if (pktnum < 0)
+            ctx->lastpkt++;
     }
 
-    if (pktnum < 0)
-        ctx->lastpkt++;
-
     return inl;
+
+ err:
+    for (i = 0; i < (ctx->duprec > 0 ? 3 : 1); i++)
+        mempacket_free(allpkts[i]);
+    return -1;
 }
 
 static int mempacket_test_write(BIO *bio, const char *in, int inl)
@@ -544,6 +589,9 @@ static long mempacket_test_ctrl(BIO *bio, int cmd, long num, void *ptr)
     case MEMPACKET_CTRL_GET_DROP_REC:
         ret = ctx->droprec;
         break;
+    case MEMPACKET_CTRL_SET_DUPLICATE_REC:
+        ctx->duprec = (int)num;
+        break;
     case BIO_CTRL_RESET:
     case BIO_CTRL_DUP:
     case BIO_CTRL_PUSH:
@@ -564,6 +612,100 @@ static int mempacket_test_gets(BIO *bio, char *buf, int size)
 static int mempacket_test_puts(BIO *bio, const char *str)
 {
     return mempacket_test_write(bio, str, strlen(str));
+}
+
+static int always_retry_new(BIO *bi);
+static int always_retry_free(BIO *a);
+static int always_retry_read(BIO *b, char *out, int outl);
+static int always_retry_write(BIO *b, const char *in, int inl);
+static long always_retry_ctrl(BIO *b, int cmd, long num, void *ptr);
+static int always_retry_gets(BIO *bp, char *buf, int size);
+static int always_retry_puts(BIO *bp, const char *str);
+
+const BIO_METHOD *bio_s_always_retry(void)
+{
+    if (meth_always_retry == NULL) {
+        if (!TEST_ptr(meth_always_retry = BIO_meth_new(BIO_TYPE_ALWAYS_RETRY,
+                                                       "Always Retry"))
+            || !TEST_true(BIO_meth_set_write(meth_always_retry,
+                                             always_retry_write))
+            || !TEST_true(BIO_meth_set_read(meth_always_retry,
+                                            always_retry_read))
+            || !TEST_true(BIO_meth_set_puts(meth_always_retry,
+                                            always_retry_puts))
+            || !TEST_true(BIO_meth_set_gets(meth_always_retry,
+                                            always_retry_gets))
+            || !TEST_true(BIO_meth_set_ctrl(meth_always_retry,
+                                            always_retry_ctrl))
+            || !TEST_true(BIO_meth_set_create(meth_always_retry,
+                                              always_retry_new))
+            || !TEST_true(BIO_meth_set_destroy(meth_always_retry,
+                                               always_retry_free)))
+            return NULL;
+    }
+    return meth_always_retry;
+}
+
+void bio_s_always_retry_free(void)
+{
+    BIO_meth_free(meth_always_retry);
+}
+
+static int always_retry_new(BIO *bio)
+{
+    BIO_set_init(bio, 1);
+    return 1;
+}
+
+static int always_retry_free(BIO *bio)
+{
+    BIO_set_data(bio, NULL);
+    BIO_set_init(bio, 0);
+    return 1;
+}
+
+static int always_retry_read(BIO *bio, char *out, int outl)
+{
+    BIO_set_retry_read(bio);
+    return -1;
+}
+
+static int always_retry_write(BIO *bio, const char *in, int inl)
+{
+    BIO_set_retry_write(bio);
+    return -1;
+}
+
+static long always_retry_ctrl(BIO *bio, int cmd, long num, void *ptr)
+{
+    long ret = 1;
+
+    switch (cmd) {
+    case BIO_CTRL_FLUSH:
+        BIO_set_retry_write(bio);
+        /* fall through */
+    case BIO_CTRL_EOF:
+    case BIO_CTRL_RESET:
+    case BIO_CTRL_DUP:
+    case BIO_CTRL_PUSH:
+    case BIO_CTRL_POP:
+    default:
+        ret = 0;
+        break;
+    }
+    return ret;
+}
+
+static int always_retry_gets(BIO *bio, char *buf, int size)
+{
+    BIO_set_retry_read(bio);
+    return -1;
+}
+
+static int always_retry_puts(BIO *bio, const char *str)
+{
+    BIO_set_retry_write(bio);
+    return -1;
 }
 
 int create_ssl_ctx_pair(const SSL_METHOD *sm, const SSL_METHOD *cm,
@@ -683,8 +825,12 @@ int create_ssl_objects(SSL_CTX *serverctx, SSL_CTX *clientctx, SSL **sssl,
 /*
  * Create an SSL connection, but does not ready any post-handshake
  * NewSessionTicket messages.
+ * If |read| is set and we're using DTLS then we will attempt to SSL_read on
+ * the connection once we've completed one half of it, to ensure any retransmits
+ * get triggered.
  */
-int create_bare_ssl_connection(SSL *serverssl, SSL *clientssl, int want)
+int create_bare_ssl_connection(SSL *serverssl, SSL *clientssl, int want,
+                               int read)
 {
     int retc = -1, rets = -1, err, abortctr = 0;
     int clienterr = 0, servererr = 0;
@@ -712,7 +858,9 @@ int create_bare_ssl_connection(SSL *serverssl, SSL *clientssl, int want)
                 err = SSL_get_error(serverssl, rets);
         }
 
-        if (!servererr && rets <= 0 && err != SSL_ERROR_WANT_READ) {
+        if (!servererr && rets <= 0
+                && err != SSL_ERROR_WANT_READ
+                && err != SSL_ERROR_WANT_X509_LOOKUP) {
             TEST_info("SSL_accept() failed %d, %d", rets, err);
             servererr = 1;
         }
@@ -720,11 +868,24 @@ int create_bare_ssl_connection(SSL *serverssl, SSL *clientssl, int want)
             return 0;
         if (clienterr && servererr)
             return 0;
-        if (isdtls) {
-            if (rets > 0 && retc <= 0)
-                DTLSv1_handle_timeout(serverssl);
-            if (retc > 0 && rets <= 0)
-                DTLSv1_handle_timeout(clientssl);
+        if (isdtls && read) {
+            unsigned char buf[20];
+
+            /* Trigger any retransmits that may be appropriate */
+            if (rets > 0 && retc <= 0) {
+                if (SSL_read(serverssl, buf, sizeof(buf)) > 0) {
+                    /* We don't expect this to succeed! */
+                    TEST_info("Unexpected SSL_read() success!");
+                    return 0;
+                }
+            }
+            if (retc > 0 && rets <= 0) {
+                if (SSL_read(clientssl, buf, sizeof(buf)) > 0) {
+                    /* We don't expect this to succeed! */
+                    TEST_info("Unexpected SSL_read() success!");
+                    return 0;
+                }
+            }
         }
         if (++abortctr == MAXLOOPS) {
             TEST_info("No progress made");
@@ -753,13 +914,13 @@ int create_ssl_connection(SSL *serverssl, SSL *clientssl, int want)
     unsigned char buf;
     size_t readbytes;
 
-    if (!create_bare_ssl_connection(serverssl, clientssl, want))
+    if (!create_bare_ssl_connection(serverssl, clientssl, want, 1))
         return 0;
 
     /*
      * We attempt to read some data on the client side which we expect to fail.
      * This will ensure we have received the NewSessionTicket in TLSv1.3 where
-     * appropriate. We do this twice because there are 2 NewSesionTickets.
+     * appropriate. We do this twice because there are 2 NewSessionTickets.
      */
     for (i = 0; i < 2; i++) {
         if (SSL_read_ex(clientssl, &buf, sizeof(buf), &readbytes) > 0) {

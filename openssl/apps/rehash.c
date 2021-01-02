@@ -1,6 +1,6 @@
 /*
- * Copyright 2015-2018 The OpenSSL Project Authors. All Rights Reserved.
- * Copyright (c) 2013-2014 Timo Ter‰s <timo.teras@gmail.com>
+ * Copyright 2015-2020 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright (c) 2013-2014 Timo Ter√§s <timo.teras@gmail.com>
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -50,6 +50,26 @@
 #  define NAME_MAX 255
 # endif
 # define MAX_COLLISIONS  256
+
+# if defined(OPENSSL_SYS_VXWORKS)
+/*
+ * VxWorks has no symbolic links
+ */
+
+#  define lstat(path, buf) stat(path, buf)
+
+int symlink(const char *target, const char *linkpath)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
+ssize_t readlink(const char *pathname, char *buf, size_t bufsiz)
+{
+    errno = ENOSYS;
+    return -1;
+}
+# endif
 
 typedef struct hentry_st {
     struct hentry_st *next;
@@ -254,11 +274,19 @@ static int do_file(const char *filename, const char *fullpath, enum Hash h)
     if (x->x509 != NULL) {
         type = TYPE_CERT;
         name = X509_get_subject_name(x->x509);
-        X509_digest(x->x509, evpmd, digest, NULL);
+        if (!X509_digest(x->x509, evpmd, digest, NULL)) {
+            BIO_printf(bio_err, "out of memory\n");
+            ++errs;
+            goto end;
+        }
     } else if (x->crl != NULL) {
         type = TYPE_CRL;
         name = X509_CRL_get_issuer(x->crl);
-        X509_CRL_digest(x->crl, evpmd, digest, NULL);
+        if (!X509_CRL_digest(x->crl, evpmd, digest, NULL)) {
+            BIO_printf(bio_err, "out of memory\n");
+            ++errs;
+            goto end;
+        }
     } else {
         ++errs;
         goto end;

@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2019 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright 2005 Nokia. All rights reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
@@ -9,7 +9,7 @@
  */
 
 #include <stdio.h>
-#include "ssl_locl.h"
+#include "ssl_local.h"
 #include <openssl/comp.h>
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
@@ -81,10 +81,6 @@ static int tls1_generate_key_block(SSL *s, unsigned char *km, size_t num)
 int tls1_change_cipher_state(SSL *s, int which)
 {
     unsigned char *p, *mac_secret;
-    unsigned char tmp1[EVP_MAX_KEY_LENGTH];
-    unsigned char tmp2[EVP_MAX_KEY_LENGTH];
-    unsigned char iv1[EVP_MAX_IV_LENGTH * 2];
-    unsigned char iv2[EVP_MAX_IV_LENGTH * 2];
     unsigned char *ms, *key, *iv;
     EVP_CIPHER_CTX *dd;
     const EVP_CIPHER *c;
@@ -334,16 +330,8 @@ int tls1_change_cipher_state(SSL *s, int which)
     printf("\n");
 #endif
 
-    OPENSSL_cleanse(tmp1, sizeof(tmp1));
-    OPENSSL_cleanse(tmp2, sizeof(tmp1));
-    OPENSSL_cleanse(iv1, sizeof(iv1));
-    OPENSSL_cleanse(iv2, sizeof(iv2));
     return 1;
  err:
-    OPENSSL_cleanse(tmp1, sizeof(tmp1));
-    OPENSSL_cleanse(tmp2, sizeof(tmp1));
-    OPENSSL_cleanse(iv1, sizeof(iv1));
-    OPENSSL_cleanse(iv2, sizeof(iv2));
     return 0;
 }
 
@@ -478,7 +466,7 @@ int tls1_generate_master_secret(SSL *s, unsigned char *out, unsigned char *p,
         unsigned char hash[EVP_MAX_MD_SIZE * 2];
         size_t hashlen;
         /*
-         * Digest cached records keeping record buffer (if present): this wont
+         * Digest cached records keeping record buffer (if present): this won't
          * affect client auth because we're freezing the buffer at the same
          * point (after client key exchange and before certificate verify)
          */

@@ -282,7 +282,7 @@ TS_REQ_free                             282	1_1_0	EXIST::FUNCTION:TS
 PEM_read_DHparams                       283	1_1_0	EXIST::FUNCTION:DH,STDIO
 RSA_private_decrypt                     284	1_1_0	EXIST::FUNCTION:RSA
 X509V3_EXT_get_nid                      285	1_1_0	EXIST::FUNCTION:
-BIO_s_log                               286	1_1_0	EXIST:!WIN32,!macintosh:FUNCTION:
+BIO_s_log                               286	1_1_0	EXIST::FUNCTION:
 EC_POINT_set_to_infinity                287	1_1_0	EXIST::FUNCTION:EC
 EVP_des_ede_ofb                         288	1_1_0	EXIST::FUNCTION:DES
 ECDH_KDF_X9_62                          289	1_1_0	EXIST::FUNCTION:EC
@@ -4577,3 +4577,17 @@ OCSP_resp_get0_respdata                 4530	1_1_0j	EXIST::FUNCTION:OCSP
 EVP_MD_CTX_set_pkey_ctx                 4531	1_1_1	EXIST::FUNCTION:
 EVP_PKEY_meth_set_digest_custom         4532	1_1_1	EXIST::FUNCTION:
 EVP_PKEY_meth_get_digest_custom         4533	1_1_1	EXIST::FUNCTION:
+OPENSSL_INIT_set_config_filename        4534	1_1_1b	EXIST::FUNCTION:STDIO
+OPENSSL_INIT_set_config_file_flags      4535	1_1_1b	EXIST::FUNCTION:STDIO
+EVP_PKEY_get0_engine                    4536	1_1_1c	EXIST::FUNCTION:ENGINE
+X509_get0_authority_serial              4537	1_1_1d	EXIST::FUNCTION:
+X509_get0_authority_issuer              4538	1_1_1d	EXIST::FUNCTION:
+EVP_PKEY_meth_set_digestsign            4539	1_1_1e	EXIST::FUNCTION:
+EVP_PKEY_meth_set_digestverify          4540	1_1_1e	EXIST::FUNCTION:
+EVP_PKEY_meth_get_digestverify          4541	1_1_1e	EXIST::FUNCTION:
+EVP_PKEY_meth_get_digestsign            4542	1_1_1e	EXIST::FUNCTION:
+RSA_get0_pss_params                     4543	1_1_1e	EXIST::FUNCTION:RSA
+X509_ALGOR_copy                         4544	1_1_1h	EXIST::FUNCTION:
+X509_REQ_set0_signature                 4545	1_1_1h	EXIST::FUNCTION:
+X509_REQ_set1_signature_algo            4546	1_1_1h	EXIST::FUNCTION:
+EC_KEY_decoded_from_explicit_params     4547	1_1_1h	EXIST::FUNCTION:EC

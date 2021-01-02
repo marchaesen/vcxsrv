@@ -1,5 +1,5 @@
 #! /usr/bin/env perl
-# Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+# Copyright 1995-2019 The OpenSSL Project Authors. All Rights Reserved.
 #
 # Licensed under the OpenSSL license (the "License").  You may not use
 # this file except in compliance with the License.  You can obtain a copy
@@ -247,7 +247,7 @@ $crypto.=" include/internal/o_str.h";
 $crypto.=" include/internal/err.h";
 $crypto.=" include/internal/sslconf.h";
 foreach my $f ( glob(catfile($config{sourcedir},'include/openssl/*.h')) ) {
-    my $fn = "include/openssl/" . lc(basename($f));
+    my $fn = "include/openssl/" . basename($f);
     $crypto .= " $fn" if !defined $skipthese{$fn};
 }
 
@@ -360,7 +360,7 @@ sub do_defs
 
 		# params: symbol, alias, platforms, kind
 		# The reason to put this subroutine in a variable is that
-		# it will otherwise create it's own, unshared, version of
+		# it will otherwise create its own, unshared, version of
 		# %tag and %variant...
 		my $make_variant = sub
 		{
@@ -935,16 +935,6 @@ sub do_defs
 			print STDERR "DEBUG: \$s = $s; \$p = ",$platform{$s},"; \$a = ",$algorithm{$s},"; \$kind = ",$kind{$s},"\n" if $debug;
 		}
 	}
-
-	# Prune the returned symbols
-
-        delete $syms{"bn_dump1"};
-	$platform{"BIO_s_log"} .= ",!WIN32,!macintosh";
-
-	$platform{"PEM_read_NS_CERT_SEQ"} = "VMS";
-	$platform{"PEM_write_NS_CERT_SEQ"} = "VMS";
-	$platform{"PEM_read_P8_PRIV_KEY_INFO"} = "VMS";
-	$platform{"PEM_write_P8_PRIV_KEY_INFO"} = "VMS";
 
 	# Info we know about
 

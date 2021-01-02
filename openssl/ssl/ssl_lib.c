@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2020 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved
  * Copyright 2005 Nokia. All rights reserved.
  *
@@ -10,7 +10,7 @@
  */
 
 #include <stdio.h>
-#include "ssl_locl.h"
+#include "ssl_local.h"
 #include <openssl/objects.h>
 #include <openssl/x509v3.h>
 #include <openssl/rand.h>
@@ -628,6 +628,11 @@ int SSL_clear(SSL *s)
     /* Clear the verification result peername */
     X509_VERIFY_PARAM_move_peername(s->param, NULL);
 
+    /* Clear any shared connection state */
+    OPENSSL_free(s->shared_sigalgs);
+    s->shared_sigalgs = NULL;
+    s->shared_sigalgslen = 0;
+
     /*
      * Check to see if we were changed into a different method, if so, revert
      * back.
@@ -654,6 +659,10 @@ int SSL_CTX_set_ssl_version(SSL_CTX *ctx, const SSL_METHOD *meth)
 
     ctx->method = meth;
 
+    if (!SSL_CTX_set_ciphersuites(ctx, TLS_DEFAULT_CIPHERSUITES)) {
+        SSLerr(SSL_F_SSL_CTX_SET_SSL_VERSION, SSL_R_SSL_LIBRARY_HAS_NO_CIPHERS);
+        return 0;
+    }
     sk = ssl_create_cipher_list(ctx->method,
                                 ctx->tls13_ciphersuites,
                                 &(ctx->cipher_list),
@@ -863,7 +872,7 @@ int SSL_up_ref(SSL *s)
 int SSL_CTX_set_session_id_context(SSL_CTX *ctx, const unsigned char *sid_ctx,
                                    unsigned int sid_ctx_len)
 {
-    if (sid_ctx_len > sizeof(ctx->sid_ctx)) {
+    if (sid_ctx_len > SSL_MAX_SID_CTX_LENGTH) {
         SSLerr(SSL_F_SSL_CTX_SET_SESSION_ID_CONTEXT,
                SSL_R_SSL_SESSION_ID_CONTEXT_TOO_LONG);
         return 0;
@@ -1156,6 +1165,7 @@ void SSL_free(SSL *s)
     sk_SSL_CIPHER_free(s->cipher_list);
     sk_SSL_CIPHER_free(s->cipher_list_by_id);
     sk_SSL_CIPHER_free(s->tls13_ciphersuites);
+    sk_SSL_CIPHER_free(s->peer_ciphers);
 
     /* Make the next call work :-) */
     if (s->session != NULL) {
@@ -1168,13 +1178,16 @@ void SSL_free(SSL *s)
     clear_ciphers(s);
 
     ssl_cert_free(s->cert);
+    OPENSSL_free(s->shared_sigalgs);
     /* Free up if allocated */
 
     OPENSSL_free(s->ext.hostname);
     SSL_CTX_free(s->session_ctx);
 #ifndef OPENSSL_NO_EC
     OPENSSL_free(s->ext.ecpointformats);
+    OPENSSL_free(s->ext.peer_ecpointformats);
     OPENSSL_free(s->ext.supportedgroups);
+    OPENSSL_free(s->ext.peer_supportedgroups);
 #endif                          /* OPENSSL_NO_EC */
     sk_X509_EXTENSION_pop_free(s->ext.ocsp.exts, X509_EXTENSION_free);
 #ifndef OPENSSL_NO_OCSP
@@ -1187,11 +1200,14 @@ void SSL_free(SSL *s)
     OPENSSL_free(s->ext.ocsp.resp);
     OPENSSL_free(s->ext.alpn);
     OPENSSL_free(s->ext.tls13_cookie);
+    if (s->clienthello != NULL)
+        OPENSSL_free(s->clienthello->pre_proc_exts);
     OPENSSL_free(s->clienthello);
     OPENSSL_free(s->pha_context);
     EVP_MD_CTX_free(s->pha_dgst);
 
     sk_X509_NAME_pop_free(s->ca_names, X509_NAME_free);
+    sk_X509_NAME_pop_free(s->client_ca_names, X509_NAME_free);
 
     sk_X509_pop_free(s->verified_chain, X509_free);
 
@@ -2102,7 +2118,7 @@ int SSL_key_update(SSL *s, int updatetype)
     return 1;
 }
 
-int SSL_get_key_update_type(SSL *s)
+int SSL_get_key_update_type(const SSL *s)
 {
     return s->key_update;
 }
@@ -2143,7 +2159,7 @@ int SSL_renegotiate_abbreviated(SSL *s)
     return s->method->ssl_renegotiate(s);
 }
 
-int SSL_renegotiate_pending(SSL *s)
+int SSL_renegotiate_pending(const SSL *s)
 {
     /*
      * becomes true when negotiation is requested; false again once a
@@ -2432,9 +2448,9 @@ STACK_OF(SSL_CIPHER) *SSL_get_ciphers(const SSL *s)
 
 STACK_OF(SSL_CIPHER) *SSL_get_client_ciphers(const SSL *s)
 {
-    if ((s == NULL) || (s->session == NULL) || !s->server)
+    if ((s == NULL) || !s->server)
         return NULL;
-    return s->session->ciphers;
+    return s->peer_ciphers;
 }
 
 STACK_OF(SSL_CIPHER) *SSL_get1_supported_ciphers(SSL *s)
@@ -2503,6 +2519,26 @@ STACK_OF(SSL_CIPHER) *SSL_CTX_get_ciphers(const SSL_CTX *ctx)
     return NULL;
 }
 
+/*
+ * Distinguish between ciphers controlled by set_ciphersuite() and
+ * set_cipher_list() when counting.
+ */
+static int cipher_list_tls12_num(STACK_OF(SSL_CIPHER) *sk)
+{
+    int i, num = 0;
+    const SSL_CIPHER *c;
+
+    if (sk == NULL)
+        return 0;
+    for (i = 0; i < sk_SSL_CIPHER_num(sk); ++i) {
+        c = sk_SSL_CIPHER_value(sk, i);
+        if (c->min_tls >= TLS1_3_VERSION)
+            continue;
+        num++;
+    }
+    return num;
+}
+
 /** specify the ciphers to be used by default by the SSL_CTX */
 int SSL_CTX_set_cipher_list(SSL_CTX *ctx, const char *str)
 {
@@ -2520,7 +2556,7 @@ int SSL_CTX_set_cipher_list(SSL_CTX *ctx, const char *str)
      */
     if (sk == NULL)
         return 0;
-    else if (sk_SSL_CIPHER_num(sk) == 0) {
+    else if (cipher_list_tls12_num(sk) == 0) {
         SSLerr(SSL_F_SSL_CTX_SET_CIPHER_LIST, SSL_R_NO_CIPHER_MATCH);
         return 0;
     }
@@ -2538,7 +2574,7 @@ int SSL_set_cipher_list(SSL *s, const char *str)
     /* see comment in SSL_CTX_set_cipher_list */
     if (sk == NULL)
         return 0;
-    else if (sk_SSL_CIPHER_num(sk) == 0) {
+    else if (cipher_list_tls12_num(sk) == 0) {
         SSLerr(SSL_F_SSL_SET_CIPHER_LIST, SSL_R_NO_CIPHER_MATCH);
         return 0;
     }
@@ -2553,13 +2589,12 @@ char *SSL_get_shared_ciphers(const SSL *s, char *buf, int size)
     int i;
 
     if (!s->server
-            || s->session == NULL
-            || s->session->ciphers == NULL
+            || s->peer_ciphers == NULL
             || size < 2)
         return NULL;
 
     p = buf;
-    clntsk = s->session->ciphers;
+    clntsk = s->peer_ciphers;
     srvrsk = SSL_get_ciphers(s);
     if (clntsk == NULL || srvrsk == NULL)
         return NULL;
@@ -2590,31 +2625,85 @@ char *SSL_get_shared_ciphers(const SSL *s, char *buf, int size)
     return buf;
 }
 
-/** return a servername extension value if provided in Client Hello, or NULL.
- * So far, only host_name types are defined (RFC 3546).
+/**
+ * Return the requested servername (SNI) value. Note that the behaviour varies
+ * depending on:
+ * - whether this is called by the client or the server,
+ * - if we are before or during/after the handshake,
+ * - if a resumption or normal handshake is being attempted/has occurred
+ * - whether we have negotiated TLSv1.2 (or below) or TLSv1.3
+ * 
+ * Note that only the host_name type is defined (RFC 3546).
  */
-
 const char *SSL_get_servername(const SSL *s, const int type)
 {
+    /*
+     * If we don't know if we are the client or the server yet then we assume
+     * client.
+     */
+    int server = s->handshake_func == NULL ? 0 : s->server;
     if (type != TLSEXT_NAMETYPE_host_name)
         return NULL;
 
-    /*
-     * SNI is not negotiated in pre-TLS-1.3 resumption flows, so fake up an
-     * SNI value to return if we are resuming/resumed.  N.B. that we still
-     * call the relevant callbacks for such resumption flows, and callbacks
-     * might error out if there is not a SNI value available.
-     */
-    if (s->hit)
-        return s->session->ext.hostname;
+    if (server) {
+        /**
+         * Server side
+         * In TLSv1.3 on the server SNI is not associated with the session
+         * but in TLSv1.2 or below it is.
+         *
+         * Before the handshake:
+         *  - return NULL
+         *
+         * During/after the handshake (TLSv1.2 or below resumption occurred):
+         * - If a servername was accepted by the server in the original
+         *   handshake then it will return that servername, or NULL otherwise.
+         *
+         * During/after the handshake (TLSv1.2 or below resumption did not occur):
+         * - The function will return the servername requested by the client in
+         *   this handshake or NULL if none was requested.
+         */
+         if (s->hit && !SSL_IS_TLS13(s))
+            return s->session->ext.hostname;
+    } else {
+        /**
+         * Client side
+         *
+         * Before the handshake:
+         *  - If a servername has been set via a call to
+         *    SSL_set_tlsext_host_name() then it will return that servername
+         *  - If one has not been set, but a TLSv1.2 resumption is being
+         *    attempted and the session from the original handshake had a
+         *    servername accepted by the server then it will return that
+         *    servername
+         *  - Otherwise it returns NULL
+         *
+         * During/after the handshake (TLSv1.2 or below resumption occurred):
+         * - If the session from the original handshake had a servername accepted
+         *   by the server then it will return that servername.
+         * - Otherwise it returns the servername set via
+         *   SSL_set_tlsext_host_name() (or NULL if it was not called).
+         *
+         * During/after the handshake (TLSv1.2 or below resumption did not occur):
+         * - It will return the servername set via SSL_set_tlsext_host_name()
+         *   (or NULL if it was not called).
+         */
+        if (SSL_in_before(s)) {
+            if (s->ext.hostname == NULL
+                    && s->session != NULL
+                    && s->session->ssl_version != TLS1_3_VERSION)
+                return s->session->ext.hostname;
+        } else {
+            if (!SSL_IS_TLS13(s) && s->hit && s->session->ext.hostname != NULL)
+                return s->session->ext.hostname;
+        }
+    }
+
     return s->ext.hostname;
 }
 
 int SSL_get_servername_type(const SSL *s)
 {
-    if (s->session
-        && (!s->ext.hostname ? s->session->
-            ext.hostname : s->ext.hostname))
+    if (SSL_get_servername(s, TLSEXT_NAMETYPE_host_name) != NULL)
         return TLSEXT_NAMETYPE_host_name;
     return -1;
 }
@@ -2808,7 +2897,8 @@ int SSL_export_keying_material(SSL *s, unsigned char *out, size_t olen,
                                const unsigned char *context, size_t contextlen,
                                int use_context)
 {
-    if (s->version < TLS1_VERSION && s->version != DTLS1_BAD_VER)
+    if (s->session == NULL
+        || (s->version < TLS1_VERSION && s->version != DTLS1_BAD_VER))
         return -1;
 
     return s->method->ssl3_enc->export_keying_material(s, out, olen, label,
@@ -2949,6 +3039,9 @@ SSL_CTX *SSL_CTX_new(const SSL_METHOD *meth)
     }
 
     if ((ret->ca_names = sk_X509_NAME_new_null()) == NULL)
+        goto err;
+
+    if ((ret->client_ca_names = sk_X509_NAME_new_null()) == NULL)
         goto err;
 
     if (!CRYPTO_new_ex_data(CRYPTO_EX_INDEX_SSL_CTX, ret, &ret->ex_data))
@@ -3108,6 +3201,7 @@ void SSL_CTX_free(SSL_CTX *a)
     sk_SSL_CIPHER_free(a->tls13_ciphersuites);
     ssl_cert_free(a->cert);
     sk_X509_NAME_pop_free(a->ca_names, X509_NAME_free);
+    sk_X509_NAME_pop_free(a->client_ca_names, X509_NAME_free);
     sk_X509_pop_free(a->extra_certs, X509_free);
     a->comp_methods = NULL;
 #ifndef OPENSSL_NO_SRTP
@@ -3419,12 +3513,12 @@ void ssl_update_cache(SSL *s, int mode)
     }
 }
 
-const SSL_METHOD *SSL_CTX_get_ssl_method(SSL_CTX *ctx)
+const SSL_METHOD *SSL_CTX_get_ssl_method(const SSL_CTX *ctx)
 {
     return ctx->method;
 }
 
-const SSL_METHOD *SSL_get_ssl_method(SSL *s)
+const SSL_METHOD *SSL_get_ssl_method(const SSL *s)
 {
     return s->method;
 }
@@ -3653,10 +3747,38 @@ const char *SSL_get_version(const SSL *s)
     return ssl_protocol_to_string(s->version);
 }
 
-SSL *SSL_dup(SSL *s)
+static int dup_ca_names(STACK_OF(X509_NAME) **dst, STACK_OF(X509_NAME) *src)
 {
     STACK_OF(X509_NAME) *sk;
     X509_NAME *xn;
+    int i;
+
+    if (src == NULL) {
+        *dst = NULL;
+        return 1;
+    }
+
+    if ((sk = sk_X509_NAME_new_null()) == NULL)
+        return 0;
+    for (i = 0; i < sk_X509_NAME_num(src); i++) {
+        xn = X509_NAME_dup(sk_X509_NAME_value(src, i));
+        if (xn == NULL) {
+            sk_X509_NAME_pop_free(sk, X509_NAME_free);
+            return 0;
+        }
+        if (sk_X509_NAME_insert(sk, xn, i) == 0) {
+            X509_NAME_free(xn);
+            sk_X509_NAME_pop_free(sk, X509_NAME_free);
+            return 0;
+        }
+    }
+    *dst = sk;
+
+    return 1;
+}
+
+SSL *SSL_dup(SSL *s)
+{
     SSL *ret;
     int i;
 
@@ -3705,6 +3827,8 @@ SSL *SSL_dup(SSL *s)
         goto err;
     ret->version = s->version;
     ret->options = s->options;
+    ret->min_proto_version = s->min_proto_version;
+    ret->max_proto_version = s->max_proto_version;
     ret->mode = s->mode;
     SSL_set_max_cert_list(ret, SSL_get_max_cert_list(s));
     SSL_set_read_ahead(ret, SSL_get_read_ahead(s));
@@ -3719,21 +3843,6 @@ SSL *SSL_dup(SSL *s)
     /* copy app data, a little dangerous perhaps */
     if (!CRYPTO_dup_ex_data(CRYPTO_EX_INDEX_SSL, &ret->ex_data, &s->ex_data))
         goto err;
-
-    /* setup rbio, and wbio */
-    if (s->rbio != NULL) {
-        if (!BIO_dup_state(s->rbio, (char *)&ret->rbio))
-            goto err;
-    }
-    if (s->wbio != NULL) {
-        if (s->wbio != s->rbio) {
-            if (!BIO_dup_state(s->wbio, (char *)&ret->wbio))
-                goto err;
-        } else {
-            BIO_up_ref(ret->rbio);
-            ret->wbio = ret->rbio;
-        }
-    }
 
     ret->server = s->server;
     if (s->handshake_func) {
@@ -3761,18 +3870,10 @@ SSL *SSL_dup(SSL *s)
             goto err;
 
     /* Dup the client_CA list */
-    if (s->ca_names != NULL) {
-        if ((sk = sk_X509_NAME_dup(s->ca_names)) == NULL)
-            goto err;
-        ret->ca_names = sk;
-        for (i = 0; i < sk_X509_NAME_num(sk); i++) {
-            xn = sk_X509_NAME_value(sk, i);
-            if (sk_X509_NAME_set(sk, i, X509_NAME_dup(xn)) == NULL) {
-                X509_NAME_free(xn);
-                goto err;
-            }
-        }
-    }
+    if (!dup_ca_names(&ret->ca_names, s->ca_names)
+            || !dup_ca_names(&ret->client_ca_names, s->client_ca_names))
+        goto err;
+
     return ret;
 
  err:
@@ -3842,7 +3943,7 @@ const SSL_CIPHER *SSL_get_pending_cipher(const SSL *s)
     return s->s3->tmp.new_cipher;
 }
 
-const COMP_METHOD *SSL_get_current_compression(SSL *s)
+const COMP_METHOD *SSL_get_current_compression(const SSL *s)
 {
 #ifndef OPENSSL_NO_COMP
     return s->compress ? COMP_CTX_get_method(s->compress) : NULL;
@@ -3851,7 +3952,7 @@ const COMP_METHOD *SSL_get_current_compression(SSL *s)
 #endif
 }
 
-const COMP_METHOD *SSL_get_current_expansion(SSL *s)
+const COMP_METHOD *SSL_get_current_expansion(const SSL *s)
 {
 #ifndef OPENSSL_NO_COMP
     return s->expand ? COMP_CTX_get_method(s->expand) : NULL;
@@ -4299,7 +4400,7 @@ void SSL_CTX_set_record_padding_callback_arg(SSL_CTX *ctx, void *arg)
     ctx->record_padding_arg = arg;
 }
 
-void *SSL_CTX_get_record_padding_callback_arg(SSL_CTX *ctx)
+void *SSL_CTX_get_record_padding_callback_arg(const SSL_CTX *ctx)
 {
     return ctx->record_padding_arg;
 }
@@ -4328,7 +4429,7 @@ void SSL_set_record_padding_callback_arg(SSL *ssl, void *arg)
     ssl->record_padding_arg = arg;
 }
 
-void *SSL_get_record_padding_callback_arg(SSL *ssl)
+void *SSL_get_record_padding_callback_arg(const SSL *ssl)
 {
     return ssl->record_padding_arg;
 }
@@ -4352,7 +4453,7 @@ int SSL_set_num_tickets(SSL *s, size_t num_tickets)
     return 1;
 }
 
-size_t SSL_get_num_tickets(SSL *s)
+size_t SSL_get_num_tickets(const SSL *s)
 {
     return s->num_tickets;
 }
@@ -4364,7 +4465,7 @@ int SSL_CTX_set_num_tickets(SSL_CTX *ctx, size_t num_tickets)
     return 1;
 }
 
-size_t SSL_CTX_get_num_tickets(SSL_CTX *ctx)
+size_t SSL_CTX_get_num_tickets(const SSL_CTX *ctx)
 {
     return ctx->num_tickets;
 }
@@ -4429,7 +4530,7 @@ int ssl_handshake_hash(SSL *s, unsigned char *out, size_t outlen,
     return ret;
 }
 
-int SSL_session_reused(SSL *s)
+int SSL_session_reused(const SSL *s)
 {
     return s->hit;
 }
@@ -5021,6 +5122,11 @@ int SSL_client_hello_get1_extensions_present(SSL *s, int **out, size_t *outlen)
         if (ext->present)
             num++;
     }
+    if (num == 0) {
+        *out = NULL;
+        *outlen = 0;
+        return 1;
+    }
     if ((present = OPENSSL_malloc(sizeof(*present) * num)) == NULL) {
         SSLerr(SSL_F_SSL_CLIENT_HELLO_GET1_EXTENSIONS_PRESENT,
                ERR_R_MALLOC_FAILURE);
@@ -5102,7 +5208,8 @@ static int nss_keylog_int(const char *prefix,
     size_t i;
     size_t prefix_len;
 
-    if (ssl->ctx->keylog_callback == NULL) return 1;
+    if (ssl->ctx->keylog_callback == NULL)
+        return 1;
 
     /*
      * Our output buffer will contain the following strings, rendered with
@@ -5113,7 +5220,7 @@ static int nss_keylog_int(const char *prefix,
      * hexadecimal, so we need a buffer that is twice their lengths.
      */
     prefix_len = strlen(prefix);
-    out_len = prefix_len + (2*parameter_1_len) + (2*parameter_2_len) + 3;
+    out_len = prefix_len + (2 * parameter_1_len) + (2 * parameter_2_len) + 3;
     if ((out = cursor = OPENSSL_malloc(out_len)) == NULL) {
         SSLfatal(ssl, SSL_AD_INTERNAL_ERROR, SSL_F_NSS_KEYLOG_INT,
                  ERR_R_MALLOC_FAILURE);
@@ -5137,7 +5244,7 @@ static int nss_keylog_int(const char *prefix,
     *cursor = '\0';
 
     ssl->ctx->keylog_callback(ssl, (const char *)out);
-    OPENSSL_free(out);
+    OPENSSL_clear_free(out, out_len);
     return 1;
 
 }
