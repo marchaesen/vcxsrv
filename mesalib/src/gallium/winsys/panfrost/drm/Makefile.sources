@@ -1,0 +1,3 @@
+C_SOURCES := \
+	panfrost_drm_public.h \
+	panfrost_drm_winsys.c

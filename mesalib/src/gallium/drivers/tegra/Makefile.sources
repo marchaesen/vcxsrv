@@ -1,0 +1,6 @@
+C_SOURCES := \
+	tegra_context.c \
+	tegra_context.h \
+	tegra_resource.h \
+	tegra_screen.c \
+	tegra_screen.h

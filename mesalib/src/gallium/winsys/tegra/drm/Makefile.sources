@@ -1,0 +1,3 @@
+C_SOURCES := \
+	tegra_drm_public.h \
+	tegra_drm_winsys.c

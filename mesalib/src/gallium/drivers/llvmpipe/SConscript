@@ -1,0 +1,46 @@
+from sys import executable as python_cmd
+import distutils.version
+
+Import('*')
+
+if not env['llvm']:
+    print('warning: LLVM disabled: not building llvmpipe')
+    Return()
+
+env = env.Clone()
+
+env.MSVC2013Compat()
+
+llvmpipe = env.ConvenienceLibrary(
+	target = 'llvmpipe',
+	source = env.ParseSourceList('Makefile.sources', 'C_SOURCES')
+	)
+
+env.Alias('llvmpipe', llvmpipe)
+
+env.Append(CPPPATH = [
+    '../../../compiler/nir',
+])
+
+if not env['embedded']:
+    env = env.Clone()
+
+    env.Prepend(LIBS = [llvmpipe, gallium, mesautil])
+
+    tests = [
+        'arit',
+        'format',
+        'blend',
+        'conv',
+        'printf',
+    ]
+
+    for test in tests:
+        testname = 'lp_test_' + test
+        target = env.Program(
+            target = testname,
+            source = [testname + '.c', 'lp_test_main.c'],
+        )
+        env.UnitTest(testname, target)
+
+Export('llvmpipe')

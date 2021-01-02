@@ -1,0 +1,18 @@
+#######################################################################
+# SConscript for xlib winsys
+
+
+Import('*')
+
+env = env.Clone()
+
+env.Append(CPPPATH = [
+    '#/src/gallium/include',
+    '#/src/gallium/auxiliary',
+])
+
+ws_wrapper = env.ConvenienceLibrary(
+    target = 'ws_wrapper',
+    source = env.ParseSourceList('Makefile.sources', 'C_SOURCES'),
+)
+Export('ws_wrapper')

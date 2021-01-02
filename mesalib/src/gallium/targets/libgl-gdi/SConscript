@@ -1,0 +1,55 @@
+#######################################################################
+# SConscript for gdi winsys
+
+Import('*')
+
+env = env.Clone()
+
+env.Append(CPPPATH = [
+    '#src',
+    '#src/gallium/frontends/wgl',
+    '#src/gallium/winsys/sw',
+])
+
+env.Append(LIBS = [
+    'gdi32',
+    'user32',
+    'kernel32',
+    'ws2_32',
+    'advapi32',
+])
+
+env.Prepend(LIBS = [
+    mesautil,
+    nir,
+    spirv
+])
+
+sources = ['libgl_gdi.c']
+drivers = []
+
+if True:
+    env.Append(CPPDEFINES = ['GALLIUM_SOFTPIPE'])
+    drivers += [softpipe]
+
+if env['llvm']:
+    env.Append(CPPDEFINES = 'GALLIUM_LLVMPIPE')
+    drivers += [llvmpipe]
+
+if env['gcc'] and env['machine'] != 'x86_64':
+    # DEF parser in certain versions of MinGW is busted, as does not behave as
+    # MSVC.  mingw-w64 works fine.
+    sources += ['#src/gallium/frontends/wgl/opengl32.mingw.def']
+else:
+    sources += ['#src/gallium/frontends/wgl/opengl32.def']
+
+env['no_import_lib'] = 1
+
+opengl32 = env.SharedLibrary(
+    target ='opengl32',
+    source = sources,
+    LIBS = wgl + ws_gdi + glapi + compiler + mesa + drivers + gallium + glsl + nir + env['LIBS'],
+)
+
+env.Alias('opengl32', opengl32)
+env.Alias('libgl-gdi', opengl32)

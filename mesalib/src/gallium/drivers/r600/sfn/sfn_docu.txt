@@ -1,0 +1,48 @@
+# R600 shader from NIR
+
+This code is an attempt to implement a NIR backend for r600.
+
+## State
+
+piglits gpu passes mostly like with TGSI, there are some fixes but also a few regressions.
+
+CTS gles
+ - 2 passes like with TGSI
+ - 3 no regressions, a few fixes compared to TGSI
+ - 31
+    * a few fixes with interpolation specifiers
+    * a few regressiones with seperate_shader.random
+    * syncronization has some unstable tests, this might be because global syncronization is missing (in both)
+
+## Currently missing features w.r.t. TGSI:
+
+ - struct support
+
+## Needed optimizations:
+
+  - Register allocator and scheduler (Could the sb allocator and scheduler
+    be ported?)
+
+  - peepholes:
+    - compare + set predicate
+
+  - copy propagation:
+    - Moves from inputs are usually not required, they could be forwarded
+    - texture operations often move additional parameters in extra registers
+      but they are actually needed in the same registes they come from and
+      could just be swizzled into the right place
+      (lower in NIR like it is done in e.g. in ETNAVIV)
+
+
+## Problems
+
+  - struct IO is not lowered. lower_io would need a rewrite of most IO in
+    VS, GS, and FS
+  - fp64 needs additional lowering to replace load, split and merge with vec2 ops
+    nir_to_tgsi has some stuff there
+
+## Work plan
+
+The implementation uses C++ to separate the code for the different
+shader types and the byte code generation backends. The initial attempt
+will use the already available r600_asm code

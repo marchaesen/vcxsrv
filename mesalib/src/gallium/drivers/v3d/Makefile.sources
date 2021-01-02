@@ -1,0 +1,36 @@
+C_SOURCES := \
+	v3d_blit.c \
+	v3d_bufmgr.c \
+	v3d_bufmgr.h \
+	v3d_cl.c \
+	v3d_cl.h \
+	v3d_context.c \
+	v3d_context.h \
+	v3d_fence.c \
+	v3d_formats.c \
+	v3d_format_table.h \
+	v3d_job.c \
+	v3d_program.c \
+	v3d_query.c \
+	v3d_resource.c \
+	v3d_resource.h \
+	v3d_screen.c \
+	v3d_screen.h \
+	v3d_simulator.c \
+	v3d_simulator_wrapper.cpp \
+	v3d_simulator_wrapper.h \
+	v3d_tiling.c \
+	v3d_tiling.h \
+	v3d_uniforms.c \
+	$()
+
+V3D_PER_VERSION_SOURCES = \
+	v3dx_context.h \
+	v3dx_draw.c \
+	v3dx_emit.c \
+	v3dx_format_table.c \
+	v3dx_job.c \
+	v3dx_rcl.c \
+	v3dx_simulator.c \
+	v3dx_state.c \
+	$()

@@ -1,0 +1,27 @@
+Import('*')
+
+env = env.Clone()
+
+env.MSVC2013Compat()
+
+if env['suncc']:
+	print('warning: not building svga')
+	Return()
+
+env.Prepend(CPPPATH = [
+	'include',
+])
+
+env.Append(CPPDEFINES = [
+])
+
+sources = env.ParseSourceList('Makefile.sources', 'C_SOURCES')
+
+svga = env.ConvenienceLibrary(
+	target = 'svga',
+	source = sources,
+)
+
+env.Alias('svga', svga)
+
+Export('svga')
