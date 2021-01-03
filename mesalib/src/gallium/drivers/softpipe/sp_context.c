@@ -358,7 +358,7 @@ softpipe_create_context(struct pipe_screen *screen,
    sp_init_surface_functions(softpipe);
 
 #if DO_PSTIPPLE_IN_HELPER_MODULE
-   /* create the polgon stipple sampler */
+   /* create the polygon stipple sampler */
    softpipe->pstipple.sampler = util_pstipple_create_sampler(&softpipe->pipe);
 #endif
 

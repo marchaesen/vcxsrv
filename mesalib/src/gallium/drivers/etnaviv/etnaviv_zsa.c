@@ -77,11 +77,13 @@ etna_zsa_state_create(struct pipe_context *pctx,
       if (so->stencil[0].fail_op != PIPE_STENCIL_OP_KEEP ||
           so->stencil[0].zfail_op != PIPE_STENCIL_OP_KEEP ||
           so->stencil[0].zpass_op != PIPE_STENCIL_OP_KEEP) {
+         cs->stencil_enabled = 1;
          cs->stencil_modified = 1;
       } else if (so->stencil[1].enabled) {
          if (so->stencil[1].fail_op != PIPE_STENCIL_OP_KEEP ||
              so->stencil[1].zfail_op != PIPE_STENCIL_OP_KEEP ||
              so->stencil[1].zpass_op != PIPE_STENCIL_OP_KEEP) {
+            cs->stencil_enabled = 1;
             cs->stencil_modified = 1;
          }
       }

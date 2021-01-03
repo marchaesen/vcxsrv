@@ -175,7 +175,7 @@ get_dimensions(const struct pipe_image_view *iview,
       else
          *depth = spr->base.array_size;
 
-      /* Make sure the resource and view have compatiable formats */
+      /* Make sure the resource and view have compatible formats */
       if (util_format_get_blocksize(pformat) >
           util_format_get_blocksize(spr->base.format))
          return false;
