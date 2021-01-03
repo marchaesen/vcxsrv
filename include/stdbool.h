@@ -32,7 +32,7 @@
 
 #define false   0
 #define true    1
-#define bool    int
+#define bool    char   /* for VC++ sizeof(bool) in C++ mode is 1 byte, to also make sure it is in C */
 
 #endif /* !__cplusplus */
 
