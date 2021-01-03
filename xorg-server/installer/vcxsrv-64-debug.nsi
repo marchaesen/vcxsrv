@@ -17,7 +17,7 @@
 */
 ;--------------------------------
 !define NAME "VcXsrv"
-!define VERSION "1.20.8.1"
+!define VERSION "1.20.9.0"
 
 ; The name of the installer
 Name "${NAME}"
