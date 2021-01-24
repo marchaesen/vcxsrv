@@ -95,7 +95,6 @@ from the copyright holders.
 #include <sys/stat.h>
 #endif
 
-
 #ifndef NO_TCP_H
 #if defined(linux) || defined(__GLIBC__)
 #include <sys/param.h>
@@ -136,6 +135,28 @@ from the copyright holders.
 #define X_INCLUDE_NETDB_H
 #define XOS_USE_MTSAFE_NETDBAPI
 #include <X11/Xos_r.h>
+
+#if defined(HYPERV)
+#define AF_HYPERV 34
+#define HV_PROTOCOL_RAW 1
+#include <initguid.h>
+DEFINE_GUID(HV_GUID_VSOCK_TEMPLATE, 0x00000000, 0xfacb, 0x11e6, 0xbd, 0x58, 0x64, 0x00, 0x6a, 0x79, 0x86, 0xd3);
+DEFINE_GUID(HV_GUID_WILDCARD, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0);
+
+typedef struct _SOCKADDR_HV
+{
+     ADDRESS_FAMILY Family;
+     USHORT Reserved;
+     GUID VmId;
+     GUID ServiceId;
+	 ULONG Flags;
+} SOCKADDR_HV, *PSOCKADDR_HV;
+
+static GUID vmId;
+static unsigned int vsockPort = 106000;
+
+#endif //HYPERV
+
 #endif /* WIN32 */
 
 #if defined(SO_DONTLINGER) && defined(SO_LINGER)
@@ -192,6 +213,9 @@ static Sockettrans2dev Sockettrans2devtab[] = {
     {"local",AF_UNIX,SOCK_STREAM,SOCK_DGRAM,0},
 #endif /* !LOCALCONN */
 #endif /* UNIXCONN */
+#ifdef HYPERV
+	{"hyperv",AF_HYPERV,SOCK_STREAM,SOCK_DGRAM,HV_PROTOCOL_RAW},
+#endif
 };
 
 #define NUMSOCKETFAMILIES (sizeof(Sockettrans2devtab)/sizeof(Sockettrans2dev))
@@ -329,6 +353,399 @@ TRANS(SocketINETGetAddr) (XtransConnInfo ciptr)
 }
 
 
+#ifdef HYPERV
+static int StringToGUID(const char* szGUID, GUID* g) {
+    // Check if string is a valid GUID
+    if (strlen(szGUID) != 38) return 0;
+    for (int i=0; i<strlen(szGUID); ++i) {
+            char g = szGUID[i];
+
+            if (i == 0) {
+                    if (g != '{') return 0;
+            } else if (i == 37) {
+                    if (g != '}') return 0;
+            } else if ((i == 9) || (i == 14) || (i == 19) || (i == 24)) {
+                    if (g != '-') return 0;
+            } else {
+                    if (!((g >= '0') && (g <= '9')) && !((g >= 'A') && (g <= 'F')) && !((g >= 'a') && (g <= 'f'))) {
+                            return 0;
+                    }
+            }
+    }
+
+    char* pEnd;
+    g->Data1 = strtoul(szGUID+1,&pEnd,16);
+    g->Data2 = strtoul(szGUID+10,&pEnd,16);
+    g->Data3 = strtoul(szGUID+15,&pEnd,16);
+        char b[3]; b[2] = 0;
+        memcpy(&b[0], szGUID+20, 2*sizeof(b[0])); g->Data4[0] = strtoul(&b[0], &pEnd, 16);
+        memcpy(&b[0], szGUID+22, 2*sizeof(b[0])); g->Data4[1] = strtoul(&b[0], &pEnd, 16);
+        for (int i=0; i<6; ++i) {
+                memcpy(&b[0], szGUID+25+i*2, 2*sizeof(b[0])); g->Data4[2+i] = strtoul(&b[0], &pEnd, 16);
+        }
+        return 1;
+}
+
+static char * guid_to_str(const GUID * id, char * out) {
+    int i;
+    char * ret = out;
+    out += sprintf(out, "%.8lX-%.4hX-%.4hX-", id->Data1, id->Data2, id->Data3);
+    for (i = 0; i < sizeof(id->Data4); ++i) {
+        out += sprintf(out, "%.2hhX", id->Data4[i]);
+        if (i == 1) *(out++) = '-';
+    }
+    return ret;
+}
+int TRANS(SocketSetHyperVVmId)(char *svmId)
+{
+	if(!StringToGUID(svmId, &vmId))
+	{
+		FatalError("vmid must be a GUID formatted as {00000000-0000-0000-0000-000000000000}\n");
+	}
+
+	char vmIds[40];
+	guid_to_str(&vmId, vmIds);
+    prmsg (2, "SocketSetHyperVVmId: vmId (%s)\n", vmIds);
+
+    return 0;
+}
+
+int TRANS(SocketSetHyperVPortNo)(char * sport)
+{
+    vsockPort = (unsigned int) strtoul(sport, (char**)NULL, 10);
+
+    prmsg (2,"SocketSetHyperVPortNo: vsockPort (%d)\n", vsockPort);
+
+	return 0;
+}
+
+/*
+ * This function gets the local address of the socket and stores it in the
+ * XtransConnInfo structure for the connection.
+ */
+
+static int
+TRANS(SocketHyperVGetAddr) (XtransConnInfo ciptr)
+
+{
+	SOCKADDR_HV sockaddr_hv;
+
+    void *socknamePtr;
+    SOCKLEN_T namelen;
+
+    prmsg (3,"SocketHyperVGetAddr(%p)\n", ciptr);
+
+	namelen = sizeof(sockaddr_hv);
+	socknamePtr = &sockaddr_hv;
+
+    bzero(socknamePtr, namelen);
+
+    if (getsockname (ciptr->fd,(struct sockaddr *) socknamePtr,
+		     (void *)&namelen) < 0)
+    {
+		errno = WSAGetLastError();
+		prmsg (1,"SocketHyperVGetAddr: getsockname() failed: %d\n",
+	    EGET());
+	return -1;
+    }
+
+    /*
+     * Everything looks good: fill in the XtransConnInfo structure.
+     */
+
+    if ((ciptr->addr = malloc (namelen)) == NULL)
+    {
+        prmsg (1,
+	    "SocketHyperVGetAddr: Can't allocate space for the addr\n");
+        return -1;
+    }
+
+	ciptr->family = sockaddr_hv.Family;
+    ciptr->addrlen = namelen;
+    memcpy (ciptr->addr, socknamePtr, ciptr->addrlen);
+
+    return 0;
+}
+
+/*
+ * This function gets the remote address of the socket and stores it in the
+ * XtransConnInfo structure for the connection.
+ */
+
+static int
+TRANS(SocketHyperVGetPeerAddr) (XtransConnInfo ciptr)
+
+{
+	SOCKADDR_HV sockname_hv;
+    void *socknamePtr;
+    SOCKLEN_T namelen;
+
+	namelen = sizeof(sockname_hv);
+	socknamePtr = &sockname_hv;
+    bzero(socknamePtr, namelen);
+
+    prmsg (3,"SocketHyperVGetPeerAddr(%p)\n", ciptr);
+
+    if (getpeername (ciptr->fd, (struct sockaddr *) socknamePtr,
+		     (void *)&namelen) < 0)
+    {
+		errno = WSAGetLastError();
+		prmsg (1,"SocketHyperVGetPeerAddr: getpeername() failed: %d\n",
+	    EGET());
+		return -1;
+    }
+
+    /*
+     * Everything looks good: fill in the XtransConnInfo structure.
+     */
+
+    if ((ciptr->peeraddr = malloc (namelen)) == NULL)
+    {
+        prmsg (1,
+	   "SocketHyperVGetPeerAddr: Can't allocate space for the addr\n");
+        return -1;
+    }
+
+    ciptr->peeraddrlen = namelen;
+    memcpy (ciptr->peeraddr, socknamePtr, ciptr->peeraddrlen);
+
+    return 0;
+}
+
+static int
+TRANS(SocketHyperVCreateListener) (XtransConnInfo ciptr, const char *port,
+                                 unsigned int flags)
+
+{
+	SOCKADDR_HV sockname;
+    SOCKLEN_T	namelen = sizeof(sockname);
+    int		status;
+#ifdef XTHREADS_NEEDS_BYNAMEPARAMS
+    _Xgetservbynameparams sparams;
+#endif
+    struct servent *servp;
+
+#ifdef X11_t
+    char	portbuf[PORTBUFSIZE];
+#endif
+
+    bzero(&sockname, sizeof(sockname));
+	sockname.Family = AF_HYPERV;
+	sockname.Reserved = 0;
+	sockname.ServiceId = HV_GUID_VSOCK_TEMPLATE;
+	sockname.ServiceId.Data1 = vsockPort;
+	sockname.VmId = vmId;
+	sockname.Flags = 0;
+
+	char vmIds[40];
+	char svcIds[40];
+	guid_to_str(&vmId, vmIds);
+	guid_to_str(&sockname.ServiceId, svcIds);
+    prmsg (2, "SocketHyperVCreateListener(%s:%s:%d)\n", vmIds, svcIds, vsockPort);
+
+    if ((status = TRANS(SocketCreateListener) (ciptr,
+	(struct sockaddr *) &sockname, namelen, flags)) < 0)
+    {
+		prmsg (1,
+		"SocketHyperVCreateListener: ...SocketCreateListener() failed (%d)\n", status);
+		return status;
+    }
+
+    if (TRANS(SocketHyperVGetAddr) (ciptr) < 0)
+    {
+		prmsg (1,
+		"SocketHyperVCreateListener: ...SocketHyperVGetAddr() failed\n");
+		return TRANS_CREATE_LISTENER_FAILED;
+    }
+
+    return 0;
+}
+
+static XtransConnInfo
+TRANS(SocketHyperVAccept) (XtransConnInfo ciptr, int *status)
+
+{
+    XtransConnInfo	newciptr;
+	SOCKADDR_HV sockname;
+    SOCKLEN_T		namelen = sizeof(sockname);
+
+    prmsg (2, "SocketHyperVAccept(%p,%d)\n", ciptr, ciptr->fd);
+
+    if ((newciptr = calloc (1, sizeof(struct _XtransConnInfo))) == NULL)
+    {
+	prmsg (1, "SocketHyperVAccept: malloc failed\n");
+	*status = TRANS_ACCEPT_BAD_MALLOC;
+	return NULL;
+    }
+
+    if ((newciptr->fd = accept (ciptr->fd,
+	(struct sockaddr *) &sockname, (void *)&namelen)) < 0)
+    {
+	errno = WSAGetLastError();
+	prmsg (1, "SocketHyperVAccept: accept() failed\n");
+	free (newciptr);
+	*status = TRANS_ACCEPT_FAILED;
+	return NULL;
+    }
+
+    /*
+     * Get this address again because the transport may give a more
+     * specific address now that a connection is established.
+     */
+
+    if (TRANS(SocketHyperVGetAddr) (newciptr) < 0)
+    {
+	prmsg (1,
+	    "SocketHyperVAccept: ...SocketHyperVGetAddr() failed:\n");
+	close (newciptr->fd);
+	free (newciptr);
+	*status = TRANS_ACCEPT_MISC_ERROR;
+        return NULL;
+    }
+
+    if (TRANS(SocketHyperVGetPeerAddr) (newciptr) < 0)
+    {
+	prmsg (1,
+	  "SocketHyperVAccept: ...SocketHyperVGetPeerAddr() failed:\n");
+	close (newciptr->fd);
+	if (newciptr->addr) free (newciptr->addr);
+	free (newciptr);
+	*status = TRANS_ACCEPT_MISC_ERROR;
+        return NULL;
+    }
+
+    *status = 0;
+
+    return newciptr;
+}
+
+static int
+TRANS(SocketHyperVConnect) (XtransConnInfo ciptr,
+                          const char *host, const char *port)
+
+{
+    struct sockaddr *	socketaddr = NULL;
+    int			socketaddrlen = 0;
+    int			res;
+    SOCKADDR_HV	sockname;
+    struct hostent	*hostp;
+    struct servent	*servp;
+    unsigned long 	tmpport;
+
+prmsg (1,"SocketHyperVConnect: Not Implemented\n");
+		ESET(EINVAL);
+		return TRANS_CONNECT_FAILED;
+
+#ifdef X11_t
+    char	portbuf[PORTBUFSIZE];
+#endif
+
+    char 		hostnamebuf[256];		/* tmp space */
+
+    prmsg (2,"SocketHyperVConnect(%d,%s,%s)\n", ciptr->fd, host, port);
+
+    if (!host)
+    {
+		hostnamebuf[0] = '\0';
+		(void) TRANS(GetHostname) (hostnamebuf, sizeof hostnamebuf);
+		host = hostnamebuf;
+    }
+
+#ifdef X11_t
+    /*
+     * X has a well known port, that is transport dependent. It is easier
+     * to handle it here, than try and come up with a transport independent
+     * representation that can be passed in and resolved the usual way.
+     *
+     * The port that is passed here is really a string containing the idisplay
+     * from ConnectDisplay().
+     */
+
+    if (is_numeric (port))
+    {
+	tmpport = X_TCP_PORT + strtol (port, (char**)NULL, 10) + 100000;
+	snprintf (portbuf, sizeof(portbuf), "%lu", tmpport);
+	port = portbuf;
+    }
+#endif
+
+	prmsg (4,"SocketHyperVConnect() inet_addr(%s) = %lx\n", host, tmpport);
+
+	if (tmpport == 0) {
+		prmsg (1,"SocketHyperVConnect: Can't determine 'port'\n");
+		ESET(EINVAL);
+		return TRANS_CONNECT_FAILED;
+	}
+
+	//sockname.?????
+
+	socketaddr = (struct sockaddr *) &sockname;
+	socketaddrlen = sizeof(sockname);
+
+    /*
+     * Do the connect()
+     */
+
+    if (connect (ciptr->fd, socketaddr, socketaddrlen ) < 0)
+    {
+		int olderrno = WSAGetLastError();
+
+		/*
+		* If the error was ECONNREFUSED, the server may be overloaded
+		* and we should try again.
+		*
+		* If the error was EWOULDBLOCK or EINPROGRESS then the socket
+		* was non-blocking and we should poll using select
+		*
+		* If the error was EINTR, the connect was interrupted and we
+		* should try again.
+		*
+		* If multiple addresses are found for a host then we should
+		* try to connect again with a different address for a larger
+		* number of errors that made us quit before, since those
+		* could be caused by trying to use an IPv6 address to contact
+		* a machine with an IPv4-only server or other reasons that
+		* only affect one of a set of addresses.
+		*/
+
+		if (olderrno == ECONNREFUSED || olderrno == EINTR)
+			res = TRANS_TRY_CONNECT_AGAIN;
+		else if (olderrno == EWOULDBLOCK || olderrno == EINPROGRESS)
+			res = TRANS_IN_PROGRESS;
+		else
+		{
+			prmsg (2,"SocketHyperVConnect: Can't connect: errno = %d\n",
+			olderrno);
+
+			res = TRANS_CONNECT_FAILED;
+		}
+    } else {
+		res = 0;
+
+		/*
+		* Sync up the address fields of ciptr.
+		*/
+
+		if (TRANS(SocketHyperVGetAddr) (ciptr) < 0)
+		{
+			prmsg (1,
+			"SocketHyperVConnect: ...SocketHyperVGetAddr() failed:\n");
+			res = TRANS_CONNECT_FAILED;
+		}
+
+		else if (TRANS(SocketHyperVGetPeerAddr) (ciptr) < 0)
+		{
+			prmsg (1,
+			"SocketHyperVConnect: ...SocketHyperVGetPeerAddr() failed:\n");
+			res = TRANS_CONNECT_FAILED;
+		}
+    }
+
+    return res;
+}
+
+#endif //HYPERV
+
 /*
  * This function gets the remote address of the socket and stores it in the
  * XtransConnInfo structure for the connection.
@@ -446,7 +863,11 @@ TRANS(SocketOpen) (int i, int type)
      * proceed at glacial speed.
      */
 #ifdef SO_SNDBUF
-    if (Sockettrans2devtab[i].family == AF_UNIX)
+    if (Sockettrans2devtab[i].family == AF_UNIX
+#ifdef HYPERV
+		|| Sockettrans2devtab[i].family == AF_HYPERV
+#endif
+	)
     {
 	SOCKLEN_T len = sizeof (int);
 	int val;
@@ -456,6 +877,13 @@ TRANS(SocketOpen) (int i, int type)
 	{
 	    val = 64 * 1024;
 	    setsockopt (ciptr->fd, SOL_SOCKET, SO_SNDBUF,
+	        (char *) &val, sizeof (int));
+	}
+	if (getsockopt (ciptr->fd, SOL_SOCKET, SO_RCVBUF,
+	    (char *) &val, &len) == 0 && val < 64 * 1024)
+	{
+	    val = 64 * 1024;
+	    setsockopt (ciptr->fd, SOL_SOCKET, SO_RCVBUF,
 	        (char *) &val, sizeof (int));
 	}
     }
@@ -660,7 +1088,6 @@ TRANS(SocketOpenCOTSServer) (Xtransport *thistrans, const char *protocol,
     }
 #endif
     /* Save the index for later use */
-
     ciptr->index = i;
 
     return ciptr;
@@ -766,6 +1193,8 @@ TRANS(SocketCreateListener) (XtransConnInfo ciptr,
     if (Sockettrans2devtab[ciptr->index].family == AF_INET
 #if defined(IPv6) && defined(AF_INET6)
       || Sockettrans2devtab[ciptr->index].family == AF_INET6
+#elif defined(HYPERV)
+	  || Sockettrans2devtab[ciptr->index].family == AF_HYPERV
 #endif
 	)
 	retry = SO_BINDRETRYCOUNT;
@@ -798,10 +1227,10 @@ TRANS(SocketCreateListener) (XtransConnInfo ciptr,
       || Sockettrans2devtab[ciptr->index].family == AF_INET6
 #endif
 	) {
-#ifdef SO_DONTLINGER
+#if defined(SO_DONTLINGER) && !defined(HYPERV)
 	setsockopt (fd, SOL_SOCKET, SO_DONTLINGER, (char *) NULL, 0);
 #else
-#ifdef SO_LINGER
+#if defined(SO_LINGER) && !defined(HYPERV)
     {
 	static int linger[2] = { 0, 0 };
 	setsockopt (fd, SOL_SOCKET, SO_LINGER,
@@ -811,11 +1240,15 @@ TRANS(SocketCreateListener) (XtransConnInfo ciptr,
 #endif
 }
 
-    if (listen (fd, BACKLOG) < 0)
+	int err;
+    if ((err = listen (fd, BACKLOG)) < 0)
     {
-	prmsg (1, "SocketCreateListener: listen() failed\n");
-	close (fd);
-	return TRANS_CREATE_LISTENER_FAILED;
+#ifdef WIN32
+		err = WSAGetLastError();
+#endif
+		prmsg (1, "SocketCreateListener: listen() failed (%d)\n", err);
+		close (fd);
+		return TRANS_CREATE_LISTENER_FAILED;
     }
 
     /* Set a flag to indicate that this connection is a listener */
@@ -1221,7 +1654,6 @@ TRANS(SocketINETAccept) (XtransConnInfo ciptr, int *status)
 }
 
 #endif /* TCPCONN */
-
 
 #ifdef UNIXCONN
 static XtransConnInfo
@@ -2285,9 +2717,9 @@ TRANS(SocketDisconnect) (XtransConnInfo ciptr)
 
 #ifdef WIN32
     {
-	int ret = shutdown (ciptr->fd, 2);
-	if (ret == SOCKET_ERROR) errno = WSAGetLastError();
-	return ret;
+		int ret = shutdown (ciptr->fd, 2);
+		if (ret == SOCKET_ERROR) errno = WSAGetLastError();
+		return ret;
     }
 #else
     return shutdown (ciptr->fd, 2); /* disallow further sends and receives */
@@ -2314,7 +2746,6 @@ TRANS(SocketINETClose) (XtransConnInfo ciptr)
 }
 
 #endif /* TCPCONN */
-
 
 #ifdef UNIXCONN
 static int
@@ -2490,6 +2921,43 @@ Xtransport     TRANS(SocketINET6Funcs) = {
 	};
 #endif /* IPv6 */
 #endif /* TCPCONN */
+
+#if defined(HYPERV)
+Xtransport	TRANS(SocketHyperVFuncs) = {
+	/* HyperV Interface */
+	"hyperv",
+	0,
+#ifdef TRANS_CLIENT
+	TRANS(SocketOpenCOTSClient),
+#endif /* TRANS_CLIENT */
+#ifdef TRANS_SERVER
+	NULL,
+	TRANS(SocketOpenCOTSServer),
+#endif /* TRANS_SERVER */
+#ifdef TRANS_REOPEN
+	TRANS(SocketReopenCOTSServer),
+#endif
+	TRANS(SocketSetOption),
+#ifdef TRANS_SERVER
+	TRANS(SocketHyperVCreateListener),
+	NULL,		       			/* ResetListener */
+	TRANS(SocketHyperVAccept),
+#endif /* TRANS_SERVER */
+#ifdef TRANS_CLIENT
+	TRANS(SocketHyperVConnect),
+#endif /* TRANS_CLIENT */
+	TRANS(SocketBytesReadable),
+	TRANS(SocketRead),
+	TRANS(SocketWrite),
+	TRANS(SocketReadv),
+	TRANS(SocketWritev),
+	TRANS(SocketSendFdInvalid),
+	TRANS(SocketRecvFdInvalid),
+	TRANS(SocketDisconnect),
+	TRANS(SocketINETClose),
+	TRANS(SocketINETClose),
+	};
+#endif /* HYPERV */
 
 #ifdef UNIXCONN
 #if !defined(LOCALCONN)

@@ -10,11 +10,11 @@ copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MS
 copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\14.28.29325\debug_nonredist\x86\Microsoft.VC142.DebugCRT\vcruntime140d.dll"
 
 if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
-  "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv.nsi
-  "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv-debug.nsi
+	if exist ..\obj\servrelease\vcxsrv.exe "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv.nsi
+	if exist ..\obj\servdebug\vcxsrv.exe "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv-debug.nsi
 ) else (
-  "C:\Program Files\NSIS\makensis.exe" vcxsrv.nsi
-  "C:\Program Files\NSIS\makensis.exe" vcxsrv-debug.nsi
+	if exist ..\obj\servrelease\vcxsrv.exe "C:\Program Files\NSIS\makensis.exe" vcxsrv.nsi
+	if exist ..\obj\servdebug\vcxsrv.exe "C:\Program Files\NSIS\makensis.exe" vcxsrv-debug.nsi
 )
 
 :skipx86
@@ -30,11 +30,11 @@ copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MS
 copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\14.28.29325\debug_nonredist\x64\Microsoft.VC142.DebugCRT\vcruntime140_1d.dll"
 
 if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
-  "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv-64.nsi
-  "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv-64-debug.nsi
+	if exist ..\obj64\servrelease\vcxsrv.exe "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv-64.nsi
+	if exist ..\obj64\servdebug\vcxsrv.exe "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv-64-debug.nsi
 ) else (
-  "C:\Program Files\NSIS\makensis.exe" vcxsrv-64.nsi
-  "C:\Program Files\NSIS\makensis.exe" vcxsrv-64-debug.nsi
+	if exist ..\obj32\servrelease\vcxsrv.exe "C:\Program Files\NSIS\makensis.exe" vcxsrv-64.nsi
+	if exist ..\obj32\servdebug\vcxsrv.exe "C:\Program Files\NSIS\makensis.exe" vcxsrv-64-debug.nsi
 )
 
 del vcruntime140_1.dll

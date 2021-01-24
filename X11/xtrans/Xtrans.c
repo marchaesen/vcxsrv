@@ -58,6 +58,7 @@ from The Open Group.
 #ifdef _MSC_VER
 #include <X11\Xwinsock.h>
 #endif
+
 /*
  * The transport table contains a definition for every transport (protocol)
  * family. All operations that can be made on the transport go through this
@@ -85,12 +86,13 @@ from The Open Group.
 /* 13 used to be SCO, but that's gone. */
 #define TRANS_SOCKET_INET6_INDEX	14
 #define TRANS_LOCAL_PIPE_INDEX		15
+#define TRANS_HYPERV_INDEX		16
 
 
 static
 Xtransport_table Xtransports[] = {
 #if defined(TCPCONN)
-    { &TRANS(SocketTCPFuncs),	TRANS_SOCKET_TCP_INDEX },
+    { &TRANS(SocketTCPFuncs), TRANS_SOCKET_TCP_INDEX },
 #if defined(IPv6) && defined(AF_INET6)
     { &TRANS(SocketINET6Funcs),	TRANS_SOCKET_INET6_INDEX },
 #endif /* IPv6 */
@@ -111,6 +113,9 @@ Xtransport_table Xtransports[] = {
     { &TRANS(PIPEFuncs),	TRANS_LOCAL_PIPE_INDEX },
 #endif /* __sun */
 #endif /* LOCALCONN */
+#if defined(HYPERV)
+        { &TRANS(SocketHyperVFuncs), TRANS_HYPERV_INDEX },
+#endif
     { NULL, 0}
 };
 
@@ -405,7 +410,7 @@ TRANS(Open) (int type, const char *address)
 
     prmsg (2,"Open(%d,%s)\n", type, address);
 
-#if defined(WIN32) && defined(TCPCONN)
+#if defined(WIN32) && (defined(TCPCONN) || defined(HYPERV))
     if (TRANS(WSAStartup)())
     {
 	prmsg (1,"Open: WSAStartup failed\n");
@@ -784,6 +789,20 @@ TRANS(Listen) (const char * protocol)
    return ret;
 }
 
+#ifdef HYPERV
+
+int TRANS(SetHyperVVmId)(char * svmId)
+{
+    return TRANS(SocketSetHyperVVmId)(svmId);
+}
+
+int TRANS(SetHyperVPortNo)(char * sport)
+{
+    return TRANS(SocketSetHyperVPortNo)(sport);
+}
+
+#endif //HYPERV
+
 int
 TRANS(IsListening) (const char * protocol)
 {
@@ -963,7 +982,11 @@ int
 TRANS(IsLocal) (XtransConnInfo ciptr)
 
 {
-    return (ciptr->family == AF_UNIX);
+    return (ciptr->family == AF_UNIX
+#ifdef HYPERV
+        || ciptr->family == AF_HYPERV
+#endif
+    );
 }
 
 int

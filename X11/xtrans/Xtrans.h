@@ -292,6 +292,18 @@ XtransConnInfo TRANS(Accept)(
     int *		/* status */
 );
 
+#ifdef HYPERV
+
+int TRANS(SetHyperVVmId)(
+    char *svmId
+);
+
+int TRANS(SetHyperVPortNo)(
+    char *sport
+);
+
+#endif //HYPERV
+
 #endif /* TRANS_SERVER */
 
 #ifdef TRANS_CLIENT

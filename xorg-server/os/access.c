@@ -82,6 +82,10 @@ SOFTWARE.
 
 #ifdef WIN32
 #include <X11/Xwinsock.h>
+
+#ifndef AF_HYPERV
+#define AF_HYPERV 34
+#endif
 #endif
 
 #include <stdio.h>
@@ -1076,6 +1080,13 @@ ResetHosts(const char *display)
             }
 #endif
 #endif
+#ifdef HYPERV
+            else if(!strncmp("hyperv", lhostname, 6)) {
+                family = FamilyLocal;
+                NewHost(family, "", 0, FALSE);
+                hostname = ohostname + 6;
+            }
+#endif
 #ifdef SECURE_RPC
             else if (!strncmp("nis:", lhostname, 4)) {
                 family = FamilyNetname;
@@ -1673,6 +1684,10 @@ ConvertAddr(register struct sockaddr *saddr, int *len, void **addr)
         }
     }
 #endif
+#endif
+#if defined(HYPERV)
+    case AF_HYPERV:
+        return FamilyLocal;
 #endif
     default:
         return -1;

@@ -1,7 +1,7 @@
 ifeq ($(MAKESERVER),1)
 $(error Please do not specify MAKESERVER=1)
 endif
-load_makefile large\makefile MAKESERVER=0 DEBUG=0
+load_makefile large\makefile MAKESERVER=0 DEBUG=$(DEBUG)
 
 INC_BDF_RULES=1
 

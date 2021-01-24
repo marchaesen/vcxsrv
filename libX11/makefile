@@ -19,6 +19,6 @@ load_makefile $(LIBDIRS:%$(OBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(DEBUG);)
 
 LINKLIBS += $(PTHREADLIB)
 
-load_makefile nls\makefile MAKESERVER=0 DEBUG=0
+load_makefile nls\makefile MAKESERVER=0 DEBUG=$(DEBUG)
 
 $(OBJDIR)\libX11.lib : $(OBJDIR) nls\all

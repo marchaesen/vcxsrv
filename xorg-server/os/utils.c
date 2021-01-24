@@ -595,6 +595,10 @@ UseMsg(void)
     ErrorF("-schedInterval int     Set scheduler interval in msec\n");
     ErrorF("+extension name        Enable extension\n");
     ErrorF("-extension name        Disable extension\n");
+#ifdef HYPERV
+    ErrorF("-vmid GUID             Hyper-V VM GUID to accept VSock connections from\n");
+    ErrorF("-vsockport port        integer port number to listen for VSock connections.  Default 106000.\n");
+#endif
 #ifdef XDMCP
     XdmcpUseMsg();
 #endif
@@ -1043,6 +1047,23 @@ ProcessCommandLine(int argc, char *argv[])
             else
                 UseMsg();
         }
+#ifdef HYPERV
+        else if(strcmp(argv[i], "-vmid") == 0)
+        {
+            if(++i < argc)
+            {
+                _XSERVTransSetHyperVVmId(argv[i]);
+            } else
+                UseMsg();
+        }
+        else if(strcmp(argv[i], "-vsockport") == 0) {
+
+            if(++i < argc) {
+                _XSERVTransSetHyperVPortNo(argv[i]);
+            } else
+                UseMsg();
+        }
+#endif
         else {
             ErrorF("Unrecognized option: %s\n", argv[i]);
             UseMsg();

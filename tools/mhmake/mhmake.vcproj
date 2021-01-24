@@ -268,7 +268,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(ConfigurationName)/mhmake_dbg.exe"
+				OutputFile="$(ConfigurationName)/mhmake.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				GenerateDebugInformation="true"
@@ -358,7 +358,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(ConfigurationName)/mhmake_dbg.exe"
+				OutputFile="$(ConfigurationName)/mhmake.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				GenerateDebugInformation="true"

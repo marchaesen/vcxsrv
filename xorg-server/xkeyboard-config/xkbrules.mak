@@ -18,9 +18,9 @@ ifneq ($(DIRFILE),)
 PATH:=$(relpath $(MHMAKECONF)\libxcb\src\$(OBJDIR))\;$(relpath $(MHMAKECONF)\libX11\$(OBJDIR))\;$(relpath $(MHMAKECONF)\libXau\$(OBJDIR))\;$(PATH)
 export PATH
 
-load_makefile ..\..\..\xkbcomp\makefile MAKESERVER=0 DEBUG=0
+load_makefile ..\..\..\xkbcomp\makefile MAKESERVER=0 DEBUG=$(DEBUG)
 
-$(DIRFILE): extrastuff $(DATA_FILES) ..\..\..\xkbcomp\obj$(OBJDIREXTRA)\release\xkbcomp.exe
+$(DIRFILE): extrastuff $(DATA_FILES) ..\..\..\xkbcomp\$(NOSERVOBJDIR)\xkbcomp.exe
 	-del -e $@
-	cd $(DESTDIR) & ..\..\..\xkbcomp\obj$(OBJDIREXTRA)\release\xkbcomp.exe -lfhlpR -o $(relpath $@) *
+	cd $(DESTDIR) & ..\..\..\xkbcomp\$(NOSERVOBJDIR)\xkbcomp.exe -lfhlpR -o $(relpath $@) *
 endif

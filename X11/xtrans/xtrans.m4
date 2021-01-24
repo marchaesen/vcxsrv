@@ -43,6 +43,15 @@ AC_DEFUN([XTRANS_TCP_FLAGS],[
  fi
  AC_MSG_RESULT($IPV6CONN)
 
+AC_ARG_ENABLE(hyperv,
+	AS_HELP_STRING([--enable-hyperv],[Enable HyperV VSock support]),
+	[HYPERV=$enableval],[HYPERV=yes])
+ AC_MSG_CHECKING([if HyperV VSock support should be built])
+ AC_MSG_RESULT($HYPERV)
+ if test "$HYPERV" = "yes"; then
+	AC_DEFINE(HYPERV,1,[Support HyperV for VSock connections])
+ fi
+
  # 4.3BSD-Reno added a new member to struct sockaddr_in
  AC_CHECK_MEMBER([struct sockaddr_in.sin_len],
 	AC_DEFINE([BSD44SOCKETS],1,

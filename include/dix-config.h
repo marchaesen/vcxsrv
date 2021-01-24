@@ -261,6 +261,9 @@
 /* Define to 1 if you have the `vasprintf' function. */
 #undef HAVE_VASPRINTF
 
+/* Support HyperV VSock transport */
+#define HYPERV 1
+
 /* Support IPv6 for TCP connections */
 #define IPv6 1
 

@@ -68,8 +68,8 @@ RESOURCES = XWin.rc
 
 $(OBJDIR)\$(APP).exe: $(LINKLIBS)
 
-load_makefile fonts.src\makefile MAKESERVER=0 DEBUG=0
-load_makefile xkeyboard-config\makefile MAKESERVER=0 DEBUG=0
+load_makefile fonts.src\makefile MAKESERVER=0 DEBUG=$(DEBUG)
+load_makefile xkeyboard-config\makefile MAKESERVER=0 DEBUG=$(DEBUG)
 
 EXTRASTOBUILD =  \
  hw\xwin\xlaunch\$(NOSERVOBJDIR)\xlaunch.exe \

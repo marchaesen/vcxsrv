@@ -2,11 +2,7 @@ import os,sys
 
 import sys
 
-if len(sys.argv)>1 and sys.argv[1]=="1":
-  os.system("./setenv.bat x86_amd64 >& null")
-else:
-  os.system("./setenv.bat x86 >& null")
-os.remove("null")
+os.system("cmd /c setenv.bat amd64 2> null")
 
 def readenv(filename):
   env={}

@@ -14,12 +14,12 @@ SUBCONF=|Win32
 endif
 .PHONY: all mhmake_dbg mhmake cleanthis
 
-all: debug$(SUBCONFDIR)\mhmake_dbg.exe release$(SUBCONFDIR)\mhmake.exe
+all: debug$(SUBCONFDIR)\mhmake.exe release$(SUBCONFDIR)\mhmake.exe
 
 DEPS=$(wildcard src\*)
 
-debug$(SUBCONFDIR)\mhmake_dbg.exe: $(DEPS)
-	$(BUILDCMD) "Debug$(SUBCONF)" 
+debug$(SUBCONFDIR)\mhmake.exe: $(DEPS)
+	$(BUILDCMD) "Debug$(SUBCONF)"
 
 release$(SUBCONFDIR)\mhmake.exe: $(DEPS)
 	$(BUILDCMD) "Release$(SUBCONF)" 
