@@ -2,7 +2,7 @@ import os,sys
 
 import sys
 
-os.system("cmd /c setenv.bat amd64 2> null")
+os.system("cmd /c \"setenv.bat amd64 2> nul\"")
 
 def readenv(filename):
   env={}
