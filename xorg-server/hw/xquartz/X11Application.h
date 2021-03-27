@@ -31,18 +31,16 @@
 #ifndef X11APPLICATION_H
 #define X11APPLICATION_H 1
 
+#include <X11/Xdefs.h>
+
 #if __OBJC__
 
 #import "X11Controller.h"
 
-@interface X11Application : NSApplication {
-    X11Controller *_controller;
+@interface X11Application : NSApplication
 
-    unsigned int _x_active : 1;
-}
-
-- (void)set_controller:controller;
-- (void)set_window_menu:(NSArray *)list;
+@property (nonatomic, readwrite, strong) X11Controller *controller;
+@property (nonatomic, readonly, assign) OSX_BOOL x_active;
 
 - (CFPropertyListRef)prefs_get_copy:(NSString *)key CF_RETURNS_RETAINED;
 - (int)prefs_get_integer:(NSString *)key default:(int)def;
@@ -58,9 +56,6 @@
 - (void)prefs_set_array:(NSString *)key value:(NSArray *)value;
 - (void)prefs_set_string:(NSString *)key value:(NSString *)value;
 - (void)prefs_synchronize;
-
-- (X11Controller *)controller;
-- (OSX_BOOL)x_active;
 @end
 
 extern X11Application * X11App;

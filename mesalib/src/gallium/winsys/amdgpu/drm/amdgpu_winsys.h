@@ -66,6 +66,8 @@ struct amdgpu_winsys {
    uint64_t allocated_gtt;
    uint64_t mapped_vram;
    uint64_t mapped_gtt;
+   uint64_t slab_wasted_vram;
+   uint64_t slab_wasted_gtt;
    uint64_t buffer_wait_time; /* time spent in buffer_wait in ns */
    uint64_t num_gfx_IBs;
    uint64_t num_sdma_IBs;

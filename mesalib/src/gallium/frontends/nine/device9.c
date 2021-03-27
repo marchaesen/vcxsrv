@@ -36,6 +36,7 @@
 #include "volumetexture9.h"
 #include "nine_buffer_upload.h"
 #include "nine_helpers.h"
+#include "nine_memory_helper.h"
 #include "nine_pipe.h"
 #include "nine_ff.h"
 #include "nine_dump.h"
@@ -233,21 +234,22 @@ NineDevice9_ctor( struct NineDevice9 *This,
     if (!This->cso_sw) { return E_OUTOFMEMORY; }
 
     /* Create first, it messes up our state. */
-    This->hud = hud_create(This->context.cso, NULL); /* NULL result is fine */
+    This->hud = hud_create(This->context.cso, NULL, NULL); /* NULL result is fine */
+
+    This->allocator = nine_allocator_create(This, pCTX->memfd_virtualsizelimit);
 
     /* Available memory counter. Updated only for allocations with this device
      * instance. This is the Win 7 behavior.
      * Win XP shares this counter across multiple devices. */
     This->available_texture_mem = This->screen->get_param(This->screen, PIPE_CAP_VIDEO_MEMORY);
     This->available_texture_mem <<= 20;
-#ifdef PIPE_ARCH_X86
-    /* To prevent overflows for 32bits apps - Not sure about this one */
-    This->available_texture_limit = MAX2(This->available_texture_limit, UINT_MAX - (64 << 20));
-#endif
+
     /* We cap texture memory usage to 95% of what is reported free initially
      * This helps get closer Win behaviour. For example VertexBuffer allocation
      * still succeeds when texture allocation fails. */
     This->available_texture_limit = This->available_texture_mem * 5LL / 100LL;
+
+    This->frame_count = 0; /* Used to check if events occur the same frame */
 
     /* create implicit swapchains */
     This->nswapchains = ID3DPresentGroup_GetMultiheadCount(This->present);
@@ -512,7 +514,6 @@ NineDevice9_ctor( struct NineDevice9 *This,
 
     /* Allocate upload helper for drivers that suck (from st pov ;). */
 
-    This->driver_caps.user_vbufs = GET_PCAP(USER_VERTEX_BUFFERS) && !This->csmt_active;
     This->driver_caps.user_sw_vbufs = This->screen_sw->get_param(This->screen_sw, PIPE_CAP_USER_VERTEX_BUFFERS);
     This->vertex_uploader = This->csmt_active ? This->pipe_secondary->stream_uploader : This->context.pipe->stream_uploader;
     This->driver_caps.window_space_position_support = GET_PCAP(TGSI_VS_WINDOW_SPACE_POSITION);
@@ -602,6 +603,9 @@ NineDevice9_dtor( struct NineDevice9 *This )
     if (This->buffer_upload)
         nine_upload_destroy(This->buffer_upload);
 
+    if (This->allocator)
+        nine_allocator_destroy(This->allocator);
+
     /* Destroy cso first */
     if (This->context.cso) { cso_destroy_context(This->context.cso); }
     if (This->cso_sw) { cso_destroy_context(This->cso_sw); }
@@ -671,7 +675,8 @@ NineDevice9_TestCooperativeLevel( struct NineDevice9 *This )
 UINT NINE_WINAPI
 NineDevice9_GetAvailableTextureMem( struct NineDevice9 *This )
 {
-    return This->available_texture_mem;
+    /* To prevent overflows - Not sure how this should be handled */
+    return (UINT)MIN2(This->available_texture_mem, (long long)(UINT_MAX - (64 << 20))); /* 64 MB margin */
 }
 
 void
@@ -1484,8 +1489,8 @@ NineDevice9_UpdateTexture( struct NineDevice9 *This,
      * That should satisfy the constraints (and instead of crashing for some cases we return D3D_OK)
      */
 
-    last_src_level = (srcb->base.usage & D3DUSAGE_AUTOGENMIPMAP) ? 0 : srcb->base.info.last_level;
-    last_dst_level = (dstb->base.usage & D3DUSAGE_AUTOGENMIPMAP) ? 0 : dstb->base.info.last_level;
+    last_src_level = srcb->level_count-1;
+    last_dst_level = dstb->level_count-1;
 
     for (m = 0; m <= last_src_level; ++m) {
         unsigned w = u_minify(srcb->base.info.width0, m);
@@ -2031,6 +2036,19 @@ NineDevice9_EndScene( struct NineDevice9 *This )
     DBG("This=%p\n", This);
     user_assert(This->in_scene, D3DERR_INVALIDCALL);
     This->in_scene = FALSE;
+    This->end_scene_since_present++;
+    /* EndScene() is supposed to flush the GPU commands.
+     * The idea is to flush ahead of the Present() call.
+     * (Apps could take advantage of this by inserting CPU
+     * work between EndScene() and Present()).
+     * Most apps will have one EndScene per frame.
+     * Some will have 2 or 3.
+     * Some bad behaving apps do a lot of them.
+     * As flushing has a cost, do it only once. */
+    if (This->end_scene_since_present <= 1) {
+        nine_context_pipe_flush(This);
+        nine_csmt_flush(This);
+    }
     return D3D_OK;
 }
 
@@ -2896,14 +2914,49 @@ NineAfterDraw( struct NineDevice9 *This )
     }
 }
 
+#define IS_SYSTEMMEM_DYNAMIC(t) ((t) && (t)->base.pool == D3DPOOL_SYSTEMMEM && (t)->base.usage & D3DUSAGE_DYNAMIC)
+
+/* Indicates the region needed right now for these buffers and add them to the list
+ * of buffers to process in NineBeforeDraw.
+ * The reason we don't call the upload right now is to generate smaller code (no
+ * duplication of the NineBuffer9_Upload inline) and to have one upload (of the correct size)
+ * if a vertex buffer is twice input of the draw call. */
+static void
+NineTrackSystemmemDynamic( struct NineBuffer9 *This, unsigned start, unsigned width )
+{
+    struct pipe_box box;
+
+    u_box_1d(start, width, &box);
+    u_box_union_1d(&This->managed.required_valid_region,
+                   &This->managed.required_valid_region,
+                   &box);
+    This->managed.dirty = TRUE;
+    BASEBUF_REGISTER_UPDATE(This);
+}
+
 HRESULT NINE_WINAPI
 NineDevice9_DrawPrimitive( struct NineDevice9 *This,
                            D3DPRIMITIVETYPE PrimitiveType,
                            UINT StartVertex,
                            UINT PrimitiveCount )
 {
+    unsigned i;
     DBG("iface %p, PrimitiveType %u, StartVertex %u, PrimitiveCount %u\n",
         This, PrimitiveType, StartVertex, PrimitiveCount);
+
+    /* Tracking for dynamic SYSTEMMEM */
+    for (i = 0; i < This->caps.MaxStreams; i++) {
+        unsigned stride = This->state.vtxbuf[i].stride;
+        if (IS_SYSTEMMEM_DYNAMIC((struct NineBuffer9*)This->state.stream[i])) {
+            unsigned start = This->state.vtxbuf[i].buffer_offset + StartVertex * stride;
+            unsigned full_size = This->state.stream[i]->base.size;
+            unsigned num_vertices = prim_count_to_vertex_count(PrimitiveType, PrimitiveCount);
+            unsigned size = MIN2(full_size-start, num_vertices * stride);
+            if (!stride) /* Instancing. Not sure what to do. Require all */
+                size = full_size;
+            NineTrackSystemmemDynamic(&This->state.stream[i]->base, start, size);
+        }
+    }
 
     NineBeforeDraw(This);
     nine_context_draw_primitive(This, PrimitiveType, StartVertex, PrimitiveCount);
@@ -2921,6 +2974,7 @@ NineDevice9_DrawIndexedPrimitive( struct NineDevice9 *This,
                                   UINT StartIndex,
                                   UINT PrimitiveCount )
 {
+    unsigned i, num_indices;
     DBG("iface %p, PrimitiveType %u, BaseVertexIndex %u, MinVertexIndex %u "
         "NumVertices %u, StartIndex %u, PrimitiveCount %u\n",
         This, PrimitiveType, BaseVertexIndex, MinVertexIndex, NumVertices,
@@ -2928,6 +2982,28 @@ NineDevice9_DrawIndexedPrimitive( struct NineDevice9 *This,
 
     user_assert(This->state.idxbuf, D3DERR_INVALIDCALL);
     user_assert(This->state.vdecl, D3DERR_INVALIDCALL);
+
+    num_indices = prim_count_to_vertex_count(PrimitiveType, PrimitiveCount);
+
+    /* Tracking for dynamic SYSTEMMEM */
+    if (IS_SYSTEMMEM_DYNAMIC(&This->state.idxbuf->base))
+        NineTrackSystemmemDynamic(&This->state.idxbuf->base,
+                                  StartIndex * This->state.idxbuf->index_size,
+                                  num_indices * This->state.idxbuf->index_size);
+
+    for (i = 0; i < This->caps.MaxStreams; i++) {
+        if (IS_SYSTEMMEM_DYNAMIC((struct NineBuffer9*)This->state.stream[i])) {
+            uint32_t stride = This->state.vtxbuf[i].stride;
+            uint32_t full_size = This->state.stream[i]->base.size;
+            uint32_t start, stop;
+
+            start = MAX2(0, This->state.vtxbuf[i].buffer_offset+(MinVertexIndex+BaseVertexIndex)*stride);
+            stop = This->state.vtxbuf[i].buffer_offset+(MinVertexIndex+NumVertices+BaseVertexIndex)*stride;
+            stop = MIN2(stop, full_size);
+            NineTrackSystemmemDynamic(&This->state.stream[i]->base,
+                                      start, stop-start);
+        }
+    }
 
     NineBeforeDraw(This);
     nine_context_draw_indexed_primitive(This, PrimitiveType, BaseVertexIndex,
@@ -2938,6 +3014,9 @@ NineDevice9_DrawIndexedPrimitive( struct NineDevice9 *This,
     return D3D_OK;
 }
 
+static void
+NineDevice9_SetStreamSourceNULL( struct NineDevice9 *This );
+
 HRESULT NINE_WINAPI
 NineDevice9_DrawPrimitiveUP( struct NineDevice9 *This,
                              D3DPRIMITIVETYPE PrimitiveType,
@@ -2945,7 +3024,9 @@ NineDevice9_DrawPrimitiveUP( struct NineDevice9 *This,
                              const void *pVertexStreamZeroData,
                              UINT VertexStreamZeroStride )
 {
-    struct pipe_vertex_buffer vtxbuf;
+    struct pipe_resource *resource = NULL;
+    unsigned buffer_offset;
+    unsigned StartVertex = 0;
 
     DBG("iface %p, PrimitiveType %u, PrimitiveCount %u, data %p, stride %u\n",
         This, PrimitiveType, PrimitiveCount,
@@ -2955,32 +3036,32 @@ NineDevice9_DrawPrimitiveUP( struct NineDevice9 *This,
                 D3DERR_INVALIDCALL);
     user_assert(PrimitiveCount, D3D_OK);
 
-    vtxbuf.stride = VertexStreamZeroStride;
-    vtxbuf.buffer_offset = 0;
-    vtxbuf.is_user_buffer = true;
-    vtxbuf.buffer.user = pVertexStreamZeroData;
+    u_upload_data(This->vertex_uploader,
+                  0,
+                  (prim_count_to_vertex_count(PrimitiveType, PrimitiveCount)) * VertexStreamZeroStride,
+                  1,
+                  pVertexStreamZeroData,
+                  &buffer_offset,
+                  &resource);
+    u_upload_unmap(This->vertex_uploader);
 
-    if (!This->driver_caps.user_vbufs) {
-        vtxbuf.is_user_buffer = false;
-        vtxbuf.buffer.resource = NULL;
-        u_upload_data(This->vertex_uploader,
-                      0,
-                      (prim_count_to_vertex_count(PrimitiveType, PrimitiveCount)) * VertexStreamZeroStride, /* XXX */
-                      4,
-                      pVertexStreamZeroData,
-                      &vtxbuf.buffer_offset,
-                      &vtxbuf.buffer.resource);
-        u_upload_unmap(This->vertex_uploader);
+    /* Optimization to skip changing the bound vertex buffer data
+     * for consecutive DrawPrimitiveUp with identical VertexStreamZeroStride */
+    if (VertexStreamZeroStride > 0) {
+        StartVertex = buffer_offset / VertexStreamZeroStride;
+        buffer_offset -= StartVertex * VertexStreamZeroStride;
     }
 
+    nine_context_set_stream_source_apply(This, 0, resource,
+                                         buffer_offset, VertexStreamZeroStride);
+    pipe_resource_reference(&resource, NULL);
+
     NineBeforeDraw(This);
-    nine_context_draw_primitive_from_vtxbuf(This, PrimitiveType, PrimitiveCount, &vtxbuf);
+    nine_context_draw_primitive(This, PrimitiveType, StartVertex, PrimitiveCount);
     NineAfterDraw(This);
 
-    pipe_vertex_buffer_unreference(&vtxbuf);
-
     NineDevice9_PauseRecording(This);
-    NineDevice9_SetStreamSource(This, 0, NULL, 0, 0);
+    NineDevice9_SetStreamSourceNULL(This);
     NineDevice9_ResumeRecording(This);
 
     return D3D_OK;
@@ -2998,6 +3079,9 @@ NineDevice9_DrawIndexedPrimitiveUP( struct NineDevice9 *This,
                                     UINT VertexStreamZeroStride )
 {
     struct pipe_vertex_buffer vbuf;
+    unsigned index_size = (IndexDataFormat == D3DFMT_INDEX16) ? 2 : 4;
+    struct pipe_resource *ibuf = NULL;
+    unsigned base;
 
     DBG("iface %p, PrimitiveType %u, MinVertexIndex %u, NumVertices %u "
         "PrimitiveCount %u, pIndexData %p, IndexDataFormat %u "
@@ -3012,41 +3096,30 @@ NineDevice9_DrawIndexedPrimitiveUP( struct NineDevice9 *This,
                 IndexDataFormat == D3DFMT_INDEX32, D3DERR_INVALIDCALL);
     user_assert(PrimitiveCount, D3D_OK);
 
+    base = MinVertexIndex * VertexStreamZeroStride;
+    vbuf.is_user_buffer = false;
+    vbuf.buffer.resource = NULL;
     vbuf.stride = VertexStreamZeroStride;
-    vbuf.buffer_offset = 0;
-    vbuf.is_user_buffer = true;
-    vbuf.buffer.user = pVertexStreamZeroData;
-
-    unsigned index_size = (IndexDataFormat == D3DFMT_INDEX16) ? 2 : 4;
-    struct pipe_resource *ibuf = NULL;
-
-    if (!This->driver_caps.user_vbufs) {
-        const unsigned base = MinVertexIndex * VertexStreamZeroStride;
-        vbuf.is_user_buffer = false;
-        vbuf.buffer.resource = NULL;
-        u_upload_data(This->vertex_uploader,
-                      base,
-                      NumVertices * VertexStreamZeroStride, /* XXX */
-                      4,
-                      (const uint8_t *)pVertexStreamZeroData + base,
-                      &vbuf.buffer_offset,
-                      &vbuf.buffer.resource);
-        u_upload_unmap(This->vertex_uploader);
-        /* Won't be used: */
-        vbuf.buffer_offset -= base;
-    }
+    u_upload_data(This->vertex_uploader,
+                  base,
+                  NumVertices * VertexStreamZeroStride, /* XXX */
+                  64,
+                  (const uint8_t *)pVertexStreamZeroData + base,
+                  &vbuf.buffer_offset,
+                  &vbuf.buffer.resource);
+    u_upload_unmap(This->vertex_uploader);
+    /* Won't be used: */
+    vbuf.buffer_offset -= base;
 
     unsigned index_offset = 0;
-    if (This->csmt_active) {
-        u_upload_data(This->pipe_secondary->stream_uploader,
-                      0,
-                      (prim_count_to_vertex_count(PrimitiveType, PrimitiveCount)) * index_size,
-                      4,
-                      pIndexData,
-                      &index_offset,
-                      &ibuf);
-        u_upload_unmap(This->pipe_secondary->stream_uploader);
-    }
+    u_upload_data(This->pipe_secondary->stream_uploader,
+                  0,
+                  (prim_count_to_vertex_count(PrimitiveType, PrimitiveCount)) * index_size,
+                  64,
+                  pIndexData,
+                  &index_offset,
+                  &ibuf);
+    u_upload_unmap(This->pipe_secondary->stream_uploader);
 
     NineBeforeDraw(This);
     nine_context_draw_indexed_primitive_from_vtxbuf_idxbuf(This, PrimitiveType,
@@ -3065,7 +3138,7 @@ NineDevice9_DrawIndexedPrimitiveUP( struct NineDevice9 *This,
 
     NineDevice9_PauseRecording(This);
     NineDevice9_SetIndices(This, NULL);
-    NineDevice9_SetStreamSource(This, 0, NULL, 0, 0);
+    NineDevice9_SetStreamSourceNULL(This);
     NineDevice9_ResumeRecording(This);
 
     return D3D_OK;
@@ -3610,6 +3683,24 @@ NineDevice9_SetStreamSource( struct NineDevice9 *This,
                                    Stride);
 
     return D3D_OK;
+}
+
+static void
+NineDevice9_SetStreamSourceNULL( struct NineDevice9 *This )
+{
+    struct nine_state *state = This->update;
+
+    DBG("This=%p\n", This);
+
+    state->vtxbuf[0].stride = 0;
+    state->vtxbuf[0].buffer_offset = 0;
+
+    if (!state->stream[0])
+        return;
+
+    NineBindBufferToDevice(This,
+                           (struct NineBuffer9 **)&state->stream[0],
+                           NULL);
 }
 
 HRESULT NINE_WINAPI

@@ -75,10 +75,11 @@ create_clipdist_vars(nir_shader *shader, nir_variable **io_vars,
                      bool use_clipdist_array)
 {
    if (use_clipdist_array) {
+      shader->info.clip_distance_array_size = util_last_bit(ucp_enables);
       io_vars[0] =
          create_clipdist_var(shader, output,
                              VARYING_SLOT_CLIP_DIST0,
-                             util_last_bit(ucp_enables));
+                             shader->info.clip_distance_array_size);
    } else {
       if (ucp_enables & 0x0f)
          io_vars[0] =
@@ -94,49 +95,35 @@ create_clipdist_vars(nir_shader *shader, nir_variable **io_vars,
 static void
 store_clipdist_output(nir_builder *b, nir_variable *out, nir_ssa_def **val)
 {
-   nir_intrinsic_instr *store;
-
-   store = nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_output);
-   store->num_components = 4;
-   nir_intrinsic_set_base(store, out->data.driver_location);
-   nir_intrinsic_set_write_mask(store, 0xf);
-
    nir_io_semantics semantics = {
       .location = out->data.location,
       .num_slots = 1,
    };
-   nir_intrinsic_set_io_semantics(store, semantics);
 
-   store->src[0].ssa = nir_vec4(b, val[0], val[1], val[2], val[3]);
-   store->src[0].is_ssa = true;
-   store->src[1] = nir_src_for_ssa(nir_imm_int(b, 0));
-   nir_builder_instr_insert(b, &store->instr);
+   nir_store_output(b, nir_vec4(b, val[0], val[1], val[2], val[3]), nir_imm_int(b, 0),
+                    .base = out->data.driver_location,
+                    .write_mask = 0xf,
+                    .io_semantics = semantics);
 }
 
 static void
 load_clipdist_input(nir_builder *b, nir_variable *in, int location_offset,
                     nir_ssa_def **val)
 {
-   nir_intrinsic_instr *load;
-
-   load = nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_input);
-   load->num_components = 4;
-   nir_intrinsic_set_base(load, in->data.driver_location + location_offset);
-
    nir_io_semantics semantics = {
       .location = in->data.location,
       .num_slots = 1,
    };
-   nir_intrinsic_set_io_semantics(load, semantics);
 
-   load->src[0] = nir_src_for_ssa(nir_imm_int(b, 0));
-   nir_ssa_dest_init(&load->instr, &load->dest, 4, 32, NULL);
-   nir_builder_instr_insert(b, &load->instr);
+   nir_ssa_def *load =
+      nir_load_input(b, 4, 32, nir_imm_int(b, 0),
+                     .base = in->data.driver_location + location_offset,
+                     .io_semantics = semantics);
 
-   val[0] = nir_channel(b, &load->dest.ssa, 0);
-   val[1] = nir_channel(b, &load->dest.ssa, 1);
-   val[2] = nir_channel(b, &load->dest.ssa, 2);
-   val[3] = nir_channel(b, &load->dest.ssa, 3);
+   val[0] = nir_channel(b, load, 0);
+   val[1] = nir_channel(b, load, 1);
+   val[2] = nir_channel(b, load, 2);
+   val[3] = nir_channel(b, load, 3);
 }
 
 static nir_ssa_def *
@@ -449,15 +436,10 @@ lower_clip_fs(nir_function_impl *impl, unsigned ucp_enables,
 
    for (int plane = 0; plane < MAX_CLIP_PLANES; plane++) {
       if (ucp_enables & (1 << plane)) {
-         nir_intrinsic_instr *discard;
          nir_ssa_def *cond;
 
          cond = nir_flt(&b, clipdist[plane], nir_imm_float(&b, 0.0));
-
-         discard = nir_intrinsic_instr_create(b.shader,
-                                              nir_intrinsic_discard_if);
-         discard->src[0] = nir_src_for_ssa(cond);
-         nir_builder_instr_insert(&b, &discard->instr);
+         nir_discard_if(&b, cond);
 
          b.shader->info.fs.uses_discard = true;
       }

@@ -409,7 +409,7 @@ In the grouping pass, instructions which need to be grouped (for ``fanin``\s, et
 Depth
 ~~~~~
 
-In the depth pass, a depth is calculated for each instruction node within it's basic block.  The depth is the sum of the required cycles (delay slots needed between two instructions plus one) of each instruction plus the max depth of any of it's source instructions.  (meta_ instructions don't add to the depth).  As an instruction's depth is calculated, it is inserted into a per block list sorted by deepest instruction.  Unreachable instructions and inputs are marked.
+In the depth pass, a depth is calculated for each instruction node within its basic block.  The depth is the sum of the required cycles (delay slots needed between two instructions plus one) of each instruction plus the max depth of any of its source instructions.  (meta_ instructions don't add to the depth).  As an instruction's depth is calculated, it is inserted into a per block list sorted by deepest instruction.  Unreachable instructions and inputs are marked.
 
     TODO: we should probably calculate both hard and soft depths (?) to
     try to coax additional instructions to fit in places where we need
@@ -420,7 +420,7 @@ In the depth pass, a depth is calculated for each instruction node within it's b
 Scheduling
 ~~~~~~~~~~
 
-After the grouping_ pass, there are no more instructions to insert or remove.  Start scheduling each basic block from the deepest node in the depth sorted list created by the depth_ pass, recursively trying to schedule each instruction after it's source instructions plus delay slots.  Insert ``nop``\s as required.
+After the grouping_ pass, there are no more instructions to insert or remove.  Start scheduling each basic block from the deepest node in the depth sorted list created by the depth_ pass, recursively trying to schedule each instruction after its source instructions plus delay slots.  Insert ``nop``\s as required.
 
 .. _`register assignment`:
 

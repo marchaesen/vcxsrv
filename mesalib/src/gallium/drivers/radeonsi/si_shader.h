@@ -166,7 +166,7 @@ struct si_context;
 /* SGPR user data indices */
 enum
 {
-   SI_SGPR_RW_BUFFERS, /* rings (& stream-out, VS only) */
+   SI_SGPR_INTERNAL_BINDINGS,
    SI_SGPR_BINDLESS_SAMPLERS_AND_IMAGES,
    SI_SGPR_CONST_AND_SHADER_BUFFERS, /* or just a constant buffer 0 pointer */
    SI_SGPR_SAMPLERS_AND_IMAGES,
@@ -363,6 +363,10 @@ struct si_shader_info {
    bool writes_stencil;     /**< does fragment shader write stencil value? */
    bool writes_samplemask;  /**< does fragment shader write sample mask? */
    bool writes_edgeflag;    /**< vertex shader outputs edgeflag */
+   bool uses_interp_color;
+   bool uses_persp_center_color;
+   bool uses_persp_centroid_color;
+   bool uses_persp_sample_color;
    bool uses_persp_center;
    bool uses_persp_centroid;
    bool uses_persp_sample;
@@ -390,9 +394,18 @@ struct si_shader_info {
    bool writes_layer;
    bool uses_bindless_samplers;
    bool uses_bindless_images;
+   bool uses_indirect_descriptor;
+
+   bool uses_vmem_return_type_sampler_or_bvh;
+   bool uses_vmem_return_type_other; /* all other VMEM loads and atomics with return */
 
    /** Whether all codepaths write tess factors in all invocations. */
    bool tessfactors_are_def_in_all_invocs;
+
+   /* A flag to check if vrs2x2 can be enabled to reduce number of
+    * fragment shader invocations if flat shading.
+    */
+   bool allow_flat_shading;
 };
 
 /* A shader selector is a gallium CSO and contains shader variants and
@@ -440,7 +453,6 @@ struct si_shader_selector {
    ubyte num_vbos_in_user_sgprs;
    unsigned pa_cl_vs_out_cntl;
    unsigned ngg_cull_vert_threshold; /* UINT32_MAX = disabled */
-   unsigned ngg_cull_nonindexed_fast_launch_vert_threshold; /* UINT32_MAX = disabled */
    ubyte clipdist_mask;
    ubyte culldist_mask;
    enum pipe_prim_type rast_prim;
@@ -525,7 +537,6 @@ struct si_tcs_epilog_bits {
 
 struct si_gs_prolog_bits {
    unsigned tri_strip_adj_fix : 1;
-   unsigned gfx9_prev_is_vs : 1;
 };
 
 /* Common PS bits between the shader key and the prolog key. */
@@ -576,8 +587,6 @@ union si_shader_part_key {
    } tcs_epilog;
    struct {
       struct si_gs_prolog_bits states;
-      /* Prologs of monolithic shaders shouldn't set EXEC. */
-      unsigned is_monolithic : 1;
       unsigned as_ngg : 1;
    } gs_prolog;
    struct {
@@ -713,6 +722,9 @@ struct si_shader_binary_info {
 struct si_shader_binary {
    const char *elf_buffer;
    size_t elf_size;
+
+   char *uploaded_code;
+   size_t uploaded_code_size;
 
    char *llvm_ir_string;
 };
@@ -872,6 +884,7 @@ struct si_shader *si_generate_gs_copy_shader(struct si_screen *sscreen,
 /* si_shader_nir.c */
 void si_nir_scan_shader(const struct nir_shader *nir, struct si_shader_info *info);
 void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first);
+void si_nir_late_opts(nir_shader *nir);
 void si_finalize_nir(struct pipe_screen *screen, void *nirptr, bool optimize);
 
 /* si_state_shaders.c */

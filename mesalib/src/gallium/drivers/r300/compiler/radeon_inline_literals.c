@@ -64,8 +64,8 @@ static int ieee_754_to_r300_float(float f, unsigned char *r300_float_out)
 	}
 
 	if (mantissa & mantissa_mask) {
-		DBG("Failed mantisa has too many bits:\n"
-			"manitssa=0x%x mantissa_mask=0x%x, and=0x%x\n\n",
+		DBG("Failed mantissa has too many bits:\n"
+			"mantissa=0x%x mantissa_mask=0x%x, and=0x%x\n\n",
 			mantissa, mantissa_mask,
 			mantissa & mantissa_mask);
 		return 0;

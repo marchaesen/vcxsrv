@@ -248,7 +248,7 @@ _mesa_append_fog_code(struct gl_context *ctx, struct gl_program *fprog,
                       GLenum fog_mode, GLboolean saturate)
 {
    static const gl_state_index16 fogPStateOpt[STATE_LENGTH]
-      = { STATE_INTERNAL, STATE_FOG_PARAMS_OPTIMIZED, 0, 0 };
+      = { STATE_FOG_PARAMS_OPTIMIZED, 0, 0 };
    static const gl_state_index16 fogColorState[STATE_LENGTH]
       = { STATE_FOG_COLOR, 0, 0, 0 };
    struct prog_instruction *newInst, *inst;
@@ -597,7 +597,7 @@ _mesa_program_fragment_position_to_sysval(struct gl_program *prog)
       return;
 
    prog->info.inputs_read &= ~BITFIELD64_BIT(VARYING_SLOT_POS);
-   prog->info.system_values_read |= 1 << SYSTEM_VALUE_FRAG_COORD;
+   BITSET_SET(prog->info.system_values_read, SYSTEM_VALUE_FRAG_COORD);
 
    for (i = 0; i < prog->arb.NumInstructions; i++) {
       struct prog_instruction *inst = prog->arb.Instructions + i;

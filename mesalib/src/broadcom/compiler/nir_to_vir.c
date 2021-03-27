@@ -203,6 +203,249 @@ v3d_general_tmu_op(nir_intrinsic_instr *instr)
 }
 
 /**
+ * Checks if pipelining a new TMU operation requiring 'components' LDTMUs
+ * would overflow the Output TMU fifo.
+ *
+ * It is not allowed to overflow the Output fifo, however, we can overflow
+ * Input and Config fifos. Doing that makes the shader stall, but only for as
+ * long as it needs to be able to continue so it is better for pipelining to
+ * let the QPU stall on these if needed than trying to emit TMU flushes in the
+ * driver.
+ */
+bool
+ntq_tmu_fifo_overflow(struct v3d_compile *c, uint32_t components)
+{
+        if (c->tmu.flush_count >= MAX_TMU_QUEUE_SIZE)
+                return true;
+
+        return components > 0 &&
+               c->tmu.output_fifo_size + components > 16 / c->threads;
+}
+
+/**
+ * Emits the thread switch and LDTMU/TMUWT for all outstanding TMU operations,
+ * popping all TMU fifo entries.
+ */
+void
+ntq_flush_tmu(struct v3d_compile *c)
+{
+        if (c->tmu.flush_count == 0)
+                return;
+
+        vir_emit_thrsw(c);
+
+        bool emitted_tmuwt = false;
+        for (int i = 0; i < c->tmu.flush_count; i++) {
+                if (c->tmu.flush[i].component_mask > 0) {
+                        nir_dest *dest = c->tmu.flush[i].dest;
+                        assert(dest);
+
+                        for (int j = 0; j < 4; j++) {
+                                if (c->tmu.flush[i].component_mask & (1 << j)) {
+                                        ntq_store_dest(c, dest, j,
+                                                       vir_MOV(c, vir_LDTMU(c)));
+                                }
+                        }
+                } else if (!emitted_tmuwt) {
+                        vir_TMUWT(c);
+                        emitted_tmuwt = true;
+                }
+        }
+
+        c->tmu.output_fifo_size = 0;
+        c->tmu.flush_count = 0;
+        _mesa_set_clear(c->tmu.outstanding_regs, NULL);
+}
+
+/**
+ * Queues a pending thread switch + LDTMU/TMUWT for a TMU operation. The caller
+ * is reponsible for ensuring that doing this doesn't overflow the TMU fifos,
+ * and more specifically, the output fifo, since that can't stall.
+ */
+void
+ntq_add_pending_tmu_flush(struct v3d_compile *c,
+                          nir_dest *dest,
+                          uint32_t component_mask)
+{
+        const uint32_t num_components = util_bitcount(component_mask);
+        assert(!ntq_tmu_fifo_overflow(c, num_components));
+
+        if (num_components > 0) {
+                c->tmu.output_fifo_size += num_components;
+                if (!dest->is_ssa)
+                        _mesa_set_add(c->tmu.outstanding_regs, dest->reg.reg);
+        }
+
+        c->tmu.flush[c->tmu.flush_count].dest = dest;
+        c->tmu.flush[c->tmu.flush_count].component_mask = component_mask;
+        c->tmu.flush_count++;
+
+        if (c->disable_tmu_pipelining)
+                ntq_flush_tmu(c);
+}
+
+enum emit_mode {
+    MODE_COUNT = 0,
+    MODE_EMIT,
+    MODE_LAST,
+};
+
+/**
+ * For a TMU general store instruction:
+ *
+ * In MODE_COUNT mode, records the number of TMU writes required and flushes
+ * any outstanding TMU operations the instruction depends on, but it doesn't
+ * emit any actual register writes.
+ *
+ * In MODE_EMIT mode, emits the data register writes required by the
+ * instruction.
+ */
+static void
+emit_tmu_general_store_writes(struct v3d_compile *c,
+                              enum emit_mode mode,
+                              nir_intrinsic_instr *instr,
+                              uint32_t base_const_offset,
+                              uint32_t *writemask,
+                              uint32_t *const_offset,
+                              uint32_t *tmu_writes)
+{
+        struct qreg tmud = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUD);
+
+        /* Find the first set of consecutive components that
+         * are enabled in the writemask and emit the TMUD
+         * instructions for them.
+         */
+        uint32_t first_component = ffs(*writemask) - 1;
+        uint32_t last_component = first_component;
+        while (*writemask & BITFIELD_BIT(last_component + 1))
+                last_component++;
+
+        assert(first_component >= 0 &&
+               first_component <= last_component &&
+               last_component < instr->num_components);
+
+        for (int i = first_component; i <= last_component; i++) {
+                struct qreg data = ntq_get_src(c, instr->src[0], i);
+                if (mode == MODE_COUNT)
+                        (*tmu_writes)++;
+                else
+                        vir_MOV_dest(c, tmud, data);
+        }
+
+        if (mode == MODE_EMIT) {
+                /* Update the offset for the TMU write based on the
+                 * the first component we are writing.
+                 */
+                *const_offset = base_const_offset + first_component * 4;
+
+                /* Clear these components from the writemask */
+                uint32_t written_mask =
+                        BITFIELD_RANGE(first_component, *tmu_writes);
+                (*writemask) &= ~written_mask;
+        }
+}
+
+/**
+ * For a TMU general atomic instruction:
+ *
+ * In MODE_COUNT mode, records the number of TMU writes required and flushes
+ * any outstanding TMU operations the instruction depends on, but it doesn't
+ * emit any actual register writes.
+ *
+ * In MODE_EMIT mode, emits the data register writes required by the
+ * instruction.
+ */
+static void
+emit_tmu_general_atomic_writes(struct v3d_compile *c,
+                               enum emit_mode mode,
+                               nir_intrinsic_instr *instr,
+                               uint32_t tmu_op,
+                               bool has_index,
+                               uint32_t *tmu_writes)
+{
+        struct qreg tmud = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUD);
+
+        struct qreg data = ntq_get_src(c, instr->src[1 + has_index], 0);
+        if (mode == MODE_COUNT)
+                (*tmu_writes)++;
+        else
+                vir_MOV_dest(c, tmud, data);
+
+        if (tmu_op == V3D_TMU_OP_WRITE_CMPXCHG_READ_FLUSH) {
+                data = ntq_get_src(c, instr->src[2 + has_index], 0);
+                if (mode == MODE_COUNT)
+                        (*tmu_writes)++;
+                else
+                        vir_MOV_dest(c, tmud, data);
+        }
+}
+
+/**
+ * For any TMU general instruction:
+ *
+ * In MODE_COUNT mode, records the number of TMU writes required to emit the
+ * address parameter and flushes any outstanding TMU operations the instruction
+ * depends on, but it doesn't emit any actual register writes.
+ *
+ * In MODE_EMIT mode, emits register writes required to emit the address.
+ */
+static void
+emit_tmu_general_address_write(struct v3d_compile *c,
+                               enum emit_mode mode,
+                               nir_intrinsic_instr *instr,
+                               uint32_t config,
+                               bool dynamic_src,
+                               int offset_src,
+                               struct qreg base_offset,
+                               uint32_t const_offset,
+                               uint32_t *tmu_writes)
+{
+        if (mode == MODE_COUNT) {
+                (*tmu_writes)++;
+                if (dynamic_src)
+                        ntq_get_src(c, instr->src[offset_src], 0);
+                return;
+        }
+
+        if (vir_in_nonuniform_control_flow(c)) {
+                vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), c->execute),
+                           V3D_QPU_PF_PUSHZ);
+        }
+
+        struct qreg tmua;
+        if (config == ~0)
+                tmua = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUA);
+        else
+                tmua = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUAU);
+
+        struct qinst *tmu;
+        if (dynamic_src) {
+                struct qreg offset = base_offset;
+                if (const_offset != 0) {
+                        offset = vir_ADD(c, offset,
+                                         vir_uniform_ui(c, const_offset));
+                }
+                struct qreg data = ntq_get_src(c, instr->src[offset_src], 0);
+                tmu = vir_ADD_dest(c, tmua, offset, data);
+        } else {
+                if (const_offset != 0) {
+                        tmu = vir_ADD_dest(c, tmua, base_offset,
+                                           vir_uniform_ui(c, const_offset));
+                } else {
+                        tmu = vir_MOV_dest(c, tmua, base_offset);
+                }
+        }
+
+        if (config != ~0) {
+                tmu->uniform =
+                        vir_get_uniform_index(c, QUNIFORM_CONSTANT, config);
+        }
+
+        if (vir_in_nonuniform_control_flow(c))
+                vir_set_cond(tmu, V3D_QPU_COND_IFA);
+}
+
+/**
  * Implements indirect uniform loads and SSBO accesses through the TMU general
  * memory access interface.
  */
@@ -265,9 +508,9 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
                 const_offset = 0;
         } else if (instr->intrinsic == nir_intrinsic_load_ubo) {
                 uint32_t index = nir_src_as_uint(instr->src[0]);
-		/* On OpenGL QUNIFORM_UBO_ADDR takes a UBO index
-		 * shifted up by 1 (0 is gallium's constant buffer 0).
-		 */
+                /* On OpenGL QUNIFORM_UBO_ADDR takes a UBO index
+                 * shifted up by 1 (0 is gallium's constant buffer 0).
+                 */
                 if (c->key->environment == V3D_ENVIRONMENT_OPENGL)
                         index++;
 
@@ -293,141 +536,101 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
                                                                       1 : 0]));
         }
 
-        struct qreg tmud = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUD);
-        unsigned writemask = is_store ? nir_intrinsic_write_mask(instr) : 0;
+        /* We are ready to emit TMU register writes now, but before we actually
+         * emit them we need to flush outstanding TMU operations if any of our
+         * writes reads from the result of an outstanding TMU operation before
+         * we start the TMU sequence for this operation, since otherwise the
+         * flush could happen in the middle of the TMU sequence we are about to
+         * emit, which is illegal. To do this we run this logic twice, the
+         * first time it will count required register writes and flush pending
+         * TMU requests if necessary due to a dependency, and the second one
+         * will emit the actual TMU writes.
+         */
+        const uint32_t dest_components = nir_intrinsic_dest_components(instr);
         uint32_t base_const_offset = const_offset;
-        int first_component = -1;
-        int last_component = -1;
-        do {
-                int tmu_writes = 1; /* address */
+        uint32_t writemask = is_store ? nir_intrinsic_write_mask(instr) : 0;
+        uint32_t tmu_writes = 0;
+        for (enum emit_mode mode = MODE_COUNT; mode != MODE_LAST; mode++) {
+                assert(mode == MODE_COUNT || tmu_writes > 0);
 
                 if (is_store) {
-                        /* Find the first set of consecutive components that
-                         * are enabled in the writemask and emit the TMUD
-                         * instructions for them.
-                         */
-                        first_component = ffs(writemask) - 1;
-                        last_component = first_component;
-                        while (writemask & BITFIELD_BIT(last_component + 1))
-                                last_component++;
-
-                        assert(first_component >= 0 &&
-                               first_component <= last_component &&
-                               last_component < instr->num_components);
-
-                        struct qreg tmud = vir_reg(QFILE_MAGIC,
-                                                   V3D_QPU_WADDR_TMUD);
-                        for (int i = first_component; i <= last_component; i++) {
-                                struct qreg data =
-                                        ntq_get_src(c, instr->src[0], i);
-                                vir_MOV_dest(c, tmud, data);
-                                tmu_writes++;
-                        }
-
-                        /* Update the offset for the TMU write based on the
-                         * the first component we are writing.
-                         */
-                        const_offset = base_const_offset + first_component * 4;
-
-                        /* Clear these components from the writemask */
-                        uint32_t written_mask =
-                                BITFIELD_RANGE(first_component, tmu_writes - 1);
-                        writemask &= ~written_mask;
+                        emit_tmu_general_store_writes(c, mode, instr,
+                                                      base_const_offset,
+                                                      &writemask,
+                                                      &const_offset,
+                                                      &tmu_writes);
                 } else if (!is_load && !atomic_add_replaced) {
-                        struct qreg data =
-                                ntq_get_src(c, instr->src[1 + has_index], 0);
-                        vir_MOV_dest(c, tmud, data);
-                        tmu_writes++;
-                        if (tmu_op == V3D_TMU_OP_WRITE_CMPXCHG_READ_FLUSH) {
-                                data = ntq_get_src(c, instr->src[2 + has_index],
-                                                   0);
-                                vir_MOV_dest(c, tmud, data);
-                                tmu_writes++;
-                        }
+                         emit_tmu_general_atomic_writes(c, mode, instr,
+                                                        tmu_op, has_index,
+                                                        &tmu_writes);
                 }
 
-                /* Make sure we won't exceed the 16-entry TMU fifo if each
-                 * thread is storing at the same time.
+                /* The spec says that for atomics, the TYPE field is
+                 * ignored, but that doesn't seem to be the case for
+                 * CMPXCHG.  Just use the number of tmud writes we did
+                 * to decide the type (or choose "32bit" for atomic
+                 * reads, which has been fine).
                  */
-                while (tmu_writes > 16 / c->threads)
-                        c->threads /= 2;
-
-                /* The spec says that for atomics, the TYPE field is ignored,
-                 * but that doesn't seem to be the case for CMPXCHG.  Just use
-                 * the number of tmud writes we did to decide the type (or
-                 * choose "32bit" for atomic reads, which has been fine).
-                 */
-                uint32_t num_components;
-                if (is_load || atomic_add_replaced) {
-                        num_components = instr->num_components;
-                } else {
-                        assert(tmu_writes > 1);
-                        num_components = tmu_writes - 1;
-                }
-
-                uint32_t perquad = is_load
-                   ? GENERAL_TMU_LOOKUP_PER_QUAD
-                   : GENERAL_TMU_LOOKUP_PER_PIXEL;
-                uint32_t config = (0xffffff00 |
-                                   tmu_op << 3|
-                                   perquad);
-                if (num_components == 1) {
-                        config |= GENERAL_TMU_LOOKUP_TYPE_32BIT_UI;
-                } else {
-                        config |= GENERAL_TMU_LOOKUP_TYPE_VEC2 +
-                                  num_components - 2;
-                }
-
-                if (vir_in_nonuniform_control_flow(c)) {
-                        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), c->execute),
-                                   V3D_QPU_PF_PUSHZ);
-                }
-
-                struct qreg tmua;
-                if (config == ~0)
-                        tmua = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUA);
-                else
-                        tmua = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUAU);
-
-                struct qinst *tmu;
-                if (dynamic_src) {
-                        struct qreg offset = base_offset;
-                        if (const_offset != 0) {
-                                offset = vir_ADD(c, offset,
-                                                 vir_uniform_ui(c, const_offset));
-                        }
-                        struct qreg data =
-                                ntq_get_src(c, instr->src[offset_src], 0);
-                        tmu = vir_ADD_dest(c, tmua, offset, data);
-                } else {
-                        if (const_offset != 0) {
-                                tmu = vir_ADD_dest(c, tmua, base_offset,
-                                                   vir_uniform_ui(c, const_offset));
+                uint32_t config = 0;
+                if (mode == MODE_EMIT) {
+                        uint32_t num_components;
+                        if (is_load || atomic_add_replaced) {
+                                num_components = instr->num_components;
                         } else {
-                                tmu = vir_MOV_dest(c, tmua, base_offset);
+                                assert(tmu_writes > 0);
+                                num_components = tmu_writes - 1;
+                        }
+
+                        uint32_t perquad =
+                                is_load && !vir_in_nonuniform_control_flow(c)
+                                ? GENERAL_TMU_LOOKUP_PER_QUAD
+                                : GENERAL_TMU_LOOKUP_PER_PIXEL;
+                        config = 0xffffff00 | tmu_op << 3 | perquad;
+
+                        if (num_components == 1) {
+                                config |= GENERAL_TMU_LOOKUP_TYPE_32BIT_UI;
+                        } else {
+                                config |= GENERAL_TMU_LOOKUP_TYPE_VEC2 +
+                                          num_components - 2;
                         }
                 }
 
-                if (config != ~0) {
-                        tmu->uniform =
-                                vir_get_uniform_index(c, QUNIFORM_CONSTANT,
-                                                      config);
+                emit_tmu_general_address_write(c, mode, instr, config,
+                                               dynamic_src, offset_src,
+                                               base_offset, const_offset,
+                                               &tmu_writes);
+
+                assert(tmu_writes > 0);
+                if (mode == MODE_COUNT) {
+                        /* Make sure we won't exceed the 16-entry TMU
+                         * fifo if each thread is storing at the same
+                         * time.
+                         */
+                        while (tmu_writes > 16 / c->threads)
+                                c->threads /= 2;
+
+                        /* If pipelining this TMU operation would
+                         * overflow TMU fifos, we need to flush.
+                         */
+                        if (ntq_tmu_fifo_overflow(c, dest_components))
+                                ntq_flush_tmu(c);
+                } else {
+                        /* Delay emission of the thread switch and
+                         * LDTMU/TMUWT until we really need to do it to
+                         * improve pipelining.
+                         */
+                        const uint32_t component_mask =
+                                (1 << dest_components) - 1;
+                        ntq_add_pending_tmu_flush(c, &instr->dest,
+                                                  component_mask);
                 }
+        }
 
-                if (vir_in_nonuniform_control_flow(c))
-                        vir_set_cond(tmu, V3D_QPU_COND_IFA);
-
-                vir_emit_thrsw(c);
-
-                /* Read the result, or wait for the TMU op to complete. */
-                for (int i = 0; i < nir_intrinsic_dest_components(instr); i++) {
-                        ntq_store_dest(c, &instr->dest, i,
-                                       vir_MOV(c, vir_LDTMU(c)));
-                }
-
-                if (nir_intrinsic_dest_components(instr) == 0)
-                        vir_TMUWT(c);
-        } while (is_store && writemask != 0);
+        /* nir_lower_wrmasks should've ensured that any writemask on a store
+         * operation only has consecutive bits set, in which case we should've
+         * processed the full writemask above.
+         */
+        assert(writemask == 0);
 }
 
 static struct qreg *
@@ -453,6 +656,12 @@ is_ld_signal(const struct v3d_qpu_sig *sig)
                 sig->ldtlbu);
 }
 
+static inline bool
+is_ldunif_signal(const struct v3d_qpu_sig *sig)
+{
+        return sig->ldunif || sig->ldunifrf;
+}
+
 /**
  * This function is responsible for getting VIR results into the associated
  * storage for a NIR instruction.
@@ -476,8 +685,12 @@ ntq_store_dest(struct v3d_compile *c, nir_dest *dest, int chan,
         if (!list_is_empty(&c->cur_block->instructions))
                 last_inst = (struct qinst *)c->cur_block->instructions.prev;
 
-        assert((result.file == QFILE_TEMP &&
-                last_inst && last_inst == c->defs[result.index]));
+        bool is_reused_uniform =
+                is_ldunif_signal(&c->defs[result.index]->qpu.sig) &&
+                last_inst != c->defs[result.index];
+
+        assert(result.file == QFILE_TEMP && last_inst &&
+               (last_inst == c->defs[result.index] || is_reused_uniform));
 
         if (dest->is_ssa) {
                 assert(chan < dest->ssa.num_components);
@@ -504,8 +717,9 @@ ntq_store_dest(struct v3d_compile *c, nir_dest *dest, int chan,
                  * the store into the nir_register, then emit a MOV
                  * that can be.
                  */
-                if (vir_in_nonuniform_control_flow(c) &&
-                    is_ld_signal(&c->defs[last_inst->dst.index]->qpu.sig)) {
+                if (is_reused_uniform ||
+                    (vir_in_nonuniform_control_flow(c) &&
+                     is_ld_signal(&c->defs[last_inst->dst.index]->qpu.sig))) {
                         result = vir_MOV(c, result);
                         last_inst = c->defs[result.index];
                 }
@@ -523,7 +737,7 @@ ntq_store_dest(struct v3d_compile *c, nir_dest *dest, int chan,
                         /* Set the flags to the current exec mask.
                          */
                         c->cursor = vir_before_inst(last_inst);
-                        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), c->execute),
+                        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), c->execute),
                                    V3D_QPU_PF_PUSHZ);
                         c->cursor = vir_after_inst(last_inst);
 
@@ -532,20 +746,42 @@ ntq_store_dest(struct v3d_compile *c, nir_dest *dest, int chan,
         }
 }
 
+/**
+ * This looks up the qreg associated with a particular ssa/reg used as a source
+ * in any instruction.
+ *
+ * It is expected that the definition for any NIR value read as a source has
+ * been emitted by a previous instruction, however, in the case of TMU
+ * operations we may have postponed emission of the thread switch and LDTMUs
+ * required to read the TMU results until the results are actually used to
+ * improve pipelining, which then would lead to us not finding them here
+ * (for SSA defs) or finding them in the list of registers awaiting a TMU flush
+ * (for registers), meaning that we need to flush outstanding TMU operations
+ * to read the correct value.
+ */
 struct qreg
 ntq_get_src(struct v3d_compile *c, nir_src src, int i)
 {
         struct hash_entry *entry;
         if (src.is_ssa) {
-                entry = _mesa_hash_table_search(c->def_ht, src.ssa);
                 assert(i < src.ssa->num_components);
+
+                entry = _mesa_hash_table_search(c->def_ht, src.ssa);
+                if (!entry) {
+                        ntq_flush_tmu(c);
+                        entry = _mesa_hash_table_search(c->def_ht, src.ssa);
+                }
         } else {
                 nir_register *reg = src.reg.reg;
-                entry = _mesa_hash_table_search(c->def_ht, reg);
                 assert(reg->num_array_elems == 0);
                 assert(src.reg.base_offset == 0);
                 assert(i < reg->num_components);
+
+                if (_mesa_set_search(c->tmu.outstanding_regs, reg))
+                        ntq_flush_tmu(c);
+                entry = _mesa_hash_table_search(c->def_ht, reg);
         }
+        assert(entry);
 
         struct qreg *qregs = entry->data;
         return qregs[i];
@@ -670,9 +906,9 @@ ntq_fsign(struct v3d_compile *c, struct qreg src)
         struct qreg t = vir_get_temp(c);
 
         vir_MOV_dest(c, t, vir_uniform_f(c, 0.0));
-        vir_set_pf(vir_FMOV_dest(c, vir_nop_reg(), src), V3D_QPU_PF_PUSHZ);
+        vir_set_pf(c, vir_FMOV_dest(c, vir_nop_reg(), src), V3D_QPU_PF_PUSHZ);
         vir_MOV_cond(c, V3D_QPU_COND_IFNA, t, vir_uniform_f(c, 1.0));
-        vir_set_pf(vir_FMOV_dest(c, vir_nop_reg(), src), V3D_QPU_PF_PUSHN);
+        vir_set_pf(c, vir_FMOV_dest(c, vir_nop_reg(), src), V3D_QPU_PF_PUSHN);
         vir_MOV_cond(c, V3D_QPU_COND_IFA, t, vir_uniform_f(c, -1.0));
         return vir_MOV(c, t);
 }
@@ -687,16 +923,39 @@ emit_fragcoord_input(struct v3d_compile *c, int attr)
 }
 
 static struct qreg
+emit_smooth_varying(struct v3d_compile *c,
+                    struct qreg vary, struct qreg w, struct qreg r5)
+{
+        return vir_FADD(c, vir_FMUL(c, vary, w), r5);
+}
+
+static struct qreg
+emit_noperspective_varying(struct v3d_compile *c,
+                           struct qreg vary, struct qreg r5)
+{
+        return vir_FADD(c, vir_MOV(c, vary), r5);
+}
+
+static struct qreg
+emit_flat_varying(struct v3d_compile *c,
+                  struct qreg vary, struct qreg r5)
+{
+        vir_MOV_dest(c, c->undef, vary);
+        return vir_MOV(c, r5);
+}
+
+static struct qreg
 emit_fragment_varying(struct v3d_compile *c, nir_variable *var,
                       int8_t input_idx, uint8_t swizzle, int array_index)
 {
         struct qreg r3 = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_R3);
         struct qreg r5 = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_R5);
 
+        struct qinst *ldvary = NULL;
         struct qreg vary;
         if (c->devinfo->ver >= 41) {
-                struct qinst *ldvary = vir_add_inst(V3D_QPU_A_NOP, c->undef,
-                                                    c->undef, c->undef);
+                ldvary = vir_add_inst(V3D_QPU_A_NOP, c->undef,
+                                      c->undef, c->undef);
                 ldvary->qpu.sig.ldvary = true;
                 vary = vir_emit_def(c, ldvary);
         } else {
@@ -708,10 +967,10 @@ emit_fragment_varying(struct v3d_compile *c, nir_variable *var,
          * GLSL's interpolateAt functions if the shader uses them.
          */
         if (input_idx >= 0) {
-           assert(var);
-           c->interp[input_idx].vp = vary;
-           c->interp[input_idx].C = vir_MOV(c, r5);
-           c->interp[input_idx].mode = var->data.interpolation;
+                assert(var);
+                c->interp[input_idx].vp = vary;
+                c->interp[input_idx].C = vir_MOV(c, r5);
+                c->interp[input_idx].mode = var->data.interpolation;
         }
 
         /* For gl_PointCoord input or distance along a line, we'll be called
@@ -720,7 +979,7 @@ emit_fragment_varying(struct v3d_compile *c, nir_variable *var,
          */
         if (!var) {
                 assert(input_idx < 0);
-                return vir_FADD(c, vir_FMUL(c, vary, c->payload_w), r5);
+                return emit_smooth_varying(c, vary, c->payload_w, r5);
         }
 
         int i = c->num_inputs++;
@@ -731,54 +990,30 @@ emit_fragment_varying(struct v3d_compile *c, nir_variable *var,
         struct qreg result;
         switch (var->data.interpolation) {
         case INTERP_MODE_NONE:
-                /* If a gl_FrontColor or gl_BackColor input has no interp
-                 * qualifier, then if we're using glShadeModel(GL_FLAT) it
-                 * needs to be flat shaded.
-                 */
-                switch (var->data.location + array_index) {
-                case VARYING_SLOT_COL0:
-                case VARYING_SLOT_COL1:
-                case VARYING_SLOT_BFC0:
-                case VARYING_SLOT_BFC1:
-                        if (c->fs_key->shade_model_flat) {
-                                BITSET_SET(c->flat_shade_flags, i);
-                                vir_MOV_dest(c, c->undef, vary);
-                                result = vir_MOV(c, r5);
-                        } else {
-                                result = vir_FADD(c, vir_FMUL(c, vary,
-                                                              c->payload_w), r5);
-                        }
-                        goto done;
-                default:
-                        break;
-                }
-                /* FALLTHROUGH */
         case INTERP_MODE_SMOOTH:
                 if (var->data.centroid) {
                         BITSET_SET(c->centroid_flags, i);
-                        result = vir_FADD(c, vir_FMUL(c, vary,
-                                                      c->payload_w_centroid), r5);
+                        result = emit_smooth_varying(c, vary,
+                                                     c->payload_w_centroid, r5);
                 } else {
-                        result = vir_FADD(c, vir_FMUL(c, vary, c->payload_w), r5);
+                        result = emit_smooth_varying(c, vary, c->payload_w, r5);
                 }
                 break;
 
         case INTERP_MODE_NOPERSPECTIVE:
                 BITSET_SET(c->noperspective_flags, i);
-                result = vir_FADD(c, vir_MOV(c, vary), r5);
+                result = emit_noperspective_varying(c, vary, r5);
                 break;
 
         case INTERP_MODE_FLAT:
                 BITSET_SET(c->flat_shade_flags, i);
-                vir_MOV_dest(c, c->undef, vary);
-                result = vir_MOV(c, r5);
+                result = emit_flat_varying(c, vary, r5);
                 break;
 
         default:
                 unreachable("Bad interp mode");
         }
 
-done:
         if (input_idx >= 0)
                 c->inputs[input_idx] = result;
         return result;
@@ -849,53 +1084,53 @@ ntq_emit_comparison(struct v3d_compile *c,
         switch (compare_instr->op) {
         case nir_op_feq32:
         case nir_op_seq:
-                vir_set_pf(vir_FCMP_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHZ);
+                vir_set_pf(c, vir_FCMP_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHZ);
                 break;
         case nir_op_ieq32:
-                vir_set_pf(vir_XOR_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHZ);
+                vir_set_pf(c, vir_XOR_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHZ);
                 break;
 
         case nir_op_fneu32:
         case nir_op_sne:
-                vir_set_pf(vir_FCMP_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHZ);
+                vir_set_pf(c, vir_FCMP_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHZ);
                 cond_invert = true;
                 break;
         case nir_op_ine32:
-                vir_set_pf(vir_XOR_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHZ);
+                vir_set_pf(c, vir_XOR_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHZ);
                 cond_invert = true;
                 break;
 
         case nir_op_fge32:
         case nir_op_sge:
-                vir_set_pf(vir_FCMP_dest(c, nop, src1, src0), V3D_QPU_PF_PUSHC);
+                vir_set_pf(c, vir_FCMP_dest(c, nop, src1, src0), V3D_QPU_PF_PUSHC);
                 break;
         case nir_op_ige32:
-                vir_set_pf(vir_MIN_dest(c, nop, src1, src0), V3D_QPU_PF_PUSHC);
+                vir_set_pf(c, vir_MIN_dest(c, nop, src1, src0), V3D_QPU_PF_PUSHC);
                 cond_invert = true;
                 break;
         case nir_op_uge32:
-                vir_set_pf(vir_SUB_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHC);
+                vir_set_pf(c, vir_SUB_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHC);
                 cond_invert = true;
                 break;
 
         case nir_op_slt:
         case nir_op_flt32:
-                vir_set_pf(vir_FCMP_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHN);
+                vir_set_pf(c, vir_FCMP_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHN);
                 break;
         case nir_op_ilt32:
-                vir_set_pf(vir_MIN_dest(c, nop, src1, src0), V3D_QPU_PF_PUSHC);
+                vir_set_pf(c, vir_MIN_dest(c, nop, src1, src0), V3D_QPU_PF_PUSHC);
                 break;
         case nir_op_ult32:
-                vir_set_pf(vir_SUB_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHC);
+                vir_set_pf(c, vir_SUB_dest(c, nop, src0, src1), V3D_QPU_PF_PUSHC);
                 break;
 
         case nir_op_i2b32:
-                vir_set_pf(vir_MOV_dest(c, nop, src0), V3D_QPU_PF_PUSHZ);
+                vir_set_pf(c, vir_MOV_dest(c, nop, src0), V3D_QPU_PF_PUSHZ);
                 cond_invert = true;
                 break;
 
         case nir_op_f2b32:
-                vir_set_pf(vir_FMOV_dest(c, nop, src0), V3D_QPU_PF_PUSHZ);
+                vir_set_pf(c, vir_FMOV_dest(c, nop, src0), V3D_QPU_PF_PUSHZ);
                 cond_invert = true;
                 break;
 
@@ -936,6 +1171,11 @@ ntq_get_alu_parent(nir_src src)
 static enum v3d_qpu_cond
 ntq_emit_bool_to_cond(struct v3d_compile *c, nir_src src)
 {
+        struct qreg qsrc = ntq_get_src(c, src, 0);
+        /* skip if we already have src in the flags */
+        if (qsrc.file == QFILE_TEMP && c->flags_temp == qsrc.index)
+                return c->flags_cond;
+
         nir_alu_instr *compare = ntq_get_alu_parent(src);
         if (!compare)
                 goto out;
@@ -945,7 +1185,8 @@ ntq_emit_bool_to_cond(struct v3d_compile *c, nir_src src)
                 return cond;
 
 out:
-        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), ntq_get_src(c, src, 0)),
+
+        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), ntq_get_src(c, src, 0)),
                    V3D_QPU_PF_PUSHZ);
         return V3D_QPU_COND_IFNA;
 }
@@ -1093,6 +1334,8 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
                 result = vir_MOV(c, vir_SEL(c, cond,
                                             vir_uniform_f(c, 1.0),
                                             vir_uniform_f(c, 0.0)));
+                c->flags_temp = result.index;
+                c->flags_cond = cond;
                 break;
         }
 
@@ -1114,6 +1357,8 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
                 result = vir_MOV(c, vir_SEL(c, cond,
                                             vir_uniform_ui(c, ~0),
                                             vir_uniform_ui(c, 0)));
+                c->flags_temp = result.index;
+                c->flags_cond = cond;
                 break;
         }
 
@@ -1125,7 +1370,7 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
                 break;
 
         case nir_op_fcsel:
-                vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), src[0]),
+                vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), src[0]),
                            V3D_QPU_PF_PUSHZ);
                 result = vir_MOV(c, vir_SEL(c, V3D_QPU_COND_IFNA,
                                             src[1], src[2]));
@@ -1191,11 +1436,13 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
                 break;
 
         case nir_op_uadd_carry:
-                vir_set_pf(vir_ADD_dest(c, vir_nop_reg(), src[0], src[1]),
+                vir_set_pf(c, vir_ADD_dest(c, vir_nop_reg(), src[0], src[1]),
                            V3D_QPU_PF_PUSHC);
                 result = vir_MOV(c, vir_SEL(c, V3D_QPU_COND_IFA,
                                             vir_uniform_ui(c, ~0),
                                             vir_uniform_ui(c, 0)));
+                c->flags_temp = result.index;
+                c->flags_cond = V3D_QPU_COND_IFA;
                 break;
 
         case nir_op_pack_half_2x16_split:
@@ -1223,7 +1470,7 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
                 struct qreg abs_src = vir_FMOV(c, src[0]);
                 vir_set_unpack(c->defs[abs_src.index], 0, V3D_QPU_UNPACK_ABS);
                 struct qreg threshold = vir_uniform_f(c, ldexpf(1.0, -14));
-                vir_set_pf(vir_FCMP_dest(c, vir_nop_reg(), abs_src, threshold),
+                vir_set_pf(c, vir_FCMP_dest(c, vir_nop_reg(), abs_src, threshold),
                                          V3D_QPU_PF_PUSHC);
 
                 /* Return +/-0 for denorms */
@@ -1499,6 +1746,33 @@ emit_geom_end(struct v3d_compile *c)
                 vir_VPMWT(c);
 }
 
+static bool
+mem_vectorize_callback(unsigned align_mul, unsigned align_offset,
+                       unsigned bit_size,
+                       unsigned num_components,
+                       nir_intrinsic_instr *low,
+                       nir_intrinsic_instr *high,
+                       void *data)
+{
+        /* Our backend is 32-bit only at present */
+        if (bit_size != 32)
+                return false;
+
+        if (align_mul % 4 != 0 || align_offset % 4 != 0)
+                return false;
+
+        /* Vector accesses wrap at 16-byte boundaries so we can't vectorize
+         * if the resulting vector crosses a 16-byte boundary.
+         */
+        assert(util_is_power_of_two_nonzero(align_mul));
+        align_mul = MIN2(align_mul, 16);
+        align_offset &= 0xf;
+        if (16 - align_mul + align_offset + num_components * 4 > 16)
+                return false;
+
+        return true;
+}
+
 void
 v3d_optimize_nir(struct nir_shader *s)
 {
@@ -1523,6 +1797,15 @@ v3d_optimize_nir(struct nir_shader *s)
                 NIR_PASS(progress, s, nir_opt_algebraic);
                 NIR_PASS(progress, s, nir_opt_constant_folding);
 
+                nir_load_store_vectorize_options vectorize_opts = {
+                        .modes = nir_var_mem_ssbo | nir_var_mem_ubo |
+                                 nir_var_mem_push_const | nir_var_mem_shared |
+                                 nir_var_mem_global,
+                        .callback = mem_vectorize_callback,
+                        .robust_modes = 0,
+                };
+                NIR_PASS(progress, s, nir_opt_load_store_vectorize, &vectorize_opts);
+
                 if (lower_flrp != 0) {
                         bool lower_flrp_progress = false;
 
@@ -1541,7 +1824,13 @@ v3d_optimize_nir(struct nir_shader *s)
                 }
 
                 NIR_PASS(progress, s, nir_opt_undef);
+                NIR_PASS(progress, s, nir_lower_undef_to_zero);
         } while (progress);
+
+        nir_move_options sink_opts =
+                nir_move_const_undef | nir_move_comparisons | nir_move_copies |
+                nir_move_load_ubo;
+        NIR_PASS(progress, s, nir_opt_sink, sink_opts);
 
         NIR_PASS(progress, s, nir_opt_move, nir_move_load_ubo);
 }
@@ -1620,14 +1909,16 @@ ntq_setup_vs_inputs(struct v3d_compile *c)
 
         unsigned num_components = 0;
         uint32_t vpm_components_queued = 0;
-        bool uses_iid = c->s->info.system_values_read &
-                (1ull << SYSTEM_VALUE_INSTANCE_ID |
-                 1ull << SYSTEM_VALUE_INSTANCE_INDEX);
-        bool uses_biid = c->s->info.system_values_read &
-                (1ull << SYSTEM_VALUE_BASE_INSTANCE);
-        bool uses_vid = c->s->info.system_values_read &
-                (1ull << SYSTEM_VALUE_VERTEX_ID |
-                 1ull << SYSTEM_VALUE_VERTEX_ID_ZERO_BASE);
+        bool uses_iid = BITSET_TEST(c->s->info.system_values_read,
+                                    SYSTEM_VALUE_INSTANCE_ID) ||
+                        BITSET_TEST(c->s->info.system_values_read,
+                                    SYSTEM_VALUE_INSTANCE_INDEX);
+        bool uses_biid = BITSET_TEST(c->s->info.system_values_read,
+                                     SYSTEM_VALUE_BASE_INSTANCE);
+        bool uses_vid = BITSET_TEST(c->s->info.system_values_read,
+                                    SYSTEM_VALUE_VERTEX_ID) ||
+                        BITSET_TEST(c->s->info.system_values_read,
+                                    SYSTEM_VALUE_VERTEX_ID_ZERO_BASE);
 
         num_components += uses_iid;
         num_components += uses_biid;
@@ -1869,18 +2160,6 @@ ntq_emit_load_const(struct v3d_compile *c, nir_load_const_instr *instr)
 }
 
 static void
-ntq_emit_ssa_undef(struct v3d_compile *c, nir_ssa_undef_instr *instr)
-{
-        struct qreg *qregs = ntq_init_ssa_def(c, &instr->def);
-
-        /* VIR needs there to be *some* value, so pick 0 (same as for
-         * ntq_setup_registers().
-         */
-        for (int i = 0; i < instr->def.num_components; i++)
-                qregs[i] = vir_uniform_ui(c, 0);
-}
-
-static void
 ntq_emit_image_size(struct v3d_compile *c, nir_intrinsic_instr *instr)
 {
         unsigned image_index = nir_src_as_uint(instr->src[0]);
@@ -2079,16 +2358,16 @@ ntq_emit_load_input(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 * be slower if the VPM unit is busy with another QPU.
                 */
                int index = 0;
-               if (c->s->info.system_values_read &
-                   (1ull << SYSTEM_VALUE_INSTANCE_ID)) {
+               if (BITSET_TEST(c->s->info.system_values_read,
+                               SYSTEM_VALUE_INSTANCE_ID)) {
                       index++;
                }
-               if (c->s->info.system_values_read &
-                   (1ull << SYSTEM_VALUE_BASE_INSTANCE)) {
+               if (BITSET_TEST(c->s->info.system_values_read,
+                               SYSTEM_VALUE_BASE_INSTANCE)) {
                       index++;
                }
-               if (c->s->info.system_values_read &
-                   (1ull << SYSTEM_VALUE_VERTEX_ID)) {
+               if (BITSET_TEST(c->s->info.system_values_read,
+                               SYSTEM_VALUE_VERTEX_ID)) {
                       index++;
                }
                for (int i = 0; i < offset; i++)
@@ -2157,7 +2436,7 @@ emit_store_output_gs(struct v3d_compile *c, nir_intrinsic_instr *instr)
          * is not true for GS, where we are emitting multiple vertices.
          */
         if (vir_in_nonuniform_control_flow(c)) {
-                vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), c->execute),
+                vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), c->execute),
                            V3D_QPU_PF_PUSHZ);
         }
 
@@ -2225,7 +2504,7 @@ ntq_get_sample_offset(struct v3d_compile *c, struct qreg sample_idx,
                 vir_FADD(c, vir_uniform_f(c, -0.125f),
                             vir_FMUL(c, sample_idx,
                                         vir_uniform_f(c, 0.5f)));
-        vir_set_pf(vir_FCMP_dest(c, vir_nop_reg(),
+        vir_set_pf(c, vir_FCMP_dest(c, vir_nop_reg(),
                                     vir_uniform_f(c, 2.0f), sample_idx),
                    V3D_QPU_PF_PUSHC);
         offset_x = vir_SEL(c, V3D_QPU_COND_IFA,
@@ -2265,25 +2544,25 @@ ntq_get_barycentric_centroid(struct v3d_compile *c,
         struct qreg F = vir_uniform_ui(c, 0);
         struct qreg T = vir_uniform_ui(c, ~0);
         struct qreg s0 = vir_XOR(c, vir_AND(c, sample_mask, i1), i1);
-        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), s0), V3D_QPU_PF_PUSHZ);
+        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), s0), V3D_QPU_PF_PUSHZ);
         s0 = vir_SEL(c, V3D_QPU_COND_IFA, T, F);
         struct qreg s1 = vir_XOR(c, vir_AND(c, sample_mask, i2), i2);
-        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), s1), V3D_QPU_PF_PUSHZ);
+        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), s1), V3D_QPU_PF_PUSHZ);
         s1 = vir_SEL(c, V3D_QPU_COND_IFA, T, F);
         struct qreg s2 = vir_XOR(c, vir_AND(c, sample_mask, i4), i4);
-        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), s2), V3D_QPU_PF_PUSHZ);
+        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), s2), V3D_QPU_PF_PUSHZ);
         s2 = vir_SEL(c, V3D_QPU_COND_IFA, T, F);
         struct qreg s3 = vir_XOR(c, vir_AND(c, sample_mask, i8), i8);
-        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), s3), V3D_QPU_PF_PUSHZ);
+        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), s3), V3D_QPU_PF_PUSHZ);
         s3 = vir_SEL(c, V3D_QPU_COND_IFA, T, F);
 
         /* sample_idx = s0 ? 0 : s2 ? 2 : s1 ? 1 : 3 */
         struct qreg sample_idx = i3;
-        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), s1), V3D_QPU_PF_PUSHZ);
+        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), s1), V3D_QPU_PF_PUSHZ);
         sample_idx = vir_SEL(c, V3D_QPU_COND_IFNA, i1, sample_idx);
-        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), s2), V3D_QPU_PF_PUSHZ);
+        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), s2), V3D_QPU_PF_PUSHZ);
         sample_idx = vir_SEL(c, V3D_QPU_COND_IFNA, i2, sample_idx);
-        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), s0), V3D_QPU_PF_PUSHZ);
+        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), s0), V3D_QPU_PF_PUSHZ);
         sample_idx = vir_SEL(c, V3D_QPU_COND_IFNA, i0, sample_idx);
 
         /* Get offset at selected sample index */
@@ -2297,13 +2576,13 @@ ntq_get_barycentric_centroid(struct v3d_compile *c,
         struct qreg s1_and_s2 = vir_AND(c, s1, s2);
 
         struct qreg use_center = vir_XOR(c, sample_mask, vir_uniform_ui(c, 0));
-        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), use_center), V3D_QPU_PF_PUSHZ);
+        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), use_center), V3D_QPU_PF_PUSHZ);
         use_center = vir_SEL(c, V3D_QPU_COND_IFA, T, F);
         use_center = vir_OR(c, use_center, s0_and_s3);
         use_center = vir_OR(c, use_center, s1_and_s2);
 
         struct qreg zero = vir_uniform_f(c, 0.0f);
-        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), use_center), V3D_QPU_PF_PUSHZ);
+        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), use_center), V3D_QPU_PF_PUSHZ);
         offset_x = vir_SEL(c, V3D_QPU_COND_IFNA, zero, offset_x);
         offset_y = vir_SEL(c, V3D_QPU_COND_IFNA, zero, offset_y);
 
@@ -2350,6 +2629,76 @@ ntq_emit_load_interpolated_input(struct v3d_compile *c,
 }
 
 static void
+emit_ldunifa(struct v3d_compile *c, struct qreg *result)
+{
+        struct qinst *ldunifa =
+                vir_add_inst(V3D_QPU_A_NOP, c->undef, c->undef, c->undef);
+        ldunifa->qpu.sig.ldunifa = true;
+        if (result)
+                *result = vir_emit_def(c, ldunifa);
+        else
+                vir_emit_nondef(c, ldunifa);
+        c->last_unifa_offset += 4;
+}
+
+static void
+ntq_emit_load_ubo_unifa(struct v3d_compile *c, nir_intrinsic_instr *instr)
+{
+        bool dynamic_src = !nir_src_is_const(instr->src[1]);
+        uint32_t const_offset =
+                dynamic_src ? 0 : nir_src_as_uint(instr->src[1]);
+
+        /* On OpenGL QUNIFORM_UBO_ADDR takes a UBO index
+         * shifted up by 1 (0 is gallium's constant buffer 0).
+         */
+        uint32_t index = nir_src_as_uint(instr->src[0]);
+        if (c->key->environment == V3D_ENVIRONMENT_OPENGL)
+                index++;
+
+        /* We can only keep track of the last unifa address we used with
+         * constant offset loads.
+         */
+        bool skip_unifa = false;
+        uint32_t ldunifa_skips = 0;
+        if (dynamic_src) {
+                c->last_unifa_block = NULL;
+        } else if (c->cur_block == c->last_unifa_block &&
+                   c->last_unifa_index == index &&
+                   c->last_unifa_offset <= const_offset &&
+                   c->last_unifa_offset + 12 >= const_offset) {
+                skip_unifa = true;
+                ldunifa_skips = (const_offset - c->last_unifa_offset) / 4;
+        } else {
+                c->last_unifa_block = c->cur_block;
+                c->last_unifa_index = index;
+                c->last_unifa_offset = const_offset;
+        }
+
+        if (!skip_unifa) {
+                struct qreg base_offset =
+                        vir_uniform(c, QUNIFORM_UBO_ADDR,
+                                    v3d_unit_data_create(index, const_offset));
+
+                struct qreg unifa = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_UNIFA);
+                if (!dynamic_src) {
+                        vir_MOV_dest(c, unifa, base_offset);
+                } else {
+                        vir_ADD_dest(c, unifa, base_offset,
+                                     ntq_get_src(c, instr->src[1], 0));
+                }
+        } else {
+                for (int i = 0; i < ldunifa_skips; i++)
+                        emit_ldunifa(c, NULL);
+        }
+
+        for (uint32_t i = 0; i < nir_intrinsic_dest_components(instr); i++) {
+                struct qreg data;
+                emit_ldunifa(c, &data);
+                ntq_store_dest(c, &instr->dest, i, vir_MOV(c, data));
+        }
+}
+
+static void
 ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
 {
         switch (instr->intrinsic) {
@@ -2358,7 +2707,10 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 break;
 
         case nir_intrinsic_load_ubo:
-                ntq_emit_tmu_general(c, instr, false);
+                if (!nir_src_is_divergent(instr->src[1]))
+                        ntq_emit_load_ubo_unifa(c, instr);
+                else
+                        ntq_emit_tmu_general(c, instr, false);
                 break;
 
         case nir_intrinsic_ssbo_atomic_add:
@@ -2468,11 +2820,13 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 break;
 
         case nir_intrinsic_load_helper_invocation:
-                vir_set_pf(vir_MSF_dest(c, vir_nop_reg()), V3D_QPU_PF_PUSHZ);
-                ntq_store_dest(c, &instr->dest, 0,
-                               vir_MOV(c, vir_SEL(c, V3D_QPU_COND_IFA,
-                                                  vir_uniform_ui(c, ~0),
-                                                  vir_uniform_ui(c, 0))));
+                vir_set_pf(c, vir_MSF_dest(c, vir_nop_reg()), V3D_QPU_PF_PUSHZ);
+                struct qreg qdest = vir_MOV(c, vir_SEL(c, V3D_QPU_COND_IFA,
+                                                       vir_uniform_ui(c, ~0),
+                                                       vir_uniform_ui(c, 0)));
+                c->flags_temp = qdest.index;
+                c->flags_cond = V3D_QPU_COND_IFA;
+                ntq_store_dest(c, &instr->dest, 0, qdest);
                 break;
 
         case nir_intrinsic_load_front_face:
@@ -2518,8 +2872,10 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 break;
 
         case nir_intrinsic_discard:
+                ntq_flush_tmu(c);
+
                 if (vir_in_nonuniform_control_flow(c)) {
-                        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), c->execute),
+                        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), c->execute),
                                    V3D_QPU_PF_PUSHZ);
                         vir_set_cond(vir_SETMSF_dest(c, vir_nop_reg(),
                                                      vir_uniform_ui(c, 0)),
@@ -2531,15 +2887,17 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 break;
 
         case nir_intrinsic_discard_if: {
+                ntq_flush_tmu(c);
+
                 enum v3d_qpu_cond cond = ntq_emit_bool_to_cond(c, instr->src[0]);
 
                 if (vir_in_nonuniform_control_flow(c)) {
                         struct qinst *exec_flag = vir_MOV_dest(c, vir_nop_reg(),
                                                                c->execute);
                         if (cond == V3D_QPU_COND_IFA) {
-                                vir_set_uf(exec_flag, V3D_QPU_UF_ANDZ);
+                                vir_set_uf(c, exec_flag, V3D_QPU_UF_ANDZ);
                         } else {
-                                vir_set_uf(exec_flag, V3D_QPU_UF_NORNZ);
+                                vir_set_uf(c, exec_flag, V3D_QPU_UF_NORNZ);
                                 cond = V3D_QPU_COND_IFA;
                         }
                 }
@@ -2559,10 +2917,9 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 /* We don't do any instruction scheduling of these NIR
                  * instructions between each other, so we just need to make
                  * sure that the TMU operations before the barrier are flushed
-                 * before the ones after the barrier.  That is currently
-                 * handled by having a THRSW in each of them and a LDTMU
-                 * series or a TMUWT after.
+                 * before the ones after the barrier.
                  */
+                ntq_flush_tmu(c);
                 break;
 
         case nir_intrinsic_control_barrier:
@@ -2570,6 +2927,8 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                  * (actually supergroup) to block until the last invocation
                  * reaches the TSY op.
                  */
+                ntq_flush_tmu(c);
+
                 if (c->devinfo->ver >= 42) {
                         vir_BARRIERID_dest(c, vir_reg(QFILE_MAGIC,
                                                       V3D_QPU_WADDR_SYNCB));
@@ -2772,13 +3131,11 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
  * XXX perf: Could we be using flpush/flpop somehow for our execution channel
  * enabling?
  *
- * XXX perf: For uniform control flow, we should be able to skip c->execute
- * handling entirely.
  */
 static void
 ntq_activate_execute_for_block(struct v3d_compile *c)
 {
-        vir_set_pf(vir_XOR_dest(c, vir_nop_reg(),
+        vir_set_pf(c, vir_XOR_dest(c, vir_nop_reg(),
                                 c->execute, vir_uniform_ui(c, c->cur_block->index)),
                    V3D_QPU_PF_PUSHZ);
 
@@ -2805,9 +3162,14 @@ ntq_emit_uniform_if(struct v3d_compile *c, nir_if *if_stmt)
         enum v3d_qpu_cond cond = ntq_emit_bool_to_cond(c, if_stmt->condition);
 
         /* Jump to ELSE. */
-        vir_BRANCH(c, cond == V3D_QPU_COND_IFA ?
-                   V3D_QPU_BRANCH_COND_ALLNA :
-                   V3D_QPU_BRANCH_COND_ALLA);
+        struct qinst *branch = vir_BRANCH(c, cond == V3D_QPU_COND_IFA ?
+                   V3D_QPU_BRANCH_COND_ANYNA :
+                   V3D_QPU_BRANCH_COND_ANYA);
+        /* Pixels that were not dispatched or have been discarded should not
+         * contribute to the ANYA/ANYNA condition.
+         */
+        branch->qpu.branch.msfign = V3D_QPU_MSFIGN_P;
+
         vir_link_blocks(c->cur_block, else_block);
         vir_link_blocks(c->cur_block, then_block);
 
@@ -2816,9 +3178,13 @@ ntq_emit_uniform_if(struct v3d_compile *c, nir_if *if_stmt)
         ntq_emit_cf_list(c, &if_stmt->then_list);
 
         if (!empty_else_block) {
-                /* At the end of the THEN block, jump to ENDIF */
-                vir_BRANCH(c, V3D_QPU_BRANCH_COND_ALWAYS);
-                vir_link_blocks(c->cur_block, after_block);
+                /* At the end of the THEN block, jump to ENDIF, unless
+                 * the block ended in a break or continue.
+                 */
+                if (!c->cur_block->branch_emitted) {
+                        vir_BRANCH(c, V3D_QPU_BRANCH_COND_ALWAYS);
+                        vir_link_blocks(c->cur_block, after_block);
+                }
 
                 /* Emit the else block. */
                 vir_set_emit_block(c, else_block);
@@ -2863,9 +3229,9 @@ ntq_emit_nonuniform_if(struct v3d_compile *c, nir_if *if_stmt)
         } else {
                 struct qinst *inst = vir_MOV_dest(c, vir_nop_reg(), c->execute);
                 if (cond == V3D_QPU_COND_IFA) {
-                        vir_set_uf(inst, V3D_QPU_UF_NORNZ);
+                        vir_set_uf(c, inst, V3D_QPU_UF_NORNZ);
                 } else {
-                        vir_set_uf(inst, V3D_QPU_UF_ANDZ);
+                        vir_set_uf(c, inst, V3D_QPU_UF_ANDZ);
                         cond = V3D_QPU_COND_IFA;
                 }
         }
@@ -2877,7 +3243,7 @@ ntq_emit_nonuniform_if(struct v3d_compile *c, nir_if *if_stmt)
         /* Jump to ELSE if nothing is active for THEN, otherwise fall
          * through.
          */
-        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), c->execute), V3D_QPU_PF_PUSHZ);
+        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), c->execute), V3D_QPU_PF_PUSHZ);
         vir_BRANCH(c, V3D_QPU_BRANCH_COND_ALLNA);
         vir_link_blocks(c->cur_block, else_block);
         vir_link_blocks(c->cur_block, then_block);
@@ -2891,13 +3257,13 @@ ntq_emit_nonuniform_if(struct v3d_compile *c, nir_if *if_stmt)
                  * active channels update their execute flags to point to
                  * ENDIF
                  */
-                vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), c->execute),
+                vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), c->execute),
                            V3D_QPU_PF_PUSHZ);
                 vir_MOV_cond(c, V3D_QPU_COND_IFA, c->execute,
                              vir_uniform_ui(c, after_block->index));
 
                 /* If everything points at ENDIF, then jump there immediately. */
-                vir_set_pf(vir_XOR_dest(c, vir_nop_reg(),
+                vir_set_pf(c, vir_XOR_dest(c, vir_nop_reg(),
                                         c->execute,
                                         vir_uniform_ui(c, after_block->index)),
                            V3D_QPU_PF_PUSHZ);
@@ -2925,7 +3291,7 @@ ntq_emit_if(struct v3d_compile *c, nir_if *nif)
         bool was_in_control_flow = c->in_control_flow;
         c->in_control_flow = true;
         if (!vir_in_nonuniform_control_flow(c) &&
-            nir_src_is_dynamically_uniform(nif->condition)) {
+            !nir_src_is_divergent(nif->condition)) {
                 ntq_emit_uniform_if(c, nif);
         } else {
                 ntq_emit_nonuniform_if(c, nif);
@@ -2938,21 +3304,48 @@ ntq_emit_jump(struct v3d_compile *c, nir_jump_instr *jump)
 {
         switch (jump->type) {
         case nir_jump_break:
-                vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), c->execute),
+                vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), c->execute),
                            V3D_QPU_PF_PUSHZ);
                 vir_MOV_cond(c, V3D_QPU_COND_IFA, c->execute,
                              vir_uniform_ui(c, c->loop_break_block->index));
                 break;
 
         case nir_jump_continue:
-                vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), c->execute),
+                vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), c->execute),
                            V3D_QPU_PF_PUSHZ);
                 vir_MOV_cond(c, V3D_QPU_COND_IFA, c->execute,
                              vir_uniform_ui(c, c->loop_cont_block->index));
                 break;
 
         case nir_jump_return:
-                unreachable("All returns shouold be lowered\n");
+                unreachable("All returns should be lowered\n");
+                break;
+
+        case nir_jump_halt:
+        case nir_jump_goto:
+        case nir_jump_goto_if:
+                unreachable("not supported\n");
+                break;
+        }
+}
+
+static void
+ntq_emit_uniform_jump(struct v3d_compile *c, nir_jump_instr *jump)
+{
+        switch (jump->type) {
+        case nir_jump_break:
+                vir_BRANCH(c, V3D_QPU_BRANCH_COND_ALWAYS);
+                vir_link_blocks(c->cur_block, c->loop_break_block);
+                c->cur_block->branch_emitted = true;
+                break;
+        case nir_jump_continue:
+                vir_BRANCH(c, V3D_QPU_BRANCH_COND_ALWAYS);
+                vir_link_blocks(c->cur_block, c->loop_cont_block);
+                c->cur_block->branch_emitted = true;
+                break;
+
+        case nir_jump_return:
+                unreachable("All returns should be lowered\n");
                 break;
 
         case nir_jump_halt:
@@ -2980,7 +3373,7 @@ ntq_emit_instr(struct v3d_compile *c, nir_instr *instr)
                 break;
 
         case nir_instr_type_ssa_undef:
-                ntq_emit_ssa_undef(c, nir_instr_as_ssa_undef(instr));
+                unreachable("Should've been lowered by nir_lower_undef_to_zero");
                 break;
 
         case nir_instr_type_tex:
@@ -2988,7 +3381,10 @@ ntq_emit_instr(struct v3d_compile *c, nir_instr *instr)
                 break;
 
         case nir_instr_type_jump:
-                ntq_emit_jump(c, nir_instr_as_jump(instr));
+                if (vir_in_nonuniform_control_flow(c))
+                        ntq_emit_jump(c, nir_instr_as_jump(instr));
+                else
+                        ntq_emit_uniform_jump(c, nir_instr_as_jump(instr));
                 break;
 
         default:
@@ -3005,24 +3401,25 @@ ntq_emit_block(struct v3d_compile *c, nir_block *block)
         nir_foreach_instr(instr, block) {
                 ntq_emit_instr(c, instr);
         }
+
+        /* Always process pending TMU operations in the same block they were
+         * emitted: we can't emit TMU operations in a block and then emit a
+         * thread switch and LDTMU/TMUWT for them in another block, possibly
+         * under control flow.
+         */
+        ntq_flush_tmu(c);
 }
 
 static void ntq_emit_cf_list(struct v3d_compile *c, struct exec_list *list);
 
 static void
-ntq_emit_loop(struct v3d_compile *c, nir_loop *loop)
+ntq_emit_nonuniform_loop(struct v3d_compile *c, nir_loop *loop)
 {
-        bool was_in_control_flow = c->in_control_flow;
-        c->in_control_flow = true;
-
         bool was_uniform_control_flow = false;
         if (!vir_in_nonuniform_control_flow(c)) {
                 c->execute = vir_MOV(c, vir_uniform_ui(c, 0));
                 was_uniform_control_flow = true;
         }
-
-        struct qblock *save_loop_cont_block = c->loop_cont_block;
-        struct qblock *save_loop_break_block = c->loop_break_block;
 
         c->loop_cont_block = vir_new_block(c);
         c->loop_break_block = vir_new_block(c);
@@ -3038,14 +3435,14 @@ ntq_emit_loop(struct v3d_compile *c, nir_loop *loop)
          *
          * XXX: Use the .ORZ flags update, instead.
          */
-        vir_set_pf(vir_XOR_dest(c,
+        vir_set_pf(c, vir_XOR_dest(c,
                                 vir_nop_reg(),
                                 c->execute,
                                 vir_uniform_ui(c, c->loop_cont_block->index)),
                    V3D_QPU_PF_PUSHZ);
         vir_MOV_cond(c, V3D_QPU_COND_IFA, c->execute, vir_uniform_ui(c, 0));
 
-        vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), c->execute), V3D_QPU_PF_PUSHZ);
+        vir_set_pf(c, vir_MOV_dest(c, vir_nop_reg(), c->execute), V3D_QPU_PF_PUSHZ);
 
         struct qinst *branch = vir_BRANCH(c, V3D_QPU_BRANCH_COND_ANYA);
         /* Pixels that were not dispatched or have been discarded should not
@@ -3060,6 +3457,42 @@ ntq_emit_loop(struct v3d_compile *c, nir_loop *loop)
                 c->execute = c->undef;
         else
                 ntq_activate_execute_for_block(c);
+}
+
+static void
+ntq_emit_uniform_loop(struct v3d_compile *c, nir_loop *loop)
+{
+
+        c->loop_cont_block = vir_new_block(c);
+        c->loop_break_block = vir_new_block(c);
+
+        vir_link_blocks(c->cur_block, c->loop_cont_block);
+        vir_set_emit_block(c, c->loop_cont_block);
+
+        ntq_emit_cf_list(c, &loop->body);
+
+        if (!c->cur_block->branch_emitted) {
+                vir_BRANCH(c, V3D_QPU_BRANCH_COND_ALWAYS);
+                vir_link_blocks(c->cur_block, c->loop_cont_block);
+        }
+
+        vir_set_emit_block(c, c->loop_break_block);
+}
+
+static void
+ntq_emit_loop(struct v3d_compile *c, nir_loop *loop)
+{
+        bool was_in_control_flow = c->in_control_flow;
+        c->in_control_flow = true;
+
+        struct qblock *save_loop_cont_block = c->loop_cont_block;
+        struct qblock *save_loop_break_block = c->loop_break_block;
+
+        if (vir_in_nonuniform_control_flow(c) || loop->divergent) {
+                ntq_emit_nonuniform_loop(c, loop);
+        } else {
+                ntq_emit_uniform_loop(c, loop);
+        }
 
         c->loop_break_block = save_loop_break_block;
         c->loop_cont_block = save_loop_cont_block;
@@ -3130,16 +3563,18 @@ nir_to_vir(struct v3d_compile *c)
                         c->uses_implicit_point_line_varyings = true;
                 } else if (c->fs_key->is_lines &&
                            (c->devinfo->ver < 40 ||
-                            (c->s->info.system_values_read &
-                             BITFIELD64_BIT(SYSTEM_VALUE_LINE_COORD)))) {
+                            BITSET_TEST(c->s->info.system_values_read,
+                                        SYSTEM_VALUE_LINE_COORD))) {
                         c->line_x = emit_fragment_varying(c, NULL, -1, 0, 0);
                         c->uses_implicit_point_line_varyings = true;
                 }
 
                 c->force_per_sample_msaa =
                    c->s->info.fs.uses_sample_qualifier ||
-                   (c->s->info.system_values_read & (SYSTEM_BIT_SAMPLE_ID |
-                                                     SYSTEM_BIT_SAMPLE_POS));
+                   BITSET_TEST(c->s->info.system_values_read,
+                               SYSTEM_VALUE_SAMPLE_ID) ||
+                   BITSET_TEST(c->s->info.system_values_read,
+                               SYSTEM_VALUE_SAMPLE_POS);
                 break;
         case MESA_SHADER_COMPUTE:
                 /* Set up the TSO for barriers, assuming we do some. */
@@ -3218,6 +3653,7 @@ nir_to_vir(struct v3d_compile *c)
 }
 
 const nir_shader_compiler_options v3d_nir_options = {
+        .lower_add_sat = true,
         .lower_all_io_to_temps = true,
         .lower_extract_byte = true,
         .lower_extract_word = true,
@@ -3252,6 +3688,8 @@ const nir_shader_compiler_options v3d_nir_options = {
         .lower_wpos_pntc = true,
         .lower_rotate = true,
         .lower_to_scalar = true,
+        .has_fsub = true,
+        .has_isub = true,
 };
 
 /**

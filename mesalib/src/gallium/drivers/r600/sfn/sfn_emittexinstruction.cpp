@@ -43,30 +43,7 @@ bool EmitTexInstruction::do_emit(nir_instr* instr)
    if (!get_inputs(*ir, src))
       return false;
 
-   if (ir->sampler_dim == GLSL_SAMPLER_DIM_CUBE) {
-      switch (ir->op) {
-      case nir_texop_tex:
-         return emit_cube_tex(ir, src);
-      case nir_texop_txf:
-         return emit_cube_txf(ir, src);
-      case nir_texop_txb:
-         return emit_cube_txb(ir, src);
-      case nir_texop_txl:
-         return emit_cube_txl(ir, src);
-      case nir_texop_txs:
-         return emit_tex_txs(ir, src, {0,1,2,3});
-      case nir_texop_txd:
-         return emit_cube_txd(ir, src);
-      case nir_texop_lod:
-         return emit_cube_lod(ir, src);
-      case nir_texop_tg4:
-         return emit_cube_tg4(ir, src);
-      case nir_texop_query_levels:
-         return emit_tex_txs(ir, src, {3,7,7,7});
-      default:
-         return false;
-      }
-   } else if (ir->sampler_dim == GLSL_SAMPLER_DIM_BUF) {
+   if (ir->sampler_dim == GLSL_SAMPLER_DIM_BUF) {
       switch (ir->op) {
       case nir_texop_txf:
          return emit_buf_txf(ir, src);
@@ -106,290 +83,6 @@ bool EmitTexInstruction::do_emit(nir_instr* instr)
    }
 }
 
-bool EmitTexInstruction::emit_cube_txf(UNUSED nir_tex_instr* instr, UNUSED TexInputs &src)
-{
-   return false;
-}
-
-bool EmitTexInstruction::emit_cube_txd(nir_tex_instr* instr, TexInputs& tex_src)
-{
-
-   assert(instr->src[0].src.is_ssa);
-
-   r600::sfn_log << SfnLog::instr << "emit '"
-                 << *reinterpret_cast<nir_instr*>(instr)
-                 << "' (" << __func__ << ")\n";
-
-   auto tex_op = TexInstruction::sample_g;
-
-   std::array<PValue, 4> v;
-   for (int i = 0; i < 4; ++i)
-      v[i] = from_nir(instr->dest, i);
-
-   GPRVector cubed(v);
-   emit_cube_prep(tex_src.coord, cubed, instr->is_array);
-
-   std::array<PValue,4> dst_elms;
-   std::array<PValue,4> src_elms;
-
-   const uint16_t lookup[4] = {1, 0, 3, 2};
-   for (uint16_t i = 0; i < 4; ++i) {
-      dst_elms[i] = v[i];
-      src_elms[i] = cubed.reg_i(lookup[i]);
-   }
-
-   GPRVector empty_dst(0, {7,7,7,7});
-
-   if (instr->is_shadow)  {
-      emit_instruction(new AluInstruction(op1_mov, src_elms[3], tex_src.comperator,
-                       {alu_last_instr, alu_write}));
-      tex_op = TexInstruction::sample_c_g;
-   }
-
-
-   PValue half(new LiteralValue(0.5f));
-   for (int i = 0; i < 3; ++i) {
-      emit_instruction(new AluInstruction(op2_mul_ieee, tex_src.ddx.reg_i(i), {tex_src.ddx.reg_i(i), half},
-      {alu_last_instr, alu_write}));
-   }
-   for (int i = 0; i < 3; ++i) {
-      emit_instruction(new AluInstruction(op2_mul_ieee, tex_src.ddy.reg_i(i), {tex_src.ddy.reg_i(i), half},
-      {alu_last_instr, alu_write}));
-   }
-
-   auto sampler = get_samplerr_id(instr->sampler_index, tex_src.sampler_deref);
-   assert(!sampler.indirect);
-
-   TexInstruction *irgh = new TexInstruction(TexInstruction::set_gradient_h, empty_dst, tex_src.ddx,
-                                             sampler.id, sampler.id + R600_MAX_CONST_BUFFERS, tex_src.sampler_offset);
-   irgh->set_dest_swizzle({7,7,7,7});
-
-   TexInstruction *irgv = new TexInstruction(TexInstruction::set_gradient_v, empty_dst, tex_src.ddy,
-                           sampler.id, sampler.id + R600_MAX_CONST_BUFFERS, tex_src.sampler_offset);
-   irgv->set_dest_swizzle({7,7,7,7});
-
-   GPRVector dst(dst_elms);
-   GPRVector src(src_elms);
-   TexInstruction *ir = new TexInstruction(tex_op, dst, src, instr->sampler_index,
-                                 sampler.id + R600_MAX_CONST_BUFFERS, tex_src.sampler_offset);
-
-   set_rect_coordinate_flags(instr, ir);
-   //set_offsets(ir, tex_src.offset);
-
-   emit_instruction(irgh);
-   emit_instruction(irgv);
-   emit_instruction(ir);
-   return true;
-}
-
-
-bool EmitTexInstruction::emit_cube_txl(nir_tex_instr* instr, TexInputs& tex_src)
-{
-   assert(instr->src[0].src.is_ssa);
-
-   if (instr->is_shadow)
-      return false;
-
-   r600::sfn_log << SfnLog::instr << "emit '"
-                 << *reinterpret_cast<nir_instr*>(instr)
-                 << "' (" << __func__ << ")\n";
-
-   std::array<PValue, 4> v;
-   for (int i = 0; i < 4; ++i)
-      v[i] = from_nir(instr->dest, i);
-
-   GPRVector cubed(v);
-   emit_cube_prep(tex_src.coord, cubed, instr->is_array);
-
-   std::array<PValue,4> dst_elms;
-   std::array<PValue,4> src_elms;
-
-   const uint16_t lookup[4] = {1, 0, 3, 2};
-   for (uint16_t i = 0; i < 4; ++i) {
-      dst_elms[i] = v[i];
-      src_elms[i] = cubed.reg_i(lookup[i]);
-   }
-
-   auto *ir = new AluInstruction(op1_mov, src_elms[3], tex_src.lod,
-                                 {alu_last_instr, alu_write});
-   emit_instruction(ir);
-
-   GPRVector src(src_elms);
-   GPRVector dst(dst_elms);
-
-   auto sampler = get_samplerr_id(instr->sampler_index, tex_src.sampler_deref);
-   assert(!sampler.indirect);
-
-   auto tir = new TexInstruction(TexInstruction::sample_l, dst, src,
-                                 sampler.id,sampler.id + R600_MAX_CONST_BUFFERS,
-                                 tex_src.sampler_offset);
-
-   if (instr->is_array)
-      tir->set_flag(TexInstruction::z_unnormalized);
-
-   emit_instruction(tir);
-   return true;
-}
-
-bool EmitTexInstruction::emit_cube_lod(nir_tex_instr* instr, TexInputs& src)
-{
-   auto tex_op = TexInstruction::get_tex_lod;
-
-   std::array<PValue, 4> v;
-   for (int i = 0; i < 4; ++i)
-      v[i] = from_nir(instr->dest, i);
-
-   GPRVector cubed(v);
-   emit_cube_prep(src.coord, cubed, instr->is_array);
-
-   auto sampler = get_samplerr_id(instr->sampler_index, src.sampler_deref);
-   assert(!sampler.indirect);
-
-   auto dst = make_dest(*instr);
-   auto irt = new TexInstruction(tex_op, dst, cubed, sampler.id,
-                                 sampler.id + R600_MAX_CONST_BUFFERS,
-                                 src.sampler_offset);
-
-   emit_instruction(irt);
-   return true;
-
-}
-
-
-bool EmitTexInstruction::emit_cube_txb(nir_tex_instr* instr, TexInputs& tex_src)
-{
-   assert(instr->src[0].src.is_ssa);
-
-   r600::sfn_log << SfnLog::instr << "emit '"
-                 << *reinterpret_cast<nir_instr*>(instr)
-                 << "' (" << __func__ << ")\n";
-
-   std::array<PValue, 4> v;
-   for (int i = 0; i < 4; ++i)
-      v[i] = from_nir(instr->dest, i);
-
-   GPRVector cubed(v);
-   emit_cube_prep(tex_src.coord, cubed, instr->is_array);
-
-   std::array<PValue,4> dst_elms;
-   std::array<PValue,4> src_elms;
-
-   const uint16_t lookup[4] = {1, 0, 3, 2};
-   for (uint16_t i = 0; i < 4; ++i) {
-      dst_elms[i] = v[i];
-      src_elms[i] = v[lookup[i]];
-   }
-
-   GPRVector src(src_elms);
-   GPRVector dst(dst_elms);
-
-   auto tex_op = TexInstruction::sample_lb;
-   if (!instr->is_shadow)  {
-      emit_instruction(new AluInstruction(op1_mov, src_elms[3], tex_src.bias,
-                                          {alu_last_instr, alu_write}));
-   } else {
-      emit_instruction(new AluInstruction(op1_mov, src_elms[3], tex_src.comperator,
-                       {alu_last_instr, alu_write}));
-      tex_op = TexInstruction::sample_c_lb;
-   }
-
-   auto sampler = get_samplerr_id(instr->sampler_index, tex_src.sampler_deref);
-   assert(!sampler.indirect && "Indirect sampler selection not yet supported");
-
-   auto tir = new TexInstruction(tex_op, dst, src,
-                                 sampler.id,
-                                 sampler.id + R600_MAX_CONST_BUFFERS, tex_src.sampler_offset);
-   emit_instruction(tir);
-   return true;
-
-}
-
-bool EmitTexInstruction::emit_cube_tex(nir_tex_instr* instr, TexInputs& tex_src)
-{
-   std::array<PValue, 4> v;
-   for (int i = 0; i < 4; ++i)
-      v[i] = from_nir(instr->dest, i);
-
-   auto tex_op = TexInstruction::sample;
-   GPRVector cubed(v);
-   emit_cube_prep(tex_src.coord, cubed, instr->is_array);
-
-   std::array<PValue,4> dst_elms;
-   std::array<PValue,4> src_elms;
-
-   const uint16_t lookup[4] = {1, 0, 3, 2};
-   for (uint16_t i = 0; i < 4; ++i) {
-      dst_elms[i] = v[i];
-      src_elms[i] = v[lookup[i]];
-   }
-
-   if (instr->is_shadow)  {
-      emit_instruction(new AluInstruction(op1_mov, src_elms[3], tex_src.comperator,
-                       {alu_last_instr, alu_write}));
-      tex_op = TexInstruction::sample_c;
-   }
-
-   GPRVector dst(dst_elms);
-   GPRVector src(src_elms);
-
-   auto sampler = get_samplerr_id(instr->sampler_index, tex_src.sampler_deref);
-   assert(!sampler.indirect && "Indirect sampler selection not yet supported");
-
-   auto tir = new TexInstruction(tex_op, dst, src,
-                                 sampler.id,
-                                 sampler.id + R600_MAX_CONST_BUFFERS, tex_src.sampler_offset);
-   if (instr->is_array)
-      tir->set_flag(TexInstruction::z_unnormalized);
-
-   emit_instruction(tir);
-   return true;
-
-}
-
-bool EmitTexInstruction::emit_cube_prep(const GPRVector& coord, GPRVector& cubed, bool is_array)
-{
-   AluInstruction *ir = nullptr;
-   const uint16_t src0_chan[4] = {2, 2, 0, 1};
-   const uint16_t src1_chan[4] = {1, 0, 2, 2};
-
-   for (int i = 0; i < 4; ++i)  {
-      ir = new AluInstruction(op2_cube, cubed.reg_i(i), coord.reg_i(src0_chan[i]),
-                              coord.reg_i(src1_chan[i]), {alu_write});
-
-      emit_instruction(ir);
-   }
-   ir->set_flag(alu_last_instr);
-
-   ir = new AluInstruction(op1_recip_ieee, cubed.reg_i(2), cubed.reg_i(2), {alu_write, alu_last_instr});
-   ir->set_flag(alu_src0_abs);
-   emit_instruction(ir);
-
-   PValue one_p_5(new LiteralValue(1.5f));
-   for (int i = 0; i < 2; ++i)  {
-      ir = new AluInstruction(op3_muladd, cubed.reg_i(i), cubed.reg_i(i), cubed.reg_i(2),
-                              one_p_5, {alu_write});
-      emit_instruction(ir);
-   }
-   ir->set_flag(alu_last_instr);
-
-   if (is_array) {
-      auto face = cubed.reg_i(3);
-      PValue array_index = get_temp_register();
-
-      ir = new AluInstruction(op1_rndne, array_index, coord.reg_i(3), {alu_write, alu_last_instr});
-      emit_instruction(ir);
-
-      ir = new AluInstruction(op2_max, array_index, {array_index, Value::zero}, {alu_write, alu_last_instr});
-      emit_instruction(ir);
-
-      ir = new AluInstruction(op3_muladd, face, {array_index, PValue (new LiteralValue(8.0f)), face},
-                              {alu_write, alu_last_instr});
-      emit_instruction(ir);
-   }
-
-   return true;
-}
-
 bool EmitTexInstruction::emit_buf_txf(nir_tex_instr* instr, TexInputs &src)
 {
    auto dst = make_dest(*instr);
@@ -411,7 +104,7 @@ bool EmitTexInstruction::emit_tex_tex(nir_tex_instr* instr, TexInputs& src)
 
    auto tex_op = TexInstruction::sample;
 
-   auto sampler = get_samplerr_id(instr->sampler_index, src.sampler_deref);
+   auto sampler = get_sampler_id(instr->sampler_index, src.sampler_deref);
    assert(!sampler.indirect);
 
    if (instr->is_shadow)  {
@@ -450,7 +143,7 @@ bool EmitTexInstruction::emit_tex_txd(nir_tex_instr* instr, TexInputs& src)
       tex_op = TexInstruction::sample_c_g;
    }
 
-   auto sampler = get_samplerr_id(instr->sampler_index, src.sampler_deref);
+   auto sampler = get_sampler_id(instr->sampler_index, src.sampler_deref);
    assert(!sampler.indirect && "Indirect sampler selection not yet supported");
 
    TexInstruction *irgh = new TexInstruction(TexInstruction::set_gradient_h, empty_dst, src.ddx,
@@ -491,7 +184,7 @@ bool EmitTexInstruction::emit_tex_txf(nir_tex_instr* instr, TexInputs& src)
          src.coord.set_reg_i(3, src.lod);
    }
 
-   auto sampler = get_samplerr_id(instr->sampler_index, src.sampler_deref);
+   auto sampler = get_sampler_id(instr->sampler_index, src.sampler_deref);
    assert(!sampler.indirect);
 
    /* txf doesn't need rounding for the array index, but 1D has the array index
@@ -516,6 +209,9 @@ bool EmitTexInstruction::emit_tex_txf(nir_tex_instr* instr, TexInputs& src)
          ir->set_flag(alu_last_instr);
    }
 
+   if (instr->is_array)
+      tex_ir->set_flag(TexInstruction::z_unnormalized);
+
    emit_instruction(tex_ir);
    return true;
 }
@@ -524,7 +220,7 @@ bool EmitTexInstruction::emit_tex_lod(nir_tex_instr* instr, TexInputs& src)
 {
    auto tex_op = TexInstruction::get_tex_lod;
 
-   auto sampler = get_samplerr_id(instr->sampler_index, src.sampler_deref);
+   auto sampler = get_sampler_id(instr->sampler_index, src.sampler_deref);
    assert(!sampler.indirect && "Indirect sampler selection not yet supported");
 
    auto dst = make_dest(*instr);
@@ -532,6 +228,7 @@ bool EmitTexInstruction::emit_tex_lod(nir_tex_instr* instr, TexInputs& src)
                                  sampler.id + R600_MAX_CONST_BUFFERS, src.sampler_offset);
    irt->set_dest_swizzle({1,0,7,7});
    emit_instruction(irt);
+
    return true;
 
 }
@@ -556,7 +253,7 @@ bool EmitTexInstruction::emit_tex_txl(nir_tex_instr* instr, TexInputs& src)
    else
       src.coord.set_reg_i(3, src.lod);
 
-   auto sampler = get_samplerr_id(instr->sampler_index, src.sampler_deref);
+   auto sampler = get_sampler_id(instr->sampler_index, src.sampler_deref);
    assert(!sampler.indirect && "Indirect sampler selection not yet supported");
 
    auto dst = make_dest(*instr);
@@ -594,7 +291,7 @@ bool EmitTexInstruction::emit_tex_txb(nir_tex_instr* instr, TexInputs& src)
 
    GPRVector tex_src(src.coord, in_swizzle);
 
-   auto sampler = get_samplerr_id(instr->sampler_index, src.sampler_deref);
+   auto sampler = get_sampler_id(instr->sampler_index, src.sampler_deref);
    assert(!sampler.indirect && "Indirect sampler selection not yet supported");
 
    auto dst = make_dest(*instr);
@@ -631,7 +328,7 @@ bool EmitTexInstruction::emit_tex_txs(nir_tex_instr* instr, TexInputs& tex_src,
          src_elms[i] =  tex_src.lod;
       GPRVector src(src_elms);
 
-      auto sampler = get_samplerr_id(instr->sampler_index, tex_src.sampler_deref);
+      auto sampler = get_sampler_id(instr->sampler_index, tex_src.sampler_deref);
       assert(!sampler.indirect && "Indirect sampler selection not yet supported");
 
       auto ir = new TexInstruction(TexInstruction::get_resinfo, dst, src,
@@ -639,6 +336,15 @@ bool EmitTexInstruction::emit_tex_txs(nir_tex_instr* instr, TexInputs& tex_src,
                                    sampler.id + R600_MAX_CONST_BUFFERS, tex_src.sampler_offset);
       ir->set_dest_swizzle(dest_swz);
       emit_instruction(ir);
+
+      if (instr->is_array && instr->sampler_dim == GLSL_SAMPLER_DIM_CUBE) {
+         PValue src(new UniformValue(512 + R600_BUFFER_INFO_OFFSET / 16 + (sampler.id >> 2),
+                                     sampler.id & 3, R600_BUFFER_INFO_CONST_BUFFER));
+
+         auto alu = new AluInstruction(op1_mov, dst[2], src, {last_write});
+         emit_instruction(alu);
+         set_has_txs_cube_array_comp();
+      }
    }
 
    return true;
@@ -677,7 +383,7 @@ bool EmitTexInstruction::emit_tex_tg4(nir_tex_instr* instr, TexInputs& src)
       tex_op = TexInstruction::gather4_c;
    }
 
-   auto sampler = get_samplerr_id(instr->sampler_index, src.sampler_deref);
+   auto sampler = get_sampler_id(instr->sampler_index, src.sampler_deref);
    assert(!sampler.indirect && "Indirect sampler selection not yet supported");
 
    bool literal_offset = false;
@@ -736,51 +442,6 @@ bool EmitTexInstruction::emit_tex_tg4(nir_tex_instr* instr, TexInputs& src)
    return true;
 }
 
-bool EmitTexInstruction::emit_cube_tg4(nir_tex_instr* instr, TexInputs& tex_src)
-{
-   std::array<PValue, 4> v;
-   for (int i = 0; i < 4; ++i)
-      v[i] = from_nir(instr->dest, i);
-
-   auto tex_op = TexInstruction::gather4;
-   GPRVector cubed(v);
-   emit_cube_prep(tex_src.coord, cubed, instr->is_array);
-
-   std::array<PValue,4> dst_elms;
-   std::array<PValue,4> src_elms;
-
-   const uint16_t lookup[4] = {1, 0, 3, 2};
-   for (uint16_t i = 0; i < 4; ++i) {
-      dst_elms[i] = v[i];
-      src_elms[i] = v[lookup[i]];
-   }
-
-   if (instr->is_shadow)  {
-      emit_instruction(new AluInstruction(op1_mov, src_elms[3], tex_src.comperator,
-                       {alu_last_instr, alu_write}));
-      tex_op = TexInstruction::gather4_c;
-   }
-
-   GPRVector dst(dst_elms);
-   GPRVector src(src_elms);
-
-   auto sampler = get_samplerr_id(instr->sampler_index, tex_src.sampler_deref);
-   assert(!sampler.indirect && "Indirect sampler selection not yet supported");
-
-   auto tir = new TexInstruction(tex_op, dst, src, sampler.id,
-                                 sampler.id + R600_MAX_CONST_BUFFERS, tex_src.sampler_offset);
-
-   tir->set_gather_comp(instr->component);
-
-   tir->set_dest_swizzle({1, 2, 0, 3});
-
-   if (instr->is_array)
-      tir->set_flag(TexInstruction::z_unnormalized);
-
-   emit_instruction(tir);
-   return true;
-}
-
 bool EmitTexInstruction::emit_tex_txf_ms(nir_tex_instr* instr, TexInputs& src)
 {
    assert(instr->src[0].src.is_ssa);
@@ -789,7 +450,7 @@ bool EmitTexInstruction::emit_tex_txf_ms(nir_tex_instr* instr, TexInputs& src)
                  << *reinterpret_cast<nir_instr*>(instr)
                  << "' (" << __func__ << ")\n";
 
-   auto sampler = get_samplerr_id(instr->sampler_index, src.sampler_deref);
+   auto sampler = get_sampler_id(instr->sampler_index, src.sampler_deref);
    assert(!sampler.indirect && "Indirect sampler selection not yet supported");
 
    int sample_id = allocate_temp_register();
@@ -798,7 +459,7 @@ bool EmitTexInstruction::emit_tex_txf_ms(nir_tex_instr* instr, TexInputs& src)
    PValue help(new GPRValue(sample_id, 1));
 
    /* FIXME: Texture destination registers must be handled differently,
-    * because the swizzle identfies which source componnet has to be written
+    * because the swizzle identifies which source component has to be written
     * at a certain position, and the target register is actually different.
     * At this point we just add a helper register, but for later work (scheduling
     * and optimization on the r600 IR level, this needs to be implemented
@@ -869,7 +530,7 @@ bool EmitTexInstruction::get_inputs(const nir_tex_instr& instr, TexInputs &src)
    sfn_log << SfnLog::tex << "Get Inputs with " << instr.coord_components << " components\n";
 
    unsigned grad_components = instr.coord_components;
-   if (instr.is_array)
+   if (instr.is_array && !instr.array_is_lowered_cube)
       --grad_components;
 
 
@@ -993,7 +654,7 @@ void EmitTexInstruction::handle_array_index(const nir_tex_instr& instr, const GP
 }
 
 EmitTexInstruction::SamplerId
-EmitTexInstruction::get_samplerr_id(int sampler_id, const nir_variable *deref)
+EmitTexInstruction::get_sampler_id(int sampler_id, const nir_variable *deref)
 {
    EmitTexInstruction::SamplerId result = {sampler_id, false};
 

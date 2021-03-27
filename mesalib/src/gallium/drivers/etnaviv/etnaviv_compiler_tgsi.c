@@ -1882,12 +1882,27 @@ etna_compile_pass_generate_code(struct etna_compile *c)
 
          for (int i = 0; i < tgsi->num_src && i < ETNA_NUM_SRC; i++) {
             const struct tgsi_full_src_register *reg = &inst->Src[i];
-            const struct etna_native_reg *n = &etna_get_src_reg(c, reg->Register)->native;
+            const struct etna_reg_desc *srcreg = etna_get_src_reg(c, reg->Register);
+            const struct etna_native_reg *n = &srcreg->native;
 
             if (!n->valid || n->is_tex)
                continue;
 
             src[i] = etna_create_src(reg, n);
+
+            /*
+	     * Replace W=1.0 for point sprite coordinates, since hardware
+	     * can only replace X,Y and leaves Z,W=0,0 instead of Z,W=0,1
+	     */
+            if (srcreg && srcreg->has_semantic &&
+                srcreg->semantic.Name == TGSI_SEMANTIC_TEXCOORD &&
+                (c->key->sprite_coord_enable & BITFIELD_BIT(srcreg->semantic.Index))) {
+               emit_inst(c, &(struct etna_inst) {
+                  .opcode = INST_OPCODE_SET,
+                  .cond = INST_CONDITION_TRUE,
+                  .dst = etna_native_to_dst(srcreg->native, INST_COMPS_W),
+               });
+            }
          }
 
          const unsigned opc = inst->Instruction.Opcode;
@@ -2084,6 +2099,7 @@ permute_ps_inputs(struct etna_compile *c)
     * gl_FragCoord   VARYING_SLOT_POS   TGSI_SEMANTIC_POSITION
     * gl_FrontFacing VARYING_SLOT_FACE  TGSI_SEMANTIC_FACE
     * gl_PointCoord  VARYING_SLOT_PNTC  TGSI_SEMANTIC_PCOORD
+    * gl_TexCoord    VARYING_SLOT_TEX   TGSI_SEMANTIC_TEXCOORD
     */
    uint native_idx = 1;
 
@@ -2551,10 +2567,10 @@ etna_link_shader(struct etna_shader_link_info *info,
       varying->use[2] = VARYING_COMPONENT_USE_UNUSED;
       varying->use[3] = VARYING_COMPONENT_USE_UNUSED;
 
-      /* point coord is an input to the PS without matching VS output,
+      /* point/tex coord is an input to the PS without matching VS output,
        * so it gets a varying slot without being assigned a VS register.
        */
-      if (fsio->slot == VARYING_SLOT_PNTC) {
+      if (util_varying_is_point_coord(fsio->slot, fs->key.sprite_coord_enable)) {
          varying->use[0] = VARYING_COMPONENT_USE_POINTCOORD_X;
          varying->use[1] = VARYING_COMPONENT_USE_POINTCOORD_Y;
 

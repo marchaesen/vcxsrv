@@ -168,7 +168,7 @@ lp_build_blend_func(struct lp_build_context *bld,
 
 
 /**
- * Performs optimisations and blending independent of SoA/AoS
+ * Performs optimizations and blending independent of SoA/AoS
  *
  * @param func                   the blend function
  * @param factor_src             PIPE_BLENDFACTOR_xxx

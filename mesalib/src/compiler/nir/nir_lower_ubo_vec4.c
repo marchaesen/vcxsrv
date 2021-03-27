@@ -113,6 +113,8 @@ nir_lower_ubo_vec4_lower(nir_builder *b, nir_instr *instr, void *data)
                                            intr->dest.ssa.bit_size,
                                            num_components);
 
+   nir_intrinsic_set_access(load, nir_intrinsic_access(intr));
+
    nir_ssa_def *result = &load->dest.ssa;
 
    int align_chan_offset = align_offset / chan_size_bytes;

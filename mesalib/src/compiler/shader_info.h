@@ -25,6 +25,7 @@
 #ifndef SHADER_INFO_H
 #define SHADER_INFO_H
 
+#include "util/bitset.h"
 #include "shader_enums.h"
 #include <stdint.h>
 
@@ -44,9 +45,12 @@ struct spirv_supported_capabilities {
    bool descriptor_indexing;
    bool device_group;
    bool draw_parameters;
+   bool float16_atomic_min_max;
    bool float32_atomic_add;
+   bool float32_atomic_min_max;
    bool float64;
    bool float64_atomic_add;
+   bool float64_atomic_min_max;
    bool fragment_shader_sample_interlock;
    bool fragment_shader_pixel_interlock;
    bool fragment_shading_rate;
@@ -76,6 +80,7 @@ struct spirv_supported_capabilities {
    bool float_controls;
    bool shader_clock;
    bool shader_viewport_index_layer;
+   bool sparse_residency;
    bool stencil_export;
    bool storage_8bit;
    bool storage_16bit;
@@ -91,6 +96,7 @@ struct spirv_supported_capabilities {
    bool variable_pointers;
    bool vk_memory_model;
    bool vk_memory_model_device_scope;
+   bool workgroup_memory_explicit_layout;
    bool float16;
    bool amd_fragment_mask;
    bool amd_gcn_shader;
@@ -143,7 +149,7 @@ typedef struct shader_info {
    /* Which outputs are actually read */
    uint64_t outputs_read;
    /* Which system values are actually read */
-   uint64_t system_values_read;
+   BITSET_DECLARE(system_values_read, SYSTEM_VALUE_MAX);
 
    /* Which patch inputs are actually read */
    uint32_t patch_inputs_read;
@@ -162,10 +168,10 @@ typedef struct shader_info {
    uint64_t patch_outputs_accessed_indirectly;
 
    /** Bitfield of which textures are used */
-   uint32_t textures_used;
+   BITSET_DECLARE(textures_used, 32);
 
    /** Bitfield of which textures are used by texelFetch() */
-   uint32_t textures_used_by_txf;
+   BITSET_DECLARE(textures_used_by_txf, 32);
 
    /** Bitfield of which images are used */
    uint32_t images_used;
@@ -222,6 +228,10 @@ typedef struct shader_info {
 
    /* Whether gl_Layer is viewport-relative */
    bool layer_viewport_relative:1;
+
+   /* Whether explicit barriers are used */
+   bool uses_control_barrier : 1;
+   bool uses_memory_barrier : 1;
 
    union {
       struct {
@@ -365,6 +375,8 @@ typedef struct shader_info {
           */
          enum gl_derivative_group derivative_group:2;
 
+         bool zero_initialize_shared_memory;
+
          /**
           * Size of shared variables accessed by the compute shader.
           */
@@ -377,6 +389,17 @@ typedef struct shader_info {
           *   AddressingModelPhysical64: 64
           */
          unsigned ptr_size;
+
+         /**
+          * Uses subgroup intrinsics which can communicate across a quad.
+          */
+         bool uses_wide_subgroup_intrinsics;
+
+         /**
+          * Shared memory types have explicit layout set.  Used for
+          * SPV_KHR_workgroup_storage_explicit_layout.
+          */
+         bool shared_memory_explicit_layout;
       } cs;
 
       /* Applies to both TCS and TES. */

@@ -35,6 +35,8 @@ files_mesa_util = files(
   'build_id.h',
   'cnd_monotonic.h',
   'compiler.h',
+  'compress.c',
+  'compress.h',
   'crc32.c',
   'crc32.h',
   'dag.c',
@@ -52,6 +54,8 @@ files_mesa_util = files(
   'format_r11g11b10f.h',
   'format_rgb9e5.h',
   'format_srgb.h',
+  'fossilize_db.c',
+  'fossilize_db.h',
   'futex.h',
   'half_float.c',
   'half_float.h',
@@ -154,6 +158,15 @@ files_xmlconfig = files(
   'xmlconfig.h',
 )
 
+files_xmlconfig += custom_target(
+  'driconf_static.h',
+  input: ['driconf_static.py', '00-mesa-defaults.conf'],
+  output: 'driconf_static.h',
+  command: [
+    prog_python, '@INPUT0@', '@INPUT1@', '@OUTPUT@'
+  ],
+)
+
 format_srgb = custom_target(
   'format_srgb',
   input : ['format_srgb.py'],
@@ -185,6 +198,10 @@ if with_platform_android
   )
 endif
 
+if with_platform_haiku
+  deps_for_libmesa_util += dep_network
+endif
+
 _libmesa_util = static_library(
   'mesa_util',
   [files_mesa_util, files_debug_stack, format_srgb],
@@ -206,6 +223,7 @@ xmlconfig_deps = []
 if not (with_platform_android or with_platform_windows)
   xmlconfig_deps += dep_expat
 endif
+xmlconfig_deps += dep_regex
 
 _libxmlconfig = static_library(
   'xmlconfig',
@@ -365,6 +383,7 @@ if with_tests
     env: ['BUILD_FULL_PATH='+process_test_exe_full_path]
   )
 
+  subdir('tests/cache')
   subdir('tests/fast_idiv_by_const')
   subdir('tests/fast_urem_by_const')
   subdir('tests/hash_table')

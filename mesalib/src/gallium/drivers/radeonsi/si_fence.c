@@ -75,6 +75,8 @@ void si_cp_release_mem(struct si_context *ctx, struct radeon_cmdbuf *cs, unsigne
    unsigned sel = EOP_DST_SEL(dst_sel) | EOP_INT_SEL(int_sel) | EOP_DATA_SEL(data_sel);
    bool compute_ib = !ctx->has_graphics || cs == &ctx->prim_discard_compute_cs;
 
+   radeon_begin(cs);
+
    if (ctx->chip_class >= GFX9 || (compute_ib && ctx->chip_class >= GFX7)) {
       /* A ZPASS_DONE or PIXEL_STAT_DUMP_EVENT (of the DB occlusion
        * counters) must immediately precede every timestamp event to
@@ -136,6 +138,8 @@ void si_cp_release_mem(struct si_context *ctx, struct radeon_cmdbuf *cs, unsigne
       radeon_emit(cs, 0);         /* unused */
    }
 
+   radeon_end();
+
    if (buf) {
       radeon_add_to_buffer_list(ctx, &ctx->gfx_cs, buf, RADEON_USAGE_WRITE, RADEON_PRIO_QUERY);
    }
@@ -154,6 +158,7 @@ unsigned si_cp_write_fence_dwords(struct si_screen *screen)
 void si_cp_wait_mem(struct si_context *ctx, struct radeon_cmdbuf *cs, uint64_t va, uint32_t ref,
                     uint32_t mask, unsigned flags)
 {
+   radeon_begin(cs);
    radeon_emit(cs, PKT3(PKT3_WAIT_REG_MEM, 5, 0));
    radeon_emit(cs, WAIT_REG_MEM_MEM_SPACE(1) | flags);
    radeon_emit(cs, va);
@@ -161,6 +166,7 @@ void si_cp_wait_mem(struct si_context *ctx, struct radeon_cmdbuf *cs, uint64_t v
    radeon_emit(cs, ref);  /* reference value */
    radeon_emit(cs, mask); /* mask */
    radeon_emit(cs, 4);    /* poll interval */
+   radeon_end();
 }
 
 static void si_add_fence_dependency(struct si_context *sctx, struct pipe_fence_handle *fence)

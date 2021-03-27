@@ -53,6 +53,7 @@ bifrost_compiler = executable(
   dependencies : [
     idep_nir,
     idep_mesautil,
+    idep_bi_opcodes_h,
     dep_libdrm,
   ],
   link_with : [

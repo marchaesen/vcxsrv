@@ -145,7 +145,7 @@ nir_opt_idiv_const_instr(nir_builder *b, nir_alu_instr *alu)
    }
 
    nir_ssa_def *qvec = nir_vec(b, q, alu->dest.dest.ssa.num_components);
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(qvec));
+   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, qvec);
    nir_instr_remove(&alu->instr);
 
    return true;

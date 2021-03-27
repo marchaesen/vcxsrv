@@ -227,7 +227,6 @@ draw_create_vs_exec(struct draw_context *draw,
    if (state->type == PIPE_SHADER_IR_NIR) {
       vs->base.state.type = PIPE_SHADER_IR_TGSI;
       vs->base.state.tokens = nir_to_tgsi(state->ir.nir, draw->pipe->screen);
-      ralloc_free(state->ir.nir);
    } else {
       assert(state->type == PIPE_SHADER_IR_TGSI);
       vs->base.state.type = state->type;

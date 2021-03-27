@@ -99,8 +99,14 @@ void si_pm4_free_state(struct si_context *sctx, struct si_pm4_state *state, unsi
    if (!state)
       return;
 
-   if (idx != ~0 && sctx->emitted.array[idx] == state) {
-      sctx->emitted.array[idx] = NULL;
+   if (idx != ~0) {
+      if (sctx->emitted.array[idx] == state)
+         sctx->emitted.array[idx] = NULL;
+
+      if (sctx->queued.array[idx] == state) {
+         sctx->queued.array[idx] = NULL;
+         sctx->dirty_states &= ~BITFIELD_BIT(idx);
+      }
    }
 
    si_pm4_clear_state(state);
@@ -116,7 +122,9 @@ void si_pm4_emit(struct si_context *sctx, struct si_pm4_state *state)
                                 RADEON_USAGE_READ, RADEON_PRIO_SHADER_BINARY);
    }
 
+   radeon_begin(cs);
    radeon_emit_array(cs, state->pm4, state->ndw);
+   radeon_end();
 
    if (state->atom.emit)
       state->atom.emit(sctx);
@@ -140,5 +148,9 @@ void si_pm4_reset_emitted(struct si_context *sctx, bool first_cs)
    }
 
    memset(&sctx->emitted, 0, sizeof(sctx->emitted));
-   sctx->dirty_states |= u_bit_consecutive(0, SI_NUM_STATES);
+
+   for (unsigned i = 0; i < SI_NUM_STATES; i++) {
+      if (sctx->queued.array[i])
+         sctx->dirty_states |= BITFIELD_BIT(i);
+   }
 }

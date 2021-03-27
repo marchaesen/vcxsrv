@@ -485,6 +485,78 @@
             </languageList>
           </configItem>
         </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>hyena</name>
+            <description>English (US, Hyena Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>hyena-alt-intl</name>
+            <description>English (US, alt. intl., with dead keys, Hyena Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>hyena-intl-unicode</name>
+            <description>English (US, intl., AltGr Unicode combining, Hyena Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>hyena-carpalx</name>
+            <description>English (Carpalx, full optimization, Hyena Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>hyena-carpalx-intl</name>
+            <description>English (Carpalx, full optimization, intl., with dead keys, Hyena Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>hyena-carpalx-altgr-intl</name>
+            <description>English (Carpalx, full optimization, intl., with AltGr dead keys, Hyena Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>miniguru</name>
+            <description>English (US, MiniGuru Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>miniguru-alt-intl</name>
+            <description>English (US, alt. intl., with dead keys, MiniGuru Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>miniguru-intl-unicode</name>
+            <description>English (US, intl., AltGr Unicode combining, MiniGuru Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>yoda</name>
+            <description>English (US, TEX Yoda Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>yoda-alt-intl</name>
+            <description>English (US, alt. intl., with dead keys, TEX Yoda Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>yoda-intl-unicode</name>
+            <description>English (US, intl., AltGr Unicode combining, TEX Yoda Layer5)</description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -507,6 +579,12 @@
           <configItem popularity="exotic">
             <name>colemak</name>
             <description>Polish (Colemak)</description>
+          </configItem>
+        </variant>
+	<variant>
+          <configItem popularity="exotic">
+            <name>colemak_dh</name>
+            <description>Polish (Colemak-DH)</description>
           </configItem>
         </variant>
         <variant>
@@ -989,6 +1067,15 @@
             </languageList>
           </configItem>
         </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>dvorak</name>
+            <description>Italian (Dvorak)</description>
+            <languageList>
+              <iso639Id>ita</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -1188,6 +1275,42 @@
           <configItem popularity="exotic">
             <name>sun_type6</name>
             <description>English (UK, Sun Type 6/7)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>hyena</name>
+            <description>English (UK, Hyena Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>hyena-intl</name>
+            <description>English (UK, intl., with dead keys, Hyena Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>miniguru</name>
+            <description>English (UK, MiniGuru Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>miniguru-intl</name>
+            <description>English (UK, intl., with dead keys, MiniGuru Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>yoda</name>
+            <description>English (UK, TEX Yoda Layer5)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>yoda-intl</name>
+            <description>English (UK, intl., with dead keys, TEX Yoda Layer5)</description>
           </configItem>
         </variant>
       </variantList>

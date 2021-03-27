@@ -481,7 +481,7 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
             nir_ssa_def *new_vec = nir_channels(&b, &intrin->dest.ssa,
                                                 vec4_comp_mask >> new_frac);
             nir_ssa_def_rewrite_uses_after(&intrin->dest.ssa,
-                                           nir_src_for_ssa(new_vec),
+                                           new_vec,
                                            new_vec->parent_instr);
 
             progress = true;
@@ -570,6 +570,88 @@ nir_lower_io_to_vector(nir_shader *shader, nir_variable_mode modes)
    nir_foreach_function(function, shader) {
       if (function->impl)
          progress |= nir_lower_io_to_vector_impl(function->impl, modes);
+   }
+
+   return progress;
+}
+
+static bool
+nir_vectorize_tess_levels_impl(nir_function_impl *impl)
+{
+   bool progress = false;
+   nir_builder b;
+   nir_builder_init(&b, impl);
+
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr(instr, block) {
+         if (instr->type != nir_instr_type_intrinsic)
+            continue;
+
+         nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+         if (intrin->intrinsic != nir_intrinsic_load_deref &&
+             intrin->intrinsic != nir_intrinsic_store_deref)
+            continue;
+
+         nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+         if (!nir_deref_mode_is(deref, nir_var_shader_out))
+            continue;
+
+         nir_variable *var = nir_deref_instr_get_variable(deref);
+         if (var->data.location != VARYING_SLOT_TESS_LEVEL_OUTER &&
+             var->data.location != VARYING_SLOT_TESS_LEVEL_INNER)
+            continue;
+
+         assert(deref->deref_type == nir_deref_type_array);
+         assert(nir_src_is_const(deref->arr.index));
+         unsigned index = nir_src_as_uint(deref->arr.index);;
+
+         b.cursor = nir_before_instr(instr);
+         nir_ssa_def *new_deref = &nir_build_deref_var(&b, var)->dest.ssa;
+         nir_instr_rewrite_src(instr, &intrin->src[0], nir_src_for_ssa(new_deref));
+
+         nir_deref_instr_remove_if_unused(deref);
+
+         intrin->num_components = glsl_get_vector_elements(var->type);
+
+         if (intrin->intrinsic == nir_intrinsic_store_deref) {
+            nir_intrinsic_set_write_mask(intrin, 1 << index);
+            nir_ssa_def *new_val = nir_ssa_undef(&b, intrin->num_components, 32);
+            new_val = nir_vector_insert_imm(&b, new_val, intrin->src[1].ssa, index);
+            nir_instr_rewrite_src(instr, &intrin->src[1], nir_src_for_ssa(new_val));
+         } else {
+            b.cursor = nir_after_instr(instr);
+            nir_ssa_def *val = &intrin->dest.ssa;
+            nir_ssa_def *comp = nir_channel(&b, val, index);
+            nir_ssa_def_rewrite_uses_after(val, comp, comp->parent_instr);
+         }
+
+         progress = true;
+      }
+   }
+
+   return progress;
+}
+
+/* Make the tess factor variables vectors instead of compact arrays, so accesses
+ * can be combined by nir_opt_cse()/nir_opt_combine_stores().
+ */
+bool
+nir_vectorize_tess_levels(nir_shader *shader)
+{
+   bool progress = false;
+
+   nir_foreach_shader_out_variable(var, shader) {
+      if (var->data.location == VARYING_SLOT_TESS_LEVEL_OUTER ||
+          var->data.location == VARYING_SLOT_TESS_LEVEL_INNER) {
+         var->type = glsl_vector_type(GLSL_TYPE_FLOAT, glsl_get_length(var->type));
+         var->data.compact = false;
+         progress = true;
+      }
+   }
+
+   nir_foreach_function(function, shader) {
+      if (function->impl)
+         progress |= nir_vectorize_tess_levels_impl(function->impl);
    }
 
    return progress;

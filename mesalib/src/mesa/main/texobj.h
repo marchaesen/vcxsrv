@@ -141,10 +141,14 @@ _mesa_is_texture_complete(const struct gl_texture_object *texObj,
     *  – The internal format is DEPTH_STENCIL, and the value of DEPTH_-
     *    STENCIL_TEXTURE_MODE for the texture is STENCIL_INDEX.""
     */
+   /* GL_EXT_texture_filter_minmax further modifies this to explain it does
+    * not apply to MIN/MAX reduction, only WEIGHTED_AVERAGE (i.e. default)
+    */
    if (!isMultisample &&
        (texObj->_IsIntegerFormat ||
-        (texObj->Attrib.StencilSampling &&
+        (texObj->StencilSampling &&
          img->_BaseFormat == GL_DEPTH_STENCIL)) &&
+       sampler->Attrib.ReductionMode == GL_WEIGHTED_AVERAGE_EXT &&
        (sampler->Attrib.MagFilter != GL_NEAREST ||
         (sampler->Attrib.MinFilter != GL_NEAREST &&
          sampler->Attrib.MinFilter != GL_NEAREST_MIPMAP_NEAREST))) {

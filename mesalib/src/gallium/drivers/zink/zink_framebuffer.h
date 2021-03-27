@@ -27,6 +27,7 @@
 #include "pipe/p_state.h"
 #include <vulkan/vulkan.h>
 
+#include "util/hash_table.h"
 #include "util/u_inlines.h"
 
 struct zink_context;
@@ -34,27 +35,33 @@ struct zink_screen;
 struct zink_render_pass;
 
 struct zink_framebuffer_state {
-   struct zink_render_pass *rp;
    uint32_t width;
    uint16_t height, layers;
    uint8_t samples;
    uint8_t num_attachments;
-   struct zink_surface *attachments[PIPE_MAX_COLOR_BUFS + 1];
-   bool has_null_attachments;
+   VkImageView attachments[PIPE_MAX_COLOR_BUFS + 1];
 };
 
 struct zink_framebuffer {
    struct pipe_reference reference;
+
+   /* current objects */
    VkFramebuffer fb;
+   struct zink_render_pass *rp;
 
    struct pipe_surface *surfaces[PIPE_MAX_COLOR_BUFS + 1];
-   struct zink_render_pass *rp;
    struct pipe_surface *null_surface; /* for use with unbound attachments */
+   struct zink_framebuffer_state state;
+   struct hash_table objects;
 };
 
 struct zink_framebuffer *
-zink_create_framebuffer(struct zink_context *ctx, struct zink_screen *screen,
-                        struct zink_framebuffer_state *fb);
+zink_create_framebuffer(struct zink_context *ctx,
+                        struct zink_framebuffer_state *fb,
+                        struct pipe_surface **attachments);
+
+void
+zink_init_framebuffer(struct zink_screen *screen, struct zink_framebuffer *fb, struct zink_render_pass *rp);
 
 void
 zink_destroy_framebuffer(struct zink_screen *screen,
@@ -63,17 +70,21 @@ zink_destroy_framebuffer(struct zink_screen *screen,
 void
 debug_describe_zink_framebuffer(char* buf, const struct zink_framebuffer *ptr);
 
-static inline void
+static inline bool
 zink_framebuffer_reference(struct zink_screen *screen,
                            struct zink_framebuffer **dst,
                            struct zink_framebuffer *src)
 {
    struct zink_framebuffer *old_dst = *dst;
+   bool ret = false;
 
-   if (pipe_reference_described(&old_dst->reference, &src->reference,
-                                (debug_reference_descriptor)debug_describe_zink_framebuffer))
+   if (pipe_reference_described(&old_dst->reference, src ? &src->reference : NULL,
+                                (debug_reference_descriptor)debug_describe_zink_framebuffer)) {
       zink_destroy_framebuffer(screen, old_dst);
+      ret = true;
+   }
    *dst = src;
+   return ret;
 }
 
 #endif

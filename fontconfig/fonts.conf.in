@@ -24,7 +24,7 @@
 
 <!-- Font directory list -->
 
-	@FC_DEFAULT_FONTS@
+@FC_DEFAULT_FONTS@
 	@FC_FONTPATH@
 	<dir prefix="xdg">fonts</dir>
 	<!-- the following element will be removed in the future -->

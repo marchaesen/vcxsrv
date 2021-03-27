@@ -411,7 +411,7 @@ fail:
 static boolean
 generate_aapoint_fs_nir(struct aapoint_stage *aapoint)
 {
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    struct pipe_context *pipe = aapoint->stage.draw->pipe;
    const struct pipe_shader_state *orig_fs = &aapoint->fs->state;
    struct pipe_shader_state aapoint_fs;
@@ -748,7 +748,7 @@ aapoint_create_fs_state(struct pipe_context *pipe,
    aafs->state.type = fs->type;
    if (fs->type == PIPE_SHADER_IR_TGSI)
       aafs->state.tokens = tgsi_dup_tokens(fs->tokens);
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    else
       aafs->state.ir.nir = nir_shader_clone(NULL, fs->ir.nir);
 #endif

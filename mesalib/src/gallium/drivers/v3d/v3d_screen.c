@@ -76,7 +76,8 @@ v3d_screen_destroy(struct pipe_screen *pscreen)
         _mesa_hash_table_destroy(screen->bo_handles, NULL);
         v3d_bufmgr_destroy(pscreen);
         slab_destroy_parent(&screen->transfer_pool);
-        free(screen->ro);
+        if (screen->ro)
+                screen->ro->destroy(screen->ro);
 
         if (using_v3d_simulator)
                 v3d_simulator_destroy(screen->sim_file);
@@ -109,12 +110,9 @@ v3d_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
 
         switch (param) {
                 /* Supported features (boolean caps). */
-        case PIPE_CAP_VERTEX_COLOR_CLAMPED:
         case PIPE_CAP_VERTEX_COLOR_UNCLAMPED:
-        case PIPE_CAP_FRAGMENT_COLOR_CLAMPED:
         case PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT:
         case PIPE_CAP_NPOT_TEXTURES:
-        case PIPE_CAP_SHAREABLE_SHADERS:
         case PIPE_CAP_BLEND_EQUATION_SEPARATE:
         case PIPE_CAP_TEXTURE_MULTISAMPLE:
         case PIPE_CAP_TEXTURE_SWIZZLE:
@@ -260,6 +258,11 @@ v3d_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
                 return 1;
 
         case PIPE_CAP_ALPHA_TEST:
+        case PIPE_CAP_FLATSHADE:
+        case PIPE_CAP_TWO_SIDED_COLOR:
+        case PIPE_CAP_VERTEX_COLOR_CLAMPED:
+        case PIPE_CAP_FRAGMENT_COLOR_CLAMPED:
+        case PIPE_CAP_GL_CLAMP:
                 return 0;
 
         /* Geometry shaders */
@@ -697,14 +700,8 @@ v3d_screen_create(int fd, const struct pipe_screen_config *config,
         pscreen->is_format_supported = v3d_screen_is_format_supported;
 
         screen->fd = fd;
-        if (ro) {
-                screen->ro = renderonly_dup(ro);
-                if (!screen->ro) {
-                        fprintf(stderr, "Failed to dup renderonly object\n");
-                        ralloc_free(screen);
-                        return NULL;
-                }
-        }
+        screen->ro = ro;
+
         list_inithead(&screen->bo_cache.time_list);
         (void)mtx_init(&screen->bo_handles_mutex, mtx_plain);
         screen->bo_handles = util_hash_table_create_ptr_keys();

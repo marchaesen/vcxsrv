@@ -100,6 +100,7 @@ softpipe_set_sampler_views(struct pipe_context *pipe,
                            enum pipe_shader_type shader,
                            unsigned start,
                            unsigned num,
+                           unsigned unbind_num_trailing_slots,
                            struct pipe_sampler_view **views)
 {
    struct softpipe_context *softpipe = softpipe_context(pipe);
@@ -133,6 +134,12 @@ softpipe_set_sampler_views(struct pipe_context *pipe,
       else {
          memset(sp_sviewdst, 0,  sizeof(*sp_sviewsrc));
       }
+   }
+   for (; i < num + unbind_num_trailing_slots; i++) {
+      struct pipe_sampler_view **pview = &softpipe->sampler_views[shader][start + i];
+      pipe_sampler_view_reference(pview, NULL);
+      sp_tex_tile_cache_set_sampler_view(softpipe->tex_cache[shader][start + i],
+                                         NULL);
    }
 
 

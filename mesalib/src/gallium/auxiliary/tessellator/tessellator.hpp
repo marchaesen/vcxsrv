@@ -58,49 +58,49 @@
 //
 //=================================================================================================================================
 
-#define D3D11_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR 1
-#define D3D11_TESSELLATOR_MAX_ODD_TESSELLATION_FACTOR 63
-#define D3D11_TESSELLATOR_MIN_EVEN_TESSELLATION_FACTOR 2
-#define D3D11_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR 64
+#define PIPE_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR 1
+#define PIPE_TESSELLATOR_MAX_ODD_TESSELLATION_FACTOR 63
+#define PIPE_TESSELLATOR_MIN_EVEN_TESSELLATION_FACTOR 2
+#define PIPE_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR 64
 
-#define D3D11_TESSELLATOR_MIN_ISOLINE_DENSITY_TESSELLATION_FACTOR 1
-#define D3D11_TESSELLATOR_MAX_ISOLINE_DENSITY_TESSELLATION_FACTOR 64
+#define PIPE_TESSELLATOR_MIN_ISOLINE_DENSITY_TESSELLATION_FACTOR 1
+#define PIPE_TESSELLATOR_MAX_ISOLINE_DENSITY_TESSELLATION_FACTOR 64
 
-#define D3D11_TESSELLATOR_MAX_TESSELLATION_FACTOR 64 // max of even and odd tessFactors
+#define PIPE_TESSELLATOR_MAX_TESSELLATION_FACTOR 64 // max of even and odd tessFactors
 
-#define MAX_POINT_COUNT ((D3D11_TESSELLATOR_MAX_TESSELLATION_FACTOR+1)*(D3D11_TESSELLATOR_MAX_TESSELLATION_FACTOR+1))
-#define MAX_INDEX_COUNT (D3D11_TESSELLATOR_MAX_TESSELLATION_FACTOR*D3D11_TESSELLATOR_MAX_TESSELLATION_FACTOR*2*3)
+#define MAX_POINT_COUNT ((PIPE_TESSELLATOR_MAX_TESSELLATION_FACTOR+1)*(PIPE_TESSELLATOR_MAX_TESSELLATION_FACTOR+1))
+#define MAX_INDEX_COUNT (PIPE_TESSELLATOR_MAX_TESSELLATION_FACTOR*PIPE_TESSELLATOR_MAX_TESSELLATION_FACTOR*2*3)
 
 //=================================================================================================================================
 // Data types for the caller
 //=================================================================================================================================
-enum D3D11_TESSELLATOR_PARTITIONING
+enum PIPE_TESSELLATOR_PARTITIONING
 {
-    D3D11_TESSELLATOR_PARTITIONING_INTEGER,
-    D3D11_TESSELLATOR_PARTITIONING_POW2,
-    D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD,
-    D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN
+    PIPE_TESSELLATOR_PARTITIONING_INTEGER,
+    PIPE_TESSELLATOR_PARTITIONING_POW2,
+    PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD,
+    PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN
 };
 
-enum D3D11_TESSELLATOR_REDUCTION
+enum PIPE_TESSELLATOR_REDUCTION
 {
-    D3D11_TESSELLATOR_REDUCTION_MIN,
-    D3D11_TESSELLATOR_REDUCTION_MAX,
-    D3D11_TESSELLATOR_REDUCTION_AVERAGE
+    PIPE_TESSELLATOR_REDUCTION_MIN,
+    PIPE_TESSELLATOR_REDUCTION_MAX,
+    PIPE_TESSELLATOR_REDUCTION_AVERAGE
 };
 
-enum D3D11_TESSELLATOR_QUAD_REDUCTION_AXIS
+enum PIPE_TESSELLATOR_QUAD_REDUCTION_AXIS
 {
-    D3D11_TESSELLATOR_QUAD_REDUCTION_1_AXIS,
-    D3D11_TESSELLATOR_QUAD_REDUCTION_2_AXIS
+    PIPE_TESSELLATOR_QUAD_REDUCTION_1_AXIS,
+    PIPE_TESSELLATOR_QUAD_REDUCTION_2_AXIS
 };
 
-enum D3D11_TESSELLATOR_OUTPUT_PRIMITIVE
+enum PIPE_TESSELLATOR_OUTPUT_PRIMITIVE
 {
-    D3D11_TESSELLATOR_OUTPUT_POINT,
-    D3D11_TESSELLATOR_OUTPUT_LINE,
-    D3D11_TESSELLATOR_OUTPUT_TRIANGLE_CW,
-    D3D11_TESSELLATOR_OUTPUT_TRIANGLE_CCW,
+    PIPE_TESSELLATOR_OUTPUT_POINT,
+    PIPE_TESSELLATOR_OUTPUT_LINE,
+    PIPE_TESSELLATOR_OUTPUT_TRIANGLE_CW,
+    PIPE_TESSELLATOR_OUTPUT_TRIANGLE_CCW,
 };
 
 typedef struct DOMAIN_POINT
@@ -119,8 +119,8 @@ class CHWTessellator
 
 //---------------------------------------------------------------------------------------------------------------------------------
 public:
-    void Init( D3D11_TESSELLATOR_PARTITIONING         partitioning,
-               D3D11_TESSELLATOR_OUTPUT_PRIMITIVE     outputPrimitive);
+    void Init( PIPE_TESSELLATOR_PARTITIONING         partitioning,
+               PIPE_TESSELLATOR_OUTPUT_PRIMITIVE     outputPrimitive);
 
     void TessellateIsoLineDomain( float TessFactor_V_LineDensity,
                                   float TessFactor_U_LineDetail );
@@ -145,17 +145,6 @@ public:
     int* GetIndices();         // Get CHWTessellator owned pointer to vertex indices.
                                // Pointer is fixed for lifetime of CHWTessellator object.
 
-#define ALLOW_XBOX_360_COMPARISON // Different vertex splitting order. This is NOT D3D11 behavior, just available here for comparison.
-	                              // Setting this define true just allows the XBox split style to be enabled via
-	                              // SetXBox360Mode() below, but by default this XBox360 mode still always starts off DISABLED.
-								  // The XBox360 always splits from the center of an edge (D3D11 uses ruler function).  Splitting
-	                              // from the center causes sliver triangles in transition areas, which cause numerous problems.
-                                  // Note the XBox360 only supports adaptive tessellation via fractional_even partitioning,
-                                  // though this #define lets you try the XBox vertex splitting order with any of the
-                                  // partitioning modes: even, odd, integer or pow2.
-#ifdef ALLOW_XBOX_360_COMPARISON
-    void SetXBox360Mode(bool bXboxMode) {m_bXBox360Mode = bXboxMode;}
-#endif
     CHWTessellator();
     ~CHWTessellator();
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -177,7 +166,7 @@ public:
     static const int TRI_EDGES = 3;
     //=============================================================================================================================
 
-    enum TESSELLATOR_PARITY // derived from D3D11_TESSELLATOR_PARTITIONING
+    enum TESSELLATOR_PARITY // derived from PIPE_TESSELLATOR_PARTITIONING
     {                               // (note: for integer tessellation, both parities are used)
         TESSELLATOR_PARITY_EVEN,
         TESSELLATOR_PARITY_ODD
@@ -186,16 +175,13 @@ private:
     TESSELLATOR_PARITY                   m_originalParity; // user chosen parity
     TESSELLATOR_PARITY                   m_parity; // current parity: if allowing mix of even/odd during discrete
                                                    // tessellation, this can vary from the user defined parity
-    D3D11_TESSELLATOR_PARTITIONING       m_originalPartitioning; // user chosen partitioning
-    D3D11_TESSELLATOR_PARTITIONING       m_partitioning; // current partitioning.  IsoLines overrides for line density
-    D3D11_TESSELLATOR_OUTPUT_PRIMITIVE   m_outputPrimitive;
+    PIPE_TESSELLATOR_PARTITIONING       m_originalPartitioning; // user chosen partitioning
+    PIPE_TESSELLATOR_PARTITIONING       m_partitioning; // current partitioning.  IsoLines overrides for line density
+    PIPE_TESSELLATOR_OUTPUT_PRIMITIVE   m_outputPrimitive;
     DOMAIN_POINT*                        m_Point; // array where we will store u/v's for the points we generate
     int*                                 m_Index; // array where we will store index topology
     int                                  m_NumPoints;
     int                                  m_NumIndices;
-#ifdef ALLOW_XBOX_360_COMPARISON
-    bool                                 m_bXBox360Mode;
-#endif
     // PlacePointIn1D below is the workhorse for all position placement.
     // It is code that could run as preamble in a Domain Shader, so the tessellator itself
     // doesn't necessarily need to have floating point.
@@ -221,12 +207,12 @@ private:
 
     // HWIntegerPartitioning() - hardware doesn't care about what pow2 partitioning is - the query below is true for
     //                           both integer and pow2.
-    bool HWIntegerPartitioning() {return ((m_partitioning == D3D11_TESSELLATOR_PARTITIONING_INTEGER)||
-                                          (m_partitioning == D3D11_TESSELLATOR_PARTITIONING_POW2)) ? true : false;}
+    bool HWIntegerPartitioning() {return ((m_partitioning == PIPE_TESSELLATOR_PARTITIONING_INTEGER)||
+                                          (m_partitioning == PIPE_TESSELLATOR_PARTITIONING_POW2)) ? true : false;}
 
     // Tesselation Partitioning control
     void RestorePartitioning() {m_partitioning = m_originalPartitioning;};
-    void OverridePartitioning(D3D11_TESSELLATOR_PARTITIONING partitioning) {m_partitioning = partitioning;} //isoline uses this for density
+    void OverridePartitioning(PIPE_TESSELLATOR_PARTITIONING partitioning) {m_partitioning = partitioning;} //isoline uses this for density
 
     // Call these to generate new points and indices.  Max TessFactor storage is already allocated.
     int DefinePoint(FXP u, FXP v, int pointStorageOffset);
@@ -369,7 +355,7 @@ private:
 };
 
 //=================================================================================================================================
-// CHLSLTessellator: D3D11 Tessellation HLSL Tessellator Interface
+// CHLSLTessellator: PIPE Tessellation HLSL Tessellator Interface
 // Demonstrates TessFactor preconditioning code auto-generated by HLSL.  Subject to change, but this
 // just represents the effect of shader code the HLSL compiler will generate in the Hull Shader,
 // so it does not affect hardware design at all.
@@ -377,10 +363,10 @@ private:
 class CHLSLTessellator : public CHWTessellator
 {
 public:
-    void Init( D3D11_TESSELLATOR_PARTITIONING         partitioning,
-               D3D11_TESSELLATOR_REDUCTION            insideTessFactorReduction,
-               D3D11_TESSELLATOR_QUAD_REDUCTION_AXIS  quadInsideTessFactorReductionAxis,
-               D3D11_TESSELLATOR_OUTPUT_PRIMITIVE     outputPrimitive);
+    void Init( PIPE_TESSELLATOR_PARTITIONING         partitioning,
+               PIPE_TESSELLATOR_REDUCTION            insideTessFactorReduction,
+               PIPE_TESSELLATOR_QUAD_REDUCTION_AXIS  quadInsideTessFactorReductionAxis,
+               PIPE_TESSELLATOR_OUTPUT_PRIMITIVE     outputPrimitive);
 
     void TessellateIsoLineDomain( float TessFactor_V_LineDensity,
                                   float TessFactor_U_LineDetail );
@@ -440,15 +426,15 @@ private:
     TESSELLATOR_PARITY                   m_originalParity; // user chosen parity
     TESSELLATOR_PARITY                   m_parity; // current parity: if allowing mix of even/odd during discrete
                                                    // tessellation, this can vary from the user defined parity
-    D3D11_TESSELLATOR_PARTITIONING       m_originalPartitioning; // user chosen partitioning
-    D3D11_TESSELLATOR_PARTITIONING       m_partitioning; // current partitioning.  IsoLines overrides for line density
-    D3D11_TESSELLATOR_OUTPUT_PRIMITIVE   m_outputPrimitive;
-    D3D11_TESSELLATOR_REDUCTION          m_insideTessFactorReduction;
-    D3D11_TESSELLATOR_QUAD_REDUCTION_AXIS m_quadInsideTessFactorReductionAxis;
+    PIPE_TESSELLATOR_PARTITIONING       m_originalPartitioning; // user chosen partitioning
+    PIPE_TESSELLATOR_PARTITIONING       m_partitioning; // current partitioning.  IsoLines overrides for line density
+    PIPE_TESSELLATOR_OUTPUT_PRIMITIVE   m_outputPrimitive;
+    PIPE_TESSELLATOR_REDUCTION          m_insideTessFactorReduction;
+    PIPE_TESSELLATOR_QUAD_REDUCTION_AXIS m_quadInsideTessFactorReductionAxis;
     float                                m_LastComputedTessFactors[6]; // TessFactors used for last tessellation
     float                                m_LastUnRoundedComputedTessFactors[6]; // TessFactors used for last tessellation (before they were rounded)
-    bool IntegerPartitioning() {return (m_partitioning == D3D11_TESSELLATOR_PARTITIONING_INTEGER) ? true : false;}
-    bool Pow2Partitioning() {return (m_partitioning == D3D11_TESSELLATOR_PARTITIONING_POW2)? true : false;}
+    bool IntegerPartitioning() {return (m_partitioning == PIPE_TESSELLATOR_PARTITIONING_INTEGER) ? true : false;}
+    bool Pow2Partitioning() {return (m_partitioning == PIPE_TESSELLATOR_PARTITIONING_POW2)? true : false;}
     void ClampTessFactor(float& TessFactor);
     void RoundUpTessFactor(float& TessFactor);
     void CleanupFloatTessFactor(float& input); // clamp float to [1.0f... +INF] (incl NaN->1.0f)
@@ -460,7 +446,7 @@ private:
 
     // Tesselation Partitioning control
     void RestorePartitioning() {m_partitioning = m_originalPartitioning;};
-    void OverridePartitioning(D3D11_TESSELLATOR_PARTITIONING partitioning) {m_partitioning = partitioning;} //isoline uses this for density
+    void OverridePartitioning(PIPE_TESSELLATOR_PARTITIONING partitioning) {m_partitioning = partitioning;} //isoline uses this for density
 
     void IsoLineHLSLProcessTessFactors( float TessFactor_V_LineDensity, float TessFactor_U_LineDetail );
     void TriHLSLProcessTessFactors( float tessFactor_Ueq0, float TessFactor_Veq0, float TessFactor_Weq0, float insideTessFactor );

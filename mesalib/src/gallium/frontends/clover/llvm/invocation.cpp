@@ -247,9 +247,8 @@ namespace {
       // http://www.llvm.org/bugs/show_bug.cgi?id=19735
       c->getDiagnosticOpts().ShowCarets = false;
 
-      c->getInvocation().setLangDefaults(c->getLangOpts(),
-                                compat::ik_opencl, ::llvm::Triple(target.triple),
-                                c->getPreprocessorOpts(),
+      compat::compiler_set_lang_defaults(c, compat::ik_opencl,
+                                ::llvm::Triple(target.triple),
                                 get_language_version(opts, device_clc_version));
 
       c->createDiagnostics(new clang::TextDiagnosticPrinter(
@@ -491,7 +490,7 @@ clover::llvm::compile_to_spirv(const std::string &source,
       "-spir-unknown-unknown" :
       "-spir64-unknown-unknown";
    auto c = create_compiler_instance(dev, target,
-                                     tokenize(opts + " -O0 input.cl"), r_log);
+                                     tokenize(opts + " -O0 -fgnu89-inline input.cl"), r_log);
    auto mod = compile(*ctx, *c, "input.cl", source, headers, dev, opts, false,
                       r_log);
 

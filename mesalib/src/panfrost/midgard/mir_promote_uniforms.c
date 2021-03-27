@@ -28,36 +28,133 @@
 #include "util/u_math.h"
 #include "util/u_memory.h"
 
-/* This pass promotes reads from uniforms from load/store ops to uniform
- * registers if it is beneficial to do so. Normally, this saves both
- * instructions and total register pressure, but it does take a toll on the
- * number of work registers that are available, so this is a balance.
+/* This pass promotes reads from UBOs to register-mapped uniforms.  This saves
+ * both instructions and work register pressure, but it reduces the work
+ * registers available, requiring a balance.
  *
  * We use a heuristic to determine the ideal count, implemented by
  * mir_work_heuristic, which returns the ideal number of work registers.
  */
 
 static bool
-mir_is_promoteable_ubo(midgard_instruction *ins)
+mir_is_direct_aligned_ubo(midgard_instruction *ins)
 {
-        /* TODO: promote unaligned access via swizzle? */
-
         return (ins->type == TAG_LOAD_STORE_4) &&
                 (OP_IS_UBO_READ(ins->op)) &&
                 !(ins->constants.u32[0] & 0xF) &&
-                !(ins->load_store.arg_1) &&
-                (ins->load_store.arg_2 == 0x1E) &&
-                ((ins->constants.u32[0] / 16) < 16);
+                (ins->src[1] == ~0) &&
+                (ins->src[2] == ~0);
 }
 
+/* Represents use data for a single UBO */
+
+#define MAX_UBO_QWORDS (65536 / 16)
+
+struct mir_ubo_block {
+        BITSET_DECLARE(uses, MAX_UBO_QWORDS);
+        BITSET_DECLARE(pushed, MAX_UBO_QWORDS);
+};
+
+struct mir_ubo_analysis {
+        /* Per block analysis */
+        unsigned nr_blocks;
+        struct mir_ubo_block *blocks;
+};
+
+static struct mir_ubo_analysis
+mir_analyze_ranges(compiler_context *ctx)
+{
+        struct mir_ubo_analysis res = {
+                .nr_blocks = ctx->nir->info.num_ubos + 1,
+        };
+
+        res.blocks = calloc(res.nr_blocks, sizeof(struct mir_ubo_block));
+
+        mir_foreach_instr_global(ctx, ins) {
+                if (!mir_is_direct_aligned_ubo(ins)) continue;
+
+                unsigned ubo = ins->load_store.arg_1;
+                unsigned offset = ins->constants.u32[0] / 16;
+
+                assert(ubo < res.nr_blocks);
+
+                if (offset < MAX_UBO_QWORDS)
+                        BITSET_SET(res.blocks[ubo].uses, offset);
+        }
+
+        return res;
+}
+
+/* Select UBO words to push. A sophisticated implementation would consider the
+ * number of uses and perhaps the control flow to estimate benefit. This is not
+ * sophisticated. Select from the last UBO first to prioritize sysvals. */
+
+static void
+mir_pick_ubo(struct panfrost_ubo_push *push, struct mir_ubo_analysis *analysis, unsigned max_qwords)
+{
+        unsigned max_words = MIN2(PAN_MAX_PUSH, max_qwords * 4);
+
+        for (signed ubo = analysis->nr_blocks - 1; ubo >= 0; --ubo) {
+                struct mir_ubo_block *block = &analysis->blocks[ubo];
+
+                unsigned vec4;
+                BITSET_FOREACH_SET(vec4, block->uses, MAX_UBO_QWORDS) {
+                        /* Don't push more than possible */
+                        if (push->count > max_words - 4)
+                                return;
+
+                        for (unsigned offs = 0; offs < 4; ++offs) {
+                                struct panfrost_ubo_word word = {
+                                        .ubo = ubo,
+                                        .offset = (vec4 * 16) + (offs * 4)
+                                };
+
+                                push->words[push->count++] = word;
+                        }
+
+                        /* Mark it as pushed so we can rewrite */
+                        BITSET_SET(block->pushed, vec4);
+                }
+        }
+}
+
+#if 0
+static void
+mir_dump_ubo_analysis(struct mir_ubo_analysis *res)
+{
+        printf("%u blocks\n", res->nr_blocks);
+
+        for (unsigned i = 0; i < res->nr_blocks; ++i) {
+                BITSET_WORD *uses = res->blocks[i].uses;
+                BITSET_WORD *push = res->blocks[i].pushed;
+
+                unsigned last = BITSET_LAST_BIT_SIZED(uses, BITSET_WORDS(MAX_UBO_QWORDS));
+
+                printf("\t");
+
+                for (unsigned j = 0; j < last; ++j) {
+                        bool used = BITSET_TEST(uses, j);
+                        bool pushed = BITSET_TEST(push, j);
+                        assert(used || !pushed);
+
+                        putchar(pushed ? '*' : used ? '-' : '_');
+                }
+
+                printf("\n");
+        }
+}
+#endif
+
 static unsigned
-mir_promoteable_uniform_count(compiler_context *ctx)
+mir_promoteable_uniform_count(struct mir_ubo_analysis *analysis)
 {
         unsigned count = 0;
 
-        mir_foreach_instr_global(ctx, ins) {
-                if (mir_is_promoteable_ubo(ins))
-                        count = MAX2(count, ins->constants.u32[0] / 16);
+        for (unsigned i = 0; i < analysis->nr_blocks; ++i) {
+                BITSET_WORD *uses = analysis->blocks[i].uses;
+
+                for (unsigned w = 0; w < BITSET_WORDS(MAX_UBO_QWORDS); ++w)
+                        count += util_bitcount(uses[w]);
         }
 
         return count;
@@ -99,9 +196,9 @@ mir_estimate_pressure(compiler_context *ctx)
 }
 
 static unsigned
-mir_work_heuristic(compiler_context *ctx)
+mir_work_heuristic(compiler_context *ctx, struct mir_ubo_analysis *analysis)
 {
-        unsigned uniform_count = mir_promoteable_uniform_count(ctx);
+        unsigned uniform_count = mir_promoteable_uniform_count(analysis);
 
         /* If there are 8 or fewer uniforms, it doesn't matter what we do, so
          * allow as many work registers as needed */
@@ -161,26 +258,40 @@ mir_special_indices(compiler_context *ctx)
 void
 midgard_promote_uniforms(compiler_context *ctx)
 {
-        unsigned work_count = mir_work_heuristic(ctx);
+        if (ctx->inputs->no_ubo_to_push)
+                return;
+
+        struct mir_ubo_analysis analysis = mir_analyze_ranges(ctx);
+
+        unsigned work_count = mir_work_heuristic(ctx, &analysis);
         unsigned promoted_count = 24 - work_count;
+
+        /* Ensure we are 16 byte aligned to avoid underallocations */
+        mir_pick_ubo(&ctx->info->push, &analysis, promoted_count);
+        ctx->info->push.count = ALIGN_POT(ctx->info->push.count, 4);
 
         /* First, figure out special indices a priori so we don't recompute a lot */
         BITSET_WORD *special = mir_special_indices(ctx);
 
         mir_foreach_instr_global_safe(ctx, ins) {
-                if (!mir_is_promoteable_ubo(ins)) continue;
+                if (!mir_is_direct_aligned_ubo(ins)) continue;
 
-                unsigned off = ins->constants.u32[0];
-                unsigned address = off / 16;
+                unsigned ubo = ins->load_store.arg_1;
+                unsigned qword = ins->constants.u32[0] / 16;
 
-                /* Check if it's a promotable range */
+                /* Check if we decided to push this */
+                assert(ubo < analysis.nr_blocks);
+                if (!BITSET_TEST(analysis.blocks[ubo].pushed, qword)) continue;
+
+                /* Find where we pushed to, TODO: unaligned pushes to pack */
+                unsigned base = pan_lookup_pushed_ubo(&ctx->info->push, ubo, qword * 16);
+                assert((base & 0x3) == 0);
+
+                unsigned address = base / 4;
                 unsigned uniform_reg = 23 - address;
 
-                if (address >= promoted_count) continue;
-
-                /* It is, great! Let's promote */
-
-                ctx->uniform_cutoff = MAX2(ctx->uniform_cutoff, address + 1);
+                /* Should've taken into account when pushing */
+                assert(address < promoted_count);
                 unsigned promoted = SSA_FIXED_REGISTER(uniform_reg);
 
                 /* We do need the move for safety for a non-SSA dest, or if
@@ -208,4 +319,5 @@ midgard_promote_uniforms(compiler_context *ctx)
         }
 
         free(special);
+        free(analysis.blocks);
 }

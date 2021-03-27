@@ -115,7 +115,7 @@ FormatYCBCRToPipeChroma(VdpYCbCrFormat vdpau_format)
          assert(0);
    }
 
-   return PIPE_FORMAT_NONE;
+   return PIPE_VIDEO_CHROMA_FORMAT_NONE;
 }
 
 static inline enum pipe_format
@@ -349,10 +349,16 @@ RectToPipeBox(const VdpRect *rect, struct pipe_resource *res)
    box.depth = 1;
 
    if (rect) {
-      box.x = MIN2(rect->x0, rect->x1);
-      box.y = MIN2(rect->y0, rect->y1);
-      box.width = abs(rect->x1 - rect->x0);
-      box.height = abs(rect->y1 - rect->y0);
+      if (rect->x1 > rect->x0 &&
+          rect->y1 > rect->y0) {
+         box.x = rect->x0;
+         box.y = rect->y0;
+         box.width = rect->x1 - box.x;
+         box.height = rect->y1 - box.y;
+      } else {
+         box.width = 0;
+         box.height = 0;
+      }
    }
 
    return box;

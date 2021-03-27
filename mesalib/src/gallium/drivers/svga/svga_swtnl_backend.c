@@ -330,6 +330,7 @@ svga_vbuf_render_draw_elements(struct vbuf_render *render,
       .start_instance = 0,
       .instance_count = 1,
       .index_bias = bias,
+      .index_bounds_valid = true,
       .min_index = svga_render->min_index,
       .max_index = svga_render->max_index,
    };

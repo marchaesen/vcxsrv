@@ -540,7 +540,8 @@ int bc_decoder::decode_fetch_mem(unsigned & i, bc_fetch& bc) {
 	uint32_t dw2 = dw[i+2];
 
 	i += 4; // MEM instructions align to 4 words boundaries
-	assert(i < ndw);
+
+	assert(i <= ndw);
 
 	MEM_RD_WORD0_R7EGCM w0(dw0);
 	bc.elem_size = w0.get_ELEM_SIZE();

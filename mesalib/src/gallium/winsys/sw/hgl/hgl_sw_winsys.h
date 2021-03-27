@@ -28,6 +28,16 @@
 #define _HGL_SOFTWAREWINSYS_H
 
 #ifdef __cplusplus
+class BBitmap;
+class BRect;
+
+class HGLWinsysContext {
+public:
+	virtual void Display(BBitmap *bitmap, BRect *updateRect) = 0;
+};
+#endif
+
+#ifdef __cplusplus
 extern "C" {
 #endif
 

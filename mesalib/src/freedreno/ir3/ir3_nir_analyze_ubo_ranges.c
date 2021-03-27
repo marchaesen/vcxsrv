@@ -329,17 +329,11 @@ lower_ubo_load_to_uniform(nir_intrinsic_instr *instr, nir_builder *b,
 		const_offset = 0;
 	}
 
-	nir_intrinsic_instr *uniform =
-		nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_uniform);
-	uniform->num_components = instr->num_components;
-	uniform->src[0] = nir_src_for_ssa(uniform_offset);
-	nir_intrinsic_set_base(uniform, const_offset);
-	nir_ssa_dest_init(&uniform->instr, &uniform->dest,
-					  uniform->num_components, instr->dest.ssa.bit_size,
-					  instr->dest.ssa.name);
-	nir_builder_instr_insert(b, &uniform->instr);
+	nir_ssa_def *uniform =
+		nir_load_uniform(b, instr->num_components, instr->dest.ssa.bit_size, uniform_offset, .base = const_offset);
+
 	nir_ssa_def_rewrite_uses(&instr->dest.ssa,
-							 nir_src_for_ssa(&uniform->dest.ssa));
+							 uniform);
 
 	nir_instr_remove(&instr->instr);
 
@@ -556,27 +550,16 @@ ir3_nir_lower_load_const_instr(nir_builder *b, nir_instr *in_instr, void *data)
 		num_components = DIV_ROUND_UP(num_components, 2);
 	}
 	unsigned base = nir_intrinsic_base(instr);
-	nir_intrinsic_instr *load =
-		nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_ubo);
-	load->num_components = num_components;
-	nir_ssa_dest_init(&load->instr, &load->dest,
-			load->num_components, 32,
-			instr->dest.ssa.name);
+	nir_ssa_def *index = nir_imm_int(b, const_state->constant_data_ubo);
+	nir_ssa_def *offset = nir_iadd_imm(b, nir_ssa_for_src(b, instr->src[0], 1), base);
 
-	load->src[0] = nir_src_for_ssa(nir_imm_int(b,
-					const_state->constant_data_ubo));
-	load->src[1] = nir_src_for_ssa(nir_iadd_imm(b,
-					nir_ssa_for_src(b, instr->src[0], 1), base));
+	nir_ssa_def *result =
+		nir_load_ubo(b, num_components, 32, index, offset,
+					 .align_mul = nir_intrinsic_align_mul(instr),
+					 .align_offset = nir_intrinsic_align_offset(instr),
+					 .range_base = base,
+					 .range = nir_intrinsic_range(instr));
 
-	nir_intrinsic_set_align(load,
-			nir_intrinsic_align_mul(instr),
-			nir_intrinsic_align_offset(instr));
-	nir_intrinsic_set_range_base(load, base);
-	nir_intrinsic_set_range(load, nir_intrinsic_range(instr));
-
-	nir_builder_instr_insert(b, &load->instr);
-
-	nir_ssa_def *result = &load->dest.ssa;
 	if (nir_dest_bit_size(instr->dest) == 16) {
 		result = nir_bitcast_vector(b, result, 16);
 		result = nir_channels(b, result, BITSET_MASK(instr->num_components));

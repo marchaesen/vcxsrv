@@ -152,6 +152,12 @@ Use of this path is controlled by the preprocessor define
 ``USE_ELF_TLS``. Any platform capable of using ELF TLS should use this
 as the default dispatch method.
 
+Windows has a similar concept, and beginning with Windows Vista, shared
+libraries can take advantage of compiler-assisted TLS. This TLS data
+has no fixed size and does not compete with API-based TLS (``TlsAlloc``)
+for the limited number of slots available there, and so ``USE_ELF_TLS`` can
+be used on Windows too, even though it's not truly ELF.
+
 3.3. Assembly Language Dispatch Stubs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

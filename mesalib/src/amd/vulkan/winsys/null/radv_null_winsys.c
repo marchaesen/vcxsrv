@@ -128,9 +128,12 @@ static void radv_null_winsys_query_info(struct radeon_winsys *rws,
 	info->num_physical_wave64_vgprs_per_simd = info->chip_class >= GFX10 ? 512 : 256;
 	info->num_simd_per_compute_unit = info->chip_class >= GFX10 ? 2 : 4;
 	info->lds_size_per_workgroup = info->chip_class >= GFX10 ? 128 * 1024 : 64 * 1024;
+	info->lds_encode_granularity = info->chip_class >= GFX7 ? 128 * 4 : 64 * 4;
+	info->lds_alloc_granularity = info->chip_class >= GFX10_3 ? 256 * 4 : info->lds_encode_granularity;
 	info->max_render_backends = gpu_info[info->family].num_render_backends;
 
 	info->has_dedicated_vram = gpu_info[info->family].has_dedicated_vram;
+	info->has_packed_math_16bit = info->chip_class >= GFX9;
 }
 
 static void radv_null_winsys_destroy(struct radeon_winsys *rws)

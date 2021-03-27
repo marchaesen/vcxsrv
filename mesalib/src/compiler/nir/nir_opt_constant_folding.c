@@ -103,7 +103,7 @@ try_fold_alu(nir_builder *b, nir_alu_instr *alu)
    nir_ssa_def *imm = nir_build_imm(b, alu->dest.dest.ssa.num_components,
                                        alu->dest.dest.ssa.bit_size,
                                        dest);
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(imm));
+   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, imm);
    nir_instr_remove(&alu->instr);
 
    ralloc_free(alu);
@@ -220,7 +220,7 @@ try_fold_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin,
          b->cursor = nir_before_instr(&intrin->instr);
          nir_ssa_def *val = nir_build_imm(b, intrin->dest.ssa.num_components,
                                              intrin->dest.ssa.bit_size, v);
-         nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(val));
+         nir_ssa_def_rewrite_uses(&intrin->dest.ssa, val);
          nir_instr_remove(&intrin->instr);
          return true;
       }
@@ -259,7 +259,7 @@ try_fold_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin,
          val = nir_build_imm(b, intrin->dest.ssa.num_components,
                                 intrin->dest.ssa.bit_size, imm);
       }
-      nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(val));
+      nir_ssa_def_rewrite_uses(&intrin->dest.ssa, val);
       nir_instr_remove(&intrin->instr);
       return true;
    }
@@ -284,7 +284,7 @@ try_fold_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin,
        */
       if (nir_src_is_const(intrin->src[0])) {
          nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                  nir_src_for_ssa(intrin->src[0].ssa));
+                                  intrin->src[0].ssa);
          nir_instr_remove(&intrin->instr);
          return true;
       }
@@ -295,7 +295,7 @@ try_fold_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin,
       if (nir_src_is_const(intrin->src[0])) {
          b->cursor = nir_before_instr(&intrin->instr);
          nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                  nir_src_for_ssa(nir_imm_true(b)));
+                                  nir_imm_true(b));
          nir_instr_remove(&intrin->instr);
          return true;
       }

@@ -1252,7 +1252,7 @@ static void evergreen_set_color_surface_common(struct r600_context *rctx,
 		color->info |= S_028C70_COMPRESSION(1);
 	}
 
-	/* EXPORT_NORM is an optimzation that can be enabled for better
+	/* EXPORT_NORM is an optimization that can be enabled for better
 	 * performance in certain cases.
 	 * EXPORT_NORM can be enabled if:
 	 * - 11-bit or smaller UNORM/SNORM/SRGB
@@ -1282,7 +1282,7 @@ static void evergreen_set_color_surface_common(struct r600_context *rctx,
 }
 
 /**
- * This function intializes the CB* register values for RATs.  It is meant
+ * This function initializes the CB* register values for RATs.  It is meant
  * to be used for 1D aligned buffers that do not have an associated
  * radeon_surf.
  */
@@ -4150,7 +4150,7 @@ static void evergreen_set_shader_buffers(struct pipe_context *ctx,
 
 static void evergreen_set_shader_images(struct pipe_context *ctx,
 					enum pipe_shader_type shader, unsigned start_slot,
-					unsigned count,
+					unsigned count, unsigned unbind_num_trailing_slots,
 					const struct pipe_image_view *images)
 {
 	struct r600_context *rctx = (struct r600_context *)ctx;
@@ -4164,7 +4164,9 @@ static void evergreen_set_shader_images(struct pipe_context *ctx,
 	unsigned old_mask;
 	struct r600_image_state *istate = NULL;
 	int idx;
-	if (shader != PIPE_SHADER_FRAGMENT && shader != PIPE_SHADER_COMPUTE && count == 0)
+	if (shader != PIPE_SHADER_FRAGMENT && shader != PIPE_SHADER_COMPUTE)
+		return;
+	if (!count && !unbind_num_trailing_slots)
 		return;
 
 	if (shader == PIPE_SHADER_FRAGMENT)
@@ -4305,6 +4307,16 @@ static void evergreen_set_shader_images(struct pipe_context *ctx,
 							     rview->resource_words);
 		}
 		istate->enabled_mask |= (1 << i);
+	}
+
+	for (i = start_slot + count, idx = 0;
+	     i < start_slot + count + unbind_num_trailing_slots; i++, idx++) {
+		rview = &istate->views[i];
+
+		pipe_resource_reference((struct pipe_resource **)&rview->base.resource, NULL);
+		istate->enabled_mask &= ~(1 << i);
+		istate->compressed_colortex_mask &= ~(1 << i);
+		istate->compressed_depthtex_mask &= ~(1 << i);
 	}
 
 	istate->atom.num_dw = util_bitcount(istate->enabled_mask) * 46;
@@ -4525,11 +4537,11 @@ void evergreen_setup_tess_constants(struct r600_context *rctx, const struct pipe
 	if (!rctx->tes_shader) {
 		rctx->lds_alloc = 0;
 		rctx->b.b.set_constant_buffer(&rctx->b.b, PIPE_SHADER_VERTEX,
-					      R600_LDS_INFO_CONST_BUFFER, NULL);
+					      R600_LDS_INFO_CONST_BUFFER, false, NULL);
 		rctx->b.b.set_constant_buffer(&rctx->b.b, PIPE_SHADER_TESS_CTRL,
-					      R600_LDS_INFO_CONST_BUFFER, NULL);
+					      R600_LDS_INFO_CONST_BUFFER, false, NULL);
 		rctx->b.b.set_constant_buffer(&rctx->b.b, PIPE_SHADER_TESS_EVAL,
-					      R600_LDS_INFO_CONST_BUFFER, NULL);
+					      R600_LDS_INFO_CONST_BUFFER, false, NULL);
 		return;
 	}
 
@@ -4589,12 +4601,11 @@ void evergreen_setup_tess_constants(struct r600_context *rctx, const struct pipe
 	constbuf.buffer_size = 8 * 4;
 
 	rctx->b.b.set_constant_buffer(&rctx->b.b, PIPE_SHADER_VERTEX,
-				      R600_LDS_INFO_CONST_BUFFER, &constbuf);
+				      R600_LDS_INFO_CONST_BUFFER, false, &constbuf);
 	rctx->b.b.set_constant_buffer(&rctx->b.b, PIPE_SHADER_TESS_CTRL,
-				      R600_LDS_INFO_CONST_BUFFER, &constbuf);
+				      R600_LDS_INFO_CONST_BUFFER, false, &constbuf);
 	rctx->b.b.set_constant_buffer(&rctx->b.b, PIPE_SHADER_TESS_EVAL,
-				      R600_LDS_INFO_CONST_BUFFER, &constbuf);
-	pipe_resource_reference(&constbuf.buffer, NULL);
+				      R600_LDS_INFO_CONST_BUFFER, true, &constbuf);
 }
 
 uint32_t evergreen_get_ls_hs_config(struct r600_context *rctx,

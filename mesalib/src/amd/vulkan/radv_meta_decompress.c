@@ -47,8 +47,9 @@ create_pass(struct radv_device *device,
 	VkResult result;
 	VkDevice device_h = radv_device_to_handle(device);
 	const VkAllocationCallbacks *alloc = &device->meta_state.alloc;
-	VkAttachmentDescription attachment;
+	VkAttachmentDescription2 attachment;
 
+	attachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 	attachment.flags = 0;
 	attachment.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
 	attachment.samples = samples;
@@ -59,19 +60,21 @@ create_pass(struct radv_device *device,
 	attachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	result = radv_CreateRenderPass(device_h,
-				       &(VkRenderPassCreateInfo) {
-					       .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+	result = radv_CreateRenderPass2(device_h,
+				       &(VkRenderPassCreateInfo2) {
+					       .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2,
 						       .attachmentCount = 1,
 						       .pAttachments = &attachment,
 						       .subpassCount = 1,
-							.pSubpasses = &(VkSubpassDescription) {
+							.pSubpasses = &(VkSubpassDescription2) {
+						       .sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2,
 						       .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
 						       .inputAttachmentCount = 0,
 						       .colorAttachmentCount = 0,
 						       .pColorAttachments = NULL,
 						       .pResolveAttachments = NULL,
-						       .pDepthStencilAttachment = &(VkAttachmentReference) {
+						       .pDepthStencilAttachment = &(VkAttachmentReference2) {
+							       .sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2,
 							       .attachment = 0,
 							       .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 						       },
@@ -79,8 +82,9 @@ create_pass(struct radv_device *device,
 						       .pPreserveAttachments = NULL,
 					       },
 							.dependencyCount = 2,
-							.pDependencies = (VkSubpassDependency[]) {
+							.pDependencies = (VkSubpassDependency2[]) {
 								{
+									.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
 									.srcSubpass = VK_SUBPASS_EXTERNAL,
 									.dstSubpass = 0,
 									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -90,6 +94,7 @@ create_pass(struct radv_device *device,
 									.dependencyFlags = 0
 								},
 								{
+									.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
 									.srcSubpass = 0,
 									.dstSubpass = VK_SUBPASS_EXTERNAL,
 									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -141,21 +146,10 @@ create_pipeline(struct radv_device *device,
 		return VK_SUCCESS;
 	}
 
-	struct radv_shader_module vs_module = {
-		.nir = radv_meta_build_nir_vs_generate_vertices()
-	};
+	nir_shader *vs_module = radv_meta_build_nir_vs_generate_vertices();
+	nir_shader *fs_module = radv_meta_build_nir_fs_noop();
 
-	if (!vs_module.nir) {
-		/* XXX: Need more accurate error */
-		result = VK_ERROR_OUT_OF_HOST_MEMORY;
-		goto cleanup;
-	}
-
-	struct radv_shader_module fs_module = {
-		.nir = radv_meta_build_nir_fs_noop(),
-	};
-
-	if (!fs_module.nir) {
+	if (!vs_module || !fs_module) {
 		/* XXX: Need more accurate error */
 		result = VK_ERROR_OUT_OF_HOST_MEMORY;
 		goto cleanup;
@@ -173,13 +167,13 @@ create_pipeline(struct radv_device *device,
 		       {
 				.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 				.stage = VK_SHADER_STAGE_VERTEX_BIT,
-				.module = radv_shader_module_to_handle(&vs_module),
+				.module = vk_shader_module_handle_from_nir(vs_module),
 				.pName = "main",
 			},
 			{
 				.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 				.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-				.module = radv_shader_module_to_handle(&fs_module),
+				.module = vk_shader_module_handle_from_nir(fs_module),
 				.pName = "main",
 			},
 		},
@@ -258,8 +252,8 @@ create_pipeline(struct radv_device *device,
 					       pipeline);
 
 cleanup:
-	ralloc_free(fs_module.nir);
-	ralloc_free(vs_module.nir);
+	ralloc_free(fs_module);
+	ralloc_free(vs_module);
 	mtx_unlock(&device->meta_state.mtx);
 	return result;
 }
@@ -481,9 +475,6 @@ static void radv_process_depth_stencil(struct radv_cmd_buffer *cmd_buffer,
 	VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
 	VkPipeline *pipeline;
 
-	if (!radv_image_has_htile(image))
-		return;
-
 	radv_meta_save(&saved_state, cmd_buffer,
 		       RADV_META_SAVE_GRAPHICS_PIPELINE |
 		       RADV_META_SAVE_SAMPLE_LOCATIONS |
@@ -511,6 +502,11 @@ static void radv_process_depth_stencil(struct radv_cmd_buffer *cmd_buffer,
 	}
 
 	for (uint32_t l = 0; l < radv_get_levelCount(image, subresourceRange); ++l) {
+
+		/* Do not decompress levels without HTILE. */
+		if (!radv_htile_enabled(image, subresourceRange->baseMipLevel + l))
+			continue;
+
 		uint32_t width =
 			radv_minify(image->info.width,
 				    subresourceRange->baseMipLevel + l);

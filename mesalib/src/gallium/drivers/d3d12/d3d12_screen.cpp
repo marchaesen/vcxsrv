@@ -45,9 +45,10 @@
 #include <directx/d3d12sdklayers.h>
 
 #include <dxguids/dxguids.h>
+static GUID OpenGLOn12CreatorID = { 0x6bb3cd34, 0x0d19, 0x45ab, 0x97, 0xed, 0xd7, 0x20, 0xba, 0x3d, 0xfc, 0x80 };
 
 static const struct debug_named_value
-debug_options[] = {
+d3d12_debug_options[] = {
    { "verbose",      D3D12_DEBUG_VERBOSE,       NULL },
    { "blit",         D3D12_DEBUG_BLIT,          "Trace blit and copy resource calls" },
    { "experimental", D3D12_DEBUG_EXPERIMENTAL,  "Enable experimental shader models feature" },
@@ -59,7 +60,7 @@ debug_options[] = {
    DEBUG_NAMED_VALUE_END
 };
 
-DEBUG_GET_ONCE_FLAGS_OPTION(d3d12_debug, "D3D12_DEBUG", debug_options, 0)
+DEBUG_GET_ONCE_FLAGS_OPTION(d3d12_debug, "D3D12_DEBUG", d3d12_debug_options, 0)
 
 uint32_t
 d3d12_debug;
@@ -257,9 +258,6 @@ d3d12_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
 
    case PIPE_CAP_TEXTURE_FLOAT_LINEAR:
    case PIPE_CAP_TEXTURE_HALF_FLOAT_LINEAR:
-      return 1;
-
-   case PIPE_CAP_SHAREABLE_SHADERS:
       return 1;
 
 #if 0 /* TODO: Enable me. Enables GL_ARB_shader_storage_buffer_object */
@@ -603,9 +601,14 @@ d3d12_destroy_screen(struct pipe_screen *pscreen)
 {
    struct d3d12_screen *screen = d3d12_screen(pscreen);
    slab_destroy_parent(&screen->transfer_pool);
+   d3d12_descriptor_pool_free(screen->rtv_pool);
+   d3d12_descriptor_pool_free(screen->dsv_pool);
+   d3d12_descriptor_pool_free(screen->view_pool);
+   screen->readback_slab_bufmgr->destroy(screen->readback_slab_bufmgr);
    screen->slab_bufmgr->destroy(screen->slab_bufmgr);
    screen->cache_bufmgr->destroy(screen->cache_bufmgr);
    screen->bufmgr->destroy(screen->bufmgr);
+   mtx_destroy(&screen->descriptor_pool_mutex);
    FREE(screen);
 }
 
@@ -620,27 +623,35 @@ d3d12_flush_frontbuffer(struct pipe_screen * pscreen,
    struct d3d12_screen *screen = d3d12_screen(pscreen);
    struct sw_winsys *winsys = screen->winsys;
    struct d3d12_resource *res = d3d12_resource(pres);
-   ID3D12Resource *d3d12_res = d3d12_resource_resource(res);
 
-   if (!winsys)
+   if (!winsys || !pctx)
      return;
-
-   if (pctx)
-      d3d12_flush_cmdlist_and_wait(d3d12_context(pctx));
 
    assert(res->dt);
    void *map = winsys->displaytarget_map(winsys, res->dt, 0);
 
    if (map) {
-      d3d12_res->ReadFromSubresource(map, res->dt_stride, 0, 0, NULL);
+      pipe_transfer *transfer = nullptr;
+      void *res_map = pipe_transfer_map(pctx, pres, level, layer, PIPE_MAP_READ, 0, 0,
+                                        u_minify(pres->width0, level),
+                                        u_minify(pres->height0, level),
+                                        &transfer);
+      if (res_map) {
+         util_copy_rect((ubyte*)map, pres->format, res->dt_stride, 0, 0,
+                        transfer->box.width, transfer->box.height,
+                        (const ubyte*)res_map, transfer->stride, 0, 0);
+         pipe_transfer_unmap(pctx, transfer);
+      }
       winsys->displaytarget_unmap(winsys, res->dt);
    }
 
 #ifdef _WIN32
    // WindowFromDC is Windows-only, and this method requires an HWND, so only use it on Windows
    ID3D12SharingContract *sharing_contract;
-   if (SUCCEEDED(screen->cmdqueue->QueryInterface(IID_PPV_ARGS(&sharing_contract))))
+   if (SUCCEEDED(screen->cmdqueue->QueryInterface(IID_PPV_ARGS(&sharing_contract)))) {
+      ID3D12Resource *d3d12_res = d3d12_resource_resource(res);
       sharing_contract->Present(d3d12_res, 0, WindowFromDC((HDC)winsys_drawable_handle));
+   }
 #endif
 
    winsys->displaytarget_display(winsys, res->dt, winsys_drawable_handle, sub_box);
@@ -706,11 +717,21 @@ create_device(IUnknown *adapter)
    }
 
 #ifdef _WIN32
-   if (d3d12_debug & D3D12_DEBUG_EXPERIMENTAL)
+   if (!(d3d12_debug & D3D12_DEBUG_EXPERIMENTAL)) {
+      struct d3d12_validation_tools *validation_tools = d3d12_validator_create();
+      if (!validation_tools) {
+         debug_printf("D3D12: failed to initialize validator with experimental shader models disabled\n");
+         return nullptr;
+      }
+      d3d12_validator_destroy(validation_tools);
+   } else
 #endif
    {
       D3D12EnableExperimentalFeatures = (PFN_D3D12ENABLEEXPERIMENTALFEATURES)util_dl_get_proc_address(d3d12_mod, "D3D12EnableExperimentalFeatures");
-      D3D12EnableExperimentalFeatures(1, &D3D12ExperimentalShaderModels, NULL, NULL);
+      if (FAILED(D3D12EnableExperimentalFeatures(1, &D3D12ExperimentalShaderModels, NULL, NULL))) {
+         debug_printf("D3D12: failed to enable experimental shader models\n");
+         return nullptr;
+      }
    }
 
    D3D12CreateDevice = (PFN_D3D12CREATEDEVICE)util_dl_get_proc_address(d3d12_mod, "D3D12CreateDevice");
@@ -739,12 +760,110 @@ can_attribute_at_vertex(struct d3d12_screen *screen)
    }
 }
 
+static void
+d3d12_init_null_srvs(struct d3d12_screen *screen)
+{
+   for (unsigned i = 0; i < RESOURCE_DIMENSION_COUNT; ++i) {
+      D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+
+      srv.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+      switch (i) {
+      case RESOURCE_DIMENSION_BUFFER:
+      case RESOURCE_DIMENSION_UNKNOWN:
+         srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+         srv.Buffer.FirstElement = 0;
+         srv.Buffer.NumElements = 0;
+         srv.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+         srv.Buffer.StructureByteStride = 0;
+         break;
+      case RESOURCE_DIMENSION_TEXTURE1D:
+         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+         srv.Texture1D.MipLevels = 1;
+         srv.Texture1D.MostDetailedMip = 0;
+         srv.Texture1D.ResourceMinLODClamp = 0.0f;
+         break;
+      case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+         srv.Texture1DArray.MipLevels = 1;
+         srv.Texture1DArray.ArraySize = 1;
+         srv.Texture1DArray.MostDetailedMip = 0;
+         srv.Texture1DArray.FirstArraySlice = 0;
+         srv.Texture1DArray.ResourceMinLODClamp = 0.0f;
+         break;
+      case RESOURCE_DIMENSION_TEXTURE2D:
+         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+         srv.Texture2D.MipLevels = 1;
+         srv.Texture2D.MostDetailedMip = 0;
+         srv.Texture2D.PlaneSlice = 0;
+         srv.Texture2D.ResourceMinLODClamp = 0.0f;
+         break;
+      case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+         srv.Texture2DArray.MipLevels = 1;
+         srv.Texture2DArray.ArraySize = 1;
+         srv.Texture2DArray.MostDetailedMip = 0;
+         srv.Texture2DArray.FirstArraySlice = 0;
+         srv.Texture2DArray.PlaneSlice = 0;
+         srv.Texture2DArray.ResourceMinLODClamp = 0.0f;
+         break;
+      case RESOURCE_DIMENSION_TEXTURE2DMS:
+         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+         break;
+      case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
+         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
+         srv.Texture2DMSArray.ArraySize = 1;
+         srv.Texture2DMSArray.FirstArraySlice = 0;
+         break;
+      case RESOURCE_DIMENSION_TEXTURE3D:
+         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+         srv.Texture3D.MipLevels = 1;
+         srv.Texture3D.MostDetailedMip = 0;
+         srv.Texture3D.ResourceMinLODClamp = 0.0f;
+         break;
+      case RESOURCE_DIMENSION_TEXTURECUBE:
+         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+         srv.TextureCube.MipLevels = 1;
+         srv.TextureCube.MostDetailedMip = 0;
+         srv.TextureCube.ResourceMinLODClamp = 0.0f;
+         break;
+      case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+         srv.TextureCubeArray.MipLevels = 1;
+         srv.TextureCubeArray.NumCubes = 1;
+         srv.TextureCubeArray.MostDetailedMip = 0;
+         srv.TextureCubeArray.First2DArrayFace = 0;
+         srv.TextureCubeArray.ResourceMinLODClamp = 0.0f;
+         break;
+      }
+
+      if (srv.ViewDimension != D3D12_SRV_DIMENSION_UNKNOWN)
+      {
+         d3d12_descriptor_pool_alloc_handle(screen->view_pool, &screen->null_srvs[i]);
+         screen->dev->CreateShaderResourceView(NULL, &srv, screen->null_srvs[i].cpu_handle);
+      }
+   }
+}
+
+static void
+d3d12_init_null_rtv(struct d3d12_screen *screen)
+{
+   D3D12_RENDER_TARGET_VIEW_DESC rtv = {};
+   rtv.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+   rtv.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+   rtv.Texture2D.MipSlice = 0;
+   rtv.Texture2D.PlaneSlice = 0;
+   d3d12_descriptor_pool_alloc_handle(screen->rtv_pool, &screen->null_rtv);
+   screen->dev->CreateRenderTargetView(NULL, &rtv, screen->null_rtv.cpu_handle);
+}
+
 bool
 d3d12_init_screen(struct d3d12_screen *screen, struct sw_winsys *winsys, IUnknown *adapter)
 {
    d3d12_debug = debug_get_option_d3d12_debug();
 
    screen->winsys = winsys;
+   mtx_init(&screen->descriptor_pool_mutex, mtx_plain);
 
    screen->base.get_vendor = d3d12_get_vendor;
    screen->base.get_device_vendor = d3d12_get_device_vendor;
@@ -847,9 +966,18 @@ d3d12_init_screen(struct d3d12_screen *screen, struct sw_winsys *winsys, IUnknow
    queue_desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
    queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
    queue_desc.NodeMask = 0;
-   if (FAILED(screen->dev->CreateCommandQueue(&queue_desc,
+
+   ID3D12Device9 *device9;
+   if (SUCCEEDED(screen->dev->QueryInterface(&device9))) {
+      if (FAILED(device9->CreateCommandQueue1(&queue_desc, OpenGLOn12CreatorID,
                                               IID_PPV_ARGS(&screen->cmdqueue))))
-      goto failed;
+         goto failed;
+      device9->Release();
+   } else {
+      if (FAILED(screen->dev->CreateCommandQueue(&queue_desc,
+                                                 IID_PPV_ARGS(&screen->cmdqueue))))
+         goto failed;
+   }
 
    UINT64 timestamp_freq;
    if (FAILED(screen->cmdqueue->GetTimestampFrequency(&timestamp_freq)))
@@ -862,13 +990,30 @@ d3d12_init_screen(struct d3d12_screen *screen, struct sw_winsys *winsys, IUnknow
 
    struct pb_desc desc;
    desc.alignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
-   desc.usage = (pb_usage_flags)PB_USAGE_ALL;
+   desc.usage = (pb_usage_flags)(PB_USAGE_CPU_WRITE | PB_USAGE_GPU_READ);
 
    screen->bufmgr = d3d12_bufmgr_create(screen);
    screen->cache_bufmgr = pb_cache_manager_create(screen->bufmgr, 0xfffff, 2, 0, 64 * 1024 * 1024);
    screen->slab_bufmgr = pb_slab_range_manager_create(screen->cache_bufmgr, 16, 512,
                                                       D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
                                                       &desc);
+   desc.usage = (pb_usage_flags)(PB_USAGE_CPU_READ_WRITE | PB_USAGE_GPU_WRITE);
+   screen->readback_slab_bufmgr = pb_slab_range_manager_create(screen->cache_bufmgr, 16, 512,
+                                                               D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+                                                               &desc);
+
+   screen->rtv_pool = d3d12_descriptor_pool_new(screen,
+                                                D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+                                                64);
+   screen->dsv_pool = d3d12_descriptor_pool_new(screen,
+                                                D3D12_DESCRIPTOR_HEAP_TYPE_DSV,
+                                                64);
+   screen->view_pool = d3d12_descriptor_pool_new(screen,
+                                                 D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+                                                 1024);
+
+   d3d12_init_null_srvs(screen);
+   d3d12_init_null_rtv(screen);
 
    screen->have_load_at_vertex = can_attribute_at_vertex(screen);
    return true;

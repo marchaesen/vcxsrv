@@ -411,8 +411,10 @@ clone_tex(clone_state *state, const nir_tex_instr *tex)
    }
    ntex->coord_components = tex->coord_components;
    ntex->is_array = tex->is_array;
+   ntex->array_is_lowered_cube = tex->array_is_lowered_cube;
    ntex->is_shadow = tex->is_shadow;
    ntex->is_new_style_shadow = tex->is_new_style_shadow;
+   ntex->is_sparse = tex->is_sparse;
    ntex->component = tex->component;
    memcpy(ntex->tg4_offsets, tex->tg4_offsets, sizeof(tex->tg4_offsets));
 

@@ -25,9 +25,9 @@ LDSReadInstruction::LDSReadInstruction(std::vector<PValue>& address, std::vector
    }
 }
 
-void LDSReadInstruction::replace_values(const ValueSet& candiates, PValue new_value)
+void LDSReadInstruction::replace_values(const ValueSet& candidates, PValue new_value)
 {
-   for (auto& c : candiates) {
+   for (auto& c : candidates) {
       for (auto& d: m_dest_value) {
          if (*c == *d)
             d = new_value;
@@ -116,9 +116,9 @@ void LDSWriteInstruction::do_print(std::ostream& os) const
       os << ", " << value1();
 }
 
-void LDSWriteInstruction::replace_values(const ValueSet& candiates, PValue new_value)
+void LDSWriteInstruction::replace_values(const ValueSet& candidates, PValue new_value)
 {
-   for (auto c: candiates) {
+   for (auto c: candidates) {
       if (*c == *m_address)
          m_address = new_value;
 

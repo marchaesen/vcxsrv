@@ -90,7 +90,7 @@ v3d_qpu_disasm_waddr(struct disasm_state *disasm, uint32_t waddr, bool magic)
                 return;
         }
 
-        const char *name = v3d_qpu_magic_waddr_name(waddr);
+        const char *name = v3d_qpu_magic_waddr_name(disasm->devinfo, waddr);
         if (name)
                 append(disasm, "%s", name);
         else
@@ -187,7 +187,9 @@ v3d_qpu_disasm_sig_addr(struct disasm_state *disasm,
         if (!instr->sig_magic)
                 append(disasm, ".rf%d", instr->sig_addr);
         else {
-                const char *name = v3d_qpu_magic_waddr_name(instr->sig_addr);
+                const char *name =
+                        v3d_qpu_magic_waddr_name(disasm->devinfo,
+                                                 instr->sig_addr);
                 if (name)
                         append(disasm, ".%s", name);
                 else

@@ -47,23 +47,7 @@ struct fd3_context {
 	struct u_upload_mgr *border_color_uploader;
 	struct pipe_resource *border_color_buf;
 
-	/* if *any* of bits are set in {v,f}saturate_{s,t,r} */
-	bool vsaturate, fsaturate;
-
-	/* bitmask of sampler which needs coords clamped for vertex
-	 * shader:
-	 */
-	unsigned vsaturate_s, vsaturate_t, vsaturate_r;
-
-	/* bitmask of sampler which needs coords clamped for frag
-	 * shader:
-	 */
-	unsigned fsaturate_s, fsaturate_t, fsaturate_r;
-
-	/* some state changes require a different shader variant.  Keep
-	 * track of this so we know when we need to re-emit shader state
-	 * due to variant change.  See fixup_shader_state()
-	 */
+	/* storage for ctx->last.key: */
 	struct ir3_shader_key last_key;
 };
 

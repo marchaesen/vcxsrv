@@ -63,6 +63,26 @@
 #include "util/u_memory.h"
 
 
+static inline bool
+copy_texture_attribs(struct gl_texture_object *dst,
+                     const struct gl_texture_object *src,
+                     gl_texture_index tex)
+{
+   /* All pushed fields have no effect on texture buffers. */
+   if (tex == TEXTURE_BUFFER_INDEX)
+      return false;
+
+   /* Sampler fields have no effect on MSAA textures. */
+   if (tex != TEXTURE_2D_MULTISAMPLE_INDEX &&
+       tex != TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX) {
+      memcpy(&dst->Sampler.Attrib, &src->Sampler.Attrib,
+             sizeof(src->Sampler.Attrib));
+   }
+   memcpy(&dst->Attrib, &src->Attrib, sizeof(src->Attrib));
+   return true;
+}
+
+
 void GLAPIENTRY
 _mesa_PushAttrib(GLbitfield mask)
 {
@@ -87,7 +107,9 @@ _mesa_PushAttrib(GLbitfield mask)
       }
       ctx->AttribStack[ctx->AttribStackDepth] = head;
    }
+
    head->Mask = mask;
+   head->OldPopAttribStateMask = ctx->PopAttribState;
 
    if (mask & GL_ACCUM_BUFFER_BIT)
       memcpy(&head->Accum, &ctx->Accum, sizeof(head->Accum));
@@ -235,29 +257,39 @@ _mesa_PushAttrib(GLbitfield mask)
 
       /* copy/save the bulk of texture state here */
       head->Texture.CurrentUnit = ctx->Texture.CurrentUnit;
-      head->Texture._TexGenEnabled = ctx->Texture._TexGenEnabled;
-      head->Texture._GenFlags = ctx->Texture._GenFlags;
       memcpy(&head->Texture.FixedFuncUnit, &ctx->Texture.FixedFuncUnit,
              sizeof(ctx->Texture.FixedFuncUnit));
 
+      /* Copy/save contents of default texture objects. They are almost
+       * always bound, so this can be done unconditionally.
+       *
+       * We save them separately, so that we don't have to save them in every
+       * texture unit where they are bound. This decreases CPU overhead.
+       */
+      for (tex = 0; tex < NUM_TEXTURE_TARGETS; tex++) {
+         struct gl_texture_object *dst = &head->Texture.SavedDefaultObj[tex];
+         struct gl_texture_object *src = ctx->Shared->DefaultTex[tex];
+
+         copy_texture_attribs(dst, src, tex);
+      }
+
       /* copy state/contents of the currently bound texture objects */
-      for (u = 0; u < ctx->Const.MaxTextureUnits; u++) {
+      unsigned num_tex_used = ctx->Texture.NumCurrentTexUsed;
+      for (u = 0; u < num_tex_used; u++) {
          head->Texture.LodBias[u] = ctx->Texture.Unit[u].LodBias;
 
          for (tex = 0; tex < NUM_TEXTURE_TARGETS; tex++) {
             struct gl_texture_object *dst = &head->Texture.SavedObj[u][tex];
             struct gl_texture_object *src = ctx->Texture.Unit[u].CurrentTex[tex];
 
-            dst->Target = src->Target;
             dst->Name = src->Name;
-            memcpy(&dst->Sampler.Attrib, &src->Sampler.Attrib, sizeof(src->Sampler.Attrib));
-            memcpy(&dst->Attrib, &src->Attrib, sizeof(src->Attrib));
+
+            /* Default texture targets are saved separately above. */
+            if (src->Name != 0)
+               copy_texture_attribs(dst, src, tex);
          }
       }
-
-      head->Texture.SharedRef = NULL;
-      _mesa_reference_shared_state(ctx, &head->Texture.SharedRef, ctx->Shared);
-
+      head->Texture.NumTexSaved = num_tex_used;
       _mesa_unlock_context_textures(ctx);
    }
 
@@ -277,6 +309,7 @@ _mesa_PushAttrib(GLbitfield mask)
       memcpy(&head->Multisample, &ctx->Multisample, sizeof(head->Multisample));
 
    ctx->AttribStackDepth++;
+   ctx->PopAttribState = 0;
 }
 
 
@@ -466,7 +499,7 @@ pop_enable_group(struct gl_context *ctx, const struct gl_enable_attrib_node *ena
       if (old_enabled == enabled && old_gen_enabled == gen_enabled)
          continue;
 
-      _mesa_ActiveTexture(GL_TEXTURE0 + i);
+      ctx->Texture.CurrentUnit = i;
 
       if (old_enabled != enabled) {
          TEST_AND_UPDATE_BIT(old_enabled, enabled, TEXTURE_1D_INDEX, GL_TEXTURE_1D);
@@ -490,7 +523,7 @@ pop_enable_group(struct gl_context *ctx, const struct gl_enable_attrib_node *ena
       }
    }
 
-   _mesa_ActiveTexture(GL_TEXTURE0 + curTexUnitSave);
+   ctx->Texture.CurrentUnit = curTexUnitSave;
 }
 
 
@@ -504,14 +537,14 @@ pop_texture_group(struct gl_context *ctx, struct gl_texture_attrib_node *texstat
 
    _mesa_lock_context_textures(ctx);
 
+   /* Restore fixed-function texture unit states. */
    for (u = 0; u < ctx->Const.MaxTextureUnits; u++) {
       const struct gl_fixedfunc_texture_unit *unit =
          &texstate->FixedFuncUnit[u];
       struct gl_fixedfunc_texture_unit *destUnit =
          &ctx->Texture.FixedFuncUnit[u];
-      GLuint tgt;
 
-      _mesa_ActiveTexture(GL_TEXTURE0_ARB + u);
+      ctx->Texture.CurrentUnit = u;
 
       if (ctx->Driver.TexEnv || ctx->Driver.TexGen) {
          /* Slow path for legacy classic drivers. */
@@ -531,22 +564,22 @@ pop_texture_group(struct gl_context *ctx, struct gl_texture_attrib_node *texstat
          _mesa_TexGeni(GL_T, GL_TEXTURE_GEN_MODE, unit->GenT.Mode);
          _mesa_TexGeni(GL_R, GL_TEXTURE_GEN_MODE, unit->GenR.Mode);
          _mesa_TexGeni(GL_Q, GL_TEXTURE_GEN_MODE, unit->GenQ.Mode);
-         _mesa_TexGenfv(GL_S, GL_OBJECT_PLANE, unit->GenS.ObjectPlane);
-         _mesa_TexGenfv(GL_T, GL_OBJECT_PLANE, unit->GenT.ObjectPlane);
-         _mesa_TexGenfv(GL_R, GL_OBJECT_PLANE, unit->GenR.ObjectPlane);
-         _mesa_TexGenfv(GL_Q, GL_OBJECT_PLANE, unit->GenQ.ObjectPlane);
+         _mesa_TexGenfv(GL_S, GL_OBJECT_PLANE, unit->ObjectPlane[GEN_S]);
+         _mesa_TexGenfv(GL_T, GL_OBJECT_PLANE, unit->ObjectPlane[GEN_T]);
+         _mesa_TexGenfv(GL_R, GL_OBJECT_PLANE, unit->ObjectPlane[GEN_R]);
+         _mesa_TexGenfv(GL_Q, GL_OBJECT_PLANE, unit->ObjectPlane[GEN_Q]);
          /* Eye plane done differently to avoid re-transformation */
          {
 
-            COPY_4FV(destUnit->GenS.EyePlane, unit->GenS.EyePlane);
-            COPY_4FV(destUnit->GenT.EyePlane, unit->GenT.EyePlane);
-            COPY_4FV(destUnit->GenR.EyePlane, unit->GenR.EyePlane);
-            COPY_4FV(destUnit->GenQ.EyePlane, unit->GenQ.EyePlane);
+            COPY_4FV(destUnit->EyePlane[GEN_S], unit->EyePlane[GEN_S]);
+            COPY_4FV(destUnit->EyePlane[GEN_T], unit->EyePlane[GEN_T]);
+            COPY_4FV(destUnit->EyePlane[GEN_R], unit->EyePlane[GEN_R]);
+            COPY_4FV(destUnit->EyePlane[GEN_Q], unit->EyePlane[GEN_Q]);
             if (ctx->Driver.TexGen) {
-               ctx->Driver.TexGen(ctx, GL_S, GL_EYE_PLANE, unit->GenS.EyePlane);
-               ctx->Driver.TexGen(ctx, GL_T, GL_EYE_PLANE, unit->GenT.EyePlane);
-               ctx->Driver.TexGen(ctx, GL_R, GL_EYE_PLANE, unit->GenR.EyePlane);
-               ctx->Driver.TexGen(ctx, GL_Q, GL_EYE_PLANE, unit->GenQ.EyePlane);
+               ctx->Driver.TexGen(ctx, GL_S, GL_EYE_PLANE, unit->EyePlane[GEN_S]);
+               ctx->Driver.TexGen(ctx, GL_T, GL_EYE_PLANE, unit->EyePlane[GEN_T]);
+               ctx->Driver.TexGen(ctx, GL_R, GL_EYE_PLANE, unit->EyePlane[GEN_R]);
+               ctx->Driver.TexGen(ctx, GL_Q, GL_EYE_PLANE, unit->EyePlane[GEN_Q]);
             }
          }
          _mesa_set_enable(ctx, GL_TEXTURE_GEN_S, !!(unit->TexGenEnabled & S_BIT));
@@ -586,40 +619,86 @@ pop_texture_group(struct gl_context *ctx, struct gl_texture_attrib_node *texstat
          destUnit->_CurrentCombine = NULL;
          ctx->Texture.Unit[u].LodBias = texstate->LodBias[u];
       }
+   }
+
+   /* Restore saved textures. */
+   unsigned num_tex_saved = texstate->NumTexSaved;
+   for (u = 0; u < num_tex_saved; u++) {
+      gl_texture_index tgt;
+
+      ctx->Texture.CurrentUnit = u;
 
       /* Restore texture object state for each target */
       for (tgt = 0; tgt < NUM_TEXTURE_TARGETS; tgt++) {
          const struct gl_texture_object *savedObj = &texstate->SavedObj[u][tgt];
          struct gl_texture_object *texObj =
             _mesa_get_tex_unit(ctx, u)->CurrentTex[tgt];
+         bool is_msaa = tgt == TEXTURE_2D_MULTISAMPLE_INDEX ||
+                        tgt == TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX;
 
-         if (texObj->Name != savedObj->Name) {
+         /* According to the OpenGL 4.6 Compatibility Profile specification,
+          * table 23.17, GL_TEXTURE_BINDING_2D_MULTISAMPLE and
+          * GL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY do not belong in the
+          * texture attrib group.
+          */
+         if (!is_msaa && texObj->Name != savedObj->Name) {
             /* We don't need to check whether the texture target is supported,
              * because we wouldn't get in this conditional block if it wasn't.
              */
-            _mesa_BindTexture_no_error(savedObj->Target, savedObj->Name);
+            _mesa_BindTexture_no_error(texObj->Target, savedObj->Name);
             texObj = _mesa_get_tex_unit(ctx, u)->CurrentTex[tgt];
          }
 
-         memcpy(&texObj->Sampler.Attrib, &savedObj->Sampler.Attrib,
-                sizeof(savedObj->Sampler.Attrib));
-         memcpy(&texObj->Attrib, &savedObj->Attrib, sizeof(savedObj->Attrib));
+         /* Default texture object states are restored separately below. */
+         if (texObj->Name == 0)
+            continue;
+
+         if (!copy_texture_attribs(texObj, savedObj, tgt))
+            continue;
 
          /* GL_ALL_ATTRIB_BITS means all pnames. (internal) */
-         if (texObj->Name != 0 && ctx->Driver.TexParameter)
+         if (ctx->Driver.TexParameter)
             ctx->Driver.TexParameter(ctx, texObj, GL_ALL_ATTRIB_BITS);
       }
    }
 
-   if (!ctx->Driver.TexEnv && !ctx->Driver.TexGen) {
-      ctx->Texture._TexGenEnabled = texstate->_TexGenEnabled;
-      ctx->Texture._GenFlags = texstate->_GenFlags;
+   /* Restore textures in units that were not used before glPushAttrib (thus
+    * they were not saved) but were used after glPushAttrib. Revert
+    * the bindings to Name = 0.
+    */
+   unsigned num_tex_changed = ctx->Texture.NumCurrentTexUsed;
+   for (u = num_tex_saved; u < num_tex_changed; u++) {
+      ctx->Texture.CurrentUnit = u;
+
+      for (gl_texture_index tgt = 0; tgt < NUM_TEXTURE_TARGETS; tgt++) {
+         struct gl_texture_object *texObj =
+            _mesa_get_tex_unit(ctx, u)->CurrentTex[tgt];
+         bool is_msaa = tgt == TEXTURE_2D_MULTISAMPLE_INDEX ||
+                        tgt == TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX;
+
+         /* According to the OpenGL 4.6 Compatibility Profile specification,
+          * table 23.17, GL_TEXTURE_BINDING_2D_MULTISAMPLE and
+          * GL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY do not belong in the
+          * texture attrib group.
+          */
+         if (!is_msaa && texObj->Name != 0) {
+            /* We don't need to check whether the texture target is supported,
+             * because we wouldn't get in this conditional block if it wasn't.
+             */
+            _mesa_BindTexture_no_error(texObj->Target, 0);
+         }
+      }
+   }
+
+   /* Restore default texture object states. */
+   for (gl_texture_index tex = 0; tex < NUM_TEXTURE_TARGETS; tex++) {
+      struct gl_texture_object *dst = ctx->Shared->DefaultTex[tex];
+      const struct gl_texture_object *src = &texstate->SavedDefaultObj[tex];
+
+      copy_texture_attribs(dst, src, tex);
    }
 
    _mesa_ActiveTexture(GL_TEXTURE0_ARB + texstate->CurrentUnit);
-
-   _mesa_reference_shared_state(ctx, &texstate->SharedRef, NULL);
-
    _mesa_unlock_context_textures(ctx);
 }
 
@@ -655,7 +734,7 @@ _mesa_PopAttrib(void)
 {
    struct gl_attrib_node *attr;
    GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    if (ctx->AttribStackDepth == 0) {
       _mesa_error(ctx, GL_STACK_UNDERFLOW, "glPopAttrib");
@@ -666,6 +745,15 @@ _mesa_PopAttrib(void)
    attr = ctx->AttribStack[ctx->AttribStackDepth];
 
    unsigned mask = attr->Mask;
+
+   /* Flush current attribs. This must be done before PopAttribState is
+    * applied.
+    */
+   if (mask & GL_CURRENT_BIT)
+      FLUSH_CURRENT(ctx, 0);
+
+   /* Only restore states that have been changed since glPushAttrib. */
+   mask &= ctx->PopAttribState;
 
    if (mask & GL_ACCUM_BUFFER_BIT) {
       _mesa_ClearAccum(attr->Accum.ClearColor[0],
@@ -806,9 +894,9 @@ _mesa_PopAttrib(void)
    }
 
    if (mask & GL_CURRENT_BIT) {
-      FLUSH_CURRENT(ctx, 0);
       memcpy(&ctx->Current, &attr->Current,
              sizeof(struct gl_current_attrib));
+      ctx->NewState |= _NEW_CURRENT_ATTRIB;
    }
 
    if (mask & GL_DEPTH_BUFFER_BIT) {
@@ -823,25 +911,8 @@ _mesa_PopAttrib(void)
       }
    }
 
-   if (mask & GL_ENABLE_BIT) {
+   if (mask & GL_ENABLE_BIT)
       pop_enable_group(ctx, &attr->Enable);
-      ctx->NewState |= _NEW_ALL;
-      ctx->NewDriverState |= ctx->DriverFlags.NewAlphaTest |
-                             ctx->DriverFlags.NewBlend |
-                             ctx->DriverFlags.NewClipPlaneEnable |
-                             ctx->DriverFlags.NewDepth |
-                             ctx->DriverFlags.NewDepthClamp |
-                             ctx->DriverFlags.NewFramebufferSRGB |
-                             ctx->DriverFlags.NewLineState |
-                             ctx->DriverFlags.NewLogicOp |
-                             ctx->DriverFlags.NewMultisampleEnable |
-                             ctx->DriverFlags.NewPolygonState |
-                             ctx->DriverFlags.NewSampleAlphaToXEnable |
-                             ctx->DriverFlags.NewSampleMask |
-                             ctx->DriverFlags.NewScissorTest |
-                             ctx->DriverFlags.NewStencil |
-                             ctx->DriverFlags.NewNvConservativeRasterization;
-   }
 
    if (mask & GL_EVAL_BIT) {
       memcpy(&ctx->Eval, &attr->Eval, sizeof(struct gl_eval_attrib));
@@ -924,14 +995,20 @@ _mesa_PopAttrib(void)
                            (GLfloat) attr->Light.Model.ColorControl);
       } else {
          /* Fast path for other drivers. */
-         FLUSH_VERTICES(ctx, _NEW_LIGHT);
+         ctx->NewState |= _NEW_LIGHT_CONSTANTS | _NEW_FF_VERT_PROGRAM;
 
          memcpy(ctx->Light.LightSource, attr->Light.LightSource,
                 sizeof(attr->Light.LightSource));
-         memcpy(&ctx->Light.Light, &attr->Light.Light,
-                sizeof(attr->Light.Light));
          memcpy(&ctx->Light.Model, &attr->Light.Model,
                 sizeof(attr->Light.Model));
+
+         for (i = 0; i < ctx->Const.MaxLights; i++) {
+            TEST_AND_UPDATE(ctx->Light.Light[i].Enabled,
+                            attr->Light.Light[i].Enabled,
+                            GL_LIGHT0 + i);
+            memcpy(&ctx->Light.Light[i], &attr->Light.Light[i],
+                   sizeof(struct gl_light));
+         }
       }
       /* shade model */
       TEST_AND_CALL1(Light.ShadeModel, ShadeModel);
@@ -940,7 +1017,8 @@ _mesa_PopAttrib(void)
                      ColorMaterial);
       TEST_AND_UPDATE(ctx->Light.ColorMaterialEnabled,
                       attr->Light.ColorMaterialEnabled, GL_COLOR_MATERIAL);
-      /* materials */
+      /* Shininess material is used by the fixed-func vertex program. */
+      ctx->NewState |= _NEW_MATERIAL | _NEW_FF_VERT_PROGRAM;
       memcpy(&ctx->Light.Material, &attr->Light.Material,
              sizeof(struct gl_material));
       if (ctx->Extensions.ARB_color_buffer_float) {
@@ -977,7 +1055,7 @@ _mesa_PopAttrib(void)
       }
       if (ctx->Extensions.ARB_point_sprite) {
          if (ctx->Point.CoordReplace != attr->Point.CoordReplace) {
-            ctx->NewState |= _NEW_POINT;
+            ctx->NewState |= _NEW_POINT | _NEW_FF_VERT_PROGRAM;
             ctx->Point.CoordReplace = attr->Point.CoordReplace;
 
             if (ctx->Driver.TexEnv) {
@@ -1132,7 +1210,8 @@ _mesa_PopAttrib(void)
 
    if (mask & GL_TEXTURE_BIT) {
       pop_texture_group(ctx, &attr->Texture);
-      ctx->NewState |= _NEW_TEXTURE_OBJECT | _NEW_TEXTURE_STATE;
+      ctx->NewState |= _NEW_TEXTURE_OBJECT | _NEW_TEXTURE_STATE |
+                       _NEW_FF_VERT_PROGRAM | _NEW_FF_FRAG_PROGRAM;
    }
 
    if (mask & GL_VIEWPORT_BIT) {
@@ -1140,9 +1219,18 @@ _mesa_PopAttrib(void)
 
       for (i = 0; i < ctx->Const.MaxViewports; i++) {
          const struct gl_viewport_attrib *vp = &attr->Viewport.ViewportArray[i];
-         _mesa_set_viewport(ctx, i, vp->X, vp->Y, vp->Width,
-                            vp->Height);
-         _mesa_set_depth_range(ctx, i, vp->Near, vp->Far);
+
+         if (memcmp(&ctx->ViewportArray[i].X, &vp->X, sizeof(float) * 6)) {
+            ctx->NewState |= _NEW_VIEWPORT;
+            ctx->NewDriverState |= ctx->DriverFlags.NewViewport;
+
+            memcpy(&ctx->ViewportArray[i].X, &vp->X, sizeof(float) * 6);
+
+            if (ctx->Driver.Viewport)
+               ctx->Driver.Viewport(ctx);
+            if (ctx->Driver.DepthRange)
+               ctx->Driver.DepthRange(ctx);
+         }
       }
 
       if (ctx->Extensions.NV_conservative_raster) {
@@ -1175,6 +1263,8 @@ _mesa_PopAttrib(void)
       TEST_AND_CALL1(Multisample.SampleAlphaToCoverageDitherControl,
                      AlphaToCoverageDitherControlNV);
    }
+
+   ctx->PopAttribState = attr->OldPopAttribStateMask;
 }
 
 
@@ -1224,6 +1314,7 @@ copy_array_object(struct gl_context *ctx,
 
    /* Enabled must be the same than on push */
    dest->Enabled = src->Enabled;
+   dest->_EnabledWithMapMode = src->_EnabledWithMapMode;
    dest->_EffEnabledVBO = src->_EffEnabledVBO;
    dest->_EffEnabledNonZeroDivisor = src->_EffEnabledNonZeroDivisor;
    /* The bitmask of bound VBOs needs to match the VertexBinding array */
@@ -1373,7 +1464,7 @@ _mesa_PopClientAttrib(void)
    struct gl_client_attrib_node *head;
 
    GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    if (ctx->ClientAttribStackDepth == 0) {
       _mesa_error(ctx, GL_STACK_UNDERFLOW, "glPopClientAttrib");
@@ -1489,16 +1580,6 @@ _mesa_PushClientAttribDefaultEXT( GLbitfield mask )
 void
 _mesa_free_attrib_data(struct gl_context *ctx)
 {
-   while (ctx->AttribStackDepth > 0) {
-      struct gl_attrib_node *attr;
-
-      ctx->AttribStackDepth--;
-      attr = ctx->AttribStack[ctx->AttribStackDepth];
-
-      if (attr->Mask & GL_TEXTURE_BIT)
-         _mesa_reference_shared_state(ctx, &attr->Texture.SharedRef, NULL);
-   }
-
    for (unsigned i = 0; i < ARRAY_SIZE(ctx->AttribStack); i++)
       free(ctx->AttribStack[i]);
 }

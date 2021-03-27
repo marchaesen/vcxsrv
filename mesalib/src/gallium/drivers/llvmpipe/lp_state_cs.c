@@ -829,7 +829,7 @@ llvmpipe_update_cs(struct llvmpipe_context *lp)
          }
 
          /*
-          * We need to re-check lp->nr_cs_variants because an arbitrarliy large
+          * We need to re-check lp->nr_cs_variants because an arbitrarily large
           * number of shader variants (potentially all of them) could be
           * pending for destruction on flush.
           */
@@ -1057,10 +1057,10 @@ lp_csctx_set_cs_constants(struct lp_cs_context *csctx,
    assert(num <= ARRAY_SIZE(csctx->constants));
 
    for (i = 0; i < num; ++i) {
-      util_copy_constant_buffer(&csctx->constants[i].current, &buffers[i]);
+      util_copy_constant_buffer(&csctx->constants[i].current, &buffers[i], false);
    }
    for (; i < ARRAY_SIZE(csctx->constants); i++) {
-      util_copy_constant_buffer(&csctx->constants[i].current, NULL);
+      util_copy_constant_buffer(&csctx->constants[i].current, NULL, false);
    }
 }
 

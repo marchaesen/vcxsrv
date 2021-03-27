@@ -35,16 +35,6 @@ xkb_symbols "winkeys" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "sundeadkeys" {
-
-    include "es(basic)"
-    name[Group1]="Spanish (Sun dead keys)";
-
-    key <AC11>	{ [dead_acute,  dead_diaeresis,   braceleft,      braceleft ] };
-    key <AD11>	{ [dead_grave, dead_circumflex, bracketleft, dead_abovering ] };
-};
-
-partial alphanumeric_keys
 xkb_symbols "nodeadkeys" {
 
     include "es(basic)"

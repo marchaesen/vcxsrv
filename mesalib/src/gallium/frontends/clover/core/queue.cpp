@@ -113,6 +113,19 @@ command_queue::flush_unlocked() {
    }
 }
 
+void
+command_queue::svm_migrate(const std::vector<void const*> &svm_pointers,
+                           const std::vector<size_t> &sizes,
+                           cl_mem_migration_flags flags) {
+   if (!pipe->svm_migrate)
+      return;
+
+   bool to_device = !(flags & CL_MIGRATE_MEM_OBJECT_HOST);
+   bool mem_undefined = flags & CL_MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED;
+   pipe->svm_migrate(pipe, svm_pointers.size(), svm_pointers.data(),
+                     sizes.data(), to_device, mem_undefined);
+}
+
 cl_command_queue_properties
 command_queue::props() const {
    return _props;

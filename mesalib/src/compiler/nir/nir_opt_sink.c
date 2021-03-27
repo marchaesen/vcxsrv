@@ -57,6 +57,8 @@ nir_can_move_instr(nir_instr *instr, nir_move_options options)
       switch (intrin->intrinsic) {
       case nir_intrinsic_load_ubo:
          return options & nir_move_load_ubo;
+      case nir_intrinsic_load_ssbo:
+         return (options & nir_move_load_ssbo) && nir_intrinsic_can_reorder(intrin);
       case nir_intrinsic_load_input:
       case nir_intrinsic_load_interpolated_input:
       case nir_intrinsic_load_per_vertex_input:
@@ -181,6 +183,17 @@ get_preferred_block(nir_ssa_def *def, bool sink_out_of_loops)
    return lca;
 }
 
+static bool
+can_sink_out_of_loop(nir_intrinsic_instr *intrin)
+{
+   /* Don't sink buffer loads out of loops because that can make its
+    * resource divergent and break code like that which is generated
+    * by nir_lower_non_uniform_access.
+    */
+   return intrin->intrinsic != nir_intrinsic_load_ubo &&
+          intrin->intrinsic != nir_intrinsic_load_ssbo;
+}
+
 bool
 nir_opt_sink(nir_shader *shader, nir_move_options options)
 {
@@ -200,13 +213,9 @@ nir_opt_sink(nir_shader *shader, nir_move_options options)
 
             nir_ssa_def *def = nir_instr_ssa_def(instr);
 
-            /* Don't sink load_ubo out of loops because that can make its
-             * resource divergent and break code like that which is generated
-             * by nir_lower_non_uniform_access.
-             */
             bool sink_out_of_loops =
                instr->type != nir_instr_type_intrinsic ||
-               nir_instr_as_intrinsic(instr)->intrinsic != nir_intrinsic_load_ubo;
+               can_sink_out_of_loop(nir_instr_as_intrinsic(instr));
             nir_block *use_block =
                   get_preferred_block(def, sink_out_of_loops);
 

@@ -51,6 +51,8 @@ build_pattern (json_object *obj)
     json_object_object_foreachC (obj, iter)
     {
 	FcValue v;
+	FcBool destroy_v = FcFalse;
+	FcMatrix matrix;
 
 	if (json_object_get_type (iter.val) == json_type_boolean)
 	{
@@ -105,12 +107,134 @@ build_pattern (json_object *obj)
 	{
 	    v.type = FcTypeVoid;
 	}
+	else if (json_object_get_type (iter.val) == json_type_array)
+	{
+	    json_object *o;
+	    json_type type;
+	    int i, n;
+
+	    n = json_object_array_length (iter.val);
+	    if (n == 0) {
+		fprintf (stderr, "E: value is an empty array\n");
+		continue;
+	    }
+
+	    o = json_object_array_get_idx (iter.val, 0);
+	    type = json_object_get_type (o);
+	    if (type == json_type_string) {
+		const FcObjectType *fc_o = FcNameGetObjectType (iter.key);
+		if (fc_o && fc_o->type == FcTypeCharSet) {
+		    FcCharSet* cs = FcCharSetCreate ();
+		    if (!cs) {
+			fprintf (stderr, "E: failed to create charset\n");
+			continue;
+		    }
+		    v.type = FcTypeCharSet;
+		    v.u.c = cs;
+		    destroy_v = FcTrue;
+		    for (i = 0; i < n; i++)
+	            {
+			const FcChar8 *src;
+			int len, nchar, wchar;
+			FcBool valid;
+			FcChar32 dst;
+
+			o = json_object_array_get_idx (iter.val, i);
+			type = json_object_get_type (o);
+			if (type != json_type_string) {
+			    fprintf (stderr, "E: charset value not string\n");
+			    FcValueDestroy (v);
+			    continue;
+			}
+			src = (const FcChar8 *) json_object_get_string (o);
+			len = json_object_get_string_len (o);
+			valid = FcUtf8Len (src, len, &nchar, &wchar);
+			if (valid == FcFalse) {
+			    fprintf (stderr, "E: charset entry not well formed\n");
+			    FcValueDestroy (v);
+			    continue;
+			}
+			if (nchar != 1) {
+			    fprintf (stderr, "E: charset entry not not one codepoint\n");
+			    FcValueDestroy (v);
+			    continue;
+			}
+			FcUtf8ToUcs4 (src, &dst, len);
+			if (FcCharSetAddChar (cs, dst) == FcFalse) {
+			    fprintf (stderr, "E: failed to add to charset\n");
+			    FcValueDestroy (v);
+			    continue;
+			}
+		    }
+		} else {
+		    FcLangSet* ls = FcLangSetCreate ();
+		    if (!ls) {
+			fprintf (stderr, "E: failed to create langset\n");
+			continue;
+		    }
+		    v.type = FcTypeLangSet;
+		    v.u.l = ls;
+		    destroy_v = FcTrue;
+		    for (i = 0; i < n; i++)
+	            {
+			o = json_object_array_get_idx (iter.val, i);
+			type = json_object_get_type (o);
+			if (type != json_type_string) {
+			    fprintf (stderr, "E: langset value not string\n");
+			    FcValueDestroy (v);
+			    continue;
+			}
+			if (FcLangSetAdd (ls, (const FcChar8 *)json_object_get_string (o)) == FcFalse) {
+			    fprintf (stderr, "E: failed to add to langset\n");
+			    FcValueDestroy (v);
+			    continue;
+			}
+		    }
+		}
+	    } else if (type == json_type_double || type == json_type_int) {
+		double values[4];
+		if (n != 2 && n != 4) {
+		    fprintf (stderr, "E: array starting with number not range or matrix\n");
+		    continue;
+		}
+		for (i = 0; i < n; i++) {
+		    o = json_object_array_get_idx (iter.val, i);
+		    type = json_object_get_type (o);
+		    if (type != json_type_double && type != json_type_int) {
+			fprintf (stderr, "E: numeric array entry not a number\n");
+			continue;
+		    }
+		    values[i] = json_object_get_double (o);
+		}
+		if (n == 2) {
+		    v.type = FcTypeRange;
+		    v.u.r = FcRangeCreateDouble (values[0], values[1]);
+		    if (!v.u.r) {
+			fprintf (stderr, "E: failed to create range\n");
+			continue;
+		    }
+		    destroy_v = FcTrue;
+		} else {
+		    v.type = FcTypeMatrix;
+		    v.u.m = &matrix;
+		    matrix.xx = values[0];
+		    matrix.xy = values[1];
+		    matrix.yx = values[2];
+		    matrix.yy = values[3];
+		}
+	    } else {
+		fprintf (stderr, "E: array format not recognized\n");
+		continue;
+	    }
+	}
 	else
 	{
 	    fprintf (stderr, "W: unexpected object to build a pattern: (%s %s)", iter.key, json_type_to_name (json_object_get_type (iter.val)));
 	    continue;
 	}
 	FcPatternAdd (pat, iter.key, v, FcTrue);
+	if (destroy_v)
+	    FcValueDestroy (v);
     }
     return pat;
 }

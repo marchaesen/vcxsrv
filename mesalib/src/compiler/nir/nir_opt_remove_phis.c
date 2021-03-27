@@ -98,7 +98,7 @@ remove_phis_block(nir_block *block, nir_builder *b)
          if (def == NULL) {
             def  = src->src.ssa;
             mov = get_parent_mov(def);
-         } else if (src->src.ssa->parent_instr->type == nir_instr_type_ssa_undef &&
+         } else if (nir_src_is_undef(src->src) &&
                     nir_block_dominates(def->parent_instr->block, src->pred)) {
             /* Ignore this undef source. */
          } else {
@@ -132,7 +132,7 @@ remove_phis_block(nir_block *block, nir_builder *b)
       }
 
       assert(phi->dest.is_ssa);
-      nir_ssa_def_rewrite_uses(&phi->dest.ssa, nir_src_for_ssa(def));
+      nir_ssa_def_rewrite_uses(&phi->dest.ssa, def);
       nir_instr_remove(instr);
 
       progress = true;

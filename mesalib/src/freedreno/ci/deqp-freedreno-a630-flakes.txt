@@ -1,0 +1,41 @@
+# Note: flakes lists for CI are just a list of lines that, when
+# non-zero-length and not starting with '#', will regex match to
+# delete lines from the test list.  Be careful.
+
+# Flakes reported more than once during Jan-Feb 2020
+dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array
+
+# Started appearing with the new deqp runner.  possibly different test order?
+dEQP-GLES3.functional.fbo.blit.conversion.rg8i_to_r16i
+
+# We have longstanding intermittent failures with compswap.
+dEQP-GLES31.functional.compute.shared_var.atomic.compswap.highp_int
+dEQP-GLES31.functional.compute.shared_var.atomic.compswap.highp_uint
+dEQP-GLES31.functional.compute.shared_var.atomic.compswap.lowp_int
+dEQP-GLES31.functional.compute.shared_var.atomic.compswap.lowp_uint
+dEQP-GLES31.functional.compute.shared_var.atomic.compswap.mediump_int
+dEQP-GLES31.functional.compute.shared_var.atomic.compswap.mediump_uint
+dEQP-GLES31.functional.ssbo.atomic.compswap.highp_int
+dEQP-GLES31.functional.ssbo.atomic.compswap.highp_uint
+dEQP-GLES31.functional.ssbo.atomic.compswap.lowp_int
+dEQP-GLES31.functional.ssbo.atomic.compswap.lowp_uint
+dEQP-GLES31.functional.ssbo.atomic.compswap.mediump_int
+dEQP-GLES31.functional.ssbo.atomic.compswap.mediump_uint
+
+# No valgrind warning I've seen, not sure.
+dEQP-VK.wsi.display.get_display_plane_capabilities
+
+# Fails NIR_VALIDATE so probably flaky
+dEQP-VK.memory_model.write_after_read.core11.u32.coherent.fence_fence.atomicwrite.workgroup.payload_nonlocal.workgroup.guard_local.buffer.comp
+
+# Undiagnosed flakes appearing more than once in the last 2 months as
+# of 2020-08-19, in descending order of frequency.
+dEQP-GLES3.functional.fragment_out.random.39
+dEQP-VK.subgroups.shuffle.framebuffer.subgroupshufflexor_bvec3_tess_eval
+dEQP-VK.image.texel_view_compatible.graphic.extended.2d_image.texture_read.astc_10x6_unorm_block.r32g32b32a32_uint
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.generate_mipmaps.from_base_level.layercount_6.r8g8b8a8_sint.general_optimal_nearest
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.r16_unorm.b8g8r8a8_snorm.optimal_optimal_nearest
+dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array
+dEQP-VK.subgroups.quad.framebuffer.subgroupquadswapvertical_ivec2_tess_eval
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.r8g8b8a8_snorm.r32_sfloat.general_optimal_nearest
+dEQP-GLES31.functional.tessellation.invariance.primitive_set.quads_equal_spacing_cw

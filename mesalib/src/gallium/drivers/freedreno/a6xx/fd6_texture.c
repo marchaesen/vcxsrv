@@ -46,14 +46,8 @@ remove_tex_entry(struct fd6_context *fd6_ctx, struct hash_entry *entry)
 }
 
 static enum a6xx_tex_clamp
-tex_clamp(unsigned wrap, bool clamp_to_edge, bool *needs_border)
+tex_clamp(unsigned wrap, bool *needs_border)
 {
-	/* Hardware does not support _CLAMP, but we emulate it: */
-	if (wrap == PIPE_TEX_WRAP_CLAMP) {
-		wrap = (clamp_to_edge) ?
-			PIPE_TEX_WRAP_CLAMP_TO_EDGE : PIPE_TEX_WRAP_CLAMP_TO_BORDER;
-	}
-
 	switch (wrap) {
 	case PIPE_TEX_WRAP_REPEAT:
 		return A6XX_TEX_REPEAT;
@@ -99,7 +93,6 @@ fd6_sampler_state_create(struct pipe_context *pctx,
 	struct fd6_sampler_stateobj *so = CALLOC_STRUCT(fd6_sampler_stateobj);
 	unsigned aniso = util_last_bit(MIN2(cso->max_anisotropy >> 1, 8));
 	bool miplinear = false;
-	bool clamp_to_edge;
 
 	if (!so)
 		return NULL;
@@ -110,30 +103,15 @@ fd6_sampler_state_create(struct pipe_context *pctx,
 	if (cso->min_mip_filter == PIPE_TEX_MIPFILTER_LINEAR)
 		miplinear = true;
 
-	/*
-	 * For nearest filtering, _CLAMP means _CLAMP_TO_EDGE;  for linear
-	 * filtering, _CLAMP means _CLAMP_TO_BORDER while additionally
-	 * clamping the texture coordinates to [0.0, 1.0].
-	 *
-	 * The clamping will be taken care of in the shaders.  There are two
-	 * filters here, but let the minification one has a say.
-	 */
-	clamp_to_edge = (cso->min_img_filter == PIPE_TEX_FILTER_NEAREST);
-	if (!clamp_to_edge) {
-		so->saturate_s = (cso->wrap_s == PIPE_TEX_WRAP_CLAMP);
-		so->saturate_t = (cso->wrap_t == PIPE_TEX_WRAP_CLAMP);
-		so->saturate_r = (cso->wrap_r == PIPE_TEX_WRAP_CLAMP);
-	}
-
 	so->needs_border = false;
 	so->texsamp0 =
 		COND(miplinear, A6XX_TEX_SAMP_0_MIPFILTER_LINEAR_NEAR) |
 		A6XX_TEX_SAMP_0_XY_MAG(tex_filter(cso->mag_img_filter, aniso)) |
 		A6XX_TEX_SAMP_0_XY_MIN(tex_filter(cso->min_img_filter, aniso)) |
 		A6XX_TEX_SAMP_0_ANISO(aniso) |
-		A6XX_TEX_SAMP_0_WRAP_S(tex_clamp(cso->wrap_s, clamp_to_edge, &so->needs_border)) |
-		A6XX_TEX_SAMP_0_WRAP_T(tex_clamp(cso->wrap_t, clamp_to_edge, &so->needs_border)) |
-		A6XX_TEX_SAMP_0_WRAP_R(tex_clamp(cso->wrap_r, clamp_to_edge, &so->needs_border));
+		A6XX_TEX_SAMP_0_WRAP_S(tex_clamp(cso->wrap_s, &so->needs_border)) |
+		A6XX_TEX_SAMP_0_WRAP_T(tex_clamp(cso->wrap_t, &so->needs_border)) |
+		A6XX_TEX_SAMP_0_WRAP_R(tex_clamp(cso->wrap_r, &so->needs_border));
 
 	so->texsamp1 =
 		COND(cso->min_mip_filter == PIPE_TEX_MIPFILTER_NONE,
@@ -177,80 +155,73 @@ fd6_sampler_state_delete(struct pipe_context *pctx, void *hwcso)
 	free(hwcso);
 }
 
-static void
-fd6_sampler_states_bind(struct pipe_context *pctx,
-		enum pipe_shader_type shader, unsigned start,
-		unsigned nr, void **hwcso)
-{
-	struct fd_context *ctx = fd_context(pctx);
-	struct fd6_context *fd6_ctx = fd6_context(ctx);
-	uint16_t saturate_s = 0, saturate_t = 0, saturate_r = 0;
-	unsigned i;
-
-	if (!hwcso)
-		nr = 0;
-
-	for (i = 0; i < nr; i++) {
-		if (hwcso[i]) {
-			struct fd6_sampler_stateobj *sampler =
-					fd6_sampler_stateobj(hwcso[i]);
-			if (sampler->saturate_s)
-				saturate_s |= (1 << i);
-			if (sampler->saturate_t)
-				saturate_t |= (1 << i);
-			if (sampler->saturate_r)
-				saturate_r |= (1 << i);
-		}
-	}
-
-	fd_sampler_states_bind(pctx, shader, start, nr, hwcso);
-
-	if (shader == PIPE_SHADER_FRAGMENT) {
-		fd6_ctx->fsaturate =
-			(saturate_s != 0) ||
-			(saturate_t != 0) ||
-			(saturate_r != 0);
-		fd6_ctx->fsaturate_s = saturate_s;
-		fd6_ctx->fsaturate_t = saturate_t;
-		fd6_ctx->fsaturate_r = saturate_r;
-	} else if (shader == PIPE_SHADER_VERTEX) {
-		fd6_ctx->vsaturate =
-			(saturate_s != 0) ||
-			(saturate_t != 0) ||
-			(saturate_r != 0);
-		fd6_ctx->vsaturate_s = saturate_s;
-		fd6_ctx->vsaturate_t = saturate_t;
-		fd6_ctx->vsaturate_r = saturate_r;
-	}
-}
-
 static struct pipe_sampler_view *
 fd6_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 		const struct pipe_sampler_view *cso)
 {
 	struct fd6_pipe_sampler_view *so = CALLOC_STRUCT(fd6_pipe_sampler_view);
-	struct fd_resource *rsc = fd_resource(prsc);
-	enum pipe_format format = cso->format;
-	bool ubwc_enabled = false;
-	unsigned lvl, layers = 0;
 
 	if (!so)
 		return NULL;
-
-	fd6_validate_format(fd_context(pctx), rsc, format);
-
-	if (format == PIPE_FORMAT_X32_S8X24_UINT) {
-		rsc = rsc->stencil;
-		format = rsc->base.format;
-	}
 
 	so->base = *cso;
 	pipe_reference(NULL, &prsc->reference);
 	so->base.texture = prsc;
 	so->base.reference.count = 1;
 	so->base.context = pctx;
-	so->seqno = ++fd6_context(fd_context(pctx))->tex_seqno;
+	so->needs_validate = true;
+
+	return &so->base;
+}
+
+static void
+fd6_set_sampler_views(struct pipe_context *pctx, enum pipe_shader_type shader,
+		unsigned start, unsigned nr, unsigned unbind_num_trailing_slots,
+		struct pipe_sampler_view **views)
+	in_dt
+{
+	struct fd_context *ctx = fd_context(pctx);
+
+	fd_set_sampler_views(pctx, shader, start, nr, unbind_num_trailing_slots, views);
+
+	if (!views)
+		return;
+
+	for (unsigned i = 0; i < nr; i++) {
+		struct fd6_pipe_sampler_view *so = fd6_pipe_sampler_view(views[i]);
+
+		if (!(so && so->needs_validate))
+			continue;
+
+		struct fd_resource *rsc = fd_resource(so->base.texture);
+
+		fd6_validate_format(ctx, rsc, so->base.format);
+		fd6_sampler_view_update(ctx, so);
+
+		so->needs_validate = false;
+	}
+}
+
+void
+fd6_sampler_view_update(struct fd_context *ctx, struct fd6_pipe_sampler_view *so)
+{
+	const struct pipe_sampler_view *cso = &so->base;
+	struct pipe_resource *prsc = cso->texture;
+	struct fd_resource *rsc = fd_resource(prsc);
+	enum pipe_format format = cso->format;
+	bool ubwc_enabled = false;
+	unsigned lvl, layers = 0;
+
+	fd6_validate_format(ctx, rsc, cso->format);
+
+	if (format == PIPE_FORMAT_X32_S8X24_UINT) {
+		rsc = rsc->stencil;
+		format = rsc->b.b.format;
+	}
+
+	so->seqno = ++fd6_context(ctx)->tex_seqno;
 	so->ptr1 = rsc;
+	so->rsc_seqno = rsc->seqno;
 
 	if (cso->target == PIPE_BUFFER) {
 		unsigned elements = cso->u.buf.size / util_format_get_blocksize(format);
@@ -280,8 +251,8 @@ fd6_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 
 		ubwc_enabled = fd_resource_ubwc_enabled(rsc, lvl);
 
-		if (rsc->base.format == PIPE_FORMAT_R8_G8B8_420_UNORM) {
-			struct fd_resource *next = fd_resource(rsc->base.next);
+		if (rsc->b.b.format == PIPE_FORMAT_R8_G8B8_420_UNORM) {
+			struct fd_resource *next = fd_resource(rsc->b.b.next);
 
 			/* In case of biplanar R8_G8B8, the UBWC metadata address in
 			 * dwords 7 and 8, is instead the pointer to the second plane.
@@ -366,10 +337,11 @@ fd6_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 			A6XX_TEX_CONST_10_FLAG_BUFFER_LOGW(util_logbase2_ceil(DIV_ROUND_UP(u_minify(prsc->width0, lvl), block_width))) |
 			A6XX_TEX_CONST_10_FLAG_BUFFER_LOGH(util_logbase2_ceil(DIV_ROUND_UP(u_minify(prsc->height0, lvl), block_height)));
 	}
-
-	return &so->base;
 }
 
+/* NOTE this can be called in either driver thread or frontend thread
+ * depending on where the last unref comes from
+ */
 static void
 fd6_sampler_view_destroy(struct pipe_context *pctx,
 		struct pipe_sampler_view *_view)
@@ -432,6 +404,11 @@ fd6_texture_state(struct fd_context *ctx, enum pipe_shader_type type,
 		struct fd6_pipe_sampler_view *view =
 			fd6_pipe_sampler_view(tex->textures[i]);
 
+		/* NOTE that if the backing rsc was uncompressed between the
+		 * time that the CSO was originally created and now, the rsc
+		 * seqno would have changed, so we don't have to worry about
+		 * getting a bogus cache hit.
+		 */
 		key.view[i].rsc_seqno = fd_resource(view->base.texture)->seqno;
 		key.view[i].seqno = view->seqno;
 	}
@@ -469,8 +446,7 @@ fd6_texture_state(struct fd_context *ctx, enum pipe_shader_type type,
 	state->stateobj = fd_ringbuffer_new_object(ctx->pipe, 0x1000);
 	state->needs_border = needs_border;
 
-	fd6_emit_textures(ctx->pipe, state->stateobj, type, tex, key.bcolor_offset,
-			NULL, NULL);
+	fd6_emit_textures(ctx, state->stateobj, type, tex, key.bcolor_offset, NULL);
 
 	/* NOTE: uses copy of key in state obj, because pointer passed by caller
 	 * is probably on the stack
@@ -498,6 +474,7 @@ __fd6_texture_state_destroy(struct fd6_texture_state *state)
 
 static void
 fd6_rebind_resource(struct fd_context *ctx, struct fd_resource *rsc)
+	assert_dt
 {
 	fd_screen_assert_locked(ctx->screen);
 
@@ -520,17 +497,18 @@ fd6_rebind_resource(struct fd_context *ctx, struct fd_resource *rsc)
 
 void
 fd6_texture_init(struct pipe_context *pctx)
+	disable_thread_safety_analysis
 {
 	struct fd_context *ctx = fd_context(pctx);
 	struct fd6_context *fd6_ctx = fd6_context(ctx);
 
 	pctx->create_sampler_state = fd6_sampler_state_create;
 	pctx->delete_sampler_state = fd6_sampler_state_delete;
-	pctx->bind_sampler_states = fd6_sampler_states_bind;
+	pctx->bind_sampler_states = fd_sampler_states_bind;
 
 	pctx->create_sampler_view = fd6_sampler_view_create;
 	pctx->sampler_view_destroy = fd6_sampler_view_destroy;
-	pctx->set_sampler_views = fd_set_sampler_views;
+	pctx->set_sampler_views = fd6_set_sampler_views;
 
 	ctx->rebind_resource = fd6_rebind_resource;
 

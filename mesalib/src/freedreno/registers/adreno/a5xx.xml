@@ -2905,11 +2905,20 @@ different border-color states per texture..  Looks something like:
 		<bitfield name="HEIGHT" low="15" high="29" type="uint"/>
 	</reg32>
 	<reg32 offset="2" name="2">
+		<!--
+		b4 and b31 set for buffer/ssbo case, in which case low 15 bits
+		of size encoded in WIDTH, and high 15 bits encoded in HEIGHT
+
+		b31 is probably the 'BUFFER' bit.. it is the one that changes
+		behavior of texture in dEQP-GLES31.functional.texture.texture_buffer.render.as_fragment_texture.buffer_size_131071
+		 -->
+		<bitfield name="UNK4" pos="4" type="boolean"/>
 		<!-- minimum pitch (for mipmap levels): log2(pitchalign / 64) -->
 		<bitfield name="PITCHALIGN" low="0" high="3" type="uint"/>
 		<doc>Pitch in bytes (so actually stride)</doc>
 		<bitfield name="PITCH" low="7" high="28" type="uint"/>
 		<bitfield name="TYPE" low="29" high="30" type="a5xx_tex_type"/>
+		<bitfield name="UNK31" pos="31" type="boolean"/>
 	</reg32>
 	<reg32 offset="3" name="3">
 		<!--

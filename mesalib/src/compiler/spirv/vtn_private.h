@@ -268,7 +268,7 @@ struct vtn_function {
    bool referenced;
    bool emitted;
 
-   nir_function_impl *impl;
+   nir_function *nir_func;
    struct vtn_block *start_block;
 
    struct list_head body;
@@ -603,6 +603,9 @@ struct vtn_value {
     * the existence of a NonUniform decoration on this value.*/
    uint32_t propagated_non_uniform : 1;
 
+   /* Valid for vtn_value_type_constant to indicate the value is OpConstantNull. */
+   bool is_null_constant:1;
+
    const char *name;
    struct vtn_decoration *decoration;
    struct vtn_type *type;
@@ -648,6 +651,7 @@ struct vtn_builder {
 
    const uint32_t *spirv;
    size_t spirv_word_count;
+   uint32_t version;
 
    nir_shader *shader;
    struct spirv_to_nir_options *options;
@@ -674,6 +678,13 @@ struct vtn_builder {
     */
    struct hash_table *phi_table;
 
+   /* In Vulkan, when lowering some modes variable access, the derefs of the
+    * variables are replaced with a resource index intrinsics, leaving the
+    * variable hanging.  This set keeps track of them so they can be filtered
+    * (and not removed) in nir_remove_dead_variables.
+    */
+   struct set *vars_used_indirectly;
+
    unsigned num_specializations;
    struct nir_spirv_specialization *specializations;
 
@@ -696,6 +707,9 @@ struct vtn_builder {
    struct vtn_value *entry_point;
    struct vtn_value *workgroup_size_builtin;
    bool variable_pointers;
+
+   uint32_t *interface_ids;
+   size_t interface_ids_count;
 
    struct vtn_function *func;
    struct list_head functions;
@@ -740,6 +754,15 @@ vtn_untyped_value(struct vtn_builder *b, uint32_t value_id)
    vtn_fail_if(value_id >= b->value_id_bound,
                "SPIR-V id %u is out-of-bounds", value_id);
    return &b->values[value_id];
+}
+
+static inline uint32_t
+vtn_id_for_value(struct vtn_builder *b, struct vtn_value *value)
+{
+   vtn_fail_if(value <= b->values, "vtn_value pointer outside the range of valid values");
+   uint32_t value_id = value - b->values;
+   vtn_fail_if(value_id >= b->value_id_bound, "vtn_value pointer outside the range of valid values");
+   return value_id;
 }
 
 /* Consider not using this function directly and instead use
@@ -907,7 +930,7 @@ void vtn_foreach_execution_mode(struct vtn_builder *b, struct vtn_value *value,
                                 vtn_execution_mode_foreach_cb cb, void *data);
 
 nir_op vtn_nir_alu_op_for_spirv_opcode(struct vtn_builder *b,
-                                       SpvOp opcode, bool *swap,
+                                       SpvOp opcode, bool *swap, bool *exact,
                                        unsigned src_bit_size, unsigned dst_bit_size);
 
 void vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
@@ -915,6 +938,8 @@ void vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
 
 void vtn_handle_bitcast(struct vtn_builder *b, const uint32_t *w,
                         unsigned count);
+
+void vtn_handle_no_contraction(struct vtn_builder *b, struct vtn_value *val);
 
 void vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
                          const uint32_t *w, unsigned count);
@@ -979,5 +1004,17 @@ SpvMemorySemanticsMask vtn_mode_to_memory_semantics(enum vtn_variable_mode mode)
 
 void vtn_emit_memory_barrier(struct vtn_builder *b, SpvScope scope,
                              SpvMemorySemanticsMask semantics);
+
+static inline int
+cmp_uint32_t(const void *pa, const void *pb)
+{
+   uint32_t a = *((const uint32_t *)pa);
+   uint32_t b = *((const uint32_t *)pb);
+   if (a < b)
+      return -1;
+   if (a > b)
+      return 1;
+   return 0;
+}
 
 #endif /* _VTN_PRIVATE_H_ */

@@ -287,6 +287,9 @@ swr_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_STREAM_OUTPUT_PAUSE_RESUME:
       return 1;
 
+   case PIPE_CAP_SHAREABLE_SHADERS:
+      return 0;
+
    /* MSAA support
     * If user has explicitly set max_sample_count = 1 (via SWR_MSAA_MAX_COUNT)
     * then disable all MSAA support and go back to old (FAKE_SW_MSAA) caps. */
@@ -349,8 +352,10 @@ swr_get_shader_param(struct pipe_screen *screen,
        shader != PIPE_SHADER_TESS_EVAL)
       return 0;
 
-   if (param == PIPE_SHADER_CAP_MAX_SHADER_BUFFERS)
+   if (param == PIPE_SHADER_CAP_MAX_SHADER_BUFFERS ||
+       param == PIPE_SHADER_CAP_MAX_SHADER_IMAGES) {
       return 0;
+   }
 
    return gallivm_get_shader_param(param);
 }

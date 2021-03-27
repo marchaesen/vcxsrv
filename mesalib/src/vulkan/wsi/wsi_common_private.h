@@ -150,6 +150,11 @@ VkResult wsi_wl_init_wsi(struct wsi_device *wsi_device,
                          VkPhysicalDevice physical_device);
 void wsi_wl_finish_wsi(struct wsi_device *wsi_device,
                        const VkAllocationCallbacks *alloc);
+VkResult wsi_win32_init_wsi(struct wsi_device *wsi_device,
+                         const VkAllocationCallbacks *alloc,
+                         VkPhysicalDevice physical_device);
+void wsi_win32_finish_wsi(struct wsi_device *wsi_device,
+                       const VkAllocationCallbacks *alloc);
 
 
 VkResult

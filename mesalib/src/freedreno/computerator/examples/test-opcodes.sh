@@ -140,10 +140,10 @@ mov.u32u32 r3.w, 3
 (rpt5)nop
 
 ; and store results:
-stib.untyped.1d.u32.1 g[0] + r3.x, r2.x   ; control: full->full
-stib.untyped.1d.u32.1 g[0] + r3.y, r2.y   ; test:    half->full
-stib.untyped.1d.u32.1 g[0] + r3.z, r2.z   ; control: half->half
-stib.untyped.1d.u32.1 g[0] + r3.w, r2.w   ; test:    full->half
+stib.untyped.1d.u32.1 r2.x, r3.x, 0   ; control: full->full
+stib.untyped.1d.u32.1 r2.y, r3.y, 0   ; test:    half->full
+stib.untyped.1d.u32.1 r2.z, r3.z, 0   ; control: half->half
+stib.untyped.1d.u32.1 r2.w, r3.w, 0   ; test:    full->half
 (sy)nop
 end
 EOF

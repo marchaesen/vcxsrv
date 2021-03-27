@@ -8,7 +8,7 @@ with debugging. If ``MESA_DEBUG`` is defined, a message will be printed
 to stdout whenever an error occurs.
 
 More extensive error checking is done in DEBUG builds
-(``--buildtype debug`` for Meson, ``build=debug`` for SCons).
+(``--buildtype debug`` for Meson).
 
 In your debugger you can set a breakpoint in ``_mesa_error()`` to trap
 Mesa errors.

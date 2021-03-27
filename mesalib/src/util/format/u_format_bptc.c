@@ -33,8 +33,8 @@
 #include "../../mesa/main/texcompress_bptc_tmp.h"
 
 void
-util_format_bptc_rgba_unorm_unpack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
-                                               const uint8_t *src_row, unsigned src_stride,
+util_format_bptc_rgba_unorm_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
+                                               const uint8_t *restrict src_row, unsigned src_stride,
                                                unsigned width, unsigned height)
 {
   decompress_rgba_unorm(width, height,
@@ -43,8 +43,8 @@ util_format_bptc_rgba_unorm_unpack_rgba_8unorm(uint8_t *dst_row, unsigned dst_st
 }
 
 void
-util_format_bptc_rgba_unorm_pack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
-                                             const uint8_t *src_row, unsigned src_stride,
+util_format_bptc_rgba_unorm_pack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
+                                             const uint8_t *restrict src_row, unsigned src_stride,
                                              unsigned width, unsigned height)
 {
    compress_rgba_unorm(width, height,
@@ -53,8 +53,8 @@ util_format_bptc_rgba_unorm_pack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stri
 }
 
 void
-util_format_bptc_rgba_unorm_unpack_rgba_float(void *dst_row, unsigned dst_stride,
-                                              const uint8_t *src_row, unsigned src_stride,
+util_format_bptc_rgba_unorm_unpack_rgba_float(void *restrict dst_row, unsigned dst_stride,
+                                              const uint8_t *restrict src_row, unsigned src_stride,
                                               unsigned width, unsigned height)
 {
    uint8_t *temp_block;
@@ -70,8 +70,8 @@ util_format_bptc_rgba_unorm_unpack_rgba_float(void *dst_row, unsigned dst_stride
 }
 
 void
-util_format_bptc_rgba_unorm_pack_rgba_float(uint8_t *dst_row, unsigned dst_stride,
-                                            const float *src_row, unsigned src_stride,
+util_format_bptc_rgba_unorm_pack_rgba_float(uint8_t *restrict dst_row, unsigned dst_stride,
+                                            const float *restrict src_row, unsigned src_stride,
                                             unsigned width, unsigned height)
 {
    uint8_t *temp_block;
@@ -87,7 +87,7 @@ util_format_bptc_rgba_unorm_pack_rgba_float(uint8_t *dst_row, unsigned dst_strid
 }
 
 void
-util_format_bptc_rgba_unorm_fetch_rgba(void *dst, const uint8_t *src,
+util_format_bptc_rgba_unorm_fetch_rgba(void *restrict dst, const uint8_t *restrict src,
                                              unsigned width, unsigned height)
 {
    uint8_t temp_block[4];
@@ -102,8 +102,8 @@ util_format_bptc_rgba_unorm_fetch_rgba(void *dst, const uint8_t *src,
 }
 
 void
-util_format_bptc_srgba_unpack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
-                                          const uint8_t *src_row, unsigned src_stride,
+util_format_bptc_srgba_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
+                                          const uint8_t *restrict src_row, unsigned src_stride,
                                           unsigned width, unsigned height)
 {
    decompress_rgba_unorm(width, height,
@@ -112,8 +112,8 @@ util_format_bptc_srgba_unpack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
 }
 
 void
-util_format_bptc_srgba_pack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
-                                        const uint8_t *src_row, unsigned src_stride,
+util_format_bptc_srgba_pack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
+                                        const uint8_t *restrict src_row, unsigned src_stride,
                                         unsigned width, unsigned height)
 {
    compress_rgba_unorm(width, height,
@@ -122,8 +122,8 @@ util_format_bptc_srgba_pack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
 }
 
 void
-util_format_bptc_srgba_unpack_rgba_float(void *dst_row, unsigned dst_stride,
-                                         const uint8_t *src_row, unsigned src_stride,
+util_format_bptc_srgba_unpack_rgba_float(void *restrict dst_row, unsigned dst_stride,
+                                         const uint8_t *restrict src_row, unsigned src_stride,
                                          unsigned width, unsigned height)
 {
    uint8_t *temp_block;
@@ -139,8 +139,8 @@ util_format_bptc_srgba_unpack_rgba_float(void *dst_row, unsigned dst_stride,
 }
 
 void
-util_format_bptc_srgba_pack_rgba_float(uint8_t *dst_row, unsigned dst_stride,
-                                       const float *src_row, unsigned src_stride,
+util_format_bptc_srgba_pack_rgba_float(uint8_t *restrict dst_row, unsigned dst_stride,
+                                       const float *restrict src_row, unsigned src_stride,
                                        unsigned width, unsigned height)
 {
    compress_rgb_float(width, height,
@@ -150,7 +150,7 @@ util_format_bptc_srgba_pack_rgba_float(uint8_t *dst_row, unsigned dst_stride,
 }
 
 void
-util_format_bptc_srgba_fetch_rgba(void *dst, const uint8_t *src,
+util_format_bptc_srgba_fetch_rgba(void *restrict dst, const uint8_t *restrict src,
                                         unsigned width, unsigned height)
 {
    uint8_t temp_block[4];
@@ -161,8 +161,8 @@ util_format_bptc_srgba_fetch_rgba(void *dst, const uint8_t *src,
 }
 
 void
-util_format_bptc_rgb_float_unpack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
-                                              const uint8_t *src_row, unsigned src_stride,
+util_format_bptc_rgb_float_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
+                                              const uint8_t *restrict src_row, unsigned src_stride,
                                               unsigned width, unsigned height)
 {
    float *temp_block;
@@ -179,8 +179,8 @@ util_format_bptc_rgb_float_unpack_rgba_8unorm(uint8_t *dst_row, unsigned dst_str
 }
 
 void
-util_format_bptc_rgb_float_pack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
-                                            const uint8_t *src_row, unsigned src_stride,
+util_format_bptc_rgb_float_pack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
+                                            const uint8_t *restrict src_row, unsigned src_stride,
                                             unsigned width, unsigned height)
 {
    compress_rgba_unorm(width, height,
@@ -189,8 +189,8 @@ util_format_bptc_rgb_float_pack_rgba_8unorm(uint8_t *dst_row, unsigned dst_strid
 }
 
 void
-util_format_bptc_rgb_float_unpack_rgba_float(void *dst_row, unsigned dst_stride,
-                                             const uint8_t *src_row, unsigned src_stride,
+util_format_bptc_rgb_float_unpack_rgba_float(void *restrict dst_row, unsigned dst_stride,
+                                             const uint8_t *restrict src_row, unsigned src_stride,
                                              unsigned width, unsigned height)
 {
    decompress_rgb_float(width, height,
@@ -200,8 +200,8 @@ util_format_bptc_rgb_float_unpack_rgba_float(void *dst_row, unsigned dst_stride,
 }
 
 void
-util_format_bptc_rgb_float_pack_rgba_float(uint8_t *dst_row, unsigned dst_stride,
-                                           const float *src_row, unsigned src_stride,
+util_format_bptc_rgb_float_pack_rgba_float(uint8_t *restrict dst_row, unsigned dst_stride,
+                                           const float *restrict src_row, unsigned src_stride,
                                            unsigned width, unsigned height)
 {
    compress_rgb_float(width, height,
@@ -211,7 +211,7 @@ util_format_bptc_rgb_float_pack_rgba_float(uint8_t *dst_row, unsigned dst_stride
 }
 
 void
-util_format_bptc_rgb_float_fetch_rgba(void *dst, const uint8_t *src,
+util_format_bptc_rgb_float_fetch_rgba(void *restrict dst, const uint8_t *restrict src,
                                             unsigned width, unsigned height)
 {
    fetch_rgb_float_from_block(src + ((width * sizeof(uint8_t)) * (height / 4) + (width / 4)) * 16,
@@ -219,8 +219,8 @@ util_format_bptc_rgb_float_fetch_rgba(void *dst, const uint8_t *src,
 }
 
 void
-util_format_bptc_rgb_ufloat_unpack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
-                                               const uint8_t *src_row, unsigned src_stride,
+util_format_bptc_rgb_ufloat_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
+                                               const uint8_t *restrict src_row, unsigned src_stride,
                                                unsigned width, unsigned height)
 {
    float *temp_block;
@@ -237,8 +237,8 @@ util_format_bptc_rgb_ufloat_unpack_rgba_8unorm(uint8_t *dst_row, unsigned dst_st
 }
 
 void
-util_format_bptc_rgb_ufloat_pack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride,
-                                             const uint8_t *src_row, unsigned src_stride,
+util_format_bptc_rgb_ufloat_pack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
+                                             const uint8_t *restrict src_row, unsigned src_stride,
                                              unsigned width, unsigned height)
 {
    compress_rgba_unorm(width, height,
@@ -247,8 +247,8 @@ util_format_bptc_rgb_ufloat_pack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stri
 }
 
 void
-util_format_bptc_rgb_ufloat_unpack_rgba_float(void *dst_row, unsigned dst_stride,
-                                              const uint8_t *src_row, unsigned src_stride,
+util_format_bptc_rgb_ufloat_unpack_rgba_float(void *restrict dst_row, unsigned dst_stride,
+                                              const uint8_t *restrict src_row, unsigned src_stride,
                                               unsigned width, unsigned height)
 {
    decompress_rgb_float(width, height,
@@ -258,8 +258,8 @@ util_format_bptc_rgb_ufloat_unpack_rgba_float(void *dst_row, unsigned dst_stride
 }
 
 void
-util_format_bptc_rgb_ufloat_pack_rgba_float(uint8_t *dst_row, unsigned dst_stride,
-                                            const float *src_row, unsigned src_stride,
+util_format_bptc_rgb_ufloat_pack_rgba_float(uint8_t *restrict dst_row, unsigned dst_stride,
+                                            const float *restrict src_row, unsigned src_stride,
                                             unsigned width, unsigned height)
 {
    compress_rgb_float(width, height,
@@ -269,7 +269,7 @@ util_format_bptc_rgb_ufloat_pack_rgba_float(uint8_t *dst_row, unsigned dst_strid
 }
 
 void
-util_format_bptc_rgb_ufloat_fetch_rgba(void *dst, const uint8_t *src,
+util_format_bptc_rgb_ufloat_fetch_rgba(void *restrict dst, const uint8_t *restrict src,
                                              unsigned width, unsigned height)
 {
    fetch_rgb_float_from_block(src + ((width * sizeof(uint8_t)) * (height / 4) + (width / 4)) * 16,

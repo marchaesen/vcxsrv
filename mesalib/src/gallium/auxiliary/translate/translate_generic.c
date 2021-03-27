@@ -50,8 +50,8 @@ struct translate_generic {
    struct {
       enum translate_element_type type;
 
-      void (*fetch)(void *dst, unsigned dst_stride,
-                    const uint8_t *src, unsigned src_stride,
+      void (*fetch)(void *restrict dst, unsigned dst_stride,
+                    const uint8_t *restrict src, unsigned src_stride,
                     unsigned width, unsigned height);
       unsigned buffer;
       unsigned input_offset;

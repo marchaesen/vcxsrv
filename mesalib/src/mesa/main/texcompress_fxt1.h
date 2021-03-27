@@ -30,10 +30,7 @@
 
 
 extern GLboolean
-_mesa_texstore_rgb_fxt1(TEXSTORE_PARAMS);
-
-extern GLboolean
-_mesa_texstore_rgba_fxt1(TEXSTORE_PARAMS);
+_mesa_texstore_fxt1(TEXSTORE_PARAMS);
 
 
 compressed_fetch_func

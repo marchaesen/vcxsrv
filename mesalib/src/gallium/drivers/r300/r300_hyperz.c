@@ -218,32 +218,6 @@ static void r300_update_hyperz(struct r300_context* r300)
 /* The ZTOP state                                                            */
 /*****************************************************************************/
 
-static boolean r300_dsa_writes_stencil(
-        struct pipe_stencil_state *s)
-{
-    return s->enabled && s->writemask &&
-           (s->fail_op  != PIPE_STENCIL_OP_KEEP ||
-            s->zfail_op != PIPE_STENCIL_OP_KEEP ||
-            s->zpass_op != PIPE_STENCIL_OP_KEEP);
-}
-
-static boolean r300_dsa_writes_depth_stencil(
-        struct pipe_depth_stencil_alpha_state *dsa)
-{
-    /* We are interested only in the cases when a depth or stencil value
-     * can be changed. */
-
-    if (dsa->depth_enabled && dsa->depth_writemask &&
-        dsa->depth_func != PIPE_FUNC_NEVER)
-        return TRUE;
-
-    if (r300_dsa_writes_stencil(&dsa->stencil[0]) ||
-        r300_dsa_writes_stencil(&dsa->stencil[1]))
-        return TRUE;
-
-    return FALSE;
-}
-
 static boolean r300_dsa_alpha_test_enabled(
         struct pipe_depth_stencil_alpha_state *dsa)
 {
@@ -287,7 +261,7 @@ static void r300_update_ztop(struct r300_context* r300)
      */
 
     /* ZS writes */
-    if (r300_dsa_writes_depth_stencil(r300->dsa_state.state) &&
+    if (util_writes_depth_stencil(r300->dsa_state.state) &&
            (r300_dsa_alpha_test_enabled(r300->dsa_state.state) ||  /* (1) */
             r300_fs(r300)->shader->info.uses_kill)) {              /* (2) */
         ztop_state->z_buffer_top = R300_ZTOP_DISABLE;

@@ -73,31 +73,19 @@ static void
 v3d_nir_store_output(nir_builder *b, int base, nir_ssa_def *offset,
                      nir_ssa_def *chan)
 {
-        nir_intrinsic_instr *intr =
-                nir_intrinsic_instr_create(b->shader,
-                                           nir_intrinsic_store_output);
-        nir_ssa_dest_init(&intr->instr, &intr->dest,
-                          1, intr->dest.ssa.bit_size, NULL);
-        intr->num_components = 1;
-
-        intr->src[0] = nir_src_for_ssa(chan);
         if (offset) {
                 /* When generating the VIR instruction, the base and the offset
                  * are just going to get added together with an ADD instruction
                  * so we might as well do the add here at the NIR level instead
                  * and let the constant folding do its magic.
                  */
-                intr->src[1] = nir_src_for_ssa(nir_iadd_imm(b, offset, base));
+                offset = nir_iadd_imm(b, offset, base);
                 base = 0;
         } else {
-                intr->src[1] = nir_src_for_ssa(nir_imm_int(b, 0));
+                offset = nir_imm_int(b, 0);
         }
 
-        nir_intrinsic_set_base(intr, base);
-        nir_intrinsic_set_write_mask(intr, 0x1);
-        nir_intrinsic_set_component(intr, 0);
-
-        nir_builder_instr_insert(b, &intr->instr);
+        nir_store_output(b, chan, offset, .base = base, .write_mask = 0x1, .component = 0);
 }
 
 /* Convert the uniform offset to bytes.  If it happens to be a constant,
@@ -215,13 +203,7 @@ v3d_nir_lower_vpm_output(struct v3d_compile *c, nir_builder *b,
                  * to 0 in that case (we always allocate tile state for at
                  * least one layer).
                  */
-                nir_intrinsic_instr *load =
-                        nir_intrinsic_instr_create(b->shader,
-                                                   nir_intrinsic_load_fb_layers_v3d);
-                nir_ssa_dest_init(&load->instr, &load->dest, 1, 32, NULL);
-                nir_builder_instr_insert(b, &load->instr);
-                nir_ssa_def *fb_layers = &load->dest.ssa;
-
+                nir_ssa_def *fb_layers = nir_load_fb_layers_v3d(b, 32);
                 nir_ssa_def *cond = nir_ige(b, src, fb_layers);
                 nir_ssa_def *layer_id =
                         nir_bcsel(b, cond,

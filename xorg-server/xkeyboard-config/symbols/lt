@@ -288,36 +288,6 @@ xkb_symbols "lekpa" {
     key <AB10> {[            h,                   H                ]};
 };
 
-// EXTRAS:
-
-partial alphanumeric_keys modifier_keys
-xkb_symbols "us_dvorak" {
-
-    include "us(dvorak)"
-
-    name[Group1]="Lithuanian (Dvorak)";
-
-    key <AE01>	{ [        1,      exclam,    aogonek,      Aogonek ] };
-    key <AE02>	{ [        2,          at,     ccaron,       Ccaron ] };
-    key <AE03>	{ [        3,  numbersign,    eogonek,      Eogonek ] };
-    key <AE04>	{ [        4,      dollar,  eabovedot,    Eabovedot ] };
-    key <AE05>	{ [        5,     percent,    iogonek,      Iogonek ] };
-    key <AE06>	{ [        6, asciicircum,     scaron,       Scaron ] };
-    key <AE07>	{ [        7,   ampersand,    uogonek,      Uogonek ] };
-    key <AE08>	{ [        8,    asterisk,    umacron,      Umacron ] };
-    key <AE09>	{ [        9,   parenleft, doublelowquotemark,  parenleft ] };
-    key <AE10>	{ [        0,  parenright, leftdoublequotemark,parenright ] };
-    key <AD12>	{ [    equal,        plus,     zcaron,       Zcaron ] };
-
-    include "level3(ralt_switch)"
-};
-
-
-partial alphanumeric_keys
-	xkb_symbols "sun_type6" {
-	include "sun_vndr/lt(sun_type6)"
-};
-
 // Samogitian (žemaiťiu/žemaičių) layout based on Lithuanian standard layout.
 // Long vowels are made by composition. It means after pressing vowel press grave accent (`).
 // This layout also supports special letters like ëůȧťď or Latvian ģŗļķ. These can be accessed by similar letter with holding AltGr.
@@ -343,4 +313,101 @@ xkb_symbols "sgs" {
     key <AC05>	{[ g,     	G, 	        gcedilla,   Gcedilla]};
     key <AC08>	{[ k,     	K, 	        kcedilla,   Kcedilla]};
     key <AC09>	{[ l,     	L, 	        lcedilla,   Lcedilla]};
+};
+
+// Lithuanian Ratise keymap by Algirdas Buckus <algirdasbuckus@gmail.com>
+// last changes 2020/12/24
+
+partial alphanumeric_keys modifier_keys
+xkb_symbols "ratise" {
+
+    include "level3(ralt_switch)"
+
+    name[Group1]="Lithuanian (Ratise)";
+
+    key <TLDE> { [       plus,     section,                grave,              acute ] };
+    key <AE01> { [     exclam,    currency, rightsinglequotemark,         exclamdown ] };
+    key <AE02> { [      colon,          at,            0x10027E8,          0x1002190 ] }; // MATHEMATICAL LEFT ANGLE BRACKET; LEFTWARDS ARROW
+    key <AE03> { [     period,  numbersign,            0x10027E9,          0x1002192 ] }; // MATHEMATICAL RIGHT ANGLE BRACKET; RIGHTWARDS ARROW
+    key <AE04> { [   asterisk,      dollar, rightdoublequotemark,           sterling ] };
+    key <AE05> { [ underscore,     percent,             ellipsis,          0x1002030 ] }; // PER MILLE SIGN
+    key <AE06> { [     emdash,         bar,          asciicircum,          brokenbar ] };
+    key <AE07> { [      equal,   ampersand,                    7,           notequal ] };
+    key <AE08> { [      comma,        less,                    8,      lessthanequal ] };
+    key <AE09> { [  semicolon,     greater,                    9,   greaterthanequal ] };
+    key <AE10> { [      slash,   backslash,             division,          0x1002016 ] }; // DOUBLE VERTICAL LINE
+    key <AE11> { [          w,           W,          Greek_OMEGA,             ssharp ] };
+    key <AE12> { [   question,  asciitilde,            0x1002248,       questiondown ] }; // ALMOST EQUAL TO
+
+    key <AD01> { [    umacron,     Umacron,  leftsinglequotemark,          0x100203A ] }; // SINGLE RIGHT-POINTING ANGLE QUOTATION MARK
+    key <AD02> { [  eabovedot,   Eabovedot,          bracketleft,     dead_abovering ] };
+    key <AD03> { [          y,           Y,         bracketright,    dead_circumflex ] };
+    key <AD04> { [          o,           O,  leftdoublequotemark,     guillemotright ] };
+    key <AD05> { [          q,           Q,            0x1000301,          0x1002191 ] }; // COMBINING ACUTE ACCENT; UPWARDS ARROW
+    key <AD06> { [          j,           J,             EuroSign,                yen ] };
+    key <AD07> { [          n,           N,                    4,            notsign ] };
+    key <AD08> { [          k,           K,                    5,             dagger ] };
+    key <AD09> { [          g,           G,                    6, enfilledcircbullet ] };
+    key <AD10> { [          b,           B,             multiply,           infinity ] };
+    key <AD11> { [          c,           C,                 cent,          copyright ] };
+    key <AD12> { [          f,           F,            0x1002044,          trademark ] }; // FRACTION SLASH
+
+    key <AC01> { [          u,           U,           apostrophe,        dead_macron ] };
+    key <AC02> { [          e,           E,            parenleft,         dead_grave ] };
+    key <AC03> { [          i,           I,           parenright,         dead_acute ] };
+    key <AC04> { [          a,           A,             quotedbl,     dead_diaeresis ] };
+    key <AC05> { [          h,           H,            0x1000303,         dead_tilde ] }; // COMBINING TILDE ACCENT
+    key <AC06> { [          l,           L,              lstroke,            Lstroke ] };
+    key <AC07> { [          r,           R,                    1,        onesuperior ] };
+    key <AC08> { [          t,           T,                    2,        twosuperior ] };
+    key <AC09> { [          s,           S,                    3,      threesuperior ] };
+    key <AC10> { [          p,           P,            0x1002212,          paragraph ] }; // MINUS SIGN
+    key <AC11> { [     zcaron,      Zcaron,                minus,       dead_cedilla ] };
+
+    key <AB01> { [    uogonek,     Uogonek,   singlelowquotemark,          0x1002039 ] }; // SINGLE LEFT-POINTING ANGLE QUOTATION MARK
+    key <AB02> { [    eogonek,     Eogonek,            braceleft,         dead_breve ] };
+    key <AB03> { [    iogonek,     Iogonek,           braceright,         dead_caron ] };
+    key <AB04> { [    aogonek,     Aogonek,   doublelowquotemark,      guillemotleft ] };
+    key <AB05> { [          x,           X,            0x1000300,          0x1002193 ] }; // COMBINING GRAVE ACCENT; DOWNWARDS ARROW
+    key <AB06> { [          v,           V,           squareroot,          0x10025CA ] }; // LOZENGE
+    key <AB07> { [          m,           M,                    0,                 mu ] };
+    key <AB08> { [          d,           D,               period,       doubledagger ] };
+    key <AB09> { [     scaron,      Scaron,                comma,          0x10000B7 ] }; // MIDDLE DOT
+    key <AB10> { [     ccaron,      Ccaron,                 plus,          plusminus ] };
+
+    key <BKSL> { [          z,           Z,               degree,         registered ] };
+    key <LSGT> { [      minus,      endash,            0x1000307,          0x1002011 ] }; // COMBINING DOT ABOVE, NON-BREAKING HYPHEN
+    key <SPCE> { [      space,       space,                space,       nobreakspace ] };
+
+//    key <CAPS> { [      minus,      endash,            0x1000307,          0x1002011 ] }; // (Optional) // COMBINING DOT ABOVE, NON-BREAKING HYPHEN
+    key <TAB>  { [        Tab,ISO_Left_Tab,            Multi_key                     ] }; // Tab as Multi_key (Compose)
+};
+
+// EXTRAS:
+
+partial alphanumeric_keys modifier_keys
+xkb_symbols "us_dvorak" {
+
+    include "us(dvorak)"
+
+    name[Group1]="Lithuanian (Dvorak)";
+
+    key <AE01>	{ [        1,      exclam,    aogonek,      Aogonek ] };
+    key <AE02>	{ [        2,          at,     ccaron,       Ccaron ] };
+    key <AE03>	{ [        3,  numbersign,    eogonek,      Eogonek ] };
+    key <AE04>	{ [        4,      dollar,  eabovedot,    Eabovedot ] };
+    key <AE05>	{ [        5,     percent,    iogonek,      Iogonek ] };
+    key <AE06>	{ [        6, asciicircum,     scaron,       Scaron ] };
+    key <AE07>	{ [        7,   ampersand,    uogonek,      Uogonek ] };
+    key <AE08>	{ [        8,    asterisk,    umacron,      Umacron ] };
+    key <AE09>	{ [        9,   parenleft, doublelowquotemark,  parenleft ] };
+    key <AE10>	{ [        0,  parenright, leftdoublequotemark,parenright ] };
+    key <AD12>	{ [    equal,        plus,     zcaron,       Zcaron ] };
+
+    include "level3(ralt_switch)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "sun_type6" {
+	include "sun_vndr/lt(sun_type6)"
 };

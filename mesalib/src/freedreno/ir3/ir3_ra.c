@@ -261,7 +261,7 @@ ra_block_find_definers(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 		} else {
 			/* and the normal case: */
 			id->defn = get_definer(ctx, instr, &id->sz, &id->off);
-			id->cls = ra_size_to_class(id->sz, is_half(id->defn), is_high(id->defn));
+			id->cls = ra_size_to_class(id->sz, is_half(id->defn), is_shared(id->defn));
 
 			/* this is a bit of duct-tape.. if we have a scenario like:
 			 *
@@ -399,8 +399,8 @@ ra_select_reg_merged(unsigned int n, BITSET_WORD *regs, void *data)
 {
 	struct ir3_ra_ctx *ctx = data;
 	unsigned int class = ra_get_node_class(ctx->g, n);
-	bool half, high;
-	int sz = ra_class_to_size(class, &half, &high);
+	bool half, shared;
+	int sz = ra_class_to_size(class, &half, &shared);
 
 	assert (sz > 0);
 
@@ -430,15 +430,15 @@ ra_select_reg_merged(unsigned int n, BITSET_WORD *regs, void *data)
 	 */
 	if (!ctx->scalar_pass) {
 		base = ctx->set->gpr_to_ra_reg[class][0];
-		if (high) {
-			max_target = HIGH_CLASS_REGS(class - HIGH_OFFSET);
+		if (shared) {
+			max_target = SHARED_CLASS_REGS(class - SHARED_OFFSET);
 		} else if (half) {
 			max_target = HALF_CLASS_REGS(class - HALF_OFFSET);
 		} else {
 			max_target = CLASS_REGS(class);
 		}
 
-		if ((sz == 1) && !high) {
+		if ((sz == 1) && !shared) {
 			return pick_in_range_rev(regs, base, base + max_target);
 		} else {
 			return pick_in_range(regs, base, base + max_target);
@@ -451,8 +451,8 @@ ra_select_reg_merged(unsigned int n, BITSET_WORD *regs, void *data)
 	 * class will be one of the scalar classes (ie. idx==0):
 	 */
 	base = ctx->set->gpr_to_ra_reg[class][0];
-	if (high) {
-		max_target = HIGH_CLASS_REGS(0);
+	if (shared) {
+		max_target = SHARED_CLASS_REGS(0);
 		start = 0;
 	} else if (half) {
 		max_target = ctx->max_target;
@@ -700,9 +700,9 @@ ra_block_compute_live_ranges(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 				}
 			} else {
 				struct ir3_ra_instr_data *id = &ctx->instrd[instr->ip];
-				if (is_high(instr)) {
+				if (is_shared(instr)) {
 					ra_set_node_class(ctx->g, name,
-							ctx->set->high_classes[id->cls - HIGH_OFFSET]);
+							ctx->set->shared_classes[id->cls - SHARED_OFFSET]);
 				} else if (is_half(instr)) {
 					ra_set_node_class(ctx->g, name,
 							ctx->set->half_classes[id->cls - HALF_OFFSET]);
@@ -848,7 +848,7 @@ live_size(struct ir3_instruction *instr)
 {
 	if (is_half(instr)) {
 		return 1;
-	} else if (is_high(instr)) {
+	} else if (is_shared(instr)) {
 		/* doesn't count towards footprint */
 		return 0;
 	} else {
@@ -1168,8 +1168,8 @@ reg_assign(struct ir3_ra_ctx *ctx, struct ir3_register *reg,
 
 		ra_assert(ctx, num >= first_component);
 
-		if (is_high(id->defn))
-			num += FIRST_HIGH_REG;
+		if (is_shared(id->defn))
+			num += FIRST_SHARED_REG;
 
 		reg->num = num - first_component;
 
@@ -1363,7 +1363,7 @@ ra_precolor(struct ir3_ra_ctx *ctx, struct ir3_instruction **precolor, unsigned 
 
 			struct ir3_ra_instr_data *id = &ctx->instrd[instr->ip];
 
-			ra_assert(ctx, !(instr->regs[0]->flags & (IR3_REG_HALF | IR3_REG_HIGH)));
+			ra_assert(ctx, !(instr->regs[0]->flags & (IR3_REG_HALF | IR3_REG_SHARED)));
 
 			/* 'base' is in scalar (class 0) but we need to map that
 			 * the conflicting register of the appropriate class (ie.
@@ -1440,8 +1440,8 @@ precolor(struct ir3_ra_ctx *ctx, struct ir3_instruction *instr)
 		unsigned name = scalar_name(ctx, instr, i);
 		unsigned regid = instr->regs[0]->num + i;
 
-		if (instr->regs[0]->flags & IR3_REG_HIGH)
-			regid -= FIRST_HIGH_REG;
+		if (instr->regs[0]->flags & IR3_REG_SHARED)
+			regid -= FIRST_SHARED_REG;
 
 		unsigned vreg = ctx->set->gpr_to_ra_reg[id->cls][regid];
 		ra_set_node_reg(ctx->g, name, vreg);

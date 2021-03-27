@@ -91,11 +91,8 @@ lima_texture_desc_set_res(struct lima_context *ctx, lima_tex_desc *desc,
    if (lima_res->tiled)
       layout = 3;
    else {
-      /* for padded linear texture */
-      if (lima_res->levels[first_level].width != width) {
-         desc->stride = lima_res->levels[first_level].stride;
-         desc->has_stride = 1;
-      }
+      desc->stride = lima_res->levels[first_level].stride;
+      desc->has_stride = 1;
       layout = 0;
    }
 

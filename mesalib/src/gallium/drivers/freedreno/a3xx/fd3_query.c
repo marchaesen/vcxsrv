@@ -118,33 +118,31 @@ occlusion_predicate_accumulate_result(struct fd_context *ctx,
 
 static const struct fd_hw_sample_provider occlusion_counter = {
 		.query_type = PIPE_QUERY_OCCLUSION_COUNTER,
-		.active = FD_STAGE_DRAW,
 		.get_sample = occlusion_get_sample,
 		.accumulate_result = occlusion_counter_accumulate_result,
 };
 
 static const struct fd_hw_sample_provider occlusion_predicate = {
 		.query_type = PIPE_QUERY_OCCLUSION_PREDICATE,
-		.active = FD_STAGE_DRAW,
 		.get_sample = occlusion_get_sample,
 		.accumulate_result = occlusion_predicate_accumulate_result,
 };
 
 static const struct fd_hw_sample_provider occlusion_predicate_conservative = {
 		.query_type = PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE,
-		.active = FD_STAGE_DRAW,
 		.get_sample = occlusion_get_sample,
 		.accumulate_result = occlusion_predicate_accumulate_result,
 };
 
 void fd3_query_context_init(struct pipe_context *pctx)
+	disable_thread_safety_analysis
 {
 	struct fd_context *ctx = fd_context(pctx);
 
 	ctx->create_query = fd_hw_create_query;
 	ctx->query_prepare = fd_hw_query_prepare;
 	ctx->query_prepare_tile = fd_hw_query_prepare_tile;
-	ctx->query_set_stage = fd_hw_query_set_stage;
+	ctx->query_update_batch = fd_hw_query_update_batch;
 
 	fd_hw_query_register_provider(pctx, &occlusion_counter);
 	fd_hw_query_register_provider(pctx, &occlusion_predicate);

@@ -45,9 +45,6 @@
 #define MIDGARD_BROKEN_FP16 (1 << 2)
 
 /* What it says on the tin */
-#define IS_BIFROST (1 << 3)
-
-/* What it says on the tin */
 #define HAS_SWIZZLES (1 << 4)
 
 /* bit 5 unused */
@@ -77,8 +74,7 @@
                 | MIDGARD_NO_TYPED_BLEND_STORES \
                 | MIDGARD_MISSING_LOADS)
 
-/* TODO: AFBC on Bifrost */
-#define BIFROST_QUIRKS (IS_BIFROST | NO_BLEND_PACKS | MIDGARD_NO_AFBC)
+#define BIFROST_QUIRKS NO_BLEND_PACKS
 
 static inline unsigned
 panfrost_get_quirks(unsigned gpu_id, unsigned gpu_revision)

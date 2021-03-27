@@ -486,30 +486,24 @@ AC_ARG_WITH(default-fonts,
 case "$default_fonts" in
 yes)
 	if test "$os_win32" = "yes"; then
-		FC_DEFAULT_FONTS_IN="WINDOWSFONTDIR"
+		default_fonts="WINDOWSFONTDIR"
 	elif test "$os_darwin" = "yes"; then
-		FC_DEFAULT_FONTS_IN="/System/Library/Fonts,/Library/Fonts,~/Library/Fonts,/System/Library/Assets/com_apple_MobileAsset_Font3,/System/Library/Assets/com_apple_MobileAsset_Font4"
+		default_fonts="/System/Library/Fonts,/Library/Fonts,~/Library/Fonts,/System/Library/Assets/com_apple_MobileAsset_Font3,/System/Library/Assets/com_apple_MobileAsset_Font4"
 	else
-		FC_DEFAULT_FONTS_IN="/usr/share/fonts"
+		default_fonts="/usr/share/fonts"
 	fi
 	;;
-*)
-	FC_DEFAULT_FONTS_IN="$default_fonts"
-	;;
-esac
-			   
-AC_SUBST(FC_DEFAULT_FONTS_IN)
-
-case "$FC_DEFAULT_FONTS_IN" in
-"")
-	FC_DEFAULT_FONTS=""
-	;;
-*)
-	FC_DEFAULT_FONTS=`echo $FC_DEFAULT_FONTS_IN | 
-			sed -e 's/^/<dir>/' -e 's/$/<\/dir>/' -e 's/,/<\/dir> <dir>/g'`
-	;;
 esac
 
+FC_DEFAULT_FONTS=""
+if test x${default_fonts+set} = xset; then
+	fc_IFS=$IFS
+	IFS=","
+	for p in "$default_fonts"; do
+		FC_DEFAULT_FONTS="$FC_DEFAULT_FONTS\t<dir>$p</dir>\n"
+	done
+	IFS=$fc_IFS
+fi
 
 AC_DEFINE_UNQUOTED(FC_DEFAULT_FONTS, "$FC_DEFAULT_FONTS",
 			   [System font directory])

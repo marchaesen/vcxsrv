@@ -1,0 +1,10 @@
+# Note: skips lists for CI are just a list of lines that, when
+# non-zero-length and not starting with '#', will regex match to
+# delete lines from the test list.  Be careful.
+
+# Skip the perf/stress tests to keep runtime manageable
+dEQP-GLES[0-9]*.performance.*
+dEQP-GLES[0-9]*.stress.*
+
+# These are really slow on tiling architectures (including llvmpipe).
+dEQP-GLES[0-9]*.functional.flush_finish.*

@@ -74,7 +74,7 @@ _nine_debug_printf( unsigned long flag,
 
 #if defined(HAVE_PTHREAD)
     if (dbg_flags & DBG_TID)
-        tid = pthread_self();
+        tid = (unsigned long)pthread_self();
 #endif
 
     if (dbg_flags & flag) {

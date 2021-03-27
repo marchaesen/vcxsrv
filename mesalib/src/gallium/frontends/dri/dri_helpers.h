@@ -38,7 +38,6 @@ struct dri2_format_mapping {
       int width_shift;
       int height_shift;
       uint32_t dri_format; /* plane format */
-      int cpp;
    } planes[3];
 };
 

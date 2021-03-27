@@ -324,6 +324,7 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
    }
 
    struct vtn_ssa_value *dest = vtn_create_ssa_value(b, dest_type);
+   vtn_handle_no_contraction(b, vtn_untyped_value(b, w[2]));
    switch (entrypoint) {
    case GLSLstd450Radians:
       dest->def = nir_radians(nb, src[0]);
@@ -550,12 +551,13 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
          b->shader->info.float_controls_execution_mode;
       bool exact;
       nir_op op = vtn_nir_alu_op_for_spirv_glsl_opcode(b, entrypoint, execution_mode, &exact);
-      b->nb.exact = exact;
+      /* don't override explicit decoration */
+      b->nb.exact |= exact;
       dest->def = nir_build_alu(&b->nb, op, src[0], src[1], src[2], NULL);
-      b->nb.exact = false;
       break;
    }
    }
+   b->nb.exact = false;
 
    vtn_push_ssa_value(b, w[2], dest);
 }

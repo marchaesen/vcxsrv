@@ -34,14 +34,8 @@
 #include "fd4_format.h"
 
 static enum a4xx_tex_clamp
-tex_clamp(unsigned wrap, bool clamp_to_edge, bool *needs_border)
+tex_clamp(unsigned wrap, bool *needs_border)
 {
-	/* Hardware does not support _CLAMP, but we emulate it: */
-	if (wrap == PIPE_TEX_WRAP_CLAMP) {
-		wrap = (clamp_to_edge) ?
-			PIPE_TEX_WRAP_CLAMP_TO_EDGE : PIPE_TEX_WRAP_CLAMP_TO_BORDER;
-	}
-
 	switch (wrap) {
 	case PIPE_TEX_WRAP_REPEAT:
 		return A4XX_TEX_REPEAT;
@@ -87,7 +81,6 @@ fd4_sampler_state_create(struct pipe_context *pctx,
 	struct fd4_sampler_stateobj *so = CALLOC_STRUCT(fd4_sampler_stateobj);
 	unsigned aniso = util_last_bit(MIN2(cso->max_anisotropy >> 1, 8));
 	bool miplinear = false;
-	bool clamp_to_edge;
 
 	if (!so)
 		return NULL;
@@ -97,30 +90,15 @@ fd4_sampler_state_create(struct pipe_context *pctx,
 
 	so->base = *cso;
 
-	/*
-	 * For nearest filtering, _CLAMP means _CLAMP_TO_EDGE;  for linear
-	 * filtering, _CLAMP means _CLAMP_TO_BORDER while additionally
-	 * clamping the texture coordinates to [0.0, 1.0].
-	 *
-	 * The clamping will be taken care of in the shaders.  There are two
-	 * filters here, but let the minification one has a say.
-	 */
-	clamp_to_edge = (cso->min_img_filter == PIPE_TEX_FILTER_NEAREST);
-	if (!clamp_to_edge) {
-		so->saturate_s = (cso->wrap_s == PIPE_TEX_WRAP_CLAMP);
-		so->saturate_t = (cso->wrap_t == PIPE_TEX_WRAP_CLAMP);
-		so->saturate_r = (cso->wrap_r == PIPE_TEX_WRAP_CLAMP);
-	}
-
 	so->needs_border = false;
 	so->texsamp0 =
 		COND(miplinear, A4XX_TEX_SAMP_0_MIPFILTER_LINEAR_NEAR) |
 		A4XX_TEX_SAMP_0_XY_MAG(tex_filter(cso->mag_img_filter, aniso)) |
 		A4XX_TEX_SAMP_0_XY_MIN(tex_filter(cso->min_img_filter, aniso)) |
 		A4XX_TEX_SAMP_0_ANISO(aniso) |
-		A4XX_TEX_SAMP_0_WRAP_S(tex_clamp(cso->wrap_s, clamp_to_edge, &so->needs_border)) |
-		A4XX_TEX_SAMP_0_WRAP_T(tex_clamp(cso->wrap_t, clamp_to_edge, &so->needs_border)) |
-		A4XX_TEX_SAMP_0_WRAP_R(tex_clamp(cso->wrap_r, clamp_to_edge, &so->needs_border));
+		A4XX_TEX_SAMP_0_WRAP_S(tex_clamp(cso->wrap_s, &so->needs_border)) |
+		A4XX_TEX_SAMP_0_WRAP_T(tex_clamp(cso->wrap_t, &so->needs_border)) |
+		A4XX_TEX_SAMP_0_WRAP_R(tex_clamp(cso->wrap_r, &so->needs_border));
 
 	so->texsamp1 =
 //		COND(miplinear, A4XX_TEX_SAMP_1_MIPFILTER_LINEAR_FAR) |
@@ -140,52 +118,6 @@ fd4_sampler_state_create(struct pipe_context *pctx,
 	return so;
 }
 
-static void
-fd4_sampler_states_bind(struct pipe_context *pctx,
-		enum pipe_shader_type shader, unsigned start,
-		unsigned nr, void **hwcso)
-{
-	struct fd_context *ctx = fd_context(pctx);
-	struct fd4_context *fd4_ctx = fd4_context(ctx);
-	uint16_t saturate_s = 0, saturate_t = 0, saturate_r = 0;
-	unsigned i;
-
-	if (!hwcso)
-		nr = 0;
-
-	for (i = 0; i < nr; i++) {
-		if (hwcso[i]) {
-			struct fd4_sampler_stateobj *sampler =
-					fd4_sampler_stateobj(hwcso[i]);
-			if (sampler->saturate_s)
-				saturate_s |= (1 << i);
-			if (sampler->saturate_t)
-				saturate_t |= (1 << i);
-			if (sampler->saturate_r)
-				saturate_r |= (1 << i);
-		}
-	}
-
-	fd_sampler_states_bind(pctx, shader, start, nr, hwcso);
-
-	if (shader == PIPE_SHADER_FRAGMENT) {
-		fd4_ctx->fsaturate =
-			(saturate_s != 0) ||
-			(saturate_t != 0) ||
-			(saturate_r != 0);
-		fd4_ctx->fsaturate_s = saturate_s;
-		fd4_ctx->fsaturate_t = saturate_t;
-		fd4_ctx->fsaturate_r = saturate_r;
-	} else if (shader == PIPE_SHADER_VERTEX) {
-		fd4_ctx->vsaturate =
-			(saturate_s != 0) ||
-			(saturate_t != 0) ||
-			(saturate_r != 0);
-		fd4_ctx->vsaturate_s = saturate_s;
-		fd4_ctx->vsaturate_t = saturate_t;
-		fd4_ctx->vsaturate_r = saturate_r;
-	}
-}
 
 static enum a4xx_tex_type
 tex_type(unsigned target)
@@ -230,7 +162,7 @@ fd4_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 
 	if (format == PIPE_FORMAT_X32_S8X24_UINT) {
 		rsc = rsc->stencil;
-		format = rsc->base.format;
+		format = rsc->b.b.format;
 	}
 
 	so->base = *cso;
@@ -320,7 +252,7 @@ fd4_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 
 static void
 fd4_set_sampler_views(struct pipe_context *pctx, enum pipe_shader_type shader,
-		unsigned start, unsigned nr,
+		unsigned start, unsigned nr, unsigned unbind_num_trailing_slots,
 		struct pipe_sampler_view **views)
 {
 	struct fd_context *ctx = fd_context(pctx);
@@ -337,7 +269,7 @@ fd4_set_sampler_views(struct pipe_context *pctx, enum pipe_shader_type shader,
 		}
 	}
 
-	fd_set_sampler_views(pctx, shader, start, nr, views);
+	fd_set_sampler_views(pctx, shader, start, nr, unbind_num_trailing_slots, views);
 
 	if (shader == PIPE_SHADER_FRAGMENT) {
 		fd4_ctx->fastc_srgb = astc_srgb;
@@ -350,7 +282,7 @@ void
 fd4_texture_init(struct pipe_context *pctx)
 {
 	pctx->create_sampler_state = fd4_sampler_state_create;
-	pctx->bind_sampler_states = fd4_sampler_states_bind;
+	pctx->bind_sampler_states = fd_sampler_states_bind;
 	pctx->create_sampler_view = fd4_sampler_view_create;
 	pctx->set_sampler_views = fd4_set_sampler_views;
 }

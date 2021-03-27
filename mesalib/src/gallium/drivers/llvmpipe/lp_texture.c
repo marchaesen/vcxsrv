@@ -56,6 +56,7 @@
 
 #ifdef DEBUG
 static struct llvmpipe_resource resource_list;
+static mtx_t resource_list_mutex = _MTX_INITIALIZER_NP;
 #endif
 static unsigned id_counter = 0;
 
@@ -85,7 +86,7 @@ llvmpipe_texture_layout(struct llvmpipe_screen *screen,
     * of a block for all formats) though this should not be strictly necessary
     * neither. In any case it can only affect compressed or 1d textures.
     */
-   unsigned mip_align = MAX2(64, util_cpu_caps.cacheline);
+   unsigned mip_align = MAX2(64, util_get_cpu_caps()->cacheline);
 
    assert(LP_MAX_TEXTURE_2D_LEVELS <= LP_MAX_TEXTURE_LEVELS);
    assert(LP_MAX_TEXTURE_3D_LEVELS <= LP_MAX_TEXTURE_LEVELS);
@@ -123,7 +124,7 @@ llvmpipe_texture_layout(struct llvmpipe_screen *screen,
       if (util_format_is_compressed(pt->format))
          lpr->row_stride[level] = nblocksx * block_size;
       else
-         lpr->row_stride[level] = align(nblocksx * block_size, util_cpu_caps.cacheline);
+         lpr->row_stride[level] = align(nblocksx * block_size, util_get_cpu_caps()->cacheline);
 
       /* if row_stride * height > LP_MAX_TEXTURE_SIZE */
       if ((uint64_t)lpr->row_stride[level] * nblocksy > LP_MAX_TEXTURE_SIZE) {
@@ -307,7 +308,9 @@ llvmpipe_resource_create_all(struct pipe_screen *_screen,
    lpr->id = id_counter++;
 
 #ifdef DEBUG
+   mtx_lock(&resource_list_mutex);
    insert_at_tail(&resource_list, lpr);
+   mtx_unlock(&resource_list_mutex);
 #endif
 
    return &lpr->base;
@@ -374,8 +377,10 @@ llvmpipe_resource_destroy(struct pipe_screen *pscreen,
       }
    }
 #ifdef DEBUG
+   mtx_lock(&resource_list_mutex);
    if (lpr->next)
       remove_from_list(lpr);
+   mtx_unlock(&resource_list_mutex);
 #endif
 
    FREE(lpr);
@@ -510,7 +515,9 @@ llvmpipe_resource_from_handle(struct pipe_screen *screen,
    lpr->id = id_counter++;
 
 #ifdef DEBUG
+   mtx_lock(&resource_list_mutex);
    insert_at_tail(&resource_list, lpr);
+   mtx_unlock(&resource_list_mutex);
 #endif
 
    return &lpr->base;
@@ -871,6 +878,7 @@ llvmpipe_print_resources(void)
    unsigned n = 0, total = 0;
 
    debug_printf("LLVMPIPE: current resources:\n");
+   mtx_lock(&resource_list_mutex);
    foreach(lpr, &resource_list) {
       unsigned size = llvmpipe_resource_size(&lpr->base);
       debug_printf("resource %u at %p, size %ux%ux%u: %u bytes, refcount %u\n",
@@ -880,6 +888,7 @@ llvmpipe_print_resources(void)
       total += size;
       n++;
    }
+   mtx_unlock(&resource_list_mutex);
    debug_printf("LLVMPIPE: total size of %u resources: %u\n", n, total);
 }
 #endif

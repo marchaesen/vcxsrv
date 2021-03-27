@@ -84,14 +84,14 @@ etna_dump_shader(const struct etna_shader_variant *shader)
       printf(" [%i] name=%s comps=%i\n", shader->infile.reg[idx].reg,
                (shader->stage == MESA_SHADER_VERTEX) ?
                gl_vert_attrib_name(shader->infile.reg[idx].slot) :
-               gl_varying_slot_name(shader->infile.reg[idx].slot),
+               gl_varying_slot_name_for_stage(shader->infile.reg[idx].slot, shader->stage),
                shader->infile.reg[idx].num_components);
    }
    printf("outputs:\n");
    for (int idx = 0; idx < shader->outfile.num_reg; ++idx) {
       printf(" [%i] name=%s comps=%i\n", shader->outfile.reg[idx].reg,
                (shader->stage == MESA_SHADER_VERTEX) ?
-               gl_varying_slot_name(shader->outfile.reg[idx].slot) :
+               gl_varying_slot_name_for_stage(shader->outfile.reg[idx].slot, shader->stage) :
                gl_frag_result_name(shader->outfile.reg[idx].slot),
                shader->outfile.reg[idx].num_components);
    }

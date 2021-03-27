@@ -34,7 +34,7 @@ INSTALL=`pwd`/install
 # Set up the driver environment.
 export LD_LIBRARY_PATH=`pwd`/install/lib/
 export EGL_PLATFORM=surfaceless
-export VK_ICD_FILENAMES=`pwd`/install/share/vulkan/icd.d/"$VK_DRIVER"_icd.`uname -m`.json
+export VK_ICD_FILENAMES=`pwd`/install/share/vulkan/icd.d/"$VK_DRIVER"_icd.${VK_CPU:-`uname -m`}.json
 
 # the runner was failing to look for libkms in /usr/local/lib for some reason
 # I never figured out.
@@ -107,9 +107,6 @@ fi
 if [ -n "$DEQP_NO_SAVE_RESULTS" ]; then
    SUMMARY_LIMIT="--summary-limit 0"
 fi
-
-# Silence the debug output for apps triggering GL errors, since dEQP will do a lot of that.
-export MESA_DEBUG=silent
 
 run_cts() {
     deqp=$1
@@ -189,13 +186,17 @@ check_renderer() {
     # debug.
     # export EGL_LOG_LEVEL=debug
     VERSION=`echo $DEQP_VER | tr '[a-z]' '[A-Z]'`
+    export LD_PRELOAD=$TEST_LD_PRELOAD
     $DEQP $DEQP_OPTIONS --deqp-case=$SUITE-$VERSION.info.\* --deqp-log-filename=$RESULTS/deqp-info.qpa
+    export LD_PRELOAD=
     parse_renderer
 }
 
 check_vk_device_name() {
     echo "Capturing device info for VK driver sanity checks"
+    export LD_PRELOAD=$TEST_LD_PRELOAD
     $DEQP $DEQP_OPTIONS --deqp-case=dEQP-VK.info.device --deqp-log-filename=$RESULTS/deqp-info.qpa
+    export LD_PRELOAD=
     DEVICENAME=`grep deviceName $RESULTS/deqp-info.qpa | sed 's|deviceName: ||g'`
     echo "deviceName: $DEVICENAME"
     if [ -n "$DEQP_EXPECTED_RENDERER" -a "x$DEVICENAME" != "x$DEQP_EXPECTED_RENDERER" ]; then
@@ -241,9 +242,12 @@ fi
 RESULTS_CSV=$RESULTS/results.csv
 FAILURES_CSV=$RESULTS/failures.csv
 
+export LD_PRELOAD=$TEST_LD_PRELOAD
+
 run_cts $DEQP /tmp/case-list.txt $RESULTS_CSV
 DEQP_EXITCODE=$?
 
+export LD_PRELOAD=
 quiet report_load
 
 # Remove all but the first 50 individual XML files uploaded as artifacts, to
@@ -263,7 +267,7 @@ deqp-runner junit \
    --results $RESULTS/failures.csv \
    --output $RESULTS/junit.xml \
    --limit 50 \
-   --template "See https://$CI_PROJECT_NAMESPACE.pages.freedesktop.org/-/$CI_PROJECT_NAME/-/jobs/$CI_JOB_ID/artifacts/results/{{testcase}}.xml"
+   --template "See https://$CI_PROJECT_ROOT_NAMESPACE.pages.freedesktop.org/-/$CI_PROJECT_NAME/-/jobs/$CI_JOB_ID/artifacts/results/{{testcase}}.xml"
 
 # Report the flakes to the IRC channel for monitoring (if configured):
 quiet report_flakes $RESULTS_CSV

@@ -8,23 +8,18 @@
 
 #include "GLRenderer.h"
 
-#include "GLDispatcher.h"
 
-
-BGLRenderer::BGLRenderer(BGLView* view, ulong glOptions,
-	BGLDispatcher* dispatcher)
+BGLRenderer::BGLRenderer(BGLView* view, ulong glOptions)
 	:
 	fRefCount(1),
 	fView(view),
-	fOptions(glOptions),
-	fDispatcher(dispatcher)
+	fOptions(glOptions)
 {
 }
 
 
 BGLRenderer::~BGLRenderer()
 {
-	delete fDispatcher;
 }
 
 
@@ -38,7 +33,7 @@ BGLRenderer::Acquire()
 void
 BGLRenderer::Release()
 {
-	if (atomic_add(&fRefCount, -1) < 1)
+	if (atomic_add(&fRefCount, -1) <= 1)
 		delete this;
 }
 

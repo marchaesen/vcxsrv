@@ -421,7 +421,7 @@ static void constant_folding(struct radeon_compiler * c, struct rc_instruction *
 
 /**
  * If src and dst use the same register, this function returns a writemask that
- * indicates wich components are read by src.  Otherwise zero is returned.
+ * indicates which components are read by src.  Otherwise zero is returned.
  */
 static unsigned int src_reads_dst_mask(struct rc_src_register src,
 						struct rc_dst_register dst)

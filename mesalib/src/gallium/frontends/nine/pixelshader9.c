@@ -57,6 +57,7 @@ NinePixelShader9_ctor( struct NinePixelShader9 *This,
     info.const_i_base = NINE_CONST_I_BASE(device->max_ps_const_f) / 16;
     info.const_b_base = NINE_CONST_B_BASE(device->max_ps_const_f) / 16;
     info.sampler_mask_shadow = 0x0;
+    info.fetch4 = 0x0;
     info.sampler_ps1xtypes = 0x0;
     info.fog_enable = 0;
     info.projected = 0;
@@ -208,6 +209,7 @@ NinePixelShader9_GetVariant( struct NinePixelShader9 *This,
             nine_shader_constant_combination_get(This->c_combinations, (key >> 24) & 0xff);
         info.add_constants_defs.int_const_added = &This->int_slots_used;
         info.add_constants_defs.bool_const_added = &This->bool_slots_used;
+        info.fetch4 = key >> 32 ;
         info.process_vertices = false;
         info.swvp_on = false;
 

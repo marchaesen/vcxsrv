@@ -175,6 +175,7 @@ softpipe_set_sampler_views(struct pipe_context *pipe,
                            enum pipe_shader_type shader,
                            unsigned start,
                            unsigned num,
+                           unsigned unbind_num_trailing_slots,
                            struct pipe_sampler_view **views);
 
 

@@ -40,6 +40,10 @@
 #  define __has_builtin(x) 0
 #endif
 
+#ifndef __has_attribute
+#  define __has_attribute(x) 0
+#endif
+
 /**
  * __builtin_expect macros
  */
@@ -410,6 +414,34 @@ enum pipe_debug_type
 #else
 #define alignof(t) __alignof__(t)
 #endif
+#endif
+
+/* Macros for static type-safety checking.
+ *
+ * https://clang.llvm.org/docs/ThreadSafetyAnalysis.html
+ */
+
+#if __has_attribute(capability)
+typedef int __attribute__((capability("mutex"))) lock_cap_t;
+
+#define guarded_by(l) __attribute__((guarded_by(l)))
+#define acquire_cap(l) __attribute((acquire_capability(l), no_thread_safety_analysis))
+#define release_cap(l) __attribute((release_capability(l), no_thread_safety_analysis))
+#define assert_cap(l) __attribute((assert_capability(l), no_thread_safety_analysis))
+#define requires_cap(l) __attribute((requires_capability(l)))
+#define disable_thread_safety_analysis __attribute((no_thread_safety_analysis))
+
+#else
+
+typedef int lock_cap_t;
+
+#define guarded_by(l)
+#define acquire_cap(l)
+#define release_cap(l)
+#define assert_cap(l)
+#define requires_cap(l)
+#define disable_thread_safety_analysis
+
 #endif
 
 #endif /* UTIL_MACROS_H */

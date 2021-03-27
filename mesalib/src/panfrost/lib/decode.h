@@ -27,7 +27,6 @@
 #define __PAN_DECODE_H__
 
 #include "wrap.h"
-#include "util/list.h"
 
 extern FILE *pandecode_dump_stream;
 

@@ -118,10 +118,12 @@ static nir_ssa_def *
 load_input(struct st_translate *t, gl_varying_slot slot)
 {
    if (!t->inputs[slot]) {
+      const char *slot_name =
+         gl_varying_slot_name_for_stage(slot, MESA_SHADER_FRAGMENT);
       nir_variable *var = nir_variable_create(t->b->shader, nir_var_shader_in,
                                               slot == VARYING_SLOT_FOGC ?
                                               glsl_float_type() : glsl_vec4_type(),
-                                              gl_varying_slot_name(slot));
+                                              slot_name);
       var->data.location = slot;
       var->data.interpolation = INTERP_MODE_NONE;
 
@@ -361,7 +363,7 @@ compile_setupinst(struct st_translate *t,
       nir_tex_instr *tex = nir_tex_instr_create(t->b->shader, 3);
       tex->op = nir_texop_tex;
       tex->sampler_dim = glsl_get_sampler_dim(tex_var->type);
-      tex->dest_type = nir_type_float;
+      tex->dest_type = nir_type_float32;
       tex->coord_components =
          glsl_get_sampler_dim_coordinate_components(tex->sampler_dim);
 
@@ -540,7 +542,7 @@ st_init_atifs_prog(struct gl_context *ctx, struct gl_program *prog)
    unsigned pass, i, r, optype, arg;
 
    static const gl_state_index16 fog_params_state[STATE_LENGTH] =
-      {STATE_INTERNAL, STATE_FOG_PARAMS_OPTIMIZED, 0, 0};
+      {STATE_FOG_PARAMS_OPTIMIZED, 0, 0};
    static const gl_state_index16 fog_color[STATE_LENGTH] =
       {STATE_FOG_COLOR, 0, 0, 0};
 

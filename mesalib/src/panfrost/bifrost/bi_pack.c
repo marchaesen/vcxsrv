@@ -48,141 +48,11 @@ bi_pack_header(bi_clause *clause, bi_clause *next_1, bi_clause *next_2, bool tdd
                 .dependency_slot = clause->scoreboard_id,
                 .message_type = clause->message_type,
                 .next_message_type = next_1 ? next_1->message_type : 0,
-                .suppress_inf = true,
-                .suppress_nan = true,
         };
 
         uint64_t u = 0;
         memcpy(&u, &header, sizeof(header));
         return u;
-}
-
-/* The uniform/constant slot allows loading a contiguous 64-bit immediate or
- * pushed uniform per bundle. Figure out which one we need in the bundle (the
- * scheduler needs to ensure we only have one type per bundle), validate
- * everything, and rewrite away the register/uniform indices to use 3-bit
- * sources directly. */
-
-static unsigned
-bi_lookup_constant(bi_clause *clause, uint32_t cons, bool *hi)
-{
-        for (unsigned i = 0; i < clause->constant_count; ++i) {
-                /* Try to apply to top or to bottom */
-                uint64_t top = clause->constants[i];
-
-                if (cons == ((uint32_t) top | (cons & 0xF)))
-                        return i;
-
-                if (cons == (top >> 32ul)) {
-                        *hi = true;
-                        return i;
-                }
-        }
-
-        unreachable("Invalid constant accessed");
-}
-
-static unsigned
-bi_constant_field(unsigned idx)
-{
-        assert(idx <= 5);
-
-        const unsigned values[] = {
-                4, 5, 6, 7, 2, 3
-        };
-
-        return values[idx] << 4;
-}
-
-static bool
-bi_assign_fau_idx_single(bi_registers *regs,
-                         bi_clause *clause,
-                         bi_instr *ins,
-                         bool assigned,
-                         bool fast_zero)
-{
-        if (!ins)
-                return assigned;
-
-        if (ins->op == BI_OPCODE_ATEST) {
-                /* ATEST FAU index must point to the ATEST parameter datum slot */
-                assert(!assigned && !clause->branch_constant);
-                regs->fau_idx = BIR_FAU_ATEST_PARAM;
-                return true;
-        }
-
-        if (ins->branch_target && clause->branch_constant) {
-                /* By convention branch constant is last XXX: this whole thing
-                 * is a hack, FIXME */
-                unsigned idx = clause->constant_count - 1;
-
-                /* We can only jump to clauses which are qword aligned so the
-                 * bottom 4-bits of the offset are necessarily 0 */
-                unsigned lo = 0;
-
-                /* Build the constant */
-                unsigned C = bi_constant_field(idx) | lo;
-
-                if (assigned && regs->fau_idx != C)
-                        unreachable("Mismatched fau_idx: branch");
-
-                bi_foreach_src(ins, s) {
-                        if (ins->src[s].type == BI_INDEX_CONSTANT)
-                                ins->src[s] = bi_passthrough(BIFROST_SRC_FAU_HI);
-                }
-
-                regs->fau_idx = C;
-                return true;
-        }
-
-        bi_foreach_src(ins, s) {
-                if (ins->src[s].type == BI_INDEX_CONSTANT) {
-                        bool hi = false;
-                        uint32_t cons = ins->src[s].value;
-                        unsigned swizzle = ins->src[s].swizzle;
-
-                        /* FMA can encode zero for free */
-                        if (cons == 0 && fast_zero) {
-                                assert(!ins->src[s].abs && !ins->src[s].neg);
-                                ins->src[s] = bi_passthrough(BIFROST_SRC_STAGE);
-                                ins->src[s].swizzle = swizzle;
-                                continue;
-                        }
-
-                        unsigned idx = bi_lookup_constant(clause, cons, &hi);
-                        unsigned lo = clause->constants[idx] & 0xF;
-                        unsigned f = bi_constant_field(idx) | lo;
-
-                        if (assigned && regs->fau_idx != f)
-                                unreachable("Mismatched uniform/const field: imm");
-
-                        regs->fau_idx = f;
-                        ins->src[s] = bi_passthrough(hi ? BIFROST_SRC_FAU_HI : BIFROST_SRC_FAU_LO);
-                        ins->src[s].swizzle = swizzle;
-                        assigned = true;
-                } else if (ins->src[s].type == BI_INDEX_FAU) {
-                        bool hi = ins->src[s].offset > 0;
-
-                        assert(!assigned || regs->fau_idx == ins->src[s].value);
-                        assert(ins->src[s].swizzle == BI_SWIZZLE_H01);
-                        regs->fau_idx = ins->src[s].value;
-                        ins->src[s] = bi_passthrough(hi ? BIFROST_SRC_FAU_HI :
-                                        BIFROST_SRC_FAU_LO);
-                        assigned = true;
-                }
-        }
-
-        return assigned;
-}
-
-static void
-bi_assign_fau_idx(bi_clause *clause,
-                  bi_bundle *bundle)
-{
-        bool assigned =
-                bi_assign_fau_idx_single(&bundle->regs, clause, bundle->fma, false, true);
-
-        bi_assign_fau_idx_single(&bundle->regs, clause, bundle->add, assigned, false);
 }
 
 /* Assigns a slot for reading, before anything is written */
@@ -224,17 +94,14 @@ bi_assign_slot_read(bi_registers *regs, bi_index src)
 }
 
 static bi_registers
-bi_assign_slots(bi_bundle *now, bi_bundle *prev)
+bi_assign_slots(bi_tuple *now, bi_tuple *prev)
 {
         /* We assign slots for the main register mechanism. Special ops
          * use the data registers, which has its own mechanism entirely
          * and thus gets skipped over here. */
 
-        bool read_dreg = now->add &&
-                bi_opcode_props[(now->add)->op].sr_read;
-
-        bool write_dreg = now->add &&
-                bi_opcode_props[(now->add)->op].sr_write;
+        bool read_dreg = now->add && bi_opcode_props[now->add->op].sr_read;
+        bool write_dreg = prev->add && bi_opcode_props[prev->add->op].sr_write;
 
         /* First, assign reads */
 
@@ -285,9 +152,9 @@ bi_assign_slots(bi_bundle *now, bi_bundle *prev)
 static enum bifrost_reg_mode
 bi_pack_register_mode(bi_registers r)
 {
-        /* Handle idle special case for first instructions */
-        if (r.first_instruction && !(r.slot23.slot2 | r.slot23.slot3))
-                return BIFROST_IDLE_1;
+        /* Handle idle as a special case */
+        if (!(r.slot23.slot2 | r.slot23.slot3))
+                return r.first_instruction ? BIFROST_IDLE_1 : BIFROST_IDLE;
 
         /* Otherwise, use the LUT */
         for (unsigned i = 0; i < ARRAY_SIZE(bifrost_reg_ctrl_lut); ++i) {
@@ -315,8 +182,9 @@ bi_pack_registers(bi_registers regs)
         if (regs.first_instruction) {
                 /* Bit 3 implicitly must be clear for first instructions.
                  * The affected patterns all write both ADD/FMA, but that
-                 * is forbidden for the first instruction, so this does
-                 * not add additional encoding constraints */
+                 * is forbidden for the last instruction (whose writes are
+                 * encoded by the first), so this does not add additional
+                 * encoding constraints */
                 assert(!(mode & 0x8));
 
                 /* Move bit 4 to bit 3, since bit 3 is clear */
@@ -387,11 +255,6 @@ bi_pack_registers(bi_registers regs)
         return packed;
 }
 
-struct bi_packed_bundle {
-        uint64_t lo;
-        uint64_t hi;
-};
-
 /* We must ensure slot 1 > slot 0 for the 63-x trick to function, so we fix
  * this up at pack time. (Scheduling doesn't care.) */
 
@@ -404,40 +267,6 @@ bi_flip_slots(bi_registers *regs)
                 regs->slot[1] = temp;
         }
 
-}
-
-/* Lower CUBEFACE2 to a CUBEFACE1/CUBEFACE2. This is a hack so the scheduler
- * doesn't have to worry about this while we're just packing singletons */
-
-static void
-bi_lower_cubeface2(bi_context *ctx, bi_bundle *bundle)
-{
-        bi_instr *old = bundle->add;
-
-        /* Filter for +CUBEFACE2 */
-        if (!old || old->op != BI_OPCODE_CUBEFACE2)
-                return;
-
-        /* This won't be used once we emit non-singletons, for now this is just
-         * a fact of our scheduler and allows us to clobber FMA */
-        assert(!bundle->fma);
-
-        /* Construct an FMA op */
-        bi_instr *new = rzalloc(ctx, bi_instr);
-        new->op = BI_OPCODE_CUBEFACE1;
-        /* no dest, just a temporary */
-        new->src[0] = old->src[0];
-        new->src[1] = old->src[1];
-        new->src[2] = old->src[2];
-
-        /* Emit the instruction */
-        list_addtail(&new->link, &old->link);
-        bundle->fma = new;
-
-        /* Now replace the sources of the CUBEFACE2 with a single passthrough
-         * from the CUBEFACE1 (and a side-channel) */
-        old->src[0] = bi_passthrough(BIFROST_SRC_STAGE);
-        old->src[1] = old->src[2] = bi_null();
 }
 
 static inline enum bifrost_packed_src
@@ -473,37 +302,38 @@ bi_get_src_new(bi_instr *ins, bi_registers *regs, unsigned s)
         }
 }
 
-static struct bi_packed_bundle
-bi_pack_bundle(bi_clause *clause, bi_bundle bundle, bi_bundle prev, bool first_bundle, gl_shader_stage stage)
+static struct bi_packed_tuple
+bi_pack_tuple(bi_clause *clause, bi_tuple *tuple, bi_tuple *prev, bool first_tuple, gl_shader_stage stage)
 {
-        bi_assign_slots(&bundle, &prev);
-        bi_assign_fau_idx(clause, &bundle);
-        bundle.regs.first_instruction = first_bundle;
+        bi_assign_slots(tuple, prev);
+        tuple->regs.fau_idx = tuple->fau_idx;
+        tuple->regs.first_instruction = first_tuple;
 
-        bi_flip_slots(&bundle.regs);
+        bi_flip_slots(&tuple->regs);
 
-        bool sr_read = bundle.add &&
-                bi_opcode_props[(bundle.add)->op].sr_read;
+        bool sr_read = tuple->add &&
+                bi_opcode_props[(tuple->add)->op].sr_read;
 
-        uint64_t reg = bi_pack_registers(bundle.regs);
-        uint64_t fma = bi_pack_fma(bundle.fma,
-                        bi_get_src_new(bundle.fma, &bundle.regs, 0),
-                        bi_get_src_new(bundle.fma, &bundle.regs, 1),
-                        bi_get_src_new(bundle.fma, &bundle.regs, 2),
-                        bi_get_src_new(bundle.fma, &bundle.regs, 3));
+        uint64_t reg = bi_pack_registers(tuple->regs);
+        uint64_t fma = bi_pack_fma(tuple->fma,
+                        bi_get_src_new(tuple->fma, &tuple->regs, 0),
+                        bi_get_src_new(tuple->fma, &tuple->regs, 1),
+                        bi_get_src_new(tuple->fma, &tuple->regs, 2),
+                        bi_get_src_new(tuple->fma, &tuple->regs, 3));
 
-        uint64_t add = bi_pack_add(bundle.add,
-                        bi_get_src_new(bundle.add, &bundle.regs, sr_read + 0),
-                        bi_get_src_new(bundle.add, &bundle.regs, sr_read + 1),
-                        bi_get_src_new(bundle.add, &bundle.regs, sr_read + 2),
+        uint64_t add = bi_pack_add(tuple->add,
+                        bi_get_src_new(tuple->add, &tuple->regs, sr_read + 0),
+                        bi_get_src_new(tuple->add, &tuple->regs, sr_read + 1),
+                        bi_get_src_new(tuple->add, &tuple->regs, sr_read + 2),
                         0);
 
-        if (bundle.add) {
-                bi_instr *add = bundle.add;
+        if (tuple->add) {
+                bi_instr *add = tuple->add;
 
-                bool sr_write = bi_opcode_props[add->op].sr_write;
+                bool sr_write = bi_opcode_props[add->op].sr_write &&
+                        !bi_is_null(add->dest[0]);
 
-                if (sr_read) {
+                if (sr_read && !bi_is_null(add->src[0])) {
                         assert(add->src[0].type == BI_INDEX_REGISTER);
                         clause->staging_register = add->src[0].value;
 
@@ -515,7 +345,7 @@ bi_pack_bundle(bi_clause *clause, bi_bundle bundle, bi_bundle prev, bool first_b
                 }
         }
 
-        struct bi_packed_bundle packed = {
+        struct bi_packed_tuple packed = {
                 .lo = reg | (fma << 35) | ((add & 0b111111) << 58),
                 .hi = add >> 6
         };
@@ -523,82 +353,270 @@ bi_pack_bundle(bi_clause *clause, bi_bundle bundle, bi_bundle prev, bool first_b
         return packed;
 }
 
-/* Packs the next two constants as a dedicated constant quadword at the end of
- * the clause, returning the number packed. There are two cases to consider:
- *
- * Case #1: Branching is not used. For a single constant copy the upper nibble
- * over, easy.
- *
- * Case #2: Branching is used. For a single constant, it suffices to set the
- * upper nibble to 4 and leave the latter constant 0, which matches what the
- * blob does.
- *
- * Extending to multiple constants is considerably more tricky and left for
- * future work.
+/* A block contains at most one PC-relative constant, from a terminal branch.
+ * Find the last instruction and if it is a relative branch, fix up the
+ * PC-relative constant to contain the absolute offset. This occurs at pack
+ * time instead of schedule time because the number of quadwords between each
+ * block is not known until after all other passes have finished.
  */
 
-static unsigned
-bi_pack_constants(bi_context *ctx, bi_clause *clause,
-                unsigned index,
+static void
+bi_assign_branch_offset(bi_context *ctx, bi_block *block)
+{
+        if (list_is_empty(&block->clauses))
+                return;
+
+        bi_clause *clause = list_last_entry(&block->clauses, bi_clause, link);
+        bi_instr *br = bi_last_instr_in_clause(clause);
+
+        if (!br->branch_target)
+                return;
+
+        /* Put it in the high place */
+        int32_t qwords = bi_block_offset(ctx, clause, br->branch_target);
+        int32_t bytes = qwords * 16;
+
+        /* Copy so we can toy with the sign without undefined behaviour */
+        uint32_t raw = 0;
+        memcpy(&raw, &bytes, sizeof(raw));
+
+        /* Clear off top bits for A1/B1 bits */
+        raw &= ~0xF0000000;
+
+        /* Put in top 32-bits */
+        assert(clause->pcrel_idx < 8);
+        clause->constants[clause->pcrel_idx] |= ((uint64_t) raw) << 32ull;
+}
+
+static void
+bi_pack_constants(unsigned tuple_count, uint64_t *constants,
+                unsigned word_idx, unsigned constant_words, bool ec0_packed,
                 struct util_dynarray *emission)
 {
-        /* After these two, are we done? Determines tag */
-        bool done = clause->constant_count <= (index + 2);
-        ASSERTED bool only = clause->constant_count <= (index + 1);
+        unsigned index = (word_idx << 1) + ec0_packed;
 
-        /* Is the constant we're packing for a branch? */
-        bool branches = clause->branch_constant && done;
+        /* Do more constants follow */
+        bool more = (word_idx + 1) < constant_words;
 
-        /* TODO: Pos */
-        assert(index == 0 && clause->bundle_count == 1);
-        assert(only);
-
-        /* Compute branch offset instead of a dummy 0 */
-        if (branches) {
-                bi_instr *br = clause->bundles[clause->bundle_count - 1].add;
-                assert(br && br->branch_target);
-
-                /* Put it in the high place */
-                int32_t qwords = bi_block_offset(ctx, clause, br->branch_target);
-                int32_t bytes = qwords * 16;
-
-                /* Copy so we get proper sign behaviour */
-                uint32_t raw = 0;
-                memcpy(&raw, &bytes, sizeof(raw));
-
-                /* Clear off top bits for the magic bits */
-                raw &= ~0xF0000000;
-
-                /* Put in top 32-bits */
-                clause->constants[index + 0] = ((uint64_t) raw) << 32ull;
-        }
-
-        uint64_t hi = clause->constants[index + 0] >> 60ull;
-
-        struct bifrost_fmt_constant quad = {
-                .pos = 0, /* TODO */
-                .tag = done ? BIFROST_FMTC_FINAL : BIFROST_FMTC_CONSTANTS,
-                .imm_1 = clause->constants[index + 0] >> 4,
-                .imm_2 = ((hi < 8) ? (hi << 60ull) : 0) >> 4,
+        /* Indexed first by tuple count and second by constant word number,
+         * indicates the position in the clause */
+        unsigned pos_lookup[8][3] = {
+                { 0 },
+                { 1 },
+                { 3 },
+                { 2, 5 },
+                { 4, 8 },
+                { 7, 11, 14 },
+                { 6, 10, 13 },
+                { 9, 12 }
         };
 
-        if (branches) {
-                /* Branch offsets are less than 60-bits so this should work at
-                 * least for now */
-                quad.imm_1 |= (4ull << 60ull) >> 4;
-                assert (hi == 0);
-        }
+        /* Compute the pos, and check everything is reasonable */
+        assert((tuple_count - 1) < 8);
+        assert(word_idx < 3);
+        unsigned pos = pos_lookup[tuple_count - 1][word_idx];
+        assert(pos != 0 || (tuple_count == 1 && word_idx == 0));
 
-        /* XXX: On G71, Connor observed that the difference of the top 4 bits
-         * of the second constant with the first must be less than 8, otherwise
-         * we have to swap them. On G52, I'm able to reproduce a similar issue
-         * but with a different workaround (modeled above with a single
-         * constant, unclear how to workaround for multiple constants.) Further
-         * investigation needed. Possibly an errata. XXX */
+        struct bifrost_fmt_constant quad = {
+                .pos = pos,
+                .tag = more ? BIFROST_FMTC_CONSTANTS : BIFROST_FMTC_FINAL,
+                .imm_1 = constants[index + 0] >> 4,
+                .imm_2 = constants[index + 1] >> 4,
+        };
 
         util_dynarray_append(emission, struct bifrost_fmt_constant, quad);
+}
 
-        return 2;
+static inline uint8_t
+bi_pack_literal(enum bi_clause_subword literal)
+{
+        assert(literal >= BI_CLAUSE_SUBWORD_LITERAL_0);
+        assert(literal <= BI_CLAUSE_SUBWORD_LITERAL_7);
+
+        return (literal - BI_CLAUSE_SUBWORD_LITERAL_0);
+}
+
+static inline uint8_t
+bi_clause_upper(unsigned val,
+                struct bi_packed_tuple *tuples,
+                ASSERTED unsigned tuple_count)
+{
+        assert(val < tuple_count);
+
+        /* top 3-bits of 78-bits is tuple >> 75 == (tuple >> 64) >> 11 */
+        struct bi_packed_tuple tuple = tuples[val];
+        return (tuple.hi >> 11);
+}
+
+static inline uint8_t
+bi_pack_upper(enum bi_clause_subword upper,
+                struct bi_packed_tuple *tuples,
+                ASSERTED unsigned tuple_count)
+{
+        assert(upper >= BI_CLAUSE_SUBWORD_UPPER_0);
+        assert(upper <= BI_CLAUSE_SUBWORD_UPPER_7);
+
+        return bi_clause_upper(upper - BI_CLAUSE_SUBWORD_UPPER_0, tuples,
+                        tuple_count);
+}
+
+static inline uint64_t
+bi_pack_tuple_bits(enum bi_clause_subword idx,
+                struct bi_packed_tuple *tuples,
+                ASSERTED unsigned tuple_count,
+                unsigned offset, unsigned nbits)
+{
+        assert(idx >= BI_CLAUSE_SUBWORD_TUPLE_0);
+        assert(idx <= BI_CLAUSE_SUBWORD_TUPLE_7);
+
+        unsigned val = (idx - BI_CLAUSE_SUBWORD_TUPLE_0);
+        assert(val < tuple_count);
+
+        struct bi_packed_tuple tuple = tuples[val];
+
+        assert(offset + nbits < 78);
+        assert(nbits <= 64);
+
+        /* (X >> start) & m
+         * = (((hi << 64) | lo) >> start) & m
+         * = (((hi << 64) >> start) | (lo >> start)) & m
+         * = { ((hi << (64 - start)) | (lo >> start)) & m if start <= 64
+         *   { ((hi >> (start - 64)) | (lo >> start)) & m if start >= 64
+         * = { ((hi << (64 - start)) & m) | ((lo >> start) & m) if start <= 64
+         *   { ((hi >> (start - 64)) & m) | ((lo >> start) & m) if start >= 64
+         *
+         * By setting m = 2^64 - 1, we justify doing the respective shifts as
+         * 64-bit integers. Zero special cased to avoid undefined behaviour.
+         */
+
+        uint64_t lo = (tuple.lo >> offset);
+        uint64_t hi = (offset == 0) ? 0
+                : (offset > 64) ? (tuple.hi >> (offset - 64))
+                : (tuple.hi << (64 - offset));
+
+        return (lo | hi) & ((1ULL << nbits) - 1);
+}
+
+static inline uint16_t
+bi_pack_lu(enum bi_clause_subword word,
+                struct bi_packed_tuple *tuples,
+                ASSERTED unsigned tuple_count)
+{
+        return (word >= BI_CLAUSE_SUBWORD_UPPER_0) ?
+                bi_pack_upper(word, tuples, tuple_count) :
+                bi_pack_literal(word);
+}
+
+static uint8_t
+bi_pack_sync(enum bi_clause_subword t1,
+                enum bi_clause_subword t2,
+                enum bi_clause_subword t3,
+                struct bi_packed_tuple *tuples,
+                ASSERTED unsigned tuple_count,
+                bool z)
+{
+        uint8_t sync =
+                (bi_pack_lu(t3, tuples, tuple_count) << 0) |
+                (bi_pack_lu(t2, tuples, tuple_count) << 3);
+
+        if (t1 == BI_CLAUSE_SUBWORD_Z)
+                sync |= z << 6;
+        else
+                sync |= bi_pack_literal(t1) << 6;
+
+        return sync;
+}
+
+static inline uint64_t
+bi_pack_t_ec(enum bi_clause_subword word,
+                struct bi_packed_tuple *tuples,
+                ASSERTED unsigned tuple_count,
+                uint64_t ec0)
+{
+        if (word == BI_CLAUSE_SUBWORD_CONSTANT)
+                return ec0;
+        else
+                return bi_pack_tuple_bits(word, tuples, tuple_count, 0, 60);
+}
+
+static uint32_t
+bi_pack_subwords_56(enum bi_clause_subword t,
+                struct bi_packed_tuple *tuples,
+                ASSERTED unsigned tuple_count,
+                uint64_t header, uint64_t ec0,
+                unsigned tuple_subword)
+{
+        switch (t) {
+        case BI_CLAUSE_SUBWORD_HEADER:
+                return (header & ((1 << 30) - 1));
+        case BI_CLAUSE_SUBWORD_RESERVED:
+                return 0;
+        case BI_CLAUSE_SUBWORD_CONSTANT:
+                return (ec0 >> 15) & ((1 << 30) - 1);
+        default:
+                return bi_pack_tuple_bits(t, tuples, tuple_count, tuple_subword * 15, 30);
+        }
+}
+
+static uint16_t
+bi_pack_subword(enum bi_clause_subword t, unsigned format,
+                struct bi_packed_tuple *tuples,
+                ASSERTED unsigned tuple_count,
+                uint64_t header, uint64_t ec0, unsigned m0,
+                unsigned tuple_subword)
+{
+        switch (t) {
+        case BI_CLAUSE_SUBWORD_HEADER:
+                return header >> 30;
+        case BI_CLAUSE_SUBWORD_M:
+                return m0;
+        case BI_CLAUSE_SUBWORD_CONSTANT:
+                return (format == 5 || format == 10) ?
+                        (ec0 & ((1 << 15) - 1)) :
+                        (ec0 >> (15 + 30));
+        case BI_CLAUSE_SUBWORD_UPPER_23:
+                return (bi_clause_upper(2, tuples, tuple_count) << 12) |
+                        (bi_clause_upper(3, tuples, tuple_count) << 9);
+        case BI_CLAUSE_SUBWORD_UPPER_56:
+                return (bi_clause_upper(5, tuples, tuple_count) << 12) |
+                        (bi_clause_upper(6, tuples, tuple_count) << 9);
+        case BI_CLAUSE_SUBWORD_UPPER_0 ... BI_CLAUSE_SUBWORD_UPPER_7:
+                return bi_pack_upper(t, tuples, tuple_count) << 12;
+        default:
+                return bi_pack_tuple_bits(t, tuples, tuple_count, tuple_subword * 15, 15);
+        }
+}
+
+/* EC0 is 60-bits (bottom 4 already shifted off) */
+void
+bi_pack_format(struct util_dynarray *emission,
+                unsigned index,
+                struct bi_packed_tuple *tuples,
+                ASSERTED unsigned tuple_count,
+                uint64_t header, uint64_t ec0,
+                unsigned m0, bool z)
+{
+        struct bi_clause_format format = bi_clause_formats[index];
+
+        uint8_t sync = bi_pack_sync(format.tag_1, format.tag_2, format.tag_3,
+                        tuples, tuple_count, z);
+
+        uint64_t s0_s3 = bi_pack_t_ec(format.s0_s3, tuples, tuple_count, ec0);
+
+        uint16_t s4 = bi_pack_subword(format.s4, format.format, tuples, tuple_count, header, ec0, m0, 4);
+
+        uint32_t s5_s6 = bi_pack_subwords_56(format.s5_s6,
+                        tuples, tuple_count, header, ec0,
+                        (format.format == 2 || format.format == 7) ? 0 : 3);
+
+        uint64_t s7 = bi_pack_subword(format.s7, format.format, tuples, tuple_count, header, ec0, m0, 2);
+
+        /* Now that subwords are packed, split into 64-bit halves and emit */
+        uint64_t lo = sync | ((s0_s3 & ((1ull << 56) - 1)) << 8);
+        uint64_t hi = (s0_s3 >> 56) | ((uint64_t) s4 << 4) | ((uint64_t) s5_s6 << 19) | ((uint64_t) s7 << 49);
+
+        util_dynarray_append(emission, uint64_t, lo);
+        util_dynarray_append(emission, uint64_t, hi);
 }
 
 static void
@@ -607,55 +625,63 @@ bi_pack_clause(bi_context *ctx, bi_clause *clause,
                 struct util_dynarray *emission, gl_shader_stage stage,
                 bool tdd)
 {
-        /* TODO After the deadline lowering */
-        bi_lower_cubeface2(ctx, &clause->bundles[0]);
+        struct bi_packed_tuple ins[8] = { 0 };
 
-        struct bi_packed_bundle ins_1 = bi_pack_bundle(clause, clause->bundles[0], clause->bundles[0], true, stage);
-        assert(clause->bundle_count == 1);
+        for (unsigned i = 0; i < clause->tuple_count; ++i) {
+                unsigned prev = ((i == 0) ? clause->tuple_count : i) - 1;
+                ins[i] = bi_pack_tuple(clause, &clause->tuples[i],
+                                &clause->tuples[prev], i == 0, stage);
+        }
 
-        /* State for packing constants throughout */
-        unsigned constant_index = 0;
+        bool ec0_packed = bi_ec0_packed(clause->tuple_count);
 
-        struct bifrost_fmt1 quad_1 = {
-                .tag = clause->constant_count ? BIFROST_FMT1_CONSTANTS : BIFROST_FMT1_FINAL,
-                .header = bi_pack_header(clause, next_1, next_2, tdd),
-                .ins_1 = ins_1.lo,
-                .ins_2 = ins_1.hi & ((1 << 11) - 1),
-                .ins_0 = (ins_1.hi >> 11) & 0b111,
+        if (ec0_packed)
+                clause->constant_count = MAX2(clause->constant_count, 1);
+
+        unsigned constant_quads =
+                DIV_ROUND_UP(clause->constant_count - (ec0_packed ? 1 : 0), 2);
+
+        uint64_t header = bi_pack_header(clause, next_1, next_2, tdd);
+        uint64_t ec0 = (clause->constants[0] >> 4);
+        unsigned m0 = (clause->pcrel_idx == 0) ? 4 : 0;
+
+        unsigned counts[8] = {
+                1, 2, 3, 3, 4, 5, 5, 6
         };
 
-        util_dynarray_append(emission, struct bifrost_fmt1, quad_1);
+        unsigned indices[8][6] = {
+                { 1 },
+                { 0, 2 },
+                { 0, 3, 4 },
+                { 0, 3, 6 },
+                { 0, 3, 7, 8 },
+                { 0, 3, 5, 9, 10 },
+                { 0, 3, 5, 9, 11 },
+                { 0, 3, 5, 9, 12, 13 },
+        };
+
+        unsigned count = counts[clause->tuple_count - 1];
+
+        for (unsigned pos = 0; pos < count; ++pos) {
+                ASSERTED unsigned idx = indices[clause->tuple_count - 1][pos];
+                assert(bi_clause_formats[idx].pos == pos);
+                assert((bi_clause_formats[idx].tag_1 == BI_CLAUSE_SUBWORD_Z) ==
+                                (pos == count - 1));
+
+                /* Whether to end the clause immediately after the last tuple */
+                bool z = (constant_quads == 0);
+
+                bi_pack_format(emission, indices[clause->tuple_count - 1][pos],
+                                ins, clause->tuple_count, header, ec0, m0,
+                                z);
+        }
 
         /* Pack the remaining constants */
 
-        while (constant_index < clause->constant_count) {
-                constant_index += bi_pack_constants(ctx, clause,
-                                constant_index, emission);
+        for (unsigned pos = 0; pos < constant_quads; ++pos) {
+                bi_pack_constants(clause->tuple_count, clause->constants,
+                                pos, constant_quads, ec0_packed, emission);
         }
-}
-
-static bi_clause *
-bi_next_clause(bi_context *ctx, pan_block *block, bi_clause *clause)
-{
-        /* Try the first clause in this block if we're starting from scratch */
-        if (!clause && !list_is_empty(&((bi_block *) block)->clauses))
-                return list_first_entry(&((bi_block *) block)->clauses, bi_clause, link);
-
-        /* Try the next clause in this block */
-        if (clause && clause->link.next != &((bi_block *) block)->clauses)
-                return list_first_entry(&(clause->link), bi_clause, link);
-
-        /* Try the next block, or the one after that if it's empty, etc .*/
-        pan_block *next_block = pan_next_block(block);
-
-        bi_foreach_block_from(ctx, next_block, block) {
-                bi_block *blk = (bi_block *) block;
-
-                if (!list_is_empty(&blk->clauses))
-                        return list_first_entry(&(blk->clauses), bi_clause, link);
-        }
-
-        return NULL;
 }
 
 /* We should terminate discarded threads if there may be discarded threads (a
@@ -677,44 +703,44 @@ bi_collect_blend_ret_addr(bi_context *ctx, struct util_dynarray *emission,
                           const bi_clause *clause)
 {
         /* No need to collect return addresses when we're in a blend shader. */
-        if (ctx->is_blend)
+        if (ctx->inputs->is_blend)
                 return;
 
-        const bi_bundle *bundle = &clause->bundles[clause->bundle_count - 1];
-        const bi_instr *ins = bundle->add;
+        const bi_tuple *tuple = &clause->tuples[clause->tuple_count - 1];
+        const bi_instr *ins = tuple->add;
 
         if (!ins || ins->op != BI_OPCODE_BLEND)
                 return;
 
-        /* We don't support non-terminal blend instructions yet.
-         * That would requires fixing blend shaders to restore the registers
-         * they use before jumping back to the fragment shader, which is
-         * currently not supported.
-         */
-        assert(0);
 
-#if 0
-        assert(ins->blend_location < ARRAY_SIZE(ctx->blend_ret_offsets));
-        assert(!ctx->blend_ret_offsets[ins->blend_location]);
-        ctx->blend_ret_offsets[ins->blend_location] =
+        unsigned loc = tuple->regs.fau_idx - BIR_FAU_BLEND_0;
+        assert(loc < ARRAY_SIZE(ctx->info->bifrost.blend));
+        assert(!ctx->info->bifrost.blend[loc].return_offset);
+        ctx->info->bifrost.blend[loc].return_offset =
                 util_dynarray_num_elements(emission, uint8_t);
-        assert(!(ctx->blend_ret_offsets[ins->blend_location] & 0x7));
-#endif
+        assert(!(ctx->info->bifrost.blend[loc].return_offset & 0x7));
 }
 
-void
+unsigned
 bi_pack(bi_context *ctx, struct util_dynarray *emission)
 {
         bool tdd = bi_terminate_discarded_threads(ctx);
 
+        unsigned previous_size = emission->size;
+
         bi_foreach_block(ctx, _block) {
                 bi_block *block = (bi_block *) _block;
+
+                bi_assign_branch_offset(ctx, block);
 
                 /* Passthrough the first clause of where we're branching to for
                  * the last clause of the block (the clause with the branch) */
 
                 bi_clause *succ_clause = block->base.successors[1] ?
-                        bi_next_clause(ctx, block->base.successors[0], NULL) : NULL;
+                        bi_next_clause(ctx, block->base.successors[1], NULL) : NULL;
+
+                if (!succ_clause && block->base.successors[0])
+                        succ_clause = bi_next_clause(ctx, block->base.successors[0], NULL);
 
                 bi_foreach_clause_in_block(block, clause) {
                         bool is_last = clause->link.next == &block->clauses;
@@ -722,10 +748,97 @@ bi_pack(bi_context *ctx, struct util_dynarray *emission)
                         bi_clause *next = bi_next_clause(ctx, _block, clause);
                         bi_clause *next_2 = is_last ? succ_clause : NULL;
 
+                        previous_size = emission->size;
+
                         bi_pack_clause(ctx, clause, next, next_2, emission, ctx->stage, tdd);
 
                         if (!is_last)
                                 bi_collect_blend_ret_addr(ctx, emission, clause);
                 }
         }
+
+        return emission->size - previous_size;
 }
+
+#ifndef NDEBUG
+
+static void
+bi_test_pack_literal(void)
+{
+        for (unsigned x = 0; x <= 7; ++x)
+                assert(bi_pack_literal(BI_CLAUSE_SUBWORD_LITERAL_0 + x) == x);
+}
+
+static void
+bi_test_pack_upper(void)
+{
+        struct bi_packed_tuple tuples[] = {
+                { 0, 0x3 << (75 - 64) },
+                { 0, 0x1 << (75 - 64) },
+                { 0, 0x7 << (75 - 64) },
+                { 0, 0x0 << (75 - 64) },
+                { 0, 0x2 << (75 - 64) },
+                { 0, 0x6 << (75 - 64) },
+                { 0, 0x5 << (75 - 64) },
+                { 0, 0x4 << (75 - 64) },
+        };
+
+        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 0, tuples, 8) == 3);
+        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 1, tuples, 8) == 1);
+        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 2, tuples, 8) == 7);
+        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 3, tuples, 8) == 0);
+        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 4, tuples, 8) == 2);
+        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 5, tuples, 8) == 6);
+        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 6, tuples, 8) == 5);
+        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 7, tuples, 8) == 4);
+}
+
+static void
+bi_test_pack_tuple_bits(void)
+{
+        struct bi_packed_tuple tuples[] = {
+                { 0x1234567801234567, 0x3A },
+                { 0x9876543299999999, 0x1B },
+                { 0xABCDEF0101234567, 0x7C },
+        };
+
+        assert(bi_pack_tuple_bits(BI_CLAUSE_SUBWORD_TUPLE_0 + 0, tuples, 8, 0, 30) == 0x01234567);
+        assert(bi_pack_tuple_bits(BI_CLAUSE_SUBWORD_TUPLE_0 + 1, tuples, 8, 10, 30) == 0xca66666);
+        assert(bi_pack_tuple_bits(BI_CLAUSE_SUBWORD_TUPLE_0 + 2, tuples, 8, 40, 15) == 0x4def);
+}
+
+#define L(x) (BI_CLAUSE_SUBWORD_LITERAL_0 + x)
+#define U(x) (BI_CLAUSE_SUBWORD_UPPER_0 + x)
+#define Z    BI_CLAUSE_SUBWORD_Z
+
+static void
+bi_test_pack_sync(void)
+{
+        struct bi_packed_tuple tuples[] = {
+                { 0, 0x3 << (75 - 64) },
+                { 0, 0x5 << (75 - 64) },
+                { 0, 0x7 << (75 - 64) },
+                { 0, 0x0 << (75 - 64) },
+                { 0, 0x2 << (75 - 64) },
+                { 0, 0x6 << (75 - 64) },
+                { 0, 0x5 << (75 - 64) },
+                { 0, 0x4 << (75 - 64) },
+        };
+
+        assert(bi_pack_sync(L(3), L(1), L(7), tuples, 8, false) == 0xCF);
+        assert(bi_pack_sync(L(3), L(1), U(7), tuples, 8, false) == 0xCC);
+        assert(bi_pack_sync(L(3), U(1), U(7), tuples, 8, false) == 0xEC);
+        assert(bi_pack_sync(Z,    U(1), U(7), tuples, 8, false) == 0x2C);
+        assert(bi_pack_sync(Z,    U(1), U(7), tuples, 8, true)  == 0x6C);
+}
+
+int bi_test_packing(void)
+{
+        bi_test_pack_literal();
+        bi_test_pack_upper();
+        bi_test_pack_tuple_bits();
+        bi_test_pack_sync();
+
+        return 0;
+}
+#endif

@@ -62,7 +62,7 @@ _mesa_compute_num_levels(struct gl_context *ctx,
    numLevels = texObj->Attrib.BaseLevel + baseImage->MaxNumLevels;
    numLevels = MIN2(numLevels, (GLuint) texObj->Attrib.MaxLevel + 1);
    if (texObj->Immutable)
-      numLevels = MIN2(numLevels, texObj->NumLevels);
+      numLevels = MIN2(numLevels, texObj->Attrib.NumLevels);
    assert(numLevels >= 1);
 
    return numLevels;
@@ -1892,6 +1892,7 @@ prepare_mipmap_level(struct gl_context *ctx,
          _mesa_update_fbo_texture(ctx, texObj, face, level);
 
          ctx->NewState |= _NEW_TEXTURE_OBJECT;
+         ctx->PopAttribState |= GL_TEXTURE_BIT;
       }
    }
 

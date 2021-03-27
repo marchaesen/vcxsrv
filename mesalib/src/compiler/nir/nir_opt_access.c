@@ -83,6 +83,7 @@ gather_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
    switch (instr->intrinsic) {
    case nir_intrinsic_image_deref_load:
    case nir_intrinsic_image_deref_store:
+   case nir_intrinsic_image_deref_sparse_load:
    case nir_intrinsic_image_deref_atomic_add:
    case nir_intrinsic_image_deref_atomic_imin:
    case nir_intrinsic_image_deref_atomic_umin:
@@ -94,9 +95,12 @@ gather_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
    case nir_intrinsic_image_deref_atomic_exchange:
    case nir_intrinsic_image_deref_atomic_comp_swap:
    case nir_intrinsic_image_deref_atomic_fadd:
+   case nir_intrinsic_image_deref_atomic_fmin:
+   case nir_intrinsic_image_deref_atomic_fmax:
       var = nir_intrinsic_get_var(instr, 0);
       read = instr->intrinsic != nir_intrinsic_image_deref_store;
-      write = instr->intrinsic != nir_intrinsic_image_deref_load;
+      write = instr->intrinsic != nir_intrinsic_image_deref_load &&
+              instr->intrinsic != nir_intrinsic_image_deref_sparse_load;
 
       /* In OpenGL, buffer images use normal buffer objects, whereas other
        * image types use textures which cannot alias with buffer objects.
@@ -119,6 +123,7 @@ gather_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
 
    case nir_intrinsic_bindless_image_load:
    case nir_intrinsic_bindless_image_store:
+   case nir_intrinsic_bindless_image_sparse_load:
    case nir_intrinsic_bindless_image_atomic_add:
    case nir_intrinsic_bindless_image_atomic_imin:
    case nir_intrinsic_bindless_image_atomic_umin:
@@ -130,8 +135,11 @@ gather_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
    case nir_intrinsic_bindless_image_atomic_exchange:
    case nir_intrinsic_bindless_image_atomic_comp_swap:
    case nir_intrinsic_bindless_image_atomic_fadd:
+   case nir_intrinsic_bindless_image_atomic_fmin:
+   case nir_intrinsic_bindless_image_atomic_fmax:
       read = instr->intrinsic != nir_intrinsic_bindless_image_store;
-      write = instr->intrinsic != nir_intrinsic_bindless_image_load;
+      write = instr->intrinsic != nir_intrinsic_bindless_image_load &&
+              instr->intrinsic != nir_intrinsic_bindless_image_sparse_load;
 
       if (nir_intrinsic_image_dim(instr) == GLSL_SAMPLER_DIM_BUF) {
          state->buffers_read |= read;
@@ -218,7 +226,8 @@ update_access(struct access_state *state, nir_intrinsic_instr *instr, bool is_im
    bool is_memory_writeonly = access & ACCESS_NON_READABLE;
 
    if (instr->intrinsic != nir_intrinsic_bindless_image_load &&
-       instr->intrinsic != nir_intrinsic_bindless_image_store) {
+       instr->intrinsic != nir_intrinsic_bindless_image_store &&
+       instr->intrinsic != nir_intrinsic_bindless_image_sparse_load) {
       const nir_variable *var = nir_get_binding_variable(
          state->shader, nir_chase_binding(instr->src[0]));
       is_memory_readonly |= var && (var->data.access & ACCESS_NON_WRITEABLE);
@@ -246,6 +255,7 @@ process_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
    switch (instr->intrinsic) {
    case nir_intrinsic_bindless_image_load:
    case nir_intrinsic_bindless_image_store:
+   case nir_intrinsic_bindless_image_sparse_load:
       return update_access(state, instr, true,
                            nir_intrinsic_image_dim(instr) == GLSL_SAMPLER_DIM_BUF);
 
@@ -258,7 +268,8 @@ process_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
    }
 
    case nir_intrinsic_image_deref_load:
-   case nir_intrinsic_image_deref_store: {
+   case nir_intrinsic_image_deref_store:
+   case nir_intrinsic_image_deref_sparse_load: {
       nir_variable *var = nir_intrinsic_get_var(instr, 0);
 
       bool is_buffer =

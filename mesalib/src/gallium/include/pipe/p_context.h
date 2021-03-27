@@ -115,7 +115,7 @@ struct pipe_context {
     * is used instead.
     *
     * Caps:
-    * - PIPE_CAP_MULTI_DRAW: Direct multi draws
+    * - Always supported: Direct multi draws
     * - PIPE_CAP_MULTI_DRAW_INDIRECT: Indirect multi draws
     * - PIPE_CAP_MULTI_DRAW_INDIRECT_PARAMS: Indirect draw count
     *
@@ -153,6 +153,16 @@ struct pipe_context {
                              bool condition,
                              enum pipe_render_cond_flag mode );
 
+   /**
+    * Predicate subsequent rendering on a value in a buffer
+    * \param buffer The buffer to query for the value
+    * \param offset Offset in the buffer to query 32-bit
+    * \param condition whether to skip on FALSE or TRUE query results
+    */
+   void (*render_condition_mem)( struct pipe_context *pipe,
+                                 struct pipe_resource *buffer,
+                                 uint32_t offset,
+                                 bool condition );
    /**
     * Query objects
     */
@@ -348,8 +358,18 @@ struct pipe_context {
    void (*set_clip_state)( struct pipe_context *,
                             const struct pipe_clip_state * );
 
+   /**
+    * Set constant buffer
+    *
+    * \param shader           Shader stage
+    * \param index            Buffer binding slot index within a shader stage
+    * \param take_ownership   The callee takes ownership of the buffer reference.
+    *                         (the callee shouldn't increment the ref count)
+    * \param buf              Constant buffer parameters
+    */
    void (*set_constant_buffer)( struct pipe_context *,
                                 enum pipe_shader_type shader, uint index,
+                                bool take_ownership,
                                 const struct pipe_constant_buffer *buf );
 
    /**
@@ -423,6 +443,7 @@ struct pipe_context {
    void (*set_sampler_views)(struct pipe_context *,
                              enum pipe_shader_type shader,
                              unsigned start_slot, unsigned num_views,
+                             unsigned unbind_num_trailing_slots,
                              struct pipe_sampler_view **views);
 
    void (*set_tess_state)(struct pipe_context *,
@@ -481,6 +502,8 @@ struct pipe_context {
     * \param shader     selects shader stage
     * \param start_slot first image slot to bind.
     * \param count      number of consecutive images to bind.
+    * \param unbind_num_trailing_slots  number of images to unbind after
+    *                                   the bound slot
     * \param buffers    array of the images to bind, it
     *                   should contain at least \a count elements
     *                   unless it's NULL, in which case no images will
@@ -489,11 +512,25 @@ struct pipe_context {
    void (*set_shader_images)(struct pipe_context *,
                              enum pipe_shader_type shader,
                              unsigned start_slot, unsigned count,
+                             unsigned unbind_num_trailing_slots,
                              const struct pipe_image_view *images);
 
+   /**
+    * Bind an array of vertex buffers to the specified slots.
+    *
+    * \param start_slot      first vertex buffer slot
+    * \param count           number of consecutive vertex buffers to bind.
+    * \param unbind_num_trailing_slots  unbind slots after the bound slots
+    * \param take_ownership the caller holds buffer references and they
+    *                        should be taken over by the callee. This means
+    *                        that drivers shouldn't increment reference counts.
+    * \param buffers         array of the buffers to bind
+    */
    void (*set_vertex_buffers)( struct pipe_context *,
                                unsigned start_slot,
                                unsigned num_buffers,
+                               unsigned unbind_num_trailing_slots,
+                               bool take_ownership,
                                const struct pipe_vertex_buffer * );
 
    /*@}*/
@@ -868,6 +905,22 @@ struct pipe_context {
     */
    void (*launch_grid)(struct pipe_context *context,
                        const struct pipe_grid_info *info);
+   /*@}*/
+
+   /**
+    * SVM (Share Virtual Memory) helpers
+    */
+   /*@{*/
+   /**
+    * Migrate range of virtual address to device or host memory.
+    *
+    * \param to_device - true if the virtual memory is migrated to the device
+    *                    false if the virtual memory is migrated to the host
+    * \param migrate_content - whether the content should be migrated as well
+    */
+   void (*svm_migrate)(struct pipe_context *context, unsigned num_ptrs,
+                       const void* const* ptrs, const size_t *sizes,
+                       bool to_device, bool migrate_content);
    /*@}*/
 
    /**

@@ -1343,7 +1343,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
                     int buttons, CARD32 ms, int flags,
                     const ValuatorMask *mask_in)
 {
-    int num_events = 1;
+    int num_events = 0;
     DeviceEvent *event;
     RawDeviceEvent *raw = NULL;
     double screenx = 0.0, screeny = 0.0;        /* desktop coordinate system */
@@ -1386,6 +1386,10 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
         num_events++;
 
         init_raw(pDev, raw, ms, type, buttons);
+
+        if (flags & POINTER_EMULATED)
+            raw->flags = XIPointerEmulated;
+
         set_raw_valuators(raw, &mask, TRUE, raw->valuators.data_raw);
     }
 
@@ -1454,35 +1458,36 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
         master->last.valuators[1] = screeny;
     }
 
-    event = &events->device_event;
-    init_device_event(event, pDev, ms, EVENT_SOURCE_NORMAL);
+    if ((flags & POINTER_RAWONLY) == 0) {
+        num_events++;
 
-    if (type == MotionNotify) {
-        event->type = ET_Motion;
-        event->detail.button = 0;
-    }
-    else {
-        if (type == ButtonPress) {
-            event->type = ET_ButtonPress;
-            set_button_down(pDev, buttons, BUTTON_POSTED);
+        event = &events->device_event;
+        init_device_event(event, pDev, ms, EVENT_SOURCE_NORMAL);
+
+        if (type == MotionNotify) {
+            event->type = ET_Motion;
+            event->detail.button = 0;
         }
-        else if (type == ButtonRelease) {
-            event->type = ET_ButtonRelease;
-            set_button_up(pDev, buttons, BUTTON_POSTED);
+        else {
+            if (type == ButtonPress) {
+                event->type = ET_ButtonPress;
+                set_button_down(pDev, buttons, BUTTON_POSTED);
+            }
+            else if (type == ButtonRelease) {
+                event->type = ET_ButtonRelease;
+                set_button_up(pDev, buttons, BUTTON_POSTED);
+            }
+            event->detail.button = buttons;
         }
-        event->detail.button = buttons;
+
+        /* root_x and root_y must be in per-screen coordinates */
+        event_set_root_coordinates(event, screenx - scr->x, screeny - scr->y);
+
+        if (flags & POINTER_EMULATED)
+            event->flags = XIPointerEmulated;
+
+        set_valuators(pDev, event, &mask);
     }
-
-    /* root_x and root_y must be in per-screen coordinates */
-    event_set_root_coordinates(event, screenx - scr->x, screeny - scr->y);
-
-    if (flags & POINTER_EMULATED) {
-        if (raw)
-            raw->flags = XIPointerEmulated;
-        event->flags = XIPointerEmulated;
-    }
-
-    set_valuators(pDev, event, &mask);
 
     return num_events;
 }

@@ -75,7 +75,9 @@ struct radeon_info {
    bool has_tc_compat_zrange_bug;
    bool has_msaa_sample_loc_bug;
    bool has_ls_vgpr_init_bug;
+   bool has_zero_index_buffer_bug;
    bool has_32bit_predication;
+   bool has_3d_cube_border_color_mipmap;
 
    /* Display features. */
    /* There are 2 display DCC codepaths, because display expects unaligned DCC. */
@@ -87,6 +89,8 @@ struct radeon_info {
    /* Memory info. */
    uint32_t pte_fragment_size;
    uint32_t gart_page_size;
+   uint32_t gart_size_kb;
+   uint32_t vram_size_kb;
    uint64_t gart_size;
    uint64_t vram_size;
    uint64_t vram_vis_size;
@@ -99,15 +103,17 @@ struct radeon_info {
    uint32_t address32_hi;
    bool has_dedicated_vram;
    bool all_vram_visible;
+   bool smart_access_memory;
    bool has_l2_uncached;
    bool r600_has_virtual_memory;
-   uint32_t num_sdp_interfaces;
+   uint32_t max_tcc_blocks;
    uint32_t num_tcc_blocks;
    uint32_t tcc_cache_line_size;
-   bool tcc_harvested;
+   bool tcc_rb_non_coherent; /* whether L2 inv is needed for render->texture transitions */
    unsigned pc_lines;
    uint32_t lds_size_per_workgroup;
-   uint32_t lds_granularity;
+   uint32_t lds_alloc_granularity;
+   uint32_t lds_encode_granularity;
    uint32_t max_memory_clock;
    uint32_t ce_ram_size;
    uint32_t l1_cache_size;
@@ -160,6 +166,7 @@ struct radeon_info {
    /* Whether SR-IOV is enabled or amdgpu.mcbp=1 was set on the kernel command line. */
    bool mid_command_buffer_preemption_enabled;
    bool has_tmz_support;
+   bool kernel_has_modifiers;
 
    /* Shader cores. */
    uint32_t cu_mask[4][2];

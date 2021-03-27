@@ -620,7 +620,7 @@ replace_ssa_def_uses(nir_ssa_def *def, void *void_impl)
       nir_ssa_undef_instr_create(mem_ctx, def->num_components,
                                  def->bit_size);
    nir_instr_insert_before_cf_list(&impl->body, &undef->instr);
-   nir_ssa_def_rewrite_uses(def, nir_src_for_ssa(&undef->def));
+   nir_ssa_def_rewrite_uses(def, &undef->def);
    return true;
 }
 

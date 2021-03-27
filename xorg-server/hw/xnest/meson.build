@@ -16,6 +16,7 @@ srcs = [
     'Visual.c',
     'Window.c',
     '../../mi/miinitext.c',
+    '../../mi/miinitext.h',
 ]
 
 executable(

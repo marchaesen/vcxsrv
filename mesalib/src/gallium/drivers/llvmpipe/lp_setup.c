@@ -642,10 +642,10 @@ lp_setup_set_fs_constants(struct lp_setup_context *setup,
    assert(num <= ARRAY_SIZE(setup->constants));
 
    for (i = 0; i < num; ++i) {
-      util_copy_constant_buffer(&setup->constants[i].current, &buffers[i]);
+      util_copy_constant_buffer(&setup->constants[i].current, &buffers[i], false);
    }
    for (; i < ARRAY_SIZE(setup->constants); i++) {
-      util_copy_constant_buffer(&setup->constants[i].current, NULL);
+      util_copy_constant_buffer(&setup->constants[i].current, NULL, false);
    }
    setup->dirty |= LP_SETUP_NEW_CONSTANTS;
 }
@@ -1182,6 +1182,12 @@ try_update_scene_state( struct lp_setup_context *setup )
       setup->dirty |= LP_SETUP_NEW_FS;
    }
 
+   struct llvmpipe_context *llvmpipe = llvmpipe_context(setup->pipe);
+   if (llvmpipe->dirty & LP_NEW_FS_CONSTANTS)
+      lp_setup_set_fs_constants(llvmpipe->setup,
+                                ARRAY_SIZE(llvmpipe->constants[PIPE_SHADER_FRAGMENT]),
+                                llvmpipe->constants[PIPE_SHADER_FRAGMENT]);
+
    if (setup->dirty & LP_SETUP_NEW_CONSTANTS) {
       for (i = 0; i < ARRAY_SIZE(setup->constants); ++i) {
          struct pipe_resource *buffer = setup->constants[i].current.buffer;
@@ -1514,7 +1520,6 @@ void
 lp_setup_begin_query(struct lp_setup_context *setup,
                      struct llvmpipe_query *pq)
 {
-
    set_scene_state(setup, SETUP_ACTIVE, "begin_query");
 
    if (!(pq->type == PIPE_QUERY_OCCLUSION_COUNTER ||

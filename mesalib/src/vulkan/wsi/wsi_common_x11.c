@@ -38,6 +38,7 @@
 #include <xf86drm.h>
 #include "drm-uapi/drm_fourcc.h"
 #include "util/hash_table.h"
+#include "util/u_thread.h"
 #include "util/xmlconfig.h"
 
 #include "vk_util.h"
@@ -51,6 +52,7 @@ struct wsi_x11_connection {
    bool has_dri3_modifiers;
    bool has_present;
    bool is_proprietary_x11;
+   bool is_xwayland;
 };
 
 struct wsi_x11 {
@@ -114,12 +116,58 @@ wsi_x11_check_dri3_compatible(const struct wsi_device *wsi_dev,
    return match;
 }
 
+static bool
+wsi_x11_detect_xwayland(xcb_connection_t *conn)
+{
+   xcb_randr_query_version_cookie_t ver_cookie =
+      xcb_randr_query_version_unchecked(conn, 1, 3);
+   xcb_randr_query_version_reply_t *ver_reply =
+      xcb_randr_query_version_reply(conn, ver_cookie, NULL);
+   bool has_randr_v1_3 = ver_reply && (ver_reply->major_version > 1 ||
+                                       ver_reply->minor_version >= 3);
+   free(ver_reply);
+
+   if (!has_randr_v1_3)
+      return false;
+
+   const xcb_setup_t *setup = xcb_get_setup(conn);
+   xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
+
+   xcb_randr_get_screen_resources_current_cookie_t gsr_cookie =
+      xcb_randr_get_screen_resources_current_unchecked(conn, iter.data->root);
+   xcb_randr_get_screen_resources_current_reply_t *gsr_reply =
+      xcb_randr_get_screen_resources_current_reply(conn, gsr_cookie, NULL);
+
+   if (!gsr_reply || gsr_reply->num_outputs == 0) {
+      free(gsr_reply);
+      return false;
+   }
+
+   xcb_randr_output_t *randr_outputs =
+      xcb_randr_get_screen_resources_current_outputs(gsr_reply);
+   xcb_randr_get_output_info_cookie_t goi_cookie =
+      xcb_randr_get_output_info(conn, randr_outputs[0], gsr_reply->config_timestamp);
+   free(gsr_reply);
+
+   xcb_randr_get_output_info_reply_t *goi_reply =
+      xcb_randr_get_output_info_reply(conn, goi_cookie, NULL);
+   if (!goi_reply) {
+      return false;
+   }
+
+   char *output_name = (char*)xcb_randr_get_output_info_name(goi_reply);
+   bool is_xwayland = output_name && strncmp(output_name, "XWAYLAND", 8) == 0;
+   free(goi_reply);
+
+   return is_xwayland;
+}
+
 static struct wsi_x11_connection *
 wsi_x11_connection_create(struct wsi_device *wsi_dev,
                           xcb_connection_t *conn)
 {
-   xcb_query_extension_cookie_t dri3_cookie, pres_cookie, amd_cookie, nv_cookie;
-   xcb_query_extension_reply_t *dri3_reply, *pres_reply, *amd_reply, *nv_reply;
+   xcb_query_extension_cookie_t dri3_cookie, pres_cookie, randr_cookie, amd_cookie, nv_cookie;
+   xcb_query_extension_reply_t *dri3_reply, *pres_reply, *randr_reply, *amd_reply, *nv_reply;
    bool has_dri3_v1_2 = false;
    bool has_present_v1_2 = false;
 
@@ -131,6 +179,7 @@ wsi_x11_connection_create(struct wsi_device *wsi_dev,
 
    dri3_cookie = xcb_query_extension(conn, 4, "DRI3");
    pres_cookie = xcb_query_extension(conn, 7, "Present");
+   randr_cookie = xcb_query_extension(conn, 5, "RANDR");
 
    /* We try to be nice to users and emit a warning if they try to use a
     * Vulkan application on a system without DRI3 enabled.  However, this ends
@@ -146,11 +195,13 @@ wsi_x11_connection_create(struct wsi_device *wsi_dev,
 
    dri3_reply = xcb_query_extension_reply(conn, dri3_cookie, NULL);
    pres_reply = xcb_query_extension_reply(conn, pres_cookie, NULL);
+   randr_reply = xcb_query_extension_reply(conn, randr_cookie, NULL);
    amd_reply = xcb_query_extension_reply(conn, amd_cookie, NULL);
    nv_reply = xcb_query_extension_reply(conn, nv_cookie, NULL);
    if (!dri3_reply || !pres_reply) {
       free(dri3_reply);
       free(pres_reply);
+      free(randr_reply);
       free(amd_reply);
       free(nv_reply);
       vk_free(&wsi_dev->instance_alloc, wsi_conn);
@@ -185,6 +236,11 @@ wsi_x11_connection_create(struct wsi_device *wsi_dev,
    }
 #endif
 
+   if (randr_reply && randr_reply->present != 0)
+      wsi_conn->is_xwayland = wsi_x11_detect_xwayland(conn);
+   else
+      wsi_conn->is_xwayland = false;
+
    wsi_conn->has_dri3_modifiers = has_dri3_v1_2 && has_present_v1_2;
    wsi_conn->is_proprietary_x11 = false;
    if (amd_reply && amd_reply->present)
@@ -194,6 +250,7 @@ wsi_x11_connection_create(struct wsi_device *wsi_dev,
 
    free(dri3_reply);
    free(pres_reply);
+   free(randr_reply);
    free(amd_reply);
    free(nv_reply);
 
@@ -1004,7 +1061,14 @@ x11_present_to_x11_dri3(struct x11_swapchain *chain, uint32_t image_index,
    int64_t divisor = 0;
    int64_t remainder = 0;
 
+   struct wsi_x11_connection *wsi_conn =
+      wsi_x11_get_connection((struct wsi_device*)chain->base.wsi, chain->conn);
+   if (!wsi_conn)
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
+
    if (chain->base.present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR ||
+       (chain->base.present_mode == VK_PRESENT_MODE_MAILBOX_KHR &&
+        wsi_conn->is_xwayland) ||
        chain->base.present_mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR)
       options |= XCB_PRESENT_OPTION_ASYNC;
 
@@ -1141,6 +1205,9 @@ x11_manage_fifo_queues(void *state)
    VkResult result = VK_SUCCESS;
 
    assert(chain->has_present_queue);
+
+   u_thread_setname("WSI swapchain queue");
+
    while (chain->status >= 0) {
       /* We can block here unconditionally because after an image was sent to
        * the server (later on in this loop) we ensure at least one image is
@@ -1486,19 +1553,21 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
 
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
 
-   unsigned num_images = pCreateInfo->minImageCount;
-   if (wsi_device->x11.strict_imageCount)
-      num_images = pCreateInfo->minImageCount;
-   else if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
-      num_images = MAX2(num_images, 5);
-   else if (wsi_device->x11.ensure_minImageCount)
-      num_images = MAX2(num_images, x11_get_min_image_count(wsi_device));
-
    xcb_connection_t *conn = x11_surface_get_connection(icd_surface);
    struct wsi_x11_connection *wsi_conn =
       wsi_x11_get_connection(wsi_device, conn);
    if (!wsi_conn)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+   unsigned num_images = pCreateInfo->minImageCount;
+   if (wsi_device->x11.strict_imageCount)
+      num_images = pCreateInfo->minImageCount;
+   else if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR ||
+            (present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR &&
+             wsi_conn->is_xwayland))
+      num_images = MAX2(num_images, 5);
+   else if (wsi_device->x11.ensure_minImageCount)
+      num_images = MAX2(num_images, x11_get_min_image_count(wsi_device));
 
    /* Check for whether or not we have a window up-front */
    xcb_window_t window = x11_surface_get_window(icd_surface);
@@ -1602,7 +1671,9 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
 
    if ((chain->base.present_mode == VK_PRESENT_MODE_FIFO_KHR ||
        chain->base.present_mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR ||
-       chain->base.present_mode == VK_PRESENT_MODE_MAILBOX_KHR) && !chain->base.wsi->sw) {
+       chain->base.present_mode == VK_PRESENT_MODE_MAILBOX_KHR ||
+        (chain->base.present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR &&
+         wsi_conn->is_xwayland)) && !chain->base.wsi->sw) {
       chain->has_present_queue = true;
 
       /* Initialize our queues.  We make them base.image_count + 1 because we will

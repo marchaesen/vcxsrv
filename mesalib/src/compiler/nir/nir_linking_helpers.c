@@ -32,8 +32,8 @@
  */
 
 /**
- * Returns the bits in the inputs_read, outputs_written, or
- * system_values_read bitfield corresponding to this variable.
+ * Returns the bits in the inputs_read, or outputs_written
+ * bitfield corresponding to this variable.
  */
 static uint64_t
 get_variable_io_mask(nir_variable *var, gl_shader_stage stage)
@@ -45,8 +45,7 @@ get_variable_io_mask(nir_variable *var, gl_shader_stage stage)
       var->data.location - VARYING_SLOT_PATCH0 : var->data.location;
 
    assert(var->data.mode == nir_var_shader_in ||
-          var->data.mode == nir_var_shader_out ||
-          var->data.mode == nir_var_system_value);
+          var->data.mode == nir_var_shader_out);
    assert(var->data.location >= 0);
 
    const struct glsl_type *type = var->type;
@@ -946,7 +945,7 @@ replace_constant_input(nir_shader *shader, nir_intrinsic_instr *store_intr)
                                              intr->dest.ssa.bit_size,
                                              out_const->value);
 
-         nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(nconst));
+         nir_ssa_def_rewrite_uses(&intr->dest.ssa, nconst);
 
          progress = true;
       }
@@ -993,7 +992,7 @@ replace_duplicate_input(nir_shader *shader, nir_variable *input_var,
          b.cursor = nir_before_instr(instr);
 
          nir_ssa_def *load = nir_load_var(&b, input_var);
-         nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(load));
+         nir_ssa_def_rewrite_uses(&intr->dest.ssa, load);
 
          progress = true;
       }

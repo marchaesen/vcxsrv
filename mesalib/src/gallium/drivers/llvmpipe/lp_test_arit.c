@@ -403,7 +403,7 @@ flush_denorm_to_zero(float val)
    fi_val.f = val;
 
 #if defined(PIPE_ARCH_SSE)
-   if (util_cpu_caps.has_sse) {
+   if (util_get_cpu_caps()->has_sse) {
       if ((fi_val.ui & 0x7f800000) == 0) {
          fi_val.ui &= 0xff800000;
       }
@@ -479,7 +479,7 @@ test_unary(unsigned verbose, FILE *fp, const struct unary_test_t *test, unsigned
             continue;
          }
 
-         if (!util_cpu_caps.has_neon &&
+         if (!util_get_cpu_caps()->has_neon &&
              test->ref == &nearbyintf && length == 2 &&
              ref != roundf(testval)) {
             /* FIXME: The generic (non SSE) path in lp_build_iround, which is

@@ -24,17 +24,26 @@
 #include "vk_object.h"
 
 #include "vk_alloc.h"
+#include "vk_common_entrypoints.h"
+#include "vk_device.h"
 #include "util/hash_table.h"
 #include "util/ralloc.h"
 
+static void
+vk_object_base_reinit(struct vk_object_base *base)
+{
+   base->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
+   util_sparse_array_init(&base->private_data, sizeof(uint64_t), 8);
+}
+
 void
-vk_object_base_init(UNUSED struct vk_device *device,
+vk_object_base_init(struct vk_device *device,
                     struct vk_object_base *base,
                     UNUSED VkObjectType obj_type)
 {
-   base->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
+   vk_object_base_reinit(base);
    base->type = obj_type;
-   util_sparse_array_init(&base->private_data, sizeof(uint64_t), 8);
+   base->device = device;
 }
 
 void
@@ -44,37 +53,10 @@ vk_object_base_finish(struct vk_object_base *base)
 }
 
 void
-vk_device_init(struct vk_device *device,
-               UNUSED const VkDeviceCreateInfo *pCreateInfo,
-               const VkAllocationCallbacks *instance_alloc,
-               const VkAllocationCallbacks *device_alloc)
+vk_object_base_reset(struct vk_object_base *base)
 {
-   vk_object_base_init(device, &device->base, VK_OBJECT_TYPE_DEVICE);
-   if (device_alloc)
-      device->alloc = *device_alloc;
-   else
-      device->alloc = *instance_alloc;
-
-   p_atomic_set(&device->private_data_next_index, 0);
-
-#ifdef ANDROID
-   mtx_init(&device->swapchain_private_mtx, mtx_plain);
-   device->swapchain_private = NULL;
-#endif /* ANDROID */
-}
-
-void
-vk_device_finish(UNUSED struct vk_device *device)
-{
-#ifdef ANDROID
-   if (device->swapchain_private) {
-      hash_table_foreach(device->swapchain_private, entry)
-         util_sparse_array_finish(entry->data);
-      ralloc_free(device->swapchain_private);
-   }
-#endif /* ANDROID */
-
-   vk_object_base_finish(&device->base);
+   vk_object_base_finish(base);
+   vk_object_base_reinit(base);
 }
 
 void *
@@ -261,4 +243,50 @@ vk_object_base_get_private_data(struct vk_device *device,
    } else {
       *pData = 0;
    }
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_CreatePrivateDataSlotEXT(VkDevice _device,
+                                   const VkPrivateDataSlotCreateInfoEXT *pCreateInfo,
+                                   const VkAllocationCallbacks *pAllocator,
+                                   VkPrivateDataSlotEXT *pPrivateDataSlot)
+{
+   VK_FROM_HANDLE(vk_device, device, _device);
+   return vk_private_data_slot_create(device, pCreateInfo, pAllocator,
+                                      pPrivateDataSlot);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_DestroyPrivateDataSlotEXT(VkDevice _device,
+                                    VkPrivateDataSlotEXT privateDataSlot,
+                                    const VkAllocationCallbacks *pAllocator)
+{
+   VK_FROM_HANDLE(vk_device, device, _device);
+   vk_private_data_slot_destroy(device, privateDataSlot, pAllocator);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_SetPrivateDataEXT(VkDevice _device,
+                            VkObjectType objectType,
+                            uint64_t objectHandle,
+                            VkPrivateDataSlotEXT privateDataSlot,
+                            uint64_t data)
+{
+   VK_FROM_HANDLE(vk_device, device, _device);
+   return vk_object_base_set_private_data(device,
+                                          objectType, objectHandle,
+                                          privateDataSlot, data);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_GetPrivateDataEXT(VkDevice _device,
+                            VkObjectType objectType,
+                            uint64_t objectHandle,
+                            VkPrivateDataSlotEXT privateDataSlot,
+                            uint64_t *pData)
+{
+   VK_FROM_HANDLE(vk_device, device, _device);
+   vk_object_base_get_private_data(device,
+                                   objectType, objectHandle,
+                                   privateDataSlot, pData);
 }

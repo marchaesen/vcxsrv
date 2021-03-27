@@ -297,6 +297,7 @@ lp_jit_create_types(struct lp_fragment_shader_variant *lp)
       elem_types[LP_JIT_THREAD_DATA_COUNTER] = LLVMInt64TypeInContext(lc);
       elem_types[LP_JIT_THREAD_DATA_INVOCATIONS] = LLVMInt64TypeInContext(lc);
       elem_types[LP_JIT_THREAD_DATA_RASTER_STATE_VIEWPORT_INDEX] =
+      elem_types[LP_JIT_THREAD_DATA_RASTER_STATE_VIEW_INDEX] =
             LLVMInt32TypeInContext(lc);
 
       thread_data_type = LLVMStructTypeInContext(lc, elem_types,

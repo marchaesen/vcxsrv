@@ -244,7 +244,7 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
 		 * of the new intrinsic.
 		 */
 		nir_ssa_def_rewrite_uses(&intrinsic->dest.ssa,
-								 nir_src_for_ssa(new_dest));
+								 new_dest);
 	}
 
 	/* Finally remove the original intrinsic. */

@@ -43,7 +43,6 @@ struct radv_amdgpu_winsys_bo {
 	struct radeon_winsys_bo base;
 	amdgpu_va_handle va_handle;
 	uint64_t size;
-	struct radv_amdgpu_winsys *ws;
 	bool is_virtual;
 	uint8_t priority;
 	int ref_count;
@@ -52,10 +51,8 @@ struct radv_amdgpu_winsys_bo {
 		/* physical bo */
 		struct {
 			amdgpu_bo_handle bo;
-			enum radeon_bo_domain initial_domain;
 			bool is_shared;
 			uint32_t bo_handle;
-			struct list_head global_list_item;
 		};
 		/* virtual bo */
 		struct {

@@ -58,8 +58,7 @@ lower_load_store(nir_builder *b,
       if (bit_size == 1)
          value = nir_b2b1(b, value);
 
-      nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                               nir_src_for_ssa(value));
+      nir_ssa_def_rewrite_uses(&intrin->dest.ssa, value);
    } else {
       assert(intrin->intrinsic == nir_intrinsic_store_deref);
 

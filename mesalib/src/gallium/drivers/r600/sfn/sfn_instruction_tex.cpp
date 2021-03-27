@@ -56,10 +56,10 @@ void TexInstruction::set_gather_comp(int cmp)
    m_inst_mode = cmp;
 }
 
-void TexInstruction::replace_values(const ValueSet& candiates, PValue new_value)
+void TexInstruction::replace_values(const ValueSet& candidates, PValue new_value)
 {
    // I wonder whether we can actually end up here ...
-   for (auto c: candiates) {
+   for (auto c: candidates) {
       if (*c == *m_src.reg_i(c->chan()))
          m_src.set_reg_i(c->chan(), new_value);
       if (*c == *m_dst.reg_i(c->chan()))
@@ -137,28 +137,46 @@ const char *TexInstruction::opname(Opcode op)
 
 
 
-static bool lower_coord_shift_normalized(nir_builder& b, nir_tex_instr *tex)
+static bool lower_coord_shift_normalized(nir_builder *b, nir_tex_instr *tex)
 {
-   b.cursor = nir_before_instr(&tex->instr);
+   b->cursor = nir_before_instr(&tex->instr);
 
-   nir_ssa_def * size = nir_i2f32(&b, nir_get_texture_size(&b, tex));
-   nir_ssa_def *scale = nir_frcp(&b, size);
+   nir_ssa_def * size = nir_i2f32(b, nir_get_texture_size(b, tex));
+   nir_ssa_def *scale = nir_frcp(b, size);
 
    int coord_index = nir_tex_instr_src_index(tex, nir_tex_src_coord);
-   nir_ssa_def *corr = nir_fadd(&b,
-                                nir_fmul(&b, nir_imm_float(&b, -0.5f), scale),
-                                tex->src[coord_index].src.ssa);
+   nir_ssa_def *corr = nullptr;
+   if (unlikely(tex->array_is_lowered_cube)) {
+      auto corr2 = nir_fadd(b, nir_channels(b, tex->src[coord_index].src.ssa, 3),
+                            nir_fmul(b, nir_imm_float(b, -0.5f), scale));
+      corr = nir_vec3(b, nir_channel(b, corr2, 0), nir_channel(b, corr2, 1),
+                      nir_channel(
+                         b, tex->src[coord_index].src.ssa, 2));
+   } else {
+      corr = nir_fadd(b,
+                      nir_fmul(b, nir_imm_float(b, -0.5f), scale),
+                      tex->src[coord_index].src.ssa);
+   }
+
    nir_instr_rewrite_src(&tex->instr, &tex->src[coord_index].src,
                          nir_src_for_ssa(corr));
    return true;
 }
 
-static bool lower_coord_shift_unnormalized(nir_builder& b, nir_tex_instr *tex)
+static bool lower_coord_shift_unnormalized(nir_builder *b, nir_tex_instr *tex)
 {
-   b.cursor = nir_before_instr(&tex->instr);
+   b->cursor = nir_before_instr(&tex->instr);
    int coord_index = nir_tex_instr_src_index(tex, nir_tex_src_coord);
-   nir_ssa_def *corr = nir_fadd(&b, tex->src[coord_index].src.ssa,
-                                nir_imm_float(&b, -0.5f));
+   nir_ssa_def *corr = nullptr;
+   if (unlikely(tex->array_is_lowered_cube)) {
+      auto corr2 = nir_fadd(b, nir_channels(b, tex->src[coord_index].src.ssa, 3),
+                            nir_imm_float(b, -0.5f));
+      corr = nir_vec3(b, nir_channel(b, corr2, 0), nir_channel(b, corr2, 1),
+                      nir_channel(b, tex->src[coord_index].src.ssa, 2));
+   } else {
+      corr = nir_fadd(b, tex->src[coord_index].src.ssa,
+                      nir_imm_float(b, -0.5f));
+   }
    nir_instr_rewrite_src(&tex->instr, &tex->src[coord_index].src,
                          nir_src_for_ssa(corr));
    return true;
@@ -179,9 +197,9 @@ r600_nir_lower_int_tg4_impl(nir_function_impl *impl)
                 tex->sampler_dim != GLSL_SAMPLER_DIM_CUBE) {
                if (nir_alu_type_get_base_type(tex->dest_type) != nir_type_float) {
                   if (tex->sampler_dim != GLSL_SAMPLER_DIM_RECT)
-                     lower_coord_shift_normalized(b, tex);
+                     lower_coord_shift_normalized(&b, tex);
                   else
-                     lower_coord_shift_unnormalized(b, tex);
+                     lower_coord_shift_unnormalized(&b, tex);
                   progress = true;
                }
             }
@@ -313,6 +331,84 @@ r600_nir_lower_txl_txf_array_or_cube(nir_shader *shader)
    }
    return progress;
 }
+
+static bool
+r600_nir_lower_cube_to_2darray_filer(const nir_instr *instr, const void *_options)
+{
+   if (instr->type != nir_instr_type_tex)
+      return false;
+
+   auto tex = nir_instr_as_tex(instr);
+   if (tex->sampler_dim != GLSL_SAMPLER_DIM_CUBE)
+      return false;
+
+   switch (tex->op) {
+   case nir_texop_tex:
+   case nir_texop_txb:
+   case nir_texop_txf:
+   case nir_texop_txl:
+   case nir_texop_lod:
+   case nir_texop_tg4:
+   case nir_texop_txd:
+      return true;
+   default:
+      return false;
+   }
+}
+
+static nir_ssa_def *
+r600_nir_lower_cube_to_2darray_impl(nir_builder *b, nir_instr *instr, void *_options)
+{
+   b->cursor = nir_before_instr(instr);
+
+   auto tex = nir_instr_as_tex(instr);
+   int coord_idx = nir_tex_instr_src_index(tex, nir_tex_src_coord);
+   assert(coord_idx >= 0);
+
+   auto cubed = nir_cube_r600(b, nir_channels(b, tex->src[coord_idx].src.ssa, 0x7));
+   auto xy = nir_fmad(b,
+                      nir_vec2(b, nir_channel(b, cubed, 1), nir_channel(b, cubed, 0)),
+                      nir_frcp(b, nir_fabs(b, nir_channel(b, cubed, 2))),
+                      nir_imm_float(b, 1.5));
+
+   nir_ssa_def *z = nir_channel(b, cubed, 3);
+   if (tex->is_array) {
+      auto slice = nir_fround_even(b, nir_channel(b, tex->src[coord_idx].src.ssa, 3));
+      z = nir_fmad(b, nir_fmax(b, slice, nir_imm_float(b, 0.0)), nir_imm_float(b, 8.0),
+                   z);
+   }
+
+   if (tex->op == nir_texop_txd) {
+      int ddx_idx = nir_tex_instr_src_index(tex, nir_tex_src_ddx);
+      auto zero_dot_5 = nir_imm_float(b, 0.5);
+      nir_instr_rewrite_src(&tex->instr, &tex->src[ddx_idx].src,
+                            nir_src_for_ssa(nir_fmul(b, nir_ssa_for_src(b, tex->src[ddx_idx].src, 3), zero_dot_5)));
+
+      int ddy_idx = nir_tex_instr_src_index(tex, nir_tex_src_ddy);
+      nir_instr_rewrite_src(&tex->instr, &tex->src[ddy_idx].src,
+                            nir_src_for_ssa(nir_fmul(b, nir_ssa_for_src(b, tex->src[ddy_idx].src, 3), zero_dot_5)));
+   }
+
+   auto new_coord = nir_vec3(b, nir_channel(b, xy, 0), nir_channel(b, xy, 1), z);
+   nir_instr_rewrite_src(&tex->instr, &tex->src[coord_idx].src,
+                         nir_src_for_ssa(new_coord));
+   tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
+   tex->is_array = true;
+   tex->array_is_lowered_cube = true;
+
+   tex->coord_components = 3;
+
+   return NIR_LOWER_INSTR_PROGRESS;
+}
+
+bool
+r600_nir_lower_cube_to_2darray(nir_shader *shader)
+{
+   return nir_shader_lower_instructions(shader,
+                                        r600_nir_lower_cube_to_2darray_filer,
+                                        r600_nir_lower_cube_to_2darray_impl, nullptr);
+}
+
 
 
 }

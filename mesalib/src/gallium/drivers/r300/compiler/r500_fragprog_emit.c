@@ -451,7 +451,7 @@ static void emit_flowcontrol(struct emit_state * s, struct rc_instruction * inst
 
 	newip = ++s->Code->inst_end;
 
-	/* Currently all loops use the same integer constant to intialize
+	/* Currently all loops use the same integer constant to initialize
 	 * the loop variables. */
 	if(!s->Code->int_constants[0]) {
 		s->Code->int_constants[0] = R500_FC_INT_CONST_KR(0xff);

@@ -68,12 +68,14 @@
 
 
 
-    <function name="GetnPolygonStippleARB">
+    <function name="GetnPolygonStippleARB"
+              marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
         <param name="bufSize" type="GLsizei"/>
         <param name="pattern" type="GLubyte *" output="true"/>
     </function>
 
-    <function name="GetnTexImageARB">
+    <function name="GetnTexImageARB"
+              marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="format" type="GLenum"/>
@@ -82,7 +84,8 @@
         <param name="img" type="GLvoid *" output="true"/>
     </function>
 
-    <function name="ReadnPixelsARB" no_error="true">
+    <function name="ReadnPixelsARB" no_error="true"
+              marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="width" type="GLsizei"/>
@@ -142,7 +145,8 @@
 
 
 <!-- OpenGL 1.3 sized buffer queries -->
-    <function name="GetnCompressedTexImageARB">
+    <function name="GetnCompressedTexImageARB"
+              marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="lod" type="GLint"/>
         <param name="bufSize" type="GLsizei"/>

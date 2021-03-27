@@ -1,3 +1,4 @@
+#!/bin/bash
 if [ ! -d xserver          ]; then git clone https://gitlab.freedesktop.org/xorg/xserver.git               ; fi
 if [ ! -d libxcb           ]; then git clone https://github.com/freedesktop/xcb-libxcb.git                 ; fi
 if [ ! -d libxcb/xcb-proto ]; then git clone https://github.com/freedesktop/xcb-proto.git libxcb/xcb-proto ; fi

@@ -85,7 +85,8 @@ tu_tiling_config_update_tile_layout(struct tu_framebuffer *fb,
 {
    const uint32_t tile_align_w = pass->tile_align_w;
    const uint32_t tile_align_h = dev->physical_device->info.tile_align_h;
-   const uint32_t max_tile_width = 1024;
+   const uint32_t max_tile_width = dev->physical_device->info.tile_max_w;
+   const uint32_t max_tile_height = dev->physical_device->info.tile_max_h;
 
    /* start from 1 tile */
    fb->tile_count = (VkExtent2D) {
@@ -110,6 +111,13 @@ tu_tiling_config_update_tile_layout(struct tu_framebuffer *fb,
       fb->tile_count.width++;
       fb->tile0.width =
          util_align_npot(DIV_ROUND_UP(fb->width, fb->tile_count.width), tile_align_w);
+   }
+
+   /* do not exceed max tile height */
+   while (fb->tile0.height > max_tile_height) {
+      fb->tile_count.height++;
+      fb->tile0.height =
+         util_align_npot(DIV_ROUND_UP(fb->height, fb->tile_count.height), tile_align_h);
    }
 
    /* will force to sysmem, don't bother trying to have a valid tile config

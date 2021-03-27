@@ -52,7 +52,7 @@ xkb_symbols "basic"  {
         key <AB04> { [              v,                 V,               igrave,               Igrave ] };
         key <AB05> { [              b,                 B,               iacute,               Iacute ] };
         key <AB06> { [              n,                 N,               ntilde,               Ntilde ] };
-        key <AB07> { [              m,                 M,           dead_greek,           squareroot ] };
+        key <AB07> { [              m,                 M,           dead_greek,            Multi_key ] };
         key <AB08> { [          comma,              less,               ograve,               Ograve ] };
         key <AB09> { [         period,           greater,               oacute,               Oacute ] };
         key <AB10> { [          slash,          question,         questiondown,            0x1002026 ] };

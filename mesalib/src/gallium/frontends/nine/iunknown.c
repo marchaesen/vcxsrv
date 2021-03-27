@@ -22,7 +22,7 @@
 
 #include "iunknown.h"
 #include "util/u_atomic.h"
-#include "util/u_hash_table.h"
+#include "util/hash_table.h"
 
 #include "nine_helpers.h"
 #include "nine_pdata.h"
@@ -72,10 +72,8 @@ NineUnknown_dtor( struct NineUnknown *This )
     if (This->refs && This->device) /* Possible only if early exit after a ctor failed */
         (void) NineUnknown_Release(NineUnknown(This->device));
 
-    if (This->pdata) {
-        util_hash_table_foreach(This->pdata, ht_guid_delete, NULL);
-        _mesa_hash_table_destroy(This->pdata, NULL);
-    }
+    if (This->pdata)
+        _mesa_hash_table_destroy(This->pdata, ht_guid_delete);
 
     FREE(This);
 }
@@ -136,13 +134,12 @@ NineUnknown_Release( struct NineUnknown *This )
     ULONG r = p_atomic_dec_return(&This->refs);
 
     if (r == 0) {
-        if (This->device) {
-            if (NineUnknown_Release(NineUnknown(This->device)) == 0)
-                return r; /* everything's gone */
-        }
         /* Containers (here with !forward) take care of item destruction */
         if (!This->container && This->bind == 0) {
             This->dtor(This);
+        }
+        if (This->device) {
+            NineUnknown_Release(NineUnknown(This->device));
         }
     }
     return r;
@@ -159,15 +156,14 @@ NineUnknown_ReleaseWithDtorLock( struct NineUnknown *This )
     ULONG r = p_atomic_dec_return(&This->refs);
 
     if (r == 0) {
-        if (This->device) {
-            if (NineUnknown_ReleaseWithDtorLock(NineUnknown(This->device)) == 0)
-                return r; /* everything's gone */
-        }
         /* Containers (here with !forward) take care of item destruction */
         if (!This->container && This->bind == 0) {
             NineLockGlobalMutex();
             This->dtor(This);
             NineUnlockGlobalMutex();
+        }
+        if (This->device) {
+            NineUnknown_ReleaseWithDtorLock(NineUnknown(This->device));
         }
     }
     return r;
@@ -205,7 +201,7 @@ NineUnknown_SetPrivateData( struct NineUnknown *This,
 
     /* data consists of a header and the actual data. avoiding 2 mallocs */
     header = CALLOC_VARIANT_LENGTH_STRUCT(pheader, SizeOfData);
-    if (!header) { return E_OUTOFMEMORY; }
+    if (!header) { DBG("Returning E_OUTOFMEMORY\n"); return E_OUTOFMEMORY; }
     header->unknown = (Flags & D3DSPD_IUNKNOWN) ? TRUE : FALSE;
 
     /* if the refguid already exists, delete it */
@@ -223,6 +219,7 @@ NineUnknown_SetPrivateData( struct NineUnknown *This,
     memcpy(header_data, user_data, header->size);
     memcpy(&header->guid, refguid, sizeof(header->guid));
 
+    DBG("New header %p, size %d\n", header, (int)header->size);
     _mesa_hash_table_insert(This->pdata, &header->guid, header);
     if (header->unknown) { IUnknown_AddRef(*(IUnknown **)header_data); }
     return D3D_OK;
@@ -234,6 +231,7 @@ NineUnknown_GetPrivateData( struct NineUnknown *This,
                             void *pData,
                             DWORD *pSizeOfData )
 {
+    struct hash_entry *entry;
     struct pheader *header;
     DWORD sizeofdata;
     char guid_str[64];
@@ -244,23 +242,29 @@ NineUnknown_GetPrivateData( struct NineUnknown *This,
 
     (void)guid_str;
 
-    header = util_hash_table_get(This->pdata, refguid);
-    if (!header) { return D3DERR_NOTFOUND; }
+    entry = _mesa_hash_table_search(This->pdata, refguid);
+    if (!entry) { DBG("Returning D3DERR_NOTFOUND\n"); return D3DERR_NOTFOUND; }
+
+    header = entry->data;
 
     user_assert(pSizeOfData, E_POINTER);
     sizeofdata = *pSizeOfData;
     *pSizeOfData = header->size;
+    DBG("Found header %p, size %d. Requested max %d\n", header, (int)header->size, (int)sizeofdata);
 
     if (!pData) {
+        DBG("Returning early D3D_OK\n");
         return D3D_OK;
     }
     if (sizeofdata < header->size) {
+        DBG("Returning D3DERR_MOREDATA\n");
         return D3DERR_MOREDATA;
     }
 
     header_data = (void *)header + sizeof(*header);
     if (header->unknown) { IUnknown_AddRef(*(IUnknown **)header_data); }
     memcpy(pData, header_data, header->size);
+    DBG("Returning D3D_OK\n");
 
     return D3D_OK;
 }
@@ -269,19 +273,22 @@ HRESULT NINE_WINAPI
 NineUnknown_FreePrivateData( struct NineUnknown *This,
                              REFGUID refguid )
 {
-    struct pheader *header;
+    struct hash_entry *entry;
     char guid_str[64];
 
     DBG("This=%p GUID=%s\n", This, GUID_sprintf(guid_str, refguid));
 
     (void)guid_str;
 
-    header = util_hash_table_get(This->pdata, refguid);
-    if (!header)
+    entry = _mesa_hash_table_search(This->pdata, refguid);
+    if (!entry) {
+        DBG("Nothing to free\n");
         return D3DERR_NOTFOUND;
+    }
 
-    ht_guid_delete(NULL, header, NULL);
-    _mesa_hash_table_remove_key(This->pdata, refguid);
+    DBG("Freeing %p\n", entry->data);
+    ht_guid_delete(entry);
+    _mesa_hash_table_remove(This->pdata, entry);
 
     return D3D_OK;
 }

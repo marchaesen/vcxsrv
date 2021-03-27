@@ -136,7 +136,7 @@ _mesa_BeginConditionalRender(GLuint queryId, GLenum mode)
 static void
 end_conditional_render(struct gl_context *ctx)
 {
-   FLUSH_VERTICES(ctx, 0x0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    if (ctx->Driver.EndConditionalRender)
       ctx->Driver.EndConditionalRender(ctx, ctx->Query.CondRenderQuery);

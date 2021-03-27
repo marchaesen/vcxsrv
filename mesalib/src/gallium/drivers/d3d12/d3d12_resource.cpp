@@ -45,8 +45,9 @@
 static bool
 can_map_directly(struct pipe_resource *pres)
 {
-   return pres->bind & (PIPE_BIND_SCANOUT | PIPE_BIND_SHARED | PIPE_BIND_LINEAR) ||
-          pres->target == PIPE_BUFFER;
+   return pres->target == PIPE_BUFFER &&
+          pres->usage != PIPE_USAGE_DEFAULT &&
+          pres->usage != PIPE_USAGE_IMMUTABLE;
 }
 
 static void
@@ -118,11 +119,25 @@ init_buffer(struct d3d12_screen *screen,
     * element state */
    assert(templ->format == d3d12_emulated_vtx_format(templ->format));
 
-   /* Don't use slab buffer manager for GPU writable buffers */
-   bufmgr = templ->bind & PIPE_BIND_STREAM_OUTPUT ? screen->cache_bufmgr
-                                                  : screen->slab_bufmgr;
+   switch (templ->usage) {
+   case PIPE_USAGE_DEFAULT:
+   case PIPE_USAGE_IMMUTABLE:
+      bufmgr = screen->cache_bufmgr;
+      buf_desc.usage = (pb_usage_flags)PB_USAGE_GPU_READ_WRITE;
+      break;
+   case PIPE_USAGE_DYNAMIC:
+   case PIPE_USAGE_STREAM:
+      bufmgr = screen->slab_bufmgr;
+      buf_desc.usage = (pb_usage_flags)(PB_USAGE_CPU_WRITE | PB_USAGE_GPU_READ);
+      break;
+   case PIPE_USAGE_STAGING:
+      bufmgr = screen->readback_slab_bufmgr;
+      buf_desc.usage = (pb_usage_flags)(PB_USAGE_GPU_WRITE | PB_USAGE_CPU_READ_WRITE);
+      break;
+   default:
+      unreachable("Invalid pipe usage");
+   }
    buf_desc.alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-   buf_desc.usage = (pb_usage_flags)PB_USAGE_ALL;
    res->dxgi_format = DXGI_FORMAT_UNKNOWN;
    buf = bufmgr->create_buffer(bufmgr, templ->width0, &buf_desc);
    if (!buf)
@@ -201,16 +216,7 @@ init_texture(struct d3d12_screen *screen,
                       PIPE_BIND_SHARED | PIPE_BIND_LINEAR))
       desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-   D3D12_HEAP_TYPE heap_type = D3D12_HEAP_TYPE_DEFAULT;
-
-   if (templ->bind & (PIPE_BIND_DISPLAY_TARGET |
-                      PIPE_BIND_SCANOUT |
-                      PIPE_BIND_SHARED))
-      heap_type = D3D12_HEAP_TYPE_READBACK;
-   else if (templ->usage == PIPE_USAGE_STAGING)
-      heap_type = D3D12_HEAP_TYPE_UPLOAD;
-
-   D3D12_HEAP_PROPERTIES heap_pris = screen->dev->GetCustomHeapProperties(0, heap_type);
+   D3D12_HEAP_PROPERTIES heap_pris = screen->dev->GetCustomHeapProperties(0, D3D12_HEAP_TYPE_DEFAULT);
 
    HRESULT hres = screen->dev->CreateCommittedResource(&heap_pris,
                                                    D3D12_HEAP_FLAG_NONE,
@@ -221,9 +227,7 @@ init_texture(struct d3d12_screen *screen,
    if (FAILED(hres))
       return false;
 
-   if (screen->winsys && (templ->bind & (PIPE_BIND_DISPLAY_TARGET |
-                                         PIPE_BIND_SCANOUT |
-                                         PIPE_BIND_SHARED))) {
+   if (screen->winsys && (templ->bind & PIPE_BIND_DISPLAY_TARGET)) {
       struct sw_winsys *winsys = screen->winsys;
       res->dt = winsys->displaytarget_create(screen->winsys,
                                              res->base.bind,
@@ -533,7 +537,7 @@ transfer_image_to_buf(struct d3d12_context *ctx,
       struct pipe_resource tmpl = res->base;
       tmpl.nr_samples = 0;
       resolved_resource = d3d12_resource_create(ctx->base.screen, &tmpl);
-      struct pipe_blit_info resolve_info = {0};
+      struct pipe_blit_info resolve_info = {};
       struct pipe_box box = {0,0,0, (int)res->base.width0, (int16_t)res->base.height0, (int16_t)res->base.depth0};
       resolve_info.dst.resource = resolved_resource;
       resolve_info.dst.box = box;
@@ -565,6 +569,36 @@ transfer_image_to_buf(struct d3d12_context *ctx,
    pipe_resource_reference(&resolved_resource, NULL);
 
    return true;
+}
+
+static void
+transfer_buf_to_buf(struct d3d12_context *ctx,
+                    struct d3d12_resource *src,
+                    struct d3d12_resource *dst,
+                    uint64_t src_offset,
+                    uint64_t dst_offset,
+                    uint64_t width)
+{
+   auto batch = d3d12_current_batch(ctx);
+
+   d3d12_batch_reference_resource(batch, src);
+   d3d12_batch_reference_resource(batch, dst);
+
+   uint64_t src_offset_suballoc = 0;
+   uint64_t dst_offset_suballoc = 0;
+   auto src_d3d12 = d3d12_resource_underlying(src, &src_offset_suballoc);
+   auto dst_d3d12 = d3d12_resource_underlying(dst, &dst_offset_suballoc);
+   src_offset += src_offset_suballoc;
+   dst_offset += dst_offset_suballoc;
+
+   // Same-resource copies not supported, since the resource would need to be in both states
+   assert(src_d3d12 != dst_d3d12);
+   d3d12_transition_resource_state(ctx, src, D3D12_RESOURCE_STATE_COPY_SOURCE);
+   d3d12_transition_resource_state(ctx, dst, D3D12_RESOURCE_STATE_COPY_DEST);
+   d3d12_apply_resource_states(ctx);
+   ctx->cmdlist->CopyBufferRegion(dst_d3d12, dst_offset,
+                                  src_d3d12, src_offset,
+                                  width);
 }
 
 static unsigned
@@ -846,6 +880,8 @@ write_zs_surface(struct pipe_context *pctx, struct d3d12_resource *res,
    transfer_buf_to_image(d3d12_context(pctx), res, stencil_buffer, trans, 1);
 }
 
+#define BUFFER_MAP_ALIGNMENT 64
+
 static void *
 d3d12_transfer_map(struct pipe_context *pctx,
                    struct pipe_resource *pres,
@@ -912,23 +948,43 @@ d3d12_transfer_map(struct pipe_context *pctx,
          ptrans->layer_stride = align(ptrans->layer_stride,
                                       D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 
+      unsigned staging_res_size = ptrans->layer_stride * box->depth;
+      if (res->base.target == PIPE_BUFFER) {
+         /* To properly support ARB_map_buffer_alignment, we need to return a pointer
+          * that's appropriately offset from a 64-byte-aligned base address.
+          */
+         assert(box->x >= 0);
+         unsigned aligned_x = (unsigned)box->x % BUFFER_MAP_ALIGNMENT;
+         staging_res_size = align(box->width + aligned_x,
+                                  D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+         range.Begin = aligned_x;
+      }
+
+      pipe_resource_usage staging_usage = (usage & (PIPE_MAP_READ | PIPE_MAP_READ_WRITE)) ?
+         PIPE_USAGE_STAGING : PIPE_USAGE_STREAM;
+
       trans->staging_res = pipe_buffer_create(pctx->screen, 0,
-                                              PIPE_USAGE_STAGING,
-                                              ptrans->layer_stride * box->depth);
+                                              staging_usage,
+                                              staging_res_size);
       if (!trans->staging_res)
          return NULL;
 
       struct d3d12_resource *staging_res = d3d12_resource(trans->staging_res);
 
       if (usage & PIPE_MAP_READ) {
-         bool ret = transfer_image_to_buf(ctx, res, staging_res, trans, 0);
-         if (ret == false)
+         bool ret = true;
+         if (pres->target == PIPE_BUFFER) {
+            uint64_t src_offset = box->x;
+            uint64_t dst_offset = src_offset % BUFFER_MAP_ALIGNMENT;
+            transfer_buf_to_buf(ctx, res, staging_res, src_offset, dst_offset, box->width);
+         } else
+            ret = transfer_image_to_buf(ctx, res, staging_res, trans, 0);
+         if (!ret)
             return NULL;
          d3d12_flush_cmdlist_and_wait(ctx);
       }
 
-      range.Begin = 0;
-      range.End = ptrans->layer_stride * box->depth;
+      range.End = staging_res_size - range.Begin;
 
       ptr = d3d12_bo_map(staging_res->bo, &range);
    }
@@ -953,14 +1009,21 @@ d3d12_transfer_unmap(struct pipe_context *pctx,
       struct d3d12_resource *staging_res = d3d12_resource(trans->staging_res);
 
       if (trans->base.usage & PIPE_MAP_WRITE) {
-         range.Begin = 0;
-         range.End = ptrans->layer_stride * ptrans->box.depth;
+         assert(ptrans->box.x >= 0);
+         range.Begin = res->base.target == PIPE_BUFFER ?
+            (unsigned)ptrans->box.x % BUFFER_MAP_ALIGNMENT : 0;
+         range.End = staging_res->base.width0 - range.Begin;
       }
       d3d12_bo_unmap(staging_res->bo, &range);
 
       if (trans->base.usage & PIPE_MAP_WRITE) {
          struct d3d12_context *ctx = d3d12_context(pctx);
-         transfer_buf_to_image(ctx, res, staging_res, trans, 0);
+         if (res->base.target == PIPE_BUFFER) {
+            uint64_t dst_offset = trans->base.box.x;
+            uint64_t src_offset = dst_offset % BUFFER_MAP_ALIGNMENT;
+            transfer_buf_to_buf(ctx, staging_res, res, src_offset, dst_offset, ptrans->box.width);
+         } else
+            transfer_buf_to_image(ctx, res, staging_res, trans, 0);
       }
 
       pipe_resource_reference(&trans->staging_res, NULL);

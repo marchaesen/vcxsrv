@@ -85,7 +85,7 @@ lima_nir_split_load_input_block(nir_block *block, nir_builder *b)
 
       nir_builder_instr_insert(b, &new_intrin->instr);
       nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa,
-                               nir_src_for_ssa(&new_intrin->dest.ssa));
+                               &new_intrin->dest.ssa);
       nir_instr_remove(&alu->instr);
       progress = true;
    }

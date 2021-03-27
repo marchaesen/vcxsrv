@@ -465,6 +465,8 @@ nir_loop_create(nir_shader *shader)
    nir_loop *loop = rzalloc(shader, nir_loop);
 
    cf_init(&loop->cf_node, nir_cf_node_loop);
+   /* Assume that loops are divergent until proven otherwise */
+   loop->divergent = true;
 
    nir_block *body = nir_block_create(shader);
    exec_list_make_empty(&loop->body);
@@ -1015,85 +1017,6 @@ nir_index_local_regs(nir_function_impl *impl)
    impl->reg_alloc = index;
 }
 
-static bool
-visit_alu_dest(nir_alu_instr *instr, nir_foreach_dest_cb cb, void *state)
-{
-   return cb(&instr->dest.dest, state);
-}
-
-static bool
-visit_deref_dest(nir_deref_instr *instr, nir_foreach_dest_cb cb, void *state)
-{
-   return cb(&instr->dest, state);
-}
-
-static bool
-visit_intrinsic_dest(nir_intrinsic_instr *instr, nir_foreach_dest_cb cb,
-                     void *state)
-{
-   if (nir_intrinsic_infos[instr->intrinsic].has_dest)
-      return cb(&instr->dest, state);
-
-   return true;
-}
-
-static bool
-visit_texture_dest(nir_tex_instr *instr, nir_foreach_dest_cb cb,
-                   void *state)
-{
-   return cb(&instr->dest, state);
-}
-
-static bool
-visit_phi_dest(nir_phi_instr *instr, nir_foreach_dest_cb cb, void *state)
-{
-   return cb(&instr->dest, state);
-}
-
-static bool
-visit_parallel_copy_dest(nir_parallel_copy_instr *instr,
-                         nir_foreach_dest_cb cb, void *state)
-{
-   nir_foreach_parallel_copy_entry(entry, instr) {
-      if (!cb(&entry->dest, state))
-         return false;
-   }
-
-   return true;
-}
-
-bool
-nir_foreach_dest(nir_instr *instr, nir_foreach_dest_cb cb, void *state)
-{
-   switch (instr->type) {
-   case nir_instr_type_alu:
-      return visit_alu_dest(nir_instr_as_alu(instr), cb, state);
-   case nir_instr_type_deref:
-      return visit_deref_dest(nir_instr_as_deref(instr), cb, state);
-   case nir_instr_type_intrinsic:
-      return visit_intrinsic_dest(nir_instr_as_intrinsic(instr), cb, state);
-   case nir_instr_type_tex:
-      return visit_texture_dest(nir_instr_as_tex(instr), cb, state);
-   case nir_instr_type_phi:
-      return visit_phi_dest(nir_instr_as_phi(instr), cb, state);
-   case nir_instr_type_parallel_copy:
-      return visit_parallel_copy_dest(nir_instr_as_parallel_copy(instr),
-                                      cb, state);
-
-   case nir_instr_type_load_const:
-   case nir_instr_type_ssa_undef:
-   case nir_instr_type_call:
-   case nir_instr_type_jump:
-      break;
-
-   default:
-      unreachable("Invalid instruction type");
-      break;
-   }
-
-   return true;
-}
-
 struct foreach_ssa_def_state {
    nir_foreach_ssa_def_cb cb;
    void *client_state;
@@ -1181,179 +1104,6 @@ nir_instr_ssa_def(nir_instr *instr)
    }
 
    unreachable("Invalid instruction type");
-}
-
-static bool
-visit_src(nir_src *src, nir_foreach_src_cb cb, void *state)
-{
-   if (!cb(src, state))
-      return false;
-   if (!src->is_ssa && src->reg.indirect)
-      return cb(src->reg.indirect, state);
-   return true;
-}
-
-static bool
-visit_alu_src(nir_alu_instr *instr, nir_foreach_src_cb cb, void *state)
-{
-   for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++)
-      if (!visit_src(&instr->src[i].src, cb, state))
-         return false;
-
-   return true;
-}
-
-static bool
-visit_deref_instr_src(nir_deref_instr *instr,
-                      nir_foreach_src_cb cb, void *state)
-{
-   if (instr->deref_type != nir_deref_type_var) {
-      if (!visit_src(&instr->parent, cb, state))
-         return false;
-   }
-
-   if (instr->deref_type == nir_deref_type_array ||
-       instr->deref_type == nir_deref_type_ptr_as_array) {
-      if (!visit_src(&instr->arr.index, cb, state))
-         return false;
-   }
-
-   return true;
-}
-
-static bool
-visit_tex_src(nir_tex_instr *instr, nir_foreach_src_cb cb, void *state)
-{
-   for (unsigned i = 0; i < instr->num_srcs; i++) {
-      if (!visit_src(&instr->src[i].src, cb, state))
-         return false;
-   }
-
-   return true;
-}
-
-static bool
-visit_intrinsic_src(nir_intrinsic_instr *instr, nir_foreach_src_cb cb,
-                    void *state)
-{
-   unsigned num_srcs = nir_intrinsic_infos[instr->intrinsic].num_srcs;
-   for (unsigned i = 0; i < num_srcs; i++) {
-      if (!visit_src(&instr->src[i], cb, state))
-         return false;
-   }
-
-   return true;
-}
-
-static bool
-visit_call_src(nir_call_instr *instr, nir_foreach_src_cb cb, void *state)
-{
-   for (unsigned i = 0; i < instr->num_params; i++) {
-      if (!visit_src(&instr->params[i], cb, state))
-         return false;
-   }
-
-   return true;
-}
-
-static bool
-visit_phi_src(nir_phi_instr *instr, nir_foreach_src_cb cb, void *state)
-{
-   nir_foreach_phi_src(src, instr) {
-      if (!visit_src(&src->src, cb, state))
-         return false;
-   }
-
-   return true;
-}
-
-static bool
-visit_parallel_copy_src(nir_parallel_copy_instr *instr,
-                        nir_foreach_src_cb cb, void *state)
-{
-   nir_foreach_parallel_copy_entry(entry, instr) {
-      if (!visit_src(&entry->src, cb, state))
-         return false;
-   }
-
-   return true;
-}
-
-static bool
-visit_jump_src(nir_jump_instr *instr, nir_foreach_src_cb cb, void *state)
-{
-   if (instr->type != nir_jump_goto_if)
-      return true;
-
-   return visit_src(&instr->condition, cb, state);
-}
-
-typedef struct {
-   void *state;
-   nir_foreach_src_cb cb;
-} visit_dest_indirect_state;
-
-static bool
-visit_dest_indirect(nir_dest *dest, void *_state)
-{
-   visit_dest_indirect_state *state = (visit_dest_indirect_state *) _state;
-
-   if (!dest->is_ssa && dest->reg.indirect)
-      return state->cb(dest->reg.indirect, state->state);
-
-   return true;
-}
-
-bool
-nir_foreach_src(nir_instr *instr, nir_foreach_src_cb cb, void *state)
-{
-   switch (instr->type) {
-   case nir_instr_type_alu:
-      if (!visit_alu_src(nir_instr_as_alu(instr), cb, state))
-         return false;
-      break;
-   case nir_instr_type_deref:
-      if (!visit_deref_instr_src(nir_instr_as_deref(instr), cb, state))
-         return false;
-      break;
-   case nir_instr_type_intrinsic:
-      if (!visit_intrinsic_src(nir_instr_as_intrinsic(instr), cb, state))
-         return false;
-      break;
-   case nir_instr_type_tex:
-      if (!visit_tex_src(nir_instr_as_tex(instr), cb, state))
-         return false;
-      break;
-   case nir_instr_type_call:
-      if (!visit_call_src(nir_instr_as_call(instr), cb, state))
-         return false;
-      break;
-   case nir_instr_type_load_const:
-      /* Constant load instructions have no regular sources */
-      break;
-   case nir_instr_type_phi:
-      if (!visit_phi_src(nir_instr_as_phi(instr), cb, state))
-         return false;
-      break;
-   case nir_instr_type_parallel_copy:
-      if (!visit_parallel_copy_src(nir_instr_as_parallel_copy(instr),
-                                   cb, state))
-         return false;
-      break;
-   case nir_instr_type_jump:
-      return visit_jump_src(nir_instr_as_jump(instr), cb, state);
-   case nir_instr_type_ssa_undef:
-      return true;
-
-   default:
-      unreachable("Invalid instruction type");
-      break;
-   }
-
-   visit_dest_indirect_state dest_state;
-   dest_state.state = state;
-   dest_state.cb = cb;
-   return nir_foreach_dest(instr, visit_dest_indirect, &dest_state);
 }
 
 bool
@@ -1546,7 +1296,7 @@ nir_instr_rewrite_dest(nir_instr *instr, nir_dest *dest, nir_dest new_dest)
 {
    if (dest->is_ssa) {
       /* We can only overwrite an SSA destination if it has no uses. */
-      assert(list_is_empty(&dest->ssa.uses) && list_is_empty(&dest->ssa.if_uses));
+      assert(nir_ssa_def_is_unused(&dest->ssa));
    } else {
       list_del(&dest->reg.def_link);
       if (dest->reg.indirect)
@@ -1602,15 +1352,28 @@ nir_ssa_dest_init(nir_instr *instr, nir_dest *dest,
 }
 
 void
-nir_ssa_def_rewrite_uses(nir_ssa_def *def, nir_src new_src)
+nir_ssa_def_rewrite_uses(nir_ssa_def *def, nir_ssa_def *new_ssa)
 {
-   assert(!new_src.is_ssa || def != new_src.ssa);
-
+   assert(def != new_ssa);
    nir_foreach_use_safe(use_src, def)
-      nir_instr_rewrite_src(use_src->parent_instr, use_src, new_src);
+      nir_instr_rewrite_src_ssa(use_src->parent_instr, use_src, new_ssa);
 
    nir_foreach_if_use_safe(use_src, def)
-      nir_if_rewrite_condition(use_src->parent_if, new_src);
+      nir_if_rewrite_condition_ssa(use_src->parent_if, use_src, new_ssa);
+}
+
+void
+nir_ssa_def_rewrite_uses_src(nir_ssa_def *def, nir_src new_src)
+{
+   if (new_src.is_ssa) {
+      nir_ssa_def_rewrite_uses(def, new_src.ssa);
+   } else {
+      nir_foreach_use_safe(use_src, def)
+         nir_instr_rewrite_src(use_src->parent_instr, use_src, new_src);
+
+      nir_foreach_if_use_safe(use_src, def)
+         nir_if_rewrite_condition(use_src->parent_if, new_src);
+   }
 }
 
 static bool
@@ -1644,10 +1407,10 @@ is_instr_between(nir_instr *start, nir_instr *end, nir_instr *between)
  * def->parent_instr and that after_me comes after def->parent_instr.
  */
 void
-nir_ssa_def_rewrite_uses_after(nir_ssa_def *def, nir_src new_src,
+nir_ssa_def_rewrite_uses_after(nir_ssa_def *def, nir_ssa_def *new_ssa,
                                nir_instr *after_me)
 {
-   if (new_src.is_ssa && def == new_src.ssa)
+   if (def == new_ssa)
       return;
 
    nir_foreach_use_safe(use_src, def) {
@@ -1657,11 +1420,14 @@ nir_ssa_def_rewrite_uses_after(nir_ssa_def *def, nir_src new_src,
        * the instruction list.
        */
       if (!is_instr_between(def->parent_instr, after_me, use_src->parent_instr))
-         nir_instr_rewrite_src(use_src->parent_instr, use_src, new_src);
+         nir_instr_rewrite_src_ssa(use_src->parent_instr, use_src, new_ssa);
    }
 
-   nir_foreach_if_use_safe(use_src, def)
-      nir_if_rewrite_condition(use_src->parent_if, new_src);
+   nir_foreach_if_use_safe(use_src, def) {
+      nir_if_rewrite_condition_ssa(use_src->parent_if,
+                                   &use_src->parent_if->condition,
+                                   new_ssa);
+   }
 }
 
 nir_component_mask_t
@@ -2041,31 +1807,30 @@ nir_function_impl_lower_instructions(nir_function_impl *impl,
 
       assert(nir_foreach_dest(instr, dest_is_ssa, NULL));
       nir_ssa_def *old_def = nir_instr_ssa_def(instr);
-      if (old_def == NULL) {
-         iter = nir_after_instr(instr);
-         continue;
-      }
-
-      /* We're about to ask the callback to generate a replacement for instr.
-       * Save off the uses from instr's SSA def so we know what uses to
-       * rewrite later.  If we use nir_ssa_def_rewrite_uses, it fails in the
-       * case where the generated replacement code uses the result of instr
-       * itself.  If we use nir_ssa_def_rewrite_uses_after (which is the
-       * normal solution to this problem), it doesn't work well if control-
-       * flow is inserted as part of the replacement, doesn't handle cases
-       * where the replacement is something consumed by instr, and suffers
-       * from performance issues.  This is the only way to 100% guarantee
-       * that we rewrite the correct set efficiently.
-       */
       struct list_head old_uses, old_if_uses;
-      list_replace(&old_def->uses, &old_uses);
-      list_inithead(&old_def->uses);
-      list_replace(&old_def->if_uses, &old_if_uses);
-      list_inithead(&old_def->if_uses);
+      if (old_def != NULL) {
+         /* We're about to ask the callback to generate a replacement for instr.
+          * Save off the uses from instr's SSA def so we know what uses to
+          * rewrite later.  If we use nir_ssa_def_rewrite_uses, it fails in the
+          * case where the generated replacement code uses the result of instr
+          * itself.  If we use nir_ssa_def_rewrite_uses_after (which is the
+          * normal solution to this problem), it doesn't work well if control-
+          * flow is inserted as part of the replacement, doesn't handle cases
+          * where the replacement is something consumed by instr, and suffers
+          * from performance issues.  This is the only way to 100% guarantee
+          * that we rewrite the correct set efficiently.
+          */
+
+         list_replace(&old_def->uses, &old_uses);
+         list_inithead(&old_def->uses);
+         list_replace(&old_def->if_uses, &old_if_uses);
+         list_inithead(&old_def->if_uses);
+      }
 
       b.cursor = nir_after_instr(instr);
       nir_ssa_def *new_def = lower(&b, instr, cb_data);
-      if (new_def && new_def != NIR_LOWER_INSTR_PROGRESS) {
+      if (new_def && new_def != NIR_LOWER_INSTR_PROGRESS &&
+          new_def != NIR_LOWER_INSTR_PROGRESS_REPLACE) {
          assert(old_def != NULL);
          if (new_def->parent_instr->block != instr->block)
             preserved = nir_metadata_none;
@@ -2077,7 +1842,7 @@ nir_function_impl_lower_instructions(nir_function_impl *impl,
          list_for_each_entry_safe(nir_src, use_src, &old_if_uses, use_link)
             nir_if_rewrite_condition(use_src->parent_if, new_src);
 
-         if (list_is_empty(&old_def->uses) && list_is_empty(&old_def->if_uses)) {
+         if (nir_ssa_def_is_unused(old_def)) {
             iter = nir_instr_remove(instr);
          } else {
             iter = nir_after_instr(instr);
@@ -2089,7 +1854,13 @@ nir_function_impl_lower_instructions(nir_function_impl *impl,
             list_replace(&old_uses, &old_def->uses);
             list_replace(&old_if_uses, &old_def->if_uses);
          }
-         iter = nir_after_instr(instr);
+         if (new_def == NIR_LOWER_INSTR_PROGRESS_REPLACE) {
+            /* Only instructions without a return value can be removed like this */
+            assert(!old_def);
+            iter = nir_instr_remove(instr);
+            progress = true;
+         } else
+            iter = nir_after_instr(instr);
 
          if (new_def == NIR_LOWER_INSTR_PROGRESS)
             progress = true;
@@ -2458,6 +2229,7 @@ nir_rewrite_image_intrinsic(nir_intrinsic_instr *intrin, nir_ssa_def *src,
                                    : nir_intrinsic_image_##op; \
       break;
    CASE(load)
+   CASE(sparse_load)
    CASE(store)
    CASE(atomic_add)
    CASE(atomic_imin)
@@ -2470,6 +2242,8 @@ nir_rewrite_image_intrinsic(nir_intrinsic_instr *intrin, nir_ssa_def *src,
    CASE(atomic_exchange)
    CASE(atomic_comp_swap)
    CASE(atomic_fadd)
+   CASE(atomic_fmin)
+   CASE(atomic_fmax)
    CASE(atomic_inc_wrap)
    CASE(atomic_dec_wrap)
    CASE(size)

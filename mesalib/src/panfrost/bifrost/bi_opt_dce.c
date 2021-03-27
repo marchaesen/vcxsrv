@@ -25,8 +25,16 @@
 #include "compiler.h"
 #include "util/u_memory.h"
 
+/* A simple liveness-based dead code elimination pass. In 'soft' mode, dead
+ * instructions are kept but write to null, which is required for correct
+ * operation post-schedule pass (where dead instructions correspond to
+ * instructions whose destinations are consumed immediately as a passthrough
+ * register. If the destinations are not garbage collected, impossible register
+ * encodings will result.)
+ */
+
 bool
-bi_opt_dead_code_eliminate(bi_context *ctx, bi_block *block)
+bi_opt_dead_code_eliminate(bi_context *ctx, bool soft)
 {
         bool progress = false;
         unsigned temp_count = bi_max_temp(ctx);
@@ -34,20 +42,34 @@ bi_opt_dead_code_eliminate(bi_context *ctx, bi_block *block)
         bi_invalidate_liveness(ctx);
         bi_compute_liveness(ctx);
 
-        uint16_t *live = mem_dup(block->base.live_out, temp_count * sizeof(uint16_t));
+        bi_foreach_block(ctx, _block) {
+                bi_block *block = (bi_block *) _block;
+                uint16_t *live = mem_dup(block->base.live_out, temp_count * sizeof(uint16_t));
 
-        bi_foreach_instr_in_block_safe_rev(block, ins) {
-                unsigned index = bi_get_node(ins->dest[0]);
+                bi_foreach_instr_in_block_safe_rev(block, ins) {
+                        bool all_null = true;
 
-                if (index < temp_count && !live[index]) {
-                        bi_remove_instruction(ins);
-                        progress |= true;
+                        bi_foreach_dest(ins, d) {
+                                unsigned index = bi_get_node(ins->dest[d]);
+
+                                if (index < temp_count && !(live[index] & bi_writemask(ins, d))) {
+                                        ins->dest[d] = bi_null();
+                                        progress = true;
+                                }
+
+                                all_null &= bi_is_null(ins->dest[d]);
+                        }
+
+                        if (all_null && !soft && !bi_side_effects(ins->op)) {
+                                bi_remove_instruction(ins);
+                                progress = true;
+                        }
+
+                        bi_liveness_ins_update(live, ins, temp_count);
                 }
 
-                bi_liveness_ins_update(live, ins, temp_count);
+                free(live);
         }
-
-        free(live);
 
         return progress;
 }

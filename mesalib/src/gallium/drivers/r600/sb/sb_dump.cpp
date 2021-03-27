@@ -396,6 +396,8 @@ void dump::dump_flags(node &n) {
 		sblog << "CH_CONS  ";
 	if (n.flags & NF_ALU_4SLOT)
 		sblog << "4S  ";
+	if (n.flags & NF_ALU_2SLOT)
+		sblog << "2S  ";
 }
 
 void dump::dump_val(value* v) {

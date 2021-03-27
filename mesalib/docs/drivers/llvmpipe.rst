@@ -68,18 +68,10 @@ Requirements
    You can build only the x86 target by passing
    ``-DLLVM_TARGETS_TO_BUILD=X86`` to cmake.
 
--  scons (optional)
-
 Building
 --------
 
-To build everything on Linux invoke scons as:
-
-.. code-block:: console
-
-   scons build=debug libgl-xlib
-
-Alternatively, you can build it with meson with:
+To build everything on Linux invoke meson as:
 
 .. code-block:: console
 
@@ -88,12 +80,6 @@ Alternatively, you can build it with meson with:
    meson -D glx=gallium-xlib -D gallium-drivers=swrast
    ninja
 
-but the rest of these instructions assume that scons is used. For
-Windows the procedure is similar except the target:
-
-.. code-block:: console
-
-   scons platform=windows build=debug libgl-gdi
 
 Using
 -----
@@ -115,9 +101,6 @@ or
    lib/gallium/libGL.so
 
 To use it set the ``LD_LIBRARY_PATH`` environment variable accordingly.
-
-For performance evaluation pass ``build=release`` to scons, and use the
-corresponding lib directory without the ``-debug`` suffix.
 
 Windows
 ~~~~~~~
@@ -155,15 +138,6 @@ on systems without any OpenGL drivers):
 
 Profiling
 ---------
-
-To profile llvmpipe you should build as
-
-::
-
-   scons build=profile <same-as-before>
-
-This will ensure that frame pointers are used both in C and JIT
-functions, and that no tail call optimizations are done by gcc.
 
 Linux perf integration
 ~~~~~~~~~~~~~~~~~~~~~~

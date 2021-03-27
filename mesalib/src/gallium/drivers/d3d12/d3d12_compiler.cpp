@@ -84,7 +84,11 @@ struct d3d12_validation_tools
 
 struct d3d12_validation_tools *d3d12_validator_create()
 {
-   return new d3d12_validation_tools();
+   d3d12_validation_tools *tools = new d3d12_validation_tools();
+   if (tools->validator)
+      return tools;
+   delete tools;
+   return nullptr;
 }
 
 void d3d12_validator_destroy(struct d3d12_validation_tools *validator)
@@ -192,10 +196,12 @@ compile_nir(struct d3d12_context *ctx, struct d3d12_shader_selector *sel,
          shader->cb_bindings[shader->num_cb_bindings++].binding = i;
       }
    }
-   ctx->validation_tools->validate_and_sign(&tmp);
+   if (ctx->validation_tools) {
+      ctx->validation_tools->validate_and_sign(&tmp);
 
-   if (d3d12_debug & D3D12_DEBUG_DISASS) {
-      ctx->validation_tools->disassemble(&tmp);
+      if (d3d12_debug & D3D12_DEBUG_DISASS) {
+         ctx->validation_tools->disassemble(&tmp);
+      }
    }
 
    blob_finish_get_buffer(&tmp, &shader->bytecode, &shader->bytecode_length);
@@ -521,7 +527,7 @@ validate_geometry_shader_variant(struct d3d12_selection_context *sel_ctx)
    if (sel_ctx->fill_mode_lowered != PIPE_POLYGON_MODE_FILL) {
       key.fill_mode = sel_ctx->fill_mode_lowered;
       key.cull_mode = sel_ctx->cull_mode_lowered;
-      key.has_front_face = (fs->initial->info.system_values_read & SYSTEM_BIT_FRONT_FACE) ? 1 : 0;
+      key.has_front_face = BITSET_TEST(fs->initial->info.system_values_read, SYSTEM_VALUE_FRONT_FACE);
       if (key.cull_mode != PIPE_FACE_NONE || key.has_front_face)
          key.front_ccw = ctx->gfx_pipeline_state.rast->base.front_ccw ^ (ctx->flip_y < 0);
       key.edge_flag_fix = needs_edge_flag_fix(ctx->initial_api_prim);
@@ -740,7 +746,7 @@ d3d12_fill_shader_key(struct d3d12_selection_context *sel_ctx,
       }
    }
 
-   for (int i = 0; i < sel_ctx->ctx->num_samplers[stage]; ++i) {
+   for (unsigned i = 0; i < sel_ctx->ctx->num_samplers[stage]; ++i) {
       if (!sel_ctx->ctx->samplers[stage][i] ||
           sel_ctx->ctx->samplers[stage][i]->filter == PIPE_TEX_FILTER_NEAREST)
          continue;
@@ -915,7 +921,7 @@ get_prev_shader(struct d3d12_context *ctx, pipe_shader_type current)
    case PIPE_SHADER_FRAGMENT:
       if (ctx->gfx_stages[PIPE_SHADER_GEOMETRY])
          return ctx->gfx_stages[PIPE_SHADER_GEOMETRY];
-      /* fallthrough */
+      FALLTHROUGH;
    case PIPE_SHADER_GEOMETRY:
       return ctx->gfx_stages[PIPE_SHADER_VERTEX];
    default:
@@ -932,7 +938,7 @@ get_next_shader(struct d3d12_context *ctx, pipe_shader_type current)
    case PIPE_SHADER_VERTEX:
       if (ctx->gfx_stages[PIPE_SHADER_GEOMETRY])
          return ctx->gfx_stages[PIPE_SHADER_GEOMETRY];
-      /* fallthrough */
+      FALLTHROUGH;
    case PIPE_SHADER_GEOMETRY:
       return ctx->gfx_stages[PIPE_SHADER_FRAGMENT];
    case PIPE_SHADER_FRAGMENT:
@@ -963,7 +969,7 @@ scan_texture_use(nir_shader *nir)
                case nir_texop_txd:
                   if (tex->is_shadow)
                      result |= TEX_CMP_WITH_LOD_BIAS_GRAD;
-                  /* fallthrough */
+                  FALLTHROUGH;
                case nir_texop_tex:
                   if (tex->dest_type & (nir_type_int | nir_type_uint))
                      result |= TEX_SAMPLE_INTEGER_TEXTURE;
@@ -1113,7 +1119,7 @@ d3d12_select_shader_variants(struct d3d12_context *ctx, const struct pipe_draw_i
 
    validate_geometry_shader_variant(&sel_ctx);
 
-   for (int i = 0; i < ARRAY_SIZE(order); ++i) {
+   for (unsigned i = 0; i < ARRAY_SIZE(order); ++i) {
       auto sel = ctx->gfx_stages[order[i]];
       if (!sel)
          continue;
@@ -1255,8 +1261,6 @@ bool d3d12_validation_tools::validate_and_sign(struct blob *dxil)
    ShaderBlob source(dxil);
 
    ComPtr<IDxcOperationResult> result;
-   if (!validator)
-      return false;
 
    validator->Validate(&source, DxcValidatorFlags_InPlaceEdit, &result);
    HRESULT validationStatus;
@@ -1269,12 +1273,12 @@ bool d3d12_validation_tools::validate_and_sign(struct blob *dxil)
       char *errorString;
       if (printBlobUtf8) {
          errorString = reinterpret_cast<char*>(printBlobUtf8->GetBufferPointer());
-      }
 
-      errorString[printBlobUtf8->GetBufferSize() - 1] = 0;
-      debug_printf("== VALIDATION ERROR =============================================\n%s\n"
-                   "== END ==========================================================\n",
-                   errorString);
+         errorString[printBlobUtf8->GetBufferSize() - 1] = 0;
+         debug_printf("== VALIDATION ERROR =============================================\n%s\n"
+                     "== END ==========================================================\n",
+                     errorString);
+      }
 
       return false;
    }

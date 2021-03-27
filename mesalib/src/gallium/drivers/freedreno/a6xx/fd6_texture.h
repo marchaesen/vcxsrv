@@ -39,7 +39,6 @@
 struct fd6_sampler_stateobj {
 	struct pipe_sampler_state base;
 	uint32_t texsamp0, texsamp1, texsamp2, texsamp3;
-	bool saturate_s, saturate_t, saturate_r;
 	bool needs_border;
 	uint16_t seqno;
 };
@@ -57,6 +56,13 @@ struct fd6_pipe_sampler_view {
 	uint32_t offset1, offset2;
 	struct fd_resource *ptr1, *ptr2;
 	uint16_t seqno;
+
+	/* For detecting when a resource has transitioned from UBWC compressed
+	 * to uncompressed, which means the sampler state needs to be updated
+	 */
+	uint16_t rsc_seqno;
+
+	bool needs_validate;
 };
 
 static inline struct fd6_pipe_sampler_view *
@@ -64,6 +70,8 @@ fd6_pipe_sampler_view(struct pipe_sampler_view *pview)
 {
 	return (struct fd6_pipe_sampler_view *)pview;
 }
+
+void fd6_sampler_view_update(struct fd_context *ctx, struct fd6_pipe_sampler_view *so) assert_dt;
 
 void fd6_texture_init(struct pipe_context *pctx);
 void fd6_texture_fini(struct pipe_context *pctx);
@@ -93,6 +101,7 @@ fd6_tex_type(unsigned target)
 static inline unsigned
 fd6_border_color_offset(struct fd_context *ctx, enum pipe_shader_type type,
 		struct fd_texture_stateobj *tex)
+	assert_dt
 {
 	/* Currently we put the FS border-color state after VS.  Possibly
 	 * we could swap the order.
@@ -154,7 +163,7 @@ struct fd6_texture_state {
 };
 
 struct fd6_texture_state * fd6_texture_state(struct fd_context *ctx,
-		enum pipe_shader_type type, struct fd_texture_stateobj *tex);
+		enum pipe_shader_type type, struct fd_texture_stateobj *tex) assert_dt;
 
 /* not called directly: */
 void __fd6_texture_state_describe(char* buf, const struct fd6_texture_state *tex);

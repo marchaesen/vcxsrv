@@ -258,7 +258,9 @@ dri2_create_image_from_renderbuffer2(__DRIcontext *context,
 				     int renderbuffer, void *loaderPrivate,
                                      unsigned *error)
 {
-   struct gl_context *ctx = ((struct st_context *)dri_context(context)->st)->ctx;
+   struct st_context *st_ctx = (struct st_context *)dri_context(context)->st;
+   struct gl_context *ctx = st_ctx->ctx;
+   struct pipe_context *p_ctx = st_ctx->pipe;
    struct gl_renderbuffer *rb;
    struct pipe_resource *tex;
    __DRIimage *img;
@@ -300,6 +302,13 @@ dri2_create_image_from_renderbuffer2(__DRIcontext *context,
 
    pipe_resource_reference(&img->texture, tex);
 
+   /* If the resource supports EGL_MESA_image_dma_buf_export, make sure that
+    * it's in a shareable state. Do this now while we still have the access to
+    * the context.
+    */
+   if (dri2_get_mapping_by_format(img->dri_format))
+      p_ctx->flush_resource(p_ctx, tex);
+
    *error = __DRI_IMAGE_ERROR_SUCCESS;
    return img;
 }
@@ -338,7 +347,9 @@ dri2_create_from_texture(__DRIcontext *context, int target, unsigned texture,
                          void *loaderPrivate)
 {
    __DRIimage *img;
-   struct gl_context *ctx = ((struct st_context *)dri_context(context)->st)->ctx;
+   struct st_context *st_ctx = (struct st_context *)dri_context(context)->st;
+   struct gl_context *ctx = st_ctx->ctx;
+   struct pipe_context *p_ctx = st_ctx->pipe;
    struct gl_texture_object *obj;
    struct pipe_resource *tex;
    GLuint face = 0;
@@ -389,6 +400,13 @@ dri2_create_from_texture(__DRIcontext *context, int target, unsigned texture,
 
    pipe_resource_reference(&img->texture, tex);
 
+   /* If the resource supports EGL_MESA_image_dma_buf_export, make sure that
+    * it's in a shareable state. Do this now while we still have the access to
+    * the context.
+    */
+   if (dri2_get_mapping_by_format(img->dri_format))
+      p_ctx->flush_resource(p_ctx, tex);
+
    *error = __DRI_IMAGE_ERROR_SUCCESS;
    return img;
 }
@@ -396,137 +414,137 @@ dri2_create_from_texture(__DRIcontext *context, int target, unsigned texture,
 static const struct dri2_format_mapping dri2_format_table[] = {
       { DRM_FORMAT_ABGR16161616F, __DRI_IMAGE_FORMAT_ABGR16161616F,
         __DRI_IMAGE_COMPONENTS_RGBA,      PIPE_FORMAT_R16G16B16A16_FLOAT, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ABGR16161616F, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ABGR16161616F } } },
       { DRM_FORMAT_XBGR16161616F, __DRI_IMAGE_FORMAT_XBGR16161616F,
         __DRI_IMAGE_COMPONENTS_RGB,       PIPE_FORMAT_R16G16B16X16_FLOAT, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_XBGR16161616F, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_XBGR16161616F } } },
       { DRM_FORMAT_ARGB2101010,   __DRI_IMAGE_FORMAT_ARGB2101010,
         __DRI_IMAGE_COMPONENTS_RGBA,      PIPE_FORMAT_B10G10R10A2_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ARGB2101010, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ARGB2101010 } } },
       { DRM_FORMAT_XRGB2101010,   __DRI_IMAGE_FORMAT_XRGB2101010,
         __DRI_IMAGE_COMPONENTS_RGB,       PIPE_FORMAT_B10G10R10X2_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_XRGB2101010, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_XRGB2101010 } } },
       { DRM_FORMAT_ABGR2101010,   __DRI_IMAGE_FORMAT_ABGR2101010,
         __DRI_IMAGE_COMPONENTS_RGBA,      PIPE_FORMAT_R10G10B10A2_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ABGR2101010, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ABGR2101010 } } },
       { DRM_FORMAT_XBGR2101010,   __DRI_IMAGE_FORMAT_XBGR2101010,
         __DRI_IMAGE_COMPONENTS_RGB,       PIPE_FORMAT_R10G10B10X2_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_XBGR2101010, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_XBGR2101010 } } },
       { DRM_FORMAT_ARGB8888,      __DRI_IMAGE_FORMAT_ARGB8888,
         __DRI_IMAGE_COMPONENTS_RGBA,      PIPE_FORMAT_BGRA8888_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ARGB8888, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ARGB8888 } } },
       { DRM_FORMAT_ABGR8888,      __DRI_IMAGE_FORMAT_ABGR8888,
         __DRI_IMAGE_COMPONENTS_RGBA,      PIPE_FORMAT_RGBA8888_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ABGR8888, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ABGR8888 } } },
       { __DRI_IMAGE_FOURCC_SARGB8888,     __DRI_IMAGE_FORMAT_SARGB8,
         __DRI_IMAGE_COMPONENTS_RGBA,      PIPE_FORMAT_BGRA8888_SRGB, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_SARGB8, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_SARGB8 } } },
       { DRM_FORMAT_XRGB8888,      __DRI_IMAGE_FORMAT_XRGB8888,
         __DRI_IMAGE_COMPONENTS_RGB,       PIPE_FORMAT_BGRX8888_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_XRGB8888, 4 }, } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_XRGB8888 } } },
       { DRM_FORMAT_XBGR8888,      __DRI_IMAGE_FORMAT_XBGR8888,
         __DRI_IMAGE_COMPONENTS_RGB,       PIPE_FORMAT_RGBX8888_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_XBGR8888, 4 }, } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_XBGR8888 } } },
       { DRM_FORMAT_ARGB1555,      __DRI_IMAGE_FORMAT_ARGB1555,
         __DRI_IMAGE_COMPONENTS_RGBA,      PIPE_FORMAT_B5G5R5A1_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ARGB1555, 2 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ARGB1555 } } },
       { DRM_FORMAT_RGB565,        __DRI_IMAGE_FORMAT_RGB565,
         __DRI_IMAGE_COMPONENTS_RGB,       PIPE_FORMAT_B5G6R5_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_RGB565, 2 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_RGB565 } } },
       { DRM_FORMAT_R8,            __DRI_IMAGE_FORMAT_R8,
         __DRI_IMAGE_COMPONENTS_R,         PIPE_FORMAT_R8_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 }, } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8 } } },
       { DRM_FORMAT_R16,           __DRI_IMAGE_FORMAT_R16,
         __DRI_IMAGE_COMPONENTS_R,         PIPE_FORMAT_R16_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R16, 1 }, } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R16 } } },
       { DRM_FORMAT_GR88,          __DRI_IMAGE_FORMAT_GR88,
         __DRI_IMAGE_COMPONENTS_RG,        PIPE_FORMAT_RG88_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_GR88, 2 }, } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_GR88 } } },
       { DRM_FORMAT_GR1616,        __DRI_IMAGE_FORMAT_GR1616,
         __DRI_IMAGE_COMPONENTS_RG,        PIPE_FORMAT_RG1616_UNORM, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_GR1616, 2 }, } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_GR1616 } } },
 
       { DRM_FORMAT_YUV410, __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_U_V,     PIPE_FORMAT_IYUV, 3,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 1, 2, 2, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 2, 2, 2, __DRI_IMAGE_FORMAT_R8, 1 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 1, 2, 2, __DRI_IMAGE_FORMAT_R8 },
+          { 2, 2, 2, __DRI_IMAGE_FORMAT_R8 } } },
       { DRM_FORMAT_YUV411, __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_U_V,     PIPE_FORMAT_IYUV, 3,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 1, 2, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 2, 2, 0, __DRI_IMAGE_FORMAT_R8, 1 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 1, 2, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 2, 2, 0, __DRI_IMAGE_FORMAT_R8 } } },
       { DRM_FORMAT_YUV420,        __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_U_V,     PIPE_FORMAT_IYUV, 3,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 1, 1, 1, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 2, 1, 1, __DRI_IMAGE_FORMAT_R8, 1 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 1, 1, 1, __DRI_IMAGE_FORMAT_R8 },
+          { 2, 1, 1, __DRI_IMAGE_FORMAT_R8 } } },
       { DRM_FORMAT_YUV422,        __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_U_V,     PIPE_FORMAT_IYUV, 3,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 1, 1, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 2, 1, 0, __DRI_IMAGE_FORMAT_R8, 1 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 1, 1, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 2, 1, 0, __DRI_IMAGE_FORMAT_R8 } } },
       { DRM_FORMAT_YUV444,        __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_U_V,     PIPE_FORMAT_IYUV, 3,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 1, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 2, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 1, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 2, 0, 0, __DRI_IMAGE_FORMAT_R8 } } },
 
       { DRM_FORMAT_YVU410,        __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_U_V,     PIPE_FORMAT_IYUV, 3,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 2, 2, 2, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 1, 2, 2, __DRI_IMAGE_FORMAT_R8, 1 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 2, 2, 2, __DRI_IMAGE_FORMAT_R8 },
+          { 1, 2, 2, __DRI_IMAGE_FORMAT_R8 } } },
       { DRM_FORMAT_YVU411,        __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_U_V,     PIPE_FORMAT_IYUV, 3,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 2, 2, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 1, 2, 0, __DRI_IMAGE_FORMAT_R8, 1 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 2, 2, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 1, 2, 0, __DRI_IMAGE_FORMAT_R8 } } },
       { DRM_FORMAT_YVU420,        __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_U_V,     PIPE_FORMAT_IYUV, 3,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 2, 1, 1, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 1, 1, 1, __DRI_IMAGE_FORMAT_R8, 1 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 2, 1, 1, __DRI_IMAGE_FORMAT_R8 },
+          { 1, 1, 1, __DRI_IMAGE_FORMAT_R8 } } },
       { DRM_FORMAT_YVU422,        __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_U_V,     PIPE_FORMAT_IYUV, 3,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 2, 1, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 1, 1, 0, __DRI_IMAGE_FORMAT_R8, 1 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 2, 1, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 1, 1, 0, __DRI_IMAGE_FORMAT_R8 } } },
       { DRM_FORMAT_YVU444,        __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_U_V,     PIPE_FORMAT_IYUV, 3,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 2, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 1, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 2, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 1, 0, 0, __DRI_IMAGE_FORMAT_R8 } } },
 
       { DRM_FORMAT_NV12,          __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_UV,      PIPE_FORMAT_NV12, 2,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 1, 1, 1, __DRI_IMAGE_FORMAT_GR88, 2 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 1, 1, 1, __DRI_IMAGE_FORMAT_GR88 } } },
 
       { DRM_FORMAT_P010,          __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_UV,      PIPE_FORMAT_P010, 2,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R16, 2 },
-          { 1, 1, 1, __DRI_IMAGE_FORMAT_GR1616, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R16 },
+          { 1, 1, 1, __DRI_IMAGE_FORMAT_GR1616 } } },
       { DRM_FORMAT_P012,          __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_UV,      PIPE_FORMAT_P012, 2,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R16, 2 },
-          { 1, 1, 1, __DRI_IMAGE_FORMAT_GR1616, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R16 },
+          { 1, 1, 1, __DRI_IMAGE_FORMAT_GR1616 } } },
       { DRM_FORMAT_P016,          __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_UV,      PIPE_FORMAT_P016, 2,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R16, 2 },
-          { 1, 1, 1, __DRI_IMAGE_FORMAT_GR1616, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R16 },
+          { 1, 1, 1, __DRI_IMAGE_FORMAT_GR1616 } } },
 
       { DRM_FORMAT_NV16,          __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_UV,      PIPE_FORMAT_NV12, 2,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8, 1 },
-          { 1, 1, 0, __DRI_IMAGE_FORMAT_GR88, 2 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_R8 },
+          { 1, 1, 0, __DRI_IMAGE_FORMAT_GR88 } } },
 
       { DRM_FORMAT_AYUV,      __DRI_IMAGE_FORMAT_ABGR8888,
         __DRI_IMAGE_COMPONENTS_AYUV,      PIPE_FORMAT_AYUV, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ABGR8888, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_ABGR8888 } } },
       { DRM_FORMAT_XYUV8888,      __DRI_IMAGE_FORMAT_XBGR8888,
         __DRI_IMAGE_COMPONENTS_XYUV,      PIPE_FORMAT_XYUV, 1,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_XBGR8888, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_XBGR8888 } } },
 
       /* For YUYV and UYVY buffers, we set up two overlapping DRI images
        * and treat them as planar buffers in the compositors.
@@ -538,12 +556,12 @@ static const struct dri2_format_mapping dri2_format_table[] = {
        * U and V correctly when sampling from plane 1. */
       { DRM_FORMAT_YUYV,          __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_XUXV,    PIPE_FORMAT_YUYV, 2,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_GR88, 2 },
-          { 0, 1, 0, __DRI_IMAGE_FORMAT_ARGB8888, 4 } } },
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_GR88 },
+          { 0, 1, 0, __DRI_IMAGE_FORMAT_ARGB8888 } } },
       { DRM_FORMAT_UYVY,          __DRI_IMAGE_FORMAT_NONE,
         __DRI_IMAGE_COMPONENTS_Y_UXVX,    PIPE_FORMAT_UYVY, 2,
-        { { 0, 0, 0, __DRI_IMAGE_FORMAT_GR88, 2 },
-          { 0, 1, 0, __DRI_IMAGE_FORMAT_ABGR8888, 4 } } }
+        { { 0, 0, 0, __DRI_IMAGE_FORMAT_GR88 },
+          { 0, 1, 0, __DRI_IMAGE_FORMAT_ABGR8888 } } }
 };
 
 const struct dri2_format_mapping *
@@ -560,6 +578,9 @@ dri2_get_mapping_by_fourcc(int fourcc)
 const struct dri2_format_mapping *
 dri2_get_mapping_by_format(int format)
 {
+   if (format == __DRI_IMAGE_FORMAT_NONE)
+      return NULL;
+
    for (unsigned i = 0; i < ARRAY_SIZE(dri2_format_table); i++) {
       if (dri2_format_table[i].dri_format == format)
          return &dri2_format_table[i];

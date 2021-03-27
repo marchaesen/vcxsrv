@@ -445,10 +445,11 @@ check_sampler_swizzle(const struct st_context *st,
 static unsigned
 last_level(const struct st_texture_object *stObj)
 {
-   unsigned ret = MIN2(stObj->base.MinLevel + stObj->base._MaxLevel,
+   unsigned ret = MIN2(stObj->base.Attrib.MinLevel + stObj->base._MaxLevel,
                        stObj->pt->last_level);
    if (stObj->base.Immutable)
-      ret = MIN2(ret, stObj->base.MinLevel + stObj->base.NumLevels - 1);
+      ret = MIN2(ret, stObj->base.Attrib.MinLevel +
+                 stObj->base.Attrib.NumLevels - 1);
    return ret;
 }
 
@@ -457,7 +458,8 @@ static unsigned
 last_layer(const struct st_texture_object *stObj)
 {
    if (stObj->base.Immutable && stObj->pt->array_size > 1)
-      return MIN2(stObj->base.MinLayer + stObj->base.NumLayers - 1,
+      return MIN2(stObj->base.Attrib.MinLayer +
+                  stObj->base.Attrib.NumLayers - 1,
                   stObj->pt->array_size - 1);
    return stObj->pt->array_size - 1;
 }
@@ -479,7 +481,7 @@ get_sampler_view_format(struct st_context *st,
    if (baseFormat == GL_DEPTH_COMPONENT ||
        baseFormat == GL_DEPTH_STENCIL ||
        baseFormat == GL_STENCIL_INDEX) {
-      if (stObj->base.Attrib.StencilSampling || baseFormat == GL_STENCIL_INDEX)
+      if (stObj->base.StencilSampling || baseFormat == GL_STENCIL_INDEX)
          format = util_format_stencil_only(format);
 
       return format;
@@ -541,13 +543,14 @@ st_create_texture_sampler_view_from_stobj(struct st_context *st,
    if (stObj->level_override >= 0) {
       templ.u.tex.first_level = templ.u.tex.last_level = stObj->level_override;
    } else {
-      templ.u.tex.first_level = stObj->base.MinLevel + stObj->base.Attrib.BaseLevel;
+      templ.u.tex.first_level = stObj->base.Attrib.MinLevel +
+                                stObj->base.Attrib.BaseLevel;
       templ.u.tex.last_level = last_level(stObj);
    }
    if (stObj->layer_override >= 0) {
       templ.u.tex.first_layer = templ.u.tex.last_layer = stObj->layer_override;
    } else {
-      templ.u.tex.first_layer = stObj->base.MinLayer;
+      templ.u.tex.first_layer = stObj->base.Attrib.MinLayer;
       templ.u.tex.last_layer = last_layer(stObj);
    }
    assert(templ.u.tex.first_layer <= templ.u.tex.last_layer);
@@ -590,9 +593,11 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
       assert(get_sampler_view_format(st, stObj, srgb_skip_decode) == view->format);
       assert(gl_target_to_pipe(stObj->base.Target) == view->target);
       assert(stObj->level_override >= 0 ||
-             stObj->base.MinLevel + stObj->base.Attrib.BaseLevel == view->u.tex.first_level);
+             stObj->base.Attrib.MinLevel +
+             stObj->base.Attrib.BaseLevel == view->u.tex.first_level);
       assert(stObj->level_override >= 0 || last_level(stObj) == view->u.tex.last_level);
-      assert(stObj->layer_override >= 0 || stObj->base.MinLayer == view->u.tex.first_layer);
+      assert(stObj->layer_override >= 0 ||
+             stObj->base.Attrib.MinLayer == view->u.tex.first_layer);
       assert(stObj->layer_override >= 0 || last_layer(stObj) == view->u.tex.last_layer);
       assert(stObj->layer_override < 0 ||
              (stObj->layer_override == view->u.tex.first_layer &&

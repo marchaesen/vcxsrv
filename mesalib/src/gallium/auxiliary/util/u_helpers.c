@@ -45,7 +45,9 @@
 void util_set_vertex_buffers_mask(struct pipe_vertex_buffer *dst,
                                   uint32_t *enabled_buffers,
                                   const struct pipe_vertex_buffer *src,
-                                  unsigned start_slot, unsigned count)
+                                  unsigned start_slot, unsigned count,
+                                  unsigned unbind_num_trailing_slots,
+                                  bool take_ownership)
 {
    unsigned i;
    uint32_t bitmask = 0;
@@ -61,7 +63,7 @@ void util_set_vertex_buffers_mask(struct pipe_vertex_buffer *dst,
 
          pipe_vertex_buffer_unreference(&dst[i]);
 
-         if (!src[i].is_user_buffer)
+         if (!take_ownership && !src[i].is_user_buffer)
             pipe_resource_reference(&dst[i].buffer.resource, src[i].buffer.resource);
       }
 
@@ -75,6 +77,9 @@ void util_set_vertex_buffers_mask(struct pipe_vertex_buffer *dst,
       for (i = 0; i < count; i++)
          pipe_vertex_buffer_unreference(&dst[i]);
    }
+
+   for (i = 0; i < unbind_num_trailing_slots; i++)
+      pipe_vertex_buffer_unreference(&dst[count + i]);
 }
 
 /**
@@ -84,7 +89,9 @@ void util_set_vertex_buffers_mask(struct pipe_vertex_buffer *dst,
 void util_set_vertex_buffers_count(struct pipe_vertex_buffer *dst,
                                    unsigned *dst_count,
                                    const struct pipe_vertex_buffer *src,
-                                   unsigned start_slot, unsigned count)
+                                   unsigned start_slot, unsigned count,
+                                   unsigned unbind_num_trailing_slots,
+                                   bool take_ownership)
 {
    unsigned i;
    uint32_t enabled_buffers = 0;
@@ -95,7 +102,8 @@ void util_set_vertex_buffers_count(struct pipe_vertex_buffer *dst,
    }
 
    util_set_vertex_buffers_mask(dst, &enabled_buffers, src, start_slot,
-                                count);
+                                count, unbind_num_trailing_slots,
+                                take_ownership);
 
    *dst_count = util_last_bit(enabled_buffers);
 }

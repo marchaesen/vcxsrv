@@ -18,34 +18,37 @@ if [ -n "$CROSS" ]; then
 else
     STRIP="strip"
 fi
-find install -name \*.so -exec $STRIP {} \;
+if [ -z "$ARTIFACTS_DEBUG_SYMBOLS"]; then
+    find install -name \*.so -exec $STRIP {} \;
+fi
 
 # Test runs don't pull down the git tree, so put the dEQP helper
 # script and associated bits there.
 echo "$(cat VERSION) (git-$(git rev-parse HEAD | cut -b -10))" >> install/VERSION
 cp -Rp .gitlab-ci/bare-metal install/
-cp -Rp .gitlab-ci/deqp* install/
 cp -Rp .gitlab-ci/piglit install/
-cp -Rp .gitlab-ci/traces*.yml install/
 cp -Rp .gitlab-ci/fossils.yml install/
 cp -Rp .gitlab-ci/fossils install/
 cp -Rp .gitlab-ci/fossilize-runner.sh install/
 cp -Rp .gitlab-ci/deqp-runner.sh install/
 cp -Rp .gitlab-ci/deqp-*.txt install/
+find . -path \*/ci/\*.txt \
+    -o -path \*/ci/\*traces\*.yml \
+    | xargs -I '{}' cp -p '{}' install/
 
 # Tar up the install dir so that symlinks and hardlinks aren't each
 # packed separately in the zip file.
 mkdir -p artifacts/
 tar -cf artifacts/install.tar install
 
-if [ -n "$UPLOAD_FOR_LAVA" ]; then
+if [ -n "$MINIO_ARTIFACT_NAME" ]; then
     # Pass needed files to the test stage
     cp $CI_PROJECT_DIR/.gitlab-ci/generate_lava.py artifacts/.
     cp $CI_PROJECT_DIR/.gitlab-ci/lava-*.yml.jinja2 artifacts/.
 
-    MESA_ARTIFACT=mesa-${DEBIAN_ARCH}.tar.gz
-    gzip -c artifacts/install.tar > ${MESA_ARTIFACT}
+    MINIO_ARTIFACT_NAME="$MINIO_ARTIFACT_NAME.tar.gz"
+    gzip -c artifacts/install.tar > ${MINIO_ARTIFACT_NAME}
     MINIO_PATH=${MINIO_HOST}/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}
     ci-fairy minio login $CI_JOB_JWT
-    ci-fairy minio cp ${MESA_ARTIFACT} minio://${MINIO_PATH}/${MESA_ARTIFACT}
+    ci-fairy minio cp ${MINIO_ARTIFACT_NAME} minio://${MINIO_PATH}/${MINIO_ARTIFACT_NAME}
 fi

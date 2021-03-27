@@ -100,9 +100,6 @@ NineVolumeTexture9_ctor( struct NineVolumeTexture9 *This,
         DBG("Application asked for Software Vertex Processing, "
             "but this is unimplemented\n");
 
-    This->volumes = CALLOC(info->last_level + 1, sizeof(*This->volumes));
-    if (!This->volumes)
-        return E_OUTOFMEMORY;
     This->base.pstype = 3;
 
     hr = NineBaseTexture9_ctor(&This->base, pParams, NULL,
@@ -110,11 +107,15 @@ NineVolumeTexture9_ctor( struct NineVolumeTexture9 *This,
     if (FAILED(hr))
         return hr;
 
+    This->volumes = CALLOC(This->base.level_count, sizeof(*This->volumes));
+    if (!This->volumes)
+        return E_OUTOFMEMORY;
+
     voldesc.Format = Format;
     voldesc.Type = D3DRTYPE_VOLUME;
     voldesc.Usage = Usage;
     voldesc.Pool = Pool;
-    for (l = 0; l <= info->last_level; ++l) {
+    for (l = 0; l < This->base.level_count; ++l) {
         voldesc.Width = u_minify(Width, l);
         voldesc.Height = u_minify(Height, l);
         voldesc.Depth = u_minify(Depth, l);
@@ -140,7 +141,7 @@ NineVolumeTexture9_dtor( struct NineVolumeTexture9 *This )
     DBG("This=%p\n", This);
 
     if (This->volumes) {
-        for (l = 0; l <= This->base.base.info.last_level; ++l)
+        for (l = 0; l < This->base.level_count; ++l)
             if (This->volumes[l])
                 NineUnknown_Destroy(&This->volumes[l]->base);
         FREE(This->volumes);
@@ -154,7 +155,7 @@ NineVolumeTexture9_GetLevelDesc( struct NineVolumeTexture9 *This,
                                  UINT Level,
                                  D3DVOLUME_DESC *pDesc )
 {
-    user_assert(Level <= This->base.base.info.last_level, D3DERR_INVALIDCALL);
+    user_assert(Level < This->base.level_count, D3DERR_INVALIDCALL);
 
     *pDesc = This->volumes[Level]->desc;
 
@@ -166,7 +167,7 @@ NineVolumeTexture9_GetVolumeLevel( struct NineVolumeTexture9 *This,
                                    UINT Level,
                                    IDirect3DVolume9 **ppVolumeLevel )
 {
-    user_assert(Level <= This->base.base.info.last_level, D3DERR_INVALIDCALL);
+    user_assert(Level < This->base.level_count, D3DERR_INVALIDCALL);
 
     NineUnknown_AddRef(NineUnknown(This->volumes[Level]));
     *ppVolumeLevel = (IDirect3DVolume9 *)This->volumes[Level];
@@ -184,7 +185,7 @@ NineVolumeTexture9_LockBox( struct NineVolumeTexture9 *This,
     DBG("This=%p Level=%u pLockedVolume=%p pBox=%p Flags=%d\n",
         This, Level, pLockedVolume, pBox, Flags);
 
-    user_assert(Level <= This->base.base.info.last_level, D3DERR_INVALIDCALL);
+    user_assert(Level < This->base.level_count, D3DERR_INVALIDCALL);
 
     return NineVolume9_LockBox(This->volumes[Level], pLockedVolume, pBox,
                                Flags);
@@ -196,7 +197,7 @@ NineVolumeTexture9_UnlockBox( struct NineVolumeTexture9 *This,
 {
     DBG("This=%p Level=%u\n", This, Level);
 
-    user_assert(Level <= This->base.base.info.last_level, D3DERR_INVALIDCALL);
+    user_assert(Level < This->base.level_count, D3DERR_INVALIDCALL);
 
     return NineVolume9_UnlockBox(This->volumes[Level]);
 }

@@ -112,9 +112,9 @@ bool AluInstruction::is_equal_to(const Instruction& lhs) const
    return (m_flags == oth.m_flags && m_cf_type == oth.m_cf_type);
 }
 
-void AluInstruction::replace_values(const ValueSet& candiates, PValue new_value)
+void AluInstruction::replace_values(const ValueSet& candidates, PValue new_value)
 {
-   for (auto c: candiates) {
+   for (auto c: candidates) {
       if (*c == *m_dest)
          m_dest = new_value;
 

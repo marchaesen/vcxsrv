@@ -239,14 +239,14 @@ ir3_put_dst(struct ir3_context *ctx, nir_dest *dst)
 {
 	unsigned bit_size = nir_dest_bit_size(*dst);
 
-	/* add extra mov if dst value is HIGH reg.. in some cases not all
-	 * instructions can read from HIGH regs, in cases where they can
+	/* add extra mov if dst value is shared reg.. in some cases not all
+	 * instructions can read from shared regs, in cases where they can
 	 * ir3_cp will clean up the extra mov:
 	 */
 	for (unsigned i = 0; i < ctx->last_dst_n; i++) {
 		if (!ctx->last_dst[i])
 			continue;
-		if (ctx->last_dst[i]->regs[0]->flags & IR3_REG_HIGH) {
+		if (ctx->last_dst[i]->regs[0]->flags & IR3_REG_SHARED) {
 			ctx->last_dst[i] = ir3_MOV(ctx->block, ctx->last_dst[i], TYPE_U32);
 		}
 	}
@@ -293,7 +293,7 @@ ir3_put_dst(struct ir3_context *ctx, nir_dest *dst)
 static unsigned
 dest_flags(struct ir3_instruction *instr)
 {
-	return instr->regs[0]->flags & (IR3_REG_HALF | IR3_REG_HIGH);
+	return instr->regs[0]->flags & (IR3_REG_HALF | IR3_REG_SHARED);
 }
 
 struct ir3_instruction *
@@ -308,7 +308,7 @@ ir3_create_collect(struct ir3_context *ctx, struct ir3_instruction *const *arr,
 
 	unsigned flags = dest_flags(arr[0]);
 
-	collect = ir3_instr_create2(block, OPC_META_COLLECT, 1 + arrsz);
+	collect = ir3_instr_create(block, OPC_META_COLLECT, 1 + arrsz);
 	__ssa_dst(collect)->flags |= flags;
 	for (unsigned i = 0; i < arrsz; i++) {
 		struct ir3_instruction *elem = arr[i];
@@ -382,7 +382,7 @@ ir3_split_dest(struct ir3_block *block, struct ir3_instruction **dst,
 
 	for (int i = 0, j = 0; i < n; i++) {
 		struct ir3_instruction *split =
-				ir3_instr_create(block, OPC_META_SPLIT);
+				ir3_instr_create(block, OPC_META_SPLIT, 2);
 		__ssa_dst(split)->flags |= flags;
 		__ssa_src(split, src, flags);
 		split->split.off = i + base;
@@ -465,9 +465,8 @@ create_addr0(struct ir3_block *block, struct ir3_instruction *src, int align)
 static struct ir3_instruction *
 create_addr1(struct ir3_block *block, unsigned const_val)
 {
-
-	struct ir3_instruction *immed = create_immed_typed(block, const_val, TYPE_S16);
-	struct ir3_instruction *instr = ir3_MOV(block, immed, TYPE_S16);
+	struct ir3_instruction *immed = create_immed_typed(block, const_val, TYPE_U16);
+	struct ir3_instruction *instr = ir3_MOV(block, immed, TYPE_U16);
 	instr->regs[0]->num = regid(REG_A0, 1);
 	instr->regs[0]->flags &= ~IR3_REG_SSA;
 	return instr;
@@ -584,7 +583,7 @@ ir3_create_array_load(struct ir3_context *ctx, struct ir3_array *arr, int n,
 	struct ir3_register *src;
 	unsigned flags = 0;
 
-	mov = ir3_instr_create(block, OPC_MOV);
+	mov = ir3_instr_create(block, OPC_MOV, 2);
 	if (arr->half) {
 		mov->cat1.src_type = TYPE_U16;
 		mov->cat1.dst_type = TYPE_U16;
@@ -645,7 +644,7 @@ ir3_create_array_store(struct ir3_context *ctx, struct ir3_array *arr, int n,
 		return;
 	}
 
-	mov = ir3_instr_create(block, OPC_MOV);
+	mov = ir3_instr_create(block, OPC_MOV, 2);
 	if (arr->half) {
 		mov->cat1.src_type = TYPE_U16;
 		mov->cat1.dst_type = TYPE_U16;

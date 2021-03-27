@@ -55,7 +55,8 @@
 #include "glformats.h"
 #include "format_utils.h"
 #include "format_pack.h"
-
+#include "format_unpack.h"
+#include "util/format/u_format.h"
 
 /**
  * Flip the 8 bits in each byte of the given array.
@@ -1630,4 +1631,203 @@ _mesa_unpack_color_index_to_rgba_ubyte(struct gl_context *ctx, GLuint dims,
    free(rgba);
 
    return dst;
+}
+
+void
+_mesa_unpack_ubyte_rgba_row(mesa_format format, uint32_t n,
+                            const void *src, uint8_t dst[][4])
+{
+   const struct util_format_unpack_description *unpack =
+      util_format_unpack_description((enum pipe_format)format);
+
+   if (unpack->unpack_rgba_8unorm) {
+      unpack->unpack_rgba_8unorm((uint8_t *)dst, 0, src, 0, n, 1);
+   } else {
+      /* get float values, convert to ubyte */
+      {
+         float *tmp = malloc(n * 4 * sizeof(float));
+         if (tmp) {
+            uint32_t i;
+            _mesa_unpack_rgba_row(format, n, src, (float (*)[4]) tmp);
+            for (i = 0; i < n; i++) {
+               dst[i][0] = _mesa_float_to_unorm(tmp[i*4+0], 8);
+               dst[i][1] = _mesa_float_to_unorm(tmp[i*4+1], 8);
+               dst[i][2] = _mesa_float_to_unorm(tmp[i*4+2], 8);
+               dst[i][3] = _mesa_float_to_unorm(tmp[i*4+3], 8);
+            }
+            free(tmp);
+         }
+      }
+   }
+}
+
+/**
+ * Unpack a 2D rect of pixels returning float RGBA colors.
+ * \param format  the source image format
+ * \param src  start address of the source image
+ * \param srcRowStride  source image row stride in bytes
+ * \param dst  start address of the dest image
+ * \param dstRowStride  dest image row stride in bytes
+ * \param x  source image start X pos
+ * \param y  source image start Y pos
+ * \param width  width of rect region to convert
+ * \param height  height of rect region to convert
+ */
+void
+_mesa_unpack_rgba_block(mesa_format format,
+                        const void *src, int32_t srcRowStride,
+                        float dst[][4], int32_t dstRowStride,
+                        uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+{
+   const uint32_t srcPixStride = _mesa_get_format_bytes(format);
+   const uint32_t dstPixStride = 4 * sizeof(float);
+   const struct util_format_unpack_description *unpack =
+      util_format_unpack_description((enum pipe_format)format);
+   const uint8_t *srcRow;
+   uint8_t *dstRow;
+
+   /* XXX needs to be fixed for compressed formats */
+
+   srcRow = ((const uint8_t *) src) + srcRowStride * y + srcPixStride * x;
+   dstRow = ((uint8_t *) dst) + dstRowStride * y + dstPixStride * x;
+
+   unpack->unpack_rgba(dstRow, dstPixStride,
+                       srcRow, srcRowStride, width, height);
+}
+
+/** Helper struct for MESA_FORMAT_Z32_FLOAT_S8X24_UINT */
+struct z32f_x24s8
+{
+   float z;
+   uint32_t x24s8;
+};
+
+
+static void
+unpack_uint_24_8_depth_stencil_Z24_UNORM_S8_UINT(const uint32_t *src, uint32_t *dst, uint32_t n)
+{
+   uint32_t i;
+
+   for (i = 0; i < n; i++) {
+      uint32_t val = src[i];
+      dst[i] = val >> 24 | val << 8;
+   }
+}
+
+static void
+unpack_uint_24_8_depth_stencil_Z32_S8X24(const uint32_t *src,
+                                         uint32_t *dst, uint32_t n)
+{
+   uint32_t i;
+
+   for (i = 0; i < n; i++) {
+      /* 8 bytes per pixel (float + uint32) */
+      float zf = ((float *) src)[i * 2 + 0];
+      uint32_t z24 = (uint32_t) (zf * (float) 0xffffff);
+      uint32_t s = src[i * 2 + 1] & 0xff;
+      dst[i] = (z24 << 8) | s;
+   }
+}
+
+static void
+unpack_uint_24_8_depth_stencil_S8_UINT_Z24_UNORM(const uint32_t *src, uint32_t *dst, uint32_t n)
+{
+   memcpy(dst, src, n * 4);
+}
+
+/**
+ * Unpack depth/stencil returning as GL_UNSIGNED_INT_24_8.
+ * \param format  the source data format
+ */
+void
+_mesa_unpack_uint_24_8_depth_stencil_row(mesa_format format, uint32_t n,
+                                         const void *src, uint32_t *dst)
+{
+   switch (format) {
+   case MESA_FORMAT_S8_UINT_Z24_UNORM:
+      unpack_uint_24_8_depth_stencil_S8_UINT_Z24_UNORM(src, dst, n);
+      break;
+   case MESA_FORMAT_Z24_UNORM_S8_UINT:
+      unpack_uint_24_8_depth_stencil_Z24_UNORM_S8_UINT(src, dst, n);
+      break;
+   case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
+      unpack_uint_24_8_depth_stencil_Z32_S8X24(src, dst, n);
+      break;
+   default:
+      unreachable("bad format %s in _mesa_unpack_uint_24_8_depth_stencil_row");
+   }
+}
+
+static void
+unpack_float_32_uint_24_8_Z24_UNORM_S8_UINT(const uint32_t *src,
+                                            uint32_t *dst, uint32_t n)
+{
+   uint32_t i;
+   struct z32f_x24s8 *d = (struct z32f_x24s8 *) dst;
+   const double scale = 1.0 / (double) 0xffffff;
+
+   for (i = 0; i < n; i++) {
+      const uint32_t z24 = src[i] & 0xffffff;
+      d[i].z = z24 * scale;
+      d[i].x24s8 = src[i] >> 24;
+      assert(d[i].z >= 0.0f);
+      assert(d[i].z <= 1.0f);
+   }
+}
+
+static void
+unpack_float_32_uint_24_8_Z32_FLOAT_S8X24_UINT(const uint32_t *src,
+                                               uint32_t *dst, uint32_t n)
+{
+   memcpy(dst, src, n * sizeof(struct z32f_x24s8));
+}
+
+static void
+unpack_float_32_uint_24_8_S8_UINT_Z24_UNORM(const uint32_t *src,
+                                            uint32_t *dst, uint32_t n)
+{
+   uint32_t i;
+   struct z32f_x24s8 *d = (struct z32f_x24s8 *) dst;
+   const double scale = 1.0 / (double) 0xffffff;
+
+   for (i = 0; i < n; i++) {
+      const uint32_t z24 = src[i] >> 8;
+      d[i].z = z24 * scale;
+      d[i].x24s8 = src[i] & 0xff;
+      assert(d[i].z >= 0.0f);
+      assert(d[i].z <= 1.0f);
+   }
+}
+
+/**
+ * Unpack depth/stencil returning as GL_FLOAT_32_UNSIGNED_INT_24_8_REV.
+ * \param format  the source data format
+ *
+ * In GL_FLOAT_32_UNSIGNED_INT_24_8_REV lower 4 bytes contain float
+ * component and higher 4 bytes contain packed 24-bit and 8-bit
+ * components.
+ *
+ *    31 30 29 28 ... 4 3 2 1 0    31 30 29 ... 9 8 7 6 5 ... 2 1 0
+ *    +-------------------------+  +--------------------------------+
+ *    |    Float Component      |  | Unused         | 8 bit stencil |
+ *    +-------------------------+  +--------------------------------+
+ *          lower 4 bytes                  higher 4 bytes
+ */
+void
+_mesa_unpack_float_32_uint_24_8_depth_stencil_row(mesa_format format, uint32_t n,
+                                                  const void *src, uint32_t *dst)
+{
+   switch (format) {
+   case MESA_FORMAT_S8_UINT_Z24_UNORM:
+      unpack_float_32_uint_24_8_S8_UINT_Z24_UNORM(src, dst, n);
+      break;
+   case MESA_FORMAT_Z24_UNORM_S8_UINT:
+      unpack_float_32_uint_24_8_Z24_UNORM_S8_UINT(src, dst, n);
+      break;
+   case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
+      unpack_float_32_uint_24_8_Z32_FLOAT_S8X24_UINT(src, dst, n);
+      break;
+   default:
+      unreachable("bad format %s in _mesa_unpack_uint_24_8_depth_stencil_row");
+   }
 }

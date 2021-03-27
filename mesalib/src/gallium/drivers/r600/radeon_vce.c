@@ -105,7 +105,7 @@ static void reset_cpb(struct rvce_encoder *enc)
 	for (i = 0; i < enc->cpb_num; ++i) {
 		struct rvce_cpb_slot *slot = &enc->cpb_array[i];
 		slot->index = i;
-		slot->picture_type = PIPE_H264_ENC_PICTURE_TYPE_SKIP;
+		slot->picture_type = PIPE_H2645_ENC_PICTURE_TYPE_SKIP;
 		slot->frame_num = 0;
 		slot->pic_order_cnt = 0;
 		list_addtail(&slot->list, &enc->cpb_slots);
@@ -126,10 +126,10 @@ static void sort_cpb(struct rvce_encoder *enc)
 		if (i->frame_num == enc->pic.ref_idx_l1)
 			l1 = i;
 
-		if (enc->pic.picture_type == PIPE_H264_ENC_PICTURE_TYPE_P && l0)
+		if (enc->pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_P && l0)
 			break;
 
-		if (enc->pic.picture_type == PIPE_H264_ENC_PICTURE_TYPE_B &&
+		if (enc->pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B &&
 		    l0 && l1)
 			break;
 	}
@@ -281,10 +281,10 @@ static void rvce_begin_frame(struct pipe_video_codec *encoder,
 	enc->get_buffer(vid_buf->resources[0], &enc->handle, &enc->luma);
 	enc->get_buffer(vid_buf->resources[1], NULL, &enc->chroma);
 
-	if (pic->picture_type == PIPE_H264_ENC_PICTURE_TYPE_IDR)
+	if (pic->picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR)
 		reset_cpb(enc);
-	else if (pic->picture_type == PIPE_H264_ENC_PICTURE_TYPE_P ||
-	         pic->picture_type == PIPE_H264_ENC_PICTURE_TYPE_B)
+	else if (pic->picture_type == PIPE_H2645_ENC_PICTURE_TYPE_P ||
+	         pic->picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B)
 		sort_cpb(enc);
 	
 	if (!enc->stream_handle) {

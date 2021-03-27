@@ -1,12 +1,7 @@
 C_SOURCES := \
-	nir/nir_lower_blend.c \
-	nir/nir_lower_blend.h \
-    \
 	pan_assemble.c \
 	pan_blend_cso.c \
-	pan_blend.h \
-	pan_blending.c \
-	pan_blending.h \
+	pan_blend_cso.h \
 	pan_blend_shaders.c \
 	pan_blend_shaders.h \
 	pan_blit.c \

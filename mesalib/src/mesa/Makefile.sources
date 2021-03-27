@@ -101,7 +101,6 @@ MAIN_FILES = \
 	main/format_pack.h \
 	main/format_pack.c \
 	main/format_unpack.h \
-	main/format_unpack.c \
 	main/formatquery.c \
 	main/formatquery.h \
 	main/formats.c \
@@ -124,6 +123,7 @@ MAIN_FILES = \
 	main/glthread.h \
 	main/glthread_bufferobj.c \
 	main/glthread_draw.c \
+        main/glthread_get.c \
 	main/glthread_marshal.h \
 	main/glthread_shaderobj.c \
 	main/glthread_varray.c \

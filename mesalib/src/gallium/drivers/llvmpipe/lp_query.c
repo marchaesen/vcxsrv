@@ -509,6 +509,10 @@ llvmpipe_check_render_cond(struct llvmpipe_context *lp)
    boolean b, wait;
    uint64_t result;
 
+   if (lp->render_cond_buffer) {
+      uint32_t data = *(uint32_t *)((char *)lp->render_cond_buffer->data + lp->render_cond_offset);
+      return (!data) == lp->render_cond_cond;
+   }
    if (!lp->render_cond_query)
       return TRUE; /* no query predicate, draw normally */
 

@@ -37,20 +37,13 @@
 #include "nir/nir.h"
 #include "vulkan/vulkan.h"
 #include "vulkan/util/vk_object.h"
+#include "vulkan/util/vk_shader_module.h"
 
 #include "aco_interface.h"
 
 #define RADV_VERT_ATTRIB_MAX MAX2(VERT_ATTRIB_MAX, VERT_ATTRIB_GENERIC0 + MAX_VERTEX_ATTRIBS)
 
 struct radv_device;
-
-struct radv_shader_module {
-	struct vk_object_base base;
-	struct nir_shader *nir;
-	unsigned char sha1[20];
-	uint32_t size;
-	char data[0];
-};
 
 struct radv_vs_out_key {
 	uint32_t as_es:1;
@@ -86,15 +79,12 @@ struct radv_vs_variant_key {
 
 struct radv_tes_variant_key {
 	struct radv_vs_out_key out;
-
-	uint8_t num_patches;
 };
 
 struct radv_tcs_variant_key {
 	struct radv_vs_variant_key vs_key;
 	unsigned primitive_mode;
 	unsigned input_vertices;
-	uint32_t tes_reads_tess_factors:1;
 };
 
 struct radv_fs_variant_key {
@@ -103,7 +93,6 @@ struct radv_fs_variant_key {
 	uint8_t num_samples;
 	uint32_t is_int8;
 	uint32_t is_int10;
-	bool is_dual_src;
 };
 
 struct radv_cs_variant_key {
@@ -135,6 +124,7 @@ struct radv_nir_compiler_options {
 	bool explicit_scratch_args;
 	bool clamp_shadow_reference;
 	bool robust_buffer_access;
+	bool robust_buffer_access2;
 	bool adjust_frag_coord_z;
 	bool dump_shader;
 	bool dump_preoptir;
@@ -145,8 +135,10 @@ struct radv_nir_compiler_options {
 	bool use_ngg_streamout;
 	bool enable_mrt_output_nan_fixup;
 	bool disable_optimizations; /* only used by ACO */
+	bool wgp_mode;
 	enum radeon_family family;
 	enum chip_class chip_class;
+	const struct radeon_info *info;
 	uint32_t tess_offchip_block_dw_size;
 	uint32_t address32_hi;
 
@@ -263,6 +255,7 @@ struct radv_shader_info {
 	bool need_indirect_descriptor_sets;
 	bool is_ngg;
 	bool is_ngg_passthrough;
+	uint32_t num_tess_patches;
 	struct {
 		uint8_t input_usage_mask[RADV_VERT_ATTRIB_MAX];
 		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
@@ -274,6 +267,8 @@ struct radv_shader_info {
 		bool as_es;
 		bool as_ls;
 		bool export_prim_id;
+		bool tcs_in_out_eq;
+		uint64_t tcs_temp_only_input_mask;
 		uint8_t num_linked_outputs;
 	} vs;
 	struct {
@@ -321,12 +316,13 @@ struct radv_shader_info {
 		uint32_t explicit_shaded_mask;
 		uint32_t float16_shaded_mask;
 		uint32_t num_interp;
-		uint32_t cb_shader_mask;
 		bool can_discard;
 		bool early_fragment_test;
 		bool post_depth_coverage;
 		bool reads_sample_mask_in;
 		uint8_t depth_layout;
+		bool uses_persp_or_linear_interp;
+		bool allow_flat_shading;
 	} ps;
 	struct {
 		bool uses_grid_size;
@@ -339,11 +335,11 @@ struct radv_shader_info {
 		uint64_t tes_inputs_read;
 		uint64_t tes_patch_inputs_read;
 		unsigned tcs_vertices_out;
-		uint32_t num_patches;
 		uint32_t num_lds_blocks;
 		uint8_t num_linked_inputs;
 		uint8_t num_linked_outputs;
 		uint8_t num_linked_patch_outputs;
+		bool tes_reads_tess_factors:1;
 	} tcs;
 
 	struct radv_streamout_info so;
@@ -397,6 +393,7 @@ struct radv_shader_variant {
 	struct radeon_winsys_bo *bo;
 	uint64_t bo_offset;
 	struct ac_shader_config config;
+	uint8_t *code_ptr;
 	uint32_t code_size;
 	uint32_t exec_size;
 	struct radv_shader_info info;
@@ -407,7 +404,7 @@ struct radv_shader_variant {
 	char *nir_string;
 	char *disasm_string;
 	char *ir_string;
-	struct aco_compiler_statistics *statistics;
+	uint32_t *statistics;
 
 	struct list_head slab_list;
 };
@@ -421,21 +418,21 @@ struct radv_shader_slab {
 };
 
 void
-radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively,
-		  bool allow_copies);
+radv_optimize_nir(const struct radv_device *device, struct nir_shader *shader,
+		  bool optimize_conservatively, bool allow_copies);
 bool
 radv_nir_lower_ycbcr_textures(nir_shader *shader,
                              const struct radv_pipeline_layout *layout);
 
 nir_shader *
 radv_shader_compile_to_nir(struct radv_device *device,
-			   struct radv_shader_module *module,
+			   struct vk_shader_module *module,
 			   const char *entrypoint_name,
 			   gl_shader_stage stage,
 			   const VkSpecializationInfo *spec_info,
 			   const VkPipelineCreateFlags flags,
 			   const struct radv_pipeline_layout *layout,
-			   unsigned subgroup_size, unsigned ballot_bit_size);
+			   const struct radv_pipeline_key *key);
 
 void
 radv_destroy_shader_slabs(struct radv_device *device);
@@ -456,7 +453,7 @@ radv_shader_variant_create(struct radv_device *device,
 			   bool keep_shader_info);
 struct radv_shader_variant *
 radv_shader_variant_compile(struct radv_device *device,
-			    struct radv_shader_module *module,
+			    struct vk_shader_module *module,
 			    struct nir_shader *const *shaders,
 			    int shader_count,
 			    struct radv_pipeline_layout *layout,
@@ -498,12 +495,12 @@ radv_get_shader_name(struct radv_shader_info *info,
 
 bool
 radv_can_dump_shader(struct radv_device *device,
-		     struct radv_shader_module *module,
+		     struct vk_shader_module *module,
 		     bool is_gs_copy_shader);
 
 bool
 radv_can_dump_shader_stats(struct radv_device *device,
-			   struct radv_shader_module *module);
+			   struct vk_shader_module *module);
 
 VkResult
 radv_dump_shader_stats(struct radv_device *device,
@@ -576,9 +573,11 @@ get_tcs_num_patches(unsigned tcs_num_input_vertices,
 	if (chip_class >= GFX7 && family != CHIP_STONEY)
 		hardware_lds_size = 65536;
 
-	num_patches = MIN2(num_patches, hardware_lds_size / (input_patch_size + output_patch_size));
+	if (input_patch_size + output_patch_size)
+		num_patches = MIN2(num_patches, hardware_lds_size / (input_patch_size + output_patch_size));
 	/* Make sure the output data fits in the offchip buffer */
-	num_patches = MIN2(num_patches, (tess_offchip_block_dw_size * 4) / output_patch_size);
+	if (output_patch_size)
+		num_patches = MIN2(num_patches, (tess_offchip_block_dw_size * 4) / output_patch_size);
 	/* Not necessary for correctness, but improves performance. The
 	 * specific value is taken from the proprietary driver.
 	 */
@@ -594,5 +593,9 @@ get_tcs_num_patches(unsigned tcs_num_input_vertices,
 
 void
 radv_lower_io(struct radv_device *device, nir_shader *nir);
+
+bool
+radv_lower_io_to_mem(struct radv_device *device, struct nir_shader *nir,
+                     struct radv_shader_info *info, const struct radv_pipeline_key *pl_key);
 
 #endif

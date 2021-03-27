@@ -186,16 +186,20 @@ vbo_compute_max_verts(const struct vbo_exec_context *exec)
 
 
 void
-vbo_try_prim_conversion(struct _mesa_prim *p);
+vbo_try_prim_conversion(GLubyte *mode, unsigned *count);
 
 bool
 vbo_merge_draws(struct gl_context *ctx, bool in_dlist,
-                struct _mesa_prim *p0, const struct _mesa_prim *p1);
+                GLubyte mode0, GLubyte mode1,
+                unsigned start0, unsigned start1,
+                unsigned *count0, unsigned count1,
+                unsigned basevertex0, unsigned basevertex1,
+                bool *end0, bool begin1, bool end1);
 
 unsigned
 vbo_copy_vertices(struct gl_context *ctx,
                   GLenum mode,
-                  struct _mesa_prim *last_prim,
+                  unsigned start, unsigned *count, bool begin,
                   unsigned vertex_size,
                   bool in_dlist,
                   fi_type *dst,

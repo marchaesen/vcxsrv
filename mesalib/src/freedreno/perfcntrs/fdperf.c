@@ -22,22 +22,14 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <arpa/inet.h>
 #include <assert.h>
-#include <ctype.h>
 #include <err.h>
-#include <fcntl.h>
-#include <ftw.h>
 #include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
 #include <time.h>
-#include <unistd.h>
 #include <curses.h>
 #include <libconfig.h>
 #include <inttypes.h>
@@ -46,6 +38,9 @@
 #include "drm/freedreno_drmif.h"
 #include "drm/freedreno_ringbuffer.h"
 
+#include "util/os_file.h"
+
+#include "freedreno_dt.h"
 #include "freedreno_perfcntr.h"
 
 #define MAX_CNTR_PER_GROUP 24
@@ -80,10 +75,6 @@ struct counter_group {
 };
 
 static struct {
-	char *dtnode;
-	int address_cells, size_cells;
-	uint64_t base;
-	uint32_t size;
 	void *io;
 	uint32_t chipid;
 	uint32_t min_freq;
@@ -106,39 +97,6 @@ static void restore_counter_groups(void);
  * helpers
  */
 
-#define CHUNKSIZE 32
-
-static void *
-readfile(const char *path, int *sz)
-{
-	char *buf = NULL;
-	int fd, ret, n = 0;
-
-	fd = open(path, O_RDONLY);
-	if (fd < 0) {
-		*sz = 0;
-		return NULL;
-	}
-
-	while (1) {
-		buf = realloc(buf, n + CHUNKSIZE);
-		ret = read(fd, buf + n, CHUNKSIZE);
-		if (ret < 0) {
-			free(buf);
-			*sz = 0;
-			close(fd);
-			return NULL;
-		} else if (ret < CHUNKSIZE) {
-			n += ret;
-			*sz = n;
-			close(fd);
-			return buf;
-		} else {
-			n += CHUNKSIZE;
-		}
-	}
-}
-
 static uint32_t
 gettime_us(void)
 {
@@ -157,145 +115,10 @@ delta(uint32_t a, uint32_t b)
 		return b - a;
 }
 
-/*
- * code to find stuff in /proc/device-tree:
- *
- * NOTE: if we sampled the counters from the cmdstream, we could avoid needing
- * /dev/mem and /proc/device-tree crawling.  OTOH when the GPU is heavily loaded
- * we would be competing with whatever else is using the GPU.
- */
-
-static void *
-readdt(const char *node)
-{
-	char *path;
-	void *buf;
-	int sz;
-
-	(void) asprintf(&path, "%s/%s", dev.dtnode, node);
-	buf = readfile(path, &sz);
-	free(path);
-
-	return buf;
-}
-
-static int
-find_freqs_fn(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
-{
-	const char *fname = fpath + ftwbuf->base;
-	int sz;
-
-	if (strcmp(fname, "qcom,gpu-freq") == 0) {
-		uint32_t *buf = readfile(fpath, &sz);
-		uint32_t freq = ntohl(buf[0]);
-		free(buf);
-		dev.max_freq = MAX2(dev.max_freq, freq);
-		dev.min_freq = MIN2(dev.min_freq, freq);
-	}
-
-	return 0;
-}
-
-static void
-find_freqs(void)
-{
-	char *path;
-	int ret;
-
-	dev.min_freq = ~0;
-	dev.max_freq = 0;
-
-	(void) asprintf(&path, "%s/%s", dev.dtnode, "qcom,gpu-pwrlevels");
-
-	ret = nftw(path, find_freqs_fn, 64, 0);
-	if (ret < 0)
-		err(1, "could not find power levels");
-
-	free(path);
-}
-
-static const char * compatibles[] = {
-		"qcom,adreno-3xx",
-		"qcom,kgsl-3d0",
-		"amd,imageon",
-		"qcom,adreno",
-};
-
-/**
- * compatstrs is a list of compatible strings separated by null, ie.
- *
- *       compatible = "qcom,adreno-630.2", "qcom,adreno";
- *
- * would result in "qcom,adreno-630.2\0qcom,adreno\0"
- */
-static bool match_compatible(char *compatstrs, int sz)
-{
-	while (sz > 0) {
-		char *compatible = compatstrs;
-
-		for (unsigned i = 0; i < ARRAY_SIZE(compatibles); i++) {
-			if (strcmp(compatible, compatibles[i]) == 0) {
-				return true;
-			}
-		}
-
-		compatstrs += strlen(compatible) + 1;
-		sz -= strlen(compatible) + 1;
-	}
-	return false;
-}
-
-static int
-find_device_fn(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
-{
-	const char *fname = fpath + ftwbuf->base;
-	int sz;
-
-	if (strcmp(fname, "compatible") == 0) {
-		char *str = readfile(fpath, &sz);
-		if (match_compatible(str, sz)) {
-			int dlen = strlen(fpath) - strlen("/compatible");
-			dev.dtnode = malloc(dlen + 1);
-			memcpy(dev.dtnode, fpath, dlen);
-			printf("found dt node: %s\n", dev.dtnode);
-
-			char buf[dlen + sizeof("/../#address-cells") + 1];
-			int sz, *val;
-
-			sprintf(buf, "%s/../#address-cells", dev.dtnode);
-			val = readfile(buf, &sz);
-			dev.address_cells = ntohl(*val);
-			free(val);
-
-			sprintf(buf, "%s/../#size-cells", dev.dtnode);
-			val = readfile(buf, &sz);
-			dev.size_cells = ntohl(*val);
-			free(val);
-
-			printf("#address-cells=%d, #size-cells=%d\n",
-					dev.address_cells, dev.size_cells);
-		}
-		free(str);
-	}
-	if (dev.dtnode) {
-		/* we found it! */
-		return 1;
-	}
-	return 0;
-}
-
 static void
 find_device(void)
 {
 	int ret, fd;
-	uint32_t *buf, *b;
-
-	ret = nftw("/proc/device-tree/", find_device_fn, 64, 0);
-	if (ret < 0)
-		err(1, "could not find adreno gpu");
-
-	if (!dev.dtnode)
-		errx(1, "could not find qcom,adreno-3xx node");
 
 	fd = drmOpenWithType("msm", NULL, DRM_NODE_RENDER);
 	if (fd < 0)
@@ -319,37 +142,14 @@ find_device(void)
 		((chipid) >> 0) & 0xff
 	printf("device: a%"CHIP_FMT"\n", CHIP_ARGS(dev.chipid));
 
-	b = buf = readdt("reg");
-
-	if (dev.address_cells == 2) {
-		uint32_t u[2] = { ntohl(buf[0]), ntohl(buf[1]) };
-		dev.base = (((uint64_t)u[0]) << 32) | u[1];
-		buf += 2;
-	} else {
-		dev.base = ntohl(buf[0]);
-		buf += 1;
-	}
-
-	if (dev.size_cells == 2) {
-		uint32_t u[2] = { ntohl(buf[0]), ntohl(buf[1]) };
-		dev.size = (((uint64_t)u[0]) << 32) | u[1];
-		buf += 2;
-	} else {
-		dev.size = ntohl(buf[0]);
-		buf += 1;
-	}
-
-	free(b);
-
-	printf("i/o region at %08"PRIx64" (size: %x)\n", dev.base, dev.size);
-
 	/* try MAX_FREQ first as that will work regardless of old dt
 	 * dt bindings vs upstream bindings:
 	 */
 	ret = fd_pipe_get_param(dev.pipe, FD_MAX_FREQ, &val);
 	if (ret) {
 		printf("falling back to parsing DT bindings for freq\n");
-		find_freqs();
+		if (!fd_dt_find_freqs(&dev.min_freq, &dev.max_freq))
+			err(1, "could not find GPU freqs");
 	} else {
 		dev.min_freq = 0;
 		dev.max_freq = val;
@@ -357,13 +157,8 @@ find_device(void)
 
 	printf("min_freq=%u, max_freq=%u\n", dev.min_freq, dev.max_freq);
 
-	fd = open("/dev/mem", O_RDWR | O_SYNC);
-	if (fd < 0)
-		err(1, "could not open /dev/mem");
-
-	dev.io = mmap(0, dev.size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, dev.base);
-	if (dev.io == MAP_FAILED) {
-		close(fd);
+	dev.io = fd_dt_find_io();
+	if (!dev.io) {
 		err(1, "could not map device");
 	}
 }

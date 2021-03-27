@@ -34,6 +34,7 @@
 #include <stdbool.h>
 #include "main/glheader.h"
 #include "main/context.h"
+#include "main/draw_validate.h"
 #include "main/enums.h"
 #include "main/hash.h"
 #include "main/mtypes.h"
@@ -252,7 +253,10 @@ use_program_stages(struct gl_context *ctx, struct gl_shader_program *shProg,
    if ((stages & GL_COMPUTE_SHADER_BIT) != 0)
       use_program_stage(ctx, GL_COMPUTE_SHADER, shProg, pipe);
 
-   pipe->Validated = false;
+   pipe->Validated = pipe->UserValidated = false;
+
+   if (pipe == ctx->_Shader)
+      _mesa_update_valid_to_render_state(ctx);
 }
 
 void GLAPIENTRY
@@ -407,6 +411,8 @@ active_shader_program(struct gl_context *ctx, GLuint pipeline, GLuint program,
    }
 
    _mesa_reference_shader_program(ctx, &pipe->ActiveProgram, shProg);
+   if (pipe == ctx->_Shader)
+      _mesa_update_valid_to_render_state(ctx);
 }
 
 void GLAPIENTRY
@@ -514,7 +520,7 @@ _mesa_bind_pipeline(struct gl_context *ctx,
     *     considered current."
     */
    if (&ctx->Shader != ctx->_Shader) {
-      FLUSH_VERTICES(ctx, _NEW_PROGRAM | _NEW_PROGRAM_CONSTANTS);
+      FLUSH_VERTICES(ctx, _NEW_PROGRAM | _NEW_PROGRAM_CONSTANTS, 0);
 
       if (pipe != NULL) {
          /* Bound the pipeline to the current program and
@@ -537,6 +543,7 @@ _mesa_bind_pipeline(struct gl_context *ctx,
       _mesa_update_vertex_processing_mode(ctx);
       _mesa_update_allow_draw_out_of_order(ctx);
       _mesa_update_primitive_id_is_unused(ctx);
+      _mesa_update_valid_to_render_state(ctx);
    }
 }
 
@@ -732,7 +739,7 @@ _mesa_GetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *params)
          strlen(pipe->InfoLog) + 1 : 0;
       return;
    case GL_VALIDATE_STATUS:
-      *params = pipe->Validated;
+      *params = pipe->UserValidated;
       return;
    case GL_VERTEX_SHADER:
       *params = pipe->CurrentProgram[MESA_SHADER_VERTEX]
@@ -1053,6 +1060,7 @@ _mesa_ValidateProgramPipeline(GLuint pipeline)
    }
 
    _mesa_validate_program_pipeline(ctx, pipe);
+   pipe->UserValidated = pipe->Validated;
 }
 
 void GLAPIENTRY

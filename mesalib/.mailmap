@@ -146,6 +146,9 @@ Christoph Haag <haagch@frickel.club> <haagch+mesadev@frickel.club>
 
 Christopher James Halse Rogers <christopher.halse.rogers@canonical.com> Christopher James Halse Rogers <raof@ubuntu.com>
 
+Christopher Li <chrisl@vmware.com> Chris Li <chrisl@vmware.com>
+Christopher Li <chrisl@vmware.com> Qicheng Christopher Li <chrisl@vmware.com>
+
 Claudio Ciccani <klan@directfb.org> <klan@users.sf.net>
 Claudio Ciccani <klan@directfb.org> <klan@users.sourceforge.net>
 
@@ -163,7 +166,7 @@ Courtney Goeltzenleuchter <courtney@lunarg.com> <courtney@LunarG.com>
 
 Craig Stout <cstout@google.com>
 
-Daniel Schürmann <daniel.schuermann@campus.tu-berlin.de> <daniel@schuermann.dev>
+Daniel Schürmann <daniel@schuermann.dev> <daniel.schuermann@campus.tu-berlin.de>
 
 Daniel Skinner <sio@users.sourceforge.net> sio <sio>
 
@@ -193,6 +196,8 @@ Dylan Noblesmith <nobled@dreamwidth.org> nobled <nobled2@nobled2-karmic.(none)>
 
 Edward O'Callaghan <funfunctor@folklore1984.net> <eocallaghan@alterapraxis.com>
 
+Eleni Maria Stea <estea@igalia.com> <elene.mst@gmail.com>
+
 Elie Tournier <tournier.elie@gmail.com>
 
 Emeric Grange <emeric.grange@gmail.com> Emeric <emeric.grange@gmail.com>
@@ -205,6 +210,8 @@ Emil Velikov <emil.l.velikov@gmail.com> <emil.velikov@gmail.com>
 Emil Velikov <emil.l.velikov@gmail.com> <emmil.velikov@collabora.com>
 
 Emmanuel Gil Peyrot <linkmauve@linkmauve.fr> <emmanuel.peyrot@collabora.com>
+
+Emmanuel Vadot <manu@FreeBSD.org> Emmanuel <manu@FreeBSD.org>
 
 Eric Anholt <eric@anholt.net> Eric Anholt <anholt@FreeBSD.org>
 
@@ -255,9 +262,13 @@ Iago Toral Quiroga <itoral@igalia.com> Iago Toral <itoral@igalia.com>
 Ian Romanick <ian.d.romanick@intel.com> <idr@freedesktop.org>
 Ian Romanick <ian.d.romanick@intel.com> <idr@us.ibm.com>
 
+Icecream95 <ixn@disroot.org> <ixn@keemail.me>
+
 Igor Gnatenko <i.gnatenko.brain@gmail.com> <ignatenko@redhat.com>
 
 Illia Iorin <illia.iorin@globallogic.com> <illia.iorin@gmail.com>
+
+Indrajit Das <indrajit-kumar.das@amd.com> Indrajit Kumar Das <indrajit-kumar.das@amd.com>
 
 Jakob Bornecrantz <wallbraker@gmail.com> <jakob@vmware.com>
 Jakob Bornecrantz <wallbraker@gmail.com> <jakob@aurora.(none)>
@@ -271,11 +282,15 @@ Jakub Bogusz <qboosh@pld-linux.org> <gboosh@pld-linux.org>
 
 James Legg <jlegg@feralinteractive.com> <lankyleggy@gmail.com>
 
+James Xiong <james.xiong@intel.com> Xiong, James <james.xiong@intel.com>
+
 James Zhu <James.Zhu@amd.com>
 
 Jan Beich <jbeich@freebsd.org> <jbeich@FreeBSD.org>
 
 Jan Vesely <jano.vesely@gmail.com> Jan Vesely <jan.vesely@rutgers.edu>
+
+Jan Zielinski <jan.zielinski@intel.com> jzielins <jan.zielinski@intel.com>
 
 Jason Ekstrand <jason@jlekstrand.net> <jason.ekstrand@intel.com>
 
@@ -369,6 +384,8 @@ Krzesimir Nowak <qdlacz@gmail.com> <krzesimir@kinvolk.io>
 
 Li Peng <peng.li@intel.com> <peng.li@linux.intel.com>
 
+Lin Johnson <johnson.lin@intel.com> Johnson Lin <johnson.lin@intel.com>
+
 Lionel Landwerlin <lionel.g.landwerlin@intel.com> <llandwerlin@gmail.com>
 
 Liviu Prodea <liviuprodea@yahoo.com>
@@ -394,6 +411,8 @@ Marek Olšák <maraeo@gmail.com> <marek.olsak@amd.com>
 Mario Kleiner <mario.kleiner.de@gmail.com> kleinerm <mario.kleiner@tuebingen.mpg.de>
 Mario Kleiner <mario.kleiner.de@gmail.com> <mario.kleiner@tuebingen.mpg.de>
 
+Mark Menzynski <mmenzyns@redhat.com> mmenzyns <mmenzyns@redhat.com>
+
 Mark Mueller <markkmueller@gmail.com> <MarkKMueller@gmail.com>
 
 Marta Lofstedt <marta.lofstedt@intel.com> <marta.lofstedt@linux.intel.com>
@@ -410,9 +429,15 @@ Mathias Fröhlich <mathias.froehlich@gmx.net> M.Froehlich@science-computing.de <
 
 Matthias Groß <grmat@sub.red>
 
+Matthias Hopf <mhopf@suse.de> Mathias Hopf <mhopf@suse.de>
+
+Matthias Lorenz <oschowa@web.de> Oschowa <oschowa@web.de>
+
 Matthew W. S. Bell <matthew@bells23.org.uk> Matthew Bell <matthew@bells23.org.uk>
 
 Maxence Le Doré <maxence.ledore@gmail.com> Maxence Le Dore <maxence.ledore@gmail.com>
+
+Maya Rashish <coypu@sdf.org> coypu <coypu@sdf.org>
 
 Micah Fedke <micah.fedke@collabora.co.uk> <M.Fedke@Astronautics.com>
 
@@ -437,6 +462,8 @@ Mike Kaplinskiy <mike.kaplinskiy@gmail.com> Mike Kaplinksiy <mike.kaplinskiy@gma
 Mike Kaplinskiy <mike.kaplinskiy@gmail.com> <mike.kaplinskiy@gmai.com>
 
 Mike Stroyan <mike@lunarg.com> <mike@LunarG.com>
+
+Mun Gwan-gyeong <elongbug@gmail.com> Gwan-gyeong Mun <elongbug@gmail.com>
 
 Neha Bhende <bhenden@vmware.com> <nbhende@vmware.com>
 
@@ -538,6 +565,8 @@ Samuel Iglesias Gonsálvez <siglesias@igalia.com> Samuel Iglesias Gonsalvez <sig
 
 Samuel Li <samuel.li@amd.com> <Samuel.Li@amd.com>
 
+Satyeshwar Singh <satyeshwar.singh@intel.com> Singh, Satyeshwar <satyeshwar.singh@intel.com>
+
 Sean D'Epagnier <sean@depagnier.com> <geckosenator@freedesktop.org>
 
 Serge Martin <edb+mesa@sigluy.net> Serge Martin (EdB) <edb+mesa@sigluy.net>
@@ -585,13 +614,12 @@ Tilman Sauerbeck <tilman@code-monkey.de> <tilman@freedesktop.org>
 
 Tim Wiederhake <twied@gmx.net>
 
-Timothy Arceri <timothy.arceri@collabora.com> <t_arceri@yahoo.com.au>
-Timothy Arceri <timothy.arceri@collabora.com> Timothy <t_arceri@yahoo.com.au>
-
 Timo Aaltonen <tjaalton@debian.org> <tjaalton@cc.hut.fi>
 
 Timothy Arceri <tarceri@itsqueeze.com> <tarceri@localhost.localdomain>
 Timothy Arceri <tarceri@itsqueeze.com> <timothy.arceri@collabora.com>
+Timothy Arceri <tarceri@itsqueeze.com> <t_arceri@yahoo.com.au>
+Timothy Arceri <tarceri@itsqueeze.com> Timothy <t_arceri@yahoo.com.au>
 
 Tom Fogal <tfogal@alumni.unh.edu> <tfogal@sci.utah.edu>
 
@@ -625,6 +653,8 @@ Vinson Lee <vlee@freedesktop.org> <vlee@vmware.com>
 Vivek Kasireddy <vivek.kasireddy@intel.com>
 
 Yaakov Selkowitz <yselkowi@redhat.com> <yselkowitz@users.sourceforge.net>
+
+Yogesh Mohan Marimuthu <yogesh.mohanmarimuthu@amd.com> Yogesh mohan marimuthu <yogesh.mohanmarimuthu@amd.com>
 
 Wladimir J. van der Laan <laanwj@gmail.com>
 

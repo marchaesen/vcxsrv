@@ -1,3 +1,6 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
 Name: Xwayland
 Description: X Server for Wayland
 Version: @PACKAGE_VERSION@
@@ -5,3 +8,5 @@ xwayland=@xwayland_path@/Xwayland
 have_glamor=@have_glamor@
 have_eglstream=@have_eglstream@
 have_initfd=true
+have_listenfd=true
+have_verbose=true

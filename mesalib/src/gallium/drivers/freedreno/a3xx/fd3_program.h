@@ -30,9 +30,23 @@
 #include "pipe/p_context.h"
 #include "freedreno_context.h"
 
+#include "ir3/ir3_cache.h"
 #include "ir3/ir3_shader.h"
 
 struct fd3_emit;
+
+struct fd3_program_state {
+	struct ir3_program_state base;
+	struct ir3_shader_variant *bs; /* VS for when emit->binning */
+	struct ir3_shader_variant *vs;
+	struct ir3_shader_variant *fs; /* FS for when !emit->binning */
+};
+
+static inline struct fd3_program_state *
+fd3_program_state(struct ir3_program_state *state)
+{
+	return (struct fd3_program_state *)state;
+}
 
 void fd3_program_emit(struct fd_ringbuffer *ring, struct fd3_emit *emit,
 					  int nr, struct pipe_surface **bufs);

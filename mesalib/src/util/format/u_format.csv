@@ -67,19 +67,29 @@ PIPE_FORMAT_NONE                    , plain, 1, 1, 1, u8  ,     ,     ,     , x0
 # Typical rendertarget formats
 PIPE_FORMAT_B8G8R8A8_UNORM          , plain, 1, 1, 1, un8 , un8 , un8 , un8 , zyxw, rgb
 PIPE_FORMAT_B8G8R8X8_UNORM          , plain, 1, 1, 1, un8 , un8 , un8 , x8  , zyx1, rgb
+PIPE_FORMAT_B8G8R8X8_SNORM          , plain, 1, 1, 1, sn8 , sn8 , sn8 , x8  , zyx1, rgb
+PIPE_FORMAT_B8G8R8X8_UINT           , plain, 1, 1, 1, up8 , up8 , up8 , x8  , zyx1, rgb
+PIPE_FORMAT_B8G8R8X8_SINT           , plain, 1, 1, 1, sp8 , sp8 , sp8 , x8  , zyx1, rgb
 PIPE_FORMAT_A8R8G8B8_UNORM          , plain, 1, 1, 1, un8 , un8 , un8 , un8 , yzwx, rgb
+PIPE_FORMAT_A8R8G8B8_SNORM          , plain, 1, 1, 1, sn8 , sn8 , sn8 , sn8 , yzwx, rgb
+PIPE_FORMAT_A8R8G8B8_SINT           , plain, 1, 1, 1, sp8 , sp8 , sp8 , sp8 , yzwx, rgb
 PIPE_FORMAT_X8R8G8B8_UNORM          , plain, 1, 1, 1, x8  , un8 , un8 , un8 , yzw1, rgb
+PIPE_FORMAT_X8R8G8B8_SNORM          , plain, 1, 1, 1, x8  , sn8 , sn8 , sn8 , yzw1, rgb
+PIPE_FORMAT_X8R8G8B8_SINT           , plain, 1, 1, 1, x8  , sp8 , sp8 , sp8 , yzw1, rgb
 PIPE_FORMAT_A8B8G8R8_UNORM          , plain, 1, 1, 1, un8 , un8 , un8 , un8 , wzyx, rgb
 PIPE_FORMAT_X8B8G8R8_UNORM          , plain, 1, 1, 1, x8  , un8 , un8 , un8 , wzy1, rgb
 # PIPE_FORMAT_R8G8B8A8_UNORM is below
 PIPE_FORMAT_R8G8B8X8_UNORM          , plain, 1, 1, 1, un8 , un8 , un8 , x8  , xyz1, rgb
 PIPE_FORMAT_R5G5B5A1_UNORM          , plain, 1, 1, 1, un5 , un5 , un5 , un1 , xyzw, rgb, un1 , un5 , un5 , un5 , wzyx
+PIPE_FORMAT_R5G5B5X1_UNORM          , plain, 1, 1, 1, un5 , un5 , un5 , x1  , xyz1, rgb, x1  , un5 , un5 , un5 , wzy1
 PIPE_FORMAT_B5G5R5X1_UNORM          , plain, 1, 1, 1, un5 , un5 , un5 , x1  , zyx1, rgb, x1  , un5 , un5 , un5 , yzw1
 PIPE_FORMAT_B5G5R5A1_UNORM          , plain, 1, 1, 1, un5 , un5 , un5 , un1 , zyxw, rgb, un1 , un5 , un5 , un5 , yzwx
 PIPE_FORMAT_X1B5G5R5_UNORM          , plain, 1, 1, 1, x1  , un5 , un5 , un5 , wzy1, rgb, un5 , un5 , un5 ,  x1 , xyz1
 PIPE_FORMAT_A1R5G5B5_UNORM          , plain, 1, 1, 1, un1 , un5 , un5 , un5 , yzwx, rgb, un5 , un5 , un5 , un1 , zyxw
+PIPE_FORMAT_X1R5G5B5_UNORM          , plain, 1, 1, 1, x1  , un5 , un5 , un5 , yzw1, rgb, un5 , un5 , un5 ,  x1 , zyx1
 PIPE_FORMAT_A1B5G5R5_UNORM          , plain, 1, 1, 1, un1 , un5 , un5 , un5 , wzyx, rgb, un5 , un5 , un5 , un1 , xyzw
 PIPE_FORMAT_R4G4B4A4_UNORM          , plain, 1, 1, 1, un4 , un4 , un4 , un4 , xyzw, rgb, un4 , un4 , un4 , un4 , wzyx
+PIPE_FORMAT_R4G4B4X4_UNORM          , plain, 1, 1, 1, un4 , un4 , un4 , x4  , xyz1, rgb, x4  , un4 , un4 , un4 , wzy1
 PIPE_FORMAT_B4G4R4A4_UNORM          , plain, 1, 1, 1, un4 , un4 , un4 , un4 , zyxw, rgb, un4 , un4 , un4 , un4 , yzwx
 PIPE_FORMAT_B4G4R4X4_UNORM          , plain, 1, 1, 1, un4 , un4 , un4 , x4  , zyx1, rgb, x4  , un4 , un4 , un4 , yzw1
 PIPE_FORMAT_A4R4G4B4_UNORM          , plain, 1, 1, 1, un4 , un4 , un4 , un4 , yzwx, rgb, un4 , un4 , un4 , un4 , zyxw
@@ -500,7 +510,7 @@ PIPE_FORMAT_R4G4B4A4_UINT           , plain, 1, 1, 1, up4 , up4 , up4 , up4 , xy
 PIPE_FORMAT_B4G4R4A4_UINT           , plain, 1, 1, 1, up4 , up4 , up4 , up4 , zyxw, rgb, up4 , up4 , up4 , up4 , yzwx
 PIPE_FORMAT_A4R4G4B4_UINT           , plain, 1, 1, 1, up4 , up4 , up4 , up4 , yzwx, rgb, up4 , up4 , up4 , up4 , zyxw
 PIPE_FORMAT_A4B4G4R4_UINT           , plain, 1, 1, 1, up4 , up4 , up4 , up4 , wzyx, rgb, up4 , up4 , up4 , up4 , xyzw
-PIPE_FORMAT_A1R5G5B5_UINT           , plain, 1, 1, 1, up1 , up5 , up5 , up5 , wzyx, rgb, up5 , up5 , up5 , up1 , zyxw
+PIPE_FORMAT_A1R5G5B5_UINT           , plain, 1, 1, 1, up1 , up5 , up5 , up5 , yzwx, rgb, up5 , up5 , up5 , up1 , zyxw
 PIPE_FORMAT_A1B5G5R5_UINT           , plain, 1, 1, 1, up1 , up5 , up5 , up5 , wzyx, rgb, up5 , up5 , up5 , up1 , xyzw
 PIPE_FORMAT_R5G5B5A1_UINT           , plain, 1, 1, 1, up5 , up5 , up5 , up1 , xyzw, rgb, up5 , up5 , up5 , up1 , wzyx
 PIPE_FORMAT_B5G5R5A1_UINT           , plain, 1, 1, 1, up5 , up5 , up5 , up1 , zyxw, rgb, up1 , up5 , up5 , up5 , yzwx
@@ -510,6 +520,7 @@ PIPE_FORMAT_R8G8B8X8_SRGB           , plain, 1, 1, 1, un8,  un8,  un8,  x8,  xyz
 PIPE_FORMAT_R8G8B8X8_UINT           , plain, 1, 1, 1, up8,  up8,  up8,  x8,  xyz1, rgb
 PIPE_FORMAT_R8G8B8X8_SINT           , plain, 1, 1, 1, sp8,  sp8,  sp8,  x8,  xyz1, rgb
 PIPE_FORMAT_B10G10R10X2_UNORM       , plain, 1, 1, 1, un10, un10, un10, x2,  zyx1, rgb, x2  , un10, un10, un10, yzw1
+PIPE_FORMAT_B10G10R10X2_SNORM       , plain, 1, 1, 1, sn10, sn10, sn10, x2,  zyx1, rgb, x2  , sn10, sn10, sn10, yzw1
 PIPE_FORMAT_R16G16B16X16_UNORM      , plain, 1, 1, 1, un16, un16, un16, x16, xyz1, rgb
 PIPE_FORMAT_R16G16B16X16_SNORM      , plain, 1, 1, 1, sn16, sn16, sn16, x16, xyz1, rgb
 PIPE_FORMAT_R16G16B16X16_FLOAT      , plain, 1, 1, 1, f16,  f16,  f16,  x16, xyz1, rgb
@@ -534,6 +545,7 @@ PIPE_FORMAT_R10G10B10A2_UINT        , plain, 1, 1, 1, up10 , up10 , up10, up2 , 
 PIPE_FORMAT_R10G10B10A2_SINT        , plain, 1, 1, 1, sp10 , sp10 , sp10, sp2 , xyzw, rgb, sp2 , sp10, sp10, sp10, wzyx
 
 PIPE_FORMAT_B5G6R5_SRGB             , plain, 1, 1, 1, un5 , un6 , un5 ,     , zyx1, srgb, un5 , un6 , un5 ,     , xyz1
+PIPE_FORMAT_R5G6B5_SRGB             , plain, 1, 1, 1, un5 , un6 , un5 ,     , xyz1, srgb, un5 , un6 , un5 ,     , zyx1
 
 PIPE_FORMAT_G8R8_UNORM              , plain, 1, 1, 1, un8 , un8 , , , yx01, rgb
 PIPE_FORMAT_G8R8_SNORM              , plain, 1, 1, 1, sn8 , sn8 , , , yx01, rgb

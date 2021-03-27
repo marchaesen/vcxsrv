@@ -54,4 +54,6 @@ libxserver_wfb = static_library('libxserver_wfb',
 	build_by_default: false,
 )
 
-install_data(hdrs_fb, install_dir: xorgsdkdir)
+if build_xorg
+    install_data(hdrs_fb, install_dir: xorgsdkdir)
+endif

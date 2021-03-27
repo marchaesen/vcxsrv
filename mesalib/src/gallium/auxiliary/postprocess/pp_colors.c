@@ -37,6 +37,7 @@ pp_nocolor(struct pp_queue_t *ppq, struct pipe_resource *in,
 {
 
    struct pp_program *p = ppq->p;
+   struct pipe_context *pipe = p->pipe;
    const struct pipe_sampler_state *samplers[] = {&p->sampler_point};
 
    pp_filter_setup_in(p, in);
@@ -46,7 +47,7 @@ pp_nocolor(struct pp_queue_t *ppq, struct pipe_resource *in,
    pp_filter_misc_state(p);
 
    cso_set_samplers(p->cso, PIPE_SHADER_FRAGMENT, 1, samplers);
-   cso_set_sampler_views(p->cso, PIPE_SHADER_FRAGMENT, 1, &p->view);
+   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 1, 0, &p->view);
 
    cso_set_vertex_shader_handle(p->cso, ppq->shaders[n][0]);
    cso_set_fragment_shader_handle(p->cso, ppq->shaders[n][1]);

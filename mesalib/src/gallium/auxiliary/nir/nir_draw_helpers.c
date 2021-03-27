@@ -80,7 +80,7 @@ nir_lower_pstipple_block(nir_block *block,
    tex->op = nir_texop_tex;
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
    tex->coord_components = 2;
-   tex->dest_type = nir_type_float;
+   tex->dest_type = nir_type_float32;
    tex->texture_index = state->stip_tex->data.binding;
    tex->sampler_index = state->stip_tex->data.binding;
    tex->src[0].src_type = nir_tex_src_coord;
@@ -90,9 +90,7 @@ nir_lower_pstipple_block(nir_block *block,
    nir_builder_instr_insert(b, &tex->instr);
 
    nir_ssa_def *condition = nir_f2b32(b, nir_channel(b, &tex->dest.ssa, 3));
-   nir_intrinsic_instr *discard = nir_intrinsic_instr_create(b->shader, nir_intrinsic_discard_if);
-   discard->src[0] = nir_src_for_ssa(condition);
-   nir_builder_instr_insert(b, &discard->instr);
+   nir_discard_if(b, condition);
    b->shader->info.fs.uses_discard = true;
 }
 
@@ -136,7 +134,7 @@ nir_lower_pstipple_fs(struct nir_shader *shader,
    tex_var->data.explicit_binding = true;
    tex_var->data.how_declared = nir_var_hidden;
 
-   shader->info.textures_used |= (1 << binding);
+   BITSET_SET(shader->info.textures_used, binding);
    state.stip_tex = tex_var;
 
    nir_foreach_function(function, shader) {
@@ -300,9 +298,7 @@ nir_lower_aapoint_impl(nir_function_impl *impl,
    nir_ssa_def *chan_val_one = nir_channel(b, aainput, 3);
    nir_ssa_def *comp = nir_flt32(b, chan_val_one, dist);
 
-   nir_intrinsic_instr *discard = nir_intrinsic_instr_create(b->shader, nir_intrinsic_discard_if);
-   discard->src[0] = nir_src_for_ssa(comp);
-   nir_builder_instr_insert(b, &discard->instr);
+   nir_discard_if(b, comp);
    b->shader->info.fs.uses_discard = true;
 
    /* compute coverage factor = (1-d)/(1-k) */

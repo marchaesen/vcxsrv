@@ -27,7 +27,6 @@
 #include "r600_pipe_common.h"
 #include "r600_cs.h"
 #include "tgsi/tgsi_parse.h"
-#include "compiler/nir/nir.h"
 #include "util/list.h"
 #include "util/u_draw_quad.h"
 #include "util/u_memory.h"
@@ -207,7 +206,7 @@ void r600_draw_rectangle(struct blitter_context *blitter,
 	vbuffer.stride = 2 * 4 * sizeof(float); /* vertex size */
 	vbuffer.buffer_offset = offset;
 
-	rctx->b.set_vertex_buffers(&rctx->b, blitter->vb_slot, 1, &vbuffer);
+	rctx->b.set_vertex_buffers(&rctx->b, blitter->vb_slot, 1, 0, false, &vbuffer);
 	util_draw_arrays_instanced(&rctx->b, R600_PRIM_RECTANGLE_LIST, 0, 3,
 				   0, num_instances);
 	pipe_resource_reference(&buf, NULL);
@@ -228,8 +227,8 @@ static void r600_dma_emit_wait_idle(struct r600_common_context *rctx)
 void r600_need_dma_space(struct r600_common_context *ctx, unsigned num_dw,
                          struct r600_resource *dst, struct r600_resource *src)
 {
-	uint64_t vram = ctx->dma.cs.used_vram;
-	uint64_t gtt = ctx->dma.cs.used_gart;
+	uint64_t vram = (uint64_t)ctx->dma.cs.used_vram_kb * 1024;
+	uint64_t gtt = (uint64_t)ctx->dma.cs.used_gart_kb * 1024;
 
 	if (dst) {
 		vram += dst->vram_usage;
@@ -264,7 +263,7 @@ void r600_need_dma_space(struct r600_common_context *ctx, unsigned num_dw,
 	 */
 	num_dw++; /* for emit_wait_idle below */
 	if (!ctx->ws->cs_check_space(&ctx->dma.cs, num_dw, false) ||
-	    ctx->dma.cs.used_vram + ctx->dma.cs.used_gart > 64 * 1024 * 1024 ||
+	    ctx->dma.cs.used_vram_kb + ctx->dma.cs.used_gart_kb > 64 * 1024 ||
 	    !radeon_cs_memory_below_limit(ctx->screen, &ctx->dma.cs, vram, gtt)) {
 		ctx->dma.flush(ctx, PIPE_FLUSH_ASYNC, NULL);
 		assert((num_dw + ctx->dma.cs.current.cdw) <= ctx->dma.cs.current.max_dw);
@@ -1170,63 +1169,16 @@ struct pipe_resource *r600_resource_create_common(struct pipe_screen *screen,
 	}
 }
 
-const struct nir_shader_compiler_options r600_nir_fs_options = {
-	.fuse_ffma16 = true,
-	.fuse_ffma32 = true,
-	.fuse_ffma64 = true,
-	.lower_scmp = true,
-	.lower_flrp32 = true,
-	.lower_flrp64 = true,
-	.lower_fpow = true,
-	.lower_fdiv = true,
-        .lower_isign = true,
-        .lower_fsign = true,
-	.lower_fmod = true,
-	.lower_doubles_options = nir_lower_fp64_full_software,
-	.lower_int64_options = ~0,
-	.lower_extract_byte = true,
-	.lower_extract_word = true,
-        .lower_rotate = true,
-	.max_unroll_iterations = 32,
-	.lower_all_io_to_temps = true,
-	.vectorize_io = true,
-	.has_umad24 = true,
-	.has_umul24 = true,
-        .use_interpolated_input_intrinsics = true
-};
-
-const struct nir_shader_compiler_options r600_nir_options = {
-	.fuse_ffma16 = true,
-	.fuse_ffma32 = true,
-	.fuse_ffma64 = true,
-	.lower_scmp = true,
-	.lower_flrp32 = true,
-	.lower_flrp64 = true,
-	.lower_fpow = true,
-	.lower_fdiv = true,
-	.lower_fmod = true,
-	.lower_doubles_options = nir_lower_fp64_full_software,
-	.lower_int64_options = ~0,
-	.lower_extract_byte = true,
-	.lower_extract_word = true,
-        .lower_rotate = true,
-	.max_unroll_iterations = 32,
-	.vectorize_io = true,
-	.has_umad24 = true,
-	.has_umul24 = true,
-};
-
-
 static const void *
 r600_get_compiler_options(struct pipe_screen *screen,
 			  enum pipe_shader_ir ir,
 			  enum pipe_shader_type shader)
 {
-	assert(ir == PIPE_SHADER_IR_NIR);
-	if (shader == PIPE_SHADER_FRAGMENT)
-	   return &r600_nir_fs_options;
-	else
-	   return &r600_nir_options;
+       assert(ir == PIPE_SHADER_IR_NIR);
+
+       struct r600_common_screen *rscreen = (struct r600_common_screen *)screen;
+
+       return &rscreen->nir_options;
 }
 
 bool r600_common_screen_init(struct r600_common_screen *rscreen,
@@ -1236,7 +1188,7 @@ bool r600_common_screen_init(struct r600_common_screen *rscreen,
 	struct utsname uname_data;
 	const char *chip_name;
 
-	ws->query_info(ws, &rscreen->info);
+	ws->query_info(ws, &rscreen->info, false, false);
 	rscreen->ws = ws;
 
 	chip_name = r600_get_family_name(rscreen);
@@ -1348,6 +1300,40 @@ bool r600_common_screen_init(struct r600_common_screen *rscreen,
 		printf("enabled_rb_mask = 0x%x\n", rscreen->info.enabled_rb_mask);
 		printf("max_alignment = %u\n", (unsigned)rscreen->info.max_alignment);
 	}
+
+	const struct nir_shader_compiler_options nir_options = {
+		.fuse_ffma16 = true,
+		.fuse_ffma32 = true,
+		.fuse_ffma64 = true,
+		.lower_flrp32 = true,
+		.lower_flrp64 = true,
+		.lower_fpow = true,
+		.lower_fdiv = true,
+		.lower_isign = true,
+		.lower_fsign = true,
+		.lower_fmod = true,
+		.lower_doubles_options = nir_lower_fp64_full_software,
+		.lower_int64_options = ~0,
+		.lower_extract_byte = true,
+		.lower_extract_word = true,
+		.lower_rotate = true,
+		.max_unroll_iterations = 32,
+		.lower_interpolate_at = true,
+		.vectorize_io = true,
+		.has_umad24 = true,
+		.has_umul24 = true,
+		.use_interpolated_input_intrinsics = true,
+		.has_fsub = true,
+		.has_isub = true,
+		.lower_iabs = true,
+		.lower_bitfield_extract = true,
+		.lower_bitfield_insert_to_bitfield_select = true,
+		.has_fused_comp_and_csel = true,
+		.lower_find_msb_to_reverse = true,
+	};
+
+	rscreen->nir_options = nir_options;
+
 	return true;
 }
 

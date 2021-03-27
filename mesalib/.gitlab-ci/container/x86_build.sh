@@ -32,6 +32,9 @@ apt-get install -y --no-remove \
       liblua5.3-dev \
       libxml2-dev \
       ocl-icd-opencl-dev \
+      procps \
+      strace \
+      time \
       wine-development \
       wine32-development
 
@@ -79,7 +82,7 @@ tar -xvf $LIBXCB_VERSION.tar.bz2 && rm $LIBXCB_VERSION.tar.bz2
 cd $LIBXCB_VERSION; ./configure; make install; cd ..
 rm -rf $LIBXCB_VERSION
 
-. .gitlab-ci/build-libdrm.sh
+. .gitlab-ci/container/build-libdrm.sh
 
 wget $WAYLAND_RELEASES/$LIBWAYLAND_VERSION.tar.xz
 tar -xvf $LIBWAYLAND_VERSION.tar.xz && rm $LIBWAYLAND_VERSION.tar.xz
@@ -101,7 +104,7 @@ tar -xvf libglvnd-v$GLVND_VERSION.tar.gz && rm libglvnd-v$GLVND_VERSION.tar.gz
 pushd libglvnd-v$GLVND_VERSION; ./autogen.sh; ./configure; make install; popd
 rm -rf libglvnd-v$GLVND_VERSION
 
-. .gitlab-ci/build-spirv-tools.sh
+. .gitlab-ci/container/build-spirv-tools.sh
 
 git clone https://github.com/KhronosGroup/SPIRV-LLVM-Translator -b llvm_release_100 --depth 1
 pushd SPIRV-LLVM-Translator
@@ -117,6 +120,15 @@ cd shader-db
 make
 popd
 
+git clone https://github.com/microsoft/DirectX-Headers -b v1.0.1 --depth 1
+pushd DirectX-Headers
+mkdir build
+cd build
+meson .. --backend=ninja --buildtype=release -Dbuild-test=false
+ninja
+ninja install
+popd
+rm -rf DirectX-Headers
 
 ############### Uninstall the build software
 

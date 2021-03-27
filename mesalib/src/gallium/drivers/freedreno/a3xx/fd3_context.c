@@ -39,6 +39,7 @@
 
 static void
 fd3_context_destroy(struct pipe_context *pctx)
+	in_dt
 {
 	struct fd3_context *fd3_ctx = fd3_context(fd_context(pctx));
 
@@ -71,6 +72,7 @@ static const uint8_t primtypes[] = {
 
 struct pipe_context *
 fd3_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
+	in_dt
 {
 	struct fd_screen *screen = fd_screen(pscreen);
 	struct fd3_context *fd3_ctx = CALLOC_STRUCT(fd3_context);
@@ -84,6 +86,7 @@ fd3_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
 
 	fd3_ctx->base.dev = fd_device_ref(screen->dev);
 	fd3_ctx->base.screen = fd_screen(pscreen);
+	fd3_ctx->base.last.key = &fd3_ctx->last_key;
 
 	pctx->destroy = fd3_context_destroy;
 	pctx->create_blend_state = fd3_blend_state_create;

@@ -325,7 +325,10 @@ protected:
         const ADDR2_COMPUTE_HTILE_COORDFROMADDR_INPUT* pIn,
         ADDR2_COMPUTE_HTILE_COORDFROMADDR_OUTPUT*      pOut);
 
-    virtual ADDR_E_RETURNCODE HwlComputeDccAddrFromCoord(
+    virtual ADDR_E_RETURNCODE HwlSupportComputeDccAddrFromCoord(
+        const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT* pIn);
+
+    virtual VOID HwlComputeDccAddrFromCoord(
         const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT* pIn,
         ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT*      pOut);
 
@@ -449,7 +452,7 @@ private:
 
     static ADDR2_BLOCK_SET GetAllowedBlockSet(ADDR2_SWMODE_SET allowedSwModeSet, AddrResourceType rsrcType)
     {
-        ADDR2_BLOCK_SET allowedBlockSet = {0};
+        ADDR2_BLOCK_SET allowedBlockSet = {};
 
         allowedBlockSet.micro  = (allowedSwModeSet.value & Gfx9Blk256BSwModeMask) ? TRUE : FALSE;
         allowedBlockSet.linear = (allowedSwModeSet.value & Gfx9LinearSwModeMask)  ? TRUE : FALSE;
@@ -472,7 +475,7 @@ private:
 
     static ADDR2_SWTYPE_SET GetAllowedSwSet(ADDR2_SWMODE_SET allowedSwModeSet)
     {
-        ADDR2_SWTYPE_SET allowedSwSet = {0};
+        ADDR2_SWTYPE_SET allowedSwSet = {};
 
         allowedSwSet.sw_Z = (allowedSwModeSet.value & Gfx9ZSwModeMask)        ? TRUE : FALSE;
         allowedSwSet.sw_S = (allowedSwModeSet.value & Gfx9StandardSwModeMask) ? TRUE : FALSE;

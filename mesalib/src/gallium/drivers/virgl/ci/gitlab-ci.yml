@@ -1,0 +1,86 @@
+.virgl-test:
+  extends:
+    - .test-gl
+    - .virgl-rules
+  variables:
+    LIBGL_ALWAYS_SOFTWARE: "true"
+    GALLIUM_DRIVER: "virpipe"
+
+virgl-gles2-on-gl:
+  variables:
+    DEQP_VER: gles2
+    DEQP_NO_SAVE_RESULTS: 1
+    GPU_VERSION: virgl-gl
+    # Don't use threads inside llvmpipe, we've already got all cores
+    # busy at the deqp-runner level.
+    LP_NUM_THREADS: 0
+    DEQP_OPTIONS: "--deqp-log-images=disable"
+    DEQP_EXPECTED_RENDERER: virgl
+  extends:
+    - .deqp-test
+    - .virgl-test
+
+virgl-gles3-on-gl:
+  variables:
+    DEQP_VER: gles3
+    DEQP_RUNNER_OPTIONS: "--timeout 180"
+  extends: virgl-gles2-on-gl
+
+virgl-gles31-on-gl:
+  parallel: 2
+  variables:
+    DEQP_VER: gles31
+    MESA_EXTENSION_OVERRIDE: "-GL_OES_tessellation_shader"
+  extends: virgl-gles3-on-gl
+
+virgl-gl30-on-gl:
+  variables:
+    DEQP_VER: gl30
+  extends: virgl-gles2-on-gl
+
+virgl-gl31-on-gl:
+  variables:
+    DEQP_VER: gl31
+  extends: virgl-gles2-on-gl
+
+virgl-gl32-on-gl:
+  variables:
+    DEQP_VER: gl32
+  extends: virgl-gles2-on-gl
+
+virgl-gles2-on-gles:
+  variables:
+    VIRGL_HOST_API: GLES
+    GPU_VERSION: virgl-gles
+  extends:
+    - virgl-gles2-on-gl
+    - .test-manual
+
+virgl-gles3-on-gles:
+  variables:
+    VIRGL_HOST_API: GLES
+    GPU_VERSION: virgl-gles
+  extends:
+    - virgl-gles3-on-gl
+    - .test-manual
+
+virgl-gles31-on-gles:
+  variables:
+    VIRGL_HOST_API: GLES
+    GPU_VERSION: virgl-gles
+  extends:
+    - virgl-gles31-on-gl
+    - .test-manual
+
+virgl-traces:
+  extends:
+    - .virgl-test
+    - .piglit-traces-test
+  variables:
+    EGL_PLATFORM: "surfaceless"
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-virgl.yml"
+    PIGLIT_REPLAY_DEVICE_NAME: "gl-virgl"
+    PIGLIT_RESULTS: "virgl-replay"
+    MESA_GLES_VERSION_OVERRIDE: "3.1"
+    MESA_GLSL_VERSION_OVERRIDE: "310"
+

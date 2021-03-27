@@ -65,7 +65,7 @@ struct schedule_instruction {
 	struct rc_reader_data GlobalReaders;
 
 	/** If the scheduler has paired an RGB and an Alpha instruction together,
-	 * PairedInst references the alpha insturction's dependency information.
+	 * PairedInst references the alpha instruction's dependency information.
 	 */
 	struct schedule_instruction * PairedInst;
 
@@ -107,7 +107,7 @@ struct reg_value {
 	/**
 	 * Number of readers of this value. This is decremented each time
 	 * a reader of the value is committed.
-	 * When the reader cound reaches zero, the dependency count
+	 * When the reader count reaches zero, the dependency count
 	 * of the instruction writing \ref Next is decremented.
 	 */
 	unsigned int NumReaders;
@@ -120,7 +120,7 @@ struct register_state {
 };
 
 struct remap_reg {
-	struct rc_instruciont * Inst;
+	struct rc_instruction * Inst;
 	unsigned int OldIndex:(RC_REGISTER_INDEX_BITS+1);
 	unsigned int OldSwizzle:3;
 	unsigned int NewIndex:(RC_REGISTER_INDEX_BITS+1);
@@ -865,7 +865,7 @@ static void is_rgb_to_alpha_possible(
 	/* Make sure there are enough alpha sources.
 	 * XXX If we know what register all the readers are going
 	 * to be remapped to, then in some situations we can still do
-	 * the subsitution, even if all 3 alpha sources are being used.*/
+	 * the substitution, even if all 3 alpha sources are being used.*/
 	for (i = 0; i < 3; i++) {
 		if (inst->U.P.Alpha.Src[i].Used) {
 			alpha_sources++;

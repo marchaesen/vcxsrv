@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "vk_descriptors.h"
 #include "vk_util.h"
 
 #include "v3dv_private.h"
@@ -359,6 +360,8 @@ v3dv_CreatePipelineLayout(VkDevice _device,
          dynamic_offset_count += set_layout->binding[b].array_size *
             set_layout->binding[b].dynamic_offset_count;
       }
+
+      layout->shader_stages |= set_layout->shader_stages;
    }
 
    layout->push_constant_size = 0;
@@ -409,6 +412,7 @@ v3dv_CreateDescriptorPool(VkDevice _device,
    uint32_t bo_size = 0;
    uint32_t descriptor_count = 0;
 
+   assert(pCreateInfo->poolSizeCount > 0);
    for (unsigned i = 0; i < pCreateInfo->poolSizeCount; ++i) {
       /* Verify supported descriptor type */
       switch(pCreateInfo->pPoolSizes[i].type) {
@@ -429,6 +433,7 @@ v3dv_CreateDescriptorPool(VkDevice _device,
          break;
       }
 
+      assert(pCreateInfo->pPoolSizes[i].descriptorCount > 0);
       descriptor_count += pCreateInfo->pPoolSizes[i].descriptorCount;
       bo_size += descriptor_bo_size(pCreateInfo->pPoolSizes[i].type) *
          pCreateInfo->pPoolSizes[i].descriptorCount;
@@ -553,40 +558,6 @@ v3dv_ResetDescriptorPool(VkDevice _device,
    return VK_SUCCESS;
 }
 
-static int
-binding_compare(const void *av, const void *bv)
-{
-   const VkDescriptorSetLayoutBinding *a =
-      (const VkDescriptorSetLayoutBinding *) av;
-   const VkDescriptorSetLayoutBinding *b =
-      (const VkDescriptorSetLayoutBinding *) bv;
-
-   return (a->binding < b->binding) ? -1 : (a->binding > b->binding) ? 1 : 0;
-}
-
-static VkDescriptorSetLayoutBinding *
-create_sorted_bindings(const VkDescriptorSetLayoutBinding *bindings,
-                       unsigned count,
-                       struct v3dv_device *device,
-                       const VkAllocationCallbacks *pAllocator)
-{
-   VkDescriptorSetLayoutBinding *sorted_bindings =
-      vk_alloc2(&device->vk.alloc, pAllocator,
-                count * sizeof(VkDescriptorSetLayoutBinding),
-                8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-
-   if (!sorted_bindings)
-      return NULL;
-
-   memcpy(sorted_bindings, bindings,
-          count * sizeof(VkDescriptorSetLayoutBinding));
-
-   qsort(sorted_bindings, count, sizeof(VkDescriptorSetLayoutBinding),
-         binding_compare);
-
-   return sorted_bindings;
-}
-
 VkResult
 v3dv_CreateDescriptorSetLayout(VkDevice _device,
                                const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
@@ -639,9 +610,8 @@ v3dv_CreateDescriptorSetLayout(VkDevice _device,
    VkDescriptorSetLayoutBinding *bindings = NULL;
    if (pCreateInfo->bindingCount > 0) {
       assert(max_binding >= 0);
-      bindings = create_sorted_bindings(pCreateInfo->pBindings,
-                                        pCreateInfo->bindingCount,
-                                        device, pAllocator);
+      bindings = vk_create_sorted_bindings(pCreateInfo->pBindings,
+                                           pCreateInfo->bindingCount);
       if (!bindings) {
          vk_object_free(&device->vk, pAllocator, set_layout);
          return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -707,10 +677,6 @@ v3dv_CreateDescriptorSetLayout(VkDevice _device,
       dynamic_offset_count += binding->descriptorCount *
          set_layout->binding[binding_number].dynamic_offset_count;
 
-      /* FIXME: right now we don't use shader_stages. We could explore if we
-       * could use it to add another filter to upload or allocate the
-       * descriptor data.
-       */
       set_layout->shader_stages |= binding->stageFlags;
 
       set_layout->binding[binding_number].descriptor_offset = set_layout->bo_size;
@@ -719,8 +685,7 @@ v3dv_CreateDescriptorSetLayout(VkDevice _device,
          binding->descriptorCount;
    }
 
-   if (bindings)
-      vk_free2(&device->vk.alloc, pAllocator, bindings);
+   free(bindings);
 
    set_layout->descriptor_count = descriptor_count;
    set_layout->dynamic_offset_count = dynamic_offset_count;
@@ -829,7 +794,6 @@ descriptor_set_create(struct v3dv_device *device,
                  sizeof(pool->entries[0]) * (pool->entry_count - index));
       } else {
          assert(pool->host_memory_base);
-         vk_object_free(&device->vk, NULL, set);
          return out_of_pool_memory(device, pool);
       }
 

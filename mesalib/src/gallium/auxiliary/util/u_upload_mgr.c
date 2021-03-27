@@ -54,7 +54,7 @@ struct u_upload_mgr {
    unsigned buffer_size; /* Same as buffer->width0. */
    unsigned offset; /* Aligned offset to the upload buffer, pointing
                      * at the first unused byte. */
-   unsigned flushed_size; /* Size we have flushed by transfer_flush_region. */
+   int buffer_private_refcount;
 };
 
 
@@ -109,19 +109,8 @@ u_upload_clone(struct pipe_context *pipe, struct u_upload_mgr *upload)
                                                  upload->flags);
    if (!upload->map_persistent && result->map_persistent)
       u_upload_disable_persistent(result);
-   else if (upload->map_persistent &&
-            upload->map_flags & PIPE_MAP_FLUSH_EXPLICIT)
-      u_upload_enable_flush_explicit(result);
 
    return result;
-}
-
-void
-u_upload_enable_flush_explicit(struct u_upload_mgr *upload)
-{
-   assert(upload->map_persistent);
-   upload->map_flags &= ~PIPE_MAP_COHERENT;
-   upload->map_flags |= PIPE_MAP_FLUSH_EXPLICIT;
 }
 
 void
@@ -135,27 +124,19 @@ u_upload_disable_persistent(struct u_upload_mgr *upload)
 static void
 upload_unmap_internal(struct u_upload_mgr *upload, boolean destroying)
 {
-   if (!upload->transfer)
+   if ((!destroying && upload->map_persistent) || !upload->transfer)
       return;
 
-   if (upload->map_flags & PIPE_MAP_FLUSH_EXPLICIT) {
-      struct pipe_box *box = &upload->transfer->box;
-      unsigned flush_offset = box->x + upload->flushed_size;
+   struct pipe_box *box = &upload->transfer->box;
 
-      if (upload->offset > flush_offset) {
-         pipe_buffer_flush_mapped_range(upload->pipe, upload->transfer,
-                                        flush_offset,
-                                        upload->offset - flush_offset);
-         upload->flushed_size = upload->offset;
-      }
+   if (!upload->map_persistent && (int) upload->offset > box->x) {
+      pipe_buffer_flush_mapped_range(upload->pipe, upload->transfer,
+                                     box->x, upload->offset - box->x);
    }
 
-   if (destroying || !upload->map_persistent) {
-      pipe_transfer_unmap(upload->pipe, upload->transfer);
-      upload->transfer = NULL;
-      upload->map = NULL;
-      upload->flushed_size = 0;
-   }
+   pipe_transfer_unmap(upload->pipe, upload->transfer);
+   upload->transfer = NULL;
+   upload->map = NULL;
 }
 
 
@@ -171,6 +152,15 @@ u_upload_release_buffer(struct u_upload_mgr *upload)
 {
    /* Unmap and unreference the upload buffer. */
    upload_unmap_internal(upload, TRUE);
+   if (upload->buffer_private_refcount) {
+      /* Subtract the remaining private references before unreferencing
+       * the buffer. The mega comment below explains it.
+       */
+      assert(upload->buffer_private_refcount > 0);
+      p_atomic_add(&upload->buffer->reference.count,
+                   -upload->buffer_private_refcount);
+      upload->buffer_private_refcount = 0;
+   }
    pipe_resource_reference(&upload->buffer, NULL);
    upload->buffer_size = 0;
 }
@@ -219,13 +209,39 @@ u_upload_alloc_buffer(struct u_upload_mgr *upload, unsigned min_size)
    if (upload->buffer == NULL)
       return 0;
 
+   /* Since atomic operations are very very slow when 2 threads are not
+    * sharing the same L3 cache (which happens on AMD Zen), eliminate all
+    * atomics in u_upload_alloc as follows:
+    *
+    * u_upload_alloc has to return a buffer reference to the caller.
+    * Instead of atomic_inc for every call, it does all possible future
+    * increments in advance here. The maximum number of times u_upload_alloc
+    * can be called per upload buffer is "size", because the minimum
+    * allocation size is 1, thus u_upload_alloc can only return "size" number
+    * of suballocations at most, so we will never need more. This is
+    * the number that is added to reference.count here.
+    *
+    * buffer_private_refcount tracks how many buffer references we can return
+    * without using atomics. If the buffer is full and there are still
+    * references left, they are atomically subtracted from reference.count
+    * before the buffer is unreferenced.
+    *
+    * This technique can increase CPU performance by 10%.
+    *
+    * The caller of u_upload_alloc_buffer will consume min_size bytes,
+    * so init the buffer_private_refcount to 1 + size - min_size, instead
+    * of size to avoid overflowing reference.count when size is huge.
+    */
+   upload->buffer_private_refcount = 1 + (size - min_size);
+   assert(upload->buffer_private_refcount < INT32_MAX / 2);
+   p_atomic_add(&upload->buffer->reference.count, upload->buffer_private_refcount);
+
    /* Map the new buffer. */
    upload->map = pipe_buffer_map_range(upload->pipe, upload->buffer,
                                        0, size, upload->map_flags,
                                        &upload->transfer);
    if (upload->map == NULL) {
-      upload->transfer = NULL;
-      pipe_resource_reference(&upload->buffer, NULL);
+      u_upload_release_buffer(upload);
       return 0;
    }
 
@@ -287,8 +303,14 @@ u_upload_alloc(struct u_upload_mgr *upload,
 
    /* Emit the return values: */
    *ptr = upload->map + offset;
-   pipe_resource_reference(outbuf, upload->buffer);
    *out_offset = offset;
+
+   if (*outbuf != upload->buffer) {
+      pipe_resource_reference(outbuf, NULL);
+      *outbuf = upload->buffer;
+      assert (upload->buffer_private_refcount > 0);
+      upload->buffer_private_refcount--;
+   }
 
    upload->offset = offset + size;
 }

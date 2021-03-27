@@ -151,6 +151,7 @@ static void ppir_regalloc_update_reglist_ssa(ppir_compiler *comp)
             if (dest->type == ppir_target_ssa) {
                reg = &dest->ssa;
                list_addtail(&reg->list, &comp->reg_list);
+               comp->reg_num++;
             }
          }
       }
@@ -270,7 +271,7 @@ static bool ppir_update_spilled_src(ppir_compiler *comp, ppir_block *block,
 
    ppir_load_node *load = ppir_node_to_load(load_node);
 
-   load->index = -comp->prog->stack_size; /* index sizes are negative */
+   load->index = -comp->prog->state.stack_size; /* index sizes are negative */
    load->num_components = num_components;
 
    ppir_dest *ld_dest = &load->dest;
@@ -314,6 +315,7 @@ static bool ppir_update_spilled_src(ppir_compiler *comp, ppir_block *block,
    alu_dest->write_mask = u_bit_consecutive(0, num_components);
 
    list_addtail(&alu_dest->ssa.list, &comp->reg_list);
+   comp->reg_num++;
 
    if (!ppir_instr_insert_node(load_node->instr, move_node))
       return false;
@@ -354,7 +356,7 @@ static bool ppir_update_spilled_dest_load(ppir_compiler *comp, ppir_block *block
 
    ppir_load_node *load = ppir_node_to_load(load_node);
 
-   load->index = -comp->prog->stack_size; /* index sizes are negative */
+   load->index = -comp->prog->state.stack_size; /* index sizes are negative */
    load->num_components = num_components;
 
    load->dest.type = ppir_target_pipeline;
@@ -414,7 +416,7 @@ static bool ppir_update_spilled_dest(ppir_compiler *comp, ppir_block *block,
 
    ppir_store_node *store = ppir_node_to_store(store_node);
 
-   store->index = -comp->prog->stack_size; /* index sizes are negative */
+   store->index = -comp->prog->state.stack_size; /* index sizes are negative */
 
    ppir_node_target_assign(&store->src, node);
    store->num_components = reg->num_components;
@@ -476,7 +478,7 @@ static bool ppir_regalloc_spill_reg(ppir_compiler *comp, ppir_reg *chosen)
 static ppir_reg *ppir_regalloc_choose_spill_node(ppir_compiler *comp,
                                                  struct ra_graph *g)
 {
-   float spill_costs[list_length(&comp->reg_list)];
+   float spill_costs[comp->reg_num];
    /* experimentally determined, it seems to be worth scaling cost of
     * regs in instructions that have used uniform/store_temp slots,
     * but not too much as to offset the num_components base cost. */
@@ -532,7 +534,7 @@ static ppir_reg *ppir_regalloc_choose_spill_node(ppir_compiler *comp,
       }
    }
 
-   for (int i = 0; i < list_length(&comp->reg_list); i++)
+   for (int i = 0; i < comp->reg_num; i++)
       ra_set_node_spill_cost(g, i, spill_costs[i]);
 
    int r = ra_get_best_spill_node(g);
@@ -563,78 +565,33 @@ static void ppir_regalloc_reset_liveness_info(ppir_compiler *comp)
    }
 
    list_for_each_entry(ppir_block, block, &comp->block_list, list) {
-
-      if (block->live_in)
-         ralloc_free(block->live_in);
-      block->live_in = rzalloc_array(comp,
-            struct ppir_liveness, list_length(&comp->reg_list));
-
-      if (block->live_in_set)
-         _mesa_set_destroy(block->live_in_set, NULL);
-      block->live_in_set = _mesa_set_create(comp,
-                                            _mesa_hash_pointer,
-                                            _mesa_key_pointer_equal);
-
-      if (block->live_out)
-         ralloc_free(block->live_out);
-      block->live_out = rzalloc_array(comp,
-            struct ppir_liveness, list_length(&comp->reg_list));
-
-      if (block->live_out_set)
-         _mesa_set_destroy(block->live_out_set, NULL);
-      block->live_out_set = _mesa_set_create(comp,
-                                             _mesa_hash_pointer,
-                                             _mesa_key_pointer_equal);
-
       list_for_each_entry(ppir_instr, instr, &block->instr_list, list) {
 
-         if (instr->live_in)
-            ralloc_free(instr->live_in);
-         instr->live_in = rzalloc_array(comp,
-               struct ppir_liveness, list_length(&comp->reg_list));
+         if (instr->live_mask)
+            ralloc_free(instr->live_mask);
+         instr->live_mask = rzalloc_array(comp, uint8_t,
+                                          reg_mask_size(comp->reg_num));
 
-         if (instr->live_in_set)
-            _mesa_set_destroy(instr->live_in_set, NULL);
-         instr->live_in_set = _mesa_set_create(comp,
-                                               _mesa_hash_pointer,
-                                               _mesa_key_pointer_equal);
+         if (instr->live_set)
+            ralloc_free(instr->live_set);
+         instr->live_set = rzalloc_array(comp, BITSET_WORD, comp->reg_num);
 
          if (instr->live_internal)
             ralloc_free(instr->live_internal);
-         instr->live_internal = rzalloc_array(comp,
-               struct ppir_liveness, list_length(&comp->reg_list));
-
-         if (instr->live_internal_set)
-            _mesa_set_destroy(instr->live_internal_set, NULL);
-         instr->live_internal_set = _mesa_set_create(comp,
-                                               _mesa_hash_pointer,
-                                               _mesa_key_pointer_equal);
-
-         if (instr->live_out)
-            ralloc_free(instr->live_out);
-         instr->live_out = rzalloc_array(comp,
-               struct ppir_liveness, list_length(&comp->reg_list));
-
-         if (instr->live_out_set)
-            _mesa_set_destroy(instr->live_out_set, NULL);
-         instr->live_out_set = _mesa_set_create(comp,
-                                                _mesa_hash_pointer,
-                                                _mesa_key_pointer_equal);
+         instr->live_internal = rzalloc_array(comp, BITSET_WORD, comp->reg_num);
       }
    }
 }
 
 static void ppir_all_interference(ppir_compiler *comp, struct ra_graph *g,
-                                  struct set *liveness)
+                                  BITSET_WORD *liveness)
 {
-   set_foreach(liveness, entry1) {
-      set_foreach(liveness, entry2) {
-         const struct ppir_liveness *r1 = entry1->key;
-         const struct ppir_liveness *r2 = entry2->key;
-         ra_add_node_interference(g, r1->reg->regalloc_index,
-                                     r2->reg->regalloc_index);
+   int i, j;
+   BITSET_FOREACH_SET(i, liveness, comp->reg_num) {
+      BITSET_FOREACH_SET(j, liveness, comp->reg_num) {
+         ra_add_node_interference(g, i, j);
       }
-      _mesa_set_remove(liveness, entry1);
+      BITSET_CLEAR(liveness, i);
    }
 }
 
@@ -645,7 +602,7 @@ static bool ppir_regalloc_prog_try(ppir_compiler *comp, bool *spilled)
    ppir_regalloc_reset_liveness_info(comp);
 
    struct ra_graph *g = ra_alloc_interference_graph(
-      comp->ra, list_length(&comp->reg_list));
+      comp->ra, comp->reg_num);
 
    int n = 0;
    list_for_each_entry(ppir_reg, reg, &comp->reg_list, list) {
@@ -659,12 +616,11 @@ static bool ppir_regalloc_prog_try(ppir_compiler *comp, bool *spilled)
 
    list_for_each_entry(ppir_block, block, &comp->block_list, list) {
       list_for_each_entry(ppir_instr, instr, &block->instr_list, list) {
-         set_foreach(instr->live_internal_set, entry) {
-            _mesa_set_add(instr->live_in_set, entry->key);
-            _mesa_set_add(instr->live_out_set, entry->key);
+         int i;
+         BITSET_FOREACH_SET(i, instr->live_internal, comp->reg_num) {
+            BITSET_SET(instr->live_set, i);
          }
-         ppir_all_interference(comp, g, instr->live_in_set);
-         ppir_all_interference(comp, g, instr->live_out_set);
+         ppir_all_interference(comp, g, instr->live_set);
       }
    }
 
@@ -676,14 +632,14 @@ static bool ppir_regalloc_prog_try(ppir_compiler *comp, bool *spilled)
          /* stack_size will be used to assemble the frame reg in lima_draw.
           * It is also be used in the spilling code, as negative indices
           * starting from -1, to create stack addresses. */
-         comp->prog->stack_size++;
+         comp->prog->state.stack_size++;
          if (!ppir_regalloc_spill_reg(comp, chosen))
             goto err_out;
          /* Ask the outer loop to call back in. */
          *spilled = true;
 
          ppir_debug("spilled register %d/%d, num_components: %d\n",
-                    chosen->regalloc_index, list_length(&comp->reg_list),
+                    chosen->regalloc_index, comp->reg_num,
                     chosen->num_components);
          goto err_out;
       }
@@ -713,7 +669,7 @@ err_out:
 bool ppir_regalloc_prog(ppir_compiler *comp)
 {
    bool spilled = false;
-   comp->prog->stack_size = 0;
+   comp->prog->state.stack_size = 0;
 
    /* Set from an environment variable to force spilling
     * for debugging purposes, see lima_screen.c */

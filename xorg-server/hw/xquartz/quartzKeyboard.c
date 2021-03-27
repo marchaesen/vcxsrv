@@ -46,7 +46,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <AvailabilityMacros.h>
 
 #include "quartz.h"
 #include "darwin.h"
@@ -733,54 +732,6 @@ DarwinModifierStringToNXMask(const char *str, int separatelr)
     return 0;
 }
 
-#if !defined(__LP64__) || MAC_OS_X_VERSION_MIN_REQUIRED < 1050
-static inline UniChar
-macroman2ucs(unsigned char c)
-{
-    /* Precalculated table mapping MacRoman-128 to Unicode. Generated
-       by creating single element CFStringRefs then extracting the
-       first character. */
-
-    static const unsigned short table[128] = {
-        0xc4,   0xc5,     0xc7,       0xc9,       0xd1,       0xd6,       0xdc,
-        0xe1,
-        0xe0,   0xe2,     0xe4,     0xe3,     0xe5,   0xe7,     0xe9,
-        0xe8,
-        0xea,   0xeb,     0xed,     0xec,     0xee,   0xef,     0xf1,
-        0xf3,
-        0xf2,   0xf4,     0xf6,     0xf5,     0xfa,   0xf9,     0xfb,
-        0xfc,
-        0x2020, 0xb0,     0xa2,     0xa3,     0xa7,   0x2022,   0xb6,
-        0xdf,
-        0xae,   0xa9,     0x2122,   0xb4,     0xa8,   0x2260,   0xc6,
-        0xd8,
-        0x221e, 0xb1,     0x2264,   0x2265,   0xa5,   0xb5,     0x2202,
-        0x2211,
-        0x220f, 0x3c0,    0x222b,   0xaa,     0xba,   0x3a9,    0xe6,
-        0xf8,
-        0xbf,   0xa1,     0xac,     0x221a,   0x192,  0x2248,   0x2206,
-        0xab,
-        0xbb,   0x2026,   0xa0,     0xc0,     0xc3,   0xd5,     0x152,
-        0x153,
-        0x2013, 0x2014,   0x201c,   0x201d,   0x2018, 0x2019,   0xf7,
-        0x25ca,
-        0xff,   0x178,    0x2044,   0x20ac,   0x2039, 0x203a,   0xfb01,
-        0xfb02,
-        0x2021, 0xb7,     0x201a,   0x201e,   0x2030, 0xc2,     0xca,
-        0xc1,
-        0xcb,   0xc8,     0xcd,     0xce,     0xcf,   0xcc,     0xd3,
-        0xd4,
-        0xf8ff, 0xd2,     0xda,     0xdb,     0xd9,   0x131,    0x2c6,
-        0x2dc,
-        0xaf,   0x2d8,    0x2d9,    0x2da,    0xb8,   0x2dd,    0x2db,
-        0x2c7,
-    };
-
-    if (c < 128) return c;
-    else return table[c - 128];
-}
-#endif
-
 static KeySym
 make_dead_key(KeySym in)
 {
@@ -795,83 +746,34 @@ make_dead_key(KeySym in)
 static Bool
 QuartzReadSystemKeymap(darwinKeyboardInfo *info)
 {
-#if !defined(__LP64__) || MAC_OS_X_VERSION_MIN_REQUIRED < 1050
-    KeyboardLayoutRef key_layout;
-    int is_uchr = 1;
-#endif
-    const void *chr_data = NULL;
+    __block const void *chr_data = NULL;
     int num_keycodes = NUM_KEYCODES;
-    UInt32 keyboard_type = LMGetKbdType();
+    __block UInt32 keyboard_type;
     int i, j;
     OSStatus err;
     KeySym *k;
-    CFDataRef currentKeyLayoutDataRef = NULL;
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-    TISInputSourceRef currentKeyLayoutRef =
-        TISCopyCurrentKeyboardLayoutInputSource();
+    dispatch_block_t getKeyboardData = ^{
+        keyboard_type = LMGetKbdType();
 
-    if (currentKeyLayoutRef) {
-        currentKeyLayoutDataRef = (CFDataRef)TISGetInputSourceProperty(
-            currentKeyLayoutRef, kTISPropertyUnicodeKeyLayoutData);
-        if (currentKeyLayoutDataRef)
-            chr_data = CFDataGetBytePtr(currentKeyLayoutDataRef);
-    }
-#endif
+        TISInputSourceRef currentKeyLayoutRef = TISCopyCurrentKeyboardLayoutInputSource();
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations" // KLGetCurrentKeyboardLayout, KLGetKeyboardLayoutProperty
-#endif
+        if (currentKeyLayoutRef) {
+            CFDataRef currentKeyLayoutDataRef = (CFDataRef)TISGetInputSourceProperty(currentKeyLayoutRef,
+                                                                                     kTISPropertyUnicodeKeyLayoutData);
+            if (currentKeyLayoutDataRef)
+                chr_data = CFDataGetBytePtr(currentKeyLayoutDataRef);
 
-#if !defined(__LP64__) || MAC_OS_X_VERSION_MIN_REQUIRED < 1050
-    if (chr_data == NULL) {
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-        ErrorF(
-            "X11.app: Error detected in determining keyboard layout.  If you are using an Apple-provided keyboard layout, please report this error at http://xquartz.macosforge.org and http://bugreport.apple.com\n");
-        ErrorF(
-            "X11.app: Debug Info: keyboard_type=%u, currentKeyLayoutRef=%p, currentKeyLayoutDataRef=%p, chr_data=%p\n",
-            (unsigned)keyboard_type, currentKeyLayoutRef,
-            currentKeyLayoutDataRef, chr_data);
-#endif
-
-        KLGetCurrentKeyboardLayout(&key_layout);
-        KLGetKeyboardLayoutProperty(key_layout, kKLuchrData, &chr_data);
-
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-        if (chr_data != NULL) {
-            ErrorF(
-                "X11.app: Fallback succeeded, but this is still a bug.  Please report the above information.\n");
+            CFRelease(currentKeyLayoutRef);
         }
-#endif
+    };
+
+    /* This is an ugly ant-pattern, but it is more expedient to address the problem right now. */
+    if (pthread_main_np()) {
+        getKeyboardData();
+    } else {
+        dispatch_sync(dispatch_get_main_queue(), getKeyboardData);
     }
-
-    if (chr_data == NULL) {
-        ErrorF(
-            "X11.app: Debug Info: kKLuchrData failed, trying kKLKCHRData.\n");
-        ErrorF(
-            "If you are using a 3rd party keyboard layout, please see http://xquartz.macosforge.org/trac/ticket/154\n");
-        KLGetKeyboardLayoutProperty(key_layout, kKLKCHRData, &chr_data);
-        is_uchr = 0;
-        num_keycodes = 128;
-
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-        if (chr_data != NULL) {
-            ErrorF(
-                "X11.app: Fallback succeeded, but this is still a bug.  Please report the above information.\n");
-        }
-#endif
-    }
-#endif
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-    if (currentKeyLayoutRef)
-        CFRelease(currentKeyLayoutRef);
-#endif
 
     if (chr_data == NULL) {
         ErrorF("Couldn't get uchr or kchr resource\n");
@@ -895,9 +797,6 @@ QuartzReadSystemKeymap(darwinKeyboardInfo *info)
         k = info->keyMap + i * GLYPHS_PER_KEY;
 
         for (j = 0; j < 4; j++) {
-#if !defined(__LP64__) || MAC_OS_X_VERSION_MIN_REQUIRED < 1050
-            if (is_uchr) {
-#endif
             UniChar s[8];
             UniCharCount len;
             UInt32 dead_key_state = 0, extra_dead = 0;
@@ -924,42 +823,6 @@ QuartzReadSystemKeymap(darwinKeyboardInfo *info)
                 k[j] = ucs2keysym(s[0]);
                 if (dead_key_state != 0) k[j] = make_dead_key(k[j]);
             }
-#if !defined(__LP64__) || MAC_OS_X_VERSION_MIN_REQUIRED < 1050
-        }
-        else {       // kchr
-            UInt32 c, state = 0, state2 = 0;
-            UInt16 code;
-
-            code = i | mods[j];
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations" // KeyTranslate
-#endif
-
-            c = KeyTranslate(chr_data, code, &state);
-
-            /* Dead keys are only processed on key-down, so ask
-               to translate those events. When we find a dead key,
-               translating the matching key up event will give
-               us the actual dead character. */
-
-            if (state != 0)
-                c = KeyTranslate(chr_data, code | 128, &state2);
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-            /* Characters seem to be in MacRoman encoding. */
-
-            if (c != 0 && c != 0x0010) {
-                k[j] = ucs2keysym(macroman2ucs(c & 255));
-
-                if (state != 0) k[j] = make_dead_key(k[j]);
-            }
-        }
-#endif
         }
 
         if (k[3] == k[2]) k[3] = NoSymbol;

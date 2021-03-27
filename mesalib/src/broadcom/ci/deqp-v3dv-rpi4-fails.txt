@@ -1,0 +1,4 @@
+dEQP-VK.draw.inverted_depth_ranges.nodepthclamp_deltazero,Fail
+dEQP-VK.synchronization.basic.binary_semaphore.chain,Fail
+dEQP-VK.ycbcr.query.levels.geometry.r8g8b8a8_unorm,Crash
+dEQP-VK.ycbcr.query.size_lod.geometry.r8g8b8a8_unorm,Crash

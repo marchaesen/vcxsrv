@@ -31,29 +31,9 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include "decode.h"
-#include "util/macros.h"
-#include "util/u_math.h"
 
 #include "midgard/disassemble.h"
 #include "bifrost/disassemble.h"
-
-#include "pan_encoder.h"
-
-#define MEMORY_PROP(obj, p) {\
-        if (obj->p) { \
-                char *a = pointer_as_memory_reference(obj->p); \
-                pandecode_prop("%s = %s", #p, a); \
-                free(a); \
-        } \
-}
-
-#define MEMORY_PROP_DIR(obj, p) {\
-        if (obj.p) { \
-                char *a = pointer_as_memory_reference(obj.p); \
-                pandecode_prop("%s = %s", #p, a); \
-                free(a); \
-        } \
-}
 
 #define DUMP_UNPACKED(T, var, ...) { \
         pandecode_log(__VA_ARGS__); \
@@ -89,20 +69,17 @@ FILE *pandecode_dump_stream;
  *
  * Raw: for raw messages to be printed as is.
  * Message: for helpful information to be commented out in replays.
- * Property: for properties of a struct
  *
- * Use one of pandecode_log, pandecode_msg, or pandecode_prop as syntax sugar.
+ * Use one of pandecode_log or pandecode_msg as syntax sugar.
  */
 
 enum pandecode_log_type {
         PANDECODE_RAW,
         PANDECODE_MESSAGE,
-        PANDECODE_PROPERTY
 };
 
 #define pandecode_log(...)  pandecode_log_typed(PANDECODE_RAW,      __VA_ARGS__)
 #define pandecode_msg(...)  pandecode_log_typed(PANDECODE_MESSAGE,  __VA_ARGS__)
-#define pandecode_prop(...) pandecode_log_typed(PANDECODE_PROPERTY, __VA_ARGS__)
 
 unsigned pandecode_indent = 0;
 
@@ -122,15 +99,10 @@ pandecode_log_typed(enum pandecode_log_type type, const char *format, ...)
 
         if (type == PANDECODE_MESSAGE)
                 fprintf(pandecode_dump_stream, "// ");
-        else if (type == PANDECODE_PROPERTY)
-                fprintf(pandecode_dump_stream, ".");
 
         va_start(ap, format);
         vfprintf(pandecode_dump_stream, format, ap);
         va_end(ap);
-
-        if (type == PANDECODE_PROPERTY)
-                fprintf(pandecode_dump_stream, ",\n");
 }
 
 static void
@@ -187,81 +159,12 @@ pandecode_validate_buffer(mali_ptr addr, size_t sz)
 static void
 pandecode_midgard_tiler_descriptor(
                 const struct mali_midgard_tiler_packed *tp,
-                const struct mali_midgard_tiler_weights_packed *wp,
-                unsigned width,
-                unsigned height,
-                bool is_fragment,
-                bool has_hierarchy)
+                const struct mali_midgard_tiler_weights_packed *wp)
 {
         pan_unpack(tp, MIDGARD_TILER, t);
         DUMP_UNPACKED(MIDGARD_TILER, t, "Tiler:\n");
 
-        MEMORY_PROP_DIR(t, polygon_list);
-
-        /* The body is offset from the base of the polygon list */
-        //assert(t->polygon_list_body > t->polygon_list);
-        unsigned body_offset = t.polygon_list_body - t.polygon_list;
-
-        /* It needs to fit inside the reported size */
-        //assert(t->polygon_list_size >= body_offset);
-
-        /* Now that we've sanity checked, we'll try to calculate the sizes
-         * ourselves for comparison */
-
-        unsigned ref_header = panfrost_tiler_header_size(width, height, t.hierarchy_mask, has_hierarchy);
-        unsigned ref_size = panfrost_tiler_full_size(width, height, t.hierarchy_mask, has_hierarchy);
-
-        if (!((ref_header == body_offset) && (ref_size == t.polygon_list_size))) {
-                pandecode_msg("XXX: bad polygon list size (expected %d / 0x%x)\n",
-                                ref_header, ref_size);
-                pandecode_prop("polygon_list_size = 0x%x", t.polygon_list_size);
-                pandecode_msg("body offset %d\n", body_offset);
-        }
-
-        /* The tiler heap has a start and end specified -- it should be
-         * identical to what we have in the BO. The exception is if tiling is
-         * disabled. */
-
-        MEMORY_PROP_DIR(t, heap_start);
-        assert(t.heap_end >= t.heap_start);
-
-        unsigned heap_size = t.heap_end - t.heap_start;
-
-        /* Tiling is enabled with a special flag */
-        unsigned hierarchy_mask = t.hierarchy_mask & MALI_MIDGARD_TILER_HIERARCHY_MASK;
-        unsigned tiler_flags = t.hierarchy_mask ^ hierarchy_mask;
-
-        bool tiling_enabled = hierarchy_mask;
-
-        if (tiling_enabled) {
-                /* We should also have no other flags */
-                if (tiler_flags)
-                        pandecode_msg("XXX: unexpected tiler %X\n", tiler_flags);
-        } else {
-                /* When tiling is disabled, we should have that flag and no others */
-
-                if (tiler_flags != MALI_MIDGARD_TILER_DISABLED) {
-                        pandecode_msg("XXX: unexpected tiler flag %X, expected MALI_MIDGARD_TILER_DISABLED\n",
-                                        tiler_flags);
-                }
-
-                /* We should also have an empty heap */
-                if (heap_size) {
-                        pandecode_msg("XXX: tiler heap size %d given, expected empty\n",
-                                        heap_size);
-                }
-
-                /* Disabled tiling is used only for clear-only jobs, which are
-                 * purely FRAGMENT, so we should never see this for
-                 * non-FRAGMENT descriptors. */
-
-                if (!is_fragment)
-                        pandecode_msg("XXX: tiler disabled for non-FRAGMENT job\n");
-        }
-
-        /* We've never seen weights used in practice, but we know from the
-         * kernel these fields is there */
-
+        /* We've never seen weights used in practice, but they exist */
         pan_unpack(wp, MIDGARD_TILER_WEIGHTS, w);
         bool nonzero_weights = false;
 
@@ -309,8 +212,7 @@ pandecode_sfbd(uint64_t gpu_va, int job_no, bool is_fragment, unsigned gpu_id)
         const void *t = pan_section_ptr(s, SINGLE_TARGET_FRAMEBUFFER, TILER);
         const void *w = pan_section_ptr(s, SINGLE_TARGET_FRAMEBUFFER, TILER_WEIGHTS);
 
-        bool has_hierarchy = !(gpu_id == 0x0720 || gpu_id == 0x0820 || gpu_id == 0x0830);
-        pandecode_midgard_tiler_descriptor(t, w, p.bound_max_x + 1, p.bound_max_y + 1, is_fragment, has_hierarchy);
+        pandecode_midgard_tiler_descriptor(t, w);
 
         pandecode_indent--;
 
@@ -325,7 +227,7 @@ pandecode_sfbd(uint64_t gpu_va, int job_no, bool is_fragment, unsigned gpu_id)
 }
 
 static void
-pandecode_compute_fbd(uint64_t gpu_va, int job_no)
+pandecode_local_storage(uint64_t gpu_va, int job_no)
 {
         struct pandecode_mapped_memory *mem = pandecode_find_mapped_gpu_mem_containing(gpu_va);
         const struct mali_local_storage_packed *PANDECODE_PTR_VAR(s, mem, (mali_ptr) gpu_va);
@@ -352,38 +254,25 @@ pandecode_render_target(uint64_t gpu_va, unsigned job_no, bool is_bifrost, unsig
 }
 
 static void
-pandecode_mfbd_bifrost_deps(const void *fb, int job_no)
+pandecode_sample_locations(const void *fb, int job_no)
 {
         pan_section_unpack(fb, MULTI_TARGET_FRAMEBUFFER, BIFROST_PARAMETERS, params);
-
-        /* The blob stores all possible sample locations in a single buffer
-         * allocated on startup, and just switches the pointer when switching
-         * MSAA state. For now, we just put the data into the cmdstream, but we
-         * should do something like what the blob does with a real driver.
-         *
-         * There seem to be 32 slots for sample locations, followed by another
-         * 16. The second 16 is just the center location followed by 15 zeros
-         * in all the cases I've identified (maybe shader vs. depth/color
-         * samples?).
-         */
 
         struct pandecode_mapped_memory *smem =
                 pandecode_find_mapped_gpu_mem_containing(params.sample_locations);
 
         const u16 *PANDECODE_PTR_VAR(samples, smem, params.sample_locations);
 
-        pandecode_log("uint16_t sample_locations_%d[] = {\n", job_no);
-        pandecode_indent++;
-        for (int i = 0; i < 32 + 16; i++) {
-                pandecode_log("%d, %d,\n", samples[2 * i], samples[2 * i + 1]);
+        pandecode_log("Sample locations:\n");
+        for (int i = 0; i < 33; i++) {
+                pandecode_log("  (%d, %d),\n",
+                                samples[2 * i] - 128,
+                                samples[2 * i + 1] - 128);
         }
-
-        pandecode_indent--;
-        pandecode_log("};\n");
 }
 
 static struct pandecode_fbd
-pandecode_mfbd_bfr(uint64_t gpu_va, int job_no, bool is_fragment, bool is_compute, bool is_bifrost, unsigned gpu_id)
+pandecode_mfbd_bfr(uint64_t gpu_va, int job_no, bool is_fragment, bool is_bifrost, unsigned gpu_id)
 {
         struct pandecode_mapped_memory *mem = pandecode_find_mapped_gpu_mem_containing(gpu_va);
         const void *PANDECODE_PTR_VAR(fb, mem, (mali_ptr) gpu_va);
@@ -392,7 +281,7 @@ pandecode_mfbd_bfr(uint64_t gpu_va, int job_no, bool is_fragment, bool is_comput
         struct pandecode_fbd info;
 
         if (is_bifrost)
-                pandecode_mfbd_bifrost_deps(fb, job_no);
+                pandecode_sample_locations(fb, job_no);
  
         pandecode_log("Multi-Target Framebuffer:\n");
         pandecode_indent++;
@@ -408,20 +297,13 @@ pandecode_mfbd_bfr(uint64_t gpu_va, int job_no, bool is_fragment, bool is_comput
         info.rt_count = params.render_target_count;
         DUMP_UNPACKED(MULTI_TARGET_FRAMEBUFFER_PARAMETERS, params, "Parameters:\n");
 
-        if (!is_compute) {
-                if (is_bifrost) {
-                        DUMP_SECTION(MULTI_TARGET_FRAMEBUFFER, BIFROST_TILER_POINTER, fb, "Tiler Pointer");
-                } else {
-                        const void *t = pan_section_ptr(fb, MULTI_TARGET_FRAMEBUFFER, TILER);
-                        const void *w = pan_section_ptr(fb, MULTI_TARGET_FRAMEBUFFER, TILER_WEIGHTS);
-                        pandecode_midgard_tiler_descriptor(t, w, params.width, params.height, is_fragment, true);
-                }
-	} else {
-                pandecode_msg("XXX: skipping compute MFBD, fixme\n");
-        }
-
         if (is_bifrost) {
+                DUMP_SECTION(MULTI_TARGET_FRAMEBUFFER, BIFROST_TILER_POINTER, fb, "Tiler Pointer");
                 pan_section_unpack(fb, MULTI_TARGET_FRAMEBUFFER, BIFROST_PADDING, padding);
+        } else {
+                const void *t = pan_section_ptr(fb, MULTI_TARGET_FRAMEBUFFER, TILER);
+                const void *w = pan_section_ptr(fb, MULTI_TARGET_FRAMEBUFFER, TILER_WEIGHTS);
+                pandecode_midgard_tiler_descriptor(t, w);
         }
 
         pandecode_indent--;
@@ -466,28 +348,30 @@ pandecode_attributes(const struct pandecode_mapped_memory *mem,
                 pan_unpack(cl + i * MALI_ATTRIBUTE_BUFFER_LENGTH, ATTRIBUTE_BUFFER, temp);
                 DUMP_UNPACKED(ATTRIBUTE_BUFFER, temp, "%s:\n", prefix);
 
-                if (temp.type != MALI_ATTRIBUTE_TYPE_1D_NPOT_DIVISOR)
-                        continue;
-
-                pan_unpack(cl + (i + 1) * MALI_ATTRIBUTE_BUFFER_LENGTH,
-                           ATTRIBUTE_BUFFER_CONTINUATION_NPOT, temp2);
-                pan_print(pandecode_dump_stream, ATTRIBUTE_BUFFER_CONTINUATION_NPOT,
-                          temp2, (pandecode_indent + 1) * 2);
+                switch (temp.type) {
+                case MALI_ATTRIBUTE_TYPE_1D_NPOT_DIVISOR_WRITE_REDUCTION:
+                case MALI_ATTRIBUTE_TYPE_1D_NPOT_DIVISOR: {
+                        pan_unpack(cl + (i + 1) * MALI_ATTRIBUTE_BUFFER_LENGTH,
+                                   ATTRIBUTE_BUFFER_CONTINUATION_NPOT, temp2);
+                        pan_print(pandecode_dump_stream, ATTRIBUTE_BUFFER_CONTINUATION_NPOT,
+                                  temp2, (pandecode_indent + 1) * 2);
+                        i++; count++;
+                        break;
+                }
+                case MALI_ATTRIBUTE_TYPE_3D_LINEAR:
+                case MALI_ATTRIBUTE_TYPE_3D_INTERLEAVED: {
+                        pan_unpack(cl + (i + 1) * MALI_ATTRIBUTE_BUFFER_CONTINUATION_3D_LENGTH,
+                                   ATTRIBUTE_BUFFER_CONTINUATION_3D, temp2);
+                        pan_print(pandecode_dump_stream, ATTRIBUTE_BUFFER_CONTINUATION_3D,
+                                  temp2, (pandecode_indent + 1) * 2);
+                        i++; count++;
+                        break;
+                }
+                default:
+                        break;
+                }
         }
         pandecode_log("\n");
-}
-
-static mali_ptr
-pandecode_shader_address(const char *name, mali_ptr ptr)
-{
-        /* TODO: Decode flags */
-        mali_ptr shader_ptr = ptr & ~15;
-
-        char *a = pointer_as_memory_reference(shader_ptr);
-        pandecode_prop("%s = (%s) | %d", name, a, (int) (ptr & 15));
-        free(a);
-
-        return shader_ptr;
 }
 
 /* Decodes a Bifrost blend constant. See the notes in bifrost_blend_rt */
@@ -537,7 +421,7 @@ bits(u32 word, u32 lo, u32 hi)
 }
 
 static void
-pandecode_invocation(const void *i, bool graphics)
+pandecode_invocation(const void *i)
 {
         /* Decode invocation_count. See the comment before the definition of
          * invocation_count for an explanation.
@@ -552,26 +436,11 @@ pandecode_invocation(const void *i, bool graphics)
         unsigned groups_y = bits(invocation.invocations, invocation.workgroups_y_shift, invocation.workgroups_z_shift) + 1;
         unsigned groups_z = bits(invocation.invocations, invocation.workgroups_z_shift, 32) + 1;
 
-        /* Even though we have this decoded, we want to ensure that the
-         * representation is "unique" so we don't lose anything by printing only
-         * the final result. More specifically, we need to check that we were
-         * passed something in canonical form, since the definition per the
-         * hardware is inherently not unique. How? Well, take the resulting
-         * decode and pack it ourselves! If it is bit exact with what we
-         * decoded, we're good to go. */
-
-        struct mali_invocation_packed ref;
-        panfrost_pack_work_groups_compute(&ref, groups_x, groups_y, groups_z, size_x, size_y, size_z, graphics);
-
-        if (memcmp(&ref, i, sizeof(ref))) {
-                pandecode_msg("XXX: non-canonical workgroups packing\n");
-                DUMP_UNPACKED(INVOCATION, invocation, "Invocation:\n")
-        }
-
-        /* Regardless, print the decode */
         pandecode_log("Invocation (%d, %d, %d) x (%d, %d, %d)\n",
                       size_x, size_y, size_z,
                       groups_x, groups_y, groups_z);
+
+        DUMP_UNPACKED(INVOCATION, invocation, "Invocation:\n")
 }
 
 static void
@@ -607,8 +476,8 @@ pandecode_uniform_buffers(mali_ptr pubufs, int ubufs_count, int job_no)
         uint64_t *PANDECODE_PTR_VAR(ubufs, umem, pubufs);
 
         for (int i = 0; i < ubufs_count; i++) {
-                unsigned size = (ubufs[i] & ((1 << 10) - 1)) * 16;
                 mali_ptr addr = (ubufs[i] >> 10) << 2;
+                unsigned size = addr ? (((ubufs[i] & ((1 << 10) - 1)) + 1) * 16) : 0;
 
                 pandecode_validate_buffer(addr, size);
 
@@ -679,9 +548,7 @@ pandecode_shader_disassemble(mali_ptr shader_ptr, int shader_no, int type,
                 stats.helper_invocations = false;
         } else {
                 stats = disassemble_midgard(pandecode_dump_stream,
-                                code, sz, gpu_id,
-                                type == MALI_JOB_TYPE_TILER ?
-                                MESA_SHADER_FRAGMENT : MESA_SHADER_VERTEX);
+                                code, sz, gpu_id);
         }
 
         unsigned nr_threads =
@@ -796,37 +663,6 @@ pandecode_bifrost_texture(
         pandecode_indent--;
 }
 
-/* For shader properties like texture_count, we have a claimed property in the shader_meta, and the actual Truth from static analysis (this may just be an upper limit). We validate accordingly */
-
-static void
-pandecode_shader_prop(const char *name, unsigned claim, signed truth, bool fuzzy)
-{
-        /* Nothing to do */
-        if (claim == truth)
-                return;
-
-        if (fuzzy && (truth < 0))
-                pandecode_msg("XXX: fuzzy %s, claimed %d, expected %d\n", name, claim, truth);
-
-        if ((truth >= 0) && !fuzzy) {
-                pandecode_msg("%s: expected %s = %d, claimed %u\n",
-                                (truth < claim) ? "warn" : "XXX",
-                                name, truth, claim);
-        } else if ((claim > -truth) && !fuzzy) {
-                pandecode_msg("XXX: expected %s <= %u, claimed %u\n",
-                                name, -truth, claim);
-        } else if (fuzzy && (claim < truth))
-                pandecode_msg("XXX: expected %s >= %u, claimed %u\n",
-                                name, truth, claim);
-
-        pandecode_log(".%s = %" PRId16, name, claim);
-
-        if (fuzzy)
-                pandecode_log_cont(" /* %u used */", truth);
-
-        pandecode_log_cont(",\n");
-}
-
 static void
 pandecode_blend_shader_disassemble(mali_ptr shader, int job_no, int job_type,
                                    bool is_bifrost, unsigned gpu_id)
@@ -925,13 +761,11 @@ pandecode_vertex_tiler_postfix_pre(
                 .rt_count = 1
         };
 
-        if (is_bifrost)
-                pandecode_compute_fbd(p->fbd & ~1, job_no);
+        if ((job_type != MALI_JOB_TYPE_TILER) || is_bifrost)
+                pandecode_local_storage(p->fbd & ~1, job_no);
         else if (p->fbd & MALI_FBD_TAG_IS_MFBD)
                 fbd_info = pandecode_mfbd_bfr((u64) ((uintptr_t) p->fbd) & ~MALI_FBD_TAG_MASK,
-                                              job_no, false, job_type == MALI_JOB_TYPE_COMPUTE, is_bifrost, gpu_id);
-        else if (job_type == MALI_JOB_TYPE_COMPUTE)
-                pandecode_compute_fbd((u64) (uintptr_t) p->fbd, job_no);
+                                              job_no, false, false, gpu_id);
         else
                 fbd_info = pandecode_sfbd((u64) (uintptr_t) p->fbd, job_no, false, gpu_id);
 
@@ -942,25 +776,10 @@ pandecode_vertex_tiler_postfix_pre(
                 struct pandecode_mapped_memory *smem = pandecode_find_mapped_gpu_mem_containing(p->state);
                 uint32_t *cl = pandecode_fetch_gpu_mem(smem, p->state, MALI_RENDERER_STATE_LENGTH);
 
-                /* Disassemble ahead-of-time to get stats. Initialize with
-                 * stats for the missing-shader case so we get validation
-                 * there, too */
-
-                struct midgard_disasm_stats info = {
-                        .texture_count = 0,
-                        .sampler_count = 0,
-                        .attribute_count = 0,
-                        .varying_count = 0,
-                        .work_count = 1,
-
-                        .uniform_count = -128,
-                        .uniform_buffer_count = 0
-                };
-
                 pan_unpack(cl, RENDERER_STATE, state);
 
                 if (state.shader.shader & ~0xF)
-                        info = pandecode_shader_disassemble(state.shader.shader & ~0xF, job_no, job_type, is_bifrost, gpu_id);
+                        pandecode_shader_disassemble(state.shader.shader & ~0xF, job_no, job_type, is_bifrost, gpu_id);
 
                 DUMP_UNPACKED(RENDERER_STATE, state, "State:\n");
                 pandecode_indent++;
@@ -977,27 +796,10 @@ pandecode_vertex_tiler_postfix_pre(
                 else
                         uniform_count = state.properties.midgard.uniform_count;
 
-                pandecode_shader_prop("texture_count", texture_count, info.texture_count, false);
-                pandecode_shader_prop("sampler_count", sampler_count, info.sampler_count, false);
-                pandecode_shader_prop("attribute_count", attribute_count, info.attribute_count, false);
-                pandecode_shader_prop("varying_count", varying_count, info.varying_count, false);
-
                 if (is_bifrost)
                         DUMP_UNPACKED(PRELOAD, state.preload, "Preload:\n");
 
                 if (!is_bifrost) {
-                        /* TODO: Blend shaders routing/disasm */
-                        pandecode_log("SFBD Blend:\n");
-                        pandecode_indent++;
-                        if (state.multisample_misc.sfbd_blend_shader) {
-                                pandecode_shader_address("Shader", state.sfbd_blend_shader);
-                        } else {
-                                DUMP_UNPACKED(BLEND_EQUATION, state.sfbd_blend_equation, "Equation:\n");
-                                pandecode_prop("Constant = %f", state.sfbd_blend_constant);
-                        }
-                        pandecode_indent--;
-                        pandecode_log("\n");
-
                         mali_ptr shader = state.sfbd_blend_shader & ~0xF;
                         if (state.multisample_misc.sfbd_blend_shader && shader)
                                 pandecode_blend_shader_disassemble(shader, job_no, job_type, false, gpu_id);
@@ -1102,7 +904,7 @@ pandecode_bifrost_tiler(mali_ptr gpu_va, int job_no)
             t.hierarchy_mask != 0x28 &&
             t.hierarchy_mask != 0x50 &&
             t.hierarchy_mask != 0xa0)
-                pandecode_prop("XXX: Unexpected hierarchy_mask (not 0xa, 0x14, 0x28, 0x50 or 0xa0)!");
+                pandecode_msg("XXX: Unexpected hierarchy_mask (not 0xa, 0x14, 0x28, 0x50 or 0xa0)!");
 
         pandecode_indent--;
 }
@@ -1129,8 +931,7 @@ pandecode_vertex_compute_geometry_job(const struct MALI_JOB_HEADER *h,
 
         pandecode_log("Vertex Job Payload:\n");
         pandecode_indent++;
-        pandecode_invocation(pan_section_ptr(p, COMPUTE_JOB, INVOCATION),
-                             h->type != MALI_JOB_TYPE_COMPUTE);
+        pandecode_invocation(pan_section_ptr(p, COMPUTE_JOB, INVOCATION));
         DUMP_SECTION(COMPUTE_JOB, PARAMETERS, p, "Vertex Job Parameters:\n");
         DUMP_UNPACKED(DRAW, draw, "Draw:\n");
         pandecode_indent--;
@@ -1151,7 +952,7 @@ pandecode_tiler_job_bfr(const struct MALI_JOB_HEADER *h,
         pandecode_indent++;
         pandecode_bifrost_tiler(tiler_ptr.address, job_no);
 
-        pandecode_invocation(pan_section_ptr(p, BIFROST_TILER_JOB, INVOCATION), true);
+        pandecode_invocation(pan_section_ptr(p, BIFROST_TILER_JOB, INVOCATION));
         pandecode_primitive(pan_section_ptr(p, BIFROST_TILER_JOB, PRIMITIVE));
 
         /* TODO: gl_PointSize on Bifrost */
@@ -1173,7 +974,7 @@ pandecode_tiler_job_mdg(const struct MALI_JOB_HEADER *h,
 
         pandecode_log("Tiler Job Payload:\n");
         pandecode_indent++;
-        pandecode_invocation(pan_section_ptr(p, MIDGARD_TILER_JOB, INVOCATION), true);
+        pandecode_invocation(pan_section_ptr(p, MIDGARD_TILER_JOB, INVOCATION));
         pandecode_primitive(pan_section_ptr(p, MIDGARD_TILER_JOB, PRIMITIVE));
         DUMP_UNPACKED(DRAW, draw, "Draw:\n");
 
@@ -1201,7 +1002,7 @@ pandecode_fragment_job(const struct pandecode_mapped_memory *mem,
 
         if (is_mfbd)
                 info = pandecode_mfbd_bfr(s.framebuffer & ~MALI_FBD_TAG_MASK, job_no,
-                                          true, false, is_bifrost, gpu_id);
+                                          true, is_bifrost, gpu_id);
         else
                 info = pandecode_sfbd(s.framebuffer & ~MALI_FBD_TAG_MASK, job_no,
                                       true, gpu_id);
@@ -1220,33 +1021,6 @@ pandecode_fragment_job(const struct pandecode_mapped_memory *mem,
                 expected_tag |= (MALI_POSITIVE(info.rt_count) << 2);
         }
 
-        /* Extract tile coordinates */
-
-        unsigned min_x = s.bound_min_x << MALI_TILE_SHIFT;
-        unsigned min_y = s.bound_min_y << MALI_TILE_SHIFT;
-        unsigned max_x = s.bound_max_x << MALI_TILE_SHIFT;
-        unsigned max_y = s.bound_max_y << MALI_TILE_SHIFT;
-
-        /* Validate the coordinates are well-ordered */
-
-        if (min_x > max_x)
-                pandecode_msg("XXX: misordered X coordinates (%u > %u)\n", min_x, max_x);
-
-        if (min_y > max_y)
-                pandecode_msg("XXX: misordered X coordinates (%u > %u)\n", min_x, max_x);
-
-        /* Validate the coordinates fit inside the framebuffer. We use floor,
-         * rather than ceil, for the max coordinates, since the tile
-         * coordinates for something like an 800x600 framebuffer will actually
-         * resolve to 800x608, which would otherwise trigger a Y-overflow */
-
-        if (max_x + 1 > info.width)
-                pandecode_msg("XXX: tile coordinates overflow in X direction\n");
-
-        if (max_y + 1 > info.height)
-                pandecode_msg("XXX: tile coordinates overflow in Y direction\n");
-
-        /* After validation, we print */
         DUMP_UNPACKED(FRAGMENT_JOB_PAYLOAD, s, "Fragment Job Payload:\n");
 
         /* The FBD is a tagged pointer */

@@ -106,7 +106,7 @@ opt_constant_if(nir_if *if_stmt, bool condition)
 
       assert(def);
       assert(phi->dest.is_ssa);
-      nir_ssa_def_rewrite_uses(&phi->dest.ssa, nir_src_for_ssa(def));
+      nir_ssa_def_rewrite_uses(&phi->dest.ssa, def);
       nir_instr_remove(instr);
    }
 

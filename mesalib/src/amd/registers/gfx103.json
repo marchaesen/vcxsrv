@@ -16802,7 +16802,8 @@
     {"bits": [22, 22], "name": "GS_W32_EN"},
     {"bits": [23, 23], "name": "VS_W32_EN"},
     {"bits": [24, 24], "name": "NGG_WAVE_ID_EN"},
-    {"bits": [25, 25], "name": "PRIMGEN_PASSTHRU_EN"}
+    {"bits": [25, 25], "name": "PRIMGEN_PASSTHRU_EN"},
+    {"bits": [26, 26], "name": "PRIMGEN_PASSTHRU_NO_MSG"}
    ]
   },
   "VGT_STRMOUT_BUFFER_CONFIG": {

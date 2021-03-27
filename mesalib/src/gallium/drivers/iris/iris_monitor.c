@@ -153,6 +153,7 @@ iris_init_monitor_ctx(struct iris_context *ice)
    gen_perf_init_context(perf_ctx,
                          perf_cfg,
                          ice,
+                         ice,
                          screen->bufmgr,
                          &screen->devinfo,
                          ice->batches[IRIS_BATCH_RENDER].hw_ctx_id,

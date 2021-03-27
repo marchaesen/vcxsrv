@@ -50,7 +50,7 @@ lower_undef_instr_to_zero(nir_builder *b, nir_instr *instr, UNUSED void *_state)
    b->cursor = nir_instr_remove(&und->instr);
    nir_ssa_def *zero = nir_imm_zero(b, und->def.num_components,
                                        und->def.bit_size);
-   nir_ssa_def_rewrite_uses(&und->def, nir_src_for_ssa(zero));
+   nir_ssa_def_rewrite_uses(&und->def, zero);
    return true;
 }
 

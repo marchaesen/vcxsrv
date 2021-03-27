@@ -414,6 +414,7 @@ svga_set_sampler_views(struct pipe_context *pipe,
                        enum pipe_shader_type shader,
                        unsigned start,
                        unsigned num,
+                       unsigned unbind_num_trailing_slots,
                        struct pipe_sampler_view **views)
 {
    struct svga_context *svga = svga_context(pipe);
@@ -472,6 +473,14 @@ svga_set_sampler_views(struct pipe_context *pipe,
           * const buffer values.
           */
          svga->dirty |= SVGA_NEW_TEXTURE_CONSTS;
+      }
+   }
+
+   for (; i < num + unbind_num_trailing_slots; i++) {
+      if (svga->curr.sampler_views[shader][start + i]) {
+         pipe_sampler_view_reference(&svga->curr.sampler_views[shader][start + i],
+                                     NULL);
+         any_change = TRUE;
       }
    }
 

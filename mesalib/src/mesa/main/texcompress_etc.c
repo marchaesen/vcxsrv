@@ -750,8 +750,8 @@ etc2_unpack_srgb8(uint8_t *dst_row,
 		  tmp = dst[0];
 		  dst[0] = dst[2];
 		  dst[2] = tmp;
-		  dst[3] = 255;
 	       }
+               dst[3] = 255;
 
                dst += comps;
             }

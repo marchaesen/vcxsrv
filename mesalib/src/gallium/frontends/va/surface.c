@@ -593,8 +593,6 @@ surface_from_external_memory(VADriverContextP ctx, vlVaSurface *surface,
    res_templ.last_level = 0;
    res_templ.depth0 = 1;
    res_templ.array_size = 1;
-   res_templ.width0 = memory_attribute->width;
-   res_templ.height0 = memory_attribute->height;
    res_templ.bind = PIPE_BIND_SAMPLER_VIEW;
    res_templ.usage = PIPE_USAGE_DEFAULT;
 
@@ -602,6 +600,7 @@ surface_from_external_memory(VADriverContextP ctx, vlVaSurface *surface,
    whandle.type = WINSYS_HANDLE_TYPE_FD;
    whandle.handle = memory_attribute->buffers[index];
    whandle.modifier = DRM_FORMAT_MOD_INVALID;
+   whandle.format = templat->buffer_format;
 
    // Create a resource for each plane.
    memset(resources, 0, sizeof resources);
@@ -611,6 +610,11 @@ surface_from_external_memory(VADriverContextP ctx, vlVaSurface *surface,
          result = VA_STATUS_ERROR_INVALID_PARAMETER;
          goto fail;
       }
+
+      res_templ.width0 = util_format_get_plane_width(templat->buffer_format, i,
+                                                     memory_attribute->width);
+      res_templ.height0 = util_format_get_plane_height(templat->buffer_format, i,
+                                                       memory_attribute->height);
 
       whandle.stride = memory_attribute->pitches[i];
       whandle.offset = memory_attribute->offsets[i];
@@ -973,6 +977,34 @@ vlVaQueryVideoProcPipelineCaps(VADriverContextP ctx, VAContextID context,
    return VA_STATUS_SUCCESS;
 }
 
+static uint32_t pipe_format_to_drm_format(enum pipe_format format)
+{
+   switch (format) {
+   case PIPE_FORMAT_R8_UNORM:
+      return DRM_FORMAT_R8;
+   case PIPE_FORMAT_R8G8_UNORM:
+      return DRM_FORMAT_GR88;
+   case PIPE_FORMAT_R16_UNORM:
+      return DRM_FORMAT_R16;
+   case PIPE_FORMAT_R16G16_UNORM:
+      return DRM_FORMAT_GR1616;
+   case PIPE_FORMAT_B8G8R8A8_UNORM:
+      return DRM_FORMAT_ARGB8888;
+   case PIPE_FORMAT_R8G8B8A8_UNORM:
+      return DRM_FORMAT_ABGR8888;
+   case PIPE_FORMAT_B8G8R8X8_UNORM:
+      return DRM_FORMAT_XRGB8888;
+   case PIPE_FORMAT_R8G8B8X8_UNORM:
+      return DRM_FORMAT_XBGR8888;
+   case PIPE_FORMAT_NV12:
+      return DRM_FORMAT_NV12;
+   case PIPE_FORMAT_P010:
+      return DRM_FORMAT_P010;
+   default:
+      return DRM_FORMAT_INVALID;
+   }
+}
+
 #if VA_CHECK_VERSION(1, 1, 0)
 VAStatus
 vlVaExportSurfaceHandle(VADriverContextP ctx,
@@ -993,8 +1025,6 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
 
    if (mem_type != VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME_2)
       return VA_STATUS_ERROR_UNSUPPORTED_MEMORY_TYPE;
-   if (flags & VA_EXPORT_SURFACE_COMPOSED_LAYERS)
-      return VA_STATUS_ERROR_INVALID_SURFACE;
 
    drv    = VL_VA_DRIVER(ctx);
    screen = VL_VA_PSCREEN(ctx);
@@ -1051,32 +1081,8 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
 
       resource = surfaces[p]->texture;
 
-      switch (resource->format) {
-      case PIPE_FORMAT_R8_UNORM:
-         drm_format = DRM_FORMAT_R8;
-         break;
-      case PIPE_FORMAT_R8G8_UNORM:
-         drm_format = DRM_FORMAT_GR88;
-         break;
-      case PIPE_FORMAT_R16_UNORM:
-         drm_format = DRM_FORMAT_R16;
-         break;
-      case PIPE_FORMAT_R16G16_UNORM:
-         drm_format = DRM_FORMAT_GR1616;
-         break;
-      case PIPE_FORMAT_B8G8R8A8_UNORM:
-         drm_format = DRM_FORMAT_ARGB8888;
-         break;
-      case PIPE_FORMAT_R8G8B8A8_UNORM:
-         drm_format = DRM_FORMAT_ABGR8888;
-         break;
-      case PIPE_FORMAT_B8G8R8X8_UNORM:
-         drm_format = DRM_FORMAT_XRGB8888;
-         break;
-      case PIPE_FORMAT_R8G8B8X8_UNORM:
-         drm_format = DRM_FORMAT_XBGR8888;
-         break;
-      default:
+      drm_format = pipe_format_to_drm_format(resource->format);
+      if (drm_format == DRM_FORMAT_INVALID) {
          ret = VA_STATUS_ERROR_UNSUPPORTED_MEMORY_TYPE;
          goto fail;
       }
@@ -1094,15 +1100,34 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
       desc->objects[p].size = 0;
       desc->objects[p].drm_format_modifier = whandle.modifier;
 
-      desc->layers[p].drm_format      = drm_format;
-      desc->layers[p].num_planes      = 1;
-      desc->layers[p].object_index[0] = p;
-      desc->layers[p].offset[0]       = whandle.offset;
-      desc->layers[p].pitch[0]        = whandle.stride;
+      if (flags & VA_EXPORT_SURFACE_COMPOSED_LAYERS) {
+         desc->layers[0].object_index[p] = p;
+         desc->layers[0].offset[p]       = whandle.offset;
+         desc->layers[0].pitch[p]        = whandle.stride;
+      } else {
+         desc->layers[p].drm_format      = drm_format;
+         desc->layers[p].num_planes      = 1;
+         desc->layers[p].object_index[0] = p;
+         desc->layers[p].offset[0]       = whandle.offset;
+         desc->layers[p].pitch[0]        = whandle.stride;
+      }
    }
 
    desc->num_objects = p;
-   desc->num_layers  = p;
+
+   if (flags & VA_EXPORT_SURFACE_COMPOSED_LAYERS) {
+      uint32_t drm_format = pipe_format_to_drm_format(surf->buffer->buffer_format);
+      if (drm_format == DRM_FORMAT_MOD_INVALID) {
+         ret = VA_STATUS_ERROR_UNSUPPORTED_MEMORY_TYPE;
+         goto fail;
+      }
+
+      desc->num_layers = 1;
+      desc->layers[0].drm_format = drm_format;
+      desc->layers[0].num_planes = p;
+   } else {
+      desc->num_layers = p;
+   }
 
    mtx_unlock(&drv->mutex);
 

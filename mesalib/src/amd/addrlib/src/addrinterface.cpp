@@ -1707,6 +1707,35 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeSubResourceOffsetForSwizzlePattern(
 
 /**
 ****************************************************************************************************
+*   Addr2ComputeNonBlockCompressedView
+*
+*   @brief
+*       Compute non-block-compressed view for a given mipmap level/slice.
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr2ComputeNonBlockCompressedView(
+    ADDR_HANDLE                                       hLib, ///< handle of addrlib
+    const ADDR2_COMPUTE_NONBLOCKCOMPRESSEDVIEW_INPUT* pIn,  ///< [in] input
+    ADDR2_COMPUTE_NONBLOCKCOMPRESSEDVIEW_OUTPUT*      pOut) ///< [out] output
+{
+    ADDR_E_RETURNCODE returnCode;
+
+    V2::Lib* pLib = V2::Lib::GetLib(hLib);
+
+    if (pLib != NULL)
+    {
+        returnCode = pLib->ComputeNonBlockCompressedView(pIn, pOut);
+    }
+    else
+    {
+        returnCode = ADDR_ERROR;
+    }
+
+    return returnCode;
+}
+
+/**
+****************************************************************************************************
 *   Addr2GetPreferredSurfaceSetting
 *
 *   @brief
@@ -1739,14 +1768,14 @@ ADDR_E_RETURNCODE ADDR_API Addr2GetPreferredSurfaceSetting(
 *   Addr2IsValidDisplaySwizzleMode
 *
 *   @brief
-*       Return whether the swizzle mode is supported by DCE / DCN.
+*       Return whether the swizzle mode is supported by display engine
 ****************************************************************************************************
 */
 ADDR_E_RETURNCODE ADDR_API Addr2IsValidDisplaySwizzleMode(
     ADDR_HANDLE     hLib,
     AddrSwizzleMode swizzleMode,
     UINT_32         bpp,
-    bool            *result)
+    BOOL_32         *pResult)
 {
     ADDR_E_RETURNCODE returnCode;
 
@@ -1754,12 +1783,12 @@ ADDR_E_RETURNCODE ADDR_API Addr2IsValidDisplaySwizzleMode(
 
     if (pLib != NULL)
     {
-        ADDR2_COMPUTE_SURFACE_INFO_INPUT in = {0};
+        ADDR2_COMPUTE_SURFACE_INFO_INPUT in = {};
         in.resourceType = ADDR_RSRC_TEX_2D;
-        in.swizzleMode = swizzleMode;
-        in.bpp = bpp;
+        in.swizzleMode  = swizzleMode;
+        in.bpp          = bpp;
 
-        *result = pLib->IsValidDisplaySwizzleMode(&in);
+        *pResult   = pLib->IsValidDisplaySwizzleMode(&in);
         returnCode = ADDR_OK;
     }
     else

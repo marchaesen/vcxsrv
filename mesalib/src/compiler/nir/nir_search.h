@@ -95,8 +95,8 @@ typedef struct {
     * variables to require, for example, power-of-two in order for the search
     * to match.
     */
-   bool (*cond)(struct hash_table *range_ht, nir_alu_instr *instr, unsigned src,
-                unsigned num_components, const uint8_t *swizzle);
+   bool (*cond)(struct hash_table *range_ht, const nir_alu_instr *instr,
+                unsigned src, unsigned num_components, const uint8_t *swizzle);
 
    /** Swizzle (for replace only) */
    uint8_t swizzle[NIR_MAX_VEC_COMPONENTS];

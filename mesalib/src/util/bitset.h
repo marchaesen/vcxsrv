@@ -109,7 +109,8 @@ __bitset_last_bit(const BITSET_WORD *x, int n)
 }
 
 #define BITSET_FFS(x) __bitset_ffs(x, ARRAY_SIZE(x))
-#define BITSET_LAST_BIT(x, size) __bitset_last_bit(x, size)
+#define BITSET_LAST_BIT(x) __bitset_last_bit(x, ARRAY_SIZE(x))
+#define BITSET_LAST_BIT_SIZED(x, size) __bitset_last_bit(x, size)
 
 static inline unsigned
 __bitset_next_set(unsigned i, BITSET_WORD *tmp,
@@ -151,7 +152,7 @@ __bitset_next_set(unsigned i, BITSET_WORD *tmp,
  * @param __size number of bits in the set to consider
  */
 #define BITSET_FOREACH_SET(__i, __set, __size) \
-   for (BITSET_WORD __tmp = *(__set), *__foo = &__tmp; __foo != NULL; __foo = NULL) \
+   for (BITSET_WORD __tmp = (__size) == 0 ? 0 : *(__set), *__foo = &__tmp; __foo != NULL; __foo = NULL) \
       for (__i = 0; \
            (__i = __bitset_next_set(__i, &__tmp, __set, __size)) < __size;)
 

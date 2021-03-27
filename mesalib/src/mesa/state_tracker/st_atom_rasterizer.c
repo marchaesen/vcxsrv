@@ -92,19 +92,18 @@ st_update_rasterizer(struct st_context *st)
       }
    }
 
-   /* _NEW_LIGHT
-    */
+   /* _NEW_LIGHT_STATE */
    raster->flatshade = !st->lower_flatshade &&
                        ctx->Light.ShadeModel == GL_FLAT;
 
    raster->flatshade_first = ctx->Light.ProvokingVertex ==
                              GL_FIRST_VERTEX_CONVENTION_EXT;
 
-   /* _NEW_LIGHT | _NEW_PROGRAM */
+   /* _NEW_LIGHT_STATE | _NEW_PROGRAM */
    if (!st->lower_two_sided_color)
       raster->light_twoside = _mesa_vertex_program_two_side_enabled(ctx);
 
-   /*_NEW_LIGHT | _NEW_BUFFERS */
+   /*_NEW_LIGHT_STATE | _NEW_BUFFERS */
    raster->clamp_vertex_color = !st->clamp_vert_color_in_shader &&
                                 ctx->Light._ClampVertexColor;
 
@@ -163,13 +162,40 @@ st_update_rasterizer(struct st_context *st)
       raster->offset_clamp = ctx->Polygon.OffsetClamp;
    }
 
-   raster->poly_smooth = ctx->Polygon.SmoothFlag;
    raster->poly_stipple_enable = ctx->Polygon.StippleFlag;
+
+   /* Multisampling disables point, line, and polygon smoothing.
+    *
+    * GL_ARB_multisample says:
+    *
+    *   "If MULTISAMPLE_ARB is enabled, and SAMPLE_BUFFERS_ARB is a value of
+    *    one, then points are rasterized using the following algorithm,
+    *    regardless of whether point antialiasing (POINT_SMOOTH) is enabled"
+    *
+    *   "If MULTISAMPLE_ARB is enabled, and SAMPLE_BUFFERS_ARB is a value of
+    *    one, then lines are rasterized using the following algorithm,
+    *    regardless of whether line antialiasing (LINE_SMOOTH) is enabled"
+    *
+    *   "If MULTISAMPLE_ARB is enabled, and SAMPLE_BUFFERS_ARB is a value of
+    *    one, then polygons are rasterized using the following algorithm,
+    *    regardless of whether polygon antialiasing (POLYGON_SMOOTH) is
+    *    enabled"
+    */
+
+   /* _NEW_MULTISAMPLE */
+   bool multisample = _mesa_is_multisample_enabled(ctx);
+   raster->multisample = multisample;
+
+   /* _NEW_POLYGON | _NEW_MULTISAMPLE */
+   raster->poly_smooth = !multisample && ctx->Polygon.SmoothFlag;
 
    /* _NEW_POINT
     */
    raster->point_size = ctx->Point.Size;
-   raster->point_smooth = !ctx->Point.PointSprite && ctx->Point.SmoothFlag;
+
+   /* _NEW_POINT | _NEW_MULTISAMPLE */
+   raster->point_smooth = !multisample && !ctx->Point.PointSprite &&
+                          ctx->Point.SmoothFlag;
 
    /* _NEW_POINT | _NEW_PROGRAM
     */
@@ -206,10 +232,10 @@ st_update_rasterizer(struct st_context *st)
                                  ctx->Point.MaxSize);
    }
 
-   /* _NEW_LINE
+   /* _NEW_LINE | _NEW_MULTISAMPLE
     */
-   raster->line_smooth = ctx->Line.SmoothFlag;
-   if (ctx->Line.SmoothFlag) {
+   if (!multisample && ctx->Line.SmoothFlag) {
+      raster->line_smooth = 1;
       raster->line_width = CLAMP(ctx->Line.Width,
                                  ctx->Const.MinLineWidthAA,
                                  ctx->Const.MaxLineWidthAA);
@@ -225,9 +251,6 @@ st_update_rasterizer(struct st_context *st)
    raster->line_stipple_pattern = ctx->Line.StipplePattern;
    /* GL stipple factor is in [1,256], remap to [0, 255] here */
    raster->line_stipple_factor = ctx->Line.StippleFactor - 1;
-
-   /* _NEW_MULTISAMPLE */
-   raster->multisample = _mesa_is_multisample_enabled(ctx);
 
    /* _NEW_MULTISAMPLE | _NEW_BUFFERS */
    raster->force_persample_interp =

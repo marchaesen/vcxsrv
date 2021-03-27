@@ -91,7 +91,7 @@ swr_create_screen(struct sw_winsys *winsys)
 
    util_cpu_detect();
 
-   if (util_cpu_caps.has_avx512f && util_cpu_caps.has_avx512er) {
+   if (util_get_cpu_caps()->has_avx512f && util_get_cpu_caps()->has_avx512er) {
       swr_print_info("SWR detected KNL instruction support ");
 #ifndef HAVE_SWR_KNL
       swr_print_info("(skipping: not built).\n");
@@ -103,7 +103,7 @@ swr_create_screen(struct sw_winsys *winsys)
 #endif
    }
 
-   if (util_cpu_caps.has_avx512f && util_cpu_caps.has_avx512bw) {
+   if (util_get_cpu_caps()->has_avx512f && util_get_cpu_caps()->has_avx512bw) {
       swr_print_info("SWR detected SKX instruction support ");
 #ifndef HAVE_SWR_SKX
       swr_print_info("(skipping not built).\n");
@@ -113,7 +113,7 @@ swr_create_screen(struct sw_winsys *winsys)
 #endif
    }
 
-   if (util_cpu_caps.has_avx2) {
+   if (util_get_cpu_caps()->has_avx2) {
       swr_print_info("SWR detected AVX2 instruction support ");
 #ifndef HAVE_SWR_AVX2
       swr_print_info("(skipping not built).\n");
@@ -123,7 +123,7 @@ swr_create_screen(struct sw_winsys *winsys)
 #endif
    }
 
-   if (util_cpu_caps.has_avx) {
+   if (util_get_cpu_caps()->has_avx) {
       swr_print_info("SWR detected AVX instruction support ");
 #ifndef HAVE_SWR_AVX
       swr_print_info("(skipping not built).\n");

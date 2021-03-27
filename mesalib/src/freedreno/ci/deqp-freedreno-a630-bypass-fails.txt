@@ -1,0 +1,13 @@
+dEQP-GLES31.functional.blend_equation_advanced.barrier.colordodge,Fail
+dEQP-GLES31.functional.blend_equation_advanced.barrier.exclusion,Fail
+dEQP-GLES31.functional.blend_equation_advanced.barrier.multiply,Fail
+dEQP-GLES31.functional.blend_equation_advanced.basic.colordodge,Fail
+dEQP-GLES31.functional.blend_equation_advanced.basic.exclusion,Fail
+dEQP-GLES31.functional.blend_equation_advanced.basic.multiply,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.colordodge,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.exclusion,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.multiply,Fail
+dEQP-GLES31.functional.blend_equation_advanced.srgb.colordodge,Fail
+dEQP-GLES31.functional.blend_equation_advanced.srgb.exclusion,Fail
+dEQP-GLES31.functional.blend_equation_advanced.srgb.multiply,Fail
+dEQP-GLES31.functional.draw_buffers_indexed.overwrite_common.common_blend_eq_buffer_advanced_blend_eq,Fail

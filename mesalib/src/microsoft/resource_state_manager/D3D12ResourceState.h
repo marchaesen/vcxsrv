@@ -34,6 +34,10 @@
 
 #include "util/list.h"
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
+#endif
+
 #define UNKNOWN_RESOURCE_STATE (D3D12_RESOURCE_STATES)0x8000u
 #define RESOURCE_STATE_VALID_BITS 0x2f3fff
 #define RESOURCE_STATE_VALID_INTERNAL_BITS 0x2fffff
@@ -142,7 +146,6 @@ struct TransitionableResourceState
    TransitionableResourceState(ID3D12Resource *pResource, UINT TotalSubresources, bool SupportsSimultaneousAccess) :
       m_DesiredState(TotalSubresources),
       m_TotalSubresources(TotalSubresources),
-      m_SupportsSimultaneousAccess(SupportsSimultaneousAccess),
       m_currentState(TotalSubresources, SupportsSimultaneousAccess),
       m_pResource(pResource)
    {
@@ -167,7 +170,6 @@ struct TransitionableResourceState
 
 private:
    unsigned m_TotalSubresources;
-   bool m_SupportsSimultaneousAccess;
 
    CCurrentResourceState m_currentState;
 

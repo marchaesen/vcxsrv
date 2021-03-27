@@ -45,8 +45,8 @@ radeon_cs_memory_below_limit(struct r600_common_screen *screen,
 			     struct radeon_cmdbuf *cs,
 			     uint64_t vram, uint64_t gtt)
 {
-	vram += cs->used_vram;
-	gtt += cs->used_gart;
+	vram += (uint64_t)cs->used_vram_kb * 1024;
+	gtt += (uint64_t)cs->used_gart_kb * 1024;
 
 	/* Anything that goes above the VRAM size should go to GTT. */
 	if (vram > screen->info.vram_size)

@@ -713,7 +713,8 @@ enum node_flags {
 	NF_SCHEDULE_EARLY = (1 << 9),
 
 	// for ALU_PUSH_BEFORE - when set, replace with PUSH + ALU
-	NF_ALU_STACK_WORKAROUND = (1 << 10)
+	NF_ALU_STACK_WORKAROUND = (1 << 10),
+	NF_ALU_2SLOT = (1 << 11),
 };
 
 inline node_flags operator |(node_flags l, node_flags r) {
@@ -929,7 +930,7 @@ public:
 	bool empty() { assert(first != NULL || first == last); return !first; }
 	unsigned count();
 
-	// used with node containers that represent shceduling queues
+	// used with node containers that represent scheduling queues
 	// ignores copies and takes into account alu_packed_node items
 	unsigned real_alu_count();
 
@@ -1021,8 +1022,9 @@ public:
 	virtual bool fold_dispatch(expr_handler *ex);
 
 	unsigned forced_bank_swizzle() {
-		return ((bc.op_ptr->flags & AF_INTERP) && (bc.slot_flags == AF_4V)) ?
-				VEC_210 : 0;
+		return ((bc.op_ptr->flags & AF_INTERP) &&
+			((bc.slot_flags == AF_4V) ||
+			 (bc.slot_flags == AF_2V))) ? VEC_210 : 0;
 	}
 
 	// return param index + 1 if instruction references interpolation param,

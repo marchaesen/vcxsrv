@@ -168,6 +168,13 @@ static void remap_shader_info(r600_shader& sh_info,
                               std::vector<rename_reg_pair>& map,
                               UNUSED ValueMap& values)
 {
+   for (unsigned i = 0; i < sh_info.num_arrays; ++i) {
+      auto new_index = map[sh_info.arrays[i].gpr_start];
+      if (new_index.valid)
+         sh_info.arrays[i].gpr_start = new_index.new_reg;
+      map[sh_info.arrays[i].gpr_start].used = true;
+   }
+
    for (unsigned i = 0; i < sh_info.ninput; ++i) {
       sfn_log << SfnLog::merge << "Input " << i << " gpr:" << sh_info.input[i].gpr
               << " of map.size()\n";
@@ -274,8 +281,8 @@ bool ShaderFromNirProcessor::process_uniforms(nir_variable *uniform)
    auto type = uniform->type->is_array() ? uniform->type->without_array(): uniform->type;
    if (type->is_image() || uniform->data.mode == nir_var_mem_ssbo) {
       sh_info().uses_images = 1;
-      if (uniform->type->is_array())
-         sh_info().indirect_files |= TGSI_FILE_IMAGE;
+      if (uniform->type->is_array() && ! (uniform->data.mode == nir_var_mem_ssbo))
+         sh_info().indirect_files |= 1 << TGSI_FILE_IMAGE;
    }
 
    if (uniform->type->is_image()) {
@@ -672,6 +679,8 @@ bool ShaderFromNirProcessor::emit_intrinsic_instruction(nir_intrinsic_instr* ins
    case nir_intrinsic_memory_barrier_image:
    case nir_intrinsic_group_memory_barrier:
       return emit_barrier(instr);
+   case nir_intrinsic_memory_barrier_atomic_counter:
+      return true;
    case nir_intrinsic_shared_atomic_add:
    case nir_intrinsic_shared_atomic_and:
    case nir_intrinsic_shared_atomic_or:
@@ -790,7 +799,7 @@ GPRVector ShaderFromNirProcessor::vec_from_nir_with_fetch_constant(const nir_src
    std::array<bool,4> used_swizzles = {false, false, false, false};
 
    /* Check whether all sources come from a GPR, and,
-    * if requested, whether they are swizzled as epected */
+    * if requested, whether they are swizzled as expected */
 
    for (int i = 0; i < 4 && use_same; ++i)  {
       if ((1 << i) & mask) {
@@ -886,7 +895,7 @@ bool ShaderFromNirProcessor::emit_load_ubo_vec4(nir_intrinsic_instr* instr)
       FetchInstruction *ir;
       if (bufid) {
          ir = new FetchInstruction(vc_fetch, no_index_offset, trgt, addr, 0,
-                                              1, nullptr, bim_none);
+                                              1 + bufid->u32, nullptr, bim_none);
       } else {
          PValue bufid = from_nir(instr->src[0], 0, 0);
          ir = new FetchInstruction(vc_fetch, no_index_offset, trgt, addr, 0,
@@ -978,8 +987,7 @@ bool ShaderFromNirProcessor::load_uniform(nir_intrinsic_instr* instr)
 
    if (literal) {
       AluInstruction *ir = nullptr;
-
-      for (int i = 0; i < instr->num_components ; ++i) {
+      for (unsigned i = 0; i < nir_dest_num_components(instr->dest); ++i) {
          PValue u = PValue(new UniformValue(512 + literal->u32 + base, i));
          sfn_log << SfnLog::io << "uniform "
                  << instr->dest.ssa.index << " const["<< i << "]: "<< instr->const_index[i] << "\n";
@@ -1163,6 +1171,20 @@ void ShaderFromNirProcessor::append_block(int nesting_change)
 {
    m_nesting_depth += nesting_change;
    m_output.push_back(InstructionBlock(m_nesting_depth, m_block_number++));
+}
+
+void ShaderFromNirProcessor::get_array_info(r600_shader& shader) const
+{
+   shader.num_arrays = m_reg_arrays.size();
+   if (shader.num_arrays) {
+      shader.arrays = (r600_shader_array *)calloc(shader.num_arrays, sizeof(r600_shader_array));
+      for (unsigned i = 0; i < shader.num_arrays; ++i) {
+         shader.arrays[i].comp_mask = m_reg_arrays[i]->mask();
+         shader.arrays[i].gpr_start = m_reg_arrays[i]->sel();
+         shader.arrays[i].gpr_count = m_reg_arrays[i]->size();
+      }
+      shader.indirect_files |= (1 << TGSI_FILE_TEMPORARY);
+   }
 }
 
 void ShaderFromNirProcessor::finalize()

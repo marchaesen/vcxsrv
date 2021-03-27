@@ -471,7 +471,7 @@ struct pipe_context* r300_create_context(struct pipe_screen* screen,
         vb.depth0 = 1;
 
         r300->dummy_vb.buffer.resource = screen->resource_create(screen, &vb);
-        r300->context.set_vertex_buffers(&r300->context, 0, 1, &r300->dummy_vb);
+        r300->context.set_vertex_buffers(&r300->context, 0, 1, 0, false, &r300->dummy_vb);
     }
 
     {

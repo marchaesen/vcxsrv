@@ -162,7 +162,7 @@ static bool ppir_lower_texture(ppir_block *block, ppir_node *node)
 {
    ppir_dest *dest = ppir_node_get_dest(node);
 
-   if (ppir_node_has_single_succ(node)) {
+   if (ppir_node_has_single_succ(node) && dest->type == ppir_target_ssa) {
       ppir_node *succ = ppir_node_first_succ(node);
       dest->type = ppir_target_pipeline;
       dest->pipeline = ppir_pipeline_reg_sampler;
@@ -364,6 +364,62 @@ static bool ppir_lower_branch(ppir_block *block, ppir_node *node)
    return true;
 }
 
+static bool ppir_lower_accum(ppir_block *block, ppir_node *node)
+{
+    /* If the last argument of a node placed in PPIR_INSTR_SLOT_ALU_SCL_ADD
+    * (or PPIR_INSTR_SLOT_ALU_VEC_ADD) is placed in
+    * PPIR_INSTR_SLOT_ALU_SCL_MUL (or PPIR_INSTR_SLOT_ALU_VEC_MUL) we cannot
+    * save a register (and an instruction) by using a pipeline register.
+    * Therefore it is interesting to make sure arguments of that type are
+    * the first argument by swapping arguments (if possible) */
+   ppir_alu_node *alu = ppir_node_to_alu(node);
+
+   assert(alu->num_src >= 2);
+
+   if (alu->src[0].type == ppir_target_pipeline)
+      return true;
+
+   if (alu->src[0].type == ppir_target_ssa) {
+      int *src_0_slots = ppir_op_infos[alu->src[0].node->op].slots;
+      if (src_0_slots) {
+         for (int i = 0; src_0_slots[i] != PPIR_INSTR_SLOT_END; i++) {
+            if ((src_0_slots[i] == PPIR_INSTR_SLOT_ALU_SCL_MUL) ||
+               (src_0_slots[i] == PPIR_INSTR_SLOT_ALU_VEC_MUL)) {
+               return true;
+            }
+         }
+      }
+   }
+
+   int src_to_swap = -1;
+   for (int j = 1; j < alu->num_src; j++) {
+      if (alu->src[j].type != ppir_target_ssa)
+         continue;
+      int *src_slots = ppir_op_infos[alu->src[j].node->op].slots;
+      if (!src_slots)
+         continue;
+      for (int i = 0; src_slots[i] != PPIR_INSTR_SLOT_END; i++) {
+         if ((src_slots[i] == PPIR_INSTR_SLOT_ALU_SCL_MUL) ||
+             (src_slots[i] == PPIR_INSTR_SLOT_ALU_VEC_MUL)) {
+            src_to_swap = j;
+            break;
+         }
+      }
+      if (src_to_swap > 0)
+         break;
+   }
+
+   if (src_to_swap < 0)
+      return true;
+
+   /* Swap arguments so that we can use a pipeline register later on */
+   ppir_src tmp = alu->src[0];
+   alu->src[0] = alu->src[src_to_swap];
+   alu->src[src_to_swap] = tmp;
+
+   return true;
+}
+
 static bool (*ppir_lower_funcs[ppir_op_num])(ppir_block *, ppir_node *) = {
    [ppir_op_abs] = ppir_lower_abs,
    [ppir_op_neg] = ppir_lower_neg,
@@ -379,6 +435,11 @@ static bool (*ppir_lower_funcs[ppir_op_num])(ppir_block *, ppir_node *) = {
    [ppir_op_branch] = ppir_lower_branch,
    [ppir_op_load_uniform] = ppir_lower_load,
    [ppir_op_load_temp] = ppir_lower_load,
+   [ppir_op_add] = ppir_lower_accum,
+   [ppir_op_max] = ppir_lower_accum,
+   [ppir_op_min] = ppir_lower_accum,
+   [ppir_op_eq] = ppir_lower_accum,
+   [ppir_op_ne] = ppir_lower_accum,
 };
 
 bool ppir_lower_prog(ppir_compiler *comp)

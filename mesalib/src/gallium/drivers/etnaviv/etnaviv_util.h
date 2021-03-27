@@ -30,9 +30,6 @@
 /* for conditionally setting boolean flag(s): */
 #define COND(bool, val) ((bool) ? (val) : 0)
 
-#define foreach_bit(b, mask) \
-   for (uint32_t _m = (mask); _m && ({(b) = u_bit_scan(&_m); 1;});)
-
 /* align to a value divisable by granularity >= value, works only for powers of two */
 static inline uint32_t
 etna_align_up(uint32_t value, uint32_t granularity)

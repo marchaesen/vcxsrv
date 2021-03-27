@@ -223,6 +223,14 @@ static inline void
 pipe_vertex_buffer_reference(struct pipe_vertex_buffer *dst,
                              const struct pipe_vertex_buffer *src)
 {
+   if (dst->buffer.resource == src->buffer.resource) {
+      /* Just copy the fields, don't touch reference counts. */
+      dst->stride = src->stride;
+      dst->is_user_buffer = src->is_user_buffer;
+      dst->buffer_offset = src->buffer_offset;
+      return;
+   }
+
    pipe_vertex_buffer_unreference(dst);
    if (!src->is_user_buffer)
       pipe_resource_reference(&dst->buffer.resource, src->buffer.resource);
@@ -427,6 +435,23 @@ pipe_buffer_write_nooverlap(struct pipe_context *pipe,
                         offset, size, data);
 }
 
+/**
+ * Utility for simplifying pipe_context::resource_copy_region calls
+ */
+static inline void
+pipe_buffer_copy(struct pipe_context *pipe,
+                 struct pipe_resource *dst,
+                 struct pipe_resource *src,
+                 unsigned dst_offset,
+                 unsigned src_offset,
+                 unsigned size)
+{
+   struct pipe_box box;
+   /* only these fields are used */
+   box.x = (int)src_offset;
+   box.width = (int)size;
+   pipe->resource_copy_region(pipe, dst, 0, dst_offset, 0, 0, src, 0, &box);
+}
 
 /**
  * Create a new resource and immediately put data into it
@@ -532,9 +557,9 @@ pipe_set_constant_buffer(struct pipe_context *pipe,
       cb.buffer_offset = 0;
       cb.buffer_size = buf->width0;
       cb.user_buffer = NULL;
-      pipe->set_constant_buffer(pipe, shader, index, &cb);
+      pipe->set_constant_buffer(pipe, shader, index, false, &cb);
    } else {
-      pipe->set_constant_buffer(pipe, shader, index, NULL);
+      pipe->set_constant_buffer(pipe, shader, index, false, NULL);
    }
 }
 
@@ -650,10 +675,16 @@ util_pipe_tex_to_tgsi_tex(enum pipe_texture_target pipe_tex_target,
 
 static inline void
 util_copy_constant_buffer(struct pipe_constant_buffer *dst,
-                          const struct pipe_constant_buffer *src)
+                          const struct pipe_constant_buffer *src,
+                          bool take_ownership)
 {
    if (src) {
-      pipe_resource_reference(&dst->buffer, src->buffer);
+      if (take_ownership) {
+         pipe_resource_reference(&dst->buffer, NULL);
+         dst->buffer = src->buffer;
+      } else {
+         pipe_resource_reference(&dst->buffer, src->buffer);
+      }
       dst->buffer_offset = src->buffer_offset;
       dst->buffer_size = src->buffer_size;
       dst->user_buffer = src->user_buffer;
@@ -761,6 +792,26 @@ util_logicop_reads_dest(enum pipe_logicop op)
       return false;
    }
    unreachable("bad logicop");
+}
+
+static inline bool
+util_writes_stencil(const struct pipe_stencil_state *s)
+{
+   return s->enabled && s->writemask &&
+        ((s->fail_op != PIPE_STENCIL_OP_KEEP) ||
+         (s->zpass_op != PIPE_STENCIL_OP_KEEP) ||
+         (s->zfail_op != PIPE_STENCIL_OP_KEEP));
+}
+
+static inline bool
+util_writes_depth_stencil(const struct pipe_depth_stencil_alpha_state *zsa)
+{
+   if (zsa->depth_enabled && zsa->depth_writemask &&
+       (zsa->depth_func != PIPE_FUNC_NEVER))
+      return true;
+
+   return util_writes_stencil(&zsa->stencil[0]) ||
+          util_writes_stencil(&zsa->stencil[1]);
 }
 
 static inline struct pipe_context *

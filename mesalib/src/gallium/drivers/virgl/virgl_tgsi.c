@@ -101,9 +101,8 @@ virgl_tgsi_transform_instruction(struct tgsi_transform_context *ctx,
    ctx->emit_instruction(ctx, inst);
 }
 
-struct tgsi_token *virgl_tgsi_transform(struct virgl_context *vctx, const struct tgsi_token *tokens_in)
+struct tgsi_token *virgl_tgsi_transform(struct virgl_screen *vscreen, const struct tgsi_token *tokens_in)
 {
-   struct virgl_screen *vscreen = (struct virgl_screen *)vctx->base.screen;
    struct virgl_transform_context transform;
    const uint newLen = tgsi_num_tokens(tokens_in);
    struct tgsi_token *new_tokens;

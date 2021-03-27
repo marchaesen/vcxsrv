@@ -51,7 +51,7 @@ bool TEvalShaderFromNir::scan_sysvalue_access(nir_instr *instr)
    auto ir = nir_instr_as_intrinsic(instr);
 
    switch (ir->intrinsic) {
-   case nir_intrinsic_load_tess_coord:
+   case nir_intrinsic_load_tess_coord_r600:
       m_sv_values.set(es_tess_coord);
       break;
    case nir_intrinsic_load_primitive_id:
@@ -106,24 +106,12 @@ bool TEvalShaderFromNir::do_allocate_reserved_registers()
    return true;
 }
 
-bool TEvalShaderFromNir::load_tess_z_coord(nir_intrinsic_instr* instr)
-{
-   if (m_tess_coord[2])
-      return load_preloaded_value(instr->dest, 2, m_tess_coord[2]);
-
-   m_tess_coord[2] = from_nir(instr->dest, 2);
-   emit_instruction(new AluInstruction(op2_add, m_tess_coord[2], Value::one_f, m_tess_coord[0], {alu_last_instr, alu_write, alu_src1_neg}));
-   emit_instruction(new AluInstruction(op2_add, m_tess_coord[2], m_tess_coord[2], m_tess_coord[1], {alu_last_instr, alu_write, alu_src1_neg}));
-   return true;
-}
-
 bool TEvalShaderFromNir::emit_intrinsic_instruction_override(nir_intrinsic_instr* instr)
 {
    switch (instr->intrinsic) {
-   case nir_intrinsic_load_tess_coord:
+   case nir_intrinsic_load_tess_coord_r600:
       return load_preloaded_value(instr->dest, 0, m_tess_coord[0]) &&
-            load_preloaded_value(instr->dest, 1, m_tess_coord[1]) &&
-            load_tess_z_coord(instr);
+            load_preloaded_value(instr->dest, 1, m_tess_coord[1]);
    case nir_intrinsic_load_primitive_id:
       return load_preloaded_value(instr->dest, 0, m_primitive_id);
    case nir_intrinsic_load_tcs_rel_patch_id_r600:

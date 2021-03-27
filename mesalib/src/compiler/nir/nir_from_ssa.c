@@ -46,6 +46,15 @@ struct from_ssa_state {
 
 /* Returns if def @a comes after def @b.
  *
+ * The core observation that makes the Boissinot algorithm efficient
+ * is that, given two properly sorted sets, we can check for
+ * interference in these sets via a linear walk. This is accomplished
+ * by doing single combined walk over union of the two sets in DFS
+ * order. It doesn't matter what DFS we do so long as we're
+ * consistent. Fortunately, the dominance algorithm we ran prior to
+ * this pass did such a walk and recorded the pre- and post-indices in
+ * the blocks.
+ *
  * We treat SSA undefs as always coming before other instruction types.
  */
 static bool
@@ -57,7 +66,15 @@ def_after(nir_ssa_def *a, nir_ssa_def *b)
    if (b->parent_instr->type == nir_instr_type_ssa_undef)
       return true;
 
-   return a->parent_instr->index > b->parent_instr->index;
+   /* If they're in the same block, we can rely on whichever instruction
+    * comes first in the block.
+    */
+   if (a->parent_instr->block == b->parent_instr->block)
+      return a->parent_instr->index > b->parent_instr->index;
+
+   /* Otherwise, if blocks are distinct, we sort them in DFS pre-order */
+   return a->parent_instr->block->dom_pre_index >
+          b->parent_instr->block->dom_pre_index;
 }
 
 /* Returns true if a dominates b */
@@ -106,6 +123,7 @@ typedef struct {
 typedef struct merge_set {
    struct exec_list nodes;
    unsigned size;
+   bool divergent;
    nir_register *reg;
 } merge_set;
 
@@ -144,6 +162,7 @@ get_merge_node(nir_ssa_def *def, struct from_ssa_state *state)
    merge_set *set = ralloc(state->dead_ctx, merge_set);
    exec_list_make_empty(&set->nodes);
    set->size = 1;
+   set->divergent = def->divergent;
    set->reg = NULL;
 
    merge_node *node = ralloc(state->dead_ctx, merge_node);
@@ -159,6 +178,13 @@ get_merge_node(nir_ssa_def *def, struct from_ssa_state *state)
 static bool
 merge_nodes_interfere(merge_node *a, merge_node *b)
 {
+   /* There's no need to check for interference within the same set,
+    * because we assume, that sets themselves are already
+    * interference-free.
+    */
+   if (a->set == b->set)
+      return false;
+
    return nir_ssa_defs_interfere(a->def, b->def);
 }
 
@@ -186,6 +212,7 @@ merge_merge_sets(merge_set *a, merge_set *b)
 
    a->size += b->size;
    b->size = 0;
+   a->divergent |= b->divergent;
 
    return a;
 }
@@ -358,6 +385,7 @@ isolate_phi_nodes_block(nir_block *block, void *dead_ctx)
          nir_ssa_dest_init(&pcopy->instr, &entry->dest,
                            phi->dest.ssa.num_components,
                            phi->dest.ssa.bit_size, src->src.ssa->name);
+         entry->dest.ssa.divergent = nir_src_is_divergent(src->src);
          exec_list_push_tail(&pcopy->entries, &entry->node);
 
          assert(src->src.is_ssa);
@@ -372,10 +400,11 @@ isolate_phi_nodes_block(nir_block *block, void *dead_ctx)
       nir_ssa_dest_init(&block_pcopy->instr, &entry->dest,
                         phi->dest.ssa.num_components, phi->dest.ssa.bit_size,
                         phi->dest.ssa.name);
+      entry->dest.ssa.divergent = phi->dest.ssa.divergent;
       exec_list_push_tail(&block_pcopy->entries, &entry->node);
 
       nir_ssa_def_rewrite_uses(&phi->dest.ssa,
-                               nir_src_for_ssa(&entry->dest.ssa));
+                               &entry->dest.ssa);
 
       nir_instr_rewrite_src(&block_pcopy->instr, &entry->src,
                             nir_src_for_ssa(&phi->dest.ssa));
@@ -430,6 +459,12 @@ aggressive_coalesce_parallel_copy(nir_parallel_copy_instr *pcopy,
       merge_node *dest_node = get_merge_node(&entry->dest.ssa, state);
 
       if (src_node->set == dest_node->set)
+         continue;
+
+      /* TODO: We can probably do better here but for now we should be safe if
+       * we just don't coalesce things with different divergence.
+       */
+      if (dest_node->set->divergent != src_node->set->divergent)
          continue;
 
       if (!merge_sets_interfere(src_node->set, dest_node->set))
@@ -493,8 +528,10 @@ rewrite_ssa_def(nir_ssa_def *def, void *void_state)
        * the things in the merge set should be the same so it doesn't
        * matter which node's definition we use.
        */
-      if (node->set->reg == NULL)
+      if (node->set->reg == NULL) {
          node->set->reg = create_reg_for_ssa_def(def, state->builder.impl);
+         node->set->reg->divergent = node->set->divergent;
+      }
 
       reg = node->set->reg;
    } else {
@@ -510,8 +547,8 @@ rewrite_ssa_def(nir_ssa_def *def, void *void_state)
       reg = create_reg_for_ssa_def(def, state->builder.impl);
    }
 
-   nir_ssa_def_rewrite_uses(def, nir_src_for_reg(reg));
-   assert(list_is_empty(&def->uses) && list_is_empty(&def->if_uses));
+   nir_ssa_def_rewrite_uses_src(def, nir_src_for_reg(reg));
+   assert(nir_ssa_def_is_unused(def));
 
    if (def->parent_instr->type == nir_instr_type_ssa_undef) {
       /* If it's an ssa_undef instruction, remove it since we know we just got
@@ -561,6 +598,8 @@ emit_copy(nir_builder *b, nir_src src, nir_src dest_src)
    assert(!dest_src.is_ssa &&
           dest_src.reg.indirect == NULL &&
           dest_src.reg.base_offset == 0);
+
+   assert(!nir_src_is_divergent(src) || nir_src_is_divergent(dest_src));
 
    if (src.is_ssa)
       assert(src.ssa->num_components >= dest_src.reg.reg->num_components);
@@ -699,13 +738,26 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
          /* b has been filled, mark it as not needing to be copied */
          pred[b] = -1;
 
-         /* If a needs to be filled... */
-         if (pred[a] != -1) {
-            /* If any other copies want a they can find it at b */
+         /* The next bit only applies if the source and destination have the
+          * same divergence.  If they differ (it must be convergent ->
+          * divergent), then we can't guarantee we won't need the convergent
+          * version of again.
+          */
+         if (nir_src_is_divergent(values[a]) ==
+             nir_src_is_divergent(values[b])) {
+            /* If any other copies want a they can find it at b but only if the
+             * two have the same divergence.
+             */
             loc[a] = b;
 
-            /* It's ready for copying now */
-            ready[++ready_idx] = a;
+            /* If a needs to be filled... */
+            if (pred[a] != -1) {
+               /* If any other copies want a they can find it at b */
+               loc[a] = b;
+
+               /* It's ready for copying now */
+               ready[++ready_idx] = a;
+            }
          }
       }
       int b = to_do[to_do_idx--];
@@ -732,6 +784,7 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
          reg->num_components = values[b].reg.reg->num_components;
          reg->bit_size = values[b].reg.reg->bit_size;
       }
+      reg->divergent = nir_src_is_divergent(values[b]);
       values[num_vals].is_ssa = false;
       values[num_vals].reg.reg = reg;
 
@@ -917,7 +970,7 @@ nir_lower_phis_to_regs_block(nir_block *block)
       b.cursor = nir_after_instr(&phi->instr);
       nir_ssa_def *def = nir_load_reg(&b, reg);
 
-      nir_ssa_def_rewrite_uses(&phi->dest.ssa, nir_src_for_ssa(def));
+      nir_ssa_def_rewrite_uses(&phi->dest.ssa, def);
 
       nir_foreach_phi_src(src, phi) {
          assert(src->src.is_ssa);
@@ -947,7 +1000,7 @@ dest_replace_ssa_with_reg(nir_dest *dest, void *void_state)
 
    nir_register *reg = create_reg_for_ssa_def(&dest->ssa, state->impl);
 
-   nir_ssa_def_rewrite_uses(&dest->ssa, nir_src_for_reg(reg));
+   nir_ssa_def_rewrite_uses_src(&dest->ssa, nir_src_for_reg(reg));
 
    nir_instr *instr = dest->ssa.parent_instr;
    *dest = nir_dest_for_reg(reg);
@@ -999,12 +1052,12 @@ nir_lower_ssa_defs_to_regs_block(nir_block *block)
          /* Undefs are just a read of something never written. */
          nir_ssa_undef_instr *undef = nir_instr_as_ssa_undef(instr);
          nir_register *reg = create_reg_for_ssa_def(&undef->def, state.impl);
-         nir_ssa_def_rewrite_uses(&undef->def, nir_src_for_reg(reg));
+         nir_ssa_def_rewrite_uses_src(&undef->def, nir_src_for_reg(reg));
       } else if (instr->type == nir_instr_type_load_const) {
          /* Constant loads are SSA-only, we need to insert a move */
          nir_load_const_instr *load = nir_instr_as_load_const(instr);
          nir_register *reg = create_reg_for_ssa_def(&load->def, state.impl);
-         nir_ssa_def_rewrite_uses(&load->def, nir_src_for_reg(reg));
+         nir_ssa_def_rewrite_uses_src(&load->def, nir_src_for_reg(reg));
 
          nir_alu_instr *mov = nir_alu_instr_create(shader, nir_op_mov);
          mov->src[0].src = nir_src_for_ssa(&load->def);

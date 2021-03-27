@@ -69,7 +69,7 @@ prim_count(const struct pipe_draw_info *info,
 	/* PIPE_PRIM_MAX used internally for RECTLIST blits on 3d pipe: */
 	unsigned vtx_per_prim = (info->mode == PIPE_PRIM_MAX) ? 2 :
 			u_vertices_per_prim(info->mode);
-	return (draw->count * info->instance_count) / vtx_per_prim;
+	return MAX2(1, (draw->count * info->instance_count) / vtx_per_prim);
 }
 
 /**

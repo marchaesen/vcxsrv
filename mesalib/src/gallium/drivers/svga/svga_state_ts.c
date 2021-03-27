@@ -320,7 +320,7 @@ get_passthrough_tcs(struct svga_context *svga)
    cb.user_buffer = (void *) svga->curr.default_tesslevels;
    cb.buffer_offset = 0;
    cb.buffer_size = 2 * 4 * sizeof(float);
-   svga->pipe.set_constant_buffer(&svga->pipe, PIPE_SHADER_TESS_CTRL, 0, &cb);
+   svga->pipe.set_constant_buffer(&svga->pipe, PIPE_SHADER_TESS_CTRL, 0, false, &cb);
 }
 
 

@@ -56,7 +56,8 @@ with_glx_read_only_text = get_option('glx-read-only-text')
 with_glx_direct = get_option('glx-direct')
 with_osmesa = get_option('osmesa')
 with_swr_arches = get_option('swr-arches')
-with_vulkan_overlay_layer = get_option('vulkan-overlay-layer')
+with_vulkan_overlay_layer = get_option('vulkan-layers').contains('overlay')
+with_vulkan_device_select_layer = get_option('vulkan-layers').contains('device-select')
 with_tools = get_option('tools')
 if with_tools.contains('all')
   with_tools = [
@@ -432,7 +433,7 @@ if _egl == 'auto'
     with_dri and with_shared_glapi
   )
 elif _egl == 'enabled'
-  if not with_dri
+  if not with_dri and not with_platform_haiku
     error('EGL requires dri')
   elif not with_shared_glapi
     error('EGL requires shared-glapi')
@@ -448,7 +449,9 @@ endif
 
 # Android uses emutls for versions <= P/28. For USE_ELF_TLS we need ELF TLS.
 use_elf_tls = false
-if not ['windows', 'freebsd', 'openbsd'].contains(host_machine.system()) and (not with_platform_android or get_option('platform-sdk-version') >= 29)
+if (not ['freebsd', 'openbsd', 'haiku'].contains(host_machine.system()) and
+    (not with_platform_android or get_option('platform-sdk-version') >= 29) and
+    (not with_platform_windows or not with_shared_glapi))
   pre_args += '-DUSE_ELF_TLS'
   use_elf_tls = true
 endif
@@ -938,7 +941,7 @@ if _shader_cache != 'disabled'
   endif
 endif
 
-if with_shader_cache 
+if with_shader_cache
   shader_cache_max_size = get_option('shader-cache-max-size')
   if shader_cache_max_size != ''
     pre_args += '-DMESA_GLSL_CACHE_MAX_SIZE="@0@"'.format(shader_cache_max_size)
@@ -970,7 +973,7 @@ if cc.compiles('__uint128_t foo(void) { return 0; }',
 endif
 
 # TODO: this is very incomplete
-if ['linux', 'cygwin', 'gnu', 'freebsd', 'gnu/kfreebsd'].contains(host_machine.system())
+if ['linux', 'cygwin', 'gnu', 'freebsd', 'gnu/kfreebsd', 'haiku'].contains(host_machine.system())
   pre_args += '-D_GNU_SOURCE'
 elif host_machine.system() == 'sunos'
   pre_args += '-D__EXTENSIONS__'
@@ -978,7 +981,7 @@ elif host_machine.system() == 'windows'
   pre_args += [
     '-D_WINDOWS', '-D_WIN32_WINNT=0x0A00', '-DWINVER=0x0A00',
     '-DPIPE_SUBSYSTEM_WINDOWS_USER',
-    '-D_USE_MATH_DEFINES',  # XXX: scons doesn't use this for mingw
+    '-D_USE_MATH_DEFINES',  # XXX: scons didn't use this for mingw
   ]
   if cc.get_id() == 'msvc'
     pre_args += [
@@ -1039,6 +1042,7 @@ else
     '-Werror=incompatible-pointer-types',
     '-Werror=int-conversion',
     '-Wimplicit-fallthrough',
+    '-Werror=thread-safety',
     '-Wno-missing-field-initializers',
     '-Wno-format-truncation',
     '-fno-math-errno',
@@ -1397,10 +1401,17 @@ else
   dep_zstd = null_dep
 endif
 
+with_compression = dep_zlib.found() or dep_zstd.found()
+if with_compression
+  pre_args += '-DHAVE_COMPRESSION'
+elif with_shader_cache
+  error('Shader Cache requires compression')
+endif
+
 dep_thread = dependency('threads')
 if dep_thread.found() and host_machine.system() != 'windows'
   pre_args += '-DHAVE_PTHREAD'
-  if cc.has_function(
+  if host_machine.system() != 'netbsd' and cc.has_function(
       'pthread_setaffinity_np',
       dependencies : dep_thread,
       prefix : '#include <pthread.h>',
@@ -1408,15 +1419,30 @@ if dep_thread.found() and host_machine.system() != 'windows'
     pre_args += '-DHAVE_PTHREAD_SETAFFINITY'
   endif
 endif
-if host_machine.system() != 'windows'
+if host_machine.system() == 'darwin'
+  dep_expat = meson.get_compiler('c').find_library('expat')
+elif host_machine.system() != 'windows'
   dep_expat = dependency('expat', fallback : ['expat', 'expat_dep'],
-                         required: not with_platform_android or with_any_broadcom or with_any_intel)
+                         required: not with_platform_android or with_any_intel)
 else
   dep_expat = null_dep
 endif
 # this only exists on linux so either this is linux and it will be found, or
 # it's not linux and wont
 dep_m = cc.find_library('m', required : false)
+
+if host_machine.system() == 'windows'
+  dep_regex = meson.get_compiler('c').find_library('regex', required : false)
+  if not dep_regex.found()
+    dep_regex = declare_dependency(compile_args : ['-DNO_REGEX'])
+  endif
+else
+  dep_regex = null_dep
+endif
+
+if with_platform_haiku
+  dep_network = cc.find_library('network')
+endif
 
 # Check for libdrm. Various drivers have different libdrm version requirements,
 # but we always want to use the same version for all libdrm modules. That means
@@ -1507,7 +1533,7 @@ endif
 if with_microsoft_clc
   llvm_modules += ['target', 'linker', 'irreader', 'option', 'libdriver']
 endif
-if with_tests
+if with_tests or with_gallium_softpipe
   llvm_modules += 'native'
 endif
 
@@ -1555,6 +1581,7 @@ endif
 
 dep_llvm = null_dep
 with_llvm = false
+draw_with_llvm = get_option('draw-use-llvm')
 if _llvm != 'disabled'
   dep_llvm = dependency(
     'llvm',
@@ -1576,6 +1603,12 @@ if with_llvm
   pre_args += '-DLLVM_AVAILABLE'
   pre_args += '-DMESA_LLVM_VERSION_STRING="@0@"'.format(dep_llvm.version())
   pre_args += '-DLLVM_IS_SHARED=@0@'.format(_shared_llvm.to_int())
+
+  if draw_with_llvm
+    pre_args += '-DDRAW_LLVM_AVAILABLE'
+  elif with_gallium_swr
+    error('SWR requires LLVM draw support.')
+  endif
 
   # LLVM can be built without rtti, turning off rtti changes the ABI of C++
   # programs, so we need to build all C++ code in mesa without rtti as well to
@@ -1608,6 +1641,8 @@ elif with_gallium_opencl
   error('The OpenCL "Clover" state tracker requires LLVM, but LLVM is disabled.')
 elif with_microsoft_clc
   error('The Microsoft CLC compiler requires LLVM, but LLVM is disabled.')
+else
+  draw_with_llvm = false
 endif
 
 with_opencl_spirv = (_opencl != 'disabled' and get_option('opencl-spirv')) or with_microsoft_clc
@@ -1680,7 +1715,7 @@ else
   asan_c_args = ['-DBUILT_WITH_ASAN=0']
 endif
 
-if host_machine.system() == 'windows'
+if build_machine.system() == 'windows'
   # Prefer the winflexbison versions, they're much easier to install and have
   # better windows support.
 
@@ -1729,7 +1764,11 @@ elif _libunwind == 'false'
   warning('libunwind option "false" deprecated, please use "disabled" instead.')
 endif
 if _libunwind != 'disabled' and not with_platform_android
-  dep_unwind = dependency('libunwind', required : _libunwind == 'enabled')
+  if host_machine.system() == 'darwin'
+    dep_unwind = meson.get_compiler('c').find_library('System')
+  else
+    dep_unwind = dependency('libunwind', required : _libunwind == 'enabled')
+  endif
   if dep_unwind.found()
     pre_args += '-DHAVE_LIBUNWIND'
   endif

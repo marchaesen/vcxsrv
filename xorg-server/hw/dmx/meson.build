@@ -20,6 +20,7 @@ srcs = [
     'dmxvisual.c',
     'dmxwindow.c',
     '../../mi/miinitext.c',
+    '../../mi/miinitext.h',
     '../../Xext/panoramiX.c',
 ]
 

@@ -107,6 +107,8 @@ private:
 
    unsigned m_apply_sample_mask;
    bool m_dual_source_blend;
+   ShaderInput *m_pos_input;
+
 };
 	
 }

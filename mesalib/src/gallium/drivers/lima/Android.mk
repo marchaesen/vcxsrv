@@ -56,6 +56,8 @@ LOCAL_SRC_FILES := \
 	lima_bo.h \
 	lima_context.c \
 	lima_context.h \
+	lima_disk_cache.c \
+	lima_disk_cache.h \
 	lima_draw.c \
 	lima_fence.c \
 	lima_fence.h \

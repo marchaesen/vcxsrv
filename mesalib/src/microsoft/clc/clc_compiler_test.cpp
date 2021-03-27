@@ -2186,3 +2186,37 @@ TEST_F(ComputeTest, vstore_half)
    for (unsigned i = 0; i < 8; ++i)
       EXPECT_EQ(dest[i], expected[i]);
 }
+
+TEST_F(ComputeTest, inline_function)
+{
+   const char *kernel_source = R"(
+   inline float helper(float foo)
+   {
+      return foo * 2;
+   }
+
+   __kernel void main_test(__global float *dst, __global float *src)
+   {
+      *dst = helper(*src);
+   })";
+   auto dest = ShaderArg<float>({ NAN }, SHADER_ARG_OUTPUT);
+   auto src = ShaderArg<float>({ 1.0f }, SHADER_ARG_INPUT);
+   run_shader(kernel_source, 1, 1, 1, dest, src);
+   EXPECT_EQ(dest[0], 2.0f);
+}
+
+TEST_F(ComputeTest, unused_arg)
+{
+   const char *kernel_source = R"(
+   __kernel void main_test(__global int *dst, __global int *unused, __global int *src)
+   {
+      int i = get_global_id(0);
+      dst[i] = src[i];
+   })";
+   auto dest = ShaderArg<int>({ -1, -1, -1, -1 }, SHADER_ARG_OUTPUT);
+   auto src = ShaderArg<int>({ 1, 2, 3, 4 }, SHADER_ARG_INPUT);
+   auto unused = ShaderArg<int>({ -1, -1, -1, -1 }, SHADER_ARG_INPUT);
+   run_shader(kernel_source, 4, 1, 1, dest, unused, src);
+   for (int i = 0; i < 4; ++i)
+      EXPECT_EQ(dest[i], i + 1);
+}

@@ -105,15 +105,33 @@ _mesa_delete_buffer_object(struct gl_context *ctx,
 extern void
 _mesa_reference_buffer_object_(struct gl_context *ctx,
                                struct gl_buffer_object **ptr,
-                               struct gl_buffer_object *bufObj);
+                               struct gl_buffer_object *bufObj,
+                               bool shared_binding);
 
+/**
+ * Assign a buffer into a pointer with reference counting. The destination
+ * must be private within a context.
+ */
 static inline void
 _mesa_reference_buffer_object(struct gl_context *ctx,
                               struct gl_buffer_object **ptr,
                               struct gl_buffer_object *bufObj)
 {
    if (*ptr != bufObj)
-      _mesa_reference_buffer_object_(ctx, ptr, bufObj);
+      _mesa_reference_buffer_object_(ctx, ptr, bufObj, false);
+}
+
+/**
+ * Assign a buffer into a pointer with reference counting. The destination
+ * must be shareable among multiple contexts.
+ */
+static inline void
+_mesa_reference_buffer_object_shared(struct gl_context *ctx,
+                                     struct gl_buffer_object **ptr,
+                                     struct gl_buffer_object *bufObj)
+{
+   if (*ptr != bufObj)
+      _mesa_reference_buffer_object_(ctx, ptr, bufObj, true);
 }
 
 extern GLuint

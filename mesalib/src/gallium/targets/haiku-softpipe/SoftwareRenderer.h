@@ -18,37 +18,34 @@
 #include "GalliumContext.h"
 
 
-class SoftwareRenderer : public BGLRenderer {
+class SoftwareRenderer : public BGLRenderer, public HGLWinsysContext {
 public:
 								SoftwareRenderer(BGLView *view,
-									ulong bgl_options,
-									BGLDispatcher *dispatcher);
+									ulong bgl_options);
 	virtual						~SoftwareRenderer();
 
-	virtual	void				LockGL();
-	virtual	void				UnlockGL();
+			void				LockGL();
+			void				UnlockGL();
 
-	virtual	void				SwapBuffers(bool vsync = false);
-	virtual	void				Draw(BRect updateRect);
-	virtual	status_t			CopyPixelsOut(BPoint source, BBitmap *dest);
-	virtual	status_t			CopyPixelsIn(BBitmap *source, BPoint dest);
-	virtual	void				FrameResized(float width, float height);
+			void				Display(BBitmap* bitmap, BRect* updateRect);
 
-	virtual	void				EnableDirectMode(bool enabled);
-	virtual	void				DirectConnected(direct_buffer_info *info);
+			void				SwapBuffers(bool vsync = false);
+			void				Draw(BRect updateRect);
+			status_t			CopyPixelsOut(BPoint source, BBitmap *dest);
+			status_t			CopyPixelsIn(BBitmap *source, BPoint dest);
+			void				FrameResized(float width, float height);
+
+			void				EnableDirectMode(bool enabled);
+			void				DirectConnected(direct_buffer_info *info);
 
 private:
-
-			void				_AllocateBitmap();
-
 			GalliumContext*		fContextObj;
-			BBitmap*			fBitmap;
 			context_id			fContextID;
 
 			bool				fDirectModeEnabled;
 			direct_buffer_info*	fInfo;
 			BLocker				fInfoLocker;
-			ulong				fOptions;			
+			ulong				fOptions;
 			GLuint				fWidth;
 			GLuint				fHeight;
 			color_space			fColorSpace;

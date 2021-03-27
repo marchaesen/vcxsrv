@@ -35,8 +35,6 @@
 #include <dix-config.h>
 #endif
 
-#include <AvailabilityMacros.h>
-
 #include <dlfcn.h>
 
 #include <OpenGL/OpenGL.h>

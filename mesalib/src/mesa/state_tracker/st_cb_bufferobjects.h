@@ -43,6 +43,25 @@ struct st_buffer_object
 {
    struct gl_buffer_object Base;
    struct pipe_resource *buffer;     /* GPU storage */
+
+   struct gl_context *ctx;  /* the context that owns private_refcount */
+
+   /* This mechanism allows passing buffer references to the driver without
+    * using atomics to increase the reference count.
+    *
+    * This private refcount can be decremented without atomics but only one
+    * context (ctx above) can use this counter to be thread-safe.
+    *
+    * This number is atomically added to buffer->reference.count at
+    * initialization. If it's never used, the same number is atomically
+    * subtracted from buffer->reference.count before destruction. If this
+    * number is decremented, we can pass that reference to the driver without
+    * touching reference.count. At buffer destruction we only subtract
+    * the number of references we did not return. This can possibly turn
+    * a million atomic increments into 1 add and 1 subtract atomic op.
+    */
+   int private_refcount;
+
    struct pipe_transfer *transfer[MAP_COUNT];
 };
 
@@ -63,5 +82,37 @@ extern void
 st_init_bufferobject_functions(struct pipe_screen *screen,
                                struct dd_function_table *functions);
 
+static inline struct pipe_resource *
+st_get_buffer_reference(struct gl_context *ctx, struct gl_buffer_object *obj)
+{
+   if (unlikely(!obj))
+      return NULL;
+
+   struct st_buffer_object *stobj = st_buffer_object(obj);
+   struct pipe_resource *buffer = stobj->buffer;
+
+   if (unlikely(!buffer))
+      return NULL;
+
+   /* Only one context is using the fast path. All other contexts must use
+    * the slow path.
+    */
+   if (unlikely(stobj->ctx != ctx)) {
+      p_atomic_inc(&buffer->reference.count);
+      return buffer;
+   }
+
+   if (unlikely(stobj->private_refcount <= 0)) {
+      assert(stobj->private_refcount == 0);
+
+      /* This is the number of atomic increments we will skip. */
+      stobj->private_refcount = 100000000;
+      p_atomic_add(&buffer->reference.count, stobj->private_refcount);
+   }
+
+   /* Return a buffer reference while decrementing the private refcount. */
+   stobj->private_refcount--;
+   return buffer;
+}
 
 #endif

@@ -43,11 +43,13 @@
 #include "util/simple_mtx.h"
 
 #include "vk_enum_to_str.h"
+#include "vk_dispatch_table.h"
 #include "vk_util.h"
 
 /* Mapped from VkInstace/VkPhysicalDevice */
 struct instance_data {
    struct vk_instance_dispatch_table vtable;
+   struct vk_physical_device_dispatch_table pd_vtable;
    VkInstance instance;
 
    struct overlay_params params;
@@ -419,14 +421,14 @@ static void device_map_queues(struct device_data *data,
 
    struct instance_data *instance_data = data->instance;
    uint32_t n_family_props;
-   instance_data->vtable.GetPhysicalDeviceQueueFamilyProperties(data->physical_device,
-                                                                &n_family_props,
-                                                                NULL);
+   instance_data->pd_vtable.GetPhysicalDeviceQueueFamilyProperties(data->physical_device,
+                                                                   &n_family_props,
+                                                                   NULL);
    VkQueueFamilyProperties *family_props =
       (VkQueueFamilyProperties *)malloc(sizeof(VkQueueFamilyProperties) * n_family_props);
-   instance_data->vtable.GetPhysicalDeviceQueueFamilyProperties(data->physical_device,
-                                                                &n_family_props,
-                                                                family_props);
+   instance_data->pd_vtable.GetPhysicalDeviceQueueFamilyProperties(data->physical_device,
+                                                                   &n_family_props,
+                                                                   family_props);
 
    uint32_t queue_index = 0;
    for (uint32_t i = 0; i < pCreateInfo->queueCreateInfoCount; i++) {
@@ -1007,7 +1009,7 @@ static uint32_t vk_memory_type(struct device_data *data,
                                uint32_t type_bits)
 {
     VkPhysicalDeviceMemoryProperties prop;
-    data->instance->vtable.GetPhysicalDeviceMemoryProperties(data->physical_device, &prop);
+    data->instance->pd_vtable.GetPhysicalDeviceMemoryProperties(data->physical_device, &prop);
     for (uint32_t i = 0; i < prop.memoryTypeCount; i++)
         if ((prop.memoryTypes[i].propertyFlags & properties) == properties && type_bits & (1<<i))
             return i;
@@ -2470,26 +2472,40 @@ static VkResult overlay_CreateDevice(
    chain_info->u.pLayerInfo = chain_info->u.pLayerInfo->pNext;
 
    VkPhysicalDeviceFeatures device_features = {};
-   VkDeviceCreateInfo device_info = *pCreateInfo;
+   VkPhysicalDeviceFeatures *device_features_ptr = NULL;
 
-   if (pCreateInfo->pEnabledFeatures)
-      device_features = *(pCreateInfo->pEnabledFeatures);
-   if (instance_data->pipeline_statistics_enabled) {
-      device_features.inheritedQueries = true;
-      device_features.pipelineStatisticsQuery = true;
+   VkDeviceCreateInfo *device_info = (VkDeviceCreateInfo *)
+      clone_chain((const struct VkBaseInStructure *)pCreateInfo);
+
+   VkPhysicalDeviceFeatures2 *device_features2 = (VkPhysicalDeviceFeatures2 *)
+      vk_find_struct(device_info, PHYSICAL_DEVICE_FEATURES_2);
+   if (device_features2) {
+      /* Can't use device_info->pEnabledFeatures when VkPhysicalDeviceFeatures2 is present */
+      device_features_ptr = &device_features2->features;
+   } else {
+      if (device_info->pEnabledFeatures)
+         device_features = *(device_info->pEnabledFeatures);
+      device_features_ptr = &device_features;
+      device_info->pEnabledFeatures = &device_features;
    }
-   device_info.pEnabledFeatures = &device_features;
+
+   if (instance_data->pipeline_statistics_enabled) {
+      device_features_ptr->inheritedQueries = true;
+      device_features_ptr->pipelineStatisticsQuery = true;
+   }
 
 
-   VkResult result = fpCreateDevice(physicalDevice, &device_info, pAllocator, pDevice);
+   VkResult result = fpCreateDevice(physicalDevice, device_info, pAllocator, pDevice);
+   free_chain((struct VkBaseOutStructure *)device_info);
    if (result != VK_SUCCESS) return result;
 
    struct device_data *device_data = new_device_data(*pDevice, instance_data);
    device_data->physical_device = physicalDevice;
-   vk_load_device_commands(*pDevice, fpGetDeviceProcAddr, &device_data->vtable);
+   vk_device_dispatch_table_load(&device_data->vtable,
+                                 fpGetDeviceProcAddr, *pDevice);
 
-   instance_data->vtable.GetPhysicalDeviceProperties(device_data->physical_device,
-                                                     &device_data->properties);
+   instance_data->pd_vtable.GetPhysicalDeviceProperties(device_data->physical_device,
+                                                        &device_data->properties);
 
    VkLayerDeviceCreateInfo *load_data_info =
       get_device_chain_info(pCreateInfo, VK_LOADER_DATA_CALLBACK);
@@ -2534,9 +2550,12 @@ static VkResult overlay_CreateInstance(
    if (result != VK_SUCCESS) return result;
 
    struct instance_data *instance_data = new_instance_data(*pInstance);
-   vk_load_instance_commands(instance_data->instance,
-                             fpGetInstanceProcAddr,
-                             &instance_data->vtable);
+   vk_instance_dispatch_table_load(&instance_data->vtable,
+                                   fpGetInstanceProcAddr,
+                                   instance_data->instance);
+   vk_physical_device_dispatch_table_load(&instance_data->pd_vtable,
+                                          fpGetInstanceProcAddr,
+                                          instance_data->instance);
    instance_data_map_physical_devices(instance_data, true);
 
    parse_overlay_env(&instance_data->params, getenv("VK_LAYER_MESA_OVERLAY_CONFIG"));
@@ -2573,6 +2592,7 @@ static const struct {
    const char *name;
    void *ptr;
 } name_to_funcptr_map[] = {
+   { "vkGetInstanceProcAddr", (void *) vkGetInstanceProcAddr },
    { "vkGetDeviceProcAddr", (void *) vkGetDeviceProcAddr },
 #define ADD_HOOK(fn) { "vk" # fn, (void *) overlay_ ## fn }
 #define ADD_ALIAS_HOOK(alias, fn) { "vk" # alias, (void *) overlay_ ## fn }

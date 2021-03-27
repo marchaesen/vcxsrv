@@ -249,7 +249,7 @@ static inline bool u_thread_is_self(thrd_t thread)
  * util_barrier
  */
 
-#if defined(HAVE_PTHREAD) && !defined(__APPLE__)
+#if defined(HAVE_PTHREAD) && !defined(__APPLE__) && !defined(__HAIKU__)
 
 typedef pthread_barrier_t util_barrier;
 
@@ -318,5 +318,46 @@ static inline void util_barrier_wait(util_barrier *barrier)
 }
 
 #endif
+
+/*
+ * Thread-id's.
+ *
+ * thrd_current() is not portable to windows (or at least not in a desirable
+ * way), so thread_id's provide an alternative mechanism
+ */
+
+#ifdef _WIN32
+typedef DWORD thread_id;
+#else
+typedef thrd_t thread_id;
+#endif
+
+static inline thread_id
+util_get_thread_id(void)
+{
+   /*
+    * XXX: Callers of of this function assume it is a lightweight function.
+    * But unfortunately C11's thrd_current() gives no such guarantees.  In
+    * fact, it's pretty hard to have a compliant implementation of
+    * thrd_current() on Windows with such characteristics.  So for now, we
+    * side-step this mess and use Windows thread primitives directly here.
+    */
+#ifdef _WIN32
+   return GetCurrentThreadId();
+#else
+   return thrd_current();
+#endif
+}
+
+
+static inline int
+util_thread_id_equal(thread_id t1, thread_id t2)
+{
+#ifdef _WIN32
+   return t1 == t2;
+#else
+   return thrd_equal(t1, t2);
+#endif
+}
 
 #endif /* U_THREAD_H_ */

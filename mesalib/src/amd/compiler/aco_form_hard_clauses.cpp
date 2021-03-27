@@ -78,11 +78,11 @@ void form_hard_clauses(Program *program)
          if (instr->isVMEM() && !instr->operands.empty()) {
             resource = instr->operands[0].tempId();
             type = clause_vmem;
-         } else if (instr->format == Format::SCRATCH || instr->format == Format::GLOBAL) {
+         } else if (instr->isScratch() || instr->isGlobal()) {
             type = clause_vmem;
-         } else if (instr->format == Format::FLAT) {
+         } else if (instr->isFlat()) {
             type = clause_flat;
-         } else if (instr->format == Format::SMEM && !instr->operands.empty()) {
+         } else if (instr->isSMEM() && !instr->operands.empty()) {
             type = clause_smem;
             if (instr->operands[0].bytes() == 16)
                resource = instr->operands[0].tempId();

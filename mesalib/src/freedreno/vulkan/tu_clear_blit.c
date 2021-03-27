@@ -152,7 +152,7 @@ r2d_src(struct tu_cmd_buffer *cmd,
    tu_cs_emit(cs, iview->SP_PS_2D_SRC_SIZE);
    tu_cs_image_ref_2d(cs, iview, layer, true);
 
-   tu_cs_emit_pkt4(cs, REG_A6XX_SP_PS_2D_SRC_FLAGS_LO, 3);
+   tu_cs_emit_pkt4(cs, REG_A6XX_SP_PS_2D_SRC_FLAGS, 3);
    tu_cs_image_flag_ref(cs, iview, layer);
 }
 
@@ -188,8 +188,7 @@ r2d_src_buffer(struct tu_cmd_buffer *cmd,
                       .unk20 = 1,
                       .unk22 = 1),
                    A6XX_SP_PS_2D_SRC_SIZE(.width = width, .height = height),
-                   A6XX_SP_PS_2D_SRC_LO((uint32_t) va),
-                   A6XX_SP_PS_2D_SRC_HI(va >> 32),
+                   A6XX_SP_PS_2D_SRC(.qword = va),
                    A6XX_SP_PS_2D_SRC_PITCH(.pitch = pitch));
 }
 
@@ -200,7 +199,7 @@ r2d_dst(struct tu_cs *cs, const struct tu_image_view *iview, uint32_t layer)
    tu_cs_emit(cs, iview->RB_2D_DST_INFO);
    tu_cs_image_ref_2d(cs, iview, layer, false);
 
-   tu_cs_emit_pkt4(cs, REG_A6XX_RB_2D_DST_FLAGS_LO, 3);
+   tu_cs_emit_pkt4(cs, REG_A6XX_RB_2D_DST_FLAGS, 3);
    tu_cs_image_flag_ref(cs, iview, layer);
 }
 
@@ -223,8 +222,7 @@ r2d_dst_buffer(struct tu_cs *cs, VkFormat vk_format, uint64_t va, uint32_t pitch
                       .color_format = format.fmt,
                       .color_swap = format.swap,
                       .srgb = vk_format_is_srgb(vk_format)),
-                   A6XX_RB_2D_DST_LO((uint32_t) va),
-                   A6XX_RB_2D_DST_HI(va >> 32),
+                   A6XX_RB_2D_DST(.qword = va),
                    A6XX_RB_2D_DST_PITCH(pitch));
 }
 
@@ -657,8 +655,7 @@ r3d_src_common(struct tu_cmd_buffer *cmd,
                CP_LOAD_STATE6_0_NUM_UNIT(1));
    tu_cs_emit_qw(cs, texture.iova + A6XX_TEX_CONST_DWORDS * 4);
 
-   tu_cs_emit_pkt4(cs, REG_A6XX_SP_FS_TEX_SAMP_LO, 2);
-   tu_cs_emit_qw(cs, texture.iova + A6XX_TEX_CONST_DWORDS * 4);
+   tu_cs_emit_regs(cs, A6XX_SP_FS_TEX_SAMP(.qword = texture.iova + A6XX_TEX_CONST_DWORDS * 4));
 
    tu_cs_emit_pkt7(cs, CP_LOAD_STATE6_FRAG, 3);
    tu_cs_emit(cs, CP_LOAD_STATE6_0_DST_OFF(0) |
@@ -668,9 +665,7 @@ r3d_src_common(struct tu_cmd_buffer *cmd,
       CP_LOAD_STATE6_0_NUM_UNIT(1));
    tu_cs_emit_qw(cs, texture.iova);
 
-   tu_cs_emit_pkt4(cs, REG_A6XX_SP_FS_TEX_CONST_LO, 2);
-   tu_cs_emit_qw(cs, texture.iova);
-
+   tu_cs_emit_regs(cs, A6XX_SP_FS_TEX_CONST(.qword = texture.iova));
    tu_cs_emit_regs(cs, A6XX_SP_FS_TEX_COUNT(1));
 }
 
@@ -760,8 +755,7 @@ r3d_dst_buffer(struct tu_cs *cs, VkFormat vk_format, uint64_t va, uint32_t pitch
                    A6XX_RB_MRT_BUF_INFO(0, .color_format = format.fmt, .color_swap = format.swap),
                    A6XX_RB_MRT_PITCH(0, pitch),
                    A6XX_RB_MRT_ARRAY_PITCH(0, 0),
-                   A6XX_RB_MRT_BASE_LO(0, (uint32_t) va),
-                   A6XX_RB_MRT_BASE_HI(0, va >> 32),
+                   A6XX_RB_MRT_BASE(0, .qword = va),
                    A6XX_RB_MRT_BASE_GMEM(0, 0));
 
    tu_cs_emit_regs(cs, A6XX_RB_RENDER_CNTL());
@@ -1060,7 +1054,7 @@ tu6_blit_image(struct tu_cmd_buffer *cmd,
                const VkImageBlit *info,
                VkFilter filter)
 {
-   const struct blit_ops *ops = &r3d_ops;
+   const struct blit_ops *ops = &r2d_ops;
    struct tu_cs *cs = &cmd->cs;
    bool z_scale = false;
    uint32_t layers = info->dstOffsets[1].z - info->dstOffsets[0].z;
@@ -1198,8 +1192,7 @@ tu_CmdBlitImage(VkCommandBuffer commandBuffer,
       if (src_image->vk_format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
           dst_image->vk_format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
          VkImageBlit region = pRegions[i];
-         uint32_t b;
-         for_each_bit(b, pRegions[i].dstSubresource.aspectMask) {
+         u_foreach_bit(b, pRegions[i].dstSubresource.aspectMask) {
             region.srcSubresource.aspectMask = BIT(b);
             region.dstSubresource.aspectMask = BIT(b);
             tu6_blit_image(cmd, src_image, dst_image, &region, filter);
@@ -1893,8 +1886,7 @@ tu_CmdClearDepthStencilImage(VkCommandBuffer commandBuffer,
 
       if (image->vk_format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
          /* can't clear both depth and stencil at once, split up the aspect mask */
-         uint32_t b;
-         for_each_bit(b, range->aspectMask)
+         u_foreach_bit(b, range->aspectMask)
             clear_image(cmd, image, (const VkClearValue*) pDepthStencil, range, BIT(b));
          continue;
       }
@@ -1918,7 +1910,7 @@ tu_clear_sysmem_attachments(struct tu_cmd_buffer *cmd,
    uint32_t clear_value[MAX_RTS][4];
    float z_clear_val = 0.0f;
    uint8_t s_clear_val = 0;
-   uint32_t clear_rts = 0, clear_components = 0, num_rts = 0, b;
+   uint32_t clear_rts = 0, clear_components = 0, num_rts = 0;
    bool z_clear = false;
    bool s_clear = false;
    bool layered_clear = false;
@@ -2042,7 +2034,7 @@ tu_clear_sysmem_attachments(struct tu_cmd_buffer *cmd,
                   CP_LOAD_STATE6_0_NUM_UNIT(num_rts));
    tu_cs_emit(cs, CP_LOAD_STATE6_1_EXT_SRC_ADDR(0));
    tu_cs_emit(cs, CP_LOAD_STATE6_2_EXT_SRC_ADDR_HI(0));
-   for_each_bit(b, clear_rts)
+   u_foreach_bit(b, clear_rts)
       tu_cs_emit_array(cs, clear_value[b], 4);
 
    for (uint32_t i = 0; i < rect_count; i++) {
@@ -2391,8 +2383,8 @@ tu_emit_blit(struct tu_cmd_buffer *cmd,
    tu_cs_emit_regs(cs, A6XX_RB_BLIT_INFO(
       .unk0 = !resolve,
       .gmem = !resolve,
-      /* "integer" bit disables msaa resolve averaging */
-      .integer = vk_format_is_int(attachment->format)));
+      .sample_0 = vk_format_is_int(attachment->format) |
+         vk_format_is_depth_or_stencil(attachment->format)));
 
    tu_cs_emit_pkt4(cs, REG_A6XX_RB_BLIT_DST_INFO, 4);
    if (separate_stencil) {
@@ -2406,7 +2398,7 @@ tu_emit_blit(struct tu_cmd_buffer *cmd,
       tu_cs_emit(cs, iview->RB_BLIT_DST_INFO);
       tu_cs_image_ref_2d(cs, iview, 0, false);
 
-      tu_cs_emit_pkt4(cs, REG_A6XX_RB_BLIT_FLAG_DST_LO, 3);
+      tu_cs_emit_pkt4(cs, REG_A6XX_RB_BLIT_FLAG_DST, 3);
       tu_cs_image_flag_ref(cs, iview, 0);
 
       tu_cs_emit_regs(cs,
@@ -2498,8 +2490,7 @@ store_cp_blit(struct tu_cmd_buffer *cmd,
                       .unk22 = 1),
                    /* note: src size does not matter when not scaling */
                    A6XX_SP_PS_2D_SRC_SIZE( .width = 0x3fff, .height = 0x3fff),
-                   A6XX_SP_PS_2D_SRC_LO(cmd->device->physical_device->gmem_base + gmem_offset),
-                   A6XX_SP_PS_2D_SRC_HI(),
+                   A6XX_SP_PS_2D_SRC(.qword = cmd->device->physical_device->gmem_base + gmem_offset),
                    A6XX_SP_PS_2D_SRC_PITCH(.pitch = cmd->state.framebuffer->tile0.width * cpp));
 
    /* sync GMEM writes with CACHE. */
@@ -2550,10 +2541,18 @@ tu_store_gmem_attachment(struct tu_cmd_buffer *cmd,
       (x2 % phys_dev->info.gmem_align_w && x2 != iview->extent.width) ||
       y1 % phys_dev->info.gmem_align_h || (y2 % phys_dev->info.gmem_align_h && need_y2_align);
 
+   /* D32_SFLOAT_S8_UINT is quite special format: it has two planes,
+    * one for depth and other for stencil. When resolving a MSAA
+    * D32_SFLOAT_S8_UINT to S8_UINT, we need to take that into account.
+    */
+   bool resolve_d32s8_s8 =
+      src->format == VK_FORMAT_D32_SFLOAT_S8_UINT &&
+      dst->format == VK_FORMAT_S8_UINT;
+
    /* use fast path when render area is aligned, except for unsupported resolve cases */
    if (!unaligned && (a == gmem_a || blit_can_resolve(dst->format))) {
       if (dst->store)
-         tu_emit_blit(cmd, cs, iview, src, true, false);
+         tu_emit_blit(cmd, cs, iview, src, true, resolve_d32s8_s8);
       if (dst->store_stencil)
          tu_emit_blit(cmd, cs, iview, src, true, true);
       return;
@@ -2574,7 +2573,7 @@ tu_store_gmem_attachment(struct tu_cmd_buffer *cmd,
       format = VK_FORMAT_D32_SFLOAT;
 
    if (dst->store) {
-      store_cp_blit(cmd, cs, iview, src->samples, false, format,
+      store_cp_blit(cmd, cs, iview, src->samples, resolve_d32s8_s8, format,
                     src->gmem_offset, src->cpp);
    }
    if (dst->store_stencil) {

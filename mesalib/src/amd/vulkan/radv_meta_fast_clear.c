@@ -75,7 +75,7 @@ build_dcc_decompress_compute_shader(struct radv_device *dev)
 	tex->src[1].src = nir_src_for_ssa(nir_imm_int(&b, 0));
 	tex->src[2].src_type = nir_tex_src_texture_deref;
 	tex->src[2].src = nir_src_for_ssa(input_img_deref);
-	tex->dest_type = nir_type_float;
+	tex->dest_type = nir_type_float32;
 	tex->is_array = false;
 	tex->coord_components = 2;
 
@@ -97,9 +97,7 @@ static VkResult
 create_dcc_compress_compute(struct radv_device *device)
 {
 	VkResult result = VK_SUCCESS;
-	struct radv_shader_module cs = { .nir = NULL };
-
-	cs.nir = build_dcc_decompress_compute_shader(device);
+	nir_shader *cs = build_dcc_decompress_compute_shader(device);
 
 	VkDescriptorSetLayoutCreateInfo ds_create_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -135,8 +133,8 @@ create_dcc_compress_compute(struct radv_device *device)
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		.setLayoutCount = 1,
 		.pSetLayouts = &device->meta_state.fast_clear_flush.dcc_decompress_compute_ds_layout,
-		.pushConstantRangeCount = 1,
-		.pPushConstantRanges = &(VkPushConstantRange){VK_SHADER_STAGE_COMPUTE_BIT, 0, 8},
+		.pushConstantRangeCount = 0,
+		.pPushConstantRanges = NULL,
 	};
 
 	result = radv_CreatePipelineLayout(radv_device_to_handle(device),
@@ -151,7 +149,7 @@ create_dcc_compress_compute(struct radv_device *device)
 	VkPipelineShaderStageCreateInfo pipeline_shader_stage = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.stage = VK_SHADER_STAGE_COMPUTE_BIT,
-		.module = radv_shader_module_to_handle(&cs),
+		.module = vk_shader_module_handle_from_nir(cs),
 		.pName = "main",
 		.pSpecializationInfo = NULL,
 	};
@@ -171,7 +169,7 @@ create_dcc_compress_compute(struct radv_device *device)
 		goto cleanup;
 
 cleanup:
-	ralloc_free(cs.nir);
+	ralloc_free(cs);
 	return result;
 }
 
@@ -181,8 +179,9 @@ create_pass(struct radv_device *device)
 	VkResult result;
 	VkDevice device_h = radv_device_to_handle(device);
 	const VkAllocationCallbacks *alloc = &device->meta_state.alloc;
-	VkAttachmentDescription attachment;
+	VkAttachmentDescription2 attachment;
 
+	attachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 	attachment.format = VK_FORMAT_UNDEFINED;
 	attachment.samples = 1;
 	attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -190,32 +189,36 @@ create_pass(struct radv_device *device)
 	attachment.initialLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 	attachment.finalLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 
-	result = radv_CreateRenderPass(device_h,
-				       &(VkRenderPassCreateInfo) {
-					       .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+	result = radv_CreateRenderPass2(device_h,
+				       &(VkRenderPassCreateInfo2) {
+					       .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2,
 						       .attachmentCount = 1,
 						       .pAttachments = &attachment,
 						       .subpassCount = 1,
-						       .pSubpasses = &(VkSubpassDescription) {
+						       .pSubpasses = &(VkSubpassDescription2) {
+						       .sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2,
 						       .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
 						       .inputAttachmentCount = 0,
 						       .colorAttachmentCount = 1,
-						       .pColorAttachments = (VkAttachmentReference[]) {
+						       .pColorAttachments = (VkAttachmentReference2[]) {
 							       {
+								       .sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2,
 								       .attachment = 0,
 								       .layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 							       },
 						       },
 						       .pResolveAttachments = NULL,
-						       .pDepthStencilAttachment = &(VkAttachmentReference) {
+						       .pDepthStencilAttachment = &(VkAttachmentReference2) {
+							       .sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2,
 							       .attachment = VK_ATTACHMENT_UNUSED,
 						       },
 						       .preserveAttachmentCount = 0,
 						       .pPreserveAttachments = NULL,
 					       },
 							.dependencyCount = 2,
-							.pDependencies = (VkSubpassDependency[]) {
+							.pDependencies = (VkSubpassDependency2[]) {
 								{
+									.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
 									.srcSubpass = VK_SUBPASS_EXTERNAL,
 									.dstSubpass = 0,
 									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -225,6 +228,7 @@ create_pass(struct radv_device *device)
 									.dependencyFlags = 0
 								},
 								{
+									.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
 									.srcSubpass = 0,
 									.dstSubpass = VK_SUBPASS_EXTERNAL,
 									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -266,11 +270,9 @@ create_pipeline(struct radv_device *device,
 	VkResult result;
 	VkDevice device_h = radv_device_to_handle(device);
 
-	struct radv_shader_module fs_module = {
-		.nir = radv_meta_build_nir_fs_noop(),
-	};
+	nir_shader *fs_module = radv_meta_build_nir_fs_noop();
 
-	if (!fs_module.nir) {
+	if (!fs_module) {
 		/* XXX: Need more accurate error */
 		result = VK_ERROR_OUT_OF_HOST_MEMORY;
 		goto cleanup;
@@ -286,7 +288,7 @@ create_pipeline(struct radv_device *device,
 		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.module = radv_shader_module_to_handle(&fs_module),
+			.module = vk_shader_module_handle_from_nir(fs_module),
 			.pName = "main",
 		},
 	};
@@ -466,7 +468,7 @@ create_pipeline(struct radv_device *device,
 	goto cleanup;
 
 cleanup:
-	ralloc_free(fs_module.nir);
+	ralloc_free(fs_module);
 	return result;
 }
 
@@ -512,8 +514,8 @@ radv_device_init_meta_fast_clear_flush_state_internal(struct radv_device *device
 		return VK_SUCCESS;
 	}
 
-	struct radv_shader_module vs_module = { .nir = radv_meta_build_nir_vs_generate_vertices() };
-	if (!vs_module.nir) {
+	nir_shader *vs_module = radv_meta_build_nir_vs_generate_vertices();
+	if (!vs_module) {
 		/* XXX: Need more accurate error */
 		res = VK_ERROR_OUT_OF_HOST_MEMORY;
 		goto fail;
@@ -528,7 +530,7 @@ radv_device_init_meta_fast_clear_flush_state_internal(struct radv_device *device
 	if (res != VK_SUCCESS)
 		goto fail;
 
-	VkShaderModule vs_module_h = radv_shader_module_to_handle(&vs_module);
+	VkShaderModule vs_module_h = vk_shader_module_handle_from_nir(vs_module);
 	res = create_pipeline(device, vs_module_h,
 			      device->meta_state.fast_clear_flush.p_layout);
 	if (res != VK_SUCCESS)
@@ -544,7 +546,7 @@ fail:
 	radv_device_finish_meta_fast_clear_flush_state(device);
 
 cleanup:
-	ralloc_free(vs_module.nir);
+	ralloc_free(vs_module);
 	mtx_unlock(&device->meta_state.mtx);
 
 	return res;
@@ -633,14 +635,14 @@ radv_process_color_image_layer(struct radv_cmd_buffer *cmd_buffer,
 				    &cmd_buffer->state.pass->subpasses[0]);
 
 	if (flush_cb)
-		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
-						RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+		cmd_buffer->state.flush_bits |=
+			radv_dst_access_flush(cmd_buffer, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, image);
 
 	radv_CmdDraw(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
 
 	if (flush_cb)
-		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
-						RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+		cmd_buffer->state.flush_bits |=
+			radv_src_access_flush(cmd_buffer, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, image);
 
 	radv_cmd_buffer_end_render_pass(cmd_buffer);
 
@@ -740,11 +742,32 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
                            const VkImageSubresourceRange *subresourceRange,
                            bool decompress_dcc)
 {
+	bool use_predication = false;
 	bool old_predicating = false;
 
 	assert(cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL);
 
-	if (radv_dcc_enabled(image, subresourceRange->baseMipLevel)) {
+	if ((decompress_dcc && radv_dcc_enabled(image, subresourceRange->baseMipLevel)) ||
+	    (!(radv_image_has_fmask(image) && !image->tc_compatible_cmask) && image->fce_pred_offset)) {
+		use_predication = true;
+	}
+
+	/* If we are asked for DCC decompression without DCC predicates we cannot
+	 * use the FCE predicate. */
+	if (decompress_dcc && image->dcc_pred_offset == 0)
+		use_predication = false;
+
+	if (radv_dcc_enabled(image, subresourceRange->baseMipLevel) &&
+	    (image->info.array_size != radv_get_layerCount(image, subresourceRange) ||
+	    subresourceRange->baseArrayLayer != 0)) {
+		/* Only use predication if the image has DCC with mipmaps or
+		 * if the range of layers covers the whole image because the
+		 * predication is based on mip level.
+		 */
+		use_predication = false;
+	}
+
+	if (use_predication) {
 		uint64_t pred_offset = decompress_dcc ? image->dcc_pred_offset :
 							image->fce_pred_offset;
 		pred_offset += 8 * subresourceRange->baseMipLevel;
@@ -758,7 +781,7 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
 	radv_process_color_image(cmd_buffer, image, subresourceRange,
 				 decompress_dcc);
 
-	if (radv_dcc_enabled(image, subresourceRange->baseMipLevel)) {
+	if (use_predication) {
 		uint64_t pred_offset = decompress_dcc ? image->dcc_pred_offset :
 							image->fce_pred_offset;
 		pred_offset += 8 * subresourceRange->baseMipLevel;
@@ -776,12 +799,14 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
 		}
 	}
 
-	if (radv_dcc_enabled(image, subresourceRange->baseMipLevel)) {
+	if (image->fce_pred_offset != 0) {
 		/* Clear the image's fast-clear eliminate predicate because
 		 * FMASK and DCC also imply a fast-clear eliminate.
 		 */
 		radv_update_fce_metadata(cmd_buffer, image, subresourceRange, false);
+	}
 
+	if (radv_dcc_enabled(image, subresourceRange->baseMipLevel)) {
 		/* Mark the image as being decompressed. */
 		if (decompress_dcc)
 			radv_update_dcc_metadata(cmd_buffer, image, subresourceRange, false);
@@ -795,7 +820,7 @@ radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_barrier_data barrier = {0};
 
-	if (radv_image_has_fmask(image)) {
+	if (radv_image_has_fmask(image) && !image->tc_compatible_cmask) {
 		barrier.layout_transitions.fmask_decompress = 1;
 	} else {
 		barrier.layout_transitions.fast_clear_eliminate = 1;
@@ -823,11 +848,8 @@ radv_decompress_dcc_compute(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_image_view store_iview = {0};
 	struct radv_device *device = cmd_buffer->device;
 
-	/* This assumes the image is 2d with 1 layer */
-	struct radv_cmd_state *state = &cmd_buffer->state;
-
-	state->flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
-			     RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+	cmd_buffer->state.flush_bits |= radv_dst_access_flush(cmd_buffer, VK_ACCESS_SHADER_WRITE_BIT,
+	                                                      image);
 
 	if (!cmd_buffer->device->meta_state.fast_clear_flush.cmask_eliminate_pipeline) {
 		VkResult ret = radv_device_init_meta_fast_clear_flush_state_internal(cmd_buffer->device);
@@ -931,12 +953,11 @@ radv_decompress_dcc_compute(struct radv_cmd_buffer *cmd_buffer,
 	/* Mark this image as actually being decompressed. */
 	radv_update_dcc_metadata(cmd_buffer, image, subresourceRange, false);
 
-	/* The fill buffer below does its own saving */
 	radv_meta_restore(&saved_state, cmd_buffer);
 
-	state->flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-			     RADV_CMD_FLAG_INV_VCACHE;
-
+	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
+					RADV_CMD_FLAG_INV_VCACHE |
+			radv_src_access_flush(cmd_buffer, VK_ACCESS_SHADER_WRITE_BIT, image);
 
 	/* Initialize the DCC metadata as "fully expanded". */
 	radv_initialize_dcc(cmd_buffer, image, subresourceRange, 0xffffffff);

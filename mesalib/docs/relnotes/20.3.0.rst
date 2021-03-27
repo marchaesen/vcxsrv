@@ -159,7 +159,7 @@ Bug fixes
 - gen_state_llvm.h:54:99: error: invalid conversion from ‘int’ to ‘const llvm::VectorType*’ \[-fpermissive\]
 - Using a shared dEQP build script
 - vulkan/wsi/x11: deadlock with Xwayland when compositor holds multiple buffers
-- \[RADV/ACO\] Death Stranding cause a GPU hung (*ERROR\* Waiting for fences timed out!)
+- \[RADV/ACO\] Death Stranding cause a GPU hung (\*ERROR\* Waiting for fences timed out!)
 - lp_bld_init.c:172:7: error: implicit declaration of function ‘LLVMAddConstantPropagationPass’; did you mean ‘LLVMAddCorrelatedValuePropagationPass’? \[-Werror=implicit-function-declaration\]
 - ci: Use lld or gold instead of ld.bfd
 - Intel Vulkan driver crash with alpha-to-coverage
@@ -393,7 +393,7 @@ Alyssa Rosenzweig (388):
 - panfrost: Inline max rt into compilers
 - panfrost: Treat texture dimension as first-class
 - panfrost: Drop compiler cmdstream deps
-- nir/lower_ssbo: Don't set align_\* for atomics
+- nir/lower_ssbo: Don't set align\_\* for atomics
 - gallium/dri2: Support Arm modifiers
 - panfrost: Set \`initialized\` more conservatively
 - panfrost: Remove hint-based AFBC heuristic
@@ -608,7 +608,7 @@ Alyssa Rosenzweig (388):
 - pan/bi: Add packing generator
 - pan/bi: Add disassembler generator
 - pan/bi: Add disassembly prototypes
-- pan/bi: Add bi_disasm_dest_\* helpers
+- pan/bi: Add bi_disasm_dest\_\* helpers
 - pan/bi: Export dump_src
 - pan/bi: Use new disassembler
 - pan/bi: Use canonical syntax for registers/uniforms/imms
@@ -1184,7 +1184,7 @@ Daniel Schürmann (26):
 - aco: expand create_vector more carefully w.r.t. subdword operands
 - aco: use p_create_vector for nir_op_pack_half_2x16
 - nir/opt_algebraic: optimize unpack_half_2x16_split_x(ushr, a, 16)
-- aco: use p_split_vector for nir_op_unpack_half_\*
+- aco: use p_split_vector for nir_op_unpack_half\_\*
 - aco: add validation rules for p_split_vector
 - aco: use v_cvt_pkrtz_f16_f32 for pack_half_2x16
 - radv,aco: lower_pack_half_2x16
@@ -1374,7 +1374,7 @@ Duncan Hopkins (10):
 - zink: Added support for MacOS MoltenVK APIs.
 - zink: return fail if create_instance fails
 - zink: Added inbuilt debug logging from the VK_LAYER_LUNARG_standard_validation layer.
-- zink: add support to device info for macro guards and just VkPhysicalDevice*Features with out the have_.
+- zink: add support to device info for macro guards and just VkPhysicalDevice*Features with out the have\_.
 - zink: have_triangle_fans support.
 - zink: For MoltenVk added vkFlushMappedMemoryRanges() to vkMapMemory() to fix empty mapped memory.
 - zink: make physical device functions use a dynamic function pointers.
@@ -1705,7 +1705,7 @@ Eric Engestrom (94):
 - egl: replace \_EGLDriver with \_EGLDisplay->Driver in \_eglGetSyncAttrib()
 - egl: replace replace \_EGLDriver with \_EGLDisplay->Driver in eglapi.c
 - egl: drop unused \_EGLDriver from MesaGLInteropEGL{QueryDeviceInfo,ExportObject}()
-- egl: replace \`&_eglDriver`/`NULL\` tested against \`NULL\` with simple \`true`/`false\`
+- egl: replace \`&_eglDriver\`/\`NULL\` tested against \`NULL\` with simple \`true\`/\`false\`
 - egl: drop unused ${drv}_driver()
 - egl: inline \_eglGetDriverProc() into eglGetProcAddress()
 - egl: inline \_eglInitializeDisplay() into eglInitialize()
@@ -1991,7 +1991,7 @@ Guido Günther (1):
 
 Gurchetan Singh (7):
 
-- virgl: add flags to (*resource_create) callback
+- virgl: add flags to (\*resource_create) callback
 - drm-uapi: virtgpu_drm.h: resource create blob + host visible memory region
 - virgl/drm: query for resource blob and host visible memory region
 - virgl/drm: add resource create blob function
@@ -2173,7 +2173,7 @@ Iago Toral Quiroga (443):
 - v3dv: implement vkResetCommandPool
 - v3dv: don't swap R/B channels for VK_FORMAT_R5B6G5_UNORM_PACK16
 - v3dv: don't use TLB path for formats that are not supported for rendering
-- v3dv: fix image clearing with VK_REMAINING_\*
+- v3dv: fix image clearing with VK_REMAINING\_\*
 - v3dv: don't support image formats that we can rendet to or texture from
 - v3dv: fix fill buffer with VK_WHOLE_SIZE
 - v3dv: implement vkGetRenderAreaGranularity
@@ -2468,7 +2468,7 @@ Ian Romanick (34):
 - intel/compiler: Silence unused parameter warning in brw_surface_payload_size
 - intel/compiler: Don't fallback to vec4 when scalar GS compile fails \[v2\]
 - intel/vec4: Remove inline lowering of LRP
-- intel/compiler: Remove INTEL_SCALAR_... env variables
+- intel/compiler: Remove INTEL_SCALAR\_... env variables
 - intel/vec4: Remove all support for Gen8+ \[v2\]
 - intel/vec4: Remove everything related to VS_OPCODE_SET_SIMD4X2_HEADER_GEN9
 - i965: Allow viewport array extensions with allow_higher_compat_version
@@ -2637,7 +2637,7 @@ Jason Ekstrand (296):
 - intel/nir: Allow splitting a single load into up to 32 loads
 - clover/spirv: Don't call llvm::regularizeLlvmForSpirv
 - clover: Call clang with -O0 for the SPIR-V path
-- nir: Report progress properly in nir_lower_bool_to_\*
+- nir: Report progress properly in nir_lower_bool_to\_\*
 - intel/nir: Pass the nir_builder by reference in lower_alpha_to_coverage
 - intel/nir: Rewrite the guts of lower_alpha_to_coverage
 - intel/nir: Clean up lower_alpha_to_coverage a bit
@@ -2712,7 +2712,7 @@ Jason Ekstrand (296):
 - spirv: Run repair_ssa if there are discard instructions
 - intel/nir: Call validate_ssa_dominance at both ends of the NIR compile
 - nir: More NIR_MAX_VEC_COMPONENTS fixes
-- nir/idiv_const: Use the modern nir_src_as_\* constant helpers
+- nir/idiv_const: Use the modern nir_src_as\_\* constant helpers
 - anv: Fix the target_bo assertion in anv_reloc_list_add
 - clover: Pull the stride from pipe_transfer for image maps
 - spirv: Access qualifiers are not a bitfield
@@ -2833,7 +2833,7 @@ Jason Ekstrand (296):
 - nir/opt_find_array_copies: Allow copies from mem_constant
 - nir: Add and use some deref mode helpers
 - nir/lower_array_deref_of_vec: Use nir_deref_mode_must_be
-- nir/lower_io: Use nir_deref_mode_\* helpers
+- nir/lower_io: Use nir_deref_mode\_\* helpers
 - nir/phis_to_scalar,gcm: Use nir_deref_mode_may_be
 - nir: Only force loop unrolling if we know it's a in/out/temp
 - nir/vars_to_ssa: Use nir_deref_must_be
@@ -2847,7 +2847,7 @@ Jason Ekstrand (296):
 - nir/opt_deref: Add a deref mode specialization optimization
 - nir/opt_deref: Add an optimization for deref_mode_is
 - nir/lower_io: Add a mode parameter to build_addr_iadd
-- nir/lower_io: Add a mode parameter to addr_format_is_\*
+- nir/lower_io: Add a mode parameter to addr_format_is\_\*
 - nir/lower_io: Add support for 32/64bit_global for shared
 - nir/lower_io: Add support for lowering deref_mode_is
 - nir/lower_io: Support generic pointer access
@@ -3270,8 +3270,8 @@ Marcin Ślusarz (50):
 - intel/fs,vec4: remove unused assignments
 - intel: add INTEL_DEBUG=shaders
 - intel/fs: add hint how to get more info when shader validation fails
-- intel/compiler: match brw_compile_\* declarations with their definitions
-- intel/compiler: use the same name for nir shaders in brw_compile_\* functions
+- intel/compiler: match brw_compile\_\* declarations with their definitions
+- intel/compiler: use the same name for nir shaders in brw_compile\_\* functions
 - intel/compiler: move extern C functions out of namespace brw
 - intel/compiler: print dispatch width when shader fails to compile
 - intel/compiler: fix typo in a comment
@@ -3388,8 +3388,8 @@ Marek Olšák (278):
 - radeonsi: stop using TGSI_PROPERTY_TES_POINT_MODE / TES_PRIM_MODE
 - radeonsi: stop using TGSI_PROPERTY_TES_SPACING
 - radeonsi: stop using TGSI_PROPERTY_TES_VERTEX_ORDER_CW
-- radeonsi: stop using TGSI_PROPERTY_GS_\*
-- radeonsi: stop using TGSI_PROPERTY_CS_\*
+- radeonsi: stop using TGSI_PROPERTY_GS\_\*
+- radeonsi: stop using TGSI_PROPERTY_CS\_\*
 - radeonsi: stop using TGSI_PROPERTY_FS_EARLY_DEPTH_STENCIL
 - radeonsi: stop using TGSI_PROPERTY_FS_POST_DEPTH_COVERAGE
 - radeonsi: stop using TGSI_PROPERTY_FS_COORD_PIXEL_CENTER
@@ -3400,7 +3400,7 @@ Marek Olšák (278):
 - radeonsi: remove redundant si_shader_info::shader_buffers_declared
 - radeonsi: remove redundant si_shader_info::images_declared
 - radeonsi: remove redundant si_shader_info::const_buffers_declared
-- radeonsi: remove redundant si_shader_info:*(clip|cull)\* fields
+- radeonsi: remove redundant si_shader_info:\*(clip|cull)\* fields
 - radeonsi: remove unused si_shader_info::uses_(vertexid|basevertex)
 - radeonsi: merge uses_persp_opcode_interp_sample/uses_linear_opcode_interp_sample
 - radeonsi: remove redundant si_shader_info::uses_kill
@@ -3439,10 +3439,10 @@ Marek Olšák (278):
 - radeonsi: vectorize IO for better ALU vectorization
 - radeonsi: don't scalarize 16-bit vec2 ALU opcodes
 - radeonsi: add 16-bit ALU vectorization
-- gallium: rename PIPE_TRANSFER_\* -\> PIPE_MAP_\*
+- gallium: rename PIPE_TRANSFER\_\* -\> PIPE_MAP\_\*
 - gallium: rename pipe_transfer_usage -\> pipe_map_flags
 - gallium: rename transfer flags -\> map flags in comments
-- radeon: rename RADEON_TRANSFER_\* -\> RADEON_MAP_\*
+- radeon: rename RADEON_TRANSFER\_\* -\> RADEON_MAP\_\*
 - radeonsi: set TRUNC_COORD=0 for Total War: WARHAMMER to fix it
 - radeonsi: move debug options from si_disk_cache_create to si_get_ir_cache_key
 - radeonsi: remove KILL_PS_INF_INTERP/CLAMP_DIV_BY_ZERO, use screen::options
@@ -4281,7 +4281,7 @@ Samuel Pitoiset (157):
 - radv: ignore BB labels when splitting the disassembly string
 - aco: add ACO_DEBUG=force-waitcnt to emit wait-states
 - amd/registers: add missing TBA registers on GFX6-GFX8
-- amd/registers: add some SQ_WAVE_\* register definitions
+- amd/registers: add some SQ_WAVE\_\* register definitions
 - aco: add TBA/TMA/TTMP0-11 physical registers definitions
 - aco: validate that SMEM operands can use fixed registers
 - aco: add a helper for building a trap handler shader
@@ -4328,7 +4328,7 @@ Samuel Pitoiset (157):
 - nir/lower_memory_model: return progress when visiting instructions
 - nir/lower_memory_model: do not break with global atomic operations
 - ac/nir: implement nir_intrinsic_{load,store}_global
-- ac/nir: implement nir_intrinsic_global_atomic_\*
+- ac/nir: implement nir_intrinsic_global_atomic\_\*
 - radv: lower deref operations for global memory for both backends
 - ac/llvm: fix invalid IR if image stores are shrinked using the format
 - nir/lower_io: change nir_io_add_const_offset_to_base to use bitfield modes

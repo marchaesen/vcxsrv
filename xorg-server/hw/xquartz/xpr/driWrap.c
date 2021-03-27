@@ -45,7 +45,7 @@
 #include <OpenGL/OpenGL.h>
 
 typedef struct {
-    GCOps *originalOps;
+    GCOps const *originalOps;
 } DRIGCRec;
 
 typedef struct {

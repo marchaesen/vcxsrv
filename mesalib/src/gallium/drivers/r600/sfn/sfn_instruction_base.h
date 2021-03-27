@@ -108,7 +108,7 @@ public:
 
    void print(std::ostream& os) const;
 
-   virtual void replace_values(const ValueSet& candiates, PValue new_value);
+   virtual void replace_values(const ValueSet& candidates, PValue new_value);
 
    void evalue_liveness(LiverangeEvaluator& eval) const;
 

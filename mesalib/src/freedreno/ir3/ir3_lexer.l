@@ -23,6 +23,7 @@
 
 %{
 #include <stdlib.h>
+#include "util/ralloc.h"
 #include "ir3/ir3.h"
 #include "ir3_parser.h"
 
@@ -30,6 +31,15 @@
 #define YY_NO_UNPUT
 #define TOKEN(t) (ir3_yylval.tok = t)
 extern YYSTYPE ir3_yylval;
+extern void *ir3_parser_dead_ctx;
+
+void ir3_yyset_input(FILE *f);
+
+void ir3_yyset_input(FILE *f)
+{
+	YY_FLUSH_BUFFER;
+	ir3_yyin = f;
+}
 
 static int parse_wrmask(const char *src)
 {
@@ -61,6 +71,17 @@ static int parse_reg(const char *str)
 	}
 	return num;
 }
+
+static int parse_w(const char *str)
+{
+	str++;
+	unsigned num = strtol(str, NULL, 10);
+	if ((num % 32) != 0)
+		yy_fatal_error("w# must be multiple of 32");
+	if (num < 32)
+		yy_fatal_error("w# must be at least 32");
+	return num / 32;
+}
 %}
 
 %option noyywrap
@@ -70,6 +91,18 @@ static int parse_reg(const char *str)
 "\n"                              yylineno++;
 [ \t]                             ; /* ignore whitespace */
 ";"[^\n]*"\n"                     yylineno++; /* ignore comments */
+"(0.0)"                           ir3_yylval.num = 0;  return T_FLUT_0_0;
+"(0.5)"                           ir3_yylval.num = 1;  return T_FLUT_0_5;
+"(1.0)"                           ir3_yylval.num = 2;  return T_FLUT_1_0;
+"(2.0)"                           ir3_yylval.num = 3;  return T_FLUT_2_0;
+"(e)"                             ir3_yylval.num = 4;  return T_FLUT_E;
+"(pi)"                            ir3_yylval.num = 5;  return T_FLUT_PI;
+"(1/pi)"                          ir3_yylval.num = 6;  return T_FLUT_INV_PI;
+"(1/log2(e))"                     ir3_yylval.num = 7;  return T_FLUT_INV_LOG2_E;
+"(log2(e))"                       ir3_yylval.num = 8;  return T_FLUT_LOG2_E;
+"(1/log2(10))"                    ir3_yylval.num = 9;  return T_FLUT_INV_LOG2_10;
+"(log2(10))"                      ir3_yylval.num = 10; return T_FLUT_LOG2_10;
+"(4.0)"                           ir3_yylval.num = 11; return T_FLUT_4_0;
 [0-9]+"."[0-9]+                   ir3_yylval.flt = strtod(yytext, NULL);       return T_FLOAT;
 [0-9]*                            ir3_yylval.num = strtoul(yytext, NULL, 0);    return T_INT;
 "0x"[0-9a-fA-F]*                  ir3_yylval.num = strtoul(yytext, NULL, 0);    return T_HEX;
@@ -79,6 +112,7 @@ static int parse_reg(const char *str)
 "@invocationid"                   return TOKEN(T_A_INVOCATIONID);
 "@wgid"                           return TOKEN(T_A_WGID);
 "@numwg"                          return TOKEN(T_A_NUMWG);
+"@branchstack"                    return TOKEN(T_A_BRANCHSTACK);
 "@in"                             return TOKEN(T_A_IN);
 "@out"                            return TOKEN(T_A_OUT);
 "@tex"                            return TOKEN(T_A_TEX);
@@ -93,20 +127,29 @@ static int parse_reg(const char *str)
 "(pos_infinity)"                  return TOKEN(T_POS_INFINITY);
 "(ei)"                            return TOKEN(T_EI);
 "(jp)"                            return TOKEN(T_JP);
+"(sat)"                           return TOKEN(T_SAT);
 "(rpt"[0-7]")"                    ir3_yylval.num = strtol(yytext+4, NULL, 10); return T_RPT;
 "(nop"[0-7]")"                    ir3_yylval.num = strtol(yytext+4, NULL, 10); return T_NOP;
 "("[x]?[y]?[z]?[w]?")"            ir3_yylval.num = parse_wrmask(yytext); return T_WRMASK;
 
 [h]?"r"[0-9]+"."[xyzw]            ir3_yylval.num = parse_reg(yytext); return T_REGISTER;
 [h]?"c"[0-9]+"."[xyzw]            ir3_yylval.num = parse_reg(yytext); return T_CONSTANT;
-"a0."[xyzw]                       ir3_yylval.num = parse_reg(yytext); return T_A0;
+"a0.x"                            return T_A0;
+"a1.x"                            return T_A1;
 "p0."[xyzw]                       ir3_yylval.num = parse_reg(yytext); return T_P0;
+"w"[0-9]+                         ir3_yylval.num = parse_w(yytext);   return T_W;
 "s#"[0-9]+                        ir3_yylval.num = strtol(yytext+2, NULL, 10); return T_SAMP;
 "t#"[0-9]+                        ir3_yylval.num = strtol(yytext+2, NULL, 10); return T_TEX;
 
                                   /* category 0: */
 "nop"                             return TOKEN(T_OP_NOP);
 "br"                              return TOKEN(T_OP_BR);
+"brao"                            return TOKEN(T_OP_BRAO);
+"braa"                            return TOKEN(T_OP_BRAA);
+"brac"                            return TOKEN(T_OP_BRAC);
+"bany"                            return TOKEN(T_OP_BANY);
+"ball"                            return TOKEN(T_OP_BALL);
+"brax"                            return TOKEN(T_OP_BRAX);
 "jump"                            return TOKEN(T_OP_JUMP);
 "call"                            return TOKEN(T_OP_CALL);
 "ret"                             return TOKEN(T_OP_RET);
@@ -117,8 +160,22 @@ static int parse_reg(const char *str)
 "chmask"                          return TOKEN(T_OP_CHMASK);
 "chsh"                            return TOKEN(T_OP_CHSH);
 "flow_rev"                        return TOKEN(T_OP_FLOW_REV);
+"bkt"                             return TOKEN(T_OP_BKT);
+"stks"                            return TOKEN(T_OP_STKS);
+"stkr"                            return TOKEN(T_OP_STKR);
+"xset"                            return TOKEN(T_OP_XSET);
+"xclr"                            return TOKEN(T_OP_XCLR);
+"getone"                          return TOKEN(T_OP_GETONE);
+"dbg"                             return TOKEN(T_OP_DBG);
+"shps"                            return TOKEN(T_OP_SHPS);
+"shpe"                            return TOKEN(T_OP_SHPE);
+"predt"                           return TOKEN(T_OP_PREDT);
+"predf"                           return TOKEN(T_OP_PREDF);
+"prede"                           return TOKEN(T_OP_PREDE);
 
                                   /* category 1: */
+"movmsk"                          return TOKEN(T_OP_MOVMSK);
+"mova1"                           return TOKEN(T_OP_MOVA1);
 "mova"                            return TOKEN(T_OP_MOVA);
 "mov"                             return TOKEN(T_OP_MOV);
 "cov"                             return TOKEN(T_OP_COV);
@@ -247,7 +304,7 @@ static int parse_reg(const char *str)
 "ldlw"                            return TOKEN(T_OP_LDLW);
 "stlw"                            return TOKEN(T_OP_STLW);
 "resfmt"                          return TOKEN(T_OP_RESFMT);
-"resinf"                          return TOKEN(T_OP_RESINF);
+"resinfo"                         return TOKEN(T_OP_RESINFO);
 "atomic.add"                      return TOKEN(T_OP_ATOMIC_ADD);
 "atomic.sub"                      return TOKEN(T_OP_ATOMIC_SUB);
 "atomic.xchg"                     return TOKEN(T_OP_ATOMIC_XCHG);
@@ -259,6 +316,20 @@ static int parse_reg(const char *str)
 "atomic.and"                      return TOKEN(T_OP_ATOMIC_AND);
 "atomic.or"                       return TOKEN(T_OP_ATOMIC_OR);
 "atomic.xor"                      return TOKEN(T_OP_ATOMIC_XOR);
+"resinfo.b"                       return TOKEN(T_OP_RESINFO_B);
+"ldib.b"                          return TOKEN(T_OP_LDIB_B);
+"stib.b"                          return TOKEN(T_OP_STIB_B);
+"atomic.b.add"                    return TOKEN(T_OP_ATOMIC_B_ADD);
+"atomic.b.sub"                    return TOKEN(T_OP_ATOMIC_B_SUB);
+"atomic.b.xchg"                   return TOKEN(T_OP_ATOMIC_B_XCHG);
+"atomic.b.inc"                    return TOKEN(T_OP_ATOMIC_B_INC);
+"atomic.b.dec"                    return TOKEN(T_OP_ATOMIC_B_DEC);
+"atomic.b.cmpxchg"                return TOKEN(T_OP_ATOMIC_B_CMPXCHG);
+"atomic.b.min"                    return TOKEN(T_OP_ATOMIC_B_MIN);
+"atomic.b.max"                    return TOKEN(T_OP_ATOMIC_B_MAX);
+"atomic.b.and"                    return TOKEN(T_OP_ATOMIC_B_AND);
+"atomic.b.or"                     return TOKEN(T_OP_ATOMIC_B_OR);
+"atomic.b.xor"                    return TOKEN(T_OP_ATOMIC_B_XOR);
 "ldgb"                            return TOKEN(T_OP_LDGB);
 "stgb"                            return TOKEN(T_OP_STGB);
 "stib"                            return TOKEN(T_OP_STIB);
@@ -266,6 +337,10 @@ static int parse_reg(const char *str)
 "ldlv"                            return TOKEN(T_OP_LDLV);
 "getspid"                         return TOKEN(T_OP_GETSPID);
 "getwid"                          return TOKEN(T_OP_GETWID);
+
+                                  /* category 7: */
+"bar"                             return TOKEN(T_OP_BAR);
+"fence"                           return TOKEN(T_OP_FENCE);
 
 "f16"                             return TOKEN(T_TYPE_F16);
 "f32"                             return TOKEN(T_TYPE_F32);
@@ -297,7 +372,12 @@ static int parse_reg(const char *str)
 "s2en"                            return TOKEN(T_S2EN);
 "s"                               return 's';
 "base"[0-9]+                      ir3_yylval.num = strtol(yytext+4, NULL, 10); return T_BASE;
+"offset"[0-9]+                    ir3_yylval.num = strtol(yytext+6, NULL, 10); return T_OFFSET;
+"uniform"                         return T_UNIFORM;
+"nonuniform"                      return T_NONUNIFORM;
+"imm"                             return T_IMM;
 
+"h"                               return 'h';
 "="                               return '=';
 "("                               return '(';
 ")"                               return ')';
@@ -313,15 +393,17 @@ static int parse_reg(const char *str)
 "hc"                              return TOKEN(T_HC);
 "hr"                              return TOKEN(T_HR);
 "g"                               return 'g';
+"w"                               return 'w';
 "l"                               return 'l';
 "<"                               return '<';
 ">"                               return '>';
 "!"                               return '!';
 "#"                               return '#';
+":"                               return ':';
 
 "nan"                             return TOKEN(T_NAN);
 "inf"                             return TOKEN(T_INF);
 
-[a-zA-Z_][a-zA-Z_0-9]*            ir3_yylval.str = yytext;     return T_IDENTIFIER;
+[a-zA-Z_][a-zA-Z_0-9]*            ir3_yylval.str = ralloc_strdup(ir3_parser_dead_ctx, yytext); return T_IDENTIFIER;
 .                                 fprintf(stderr, "error at line %d: Unknown token: %s\n", ir3_yyget_lineno(), yytext); yyterminate();
 %%

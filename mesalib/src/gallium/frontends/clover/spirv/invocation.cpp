@@ -90,17 +90,23 @@ namespace {
    enum module::argument::type
    convert_image_type(SpvId id, SpvDim dim, SpvAccessQualifier access,
                       std::string &err) {
-      if (dim == SpvDim2D && access == SpvAccessQualifierReadOnly)
-         return module::argument::image2d_rd;
-      else if (dim == SpvDim2D && access == SpvAccessQualifierWriteOnly)
-         return module::argument::image2d_wr;
-      else if (dim == SpvDim3D && access == SpvAccessQualifierReadOnly)
-         return module::argument::image3d_rd;
-      else if (dim == SpvDim3D && access == SpvAccessQualifierWriteOnly)
-         return module::argument::image3d_wr;
-      else {
-         err += "Unknown access qualifier " + std::to_string(access)
-             +  " or dimension " + std::to_string(dim) + " for image "
+      switch (dim) {
+      case SpvDim1D:
+      case SpvDim2D:
+      case SpvDim3D:
+      case SpvDimBuffer:
+         switch (access) {
+         case SpvAccessQualifierReadOnly:
+            return module::argument::image_rd;
+         case SpvAccessQualifierWriteOnly:
+            return module::argument::image_wr;
+         default:
+            err += "Unknown access qualifier " + std::to_string(access) + " for image "
+                +  std::to_string(id) + ".\n";
+            throw build_error();
+         }
+      default:
+         err += "Unknown dimension " + std::to_string(dim) + " for image "
              +  std::to_string(id) + ".\n";
          throw build_error();
       }

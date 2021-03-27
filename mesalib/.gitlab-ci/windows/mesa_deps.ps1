@@ -1,3 +1,14 @@
+# Download new TLS certs from Windows Update
+Get-Date
+Write-Host "Updating TLS certificate store"
+$certdir = (New-Item -ItemType Directory -Name "_tlscerts")
+certutil -syncwithWU "$certdir"
+Foreach ($file in (Get-ChildItem -Path "$certdir\*" -Include "*.crt")) {
+  Import-Certificate -FilePath $file -CertStoreLocation Cert:\LocalMachine\Root
+}
+Remove-Item -Recurse -Path $certdir
+
+
 Get-Date
 Write-Host "Installing Chocolatey"
 Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
@@ -41,39 +52,29 @@ if (!$?) {
 
 # we want more secure TLS 1.2 for most things, but it breaks SourceForge
 # downloads so must be done after Chocolatey use
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12;
-
-# VS16.x is 2019
-$msvc_2019_url = 'https://aka.ms/vs/16/release/vs_buildtools.exe'
-
-Get-Date
-Write-Host "Downloading Visual Studio 2019 build tools"
-Invoke-WebRequest -Uri $msvc_2019_url -OutFile C:\vs_buildtools.exe
-
-Get-Date
-Write-Host "Installing Visual Studio 2019"
-Start-Process -NoNewWindow -Wait C:\vs_buildtools.exe -ArgumentList '--wait --quiet --norestart --nocache --installPath C:\BuildTools --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Workload.NativeDesktop --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.ATLMFC --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Graphics.Tools --add Microsoft.VisualStudio.Component.Windows10SDK.18362 --includeRecommended'
-if (!$?) {
-  Write-Host "Failed to install Visual Studio tools"
-  Exit 1
-}
-Remove-Item C:\vs_buildtools.exe -Force
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13;
 
 Get-Date
 Write-Host "Cloning LLVM master"
-git clone -b master --depth=1 https://github.com/llvm/llvm-project llvm-project
+git clone -b release/12.x --depth=1 https://github.com/llvm/llvm-project llvm-project
 if (!$?) {
   Write-Host "Failed to clone LLVM repository"
   Exit 1
 }
 
+# ideally we want to use a tag here insted of a sha,
+# but as of today, SPIRV-LLVM-Translator doesn't have
+# a tag matching LLVM 12.0.0
 Get-Date
 Write-Host "Cloning SPIRV-LLVM-Translator"
-git clone -b master https://github.com/KhronosGroup/SPIRV-LLVM-Translator llvm-project/llvm/projects/SPIRV-LLVM-Translator
+git clone https://github.com/KhronosGroup/SPIRV-LLVM-Translator llvm-project/llvm/projects/SPIRV-LLVM-Translator
 if (!$?) {
   Write-Host "Failed to clone SPIRV-LLVM-Translator repository"
   Exit 1
 }
+Push-Location llvm-project/llvm/projects/SPIRV-LLVM-Translator
+git checkout 5b641633b3bcc3251a52260eee11db13a79d7258
+Pop-Location
 
 Get-Date
 # slightly convoluted syntax but avoids the CWD being under the PS filesystem meta-path
@@ -169,7 +170,7 @@ if (!$?) {
   Exit 1
 }
 Push-Location -Path C:\src\piglit
-git checkout f8767f9c9d0afe0ce8d37ddd80a61f73ccfb1cc6
+git checkout b0bbeb876a506e0ee689dd7e17cee374c8284058
 Pop-Location
 
 Get-Date

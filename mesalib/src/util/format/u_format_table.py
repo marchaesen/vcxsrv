@@ -108,7 +108,7 @@ def has_access(format):
     ]
     if format.short_name() in noaccess_formats:
         return False
-    if format.layout in ('astc', 'atc', 'fxt1'):
+    if format.layout in ('astc', 'atc'):
         return False
     if format.layout == 'etc' and format.short_name() != 'etc1_rgb8':
         return False
@@ -125,6 +125,7 @@ def write_format_table_header(file):
 def write_format_table(formats):
     write_format_table_header(sys.stdout)
     print('#include "u_format_bptc.h"')
+    print('#include "u_format_fxt1.h"')
     print('#include "u_format_s3tc.h"')
     print('#include "u_format_rgtc.h"')
     print('#include "u_format_latc.h"')

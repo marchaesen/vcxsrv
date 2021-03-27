@@ -30,12 +30,12 @@
 
 #include "freedreno_context.h"
 
-void fd6_emit_image_tex(struct fd_ringbuffer *ring, const struct pipe_image_view *pimg);
-void fd6_emit_ssbo_tex(struct fd_ringbuffer *ring, const struct pipe_shader_buffer *pbuf);
+void fd6_emit_image_tex(struct fd_ringbuffer *ring, const struct pipe_image_view *pimg) assert_dt;
+void fd6_emit_ssbo_tex(struct fd_ringbuffer *ring, const struct pipe_shader_buffer *pbuf) assert_dt;
 
 struct ir3_shader_variant;
 struct fd_ringbuffer * fd6_build_ibo_state(struct fd_context *ctx,
-		const struct ir3_shader_variant *v, enum pipe_shader_type shader);
+		const struct ir3_shader_variant *v, enum pipe_shader_type shader) assert_dt;
 
 void fd6_image_init(struct pipe_context *pctx);
 

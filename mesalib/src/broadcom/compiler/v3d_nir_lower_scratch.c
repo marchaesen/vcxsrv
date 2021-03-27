@@ -78,7 +78,7 @@ v3d_nir_lower_load_scratch(nir_builder *b, nir_intrinsic_instr *instr)
         }
 
         nir_ssa_def *result = nir_vec(b, chans, instr->num_components);
-        nir_ssa_def_rewrite_uses(&instr->dest.ssa, nir_src_for_ssa(result));
+        nir_ssa_def_rewrite_uses(&instr->dest.ssa, result);
         nir_instr_remove(&instr->instr);
 }
 

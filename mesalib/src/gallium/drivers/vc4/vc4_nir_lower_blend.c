@@ -57,15 +57,8 @@ blend_depends_on_dst_color(struct vc4_compile *c)
 static nir_ssa_def *
 vc4_nir_get_dst_color(nir_builder *b, int sample)
 {
-        nir_intrinsic_instr *load =
-                nir_intrinsic_instr_create(b->shader,
-                                           nir_intrinsic_load_input);
-        load->num_components = 1;
-        nir_intrinsic_set_base(load, VC4_NIR_TLB_COLOR_READ_INPUT + sample);
-        load->src[0] = nir_src_for_ssa(nir_imm_int(b, 0));
-        nir_ssa_dest_init(&load->instr, &load->dest, 1, 32, NULL);
-        nir_builder_instr_insert(b, &load->instr);
-        return &load->dest.ssa;
+        return nir_load_input(b, 1, 32, nir_imm_int(b, 0),
+                              .base = VC4_NIR_TLB_COLOR_READ_INPUT + sample);
 }
 
 static nir_ssa_def *
@@ -522,14 +515,8 @@ vc4_nir_store_sample_mask(struct vc4_compile *c, nir_builder *b,
         sample_mask->data.driver_location = c->s->num_outputs++;
         sample_mask->data.location = FRAG_RESULT_SAMPLE_MASK;
 
-        nir_intrinsic_instr *intr =
-                nir_intrinsic_instr_create(c->s, nir_intrinsic_store_output);
-        intr->num_components = 1;
-        nir_intrinsic_set_base(intr, sample_mask->data.driver_location);
-
-        intr->src[0] = nir_src_for_ssa(val);
-        intr->src[1] = nir_src_for_ssa(nir_imm_int(b, 0));
-        nir_builder_instr_insert(b, &intr->instr);
+        nir_store_output(b, val, nir_imm_int(b, 0),
+                         .base = sample_mask->data.driver_location);
 }
 
 static void

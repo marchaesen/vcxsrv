@@ -56,6 +56,7 @@ emit_intrinsic_load_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
 	ldib->barrier_class = IR3_BARRIER_BUFFER_R;
 	ldib->barrier_conflict = IR3_BARRIER_BUFFER_W;
 	ir3_handle_bindless_cat6(ldib, intr->src[0]);
+	ir3_handle_nonuniform(ldib, intr);
 
 	ir3_split_dest(b, dst, ldib, 0, intr->num_components);
 }
@@ -83,6 +84,7 @@ emit_intrinsic_store_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	stib->barrier_class = IR3_BARRIER_BUFFER_W;
 	stib->barrier_conflict = IR3_BARRIER_BUFFER_R | IR3_BARRIER_BUFFER_W;
 	ir3_handle_bindless_cat6(stib, intr->src[1]);
+	ir3_handle_nonuniform(stib, intr);
 
 	array_insert(b, b->keeps, stib);
 }
@@ -214,6 +216,7 @@ emit_intrinsic_load_image(struct ir3_context *ctx, nir_intrinsic_instr *intr,
 	ldib->barrier_class = IR3_BARRIER_IMAGE_R;
 	ldib->barrier_conflict = IR3_BARRIER_IMAGE_W;
 	ir3_handle_bindless_cat6(ldib, intr->src[0]);
+	ir3_handle_nonuniform(ldib, intr);
 
 	ir3_split_dest(b, dst, ldib, 0, intr->num_components);
 }
@@ -242,6 +245,7 @@ emit_intrinsic_store_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	stib->barrier_class = IR3_BARRIER_IMAGE_W;
 	stib->barrier_conflict = IR3_BARRIER_IMAGE_R | IR3_BARRIER_IMAGE_W;
 	ir3_handle_bindless_cat6(stib, intr->src[0]);
+	ir3_handle_nonuniform(stib, intr);
 
 	array_insert(b, b->keeps, stib);
 }
@@ -387,7 +391,7 @@ get_atomic_dest_mov(struct ir3_instruction *atomic)
 		return atomic->data;
 
 	/* We are already out of SSA here, so we can't use the nice builders: */
-	mov = ir3_instr_create(atomic->block, OPC_MOV);
+	mov = ir3_instr_create(atomic->block, OPC_MOV, 2);
 	ir3_reg_create(mov, 0, 0);    /* dst */
 	ir3_reg_create(mov, 0, 0);    /* src */
 
@@ -416,7 +420,7 @@ ir3_a6xx_fixup_atomic_dests(struct ir3 *ir, struct ir3_shader_variant *so)
 {
 	bool progress = false;
 
-	if (ir3_shader_nibo(so) == 0)
+	if (ir3_shader_nibo(so) == 0 && !so->bindless_ibo)
 		return false;
 
 	foreach_block (block, &ir->block_list) {

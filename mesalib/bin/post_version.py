@@ -22,6 +22,7 @@
 """Update the main page, release notes, and calendar."""
 
 import argparse
+import csv
 import pathlib
 import subprocess
 
@@ -52,30 +53,24 @@ def update_release_notes(version: str) -> None:
 
 
 def update_calendar(version: str) -> None:
-    p = pathlib.Path('docs') / 'release-calendar.rst'
+    p = pathlib.Path('docs') / 'release-calendar.csv'
 
-    with open(p, 'r') as f:
-        calendar = f.readlines()
+    with p.open('r') as f:
+        calendar = list(csv.reader(f))
 
-    branch = ''
-    skip_line = False
-    new_calendar = []
-    for line in calendar:
-        if version in line:
-            branch = line.split('|')[1].strip()
-            skip_line = True
-        elif skip_line:
-            skip_line = False
-        elif branch:
-            # Put the branch number back on the next line
-            new_calendar.append(line[:2] + branch + line[len(branch) + 2:])
-            branch = ''
-        else:
-            new_calendar.append(line)
+    branch = None
+    for i, line in enumerate(calendar):
+        if line[2] == version:
+            if line[0]:
+                branch = line[0]
+            break
+    if branch is not None:
+        calendar[i + 1][0] = branch
+    del calendar[i]
 
-    with open(p, 'w') as f:
-        for line in new_calendar:
-            f.write(line)
+    with p.open('w') as f:
+        writer = csv.writer(f)
+        writer.writerows(calendar)
 
     subprocess.run(['git', 'add', p])
 

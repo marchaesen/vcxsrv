@@ -379,21 +379,19 @@ def conversion_expr(src_channel,
             # neither is normalized -- just cast
             return '(%s)%s' % (dst_native_type, value)
 
-        src_one = get_one(src_channel)
-        dst_one = get_one(dst_channel)
-
-        if src_one > dst_one and src_norm and dst_channel.norm:
-            # We can just bitshift
-            src_shift = get_one_shift(src_channel)
-            dst_shift = get_one_shift(dst_channel)
-            value = '(%s >> %s)' % (value, src_shift - dst_shift)
+        if src_norm and dst_channel.norm:
+            return "_mesa_%snorm_to_%snorm(%s, %d, %d)" % ("s" if src_type == SIGNED else "u",
+                                                           "s" if dst_channel.type == SIGNED else "u",
+                                                           value, src_channel.size, dst_channel.size)
         else:
             # We need to rescale using an intermediate type big enough to hold the multiplication of both
+            src_one = get_one(src_channel)
+            dst_one = get_one(dst_channel)
             tmp_native_type = intermediate_native_type(src_size + dst_channel.size, src_channel.sign and dst_channel.sign)
             value = '((%s)%s)' % (tmp_native_type, value)
-            value = '(%s * 0x%x / 0x%x)' % (value, dst_one, src_one)
-        value = '(%s)%s' % (dst_native_type, value)
-        return value
+            value = '(%s)(%s * 0x%x / 0x%x)' % (dst_native_type, value, dst_one, src_one)
+            return value
+
 
     # Promote to either float or double
     if src_type != FLOAT:
@@ -454,14 +452,6 @@ def generate_unpack_kernel(format, dst_channel, dst_native_type):
         depth = format.block_size()
         print('         uint%u_t value = *(const uint%u_t *)src;' % (depth, depth)) 
 
-        # Declare the intermediate variables
-        for i in range(format.nr_channels()):
-            src_channel = channels[i]
-            if src_channel.type == UNSIGNED:
-                print('         uint%u_t %s;' % (depth, src_channel.name))
-            elif src_channel.type == SIGNED:
-                print('         int%u_t %s;' % (depth, src_channel.name))
-
         # Compute the intermediate unshifted values 
         for i in range(format.nr_channels()):
             src_channel = channels[i]
@@ -472,6 +462,7 @@ def generate_unpack_kernel(format, dst_channel, dst_native_type):
                     value = '%s >> %u' % (value, shift)
                 if shift + src_channel.size < depth:
                     value = '(%s) & 0x%x' % (value, (1 << src_channel.size) - 1)
+                print('         uint%u_t %s = %s;' % (depth, src_channel.name, value))
             elif src_channel.type == SIGNED:
                 if shift + src_channel.size < depth:
                     # Align the sign bit
@@ -483,12 +474,10 @@ def generate_unpack_kernel(format, dst_channel, dst_native_type):
                     # Align the LSB bit
                     rshift = depth - src_channel.size
                     value = '(%s) >> %u' % (value, rshift)
+                print('         int%u_t %s = %s;' % (depth, src_channel.name, value))
             else:
                 value = None
-                
-            if value is not None:
-                print('         %s = %s;' % (src_channel.name, value))
-                
+
         # Convert, swizzle, and store final values
         for i in range(4):
             swizzle = swizzles[i]
@@ -628,7 +617,8 @@ def generate_format_unpack(format, dst_channel, dst_native_type, dst_suffix):
     else:
         dst_proto_type = 'void'
 
-    proto = 'util_format_%s_unpack_%s(%s *dst_row, unsigned dst_stride, const uint8_t *src_row, unsigned src_stride, unsigned width, unsigned height)' % (name, dst_suffix, dst_proto_type)
+    proto = 'util_format_%s_unpack_%s(%s *restrict dst_row, unsigned dst_stride, const uint8_t *restrict src_row, unsigned src_stride, unsigned width, unsigned height)' % (
+        name, dst_suffix, dst_proto_type)
     print('void %s;' % proto, file=sys.stdout2)
 
     print('void')
@@ -661,10 +651,12 @@ def generate_format_pack(format, src_channel, src_native_type, src_suffix):
     name = format.short_name()
 
     print('void')
-    print('util_format_%s_pack_%s(uint8_t *dst_row, unsigned dst_stride, const %s *src_row, unsigned src_stride, unsigned width, unsigned height)' % (name, src_suffix, src_native_type))
+    print('util_format_%s_pack_%s(uint8_t *restrict dst_row, unsigned dst_stride, const %s *restrict src_row, unsigned src_stride, unsigned width, unsigned height)' %
+          (name, src_suffix, src_native_type))
     print('{')
 
-    print('void util_format_%s_pack_%s(uint8_t *dst_row, unsigned dst_stride, const %s *src_row, unsigned src_stride, unsigned width, unsigned height);' % (name, src_suffix, src_native_type), file=sys.stdout2)
+    print('void util_format_%s_pack_%s(uint8_t *restrict dst_row, unsigned dst_stride, const %s *restrict src_row, unsigned src_stride, unsigned width, unsigned height);' %
+          (name, src_suffix, src_native_type), file=sys.stdout2)
     
     if is_format_supported(format):
         print('   unsigned x, y;')
@@ -691,7 +683,7 @@ def generate_format_fetch(format, dst_channel, dst_native_type):
 
     name = format.short_name()
 
-    proto = 'util_format_%s_fetch_rgba(void *in_dst, const uint8_t *src, UNUSED unsigned i, UNUSED unsigned j)' % (name)
+    proto = 'util_format_%s_fetch_rgba(void *restrict in_dst, const uint8_t *restrict src, UNUSED unsigned i, UNUSED unsigned j)' % (name)
     print('void %s;' % proto, file=sys.stdout2)
 
     print('void')
@@ -719,6 +711,7 @@ def generate(formats):
     print('#include "u_format.h"')
     print('#include "u_format_other.h"')
     print('#include "util/format_srgb.h"')
+    print('#include "format_utils.h"')
     print('#include "u_format_yuv.h"')
     print('#include "u_format_zs.h"')
     print('#include "u_format_pack.h"')

@@ -110,6 +110,8 @@ __stdcall unsigned long GetTickCount(void);
 
 #include "picture.h"
 
+#include "miinitext.h"
+
 Bool noTestExtensions;
 
 #ifdef COMPOSITE
@@ -576,6 +578,7 @@ UseMsg(void)
     ErrorF("-sigstop               Enable SIGSTOP based startup\n");
     ErrorF("+extension name        Enable extension\n");
     ErrorF("-extension name        Disable extension\n");
+    ListStaticExtensions();
 #ifdef XDMCP
     XdmcpUseMsg();
 #endif

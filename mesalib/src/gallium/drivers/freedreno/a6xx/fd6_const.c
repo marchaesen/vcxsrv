@@ -131,6 +131,7 @@ emit_const_ptrs(struct fd_ringbuffer *ring,
 
 static void
 emit_tess_bos(struct fd_ringbuffer *ring, struct fd6_emit *emit, struct ir3_shader_variant *s)
+	assert_dt
 {
 	struct fd_context *ctx = emit->ctx;
 	const struct ir3_const_state *const_state = ir3_const_state(s);
@@ -157,8 +158,8 @@ emit_stage_tess_consts(struct fd_ringbuffer *ring, struct ir3_shader_variant *v,
 		fd6_emit_const_user(ring, v, regid * 4, num_params, params);
 }
 
-static void
-emit_tess_consts(struct fd6_emit *emit)
+struct fd_ringbuffer *
+fd6_build_tess_consts(struct fd6_emit *emit)
 {
 	struct fd_context *ctx = emit->ctx;
 
@@ -225,7 +226,7 @@ emit_tess_consts(struct fd6_emit *emit)
 		emit_stage_tess_consts(constobj, emit->gs, gs_params, ARRAY_SIZE(gs_params));
 	}
 
-	fd6_emit_take_group(emit, constobj, FD6_GROUP_PRIMITIVE_PARAMS, ENABLE_ALL);
+	return constobj;
 }
 
 static void
@@ -310,8 +311,8 @@ user_consts_cmdstream_size(struct ir3_shader_variant *v)
 	return ubo_state->cmdstream_size;
 }
 
-static void
-emit_user_consts(struct fd6_emit *emit)
+struct fd_ringbuffer *
+fd6_build_user_consts(struct fd6_emit *emit)
 {
 	static const enum pipe_shader_type types[] = {
 			PIPE_SHADER_VERTEX, PIPE_SHADER_TESS_CTRL, PIPE_SHADER_TESS_EVAL,
@@ -339,33 +340,26 @@ emit_user_consts(struct fd6_emit *emit)
 		fd6_emit_ubos(ctx, variants[i], constobj, &ctx->constbuf[types[i]]);
 	}
 
-	fd6_emit_take_group(emit, constobj, FD6_GROUP_CONST, ENABLE_ALL);
+	return constobj;
 }
 
-void
-fd6_emit_consts(struct fd6_emit *emit)
+struct fd_ringbuffer *
+fd6_build_vs_driver_params(struct fd6_emit *emit)
 {
 	struct fd_context *ctx = emit->ctx;
 	struct fd6_context *fd6_ctx = fd6_context(ctx);
-
-	if (emit->dirty & (FD_DIRTY_CONST | FD_DIRTY_PROG))
-		emit_user_consts(emit);
-
-	if (emit->key.key.has_gs || emit->key.key.tessellation)
-		emit_tess_consts(emit);
-
-	/* if driver-params are needed, emit each time: */
 	const struct ir3_shader_variant *vs = emit->vs;
-	if (ir3_needs_vs_driver_params(vs)) {
+
+	if (vs->need_driver_params) {
 		struct fd_ringbuffer *dpconstobj = fd_submit_new_ringbuffer(
 				ctx->batch->submit, IR3_DP_VS_COUNT * 4, FD_RINGBUFFER_STREAMING);
 		ir3_emit_vs_driver_params(vs, dpconstobj, ctx, emit->info, emit->indirect, emit->draw);
-		fd6_emit_take_group(emit, dpconstobj, FD6_GROUP_VS_DRIVER_PARAMS, ENABLE_ALL);
 		fd6_ctx->has_dp_state = true;
-	} else if (fd6_ctx->has_dp_state) {
-		fd6_emit_take_group(emit, NULL, FD6_GROUP_VS_DRIVER_PARAMS, ENABLE_ALL);
-		fd6_ctx->has_dp_state = false;
+		return dpconstobj;
 	}
+
+	fd6_ctx->has_dp_state = false;
+	return NULL;
 }
 
 void

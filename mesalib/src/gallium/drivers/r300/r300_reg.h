@@ -323,7 +323,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  * In immediate mode, the pattern is always set to xyzw. In vertex array
  * mode, the swizzling pattern is e.g. used to set zw components in texture
- * coordinates with only tweo components.
+ * coordinates with only two components.
  */
 #define R300_VAP_PROG_STREAM_CNTL_EXT_0                 0x21e0
 #       define R300_SWIZZLE0_SHIFT                      0
@@ -856,7 +856,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #	define R500_TX_WEIGHT_PAIR               (1<<22)
 #	define R500_TX_PHASE_SHIFT               (23)
 #	define R500_TX_DIRECTION_HORIZONTAL	 (0<<27)
-#	define R500_TX_DIRECTION_VERITCAL	 (1<<27)
+#	define R500_TX_DIRECTION_VERTICAL	 (1<<27)
 
 #define R500_SU_TEX_WRAP_PS3		    0x4114
 
@@ -1148,7 +1148,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #	define R300_GA_POLY_MODE_BACK_PTYPE_TRI    (2 << 7)
 /* reserved */
 
-/* Specifies the rouding mode for geometry & color SPFP to FP conversions. */
+/* Specifies the rounding mode for geometry & color SPFP to FP conversions. */
 #define R300_GA_ROUND_MODE                            0x428c
 #	define R300_GA_ROUND_MODE_GEOMETRY_ROUND_TRUNC   (0 << 0)
 #	define R300_GA_ROUND_MODE_GEOMETRY_ROUND_NEAREST (1 << 0)
@@ -1842,7 +1842,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #      define R400_SRC_ADDR_EXT_BIT         (1 << 19)
 #      define R400_DST_ADDR_EXT_BIT         (1 << 20)
 
-/* Output format from the unfied shader */
+/* Output format from the unified shader */
 #define R300_US_OUT_FMT_0                   0x46A4
 #	define R300_US_OUT_FMT_C4_8         (0 << 0)
 #	define R300_US_OUT_FMT_C4_10        (1 << 0)

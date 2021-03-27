@@ -29,7 +29,6 @@
 #include "util/u_memory.h"
 #include "gallium/auxiliary/util/u_blend.h"
 #include "pan_blend_shaders.h"
-#include "pan_blending.h"
 #include "pan_bo.h"
 #include "panfrost-quirks.h"
 
@@ -115,51 +114,38 @@ static void *
 panfrost_create_blend_state(struct pipe_context *pipe,
                             const struct pipe_blend_state *blend)
 {
-        struct panfrost_device *dev = pan_device(pipe->screen);
         struct panfrost_context *ctx = pan_context(pipe);
         struct panfrost_blend_state *so = rzalloc(ctx, struct panfrost_blend_state);
-        unsigned version = dev->gpu_id >> 12;
         so->base = *blend;
+
+        so->pan.dither = blend->dither;
+        so->pan.logicop_enable = blend->logicop_enable;
+        so->pan.logicop_func = blend->logicop_func;
+        so->pan.rt_count = blend->max_rt + 1;
 
         /* TODO: The following features are not yet implemented */
         assert(!blend->alpha_to_one);
 
-        for (unsigned c = 0; c < PIPE_MAX_COLOR_BUFS; ++c) {
+        for (unsigned c = 0; c < so->pan.rt_count; ++c) {
                 unsigned g = blend->independent_blend_enable ? c : 0;
-                struct pipe_rt_blend_state pipe = blend->rt[g];
+                const struct pipe_rt_blend_state *pipe = &blend->rt[g];
+                struct pan_blend_equation *equation = &so->pan.rts[c].equation;
 
-                struct panfrost_blend_rt *rt = &so->rt[c];
-
-                /* Logic ops are always shader */
-                if (blend->logicop_enable) {
-                        rt->load_dest = true;
+                equation->color_mask = pipe->colormask;
+                equation->blend_enable = pipe->blend_enable;
+                if (!equation->blend_enable)
                         continue;
-                }
 
-                rt->constant_mask = panfrost_blend_constant_mask(&pipe);
-                rt->has_fixed_function =
-                        panfrost_make_fixed_blend_mode(pipe, &rt->equation);
-
-                /* v6 doesn't support blend constants in FF blend equations. */
-                if (rt->has_fixed_function && version == 6 && rt->constant_mask)
-                        rt->has_fixed_function = false;
-
-                if (rt->has_fixed_function) {
-                        rt->opaque = pipe.rgb_src_factor == PIPE_BLENDFACTOR_ONE &&
-                                     pipe.rgb_dst_factor == PIPE_BLENDFACTOR_ZERO &&
-                                     (pipe.rgb_func == PIPE_BLEND_ADD ||
-                                      pipe.rgb_func == PIPE_BLEND_SUBTRACT) &&
-                                     pipe.alpha_src_factor == PIPE_BLENDFACTOR_ONE &&
-                                     pipe.alpha_dst_factor == PIPE_BLENDFACTOR_ZERO &&
-                                     (pipe.alpha_func == PIPE_BLEND_ADD ||
-                                      pipe.alpha_func == PIPE_BLEND_SUBTRACT) &&
-                                     pipe.colormask == 0xf;
-                }
-
-                rt->load_dest = util_blend_uses_dest(pipe)
-                        || pipe.colormask != 0xF;
-
-                rt->no_colour = pipe.colormask == 0x0;
+                equation->rgb_func = util_blend_func_to_shader(pipe->rgb_func);
+                equation->rgb_src_factor = util_blend_factor_to_shader(pipe->rgb_src_factor);
+                equation->rgb_invert_src_factor = util_blend_factor_is_inverted(pipe->rgb_src_factor);
+                equation->rgb_dst_factor = util_blend_factor_to_shader(pipe->rgb_dst_factor);
+                equation->rgb_invert_dst_factor = util_blend_factor_is_inverted(pipe->rgb_dst_factor);
+                equation->alpha_func = util_blend_func_to_shader(pipe->alpha_func);
+                equation->alpha_src_factor = util_blend_factor_to_shader(pipe->alpha_src_factor);
+                equation->alpha_invert_src_factor = util_blend_factor_is_inverted(pipe->alpha_src_factor);
+                equation->alpha_dst_factor = util_blend_factor_to_shader(pipe->alpha_dst_factor);
+                equation->alpha_invert_dst_factor = util_blend_factor_is_inverted(pipe->alpha_dst_factor);
         }
 
         return so;
@@ -191,77 +177,47 @@ panfrost_set_blend_color(struct pipe_context *pipe,
                 ctx->blend_color = *blend_color;
 }
 
-/* Given a vec4 of constants, reduce it to just a single constant according to
- * the mask (if we can) */
-
-static bool
-panfrost_blend_constant(float *out, float *in, unsigned mask)
-{
-        /* If there is no components used, it automatically works */
-
-        if (!mask)
-                return true;
-
-        /* Find some starter mask */
-        unsigned first = ffs(mask) - 1;
-        float cons = in[first];
-        mask ^= (1 << first);
-
-        /* Ensure the rest are equal */
-        while (mask) {
-                unsigned i = u_bit_scan(&mask);
-
-                if (in[i] != cons)
-                        return false;
-        }
-
-        /* Otherwise, we're good to go */
-        *out = cons;
-        return true;
-}
-
 /* Create a final blend given the context */
 
 struct panfrost_blend_final
 panfrost_get_blend_for_context(struct panfrost_context *ctx, unsigned rti, struct panfrost_bo **bo, unsigned *shader_offset)
 {
+        struct panfrost_device *dev = pan_device(ctx->base.screen);
         struct panfrost_batch *batch = panfrost_get_batch_for_fbo(ctx);
         struct pipe_framebuffer_state *fb = &ctx->pipe_framebuffer;
         enum pipe_format fmt = fb->cbufs[rti]->format;
-
-        /* Grab the blend state */
-        struct panfrost_blend_state *blend = ctx->blend;
-        struct panfrost_blend_rt *rt = &blend->rt[rti];
-
-        /* First, we'll try fixed function, matching equationn and constant */
-        if (rt->has_fixed_function && panfrost_can_fixed_blend(fmt)) {
-                float constant = 0.0;
-
-                if (panfrost_blend_constant(
-                            &constant,
-                            ctx->blend_color.color,
-                            rt->constant_mask)) {
-                        struct panfrost_blend_final final = {
-                                .equation = {
-                                        .equation = rt->equation,
-                                        .constant = constant
-                                },
-                                .load_dest = rt->load_dest,
-                                .opaque = rt->opaque,
-                                .no_colour = rt->no_colour
-                        };
-
-                        return final;
-                }
-        }
-
         unsigned nr_samples = fb->cbufs[rti]->nr_samples ? :
                               fb->cbufs[rti]->texture->nr_samples;
 
+        /* Grab the blend state */
+        struct panfrost_blend_state *blend = ctx->blend;
+        struct pan_blend_state pan_blend = blend->pan;
+
+        pan_blend.rts[rti].format = fmt;
+        pan_blend.rts[rti].nr_samples = nr_samples;
+        memcpy(pan_blend.constants, ctx->blend_color.color,
+               sizeof(pan_blend.constants));
+
+        /* First, we'll try fixed function, matching equation and constant */
+        if (pan_blend_can_fixed_function(dev, &pan_blend, rti)) {
+                struct panfrost_blend_final final = {
+                        .load_dest = pan_blend_reads_dest(&pan_blend, rti),
+                        .equation.constant = pan_blend_get_constant(dev, &pan_blend, rti),
+                        .opaque = pan_blend_is_opaque(&pan_blend, rti),
+                        .no_colour = pan_blend.rts[rti].equation.color_mask == 0,
+                };
+
+                pan_blend_to_fixed_function_equation(dev, &pan_blend, rti,
+                                                     &final.equation.equation);
+                return final;
+        }
+
+
         /* Otherwise, we need to grab a shader */
+        unsigned constant_mask = pan_blend_constant_mask(&pan_blend, rti);
         struct panfrost_blend_shader *shader =
                 panfrost_get_blend_shader(ctx, blend, fmt, nr_samples, rti,
-                                          rt->constant_mask ?
+                                          constant_mask ?
                                           ctx->blend_color.color : NULL);
 
         /* Upload the shader, sharing a BO */
@@ -285,7 +241,7 @@ panfrost_get_blend_for_context(struct panfrost_context *ctx, unsigned rti, struc
                         .first_tag = shader->first_tag,
                         .gpu = (*bo)->ptr.gpu + *shader_offset,
                 },
-                .load_dest = rt->load_dest,
+                .load_dest = pan_blend_reads_dest(&pan_blend, rti),
         };
 
         *shader_offset += shader->size;

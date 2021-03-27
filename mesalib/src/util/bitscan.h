@@ -104,6 +104,11 @@ u_bit_scan(unsigned *mask)
    return i;
 }
 
+#define u_foreach_bit(b, dword)                          \
+   for (uint32_t __dword = (dword), b;                     \
+        ((b) = ffs(__dword) - 1, __dword);      \
+        __dword &= ~(1 << (b)))
+
 static inline int
 u_bit_scan64(uint64_t *mask)
 {
@@ -111,6 +116,11 @@ u_bit_scan64(uint64_t *mask)
    *mask ^= (((uint64_t)1) << i);
    return i;
 }
+
+#define u_foreach_bit64(b, dword)                          \
+   for (uint64_t __dword = (dword), b;                     \
+        ((b) = ffsll(__dword) - 1, __dword);      \
+        __dword &= ~(1ull << (b)))
 
 /* Determine if an unsigned value is a power of two.
  *

@@ -1,6 +1,6 @@
 project('fontconfig', 'c',
   version: '2.13.93',
-  meson_version : '>= 0.50.0',
+  meson_version : '>= 0.56.0',
   default_options: [ 'buildtype=debugoptimized'],
 )
 
@@ -204,22 +204,30 @@ prefix = get_option('prefix')
 fonts_conf = configuration_data()
 
 if host_machine.system() == 'windows'
-  conf.set_quoted('FC_DEFAULT_FONTS', 'WINDOWSFONTDIR')
-  fonts_conf.set('FC_DEFAULT_FONTS', 'WINDOWSFONTDIR')
+  fc_fonts_path = ['WINDOWSFONTDIR']
   fc_cachedir = 'LOCAL_APPDATA_FONTCONFIG_CACHE'
 else
   if host_machine.system() == 'darwin'
-    conf.set_quoted('FC_DEFAULT_FONTS', '<dir>/System/Library/Fonts</dir> <dir>/Library/Fonts</dir> <dir>~/Library/Fonts</dir> <dir>/System/Library/Assets/com_apple_MobileAsset_Font3</dir> <dir>/System/Library/Assets/com_apple_MobileAsset_Font4</dir>')
-    fonts_conf.set('FC_DEFAULT_FONTS', '<dir>/System/Library/Fonts</dir> <dir>/Library/Fonts</dir> <dir>~/Library/Fonts</dir> <dir>/System/Library/Assets/com_apple_MobileAsset_Font3</dir> <dir>/System/Library/Assets/com_apple_MobileAsset_Font4</dir>')
+    fc_fonts_path = ['/System/Library/Fonts', '/Library/Fonts', '~/Library/Fonts', '/System/Library/Assets/com_apple_MobileAsset_Font3', '/System/Library/Assets/com_apple_MobileAsset_Font4']
   else
-    conf.set_quoted('FC_DEFAULT_FONTS', '<dir>/usr/share/fonts</dir>')
-    fonts_conf.set('FC_DEFAULT_FONTS', '<dir>/usr/share/fonts</dir>')
+    fc_fonts_path = ['/usr/share/fonts', '/usr/local/share/fonts']
   endif
   fc_cachedir = join_paths(prefix, get_option('localstatedir'), 'cache', meson.project_name())
   thread_dep = dependency('threads')
   conf.set('HAVE_PTHREAD', 1)
   deps += [thread_dep]
 endif
+xml_path = ''
+escaped_xml_path = ''
+foreach p : fc_fonts_path
+  s = '\t<dir>' + p + '</dir>\n'
+  xml_path += s
+  # No substitution method for string
+  s = '\\t<dir>' + p + '</dir>\\n'
+  escaped_xml_path += s
+endforeach
+conf.set_quoted('FC_DEFAULT_FONTS', escaped_xml_path)
+fonts_conf.set('FC_DEFAULT_FONTS', xml_path)
 
 fc_templatedir = join_paths(prefix, get_option('datadir'), 'fontconfig/conf.avail')
 fc_baseconfigdir = join_paths(prefix, get_option('sysconfdir'), 'fonts')
@@ -241,11 +249,8 @@ if fc_configdir.startswith(fc_baseconfigdir + '/')
   fonts_conf.set('CONFIGDIR', fc_configdir.split(fc_baseconfigdir + '/')[1])
 endif
 
-gperf = find_program('gperf', required: build_machine.system() != 'windows')
-if not gperf.found()
-  subproject('gperf', required: true)
-  gperf = find_program('gperf')
-endif
+# It will automatically fallback to subproject if not found on system
+gperf = find_program('gperf')
 
 sh = find_program('sh', required : false)
 
@@ -301,7 +306,6 @@ fcstdint_h = configure_file(
   output: 'fcstdint.h',
   copy: true)
 
-stdinwrapper = files('stdin_wrapper.py')[0]
 makealias = files('src/makealias.py')[0]
 
 alias_headers = custom_target('alias_headers',

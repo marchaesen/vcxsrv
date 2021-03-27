@@ -614,7 +614,8 @@ generate_fs_loop(struct gallivm_state *gallivm,
    /* truncate then sign extend. */
    system_values.front_facing = LLVMBuildTrunc(gallivm->builder, facing, LLVMInt1TypeInContext(gallivm->context), "");
    system_values.front_facing = LLVMBuildSExt(gallivm->builder, system_values.front_facing, LLVMInt32TypeInContext(gallivm->context), "");
-
+   system_values.view_index = lp_jit_thread_data_raster_state_view_index(gallivm,
+                                                                         thread_data_ptr);
    if (key->depth.enabled ||
        key->stencil[0].enabled) {
 
@@ -2355,7 +2356,7 @@ generate_unswizzled_blend(struct gallivm_state *gallivm,
          continue;
       }
 
-      /* Ensure we havn't already found all channels */
+      /* Ensure we haven't already found all channels */
       if (dst_channels >= out_format_desc->nr_channels) {
          continue;
       }
@@ -3398,6 +3399,7 @@ dump_fs_variant_key(struct lp_fragment_shader_variant_key *key)
       debug_printf("  .lod_bias_non_zero = %u\n", sampler->lod_bias_non_zero);
       debug_printf("  .apply_min_lod = %u\n", sampler->apply_min_lod);
       debug_printf("  .apply_max_lod = %u\n", sampler->apply_max_lod);
+      debug_printf("  .reduction_mode = %u\n", sampler->reduction_mode);
    }
    for (i = 0; i < key->nr_sampler_views; ++i) {
       const struct lp_static_texture_state *texture = &key->samplers[i].texture_state;
@@ -3786,6 +3788,7 @@ llvmpipe_delete_fs_state(struct pipe_context *pipe, void *fs)
 static void
 llvmpipe_set_constant_buffer(struct pipe_context *pipe,
                              enum pipe_shader_type shader, uint index,
+                             bool take_ownership,
                              const struct pipe_constant_buffer *cb)
 {
    struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
@@ -3795,7 +3798,8 @@ llvmpipe_set_constant_buffer(struct pipe_context *pipe,
    assert(index < ARRAY_SIZE(llvmpipe->constants[shader]));
 
    /* note: reference counting */
-   util_copy_constant_buffer(&llvmpipe->constants[shader][index], cb);
+   util_copy_constant_buffer(&llvmpipe->constants[shader][index], cb,
+                             take_ownership);
 
    if (constants) {
        if (!(constants->bind & PIPE_BIND_CONSTANT_BUFFER)) {
@@ -3874,7 +3878,8 @@ llvmpipe_set_shader_buffers(struct pipe_context *pipe,
 static void
 llvmpipe_set_shader_images(struct pipe_context *pipe,
                             enum pipe_shader_type shader, unsigned start_slot,
-                           unsigned count, const struct pipe_image_view *images)
+                           unsigned count, unsigned unbind_num_trailing_slots,
+                           const struct pipe_image_view *images)
 {
    struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
    unsigned i, idx;
@@ -3899,6 +3904,11 @@ llvmpipe_set_shader_images(struct pipe_context *pipe,
       llvmpipe->cs_dirty |= LP_CSNEW_IMAGES;
    else
       llvmpipe->dirty |= LP_NEW_FS_IMAGES;
+
+   if (unbind_num_trailing_slots) {
+      llvmpipe_set_shader_images(pipe, shader, start_slot + count,
+                                 unbind_num_trailing_slots, 0, NULL);
+   }
 }
 
 /**
@@ -4227,7 +4237,8 @@ llvmpipe_update_fs(struct llvmpipe_context *lp)
             assert(item);
             assert(item->base);
             llvmpipe_remove_shader_variant(lp, item->base);
-            lp_fs_variant_reference(lp, &item->base, NULL);
+            struct lp_fragment_shader_variant *variant = item->base;
+            lp_fs_variant_reference(lp, &variant, NULL);
          }
       }
 

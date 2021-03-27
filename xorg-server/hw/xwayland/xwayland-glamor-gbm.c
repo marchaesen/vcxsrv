@@ -270,8 +270,7 @@ static const struct wl_buffer_listener xwl_glamor_gbm_buffer_listener = {
 };
 
 static struct wl_buffer *
-xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
-                                        Bool *created)
+xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap)
 {
     struct xwl_screen *xwl_screen = xwl_screen_get(pixmap->drawable.pScreen);
     struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
@@ -292,15 +291,9 @@ xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
        return NULL;
 
     if (xwl_pixmap->buffer) {
-        /* Buffer already exists. Return it and inform caller if interested. */
-        if (created)
-            *created = FALSE;
+        /* Buffer already exists. */
         return xwl_pixmap->buffer;
     }
-
-    /* Buffer does not exist yet. Create now and inform caller if interested. */
-    if (created)
-        *created = TRUE;
 
     if (!xwl_pixmap->bo)
        return NULL;

@@ -134,7 +134,7 @@ struct ac_rtld_upload_info {
    void *cb_data;
 };
 
-bool ac_rtld_upload(struct ac_rtld_upload_info *u);
+int ac_rtld_upload(struct ac_rtld_upload_info *u);
 
 #ifdef __cplusplus
 }

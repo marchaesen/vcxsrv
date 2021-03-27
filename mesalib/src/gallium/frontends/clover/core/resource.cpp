@@ -26,6 +26,7 @@
 #include "util/u_sampler.h"
 #include "util/format/u_format.h"
 #include "util/u_inlines.h"
+#include "util/u_resource.h"
 
 using namespace clover;
 
@@ -125,7 +126,10 @@ resource::create_image_view(command_queue &q) {
       view.u.buf.size = obj.size();
    } else {
       view.u.tex.first_layer = 0;
-      view.u.tex.last_layer = 0;
+      if (util_texture_is_array(pipe->target))
+         view.u.tex.last_layer = pipe->array_size - 1;
+      else
+         view.u.tex.last_layer = 0;
       view.u.tex.level = 0;
    }
 

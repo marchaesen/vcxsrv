@@ -102,20 +102,12 @@ nir_lower_interpolation_block(nir_block *block, nir_builder *b,
 
       nir_ssa_def *comps[NIR_MAX_VEC_COMPONENTS];
       for (int i = 0; i < intr->num_components; i++) {
-         nir_intrinsic_instr *load_iid =
-            nir_intrinsic_instr_create(b->shader,
-                                       nir_intrinsic_load_fs_input_interp_deltas);
-         load_iid->src[0] = nir_src_for_ssa(intr->src[1].ssa);
-         nir_ssa_dest_init(&load_iid->instr, &load_iid->dest,
-                           3, 32, NULL);
-         nir_intrinsic_set_base(load_iid, nir_intrinsic_base(intr));
-         nir_intrinsic_set_component(load_iid,
-                                     nir_intrinsic_component(intr) + i);
-         nir_intrinsic_set_io_semantics(load_iid,
-                                        nir_intrinsic_io_semantics(intr));
-         nir_builder_instr_insert(b, &load_iid->instr);
+         nir_ssa_def *iid =
+            nir_load_fs_input_interp_deltas(b, 32, intr->src[1].ssa,
+                                            .base = nir_intrinsic_base(intr),
+                                            .component = (nir_intrinsic_component(intr) + i),
+                                            .io_semantics = nir_intrinsic_io_semantics(intr));
 
-         nir_ssa_def *iid = &load_iid->dest.ssa;
          nir_ssa_def *bary = intr->src[0].ssa;
          nir_ssa_def *val;
 
@@ -129,7 +121,7 @@ nir_lower_interpolation_block(nir_block *block, nir_builder *b,
          comps[i] = val;
       }
       nir_ssa_def *vec = nir_vec(b, comps, intr->num_components);
-      nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(vec));
+      nir_ssa_def_rewrite_uses(&intr->dest.ssa, vec);
 
       progress = true;
    }

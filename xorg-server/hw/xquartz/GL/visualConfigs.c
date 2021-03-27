@@ -59,7 +59,7 @@
 /* Based originally on code from indirect.c which was based on code from i830_dri.c. */
 __GLXconfig *__glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber) {
     int numConfigs = 0;
-    __GLXconfig *visualConfigs, *c;
+    __GLXconfig *visualConfigs, *c, *l;
     struct glCapabilities caps;
     struct glCapabilitiesConfig *conf;
     int stereo, depth, aux, buffers, stencil, accum, color, msample;
@@ -113,14 +113,13 @@ __GLXconfig *__glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber) 
     if(numConfigsPtr)
         *numConfigsPtr = numConfigs;
 
-    visualConfigs = calloc(sizeof(*visualConfigs), numConfigs);
+    /* Note that as of 1.20.0, we cannot allocate all the configs at once.
+     * __glXScreenDestroy now walks all the fbconfigs and frees them one at a time.
+     * See 4b0a3cbab131eb453e2b3fc0337121969258a7be.
+     */
+    visualConfigs = calloc(sizeof(*visualConfigs), 1);
 
-    if(NULL == visualConfigs) {
-        ErrorF("xcalloc failure when allocating visualConfigs\n");
-        freeGlCapabilities(&caps);
-        return NULL;
-    }
-
+    l = NULL;
     c = visualConfigs; /* current buffer */
     for(conf = caps.configurations; conf; conf = conf->next) {
         for(stereo = 0; stereo < (conf->stereo ? 2 : 1); ++stereo) {
@@ -137,7 +136,8 @@ __GLXconfig *__glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber) 
                                         // Global
                                         c->visualID = -1;
                                         c->visualType = GLX_TRUE_COLOR;
-                                        c->next = c + 1;
+                                        c->next = calloc(sizeof(*visualConfigs), 1);
+                                        assert(c->next);
 
                                         c->level = 0;
                                         c->indexBits = 0;
@@ -260,6 +260,7 @@ __GLXconfig *__glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber) 
                                         /* EXT_framebuffer_sRGB */
                                         c->sRGBCapable = GL_FALSE;
 
+                                        l = c;
                                         c = c->next;
                                     }
                                 }
@@ -271,11 +272,8 @@ __GLXconfig *__glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber) 
         }
     }
 
-    (c-1)->next = NULL;
-
-    if (c - visualConfigs != numConfigs) {
-        FatalError("numConfigs calculation error in setVisualConfigs!  numConfigs is %d  i is %d\n", numConfigs, (int)(c - visualConfigs));
-    }
+    free(c);
+    l->next = NULL;
 
     freeGlCapabilities(&caps);
     return visualConfigs;

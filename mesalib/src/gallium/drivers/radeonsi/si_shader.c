@@ -252,7 +252,7 @@ static void declare_per_stage_desc_pointers(struct si_shader_context *ctx, bool 
 
 static void declare_global_desc_pointers(struct si_shader_context *ctx)
 {
-   ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_CONST_DESC_PTR, &ctx->rw_buffers);
+   ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_CONST_DESC_PTR, &ctx->internal_bindings);
    ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_CONST_IMAGE_PTR,
               &ctx->bindless_samplers_and_images);
 }
@@ -495,7 +495,7 @@ void si_init_shader_args(struct si_shader_context *ctx, bool ngg_cull_shader)
          /* TCS return values are inputs to the TCS epilog.
           *
           * param_tcs_offchip_offset, param_tcs_factor_offset,
-          * param_tcs_offchip_layout, and param_rw_buffers
+          * param_tcs_offchip_layout, and internal_bindings
           * should be passed to the epilog.
           */
          for (i = 0; i <= 8 + GFX9_SGPR_TCS_OUT_LAYOUT; i++)
@@ -536,9 +536,11 @@ void si_init_shader_args(struct si_shader_context *ctx, bool ngg_cull_shader)
             declare_vs_specific_input_sgprs(ctx);
       } else {
          ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_INT, &ctx->vs_state_bits);
-         ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_INT, &ctx->tcs_offchip_layout);
-         ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_INT, &ctx->tes_offchip_addr);
-         /* Declare as many input SGPRs as the VS has. */
+
+         if (ctx->stage == MESA_SHADER_TESS_EVAL) {
+            ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_INT, &ctx->tcs_offchip_layout);
+            ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_INT, &ctx->tes_offchip_addr);
+         }
       }
 
       if (ctx->stage == MESA_SHADER_VERTEX)
@@ -561,19 +563,21 @@ void si_init_shader_args(struct si_shader_context *ctx, bool ngg_cull_shader)
           (ctx->stage == MESA_SHADER_VERTEX || ctx->stage == MESA_SHADER_TESS_EVAL)) {
          unsigned num_user_sgprs, num_vgprs;
 
-         if (ctx->stage == MESA_SHADER_VERTEX) {
+         if (ctx->stage == MESA_SHADER_VERTEX && ngg_cull_shader) {
             /* For the NGG cull shader, add 1 SGPR to hold
              * the vertex buffer pointer.
              */
-            num_user_sgprs = GFX9_VSGS_NUM_USER_SGPR + ngg_cull_shader;
+            num_user_sgprs = GFX9_VSGS_NUM_USER_SGPR + 1;
 
-            if (ngg_cull_shader && shader->selector->num_vbos_in_user_sgprs) {
-               assert(num_user_sgprs <= 8 + SI_SGPR_VS_VB_DESCRIPTOR_FIRST);
+            if (shader->selector->num_vbos_in_user_sgprs) {
+               assert(num_user_sgprs <= SI_SGPR_VS_VB_DESCRIPTOR_FIRST);
                num_user_sgprs =
                   SI_SGPR_VS_VB_DESCRIPTOR_FIRST + shader->selector->num_vbos_in_user_sgprs * 4;
             }
-         } else {
+         } else if (ctx->stage == MESA_SHADER_TESS_EVAL && ngg_cull_shader) {
             num_user_sgprs = GFX9_TESGS_NUM_USER_SGPR;
+         } else {
+            num_user_sgprs = SI_NUM_VS_STATE_RESOURCE_SGPRS;
          }
 
          /* The NGG cull shader has to return all 9 VGPRs.
@@ -734,7 +738,10 @@ void si_init_shader_args(struct si_shader_context *ctx, bool ngg_cull_shader)
          ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_INT, &ctx->args.tg_size);
 
       /* Hardware VGPRs. */
-      ac_add_arg(&ctx->args, AC_ARG_VGPR, 3, AC_ARG_INT, &ctx->args.local_invocation_ids);
+      if (!ctx->screen->info.has_graphics && ctx->screen->info.family >= CHIP_ALDEBARAN)
+         ac_add_arg(&ctx->args, AC_ARG_VGPR, 1, AC_ARG_INT, &ctx->args.local_invocation_ids);
+      else
+         ac_add_arg(&ctx->args, AC_ARG_VGPR, 3, AC_ARG_INT, &ctx->args.local_invocation_ids);
       break;
    default:
       assert(0 && "unimplemented shader");
@@ -870,12 +877,19 @@ bool si_shader_binary_upload(struct si_screen *sscreen, struct si_shader *shader
    if (!u.rx_ptr)
       return false;
 
-   bool ok = ac_rtld_upload(&u);
+   int size = ac_rtld_upload(&u);
+
+   if (sscreen->debug_flags & DBG(SQTT)) {
+      /* Remember the uploaded code */
+      shader->binary.uploaded_code_size = size;
+      shader->binary.uploaded_code = malloc(size);
+      memcpy(shader->binary.uploaded_code, u.rx_ptr, size);
+   }
 
    sscreen->ws->buffer_unmap(shader->bo->buf);
    ac_rtld_close(&binary);
 
-   return ok;
+   return size >= 0;
 }
 
 static void si_shader_dump_disassembly(struct si_screen *screen,
@@ -1206,7 +1220,6 @@ static void si_dump_shader_key(const struct si_shader *shader, FILE *f)
       }
       fprintf(f, "  part.gs.prolog.tri_strip_adj_fix = %u\n",
               key->part.gs.prolog.tri_strip_adj_fix);
-      fprintf(f, "  part.gs.prolog.gfx9_prev_is_vs = %u\n", key->part.gs.prolog.gfx9_prev_is_vs);
       fprintf(f, "  as_ngg = %u\n", key->as_ngg);
       break;
 
@@ -1409,6 +1422,7 @@ struct nir_shader *si_get_nir_shader(struct si_shader_selector *sel,
                  nir->info.inlinable_uniform_dw_offsets);
 
       si_nir_opts(sel->screen, nir, true);
+      si_nir_late_opts(nir);
 
       /* This must be done again. */
       NIR_PASS_V(nir, nir_io_add_const_offset_to_base, nir_var_shader_in |
@@ -2139,6 +2153,10 @@ void si_shader_binary_clean(struct si_shader_binary *binary)
 
    free(binary->llvm_ir_string);
    binary->llvm_ir_string = NULL;
+
+   free(binary->uploaded_code);
+   binary->uploaded_code = NULL;
+   binary->uploaded_code_size = 0;
 }
 
 void si_shader_destroy(struct si_shader *shader)

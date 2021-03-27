@@ -427,7 +427,7 @@ InputThreadPreInit(void)
     flags = fcntl(inputThreadInfo->readPipe, F_GETFD);
     if (flags != -1) {
         flags |= FD_CLOEXEC;
-        (void)fcntl(inputThreadInfo->readPipe, F_SETFD, &flags);
+        (void)fcntl(inputThreadInfo->readPipe, F_SETFD, flags);
     }
     SetNotifyFd(inputThreadInfo->readPipe, InputThreadNotifyPipe, X_NOTIFY_READ, NULL);
 
@@ -438,7 +438,7 @@ InputThreadPreInit(void)
     flags = fcntl(hotplugPipeRead, F_GETFD);
     if (flags != -1) {
         flags |= FD_CLOEXEC;
-        (void)fcntl(hotplugPipeRead, F_SETFD, &flags);
+        (void)fcntl(hotplugPipeRead, F_SETFD, flags);
     }
     hotplugPipeWrite = hotplugPipe[1];
 

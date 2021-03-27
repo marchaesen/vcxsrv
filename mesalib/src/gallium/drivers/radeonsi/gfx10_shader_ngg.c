@@ -64,7 +64,7 @@ static LLVMValueRef ngg_get_ordered_id(struct si_shader_context *ctx)
 
 static LLVMValueRef ngg_get_query_buf(struct si_shader_context *ctx)
 {
-   LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->rw_buffers);
+   LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->internal_bindings);
 
    return ac_build_load_to_sgpr(&ctx->ac, buf_ptr,
                                 LLVMConstInt(ctx->ac.i32, GFX10_GS_QUERY_BUF, false));
@@ -131,6 +131,11 @@ bool gfx10_ngg_export_prim_early(struct si_shader *shader)
 
 void gfx10_ngg_build_sendmsg_gs_alloc_req(struct si_shader_context *ctx)
 {
+   /* Newer chips can use PRIMGEN_PASSTHRU_NO_MSG to skip gs_alloc_req for NGG passthrough. */
+   if (gfx10_is_ngg_passthrough(ctx->shader) &&
+       ctx->screen->info.family >= CHIP_DIMGREY_CAVEFISH)
+      return;
+
    ac_build_sendmsg_gs_alloc_req(&ctx->ac, get_wave_id_in_tg(ctx), ngg_get_vtx_cnt(ctx),
                                  ngg_get_prim_cnt(ctx));
 }
@@ -269,7 +274,7 @@ static void build_streamout(struct si_shader_context *ctx, struct ngg_streamout 
    struct si_shader_info *info = &ctx->shader->selector->info;
    struct pipe_stream_output_info *so = &ctx->shader->selector->so;
    LLVMBuilderRef builder = ctx->ac.builder;
-   LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->rw_buffers);
+   LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->internal_bindings);
    LLVMValueRef tid = get_thread_id_in_tg(ctx);
    LLVMValueRef tmp, tmp2;
    LLVMValueRef i32_2 = LLVMConstInt(ctx->ac.i32, 2, false);
@@ -1130,7 +1135,7 @@ void gfx10_emit_ngg_culling_epilogue(struct ac_shader_abi *abi, unsigned max_out
    if (ctx->stage == MESA_SHADER_TESS_EVAL)
       ret = si_insert_input_ret(ctx, ret, ctx->args.tess_offchip_offset, 4);
 
-   ret = si_insert_input_ptr(ctx, ret, ctx->rw_buffers, 8 + SI_SGPR_RW_BUFFERS);
+   ret = si_insert_input_ptr(ctx, ret, ctx->internal_bindings, 8 + SI_SGPR_INTERNAL_BINDINGS);
    ret = si_insert_input_ptr(ctx, ret, ctx->bindless_samplers_and_images,
                              8 + SI_SGPR_BINDLESS_SAMPLERS_AND_IMAGES);
    ret = si_insert_input_ptr(ctx, ret, ctx->const_and_shader_buffers,

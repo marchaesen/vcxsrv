@@ -490,7 +490,7 @@ struct rc_list * rc_variable_list_get_writers(
 						rc_list(&var->C->Pool, friend));
 				}
 			}
-			/* Once we have indentifed the variable and its
+			/* Once we have identified the variable and its
 			 * friends that write this source, we can stop
 			 * stop searching, because we know none of the
 			 * other variables in the list will write this source.

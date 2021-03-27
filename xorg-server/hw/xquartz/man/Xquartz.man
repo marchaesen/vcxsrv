@@ -120,7 +120,7 @@ or you can include extra information such as the file, line, and function where 
 .TP 8
 .B $ syslog -w -F '$(Time) $(Sender) <$(Level)> $(File):$(Line) $(Function) :: $(Message)' -k Facility eq @bundle_id_prefix@
 .PP
-By default, XQaurtz sets an ASL mask which prevents it from logging messages
+By default, XQuartz sets an ASL mask which prevents it from logging messages
 below the ASL_LEVEL_WARNING level (meaning almost all logging is done strictly
 to the file referenced above).  To force XQuartz to send all log messages to
 syslogd(8), you can adjust this mask using the following syslog(1) command:

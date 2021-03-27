@@ -142,6 +142,7 @@ _mesa_new_parameter_list(void)
 
    list->UniformBytes = 0;
    list->FirstStateVarIndex = INT_MAX;
+   list->LastStateVarIndex = 0;
    return list;
 }
 
@@ -198,10 +199,11 @@ _mesa_reserve_parameter_storage(struct gl_program_parameter_list *paramList,
 {
    const GLuint oldNum = paramList->NumParameters;
    const unsigned oldValNum = paramList->NumParameterValues;
+   const unsigned needSizeValues = oldValNum + reserve_values * 4;
 
    if (paramList->DisallowRealloc &&
        (oldNum + reserve_params > paramList->Size ||
-        oldValNum + reserve_values > paramList->SizeValues)) {
+        needSizeValues > paramList->SizeValues)) {
       _mesa_problem(NULL, "Parameter storage reallocation disallowed. This "
               "is a Mesa bug. Increase the reservation size in the code.");
       abort();
@@ -217,18 +219,22 @@ _mesa_reserve_parameter_storage(struct gl_program_parameter_list *paramList,
                  paramList->Size * sizeof(struct gl_program_parameter));
    }
 
-   if (oldValNum + reserve_values > paramList->SizeValues) {
-      paramList->SizeValues += 4 * reserve_values;
+   if (needSizeValues > paramList->SizeValues) {
+      unsigned oldSize = paramList->SizeValues;
+      paramList->SizeValues = needSizeValues + 16; /* alloc some extra */
 
       paramList->ParameterValues = (gl_constant_value *)
          align_realloc(paramList->ParameterValues,         /* old buf */
-                       oldNum * 4 * sizeof(gl_constant_value),/* old sz */
+                       oldValNum * sizeof(gl_constant_value),/* old sz */
                        /* Overallocate the size by 12 because matrix rows can
                         * be allocated partially but fetch_state always writes
                         * 4 components (16 bytes).
                         */
-                       paramList->SizeValues * 4 * sizeof(gl_constant_value) +
+                       paramList->SizeValues * sizeof(gl_constant_value) +
                        12, 16);
+      /* The values are written to the shader cache, so clear them. */
+      memset(paramList->ParameterValues + oldSize, 0,
+             (paramList->SizeValues - oldSize) * sizeof(gl_constant_value));
    }
 }
 
@@ -277,7 +283,8 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
    else if (_mesa_gl_datatype_is_64bit(datatype))
       oldValNum = align(oldValNum, 2); /* pad start to 64-bit */
 
-   _mesa_reserve_parameter_storage(paramList, 1, DIV_ROUND_UP(padded_size, 4));
+   unsigned elements = (oldValNum - paramList->NumParameterValues) + padded_size;
+   _mesa_reserve_parameter_storage(paramList, 1, DIV_ROUND_UP(elements, 4));
 
    if (!paramList->Parameters ||
        !paramList->ParameterValues) {
@@ -335,13 +342,20 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
 
    if (type == PROGRAM_UNIFORM || type == PROGRAM_CONSTANT) {
       paramList->UniformBytes =
-         MAX2(paramList->UniformBytes, paramList->NumParameterValues * 4);
+         MAX2(paramList->UniformBytes,
+              (paramList->Parameters[oldNum].ValueOffset +
+               paramList->Parameters[oldNum].Size) * 4);
    } else if (type == PROGRAM_STATE_VAR) {
       paramList->FirstStateVarIndex =
          MIN2(paramList->FirstStateVarIndex, oldNum);
+      paramList->LastStateVarIndex =
+         MAX2(paramList->LastStateVarIndex, oldNum);
    } else {
       unreachable("invalid parameter type");
    }
+
+   assert(paramList->NumParameters <= paramList->Size);
+   assert(paramList->NumParameterValues <= paramList->SizeValues);
 
    return (GLint) oldNum;
 }
@@ -454,13 +468,18 @@ _mesa_add_state_reference(struct gl_program_parameter_list *paramList,
 void
 _mesa_recompute_parameter_bounds(struct gl_program_parameter_list *list)
 {
+   list->UniformBytes = 0;
    list->FirstStateVarIndex = INT_MAX;
+   list->LastStateVarIndex = 0;
 
    for (int i = 0; i < (int)list->NumParameters; i++) {
       if (list->Parameters[i].Type == PROGRAM_STATE_VAR) {
          list->FirstStateVarIndex = MIN2(list->FirstStateVarIndex, i);
+         list->LastStateVarIndex = MAX2(list->LastStateVarIndex, i);
       } else {
-         list->UniformBytes = MAX2(list->UniformBytes, list->NumParameterValues * 4);
+         list->UniformBytes = MAX2(list->UniformBytes,
+                                   (list->Parameters[i].ValueOffset +
+                                    list->Parameters[i].Size) * 4);
       }
    }
 }

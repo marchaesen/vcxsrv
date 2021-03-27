@@ -389,103 +389,12 @@ msm_ringbuffer_sp_grow(struct fd_ringbuffer *ring, uint32_t size)
 	ring->size = size;
 }
 
-static void
-msm_ringbuffer_sp_emit_reloc(struct fd_ringbuffer *ring,
-		const struct fd_reloc *reloc)
-{
-	struct msm_ringbuffer_sp *msm_ring = to_msm_ringbuffer_sp(ring);
-	struct fd_pipe *pipe;
-
-	if (ring->flags & _FD_RINGBUFFER_OBJECT) {
-		/* Avoid emitting duplicate BO references into the list.  Ringbuffer
-		 * objects are long-lived, so this saves ongoing work at draw time in
-		 * exchange for a bit at context setup/first draw.  And the number of
-		 * relocs per ringbuffer object is fairly small, so the O(n^2) doesn't
-		 * hurt much.
-		 */
-		bool found = false;
-		for (int i = 0; i < msm_ring->u.nr_reloc_bos; i++) {
-			if (msm_ring->u.reloc_bos[i] == reloc->bo) {
-				found = true;
-				break;
-			}
-		}
-		if (!found) {
-			APPEND(&msm_ring->u, reloc_bos, fd_bo_ref(reloc->bo));
-		}
-
-		pipe = msm_ring->u.pipe;
-	} else {
-		struct msm_submit_sp *msm_submit =
-				to_msm_submit_sp(msm_ring->u.submit);
-
-		msm_submit_append_bo(msm_submit, reloc->bo);
-
-		pipe = msm_ring->u.submit->pipe;
-	}
-
-	uint64_t iova = reloc->bo->iova + reloc->offset;
-	int shift = reloc->shift;
-
-	if (shift < 0)
-		iova >>= -shift;
-	else
-		iova <<= shift;
-
-	uint32_t dword = iova;
-
-	(*ring->cur++) = dword | reloc->or;
-
-	if (pipe->gpu_id >= 500) {
-		dword = iova >> 32;
-		(*ring->cur++) = dword | reloc->orhi;
-	}
-}
-
-static uint32_t
-msm_ringbuffer_sp_emit_reloc_ring(struct fd_ringbuffer *ring,
-		struct fd_ringbuffer *target, uint32_t cmd_idx)
-{
-	struct msm_ringbuffer_sp *msm_target = to_msm_ringbuffer_sp(target);
-	struct fd_bo *bo;
-	uint32_t size;
-
-	if ((target->flags & FD_RINGBUFFER_GROWABLE) &&
-			(cmd_idx < msm_target->u.nr_cmds)) {
-		bo   = msm_target->u.cmds[cmd_idx].ring_bo;
-		size = msm_target->u.cmds[cmd_idx].size;
-	} else {
-		bo   = msm_target->ring_bo;
-		size = offset_bytes(target->cur, target->start);
-	}
-
-	msm_ringbuffer_sp_emit_reloc(ring, &(struct fd_reloc){
-		.bo     = bo,
-		.offset = msm_target->offset,
-	});
-
-	if (!(target->flags & _FD_RINGBUFFER_OBJECT))
-		return size;
-
-	struct msm_ringbuffer_sp *msm_ring = to_msm_ringbuffer_sp(ring);
-
-	if (ring->flags & _FD_RINGBUFFER_OBJECT) {
-		for (unsigned i = 0; i < msm_target->u.nr_reloc_bos; i++) {
-			APPEND(&msm_ring->u, reloc_bos, fd_bo_ref(msm_target->u.reloc_bos[i]));
-		}
-	} else {
-		// TODO it would be nice to know whether we have already
-		// seen this target before.  But hopefully we hit the
-		// append_bo() fast path enough for this to not matter:
-		struct msm_submit_sp *msm_submit = to_msm_submit_sp(msm_ring->u.submit);
-
-		for (unsigned i = 0; i < msm_target->u.nr_reloc_bos; i++) {
-			msm_submit_append_bo(msm_submit, msm_target->u.reloc_bos[i]);
-		}
-	}
-
-	return size;
-}
+#define PTRSZ 64
+#include "msm_ringbuffer_sp.h"
+#undef PTRSZ
+#define PTRSZ 32
+#include "msm_ringbuffer_sp.h"
+#undef PTRSZ
 
 static uint32_t
 msm_ringbuffer_sp_cmd_count(struct fd_ringbuffer *ring)
@@ -521,10 +430,34 @@ msm_ringbuffer_sp_destroy(struct fd_ringbuffer *ring)
 	}
 }
 
-static const struct fd_ringbuffer_funcs ring_funcs = {
+static const struct fd_ringbuffer_funcs ring_funcs_nonobj_32 = {
 		.grow = msm_ringbuffer_sp_grow,
-		.emit_reloc = msm_ringbuffer_sp_emit_reloc,
-		.emit_reloc_ring = msm_ringbuffer_sp_emit_reloc_ring,
+		.emit_reloc = msm_ringbuffer_sp_emit_reloc_nonobj_32,
+		.emit_reloc_ring = msm_ringbuffer_sp_emit_reloc_ring_32,
+		.cmd_count = msm_ringbuffer_sp_cmd_count,
+		.destroy = msm_ringbuffer_sp_destroy,
+};
+
+static const struct fd_ringbuffer_funcs ring_funcs_obj_32 = {
+		.grow = msm_ringbuffer_sp_grow,
+		.emit_reloc = msm_ringbuffer_sp_emit_reloc_obj_32,
+		.emit_reloc_ring = msm_ringbuffer_sp_emit_reloc_ring_32,
+		.cmd_count = msm_ringbuffer_sp_cmd_count,
+		.destroy = msm_ringbuffer_sp_destroy,
+};
+
+static const struct fd_ringbuffer_funcs ring_funcs_nonobj_64 = {
+		.grow = msm_ringbuffer_sp_grow,
+		.emit_reloc = msm_ringbuffer_sp_emit_reloc_nonobj_64,
+		.emit_reloc_ring = msm_ringbuffer_sp_emit_reloc_ring_64,
+		.cmd_count = msm_ringbuffer_sp_cmd_count,
+		.destroy = msm_ringbuffer_sp_destroy,
+};
+
+static const struct fd_ringbuffer_funcs ring_funcs_obj_64 = {
+		.grow = msm_ringbuffer_sp_grow,
+		.emit_reloc = msm_ringbuffer_sp_emit_reloc_obj_64,
+		.emit_reloc_ring = msm_ringbuffer_sp_emit_reloc_ring_64,
 		.cmd_count = msm_ringbuffer_sp_cmd_count,
 		.destroy = msm_ringbuffer_sp_destroy,
 };
@@ -550,7 +483,19 @@ msm_ringbuffer_sp_init(struct msm_ringbuffer_sp *msm_ring, uint32_t size,
 	ring->size = size;
 	ring->flags = flags;
 
-	ring->funcs = &ring_funcs;
+	if (flags & _FD_RINGBUFFER_OBJECT) {
+		if (msm_ring->u.pipe->gpu_id >= 500) {
+			ring->funcs = &ring_funcs_obj_64;
+		} else {
+			ring->funcs = &ring_funcs_obj_32;
+		}
+	} else {
+		if (msm_ring->u.submit->pipe->gpu_id >= 500) {
+			ring->funcs = &ring_funcs_nonobj_64;
+		} else {
+			ring->funcs = &ring_funcs_nonobj_32;
+		}
+	}
 
 	// TODO initializing these could probably be conditional on flags
 	// since unneed for FD_RINGBUFFER_STAGING case..

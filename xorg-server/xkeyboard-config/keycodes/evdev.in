@@ -1,0 +1,217 @@
+// translation from evdev scancodes to something resembling xfree86 keycodes.
+
+default xkb_keycodes "evdev" {
+	minimum = 8;
+	maximum = 255;
+
+        # Added for pc105 compatibility
+        <LSGT> = 94;
+
+	<TLDE> = 49;
+	<AE01> = 10;
+	<AE02> = 11;
+	<AE03> = 12;
+	<AE04> = 13;
+	<AE05> = 14;
+	<AE06> = 15;
+	<AE07> = 16;
+	<AE08> = 17;
+	<AE09> = 18;
+	<AE10> = 19;
+	<AE11> = 20;
+	<AE12> = 21;
+	<BKSP> = 22;
+
+	<TAB> = 23;
+	<AD01> = 24;
+	<AD02> = 25;
+	<AD03> = 26;
+	<AD04> = 27;
+	<AD05> = 28;
+	<AD06> = 29;
+	<AD07> = 30;
+	<AD08> = 31;
+	<AD09> = 32;
+	<AD10> = 33;
+	<AD11> = 34;
+	<AD12> = 35;
+	<BKSL> = 51;
+	alias <AC12> = <BKSL>;
+	<RTRN> = 36;
+
+	<CAPS> = 66;
+	<AC01> = 38;
+	<AC02> = 39;
+	<AC03> = 40;
+	<AC04> = 41;
+	<AC05> = 42;
+	<AC06> = 43;
+	<AC07> = 44;
+	<AC08> = 45;
+	<AC09> = 46;
+	<AC10> = 47;
+	<AC11> = 48;
+
+	<LFSH> = 50;
+	<AB01> = 52;
+	<AB02> = 53;
+	<AB03> = 54;
+	<AB04> = 55;
+	<AB05> = 56;
+	<AB06> = 57;
+	<AB07> = 58;
+	<AB08> = 59;
+	<AB09> = 60;
+	<AB10> = 61;
+	<RTSH> = 62;
+
+	<LALT> = 64;
+	<LCTL> = 37;
+	<SPCE> = 65;
+	<RCTL> = 105;
+	<RALT> = 108;
+	// Microsoft keyboard extra keys
+	<LWIN> = 133;
+	<RWIN> = 134;
+	<COMP> = 135;
+	alias <MENU> = <COMP>;
+
+	<ESC> = 9;
+	<FK01> = 67;
+	<FK02> = 68;
+	<FK03> = 69;
+	<FK04> = 70;
+	<FK05> = 71;
+	<FK06> = 72;
+	<FK07> = 73;
+	<FK08> = 74;
+	<FK09> = 75;
+	<FK10> = 76;
+	<FK11> = 95;
+	<FK12> = 96;
+
+	<PRSC> = 107;
+	// <SYRQ> = 107;
+	<SCLK> = 78;
+	<PAUS> = 127;
+	// <BRK> = 419;
+
+	<INS> = 118;
+	<HOME> = 110;
+	<PGUP> = 112;
+	<DELE> = 119;
+	<END> = 115;
+	<PGDN> = 117;
+
+	<UP> = 111;
+	<LEFT> = 113;
+	<DOWN> = 116;
+	<RGHT> = 114;
+
+	<NMLK> = 77;
+	<KPDV> = 106;
+	<KPMU> = 63;
+	<KPSU> = 82;
+
+	<KP7> = 79;
+	<KP8> = 80;
+	<KP9> = 81;
+	<KPAD> = 86;
+
+	<KP4> = 83;
+	<KP5> = 84;
+	<KP6> = 85;
+
+	<KP1> = 87;
+	<KP2> = 88;
+	<KP3> = 89;
+	<KPEN> = 104;
+
+	<KP0> = 90;
+	<KPDL> = 91;
+	<KPEQ> = 125;
+
+	<FK13> = 191;
+	<FK14> = 192;
+	<FK15> = 193;
+	<FK16> = 194;
+	<FK17> = 195;
+	<FK18> = 196;
+	<FK19> = 197;
+	<FK20> = 198;
+	<FK21> = 199;
+	<FK22> = 200;
+	<FK23> = 201;
+	<FK24> = 202;
+
+	// Keys that are generated on Japanese keyboards
+
+	//<HZTG> =  93;	// Hankaku/Zenkakau toggle - not actually used
+	alias <HZTG> = <TLDE>;
+	<HKTG> = 101;	// Hiragana/Katakana toggle
+	<AB11> = 97;	// backslash/underscore
+	<HENK> = 100;	// Henkan
+	<MUHE> = 102;	// Muhenkan
+	<AE13> = 132;	// Yen
+	<KATA> =  98;	// Katakana
+	<HIRA> =  99;	// Hiragana
+	<JPCM> = 103;	// KPJPComma
+	//<RO>   =  97;	// Romaji
+
+	// Keys that are generated on Korean keyboards
+
+	<HNGL> = 130;	// Hangul Latin toggle
+	<HJCV> = 131;	// Hangul to Hanja conversion
+
+	// Solaris compatibility
+
+	alias <LMTA> = <LWIN>;
+	alias <RMTA> = <RWIN>;
+	<MUTE> = 121;
+	<VOL-> = 122;
+	<VOL+> = 123;
+	<POWR> = 124;
+	<STOP> = 136;
+	<AGAI> = 137;
+	<PROP> = 138;
+	<UNDO> = 139;
+	<FRNT> = 140;
+	<COPY> = 141;
+	<OPEN> = 142;
+	<PAST> = 143;
+	<FIND> = 144;
+	<CUT>  = 145;
+	<HELP> = 146;
+
+	// Extended keys that may be generated on "Internet" keyboards.
+	// evdev has standardize names for these.
+
+	<LNFD> = 109;	// #define KEY_LINEFEED            101
+
+	@evdevkeys@
+
+	// Fake keycodes for virtual keys
+	<LVL3> =   92;
+	<MDSW> =   203;
+	<ALT>  =   204;
+	<META> =   205;
+	<SUPR> =   206;
+	<HYPR> =   207;
+
+	indicator 1  = "Caps Lock";
+	indicator 2  = "Num Lock";
+	indicator 3  = "Scroll Lock";
+	indicator 4  = "Compose";
+	indicator 5  = "Kana";
+	indicator 6  = "Sleep";
+	indicator 7  = "Suspend";
+	indicator 8  = "Mute";
+	indicator 9  = "Misc";
+	indicator 10 = "Mail";
+	indicator 11 = "Charging";
+
+	alias <ALGR> = <RALT>;
+
+	// For Brazilian ABNT2
+	alias <KPPT> = <I129>;
+};

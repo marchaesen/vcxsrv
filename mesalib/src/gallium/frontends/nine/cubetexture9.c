@@ -24,6 +24,7 @@
 
 #include "device9.h"
 #include "cubetexture9.h"
+#include "nine_memory_helper.h"
 #include "nine_helpers.h"
 #include "nine_pipe.h"
 
@@ -45,7 +46,7 @@ NineCubeTexture9_ctor( struct NineCubeTexture9 *This,
     unsigned i, l, f, offset, face_size = 0;
     unsigned *level_offsets = NULL;
     D3DSURFACE_DESC sfdesc;
-    void *p;
+    struct nine_allocation *p;
     HRESULT hr;
 
     DBG("This=%p pParams=%p EdgeLength=%u Levels=%u Usage=%d "
@@ -107,25 +108,25 @@ NineCubeTexture9_ctor( struct NineCubeTexture9 *This,
         DBG("Application asked for Software Vertex Processing, "
             "but this is unimplemented\n");
 
-    if (Pool != D3DPOOL_DEFAULT) {
-        level_offsets = alloca(sizeof(unsigned) * (info->last_level + 1));
-        face_size = nine_format_get_size_and_offsets(pf, level_offsets,
-                                                     EdgeLength, EdgeLength,
-                                                     info->last_level);
-        This->managed_buffer = align_calloc(6 * face_size, 32);
-        if (!This->managed_buffer)
-            return E_OUTOFMEMORY;
-    }
-
-    This->surfaces = CALLOC(6 * (info->last_level + 1), sizeof(*This->surfaces));
-    if (!This->surfaces)
-        return E_OUTOFMEMORY;
-
     hr = NineBaseTexture9_ctor(&This->base, pParams, NULL, D3DRTYPE_CUBETEXTURE,
                                Format, Pool, Usage);
     if (FAILED(hr))
         return hr;
     This->base.pstype = 2;
+
+    if (Pool != D3DPOOL_DEFAULT) {
+        level_offsets = alloca(sizeof(unsigned) * This->base.level_count);
+        face_size = nine_format_get_size_and_offsets(pf, level_offsets,
+                                                     EdgeLength, EdgeLength,
+                                                     This->base.level_count-1);
+        This->managed_buffer = nine_allocate(pParams->device->allocator, 6 * face_size);
+        if (!This->managed_buffer)
+            return E_OUTOFMEMORY;
+    }
+
+    This->surfaces = CALLOC(6 * This->base.level_count, sizeof(*This->surfaces));
+    if (!This->surfaces)
+        return E_OUTOFMEMORY;
 
     /* Create all the surfaces right away.
      * They manage backing storage, and transfers (LockRect) are deferred
@@ -143,10 +144,10 @@ NineCubeTexture9_ctor( struct NineCubeTexture9 *This,
      */
     for (f = 0; f < 6; f++) {
         offset = f * face_size;
-        for (l = 0; l <= info->last_level; l++) {
+        for (l = 0; l < This->base.level_count; l++) {
             sfdesc.Width = sfdesc.Height = u_minify(EdgeLength, l);
-            p = This->managed_buffer ? This->managed_buffer + offset +
-                    level_offsets[l] : NULL;
+            p = This->managed_buffer ?
+                nine_suballocate(pParams->device->allocator, This->managed_buffer, offset + level_offsets[l]) : NULL;
 
             hr = NineSurface9_new(This->base.base.base.device, NineUnknown(This),
                                   This->base.base.resource, p, D3DRTYPE_CUBETEXTURE,
@@ -170,17 +171,22 @@ static void
 NineCubeTexture9_dtor( struct NineCubeTexture9 *This )
 {
     unsigned i;
+    bool is_worker = nine_context_is_worker(This->base.base.base.device);
 
     DBG("This=%p\n", This);
 
     if (This->surfaces) {
-        for (i = 0; i < (This->base.base.info.last_level + 1) * 6; ++i)
+        for (i = 0; i < This->base.level_count * 6; ++i)
             NineUnknown_Destroy(&This->surfaces[i]->base.base);
         FREE(This->surfaces);
     }
 
-    if (This->managed_buffer)
-        align_free(This->managed_buffer);
+    if (This->managed_buffer) {
+        if (is_worker)
+            nine_free_worker(This->base.base.base.device->allocator, This->managed_buffer);
+        else
+            nine_free(This->base.base.base.device->allocator, This->managed_buffer);
+    }
 
     NineBaseTexture9_dtor(&This->base);
 }
@@ -192,9 +198,7 @@ NineCubeTexture9_GetLevelDesc( struct NineCubeTexture9 *This,
 {
     DBG("This=%p Level=%u pDesc=%p\n", This, Level, pDesc);
 
-    user_assert(Level <= This->base.base.info.last_level, D3DERR_INVALIDCALL);
-    user_assert(Level == 0 || !(This->base.base.usage & D3DUSAGE_AUTOGENMIPMAP),
-                D3DERR_INVALIDCALL);
+    user_assert(Level < This->base.level_count, D3DERR_INVALIDCALL);
 
     *pDesc = This->surfaces[Level * 6]->desc;
 
@@ -212,9 +216,7 @@ NineCubeTexture9_GetCubeMapSurface( struct NineCubeTexture9 *This,
     DBG("This=%p FaceType=%d Level=%u ppCubeMapSurface=%p\n",
         This, FaceType, Level, ppCubeMapSurface);
 
-    user_assert(Level <= This->base.base.info.last_level, D3DERR_INVALIDCALL);
-    user_assert(Level == 0 || !(This->base.base.usage & D3DUSAGE_AUTOGENMIPMAP),
-                D3DERR_INVALIDCALL);
+    user_assert(Level < This->base.level_count, D3DERR_INVALIDCALL);
     user_assert(FaceType < 6, D3DERR_INVALIDCALL);
 
     NineUnknown_AddRef(NineUnknown(This->surfaces[s]));
@@ -236,9 +238,7 @@ NineCubeTexture9_LockRect( struct NineCubeTexture9 *This,
     DBG("This=%p FaceType=%d Level=%u pLockedRect=%p pRect=%p Flags=%d\n",
         This, FaceType, Level, pLockedRect, pRect, Flags);
 
-    user_assert(Level <= This->base.base.info.last_level, D3DERR_INVALIDCALL);
-    user_assert(Level == 0 || !(This->base.base.usage & D3DUSAGE_AUTOGENMIPMAP),
-                D3DERR_INVALIDCALL);
+    user_assert(Level < This->base.level_count, D3DERR_INVALIDCALL);
     user_assert(FaceType < 6, D3DERR_INVALIDCALL);
 
     return NineSurface9_LockRect(This->surfaces[s], pLockedRect, pRect, Flags);
@@ -253,7 +253,7 @@ NineCubeTexture9_UnlockRect( struct NineCubeTexture9 *This,
 
     DBG("This=%p FaceType=%d Level=%u\n", This, FaceType, Level);
 
-    user_assert(Level <= This->base.base.info.last_level, D3DERR_INVALIDCALL);
+    user_assert(Level < This->base.level_count, D3DERR_INVALIDCALL);
     user_assert(FaceType < 6, D3DERR_INVALIDCALL);
 
     return NineSurface9_UnlockRect(This->surfaces[s]);

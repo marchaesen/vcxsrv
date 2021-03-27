@@ -33,13 +33,13 @@ namespace r600 {
 
 class WriteoutInstruction: public Instruction {
 public:
-   void replace_values(const ValueSet& candiates, PValue new_value) override;
+   void replace_values(const ValueSet& candidates, PValue new_value) override;
    const GPRVector&  gpr() const {return m_value;}
    const GPRVector  *gpr_ptr() const {return &m_value;}
 protected:
    WriteoutInstruction(instr_type t, const GPRVector& value);
 private:
-   virtual void replace_values_child(const ValueSet& candiates, PValue new_value);
+   virtual void replace_values_child(const ValueSet& candidates, PValue new_value);
    virtual void remap_registers_child(std::vector<rename_reg_pair>& map,
                         ValueMap& values);
 
@@ -91,7 +91,7 @@ private:
    bool is_equal_to(const Instruction& lhs) const override;
    void do_print(std::ostream& os) const override;
 
-   void replace_values_child(const ValueSet& candiates, PValue new_value) override;
+   void replace_values_child(const ValueSet& candidates, PValue new_value) override;
    void remap_registers_child(std::vector<rename_reg_pair>& map,
                               ValueMap& values)override;
 
@@ -149,7 +149,7 @@ public:
    EMemWriteType type() const {return m_type;}
    unsigned index_reg() const {return m_index->sel();}
    unsigned array_base() const {return m_base_address; }
-   void replace_values_child(const ValueSet& candiates, PValue new_value) override;
+   void replace_values_child(const ValueSet& candidates, PValue new_value) override;
    void remap_registers_child(std::vector<rename_reg_pair>& map,
                         ValueMap& values) override;
    void patch_ring(int stream, PValue index);

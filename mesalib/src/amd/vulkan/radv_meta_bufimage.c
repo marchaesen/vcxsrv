@@ -44,8 +44,8 @@ build_nir_itob_compute_shader(struct radv_device *dev, bool is_3d)
 							   false,
 							   GLSL_TYPE_FLOAT);
 	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, is_3d ? "meta_itob_cs_3d" : "meta_itob_cs");
-	b.shader->info.cs.local_size[0] = 16;
-	b.shader->info.cs.local_size[1] = 16;
+	b.shader->info.cs.local_size[0] = 8;
+	b.shader->info.cs.local_size[1] = 8;
 	b.shader->info.cs.local_size[2] = 1;
 	nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform,
 						      sampler_type, "s_tex");
@@ -81,7 +81,7 @@ build_nir_itob_compute_shader(struct radv_device *dev, bool is_3d)
 	tex->src[1].src = nir_src_for_ssa(nir_imm_int(&b, 0));
 	tex->src[2].src_type = nir_tex_src_texture_deref;
 	tex->src[2].src = nir_src_for_ssa(input_img_deref);
-	tex->dest_type = nir_type_float;
+	tex->dest_type = nir_type_float32;
 	tex->is_array = false;
 	tex->coord_components = is_3d ? 3 : 2;
 
@@ -108,12 +108,11 @@ static VkResult
 radv_device_init_meta_itob_state(struct radv_device *device)
 {
 	VkResult result;
-	struct radv_shader_module cs = { .nir = NULL };
-	struct radv_shader_module cs_3d = { .nir = NULL };
+	nir_shader *cs = build_nir_itob_compute_shader(device, false);
+	nir_shader *cs_3d = NULL;
 
-	cs.nir = build_nir_itob_compute_shader(device, false);
 	if (device->physical_device->rad_info.chip_class >= GFX9)
-		cs_3d.nir = build_nir_itob_compute_shader(device, true);
+		cs_3d = build_nir_itob_compute_shader(device, true);
 
 	/*
 	 * two descriptors one for the image being sampled
@@ -169,7 +168,7 @@ radv_device_init_meta_itob_state(struct radv_device *device)
 	VkPipelineShaderStageCreateInfo pipeline_shader_stage = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.stage = VK_SHADER_STAGE_COMPUTE_BIT,
-		.module = radv_shader_module_to_handle(&cs),
+		.module = vk_shader_module_handle_from_nir(cs),
 		.pName = "main",
 		.pSpecializationInfo = NULL,
 	};
@@ -192,7 +191,7 @@ radv_device_init_meta_itob_state(struct radv_device *device)
 		VkPipelineShaderStageCreateInfo pipeline_shader_stage_3d = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_COMPUTE_BIT,
-			.module = radv_shader_module_to_handle(&cs_3d),
+			.module = vk_shader_module_handle_from_nir(cs_3d),
 			.pName = "main",
 			.pSpecializationInfo = NULL,
 		};
@@ -210,14 +209,14 @@ radv_device_init_meta_itob_state(struct radv_device *device)
 						     &device->meta_state.itob.pipeline_3d);
 		if (result != VK_SUCCESS)
 			goto fail;
-		ralloc_free(cs_3d.nir);
+		ralloc_free(cs_3d);
 	}
-	ralloc_free(cs.nir);
+	ralloc_free(cs);
 
 	return VK_SUCCESS;
 fail:
-	ralloc_free(cs.nir);
-	ralloc_free(cs_3d.nir);
+	ralloc_free(cs);
+	ralloc_free(cs_3d);
 	return result;
 }
 
@@ -250,8 +249,8 @@ build_nir_btoi_compute_shader(struct radv_device *dev, bool is_3d)
 							   false,
 							   GLSL_TYPE_FLOAT);
 	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, is_3d ? "meta_btoi_cs_3d" : "meta_btoi_cs");
-	b.shader->info.cs.local_size[0] = 16;
-	b.shader->info.cs.local_size[1] = 16;
+	b.shader->info.cs.local_size[0] = 8;
+	b.shader->info.cs.local_size[1] = 8;
 	b.shader->info.cs.local_size[2] = 1;
 	nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform,
 						      buf_type, "s_tex");
@@ -295,7 +294,7 @@ build_nir_btoi_compute_shader(struct radv_device *dev, bool is_3d)
 	tex->src[1].src = nir_src_for_ssa(nir_imm_int(&b, 0));
 	tex->src[2].src_type = nir_tex_src_texture_deref;
 	tex->src[2].src = nir_src_for_ssa(input_img_deref);
-	tex->dest_type = nir_type_float;
+	tex->dest_type = nir_type_float32;
 	tex->is_array = false;
 	tex->coord_components = 1;
 
@@ -314,11 +313,10 @@ static VkResult
 radv_device_init_meta_btoi_state(struct radv_device *device)
 {
 	VkResult result;
-	struct radv_shader_module cs = { .nir = NULL };
-	struct radv_shader_module cs_3d = { .nir = NULL };
-	cs.nir = build_nir_btoi_compute_shader(device, false);
+	nir_shader *cs = build_nir_btoi_compute_shader(device, false);
+	nir_shader *cs_3d = NULL;
 	if (device->physical_device->rad_info.chip_class >= GFX9)
-		cs_3d.nir = build_nir_btoi_compute_shader(device, true);
+		cs_3d = build_nir_btoi_compute_shader(device, true);
 	/*
 	 * two descriptors one for the image being sampled
 	 * one for the buffer being written.
@@ -373,7 +371,7 @@ radv_device_init_meta_btoi_state(struct radv_device *device)
 	VkPipelineShaderStageCreateInfo pipeline_shader_stage = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.stage = VK_SHADER_STAGE_COMPUTE_BIT,
-		.module = radv_shader_module_to_handle(&cs),
+		.module = vk_shader_module_handle_from_nir(cs),
 		.pName = "main",
 		.pSpecializationInfo = NULL,
 	};
@@ -396,7 +394,7 @@ radv_device_init_meta_btoi_state(struct radv_device *device)
 		VkPipelineShaderStageCreateInfo pipeline_shader_stage_3d = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_COMPUTE_BIT,
-			.module = radv_shader_module_to_handle(&cs_3d),
+			.module = vk_shader_module_handle_from_nir(cs_3d),
 			.pName = "main",
 			.pSpecializationInfo = NULL,
 		};
@@ -412,14 +410,14 @@ radv_device_init_meta_btoi_state(struct radv_device *device)
 						     radv_pipeline_cache_to_handle(&device->meta_state.cache),
 						     1, &vk_pipeline_info_3d, NULL,
 						     &device->meta_state.btoi.pipeline_3d);
-		ralloc_free(cs_3d.nir);
+		ralloc_free(cs_3d);
 	}
-	ralloc_free(cs.nir);
+	ralloc_free(cs);
 
 	return VK_SUCCESS;
 fail:
-	ralloc_free(cs_3d.nir);
-	ralloc_free(cs.nir);
+	ralloc_free(cs_3d);
+	ralloc_free(cs);
 	return result;
 }
 
@@ -451,8 +449,8 @@ build_nir_btoi_r32g32b32_compute_shader(struct radv_device *dev)
 							   false,
 							   GLSL_TYPE_FLOAT);
 	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "meta_btoi_r32g32b32_cs");
-	b.shader->info.cs.local_size[0] = 16;
-	b.shader->info.cs.local_size[1] = 16;
+	b.shader->info.cs.local_size[0] = 8;
+	b.shader->info.cs.local_size[1] = 8;
 	b.shader->info.cs.local_size[2] = 1;
 	nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform,
 						      buf_type, "s_tex");
@@ -503,7 +501,7 @@ build_nir_btoi_r32g32b32_compute_shader(struct radv_device *dev)
 	tex->src[1].src = nir_src_for_ssa(nir_imm_int(&b, 0));
 	tex->src[2].src_type = nir_tex_src_texture_deref;
 	tex->src[2].src = nir_src_for_ssa(input_img_deref);
-	tex->dest_type = nir_type_float;
+	tex->dest_type = nir_type_float32;
 	tex->is_array = false;
 	tex->coord_components = 1;
 	nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, "tex");
@@ -530,9 +528,7 @@ static VkResult
 radv_device_init_meta_btoi_r32g32b32_state(struct radv_device *device)
 {
 	VkResult result;
-	struct radv_shader_module cs = { .nir = NULL };
-
-	cs.nir = build_nir_btoi_r32g32b32_compute_shader(device);
+	nir_shader *cs = build_nir_btoi_r32g32b32_compute_shader(device);
 
 	VkDescriptorSetLayoutCreateInfo ds_create_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -584,7 +580,7 @@ radv_device_init_meta_btoi_r32g32b32_state(struct radv_device *device)
 	VkPipelineShaderStageCreateInfo pipeline_shader_stage = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.stage = VK_SHADER_STAGE_COMPUTE_BIT,
-		.module = radv_shader_module_to_handle(&cs),
+		.module = vk_shader_module_handle_from_nir(cs),
 		.pName = "main",
 		.pSpecializationInfo = NULL,
 	};
@@ -602,7 +598,7 @@ radv_device_init_meta_btoi_r32g32b32_state(struct radv_device *device)
 					     &device->meta_state.btoi_r32g32b32.pipeline);
 
 fail:
-	ralloc_free(cs.nir);
+	ralloc_free(cs);
 	return result;
 }
 
@@ -632,8 +628,8 @@ build_nir_itoi_compute_shader(struct radv_device *dev, bool is_3d)
 							   false,
 							   GLSL_TYPE_FLOAT);
 	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, is_3d ? "meta_itoi_cs_3d" : "meta_itoi_cs");
-	b.shader->info.cs.local_size[0] = 16;
-	b.shader->info.cs.local_size[1] = 16;
+	b.shader->info.cs.local_size[0] = 8;
+	b.shader->info.cs.local_size[1] = 8;
 	b.shader->info.cs.local_size[2] = 1;
 	nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform,
 						      buf_type, "s_tex");
@@ -671,7 +667,7 @@ build_nir_itoi_compute_shader(struct radv_device *dev, bool is_3d)
 	tex->src[1].src = nir_src_for_ssa(nir_imm_int(&b, 0));
 	tex->src[2].src_type = nir_tex_src_texture_deref;
 	tex->src[2].src = nir_src_for_ssa(input_img_deref);
-	tex->dest_type = nir_type_float;
+	tex->dest_type = nir_type_float32;
 	tex->is_array = false;
 	tex->coord_components = is_3d ? 3 : 2;
 
@@ -690,11 +686,10 @@ static VkResult
 radv_device_init_meta_itoi_state(struct radv_device *device)
 {
 	VkResult result;
-	struct radv_shader_module cs = { .nir = NULL };
-	struct radv_shader_module cs_3d = { .nir = NULL };
-	cs.nir = build_nir_itoi_compute_shader(device, false);
+	nir_shader *cs = build_nir_itoi_compute_shader(device, false);
+	nir_shader *cs_3d = NULL;
 	if (device->physical_device->rad_info.chip_class >= GFX9)
-		cs_3d.nir = build_nir_itoi_compute_shader(device, true);
+		cs_3d = build_nir_itoi_compute_shader(device, true);
 	/*
 	 * two descriptors one for the image being sampled
 	 * one for the buffer being written.
@@ -749,7 +744,7 @@ radv_device_init_meta_itoi_state(struct radv_device *device)
 	VkPipelineShaderStageCreateInfo pipeline_shader_stage = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.stage = VK_SHADER_STAGE_COMPUTE_BIT,
-		.module = radv_shader_module_to_handle(&cs),
+		.module = vk_shader_module_handle_from_nir(cs),
 		.pName = "main",
 		.pSpecializationInfo = NULL,
 	};
@@ -772,7 +767,7 @@ radv_device_init_meta_itoi_state(struct radv_device *device)
 		VkPipelineShaderStageCreateInfo pipeline_shader_stage_3d = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 .stage = VK_SHADER_STAGE_COMPUTE_BIT,
-			.module = radv_shader_module_to_handle(&cs_3d),
+			.module = vk_shader_module_handle_from_nir(cs_3d),
 			.pName = "main",
 			.pSpecializationInfo = NULL,
 		};
@@ -789,14 +784,14 @@ radv_device_init_meta_itoi_state(struct radv_device *device)
 						     1, &vk_pipeline_info_3d, NULL,
 						     &device->meta_state.itoi.pipeline_3d);
 
-		ralloc_free(cs_3d.nir);
+		ralloc_free(cs_3d);
 	}
-	ralloc_free(cs.nir);
+	ralloc_free(cs);
 
 	return VK_SUCCESS;
 fail:
-	ralloc_free(cs.nir);
-	ralloc_free(cs_3d.nir);
+	ralloc_free(cs);
+	ralloc_free(cs_3d);
 	return result;
 }
 
@@ -828,8 +823,8 @@ build_nir_itoi_r32g32b32_compute_shader(struct radv_device *dev)
 							   false,
 							   GLSL_TYPE_FLOAT);
 	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "meta_itoi_r32g32b32_cs");
-	b.shader->info.cs.local_size[0] = 16;
-	b.shader->info.cs.local_size[1] = 16;
+	b.shader->info.cs.local_size[0] = 8;
+	b.shader->info.cs.local_size[1] = 8;
 	b.shader->info.cs.local_size[2] = 1;
 	nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform,
 						      type, "input_img");
@@ -889,7 +884,7 @@ build_nir_itoi_r32g32b32_compute_shader(struct radv_device *dev)
 		tex->src[1].src = nir_src_for_ssa(nir_imm_int(&b, 0));
 		tex->src[2].src_type = nir_tex_src_texture_deref;
 		tex->src[2].src = nir_src_for_ssa(input_img_deref);
-		tex->dest_type = nir_type_float;
+		tex->dest_type = nir_type_float32;
 		tex->is_array = false;
 		tex->coord_components = 1;
 		nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, "tex");
@@ -918,9 +913,7 @@ static VkResult
 radv_device_init_meta_itoi_r32g32b32_state(struct radv_device *device)
 {
 	VkResult result;
-	struct radv_shader_module cs = { .nir = NULL };
-
-	cs.nir = build_nir_itoi_r32g32b32_compute_shader(device);
+	nir_shader *cs = build_nir_itoi_r32g32b32_compute_shader(device);
 
 	VkDescriptorSetLayoutCreateInfo ds_create_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -972,7 +965,7 @@ radv_device_init_meta_itoi_r32g32b32_state(struct radv_device *device)
 	VkPipelineShaderStageCreateInfo pipeline_shader_stage = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.stage = VK_SHADER_STAGE_COMPUTE_BIT,
-		.module = radv_shader_module_to_handle(&cs),
+		.module = vk_shader_module_handle_from_nir(cs),
 		.pName = "main",
 		.pSpecializationInfo = NULL,
 	};
@@ -990,7 +983,7 @@ radv_device_init_meta_itoi_r32g32b32_state(struct radv_device *device)
 					     &device->meta_state.itoi_r32g32b32.pipeline);
 
 fail:
-	ralloc_free(cs.nir);
+	ralloc_free(cs);
 	return result;
 }
 
@@ -1016,8 +1009,8 @@ build_nir_cleari_compute_shader(struct radv_device *dev, bool is_3d)
 							   false,
 							   GLSL_TYPE_FLOAT);
 	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, is_3d ? "meta_cleari_cs_3d" : "meta_cleari_cs");
-	b.shader->info.cs.local_size[0] = 16;
-	b.shader->info.cs.local_size[1] = 16;
+	b.shader->info.cs.local_size[0] = 8;
+	b.shader->info.cs.local_size[1] = 8;
 	b.shader->info.cs.local_size[2] = 1;
 
 	nir_variable *output_img = nir_variable_create(b.shader, nir_var_uniform,
@@ -1056,11 +1049,10 @@ static VkResult
 radv_device_init_meta_cleari_state(struct radv_device *device)
 {
 	VkResult result;
-	struct radv_shader_module cs = { .nir = NULL };
-	struct radv_shader_module cs_3d = { .nir = NULL };
-	cs.nir = build_nir_cleari_compute_shader(device, false);
+	nir_shader *cs = build_nir_cleari_compute_shader(device, false);
+	nir_shader *cs_3d = NULL;
 	if (device->physical_device->rad_info.chip_class >= GFX9)
-		cs_3d.nir = build_nir_cleari_compute_shader(device, true);
+		cs_3d = build_nir_cleari_compute_shader(device, true);
 
 	/*
 	 * two descriptors one for the image being sampled
@@ -1109,7 +1101,7 @@ radv_device_init_meta_cleari_state(struct radv_device *device)
 	VkPipelineShaderStageCreateInfo pipeline_shader_stage = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.stage = VK_SHADER_STAGE_COMPUTE_BIT,
-		.module = radv_shader_module_to_handle(&cs),
+		.module = vk_shader_module_handle_from_nir(cs),
 		.pName = "main",
 		.pSpecializationInfo = NULL,
 	};
@@ -1134,7 +1126,7 @@ radv_device_init_meta_cleari_state(struct radv_device *device)
 		VkPipelineShaderStageCreateInfo pipeline_shader_stage_3d = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_COMPUTE_BIT,
-			.module = radv_shader_module_to_handle(&cs_3d),
+			.module = vk_shader_module_handle_from_nir(cs_3d),
 			.pName = "main",
 			.pSpecializationInfo = NULL,
 		};
@@ -1153,13 +1145,13 @@ radv_device_init_meta_cleari_state(struct radv_device *device)
 		if (result != VK_SUCCESS)
 			goto fail;
 
-		ralloc_free(cs_3d.nir);
+		ralloc_free(cs_3d);
 	}
-	ralloc_free(cs.nir);
+	ralloc_free(cs);
 	return VK_SUCCESS;
 fail:
-	ralloc_free(cs.nir);
-	ralloc_free(cs_3d.nir);
+	ralloc_free(cs);
+	ralloc_free(cs_3d);
 	return result;
 }
 
@@ -1187,8 +1179,8 @@ build_nir_cleari_r32g32b32_compute_shader(struct radv_device *dev)
 							   false,
 							   GLSL_TYPE_FLOAT);
 	nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "meta_cleari_r32g32b32_cs");
-	b.shader->info.cs.local_size[0] = 16;
-	b.shader->info.cs.local_size[1] = 16;
+	b.shader->info.cs.local_size[0] = 8;
+	b.shader->info.cs.local_size[1] = 8;
 	b.shader->info.cs.local_size[2] = 1;
 
 	nir_variable *output_img = nir_variable_create(b.shader, nir_var_uniform,
@@ -1235,9 +1227,7 @@ static VkResult
 radv_device_init_meta_cleari_r32g32b32_state(struct radv_device *device)
 {
 	VkResult result;
-	struct radv_shader_module cs = { .nir = NULL };
-
-	cs.nir = build_nir_cleari_r32g32b32_compute_shader(device);
+	nir_shader *cs = build_nir_cleari_r32g32b32_compute_shader(device);
 
 	VkDescriptorSetLayoutCreateInfo ds_create_info = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -1280,7 +1270,7 @@ radv_device_init_meta_cleari_r32g32b32_state(struct radv_device *device)
 	VkPipelineShaderStageCreateInfo pipeline_shader_stage = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.stage = VK_SHADER_STAGE_COMPUTE_BIT,
-		.module = radv_shader_module_to_handle(&cs),
+		.module = vk_shader_module_handle_from_nir(cs),
 		.pName = "main",
 		.pSpecializationInfo = NULL,
 	};
@@ -1298,7 +1288,7 @@ radv_device_init_meta_cleari_r32g32b32_state(struct radv_device *device)
 					     &device->meta_state.cleari_r32g32b32.pipeline);
 
 fail:
-	ralloc_free(cs.nir);
+	ralloc_free(cs);
 	return result;
 }
 

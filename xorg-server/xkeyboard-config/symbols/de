@@ -97,7 +97,7 @@ xkb_symbols "deadacute" {
 
 partial alphanumeric_keys
 xkb_symbols "e1" {
-    // German extended layout E1 based on DIN 2137-1:2018-12
+    // German extended layout E1 based on DIN 2137-1:2020-11
     // Designed for a 105-key keyboard
     // https://de.wikipedia.org/wiki/Tastaturbelegung
 
@@ -122,13 +122,13 @@ xkb_symbols "e1" {
     // second row
     key.type[Group1] = "EIGHT_LEVEL_ALPHABETIC";
     key <AD01> { [               q,          Q,                   at, NoSymbol,            masculine,                U2642, NoSymbol, NoSymbol ] };
-    key <AD02> { [               w,          W,           dead_caron, NoSymbol,          ordfeminine,                U2640, NoSymbol, NoSymbol ] };
+    key <AD02> { [               w,          W,          dead_macron, NoSymbol,          ordfeminine,                U2640, NoSymbol, NoSymbol ] };
     key <AD03> { [               e,          E,             EuroSign, NoSymbol,                schwa,                SCHWA, NoSymbol, NoSymbol ] };
     key <AD04> { [               r,          R,     dead_doubleacute, NoSymbol,            trademark,           registered, NoSymbol, NoSymbol ] };
-    key <AD05> { [               t,          T,           dead_tilde, NoSymbol,                thorn,                THORN, NoSymbol, NoSymbol ] };
+    key <AD05> { [               t,          T,           dead_caron, NoSymbol,                thorn,                THORN, NoSymbol, NoSymbol ] };
     key <AD06> { [               z,          Z,       dead_diaeresis, NoSymbol,                U0292,                U01B7, NoSymbol, NoSymbol ] };
     key <AD07> { [               u,          U,           dead_breve, NoSymbol,           rightarrow,            leftarrow, NoSymbol, NoSymbol ] };
-    key <AD08> { [               i,          I,          dead_macron, NoSymbol,             idotless,                U26A5, NoSymbol, NoSymbol ] };
+    key <AD08> { [               i,          I,           dead_tilde, NoSymbol,             idotless,                U26A5, NoSymbol, NoSymbol ] };
     key <AD09> { [               o,          O,       dead_abovering, NoSymbol,               oslash,               Oslash, NoSymbol, NoSymbol ] };
     key <AD10> { [               p,          P,            dead_hook, NoSymbol,            downarrow,              uparrow, NoSymbol, NoSymbol ] };
     key <AD11> { [      udiaeresis, Udiaeresis,            dead_horn, NoSymbol,                U2198,                U2197, NoSymbol, NoSymbol ] };
@@ -190,7 +190,7 @@ xkb_symbols "e1" {
 
 partial alphanumeric_keys
 xkb_symbols "e2" {
-    // German extended layout E2 based on DIN 2137-1:2018-12
+    // German extended layout E2 based on DIN 2137-1:2020-11
     // Designed for a 104-key keyboard
     // https://de.wikipedia.org/wiki/Tastaturbelegung
 

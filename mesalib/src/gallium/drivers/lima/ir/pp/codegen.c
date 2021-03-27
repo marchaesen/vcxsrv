@@ -813,7 +813,7 @@ bool ppir_codegen_prog(ppir_compiler *comp)
       ralloc_free(comp->prog->shader);
 
    comp->prog->shader = prog;
-   comp->prog->shader_size = size * sizeof(uint32_t);
+   comp->prog->state.shader_size = size * sizeof(uint32_t);
 
    if (lima_debug & LIMA_DEBUG_PP)
       ppir_codegen_print_prog(comp);

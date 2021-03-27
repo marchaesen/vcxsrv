@@ -30,7 +30,7 @@
 uint32_t
 fd4_setup_slices(struct fd_resource *rsc)
 {
-	struct pipe_resource *prsc = &rsc->base;
+	struct pipe_resource *prsc = &rsc->b.b;
 	enum pipe_format format = prsc->format;
 	uint32_t level, size = 0;
 	uint32_t width = prsc->width0;

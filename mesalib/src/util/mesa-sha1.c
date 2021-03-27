@@ -49,3 +49,18 @@ _mesa_sha1_format(char *buf, const unsigned char *sha1)
    }
    buf[i] = '\0';
 }
+
+/* Convert a hashs string hexidecimal representation into its more compact
+ * form.
+ */
+void
+_mesa_sha1_hex_to_sha1(unsigned char *buf, const char *hex)
+{
+   for (unsigned i = 0; i < 20; i++) {
+      char tmp[3];
+      tmp[0] = hex[i * 2];
+      tmp[1] = hex[(i * 2) + 1];
+      tmp[2] = '\0';
+      buf[i] = strtol(tmp, NULL, 16);
+   }
+}

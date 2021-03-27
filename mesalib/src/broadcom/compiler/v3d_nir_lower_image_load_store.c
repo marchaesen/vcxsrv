@@ -186,7 +186,7 @@ v3d_nir_lower_image_load(nir_builder *b, nir_intrinsic_instr *instr)
                               nir_unpack_half_2x16_split_y(b, ba));
         }
 
-        nir_ssa_def_rewrite_uses_after(&instr->dest.ssa, nir_src_for_ssa(result),
+        nir_ssa_def_rewrite_uses_after(&instr->dest.ssa, result,
                                        result->parent_instr);
 }
 

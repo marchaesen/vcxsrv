@@ -52,40 +52,40 @@ apt-get install -y --no-remove \
 
 ############### Build spirv-tools (debian too old)
 
-. .gitlab-ci/build-spirv-tools.sh
+. .gitlab-ci/container/build-spirv-tools.sh
 
 ############### Build libclc
 
-. .gitlab-ci/build-libclc.sh
+. .gitlab-ci/container/build-libclc.sh
 
 ############### Build virglrenderer
 
-. .gitlab-ci/build-virglrenderer.sh
+. .gitlab-ci/container/build-virglrenderer.sh
 
 ############### Build piglit
 
-INCLUDE_OPENCL_TESTS=1 . .gitlab-ci/build-piglit.sh
+INCLUDE_OPENCL_TESTS=1 . .gitlab-ci/container/build-piglit.sh
 
 ############### Build dEQP runner (and install rust temporarily for it)
-. .gitlab-ci/build-rust.sh
-. .gitlab-ci/build-deqp-runner.sh
+. .gitlab-ci/container/build-rust.sh
+. .gitlab-ci/container/build-deqp-runner.sh
 rm -rf /root/.rustup /root/.cargo
 
 ############### Build dEQP GL
 
-DEQP_TARGET=surfaceless . .gitlab-ci/build-deqp.sh
+DEQP_TARGET=surfaceless . .gitlab-ci/container/build-deqp.sh
 
 ############### Build apitrace
 
-. .gitlab-ci/build-apitrace.sh
+. .gitlab-ci/container/build-apitrace.sh
 
 ############### Build renderdoc
 
-. .gitlab-ci/build-renderdoc.sh
+. .gitlab-ci/container/build-renderdoc.sh
 
 ############### Build libdrm
 
-. .gitlab-ci/build-libdrm.sh
+. .gitlab-ci/container/build-libdrm.sh
 
 ############### Uninstall the build software
 

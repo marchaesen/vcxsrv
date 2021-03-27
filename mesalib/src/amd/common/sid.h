@@ -185,6 +185,7 @@
 #define PKT3_COND_WRITE                        0x45
 #define PKT3_EVENT_WRITE                       0x46
 #define PKT3_EVENT_WRITE_EOP                   0x47 /* not on GFX9 */
+#define PKT3_EVENT_WRITE_EOS                   0x48 /* not on GFX9 */
 #define EOP_DST_SEL(x)                         ((x) << 16)
 #define EOP_DST_SEL_MEM                        0
 #define EOP_DST_SEL_TC_L2                      1
@@ -198,6 +199,12 @@
 #define EOP_DATA_SEL_TIMESTAMP                 3
 #define EOP_DATA_SEL_GDS                       5
 #define EOP_DATA_GDS(dw_offset, num_dwords)    ((dw_offset) | ((unsigned)(num_dwords) << 16))
+
+#define EOS_DATA_SEL(x)                        ((x) << 29)
+#define EOS_DATA_SEL_APPEND_COUNT              0
+#define EOS_DATA_SEL_GDS                       1
+#define EOS_DATA_SEL_VALUE_32BIT               2
+
 /* CP DMA bug: Any use of CP_DMA.DST_SEL=TC must be avoided when EOS packets
  * are used. Use DST_SEL=MC instead. For prefetch, use SRC_SEL=TC and
  * DST_SEL=MC. Only CIK chips are affected.

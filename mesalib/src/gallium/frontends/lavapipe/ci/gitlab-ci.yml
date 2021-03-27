@@ -1,0 +1,10 @@
+lavapipe-vk:
+  stage: software-renderer
+  extends:
+    - .test-vk
+    - .lavapipe-rules
+    - .deqp-test-vk
+  variables:
+    GPU_VERSION: lvp
+    VK_DRIVER: lvp
+    DEQP_FRACTION: 10

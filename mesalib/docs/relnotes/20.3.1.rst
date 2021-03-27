@@ -32,7 +32,7 @@ Bug fixes
 ---------
 
 - Crash and slowness in FreeCAD
-- ci: Missing needs: in radeonsi-stoney-*?
+- ci: Missing needs: in radeonsi-stoney-\*?
 - Triangles appear from the center of the field on PES2021 with Mesa 20.2.x
 - \[gen9][iris][regression][bisected\] flaky piglit tests
 - \[Intel][OpenGL\] Fail to get correct value when sampling from a texture in depth formats.

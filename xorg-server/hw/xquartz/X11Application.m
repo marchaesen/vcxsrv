@@ -34,8 +34,6 @@
 #include <dix-config.h>
 #endif
 
-#include "quartzCommon.h"
-
 #import "X11Application.h"
 
 #include "darwin.h"
@@ -48,7 +46,6 @@
 
 #include <mach/mach.h>
 #include <unistd.h>
-#include <AvailabilityMacros.h>
 
 #include <pthread.h>
 
@@ -64,11 +61,9 @@ xpbproxy_run(void);
 #define XSERVER_VERSION "?"
 #endif
 
-#ifdef HAVE_LIBDISPATCH
 #include <dispatch/dispatch.h>
 
 static dispatch_queue_t eventTranslationQueue;
-#endif
 
 #ifndef __has_feature
 #define __has_feature(x) 0
@@ -82,14 +77,14 @@ static dispatch_queue_t eventTranslationQueue;
 #endif
 #endif
 
+#ifndef APPKIT_APPFLAGS_HACK
+#define APPKIT_APPFLAGS_HACK 1
+#endif
+
 extern Bool noTestExtensions;
 extern Bool noRenderExtension;
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 static TISInputSourceRef last_key_layout;
-#else
-static KeyboardLayoutRef last_key_layout;
-#endif
 
 /* This preference is only tested on Lion or later as it's not relevant to
  * earlier OS versions.
@@ -111,8 +106,61 @@ CFStringRef app_prefs_domain_cfstr = NULL;
 #define ALL_KEY_MASKS (NSShiftKeyMask | NSControlKeyMask | \
                        NSAlternateKeyMask | NSCommandKeyMask)
 
+#if APPKIT_APPFLAGS_HACK && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101500
+// This was removed from the SDK in 10.15
+@interface NSApplication () {
+@protected
+    /* All instance variables are private */
+    short               _running;
+    struct __appFlags {
+        unsigned int        _hidden:1;
+        unsigned int        _appleEventActivationInProgress:1;
+        unsigned int        _active:1;
+        unsigned int        _hasBeenRun:1;
+        unsigned int        _doingUnhide:1;
+        unsigned int        _delegateReturnsValidRequestor:1;
+        unsigned int        _deactPending:1;
+        unsigned int        _invalidState:1;
+        unsigned int        _invalidEvent:1;
+        unsigned int        _postedWindowsNeedUpdateNote:1;
+        unsigned int        _wantsToActivate:1;
+        unsigned int        _doingHide:1;
+        unsigned int        _dontSendShouldTerminate:1;
+        unsigned int        _ignoresFullScreen:1;
+        unsigned int        _finishedLaunching:1;
+        unsigned int        _hasEventDelegate:1;
+        unsigned int        _appTerminating:1;
+        unsigned int        _didNSOpenOrPrint:1;
+        unsigned int        _inDealloc:1;
+        unsigned int        _pendingDidFinish:1;
+        unsigned int        _hasKeyFocus:1;
+        unsigned int        _panelsNonactivating:1;
+        unsigned int        _hiddenOnLaunch:1;
+        unsigned int        _openStatus:2;
+        unsigned int        _batchOrdering:1;
+        unsigned int        _waitingForTerminationReply:1;
+        unsigned int        _unused:1;
+        unsigned int        _enumeratingMemoryPressureHandlers:1;
+        unsigned int        _didTryRestoringPersistentState:1;
+        unsigned int        _windowDragging:1;
+        unsigned int        _mightBeSwitching:1;
+    }                   _appFlags;
+    id                  _mainMenu;
+}
+@end
+#endif
+
+@interface NSApplication (Internal)
+- (void)_setKeyWindow:(id)window;
+- (void)_setMainWindow:(id)window;
+@end
+
 @interface X11Application (Private)
 - (void) sendX11NSEvent:(NSEvent *)e;
+@end
+
+@interface X11Application ()
+@property (nonatomic, readwrite, assign) OSX_BOOL x_active;
 @end
 
 @implementation X11Application
@@ -124,72 +172,14 @@ struct message_struct {
     NSObject *arg;
 };
 
-static mach_port_t _port;
-
 /* Quartz mode initialization routine. This is often dynamically loaded
    but is statically linked into this X server. */
 Bool
 QuartzModeBundleInit(void);
 
-static void
-init_ports(void)
-{
-    kern_return_t r;
-    NSPort *p;
-
-    if (_port != MACH_PORT_NULL) return;
-
-    r = mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &_port);
-    if (r != KERN_SUCCESS) return;
-
-    p = [NSMachPort portWithMachPort:_port];
-    [p setDelegate:NSApp];
-    [p scheduleInRunLoop:[NSRunLoop currentRunLoop] forMode:
-     NSDefaultRunLoopMode];
-}
-
-static void
-message_kit_thread(SEL selector, NSObject *arg)
-{
-    message msg;
-    kern_return_t r;
-
-    msg.hdr.msgh_bits = MACH_MSGH_BITS(MACH_MSG_TYPE_MAKE_SEND, 0);
-    msg.hdr.msgh_size = sizeof(msg);
-    msg.hdr.msgh_remote_port = _port;
-    msg.hdr.msgh_local_port = MACH_PORT_NULL;
-    msg.hdr.msgh_reserved = 0;
-    msg.hdr.msgh_id = 0;
-
-    msg.selector = selector;
-    msg.arg = [arg retain];
-
-    r = mach_msg(&msg.hdr, MACH_SEND_MSG, msg.hdr.msgh_size,
-                 0, MACH_PORT_NULL, 0, MACH_PORT_NULL);
-    if (r != KERN_SUCCESS)
-        ErrorF("%s: mach_msg failed: %x\n", __FUNCTION__, r);
-}
-
-- (void) handleMachMessage:(void *)_msg
-{
-    message *msg = _msg;
-
-    [self performSelector:msg->selector withObject:msg->arg];
-    [msg->arg release];
-}
-
-- (void) set_controller:obj
-{
-    if (_controller == nil) _controller = [obj retain];
-}
-
 - (void) dealloc
 {
-    if (_controller != nil) [_controller release];
-
-    if (_port != MACH_PORT_NULL)
-        mach_port_deallocate(mach_task_self(), _port);
-
+    self.controller = nil;
     [super dealloc];
 }
 
@@ -219,10 +209,12 @@ message_kit_thread(SEL selector, NSObject *arg)
 
 - (void) activateX:(OSX_BOOL)state
 {
-    if (_x_active == state)
+    OSX_BOOL const x_active = self.x_active;
+
+    if (x_active == state)
         return;
 
-    DEBUG_LOG("state=%d, _x_active=%d, \n", state, _x_active);
+    DEBUG_LOG("state=%d, x_active=%d, \n", state, x_active);
     if (state) {
         if (bgMouseLocationUpdated) {
             DarwinSendPointerEvents(darwinPointer, MotionNotify, 0,
@@ -246,7 +238,7 @@ message_kit_thread(SEL selector, NSObject *arg)
         DarwinSendDDXEvent(kXquartzDeactivate, 0);
     }
 
-    _x_active = state;
+    self.x_active = state;
 }
 
 - (void) became_key:(NSWindow *)win
@@ -256,7 +248,16 @@ message_kit_thread(SEL selector, NSObject *arg)
 
 - (void) sendEvent:(NSEvent *)e
 {
+    /* Don't try sending to X if we haven't initialized.  This can happen if AppKit takes over
+     * (eg: uncaught exception) early in launch.
+     */
+    if (!eventTranslationQueue) {
+        [super sendEvent:e];
+        return;
+    }
+
     OSX_BOOL for_appkit, for_x;
+    OSX_BOOL const x_active = self.x_active;
 
     /* By default pass down the responder chain and to X. */
     for_appkit = YES;
@@ -272,13 +273,13 @@ message_kit_thread(SEL selector, NSObject *arg)
         if ([e window] != nil) {
             /* Pointer event has an (AppKit) window. Probably something for the kit. */
             for_x = NO;
-            if (_x_active) [self activateX:NO];
+            if (x_active) [self activateX:NO];
         }
         else if ([self modalWindow] == nil) {
             /* Must be an X window. Tell appkit windows to resign main/key */
             for_appkit = NO;
 
-            if (!_x_active && quartzProcs->IsX11Window([e windowNumber])) {
+            if (!x_active && quartzProcs->IsX11Window([e windowNumber])) {
                 if ([self respondsToSelector:@selector(_setKeyWindow:)] && [self respondsToSelector:@selector(_setMainWindow:)]) {
                     NSWindow *keyWindow = [self keyWindow];
                     if (keyWindow) {
@@ -352,14 +353,11 @@ message_kit_thread(SEL selector, NSObject *arg)
                     swallow_keycode = [e keyCode];
                     do_swallow = YES;
                     for_x = NO;
-#if XPLUGIN_VERSION >= 1
-                }
-                else if (XQuartzEnableKeyEquivalents &&
+                } else if (XQuartzEnableKeyEquivalents &&
                          xp_is_symbolic_hotkey_event([e eventRef])) {
                     swallow_keycode = [e keyCode];
                     do_swallow = YES;
                     for_x = NO;
-#endif
                 }
                 else if (XQuartzEnableKeyEquivalents &&
                          [[self mainMenu] performKeyEquivalent:e]) {
@@ -425,10 +423,12 @@ message_kit_thread(SEL selector, NSObject *arg)
                 BOOL order_all_windows = YES, workspaces, ok;
                 for_appkit = NO;
 
+#if APPKIT_APPFLAGS_HACK
                 /* FIXME: This is a hack to avoid passing the event to AppKit which
                  *        would result in it raising one of its windows.
                  */
                 _appFlags._active = YES;
+#endif
 
                 [self set_front_process:nil];
 
@@ -490,29 +490,15 @@ message_kit_thread(SEL selector, NSObject *arg)
     if (for_appkit) [super sendEvent:e];
 
     if (for_x) {
-#ifdef HAVE_LIBDISPATCH
         dispatch_async(eventTranslationQueue, ^{
                            [self sendX11NSEvent:e];
                        });
-#else
-        [self sendX11NSEvent:e];
-#endif
     }
-}
-
-- (void) set_window_menu:(NSArray *)list
-{
-    [_controller set_window_menu:list];
-}
-
-- (void) set_window_menu_check:(NSNumber *)n
-{
-    [_controller set_window_menu_check:n];
 }
 
 - (void) set_apps_menu:(NSArray *)list
 {
-    [_controller set_apps_menu:list];
+    [self.controller set_apps_menu:list];
 }
 
 - (void) set_front_process:unused
@@ -521,16 +507,6 @@ message_kit_thread(SEL selector, NSObject *arg)
 
     if ([self modalWindow] == nil)
         [self activateX:YES];
-}
-
-- (void) set_can_quit:(NSNumber *)state
-{
-    [_controller set_can_quit:[state boolValue]];
-}
-
-- (void) server_ready:unused
-{
-    [_controller server_ready];
 }
 
 - (void) show_hide_menubar:(NSNumber *)state
@@ -545,7 +521,7 @@ message_kit_thread(SEL selector, NSObject *arg)
 
 - (void) launch_client:(NSString *)cmd
 {
-    (void)[_controller application:self openFile:cmd];
+    (void)[self.controller application:self openFile:cmd];
 }
 
 /* user preferences */
@@ -955,123 +931,83 @@ cfarray_to_nsarray(CFArrayRef in)
                        AppleWMCopyToPasteboard);
 }
 
-- (X11Controller *) controller
-{
-    return _controller;
-}
-
-- (OSX_BOOL) x_active
-{
-    return _x_active;
-}
-
 @end
-
-static NSArray *
-array_with_strings_and_numbers(int nitems, const char **items,
-                               const char *numbers)
-{
-    NSMutableArray *array, *subarray;
-    NSString *string, *number;
-    int i;
-
-    /* (Can't autorelease on the X server thread) */
-
-    array = [[NSMutableArray alloc] initWithCapacity:nitems];
-
-    for (i = 0; i < nitems; i++) {
-        subarray = [[NSMutableArray alloc] initWithCapacity:2];
-
-        string = [[NSString alloc] initWithUTF8String:items[i]];
-        [subarray addObject:string];
-        [string release];
-
-        if (numbers[i] != 0) {
-            number = [[NSString alloc] initWithFormat:@"%d", numbers[i]];
-            [subarray addObject:number];
-            [number release];
-        }
-        else
-            [subarray addObject:@""];
-
-        [array addObject:subarray];
-        [subarray release];
-    }
-
-    return array;
-}
 
 void
 X11ApplicationSetWindowMenu(int nitems, const char **items,
                             const char *shortcuts)
 {
-    NSArray *array;
-    array = array_with_strings_and_numbers(nitems, items, shortcuts);
+    @autoreleasepool {
+        NSMutableArray <NSArray <NSString *> *> * const allMenuItems = [NSMutableArray array];
 
-    /* Send the array of strings over to the appkit thread */
+        for (int i = 0; i < nitems; i++) {
+            NSMutableArray <NSString *> * const menuItem = [NSMutableArray array];
+            [menuItem addObject:@(items[i])];
 
-    message_kit_thread(@selector (set_window_menu:), array);
-    [array release];
+            if (shortcuts[i] == 0) {
+                [menuItem addObject:@""];
+            } else {
+                [menuItem addObject:[NSString stringWithFormat:@"%d", shortcuts[i]]];
+            }
+
+            [allMenuItems addObject:menuItem];
+        }
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [X11App.controller set_window_menu:allMenuItems];
+        });
+    }
 }
 
 void
 X11ApplicationSetWindowMenuCheck(int idx)
 {
-    NSNumber *n;
-
-    n = [[NSNumber alloc] initWithInt:idx];
-
-    message_kit_thread(@selector (set_window_menu_check:), n);
-
-    [n release];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [X11App.controller set_window_menu_check:@(idx)];
+    });
 }
 
 void
 X11ApplicationSetFrontProcess(void)
 {
-    message_kit_thread(@selector (set_front_process:), nil);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [X11App set_front_process:nil];
+    });
 }
 
 void
 X11ApplicationSetCanQuit(int state)
 {
-    NSNumber *n;
-
-    n = [[NSNumber alloc] initWithBool:state];
-
-    message_kit_thread(@selector (set_can_quit:), n);
-
-    [n release];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        X11App.controller.can_quit = !!state;
+    });
 }
 
 void
 X11ApplicationServerReady(void)
 {
-    message_kit_thread(@selector (server_ready:), nil);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [X11App.controller server_ready];
+    });
 }
 
 void
 X11ApplicationShowHideMenubar(int state)
 {
-    NSNumber *n;
-
-    n = [[NSNumber alloc] initWithBool:state];
-
-    message_kit_thread(@selector (show_hide_menubar:), n);
-
-    [n release];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [X11App show_hide_menubar:@(state)];
+    });
 }
 
 void
 X11ApplicationLaunchClient(const char *cmd)
 {
-    NSString *string;
-
-    string = [[NSString alloc] initWithUTF8String:cmd];
-
-    message_kit_thread(@selector (launch_client:), string);
-
-    [string release];
+    @autoreleasepool {
+        NSString *string = @(cmd);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [X11App launch_client:string];
+        });
+    }
 }
 
 /* This is a special function in that it is run from the *SERVER* thread and
@@ -1096,12 +1032,15 @@ X11ApplicationCanEnterRandR(void)
     if (!XQuartzIsRootless)
         QuartzShowFullscreen(FALSE);
 
-    switch (NSRunAlertPanel(title, @"%@",
-                            NSLocalizedString(@"Allow",
-                                              @""),
-                            NSLocalizedString(@"Cancel",
-                                              @""),
-                            NSLocalizedString(@"Always Allow", @""), msg)) {
+    NSInteger __block alert_result;
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        alert_result = NSRunAlertPanel(title, @"%@",
+                                       NSLocalizedString(@"Allow", @""),
+                                       NSLocalizedString(@"Cancel", @""),
+                                       NSLocalizedString(@"Always Allow", @""), msg);
+    });
+
+    switch (alert_result) {
     case NSAlertOtherReturn:
         [X11App prefs_set_boolean:@PREFS_NO_RANDR_ALERT value:YES];
         [X11App prefs_synchronize];
@@ -1185,91 +1124,71 @@ xpbproxy_x_thread(void *args)
 void
 X11ApplicationMain(int argc, char **argv, char **envp)
 {
-    NSAutoreleasePool *pool;
-
 #ifdef DEBUG
     while (access("/tmp/x11-block", F_OK) == 0) sleep(1);
 #endif
 
-    pool = [[NSAutoreleasePool alloc] init];
-    X11App = (X11Application *)[X11Application sharedApplication];
-    init_ports();
+    @autoreleasepool {
+        X11App = (X11Application *)[X11Application sharedApplication];
 
-    app_prefs_domain_cfstr =
-        (CFStringRef)[[NSBundle mainBundle] bundleIdentifier];
+        app_prefs_domain_cfstr = (CFStringRef)[[NSBundle mainBundle] bundleIdentifier];
 
-    if (app_prefs_domain_cfstr == NULL) {
-        ErrorF(
-            "X11ApplicationMain: Unable to determine bundle identifier.  Your installation of XQuartz may be broken.\n");
-        app_prefs_domain_cfstr = CFSTR(BUNDLE_ID_PREFIX ".X11");
-    }
+        if (app_prefs_domain_cfstr == NULL) {
+            ErrorF("X11ApplicationMain: Unable to determine bundle identifier.  Your installation of XQuartz may be broken.\n");
+            app_prefs_domain_cfstr = CFSTR(BUNDLE_ID_PREFIX ".X11");
+        }
 
-    [NSApp read_defaults];
-    [NSBundle loadNibNamed:@"main" owner:NSApp];
-    [[NSNotificationCenter defaultCenter] addObserver:NSApp
-                                             selector:@selector (became_key:)
-                                                 name:
-     NSWindowDidBecomeKeyNotification object:nil];
+        [NSApp read_defaults];
+        [NSBundle loadNibNamed:@"main" owner:NSApp];
+        [NSNotificationCenter.defaultCenter addObserver:NSApp
+                                               selector:@selector (became_key:)
+                                                   name:NSWindowDidBecomeKeyNotification
+                                                 object:nil];
 
-    /*
-     * The xpr Quartz mode is statically linked into this server.
-     * Initialize all the Quartz functions.
-     */
-    QuartzModeBundleInit();
+        /*
+         * The xpr Quartz mode is statically linked into this server.
+         * Initialize all the Quartz functions.
+         */
+        QuartzModeBundleInit();
 
-    /* Calculate the height of the menubar so we can avoid it. */
-    aquaMenuBarHeight = [[NSApp mainMenu] menuBarHeight];
-#if ! __LP64__
-    if (!aquaMenuBarHeight) {
-        aquaMenuBarHeight = [NSMenuView menuBarHeight];
-    }
-#endif
-    if (!aquaMenuBarHeight) {
-        NSScreen* primaryScreen = [[NSScreen screens] objectAtIndex:0];
-        aquaMenuBarHeight = NSHeight([primaryScreen frame]) - NSMaxY([primaryScreen visibleFrame]);
-    }
+        /* Calculate the height of the menubar so we can avoid it. */
+        aquaMenuBarHeight = NSApp.mainMenu.menuBarHeight;
+        if (!aquaMenuBarHeight) {
+            NSScreen* primaryScreen = NSScreen.screens[0];
+            aquaMenuBarHeight = NSHeight(primaryScreen.frame) - NSMaxY(primaryScreen.visibleFrame);
+        }
 
-#ifdef HAVE_LIBDISPATCH
-    eventTranslationQueue = dispatch_queue_create(
-        BUNDLE_ID_PREFIX ".X11.NSEventsToX11EventsQueue", NULL);
-    assert(eventTranslationQueue != NULL);
-#endif
+        eventTranslationQueue = dispatch_queue_create(BUNDLE_ID_PREFIX ".X11.NSEventsToX11EventsQueue", NULL);
+        assert(eventTranslationQueue != NULL);
 
-    /* Set the key layout seed before we start the server */
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-    last_key_layout = TISCopyCurrentKeyboardLayoutInputSource();
+        /* Set the key layout seed before we start the server */
+        last_key_layout = TISCopyCurrentKeyboardLayoutInputSource();
 
-    if (!last_key_layout)
-        ErrorF(
-            "X11ApplicationMain: Unable to determine TISCopyCurrentKeyboardLayoutInputSource() at startup.\n");
-#else
-    KLGetCurrentKeyboardLayout(&last_key_layout);
-    if (!last_key_layout)
-        ErrorF(
-            "X11ApplicationMain: Unable to determine KLGetCurrentKeyboardLayout() at startup.\n");
-#endif
+        if (!last_key_layout) {
+            ErrorF("X11ApplicationMain: Unable to determine TISCopyCurrentKeyboardLayoutInputSource() at startup.\n");
+        }
 
-    if (!QuartsResyncKeymap(FALSE)) {
-        ErrorF("X11ApplicationMain: Could not build a valid keymap.\n");
-    }
+        if (!QuartsResyncKeymap(FALSE)) {
+            ErrorF("X11ApplicationMain: Could not build a valid keymap.\n");
+        }
 
-    /* Tell the server thread that it can proceed */
-    QuartzInitServer(argc, argv, envp);
+        /* Tell the server thread that it can proceed */
+        QuartzInitServer(argc, argv, envp);
 
-    /* This must be done after QuartzInitServer because it can result in
-     * an mieqEnqueue() - <rdar://problem/6300249>
-     */
-    check_xinitrc();
+        /* This must be done after QuartzInitServer because it can result in
+         * an mieqEnqueue() - <rdar://problem/6300249>
+         */
+        check_xinitrc();
 
-    create_thread(xpbproxy_x_thread, NULL);
+        create_thread(xpbproxy_x_thread, NULL);
 
 #if XQUARTZ_SPARKLE
-    [[X11App controller] setup_sparkle];
-    [[SUUpdater sharedUpdater] resetUpdateCycle];
-    //    [[SUUpdater sharedUpdater] checkForUpdates:X11App];
+        [[X11App controller] setup_sparkle];
+        [[SUUpdater sharedUpdater] resetUpdateCycle];
+        //    [[SUUpdater sharedUpdater] checkForUpdates:X11App];
 #endif
+    }
 
-    [pool release];
     [NSApp run];
     /* not reached */
 }
@@ -1583,8 +1502,6 @@ handle_mouse:
         }
 
         if (!XQuartzServerVisible && noTestExtensions) {
-#if defined(XPLUGIN_VERSION) && XPLUGIN_VERSION > 0
-            /* Older libXplugin (Tiger/"Stock" Leopard) aren't thread safe, so we can't call xp_find_window from the Appkit thread */
             xp_window_id wid = 0;
             xp_error err;
 
@@ -1597,7 +1514,6 @@ handle_mouse:
             err = xp_find_window(location.x, location.y, 0, &wid);
 
             if (err != XP_Success || (err == XP_Success && wid == 0))
-#endif
             {
                 bgMouseLocation = location;
                 bgMouseLocationUpdated = TRUE;
@@ -1653,11 +1569,6 @@ handle_mouse:
 
     case NSScrollWheel:
     {
-#if MAC_OS_X_VERSION_MAX_ALLOWED < 1050
-        float deltaX = [e deltaX];
-        float deltaY = [e deltaY];
-        BOOL isContinuous = NO;
-#else
         CGFloat deltaX = [e deltaX];
         CGFloat deltaY = [e deltaY];
         CGEventRef cge = [e CGEvent];
@@ -1679,28 +1590,12 @@ handle_mouse:
             deltaY *= lineHeight / 5.0;
         }
 #endif
-#endif
         
-#if !defined(XPLUGIN_VERSION) || XPLUGIN_VERSION == 0
-        /* If we're in the background, we need to send a MotionNotify event
-         * first, since we aren't getting them on background mouse motion
-         */
-        if (!XQuartzServerVisible && noTestExtensions) {
-            bgMouseLocationUpdated = FALSE;
-            DarwinSendPointerEvents(darwinPointer, MotionNotify, 0,
-                                    location.x, location.y,
-                                    0.0, 0.0);
-        }
-#endif
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= 1070
-        // TODO: Change 1117 to NSAppKitVersionNumber10_7 when it is defined
-        if (NSAppKitVersionNumber >= 1117 &&
-            XQuartzScrollInDeviceDirection &&
+        if (XQuartzScrollInDeviceDirection &&
             [e isDirectionInvertedFromDevice]) {
             deltaX *= -1;
             deltaY *= -1;
         }
-#endif
         /* This hack is in place to better deal with "clicky" scroll wheels:
          * http://xquartz.macosforge.org/trac/ticket/562
          */
@@ -1806,7 +1701,6 @@ handle_mouse:
     }
 
         if (darwinSyncKeymap) {
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
             TISInputSourceRef key_layout = 
                 TISCopyCurrentKeyboardLayoutInputSource();
             TISInputSourceRef clear;
@@ -1818,12 +1712,7 @@ handle_mouse:
                 clear = last_key_layout;
                 last_key_layout = key_layout;
                 CFRelease(clear);
-#else
-            KeyboardLayoutRef key_layout;
-            KLGetCurrentKeyboardLayout(&key_layout);
-            if (key_layout != last_key_layout) {
-                last_key_layout = key_layout;
-#endif
+
                 /* Update keyInfo */
                 if (!QuartsResyncKeymap(TRUE)) {
                     ErrorF(

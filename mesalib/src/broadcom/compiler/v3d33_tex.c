@@ -33,6 +33,13 @@
 void
 v3d33_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
 {
+        /* FIXME: We don't bother implementing pipelining for texture reads
+         * for any pre 4.x hardware. It should be straight forward to do but
+         * we are not really testing or even targetting this hardware at
+         * present.
+         */
+        ntq_flush_tmu(c);
+
         unsigned unit = instr->texture_index;
 
         struct V3D33_TEXTURE_UNIFORM_PARAMETER_0_CFG_MODE1 p0_unpacked = {

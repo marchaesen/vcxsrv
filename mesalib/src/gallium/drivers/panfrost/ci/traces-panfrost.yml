@@ -1,0 +1,219 @@
+traces-db:
+  download-url: "https://minio-packet.freedesktop.org/mesa-tracie-public/"
+
+traces:
+  - path: glmark2/desktop-blur-radius=5:effect=blur:passes=1:separable=true:windows=4.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 95df5e619a36e88fe408e45567a2d149
+      - device: gl-panfrost-t760
+        checksum: 30663eac9a4767d26fbf9b6db9712d9f
+  - path: glmark2/jellyfish.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 1d609b089732be5b6e3e78370abcb149
+      - device: gl-panfrost-t760
+        checksum: f98ef9118eeaba660c15065dac46e580
+  - path: glxgears/glxgears-2.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: bcc73608b6e2b5d92bf926d1c21889c7
+      - device: gl-panfrost-t760
+        checksum: bcc73608b6e2b5d92bf926d1c21889c7
+  - path: pathfinder/demo.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: c4f5e6bfe0cba230b1aef631c2fa4584
+      - device: gl-panfrost-t760
+        checksum: c4f5e6bfe0cba230b1aef631c2fa4584
+  - path: pathfinder/canvas_moire.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 2fb2c8e83719526cb6c02b6c2e069d61
+      - device: gl-panfrost-t760
+        checksum: 2fb2c8e83719526cb6c02b6c2e069d61
+  - path: pathfinder/canvas_text.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 939038749a5204ec2b1448d3b9208fb3
+      - device: gl-panfrost-t760
+        checksum: 939038749a5204ec2b1448d3b9208fb3
+  - path: gputest/furmark.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: dc4ece101ed145228840d1f0654118c6
+  - path: gputest/triangle.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 75c5a2e261d576d115a659f6cd52a90d
+      - device: gl-panfrost-t760
+        checksum: 75c5a2e261d576d115a659f6cd52a90d
+  - path: humus/Portals.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: f83da726bff354684a576effa74ef681
+      - device: gl-panfrost-t760
+        # Wrong rendering, many elements are missing
+        checksum: 67db7302b28cb8e3e217cc79b672af79
+  - path: 0ad/0ad.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 63fd6b8720a6dbc42f3c1281179d5e82
+  - path: glmark2/buffer-columns=200:interleave=false:update-dispersion=0.9:update-fraction=0.5:update-method=map.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: dab9820c0cac61d6f243f34cd1297a0c
+  - path: glmark2/buffer-columns=200:interleave=false:update-dispersion=0.9:update-fraction=0.5:update-method=subdata.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 49588ed4a602d805b302f483a01756e3
+  - path: glmark2/buffer-columns=200:interleave=true:update-dispersion=0.9:update-fraction=0.5:update-method=map.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: b306b4b469a76ad0c992db3305dbaa04
+  - path: glmark2/bump-bump-render=height.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: bdd67079b0fd391897eb3f7cc93a237a
+  - path: glmark2/bump-bump-render=high-poly.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: ecc20afda835a49c7c2867058ab7fd9c
+  - path: glmark2/bump-bump-render=normals.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 2134bc9112cf3da003e78147ca97e2cd
+  - path: glmark2/conditionals-fragment-steps=0:vertex-steps=0.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: a2f0af93cfa71e811322a0734c93d6a8
+  - path: glmark2/conditionals-fragment-steps=0:vertex-steps=5.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 724ecf71b24b86ac6834c2f8ab708f80
+  - path: glmark2/conditionals-fragment-steps=5:vertex-steps=0.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 308a92d7782a2180836db4b82591c34f
+  - path: glmark2/desktop-effect=shadow:windows=4.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 879acf0948ee06fedd94cb92ec476853
+  - path: glmark2/effect2d-kernel=0,1,0;1,-4,1;0,1,0.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: e402625c4d7f660f09aabcd3d98dbaff
+  - path: glmark2/effect2d-kernel=1,1,1,1,1;1,1,1,1,1;1,1,1,1,1;.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 9e87fac78da433bd415822ea82c145a8
+  - path: glmark2/function-fragment-complexity=low:fragment-steps=5.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 312d20f8a464447791d0cb95f1a047df
+  - path: glmark2/function-fragment-complexity=medium:fragment-steps=5.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 813b65cbdf62014d7e17d35e8f3dc141
+  - path: glmark2/glmark2-build-use-vbo-false.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: dbc466c7f352e3a8329620a7f343e7ef
+  - path: glmark2/glmark2-build-use-vbo-true.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: ecf2349af8e0e7092e074b13de597692
+  - path: glmark2/ideas-speed=duration.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 458556bc1ade89323181e4d0483a7cd3
+  - path: glmark2/loop-fragment-loop=false:fragment-steps=5:vertex-steps=5.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: dcf9598ddb4dfff90aacd883a2dbbbc8
+  - path: glmark2/loop-fragment-steps=5:fragment-uniform=false:vertex-steps=5.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: c1c45f43522954ef599cdadb950997b7
+  - path: glmark2/loop-fragment-steps=5:fragment-uniform=true:vertex-steps=5.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 32cc6275627fd068dcf1c05a4000cf1d
+  - path: glmark2/pulsar-light=false:quads=5:texture=false.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: b5fb8772b07378416f6945c30064fe7b
+  - path: glmark2/refract.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 171227db0fee7cdfe1bf11ca973db910
+  - path: glmark2/shading-shading=blinn-phong-inf.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 61d737067f9bfbc6c351c74f0fa6bf99
+  - path: glmark2/shading-shading=cel.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 3774306940d3c9b1a8eaec494b0e9d81
+  - path: glmark2/shading-shading=gouraud.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: a34358dd85295c642c00b7f3817e4a7b
+  - path: glmark2/shading-shading=phong.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: d5a102efcf060ce1cbc09efccdd1224b
+  - path: glmark2/shadow.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 33eaea6591a6767be13b86053988978c
+  - path: glmark2/terrain.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 2264a06895a84154bd2f54abffcc48d8
+  - path: glmark2/texture-texture-filter=linear.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 2b65b3c968e3ee68f930319c72e4f5ba
+  - path: glmark2/texture-texture-filter=mipmap.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: c194a7fab0b573bab0d92e9d2aedc67e
+  - path: glmark2/texture-texture-filter=nearest.rdc
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 1c8ff59b40cefd4e66f18f6d0cc23536
+  # Flaky since the introduction of parallel trace replay
+  #- path: gputest/gimark.trace
+  #  expectations:
+  #   - device: gl-panfrost-t860
+  #      # Some blue rings are missing on the top-left corner, also the penguin watermark
+  #      checksum: 0020a77e25003e4e8db1ce929eed8914
+  - path: gputest/pixmark-julia-fp32.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: d85b6967b7c768f28395c5c5dfbcfe3e
+  - path: gputest/plot3d.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 991efbfd046f70e1fd965d3983bb2965
+  - path: humus/AmbientAperture.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 20492edd94ea94ba73013a4ee14285b7
+  - path: humus/CelShading.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 521ca6a236b8400cf692e6817b91c739
+  - path: humus/DynamicBranching3.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 32e349d14319b4ae921c146224d26a0e
+  - path: humus/RaytracedShadows.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: b2f909cbf5ea5de03b88f8a685eb2e28
+  - path: humus/VolumetricFogging2.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: f53b5b1430aa21804c6fed01bce560aa

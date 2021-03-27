@@ -52,8 +52,7 @@ lower_load_uniform_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
    }
 
    nir_ssa_def_rewrite_uses(&intr->dest.ssa,
-                            nir_src_for_ssa(nir_vec(b, loads,
-                                                    intr->num_components)));
+                            nir_vec(b, loads, intr->num_components));
    nir_instr_remove(&intr->instr);
 }
 

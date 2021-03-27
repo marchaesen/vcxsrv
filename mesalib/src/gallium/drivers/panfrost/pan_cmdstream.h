@@ -62,6 +62,11 @@ panfrost_emit_sampler_descriptors(struct panfrost_batch *batch,
                                   enum pipe_shader_type stage);
 
 mali_ptr
+panfrost_emit_image_attribs(struct panfrost_batch *batch,
+                            mali_ptr *buffers,
+                            enum pipe_shader_type type);
+
+mali_ptr
 panfrost_emit_vertex_data(struct panfrost_batch *batch,
                           mali_ptr *buffers);
 
@@ -85,9 +90,6 @@ panfrost_emit_vertex_tiler_jobs(struct panfrost_batch *batch,
                                 const struct panfrost_ptr *vertex_job,
                                 const struct panfrost_ptr *tiler_job);
 
-mali_ptr
-panfrost_emit_sample_locations(struct panfrost_batch *batch);
-
 static inline unsigned
 panfrost_translate_compare_func(enum pipe_compare_func in)
 {
@@ -101,6 +103,18 @@ panfrost_translate_compare_func(enum pipe_compare_func in)
         case PIPE_FUNC_GEQUAL: return MALI_FUNC_GEQUAL;
         case PIPE_FUNC_ALWAYS: return MALI_FUNC_ALWAYS;
         default: unreachable("Invalid func");
+        }
+}
+
+static inline enum mali_sample_pattern
+panfrost_sample_pattern(unsigned samples)
+{
+        switch (samples) {
+        case 1:  return MALI_SAMPLE_PATTERN_SINGLE_SAMPLED;
+        case 4:  return MALI_SAMPLE_PATTERN_ROTATED_4X_GRID;
+        case 8:  return MALI_SAMPLE_PATTERN_D3D_8X_GRID;
+        case 16: return MALI_SAMPLE_PATTERN_D3D_16X_GRID;
+        default: unreachable("Unsupported sample count");
         }
 }
 

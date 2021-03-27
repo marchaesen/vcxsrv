@@ -40,7 +40,7 @@ static LLVMValueRef load_sample_mask_in(struct ac_shader_abi *abi)
 static LLVMValueRef load_sample_position(struct ac_shader_abi *abi, LLVMValueRef sample_id)
 {
    struct si_shader_context *ctx = si_shader_context_from_abi(abi);
-   LLVMValueRef desc = ac_get_arg(&ctx->ac, ctx->rw_buffers);
+   LLVMValueRef desc = ac_get_arg(&ctx->ac, ctx->internal_bindings);
    LLVMValueRef buf_index = LLVMConstInt(ctx->ac.i32, SI_PS_CONST_SAMPLE_POSITIONS, 0);
    LLVMValueRef resource = ac_build_load_to_sgpr(&ctx->ac, desc, buf_index);
 
@@ -69,7 +69,7 @@ static LLVMValueRef si_nir_emit_fbfetch(struct ac_shader_abi *abi)
 
    /* Load the image descriptor. */
    STATIC_ASSERT(SI_PS_IMAGE_COLORBUF0 % 2 == 0);
-   ptr = ac_get_arg(&ctx->ac, ctx->rw_buffers);
+   ptr = ac_get_arg(&ctx->ac, ctx->internal_bindings);
    ptr =
       LLVMBuildPointerCast(ctx->ac.builder, ptr, ac_array_in_const32_addr_space(ctx->ac.v8i32), "");
    image =
@@ -576,7 +576,7 @@ static void si_llvm_return_fs_outputs(struct ac_shader_abi *abi, unsigned max_ou
 }
 
 static void si_llvm_emit_polygon_stipple(struct si_shader_context *ctx,
-                                         LLVMValueRef param_rw_buffers,
+                                         LLVMValueRef param_internal_bindings,
                                          struct ac_arg param_pos_fixed_pt)
 {
    LLVMBuilderRef builder = ctx->ac.builder;
@@ -591,7 +591,7 @@ static void si_llvm_emit_polygon_stipple(struct si_shader_context *ctx,
 
    /* Load the buffer descriptor. */
    slot = LLVMConstInt(ctx->ac.i32, SI_PS_CONST_POLY_STIPPLE, 0);
-   desc = ac_build_load_to_sgpr(&ctx->ac, param_rw_buffers, slot);
+   desc = ac_build_load_to_sgpr(&ctx->ac, param_internal_bindings, slot);
 
    /* The stipple pattern is 32x32, each row has 32 bits. */
    offset = LLVMBuildMul(builder, address[1], LLVMConstInt(ctx->ac.i32, 4, 0), "");
@@ -666,7 +666,7 @@ void si_llvm_build_ps_prolog(struct si_shader_context *ctx, union si_shader_part
 
    /* Polygon stippling. */
    if (key->ps_prolog.states.poly_stipple) {
-      LLVMValueRef list = si_prolog_get_rw_buffers(ctx);
+      LLVMValueRef list = si_prolog_get_internal_bindings(ctx);
 
       si_llvm_emit_polygon_stipple(ctx, list, pos_fixed_pt);
    }
@@ -876,7 +876,7 @@ void si_llvm_build_ps_epilog(struct si_shader_context *ctx, union si_shader_part
    memset(&ctx->args, 0, sizeof(ctx->args));
 
    /* Declare input SGPRs. */
-   ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_INT, &ctx->rw_buffers);
+   ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_INT, &ctx->internal_bindings);
    ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_INT, &ctx->bindless_samplers_and_images);
    ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_INT, &ctx->const_and_shader_buffers);
    ac_add_arg(&ctx->args, AC_ARG_SGPR, 1, AC_ARG_INT, &ctx->samplers_and_images);

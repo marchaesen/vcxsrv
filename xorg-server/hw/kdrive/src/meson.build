@@ -5,6 +5,7 @@ srcs_kdrive = [
     'kinput.c',
     'kshadow.c',
     '../../../mi/miinitext.c',
+    '../../../mi/miinitext.h',
 ]
 
 if build_xv

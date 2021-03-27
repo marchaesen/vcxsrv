@@ -84,6 +84,17 @@ vir_has_side_effects(struct v3d_compile *c, struct qinst *inst)
                 return true;
         }
 
+        /* ldunifa works like ldunif: it reads an element and advances the
+         * pointer, so each read has a side effect (we don't care for ldunif
+         * because we reconstruct the uniform stream buffer after compiling
+         * with the surviving uniforms), so allowing DCE to remove
+         * one would break follow-up loads. We could fix this by emiting a
+         * unifa for each ldunifa, but each unifa requires 3 delay slots
+         * before a ldunifa, so that would be quite expensive.
+         */
+        if (inst->qpu.sig.ldunifa || inst->qpu.sig.ldunifarf)
+                return true;
+
         return false;
 }
 
@@ -130,10 +141,10 @@ vir_is_mul(struct qinst *inst)
 }
 
 bool
-vir_is_tex(struct qinst *inst)
+vir_is_tex(const struct v3d_device_info *devinfo, struct qinst *inst)
 {
         if (inst->dst.file == QFILE_MAGIC)
-                return v3d_qpu_magic_waddr_is_tmu(inst->dst.index);
+                return v3d_qpu_magic_waddr_is_tmu(devinfo, inst->dst.index);
 
         if (inst->qpu.type == V3D_QPU_INSTR_TYPE_ALU &&
             inst->qpu.alu.add.op == V3D_QPU_A_TMUWT) {
@@ -232,8 +243,9 @@ vir_set_cond(struct qinst *inst, enum v3d_qpu_cond cond)
 }
 
 void
-vir_set_pf(struct qinst *inst, enum v3d_qpu_pf pf)
+vir_set_pf(struct v3d_compile *c, struct qinst *inst, enum v3d_qpu_pf pf)
 {
+        c->flags_temp = -1;
         if (vir_is_add(inst)) {
                 inst->qpu.flags.apf = pf;
         } else {
@@ -243,8 +255,9 @@ vir_set_pf(struct qinst *inst, enum v3d_qpu_pf pf)
 }
 
 void
-vir_set_uf(struct qinst *inst, enum v3d_qpu_uf uf)
+vir_set_uf(struct v3d_compile *c, struct qinst *inst, enum v3d_qpu_uf uf)
 {
+        c->flags_temp = -1;
         if (vir_is_add(inst)) {
                 inst->qpu.flags.auf = uf;
         } else {
@@ -512,6 +525,7 @@ vir_compile_init(const struct v3d_compiler *compiler,
                                       void *debug_output_data),
                  void *debug_output_data,
                  int program_id, int variant_id,
+                 bool disable_tmu_pipelining,
                  bool fallback_scheduler)
 {
         struct v3d_compile *c = rzalloc(NULL, struct v3d_compile);
@@ -526,6 +540,7 @@ vir_compile_init(const struct v3d_compiler *compiler,
         c->debug_output_data = debug_output_data;
         c->compilation_result = V3D_COMPILATION_SUCCEEDED;
         c->fallback_scheduler = fallback_scheduler;
+        c->disable_tmu_pipelining = disable_tmu_pipelining;
 
         s = nir_shader_clone(c, s);
         c->s = s;
@@ -538,6 +553,9 @@ vir_compile_init(const struct v3d_compiler *compiler,
 
         c->def_ht = _mesa_hash_table_create(c, _mesa_hash_pointer,
                                             _mesa_key_pointer_equal);
+
+        c->tmu.outstanding_regs = _mesa_pointer_set_create(c);
+        c->flags_temp = -1;
 
         return c;
 }
@@ -568,13 +586,6 @@ v3d_lower_nir(struct v3d_compile *c)
         for (int i = 0; i < c->key->num_tex_used; i++) {
                 for (int j = 0; j < 4; j++)
                         tex_options.swizzles[i][j] = c->key->tex[i].swizzle[j];
-
-                if (c->key->tex[i].clamp_s)
-                        tex_options.saturate_s |= 1 << i;
-                if (c->key->tex[i].clamp_t)
-                        tex_options.saturate_t |= 1 << i;
-                if (c->key->tex[i].clamp_r)
-                        tex_options.saturate_r |= 1 << i;
         }
 
         assert(c->key->num_samplers_used <= ARRAY_SIZE(c->key->sampler));
@@ -640,16 +651,26 @@ v3d_vs_set_prog_data(struct v3d_compile *c,
                 prog_data->vpm_input_size += c->vattr_sizes[i];
         }
 
-        prog_data->uses_vid = (c->s->info.system_values_read &
-                               (1ull << SYSTEM_VALUE_VERTEX_ID |
-                                1ull << SYSTEM_VALUE_VERTEX_ID_ZERO_BASE));
+        memset(prog_data->driver_location_map, -1,
+               sizeof(prog_data->driver_location_map));
 
-        prog_data->uses_biid = (c->s->info.system_values_read &
-                                (1ull << SYSTEM_VALUE_BASE_INSTANCE));
+        nir_foreach_shader_in_variable(var, c->s) {
+                prog_data->driver_location_map[var->data.location] =
+                        var->data.driver_location;
+        }
 
-        prog_data->uses_iid = (c->s->info.system_values_read &
-                               (1ull << SYSTEM_VALUE_INSTANCE_ID |
-                                1ull << SYSTEM_VALUE_INSTANCE_INDEX));
+        prog_data->uses_vid = BITSET_TEST(c->s->info.system_values_read,
+                                          SYSTEM_VALUE_VERTEX_ID) ||
+                              BITSET_TEST(c->s->info.system_values_read,
+                                          SYSTEM_VALUE_VERTEX_ID_ZERO_BASE);
+
+        prog_data->uses_biid = BITSET_TEST(c->s->info.system_values_read,
+                                           SYSTEM_VALUE_BASE_INSTANCE);
+
+        prog_data->uses_iid = BITSET_TEST(c->s->info.system_values_read,
+                                          SYSTEM_VALUE_INSTANCE_ID) ||
+                              BITSET_TEST(c->s->info.system_values_read,
+                                          SYSTEM_VALUE_INSTANCE_INDEX);
 
         if (prog_data->uses_vid)
                 prog_data->vpm_input_size++;
@@ -703,8 +724,8 @@ v3d_gs_set_prog_data(struct v3d_compile *c,
          * it after reading it if necessary, so it doesn't add to the VPM
          * size requirements.
          */
-        prog_data->uses_pid = (c->s->info.system_values_read &
-                               (1ull << SYSTEM_VALUE_PRIMITIVE_ID));
+        prog_data->uses_pid = BITSET_TEST(c->s->info.system_values_read,
+                                          SYSTEM_VALUE_PRIMITIVE_ID);
 
         /* Output segment size is in sectors (8 rows of 32 bits per channel) */
         prog_data->vpm_output_size = align(c->vpm_output_size, 8) / 8;
@@ -773,6 +794,10 @@ v3d_cs_set_prog_data(struct v3d_compile *c,
                      struct v3d_compute_prog_data *prog_data)
 {
         prog_data->shared_size = c->s->info.cs.shared_size;
+
+        prog_data->local_size[0] = c->s->info.cs.local_size[0];
+        prog_data->local_size[1] = c->s->info.cs.local_size[1];
+        prog_data->local_size[2] = c->s->info.cs.local_size[2];
 }
 
 static void
@@ -954,9 +979,6 @@ v3d_nir_lower_gs_late(struct v3d_compile *c)
 static void
 v3d_nir_lower_vs_late(struct v3d_compile *c)
 {
-        if (c->vs_key->clamp_color)
-                NIR_PASS_V(c->s, nir_lower_clamp_color_outputs);
-
         if (c->key->ucp_enables) {
                 NIR_PASS_V(c->s, nir_lower_clip_vs, c->key->ucp_enables,
                            false, false, NULL);
@@ -971,12 +993,6 @@ v3d_nir_lower_vs_late(struct v3d_compile *c)
 static void
 v3d_nir_lower_fs_late(struct v3d_compile *c)
 {
-        if (c->fs_key->light_twoside)
-                NIR_PASS_V(c->s, nir_lower_two_sided_color, true);
-
-        if (c->fs_key->clamp_color)
-                NIR_PASS_V(c->s, nir_lower_clamp_color_outputs);
-
         /* In OpenGL the fragment shader can't read gl_ClipDistance[], but
          * Vulkan allows it, in which case the SPIR-V compiler will declare
          * VARING_SLOT_CLIP_DIST0 as compact array variable. Pass true as
@@ -987,9 +1003,6 @@ v3d_nir_lower_fs_late(struct v3d_compile *c)
         if (c->key->ucp_enables)
                 NIR_PASS_V(c->s, nir_lower_clip_fs, c->key->ucp_enables, true);
 
-        /* Note: FS input scalarizing must happen after
-         * nir_lower_two_sided_color, which only handles a vec4 at a time.
-         */
         NIR_PASS_V(c->s, nir_lower_io_to_scalar, nir_var_shader_in);
 }
 
@@ -1071,6 +1084,21 @@ v3d_intrinsic_dependency_cb(nir_intrinsic_instr *intr,
         return false;
 }
 
+static bool
+should_split_wrmask(const nir_instr *instr, const void *data)
+{
+        nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+        switch (intr->intrinsic) {
+        case nir_intrinsic_store_ssbo:
+        case nir_intrinsic_store_shared:
+        case nir_intrinsic_store_global:
+        case nir_intrinsic_store_scratch:
+                return true;
+        default:
+                return false;
+        }
+}
+
 static void
 v3d_attempt_compile(struct v3d_compile *c)
 {
@@ -1136,6 +1164,8 @@ v3d_attempt_compile(struct v3d_compile *c)
            NIR_PASS_V(c->s, v3d_nir_lower_robust_buffer_access, c);
         }
 
+        NIR_PASS_V(c->s, nir_lower_wrmasks, should_split_wrmask, c->s);
+
         v3d_optimize_nir(c->s);
 
         /* Do late algebraic optimization to turn add(a, neg(b)) back into
@@ -1154,6 +1184,8 @@ v3d_attempt_compile(struct v3d_compile *c)
         }
 
         NIR_PASS_V(c->s, nir_lower_bool_to_int32);
+        nir_convert_to_lcssa(c->s, true, true);
+        NIR_PASS_V(c->s, nir_divergence_analysis);
         NIR_PASS_V(c->s, nir_convert_from_ssa, true);
 
         struct nir_schedule_options schedule_options = {
@@ -1200,7 +1232,7 @@ v3d_prog_data_size(gl_shader_stage stage)
 int v3d_shaderdb_dump(struct v3d_compile *c,
 		      char **shaderdb_str)
 {
-        if (c == NULL)
+        if (c == NULL || c->compilation_result != V3D_COMPILATION_SUCCEEDED)
                 return -1;
 
         return asprintf(shaderdb_str,
@@ -1231,22 +1263,32 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
 {
         struct v3d_compile *c;
 
-        for (int i = 0; true; i++) {
+        static const char *strategies[] = {
+                "default",
+                "disable TMU pipelining",
+                "fallback scheduler"
+        };
+
+        for (int i = 0; i < ARRAY_SIZE(strategies); i++) {
                 c = vir_compile_init(compiler, key, s,
                                      debug_output, debug_output_data,
                                      program_id, variant_id,
-                                     i > 0 /* fallback_scheduler */);
+                                     i > 0, /* Disable TMU pipelining */
+                                     i > 1  /* Fallback_scheduler */);
 
                 v3d_attempt_compile(c);
 
-                if (i > 0 ||
+                if (i >= ARRAY_SIZE(strategies) - 1 ||
                     c->compilation_result !=
-                    V3D_COMPILATION_FAILED_REGISTER_ALLOCATION)
+                    V3D_COMPILATION_FAILED_REGISTER_ALLOCATION) {
                         break;
+                }
 
+                /* Fallback strategy */
                 char *debug_msg;
                 int ret = asprintf(&debug_msg,
-                                   "Using fallback scheduler for %s",
+                                   "Falling back to strategy '%s' for %s",
+                                   strategies[i + 1],
                                    vir_get_stage_name(c));
 
                 if (ret >= 0) {
@@ -1258,6 +1300,23 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
                 }
 
                 vir_compile_destroy(c);
+        }
+
+        if (unlikely(V3D_DEBUG & V3D_DEBUG_PERF) &&
+            c->compilation_result !=
+            V3D_COMPILATION_FAILED_REGISTER_ALLOCATION &&
+            c->spills > 0) {
+                char *debug_msg;
+                int ret = asprintf(&debug_msg,
+                                   "Compiled %s with %d spills and %d fills",
+                                   vir_get_stage_name(c),
+                                   c->spills, c->fills);
+                fprintf(stderr, "%s\n", debug_msg);
+
+                if (ret >= 0) {
+                        c->debug_output(debug_msg, c->debug_output_data);
+                        free(debug_msg);
+                }
         }
 
         struct v3d_prog_data *prog_data;
@@ -1366,14 +1425,68 @@ vir_get_uniform_index(struct v3d_compile *c,
         return uniform;
 }
 
+/* Looks back into the current block to find the ldunif that wrote the uniform
+ * at the requested index. If it finds it, it returns true and writes the
+ * destination register of the ldunif instruction to 'unif'.
+ *
+ * This can impact register pressure and end up leading to worse code, so we
+ * limit the number of instructions we are willing to look back through to
+ * strike a good balance.
+ */
+static bool
+try_opt_ldunif(struct v3d_compile *c, uint32_t index, struct qreg *unif)
+{
+        uint32_t count = 20;
+        struct qinst *prev_inst = NULL;
+        list_for_each_entry_from_rev(struct qinst, inst, c->cursor.link->prev,
+                                     &c->cur_block->instructions, link) {
+                if ((inst->qpu.sig.ldunif || inst->qpu.sig.ldunifrf) &&
+                    inst->uniform == index) {
+                        prev_inst = inst;
+                        break;
+                }
+
+                if (--count == 0)
+                        break;
+        }
+
+        if (!prev_inst)
+                return false;
+
+
+        list_for_each_entry_from(struct qinst, inst, prev_inst->link.next,
+                                 &c->cur_block->instructions, link) {
+                if (inst->dst.file == prev_inst->dst.file &&
+                    inst->dst.index == prev_inst->dst.index) {
+                        return false;
+                }
+        }
+
+        *unif = prev_inst->dst;
+        return true;
+}
+
 struct qreg
 vir_uniform(struct v3d_compile *c,
             enum quniform_contents contents,
             uint32_t data)
 {
+        const int num_uniforms = c->num_uniforms;
+        const int index = vir_get_uniform_index(c, contents, data);
+
+        /* If this is not the first time we see this uniform try to reuse the
+         * result of the last ldunif that loaded it.
+         */
+        const bool is_new_uniform = num_uniforms != c->num_uniforms;
+        if (!is_new_uniform && !c->disable_ldunif_opt) {
+                struct qreg ldunif_dst;
+                if (try_opt_ldunif(c, index, &ldunif_dst))
+                        return ldunif_dst;
+        }
+
         struct qinst *inst = vir_NOP(c);
         inst->qpu.sig.ldunif = true;
-        inst->uniform = vir_get_uniform_index(c, contents, data);
+        inst->uniform = index;
         inst->dst = vir_get_temp(c);
         c->defs[inst->dst.index] = inst;
         return inst->dst;
@@ -1406,6 +1519,7 @@ vir_optimize(struct v3d_compile *c)
                 OPTPASS(vir_opt_redundant_flags);
                 OPTPASS(vir_opt_dead_code);
                 OPTPASS(vir_opt_small_immediates);
+                OPTPASS(vir_opt_constant_alu);
 
                 if (!progress)
                         break;

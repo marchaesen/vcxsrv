@@ -25,6 +25,7 @@
  *
  **************************************************************************/
 
+#include "drm-uapi/drm_fourcc.h"
 #include "radeon/radeon_uvd.h"
 #include "radeon/radeon_uvd_enc.h"
 #include "radeon/radeon_vce.h"
@@ -41,10 +42,20 @@ struct pipe_video_buffer *si_video_buffer_create(struct pipe_context *pipe,
                                                  const struct pipe_video_buffer *tmpl)
 {
    struct pipe_video_buffer vidbuf = *tmpl;
+   uint64_t *modifiers = NULL;
+   int modifiers_count = 0;
+   uint64_t mod = DRM_FORMAT_MOD_LINEAR;
+
    /* TODO: get tiling working */
    vidbuf.bind |= PIPE_BIND_LINEAR;
 
-   return vl_video_buffer_create_as_resource(pipe, &vidbuf);
+   if (pipe->screen->resource_create_with_modifiers) {
+      modifiers = &mod;
+      modifiers_count = 1;
+   }
+
+   return vl_video_buffer_create_as_resource(pipe, &vidbuf, modifiers,
+                                             modifiers_count);
 }
 
 /* set the decoding target buffer offsets */

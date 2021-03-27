@@ -101,8 +101,26 @@ v3dv_cl_ensure_space(struct v3dv_cl *cl, uint32_t space, uint32_t alignment)
 void
 v3dv_cl_ensure_space_with_branch(struct v3dv_cl *cl, uint32_t space)
 {
-   if (v3dv_cl_offset(cl) + space + cl_packet_length(BRANCH) <= cl->size)
+   /* We do not want to emit branches from secondary command lists, instead,
+    * we will branch to them when we execute them in a primary using
+    * 'branch to sub list' commands, expecting each linked secondary to
+    * end with a 'return from sub list' command.
+    */
+   bool needs_return_from_sub_list = false;
+   if (cl->job->type == V3DV_JOB_TYPE_GPU_CL_SECONDARY) {
+      if (cl->size > 0) {
+         needs_return_from_sub_list = true;
+         space += cl_packet_length(RETURN_FROM_SUB_LIST);
+      }
+   } else {
+      space += cl_packet_length(BRANCH);
+   }
+
+   if (v3dv_cl_offset(cl) + space <= cl->size)
       return;
 
-   cl_alloc_bo(cl, space, true);
+   if (needs_return_from_sub_list)
+      cl_emit(cl, RETURN_FROM_SUB_LIST, ret);
+
+   cl_alloc_bo(cl, space, !needs_return_from_sub_list);
 }

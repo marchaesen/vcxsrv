@@ -76,7 +76,7 @@ glthread_unmarshal_batch(void *job, int thread_index)
    unsigned batch_index = batch - ctx->GLThread.batches;
    /* Atomically set this to -1 if it's equal to batch_index. */
    p_atomic_cmpxchg(&ctx->GLThread.LastProgramChangeBatch, batch_index, -1);
-
+   p_atomic_cmpxchg(&ctx->GLThread.LastDListChangeBatchIndex, batch_index, -1);
 }
 
 static void
@@ -138,6 +138,8 @@ _mesa_glthread_init(struct gl_context *ctx)
                                      ctx->Const.VertexBufferOffsetIsInt32;
 
    ctx->CurrentClientDispatch = ctx->MarshalExec;
+
+   glthread->LastDListChangeBatchIndex = -1;
 
    /* Execute the thread initialization function in the thread. */
    struct util_queue_fence fence;
@@ -214,18 +216,18 @@ _mesa_glthread_flush_batch(struct gl_context *ctx)
    /* Pin threads regularly to the same Zen CCX that the main thread is
     * running on. The main thread can move between CCXs.
     */
-   if (util_cpu_caps.nr_cpus != util_cpu_caps.cores_per_L3 &&
+   if (util_get_cpu_caps()->nr_cpus != util_get_cpu_caps()->cores_per_L3 &&
        /* driver support */
        ctx->Driver.PinDriverToL3Cache &&
        ++glthread->pin_thread_counter % 128 == 0) {
       int cpu = util_get_current_cpu();
 
       if (cpu >= 0) {
-         unsigned L3_cache = util_cpu_caps.cpu_to_L3[cpu];
+         unsigned L3_cache = util_get_cpu_caps()->cpu_to_L3[cpu];
 
          util_set_thread_affinity(glthread->queue.threads[0],
-                                  util_cpu_caps.L3_affinity_mask[L3_cache],
-                                  NULL, UTIL_MAX_CPUS);
+                                  util_get_cpu_caps()->L3_affinity_mask[L3_cache],
+                                  NULL, util_get_cpu_caps()->num_cpu_mask_bits);
          ctx->Driver.PinDriverToL3Cache(ctx, L3_cache);
       }
    }

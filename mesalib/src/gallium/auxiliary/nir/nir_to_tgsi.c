@@ -42,12 +42,11 @@ struct ntt_compile {
    bool needs_texcoord_semantic;
    bool any_reg_as_address;
    bool native_integers;
+   bool has_txf_lz;
 
    int next_addr_reg;
    bool addr_declared[2];
    struct ureg_dst addr_reg[2];
-
-   unsigned loop_label;
 
    /* if condition set up at the end of a block, for ntt_emit_if(). */
    struct ureg_src if_cond;
@@ -163,6 +162,124 @@ ntt_tgsi_var_usage_mask(const struct nir_variable *var)
                               glsl_type_is_64bit(type_without_array));
 }
 
+static struct ureg_dst
+ntt_store_output_decl(struct ntt_compile *c, nir_intrinsic_instr *instr, uint32_t *frac)
+{
+   nir_io_semantics semantics = nir_intrinsic_io_semantics(instr);
+   int base = nir_intrinsic_base(instr);
+   *frac = nir_intrinsic_component(instr);
+   bool is_64 = nir_src_bit_size(instr->src[0]) == 64;
+
+   struct ureg_dst out;
+   if (c->s->info.stage == MESA_SHADER_FRAGMENT) {
+      if (semantics.location == FRAG_RESULT_COLOR)
+         ureg_property(c->ureg, TGSI_PROPERTY_FS_COLOR0_WRITES_ALL_CBUFS, 1);
+
+      unsigned semantic_name, semantic_index;
+      tgsi_get_gl_frag_result_semantic(semantics.location,
+                                       &semantic_name, &semantic_index);
+      semantic_index += semantics.dual_source_blend_index;
+
+      switch (semantics.location) {
+      case FRAG_RESULT_DEPTH:
+         *frac = 2; /* z write is the to the .z channel in TGSI */
+         break;
+      case FRAG_RESULT_STENCIL:
+         *frac = 1;
+         break;
+      default:
+         break;
+      }
+
+      out = ureg_DECL_output(c->ureg, semantic_name, semantic_index);
+   } else {
+      unsigned semantic_name, semantic_index;
+
+      ntt_get_gl_varying_semantic(c, semantics.location,
+                                  &semantic_name, &semantic_index);
+
+      uint32_t usage_mask = ntt_tgsi_usage_mask(*frac,
+                                                instr->num_components,
+                                                is_64);
+      uint32_t gs_streams = semantics.gs_streams;
+      for (int i = 0; i < 4; i++) {
+         if (!(usage_mask & (1 << i)))
+            gs_streams &= ~(0x3 << 2 * i);
+      }
+
+      /* No driver appears to use array_id of outputs. */
+      unsigned array_id = 0;
+
+      /* This bit is lost in the i/o semantics, but it's unused in in-tree
+       * drivers.
+       */
+      bool invariant = false;
+
+      out = ureg_DECL_output_layout(c->ureg,
+                                    semantic_name, semantic_index,
+                                    gs_streams,
+                                    base,
+                                    usage_mask,
+                                    array_id,
+                                    semantics.num_slots,
+                                    invariant);
+   }
+
+   unsigned write_mask = nir_intrinsic_write_mask(instr);
+
+   if (is_64) {
+      write_mask = ntt_64bit_write_mask(write_mask);
+      if (*frac >= 2)
+         write_mask = write_mask << 2;
+   } else {
+      write_mask = write_mask << *frac;
+   }
+   return ureg_writemask(out, write_mask);
+}
+
+/* If this reg or SSA def is used only for storing an output, then in the simple
+ * cases we can write directly to the TGSI output instead of having store_output
+ * emit its own MOV.
+ */
+static bool
+ntt_try_store_in_tgsi_output(struct ntt_compile *c, struct ureg_dst *dst,
+                             struct list_head *uses, struct list_head *if_uses)
+{
+   *dst = ureg_dst_undef();
+
+   switch (c->s->info.stage) {
+   case MESA_SHADER_FRAGMENT:
+   case MESA_SHADER_VERTEX:
+      break;
+   default:
+      /* tgsi_exec (at least) requires that output stores happen per vertex
+       * emitted, you don't get to reuse a previous output value for the next
+       * vertex.
+       */
+      return false;
+   }
+
+   if (!list_is_empty(if_uses) || !list_is_singular(uses))
+      return false;
+
+   nir_src *src = list_first_entry(uses, nir_src, use_link);
+
+   if (src->parent_instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(src->parent_instr);
+   if (intr->intrinsic != nir_intrinsic_store_output ||
+       !nir_src_is_const(intr->src[1])) {
+      return false;
+   }
+
+   uint32_t frac;
+   *dst = ntt_store_output_decl(c, intr, &frac);
+   dst->Index += nir_src_as_uint(intr->src[1]);
+
+   return frac == 0;
+}
+
 static void
 ntt_setup_inputs(struct ntt_compile *c)
 {
@@ -259,8 +376,6 @@ ntt_setup_uniforms(struct ntt_compile *c)
                                                         var->data.image.format,
                                                         !var->data.read_only,
                                                         false);
-      } else if (var->data.mode == nir_var_mem_ubo) {
-         ureg_DECL_constant2D(c->ureg, 0, 0, var->data.driver_location + 1);
       } else {
          unsigned size;
          if (packed) {
@@ -275,8 +390,20 @@ ntt_setup_uniforms(struct ntt_compile *c)
       }
    }
 
+   nir_foreach_variable_with_modes(var, c->s, nir_var_mem_ubo) {
+      ureg_DECL_constant2D(c->ureg, 0, 0, var->data.driver_location);
+   }
+
+   nir_foreach_variable_with_modes(var, c->s, nir_var_mem_ssbo) {
+      /* XXX: nv50 uses the atomic flag to set caching for (lowered) atomic
+       * counters
+       */
+      bool atomic = false;
+      ureg_DECL_buffer(c->ureg, var->data.binding, atomic);
+   }
+
    for (int i = 0; i < PIPE_MAX_SAMPLERS; i++) {
-      if (c->s->info.textures_used & (1 << i))
+      if (BITSET_TEST(c->s->info.textures_used, i))
          ureg_DECL_sampler(c->ureg, i);
    }
 }
@@ -288,16 +415,18 @@ ntt_setup_registers(struct ntt_compile *c, struct exec_list *list)
       struct ureg_dst decl;
       if (nir_reg->num_array_elems == 0) {
          uint32_t write_mask = BITFIELD_MASK(nir_reg->num_components);
-         if (nir_reg->bit_size == 64) {
-            if (nir_reg->num_components > 2) {
-               fprintf(stderr, "NIR-to-TGSI: error: %d-component NIR r%d\n",
-                       nir_reg->num_components, nir_reg->index);
+         if (!ntt_try_store_in_tgsi_output(c, &decl, &nir_reg->uses, &nir_reg->if_uses)) {
+            if (nir_reg->bit_size == 64) {
+               if (nir_reg->num_components > 2) {
+                  fprintf(stderr, "NIR-to-TGSI: error: %d-component NIR r%d\n",
+                        nir_reg->num_components, nir_reg->index);
+               }
+
+               write_mask = ntt_64bit_write_mask(write_mask);
             }
 
-            write_mask = ntt_64bit_write_mask(write_mask);
+            decl = ureg_writemask(ureg_DECL_temporary(c->ureg), write_mask);
          }
-
-         decl = ureg_writemask(ureg_DECL_temporary(c->ureg), write_mask);
       } else {
          decl = ureg_DECL_array_temporary(c->ureg, nir_reg->num_array_elems,
                                           true);
@@ -428,16 +557,33 @@ ntt_get_alu_src(struct ntt_compile *c, nir_alu_instr *instr, int i)
    return usrc;
 }
 
+/* Reswizzles a source so that the unset channels in the write mask still refer
+ * to one of the channels present in the write mask.
+ */
+static struct ureg_src
+ntt_swizzle_for_write_mask(struct ureg_src src, uint32_t write_mask)
+{
+   assert(write_mask);
+   int first_chan = ffs(write_mask) - 1;
+   return ureg_swizzle(src,
+                       (write_mask & TGSI_WRITEMASK_X) ? TGSI_SWIZZLE_X : first_chan,
+                       (write_mask & TGSI_WRITEMASK_Y) ? TGSI_SWIZZLE_Y : first_chan,
+                       (write_mask & TGSI_WRITEMASK_Z) ? TGSI_SWIZZLE_Z : first_chan,
+                       (write_mask & TGSI_WRITEMASK_W) ? TGSI_SWIZZLE_W : first_chan);
+}
+
 static struct ureg_dst *
 ntt_get_ssa_def_decl(struct ntt_compile *c, nir_ssa_def *ssa)
 {
-   struct ureg_dst temp = ureg_DECL_temporary(c->ureg);
-
    uint32_t writemask = BITSET_MASK(ssa->num_components);
    if (ssa->bit_size == 64)
       writemask = ntt_64bit_write_mask(writemask);
 
-   c->ssa_temp[ssa->index] = ureg_writemask(temp, writemask);
+   struct ureg_dst dst;
+   if (!ntt_try_store_in_tgsi_output(c, &dst, &ssa->uses, &ssa->if_uses))
+      dst = ureg_DECL_temporary(c->ureg);
+
+   c->ssa_temp[ssa->index] = ureg_writemask(dst, writemask);
 
    return &c->ssa_temp[ssa->index];
 }
@@ -553,9 +699,9 @@ ntt_emit_alu(struct ntt_compile *c, nir_alu_instr *instr)
       dst.Saturate = true;
 
    if (dst_64)
-      dst.WriteMask = ntt_64bit_write_mask(instr->dest.write_mask);
+      dst = ureg_writemask(dst, ntt_64bit_write_mask(instr->dest.write_mask));
    else
-      dst.WriteMask = instr->dest.write_mask;
+      dst = ureg_writemask(dst, instr->dest.write_mask);
 
    static enum tgsi_opcode op_map[][2] = {
       [nir_op_mov] = { TGSI_OPCODE_MOV, TGSI_OPCODE_MOV },
@@ -813,8 +959,6 @@ ntt_emit_alu(struct ntt_compile *c, nir_alu_instr *instr)
          ureg_UADD(c->ureg, dst, src[0], ureg_negate(src[1]));
          break;
 
-         /* XXX: carry */
-
       case nir_op_fmod:
          unreachable("should be handled by .lower_fmod = true");
          break;
@@ -868,7 +1012,7 @@ ntt_emit_alu(struct ntt_compile *c, nir_alu_instr *instr)
           * However, fcsel so far as I can find only appears on
           * bools-as-floats (1.0 or 0.0), so we can negate it for the TGSI op.
           */
-         ureg_CMP(c->ureg, dst, ureg_negate(src[0]), src[2], src[1]);
+         ureg_CMP(c->ureg, dst, ureg_negate(ureg_abs(src[0])), src[1], src[2]);
          break;
 
          /* It would be nice if we could get this left as scalar in NIR, since
@@ -975,23 +1119,27 @@ ntt_ureg_src_dimension_indirect(struct ntt_compile *c, struct ureg_src usrc,
 {
    if (nir_src_is_const(src)) {
       return ureg_src_dimension(usrc, nir_src_as_uint(src));
-   } else {
+   }
+   else
+   {
       return ureg_src_dimension_indirect(usrc,
                                          ntt_reladdr(c, ntt_get_src(c, src)),
-                                         1);
+                                         0);
    }
 }
 
-static void
-ntt_emit_load_uniform(struct ntt_compile *c, nir_intrinsic_instr *instr)
+static struct ureg_dst
+ntt_ureg_dst_dimension_indirect(struct ntt_compile *c, struct ureg_dst udst,
+                                nir_src src)
 {
-   struct ureg_src src =
-      ntt_ureg_src_indirect(c, ureg_src_register(TGSI_FILE_CONSTANT,
-                                                 nir_intrinsic_base(instr)),
-                            instr->src[0]);
-   ntt_store(c, &instr->dest, src);
+   if (nir_src_is_const(src)) {
+      return ureg_dst_dimension(udst, nir_src_as_uint(src));
+   } else {
+      return ureg_dst_dimension_indirect(udst,
+                                         ntt_reladdr(c, ntt_get_src(c, src)),
+                                         0);
+   }
 }
-
 /* Some load operations in NIR will have a fractional offset that we need to
  * swizzle down before storing to the result register.
  */
@@ -1005,45 +1153,53 @@ ntt_shift_by_frac(struct ureg_src src, unsigned frac, unsigned num_components)
                        frac + MIN2(num_components - 1, 3));
 }
 
-/* PIPE_CAP_LOAD_CONSTBUF */
+
 static void
 ntt_emit_load_ubo(struct ntt_compile *c, nir_intrinsic_instr *instr)
-{
-   /* XXX: Emit a TGSI_OPCODE_LOAD instr. */
-}
-
-/* !PIPE_CAP_LOAD_CONSTBUF */
-static void
-ntt_emit_load_ubo_vec4(struct ntt_compile *c, nir_intrinsic_instr *instr)
 {
    int bit_size = nir_dest_bit_size(instr->dest);
    assert(bit_size == 32 || instr->num_components <= 2);
 
-   struct ureg_src src;
-   if (nir_src_is_const(instr->src[1])) {
-      src = ureg_src_register(TGSI_FILE_CONSTANT,
-                              nir_src_as_uint(instr->src[1]));
+   struct ureg_src src = ureg_src_register(TGSI_FILE_CONSTANT, 0);
+
+   src = ntt_ureg_src_dimension_indirect(c, src, instr->src[0]);
+
+   if (instr->intrinsic == nir_intrinsic_load_ubo_vec4) {
+      /* !PIPE_CAP_LOAD_CONSTBUF: Just emit it as a vec4 reference to the const
+       * file.
+       */
+
+      if (nir_src_is_const(instr->src[1])) {
+         src.Index += nir_src_as_uint(instr->src[1]);
+      } else {
+         src = ureg_src_indirect(src, ntt_reladdr(c, ntt_get_src(c, instr->src[1])));
+      }
+
+      int start_component = nir_intrinsic_component(instr);
+      if (bit_size == 64)
+         start_component *= 2;
+
+      src = ntt_shift_by_frac(src, start_component,
+                              instr->num_components * bit_size / 32);
+
+      ntt_store(c, &instr->dest, src);
    } else {
-      src = ureg_src_indirect(ureg_src_register(TGSI_FILE_CONSTANT, 0),
-                              ntt_reladdr(c, ntt_get_src(c, instr->src[1])));
+      /* PIPE_CAP_LOAD_CONSTBUF: Not necessarily vec4 aligned, emit a
+       * TGSI_OPCODE_LOAD instruction from the const file.
+       */
+      struct ureg_dst dst = ntt_get_dest(c, &instr->dest);
+      struct ureg_src srcs[2] = {
+          src,
+          ntt_get_src(c, instr->src[1]),
+      };
+      ureg_memory_insn(c->ureg, TGSI_OPCODE_LOAD,
+                       &dst, 1,
+                       srcs, ARRAY_SIZE(srcs),
+                       0 /* qualifier */,
+                       0 /* tex target */,
+                       0 /* format: unused */
+      );
    }
-
-   int start_component = nir_intrinsic_component(instr);
-   if (bit_size == 64)
-      start_component *= 2;
-
-   src = ntt_shift_by_frac(src, start_component,
-                           instr->num_components * bit_size / 32);
-
-   if (nir_src_is_const(instr->src[0])) {
-      src = ureg_src_dimension(src, nir_src_as_uint(instr->src[0]) + 1);
-   } else {
-      struct ureg_src block_index = ntt_get_src(c, instr->src[0]);
-
-      src = ureg_src_dimension_indirect(src, ntt_reladdr(c, block_index), 1);
-   }
-
-   ntt_store(c, &instr->dest, src);
 }
 
 static unsigned
@@ -1078,9 +1234,6 @@ ntt_emit_mem(struct ntt_compile *c, nir_intrinsic_instr *instr,
    struct ureg_src memory;
    switch (mode) {
    case nir_var_mem_ssbo:
-      /* XXX: TGSI should have BUFFER declarations for the SSBOs.  Needed for
-       * r600, nv50, llvmpipe.
-       */
       memory = ntt_ureg_src_indirect(c, ureg_src_register(TGSI_FILE_BUFFER, 0),
                                      instr->src[is_store ? 1 : 0]);
       nir_src = 1;
@@ -1218,12 +1371,14 @@ static void
 ntt_emit_image_load_store(struct ntt_compile *c, nir_intrinsic_instr *instr)
 {
    unsigned op;
-   struct ureg_src srcs[3];
+   struct ureg_src srcs[4];
    int num_src = 0;
+   enum glsl_sampler_dim dim = nir_intrinsic_image_dim(instr);
+   bool is_array = nir_intrinsic_image_array(instr);
 
-   enum tgsi_texture_type target =
-      tgsi_target_from_sampler_dim(nir_intrinsic_image_dim(instr),
-                                   nir_intrinsic_image_array(instr));
+   struct ureg_dst temp = ureg_dst_undef();
+
+   enum tgsi_texture_type target = tgsi_target_from_sampler_dim(dim, is_array);
 
    struct ureg_src resource =
       ntt_ureg_src_indirect(c, ureg_src_register(TGSI_FILE_IMAGE, 0),
@@ -1238,8 +1393,17 @@ ntt_emit_image_load_store(struct ntt_compile *c, nir_intrinsic_instr *instr)
    }
 
    if (instr->intrinsic != nir_intrinsic_image_size) {
-      srcs[num_src++] = ntt_get_src(c, instr->src[1]); /* coord */
-      /* XXX: src[2] sample index to coord.z (2d) or coord.w (2darray) */
+      struct ureg_src coord = ntt_get_src(c, instr->src[1]);
+
+      if (dim == GLSL_SAMPLER_DIM_MS) {
+         temp = ureg_DECL_temporary(c->ureg);
+         ureg_MOV(c->ureg, temp, coord);
+         ureg_MOV(c->ureg, ureg_writemask(temp, 1 << (is_array ? 3 : 2)),
+                  ureg_scalar(ntt_get_src(c, instr->src[2]), TGSI_SWIZZLE_X));
+         coord = ureg_src(temp);
+      }
+      srcs[num_src++] = coord;
+
       if (instr->intrinsic != nir_intrinsic_image_load) {
          srcs[num_src++] = ntt_get_src(c, instr->src[3]); /* data */
          if (instr->intrinsic == nir_intrinsic_image_atomic_comp_swap)
@@ -1298,6 +1462,9 @@ ntt_emit_image_load_store(struct ntt_compile *c, nir_intrinsic_instr *instr)
                     ntt_get_access_qualifier(instr),
                     target,
                     nir_intrinsic_format(instr));
+
+   if (!ureg_dst_is_undef(temp))
+      ureg_release_temporary(c->ureg, temp);
 }
 
 static void
@@ -1402,91 +1569,33 @@ ntt_emit_load_input(struct ntt_compile *c, nir_intrinsic_instr *instr)
 static void
 ntt_emit_store_output(struct ntt_compile *c, nir_intrinsic_instr *instr)
 {
-   /* TODO: When making an SSA def's storage, we should check if it's only
-    * used as the source of a store_output and point it at our
-    * TGSI_FILE_OUTPUT instead of generating the extra MOV here.
-    */
-   uint32_t base = nir_intrinsic_base(instr);
    struct ureg_src src = ntt_get_src(c, instr->src[0]);
-   bool is_64 = nir_src_bit_size(instr->src[0]) == 64;
-   struct ureg_dst out;
-   nir_io_semantics semantics = nir_intrinsic_io_semantics(instr);
-   uint32_t frac = nir_intrinsic_component(instr);
 
-   if (c->s->info.stage == MESA_SHADER_FRAGMENT) {
-      if (semantics.location == FRAG_RESULT_COLOR)
-         ureg_property(c->ureg, TGSI_PROPERTY_FS_COLOR0_WRITES_ALL_CBUFS, 1);
-
-      unsigned semantic_name, semantic_index;
-      tgsi_get_gl_frag_result_semantic(semantics.location,
-                                       &semantic_name, &semantic_index);
-      semantic_index += semantics.dual_source_blend_index;
-
-      out = ureg_DECL_output(c->ureg, semantic_name, semantic_index);
-
-      switch (semantics.location) {
-      case FRAG_RESULT_DEPTH:
-         frac = 2; /* z write is the to the .z channel in TGSI */
-         break;
-      case FRAG_RESULT_STENCIL:
-         frac = 1;
-         break;
-      default:
-         break;
-      }
-   } else {
-      unsigned semantic_name, semantic_index;
-
-      ntt_get_gl_varying_semantic(c, semantics.location,
-                                  &semantic_name, &semantic_index);
-
-      uint32_t usage_mask = ntt_tgsi_usage_mask(frac,
-                                                instr->num_components,
-                                                is_64);
-      uint32_t gs_streams = semantics.gs_streams;
-      for (int i = 0; i < 4; i++) {
-         if (!(usage_mask & (1 << i)))
-            gs_streams &= ~(0x3 << 2 * i);
-      }
-
-      /* XXX: array_id is used in svga tess. */
-      unsigned array_id = 0;
-
-      /* This bit is lost in the i/o semantics, but it's unused in in-tree
-       * drivers.
+   if (src.File == TGSI_FILE_OUTPUT) {
+      /* If our src is the output file, that's an indication that we were able
+       * to emit the output stores in the generating instructions and we have
+       * nothing to do here.
        */
-      bool invariant = false;
-
-      out = ureg_DECL_output_layout(c->ureg,
-                                    semantic_name, semantic_index,
-                                    gs_streams,
-                                    base,
-                                    usage_mask,
-                                    array_id,
-                                    semantics.num_slots,
-                                    invariant);
+      return;
    }
 
-   out = ntt_ureg_dst_indirect(c, out, instr->src[1]);
+   uint32_t frac;
+   struct ureg_dst out = ntt_store_output_decl(c, instr, &frac);
 
-   unsigned write_mask = nir_intrinsic_write_mask(instr);
-
-   if (is_64) {
-      write_mask = ntt_64bit_write_mask(write_mask);
-      if (frac >= 2)
-         write_mask = write_mask << 2;
+   if (instr->intrinsic == nir_intrinsic_store_per_vertex_output) {
+      out = ntt_ureg_dst_indirect(c, out, instr->src[2]);
+      out = ntt_ureg_dst_dimension_indirect(c, out, instr->src[1]);
    } else {
-      write_mask = write_mask << frac;
+      out = ntt_ureg_dst_indirect(c, out, instr->src[1]);
    }
 
    uint8_t swizzle[4] = { 0, 0, 0, 0 };
    for (int i = frac; i <= 4; i++) {
-      if (write_mask & (1 << i))
+      if (out.WriteMask & (1 << i))
          swizzle[i] = i - frac;
    }
 
    src = ureg_swizzle(src, swizzle[0], swizzle[1], swizzle[2], swizzle[3]);
-   out = ureg_writemask(out, write_mask);
 
    ureg_MOV(c->ureg, out, src);
    ntt_reladdr_dst_put(c, out);
@@ -1497,23 +1606,25 @@ ntt_emit_load_sysval(struct ntt_compile *c, nir_intrinsic_instr *instr)
 {
    gl_system_value sysval = nir_system_value_from_intrinsic(instr->intrinsic);
    enum tgsi_semantic semantic = tgsi_get_sysval_semantic(sysval);
-   ntt_store(c, &instr->dest, ureg_DECL_system_value(c->ureg, semantic, 0));
+   struct ureg_src sv = ureg_DECL_system_value(c->ureg, semantic, 0);
+
+   /* virglrenderer doesn't like references to channels of the sysval that
+    * aren't defined, even if they aren't really read.  (GLSL compile fails on
+    * gl_NumWorkGroups.w, for example).
+    */
+   uint32_t write_mask = BITSET_MASK(nir_dest_num_components(instr->dest));
+   sv = ntt_swizzle_for_write_mask(sv, write_mask);
+
+   ntt_store(c, &instr->dest, sv);
 }
 
 static void
 ntt_emit_intrinsic(struct ntt_compile *c, nir_intrinsic_instr *instr)
 {
    switch (instr->intrinsic) {
-   case nir_intrinsic_load_uniform:
-      ntt_emit_load_uniform(c, instr);
-      break;
-
    case nir_intrinsic_load_ubo:
-      ntt_emit_load_ubo(c, instr);
-      break;
-
    case nir_intrinsic_load_ubo_vec4:
-      ntt_emit_load_ubo_vec4(c, instr);
+      ntt_emit_load_ubo(c, instr);
       break;
 
       /* Vertex */
@@ -1555,6 +1666,7 @@ ntt_emit_intrinsic(struct ntt_compile *c, nir_intrinsic_instr *instr)
       break;
 
    case nir_intrinsic_store_output:
+   case nir_intrinsic_store_per_vertex_output:
       ntt_emit_store_output(c, instr);
       break;
 
@@ -1770,8 +1882,16 @@ ntt_emit_texture(struct ntt_compile *c, nir_tex_instr *instr)
       break;
    case nir_texop_txf:
    case nir_texop_txf_ms:
-      /* XXX: Support txf_lz */
       tex_opcode = TGSI_OPCODE_TXF;
+
+      if (c->has_txf_lz) {
+         int lod_src = nir_tex_instr_src_index(instr, nir_tex_src_lod);
+         if (lod_src >= 0 &&
+             nir_src_is_const(instr->src[lod_src].src) &&
+             nir_src_as_uint(instr->src[lod_src].src) == 0) {
+            tex_opcode = TGSI_OPCODE_TXF_LZ;
+         }
+      }
       break;
    case nir_texop_txl:
       tex_opcode = TGSI_OPCODE_TXL;
@@ -1810,7 +1930,8 @@ ntt_emit_texture(struct ntt_compile *c, nir_tex_instr *instr)
    s.chan = MAX2(s.chan, 3);
 
    ntt_push_tex_arg(c, instr, nir_tex_src_bias, &s);
-   ntt_push_tex_arg(c, instr, nir_tex_src_lod, &s);
+   if (tex_opcode != TGSI_OPCODE_TXF_LZ)
+      ntt_push_tex_arg(c, instr, nir_tex_src_lod, &s);
 
    /* End of packed src setup, everything that follows gets its own operand. */
    if (s.chan)
@@ -1920,13 +2041,13 @@ ntt_emit_texture(struct ntt_compile *c, nir_tex_instr *instr)
 
    enum tgsi_return_type tex_type;
    switch (instr->dest_type) {
-   case nir_type_float:
+   case nir_type_float32:
       tex_type = TGSI_RETURN_TYPE_FLOAT;
       break;
-   case nir_type_int:
+   case nir_type_int32:
       tex_type = TGSI_RETURN_TYPE_SINT;
       break;
-   case nir_type_uint:
+   case nir_type_uint32:
       tex_type = TGSI_RETURN_TYPE_UINT;
       break;
    default:
@@ -2066,20 +2187,16 @@ ntt_emit_if(struct ntt_compile *c, nir_if *if_stmt)
 static void
 ntt_emit_loop(struct ntt_compile *c, nir_loop *loop)
 {
-   unsigned last_loop_label = c->loop_label;
-
+   /* GLSL-to-TGSI never set the begin/end labels to anything, even though nvfx
+    * does reference BGNLOOP's.  Follow the former behavior unless something comes up
+    * with a need.
+    */
    unsigned begin_label;
    ureg_BGNLOOP(c->ureg, &begin_label);
    ntt_emit_cf_list(c, &loop->body);
 
-   /* XXX: Need to set cont/break labels for svga, nv30, nv50.
-    *
-    * ureg_fixup_label(c->ureg, label, ureg_get_instruction_number(c->ureg));
-    */
    unsigned end_label;
    ureg_ENDLOOP(c->ureg, &end_label);
-
-   c->loop_label = last_loop_label;
 }
 
 static void
@@ -2123,10 +2240,13 @@ ntt_emit_block(struct ntt_compile *c, nir_block *block)
    /* Set up the if condition for ntt_emit_if(), which we have to do before
     * freeing up the temps (the "if" is treated as inside the block for liveness
     * purposes, despite not being an instruction)
+    *
+    * Note that, while IF and UIF are supposed to look at only .x, virglrenderer
+    * looks at all of .xyzw.  No harm in working around the bug.
     */
    nir_if *nif = nir_block_get_following_if(block);
    if (nif)
-      c->if_cond = ntt_get_src(c, nif->condition);
+      c->if_cond = ureg_scalar(ntt_get_src(c, nif->condition), TGSI_SWIZZLE_X);
 
    /* Free up any SSA temps that are unused at the end of the block. */
    unsigned index;
@@ -2176,6 +2296,9 @@ ntt_emit_impl(struct ntt_compile *c, nir_function_impl *impl)
 
    ntt_setup_registers(c, &impl->registers);
    ntt_emit_cf_list(c, &impl->body);
+
+   ralloc_free(c->liveness);
+   c->liveness = NULL;
 }
 
 static int
@@ -2195,6 +2318,22 @@ ntt_should_vectorize_instr(const nir_instr *instr, void *data)
 
    nir_alu_instr *alu = nir_instr_as_alu(instr);
 
+   switch (alu->op) {
+   case nir_op_ibitfield_extract:
+   case nir_op_ubitfield_extract:
+   case nir_op_bitfield_insert:
+      /* virglrenderer only looks at the .x channel of the offset/bits operands
+       * when translating to GLSL.  tgsi.rst doesn't seem to require scalar
+       * offset/bits operands.
+       *
+       * https://gitlab.freedesktop.org/virgl/virglrenderer/-/issues/195
+       */
+      return false;
+
+   default:
+      break;
+   }
+
    unsigned num_components = alu->dest.dest.ssa.num_components;
 
    int src_bit_size = nir_src_bit_size(alu->src[0].src);
@@ -2211,7 +2350,8 @@ ntt_should_vectorize_instr(const nir_instr *instr, void *data)
 static bool
 ntt_should_vectorize_io(unsigned align, unsigned bit_size,
                         unsigned num_components, unsigned high_offset,
-                        nir_intrinsic_instr *low, nir_intrinsic_instr *high)
+                        nir_intrinsic_instr *low, nir_intrinsic_instr *high,
+                        void *data)
 {
    if (bit_size != 32)
       return false;
@@ -2282,9 +2422,13 @@ ntt_optimize_nir(struct nir_shader *s, struct pipe_screen *screen)
                control_flow_depth == 0 ? ~0 : 8, true, true);
       NIR_PASS(progress, s, nir_opt_algebraic);
       NIR_PASS(progress, s, nir_opt_constant_folding);
-      NIR_PASS(progress, s, nir_opt_load_store_vectorize, nir_var_mem_ubo,
-               ntt_should_vectorize_io, 0);
-      NIR_PASS(progress, s, nir_opt_shrink_vectors);
+      nir_load_store_vectorize_options vectorize_opts = {
+         .modes = nir_var_mem_ubo,
+         .callback = ntt_should_vectorize_io,
+         .robust_modes = 0,
+      };
+      NIR_PASS(progress, s, nir_opt_load_store_vectorize, &vectorize_opts);
+      NIR_PASS(progress, s, nir_opt_shrink_vectors, true);
       NIR_PASS(progress, s, nir_opt_trivial_continues);
       NIR_PASS(progress, s, nir_opt_vectorize, ntt_should_vectorize_instr, NULL);
       NIR_PASS(progress, s, nir_opt_undef);
@@ -2311,7 +2455,6 @@ nir_to_tgsi_lower_64bit_intrinsic(nir_builder *b, nir_intrinsic_instr *instr)
    b->cursor = nir_after_instr(&instr->instr);
 
    switch (instr->intrinsic) {
-   case nir_intrinsic_load_uniform:
    case nir_intrinsic_load_ubo:
    case nir_intrinsic_load_ubo_vec4:
    case nir_intrinsic_load_ssbo:
@@ -2343,10 +2486,6 @@ nir_to_tgsi_lower_64bit_intrinsic(nir_builder *b, nir_intrinsic_instr *instr)
       nir_instr_as_intrinsic(nir_instr_clone(b->shader, &instr->instr));
 
    switch (instr->intrinsic) {
-   case nir_intrinsic_load_uniform:
-      nir_intrinsic_set_base(second, nir_intrinsic_base(second) + 1);
-      break;
-
    case nir_intrinsic_load_ubo:
    case nir_intrinsic_load_ubo_vec4:
    case nir_intrinsic_load_ssbo:
@@ -2383,7 +2522,7 @@ nir_to_tgsi_lower_64bit_intrinsic(nir_builder *b, nir_intrinsic_instr *instr)
          second->num_components > 1 ? nir_channel(b, &second->dest.ssa, 1) : NULL,
       };
       nir_ssa_def *new = nir_vec(b, channels, instr->num_components);
-      nir_ssa_def_rewrite_uses(&instr->dest.ssa, nir_src_for_ssa(new));
+      nir_ssa_def_rewrite_uses(&instr->dest.ssa, new);
    } else {
       /* Split the src value across the two stores. */
       b->cursor = nir_before_instr(&instr->instr);
@@ -2475,7 +2614,7 @@ nir_to_tgsi_lower_64bit_load_const(nir_builder *b, nir_load_const_instr *instr)
       num_components == 4 ? nir_channel(b, &second->def, 1) : NULL,
    };
    nir_ssa_def *new = nir_vec(b, channels, num_components);
-   nir_ssa_def_rewrite_uses(&instr->def, nir_src_for_ssa(new));
+   nir_ssa_def_rewrite_uses(&instr->def, new);
    nir_instr_remove(&instr->instr);
 
    return true;
@@ -2507,9 +2646,12 @@ nir_to_tgsi_lower_64bit_to_vec2(nir_shader *s)
 }
 
 static void
-ntt_fix_nir_options(struct nir_shader *s)
+ntt_fix_nir_options(struct pipe_screen *screen, struct nir_shader *s)
 {
    const struct nir_shader_compiler_options *options = s->options;
+   bool lower_fsqrt =
+      !screen->get_shader_param(screen, pipe_shader_type_from_mesa(s->info.stage),
+                                PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED);
 
    if (!options->lower_extract_byte ||
        !options->lower_extract_word ||
@@ -2517,9 +2659,11 @@ ntt_fix_nir_options(struct nir_shader *s)
        !options->lower_flrp64 ||
        !options->lower_fmod ||
        !options->lower_rotate ||
-       !options->lower_vector_cmp) {
-      struct nir_shader_compiler_options *new_options =
-         mem_dup(s->options, sizeof(*s->options));
+       !options->lower_uniforms_to_ubo ||
+       !options->lower_vector_cmp ||
+       options->lower_fsqrt != lower_fsqrt) {
+      nir_shader_compiler_options *new_options = ralloc(s, nir_shader_compiler_options);
+      *new_options = *s->options;
 
       new_options->lower_extract_byte = true;
       new_options->lower_extract_word = true;
@@ -2527,12 +2671,21 @@ ntt_fix_nir_options(struct nir_shader *s)
       new_options->lower_flrp64 = true;
       new_options->lower_fmod = true;
       new_options->lower_rotate = true;
+      new_options->lower_uniforms_to_ubo = true,
       new_options->lower_vector_cmp = true;
+      new_options->lower_fsqrt = lower_fsqrt;
 
       s->options = new_options;
    }
 }
 
+/**
+ * Translates the NIR shader to TGSI.
+ *
+ * This requires some lowering of the NIR shader to prepare it for translation.
+ * We take ownership of the NIR shader passed, returning a reference to the new
+ * TGSI tokens instead.  If you need to keep the NIR, then pass us a clone.
+ */
 const void *
 nir_to_tgsi(struct nir_shader *s,
             struct pipe_screen *screen)
@@ -2546,7 +2699,7 @@ nir_to_tgsi(struct nir_shader *s,
                                                    PIPE_SHADER_CAP_INTEGERS);
    const struct nir_shader_compiler_options *original_options = s->options;
 
-   ntt_fix_nir_options(s);
+   ntt_fix_nir_options(screen, s);
 
    NIR_PASS_V(s, nir_lower_io, nir_var_shader_in | nir_var_shader_out,
               type_size, (nir_lower_io_options)0);
@@ -2558,6 +2711,12 @@ nir_to_tgsi(struct nir_shader *s,
       .lower_txp = ~0,
    };
    NIR_PASS_V(s, nir_lower_tex, &lower_tex_options);
+
+   if (!original_options->lower_uniforms_to_ubo) {
+      NIR_PASS_V(s, nir_lower_uniforms_to_ubo,
+                 screen->get_param(screen, PIPE_CAP_PACKED_UNIFORMS) ?
+                 4 : 16);
+   }
 
    /* Do lowering so we can directly translate f64/i64 NIR ALU ops to TGSI --
     * TGSI stores up to a vec2 in each slot, so to avoid a whole bunch of op
@@ -2593,11 +2752,13 @@ nir_to_tgsi(struct nir_shader *s,
       NIR_PASS_V(s, nir_lower_bool_to_float);
    }
 
-   NIR_PASS_V(s, nir_lower_to_source_mods,
-              nir_lower_float_source_mods |
-              nir_lower_int_source_mods); /* no doubles */
+   /* Only lower 32-bit floats.  The only other modifier type officially
+    * supported by TGSI is 32-bit integer negates, but even those are broken on
+    * virglrenderer, so skip lowering all integer and f64 float mods.
+    */
+   NIR_PASS_V(s, nir_lower_to_source_mods, nir_lower_float_source_mods);
    NIR_PASS_V(s, nir_convert_from_ssa, true);
-   NIR_PASS_V(s, nir_lower_vec_to_movs);
+   NIR_PASS_V(s, nir_lower_vec_to_movs, NULL, NULL);
 
    /* locals_to_regs will leave dead derefs that are good to clean up. */
    NIR_PASS_V(s, nir_lower_locals_to_regs);
@@ -2615,6 +2776,8 @@ nir_to_tgsi(struct nir_shader *s,
       screen->get_param(screen, PIPE_CAP_TGSI_TEXCOORD);
    c->any_reg_as_address =
       screen->get_param(screen, PIPE_CAP_TGSI_ANY_REG_AS_ADDRESS);
+   c->has_txf_lz =
+      screen->get_param(screen, PIPE_CAP_TGSI_TEX_TXF_LZ);
 
    c->s = s;
    c->native_integers = native_integers;
@@ -2631,7 +2794,7 @@ nir_to_tgsi(struct nir_shader *s,
        * gl-2.1-polygon-stipple-fs on softpipe.
        */
       if ((s->info.inputs_read & VARYING_BIT_POS) ||
-          (s->info.system_values_read & (1ull << SYSTEM_VALUE_FRAG_COORD))) {
+          BITSET_TEST(s->info.system_values_read, SYSTEM_VALUE_FRAG_COORD)) {
          ureg_property(c->ureg, TGSI_PROPERTY_FS_COORD_ORIGIN,
                        s->info.fs.origin_upper_left ?
                        TGSI_FS_COORD_ORIGIN_UPPER_LEFT :
@@ -2658,11 +2821,7 @@ nir_to_tgsi(struct nir_shader *s,
    ureg_destroy(c->ureg);
 
    ralloc_free(c);
-
-   if (s->options != original_options) {
-      free((void*)s->options);
-      s->options = original_options;
-   }
+   ralloc_free(s);
 
    return tgsi_tokens;
 }
@@ -2676,7 +2835,7 @@ static const nir_shader_compiler_options nir_to_tgsi_compiler_options = {
    .lower_flrp64 = true,
    .lower_fmod = true,
    .lower_rotate = true,
-   .lower_sub = true,
+   .lower_uniforms_to_ubo = true,
    .lower_vector_cmp = true,
    .use_interpolated_input_intrinsics = true,
 };

@@ -119,7 +119,7 @@ Rhys Perry (7):
 - aco: fix combine_constant_comparison_ordering() NaN check with 16/64-bit
 - aco: disallow various v_add_u32 opts if modifiers are used
 - aco: disable omod if the sign of zeros should be preserved
-- aco: fix fp16 *0.5 omod
+- aco: fix fp16 \*0.5 omod
 
 Suresh Guttula (2):
 

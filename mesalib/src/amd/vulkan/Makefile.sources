@@ -60,6 +60,7 @@ VULKAN_FILES := \
 	radv_meta_bufimage.c \
 	radv_meta_clear.c \
 	radv_meta_copy.c \
+	radv_meta_dcc_retile.c \
 	radv_meta_decompress.c \
 	radv_meta_fast_clear.c \
 	radv_meta_fmask_expand.c \
@@ -74,7 +75,6 @@ VULKAN_FILES := \
 	radv_pipeline_cache.c \
 	radv_private.h \
 	radv_radeon_winsys.h \
-	radv_rgp.c \
 	radv_shader.c \
 	radv_shader_args.c \
 	radv_shader_args.h \
@@ -84,7 +84,6 @@ VULKAN_FILES := \
 	radv_sqtt.c \
 	radv_query.c \
 	radv_util.c \
-	radv_util.h \
 	radv_wsi.c \
 	si_cmd_buffer.c \
 	vk_format.h \
@@ -106,8 +105,5 @@ VULKAN_WSI_DISPLAY_FILES := \
 
 VULKAN_GENERATED_FILES := \
 	radv_entrypoints.c \
-	radv_entrypoints.h \
-	radv_extensions.c \
-	radv_extensions.h \
-	vk_format_table.c
+	radv_entrypoints.h
 

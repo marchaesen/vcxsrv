@@ -653,6 +653,12 @@ class gl_function( gl_item ):
         name = element.get( "name" )
         alias = element.get( "alias" )
 
+        # marshal isn't allowed with alias
+        assert not alias or not element.get('marshal')
+        assert not alias or not element.get('marshal_count')
+        assert not alias or not element.get('marshal_sync')
+        assert not alias or not element.get('marshal_call_after')
+
         if name in static_data.functions:
             self.static_entry_points.append(name)
 

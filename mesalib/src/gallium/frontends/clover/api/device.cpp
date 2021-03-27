@@ -192,13 +192,13 @@ clGetDeviceInfo(cl_device_id d_dev, cl_device_info param,
 
    case CL_DEVICE_IMAGE2D_MAX_WIDTH:
    case CL_DEVICE_IMAGE2D_MAX_HEIGHT:
-      buf.as_scalar<size_t>() = 1 << dev.max_image_levels_2d();
+      buf.as_scalar<size_t>() = dev.max_image_size();
       break;
 
    case CL_DEVICE_IMAGE3D_MAX_WIDTH:
    case CL_DEVICE_IMAGE3D_MAX_HEIGHT:
    case CL_DEVICE_IMAGE3D_MAX_DEPTH:
-      buf.as_scalar<size_t>() = 1 << dev.max_image_levels_3d();
+      buf.as_scalar<size_t>() = dev.max_image_size_3d();
       break;
 
    case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:

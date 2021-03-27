@@ -244,23 +244,24 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
         /*
          * First format the key into a string.
          */
-        char *fingerprint;
         char *keystr = rsastr_fmt(&s->hostkey);
-        fingerprint = rsa_ssh1_fingerprint(&s->hostkey);
+        char **fingerprints = rsa_ssh1_fake_all_fingerprints(&s->hostkey);
 
         /* First check against manually configured host keys. */
-        s->dlgret = verify_ssh_manual_host_key(s->conf, fingerprint, NULL);
+        s->dlgret = verify_ssh_manual_host_key(s->conf, fingerprints, NULL);
         if (s->dlgret == 0) {          /* did not match */
-            sfree(fingerprint);
+            ssh2_free_all_fingerprints(fingerprints);
             sfree(keystr);
             ssh_proto_error(s->ppl.ssh, "Host key did not appear in manually "
                             "configured list");
             return;
         } else if (s->dlgret < 0) { /* none configured; use standard handling */
+            char *keydisp = ssh1_pubkey_str(&s->hostkey);
             s->dlgret = seat_verify_ssh_host_key(
-                s->ppl.seat, s->savedhost, s->savedport,
-                "rsa", keystr, fingerprint, ssh1_login_dialog_callback, s);
-            sfree(fingerprint);
+                s->ppl.seat, s->savedhost, s->savedport, "rsa", keystr,
+                keydisp, fingerprints, ssh1_login_dialog_callback, s);
+            sfree(keydisp);
+            ssh2_free_all_fingerprints(fingerprints);
             sfree(keystr);
 #ifdef FUZZING
             s->dlgret = 1;
@@ -273,7 +274,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                 return;
             }
         } else {
-            sfree(fingerprint);
+            ssh2_free_all_fingerprints(fingerprints);
             sfree(keystr);
         }
     }

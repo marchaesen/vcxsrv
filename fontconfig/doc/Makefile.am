@@ -218,6 +218,9 @@ dist-local-check-docs-enabled:
 	@true
 else
 htmldoc_DATA += $(srcdir)/$(HTML_DIR)/*
+.fncs.sgml:
+	$(AM_V_GEN) $(RM) $@; \
+	touch -r $< $@
 all-local:
 clean-local:
 dist-local-check-docs-enabled:

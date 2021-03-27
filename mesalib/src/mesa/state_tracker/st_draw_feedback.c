@@ -124,8 +124,10 @@ st_feedback_draw_vbo(struct gl_context *ctx,
 
    /* Initialize pipe_draw_info. */
    info.primitive_restart = false;
+   info.take_index_buffer_ownership = false;
    info.vertices_per_patch = ctx->TessCtrlProgram.patch_vertices;
    info.restart_index = 0;
+   info.view_mask = 0;
 
    st_flush_bitmap_cache(st);
    st_invalidate_readpix_cache(st);
@@ -145,7 +147,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    key.is_draw_shader = true;
 
    vp = (struct st_vertex_program *)st->vp;
-   vp_variant = st_get_vp_variant(st, st->vp, &key);
+   vp_variant = st_get_common_variant(st, st->vp, &key);
 
    /*
     * Set up the draw module's state.
@@ -182,7 +184,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
       }
    }
 
-   draw_set_vertex_buffers(draw, 0, num_vbuffers, vbuffers);
+   draw_set_vertex_buffers(draw, 0, num_vbuffers, 0, vbuffers);
    draw_set_vertex_elements(draw, vp->num_inputs, velements.velems);
 
    unsigned start = 0;
@@ -517,7 +519,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
          pipe_buffer_unmap(pipe, vb_transfer[buf]);
       draw_set_mapped_vertex_buffer(draw, buf, NULL, 0);
    }
-   draw_set_vertex_buffers(draw, 0, num_vbuffers, NULL);
+   draw_set_vertex_buffers(draw, 0, 0, num_vbuffers, NULL);
 
    draw_bind_vertex_shader(draw, NULL);
 }

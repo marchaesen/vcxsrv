@@ -1,3 +1,4 @@
+#!/bin/bash
 # show all latest commit hashes
 if [ -d xserver          ]; then  pushd xserver         > /dev/null ; echo "xserver         " `git log | head -n1`; popd > /dev/null ; fi
 if [ -d libxcb           ]; then  pushd libxcb          > /dev/null ; echo "libxcb          " `git log | head -n1`; popd > /dev/null ; fi

@@ -44,36 +44,8 @@
 #include <unistd.h>
 
 #include "util/mesa-sha1.h"
+#include "vk_descriptors.h"
 #include "vk_util.h"
-
-static int
-binding_compare(const void *av, const void *bv)
-{
-   const VkDescriptorSetLayoutBinding *a =
-      (const VkDescriptorSetLayoutBinding *) av;
-   const VkDescriptorSetLayoutBinding *b =
-      (const VkDescriptorSetLayoutBinding *) bv;
-
-   return (a->binding < b->binding) ? -1 : (a->binding > b->binding) ? 1 : 0;
-}
-
-static VkDescriptorSetLayoutBinding *
-create_sorted_bindings(const VkDescriptorSetLayoutBinding *bindings,
-                       unsigned count)
-{
-   VkDescriptorSetLayoutBinding *sorted_bindings =
-      malloc(count * sizeof(VkDescriptorSetLayoutBinding));
-   if (!sorted_bindings)
-      return NULL;
-
-   memcpy(sorted_bindings, bindings,
-          count * sizeof(VkDescriptorSetLayoutBinding));
-
-   qsort(sorted_bindings, count, sizeof(VkDescriptorSetLayoutBinding),
-         binding_compare);
-
-   return sorted_bindings;
-}
 
 static uint32_t
 descriptor_size(VkDescriptorType type)
@@ -160,7 +132,7 @@ tu_CreateDescriptorSetLayout(
    struct tu_sampler_ycbcr_conversion *ycbcr_samplers =
       (void*) &samplers[immutable_sampler_count];
 
-   VkDescriptorSetLayoutBinding *bindings = create_sorted_bindings(
+   VkDescriptorSetLayoutBinding *bindings = vk_create_sorted_bindings(
       pCreateInfo->pBindings, pCreateInfo->bindingCount);
    if (!bindings) {
       vk_object_free(&device->vk, pAllocator, set_layout);
@@ -275,7 +247,7 @@ tu_GetDescriptorSetLayoutSupport(
    const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
    VkDescriptorSetLayoutSupport *pSupport)
 {
-   VkDescriptorSetLayoutBinding *bindings = create_sorted_bindings(
+   VkDescriptorSetLayoutBinding *bindings = vk_create_sorted_bindings(
       pCreateInfo->pBindings, pCreateInfo->bindingCount);
    if (!bindings) {
       pSupport->supported = false;

@@ -793,7 +793,7 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
    /* Rewrite the uses of the old SSA value to the new one, and recurse
     * through the uses updating the automaton's state.
     */
-   nir_ssa_def_rewrite_uses(&instr->dest.dest.ssa, nir_src_for_ssa(ssa_val));
+   nir_ssa_def_rewrite_uses(&instr->dest.dest.ssa, ssa_val);
    nir_algebraic_update_automaton(ssa_val->parent_instr, algebraic_worklist,
                                   states, pass_op_table);
 

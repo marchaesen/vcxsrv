@@ -55,51 +55,52 @@ TestMatchPattern (const char *test, FcPattern *p)
         "</fontconfig>\n"
         "";
 
-    FcChar8 *xml, *concat;
-    FcConfig *cfg;
+    FcPattern *pat = NULL;
+    FcChar8 *concat = NULL;
+    FcChar8 *xml = NULL;
+    FcConfig *cfg = NULL;
     FcResult result;
     FcBool dummy;
-    TestResult ret = TestMatchError;
+    TestMatchResult ret = TestMatchError;
 
-    FcPattern *pat = FcPatternDuplicate (p);
+    pat = FcPatternDuplicate (p);
     if (!pat)
     {
         fprintf (stderr, "Unable to duplicate pattern.\n");
-        goto bail0;
+        goto bail;
     }
 
     concat = FcStrPlus (xml_pre, (const FcChar8 *) test);
     if (!concat)
     {
         fprintf (stderr, "Concatenation failed.\n");
-        goto bail0;
+        goto bail;
     }
 
     xml = FcStrPlus (concat, xml_post);
-    FcStrFree (concat);
     if (!xml)
     {
         fprintf (stderr, "Concatenation failed.\n");
-        goto bail0;
+        goto bail;
     }
 
     cfg = FcConfigCreate ();
     if (!cfg)
     {
         fprintf (stderr, "Unable to create a new empty config.\n");
-        return TestMatchError;
+        goto bail;
     }
 
     if (!FcConfigParseAndLoadFromMemory (cfg, xml, FcTrue))
     {
         fprintf (stderr, "Unable to load a config from memory.\n");
-        goto bail1;
+        goto bail;
     }
 
     if (!FcConfigSubstitute (cfg, pat, FcMatchPattern))
     {
         fprintf (stderr, "Unable to substitute config.\n");
-        goto bail1;
+        goto bail;
     }
 
     result = FcPatternGetBool (pat, FC_TEST_RESULT, 0, &dummy);
@@ -115,10 +116,15 @@ TestMatchPattern (const char *test, FcPattern *p)
         break;
     }
 
-bail1:
-    FcConfigDestroy (cfg);
-bail0:
-    FcPatternDestroy (pat);
+bail:
+    if (cfg)
+	FcConfigDestroy (cfg);
+    if (xml)
+	FcStrFree (xml);
+    if (concat)
+	FcStrFree (concat);
+    if (pat)
+	FcPatternDestroy (pat);
     return ret;
 }
 
@@ -218,6 +224,7 @@ TestFamily (void)
            "";
     SHOULD_NOT_MATCH(pat, test);
 
+    FcPatternDestroy (pat);
     return res;
 }
 

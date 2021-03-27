@@ -53,7 +53,7 @@ mir_print_constant_component(FILE *fp, const midgard_constants *consts, unsigned
                  * be true for all of them, but it's good enough for traces.
                  */
                 if (op >= midgard_alu_op_iand &&
-                    op <= midgard_alu_op_ibitcount8)
+                    op <= midgard_alu_op_ipopcnt)
                         is_hex = true;
                 else
                         is_sint = true;

@@ -23,4 +23,6 @@ libxserver_miext_sync = static_library('libxserver_miext_sync',
     ],
 )
 
-install_data(hdrs_miext_sync, install_dir: xorgsdkdir)
+if build_xorg
+    install_data(hdrs_miext_sync, install_dir: xorgsdkdir)
+endif

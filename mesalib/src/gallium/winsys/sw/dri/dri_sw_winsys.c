@@ -123,7 +123,7 @@ dri_sw_displaytarget_create(struct sw_winsys *winsys,
                             const void *front_private,
                             unsigned *stride)
 {
-   struct dri_sw_winsys *ws = dri_sw_winsys(winsys);
+   UNUSED struct dri_sw_winsys *ws = dri_sw_winsys(winsys);
    struct dri_sw_displaytarget *dri_sw_dt;
    unsigned nblocksy, size, format_stride;
 

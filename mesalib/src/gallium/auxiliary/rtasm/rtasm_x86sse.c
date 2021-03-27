@@ -2152,17 +2152,17 @@ static void x86_init_func_common( struct x86_function *p )
 {
    util_cpu_detect();
    p->caps = 0;
-   if(util_cpu_caps.has_mmx)
+   if(util_get_cpu_caps()->has_mmx)
       p->caps |= X86_MMX;
-   if(util_cpu_caps.has_mmx2)
+   if(util_get_cpu_caps()->has_mmx2)
       p->caps |= X86_MMX2;
-   if(util_cpu_caps.has_sse)
+   if(util_get_cpu_caps()->has_sse)
       p->caps |= X86_SSE;
-   if(util_cpu_caps.has_sse2)
+   if(util_get_cpu_caps()->has_sse2)
       p->caps |= X86_SSE2;
-   if(util_cpu_caps.has_sse3)
+   if(util_get_cpu_caps()->has_sse3)
       p->caps |= X86_SSE3;
-   if(util_cpu_caps.has_sse4_1)
+   if(util_get_cpu_caps()->has_sse4_1)
       p->caps |= X86_SSE4_1;
    p->csr = p->store;
 #if defined(PIPE_ARCH_X86)

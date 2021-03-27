@@ -105,11 +105,11 @@ class Bitset(object):
 		self.name = name
 		self.inline = False
 		if template:
-			self.fields = template.fields
+			self.fields = template.fields[:]
 		else:
 			self.fields = []
 
-	def dump_pack_struct(self, prefix=None, array=None):
+	def dump_pack_struct(self, prefix=None, array=None, bit_size=32):
 		def field_name(prefix, name):
 			if f.name:
 				name = f.name.lower()
@@ -129,11 +129,11 @@ class Bitset(object):
 		value_name = "dword"
 		print("struct %s {" % prefix)
 		for f in self.fields:
-			if f.type == "waddress":
-				value_name = "qword"
 			if f.type in [ "address", "waddress" ]:
 				tab_to("    __bo_type", "bo;")
 				tab_to("    uint32_t", "bo_offset;")
+				if bit_size == 64:
+                                    value_name = "qword"
 				continue
 			name = field_name(prefix, f.name)
 
@@ -244,7 +244,7 @@ class Array(object):
 		self.length = int(attrs["length"], 0)
 
 	def dump(self):
-		print("static inline uint32_t REG_%s_%s(uint32_t i0) { return 0x%08x + 0x%x*i0; }\n" % (self.domain, self.name, self.offset, self.stride))
+		print("#define REG_%s_%s(i0) (0x%08x + 0x%x*(i0))\n" % (self.domain, self.name, self.offset, self.stride))
 
 	def dump_pack_struct(self):
 		pass
@@ -276,7 +276,7 @@ class Reg(object):
 
 	def dump_pack_struct(self):
 		if self.bitset.inline:
-			self.bitset.dump_pack_struct(self.full_name, not self.array == None)
+			self.bitset.dump_pack_struct(self.full_name, not self.array == None, self.bit_size)
 
 
 def parse_variants(attrs):
@@ -358,7 +358,12 @@ class Parser(object):
 
 	def parse_reg(self, attrs, bit_size):
 		if "type" in attrs and attrs["type"] in self.bitsets:
-			self.current_bitset = self.bitsets[attrs["type"]]
+			bitset = self.bitsets[attrs["type"]]
+			if bitset.inline:
+				self.current_bitset = Bitset(attrs["name"], bitset)
+				self.current_bitset.inline = True
+			else:
+				self.current_bitset = bitset
 		else:
 			self.current_bitset = Bitset(attrs["name"], None)
 			self.current_bitset.inline = True

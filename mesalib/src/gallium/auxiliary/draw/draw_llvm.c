@@ -1891,7 +1891,7 @@ draw_llvm_generate(struct draw_llvm *llvm, struct draw_llvm_variant *variant)
    struct gallivm_state *gallivm = variant->gallivm;
    LLVMContextRef context = gallivm->context;
    LLVMTypeRef int32_type = LLVMInt32TypeInContext(context);
-   LLVMTypeRef arg_types[12];
+   LLVMTypeRef arg_types[13];
    unsigned num_arg_types = ARRAY_SIZE(arg_types);
    LLVMTypeRef func_type;
    LLVMValueRef context_ptr;
@@ -1958,6 +1958,7 @@ draw_llvm_generate(struct draw_llvm *llvm, struct draw_llvm_variant *variant)
    arg_types[i++] = int32_type;                          /* start_instance */
    arg_types[i++] = LLVMPointerType(int32_type, 0);      /* fetch_elts  */
    arg_types[i++] = int32_type;                          /* draw_id */
+   arg_types[i++] = int32_type;                          /* view_id */
 
    func_type = LLVMFunctionType(LLVMInt8TypeInContext(context),
                                 arg_types, num_arg_types, 0);
@@ -1995,6 +1996,7 @@ draw_llvm_generate(struct draw_llvm *llvm, struct draw_llvm_variant *variant)
    system_values.base_instance = LLVMGetParam(variant_func, 9);
    fetch_elts                = LLVMGetParam(variant_func, 10);
    system_values.draw_id     = LLVMGetParam(variant_func, 11);
+   system_values.view_index  = LLVMGetParam(variant_func, 12);
 
    lp_build_name(context_ptr, "context");
    lp_build_name(io_ptr, "io");
@@ -2272,8 +2274,11 @@ draw_llvm_generate(struct draw_llvm *llvm, struct draw_llvm_variant *variant)
        * index out of our vertex id here.
        * for ARB_shader_draw_parameters, base_vertex should be 0 for non-indexed draws.
        */
-      LLVMValueRef base_vertex = lp_build_select(&bld, have_elts, vertex_id_offset, lp_build_const_int32(gallivm, 0));;
+      LLVMValueRef base_vertex = lp_build_select(&bld, have_elts, vertex_id_offset, lp_build_const_int32(gallivm, 0));
       system_values.basevertex = lp_build_broadcast_scalar(&blduivec, base_vertex);
+      /* first vertex is for Vulkan base vertex support */
+      LLVMValueRef first_vertex = lp_build_select(&bld, have_elts, vertex_id_offset, start_or_maxelt);
+      system_values.firstvertex = lp_build_broadcast_scalar(&blduivec, first_vertex);
       system_values.vertex_id = true_index_array;
       system_values.vertex_id_nobase = LLVMBuildSub(builder, true_index_array,
                                                     lp_build_broadcast_scalar(&blduivec, vertex_id_offset), "");
@@ -2720,7 +2725,7 @@ draw_gs_llvm_generate(struct draw_llvm *llvm,
    struct gallivm_state *gallivm = variant->gallivm;
    LLVMContextRef context = gallivm->context;
    LLVMTypeRef int32_type = LLVMInt32TypeInContext(context);
-   LLVMTypeRef arg_types[7];
+   LLVMTypeRef arg_types[8];
    LLVMTypeRef func_type;
    LLVMValueRef variant_func;
    LLVMValueRef context_ptr;
@@ -2759,6 +2764,7 @@ draw_gs_llvm_generate(struct draw_llvm *llvm,
    arg_types[5] = LLVMPointerType(
       LLVMVectorType(int32_type, vector_length), 0);   /* prim_id_ptr */
    arg_types[6] = int32_type;
+   arg_types[7] = int32_type;
 
    func_type = LLVMFunctionType(int32_type, arg_types, ARRAY_SIZE(arg_types), 0);
 
@@ -2781,6 +2787,7 @@ draw_gs_llvm_generate(struct draw_llvm *llvm,
    system_values.instance_id = LLVMGetParam(variant_func, 4);
    prim_id_ptr               = LLVMGetParam(variant_func, 5);
    system_values.invocation_id = LLVMGetParam(variant_func, 6);
+   system_values.view_index  = LLVMGetParam(variant_func, 7);
 
    lp_build_name(context_ptr, "context");
    lp_build_name(input_array, "input");
@@ -2789,6 +2796,7 @@ draw_gs_llvm_generate(struct draw_llvm *llvm,
    lp_build_name(system_values.instance_id, "instance_id");
    lp_build_name(prim_id_ptr, "prim_id_ptr");
    lp_build_name(system_values.invocation_id, "invocation_id");
+   lp_build_name(system_values.view_index, "view_index");
 
    variant->context_ptr = context_ptr;
    variant->io_ptr = io_ptr;
@@ -3302,10 +3310,11 @@ draw_tcs_llvm_generate(struct draw_llvm *llvm,
    struct gallivm_state *gallivm = variant->gallivm;
    LLVMContextRef context = gallivm->context;
    LLVMTypeRef int32_type = LLVMInt32TypeInContext(context);
-   LLVMTypeRef arg_types[6];
+   LLVMTypeRef arg_types[7];
    LLVMTypeRef func_type, coro_func_type;
    LLVMValueRef variant_func, variant_coro;
    LLVMValueRef context_ptr;
+   LLVMValueRef view_index;
    LLVMValueRef input_array, output_array, prim_id, patch_vertices_in;
    LLVMValueRef mask_val;
    LLVMBasicBlockRef block;
@@ -3334,7 +3343,8 @@ draw_tcs_llvm_generate(struct draw_llvm *llvm,
    arg_types[2] = variant->output_array_type;
    arg_types[3] = int32_type;
    arg_types[4] = int32_type;
-   arg_types[5] = int32_type; /* coroutine only */
+   arg_types[5] = int32_type;
+   arg_types[6] = int32_type; /* coroutine only */
 
    func_type = LLVMFunctionType(int32_type, arg_types, ARRAY_SIZE(arg_types) - 1, 0);
 
@@ -3363,12 +3373,14 @@ draw_tcs_llvm_generate(struct draw_llvm *llvm,
    output_array              = LLVMGetParam(variant_func, 2);
    prim_id                   = LLVMGetParam(variant_func, 3);
    patch_vertices_in         = LLVMGetParam(variant_func, 4);
+   view_index                = LLVMGetParam(variant_func, 5);
 
    lp_build_name(context_ptr, "context");
    lp_build_name(input_array, "input");
    lp_build_name(output_array, "output");
    lp_build_name(prim_id, "prim_id");
    lp_build_name(patch_vertices_in, "patch_vertices_in");
+   lp_build_name(view_index, "view_index");
 
    block = LLVMAppendBasicBlockInContext(gallivm->context, variant_func, "entry");
    builder = gallivm->builder;
@@ -3400,13 +3412,14 @@ draw_tcs_llvm_generate(struct draw_llvm *llvm,
    lp_build_loop_begin(&loop_state[0], gallivm,
                        lp_build_const_int32(gallivm, 0)); /* inner loop */
    {
-      LLVMValueRef args[6];
+      LLVMValueRef args[7];
       args[0] = context_ptr;
       args[1] = input_array;
       args[2] = output_array;
       args[3] = prim_id;
       args[4] = patch_vertices_in;
-      args[5] = loop_state[0].counter;
+      args[5] = view_index;
+      args[6] = loop_state[0].counter;
       LLVMValueRef coro_entry = LLVMBuildGEP(builder, coro_hdls, &loop_state[0].counter, 1, "");
       LLVMValueRef coro_hdl = LLVMBuildLoad(builder, coro_entry, "coro_hdl");
 
@@ -3415,7 +3428,7 @@ draw_tcs_llvm_generate(struct draw_llvm *llvm,
                                        lp_build_const_int32(gallivm, 0), "");
       /* first time here - call the coroutine function entry point */
       lp_build_if(&ifstate, gallivm, cmp);
-      LLVMValueRef coro_ret = LLVMBuildCall(builder, variant_coro, args, 6, "");
+      LLVMValueRef coro_ret = LLVMBuildCall(builder, variant_coro, args, 7, "");
       LLVMBuildStore(builder, coro_ret, coro_entry);
       lp_build_else(&ifstate);
       /* subsequent calls for this invocation - check if done. */
@@ -3448,6 +3461,7 @@ draw_tcs_llvm_generate(struct draw_llvm *llvm,
    output_array = LLVMGetParam(variant_coro, 2);
    prim_id = LLVMGetParam(variant_coro, 3);
    patch_vertices_in = LLVMGetParam(variant_coro, 4);
+   view_index = LLVMGetParam(variant_coro, 5);
 
    consts_ptr = draw_tcs_jit_context_constants(variant->gallivm, context_ptr);
    num_consts_ptr =
@@ -3460,7 +3474,7 @@ draw_tcs_llvm_generate(struct draw_llvm *llvm,
    image = draw_llvm_image_soa_create(draw_tcs_llvm_variant_key_images(&variant->key),
                                       variant->key.nr_images);
 
-   LLVMValueRef counter = LLVMGetParam(variant_coro, 5);
+   LLVMValueRef counter = LLVMGetParam(variant_coro, 6);
    LLVMValueRef invocvec = LLVMGetUndef(LLVMVectorType(int32_type, vector_length));
    for (i = 0; i < vector_length; i++) {
       LLVMValueRef idx = LLVMBuildAdd(builder, LLVMBuildMul(builder, counter, step, ""), lp_build_const_int32(gallivm, i), "");
@@ -3469,6 +3483,7 @@ draw_tcs_llvm_generate(struct draw_llvm *llvm,
 
    system_values.invocation_id = invocvec;
    system_values.prim_id = lp_build_broadcast_scalar(&bldvec, prim_id);
+   system_values.view_index = view_index;
    system_values.vertices_in = lp_build_broadcast_scalar(&bldvec, patch_vertices_in);
    tcs_iface.input = input_array;
    tcs_iface.output = output_array;
@@ -3860,11 +3875,12 @@ draw_tes_llvm_generate(struct draw_llvm *llvm,
    LLVMContextRef context = gallivm->context;
    LLVMTypeRef int32_type = LLVMInt32TypeInContext(context);
    LLVMTypeRef flt_type = LLVMFloatTypeInContext(context);
-   LLVMTypeRef arg_types[10];
+   LLVMTypeRef arg_types[11];
    LLVMTypeRef func_type;
    LLVMValueRef variant_func;
    LLVMValueRef context_ptr;
    LLVMValueRef tess_coord[2], io_ptr, input_array, num_tess_coord;
+   LLVMValueRef view_index;
    LLVMValueRef tess_inner, tess_outer, prim_id, patch_vertices_in;
    LLVMBasicBlockRef block;
    LLVMBuilderRef builder;
@@ -3899,6 +3915,7 @@ draw_tes_llvm_generate(struct draw_llvm *llvm,
    arg_types[7] = LLVMPointerType(LLVMArrayType(flt_type, 4), 0);
    arg_types[8] = LLVMPointerType(LLVMArrayType(flt_type, 2), 0);
    arg_types[9] = int32_type;
+   arg_types[10] = int32_type;
 
    func_type = LLVMFunctionType(int32_type, arg_types, ARRAY_SIZE(arg_types), 0);
    variant_func = LLVMAddFunction(gallivm->module, func_name, func_type);
@@ -3922,6 +3939,7 @@ draw_tes_llvm_generate(struct draw_llvm *llvm,
    tess_outer                = LLVMGetParam(variant_func, 7);
    tess_inner                = LLVMGetParam(variant_func, 8);
    patch_vertices_in         = LLVMGetParam(variant_func, 9);
+   view_index                = LLVMGetParam(variant_func, 10);
 
    lp_build_name(context_ptr, "context");
    lp_build_name(input_array, "input");
@@ -3933,6 +3951,7 @@ draw_tes_llvm_generate(struct draw_llvm *llvm,
    lp_build_name(tess_outer, "tess_outer");
    lp_build_name(tess_inner, "tess_inner");
    lp_build_name(patch_vertices_in, "patch_vertices_in");
+   lp_build_name(view_index, "view_index");
 
    tes_iface.base.fetch_vertex_input = draw_tes_llvm_fetch_vertex_input;
    tes_iface.base.fetch_patch_input = draw_tes_llvm_fetch_patch_input;
@@ -3969,6 +3988,8 @@ draw_tes_llvm_generate(struct draw_llvm *llvm,
    system_values.tess_inner = LLVMBuildLoad(builder, tess_inner, "");
 
    system_values.prim_id = lp_build_broadcast_scalar(&bldvec, prim_id);
+
+   system_values.view_index = view_index;
 
    system_values.vertices_in = lp_build_broadcast_scalar(&bldvec, patch_vertices_in);
    struct lp_build_loop_state lp_loop;

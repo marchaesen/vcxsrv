@@ -35,6 +35,7 @@
 #include "mtypes.h"
 #include "rastpos.h"
 #include "state.h"
+#include "main/light.h"
 #include "main/viewport.h"
 #include "util/bitscan.h"
 
@@ -144,6 +145,8 @@ shade_rastpos(struct gl_context *ctx,
    /*const*/ GLfloat (*base)[3] = ctx->Light._BaseColor;
    GLbitfield mask;
    GLfloat diffuseColor[4], specularColor[4];  /* for RGB mode only */
+
+   _mesa_update_light_materials(ctx);
 
    COPY_3V(diffuseColor, base[0]);
    diffuseColor[3] = CLAMP(
@@ -305,10 +308,10 @@ compute_texgen(struct gl_context *ctx, const GLfloat vObj[4], const GLfloat vEye
    if (texUnit->TexGenEnabled & S_BIT) {
       switch (texUnit->GenS.Mode) {
          case GL_OBJECT_LINEAR:
-            texcoord[0] = DOT4(vObj, texUnit->GenS.ObjectPlane);
+            texcoord[0] = DOT4(vObj, texUnit->ObjectPlane[GEN_S]);
             break;
          case GL_EYE_LINEAR:
-            texcoord[0] = DOT4(vEye, texUnit->GenS.EyePlane);
+            texcoord[0] = DOT4(vEye, texUnit->EyePlane[GEN_S]);
             break;
          case GL_SPHERE_MAP:
             texcoord[0] = rx * mInv + 0.5F;
@@ -328,10 +331,10 @@ compute_texgen(struct gl_context *ctx, const GLfloat vObj[4], const GLfloat vEye
    if (texUnit->TexGenEnabled & T_BIT) {
       switch (texUnit->GenT.Mode) {
          case GL_OBJECT_LINEAR:
-            texcoord[1] = DOT4(vObj, texUnit->GenT.ObjectPlane);
+            texcoord[1] = DOT4(vObj, texUnit->ObjectPlane[GEN_T]);
             break;
          case GL_EYE_LINEAR:
-            texcoord[1] = DOT4(vEye, texUnit->GenT.EyePlane);
+            texcoord[1] = DOT4(vEye, texUnit->EyePlane[GEN_T]);
             break;
          case GL_SPHERE_MAP:
             texcoord[1] = ry * mInv + 0.5F;
@@ -351,10 +354,10 @@ compute_texgen(struct gl_context *ctx, const GLfloat vObj[4], const GLfloat vEye
    if (texUnit->TexGenEnabled & R_BIT) {
       switch (texUnit->GenR.Mode) {
          case GL_OBJECT_LINEAR:
-            texcoord[2] = DOT4(vObj, texUnit->GenR.ObjectPlane);
+            texcoord[2] = DOT4(vObj, texUnit->ObjectPlane[GEN_R]);
             break;
          case GL_EYE_LINEAR:
-            texcoord[2] = DOT4(vEye, texUnit->GenR.EyePlane);
+            texcoord[2] = DOT4(vEye, texUnit->EyePlane[GEN_R]);
             break;
          case GL_REFLECTION_MAP:
             texcoord[2] = rz;
@@ -371,10 +374,10 @@ compute_texgen(struct gl_context *ctx, const GLfloat vObj[4], const GLfloat vEye
    if (texUnit->TexGenEnabled & Q_BIT) {
       switch (texUnit->GenQ.Mode) {
          case GL_OBJECT_LINEAR:
-            texcoord[3] = DOT4(vObj, texUnit->GenQ.ObjectPlane);
+            texcoord[3] = DOT4(vObj, texUnit->ObjectPlane[GEN_Q]);
             break;
          case GL_EYE_LINEAR:
-            texcoord[3] = DOT4(vEye, texUnit->GenQ.EyePlane);
+            texcoord[3] = DOT4(vEye, texUnit->EyePlane[GEN_Q]);
             break;
          default:
             _mesa_problem(ctx, "Bad Q texgen in compute_texgen()");
@@ -392,6 +395,8 @@ compute_texgen(struct gl_context *ctx, const GLfloat vObj[4], const GLfloat vEye
 void
 _mesa_RasterPos(struct gl_context *ctx, const GLfloat vObj[4])
 {
+   ctx->PopAttribState |= GL_CURRENT_BIT;
+
    if (_mesa_arb_vertex_program_enabled(ctx)) {
       /* XXX implement this */
       _mesa_problem(ctx, "Vertex programs not implemented for glRasterPos");
@@ -533,7 +538,7 @@ rasterpos(GLfloat x, GLfloat y, GLfloat z, GLfloat w)
    p[2] = z;
    p[3] = w;
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
    FLUSH_CURRENT(ctx, 0);
 
    if (ctx->NewState)
@@ -705,7 +710,7 @@ window_pos3f(GLfloat x, GLfloat y, GLfloat z)
    GET_CURRENT_CONTEXT(ctx);
    GLfloat z2;
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, GL_CURRENT_BIT);
    FLUSH_CURRENT(ctx, 0);
 
    z2 = CLAMP(z, 0.0F, 1.0F)

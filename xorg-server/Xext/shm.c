@@ -1248,7 +1248,7 @@ shm_tmpfile(void)
         int flags = fcntl(fd, F_GETFD);
         if (flags != -1) {
             flags |= FD_CLOEXEC;
-            (void) fcntl(fd, F_SETFD, &flags);
+            (void) fcntl(fd, F_SETFD, flags);
         }
 #endif
         return fd;

@@ -119,11 +119,17 @@ ir3_get_type_for_image_intrinsic(const nir_intrinsic_instr *instr)
 	case nir_intrinsic_image_load:
 	case nir_intrinsic_bindless_image_load:
 		type = nir_alu_type_get_base_type(nir_intrinsic_dest_type(instr));
+		/* SpvOpAtomicLoad doesn't have dest type */
+		if (type == nir_type_invalid)
+			type = nir_type_uint;
 		break;
 
 	case nir_intrinsic_image_store:
 	case nir_intrinsic_bindless_image_store:
 		type = nir_alu_type_get_base_type(nir_intrinsic_src_type(instr));
+		/* SpvOpAtomicStore doesn't have src type */
+		if (type == nir_type_invalid)
+			type = nir_type_uint;
 		break;
 
 	case nir_intrinsic_image_atomic_add:

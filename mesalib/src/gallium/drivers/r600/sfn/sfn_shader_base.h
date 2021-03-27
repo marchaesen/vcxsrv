@@ -90,6 +90,8 @@ public:
       return m_atomic_base_map[base];
    }
 
+   void get_array_info(r600_shader& shader) const;
+
 protected:
 
    void set_var_address(nir_deref_instr *instr);

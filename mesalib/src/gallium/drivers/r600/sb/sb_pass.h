@@ -546,10 +546,10 @@ private:
 	void add_prev_chan(unsigned chan);
 	unsigned get_preferable_chan_mask();
 
-	void ra_node(container_node *c);
-	void process_op(node *n);
+	bool ra_node(container_node *c);
+	bool process_op(node *n);
 
-	void color(value *v);
+	bool color(value *v);
 
 	void color_bs_constraint(ra_constraint *c);
 

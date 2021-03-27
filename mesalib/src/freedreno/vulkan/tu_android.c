@@ -222,7 +222,13 @@ tu_import_memory_from_gralloc_handle(VkDevice device_h,
    if (result != VK_SUCCESS)
       goto fail_create_image;
 
-   tu_BindImageMemory(device_h, image_h, memory_h, 0);
+   VkBindImageMemoryInfo bind_info = {
+      .sType = VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO,
+      .image = image_h,
+      .memory = memory_h,
+      .memoryOffset = 0,
+   };
+   tu_BindImageMemory2(device_h, 1, &bind_info);
 
    image->owned_memory = memory_h;
 

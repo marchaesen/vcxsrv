@@ -4,6 +4,7 @@
 
 #include "pipe/p_compiler.h"
 #include "util/u_debug.h"
+#include "util/debug.h"
 #include "target-helpers/sw_helper_public.h"
 #include "frontend/sw_winsys.h"
 
@@ -82,13 +83,14 @@ sw_screen_create_named(struct sw_winsys *winsys, const char *driver)
 struct pipe_screen *
 sw_screen_create(struct sw_winsys *winsys)
 {
+   UNUSED bool only_sw = env_var_as_boolean("LIBGL_ALWAYS_SOFTWARE", false);
    const char *drivers[] = {
       debug_get_option("GALLIUM_DRIVER", ""),
 #if defined(GALLIUM_ZINK)
-      "zink",
+      only_sw ? "" : "zink",
 #endif
 #if defined(GALLIUM_D3D12)
-      "d3d12",
+      only_sw ? "" : "d3d12",
 #endif
 #if defined(GALLIUM_LLVMPIPE)
       "llvmpipe",

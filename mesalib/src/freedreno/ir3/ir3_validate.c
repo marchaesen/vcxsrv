@@ -56,7 +56,7 @@ validate_error(struct ir3_validate_ctx *ctx, const char *condstr)
 static unsigned
 reg_class_flags(struct ir3_register *reg)
 {
-	return reg->flags & (IR3_REG_HALF | IR3_REG_HIGH);
+	return reg->flags & (IR3_REG_HALF | IR3_REG_SHARED);
 }
 
 static void
@@ -123,8 +123,15 @@ validate_instr(struct ir3_validate_ctx *ctx, struct ir3_instruction *instr)
 	 */
 	switch (opc_cat(instr->opc)) {
 	case 1: /* move instructions */
-		validate_reg_size(ctx, instr->regs[0], instr->cat1.dst_type);
-		validate_reg_size(ctx, instr->regs[1], instr->cat1.src_type);
+		if (instr->opc == OPC_MOVMSK) {
+			validate_assert(ctx, instr->regs_count == 1);
+			validate_assert(ctx, instr->regs[0]->flags & IR3_REG_SHARED);
+			validate_assert(ctx, !(instr->regs[0]->flags & IR3_REG_HALF));
+			validate_assert(ctx, util_is_power_of_two_or_zero(instr->regs[0]->wrmask + 1));
+		} else {
+			validate_reg_size(ctx, instr->regs[0], instr->cat1.dst_type);
+			validate_reg_size(ctx, instr->regs[1], instr->cat1.src_type);
+		}
 		break;
 	case 3:
 		/* Validate that cat3 opc matches the src type.  We've already checked that all

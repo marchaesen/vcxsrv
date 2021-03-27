@@ -40,7 +40,7 @@
 /** Initialize the post-processing queue. */
 struct pp_queue_t *
 pp_init(struct pipe_context *pipe, const unsigned int *enabled,
-        struct cso_context *cso)
+        struct cso_context *cso, struct st_context_iface *st)
 {
    unsigned int num_filters = 0;
    unsigned int curpos = 0, i, tmp_req = 0;
@@ -78,7 +78,7 @@ pp_init(struct pipe_context *pipe, const unsigned int *enabled,
       goto error;
    }
 
-   ppq->p = pp_init_prog(ppq, pipe, cso);
+   ppq->p = pp_init_prog(ppq, pipe, cso, st);
    if (ppq->p == NULL) {
       pp_debug("pp_init_prog returned NULL.\n");
       goto error;
@@ -324,6 +324,10 @@ pp_init_fbos(struct pp_queue_t *ppq, unsigned int w,
 
    p->viewport.scale[0] = p->viewport.translate[0] = (float) w / 2.0f;
    p->viewport.scale[1] = p->viewport.translate[1] = (float) h / 2.0f;
+   p->viewport.swizzle_x = PIPE_VIEWPORT_SWIZZLE_POSITIVE_X;
+   p->viewport.swizzle_y = PIPE_VIEWPORT_SWIZZLE_POSITIVE_Y;
+   p->viewport.swizzle_z = PIPE_VIEWPORT_SWIZZLE_POSITIVE_Z;
+   p->viewport.swizzle_w = PIPE_VIEWPORT_SWIZZLE_POSITIVE_W;
 
    ppq->fbos_init = true;
 

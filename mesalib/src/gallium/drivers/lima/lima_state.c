@@ -23,6 +23,7 @@
  *
  */
 
+#include "util/format/u_format.h"
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
 #include "util/u_helpers.h"
@@ -33,6 +34,7 @@
 
 #include "lima_screen.h"
 #include "lima_context.h"
+#include "lima_format.h"
 #include "lima_resource.h"
 
 static void
@@ -184,13 +186,17 @@ lima_delete_vertex_elements_state(struct pipe_context *pctx, void *hwcso)
 static void
 lima_set_vertex_buffers(struct pipe_context *pctx,
                         unsigned start_slot, unsigned count,
+                        unsigned unbind_num_trailing_slots,
+                        bool take_ownership,
                         const struct pipe_vertex_buffer *vb)
 {
    struct lima_context *ctx = lima_context(pctx);
    struct lima_context_vertex_buffer *so = &ctx->vertex_buffers;
 
    util_set_vertex_buffers_mask(so->vb, &so->enabled_mask,
-                                vb, start_slot, count);
+                                vb, start_slot, count,
+                                unbind_num_trailing_slots,
+                                take_ownership);
    so->count = util_last_bit(so->enabled_mask);
 
    ctx->dirty |= LIMA_CONTEXT_DIRTY_VERTEX_BUFF;
@@ -267,6 +273,7 @@ lima_set_clip_state(struct pipe_context *pctx,
 static void
 lima_set_constant_buffer(struct pipe_context *pctx,
                          enum pipe_shader_type shader, uint index,
+                         bool pass_reference,
                          const struct pipe_constant_buffer *cb)
 {
    struct lima_context *ctx = lima_context(pctx);
@@ -350,6 +357,11 @@ lima_create_sampler_view(struct pipe_context *pctx, struct pipe_resource *prsc,
    so->base.reference.count = 1;
    so->base.context = pctx;
 
+   uint8_t sampler_swizzle[4] = { cso->swizzle_r, cso->swizzle_g,
+                                  cso->swizzle_b, cso->swizzle_a };
+   const uint8_t *format_swizzle = lima_format_get_texel_swizzle(cso->format);
+   util_format_compose_swizzles(format_swizzle, sampler_swizzle, so->swizzle);
+
    return &so->base;
 }
 
@@ -368,6 +380,7 @@ static void
 lima_set_sampler_views(struct pipe_context *pctx,
                       enum pipe_shader_type shader,
                       unsigned start, unsigned nr,
+                       unsigned unbind_num_trailing_slots,
                       struct pipe_sampler_view **views)
 {
    struct lima_context *ctx = lima_context(pctx);
@@ -444,7 +457,7 @@ lima_state_fini(struct lima_context *ctx)
    struct lima_context_vertex_buffer *so = &ctx->vertex_buffers;
 
    util_set_vertex_buffers_mask(so->vb, &so->enabled_mask, NULL,
-                                0, ARRAY_SIZE(so->vb));
+                                0, 0, ARRAY_SIZE(so->vb), false);
 
    pipe_surface_reference(&ctx->framebuffer.base.cbufs[0], NULL);
    pipe_surface_reference(&ctx->framebuffer.base.zsbuf, NULL);

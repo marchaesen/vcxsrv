@@ -397,7 +397,14 @@ static struct rnndecaddrinfo *trymatch (struct rnndeccontext *ctx, struct rnndel
 				if (elems[i]->length != 1)
 					res->name = appendidx(ctx, res->name, idx, elems[i]->index);
 				if (offset) {
-					asprintf (&tmp, "%s+%s%#"PRIx64"%s", res->name, ctx->colors->err, offset, ctx->colors->reset);
+					/* use _HI suffix for addresses */
+					if (offset == 1 &&
+						(!strcmp(res->typeinfo->name, "address") ||
+						 !strcmp(res->typeinfo->name, "waddress")))  {
+						asprintf (&tmp, "%s_HI", res->name);
+					} else {
+						asprintf (&tmp, "%s+%s%#"PRIx64"%s", res->name, ctx->colors->err, offset, ctx->colors->reset);
+					}
 					free(res->name);
 					res->name = tmp;
 				}

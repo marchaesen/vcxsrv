@@ -183,6 +183,7 @@
   lv3:lsgt_switch_latch              =       +level3(lsgt_switch_latch)
   lv5:lsgt_switch                 =       +level5(lsgt_switch)
   lv5:ralt_switch                 =       +level5(ralt_switch)
+  lv5:menu_switch                 =       +level5(menu_switch)
   lv5:lsgt_switch_lock            =       +level5(lsgt_switch_lock)
   lv5:ralt_switch_lock            =       +level5(ralt_switch_lock)
   lv5:lwin_switch_lock            =       +level5(lwin_switch_lock)

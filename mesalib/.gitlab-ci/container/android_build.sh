@@ -20,12 +20,12 @@ rdfind -makehardlinks true -makeresultsfile false /android-ndk-r21d/
 # Drop some large tools we won't use in this build.
 find /android-ndk-r21d/ -type f | egrep -i "clang-check|clang-tidy|lldb" | xargs rm -f
 
-sh .gitlab-ci/create-android-ndk-pc.sh /$ndk zlib.pc "" "-lz" "1.2.3"
+sh .gitlab-ci/container/create-android-ndk-pc.sh /$ndk zlib.pc "" "-lz" "1.2.3"
 
-sh .gitlab-ci/create-android-cross-file.sh /$ndk x86_64-linux-android x86_64 x86_64
-sh .gitlab-ci/create-android-cross-file.sh /$ndk i686-linux-android x86 x86
-sh .gitlab-ci/create-android-cross-file.sh /$ndk aarch64-linux-android arm armv8
-sh .gitlab-ci/create-android-cross-file.sh /$ndk arm-linux-androideabi arm armv7hl armv7a-linux-androideabi
+sh .gitlab-ci/container/create-android-cross-file.sh /$ndk x86_64-linux-android x86_64 x86_64
+sh .gitlab-ci/container/create-android-cross-file.sh /$ndk i686-linux-android x86 x86
+sh .gitlab-ci/container/create-android-cross-file.sh /$ndk aarch64-linux-android arm armv8
+sh .gitlab-ci/container/create-android-cross-file.sh /$ndk arm-linux-androideabi arm armv7hl armv7a-linux-androideabi
 
 # Not using build-libdrm.sh because we don't want its cleanup after building
 # each arch.  Fetch and extract now.

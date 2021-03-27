@@ -94,7 +94,7 @@ debug_backtrace_capture(struct debug_stack_frame *backtrace,
    unw_proc_info_t pip;
    unsigned i = 0;
 
-   pip.unwind_info = NULL;
+   pip.unwind_info = 0;
 
    unw_getcontext(&context);
    unw_init_local(&cursor, &context);

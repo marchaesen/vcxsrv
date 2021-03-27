@@ -77,8 +77,6 @@
  * - stream_output_target_destroy
  * - transfer_map (only unsychronized buffer mappings)
  * - get_query_result (when threaded_query::flushed == true)
- *
- * Create calls causing a sync that can't be async due to driver limitations:
  * - create_stream_output_target
  *
  *
@@ -145,8 +143,6 @@
  *    another resource's backing storage. The threaded context uses it to
  *    implement buffer invalidation. This call is always queued.
  *
- * PIPE_CAP_MULTI_DRAW must be supported.
- *
  *
  * Performance gotchas
  * -------------------
@@ -183,11 +179,13 @@
 #ifndef U_THREADED_CONTEXT_H
 #define U_THREADED_CONTEXT_H
 
+#include "c11/threads.h"
 #include "pipe/p_context.h"
 #include "pipe/p_state.h"
 #include "util/u_inlines.h"
 #include "util/u_queue.h"
 #include "util/u_range.h"
+#include "util/u_thread.h"
 #include "util/slab.h"
 
 struct threaded_context;
@@ -343,7 +341,7 @@ struct tc_unflushed_batch_token {
 };
 
 struct tc_batch {
-   struct pipe_context *pipe;
+   struct threaded_context *tc;
    unsigned sentinel;
    unsigned num_total_call_slots;
    struct tc_unflushed_batch_token *token;
@@ -378,6 +376,15 @@ struct threaded_context {
    struct util_queue queue;
    struct util_queue_fence *fence;
 
+#ifndef NDEBUG
+   /**
+    * The driver thread is normally the queue thread, but
+    * there are cases where the queue is flushed directly
+    * from the frontend thread
+    */
+   thread_id driver_thread;
+#endif
+
    unsigned last, next;
    struct tc_batch batch_slots[TC_MAX_BATCHES];
 };
@@ -397,6 +404,12 @@ void
 threaded_context_flush(struct pipe_context *_pipe,
                        struct tc_unflushed_batch_token *token,
                        bool prefer_async);
+
+void
+tc_draw_vbo(struct pipe_context *_pipe, const struct pipe_draw_info *info,
+            const struct pipe_draw_indirect_info *indirect,
+            const struct pipe_draw_start_count *draws,
+            unsigned num_draws);
 
 static inline struct threaded_context *
 threaded_context(struct pipe_context *pipe)
@@ -429,6 +442,22 @@ tc_unflushed_batch_token_reference(struct tc_unflushed_batch_token **dst,
    if (pipe_reference((struct pipe_reference *)*dst, (struct pipe_reference *)src))
       free(*dst);
    *dst = src;
+}
+
+/**
+ * Helper for !NDEBUG builds to assert that it is called from driver
+ * thread.  This is to help drivers ensure that various code-paths
+ * are not hit indirectly from pipe entry points that are called from
+ * front-end/state-tracker thread.
+ */
+static inline void
+tc_assert_driver_thread(struct threaded_context *tc)
+{
+   if (!tc)
+      return;
+#ifndef NDEBUG
+   assert(util_thread_id_equal(tc->driver_thread, util_get_thread_id()));
+#endif
 }
 
 #endif

@@ -132,7 +132,7 @@ lower_cl_images_to_tex_impl(nir_function_impl *impl)
             res = nir_channels(&b, res, (1 << num_components) - 1);
          }
 
-         nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(res));
+         nir_ssa_def_rewrite_uses(&intrin->dest.ssa, res);
          progress = true;
       }
    }

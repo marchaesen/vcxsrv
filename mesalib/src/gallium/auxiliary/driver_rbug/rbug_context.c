@@ -632,7 +632,7 @@ rbug_set_clip_state(struct pipe_context *_pipe,
 static void
 rbug_set_constant_buffer(struct pipe_context *_pipe,
                          enum pipe_shader_type shader,
-                         uint index,
+                         uint index, bool take_ownership,
                          const struct pipe_constant_buffer *_cb)
 {
    struct rbug_context *rb_pipe = rbug_context(_pipe);
@@ -648,7 +648,7 @@ rbug_set_constant_buffer(struct pipe_context *_pipe,
    mtx_lock(&rb_pipe->call_mutex);
    pipe->set_constant_buffer(pipe,
                              shader,
-                             index,
+                             index, take_ownership,
                              _cb ? &cb : NULL);
    mtx_unlock(&rb_pipe->call_mutex);
 }
@@ -738,6 +738,7 @@ rbug_set_sampler_views(struct pipe_context *_pipe,
                        enum pipe_shader_type shader,
                        unsigned start,
                        unsigned num,
+                       unsigned unbind_num_trailing_slots,
                        struct pipe_sampler_view **_views)
 {
    struct rbug_context *rb_pipe = rbug_context(_pipe);
@@ -766,7 +767,8 @@ rbug_set_sampler_views(struct pipe_context *_pipe,
       views = unwrapped_views;
    }
 
-   pipe->set_sampler_views(pipe, shader, start, num, views);
+   pipe->set_sampler_views(pipe, shader, start, num,
+                           unbind_num_trailing_slots, views);
 
    mtx_unlock(&rb_pipe->call_mutex);
 }
@@ -774,6 +776,8 @@ rbug_set_sampler_views(struct pipe_context *_pipe,
 static void
 rbug_set_vertex_buffers(struct pipe_context *_pipe,
                         unsigned start_slot, unsigned num_buffers,
+                        unsigned unbind_num_trailing_slots,
+                        bool take_ownership,
                         const struct pipe_vertex_buffer *_buffers)
 {
    struct rbug_context *rb_pipe = rbug_context(_pipe);
@@ -795,8 +799,8 @@ rbug_set_vertex_buffers(struct pipe_context *_pipe,
    }
 
    pipe->set_vertex_buffers(pipe, start_slot,
-                            num_buffers,
-                            buffers);
+                            num_buffers, unbind_num_trailing_slots,
+                            take_ownership, buffers);
 
    mtx_unlock(&rb_pipe->call_mutex);
 }

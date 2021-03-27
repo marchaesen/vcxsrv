@@ -323,7 +323,6 @@ const BackendVtable raw_backend = {
     .provide_ldisc = raw_provide_ldisc,
     .unthrottle = raw_unthrottle,
     .cfg_info = raw_cfg_info,
-    .test_for_upstream = NULL,
     .id = "raw",
     .displayname = "Raw",
     .protocol = PROT_RAW,

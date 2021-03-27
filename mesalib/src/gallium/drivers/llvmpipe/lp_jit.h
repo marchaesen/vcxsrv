@@ -247,6 +247,7 @@ struct lp_jit_thread_data
     */
    struct {
       uint32_t viewport_index;
+      uint32_t view_index;
    } raster_state;
 };
 
@@ -256,6 +257,7 @@ enum {
    LP_JIT_THREAD_DATA_COUNTER,
    LP_JIT_THREAD_DATA_INVOCATIONS,
    LP_JIT_THREAD_DATA_RASTER_STATE_VIEWPORT_INDEX,
+   LP_JIT_THREAD_DATA_RASTER_STATE_VIEW_INDEX,
    LP_JIT_THREAD_DATA_COUNT
 };
 
@@ -273,6 +275,11 @@ enum {
    lp_build_struct_get(_gallivm, _ptr, \
                        LP_JIT_THREAD_DATA_RASTER_STATE_VIEWPORT_INDEX, \
                        "raster_state.viewport_index")
+
+#define lp_jit_thread_data_raster_state_view_index(_gallivm, _ptr) \
+   lp_build_struct_get(_gallivm, _ptr, \
+                       LP_JIT_THREAD_DATA_RASTER_STATE_VIEW_INDEX, \
+                       "raster_state.view_index")
  
 /**
  * typedef for fragment shader function

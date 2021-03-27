@@ -618,7 +618,7 @@ void r300_texture_desc_init(struct r300_screen *rscreen,
                 "This can be a DDX bug. Got: %"PRIu64"B, Need: %uB, Info:\n",
                 tex->buf->size, tex->tex.size_in_bytes);
             r300_tex_print_info(tex, "texture_desc_init");
-            /* Ooops, what now. Apps will break if we fail this,
+            /* Oops, what now. Apps will break if we fail this,
              * so just pretend everything's okay. */
         }
     }

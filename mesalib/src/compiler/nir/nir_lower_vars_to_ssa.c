@@ -577,7 +577,7 @@ rename_variables(struct lower_variables_state *state)
                nir_instr_remove(&intrin->instr);
 
                nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                        nir_src_for_ssa(&undef->def));
+                                        &undef->def);
                continue;
             }
 
@@ -602,7 +602,7 @@ rename_variables(struct lower_variables_state *state)
             nir_instr_remove(&intrin->instr);
 
             nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                     nir_src_for_ssa(&mov->dest.dest.ssa));
+                                     &mov->dest.dest.ssa);
             break;
          }
 

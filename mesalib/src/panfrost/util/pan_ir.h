@@ -50,6 +50,12 @@ enum {
         PAN_SYSVAL_SSBO = 4,
         PAN_SYSVAL_NUM_WORK_GROUPS = 5,
         PAN_SYSVAL_SAMPLER = 7,
+        PAN_SYSVAL_LOCAL_GROUP_SIZE = 8,
+        PAN_SYSVAL_WORK_DIM = 9,
+        PAN_SYSVAL_IMAGE_SIZE = 10,
+        PAN_SYSVAL_SAMPLE_POSITIONS = 11,
+        PAN_SYSVAL_MULTISAMPLED = 12,
+        PAN_SYSVAL_RT_CONVERSION = 13,
 };
 
 #define PAN_TXS_SYSVAL_ID(texidx, dim, is_array)          \
@@ -72,53 +78,136 @@ struct panfrost_sysvals {
         /* The mapping of sysvals to uniforms, the count, and the off-by-one inverse */
         unsigned sysvals[MAX_SYSVAL_COUNT];
         unsigned sysval_count;
-        struct hash_table_u64 *sysval_to_id;
 };
 
-void
-panfrost_nir_assign_sysvals(struct panfrost_sysvals *ctx, void *memctx, nir_shader *shader);
+/* Technically Midgard could go up to 92 in a pathological case but we don't
+ * take advantage of that. Likewise Bifrost's FAU encoding can address 128
+ * words but actual implementations (G72, G76) are capped at 64 */
+
+#define PAN_MAX_PUSH 64
+
+/* Architectural invariants (Midgard and Bifrost): UBO must be <= 2^16 bytes so
+ * an offset to a word must be < 2^16. There are less than 2^8 UBOs */
+
+struct panfrost_ubo_word {
+        uint16_t ubo;
+        uint16_t offset;
+};
+
+struct panfrost_ubo_push {
+        unsigned count;
+        struct panfrost_ubo_word words[PAN_MAX_PUSH];
+};
+
+/* Helper for searching the above. Note this is O(N) to the number of pushed
+ * constants, do not run in the draw call hot path */
+
+unsigned
+pan_lookup_pushed_ubo(struct panfrost_ubo_push *push, unsigned ubo, unsigned offs);
+
+struct hash_table_u64 *
+panfrost_init_sysvals(struct panfrost_sysvals *sysvals, void *memctx);
+
+unsigned
+pan_lookup_sysval(struct hash_table_u64 *sysval_to_id,
+                  struct panfrost_sysvals *sysvals,
+                  int sysval);
 
 int
 panfrost_sysval_for_instr(nir_instr *instr, nir_dest *dest);
 
-typedef struct {
-        int work_register_count;
-        int uniform_cutoff;
-
-        /* For Bifrost - output type for each RT */
-        nir_alu_type blend_types[8];
-
-        /* For Bifrost - return address for blend instructions */
-        uint32_t blend_ret_offsets[8];
-
-        /* Prepended before uniforms, mapping to SYSVAL_ names for the
-         * sysval */
-
-        unsigned sysval_count;
-        unsigned sysvals[MAX_SYSVAL_COUNT];
-
-        int first_tag;
-
-        struct util_dynarray compiled;
-
-        /* The number of bytes to allocate per-thread for Thread Local Storage
-         * (register spilling), or zero if no spilling is used */
-        unsigned tls_size;
-
-} panfrost_program;
-
 struct panfrost_compile_inputs {
         unsigned gpu_id;
-        bool is_blend;
+        bool is_blend, is_blit;
         struct {
                 unsigned rt;
                 unsigned nr_samples;
                 float constants[4];
                 uint64_t bifrost_blend_desc;
         } blend;
+        unsigned sysval_ubo;
         bool shaderdb;
+        bool no_ubo_to_push;
 
         enum pipe_format rt_formats[8];
+};
+
+struct pan_shader_varying {
+        gl_varying_slot location;
+        enum pipe_format format;
+};
+
+struct bifrost_shader_blend_info {
+        nir_alu_type type;
+        uint32_t return_offset;
+};
+
+struct bifrost_shader_info {
+        struct bifrost_shader_blend_info blend[8];
+        bool wait_6, wait_7;
+};
+
+struct midgard_shader_info {
+        unsigned first_tag;
+};
+
+struct pan_shader_info {
+        gl_shader_stage stage;
+        unsigned work_reg_count;
+        unsigned tls_size;
+        unsigned wls_size;
+
+        union {
+                struct {
+                        bool reads_frag_coord;
+                        bool reads_point_coord;
+                        bool reads_face;
+                        bool helper_invocations;
+                        bool can_discard;
+                        bool writes_depth;
+                        bool writes_stencil;
+                        bool writes_coverage;
+                        bool sidefx;
+                        bool reads_sample_id;
+                        bool reads_sample_pos;
+                        bool reads_sample_mask_in;
+                        bool reads_helper_invocation;
+                        bool sample_shading;
+                        bool early_fragment_tests;
+                        BITSET_WORD outputs_read;
+                } fs;
+
+                struct {
+                        bool writes_point_size;
+                } vs;
+        };
+
+        bool contains_barrier;
+        bool writes_global;
+        uint64_t outputs_written;
+
+        unsigned sampler_count;
+        unsigned texture_count;
+        unsigned ubo_count;
+        unsigned attribute_count;
+
+        struct {
+                unsigned input_count;
+                struct pan_shader_varying input[MAX_VARYING];
+                unsigned output_count;
+                struct pan_shader_varying output[MAX_VARYING];
+        } varyings;
+
+        struct panfrost_sysvals sysvals;
+
+        /* UBOs to push to Register Mapped Uniforms (Midgard) or Fast Access
+         * Uniforms (Bifrost) */
+        struct panfrost_ubo_push push;
+
+        union {
+                struct bifrost_shader_info bifrost;
+                struct midgard_shader_info midgard;
+        };
 };
 
 typedef struct pan_block {
@@ -241,5 +330,8 @@ bool pan_nir_reorder_writeout(nir_shader *nir);
 bool pan_nir_lower_zs_store(nir_shader *nir);
 
 bool pan_nir_lower_64bit_intrin(nir_shader *shader);
+
+bool pan_lower_helper_invocation(nir_shader *shader);
+bool pan_lower_sample_pos(nir_shader *shader);
 
 #endif

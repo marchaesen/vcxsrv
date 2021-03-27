@@ -8,7 +8,7 @@ namespace r600 {
 class LDSReadInstruction : public Instruction {
 public:
    LDSReadInstruction(std::vector<PValue>& value, std::vector<PValue>& address);
-   void replace_values(const ValueSet& candiates, PValue new_value) override;
+   void replace_values(const ValueSet& candidates, PValue new_value) override;
 
    unsigned num_values() const { return m_dest_value.size();}
    const Value& address(unsigned i) const { return *m_address[i];}
@@ -54,7 +54,7 @@ public:
    unsigned num_components() const { return m_value1 ? 2 : 1;}
    unsigned idx_offset() const {return m_idx_offset;};
 
-   void replace_values(const ValueSet& candiates, PValue new_value) override;
+   void replace_values(const ValueSet& candidates, PValue new_value) override;
 
 private:
    void do_print(std::ostream& os) const override;

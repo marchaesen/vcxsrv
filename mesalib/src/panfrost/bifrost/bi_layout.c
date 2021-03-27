@@ -23,31 +23,42 @@
 
 #include "compiler.h"
 
-/* The scheduler packs multiple instructions into a clause (grouped as bundle),
+/* The scheduler packs multiple instructions into a clause (grouped as tuple),
  * and the packing code takes in a clause and emits it to the wire. During
- * scheduling, we need to lay out the instructions (bundles) and constants
+ * scheduling, we need to lay out the instructions (tuples) and constants
  * within the clause so constraints can be resolved during scheduling instead
  * of failing packing. These routines will help building clauses from
  * instructions so the scheduler can focus on the high-level algorithm, and
  * manipulating clause layouts.
  */
 
-/* Helper to see if a bundle can be inserted. We must satisfy the invariant:
+/* Helper to see if a tuple can be inserted. We must satisfy the invariant:
  *
- *      constant_count + bundle_count <= 13
+ *      constant_count + tuple_count <= 13
  *
  * ...which is equivalent to the clause ending up with 8 or fewer quardwords.
- * Inserting a bundle increases bundle_count by one, and if it reads a unique
+ * Inserting a tuple increases tuple_count by one, and if it reads a unique
  * constant, it increases constant_count by one.
  */
 
 bool
-bi_can_insert_bundle(bi_clause *clause, bool constant)
+bi_can_insert_tuple(bi_clause *clause, bool constant)
 {
         unsigned constant_count = clause->constant_count + (constant ? 1 : 0);
-        unsigned bundle_count = clause->bundle_count + 1;
+        unsigned tuple_count = clause->tuple_count + 1;
 
-        return (constant_count + bundle_count) <= 13;
+        return (constant_count + tuple_count) <= 13;
+}
+
+/* Is embedded constant 0 packed for free in a clause with this many tuples? */
+
+bool
+bi_ec0_packed(unsigned tuple_count)
+{
+        return (tuple_count == 3) ||
+                (tuple_count == 5) ||
+                (tuple_count == 6) ||
+                (tuple_count == 8);
 }
 
 /* Helper to calculate the number of quadwords in a clause. This is a function
@@ -79,7 +90,7 @@ bi_can_insert_bundle(bi_clause *clause, bool constant)
 unsigned
 bi_clause_quadwords(bi_clause *clause)
 {
-        unsigned X = clause->bundle_count;
+        unsigned X = clause->tuple_count;
         unsigned Y = X - ((X >= 7) ? 2 : (X >= 4) ? 1 : 0);
 
         unsigned constants = clause->constant_count;

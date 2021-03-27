@@ -59,11 +59,12 @@
 
 #define REBASE(TYPE) 						\
 static void *rebase_##TYPE(const void *ptr,			\
+                           unsigned start, 			\
                            unsigned count, 			\
                            TYPE min_index)			\
 {								\
    const TYPE *in = (TYPE *)ptr;				\
-   TYPE *tmp_indices = malloc(count * sizeof(TYPE));		\
+   TYPE *tmp_indices = malloc((start + count) * sizeof(TYPE));	\
                                                                 \
    if (tmp_indices == NULL) {                                   \
       _mesa_error_no_memory(__func__);                          \
@@ -71,7 +72,7 @@ static void *rebase_##TYPE(const void *ptr,			\
    }                                                            \
                                                                 \
    for (unsigned i = 0; i < count; i++)                         \
-      tmp_indices[i] = in[i] - min_index;			\
+      tmp_indices[start + i] = in[start + i] - min_index;	\
                                                                 \
    return (void *)tmp_indices;					\
 }
@@ -145,6 +146,23 @@ void t_rebase_prims(struct gl_context *ctx,
 
       prim = tmp_prims;
    } else if (ib) {
+      unsigned start = prim[0].start;
+      for (i = 1; i < nr_prims; i++) {
+         if (prim[i].start != start) {
+            if (0) {
+               printf("%s recursing due to mismatched start "
+                      "(prim[0].start = %u vs. prim[%u].start = %u)\n",
+                      __func__, start, i, prim[i].start);
+            }
+
+            t_rebase_prims(ctx, arrays, &prim[0], i, ib, min_index,
+                           max_index, num_instances, base_instance, draw);
+            t_rebase_prims(ctx, arrays, &prim[i], nr_prims - i, ib, min_index,
+                           max_index, num_instances, base_instance, draw);
+            return;
+         }
+      }
+
       /* Unfortunately need to adjust each index individually.
        */
       bool map_ib = false;
@@ -166,13 +184,13 @@ void t_rebase_prims(struct gl_context *ctx,
        */
       switch (ib->index_size_shift) {
       case 2:
-         tmp_indices = rebase_GLuint( ptr, ib->count, min_index );
+         tmp_indices = rebase_GLuint(ptr, start, ib->count, min_index);
          break;
       case 1:
-         tmp_indices = rebase_GLushort( ptr, ib->count, min_index );
+         tmp_indices = rebase_GLushort(ptr, start, ib->count, min_index);
          break;
       case 0:
-         tmp_indices = rebase_GLubyte( ptr, ib->count, min_index );
+         tmp_indices = rebase_GLubyte(ptr, start, ib->count, min_index);
          break;
       }
 

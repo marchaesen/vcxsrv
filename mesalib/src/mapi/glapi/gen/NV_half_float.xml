@@ -11,7 +11,7 @@
     </function>
 
     <function name="Vertex2hvNV" exec="dynamic" deprecated="3.1">
-        <param name="v" type="const GLhalfNV *"/>
+        <param name="v" type="const GLhalfNV *" count="2"/>
     </function>
 
     <function name="Vertex3hNV" exec="dynamic" deprecated="3.1">
@@ -21,7 +21,7 @@
     </function>
 
     <function name="Vertex3hvNV" exec="dynamic" deprecated="3.1">
-        <param name="v" type="const GLhalfNV *"/>
+        <param name="v" type="const GLhalfNV *" count="3"/>
     </function>
 
     <function name="Vertex4hNV" exec="dynamic" deprecated="3.1">
@@ -32,7 +32,7 @@
     </function>
 
     <function name="Vertex4hvNV" exec="dynamic" deprecated="3.1">
-        <param name="v" type="const GLhalfNV *"/>
+        <param name="v" type="const GLhalfNV *" count="4"/>
     </function>
 
     <function name="Normal3hNV" exec="dynamic" deprecated="3.1">
@@ -71,7 +71,7 @@
     </function>
 
     <function name="TexCoord1hvNV" exec="dynamic" deprecated="3.1">
-        <param name="v" type="const GLhalfNV *"/>
+        <param name="v" type="const GLhalfNV *" count="1"/>
     </function>
 
     <function name="TexCoord2hNV" exec="dynamic" deprecated="3.1">
@@ -80,7 +80,7 @@
     </function>
 
     <function name="TexCoord2hvNV" exec="dynamic" deprecated="3.1">
-        <param name="v" type="const GLhalfNV *"/>
+        <param name="v" type="const GLhalfNV *" count="2"/>
     </function>
 
     <function name="TexCoord3hNV" exec="dynamic" deprecated="3.1">
@@ -90,7 +90,7 @@
     </function>
 
     <function name="TexCoord3hvNV" exec="dynamic" deprecated="3.1">
-        <param name="v" type="const GLhalfNV *"/>
+        <param name="v" type="const GLhalfNV *" count="3"/>
     </function>
 
     <function name="TexCoord4hNV" exec="dynamic" deprecated="3.1">
@@ -101,7 +101,7 @@
     </function>
 
     <function name="TexCoord4hvNV" exec="dynamic" deprecated="3.1">
-        <param name="v" type="const GLhalfNV *"/>
+        <param name="v" type="const GLhalfNV *" count="4"/>
     </function>
 
     <function name="MultiTexCoord1hNV" exec="dynamic" deprecated="3.1">
@@ -111,7 +111,7 @@
 
     <function name="MultiTexCoord1hvNV" exec="dynamic" deprecated="3.1">
         <param name="target" type="GLenum"/>
-        <param name="v" type="const GLhalfNV *"/>
+        <param name="v" type="const GLhalfNV *" count="1"/>
     </function>
 
     <function name="MultiTexCoord2hNV" exec="dynamic" deprecated="3.1">
@@ -122,7 +122,7 @@
 
     <function name="MultiTexCoord2hvNV" exec="dynamic" deprecated="3.1">
         <param name="target" type="GLenum"/>
-        <param name="v" type="const GLhalfNV *"/>
+        <param name="v" type="const GLhalfNV *" count="2"/>
     </function>
 
     <function name="MultiTexCoord3hNV" exec="dynamic" deprecated="3.1">
@@ -134,7 +134,7 @@
 
     <function name="MultiTexCoord3hvNV" exec="dynamic" deprecated="3.1">
         <param name="target" type="GLenum"/>
-        <param name="v" type="const GLhalfNV *"/>
+        <param name="v" type="const GLhalfNV *" count="3"/>
     </function>
 
     <function name="MultiTexCoord4hNV" exec="dynamic" deprecated="3.1">
@@ -147,7 +147,7 @@
 
     <function name="MultiTexCoord4hvNV" exec="dynamic" deprecated="3.1">
         <param name="target" type="GLenum"/>
-        <param name="v" type="const GLhalfNV *"/>
+        <param name="v" type="const GLhalfNV *" count="4"/>
     </function>
 
     <function name="FogCoordhNV" exec="dynamic" deprecated="3.1">
@@ -155,7 +155,7 @@
     </function>
 
     <function name="FogCoordhvNV" exec="dynamic" deprecated="3.1">
-        <param name="v" type="const GLhalfNV *"/>
+        <param name="v" type="const GLhalfNV *" count="1"/>
     </function>
 
     <function name="SecondaryColor3hNV" exec="dynamic" deprecated="3.1">
@@ -165,7 +165,7 @@
     </function>
 
     <function name="SecondaryColor3hvNV" exec="dynamic" deprecated="3.1">
-        <param name="v" type="const GLhalfNV *"/>
+        <param name="v" type="const GLhalfNV *" count="3"/>
     </function>
 
 </category>

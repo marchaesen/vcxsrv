@@ -26,124 +26,204 @@
  */
 
 #include "nir.h"
-#include "nir_worklist.h"
 
-/* SSA-based mark-and-sweep dead code elimination */
-
-static void
-mark_and_push(nir_instr_worklist *wl, nir_instr *instr)
+static bool
+is_dest_live(const nir_dest *dest, BITSET_WORD *defs_live)
 {
-   nir_instr_worklist_push_tail(wl, instr);
-   instr->pass_flags = 1;
+   return !dest->is_ssa || BITSET_TEST(defs_live, dest->ssa.index);
 }
 
 static bool
-mark_live_cb(nir_src *src, void *_state)
+mark_src_live(const nir_src *src, BITSET_WORD *defs_live)
 {
-   nir_instr_worklist *worklist = (nir_instr_worklist *) _state;
+   if (src->is_ssa && !BITSET_TEST(defs_live, src->ssa->index)) {
+      BITSET_SET(defs_live, src->ssa->index);
+      return true;
+   } else {
+      return false;
+   }
+}
 
-   if (src->is_ssa && !src->ssa->parent_instr->pass_flags)
-      mark_and_push(worklist, src->ssa->parent_instr);
-
+static bool
+mark_live_cb(nir_src *src, void *defs_live)
+{
+   mark_src_live(src, defs_live);
    return true;
 }
 
-static void
-init_instr(nir_instr *instr, nir_instr_worklist *worklist)
+static bool
+is_live(BITSET_WORD *defs_live, nir_instr *instr)
 {
-   nir_alu_instr *alu_instr;
-   nir_deref_instr *deref_instr;
-   nir_intrinsic_instr *intrin_instr;
-   nir_tex_instr *tex_instr;
-
-   /* We use the pass_flags to store the live/dead information.  In DCE, we
-    * just treat it as a zero/non-zero boolean for whether or not the
-    * instruction is live.
-    */
-   instr->pass_flags = 0;
-
    switch (instr->type) {
    case nir_instr_type_call:
    case nir_instr_type_jump:
-      mark_and_push(worklist, instr);
-      break;
-
-   case nir_instr_type_alu:
-      alu_instr = nir_instr_as_alu(instr);
-      if (!alu_instr->dest.dest.is_ssa)
-         mark_and_push(worklist, instr);
-      break;
-
-   case nir_instr_type_deref:
-      deref_instr = nir_instr_as_deref(instr);
-      if (!deref_instr->dest.is_ssa)
-         mark_and_push(worklist, instr);
-      break;
-
-   case nir_instr_type_intrinsic:
-      intrin_instr = nir_instr_as_intrinsic(instr);
-      if (nir_intrinsic_infos[intrin_instr->intrinsic].flags &
-          NIR_INTRINSIC_CAN_ELIMINATE) {
-         if (nir_intrinsic_infos[intrin_instr->intrinsic].has_dest &&
-             !intrin_instr->dest.is_ssa) {
-            mark_and_push(worklist, instr);
-         }
-      } else {
-         mark_and_push(worklist, instr);
+      return true;
+   case nir_instr_type_alu: {
+      nir_alu_instr *alu = nir_instr_as_alu(instr);
+      return is_dest_live(&alu->dest.dest, defs_live);
+   }
+   case nir_instr_type_deref: {
+      nir_deref_instr *deref = nir_instr_as_deref(instr);
+      return is_dest_live(&deref->dest, defs_live);
+   }
+   case nir_instr_type_intrinsic: {
+      nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+      const nir_intrinsic_info *info = &nir_intrinsic_infos[intrin->intrinsic];
+      return !(info->flags & NIR_INTRINSIC_CAN_ELIMINATE) ||
+             (info->has_dest && is_dest_live(&intrin->dest, defs_live));
+   }
+   case nir_instr_type_tex: {
+      nir_tex_instr *tex = nir_instr_as_tex(instr);
+      return is_dest_live(&tex->dest, defs_live);
+   }
+   case nir_instr_type_phi: {
+      nir_phi_instr *phi = nir_instr_as_phi(instr);
+      return is_dest_live(&phi->dest, defs_live);
+   }
+   case nir_instr_type_load_const: {
+      nir_load_const_instr *lc = nir_instr_as_load_const(instr);
+      return BITSET_TEST(defs_live, lc->def.index);
+   }
+   case nir_instr_type_ssa_undef: {
+      nir_ssa_undef_instr *undef = nir_instr_as_ssa_undef(instr);
+      return BITSET_TEST(defs_live, undef->def.index);
+   }
+   case nir_instr_type_parallel_copy: {
+      nir_parallel_copy_instr *pc = nir_instr_as_parallel_copy(instr);
+      nir_foreach_parallel_copy_entry(entry, pc) {
+         if (is_dest_live(&entry->dest, defs_live))
+            return true;
       }
-      break;
-
-   case nir_instr_type_tex:
-      tex_instr = nir_instr_as_tex(instr);
-      if (!tex_instr->dest.is_ssa)
-         mark_and_push(worklist, instr);
-      break;
-
+      return false;
+   }
    default:
-      break;
+      unreachable("unexpected instr type");
    }
 }
 
-static bool
-init_block(nir_block *block, nir_instr_worklist *worklist)
-{
-   nir_foreach_instr(instr, block)
-      init_instr(instr, worklist);
+struct loop_state {
+   bool header_phis_changed;
+   nir_block *preheader;
+};
 
-   nir_if *following_if = nir_block_get_following_if(block);
-   if (following_if) {
-      if (following_if->condition.is_ssa &&
-          !following_if->condition.ssa->parent_instr->pass_flags)
-         mark_and_push(worklist, following_if->condition.ssa->parent_instr);
+static bool
+dce_block(nir_block *block, BITSET_WORD *defs_live, struct loop_state *loop)
+{
+   bool progress = false;
+   bool phis_changed = false;
+   nir_foreach_instr_reverse_safe(instr, block) {
+      bool live = is_live(defs_live, instr);
+      if (live) {
+         if (instr->type == nir_instr_type_phi) {
+            nir_foreach_phi_src(src, nir_instr_as_phi(instr)) {
+               phis_changed |= mark_src_live(&src->src, defs_live) &&
+                               src->pred != loop->preheader;
+            }
+         } else {
+            nir_foreach_src(instr, mark_live_cb, defs_live);
+         }
+      }
+
+      /* If we're not in a loop, remove it now if it's dead. If we are in a
+       * loop, leave instructions to be removed later if they're still dead.
+       */
+      if (loop->preheader) {
+         instr->pass_flags = live;
+      } else if (!live) {
+         nir_instr_remove(instr);
+         progress = true;
+      }
    }
 
-   return true;
+   /* Because blocks are visited in reverse and this stomps header_phis_changed,
+    * we don't have to check whether the current block is a loop header before
+    * setting header_phis_changed.
+    */
+   loop->header_phis_changed = phis_changed;
+
+   return progress;
+}
+
+static bool
+dce_cf_list(struct exec_list *cf_list, BITSET_WORD *defs_live,
+            struct loop_state *parent_loop)
+{
+   bool progress = false;
+   foreach_list_typed_reverse(nir_cf_node, cf_node, node, cf_list) {
+      switch (cf_node->type) {
+      case nir_cf_node_block: {
+         nir_block *block = nir_cf_node_as_block(cf_node);
+         progress |= dce_block(block, defs_live, parent_loop);
+         break;
+      }
+      case nir_cf_node_if: {
+         nir_if *nif = nir_cf_node_as_if(cf_node);
+         progress |= dce_cf_list(&nif->else_list, defs_live, parent_loop);
+         progress |= dce_cf_list(&nif->then_list, defs_live, parent_loop);
+         mark_src_live(&nif->condition, defs_live);
+         break;
+      }
+      case nir_cf_node_loop: {
+         nir_loop *loop = nir_cf_node_as_loop(cf_node);
+
+         /* Fast path if the loop has no continues: we can remove instructions
+          * as we mark the others live.
+          */
+         if (nir_loop_first_block(loop)->predecessors->entries == 1) {
+            progress |= dce_cf_list(&loop->body, defs_live, parent_loop);
+            break;
+         }
+
+         /* Mark instructions as live until there is no more progress. */
+         struct loop_state inner_state;
+         inner_state.preheader = nir_cf_node_as_block(nir_cf_node_prev(cf_node));
+         inner_state.header_phis_changed = false;
+         do {
+            /* dce_cf_list() resets inner_state.header_phis_changed itself, so
+             * it doesn't have to be done here.
+             */
+            dce_cf_list(&loop->body, defs_live, &inner_state);
+         } while (inner_state.header_phis_changed);
+
+         /* We don't know how many times mark_cf_list() will repeat, so
+          * remove instructions separately.
+          *
+          * By checking parent_loop->preheader, we ensure that we only do this
+          * walk for the outer-most loops so it only happens once.
+          */
+         if (!parent_loop->preheader) {
+            nir_foreach_block_in_cf_node(block, cf_node) {
+               nir_foreach_instr_safe(instr, block) {
+                  if (!instr->pass_flags) {
+                     nir_instr_remove(instr);
+                     progress = true;
+                  }
+               }
+            }
+         }
+         break;
+      }
+      case nir_cf_node_function:
+         unreachable("Invalid cf type");
+      }
+   }
+
+   return progress;
 }
 
 static bool
 nir_opt_dce_impl(nir_function_impl *impl)
 {
-   nir_instr_worklist *worklist = nir_instr_worklist_create();
+   assert(impl->structured);
 
-   nir_foreach_block(block, impl) {
-      init_block(block, worklist);
-   }
+   BITSET_WORD *defs_live = rzalloc_array(NULL, BITSET_WORD,
+                                          BITSET_WORDS(impl->ssa_alloc));
 
-   nir_foreach_instr_in_worklist(instr, worklist)
-      nir_foreach_src(instr, mark_live_cb, worklist);
+   struct loop_state loop;
+   loop.preheader = NULL;
+   bool progress = dce_cf_list(&impl->body, defs_live, &loop);
 
-   nir_instr_worklist_destroy(worklist);
-
-   bool progress = false;
-
-   nir_foreach_block(block, impl) {
-      nir_foreach_instr_safe(instr, block) {
-         if (!instr->pass_flags) {
-            nir_instr_remove(instr);
-            progress = true;
-         }
-      }
-   }
+   ralloc_free(defs_live);
 
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |

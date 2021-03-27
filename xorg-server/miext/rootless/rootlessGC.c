@@ -1243,10 +1243,7 @@ RootlessPolyText8(DrawablePtr dst, GCPtr pGC,
         box.x2 = dst->x + x + FONTMAXBOUNDS(pGC->font, rightSideBearing);
 
         if (count > 1) {
-            if (width > 0)
-                box.x2 += width;
-            else
-                box.x1 += width;
+            box.x2 += width;
         }
 
         box.y1 = dst->y + y - FONTMAXBOUNDS(pGC->font, ascent);
@@ -1334,10 +1331,7 @@ RootlessPolyText16(DrawablePtr dst, GCPtr pGC,
         box.x2 = dst->x + x + FONTMAXBOUNDS(pGC->font, rightSideBearing);
 
         if (count > 1) {
-            if (width > 0)
-                box.x2 += width;
-            else
-                box.x1 += width;
+            box.x2 += width;
         }
 
         box.y1 = dst->y + y - FONTMAXBOUNDS(pGC->font, ascent);

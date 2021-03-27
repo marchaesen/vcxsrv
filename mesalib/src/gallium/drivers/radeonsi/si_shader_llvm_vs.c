@@ -158,7 +158,7 @@ static void load_input_vs(struct si_shader_context *ctx, unsigned input_index, L
    for (unsigned i = 0; i < num_fetches; ++i) {
       LLVMValueRef voffset = LLVMConstInt(ctx->ac.i32, fetch_stride * i, 0);
       fetches[i] = ac_build_buffer_load_format(&ctx->ac, vb_desc, vertex_index, voffset,
-                                               channels_per_fetch, 0, true, false);
+                                               channels_per_fetch, 0, true, false, false);
    }
 
    if (num_fetches == 1 && channels_per_fetch > 1) {
@@ -328,7 +328,7 @@ void si_llvm_emit_streamout(struct si_shader_context *ctx, struct si_shader_outp
        * enabled buffer. */
       LLVMValueRef so_write_offset[4] = {};
       LLVMValueRef so_buffers[4];
-      LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->rw_buffers);
+      LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->internal_bindings);
 
       for (i = 0; i < 4; i++) {
          if (!so->stride[i])
@@ -369,7 +369,7 @@ static void si_llvm_emit_clipvertex(struct si_shader_context *ctx, struct ac_exp
    unsigned chan;
    unsigned const_chan;
    LLVMValueRef base_elt;
-   LLVMValueRef ptr = ac_get_arg(&ctx->ac, ctx->rw_buffers);
+   LLVMValueRef ptr = ac_get_arg(&ctx->ac, ctx->internal_bindings);
    LLVMValueRef constbuf_index = LLVMConstInt(ctx->ac.i32, SI_VS_CONST_CLIP_PLANES, 0);
    LLVMValueRef const_resource = ac_build_load_to_sgpr(&ctx->ac, ptr, constbuf_index);
    unsigned clipdist_mask = ctx->shader->selector->clipdist_mask &
@@ -846,7 +846,7 @@ void si_llvm_build_vs_prolog(struct si_shader_context *ctx, union si_shader_part
 
    if (key->vs_prolog.num_merged_next_stage_vgprs) {
       if (!key->vs_prolog.is_monolithic)
-         si_init_exec_from_input(ctx, merged_wave_info, 0);
+         ac_init_exec_full_mask(&ctx->ac);
 
       if (key->vs_prolog.as_ls && ctx->screen->info.has_ls_vgpr_init_bug) {
          /* If there are no HS threads, SPI loads the LS VGPRs
@@ -1009,7 +1009,7 @@ void si_llvm_build_vs_prolog(struct si_shader_context *ctx, union si_shader_part
    LLVMValueRef instance_divisor_constbuf = NULL;
 
    if (key->vs_prolog.states.instance_divisor_is_fetched) {
-      LLVMValueRef list = si_prolog_get_rw_buffers(ctx);
+      LLVMValueRef list = si_prolog_get_internal_bindings(ctx);
       LLVMValueRef buf_index = LLVMConstInt(ctx->ac.i32, SI_VS_CONST_INSTANCE_DIVISORS, 0);
       instance_divisor_constbuf = ac_build_load_to_sgpr(&ctx->ac, list, buf_index);
    }

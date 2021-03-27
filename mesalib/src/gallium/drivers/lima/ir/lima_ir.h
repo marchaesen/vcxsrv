@@ -49,16 +49,16 @@
 
 
 struct ra_regs;
-struct lima_vs_shader_state;
-struct lima_fs_shader_state;
+struct lima_vs_compiled_shader;
+struct lima_fs_compiled_shader;
 
 /* gpir interface */
-bool gpir_compile_nir(struct lima_vs_shader_state *prog, struct nir_shader *nir,
+bool gpir_compile_nir(struct lima_vs_compiled_shader *prog, struct nir_shader *nir,
                       struct pipe_debug_callback *debug);
 
 
 /* ppir interface */
-bool ppir_compile_nir(struct lima_fs_shader_state *prog, struct nir_shader *nir,
+bool ppir_compile_nir(struct lima_fs_compiled_shader *prog, struct nir_shader *nir,
                       struct ra_regs *ra,
                       struct pipe_debug_callback *debug);
 struct ra_regs *ppir_regalloc_init(void *mem_ctx);

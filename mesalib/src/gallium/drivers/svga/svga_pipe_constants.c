@@ -44,6 +44,7 @@ struct svga_constbuf
 static void
 svga_set_constant_buffer(struct pipe_context *pipe,
                          enum pipe_shader_type shader, uint index,
+                         bool take_ownership,
                          const struct pipe_constant_buffer *cb)
 {
    struct svga_screen *svgascreen = svga_screen(pipe->screen);
@@ -66,7 +67,12 @@ svga_set_constant_buffer(struct pipe_context *pipe,
    assert(index < svgascreen->max_const_buffers);
    (void) svgascreen;
 
-   pipe_resource_reference(&svga->curr.constbufs[shader][index].buffer, buf);
+   if (take_ownership) {
+      pipe_resource_reference(&svga->curr.constbufs[shader][index].buffer, NULL);
+      svga->curr.constbufs[shader][index].buffer = buf;
+   } else {
+      pipe_resource_reference(&svga->curr.constbufs[shader][index].buffer, buf);
+   }
 
    /* Make sure the constant buffer size to be updated is within the
     * limit supported by the device.

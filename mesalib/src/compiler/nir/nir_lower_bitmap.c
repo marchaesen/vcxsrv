@@ -95,7 +95,7 @@ lower_bitmap(nir_shader *shader, nir_builder *b,
    tex->op = nir_texop_tex;
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
    tex->coord_components = 2;
-   tex->dest_type = nir_type_float;
+   tex->dest_type = nir_type_float32;
    tex->src[0].src_type = nir_tex_src_texture_deref;
    tex->src[0].src = nir_src_for_ssa(&tex_deref->dest.ssa);
    tex->src[1].src_type = nir_tex_src_sampler_deref;

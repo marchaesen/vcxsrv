@@ -37,49 +37,14 @@
 #include "fd6_emit.h"
 #include "fd6_pack.h"
 
-struct fd6_compute_stateobj {
-	struct ir3_shader *shader;
-};
-
-
-static void *
-fd6_create_compute_state(struct pipe_context *pctx,
-		const struct pipe_compute_state *cso)
-{
-	struct fd_context *ctx = fd_context(pctx);
-
-	/* req_input_mem will only be non-zero for cl kernels (ie. clover).
-	 * This isn't a perfect test because I guess it is possible (but
-	 * uncommon) for none for the kernel parameters to be a global,
-	 * but ctx->set_global_bindings() can't fail, so this is the next
-	 * best place to fail if we need a newer version of kernel driver:
-	 */
-	if ((cso->req_input_mem > 0) &&
-			fd_device_version(ctx->dev) < FD_VERSION_BO_IOVA) {
-		return NULL;
-	}
-
-	struct ir3_compiler *compiler = ctx->screen->compiler;
-	struct fd6_compute_stateobj *so = CALLOC_STRUCT(fd6_compute_stateobj);
-	so->shader = ir3_shader_create_compute(compiler, cso, &ctx->debug, pctx->screen);
-	return so;
-}
-
-static void
-fd6_delete_compute_state(struct pipe_context *pctx, void *hwcso)
-{
-	struct fd6_compute_stateobj *so = hwcso;
-	ir3_shader_state_delete(pctx, so->shader);
-	free(so);
-}
 
 /* maybe move to fd6_program? */
 static void
 cs_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
-				struct ir3_shader_variant *v)
+				struct ir3_shader_variant *v) assert_dt
 {
 	const struct ir3_info *i = &v->info;
-	enum a3xx_threadsize thrsz = FOUR_QUADS;
+	enum a6xx_threadsize thrsz = i->double_threadsize ? THREAD128 : THREAD64;
 
 	OUT_REG(ring, A6XX_HLSQ_INVALIDATE_CMD(
 			.vs_state = true,
@@ -109,11 +74,12 @@ cs_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
 			A6XX_SP_CS_CTRL_REG0_FULLREGFOOTPRINT(i->max_reg + 1) |
 			A6XX_SP_CS_CTRL_REG0_HALFREGFOOTPRINT(i->max_half_reg + 1) |
 			COND(v->mergedregs, A6XX_SP_CS_CTRL_REG0_MERGEDREGS) |
-			A6XX_SP_CS_CTRL_REG0_BRANCHSTACK(v->branchstack) |
-			COND(v->need_pixlod, A6XX_SP_CS_CTRL_REG0_PIXLODENABLE));
+			A6XX_SP_CS_CTRL_REG0_BRANCHSTACK(v->branchstack));
 
+	uint32_t shared_size = MAX2(((int)v->shared_size - 1) / 1024, 1);
 	OUT_PKT4(ring, REG_A6XX_SP_CS_UNKNOWN_A9B1, 1);
-	OUT_RING(ring, 0x41);
+	OUT_RING(ring, A6XX_SP_CS_UNKNOWN_A9B1_SHARED_SIZE(shared_size) |
+			A6XX_SP_CS_UNKNOWN_A9B1_UNK6);
 
 	uint32_t local_invocation_id, work_group_id;
 	local_invocation_id = ir3_find_sysval_regid(v, SYSTEM_VALUE_LOCAL_INVOCATION_ID);
@@ -121,12 +87,13 @@ cs_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
 	OUT_PKT4(ring, REG_A6XX_HLSQ_CS_CNTL_0, 2);
 	OUT_RING(ring, A6XX_HLSQ_CS_CNTL_0_WGIDCONSTID(work_group_id) |
-		A6XX_HLSQ_CS_CNTL_0_UNK0(regid(63, 0)) |
-		A6XX_HLSQ_CS_CNTL_0_UNK1(regid(63, 0)) |
+		A6XX_HLSQ_CS_CNTL_0_WGSIZECONSTID(regid(63, 0)) |
+		A6XX_HLSQ_CS_CNTL_0_WGOFFSETCONSTID(regid(63, 0)) |
 		A6XX_HLSQ_CS_CNTL_0_LOCALIDREGID(local_invocation_id));
-	OUT_RING(ring, 0x2fc);             /* HLSQ_CS_UNKNOWN_B998 */
+	OUT_RING(ring, A6XX_HLSQ_CS_CNTL_1_LINEARLOCALIDREGID(regid(63, 0)) |
+			       A6XX_HLSQ_CS_CNTL_1_THREADSIZE(thrsz));
 
-	OUT_PKT4(ring, REG_A6XX_SP_CS_OBJ_START_LO, 2);
+	OUT_PKT4(ring, REG_A6XX_SP_CS_OBJ_START, 2);
 	OUT_RELOC(ring, v->bo, 0, 0, 0);   /* SP_CS_OBJ_START_LO/HI */
 
 	if (v->instrlen > 0)
@@ -135,14 +102,14 @@ cs_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
 static void
 fd6_launch_grid(struct fd_context *ctx, const struct pipe_grid_info *info)
+	in_dt
 {
-	struct fd6_compute_stateobj *so = ctx->compute;
 	struct ir3_shader_key key = {};
 	struct ir3_shader_variant *v;
 	struct fd_ringbuffer *ring = ctx->batch->draw;
 	unsigned nglobal = 0;
 
-	v = ir3_shader_variant(so->shader, key, false, &ctx->debug);
+	v = ir3_shader_variant(ir3_get_shader(ctx->compute), key, false, &ctx->debug);
 	if (!v)
 		return;
 
@@ -152,7 +119,7 @@ fd6_launch_grid(struct fd_context *ctx, const struct pipe_grid_info *info)
 	fd6_emit_cs_state(ctx, ring, v);
 	fd6_emit_cs_consts(v, ring, ctx, info);
 
-	foreach_bit(i, ctx->global_bindings.enabled_mask)
+	u_foreach_bit(i, ctx->global_bindings.enabled_mask)
 		nglobal++;
 
 	if (nglobal > 0) {
@@ -163,7 +130,7 @@ fd6_launch_grid(struct fd_context *ctx, const struct pipe_grid_info *info)
 		 * payload:
 		 */
 		OUT_PKT7(ring, CP_NOP, 2 * nglobal);
-		foreach_bit(i, ctx->global_bindings.enabled_mask) {
+		u_foreach_bit(i, ctx->global_bindings.enabled_mask) {
 			struct pipe_resource *prsc = ctx->global_bindings.buf[i];
 			OUT_RELOC(ring, fd_resource(prsc)->bo, 0, 0, 0);
 		}
@@ -222,9 +189,10 @@ fd6_launch_grid(struct fd_context *ctx, const struct pipe_grid_info *info)
 
 void
 fd6_compute_init(struct pipe_context *pctx)
+	disable_thread_safety_analysis
 {
 	struct fd_context *ctx = fd_context(pctx);
 	ctx->launch_grid = fd6_launch_grid;
-	pctx->create_compute_state = fd6_create_compute_state;
-	pctx->delete_compute_state = fd6_delete_compute_state;
+	pctx->create_compute_state = ir3_shader_compute_state_create;
+	pctx->delete_compute_state = ir3_shader_state_delete;
 }

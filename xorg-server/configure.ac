@@ -684,10 +684,6 @@ case $host_os in
 			fi
 		fi
 
-		AC_CHECK_FUNC(dispatch_async,
-		              AC_DEFINE([HAVE_LIBDISPATCH], 1, [Define to 1 if you have the libdispatch (GCD) available]),
-		              [])
-
 		if test "x$XQUARTZ" = xyes ; then
 			XQUARTZ=yes
 			XVFB=no
@@ -2297,7 +2293,7 @@ AM_CONDITIONAL(XEPHYR, [test "x$KDRIVE" = xyes && test "x$XEPHYR" = xyes])
 
 dnl Xwayland DDX
 
-XWAYLANDMODULES="wayland-client >= 1.3.0 wayland-protocols >= 1.18"
+XWAYLANDMODULES="wayland-client >= 1.5.0 wayland-protocols >= 1.18"
 if test "x$XF86VIDMODE" = xyes; then
 	XWAYLANDMODULES="$XWAYLANDMODULES $VIDMODEPROTO"
 fi

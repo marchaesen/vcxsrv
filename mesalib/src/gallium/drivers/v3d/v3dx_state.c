@@ -290,13 +290,17 @@ v3d_set_viewport_states(struct pipe_context *pctx,
 static void
 v3d_set_vertex_buffers(struct pipe_context *pctx,
                        unsigned start_slot, unsigned count,
+                       unsigned unbind_num_trailing_slots,
+                       bool take_ownership,
                        const struct pipe_vertex_buffer *vb)
 {
         struct v3d_context *v3d = v3d_context(pctx);
         struct v3d_vertexbuf_stateobj *so = &v3d->vertexbuf;
 
         util_set_vertex_buffers_mask(so->vb, &so->enabled_mask, vb,
-                                     start_slot, count);
+                                     start_slot, count,
+                                     unbind_num_trailing_slots,
+                                     take_ownership);
         so->count = util_last_bit(so->enabled_mask);
 
         v3d->dirty |= VC5_DIRTY_VTXBUF;
@@ -446,12 +450,13 @@ v3d_vertex_state_bind(struct pipe_context *pctx, void *hwcso)
 
 static void
 v3d_set_constant_buffer(struct pipe_context *pctx, uint shader, uint index,
+                        bool take_ownership,
                         const struct pipe_constant_buffer *cb)
 {
         struct v3d_context *v3d = v3d_context(pctx);
         struct v3d_constbuf_stateobj *so = &v3d->constbuf[shader];
 
-        util_copy_constant_buffer(&so->cb[index], cb);
+        util_copy_constant_buffer(&so->cb[index], cb, take_ownership);
 
         /* Note that the gallium frontend can unbind constant buffers by
          * passing NULL here.
@@ -504,7 +509,7 @@ v3d_set_framebuffer_state(struct pipe_context *pctx,
 }
 
 static enum V3DX(Wrap_Mode)
-translate_wrap(uint32_t pipe_wrap, bool using_nearest)
+translate_wrap(uint32_t pipe_wrap)
 {
         switch (pipe_wrap) {
         case PIPE_TEX_WRAP_REPEAT:
@@ -515,10 +520,6 @@ translate_wrap(uint32_t pipe_wrap, bool using_nearest)
                 return V3D_WRAP_MODE_MIRROR;
         case PIPE_TEX_WRAP_CLAMP_TO_BORDER:
                 return V3D_WRAP_MODE_BORDER;
-        case PIPE_TEX_WRAP_CLAMP:
-                return (using_nearest ?
-                        V3D_WRAP_MODE_CLAMP :
-                        V3D_WRAP_MODE_BORDER);
         default:
                 unreachable("Unknown wrap mode");
         }
@@ -528,15 +529,14 @@ translate_wrap(uint32_t pipe_wrap, bool using_nearest)
 static void
 v3d_upload_sampler_state_variant(void *map,
                                  const struct pipe_sampler_state *cso,
-                                 enum v3d_sampler_state_variant variant,
-                                 bool either_nearest)
+                                 enum v3d_sampler_state_variant variant)
 {
         v3dx_pack(map, SAMPLER_STATE, sampler) {
                 sampler.wrap_i_border = false;
 
-                sampler.wrap_s = translate_wrap(cso->wrap_s, either_nearest);
-                sampler.wrap_t = translate_wrap(cso->wrap_t, either_nearest);
-                sampler.wrap_r = translate_wrap(cso->wrap_r, either_nearest);
+                sampler.wrap_s = translate_wrap(cso->wrap_s);
+                sampler.wrap_t = translate_wrap(cso->wrap_t);
+                sampler.wrap_r = translate_wrap(cso->wrap_r);
 
                 sampler.fixed_bias = cso->lod_bias;
                 sampler.depth_compare_function = cso->compare_func;
@@ -716,16 +716,9 @@ v3d_create_sampler_state(struct pipe_context *pctx,
 
         memcpy(so, cso, sizeof(*cso));
 
-        bool either_nearest =
-                (cso->mag_img_filter == PIPE_TEX_MIPFILTER_NEAREST ||
-                 cso->min_img_filter == PIPE_TEX_MIPFILTER_NEAREST);
-
-        enum V3DX(Wrap_Mode) wrap_s = translate_wrap(cso->wrap_s,
-                                                     either_nearest);
-        enum V3DX(Wrap_Mode) wrap_t = translate_wrap(cso->wrap_t,
-                                                     either_nearest);
-        enum V3DX(Wrap_Mode) wrap_r = translate_wrap(cso->wrap_r,
-                                                     either_nearest);
+        enum V3DX(Wrap_Mode) wrap_s = translate_wrap(cso->wrap_s);
+        enum V3DX(Wrap_Mode) wrap_t = translate_wrap(cso->wrap_t);
+        enum V3DX(Wrap_Mode) wrap_r = translate_wrap(cso->wrap_r);
 
         bool uses_border_color = (wrap_s == V3D_WRAP_MODE_BORDER ||
                                   wrap_t == V3D_WRAP_MODE_BORDER ||
@@ -752,7 +745,7 @@ v3d_create_sampler_state(struct pipe_context *pctx,
                 so->sampler_state_offset[i] =
                         so->sampler_state_offset[0] + i * sampler_size;
                 v3d_upload_sampler_state_variant(map + i * sampler_size,
-                                                 cso, i, either_nearest);
+                                                 cso, i);
         }
 
 #else /* V3D_VERSION < 40 */
@@ -1153,6 +1146,7 @@ static void
 v3d_set_sampler_views(struct pipe_context *pctx,
                       enum pipe_shader_type shader,
                       unsigned start, unsigned nr,
+                      unsigned unbind_num_trailing_slots,
                       struct pipe_sampler_view **views)
 {
         struct v3d_context *v3d = v3d_context(pctx);
@@ -1344,6 +1338,7 @@ static void
 v3d_set_shader_images(struct pipe_context *pctx,
                       enum pipe_shader_type shader,
                       unsigned start, unsigned count,
+                      unsigned unbind_num_trailing_slots,
                       const struct pipe_image_view *images)
 {
         struct v3d_context *v3d = v3d_context(pctx);
@@ -1389,6 +1384,11 @@ v3d_set_shader_images(struct pipe_context *pctx,
         }
 
         v3d->dirty |= VC5_DIRTY_SHADER_IMAGE;
+
+        if (unbind_num_trailing_slots) {
+                v3d_set_shader_images(pctx, shader, start + count,
+                                      unbind_num_trailing_slots, 0, NULL);
+        }
 }
 
 void

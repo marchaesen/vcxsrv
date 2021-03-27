@@ -54,6 +54,7 @@ struct fd_ringbuffer * __fd6_setup_rasterizer_stateobj(struct fd_context *ctx,
 
 static inline struct fd_ringbuffer *
 fd6_rasterizer_state(struct fd_context *ctx, bool primitive_restart)
+	assert_dt
 {
 	struct fd6_rasterizer_stateobj *rasterizer = fd6_rasterizer_stateobj(ctx->rasterizer);
 	unsigned variant = primitive_restart;

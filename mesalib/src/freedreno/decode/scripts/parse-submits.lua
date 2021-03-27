@@ -212,26 +212,26 @@ function CP_EVENT_WRITE(pkt, size)
 		-- to avoid relying on RB_BLIT_DST also getting written:
 		for n = 0,r.RB_FS_OUTPUT_CNTL1.MRT-1 do
 			if r.RB_MRT[n].BASE_GMEM == r.RB_BLIT_BASE_GMEM then
-				sysmem = r.RB_MRT[n].BASE_LO | (r.RB_MRT[n].BASE_HI << 32)
-				flag = r.RB_MRT_FLAG_BUFFER[n].ADDR_LO | (r.RB_MRT_FLAG_BUFFER[n].ADDR_HI << 32)
+				sysmem = r.RB_MRT[n].BASE
+				flag = r.RB_MRT_FLAG_BUFFER[n].ADDR
 				break
 			end
 		end
 		if sysmem == 0 and r.RB_BLIT_BASE_GMEM == r.RB_DEPTH_BUFFER_BASE_GMEM then
-			sysmem = r.RB_DEPTH_BUFFER_BASE_LO | (r.RB_DEPTH_BUFFER_BASE_HI << 32)
-			flag = r.RB_DEPTH_FLAG_BUFFER_BASE_LO | (r.RB_DEPTH_FLAG_BUFFER_BASE_HI << 32)
+			sysmem = r.RB_DEPTH_BUFFER_BASE
+			flag = r.RB_DEPTH_FLAG_BUFFER_BASE
 
 		end
 		--NOTE this can get confused by previous blits:
 		--if sysmem == 0 then
 		--	-- fallback:
-		--	sysmem = r.RB_BLIT_DST_LO | (r.RB_BLIT_DST_HI << 32)
-		--	flag = r.RB_BLIT_FLAG_DST_LO | (r.RB_BLIT_FLAG_DST_HI << 32)
+		--	sysmem = r.RB_BLIT_DST
+		--	flag = r.RB_BLIT_FLAG_DST
 		--end
 		if not r.RB_BLIT_DST_INFO.FLAGS then
 			flag = 0
 		end
-		-- TODO maybe just emit RB_BLIT_DST_LO/HI for clears.. otherwise
+		-- TODO maybe just emit RB_BLIT_DST/HI for clears.. otherwise
 		-- we get confused by stale values in registers.. not sure
 		-- if this is a problem w/ blob
 		push_mrt(r.RB_BLIT_DST_INFO.COLOR_FORMAT,
@@ -260,7 +260,7 @@ function handle_blit()
 	-- blob sometimes uses CP_BLIT for resolves, so filter those out:
 	-- TODO it would be nice to not hard-code GMEM addr:
 	-- TODO I guess the src can be an offset from GMEM addr..
-	if r.SP_PS_2D_SRC_LO == 0x100000 and not r.RB_2D_BLIT_CNTL.SOLID_COLOR then
+	if r.SP_PS_2D_SRC == 0x100000 and not r.RB_2D_BLIT_CNTL.SOLID_COLOR then
 		resolved[0] = 1
 		return
 	end
@@ -276,19 +276,19 @@ function handle_blit()
 		r.GRAS_2D_DST_BR.X + 1,
 		r.GRAS_2D_DST_BR.Y + 1,
 		"MSAA_ONE",
-		r.RB_2D_DST_LO | (r.RB_2D_DST_HI << 32),
-		r.RB_2D_DST_FLAGS_LO | (r.RB_2D_DST_FLAGS_HI << 32),
+		r.RB_2D_DST,
+		r.RB_2D_DST_FLAGS,
 		-1)
 	if r.RB_2D_BLIT_CNTL.SOLID_COLOR then
-		dbg("CLEAR=%x\n", r.RB_2D_DST_LO | (r.RB_2D_DST_HI << 32))
-		cleared[r.RB_2D_DST_LO | (r.RB_2D_DST_HI << 32)] = 1
+		dbg("CLEAR=%x\n", r.RB_2D_DST)
+		cleared[r.RB_2D_DST] = 1
 	else
 		push_source(r.SP_2D_SRC_FORMAT.COLOR_FORMAT,
 			r.GRAS_2D_SRC_BR_X.X + 1,
 			r.GRAS_2D_SRC_BR_Y.Y + 1,
 			"MSAA_ONE",
-			r.SP_PS_2D_SRC_LO | (r.SP_PS_2D_SRC_HI << 32),
-			r.SP_PS_2D_SRC_FLAGS_LO | (r.SP_PS_2D_SRC_FLAGS_HI << 32))
+			r.SP_PS_2D_SRC,
+			r.SP_PS_2D_SRC_FLAGS)
 	end
 	blits = blits + 1
 	finish()
@@ -364,14 +364,13 @@ function draw(primtype, nindx)
 				r.GRAS_SC_SCREEN_SCISSOR[0].BR.X + 1,
 				r.GRAS_SC_SCREEN_SCISSOR[0].BR.Y + 1,
 				r.RB_MSAA_CNTL.SAMPLES,
-				r.RB_MRT[n].BASE_LO | (r.RB_MRT[n].BASE_HI << 32),
-				r.RB_MRT_FLAG_BUFFER[n].ADDR_LO | (r.RB_MRT_FLAG_BUFFER[n].ADDR_HI << 32),
+				r.RB_MRT[n].BASE,
+				r.RB_MRT_FLAG_BUFFER[n].ADDR,
 				r.RB_MRT[n].BASE_GMEM)
 		end
 	end
 
-	local depthbase = r.RB_DEPTH_BUFFER_BASE_LO |
-			(r.RB_DEPTH_BUFFER_BASE_HI << 32)
+	local depthbase = r.RB_DEPTH_BUFFER_BASE
 
 	if depthbase ~= 0 then
 		push_mrt(r.RB_DEPTH_BUFFER_INFO.DEPTH_FORMAT,
@@ -379,7 +378,7 @@ function draw(primtype, nindx)
 			r.GRAS_SC_SCREEN_SCISSOR[0].BR.Y + 1,
 			r.RB_MSAA_CNTL.SAMPLES,
 			depthbase,
-			r.RB_DEPTH_FLAG_BUFFER_BASE_LO | (r.RB_DEPTH_FLAG_BUFFER_BASE_HI << 32),
+			r.RB_DEPTH_FLAG_BUFFER_BASE,
 			r.RB_DEPTH_BUFFER_BASE_GMEM)
 	end
 

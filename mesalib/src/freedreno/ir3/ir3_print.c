@@ -160,7 +160,7 @@ static void print_instr_name(struct ir3_instruction *instr, bool flags)
 	}
 }
 
-static void print_reg_name(struct ir3_register *reg)
+static void print_reg_name(struct ir3_instruction *instr, struct ir3_register *reg)
 {
 	if ((reg->flags & (IR3_REG_FABS | IR3_REG_SABS)) &&
 			(reg->flags & (IR3_REG_FNEG | IR3_REG_SNEG | IR3_REG_BNOT)))
@@ -173,8 +173,8 @@ static void print_reg_name(struct ir3_register *reg)
 	if (reg->flags & IR3_REG_R)
 		printf("(r)");
 
-	if (reg->flags & IR3_REG_HIGH)
-		printf("H");
+	if (reg->flags & IR3_REG_SHARED)
+		printf("s");
 	if (reg->flags & IR3_REG_HALF)
 		printf("h");
 
@@ -185,18 +185,18 @@ static void print_reg_name(struct ir3_register *reg)
 				reg->array.offset, reg->size);
 		/* for ARRAY we could have null src, for example first write
 		 * instruction..
+		 *
+		 * Note for array writes from another block, we aren't really
+		 * sure who wrote it so skip trying to show this
 		 */
-		if (reg->instr) {
+		if (reg->instr && (reg->instr->block == instr->block)) {
 			printf(SYN_ARRAY(", "));
-			printf(SYN_SSA("_["));
-			print_instr_name(reg->instr, false);
-			printf(SYN_SSA("]"));
+			printf(SYN_SSA("ssa_%u"), reg->instr->serialno);
 		}
 		printf(SYN_ARRAY("]"));
 	} else if (reg->flags & IR3_REG_SSA) {
-		printf(SYN_SSA("_["));
-		print_instr_name(reg->instr, false);
-		printf(SYN_SSA("]"));
+		/* For dst regs, reg->instr will be NULL: */
+		printf(SYN_SSA("ssa_%u"), reg->instr ? reg->instr->serialno : instr->serialno);
 	} else if (reg->flags & IR3_REG_RELATIV) {
 		if (reg->flags & IR3_REG_CONST)
 			printf(SYN_CONST("c<a0.x + %d>"), reg->array.offset);
@@ -223,27 +223,33 @@ tab(int lvl)
 static void
 print_instr(struct ir3_instruction *instr, int lvl)
 {
-	unsigned i;
-
 	tab(lvl);
 
 	print_instr_name(instr, true);
 
 	if (is_tex(instr)) {
 		printf(" (%s)(", type_name(instr->cat5.type));
-		for (i = 0; i < 4; i++)
+		for (unsigned i = 0; i < 4; i++)
 			if (instr->regs[0]->wrmask & (1 << i))
 				printf("%c", "xyzw"[i]);
 		printf(")");
-	} else if (instr->regs_count > 0) {
+	} else if ((instr->regs_count > 0) && (instr->opc != OPC_B)) {
+		/* NOTE the b(ranch) instruction has a suffix, which is
+		 * handled below
+		 */
 		printf(" ");
 	}
 
-	for (i = 0; i < instr->regs_count; i++) {
-		struct ir3_register *reg = instr->regs[i];
+	if (!is_flow(instr)) {
+		for (unsigned i = 0, n = 0; i < instr->regs_count; i++) {
+			struct ir3_register *reg = instr->regs[i];
 
-		printf(i ? ", " : "");
-		print_reg_name(reg);
+			if ((i == 0) && (dest_regs(instr) == 0))
+				continue;
+
+			printf(n++ ? ", " : "");
+			print_reg_name(instr, reg);
+		}
 	}
 
 	if (is_tex(instr) && !(instr->flags & IR3_INSTR_S2EN)) {
@@ -290,19 +296,49 @@ print_instr(struct ir3_instruction *instr, int lvl)
 	if (is_flow(instr) && instr->cat0.target) {
 		/* the predicate register src is implied: */
 		if (instr->opc == OPC_B) {
-			printf("r %sp0.x", instr->cat0.inv ? "!" : "");
+			static const struct {
+				const char *suffix;
+				int nsrc;
+				bool idx;
+			} brinfo[7] = {
+				[BRANCH_PLAIN] = { "r",   1, false },
+				[BRANCH_OR]    = { "rao", 2, false },
+				[BRANCH_AND]   = { "raa", 2, false },
+				[BRANCH_CONST] = { "rac", 0, true  },
+				[BRANCH_ANY]   = { "any", 1, false },
+				[BRANCH_ALL]   = { "all", 1, false },
+				[BRANCH_X]     = { "rax", 0, false },
+			};
+
+			printf("%s", brinfo[instr->cat0.brtype].suffix);
+			if (brinfo[instr->cat0.brtype].idx) {
+				printf(".%u", instr->cat0.idx);
+			}
+			if (brinfo[instr->cat0.brtype].nsrc >= 1) {
+				printf(" %sp0.%c ("SYN_SSA("ssa_%u")"),",
+						instr->cat0.inv1 ? "!" : "",
+						"xyzw"[instr->cat0.comp1 & 0x3],
+						instr->regs[1]->instr->serialno);
+			}
+			if (brinfo[instr->cat0.brtype].nsrc >= 2) {
+				printf(" %sp0.%c ("SYN_SSA("ssa_%u")"),",
+						instr->cat0.inv2 ? "!" : "",
+						"xyzw"[instr->cat0.comp2 & 0x3],
+						instr->regs[2]->instr->serialno);
+			}
 		}
-		printf(", target=block%u", block_id(instr->cat0.target));
+		printf(" target=block%u", block_id(instr->cat0.target));
 	}
 
 	if (instr->deps_count) {
 		printf(", false-deps:");
+		unsigned n = 0;
 		for (unsigned i = 0; i < instr->deps_count; i++) {
-			if (i > 0)
+			if (!instr->deps[i])
+				continue;
+			if (n++ > 0)
 				printf(", ");
-			printf("_[");
-			print_instr_name(instr->deps[i], false);
-			printf("]");
+			printf(SYN_SSA("ssa_%u"), instr->deps[i]->serialno);
 		}
 	}
 
@@ -348,9 +384,8 @@ print_block(struct ir3_block *block, int lvl)
 	if (block->successors[1]) {
 		/* leading into if/else: */
 		tab(lvl+1);
-		printf("/* succs: if _[");
-		print_instr_name(block->condition, false);
-		printf("] block%u; else block%u; */\n",
+		printf("/* succs: if "SYN_SSA("ssa_%u")" block%u; else block%u */\n",
+				block->condition->serialno,
 				block_id(block->successors[0]),
 				block_id(block->successors[1]));
 	} else if (block->successors[0]) {

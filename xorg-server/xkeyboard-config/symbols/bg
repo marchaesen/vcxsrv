@@ -165,8 +165,8 @@ xkb_symbols "phonetic" {
   key <AB05> {[ Cyrillic_be,       Cyrillic_BE                                               ]};
   key <AB06> {[ Cyrillic_en,       Cyrillic_EN                                               ]};
   key <AB07> {[ Cyrillic_em,       Cyrillic_EM                                               ]};
-  key <AB08> {[ comma,             less,             doublelowquotemark, guillemotleft       ]};
-  key <AB09> {[ period,            greater,         leftdoublequotemark, guillemotright      ]};
+  key <AB08> {[ comma,            doublelowquotemark, guillemotleft,     guillemotleft       ]};
+  key <AB09> {[ period,          leftdoublequotemark, guillemotright,    guillemotright      ]};
   key <AB10> {[ slash,             question,          U0300,             U0301               ]};
 
   key <SPCE> {[ space,             space,             nobreakspace,      nobreakspace        ]};

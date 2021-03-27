@@ -1075,9 +1075,12 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0x0047" name="MH_MMU_MPU_END"/>
 
 	<reg32 offset="0x0394" name="NQWAIT_UNTIL"/>
-	<reg32 offset="0x0395" name="RBBM_PERFCOUNTER1_SELECT"/>
-	<reg32 offset="0x0397" name="RBBM_PERFCOUNTER1_LO"/>
-	<reg32 offset="0x0398" name="RBBM_PERFCOUNTER1_HI"/>
+	<reg32 offset="0x0395" name="RBBM_PERFCOUNTER0_SELECT"/>
+	<reg32 offset="0x0396" name="RBBM_PERFCOUNTER1_SELECT"/>
+	<reg32 offset="0x0397" name="RBBM_PERFCOUNTER0_LO"/>
+	<reg32 offset="0x0398" name="RBBM_PERFCOUNTER0_HI"/>
+	<reg32 offset="0x0399" name="RBBM_PERFCOUNTER1_LO"/>
+	<reg32 offset="0x039a" name="RBBM_PERFCOUNTER1_HI"/>
 	<reg32 offset="0x039b" name="RBBM_DEBUG"/>
 	<reg32 offset="0x039c" name="RBBM_PM_OVERRIDE1">
 		<bitfield name="RBBM_AHBCLK_PM_OVERRIDE" pos="0" type="boolean"/>
@@ -1688,8 +1691,17 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0x0a49" name="MH_PERFCOUNTER0_HI"/>
 	<reg32 offset="0x0a4d" name="MH_PERFCOUNTER1_HI"/>
 	<reg32 offset="0x0f04" name="RB_PERFCOUNTER0_SELECT"/>
+	<reg32 offset="0x0f05" name="RB_PERFCOUNTER1_SELECT"/>
+	<reg32 offset="0x0f06" name="RB_PERFCOUNTER2_SELECT"/>
+	<reg32 offset="0x0f07" name="RB_PERFCOUNTER3_SELECT"/>
 	<reg32 offset="0x0f08" name="RB_PERFCOUNTER0_LOW"/>
 	<reg32 offset="0x0f09" name="RB_PERFCOUNTER0_HI"/>
+	<reg32 offset="0x0f0a" name="RB_PERFCOUNTER1_LOW"/>
+	<reg32 offset="0x0f0b" name="RB_PERFCOUNTER1_HI"/>
+	<reg32 offset="0x0f0c" name="RB_PERFCOUNTER2_LOW"/>
+	<reg32 offset="0x0f0d" name="RB_PERFCOUNTER2_HI"/>
+	<reg32 offset="0x0f0e" name="RB_PERFCOUNTER3_LOW"/>
+	<reg32 offset="0x0f0f" name="RB_PERFCOUNTER3_HI"/>
 </domain>
 
 <domain name="A2XX_SQ_TEX" width="32">

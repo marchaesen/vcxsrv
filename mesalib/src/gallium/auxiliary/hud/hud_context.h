@@ -33,9 +33,11 @@ struct cso_context;
 struct pipe_context;
 struct pipe_resource;
 struct util_queue_monitoring;
+struct st_context_iface;
 
 struct hud_context *
-hud_create(struct cso_context *cso, struct hud_context *share);
+hud_create(struct cso_context *cso, struct st_context_iface *st,
+           struct hud_context *share);
 
 void
 hud_destroy(struct hud_context *hud, struct cso_context *cso);

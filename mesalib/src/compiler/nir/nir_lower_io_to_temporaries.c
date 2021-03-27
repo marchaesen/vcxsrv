@@ -246,7 +246,7 @@ fixup_interpolation_instr(struct lower_io_state *state,
     * correct part of the temporary.
     */
    nir_ssa_def *load = nir_load_deref(b, nir_src_as_deref(interp->src[0]));
-   nir_ssa_def_rewrite_uses(&interp->dest.ssa, nir_src_for_ssa(load));
+   nir_ssa_def_rewrite_uses(&interp->dest.ssa, load);
    nir_instr_remove(&interp->instr);
 
    nir_deref_path_finish(&interp_path);

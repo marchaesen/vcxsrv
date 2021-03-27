@@ -23,6 +23,7 @@
 
 #include "buffer9.h"
 #include "device9.h"
+#include "indexbuffer9.h"
 #include "nine_buffer_upload.h"
 #include "nine_helpers.h"
 #include "nine_pipe.h"
@@ -55,6 +56,7 @@ NineBuffer9_ctor( struct NineBuffer9 *This,
     This->maps = MALLOC(sizeof(struct NineTransfer));
     if (!This->maps)
         return E_OUTOFMEMORY;
+    This->nlocks = 0;
     This->nmaps = 0;
     This->maxmaps = 1;
     This->size = Size;
@@ -67,7 +69,36 @@ NineBuffer9_ctor( struct NineBuffer9 *This,
 
     /* Note: WRITEONLY is just tip for resource placement, the resource
      * can still be read (but slower). */
-    info->bind = PIPE_BIND_VERTEX_BUFFER;
+    info->bind = (Type == D3DRTYPE_INDEXBUFFER) ? PIPE_BIND_INDEX_BUFFER : PIPE_BIND_VERTEX_BUFFER;
+
+    /* Software vertex processing:
+     * If the device is full software vertex processing,
+     * then the buffer is supposed to be used only for sw processing.
+     * For mixed vertex processing, buffers with D3DUSAGE_SOFTWAREPROCESSING
+     * can be used for both sw and hw processing.
+     * These buffers are expected to be stored in RAM.
+     * Apps expect locking the full buffer with no flags, then
+     * render a a few primitive, then locking again, etc
+     * to be a fast pattern. Only the SYSTEMMEM DYNAMIC path
+     * will give that pattern ok performance in our case.
+     * An alternative would be when sw processing is detected to
+     * convert Draw* calls to Draw*Up calls. */
+    if (Usage & D3DUSAGE_SOFTWAREPROCESSING ||
+        pParams->device->params.BehaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING) {
+        Pool = D3DPOOL_SYSTEMMEM;
+        Usage |= D3DUSAGE_DYNAMIC;
+        /* Note: the application cannot retrieve Pool and Usage */
+    }
+
+    /* Always use the DYNAMIC path for SYSTEMMEM.
+     * If the app uses the vertex buffer is a dynamic fashion,
+     * this is going to be very significantly faster that way.
+     * If the app uses the vertex buffer in a static fashion,
+     * instead of being filled all at once, the buffer will be filled
+     * little per little, until it is fully filled, thus the perf hit
+     * will be very small. */
+    if (Pool == D3DPOOL_SYSTEMMEM)
+        Usage |= D3DUSAGE_DYNAMIC;
 
     /* It is hard to find clear information on where to place the buffer in
      * memory depending on the flag.
@@ -82,10 +113,13 @@ NineBuffer9_ctor( struct NineBuffer9 *This,
      *   vram copy are involved or not).
      *   DEFAULT + WRITEONLY => Vram
      *   DEFAULT + WRITEONLY + DYNAMIC => Either Vram buffer or GTT_WC, depending on what the driver wants.
+     *   SYSTEMMEM: Same as MANAGED, but handled by the driver instead of the runtime (which means
+     *   some small behavior differences between vendors). Implementing exactly as MANAGED should
+     *   be fine.
      */
-    if (Pool == D3DPOOL_SYSTEMMEM)
-        info->usage = PIPE_USAGE_STAGING;
-    else if (Pool == D3DPOOL_MANAGED)
+    if (Pool == D3DPOOL_SYSTEMMEM && Usage & D3DUSAGE_DYNAMIC)
+        info->usage = PIPE_USAGE_STREAM;
+    else if (Pool != D3DPOOL_DEFAULT)
         info->usage = PIPE_USAGE_DEFAULT;
     else if (Usage & D3DUSAGE_DYNAMIC && Usage & D3DUSAGE_WRITEONLY)
         info->usage = PIPE_USAGE_STREAM;
@@ -110,10 +144,6 @@ NineBuffer9_ctor( struct NineBuffer9 *This,
     /* if (pDesc->Usage & D3DUSAGE_NPATCHES) { } */
     /* if (pDesc->Usage & D3DUSAGE_POINTS) { } */
     /* if (pDesc->Usage & D3DUSAGE_RTPATCHES) { } */
-    /* The buffer must be usable with both sw and hw
-     * vertex processing. It is expected to be slower with hw. */
-    if (Usage & D3DUSAGE_SOFTWAREPROCESSING)
-        info->usage = PIPE_USAGE_STAGING;
     /* if (pDesc->Usage & D3DUSAGE_TEXTAPI) { } */
 
     info->height0 = 1;
@@ -129,7 +159,7 @@ NineBuffer9_ctor( struct NineBuffer9 *This,
     if (FAILED(hr))
         return hr;
 
-    if (Pool == D3DPOOL_MANAGED) {
+    if (Pool != D3DPOOL_DEFAULT) {
         This->managed.data = align_calloc(
             nine_format_get_level_alloc_size(This->base.info.format,
                                              Size, 1, 0), 32);
@@ -138,6 +168,11 @@ NineBuffer9_ctor( struct NineBuffer9 *This,
         memset(This->managed.data, 0, Size);
         This->managed.dirty = TRUE;
         u_box_1d(0, Size, &This->managed.dirty_box);
+        u_box_1d(0, 0, &This->managed.valid_region);
+        u_box_1d(0, 0, &This->managed.required_valid_region);
+        u_box_1d(0, 0, &This->managed.filled_region);
+        This->managed.can_unsynchronized = true;
+        This->managed.num_worker_thread_syncs = 0;
         list_inithead(&This->managed.list);
         list_inithead(&This->managed.list2);
         list_add(&This->managed.list2, &pParams->device->managed_buffers);
@@ -152,13 +187,14 @@ NineBuffer9_dtor( struct NineBuffer9 *This )
     DBG("This=%p\n", This);
 
     if (This->maps) {
-        while (This->nmaps) {
+        while (This->nlocks) {
             NineBuffer9_Unlock(This);
         }
+        assert(!This->nmaps);
         FREE(This->maps);
     }
 
-    if (This->base.pool == D3DPOOL_MANAGED) {
+    if (This->base.pool != D3DPOOL_DEFAULT) {
         if (This->managed.data)
             align_free(This->managed.data);
         if (list_is_linked(&This->managed.list))
@@ -184,7 +220,9 @@ NineBuffer9_GetResource( struct NineBuffer9 *This, unsigned *offset )
 
 static void
 NineBuffer9_RebindIfRequired( struct NineBuffer9 *This,
-                              struct NineDevice9 *device )
+                              struct NineDevice9 *device,
+                              struct pipe_resource *resource,
+                              unsigned offset )
 {
     int i;
 
@@ -192,13 +230,15 @@ NineBuffer9_RebindIfRequired( struct NineBuffer9 *This,
         return;
     for (i = 0; i < device->caps.MaxStreams; i++) {
         if (device->state.stream[i] == (struct NineVertexBuffer9 *)This)
-            nine_context_set_stream_source(device, i,
-                                           (struct NineVertexBuffer9 *)This,
-                                           device->state.vtxbuf[i].buffer_offset,
-                                           device->state.vtxbuf[i].stride);
+            nine_context_set_stream_source_apply(device, i,
+                                                 resource,
+                                                 device->state.vtxbuf[i].buffer_offset + offset,
+                                                 device->state.vtxbuf[i].stride);
     }
     if (device->state.idxbuf == (struct NineIndexBuffer9 *)This)
-        nine_context_set_indices(device, (struct NineIndexBuffer9 *)This);
+        nine_context_set_indices_apply(device, resource,
+                                       ((struct NineIndexBuffer9 *)This)->index_size,
+                                       offset);
 }
 
 HRESULT NINE_WINAPI
@@ -236,30 +276,63 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
      * Since these buffers are supposed to be locked once and never
      * writen again (MANAGED or DYNAMIC is used for the other uses cases),
      * performance should be unaffected. */
-    if (!(This->base.usage & D3DUSAGE_DYNAMIC) && This->base.pool != D3DPOOL_MANAGED)
+    if (!(This->base.usage & D3DUSAGE_DYNAMIC) && This->base.pool == D3DPOOL_DEFAULT)
         SizeToLock = This->size - OffsetToLock;
 
     u_box_1d(OffsetToLock, SizeToLock, &box);
 
-    if (This->base.pool == D3DPOOL_MANAGED) {
-        /* READONLY doesn't dirty the buffer */
-        /* Tests on Win: READONLY doesn't wait for the upload */
-        if (!(Flags & D3DLOCK_READONLY)) {
-            if (!This->managed.dirty) {
-                assert(list_is_empty(&This->managed.list));
-                This->managed.dirty = TRUE;
-                This->managed.dirty_box = box;
-                if (p_atomic_read(&This->managed.pending_upload))
-                    nine_csmt_process(This->base.base.device);
-            } else
-                u_box_union_2d(&This->managed.dirty_box, &This->managed.dirty_box, &box);
-            /* Tests trying to draw while the buffer is locked show that
-             * MANAGED buffers are made dirty at Lock time */
+    if (This->base.pool != D3DPOOL_DEFAULT) {
+        /* MANAGED: READONLY doesn't dirty the buffer, nor
+         * wait the upload in the worker thread
+         * SYSTEMMEM: AMD/NVidia: All locks dirty the full buffer. Not on Intel
+         * For Nvidia, SYSTEMMEM behaves are if there is no worker thread.
+         * On AMD, READONLY and NOOVERWRITE do dirty the buffer, but do not sync the previous uploads
+         * in the worker thread. On Intel only NOOVERWRITE has that effect.
+         * We implement the AMD behaviour. */
+        if (This->base.pool == D3DPOOL_MANAGED) {
+            if (!(Flags & D3DLOCK_READONLY)) {
+                if (!This->managed.dirty) {
+                    assert(list_is_empty(&This->managed.list));
+                    This->managed.dirty = TRUE;
+                    This->managed.dirty_box = box;
+                    /* Flush if regions pending to be uploaded would be dirtied */
+                    if (p_atomic_read(&This->managed.pending_upload)) {
+                        u_box_intersect_1d(&box, &box, &This->managed.upload_pending_regions);
+                        if (box.width != 0)
+                            nine_csmt_process(This->base.base.device);
+                    }
+                } else
+                    u_box_union_1d(&This->managed.dirty_box, &This->managed.dirty_box, &box);
+                /* Tests trying to draw while the buffer is locked show that
+                 * SYSTEMMEM/MANAGED buffers are made dirty at Lock time */
+                BASEBUF_REGISTER_UPDATE(This);
+            }
+        } else {
+            if (!(Flags & (D3DLOCK_READONLY|D3DLOCK_NOOVERWRITE)) &&
+                p_atomic_read(&This->managed.pending_upload)) {
+                This->managed.num_worker_thread_syncs++;
+                /* If we sync too often, pick the vertex_uploader path */
+                if (This->managed.num_worker_thread_syncs >= 3)
+                    This->managed.can_unsynchronized = false;
+                nine_csmt_process(This->base.base.device);
+                /* Note: AS DISCARD is not relevant for SYSTEMMEM,
+                 * NOOVERWRITE might have a similar meaning as what is
+                 * in D3D7 doc. Basically that data from previous draws
+                 * OF THIS FRAME are unaffected. As we flush csmt in Present(),
+                 * we should be correct. In some parts of the doc, the notion
+                 * of frame is implied to be related to Begin/EndScene(),
+                 * but tests show NOOVERWRITE after EndScene() doesn't flush
+                 * the csmt thread. */
+            }
+            This->managed.dirty = true;
+            u_box_1d(0, This->size, &This->managed.dirty_box); /* systemmem non-dynamic */
+            u_box_1d(0, 0, &This->managed.valid_region); /* systemmem dynamic */
             BASEBUF_REGISTER_UPDATE(This);
         }
+
         *ppbData = (char *)This->managed.data + OffsetToLock;
         DBG("returning pointer %p\n", *ppbData);
-        This->nmaps++;
+        This->nlocks++;
         return D3D_OK;
     }
 
@@ -272,11 +345,7 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
      * D3DERR_WASSTILLDRAWING if the resource is in use, except for DYNAMIC.
      * Our tests: some apps do use both DISCARD and NOOVERWRITE at the same
      * time. On windows it seems to return different pointer, thus indicating
-     * DISCARD is taken into account.
-     * Our tests: SYSTEMMEM doesn't DISCARD */
-
-    if (This->base.pool == D3DPOOL_SYSTEMMEM)
-        Flags &= ~(D3DLOCK_DISCARD | D3DLOCK_NOOVERWRITE);
+     * DISCARD is taken into account. */
 
     if (Flags & D3DLOCK_DISCARD)
         usage = PIPE_MAP_WRITE | PIPE_MAP_DISCARD_WHOLE_RESOURCE;
@@ -284,9 +353,8 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
         usage = PIPE_MAP_WRITE | PIPE_MAP_UNSYNCHRONIZED;
     else
         /* Do not ask for READ if writeonly and default pool (should be safe enough,
-         * as the doc says app shouldn't expect reading to work with writeonly).
-         * Ignore for Systemmem as it has special behaviours. */
-        usage = ((This->base.usage & D3DUSAGE_WRITEONLY) && This->base.pool == D3DPOOL_DEFAULT) ?
+         * as the doc says app shouldn't expect reading to work with writeonly). */
+        usage = (This->base.usage & D3DUSAGE_WRITEONLY) ?
             PIPE_MAP_WRITE :
             PIPE_MAP_READ_WRITE;
     if (Flags & D3DLOCK_DONOTWAIT && !(This->base.usage & D3DUSAGE_DYNAMIC))
@@ -329,7 +397,7 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
             nine_upload_release_buffer(device->buffer_upload, This->buf);
         This->buf = NULL;
         /* Rebind buffer */
-        NineBuffer9_RebindIfRequired(This, device);
+        NineBuffer9_RebindIfRequired(This, device, This->base.resource, 0);
     }
 
     This->maps[This->nmaps].transfer = NULL;
@@ -348,13 +416,18 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
         }
 
         if (!This->buf) {
+            unsigned offset;
+            struct pipe_resource *res;
             This->buf = nine_upload_create_buffer(device->buffer_upload, This->base.info.width0);
-            NineBuffer9_RebindIfRequired(This, device);
+            res = nine_upload_buffer_resource_and_offset(This->buf, &offset);
+            NineBuffer9_RebindIfRequired(This, device, res, offset);
         }
 
         if (This->buf) {
             This->maps[This->nmaps].buf = This->buf;
             This->nmaps++;
+            This->nlocks++;
+            DBG("Returning %p\n", nine_upload_buffer_get_map(This->buf) + OffsetToLock);
             *ppbData = nine_upload_buffer_get_map(This->buf) + OffsetToLock;
             return D3D_OK;
         } else {
@@ -391,7 +464,7 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
             pipe_resource_reference(&This->base.resource, new_res);
             pipe_resource_reference(&new_res, NULL);
             usage = PIPE_MAP_WRITE | PIPE_MAP_UNSYNCHRONIZED;
-            NineBuffer9_RebindIfRequired(This, device);
+            NineBuffer9_RebindIfRequired(This, device, This->base.resource, 0);
             This->maps[This->nmaps].is_pipe_secondary = TRUE;
         }
     } else if (Flags & D3DLOCK_NOOVERWRITE && device->csmt_active)
@@ -419,6 +492,7 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
 
     DBG("returning pointer %p\n", data);
     This->nmaps++;
+    This->nlocks++;
     *ppbData = data;
 
     return D3D_OK;
@@ -429,23 +503,30 @@ NineBuffer9_Unlock( struct NineBuffer9 *This )
 {
     struct NineDevice9 *device = This->base.base.device;
     struct pipe_context *pipe;
+    int i;
     DBG("This=%p\n", This);
 
-    user_assert(This->nmaps > 0, D3DERR_INVALIDCALL);
-    This->nmaps--;
-    if (This->base.pool != D3DPOOL_MANAGED) {
-        if (!This->maps[This->nmaps].buf) {
-            pipe = This->maps[This->nmaps].is_pipe_secondary ?
-                device->pipe_secondary :
-                nine_context_get_pipe_acquire(device);
-            pipe->transfer_unmap(pipe, This->maps[This->nmaps].transfer);
-            /* We need to flush in case the driver does implicit copies */
-            if (This->maps[This->nmaps].is_pipe_secondary)
-                pipe->flush(pipe, NULL, 0);
-            else
-                nine_context_get_pipe_release(device);
-        } else if (This->maps[This->nmaps].should_destroy_buf)
-            nine_upload_release_buffer(device->buffer_upload, This->maps[This->nmaps].buf);
+    user_assert(This->nlocks > 0, D3DERR_INVALIDCALL);
+    This->nlocks--;
+    if (This->nlocks > 0)
+        return D3D_OK; /* Pending unlocks. Wait all unlocks before unmapping */
+
+    if (This->base.pool == D3DPOOL_DEFAULT) {
+        for (i = 0; i < This->nmaps; i++) {
+            if (!This->maps[i].buf) {
+                pipe = This->maps[i].is_pipe_secondary ?
+                    device->pipe_secondary :
+                    nine_context_get_pipe_acquire(device);
+                pipe->transfer_unmap(pipe, This->maps[i].transfer);
+                /* We need to flush in case the driver does implicit copies */
+                if (This->maps[i].is_pipe_secondary)
+                    pipe->flush(pipe, NULL, 0);
+                else
+                    nine_context_get_pipe_release(device);
+            } else if (This->maps[i].should_destroy_buf)
+                nine_upload_release_buffer(device->buffer_upload, This->maps[i].buf);
+        }
+        This->nmaps = 0;
     }
     return D3D_OK;
 }
@@ -453,9 +534,182 @@ NineBuffer9_Unlock( struct NineBuffer9 *This )
 void
 NineBuffer9_SetDirty( struct NineBuffer9 *This )
 {
-    assert(This->base.pool == D3DPOOL_MANAGED);
+    assert(This->base.pool != D3DPOOL_DEFAULT);
 
     This->managed.dirty = TRUE;
     u_box_1d(0, This->size, &This->managed.dirty_box);
     BASEBUF_REGISTER_UPDATE(This);
+}
+
+/* Try to remove b from a, supposed to include b */
+static void u_box_try_remove_region_1d(struct pipe_box *dst,
+                                       const struct pipe_box *a,
+                                       const struct pipe_box *b)
+{
+    int x, width;
+    if (a->x == b->x) {
+        x = a->x + b->width;
+        width = a->width - b->width;
+    } else if ((a->x + a->width) == (b->x + b->width)) {
+        x = a->x;
+        width = a->width - b->width;
+    } else {
+        x = a->x;
+        width = a->width;
+    }
+    dst->x = x;
+    dst->width = width;
+}
+
+void
+NineBuffer9_Upload( struct NineBuffer9 *This )
+{
+    struct NineDevice9 *device = This->base.base.device;
+    unsigned upload_flags = 0;
+    struct pipe_box box_upload;
+
+    assert(This->base.pool != D3DPOOL_DEFAULT && This->managed.dirty);
+
+    if (This->base.pool == D3DPOOL_SYSTEMMEM && This->base.usage & D3DUSAGE_DYNAMIC) {
+        struct pipe_box region_already_valid;
+        struct pipe_box conflicting_region;
+        struct pipe_box *valid_region = &This->managed.valid_region;
+        struct pipe_box *required_valid_region = &This->managed.required_valid_region;
+        struct pipe_box *filled_region = &This->managed.filled_region;
+        /* Try to upload SYSTEMMEM DYNAMIC in an efficient fashion.
+         * Unlike non-dynamic for which we upload the whole dirty region, try to
+         * only upload the data needed for the draw. The draw call preparation
+         * fills This->managed.required_valid_region for that */
+        u_box_intersect_1d(&region_already_valid,
+                           valid_region,
+                           required_valid_region);
+        /* If the required valid region is already valid, nothing to do */
+        if (region_already_valid.x == required_valid_region->x &&
+            region_already_valid.width == required_valid_region->width) {
+            /* Rebind if the region happens to be valid in the original buffer
+             * but we have since used vertex_uploader */
+            if (!This->managed.can_unsynchronized)
+                NineBuffer9_RebindIfRequired(This, device, This->base.resource, 0);
+            u_box_1d(0, 0, required_valid_region);
+            return;
+        }
+        /* (Try to) Remove valid areas from the region to upload */
+        u_box_try_remove_region_1d(&box_upload,
+                                   required_valid_region,
+                                   &region_already_valid);
+        assert(box_upload.width > 0);
+        /* To maintain correctly the valid region, as we will do union later with
+         * box_upload, we must ensure box_upload is consecutive with valid_region */
+        if (box_upload.x > valid_region->x + valid_region->width && valid_region->width > 0) {
+            box_upload.width = box_upload.x + box_upload.width - (valid_region->x + valid_region->width);
+            box_upload.x = valid_region->x + valid_region->width;
+        } else if (box_upload.x + box_upload.width < valid_region->x && valid_region->width > 0) {
+            box_upload.width = valid_region->x - box_upload.x;
+        }
+        /* There is conflict if some areas, that are not valid but are filled for previous draw calls,
+         * intersect with the region we plan to upload. Note by construction valid_region IS
+         * included in filled_region, thus so is region_already_valid. */
+        u_box_intersect_1d(&conflicting_region, &box_upload, filled_region);
+        /* As box_upload could still contain region_already_valid, check the intersection
+         * doesn't happen to be exactly region_already_valid (it cannot be smaller, see above) */
+        if (This->managed.can_unsynchronized && (conflicting_region.width == 0 ||
+            (conflicting_region.x == region_already_valid.x &&
+             conflicting_region.width == region_already_valid.width))) {
+            /* No conflicts. */
+            upload_flags |= PIPE_MAP_UNSYNCHRONIZED;
+        } else {
+            /* We cannot use PIPE_MAP_UNSYNCHRONIZED. We must choose between no flag and DISCARD.
+             * Criterias to discard:
+             * . Most of the resource was filled (but some apps do allocate a big buffer
+             * to only use a small part in a round fashion)
+             * . The region to upload is very small compared to the filled region and
+             * at the start of the buffer (hints at round usage starting again)
+             * . The region to upload is very big compared to the required region
+             * . We have not discarded yet this frame
+             * If the buffer use pattern seems to sync the worker thread too often,
+             * revert to the vertex_uploader */
+            if (This->managed.num_worker_thread_syncs < 3 &&
+                (filled_region->width > (This->size / 2) ||
+                 (10 * box_upload.width < filled_region->width &&
+                  box_upload.x < (filled_region->x + filled_region->width)/2) ||
+                 box_upload.width > 2 * required_valid_region->width ||
+                 This->managed.frame_count_last_discard != device->frame_count)) {
+                /* Avoid DISCARDING too much by discarding only if most of the buffer
+                 * has been used */
+                DBG_FLAG(DBG_INDEXBUFFER|DBG_VERTEXBUFFER,
+             "Uploading %p DISCARD: valid %d %d, filled %d %d, required %d %d, box_upload %d %d, required already_valid %d %d, conficting %d %d\n",
+             This, valid_region->x, valid_region->width, filled_region->x, filled_region->width,
+             required_valid_region->x, required_valid_region->width, box_upload.x, box_upload.width,
+             region_already_valid.x, region_already_valid.width, conflicting_region.x, conflicting_region.width
+                );
+                upload_flags |= PIPE_MAP_DISCARD_WHOLE_RESOURCE;
+                u_box_1d(0, 0, filled_region);
+                u_box_1d(0, 0, valid_region);
+                box_upload = This->managed.required_valid_region;
+                /* Rebind the buffer if we used intermediate alternative buffer */
+                if (!This->managed.can_unsynchronized)
+                    NineBuffer9_RebindIfRequired(This, device, This->base.resource, 0);
+                This->managed.can_unsynchronized = true;
+                This->managed.frame_count_last_discard = device->frame_count;
+            } else {
+                /* Once we use without UNSYNCHRONIZED, we cannot use it anymore.
+                 * Use a different buffer. */
+                unsigned buffer_offset = 0;
+                struct pipe_resource *resource = NULL;
+                This->managed.can_unsynchronized = false;
+                u_upload_data(device->vertex_uploader,
+                    required_valid_region->x,
+                    required_valid_region->width,
+                    64,
+                    This->managed.data + required_valid_region->x,
+                    &buffer_offset,
+                    &resource);
+                buffer_offset -= required_valid_region->x;
+                u_upload_unmap(device->vertex_uploader);
+                if (resource) {
+                    NineBuffer9_RebindIfRequired(This, device, resource, buffer_offset);
+                    /* Note: This only works because for these types of buffers this function
+                     * is called before every draw call. Else it wouldn't work when the app
+                     * rebinds buffers. In addition it needs this function to be called only
+                     * once per buffers even if bound several times, which we do. */
+                    u_box_1d(0, 0, required_valid_region);
+                    pipe_resource_reference(&resource, NULL);
+                    return;
+                }
+            }
+        }
+
+        u_box_union_1d(filled_region,
+                       filled_region,
+                       &box_upload);
+        u_box_union_1d(valid_region,
+                       valid_region,
+                       &box_upload);
+        u_box_1d(0, 0, required_valid_region);
+    } else
+        box_upload = This->managed.dirty_box;
+
+    if (box_upload.x == 0 && box_upload.width == This->size) {
+        upload_flags |= PIPE_MAP_DISCARD_WHOLE_RESOURCE;
+    }
+
+    if (This->managed.pending_upload) {
+        u_box_union_1d(&This->managed.upload_pending_regions,
+                       &This->managed.upload_pending_regions,
+                       &box_upload);
+    } else {
+        This->managed.upload_pending_regions = box_upload;
+    }
+
+    DBG_FLAG(DBG_INDEXBUFFER|DBG_VERTEXBUFFER,
+             "Uploading %p, offset=%d, size=%d, Flags=0x%x\n",
+             This, box_upload.x, box_upload.width, upload_flags);
+    nine_context_range_upload(device, &This->managed.pending_upload,
+                              (struct NineUnknown *)This,
+                              This->base.resource,
+                              box_upload.x,
+                              box_upload.width,
+                              upload_flags,
+                              (char *)This->managed.data + box_upload.x);
+    This->managed.dirty = FALSE;
 }

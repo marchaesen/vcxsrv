@@ -166,6 +166,7 @@ files_libmesa_common = files(
   'main/glthread.h',
   'main/glthread_bufferobj.c',
   'main/glthread_draw.c',
+  'main/glthread_get.c',
   'main/glthread_marshal.h',
   'main/glthread_shaderobj.c',
   'main/glthread_varray.c',
@@ -668,8 +669,7 @@ get_hash_h = custom_target(
 )
 
 foreach x : [['format_info.h', 'format_info.py'],
-             ['format_pack.c', 'format_pack.py'],
-             ['format_unpack.c', 'format_unpack.py']]
+             ['format_pack.c', 'format_pack.py']]
   files_libmesa_common += custom_target(
     x[0],
     input : ['main/@0@'.format(x[1]), 'main/formats.csv'],
@@ -761,6 +761,6 @@ subdir('drivers/dri')
 if with_glx == 'xlib'
   subdir('drivers/x11')
 endif
-if with_tests and dri_drivers != []
+if with_tests
   subdir('main/tests')
 endif

@@ -930,6 +930,8 @@ bypass_rendering:
         if (FAILED(hr)) { UNTESTED(3);return hr; }
     }
 
+    This->base.device->end_scene_since_present = 0;
+    This->base.device->frame_count++;
     return D3D_OK;
 }
 

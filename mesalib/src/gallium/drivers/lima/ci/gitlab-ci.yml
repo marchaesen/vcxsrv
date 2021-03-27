@@ -1,0 +1,24 @@
+.lima-mali400-test:armhf:
+  parallel: 2
+  extends:
+    - .lava-test:armhf
+    - .lima-rules
+  variables:
+    DEVICE_TYPE: sun8i-h3-libretech-all-h3-cc
+    DTB: ${DEVICE_TYPE}
+    GPU_VERSION: lima
+    ENV_VARS: "DEQP_PARALLEL=3 DEQP_EXPECTED_RENDERER=Mali400"
+  tags:
+    - mesa-ci-aarch64-lava-baylibre
+
+.lima-mali450-test:arm64:
+  extends:
+    - .lava-test:arm64
+    - .lima-rules
+  variables:
+    DEVICE_TYPE: meson-gxl-s905x-libretech-cc
+    DTB: ${DEVICE_TYPE}
+    GPU_VERSION: lima
+    ENV_VARS: "DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=Mali450"
+  tags:
+    - mesa-ci-aarch64-lava-baylibre

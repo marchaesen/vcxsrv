@@ -145,7 +145,7 @@ emit_texture(struct fd_ringbuffer *ring, struct fd_context *ctx,
 	OUT_RING(ring, sampler->tex3 | view->tex3);
 	OUT_RING(ring, sampler->tex4 | view->tex4);
 
-	if (rsc && rsc->base.last_level)
+	if (rsc && rsc->b.b.last_level)
 		OUT_RELOC(ring, rsc->bo, fd_resource_offset(rsc, 1, 0), view->tex5, 0);
 	else
 		OUT_RING(ring, view->tex5);
@@ -426,7 +426,7 @@ fd2_emit_restore(struct fd_context *ctx, struct fd_ringbuffer *ring)
 
 	/* enable perfcntrs */
 	OUT_PKT0(ring, REG_A2XX_CP_PERFMON_CNTL, 1);
-	OUT_RING(ring, COND(fd_mesa_debug & FD_DBG_PERFC, 1));
+	OUT_RING(ring, COND(FD_DBG(PERFC), 1));
 
 	/* note: perfcntrs don't work without the PM_OVERRIDE bit */
 	OUT_PKT0(ring, REG_A2XX_RBBM_PM_OVERRIDE1, 2);

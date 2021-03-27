@@ -246,7 +246,7 @@ lp_rast_shade_quads_all( struct lp_rasterizer_task *task,
          stride[i] = scene->cbufs[i].stride;
          sample_stride[i] = scene->cbufs[i].sample_stride;
          color[i] = lp_rast_get_color_block_pointer(task, i, x, y,
-                                                    inputs->layer);
+                                                    inputs->layer + inputs->view_index);
       }
       else {
          stride[i] = 0;
@@ -256,7 +256,7 @@ lp_rast_shade_quads_all( struct lp_rasterizer_task *task,
    }
 
    if (scene->zsbuf.map) {
-      depth = lp_rast_get_depth_block_pointer(task, x, y, inputs->layer);
+      depth = lp_rast_get_depth_block_pointer(task, x, y, inputs->layer + inputs->view_index);
       depth_sample_stride = scene->zsbuf.sample_stride;
       depth_stride = scene->zsbuf.stride;
    }
@@ -272,6 +272,7 @@ lp_rast_shade_quads_all( struct lp_rasterizer_task *task,
    if ((x % TILE_SIZE) < task->width && (y % TILE_SIZE) < task->height) {
       /* Propagate non-interpolated raster state. */
       task->thread_data.raster_state.viewport_index = inputs->viewport_index;
+      task->thread_data.raster_state.view_index = inputs->view_index;
 
       /* run shader on 4x4 block */
       BEGIN_JIT_CALL(state, task);

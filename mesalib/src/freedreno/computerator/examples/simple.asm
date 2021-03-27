@@ -22,7 +22,7 @@ mova a0.x, hr4.x
 (ul)mov.u32u32 r0.x, r<a0.x>
 mov.u32u32 r0.y, 0x00000000
 (rpt5)nop
-stib.untyped.1d.u32.1 g[0] + r0.y, r0.x
+stib.b.untyped.1d.u32.1.imm r0.x, r0.y, 0
 end
 nop
 

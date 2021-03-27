@@ -44,6 +44,7 @@ struct d3dadapter9_context
     int csmt_force;
     BOOL dynamic_texture_workaround;
     BOOL shader_inline_constants;
+    int memfd_virtualsizelimit;
 
     void (*destroy)( struct d3dadapter9_context *ctx );
 };

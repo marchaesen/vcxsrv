@@ -36,7 +36,7 @@
 
 struct draw_context;
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
 struct draw_gs_jit_context;
 struct draw_gs_llvm_variant;
 
@@ -96,7 +96,7 @@ struct draw_geometry_shader {
 
    unsigned num_invocations;
    unsigned invocation_id;
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    struct draw_gs_inputs *gs_input;
    struct draw_gs_jit_context *jit_context;
    struct draw_gs_llvm_variant *current_variant;
@@ -146,7 +146,7 @@ void draw_geometry_shader_prepare(struct draw_geometry_shader *shader,
 int draw_gs_max_output_vertices(struct draw_geometry_shader *shader,
                                 unsigned pipe_prim);
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
 void draw_gs_set_current_variant(struct draw_geometry_shader *shader,
                                  struct draw_gs_llvm_variant *variant);
 #endif

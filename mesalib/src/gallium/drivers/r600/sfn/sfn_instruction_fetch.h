@@ -78,7 +78,7 @@ public:
 
    FetchInstruction(GPRVector dst, PValue src, int scratch_size);
 
-   void replace_values(const ValueSet& candiates, PValue new_value) override;
+   void replace_values(const ValueSet& candidates, PValue new_value) override;
    EVFetchInstr vc_opcode() const { return m_vc_opcode;}
    EVFetchType fetch_type() const { return m_fetch_type;}
 

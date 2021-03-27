@@ -39,7 +39,6 @@
 #include <os.h>
 #include <X11/Xatom.h>
 
-#include <linux/input.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>

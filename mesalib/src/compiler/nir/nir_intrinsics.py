@@ -213,6 +213,12 @@ index("nir_alu_type", "dest_type")
 # The swizzle mask for quad_swizzle_amd & masked_swizzle_amd
 index("unsigned", "swizzle_mask")
 
+# Whether the load_buffer_amd/store_buffer_amd is swizzled
+index("bool", "is_swizzled")
+
+# The SLC ("system level coherent") bit of load_buffer_amd/store_buffer_amd
+index("bool", "slc_amd")
+
 # Separate source/dest access flags for copies
 index("enum gl_access_qualifier", "dst_access")
 index("enum gl_access_qualifier", "src_access")
@@ -272,12 +278,12 @@ intrinsic("interp_deref_at_vertex", src_comp=[1, 1], dest_comp=0,
 
 # Gets the length of an unsized array at the end of a buffer
 intrinsic("deref_buffer_array_length", src_comp=[-1], dest_comp=1,
-          flags=[CAN_ELIMINATE, CAN_REORDER])
+          indices=[ACCESS], flags=[CAN_ELIMINATE, CAN_REORDER])
 
 # Ask the driver for the size of a given SSBO. It takes the buffer index
 # as source.
 intrinsic("get_ssbo_size", src_comp=[-1], dest_comp=1, bit_sizes=[32],
-          flags=[CAN_ELIMINATE, CAN_REORDER])
+          indices=[ACCESS], flags=[CAN_ELIMINATE, CAN_REORDER])
 intrinsic("get_ubo_size", src_comp=[-1], dest_comp=1,
           flags=[CAN_ELIMINATE, CAN_REORDER])
 
@@ -287,6 +293,12 @@ intrinsic("deref_mode_is", src_comp=[-1], dest_comp=1,
           indices=[MEMORY_MODES], flags=[CAN_ELIMINATE, CAN_REORDER])
 intrinsic("addr_mode_is", src_comp=[-1], dest_comp=1,
           indices=[MEMORY_MODES], flags=[CAN_ELIMINATE, CAN_REORDER])
+
+intrinsic("is_sparse_texels_resident", dest_comp=1, src_comp=[1], bit_sizes=[1],
+          flags=[CAN_ELIMINATE, CAN_REORDER])
+# result code is resident only if both inputs are resident
+intrinsic("sparse_residency_code_and", dest_comp=1, src_comp=[1, 1], bit_sizes=[32],
+          flags=[CAN_ELIMINATE, CAN_REORDER])
 
 # a barrier is an intrinsic with no inputs/outputs but which can't be moved
 # around/optimized in general
@@ -520,6 +532,7 @@ def image(name, src_comp=[], extra_indices=[], **kwargs):
               indices=[IMAGE_DIM, IMAGE_ARRAY, FORMAT, ACCESS] + extra_indices, **kwargs)
 
 image("load", src_comp=[4, 1, 1], extra_indices=[DEST_TYPE], dest_comp=0, flags=[CAN_ELIMINATE])
+image("sparse_load", src_comp=[4, 1, 1], extra_indices=[DEST_TYPE], dest_comp=0, flags=[CAN_ELIMINATE])
 image("store", src_comp=[4, 1, 0, 1], extra_indices=[SRC_TYPE])
 image("atomic_add",  src_comp=[4, 1, 1], dest_comp=1)
 image("atomic_imin",  src_comp=[4, 1, 1], dest_comp=1)
@@ -532,6 +545,8 @@ image("atomic_xor",  src_comp=[4, 1, 1], dest_comp=1)
 image("atomic_exchange",  src_comp=[4, 1, 1], dest_comp=1)
 image("atomic_comp_swap", src_comp=[4, 1, 1, 1], dest_comp=1)
 image("atomic_fadd",  src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_fmin",  src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_fmax",  src_comp=[4, 1, 1], dest_comp=1)
 image("size",    dest_comp=0, src_comp=[1], flags=[CAN_ELIMINATE, CAN_REORDER])
 image("samples", dest_comp=1, flags=[CAN_ELIMINATE, CAN_REORDER])
 image("atomic_inc_wrap",  src_comp=[4, 1, 1], dest_comp=1)
@@ -808,8 +823,8 @@ system_value("user_data_amd", 4)
 # These set up the barycentric coordinates for a particular interpolation.
 # The first four are for the simple cases: pixel, centroid, per-sample
 # (at gl_SampleID), or pull model (1/W, 1/I, 1/J) at the pixel center. The next
-# three two handle interpolating at a specified sample location, or
-# interpolating with a vec2 offset,
+# two handle interpolating at a specified sample location, or interpolating
+# with a vec2 offset,
 #
 # The interp_mode index should be either the INTERP_MODE_SMOOTH or
 # INTERP_MODE_NOPERSPECTIVE enum values.
@@ -840,6 +855,13 @@ intrinsic("load_sample_pos_from_id", src_comp=[1], dest_comp=2,
 
 # Loads what I believe is the primitive size, for scaling ij to pixel size:
 intrinsic("load_size_ir3", dest_comp=1, flags=[CAN_ELIMINATE, CAN_REORDER])
+
+# Load texture scaling values:
+#
+# Takes a sampler # and returns 1/size values for multiplying to normalize
+# texture coordinates.  Used for lowering rect textures.
+intrinsic("load_texture_rect_scaling", src_comp=[1], dest_comp=2,
+          flags=[CAN_ELIMINATE, CAN_REORDER])
 
 # Fragment shader input interpolation delta intrinsic.
 #
@@ -916,6 +938,12 @@ load("constant", [1], [BASE, RANGE, ALIGN_MUL, ALIGN_OFFSET],
 load("global", [1], [ACCESS, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
 # src[] = { address }.
 load("global_constant", [1], [ACCESS, ALIGN_MUL, ALIGN_OFFSET],
+     [CAN_ELIMINATE, CAN_REORDER])
+# src[] = { base_address, offset }.
+load("global_constant_offset", [1, 1], [ACCESS, ALIGN_MUL, ALIGN_OFFSET],
+     [CAN_ELIMINATE, CAN_REORDER])
+# src[] = { base_address, offset, bound }.
+load("global_constant_bounded", [1, 1, 1], [ACCESS, ALIGN_MUL, ALIGN_OFFSET],
      [CAN_ELIMINATE, CAN_REORDER])
 # src[] = { address }.
 load("kernel_input", [1], [BASE, RANGE, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE, CAN_REORDER])
@@ -1094,6 +1122,9 @@ load("raw_output_pan", [1], [BASE], [CAN_ELIMINATE, CAN_REORDER])
 # src[] = { sampler_index }
 load("sampler_lod_parameters_pan", [1], flags=[CAN_ELIMINATE, CAN_REORDER])
 
+# Loads the sample position array on Bifrost, in a packed Arm-specific format
+system_value("sample_positions_pan", 1, bit_sizes=[64])
+
 # R600 specific instrincs
 #
 # location where the tesselation data is stored in LDS
@@ -1102,11 +1133,38 @@ system_value("tcs_out_param_base_r600", 4)
 system_value("tcs_rel_patch_id_r600", 1)
 system_value("tcs_tess_factor_base_r600", 1)
 
+# the tess coords come as xy only, z has to be calculated
+system_value("tess_coord_r600", 2)
+
 # load as many components as needed giving per-component addresses
-intrinsic("load_local_shared_r600", src_comp=[0], dest_comp=0, indices = [COMPONENT], flags = [CAN_ELIMINATE, CAN_REORDER])
+intrinsic("load_local_shared_r600", src_comp=[0], dest_comp=0, indices = [], flags = [CAN_ELIMINATE])
 
 store("local_shared_r600", [1], [WRITE_MASK])
 store("tf_r600", [])
+
+# AMD GCN/RDNA specific intrinsics
+
+# src[] = { descriptor, base address, scalar offset }
+intrinsic("load_buffer_amd", src_comp=[4, 1, 1], dest_comp=0, indices=[BASE, IS_SWIZZLED, SLC_AMD, MEMORY_MODES], flags=[CAN_ELIMINATE])
+# src[] = { store value, descriptor, base address, scalar offset }
+intrinsic("store_buffer_amd", src_comp=[0, 4, 1, 1], indices=[BASE, WRITE_MASK, IS_SWIZZLED, SLC_AMD, MEMORY_MODES])
+
+# Descriptor where TCS outputs are stored for TES
+system_value("ring_tess_offchip_amd", 4)
+system_value("ring_tess_offchip_offset_amd", 1)
+# Descriptor where TCS outputs are stored for the HW tessellator
+system_value("ring_tess_factors_amd", 4)
+system_value("ring_tess_factors_offset_amd", 1)
+# Descriptor where ES outputs are stored for GS to read on GFX6-8
+system_value("ring_esgs_amd", 4)
+system_value("ring_es2gs_offset_amd", 1)
+
+# Number of patches processed by each TCS workgroup
+system_value("tcs_num_patches_amd", 1)
+# Relative tessellation patch ID within the current workgroup
+system_value("tess_rel_patch_id_amd", 1)
+# Vertex offsets used for GS per-vertex inputs
+system_value("gs_vertex_offset_amd", 1, [BASE])
 
 # V3D-specific instrinc for tile buffer color reads.
 #
@@ -1141,9 +1199,11 @@ image("store_raw_intel", src_comp=[1, 0])
 
 # Intrinsic to load a block of at least 32B of constant data from a 64-bit
 # global memory address.  The memory address must be uniform and 32B-aligned.
-# src[] = { address }.
-intrinsic("load_global_const_block_intel", src_comp=[1], dest_comp=0, bit_sizes=[32],
-          indices=[BASE], flags=[CAN_ELIMINATE, CAN_REORDER])
+# The second source is a predicate which indicates whether or not to actually
+# do the load.
+# src[] = { address, predicate }.
+intrinsic("load_global_const_block_intel", src_comp=[1, 1], dest_comp=0,
+          bit_sizes=[32], indices=[BASE], flags=[CAN_ELIMINATE, CAN_REORDER])
 
 # Number of data items being operated on for a SIMD program.
 system_value("simd_width_intel", 1)
@@ -1151,6 +1211,11 @@ system_value("simd_width_intel", 1)
 # Load a relocatable 32-bit value
 intrinsic("load_reloc_const_intel", dest_comp=1, bit_sizes=[32],
           indices=[PARAM_IDX], flags=[CAN_ELIMINATE, CAN_REORDER])
+
+# 64-bit global address for a Vulkan descriptor set
+# src[0] = { set }
+intrinsic("load_desc_set_address_intel", dest_comp=1, bit_sizes=[64],
+          src_comp=[1], flags=[CAN_ELIMINATE, CAN_REORDER])
 
 # OpSubgroupBlockReadINTEL and OpSubgroupBlockWriteINTEL from SPV_INTEL_subgroups.
 intrinsic("load_deref_block_intel", dest_comp=0, src_comp=[-1],

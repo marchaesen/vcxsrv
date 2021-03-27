@@ -1,0 +1,6 @@
+# Note: flakes lists for CI are just a list of lines that, when
+# non-zero-length and not starting with '#', will regex match to
+# delete lines from the test list.  Be careful.
+dEQP-GLES3.functional.shaders.texture_functions.texture.*gradoffset.*
+dEQP-GLES3.functional.texture.units.4_units.only_3d.*
+dEQP-GLES3.functional.vertex_arrays.single_attribute.*

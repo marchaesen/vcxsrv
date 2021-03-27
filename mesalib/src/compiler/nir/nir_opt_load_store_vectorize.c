@@ -186,9 +186,7 @@ struct entry {
 };
 
 struct vectorize_ctx {
-   nir_variable_mode modes;
-   nir_should_vectorize_mem_func callback;
-   nir_variable_mode robust_modes;
+   const nir_load_store_vectorize_options *options;
    struct list_head entries[nir_num_variable_modes];
    struct hash_table *loads[nir_num_variable_modes];
    struct hash_table *stores[nir_num_variable_modes];
@@ -648,10 +646,11 @@ new_bitsize_acceptable(struct vectorize_ctx *ctx, unsigned new_bit_size,
    if (new_bit_size / common_bit_size > NIR_MAX_VEC_COMPONENTS)
       return false;
 
-   if (!ctx->callback(low->align_mul,
-                      low->align_offset,
-                      new_bit_size, new_num_components,
-                      low->intrin, high->intrin))
+   if (!ctx->options->callback(low->align_mul,
+                               low->align_offset,
+                               new_bit_size, new_num_components,
+                               low->intrin, high->intrin,
+                               ctx->options->cb_data))
       return false;
 
    if (low->is_store) {
@@ -733,12 +732,12 @@ vectorize_loads(nir_builder *b, struct vectorize_ctx *ctx,
 
    /* update uses */
    if (first == low) {
-      nir_ssa_def_rewrite_uses_after(&low->intrin->dest.ssa, nir_src_for_ssa(low_def),
+      nir_ssa_def_rewrite_uses_after(&low->intrin->dest.ssa, low_def,
                                      high_def->parent_instr);
-      nir_ssa_def_rewrite_uses(&high->intrin->dest.ssa, nir_src_for_ssa(high_def));
+      nir_ssa_def_rewrite_uses(&high->intrin->dest.ssa, high_def);
    } else {
-      nir_ssa_def_rewrite_uses(&low->intrin->dest.ssa, nir_src_for_ssa(low_def));
-      nir_ssa_def_rewrite_uses_after(&high->intrin->dest.ssa, nir_src_for_ssa(high_def),
+      nir_ssa_def_rewrite_uses(&low->intrin->dest.ssa, low_def);
+      nir_ssa_def_rewrite_uses_after(&high->intrin->dest.ssa, high_def,
                                      high_def->parent_instr);
    }
 
@@ -774,10 +773,7 @@ vectorize_loads(nir_builder *b, struct vectorize_ctx *ctx,
                             nir_src_for_ssa(&first->deref->dest.ssa));
    }
 
-   /* update base/align */
-   if (first != low && nir_intrinsic_has_base(first->intrin))
-      nir_intrinsic_set_base(first->intrin, nir_intrinsic_base(low->intrin));
-
+   /* update align */
    if (nir_intrinsic_has_range_base(first->intrin)) {
       uint32_t low_base = nir_intrinsic_range_base(low->intrin);
       uint32_t high_base = nir_intrinsic_range_base(high->intrin);
@@ -989,7 +985,7 @@ static bool
 check_for_robustness(struct vectorize_ctx *ctx, struct entry *low)
 {
    nir_variable_mode mode = get_variable_mode(low);
-   if (mode & ctx->robust_modes) {
+   if (mode & ctx->options->robust_modes) {
       unsigned low_bit_size = get_bit_size(low);
       unsigned low_size = low->intrin->num_components * low_bit_size;
 
@@ -1018,8 +1014,8 @@ try_vectorize(nir_function_impl *impl, struct vectorize_ctx *ctx,
               struct entry *low, struct entry *high,
               struct entry *first, struct entry *second)
 {
-   if (!(get_variable_mode(first) & ctx->modes) ||
-       !(get_variable_mode(second) & ctx->modes))
+   if (!(get_variable_mode(first) & ctx->options->modes) ||
+       !(get_variable_mode(second) & ctx->options->modes))
       return false;
 
    if (check_for_aliasing(ctx, first, second))
@@ -1195,7 +1191,6 @@ handle_barrier(struct vectorize_ctx *ctx, bool *progress, nir_function_impl *imp
          release = nir_intrinsic_memory_semantics(intrin) & NIR_MEMORY_RELEASE;
          switch (nir_intrinsic_memory_scope(intrin)) {
          case NIR_SCOPE_INVOCATION:
-         case NIR_SCOPE_SUBGROUP:
             /* a barier should never be required for correctness with these scopes */
             modes = 0;
             break;
@@ -1263,7 +1258,7 @@ process_block(nir_function_impl *impl, struct vectorize_ctx *ctx, nir_block *blo
       nir_variable_mode mode = info->mode;
       if (!mode)
          mode = nir_src_as_deref(intrin->src[info->deref_src])->modes;
-      if (!(mode & aliasing_modes(ctx->modes)))
+      if (!(mode & aliasing_modes(ctx->options->modes)))
          continue;
       unsigned mode_index = mode_to_index(mode);
 
@@ -1309,22 +1304,18 @@ process_block(nir_function_impl *impl, struct vectorize_ctx *ctx, nir_block *blo
 }
 
 bool
-nir_opt_load_store_vectorize(nir_shader *shader, nir_variable_mode modes,
-                             nir_should_vectorize_mem_func callback,
-                             nir_variable_mode robust_modes)
+nir_opt_load_store_vectorize(nir_shader *shader, const nir_load_store_vectorize_options *options)
 {
    bool progress = false;
 
    struct vectorize_ctx *ctx = rzalloc(NULL, struct vectorize_ctx);
-   ctx->modes = modes;
-   ctx->callback = callback;
-   ctx->robust_modes = robust_modes;
+   ctx->options = options;
 
-   nir_shader_index_vars(shader, modes);
+   nir_shader_index_vars(shader, options->modes);
 
    nir_foreach_function(function, shader) {
       if (function->impl) {
-         if (modes & nir_var_function_temp)
+         if (options->modes & nir_var_function_temp)
             nir_function_impl_index_vars(function->impl);
 
          nir_foreach_block(block, function->impl)

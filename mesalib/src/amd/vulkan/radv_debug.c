@@ -27,7 +27,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#ifndef _WIN32
 #include <sys/utsname.h>
+#endif
 #include <sys/stat.h>
 
 #include "util/mesa-sha1.h"
@@ -63,6 +65,7 @@ bool
 radv_init_trace(struct radv_device *device)
 {
 	struct radeon_winsys *ws = device->ws;
+	VkResult result;
 
 	device->trace_bo = ws->buffer_create(ws, TRACE_BO_SIZE, 8,
 					     RADEON_DOMAIN_VRAM,
@@ -73,6 +76,10 @@ radv_init_trace(struct radv_device *device)
 	if (!device->trace_bo)
 		return false;
 
+	result = ws->buffer_make_resident(ws, device->trace_bo, true);
+	if (result != VK_SUCCESS)
+		return false;
+
 	device->trace_id_ptr = ws->buffer_map(device->trace_bo);
 	if (!device->trace_id_ptr)
 		return false;
@@ -81,6 +88,17 @@ radv_init_trace(struct radv_device *device)
 			    &device->dmesg_timestamp, NULL);
 
 	return true;
+}
+
+void
+radv_finish_trace(struct radv_device *device)
+{
+	struct radeon_winsys *ws = device->ws;
+
+	if (unlikely(device->trace_bo)) {
+		ws->buffer_make_resident(ws, device->trace_bo, false);
+		ws->buffer_destroy(ws, device->trace_bo);
+	}
 }
 
 static void
@@ -197,11 +215,11 @@ radv_dump_descriptor_set(struct radv_device *device,
 
 	if (!set)
 		return;
-	layout = set->layout;
+	layout = set->header.layout;
 
-	for (i = 0; i < set->layout->binding_count; i++) {
+	for (i = 0; i < set->header.layout->binding_count; i++) {
 		uint32_t *desc =
-			set->mapped_ptr + layout->binding[i].offset / 4;
+			set->header.mapped_ptr + layout->binding[i].offset / 4;
 
 		switch (layout->binding[i].type) {
 		case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
@@ -511,6 +529,7 @@ radv_dump_queue_state(struct radv_queue *queue, FILE *f)
 static void
 radv_dump_cmd(const char *cmd, FILE *f)
 {
+#ifndef _WIN32
 	char line[2048];
 	FILE *p;
 
@@ -521,6 +540,7 @@ radv_dump_cmd(const char *cmd, FILE *f)
 		fprintf(f, "\n");
 		pclose(p);
 	}
+#endif
 }
 
 static void
@@ -563,14 +583,14 @@ radv_dump_app_info(struct radv_device *device, FILE *f)
 {
 	struct radv_instance *instance = device->instance;
 
-	fprintf(f, "Application name: %s\n", instance->applicationName);
-	fprintf(f, "Application version: %d\n", instance->applicationVersion);
-	fprintf(f, "Engine name: %s\n", instance->engineName);
-	fprintf(f, "Engine version: %d\n", instance->engineVersion);
+	fprintf(f, "Application name: %s\n", instance->vk.app_info.app_name);
+	fprintf(f, "Application version: %d\n", instance->vk.app_info.app_version);
+	fprintf(f, "Engine name: %s\n", instance->vk.app_info.engine_name);
+	fprintf(f, "Engine version: %d\n", instance->vk.app_info.engine_version);
 	fprintf(f, "API version: %d.%d.%d\n",
-		VK_VERSION_MAJOR(instance->apiVersion),
-		VK_VERSION_MINOR(instance->apiVersion),
-		VK_VERSION_PATCH(instance->apiVersion));
+		VK_VERSION_MAJOR(instance->vk.app_info.api_version),
+		VK_VERSION_MINOR(instance->vk.app_info.api_version),
+		VK_VERSION_PATCH(instance->vk.app_info.api_version));
 
 	radv_dump_enabled_options(device, f);
 }
@@ -579,12 +599,19 @@ static void
 radv_dump_device_name(struct radv_device *device, FILE *f)
 {
 	struct radeon_info *info = &device->physical_device->rad_info;
+#ifndef _WIN32
 	char kernel_version[128] = {0};
 	struct utsname uname_data;
+#endif
 	const char *chip_name;
 
 	chip_name = device->ws->get_chip_name(device->ws);
 
+#ifdef _WIN32
+	fprintf(f, "Device name: %s (%s / DRM %i.%i.%i)\n\n",
+		chip_name, device->physical_device->name,
+		info->drm_major, info->drm_minor, info->drm_patchlevel);
+#else
 	if (uname(&uname_data) == 0)
 		snprintf(kernel_version, sizeof(kernel_version),
 			 " / %s", uname_data.release);
@@ -593,6 +620,7 @@ radv_dump_device_name(struct radv_device *device, FILE *f)
 		chip_name, device->physical_device->name,
 		info->drm_major, info->drm_minor, info->drm_patchlevel,
 		kernel_version);
+#endif
 }
 
 static void
@@ -785,6 +813,7 @@ radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_cmdbuf *cs)
 void
 radv_print_spirv(const char *data, uint32_t size, FILE *fp)
 {
+#ifndef _WIN32
 	char path[] = "/tmp/fileXXXXXX";
 	char command[128];
 	int fd;
@@ -804,12 +833,14 @@ radv_print_spirv(const char *data, uint32_t size, FILE *fp)
 fail:
 	close(fd);
 	unlink(path);
+#endif
 }
 
 bool
 radv_trap_handler_init(struct radv_device *device)
 {
 	struct radeon_winsys *ws = device->ws;
+	VkResult result;
 
 	/* Create the trap handler shader and upload it like other shaders. */
 	device->trap_handler_shader = radv_create_trap_handler_shader(device);
@@ -817,6 +848,10 @@ radv_trap_handler_init(struct radv_device *device)
 		fprintf(stderr, "radv: failed to create the trap handler shader.\n");
 		return false;
 	}
+
+	result = ws->buffer_make_resident(ws, device->trap_handler_shader->bo, true);
+	if (result != VK_SUCCESS)
+		return false;
 
 	device->tma_bo = ws->buffer_create(ws, TMA_BO_SIZE, 256,
 					   RADEON_DOMAIN_VRAM,
@@ -826,6 +861,10 @@ radv_trap_handler_init(struct radv_device *device)
 					   RADEON_FLAG_32BIT,
 					   RADV_BO_PRIORITY_SCRATCH);
 	if (!device->tma_bo)
+		return false;
+
+	result = ws->buffer_make_resident(ws, device->tma_bo, true);
+	if (result != VK_SUCCESS)
 		return false;
 
 	device->tma_ptr = ws->buffer_map(device->tma_bo);
@@ -855,11 +894,15 @@ radv_trap_handler_finish(struct radv_device *device)
 {
 	struct radeon_winsys *ws = device->ws;
 
-	if (unlikely(device->trap_handler_shader))
+	if (unlikely(device->trap_handler_shader)) {
+		ws->buffer_make_resident(ws, device->trap_handler_shader->bo, false);
 		radv_shader_variant_destroy(device, device->trap_handler_shader);
+	}
 
-	if (unlikely(device->tma_bo))
-		ws->buffer_destroy(device->tma_bo);
+	if (unlikely(device->tma_bo)) {
+		ws->buffer_make_resident(ws, device->tma_bo, false);
+		ws->buffer_destroy(ws, device->tma_bo);
+	}
 }
 
 static struct radv_shader_variant *

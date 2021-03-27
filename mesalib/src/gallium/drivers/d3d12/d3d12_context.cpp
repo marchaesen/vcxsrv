@@ -58,7 +58,8 @@ static void
 d3d12_context_destroy(struct pipe_context *pctx)
 {
    struct d3d12_context *ctx = d3d12_context(pctx);
-   d3d12_validator_destroy(ctx->validation_tools);
+   if (ctx->validation_tools)
+      d3d12_validator_destroy(ctx->validation_tools);
 
    if (ctx->timestamp_query)
       pctx->destroy_query(pctx, ctx->timestamp_query);
@@ -69,10 +70,7 @@ d3d12_context_destroy(struct pipe_context *pctx)
       d3d12_destroy_batch(ctx, &ctx->batches[i]);
    ctx->cmdlist->Release();
    ctx->cmdqueue_fence->Release();
-   d3d12_descriptor_pool_free(ctx->rtv_pool);
-   d3d12_descriptor_pool_free(ctx->dsv_pool);
    d3d12_descriptor_pool_free(ctx->sampler_pool);
-   d3d12_descriptor_pool_free(ctx->view_pool);
    util_primconvert_destroy(ctx->primconvert);
    slab_destroy_child(&ctx->transfer_pool);
    d3d12_gs_variant_cache_destroy(ctx);
@@ -794,7 +792,6 @@ d3d12_create_sampler_view(struct pipe_context *pctx,
                           struct pipe_resource *texture,
                           const struct pipe_sampler_view *state)
 {
-   struct d3d12_context *ctx = d3d12_context(pctx);
    struct d3d12_screen *screen = d3d12_screen(pctx->screen);
    struct d3d12_resource *res = d3d12_resource(texture);
    struct d3d12_sampler_view *sampler_view = CALLOC_STRUCT(d3d12_sampler_view);
@@ -912,7 +909,10 @@ d3d12_create_sampler_view(struct pipe_context *pctx,
       unreachable("Invalid SRV dimension");
    }
 
-   d3d12_descriptor_pool_alloc_handle(ctx->view_pool, &sampler_view->handle);
+   mtx_lock(&screen->descriptor_pool_mutex);
+   d3d12_descriptor_pool_alloc_handle(screen->view_pool, &sampler_view->handle);
+   mtx_unlock(&screen->descriptor_pool_mutex);
+
    screen->dev->CreateShaderResourceView(d3d12_resource_resource(res), &desc,
                                          sampler_view->handle.cpu_handle);
 
@@ -924,10 +924,10 @@ d3d12_set_sampler_views(struct pipe_context *pctx,
                         enum pipe_shader_type shader_type,
                         unsigned start_slot,
                         unsigned num_views,
+                        unsigned unbind_num_trailing_slots,
                         struct pipe_sampler_view **views)
 {
    struct d3d12_context *ctx = d3d12_context(pctx);
-   assert(views);
    unsigned shader_bit = (1 << shader_type);
    ctx->has_int_samplers &= ~shader_bit;
 
@@ -964,6 +964,11 @@ d3d12_set_sampler_views(struct pipe_context *pctx,
          swizzle_state.swizzle_a = ss->swizzle_override_a;
       }
    }
+
+   for (unsigned i = 0; i < unbind_num_trailing_slots; i++)
+      pipe_sampler_view_reference(
+         &ctx->sampler_views[shader_type][start_slot + num_views + i], NULL);
+
    ctx->num_sampler_views[shader_type] = start_slot + num_views;
    ctx->shader_dirty[shader_type] |= D3D12_SHADER_DIRTY_SAMPLER_VIEWS;
 }
@@ -1118,11 +1123,15 @@ static void
 d3d12_set_vertex_buffers(struct pipe_context *pctx,
                          unsigned start_slot,
                          unsigned num_buffers,
+                         unsigned unbind_num_trailing_slots,
+                         bool take_ownership,
                          const struct pipe_vertex_buffer *buffers)
 {
    struct d3d12_context *ctx = d3d12_context(pctx);
    util_set_vertex_buffers_count(ctx->vbs, &ctx->num_vbs,
-                                 buffers, start_slot, num_buffers);
+                                 buffers, start_slot, num_buffers,
+                                 unbind_num_trailing_slots,
+                                 take_ownership);
 
    for (unsigned i = 0; i < ctx->num_vbs; ++i) {
       const struct pipe_vertex_buffer* buf = ctx->vbs + i;
@@ -1195,6 +1204,7 @@ d3d12_set_scissor_states(struct pipe_context *pctx,
 static void
 d3d12_set_constant_buffer(struct pipe_context *pctx,
                           enum pipe_shader_type shader, uint index,
+                          bool take_ownership,
                           const struct pipe_constant_buffer *buf)
 {
    struct d3d12_context *ctx = d3d12_context(pctx);
@@ -1207,8 +1217,14 @@ d3d12_set_constant_buffer(struct pipe_context *pctx,
                        D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
                        buf->user_buffer, &offset, &ctx->cbufs[shader][index].buffer);
 
-      } else
-         pipe_resource_reference(&ctx->cbufs[shader][index].buffer, buffer);
+      } else {
+         if (take_ownership) {
+            pipe_resource_reference(&ctx->cbufs[shader][index].buffer, NULL);
+            ctx->cbufs[shader][index].buffer = buffer;
+         } else {
+            pipe_resource_reference(&ctx->cbufs[shader][index].buffer, buffer);
+         }
+      }
 
 
       ctx->cbufs[shader][index].buffer_offset = offset;
@@ -1313,8 +1329,9 @@ d3d12_create_stream_output_target(struct pipe_context *pctx,
    cso->base.buffer_size = buffer_size;
    cso->base.context = pctx;
 
-   util_range_add(pres, &res->valid_buffer_range, buffer_offset,
-                  buffer_offset + buffer_size);
+   if (res->bo && res->bo->buffer && d3d12_buffer(res->bo->buffer)->map)
+      util_range_add(pres, &res->valid_buffer_range, buffer_offset,
+                     buffer_offset + buffer_size);
 
    return &cso->base;
 }
@@ -1380,7 +1397,7 @@ d3d12_enable_fake_so_buffers(struct d3d12_context *ctx, unsigned factor)
 
    d3d12_disable_fake_so_buffers(ctx);
 
-   for (int i = 0; i < ctx->gfx_pipeline_state.num_so_targets; ++i) {
+   for (unsigned i = 0; i < ctx->gfx_pipeline_state.num_so_targets; ++i) {
       struct d3d12_stream_output_target *target = (struct d3d12_stream_output_target *)ctx->so_targets[i];
       struct d3d12_stream_output_target *fake_target;
 
@@ -1393,7 +1410,7 @@ d3d12_enable_fake_so_buffers(struct d3d12_context *ctx, unsigned factor)
       d3d12_resource_wait_idle(ctx, d3d12_resource(target->base.buffer));
 
       /* Check if another target is using the same buffer */
-      for (int j = i - 1; j >= 0; --j) {
+      for (unsigned j = 0; j < i; ++j) {
          if (ctx->so_targets[j] && ctx->so_targets[j]->buffer == target->base.buffer) {
             struct d3d12_stream_output_target *prev_target =
                (struct d3d12_stream_output_target *)ctx->fake_so_targets[j];
@@ -1696,107 +1713,6 @@ d3d12_flush_resource(struct pipe_context *pctx,
 }
 
 static void
-d3d12_init_null_srvs(struct d3d12_context *ctx)
-{
-   struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
-
-   for (unsigned i = 0; i < RESOURCE_DIMENSION_COUNT; ++i) {
-      D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
-
-      srv.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-      srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-      switch (i) {
-      case RESOURCE_DIMENSION_BUFFER:
-      case RESOURCE_DIMENSION_UNKNOWN:
-         srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-         srv.Buffer.FirstElement = 0;
-         srv.Buffer.NumElements = 0;
-         srv.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-         srv.Buffer.StructureByteStride = 0;
-         break;
-      case RESOURCE_DIMENSION_TEXTURE1D:
-         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
-         srv.Texture1D.MipLevels = 1;
-         srv.Texture1D.MostDetailedMip = 0;
-         srv.Texture1D.ResourceMinLODClamp = 0.0f;
-         break;
-      case RESOURCE_DIMENSION_TEXTURE1DARRAY:
-         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
-         srv.Texture1DArray.MipLevels = 1;
-         srv.Texture1DArray.ArraySize = 1;
-         srv.Texture1DArray.MostDetailedMip = 0;
-         srv.Texture1DArray.FirstArraySlice = 0;
-         srv.Texture1DArray.ResourceMinLODClamp = 0.0f;
-         break;
-      case RESOURCE_DIMENSION_TEXTURE2D:
-         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-         srv.Texture2D.MipLevels = 1;
-         srv.Texture2D.MostDetailedMip = 0;
-         srv.Texture2D.PlaneSlice = 0;
-         srv.Texture2D.ResourceMinLODClamp = 0.0f;
-         break;
-      case RESOURCE_DIMENSION_TEXTURE2DARRAY:
-         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-         srv.Texture2DArray.MipLevels = 1;
-         srv.Texture2DArray.ArraySize = 1;
-         srv.Texture2DArray.MostDetailedMip = 0;
-         srv.Texture2DArray.FirstArraySlice = 0;
-         srv.Texture2DArray.PlaneSlice = 0;
-         srv.Texture2DArray.ResourceMinLODClamp = 0.0f;
-         break;
-      case RESOURCE_DIMENSION_TEXTURE2DMS:
-         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
-         break;
-      case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
-         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
-         srv.Texture2DMSArray.ArraySize = 1;
-         srv.Texture2DMSArray.FirstArraySlice = 0;
-         break;
-      case RESOURCE_DIMENSION_TEXTURE3D:
-         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
-         srv.Texture3D.MipLevels = 1;
-         srv.Texture3D.MostDetailedMip = 0;
-         srv.Texture3D.ResourceMinLODClamp = 0.0f;
-         break;
-      case RESOURCE_DIMENSION_TEXTURECUBE:
-         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-         srv.TextureCube.MipLevels = 1;
-         srv.TextureCube.MostDetailedMip = 0;
-         srv.TextureCube.ResourceMinLODClamp = 0.0f;
-         break;
-      case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
-         srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
-         srv.TextureCubeArray.MipLevels = 1;
-         srv.TextureCubeArray.NumCubes = 1;
-         srv.TextureCubeArray.MostDetailedMip = 0;
-         srv.TextureCubeArray.First2DArrayFace = 0;
-         srv.TextureCubeArray.ResourceMinLODClamp = 0.0f;
-         break;
-      }
-
-      if (srv.ViewDimension != D3D12_SRV_DIMENSION_UNKNOWN)
-      {
-         d3d12_descriptor_pool_alloc_handle(ctx->view_pool, &ctx->null_srvs[i]);
-         screen->dev->CreateShaderResourceView(NULL, &srv, ctx->null_srvs[i].cpu_handle);
-      }
-   }
-}
-
-static void
-d3d12_init_null_rtv(struct d3d12_context *ctx)
-{
-   struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
-
-   D3D12_RENDER_TARGET_VIEW_DESC rtv = {};
-   rtv.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-   rtv.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-   rtv.Texture2D.MipSlice = 0;
-   rtv.Texture2D.PlaneSlice = 0;
-   d3d12_descriptor_pool_alloc_handle(ctx->rtv_pool, &ctx->null_rtv);
-   screen->dev->CreateRenderTargetView(NULL, &rtv, ctx->null_rtv.cpu_handle);
-}
-
-static void
 d3d12_init_null_sampler(struct d3d12_context *ctx)
 {
    struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
@@ -1960,41 +1876,13 @@ d3d12_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
    }
    d3d12_start_batch(ctx, &ctx->batches[0]);
 
-   ctx->rtv_pool = d3d12_descriptor_pool_new(&ctx->base,
-                                             D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-                                             64);
-   if (!ctx->rtv_pool) {
-      FREE(ctx);
-      return NULL;
-   }
-
-   ctx->dsv_pool = d3d12_descriptor_pool_new(&ctx->base,
-                                             D3D12_DESCRIPTOR_HEAP_TYPE_DSV,
-                                             64);
-   if (!ctx->dsv_pool) {
-      FREE(ctx);
-      return NULL;
-   }
-
-   ctx->sampler_pool = d3d12_descriptor_pool_new(&ctx->base,
+   ctx->sampler_pool = d3d12_descriptor_pool_new(screen,
                                                  D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
                                                  64);
    if (!ctx->sampler_pool) {
       FREE(ctx);
       return NULL;
    }
-
-   ctx->view_pool = d3d12_descriptor_pool_new(&ctx->base,
-                                             D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-                                             1024);
-   if (!ctx->view_pool) {
-      debug_printf("D3D12: failed to create CBV/SRV descriptor pool\n");
-      FREE(ctx);
-      return NULL;
-   }
-
-   d3d12_init_null_srvs(ctx);
-   d3d12_init_null_rtv(ctx);
    d3d12_init_null_sampler(ctx);
 
    ctx->validation_tools = d3d12_validator_create();

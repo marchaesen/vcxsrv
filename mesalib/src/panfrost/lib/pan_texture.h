@@ -42,20 +42,46 @@ struct panfrost_slice {
         unsigned offset;
         unsigned line_stride;
         unsigned row_stride;
-        unsigned size0;
+        unsigned surface_stride;
 
-        /* If there is a header preceding each slice, how big is
-         * that header? Used for AFBC */
-        unsigned header_size;
+        struct {
+                /* Size of the AFBC header preceding each slice */
+                unsigned header_size;
+
+                /* Size of the AFBC body */
+                unsigned body_size;
+
+                /* Stride between two rows of AFBC headers */
+                unsigned row_stride;
+
+                /* Stride between AFBC headers of two consecutive surfaces.
+                 * For 3D textures, this must be set to header size since
+                 * AFBC headers are allocated together, for 2D arrays this
+                 * should be set to size0, since AFBC headers are placed at
+                 * the beginning of each layer
+                 */
+                unsigned surface_stride;
+        } afbc;
 
         /* If checksumming is enabled following the slice, what
          * is its offset/stride? */
-        unsigned checksum_offset;
-        unsigned checksum_stride;
-        struct panfrost_bo *checksum_bo;
+        struct {
+                unsigned offset;
+                unsigned stride;
+        } crc;
 
         /* Has anything been written to this slice? */
         bool initialized;
+
+        /* Is the checksum for this slice valid? */
+        bool checksum_valid;
+};
+
+struct pan_image_layout {
+        uint64_t modifier;
+        enum mali_texture_dimension dim;
+        struct panfrost_slice slices[MAX_MIP_LEVELS];
+        unsigned array_stride;
 };
 
 struct pan_image {
@@ -67,9 +93,7 @@ struct pan_image {
         unsigned first_layer, last_layer;
         unsigned nr_samples;
         struct panfrost_bo *bo;
-        struct panfrost_slice *slices;
-        unsigned cubemap_stride;
-        uint64_t modifier;
+        const struct pan_image_layout *layout;
 };
 
 unsigned
@@ -81,7 +105,10 @@ panfrost_compute_checksum_size(
 /* AFBC */
 
 bool
-panfrost_format_supports_afbc(enum pipe_format format);
+panfrost_format_supports_afbc(const struct panfrost_device *dev,
+                enum pipe_format format);
+
+#define AFBC_HEADER_BYTES_PER_TILE 16
 
 unsigned
 panfrost_afbc_header_size(unsigned width, unsigned height);
@@ -89,56 +116,50 @@ panfrost_afbc_header_size(unsigned width, unsigned height);
 bool
 panfrost_afbc_can_ytr(enum pipe_format format);
 
+bool
+panfrost_afbc_format_needs_fixup(const struct panfrost_device *dev,
+                                 enum pipe_format format);
+
+enum pipe_format
+panfrost_afbc_format_fixup(const struct panfrost_device *dev,
+                           enum pipe_format format);
+
 unsigned
 panfrost_block_dim(uint64_t modifier, bool width, unsigned plane);
 
 unsigned
-panfrost_estimate_texture_payload_size(
-                unsigned first_level, unsigned last_level,
-                unsigned first_layer, unsigned last_layer,
-                unsigned nr_samples,
-                enum mali_texture_dimension dim, uint64_t modifier);
+panfrost_estimate_texture_payload_size(const struct panfrost_device *dev,
+                                       unsigned first_level,
+                                       unsigned last_level,
+                                       unsigned first_layer,
+                                       unsigned last_layer,
+                                       unsigned nr_samples,
+                                       enum mali_texture_dimension dim,
+                                       uint64_t modifier);
 
 void
-panfrost_new_texture(
-        void *out,
-        uint16_t width, uint16_t height,
-        uint16_t depth, uint16_t array_size,
-        enum pipe_format format,
-        enum mali_texture_dimension dim,
-        uint64_t modifier,
-        unsigned first_level, unsigned last_level,
-        unsigned first_layer, unsigned last_layer,
-        unsigned nr_samples,
-        unsigned cube_stride,
-        unsigned swizzle,
-        mali_ptr base,
-        struct panfrost_slice *slices);
-
-void
-panfrost_new_texture_bifrost(
-        const struct panfrost_device *dev,
-        struct mali_bifrost_texture_packed *out,
-        uint16_t width, uint16_t height,
-        uint16_t depth, uint16_t array_size,
-        enum pipe_format format,
-        enum mali_texture_dimension dim,
-        uint64_t modifier,
-        unsigned first_level, unsigned last_level,
-        unsigned first_layer, unsigned last_layer,
-        unsigned nr_samples,
-        unsigned cube_stride,
-        unsigned swizzle,
-        mali_ptr base,
-        struct panfrost_slice *slices,
-        const struct panfrost_ptr *payload);
-
+panfrost_new_texture(const struct panfrost_device *dev,
+                     const struct pan_image_layout *layout,
+                     void *out,
+                     unsigned width, uint16_t height,
+                     uint16_t depth, uint16_t array_size,
+                     enum pipe_format format,
+                     enum mali_texture_dimension dim,
+                     unsigned first_level, unsigned last_level,
+                     unsigned first_layer, unsigned last_layer,
+                     unsigned nr_samples,
+                     const unsigned char swizzle[4],
+                     mali_ptr base,
+                     const struct panfrost_ptr *payload);
 
 unsigned
-panfrost_get_layer_stride(struct panfrost_slice *slices, bool is_3d, unsigned cube_stride, unsigned level);
+panfrost_get_layer_stride(const struct pan_image_layout *layout,
+                          unsigned level);
 
 unsigned
-panfrost_texture_offset(struct panfrost_slice *slices, bool is_3d, unsigned cube_stride, unsigned level, unsigned face, unsigned sample);
+panfrost_texture_offset(const struct pan_image_layout *layout,
+                        unsigned level, unsigned array_idx,
+                        unsigned surface_idx);
 
 /* Formats */
 
@@ -230,5 +251,20 @@ panfrost_load_bifrost(struct pan_pool *pool,
 #define drm_is_afbc(mod) \
         ((mod >> 52) == (DRM_FORMAT_MOD_ARM_TYPE_AFBC | \
                 (DRM_FORMAT_MOD_VENDOR_ARM << 4)))
+
+/* Map modifiers to mali_texture_layout for packing in a texture descriptor */
+
+static inline enum mali_texture_layout
+panfrost_modifier_to_layout(uint64_t modifier)
+{
+        if (drm_is_afbc(modifier))
+                return MALI_TEXTURE_LAYOUT_AFBC;
+        else if (modifier == DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED)
+                return MALI_TEXTURE_LAYOUT_TILED;
+        else if (modifier == DRM_FORMAT_MOD_LINEAR)
+                return MALI_TEXTURE_LAYOUT_LINEAR;
+        else
+                unreachable("Invalid modifer");
+}
 
 #endif

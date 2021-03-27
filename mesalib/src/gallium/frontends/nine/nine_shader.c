@@ -822,6 +822,26 @@ tx_addr_alloc(struct shader_translator *tx, INT idx)
         tx->regs.a0 = ureg_DECL_temporary(tx->ureg);
 }
 
+static inline bool
+TEX_if_fetch4(struct shader_translator *tx, struct ureg_dst dst,
+              unsigned target, struct ureg_src src0,
+              struct ureg_src src1, INT idx)
+{
+    struct ureg_dst tmp;
+    struct ureg_src src_tg4[3] = {src0, ureg_imm1f(tx->ureg, 0.f), src1};
+
+    if (!(tx->info->fetch4 & (1 << idx)))
+        return false;
+
+    /* TODO: needs more tests, but this feature is not much used at all */
+
+    tmp = tx_scratch(tx);
+    ureg_tex_insn(tx->ureg, TGSI_OPCODE_TG4, &tmp, 1, target, TGSI_RETURN_TYPE_FLOAT,
+                  NULL, 0, src_tg4, 3);
+    ureg_MOV(tx->ureg, dst, ureg_swizzle(ureg_src(tmp), NINE_SWIZZLE4(Z, X, Y, W)));
+    return true;
+}
+
 /* NOTE: It's not very clear on which ps1.1-ps1.3 instructions
  * the projection should be applied on the texture. It doesn't
  * apply on texkill.
@@ -2933,6 +2953,9 @@ DECL_SPECIAL(TEXLD)
            tx->insn.src[1].idx < ARRAY_SIZE(tx->sampler_targets));
     target = tx->sampler_targets[tx->insn.src[1].idx];
 
+    if (TEX_if_fetch4(tx, dst, target, src[0], src[1], tx->insn.src[1].idx))
+        return D3D_OK;
+
     switch (tx->insn.flags) {
     case 0:
         ureg_TEX(ureg, dst, target, src[0], src[1]);
@@ -2997,6 +3020,9 @@ DECL_SPECIAL(TEXLDD)
            tx->insn.src[1].idx < ARRAY_SIZE(tx->sampler_targets));
     target = tx->sampler_targets[tx->insn.src[1].idx];
 
+    if (TEX_if_fetch4(tx, dst, target, src[0], src[1], tx->insn.src[1].idx))
+        return D3D_OK;
+
     ureg_TXD(tx->ureg, dst, target, src[0], src[2], src[3], src[1]);
     return D3D_OK;
 }
@@ -3012,6 +3038,9 @@ DECL_SPECIAL(TEXLDL)
     assert(tx->insn.src[1].idx >= 0 &&
            tx->insn.src[1].idx < ARRAY_SIZE(tx->sampler_targets));
     target = tx->sampler_targets[tx->insn.src[1].idx];
+
+    if (TEX_if_fetch4(tx, dst, target, src[0], src[1], tx->insn.src[1].idx))
+        return D3D_OK;
 
     ureg_TXL(tx->ureg, dst, target, src[0], src[1]);
     return D3D_OK;

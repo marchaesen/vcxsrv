@@ -293,6 +293,8 @@ st_RenderMode(struct gl_context *ctx, GLenum newMode )
       draw_set_rasterize_stage(draw, st->selection_stage);
       /* Plug in new vbo draw function */
       ctx->Driver.Draw = st_feedback_draw_vbo;
+      ctx->Driver.DrawGallium = _mesa_draw_gallium_fallback;
+      ctx->Driver.DrawGalliumComplex = _mesa_draw_gallium_complex_fallback;
    }
    else {
       struct gl_program *vp = st->ctx->VertexProgram._Current;
@@ -302,6 +304,8 @@ st_RenderMode(struct gl_context *ctx, GLenum newMode )
       draw_set_rasterize_stage(draw, st->feedback_stage);
       /* Plug in new vbo draw function */
       ctx->Driver.Draw = st_feedback_draw_vbo;
+      ctx->Driver.DrawGallium = _mesa_draw_gallium_fallback;
+      ctx->Driver.DrawGalliumComplex = _mesa_draw_gallium_complex_fallback;
       /* need to generate/use a vertex program that emits pos/color/tex */
       if (vp)
          st->dirty |= ST_NEW_VERTEX_PROGRAM(st, st_program(vp));

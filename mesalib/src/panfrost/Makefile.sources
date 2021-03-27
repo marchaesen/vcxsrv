@@ -4,16 +4,17 @@ bifrost_FILES := \
         bifrost/bifrost_compile.h \
         bifrost/bi_layout.c \
         bifrost/bi_liveness.c \
-        bifrost/bi_lower_combine.c \
-        bifrost/bi_tables.c \
         bifrost/bi_schedule.c \
-        bifrost/bi_special.c \
+        bifrost/bi_scoreboard.c \
         bifrost/bi_pack.c \
         bifrost/bi_print.c \
         bifrost/bi_print.h \
         bifrost/bi_ra.c \
+        bifrost/bi_opt_copy_prop.c \
         bifrost/bi_opt_dce.c \
+        bifrost/bi_opt_push_ubo.c \
         bifrost/bi_quirks.h \
+        bifrost/bi_test_pack.c \
         bifrost/bir.c \
         bifrost/compiler.h \
         bifrost/cmdline.c
@@ -31,6 +32,8 @@ lib_FILES := \
         lib/pan_attributes.c \
         lib/pan_bo.c \
         lib/pan_bo.h \
+        lib/pan_blend.c \
+        lib/pan_blend.h \
         lib/pan_blit.c \
         lib/pan_device.h \
         lib/pan_encoder.h \
@@ -40,6 +43,9 @@ lib_FILES := \
         lib/pan_pool.h \
         lib/pan_props.c \
         lib/pan_sampler.c \
+        lib/pan_samples.c \
+        lib/pan_shader.c \
+        lib/pan_shader.h \
         lib/pan_scoreboard.c \
         lib/pan_scoreboard.h \
         lib/pan_tiler.c \
@@ -59,8 +65,10 @@ midgard_FILES := \
         midgard/midgard_emit.c \
         midgard/midgard.h \
         midgard/midgard_liveness.c \
+        midgard/midgard_nir_lower_helper_writes.c \
         midgard/midgard_helper_invocations.c \
         midgard/midgard_nir.h \
+        midgard/midgard_nir_lower_image_bitsize.c \
         midgard/midgard_ops.c \
         midgard/midgard_ops.h \
         midgard/midgard_opt_copy_prop.c \
@@ -93,11 +101,15 @@ shared_FILES := \
 util_FILES := \
         util/lcra.c \
         util/lcra.h \
+        util/nir_lower_blend.c \
+        util/nir_lower_blend.h \
         util/nir_mod_helpers.c \
         util/pan_ir.c \
         util/pan_ir.h \
         util/pan_liveness.c \
         util/pan_lower_framebuffer.c \
+        util/pan_lower_helper_invocation.c \
+        util/pan_lower_sample_position.c \
         util/pan_lower_writeout.c \
         util/pan_lower_64bit_intrin.c \
         util/pan_sysval.c \

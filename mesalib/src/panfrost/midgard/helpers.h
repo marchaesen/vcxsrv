@@ -48,11 +48,11 @@
         )
 
 #define OP_IS_UBO_READ(op) ( \
-                op == midgard_op_ld_ubo_char  || \
-                op == midgard_op_ld_ubo_char2  || \
-                op == midgard_op_ld_ubo_char4  || \
-                op == midgard_op_ld_ubo_short4  || \
-                op == midgard_op_ld_ubo_int4 \
+                op == midgard_op_ld_ubo_u8   || \
+                op == midgard_op_ld_ubo_u16  || \
+                op == midgard_op_ld_ubo_u32  || \
+                op == midgard_op_ld_ubo_u64  || \
+                op == midgard_op_ld_ubo_u128 \
         )
 
 #define OP_IS_CSEL_V(op) ( \

@@ -169,7 +169,7 @@ radv_image_from_gralloc(VkDevice device_h,
 		return result;
 
 	struct radeon_bo_metadata md;
-	device->ws->buffer_get_metadata(radv_device_memory_from_handle(memory_h)->bo, &md);
+	device->ws->buffer_get_metadata(device->ws, radv_device_memory_from_handle(memory_h)->bo, &md);
 
 	VkImageCreateInfo updated_base_info = *base_info;
 
@@ -742,28 +742,28 @@ radv_import_ahb_memory(struct radv_device *device,
 
 	if (mem->image) {
 		struct radeon_bo_metadata metadata;
-		device->ws->buffer_get_metadata(mem->bo, &metadata);
+		device->ws->buffer_get_metadata(device->ws, mem->bo, &metadata);
 
 		struct radv_image_create_info create_info = {
 			.no_metadata_planes = true,
 			.bo_metadata = &metadata
 		};
 
-		VkResult result = radv_image_create_layout(device, create_info, mem->image);
+		VkResult result = radv_image_create_layout(device, create_info, NULL, mem->image);
 		if (result != VK_SUCCESS) {
-			device->ws->buffer_destroy(mem->bo);
+			device->ws->buffer_destroy(device->ws, mem->bo);
 			mem->bo = NULL;
 			return result;
 		}
 
 		if (alloc_size < mem->image->size) {
-			device->ws->buffer_destroy(mem->bo);
+			device->ws->buffer_destroy(device->ws, mem->bo);
 			mem->bo = NULL;
 			return VK_ERROR_INVALID_EXTERNAL_HANDLE;
 		}
 	} else if (mem->buffer) {
 		if (alloc_size < mem->buffer->size) {
-			device->ws->buffer_destroy(mem->bo);
+			device->ws->buffer_destroy(device->ws, mem->bo);
 			mem->bo = NULL;
 			return VK_ERROR_INVALID_EXTERNAL_HANDLE;
 		}

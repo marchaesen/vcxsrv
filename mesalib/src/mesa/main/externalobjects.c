@@ -729,7 +729,7 @@ _mesa_WaitSemaphoreEXT(GLuint semaphore,
    if (!semObj)
       return;
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    bufObjs = malloc(sizeof(struct gl_buffer_object *) * numBufferBarriers);
    if (!bufObjs) {
@@ -789,7 +789,7 @@ _mesa_SignalSemaphoreEXT(GLuint semaphore,
    if (!semObj)
       return;
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    bufObjs = malloc(sizeof(struct gl_buffer_object *) * numBufferBarriers);
    if (!bufObjs) {

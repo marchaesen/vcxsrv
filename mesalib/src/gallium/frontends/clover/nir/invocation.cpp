@@ -111,7 +111,9 @@ clover_nir_lower_images(nir_shader *shader)
       }
    }
    shader->info.num_textures = num_rd_images;
-   shader->info.textures_used = (1 << num_rd_images) - 1;
+   BITSET_ZERO(shader->info.textures_used);
+   if (num_rd_images)
+      BITSET_SET_RANGE(shader->info.textures_used, 0, num_rd_images - 1);
    shader->info.num_images = num_wr_images;
 
    nir_builder b;
@@ -134,7 +136,7 @@ clover_nir_lower_images(nir_shader *shader)
             nir_ssa_def *loc =
                nir_imm_intN_t(&b, deref->var->data.driver_location,
                                   deref->dest.ssa.bit_size);
-            nir_ssa_def_rewrite_uses(&deref->dest.ssa, nir_src_for_ssa(loc));
+            nir_ssa_def_rewrite_uses(&deref->dest.ssa, loc);
             progress = true;
             break;
          }

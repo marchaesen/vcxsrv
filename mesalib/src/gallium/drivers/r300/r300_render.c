@@ -791,6 +791,17 @@ static void r300_draw_vbo(struct pipe_context* pipe,
                           const struct pipe_draw_start_count *draws,
                           unsigned num_draws)
 {
+    if (num_draws > 1) {
+       struct pipe_draw_info tmp_info = *dinfo;
+
+       for (unsigned i = 0; i < num_draws; i++) {
+          r300_draw_vbo(pipe, &tmp_info, indirect, &draws[i], 1);
+          if (tmp_info.increment_draw_id)
+             tmp_info.drawid++;
+       }
+       return;
+    }
+
     struct r300_context* r300 = r300_context(pipe);
     struct pipe_draw_info info = *dinfo;
     struct pipe_draw_start_count draw = draws[0];
@@ -853,6 +864,17 @@ static void r300_swtcl_draw_vbo(struct pipe_context* pipe,
                                 const struct pipe_draw_start_count *draws,
                                 unsigned num_draws)
 {
+    if (num_draws > 1) {
+       struct pipe_draw_info tmp_info = *info;
+
+       for (unsigned i = 0; i < num_draws; i++) {
+          r300_swtcl_draw_vbo(pipe, &tmp_info, indirect, &draws[i], 1);
+          if (tmp_info.increment_draw_id)
+             tmp_info.drawid++;
+       }
+       return;
+    }
+
     struct r300_context* r300 = r300_context(pipe);
     struct pipe_draw_start_count draw = draws[0];
 

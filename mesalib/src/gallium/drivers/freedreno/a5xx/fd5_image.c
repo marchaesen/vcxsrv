@@ -54,6 +54,7 @@ struct fd5_image {
 	uint32_t array_pitch;
 	struct fd_bo *bo;
 	uint32_t offset;
+	bool buffer;
 };
 
 static void translate_image(struct fd5_image *img, struct pipe_image_view *pimg)
@@ -61,7 +62,6 @@ static void translate_image(struct fd5_image *img, struct pipe_image_view *pimg)
 	enum pipe_format format = pimg->format;
 	struct pipe_resource *prsc = pimg->resource;
 	struct fd_resource *rsc = fd_resource(prsc);
-	unsigned lvl;
 
 	if (!pimg->resource) {
 		memset(img, 0, sizeof(*img));
@@ -75,46 +75,61 @@ static void translate_image(struct fd5_image *img, struct pipe_image_view *pimg)
 	img->cpp       = rsc->layout.cpp;
 	img->bo        = rsc->bo;
 
+	/* Treat cube textures as 2d-array: */
+	if (img->type == A5XX_TEX_CUBE)
+		img->type = A5XX_TEX_2D;
+
 	if (prsc->target == PIPE_BUFFER) {
-		lvl = 0;
+		img->buffer = true;
 		img->offset = pimg->u.buf.offset;
-		img->pitch  = pimg->u.buf.size;
+		img->pitch  = 0;
+		img->array_pitch  = 0;
+
+		/* size is encoded with low 15b in WIDTH and high bits in
+		 * HEIGHT, in units of elements:
+		 */
+		unsigned sz = pimg->u.buf.size / util_format_get_blocksize(format);
+		img->width  = sz & MASK(15);
+		img->height = sz >> 15;
+		img->depth  = 0;
 	} else {
-		lvl = pimg->u.tex.level;
+		img->buffer = false;
+
+		unsigned lvl = pimg->u.tex.level;
 		img->offset = fd_resource_offset(rsc, lvl, pimg->u.tex.first_layer);
 		img->pitch  = fd_resource_pitch(rsc, lvl);
-	}
 
-	img->width     = u_minify(prsc->width0, lvl);
-	img->height    = u_minify(prsc->height0, lvl);
+		img->width     = u_minify(prsc->width0, lvl);
+		img->height    = u_minify(prsc->height0, lvl);
 
-	unsigned layers = pimg->u.tex.last_layer - pimg->u.tex.first_layer + 1;
+		unsigned layers = pimg->u.tex.last_layer - pimg->u.tex.first_layer + 1;
 
-	switch (prsc->target) {
-	case PIPE_TEXTURE_RECT:
-	case PIPE_TEXTURE_1D:
-	case PIPE_TEXTURE_2D:
-		img->array_pitch = rsc->layout.layer_size;
-		img->depth = 1;
-		break;
-	case PIPE_TEXTURE_1D_ARRAY:
-	case PIPE_TEXTURE_2D_ARRAY:
-		img->array_pitch = rsc->layout.layer_size;
-		img->depth = layers;
-		break;
-	case PIPE_TEXTURE_CUBE:
-	case PIPE_TEXTURE_CUBE_ARRAY:
-		img->array_pitch = rsc->layout.layer_size;
-		img->depth = layers;
-		break;
-	case PIPE_TEXTURE_3D:
-		img->array_pitch = fd_resource_slice(rsc, lvl)->size0;
-		img->depth = u_minify(prsc->depth0, lvl);
-		break;
-	default:
-		img->array_pitch = 0;
-		img->depth = 0;
-		break;
+		switch (prsc->target) {
+		case PIPE_TEXTURE_RECT:
+		case PIPE_TEXTURE_1D:
+		case PIPE_TEXTURE_2D:
+			img->array_pitch = rsc->layout.layer_size;
+			img->depth = 1;
+			break;
+		case PIPE_TEXTURE_1D_ARRAY:
+		case PIPE_TEXTURE_2D_ARRAY:
+			img->array_pitch = rsc->layout.layer_size;
+			img->depth = layers;
+			break;
+		case PIPE_TEXTURE_CUBE:
+		case PIPE_TEXTURE_CUBE_ARRAY:
+			img->array_pitch = rsc->layout.layer_size;
+			img->depth = layers;
+			break;
+		case PIPE_TEXTURE_3D:
+			img->array_pitch = fd_resource_slice(rsc, lvl)->size0;
+			img->depth = u_minify(prsc->depth0, lvl);
+			break;
+		default:
+			img->array_pitch = 0;
+			img->depth = 0;
+			break;
+		}
 	}
 }
 
@@ -136,7 +151,9 @@ static void emit_image_tex(struct fd_ringbuffer *ring, unsigned slot,
 		COND(img->srgb, A5XX_TEX_CONST_0_SRGB));
 	OUT_RING(ring, A5XX_TEX_CONST_1_WIDTH(img->width) |
 		A5XX_TEX_CONST_1_HEIGHT(img->height));
-	OUT_RING(ring, A5XX_TEX_CONST_2_TYPE(img->type) |
+	OUT_RING(ring,
+		COND(img->buffer, A5XX_TEX_CONST_2_UNK4 | A5XX_TEX_CONST_2_UNK31) |
+		A5XX_TEX_CONST_2_TYPE(img->type) |
 		A5XX_TEX_CONST_2_PITCH(img->pitch));
 	OUT_RING(ring, A5XX_TEX_CONST_3_ARRAY_PITCH(img->array_pitch));
 	if (img->bo) {

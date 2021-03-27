@@ -1076,7 +1076,7 @@
 <category name="GL_EXT_draw_elements_base_vertex" number="204">
 
     <function name="DrawElementsBaseVertexEXT" alias="DrawElementsBaseVertex"
-              es2="2.0" exec="dynamic">
+              es2="2.0">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>
@@ -1085,7 +1085,7 @@
     </function>
 
     <function name="DrawRangeElementsBaseVertexEXT" alias="DrawRangeElementsBaseVertex"
-              es2="3.0" exec="dynamic">
+              es2="3.0">
         <param name="mode" type="GLenum"/>
         <param name="start" type="GLuint"/>
         <param name="end" type="GLuint"/>
@@ -1096,7 +1096,7 @@
     </function>
 
     <function name="MultiDrawElementsBaseVertexEXT" alias="MultiDrawElementsBaseVertex"
-              es2="2.0" exec="dynamic">
+              es2="2.0">
         <param name="mode" type="GLenum"/>
         <param name="count" type="const GLsizei *"/>
         <param name="type" type="GLenum"/>
@@ -1228,7 +1228,7 @@
 <category name="GL_OES_draw_elements_base_vertex" number="219">
 
     <function name="DrawElementsBaseVertexOES" alias="DrawElementsBaseVertex"
-              es2="2.0" exec="dynamic">
+              es2="2.0">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>
@@ -1237,7 +1237,7 @@
     </function>
 
     <function name="DrawRangeElementsBaseVertexOES" alias="DrawRangeElementsBaseVertex"
-              es2="3.0" exec="dynamic">
+              es2="3.0">
         <param name="mode" type="GLenum"/>
         <param name="start" type="GLuint"/>
         <param name="end" type="GLuint"/>

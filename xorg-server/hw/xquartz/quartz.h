@@ -34,6 +34,9 @@
 #ifndef _QUARTZ_H
 #define _QUARTZ_H
 
+#include <X11/Xdefs.h>
+#include "privates.h"
+
 #include "screenint.h"
 #include "window.h"
 #include "pixmap.h"
@@ -126,6 +129,14 @@ extern Bool XQuartzFullscreenDisableHotkeys;
 extern Bool XQuartzOptionSendsAlt;   /* Alt or Mode_switch? */
 
 extern int32_t XQuartzShieldingWindowLevel; /* CGShieldingWindowLevel() or 0 */
+
+// Other shared data
+extern DevPrivateKeyRec quartzScreenKeyRec;
+#define quartzScreenKey (&quartzScreenKeyRec)
+extern int aquaMenuBarHeight;
+
+// Name of GLX bundle for native OpenGL
+extern const char      *quartzOpenGLBundle;
 
 Bool
 QuartzAddScreen(int index, ScreenPtr pScreen);

@@ -216,7 +216,7 @@ lower_alu_instr(nir_alu_instr *instr, nir_builder *b)
    }
 
    if (lowered) {
-      nir_ssa_def_rewrite_uses(&instr->dest.dest.ssa, nir_src_for_ssa(lowered));
+      nir_ssa_def_rewrite_uses(&instr->dest.dest.ssa, lowered);
       nir_instr_remove(&instr->instr);
       return true;
    } else {

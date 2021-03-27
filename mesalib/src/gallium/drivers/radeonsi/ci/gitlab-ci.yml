@@ -1,0 +1,48 @@
+.radeonsi-stoney-gles2:amd64:
+  extends:
+    - .lava-test:amd64
+    - .radeonsi-rules
+  variables:
+    DEVICE_TYPE: hp-11A-G6-EE-grunt
+    DTB: ""
+    GPU_VERSION: radeonsi-stoney
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
+    ENV_VARS: "DEQP_PARALLEL=4 DEQP_EXPECTED_RENDERER=STONEY"
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+.radeonsi-stoney-gles3:amd64:
+  extends:
+    - .radeonsi-stoney-gles2:amd64
+  variables:
+    DEQP_VERSION: gles3
+    CI_NODE_INDEX: 1
+    CI_NODE_TOTAL: 4
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+radeonsi-stoney-gles31:amd64:
+  extends:
+    - .radeonsi-stoney-gles2:amd64
+  variables:
+    DEQP_VERSION: gles31
+    CI_NODE_INDEX: 1
+    CI_NODE_TOTAL: 5
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+radeonsi-stoney-traces:amd64:
+  extends:
+    - .lava-piglit-traces:amd64
+    - .radeonsi-rules
+  variables:
+    DEVICE_TYPE: hp-11A-G6-EE-grunt
+    DTB: ""
+    GPU_VERSION: radeonsi-stoney
+    DRIVER_NAME: radeonsi
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
+    ENV_VARS: "EGL_PLATFORM=surfaceless PIGLIT_PROFILES=replay PIGLIT_HTML_SUMMARY=0 PIGLIT_JUNIT_RESULTS=1"
+  tags:
+    - mesa-ci-aarch64-lava-collabora

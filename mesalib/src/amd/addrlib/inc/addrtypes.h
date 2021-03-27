@@ -49,6 +49,10 @@ typedef void           VOID;
 typedef float          FLOAT;
 #endif
 
+#if !defined(DOUBLE)
+typedef double         DOUBLE;
+#endif
+
 #if !defined(CHAR)
 typedef char           CHAR;
 #endif
@@ -68,7 +72,11 @@ typedef int            INT;
 */
 #ifndef ADDR_CDECL
     #if defined(__GNUC__)
-        #define ADDR_CDECL __attribute__((cdecl))
+        #if defined(__i386__)
+            #define ADDR_CDECL __attribute__((cdecl))
+        #else
+            #define ADDR_CDECL
+        #endif
     #else
         #define ADDR_CDECL __cdecl
     #endif
@@ -76,10 +84,10 @@ typedef int            INT;
 
 #ifndef ADDR_STDCALL
     #if defined(__GNUC__)
-        #if defined(__amd64__) || defined(__x86_64__)
-            #define ADDR_STDCALL
-        #else
+        #if defined(__i386__)
             #define ADDR_STDCALL __attribute__((stdcall))
+        #else
+            #define ADDR_STDCALL
         #endif
     #else
         #define ADDR_STDCALL __stdcall
@@ -88,8 +96,11 @@ typedef int            INT;
 
 #ifndef ADDR_FASTCALL
     #if defined(__GNUC__)
-        // We don't care about the performance of call instructions in addrlib
-        #define ADDR_FASTCALL
+        #if defined(__i386__) || defined(__amd64__) || defined(__x86_64__)
+            #define ADDR_FASTCALL __attribute__((regparm(0)))
+        #else
+            #define ADDR_FASTCALL
+        #endif
     #else
         #define ADDR_FASTCALL __fastcall
     #endif
@@ -649,7 +660,7 @@ typedef enum _AddrTileType
 #endif
 
 #ifndef INT_8
-#define INT_8   signed char
+#define INT_8   signed char // signed must be used because of aarch64
 #endif
 
 #ifndef UINT_8

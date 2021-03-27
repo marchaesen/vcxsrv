@@ -143,6 +143,7 @@ lima_context_destroy(struct pipe_context *pctx)
    for (int i = 0; i < lima_ctx_buff_num; i++)
       pipe_resource_reference(&ctx->buffer_state[i].res, NULL);
 
+   lima_program_fini(ctx);
    lima_state_fini(ctx);
 
    if (ctx->blitter)

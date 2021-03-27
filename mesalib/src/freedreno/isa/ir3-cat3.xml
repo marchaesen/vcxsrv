@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright © 2020 Google, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice (including the next
+paragraph) shall be included in all copies or substantial portions of the
+Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+ -->
+
+<isa>
+
+<!--
+	Cat3 Instructions: three-source ALU instructions
+ -->
+
+<bitset name="#cat3-src" size="13">
+	<doc>
+		cat3 src1 and src2, some parts are similar to cat2/cat4 src
+		encoding, but a few extra bits trimmed out to squeeze in the
+		3rd src register (dropping (abs), immed encoding, and moving
+		a few other bits elsewhere)
+	</doc>
+	<encode type="struct ir3_register *" case-prefix="REG_"/>
+</bitset>
+
+<bitset name="#cat3-src-gpr" extends="#cat3-src">
+	<display>
+		{HALF}{SRC}
+	</display>
+	<field name="SRC" low="0" high="7" type="#reg-gpr"/>
+	<pattern low="8" high="12">00000</pattern>
+	<encode>
+		<map name="SRC">src</map>
+	</encode>
+</bitset>
+
+<bitset name="#cat3-src-const" extends="#cat3-src">
+	<display>
+		{HALF}c{CONST}.{SWIZ}
+	</display>
+	<field name="SWIZ" low="0" high="1" type="#swiz"/>
+	<field name="CONST" low="2" high="10" type="uint"/>
+	<pattern low="11" high="12">10</pattern>
+	<encode>
+		<map name="CONST">src->num >> 2</map>
+		<map name="SWIZ">src->num &amp; 0x3</map>
+	</encode>
+</bitset>
+
+<bitset name="#cat3-src-relative" extends="#cat3-src">
+	<pattern low="11" high="12">01</pattern>
+	<encode>
+		<map name="OFFSET">src->array.offset</map>
+	</encode>
+</bitset>
+
+<bitset name="#cat3-src-relative-gpr" extends="#cat3-src-relative">
+	<display>
+		{HALF}r&lt;a0.x + {OFFSET}&gt;
+	</display>
+	<field name="OFFSET" low="0" high="9" type="int"/>
+	<pattern pos="10">0</pattern>
+</bitset>
+
+<bitset name="#cat3-src-relative-const" extends="#cat3-src-relative">
+	<display>
+		{HALF}c&lt;a0.x + {OFFSET}&gt;
+	</display>
+	<field name="OFFSET" low="0" high="9" type="int"/>
+	<pattern pos="10">1</pattern>
+</bitset>
+
+<bitset name="#instruction-cat3" extends="#instruction">
+	<override expr="#cat2-cat3-nop-encoding">
+		<display>
+			{SY}{SS}{JP}{SAT}(nop{NOP}) {UL}{NAME} {DST_HALF}{DST}, {SRC1_NEG}{SRC1}, {SRC2_NEG}{HALF}{SRC2}, {SRC3_NEG}{SRC3}
+		</display>
+		<derived name="NOP" expr="#cat2-cat3-nop-value" type="uint"/>
+	</override>
+	<display>
+		{SY}{SS}{JP}{SAT}{REPEAT}{UL}{NAME} {DST_HALF}{DST}, {SRC1_NEG}{SRC1_R}{SRC1}, {SRC2_NEG}{SRC2_R}{HALF}{SRC2}, {SRC3_NEG}{SRC3_R}{SRC3}
+	</display>
+	<field name="SRC1" low="0" high="12" type="#cat3-src">
+		<param name="HALF"/>
+	</field>
+	<!--
+		Note b13 triggers some different disasm, so possibly this
+		becomes OPC_HI ?
+	 -->
+	<pattern pos="13">x</pattern>
+	<field name="SRC1_NEG" pos="14" type="bool" display="(neg)"/>
+	<field name="SRC2_R" pos="15" type="bool" display="(r)"/>
+	<field name="SRC3" low="16" high="28" type="#cat3-src">
+		<param name="HALF"/>
+	</field>
+	<field name="SRC3_R" pos="29" type="bool" display="(r)"/>
+	<field name="SRC2_NEG" pos="30" type="bool" display="(neg)"/>
+	<field name="SRC3_NEG" pos="31" type="bool" display="(neg)"/>
+	<field name="DST" low="32" high="39" type="#reg-gpr"/>
+	<field name="REPEAT" low="40" high="41" type="#rptN"/>
+	<field name="SAT" pos="42" type="bool" display="(sat)"/>
+	<field name="SRC1_R" pos="43" type="bool" display="(r)"/>
+	<field name="SS" pos="44" type="bool" display="(ss)"/>
+	<field name="UL" pos="45" type="bool" display="(ul)"/>
+	<field name="DST_CONV" pos="46" type="bool">
+		<doc>
+			The source precision is determined by the instruction
+			opcode.  If {DST_CONV} the result is widened/narrowed
+			to the opposite precision.
+		</doc>
+	</field>
+	<field name="SRC2" low="47" high="54" type="#reg-gpr"/>
+	<!-- opcode, 4 bits -->
+	<field name="JP" pos="59" type="bool" display="(jp)"/>
+	<field name="SY" pos="60" type="bool" display="(sy)"/>
+	<pattern low="61" high="63">011</pattern>  <!-- cat3 -->
+	<derived name="HALF" expr="#multisrc-half" type="bool" display="h"/>
+	<derived name="DST_HALF" expr="#dest-half" type="bool" display="h"/>
+	<encode>
+		<map name="SRC1_NEG">!!(src->regs[1]->flags &amp; (IR3_REG_FNEG | IR3_REG_SNEG | IR3_REG_BNOT))</map>
+		<map name="SRC1_R">extract_SRC1_R(src)</map>
+		<map name="SRC2_R">extract_SRC2_R(src)</map>
+		<map name="SRC3_R">!!(src->regs[3]->flags &amp; IR3_REG_R)</map>
+		<map name="SRC2_NEG">!!(src->regs[2]->flags &amp; (IR3_REG_FNEG | IR3_REG_SNEG | IR3_REG_BNOT))</map>
+		<map name="SRC3_NEG">!!(src->regs[3]->flags &amp; (IR3_REG_FNEG | IR3_REG_SNEG | IR3_REG_BNOT))</map>
+		<map name="SRC1">src->regs[1]</map>
+		<map name="DST_CONV">
+			((src->regs[0]->num >> 2) == 62) ? 0 :
+			!!((src->regs[1]->flags ^ src->regs[0]->flags) &amp; IR3_REG_HALF)
+		</map>
+	</encode>
+</bitset>
+
+<bitset name="mad.u16" extends="#instruction-cat3">
+	<pattern low="55" high="58">0000</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#false" type="bool"/>
+</bitset>
+
+<bitset name="madsh.u16" extends="#instruction-cat3">
+	<pattern low="55" high="58">0001</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="mad.s16" extends="#instruction-cat3">
+	<pattern low="55" high="58">0010</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#false" type="bool"/>
+</bitset>
+
+<bitset name="madsh.m16" extends="#instruction-cat3">
+	<pattern low="55" high="58">0011</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="mad.u24" extends="#instruction-cat3">
+	<pattern low="55" high="58">0100</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="mad.s24" extends="#instruction-cat3">
+	<pattern low="55" high="58">0101</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="mad.f16" extends="#instruction-cat3">
+	<pattern low="55" high="58">0110</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#false" type="bool"/>
+</bitset>
+
+<bitset name="mad.f32" extends="#instruction-cat3">
+	<pattern low="55" high="58">0111</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="sel.b16" extends="#instruction-cat3">
+	<pattern low="55" high="58">1000</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#false" type="bool"/>
+</bitset>
+
+<bitset name="sel.b32" extends="#instruction-cat3">
+	<pattern low="55" high="58">1001</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="sel.s16" extends="#instruction-cat3">
+	<pattern low="55" high="58">1010</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#false" type="bool"/>
+</bitset>
+
+<bitset name="sel.s32" extends="#instruction-cat3">
+	<pattern low="55" high="58">1011</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="sel.f16" extends="#instruction-cat3">
+	<pattern low="55" high="58">1100</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#false" type="bool"/>
+</bitset>
+
+<bitset name="sel.f32" extends="#instruction-cat3">
+	<pattern low="55" high="58">1101</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="sad.s16" extends="#instruction-cat3">
+	<pattern low="55" high="58">1110</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#false" type="bool"/>
+</bitset>
+
+<bitset name="sad.s32" extends="#instruction-cat3">
+	<pattern low="55" high="58">1111</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#false" type="bool"/>  <!-- We think? -->
+</bitset>
+
+</isa>

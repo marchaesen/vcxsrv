@@ -185,14 +185,29 @@ unlock:
    return pscreen;
 }
 
+static void etnaviv_ro_destroy(struct renderonly *ro)
+{
+   FREE(ro);
+}
+
 struct pipe_screen *
 etna_drm_screen_create(int fd)
 {
-   struct renderonly ro = {
-      .create_for_resource = renderonly_create_gpu_import_for_resource,
-      .kms_fd = -1,
-      .gpu_fd = fd
-   };
 
-   return etna_drm_screen_create_renderonly(&ro);
+   struct renderonly *ro = CALLOC_STRUCT(renderonly);
+   struct pipe_screen *screen;
+
+   if (!ro)
+      return NULL;
+
+   ro->create_for_resource = renderonly_create_gpu_import_for_resource;
+   ro->destroy = etnaviv_ro_destroy;
+   ro->kms_fd = -1;
+   ro->gpu_fd = fd;
+
+   screen = etna_drm_screen_create_renderonly(ro);
+   if (!screen)
+      FREE(ro);
+
+   return screen;
 }

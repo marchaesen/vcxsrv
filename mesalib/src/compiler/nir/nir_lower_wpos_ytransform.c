@@ -140,7 +140,7 @@ emit_wpos_adjustment(lower_wpos_ytransform_state *state,
                         nir_channel(b, wpos_temp, 3));
 
    nir_ssa_def_rewrite_uses_after(&intr->dest.ssa,
-                                  nir_src_for_ssa(wpos_temp),
+                                  wpos_temp,
                                   wpos_temp->parent_instr);
 }
 
@@ -232,31 +232,6 @@ lower_fragcoord(lower_wpos_ytransform_state *state, nir_intrinsic_instr *intr)
    emit_wpos_adjustment(state, intr, invert, adjX, adjY);
 }
 
-static void
-lower_load_pointcoord(lower_wpos_ytransform_state *state,
-                      nir_intrinsic_instr *intr)
-{
-   nir_builder *b = &state->b;
-   b->cursor = nir_after_instr(&intr->instr);
-
-   nir_ssa_def *pntc = &intr->dest.ssa;
-   nir_ssa_def *transform = get_transform(state);
-   nir_ssa_def *y = nir_channel(b, pntc, 1);
-   /* The offset is 1 if we're flipping, 0 otherwise. */
-   nir_ssa_def *offset = nir_fmax(b, nir_channel(b, transform, 2),
-                                  nir_imm_float(b, 0.0));
-   /* Flip the sign of y if we're flipping. */
-   nir_ssa_def *scaled = nir_fmul(b, y, nir_channel(b, transform, 0));
-
-   /* Reassemble the vector. */
-   nir_ssa_def *flipped_pntc = nir_vec2(b,
-                                        nir_channel(b, pntc, 0),
-                                        nir_fadd(b, offset, scaled));
-
-   nir_ssa_def_rewrite_uses_after(&intr->dest.ssa, nir_src_for_ssa(flipped_pntc),
-                                  flipped_pntc->parent_instr);
-}
-
 /* turns 'fddy(p)' into 'fddy(fmul(p, transform.x))' */
 static void
 lower_fddy(lower_wpos_ytransform_state *state, nir_alu_instr *fddy)
@@ -316,7 +291,7 @@ lower_load_sample_pos(lower_wpos_ytransform_state *state,
                         nir_fmul(b, nir_channel(b, pos, 1), scale));
    nir_ssa_def *flipped_pos = nir_vec2(b, nir_channel(b, pos, 0), flipped_y);
 
-   nir_ssa_def_rewrite_uses_after(&intr->dest.ssa, nir_src_for_ssa(flipped_pos),
+   nir_ssa_def_rewrite_uses_after(&intr->dest.ssa, flipped_pos,
                                   flipped_pos->parent_instr);
 }
 
@@ -339,10 +314,6 @@ lower_wpos_ytransform_block(lower_wpos_ytransform_state *state, nir_block *block
             } else if (var->data.mode == nir_var_system_value &&
                        var->data.location == SYSTEM_VALUE_SAMPLE_POS) {
                lower_load_sample_pos(state, intr);
-            } else if (var->data.mode == nir_var_shader_in &&
-                       var->data.location == VARYING_SLOT_PNTC &&
-                       state->shader->options->lower_wpos_pntc) {
-               lower_load_pointcoord(state, intr);
             }
          } else if (intr->intrinsic == nir_intrinsic_load_frag_coord) {
             lower_fragcoord(state, intr);

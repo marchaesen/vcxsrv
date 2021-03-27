@@ -201,7 +201,7 @@ public:
       int sel() const {return m_value.sel();}
       int chan(int i ) const {return m_value.chan_i(i);}
 
-      void replace_values(const ValueSet& candiates, PValue new_value) override;
+      void replace_values(const ValueSet& candidates, PValue new_value) override;
 private:
       bool is_equal_to(const Instruction& lhs) const override;
       void do_print(std::ostream& os) const override;

@@ -165,6 +165,11 @@ int EmitInstruction::remap_atomic_base(int base)
 	return m_proc.remap_atomic_base(base);
 }
 
+void EmitInstruction::set_has_txs_cube_array_comp()
+{
+   m_proc.sh_info().has_txq_cube_array_z_comp = 1;
+}
+
 const std::set<AluModifiers> EmitInstruction::empty = {};
 const std::set<AluModifiers> EmitInstruction::write = {alu_write};
 const std::set<AluModifiers> EmitInstruction::last_write = {alu_write, alu_last_instr};

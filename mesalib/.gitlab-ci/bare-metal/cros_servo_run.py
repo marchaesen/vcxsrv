@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 #
 # Copyright © 2020 Google LLC
@@ -79,6 +80,11 @@ class CrosServoRun:
         print("W SERIAL-CPU> %s" % s)
         self.cpu_ser.serial.write(s.encode())
 
+    def print_error(self, message):
+        RED = '\033[0;31m'
+        NO_COLOR = '\033[0m'
+        print(RED + message + NO_COLOR)
+
     def run(self):
         # Flush any partial commands in the EC's prompt, then ask for a reboot.
         self.ec_write("\n")
@@ -96,7 +102,7 @@ class CrosServoRun:
             # the system sometimes, possibly dependent on ambient temperature
             # in the farm.
             if re.search("POWER_GOOD not seen in time", line):
-                print("Detected intermittent poweron failure, restarting run...")
+                self.print_error("Detected intermittent poweron failure, restarting run...")
                 return 2
 
         tftp_failures = 0
@@ -111,13 +117,26 @@ class CrosServoRun:
             if re.search("R8152: Bulk read error 0xffffffbf", line):
                 tftp_failures += 1
                 if tftp_failures >= 100:
-                    print("Detected intermittent tftp failure, restarting run...")
+                    self.print_error("Detected intermittent tftp failure, restarting run...")
                     return 2
 
             # There are very infrequent bus errors during power management transitions
             # on cheza, which we don't expect to be the case on future boards.
             if re.search("Kernel panic - not syncing: Asynchronous SError Interrupt", line):
-                print("Detected cheza power management bus error, restarting run...")
+                self.print_error("Detected cheza power management bus error, restarting run...")
+                return 2
+
+            # These HFI response errors started appearing with the introduction
+            # of piglit runs.  CosmicPenguin says:
+            #
+            # "message ID 106 isn't a thing, so likely what happened is that we
+            # got confused when parsing the HFI queue.  If it happened on only
+            # one run, then memory corruption could be a possible clue"
+            #
+            # Given that it seems to trigger randomly near a GPU fault and then
+            # break many tests after that, just restart the whole run.
+            if re.search("a6xx_hfi_send_msg.*Unexpected message id .* on the response queue", line):
+                self.print_error("Detected cheza power management bus error, restarting run...")
                 return 2
 
             result = re.search("bare-metal result: (\S*)", line)
@@ -127,7 +146,7 @@ class CrosServoRun:
                 else:
                     return 1
 
-        print("Reached the end of the CPU serial log without finding a result")
+        self.print_error("Reached the end of the CPU serial log without finding a result")
         return 1
 
 

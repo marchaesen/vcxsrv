@@ -47,7 +47,8 @@ _mesa_SampleCoverage(GLclampf value, GLboolean invert)
        ctx->Multisample.SampleCoverageValue == value)
       return;
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewSampleMask ? 0 : _NEW_MULTISAMPLE);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewSampleMask ? 0 : _NEW_MULTISAMPLE,
+                  GL_MULTISAMPLE_BIT);
    ctx->NewDriverState |= ctx->DriverFlags.NewSampleMask;
    ctx->Multisample.SampleCoverageValue = value;
    ctx->Multisample.SampleCoverageInvert = invert;
@@ -132,7 +133,7 @@ sample_maski(struct gl_context *ctx, GLuint index, GLbitfield mask)
    if (ctx->Multisample.SampleMaskValue == mask)
       return;
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewSampleMask ? 0 : _NEW_MULTISAMPLE);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewSampleMask ? 0 : _NEW_MULTISAMPLE, 0);
    ctx->NewDriverState |= ctx->DriverFlags.NewSampleMask;
    ctx->Multisample.SampleMaskValue = mask;
 }
@@ -171,7 +172,8 @@ min_sample_shading(struct gl_context *ctx, GLclampf value)
       return;
 
    FLUSH_VERTICES(ctx,
-                  ctx->DriverFlags.NewSampleShading ? 0 : _NEW_MULTISAMPLE);
+                  ctx->DriverFlags.NewSampleShading ? 0 : _NEW_MULTISAMPLE,
+                  GL_MULTISAMPLE_BIT);
    ctx->NewDriverState |= ctx->DriverFlags.NewSampleShading;
    ctx->Multisample.MinSampleShadingValue = value;
 }
@@ -359,7 +361,8 @@ _mesa_AlphaToCoverageDitherControlNV_no_error(GLenum mode)
    GET_CURRENT_CONTEXT(ctx);
 
    FLUSH_VERTICES(ctx, ctx->DriverFlags.NewSampleAlphaToXEnable ? 0 :
-                                                   _NEW_MULTISAMPLE);
+                                                   _NEW_MULTISAMPLE,
+                  GL_MULTISAMPLE_BIT);
    ctx->NewDriverState |= ctx->DriverFlags.NewSampleAlphaToXEnable;
    ctx->Multisample.SampleAlphaToCoverageDitherControl = mode;
 }
@@ -370,7 +373,8 @@ _mesa_AlphaToCoverageDitherControlNV(GLenum mode)
    GET_CURRENT_CONTEXT(ctx);
 
    FLUSH_VERTICES(ctx, ctx->DriverFlags.NewSampleAlphaToXEnable ? 0 :
-                                                   _NEW_MULTISAMPLE);
+                                                   _NEW_MULTISAMPLE,
+                  GL_MULTISAMPLE_BIT);
    ctx->NewDriverState |= ctx->DriverFlags.NewSampleAlphaToXEnable;
    switch (mode) {
       case GL_ALPHA_TO_COVERAGE_DITHER_DEFAULT_NV:

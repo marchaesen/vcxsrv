@@ -129,3 +129,22 @@ pan_print_alu_type(nir_alu_type t, FILE *fp)
 
         fprintf(fp, "%u", size);
 }
+
+/* Could optimize with a better data structure if anyone cares, TODO: profile */
+
+unsigned
+pan_lookup_pushed_ubo(struct panfrost_ubo_push *push, unsigned ubo, unsigned offs)
+{
+        struct panfrost_ubo_word word = {
+                .ubo = ubo,
+                .offset = offs
+        };
+
+        for (unsigned i = 0; i < push->count; ++i) {
+                if (memcmp(push->words + i, &word, sizeof(word)) == 0)
+                        return i;
+        }
+
+        unreachable("UBO not pushed");
+
+}

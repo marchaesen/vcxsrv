@@ -169,7 +169,7 @@ static void sequence_header_obu(vid_dec_PrivateType *priv, struct vl_vlc *vlc)
       seq->decoder_model_present_for_this_op[0] = 0;
       initial_display_delay_present_for_this_op = 0;
    } else {
-      uint8_t buffer_delay_length_minus_1;
+      uint8_t buffer_delay_length_minus_1 = 0;
 
       timing_info_present_flag = av1_f(vlc, 1);
       if (timing_info_present_flag) {
@@ -1425,7 +1425,7 @@ static void frame_header_obu(vid_dec_PrivateType *priv, struct vl_vlc *vlc)
 {
    struct av1_sequence_header_obu *seq = &(priv->codec_data.av1.seq);
    struct av1_uncompressed_header_obu *hdr = &(priv->codec_data.av1.uncompressed_header);
-   unsigned idLen;
+   unsigned idLen = 0;
    unsigned allFrames;
    int i, j;
 

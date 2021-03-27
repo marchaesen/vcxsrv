@@ -102,6 +102,14 @@ EXTENSIONS = [
     Extension('VK_KHR_image_format_list',                 1, True),
     Extension('VK_KHR_depth_stencil_resolve',             1, True),
     Extension('VK_KHR_performance_query',                 1, 'device->instance->debug_flags & TU_DEBUG_PERFC'),
+    Extension('VK_EXT_memory_budget',                     1, True),
+    Extension('VK_KHR_device_group',                      4, True),
+    Extension('VK_KHR_device_group_creation',             1, True),
+    Extension('VK_EXT_descriptor_indexing',               2, True),
+    Extension('VK_KHR_descriptor_update_template',        1, True),
+    Extension('VK_KHR_storage_buffer_storage_class',      1, True),
+    Extension('VK_KHR_external_fence_capabilities',       1, True),
+    Extension('VK_KHR_pipeline_executable_properties',    1, True),
 ]
 
 MAX_API_VERSION = VkVersion(MAX_API_VERSION)
@@ -118,4 +126,5 @@ if __name__ == '__main__':
                         dest='xml_files')
     args = parser.parse_args()
 
-    gen_extensions('tu', args.xml_files, API_VERSIONS, MAX_API_VERSION, EXTENSIONS, args.out_c, args.out_h)
+    gen_extensions('tu', args.xml_files, API_VERSIONS, MAX_API_VERSION,
+                   EXTENSIONS, args.out_c, args.out_h)

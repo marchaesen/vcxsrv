@@ -115,7 +115,7 @@ store_general(struct v3d_job *job,
               struct v3d_cl *cl, struct pipe_surface *psurf,
               int layer, int buffer, int pipe_bit,
               uint32_t *stores_pending, bool general_color_clear,
-              bool is_blit)
+              bool resolve_4x)
 {
         struct v3d_surface *surf = v3d_surface(psurf);
         bool separate_stencil = surf->separate_stencil && buffer == STENCIL;
@@ -159,10 +159,10 @@ store_general(struct v3d_job *job,
                         store.height_in_ub_or_stride = slice->stride;
                 }
 
-                assert(!is_blit || job->bbuf);
+                assert(!resolve_4x || job->bbuf);
                 if (psurf->texture->nr_samples > 1)
                         store.decimate_mode = V3D_DECIMATE_MODE_ALL_SAMPLES;
-                else if (is_blit && job->bbuf->texture->nr_samples > 1)
+                else if (resolve_4x && job->bbuf->texture->nr_samples > 1)
                         store.decimate_mode = V3D_DECIMATE_MODE_4X;
                 else
                         store.decimate_mode = V3D_DECIMATE_MODE_SAMPLE_0;
@@ -216,22 +216,23 @@ zs_buffer_from_pipe_bits(int pipe_clear_bits)
 static void
 v3d_rcl_emit_loads(struct v3d_job *job, struct v3d_cl *cl, int layer)
 {
-        uint32_t loads_pending = job->load;
-        uint32_t blit_pending = job->bbuf ? PIPE_CLEAR_COLOR0 : 0;
-
-        assert(!job->bbuf || V3D_VERSION >= 40);
-
-        /* When blitting, no color buffer is loaded; instead the blit source
-         * buffer is loaded.
+        /* When blitting, no color or zs buffer is loaded; instead the blit
+         * source buffer is loaded for the aspects that we are going to blit.
          */
         assert(!job->bbuf || job->load == 0);
+        assert(!job->bbuf || job->nr_cbufs <= 1);
+        assert(!job->bbuf || V3D_VERSION >= 40);
+
+        uint32_t loads_pending = job->bbuf ? job->store : job->load;
 
         for (int i = 0; i < job->nr_cbufs; i++) {
                 uint32_t bit = PIPE_CLEAR_COLOR0 << i;
                 if (!(loads_pending & bit))
                         continue;
 
-                struct pipe_surface *psurf = job->cbufs[i];
+                struct pipe_surface *psurf = job->bbuf ? job->bbuf : job->cbufs[i];
+                assert(!job->bbuf || i == 0);
+
                 if (!psurf || (V3D_VERSION < 40 &&
                                psurf->texture->nr_samples <= 1)) {
                         continue;
@@ -241,27 +242,22 @@ v3d_rcl_emit_loads(struct v3d_job *job, struct v3d_cl *cl, int layer)
                              bit, &loads_pending);
         }
 
-        if (blit_pending) {
-                load_general(cl, job->bbuf, RENDER_TARGET_0, layer,
-                             PIPE_CLEAR_COLOR0, &blit_pending);
-                assert(blit_pending == 0);
-        }
-
         if ((loads_pending & PIPE_CLEAR_DEPTHSTENCIL) &&
             (V3D_VERSION >= 40 ||
              (job->zsbuf && job->zsbuf->texture->nr_samples > 1))) {
-                struct v3d_resource *rsc = v3d_resource(job->zsbuf->texture);
+                struct pipe_surface *src = job->bbuf ? job->bbuf : job->zsbuf;
+                struct v3d_resource *rsc = v3d_resource(src->texture);
 
                 if (rsc->separate_stencil &&
                     (loads_pending & PIPE_CLEAR_STENCIL)) {
-                        load_general(cl, job->zsbuf,
+                        load_general(cl, src,
                                      STENCIL, layer,
                                      PIPE_CLEAR_STENCIL,
                                      &loads_pending);
                 }
 
                 if (loads_pending & PIPE_CLEAR_DEPTHSTENCIL) {
-                        load_general(cl, job->zsbuf,
+                        load_general(cl, src,
                                      zs_buffer_from_pipe_bits(loads_pending),
                                      layer,
                                      loads_pending & PIPE_CLEAR_DEPTHSTENCIL,
@@ -331,7 +327,7 @@ v3d_rcl_emit_stores(struct v3d_job *job, struct v3d_cl *cl, int layer)
          * perspective.  Non-MSAA surfaces will use
          * STORE_MULTI_SAMPLE_RESOLVED_TILE_COLOR_BUFFER_EXTENDED.
          */
-        assert(!job->bbuf || job->nr_cbufs == 1);
+        assert(!job->bbuf || job->nr_cbufs <= 1);
         for (int i = 0; i < job->nr_cbufs; i++) {
                 uint32_t bit = PIPE_CLEAR_COLOR0 << i;
                 if (!(job->store & bit))

@@ -91,7 +91,7 @@ static LLVMValueRef si_llvm_load_input_gs(struct ac_shader_abi *abi, unsigned in
    soffset = LLVMConstInt(ctx->ac.i32, (param * 4 + swizzle) * 256, 0);
 
    value = ac_build_buffer_load(&ctx->ac, ctx->esgs_ring, 1, ctx->ac.i32_0, vtx_offset, soffset, 0,
-                                ac_glc, true, false);
+                                ctx->ac.f32, ac_glc, true, false);
    return LLVMBuildBitCast(ctx->ac.builder, value, type, "");
 }
 
@@ -114,6 +114,9 @@ static LLVMValueRef si_nir_load_input_gs(struct ac_shader_abi *abi,
 /* Pass GS inputs from ES to GS on GFX9. */
 static void si_set_es_return_value_for_gs(struct si_shader_context *ctx)
 {
+   if (!ctx->shader->is_monolithic)
+      ac_build_endif(&ctx->ac, ctx->merged_wrap_if_label);
+
    LLVMValueRef ret = ctx->return_value;
 
    ret = si_insert_input_ptr(ctx, ret, ctx->other_const_and_shader_buffers, 0);
@@ -125,18 +128,14 @@ static void si_set_es_return_value_for_gs(struct si_shader_context *ctx)
    ret = si_insert_input_ret(ctx, ret, ctx->args.merged_wave_info, 3);
    ret = si_insert_input_ret(ctx, ret, ctx->args.scratch_offset, 5);
 
-   ret = si_insert_input_ptr(ctx, ret, ctx->rw_buffers, 8 + SI_SGPR_RW_BUFFERS);
+   ret = si_insert_input_ptr(ctx, ret, ctx->internal_bindings, 8 + SI_SGPR_INTERNAL_BINDINGS);
    ret = si_insert_input_ptr(ctx, ret, ctx->bindless_samplers_and_images,
                              8 + SI_SGPR_BINDLESS_SAMPLERS_AND_IMAGES);
    if (ctx->screen->use_ngg) {
       ret = si_insert_input_ptr(ctx, ret, ctx->vs_state_bits, 8 + SI_SGPR_VS_STATE_BITS);
    }
 
-   unsigned vgpr;
-   if (ctx->stage == MESA_SHADER_VERTEX)
-      vgpr = 8 + GFX9_VSGS_NUM_USER_SGPR;
-   else
-      vgpr = 8 + GFX9_TESGS_NUM_USER_SGPR;
+   unsigned vgpr = 8 + SI_NUM_VS_STATE_RESOURCE_SGPRS;
 
    ret = si_insert_input_ret_float(ctx, ret, ctx->gs_vtx01_offset, vgpr++);
    ret = si_insert_input_ret_float(ctx, ret, ctx->gs_vtx23_offset, vgpr++);
@@ -332,7 +331,7 @@ void si_preload_esgs_ring(struct si_shader_context *ctx)
    if (ctx->screen->info.chip_class <= GFX8) {
       unsigned ring = ctx->stage == MESA_SHADER_GEOMETRY ? SI_GS_RING_ESGS : SI_ES_RING_ESGS;
       LLVMValueRef offset = LLVMConstInt(ctx->ac.i32, ring, 0);
-      LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->rw_buffers);
+      LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->internal_bindings);
 
       ctx->esgs_ring = ac_build_load_to_sgpr(&ctx->ac, buf_ptr, offset);
    } else {
@@ -351,7 +350,7 @@ void si_preload_gs_rings(struct si_shader_context *ctx)
    const struct si_shader_selector *sel = ctx->shader->selector;
    LLVMBuilderRef builder = ctx->ac.builder;
    LLVMValueRef offset = LLVMConstInt(ctx->ac.i32, SI_RING_GSVS, 0);
-   LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->rw_buffers);
+   LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->internal_bindings);
    LLVMValueRef base_ring = ac_build_load_to_sgpr(&ctx->ac, buf_ptr, offset);
 
    /* The conceptual layout of the GSVS ring is
@@ -453,7 +452,7 @@ struct si_shader *si_generate_gs_copy_shader(struct si_screen *sscreen,
 
    si_llvm_create_main_func(&ctx, false);
 
-   LLVMValueRef buf_ptr = ac_get_arg(&ctx.ac, ctx.rw_buffers);
+   LLVMValueRef buf_ptr = ac_get_arg(&ctx.ac, ctx.internal_bindings);
    ctx.gsvs_ring[0] =
       ac_build_load_to_sgpr(&ctx.ac, buf_ptr, LLVMConstInt(ctx.ac.i32, SI_RING_GSVS, 0));
 
@@ -513,7 +512,7 @@ struct si_shader *si_generate_gs_copy_shader(struct si_screen *sscreen,
 
             outputs[i].values[chan] =
                ac_build_buffer_load(&ctx.ac, ctx.gsvs_ring[0], 1, ctx.ac.i32_0, voffset, soffset, 0,
-                                    ac_glc | ac_slc, true, false);
+                                    ctx.ac.f32, ac_glc | ac_slc, true, false);
          }
       }
 
@@ -573,10 +572,8 @@ void si_llvm_build_gs_prolog(struct si_shader_context *ctx, union si_shader_part
    memset(&ctx->args, 0, sizeof(ctx->args));
 
    if (ctx->screen->info.chip_class >= GFX9) {
-      if (key->gs_prolog.states.gfx9_prev_is_vs)
-         num_sgprs = 8 + GFX9_VSGS_NUM_USER_SGPR;
-      else
-         num_sgprs = 8 + GFX9_TESGS_NUM_USER_SGPR;
+      /* Other user SGPRs are not needed by GS. */
+      num_sgprs = 8 + SI_NUM_VS_STATE_RESOURCE_SGPRS;
       num_vgprs = 5; /* ES inputs are not needed by GS */
    } else {
       num_sgprs = GFX6_GS_NUM_USER_SGPR + 2;
@@ -596,13 +593,6 @@ void si_llvm_build_gs_prolog(struct si_shader_context *ctx, union si_shader_part
    /* Create the function. */
    si_llvm_create_func(ctx, "gs_prolog", returns, num_sgprs + num_vgprs, 0);
    func = ctx->main_fn;
-
-   /* Set the full EXEC mask for the prolog, because we are only fiddling
-    * with registers here. The main shader part will set the correct EXEC
-    * mask.
-    */
-   if (ctx->screen->info.chip_class >= GFX9 && !key->gs_prolog.is_monolithic)
-      ac_init_exec_full_mask(&ctx->ac);
 
    /* Copy inputs to outputs. This should be no-op, as the registers match,
     * but it will prevent the compiler from overwriting them unintentionally.

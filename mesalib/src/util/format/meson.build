@@ -22,6 +22,7 @@ files_mesa_format = [
   'u_format.c',
   'u_format_bptc.c',
   'u_format_etc.c',
+  'u_format_fxt1.c',
   'u_format_latc.c',
   'u_format_other.c',
   'u_format_rgtc.c',

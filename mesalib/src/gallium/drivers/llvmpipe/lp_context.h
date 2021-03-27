@@ -170,6 +170,10 @@ struct llvmpipe_context {
    enum pipe_render_cond_flag render_cond_mode;
    boolean render_cond_cond;
 
+   /** VK render cond */
+   struct llvmpipe_resource *render_cond_buffer;
+   unsigned render_cond_offset;
+
    /** The LLVMContext to use for LLVM related work */
    LLVMContextRef context;
 

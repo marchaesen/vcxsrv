@@ -68,6 +68,7 @@ iris_init_perf_query_info(struct pipe_context *pipe)
    gen_perf_init_context(ice->perf_ctx,
                          perf_cfg,
                          ice,
+                         ice,
                          screen->bufmgr,
                          &screen->devinfo,
                          ice->batches[IRIS_BATCH_RENDER].hw_ctx_id,

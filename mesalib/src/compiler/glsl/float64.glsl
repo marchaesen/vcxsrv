@@ -40,7 +40,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#version 330
+#version 400
 #extension GL_ARB_gpu_shader_int64 : enable
 #extension GL_ARB_shader_bit_encoding : enable
 #extension GL_EXT_shader_integer_mix : enable

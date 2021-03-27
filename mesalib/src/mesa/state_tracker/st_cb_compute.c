@@ -53,7 +53,8 @@ static void st_dispatch_compute_common(struct gl_context *ctx,
    if (ctx->NewState)
       _mesa_update_state(ctx);
 
-   if ((st->dirty | ctx->NewDriverState) & ST_PIPELINE_COMPUTE_STATE_MASK ||
+   if ((st->dirty | ctx->NewDriverState) & st->active_states &
+       ST_PIPELINE_COMPUTE_STATE_MASK ||
        st->compute_shader_may_be_dirty)
       st_validate_state(st, ST_PIPELINE_COMPUTE);
 

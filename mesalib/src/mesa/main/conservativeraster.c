@@ -60,7 +60,7 @@ conservative_raster_parameter(GLenum pname, GLfloat param,
          return;
       }
 
-      FLUSH_VERTICES(ctx, 0);
+      FLUSH_VERTICES(ctx, 0, 0);
       ctx->NewDriverState |=
          ctx->DriverFlags.NewNvConservativeRasterizationParams;
 
@@ -80,7 +80,7 @@ conservative_raster_parameter(GLenum pname, GLfloat param,
          return;
       }
 
-      FLUSH_VERTICES(ctx, 0);
+      FLUSH_VERTICES(ctx, 0, 0);
       ctx->NewDriverState |=
          ctx->DriverFlags.NewNvConservativeRasterizationParams;
 

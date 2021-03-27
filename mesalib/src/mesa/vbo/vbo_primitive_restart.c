@@ -159,16 +159,17 @@ find_sub_primitives(const void *elements, unsigned element_size,
  * This function breaks up calls into the driver so primitive restart
  * support is not required in the driver.
  */
-void
-vbo_sw_primitive_restart(struct gl_context *ctx,
-                         const struct _mesa_prim *prims,
-                         GLuint nr_prims,
-                         const struct _mesa_index_buffer *ib,
-                         GLuint num_instances, GLuint base_instance,
-                         struct gl_buffer_object *indirect,
-                         GLsizeiptr indirect_offset,
-                         bool primitive_restart,
-                         unsigned restart_index)
+static void
+vbo_sw_primitive_restart_common_start(struct gl_context *ctx,
+                                      const struct _mesa_prim *prims,
+                                      GLuint nr_prims,
+                                      const struct _mesa_index_buffer *ib,
+                                      GLuint num_instances,
+                                      GLuint base_instance,
+                                      struct gl_buffer_object *indirect,
+                                      GLsizeiptr indirect_offset,
+                                      bool primitive_restart,
+                                      unsigned restart_index)
 {
    GLuint prim_num;
    struct _mesa_prim new_prim;
@@ -231,8 +232,8 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
       ptr = ib->ptr;
 
    sub_prims = find_sub_primitives(ptr, 1 << ib->index_size_shift,
-                                   0, ib->count, restart_index,
-                                   &num_sub_prims);
+                                   prims[0].start, prims[0].start + ib->count,
+                                   restart_index, &num_sub_prims);
 
    if (map_ib) {
       ctx->Driver.UnmapBuffer(ctx, ib->obj, MAP_INTERNAL);
@@ -271,3 +272,34 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
    free(sub_prims);
 }
 
+void
+vbo_sw_primitive_restart(struct gl_context *ctx,
+                         const struct _mesa_prim *prims,
+                         GLuint nr_prims,
+                         const struct _mesa_index_buffer *ib,
+                         GLuint num_instances,
+                         GLuint base_instance,
+                         struct gl_buffer_object *indirect,
+                         GLsizeiptr indirect_offset,
+                         bool primitive_restart,
+                         unsigned restart_index)
+{
+   unsigned i;
+   for (i = 1; i < nr_prims; i++) {
+      if (prims[i].start != prims[0].start)
+         break;
+   }
+
+   vbo_sw_primitive_restart_common_start(ctx, &prims[0], i, ib,
+                                         num_instances, base_instance,
+                                         indirect, indirect_offset,
+                                         primitive_restart,
+                                         restart_index);
+   if (i != nr_prims) {
+      vbo_sw_primitive_restart(ctx, &prims[i], nr_prims - i, ib,
+                               num_instances, base_instance,
+                               indirect, indirect_offset,
+                               primitive_restart,
+                               restart_index);
+   }
+}

@@ -146,7 +146,7 @@ etna_optimize_loop(nir_shader *s)
 
       NIR_PASS_V(s, nir_lower_vars_to_ssa);
       progress |= OPT(s, nir_opt_copy_prop_vars);
-      progress |= OPT(s, nir_opt_shrink_vectors);
+      progress |= OPT(s, nir_opt_shrink_vectors, true);
       progress |= OPT(s, nir_copy_prop);
       progress |= OPT(s, nir_opt_dce);
       progress |= OPT(s, nir_opt_cse);
@@ -370,6 +370,15 @@ get_src(struct etna_compile *c, nir_src *src)
          return (hw_src) { .use = 1, .rgroup = INST_RGROUP_INTERNAL };
       case nir_intrinsic_load_frag_coord:
          return SRC_REG(0, INST_SWIZ_IDENTITY);
+      case nir_intrinsic_load_texture_rect_scaling: {
+         int sampler = nir_src_as_int(intr->src[0]);
+         nir_const_value values[] = {
+            TEXSCALE(sampler, 0),
+            TEXSCALE(sampler, 1),
+         };
+
+         return src_swizzle(const_src(c, values, 2), SWIZZLE(X,Y,X,X));
+      }
       default:
          compile_error(c, "Unhandled NIR intrinsic type: %s\n",
                        nir_intrinsic_infos[intr->intrinsic].name);
@@ -582,6 +591,7 @@ emit_intrinsic(struct etna_compile *c, nir_intrinsic_instr * intr)
       break;
    case nir_intrinsic_load_input:
    case nir_intrinsic_load_instance_id:
+   case nir_intrinsic_load_texture_rect_scaling:
       break;
    default:
       compile_error(c, "Unhandled NIR intrinsic type: %s\n",
@@ -814,7 +824,7 @@ lower_alu(struct etna_compile *c, nir_alu_instr *alu)
       nir_ssa_def *def = nir_build_imm(&b, num_components, 32, value);
 
       if (num_components == info->num_inputs) {
-         nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(def));
+         nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, def);
          nir_instr_remove(&alu->instr);
          return;
       }
@@ -911,17 +921,13 @@ emit_shader(struct etna_compile *c, unsigned *num_temps, unsigned *num_consts)
                base += off[0].u32;
             nir_const_value value[4];
 
-            for (unsigned i = 0; i < intr->dest.ssa.num_components; i++) {
-               if (nir_intrinsic_base(intr) < 0)
-                  value[i] = TEXSCALE(~nir_intrinsic_base(intr), i);
-               else
-                  value[i] = UNIFORM(base * 4 + i);
-            }
+            for (unsigned i = 0; i < intr->dest.ssa.num_components; i++)
+               value[i] = UNIFORM(base * 4 + i);
 
             b.cursor = nir_after_instr(instr);
             nir_ssa_def *def = nir_build_imm(&b, intr->dest.ssa.num_components, 32, value);
 
-            nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(def));
+            nir_ssa_def_rewrite_uses(&intr->dest.ssa, def);
             nir_instr_remove(instr);
          } break;
          default:
@@ -1067,6 +1073,15 @@ etna_compile_shader_nir(struct etna_shader_variant *v)
    v->ps_color_out_reg = 0; /* 0 for shader that doesn't write fragcolor.. */
    v->ps_depth_out_reg = -1;
 
+   /*
+    * Lower glTexCoord, fixes e.g. neverball point sprite (exit cylinder stars)
+    * and gl4es pointsprite.trace apitrace
+    */
+   if (s->info.stage == MESA_SHADER_FRAGMENT && v->key.sprite_coord_enable) {
+      NIR_PASS_V(s, nir_lower_texcoord_replace, v->key.sprite_coord_enable,
+                 false, v->key.sprite_coord_yinvert);
+   }
+
    /* setup input linking */
    struct etna_shader_io_file *sf = &v->infile;
    if (s->info.stage == MESA_SHADER_VERTEX) {
@@ -1098,8 +1113,13 @@ etna_compile_shader_nir(struct etna_shader_variant *v)
    NIR_PASS_V(s, nir_lower_indirect_derefs, nir_var_all, UINT32_MAX);
    NIR_PASS_V(s, nir_lower_tex, &(struct nir_lower_tex_options) { .lower_txp = ~0u });
    NIR_PASS_V(s, nir_lower_alu_to_scalar, etna_alu_to_scalar_filter_cb, specs);
+   NIR_PASS_V(s, nir_lower_idiv, nir_lower_idiv_fast);
 
    etna_optimize_loop(s);
+
+   /* TODO: remove this extra run if nir_opt_peephole_select is able to handle ubo's. */
+   if (OPT(s, etna_nir_lower_ubo_to_uniform))
+      etna_optimize_loop(s);
 
    NIR_PASS_V(s, etna_lower_io, v);
 
@@ -1115,7 +1135,6 @@ etna_compile_shader_nir(struct etna_shader_variant *v)
       NIR_PASS_V(s, nir_opt_algebraic);
       NIR_PASS_V(s, nir_lower_bool_to_float);
    } else {
-      NIR_PASS_V(s, nir_lower_idiv, nir_lower_idiv_fast);
       NIR_PASS_V(s, nir_lower_bool_to_int32);
    }
 
@@ -1231,7 +1250,7 @@ etna_link_shader_nir(struct etna_shader_link_info *info,
       varying->use[2] = VARYING_COMPONENT_USE_UNUSED;
       varying->use[3] = VARYING_COMPONENT_USE_UNUSED;
 
-      /* point coord is an input to the PS without matching VS output,
+      /* point/tex coord is an input to the PS without matching VS output,
        * so it gets a varying slot without being assigned a VS register.
        */
       if (fsio->slot == VARYING_SLOT_PNTC) {
@@ -1239,6 +1258,13 @@ etna_link_shader_nir(struct etna_shader_link_info *info,
          varying->use[1] = VARYING_COMPONENT_USE_POINTCOORD_Y;
 
          info->pcoord_varying_comp_ofs = comp_ofs;
+      } else if (util_varying_is_point_coord(fsio->slot, fs->key.sprite_coord_enable)) {
+         /*
+	  * Do nothing, TexCoord is lowered to PointCoord above
+	  * and the TexCoord here is just a remnant. This needs
+	  * to be removed with some nir_remove_dead_variables(),
+	  * but that one removes all FS inputs ... why?
+	  */
       } else {
          if (vsio == NULL) { /* not found -- link error */
             BUG("Semantic value not found in vertex shader outputs\n");

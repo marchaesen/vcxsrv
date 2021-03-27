@@ -1,0 +1,2 @@
+dEQP-GLES31.functional.compute.shared_var.basic_type.ivec3_highp
+dEQP-GLES31.functional.ssbo.layout.single_basic_type.packed.highp_mat2

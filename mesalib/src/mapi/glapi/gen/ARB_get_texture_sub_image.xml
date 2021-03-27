@@ -7,7 +7,8 @@
 
 <category name="GL_ARB_get_texture_sub_image" number="165">
 
-    <function name="GetTextureSubImage">
+    <function name="GetTextureSubImage"
+              marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
         <param name="texture" type="GLuint"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -22,7 +23,8 @@
         <param name="pixels" type="GLvoid *"/>
     </function>
 
-    <function name="GetCompressedTextureSubImage">
+    <function name="GetCompressedTextureSubImage"
+              marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
         <param name="texture" type="GLuint"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>

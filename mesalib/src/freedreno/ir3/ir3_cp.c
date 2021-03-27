@@ -132,7 +132,7 @@ static void combine_flags(unsigned *dstflags, struct ir3_instruction *src)
 	*dstflags |= srcflags & IR3_REG_IMMED;
 	*dstflags |= srcflags & IR3_REG_RELATIV;
 	*dstflags |= srcflags & IR3_REG_ARRAY;
-	*dstflags |= srcflags & IR3_REG_HIGH;
+	*dstflags |= srcflags & IR3_REG_SHARED;
 
 	/* if src of the src is boolean we can drop the (abs) since we know
 	 * the source value is already a postitive integer.  This cleans

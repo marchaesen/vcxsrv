@@ -1623,7 +1623,7 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
        * It is then multiplied with the source operand of DDY.
        */
       static const gl_state_index16 transform_y_state[STATE_LENGTH]
-         = { STATE_INTERNAL, STATE_FB_WPOS_Y_TRANSFORM };
+         = { STATE_FB_WPOS_Y_TRANSFORM };
 
       unsigned transform_y_index =
          _mesa_add_state_reference(this->prog->Parameters,
@@ -2235,7 +2235,7 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
    case ir_binop_interpolate_at_offset: {
       /* The y coordinate needs to be flipped for the default fb */
       static const gl_state_index16 transform_y_state[STATE_LENGTH]
-         = { STATE_INTERNAL, STATE_FB_WPOS_Y_TRANSFORM };
+         = { STATE_FB_WPOS_Y_TRANSFORM };
 
       unsigned transform_y_index =
          _mesa_add_state_reference(this->prog->Parameters,
@@ -3263,6 +3263,7 @@ glsl_to_tgsi_visitor::visit(ir_assignment *ir)
               ir->rhs == ((glsl_to_tgsi_instruction *)this->instructions.get_tail())->ir &&
               !((glsl_to_tgsi_instruction *)this->instructions.get_tail())->is_64bit_expanded &&
               type_size(ir->lhs->type) == 1 &&
+              !ir->lhs->type->is_64bit() &&
               l.writemask == ((glsl_to_tgsi_instruction *)this->instructions.get_tail())->dst[0].writemask) {
       /* To avoid emitting an extra MOV when assigning an expression to a
        * variable, emit the last instruction of the expression again, but
@@ -4867,7 +4868,7 @@ count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
 {
    v->samplers_used = 0;
    v->images_used = 0;
-   prog->info.textures_used_by_txf = 0;
+   BITSET_ZERO(prog->info.textures_used_by_txf);
 
    foreach_in_list(glsl_to_tgsi_instruction, inst, &v->instructions) {
       if (inst->info->is_tex) {
@@ -4881,7 +4882,7 @@ count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
                st_translate_texture_target(inst->tex_target, inst->tex_shadow);
 
             if (inst->op == TGSI_OPCODE_TXF || inst->op == TGSI_OPCODE_TXF_LZ) {
-               prog->info.textures_used_by_txf |= 1u << idx;
+               BITSET_SET(prog->info.textures_used_by_txf, idx);
             }
          }
       }
@@ -6885,49 +6886,41 @@ st_translate_program(
 
    /* Declare misc input registers
     */
-   {
-      GLbitfield64 sysInputs = proginfo->info.system_values_read;
+   BITSET_FOREACH_SET(i, proginfo->info.system_values_read, SYSTEM_VALUE_MAX) {
+      enum tgsi_semantic semName = tgsi_get_sysval_semantic(i);
 
-      for (i = 0; sysInputs; i++) {
-         if (sysInputs & (1ull << i)) {
-            enum tgsi_semantic semName = tgsi_get_sysval_semantic(i);
+      t->systemValues[i] = ureg_DECL_system_value(ureg, semName, 0);
 
-            t->systemValues[i] = ureg_DECL_system_value(ureg, semName, 0);
-
-            if (semName == TGSI_SEMANTIC_INSTANCEID ||
-                semName == TGSI_SEMANTIC_VERTEXID) {
-               /* From Gallium perspective, these system values are always
-                * integer, and require native integer support.  However, if
-                * native integer is supported on the vertex stage but not the
-                * pixel stage (e.g, i915g + draw), Mesa will generate IR that
-                * assumes these system values are floats. To resolve the
-                * inconsistency, we insert a U2F.
-                */
-               struct st_context *st = st_context(ctx);
-               struct pipe_screen *pscreen = st->screen;
-               assert(procType == PIPE_SHADER_VERTEX);
-               assert(pscreen->get_shader_param(pscreen, PIPE_SHADER_VERTEX, PIPE_SHADER_CAP_INTEGERS));
-               (void) pscreen;
-               if (!ctx->Const.NativeIntegers) {
-                  struct ureg_dst temp = ureg_DECL_local_temporary(t->ureg);
-                  ureg_U2F(t->ureg, ureg_writemask(temp, TGSI_WRITEMASK_X),
-                           t->systemValues[i]);
-                  t->systemValues[i] = ureg_scalar(ureg_src(temp), 0);
-               }
-            }
-
-            if (procType == PIPE_SHADER_FRAGMENT &&
-                semName == TGSI_SEMANTIC_POSITION)
-               emit_wpos(st_context(ctx), t, proginfo, ureg,
-                         program->wpos_transform_const);
-
-            if (procType == PIPE_SHADER_FRAGMENT &&
-                semName == TGSI_SEMANTIC_SAMPLEPOS)
-               emit_samplepos_adjustment(t, program->wpos_transform_const);
-
-            sysInputs &= ~(1ull << i);
+      if (semName == TGSI_SEMANTIC_INSTANCEID ||
+          semName == TGSI_SEMANTIC_VERTEXID) {
+         /* From Gallium perspective, these system values are always
+          * integer, and require native integer support.  However, if
+          * native integer is supported on the vertex stage but not the
+          * pixel stage (e.g, i915g + draw), Mesa will generate IR that
+          * assumes these system values are floats. To resolve the
+          * inconsistency, we insert a U2F.
+          */
+         struct st_context *st = st_context(ctx);
+         struct pipe_screen *pscreen = st->screen;
+         assert(procType == PIPE_SHADER_VERTEX);
+         assert(pscreen->get_shader_param(pscreen, PIPE_SHADER_VERTEX, PIPE_SHADER_CAP_INTEGERS));
+         (void) pscreen;
+         if (!ctx->Const.NativeIntegers) {
+            struct ureg_dst temp = ureg_DECL_local_temporary(t->ureg);
+            ureg_U2F(t->ureg, ureg_writemask(temp, TGSI_WRITEMASK_X),
+                     t->systemValues[i]);
+            t->systemValues[i] = ureg_scalar(ureg_src(temp), 0);
          }
       }
+
+      if (procType == PIPE_SHADER_FRAGMENT &&
+          semName == TGSI_SEMANTIC_POSITION)
+         emit_wpos(st_context(ctx), t, proginfo, ureg,
+                   program->wpos_transform_const);
+
+      if (procType == PIPE_SHADER_FRAGMENT &&
+          semName == TGSI_SEMANTIC_SAMPLEPOS)
+         emit_samplepos_adjustment(t, program->wpos_transform_const);
    }
 
    t->array_sizes = program->array_sizes;
@@ -7230,10 +7223,10 @@ get_mesa_program_tgsi(struct gl_context *ctx,
    /* This must be done before the uniform storage is associated. */
    if (shader->Stage == MESA_SHADER_FRAGMENT &&
        (prog->info.inputs_read & VARYING_BIT_POS ||
-        prog->info.system_values_read & (1ull << SYSTEM_VALUE_FRAG_COORD) ||
-        prog->info.system_values_read & (1ull << SYSTEM_VALUE_SAMPLE_POS))) {
+        BITSET_TEST(prog->info.system_values_read, SYSTEM_VALUE_FRAG_COORD) ||
+        BITSET_TEST(prog->info.system_values_read, SYSTEM_VALUE_SAMPLE_POS))) {
       static const gl_state_index16 wposTransformState[STATE_LENGTH] = {
-         STATE_INTERNAL, STATE_FB_WPOS_Y_TRANSFORM
+         STATE_FB_WPOS_Y_TRANSFORM
       };
 
       v->wpos_transform_const = _mesa_add_state_reference(prog->Parameters,
@@ -7244,14 +7237,7 @@ get_mesa_program_tgsi(struct gl_context *ctx,
     * storage is only associated with the original parameter list.
     * This should be enough for Bitmap and DrawPixels constants.
     */
-   _mesa_reserve_parameter_storage(prog->Parameters, 8, 8);
-   _mesa_disallow_parameter_storage_realloc(prog->Parameters);
-
-   /* This has to be done last.  Any operation the can cause
-    * prog->ParameterValues to get reallocated (e.g., anything that adds a
-    * program constant) has to happen before creating this linkage.
-    */
-   _mesa_associate_uniform_storage(ctx, shader_program, prog);
+   _mesa_ensure_and_associate_uniform_storage(ctx, shader_program, prog, 8);
    if (!shader_program->data->LinkStatus) {
       free_glsl_to_tgsi_visitor(v);
       _mesa_reference_program(ctx, &shader->Program, NULL);

@@ -48,6 +48,7 @@ _mesa_ClearIndex( GLfloat c )
 {
    GET_CURRENT_CONTEXT(ctx);
 
+   ctx->PopAttribState |= GL_COLOR_BUFFER_BIT;
    ctx->Color.ClearIndex = (GLuint) c;
 }
 
@@ -67,6 +68,7 @@ _mesa_ClearColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
 {
    GET_CURRENT_CONTEXT(ctx);
 
+   ctx->PopAttribState |= GL_COLOR_BUFFER_BIT;
    ctx->Color.ClearColor.f[0] = red;
    ctx->Color.ClearColor.f[1] = green;
    ctx->Color.ClearColor.f[2] = blue;
@@ -82,6 +84,7 @@ _mesa_ClearColorIiEXT(GLint r, GLint g, GLint b, GLint a)
 {
    GET_CURRENT_CONTEXT(ctx);
 
+   ctx->PopAttribState |= GL_COLOR_BUFFER_BIT;
    ctx->Color.ClearColor.i[0] = r;
    ctx->Color.ClearColor.i[1] = g;
    ctx->Color.ClearColor.i[2] = b;
@@ -97,6 +100,7 @@ _mesa_ClearColorIuiEXT(GLuint r, GLuint g, GLuint b, GLuint a)
 {
    GET_CURRENT_CONTEXT(ctx);
 
+   ctx->PopAttribState |= GL_COLOR_BUFFER_BIT;
    ctx->Color.ClearColor.ui[0] = r;
    ctx->Color.ClearColor.ui[1] = g;
    ctx->Color.ClearColor.ui[2] = b;
@@ -144,7 +148,7 @@ color_buffer_writes_enabled(const struct gl_context *ctx, unsigned idx)
 static ALWAYS_INLINE void
 clear(struct gl_context *ctx, GLbitfield mask, bool no_error)
 {
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    if (!no_error) {
       if (mask & ~(GL_COLOR_BUFFER_BIT |
@@ -343,7 +347,7 @@ static ALWAYS_INLINE void
 clear_bufferiv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
                const GLint *value, bool no_error)
 {
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    if (ctx->NewState) {
       _mesa_update_state( ctx );
@@ -462,7 +466,7 @@ static ALWAYS_INLINE void
 clear_bufferuiv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
                 const GLuint *value, bool no_error)
 {
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    if (ctx->NewState) {
       _mesa_update_state( ctx );
@@ -556,7 +560,7 @@ static ALWAYS_INLINE void
 clear_bufferfv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
                const GLfloat *value, bool no_error)
 {
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    if (ctx->NewState) {
       _mesa_update_state( ctx );
@@ -692,7 +696,7 @@ clear_bufferfi(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
 {
    GLbitfield mask = 0;
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    if (!no_error) {
       if (buffer != GL_DEPTH_STENCIL) {

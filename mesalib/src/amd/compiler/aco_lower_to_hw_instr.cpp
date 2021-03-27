@@ -646,7 +646,7 @@ void emit_reduction(lower_context *ctx, aco_opcode op, ReduceOp reduce_op, unsig
                                          Definition(PhysReg{vtmp+i}, v1),
                                          Operand(PhysReg{tmp+i}, v1),
                                          Operand(0xffffffffu), Operand(0xffffffffu)).instr;
-            static_cast<VOP3A_instruction*>(perm)->opsel = 1; /* FI (Fetch Inactive) */
+            perm->vop3().opsel = 1; /* FI (Fetch Inactive) */
          }
          bld.sop1(Builder::s_mov, Definition(exec, bld.lm), Operand(UINT64_MAX));
 
@@ -757,7 +757,7 @@ void emit_reduction(lower_context *ctx, aco_opcode op, ReduceOp reduce_op, unsig
                                          Definition(PhysReg{vtmp+i}, v1),
                                          Operand(PhysReg{tmp+i}, v1),
                                          Operand(0xffffffffu), Operand(0xffffffffu)).instr;
-            static_cast<VOP3A_instruction*>(perm)->opsel = 1; /* FI (Fetch Inactive) */
+            perm->vop3().opsel = 1; /* FI (Fetch Inactive) */
          }
          emit_op(ctx, tmp, tmp, vtmp, PhysReg{0}, reduce_op, src.size());
 
@@ -1023,49 +1023,53 @@ void copy_constant(lower_context *ctx, Builder& bld, Definition dst, Operand op)
       }
    } else if (dst.regClass() == v1) {
       bld.vop1(aco_opcode::v_mov_b32, dst, op);
-   } else if (dst.regClass() == v1b) {
-      assert(ctx->program->chip_class >= GFX8);
-      uint8_t val = op.constantValue();
-      Operand op32((uint32_t)val | (val & 0x80u ? 0xffffff00u : 0u));
-      aco_ptr<SDWA_instruction> sdwa;
-      if (op32.isLiteral()) {
-         uint32_t a = (uint32_t)int8_mul_table[val * 2];
-         uint32_t b = (uint32_t)int8_mul_table[val * 2 + 1];
-         bld.vop2_sdwa(aco_opcode::v_mul_u32_u24, dst,
-                       Operand(a | (a & 0x80u ? 0xffffff00u : 0x0u)),
-                       Operand(b | (b & 0x80u ? 0xffffff00u : 0x0u)));
+   } else {
+      assert(dst.regClass() == v1b || dst.regClass() == v2b);
+
+      if (dst.regClass() == v1b && ctx->program->chip_class >= GFX9) {
+         uint8_t val = op.constantValue();
+         Operand op32((uint32_t)val | (val & 0x80u ? 0xffffff00u : 0u));
+         if (op32.isLiteral()) {
+            uint32_t a = (uint32_t)int8_mul_table[val * 2];
+            uint32_t b = (uint32_t)int8_mul_table[val * 2 + 1];
+            bld.vop2_sdwa(aco_opcode::v_mul_u32_u24, dst,
+                          Operand(a | (a & 0x80u ? 0xffffff00u : 0x0u)),
+                          Operand(b | (b & 0x80u ? 0xffffff00u : 0x0u)));
+         } else {
+            bld.vop1_sdwa(aco_opcode::v_mov_b32, dst, op32);
+         }
+      } else if (dst.regClass() == v2b && ctx->program->chip_class >= GFX9 && !op.isLiteral()) {
+         if (op.constantValue() >= 0xfff0 || op.constantValue() <= 64) {
+            /* use v_mov_b32 to avoid possible issues with denormal flushing or
+             * NaN. v_add_f16 is still needed for float constants. */
+            uint32_t val32 = (int32_t)(int16_t)op.constantValue();
+            bld.vop1_sdwa(aco_opcode::v_mov_b32, dst, Operand(val32));
+         } else {
+            bld.vop2_sdwa(aco_opcode::v_add_f16, dst, op, Operand(0u));
+         }
+      } else if (dst.regClass() == v2b && ctx->program->chip_class >= GFX10 &&
+                 (ctx->block->fp_mode.denorm16_64 & fp_denorm_keep_in)) {
+         if (dst.physReg().byte() == 2) {
+            Operand def_lo(dst.physReg().advance(-2), v2b);
+            Instruction* instr = bld.vop3(aco_opcode::v_pack_b32_f16, dst, def_lo, op);
+            instr->vop3().opsel = 0;
+         } else {
+            assert(dst.physReg().byte() == 0);
+            Operand def_hi(dst.physReg().advance(2), v2b);
+            Instruction* instr = bld.vop3(aco_opcode::v_pack_b32_f16, dst, op, def_hi);
+            instr->vop3().opsel = 2;
+         }
       } else {
-         bld.vop1_sdwa(aco_opcode::v_mov_b32, dst, op32);
-      }
-   } else if (dst.regClass() == v2b && op.isConstant() && !op.isLiteral()) {
-      assert(ctx->program->chip_class >= GFX8);
-      if (op.constantValue() >= 0xfff0 || op.constantValue() <= 64) {
-         /* use v_mov_b32 to avoid possible issues with denormal flushing or
-          * NaN. v_add_f16 is still needed for float constants. */
-         uint32_t val32 = (int32_t)(int16_t)op.constantValue();
-         bld.vop1_sdwa(aco_opcode::v_mov_b32, dst, Operand(val32));
-      } else {
-         bld.vop2_sdwa(aco_opcode::v_add_f16, dst, op, Operand(0u));
-      }
-   } else if (dst.regClass() == v2b && op.isLiteral()) {
-      if (ctx->program->chip_class < GFX10 || !(ctx->block->fp_mode.denorm16_64 & fp_denorm_keep_in)) {
-         unsigned offset = dst.physReg().byte() * 8u;
+         uint32_t offset = dst.physReg().byte() * 8u;
+         uint32_t mask = ((1u << (dst.bytes() * 8)) - 1) << offset;
+         uint32_t val = (op.constantValue() << offset) & mask;
          dst = Definition(PhysReg(dst.physReg().reg()), v1);
          Operand def_op(dst.physReg(), v1);
-         bld.vop2(aco_opcode::v_and_b32, dst, Operand(~(0xffffu << offset)), def_op);
-         bld.vop2(aco_opcode::v_or_b32, dst, Operand(op.constantValue() << offset), def_op);
-      } else if (dst.physReg().byte() == 2) {
-         Operand def_lo(dst.physReg().advance(-2), v2b);
-         Instruction* instr = bld.vop3(aco_opcode::v_pack_b32_f16, dst, def_lo, op);
-         static_cast<VOP3A_instruction*>(instr)->opsel = 0;
-      } else {
-         assert(dst.physReg().byte() == 0);
-         Operand def_hi(dst.physReg().advance(2), v2b);
-         Instruction* instr = bld.vop3(aco_opcode::v_pack_b32_f16, dst, op, def_hi);
-         static_cast<VOP3A_instruction*>(instr)->opsel = 2;
+         if (val != mask)
+            bld.vop2(aco_opcode::v_and_b32, dst, Operand(~mask), def_op);
+         if (val != 0)
+            bld.vop2(aco_opcode::v_or_b32, dst, Operand(val), def_op);
       }
-   } else {
-      unreachable("unsupported copy");
    }
 }
 
@@ -1247,7 +1251,7 @@ void do_pack_2x16(lower_context *ctx, Builder& bld, Definition def, Operand lo, 
    if (can_use_pack) {
       Instruction* instr = bld.vop3(aco_opcode::v_pack_b32_f16, def, lo, hi);
       /* opsel: 0 = select low half, 1 = select high half. [0] = src0, [1] = src1 */
-      static_cast<VOP3A_instruction*>(instr)->opsel = hi.physReg().byte() | (lo.physReg().byte() >> 1);
+      instr->vop3().opsel = hi.physReg().byte() | (lo.physReg().byte() >> 1);
       return;
    }
 
@@ -1792,7 +1796,7 @@ void lower_to_hw_instr(Program* program)
 {
    Block *discard_block = NULL;
 
-   for (size_t block_idx = 0; block_idx < program->blocks.size(); block_idx++)
+   for (int block_idx = program->blocks.size() - 1; block_idx >= 0; block_idx--)
    {
       Block *block = &program->blocks[block_idx];
       lower_context ctx;
@@ -1805,8 +1809,8 @@ void lower_to_hw_instr(Program* program)
       for (size_t instr_idx = 0; instr_idx < block->instructions.size(); instr_idx++) {
          aco_ptr<Instruction>& instr = block->instructions[instr_idx];
          aco_ptr<Instruction> mov;
-         if (instr->format == Format::PSEUDO && instr->opcode != aco_opcode::p_unit_test) {
-            Pseudo_instruction *pi = (Pseudo_instruction*)instr.get();
+         if (instr->isPseudo() && instr->opcode != aco_opcode::p_unit_test) {
+            Pseudo_instruction *pi = &instr->pseudo();
 
             switch (instr->opcode)
             {
@@ -1893,7 +1897,7 @@ void lower_to_hw_instr(Program* program)
                          instr2->opcode == aco_opcode::p_logical_end)
                         continue;
                      else if (instr2->opcode == aco_opcode::exp &&
-                              static_cast<Export_instruction *>(instr2.get())->dest == null_exp_dest)
+                              instr2->exp().dest == null_exp_dest)
                         continue;
                      else if (instr2->opcode == aco_opcode::p_parallelcopy &&
                          instr2->definitions[0].isFixed() &&
@@ -1975,66 +1979,107 @@ void lower_to_hw_instr(Program* program)
                   unreachable("Current hardware supports ds_bpermute, don't emit p_bpermute.");
                break;
             }
+            case aco_opcode::p_constaddr:
+            {
+               unsigned id = instr->definitions[0].tempId();
+               PhysReg reg = instr->definitions[0].physReg();
+               bld.sop1(aco_opcode::p_constaddr_getpc, instr->definitions[0], Operand(id));
+               bld.sop2(aco_opcode::p_constaddr_addlo, Definition(reg, s1), bld.def(s1, scc),
+                        Operand(reg, s1), Operand(id));
+               bld.sop2(aco_opcode::s_addc_u32, Definition(reg.advance(4), s1), bld.def(s1, scc),
+                        Operand(reg.advance(4), s1), Operand(0u), Operand(scc, s1));
+               break;
+            }
             default:
                break;
             }
-         } else if (instr->format == Format::PSEUDO_BRANCH) {
-            Pseudo_branch_instruction* branch = static_cast<Pseudo_branch_instruction*>(instr.get());
+         } else if (instr->isBranch()) {
+            Pseudo_branch_instruction* branch = &instr->branch();
+            uint32_t target = branch->target[0];
+
             /* check if all blocks from current to target are empty */
-            bool can_remove = block->index < branch->target[0];
+            /* In case there are <= 4 SALU or <= 2 VALU instructions, remove the branch */
+            bool can_remove = block->index < target;
+            unsigned num_scalar = 0;
+            unsigned num_vector = 0;
             for (unsigned i = block->index + 1; can_remove && i < branch->target[0]; i++) {
-               if (program->blocks[i].instructions.size())
+               /* uniform branches must not be ignored if they
+                * are about to jump over actual instructions */
+               if (!program->blocks[i].instructions.empty() &&
+                   (branch->opcode != aco_opcode::p_cbranch_z ||
+                    branch->operands[0].physReg() != exec)) {
                   can_remove = false;
+                  break;
+               }
+
+               for (aco_ptr<Instruction>& inst : program->blocks[i].instructions) {
+                  if (inst->isSOPP()) {
+                     can_remove = false;
+                  } else if (inst->isSALU()) {
+                     num_scalar++;
+                  } else if (inst->isVALU()) {
+                     num_vector++;
+                  } else {
+                     can_remove = false;
+                  }
+
+                  if (num_scalar + num_vector * 2 > 4)
+                     can_remove = false;
+
+                  if (!can_remove)
+                     break;
+               }
             }
+
             if (can_remove)
                continue;
 
             switch (instr->opcode) {
                case aco_opcode::p_branch:
-                  assert(block->linear_succs[0] == branch->target[0]);
-                  bld.sopp(aco_opcode::s_branch, branch->definitions[0], branch->target[0]);
+                  assert(block->linear_succs[0] == target);
+                  bld.sopp(aco_opcode::s_branch, branch->definitions[0], target);
                   break;
                case aco_opcode::p_cbranch_nz:
-                  assert(block->linear_succs[1] == branch->target[0]);
+                  assert(block->linear_succs[1] == target);
                   if (branch->operands[0].physReg() == exec)
-                     bld.sopp(aco_opcode::s_cbranch_execnz, branch->definitions[0], branch->target[0]);
+                     bld.sopp(aco_opcode::s_cbranch_execnz, branch->definitions[0], target);
                   else if (branch->operands[0].physReg() == vcc)
-                     bld.sopp(aco_opcode::s_cbranch_vccnz, branch->definitions[0], branch->target[0]);
+                     bld.sopp(aco_opcode::s_cbranch_vccnz, branch->definitions[0], target);
                   else {
                      assert(branch->operands[0].physReg() == scc);
-                     bld.sopp(aco_opcode::s_cbranch_scc1, branch->definitions[0], branch->target[0]);
+                     bld.sopp(aco_opcode::s_cbranch_scc1, branch->definitions[0], target);
                   }
                   break;
                case aco_opcode::p_cbranch_z:
-                  assert(block->linear_succs[1] == branch->target[0]);
+                  assert(block->linear_succs[1] == target);
                   if (branch->operands[0].physReg() == exec)
-                     bld.sopp(aco_opcode::s_cbranch_execz, branch->definitions[0], branch->target[0]);
+                     bld.sopp(aco_opcode::s_cbranch_execz, branch->definitions[0], target);
                   else if (branch->operands[0].physReg() == vcc)
-                     bld.sopp(aco_opcode::s_cbranch_vccz, branch->definitions[0], branch->target[0]);
+                     bld.sopp(aco_opcode::s_cbranch_vccz, branch->definitions[0], target);
                   else {
                      assert(branch->operands[0].physReg() == scc);
-                     bld.sopp(aco_opcode::s_cbranch_scc0, branch->definitions[0], branch->target[0]);
+                     bld.sopp(aco_opcode::s_cbranch_scc0, branch->definitions[0], target);
                   }
                   break;
                default:
                   unreachable("Unknown Pseudo branch instruction!");
             }
 
-         } else if (instr->format == Format::PSEUDO_REDUCTION) {
-            Pseudo_reduction_instruction* reduce = static_cast<Pseudo_reduction_instruction*>(instr.get());
-            emit_reduction(&ctx, reduce->opcode, reduce->reduce_op, reduce->cluster_size,
-                           reduce->operands[1].physReg(), // tmp
-                           reduce->definitions[1].physReg(), // stmp
-                           reduce->operands[2].physReg(), // vtmp
-                           reduce->definitions[2].physReg(), // sitmp
-                           reduce->operands[0], reduce->definitions[0]);
-         } else if (instr->format == Format::PSEUDO_BARRIER) {
-            Pseudo_barrier_instruction* barrier = static_cast<Pseudo_barrier_instruction*>(instr.get());
+         } else if (instr->isReduction()) {
+            Pseudo_reduction_instruction& reduce = instr->reduction();
+            emit_reduction(&ctx, reduce.opcode, reduce.reduce_op, reduce.cluster_size,
+                           reduce.operands[1].physReg(), // tmp
+                           reduce.definitions[1].physReg(), // stmp
+                           reduce.operands[2].physReg(), // vtmp
+                           reduce.definitions[2].physReg(), // sitmp
+                           reduce.operands[0], reduce.definitions[0]);
+         } else if (instr->isBarrier()) {
+            Pseudo_barrier_instruction& barrier = instr->barrier();
 
             /* Anything larger than a workgroup isn't possible. Anything
              * smaller requires no instructions and this pseudo instruction
              * would only be included to control optimizations. */
-            bool emit_s_barrier = barrier->exec_scope == scope_workgroup &&
+            bool emit_s_barrier = barrier.exec_scope == scope_workgroup &&
                                   program->workgroup_size > program->wave_size;
 
             bld.insert(std::move(instr));

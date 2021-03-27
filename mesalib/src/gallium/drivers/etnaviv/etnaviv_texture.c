@@ -247,8 +247,10 @@ set_sampler_views(struct etna_context *ctx, unsigned start, unsigned end,
    uint32_t prev_active_sampler_views = ctx->active_sampler_views;
 
    for (i = start, j = 0; j < nr; i++, j++, mask <<= 1) {
-      pipe_sampler_view_reference(&ctx->sampler_view[i], views[j]);
-      if (views[j]) {
+      struct pipe_sampler_view *view = views ? views[i] : NULL;
+
+      pipe_sampler_view_reference(&ctx->sampler_view[i], view);
+      if (view) {
          ctx->active_sampler_views |= mask;
          ctx->dirty_sampler_views |= mask;
       } else
@@ -291,6 +293,7 @@ etna_vertex_set_sampler_views(struct etna_context *ctx, unsigned nr,
 static void
 etna_set_sampler_views(struct pipe_context *pctx, enum pipe_shader_type shader,
                        unsigned start_slot, unsigned num_views,
+                       unsigned unbind_num_trailing_slots,
                        struct pipe_sampler_view **views)
 {
    struct etna_context *ctx = etna_context(pctx);

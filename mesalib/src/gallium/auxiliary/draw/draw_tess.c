@@ -23,7 +23,7 @@
  *
  **************************************************************************/
 #include "draw_tess.h"
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
 #include "draw_llvm.h"
 #endif
 
@@ -48,7 +48,7 @@ draw_tes_get_input_index(int semantic, int index,
    return -1;
 }
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
 #define DEBUG_INPUTS 0
 static void
 llvm_fetch_tcs_input(struct draw_tess_ctrl_shader *shader,
@@ -146,7 +146,7 @@ static void
 llvm_tcs_run(struct draw_tess_ctrl_shader *shader, uint32_t prim_id)
 {
    shader->current_variant->jit_func(shader->jit_context, shader->tcs_input->data, shader->tcs_output->data, prim_id,
-      shader->draw->pt.vertices_per_patch);
+                                     shader->draw->pt.vertices_per_patch, shader->draw->pt.user.viewid);
 }
 #endif
 
@@ -188,7 +188,7 @@ int draw_tess_ctrl_shader_run(struct draw_tess_ctrl_shader *shader,
    if (shader->draw->collect_statistics) {
       shader->draw->statistics.hs_invocations += num_patches;
    }
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    for (unsigned i = 0; i < num_patches; i++) {
       uint32_t vert_start = output_verts->count;
 
@@ -212,7 +212,7 @@ int draw_tess_ctrl_shader_run(struct draw_tess_ctrl_shader *shader,
    return 0;
 }
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
 #define DEBUG_INPUTS 0
 static void
 llvm_fetch_tes_input(struct draw_tess_eval_shader *shader,
@@ -309,7 +309,8 @@ llvm_tes_run(struct draw_tess_eval_shader *shader,
 {
    shader->current_variant->jit_func(shader->jit_context, shader->tes_input->data, output, prim_id,
                                      tess_data->num_domain_points, tess_data->domain_points_u, tess_data->domain_points_v,
-                                     tess_factors->outer_tf, tess_factors->inner_tf, patch_vertices_in);
+                                     tess_factors->outer_tf, tess_factors->inner_tf, patch_vertices_in,
+                                     shader->draw->pt.user.viewid);
 }
 #endif
 
@@ -350,7 +351,7 @@ int draw_tess_eval_shader_run(struct draw_tess_eval_shader *shader,
    shader->input_vertex_stride = input_stride;
    shader->input_info = input_info;
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    struct pipe_tessellation_factors factors;
    struct pipe_tessellator_data data = { 0 };
    struct pipe_tessellator *ptess = p_tess_init(shader->prim_mode,
@@ -415,13 +416,13 @@ struct draw_tess_ctrl_shader *
 draw_create_tess_ctrl_shader(struct draw_context *draw,
                              const struct pipe_shader_state *state)
 {
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    boolean use_llvm = draw->llvm != NULL;
    struct llvm_tess_ctrl_shader *llvm_tcs = NULL;
 #endif
    struct draw_tess_ctrl_shader *tcs;
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    if (use_llvm) {
       llvm_tcs = CALLOC_STRUCT(llvm_tess_ctrl_shader);
 
@@ -447,7 +448,7 @@ draw_create_tess_ctrl_shader(struct draw_context *draw,
 
    tcs->vector_length = 4;
    tcs->vertices_out = tcs->info.properties[TGSI_PROPERTY_TCS_VERTICES_OUT];
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    if (use_llvm) {
 
       tcs->tcs_input = align_malloc(sizeof(struct draw_tcs_inputs), 16);
@@ -484,7 +485,7 @@ void draw_delete_tess_ctrl_shader(struct draw_context *draw,
    if (!dtcs)
       return;
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    if (draw->llvm) {
       struct llvm_tess_ctrl_shader *shader = llvm_tess_ctrl_shader(dtcs);
 
@@ -508,7 +509,7 @@ void draw_delete_tess_ctrl_shader(struct draw_context *draw,
    FREE(dtcs);
 }
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
 void draw_tcs_set_current_variant(struct draw_tess_ctrl_shader *shader,
                                   struct draw_tcs_llvm_variant *variant)
 {
@@ -520,13 +521,13 @@ struct draw_tess_eval_shader *
 draw_create_tess_eval_shader(struct draw_context *draw,
                              const struct pipe_shader_state *state)
 {
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    boolean use_llvm = draw->llvm != NULL;
    struct llvm_tess_eval_shader *llvm_tes = NULL;
 #endif
    struct draw_tess_eval_shader *tes;
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    if (use_llvm) {
       llvm_tes = CALLOC_STRUCT(llvm_tess_eval_shader);
 
@@ -570,7 +571,7 @@ draw_create_tess_eval_shader(struct draw_context *draw,
       }
    }
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    if (use_llvm) {
 
       tes->tes_input = align_malloc(sizeof(struct draw_tes_inputs), 16);
@@ -605,7 +606,7 @@ void draw_delete_tess_eval_shader(struct draw_context *draw,
    if (!dtes)
       return;
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    if (draw->llvm) {
       struct llvm_tess_eval_shader *shader = llvm_tess_eval_shader(dtes);
       struct draw_tes_llvm_variant_list_item *li;
@@ -626,7 +627,7 @@ void draw_delete_tess_eval_shader(struct draw_context *draw,
    FREE(dtes);
 }
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
 void draw_tes_set_current_variant(struct draw_tess_eval_shader *shader,
                                   struct draw_tes_llvm_variant *variant)
 {

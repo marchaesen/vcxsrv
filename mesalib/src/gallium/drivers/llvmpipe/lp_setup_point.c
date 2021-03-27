@@ -81,7 +81,7 @@ point_persp_coeff(struct lp_setup_context *setup,
 {
    /*
     * Fragment shader expects pre-multiplied w for LP_INTERP_PERSPECTIVE. A
-    * better stratergy would be to take the primitive in consideration when
+    * better strategy would be to take the primitive in consideration when
     * generating the fragment shader key, and therefore avoid the per-fragment
     * perspective divide.
     */
@@ -404,7 +404,7 @@ try_setup_point( struct lp_setup_context *setup,
        * Per OpenGL 2.1 spec, section 3.3.1, "Basic Point Rasterization".
        *
        * This type of point rasterization is only available in pre 3.0 contexts
-       * (or compatibilility contexts which we don't support) anyway.
+       * (or compatibility contexts which we don't support) anyway.
        */
 
       const int x0 = subpixel_snap(v0[0][0]);
@@ -498,6 +498,7 @@ try_setup_point( struct lp_setup_context *setup,
    point->inputs.opaque = FALSE;
    point->inputs.layer = layer;
    point->inputs.viewport_index = viewport_index;
+   point->inputs.view_index = setup->view_index;
 
    {
       struct lp_rast_plane *plane = GET_PLANES(point);

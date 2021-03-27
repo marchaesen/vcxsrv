@@ -60,7 +60,7 @@ struct rvce_cpb_slot {
 	struct list_head		list;
 
 	unsigned			index;
-	enum pipe_h264_enc_picture_type	picture_type;
+	enum pipe_h2645_enc_picture_type	picture_type;
 	unsigned			frame_num;
 	unsigned			pic_order_cnt;
 };
@@ -340,7 +340,7 @@ struct rvce_h264_enc_pic {
 	unsigned quant_p_frames;
 	unsigned quant_b_frames;
 
-	enum pipe_h264_enc_picture_type picture_type;
+	enum pipe_h2645_enc_picture_type picture_type;
 	unsigned frame_num;
 	unsigned frame_num_cnt;
 	unsigned p_remain;

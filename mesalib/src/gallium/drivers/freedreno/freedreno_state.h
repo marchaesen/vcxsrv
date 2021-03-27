@@ -31,31 +31,31 @@
 #include "freedreno_context.h"
 
 static inline bool fd_depth_enabled(struct fd_context *ctx)
+	assert_dt
 {
 	return ctx->zsa && ctx->zsa->depth_enabled;
 }
 
 static inline bool fd_depth_write_enabled(struct fd_context *ctx)
+	assert_dt
 {
 	return ctx->zsa && ctx->zsa->depth_writemask;
 }
 
 static inline bool fd_stencil_enabled(struct fd_context *ctx)
+	assert_dt
 {
 	return ctx->zsa && ctx->zsa->stencil[0].enabled;
 }
 
-static inline bool fd_logicop_enabled(struct fd_context *ctx)
-{
-	return ctx->blend && ctx->blend->logicop_enable;
-}
-
 static inline bool fd_blend_enabled(struct fd_context *ctx, unsigned n)
+	assert_dt
 {
 	return ctx->blend && ctx->blend->rt[n].blend_enable;
 }
 
 static inline bool fd_depth_clamp_enabled(struct fd_context *ctx)
+	assert_dt
 {
 	return !(ctx->rasterizer->depth_clip_near && ctx->rasterizer->depth_clip_far);
 }
@@ -63,6 +63,7 @@ static inline bool fd_depth_clamp_enabled(struct fd_context *ctx)
 void fd_set_shader_images(struct pipe_context *pctx,
 		enum pipe_shader_type shader,
 		unsigned start, unsigned count,
+		unsigned unbind_num_trailing_slots,
 		const struct pipe_image_view *images);
 
 void fd_state_init(struct pipe_context *pctx);

@@ -947,6 +947,7 @@ static const struct fd_perfcntr_counter mh_counters[] = {
 };
 
 static const struct fd_perfcntr_counter rbbm_counters[] = {
+	COUNTER(RBBM_PERFCOUNTER0_SELECT, RBBM_PERFCOUNTER0_LO, RBBM_PERFCOUNTER0_HI),
 	COUNTER(RBBM_PERFCOUNTER1_SELECT, RBBM_PERFCOUNTER1_LO, RBBM_PERFCOUNTER1_HI),
 };
 
@@ -956,6 +957,9 @@ static const struct fd_perfcntr_counter cp_counters[] = {
 
 static const struct fd_perfcntr_counter rb_counters[] = {
 	COUNTER(RB_PERFCOUNTER0_SELECT, RB_PERFCOUNTER0_LOW, RB_PERFCOUNTER0_HI),
+	COUNTER(RB_PERFCOUNTER1_SELECT, RB_PERFCOUNTER1_LOW, RB_PERFCOUNTER1_HI),
+	COUNTER(RB_PERFCOUNTER2_SELECT, RB_PERFCOUNTER2_LOW, RB_PERFCOUNTER2_HI),
+	COUNTER(RB_PERFCOUNTER3_SELECT, RB_PERFCOUNTER3_LOW, RB_PERFCOUNTER3_HI),
 };
 
 const struct fd_perfcntr_group a2xx_perfcntr_groups[] = {

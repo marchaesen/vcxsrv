@@ -60,7 +60,7 @@ lower_fb_read(nir_builder *b, nir_intrinsic_instr *intr)
    tex->op = nir_texop_txf_ms_fb;
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
    tex->coord_components = 2;
-   tex->dest_type = nir_type_float;
+   tex->dest_type = nir_type_float32;
    tex->src[0].src_type = nir_tex_src_coord;
    tex->src[0].src = nir_src_for_ssa(nir_channels(b, fragcoord, 0x3));
    tex->src[1].src_type = nir_tex_src_ms_index;
@@ -69,7 +69,7 @@ lower_fb_read(nir_builder *b, nir_intrinsic_instr *intr)
    nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, NULL);
    nir_builder_instr_insert(b, &tex->instr);
 
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(&tex->dest.ssa));
+   nir_ssa_def_rewrite_uses(&intr->dest.ssa, &tex->dest.ssa);
 }
 
 bool

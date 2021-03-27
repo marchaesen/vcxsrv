@@ -77,7 +77,7 @@ lower_vec3_to_vec4_impl(nir_function_impl *impl, nir_variable_mode modes)
                b.cursor = nir_after_instr(&intrin->instr);
                nir_ssa_def *vec3 = nir_channels(&b, &intrin->dest.ssa, 0x7);
                nir_ssa_def_rewrite_uses_after(&intrin->dest.ssa,
-                                              nir_src_for_ssa(vec3),
+                                              vec3,
                                               vec3->parent_instr);
                progress = true;
                break;

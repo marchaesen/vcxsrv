@@ -206,7 +206,7 @@ set_swizzle_component(GLushort *swizzle, GLuint comp, GLuint swz)
 static inline void
 flush(struct gl_context *ctx)
 {
-   FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT);
+   FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT, GL_TEXTURE_BIT);
 }
 
 
@@ -220,7 +220,7 @@ flush(struct gl_context *ctx)
 static inline void
 incomplete(struct gl_context *ctx, struct gl_texture_object *texObj)
 {
-   FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT);
+   FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT, GL_TEXTURE_BIT);
    _mesa_dirty_texobj(ctx, texObj);
 }
 
@@ -238,6 +238,12 @@ _mesa_target_allows_setting_sampler_parameters(GLenum target)
    }
 }
 
+
+static inline GLboolean
+is_wrap_gl_clamp(GLint param)
+{
+   return param == GL_CLAMP || param == GL_MIRROR_CLAMP_EXT;
+}
 
 /**
  * Set an integer-valued texture parameter
@@ -317,6 +323,8 @@ set_tex_parameteri(struct gl_context *ctx,
          return GL_FALSE;
       if (validate_texture_wrap_mode(ctx, texObj->Target, params[0])) {
          flush(ctx);
+         if (is_wrap_gl_clamp(texObj->Sampler.Attrib.WrapS) != is_wrap_gl_clamp(params[0]))
+            ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
          texObj->Sampler.Attrib.WrapS = params[0];
          return GL_TRUE;
       }
@@ -330,6 +338,8 @@ set_tex_parameteri(struct gl_context *ctx,
          return GL_FALSE;
       if (validate_texture_wrap_mode(ctx, texObj->Target, params[0])) {
          flush(ctx);
+         if (is_wrap_gl_clamp(texObj->Sampler.Attrib.WrapT) != is_wrap_gl_clamp(params[0]))
+            ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
          texObj->Sampler.Attrib.WrapT = params[0];
          return GL_TRUE;
       }
@@ -343,6 +353,8 @@ set_tex_parameteri(struct gl_context *ctx,
          return GL_FALSE;
       if (validate_texture_wrap_mode(ctx, texObj->Target, params[0])) {
          flush(ctx);
+         if (is_wrap_gl_clamp(texObj->Sampler.Attrib.WrapR) != is_wrap_gl_clamp(params[0]))
+            ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
          texObj->Sampler.Attrib.WrapR = params[0];
          return GL_TRUE;
       }
@@ -386,7 +398,7 @@ set_tex_parameteri(struct gl_context *ctx,
 
       /** See note about ARB_texture_storage below */
       if (texObj->Immutable)
-         texObj->Attrib.BaseLevel = MIN2(texObj->ImmutableLevels - 1, params[0]);
+         texObj->Attrib.BaseLevel = MIN2(texObj->Attrib.ImmutableLevels - 1, params[0]);
       else
          texObj->Attrib.BaseLevel = params[0];
 
@@ -413,7 +425,7 @@ set_tex_parameteri(struct gl_context *ctx,
        */
       if (texObj->Immutable)
           texObj->Attrib.MaxLevel = CLAMP(params[0], texObj->Attrib.BaseLevel,
-                                   texObj->ImmutableLevels - 1);
+                                   texObj->Attrib.ImmutableLevels - 1);
       else
          texObj->Attrib.MaxLevel = params[0];
 
@@ -503,10 +515,12 @@ set_tex_parameteri(struct gl_context *ctx,
          if (!stencil && params[0] != GL_DEPTH_COMPONENT)
             goto invalid_param;
 
-         if (texObj->Attrib.StencilSampling == stencil)
+         if (texObj->StencilSampling == stencil)
             return GL_FALSE;
 
-         texObj->Attrib.StencilSampling = stencil;
+         /* This should not be restored by glPopAttrib. */
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT, 0);
+         texObj->StencilSampling = stencil;
          return GL_TRUE;
       }
       goto invalid_pname;
@@ -579,6 +593,23 @@ set_tex_parameteri(struct gl_context *ctx,
 	    }
 	    return GL_TRUE;
 	 }
+      }
+      goto invalid_pname;
+
+   case GL_TEXTURE_REDUCTION_MODE_EXT:
+      if (ctx->Extensions.EXT_texture_filter_minmax) {
+         GLenum mode = params[0];
+
+         if (!_mesa_target_allows_setting_sampler_parameters(texObj->Target))
+            goto invalid_dsa;
+
+         if (mode == GL_WEIGHTED_AVERAGE_EXT || mode == GL_MIN || mode == GL_MAX) {
+            if (texObj->Sampler.Attrib.ReductionMode != mode) {
+               flush(ctx);
+               texObj->Sampler.Attrib.ReductionMode = mode;
+            }
+            return GL_TRUE;
+         }
       }
       goto invalid_pname;
 
@@ -820,6 +851,7 @@ _mesa_texture_parameterf(struct gl_context *ctx,
    case GL_DEPTH_TEXTURE_MODE_ARB:
    case GL_DEPTH_STENCIL_TEXTURE_MODE:
    case GL_TEXTURE_SRGB_DECODE_EXT:
+   case GL_TEXTURE_REDUCTION_MODE_EXT:
    case GL_TEXTURE_CUBE_MAP_SEAMLESS:
    case GL_TEXTURE_SWIZZLE_R_EXT:
    case GL_TEXTURE_SWIZZLE_G_EXT:
@@ -876,6 +908,7 @@ _mesa_texture_parameterfv(struct gl_context *ctx,
    case GL_DEPTH_TEXTURE_MODE_ARB:
    case GL_DEPTH_STENCIL_TEXTURE_MODE:
    case GL_TEXTURE_SRGB_DECODE_EXT:
+   case GL_TEXTURE_REDUCTION_MODE_EXT:
    case GL_TEXTURE_CUBE_MAP_SEAMLESS:
       {
          /* convert float param to int */
@@ -1026,7 +1059,7 @@ _mesa_texture_parameterIiv(struct gl_context *ctx,
          _mesa_error(ctx, dsa ? GL_INVALID_OPERATION : GL_INVALID_ENUM, "glTextureParameterIiv(texture)");
          return;
       }
-      FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT);
+      FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT, GL_TEXTURE_BIT);
       /* set the integer-valued border color */
       COPY_4V(texObj->Sampler.Attrib.BorderColor.i, params);
       break;
@@ -1054,7 +1087,7 @@ _mesa_texture_parameterIuiv(struct gl_context *ctx,
          _mesa_error(ctx, dsa ? GL_INVALID_OPERATION : GL_INVALID_ENUM, "glTextureParameterIuiv(texture)");
          return;
       }
-      FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT);
+      FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT, GL_TEXTURE_BIT);
       /* set the unsigned integer-valued border color */
       COPY_4V(texObj->Sampler.Attrib.BorderColor.ui, params);
       break;
@@ -2246,7 +2279,7 @@ get_tex_parameterfv(struct gl_context *ctx,
          if (!_mesa_has_ARB_stencil_texturing(ctx) && !_mesa_is_gles31(ctx))
             goto invalid_pname;
          *params = (GLfloat)
-            (obj->Attrib.StencilSampling ? GL_STENCIL_INDEX : GL_DEPTH_COMPONENT);
+            (obj->StencilSampling ? GL_STENCIL_INDEX : GL_DEPTH_COMPONENT);
          break;
       case GL_TEXTURE_LOD_BIAS:
          if (_mesa_is_gles(ctx))
@@ -2302,7 +2335,7 @@ get_tex_parameterfv(struct gl_context *ctx,
 
       case GL_TEXTURE_IMMUTABLE_LEVELS:
          if (_mesa_is_gles3(ctx) || _mesa_has_texture_view(ctx))
-            *params = (GLfloat) obj->ImmutableLevels;
+            *params = (GLfloat) obj->Attrib.ImmutableLevels;
          else
             goto invalid_pname;
          break;
@@ -2310,25 +2343,25 @@ get_tex_parameterfv(struct gl_context *ctx,
       case GL_TEXTURE_VIEW_MIN_LEVEL:
          if (!_mesa_has_texture_view(ctx))
             goto invalid_pname;
-         *params = (GLfloat) obj->MinLevel;
+         *params = (GLfloat) obj->Attrib.MinLevel;
          break;
 
       case GL_TEXTURE_VIEW_NUM_LEVELS:
          if (!_mesa_has_texture_view(ctx))
             goto invalid_pname;
-         *params = (GLfloat) obj->NumLevels;
+         *params = (GLfloat) obj->Attrib.NumLevels;
          break;
 
       case GL_TEXTURE_VIEW_MIN_LAYER:
          if (!_mesa_has_texture_view(ctx))
             goto invalid_pname;
-         *params = (GLfloat) obj->MinLayer;
+         *params = (GLfloat) obj->Attrib.MinLayer;
          break;
 
       case GL_TEXTURE_VIEW_NUM_LAYERS:
          if (!_mesa_has_texture_view(ctx))
             goto invalid_pname;
-         *params = (GLfloat) obj->NumLayers;
+         *params = (GLfloat) obj->Attrib.NumLayers;
          break;
 
       case GL_REQUIRED_TEXTURE_IMAGE_UNITS_OES:
@@ -2343,10 +2376,16 @@ get_tex_parameterfv(struct gl_context *ctx,
          *params = (GLfloat) obj->Sampler.Attrib.sRGBDecode;
          break;
 
+      case GL_TEXTURE_REDUCTION_MODE_EXT:
+         if (!ctx->Extensions.EXT_texture_filter_minmax)
+            goto invalid_pname;
+         *params = (GLfloat) obj->Sampler.Attrib.ReductionMode;
+         break;
+
       case GL_IMAGE_FORMAT_COMPATIBILITY_TYPE:
          if (!ctx->Extensions.ARB_shader_image_load_store)
             goto invalid_pname;
-         *params = (GLfloat) obj->ImageFormatCompatibilityType;
+         *params = (GLfloat) obj->Attrib.ImageFormatCompatibilityType;
          break;
 
       case GL_TEXTURE_TARGET:
@@ -2508,7 +2547,7 @@ get_tex_parameteriv(struct gl_context *ctx,
          if (!_mesa_has_ARB_stencil_texturing(ctx) && !_mesa_is_gles31(ctx))
             goto invalid_pname;
          *params = (GLint)
-            (obj->Attrib.StencilSampling ? GL_STENCIL_INDEX : GL_DEPTH_COMPONENT);
+            (obj->StencilSampling ? GL_STENCIL_INDEX : GL_DEPTH_COMPONENT);
          break;
       case GL_TEXTURE_LOD_BIAS:
          if (_mesa_is_gles(ctx))
@@ -2568,7 +2607,7 @@ get_tex_parameteriv(struct gl_context *ctx,
       case GL_TEXTURE_IMMUTABLE_LEVELS:
          if (_mesa_is_gles3(ctx) ||
              (_mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_texture_view))
-            *params = obj->ImmutableLevels;
+            *params = obj->Attrib.ImmutableLevels;
          else
             goto invalid_pname;
          break;
@@ -2576,25 +2615,25 @@ get_tex_parameteriv(struct gl_context *ctx,
       case GL_TEXTURE_VIEW_MIN_LEVEL:
          if (!ctx->Extensions.ARB_texture_view)
             goto invalid_pname;
-         *params = (GLint) obj->MinLevel;
+         *params = (GLint) obj->Attrib.MinLevel;
          break;
 
       case GL_TEXTURE_VIEW_NUM_LEVELS:
          if (!ctx->Extensions.ARB_texture_view)
             goto invalid_pname;
-         *params = (GLint) obj->NumLevels;
+         *params = (GLint) obj->Attrib.NumLevels;
          break;
 
       case GL_TEXTURE_VIEW_MIN_LAYER:
          if (!ctx->Extensions.ARB_texture_view)
             goto invalid_pname;
-         *params = (GLint) obj->MinLayer;
+         *params = (GLint) obj->Attrib.MinLayer;
          break;
 
       case GL_TEXTURE_VIEW_NUM_LAYERS:
          if (!ctx->Extensions.ARB_texture_view)
             goto invalid_pname;
-         *params = (GLint) obj->NumLayers;
+         *params = (GLint) obj->Attrib.NumLayers;
          break;
 
       case GL_REQUIRED_TEXTURE_IMAGE_UNITS_OES:
@@ -2609,10 +2648,16 @@ get_tex_parameteriv(struct gl_context *ctx,
          *params = obj->Sampler.Attrib.sRGBDecode;
          break;
 
+      case GL_TEXTURE_REDUCTION_MODE_EXT:
+         if (!ctx->Extensions.EXT_texture_filter_minmax)
+            goto invalid_pname;
+         *params = obj->Sampler.Attrib.ReductionMode;
+         break;
+
       case GL_IMAGE_FORMAT_COMPATIBILITY_TYPE:
          if (!ctx->Extensions.ARB_shader_image_load_store)
             goto invalid_pname;
-         *params = obj->ImageFormatCompatibilityType;
+         *params = obj->Attrib.ImageFormatCompatibilityType;
          break;
 
       case GL_TEXTURE_TARGET:

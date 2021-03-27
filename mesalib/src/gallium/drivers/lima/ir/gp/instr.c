@@ -311,7 +311,7 @@ static bool gpir_instr_insert_store_check(gpir_instr *instr, gpir_node *node)
          goto out;
    }
 
-   /* check if the child is alrady in this instr's alu slot,
+   /* check if the child is already in this instr's alu slot,
     * this may happen when store an scheduled alu node to reg
     */
    for (int j = GPIR_INSTR_SLOT_ALU_BEGIN; j <= GPIR_INSTR_SLOT_ALU_END; j++) {

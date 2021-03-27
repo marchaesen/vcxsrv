@@ -55,7 +55,7 @@ etna_lower_io(nir_shader *shader, struct etna_shader_variant *v)
                      nir_instr_as_alu(ssa->parent_instr)->op = nir_op_ieq;
 
                   nir_ssa_def_rewrite_uses_after(&intr->dest.ssa,
-                                                 nir_src_for_ssa(ssa),
+                                                 ssa,
                                                  ssa->parent_instr);
                } break;
                case nir_intrinsic_store_deref: {
@@ -76,39 +76,6 @@ etna_lower_io(nir_shader *shader, struct etna_shader_variant *v)
                   alu->src[0].swizzle[0] = 2;
                   alu->src[0].swizzle[2] = 0;
                   nir_instr_rewrite_src(instr, &intr->src[1], nir_src_for_ssa(ssa));
-               } break;
-               case nir_intrinsic_load_uniform: {
-                  /* convert indirect load_uniform to load_ubo when possible
-                   * this is required on HALTI5+ because address register is not implemented
-                   * address register loads also arent done optimally
-                   */
-                  if (v->shader->specs->halti < 2 || nir_src_is_const(intr->src[0]))
-                     break;
-
-                  nir_intrinsic_instr *load_ubo =
-                     nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_ubo);
-                  load_ubo->num_components = intr->num_components;
-                  nir_intrinsic_set_align(load_ubo, intr->dest.ssa.bit_size / 8, 0);
-                  nir_ssa_dest_init(&load_ubo->instr, &load_ubo->dest,
-                                    load_ubo->num_components, 32, NULL);
-
-                  b.cursor = nir_before_instr(instr);
-                  load_ubo->src[0] = nir_src_for_ssa(nir_imm_int(&b, 0));
-                  load_ubo->src[1] = nir_src_for_ssa(nir_iadd(&b,
-                     nir_imul(&b, intr->src[0].ssa, nir_imm_int(&b, 16)),
-                     nir_imm_int(&b, nir_intrinsic_base(intr) * 16)));
-                  nir_builder_instr_insert(&b, &load_ubo->instr);
-                  nir_ssa_def_rewrite_uses(&intr->dest.ssa,
-                                             nir_src_for_ssa(&load_ubo->dest.ssa));
-                  nir_instr_remove(&intr->instr);
-               } break;
-               case nir_intrinsic_load_ubo: {
-                  nir_const_value *idx = nir_src_as_const_value(intr->src[0]);
-                  assert(idx);
-                  /* offset index by 1, index 0 is used for converted load_uniform */
-                  b.cursor = nir_before_instr(instr);
-                  nir_instr_rewrite_src(instr, &intr->src[0],
-                                        nir_src_for_ssa(nir_imm_int(&b, idx[0].u32 + 1)));
                } break;
                case nir_intrinsic_load_vertex_id:
                case nir_intrinsic_load_instance_id:
@@ -147,23 +114,6 @@ etna_lower_io(nir_shader *shader, struct etna_shader_variant *v)
                   assert(0);
                   break;
                }
-            }
-
-            if (tex->sampler_dim == GLSL_SAMPLER_DIM_RECT) {
-               /* use a dummy load_uniform here to represent texcoord scale */
-               b.cursor = nir_before_instr(instr);
-               nir_intrinsic_instr *load =
-                  nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_uniform);
-               nir_intrinsic_set_base(load, ~tex->sampler_index);
-               load->num_components = 2;
-               load->src[0] = nir_src_for_ssa(nir_imm_float(&b, 0.0f));
-               nir_ssa_dest_init(&load->instr, &load->dest, 2, 32, NULL);
-               nir_intrinsic_set_dest_type(load, nir_type_float);
-
-               nir_builder_instr_insert(&b, &load->instr);
-
-               nir_ssa_def *new_coord = nir_fmul(&b, coord->ssa, &load->dest.ssa);
-               nir_instr_rewrite_src(&tex->instr, coord, nir_src_for_ssa(new_coord));
             }
 
             /* pre HALTI5 needs texture sources in a single source */
@@ -247,7 +197,8 @@ etna_lower_alu_impl(nir_function_impl *impl, bool has_new_transcendentals)
 
             nir_instr_insert_after(instr, &mul->instr);
 
-            nir_ssa_def_rewrite_uses_after(ssa, nir_src_for_ssa(&mul->dest.dest.ssa), &mul->instr);
+            nir_ssa_def_rewrite_uses_after(ssa, &mul->dest.dest.ssa,
+                                           &mul->instr);
          }
       }
    }

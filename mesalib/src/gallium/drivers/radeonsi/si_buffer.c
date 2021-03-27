@@ -56,7 +56,7 @@ void si_init_resource_fields(struct si_screen *sscreen, struct si_resource *res,
    switch (res->b.b.usage) {
    case PIPE_USAGE_STREAM:
       res->flags |= RADEON_FLAG_GTT_WC;
-      if (sscreen->info.all_vram_visible)
+      if (sscreen->info.smart_access_memory)
          res->domains = RADEON_DOMAIN_VRAM;
       else
          res->domains = RADEON_DOMAIN_GTT;
@@ -145,15 +145,15 @@ void si_init_resource_fields(struct si_screen *sscreen, struct si_resource *res,
       res->flags |= RADEON_FLAG_UNCACHED;
 
    /* Set expected VRAM and GART usage for the buffer. */
-   res->vram_usage = 0;
-   res->gart_usage = 0;
+   res->vram_usage_kb = 0;
+   res->gart_usage_kb = 0;
    res->max_forced_staging_uploads = 0;
    res->b.max_forced_staging_uploads = 0;
 
    if (res->domains & RADEON_DOMAIN_VRAM) {
-      res->vram_usage = size;
+      res->vram_usage_kb = MAX2(1, size / 1024);
 
-      if (!sscreen->info.all_vram_visible) {
+      if (!sscreen->info.smart_access_memory) {
          /* We don't want to evict buffers from VRAM by mapping them for CPU access,
           * because they might never be moved back again. If a buffer is large enough,
           * upload data by copying from a temporary GTT buffer. 8K might not seem much,
@@ -168,7 +168,7 @@ void si_init_resource_fields(struct si_screen *sscreen, struct si_resource *res,
             sscreen->info.has_dedicated_vram && size >= min_size ? max_staging_uploads : 0;
       }
    } else if (res->domains & RADEON_DOMAIN_GTT) {
-      res->gart_usage = size;
+      res->gart_usage_kb = MAX2(1, size / 1024);
    }
 }
 
@@ -278,8 +278,8 @@ void si_replace_buffer_storage(struct pipe_context *ctx, struct pipe_resource *d
    sdst->max_forced_staging_uploads = ssrc->max_forced_staging_uploads;
    sdst->flags = ssrc->flags;
 
-   assert(sdst->vram_usage == ssrc->vram_usage);
-   assert(sdst->gart_usage == ssrc->gart_usage);
+   assert(sdst->vram_usage_kb == ssrc->vram_usage_kb);
+   assert(sdst->gart_usage_kb == ssrc->gart_usage_kb);
    assert(sdst->bo_size == ssrc->bo_size);
    assert(sdst->bo_alignment == ssrc->bo_alignment);
    assert(sdst->domains == ssrc->domains);
@@ -647,8 +647,8 @@ static struct pipe_resource *si_buffer_from_user_memory(struct pipe_screen *scre
    }
 
    buf->gpu_address = ws->buffer_get_virtual_address(buf->buf);
-   buf->vram_usage = 0;
-   buf->gart_usage = templ->width0;
+   buf->vram_usage_kb = 0;
+   buf->gart_usage_kb = templ->width0 / 1024;
 
    return &buf->b.b;
 }
@@ -671,9 +671,9 @@ struct pipe_resource *si_buffer_from_winsys_buffer(struct pipe_screen *screen,
    res->domains = sscreen->ws->buffer_get_initial_domain(res->buf);
 
    if (res->domains & RADEON_DOMAIN_VRAM)
-      res->vram_usage = res->bo_size;
+      res->vram_usage_kb = MAX2(1, res->bo_size / 1024);
    else if (res->domains & RADEON_DOMAIN_GTT)
-      res->gart_usage = res->bo_size;
+      res->gart_usage_kb = MAX2(1, res->bo_size / 1024);
 
    if (sscreen->ws->buffer_get_flags)
       res->flags = sscreen->ws->buffer_get_flags(res->buf);

@@ -120,6 +120,12 @@ lp_setup_set_primitive(struct vbuf_render *vbr, enum pipe_prim_type prim)
    lp_setup_context(vbr)->prim = prim;
 }
 
+static void
+lp_setup_set_view_index(struct vbuf_render *vbr, unsigned view_index)
+{
+   lp_setup_context(vbr)->view_index = view_index;
+}
+
 typedef const float (*const_float4_ptr)[4];
 
 static inline const_float4_ptr get_vert( const void *vertex_buffer,
@@ -597,6 +603,7 @@ lp_setup_init_vbuf(struct lp_setup_context *setup)
    setup->base.map_vertices = lp_setup_map_vertices;
    setup->base.unmap_vertices = lp_setup_unmap_vertices;
    setup->base.set_primitive = lp_setup_set_primitive;
+   setup->base.set_view_index = lp_setup_set_view_index;
    setup->base.draw_elements = lp_setup_draw_elements;
    setup->base.draw_arrays = lp_setup_draw_arrays;
    setup->base.release_vertices = lp_setup_release_vertices;

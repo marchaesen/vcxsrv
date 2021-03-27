@@ -75,9 +75,9 @@ class Opcode(object):
       assert isinstance(algebraic_properties, str)
       assert isinstance(const_expr, str)
       assert len(input_sizes) == len(input_types)
-      assert 0 <= output_size <= 4 or (output_size == 8) or (output_size == 16)
+      assert 0 <= output_size <= 5 or (output_size == 8) or (output_size == 16)
       for size in input_sizes:
-         assert 0 <= size <= 4 or (size == 8) or (size == 16)
+         assert 0 <= size <= 5 or (size == 8) or (size == 16)
          if output_size != 0:
             assert size != 0
       self.name = name
@@ -195,9 +195,24 @@ unop("mov", tuint, "src0")
 unop("ineg", tint, "-src0")
 unop("fneg", tfloat, "-src0")
 unop("inot", tint, "~src0") # invert every bit of the integer
+
+# nir_op_fsign roughly implements the OpenGL / Vulkan rules for sign(float).
+# The GLSL.std.450 FSign instruction is defined as:
+#
+#    Result is 1.0 if x > 0, 0.0 if x = 0, or -1.0 if x < 0.
+#
+# If the source is equal to zero, there is a preference for the result to have
+# the same sign, but this is not required (it is required by OpenCL).  If the
+# source is not a number, there is a preference for the result to be +0.0, but
+# this is not required (it is required by OpenCL).  If the source is not a
+# number, and the result is not +0.0, the result should definitely **not** be
+# NaN.
+#
+# The values returned for constant folding match the behavior required by
+# OpenCL.
 unop("fsign", tfloat, ("bit_size == 64 ? " +
-                       "((src0 == 0.0) ? 0.0 : ((src0 > 0.0) ? 1.0 : -1.0)) : " +
-                       "((src0 == 0.0f) ? 0.0f : ((src0 > 0.0f) ? 1.0f : -1.0f))"))
+                       "(isnan(src0) ? 0.0  : ((src0 == 0.0 ) ? src0 : (src0 > 0.0 ) ? 1.0  : -1.0 )) : " +
+                       "(isnan(src0) ? 0.0f : ((src0 == 0.0f) ? src0 : (src0 > 0.0f) ? 1.0f : -1.0f))"))
 unop("isign", tint, "(src0 == 0) ? 0 : ((src0 > 0) ? 1 : -1)")
 unop("iabs", tint, "(src0 < 0) ? -src0 : src0")
 unop("fabs", tfloat, "fabs(src0)")
@@ -439,6 +454,16 @@ for (int bit = bit_size - 1; bit >= 0; bit--) {
 }
 """)
 
+unop_convert("ufind_msb_rev", tint32, tuint, """
+dst = -1;
+for (int bit = 0; bit < bit_size; bit++) {
+   if ((src0 << bit) & 0x80000000) {
+      dst = bit;
+      break;
+   }
+}
+""")
+
 unop("uclz", tuint32, """
 int bit;
 for (bit = bit_size - 1; bit >= 0; bit--) {
@@ -458,6 +483,22 @@ for (int bit = 31; bit >= 0; bit--) {
       (!((src0 >> bit) & 1) && (src0 < 0))) {
       dst = bit;
       break;
+   }
+}
+""")
+
+unop_convert("ifind_msb_rev", tint32, tuint, """
+dst = -1;
+if (src0 != 0 || src0 != -1) {
+   for (int bit = 0; bit < 31; bit++) {
+      /* If src0 < 0, we're looking for the first 0 bit.
+       * if src0 >= 0, we're looking for the first 1 bit.
+       */
+      if ((((src0 << bit) & 0x40000000) && (src0 >= 0)) ||
+          ((!((src0 << bit) & 0x40000000)) && (src0 < 0))) {
+         dst = bit;
+         break;
+      }
    }
 }
 """)
@@ -560,6 +601,9 @@ def binop_reduce(name, output_size, output_type, src_type, prereduce_expr,
    opcode(name + "3" + suffix, output_size, output_type,
           [3, 3], [src_type, src_type], False, _2src_commutative,
           final(reduce_(reduce_(srcs[2], srcs[1]), srcs[0])))
+   opcode(name + "5" + suffix, output_size, output_type,
+          [5, 5], [src_type, src_type], False, _2src_commutative,
+          final(reduce_(srcs[4], reduce_(reduce_(srcs[3], srcs[2]), reduce_(srcs[1], srcs[0])))))
 
 def binop_reduce_all_sizes(name, output_size, src_type, prereduce_expr,
                            reduce_expr, final_expr):
@@ -971,6 +1015,12 @@ opcode("b16csel", 0, tuint, [0, 0, 0],
 opcode("b32csel", 0, tuint, [0, 0, 0],
        [tbool32, tuint, tuint], False, "", "src0 ? src1 : src2")
 
+triop("i32csel_gt", tint32, "", "(src0 > 0.0f) ? src1 : src2")
+triop("i32csel_ge", tint32, "", "(src0 >= 0.0f) ? src1 : src2")
+
+triop("fcsel_gt", tfloat32, "", "(src0 > 0.0f) ? src1 : src2")
+triop("fcsel_ge", tfloat32, "", "(src0 >= 0.0f) ? src1 : src2")
+
 # SM5 bfi assembly
 triop("bfi", tuint32, "", """
 unsigned mask = src0, insert = src1, base = src2;
@@ -1079,6 +1129,16 @@ dst.z = src2.x;
 dst.w = src3.x;
 """)
 
+opcode("vec5", 5, tuint,
+       [1] * 5, [tuint] * 5,
+       False, "", """
+dst.x = src0.x;
+dst.y = src1.x;
+dst.z = src2.x;
+dst.w = src3.x;
+dst.e = src4.x;
+""")
+
 opcode("vec8", 8, tuint,
        [1] * 8, [tuint] * 8,
        False, "", """
@@ -1138,6 +1198,46 @@ dst = ((((src0 & 0xffff0000) >> 16) * (src1 & 0x0000ffff)) << 16) + src2;
 # 24b multiply into 32b result (with sign extension) plus 32b int
 triop("imad24_ir3", tint32, _2src_commutative,
       "(((int32_t)src0 << 8) >> 8) * (((int32_t)src1 << 8) >> 8) + src2")
+
+# r600-specific instruction that evaluates unnormalized cube texture coordinates
+# and face index
+# The actual texture coordinates are evaluated from this according to
+#    dst.yx / abs(dst.z) + 1.5
+unop_horiz("cube_r600", 4, tfloat32, 3, tfloat32, """
+   dst.x = dst.y = dst.z = 0.0;
+   float absX = fabsf(src0.x);
+   float absY = fabsf(src0.y);
+   float absZ = fabsf(src0.z);
+
+   if (absX >= absY && absX >= absZ) { dst.z = 2 * src0.x; }
+   if (absY >= absX && absY >= absZ) { dst.z = 2 * src0.y; }
+   if (absZ >= absX && absZ >= absY) { dst.z = 2 * src0.z; }
+
+   if (src0.x >= 0 && absX >= absY && absX >= absZ) {
+      dst.y = -src0.z; dst.x = -src0.y; dst.w = 0;
+   }
+   if (src0.x < 0 && absX >= absY && absX >= absZ) {
+      dst.y = src0.z; dst.x = -src0.y; dst.w = 1;
+   }
+   if (src0.y >= 0 && absY >= absX && absY >= absZ) {
+      dst.y = src0.x; dst.x = src0.z; dst.w = 2;
+   }
+   if (src0.y < 0 && absY >= absX && absY >= absZ) {
+      dst.y = src0.x; dst.x = -src0.z; dst.w = 3;
+   }
+   if (src0.z >= 0 && absZ >= absX && absZ >= absY) {
+      dst.y = src0.x; dst.x = -src0.y; dst.w = 4;
+   }
+   if (src0.z < 0 && absZ >= absX && absZ >= absY) {
+      dst.y = -src0.x; dst.x = -src0.y; dst.w = 5;
+   }
+""")
+
+# r600 specific sin and cos
+# these trigeometric functions need some lowering because the supported
+# input values are expected to be normalized by dividing by (2 * pi)
+unop("fsin_r600", tfloat32, "sinf(6.2831853 * src0)")
+unop("fcos_r600", tfloat32, "cosf(6.2831853 * src0)")
 
 # 24b multiply into 32b result (with sign extension)
 binop("imul24", tint32, _2src_commutative + associative,

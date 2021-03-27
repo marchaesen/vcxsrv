@@ -47,6 +47,9 @@ enum alu_op_flags
 	AF_4V		= (AF_V | AF_4SLOT),
 	AF_VS		= (AF_V | AF_S),     /* allowed in any slot */
 
+	AF_2SLOT = (1 << 3),
+	AF_2V    = AF_V | AF_2SLOT, /* XY or ZW */
+
 	AF_KILL		= (1<<4),
 	AF_PRED		= (1<<5),
 	AF_SET		= (1<<6),
@@ -55,6 +58,7 @@ enum alu_op_flags
 	AF_PREV_INTERLEAVE	= (1<<7),
 
 	AF_MOVA		= (1<<8),    /* all MOVA instructions */
+
 	AF_IEEE		= (1<<10),
 
 	AF_DST_TYPE_MASK = (3<<11),
@@ -107,6 +111,7 @@ enum alu_op_flags
 
 	/* condition codes - 3 bits */
 	AF_CC_SHIFT = 29,
+
 	AF_CC_MASK	= (7U << AF_CC_SHIFT),
 	AF_CC_E		= (0U << AF_CC_SHIFT),
 	AF_CC_GT	= (1U << AF_CC_SHIFT),

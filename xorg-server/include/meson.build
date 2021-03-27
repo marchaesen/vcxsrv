@@ -318,6 +318,7 @@ configure_file(output : 'dix-config.h',
 configure_file(output : 'xorg-server.h',
                input : 'xorg-server.h.meson.in',
                configuration : conf_data,
+               install: build_xorg,
                install_dir: xorgsdkdir)
 
 version_data = configuration_data()
@@ -338,7 +339,7 @@ xkb_data.set_quoted('XKB_DFLT_MODEL', get_option('xkb_default_model'))
 xkb_data.set_quoted('XKB_DFLT_LAYOUT', get_option('xkb_default_layout'))
 xkb_data.set_quoted('XKB_DFLT_VARIANT', get_option('xkb_default_variant'))
 xkb_data.set_quoted('XKB_DFLT_OPTIONS', get_option('xkb_default_options'))
-xkb_data.set_quoted('XKM_OUTPUT_DIR', xkb_output_dir)
+xkb_data.set_quoted('XKM_OUTPUT_DIR', xkb_output_dir + '/')
 
 configure_file(output : 'xkb-config.h',
                configuration : xkb_data)

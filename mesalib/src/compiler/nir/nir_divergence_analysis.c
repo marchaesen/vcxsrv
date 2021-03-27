@@ -99,6 +99,7 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_vote_all:
    case nir_intrinsic_vote_feq:
    case nir_intrinsic_vote_ieq:
+   case nir_intrinsic_load_push_constant:
    case nir_intrinsic_load_work_dim:
    case nir_intrinsic_load_work_group_id:
    case nir_intrinsic_load_num_work_groups:
@@ -132,6 +133,16 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_load_blend_const_color_rgba:
    case nir_intrinsic_load_blend_const_color_aaaa8888_unorm:
    case nir_intrinsic_load_blend_const_color_rgba8888_unorm:
+   case nir_intrinsic_load_line_width:
+   case nir_intrinsic_load_aa_line_width:
+   case nir_intrinsic_load_fb_layers_v3d:
+   case nir_intrinsic_load_tcs_num_patches_amd:
+   case nir_intrinsic_load_ring_tess_factors_amd:
+   case nir_intrinsic_load_ring_tess_offchip_amd:
+   case nir_intrinsic_load_ring_tess_factors_offset_amd:
+   case nir_intrinsic_load_ring_tess_offchip_offset_amd:
+   case nir_intrinsic_load_ring_esgs_amd:
+   case nir_intrinsic_load_ring_es2gs_offset_amd:
       is_divergent = false;
       break;
 
@@ -247,9 +258,17 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
                      instr->src[1].ssa->divergent;
       break;
 
+   case nir_intrinsic_get_ssbo_size:
+   case nir_intrinsic_deref_buffer_array_length:
+      is_divergent = instr->src[0].ssa->divergent && (nir_intrinsic_access(instr) & ACCESS_NON_UNIFORM);
+      break;
+
    case nir_intrinsic_image_load:
    case nir_intrinsic_image_deref_load:
    case nir_intrinsic_bindless_image_load:
+   case nir_intrinsic_image_sparse_load:
+   case nir_intrinsic_image_deref_sparse_load:
+   case nir_intrinsic_bindless_image_sparse_load:
       is_divergent = (instr->src[0].ssa->divergent && (nir_intrinsic_access(instr) & ACCESS_NON_UNIFORM)) ||
                      instr->src[1].ssa->divergent || instr->src[2].ssa->divergent || instr->src[3].ssa->divergent;
       break;
@@ -272,26 +291,27 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_load_global:
    case nir_intrinsic_load_global_constant:
    case nir_intrinsic_load_uniform:
-   case nir_intrinsic_load_push_constant:
    case nir_intrinsic_load_constant:
    case nir_intrinsic_load_sample_pos_from_id:
    case nir_intrinsic_load_kernel_input:
+   case nir_intrinsic_load_buffer_amd:
    case nir_intrinsic_image_samples:
    case nir_intrinsic_image_deref_samples:
    case nir_intrinsic_bindless_image_samples:
-   case nir_intrinsic_get_ssbo_size:
    case nir_intrinsic_image_size:
    case nir_intrinsic_image_deref_size:
    case nir_intrinsic_bindless_image_size:
    case nir_intrinsic_copy_deref:
-   case nir_intrinsic_deref_buffer_array_length:
    case nir_intrinsic_vulkan_resource_index:
    case nir_intrinsic_vulkan_resource_reindex:
    case nir_intrinsic_load_vulkan_descriptor:
    case nir_intrinsic_atomic_counter_read:
    case nir_intrinsic_atomic_counter_read_deref:
    case nir_intrinsic_quad_swizzle_amd:
-   case nir_intrinsic_masked_swizzle_amd: {
+   case nir_intrinsic_masked_swizzle_amd:
+   case nir_intrinsic_is_sparse_texels_resident:
+   case nir_intrinsic_sparse_residency_code_and:
+   case nir_intrinsic_get_ubo_size: {
       unsigned num_srcs = nir_intrinsic_infos[instr->intrinsic].num_srcs;
       for (unsigned i = 0; i < num_srcs; i++) {
          if (instr->src[i].ssa->divergent) {
@@ -381,6 +401,8 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_image_deref_atomic_exchange:
    case nir_intrinsic_image_deref_atomic_comp_swap:
    case nir_intrinsic_image_deref_atomic_fadd:
+   case nir_intrinsic_image_deref_atomic_fmin:
+   case nir_intrinsic_image_deref_atomic_fmax:
    case nir_intrinsic_image_atomic_add:
    case nir_intrinsic_image_atomic_imin:
    case nir_intrinsic_image_atomic_umin:
@@ -392,6 +414,8 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_image_atomic_exchange:
    case nir_intrinsic_image_atomic_comp_swap:
    case nir_intrinsic_image_atomic_fadd:
+   case nir_intrinsic_image_atomic_fmin:
+   case nir_intrinsic_image_atomic_fmax:
    case nir_intrinsic_bindless_image_atomic_add:
    case nir_intrinsic_bindless_image_atomic_imin:
    case nir_intrinsic_bindless_image_atomic_umin:
@@ -403,6 +427,8 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_bindless_image_atomic_exchange:
    case nir_intrinsic_bindless_image_atomic_comp_swap:
    case nir_intrinsic_bindless_image_atomic_fadd:
+   case nir_intrinsic_bindless_image_atomic_fmin:
+   case nir_intrinsic_bindless_image_atomic_fmax:
    case nir_intrinsic_shared_atomic_add:
    case nir_intrinsic_shared_atomic_imin:
    case nir_intrinsic_shared_atomic_umin:
@@ -459,6 +485,9 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_write_invocation_amd:
    case nir_intrinsic_mbcnt_amd:
    case nir_intrinsic_elect:
+   case nir_intrinsic_load_tlb_color_v3d:
+   case nir_intrinsic_load_tess_rel_patch_id_amd:
+   case nir_intrinsic_load_gs_vertex_offset_amd:
       is_divergent = true;
       break;
 
@@ -733,7 +762,7 @@ visit_loop_header_phi(nir_phi_instr *phi, nir_block *preheader, bool divergent_c
       if (src->pred == preheader)
          continue;
       /* skip undef values */
-      if (src->src.ssa->parent_instr->type == nir_instr_type_ssa_undef)
+      if (nir_src_is_undef(src->src))
          continue;
 
       /* check if all loop-carried values are from the same ssa-def */
@@ -876,6 +905,8 @@ visit_loop(nir_loop *loop, struct divergence_state *state)
       progress |= visit_loop_exit_phi(nir_instr_as_phi(instr),
                                       loop_state.divergent_loop_break);
    }
+
+   loop->divergent = (loop_state.divergent_loop_break || loop_state.divergent_loop_continue);
 
    return progress;
 }

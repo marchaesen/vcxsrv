@@ -152,6 +152,25 @@ __getProgramName()
    return progname;
 }
 #        define GET_PROGRAM_NAME() __getProgramName()
+#elif defined(__HAIKU__)
+#    include <libgen.h>
+extern char **__libc_argv;
+extern int __libc_argc;
+
+static const char *
+__getProgramName()
+{
+    static const char *progname;
+
+    if (progname == NULL) {
+        char *n = strdup(__libc_argv[0]);
+        if (n != NULL) {
+            progname = basename(n);
+        }
+    }
+    return progname;
+}
+#    define GET_PROGRAM_NAME() __getProgramName()
 #endif
 
 #if !defined(GET_PROGRAM_NAME)

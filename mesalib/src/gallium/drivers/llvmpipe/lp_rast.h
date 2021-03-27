@@ -101,10 +101,12 @@ struct lp_rast_shader_inputs {
    unsigned frontfacing:1;      /** True for front-facing */
    unsigned disable:1;          /** Partially binned, disable this command */
    unsigned opaque:1;           /** Is opaque */
-   unsigned pad0:29;            /* wasted space */
+   unsigned pad0:13;            /* wasted space */
+   unsigned view_index:16;
    unsigned stride;             /* how much to advance data between a0, dadx, dady */
    unsigned layer;              /* the layer to render to (from gs, already clamped) */
    unsigned viewport_index;     /* the active viewport index (from gs, already clamped) */
+
    /* followed by a0, dadx, dady and planes[] */
 };
 

@@ -151,6 +151,7 @@ MESA_FORMAT_X8B8G8R8_SRGB                 , packed, 1, 1, 1, x8  , un8 , un8 , u
 # Array sRGB formats
 MESA_FORMAT_R_SRGB8                       , array , 1, 1, 1, un8 ,     ,     ,     , x001, srgb
 MESA_FORMAT_L_SRGB8                       , array , 1, 1, 1, un8 ,     ,     ,     , xxx1, srgb
+MESA_FORMAT_RG_SRGB8                      , array , 1, 1, 1, un8 , un8 ,     ,     , xy01, srgb
 MESA_FORMAT_LA_SRGB8                      , array , 1, 1, 1, un8 , un8 ,     ,     , xxxy, srgb
 MESA_FORMAT_BGR_SRGB8                     , array , 1, 1, 1, un8 , un8 , un8 ,     , zyx1, srgb
 

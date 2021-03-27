@@ -34,21 +34,6 @@
 
 void disassemble_bifrost(FILE *fp, uint8_t *code, size_t size, bool verbose);
 
-enum bi_constmod {
-        BI_CONSTMOD_NONE,
-        BI_CONSTMOD_PC_LO,
-        BI_CONSTMOD_PC_HI,
-        BI_CONSTMOD_PC_LO_HI
-};
-
-struct bi_constants {
-        /* Raw constant values */
-        uint64_t raw[6];
-
-        /* Associated modifier derived from M values */
-        enum bi_constmod mods[6];
-};
-
 void
 bi_disasm_fma(FILE *fp, unsigned bits, struct bifrost_regs *srcs, struct bifrost_regs *next_regs, unsigned staging_register, unsigned branch_offset, struct bi_constants *consts, bool first);
 

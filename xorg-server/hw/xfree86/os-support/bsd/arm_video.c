@@ -65,6 +65,7 @@
 #include "xf86Priv.h"
 #include "xf86_OSlib.h"
 #include "xf86OSpriv.h"
+#include "compiler.h"
 
 #if defined(__NetBSD__) && !defined(MAP_FILE)
 #define MAP_FLAGS MAP_SHARED
@@ -161,6 +162,8 @@ xf86DisableIO()
 #endif
 
 #if defined(USE_ARC_MMAP) || defined(__arm32__)
+
+unsigned int IOPortBase;
 
 Bool
 xf86EnableIO()

@@ -585,9 +585,6 @@ struct v3d_blend_state {
                 pipe_debug_message(&v3d->debug, PERF_INFO, __VA_ARGS__);    \
 } while (0)
 
-#define foreach_bit(b, mask)                                            \
-        for (uint32_t _m = (mask), b; _m && ({(b) = u_bit_scan(&_m); 1;});)
-
 static inline struct v3d_context *
 v3d_context(struct pipe_context *pcontext)
 {

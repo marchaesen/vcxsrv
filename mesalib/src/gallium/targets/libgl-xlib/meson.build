@@ -52,7 +52,7 @@ libgl = shared_library(
     libxlib, libws_xlib, libglapi_static,
     libgallium, libmesa_gallium, gallium_xlib_link_with,
   ],
-  dependencies : [dep_thread, dep_clock, dep_unwind, driver_swrast, driver_swr],
+  dependencies : [dep_thread, dep_clock, dep_unwind, driver_swrast, driver_swr, driver_virgl],
   install : true,
   version : '1.5.0',
 )

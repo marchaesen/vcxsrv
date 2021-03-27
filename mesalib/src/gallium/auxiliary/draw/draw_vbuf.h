@@ -100,6 +100,11 @@ struct vbuf_render {
    void (*set_primitive)( struct vbuf_render *, enum pipe_prim_type prim );
 
    /**
+    * Notify the renderer of the current view index.
+    */
+   void (*set_view_index)( struct vbuf_render *, unsigned view_index );
+
+   /**
     * Draw indexed primitives.  Note that indices are ushort.  The driver
     * must complete this call, if necessary splitting the index list itself.
     */

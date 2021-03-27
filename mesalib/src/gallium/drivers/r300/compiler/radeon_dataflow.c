@@ -610,7 +610,7 @@ static void get_readers_normal_read_callback(
 
 /**
  * This function is used by rc_get_readers_normal() to determine when
- * userdata->ReaderData->Writer is dead (i. e. All compontents of its
+ * userdata->ReaderData->Writer is dead (i. e. All components of its
  * destination register have been overwritten by other instructions).
  */
 static void get_readers_write_callback(

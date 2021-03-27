@@ -124,17 +124,25 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
                 fail_instr(state, "LDUNIF after a LDVARY");
         }
 
-        /* GFXH-1633 */
-        bool last_reads_ldunif = (state->last && (state->last->sig.ldunif ||
-                                                  state->last->sig.ldunifrf));
-        bool last_reads_ldunifa = (state->last && (state->last->sig.ldunifa ||
-                                                   state->last->sig.ldunifarf));
-        bool reads_ldunif = inst->sig.ldunif || inst->sig.ldunifrf;
-        bool reads_ldunifa = inst->sig.ldunifa || inst->sig.ldunifarf;
-        if ((last_reads_ldunif && reads_ldunifa) ||
-            (last_reads_ldunifa && reads_ldunif)) {
-                fail_instr(state,
-                           "LDUNIF and LDUNIFA can't be next to each other");
+        /* GFXH-1633 (fixed since V3D 4.2.14, which is Rpi4)
+         *
+         * FIXME: This would not check correctly for V3D 4.2 versions lower
+         * than V3D 4.2.14, but that is not a real issue because the simulator
+         * will still catch this, and we are not really targetting any such
+         * versions anyway.
+         */
+        if (state->c->devinfo->ver < 42) {
+                bool last_reads_ldunif = (state->last && (state->last->sig.ldunif ||
+                                                          state->last->sig.ldunifrf));
+                bool last_reads_ldunifa = (state->last && (state->last->sig.ldunifa ||
+                                                           state->last->sig.ldunifarf));
+                bool reads_ldunif = inst->sig.ldunif || inst->sig.ldunifrf;
+                bool reads_ldunifa = inst->sig.ldunifa || inst->sig.ldunifarf;
+                if ((last_reads_ldunif && reads_ldunifa) ||
+                    (last_reads_ldunifa && reads_ldunif)) {
+                        fail_instr(state,
+                                   "LDUNIF and LDUNIFA can't be next to each other");
+                }
         }
 
         int tmu_writes = 0;
@@ -145,8 +153,10 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
 
         if (inst->alu.add.op != V3D_QPU_A_NOP) {
                 if (inst->alu.add.magic_write) {
-                        if (v3d_qpu_magic_waddr_is_tmu(inst->alu.add.waddr))
+                        if (v3d_qpu_magic_waddr_is_tmu(state->c->devinfo,
+                                                       inst->alu.add.waddr)) {
                                 tmu_writes++;
+                        }
                         if (v3d_qpu_magic_waddr_is_sfu(inst->alu.add.waddr))
                                 sfu_writes++;
                         if (v3d_qpu_magic_waddr_is_vpm(inst->alu.add.waddr))
@@ -160,8 +170,10 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
 
         if (inst->alu.mul.op != V3D_QPU_M_NOP) {
                 if (inst->alu.mul.magic_write) {
-                        if (v3d_qpu_magic_waddr_is_tmu(inst->alu.mul.waddr))
+                        if (v3d_qpu_magic_waddr_is_tmu(state->c->devinfo,
+                                                       inst->alu.mul.waddr)) {
                                 tmu_writes++;
+                        }
                         if (v3d_qpu_magic_waddr_is_sfu(inst->alu.mul.waddr))
                                 sfu_writes++;
                         if (v3d_qpu_magic_waddr_is_vpm(inst->alu.mul.waddr))

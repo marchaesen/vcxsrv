@@ -154,7 +154,7 @@ static void lower_vri_instr_tex(struct nir_builder *b,
    lower_vri_instr_tex_deref(tex, nir_tex_src_sampler_deref, b->shader->info.stage, layout);
    tex_value = lower_vri_instr_tex_deref(tex, nir_tex_src_texture_deref, b->shader->info.stage, layout);
    if (tex_value >= 0)
-      b->shader->info.textures_used |= (1 << tex_value);
+      BITSET_SET(b->shader->info.textures_used, tex_value);
 }
 
 static nir_ssa_def *lower_vri_instr(struct nir_builder *b,

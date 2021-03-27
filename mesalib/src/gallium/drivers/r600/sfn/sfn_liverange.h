@@ -55,9 +55,9 @@ enum prog_scope_type {
    loop_body,             /* Inside a loop */
    if_branch,             /* Inside if branch */
    else_branch,           /* Inside else branch */
-   switch_body,           /* Inside switch statmenet */
-   switch_case_branch,    /* Inside switch case statmenet */
-   switch_default_branch, /* Inside switch default statmenet */
+   switch_body,           /* Inside switch statement */
+   switch_case_branch,    /* Inside switch case statement */
+   switch_default_branch, /* Inside switch default statement */
    undefined_scope
 };
 
@@ -180,7 +180,7 @@ private:
    static const int supported_ifelse_nesting_depth = 32;
 
    /* Tracks the last if scope in which the temporary was written to
-    * without a write in the correspondig else branch. Is also used
+    * without a write in the corresponding else branch. Is also used
     * to track read-before-write in the according scope.
     */
    const prog_scope *current_unpaired_if_write_scope;

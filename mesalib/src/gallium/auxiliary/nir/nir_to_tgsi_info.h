@@ -29,7 +29,7 @@ struct nir_shader;
 struct tgsi_shader_info;
 
 /* only llvmpipe uses this path, so handle draw not using llvm */
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
 void nir_tgsi_scan_shader(const struct nir_shader *nir,
                           struct tgsi_shader_info *info,
                           bool need_texcoord);

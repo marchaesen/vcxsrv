@@ -2138,8 +2138,8 @@ SOFTWARE.
 #define XK_dintegral                  0x100222C  /* U+222C DOUBLE INTEGRAL */
 #define XK_tintegral                  0x100222D  /* U+222D TRIPLE INTEGRAL */
 #define XK_because                    0x1002235  /* U+2235 BECAUSE */
-#define XK_approxeq                   0x1002248  /* U+2245 ALMOST EQUAL TO */
-#define XK_notapproxeq                0x1002247  /* U+2247 NOT ALMOST EQUAL TO */
+#define XK_approxeq                   0x1002248  /*(U+2248 ALMOST EQUAL TO)*/
+#define XK_notapproxeq                0x1002247  /*(U+2247 NEITHER APPROXIMATELY NOR ACTUALLY EQUAL TO)*/
 #define XK_notidentical               0x1002262  /* U+2262 NOT IDENTICAL TO */
 #define XK_stricteq                   0x1002263  /* U+2263 STRICTLY EQUIVALENT TO */
 #endif /* XK_MATHEMATICAL */

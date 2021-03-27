@@ -124,12 +124,12 @@ partial alphanumeric_keys
 
 partial alphanumeric_keys
 	xkb_symbols "de_Sundeadkeys" {
-	include "ch(de_sundeadkeys)"
+	include "ch(de)"
 };
 
 partial alphanumeric_keys
 	xkb_symbols "de_sundeadkeys" {
-	include "ch(de_sundeadkeys)"
+	include "ch(de)"
 };
 
 partial alphanumeric_keys
@@ -144,12 +144,12 @@ partial alphanumeric_keys
 
 partial alphanumeric_keys
 	xkb_symbols "fr_Sundeadkeys" {
-	include "ch(fr_sundeadkeys)"
+	include "ch(fr)"
 };
 
 partial alphanumeric_keys
 	xkb_symbols "fr_sundeadkeys" {
-	include "ch(fr_sundeadkeys)"
+	include "ch(fr)"
 };
 
 partial alphanumeric_keys

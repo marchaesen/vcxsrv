@@ -30,6 +30,151 @@
 #define PGP_PREV_MASTER_KEY_FP                                  \
     "440D E3B5 B7A1 CA85 B3CC  1718 AB58 5DC6 0467 6F7C"
 
+/*
+ * Definitions of three separate indexing schemes for colour palette
+ * entries.
+ *
+ * Why three? Because history, sorry.
+ *
+ * Two of the colour indexings are used in escape sequences. The
+ * Linux-console style OSC P sequences for setting the palette use an
+ * indexing in which the eight standard ANSI SGR colours come first,
+ * then their bold versions, and then six extra colours for default
+ * fg/bg and the terminal cursor. And the xterm OSC 4 sequences for
+ * querying the palette use a related indexing in which the six extra
+ * colours are pushed up to indices 256 and onwards, with the previous
+ * 16 being the first part of the xterm 256-colour space, and 240
+ * additional terminal-accessible colours inserted in the middle.
+ *
+ * The third indexing is the order that the colours appear in the
+ * PuTTY configuration panel, and also the order in which they're
+ * described in the saved session files. This order specifies the same
+ * set of colours as the OSC P encoding, but in a different order,
+ * with the default fg/bg colours (which users are most likely to want
+ * to reconfigure) at the start, and the ANSI SGR colours coming
+ * later.
+ *
+ * So all three indices really are needed, because all three appear in
+ * protocols or file formats outside the PuTTY binary. (Changing the
+ * saved-session encoding would have a backwards-compatibility impact;
+ * also, if we ever do, it would be better to replace the numeric
+ * indices with descriptive keywords.)
+ *
+ * Since the OSC 4 encoding contains the full set of colours used in
+ * the terminal display, that's the encoding used by front ends to
+ * store any actual data associated with their palette entries. So the
+ * TermWin palette_set and palette_get_overrides methods use that
+ * encoding, and so does the bitwise encoding of attribute words used
+ * in terminal redraw operations.
+ *
+ * The Conf encoding, of course, is used by config.c and settings.c.
+ *
+ * The aim is that those two sections of the code should never need to
+ * come directly into contact, and the only module that should have to
+ * deal directly with the mapping between these colour encodings - or
+ * to deal _at all_ with the intermediate OSC P encoding - is
+ * terminal.c itself.
+ */
+
+#define CONF_NCOLOURS 22               /* 16 + 6 special ones */
+#define OSCP_NCOLOURS 22               /* same as CONF, but different order */
+#define OSC4_NCOLOURS 262              /* 256 + the same 6 special ones */
+
+/* The list macro for the conf colours also gives the textual names
+ * used in the GUI configurer */
+#define CONF_COLOUR_LIST(X)                     \
+    X(fg, "Default Foreground")                 \
+    X(fg_bold, "Default Bold Foreground")       \
+    X(bg, "Default Background")                 \
+    X(bg_bold, "Default Bold Background")       \
+    X(cursor_fg, "Cursor Text")                 \
+    X(cursor_bg, "Cursor Colour")               \
+    X(black, "ANSI Black")                      \
+    X(black_bold, "ANSI Black Bold")            \
+    X(red, "ANSI Red")                          \
+    X(red_bold, "ANSI Red Bold")                \
+    X(green, "ANSI Green")                      \
+    X(green_bold, "ANSI Green Bold")            \
+    X(yellow, "ANSI Yellow")                    \
+    X(yellow_bold, "ANSI Yellow Bold")          \
+    X(blue, "ANSI Blue")                        \
+    X(blue_bold, "ANSI Blue Bold")              \
+    X(magenta, "ANSI Magenta")                  \
+    X(magenta_bold, "ANSI Magenta Bold")        \
+    X(cyan, "ANSI Cyan")                        \
+    X(cyan_bold, "ANSI Cyan Bold")              \
+    X(white, "ANSI White")                      \
+    X(white_bold, "ANSI White Bold")            \
+    /* end of list */
+
+#define OSCP_COLOUR_LIST(X)                     \
+    X(black)                                    \
+    X(red)                                      \
+    X(green)                                    \
+    X(yellow)                                   \
+    X(blue)                                     \
+    X(magenta)                                  \
+    X(cyan)                                     \
+    X(white)                                    \
+    X(black_bold)                               \
+    X(red_bold)                                 \
+    X(green_bold)                               \
+    X(yellow_bold)                              \
+    X(blue_bold)                                \
+    X(magenta_bold)                             \
+    X(cyan_bold)                                \
+    X(white_bold)                               \
+    /*
+     * In the OSC 4 indexing, this is where the extra 240 colours go.
+     * They consist of:
+     *
+     *  - 216 colours forming a 6x6x6 cube, with R the most
+     *    significant colour and G the least. In other words, these
+     *    occupy the space of indices 16 <= i < 232, with each
+     *    individual colour found as i = 16 + 36*r + 6*g + b, for all
+     *    0 <= r,g,b <= 5.
+     *
+     *  - The remaining indices, 232 <= i < 256, consist of a uniform
+     *    series of grey shades running between black and white (but
+     *    not including either, since actual black and white are
+     *    already provided in the previous colour cube).
+     *
+     * After that, we have the remaining 6 special colours:
+     */                                         \
+    X(fg)                                       \
+    X(fg_bold)                                  \
+    X(bg)                                       \
+    X(bg_bold)                                  \
+    X(cursor_fg)                                \
+    X(cursor_bg)                                \
+    /* end of list */
+
+/* Enumerations of the colour lists. These are available everywhere in
+ * the code. The OSC P encoding shouldn't be used outside terminal.c,
+ * but the easiest way to define the OSC 4 enum is to have the OSC P
+ * one available to compute with. */
+enum {
+    #define ENUM_DECL(id,name) CONF_COLOUR_##id,
+    CONF_COLOUR_LIST(ENUM_DECL)
+    #undef ENUM_DECL
+};
+enum {
+    #define ENUM_DECL(id) OSCP_COLOUR_##id,
+    OSCP_COLOUR_LIST(ENUM_DECL)
+    #undef ENUM_DECL
+};
+enum {
+    #define ENUM_DECL(id) OSC4_COLOUR_##id = \
+        OSCP_COLOUR_##id + (OSCP_COLOUR_##id >= 16 ? 240 : 0),
+    OSCP_COLOUR_LIST(ENUM_DECL)
+    #undef ENUM_DECL
+};
+
+/* Mapping tables defined in terminal.c */
+extern const int colour_indices_conf_to_oscp[CONF_NCOLOURS];
+extern const int colour_indices_conf_to_osc4[CONF_NCOLOURS];
+extern const int colour_indices_oscp_to_osc4[OSCP_NCOLOURS];
+
 /* Three attribute types:
  * The ATTRs (normal attributes) are stored with the characters in
  * the main display arrays
@@ -71,9 +216,9 @@
 
 #define ATTR_INVALID 0x03FFFFU
 
-/* Like Linux use the F000 page for direct to font. */
-#define CSET_OEMCP   0x0000F000UL      /* OEM Codepage DTF */
-#define CSET_ACP     0x0000F100UL      /* Ansi Codepage DTF */
+/* Use the DC00 page for direct to font. */
+#define CSET_OEMCP   0x0000DC00UL      /* OEM Codepage DTF */
+#define CSET_ACP     0x0000DD00UL      /* Ansi Codepage DTF */
 
 /* These are internal use overlapping with the UTF-16 surrogates */
 #define CSET_ASCII   0x0000D800UL      /* normal ASCII charset ESC ( B */
@@ -83,7 +228,7 @@
 #define CSET_MASK    0xFFFFFF00UL      /* Character set mask */
 
 #define DIRECT_CHAR(c) ((c&0xFFFFFC00)==0xD800)
-#define DIRECT_FONT(c) ((c&0xFFFFFE00)==0xF000)
+#define DIRECT_FONT(c) ((c&0xFFFFFE00)==0xDC00)
 
 #define UCSERR       (CSET_LINEDRW|'a') /* UCS Format error character. */
 /*
@@ -102,35 +247,16 @@
 #define ATTR_UNDER   0x0080000U
 #define ATTR_REVERSE 0x0100000U
 #define ATTR_BLINK   0x0200000U
-#define ATTR_FGMASK  0x00001FFU
-#define ATTR_BGMASK  0x003FE00U
+#define ATTR_FGMASK  0x00001FFU /* stores a colour in OSC 4 indexing */
+#define ATTR_BGMASK  0x003FE00U /* stores a colour in OSC 4 indexing */
 #define ATTR_COLOURS 0x003FFFFU
 #define ATTR_DIM     0x1000000U
 #define ATTR_STRIKE  0x2000000U
 #define ATTR_FGSHIFT 0
 #define ATTR_BGSHIFT 9
 
-/*
- * The definitive list of colour numbers stored in terminal
- * attribute words is kept here. It is:
- *
- *  - 0-7 are ANSI colours (KRGYBMCW).
- *  - 8-15 are the bold versions of those colours.
- *  - 16-255 are the remains of the xterm 256-colour mode (a
- *    216-colour cube with R at most significant and B at least,
- *    followed by a uniform series of grey shades running between
- *    black and white but not including either on grounds of
- *    redundancy).
- *  - 256 is default foreground
- *  - 257 is default bold foreground
- *  - 258 is default background
- *  - 259 is default bold background
- *  - 260 is cursor foreground
- *  - 261 is cursor background
- */
-
-#define ATTR_DEFFG   (256 << ATTR_FGSHIFT)
-#define ATTR_DEFBG   (258 << ATTR_BGSHIFT)
+#define ATTR_DEFFG   (OSC4_COLOUR_fg << ATTR_FGSHIFT)
+#define ATTR_DEFBG   (OSC4_COLOUR_bg << ATTR_BGSHIFT)
 #define ATTR_DEFAULT (ATTR_DEFFG | ATTR_DEFBG)
 
 struct sesslist {
@@ -526,6 +652,12 @@ struct BackendVtable {
     /* Only implemented in the SSH protocol: check whether a
      * connection-sharing upstream exists for a given configuration. */
     bool (*test_for_upstream)(const char *host, int port, Conf *conf);
+    /* Special-purpose function to return additional information to put
+     * in a "are you sure you want to close this session" dialog;
+     * return NULL if no such info, otherwise caller must free.
+     * Only implemented in the SSH protocol, to warn about downstream
+     * connections that would be lost if this one were terminated. */
+    char *(*close_warn_text)(Backend *be);
 
     /* 'id' is a machine-readable name for the backend, used in
      * saved-session storage. 'displayname' is a human-readable name
@@ -840,8 +972,8 @@ struct SeatVtable {
      *    or +1'.
      */
     int (*verify_ssh_host_key)(
-        Seat *seat, const char *host, int port,
-        const char *keytype, char *keystr, char *key_fingerprint,
+        Seat *seat, const char *host, int port, const char *keytype,
+        char *keystr, const char *keydisp, char **key_fingerprints,
         void (*callback)(void *ctx, int result), void *ctx);
 
     /*
@@ -963,8 +1095,9 @@ static inline void seat_set_busy_status(Seat *seat, BusyStatus status)
 { seat->vt->set_busy_status(seat, status); }
 static inline int seat_verify_ssh_host_key(
     Seat *seat, const char *h, int p, const char *ktyp, char *kstr,
-    char *fp, void (*cb)(void *ctx, int result), void *ctx)
-{ return seat->vt->verify_ssh_host_key(seat, h, p, ktyp, kstr, fp, cb, ctx); }
+    const char *kdsp, char **fps, void (*cb)(void *ctx, int result), void *ctx)
+{ return seat->vt->verify_ssh_host_key(seat, h, p, ktyp, kstr, kdsp, fps,
+                                       cb, ctx); }
 static inline int seat_confirm_weak_crypto_primitive(
     Seat *seat, const char *atyp, const char *aname,
     void (*cb)(void *ctx, int result), void *ctx)
@@ -1027,8 +1160,8 @@ void nullseat_update_specials_menu(Seat *seat);
 char *nullseat_get_ttymode(Seat *seat, const char *mode);
 void nullseat_set_busy_status(Seat *seat, BusyStatus status);
 int nullseat_verify_ssh_host_key(
-    Seat *seat, const char *host, int port,
-    const char *keytype, char *keystr, char *key_fingerprint,
+    Seat *seat, const char *host, int port, const char *keytype,
+    char *keystr, const char *keydisp, char **key_fingerprints,
     void (*callback)(void *ctx, int result), void *ctx);
 int nullseat_confirm_weak_crypto_primitive(
     Seat *seat, const char *algtype, const char *algname,
@@ -1059,8 +1192,8 @@ bool nullseat_get_cursor_position(Seat *seat, int *x, int *y);
 
 void console_connection_fatal(Seat *seat, const char *message);
 int console_verify_ssh_host_key(
-    Seat *seat, const char *host, int port,
-    const char *keytype, char *keystr, char *key_fingerprint,
+    Seat *seat, const char *host, int port, const char *keytype,
+    char *keystr, const char *keydisp, char **key_fingerprints,
     void (*callback)(void *ctx, int result), void *ctx);
 int console_confirm_weak_crypto_primitive(
     Seat *seat, const char *algtype, const char *algname,
@@ -1077,6 +1210,10 @@ bool console_set_trust_status(Seat *seat, bool trusted);
  */
 int filexfer_get_userpass_input(Seat *seat, prompts_t *p, bufchain *input);
 bool cmdline_seat_verbose(Seat *seat);
+
+typedef struct rgb {
+    uint8_t r, g, b;
+} rgb;
 
 /*
  * Data type 'TermWin', which is a vtable encapsulating all the
@@ -1116,7 +1253,13 @@ struct TermWinVtable {
 
     void (*set_cursor_pos)(TermWin *, int x, int y);
 
+    /* set_raw_mouse_mode instructs the front end to start sending mouse events
+     * in raw mode suitable for translating into mouse-tracking terminal data
+     * (e.g. include scroll-wheel events and don't bother to identify double-
+     * and triple-clicks). set_raw_mouse_mode_pointer instructs the front end
+     * to change the mouse pointer shape to *indicate* raw mouse mode. */
     void (*set_raw_mouse_mode)(TermWin *, bool enable);
+    void (*set_raw_mouse_mode_pointer)(TermWin *, bool enable);
 
     void (*set_scrollbar)(TermWin *, int total, int start, int page);
 
@@ -1138,19 +1281,20 @@ struct TermWinVtable {
      * the window it remembers whether to go back to normal or
      * maximised. */
     void (*set_minimised)(TermWin *, bool minimised);
-    bool (*is_minimised)(TermWin *);
     void (*set_maximised)(TermWin *, bool maximised);
     void (*move)(TermWin *, int x, int y);
     void (*set_zorder)(TermWin *, bool top);
 
-    bool (*palette_get)(TermWin *, int n, int *r, int *g, int *b);
-    void (*palette_set)(TermWin *, int n, int r, int g, int b);
-    void (*palette_reset)(TermWin *);
+    /* Set the colour palette that the TermWin will use to display
+     * text. One call to this function sets 'ncolours' consecutive
+     * colours in the OSC 4 sequence, starting at 'start'. */
+    void (*palette_set)(TermWin *, unsigned start, unsigned ncolours,
+                        const rgb *colours);
 
-    void (*get_pos)(TermWin *, int *x, int *y);
-    void (*get_pixels)(TermWin *, int *x, int *y);
-    const char *(*get_title)(TermWin *, bool icon);
-    bool (*is_utf8)(TermWin *);
+    /* Query the front end for any OS-local overrides to the default
+     * colours stored in Conf. The front end should set any it cares
+     * about by calling term_palette_override. */
+    void (*palette_get_overrides)(TermWin *);
 };
 
 static inline bool win_setup_draw_ctx(TermWin *win)
@@ -1173,6 +1317,8 @@ static inline void win_set_cursor_pos(TermWin *win, int x, int y)
 { win->vt->set_cursor_pos(win, x, y); }
 static inline void win_set_raw_mouse_mode(TermWin *win, bool enable)
 { win->vt->set_raw_mouse_mode(win, enable); }
+static inline void win_set_raw_mouse_mode_pointer(TermWin *win, bool enable)
+{ win->vt->set_raw_mouse_mode_pointer(win, enable); }
 static inline void win_set_scrollbar(TermWin *win, int t, int s, int p)
 { win->vt->set_scrollbar(win, t, s, p); }
 static inline void win_bell(TermWin *win, int mode)
@@ -1193,28 +1339,17 @@ static inline void win_set_icon_title(TermWin *win, const char *icontitle)
 { win->vt->set_icon_title(win, icontitle); }
 static inline void win_set_minimised(TermWin *win, bool minimised)
 { win->vt->set_minimised(win, minimised); }
-static inline bool win_is_minimised(TermWin *win)
-{ return win->vt->is_minimised(win); }
 static inline void win_set_maximised(TermWin *win, bool maximised)
 { win->vt->set_maximised(win, maximised); }
 static inline void win_move(TermWin *win, int x, int y)
 { win->vt->move(win, x, y); }
 static inline void win_set_zorder(TermWin *win, bool top)
 { win->vt->set_zorder(win, top); }
-static inline bool win_palette_get(TermWin *win, int n, int *r, int *g, int *b)
-{ return win->vt->palette_get(win, n, r, g, b); }
-static inline void win_palette_set(TermWin *win, int n, int r, int g, int b)
-{ win->vt->palette_set(win, n, r, g, b); }
-static inline void win_palette_reset(TermWin *win)
-{ win->vt->palette_reset(win); }
-static inline void win_get_pos(TermWin *win, int *x, int *y)
-{ win->vt->get_pos(win, x, y); }
-static inline void win_get_pixels(TermWin *win, int *x, int *y)
-{ win->vt->get_pixels(win, x, y); }
-static inline const char *win_get_title(TermWin *win, bool icon)
-{ return win->vt->get_title(win, icon); }
-static inline bool win_is_utf8(TermWin *win)
-{ return win->vt->is_utf8(win); }
+static inline void win_palette_set(
+    TermWin *win, unsigned start, unsigned ncolours, const rgb *colours)
+{ win->vt->palette_set(win, start, ncolours, colours); }
+static inline void win_palette_get_overrides(TermWin *win)
+{ win->vt->palette_get_overrides(win); }
 
 /*
  * Global functions not specific to a connection instance.
@@ -1397,7 +1532,7 @@ NORETURN void cleanup_exit(int);
     X(BOOL, NONE, system_colour) \
     X(BOOL, NONE, try_palette) \
     X(INT, NONE, bold_style) /* 1=font 2=colour (3=both) */ \
-    X(INT, INT, colours) \
+    X(INT, INT, colours) /* indexed by the CONF_COLOUR_* enum encoding */ \
     /* Selection options */ \
     X(INT, NONE, mouse_is_xterm) /* 0=compromise 1=xterm 2=Windows */ \
     X(BOOL, NONE, rect_select) \
@@ -1485,8 +1620,6 @@ NORETURN void cleanup_exit(int);
 #define CONF_ENUM_DEF(valtype, keytype, keyword) CONF_ ## keyword,
 enum config_primary_key { CONFIG_OPTIONS(CONF_ENUM_DEF) N_CONFIG_OPTIONS };
 #undef CONF_ENUM_DEF
-
-#define NCFGCOLOURS 22 /* number of colours in CONF_colours above */
 
 /* Functions handling configuration structures. */
 Conf *conf_new(void);                  /* create an empty configuration */
@@ -1628,6 +1761,7 @@ void term_blink(Terminal *, bool set_cursor);
 void term_do_paste(Terminal *, const wchar_t *, int);
 void term_nopaste(Terminal *);
 void term_copyall(Terminal *, const int *, int);
+void term_pre_reconfig(Terminal *, Conf *);
 void term_reconfig(Terminal *, Conf *);
 void term_request_copy(Terminal *, const int *clipboards, int n_clipboards);
 void term_request_paste(Terminal *, int clipboard);
@@ -1642,6 +1776,12 @@ void term_set_trust_status(Terminal *term, bool trusted);
 void term_keyinput(Terminal *, int codepage, const void *buf, int len);
 void term_keyinputw(Terminal *, const wchar_t * widebuf, int len);
 void term_get_cursor_position(Terminal *term, int *x, int *y);
+void term_setup_window_titles(Terminal *term, const char *title_hostname);
+void term_notify_minimised(Terminal *term, bool minimised);
+void term_notify_palette_overrides_changed(Terminal *term);
+void term_notify_window_pos(Terminal *term, int x, int y);
+void term_notify_window_size_pixels(Terminal *term, int x, int y);
+void term_palette_override(Terminal *term, unsigned osc4_index, rgb rgb);
 
 typedef enum SmallKeypadKey {
     SKK_HOME, SKK_END, SKK_INSERT, SKK_DELETE, SKK_PGUP, SKK_PGDN,

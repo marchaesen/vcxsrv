@@ -119,8 +119,27 @@ copy_indirect_accessed_array(struct gl_program_parameter_list *src,
 }
 
 
+static int compare_state_var(const void *a1, const void *a2)
+{
+   const struct gl_program_parameter *p1 =
+      (const struct gl_program_parameter *)a1;
+   const struct gl_program_parameter *p2 =
+      (const struct gl_program_parameter *)a2;
+
+   for (unsigned i = 0; i < STATE_LENGTH; i++) {
+      if (p1->StateIndexes[i] != p2->StateIndexes[i])
+         return p1->StateIndexes[i] - p2->StateIndexes[i];
+   }
+   return 0;
+}
+
+
 /**
- * XXX description???
+ * Create the final program parameter list in this order:
+ * - constants and state variables with variable indexing are first
+ * - other constants are next
+ * - other state variables are last and sorted
+ *
  * \return GL_TRUE for success, GL_FALSE for failure
  */
 GLboolean
@@ -173,7 +192,48 @@ _mesa_layout_parameters(struct asm_parser_state *state)
          }
       }
 
-      /* PASS 2:  Move any parameters that are not accessed indirectly from the
+      /* PASS 2:  Add sorted state variables. */
+      if (file == PROGRAM_STATE_VAR) {
+         unsigned first_state_var = layout->NumParameters;
+
+         /* Add state variables with constant indexing. */
+         for (inst = state->inst_head; inst != NULL; inst = inst->next) {
+            for (unsigned i = 0; i < 3; i++) {
+               const struct gl_program_parameter *p;
+               const int idx = inst->SrcReg[i].Base.Index;
+
+               p = &state->prog->Parameters->Parameters[idx];
+
+               if (inst->SrcReg[i].Base.RelAddr ||
+                   inst->SrcReg[i].Base.File <= PROGRAM_OUTPUT ||
+                   inst->SrcReg[i].Base.File >= PROGRAM_WRITE_ONLY ||
+                   p->Type != file)
+                  continue;
+
+               _mesa_add_state_reference(layout, p->StateIndexes);
+            }
+         }
+
+         /* Sort if we have added at least 2 state vars. */
+         if (first_state_var + 2 <= layout->NumParameters) {
+            /* All state vars should be vec4s. */
+            for (unsigned i = first_state_var; i < layout->NumParameters; i++) {
+               assert(layout->Parameters[i].Size == 4);
+               assert(layout->Parameters[i].ValueOffset == i * 4);
+            }
+
+            qsort(layout->Parameters + first_state_var,
+                  layout->NumParameters - first_state_var,
+                  sizeof(layout->Parameters[0]), compare_state_var);
+
+            /* Fix offsets. */
+            for (unsigned i = first_state_var; i < layout->NumParameters; i++) {
+               layout->Parameters[i].ValueOffset = i * 4;
+            }
+         }
+      }
+
+      /* PASS 3:  Move any parameters that are not accessed indirectly from the
        * original parameter list to the new parameter list.
        */
       for (inst = state->inst_head; inst != NULL; inst = inst->next) {

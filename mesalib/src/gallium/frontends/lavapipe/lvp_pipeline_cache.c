@@ -23,7 +23,7 @@
 
 #include "lvp_private.h"
 
-VkResult lvp_CreatePipelineCache(
+VKAPI_ATTR VkResult VKAPI_CALL lvp_CreatePipelineCache(
     VkDevice                                    _device,
     const VkPipelineCacheCreateInfo*            pCreateInfo,
     const VkAllocationCallbacks*                pAllocator,
@@ -54,7 +54,7 @@ VkResult lvp_CreatePipelineCache(
    return VK_SUCCESS;
 }
 
-void lvp_DestroyPipelineCache(
+VKAPI_ATTR void VKAPI_CALL lvp_DestroyPipelineCache(
     VkDevice                                    _device,
     VkPipelineCache                             _cache,
     const VkAllocationCallbacks*                pAllocator)
@@ -69,7 +69,7 @@ void lvp_DestroyPipelineCache(
    vk_free2(&device->vk.alloc, pAllocator, cache);
 }
 
-VkResult lvp_GetPipelineCacheData(
+VKAPI_ATTR VkResult VKAPI_CALL lvp_GetPipelineCacheData(
         VkDevice                                    _device,
         VkPipelineCache                             _cache,
         size_t*                                     pDataSize,
@@ -93,7 +93,7 @@ VkResult lvp_GetPipelineCacheData(
    return result;
 }
 
-VkResult lvp_MergePipelineCaches(
+VKAPI_ATTR VkResult VKAPI_CALL lvp_MergePipelineCaches(
         VkDevice                                    _device,
         VkPipelineCache                             destCache,
         uint32_t                                    srcCacheCount,

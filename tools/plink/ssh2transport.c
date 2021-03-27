@@ -216,7 +216,6 @@ static void ssh2_transport_free(PacketProtocolLayer *ppl)
     sfree(s->keystr);
     sfree(s->hostkey_str);
     strbuf_free(s->hostkeyblob);
-    sfree(s->fingerprint);
     if (s->hkey && !s->hostkeys) {
         ssh_key_free(s->hkey);
         s->hkey = NULL;
@@ -1474,6 +1473,8 @@ static void ssh2_transport_process_queue(PacketProtocolLayer *ppl)
                 put_datapl(pktout, ptrlen_from_strbuf(extinfo));
                 pq_push(s->ppl.out_pq, pktout);
             }
+
+            strbuf_free(extinfo);
         }
     }
 

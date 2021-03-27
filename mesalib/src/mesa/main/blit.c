@@ -347,7 +347,7 @@ blit_framebuffer(struct gl_context *ctx,
                  GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
                  GLbitfield mask, GLenum filter, bool no_error, const char *func)
 {
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    if (!readFb || !drawFb) {
       /* This will normally never happen but someday we may want to

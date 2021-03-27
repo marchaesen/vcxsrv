@@ -131,8 +131,16 @@ void
 fd6_screen_init(struct pipe_screen *pscreen)
 {
 	struct fd_screen *screen = fd_screen(pscreen);
+
 	screen->max_rts = A6XX_MAX_RENDER_TARGETS;
-	screen->compiler = ir3_compiler_create(screen->dev, screen->gpu_id);
+
+	/* Currently only FB_READ forces GMEM path, mostly because we'd have to
+	 * deal with cmdstream patching otherwise..
+	 */
+	screen->gmem_reason_mask = FD_GMEM_CLEARS_DEPTH_STENCIL |
+			FD_GMEM_DEPTH_ENABLED | FD_GMEM_STENCIL_ENABLED |
+			FD_GMEM_BLEND_ENABLED | FD_GMEM_LOGICOP_ENABLED;
+
 	pscreen->context_create = fd6_context_create;
 	pscreen->is_format_supported = fd6_screen_is_format_supported;
 

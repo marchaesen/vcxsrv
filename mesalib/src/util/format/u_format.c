@@ -234,6 +234,29 @@ util_format_is_unorm(enum pipe_format format)
    return desc->is_unorm;
 }
 
+/**
+ * Returns true if the format contains scaled integer format channels.
+ */
+boolean
+util_format_is_scaled(enum pipe_format format)
+{
+   const struct util_format_description *desc = util_format_description(format);
+   int i;
+
+   /* format none is described as scaled but not for this check */
+   if (format == PIPE_FORMAT_NONE)
+      return FALSE;
+
+   /* Find the first non-void channel. */
+   i = util_format_get_first_non_void_channel(format);
+   if (i == -1)
+      return FALSE;
+
+   return !desc->channel[i].pure_integer && !desc->channel[i].normalized &&
+      (desc->channel[i].type == UTIL_FORMAT_TYPE_SIGNED ||
+       desc->channel[i].type == UTIL_FORMAT_TYPE_UNSIGNED);
+}
+
 boolean
 util_format_is_snorm8(enum pipe_format format)
 {
@@ -944,16 +967,131 @@ util_format_snorm8_to_sint8(enum pipe_format format)
 
    case PIPE_FORMAT_R8G8B8X8_SNORM:
       return PIPE_FORMAT_R8G8B8X8_SINT;
+   case PIPE_FORMAT_B8G8R8X8_SNORM:
+      return PIPE_FORMAT_B8G8R8X8_SINT;
+
    case PIPE_FORMAT_R8A8_SNORM:
       return PIPE_FORMAT_R8A8_SINT;
    case PIPE_FORMAT_G8R8_SNORM:
       return PIPE_FORMAT_G8R8_SINT;
+
+   case PIPE_FORMAT_A8R8G8B8_SNORM:
+      return PIPE_FORMAT_A8R8G8B8_SINT;
+   case PIPE_FORMAT_X8R8G8B8_SNORM:
+      return PIPE_FORMAT_X8R8G8B8_SINT;
+
    case PIPE_FORMAT_A8B8G8R8_SNORM:
       return PIPE_FORMAT_A8B8G8R8_SINT;
    case PIPE_FORMAT_X8B8G8R8_SNORM:
       return PIPE_FORMAT_X8B8G8R8_SINT;
 
+   case PIPE_FORMAT_R10G10B10A2_SNORM:
+      return PIPE_FORMAT_R10G10B10A2_SINT;
+   case PIPE_FORMAT_B10G10R10A2_SNORM:
+      return PIPE_FORMAT_B10G10R10A2_SINT;
+
    default:
       return format;
+   }
+}
+
+/**
+ * If the format is RGB, return BGR. If the format is BGR, return RGB.
+ * This may fail by returning PIPE_FORMAT_NONE.
+ */
+enum pipe_format
+util_format_rgb_to_bgr(enum pipe_format format)
+{
+#define REMAP_RGB_ONE(r, rs, g, gs, b, bs, type) \
+   case PIPE_FORMAT_##r##rs##g##gs##b##bs##_##type: \
+      return PIPE_FORMAT_##b##bs##g##gs##r##rs##_##type;
+
+#define REMAP_RGB(rs, gs, bs, type) \
+   REMAP_RGB_ONE(R, rs, G, gs, B, bs, type) \
+   REMAP_RGB_ONE(B, bs, G, gs, R, rs, type) \
+
+#define REMAP_RGBA_ONE(r, rs, g, gs, b, bs, a, as, type) \
+   case PIPE_FORMAT_##r##rs##g##gs##b##bs##a##as##_##type: \
+      return PIPE_FORMAT_##b##bs##g##gs##r##rs##a##as##_##type;
+
+#define REMAP_ARGB_ONE(a, as, r, rs, g, gs, b, bs, type) \
+   case PIPE_FORMAT_##a##as##r##rs##g##gs##b##bs##_##type: \
+      return PIPE_FORMAT_##a##as##b##bs##g##gs##r##rs##_##type;
+
+#define REMAP_RGB_AX(A, rs, gs, bs, as, type) \
+   REMAP_RGBA_ONE(R, rs, G, gs, B, bs, A, as, type) \
+   REMAP_RGBA_ONE(B, bs, G, gs, R, rs, A, as, type) \
+
+#define REMAP_AX_RGB(A, rs, gs, bs, as, type) \
+   REMAP_ARGB_ONE(A, as, R, rs, G, gs, B, bs, type) \
+   REMAP_ARGB_ONE(A, as, B, bs, G, gs, R, rs, type) \
+
+#define REMAP_RGBA(rs, gs, bs, as, type) REMAP_RGB_AX(A, rs, gs, bs, as, type)
+#define REMAP_RGBX(rs, gs, bs, as, type) REMAP_RGB_AX(X, rs, gs, bs, as, type)
+#define REMAP_ARGB(rs, gs, bs, as, type) REMAP_AX_RGB(A, rs, gs, bs, as, type)
+#define REMAP_XRGB(rs, gs, bs, as, type) REMAP_AX_RGB(X, rs, gs, bs, as, type)
+
+#define REMAP_RGBA_ALL(rs, gs, bs, as, type) \
+   REMAP_RGBA(rs, gs, bs, as, type) \
+   REMAP_RGBX(rs, gs, bs, as, type) \
+   REMAP_ARGB(rs, gs, bs, as, type) \
+   REMAP_XRGB(rs, gs, bs, as, type)
+
+   switch (format) {
+   REMAP_RGB(3, 3, 2, UNORM);
+   REMAP_RGB(3, 3, 2, UINT);
+   REMAP_RGB(5, 6, 5, SRGB);
+   REMAP_RGB(5, 6, 5, UNORM);
+   REMAP_RGB(5, 6, 5, UINT);
+   REMAP_RGB(8, 8, 8, SRGB);
+   REMAP_RGB(8, 8, 8, UNORM);
+   REMAP_RGB(8, 8, 8, SNORM);
+   REMAP_RGB(8, 8, 8, UINT);
+   REMAP_RGB(8, 8, 8, SINT);
+   REMAP_RGB(8, 8, 8, USCALED);
+   REMAP_RGB(8, 8, 8, SSCALED);
+
+   /* Complete format sets. */
+   REMAP_RGBA_ALL(5, 5, 5, 1, UNORM);
+   REMAP_RGBA_ALL(8, 8, 8, 8, SRGB);
+   REMAP_RGBA_ALL(8, 8, 8, 8, UNORM);
+   REMAP_RGBA_ALL(8, 8, 8, 8, SNORM);
+   REMAP_RGBA_ALL(8, 8, 8, 8, SINT);
+
+   /* Format sets missing XRGB/XBGR. */
+   REMAP_RGBA(4, 4, 4, 4, UNORM);
+   REMAP_RGBX(4, 4, 4, 4, UNORM);
+   REMAP_ARGB(4, 4, 4, 4, UNORM);
+
+   REMAP_RGBA(8, 8, 8, 8, UINT);
+   REMAP_RGBX(8, 8, 8, 8, UINT);
+   REMAP_ARGB(8, 8, 8, 8, UINT);
+
+   REMAP_RGBA(10, 10, 10, 2, UNORM);
+   REMAP_RGBX(10, 10, 10, 2, UNORM);
+   REMAP_ARGB(10, 10, 10, 2, UNORM);
+
+   /* Format sets missing a half of combinations. */
+   REMAP_RGBA(4, 4, 4, 4, UINT);
+   REMAP_ARGB(4, 4, 4, 4, UINT);
+
+   REMAP_RGBA(5, 5, 5, 1, UINT);
+   REMAP_ARGB(5, 5, 5, 1, UINT);
+
+   REMAP_RGBA(10, 10, 10, 2, SNORM);
+   REMAP_RGBX(10, 10, 10, 2, SNORM);
+
+   REMAP_RGBA(10, 10, 10, 2, UINT);
+   REMAP_ARGB(10, 10, 10, 2, UINT);
+
+   /* Format sets having only RGBA/BGRA. */
+   REMAP_RGBA(8, 8, 8, 8, USCALED);
+   REMAP_RGBA(8, 8, 8, 8, SSCALED);
+   REMAP_RGBA(10, 10, 10, 2, SINT);
+   REMAP_RGBA(10, 10, 10, 2, USCALED);
+   REMAP_RGBA(10, 10, 10, 2, SSCALED);
+
+   default:
+      return PIPE_FORMAT_NONE;
    }
 }

@@ -295,8 +295,7 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
                         CSO_BIT_TESSCTRL_SHADER |
                         CSO_BIT_TESSEVAL_SHADER |
                         CSO_BIT_GEOMETRY_SHADER |
-                        CSO_BIT_VERTEX_ELEMENTS |
-                        CSO_BIT_AUX_VERTEX_BUFFER_SLOT));
+                        CSO_BIT_VERTEX_ELEMENTS));
 
    {
       void *vs = lookup_shader(st, numAttribs,
@@ -331,6 +330,10 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
       vp.translate[0] = 0.5f * width;
       vp.translate[1] = 0.5f * height;
       vp.translate[2] = 0.0f;
+      vp.swizzle_x = PIPE_VIEWPORT_SWIZZLE_POSITIVE_X;
+      vp.swizzle_y = PIPE_VIEWPORT_SWIZZLE_POSITIVE_Y;
+      vp.swizzle_z = PIPE_VIEWPORT_SWIZZLE_POSITIVE_Z;
+      vp.swizzle_w = PIPE_VIEWPORT_SWIZZLE_POSITIVE_W;
       cso_set_viewport(cso, &vp);
    }
 
@@ -339,11 +342,13 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
                            PIPE_PRIM_TRIANGLE_FAN,
                            4,  /* verts */
                            numAttribs); /* attribs/vert */
+   st->last_num_vbuffers = MAX2(st->last_num_vbuffers, 1);
 
    pipe_resource_reference(&vbuffer, NULL);
 
    /* restore state */
    cso_restore_state(cso);
+   st->dirty |= ST_NEW_VERTEX_ARRAYS;
 }
 
 

@@ -34,7 +34,7 @@
 #include "compiler/nir/nir.h"
 
 namespace r600 {
-/* Implemnt some logging for shader-from-nir
+/* Implement some logging for shader-from-nir
 
 */
 

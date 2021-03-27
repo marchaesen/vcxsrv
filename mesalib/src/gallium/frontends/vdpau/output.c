@@ -334,8 +334,11 @@ vlVdpOutputSurfacePutBitsIndexed(VdpOutputSurface surface,
    res_tmpl.format = index_format;
 
    if (destination_rect) {
-      res_tmpl.width0 = abs(destination_rect->x0-destination_rect->x1);
-      res_tmpl.height0 = abs(destination_rect->y0-destination_rect->y1);
+      if (destination_rect->x1 > destination_rect->x0 &&
+          destination_rect->y1 > destination_rect->y0) {
+         res_tmpl.width0 = destination_rect->x1 - destination_rect->x0;
+         res_tmpl.height0 = destination_rect->y1 - destination_rect->y0;
+      }
    } else {
       res_tmpl.width0 = vlsurface->surface->texture->width0;
       res_tmpl.height0 = vlsurface->surface->texture->height0;
@@ -467,8 +470,11 @@ vlVdpOutputSurfacePutBitsYCbCr(VdpOutputSurface surface,
    vtmpl.buffer_format = format;
 
    if (destination_rect) {
-      vtmpl.width = abs(destination_rect->x0-destination_rect->x1);
-      vtmpl.height = abs(destination_rect->y0-destination_rect->y1);
+      if (destination_rect->x1 > destination_rect->x0 &&
+          destination_rect->y1 > destination_rect->y0) {
+         vtmpl.width = destination_rect->x1 - destination_rect->x0;
+         vtmpl.height = destination_rect->y1 - destination_rect->y0;
+      }
    } else {
       vtmpl.width = vlsurface->surface->texture->width0;
       vtmpl.height = vlsurface->surface->texture->height0;

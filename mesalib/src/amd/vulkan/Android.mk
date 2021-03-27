@@ -77,42 +77,22 @@ LOCAL_STATIC_LIBRARIES := \
 
 LOCAL_GENERATED_SOURCES += $(intermediates)/radv_entrypoints.c
 LOCAL_GENERATED_SOURCES += $(intermediates)/radv_entrypoints.h
-LOCAL_GENERATED_SOURCES += $(intermediates)/radv_extensions.c
-LOCAL_GENERATED_SOURCES += $(intermediates)/radv_extensions.h
-LOCAL_GENERATED_SOURCES += $(intermediates)/vk_format_table.c
 
-RADV_ENTRYPOINTS_SCRIPT := $(MESA_TOP)/src/amd/vulkan/radv_entrypoints_gen.py
-RADV_EXTENSIONS_SCRIPT := $(MESA_TOP)/src/amd/vulkan/radv_extensions.py
-VK_FORMAT_TABLE_SCRIPT := $(MESA_TOP)/src/amd/vulkan/vk_format_table.py
-VK_FORMAT_PARSE_SCRIPT := $(MESA_TOP)/src/amd/vulkan/vk_format_parse.py
+RADV_ENTRYPOINTS_SCRIPT := $(MESA_TOP)/src/vulkan/util/vk_entrypoints_gen.py
 
 vulkan_api_xml = $(MESA_TOP)/src/vulkan/registry/vk.xml
-vk_format_layout_csv = $(MESA_TOP)/src/amd/vulkan/vk_format_layout.csv
 
 $(intermediates)/radv_entrypoints.c: $(RADV_ENTRYPOINTS_SCRIPT) \
-					$(RADV_EXTENSIONS_SCRIPT) \
 					$(vulkan_api_xml)
 	@mkdir -p $(dir $@)
 	$(MESA_PYTHON2) $(RADV_ENTRYPOINTS_SCRIPT) \
 		--xml $(vulkan_api_xml) \
-		--outdir $(dir $@)
+		--proto --weak \
+		--out-c $@ \
+		--out-h $(addsuffix .h,$(basename $@)) \
+		--prefix radv --device-prefix sqtt
 
 $(intermediates)/radv_entrypoints.h: $(intermediates)/radv_entrypoints.c
-
-$(intermediates)/radv_extensions.c: $(RADV_EXTENSIONS_SCRIPT) $(vulkan_api_xml)
-	@mkdir -p $(dir $@)
-	$(MESA_PYTHON2) $(RADV_EXTENSIONS_SCRIPT) \
-		--xml $(vulkan_api_xml) \
-		--out-c $@ \
-		--out-h $(addsuffix .h,$(basename $@))
-
-$(intermediates)/radv_extensions.h: $(intermediates)/radv_extensions.c
-
-$(intermediates)/vk_format_table.c: $(VK_FORMAT_TABLE_SCRIPT) \
-					$(VK_FORMAT_PARSE_SCRIPT) \
-					$(vk_format_layout_csv)
-	@mkdir -p $(dir $@)
-	$(MESA_PYTHON2) $(VK_FORMAT_TABLE_SCRIPT) $(vk_format_layout_csv) > $@
 
 LOCAL_SHARED_LIBRARIES += $(RADV_SHARED_LIBRARIES)
 

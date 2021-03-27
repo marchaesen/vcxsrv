@@ -596,7 +596,7 @@ static bool _try_place_node(sched_ctx *ctx, gpir_instr *instr, gpir_node *node)
 }
 
 /* Try to place just the node given, updating the ready list. If "speculative"
- * is true, then this is part ofthe pre-commit phase. If false, then we have
+ * is true, then this is part of the pre-commit phase. If false, then we have
  * committed to placing this node, so update liveness and ready list
  * information.
  */

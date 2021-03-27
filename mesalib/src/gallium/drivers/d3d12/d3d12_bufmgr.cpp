@@ -88,14 +88,14 @@ d3d12_bo_wrap_res(ID3D12Resource *res, enum pipe_format format)
 }
 
 struct d3d12_bo *
-d3d12_bo_new(ID3D12Device *dev, uint64_t size, uint64_t alignment)
+d3d12_bo_new(ID3D12Device *dev, uint64_t size, const pb_desc *pb_desc)
 {
    ID3D12Resource *res;
 
    D3D12_RESOURCE_DESC res_desc;
    res_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
    res_desc.Format = DXGI_FORMAT_UNKNOWN;
-   res_desc.Alignment = alignment;
+   res_desc.Alignment = pb_desc->alignment;
    res_desc.Width = size;
    res_desc.Height = 1;
    res_desc.DepthOrArraySize = 1;
@@ -105,7 +105,13 @@ d3d12_bo_new(ID3D12Device *dev, uint64_t size, uint64_t alignment)
    res_desc.Flags = D3D12_RESOURCE_FLAG_NONE;
    res_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-   D3D12_HEAP_PROPERTIES heap_pris = dev->GetCustomHeapProperties(0, D3D12_HEAP_TYPE_UPLOAD);
+   D3D12_HEAP_TYPE heap_type = D3D12_HEAP_TYPE_DEFAULT;
+   if (pb_desc->usage & PB_USAGE_CPU_READ)
+      heap_type = D3D12_HEAP_TYPE_READBACK;
+   else if (pb_desc->usage & PB_USAGE_CPU_WRITE)
+      heap_type = D3D12_HEAP_TYPE_UPLOAD;
+
+   D3D12_HEAP_PROPERTIES heap_pris = dev->GetCustomHeapProperties(0, heap_type);
    HRESULT hres = dev->CreateCommittedResource(&heap_pris,
                                                D3D12_HEAP_FLAG_NONE,
                                                &res_desc,
@@ -197,9 +203,11 @@ d3d12_bo_unmap(struct d3d12_bo *bo, D3D12_RANGE *range)
    } else if (range->Begin >= range->End) {
       offset_range.Begin = offset;
       offset_range.End = offset + base_bo->res->GetDesc().Width;
+      range = &offset_range;
    } else {
       offset_range.Begin = range->Begin + offset;
       offset_range.End = range->End + offset;
+      range = &offset_range;
    }
 
    base_bo->res->Unmap(0, range);
@@ -285,17 +293,19 @@ d3d12_bufmgr_create_buffer(struct pb_manager *pmgr,
    buf->range.Begin = 0;
    buf->range.End = size;
 
-   buf->bo = d3d12_bo_new(mgr->dev, size, pb_desc->alignment);
+   buf->bo = d3d12_bo_new(mgr->dev, size, pb_desc);
    if (!buf->bo) {
       FREE(buf);
       return NULL;
    }
 
-   buf->map = d3d12_bo_map(buf->bo, &buf->range);
-   if (!buf->map) {
-      d3d12_bo_unreference(buf->bo);
-      FREE(buf);
-      return NULL;
+   if (pb_desc->usage & PB_USAGE_CPU_READ_WRITE) {
+      buf->map = d3d12_bo_map(buf->bo, &buf->range);
+      if (!buf->map) {
+         d3d12_bo_unreference(buf->bo);
+         FREE(buf);
+         return NULL;
+      }
    }
 
    return &buf->base;

@@ -313,7 +313,7 @@ fd4_emit_gmem_restore_tex(struct fd_ringbuffer *ring, unsigned nr_bufs,
 			 */
 			if (rsc->stencil && (i == 0)) {
 				rsc = rsc->stencil;
-				format = fd_gmem_restore_format(rsc->base.format);
+				format = fd_gmem_restore_format(rsc->b.b.format);
 			}
 
 			/* note: PIPE_BUFFER disallowed for surfaces */
@@ -699,7 +699,7 @@ fd4_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 		fd4_program_emit(ring, emit, n, pfb->cbufs);
 	}
 
-	if (emit->prog == &ctx->prog) { /* evil hack to deal sanely with clear path */
+	if (!emit->skip_consts) { /* evil hack to deal sanely with clear path */
 		ir3_emit_vs_consts(vp, ring, ctx, emit->info, emit->indirect, emit->draw);
 		if (!emit->binning_pass)
 			ir3_emit_fs_consts(fp, ring, ctx);

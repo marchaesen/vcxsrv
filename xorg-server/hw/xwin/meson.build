@@ -104,6 +104,7 @@ srcs_windows += [
     'windisplay.c',
     'windisplay.h',
     '../../mi/miinitext.c',
+    '../../mi/miinitext.h',
 ]
 
 rsrc = windows.compile_resources('XWin.rc', include_directories: include_directories('../../include/'))

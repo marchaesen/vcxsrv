@@ -621,8 +621,8 @@ texstore_compressed(TEXSTORE_PARAMS)
       table[MESA_FORMAT_SRGBA_DXT1] = _mesa_texstore_rgba_dxt1;
       table[MESA_FORMAT_SRGBA_DXT3] = _mesa_texstore_rgba_dxt3;
       table[MESA_FORMAT_SRGBA_DXT5] = _mesa_texstore_rgba_dxt5;
-      table[MESA_FORMAT_RGB_FXT1] = _mesa_texstore_rgb_fxt1;
-      table[MESA_FORMAT_RGBA_FXT1] = _mesa_texstore_rgba_fxt1;
+      table[MESA_FORMAT_RGB_FXT1] = _mesa_texstore_fxt1;
+      table[MESA_FORMAT_RGBA_FXT1] = _mesa_texstore_fxt1;
       table[MESA_FORMAT_RGB_DXT1] = _mesa_texstore_rgb_dxt1;
       table[MESA_FORMAT_RGBA_DXT1] = _mesa_texstore_rgba_dxt1;
       table[MESA_FORMAT_RGBA_DXT3] = _mesa_texstore_rgba_dxt3;

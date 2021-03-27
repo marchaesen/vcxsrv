@@ -111,40 +111,23 @@ enum pipe_h264_slice_type
    PIPE_H264_SLICE_TYPE_SI = 0x4
 };
 
-enum pipe_h264_enc_picture_type
+/* Same enum for h264/h265 */
+enum pipe_h2645_enc_picture_type
 {
-   PIPE_H264_ENC_PICTURE_TYPE_P = 0x00,
-   PIPE_H264_ENC_PICTURE_TYPE_B = 0x01,
-   PIPE_H264_ENC_PICTURE_TYPE_I = 0x02,
-   PIPE_H264_ENC_PICTURE_TYPE_IDR = 0x03,
-   PIPE_H264_ENC_PICTURE_TYPE_SKIP = 0x04
+   PIPE_H2645_ENC_PICTURE_TYPE_P = 0x00,
+   PIPE_H2645_ENC_PICTURE_TYPE_B = 0x01,
+   PIPE_H2645_ENC_PICTURE_TYPE_I = 0x02,
+   PIPE_H2645_ENC_PICTURE_TYPE_IDR = 0x03,
+   PIPE_H2645_ENC_PICTURE_TYPE_SKIP = 0x04
 };
 
-enum pipe_h265_enc_picture_type
+enum pipe_h2645_enc_rate_control_method
 {
-   PIPE_H265_ENC_PICTURE_TYPE_P = 0x00,
-   PIPE_H265_ENC_PICTURE_TYPE_B = 0x01,
-   PIPE_H265_ENC_PICTURE_TYPE_I = 0x02,
-   PIPE_H265_ENC_PICTURE_TYPE_IDR = 0x03,
-   PIPE_H265_ENC_PICTURE_TYPE_SKIP = 0x04
-};
-
-enum pipe_h264_enc_rate_control_method
-{
-   PIPE_H264_ENC_RATE_CONTROL_METHOD_DISABLE = 0x00,
-   PIPE_H264_ENC_RATE_CONTROL_METHOD_CONSTANT_SKIP = 0x01,
-   PIPE_H264_ENC_RATE_CONTROL_METHOD_VARIABLE_SKIP = 0x02,
-   PIPE_H264_ENC_RATE_CONTROL_METHOD_CONSTANT = 0x03,
-   PIPE_H264_ENC_RATE_CONTROL_METHOD_VARIABLE = 0x04
-};
-
-enum pipe_h265_enc_rate_control_method
-{
-   PIPE_H265_ENC_RATE_CONTROL_METHOD_DISABLE = 0x00,
-   PIPE_H265_ENC_RATE_CONTROL_METHOD_CONSTANT_SKIP = 0x01,
-   PIPE_H265_ENC_RATE_CONTROL_METHOD_VARIABLE_SKIP = 0x02,
-   PIPE_H265_ENC_RATE_CONTROL_METHOD_CONSTANT = 0x03,
-   PIPE_H265_ENC_RATE_CONTROL_METHOD_VARIABLE = 0x04
+   PIPE_H2645_ENC_RATE_CONTROL_METHOD_DISABLE = 0x00,
+   PIPE_H2645_ENC_RATE_CONTROL_METHOD_CONSTANT_SKIP = 0x01,
+   PIPE_H2645_ENC_RATE_CONTROL_METHOD_VARIABLE_SKIP = 0x02,
+   PIPE_H2645_ENC_RATE_CONTROL_METHOD_CONSTANT = 0x03,
+   PIPE_H2645_ENC_RATE_CONTROL_METHOD_VARIABLE = 0x04
 };
 
 struct pipe_picture_desc
@@ -368,7 +351,7 @@ struct pipe_h264_picture_desc
 
 struct pipe_h264_enc_rate_control
 {
-   enum pipe_h264_enc_rate_control_method rate_ctrl_method;
+   enum pipe_h2645_enc_rate_control_method rate_ctrl_method;
    unsigned target_bitrate;
    unsigned peak_bitrate;
    unsigned frame_rate_num;
@@ -417,7 +400,7 @@ struct pipe_h264_enc_picture_desc
    unsigned quant_p_frames;
    unsigned quant_b_frames;
 
-   enum pipe_h264_enc_picture_type picture_type;
+   enum pipe_h2645_enc_picture_type picture_type;
    unsigned frame_num;
    unsigned frame_num_cnt;
    unsigned p_remain;
@@ -487,7 +470,7 @@ struct pipe_h265_enc_slice_param
 
 struct pipe_h265_enc_rate_control
 {
-   enum pipe_h265_enc_rate_control_method rate_ctrl_method;
+   enum pipe_h2645_enc_rate_control_method rate_ctrl_method;
    unsigned target_bitrate;
    unsigned peak_bitrate;
    unsigned frame_rate_num;
@@ -511,7 +494,7 @@ struct pipe_h265_enc_picture_desc
    struct pipe_h265_enc_slice_param slice;
    struct pipe_h265_enc_rate_control rc;
 
-   enum pipe_h265_enc_picture_type picture_type;
+   enum pipe_h2645_enc_picture_type picture_type;
    unsigned decoded_curr_pic;
    unsigned reference_frames[16];
    unsigned frame_num;

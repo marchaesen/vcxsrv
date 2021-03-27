@@ -9,12 +9,12 @@ microarchitectures. The following GPUs are currently supported:
 Product    Architecture OpenGL ES    OpenGL
 =========  ============ ============ =======
 Mali T720  Midgard (v4) 2.0          2.1
-Mali T760  Midgard (v5) 3.0          2.1
-Mali T820  Midgard (v5) 3.0          2.1
-Mali T860  Midgard (v5) 3.0          2.1
-Mali G72   Bifrost (v6) 2.0          2.1
-Mali G31   Bifrost (v7) 2.0          2.1
-Mali G52   Bifrost (v7) 2.0          2.1
+Mali T760  Midgard (v5) 3.0          3.1
+Mali T820  Midgard (v5) 3.0          3.1
+Mali T860  Midgard (v5) 3.0          3.1
+Mali G72   Bifrost (v6) 3.0          3.1
+Mali G31   Bifrost (v7) 3.0          3.1
+Mali G52   Bifrost (v7) 3.0          3.1
 =========  ============ ============ =======
 
 Other Midgard and Bifrost chips (T604, T620, T830, T880, G71, G51, G76) may
@@ -52,7 +52,7 @@ Building for Android via the legacy ``Android.mk`` system is not officially
 supported but reportedly works. Your mileage may vary.
 
 For general information on building Mesa, read :doc:`the install documentation
-<install>`.
+<../install>`.
 
 Chat
 ----

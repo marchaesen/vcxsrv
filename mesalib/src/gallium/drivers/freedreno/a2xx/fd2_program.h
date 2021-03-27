@@ -63,7 +63,7 @@ struct fd2_shader_stateobj {
 };
 
 void fd2_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
-		struct fd_program_stateobj *prog);
+		struct fd_program_stateobj *prog) assert_dt;
 
 void fd2_prog_init(struct pipe_context *pctx);
 

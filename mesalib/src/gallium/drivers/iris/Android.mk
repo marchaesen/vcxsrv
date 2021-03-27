@@ -122,7 +122,7 @@ include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)
 
 #
-# libiris for gen12hp
+# libiris for gen125
 #
 
 include $(CLEAR_VARS)
@@ -170,7 +170,8 @@ LOCAL_WHOLE_STATIC_LIBRARIES := \
 	libmesa_iris_gen8 \
 	libmesa_iris_gen9 \
 	libmesa_iris_gen11 \
-	libmesa_iris_gen12
+	libmesa_iris_gen12 \
+	libmesa_iris_gen125
 
 include $(GALLIUM_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)

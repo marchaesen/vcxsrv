@@ -303,7 +303,7 @@ enum EVFetchFlagShift {
    vtx_alt_const,
    vtx_use_tc,
    vtx_vpm,
-   vtx_unknwon
+   vtx_unknown
 };
 
 enum EBufferIndexMode {

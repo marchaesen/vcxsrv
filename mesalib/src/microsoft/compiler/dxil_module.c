@@ -185,7 +185,7 @@ static bool
 is_char7_string(const char *str)
 {
    while (*str != '\0') {
-      if (*str++ >= 128)
+      if (*str++ & 0x80)
          return false;
    }
    return true;
@@ -2115,7 +2115,7 @@ emit_module_consts(struct dxil_module *m)
 
 static bool
 emit_value_symtab_abbrev_record(struct dxil_module *m,
-                                enum const_abbrev_id abbrev,
+                                enum value_symtab_abbrev_id abbrev,
                                 const uint64_t *data, size_t size)
 {
    assert(abbrev < ARRAY_SIZE(value_symtab_abbrevs));
@@ -2506,7 +2506,7 @@ create_instr(struct dxil_module *m, enum instr_type type,
    return ret;
 }
 
-static bool
+static inline bool
 legal_arith_type(const struct dxil_type *type)
 {
    switch (type->type) {

@@ -106,14 +106,12 @@ xwl_glamor_has_wl_interfaces(struct xwl_screen *xwl_screen,
 }
 
 struct wl_buffer *
-xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap,
-                                Bool *created)
+xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap)
 {
     struct xwl_screen *xwl_screen = xwl_screen_get(pixmap->drawable.pScreen);
 
     if (xwl_screen->egl_backend->get_wl_buffer_for_pixmap)
-        return xwl_screen->egl_backend->get_wl_buffer_for_pixmap(pixmap,
-                                                                 created);
+        return xwl_screen->egl_backend->get_wl_buffer_for_pixmap(pixmap);
 
     return NULL;
 }

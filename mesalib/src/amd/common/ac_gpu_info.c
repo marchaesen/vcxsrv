@@ -29,6 +29,7 @@
 #include "drm-uapi/amdgpu_drm.h"
 #include "sid.h"
 #include "util/macros.h"
+#include "util/u_cpu_detect.h"
 #include "util/u_math.h"
 
 #include <stdio.h>
@@ -233,39 +234,6 @@ static uint64_t fix_vram_size(uint64_t size)
     * it's used to compute the number of memory modules for harvesting.
     */
    return align64(size, 256 * 1024 * 1024);
-}
-
-static uint32_t get_l2_cache_size(enum radeon_family family)
-{
-   switch (family) {
-   case CHIP_KABINI:
-   case CHIP_STONEY:
-      return 128 * 1024;
-   case CHIP_OLAND:
-   case CHIP_HAINAN:
-   case CHIP_ICELAND:
-      return 256 * 1024;
-   case CHIP_PITCAIRN:
-   case CHIP_VERDE:
-   case CHIP_BONAIRE:
-   case CHIP_KAVERI:
-   case CHIP_POLARIS12:
-   case CHIP_CARRIZO:
-      return 512 * 1024;
-   case CHIP_TAHITI:
-   case CHIP_TONGA:
-      return 768 * 1024;
-      break;
-   case CHIP_HAWAII:
-   case CHIP_POLARIS11:
-      return 1024 * 1024;
-   case CHIP_FIJI:
-   case CHIP_POLARIS10:
-      return 2048 * 1024;
-      break;
-   default:
-      return 4096 * 1024;
-   }
 }
 
 static bool
@@ -503,8 +471,17 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       info->vram_vis_size = vram_vis.heap_size;
    }
 
+   info->gart_size_kb = DIV_ROUND_UP(info->gart_size, 1024);
+   info->vram_size_kb = DIV_ROUND_UP(info->vram_size, 1024);
+
    /* Add some margin of error, though this shouldn't be needed in theory. */
    info->all_vram_visible = info->vram_size * 0.9 < info->vram_vis_size;
+
+   util_cpu_detect();
+   info->smart_access_memory = info->all_vram_visible &&
+                               info->chip_class >= GFX10_3 &&
+                               util_get_cpu_caps()->family >= CPU_AMD_ZEN3 &&
+                               util_get_cpu_caps()->family < CPU_AMD_LAST;
 
    /* Set chip identification. */
    info->pci_id = amdinfo->asic_id; /* TODO: is this correct? */
@@ -554,6 +531,7 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       identify_chip(VEGA12);
       identify_chip(VEGA20);
       identify_chip(ARCTURUS);
+      identify_chip(ALDEBARAN);
       break;
    case FAMILY_RV:
       identify_chip(RAVEN);
@@ -618,9 +596,6 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->vram_bit_width = amdinfo->vram_bit_width;
    info->ce_ram_size = amdinfo->ce_ram_size;
 
-   info->l2_cache_size = get_l2_cache_size(info->family);
-   info->l1_cache_size = 16384;
-
    /* Set which chips have uncached device memory. */
    info->has_l2_uncached = info->chip_class >= GFX9;
 
@@ -630,7 +605,7 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    /* convert the shader/memory clocks from KHz to MHz */
    info->max_shader_clock = amdinfo->max_engine_clk / 1000;
    info->max_memory_clock = amdinfo->max_memory_clk / 1000;
-   info->num_tcc_blocks = device_info.num_tcc_blocks;
+   info->max_tcc_blocks = device_info.num_tcc_blocks;
    info->max_se = amdinfo->num_shader_engines;
    info->max_sa_per_se = amdinfo->num_shader_arrays_per_engine;
    info->has_hw_decode = (uvd.available_rings != 0) || (vcn_dec.available_rings != 0) ||
@@ -665,7 +640,9 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->has_read_registers_query = true;
    info->has_scheduled_fence_dependency = info->drm_minor >= 28;
    info->mid_command_buffer_preemption_enabled = amdinfo->ids_flags & AMDGPU_IDS_FLAGS_PREEMPTION;
-	info->has_tmz_support = has_tmz_support(dev, info, amdinfo);
+   info->has_tmz_support = has_tmz_support(dev, info, amdinfo);
+   info->kernel_has_modifiers = info->chip_class >= GFX9 && info->drm_minor >= 40;
+   info->has_graphics = gfx.available_rings > 0;
 
    info->pa_sc_tile_steering_override = device_info.pa_sc_tile_steering_override;
    info->max_render_backends = amdinfo->rb_pipes;
@@ -690,14 +667,53 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       info->tcc_cache_line_size = 128;
 
       if (info->drm_minor >= 35) {
-         info->tcc_harvested = device_info.tcc_disabled_mask != 0;
+         info->num_tcc_blocks = info->max_tcc_blocks - util_bitcount64(device_info.tcc_disabled_mask);
       } else {
          /* This is a hack, but it's all we can do without a kernel upgrade. */
-         info->tcc_harvested = (info->vram_size / info->num_tcc_blocks) != 512 * 1024 * 1024;
+         info->num_tcc_blocks = info->vram_size / (512 * 1024 * 1024);
+         if (info->num_tcc_blocks > info->max_tcc_blocks)
+            info->num_tcc_blocks /= 2;
       }
    } else {
-      info->tcc_cache_line_size = 64;
+      if (!info->has_graphics && info->family >= CHIP_ALDEBARAN)
+         info->tcc_cache_line_size = 128;
+      else
+         info->tcc_cache_line_size = 64;
+
+      info->num_tcc_blocks = info->max_tcc_blocks;
    }
+
+   info->tcc_rb_non_coherent = !util_is_power_of_two_or_zero(info->num_tcc_blocks);
+
+   switch (info->family) {
+   case CHIP_TAHITI:
+   case CHIP_PITCAIRN:
+   case CHIP_OLAND:
+   case CHIP_HAWAII:
+   case CHIP_KABINI:
+   case CHIP_TONGA:
+   case CHIP_STONEY:
+   case CHIP_RAVEN2:
+      info->l2_cache_size = info->num_tcc_blocks * 64 * 1024;
+      break;
+   case CHIP_VERDE:
+   case CHIP_HAINAN:
+   case CHIP_BONAIRE:
+   case CHIP_KAVERI:
+   case CHIP_ICELAND:
+   case CHIP_CARRIZO:
+   case CHIP_FIJI:
+   case CHIP_POLARIS12:
+   case CHIP_VEGAM:
+      info->l2_cache_size = info->num_tcc_blocks * 128 * 1024;
+      break;
+   default:
+      info->l2_cache_size = info->num_tcc_blocks * 256 * 1024;
+      break;
+   }
+
+   info->l1_cache_size = 16384;
+
    info->mc_arb_ramcfg = amdinfo->mc_arb_ramcfg;
    info->gb_addr_config = amdinfo->gb_addr_cfg;
    if (info->chip_class >= GFX9) {
@@ -715,12 +731,15 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
     * LDS is 128KB in WGP mode and 64KB in CU mode. Assume the WGP mode is used.
     */
    info->lds_size_per_workgroup = info->chip_class >= GFX10 ? 128 * 1024 : 64 * 1024;
-   info->lds_granularity = info->chip_class >= GFX7 ? 128 * 4 : 64 * 4;
+   /* lds_encode_granularity is the block size used for encoding registers.
+    * lds_alloc_granularity is what the hardware will align the LDS size to.
+    */
+   info->lds_encode_granularity = info->chip_class >= GFX7 ? 128 * 4 : 64 * 4;
+   info->lds_alloc_granularity = info->chip_class >= GFX10_3 ? 256 * 4 : info->lds_encode_granularity;
 
    assert(util_is_power_of_two_or_zero(dma.available_rings + 1));
    assert(util_is_power_of_two_or_zero(compute.available_rings + 1));
 
-   info->has_graphics = gfx.available_rings > 0;
    info->num_rings[RING_GFX] = util_bitcount(gfx.available_rings);
    info->num_rings[RING_COMPUTE] = util_bitcount(compute.available_rings);
    info->num_rings[RING_DMA] = util_bitcount(dma.available_rings);
@@ -785,6 +804,9 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       info->family == CHIP_VEGA10 || info->family == CHIP_RAVEN;
 
    info->has_ls_vgpr_init_bug = info->family == CHIP_VEGA10 || info->family == CHIP_RAVEN;
+
+   /* Drawing from 0-sized index buffers causes hangs on Navi10/14. */
+   info->has_zero_index_buffer_bug = info->family == CHIP_NAVI10 || info->family == CHIP_NAVI14;
 
    /* Support for GFX10.3 was added with F32_ME_FEATURE_VERSION_31 but the
     * firmware version wasn't bumped.
@@ -876,7 +898,7 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
 
    info->has_gds_ordered_append = info->chip_class >= GFX7 && info->drm_minor >= 29;
 
-   if (info->chip_class >= GFX9) {
+   if (info->chip_class >= GFX9 && info->has_graphics) {
       unsigned pc_lines = 0;
 
       switch (info->family) {
@@ -901,8 +923,6 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       case CHIP_VANGOGH:
          pc_lines = 256;
          break;
-      case CHIP_ARCTURUS:
-         break;
       default:
          assert(0);
       }
@@ -915,10 +935,6 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
          info->pbb_max_alloc_count = MIN2(128, pc_lines / (4 * info->max_se));
       }
    }
-
-   /* The number of SDPs is the same as the number of TCCs for now. */
-   if (info->chip_class >= GFX10)
-      info->num_sdp_interfaces = device_info.num_tcc_blocks;
 
    if (info->chip_class >= GFX10_3)
       info->max_wave64_per_simd = 16;
@@ -947,11 +963,18 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       info->use_late_alloc = info->family != CHIP_KABINI;
    }
 
+   info->has_3d_cube_border_color_mipmap = info->has_graphics || info->family == CHIP_ARCTURUS;
    info->max_sgpr_alloc = info->family == CHIP_TONGA || info->family == CHIP_ICELAND ? 96 : 104;
 
-   info->min_wave64_vgpr_alloc = 4;
-   info->max_vgpr_alloc = 256;
-   info->wave64_vgpr_alloc_granularity = 4;
+   if (!info->has_graphics && info->family >= CHIP_ALDEBARAN) {
+      info->min_wave64_vgpr_alloc = 8;
+      info->max_vgpr_alloc = 512;
+      info->wave64_vgpr_alloc_granularity = 8;
+   } else {
+      info->min_wave64_vgpr_alloc = 4;
+      info->max_vgpr_alloc = 256;
+      info->wave64_vgpr_alloc_granularity = 4;
+   }
 
    info->num_physical_wave64_vgprs_per_simd = info->chip_class >= GFX10 ? 512 : 256;
    info->num_simd_per_compute_unit = info->chip_class >= GFX10 ? 2 : 4;
@@ -1028,6 +1051,7 @@ void ac_print_gpu_info(struct radeon_info *info, FILE *f)
    fprintf(f, "    has_msaa_sample_loc_bug = %i\n", info->has_msaa_sample_loc_bug);
    fprintf(f, "    has_ls_vgpr_init_bug = %i\n", info->has_ls_vgpr_init_bug);
    fprintf(f, "    has_32bit_predication = %i\n", info->has_32bit_predication);
+   fprintf(f, "    has_3d_cube_border_color_mipmap = %i\n", info->has_3d_cube_border_color_mipmap);
 
    fprintf(f, "Display features:\n");
    fprintf(f, "    use_display_dcc_unaligned = %u\n", info->use_display_dcc_unaligned);
@@ -1048,13 +1072,15 @@ void ac_print_gpu_info(struct radeon_info *info, FILE *f)
    fprintf(f, "    address32_hi = %u\n", info->address32_hi);
    fprintf(f, "    has_dedicated_vram = %u\n", info->has_dedicated_vram);
    fprintf(f, "    all_vram_visible = %u\n", info->all_vram_visible);
-   fprintf(f, "    num_sdp_interfaces = %u\n", info->num_sdp_interfaces);
+   fprintf(f, "    smart_access_memory = %u\n", info->smart_access_memory);
+   fprintf(f, "    max_tcc_blocks = %i\n", info->max_tcc_blocks);
    fprintf(f, "    num_tcc_blocks = %i\n", info->num_tcc_blocks);
    fprintf(f, "    tcc_cache_line_size = %u\n", info->tcc_cache_line_size);
-   fprintf(f, "    tcc_harvested = %u\n", info->tcc_harvested);
+   fprintf(f, "    tcc_rb_non_coherent = %u\n", info->tcc_rb_non_coherent);
    fprintf(f, "    pc_lines = %u\n", info->pc_lines);
    fprintf(f, "    lds_size_per_workgroup = %u\n", info->lds_size_per_workgroup);
-   fprintf(f, "    lds_granularity = %i\n", info->lds_granularity);
+   fprintf(f, "    lds_alloc_granularity = %i\n", info->lds_alloc_granularity);
+   fprintf(f, "    lds_encode_granularity = %i\n", info->lds_encode_granularity);
    fprintf(f, "    max_memory_clock = %i\n", info->max_memory_clock);
    fprintf(f, "    ce_ram_size = %i\n", info->ce_ram_size);
    fprintf(f, "    l1_cache_size = %i\n", info->l1_cache_size);
@@ -1124,6 +1150,7 @@ void ac_print_gpu_info(struct radeon_info *info, FILE *f)
    fprintf(f, "    min_wave64_vgpr_alloc = %i\n", info->min_wave64_vgpr_alloc);
    fprintf(f, "    max_vgpr_alloc = %i\n", info->max_vgpr_alloc);
    fprintf(f, "    wave64_vgpr_alloc_granularity = %i\n", info->wave64_vgpr_alloc_granularity);
+   fprintf(f, "    use_late_alloc = %i\n", info->use_late_alloc);
 
    fprintf(f, "Render backend info:\n");
    fprintf(f, "    pa_sc_tile_steering_override = 0x%x\n", info->pa_sc_tile_steering_override);

@@ -69,14 +69,6 @@ vk_format_is_compressed(VkFormat format)
 }
 
 static inline bool
-vk_format_is_depth_or_stencil(VkFormat format)
-{
-   const struct util_format_description *desc = vk_format_description(format);
-
-   return util_format_has_depth(desc) || util_format_has_stencil(desc);
-}
-
-static inline bool
 vk_format_has_alpha(VkFormat format)
 {
    return util_format_has_alpha(vk_format_to_pipe_format(format));

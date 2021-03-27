@@ -45,40 +45,67 @@ if [ -z "$BM_ROOTFS" ]; then
   exit 1
 fi
 
-if [ -z "$BM_WEBDAV_IP" -o -z "$BM_WEBDAV_PORT" ]; then
-  echo "BM_WEBDAV_IP and/or BM_WEBDAV_PORT is not set - no results will be uploaded from DUT!"
-  WEBDAV_CMDLINE=""
-else
-  WEBDAV_CMDLINE="webdav=http://$BM_WEBDAV_IP:$BM_WEBDAV_PORT"
+if echo $BM_CMDLINE | grep -q "root=/dev/nfs"; then
+  BM_FASTBOOT_NFSROOT=1
+fi
+
+if [ -z "$BM_FASTBOOT_NFSROOT" ]; then
+  if [ -z "$BM_WEBDAV_IP" -o -z "$BM_WEBDAV_PORT" ]; then
+    echo "BM_WEBDAV_IP and/or BM_WEBDAV_PORT is not set - no results will be uploaded from DUT!"
+    WEBDAV_CMDLINE=""
+  else
+    WEBDAV_CMDLINE="webdav=http://$BM_WEBDAV_IP:$BM_WEBDAV_PORT"
+  fi
 fi
 
 set -ex
 
 # Clear out any previous run's artifacts.
 rm -rf results/
-mkdir -p results
+mkdir -p results/
 
-# Create the rootfs in a temp dir
-rsync -a --delete $BM_ROOTFS/ rootfs/
-. $BM/rootfs-setup.sh rootfs
+if [ -n "$BM_FASTBOOT_NFSROOT" ]; then
+  # Create the rootfs in the NFS directory.  rm to make sure it's in a pristine
+  # state, since it's volume-mounted on the host.
+  rsync -a --delete $BM_ROOTFS/ /nfs/
+  mkdir -p /nfs/results
+  . $BM/rootfs-setup.sh /nfs
 
-# Finally, pack it up into a cpio rootfs.  Skip the vulkan CTS since none of
-# these devices use it and it would take up space in the initrd.
-
-if [ -n "$PIGLIT_PROFILES" ]; then
-  EXCLUDE_FILTER="deqp|arb_gpu_shader5|arb_gpu_shader_fp64|arb_gpu_shader_int64|glsl-4.[0123456]0|arb_tessellation_shader"
+  # Root on NFS, no need for an inintramfs.
+  rm -f rootfs.cpio.gz
+  touch rootfs.cpio
+  gzip rootfs.cpio
 else
-  EXCLUDE_FILTER="piglit|python"
-fi
+  # Create the rootfs in a temp dir
+  rsync -a --delete $BM_ROOTFS/ rootfs/
+  . $BM/rootfs-setup.sh rootfs
 
-pushd rootfs
-find -H | \
-  egrep -v "external/(openglcts|vulkancts|amber|glslang|spirv-tools)" |
-  egrep -v "traces-db|apitrace|renderdoc" | \
-  egrep -v $EXCLUDE_FILTER | \
-  cpio -H newc -o | \
-  xz --check=crc32 -T4 - > $CI_PROJECT_DIR/rootfs.cpio.gz
-popd
+  # Finally, pack it up into a cpio rootfs.  Skip the vulkan CTS since none of
+  # these devices use it and it would take up space in the initrd.
+
+  if [ -n "$PIGLIT_PROFILES" ]; then
+    EXCLUDE_FILTER="deqp|arb_gpu_shader5|arb_gpu_shader_fp64|arb_gpu_shader_int64|glsl-4.[0123456]0|arb_tessellation_shader"
+  else
+    EXCLUDE_FILTER="piglit|python"
+  fi
+
+  pushd rootfs
+  find -H | \
+    egrep -v "external/(openglcts|vulkancts|amber|glslang|spirv-tools)" |
+    egrep -v "traces-db|apitrace|renderdoc" | \
+    egrep -v $EXCLUDE_FILTER | \
+    cpio -H newc -o | \
+    xz --check=crc32 -T4 - > $CI_PROJECT_DIR/rootfs.cpio.gz
+  popd
+
+  # Start nginx to get results from DUT
+  if [ -n "$WEBDAV_CMDLINE" ]; then
+    ln -s `pwd`/results /results
+    sed -i s/80/$BM_WEBDAV_PORT/g /etc/nginx/sites-enabled/default
+    sed -i s/www-data/root/g /etc/nginx/nginx.conf
+    nginx
+  fi
+fi
 
 # Make the combined kernel image and dtb for passing to fastboot.  For normal
 # Mesa development, we build the kernel and store it in the docker container
@@ -100,20 +127,13 @@ else
   cat $BM_KERNEL $BM_DTB > Image.gz-dtb
 fi
 
+mkdir -p artifacts
 abootimg \
   --create artifacts/fastboot.img \
   -k Image.gz-dtb \
   -r rootfs.cpio.gz \
   -c cmdline="$BM_CMDLINE $WEBDAV_CMDLINE"
 rm Image.gz-dtb
-
-# Start nginx to get results from DUT
-if [ -n "$WEBDAV_CMDLINE" ]; then
-  ln -s `pwd`/results /results
-  sed -i s/80/$BM_WEBDAV_PORT/g /etc/nginx/sites-enabled/default
-  sed -i s/www-data/root/g /etc/nginx/nginx.conf
-  nginx
-fi
 
 export PATH=$BM:$PATH
 
@@ -126,8 +146,19 @@ if [ -n "$BM_SERIAL_SCRIPT" ]; then
   done
 fi
 
+set +e
 $BM/fastboot_run.py \
   --dev="$BM_SERIAL" \
   --fbserial="$BM_FASTBOOT_SERIAL" \
   --powerup="$BM_POWERUP" \
   --powerdown="$BM_POWERDOWN"
+ret=$?
+set -e
+
+if [ -n "$BM_FASTBOOT_NFSROOT" ]; then
+  # Bring artifacts back from the NFS dir to the build dir where gitlab-runner
+  # will look for them.
+  cp -Rp /nfs/results/. results/
+fi
+
+exit $ret

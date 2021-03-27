@@ -871,6 +871,11 @@ static void
 mark_kill_path(struct ir3_instruction *instr)
 {
 	struct ir3_sched_node *n = instr->data;
+
+	if (n->kill_path) {
+		return;
+	}
+
 	n->kill_path = true;
 
 	foreach_ssa_src (src, instr) {

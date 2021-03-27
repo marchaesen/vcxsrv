@@ -68,7 +68,7 @@ static const struct debug_named_value sfn_debug_options[] = {
    {"ass", SfnLog::assembly, "Log IR to assembly conversion"},
    {"flow", SfnLog::flow, "Log Flow instructions"},
    {"merge", SfnLog::merge, "Log register merge operations"},
-   {"nomerge", SfnLog::nomerge, "Skup egister merge step"},
+   {"nomerge", SfnLog::nomerge, "Skip register merge step"},
    {"tex", SfnLog::tex, "Log texture ops"},
    {"trans", SfnLog::trans, "Log generic translation messages"},
    DEBUG_NAMED_VALUE_END

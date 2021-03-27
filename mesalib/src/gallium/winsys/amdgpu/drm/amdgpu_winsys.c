@@ -186,9 +186,18 @@ static void amdgpu_winsys_destroy(struct radeon_winsys *rws)
 }
 
 static void amdgpu_winsys_query_info(struct radeon_winsys *rws,
-                                     struct radeon_info *info)
+                                     struct radeon_info *info,
+                                     bool enable_smart_access_memory,
+                                     bool disable_smart_access_memory)
 {
-   *info = amdgpu_winsys(rws)->info;
+   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+
+   if (disable_smart_access_memory)
+      ws->info.smart_access_memory = false;
+   else if (enable_smart_access_memory && ws->info.all_vram_visible)
+      ws->info.smart_access_memory = true;
+
+   *info = ws->info;
 }
 
 static bool amdgpu_cs_request_feature(struct radeon_cmdbuf *rcs,
@@ -214,6 +223,10 @@ static uint64_t amdgpu_query_value(struct radeon_winsys *rws,
       return ws->mapped_vram;
    case RADEON_MAPPED_GTT:
       return ws->mapped_gtt;
+   case RADEON_SLAB_WASTED_VRAM:
+      return ws->slab_wasted_vram;
+   case RADEON_SLAB_WASTED_GTT:
+      return ws->slab_wasted_gtt;
    case RADEON_BUFFER_WAIT_TIME_NS:
       return ws->buffer_wait_time;
    case RADEON_NUM_MAPPED_BUFFERS:
@@ -318,8 +331,8 @@ static void amdgpu_pin_threads_to_L3_cache(struct radeon_winsys *rws,
    struct amdgpu_winsys *ws = amdgpu_winsys(rws);
 
    util_set_thread_affinity(ws->cs_queue.threads[0],
-                            util_cpu_caps.L3_affinity_mask[cache],
-                            NULL, UTIL_MAX_CPUS);
+                            util_get_cpu_caps()->L3_affinity_mask[cache],
+                            NULL, util_get_cpu_caps()->num_cpu_mask_bits);
 }
 
 static uint32_t kms_handle_hash(const void *key)
@@ -432,8 +445,8 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
                     (aws->info.vram_size + aws->info.gart_size) / 8,
                     amdgpu_bo_destroy, amdgpu_bo_can_reclaim);
 
-      unsigned min_slab_order = 9;  /* 512 bytes */
-      unsigned max_slab_order = 18; /* 256 KB - higher numbers increase memory usage */
+      unsigned min_slab_order = 8;  /* 256 bytes */
+      unsigned max_slab_order = 20; /* 1 MB (slab size = 2 MB) */
       unsigned num_slab_orders_per_allocator = (max_slab_order - min_slab_order) /
                                                NUM_SLAB_ALLOCATORS;
 
@@ -445,7 +458,7 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
 
          if (!pb_slabs_init(&aws->bo_slabs[i],
                             min_order, max_order,
-                            RADEON_MAX_SLAB_HEAPS,
+                            RADEON_MAX_SLAB_HEAPS, true,
                             aws,
                             amdgpu_bo_can_reclaim_slab,
                             amdgpu_bo_slab_alloc_normal,
@@ -458,7 +471,7 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
          if (aws->info.has_tmz_support &&
              !pb_slabs_init(&aws->bo_slabs_encrypted[i],
                             min_order, max_order,
-                            RADEON_MAX_SLAB_HEAPS,
+                            RADEON_MAX_SLAB_HEAPS, true,
                             aws,
                             amdgpu_bo_can_reclaim_slab,
                             amdgpu_bo_slab_alloc_encrypted,

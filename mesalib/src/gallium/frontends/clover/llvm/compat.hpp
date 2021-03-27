@@ -38,17 +38,18 @@
 
 #include <llvm/Config/llvm-config.h>
 
+#include <llvm/ADT/Triple.h>
+#include <llvm/Analysis/TargetLibraryInfo.h>
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/Linker/Linker.h>
+#include <llvm/Target/TargetMachine.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Utils/Cloning.h>
-#include <llvm/Target/TargetMachine.h>
-
-#include <llvm/IR/LegacyPassManager.h>
-#include <llvm/Analysis/TargetLibraryInfo.h>
 
 #include <clang/Basic/TargetInfo.h>
 #include <clang/Frontend/CompilerInstance.h>
+#include <clang/Lex/PreprocessorOptions.h>
 
 #if LLVM_VERSION_MAJOR >= 10
 #include <llvm/Support/CodeGen.h>
@@ -87,6 +88,20 @@ namespace clover {
             return clang::CompilerInvocation::CreateFromArgs(
                cinv, copts.data(), copts.data() + copts.size(), diag);
 #endif
+         }
+
+         static inline void
+         compiler_set_lang_defaults(std::unique_ptr<clang::CompilerInstance> &c,
+                                    clang::InputKind ik, const ::llvm::Triple& triple,
+                                    clang::LangStandard::Kind d)
+         {
+            c->getInvocation().setLangDefaults(c->getLangOpts(), ik, triple,
+#if LLVM_VERSION_MAJOR >= 12
+                                               c->getPreprocessorOpts().Includes,
+#else
+                                               c->getPreprocessorOpts(),
+#endif
+                                               d);
          }
       }
    }

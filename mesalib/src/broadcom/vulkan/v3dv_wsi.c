@@ -32,8 +32,18 @@
 static PFN_vkVoidFunction
 v3dv_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
 {
-   V3DV_FROM_HANDLE(v3dv_physical_device, physical_device, physicalDevice);
-   return v3dv_lookup_entrypoint(&physical_device->devinfo, pName);
+   V3DV_FROM_HANDLE(v3dv_physical_device, pdevice, physicalDevice);
+   PFN_vkVoidFunction func;
+
+   func = vk_instance_dispatch_table_get(&pdevice->vk.instance->dispatch_table, pName);
+   if (func != NULL)
+      return func;
+
+   func = vk_physical_device_dispatch_table_get(&pdevice->vk.dispatch_table, pName);
+   if (func != NULL)
+      return func;
+
+   return vk_device_dispatch_table_get(&vk_device_trampolines, pName);
 }
 
 VkResult
@@ -44,7 +54,7 @@ v3dv_wsi_init(struct v3dv_physical_device *physical_device)
    result = wsi_device_init(&physical_device->wsi_device,
                             v3dv_physical_device_to_handle(physical_device),
                             v3dv_wsi_proc_addr,
-                            &physical_device->instance->alloc,
+                            &physical_device->vk.instance->alloc,
                             physical_device->master_fd, NULL, false);
 
    if (result != VK_SUCCESS)
@@ -59,7 +69,7 @@ void
 v3dv_wsi_finish(struct v3dv_physical_device *physical_device)
 {
    wsi_device_finish(&physical_device->wsi_device,
-                     &physical_device->instance->alloc);
+                     &physical_device->vk.instance->alloc);
 }
 
 void v3dv_DestroySurfaceKHR(
@@ -73,7 +83,7 @@ void v3dv_DestroySurfaceKHR(
    if (!surface)
       return;
 
-   vk_free2(&instance->alloc, pAllocator, surface);
+   vk_free2(&instance->vk.alloc, pAllocator, surface);
 }
 
 VkResult v3dv_GetPhysicalDeviceSurfaceSupportKHR(

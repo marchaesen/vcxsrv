@@ -48,6 +48,9 @@ struct virgl_hw_res {
    uint32_t flags;
    uint32_t flink_name;
 
+   /* false when the resource is known to be typed */
+   bool maybe_untyped;
+
    /* true when the resource is imported or exported */
    int external;
 

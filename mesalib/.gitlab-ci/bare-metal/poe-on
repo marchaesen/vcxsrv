@@ -5,4 +5,4 @@ if [ -z "$BM_POE_INTERFACE" ]; then
     exit 1
 fi
 
-flock /var/run/poe.lock -c "$CI_PROJECT_DIR/install/bare-metal/poe-set $BM_POE_INTERFACE reset"
+$CI_PROJECT_DIR/install/bare-metal/poe-set.py $BM_POE_INTERFACE reset

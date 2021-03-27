@@ -47,7 +47,7 @@
 #include "r300_texture.h"
 #include "r300_vs.h"
 
-/* r300_state: Functions used to intialize state context by translating
+/* r300_state: Functions used to initialize state context by translating
  * Gallium state objects into semi-native r300 state objects. */
 
 #define UPDATE_STATE(cso, atom) \
@@ -1502,7 +1502,7 @@ static uint32_t r300_assign_texture_cache_region(unsigned index, unsigned num)
      * EIGHTH_0     = 8
      * EIGHTH_1     = 9
      *
-     * First 3 textures will get 3/4 of size of the cache, divived evenly
+     * First 3 textures will get 3/4 of size of the cache, divided evenly
      * between them. The last 1/4 of the cache must be divided between
      * the last 2 textures, each will therefore get 1/8 of the cache.
      * Why not just to use "5 + texture_index" ?
@@ -1518,6 +1518,7 @@ static uint32_t r300_assign_texture_cache_region(unsigned index, unsigned num)
 static void r300_set_sampler_views(struct pipe_context* pipe,
                                    enum pipe_shader_type shader,
                                    unsigned start, unsigned count,
+                                   unsigned unbind_num_trailing_slots,
                                    struct pipe_sampler_view** views)
 {
     struct r300_context* r300 = r300_context(pipe);
@@ -1618,7 +1619,7 @@ r300_create_sampler_view_custom(struct pipe_context *pipe,
                                             dxtc_swizzle);
 
         if (hwformat == ~0) {
-            fprintf(stderr, "r300: Ooops. Got unsupported format %s in %s.\n",
+            fprintf(stderr, "r300: Oops. Got unsupported format %s in %s.\n",
                     util_format_short_name(templ->format), __func__);
         }
         assert(hwformat != ~0);
@@ -1732,19 +1733,22 @@ static void r300_set_viewport_states(struct pipe_context* pipe,
 
 static void r300_set_vertex_buffers_hwtcl(struct pipe_context* pipe,
                                     unsigned start_slot, unsigned count,
+                                    unsigned unbind_num_trailing_slots,
+                                    bool take_ownership,
                                     const struct pipe_vertex_buffer* buffers)
 {
     struct r300_context* r300 = r300_context(pipe);
 
     util_set_vertex_buffers_count(r300->vertex_buffer,
                                   &r300->nr_vertex_buffers,
-                                  buffers, start_slot, count);
+                                  buffers, start_slot, count,
+                                  unbind_num_trailing_slots, take_ownership);
 
     /* There must be at least one vertex buffer set, otherwise it locks up. */
     if (!r300->nr_vertex_buffers) {
         util_set_vertex_buffers_count(r300->vertex_buffer,
                                       &r300->nr_vertex_buffers,
-                                      &r300->dummy_vb, 0, 1);
+                                      &r300->dummy_vb, 0, 1, 0, false);
     }
 
     r300->vertex_arrays_dirty = TRUE;
@@ -1752,6 +1756,8 @@ static void r300_set_vertex_buffers_hwtcl(struct pipe_context* pipe,
 
 static void r300_set_vertex_buffers_swtcl(struct pipe_context* pipe,
                                     unsigned start_slot, unsigned count,
+                                    unsigned unbind_num_trailing_slots,
+                                    bool take_ownership,
                                     const struct pipe_vertex_buffer* buffers)
 {
     struct r300_context* r300 = r300_context(pipe);
@@ -1759,8 +1765,10 @@ static void r300_set_vertex_buffers_swtcl(struct pipe_context* pipe,
 
     util_set_vertex_buffers_count(r300->vertex_buffer,
                                   &r300->nr_vertex_buffers,
-                                  buffers, start_slot, count);
-    draw_set_vertex_buffers(r300->draw, start_slot, count, buffers);
+                                  buffers, start_slot, count,
+                                  unbind_num_trailing_slots, take_ownership);
+    draw_set_vertex_buffers(r300->draw, start_slot, count,
+                            unbind_num_trailing_slots, buffers);
 
     if (!buffers)
         return;
@@ -1966,6 +1974,7 @@ static void r300_delete_vs_state(struct pipe_context* pipe, void* shader)
 
 static void r300_set_constant_buffer(struct pipe_context *pipe,
                                      enum pipe_shader_type shader, uint index,
+                                     bool take_ownership,
                                      const struct pipe_constant_buffer *cb)
 {
     struct r300_context* r300 = r300_context(pipe);
