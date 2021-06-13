@@ -178,7 +178,7 @@ blitframebuffer_texture(struct gl_context *ctx,
    fb_tex_blit.tex_obj = texObj;
    fb_tex_blit.baseLevelSave = texObj->Attrib.BaseLevel;
    fb_tex_blit.maxLevelSave = texObj->Attrib.MaxLevel;
-   fb_tex_blit.stencilSamplingSave = texObj->Attrib.StencilSampling;
+   fb_tex_blit.stencilSamplingSave = texObj->StencilSampling;
 
    if (glsl_version) {
       setup_glsl_blit_framebuffer(ctx, blit, drawFb, rb, target, do_depth);
@@ -338,7 +338,7 @@ _mesa_meta_fb_tex_blit_end(struct gl_context *ctx, GLenum target,
                                    &blit->maxLevelSave, false);
 
       /* If ARB_stencil_texturing is not supported, the mode won't have changed. */
-      if (texObj->Attrib.StencilSampling != blit->stencilSamplingSave) {
+      if (texObj->StencilSampling != blit->stencilSamplingSave) {
          /* GLint so the compiler won't complain about type signedness mismatch
           * in the call to _mesa_texture_parameteriv below.
           */

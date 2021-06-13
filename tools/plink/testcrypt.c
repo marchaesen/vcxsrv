@@ -49,6 +49,10 @@ static NORETURN PRINTF_LIKE(1, 2) void fatal_error(const char *p, ...)
 
 void out_of_memory(void) { fatal_error("out of memory"); }
 
+/* For platforms where getticks is defined within this code base */
+unsigned long (getticks)(void)
+{ unreachable("this is a stub needed to link, and should never be called"); }
+
 FILE *f_open(const struct Filename *fn, char const *mode, bool private)
 { unreachable("f_open should never be called by this test program"); }
 
@@ -225,6 +229,7 @@ static const ssh_hashalg *get_hashalg(BinarySource *in)
         {"sha3_384", &ssh_sha3_384},
         {"sha3_512", &ssh_sha3_512},
         {"shake256_114bytes", &ssh_shake256_114bytes},
+        {"blake2b", &ssh_blake2b},
     };
 
     ptrlen name = get_word(in);
@@ -400,6 +405,50 @@ static const PrimeGenerationPolicy *get_primegenpolicy(BinarySource *in)
             return algs[i].value;
 
     fatal_error("primegenpolicy '%.*s': not found", PTRLEN_PRINTF(name));
+}
+
+static Argon2Flavour get_argon2flavour(BinarySource *in)
+{
+    static const struct {
+        const char *key;
+        Argon2Flavour value;
+    } algs[] = {
+        {"d", Argon2d},
+        {"i", Argon2i},
+        {"id", Argon2id},
+        /* I expect to forget which spelling I chose, so let's support many */
+        {"argon2d", Argon2d},
+        {"argon2i", Argon2i},
+        {"argon2id", Argon2id},
+        {"Argon2d", Argon2d},
+        {"Argon2i", Argon2i},
+        {"Argon2id", Argon2id},
+    };
+
+    ptrlen name = get_word(in);
+    for (size_t i = 0; i < lenof(algs); i++)
+        if (ptrlen_eq_string(name, algs[i].key))
+            return algs[i].value;
+
+    fatal_error("Argon2 flavour '%.*s': not found", PTRLEN_PRINTF(name));
+}
+
+static FingerprintType get_fptype(BinarySource *in)
+{
+    static const struct {
+        const char *key;
+        FingerprintType value;
+    } ids[] = {
+        {"md5", SSH_FPTYPE_MD5},
+        {"sha256", SSH_FPTYPE_SHA256},
+    };
+
+    ptrlen name = get_word(in);
+    for (size_t i = 0; i < lenof(ids); i++)
+        if (ptrlen_eq_string(name, ids[i].key))
+            return ids[i].value;
+
+    fatal_error("fingerprint type '%.*s': not found", PTRLEN_PRINTF(name));
 }
 
 static uintmax_t get_uint(BinarySource *in)
@@ -1029,28 +1078,32 @@ strbuf *des3_decrypt_pubkey_ossh_wrapper(ptrlen key, ptrlen iv, ptrlen data)
 }
 #define des3_decrypt_pubkey_ossh des3_decrypt_pubkey_ossh_wrapper
 
-strbuf *aes256_encrypt_pubkey_wrapper(ptrlen key, ptrlen data)
+strbuf *aes256_encrypt_pubkey_wrapper(ptrlen key, ptrlen iv, ptrlen data)
 {
     if (key.len != 32)
         fatal_error("aes256_encrypt_pubkey: key must be 32 bytes long");
+    if (iv.len != 16)
+        fatal_error("aes256_encrypt_pubkey: iv must be 16 bytes long");
     if (data.len % 16 != 0)
         fatal_error("aes256_encrypt_pubkey: data must be a multiple of 16 bytes");
     strbuf *sb = strbuf_new();
     put_datapl(sb, data);
-    aes256_encrypt_pubkey(key.ptr, sb->u, sb->len);
+    aes256_encrypt_pubkey(key.ptr, iv.ptr, sb->u, sb->len);
     return sb;
 }
 #define aes256_encrypt_pubkey aes256_encrypt_pubkey_wrapper
 
-strbuf *aes256_decrypt_pubkey_wrapper(ptrlen key, ptrlen data)
+strbuf *aes256_decrypt_pubkey_wrapper(ptrlen key, ptrlen iv, ptrlen data)
 {
     if (key.len != 32)
         fatal_error("aes256_decrypt_pubkey: key must be 32 bytes long");
+    if (iv.len != 16)
+        fatal_error("aes256_encrypt_pubkey: iv must be 16 bytes long");
     if (data.len % 16 != 0)
         fatal_error("aes256_decrypt_pubkey: data must be a multiple of 16 bytes");
     strbuf *sb = strbuf_new();
     put_datapl(sb, data);
-    aes256_decrypt_pubkey(key.ptr, sb->u, sb->len);
+    aes256_decrypt_pubkey(key.ptr, iv.ptr, sb->u, sb->len);
     return sb;
 }
 #define aes256_decrypt_pubkey aes256_decrypt_pubkey_wrapper
@@ -1109,13 +1162,28 @@ int rsa1_load_s_wrapper(BinarySource *src, RSAKey *rsa, char **comment,
 }
 #define rsa1_load_s rsa1_load_s_wrapper
 
-strbuf *ppk_save_sb_wrapper(ssh_key *key, const char *comment,
-                            const char *passphrase)
+strbuf *ppk_save_sb_wrapper(
+    ssh_key *key, const char *comment, const char *passphrase,
+    unsigned fmt_version, Argon2Flavour flavour,
+    uint32_t mem, uint32_t passes, uint32_t parallel)
 {
+    /*
+     * For repeatable testing purposes, we never want a timing-dependent
+     * choice of password hashing parameters, so this is easy.
+     */
+    ppk_save_parameters save_params;
+    memset(&save_params, 0, sizeof(save_params));
+    save_params.fmt_version = fmt_version;
+    save_params.argon2_flavour = flavour;
+    save_params.argon2_mem = mem;
+    save_params.argon2_passes_auto = false;
+    save_params.argon2_passes = passes;
+    save_params.argon2_parallelism = parallel;
+
     ssh2_userkey uk;
     uk.key = key;
     uk.comment = dupstr(comment);
-    strbuf *toret = ppk_save_sb(&uk, passphrase);
+    strbuf *toret = ppk_save_sb(&uk, passphrase, &save_params);
     sfree(uk.comment);
     return toret;
 }
@@ -1214,6 +1282,16 @@ PockleStatus pockle_add_prime_wrapper(Pockle *pockle, mp_int *p,
 }
 #define pockle_add_prime pockle_add_prime_wrapper
 
+strbuf *argon2_wrapper(Argon2Flavour flavour, uint32_t mem, uint32_t passes,
+                       uint32_t parallel, uint32_t taglen,
+                       ptrlen P, ptrlen S, ptrlen K, ptrlen X)
+{
+    strbuf *out = strbuf_new();
+    argon2(flavour, mem, passes, parallel, taglen, P, S, K, X, out);
+    return out;
+}
+#define argon2 argon2_wrapper
+
 #define OPTIONAL_PTR_FUNC(type)                                         \
     typedef TD_val_##type TD_opt_val_##type;                            \
     static TD_opt_val_##type get_opt_val_##type(BinarySource *in) {     \
@@ -1249,6 +1327,8 @@ typedef key_components *TD_keycomponents;
 typedef const PrimeGenerationPolicy *TD_primegenpolicy;
 typedef struct mpint_list TD_mpint_list;
 typedef PockleStatus TD_pocklestatus;
+typedef Argon2Flavour TD_argon2flavour;
+typedef FingerprintType TD_fptype;
 
 #define FUNC0(rettype, function)                                        \
     static void handle_##function(BinarySource *in, strbuf *out) {      \
@@ -1295,8 +1375,70 @@ typedef PockleStatus TD_pocklestatus;
         return_##rettype(out, function(arg1, arg2, arg3, arg4, arg5));  \
     }
 
+#define FUNC6(rettype, function, type1, type2, type3, type4, type5,     \
+              type6)                                                    \
+    static void handle_##function(BinarySource *in, strbuf *out) {      \
+        TD_##type1 arg1 = get_##type1(in);                              \
+        TD_##type2 arg2 = get_##type2(in);                              \
+        TD_##type3 arg3 = get_##type3(in);                              \
+        TD_##type4 arg4 = get_##type4(in);                              \
+        TD_##type5 arg5 = get_##type5(in);                              \
+        TD_##type6 arg6 = get_##type6(in);                              \
+        return_##rettype(out, function(arg1, arg2, arg3, arg4, arg5,    \
+                                       arg6));                          \
+    }
+
+#define FUNC7(rettype, function, type1, type2, type3, type4, type5,     \
+              type6, type7)                                             \
+    static void handle_##function(BinarySource *in, strbuf *out) {      \
+        TD_##type1 arg1 = get_##type1(in);                              \
+        TD_##type2 arg2 = get_##type2(in);                              \
+        TD_##type3 arg3 = get_##type3(in);                              \
+        TD_##type4 arg4 = get_##type4(in);                              \
+        TD_##type5 arg5 = get_##type5(in);                              \
+        TD_##type6 arg6 = get_##type6(in);                              \
+        TD_##type7 arg7 = get_##type7(in);                              \
+        return_##rettype(out, function(arg1, arg2, arg3, arg4, arg5,    \
+                                       arg6, arg7));                    \
+    }
+
+#define FUNC8(rettype, function, type1, type2, type3, type4, type5,     \
+              type6, type7, type8)                                      \
+    static void handle_##function(BinarySource *in, strbuf *out) {      \
+        TD_##type1 arg1 = get_##type1(in);                              \
+        TD_##type2 arg2 = get_##type2(in);                              \
+        TD_##type3 arg3 = get_##type3(in);                              \
+        TD_##type4 arg4 = get_##type4(in);                              \
+        TD_##type5 arg5 = get_##type5(in);                              \
+        TD_##type6 arg6 = get_##type6(in);                              \
+        TD_##type7 arg7 = get_##type7(in);                              \
+        TD_##type8 arg8 = get_##type8(in);                              \
+        return_##rettype(out, function(arg1, arg2, arg3, arg4, arg5,    \
+                                       arg6, arg7, arg8));              \
+    }
+
+#define FUNC9(rettype, function, type1, type2, type3, type4, type5,     \
+              type6, type7, type8, type9)                               \
+    static void handle_##function(BinarySource *in, strbuf *out) {      \
+        TD_##type1 arg1 = get_##type1(in);                              \
+        TD_##type2 arg2 = get_##type2(in);                              \
+        TD_##type3 arg3 = get_##type3(in);                              \
+        TD_##type4 arg4 = get_##type4(in);                              \
+        TD_##type5 arg5 = get_##type5(in);                              \
+        TD_##type6 arg6 = get_##type6(in);                              \
+        TD_##type7 arg7 = get_##type7(in);                              \
+        TD_##type8 arg8 = get_##type8(in);                              \
+        TD_##type9 arg9 = get_##type9(in);                              \
+        return_##rettype(out, function(arg1, arg2, arg3, arg4, arg5,    \
+                                       arg6, arg7, arg8, arg9));        \
+    }
+
 #include "testcrypt.h"
 
+#undef FUNC9
+#undef FUNC8
+#undef FUNC7
+#undef FUNC6
 #undef FUNC5
 #undef FUNC4
 #undef FUNC3
@@ -1324,15 +1466,23 @@ static void process_line(BinarySource *in, strbuf *out)
     DISPATCH_COMMAND(mp_dump);
 #undef DISPATCH_COMMAND
 
-#define FUNC0(ret,func)           DISPATCH_INTERNAL(#func, handle_##func);
-#define FUNC1(ret,func,x)         DISPATCH_INTERNAL(#func, handle_##func);
-#define FUNC2(ret,func,x,y)       DISPATCH_INTERNAL(#func, handle_##func);
-#define FUNC3(ret,func,x,y,z)     DISPATCH_INTERNAL(#func, handle_##func);
-#define FUNC4(ret,func,x,y,z,v)   DISPATCH_INTERNAL(#func, handle_##func);
-#define FUNC5(ret,func,x,y,z,v,w) DISPATCH_INTERNAL(#func, handle_##func);
+#define FUNC0(ret,fn)                   DISPATCH_INTERNAL(#fn,handle_##fn);
+#define FUNC1(ret,fn,x)                 DISPATCH_INTERNAL(#fn,handle_##fn);
+#define FUNC2(ret,fn,x,y)               DISPATCH_INTERNAL(#fn,handle_##fn);
+#define FUNC3(ret,fn,x,y,z)             DISPATCH_INTERNAL(#fn,handle_##fn);
+#define FUNC4(ret,fn,x,y,z,v)           DISPATCH_INTERNAL(#fn,handle_##fn);
+#define FUNC5(ret,fn,x,y,z,v,w)         DISPATCH_INTERNAL(#fn,handle_##fn);
+#define FUNC6(ret,fn,x,y,z,v,w,u)       DISPATCH_INTERNAL(#fn,handle_##fn);
+#define FUNC7(ret,fn,x,y,z,v,w,u,t)     DISPATCH_INTERNAL(#fn,handle_##fn);
+#define FUNC8(ret,fn,x,y,z,v,w,u,t,s)   DISPATCH_INTERNAL(#fn,handle_##fn);
+#define FUNC9(ret,fn,x,y,z,v,w,u,t,s,r) DISPATCH_INTERNAL(#fn,handle_##fn);
 
 #include "testcrypt.h"
 
+#undef FUNC9
+#undef FUNC8
+#undef FUNC7
+#undef FUNC6
 #undef FUNC5
 #undef FUNC4
 #undef FUNC3

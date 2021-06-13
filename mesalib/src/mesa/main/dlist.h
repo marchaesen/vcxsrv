@@ -133,5 +133,8 @@ _mesa_init_display_list(struct gl_context * ctx);
 void
 _mesa_free_display_list_data(struct gl_context *ctx);
 
+bool
+_mesa_get_list(struct gl_context *ctx, GLuint list,
+               struct gl_display_list **dlist);
 
 #endif /* DLIST_H */

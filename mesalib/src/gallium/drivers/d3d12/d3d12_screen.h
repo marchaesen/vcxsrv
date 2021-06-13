@@ -27,6 +27,7 @@
 #include "pipe/p_screen.h"
 
 #include "util/slab.h"
+#include "d3d12_descriptor_pool.h"
 
 #ifndef _WIN32
 #include <wsl/winadapter.h>
@@ -36,6 +37,22 @@
 #include <directx/d3d12.h>
 
 struct pb_manager;
+
+enum resource_dimension
+{
+   RESOURCE_DIMENSION_UNKNOWN = 0,
+   RESOURCE_DIMENSION_BUFFER = 1,
+   RESOURCE_DIMENSION_TEXTURE1D = 2,
+   RESOURCE_DIMENSION_TEXTURE2D = 3,
+   RESOURCE_DIMENSION_TEXTURE2DMS = 4,
+   RESOURCE_DIMENSION_TEXTURE3D = 5,
+   RESOURCE_DIMENSION_TEXTURECUBE = 6,
+   RESOURCE_DIMENSION_TEXTURE1DARRAY = 7,
+   RESOURCE_DIMENSION_TEXTURE2DARRAY = 8,
+   RESOURCE_DIMENSION_TEXTURE2DMSARRAY = 9,
+   RESOURCE_DIMENSION_TEXTURECUBEARRAY = 10,
+   RESOURCE_DIMENSION_COUNT
+};
 
 struct d3d12_screen {
    struct pipe_screen base;
@@ -48,6 +65,15 @@ struct d3d12_screen {
    struct pb_manager *bufmgr;
    struct pb_manager *cache_bufmgr;
    struct pb_manager *slab_bufmgr;
+   struct pb_manager *readback_slab_bufmgr;
+
+   mtx_t descriptor_pool_mutex;
+   struct d3d12_descriptor_pool *rtv_pool;
+   struct d3d12_descriptor_pool *dsv_pool;
+   struct d3d12_descriptor_pool *view_pool;
+
+   struct d3d12_descriptor_handle null_srvs[RESOURCE_DIMENSION_COUNT];
+   struct d3d12_descriptor_handle null_rtv;
 
    /* capabilities */
    D3D_FEATURE_LEVEL max_feature_level;

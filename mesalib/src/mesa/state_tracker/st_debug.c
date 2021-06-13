@@ -50,7 +50,6 @@ static const struct debug_named_value st_debug_flags[] = {
    { "fallback", DEBUG_FALLBACK, NULL },
    { "buffer",   DEBUG_BUFFER, NULL },
    { "wf",       DEBUG_WIREFRAME, NULL },
-   { "precompile",  DEBUG_PRECOMPILE, NULL },
    { "gremedy",  DEBUG_GREMEDY, "Enable GREMEDY debug extensions" },
    { "noreadpixcache", DEBUG_NOREADPIXCACHE, NULL },
    DEBUG_NAMED_VALUE_END

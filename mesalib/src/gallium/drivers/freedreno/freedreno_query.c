@@ -53,6 +53,7 @@ fd_create_query(struct pipe_context *pctx, unsigned query_type, unsigned index)
 
 static void
 fd_destroy_query(struct pipe_context *pctx, struct pipe_query *pq)
+	in_dt
 {
 	struct fd_query *q = fd_query(pq);
 	q->funcs->destroy_query(fd_context(pctx), q);
@@ -60,6 +61,7 @@ fd_destroy_query(struct pipe_context *pctx, struct pipe_query *pq)
 
 static bool
 fd_begin_query(struct pipe_context *pctx, struct pipe_query *pq)
+	in_dt
 {
 	struct fd_query *q = fd_query(pq);
 
@@ -70,6 +72,7 @@ fd_begin_query(struct pipe_context *pctx, struct pipe_query *pq)
 
 static bool
 fd_end_query(struct pipe_context *pctx, struct pipe_query *pq)
+	in_dt
 {
 	struct fd_query *q = fd_query(pq);
 
@@ -98,6 +101,7 @@ fd_get_query_result(struct pipe_context *pctx, struct pipe_query *pq,
 static void
 fd_render_condition(struct pipe_context *pctx, struct pipe_query *pq,
 					bool condition, enum pipe_render_cond_flag mode)
+	in_dt
 {
 	struct fd_context *ctx = fd_context(pctx);
 	ctx->cond_query = pq;
@@ -177,6 +181,7 @@ fd_get_driver_query_group_info(struct pipe_screen *pscreen, unsigned index,
 
 static void
 fd_set_active_query_state(struct pipe_context *pctx, bool enable)
+	assert_dt
 {
 	struct fd_context *ctx = fd_context(pctx);
 	ctx->active_queries = enable;

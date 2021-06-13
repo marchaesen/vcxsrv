@@ -331,10 +331,8 @@ xwl_glamor_eglstream_destroy_pixmap(PixmapPtr pixmap)
 }
 
 static struct wl_buffer *
-xwl_glamor_eglstream_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
-                                              Bool *created)
+xwl_glamor_eglstream_get_wl_buffer_for_pixmap(PixmapPtr pixmap)
 {
-    /* XXX created? */
     return xwl_pixmap_get(pixmap)->buffer;
 }
 

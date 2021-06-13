@@ -65,9 +65,9 @@ bi_print_slots(bi_registers *regs, FILE *fp)
 }
 
 void
-bi_print_bundle(bi_bundle *bundle, FILE *fp)
+bi_print_tuple(bi_tuple *tuple, FILE *fp)
 {
-        bi_instr *ins[2] = { bundle->fma, bundle->add };
+        bi_instr *ins[2] = { tuple->fma, tuple->add };
 
         for (unsigned i = 0; i < 2; ++i) {
                 if (ins[i])
@@ -101,10 +101,13 @@ bi_print_clause(bi_clause *clause, FILE *fp)
         if (clause->staging_barrier)
                 fprintf(fp, " osrb");
 
+        if (clause->pcrel_idx != ~0)
+                fprintf(fp, " pcrel(%u)", clause->pcrel_idx);
+
         fprintf(fp, "\n");
 
-        for (unsigned i = 0; i < clause->bundle_count; ++i)
-                bi_print_bundle(&clause->bundles[i], fp);
+        for (unsigned i = 0; i < clause->tuple_count; ++i)
+                bi_print_tuple(&clause->tuples[i], fp);
 
         if (clause->constant_count) {
                 for (unsigned i = 0; i < clause->constant_count; ++i)

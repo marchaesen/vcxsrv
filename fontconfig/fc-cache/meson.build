@@ -9,5 +9,5 @@ tools_man_pages += ['fc-cache']
 
 # Do not try to execute target's fc-cache on host when cross compiling
 if not meson.is_cross_build()
-  meson.add_install_script('../install-cache.py', fccache.full_path())
+  meson.add_install_script(fccache, '-s', '-f', '-v')
 endif

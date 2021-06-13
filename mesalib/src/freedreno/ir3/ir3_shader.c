@@ -35,6 +35,10 @@
 #include "ir3_shader.h"
 #include "ir3_compiler.h"
 #include "ir3_nir.h"
+#include "ir3_assembler.h"
+#include "ir3_parser.h"
+
+#include "isa/isa.h"
 
 #include "disasm.h"
 
@@ -125,17 +129,45 @@ fixup_regfootprint(struct ir3_shader_variant *v)
 void * ir3_shader_assemble(struct ir3_shader_variant *v)
 {
 	const struct ir3_compiler *compiler = v->shader->compiler;
-	void *bin;
+	struct ir3_info *info = &v->info;
+	uint32_t *bin;
 
-	bin = ir3_assemble(v);
+	ir3_collect_info(v);
+
+	if (v->constant_data_size) {
+		/* Make sure that where we're about to place the constant_data is safe
+		 * to indirectly upload from.
+		 */
+		info->constant_data_offset =
+			align(info->size, v->shader->compiler->const_upload_unit * 16);
+		info->size = info->constant_data_offset + v->constant_data_size;
+	}
+
+	/* Pad out the size so that when turnip uploads the shaders in
+	 * sequence, the starting offset of the next one is properly aligned.
+	 */
+	info->size = align(info->size, compiler->instr_align * sizeof(instr_t));
+
+	bin = isa_assemble(v);
 	if (!bin)
 		return NULL;
+
+	/* Append the immediates after the end of the program.  This lets us emit
+	 * the immediates as an indirect load, while avoiding creating another BO.
+	 */
+	if (v->constant_data_size)
+		memcpy(&bin[info->constant_data_offset / 4], v->constant_data, v->constant_data_size);
+	ralloc_free(v->constant_data);
+	v->constant_data = NULL;
 
 	/* NOTE: if relative addressing is used, we set constlen in
 	 * the compiler (to worst-case value) since we don't know in
 	 * the assembler what the max addr reg value can be:
 	 */
-	v->constlen = MAX2(v->constlen, v->info.max_const + 1);
+	v->constlen = MAX2(v->constlen, info->max_const + 1);
+
+	if (v->constlen > ir3_const_state(v)->offsets.driver_param)
+		v->need_driver_params = true;
 
 	/* On a4xx and newer, constlen must be a multiple of 16 dwords even though
 	 * uploads are in units of 4 dwords. Round it up here to make calculations
@@ -147,11 +179,46 @@ void * ir3_shader_assemble(struct ir3_shader_variant *v)
 	/* Use the per-wave layout by default on a6xx. It should result in better
 	 * performance when loads/stores are to a uniform index.
 	 */
-	v->pvtmem_per_wave = compiler->gpu_id >= 600 && !v->info.multi_dword_ldp_stp;
+	v->pvtmem_per_wave = compiler->gpu_id >= 600 && !info->multi_dword_ldp_stp;
 
 	fixup_regfootprint(v);
 
 	return bin;
+}
+
+static bool
+try_override_shader_variant(struct ir3_shader_variant *v, const char *identifier)
+{
+	assert(ir3_shader_override_path);
+
+	char *name = ralloc_asprintf(NULL, "%s/%s.asm", ir3_shader_override_path, identifier);
+
+	FILE* f = fopen(name, "r");
+
+	if (!f) {
+		ralloc_free(name);
+		return false;
+	}
+
+	struct ir3_kernel_info info;
+	info.numwg = INVALID_REG;
+	v->ir = ir3_parse(v, &info, f);
+
+	fclose(f);
+
+	if (!v->ir) {
+		fprintf(stderr, "Failed to parse %s\n", name);
+		exit(1);
+	}
+
+	v->bin = ir3_shader_assemble(v);
+	if (!v->bin) {
+		fprintf(stderr, "Failed to assemble %s\n", name);
+		exit(1);
+	}
+
+	ralloc_free(name);
+	return true;
 }
 
 static void
@@ -159,12 +226,43 @@ assemble_variant(struct ir3_shader_variant *v)
 {
 	v->bin = ir3_shader_assemble(v);
 
-	if (shader_debug_enabled(v->shader->type)) {
-		fprintf(stdout, "Native code for unnamed %s shader %s:\n",
-			ir3_shader_stage(v), v->shader->nir->info.name);
-		if (v->shader->type == MESA_SHADER_FRAGMENT)
-			fprintf(stdout, "SIMD0\n");
-		ir3_shader_disasm(v, v->bin, stdout);
+	bool dbg_enabled = shader_debug_enabled(v->shader->type);
+	if (dbg_enabled || ir3_shader_override_path || v->disasm_info.write_disasm) {
+		unsigned char sha1[21];
+		char sha1buf[41];
+
+		_mesa_sha1_compute(v->bin, v->info.size, sha1);
+		_mesa_sha1_format(sha1buf, sha1);
+
+		bool shader_overridden =
+			ir3_shader_override_path && try_override_shader_variant(v, sha1buf);
+
+		if (v->disasm_info.write_disasm) {
+			char *stream_data = NULL;
+			size_t stream_size = 0;
+			FILE *stream = open_memstream(&stream_data, &stream_size);
+
+			fprintf(stream, "Native code%s for unnamed %s shader %s with sha1 %s:\n",
+				shader_overridden ? " (overridden)" : "",
+				ir3_shader_stage(v), v->shader->nir->info.name, sha1buf);
+			ir3_shader_disasm(v, v->bin, stream);
+
+			fclose(stream);
+
+			v->disasm_info.disasm = ralloc_size(v->shader, stream_size + 1);
+			memcpy(v->disasm_info.disasm, stream_data, stream_size);
+			v->disasm_info.disasm[stream_size] = 0;
+			free(stream_data);
+		}
+
+		if (dbg_enabled || shader_overridden) {
+			fprintf(stdout, "Native code%s for unnamed %s shader %s with sha1 %s:\n",
+				shader_overridden ? " (overridden)" : "",
+				ir3_shader_stage(v), v->shader->nir->info.name, sha1buf);
+			if (v->shader->type == MESA_SHADER_FRAGMENT)
+				fprintf(stdout, "SIMD0\n");
+			ir3_shader_disasm(v, v->bin, stdout);
+		}
 	}
 
 	/* no need to keep the ir around beyond this point: */
@@ -235,17 +333,21 @@ needs_binning_variant(struct ir3_shader_variant *v)
 }
 
 static struct ir3_shader_variant *
-create_variant(struct ir3_shader *shader, const struct ir3_shader_key *key)
+create_variant(struct ir3_shader *shader, const struct ir3_shader_key *key,
+				bool write_disasm)
 {
 	struct ir3_shader_variant *v = alloc_variant(shader, key, NULL);
 
 	if (!v)
 		goto fail;
 
+	v->disasm_info.write_disasm = write_disasm;
+
 	if (needs_binning_variant(v)) {
 		v->binning = alloc_variant(shader, key, v);
 		if (!v->binning)
 			goto fail;
+		v->binning->disasm_info.write_disasm = write_disasm;
 	}
 
 	if (ir3_disk_cache_retrieve(shader->compiler, v))
@@ -257,6 +359,10 @@ create_variant(struct ir3_shader *shader, const struct ir3_shader_key *key)
 		if (ir3_shader_debug & IR3_DBG_DISASM) {
 			printf("dump nir%d: type=%d", shader->id, shader->type);
 			nir_print_shader(shader->nir, stdout);
+		}
+
+		if (v->disasm_info.write_disasm) {
+			v->disasm_info.nir = nir_shader_as_str(shader->nir, shader);
 		}
 
 		shader->nir_finalized = true;
@@ -291,14 +397,14 @@ shader_variant(struct ir3_shader *shader, const struct ir3_shader_key *key)
 
 struct ir3_shader_variant *
 ir3_shader_get_variant(struct ir3_shader *shader, const struct ir3_shader_key *key,
-		bool binning_pass, bool *created)
+		bool binning_pass, bool write_disasm, bool *created)
 {
 	mtx_lock(&shader->variants_lock);
 	struct ir3_shader_variant *v = shader_variant(shader, key);
 
 	if (!v) {
 		/* compile new variant if it doesn't exist already: */
-		v = create_variant(shader, key);
+		v = create_variant(shader, key, write_disasm);
 		if (v) {
 			v->next = shader->variants;
 			shader->variants = v;
@@ -351,15 +457,11 @@ ir3_setup_used_key(struct ir3_shader *shader)
 		key->ucp_enables = 0xff;
 
 	if (info->stage == MESA_SHADER_FRAGMENT) {
-		key->fsaturate_s = ~0;
-		key->fsaturate_t = ~0;
-		key->fsaturate_r = ~0;
 		key->fastc_srgb = ~0;
 		key->fsamples = ~0;
 
 		if (info->inputs_read & VARYING_BITS_COLOR) {
 			key->rasterflat = true;
-			key->color_two_side = true;
 		}
 
 		if (info->inputs_read & VARYING_BIT_LAYER) {
@@ -370,27 +472,19 @@ ir3_setup_used_key(struct ir3_shader *shader)
 			key->view_zero = true;
 		}
 
-		if ((info->outputs_written & ~(FRAG_RESULT_DEPTH |
-								FRAG_RESULT_STENCIL |
-								FRAG_RESULT_SAMPLE_MASK)) != 0) {
-			key->fclamp_color = true;
-		}
-
 		/* Only used for deciding on behavior of
-		 * nir_intrinsic_load_barycentric_sample
+		 * nir_intrinsic_load_barycentric_sample, or the centroid demotion
+		 * on older HW.
 		 */
-		key->msaa = info->fs.uses_sample_qualifier;
+		key->msaa = info->fs.uses_sample_qualifier ||
+					(shader->compiler->gpu_id < 600 &&
+					 (BITSET_TEST(info->system_values_read, SYSTEM_VALUE_BARYCENTRIC_PERSP_CENTROID) ||
+					  BITSET_TEST(info->system_values_read, SYSTEM_VALUE_BARYCENTRIC_LINEAR_CENTROID)));
 	} else {
 		key->tessellation = ~0;
 		key->has_gs = true;
 
-		if (info->outputs_written & VARYING_BITS_COLOR)
-			key->vclamp_color = true;
-
 		if (info->stage == MESA_SHADER_VERTEX) {
-			key->vsaturate_s = ~0;
-			key->vsaturate_t = ~0;
-			key->vsaturate_r = ~0;
 			key->vastc_srgb = ~0;
 			key->vsamples = ~0;
 		}
@@ -513,7 +607,7 @@ input_name(struct ir3_shader_variant *so, int i)
 	} else if (so->type == MESA_SHADER_VERTEX) {
 		return gl_vert_attrib_name(so->inputs[i].slot);
 	} else {
-		return gl_varying_slot_name(so->inputs[i].slot);
+		return gl_varying_slot_name_for_stage(so->inputs[i].slot, so->type);
 	}
 }
 
@@ -531,7 +625,7 @@ output_name(struct ir3_shader_variant *so, int i)
 		case VARYING_SLOT_TCS_HEADER_IR3:
 			return "TCS_HEADER";
 		default:
-			return gl_varying_slot_name(so->outputs[i].slot);
+			return gl_varying_slot_name_for_stage(so->outputs[i].slot, so->type);
 		}
 	}
 }
@@ -588,7 +682,11 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 				const_state->immediates[i * 4 + 3]);
 	}
 
-	disasm_a3xx(bin, so->info.sizedwords, 0, out, ir->compiler->gpu_id);
+	isa_decode(bin, so->info.sizedwords * 4, out, &(struct isa_decode_options){
+		.gpu_id = ir->compiler->gpu_id,
+		.show_errors = true,
+		.branch_labels = true,
+	});
 
 	fprintf(out, "; %s: outputs:", type);
 	for (i = 0; i < so->outputs_count; i++) {
@@ -691,4 +789,52 @@ uint64_t
 ir3_shader_outputs(const struct ir3_shader *so)
 {
 	return so->nir->info.outputs_written;
+}
+
+
+/* Add any missing varyings needed for stream-out.  Otherwise varyings not
+ * used by fragment shader will be stripped out.
+ */
+void
+ir3_link_stream_out(struct ir3_shader_linkage *l, const struct ir3_shader_variant *v)
+{
+	const struct ir3_stream_output_info *strmout = &v->shader->stream_output;
+
+	/*
+	 * First, any stream-out varyings not already in linkage map (ie. also
+	 * consumed by frag shader) need to be added:
+	 */
+	for (unsigned i = 0; i < strmout->num_outputs; i++) {
+		const struct ir3_stream_output *out = &strmout->output[i];
+		unsigned k = out->register_index;
+		unsigned compmask =
+			(1 << (out->num_components + out->start_component)) - 1;
+		unsigned idx, nextloc = 0;
+
+		/* psize/pos need to be the last entries in linkage map, and will
+		 * get added link_stream_out, so skip over them:
+		 */
+		if ((v->outputs[k].slot == VARYING_SLOT_PSIZ) ||
+				(v->outputs[k].slot == VARYING_SLOT_POS))
+			continue;
+
+		for (idx = 0; idx < l->cnt; idx++) {
+			if (l->var[idx].regid == v->outputs[k].regid)
+				break;
+			nextloc = MAX2(nextloc, l->var[idx].loc + 4);
+		}
+
+		/* add if not already in linkage map: */
+		if (idx == l->cnt)
+			ir3_link_add(l, v->outputs[k].regid, compmask, nextloc);
+
+		/* expand component-mask if needed, ie streaming out all components
+		 * but frag shader doesn't consume all components:
+		 */
+		if (compmask & ~l->var[idx].compmask) {
+			l->var[idx].compmask |= compmask;
+			l->max_loc = MAX2(l->max_loc,
+				l->var[idx].loc + util_last_bit(l->var[idx].compmask));
+		}
+	}
 }

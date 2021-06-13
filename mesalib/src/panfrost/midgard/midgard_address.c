@@ -199,11 +199,11 @@ mir_match_mov(struct mir_address *address)
 /* Tries to pattern match into mir_address */
 
 static struct mir_address
-mir_match_offset(nir_ssa_def *offset, bool first_free)
+mir_match_offset(nir_ssa_def *offset, bool first_free, bool extend)
 {
         struct mir_address address = {
                 .B = { .def = offset },
-                .type = ITYPE_U64,
+                .type = extend ? ITYPE_U64 : ITYPE_U32,
         };
 
         mir_match_mov(&address);
@@ -211,9 +211,13 @@ mir_match_offset(nir_ssa_def *offset, bool first_free)
         mir_match_mov(&address);
         mir_match_iadd(&address, first_free);
         mir_match_mov(&address);
-        mir_match_u2u64(&address);
-        mir_match_i2i64(&address);
-        mir_match_mov(&address);
+
+        if (extend) {
+                mir_match_u2u64(&address);
+                mir_match_i2i64(&address);
+                mir_match_mov(&address);
+        }
+
         mir_match_ishl(&address);
 
         return address;
@@ -246,7 +250,7 @@ mir_set_offset(compiler_context *ctx, midgard_instruction *ins, nir_src *offset,
 
         bool first_free = (seg == LDST_GLOBAL);
 
-        struct mir_address match = mir_match_offset(offset->ssa, first_free);
+        struct mir_address match = mir_match_offset(offset->ssa, first_free, true);
 
         if (match.A.def) {
                 ins->src[1] = nir_ssa_index(match.A.def);
@@ -271,4 +275,22 @@ mir_set_offset(compiler_context *ctx, midgard_instruction *ins, nir_src *offset,
         ins->load_store.arg_2 |= (match.shift) << 5;
 
         ins->constants.u32[0] = match.bias;
+}
+
+
+void
+mir_set_ubo_offset(midgard_instruction *ins, nir_src *src, unsigned bias)
+{
+        assert(src->is_ssa);
+        struct mir_address match = mir_match_offset(src->ssa, false, false);
+
+        if (match.B.def) {
+                ins->src[2] = nir_ssa_index(match.B.def);
+
+                for (unsigned i = 0; i < ARRAY_SIZE(ins->swizzle[2]); ++i)
+                        ins->swizzle[2][i] = match.B.comp;
+        }
+
+        ins->load_store.arg_2 |= (match.shift) << 5;
+        ins->constants.u32[0] = match.bias + bias;
 }

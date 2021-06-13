@@ -64,7 +64,7 @@ util_draw_vertex_buffer(struct pipe_context *pipe,
       cso_set_vertex_buffers(cso, vbuf_slot, 1, &vbuffer);
       cso_draw_arrays(cso, prim_type, 0, num_verts);
    } else {
-      pipe->set_vertex_buffers(pipe, vbuf_slot, 1, &vbuffer);
+      pipe->set_vertex_buffers(pipe, vbuf_slot, 1, 0, false, &vbuffer);
       util_draw_arrays(pipe, prim_type, 0, num_verts);
    }
 }

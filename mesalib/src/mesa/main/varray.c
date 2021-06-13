@@ -1882,6 +1882,9 @@ _mesa_enable_vertex_array_attribs(struct gl_context *ctx,
       /* Update the map mode if needed */
       if (attrib_bits & (VERT_BIT_POS|VERT_BIT_GENERIC0))
          update_attribute_map_mode(ctx, vao);
+
+      vao->_EnabledWithMapMode =
+         _mesa_vao_enable_to_vp_inputs(vao->_AttributeMapMode, vao->Enabled);
    }
 }
 
@@ -1979,6 +1982,9 @@ _mesa_disable_vertex_array_attribs(struct gl_context *ctx,
       /* Update the map mode if needed */
       if (attrib_bits & (VERT_BIT_POS|VERT_BIT_GENERIC0))
          update_attribute_map_mode(ctx, vao);
+
+      vao->_EnabledWithMapMode =
+         _mesa_vao_enable_to_vp_inputs(vao->_AttributeMapMode, vao->Enabled);
    }
 }
 

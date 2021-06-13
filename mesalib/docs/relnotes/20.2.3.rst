@@ -172,7 +172,7 @@ Vinson Lee (4):
 
 - os: Fix open result check.
 - amd/addrlib: Add missing va_end.
-- frontends/va: Fix *num_entrypoints check.
+- frontends/va: Fix \*num_entrypoints check.
 - vdpau: Add missing printf format specifier.
 
 Woody Chow (1):

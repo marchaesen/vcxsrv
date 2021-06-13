@@ -60,11 +60,11 @@ setup_conflicts(struct ir3_ra_reg_set *set)
 		}
 	}
 
-	for (unsigned i = 0; i < high_class_count; i++) {
-		for (unsigned j = 0; j < HIGH_CLASS_REGS(i); j++) {
-			for (unsigned br = j; br < j + high_class_sizes[i]; br++) {
+	for (unsigned i = 0; i < shared_class_count; i++) {
+		for (unsigned j = 0; j < SHARED_CLASS_REGS(i); j++) {
+			for (unsigned br = j; br < j + shared_class_sizes[i]; br++) {
 				ra_add_transitive_reg_conflict(set->regs,
-						br + set->first_high_reg, reg);
+						br + set->first_shared_reg, reg);
 			}
 
 			reg++;
@@ -116,8 +116,8 @@ ir3_ra_alloc_reg_set(struct ir3_compiler *compiler, bool mergedregs)
 		ra_reg_count += CLASS_REGS(i);
 	for (unsigned i = 0; i < half_class_count; i++)
 		ra_reg_count += HALF_CLASS_REGS(i);
-	for (unsigned i = 0; i < high_class_count; i++)
-		ra_reg_count += HIGH_CLASS_REGS(i);
+	for (unsigned i = 0; i < shared_class_count; i++)
+		ra_reg_count += SHARED_CLASS_REGS(i);
 
 	ra_reg_count += 1;   /* for tex-prefetch excludes */
 
@@ -162,17 +162,17 @@ ir3_ra_alloc_reg_set(struct ir3_compiler *compiler, bool mergedregs)
 		}
 	}
 
-	set->first_high_reg = reg;
-	base = HIGH_OFFSET;
+	set->first_shared_reg = reg;
+	base = SHARED_OFFSET;
 
-	for (unsigned i = 0; i < high_class_count; i++) {
-		set->high_classes[i] = ra_alloc_reg_class(set->regs);
+	for (unsigned i = 0; i < shared_class_count; i++) {
+		set->shared_classes[i] = ra_alloc_reg_class(set->regs);
 
 		set->gpr_to_ra_reg[base + i] =
-				ralloc_array(set, uint16_t, HIGH_CLASS_REGS(i));
+				ralloc_array(set, uint16_t, SHARED_CLASS_REGS(i));
 
-		for (unsigned j = 0; j < HIGH_CLASS_REGS(i); j++) {
-			ra_class_add_reg(set->regs, set->high_classes[i], reg);
+		for (unsigned j = 0; j < SHARED_CLASS_REGS(i); j++) {
+			ra_class_add_reg(set->regs, set->shared_classes[i], reg);
 
 			set->ra_reg_to_gpr[reg] = j;
 			set->gpr_to_ra_reg[base + i][j] = reg;
@@ -213,12 +213,12 @@ ir3_ra_alloc_reg_set(struct ir3_compiler *compiler, bool mergedregs)
 }
 
 int
-ra_size_to_class(unsigned sz, bool half, bool high)
+ra_size_to_class(unsigned sz, bool half, bool shared)
 {
-	if (high) {
-		for (unsigned i = 0; i < high_class_count; i++)
-			if (high_class_sizes[i] >= sz)
-				return i + HIGH_OFFSET;
+	if (shared) {
+		for (unsigned i = 0; i < shared_class_count; i++)
+			if (shared_class_sizes[i] >= sz)
+				return i + SHARED_OFFSET;
 	} else if (half) {
 		for (unsigned i = 0; i < half_class_count; i++)
 			if (half_class_sizes[i] >= sz)
@@ -233,13 +233,13 @@ ra_size_to_class(unsigned sz, bool half, bool high)
 }
 
 int
-ra_class_to_size(unsigned class, bool *half, bool *high)
+ra_class_to_size(unsigned class, bool *half, bool *shared)
 {
-	*half = *high = false;
+	*half = *shared = false;
 
-	if (class >= HIGH_OFFSET) {
-		*high = true;
-		return high_class_sizes[class - HIGH_OFFSET];
+	if (class >= SHARED_OFFSET) {
+		*shared = true;
+		return shared_class_sizes[class - SHARED_OFFSET];
 	} else if (class >= HALF_OFFSET) {
 		*half = true;
 		return half_class_sizes[class - HALF_OFFSET];

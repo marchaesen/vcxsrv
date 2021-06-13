@@ -87,7 +87,7 @@ struct fd_gmem_cache {
 
 struct fd_batch;
 
-void fd_gmem_render_tiles(struct fd_batch *batch);
+void fd_gmem_render_tiles(struct fd_batch *batch) assert_dt;
 unsigned fd_gmem_estimate_bins_per_pipe(struct fd_batch *batch);
 bool fd_gmem_needs_restore(struct fd_batch *batch, const struct fd_tile *tile,
 		uint32_t buffers);

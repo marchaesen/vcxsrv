@@ -109,12 +109,7 @@ nir_lower_alpha_test(nir_shader *shader, enum compare_func func,
                nir_ssa_def *condition =
                   nir_compare_func(&b, func, alpha, alpha_ref);
 
-               nir_intrinsic_instr *discard =
-                  nir_intrinsic_instr_create(b.shader,
-                                             nir_intrinsic_discard_if);
-               discard->num_components = 1;
-               discard->src[0] = nir_src_for_ssa(nir_inot(&b, condition));
-               nir_builder_instr_insert(&b, &discard->instr);
+               nir_discard_if(&b, nir_inot(&b, condition));
                shader->info.fs.uses_discard = true;
             }
          }

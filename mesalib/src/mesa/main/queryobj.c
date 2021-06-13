@@ -327,7 +327,7 @@ _mesa_DeleteQueries(GLsizei n, const GLuint *ids)
 {
    GLint i;
    GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glDeleteQueries(%d)\n", n);
@@ -415,7 +415,7 @@ _mesa_BeginQueryIndexed(GLenum target, GLuint index, GLuint id)
    if (!query_error_check_index(ctx, target, index))
       return;
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    bindpt = get_query_binding_point(ctx, target, index);
    if (!bindpt) {
@@ -521,7 +521,7 @@ _mesa_EndQueryIndexed(GLenum target, GLuint index)
    if (!query_error_check_index(ctx, target, index))
       return;
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    bindpt = get_query_binding_point(ctx, target, index);
    if (!bindpt) {

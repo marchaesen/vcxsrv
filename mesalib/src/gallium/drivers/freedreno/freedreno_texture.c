@@ -66,7 +66,9 @@ static void bind_sampler_states(struct fd_texture_stateobj *tex,
 }
 
 static void set_sampler_views(struct fd_texture_stateobj *tex,
-		unsigned start, unsigned nr, struct pipe_sampler_view **views)
+			      unsigned start, unsigned nr,
+			      unsigned unbind_num_trailing_slots,
+			      struct pipe_sampler_view **views)
 {
 	unsigned i;
 	unsigned samplers = 0;
@@ -81,6 +83,11 @@ static void set_sampler_views(struct fd_texture_stateobj *tex,
 		} else {
 			tex->valid_textures &= ~(1 << p);
 		}
+	}
+	for (; i < nr + unbind_num_trailing_slots; i++) {
+		unsigned p = i + start;
+		pipe_sampler_view_reference(&tex->textures[p], NULL);
+		tex->valid_textures &= ~(1 << p);
 	}
 
 	tex->num_textures = util_last_bit(tex->valid_textures);
@@ -97,24 +104,24 @@ void
 fd_sampler_states_bind(struct pipe_context *pctx,
 		enum pipe_shader_type shader, unsigned start,
 		unsigned nr, void **hwcso)
+	in_dt
 {
 	struct fd_context *ctx = fd_context(pctx);
 
 	bind_sampler_states(&ctx->tex[shader], start, nr, hwcso);
-	ctx->dirty_shader[shader] |= FD_DIRTY_SHADER_TEX;
-	ctx->dirty |= FD_DIRTY_TEX;
+	fd_context_dirty_shader(ctx, shader, FD_DIRTY_SHADER_TEX);
 }
 
 void
 fd_set_sampler_views(struct pipe_context *pctx, enum pipe_shader_type shader,
-		unsigned start, unsigned nr,
+		unsigned start, unsigned nr, unsigned unbind_num_trailing_slots,
 		struct pipe_sampler_view **views)
+	in_dt
 {
 	struct fd_context *ctx = fd_context(pctx);
 
-	set_sampler_views(&ctx->tex[shader], start, nr, views);
-	ctx->dirty_shader[shader] |= FD_DIRTY_SHADER_TEX;
-	ctx->dirty |= FD_DIRTY_TEX;
+	set_sampler_views(&ctx->tex[shader], start, nr, unbind_num_trailing_slots, views);
+	fd_context_dirty_shader(ctx, shader, FD_DIRTY_SHADER_TEX);
 }
 
 void

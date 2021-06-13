@@ -1,0 +1,259 @@
+.freedreno-test:
+  extends:
+    - .baremetal-test
+    - .use-arm64_test
+    - .freedreno-rules
+  variables:
+    MINIO_ARTIFACT_NAME: mesa-arm64
+    BM_ROOTFS: /lava-files/rootfs-arm64
+    FLAKES_CHANNEL: "#freedreno-ci"
+    PIGLIT_PLATFORM: mixed_glx_egl
+    BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 root=/dev/nfs rw nfsrootdebug nfsroot=,tcp,nfsvers=4.2 init=/init $BM_KERNELARGS"
+  script:
+    - ./install/bare-metal/fastboot.sh
+  needs:
+    - arm64_test
+    - job: meson-arm64
+      artifacts: false
+  tags:
+    - google-freedreno-db410c
+
+.baremetal-deqp-test-freedreno-vk:
+  extends:
+    - .baremetal-deqp-test
+  variables:
+    DEQP_VER: vk
+    VK_DRIVER: freedreno
+
+.arm64-a306-test:
+  extends:
+    - .freedreno-test
+  variables:
+    BM_KERNEL: /lava-files/Image.gz
+    BM_DTB: /lava-files/apq8016-sbc.dtb
+    GPU_VERSION: freedreno-a307
+    DEQP_EXPECTED_RENDERER: FD307
+
+a306_gles2:
+  extends:
+    - .baremetal-deqp-test
+    - .arm64-a306-test
+  variables:
+    DEQP_VER: gles2
+
+a306_gles3:
+  extends:
+    - .baremetal-deqp-test
+    - .arm64-a306-test
+  parallel: 3
+  variables:
+    DEQP_VER: gles3
+
+# Fractional runs with debug options.  Note that since we're not
+# hitting the iommu faults, we can run in parallel (derive from gles2, not gles3).
+a306_gles3_options:
+  extends:
+    - .baremetal-deqp-test
+    - .arm64-a306-test
+  variables:
+    DEQP_VER: gles3
+  script:
+    # Check that the non-constbuf UBO case works.
+    - DEQP_RUN_SUFFIX=-nouboopt IR3_SHADER_DEBUG=nouboopt DEQP_CASELIST_FILTER="functional.*ubo" ./install/bare-metal/fastboot.sh
+
+.arm64-a530-test:
+  extends:
+    - .freedreno-test
+  variables:
+    BM_KERNEL: /lava-files/Image.gz
+    BM_DTB: /lava-files/apq8096-db820c.dtb
+    GPU_VERSION: freedreno-a530
+    DEQP_EXPECTED_RENDERER: FD530
+  tags:
+    - google-freedreno-db820c
+
+a530_gles2:
+  extends:
+    - .baremetal-deqp-test
+    - .arm64-a530-test
+  variables:
+    DEQP_VER: gles2
+
+a530_gles3:
+  extends:
+    - .baremetal-deqp-test
+    - .arm64-a530-test
+  parallel: 2
+  variables:
+    DEQP_VER: gles3
+    DEQP_FRACTION: 2
+
+a530_gles31:
+  extends:
+    - a530_gles3
+  parallel: 2
+  variables:
+    DEQP_VER: gles31
+
+.a530_piglit:
+  extends:
+    - .piglit-test
+    - .arm64-a530-test
+  variables:
+    BARE_METAL_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
+    BM_START_XORG: 1
+
+# Run 1/2 of piglit_gl since it takes a bit under 20 minutes
+a530_piglit_gl:
+  extends:
+    - .a530_piglit
+  variables:
+    PIGLIT_PROFILES: quick_gl
+    PIGLIT_FRACTION: 2
+
+# Run 1/2 of piglit_shader since it takes a bit under 20 minutes
+a530_piglit_shader:
+  extends:
+    - .a530_piglit
+  variables:
+    PIGLIT_PROFILES: quick_shader
+    PIGLIT_FRACTION: 2
+
+.a630-test:
+  extends:
+    - .freedreno-test
+  variables:
+    BM_KERNEL: /lava-files/cheza-kernel
+    BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 root=/dev/nfs rw nfsrootdebug nfsroot=,tcp,nfsvers=4.2 init=/init"
+    GPU_VERSION: freedreno-a630
+    DEQP_EXPECTED_RENDERER: FD630
+  tags:
+    - google-freedreno-cheza
+  script:
+    - ./install/bare-metal/cros-servo.sh
+
+a630_gles2:
+  extends:
+    - .baremetal-deqp-test
+    - .a630-test
+  variables:
+    DEQP_VER: gles2
+
+a630_gles31:
+  extends:
+    - .baremetal-deqp-test
+    - .a630-test
+  variables:
+    DEQP_VER: gles31
+
+a630_gles3:
+  extends:
+    - .baremetal-deqp-test
+    - .a630-test
+  variables:
+    DEQP_VER: gles3
+
+a630_gl:
+  extends:
+    - .baremetal-deqp-test
+    - .a630-test
+  variables:
+    DEQP_VER: gl33
+
+a630_gles_others:
+  extends:
+    - .baremetal-deqp-test
+    - .a630-test
+  variables:
+    BARE_METAL_TEST_SCRIPT: "/install/bare-metal/arm64_a630_gles_others.sh"
+
+a630_gles_asan:
+  extends:
+    - .baremetal-deqp-test
+    - .a630-test
+    - .baremetal-arm64-asan-test
+  variables:
+    DEQP_VER: gles31
+    DEQP_FRACTION: 10
+    GPU_VERSION: freedreno-a630-asan
+
+a630_vk:
+  extends:
+    - .baremetal-deqp-test-freedreno-vk
+    - .a630-test
+  parallel: 2
+  variables:
+    DEQP_FRACTION: 4
+    # Force binning in the main run, which makes sure we render at
+    # least 2 bins.  This is the path that impacts the most different
+    # features.  However, we end up with flaky results in
+    # dEQP-VK.binding_model.*.geometry and dEQP-VK.glsl.*_vertex.
+    TU_DEBUG: forcebin
+
+# Disabled by default until we can sort out what looks like timeouts before
+# getting to the first test (or is it at cleanup after tests completed?).
+# Clicking play can show you some useful areas for fixing turnip, though.
+a630_vk_asan:
+  extends:
+    - .baremetal-deqp-test-freedreno-vk
+    - .a630-test
+    - .baremetal-arm64-asan-test
+    - .test-manual
+  variables:
+    DEQP_FRACTION: 100
+    DEQP_PARALLEL: 4 # We get OOMkills if we go too wide with asan enabled
+    TU_DEBUG: forcebin
+    # Disable the leak checks, since the library gets dlclose()d and thus get
+    # totally useless leak reports.  We can still catch buffer overflows.
+    ASAN_OPTIONS: "detect_leaks=0"
+
+# Do a separate sysmem pass over the testcases that really affect sysmem
+# rendering.  This is currently very flaky, leave it as an option for devs
+# to click play on in their branches.
+a630_vk_sysmem:
+  extends:
+    - .baremetal-deqp-test-freedreno-vk
+    - .a630-test
+  variables:
+    DEQP_FRACTION: 15
+    DEQP_CASELIST_FILTER: "dEQP-VK.renderpass.*"
+    GPU_VERSION: freedreno-a630-bypass
+    TU_DEBUG: sysmem
+
+.a630_piglit:
+  extends:
+    - .piglit-test
+    - .a630-test
+  variables:
+    BARE_METAL_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
+    BM_START_XORG: 1
+
+a630_piglit_gl:
+  extends:
+    - .a630_piglit
+  variables:
+    PIGLIT_PROFILES: quick_gl
+
+a630_piglit_shader:
+  extends:
+    - .a630_piglit
+  variables:
+    PIGLIT_PROFILES: quick_shader
+
+a630-traces:
+  extends:
+    - .piglit-traces-test
+    - .a630-test
+  variables:
+    BARE_METAL_TEST_SCRIPT: "/install/piglit/run.sh"
+    BM_START_XORG: 1
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/traces-freedreno.yml"
+    PIGLIT_REPLAY_DEVICE_NAME: "freedreno-a630"
+    PIGLIT_RESULTS: "freedreno-a630-replay"
+    # This lets us run several more traces which don't use any features we're
+    # missing.
+    MESA_GLSL_VERSION_OVERRIDE: "460"
+    MESA_GL_VERSION_OVERRIDE: "4.6"
+  artifacts:
+    reports:
+      junit: results/junit.xml

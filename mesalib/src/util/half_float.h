@@ -59,7 +59,7 @@ static inline uint16_t
 _mesa_float_to_half(float val)
 {
 #if defined(USE_X86_64_ASM)
-   if (util_cpu_caps.has_f16c) {
+   if (util_get_cpu_caps()->has_f16c) {
       __m128 in = {val};
       __m128i out;
 
@@ -75,7 +75,7 @@ static inline float
 _mesa_half_to_float(uint16_t val)
 {
 #if defined(USE_X86_64_ASM)
-   if (util_cpu_caps.has_f16c) {
+   if (util_get_cpu_caps()->has_f16c) {
       __m128i in = {val};
       __m128 out;
 
@@ -90,7 +90,7 @@ static inline uint16_t
 _mesa_float_to_float16_rtz(float val)
 {
 #if defined(USE_X86_64_ASM)
-   if (util_cpu_caps.has_f16c) {
+   if (util_get_cpu_caps()->has_f16c) {
       __m128 in = {val};
       __m128i out;
 

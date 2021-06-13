@@ -114,6 +114,8 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
          case nir_intrinsic_load_subgroup_invocation:
          case nir_intrinsic_load_num_subgroups:
          case nir_intrinsic_load_frag_shading_rate:
+         case nir_intrinsic_is_sparse_texels_resident:
+         case nir_intrinsic_sparse_residency_code_and:
             if (!alu_ok)
                return false;
             break;
@@ -143,6 +145,7 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
          case nir_op_vec2:
          case nir_op_vec3:
          case nir_op_vec4:
+         case nir_op_vec5:
          case nir_op_vec8:
          case nir_op_vec16:
             movelike = true;
@@ -434,7 +437,7 @@ nir_opt_peephole_select_block(nir_block *block, nir_shader *shader,
       sel->dest.write_mask = (1 << phi->dest.ssa.num_components) - 1;
 
       nir_ssa_def_rewrite_uses(&phi->dest.ssa,
-                               nir_src_for_ssa(&sel->dest.dest.ssa));
+                               &sel->dest.dest.ssa);
 
       nir_instr_insert_before(&phi->instr, &sel->instr);
       nir_instr_remove(&phi->instr);

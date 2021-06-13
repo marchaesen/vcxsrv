@@ -75,6 +75,11 @@ extern const aco::Info instr_info = {
       ${opcodes[name].definition_size},
       % endfor
    },
+   .classes = {
+      % for name in opcode_names:
+      (instr_class)${opcodes[name].cls.value},
+      % endfor
+   },
 };
 
 }

@@ -214,36 +214,6 @@ struct tgsi_sampler
 
 #define TGSI_EXEC_NUM_TEMPS       4096
 
-/*
- * Locations of various utility registers (_I = Index, _C = Channel)
- */
-#define TGSI_EXEC_TEMP_KILMASK_I    (TGSI_EXEC_NUM_TEMPS + 0)
-#define TGSI_EXEC_TEMP_KILMASK_C    0
-
-#define TGSI_EXEC_TEMP_OUTPUT_I     (TGSI_EXEC_NUM_TEMPS + 0)
-#define TGSI_EXEC_TEMP_OUTPUT_C     1
-
-#define TGSI_EXEC_TEMP_PRIMITIVE_I  (TGSI_EXEC_NUM_TEMPS + 0)
-#define TGSI_EXEC_TEMP_PRIMITIVE_C  2
-
-/* 4 register buffer for various purposes */
-#define TGSI_EXEC_TEMP_R0           (TGSI_EXEC_NUM_TEMPS + 1)
-#define TGSI_EXEC_NUM_TEMP_R        4
-
-#define TGSI_EXEC_TEMP_ADDR         (TGSI_EXEC_NUM_TEMPS + 5)
-#define TGSI_EXEC_NUM_ADDRS         3
-
-#define TGSI_EXEC_TEMP_PRIMITIVE_S1_I  (TGSI_EXEC_NUM_TEMPS + 8)
-#define TGSI_EXEC_TEMP_PRIMITIVE_S1_C  0
-#define TGSI_EXEC_TEMP_PRIMITIVE_S2_I  (TGSI_EXEC_NUM_TEMPS + 9)
-#define TGSI_EXEC_TEMP_PRIMITIVE_S2_C  1
-#define TGSI_EXEC_TEMP_PRIMITIVE_S3_I  (TGSI_EXEC_NUM_TEMPS + 10)
-#define TGSI_EXEC_TEMP_PRIMITIVE_S3_C  2
-
-#define TGSI_EXEC_NUM_TEMP_EXTRAS   11
-
-
-
 #define TGSI_EXEC_MAX_NESTING  32
 #define TGSI_EXEC_MAX_COND_NESTING  TGSI_EXEC_MAX_NESTING
 #define TGSI_EXEC_MAX_LOOP_NESTING  TGSI_EXEC_MAX_NESTING
@@ -320,8 +290,7 @@ struct tgsi_exec_machine
 {
    /* Total = program temporaries + internal temporaries
     */
-   struct tgsi_exec_vector       Temps[TGSI_EXEC_NUM_TEMPS +
-                                       TGSI_EXEC_NUM_TEMP_EXTRAS];
+   struct tgsi_exec_vector       Temps[TGSI_EXEC_NUM_TEMPS];
 
    unsigned                       ImmsReserved;
    float4                         *Imms;
@@ -334,7 +303,7 @@ struct tgsi_exec_machine
    unsigned                      SysSemanticToIndex[TGSI_SEMANTIC_COUNT];
    struct tgsi_exec_vector       SystemValue[TGSI_MAX_MISC_INPUTS];
 
-   struct tgsi_exec_vector       *Addrs;
+   struct tgsi_exec_vector       Addrs[3];
 
    struct tgsi_sampler           *Sampler;
 
@@ -349,11 +318,16 @@ struct tgsi_exec_machine
    enum pipe_shader_type         ShaderType; /**< PIPE_SHADER_x */
 
    /* GEOMETRY processor only. */
+   /* Number of vertices emitted per emitted primitive. */
    unsigned                      *Primitives[TGSI_MAX_VERTEX_STREAMS];
+   /* Offsets in ->Outputs of the primitives' vertex output data */
    unsigned                      *PrimitiveOffsets[TGSI_MAX_VERTEX_STREAMS];
    unsigned                       NumOutputs;
-   unsigned                       MaxGeometryShaderOutputs;
    unsigned                       MaxOutputVertices;
+   /* Offset in ->Outputs for the current vertex to be emitted. */
+   unsigned                       OutputVertexOffset;
+   /* Number of primitives emitted. */
+   unsigned                       OutputPrimCount[TGSI_MAX_VERTEX_STREAMS];
 
    /* FRAGMENT processor only. */
    const struct tgsi_interp_coef *InterpCoefs;
@@ -373,6 +347,7 @@ struct tgsi_exec_machine
    uint ContMask;  /**< For loop CONT statements */
    uint FuncMask;  /**< For function calls */
    uint ExecMask;  /**< = CondMask & LoopMask */
+   uint KillMask;  /**< Mask of channels killed in the current shader execution */
 
    /* Current switch-case state. */
    struct tgsi_switch_record Switch;

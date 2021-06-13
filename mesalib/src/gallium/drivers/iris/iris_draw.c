@@ -92,17 +92,20 @@ iris_update_draw_info(struct iris_context *ice,
       const struct shader_info *tcs_info =
          iris_get_shader_info(ice, MESA_SHADER_TESS_CTRL);
       if (tcs_info &&
-          tcs_info->system_values_read & (1ull << SYSTEM_VALUE_VERTICES_IN)) {
+          BITSET_TEST(tcs_info->system_values_read, SYSTEM_VALUE_VERTICES_IN)) {
          ice->state.stage_dirty |= IRIS_STAGE_DIRTY_CONSTANTS_TCS;
          ice->state.shaders[MESA_SHADER_TESS_CTRL].sysvals_need_upload = true;
       }
    }
 
+   /* Track restart_index changes only if primitive_restart is true */
+   const unsigned cut_index = info->primitive_restart ? info->restart_index :
+                                                        ice->state.cut_index;
    if (ice->state.primitive_restart != info->primitive_restart ||
-       ice->state.cut_index != info->restart_index) {
+       ice->state.cut_index != cut_index) {
       ice->state.dirty |= IRIS_DIRTY_VF;
       ice->state.primitive_restart = info->primitive_restart;
-      ice->state.cut_index = info->restart_index;
+      ice->state.cut_index = cut_index;
    }
 }
 
@@ -240,6 +243,20 @@ iris_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info *info,
               const struct pipe_draw_start_count *draws,
               unsigned num_draws)
 {
+   if (num_draws > 1) {
+      struct pipe_draw_info tmp_info = *info;
+
+      for (unsigned i = 0; i < num_draws; i++) {
+         iris_draw_vbo(ctx, &tmp_info, indirect, &draws[i], 1);
+         if (tmp_info.increment_draw_id)
+            tmp_info.drawid++;
+      }
+      return;
+   }
+
+   if (!indirect && (!draws[0].count || !info->instance_count))
+      return;
+
    struct iris_context *ice = (struct iris_context *) ctx;
    struct iris_screen *screen = (struct iris_screen*)ice->ctx.screen;
    const struct gen_device_info *devinfo = &screen->devinfo;
@@ -248,11 +265,8 @@ iris_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info *info,
    if (ice->state.predicate == IRIS_PREDICATE_STATE_DONT_RENDER)
       return;
 
-   /* We can't safely re-emit 3DSTATE_SO_BUFFERS because it may zero the
-    * write offsets, changing the behavior.
-    */
    if (INTEL_DEBUG & DEBUG_REEMIT) {
-      ice->state.dirty |= IRIS_ALL_DIRTY_FOR_RENDER & ~IRIS_DIRTY_SO_BUFFERS;
+      ice->state.dirty |= IRIS_ALL_DIRTY_FOR_RENDER;
       ice->state.stage_dirty |= IRIS_ALL_STAGE_DIRTY_FOR_RENDER;
    }
 

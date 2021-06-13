@@ -44,8 +44,8 @@
 
 #include "drm-uapi/i915_drm.h"
 
-#include "common/gen_aux_map.h"
-#include "intel/common/gen_gem.h"
+#include "common/intel_aux_map.h"
+#include "intel/common/intel_gem.h"
 #include "util/hash_table.h"
 #include "util/set.h"
 #include "util/u_upload_mgr.h"
@@ -119,7 +119,7 @@ dump_validation_list(struct iris_batch *batch)
 /**
  * Return BO information to the batch decoder (for debugging).
  */
-static struct gen_batch_decode_bo
+static struct intel_batch_decode_bo
 decode_get_bo(void *v_batch, bool ppgtt, uint64_t address)
 {
    struct iris_batch *batch = v_batch;
@@ -132,16 +132,15 @@ decode_get_bo(void *v_batch, bool ppgtt, uint64_t address)
       uint64_t bo_address = bo->gtt_offset & (~0ull >> 16);
 
       if (address >= bo_address && address < bo_address + bo->size) {
-         return (struct gen_batch_decode_bo) {
-            .addr = address,
+         return (struct intel_batch_decode_bo) {
+            .addr = bo_address,
             .size = bo->size,
-            .map = iris_bo_map(batch->dbg, bo, MAP_READ) +
-                   (address - bo_address),
+            .map = iris_bo_map(batch->dbg, bo, MAP_READ),
          };
       }
    }
 
-   return (struct gen_batch_decode_bo) { };
+   return (struct intel_batch_decode_bo) { };
 }
 
 static unsigned
@@ -163,8 +162,8 @@ static void
 decode_batch(struct iris_batch *batch)
 {
    void *map = iris_bo_map(batch->dbg, batch->exec_bos[0], MAP_READ);
-   gen_print_batch(&batch->decoder, map, batch->primary_batch_size,
-                   batch->exec_bos[0]->gtt_offset, false);
+   intel_print_batch(&batch->decoder, map, batch->primary_batch_size,
+                     batch->exec_bos[0]->gtt_offset, false);
 }
 
 void
@@ -180,6 +179,8 @@ iris_init_batch(struct iris_context *ice,
    batch->reset = &ice->reset;
    batch->state_sizes = ice->state.sizes;
    batch->name = name;
+   batch->ice = ice;
+   batch->contains_fence_signal = false;
 
    batch->fine_fences.uploader =
       u_upload_create(&ice->ctx, 4096, PIPE_BIND_CUSTOM,
@@ -213,18 +214,20 @@ iris_init_batch(struct iris_context *ice,
 
    if (INTEL_DEBUG) {
       const unsigned decode_flags =
-         GEN_BATCH_DECODE_FULL |
-         ((INTEL_DEBUG & DEBUG_COLOR) ? GEN_BATCH_DECODE_IN_COLOR : 0) |
-         GEN_BATCH_DECODE_OFFSETS |
-         GEN_BATCH_DECODE_FLOATS;
+         INTEL_BATCH_DECODE_FULL |
+         ((INTEL_DEBUG & DEBUG_COLOR) ? INTEL_BATCH_DECODE_IN_COLOR : 0) |
+         INTEL_BATCH_DECODE_OFFSETS |
+         INTEL_BATCH_DECODE_FLOATS;
 
-      gen_batch_decode_ctx_init(&batch->decoder, &screen->devinfo,
-                                stderr, decode_flags, NULL,
-                                decode_get_bo, decode_get_state_size, batch);
+      intel_batch_decode_ctx_init(&batch->decoder, &screen->devinfo,
+                                  stderr, decode_flags, NULL,
+                                  decode_get_bo, decode_get_state_size, batch);
       batch->decoder.dynamic_base = IRIS_MEMZONE_DYNAMIC_START;
       batch->decoder.instruction_base = IRIS_MEMZONE_SHADER_START;
       batch->decoder.max_vbo_decoded_lines = 32;
    }
+
+   iris_init_batch_measure(ice, batch);
 
    iris_batch_reset(batch);
 }
@@ -297,7 +300,8 @@ iris_use_pinned_bo(struct iris_batch *batch,
       return;
    }
 
-   if (bo != batch->bo) {
+   if (bo != batch->bo &&
+       (!batch->measure || bo != batch->measure->bo)) {
       /* This is the first time our batch has seen this BO.  Before we use it,
        * we may need to flush and synchronize with other batches.
        */
@@ -390,6 +394,7 @@ iris_batch_reset(struct iris_batch *batch)
    batch->primary_batch_size = 0;
    batch->total_chained_batch_size = 0;
    batch->contains_draw = false;
+   batch->contains_fence_signal = false;
    batch->decoder.surface_base = batch->last_surface_base_address;
 
    create_batch(batch);
@@ -441,10 +446,13 @@ iris_batch_free(struct iris_batch *batch)
 
    iris_destroy_hw_context(bufmgr, batch->hw_ctx_id);
 
+   iris_destroy_batch_measure(batch->measure);
+   batch->measure = NULL;
+
    _mesa_hash_table_destroy(batch->cache.render, NULL);
 
    if (INTEL_DEBUG)
-      gen_batch_decode_ctx_finish(&batch->decoder);
+      intel_batch_decode_ctx_finish(&batch->decoder);
 }
 
 /**
@@ -498,10 +506,10 @@ add_aux_map_bos_to_batch(struct iris_batch *batch)
    if (!aux_map_ctx)
       return;
 
-   uint32_t count = gen_aux_map_get_num_buffers(aux_map_ctx);
+   uint32_t count = intel_aux_map_get_num_buffers(aux_map_ctx);
    ensure_exec_obj_space(batch, count);
-   gen_aux_map_fill_bos(aux_map_ctx,
-                        (void**)&batch->exec_bos[batch->exec_count], count);
+   intel_aux_map_fill_bos(aux_map_ctx,
+                          (void**)&batch->exec_bos[batch->exec_count], count);
    for (uint32_t i = 0; i < count; i++) {
       struct iris_bo *bo = batch->exec_bos[batch->exec_count];
       iris_bo_reference(bo);
@@ -645,7 +653,7 @@ submit_batch(struct iris_batch *batch)
 
    int ret = 0;
    if (!batch->screen->no_hw &&
-       gen_ioctl(batch->screen->fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf))
+       intel_ioctl(batch->screen->fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf))
       ret = -errno;
 
    for (int i = 0; i < batch->exec_count; i++) {
@@ -679,8 +687,11 @@ _iris_batch_flush(struct iris_batch *batch, const char *file, int line)
 {
    struct iris_screen *screen = batch->screen;
 
-   if (iris_batch_bytes_used(batch) == 0)
+   /* If a fence signals we need to flush it. */
+   if (iris_batch_bytes_used(batch) == 0 && !batch->contains_fence_signal)
       return;
+
+   iris_measure_batch_end(batch->ice, batch);
 
    iris_finish_batch(batch);
 

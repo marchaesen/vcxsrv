@@ -29,6 +29,7 @@
 #include "postprocess/pp_filters.h"
 #include "postprocess/pp_private.h"
 
+#include "frontend/api.h"
 #include "util/u_inlines.h"
 #include "util/u_sampler.h"
 
@@ -126,17 +127,13 @@ pp_run(struct pp_queue_t *ppq, struct pipe_resource *in,
                         CSO_BIT_SAMPLE_MASK |
                         CSO_BIT_MIN_SAMPLES |
                         CSO_BIT_FRAGMENT_SAMPLERS |
-                        CSO_BIT_FRAGMENT_SAMPLER_VIEWS |
                         CSO_BIT_STENCIL_REF |
                         CSO_BIT_STREAM_OUTPUTS |
                         CSO_BIT_VERTEX_ELEMENTS |
                         CSO_BIT_VERTEX_SHADER |
                         CSO_BIT_VIEWPORT |
-                        CSO_BIT_AUX_VERTEX_BUFFER_SLOT |
                         CSO_BIT_PAUSE_QUERIES |
                         CSO_BIT_RENDER_CONDITION));
-   cso_save_constant_buffer_slot0(cso, PIPE_SHADER_VERTEX);
-   cso_save_constant_buffer_slot0(cso, PIPE_SHADER_FRAGMENT);
 
    /* set default state */
    cso_set_sample_mask(cso, ~0);
@@ -188,8 +185,22 @@ pp_run(struct pp_queue_t *ppq, struct pipe_resource *in,
 
    /* restore state we changed */
    cso_restore_state(cso);
-   cso_restore_constant_buffer_slot0(cso, PIPE_SHADER_VERTEX);
-   cso_restore_constant_buffer_slot0(cso, PIPE_SHADER_FRAGMENT);
+
+   /* Unbind resources that we have bound. */
+   struct pipe_context *pipe = ppq->p->pipe;
+   pipe->set_constant_buffer(pipe, PIPE_SHADER_VERTEX, 0, false, NULL);
+   pipe->set_constant_buffer(pipe, PIPE_SHADER_FRAGMENT, 0, false, NULL);
+   pipe->set_vertex_buffers(pipe, 0, 0, 1, false, NULL);
+   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 0, 3, NULL);
+
+   /* restore states not restored by cso */
+   if (ppq->p->st) {
+      ppq->p->st->invalidate_state(ppq->p->st,
+                                   ST_INVALIDATE_FS_SAMPLER_VIEWS |
+                                   ST_INVALIDATE_FS_CONSTBUF0 |
+                                   ST_INVALIDATE_VS_CONSTBUF0 |
+                                   ST_INVALIDATE_VERTEX_BUFFERS);
+   }
 
    pipe_resource_reference(&ppq->depth, NULL);
    pipe_resource_reference(&refin, NULL);

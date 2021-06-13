@@ -592,8 +592,10 @@ print_mask(FILE *fp, uint8_t mask, unsigned bits, midgard_dest_override override
                 if (a) {
                         char c = alphabet[i / skip];
 
-                        if (uppercase)
+                        if (uppercase) {
                                 c = toupper(c);
+                                assert(c == 'X' || c == 'Y');
+                        }
 
                         fprintf(fp, "%c", c);
                 }
@@ -1584,7 +1586,7 @@ print_texture_word(FILE *fp, uint32_t *word, unsigned tabs, unsigned in_reg_base
 }
 
 struct midgard_disasm_stats
-disassemble_midgard(FILE *fp, uint8_t *code, size_t size, unsigned gpu_id, gl_shader_stage stage)
+disassemble_midgard(FILE *fp, uint8_t *code, size_t size, unsigned gpu_id)
 {
         uint32_t *words = (uint32_t *) code;
         unsigned num_words = size / 4;

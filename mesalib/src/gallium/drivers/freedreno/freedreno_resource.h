@@ -28,6 +28,7 @@
 #define FREEDRENO_RESOURCE_H_
 
 #include "util/list.h"
+#include "util/u_dump.h"
 #include "util/u_range.h"
 #include "util/u_transfer_helper.h"
 #include "util/simple_mtx.h"
@@ -35,6 +36,17 @@
 #include "freedreno_batch.h"
 #include "freedreno_util.h"
 #include "freedreno/fdl/freedreno_layout.h"
+
+
+#define PRSC_FMT \
+	"p: target=%s, format=%s, %ux%ux%u, " \
+	"array_size=%u, last_level=%u, " \
+	"nr_samples=%u, usage=%u, bind=%x, flags=%x"
+#define PRSC_ARGS(p) \
+	(p), util_str_tex_target((p)->target, true), util_format_short_name((p)->format), \
+	(p)->width0, (p)->height0, (p)->depth0, (p)->array_size, (p)->last_level, \
+	(p)->nr_samples, (p)->usage, (p)->bind, (p)->flags
+
 
 enum fd_lrz_direction {
 	FD_LRZ_UNKNOWN,
@@ -44,22 +56,26 @@ enum fd_lrz_direction {
 	FD_LRZ_GREATER,
 };
 
-struct fd_resource {
-	struct pipe_resource base;
-	struct fd_bo *bo;  /* use fd_resource_set_bo() to write */
-	enum pipe_format internal_format;
-	struct fdl_layout layout;
-
-	/* buffer range that has been initialized */
-	struct util_range valid_buffer_range;
-	bool valid;
-	struct renderonly_scanout *scanout;
-
-	/* reference to the resource holding stencil data for a z32_s8 texture */
-	/* TODO rename to secondary or auxiliary? */
-	struct fd_resource *stencil;
-
-	simple_mtx_t lock;
+/**
+ * State related to batch/resource tracking.
+ *
+ * With threaded_context we need to support replace_buffer_storage, in
+ * which case we can end up in transfer_map with tres->latest, but other
+ * pipe_context APIs using the original prsc pointer.  This allows TC to
+ * not have to synchronize the front-end thread with the buffer storage
+ * replacement called on driver thread.  But it complicates the batch/
+ * resource tracking.
+ *
+ * To handle this, we need to split the tracking out into it's own ref-
+ * counted structure, so as needed both "versions" of the resource can
+ * point to the same tracking.
+ *
+ * We could *almost* just push this down to fd_bo, except for a3xx/a4xx
+ * hw queries, where we don't know up-front the size to allocate for
+ * per-tile query results.
+ */
+struct fd_resource_tracking {
+	struct pipe_reference reference;
 
 	/* bitmask of in-flight batches which reference this resource.  Note
 	 * that the batch doesn't hold reference to resources (but instead
@@ -78,14 +94,60 @@ struct fd_resource {
 	 * shadowed.
 	 */
 	uint32_t bc_batch_mask;
+};
 
-	/* Sequence # incremented each time bo changes: */
-	uint16_t seqno;
+void __fd_resource_tracking_destroy(struct fd_resource_tracking *track);
+
+static inline void
+fd_resource_tracking_reference(struct fd_resource_tracking **ptr,
+		struct fd_resource_tracking *track)
+{
+	struct fd_resource_tracking *old_track = *ptr;
+
+	if (pipe_reference(&(*ptr)->reference, &track->reference)) {
+		assert(!old_track->write_batch);
+		free(old_track);
+	}
+
+	*ptr = track;
+}
+
+/**
+ * A resource (any buffer/texture/image/etc)
+ */
+struct fd_resource {
+	struct threaded_resource b;
+	struct fd_bo *bo;  /* use fd_resource_set_bo() to write */
+	enum pipe_format internal_format;
+	struct fdl_layout layout;
+
+	/* buffer range that has been initialized */
+	struct util_range valid_buffer_range;
+	bool valid;
+	struct renderonly_scanout *scanout;
+
+	/* reference to the resource holding stencil data for a z32_s8 texture */
+	/* TODO rename to secondary or auxiliary? */
+	struct fd_resource *stencil;
+
+	struct fd_resource_tracking *track;
+
+	simple_mtx_t lock;
 
 	/* bitmask of state this resource could potentially dirty when rebound,
 	 * see rebind_resource()
 	 */
 	enum fd_dirty_3d_state dirty;
+
+	/* Sequence # incremented each time bo changes: */
+	uint16_t seqno;
+
+	/* Is this buffer a replacement created by threaded_context to avoid
+	 * a stall in PIPE_MAP_DISCARD_WHOLE_RESOURCE|PIPE_MAP_WRITE case?
+	 * If so, it no longer "owns" it's rsc->track, and so should not
+	 * invalidate when the rsc is destroyed.
+	 */
+	bool is_replacement : 1;
 
 	/* Uninitialized resources with UBWC format need their UBWC flag data
 	 * cleared before writes, as the UBWC state is read and used during
@@ -134,11 +196,11 @@ static inline bool
 pending(struct fd_resource *rsc, bool write)
 {
 	/* if we have a pending GPU write, we are busy in any case: */
-	if (rsc->write_batch)
+	if (rsc->track->write_batch)
 		return true;
 
 	/* if CPU wants to write, but we are pending a GPU read, we are busy: */
-	if (write && rsc->batch_mask)
+	if (write && rsc->track->batch_mask)
 		return true;
 
 	if (rsc->stencil && pending(rsc->stencil, write))
@@ -152,6 +214,9 @@ fd_resource_busy(struct fd_resource *rsc, unsigned op)
 {
 	return fd_bo_cpu_prep(rsc->bo, NULL, op | DRM_FREEDRENO_PREP_NOSYNC) != 0;
 }
+
+int __fd_resource_wait(struct fd_context *ctx, struct fd_resource *rsc, unsigned op, const char *func);
+#define fd_resource_wait(ctx, rsc, op) __fd_resource_wait(ctx, rsc, op, __func__)
 
 static inline void
 fd_resource_lock(struct fd_resource *rsc)
@@ -190,7 +255,7 @@ has_depth(enum pipe_format format)
 }
 
 struct fd_transfer {
-	struct pipe_transfer base;
+	struct threaded_transfer b;
 	struct pipe_resource *staging_prsc;
 	struct pipe_box staging_box;
 };
@@ -204,7 +269,7 @@ fd_transfer(struct pipe_transfer *ptrans)
 static inline struct fdl_slice *
 fd_resource_slice(struct fd_resource *rsc, unsigned level)
 {
-	assert(level <= rsc->base.last_level);
+	assert(level <= rsc->b.b.last_level);
 	return &rsc->layout.slices[level];
 }
 
@@ -218,7 +283,7 @@ fd_resource_layer_stride(struct fd_resource *rsc, unsigned level)
 static inline uint32_t
 fd_resource_pitch(struct fd_resource *rsc, unsigned level)
 {
-	if (is_a2xx(fd_screen(rsc->base.screen)))
+	if (is_a2xx(fd_screen(rsc->b.b.screen)))
 		return fdl2_pitch(&rsc->layout, level);
 
 	return fdl_pitch(&rsc->layout, level);
@@ -277,19 +342,22 @@ void fd_resource_context_init(struct pipe_context *pctx);
 
 uint32_t fd_setup_slices(struct fd_resource *rsc);
 void fd_resource_resize(struct pipe_resource *prsc, uint32_t sz);
-void fd_resource_uncompress(struct fd_context *ctx, struct fd_resource *rsc);
+void fd_replace_buffer_storage(struct pipe_context *ctx, struct pipe_resource *dst,
+		struct pipe_resource *src) in_dt;
+void fd_resource_uncompress(struct fd_context *ctx, struct fd_resource *rsc) assert_dt;
 void fd_resource_dump(struct fd_resource *rsc, const char *name);
 
-bool fd_render_condition_check(struct pipe_context *pctx);
+bool fd_render_condition_check(struct pipe_context *pctx) assert_dt;
 
 static inline bool
 fd_batch_references_resource(struct fd_batch *batch, struct fd_resource *rsc)
 {
-	return rsc->batch_mask & (1 << batch->idx);
+	return rsc->track->batch_mask & (1 << batch->idx);
 }
 
 static inline void
 fd_batch_write_prep(struct fd_batch *batch, struct fd_resource *rsc)
+	assert_dt
 {
 	if (unlikely(rsc->needs_ubwc_clear)) {
 		batch->ctx->clear_ubwc(batch, rsc);
@@ -300,6 +368,7 @@ fd_batch_write_prep(struct fd_batch *batch, struct fd_resource *rsc)
 static inline void
 fd_batch_resource_read(struct fd_batch *batch,
 		struct fd_resource *rsc)
+	assert_dt
 {
 	/* Fast path: if we hit this then we know we don't have anyone else
 	 * writing to it (since both _write and _read flush other writers), and

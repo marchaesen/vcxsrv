@@ -65,6 +65,7 @@ Xdmx_SOURCES = dmx.c \
                dmxwindow.c \
                dmxwindow.h \
                $(top_srcdir)/mi/miinitext.c \
+               $(top_srcdir)/mi/miinitext.h \
                $(GLX_SRCS) 
 
 

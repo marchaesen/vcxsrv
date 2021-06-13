@@ -40,10 +40,11 @@
  * we need to rely on a UBO.
  */
 static void
-check_push_constants_ubo(struct v3dv_cmd_buffer *cmd_buffer)
+check_push_constants_ubo(struct v3dv_cmd_buffer *cmd_buffer,
+                         struct v3dv_pipeline *pipeline)
 {
    if (!(cmd_buffer->state.dirty & V3DV_CMD_DIRTY_PUSH_CONSTANTS) ||
-       cmd_buffer->state.pipeline->layout->push_constant_size == 0)
+       pipeline->layout->push_constant_size == 0)
       return;
 
    if (cmd_buffer->push_constants_resource.bo == NULL) {
@@ -92,18 +93,19 @@ write_tmu_p0(struct v3dv_cmd_buffer *cmd_buffer,
    uint32_t texture_idx = v3d_unit_data_get_unit(data);
    struct v3dv_job *job = cmd_buffer->state.job;
    struct v3dv_descriptor_state *descriptor_state =
-      &cmd_buffer->state.descriptor_state[v3dv_pipeline_get_binding_point(pipeline)];
+      v3dv_cmd_buffer_get_descriptor_state(cmd_buffer, pipeline);
 
    /* We need to ensure that the texture bo is added to the job */
    struct v3dv_bo *texture_bo =
-      v3dv_descriptor_map_get_texture_bo(descriptor_state, &pipeline->texture_map,
+      v3dv_descriptor_map_get_texture_bo(descriptor_state,
+                                         &pipeline->shared_data->texture_map,
                                          pipeline->layout, texture_idx);
    assert(texture_bo);
    v3dv_job_add_bo(job, texture_bo);
 
    struct v3dv_cl_reloc state_reloc =
       v3dv_descriptor_map_get_texture_shader_state(descriptor_state,
-                                                   &pipeline->texture_map,
+                                                   &pipeline->shared_data->texture_map,
                                                    pipeline->layout,
                                                    texture_idx);
 
@@ -123,18 +125,20 @@ write_tmu_p1(struct v3dv_cmd_buffer *cmd_buffer,
    uint32_t sampler_idx = v3d_unit_data_get_unit(data);
    struct v3dv_job *job = cmd_buffer->state.job;
    struct v3dv_descriptor_state *descriptor_state =
-      &cmd_buffer->state.descriptor_state[v3dv_pipeline_get_binding_point(pipeline)];
+      v3dv_cmd_buffer_get_descriptor_state(cmd_buffer, pipeline);
 
    assert(sampler_idx != V3DV_NO_SAMPLER_16BIT_IDX &&
           sampler_idx != V3DV_NO_SAMPLER_32BIT_IDX);
 
    struct v3dv_cl_reloc sampler_state_reloc =
-      v3dv_descriptor_map_get_sampler_state(descriptor_state, &pipeline->sampler_map,
+      v3dv_descriptor_map_get_sampler_state(descriptor_state,
+                                            &pipeline->shared_data->sampler_map,
                                             pipeline->layout, sampler_idx);
 
    const struct v3dv_sampler *sampler =
-      v3dv_descriptor_map_get_sampler(descriptor_state, &pipeline->sampler_map,
-                                         pipeline->layout, sampler_idx);
+      v3dv_descriptor_map_get_sampler(descriptor_state,
+                                      &pipeline->shared_data->sampler_map,
+                                      pipeline->layout, sampler_idx);
    assert(sampler);
 
    /* Set unnormalized coordinates flag from sampler object */
@@ -162,11 +166,11 @@ write_ubo_ssbo_uniforms(struct v3dv_cmd_buffer *cmd_buffer,
 {
    struct v3dv_job *job = cmd_buffer->state.job;
    struct v3dv_descriptor_state *descriptor_state =
-      &cmd_buffer->state.descriptor_state[v3dv_pipeline_get_binding_point(pipeline)];
+      v3dv_cmd_buffer_get_descriptor_state(cmd_buffer, pipeline);
 
    struct v3dv_descriptor_map *map =
       content == QUNIFORM_UBO_ADDR || content == QUNIFORM_GET_UBO_SIZE ?
-      &pipeline->ubo_map : &pipeline->ssbo_map;
+      &pipeline->shared_data->ubo_map : &pipeline->shared_data->ssbo_map;
 
    uint32_t offset =
       content == QUNIFORM_UBO_ADDR ?
@@ -183,9 +187,9 @@ write_ubo_ssbo_uniforms(struct v3dv_cmd_buffer *cmd_buffer,
        * updated. It already take into account it is should do the
        * update or not
        */
-      check_push_constants_ubo(cmd_buffer);
+      check_push_constants_ubo(cmd_buffer, pipeline);
 
-      struct v3dv_resource *resource =
+      struct v3dv_cl_reloc *resource =
          &cmd_buffer->push_constants_resource;
       assert(resource->bo);
 
@@ -280,11 +284,11 @@ get_texture_size(struct v3dv_cmd_buffer *cmd_buffer,
 {
    uint32_t texture_idx = v3d_unit_data_get_unit(data);
    struct v3dv_descriptor_state *descriptor_state =
-      &cmd_buffer->state.descriptor_state[v3dv_pipeline_get_binding_point(pipeline)];
+      v3dv_cmd_buffer_get_descriptor_state(cmd_buffer, pipeline);
 
    struct v3dv_descriptor *descriptor =
       v3dv_descriptor_map_get_descriptor(descriptor_state,
-                                         &pipeline->texture_map,
+                                         &pipeline->shared_data->texture_map,
                                          pipeline->layout,
                                          texture_idx, NULL);
 
@@ -308,13 +312,13 @@ get_texture_size(struct v3dv_cmd_buffer *cmd_buffer,
 
 struct v3dv_cl_reloc
 v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
-                               struct v3dv_pipeline_stage *p_stage,
+                               struct v3dv_pipeline *pipeline,
+                               struct v3dv_shader_variant *variant,
                                uint32_t **wg_count_offsets)
 {
    struct v3d_uniform_list *uinfo =
-      &p_stage->current_variant->prog_data.base->uniforms;
+      &variant->prog_data.base->uniforms;
    struct v3dv_dynamic_state *dynamic = &cmd_buffer->state.dynamic;
-   struct v3dv_pipeline *pipeline = p_stage->pipeline;
 
    struct v3dv_job *job = cmd_buffer->state.job;
    assert(job);
@@ -342,7 +346,6 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
          break;
 
       case QUNIFORM_UNIFORM:
-         assert(pipeline->use_push_constants);
          cl_aligned_u32(&uniforms, cmd_buffer->push_constants_data[data]);
          break;
 
@@ -432,7 +435,8 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
 
 struct v3dv_cl_reloc
 v3dv_write_uniforms(struct v3dv_cmd_buffer *cmd_buffer,
-                    struct v3dv_pipeline_stage *p_stage)
+                    struct v3dv_pipeline *pipeline,
+                    struct v3dv_shader_variant *variant)
 {
-   return v3dv_write_uniforms_wg_offsets(cmd_buffer, p_stage, NULL);
+   return v3dv_write_uniforms_wg_offsets(cmd_buffer, pipeline, variant, NULL);
 }

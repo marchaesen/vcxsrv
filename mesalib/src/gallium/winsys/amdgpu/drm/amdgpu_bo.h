@@ -63,8 +63,17 @@ struct amdgpu_winsys_bo {
 #if DEBUG
          struct list_head global_list_item;
 #endif
+         void *cpu_ptr; /* for user_ptr and permanent maps */
          uint32_t kms_handle;
          int map_count;
+
+         bool is_user_ptr;
+         bool use_reusable_pool;
+
+         /* Whether buffer_get_handle or buffer_from_handle has been called,
+          * it can only transition from false to true. Protected by lock.
+          */
+         bool is_shared;
       } real;
       struct {
          struct pb_slab_entry entry;
@@ -84,26 +93,16 @@ struct amdgpu_winsys_bo {
    } u;
 
    struct amdgpu_winsys *ws;
-   void *cpu_ptr; /* for user_ptr and permanent maps */
 
    amdgpu_bo_handle bo; /* NULL for slab entries and sparse buffers */
-   bool is_user_ptr;
-   bool use_reusable_pool;
+
    uint32_t unique_id;
    uint64_t va;
    simple_mtx_t lock;
 
-   /* how many command streams is this bo referenced in? */
-   int num_cs_references;
-
    /* how many command streams, which are being emitted in a separate
     * thread, is this bo referenced in? */
    volatile int num_active_ioctls;
-
-   /* whether buffer_get_handle or buffer_from_handle was called,
-    * it can only transition from false to true
-    */
-   volatile int is_shared; /* bool (int for atomicity) */
 
    /* Fences for buffer synchronization. */
    unsigned num_fences;
@@ -115,6 +114,7 @@ struct amdgpu_winsys_bo {
 
 struct amdgpu_slab {
    struct pb_slab base;
+   unsigned entry_size;
    struct amdgpu_winsys_bo *buffer;
    struct amdgpu_winsys_bo *entries;
 };

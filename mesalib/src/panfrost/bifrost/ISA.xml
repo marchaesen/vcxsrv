@@ -117,7 +117,7 @@
     </mod>
   </ins>
 
-  <ins name="*ATOM_C.i32" mask="0x7fe000" exact="0x2f4000">
+  <ins name="*ATOM_C.i32" mask="0x7fe000" exact="0x2f4000" last="true" dests="0">
     <src start="0" mask="0xf3"/>
     <src start="3" mask="0xf3"/>
     <src start="6" mask="0xf7"/>
@@ -140,7 +140,7 @@
     </mod>
   </ins>
 
-  <ins name="*ATOM_C.i64" mask="0x7fe000" exact="0x2f0000">
+  <ins name="*ATOM_C.i64" mask="0x7fe000" exact="0x2f0000" last="true" dests="0">
     <src start="0" mask="0xf3"/>
     <src start="3" mask="0xf3"/>
     <src start="6" mask="0xf7"/>
@@ -163,7 +163,7 @@
     </mod>
   </ins>
 
-  <ins name="*ATOM_C1.i32" mask="0x7ffe00" exact="0x2f5e00">
+  <ins name="*ATOM_C1.i32" mask="0x7ffe00" exact="0x2f5e00" last="true" dests="0">
     <src start="0" mask="0xf3"/>
     <src start="3" mask="0xf3"/>
     <mod name="atom_opc" start="6" size="3">
@@ -175,7 +175,7 @@
     </mod>
   </ins>
 
-  <ins name="*ATOM_C1.i64" mask="0x7ffe00" exact="0x2f1e00">
+  <ins name="*ATOM_C1.i64" mask="0x7ffe00" exact="0x2f1e00" last="true" dests="0">
     <src start="0" mask="0xf3"/>
     <src start="3" mask="0xf3"/>
     <mod name="atom_opc" start="6" size="3">
@@ -187,7 +187,7 @@
     </mod>
   </ins>
 
-  <ins name="*ATOM_C1_RETURN.i32" mask="0x7ffe00" exact="0x2f7e00">
+  <ins name="*ATOM_C1_RETURN.i32" mask="0x7ffe00" exact="0x2f7e00" last="true" dests="0">
     <src start="0" mask="0xf3"/>
     <src start="3" mask="0xf3"/>
     <mod name="atom_opc" start="6" size="3">
@@ -199,7 +199,7 @@
     </mod>
   </ins>
 
-  <ins name="*ATOM_C1_RETURN.i64" mask="0x7ffe00" exact="0x2f3e00">
+  <ins name="*ATOM_C1_RETURN.i64" mask="0x7ffe00" exact="0x2f3e00" last="true" dests="0">
     <src start="0" mask="0xf3"/>
     <src start="3" mask="0xf3"/>
     <mod name="atom_opc" start="6" size="3">
@@ -211,7 +211,7 @@
     </mod>
   </ins>
 
-  <ins name="*ATOM_C_RETURN.i32" mask="0x7fe000" exact="0x2f6000">
+  <ins name="*ATOM_C_RETURN.i32" mask="0x7fe000" exact="0x2f6000" last="true" dests="0">
     <src start="0" mask="0xf3"/>
     <src start="3" mask="0xf3"/>
     <src start="6" mask="0xf7"/>
@@ -234,7 +234,7 @@
     </mod>
   </ins>
 
-  <ins name="*ATOM_C_RETURN.i64" mask="0x7fe000" exact="0x2f2000">
+  <ins name="*ATOM_C_RETURN.i64" mask="0x7fe000" exact="0x2f2000" last="true" dests="0">
     <src start="0" mask="0xf3"/>
     <src start="3" mask="0xf3"/>
     <src start="6" mask="0xf7"/>
@@ -606,9 +606,14 @@
     </derived>
   </ins>
 
-  <ins name="*DTSEL_IMM" mask="0x7ffe00" exact="0x70f200">
+  <ins name="*DTSEL_IMM" mask="0x7fffe0" exact="0x70f3e0">
     <src start="0" mask="0xfb"/>
-    <immediate name="table" start="3" size="6"/>
+    <mod name="table" start="3" size="2">
+      <opt>attribute_1</opt>
+      <opt>attribute_2</opt>
+      <opt>none</opt> <!-- actually reserved, used as sentinel -->
+      <opt>flat</opt>
+    </mod>
   </ins>
 
   <ins name="*F16_TO_F32" mask="0x7ffff0" exact="0x700d10">
@@ -1625,7 +1630,7 @@
     <src start="6"/>
   </ins>
 
-  <ins name="*JUMP_EX" mask="0x7ff000" exact="0x2eb000">
+  <ins name="*JUMP_EX" mask="0x7ff000" exact="0x2eb000" last="true">
     <src start="0" mask="0xfb"/>
     <src start="3" mask="0xfb"/>
     <src start="6"/>
@@ -2319,7 +2324,7 @@
     </mod>
   </ins>
 
-  <ins name="*SEG_ADD" mask="0x7fff40" exact="0x701500" unused="true">
+  <ins name="*SEG_ADD" mask="0x7fff40" exact="0x701500">
     <src start="0" mask="0xfb"/>
     <mod name="seg" start="3" size="3">
       <reserved/>
@@ -2454,13 +2459,13 @@
     <mod name="neg2" start="12" size="1" opt="neg"/>
   </ins>
 
-  <ins name="+ACMPSTORE.i32" staging="r=2" mask="0xffdc0" exact="0x648c0" message="atomic">
+  <ins name="+ACMPSTORE.i32" staging="r=2" mask="0xffdc0" exact="0x648c0" message="atomic" dests="0">
     <src start="0"/>
     <src start="3"/>
     <mod name="seg" start="9" size="1" opt="wls"/>
   </ins>
 
-  <ins name="+ACMPSTORE.i64" staging="r=4" mask="0xffdc0" exact="0x64900" message="atomic">
+  <ins name="+ACMPSTORE.i64" staging="r=4" mask="0xffdc0" exact="0x64900" message="atomic" dests="0">
     <src start="0"/>
     <src start="3"/>
     <mod name="seg" start="9" size="1" opt="wls"/>
@@ -2478,7 +2483,7 @@
     <mod name="seg" start="9" size="1" opt="wls"/>
   </ins>
 
-  <ins name="+ATEST" staging="w=1" mask="0xfff00" exact="0xc8f00" message="atest">
+  <ins name="+ATEST" staging="w=1" mask="0xfff00" exact="0xc8f00" message="atest" table="true">
     <src start="0" mask="0xf7"/>
     <src start="3" mask="0xf7"/>
     <mod name="widen1" start="6" size="2">
@@ -2509,15 +2514,15 @@
     <mod name="seg" start="9" size="1" opt="wls"/>
   </ins>
 
-  <ins name="+BARRIER" mask="0xfffff" exact="0xd7874" message="barrier"/>
+  <ins name="+BARRIER" mask="0xfffff" exact="0xd7874" message="barrier" last="true" dests="0"/>
 
-  <ins name="+BLEND" staging="r=4" mask="0xffe00" exact="0xca800" message="blend">
+  <ins name="+BLEND" staging="r=4" mask="0xffe00" exact="0xca800" message="blend" last="true">
     <src start="0"/>
     <src start="3" mask="0xf7"/>
     <src start="6" mask="0xf7"/>
   </ins>
 
-  <ins name="+BRANCH.f16" mask="0xf8000" exact="0x68000">
+  <ins name="+BRANCH.f16" mask="0xf8000" exact="0x68000" last="true" dests="0">
     <src start="0"/>
     <src start="3"/>
     <src start="6" mask="0xf7"/>
@@ -2684,7 +2689,7 @@
     </swap>
   </ins>
 
-  <ins name="+BRANCH.f32" mask="0xf8000" exact="0x68000">
+  <ins name="+BRANCH.f32" mask="0xf8000" exact="0x68000" last="true" dests="0">
     <src start="0"/>
     <src start="3"/>
     <src start="6" mask="0xf7"/>
@@ -2851,7 +2856,7 @@
     </swap>
   </ins>
 
-  <ins name="+BRANCH.i16" mask="0xf8000" exact="0x68000">
+  <ins name="+BRANCH.i16" mask="0xf8000" exact="0x68000" last="true" dests="0">
     <src start="0"/>
     <src start="3"/>
     <src start="6" mask="0xf7"/>
@@ -2942,7 +2947,7 @@
     </swap>
   </ins>
 
-  <ins name="+BRANCH.i32" mask="0xf8000" exact="0x68000">
+  <ins name="+BRANCH.i32" mask="0xf8000" exact="0x68000" last="true" dests="0">
     <src start="0"/>
     <src start="3"/>
     <src start="6" mask="0xf7"/>
@@ -3009,7 +3014,7 @@
     </swap>
   </ins>
 
-  <ins name="+BRANCH.s16" mask="0xf8000" exact="0x68000">
+  <ins name="+BRANCH.s16" mask="0xf8000" exact="0x68000" last="true" dests="0">
     <src start="0"/>
     <src start="3"/>
     <src start="6" mask="0xf7"/>
@@ -3137,7 +3142,7 @@
     </swap>
   </ins>
 
-  <ins name="+BRANCH.s32" mask="0xf8000" exact="0x68000">
+  <ins name="+BRANCH.s32" mask="0xf8000" exact="0x68000" last="true" dests="0">
     <src start="0"/>
     <src start="3"/>
     <src start="6" mask="0xf7"/>
@@ -3218,7 +3223,7 @@
     </swap>
   </ins>
 
-  <ins name="+BRANCH.u16" mask="0xf8000" exact="0x68000">
+  <ins name="+BRANCH.u16" mask="0xf8000" exact="0x68000" last="true" dests="0">
     <src start="0"/>
     <src start="3"/>
     <src start="6" mask="0xf7"/>
@@ -3331,7 +3336,7 @@
     </swap>
   </ins>
 
-  <ins name="+BRANCH.u32" mask="0xf8000" exact="0x68000">
+  <ins name="+BRANCH.u32" mask="0xf8000" exact="0x68000" last="true" dests="0">
     <src start="0"/>
     <src start="3"/>
     <src start="6" mask="0xf7"/>
@@ -3397,7 +3402,7 @@
     </swap>
   </ins>
 
-  <ins name="+BRANCHC.i16" mask="0xff830" exact="0x6f030">
+  <ins name="+BRANCHC.i16" mask="0xff830" exact="0x6f030" last="true" dests="0">
     <src start="0"/>
     <src start="6" mask="0xf7"/>
     <mod name="combine" start="10" size="1">
@@ -3418,7 +3423,7 @@
     </derived>
   </ins>
 
-  <ins name="+BRANCHC.i32" mask="0xffa38" exact="0x6f238">
+  <ins name="+BRANCHC.i32" mask="0xffa38" exact="0x6f238" last="true" dests="0">
     <src start="0"/>
     <src start="6" mask="0xf7"/>
     <mod name="combine" start="10" size="1">
@@ -3427,7 +3432,7 @@
     </mod>
   </ins>
 
-  <ins name="+BRANCHZ.f16" mask="0xff000" exact="0x6f000">
+  <ins name="+BRANCHZ.f16" mask="0xff000" exact="0x6f000" last="true" dests="0">
     <src start="0"/>
     <src start="6" mask="0xf7"/>
     <mod name="widen0" size="2">
@@ -3482,7 +3487,7 @@
     </derived>
   </ins>
 
-  <ins name="+BRANCHZ.f32" mask="0xff030" exact="0x6f000">
+  <ins name="+BRANCHZ.f32" mask="0xff030" exact="0x6f000" last="true" dests="0">
     <src start="0"/>
     <src start="6" mask="0xf7"/>
     <mod name="cmpf" size="3">
@@ -3526,7 +3531,7 @@
     </derived>
   </ins>
 
-  <ins name="+BRANCHZ.i16" mask="0xffe00" exact="0x6f800">
+  <ins name="+BRANCHZ.i16" mask="0xffe00" exact="0x6f800" last="true" dests="0">
     <src start="0"/>
     <src start="6" mask="0xf7"/>
     <mod name="widen0" size="2">
@@ -3550,7 +3555,7 @@
     </derived>
   </ins>
 
-  <ins name="+BRANCHZ.i32" mask="0xffe30" exact="0x6f800">
+  <ins name="+BRANCHZ.i32" mask="0xffe30" exact="0x6f800" last="true" dests="0">
     <src start="0"/>
     <src start="6" mask="0xf7"/>
     <mod name="cmpf" size="1">
@@ -3563,7 +3568,7 @@
     </derived>
   </ins>
 
-  <ins name="+BRANCHZ.s16" mask="0xff008" exact="0x6f008">
+  <ins name="+BRANCHZ.s16" mask="0xff008" exact="0x6f008" last="true" dests="0">
     <src start="0"/>
     <src start="6" mask="0xf7"/>
     <mod name="widen0" size="2">
@@ -3595,7 +3600,7 @@
     </derived>
   </ins>
 
-  <ins name="+BRANCHZ.s32" mask="0xff038" exact="0x6f008">
+  <ins name="+BRANCHZ.s32" mask="0xff038" exact="0x6f008" last="true" dests="0">
     <src start="0"/>
     <src start="6" mask="0xf7"/>
     <mod name="cmpf" size="2">
@@ -3616,7 +3621,7 @@
     </derived>
   </ins>
 
-  <ins name="+BRANCHZ.u16" mask="0xff008" exact="0x6f000">
+  <ins name="+BRANCHZ.u16" mask="0xff008" exact="0x6f000" last="true" dests="0">
     <src start="0"/>
     <src start="6" mask="0xf7"/>
     <mod name="widen0" size="2">
@@ -3648,7 +3653,7 @@
     </derived>
   </ins>
 
-  <ins name="+BRANCHZ.u32" mask="0xff038" exact="0x6f000">
+  <ins name="+BRANCHZ.u32" mask="0xff038" exact="0x6f000" last="true" dests="0">
     <src start="0"/>
     <src start="6" mask="0xf7"/>
     <mod name="cmpf" size="2">
@@ -3669,16 +3674,16 @@
     </derived>
   </ins>
 
-  <ins name="+BRANCH_DIVERG" mask="0xffe3f" exact="0x6f83c">
+  <ins name="+BRANCH_DIVERG" mask="0xffe3f" exact="0x6f83c" last="true" dests="0">
     <src start="6" mask="0xf7"/>
   </ins>
 
-  <ins name="+BRANCH_LOWBITS.f32" mask="0xffe38" exact="0x6fa38">
+  <ins name="+BRANCH_LOWBITS.f32" mask="0xffe38" exact="0x6fa38" last="true" dests="0">
     <src start="0"/>
     <src start="6" mask="0xf7"/>
   </ins>
 
-  <ins name="+BRANCH_NO_DIVERG" mask="0xffe3f" exact="0x6fa34">
+  <ins name="+BRANCH_NO_DIVERG" mask="0xffe3f" exact="0x6fa34" last="true" dests="0">
     <src start="6" mask="0xf7"/>
   </ins>
 
@@ -3761,7 +3766,7 @@
     </derived>
   </ins>
 
-  <ins name="+DISCARD.f32" mask="0xff800" exact="0xc8800">
+  <ins name="+DISCARD.f32" mask="0xff800" exact="0xc8800" dests="0">
     <src start="0"/>
     <src start="3"/>
     <mod name="cmpf" size="3">
@@ -3825,11 +3830,11 @@
     </swap>
   </ins>
 
-  <ins name="+DOORBELL" mask="0xffff8" exact="0xd7860" unused="true" message="job_management">
+  <ins name="+DOORBELL" mask="0xffff8" exact="0xd7860" unused="true" message="job_management" dests="0">
     <src start="0"/>
   </ins>
 
-  <ins name="+EUREKA" mask="0xffff8" exact="0xd7850" unused="true" message="job_management">
+  <ins name="+EUREKA" mask="0xffff8" exact="0xd7850" unused="true" message="job_management" dests="0">
     <src start="0"/>
   </ins>
 
@@ -4117,7 +4122,7 @@
     </derived>
   </ins>
 
-  <ins name="+FATAN_ASSIST.f16" mask="0xfff00" exact="0x67800" unused="true">
+  <ins name="+FATAN_ASSIST.f16" mask="0xfff00" exact="0x67800" unused="true" table="true">
     <src start="0" mask="0xf7"/>
     <src start="3" mask="0xf7"/>
     <mod name="lane1" start="6" size="1" default="h0">
@@ -4130,12 +4135,12 @@
     </mod>
   </ins>
 
-  <ins name="+FATAN_ASSIST.f32" mask="0xfffc0" exact="0x67a00" unused="true">
+  <ins name="+FATAN_ASSIST.f32" mask="0xfffc0" exact="0x67a00" unused="true" table="true">
     <src start="0" mask="0xf7"/>
     <src start="3" mask="0xf7"/>
   </ins>
 
-  <ins name="+FATAN_TABLE.f16" mask="0xfff00" exact="0x67900" unused="true">
+  <ins name="+FATAN_TABLE.f16" mask="0xfff00" exact="0x67900" unused="true" table="true">
     <src start="0" mask="0xf7"/>
     <src start="3" mask="0xf7"/>
     <mod name="lane1" start="6" size="1" default="h0">
@@ -4148,7 +4153,7 @@
     </mod>
   </ins>
 
-  <ins name="+FATAN_TABLE.f32" mask="0xfffc0" exact="0x67a40" unused="true">
+  <ins name="+FATAN_TABLE.f32" mask="0xfffc0" exact="0x67a40" unused="true" table="true">
     <src start="0" mask="0xf7"/>
     <src start="3" mask="0xf7"/>
   </ins>
@@ -4293,17 +4298,17 @@
     </swap>
   </ins>
 
-  <ins name="+FCOS_TABLE.u6" mask="0xfffe8" exact="0x67a88">
+  <ins name="+FCOS_TABLE.u6" mask="0xfffe8" exact="0x67a88" table="true">
     <src start="0" mask="0xf7"/>
     <mod name="offset" start="4" size="1" opt="offset"/>
   </ins>
 
-  <ins name="+FEXP.f32" mask="0xfffc0" exact="0x66ac0">
+  <ins name="+FEXP.f32" mask="0xfffc0" exact="0x66ac0" table="true">
     <src start="0" mask="0xf7"/>
     <src start="3" mask="0xf7"/>
   </ins>
 
-  <ins name="+FEXP_TABLE.u4" mask="0xfffe0" exact="0x67ac0">
+  <ins name="+FEXP_TABLE.u4" mask="0xfffe0" exact="0x67ac0" table="true">
     <src start="0" mask="0xf7"/>
     <mod name="adj" start="3" size="2">
       <opt>none</opt>
@@ -4312,11 +4317,11 @@
     </mod>
   </ins>
 
-  <ins name="+FLOGD.f32" mask="0xffff8" exact="0x66340">
+  <ins name="+FLOGD.f32" mask="0xffff8" exact="0x66340" table="true">
     <src start="0" mask="0xf7"/>
   </ins>
 
-  <ins name="+FLOG_TABLE.f32">
+  <ins name="+FLOG_TABLE.f32" table="true">
     <src start="0" mask="0xf7"/>
     <mod name="widen0" size="2">
       <opt>none</opt>
@@ -4592,7 +4597,7 @@
     </swap>
   </ins>
 
-  <ins name="+FPCLASS.f16" mask="0xffff0" exact="0x67c40">
+  <ins name="+FPCLASS.f16" mask="0xffff0" exact="0x67c40" table="true">
     <src start="0" mask="0xf7"/>
     <mod name="lane0" start="3" size="1" default="h0">
       <opt>h0</opt>
@@ -4600,7 +4605,7 @@
     </mod>
   </ins>
 
-  <ins name="+FPCLASS.f32" mask="0xffff8" exact="0x67c50">
+  <ins name="+FPCLASS.f32" mask="0xffff8" exact="0x67c50" table="true">
     <src start="0" mask="0xf7"/>
   </ins>
 
@@ -4609,7 +4614,7 @@
     <src start="3"/>
   </ins>
 
-  <ins name="+FPOW_SC_DET.f16">
+  <ins name="+FPOW_SC_DET.f16" table="true">
     <src start="0" mask="0xf7"/>
     <src start="3" mask="0xf7"/>
     <mod name="func" size="2">
@@ -4659,7 +4664,7 @@
     </encoding>
   </ins>
 
-  <ins name="+FPOW_SC_DET.f32" mask="0xffe40" exact="0x67640">
+  <ins name="+FPOW_SC_DET.f32" mask="0xffe40" exact="0x67640" table="true">
     <src start="0" mask="0xf7"/>
     <src start="3" mask="0xf7"/>
     <mod name="func" start="7" size="2">
@@ -4670,7 +4675,7 @@
     </mod>
   </ins>
 
-  <ins name="+FRCBRT_APPROX_A.f32" unused="true">
+  <ins name="+FRCBRT_APPROX_A.f32" unused="true" table="true">
     <src start="0" mask="0xf7"/>
     <mod name="widen0" size="2">
       <opt>none</opt>
@@ -4692,15 +4697,15 @@
     </encoding>
   </ins>
 
-  <ins name="+FRCBRT_APPROX_B.f32" mask="0xffff8" exact="0x67ab0" unused="true">
+  <ins name="+FRCBRT_APPROX_B.f32" mask="0xffff8" exact="0x67ab0" unused="true" table="true">
     <src start="0" mask="0xf7"/>
   </ins>
 
-  <ins name="+FRCBRT_APPROX_C.f32" mask="0xffff8" exact="0x67ab8" unused="true">
+  <ins name="+FRCBRT_APPROX_C.f32" mask="0xffff8" exact="0x67ab8" unused="true" table="true">
     <src start="0" mask="0xf7"/>
   </ins>
 
-  <ins name="+FRCP.f16" mask="0xffec0" exact="0x67080">
+  <ins name="+FRCP.f16" mask="0xffec0" exact="0x67080" table="true">
     <src start="0" mask="0xf7"/>
     <mod name="neg0" start="3" size="1" opt="neg"/>
     <mod name="abs0" start="4" size="1" opt="abs"/>
@@ -4711,7 +4716,7 @@
     </mod>
   </ins>
 
-  <ins name="+FRCP.f32" mask="0xfffa0" exact="0x66000">
+  <ins name="+FRCP.f32" mask="0xfffa0" exact="0x66000" table="true">
     <src start="0" mask="0xf7"/>
     <mod name="widen0" size="2">
       <opt>none</opt>
@@ -4724,7 +4729,7 @@
     </derived>
   </ins>
 
-  <ins name="+FRCP_APPROX.f32">
+  <ins name="+FRCP_APPROX.f32" table="true">
     <src start="0" mask="0xf7"/>
     <mod name="widen0" size="2">
       <opt>none</opt>
@@ -4888,7 +4893,7 @@
     </mod>
   </ins>
 
-  <ins name="+FRSQ.f16" mask="0xffec0" exact="0x67280">
+  <ins name="+FRSQ.f16" mask="0xffec0" exact="0x67280" table="true">
     <src start="0" mask="0xf7"/>
     <mod name="neg0" start="3" size="1" opt="neg"/>
     <mod name="abs0" start="4" size="1" opt="abs"/>
@@ -4899,7 +4904,7 @@
     </mod>
   </ins>
 
-  <ins name="+FRSQ.f32" mask="0xfffa0" exact="0x66100">
+  <ins name="+FRSQ.f32" mask="0xfffa0" exact="0x66100" table="true">
     <src start="0" mask="0xf7"/>
     <mod name="widen0" size="2">
       <opt>none</opt>
@@ -4912,7 +4917,7 @@
     </derived>
   </ins>
 
-  <ins name="+FRSQ_APPROX.f32">
+  <ins name="+FRSQ_APPROX.f32" table="true">
     <src start="0" mask="0xf7"/>
     <mod name="widen0" size="2">
       <opt>none</opt>
@@ -4934,12 +4939,12 @@
     </encoding>
   </ins>
 
-  <ins name="+FSINCOS_OFFSET.u6" mask="0xffff0" exact="0x67aa0">
+  <ins name="+FSINCOS_OFFSET.u6" mask="0xffff0" exact="0x67aa0" table="true">
     <src start="0" mask="0xf7"/>
     <mod name="scale" start="3" size="1" opt="scale"/>
   </ins>
 
-  <ins name="+FSIN_TABLE.u6" mask="0xfffe8" exact="0x67a80">
+  <ins name="+FSIN_TABLE.u6" mask="0xfffe8" exact="0x67a80" table="true">
     <src start="0" mask="0xf7"/>
     <mod name="offset" start="4" size="1" opt="offset"/>
   </ins>
@@ -6155,7 +6160,7 @@
     </encoding>
   </ins>
 
-  <ins name="+JUMP" mask="0xffe3f" exact="0x6fe34">
+  <ins name="+JUMP" mask="0xffe3f" exact="0x6fe34" last="true" dests="0">
     <src start="6" mask="0xf7"/>
   </ins>
 
@@ -6332,7 +6337,7 @@
     </mod>
   </ins>
 
-  <ins name="+LD_GCLK.u64" staging="w=1" mask="0xffff8" exact="0xd7800" message="attribute">
+  <ins name="+LD_GCLK.u64" staging="w=2" mask="0xffff8" exact="0xd7800" message="attribute">
     <mod name="source" start="0" size="3">
       <reserved/>
       <reserved/>
@@ -7463,7 +7468,7 @@
     </mod>
   </ins>
 
-  <ins name="+SEG_ADD" mask="0xfff40" exact="0x3d500" unused="true">
+  <ins name="+SEG_ADD" mask="0xfff40" exact="0x3d500">
     <src start="0"/>
     <mod name="seg" start="3" size="3">
       <reserved/>
@@ -7504,7 +7509,7 @@
     <src start="6"/>
   </ins>
 
-  <ins name="+STORE.i128" staging="r=4" mask="0xffe00" exact="0x61200" message="store">
+  <ins name="+STORE.i128" staging="r=4" mask="0xffe00" exact="0x61200" message="store" dests="0">
     <src start="0"/>
     <src start="3"/>
     <mod name="seg" start="6" size="3">
@@ -7519,7 +7524,7 @@
     </mod>
   </ins>
 
-  <ins name="+STORE.i16" staging="r=1" mask="0xffe00" exact="0x62800" message="store">
+  <ins name="+STORE.i16" staging="r=1" mask="0xffe00" exact="0x62800" message="store" dests="0">
     <src start="0"/>
     <src start="3"/>
     <mod name="seg" start="6" size="3">
@@ -7534,7 +7539,7 @@
     </mod>
   </ins>
 
-  <ins name="+STORE.i24" staging="r=1" mask="0xffe00" exact="0x65800" message="store">
+  <ins name="+STORE.i24" staging="r=1" mask="0xffe00" exact="0x65800" message="store" dests="0">
     <src start="0"/>
     <src start="3"/>
     <mod name="seg" start="6" size="3">
@@ -7549,7 +7554,7 @@
     </mod>
   </ins>
 
-  <ins name="+STORE.i32" staging="r=1" mask="0xffe00" exact="0x62c00" message="store">
+  <ins name="+STORE.i32" staging="r=1" mask="0xffe00" exact="0x62c00" message="store" dests="0">
     <src start="0"/>
     <src start="3"/>
     <mod name="seg" start="6" size="3">
@@ -7564,7 +7569,7 @@
     </mod>
   </ins>
 
-  <ins name="+STORE.i48" staging="r=2" mask="0xffe00" exact="0x65a00" message="store">
+  <ins name="+STORE.i48" staging="r=2" mask="0xffe00" exact="0x65a00" message="store" dests="0">
     <src start="0"/>
     <src start="3"/>
     <mod name="seg" start="6" size="3">
@@ -7579,7 +7584,7 @@
     </mod>
   </ins>
 
-  <ins name="+STORE.i64" staging="r=2" mask="0xffe00" exact="0x62e00" message="store">
+  <ins name="+STORE.i64" staging="r=2" mask="0xffe00" exact="0x62e00" message="store" dests="0">
     <src start="0"/>
     <src start="3"/>
     <mod name="seg" start="6" size="3">
@@ -7594,7 +7599,7 @@
     </mod>
   </ins>
 
-  <ins name="+STORE.i8" staging="r=1" mask="0xffe00" exact="0x62000" message="store">
+  <ins name="+STORE.i8" staging="r=1" mask="0xffe00" exact="0x62000" message="store" dests="0">
     <src start="0"/>
     <src start="3"/>
     <mod name="seg" start="6" size="3">
@@ -7609,7 +7614,7 @@
     </mod>
   </ins>
 
-  <ins name="+STORE.i96" staging="r=3" mask="0xffe00" exact="0x65c00" message="store">
+  <ins name="+STORE.i96" staging="r=3" mask="0xffe00" exact="0x65c00" message="store" dests="0">
     <src start="0"/>
     <src start="3"/>
     <mod name="seg" start="6" size="3">
@@ -7624,7 +7629,7 @@
     </mod>
   </ins>
 
-  <ins name="+ST_CVT" staging="r=format" mask="0xff800" exact="0xc9800" message="store">
+  <ins name="+ST_CVT" staging="r=format" mask="0xff800" exact="0xc9800" message="store" dests="0">
     <src start="0"/>
     <src start="3"/>
     <src start="6" mask="0xf7"/>
@@ -7646,7 +7651,7 @@
     </mod>
   </ins>
 
-  <ins name="+ST_TILE" staging="r=vecsize" mask="0xff800" exact="0xcb800" message="tile">
+  <ins name="+ST_TILE" staging="r=vecsize" mask="0xff800" exact="0xcb800" message="tile" dests="0">
     <src start="0"/>
     <src start="3"/>
     <src start="6" mask="0xf7"/>
@@ -7691,7 +7696,7 @@
     <immediate name="sr_count" size="4" pseudo="true"/>
   </ins>
 
-  <ins name="+TEXS_2D.f16" staging="w=4" mask="0xfc000" exact="0xd8000" message="tex">
+  <ins name="+TEXS_2D.f16" staging="w=2" mask="0xfc000" exact="0xd8000" message="tex">
     <src start="0"/>
     <src start="3"/>
     <immediate name="texture_index" start="6" size="3"/>
@@ -7703,7 +7708,7 @@
     </mod>
   </ins>
 
-  <ins name="+TEXS_2D.f32" staging="w=2" mask="0xfc000" exact="0x58000" message="tex">
+  <ins name="+TEXS_2D.f32" staging="w=4" mask="0xfc000" exact="0x58000" message="tex">
     <src start="0"/>
     <src start="3"/>
     <immediate name="texture_index" start="6" size="3"/>
@@ -8156,6 +8161,68 @@
         <eq left="z" right="#z"/>
       </and>
     </derived>
+  </ins>
+
+  <!--- Lowered to *SEG_ADD/+SEG_ADD -->
+  <ins name="+SEG_ADD.i64" pseudo="true">
+    <src start="0"/>
+    <src start="3"/>
+    <mod name="seg" size="3">
+      <reserved/>
+      <reserved/>
+      <opt>wls</opt>
+      <reserved/>
+      <reserved/>
+      <reserved/>
+      <reserved/>
+      <opt>tl</opt>
+    </mod>
+    <mod name="preserve_null" size="1" opt="preserve_null"/>
+  </ins>
+
+  <!-- Scheduler lowered to *ATOM_C.i32/+ATOM_CX -->
+  <ins name="+PATOM_C.i32" pseudo="true" staging="rw=sr_count" message="atomic">
+    <src start="0"/>
+    <src start="3"/>
+    <mod name="atom_opc" start="9" size="4">
+      <reserved/>
+      <reserved/>
+      <opt>aadd</opt>
+      <reserved/>
+      <reserved/>
+      <reserved/>
+      <reserved/>
+      <reserved/>
+      <opt>asmin</opt>
+      <opt>asmax</opt>
+      <opt>aumin</opt>
+      <opt>aumax</opt>
+      <opt>aand</opt>
+      <opt>aor</opt>
+      <opt>axor</opt>
+    </mod>
+  </ins>
+
+  <ins name="+PATOM_C1.i32" pseudo="true" staging="w=sr_count" message="atomic">
+    <src start="0"/>
+    <src start="3"/>
+    <mod name="atom_opc" start="6" size="3">
+      <opt>ainc</opt>
+      <opt>adec</opt>
+      <opt>aumax1</opt>
+      <opt>asmax1</opt>
+      <opt>aor1</opt>
+    </mod>
+  </ins>
+
+  <!-- *CUBEFACE1/+CUBEFACE2 pair, two destinations, scheduler lowered -->
+  <ins name="+CUBEFACE" pseudo="true" dests="2">
+    <src start="0"/>
+    <src start="3"/>
+    <src start="6"/>
+    <mod name="neg0" size="1" opt="neg"/>
+    <mod name="neg1" size="1" opt="neg"/>
+    <mod name="neg2" size="1" opt="neg"/>
   </ins>
 
 </bifrost>

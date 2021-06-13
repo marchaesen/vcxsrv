@@ -43,18 +43,17 @@ struct fd_ringbuffer;
 struct fd5_emit {
 	struct pipe_debug_callback *debug;
 	const struct fd_vertex_state *vtx;
-	const struct fd_program_stateobj *prog;
+	const struct fd5_program_state *prog;
 	const struct pipe_draw_info *info;
-        const struct pipe_draw_indirect_info *indirect;
-        const struct pipe_draw_start_count *draw;
+	const struct pipe_draw_indirect_info *indirect;
+	const struct pipe_draw_start_count *draw;
 	bool binning_pass;
-	struct ir3_shader_key key;
+	struct ir3_cache_key key;
 	enum fd_dirty_3d_state dirty;
 
 	uint32_t sprite_coord_enable;  /* bitmask */
 	bool sprite_coord_mode;
 	bool rasterflat;
-	bool no_decode_srgb;
 
 	/* in binning pass, we don't have real frag shader, so we
 	 * don't know if real draw disqualifies lrz write.  So just
@@ -80,9 +79,13 @@ static inline const struct ir3_shader_variant *
 fd5_emit_get_vp(struct fd5_emit *emit)
 {
 	if (!emit->vs) {
-		struct ir3_shader *shader = emit->prog->vs;
-		emit->vs = ir3_shader_variant(shader, emit->key,
-				emit->binning_pass, emit->debug);
+		/* We use nonbinning VS during binning when TFB is enabled because that
+		 * is what has all the outputs that might be involved in TFB.
+		 */
+		if (emit->binning_pass && !emit->prog->vs->shader->stream_output.num_outputs)
+			emit->vs = emit->prog->bs;
+		else
+			emit->vs = emit->prog->vs;
 	}
 	return emit->vs;
 }
@@ -96,9 +99,7 @@ fd5_emit_get_fp(struct fd5_emit *emit)
 			static const struct ir3_shader_variant binning_fs = {};
 			emit->fs = &binning_fs;
 		} else {
-			struct ir3_shader *shader = emit->prog->fs;
-			emit->fs = ir3_shader_variant(shader, emit->key,
-					false, emit->debug);
+			emit->fs = emit->prog->fs;
 		}
 	}
 	return emit->fs;
@@ -106,6 +107,7 @@ fd5_emit_get_fp(struct fd5_emit *emit)
 
 static inline void
 fd5_cache_flush(struct fd_batch *batch, struct fd_ringbuffer *ring)
+	assert_dt
 {
 	fd_reset_wfi(batch);
 	OUT_PKT4(ring, REG_A5XX_UCHE_CACHE_INVALIDATE_MIN_LO, 5);
@@ -134,22 +136,28 @@ fd5_set_render_mode(struct fd_context *ctx, struct fd_ringbuffer *ring,
 }
 
 static inline void
-fd5_emit_blit(struct fd_context *ctx, struct fd_ringbuffer *ring)
+fd5_event_write(struct fd_batch *batch, struct fd_ringbuffer *ring,
+		enum vgt_event_type evt, bool timestamp)
 {
-	struct fd5_context *fd5_ctx = fd5_context(ctx);
+	OUT_PKT7(ring, CP_EVENT_WRITE, timestamp ? 4 : 1);
+	OUT_RING(ring, CP_EVENT_WRITE_0_EVENT(evt));
+	if (timestamp) {
+		OUT_RELOC(ring, fd5_context(batch->ctx)->blit_mem, 0, 0, 0);  /* ADDR_LO/HI */
+		OUT_RING(ring, 0x00000000);
+	}
+}
 
+static inline void
+fd5_emit_blit(struct fd_batch *batch, struct fd_ringbuffer *ring)
+{
 	emit_marker5(ring, 7);
-
-	OUT_PKT7(ring, CP_EVENT_WRITE, 4);
-	OUT_RING(ring, CP_EVENT_WRITE_0_EVENT(BLIT));
-	OUT_RELOC(ring, fd5_ctx->blit_mem, 0, 0, 0);  /* ADDR_LO/HI */
-	OUT_RING(ring, 0x00000000);
-
+	fd5_event_write(batch, ring, BLIT, true);
 	emit_marker5(ring, 7);
 }
 
 static inline void
 fd5_emit_render_cntl(struct fd_context *ctx, bool blit, bool binning)
+	assert_dt
 {
 	struct fd_ringbuffer *ring = binning ? ctx->batch->binning : ctx->batch->draw;
 
@@ -176,7 +184,7 @@ fd5_emit_render_cntl(struct fd_context *ctx, bool blit, bool binning)
 }
 
 static inline void
-fd5_emit_lrz_flush(struct fd_ringbuffer *ring)
+fd5_emit_lrz_flush(struct fd_batch *batch, struct fd_ringbuffer *ring)
 {
 	/* TODO I think the extra writes to GRAS_LRZ_CNTL are probably
 	 * a workaround and not needed on all a5xx.
@@ -184,24 +192,23 @@ fd5_emit_lrz_flush(struct fd_ringbuffer *ring)
 	OUT_PKT4(ring, REG_A5XX_GRAS_LRZ_CNTL, 1);
 	OUT_RING(ring, A5XX_GRAS_LRZ_CNTL_ENABLE);
 
-	OUT_PKT7(ring, CP_EVENT_WRITE, 1);
-	OUT_RING(ring, LRZ_FLUSH);
+	fd5_event_write(batch, ring, LRZ_FLUSH, false);
 
 	OUT_PKT4(ring, REG_A5XX_GRAS_LRZ_CNTL, 1);
 	OUT_RING(ring, 0x0);
 }
 
-void fd5_emit_vertex_bufs(struct fd_ringbuffer *ring, struct fd5_emit *emit);
+void fd5_emit_vertex_bufs(struct fd_ringbuffer *ring, struct fd5_emit *emit) assert_dt;
 
 void fd5_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
-		struct fd5_emit *emit);
+		struct fd5_emit *emit) assert_dt;
 
 void fd5_emit_cs_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
-		struct ir3_shader_variant *cp);
+		struct ir3_shader_variant *cp) assert_dt;
 void fd5_emit_cs_consts(const struct ir3_shader_variant *v, struct fd_ringbuffer *ring,
-		struct fd_context *ctx, const struct pipe_grid_info *info);
+		struct fd_context *ctx, const struct pipe_grid_info *info) assert_dt;
 
-void fd5_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring);
+void fd5_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring) assert_dt;
 
 void fd5_emit_init_screen(struct pipe_screen *pscreen);
 void fd5_emit_init(struct pipe_context *pctx);

@@ -219,7 +219,6 @@ Most of the testing should already be done during the
 :ref:`cherry-pick <pickntest>` So we do a quick 'touch test'
 
 -  meson dist
--  scons (from release tarball)
 -  the produced binaries work
 
 Here is one solution:
@@ -312,7 +311,7 @@ Then run the
    ./bin/post_version.py X.Y.Z
 
 , where X.Y.Z is the version you just made. This will update
-docs/relnotes.rst and docs/release-calendar.rst. It will then generate
+docs/relnotes.rst and docs/release-calendar.csv. It will then generate
 a Git commit automatically. Check that everything looks correct and
 push:
 

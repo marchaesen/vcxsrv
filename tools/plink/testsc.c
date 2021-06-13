@@ -97,6 +97,9 @@ FILE *f_open(const Filename *filename, char const *mode, bool is_private)
 { unreachable("this is a stub needed to link, and should never be called"); }
 void old_keyfile_warning(void)
 { unreachable("this is a stub needed to link, and should never be called"); }
+/* For platforms where getticks is defined within this code base */
+unsigned long (getticks)(void)
+{ unreachable("this is a stub needed to link, and should never be called"); }
 
 /*
  * A simple deterministic PRNG, without any of the Fortuna
@@ -277,6 +280,7 @@ VOLATILE_WRAPPED_DEFN(static, size_t, looplimit, (size_t x))
     X(Y, ssh_sha3_384)                          \
     X(Y, ssh_sha3_512)                          \
     X(Y, ssh_shake256_114bytes)                 \
+    X(Y, ssh_blake2b)                           \
     /* end of list */
 
 #define HASH_TESTLIST(X, name) X(hash_ ## name)
@@ -326,6 +330,7 @@ VOLATILE_WRAPPED_DEFN(static, size_t, looplimit, (size_t x))
     CIPHERS(CIPHER_TESTLIST, X)                 \
     MACS(MAC_TESTLIST, X)                       \
     HASHES(HASH_TESTLIST, X)                    \
+    X(argon2)                                   \
     /* end of list */
 
 static void test_mp_get_nbits(void)
@@ -1407,6 +1412,36 @@ struct test {
     const char *testname;
     void (*testfn)(void);
 };
+
+static void test_argon2(void)
+{
+    /*
+     * We can only expect the Argon2i variant to pass this stringent
+     * test for no data-dependency, because the other two variants of
+     * Argon2 have _deliberate_ data-dependency.
+     */
+    size_t inlen = 48+16+24+8;
+    uint8_t *indata = snewn(inlen, uint8_t);
+    ptrlen password = make_ptrlen(indata, 48);
+    ptrlen salt = make_ptrlen(indata+48, 16);
+    ptrlen secret = make_ptrlen(indata+48+16, 24);
+    ptrlen assoc = make_ptrlen(indata+48+16+24, 8);
+
+    strbuf *outdata = strbuf_new();
+    strbuf_append(outdata, 256);
+
+    for (size_t i = 0; i < looplimit(16); i++) {
+        strbuf_clear(outdata);
+        random_read(indata, inlen);
+
+        log_start();
+        argon2(Argon2i, 32, 2, 2, 144, password, salt, secret, assoc, outdata);
+        log_end();
+    }
+
+    sfree(indata);
+    strbuf_free(outdata);
+}
 
 static const struct test tests[] = {
 #define STRUCT_TEST(X) { #X, test_##X },

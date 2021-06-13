@@ -5,6 +5,12 @@
     <value name="1D POT Divisor" value="2"/>
     <value name="1D Modulus" value="3"/>
     <value name="1D NPOT Divisor" value="4"/>
+    <value name="3D Linear" value="5"/>
+    <value name="3D Interleaved" value="6"/>
+    <value name="1D Primitive Index Buffer" value="7"/>
+    <value name="1D POT Divisor Write Reduction" value="10"/>
+    <value name="1D Modulus Write Reduction" value="11"/>
+    <value name="1D NPOT Divisor Write Reduction" value="12"/>
     <value name="Continuation" value="32"/>
   </enum>
 
@@ -433,6 +439,15 @@
     <value name="AFBC" value="12"/>
   </enum>
 
+  <enum name="AFBC Surface Flag">
+    <value name="YTR" value="1"/>
+    <value name="Split Block" value="2"/>
+    <value name="Wide Block" value="4"/>
+    <value name="Tiled Header" value="8"/>
+    <value name="Prefetch" value="16"/>
+    <value name="Check Payload Range" value="32"/>
+  </enum>
+
   <enum name="Wrap Mode">
     <value name="Repeat" value="8"/>
     <value name="Clamp to Edge" value="9"/>
@@ -444,14 +459,14 @@
     <value name="Mirrored Clamp to Border" value="15"/>
   </enum>
 
-  <struct name="Attribute">
+  <struct name="Attribute" align="8">
     <field name="Buffer index" size="9" start="0" type="uint"/>
     <field name="Offset enable" size="1" start="9" type="bool" default="true"/>
-    <field name="Format" size="22" start="10" type="uint"/>
+    <field name="Format" size="22" start="10" type="Pixel Format"/>
     <field name="Offset" size="32" start="32" type="int"/>
   </struct>
 
-  <struct name="Attribute Buffer">
+  <struct name="Attribute Buffer" align="32">
     <field name="Special" size="8" start="0" type="Attribute Special"/>
     <field name="Type" size="6" start="0" type="Attribute Type" default="1D"/>
     <field name="Pointer" size="50" start="6" type="address" modifier="shr(6)"/>
@@ -468,6 +483,15 @@
     <field name="Type" size="6" start="0:0" type="Attribute Type" default="Continuation"/>
     <field name="Divisor Numerator" size="32" start="1:0" type="uint"/>
     <field name="Divisor" size="32" start="3:0" type="uint"/>
+  </struct>
+
+  <struct name="Attribute Buffer Continuation 3D" size="4">
+    <field name="Type" size="6" start="0:0" type="Attribute Type" default="Continuation"/>
+    <field name="S dimension" size="16" start="0:16" type="uint" modifier="minus(1)"/>
+    <field name="T dimension" size="16" start="1:0" type="uint" modifier="minus(1)"/>
+    <field name="R dimension" size="16" start="1:16" type="uint" modifier="minus(1)"/>
+    <field name="Row Stride" size="32" start="2:0" type="uint"/>
+    <field name="Slice Stride" size="32" start="3:0" type="uint"/>
   </struct>
 
   <enum name="Blend Operand A">
@@ -539,7 +563,7 @@
   </struct>
 
   <struct name="Bifrost Internal Conversion" size="1">
-    <field name="Memory Format" size="22" start="0" type="uint"/>
+    <field name="Memory Format" size="22" start="0" type="Pixel Format"/>
     <field name="Raw" size="1" start="22" type="bool"/>
     <field name="Register Format" size="3" start="24" type="Bifrost Register File Format"/>
   </struct>
@@ -566,7 +590,7 @@
     <field name="Internal" size="64" start="2:0" type="Bifrost Internal Blend"/>
   </struct>
 
-  <struct name="Blend" size="4">
+  <struct name="Blend" size="4" align="16">
     <field name="Load Destination" size="1" start="0:0" type="bool" default="false"/>
     <field name="Alpha To One" size="1" start="0:8" type="bool"/>
     <field name="Enable" size="1" start="0:9" type="bool" default="true"/>
@@ -659,7 +683,17 @@
   <struct name="Draw Padding" size="2">
   </struct>
 
-  <struct name="Midgard Sampler">
+  <struct name="Surface" align="8">
+    <field name="Pointer" size="64" start="0:0" type="address"/>
+  </struct>
+
+  <struct name="Surface With Stride" align="8">
+    <field name="Pointer" size="64" start="0:0" type="address"/>
+    <field name="Row stride" size="32" start="2:0" type="int"/>
+    <field name="Surface stride" size="32" start="3:0" type="int"/>
+  </struct>
+
+  <struct name="Midgard Sampler" align="32">
     <field name="Magnify Nearest" size="1" start="0" type="bool" default="true"/>
     <field name="Minify Nearest" size="1" start="1" type="bool" default="true"/>
     <field name="Mipmap Mode" size="2" start="3" type="Mipmap Mode" default="Nearest"/>
@@ -672,19 +706,19 @@
     <field name="Wrap Mode R" size="4" start="2:8" type="Wrap Mode" default="Clamp to Edge"/>
     <field name="Compare Function" size="3" start="2:12" type="Func" default="Never"/>
     <field name="Seamless Cube Map" size="1" start="2:15" type="bool" default="true"/>
-    <field name="Border Color R" size="32" start="4:0" type="float" default="0.0"/>
-    <field name="Border Color G" size="32" start="5:0" type="float" default="0.0"/>
-    <field name="Border Color B" size="32" start="6:0" type="float" default="0.0"/>
-    <field name="Border Color A" size="32" start="7:0" type="float" default="0.0"/>
+    <field name="Border Color R" size="32" start="4:0" type="uint/float" default="0.0"/>
+    <field name="Border Color G" size="32" start="5:0" type="uint/float" default="0.0"/>
+    <field name="Border Color B" size="32" start="6:0" type="uint/float" default="0.0"/>
+    <field name="Border Color A" size="32" start="7:0" type="uint/float" default="0.0"/>
   </struct>
 
-  <struct name="Midgard Texture" size="8">
+  <struct name="Midgard Texture" size="8" align="64">
     <field name="Width" size="16" start="0:0" type="uint" modifier="minus(1)"/>
     <field name="Height" size="16" start="0:16" type="uint" modifier="minus(1)"/>
     <field name="Depth" size="16" start="1:0" type="uint" modifier="minus(1)" default="1"/>
     <field name="Sample count" size="16" start="1:0" type="uint" modifier="minus(1)" default="1"/>
     <field name="Array size" size="16" start="1:16" type="uint" modifier="minus(1)"/>
-    <field name="Format" size="22" start="2:0" type="uint"/>
+    <field name="Format" size="22" start="2:0" type="Pixel Format"/>
     <field name="Dimension" size="2" start="2:22" type="Texture Dimension"/>
     <field name="Texel ordering" size="4" start="2:24" type="Texture Layout"/>
     <field name="Surface pointer is 64b" size="1" start="2:28" type="bool" default="true"/>
@@ -693,7 +727,7 @@
     <field name="Swizzle" size="12" start="4:0" type="uint"/>
   </struct>
 
-  <struct name="Bifrost Sampler" size="8">
+  <struct name="Bifrost Sampler" size="8" align="32">
     <field name="Type" size="4" start="0:0" type="uint" default="1"/>
     <field name="Wrap Mode R" size="4" start="0:8" type="Wrap Mode" default="Clamp to Edge"/>
     <field name="Wrap Mode T" size="4" start="0:12" type="Wrap Mode" default="Clamp to Edge"/>
@@ -716,18 +750,18 @@
     <field name="LOD bias" size="16" start="2:0" type="int" default="0"/>
     <field name="Maximum anisotropy" size="5" start="2:16" type="uint" default="1" modifier="minus(1)"/>
     <field name="LOD algorithm" size="2" start="2:24" type="LOD Algorithm" default="Isotropic"/>
-    <field name="Border Color R" size="32" start="4:0" type="float" default="0.0"/>
-    <field name="Border Color G" size="32" start="5:0" type="float" default="0.0"/>
-    <field name="Border Color B" size="32" start="6:0" type="float" default="0.0"/>
-    <field name="Border Color A" size="32" start="7:0" type="float" default="0.0"/>
+    <field name="Border Color R" size="32" start="4:0" type="uint/float" default="0.0"/>
+    <field name="Border Color G" size="32" start="5:0" type="uint/float" default="0.0"/>
+    <field name="Border Color B" size="32" start="6:0" type="uint/float" default="0.0"/>
+    <field name="Border Color A" size="32" start="7:0" type="uint/float" default="0.0"/>
   </struct>
 
-  <struct name="Bifrost Texture" size="8">
+  <struct name="Bifrost Texture" size="8" align="32">
     <field name="Type" size="4" start="0:0" type="uint" default="2"/>
     <field name="Dimension" size="2" start="0:4" type="Texture Dimension"/>
     <field name="Sample corner position" size="1" start="0:8" type="bool" default="false"/>
-    <field name="Normalize coordinatess" size="1" start="0:9" type="bool" default="false"/>
-    <field name="Format" size="22" start="0:10" type="uint"/>
+    <field name="Normalize coordinates" size="1" start="0:9" type="bool" default="false"/>
+    <field name="Format" size="22" start="0:10" type="Pixel Format"/>
     <field name="Width" size="16" start="1:0" type="uint" modifier="minus(1)"/>
     <field name="Height" size="16" start="1:16" type="uint" modifier="minus(1)"/>
     <field name="Swizzle" size="12" start="2:0" type="uint"/>
@@ -884,7 +918,7 @@
     <field name="Depth Pass" size="3" start="25" type="Stencil Op"/>
   </struct>
 
-  <struct name="Renderer State">
+  <struct name="Renderer State" align="64">
     <field name="Shader" size="128" start="0:0" type="Shader"/>
     <field name="Properties" size="32" start="4:0" type="Renderer Properties"/>
     <field name="Depth units" size="32" start="5:0" type="float"/>
@@ -895,18 +929,19 @@
     <field name="Stencil front" size="32" start="10:0" type="Stencil"/>
     <field name="Stencil back" size="32" start="11:0" type="Stencil"/>
     <field name="Preload" size="32" start="12:0" type="Preload"/>
+    <field name="Alpha reference" size="32" start="12:0" type="float"/>
     <field name="Thread Balancing" size="16" start="13:0" type="uint"/>
     <field name="SFBD Blend Shader" size="64" start="14:0" type="address"/>
     <field name="SFBD Blend Equation" size="32" start="14:0" type="Blend Equation"/>
     <field name="SFBD Blend Constant" size="32" start="15:0" type="float"/>
   </struct>
 
-  <struct name="Uniform Buffer">
+  <struct name="Uniform Buffer" align="8">
     <field name="Entries" size="12" start="0" type="uint" modifier="minus(1)"/>
     <field name="Pointer" size="52" start="12" type="address" modifier="shr(4)" element="16" count="Entries"/>
   </struct>
 
-  <struct name="Viewport">
+  <struct name="Viewport" align="32">
     <field name="Minimum X" size="32" start="0:0" default="-INFINITY" type="float"/>
     <field name="Minimum Y" size="32" start="1:0" default="-INFINITY" type="float"/>
     <field name="Maximum X" size="32" start="2:0" default="+INFINITY" type="float"/>
@@ -919,7 +954,7 @@
     <field name="Scissor Maximum Y" size="16" start="7:16" type="uint"/>
   </struct>
 
-  <struct name="Local Storage" size="8">
+  <struct name="Local Storage" size="8" align="64">
     <field name="TLS Size" size="5" start="0:0" type="uint"/>
     <field name="TLS Initial Stack Pointer Offset" size="27" start="0:5" type="uint"/>
     <field name="WLS Instances" size="5" start="1:0" type="uint" modifier="log2" prefix="MALI_LOCAL_STORAGE">
@@ -1135,7 +1170,7 @@
   <struct name="Single-Target Framebuffer Padding 2" size="8">
   </struct>
 
-  <aggregate name="Single-Target Framebuffer" size="320">
+  <aggregate name="Single-Target Framebuffer" size="320" align="64">
     <section name="Local Storage" offset="0" type="Local Storage"/>
     <section name="Parameters" offset="32" type="Single-Target Framebuffer Parameters"/>
     <section name="Tiler" offset="192" type="Midgard Tiler"/>
@@ -1193,12 +1228,12 @@
     <field name="Z Clear" size="32" start="5:0" type="float"/>
   </struct>
 
-  <struct name="ZS CRC Extension">
+  <struct name="ZS CRC Extension" align="64">
     <field name="CRC Base" size="64" start="0:0" type="address"/>
     <field name="CRC Row Stride" size="32" start="2:0" type="uint"/>
     <field name="ZS Write Format" size="4" start="3:0" type="ZS Format"/>
     <field name="ZS Block Format" size="2" start="3:4" type="Block Format"/>
-    <field name="ZS Block Format v7" size="2" start="3:4" type="Block Format v7"/>
+    <field name="ZS Block Format v7" size="4" start="3:4" type="Block Format v7"/>
     <field name="ZS MSAA" size="2" start="3:6" default="Single" type="MSAA"/>
     <field name="ZS MSAA v7" size="2" start="3:8" default="Single" type="MSAA"/>
     <field name="ZS Big Endian" size="1" start="3:8" type="bool"/>
@@ -1328,7 +1363,7 @@
     <field name="Color 3" size="32" start="3:0" type="uint"/>
   </struct>
 
-  <struct name="Render Target">
+  <struct name="Render Target" align="64">
     <field name="Midgard" size="512" start="0:0" type="Render Target Midgard Overlay"/>
     <field name="Bifrost v6" size="512" start="0:0" type="Render Target Bifrost v6 Overlay"/>
     <field name="Bifrost v7" size="512" start="0:0" type="Render Target Bifrost v7 Overlay"/>
@@ -1367,7 +1402,7 @@
     <field name="Frame Shader DCDs" size="64" start="6:0" type="address"/>
   </struct>
 
-  <struct name="Bifrost Tiler Heap">
+  <struct name="Bifrost Tiler Heap" align="64">
     <field name="Size" size="32" start="1:0" type="uint" modifier="align(4096)"/>
     <field name="Base" size="64" start="2:0" type="address"/>
     <field name="Bottom" size="64" start="4:0" type="address"/>
@@ -1404,7 +1439,7 @@
     <field name="Word15" size="32" start="15:0" type="uint"/>
   </struct>
 
-  <struct name="Bifrost Tiler" size="48">
+  <struct name="Bifrost Tiler" size="48" align="64">
     <field name="Polygon List" size="64" start="0:0" type="address"/>
     <field name="Hierarchy Mask" size="13" start="2:0" type="uint"/>
     <field name="Sample Pattern" size="3" start="2:13" type="Sample Pattern"/>
@@ -1423,7 +1458,7 @@
   <struct name="Bifrost Framebuffer Padding" size="16">
   </struct>
 
-  <aggregate name="Multi-Target Framebuffer">
+  <aggregate name="Multi-Target Framebuffer" align="64">
     <section name="Local Storage" offset="0" type="Local Storage"/>
     <section name="Bifrost Parameters" offset="0" type="Bifrost Framebuffer Parameters"/>
     <section name="Parameters" offset="32" type="Multi-Target Framebuffer Parameters"/>
@@ -1462,7 +1497,7 @@
     <field name="Tile Enable Map Row Stride" size="8" start="6:0" type="uint"/>
   </struct>
 
-  <aggregate name="Fragment Job">
+  <aggregate name="Fragment Job" align="64">
     <section name="Header" offset="0" type="Job Header"/>
     <section name="Payload" offset="32" type="Fragment Job Payload"/>
   </aggregate>
@@ -1493,7 +1528,7 @@
   </struct>
 
   <!-- Compute job also covers vertex and geometry operations -->
-  <aggregate name="Compute Job">
+  <aggregate name="Compute Job" align="64">
     <section name="Header" offset="0" type="Job Header"/>
     <section name="Invocation" offset="32" type="Invocation"/>
     <section name="Parameters" offset="40" type="Compute Job Parameters"/>
@@ -1506,7 +1541,7 @@
     <field name="Size Array" size="64" start="0:0" type="uint"/>
   </struct>
 
-  <aggregate name="Midgard Tiler Job" size="192">
+  <aggregate name="Midgard Tiler Job" size="192" align="64">
     <section name="Header" offset="0" type="Job Header"/>
     <section name="Invocation" offset="32" type="Invocation"/>
     <section name="Primitive" offset="40" type="Primitive"/>
@@ -1517,7 +1552,7 @@
   <struct name="Bifrost Tiler Job Padding" size="12">
   </struct>
 
-  <aggregate name="Bifrost Tiler Job" size="256">
+  <aggregate name="Bifrost Tiler Job" size="256" align="64">
     <section name="Header" offset="0" type="Job Header"/>
     <section name="Invocation" offset="32" type="Invocation"/>
     <section name="Primitive" offset="40" type="Primitive"/>

@@ -137,12 +137,9 @@ try_pbo_readpixels(struct st_context *st, struct st_renderbuffer *strb,
    if (!st_pbo_addresses_pixelstore(st, GL_TEXTURE_2D, false, pack, pixels, &addr))
       return false;
 
-   cso_save_state(cso, (CSO_BIT_FRAGMENT_SAMPLER_VIEWS |
-                        CSO_BIT_FRAGMENT_SAMPLERS |
-                        CSO_BIT_FRAGMENT_IMAGE0 |
+   cso_save_state(cso, (CSO_BIT_FRAGMENT_SAMPLERS |
                         CSO_BIT_BLEND |
                         CSO_BIT_VERTEX_ELEMENTS |
-                        CSO_BIT_AUX_VERTEX_BUFFER_SLOT |
                         CSO_BIT_FRAMEBUFFER |
                         CSO_BIT_VIEWPORT |
                         CSO_BIT_RASTERIZER |
@@ -153,7 +150,6 @@ try_pbo_readpixels(struct st_context *st, struct st_renderbuffer *strb,
                         CSO_BIT_MIN_SAMPLES |
                         CSO_BIT_RENDER_CONDITION |
                         CSO_BITS_ALL_SHADERS));
-   cso_save_constant_buffer_slot0(cso, PIPE_SHADER_FRAGMENT);
 
    cso_set_sample_mask(cso, ~0);
    cso_set_min_samples(cso, 1);
@@ -193,7 +189,10 @@ try_pbo_readpixels(struct st_context *st, struct st_renderbuffer *strb,
       if (sampler_view == NULL)
          goto fail;
 
-      cso_set_sampler_views(cso, PIPE_SHADER_FRAGMENT, 1, &sampler_view);
+      pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 1, 0,
+                              &sampler_view);
+      st->state.num_sampler_views[PIPE_SHADER_FRAGMENT] =
+         MAX2(st->state.num_sampler_views[PIPE_SHADER_FRAGMENT], 1);
 
       pipe_sampler_view_reference(&sampler_view, NULL);
 
@@ -213,7 +212,7 @@ try_pbo_readpixels(struct st_context *st, struct st_renderbuffer *strb,
       image.u.buf.size = (addr.last_element - addr.first_element + 1) *
                          addr.bytes_per_pixel;
 
-      cso_set_shader_images(cso, PIPE_SHADER_FRAGMENT, 0, 1, &image);
+      pipe->set_shader_images(pipe, PIPE_SHADER_FRAGMENT, 0, 1, 0, &image);
    }
 
    /* Set up no-attachment framebuffer */
@@ -256,7 +255,20 @@ try_pbo_readpixels(struct st_context *st, struct st_renderbuffer *strb,
 
 fail:
    cso_restore_state(cso);
-   cso_restore_constant_buffer_slot0(cso, PIPE_SHADER_FRAGMENT);
+
+   /* Unbind all because st/mesa won't do it if the current shader doesn't
+    * use them.
+    */
+   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 0,
+                           st->state.num_sampler_views[PIPE_SHADER_FRAGMENT],
+                           NULL);
+   st->state.num_sampler_views[PIPE_SHADER_FRAGMENT] = 0;
+   pipe->set_shader_images(pipe, PIPE_SHADER_FRAGMENT, 0, 0, 1, NULL);
+
+   st->dirty |= ST_NEW_FS_CONSTANTS |
+                ST_NEW_FS_IMAGES |
+                ST_NEW_FS_SAMPLER_VIEWS |
+                ST_NEW_VERTEX_ARRAYS;
 
    return success;
 }
@@ -452,7 +464,7 @@ st_ReadPixels(struct gl_context *ctx, GLint x, GLint y,
 
    /* Convert the source format to what is expected by ReadPixels
     * and see if it's supported. */
-   src_format = util_format_linear(src->format);
+   src_format = util_format_linear(strb->Base.Format);
    src_format = util_format_luminance_to_red(src_format);
    src_format = util_format_intensity_to_red(src_format);
 

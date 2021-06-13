@@ -79,5 +79,7 @@ if build_glx
         ],
     )
 
-    install_data(hdrs_vnd, install_dir : xorgsdkdir)
+    if build_xorg
+        install_data(hdrs_vnd, install_dir : xorgsdkdir)
+    endif
 endif

@@ -80,7 +80,7 @@ srcs_equal(const nir_src *src1, const nir_src *src2)
    assert(src2->is_ssa);
 
    return src1->ssa == src2->ssa ||
-      nir_src_is_const(*src1) == nir_src_is_const(*src2);
+          (nir_src_is_const(*src1) && nir_src_is_const(*src2));
 }
 
 static bool
@@ -158,7 +158,7 @@ instr_can_rewrite(nir_instr *instr, bool vectorize_16bit)
           * outside of max_components: these should better be scalarized */
          uint32_t mask = vectorize_16bit ? ~1 : ~3;
          for (unsigned j = 0; j < alu->dest.dest.ssa.num_components; j++) {
-            if ((alu->src[i].swizzle[0] & mask) != (alu->src[i].swizzle[i] & mask))
+            if ((alu->src[i].swizzle[0] & mask) != (alu->src[i].swizzle[j] & mask))
                return false;
          }
       }
@@ -295,8 +295,7 @@ instr_try_combine(struct nir_shader *nir, struct set *instr_set,
       nir_if_rewrite_condition(src->parent_if, nir_src_for_ssa(new_alu1));
    }
 
-   assert(list_is_empty(&alu1->dest.dest.ssa.uses));
-   assert(list_is_empty(&alu1->dest.dest.ssa.if_uses));
+   assert(nir_ssa_def_is_unused(&alu1->dest.dest.ssa));
 
    nir_foreach_use_safe(src, &alu2->dest.dest.ssa) {
       if (src->parent_instr->type == nir_instr_type_alu) {
@@ -332,8 +331,7 @@ instr_try_combine(struct nir_shader *nir, struct set *instr_set,
       nir_if_rewrite_condition(src->parent_if, nir_src_for_ssa(new_alu2));
    }
 
-   assert(list_is_empty(&alu2->dest.dest.ssa.uses));
-   assert(list_is_empty(&alu2->dest.dest.ssa.if_uses));
+   assert(nir_ssa_def_is_unused(&alu2->dest.dest.ssa));
 
    nir_instr_remove(instr1);
    nir_instr_remove(instr2);
@@ -375,7 +373,7 @@ vec_instr_set_add_or_rewrite(struct nir_shader *nir, struct set *instr_set,
                                                old_instr, instr);
       if (new_instr) {
          if (instr_can_rewrite(new_instr, nir->options->vectorize_vec2_16bit) &&
-             (!filter || filter(instr, data)))
+             (!filter || filter(new_instr, data)))
             _mesa_set_add(instr_set, new_instr);
          return true;
       }

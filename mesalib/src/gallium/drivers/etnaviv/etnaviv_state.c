@@ -81,7 +81,7 @@ etna_set_sample_mask(struct pipe_context *pctx, unsigned sample_mask)
 
 static void
 etna_set_constant_buffer(struct pipe_context *pctx,
-      enum pipe_shader_type shader, uint index,
+      enum pipe_shader_type shader, uint index, bool take_ownership,
       const struct pipe_constant_buffer *cb)
 {
    struct etna_context *ctx = etna_context(pctx);
@@ -89,7 +89,7 @@ etna_set_constant_buffer(struct pipe_context *pctx,
 
    assert(index < ETNA_MAX_CONST_BUF);
 
-   util_copy_constant_buffer(&so->cb[index], cb);
+   util_copy_constant_buffer(&so->cb[index], cb, take_ownership);
 
    /* Note that the gallium frontends can unbind constant buffers by
     * passing NULL here. */
@@ -426,12 +426,15 @@ etna_set_viewport_states(struct pipe_context *pctx, unsigned start_slot,
 
 static void
 etna_set_vertex_buffers(struct pipe_context *pctx, unsigned start_slot,
-      unsigned num_buffers, const struct pipe_vertex_buffer *vb)
+      unsigned num_buffers, unsigned unbind_num_trailing_slots, bool take_ownership,
+      const struct pipe_vertex_buffer *vb)
 {
    struct etna_context *ctx = etna_context(pctx);
    struct etna_vertexbuf_state *so = &ctx->vertex_buffer;
 
-   util_set_vertex_buffers_mask(so->vb, &so->enabled_mask, vb, start_slot, num_buffers);
+   util_set_vertex_buffers_mask(so->vb, &so->enabled_mask, vb, start_slot,
+                                num_buffers, unbind_num_trailing_slots,
+                                take_ownership);
    so->count = util_last_bit(so->enabled_mask);
 
    for (unsigned idx = start_slot; idx < start_slot + num_buffers; ++idx) {
@@ -518,6 +521,7 @@ etna_vertex_elements_state_create(struct pipe_context *pctx,
    if (num_elements > screen->specs.vertex_max_elements) {
       BUG("number of elements (%u) exceeds chip maximum (%u)", num_elements,
           screen->specs.vertex_max_elements);
+      FREE(cs);
       return NULL;
    }
 
@@ -608,6 +612,14 @@ etna_vertex_elements_state_bind(struct pipe_context *pctx, void *ve)
 
    ctx->vertex_elements = ve;
    ctx->dirty |= ETNA_DIRTY_VERTEX_ELEMENTS;
+}
+
+static void
+etna_set_stream_output_targets(struct pipe_context *pctx,
+      unsigned num_targets, struct pipe_stream_output_target **targets,
+      const unsigned *offsets)
+{
+   /* stub */
 }
 
 static bool
@@ -809,4 +821,6 @@ etna_state_init(struct pipe_context *pctx)
    pctx->create_vertex_elements_state = etna_vertex_elements_state_create;
    pctx->delete_vertex_elements_state = etna_vertex_elements_state_delete;
    pctx->bind_vertex_elements_state = etna_vertex_elements_state_bind;
+
+   pctx->set_stream_output_targets = etna_set_stream_output_targets;
 }

@@ -52,13 +52,23 @@ files_addrlib = files(
   'src/r800/siaddrlib.h',
 )
 
-cpp_args_addrlib = []
-if cpp.get_id() != 'msvc'
-  cpp_args_addrlib += '-Wno-unused-variable'
-  cpp_args_addrlib += '-Wno-unused-local-typedefs'
-  cpp_args_addrlib += '-Wno-unused-but-set-variable'
-  cpp_args_addrlib += '-Wno-maybe-uninitialized'
+# Skip the addrlib definition of ADDR_FASTCALL so as not to use regparm.
+cpp_args_addrlib = ['-DADDR_FASTCALL=']
+
+if host_machine.endian() == 'little'
+  cpp_args_addrlib += '-DLITTLEENDIAN_CPU'
+else
+  cpp_args_addrlib += '-DBIGENDIAN_CPU'
 endif
+
+foreach w : ['-Wno-unused-variable', '-Wno-unused-local-typedefs',
+             '-Wno-unused-but-set-variable', '-Wno-maybe-uninitialized']
+  if cpp.has_argument(w)
+    cpp_args_addrlib += w
+  endif
+endforeach
+
+message(cpp_args_addrlib)
 
 libamdgpu_addrlib = static_library(
   'addrlib',

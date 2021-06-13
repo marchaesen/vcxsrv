@@ -49,6 +49,7 @@
  */
 
 #include "c11/threads.h"
+#include "util/u_thread.h"
 #include "u_current.h"
 
 #ifndef MAPI_MODE_UTIL
@@ -99,12 +100,18 @@ extern void (*__glapi_noop_table[])(void);
 /*@{*/
 #if defined(USE_ELF_TLS)
 
+#ifdef _MSC_VER
+__declspec(thread) struct _glapi_table *u_current_table
+    = (struct _glapi_table *) table_noop_array;
+__declspec(thread) void *u_current_context;
+#else
 __thread struct _glapi_table *u_current_table
     __attribute__((tls_model("initial-exec")))
     = (struct _glapi_table *) table_noop_array;
 
 __thread void *u_current_context
     __attribute__((tls_model("initial-exec")));
+#endif
 
 #else
 
@@ -144,42 +151,6 @@ u_current_init_tsd(void)
  */
 static mtx_t ThreadCheckMutex = _MTX_INITIALIZER_NP;
 
-
-#ifdef _WIN32
-typedef DWORD thread_id;
-#else
-typedef thrd_t thread_id;
-#endif
-
-
-static inline thread_id
-get_thread_id(void)
-{
-   /*
-    * XXX: Callers of of this function assume it is a lightweight function.
-    * But unfortunately C11's thrd_current() gives no such guarantees.  In
-    * fact, it's pretty hard to have a compliant implementation of
-    * thrd_current() on Windows with such characteristics.  So for now, we
-    * side-step this mess and use Windows thread primitives directly here.
-    */
-#ifdef _WIN32
-   return GetCurrentThreadId();
-#else
-   return thrd_current();
-#endif
-}
-
-
-static inline int
-thread_id_equal(thread_id t1, thread_id t2)
-{
-#ifdef _WIN32
-   return t1 == t2;
-#else
-   return thrd_equal(t1, t2);
-#endif
-}
-
 static thread_id knownID;
 
 /**
@@ -198,10 +169,10 @@ u_current_init(void)
    if (firstCall) {
       u_current_init_tsd();
 
-      knownID = get_thread_id();
+      knownID = util_get_thread_id();
       firstCall = 0;
    }
-   else if (!thread_id_equal(knownID, get_thread_id())) {
+   else if (!util_thread_id_equal(knownID, util_get_thread_id())) {
       ThreadSafe = 1;
       u_current_set_table(NULL);
       u_current_set_context(NULL);
@@ -251,7 +222,7 @@ u_current_get_context_internal(void)
 #else
    if (ThreadSafe)
       return tss_get(u_current_context_tsd);
-   else if (!thread_id_equal(knownID, get_thread_id()))
+   else if (!util_thread_id_equal(knownID, util_get_thread_id()))
       return NULL;
    else
       return u_current_context;
@@ -292,7 +263,7 @@ u_current_get_table_internal(void)
 #else
    if (ThreadSafe)
       return (struct _glapi_table *) tss_get(u_current_table_tsd);
-   else if (!thread_id_equal(knownID, get_thread_id()))
+   else if (!util_thread_id_equal(knownID, util_get_thread_id()))
       return (struct _glapi_table *) table_noop_array;
    else
       return (struct _glapi_table *) u_current_table;

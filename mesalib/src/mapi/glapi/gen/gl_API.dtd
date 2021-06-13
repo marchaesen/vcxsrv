@@ -124,14 +124,12 @@ param:
         offset data should be padded to the next even number of dimensions.
         For example, this will insert an empty "height" field after the
         "width" field in the protocol for TexImage1D.
-     marshal - One of "sync", "async", "draw", or "custom", defaulting to
+     marshal - One of "sync", "async", or "custom", defaulting to
         async unless one of the arguments is something we know we can't
         codegen for.  If "sync", we finish any queued glthread work and call
         the Mesa implementation directly.  If "async", we queue the function
         call to be performed by glthread.  If "custom", the prototype will be
         generated but a custom implementation will be present in marshal.c.
-        If "draw", it will follow the "async" rules except that "indices" are
-        ignored (since they may come from a VBO).
      marshal_sync - an expression that, if it evaluates true, causes glthread
         to sync and execute the call directly.
      marshal_count - same as count, but variable_param is ignored. Used by

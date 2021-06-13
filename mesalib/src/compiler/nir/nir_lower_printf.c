@@ -128,7 +128,7 @@ lower_printf_instr(nir_builder *b, nir_instr *instr, void *_options)
    nir_pop_if(b, NULL);
 
    nir_ssa_def *ret_val = nir_if_phi(b, printf_succ_val, printf_fail_val);
-   nir_ssa_def_rewrite_uses(&prntf->dest.ssa, nir_src_for_ssa(ret_val));
+   nir_ssa_def_rewrite_uses(&prntf->dest.ssa, ret_val);
    nir_instr_remove(&prntf->instr);
 
    return true;

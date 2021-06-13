@@ -513,11 +513,12 @@ st_update_renderbuffer_surface(struct st_context *st,
    if (strb->is_rtt && resource->array_size > 1 &&
        stTexObj->base.Immutable) {
       const struct gl_texture_object *tex = &stTexObj->base;
-      first_layer += tex->MinLayer;
+      first_layer += tex->Attrib.MinLayer;
       if (!strb->rtt_layered)
-         last_layer += tex->MinLayer;
+         last_layer += tex->Attrib.MinLayer;
       else
-         last_layer = MIN2(first_layer + tex->NumLayers - 1, last_layer);
+         last_layer = MIN2(first_layer + tex->Attrib.NumLayers - 1,
+                           last_layer);
    }
 
    struct pipe_surface **psurf =

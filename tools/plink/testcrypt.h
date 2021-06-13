@@ -136,6 +136,8 @@ FUNC1(val_string, ssh_hash_digest, val_hash)
 FUNC1(val_string, ssh_hash_final, consumed_val_hash)
 FUNC2(void, ssh_hash_update, val_hash, val_string_ptrlen)
 
+FUNC1(opt_val_hash, blake2b_new_general, uint)
+
 /*
  * The ssh2_mac abstraction. Note the optional ssh_cipher parameter
  * to ssh2_mac_new. Also, again, I've invented an ssh2_mac_update so
@@ -256,8 +258,16 @@ FUNC5(boolean, ppk_loadpub_s, val_string_binarysource, out_opt_val_string_asciz,
 FUNC4(int, rsa1_loadpub_s, val_string_binarysource, out_val_string_binarysink, out_opt_val_string_asciz, out_opt_val_string_asciz_const)
 FUNC4(opt_val_key, ppk_load_s, val_string_binarysource, out_opt_val_string_asciz, opt_val_string_asciz, out_opt_val_string_asciz_const)
 FUNC5(int, rsa1_load_s, val_string_binarysource, val_rsa, out_opt_val_string_asciz, opt_val_string_asciz, out_opt_val_string_asciz_const)
-FUNC3(val_string, ppk_save_sb, val_key, opt_val_string_asciz, opt_val_string_asciz)
+FUNC8(val_string, ppk_save_sb, val_key, opt_val_string_asciz, opt_val_string_asciz, uint, argon2flavour, uint, uint, uint)
 FUNC3(val_string, rsa1_save_sb, val_rsa, opt_val_string_asciz, opt_val_string_asciz)
+
+FUNC2(val_string_asciz, ssh2_fingerprint_blob, val_string_ptrlen, fptype)
+
+/*
+ * Password hashing.
+ */
+FUNC9(val_string, argon2, argon2flavour, uint, uint, uint, uint, val_string_ptrlen, val_string_ptrlen, val_string_ptrlen, val_string_ptrlen)
+FUNC2(val_string, argon2_long_hash, uint, val_string_ptrlen)
 
 /*
  * Key generation functions.
@@ -299,8 +309,8 @@ FUNC2(val_string, des3_encrypt_pubkey, val_string_ptrlen, val_string_ptrlen)
 FUNC2(val_string, des3_decrypt_pubkey, val_string_ptrlen, val_string_ptrlen)
 FUNC3(val_string, des3_encrypt_pubkey_ossh, val_string_ptrlen, val_string_ptrlen, val_string_ptrlen)
 FUNC3(val_string, des3_decrypt_pubkey_ossh, val_string_ptrlen, val_string_ptrlen, val_string_ptrlen)
-FUNC2(val_string, aes256_encrypt_pubkey, val_string_ptrlen, val_string_ptrlen)
-FUNC2(val_string, aes256_decrypt_pubkey, val_string_ptrlen, val_string_ptrlen)
+FUNC3(val_string, aes256_encrypt_pubkey, val_string_ptrlen, val_string_ptrlen, val_string_ptrlen)
+FUNC3(val_string, aes256_decrypt_pubkey, val_string_ptrlen, val_string_ptrlen, val_string_ptrlen)
 FUNC1(uint, crc32_rfc1662, val_string_ptrlen)
 FUNC1(uint, crc32_ssh1, val_string_ptrlen)
 FUNC2(uint, crc32_update, uint, val_string_ptrlen)

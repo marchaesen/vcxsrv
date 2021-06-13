@@ -1084,7 +1084,7 @@ vc4_get_shadow_index_buffer(struct pipe_context *pctx,
         struct pipe_transfer *src_transfer = NULL;
         const uint32_t *src;
         if (info->has_user_indices) {
-                src = info->index.user;
+                src = (uint32_t*)((char*)info->index.user + offset);
         } else {
                 src = pipe_buffer_map_range(pctx, &orig->base,
                                             offset,

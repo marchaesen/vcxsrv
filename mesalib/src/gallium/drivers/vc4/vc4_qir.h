@@ -286,7 +286,6 @@ enum quniform_contents {
 
         QUNIFORM_STENCIL,
 
-        QUNIFORM_ALPHA_REF,
         QUNIFORM_SAMPLE_MASK,
 
         /* Placeholder uniform that will be updated by the kernel when used by
@@ -331,12 +330,10 @@ struct vc4_fs_key {
         bool is_points;
         bool is_lines;
         bool point_coord_upper_left;
-        bool light_twoside;
         bool msaa;
         bool sample_coverage;
         bool sample_alpha_to_coverage;
         bool sample_alpha_to_one;
-        uint8_t alpha_test_func;
         uint8_t logicop_func;
         uint32_t point_sprite_mask;
         uint32_t ubo_1_size;
@@ -351,7 +348,6 @@ struct vc4_vs_key {
         enum pipe_format attr_formats[8];
         bool is_coord;
         bool per_vertex_point_size;
-        bool clamp_color;
 };
 
 /** A basic block of QIR intructions. */

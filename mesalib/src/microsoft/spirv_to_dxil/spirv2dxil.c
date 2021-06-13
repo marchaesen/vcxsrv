@@ -113,14 +113,20 @@ main(int argc, char **argv)
       return 1;
    }
 
+   if (file_size % WORD_SIZE != 0) {
+      fprintf(stderr, "%s size == %zu is not a multiple of %d\n", filename,
+              file_size, WORD_SIZE);
+      return 1;
+   }
+
    size_t word_count = file_size / WORD_SIZE;
 
    void *data;
    size_t size;
-   if (spirv_to_dxil((void *)file_contents, word_count, NULL, 0,
+   if (spirv_to_dxil((uint32_t *)file_contents, word_count, NULL, 0,
                      (dxil_spirv_shader_stage)shader_stage, entry_point,
                      &data, &size)) {
-      FILE *file = fopen(output_file, "w");
+      FILE *file = fopen(output_file, "wb");
       if (!file) {
          fprintf(stderr, "Failed to open %s, %s\n", output_file,
                  strerror(errno));
@@ -129,7 +135,7 @@ main(int argc, char **argv)
          return 1;
       }
 
-      fwrite(data, 1, size, file);
+      fwrite(data, sizeof(char), size, file);
       fclose(file);
       spirv_to_dxil_free(data);
    } else {

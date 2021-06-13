@@ -107,6 +107,44 @@ struct ir3_compiler {
 	 */
 	uint32_t const_upload_unit;
 
+	/* The base number of threads per wave. Some stages may be able to double
+	 * this.
+	 */
+	uint32_t threadsize_base;
+
+	/* On at least a6xx, waves are always launched in pairs. In calculations
+	 * about occupancy, we pretend that each wave pair is actually one wave,
+	 * which simplifies many of the calculations, but means we have to
+	 * multiply threadsize_base by this number.
+	 */
+	uint32_t wave_granularity;
+
+	/* The maximum number of simultaneous waves per core. */
+	uint32_t max_waves;
+
+	/* This is theoretical maximum number of vec4 registers that one wave of
+	 * the base threadsize could use. To get the actual size of the register
+	 * file in bytes one would need to compute:
+	 *
+	 * reg_size_vec4 * threadsize_base * wave_granularity * 16 (bytes per vec4)
+	 *
+	 * However this number is more often what we actually need. For example, a
+	 * max_reg more than half of this will result in a doubled threadsize
+	 * being impossible (because double-sized waves take up twice as many
+	 * registers). Also, the formula for the occupancy given a particular
+	 * register footprint is simpler.
+	 *
+	 * It is in vec4 units because the register file is allocated
+	 * with vec4 granularity, so it's in the same units as max_reg.
+	 */
+	uint32_t reg_size_vec4;
+
+	/* The size of local memory in bytes */
+	uint32_t local_mem_size;
+
+	/* The number of total branch stack entries, divided by wave_granularity. */
+	uint32_t branchstack_size;
+
 	/* Whether clip+cull distances are supported */
 	bool has_clip_cull;
 
@@ -155,6 +193,7 @@ enum ir3_shader_debug {
 };
 
 extern enum ir3_shader_debug ir3_shader_debug;
+extern const char *ir3_shader_override_path;
 
 static inline bool
 shader_debug_enabled(gl_shader_stage type)

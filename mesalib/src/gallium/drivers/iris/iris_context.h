@@ -28,9 +28,10 @@
 #include "util/set.h"
 #include "util/slab.h"
 #include "util/u_debug.h"
+#include "util/u_threaded_context.h"
 #include "intel/blorp/blorp.h"
 #include "intel/dev/gen_debug.h"
-#include "intel/common/gen_l3_config.h"
+#include "intel/common/intel_l3_config.h"
 #include "intel/compiler/brw_compiler.h"
 #include "iris_batch.h"
 #include "iris_binder.h"
@@ -265,6 +266,17 @@ struct iris_cs_prog_key {
    struct iris_base_prog_key base;
 };
 
+union iris_any_prog_key {
+   struct iris_base_prog_key base;
+   struct iris_vue_prog_key vue;
+   struct iris_vs_prog_key vs;
+   struct iris_tcs_prog_key tcs;
+   struct iris_tes_prog_key tes;
+   struct iris_gs_prog_key gs;
+   struct iris_fs_prog_key fs;
+   struct iris_cs_prog_key cs;
+};
+
 /** @} */
 
 struct iris_depth_stencil_alpha_state;
@@ -389,6 +401,12 @@ struct iris_uncompiled_shader {
 
    /** Size (in bytes) of the local (shared) data passed as kernel inputs */
    unsigned kernel_shared_size;
+
+   /** List of iris_compiled_shader variants */
+   struct list_head variants;
+
+   /** Lock for the variants list */
+   simple_mtx_t lock;
 };
 
 enum iris_surface_group {
@@ -429,7 +447,13 @@ struct iris_binding_table {
  * (iris_uncompiled_shader), due to state-based recompiles (brw_*_prog_key).
  */
 struct iris_compiled_shader {
+   struct pipe_reference ref;
+
+   /** Link in the iris_uncompiled_shader::variants list */
    struct list_head link;
+
+   /** Key for this variant (but not for BLORP programs) */
+   union iris_any_prog_key key;
 
    /** Reference to the uploaded assembly. */
    struct iris_state_ref assembly;
@@ -514,8 +538,8 @@ struct iris_stream_output_target {
    /** Stride (bytes-per-vertex) during this transform feedback operation */
    uint16_t stride;
 
-   /** Has 3DSTATE_SO_BUFFER actually been emitted, zeroing the offsets? */
-   bool zeroed;
+   /** Does the next 3DSTATE_SO_BUFFER need to zero the offsets? */
+   bool zero_offset;
 };
 
 /**
@@ -539,6 +563,7 @@ struct iris_border_color_pool {
  */
 struct iris_context {
    struct pipe_context ctx;
+   struct threaded_context *thrctx;
 
    /** A debug callback for KHR_debug output. */
    struct pipe_debug_callback dbg;
@@ -551,6 +576,9 @@ struct iris_context {
 
    /** Slab allocator for iris_transfer_map objects. */
    struct slab_child_pool transfer_pool;
+
+   /** Slab allocator for threaded_context's iris_transfer_map objects */
+   struct slab_child_pool transfer_pool_unsync;
 
    struct blorp_context blorp;
 
@@ -607,12 +635,18 @@ struct iris_context {
    struct {
       struct iris_uncompiled_shader *uncompiled[MESA_SHADER_STAGES];
       struct iris_compiled_shader *prog[MESA_SHADER_STAGES];
-      struct brw_vue_map *last_vue_map;
+      struct iris_compiled_shader *last_vue_shader;
+      struct {
+         unsigned size[4];
+         unsigned entries[4];
+         unsigned start[4];
+         bool constrained;
+      } urb;
 
-      /** List of shader variants whose deletion has been deferred for now */
-      struct list_head deleted_variants[MESA_SHADER_STAGES];
-
-      struct u_upload_mgr *uploader;
+      /** Uploader for shader assembly from the driver thread */
+      struct u_upload_mgr *uploader_driver;
+      /** Uploader for shader assembly from the threaded context */
+      struct u_upload_mgr *uploader_unsync;
       struct hash_table *cache;
 
       /** Is a GS or TES outputting points or lines? */
@@ -626,11 +660,6 @@ struct iris_context {
        */
       struct iris_bo *scratch_bos[1 << 4][MESA_SHADER_STAGES];
    } shaders;
-
-   struct {
-      struct iris_query *query;
-      bool condition;
-   } condition;
 
    struct gen_perf_context *perf_ctx;
 
@@ -686,7 +715,10 @@ struct iris_context {
        */
       enum isl_aux_usage draw_aux_usage[BRW_MAX_DRAW_BUFFERS];
 
-      enum gen_urb_deref_block_size urb_deref_block_size;
+      /** Aux usage of the fb's depth buffer (which may or may not exist). */
+      enum isl_aux_usage hiz_usage;
+
+      enum intel_urb_deref_block_size urb_deref_block_size;
 
       /** Are depth writes enabled?  (Depth buffer may or may not exist.) */
       bool depth_writes_enabled;
@@ -882,8 +914,9 @@ void iris_disk_cache_store(struct disk_cache *cache,
                            const void *prog_key,
                            uint32_t prog_key_size);
 struct iris_compiled_shader *
-iris_disk_cache_retrieve(struct iris_context *ice,
-                         const struct iris_uncompiled_shader *ish,
+iris_disk_cache_retrieve(struct iris_screen *screen,
+                         struct u_upload_mgr *uploader,
+                         struct iris_uncompiled_shader *ish,
                          const void *prog_key,
                          uint32_t prog_key_size);
 
@@ -891,12 +924,14 @@ iris_disk_cache_retrieve(struct iris_context *ice,
 
 void iris_init_program_cache(struct iris_context *ice);
 void iris_destroy_program_cache(struct iris_context *ice);
-void iris_print_program_cache(struct iris_context *ice);
 struct iris_compiled_shader *iris_find_cached_shader(struct iris_context *ice,
                                                      enum iris_program_cache_id,
                                                      uint32_t key_size,
                                                      const void *key);
-struct iris_compiled_shader *iris_upload_shader(struct iris_context *ice,
+struct iris_compiled_shader *iris_upload_shader(struct iris_screen *screen,
+                                                struct iris_uncompiled_shader *,
+                                                struct hash_table *driver_ht,
+                                                struct u_upload_mgr *uploader,
                                                 enum iris_program_cache_id,
                                                 uint32_t key_size,
                                                 const void *key,
@@ -908,11 +943,20 @@ struct iris_compiled_shader *iris_upload_shader(struct iris_context *ice,
                                                 unsigned kernel_input_size,
                                                 unsigned num_cbufs,
                                                 const struct iris_binding_table *bt);
-const void *iris_find_previous_compile(const struct iris_context *ice,
-                                       enum iris_program_cache_id cache_id,
-                                       unsigned program_string_id);
-void iris_delete_shader_variants(struct iris_context *ice,
-                                 struct iris_uncompiled_shader *ish);
+void iris_delete_shader_variant(struct iris_compiled_shader *shader);
+
+static inline void
+iris_shader_variant_reference(struct iris_compiled_shader **dst,
+                              struct iris_compiled_shader *src)
+{
+   struct iris_compiled_shader *old_dst = *dst;
+
+   if (pipe_reference(old_dst ? &old_dst->ref: NULL, src ? &src->ref : NULL))
+      iris_delete_shader_variant(old_dst);
+
+   *dst = src;
+}
+
 bool iris_blorp_lookup_shader(struct blorp_batch *blorp_batch,
                               const void *key,
                               uint32_t key_size,

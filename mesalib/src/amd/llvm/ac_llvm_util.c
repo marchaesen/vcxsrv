@@ -168,6 +168,8 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
       return "gfx909";
    case CHIP_ARCTURUS:
       return "gfx908";
+   case CHIP_ALDEBARAN:
+      return "gfx90a";
    case CHIP_NAVI10:
       return "gfx1010";
    case CHIP_NAVI12:

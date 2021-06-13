@@ -44,6 +44,7 @@ TESTDATA =			\
 	4x6.pcf			\
 	8x16.pcf		\
 	fonts.conf.in		\
+	test-45-generic.json	\
 	test-60-generic.json	\
 	test-90-synthetic.json	\
 	$(NULL)

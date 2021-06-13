@@ -134,9 +134,8 @@ static const struct lima_format lima_pixel_formats[] = {
    LIMA_PIXEL_FORMAT(B5G6R5_UNORM,       B5G6R5,   false, 0x8565),
    LIMA_PIXEL_FORMAT(B5G5R5A1_UNORM,     B5G5R5A1, false, 0x8565),
    LIMA_PIXEL_FORMAT(B4G4R4A4_UNORM,     B4G4R4A4, false, 0x8444),
-   /* FIXME: reload doesn't work for these formats for some reason */
-   //LIMA_PIXEL_FORMAT(R8_UNORM,           B8,       true,  0x8888),
-   //LIMA_PIXEL_FORMAT(R8G8_UNORM,         G8B8,     true,  0x8888),
+   LIMA_PIXEL_FORMAT(R8_UNORM,           B8,       true,  0x8888),
+   LIMA_PIXEL_FORMAT(R8G8_UNORM,         G8B8,     true,  0x8888),
    LIMA_PIXEL_FORMAT(Z24_UNORM_S8_UINT,  Z24S8,    false, 0x0000),
    LIMA_PIXEL_FORMAT(Z24X8_UNORM,        Z24S8,    false, 0x0000),
    LIMA_PIXEL_FORMAT(R16G16B16A16_FLOAT, R16G16B16A16_FLOAT, true, 0x0000),

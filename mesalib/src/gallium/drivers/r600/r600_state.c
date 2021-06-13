@@ -908,7 +908,7 @@ static void r600_init_color_surface(struct r600_context *rctx,
 		S_0280A0_NUMBER_TYPE(ntype) |
 		S_0280A0_ENDIAN(endian);
 
-	/* EXPORT_NORM is an optimzation that can be enabled for better
+	/* EXPORT_NORM is an optimization that can be enabled for better
 	 * performance in certain cases
 	 */
 	if (rctx->b.chip_class == R600) {

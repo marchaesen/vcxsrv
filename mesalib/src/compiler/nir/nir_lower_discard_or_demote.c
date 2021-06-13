@@ -62,7 +62,64 @@ nir_lower_demote_to_discard_instr(nir_builder *b, nir_instr *instr, void *data)
       intrin->intrinsic = nir_intrinsic_discard_if;
       return true;
    case nir_intrinsic_is_helper_invocation:
-      intrin->intrinsic = nir_intrinsic_load_helper_invocation;
+   case nir_intrinsic_load_helper_invocation: {
+      /* If the shader doesn't need helper invocations,
+       * we can assume there are none */
+      b->cursor = nir_before_instr(instr);
+      nir_ssa_def *zero = nir_imm_false(b);
+      nir_ssa_def_rewrite_uses(&intrin->dest.ssa, zero);
+      nir_instr_remove_v(instr);
+      return true;
+   }
+   default:
+      return false;
+   }
+}
+
+static nir_ssa_def *
+insert_is_helper(nir_builder *b, nir_instr *instr)
+{
+   /* find best place to insert is_helper */
+   nir_cf_node *node = &instr->block->cf_node;
+   while (node->parent->type != nir_cf_node_function)
+      node = nir_cf_node_prev(node->parent);
+   nir_block *block = nir_cf_node_as_block(node);
+   if (block == instr->block) {
+      b->cursor = nir_before_instr(instr);
+   } else {
+      b->cursor = nir_after_block_before_jump(block);
+   }
+   return nir_is_helper_invocation(b, 1);
+}
+
+
+static bool
+nir_lower_load_helper_to_is_helper(nir_builder *b, nir_instr *instr, void *data)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+   nir_ssa_def *is_helper = *(nir_ssa_def**) data;
+   switch (intrin->intrinsic) {
+   case nir_intrinsic_demote:
+   case nir_intrinsic_demote_if:
+      /* insert is_helper at last top level occasion */
+      if (is_helper == NULL) {
+         is_helper = insert_is_helper(b, instr);
+         *(nir_ssa_def**)data = is_helper;
+         return true;
+      } else {
+         return false;
+      }
+   case nir_intrinsic_load_helper_invocation:
+      /* Don't update data: as long as we didn't encounter any demote(),
+       * we can insert new is_helper() intrinsics. These are placed at
+       * top-level blocks to ensure correct behavior w.r.t. loops */
+      if (is_helper == NULL)
+         is_helper = insert_is_helper(b, instr);
+      nir_ssa_def_rewrite_uses(&intrin->dest.ssa, is_helper);
+      nir_instr_remove_v(instr);
       return true;
    default:
       return false;
@@ -119,6 +176,18 @@ nir_lower_discard_or_demote(nir_shader *shader,
                                               nir_metadata_all,
                                               NULL);
       shader->info.fs.uses_demote = false;
+   } else if (shader->info.fs.uses_demote &&
+              BITSET_TEST(shader->info.system_values_read,
+                          nir_system_value_from_intrinsic(nir_intrinsic_load_helper_invocation))) {
+      /* load_helper needs to preserve the value (whether an invocation is
+       * a helper lane) from the beginning of the shader. */
+      nir_ssa_def *is_helper = NULL;
+      progress = nir_shader_instructions_pass(shader,
+                                              nir_lower_load_helper_to_is_helper,
+                                              nir_metadata_all,
+                                              &is_helper);
+      BITSET_CLEAR(shader->info.system_values_read,
+                   nir_system_value_from_intrinsic(nir_intrinsic_load_helper_invocation));
    }
 
    /* Validate again that if uses_demote is set, uses_discard is also be set. */

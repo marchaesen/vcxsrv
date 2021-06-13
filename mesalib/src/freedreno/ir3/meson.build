@@ -112,6 +112,7 @@ libfreedreno_ir3 = static_library(
   include_directories : [inc_freedreno, inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
   c_args : [no_override_init_args],
   gnu_symbol_visibility : 'hidden',
+  link_with: [libir3decode, libir3encode],
   dependencies : [idep_nir_headers, dep_dl, idep_mesautil],
   build_by_default : false,
 )
@@ -120,9 +121,9 @@ test('ir3_disasm',
   executable(
     'ir3_disasm',
     'tests/disasm.c',
-    link_with: libfreedreno_ir3,
-    dependencies: idep_mesautil,
-    include_directories: [inc_freedreno, inc_include, inc_src],
+    link_with: [libfreedreno_ir3, libir3decode],
+    dependencies: [idep_mesautil, idep_nir],
+    include_directories: [inc_freedreno, inc_include, inc_src, inc_gallium],
   ),
   suite: ['freedreno'],
 )

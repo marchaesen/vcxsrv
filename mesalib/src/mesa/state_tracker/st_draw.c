@@ -65,6 +65,7 @@
 #include "util/u_prim.h"
 #include "util/u_draw.h"
 #include "util/u_upload_mgr.h"
+#include "util/u_threaded_context.h"
 #include "draw/draw_context.h"
 #include "cso_cache/cso_context.h"
 
@@ -97,27 +98,26 @@ prepare_draw(struct st_context *st, struct gl_context *ctx)
    st_invalidate_readpix_cache(st);
 
    /* Validate state. */
-   if ((st->dirty | ctx->NewDriverState) & ST_PIPELINE_RENDER_STATE_MASK ||
+   if ((st->dirty | ctx->NewDriverState) & st->active_states &
+       ST_PIPELINE_RENDER_STATE_MASK ||
        st->gfx_shaders_may_be_dirty) {
       st_validate_state(st, ST_PIPELINE_RENDER);
    }
 
-   struct pipe_context *pipe = st->pipe;
-
    /* Pin threads regularly to the same Zen CCX that the main thread is
     * running on. The main thread can move between CCXs.
     */
-   if (unlikely(/* AMD Zen */
-                util_cpu_caps.nr_cpus != util_cpu_caps.cores_per_L3 &&
+   if (unlikely(st->pin_thread_counter != ST_L3_PINNING_DISABLED &&
                 /* no glthread */
                 ctx->CurrentClientDispatch != ctx->MarshalExec &&
-                /* driver support */
-                pipe->set_context_param &&
                 /* do it occasionally */
                 ++st->pin_thread_counter % 512 == 0)) {
+      st->pin_thread_counter = 0;
+
       int cpu = util_get_current_cpu();
       if (cpu >= 0) {
-         unsigned L3_cache = util_cpu_caps.cpu_to_L3[cpu];
+         struct pipe_context *pipe = st->pipe;
+         unsigned L3_cache = util_get_cpu_caps()->cpu_to_L3[cpu];
 
          pipe->set_context_param(pipe,
                                  PIPE_CONTEXT_PARAM_PIN_THREADS_TO_L3_CACHE,
@@ -159,7 +159,9 @@ st_draw_vbo(struct gl_context *ctx,
    info.restart_index = 0;
    info.start_instance = base_instance;
    info.instance_count = num_instances;
+   info.take_index_buffer_ownership = false;
    info._pad = 0;
+   info.view_mask = 0;
 
    if (ib) {
       struct gl_buffer_object *bufobj = ib->obj;
@@ -224,6 +226,143 @@ st_draw_vbo(struct gl_context *ctx,
 
       /* Don't call u_trim_pipe_prim. Drivers should do it if they need it. */
       cso_draw_vbo(st->cso_context, &info, NULL, draw);
+   }
+}
+
+static bool ALWAYS_INLINE
+prepare_indexed_draw(/* pass both st and ctx to reduce dereferences */
+                     struct st_context *st,
+                     struct gl_context *ctx,
+                     struct pipe_draw_info *info,
+                     const struct pipe_draw_start_count *draws,
+                     unsigned num_draws)
+{
+   if (info->index_size) {
+      /* Get index bounds for user buffers. */
+      if (!info->index_bounds_valid &&
+          st->draw_needs_minmax_index) {
+         /* Return if this fails, which means all draws have count == 0. */
+         if (!vbo_get_minmax_indices_gallium(ctx, info, draws, num_draws))
+            return false;
+
+         info->index_bounds_valid = true;
+      }
+
+      if (!info->has_user_indices) {
+         if (st->pipe->draw_vbo == tc_draw_vbo) {
+            /* Fast path for u_threaded_context. This eliminates the atomic
+             * increment for the index buffer refcount when adding it into
+             * the threaded batch buffer.
+             */
+            info->index.resource =
+               st_get_buffer_reference(ctx, info->index.gl_bo);
+            info->take_index_buffer_ownership = true;
+         } else {
+            info->index.resource = st_buffer_object(info->index.gl_bo)->buffer;
+         }
+
+         /* Return if the bound element array buffer doesn't have any backing
+          * storage. (nothing to do)
+          */
+         if (unlikely(!info->index.resource))
+            return false;
+      }
+   }
+   return true;
+}
+
+static void
+st_draw_gallium(struct gl_context *ctx,
+                struct pipe_draw_info *info,
+                const struct pipe_draw_start_count *draws,
+                unsigned num_draws)
+{
+   struct st_context *st = st_context(ctx);
+
+   prepare_draw(st, ctx);
+
+   if (!prepare_indexed_draw(st, ctx, info, draws, num_draws))
+      return;
+
+   cso_multi_draw(st->cso_context, info, draws, num_draws);
+}
+
+static void
+st_draw_gallium_complex(struct gl_context *ctx,
+                        struct pipe_draw_info *info,
+                        const struct pipe_draw_start_count *draws,
+                        const unsigned char *mode,
+                        const int *base_vertex,
+                        unsigned num_draws)
+{
+   struct st_context *st = st_context(ctx);
+
+   prepare_draw(st, ctx);
+
+   if (!prepare_indexed_draw(st, ctx, info, draws, num_draws))
+      return;
+
+   enum {
+      MODE = 1,
+      BASE_VERTEX = 2,
+   };
+   unsigned mask = (mode ? MODE : 0) | (base_vertex ? BASE_VERTEX : 0);
+   unsigned i, first;
+   struct cso_context *cso = st->cso_context;
+
+   /* Find consecutive draws where mode and base_vertex don't vary. */
+   switch (mask) {
+   case MODE:
+      for (i = 0, first = 0; i <= num_draws; i++) {
+         if (i == num_draws || mode[i] != mode[first]) {
+            info->mode = mode[first];
+            cso_multi_draw(cso, info, &draws[first], i - first);
+            first = i;
+
+            /* We can pass the reference only once. st_buffer_object keeps
+             * the reference alive for later draws.
+             */
+            info->take_index_buffer_ownership = false;
+         }
+      }
+      break;
+
+   case BASE_VERTEX:
+      for (i = 0, first = 0; i <= num_draws; i++) {
+         if (i == num_draws || base_vertex[i] != base_vertex[first]) {
+            info->index_bias = base_vertex[first];
+            cso_multi_draw(cso, info, &draws[first], i - first);
+            first = i;
+
+            /* We can pass the reference only once. st_buffer_object keeps
+             * the reference alive for later draws.
+             */
+            info->take_index_buffer_ownership = false;
+         }
+      }
+      break;
+
+   case MODE | BASE_VERTEX:
+      for (i = 0, first = 0; i <= num_draws; i++) {
+         if (i == num_draws ||
+             mode[i] != mode[first] ||
+             base_vertex[i] != base_vertex[first]) {
+            info->mode = mode[first];
+            info->index_bias = base_vertex[first];
+            cso_multi_draw(cso, info, &draws[first], i - first);
+            first = i;
+
+            /* We can pass the reference only once. st_buffer_object keeps
+             * the reference alive for later draws.
+             */
+            info->take_index_buffer_ownership = false;
+         }
+      }
+      break;
+
+   default:
+      assert(!"invalid parameters in DrawGalliumComplex");
+      break;
    }
 }
 
@@ -324,6 +463,8 @@ void
 st_init_draw_functions(struct dd_function_table *functions)
 {
    functions->Draw = st_draw_vbo;
+   functions->DrawGallium = st_draw_gallium;
+   functions->DrawGalliumComplex = st_draw_gallium_complex;
    functions->DrawIndirect = st_indirect_draw_vbo;
    functions->DrawTransformFeedback = st_draw_transform_feedback;
 }
@@ -430,6 +571,7 @@ st_draw_quad(struct st_context *st,
    u_upload_unmap(st->pipe->stream_uploader);
 
    cso_set_vertex_buffers(st->cso_context, 0, 1, &vb);
+   st->last_num_vbuffers = MAX2(st->last_num_vbuffers, 1);
 
    if (num_instances > 1) {
       cso_draw_arrays_instanced(st->cso_context, PIPE_PRIM_TRIANGLE_FAN, 0, 4,

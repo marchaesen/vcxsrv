@@ -332,6 +332,15 @@ void _mesa_glthread_AttribDivisor(struct gl_context *ctx, const GLuint *vaobj,
       vao->NonZeroDivisorMask &= ~(1u << attrib);
 }
 
+static unsigned
+element_size(GLint size, GLenum type)
+{
+   if (size == GL_BGRA)
+      size = 4;
+
+   return _mesa_bytes_per_vertex_attrib(size, type);
+}
+
 static void
 attrib_pointer(struct glthread_state *glthread, struct glthread_vao *vao,
                GLuint buffer, gl_vert_attrib attrib,
@@ -341,7 +350,7 @@ attrib_pointer(struct glthread_state *glthread, struct glthread_vao *vao,
    if (attrib >= VERT_ATTRIB_MAX)
       return;
 
-   unsigned elem_size = _mesa_bytes_per_vertex_attrib(size, type);
+   unsigned elem_size = element_size(size, type);
 
    vao->Attrib[attrib].ElementSize = elem_size;
    vao->Attrib[attrib].Stride = stride ? stride : elem_size;
@@ -393,7 +402,7 @@ attrib_format(struct glthread_state *glthread, struct glthread_vao *vao,
    if (attribindex >= VERT_ATTRIB_GENERIC_MAX)
       return;
 
-   unsigned elem_size = _mesa_bytes_per_vertex_attrib(size, type);
+   unsigned elem_size = element_size(size, type);
 
    unsigned i = VERT_ATTRIB_GENERIC(attribindex);
    vao->Attrib[i].ElementSize = elem_size;

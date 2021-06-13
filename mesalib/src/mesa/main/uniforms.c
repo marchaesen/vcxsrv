@@ -1100,7 +1100,7 @@ uniform_block_binding(struct gl_context *ctx, struct gl_shader_program *shProg,
    if (shProg->data->UniformBlocks[uniformBlockIndex].Binding !=
        uniformBlockBinding) {
 
-      FLUSH_VERTICES(ctx, 0);
+      FLUSH_VERTICES(ctx, 0, 0);
       ctx->NewDriverState |= ctx->DriverFlags.NewUniformBuffer;
 
       shProg->data->UniformBlocks[uniformBlockIndex].Binding =
@@ -1162,7 +1162,7 @@ shader_storage_block_binding(struct gl_context *ctx,
    if (shProg->data->ShaderStorageBlocks[shaderStorageBlockIndex].Binding !=
        shaderStorageBlockBinding) {
 
-      FLUSH_VERTICES(ctx, 0);
+      FLUSH_VERTICES(ctx, 0, 0);
       ctx->NewDriverState |= ctx->DriverFlags.NewShaderStorageBuffer;
 
       shProg->data->ShaderStorageBlocks[shaderStorageBlockIndex].Binding =

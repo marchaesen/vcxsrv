@@ -27,9 +27,9 @@
 #include "texture9.h"
 #include "cubetexture9.h"
 #include "volumetexture9.h"
+#include "nine_pipe.h"
 
 #if defined(DEBUG) || !defined(NDEBUG)
-#include "nine_pipe.h"
 #include "nine_dump.h"
 #endif
 
@@ -66,6 +66,9 @@ NineBaseTexture9_ctor( struct NineBaseTexture9 *This,
     This->format = format;
     This->mipfilter = (Usage & D3DUSAGE_AUTOGENMIPMAP) ?
         D3DTEXF_LINEAR : D3DTEXF_NONE;
+    /* In the case of D3DUSAGE_AUTOGENMIPMAP, only the first level is accessible,
+     * and thus needs a surface created. */
+    This->level_count = (Usage & D3DUSAGE_AUTOGENMIPMAP) ? 1 : (This->base.info.last_level+1);
     This->managed.lod = 0;
     This->managed.lod_resident = -1;
     /* Mark the texture as dirty to trigger first upload when we need the texture,
@@ -82,6 +85,7 @@ NineBaseTexture9_ctor( struct NineBaseTexture9 *This,
     This->shadow = (This->format != D3DFMT_INTZ && This->format != D3DFMT_DF16 &&
                     This->format != D3DFMT_DF24) &&
                    util_format_has_depth(util_format_description(This->base.info.format));
+    This->fetch4_compatible = fetch4_compatible_format(This->format);
 
     list_inithead(&This->list);
     list_inithead(&This->list2);
@@ -112,15 +116,12 @@ NineBaseTexture9_SetLOD( struct NineBaseTexture9 *This,
                          DWORD LODNew )
 {
     DWORD old = This->managed.lod;
-    DWORD max_level;
 
     DBG("This=%p LODNew=%d\n", This, LODNew);
 
     user_assert(This->base.pool == D3DPOOL_MANAGED, 0);
 
-    max_level = (This->base.usage & D3DUSAGE_AUTOGENMIPMAP) ?
-                0 : This->base.info.last_level;
-    This->managed.lod = MIN2(LODNew, max_level);
+    This->managed.lod = MIN2(LODNew, This->level_count-1);
 
     if (This->managed.lod != old && This->bind_count && list_is_empty(&This->list))
        list_add(&This->list, &This->base.base.device->update_textures);
@@ -141,9 +142,7 @@ NineBaseTexture9_GetLevelCount( struct NineBaseTexture9 *This )
 {
     DBG("This=%p\n", This);
 
-    if (This->base.usage & D3DUSAGE_AUTOGENMIPMAP)
-        return 1;
-    return This->base.info.last_level + 1;
+    return This->level_count;
 }
 
 HRESULT NINE_WINAPI
@@ -175,7 +174,6 @@ HRESULT
 NineBaseTexture9_UploadSelf( struct NineBaseTexture9 *This )
 {
     HRESULT hr;
-    unsigned last_level = This->base.info.last_level;
     unsigned l, min_level_dirty = This->managed.lod;
     BOOL update_lod;
 
@@ -183,9 +181,6 @@ NineBaseTexture9_UploadSelf( struct NineBaseTexture9 *This )
         nine_D3DRTYPE_to_str(This->base.type));
 
     assert(This->base.pool == D3DPOOL_MANAGED);
-
-    if (This->base.usage & D3DUSAGE_AUTOGENMIPMAP)
-        last_level = 0;
 
     update_lod = This->managed.lod_resident != This->managed.lod;
     if (!update_lod && !This->managed.dirty)
@@ -210,7 +205,7 @@ NineBaseTexture9_UploadSelf( struct NineBaseTexture9 *This )
 
         if (This->managed.lod_resident == -1) {/* no levels were resident */
             This->managed.dirty = FALSE; /* We are going to upload everything. */
-            This->managed.lod_resident = This->base.info.last_level + 1;
+            This->managed.lod_resident = This->level_count;
         }
 
         if (This->base.type == D3DRTYPE_TEXTURE) {
@@ -223,14 +218,14 @@ NineBaseTexture9_UploadSelf( struct NineBaseTexture9 *This )
              * corresponds to This->managed.lod).
              * Note3: We don't care about the value passed for the surfaces
              * before This->managed.lod, negative with this implementation. */
-            for (l = 0; l <= This->base.info.last_level; ++l)
+            for (l = 0; l < This->level_count; ++l)
                 NineSurface9_SetResource(tex->surfaces[l], res, l - This->managed.lod);
         } else
         if (This->base.type == D3DRTYPE_CUBETEXTURE) {
             struct NineCubeTexture9 *tex = NineCubeTexture9(This);
             unsigned z;
 
-            for (l = 0; l <= This->base.info.last_level; ++l) {
+            for (l = 0; l < This->level_count; ++l) {
                 for (z = 0; z < 6; ++z)
                     NineSurface9_SetResource(tex->surfaces[l * 6 + z],
                                              res, l - This->managed.lod);
@@ -239,7 +234,7 @@ NineBaseTexture9_UploadSelf( struct NineBaseTexture9 *This )
         if (This->base.type == D3DRTYPE_VOLUMETEXTURE) {
             struct NineVolumeTexture9 *tex = NineVolumeTexture9(This);
 
-            for (l = 0; l <= This->base.info.last_level; ++l)
+            for (l = 0; l < This->level_count; ++l)
                 NineVolume9_SetResource(tex->volumes[l], res, l - This->managed.lod);
         } else {
             assert(!"invalid texture type");
@@ -266,7 +261,7 @@ NineBaseTexture9_UploadSelf( struct NineBaseTexture9 *This )
              * either non-existing (and thus will be entirely re-uploaded
              * if the lod changes) or going to have a full upload */
             if (tex->dirty_rect.width) {
-                for (l = min_level_dirty; l <= last_level; ++l) {
+                for (l = min_level_dirty; l < This->level_count; ++l) {
                     u_box_minify_2d(&box, &tex->dirty_rect, l);
                     NineSurface9_UploadSelf(tex->surfaces[l], &box);
                 }
@@ -287,7 +282,7 @@ NineBaseTexture9_UploadSelf( struct NineBaseTexture9 *This )
                     tex->dirty_rect[z].width, tex->dirty_rect[z].height);
 
                 if (tex->dirty_rect[z].width) {
-                    for (l = min_level_dirty; l <= last_level; ++l) {
+                    for (l = min_level_dirty; l < This->level_count; ++l) {
                         u_box_minify_2d(&box, &tex->dirty_rect[z], l);
                         NineSurface9_UploadSelf(tex->surfaces[l * 6 + z], &box);
                     }
@@ -305,7 +300,7 @@ NineBaseTexture9_UploadSelf( struct NineBaseTexture9 *This )
                 tex->dirty_box.width, tex->dirty_box.height, tex->dirty_box.depth);
 
             if (tex->dirty_box.width) {
-                for (l = min_level_dirty; l <= last_level; ++l) {
+                for (l = min_level_dirty; l < This->level_count; ++l) {
                     u_box_minify_3d(&box, &tex->dirty_box, l);
                     NineVolume9_UploadSelf(tex->volumes[l], &box);
                 }
@@ -593,6 +588,8 @@ NineBaseTexture9_PreLoad( struct NineBaseTexture9 *This )
 void
 NineBaseTexture9_UnLoad( struct NineBaseTexture9 *This )
 {
+    DBG("This=%p\n", This);
+
     if (This->base.pool != D3DPOOL_MANAGED ||
         This->managed.lod_resident == -1)
         return;

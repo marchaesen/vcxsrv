@@ -34,6 +34,8 @@ libpanfrost_midgard_files = files(
   'midgard_ops.c',
   'mir_promote_uniforms.c',
   'mir_squeeze.c',
+  'midgard_nir_lower_image_bitsize.c',
+  'midgard_nir_lower_helper_writes.c',
   'midgard_opt_copy_prop.c',
   'midgard_opt_dce.c',
   'midgard_opt_perspective.c',

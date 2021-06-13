@@ -353,7 +353,7 @@ map1(GLenum target, GLfloat u1, GLfloat u2, GLint ustride,
       pnts = _mesa_copy_map_points1d(target, ustride, uorder, (GLdouble*) points);
 
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, GL_EVAL_BIT);
    vbo_exec_update_eval_maps(ctx);
    map->Order = uorder;
    map->u1 = u1;
@@ -449,7 +449,7 @@ map2( GLenum target, GLfloat u1, GLfloat u2, GLint ustride, GLint uorder,
                                   vstride, vorder, (GLdouble*) points);
 
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, GL_EVAL_BIT);
    vbo_exec_update_eval_maps(ctx);
    map->Uorder = uorder;
    map->u1 = u1;
@@ -770,7 +770,7 @@ _mesa_MapGrid1f( GLint un, GLfloat u1, GLfloat u2 )
       _mesa_error( ctx, GL_INVALID_VALUE, "glMapGrid1f" );
       return;
    }
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, GL_EVAL_BIT);
    vbo_exec_update_eval_maps(ctx);
    ctx->Eval.MapGrid1un = un;
    ctx->Eval.MapGrid1u1 = u1;
@@ -801,7 +801,7 @@ _mesa_MapGrid2f( GLint un, GLfloat u1, GLfloat u2,
       return;
    }
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, GL_EVAL_BIT);
    vbo_exec_update_eval_maps(ctx);
    ctx->Eval.MapGrid2un = un;
    ctx->Eval.MapGrid2u1 = u1;

@@ -60,13 +60,14 @@ enum fd6_state_id {
 	FD6_GROUP_DS_TEX,
 	FD6_GROUP_GS_TEX,
 	FD6_GROUP_FS_TEX,
-	FD6_GROUP_IBO,
 	FD6_GROUP_RASTERIZER,
 	FD6_GROUP_ZSA,
 	FD6_GROUP_BLEND,
 	FD6_GROUP_SCISSOR,
 	FD6_GROUP_BLEND_COLOR,
 	FD6_GROUP_SO,
+	FD6_GROUP_IBO,
+	FD6_GROUP_NON_GROUP,  /* placeholder group for state emit in IB2, keep last */
 };
 
 #define ENABLE_ALL (CP_SET_DRAW_STATE__0_BINNING | CP_SET_DRAW_STATE__0_GMEM | CP_SET_DRAW_STATE__0_SYSMEM)
@@ -86,15 +87,15 @@ struct fd6_emit {
 	struct fd_context *ctx;
 	const struct fd_vertex_state *vtx;
 	const struct pipe_draw_info *info;
-        const struct pipe_draw_indirect_info *indirect;
-        const struct pipe_draw_start_count *draw;
+	const struct pipe_draw_indirect_info *indirect;
+	const struct pipe_draw_start_count *draw;
 	struct ir3_cache_key key;
 	enum fd_dirty_3d_state dirty;
+	uint32_t dirty_groups;
 
 	uint32_t sprite_coord_enable;  /* bitmask */
 	bool sprite_coord_mode;
 	bool rasterflat;
-	bool no_decode_srgb;
 	bool primitive_restart;
 
 	/* cached to avoid repeated lookups: */
@@ -117,9 +118,8 @@ static inline const struct fd6_program_state *
 fd6_emit_get_prog(struct fd6_emit *emit)
 {
 	if (!emit->prog) {
-		struct fd6_context *fd6_ctx = fd6_context(emit->ctx);
 		struct ir3_program_state *s =
-				ir3_cache_lookup(fd6_ctx->shader_cache, &emit->key, &emit->ctx->debug);
+				ir3_cache_lookup(emit->ctx->shader_cache, &emit->key, &emit->ctx->debug);
 		emit->prog = fd6_program_state(s);
 	}
 	return emit->prog;
@@ -271,15 +271,15 @@ fd6_gl2spacing(enum gl_tess_spacing spacing)
 	}
 }
 
-bool fd6_emit_textures(struct fd_pipe *pipe, struct fd_ringbuffer *ring,
+bool fd6_emit_textures(struct fd_context *ctx, struct fd_ringbuffer *ring,
 		enum pipe_shader_type type, struct fd_texture_stateobj *tex,
 		unsigned bcolor_offset,
-		const struct ir3_shader_variant *v, struct fd_context *ctx);
+		const struct ir3_shader_variant *v) assert_dt;
 
-void fd6_emit_state(struct fd_ringbuffer *ring, struct fd6_emit *emit);
+void fd6_emit_state(struct fd_ringbuffer *ring, struct fd6_emit *emit) assert_dt;
 
 void fd6_emit_cs_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
-		struct ir3_shader_variant *cp);
+		struct ir3_shader_variant *cp) assert_dt;
 
 void fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring);
 

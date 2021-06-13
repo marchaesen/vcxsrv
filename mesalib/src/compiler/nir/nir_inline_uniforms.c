@@ -186,7 +186,7 @@ nir_inline_uniforms(nir_shader *shader, unsigned num_uniforms,
                      if (offset == uniform_dw_offsets[i] * 4) {
                         b.cursor = nir_before_instr(&intr->instr);
                         nir_ssa_def *def = nir_imm_int(&b, uniform_values[i]);
-                        nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(def));
+                        nir_ssa_def_rewrite_uses(&intr->dest.ssa, def);
                         nir_instr_remove(&intr->instr);
                         break;
                      }

@@ -56,7 +56,7 @@ dd_get_debug_filename_and_mkdir(char *buf, size_t buflen, bool verbose)
    if (mkdir(dir, 0774) && errno != EEXIST)
       fprintf(stderr, "dd: can't create a directory (%i)\n", errno);
 
-   snprintf(buf, buflen, "%s/%s_%u_%08u", dir, proc_name, getpid(),
+   snprintf(buf, buflen, "%s/%s_%u_%08u", dir, proc_name, (unsigned int)getpid(),
             (unsigned int)p_atomic_inc_return(&index) - 1);
 
    if (verbose)

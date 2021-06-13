@@ -180,7 +180,7 @@ lower_frexp_impl(nir_function_impl *impl)
          }
 
          nir_ssa_def_rewrite_uses(&alu_instr->dest.dest.ssa,
-                                  nir_src_for_ssa(lower));
+                                  lower);
          nir_instr_remove(instr);
          progress = true;
       }

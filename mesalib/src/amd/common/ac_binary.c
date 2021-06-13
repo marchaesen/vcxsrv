@@ -51,7 +51,7 @@ void ac_parse_shader_binary_config(const char *data, size_t nbytes, unsigned wav
       case R_00B228_SPI_SHADER_PGM_RSRC1_GS:
       case R_00B848_COMPUTE_PGM_RSRC1:
       case R_00B428_SPI_SHADER_PGM_RSRC1_HS:
-         if (wave_size == 32)
+         if (wave_size == 32 || info->wave64_vgpr_alloc_granularity == 8)
             conf->num_vgprs = MAX2(conf->num_vgprs, (G_00B028_VGPRS(value) + 1) * 8);
          else
             conf->num_vgprs = MAX2(conf->num_vgprs, (G_00B028_VGPRS(value) + 1) * 4);

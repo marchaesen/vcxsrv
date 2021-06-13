@@ -92,6 +92,15 @@ xwl_pointer_control(DeviceIntPtr device, PtrCtrl *ctrl)
     /* Nothing to do, dix handles all settings */
 }
 
+static DeviceIntPtr
+get_pointer_device(struct xwl_seat *xwl_seat)
+{
+    if (xwl_seat->relative_pointer)
+        return xwl_seat->relative_pointer;
+    else
+        return xwl_seat->pointer;
+}
+
 static Bool
 init_pointer_buttons(DeviceIntPtr device)
 {
@@ -177,7 +186,7 @@ xwl_pointer_proc(DeviceIntPtr device, int what)
 static int
 xwl_pointer_proc_relative(DeviceIntPtr device, int what)
 {
-#define NAXES 2
+#define NAXES 4
     Atom axes_labels[NAXES] = { 0 };
 
     switch (what) {
@@ -186,6 +195,8 @@ xwl_pointer_proc_relative(DeviceIntPtr device, int what)
 
         axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_X);
         axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_Y);
+        axes_labels[2] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_HWHEEL);
+        axes_labels[3] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_WHEEL);
 
         /*
          * We'll never send buttons, but XGetPointerMapping might in certain
@@ -200,9 +211,16 @@ xwl_pointer_proc_relative(DeviceIntPtr device, int what)
 
         /* Valuators */
         InitValuatorAxisStruct(device, 0, axes_labels[0],
-                               NO_AXIS_LIMITS, NO_AXIS_LIMITS, 1, 0, 1, Relative);
+                               NO_AXIS_LIMITS, NO_AXIS_LIMITS, 0, 0, 0, Relative);
         InitValuatorAxisStruct(device, 1, axes_labels[1],
-                               NO_AXIS_LIMITS, NO_AXIS_LIMITS, 1, 0, 1, Relative);
+                               NO_AXIS_LIMITS, NO_AXIS_LIMITS, 0, 0, 0, Relative);
+        InitValuatorAxisStruct(device, 2, axes_labels[2],
+                               NO_AXIS_LIMITS, NO_AXIS_LIMITS, 0, 0, 0, Relative);
+        InitValuatorAxisStruct(device, 3, axes_labels[3],
+                               NO_AXIS_LIMITS, NO_AXIS_LIMITS, 0, 0, 0, Relative);
+
+        SetScrollValuator(device, 2, SCROLL_TYPE_HORIZONTAL, 1.0, SCROLL_FLAG_NONE);
+        SetScrollValuator(device, 3, SCROLL_TYPE_VERTICAL, 1.0, SCROLL_FLAG_PREFERRED);
 
         if (!InitPtrFeedbackClassDeviceStruct(device, xwl_pointer_control))
             return BadValue;
@@ -294,6 +312,10 @@ xwl_touch_proc(DeviceIntPtr device, int what)
                                0, 0xFFFF, 10000, 0, 10000, Absolute);
         InitValuatorAxisStruct(device, 1, axes_labels[1],
                                0, 0xFFFF, 10000, 0, 10000, Absolute);
+
+        if (!InitPtrFeedbackClassDeviceStruct(device, xwl_pointer_control))
+            return BadValue;
+
         return Success;
 
     case DEVICE_ON:
@@ -387,7 +409,7 @@ pointer_handle_enter(void *data, struct wl_pointer *pointer,
                      wl_fixed_t sx_w, wl_fixed_t sy_w)
 {
     struct xwl_seat *xwl_seat = data;
-    DeviceIntPtr dev = xwl_seat->pointer;
+    DeviceIntPtr dev = get_pointer_device(xwl_seat);
     DeviceIntPtr master;
     int i;
     int sx = wl_fixed_to_int(sx_w);
@@ -462,7 +484,7 @@ pointer_handle_leave(void *data, struct wl_pointer *pointer,
                      uint32_t serial, struct wl_surface *surface)
 {
     struct xwl_seat *xwl_seat = data;
-    DeviceIntPtr dev = xwl_seat->pointer;
+    DeviceIntPtr dev = get_pointer_device(xwl_seat);
 
     xwl_seat->xwl_screen->serial = serial;
 
@@ -477,62 +499,88 @@ pointer_handle_leave(void *data, struct wl_pointer *pointer,
 }
 
 static void
-dispatch_pointer_motion_event(struct xwl_seat *xwl_seat)
+dispatch_relative_motion_with_warp(struct xwl_seat *xwl_seat)
+{
+    double dx, dx_unaccel;
+    double dy, dy_unaccel;
+
+    dx = xwl_seat->pending_pointer_event.dx;
+    dy = xwl_seat->pending_pointer_event.dy;
+    dx_unaccel = xwl_seat->pending_pointer_event.dx_unaccel;
+    dy_unaccel = xwl_seat->pending_pointer_event.dy_unaccel;
+
+    xwl_pointer_warp_emulator_handle_motion(xwl_seat->pointer_warp_emulator,
+                                            dx, dy,
+                                            dx_unaccel, dy_unaccel);
+}
+
+static void
+dispatch_absolute_motion(struct xwl_seat *xwl_seat)
 {
     ValuatorMask mask;
+    DeviceIntPtr device;
+    int flags;
+    int event_x = wl_fixed_to_int(xwl_seat->pending_pointer_event.x);
+    int event_y = wl_fixed_to_int(xwl_seat->pending_pointer_event.y);
+    int drawable_x = xwl_seat->focus_window->window->drawable.x;
+    int drawable_y = xwl_seat->focus_window->window->drawable.y;
+    int x;
+    int y;
 
-    if (xwl_seat->pointer_warp_emulator &&
-        xwl_seat->pending_pointer_event.has_relative) {
-        double dx;
-        double dy;
-        double dx_unaccel;
-        double dy_unaccel;
+    if (xwl_window_has_viewport_enabled(xwl_seat->focus_window)) {
+        event_x *= xwl_seat->focus_window->scale_x;
+        event_y *= xwl_seat->focus_window->scale_y;
+    }
 
-        dx = xwl_seat->pending_pointer_event.dx;
-        dy = xwl_seat->pending_pointer_event.dy;
-        dx_unaccel = xwl_seat->pending_pointer_event.dx_unaccel;
-        dy_unaccel = xwl_seat->pending_pointer_event.dy_unaccel;
-        xwl_pointer_warp_emulator_handle_motion(xwl_seat->pointer_warp_emulator,
-                                                dx, dy,
-                                                dx_unaccel, dy_unaccel);
-    } else if (xwl_seat->pending_pointer_event.has_absolute ||
-               xwl_seat->pending_pointer_event.has_relative) {
-        int x;
-        int y;
+    x = drawable_x + event_x;
+    y = drawable_y + event_y;
 
-        if (xwl_seat->pending_pointer_event.has_absolute) {
-            int sx = wl_fixed_to_int(xwl_seat->pending_pointer_event.x);
-            int sy = wl_fixed_to_int(xwl_seat->pending_pointer_event.y);
-            int dx = xwl_seat->focus_window->window->drawable.x;
-            int dy = xwl_seat->focus_window->window->drawable.y;
+    valuator_mask_zero(&mask);
+    valuator_mask_set(&mask, 0, x);
+    valuator_mask_set(&mask, 1, y);
 
-            if (xwl_window_has_viewport_enabled(xwl_seat->focus_window)) {
-                sx *= xwl_seat->focus_window->scale_x;
-                sy *= xwl_seat->focus_window->scale_y;
-            }
+    if (xwl_seat->pending_pointer_event.has_relative) {
+         flags = POINTER_ABSOLUTE | POINTER_SCREEN | POINTER_NORAW;
+         device = xwl_seat->relative_pointer;
+    } else {
+         flags = POINTER_ABSOLUTE | POINTER_SCREEN;
+         device = xwl_seat->pointer;
+    }
 
-            x = dx + sx;
-            y = dy + sy;
-        } else {
-            miPointerGetPosition(xwl_seat->pointer, &x, &y);
-        }
+    QueuePointerEvents(device, MotionNotify, 0, flags, &mask);
+}
 
-        valuator_mask_zero(&mask);
-        if (xwl_seat->pending_pointer_event.has_relative) {
-            double dx_unaccel;
-            double dy_unaccel;
+static void
+dispatch_relative_motion(struct xwl_seat *xwl_seat)
+{
+    ValuatorMask mask;
+    double event_dx = xwl_seat->pending_pointer_event.dx;
+    double event_dy = xwl_seat->pending_pointer_event.dy;
+    double event_dx_unaccel = xwl_seat->pending_pointer_event.dx_unaccel;
+    double event_dy_unaccel = xwl_seat->pending_pointer_event.dy_unaccel;
 
-            dx_unaccel = xwl_seat->pending_pointer_event.dx_unaccel;
-            dy_unaccel = xwl_seat->pending_pointer_event.dy_unaccel;
-            valuator_mask_set_absolute_unaccelerated(&mask, 0, x, dx_unaccel);
-            valuator_mask_set_absolute_unaccelerated(&mask, 1, y, dy_unaccel);
-        } else {
-            valuator_mask_set(&mask, 0, x);
-            valuator_mask_set(&mask, 1, y);
-        }
+    valuator_mask_zero(&mask);
+    valuator_mask_set_unaccelerated(&mask, 0, event_dx, event_dx_unaccel);
+    valuator_mask_set_unaccelerated(&mask, 1, event_dy, event_dy_unaccel);
 
-        QueuePointerEvents(xwl_seat->pointer, MotionNotify, 0,
-                           POINTER_ABSOLUTE | POINTER_SCREEN, &mask);
+    QueuePointerEvents(xwl_seat->relative_pointer, MotionNotify, 0,
+                       POINTER_RAWONLY, &mask);
+}
+
+static void
+dispatch_pointer_motion_event(struct xwl_seat *xwl_seat)
+{
+    Bool has_relative = xwl_seat->pending_pointer_event.has_relative;
+    Bool has_absolute = xwl_seat->pending_pointer_event.has_absolute;
+
+    if (xwl_seat->pointer_warp_emulator && has_relative) {
+        dispatch_relative_motion_with_warp(xwl_seat);
+    } else {
+        if (has_relative)
+            dispatch_relative_motion(xwl_seat);
+
+        if (has_absolute)
+            dispatch_absolute_motion(xwl_seat);
     }
 
     xwl_seat->pending_pointer_event.has_absolute = FALSE;
@@ -584,7 +632,7 @@ pointer_handle_button(void *data, struct wl_pointer *pointer, uint32_t serial,
     }
 
     valuator_mask_zero(&mask);
-    QueuePointerEvents(xwl_seat->pointer,
+    QueuePointerEvents(get_pointer_device(xwl_seat),
                        state ? ButtonPress : ButtonRelease, index, 0, &mask);
 }
 
@@ -626,7 +674,9 @@ pointer_handle_axis(void *data, struct wl_pointer *pointer,
     } else {
         valuator_mask_set_double(&mask, index, wl_fixed_to_double(value) / divisor);
     }
-    QueuePointerEvents(xwl_seat->pointer, MotionNotify, 0, POINTER_RELATIVE, &mask);
+
+    QueuePointerEvents(get_pointer_device(xwl_seat),
+                       MotionNotify, 0, POINTER_RELATIVE, &mask);
 }
 
 static void
@@ -1121,17 +1171,43 @@ set_grab(struct xwl_seat *xwl_seat, struct xwl_window *xwl_window)
 }
 
 static void
+find_toplevel_callback(void *resource, XID id, void *user_data)
+{
+    WindowPtr window = resource;
+    WindowPtr *toplevel = user_data;
+
+    /* Pick the first realized toplevel we find */
+    if (*toplevel == NullWindow && window->realized && xwl_window_is_toplevel(window))
+        *toplevel = window;
+}
+
+static WindowPtr
+xwl_keyboard_search_window(ClientPtr client)
+{
+    WindowPtr window = NullWindow;
+
+    FindClientResourcesByType(client, RT_WINDOW, find_toplevel_callback, &window);
+
+    return window;
+}
+
+static void
 xwl_keyboard_activate_grab(DeviceIntPtr device, GrabPtr grab, TimeStamp time, Bool passive)
 {
     struct xwl_seat *xwl_seat = device->public.devicePrivate;
+    WindowPtr grab_window = grab->window;
 
     /* We are not interested in passive grabs */
     if (!passive) {
         /* If the device is the MASTER_KEYBOARD, we don't have an xwl_seat */
         if (xwl_seat == NULL)
             xwl_seat = find_matching_seat(device);
-        if (xwl_seat)
-            set_grab(xwl_seat, xwl_window_from_window(grab->window));
+        if (xwl_seat) {
+            if (grab_window == xwl_seat->xwl_screen->screen->root)
+                grab_window = xwl_keyboard_search_window(GetCurrentClient());
+            if (grab_window)
+                set_grab(xwl_seat, xwl_window_from_window(grab_window));
+        }
     }
 
     ActivateKeyboardGrab(device, grab, time, passive);
@@ -2576,7 +2652,7 @@ sprite_check_lost_focus(SpritePtr sprite, WindowPtr window)
      * devices so we can find out the xwl_seat, but those don't actually own
      * their sprite, so the match doesn't mean a lot.
      */
-    if (master->lastSlave != xwl_seat->pointer)
+    if (master->lastSlave != get_pointer_device(xwl_seat))
         return FALSE;
 
     if (xwl_seat->focus_window != NULL &&

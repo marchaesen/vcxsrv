@@ -8,7 +8,8 @@ AM_CFLAGS = -DHAVE_DIX_CONFIG_H \
 
 SRCS =	InitInput.c \
 	InitOutput.c \
-	$(top_srcdir)/mi/miinitext.c
+	$(top_srcdir)/mi/miinitext.c \
+	$(top_srcdir)/mi/miinitext.h
 
 Xvfb_SOURCES = $(SRCS)
 

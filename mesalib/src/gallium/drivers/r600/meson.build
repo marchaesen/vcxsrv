@@ -149,6 +149,7 @@ files_r600 = files(
   'sfn/sfn_liverange.h',
   'sfn/sfn_nir.cpp',
   'sfn/sfn_nir.h',
+  'sfn/sfn_nir_lower_64bit.cpp',
   'sfn/sfn_nir_lower_fs_out_to_vector.cpp',
   'sfn/sfn_nir_lower_fs_out_to_vector.h',
   'sfn/sfn_nir_lower_tess_io.cpp',
@@ -187,6 +188,19 @@ egd_tables_h = custom_target(
   capture : true,
 )
 
+sfn_nir_algebraic_c = custom_target(
+  'sfn_nir_algebraic.c',
+  input : 'sfn/sfn_nir_algebraic.py',
+  output : 'sfn_nir_algebraic.c',
+  command : [
+    prog_python, '@INPUT@',
+    '-p', join_paths(meson.source_root(), 'src/compiler/nir/'),
+  ],
+  capture : true,
+  depend_files : nir_algebraic_py,
+)
+
+
 r600_c_args = []
 if with_gallium_opencl
   r600_c_args += '-DHAVE_OPENCL'
@@ -194,7 +208,7 @@ endif
 
 libr600 = static_library(
   'r600',
-  [files_r600, egd_tables_h],
+  [files_r600, egd_tables_h, sfn_nir_algebraic_c],
   c_args : [r600_c_args, '-Wstrict-overflow=0'],
   gnu_symbol_visibility : 'hidden',
   include_directories : [

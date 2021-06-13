@@ -1,0 +1,654 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright © 2020 Google, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice (including the next
+paragraph) shall be included in all copies or substantial portions of the
+Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+ -->
+
+<isa>
+
+<!--
+	Cat5 Instructions: texture instructions
+ -->
+
+<bitset name="#cat5-s2en-bindless-base" size="1">
+	<doc>
+		The BASE field is actually split across BASE_LO and BASE_HI,
+		but '.baseN' should only appear in the bindless case.. the
+		easiest way to accomplish that is by splitting it out into a
+		bitset.  We just arbitrarily map this to BASE_LO
+	</doc>
+	<override>
+		<expr>{BINDLESS}</expr>
+		<display>
+			.base{BASE}
+		</display>
+	</override>
+	<display/>
+	<field name="BASE_LO" pos="0" type="uint"/>
+	<derived name="BASE" type="uint">
+		<expr>({BASE_HI} * 2) | {BASE_LO}</expr>
+	</derived>
+	<encode type="struct ir3_instruction *">
+		<map name="BASE_LO">src->cat5.tex_base &amp; 0x1</map>
+	</encode>
+</bitset>
+
+<bitset name="#instruction-cat5" extends="#instruction">
+	<override>
+		<expr>{S2EN_BINDLESS}</expr>
+		<doc>
+			The s2en (indirect) or bindless case
+		</doc>
+		<display>
+			{SY}{JP}{NAME}{3D}{A}{O}{P}{S}{S2EN}{UNIFORM}{NONUNIFORM}{BASE} {TYPE}({WRMASK}){DST_HALF}{DST}{SRC1}{SRC2}{SRC3}{A1}
+		</display>
+		<field name="BASE_HI" low="19" high="20" type="uint"/>
+		<field name="SRC3" low="21" high="28" type="#cat5-src3">
+			<param name="BINDLESS"/>
+			<param name="DESC_MODE"/>
+			<param name="HAS_SAMP"/>
+			<param name="HAS_TEX"/>
+		</field>
+		<field name="DESC_MODE" low="29" high="31" type="#cat5-s2en-bindless-desc-mode"/>
+		<field name="BASE" pos="47" type="#cat5-s2en-bindless-base">
+			<param name="BINDLESS"/>
+			<param name="BASE_HI"/>
+		</field>
+		<derived name="BINDLESS" expr="#cat5-s2enb-is-bindless" type="bool"/>
+		<derived name="S2EN" expr="#cat5-s2enb-is-indirect" type="bool" display=".s2en"/>
+		<derived name="UNIFORM" expr="#cat5-s2enb-is-uniform" type="bool" display=".uniform"/>
+		<derived name="NONUNIFORM" expr="#cat5-s2enb-is-nonuniform" type="bool" display=".nonuniform"/>
+		<derived name="A1" expr="#cat5-s2enb-uses_a1" type="bool" display=", a1.x"/>
+	</override>
+
+	<doc>
+		The "normal" case, ie. not s2en (indirect) and/or bindless
+	</doc>
+	<display>
+		{SY}{JP}{NAME}{3D}{A}{O}{P}{S} {TYPE}({WRMASK}){DST_HALF}{DST}{SRC1}{SRC2}{SAMP}{TEX}
+	</display>
+	<derived name="DST_HALF" type="bool" display="h">
+		<expr>
+			({TYPE} == 0) /* f16 */ ||
+			({TYPE} == 2) /* u16 */ ||
+			({TYPE} == 4) /* s16 */ ||
+			({TYPE} == 6) /* u8 */  ||
+			({TYPE} == 7) /* s8 */
+		</expr>
+	</derived>
+	<field name="FULL" pos="0" type="bool"/>
+	<derived name="HALF" expr="#multisrc-half" type="bool" display="h"/>
+	<field name="SRC1" low="1" high="8" type="#cat5-src1">
+		<param name="NUM_SRC"/>
+		<param name="HALF"/>
+	</field>
+	<field name="SRC2" low="9" high="16" type="#cat5-src2">
+		<param name="NUM_SRC"/>
+		<param name="HALF"/>
+		<param name="O"/>
+	</field>
+	<!--
+		TODO remainder of first 32b differ depending on s2en/bindless..
+		possibly use overrides?  Need to sort-out how to display..
+
+		Note b17 seems to show up in some blob traces (samgpN), need
+		to figure out what this bit does
+	 -->
+	<pattern low="17" high="18">0x</pattern>
+	<assert low="19" high="20">00</assert>   <!-- BASE_HI -->
+	<field name="SAMP" low="21" high="24" type="#cat5-samp">
+		<param name="HAS_SAMP"/>
+	</field>
+	<field name="TEX" low="25" high="31" type="#cat5-tex">
+		<param name="HAS_TEX"/>
+	</field>
+
+	<field name="DST" low="32" high="39" type="#reg-gpr"/>
+	<field name="WRMASK" low="40" high="43" type="#wrmask"/>
+	<field name="TYPE" low="44" high="46" type="#cat5-type">
+		<param name="HAS_TYPE"/>
+	</field>
+	<assert pos="47">0</assert>    <!-- BASE_LO -->
+	<field name="3D" pos="48" type="bool" display=".3d"/>
+	<field name="A" pos="49" type="bool" display=".a"/>
+	<field name="S" pos="50" type="bool" display=".s"/>
+	<field name="S2EN_BINDLESS" pos="51" type="bool"/>
+	<field name="O" pos="52" type="bool" display=".o"/>
+	<field name="P" pos="53" type="bool" display=".p"/>
+	<!-- OPC -->
+	<field name="JP" pos="59" type="bool" display="(jp)"/>
+	<field name="SY" pos="60" type="bool" display="(sy)"/>
+	<pattern low="61" high="63">101</pattern>  <!-- cat5 -->
+	<encode>
+		<map name="FULL">extract_cat5_FULL(src)</map>
+		<map name="TEX">src</map>
+		<map name="SAMP">src</map>
+		<map name="WRMASK">src->regs[0]->wrmask</map>
+		<map name="BASE">src</map>
+		<map name="TYPE">src</map>
+		<map name="BASE_HI">src->cat5.tex_base >> 1</map>
+		<map name="3D">!!(src->flags &amp; IR3_INSTR_3D)</map>
+		<map name="A">!!(src->flags &amp; IR3_INSTR_A)</map>
+		<map name="S">!!(src->flags &amp; IR3_INSTR_S)</map>
+		<map name="S2EN_BINDLESS">!!(src->flags &amp; (IR3_INSTR_S2EN | IR3_INSTR_B))</map>
+		<map name="O">!!(src->flags &amp; IR3_INSTR_O)</map>
+		<map name="P">!!(src->flags &amp; IR3_INSTR_P)</map>
+		<map name="DESC_MODE">extract_cat5_DESC_MODE(src)</map>
+		<!--
+			TODO the src order is currently a bit messy due to ir3 using regs[1]
+			for s2en src in the s2en case
+		 -->
+		<map name="SRC1">extract_cat5_SRC(src, 1)</map>
+		<map name="SRC2">extract_cat5_SRC(src, 2)</map>
+		<map name="SRC3">(src->regs_count > 1) ? src->regs[1] : NULL</map>
+	</encode>
+</bitset>
+
+<bitset name="isam" extends="#instruction-cat5">
+	<pattern low="54" high="58">00000</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="isaml" extends="#instruction-cat5">
+	<pattern low="54" high="58">00001</pattern>
+	<derived name="NUM_SRC" expr="#two" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="isamm" extends="#instruction-cat5">
+	<pattern low="54" high="58">00010</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="sam" extends="#instruction-cat5">
+	<pattern low="54" high="58">00011</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="samb" extends="#instruction-cat5">
+	<pattern low="54" high="58">00100</pattern>
+	<derived name="NUM_SRC" expr="#two" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="saml" extends="#instruction-cat5">
+	<pattern low="54" high="58">00101</pattern>
+	<derived name="NUM_SRC" expr="#two" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="samgq" extends="#instruction-cat5">
+	<pattern low="54" high="58">00110</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="getlod" extends="#instruction-cat5">
+	<pattern low="54" high="58">00111</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="conv" extends="#instruction-cat5">
+	<pattern low="54" high="58">01000</pattern>
+	<derived name="NUM_SRC" expr="#two" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="convm" extends="#instruction-cat5">
+	<pattern low="54" high="58">01001</pattern>
+	<derived name="NUM_SRC" expr="#two" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="getsize" extends="#instruction-cat5">
+	<pattern low="54" high="58">01010</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#false" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="getbuf" extends="#instruction-cat5">
+	<pattern low="54" high="58">01011</pattern>
+	<derived name="NUM_SRC" expr="#zero" type="uint"/>
+	<derived name="HAS_SAMP" expr="#false" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="getpos" extends="#instruction-cat5">
+	<pattern low="54" high="58">01100</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#false" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="getinfo" extends="#instruction-cat5">
+	<pattern low="54" high="58">01101</pattern>
+	<derived name="NUM_SRC" expr="#zero" type="uint"/>
+	<derived name="HAS_SAMP" expr="#false" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="dsx" extends="#instruction-cat5">
+	<pattern low="54" high="58">01110</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#false" type="bool"/>
+	<derived name="HAS_TEX" expr="#false" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="dsy" extends="#instruction-cat5">
+	<pattern low="54" high="58">01111</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#false" type="bool"/>
+	<derived name="HAS_TEX" expr="#false" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="gather4r" extends="#instruction-cat5">
+	<pattern low="54" high="58">10000</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="gather4g" extends="#instruction-cat5">
+	<pattern low="54" high="58">10001</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="gather4b" extends="#instruction-cat5">
+	<pattern low="54" high="58">10010</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="gather4a" extends="#instruction-cat5">
+	<pattern low="54" high="58">10011</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="samgp0" extends="#instruction-cat5">
+	<pattern low="54" high="58">10100</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="samgp1" extends="#instruction-cat5">
+	<pattern low="54" high="58">10101</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="samgp2" extends="#instruction-cat5">
+	<pattern low="54" high="58">10110</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="samgp3" extends="#instruction-cat5">
+	<pattern low="54" high="58">10111</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#true" type="bool"/>
+	<derived name="HAS_TEX" expr="#true" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="dsxpp.1" extends="#instruction-cat5">
+	<pattern low="54" high="58">11000</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#false" type="bool"/>
+	<derived name="HAS_TEX" expr="#false" type="bool"/>
+	<derived name="HAS_TYPE" expr="#false" type="bool"/>
+</bitset>
+
+<bitset name="dsypp.1" extends="#instruction-cat5">
+	<pattern low="54" high="58">11001</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#false" type="bool"/>
+	<derived name="HAS_TEX" expr="#false" type="bool"/>
+	<derived name="HAS_TYPE" expr="#false" type="bool"/>
+</bitset>
+
+<bitset name="rgetpos" extends="#instruction-cat5">
+	<pattern low="54" high="58">11010</pattern>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#false" type="bool"/>
+	<derived name="HAS_TEX" expr="#false" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="rgetinfo" extends="#instruction-cat5">
+	<pattern low="54" high="58">11011</pattern>
+	<derived name="NUM_SRC" expr="#zero" type="uint"/>
+	<derived name="HAS_SAMP" expr="#false" type="bool"/>
+	<derived name="HAS_TEX" expr="#false" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+
+<!--
+	All the magic for conditionally displaying various srcs, etc
+	for the non-bindless / non-indirect case, or things that are in
+	common with the bindless / indirect case
+ -->
+
+<bitset name="#cat5-src1" size="8">
+	<override>
+		<expr>{NUM_SRC} > 0</expr>
+		<display>
+			, {HALF}{SRC}
+		</display>
+		<field name="SRC" low="0" high="7" type="#reg-gpr"/>
+	</override>
+	<display/>
+	<assert low="0" high="7">00000000</assert>
+	<encode type="struct ir3_register *">
+		<map name="SRC">src</map>
+	</encode>
+</bitset>
+
+<bitset name="#cat5-src2" size="8">
+	<override>
+		<expr>{O} || ({NUM_SRC} > 1)</expr>
+		<display>
+			, {HALF}{SRC}
+		</display>
+		<field name="SRC" low="0" high="7" type="#reg-gpr"/>
+	</override>
+	<display/>
+	<assert low="0" high="7">00000000</assert>
+	<encode type="struct ir3_register *">
+		<map name="SRC">src</map>
+	</encode>
+</bitset>
+
+<bitset name="#cat5-samp" size="4">
+	<override>
+		<expr>{HAS_SAMP}</expr>
+		<display>
+			, s#{SAMP}
+		</display>
+		<field name="SAMP" low="0" high="3" type="uint"/>
+	</override>
+	<display/>
+	<assert low="0" high="3">0000</assert>
+	<encode type="struct ir3_instruction *">
+		<map name="SAMP">src->cat5.samp</map>
+	</encode>
+</bitset>
+
+<bitset name="#cat5-samp-s2en-bindless-a1" size="8">
+	<doc>s2en (indirect) / bindless case with a1.x has 8b samp</doc>
+	<override>
+		<expr>{HAS_SAMP}</expr>
+		<display>
+			, s#{SAMP}
+		</display>
+		<field name="SAMP" low="0" high="7" type="uint"/>
+	</override>
+	<display/>
+	<assert low="0" high="7">00000000</assert>
+	<encode type="struct ir3_instruction *">
+		<map name="SAMP">src->cat5.samp</map>
+	</encode>
+</bitset>
+
+<bitset name="#cat5-tex" size="7">
+	<override>
+		<expr>{HAS_TEX}</expr>
+		<display>
+			, t#{TEX}
+		</display>
+		<field name="TEX" low="0" high="6" type="uint"/>
+	</override>
+	<display/>
+	<assert low="0" high="6">0000000</assert>
+	<encode type="struct ir3_instruction *">
+		<map name="TEX">src->cat5.tex</map>
+	</encode>
+</bitset>
+
+<bitset name="#cat5-tex-s2en-bindless" size="4">
+	<doc>s2en (indirect) / bindless case only has 4b tex</doc>
+	<override>
+		<expr>{HAS_TEX}</expr>
+		<display>
+			, t#{TEX}
+		</display>
+		<field name="TEX" low="0" high="3" type="uint"/>
+	</override>
+	<display/>
+	<assert low="0" high="3">0000</assert>
+	<encode type="struct ir3_instruction *">
+		<!--
+			TODO properly decouple the encoding from ir3 IR in this
+			case.. the IR has no business knowing how this gets
+			encoded into "SRC3"..
+		 -->
+		<map name="TEX">src->cat5.samp >> 4</map>
+	</encode>
+</bitset>
+
+<bitset name="#cat5-type" size="3">
+	<display/>
+	<override>
+		<expr>{HAS_TYPE}</expr>
+		<display>
+			({TYPE})
+		</display>
+	</override>
+	<field name="TYPE" low="0" high="2" type="#type"/>
+	<encode type="struct ir3_instruction *">
+		<!--
+			Normally we only encode fields that have visible impact on
+			the decoded disasm, but the type field is one of those
+			special exceptions
+		 -->
+		<map name="TYPE" force="true">src->cat5.type</map>
+	</encode>
+</bitset>
+
+<!--
+	Helpers/bitsets/etc for dealing with the bindless/indirect case:
+ -->
+
+<enum name="#cat5-s2en-bindless-desc-mode">
+	<doc>
+		We don't actually display this enum, but it is useful to
+		document the various cases
+
+		TODO we should probably have an option for uniforms w/out
+		display strings, but which have 'C' names that can be used
+		to generate header that the compiler can use
+	</doc>
+	<value val="0" display="CAT5_NONUNIFORM">
+		<doc>
+			Use traditional GL binding model, get texture and sampler index
+			from src3 which is not presumed to be uniform. This is
+			backwards-compatible with earlier generations, where this field was
+			always 0 and nonuniform-indexed sampling always worked.
+		</doc>
+	</value>
+	<value val="1" display="CAT5_BINDLESS_A1_UNIFORM">
+		<doc>
+			The sampler base comes from the low 3 bits of a1.x, and the sampler
+			and texture index come from src3 which is presumed to be uniform.
+		</doc>
+	</value>
+	<value val="2" display="CAT5_BINDLESS_NONUNIFORM">
+		<doc>
+			The texture and sampler share the same base, and the sampler and
+			texture index come from src3 which is *not* presumed to be uniform.
+		</doc>
+	</value>
+	<value val="3" display="CAT5_BINDLESS_A1_NONUNIFORM">
+		<doc>
+			The sampler base comes from the low 3 bits of a1.x, and the sampler
+			and texture index come from src3 which is *not* presumed to be
+			uniform.
+		</doc>
+	</value>
+	<value val="4" display="CAT5_UNIFORM">
+		<doc>
+			Use traditional GL binding model, get texture and sampler index
+			from src3 which is presumed to be uniform.
+		</doc>
+	</value>
+	<value val="5" display="CAT5_BINDLESS_UNIFORM">
+		<doc>
+			The texture and sampler share the same base, and the sampler and
+			texture index come from src3 which is presumed to be uniform.
+		</doc>
+	</value>
+	<value val="6" display="CAT5_BINDLESS_IMM">
+		<doc>
+			The texture and sampler share the same base, get sampler index from low
+			4 bits of src3 and texture index from high 4 bits.
+		</doc>
+	</value>
+	<value val="7" display="CAT5_BINDLESS_A1_IMM">
+		<doc>
+			The sampler base comes from the low 3 bits of a1.x, and the texture
+			index comes from the next 8 bits of a1.x. The sampler index is an
+			immediate in src3.
+		</doc>
+	</value>
+</enum>
+
+<!-- Helper to map s2en/bindless DESC_MODE to whether it is an indirect mode -->
+<expr name="#cat5-s2enb-is-indirect">
+	{DESC_MODE} &lt; 6  /* CAT5_BINDLESS_IMM */
+</expr>
+
+<!-- Helper to map s2en/bindless DESC_MODE to whether it is a bindless mode -->
+<expr name="#cat5-s2enb-is-bindless">
+	({DESC_MODE} == 1) /* CAT5_BINDLESS_A1_UNIFORM */ ||
+	({DESC_MODE} == 2) /* CAT5_BINDLESS_NONUNIFORM */ ||
+	({DESC_MODE} == 3) /* CAT5_BINDLESS_A1_NONUNIFORM */ ||
+	({DESC_MODE} == 5) /* CAT5_BINDLESS_UNIFORM */ ||
+	({DESC_MODE} == 6) /* CAT5_BINDLESS_IMM */ ||
+	({DESC_MODE} == 7) /* CAT5_BINDLESS_A1_IMM */
+</expr>
+
+<!-- Helper to map s2en/bindless DESC_MODE to whether it uses a1.x -->
+<expr name="#cat5-s2enb-uses_a1">
+	({DESC_MODE} == 1) /* CAT5_BINDLESS_A1_UNIFORM */ ||
+	({DESC_MODE} == 3) /* CAT5_BINDLESS_A1_NONUNIFORM */ ||
+	({DESC_MODE} == 7) /* CAT5_BINDLESS_A1_IMM */
+</expr>
+
+<!-- Helper to map s2en/bindless DESC_MODE to whether it is uniform (flow control) mode -->
+<expr name="#cat5-s2enb-is-uniform">
+	({DESC_MODE} == 1) /* CAT5_BINDLESS_A1_UNIFORM */ ||
+	({DESC_MODE} == 4) /* CAT5_UNIFORM */ ||
+	({DESC_MODE} == 5) /* CAT5_BINDLESS_UNIFORM */
+</expr>
+
+<!-- Helper to map s2en/bindless DESC_MODE to whether it is non-uniform mode
+	 Note that it returns only for bindless for now, since we need to figure out bindful
+	 uniform/nonuniform mode correctly. See TODO in extract_cat5_DESC_MODE in encode.c -->
+<expr name="#cat5-s2enb-is-nonuniform">
+	({DESC_MODE} == 2) /* CAT5_BINDLESS_NONUNIFORM */ ||
+	({DESC_MODE} == 3) /* CAT5_BINDLESS_A1_NONUNIFORM */
+</expr>
+
+<bitset name="#cat5-src3" size="8">
+	<doc>bindless/indirect src3, which can either be GPR or samp/tex</doc>
+	<override expr="#cat5-s2enb-is-indirect">
+		<display>
+			, {SRC_HALF}{SRC}
+		</display>
+		<field name="SRC" low="0" high="7" type="#reg-gpr"/>
+		<derived name="SRC_HALF" type="bool" display="h">
+			<expr>!{BINDLESS}</expr>
+		</derived>
+	</override>
+	<override expr="#cat5-s2enb-uses_a1">
+		<doc>
+			In the case that a1.x is used, all 8 bits encode sampler
+		</doc>
+		<display>
+			{SAMP}
+		</display>
+		<field name="SAMP" low="0" high="7" type="#cat5-samp-s2en-bindless-a1">
+			<param name="HAS_SAMP"/>
+		</field>
+	</override>
+	<display>
+		{SAMP}{TEX}
+	</display>
+	<field name="SAMP" low="0" high="3" type="#cat5-samp">
+		<param name="HAS_SAMP"/>
+	</field>
+	<field name="TEX" low="4" high="7" type="#cat5-tex-s2en-bindless">
+		<param name="HAS_TEX"/>
+	</field>
+	<encode type="struct ir3_register *">
+		<map name="SAMP">s->instr</map>
+		<map name="TEX">s->instr</map>
+		<map name="SRC">src</map>
+	</encode>
+</bitset>
+
+</isa>

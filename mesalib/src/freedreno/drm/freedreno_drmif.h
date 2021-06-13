@@ -31,6 +31,10 @@
 
 #include "util/u_debug.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct fd_bo;
 struct fd_pipe;
 struct fd_device;
@@ -171,5 +175,9 @@ uint32_t fd_bo_size(struct fd_bo *bo);
 void * fd_bo_map(struct fd_bo *bo);
 int fd_bo_cpu_prep(struct fd_bo *bo, struct fd_pipe *pipe, uint32_t op);
 void fd_bo_cpu_fini(struct fd_bo *bo);
+
+#ifdef __cplusplus
+} /* end of extern "C" */
+#endif
 
 #endif /* FREEDRENO_DRMIF_H_ */

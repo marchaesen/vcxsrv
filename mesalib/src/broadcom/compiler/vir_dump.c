@@ -30,7 +30,6 @@ vir_dump_uniform(enum quniform_contents contents,
                  uint32_t data)
 {
         static const char *quniform_names[] = {
-                [QUNIFORM_ALPHA_REF] = "alpha_ref",
                 [QUNIFORM_LINE_WIDTH] = "line_width",
                 [QUNIFORM_AA_LINE_WIDTH] = "aa_line_width",
                 [QUNIFORM_VIEWPORT_X_SCALE] = "vp_x_scale",
@@ -164,7 +163,8 @@ vir_print_reg(struct v3d_compile *c, const struct qinst *inst,
                 break;
 
         case QFILE_MAGIC:
-                fprintf(stderr, "%s", v3d_qpu_magic_waddr_name(reg.index));
+                fprintf(stderr, "%s",
+                        v3d_qpu_magic_waddr_name(c->devinfo, reg.index));
                 break;
 
         case QFILE_SMALL_IMM: {
@@ -203,7 +203,8 @@ vir_dump_sig_addr(const struct v3d_device_info *devinfo,
         if (!instr->sig_magic)
                 fprintf(stderr, ".rf%d", instr->sig_addr);
         else {
-                const char *name = v3d_qpu_magic_waddr_name(instr->sig_addr);
+                const char *name =
+                         v3d_qpu_magic_waddr_name(devinfo, instr->sig_addr);
                 if (name)
                         fprintf(stderr, ".%s", name);
                 else

@@ -43,18 +43,19 @@ void fd4_emit_gmem_restore_tex(struct fd_ringbuffer *ring,
 struct fd4_emit {
 	struct pipe_debug_callback *debug;
 	const struct fd_vertex_state *vtx;
-	const struct fd_program_stateobj *prog;
+	const struct fd4_program_state *prog;
 	const struct pipe_draw_info *info;
-        const struct pipe_draw_indirect_info *indirect;
-        const struct pipe_draw_start_count *draw;
+	const struct pipe_draw_indirect_info *indirect;
+	const struct pipe_draw_start_count *draw;
 	bool binning_pass;
-	struct ir3_shader_key key;
+	struct ir3_cache_key key;
 	enum fd_dirty_3d_state dirty;
 
 	uint32_t sprite_coord_enable;  /* bitmask */
 	bool sprite_coord_mode;
 	bool rasterflat;
 	bool no_decode_srgb;
+	bool skip_consts;
 
 	/* cached to avoid repeated lookups of same variants: */
 	const struct ir3_shader_variant *vs, *fs;
@@ -72,9 +73,7 @@ static inline const struct ir3_shader_variant *
 fd4_emit_get_vp(struct fd4_emit *emit)
 {
 	if (!emit->vs) {
-		struct ir3_shader *shader = emit->prog->vs;
-		emit->vs = ir3_shader_variant(shader, emit->key,
-				emit->binning_pass, emit->debug);
+		emit->vs = emit->binning_pass ? emit->prog->bs : emit->prog->vs;
 	}
 	return emit->vs;
 }
@@ -88,20 +87,18 @@ fd4_emit_get_fp(struct fd4_emit *emit)
 			static const struct ir3_shader_variant binning_fs = {};
 			emit->fs = &binning_fs;
 		} else {
-			struct ir3_shader *shader = emit->prog->fs;
-			emit->fs = ir3_shader_variant(shader, emit->key,
-					false, emit->debug);
+			emit->fs = emit->prog->fs;
 		}
 	}
 	return emit->fs;
 }
 
-void fd4_emit_vertex_bufs(struct fd_ringbuffer *ring, struct fd4_emit *emit);
+void fd4_emit_vertex_bufs(struct fd_ringbuffer *ring, struct fd4_emit *emit) assert_dt;
 
 void fd4_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
-		struct fd4_emit *emit);
+		struct fd4_emit *emit) assert_dt;
 
-void fd4_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring);
+void fd4_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring) assert_dt;
 
 void fd4_emit_init_screen(struct pipe_screen *pscreen);
 void fd4_emit_init(struct pipe_context *pctx);

@@ -138,7 +138,7 @@ static inline llvm::AttributeSet GetFuncAttribSet(llvm::LLVMContext&       ctx,
 }
 #endif
 
-#if LLVM_VERSION_MAJOR >= 12
+#if LLVM_VERSION_MAJOR >= 11
 static inline llvm::VectorType* getVectorType(llvm::Type *ElementType, unsigned NumElements)
 {
     return llvm::VectorType::get(ElementType, NumElements, false);

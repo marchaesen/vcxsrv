@@ -57,9 +57,9 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
 		       UINT_TO_PTR(h264->frame_num));
 
    if (h264->pic_fields.bits.idr_pic_flag == 1)
-      context->desc.h264enc.picture_type = PIPE_H264_ENC_PICTURE_TYPE_IDR;
+      context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_IDR;
    else
-      context->desc.h264enc.picture_type = PIPE_H264_ENC_PICTURE_TYPE_P;
+      context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_P;
 
    context->desc.h264enc.quant_i_frames = h264->pic_init_qp;
    context->desc.h264enc.quant_b_frames = h264->pic_init_qp;
@@ -94,16 +94,16 @@ vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *contex
    }
 
    if (h264->slice_type == 1)
-      context->desc.h264enc.picture_type = PIPE_H264_ENC_PICTURE_TYPE_B;
+      context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_B;
    else if (h264->slice_type == 0)
-      context->desc.h264enc.picture_type = PIPE_H264_ENC_PICTURE_TYPE_P;
+      context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_P;
    else if (h264->slice_type == 2) {
-      if (context->desc.h264enc.picture_type == PIPE_H264_ENC_PICTURE_TYPE_IDR)
+      if (context->desc.h264enc.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR)
          context->desc.h264enc.idr_pic_id++;
 	   else
-         context->desc.h264enc.picture_type = PIPE_H264_ENC_PICTURE_TYPE_I;
+         context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_I;
    } else
-      context->desc.h264enc.picture_type = PIPE_H264_ENC_PICTURE_TYPE_SKIP;
+      context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_SKIP;
 
    return VA_STATUS_SUCCESS;
 }
@@ -143,7 +143,7 @@ vlVaHandleVAEncMiscParameterTypeRateControlH264(vlVaContext *context, VAEncMiscP
 {
    VAEncMiscParameterRateControl *rc = (VAEncMiscParameterRateControl *)misc->data;
    if (context->desc.h264enc.rate_ctrl.rate_ctrl_method ==
-         PIPE_H264_ENC_RATE_CONTROL_METHOD_CONSTANT)
+         PIPE_H2645_ENC_RATE_CONTROL_METHOD_CONSTANT)
       context->desc.h264enc.rate_ctrl.target_bitrate = rc->bits_per_second;
    else
       context->desc.h264enc.rate_ctrl.target_bitrate = rc->bits_per_second * (rc->target_percentage / 100.0);

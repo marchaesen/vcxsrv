@@ -291,7 +291,7 @@ split_struct_derefs_impl(nir_function_impl *impl,
 
          assert(new_deref->type == deref->type);
          nir_ssa_def_rewrite_uses(&deref->dest.ssa,
-                                  nir_src_for_ssa(&new_deref->dest.ssa));
+                                  &new_deref->dest.ssa);
          nir_deref_instr_remove_if_unused(deref);
       }
    }
@@ -820,7 +820,7 @@ split_array_access_impl(nir_function_impl *impl,
                      nir_ssa_undef(&b, intrin->dest.ssa.num_components,
                                        intrin->dest.ssa.bit_size);
                   nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                           nir_src_for_ssa(u));
+                                           u);
                }
                nir_instr_remove(&intrin->instr);
                for (unsigned i = 0; i < num_derefs; i++)
@@ -1549,7 +1549,7 @@ shrink_vec_var_access_impl(nir_function_impl *impl,
                      nir_ssa_undef(&b, intrin->dest.ssa.num_components,
                                        intrin->dest.ssa.bit_size);
                   nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                           nir_src_for_ssa(u));
+                                           u);
                }
                nir_instr_remove(&intrin->instr);
                nir_deref_instr_remove_if_unused(deref);
@@ -1578,7 +1578,7 @@ shrink_vec_var_access_impl(nir_function_impl *impl,
                nir_ssa_def *vec = nir_vec(&b, vec_srcs, intrin->num_components);
 
                nir_ssa_def_rewrite_uses_after(&intrin->dest.ssa,
-                                              nir_src_for_ssa(vec),
+                                              vec,
                                               vec->parent_instr);
 
                /* The SSA def is now only used by the swizzle.  It's safe to

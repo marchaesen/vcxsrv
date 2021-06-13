@@ -73,6 +73,7 @@ emit_const_asserts(struct fd_ringbuffer *ring,
 
 static void
 ring_wfi(struct fd_batch *batch, struct fd_ringbuffer *ring)
+	assert_dt
 {
 	/* when we emit const state via ring (IB2) we need a WFI, but when
 	 * it is emit'd via stateobj, we don't
@@ -408,56 +409,10 @@ emit_tfbos(struct fd_context *ctx, const struct ir3_shader_variant *v,
 	}
 }
 
-static inline uint32_t
-max_tf_vtx(struct fd_context *ctx, const struct ir3_shader_variant *v)
-{
-	struct fd_streamout_stateobj *so = &ctx->streamout;
-	struct ir3_stream_output_info *info = &v->shader->stream_output;
-	uint32_t maxvtxcnt = 0x7fffffff;
-
-	if (ctx->screen->gpu_id >= 500)
-		return 0;
-	if (v->binning_pass)
-		return 0;
-	if (v->shader->stream_output.num_outputs == 0)
-		return 0;
-	if (so->num_targets == 0)
-		return 0;
-
-	/* offset to write to is:
-	 *
-	 *   total_vtxcnt = vtxcnt + offsets[i]
-	 *   offset = total_vtxcnt * stride[i]
-	 *
-	 *   offset =   vtxcnt * stride[i]       ; calculated in shader
-	 *            + offsets[i] * stride[i]   ; calculated at emit_tfbos()
-	 *
-	 * assuming for each vtx, each target buffer will have data written
-	 * up to 'offset + stride[i]', that leaves maxvtxcnt as:
-	 *
-	 *   buffer_size = (maxvtxcnt * stride[i]) + stride[i]
-	 *   maxvtxcnt   = (buffer_size - stride[i]) / stride[i]
-	 *
-	 * but shader is actually doing a less-than (rather than less-than-
-	 * equal) check, so we can drop the -stride[i].
-	 *
-	 * TODO is assumption about `offset + stride[i]` legit?
-	 */
-	for (unsigned i = 0; i < so->num_targets; i++) {
-		struct pipe_stream_output_target *target = so->targets[i];
-		unsigned stride = info->stride[i] * 4;   /* convert dwords->bytes */
-		if (target) {
-			uint32_t max = target->buffer_size / stride;
-			maxvtxcnt = MIN2(maxvtxcnt, max);
-		}
-	}
-
-	return maxvtxcnt;
-}
-
 static inline void
 emit_common_consts(const struct ir3_shader_variant *v, struct fd_ringbuffer *ring,
 		struct fd_context *ctx, enum pipe_shader_type t)
+	assert_dt
 {
 	enum fd_dirty_shader_state dirty = ctx->dirty_shader[t];
 
@@ -502,23 +457,15 @@ emit_common_consts(const struct ir3_shader_variant *v, struct fd_ringbuffer *rin
 	}
 }
 
-static inline bool
-ir3_needs_vs_driver_params(const struct ir3_shader_variant *v)
-{
-	const struct ir3_const_state *const_state = ir3_const_state(v);
-	uint32_t offset = const_state->offsets.driver_param;
-
-	return v->constlen > offset;
-}
-
 static inline void
 ir3_emit_vs_driver_params(const struct ir3_shader_variant *v,
                           struct fd_ringbuffer *ring, struct fd_context *ctx,
                           const struct pipe_draw_info *info,
                           const struct pipe_draw_indirect_info *indirect,
                           const struct pipe_draw_start_count *draw)
+	assert_dt
 {
-	debug_assert(ir3_needs_vs_driver_params(v));
+	assert(v->need_driver_params);
 
 	const struct ir3_const_state *const_state = ir3_const_state(v);
 	uint32_t offset = const_state->offsets.driver_param;
@@ -527,7 +474,7 @@ ir3_emit_vs_driver_params(const struct ir3_shader_variant *v,
 			[IR3_DP_VTXID_BASE]  = info->index_size ?
 					info->index_bias : draw->start,
 			[IR3_DP_INSTID_BASE] = info->start_instance,
-			[IR3_DP_VTXCNT_MAX]  = max_tf_vtx(ctx, v),
+			[IR3_DP_VTXCNT_MAX]  = ctx->streamout.max_tf_vtx,
 	};
 	if (v->key.ucp_enables) {
 		struct pipe_clip_state *ucp = &ctx->ucp;
@@ -600,13 +547,14 @@ ir3_emit_vs_consts(const struct ir3_shader_variant *v, struct fd_ringbuffer *rin
                    struct fd_context *ctx, const struct pipe_draw_info *info,
                    const struct pipe_draw_indirect_info *indirect,
                    const struct pipe_draw_start_count *draw)
+	assert_dt
 {
 	debug_assert(v->type == MESA_SHADER_VERTEX);
 
 	emit_common_consts(v, ring, ctx, PIPE_SHADER_VERTEX);
 
 	/* emit driver params every time: */
-	if (info && ir3_needs_vs_driver_params(v)) {
+	if (info && v->need_driver_params) {
 		ring_wfi(ctx->batch, ring);
 		ir3_emit_vs_driver_params(v, ring, ctx, info, indirect, draw);
 	}
@@ -615,6 +563,7 @@ ir3_emit_vs_consts(const struct ir3_shader_variant *v, struct fd_ringbuffer *rin
 static inline void
 ir3_emit_fs_consts(const struct ir3_shader_variant *v, struct fd_ringbuffer *ring,
 		struct fd_context *ctx)
+	assert_dt
 {
 	debug_assert(v->type == MESA_SHADER_FRAGMENT);
 
@@ -625,6 +574,7 @@ ir3_emit_fs_consts(const struct ir3_shader_variant *v, struct fd_ringbuffer *rin
 static inline void
 ir3_emit_cs_consts(const struct ir3_shader_variant *v, struct fd_ringbuffer *ring,
                    struct fd_context *ctx, const struct pipe_grid_info *info)
+	assert_dt
 {
 	debug_assert(gl_shader_stage_is_compute(v->type));
 

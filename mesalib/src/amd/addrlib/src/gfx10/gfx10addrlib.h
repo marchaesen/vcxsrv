@@ -55,7 +55,7 @@ struct Gfx10ChipSettings
         UINT_32 reserved1           : 32;
 
         // Misc configuration bits
-        UINT_32 isDcn20             : 1;
+        UINT_32 isDcn20             : 1; // If using DCN2.0
         UINT_32 supportRbPlus       : 1;
         UINT_32 dsMipmapHtileFix    : 1;
         UINT_32 dccUnsup3DSwDis     : 1;
@@ -274,7 +274,10 @@ protected:
         const ADDR2_COMPUTE_HTILE_COORDFROMADDR_INPUT* pIn,
         ADDR2_COMPUTE_HTILE_COORDFROMADDR_OUTPUT*      pOut);
 
-    virtual ADDR_E_RETURNCODE HwlComputeDccAddrFromCoord(
+    virtual ADDR_E_RETURNCODE HwlSupportComputeDccAddrFromCoord(
+        const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT* pIn);
+
+    virtual VOID HwlComputeDccAddrFromCoord(
         const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT* pIn,
         ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT*      pOut);
 
@@ -300,6 +303,10 @@ protected:
     virtual ADDR_E_RETURNCODE HwlComputeSubResourceOffsetForSwizzlePattern(
         const ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_INPUT* pIn,
         ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_OUTPUT*      pOut) const;
+
+    virtual ADDR_E_RETURNCODE HwlComputeNonBlockCompressedView(
+        const ADDR2_COMPUTE_NONBLOCKCOMPRESSEDVIEW_INPUT* pIn,
+        ADDR2_COMPUTE_NONBLOCKCOMPRESSEDVIEW_OUTPUT*      pOut) const;
 
     virtual ADDR_E_RETURNCODE HwlGetPreferredSurfaceSetting(
         const ADDR2_GET_PREFERRED_SURF_SETTING_INPUT* pIn,
@@ -365,7 +372,6 @@ private:
 
     ADDR_E_RETURNCODE ComputeStereoInfo(
         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
-        UINT_32                                 blkHeight,
         UINT_32*                                pAlignY,
         UINT_32*                                pRightXor) const;
 
@@ -492,7 +498,7 @@ private:
 
     static ADDR2_BLOCK_SET GetAllowedBlockSet(ADDR2_SWMODE_SET allowedSwModeSet, AddrResourceType rsrcType)
     {
-        ADDR2_BLOCK_SET allowedBlockSet = {0};
+        ADDR2_BLOCK_SET allowedBlockSet = {};
 
         allowedBlockSet.micro  = (allowedSwModeSet.value & Gfx10Blk256BSwModeMask) ? TRUE : FALSE;
         allowedBlockSet.linear = (allowedSwModeSet.value & Gfx10LinearSwModeMask)  ? TRUE : FALSE;
@@ -515,7 +521,7 @@ private:
 
     static ADDR2_SWTYPE_SET GetAllowedSwSet(ADDR2_SWMODE_SET allowedSwModeSet)
     {
-        ADDR2_SWTYPE_SET allowedSwSet = {0};
+        ADDR2_SWTYPE_SET allowedSwSet = {};
 
         allowedSwSet.sw_Z = (allowedSwModeSet.value & Gfx10ZSwModeMask)        ? TRUE : FALSE;
         allowedSwSet.sw_S = (allowedSwModeSet.value & Gfx10StandardSwModeMask) ? TRUE : FALSE;

@@ -268,10 +268,10 @@ st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
       level = stImage->base.Level;
 
    if (stObj->base.Immutable) {
-      level += stObj->base.MinLevel;
-      z += stObj->base.MinLayer;
+      level += stObj->base.Attrib.MinLevel;
+      z += stObj->base.Attrib.MinLayer;
       if (stObj->pt->array_size > 1)
-         d = MIN2(d, stObj->base.NumLayers);
+         d = MIN2(d, stObj->base.Attrib.NumLayers);
    }
 
    z += stImage->base.Face;
@@ -308,7 +308,7 @@ st_texture_image_unmap(struct st_context *st,
    struct pipe_transfer **transfer;
 
    if (stObj->base.Immutable)
-      slice += stObj->base.MinLayer;
+      slice += stObj->base.Attrib.MinLayer;
    transfer = &stImage->transfer[slice + stImage->base.Face].transfer;
 
    DBG("%s\n", __func__);

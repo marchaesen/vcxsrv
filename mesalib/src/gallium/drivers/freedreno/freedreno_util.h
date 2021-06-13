@@ -32,6 +32,7 @@
 
 #include "pipe/p_format.h"
 #include "pipe/p_state.h"
+#include "util/compiler.h"
 #include "util/log.h"
 #include "util/u_debug.h"
 #include "util/u_math.h"
@@ -68,10 +69,10 @@ enum fd_debug_flag {
 	FD_DBG_NOSCIS       = BITFIELD_BIT(4),
 	FD_DBG_DIRECT       = BITFIELD_BIT(5),
 	FD_DBG_NOBYPASS     = BITFIELD_BIT(6),
-	/* BIT(7) */
+	FD_DBG_PERF         = BITFIELD_BIT(7),
 	FD_DBG_NOBIN        = BITFIELD_BIT(8),
 	FD_DBG_NOGMEM       = BITFIELD_BIT(9),
-	/* BIT(10) */
+	FD_DBG_SERIALC      = BITFIELD_BIT(10),
 	FD_DBG_SHADERDB     = BITFIELD_BIT(11),
 	FD_DBG_FLUSH        = BITFIELD_BIT(12),
 	FD_DBG_DEQP         = BITFIELD_BIT(13),
@@ -95,10 +96,111 @@ enum fd_debug_flag {
 extern int fd_mesa_debug;
 extern bool fd_binning_enabled;
 
+#define FD_DBG(category)  unlikely(fd_mesa_debug & FD_DBG_##category)
+
 #define DBG(fmt, ...) \
-		do { if (fd_mesa_debug & FD_DBG_MSGS) \
+		do { if (FD_DBG(MSGS)) \
 			mesa_logd("%s:%d: "fmt, \
 				__FUNCTION__, __LINE__, ##__VA_ARGS__); } while (0)
+
+#define perf_debug_ctx(ctx, ...) do { \
+		if (FD_DBG(PERF)) \
+			mesa_logw(__VA_ARGS__); \
+		struct fd_context *__c = (ctx); \
+		if (__c) \
+			pipe_debug_message(&__c->debug, PERF_INFO, __VA_ARGS__); \
+	} while(0)
+
+#define perf_debug(...) perf_debug_ctx(NULL, __VA_ARGS__)
+
+#define perf_time_ctx(ctx, limit_ns, fmt, ...) for( \
+		struct __perf_time_state __s = { \
+				.t = -__perf_get_time(ctx), \
+		}; \
+		!__s.done; \
+		({ \
+			__s.t += __perf_get_time(ctx); \
+			__s.done = true; \
+			if (__s.t > (limit_ns)) { \
+				perf_debug_ctx(ctx, fmt " (%.03f ms)", ##__VA_ARGS__, (double)__s.t / 1000000.0); \
+			} \
+		}))
+
+#define perf_time(limit_ns, fmt, ...) perf_time_ctx(NULL, limit_ns, fmt, ##__VA_ARGS__)
+
+struct __perf_time_state {
+	int64_t t;
+	bool done;
+};
+
+/* static inline would be nice here, except 'struct fd_context' is not
+ * defined yet:
+ */
+#define __perf_get_time(ctx) \
+	((FD_DBG(PERF) || \
+		({ struct fd_context *__c = (ctx); \
+			unlikely(__c && __c->debug.debug_message); })) ? \
+		os_time_get_nano() : 0)
+
+struct fd_context;
+
+/**
+ * A psuedo-variable for defining where various parts of the fd_context
+ * can be safely accessed.
+ *
+ * With threaded_context, certain pctx funcs are called from gallium
+ * front-end/state-tracker (eg. CSO creation), while others are called
+ * from the driver thread.  Things called from driver thread can safely
+ * access anything in the ctx, while things called from the fe/st thread
+ * must limit themselves to "safe" things (ie. ctx->screen is safe as it
+ * is immutable, but the blitter_context is not).
+ */
+extern lock_cap_t fd_context_access_cap;
+
+/**
+ * Make the annotation a bit less verbose.. mark fields which should only
+ * be accessed by driver-thread with 'dt'
+ */
+#define dt guarded_by(fd_context_access_cap)
+
+/**
+ * Annotation for entry-point functions only called in driver thread.
+ *
+ * For static functions, apply the annotation to the function declaration.
+ * Otherwise apply to the function prototype.
+ */
+#define in_dt assert_cap(fd_context_access_cap)
+
+/**
+ * Annotation for internal functions which are only called from entry-
+ * point functions (with 'in_dt' annotation) or other internal functions
+ * with the 'assert_dt' annotation.
+ *
+ * For static functions, apply the annotation to the function declaration.
+ * Otherwise apply to the function prototype.
+ */
+#define assert_dt requires_cap(fd_context_access_cap)
+
+/**
+ * Special helpers for context access outside of driver thread.  For ex,
+ * pctx->get_query_result() is not called on driver thread, but the
+ * query is guaranteed to be flushed, or the driver thread queue is
+ * guaranteed to be flushed.
+ *
+ * Use with caution!
+ */
+static inline void
+fd_context_access_begin(struct fd_context *ctx)
+	acquire_cap(fd_context_access_cap)
+{
+}
+
+static inline void
+fd_context_access_end(struct fd_context *ctx)
+	release_cap(fd_context_access_cap)
+{
+}
+
 
 /* for conditionally setting boolean flag(s): */
 #define COND(bool, val) ((bool) ? (val) : 0)
@@ -307,10 +409,6 @@ pack_rgba(enum pipe_format format, const float *rgba)
 #define swap(a, b) \
 	do { __typeof(a) __tmp = (a); (a) = (b); (b) = __tmp; } while (0)
 
-#define foreach_bit(b, mask) \
-	for (uint32_t _m = (mask), b; _m && ({(b) = u_bit_scan(&_m); (void)(b); 1;});)
-
-
 #define BIT(bit) (1u << bit)
 
 /*
@@ -323,7 +421,7 @@ fd_msaa_samples(unsigned samples)
 	switch (samples) {
 	default:
 		debug_assert(0);
-		/* fallthrough */
+		FALLTHROUGH;
 	case 0:
 	case 1: return MSAA_ONE;
 	case 2: return MSAA_TWO;

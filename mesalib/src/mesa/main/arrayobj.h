@@ -159,18 +159,6 @@ _mesa_vao_enable_to_vp_inputs(gl_attribute_map_mode mode, GLbitfield enabled)
 
 
 /**
- * Return the vp_inputs enabled bitmask after application of
- * the position/generic0 aliasing map.
- */
-static inline GLbitfield
-_mesa_get_vao_vp_inputs(const struct gl_vertex_array_object *vao)
-{
-   const gl_attribute_map_mode mode = vao->_AttributeMapMode;
-   return _mesa_vao_enable_to_vp_inputs(mode, vao->Enabled);
-}
-
-
-/**
  * Helper functions for consuming backends to walk the
  * ctx->Array._DrawVAO for driver side array setup.
  * Note that mesa provides preprocessed minimal binding information

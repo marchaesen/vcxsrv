@@ -95,7 +95,7 @@ opt_shrink_vectors_alu(nir_builder *b, nir_alu_instr *instr)
                srcs[i] = nir_ssa_for_alu_src(b, instr, i);
 
             nir_ssa_def *new_vec = nir_vec(b, srcs, last_bit);
-            nir_ssa_def_rewrite_uses(def, nir_src_for_ssa(new_vec));
+            nir_ssa_def_rewrite_uses(def, new_vec);
             return true;
          }
          break;
@@ -134,7 +134,7 @@ opt_shrink_vectors_image_store(nir_builder *b, nir_intrinsic_instr *instr)
 }
 
 static bool
-opt_shrink_vectors_intrinsic(nir_builder *b, nir_intrinsic_instr *instr)
+opt_shrink_vectors_intrinsic(nir_builder *b, nir_intrinsic_instr *instr, bool shrink_image_store)
 {
    switch (instr->intrinsic) {
    case nir_intrinsic_load_uniform:
@@ -146,6 +146,7 @@ opt_shrink_vectors_intrinsic(nir_builder *b, nir_intrinsic_instr *instr)
    case nir_intrinsic_load_ssbo:
    case nir_intrinsic_load_push_constant:
    case nir_intrinsic_load_constant:
+   case nir_intrinsic_load_shared:
    case nir_intrinsic_load_global:
    case nir_intrinsic_load_global_constant:
    case nir_intrinsic_load_kernel_input:
@@ -160,7 +161,7 @@ opt_shrink_vectors_intrinsic(nir_builder *b, nir_intrinsic_instr *instr)
    case nir_intrinsic_bindless_image_store:
    case nir_intrinsic_image_deref_store:
    case nir_intrinsic_image_store:
-      return opt_shrink_vectors_image_store(b, instr);
+      return shrink_image_store && opt_shrink_vectors_image_store(b, instr);
    default:
       return false;
    }
@@ -209,7 +210,7 @@ opt_shrink_vectors_ssa_undef(nir_ssa_undef_instr *instr)
 }
 
 static bool
-opt_shrink_vectors_instr(nir_builder *b, nir_instr *instr)
+opt_shrink_vectors_instr(nir_builder *b, nir_instr *instr, bool shrink_image_store)
 {
    b->cursor = nir_before_instr(instr);
 
@@ -218,7 +219,7 @@ opt_shrink_vectors_instr(nir_builder *b, nir_instr *instr)
       return opt_shrink_vectors_alu(b, nir_instr_as_alu(instr));
 
    case nir_instr_type_intrinsic:
-      return opt_shrink_vectors_intrinsic(b, nir_instr_as_intrinsic(instr));
+      return opt_shrink_vectors_intrinsic(b, nir_instr_as_intrinsic(instr), shrink_image_store);
 
    case nir_instr_type_load_const:
       return opt_shrink_vectors_load_const(nir_instr_as_load_const(instr));
@@ -234,7 +235,7 @@ opt_shrink_vectors_instr(nir_builder *b, nir_instr *instr)
 }
 
 bool
-nir_opt_shrink_vectors(nir_shader *shader)
+nir_opt_shrink_vectors(nir_shader *shader, bool shrink_image_store)
 {
    bool progress = false;
 
@@ -247,7 +248,7 @@ nir_opt_shrink_vectors(nir_shader *shader)
 
       nir_foreach_block(block, function->impl) {
          nir_foreach_instr(instr, block) {
-            progress |= opt_shrink_vectors_instr(&b, instr);
+            progress |= opt_shrink_vectors_instr(&b, instr, shrink_image_store);
          }
       }
 

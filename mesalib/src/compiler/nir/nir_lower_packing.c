@@ -136,7 +136,7 @@ lower_pack_impl(nir_function_impl *impl)
             unreachable("Impossible opcode");
          }
 
-         nir_ssa_def_rewrite_uses(&alu_instr->dest.dest.ssa, nir_src_for_ssa(dest));
+         nir_ssa_def_rewrite_uses(&alu_instr->dest.dest.ssa, dest);
          nir_instr_remove(&alu_instr->instr);
          progress = true;
       }

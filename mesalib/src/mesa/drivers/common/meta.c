@@ -42,6 +42,7 @@
 #include "main/clear.h"
 #include "main/condrender.h"
 #include "main/draw.h"
+#include "main/draw_validate.h"
 #include "main/depth.h"
 #include "main/enable.h"
 #include "main/fbobject.h"
@@ -213,9 +214,9 @@ _mesa_meta_compile_and_link_program(struct gl_context *ctx,
     * around this bad interaction.  This is a bit fragile as it may break
     * if you re-run the pass that gathers this info, but we probably won't...
     */
-   fp->info.textures_used_by_txf = 0;
+   BITSET_ZERO(fp->info.textures_used_by_txf);
    if (fp->nir)
-      fp->nir->info.textures_used_by_txf = 0;
+      BITSET_ZERO(fp->nir->info.textures_used_by_txf);
 
    _mesa_meta_use_program(ctx, sh_prog);
 
@@ -347,7 +348,7 @@ _mesa_meta_setup_vertex_objects(struct gl_context *ctx,
                         GL_DYNAMIC_DRAW, __func__);
 
       /* setup vertex arrays */
-      FLUSH_VERTICES(ctx, 0);
+      FLUSH_VERTICES(ctx, 0, 0);
       if (use_generic_attributes) {
          assert(color_size == 0);
 
@@ -1033,6 +1034,7 @@ _mesa_meta_end(struct gl_context *ctx)
       }
 
       _mesa_update_vertex_processing_mode(ctx);
+      _mesa_update_valid_to_render_state(ctx);
    }
 
    if (state & MESA_META_STENCIL_TEST) {
@@ -1077,7 +1079,7 @@ _mesa_meta_end(struct gl_context *ctx)
       /* restore texture objects for unit[0] only */
       for (tgt = 0; tgt < NUM_TEXTURE_TARGETS; tgt++) {
          if (ctx->Texture.Unit[0].CurrentTex[tgt] != save->CurrentTexture[tgt]) {
-            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+            FLUSH_VERTICES(ctx, _NEW_TEXTURE, GL_TEXTURE_BIT);
             _mesa_reference_texobj(&ctx->Texture.Unit[0].CurrentTex[tgt],
                                    save->CurrentTexture[tgt]);
          }
@@ -1087,12 +1089,12 @@ _mesa_meta_end(struct gl_context *ctx)
       /* Restore fixed function texture enables, texgen */
       for (u = 0; u < ctx->Const.MaxTextureUnits; u++) {
          if (ctx->Texture.FixedFuncUnit[u].Enabled != save->TexEnabled[u]) {
-            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+            FLUSH_VERTICES(ctx, _NEW_TEXTURE, GL_TEXTURE_BIT);
             ctx->Texture.FixedFuncUnit[u].Enabled = save->TexEnabled[u];
          }
 
          if (ctx->Texture.FixedFuncUnit[u].TexGenEnabled != save->TexGenEnabled[u]) {
-            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+            FLUSH_VERTICES(ctx, _NEW_TEXTURE, GL_TEXTURE_BIT);
             ctx->Texture.FixedFuncUnit[u].TexGenEnabled = save->TexGenEnabled[u];
          }
       }
@@ -3324,7 +3326,7 @@ _mesa_meta_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
                         GL_DYNAMIC_DRAW, __func__);
 
       /* setup vertex arrays */
-      FLUSH_VERTICES(ctx, 0);
+      FLUSH_VERTICES(ctx, 0, 0);
       _mesa_update_array_format(ctx, array_obj, VERT_ATTRIB_POS,
                                 3, GL_FLOAT, GL_RGBA, GL_FALSE,
                                 GL_FALSE, GL_FALSE,
@@ -3336,7 +3338,7 @@ _mesa_meta_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
 
 
       for (i = 0; i < ctx->Const.MaxTextureUnits; i++) {
-         FLUSH_VERTICES(ctx, 0);
+         FLUSH_VERTICES(ctx, 0, 0);
          _mesa_update_array_format(ctx, array_obj, VERT_ATTRIB_TEX(i),
                                    2, GL_FLOAT, GL_RGBA, GL_FALSE,
                                    GL_FALSE, GL_FALSE,

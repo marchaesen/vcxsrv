@@ -47,7 +47,7 @@ static bool gpir_lower_const(gpir_compiler *comp)
          return false;
 
       comp->prog->constant = constant;
-      comp->prog->constant_size = num_constant * sizeof(union fi);
+      comp->prog->state.constant_size = num_constant * sizeof(union fi);
 
       int index = 0;
       list_for_each_entry(gpir_block, block, &comp->block_list, list) {

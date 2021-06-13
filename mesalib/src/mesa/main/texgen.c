@@ -87,6 +87,9 @@ texgenfv( GLuint texunitIndex, GLenum coord, GLenum pname,
       return;
    }
 
+   struct gl_fixedfunc_texture_unit *unit = &ctx->Texture.FixedFuncUnit[texunitIndex];
+   int index = coord == GL_TEXTURE_GEN_STR_OES ? 0 : (coord - GL_S);
+
    switch (pname) {
    case GL_TEXTURE_GEN_MODE:
       {
@@ -126,7 +129,8 @@ texgenfv( GLuint texunitIndex, GLenum coord, GLenum pname,
             return;
          }
 
-         FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE | _NEW_FF_VERT_PROGRAM,
+                        GL_TEXTURE_BIT);
          texgen->Mode = mode;
          texgen->_ModeBit = bit;
       }
@@ -138,10 +142,10 @@ texgenfv( GLuint texunitIndex, GLenum coord, GLenum pname,
             _mesa_error( ctx, GL_INVALID_ENUM, "glTexGenfv(param)" );
             return;
          }
-         if (TEST_EQ_4V(texgen->ObjectPlane, params))
+         if (TEST_EQ_4V(unit->ObjectPlane[index], params))
             return;
-         FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
-         COPY_4FV(texgen->ObjectPlane, params);
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE, GL_TEXTURE_BIT);
+         COPY_4FV(unit->ObjectPlane[index], params);
       }
       break;
 
@@ -160,10 +164,10 @@ texgenfv( GLuint texunitIndex, GLenum coord, GLenum pname,
          }
          _mesa_transform_vector(tmp, params,
                                 ctx->ModelviewMatrixStack.Top->inv);
-         if (TEST_EQ_4V(texgen->EyePlane, tmp))
+         if (TEST_EQ_4V(unit->EyePlane[index], tmp))
             return;
-         FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE);
-         COPY_4FV(texgen->EyePlane, tmp);
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE_STATE, GL_TEXTURE_BIT);
+         COPY_4FV(unit->EyePlane[index], tmp);
       }
       break;
 
@@ -191,15 +195,18 @@ gettexgendv( GLuint texunitIndex, GLenum coord, GLenum pname,
       return;
    }
 
+   struct gl_fixedfunc_texture_unit *unit = &ctx->Texture.FixedFuncUnit[texunitIndex];
+   int index = coord == GL_TEXTURE_GEN_STR_OES ? 0 : (coord - GL_S);
+
    switch (pname) {
    case GL_TEXTURE_GEN_MODE:
       params[0] = ENUM_TO_DOUBLE(texgen->Mode);
       break;
    case GL_OBJECT_PLANE:
-      COPY_4V(params, texgen->ObjectPlane);
+      COPY_4V(params, unit->ObjectPlane[index]);
       break;
    case GL_EYE_PLANE:
-      COPY_4V(params, texgen->EyePlane);
+      COPY_4V(params, unit->EyePlane[index]);
       break;
    default:
       _mesa_error( ctx, GL_INVALID_ENUM, "%s(pname)", caller );
@@ -221,6 +228,9 @@ gettexgenfv( GLenum texunitIndex, GLenum coord, GLenum pname,
       return;
    }
 
+   struct gl_fixedfunc_texture_unit *unit = &ctx->Texture.FixedFuncUnit[texunitIndex];
+   int index = coord == GL_TEXTURE_GEN_STR_OES ? 0 : (coord - GL_S);
+
    switch (pname) {
    case GL_TEXTURE_GEN_MODE:
       params[0] = ENUM_TO_FLOAT(texgen->Mode);
@@ -230,14 +240,14 @@ gettexgenfv( GLenum texunitIndex, GLenum coord, GLenum pname,
          _mesa_error( ctx, GL_INVALID_ENUM, "%s(param)", caller );
          return;
       }
-      COPY_4V(params, texgen->ObjectPlane);
+      COPY_4V(params, unit->ObjectPlane[index]);
       break;
    case GL_EYE_PLANE:
       if (ctx->API != API_OPENGL_COMPAT) {
          _mesa_error( ctx, GL_INVALID_ENUM, "%s(param)", caller );
          return;
       }
-      COPY_4V(params, texgen->EyePlane);
+      COPY_4V(params, unit->EyePlane[index]);
       break;
    default:
       _mesa_error( ctx, GL_INVALID_ENUM, "%s(pname)", caller );
@@ -259,6 +269,9 @@ gettexgeniv( GLenum texunitIndex, GLenum coord, GLenum pname,
       return;
    }
 
+   struct gl_fixedfunc_texture_unit *unit = &ctx->Texture.FixedFuncUnit[texunitIndex];
+   int index = coord == GL_TEXTURE_GEN_STR_OES ? 0 : (coord - GL_S);
+
    switch (pname) {
    case GL_TEXTURE_GEN_MODE:
       params[0] = texgen->Mode;
@@ -268,20 +281,20 @@ gettexgeniv( GLenum texunitIndex, GLenum coord, GLenum pname,
          _mesa_error( ctx, GL_INVALID_ENUM, "%s(param)" , caller);
          return;
       }
-      params[0] = (GLint) texgen->ObjectPlane[0];
-      params[1] = (GLint) texgen->ObjectPlane[1];
-      params[2] = (GLint) texgen->ObjectPlane[2];
-      params[3] = (GLint) texgen->ObjectPlane[3];
+      params[0] = (GLint) unit->ObjectPlane[index][0];
+      params[1] = (GLint) unit->ObjectPlane[index][1];
+      params[2] = (GLint) unit->ObjectPlane[index][2];
+      params[3] = (GLint) unit->ObjectPlane[index][3];
       break;
    case GL_EYE_PLANE:
       if (ctx->API != API_OPENGL_COMPAT) {
          _mesa_error( ctx, GL_INVALID_ENUM, "%s(param)" , caller);
          return;
       }
-      params[0] = (GLint) texgen->EyePlane[0];
-      params[1] = (GLint) texgen->EyePlane[1];
-      params[2] = (GLint) texgen->EyePlane[2];
-      params[3] = (GLint) texgen->EyePlane[3];
+      params[0] = (GLint) unit->EyePlane[index][0];
+      params[1] = (GLint) unit->EyePlane[index][1];
+      params[2] = (GLint) unit->EyePlane[index][2];
+      params[3] = (GLint) unit->EyePlane[index][3];
       break;
    default:
       _mesa_error( ctx, GL_INVALID_ENUM, "%s(pname)" , caller);

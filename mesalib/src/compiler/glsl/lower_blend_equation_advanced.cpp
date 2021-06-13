@@ -489,9 +489,8 @@ lower_blend_equation_advanced(struct gl_linked_shader *sh, bool coherent)
    mode->allocate_state_slots(1);
    ir_state_slot *slot0 = &mode->get_state_slots()[0];
    slot0->swizzle = SWIZZLE_XXXX;
-   slot0->tokens[0] = STATE_INTERNAL;
-   slot0->tokens[1] = STATE_ADVANCED_BLENDING_MODE;
-   for (int i = 2; i < STATE_LENGTH; i++)
+   slot0->tokens[0] = STATE_ADVANCED_BLENDING_MODE;
+   for (int i = 1; i < STATE_LENGTH; i++)
       slot0->tokens[i] = 0;
 
    sh->ir->push_head(fb);

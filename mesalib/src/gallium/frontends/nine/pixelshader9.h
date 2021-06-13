@@ -76,13 +76,16 @@ NinePixelShader9_UpdateKey( struct NinePixelShader9 *ps,
                             struct nine_context *context )
 {
     uint16_t samplers_shadow;
+    uint16_t samplers_fetch4;
     uint16_t samplers_ps1_types;
     uint8_t projected;
     uint64_t key;
     BOOL res;
 
     samplers_shadow = (uint16_t)((context->samplers_shadow & NINE_PS_SAMPLERS_MASK) >> NINE_SAMPLER_PS(0));
+    samplers_fetch4 = (uint16_t)((context->samplers_fetch4 & NINE_PS_SAMPLERS_MASK) >> NINE_SAMPLER_PS(0));
     key = samplers_shadow & ps->sampler_mask;
+    samplers_fetch4 &= ps->sampler_mask;
 
     if (unlikely(ps->byte_code.version < 0x20)) {
         /* variable targets */
@@ -124,6 +127,7 @@ NinePixelShader9_UpdateKey( struct NinePixelShader9 *ps,
                                                                (void *)context->ps_const_i,
                                                                context->ps_const_b)) << 24;
 
+    key |= ((uint64_t)(context->rs[NINED3DRS_FETCH4] & samplers_fetch4)) << 32;
     res = ps->last_key != key;
     if (res)
         ps->next_key = key;

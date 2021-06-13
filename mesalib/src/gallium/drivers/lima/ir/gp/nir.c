@@ -447,7 +447,7 @@ static void gpir_print_shader_db(struct nir_shader *nir, gpir_compiler *comp,
    free(shaderdb);
 }
 
-bool gpir_compile_nir(struct lima_vs_shader_state *prog, struct nir_shader *nir,
+bool gpir_compile_nir(struct lima_vs_compiled_shader *prog, struct nir_shader *nir,
                       struct pipe_debug_callback *debug)
 {
    nir_function_impl *func = nir_shader_get_entrypoint(nir);
@@ -456,9 +456,9 @@ bool gpir_compile_nir(struct lima_vs_shader_state *prog, struct nir_shader *nir,
       return false;
 
    comp->constant_base = nir->num_uniforms;
-   prog->uniform_size = nir->num_uniforms * 16;
-   prog->gl_pos_idx = 0;
-   prog->point_size_idx = -1;
+   prog->state.uniform_size = nir->num_uniforms * 16;
+   prog->state.gl_pos_idx = 0;
+   prog->state.point_size_idx = -1;
 
    if (!gpir_emit_function(comp, func))
       goto err_out0;
@@ -487,25 +487,31 @@ bool gpir_compile_nir(struct lima_vs_shader_state *prog, struct nir_shader *nir,
    if (!gpir_codegen_prog(comp))
       goto err_out0;
 
+   /* initialize to support accumulating below */
+   nir_foreach_shader_out_variable(var, nir) {
+      struct lima_varying_info *v = prog->state.varying + var->data.driver_location;
+      v->components = 0;
+   }
+
    nir_foreach_shader_out_variable(var, nir) {
       bool varying = true;
       switch (var->data.location) {
       case VARYING_SLOT_POS:
-         prog->gl_pos_idx = var->data.driver_location;
+         prog->state.gl_pos_idx = var->data.driver_location;
          varying = false;
          break;
       case VARYING_SLOT_PSIZ:
-         prog->point_size_idx = var->data.driver_location;
+         prog->state.point_size_idx = var->data.driver_location;
          varying = false;
          break;
       }
 
-      struct lima_varying_info *v = prog->varying + var->data.driver_location;
+      struct lima_varying_info *v = prog->state.varying + var->data.driver_location;
       if (!v->components) {
          v->component_size = gpir_glsl_type_size(glsl_get_base_type(var->type));
-         prog->num_outputs++;
+         prog->state.num_outputs++;
          if (varying)
-            prog->num_varyings++;
+            prog->state.num_varyings++;
       }
 
       v->components += glsl_get_components(var->type);

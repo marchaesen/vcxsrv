@@ -131,13 +131,13 @@ device::max_image_buffer_size() const {
 }
 
 cl_uint
-device::max_image_levels_2d() const {
-   return util_last_bit(pipe->get_param(pipe, PIPE_CAP_MAX_TEXTURE_2D_SIZE));
+device::max_image_size() const {
+   return pipe->get_param(pipe, PIPE_CAP_MAX_TEXTURE_2D_SIZE);
 }
 
 cl_uint
-device::max_image_levels_3d() const {
-   return pipe->get_param(pipe, PIPE_CAP_MAX_TEXTURE_3D_LEVELS);
+device::max_image_size_3d() const {
+   return 1 << (pipe->get_param(pipe, PIPE_CAP_MAX_TEXTURE_3D_LEVELS) - 1);
 }
 
 size_t

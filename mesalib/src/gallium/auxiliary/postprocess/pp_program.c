@@ -41,7 +41,7 @@
 /** Initialize the internal details */
 struct pp_program *
 pp_init_prog(struct pp_queue_t *ppq, struct pipe_context *pipe,
-             struct cso_context *cso)
+             struct cso_context *cso, struct st_context_iface *st)
 {
    struct pp_program *p;
 
@@ -56,6 +56,7 @@ pp_init_prog(struct pp_queue_t *ppq, struct pipe_context *pipe,
    p->screen = pipe->screen;
    p->pipe = pipe;
    p->cso = cso;
+   p->st = st;
 
    {
       static const float verts[4][2][4] = {

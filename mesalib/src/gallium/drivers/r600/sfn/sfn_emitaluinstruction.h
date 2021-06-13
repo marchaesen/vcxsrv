@@ -56,25 +56,19 @@ private:
    bool emit_mov(const nir_alu_instr& instr);
    bool emit_alu_op1(const nir_alu_instr& instr, EAluOp opcode, const AluOpFlags &flags = 0);
    bool emit_alu_op2(const nir_alu_instr& instr, EAluOp opcode, AluOp2Opts ops = op2_opt_none);
-   bool emit_alu_op2_split_src_mods(const nir_alu_instr& instr, EAluOp opcode, AluOp2Opts ops = op2_opt_none);
 
    bool emit_alu_trans_op2(const nir_alu_instr& instr, EAluOp opcode);
 
    bool emit_alu_inot(const nir_alu_instr& instr);
-   bool emit_alu_iabs(const nir_alu_instr& instr);
    bool emit_alu_ineg(const nir_alu_instr& instr);
-   bool emit_alu_isign(const nir_alu_instr& instr);
-   bool emit_alu_div_int(const nir_alu_instr& instr, bool use_signed, bool mod);
    bool emit_alu_op2_int(const nir_alu_instr& instr, EAluOp opcode, AluOp2Opts ops = op2_opt_none);
 
    bool emit_alu_op3(const nir_alu_instr& instr, EAluOp opcode, std::array<uint8_t, 3> reorder={0,1,2});
    bool emit_alu_trans_op1(const nir_alu_instr& instr, EAluOp opcode, bool absolute = false);
-   bool emit_alu_trig_op1(const nir_alu_instr& instr, EAluOp opcode);
 
    bool emit_alu_b2f(const nir_alu_instr& instr);
    bool emit_alu_i2orf2_b1(const nir_alu_instr& instr, EAluOp op);
    bool emit_dot(const nir_alu_instr& instr, int n);
-   bool emit_fsign(const nir_alu_instr& instr);
    bool emit_create_vec(const nir_alu_instr& instr, unsigned nc);
    bool emit_any_all_icomp(const nir_alu_instr& instr, EAluOp op,  unsigned nc, bool all);
    bool emit_any_iequal(const nir_alu_instr& instr, unsigned nc);
@@ -93,12 +87,11 @@ private:
    bool emit_unpack_64_2x32_split(const nir_alu_instr& instr, unsigned comp);
 
    bool emit_tex_fdd(const nir_alu_instr& instr, TexInstruction::Opcode op, bool fine);
-   bool emit_bitfield_extract(const nir_alu_instr& instr, EAluOp opcode);
-   bool emit_bitfield_insert(const nir_alu_instr& instr);
    bool emit_unpack_32_2x16_split_y(const nir_alu_instr& instr);
    bool emit_unpack_32_2x16_split_x(const nir_alu_instr& instr);
    bool emit_pack_32_2x16_split(const nir_alu_instr& instr);
 
+   bool emit_cube(const nir_alu_instr& instr);
 private:
    void make_last(AluInstruction *ir) const;
    void split_alu_modifiers(const nir_alu_src &src, const GPRVector::Values& v,

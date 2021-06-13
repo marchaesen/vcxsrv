@@ -218,16 +218,11 @@ option(
   description : 'Location relative to prefix to put vulkan icds on install. Default: $datadir/vulkan/icd.d'
 )
 option(
-  'vulkan-overlay-layer',
-  type : 'boolean',
-  value : false,
-  description : 'Whether to build the vulkan overlay layer'
-)
-option(
-  'vulkan-device-select-layer',
-  type : 'boolean',
-  value : false,
-  description : 'Whether to build the vulkan device select layer'
+  'vulkan-layers',
+  type : 'array',
+  value : [],
+  choices : ['device-select', 'intel-nullhw', 'overlay'],
+  description : 'List of vulkan layers to build'
 )
 option(
   'shared-glapi',
@@ -320,6 +315,12 @@ option(
   value : 'auto',
   choices : ['auto', 'true', 'false', 'enabled', 'disabled'],
   description : 'Whether to link LLVM shared or statically.'
+)
+option(
+  'draw-use-llvm',
+  type : 'boolean',
+  value : 'true',
+  description : 'Whether to use LLVM for the Gallium draw module, if LLVM is included.'
 )
 option(
   'valgrind',

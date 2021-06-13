@@ -1,0 +1,80 @@
+softpipe-gles2:
+  extends:
+    - llvmpipe-gles2
+    - .softpipe-rules
+  variables:
+    GPU_VERSION: softpipe
+    GALLIUM_DRIVER: "softpipe"
+    DEQP_EXPECTED_RENDERER: softpipe
+
+softpipe-gles3:
+  variables:
+    DEQP_VER: gles3
+  extends: softpipe-gles2
+
+softpipe-gles31:
+  parallel: 2
+  variables:
+    DEQP_VER: gles31
+  extends: softpipe-gles2
+
+softpipe-asan-gles31:
+  variables:
+    GPU_VERSION: softpipe-asan
+    DEQP_FRACTION: 10
+    DEQP_VER: gles31
+    TEST_LD_PRELOAD: libasan.so.5
+  extends: softpipe-gles2
+  needs:
+    - x86_test-gl
+    - meson-testing-asan
+
+softpipe-piglit-quick:
+  extends:
+    - .test-gl
+    - .piglit-test
+    - .softpipe-rules
+  variables:
+    GALLIUM_DRIVER: softpipe
+    # rasterpos skipped until we uprev piglit (commit ff2a7650be7349)
+    # triangle-rasterization skipped due to flakes thanks to it using a time-based random seed.
+    # glx-multithread-texture is flaky, undiagnosed
+    PIGLIT_TESTS: >
+      -x rasterpos
+      -x triangle-rasterization
+      -x glx-multithread-texture
+      -x egl_ext_device_
+      -x egl_ext_platform_device
+      -x ext_timer_query@time-elapsed
+      -x glx-multithread-clearbuffer
+      -x glx-multithread-shader-compile
+      -x max-texture-size
+      -x maxsize
+      -x fs-execution-ordering
+      -x local-id-explosion
+      -x arb_pipeline_statistics_query-comp
+      -x streaming-texture-leak
+      -x longprim
+      -x shader-mem-barrier
+      -x arb_gpu_shader_fp64
+      -x arb_gpu_shader_int64
+      -x arb_tessellation_shader
+      -x glsl-4.00
+      -x glsl-4.10
+      -x glsl-4.20
+      -x glsl-4.30
+      -x glsl-4.40
+      -x glsl-4.50
+      -x gpu_shader4
+      -x gpu_shader5
+    PIGLIT_PROFILES: quick_gl quick_shader
+    PIGLIT_RESULTS: softpipe-quick
+
+# Note that KHR-GL3* test sets include all tests from the previous
+# version, so we only need to run one test list (unlike dEQP-GLES,
+# where the test sets are separate).
+softpipe-gl:
+  variables:
+    DEQP_VER: gl33
+  extends:
+    - softpipe-gles2

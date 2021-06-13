@@ -71,7 +71,7 @@ static int is_64b(void)
 }
 
 
-static int draws[3];
+static int draws[4];
 static struct {
 	uint64_t base;
 	uint32_t size;   /* in dwords */
@@ -393,6 +393,11 @@ reg_dump_gpuaddr_hi(const char *name, uint32_t dword, int level)
 	dump_gpuaddr(gpuaddr_lo | (((uint64_t)dword) << 32), level);
 }
 
+static void
+reg_dump_gpuaddr64(const char *name, uint64_t qword, int level)
+{
+	dump_gpuaddr(qword, level);
+}
 
 static void
 dump_shader(const char *ext, void *buf, int bufsz)
@@ -458,6 +463,12 @@ reg_disasm_gpuaddr_hi(const char *name, uint32_t dword, int level)
 	disasm_gpuaddr(name, gpuaddr_lo | (((uint64_t)dword) << 32), level);
 }
 
+static void
+reg_disasm_gpuaddr64(const char *name, uint64_t qword, int level)
+{
+	disasm_gpuaddr(name, qword, level);
+}
+
 /* Find the value of the TEX_COUNT register that corresponds to the named
  * TEX_SAMP/TEX_CONST reg.
  *
@@ -520,10 +531,13 @@ reg_dump_tex_const_hi(const char *name, uint32_t dword, int level)
  * Registers with special handling (rnndec_decode() handles rest):
  */
 #define REG(x, fxn) { #x, fxn }
+#define REG64(x, fxn) { #x, .fxn64 = fxn, .is_reg64 = true }
 static struct {
 	const char *regname;
 	void (*fxn)(const char *name, uint32_t dword, int level);
+	void (*fxn64)(const char *name, uint64_t qword, int level);
 	uint32_t regbase;
+	bool is_reg64;
 } reg_a2xx[] = {
 		REG(CP_SCRATCH_REG0, reg_dump_scratch),
 		REG(CP_SCRATCH_REG1, reg_dump_scratch),
@@ -663,43 +677,25 @@ static struct {
 		REG(CP_SCRATCH[0x6].REG, reg_dump_scratch),
 		REG(CP_SCRATCH[0x7].REG, reg_dump_scratch),
 
-		REG(SP_VS_OBJ_START_LO, reg_gpuaddr_lo),
-		REG(SP_VS_OBJ_START_HI, reg_disasm_gpuaddr_hi),
-		REG(SP_HS_OBJ_START_LO, reg_gpuaddr_lo),
-		REG(SP_HS_OBJ_START_HI, reg_disasm_gpuaddr_hi),
-		REG(SP_DS_OBJ_START_LO, reg_gpuaddr_lo),
-		REG(SP_DS_OBJ_START_HI, reg_disasm_gpuaddr_hi),
-		REG(SP_GS_OBJ_START_LO, reg_gpuaddr_lo),
-		REG(SP_GS_OBJ_START_HI, reg_disasm_gpuaddr_hi),
-		REG(SP_FS_OBJ_START_LO, reg_gpuaddr_lo),
-		REG(SP_FS_OBJ_START_HI, reg_disasm_gpuaddr_hi),
-		REG(SP_CS_OBJ_START_LO, reg_gpuaddr_lo),
-		REG(SP_CS_OBJ_START_HI, reg_disasm_gpuaddr_hi),
+		REG64(SP_VS_OBJ_START, reg_disasm_gpuaddr64),
+		REG64(SP_HS_OBJ_START, reg_disasm_gpuaddr64),
+		REG64(SP_DS_OBJ_START, reg_disasm_gpuaddr64),
+		REG64(SP_GS_OBJ_START, reg_disasm_gpuaddr64),
+		REG64(SP_FS_OBJ_START, reg_disasm_gpuaddr64),
+		REG64(SP_CS_OBJ_START, reg_disasm_gpuaddr64),
 
-		REG(SP_VS_TEX_CONST_LO, reg_gpuaddr_lo),
-		REG(SP_VS_TEX_CONST_HI, reg_dump_tex_const_hi),
-		REG(SP_VS_TEX_SAMP_LO,  reg_gpuaddr_lo),
-		REG(SP_VS_TEX_SAMP_HI,  reg_dump_tex_samp_hi),
-		REG(SP_HS_TEX_CONST_LO, reg_gpuaddr_lo),
-		REG(SP_HS_TEX_CONST_HI, reg_dump_tex_const_hi),
-		REG(SP_HS_TEX_SAMP_LO,  reg_gpuaddr_lo),
-		REG(SP_HS_TEX_SAMP_HI,  reg_dump_tex_samp_hi),
-		REG(SP_DS_TEX_CONST_LO, reg_gpuaddr_lo),
-		REG(SP_DS_TEX_CONST_HI, reg_dump_tex_const_hi),
-		REG(SP_DS_TEX_SAMP_LO,  reg_gpuaddr_lo),
-		REG(SP_DS_TEX_SAMP_HI,  reg_dump_tex_samp_hi),
-		REG(SP_GS_TEX_CONST_LO, reg_gpuaddr_lo),
-		REG(SP_GS_TEX_CONST_HI, reg_dump_tex_const_hi),
-		REG(SP_GS_TEX_SAMP_LO,  reg_gpuaddr_lo),
-		REG(SP_GS_TEX_SAMP_HI,  reg_dump_tex_samp_hi),
-		REG(SP_FS_TEX_CONST_LO, reg_gpuaddr_lo),
-		REG(SP_FS_TEX_CONST_HI, reg_dump_tex_const_hi),
-		REG(SP_FS_TEX_SAMP_LO,  reg_gpuaddr_lo),
-		REG(SP_FS_TEX_SAMP_HI,  reg_dump_tex_samp_hi),
-		REG(SP_CS_TEX_CONST_LO, reg_gpuaddr_lo),
-		REG(SP_CS_TEX_CONST_HI, reg_dump_tex_const_hi),
-		REG(SP_CS_TEX_SAMP_LO,  reg_gpuaddr_lo),
-		REG(SP_CS_TEX_SAMP_HI,  reg_dump_tex_samp_hi),
+		REG64(SP_VS_TEX_CONST, reg_dump_gpuaddr64),
+		REG64(SP_VS_TEX_SAMP,  reg_dump_gpuaddr64),
+		REG64(SP_HS_TEX_CONST, reg_dump_gpuaddr64),
+		REG64(SP_HS_TEX_SAMP,  reg_dump_gpuaddr64),
+		REG64(SP_DS_TEX_CONST, reg_dump_gpuaddr64),
+		REG64(SP_DS_TEX_SAMP,  reg_dump_gpuaddr64),
+		REG64(SP_GS_TEX_CONST, reg_dump_gpuaddr64),
+		REG64(SP_GS_TEX_SAMP,  reg_dump_gpuaddr64),
+		REG64(SP_FS_TEX_CONST, reg_dump_gpuaddr64),
+		REG64(SP_FS_TEX_SAMP,  reg_dump_gpuaddr64),
+		REG64(SP_CS_TEX_CONST, reg_dump_gpuaddr64),
+		REG64(SP_CS_TEX_SAMP,  reg_dump_gpuaddr64),
 
 		{NULL},
 }, *type0_reg;
@@ -826,8 +822,15 @@ dump_register_val(uint32_t regbase, uint32_t dword, int level)
 		 * might be useful for other gen's too, but at least a5xx has
 		 * the _HI/_LO suffix we can look for.  Maybe a better approach
 		 * would be some special annotation in the xml..
+		 * for a6xx use "address" and "waddress" types
+		 *
 		 */
-		if (options->gpu_id >= 500) {
+		if (options->gpu_id >= 600) {
+			if (!strcmp(info->typeinfo->name, "address") ||
+				!strcmp(info->typeinfo->name, "waddress")) {
+				gpuaddr = (((uint64_t)reg_val(regbase+1)) << 32) | dword;
+			}
+		} else if (options->gpu_id >= 500) {
 			if (endswith(regbase, "_HI") && endswith(regbase-1, "_LO")) {
 				gpuaddr = (((uint64_t)dword) << 32) | reg_val(regbase-1);
 			} else if (endswith(regbase, "_LO") && endswith(regbase+1, "_HI")) {
@@ -866,7 +869,12 @@ dump_register(uint32_t regbase, uint32_t dword, int level)
 
 	for (unsigned idx = 0; type0_reg[idx].regname; idx++) {
 		if (type0_reg[idx].regbase == regbase) {
-			type0_reg[idx].fxn(type0_reg[idx].regname, dword, level);
+			if (type0_reg[idx].is_reg64) {
+				uint64_t qword = (((uint64_t)reg_val(regbase+1)) << 32) | dword;
+				type0_reg[idx].fxn64(type0_reg[idx].regname, qword, level);
+			} else {
+				type0_reg[idx].fxn(type0_reg[idx].regname, dword, level);
+			}
 			break;
 		}
 	}
@@ -2656,6 +2664,7 @@ dump_commands(uint32_t *dwords, uint32_t sizedwords, int level)
 		return;
 	}
 
+	assert(ib < ARRAY_SIZE(draws));
 	draws[ib] = 0;
 
 	while (dwords_left > 0) {

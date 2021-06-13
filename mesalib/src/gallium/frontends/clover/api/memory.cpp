@@ -214,12 +214,26 @@ clCreateImageWithProperties(cl_context d_ctx,
       util_format_get_blocksize(translate_format(*format)) * desc->image_width;
 
    switch (desc->image_type) {
+   case CL_MEM_OBJECT_IMAGE1D:
+      if (!desc->image_width)
+         throw error(CL_INVALID_IMAGE_SIZE);
+
+      if (all_of([=](const device &dev) {
+               const size_t max = dev.max_image_size();
+               return (desc->image_width > max);
+            }, ctx.devices()))
+         throw error(CL_INVALID_IMAGE_SIZE);
+
+      return new image1d(ctx, properties, flags, format,
+                         desc->image_width,
+                         row_pitch, host_ptr);
+
    case CL_MEM_OBJECT_IMAGE2D:
       if (!desc->image_width || !desc->image_height)
          throw error(CL_INVALID_IMAGE_SIZE);
 
       if (all_of([=](const device &dev) {
-               const size_t max = 1 << dev.max_image_levels_2d();
+               const size_t max = dev.max_image_size();
                return (desc->image_width > max ||
                        desc->image_height > max);
             }, ctx.devices()))
@@ -234,7 +248,7 @@ clCreateImageWithProperties(cl_context d_ctx,
          throw error(CL_INVALID_IMAGE_SIZE);
 
       if (all_of([=](const device &dev) {
-               const size_t max = 1 << dev.max_image_levels_3d();
+               const size_t max = dev.max_image_size_3d();
                return (desc->image_width > max ||
                        desc->image_height > max ||
                        desc->image_depth > max);
@@ -250,7 +264,6 @@ clCreateImageWithProperties(cl_context d_ctx,
                          slice_pitch, host_ptr);
    }
 
-   case CL_MEM_OBJECT_IMAGE1D:
    case CL_MEM_OBJECT_IMAGE1D_ARRAY:
    case CL_MEM_OBJECT_IMAGE1D_BUFFER:
    case CL_MEM_OBJECT_IMAGE2D_ARRAY:
@@ -418,7 +431,7 @@ clGetImageInfo(cl_mem d_mem, cl_image_info param,
       break;
 
    case CL_IMAGE_ELEMENT_SIZE:
-      buf.as_scalar<size_t>() = 0;
+      buf.as_scalar<size_t>() = img.pixel_size();
       break;
 
    case CL_IMAGE_ROW_PITCH:
@@ -439,6 +452,14 @@ clGetImageInfo(cl_mem d_mem, cl_image_info param,
 
    case CL_IMAGE_DEPTH:
       buf.as_scalar<size_t>() = img.depth();
+      break;
+
+   case CL_IMAGE_NUM_MIP_LEVELS:
+      buf.as_scalar<cl_uint>() = 0;
+      break;
+
+   case CL_IMAGE_NUM_SAMPLES:
+      buf.as_scalar<cl_uint>() = 0;
       break;
 
    default:
@@ -519,6 +540,10 @@ clSVMAlloc(cl_context d_ctx,
       if (alignment < sizeof(void*))
          alignment = sizeof(void*);
       posix_memalign(&ptr, alignment, size);
+
+      if (ptr)
+         ctx.add_svm_allocation(ptr, size);
+
       return ptr;
    }
 #endif
@@ -540,8 +565,10 @@ clSVMFree(cl_context d_ctx,
 
    bool can_emulate = all_of(std::mem_fn(&device::has_system_svm), ctx.devices());
 
-   if (can_emulate)
+   if (can_emulate) {
+      ctx.remove_svm_allocation(svm_pointer);
       return free(svm_pointer);
+   }
 
    CLOVER_NOT_SUPPORTED_UNTIL("2.0");
 

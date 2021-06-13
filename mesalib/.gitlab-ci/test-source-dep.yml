@@ -1,16 +1,23 @@
 # This file list source dependencies to avoid creating/running jobs
 # those outcome cannot be changed by the modifications from a branch.
 
+# Generic rule to not run the job during scheduled pipelines
+# ----------------------------------------------------------
+.scheduled_pipelines-rules:
+  rules: &ignore_scheduled_pipelines
+    if: '$CI_PIPELINE_SOURCE == "schedule"'
+    when: never
+
 # Mesa core source file dependencies
 # ----------------------------------
 .mesa-rules:
   rules:
+    - *ignore_scheduled_pipelines
     - changes: &mesa_core_file_list
       - .gitlab-ci.yml
       - .gitlab-ci/**/*
       - include/**/*
       - meson.build
-      - SConstruct
       - src/*
       - src/compiler/**/*
       - src/drm-shim/**/*
@@ -22,13 +29,38 @@
       - src/include/**/*
       - src/loader/**/*
       - src/mapi/**/*
-      - src/mesa/**/*
+      - src/mesa/*
+      - src/mesa/drivers/*
+      - src/mesa/drivers/common/**/*
+      - src/mesa/drivers/dri/*
+      - src/mesa/drivers/dri/common/**/*
+      - src/mesa/main/**/*
+      - src/mesa/math/**/*
+      - src/mesa/program/**/*
+      - src/mesa/sparc/**/*
+      - src/mesa/state_tracker/**/*
+      - src/mesa/swrast/**/*
+      - src/mesa/swrast_setup/**/*
+      - src/mesa/tnl/**/*
+      - src/mesa/tnl_dd/**/*
+      - src/mesa/vbo/**/*
+      - src/mesa/x86/**/*
+      - src/mesa/x86-64/**/*
       - src/util/**/*
+
+.vulkan-rules:
+  rules:
+    - *ignore_scheduled_pipelines
+    - changes: &vulkan_file_list
+      - src/vulkan/**/*
+      when: on_success
+    - when: never
 
 # Gallium core source file dependencies
 # -------------------------------------
 .gallium-rules:
   rules:
+    - *ignore_scheduled_pipelines
     - changes: &gallium_core_file_list
       - src/gallium/*
       - src/gallium/auxiliary/**/*
@@ -38,13 +70,6 @@
       - src/gallium/targets/**/*
       - src/gallium/tests/**/*
       - src/gallium/winsys/*
-
-# Generic rule to not run the job during scheduled pipelines
-# ----------------------------------------------------------
-.scheduled_pipelines-rules:
-  rules: &ignore_scheduled_pipelines
-    if: '$CI_PIPELINE_SOURCE == "schedule"'
-    when: never
 
 .softpipe-rules:
   stage: software-renderer
@@ -74,6 +99,23 @@
       when: on_success
     - changes: &llvmpipe_file_list
       - src/gallium/drivers/llvmpipe/**/*
+      - src/gallium/winsys/sw/**/*
+      when: on_success
+    - when: never
+
+.lavapipe-rules:
+  stage: software-renderer
+  rules:
+    - *ignore_scheduled_pipelines
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes: &lavapipe_file_list
+      - src/gallium/drivers/llvmpipe/**/*
+      - src/gallium/frontends/lavapipe/**/*
       - src/gallium/winsys/sw/**/*
       when: on_success
     - when: never
@@ -115,16 +157,8 @@
     - changes:
       # Note: when https://gitlab.com/gitlab-org/gitlab/-/issues/198688
       # is supported, we can change the src/freedreno/ rule to explicitly
-      # exclude tools, rather than having to explicitly list everything
-      # else
-      - src/freedreno/common/**/*
-      - src/freedreno/drm/**/*
-      - src/freedreno/fdl/**/*
-      - src/freedreno/ir2/**/*
-      - src/freedreno/ir3/**/*
-      - src/freedreno/perfcntrs/**/*
-      - src/freedreno/registers/**/*
-      - src/freedreno/vulkan/**/*
+      # exclude tools
+      - src/freedreno/**/*
       - src/gallium/drivers/freedreno/**/*
       - src/gallium/winsys/freedreno/**/*
       when: on_success
@@ -148,7 +182,7 @@
     - when: never
 
 .vc4-rules:
-  stage: raspberrypi
+  stage: broadcom
   rules:
     - *ignore_scheduled_pipelines
     - changes:
@@ -162,6 +196,36 @@
       - src/gallium/drivers/vc4/**/*
       - src/gallium/winsys/kmsro/**/*
       - src/gallium/winsys/vc4/**/*
+      when: on_success
+    - when: never
+
+.v3d-rules:
+  stage: broadcom
+  rules:
+    - *ignore_scheduled_pipelines
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+      - src/broadcom/**/*
+      - src/gallium/drivers/v3d/**/*
+      - src/gallium/winsys/kmsro/**/*
+      - src/gallium/winsys/v3d/**/*
+      when: on_success
+    - when: never
+
+.v3dv-rules:
+  stage: broadcom
+  rules:
+    - *ignore_scheduled_pipelines
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+      - src/broadcom/**/*
       when: on_success
     - when: never
 
@@ -234,15 +298,39 @@
       when: on_success
     - when: never
 
+.iris-rules:
+  stage: intel
+  rules:
+    - *ignore_scheduled_pipelines
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+      - src/gallium/drivers/iris/**/*
+      - src/gallium/winsys/iris/**/*
+      - src/intel/**/*
+      when: on_success
+    - when: never
+
 # Unfortunately YAML doesn't let us concatenate arrays, so we have to do the
 # rules duplication manually
 .windows-build-rules:
   rules:
+    - *ignore_scheduled_pipelines
     - changes: 
         *mesa_core_file_list
       when: on_success
     - changes:
         *gallium_core_file_list
+      when: on_success
+    - changes:
+        *lavapipe_file_list
+      when: on_success
+    - changes:
+        *vulkan_file_list
       when: on_success
     - changes: &d3d12_file_list
       - src/gallium/drivers/d3d12/**/*
@@ -263,6 +351,30 @@
     - changes:
         *gallium_core_file_list
       when: on_success
+    - changes:
+        *lavapipe_file_list
+      when: on_success
+    - changes:
+        *vulkan_file_list
+      when: on_success
     - changes: *d3d12_file_list
+      when: on_success
+    - when: never
+
+.zink-rules:
+  stage: layered-backends
+  rules:
+    - *ignore_scheduled_pipelines
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+        *lavapipe_file_list
+      when: on_success
+    - changes:
+      - src/gallium/drivers/zink/**/*
       when: on_success
     - when: never

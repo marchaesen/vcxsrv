@@ -1483,16 +1483,28 @@ UpdateTouchesForGrab(DeviceIntPtr mouse)
 
         if (ti->active &&
             CLIENT_BITS(listener->listener) == grab->resource) {
+            if (grab->grabtype == CORE || grab->grabtype == XI ||
+                !xi2mask_isset(grab->xi2mask, mouse, XI_TouchBegin)) {
+
+                if (listener->type == TOUCH_LISTENER_REGULAR &&
+                    listener->state != TOUCH_LISTENER_AWAITING_BEGIN &&
+                    listener->state != TOUCH_LISTENER_HAS_END) {
+                    /* if the listener already got any events relating to the touch, we must send
+                       a touch end because the grab overrides the previous listener and won't
+                       itself send any touch events.
+                    */
+                    TouchEmitTouchEnd(mouse, ti, 0, listener->listener);
+                }
+                listener->type = TOUCH_LISTENER_POINTER_GRAB;
+            } else {
+                listener->type = TOUCH_LISTENER_GRAB;
+            }
+
             listener->listener = grab->resource;
             listener->level = grab->grabtype;
-            listener->state = TOUCH_LISTENER_IS_OWNER;
             listener->window = grab->window;
+            listener->state = TOUCH_LISTENER_IS_OWNER;
 
-            if (grab->grabtype == CORE || grab->grabtype == XI ||
-                !xi2mask_isset(grab->xi2mask, mouse, XI_TouchBegin))
-                listener->type = TOUCH_LISTENER_POINTER_GRAB;
-            else
-                listener->type = TOUCH_LISTENER_GRAB;
             if (listener->grab)
                 FreeGrab(listener->grab);
             listener->grab = AllocGrab(grab);

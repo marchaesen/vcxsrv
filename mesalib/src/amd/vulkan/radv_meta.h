@@ -125,6 +125,9 @@ void radv_device_finish_meta_resolve_fragment_state(struct radv_device *device);
 VkResult radv_device_init_meta_fmask_expand_state(struct radv_device *device);
 void radv_device_finish_meta_fmask_expand_state(struct radv_device *device);
 
+VkResult radv_device_init_meta_dcc_retile_state(struct radv_device *device);
+void radv_device_finish_meta_dcc_retile_state(struct radv_device *device);
+
 void radv_meta_save(struct radv_meta_saved_state *saved_state,
 		    struct radv_cmd_buffer *cmd_buffer, uint32_t flags);
 
@@ -214,6 +217,7 @@ void radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 void radv_decompress_dcc(struct radv_cmd_buffer *cmd_buffer,
 			struct radv_image *image,
                         const VkImageSubresourceRange *subresourceRange);
+void radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image);
 void radv_expand_fmask_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 				     struct radv_image *image,
 				     const VkImageSubresourceRange *subresourceRange);

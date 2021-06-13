@@ -830,7 +830,7 @@ void r600_print_texture_info(struct r600_common_screen *rscreen,
 	/* Common parameters. */
 	u_log_printf(log, "  Info: npix_x=%u, npix_y=%u, npix_z=%u, blk_w=%u, "
 		"blk_h=%u, array_size=%u, last_level=%u, "
-		"bpe=%u, nsamples=%u, flags=0x%x, %s\n",
+		"bpe=%u, nsamples=%u, flags=0x%"PRIx64", %s\n",
 		rtex->resource.b.b.width0, rtex->resource.b.b.height0,
 		rtex->resource.b.b.depth0, rtex->surface.blk_w,
 		rtex->surface.blk_h,

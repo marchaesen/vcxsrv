@@ -9,14 +9,14 @@
     <enum name="DRAW_INDIRECT_BUFFER_BINDING"           value="0x8F43"/>
 
     <function name="DrawArraysIndirect" es2="3.1"
-              marshal="draw"
+              marshal="async"
               marshal_sync="_mesa_glthread_has_non_vbo_vertices_or_indirect(ctx)">
         <param name="mode" type="GLenum"/>
         <param name="indirect" type="const GLvoid *"/>
     </function>
 
     <function name="DrawElementsIndirect" es2="3.1"
-              marshal="draw"
+              marshal="async"
               marshal_sync="_mesa_glthread_has_non_vbo_vertices_or_indices_or_indirect(ctx)">
         <param name="mode" type="GLenum"/>
         <param name="type" type="GLenum"/>
@@ -28,7 +28,7 @@
 
 <category name="GL_ARB_multi_draw_indirect" number="133">
 
-    <function name="MultiDrawArraysIndirect" marshal="draw"
+    <function name="MultiDrawArraysIndirect" marshal="async"
               marshal_sync="_mesa_glthread_has_non_vbo_vertices_or_indirect(ctx)">
         <param name="mode" type="GLenum"/>
         <param name="indirect" type="const GLvoid *"/>
@@ -36,7 +36,7 @@
         <param name="stride" type="GLsizei"/>
     </function>
 
-    <function name="MultiDrawElementsIndirect" marshal="draw"
+    <function name="MultiDrawElementsIndirect" marshal="async"
               marshal_sync="_mesa_glthread_has_non_vbo_vertices_or_indices_or_indirect(ctx)">
         <param name="mode" type="GLenum"/>
         <param name="type" type="GLenum"/>

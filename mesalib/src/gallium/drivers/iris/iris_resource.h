@@ -26,6 +26,7 @@
 #include "pipe/p_state.h"
 #include "util/u_inlines.h"
 #include "util/u_range.h"
+#include "util/u_threaded_context.h"
 #include "intel/isl/isl.h"
 #include "iris_bufmgr.h"
 
@@ -50,7 +51,7 @@ struct iris_format_info {
  * They contain the storage (BO) and layout information (ISL surface).
  */
 struct iris_resource {
-   struct pipe_resource base;
+   struct threaded_resource base;
    enum pipe_format internal_format;
 
    /**
@@ -152,11 +153,6 @@ struct iris_resource {
        * aux state for each slice.
        */
       enum isl_aux_state **state;
-
-      /**
-       * If (1 << level) is set, HiZ is enabled for that miplevel.
-       */
-      uint16_t has_hiz;
    } aux;
 
    /**
@@ -266,7 +262,7 @@ struct iris_surface {
  * Transfer object - information about a buffer mapping.
  */
 struct iris_transfer {
-   struct pipe_transfer base;
+   struct threaded_transfer base;
    struct pipe_debug_callback *dbg;
    void *buffer;
    void *ptr;
@@ -296,7 +292,7 @@ iris_mocs(const struct iris_bo *bo,
           const struct isl_device *dev,
           isl_surf_usage_flags_t usage)
 {
-   return bo && bo->external ? dev->mocs.external : isl_mocs(dev, usage);
+   return isl_mocs(dev, usage, bo && bo->external);
 }
 
 struct iris_format_info iris_format_for_usage(const struct gen_device_info *,
@@ -315,6 +311,11 @@ union isl_color_value
 iris_resource_get_clear_color(const struct iris_resource *res,
                               struct iris_bo **clear_color_bo,
                               uint64_t *clear_color_offset);
+
+void iris_replace_buffer_storage(struct pipe_context *ctx,
+                                 struct pipe_resource *dst,
+                                 struct pipe_resource *src);
+
 
 void iris_init_screen_resource_functions(struct pipe_screen *pscreen);
 
@@ -502,10 +503,10 @@ bool iris_render_formats_color_compatible(enum isl_format a,
                                           union isl_color_value color);
 enum isl_aux_usage iris_resource_render_aux_usage(struct iris_context *ice,
                                                   struct iris_resource *res,
+                                                  uint32_t level,
                                                   enum isl_format render_fmt,
                                                   bool draw_aux_disabled);
 void iris_resource_prepare_render(struct iris_context *ice,
-                                  struct iris_batch *batch,
                                   struct iris_resource *res, uint32_t level,
                                   uint32_t start_layer, uint32_t layer_count,
                                   enum isl_aux_usage aux_usage);
@@ -513,12 +514,4 @@ void iris_resource_finish_render(struct iris_context *ice,
                                  struct iris_resource *res, uint32_t level,
                                  uint32_t start_layer, uint32_t layer_count,
                                  enum isl_aux_usage aux_usage);
-void iris_resource_prepare_depth(struct iris_context *ice,
-                                 struct iris_batch *batch,
-                                 struct iris_resource *res, uint32_t level,
-                                 uint32_t start_layer, uint32_t layer_count);
-void iris_resource_finish_depth(struct iris_context *ice,
-                                struct iris_resource *res, uint32_t level,
-                                uint32_t start_layer, uint32_t layer_count,
-                                bool depth_written);
 #endif

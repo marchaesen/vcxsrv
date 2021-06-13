@@ -78,8 +78,8 @@ build_resolve_compute_shader(struct radv_device *dev, bool is_integer, bool is_s
 						       "meta_resolve_cs-%d-%s",
 						       samples,
 						       is_integer ? "int" : (is_srgb ? "srgb" : "float"));
-	b.shader->info.cs.local_size[0] = 16;
-	b.shader->info.cs.local_size[1] = 16;
+	b.shader->info.cs.local_size[0] = 8;
+	b.shader->info.cs.local_size[1] = 8;
 	b.shader->info.cs.local_size[2] = 1;
 
 	nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform,
@@ -158,8 +158,8 @@ build_depth_stencil_resolve_compute_shader(struct radv_device *dev, int samples,
 						       "meta_resolve_cs_%s-%s-%d",
 						       index == DEPTH_RESOLVE ? "depth" : "stencil",
 						       get_resolve_mode_str(resolve_mode), samples);
-	b.shader->info.cs.local_size[0] = 16;
-	b.shader->info.cs.local_size[1] = 16;
+	b.shader->info.cs.local_size[0] = 8;
+	b.shader->info.cs.local_size[1] = 8;
 	b.shader->info.cs.local_size[2] = 1;
 
 	nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform,
@@ -187,7 +187,7 @@ build_depth_stencil_resolve_compute_shader(struct radv_device *dev, int samples,
 
 	nir_ssa_def *input_img_deref = &nir_build_deref_var(&b, input_img)->dest.ssa;
 
-	nir_alu_type type = index == DEPTH_RESOLVE ? nir_type_float : nir_type_uint;
+	nir_alu_type type = index == DEPTH_RESOLVE ? nir_type_float32 : nir_type_uint32;
 
 	nir_tex_instr *tex = nir_tex_instr_create(b.shader, 3);
 	tex->sampler_dim = GLSL_SAMPLER_DIM_MS;
@@ -325,7 +325,7 @@ create_resolve_pipeline(struct radv_device *device,
 			VkPipeline *pipeline)
 {
 	VkResult result;
-	struct radv_shader_module cs = { .nir = NULL };
+ 
 
 	mtx_lock(&device->meta_state.mtx);
 	if (*pipeline) {
@@ -333,14 +333,14 @@ create_resolve_pipeline(struct radv_device *device,
 		return VK_SUCCESS;
 	}
 
-	cs.nir = build_resolve_compute_shader(device, is_integer, is_srgb, samples);
+	nir_shader *cs = build_resolve_compute_shader(device, is_integer, is_srgb, samples);
 
 	/* compute shader */
 
 	VkPipelineShaderStageCreateInfo pipeline_shader_stage = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.stage = VK_SHADER_STAGE_COMPUTE_BIT,
-		.module = radv_shader_module_to_handle(&cs),
+		.module = vk_shader_module_handle_from_nir(cs),
 		.pName = "main",
 		.pSpecializationInfo = NULL,
 	};
@@ -359,11 +359,11 @@ create_resolve_pipeline(struct radv_device *device,
 	if (result != VK_SUCCESS)
 		goto fail;
 
-	ralloc_free(cs.nir);
+	ralloc_free(cs);
 	mtx_unlock(&device->meta_state.mtx);
 	return VK_SUCCESS;
 fail:
-	ralloc_free(cs.nir);
+	ralloc_free(cs);
 	mtx_unlock(&device->meta_state.mtx);
 	return result;
 }
@@ -376,7 +376,6 @@ create_depth_stencil_resolve_pipeline(struct radv_device *device,
 				      VkPipeline *pipeline)
 {
 	VkResult result;
-	struct radv_shader_module cs = { .nir = NULL };
 
 	mtx_lock(&device->meta_state.mtx);
 	if (*pipeline) {
@@ -384,14 +383,14 @@ create_depth_stencil_resolve_pipeline(struct radv_device *device,
 		return VK_SUCCESS;
 	}
 
-	cs.nir = build_depth_stencil_resolve_compute_shader(device, samples,
+	nir_shader *cs = build_depth_stencil_resolve_compute_shader(device, samples,
 							    index, resolve_mode);
 
 	/* compute shader */
 	VkPipelineShaderStageCreateInfo pipeline_shader_stage = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.stage = VK_SHADER_STAGE_COMPUTE_BIT,
-		.module = radv_shader_module_to_handle(&cs),
+		.module = vk_shader_module_handle_from_nir(cs),
 		.pName = "main",
 		.pSpecializationInfo = NULL,
 	};
@@ -410,11 +409,11 @@ create_depth_stencil_resolve_pipeline(struct radv_device *device,
 	if (result != VK_SUCCESS)
 		goto fail;
 
-	ralloc_free(cs.nir);
+	ralloc_free(cs);
 	mtx_unlock(&device->meta_state.mtx);
 	return VK_SUCCESS;
 fail:
-	ralloc_free(cs.nir);
+	ralloc_free(cs);
 	mtx_unlock(&device->meta_state.mtx);
 	return result;
 }
@@ -768,6 +767,30 @@ void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 	radv_decompress_resolve_src(cmd_buffer, src_image, src_image_layout,
 				    region);
 
+	/* For partial resolves, DCC should be decompressed before resolving
+	 * because the metadata is re-initialized to the uncompressed after.
+	 */
+	uint32_t queue_mask = radv_image_queue_family_mask(dest_image,
+	                                                   cmd_buffer->queue_family_index,
+	                                                   cmd_buffer->queue_family_index);
+
+	if (radv_layout_dcc_compressed(cmd_buffer->device, dest_image,
+				       dest_image_layout, false, queue_mask) &&
+	    (region->dstOffset.x ||
+	     region->dstOffset.y ||
+	     region->dstOffset.z ||
+	     region->extent.width != dest_image->info.width ||
+	     region->extent.height != dest_image->info.height ||
+	     region->extent.depth != dest_image->info.depth)) {
+		radv_decompress_dcc(cmd_buffer, dest_image, &(VkImageSubresourceRange) {
+					.aspectMask = region->dstSubresource.aspectMask,
+					.baseMipLevel = region->dstSubresource.mipLevel,
+					.levelCount = 1,
+					.baseArrayLayer = region->dstSubresource.baseArrayLayer,
+					.layerCount = region->dstSubresource.layerCount,
+				    });
+	}
+
 	radv_meta_save(&saved_state, cmd_buffer,
 		       RADV_META_SAVE_COMPUTE_PIPELINE |
 		       RADV_META_SAVE_CONSTANTS |
@@ -836,6 +859,23 @@ void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 	}
 
 	radv_meta_restore(&saved_state, cmd_buffer);
+
+	if (radv_layout_dcc_compressed(cmd_buffer->device, dest_image,
+				       dest_image_layout, false, queue_mask)) {
+
+		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
+			                        RADV_CMD_FLAG_INV_VCACHE;
+
+		VkImageSubresourceRange range = {
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = region->dstSubresource.mipLevel,
+			.levelCount = 1,
+			.baseArrayLayer = dest_base_layer,
+			.layerCount = region->dstSubresource.layerCount,
+		};
+
+		radv_initialize_dcc(cmd_buffer, dest_image, &range, 0xffffffff);
+	}
 }
 
 /**
@@ -857,7 +897,8 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 	 */
 	barrier.src_stage_mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	barrier.src_access_mask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	barrier.dst_access_mask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+	barrier.dst_access_mask = VK_ACCESS_SHADER_READ_BIT |
+	                          VK_ACCESS_SHADER_WRITE_BIT;
 	radv_subpass_barrier(cmd_buffer, &barrier);
 
 	for (uint32_t i = 0; i < subpass->color_count; ++i) {
@@ -872,7 +913,7 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 
 		VkImageResolve2KHR region = {
 			.sType = VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2_KHR,
-			.extent = (VkExtent3D){ fb->width, fb->height, 0 },
+			.extent = (VkExtent3D){ fb->width, fb->height, 1 },
 			.srcSubresource = (VkImageSubresourceLayers) {
 				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 				.mipLevel = src_iview->base_mip,
@@ -899,8 +940,10 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 						&region);
 	}
 
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-	                                RADV_CMD_FLAG_INV_VCACHE;
+	cmd_buffer->state.flush_bits |=
+		RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
+		RADV_CMD_FLAG_INV_VCACHE |
+		radv_src_access_flush(cmd_buffer, VK_ACCESS_SHADER_WRITE_BIT, NULL);
 }
 
 void
@@ -911,7 +954,6 @@ radv_depth_stencil_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_framebuffer *fb = cmd_buffer->state.framebuffer;
 	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
 	struct radv_meta_saved_state saved_state;
-	struct radv_subpass_barrier barrier;
 	uint32_t layer_count = fb->layers;
 
 	if (subpass->view_mask)
@@ -920,26 +962,32 @@ radv_depth_stencil_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer,
 	/* Resolves happen before the end-of-subpass barriers get executed, so
 	 * we have to make the attachment shader-readable.
 	 */
-	barrier.src_stage_mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	barrier.src_access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-	barrier.dst_access_mask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
-	radv_subpass_barrier(cmd_buffer, &barrier);
+	cmd_buffer->state.flush_bits |=
+		radv_src_access_flush(cmd_buffer, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, NULL) |
+		radv_dst_access_flush(cmd_buffer, VK_ACCESS_SHADER_READ_BIT, NULL) |
+		radv_dst_access_flush(cmd_buffer, VK_ACCESS_SHADER_WRITE_BIT, NULL);
 
-	radv_decompress_resolve_subpass_src(cmd_buffer);
+	struct radv_subpass_attachment src_att = *subpass->depth_stencil_attachment;
+	struct radv_image_view *src_iview =
+		cmd_buffer->state.attachments[src_att.attachment].iview;
+	struct radv_image *src_image = src_iview->image;
+
+	VkImageResolve2KHR region = {0};
+	region.sType = VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2_KHR;
+	region.srcSubresource.aspectMask = aspects;
+	region.srcSubresource.mipLevel = 0;
+	region.srcSubresource.baseArrayLayer = src_iview->base_layer;
+	region.srcSubresource.layerCount = layer_count;
+
+	radv_decompress_resolve_src(cmd_buffer, src_image, src_att.layout, &region);
 
 	radv_meta_save(&saved_state, cmd_buffer,
 		       RADV_META_SAVE_COMPUTE_PIPELINE |
 		       RADV_META_SAVE_DESCRIPTORS);
 
-	struct radv_subpass_attachment src_att = *subpass->depth_stencil_attachment;
 	struct radv_subpass_attachment dest_att = *subpass->ds_resolve_attachment;
-
-	struct radv_image_view *src_iview =
-		cmd_buffer->state.attachments[src_att.attachment].iview;
 	struct radv_image_view *dst_iview =
 		cmd_buffer->state.attachments[dest_att.attachment].iview;
-
-	struct radv_image *src_image = src_iview->image;
 	struct radv_image *dst_image = dst_iview->image;
 
 	struct radv_image_view tsrc_iview;
@@ -978,33 +1026,31 @@ radv_depth_stencil_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer,
 				   &(VkExtent3D) { fb->width, fb->height, layer_count },
 				   aspects, resolve_mode);
 
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-	                                RADV_CMD_FLAG_INV_VCACHE;
+	cmd_buffer->state.flush_bits |=
+		RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
+		RADV_CMD_FLAG_INV_VCACHE |
+		radv_src_access_flush(cmd_buffer, VK_ACCESS_SHADER_WRITE_BIT, NULL);
 
-	if (radv_image_has_htile(dst_image)) {
-		if (aspects == VK_IMAGE_ASPECT_DEPTH_BIT) {
-			VkImageSubresourceRange range = {0};
-			range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-			range.baseMipLevel = dst_iview->base_mip;
-			range.levelCount = 1;
-			range.baseArrayLayer = dst_iview->base_layer;
-			range.layerCount = layer_count;
+	VkImageLayout layout =
+		cmd_buffer->state.attachments[dest_att.attachment].current_layout;
+	uint32_t queue_mask = radv_image_queue_family_mask(dst_image,
+							   cmd_buffer->queue_family_index,
+							   cmd_buffer->queue_family_index);
 
-			uint32_t clear_value = 0xfffc000f;
+	if (radv_layout_is_htile_compressed(cmd_buffer->device, dst_image,
+					    layout, false, queue_mask)) {
+		VkImageSubresourceRange range = {0};
+		range.aspectMask = aspects;
+		range.baseMipLevel = dst_iview->base_mip;
+		range.levelCount = 1;
+		range.baseArrayLayer = dst_iview->base_layer;
+		range.layerCount = layer_count;
 
-			if (vk_format_is_stencil(dst_image->vk_format) &&
-			    subpass->stencil_resolve_mode != VK_RESOLVE_MODE_NONE_KHR) {
-				/* Only clear the stencil part of the HTILE
-				 * buffer if it's resolved, otherwise this
-				 * might break if the stencil has been cleared.
-				 */
-				clear_value = 0xfffff30f;
-			}
+		uint32_t htile_value =
+			radv_get_htile_initial_value(cmd_buffer->device, dst_image);
 
-			cmd_buffer->state.flush_bits |=
-				radv_clear_htile(cmd_buffer, dst_image, &range,
-						 clear_value);
-		}
+		cmd_buffer->state.flush_bits |=
+			radv_clear_htile(cmd_buffer, dst_image, &range, htile_value);
 	}
 
 	radv_meta_restore(&saved_state, cmd_buffer);

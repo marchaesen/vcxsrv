@@ -1,4 +1,5 @@
 /*
+ * Copyright © 2016 Intel Corporation
  * Copyright © 2019 Google LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -29,5 +30,35 @@
 
 enum pipe_format
 vk_format_to_pipe_format(enum VkFormat vkformat);
+
+VkImageAspectFlags
+vk_format_aspects(VkFormat format);
+
+static inline bool
+vk_format_is_color(VkFormat format)
+{
+   return vk_format_aspects(format) == VK_IMAGE_ASPECT_COLOR_BIT;
+}
+
+static inline bool
+vk_format_is_depth_or_stencil(VkFormat format)
+{
+   const VkImageAspectFlags aspects = vk_format_aspects(format);
+   return aspects & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+}
+
+static inline bool
+vk_format_has_depth(VkFormat format)
+{
+   const VkImageAspectFlags aspects = vk_format_aspects(format);
+   return aspects & VK_IMAGE_ASPECT_DEPTH_BIT;
+}
+
+static inline bool
+vk_format_has_stencil(VkFormat format)
+{
+   const VkImageAspectFlags aspects = vk_format_aspects(format);
+   return aspects & VK_IMAGE_ASPECT_STENCIL_BIT;
+}
 
 #endif

@@ -32,6 +32,7 @@
 #include <stdlib.h>
 
 struct hash_table;
+struct set;
 
 struct spirv_buffer {
    uint32_t *words;
@@ -41,7 +42,8 @@ struct spirv_buffer {
 struct spirv_builder {
    void *mem_ctx;
 
-   struct spirv_buffer capabilities;
+   struct set *caps;
+
    struct spirv_buffer extensions;
    struct spirv_buffer imports;
    struct spirv_buffer memory_model;
@@ -88,6 +90,9 @@ spirv_builder_emit_decoration(struct spirv_builder *b, SpvId target,
                               SpvDecoration decoration);
 
 void
+spirv_builder_emit_specid(struct spirv_builder *b, SpvId target, uint32_t id);
+
+void
 spirv_builder_emit_location(struct spirv_builder *b, SpvId target,
                             uint32_t location);
 
@@ -101,6 +106,9 @@ spirv_builder_emit_builtin(struct spirv_builder *b, SpvId target,
 
 void
 spirv_builder_emit_index(struct spirv_builder *b, SpvId target, int index);
+
+void
+spirv_builder_emit_stream(struct spirv_builder *b, SpvId target, int stream);
 
 void
 spirv_builder_emit_descriptor_set(struct spirv_builder *b, SpvId target,
@@ -139,6 +147,9 @@ void
 spirv_builder_emit_exec_mode_literal(struct spirv_builder *b, SpvId entry_point,
                                      SpvExecutionMode exec_mode, uint32_t param);
 void
+spirv_builder_emit_exec_mode_literal3(struct spirv_builder *b, SpvId entry_point,
+                                     SpvExecutionMode exec_mode, uint32_t param[3]);
+void
 spirv_builder_emit_exec_mode(struct spirv_builder *b, SpvId entry_point,
                              SpvExecutionMode exec_mode);
 
@@ -165,6 +176,10 @@ spirv_builder_emit_load(struct spirv_builder *b, SpvId result_type,
                         SpvId pointer);
 
 void
+spirv_builder_emit_atomic_store(struct spirv_builder *b, SpvId pointer, SpvScope scope,
+                                SpvMemorySemanticsMask semantics, SpvId object);
+
+void
 spirv_builder_emit_store(struct spirv_builder *b, SpvId pointer, SpvId object);
 
 SpvId
@@ -187,6 +202,11 @@ spirv_builder_emit_triop(struct spirv_builder *b, SpvOp op, SpvId result_type,
 SpvId
 spirv_builder_emit_quadop(struct spirv_builder *b, SpvOp op, SpvId result_type,
                          SpvId operand0, SpvId operand1, SpvId operand2, SpvId operand3);
+
+SpvId
+spirv_builder_emit_hexop(struct spirv_builder *b, SpvOp op, SpvId result_type,
+                         SpvId operand0, SpvId operand1, SpvId operand2, SpvId operand3,
+                         SpvId operand4, SpvId operand5);
 
 SpvId
 spirv_builder_emit_composite_extract(struct spirv_builder *b, SpvId result_type,
@@ -239,6 +259,8 @@ spirv_builder_set_phi_operand(struct spirv_builder *b, size_t position,
 void
 spirv_builder_emit_kill(struct spirv_builder *b);
 
+SpvId
+spirv_builder_emit_vote(struct spirv_builder *b, SpvOp op, SpvId src);
 
 SpvId
 spirv_builder_emit_image_sample(struct spirv_builder *b,
@@ -251,6 +273,7 @@ spirv_builder_emit_image_sample(struct spirv_builder *b,
                                 SpvId dref,
                                 SpvId dx,
                                 SpvId dy,
+                                SpvId const_offset,
                                 SpvId offset);
 
 SpvId
@@ -258,18 +281,61 @@ spirv_builder_emit_image(struct spirv_builder *b, SpvId result_type,
                          SpvId sampled_image);
 
 SpvId
+spirv_builder_emit_image_texel_pointer(struct spirv_builder *b,
+                                       SpvId result_type,
+                                       SpvId image,
+                                       SpvId coordinate,
+                                       SpvId sample);
+
+SpvId
+spirv_builder_emit_image_read(struct spirv_builder *b,
+                              SpvId result_type,
+                              SpvId image,
+                              SpvId coordinate,
+                              SpvId lod,
+                              SpvId sample,
+                              SpvId offset);
+
+void
+spirv_builder_emit_image_write(struct spirv_builder *b,
+                               SpvId image,
+                               SpvId coordinate,
+                               SpvId texel,
+                               SpvId lod,
+                               SpvId sample,
+                               SpvId offset);
+
+SpvId
 spirv_builder_emit_image_fetch(struct spirv_builder *b,
                                SpvId result_type,
                                SpvId image,
                                SpvId coordinate,
                                SpvId lod,
-                               SpvId sample);
+                               SpvId sample,
+                               SpvId const_offset,
+                               SpvId offset);
+SpvId
+spirv_builder_emit_image_gather(struct spirv_builder *b,
+                               SpvId result_type,
+                               SpvId image,
+                               SpvId coordinate,
+                               SpvId component,
+                               SpvId lod,
+                               SpvId sample,
+                               SpvId const_offset,
+                               SpvId offset,
+                               SpvId dref);
 
 SpvId
 spirv_builder_emit_image_query_size(struct spirv_builder *b,
                                     SpvId result_type,
                                     SpvId image,
                                     SpvId lod);
+
+SpvId
+spirv_builder_emit_image_query_levels(struct spirv_builder *b,
+                                    SpvId result_type,
+                                    SpvId image);
 
 SpvId
 spirv_builder_emit_image_query_lod(struct spirv_builder *b,
@@ -318,6 +384,9 @@ spirv_builder_type_matrix(struct spirv_builder *b, SpvId component_type,
                           unsigned component_count);
 
 SpvId
+spirv_builder_type_runtime_array(struct spirv_builder *b, SpvId component_type);
+
+SpvId
 spirv_builder_type_array(struct spirv_builder *b, SpvId component_type,
                          SpvId length);
 
@@ -340,12 +409,20 @@ SpvId
 spirv_builder_const_uint(struct spirv_builder *b, int width, uint64_t val);
 
 SpvId
+spirv_builder_spec_const_uint(struct spirv_builder *b, int width);
+
+SpvId
 spirv_builder_const_float(struct spirv_builder *b, int width, double val);
 
 SpvId
 spirv_builder_const_composite(struct spirv_builder *b, SpvId result_type,
                               const SpvId constituents[],
                               size_t num_constituents);
+
+SpvId
+spirv_builder_spec_const_composite(struct spirv_builder *b, SpvId result_type,
+                                   const SpvId constituents[],
+                                   size_t num_constituents);
 
 SpvId
 spirv_builder_emit_var(struct spirv_builder *b, SpvId type,
@@ -368,7 +445,7 @@ spirv_builder_get_words(struct spirv_builder *b, uint32_t *words,
                         size_t num_words);
 
 void
-spirv_builder_emit_vertex(struct spirv_builder *b);
+spirv_builder_emit_vertex(struct spirv_builder *b, uint32_t stream);
 void
-spirv_builder_end_primitive(struct spirv_builder *b);
+spirv_builder_end_primitive(struct spirv_builder *b, uint32_t stream);
 #endif

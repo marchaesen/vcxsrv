@@ -164,7 +164,7 @@ replace_intrinsic(nir_builder *b, nir_intrinsic_instr *intr,
 	nir_builder_instr_insert(b, &new_intr->instr);
 
 	if (nir_intrinsic_infos[op].has_dest)
-		nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(&new_intr->dest.ssa));
+		nir_ssa_def_rewrite_uses(&intr->dest.ssa, &new_intr->dest.ssa);
 
 	nir_instr_remove(&intr->instr);
 
@@ -253,14 +253,8 @@ lower_block_to_explicit_output(nir_block *block, nir_builder *b, struct state *s
 					nir_intrinsic_io_semantics(intr).location,
 					nir_intrinsic_component(intr),
 					intr->src[1].ssa);
-			nir_intrinsic_instr *store =
-				nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_shared_ir3);
 
-			store->src[0] = nir_src_for_ssa(intr->src[0].ssa);
-			store->src[1] = nir_src_for_ssa(offset);
-			store->num_components = intr->num_components;
-
-			nir_builder_instr_insert(b, &store->instr);
+			nir_store_shared_ir3(b, intr->src[0].ssa, offset);
 			break;
 		}
 
@@ -336,7 +330,7 @@ lower_block_to_explicit_input(nir_block *block, nir_builder *b, struct state *st
 			b->cursor = nir_before_instr(&intr->instr);
 
 			nir_ssa_def *iid = build_invocation_id(b, state);
-			nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(iid));
+			nir_ssa_def_rewrite_uses(&intr->dest.ssa, iid);
 			nir_instr_remove(&intr->instr);
 			break;
 		}
@@ -644,9 +638,7 @@ emit_tess_epilouge(nir_builder *b, struct state *state)
 	 * TODO we should re-work this to use normal flow control.
 	 */
 
-	nir_intrinsic_instr *end_patch =
-		nir_intrinsic_instr_create(b->shader, nir_intrinsic_end_patch_ir3);
-	nir_builder_instr_insert(b, &end_patch->instr);
+	nir_end_patch_ir3(b);
 }
 
 void
@@ -705,10 +697,7 @@ ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader_variant *v,
 
 	/* Insert conditional exit for threads invocation id != 0 */
 	nir_ssa_def *iid0_cond = nir_ieq_imm(&b, iid, 0);
-	nir_intrinsic_instr *cond_end =
-		nir_intrinsic_instr_create(shader, nir_intrinsic_cond_end_ir3);
-	cond_end->src[0] = nir_src_for_ssa(iid0_cond);
-	nir_builder_instr_insert(&b, &cond_end->instr);
+	nir_cond_end_ir3(&b, iid0_cond);
 
 	emit_tess_epilouge(&b, &state);
 
@@ -742,7 +731,7 @@ lower_tess_eval_block(nir_block *block, nir_builder *b, struct state *state)
 			nir_ssa_def *coord = nir_vec3(b, x, y, z);
 
 			nir_ssa_def_rewrite_uses_after(&intr->dest.ssa,
-					nir_src_for_ssa(coord),
+					coord,
 					b->cursor.instr);
 			break;
 		}
@@ -971,14 +960,9 @@ ir3_nir_lower_gs(nir_shader *shader)
 		struct nir_block *block = (void *)block_entry->key;
 		b.cursor = nir_after_block_before_jump(block);
 
-		nir_intrinsic_instr *discard_if =
-			nir_intrinsic_instr_create(b.shader, nir_intrinsic_discard_if);
-
 		nir_ssa_def *cond = nir_ieq_imm(&b, nir_load_var(&b, state.emitted_vertex_var), 0);
 
-		discard_if->src[0] = nir_src_for_ssa(cond);
-
-		nir_builder_instr_insert(&b, &discard_if->instr);
+		nir_discard_if(&b, cond);
 
 		foreach_two_lists(dest_node, &state.new_outputs, src_node, &state.emit_outputs) {
 			nir_variable *dest = exec_node_data(nir_variable, dest_node, node);

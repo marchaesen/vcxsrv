@@ -38,7 +38,6 @@
 struct fd5_sampler_stateobj {
 	struct pipe_sampler_state base;
 	uint32_t texsamp0, texsamp1, texsamp2, texsamp3;
-	bool saturate_s, saturate_t, saturate_r;
 	bool needs_border;
 };
 

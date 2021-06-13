@@ -75,6 +75,8 @@ struct xwl_seat {
     uint32_t pointer_enter_serial;
     struct xorg_list link;
     CursorPtr x_cursor;
+    OsTimerPtr x_cursor_timer;
+    CursorPtr pending_x_cursor;
     struct xwl_cursor cursor;
     WindowPtr last_xwindow;
 

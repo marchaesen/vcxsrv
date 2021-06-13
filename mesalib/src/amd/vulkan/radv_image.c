@@ -38,6 +38,13 @@
 
 #include "gfx10_format_table.h"
 
+
+static const VkImageUsageFlagBits RADV_IMAGE_USAGE_WRITE_BITS =
+	VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+	VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+	VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+	VK_IMAGE_USAGE_STORAGE_BIT;
+
 static unsigned
 radv_choose_tiling(struct radv_device *device,
 		   const VkImageCreateInfo *pCreateInfo,
@@ -82,9 +89,6 @@ radv_use_tc_compat_htile_for_image(struct radv_device *device,
 	if (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR)
 		return false;
 
-	if (pCreateInfo->mipLevels > 1)
-		return false;
-
 	/* Do not enable TC-compatible HTILE if the image isn't readable by a
 	 * shader because no texture fetches will happen.
 	 */
@@ -93,20 +97,23 @@ radv_use_tc_compat_htile_for_image(struct radv_device *device,
 				    VK_IMAGE_USAGE_TRANSFER_SRC_BIT)))
 		return false;
 
-	/* FIXME: for some reason TC compat with 2/4/8 samples breaks some cts
-	 * tests - disable for now.
-	 */
-	if (pCreateInfo->samples >= 2 && format == VK_FORMAT_D32_SFLOAT_S8_UINT)
-		return false;
+	if (device->physical_device->rad_info.chip_class < GFX9) {
+		/* TC-compat HTILE for MSAA depth/stencil images is broken
+		 * on GFX8 because the tiling doesn't match.
+		 */
+		if (pCreateInfo->samples >= 2 && format == VK_FORMAT_D32_SFLOAT_S8_UINT)
+			return false;
 
-	/* GFX9 supports both 32-bit and 16-bit depth surfaces, while GFX8 only
-	 * supports 32-bit. Though, it's possible to enable TC-compat for
-	 * 16-bit depth surfaces if no Z planes are compressed.
-	 */
-	if (format != VK_FORMAT_D32_SFLOAT_S8_UINT &&
-	    format != VK_FORMAT_D32_SFLOAT &&
-	    format != VK_FORMAT_D16_UNORM)
-		return false;
+		/* GFX9+ supports compression for both 32-bit and 16-bit depth
+		 * surfaces, while GFX8 only supports 32-bit natively. Though,
+		 * the driver allows TC-compat HTILE for 16-bit depth surfaces
+		 * with no Z planes compression.
+		 */
+		if (format != VK_FORMAT_D32_SFLOAT_S8_UINT &&
+		    format != VK_FORMAT_D32_SFLOAT &&
+		    format != VK_FORMAT_D16_UNORM)
+			return false;
+	}
 
 	return true;
 }
@@ -145,65 +152,21 @@ radv_image_use_fast_clear_for_image(const struct radv_device *device,
 	       (image->exclusive || image->queue_family_mask == 1);
 }
 
-static bool
-radv_use_dcc_for_image(struct radv_device *device,
-		       const struct radv_image *image,
-		       const VkImageCreateInfo *pCreateInfo,
-		       VkFormat format)
+bool
+radv_are_formats_dcc_compatible(const struct radv_physical_device *pdev,
+                                const void *pNext, VkFormat format,
+                                VkImageCreateFlags flags)
 {
-	bool dcc_compatible_formats;
 	bool blendable;
 
-	/* DCC (Delta Color Compression) is only available for GFX8+. */
-	if (device->physical_device->rad_info.chip_class < GFX8)
+	if (!radv_is_colorbuffer_format_supported(pdev,
+	                                          format, &blendable))
 		return false;
 
-	if (device->instance->debug_flags & RADV_DEBUG_NO_DCC)
-		return false;
-
-	if (image->shareable)
-		return false;
-
-	/* TODO: Enable DCC for storage images. */
-	if ((pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT))
-		return false;
-
-	if (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR)
-		return false;
-
-	if (vk_format_is_subsampled(format) ||
-	    vk_format_get_plane_count(format) > 1)
-		return false;
-
-	if (!radv_image_use_fast_clear_for_image(device, image))
-		return false;
-
-	/* TODO: Enable DCC for mipmaps on GFX9+. */
-	if ((pCreateInfo->arrayLayers > 1 || pCreateInfo->mipLevels > 1) &&
-	    device->physical_device->rad_info.chip_class >= GFX9)
-		return false;
-
-	/* Do not enable DCC for mipmapped arrays because performance is worse. */
-	if (pCreateInfo->arrayLayers > 1 && pCreateInfo->mipLevels > 1)
-		return false;
-
-	/* FIXME: DCC for MSAA with 4x and 8x samples doesn't work yet, while
-	 * 2x can be enabled with an option.
-	 */
-	if (pCreateInfo->samples > 2 ||
-	    (pCreateInfo->samples == 2 &&
-	     !device->physical_device->dcc_msaa_allowed))
-		return false;
-
-	/* Determine if the formats are DCC compatible. */
-	dcc_compatible_formats =
-		radv_is_colorbuffer_format_supported(device->physical_device,
-						     format, &blendable);
-
-	if (pCreateInfo->flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) {
+	if (flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) {
 		const struct VkImageFormatListCreateInfo *format_list =
 			(const struct  VkImageFormatListCreateInfo *)
-				vk_find_struct_const(pCreateInfo->pNext,
+				vk_find_struct_const(pNext,
 						     IMAGE_FORMAT_LIST_CREATE_INFO);
 
 		/* We have to ignore the existence of the list if viewFormatCount = 0 */
@@ -216,17 +179,134 @@ radv_use_dcc_for_image(struct radv_device *device,
 
 				if (!radv_dcc_formats_compatible(format,
 				                                 format_list->pViewFormats[i]))
-					dcc_compatible_formats = false;
+					return false;
 			}
 		} else {
-			dcc_compatible_formats = false;
+			return false;
 		}
 	}
 
-	if (!dcc_compatible_formats)
+	return true;
+}
+
+static bool
+radv_formats_is_atomic_allowed(const void *pNext, VkFormat format,
+                               VkImageCreateFlags flags)
+{
+	if (radv_is_atomic_format_supported(format))
+		return true;
+
+	if (flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) {
+		const struct VkImageFormatListCreateInfo *format_list =
+			(const struct  VkImageFormatListCreateInfo *)
+				vk_find_struct_const(pNext,
+						     IMAGE_FORMAT_LIST_CREATE_INFO);
+
+		/* We have to ignore the existence of the list if viewFormatCount = 0 */
+		if (format_list && format_list->viewFormatCount) {
+			for (unsigned i = 0; i < format_list->viewFormatCount; ++i) {
+				if (radv_is_atomic_format_supported(format_list->pViewFormats[i]))
+					return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+static bool
+radv_use_dcc_for_image(struct radv_device *device,
+		       const struct radv_image *image,
+		       const VkImageCreateInfo *pCreateInfo,
+		       VkFormat format)
+{
+	/* DCC (Delta Color Compression) is only available for GFX8+. */
+	if (device->physical_device->rad_info.chip_class < GFX8)
 		return false;
 
-	return true;
+	if (device->instance->debug_flags & RADV_DEBUG_NO_DCC)
+		return false;
+
+	if (image->shareable && image->tiling != VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT)
+		return false;
+
+	/*
+	 * TODO: Enable DCC for storage images on GFX9 and earlier.
+	 *
+	 * Also disable DCC with atomics because even when DCC stores are
+	 * supported atomics will always decompress. So if we are
+	 * decompressing a lot anyway we might as well not have DCC.
+	 */
+	if ((pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT) &&
+	    (!radv_image_use_dcc_image_stores(device, image) ||
+	     radv_formats_is_atomic_allowed(pCreateInfo->pNext, format, pCreateInfo->flags)))
+		return false;
+
+	if (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR)
+		return false;
+
+	if (vk_format_is_subsampled(format) ||
+	    vk_format_get_plane_count(format) > 1)
+		return false;
+
+	if (!radv_image_use_fast_clear_for_image(device, image) &&
+	    image->tiling != VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT)
+		return false;
+
+	/* Do not enable DCC for mipmapped arrays because performance is worse. */
+	if (pCreateInfo->arrayLayers > 1 && pCreateInfo->mipLevels > 1)
+		return false;
+
+	if (device->physical_device->rad_info.chip_class < GFX10) {
+		/* TODO: Add support for DCC MSAA on GFX8-9. */
+		if (pCreateInfo->samples > 1 &&
+		    !device->physical_device->dcc_msaa_allowed)
+			return false;
+
+		/* TODO: Add support for DCC layers/mipmaps on GFX9. */
+		if ((pCreateInfo->arrayLayers > 1 || pCreateInfo->mipLevels > 1) &&
+		     device->physical_device->rad_info.chip_class == GFX9)
+			return false;
+	}
+
+	return radv_are_formats_dcc_compatible(device->physical_device,
+	                                       pCreateInfo->pNext, format,
+	                                       pCreateInfo->flags);
+}
+
+/*
+ * Whether to enable image stores with DCC compression for this image. If
+ * this function returns false the image subresource should be decompressed
+ * before using it with image stores.
+ *
+ * Note that this can have mixed performance implications, see
+ * https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/6796#note_643299
+ *
+ * This function assumes the image uses DCC compression.
+ */
+bool radv_image_use_dcc_image_stores(const struct radv_device *device,
+				     const struct radv_image *image)
+{
+	/*
+	 * TODO: Enable on more HW. DIMGREY and VANGOGH need a workaround and
+	 * we need more perf analysis.
+	 * https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/6796#note_643853
+	 *
+	 * DCC with MSAA > 2 samples results in CTS failures (some of dEQP-VK.pipeline.multisample.storage_image.*).
+	 */
+	return device->physical_device->rad_info.chip_class == GFX10 && image->info.samples <= 2;
+}
+
+/*
+ * Whether to use a predicate to determine whether DCC is in a compressed
+ * state. This can be used to avoid decompressing an image multiple times.
+ *
+ * This function assumes the image uses DCC compression.
+ */
+bool radv_image_use_dcc_predication(const struct radv_device *device,
+				    const struct radv_image *image)
+{
+	return !radv_image_use_dcc_image_stores(device, image);
 }
 
 static inline bool
@@ -242,8 +322,15 @@ static inline bool
 radv_use_htile_for_image(const struct radv_device *device,
                          const struct radv_image *image)
 {
-	return image->info.levels == 1 &&
-	       !image->shareable &&
+	/* TODO:
+	 * - Investigate about mips+layers.
+	 * - Enable on other gens.
+	 */
+	bool use_htile_for_mips = image->info.array_size == 1 &&
+				  device->physical_device->rad_info.chip_class >= GFX10;
+
+	return (image->info.levels == 1 || use_htile_for_mips) &&
+		!image->shareable &&
 	       ((image->info.width * image->info.height >= 8 * 8) ||
 	        (device->instance->debug_flags & RADV_DEBUG_FORCE_COMPRESS));
 }
@@ -252,20 +339,31 @@ static bool
 radv_use_tc_compat_cmask_for_image(struct radv_device *device,
 				   struct radv_image *image)
 {
-	if (!(device->instance->perftest_flags & RADV_PERFTEST_TC_COMPAT_CMASK))
-		return false;
-
 	/* TC-compat CMASK is only available for GFX8+. */
 	if (device->physical_device->rad_info.chip_class < GFX8)
+		return false;
+
+	if (device->instance->debug_flags & RADV_DEBUG_NO_TC_COMPAT_CMASK)
+		return false;
+
+	/* TODO: Enable TC-compat CMASK on GFX8-9. */
+	if (device->physical_device->rad_info.chip_class < GFX10 &&
+	    !(device->instance->perftest_flags & RADV_PERFTEST_TC_COMPAT_CMASK))
 		return false;
 
 	if (image->usage & VK_IMAGE_USAGE_STORAGE_BIT)
 		return false;
 
-	if (radv_image_has_dcc(image))
+	/* Do not enable TC-compatible if the image isn't readable by a shader
+	 * because no texture fetches will happen.
+	 */
+	if (!(image->usage & (VK_IMAGE_USAGE_SAMPLED_BIT |
+			      VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+			      VK_IMAGE_USAGE_TRANSFER_SRC_BIT)))
 		return false;
 
-	if (!radv_image_has_cmask(image))
+	/* If the image doesn't have FMASK, it can't be fetchable. */
+	if (!radv_image_has_fmask(image))
 		return false;
 
 	return true;
@@ -403,7 +501,8 @@ radv_patch_image_from_extra_info(struct radv_device *device,
 
 		if (radv_surface_has_scanout(device, create_info)) {
 			image->planes[plane].surface.flags |= RADEON_SURF_SCANOUT;
-			image->planes[plane].surface.flags |= RADEON_SURF_DISABLE_DCC;
+			if (device->instance->debug_flags & RADV_DEBUG_NO_DISPLAY_DCC)
+				image->planes[plane].surface.flags |= RADEON_SURF_DISABLE_DCC;
 
 			image->info.surf_index = NULL;
 		}
@@ -411,21 +510,21 @@ radv_patch_image_from_extra_info(struct radv_device *device,
 	return VK_SUCCESS;
 }
 
-static uint32_t
+static uint64_t
 radv_get_surface_flags(struct radv_device *device,
                        const struct radv_image *image,
                        unsigned plane_id,
                        const VkImageCreateInfo *pCreateInfo,
                        VkFormat image_format)
 {
-	uint32_t flags;
+	uint64_t flags;
 	unsigned array_mode = radv_choose_tiling(device, pCreateInfo, image_format);
 	VkFormat format = vk_format_get_plane_format(image_format, plane_id);
-	const struct vk_format_description *desc = vk_format_description(format);
+	const struct util_format_description *desc = vk_format_description(format);
 	bool is_depth, is_stencil;
 
-	is_depth = vk_format_has_depth(desc);
-	is_stencil = vk_format_has_stencil(desc);
+	is_depth = util_format_has_depth(desc);
+	is_stencil = util_format_has_stencil(desc);
 
 	flags = RADEON_SURF_SET(array_mode, MODE);
 
@@ -454,11 +553,14 @@ radv_get_surface_flags(struct radv_device *device,
 
 	if (is_depth) {
 		flags |= RADEON_SURF_ZBUFFER;
-		if (!radv_use_htile_for_image(device, image) ||
-		    (device->instance->debug_flags & RADV_DEBUG_NO_HIZ))
+
+		if (radv_use_htile_for_image(device, image) &&
+		    !(device->instance->debug_flags & RADV_DEBUG_NO_HIZ)) {
+			if (radv_use_tc_compat_htile_for_image(device, pCreateInfo, image_format))
+				flags |= RADEON_SURF_TC_COMPATIBLE_HTILE;
+		} else {
 			flags |= RADEON_SURF_NO_HTILE;
-		if (radv_use_tc_compat_htile_for_image(device, pCreateInfo, image_format))
-			flags |= RADEON_SURF_TC_COMPATIBLE_HTILE;
+		}
 	}
 
 	if (is_stencil)
@@ -476,6 +578,13 @@ radv_get_surface_flags(struct radv_device *device,
 	if (!radv_use_fmask_for_image(device, image))
 		flags |= RADEON_SURF_NO_FMASK;
 
+	if (pCreateInfo->flags & VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT) {
+		flags |= RADEON_SURF_PRT |
+		         RADEON_SURF_NO_FMASK |
+		         RADEON_SURF_NO_HTILE |
+		         RADEON_SURF_DISABLE_DCC;
+	}
+
 	return flags;
 }
 
@@ -491,26 +600,26 @@ si_tile_mode_index(const struct radv_image_plane *plane, unsigned level, bool st
 static unsigned radv_map_swizzle(unsigned swizzle)
 {
 	switch (swizzle) {
-	case VK_SWIZZLE_Y:
+	case PIPE_SWIZZLE_Y:
 		return V_008F0C_SQ_SEL_Y;
-	case VK_SWIZZLE_Z:
+	case PIPE_SWIZZLE_Z:
 		return V_008F0C_SQ_SEL_Z;
-	case VK_SWIZZLE_W:
+	case PIPE_SWIZZLE_W:
 		return V_008F0C_SQ_SEL_W;
-	case VK_SWIZZLE_0:
+	case PIPE_SWIZZLE_0:
 		return V_008F0C_SQ_SEL_0;
-	case VK_SWIZZLE_1:
+	case PIPE_SWIZZLE_1:
 		return V_008F0C_SQ_SEL_1;
-	default: /* VK_SWIZZLE_X */
+	default: /* PIPE_SWIZZLE_X */
 		return V_008F0C_SQ_SEL_X;
 	}
 }
 
 static void
-radv_compose_swizzle(const struct vk_format_description *desc,
-		     const VkComponentMapping *mapping, enum vk_swizzle swizzle[4])
+radv_compose_swizzle(const struct util_format_description *desc,
+		     const VkComponentMapping *mapping, enum pipe_swizzle swizzle[4])
 {
-	if (desc->format == VK_FORMAT_R64_UINT || desc->format == VK_FORMAT_R64_SINT) {
+	if (desc->format == PIPE_FORMAT_R64_UINT || desc->format == PIPE_FORMAT_R64_SINT) {
 		/* 64-bit formats only support storage images and storage images
 		 * require identity component mappings. We use 32-bit
 		 * instructions to access 64-bit images, so we need a special
@@ -520,15 +629,17 @@ radv_compose_swizzle(const struct vk_format_description *desc,
 		 * by loads to create the w component, which has to be 0 for
 		 * NULL descriptors.
 		 */
-		swizzle[0] = VK_SWIZZLE_X;
-		swizzle[1] = VK_SWIZZLE_Y;
-		swizzle[2] = VK_SWIZZLE_1;
-		swizzle[3] = VK_SWIZZLE_0;
+		swizzle[0] = PIPE_SWIZZLE_X;
+		swizzle[1] = PIPE_SWIZZLE_Y;
+		swizzle[2] = PIPE_SWIZZLE_1;
+		swizzle[3] = PIPE_SWIZZLE_0;
 	} else if (!mapping) {
 		for (unsigned i = 0; i < 4; i++)
 			swizzle[i] = desc->swizzle[i];
-	} else if (desc->colorspace == VK_FORMAT_COLORSPACE_ZS) {
-		const unsigned char swizzle_xxxx[4] = {0, 0, 0, 0};
+	} else if (desc->colorspace == UTIL_FORMAT_COLORSPACE_ZS) {
+		const unsigned char swizzle_xxxx[4] = {
+			PIPE_SWIZZLE_X, PIPE_SWIZZLE_0, PIPE_SWIZZLE_0, PIPE_SWIZZLE_1
+		};
 		vk_format_compose_swizzles(mapping, swizzle_xxxx, swizzle);
 	} else {
 		vk_format_compose_swizzles(mapping, desc->swizzle, swizzle);
@@ -543,13 +654,13 @@ radv_make_buffer_descriptor(struct radv_device *device,
 			    unsigned range,
 			    uint32_t *state)
 {
-	const struct vk_format_description *desc;
+	const struct util_format_description *desc;
 	unsigned stride;
 	uint64_t gpu_address = radv_buffer_get_va(buffer->bo);
 	uint64_t va = gpu_address + buffer->offset;
 	unsigned num_format, data_format;
 	int first_non_void;
-	enum vk_swizzle swizzle[4];
+	enum pipe_swizzle swizzle[4];
 	desc = vk_format_description(vk_format);
 	first_non_void = vk_format_get_first_non_void_channel(vk_format);
 	stride = desc->block.bits / 8;
@@ -608,7 +719,7 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 {
 	struct radv_image_plane *plane = &image->planes[plane_id];
 	uint64_t gpu_address = image->bo ? radv_buffer_get_va(image->bo) + image->offset : 0;
-	uint64_t va = gpu_address + plane->offset;
+	uint64_t va = gpu_address;
 	enum chip_class chip_class = device->physical_device->rad_info.chip_class;
 	uint64_t meta_va = 0;
 	if (chip_class >= GFX9) {
@@ -669,6 +780,9 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 
 			if (plane->surface.dcc_offset)
 				meta = plane->surface.u.gfx9.dcc;
+
+			if (radv_dcc_enabled(image, first_level))
+				state[6] |= S_00A018_WRITE_COMPRESS_ENABLE(1);
 
 			state[6] |= S_00A018_META_PIPE_ALIGNED(meta.pipe_aligned) |
 				    S_00A018_META_DATA_ADDRESS_LO(meta_va >> 8);
@@ -742,29 +856,29 @@ static unsigned radv_tex_dim(VkImageType image_type, VkImageViewType view_type,
 	}
 }
 
-static unsigned gfx9_border_color_swizzle(const enum vk_swizzle swizzle[4])
+static unsigned gfx9_border_color_swizzle(const enum pipe_swizzle swizzle[4])
 {
 	unsigned bc_swizzle = V_008F20_BC_SWIZZLE_XYZW;
 
-	if (swizzle[3] == VK_SWIZZLE_X) {
+	if (swizzle[3] == PIPE_SWIZZLE_X) {
 		/* For the pre-defined border color values (white, opaque
 		 * black, transparent black), the only thing that matters is
 		 * that the alpha channel winds up in the correct place
 		 * (because the RGB channels are all the same) so either of
 		 * these enumerations will work.
 		 */
-		if (swizzle[2] == VK_SWIZZLE_Y)
+		if (swizzle[2] == PIPE_SWIZZLE_Y)
 			bc_swizzle = V_008F20_BC_SWIZZLE_WZYX;
 		else
 			bc_swizzle = V_008F20_BC_SWIZZLE_WXYZ;
-	} else if (swizzle[0] == VK_SWIZZLE_X) {
-		if (swizzle[1] == VK_SWIZZLE_Y)
+	} else if (swizzle[0] == PIPE_SWIZZLE_X) {
+		if (swizzle[1] == PIPE_SWIZZLE_Y)
 			bc_swizzle = V_008F20_BC_SWIZZLE_XYZW;
 		else
 			bc_swizzle = V_008F20_BC_SWIZZLE_XWYZ;
-	} else if (swizzle[1] == VK_SWIZZLE_X) {
+	} else if (swizzle[1] == PIPE_SWIZZLE_X) {
 		bc_swizzle = V_008F20_BC_SWIZZLE_YXWZ;
-	} else if (swizzle[2] == VK_SWIZZLE_X) {
+	} else if (swizzle[2] == PIPE_SWIZZLE_X) {
 		bc_swizzle = V_008F20_BC_SWIZZLE_ZYXW;
 	}
 
@@ -773,10 +887,10 @@ static unsigned gfx9_border_color_swizzle(const enum vk_swizzle swizzle[4])
 
 bool vi_alpha_is_on_msb(struct radv_device *device, VkFormat format)
 {
-	const struct vk_format_description *desc = vk_format_description(format);
+	const struct util_format_description *desc = vk_format_description(format);
 
 	if (device->physical_device->rad_info.chip_class >= GFX10 && desc->nr_channels == 1)
-		return desc->swizzle[3] == VK_SWIZZLE_X;
+		return desc->swizzle[3] == PIPE_SWIZZLE_X;
 
 	return radv_translate_colorswap(format, false) <= 1;
 }
@@ -796,8 +910,8 @@ gfx10_make_texture_descriptor(struct radv_device *device,
 			   uint32_t *state,
 			   uint32_t *fmask_state)
 {
-	const struct vk_format_description *desc;
-	enum vk_swizzle swizzle[4];
+	const struct util_format_description *desc;
+	enum pipe_swizzle swizzle[4];
 	unsigned img_format;
 	unsigned type;
 
@@ -850,7 +964,7 @@ gfx10_make_texture_descriptor(struct radv_device *device,
 
 	if (radv_dcc_enabled(image, first_level)) {
 		state[6] |= S_00A018_MAX_UNCOMPRESSED_BLOCK_SIZE(V_028C78_MAX_BLOCK_SIZE_256B) |
-			    S_00A018_MAX_COMPRESSED_BLOCK_SIZE(V_028C78_MAX_BLOCK_SIZE_128B) |
+			    S_00A018_MAX_COMPRESSED_BLOCK_SIZE(image->planes[0].surface.u.gfx9.dcc.max_compressed_block_size) |
 			    S_00A018_ALPHA_IS_ON_MSB(vi_alpha_is_on_msb(device, vk_format));
 	}
 
@@ -897,6 +1011,14 @@ gfx10_make_texture_descriptor(struct radv_device *device,
 			fmask_state[5] = 0;
 			fmask_state[6] = S_00A018_META_PIPE_ALIGNED(1);
 			fmask_state[7] = 0;
+
+			if (radv_image_is_tc_compat_cmask(image)) {
+				va = gpu_address + image->offset + image->planes[0].surface.cmask_offset;
+
+				fmask_state[6] |= S_00A018_COMPRESSION_EN(1);
+				fmask_state[6] |= S_00A018_META_DATA_ADDRESS_LO(va >> 8);
+				fmask_state[7] |= va >> 16;
+			}
 		} else
 			memset(fmask_state, 0, 8 * 4);
 	}
@@ -918,8 +1040,8 @@ si_make_texture_descriptor(struct radv_device *device,
 			   uint32_t *state,
 			   uint32_t *fmask_state)
 {
-	const struct vk_format_description *desc;
-	enum vk_swizzle swizzle[4];
+	const struct util_format_description *desc;
+	enum pipe_swizzle swizzle[4];
 	int first_non_void;
 	unsigned num_format, data_format, type;
 
@@ -1144,24 +1266,9 @@ radv_query_opaque_metadata(struct radv_device *device,
 			   struct radeon_bo_metadata *md)
 {
 	static const VkComponentMapping fixedmapping;
-	uint32_t desc[8], i;
+	uint32_t desc[8];
 
 	assert(image->plane_count == 1);
-
-	/* Metadata image format format version 1:
-	 * [0] = 1 (metadata format identifier)
-	 * [1] = (VENDOR_ID << 16) | PCI_ID
-	 * [2:9] = image descriptor for the whole resource
-	 *         [2] is always 0, because the base address is cleared
-	 *         [9] is the DCC offset bits [39:8] from the beginning of
-	 *             the buffer
-	 * [10:10+LAST_LEVEL] = mipmap level offset bits [39:8] for each level
-	 */
-	md->metadata[0] = 1; /* metadata image format version 1 */
-
-	/* TILE_MODE_INDEX is ambiguous without a PCI ID. */
-	md->metadata[1] = si_get_bo_metadata_word1(device);
-
 
 	radv_make_texture_descriptor(device, image, false,
 				     (VkImageViewType)image->type, image->vk_format,
@@ -1174,21 +1281,8 @@ radv_query_opaque_metadata(struct radv_device *device,
 	si_set_mutable_tex_desc_fields(device, image, &image->planes[0].surface.u.legacy.level[0], 0, 0, 0,
 				       image->planes[0].surface.blk_w, false, false, false, desc);
 
-	/* Clear the base address and set the relative DCC offset. */
-	desc[0] = 0;
-	desc[1] &= C_008F14_BASE_ADDRESS_HI;
-	desc[7] = image->planes[0].surface.dcc_offset >> 8;
-
-	/* Dwords [2:9] contain the image descriptor. */
-	memcpy(&md->metadata[2], desc, sizeof(desc));
-
-	/* Dwords [10:..] contain the mipmap level offsets. */
-	if (device->physical_device->rad_info.chip_class <= GFX8) {
-		for (i = 0; i <= image->info.levels - 1; i++)
-			md->metadata[10+i] = image->planes[0].surface.u.legacy.level[i].offset >> 8;
-		md->size_metadata = (11 + image->info.levels - 1) * 4;
-	} else
-		md->size_metadata = 10 * 4;
+	ac_surface_get_umd_metadata(&device->physical_device->rad_info, &image->planes[0].surface,
+				    image->info.levels, desc, &md->size_metadata, md->metadata);
 }
 
 void
@@ -1201,7 +1295,14 @@ radv_init_metadata(struct radv_device *device,
 	memset(metadata, 0, sizeof(*metadata));
 
 	if (device->physical_device->rad_info.chip_class >= GFX9) {
+		uint64_t dcc_offset = image->offset + (surface->display_dcc_offset ?
+			surface->display_dcc_offset : surface->dcc_offset);
 		metadata->u.gfx9.swizzle_mode = surface->u.gfx9.surf.swizzle_mode;
+		metadata->u.gfx9.dcc_offset_256b = dcc_offset >> 8;
+		metadata->u.gfx9.dcc_pitch_max = surface->u.gfx9.display_dcc_pitch_max;
+		metadata->u.gfx9.dcc_independent_64b_blocks = surface->u.gfx9.dcc.independent_64B_blocks;
+		metadata->u.gfx9.dcc_independent_128b_blocks = surface->u.gfx9.dcc.independent_128B_blocks;
+		metadata->u.gfx9.dcc_max_compressed_block_size = surface->u.gfx9.dcc.max_compressed_block_size;
 		metadata->u.gfx9.scanout = (surface->flags & RADEON_SURF_SCANOUT) != 0;
 	} else {
 		metadata->u.legacy.microtile = surface->u.legacy.level[0].mode >= RADEON_SURF_MODE_1D ?
@@ -1238,7 +1339,8 @@ radv_image_alloc_single_sample_cmask(const struct radv_device *device,
 	if (!surf->cmask_size || surf->cmask_offset || surf->bpe > 8 ||
 	    image->info.levels > 1 || image->info.depth > 1 ||
 	    radv_image_has_dcc(image) ||
-	    !radv_image_use_fast_clear_for_image(device, image))
+	    !radv_image_use_fast_clear_for_image(device, image) ||
+	    (image->flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT))
 		return;
 
 	assert(image->info.storage_samples == 1);
@@ -1251,10 +1353,12 @@ radv_image_alloc_single_sample_cmask(const struct radv_device *device,
 static void
 radv_image_alloc_values(const struct radv_device *device, struct radv_image *image)
 {
-	if (radv_image_has_dcc(image)) {
+	if (radv_image_has_cmask(image) || radv_image_has_dcc(image)) {
 		image->fce_pred_offset = image->size;
 		image->size += 8 * image->info.levels;
+	}
 
+	if (radv_image_use_dcc_predication(device, image)) {
 		image->dcc_pred_offset = image->size;
 		image->size += 8 * image->info.levels;
 	}
@@ -1283,14 +1387,14 @@ radv_image_reset_layout(struct radv_image *image)
 	image->size = 0;
 	image->alignment = 1;
 
-	image->tc_compatible_cmask = image->tc_compatible_htile = 0;
+	image->tc_compatible_cmask = 0;
 	image->fce_pred_offset = image->dcc_pred_offset = 0;
 	image->clear_value_offset = image->tc_compat_zrange_offset = 0;
 
 	for (unsigned i = 0; i < image->plane_count; ++i) {
 		VkFormat format = vk_format_get_plane_format(image->vk_format, i);
 
-		uint32_t flags = image->planes[i].surface.flags;
+		uint64_t flags = image->planes[i].surface.flags;
 		uint64_t modifier = image->planes[i].surface.modifier;
 		memset(image->planes + i, 0, sizeof(image->planes[i]));
 
@@ -1307,9 +1411,40 @@ radv_image_reset_layout(struct radv_image *image)
 	}
 }
 
+static VkResult
+radv_image_init_retile_map(struct radv_device *device, struct radv_image *image)
+{
+	/* If we do a relayout we have to free the old buffer. */
+	if(image->retile_map)
+		device->ws->buffer_destroy(device->ws, image->retile_map);
+
+	image->retile_map = NULL;
+	if (!radv_image_has_dcc(image) || !image->planes[0].surface.display_dcc_offset ||
+	    image->planes[0].surface.display_dcc_offset == image->planes[0].surface.dcc_offset)
+		return VK_SUCCESS;
+
+	uint32_t retile_map_size = ac_surface_get_retile_map_size(&image->planes[0].surface);
+	image->retile_map = device->ws->buffer_create(device->ws, retile_map_size, 4096,
+						      RADEON_DOMAIN_VRAM, RADEON_FLAG_READ_ONLY |
+						                          RADEON_FLAG_NO_INTERPROCESS_SHARING,
+						      RADV_BO_PRIORITY_METADATA);
+	if (!image->retile_map) {
+		return vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+	}
+	void *data = device->ws->buffer_map(image->retile_map);
+	if (!data) {
+		device->ws->buffer_destroy(device->ws, image->retile_map);
+		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+	}
+
+	memcpy(data, image->planes[0].surface.u.gfx9.dcc_retile_map, retile_map_size);
+	return VK_SUCCESS;
+}
+
 VkResult
 radv_image_create_layout(struct radv_device *device,
                          struct radv_image_create_info create_info,
+                         const struct VkImageDrmFormatModifierExplicitCreateInfoEXT *mod_info,
                          struct radv_image *image)
 {
 	/* Clear the pCreateInfo pointer so we catch issues in the delayed case when we test in the
@@ -1321,19 +1456,17 @@ radv_image_create_layout(struct radv_device *device,
 	if (result != VK_SUCCESS)
 		return result;
 
+	assert(!mod_info || mod_info->drmFormatModifierPlaneCount >= image->plane_count);
+
 	radv_image_reset_layout(image);
 
 	for (unsigned plane = 0; plane < image->plane_count; ++plane) {
 		struct ac_surf_info info = image_info;
+		uint64_t offset;
+		unsigned stride;
 
-		if (plane) {
-			const struct vk_format_description *desc = vk_format_description(image->vk_format);
-			assert(info.width % desc->width_divisor == 0);
-			assert(info.height % desc->height_divisor == 0);
-
-			info.width /= desc->width_divisor;
-			info.height /= desc->height_divisor;
-		}
+		info.width = vk_format_get_plane_width(image->vk_format, plane, info.width);
+		info.height = vk_format_get_plane_height(image->vk_format, plane, info.height);
 
 		if (create_info.no_metadata_planes || image->plane_count > 1) {
 			image->planes[plane].surface.flags |= RADEON_SURF_DISABLE_DCC |
@@ -1343,11 +1476,52 @@ radv_image_create_layout(struct radv_device *device,
 
 		device->ws->surface_init(device->ws, &info, &image->planes[plane].surface);
 
-		if (!create_info.no_metadata_planes && image->plane_count == 1)
+		if (create_info.bo_metadata && !mod_info &&
+		    !ac_surface_set_umd_metadata(&device->physical_device->rad_info,
+		                                 &image->planes[plane].surface,
+		                                 image_info.storage_samples, image_info.levels,
+		                                 create_info.bo_metadata->size_metadata,
+		                                 create_info.bo_metadata->metadata))
+			return VK_ERROR_INVALID_EXTERNAL_HANDLE;
+
+		if (!create_info.no_metadata_planes && !create_info.bo_metadata &&
+		    image->plane_count == 1 && !mod_info)
 			radv_image_alloc_single_sample_cmask(device, image, &image->planes[plane].surface);
 
-		image->planes[plane].offset = align(image->size, image->planes[plane].surface.alignment);
-		image->size = image->planes[plane].offset + image->planes[plane].surface.total_size;
+		if (mod_info) {
+			if (mod_info->pPlaneLayouts[plane].rowPitch % image->planes[plane].surface.bpe ||
+			    !mod_info->pPlaneLayouts[plane].rowPitch)
+				return VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT;
+
+			offset = mod_info->pPlaneLayouts[plane].offset;
+			stride  = mod_info->pPlaneLayouts[plane].rowPitch / image->planes[plane].surface.bpe;
+		} else {
+			offset = align(image->size, image->planes[plane].surface.alignment);
+			stride = 0;  /* 0 means no override */
+		}
+
+		if (!ac_surface_override_offset_stride(&device->physical_device->rad_info,
+		                                      &image->planes[plane].surface,
+		                                      image->info.levels,
+		                                      offset,
+		                                      stride))
+			return VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT;
+
+		/* Validate DCC offsets in modifier layout. */
+		if (image->plane_count == 1 && mod_info) {
+			unsigned mem_planes = ac_surface_get_nplanes(&image->planes[plane].surface);
+			if (mod_info->drmFormatModifierPlaneCount != mem_planes)
+				return VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT;
+
+			for (unsigned i = 1; i < mem_planes; ++i) {
+				if (ac_surface_get_plane_offset(device->physical_device->rad_info.chip_class,
+				                                &image->planes[plane].surface, i, 0) !=
+				    mod_info->pPlaneLayouts[i].offset)
+					return VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT;
+			}
+		}
+
+		image->size = MAX2(image->size, offset + image->planes[plane].surface.total_size);
 		image->alignment = MAX2(image->alignment, image->planes[plane].surface.alignment);
 
 		image->planes[plane].format = vk_format_get_plane_format(image->vk_format, plane);
@@ -1356,12 +1530,15 @@ radv_image_create_layout(struct radv_device *device,
 	image->tc_compatible_cmask = radv_image_has_cmask(image) &&
 	                             radv_use_tc_compat_cmask_for_image(device, image);
 
-	image->tc_compatible_htile = radv_image_has_htile(image) &&
-	                             image->planes[0].surface.flags & RADEON_SURF_TC_COMPATIBLE_HTILE;
-
 	radv_image_alloc_values(device, image);
 
+	result = radv_image_init_retile_map(device, image);
+	if (result != VK_SUCCESS)
+		return result;
+
 	assert(image->planes[0].surface.surf_size);
+	assert(image->planes[0].surface.modifier == DRM_FORMAT_MOD_INVALID ||
+	       ac_modifier_has_dcc(image->planes[0].surface.modifier) == radv_image_has_dcc(image));
 	return VK_SUCCESS;
 }
 
@@ -1371,7 +1548,10 @@ radv_destroy_image(struct radv_device *device,
 		   struct radv_image *image)
 {
 	if ((image->flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT) && image->bo)
-		device->ws->buffer_destroy(image->bo);
+		device->ws->buffer_destroy(device->ws, image->bo);
+
+	if(image->retile_map)
+		device->ws->buffer_destroy(device->ws, image->retile_map);
 
 	if (image->owned_memory != VK_NULL_HANDLE) {
 		RADV_FROM_HANDLE(radv_device_memory, mem, image->owned_memory);
@@ -1388,23 +1568,95 @@ radv_image_print_info(struct radv_device *device, struct radv_image *image)
 	fprintf(stderr, "Image:\n");
 	fprintf(stderr, "  Info: size=%" PRIu64 ", alignment=%" PRIu32 ", "
 			"width=%" PRIu32 ", height=%" PRIu32 ", "
-			"offset=%" PRIu64 "\n",
+			"offset=%" PRIu64 ", array_size=%" PRIu32 "\n",
 		image->size, image->alignment, image->info.width,
-		image->info.height, image->offset);
+		image->info.height, image->offset, image->info.array_size);
 	for (unsigned i = 0; i < image->plane_count; ++i) {
 		const struct radv_image_plane *plane = &image->planes[i];
 		const struct radeon_surf *surf = &plane->surface;
-		const struct vk_format_description *desc =
+		const struct util_format_description *desc =
 			vk_format_description(plane->format);
+		uint64_t offset = ac_surface_get_plane_offset(device->physical_device->rad_info.chip_class,
+		                                              &plane->surface, 0, 0);
 
 		fprintf(stderr,
 			"  Plane[%u]: vkformat=%s, offset=%" PRIu64 "\n",
-			i, desc->name, plane->offset);
+			i, desc->name, offset);
 
 		ac_surface_print_info(stderr,
 				      &device->physical_device->rad_info,
 				      surf);
 	}
+}
+
+/**
+ * Determine if the given image can be fast cleared.
+ */
+static bool
+radv_image_can_fast_clear(const struct radv_device *device,
+			  const struct radv_image *image)
+{
+	if (device->instance->debug_flags & RADV_DEBUG_NO_FAST_CLEARS)
+		return false;
+
+	if (vk_format_is_color(image->vk_format)) {
+		if (!radv_image_has_cmask(image) && !radv_image_has_dcc(image))
+			return false;
+
+		/* RB+ doesn't work with CMASK fast clear on Stoney. */
+		if (!radv_image_has_dcc(image) &&
+		    device->physical_device->rad_info.family == CHIP_STONEY)
+			return false;
+	} else {
+		if (!radv_image_has_htile(image))
+			return false;
+	}
+
+	/* Do not fast clears 3D images. */
+	if (image->type == VK_IMAGE_TYPE_3D)
+		return false;
+
+	return true;
+}
+
+static uint64_t
+radv_select_modifier(const struct radv_device *dev,
+                     VkFormat format,
+                     const struct VkImageDrmFormatModifierListCreateInfoEXT *mod_list)
+{
+	const struct radv_physical_device *pdev = dev->physical_device;
+	unsigned mod_count;
+
+	assert(mod_list->drmFormatModifierCount);
+
+	/* We can allow everything here as it does not affect order and the application
+	 * is only allowed to specify modifiers that we support. */
+	const struct ac_modifier_options modifier_options = {
+		.dcc = true,
+		.dcc_retile = true,
+	};
+
+	ac_get_supported_modifiers(&pdev->rad_info, &modifier_options,
+	                           vk_format_to_pipe_format(format), &mod_count, NULL);
+
+	uint64_t *mods = calloc(mod_count, sizeof(*mods));
+
+	/* If allocations fail, fall back to a dumber solution. */
+	if (!mods)
+		return mod_list->pDrmFormatModifiers[0];
+
+	ac_get_supported_modifiers(&pdev->rad_info, &modifier_options,
+	                           vk_format_to_pipe_format(format), &mod_count, mods);
+
+	for (unsigned i = 0; i < mod_count; ++i) {
+		for (uint32_t j = 0; j < mod_list->drmFormatModifierCount; ++j) {
+			if (mods[i] == mod_list->pDrmFormatModifiers[j]) {
+				free(mods);
+				return mod_list->pDrmFormatModifiers[j];
+			}
+		}
+	}
+	unreachable("App specified an invalid modifier");
 }
 
 VkResult
@@ -1415,9 +1667,14 @@ radv_image_create(VkDevice _device,
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	const VkImageCreateInfo *pCreateInfo = create_info->vk_info;
+	uint64_t modifier = DRM_FORMAT_MOD_INVALID;
 	struct radv_image *image = NULL;
 	VkFormat format = radv_select_android_external_format(pCreateInfo->pNext,
 	                                                      pCreateInfo->format);
+	const struct VkImageDrmFormatModifierListCreateInfoEXT *mod_list =
+		vk_find_struct_const(pCreateInfo->pNext, IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT);
+	const struct VkImageDrmFormatModifierExplicitCreateInfoEXT *explicit_mod =
+		vk_find_struct_const(pCreateInfo->pNext, IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT);
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
 
 	const unsigned plane_count = vk_format_get_plane_count(format);
@@ -1468,14 +1725,21 @@ radv_image_create(VkDevice _device,
 		                     EXTERNAL_MEMORY_IMAGE_CREATE_INFO) ;
 
 	image->shareable = external_info;
-	if (!vk_format_is_depth_or_stencil(format) && !image->shareable) {
+	if (!vk_format_is_depth_or_stencil(format) && !image->shareable &&
+	    !(image->flags & VK_IMAGE_CREATE_SPARSE_ALIASED_BIT) &&
+	    pCreateInfo->tiling != VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT) {
 		image->info.surf_index = &device->image_mrt_offset_counter;
 	}
+
+	if (mod_list)
+		modifier = radv_select_modifier(device, format, mod_list);
+	else if (explicit_mod)
+		modifier = explicit_mod->drmFormatModifier;
 
 	for (unsigned plane = 0; plane < image->plane_count; ++plane) {
 		image->planes[plane].surface.flags =
 			radv_get_surface_flags(device, image, plane, pCreateInfo, format);
-		image->planes[plane].surface.modifier = DRM_FORMAT_MOD_INVALID;
+		image->planes[plane].surface.modifier = modifier;
 	}
 
 	bool delay_layout = external_info &&
@@ -1487,8 +1751,11 @@ radv_image_create(VkDevice _device,
 		return VK_SUCCESS;
 	}
 
-	ASSERTED VkResult result = radv_image_create_layout(device, *create_info, image);
-	assert(result == VK_SUCCESS);
+	VkResult result = radv_image_create_layout(device, *create_info, explicit_mod, image);
+	if (result != VK_SUCCESS) {
+		radv_destroy_image(device, alloc, image);
+		return result;
+	}
 
 	if (image->flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT) {
 		image->alignment = MAX2(image->alignment, 4096);
@@ -1522,7 +1789,6 @@ radv_image_view_make_descriptor(struct radv_image_view *iview,
 {
 	struct radv_image *image = iview->image;
 	struct radv_image_plane *plane = &image->planes[plane_id];
-	const struct vk_format_description *format_desc = vk_format_description(image->vk_format);
 	bool is_stencil = iview->aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT;
 	uint32_t blk_w;
 	union radv_descriptor *descriptor;
@@ -1547,8 +1813,8 @@ radv_image_view_make_descriptor(struct radv_image_view *iview,
 				     hw_level, hw_level + iview->level_count - 1,
 				     iview->base_layer,
 				     iview->base_layer + iview->layer_count - 1,
-				     iview->extent.width  / (plane_id ? format_desc->width_divisor : 1),
-				     iview->extent.height  / (plane_id ? format_desc->height_divisor : 1),
+				     vk_format_get_plane_width(image->vk_format, plane_id, iview->extent.width),
+				     vk_format_get_plane_height(image->vk_format, plane_id, iview->extent.height),
 				     iview->extent.depth,
 				     descriptor->plane_descriptors[descriptor_plane_id],
 				     descriptor_plane_id ? NULL : descriptor->fmask_descriptor);
@@ -1560,13 +1826,16 @@ radv_image_view_make_descriptor(struct radv_image_view *iview,
 		else
 			base_level_info = &plane->surface.u.legacy.level[iview->base_mip];
 	}
+
+	if (is_storage_image && !radv_image_use_dcc_image_stores(device, image))
+		disable_compression = true;
 	si_set_mutable_tex_desc_fields(device, image,
 				       base_level_info,
 				       plane_id,
 				       iview->base_mip,
 				       iview->base_mip,
 				       blk_w, is_stencil, is_storage_image,
-				       is_storage_image || disable_compression,
+				       disable_compression,
 				       descriptor->plane_descriptors[descriptor_plane_id]);
 }
 
@@ -1575,9 +1844,13 @@ radv_plane_from_aspect(VkImageAspectFlags mask)
 {
 	switch(mask) {
 	case VK_IMAGE_ASPECT_PLANE_1_BIT:
+	case VK_IMAGE_ASPECT_MEMORY_PLANE_1_BIT_EXT:
 		return 1;
 	case VK_IMAGE_ASPECT_PLANE_2_BIT:
+	case VK_IMAGE_ASPECT_MEMORY_PLANE_2_BIT_EXT:
 		return 2;
+	case VK_IMAGE_ASPECT_MEMORY_PLANE_3_BIT_EXT:
+		return 3;
 	default:
 		return 0;
 	}
@@ -1602,6 +1875,35 @@ radv_get_aspect_format(struct radv_image *image, VkImageAspectFlags mask)
 	default:
 		return image->vk_format;
 	}
+}
+
+/**
+ * Determine if the given image view can be fast cleared.
+ */
+static bool
+radv_image_view_can_fast_clear(const struct radv_device *device,
+			       const struct radv_image_view *iview)
+{
+	struct radv_image *image;
+
+	if (!iview)
+		return false;
+	image = iview->image;
+
+	/* Only fast clear if the image itself can be fast cleared. */
+	if (!radv_image_can_fast_clear(device, image))
+		return false;
+
+	/* Only fast clear if all layers are bound. */
+	if (iview->base_layer > 0 ||
+	    iview->layer_count != image->info.array_size)
+		return false;
+
+	/* Only fast clear if the view covers the whole image. */
+	if (!radv_image_extent_compare(image, &iview->extent))
+		return false;
+
+	return true;
 }
 
 void
@@ -1730,6 +2032,9 @@ radv_image_view_init(struct radv_image_view *iview,
 		 }
 	}
 
+	iview->support_fast_clear =
+		radv_image_view_can_fast_clear(device, iview);
+
 	bool disable_compression = extra_create_info ? extra_create_info->disable_compression: false;
 	for (unsigned i = 0; i < (iview->multiple_planes ? vk_format_get_plane_count(image->vk_format) : 1); ++i) {
 		VkFormat format = vk_format_get_plane_format(iview->vk_format, i);
@@ -1744,35 +2049,44 @@ radv_image_view_init(struct radv_image_view *iview,
 	}
 }
 
-bool radv_layout_is_htile_compressed(const struct radv_image *image,
+bool radv_layout_is_htile_compressed(const struct radv_device *device,
+				     const struct radv_image *image,
                                      VkImageLayout layout,
 				     bool in_render_loop,
                                      unsigned queue_mask)
 {
-	if (radv_image_is_tc_compat_htile(image)) {
-		if (layout == VK_IMAGE_LAYOUT_GENERAL &&
+	switch (layout) {
+	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+	case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL_KHR:
+	case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL_KHR:
+		return radv_image_has_htile(image);
+	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+		return radv_image_has_htile(image) && queue_mask == (1u << RADV_QUEUE_GENERAL);
+	case VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR:
+	case VK_IMAGE_LAYOUT_GENERAL:
+		/* It should be safe to enable TC-compat HTILE with
+		 * VK_IMAGE_LAYOUT_GENERAL if we are not in a render loop and
+		 * if the image doesn't have the storage bit set. This
+		 * improves performance for apps that use GENERAL for the main
+		 * depth pass because this allows compression and this reduces
+		 * the number of decompressions from/to GENERAL.
+		 */
+		/* FIXME: Enabling TC-compat HTILE in GENERAL on the compute
+		 * queue is likely broken for eg. depth/stencil copies.
+		 */
+		if (radv_image_is_tc_compat_htile(image) &&
+		    queue_mask & (1u << RADV_QUEUE_GENERAL) &&
 		    !in_render_loop &&
-		    !(image->usage & VK_IMAGE_USAGE_STORAGE_BIT)) {
-			/* It should be safe to enable TC-compat HTILE with
-			 * VK_IMAGE_LAYOUT_GENERAL if we are not in a render
-			 * loop and if the image doesn't have the storage bit
-			 * set. This improves performance for apps that use
-			 * GENERAL for the main depth pass because this allows
-			 * compression and this reduces the number of
-			 * decompressions from/to GENERAL.
-			 */
-			return true;
+		    !device->instance->disable_tc_compat_htile_in_general) {
+			/* GFX10+ supports compressed writes to HTILE. */
+			return device->physical_device->rad_info.chip_class >= GFX10 ||
+			       !(image->usage & VK_IMAGE_USAGE_STORAGE_BIT);
+		} else {
+			return false;
 		}
-
-		return layout != VK_IMAGE_LAYOUT_GENERAL;
+	default:
+	    return radv_image_is_tc_compat_htile(image);
 	}
-
-	return radv_image_has_htile(image) &&
-	       (layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||
-	        layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL_KHR ||
-		layout == VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL_KHR ||
-	        (layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-	         queue_mask == (1u << RADV_QUEUE_GENERAL)));
 }
 
 bool radv_layout_can_fast_clear(const struct radv_device *device,
@@ -1785,6 +2099,9 @@ bool radv_layout_can_fast_clear(const struct radv_device *device,
 	    !radv_layout_dcc_compressed(device, image, layout, in_render_loop, queue_mask))
 		return false;
 
+	if (!(image->usage & RADV_IMAGE_USAGE_WRITE_BITS))
+		return false;
+
 	return layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL &&
 	       queue_mask == (1u << RADV_QUEUE_GENERAL);
 }
@@ -1795,10 +2112,16 @@ bool radv_layout_dcc_compressed(const struct radv_device *device,
 				bool in_render_loop,
 			        unsigned queue_mask)
 {
-	/* Don't compress compute transfer dst, as image stores are not supported. */
+	/* If the image is read-only, we can always just keep it compressed */
+	if (!(image->usage & RADV_IMAGE_USAGE_WRITE_BITS) &&
+	    radv_image_has_dcc(image))
+		return false;
+
+	/* Don't compress compute transfer dst when image stores are not supported. */
 	if ((layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL ||
 	     layout == VK_IMAGE_LAYOUT_GENERAL) &&
-	    (queue_mask & (1u << RADV_QUEUE_COMPUTE)))
+	    (queue_mask & (1u << RADV_QUEUE_COMPUTE)) &&
+	    !radv_image_use_dcc_image_stores(device, image))
 		return false;
 
 	return radv_image_has_dcc(image) &&
@@ -1871,15 +2194,31 @@ void radv_GetImageSubresourceLayout(
 	int level = pSubresource->mipLevel;
 	int layer = pSubresource->arrayLayer;
 
-	unsigned plane_id = radv_plane_from_aspect(pSubresource->aspectMask);
+	unsigned plane_id = 0;
+	if (vk_format_get_plane_count(image->vk_format) > 1)
+		plane_id = radv_plane_from_aspect(pSubresource->aspectMask);
 
 	struct radv_image_plane *plane = &image->planes[plane_id];
 	struct radeon_surf *surface = &plane->surface;
 
-	if (device->physical_device->rad_info.chip_class >= GFX9) {
+	if (image->tiling == VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT) {
+		unsigned mem_plane_id = radv_plane_from_aspect(pSubresource->aspectMask);
+
+		assert(level == 0);
+		assert(layer == 0);
+
+		pLayout->offset = ac_surface_get_plane_offset(device->physical_device->rad_info.chip_class,
+			                                              surface, mem_plane_id, 0);
+		pLayout->rowPitch = ac_surface_get_plane_stride(device->physical_device->rad_info.chip_class,
+			                                                surface, mem_plane_id);
+		pLayout->arrayPitch = 0;
+		pLayout->depthPitch = 0;
+		pLayout->size = ac_surface_get_plane_size(surface, mem_plane_id);
+	} else if (device->physical_device->rad_info.chip_class >= GFX9) {
 		uint64_t level_offset = surface->is_linear ? surface->u.gfx9.offset[level] : 0;
 
-		pLayout->offset = plane->offset + level_offset + surface->u.gfx9.surf_slice_size * layer;
+		pLayout->offset = ac_surface_get_plane_offset(device->physical_device->rad_info.chip_class,
+		                                              &plane->surface, 0, layer) + level_offset;
 		if (image->vk_format == VK_FORMAT_R32G32B32_UINT ||
 		    image->vk_format == VK_FORMAT_R32G32B32_SINT ||
 		    image->vk_format == VK_FORMAT_R32G32B32_SFLOAT) {
@@ -1901,7 +2240,7 @@ void radv_GetImageSubresourceLayout(
 		if (image->type == VK_IMAGE_TYPE_3D)
 			pLayout->size *= u_minify(image->info.depth, level);
 	} else {
-		pLayout->offset = plane->offset + surface->u.legacy.level[level].offset + (uint64_t)surface->u.legacy.level[level].slice_size_dw * 4 * layer;
+		pLayout->offset = surface->u.legacy.level[level].offset + (uint64_t)surface->u.legacy.level[level].slice_size_dw * 4 * layer;
 		pLayout->rowPitch = surface->u.legacy.level[level].nblk_x * surface->bpe;
 		pLayout->arrayPitch = (uint64_t)surface->u.legacy.level[level].slice_size_dw * 4;
 		pLayout->depthPitch = (uint64_t)surface->u.legacy.level[level].slice_size_dw * 4;
@@ -1909,6 +2248,16 @@ void radv_GetImageSubresourceLayout(
 		if (image->type == VK_IMAGE_TYPE_3D)
 			pLayout->size *= u_minify(image->info.depth, level);
 	}
+}
+
+VkResult radv_GetImageDrmFormatModifierPropertiesEXT(VkDevice _device,
+                                                     VkImage  _image,
+                                                     VkImageDrmFormatModifierPropertiesEXT* pProperties)
+{
+	RADV_FROM_HANDLE(radv_image, image, _image);
+
+	pProperties->drmFormatModifier = image->planes[0].surface.modifier;
+	return VK_SUCCESS;
 }
 
 

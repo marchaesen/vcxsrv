@@ -29,8 +29,8 @@
 uint32_t
 fd2_setup_slices(struct fd_resource *rsc)
 {
-	struct pipe_resource *prsc = &rsc->base;
-	enum pipe_format format = rsc->base.format;
+	struct pipe_resource *prsc = &rsc->b.b;
+	enum pipe_format format = prsc->format;
 	uint32_t height0 = util_format_get_nblocksy(format, prsc->height0);
 	uint32_t level, size = 0;
 

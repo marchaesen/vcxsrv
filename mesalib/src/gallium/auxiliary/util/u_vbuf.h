@@ -76,6 +76,8 @@ void u_vbuf_set_vertex_elements(struct u_vbuf *mgr,
 void u_vbuf_unset_vertex_elements(struct u_vbuf *mgr);
 void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr,
                                unsigned start_slot, unsigned count,
+                               unsigned unbind_num_trailing_slots,
+                               bool take_ownership,
                                const struct pipe_vertex_buffer *bufs);
 void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
                      const struct pipe_draw_indirect_info *indirect,
@@ -88,7 +90,5 @@ void u_vbuf_get_minmax_index(struct pipe_context *pipe,
 /* Save/restore functionality. */
 void u_vbuf_save_vertex_elements(struct u_vbuf *mgr);
 void u_vbuf_restore_vertex_elements(struct u_vbuf *mgr);
-void u_vbuf_save_vertex_buffer0(struct u_vbuf *mgr);
-void u_vbuf_restore_vertex_buffer0(struct u_vbuf *mgr);
 
 #endif

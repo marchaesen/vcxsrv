@@ -1,0 +1,351 @@
+traces-db:
+  download-url: "https://minio-packet.freedesktop.org/mesa-tracie-public/"
+
+traces:
+  - path: glmark2/desktop-blur-radius=5:effect=blur:passes=1:separable=true:windows=4.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 1416eeaa9abe052a6090651fc36b4c52
+      - device: gl-intel-glk
+        checksum: 1416eeaa9abe052a6090651fc36b4c52
+  - path: glmark2/jellyfish.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: c569e3edbac8a9efcfd590a9d1a2eb12
+      - device: gl-intel-glk
+        checksum: c569e3edbac8a9efcfd590a9d1a2eb12
+  - path: glxgears/glxgears-2.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: f53ac20e17da91c0359c31f2fa3f401e
+      - device: gl-intel-glk
+        checksum: f53ac20e17da91c0359c31f2fa3f401e
+  - path: 0ad/0ad.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 60d295cddd4679982993ffe60b4f5f12
+      - device: gl-intel-glk
+        checksum: 60d295cddd4679982993ffe60b4f5f12
+  - path: pathfinder/demo.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: d9b33f0a2efe17c21b7933242afd9ec7
+      - device: gl-intel-glk
+        checksum: d9b33f0a2efe17c21b7933242afd9ec7
+  - path: pathfinder/canvas_moire.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 21bccd42f2deb6416cf6591cd6a99258
+      - device: gl-intel-glk
+        checksum: 21bccd42f2deb6416cf6591cd6a99258
+  - path: pathfinder/canvas_text.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 7873656a6fd5cce14d37cb7873bfc813
+      - device: gl-intel-glk
+        checksum: 7873656a6fd5cce14d37cb7873bfc813
+  - path: gputest/furmark.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 34466e5a6103be730f18eea2d4d357ee
+      - device: gl-intel-glk
+        checksum: 34466e5a6103be730f18eea2d4d357ee
+  - path: gputest/pixmark-piano.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 56d499105aa420e2a9977403676ebcc1
+      - device: gl-intel-glk
+        checksum: 56d499105aa420e2a9977403676ebcc1
+  - path: gputest/triangle.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 0a1524303e0772f6d869e4875fe1f401
+      - device: gl-intel-glk
+        checksum: 0a1524303e0772f6d869e4875fe1f401
+  - path: glmark2/buffer-columns=200:interleave=false:update-dispersion=0.9:update-fraction=0.5:update-method=map.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: dab263d0214db425dc841d6ad847cc5d
+      - device: gl-intel-glk
+        checksum: dab263d0214db425dc841d6ad847cc5d
+  - path: glmark2/buffer-columns=200:interleave=false:update-dispersion=0.9:update-fraction=0.5:update-method=subdata.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: e8e8c72e41f862dd25231d7e65de5090
+      - device: gl-intel-glk
+        checksum: e8e8c72e41f862dd25231d7e65de5090
+  - path: glmark2/buffer-columns=200:interleave=true:update-dispersion=0.9:update-fraction=0.5:update-method=map.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 79c4f44ce0433e2949c81ae4d69565c6
+        checksum: 79c4f44ce0433e2949c81ae4d69565c6
+  - path: glmark2/bump-bump-render=height.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 711edf6a200ba9938c3d896930d1714e
+      - device: gl-intel-glk
+        checksum: 711edf6a200ba9938c3d896930d1714e
+  - path: glmark2/bump-bump-render=high-poly.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 6f86494f5f238359dd1ffc25191bf5f7
+      - device: gl-intel-glk
+        checksum: 6f86494f5f238359dd1ffc25191bf5f7
+  - path: glmark2/bump-bump-render=normals.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: d50fb0b66b4bd2f552ac9e1a1ac4c12c
+      - device: gl-intel-glk
+        checksum: d50fb0b66b4bd2f552ac9e1a1ac4c12c
+  - path: glmark2/conditionals-fragment-steps=0:vertex-steps=0.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 5409904a3dfacfedf67fff5c481c6633
+      - device: gl-intel-glk
+        checksum: 5409904a3dfacfedf67fff5c481c6633
+  - path: glmark2/conditionals-fragment-steps=0:vertex-steps=5.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: e9f2151d29f84db1813e042787bbc540
+      - device: gl-intel-glk
+        checksum: e9f2151d29f84db1813e042787bbc540
+  - path: glmark2/conditionals-fragment-steps=5:vertex-steps=0.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 6643ab2c46aec87ccd7448311d72334c
+      - device: gl-intel-glk
+        checksum: 6643ab2c46aec87ccd7448311d72334c
+  - path: glmark2/desktop-effect=shadow:windows=4.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: c2a1311cb18ba0c173a737f675573412
+      - device: gl-intel-glk
+        checksum: c2a1311cb18ba0c173a737f675573412
+  - path: glmark2/effect2d-kernel=0,1,0;1,-4,1;0,1,0.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 2958ae3442ed26b681b6978e278ba10d
+      - device: gl-intel-glk
+        checksum: 2958ae3442ed26b681b6978e278ba10d
+  - path: glmark2/effect2d-kernel=1,1,1,1,1;1,1,1,1,1;1,1,1,1,1;.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: cf71e5d389dfdae7472382c53b49eaef
+      - device: gl-intel-glk
+        checksum: cf71e5d389dfdae7472382c53b49eaef
+  - path: glmark2/function-fragment-complexity=low:fragment-steps=5.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 1a883387982d1a9a9f170888e7bf9931
+      - device: gl-intel-glk
+        checksum: 1a883387982d1a9a9f170888e7bf9931
+  - path: glmark2/function-fragment-complexity=medium:fragment-steps=5.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: a7a1af78629fe040306e0bd40bc76754
+      - device: gl-intel-glk
+        checksum: a7a1af78629fe040306e0bd40bc76754
+  - path: glmark2/glmark2-build-use-vbo-false.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: aca02a1cc452d716279f22c3d4ee852a
+      - device: gl-intel-glk
+        checksum: aca02a1cc452d716279f22c3d4ee852a
+  - path: glmark2/glmark2-build-use-vbo-true.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: f1c32669f2016b0498e5f74e9d79c054
+      - device: gl-intel-glk
+        checksum: f1c32669f2016b0498e5f74e9d79c054
+  - path: glmark2/ideas-speed=duration.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 3f545e9365474d54d750e373d527b3ca
+      - device: gl-intel-glk
+        checksum: 3f545e9365474d54d750e373d527b3ca
+  - path: glmark2/loop-fragment-loop=false:fragment-steps=5:vertex-steps=5.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 5dc8d11a94da9e166f42f7a57037c631
+      - device: gl-intel-glk
+        checksum: 5dc8d11a94da9e166f42f7a57037c631
+  - path: glmark2/loop-fragment-steps=5:fragment-uniform=false:vertex-steps=5.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: dcebb823a728d164b224f507519614dc
+      - device: gl-intel-glk
+        checksum: dcebb823a728d164b224f507519614dc
+  - path: glmark2/loop-fragment-steps=5:fragment-uniform=true:vertex-steps=5.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 709188ef669515e3839b47be7cb89d15
+      - device: gl-intel-glk
+        checksum: 709188ef669515e3839b47be7cb89d15
+  - path: glmark2/pulsar-light=false:quads=5:texture=false.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: f71bfa9f1677d51731c52d3f8a114e55
+      - device: gl-intel-glk
+        checksum: f71bfa9f1677d51731c52d3f8a114e55
+  - path: glmark2/refract.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: a89b80ee9089f51461414cf00423257e
+      - device: gl-intel-glk
+        checksum: a89b80ee9089f51461414cf00423257e
+  - path: glmark2/shading-shading=blinn-phong-inf.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 7ed94cbdae09cd98f0fd0674523a58f7
+      - device: gl-intel-glk
+        checksum: 7ed94cbdae09cd98f0fd0674523a58f7
+  - path: glmark2/shading-shading=cel.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: f6b033509e8b5db4a2ce0400f66ba7db
+      - device: gl-intel-glk
+        checksum: f6b033509e8b5db4a2ce0400f66ba7db
+  - path: glmark2/shading-shading=gouraud.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 7567f820cd3bd0cb2fdad135ad0983ba
+      - device: gl-intel-glk
+        checksum: 7567f820cd3bd0cb2fdad135ad0983ba
+  - path: glmark2/shading-shading=phong.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 65d87aa641303bd48178b5e1c16d94d7
+      - device: gl-intel-glk
+        checksum: 65d87aa641303bd48178b5e1c16d94d7
+  - path: glmark2/shadow.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 3c165bf2bcf15ed25139c47b090c7ad9
+      - device: gl-intel-glk
+        checksum: 3c165bf2bcf15ed25139c47b090c7ad9
+  - path: glmark2/terrain.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: b33aab03dcf1da4158043ca62bb4d8aa
+      - device: gl-intel-glk
+        checksum: b33aab03dcf1da4158043ca62bb4d8aa
+  - path: glmark2/texture-texture-filter=linear.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 1d814b0e1c14265d8f17687c6f78d0f2
+      - device: gl-intel-glk
+        checksum: 1d814b0e1c14265d8f17687c6f78d0f2
+  - path: glmark2/texture-texture-filter=mipmap.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: f05b367ba3c8b94ac754c9836a20fb50
+      - device: gl-intel-glk
+        checksum: f05b367ba3c8b94ac754c9836a20fb50
+  - path: glmark2/texture-texture-filter=nearest.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: f80aa5c01caf1b3ca5ad9e0d4091c8bf
+      - device: gl-intel-glk
+        checksum: f80aa5c01caf1b3ca5ad9e0d4091c8bf
+  - path: godot/Material Testers.x86_64_2020.04.08_13.38_frame799.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: daa6f0258a8f25e8cc6aa242ed796f64
+      - device: gl-intel-glk
+        checksum: daa6f0258a8f25e8cc6aa242ed796f64
+  - path: gputest/gimark.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 021e731119a20b4c6a70e22eebb05e39
+      - device: gl-intel-glk
+        checksum: 021e731119a20b4c6a70e22eebb05e39
+  - path: gputest/pixmark-julia-fp32.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 9beb523176e7c153300521679853127a
+      - device: gl-intel-glk
+        checksum: 9beb523176e7c153300521679853127a
+  - path: gputest/pixmark-julia-fp64.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 95235e084d88bc41f8a1a05b79e88e33
+      - device: gl-intel-glk
+        checksum: 95235e084d88bc41f8a1a05b79e88e33
+  - path: gputest/pixmark-volplosion.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: eedef23963d477408028b620badca109
+      - device: gl-intel-glk
+        checksum: eedef23963d477408028b620badca109
+  - path: gputest/plot3d.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 777f3cb48ccfdc541d78b12104761616
+      - device: gl-intel-glk
+        checksum: 777f3cb48ccfdc541d78b12104761616
+  - path: gputest/tessmark.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 37a451853926683b350353442a296c47
+      - device: gl-intel-glk
+        checksum: 37a451853926683b350353442a296c47
+  - path: humus/AmbientAperture.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: a946252f3188a979144f4c8f4ea22fea
+      - device: gl-intel-glk
+        checksum: a946252f3188a979144f4c8f4ea22fea
+  - path: humus/Portals.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 84da7effee40af07b99e60d12c836c3c
+      - device: gl-intel-glk
+        checksum: 84da7effee40af07b99e60d12c836c3c
+  - path: humus/CelShading.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 5476bd1ed551e20fbe118dc8b4b5d515
+      - device: gl-intel-glk
+        checksum: 5476bd1ed551e20fbe118dc8b4b5d515
+  - path: humus/DynamicBranching3.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: e4ad0f6c724ac072fe41c15d35fabc7c
+      - device: gl-intel-glk
+        checksum: e4ad0f6c724ac072fe41c15d35fabc7c
+  - path: humus/HDR.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: e23bfd9704f3cc6ce3fd38685f5d3c61
+      - device: gl-intel-glk
+        checksum: e23bfd9704f3cc6ce3fd38685f5d3c61
+  - path: humus/RaytracedShadows.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: c6ecea7b8ddb60526af4de7ec1a5be62
+      - device: gl-intel-glk
+        checksum: c6ecea7b8ddb60526af4de7ec1a5be62
+  - path: humus/VolumetricFogging2.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 2224e04e0aa162c19a22cbeb5bf16114
+      - device: gl-intel-glk
+        checksum: 2224e04e0aa162c19a22cbeb5bf16114
+  - path: supertuxkart/supertuxkart-antediluvian-abyss.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 8b76f8dc6770a62b413b956d700a1080
+      - device: gl-intel-glk
+        checksum: 8b76f8dc6770a62b413b956d700a1080
+  - path: supertuxkart/supertuxkart-menu.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 0a4095dc7b441643a3336975b61c9e6a
+      - device: gl-intel-glk
+        checksum: 0a4095dc7b441643a3336975b61c9e6a
+  - path: supertuxkart/supertuxkart-ravenbridge-mansion.rdc
+    expectations:
+      - device: gl-intel-apl
+        checksum: 66a7f3ad9511fd2700f5ec59589b0c7d
+      - device: gl-intel-glk
+        checksum: 66a7f3ad9511fd2700f5ec59589b0c7d

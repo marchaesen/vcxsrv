@@ -113,10 +113,8 @@ __vk_errorv(struct radv_instance *instance, const void *object,
 	}
 
 	if (instance) {
-		vk_debug_report(&instance->debug_report_callbacks,
-				VK_DEBUG_REPORT_ERROR_BIT_EXT, type,
-				(uint64_t)(uintptr_t) object, line, 0, "radv",
-				report);
+		vk_debug_report(&instance->vk, VK_DEBUG_REPORT_ERROR_BIT_EXT,
+				object, line, 0, "radv", report);
 	}
 
 	fprintf(stderr, "%s\n", report);

@@ -103,9 +103,10 @@ update_textures(struct st_context *st,
                 const struct gl_program *prog,
                 struct pipe_sampler_view **sampler_views)
 {
+   struct pipe_context *pipe = st->pipe;
    const GLuint old_max = st->state.num_sampler_views[shader_stage];
    GLbitfield samplers_used = prog->SamplersUsed;
-   GLbitfield texel_fetch_samplers = prog->info.textures_used_by_txf;
+   GLbitfield texel_fetch_samplers = prog->info.textures_used_by_txf[0];
    GLbitfield free_slots = ~prog->SamplersUsed;
    GLbitfield external_samplers_used = prog->ExternalSamplersUsed;
    GLuint unit;
@@ -197,7 +198,7 @@ update_textures(struct st_context *st,
          tmpl.swizzle_g = PIPE_SWIZZLE_Y;   /* tmpl from Y plane is R8 */
          extra = u_bit_scan(&free_slots);
          sampler_views[extra] =
-               st->pipe->create_sampler_view(st->pipe, stObj->pt->next, &tmpl);
+               pipe->create_sampler_view(pipe, stObj->pt->next, &tmpl);
          break;
       case PIPE_FORMAT_P010:
       case PIPE_FORMAT_P012:
@@ -207,17 +208,17 @@ update_textures(struct st_context *st,
          tmpl.swizzle_g = PIPE_SWIZZLE_Y;   /* tmpl from Y plane is R16 */
          extra = u_bit_scan(&free_slots);
          sampler_views[extra] =
-               st->pipe->create_sampler_view(st->pipe, stObj->pt->next, &tmpl);
+               pipe->create_sampler_view(pipe, stObj->pt->next, &tmpl);
          break;
       case PIPE_FORMAT_IYUV:
          /* we need two additional R8 views: */
          tmpl.format = PIPE_FORMAT_R8_UNORM;
          extra = u_bit_scan(&free_slots);
          sampler_views[extra] =
-               st->pipe->create_sampler_view(st->pipe, stObj->pt->next, &tmpl);
+               pipe->create_sampler_view(pipe, stObj->pt->next, &tmpl);
          extra = u_bit_scan(&free_slots);
          sampler_views[extra] =
-               st->pipe->create_sampler_view(st->pipe, stObj->pt->next->next, &tmpl);
+               pipe->create_sampler_view(pipe, stObj->pt->next->next, &tmpl);
          break;
       case PIPE_FORMAT_YUYV:
          /* we need one additional BGRA8888 view: */
@@ -226,7 +227,7 @@ update_textures(struct st_context *st,
          tmpl.swizzle_a = PIPE_SWIZZLE_W;
          extra = u_bit_scan(&free_slots);
          sampler_views[extra] =
-               st->pipe->create_sampler_view(st->pipe, stObj->pt->next, &tmpl);
+               pipe->create_sampler_view(pipe, stObj->pt->next, &tmpl);
          break;
       case PIPE_FORMAT_UYVY:
          /* we need one additional RGBA8888 view: */
@@ -235,7 +236,7 @@ update_textures(struct st_context *st,
          tmpl.swizzle_a = PIPE_SWIZZLE_W;
          extra = u_bit_scan(&free_slots);
          sampler_views[extra] =
-               st->pipe->create_sampler_view(st->pipe, stObj->pt->next, &tmpl);
+               pipe->create_sampler_view(pipe, stObj->pt->next, &tmpl);
          break;
       default:
          break;
@@ -244,10 +245,15 @@ update_textures(struct st_context *st,
       num_textures = MAX2(num_textures, extra + 1);
    }
 
-   cso_set_sampler_views(st->cso_context,
-                         shader_stage,
-                         num_textures,
-                         sampler_views);
+   /* Unbind old textures. */
+   unsigned old_num_textures = st->state.num_sampler_views[shader_stage];
+   unsigned num_unbind = old_num_textures > num_textures ?
+                            old_num_textures - num_textures : 0;
+   for (unsigned i = 0; i < num_unbind; i++)
+      pipe_sampler_view_reference(&sampler_views[num_textures + i], NULL);
+
+   pipe->set_sampler_views(pipe, shader_stage, 0, num_textures, num_unbind,
+                           sampler_views);
    st->state.num_sampler_views[shader_stage] = num_textures;
 }
 

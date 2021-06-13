@@ -134,6 +134,7 @@ _mesa_init_sampler_object(struct gl_sampler_object *sampObj, GLuint name)
    sampObj->Attrib.CompareFunc = GL_LEQUAL;
    sampObj->Attrib.sRGBDecode = GL_DECODE_EXT;
    sampObj->Attrib.CubeMapSeamless = GL_FALSE;
+   sampObj->Attrib.ReductionMode = GL_WEIGHTED_AVERAGE_EXT;
    sampObj->HandleAllocated = GL_FALSE;
 
    /* GL_ARB_bindless_texture */
@@ -232,7 +233,7 @@ _mesa_CreateSamplers(GLsizei count, GLuint *samplers)
 static void
 delete_samplers(struct gl_context *ctx, GLsizei count, const GLuint *samplers)
 {
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    _mesa_HashLockMutex(ctx->Shared->SamplerObjects);
 
@@ -246,7 +247,7 @@ delete_samplers(struct gl_context *ctx, GLsizei count, const GLuint *samplers)
             /* If the sampler is currently bound, unbind it. */
             for (j = 0; j < ctx->Const.MaxCombinedTextureImageUnits; j++) {
                if (ctx->Texture.Unit[j].Sampler == sampObj) {
-                  FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT);
+                  FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT, GL_TEXTURE_BIT);
                   _mesa_reference_sampler_object(ctx, &ctx->Texture.Unit[j].Sampler, NULL);
                }
             }
@@ -300,7 +301,7 @@ _mesa_bind_sampler(struct gl_context *ctx, GLuint unit,
                    struct gl_sampler_object *sampObj)
 {
    if (ctx->Texture.Unit[unit].Sampler != sampObj) {
-      FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT);
+      FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT, GL_TEXTURE_BIT);
    }
 
    _mesa_reference_sampler_object(ctx, &ctx->Texture.Unit[unit].Sampler,
@@ -357,7 +358,7 @@ bind_samplers(struct gl_context *ctx, GLuint first, GLsizei count,
 {
    GLsizei i;
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    if (samplers) {
       /* Note that the error semantics for multi-bind commands differ from
@@ -416,6 +417,7 @@ bind_samplers(struct gl_context *ctx, GLuint first, GLsizei count,
                                            &ctx->Texture.Unit[unit].Sampler,
                                            sampObj);
             ctx->NewState |= _NEW_TEXTURE_OBJECT;
+            ctx->PopAttribState |= GL_TEXTURE_BIT;
          }
       }
 
@@ -430,6 +432,7 @@ bind_samplers(struct gl_context *ctx, GLuint first, GLsizei count,
                                            &ctx->Texture.Unit[unit].Sampler,
                                            NULL);
             ctx->NewState |= _NEW_TEXTURE_OBJECT;
+            ctx->PopAttribState |= GL_TEXTURE_BIT;
          }
       }
    }
@@ -510,7 +513,7 @@ validate_texture_wrap_mode(struct gl_context *ctx, GLenum wrap)
 static inline void
 flush(struct gl_context *ctx)
 {
-   FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT);
+   FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT, GL_TEXTURE_BIT);
 }
 
 void
@@ -534,6 +537,12 @@ _mesa_set_sampler_wrap(struct gl_context *ctx, struct gl_sampler_object *samp,
 #define INVALID_PNAME 0x101
 #define INVALID_VALUE 0x102
 
+static inline GLboolean
+is_wrap_gl_clamp(GLint param)
+{
+   return param == GL_CLAMP || param == GL_MIRROR_CLAMP_EXT;
+}
+
 static GLuint
 set_sampler_wrap_s(struct gl_context *ctx, struct gl_sampler_object *samp,
                    GLint param)
@@ -542,6 +551,8 @@ set_sampler_wrap_s(struct gl_context *ctx, struct gl_sampler_object *samp,
       return GL_FALSE;
    if (validate_texture_wrap_mode(ctx, param)) {
       flush(ctx);
+      if (is_wrap_gl_clamp(samp->Attrib.WrapS) != is_wrap_gl_clamp(param))
+         ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
       samp->Attrib.WrapS = param;
       return GL_TRUE;
    }
@@ -557,6 +568,8 @@ set_sampler_wrap_t(struct gl_context *ctx, struct gl_sampler_object *samp,
       return GL_FALSE;
    if (validate_texture_wrap_mode(ctx, param)) {
       flush(ctx);
+      if (is_wrap_gl_clamp(samp->Attrib.WrapT) != is_wrap_gl_clamp(param))
+         ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
       samp->Attrib.WrapT = param;
       return GL_TRUE;
    }
@@ -572,6 +585,8 @@ set_sampler_wrap_r(struct gl_context *ctx, struct gl_sampler_object *samp,
       return GL_FALSE;
    if (validate_texture_wrap_mode(ctx, param)) {
       flush(ctx);
+      if (is_wrap_gl_clamp(samp->Attrib.WrapR) != is_wrap_gl_clamp(param))
+         ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
       samp->Attrib.WrapR = param;
       return GL_TRUE;
    }
@@ -858,6 +873,24 @@ set_sampler_srgb_decode(struct gl_context *ctx,
    return GL_TRUE;
 }
 
+static GLuint
+set_sampler_reduction_mode(struct gl_context *ctx,
+                           struct gl_sampler_object *samp, GLenum param)
+{
+   if (!ctx->Extensions.EXT_texture_filter_minmax)
+      return INVALID_PNAME;
+
+   if (samp->Attrib.ReductionMode == param)
+      return GL_FALSE;
+
+   if (param != GL_WEIGHTED_AVERAGE_EXT && param != GL_MIN && param != GL_MAX)
+      return INVALID_PARAM;
+
+   flush(ctx);
+   samp->Attrib.ReductionMode = param;
+   return GL_TRUE;
+}
+
 static struct gl_sampler_object *
 sampler_parameter_error_check(struct gl_context *ctx, GLuint sampler,
                               bool get, const char *name)
@@ -943,6 +976,9 @@ _mesa_SamplerParameteri(GLuint sampler, GLenum pname, GLint param)
    case GL_TEXTURE_SRGB_DECODE_EXT:
       res = set_sampler_srgb_decode(ctx, sampObj, param);
       break;
+   case GL_TEXTURE_REDUCTION_MODE_EXT:
+      res = set_sampler_reduction_mode(ctx, sampObj, param);
+      break;
    case GL_TEXTURE_BORDER_COLOR:
       /* fall-through */
    default:
@@ -1026,6 +1062,9 @@ _mesa_SamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
    case GL_TEXTURE_SRGB_DECODE_EXT:
       res = set_sampler_srgb_decode(ctx, sampObj, (GLenum) param);
       break;
+   case GL_TEXTURE_REDUCTION_MODE_EXT:
+      res = set_sampler_reduction_mode(ctx, sampObj, (GLenum) param);
+      break;
    case GL_TEXTURE_BORDER_COLOR:
       /* fall-through */
    default:
@@ -1107,6 +1146,9 @@ _mesa_SamplerParameteriv(GLuint sampler, GLenum pname, const GLint *params)
       break;
    case GL_TEXTURE_SRGB_DECODE_EXT:
       res = set_sampler_srgb_decode(ctx, sampObj, params[0]);
+      break;
+   case GL_TEXTURE_REDUCTION_MODE_EXT:
+      res = set_sampler_reduction_mode(ctx, sampObj, params[0]);
       break;
    case GL_TEXTURE_BORDER_COLOR:
       {
@@ -1198,6 +1240,9 @@ _mesa_SamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *params)
    case GL_TEXTURE_SRGB_DECODE_EXT:
       res = set_sampler_srgb_decode(ctx, sampObj, (GLenum) params[0]);
       break;
+   case GL_TEXTURE_REDUCTION_MODE_EXT:
+      res = set_sampler_reduction_mode(ctx, sampObj, (GLenum) params[0]);
+      break;
    case GL_TEXTURE_BORDER_COLOR:
       res = set_sampler_border_colorf(ctx, sampObj, params);
       break;
@@ -1280,6 +1325,9 @@ _mesa_SamplerParameterIiv(GLuint sampler, GLenum pname, const GLint *params)
       break;
    case GL_TEXTURE_SRGB_DECODE_EXT:
       res = set_sampler_srgb_decode(ctx, sampObj, (GLenum) params[0]);
+      break;
+   case GL_TEXTURE_REDUCTION_MODE_EXT:
+      res = set_sampler_reduction_mode(ctx, sampObj, (GLenum) params[0]);
       break;
    case GL_TEXTURE_BORDER_COLOR:
       res = set_sampler_border_colori(ctx, sampObj, params);
@@ -1364,6 +1412,9 @@ _mesa_SamplerParameterIuiv(GLuint sampler, GLenum pname, const GLuint *params)
       break;
    case GL_TEXTURE_SRGB_DECODE_EXT:
       res = set_sampler_srgb_decode(ctx, sampObj, (GLenum) params[0]);
+      break;
+   case GL_TEXTURE_REDUCTION_MODE_EXT:
+      res = set_sampler_reduction_mode(ctx, sampObj, (GLenum) params[0]);
       break;
    case GL_TEXTURE_BORDER_COLOR:
       res = set_sampler_border_colorui(ctx, sampObj, params);
@@ -1478,6 +1529,11 @@ _mesa_GetSamplerParameteriv(GLuint sampler, GLenum pname, GLint *params)
          goto invalid_pname;
       *params = (GLenum) sampObj->Attrib.sRGBDecode;
       break;
+   case GL_TEXTURE_REDUCTION_MODE_EXT:
+      if (!ctx->Extensions.EXT_texture_filter_minmax)
+         goto invalid_pname;
+      *params = (GLenum) sampObj->Attrib.ReductionMode;
+      break;
    default:
       goto invalid_pname;
    }
@@ -1549,6 +1605,11 @@ _mesa_GetSamplerParameterfv(GLuint sampler, GLenum pname, GLfloat *params)
       if (!ctx->Extensions.EXT_texture_sRGB_decode)
          goto invalid_pname;
       *params = (GLfloat) sampObj->Attrib.sRGBDecode;
+      break;
+   case GL_TEXTURE_REDUCTION_MODE_EXT:
+      if (!ctx->Extensions.EXT_texture_filter_minmax)
+         goto invalid_pname;
+      *params = (GLfloat) sampObj->Attrib.ReductionMode;
       break;
    default:
       goto invalid_pname;
@@ -1622,6 +1683,11 @@ _mesa_GetSamplerParameterIiv(GLuint sampler, GLenum pname, GLint *params)
          goto invalid_pname;
       *params = (GLenum) sampObj->Attrib.sRGBDecode;
       break;
+   case GL_TEXTURE_REDUCTION_MODE_EXT:
+      if (!ctx->Extensions.EXT_texture_filter_minmax)
+         goto invalid_pname;
+      *params = (GLenum) sampObj->Attrib.ReductionMode;
+      break;
    default:
       goto invalid_pname;
    }
@@ -1693,6 +1759,11 @@ _mesa_GetSamplerParameterIuiv(GLuint sampler, GLenum pname, GLuint *params)
       if (!ctx->Extensions.EXT_texture_sRGB_decode)
          goto invalid_pname;
       *params = (GLenum) sampObj->Attrib.sRGBDecode;
+      break;
+   case GL_TEXTURE_REDUCTION_MODE_EXT:
+      if (!ctx->Extensions.EXT_texture_filter_minmax)
+         goto invalid_pname;
+      *params = (GLenum) sampObj->Attrib.ReductionMode;
       break;
    default:
       goto invalid_pname;

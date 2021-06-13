@@ -19,6 +19,8 @@
 # SOFTWARE.
 
 files_libfreedreno = files(
+  'freedreno_autotune.c',
+  'freedreno_autotune.h',
   'freedreno_batch.c',
   'freedreno_batch.h',
   'freedreno_batch_cache.c',
@@ -215,7 +217,7 @@ files_libfreedreno = files(
   'ir3/ir3_gallium.h',
 )
 
-files_libfreedreno += custom_target(
+freedreno_tracepoints = custom_target(
   'freedreno_tracepoints.[ch]',
   input: 'freedreno_tracepoints.py',
   output: ['freedreno_tracepoints.c', 'freedreno_tracepoints.h'],
@@ -227,6 +229,8 @@ files_libfreedreno += custom_target(
   ],
   depend_files: u_trace_py,
 )
+
+files_libfreedreno += freedreno_tracepoints
 
 freedreno_includes = [
   inc_mesa, inc_mapi,
@@ -296,11 +300,15 @@ ir3_compiler = executable(
 
 gmemtool = executable(
   'gmemtool',
-  'gmemtool.c',
+  [
+    'gmemtool.c',
+    freedreno_tracepoints[1]
+  ],
   include_directories : freedreno_includes,
   dependencies : [
     idep_nir,
     idep_mesautil,
+    idep_u_tracepoints,
   ],
   link_with : [
     libfreedreno,

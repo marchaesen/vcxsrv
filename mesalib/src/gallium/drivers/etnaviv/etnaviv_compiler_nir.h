@@ -215,7 +215,8 @@ dest_for_instr(nir_instr *instr)
       if (intr->intrinsic == nir_intrinsic_load_uniform ||
           intr->intrinsic == nir_intrinsic_load_ubo ||
           intr->intrinsic == nir_intrinsic_load_input ||
-          intr->intrinsic == nir_intrinsic_load_instance_id)
+          intr->intrinsic == nir_intrinsic_load_instance_id ||
+          intr->intrinsic == nir_intrinsic_load_texture_rect_scaling)
          dest = &intr->dest;
    } break;
    case nir_instr_type_deref:

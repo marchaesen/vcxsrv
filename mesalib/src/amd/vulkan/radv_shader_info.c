@@ -132,8 +132,28 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 		      struct radv_shader_info *info)
 {
 	switch (instr->intrinsic) {
+	case nir_intrinsic_load_barycentric_sample:
+	case nir_intrinsic_load_barycentric_pixel:
+	case nir_intrinsic_load_barycentric_centroid: {
+		enum glsl_interp_mode mode = nir_intrinsic_interp_mode(instr);
+		switch (mode) {
+		case INTERP_MODE_NONE:
+		case INTERP_MODE_SMOOTH:
+		case INTERP_MODE_NOPERSPECTIVE:
+			info->ps.uses_persp_or_linear_interp = true;
+			break;
+		default:
+			break;
+		}
+		break;
+	}
+	case nir_intrinsic_load_barycentric_at_offset:
 	case nir_intrinsic_load_barycentric_at_sample:
-		info->ps.needs_sample_positions = true;
+		if (nir_intrinsic_interp_mode(instr) != INTERP_MODE_FLAT)
+			info->ps.uses_persp_or_linear_interp = true;
+
+		if (instr->intrinsic == nir_intrinsic_load_barycentric_at_sample)
+			info->ps.needs_sample_positions = true;
 		break;
 	case nir_intrinsic_load_draw_id:
 		info->vs.needs_draw_id = true;
@@ -187,6 +207,7 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 		info->desc_set_used_mask |= (1u << nir_intrinsic_desc_set(instr));
 		break;
 	case nir_intrinsic_image_deref_load:
+	case nir_intrinsic_image_deref_sparse_load:
 	case nir_intrinsic_image_deref_store:
 	case nir_intrinsic_image_deref_atomic_add:
 	case nir_intrinsic_image_deref_atomic_imin:
@@ -411,17 +432,6 @@ gather_info_output_decl_ps(const nir_shader *nir, const nir_variable *var,
 		break;
 	default:
 		break;
-	}
-
-	if (idx >= FRAG_RESULT_DATA0 && idx <= FRAG_RESULT_DATA7) {
-		unsigned num_components = glsl_get_component_slots(glsl_without_array(var->type));
-		unsigned num_slots = glsl_count_attribute_slots(var->type, false);
-		unsigned write_mask = (1 << num_components) - 1;
-		unsigned slot = idx - FRAG_RESULT_DATA0;
-
-		for (unsigned i = 0; i < num_slots; i++) {
-			info->ps.cb_shader_mask |= write_mask << ((slot + i) * 4);
-		}
 	}
 }
 
@@ -707,20 +717,16 @@ radv_nir_shader_info_pass(const struct nir_shader *nir,
 	info->float_controls_mode = nir->info.float_controls_execution_mode;
 
 	if (nir->info.stage == MESA_SHADER_FRAGMENT) {
-		/* If the i-th output is used, all previous outputs must be
-		 * non-zero to match the target format.
-		 * TODO: compact MRT to avoid holes and to remove this
-		 * workaround.
-		 */
-		unsigned num_targets = (util_last_bit(info->ps.cb_shader_mask) + 3) / 4;
-		for (unsigned i = 0; i < num_targets; i++) {
-			if (!(info->ps.cb_shader_mask & (0xfu << (i * 4)))) {
-				info->ps.cb_shader_mask |= 0xfu << (i * 4);
-			}
-		}
-
-		if (key->fs.is_dual_src) {
-			info->ps.cb_shader_mask |= (info->ps.cb_shader_mask & 0xf) << 4;
-		}
+		info->ps.allow_flat_shading =
+			!(info->ps.uses_persp_or_linear_interp ||
+			  info->ps.needs_sample_positions ||
+			  info->ps.writes_memory ||
+			  nir->info.fs.needs_quad_helper_invocations ||
+			  BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_FRAG_COORD) ||
+			  BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_POINT_COORD) ||
+			  BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_SAMPLE_ID) ||
+			  BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_SAMPLE_POS) ||
+			  BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_SAMPLE_MASK_IN) ||
+			  BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_HELPER_INVOCATION));
 	}
 }

@@ -70,18 +70,19 @@ enum radeon_micro_mode
 #define RADEON_SURF_Z_OR_SBUFFER (RADEON_SURF_ZBUFFER | RADEON_SURF_SBUFFER)
 /* bits 19 and 20 are reserved for libdrm_radeon, don't use them */
 #define RADEON_SURF_FMASK                 (1 << 21)
-#define RADEON_SURF_DISABLE_DCC           (1 << 22)
-#define RADEON_SURF_TC_COMPATIBLE_HTILE   (1 << 23)
-#define RADEON_SURF_IMPORTED              (1 << 24)
-#define RADEON_SURF_CONTIGUOUS_DCC_LAYERS (1 << 25)
-#define RADEON_SURF_SHAREABLE             (1 << 26)
-#define RADEON_SURF_NO_RENDER_TARGET      (1 << 27)
+#define RADEON_SURF_DISABLE_DCC           (1ull << 22)
+#define RADEON_SURF_TC_COMPATIBLE_HTILE   (1ull << 23)
+#define RADEON_SURF_IMPORTED              (1ull << 24)
+#define RADEON_SURF_CONTIGUOUS_DCC_LAYERS (1ull << 25)
+#define RADEON_SURF_SHAREABLE             (1ull << 26)
+#define RADEON_SURF_NO_RENDER_TARGET      (1ull << 27)
 /* Force a swizzle mode (gfx9+) or tile mode (gfx6-8).
  * If this is not set, optimize for space. */
-#define RADEON_SURF_FORCE_SWIZZLE_MODE    (1 << 28)
-#define RADEON_SURF_NO_FMASK              (1 << 29)
-#define RADEON_SURF_NO_HTILE              (1 << 30)
-#define RADEON_SURF_FORCE_MICRO_TILE_MODE (1u << 31)
+#define RADEON_SURF_FORCE_SWIZZLE_MODE    (1ull << 28)
+#define RADEON_SURF_NO_FMASK              (1ull << 29)
+#define RADEON_SURF_NO_HTILE              (1ull << 30)
+#define RADEON_SURF_FORCE_MICRO_TILE_MODE (1ull << 31)
+#define RADEON_SURF_PRT                   (1ull << 32)
 
 struct legacy_surf_level {
    uint64_t offset;
@@ -148,6 +149,11 @@ struct gfx9_surf_meta_flags {
    unsigned max_compressed_block_size : 2;
 };
 
+struct gfx9_surf_level {
+   unsigned offset;
+   unsigned size;
+};
+
 struct gfx9_surf_layout {
    struct gfx9_surf_flags surf;    /* color or depth surface */
    struct gfx9_surf_flags fmask;   /* not added to surf_size */
@@ -188,6 +194,17 @@ struct gfx9_surf_layout {
    bool dcc_retile_use_uint16;     /* if all values fit into uint16_t */
    uint32_t dcc_retile_num_elements;
    void *dcc_retile_map;
+
+   /* Offset within slice in bytes, only valid for prt images. */
+   uint32_t prt_level_offset[RADEON_SURF_MAX_LEVELS];
+   /* Pitch of level in blocks, only valid for prt images. */
+   uint16_t prt_level_pitch[RADEON_SURF_MAX_LEVELS];
+
+   /* DCC level info */
+   struct gfx9_surf_level dcc_levels[RADEON_SURF_MAX_LEVELS];
+
+   /* HTILE level info */
+   struct gfx9_surf_level htile_levels[RADEON_SURF_MAX_LEVELS];
 };
 
 struct radeon_surf {
@@ -206,7 +223,7 @@ struct radeon_surf {
    unsigned is_displayable : 1;
    /* Displayable, thin, depth, rotated. AKA D,S,Z,R swizzle modes. */
    unsigned micro_tile_mode : 3;
-   uint32_t flags;
+   uint64_t flags;
 
     /*
      * DRM format modifier. Set to DRM_FORMAT_MOD_INVALID to have addrlib
@@ -218,6 +235,11 @@ struct radeon_surf {
     * they will be treated as hints (e.g. bankw, bankh) and might be
     * changed by the calculator.
     */
+
+   /* Not supported yet for depth + stencil. */
+   uint8_t first_mip_tail_level;
+   uint16_t prt_tile_width;
+   uint16_t prt_tile_height;
 
    /* Tile swizzle can be OR'd with low bits of the BASE_256B address.
     * The value is the same for all mipmap levels. Supported tile modes:
@@ -249,6 +271,7 @@ struct radeon_surf {
    uint32_t htile_size;
    uint32_t htile_slice_size;
    uint32_t htile_alignment;
+   uint32_t num_htile_levels : 4;
 
    uint32_t cmask_size;
    uint32_t cmask_slice_size;
@@ -312,7 +335,7 @@ void ac_surface_get_bo_metadata(const struct radeon_info *info, struct radeon_su
 
 bool ac_surface_set_umd_metadata(const struct radeon_info *info, struct radeon_surf *surf,
                                  unsigned num_storage_samples, unsigned num_mipmap_levels,
-                                 unsigned size_metadata, uint32_t metadata[64]);
+                                 unsigned size_metadata, const uint32_t metadata[64]);
 void ac_surface_get_umd_metadata(const struct radeon_info *info, struct radeon_surf *surf,
                                  unsigned num_mipmap_levels, uint32_t desc[8],
                                  unsigned *size_metadata, uint32_t metadata[64]);
@@ -344,6 +367,10 @@ uint64_t ac_surface_get_plane_offset(enum chip_class chip_class,
 uint64_t ac_surface_get_plane_stride(enum chip_class chip_class,
                                      const struct radeon_surf *surf,
                                      unsigned plane);
+/* Of the whole miplevel, not an individual layer */
+uint64_t ac_surface_get_plane_size(const struct radeon_surf *surf,
+                                   unsigned plane);
+uint32_t ac_surface_get_retile_map_size(const struct radeon_surf *surf);
 
 void ac_surface_print_info(FILE *out, const struct radeon_info *info,
                            const struct radeon_surf *surf);

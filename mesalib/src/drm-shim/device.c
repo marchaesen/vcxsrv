@@ -166,6 +166,7 @@ drm_shim_ioctl_get_cap(int fd, unsigned long request, void *arg)
    switch (gc->capability) {
    case DRM_CAP_PRIME:
    case DRM_CAP_SYNCOBJ:
+   case DRM_CAP_SYNCOBJ_TIMELINE:
       gc->value = 1;
       return 0;
 

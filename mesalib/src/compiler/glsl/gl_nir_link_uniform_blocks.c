@@ -583,7 +583,7 @@ gl_nir_link_uniform_blocks(struct gl_context *ctx,
                            struct gl_shader_program *prog)
 {
    void *mem_ctx = ralloc_context(NULL);
-
+   bool ret = false;
    for (int stage = 0; stage < MESA_SHADER_STAGES; stage++) {
       struct gl_linked_shader *const linked = prog->_LinkedShaders[stage];
       struct gl_uniform_block *ubo_blocks = NULL;
@@ -603,7 +603,7 @@ gl_nir_link_uniform_blocks(struct gl_context *ctx,
                                         BLOCK_SSBO);
 
       if (!prog->data->LinkStatus) {
-         return false;
+         goto out;
       }
 
       prog->data->linked_stages |= 1 << stage;
@@ -638,10 +638,13 @@ gl_nir_link_uniform_blocks(struct gl_context *ctx,
    }
 
    if (!nir_interstage_cross_validate_uniform_blocks(prog, BLOCK_UBO))
-      return false;
+      goto out;
 
    if (!nir_interstage_cross_validate_uniform_blocks(prog, BLOCK_SSBO))
-      return false;
+      goto out;
 
-   return true;
+   ret = true;
+out:
+   ralloc_free(mem_ctx);
+   return ret;
 }

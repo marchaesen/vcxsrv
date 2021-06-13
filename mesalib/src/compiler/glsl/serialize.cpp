@@ -1046,6 +1046,7 @@ write_shader_parameters(struct blob *metadata,
    blob_write_uint32(metadata, params->StateFlags);
    blob_write_uint32(metadata, params->UniformBytes);
    blob_write_uint32(metadata, params->FirstStateVarIndex);
+   blob_write_uint32(metadata, params->LastStateVarIndex);
 }
 
 static void
@@ -1082,6 +1083,7 @@ read_shader_parameters(struct blob_reader *metadata,
    params->StateFlags = blob_read_uint32(metadata);
    params->UniformBytes = blob_read_uint32(metadata);
    params->FirstStateVarIndex = blob_read_uint32(metadata);
+   params->LastStateVarIndex = blob_read_uint32(metadata);
 }
 
 static void

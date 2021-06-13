@@ -93,10 +93,12 @@
       <param name="n" type="GLdouble" />
       <param name="f" type="GLdouble" />
    </function>
-   <function name="MatrixPushEXT" offset="assign">
+   <function name="MatrixPushEXT" offset="assign"
+             marshal_call_after="_mesa_glthread_MatrixPushEXT(ctx, matrixMode);">
       <param name="matrixMode" type="GLenum" />
    </function>
-   <function name="MatrixPopEXT" offset="assign">
+   <function name="MatrixPopEXT" offset="assign"
+             marshal_call_after="_mesa_glthread_MatrixPopEXT(ctx, matrixMode);">
       <param name="matrixMode" type="GLenum" />
    </function>
 
@@ -170,7 +172,8 @@
        <param name="params" type="const float *" count="_mesa_tex_param_enum_to_count(pname)"/>
     </function>
 
-   <function name="TextureImage1DEXT">
+   <function name="TextureImage1DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -182,7 +185,8 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="TextureImage2DEXT">
+   <function name="TextureImage2DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -195,7 +199,8 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="TextureImage3DEXT">
+   <function name="TextureImage3DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -209,7 +214,8 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="TextureSubImage1DEXT">
+   <function name="TextureSubImage1DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -220,7 +226,8 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="TextureSubImage2DEXT">
+   <function name="TextureSubImage2DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -233,7 +240,8 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="TextureSubImage3DEXT">
+   <function name="TextureSubImage3DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -306,7 +314,8 @@
       <param name="height" type="GLsizei" />
    </function>
 
-   <function name="GetTextureImageEXT">
+   <function name="GetTextureImageEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -435,7 +444,8 @@
       <param name="params" type="GLfloat*" />
    </function>
 
-   <function name="GetMultiTexImageEXT">
+   <function name="GetMultiTexImageEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -460,7 +470,8 @@
       <param name="params" type="GLfloat*" />
    </function>
 
-   <function name="MultiTexImage1DEXT">
+   <function name="MultiTexImage1DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -472,7 +483,8 @@
       <param name="pixels" type="const GLvoid*" />
    </function>
 
-   <function name="MultiTexImage2DEXT">
+   <function name="MultiTexImage2DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -485,7 +497,8 @@
       <param name="pixels" type="const GLvoid*" />
    </function>
 
-   <function name="MultiTexImage3DEXT">
+   <function name="MultiTexImage3DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -499,7 +512,8 @@
       <param name="pixels" type="const GLvoid*" />
    </function>
 
-   <function name="MultiTexSubImage1DEXT">
+   <function name="MultiTexSubImage1DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -510,7 +524,8 @@
       <param name="pixels" type="const GLvoid*" />
    </function>
 
-   <function name="MultiTexSubImage2DEXT">
+   <function name="MultiTexSubImage2DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -523,7 +538,8 @@
       <param name="pixels" type="const GLvoid*" />
    </function>
 
-   <function name="MultiTexSubImage3DEXT">
+   <function name="MultiTexSubImage3DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -690,7 +706,8 @@
       <param name="m" type="const GLdouble *" count="16"/>
     </function>
 
-   <function name="CompressedTextureImage1DEXT">
+   <function name="CompressedTextureImage1DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -701,7 +718,8 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedTextureImage2DEXT">
+   <function name="CompressedTextureImage2DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -713,7 +731,8 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedTextureImage3DEXT">
+   <function name="CompressedTextureImage3DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -726,7 +745,8 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedTextureSubImage1DEXT">
+   <function name="CompressedTextureSubImage1DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -737,7 +757,8 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedTextureSubImage2DEXT">
+   <function name="CompressedTextureSubImage2DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -750,7 +771,8 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedTextureSubImage3DEXT">
+   <function name="CompressedTextureSubImage3DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -765,14 +787,16 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="GetCompressedTextureImageEXT">
+   <function name="GetCompressedTextureImageEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
       <param name="img" type="GLvoid *" />
    </function>
 
-   <function name="CompressedMultiTexImage1DEXT">
+   <function name="CompressedMultiTexImage1DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -783,7 +807,8 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedMultiTexImage2DEXT">
+   <function name="CompressedMultiTexImage2DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -795,7 +820,8 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedMultiTexImage3DEXT">
+   <function name="CompressedMultiTexImage3DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -808,7 +834,8 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedMultiTexSubImage1DEXT">
+   <function name="CompressedMultiTexSubImage1DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -819,7 +846,8 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedMultiTexSubImage2DEXT">
+   <function name="CompressedMultiTexSubImage2DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -832,7 +860,8 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedMultiTexSubImage3DEXT">
+   <function name="CompressedMultiTexSubImage3DEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -847,7 +876,8 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="GetCompressedMultiTexImageEXT">
+   <function name="GetCompressedMultiTexImageEXT"
+             marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -876,7 +906,7 @@
       <param name="access" type="GLenum" />
    </function>
 
-   <function name="UnmapNamedBufferEXT">
+   <function name="UnmapNamedBufferEXT" marshal="async">
       <return type="GLboolean" />
       <param name="buffer" type="GLuint" />
    </function>

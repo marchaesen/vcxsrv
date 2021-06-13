@@ -596,6 +596,8 @@ clc_to_spirv(const struct clc_compile_args *args,
       "-fno-builtin-memset",
       // LLVM's optimizations can produce code that the translator can't translate
       "-O0",
+      // Ensure inline functions are actually emitted
+      "-fgnu89-inline"
    };
    // We assume there's appropriate defines for __OPENCL_VERSION__ and __IMAGE_SUPPORT__
    // being provided by the caller here.

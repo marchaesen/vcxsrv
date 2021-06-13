@@ -12,7 +12,7 @@ for lang in ${localities} ; do
     mkdir -p ${BUNDLE_ROOT}/Contents/Resources/${lang}.lproj/main.nib
     [ -d ${BUNDLE_ROOT}/Contents/Resources/${lang}.lproj/main.nib ] || exit 1
 
-    for f in Localizable.strings main.nib/keyedobjects.nib ; do
+    for f in Localizable.strings main.nib/keyedobjects.nib main.nib/keyedobjects-110000.nib ; do
         install -m 644 ${SRCDIR}/Resources/${lang}.lproj/$f ${BUNDLE_ROOT}/Contents/Resources/${lang}.lproj/${f}
     done
 done
@@ -24,7 +24,7 @@ install -m 644 ${BUILDDIR}/Info.plist ${BUNDLE_ROOT}/Contents
 install -m 644 ${SRCDIR}/PkgInfo ${BUNDLE_ROOT}/Contents
 
 mkdir -p ${BUNDLE_ROOT}/Contents/MacOS
-install -m 755 ${SRCDIR}/X11.sh ${BUNDLE_ROOT}/Contents/MacOS/X11
+install -m 755 ${SRCDIR}/X11.sh ${BUNDLE_ROOT}/Contents/MacOS
 
 if [[ $(id -u) == 0 ]] ; then
 	chown -R root:admin ${BUNDLE_ROOT}

@@ -65,14 +65,14 @@ clc_free_spirv_binary(struct spirv_binary *spvbin);
 #define clc_log(logger, level, fmt, ...) do {        \
       if (!logger || !logger->level) break;          \
       char *msg = NULL;                              \
-      asprintf(&msg, fmt, __VA_ARGS__);              \
+      asprintf(&msg, fmt, ##__VA_ARGS__);            \
       assert(msg);                                   \
       logger->level(logger->priv, msg);              \
       free(msg);                                     \
    } while (0)
 
-#define clc_error(logger, fmt, ...) clc_log(logger, error, fmt, __VA_ARGS__)
-#define clc_warning(logger, fmt, ...) clc_log(logger, warning, fmt, __VA_ARGS__)
+#define clc_error(logger, fmt, ...) clc_log(logger, error, fmt, ##__VA_ARGS__)
+#define clc_warning(logger, fmt, ...) clc_log(logger, warning, fmt, ##__VA_ARGS__)
 
 #ifdef __cplusplus
 }

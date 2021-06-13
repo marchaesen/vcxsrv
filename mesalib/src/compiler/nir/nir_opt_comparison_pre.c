@@ -193,9 +193,9 @@ rewrite_compare_instruction(nir_builder *bld, nir_alu_instr *orig_cmp,
    nir_builder_instr_insert(bld, &mov_cmp->instr);
 
    nir_ssa_def_rewrite_uses(&orig_cmp->dest.dest.ssa,
-                            nir_src_for_ssa(&mov_cmp->dest.dest.ssa));
+                            &mov_cmp->dest.dest.ssa);
    nir_ssa_def_rewrite_uses(&orig_add->dest.dest.ssa,
-                            nir_src_for_ssa(&mov_add->dest.dest.ssa));
+                            &mov_add->dest.dest.ssa);
 
    /* We know these have no more uses because we just rewrote them all, so we
     * can remove them.

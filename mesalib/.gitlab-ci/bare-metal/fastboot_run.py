@@ -34,6 +34,11 @@ class FastbootRun:
         self.ser = SerialBuffer(args.dev, "results/serial-output.txt", "R SERIAL> ")
         self.fastboot="fastboot boot -s {ser} artifacts/fastboot.img".format(ser=args.fbserial)
 
+    def print_error(self, message):
+        RED = '\033[0;31m'
+        NO_COLOR = '\033[0m'
+        print(RED + message + NO_COLOR)
+
     def logged_system(self, cmd):
         print("Running '{}'".format(cmd))
         return os.system(cmd)
@@ -53,7 +58,7 @@ class FastbootRun:
                 return 1
 
         if not fastboot_ready:
-            print("Failed to get to fastboot prompt")
+            self.print_error("Failed to get to fastboot prompt")
             return 1
 
         if self.logged_system(self.fastboot) != 0:
@@ -66,7 +71,13 @@ class FastbootRun:
             # The db820c boards intermittently reboot.  Just restart the run
             # when if we see a reboot after we got past fastboot.
             if re.search("PON REASON", line):
-                print("Detected spontaneous reboot, restarting run...")
+                self.print_error("Detected spontaneous reboot, restarting run...")
+                return 2
+
+            # db820c sometimes wedges around iommu fault recovery
+            if re.search("watchdog: BUG: soft lockup - CPU.* stuck", line):
+                self.print_error(
+                    "Detected kernel soft lockup, restarting run...")
                 return 2
 
             result = re.search("bare-metal result: (\S*)", line)
@@ -76,7 +87,7 @@ class FastbootRun:
                 else:
                     return 1
 
-        print("Reached the end of the CPU serial log without finding a result")
+        self.print_error("Reached the end of the CPU serial log without finding a result")
         return 1
 
 def main():

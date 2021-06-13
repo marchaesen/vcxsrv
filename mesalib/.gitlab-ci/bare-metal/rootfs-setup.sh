@@ -16,17 +16,21 @@ chmod +x $rootfs_dst/set-job-env-vars.sh
 for var in \
     BARE_METAL_TEST_SCRIPT \
     BM_KERNEL_MODULES \
+    BM_START_XORG \
     CI_COMMIT_BRANCH \
     CI_COMMIT_TITLE \
-    CI_JOB_JWT \
     CI_JOB_ID \
+    CI_JOB_JWT \
     CI_JOB_URL \
     CI_MERGE_REQUEST_SOURCE_BRANCH_NAME \
     CI_MERGE_REQUEST_TITLE \
     CI_NODE_INDEX \
     CI_NODE_TOTAL \
+    CI_PAGES_DOMAIN \
     CI_PIPELINE_ID \
+    CI_PROJECT_NAME \
     CI_PROJECT_PATH \
+    CI_PROJECT_ROOT_NAMESPACE \
     CI_RUNNER_DESCRIPTION \
     CI_SERVER_URL \
     DEQP_CASELIST_FILTER \
@@ -37,6 +41,7 @@ for var in \
     DEQP_NO_SAVE_RESULTS \
     DEQP_PARALLEL \
     DEQP_RESULTS_DIR \
+    DEQP_RUNNER_OPTIONS \
     DEQP_VARIANT \
     DEQP_VER \
     DEQP_WIDTH \
@@ -54,6 +59,7 @@ for var in \
     MESA_GLES_VERSION_OVERRIDE \
     MINIO_HOST \
     NIR_VALIDATE \
+    PIGLIT_FRACTION \
     PIGLIT_HTML_SUMMARY \
     PIGLIT_JUNIT_RESULTS \
     PIGLIT_OPTIONS \
@@ -66,7 +72,10 @@ for var in \
     PIGLIT_REPLAY_REFERENCE_IMAGES_BASE_URL \
     PIGLIT_REPLAY_UPLOAD_TO_MINIO \
     PIGLIT_RESULTS \
+    PIGLIT_TESTS \
+    TEST_LD_PRELOAD \
     TU_DEBUG \
+    VK_CPU \
     VK_DRIVER \
     ; do
   if [ -n "${!var+x}" ]; then
@@ -79,5 +88,5 @@ set -x
 
 # Add the Mesa drivers we built, and make a consistent symlink to them.
 mkdir -p $rootfs_dst/$CI_PROJECT_DIR
-tar -C $rootfs_dst/$CI_PROJECT_DIR/ -xf $CI_PROJECT_DIR/artifacts/install.tar
+rsync -aH --delete $CI_PROJECT_DIR/install/ $rootfs_dst/$CI_PROJECT_DIR/install/
 ln -sf $CI_PROJECT_DIR/install $rootfs_dst/install

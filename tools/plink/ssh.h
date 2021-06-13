@@ -567,6 +567,7 @@ mp_int *rsa_ssh1_decrypt(mp_int *input, RSAKey *key);
 bool rsa_ssh1_decrypt_pkcs1(mp_int *input, RSAKey *key, strbuf *outbuf);
 char *rsastr_fmt(RSAKey *key);
 char *rsa_ssh1_fingerprint(RSAKey *key);
+char **rsa_ssh1_fake_all_fingerprints(RSAKey *key);
 bool rsa_verify(RSAKey *key);
 void rsa_ssh1_public_blob(BinarySink *bs, RSAKey *key, RsaSsh1Order order);
 int rsa_ssh1_public_blob_len(ptrlen data);
@@ -930,6 +931,18 @@ struct ssh2_userkey {
     char *comment;                     /* the key comment */
 };
 
+/* Argon2 password hashing function */
+typedef enum { Argon2d = 0, Argon2i = 1, Argon2id = 2 } Argon2Flavour;
+void argon2(Argon2Flavour, uint32_t mem, uint32_t passes,
+            uint32_t parallel, uint32_t taglen,
+            ptrlen P, ptrlen S, ptrlen K, ptrlen X, strbuf *out);
+void argon2_choose_passes(
+    Argon2Flavour, uint32_t mem, uint32_t milliseconds, uint32_t *passes,
+    uint32_t parallel, uint32_t taglen, ptrlen P, ptrlen S, ptrlen K, ptrlen X,
+    strbuf *out);
+/* The H' hash defined in Argon2, exposed just for testcrypt */
+strbuf *argon2_long_hash(unsigned length, ptrlen data);
+
 /* The maximum length of any hash algorithm. (bytes) */
 #define MAX_HASH_LEN (114) /* longest is SHAKE256 with 114-byte output */
 
@@ -986,6 +999,7 @@ extern const ssh_hashalg ssh_sha3_256;
 extern const ssh_hashalg ssh_sha3_384;
 extern const ssh_hashalg ssh_sha3_512;
 extern const ssh_hashalg ssh_shake256_114bytes;
+extern const ssh_hashalg ssh_blake2b;
 extern const ssh_kexes ssh_diffiehellman_group1;
 extern const ssh_kexes ssh_diffiehellman_group14;
 extern const ssh_kexes ssh_diffiehellman_gex;
@@ -1014,6 +1028,10 @@ extern const ssh2_macalg ssh_hmac_sha1_96_buggy;
 extern const ssh2_macalg ssh_hmac_sha256;
 extern const ssh2_macalg ssh2_poly1305;
 extern const ssh_compression_alg ssh_zlib;
+
+/* Special constructor: BLAKE2b can be instantiated with any hash
+ * length up to 128 bytes */
+ssh_hash *blake2b_new_general(unsigned hashlen);
 
 /*
  * On some systems, you have to detect hardware crypto acceleration by
@@ -1217,9 +1235,35 @@ int rsa1_load_s(BinarySource *src, RSAKey *key,
 int rsa1_load_f(const Filename *filename, RSAKey *key,
                 const char *passphrase, const char **errorstr);
 
-strbuf *ppk_save_sb(ssh2_userkey *key, const char *passphrase);
+typedef struct ppk_save_parameters {
+    unsigned fmt_version;              /* currently 2 or 3 */
+
+    /*
+     * Parameters for fmt_version == 3
+     */
+    Argon2Flavour argon2_flavour;
+    uint32_t argon2_mem;               /* in Kb */
+    bool argon2_passes_auto;
+    union {
+        uint32_t argon2_passes;        /* if auto == false */
+        uint32_t argon2_milliseconds;  /* if auto == true */
+    };
+    uint32_t argon2_parallelism;
+
+    /* The ability to choose a specific salt is only intended for the
+     * use of the automated test of PuTTYgen. It's a (mild) security
+     * risk to do it with any passphrase you actually care about,
+     * because it invalidates the entire point of having a salt in the
+     * first place. */
+    const uint8_t *salt;
+    size_t saltlen;
+} ppk_save_parameters;
+extern const ppk_save_parameters ppk_save_default_parameters;
+
+strbuf *ppk_save_sb(ssh2_userkey *key, const char *passphrase,
+                    const ppk_save_parameters *params);
 bool ppk_save_f(const Filename *filename, ssh2_userkey *key,
-                const char *passphrase);
+                const char *passphrase, const ppk_save_parameters *params);
 strbuf *rsa1_save_sb(RSAKey *key, const char *passphrase);
 bool rsa1_save_f(const Filename *filename, RSAKey *key,
                  const char *passphrase);
@@ -1285,14 +1329,30 @@ enum {
     SSH_KEYTYPE_SSH2_PUBLIC_RFC4716,
     SSH_KEYTYPE_SSH2_PUBLIC_OPENSSH
 };
+
+typedef enum {
+    SSH_FPTYPE_MD5,
+    SSH_FPTYPE_SHA256,
+} FingerprintType;
+
+#define SSH_FPTYPE_DEFAULT SSH_FPTYPE_SHA256
+#define SSH_N_FPTYPES (SSH_FPTYPE_SHA256 + 1)
+
+FingerprintType ssh2_pick_fingerprint(char **fingerprints,
+                                      FingerprintType preferred_type);
+FingerprintType ssh2_pick_default_fingerprint(char **fingerprints);
+
 char *ssh1_pubkey_str(RSAKey *ssh1key);
 void ssh1_write_pubkey(FILE *fp, RSAKey *ssh1key);
 char *ssh2_pubkey_openssh_str(ssh2_userkey *key);
 void ssh2_write_pubkey(FILE *fp, const char *comment,
                        const void *v_pub_blob, int pub_len,
                        int keytype);
-char *ssh2_fingerprint_blob(ptrlen);
-char *ssh2_fingerprint(ssh_key *key);
+char *ssh2_fingerprint_blob(ptrlen, FingerprintType);
+char *ssh2_fingerprint(ssh_key *key, FingerprintType);
+char **ssh2_all_fingerprints_for_blob(ptrlen);
+char **ssh2_all_fingerprints(ssh_key *key);
+void ssh2_free_all_fingerprints(char **);
 int key_type(const Filename *filename);
 int key_type_s(BinarySource *src);
 const char *key_type_to_str(int type);
@@ -1321,8 +1381,10 @@ void des3_decrypt_pubkey_ossh(const void *key, const void *iv,
                               void *blk, int len);
 void des3_encrypt_pubkey_ossh(const void *key, const void *iv,
                               void *blk, int len);
-void aes256_encrypt_pubkey(const void *key, void *blk, int len);
-void aes256_decrypt_pubkey(const void *key, void *blk, int len);
+void aes256_encrypt_pubkey(const void *key, const void *iv,
+                           void *blk, int len);
+void aes256_decrypt_pubkey(const void *key, const void *iv,
+                           void *blk, int len);
 
 void des_encrypt_xdmauth(const void *key, void *blk, int len);
 void des_decrypt_xdmauth(const void *key, void *blk, int len);
@@ -1624,8 +1686,7 @@ unsigned alloc_channel_id_general(tree234 *channels, size_t localid_offset);
 void add_to_commasep(strbuf *buf, const char *data);
 bool get_commasep_word(ptrlen *list, ptrlen *word);
 
-int verify_ssh_manual_host_key(
-    Conf *conf, const char *fingerprint, ssh_key *key);
+int verify_ssh_manual_host_key(Conf *conf, char **fingerprints, ssh_key *key);
 
 typedef struct ssh_transient_hostkey_cache ssh_transient_hostkey_cache;
 ssh_transient_hostkey_cache *ssh_transient_hostkey_cache_new(void);

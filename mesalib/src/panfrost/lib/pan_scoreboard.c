@@ -110,25 +110,22 @@ panfrost_add_job(
                 struct pan_pool *pool,
                 struct pan_scoreboard *scoreboard,
                 enum mali_job_type type,
-                bool barrier,
-                unsigned local_dep,
+                bool barrier, bool suppress_prefetch,
+                unsigned local_dep, unsigned global_dep,
                 const struct panfrost_ptr *job,
                 bool inject)
 {
-        bool is_bifrost = !!(pool->dev->quirks & IS_BIFROST);
-        unsigned global_dep = 0;
-
         if (type == MALI_JOB_TYPE_TILER) {
                 /* Tiler jobs must be chained, and on Midgard, the first tiler
                  * job must depend on the write value job, whose index we
                  * reserve now */
 
-                if (is_bifrost && !scoreboard->write_value_index)
+                if (!pan_is_bifrost(pool->dev) && !scoreboard->write_value_index)
                         scoreboard->write_value_index = ++scoreboard->job_index;
 
                 if (scoreboard->tiler_dep && !inject)
                         global_dep = scoreboard->tiler_dep;
-                else if (is_bifrost)
+                else if (!pan_is_bifrost(pool->dev))
                         global_dep = scoreboard->write_value_index;
         }
 
@@ -138,6 +135,7 @@ panfrost_add_job(
         pan_pack(job->cpu, JOB_HEADER, header) {
                 header.type = type;
                 header.barrier = barrier;
+                header.suppress_prefetch = suppress_prefetch;
                 header.index = index;
                 header.dependency_1 = local_dep;
                 header.dependency_2 = global_dep;
@@ -197,7 +195,7 @@ panfrost_scoreboard_initialize_tiler(struct pan_pool *pool,
                 mali_ptr polygon_list)
 {
         /* Check if we even need tiling */
-        if (pool->dev->quirks & IS_BIFROST || !scoreboard->tiler_dep)
+        if (pan_is_bifrost(pool->dev) || !scoreboard->tiler_dep)
                 return;
 
         /* Okay, we do. Let's generate it. We'll need the job's polygon list

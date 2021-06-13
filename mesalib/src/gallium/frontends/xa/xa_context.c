@@ -327,7 +327,7 @@ xa_solid_prepare(struct xa_context *ctx, struct xa_surface *dst,
     renderer_bind_destination(ctx, ctx->srf);
     bind_solid_blend_state(ctx);
     cso_set_samplers(ctx->cso, PIPE_SHADER_FRAGMENT, 0, NULL);
-    cso_set_sampler_views(ctx->cso, PIPE_SHADER_FRAGMENT, 0, NULL);
+    ctx->pipe->set_sampler_views(ctx->pipe, PIPE_SHADER_FRAGMENT, 0, 0, XA_MAX_SAMPLERS, NULL);
 
     shader = xa_shaders_get(ctx->shaders, vs_traits, fs_traits);
     cso_set_vertex_shader_handle(ctx->cso, shader.vs);

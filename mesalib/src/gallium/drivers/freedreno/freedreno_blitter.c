@@ -77,13 +77,11 @@ default_src_texture(struct pipe_sampler_view *src_templ,
 }
 
 static void
-fd_blitter_pipe_begin(struct fd_context *ctx, bool render_cond, bool discard,
-		enum fd_render_stage stage)
+fd_blitter_pipe_begin(struct fd_context *ctx, bool render_cond, bool discard)
+	assert_dt
 {
 	fd_fence_ref(&ctx->last_fence, NULL);
 
-	util_blitter_save_fragment_constant_buffer_slot(ctx->blitter,
-			ctx->constbuf[PIPE_SHADER_FRAGMENT].cb);
 	util_blitter_save_vertex_buffer_slot(ctx->blitter, ctx->vtx.vertexbuf.vb);
 	util_blitter_save_vertex_elements(ctx->blitter, ctx->vtx.vtx);
 	util_blitter_save_vertex_shader(ctx->blitter, ctx->prog.vs);
@@ -112,13 +110,14 @@ fd_blitter_pipe_begin(struct fd_context *ctx, bool render_cond, bool discard,
 			ctx->cond_query, ctx->cond_cond, ctx->cond_mode);
 
 	if (ctx->batch)
-		fd_batch_set_stage(ctx->batch, stage);
+		fd_batch_update_queries(ctx->batch);
 
 	ctx->in_discard_blit = discard;
 }
 
 static void
 fd_blitter_pipe_end(struct fd_context *ctx)
+	assert_dt
 {
 	ctx->in_discard_blit = false;
 }
@@ -140,7 +139,7 @@ fd_blitter_blit(struct fd_context *ctx, const struct pipe_blit_info *info)
 				info->dst.box.height, info->dst.box.depth);
 	}
 
-	fd_blitter_pipe_begin(ctx, info->render_condition_enable, discard, FD_STAGE_BLIT);
+	fd_blitter_pipe_begin(ctx, info->render_condition_enable, discard);
 
 	/* Initialize the surface. */
 	default_dst_texture(&dst_templ, dst, info->dst.level,
@@ -181,7 +180,10 @@ fd_blitter_clear(struct pipe_context *pctx, unsigned buffers,
 	/* Note: don't use discard=true, if there was something to
 	 * discard, that would have been already handled in fd_clear().
 	 */
-	fd_blitter_pipe_begin(ctx, false, false, FD_STAGE_CLEAR);
+	fd_blitter_pipe_begin(ctx, false, false);
+
+	util_blitter_save_fragment_constant_buffer_slot(ctx->blitter,
+			ctx->constbuf[PIPE_SHADER_FRAGMENT].cb);
 
 	util_blitter_common_clear_setup(blitter, pfb->width, pfb->height,
 			buffers, NULL, NULL);
@@ -195,7 +197,7 @@ fd_blitter_clear(struct pipe_context *pctx, unsigned buffers,
 		.buffer_size = 16,
 		.user_buffer = &color->ui,
 	};
-	pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 0, &cb);
+	pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 0, false, &cb);
 
 	unsigned rs_idx = pfb->samples > 1 ? 1 : 0;
 	if (!ctx->clear_rs_state[rs_idx]) {
@@ -219,7 +221,7 @@ fd_blitter_clear(struct pipe_context *pctx, unsigned buffers,
 	pctx->set_viewport_states(pctx, 0, 1, &vp);
 
 	pctx->bind_vertex_elements_state(pctx, ctx->solid_vbuf_state.vtx);
-	pctx->set_vertex_buffers(pctx, blitter->vb_slot, 1,
+	pctx->set_vertex_buffers(pctx, blitter->vb_slot, 1, 0, false,
 			&ctx->solid_vbuf_state.vertexbuf.vb[0]);
 	pctx->set_stream_output_targets(pctx, 0, NULL, NULL);
 
@@ -239,12 +241,13 @@ fd_blitter_clear(struct pipe_context *pctx, unsigned buffers,
 
 	struct pipe_draw_info info = {
 		.mode = PIPE_PRIM_MAX,    /* maps to DI_PT_RECTLIST */
+		.index_bounds_valid = true,
 		.max_index = 1,
 		.instance_count = MAX2(1, pfb->layers),
 	};
-        struct pipe_draw_start_count draw = {
-                .count = 2,
-        };
+	struct pipe_draw_start_count draw = {
+		.count = 2,
+	};
 	pctx->draw_vbo(pctx, &info, NULL, &draw, 1);
 
 	/* We expect that this should not have triggered a change in pfb: */
@@ -303,6 +306,7 @@ fd_blitter_pipe_copy_region(struct fd_context *ctx,
 		struct pipe_resource *src,
 		unsigned src_level,
 		const struct pipe_box *src_box)
+	assert_dt
 {
 	/* not until we allow rendertargets to be buffers */
 	if (dst->target == PIPE_BUFFER || src->target == PIPE_BUFFER)
@@ -312,7 +316,7 @@ fd_blitter_pipe_copy_region(struct fd_context *ctx,
 		return false;
 
 	/* TODO we could discard if dst box covers dst level fully.. */
-	fd_blitter_pipe_begin(ctx, false, false, FD_STAGE_BLIT);
+	fd_blitter_pipe_begin(ctx, false, false);
 	util_blitter_copy_texture(ctx->blitter,
 			dst, dst_level, dstx, dsty, dstz,
 			src, src_level, src_box);

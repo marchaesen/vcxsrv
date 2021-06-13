@@ -60,18 +60,6 @@ xkb_symbols "olpc" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "sundeadkeys" {
-
-    // Modifies the basic French layout to use the Sun dead keys.
-
-    include "fr(basic)"
-    name[Group1]="French (Sun dead keys)";
-
-    key <AD11>	{ [dead_circumflex, dead_diaeresis                                ] };
-    key <AB07>	{ [          comma,       question,  dead_acute, dead_doubleacute ] };
-};
-
-partial alphanumeric_keys
 xkb_symbols "nodeadkeys" {
 
     // Modifies the basic French layout to eliminate all dead keys
@@ -223,20 +211,6 @@ xkb_symbols "oss_latin9" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "oss_sundeadkeys" {
-
-    // Modifies the basic fr(oss) layout to use the Sun dead keys.
-
-    include "fr(oss)"
-    name[Group1]="French (alt., Sun dead keys)";
-
-    key <TLDE>	{ [      twosuperior,    threesuperior,          onesuperior,          dead_cedilla ] }; // ¹ ² ³ ¸
-    key <AD11>	{ [  dead_circumflex,   dead_diaeresis,           dead_tilde,        dead_abovering ] }; // ^ ¨ ~ ˚
-    key <AC11>	{ [           ugrave,          percent,           dead_acute,                Ugrave ] }; // ù % ' Ù
-    key <BKSL>	{ [         asterisk,               mu,           dead_grave,           dead_macron ] }; // * µ ` ¯
-};
-
-partial alphanumeric_keys
 xkb_symbols "oss_nodeadkeys" {
 
     // Modifies the basic fr(oss) layout to eliminate all dead keys
@@ -385,19 +359,6 @@ xkb_symbols "latin9" {
     key <KPDL>  { [       KP_Delete,      KP_Decimal,           KP_Delete,           KP_Decimal ] };
 
     include "level3(ralt_switch)"
-};
-
-partial alphanumeric_keys
-xkb_symbols "latin9_sundeadkeys" {
-
-    // Modifies the basic fr-latin9 layout to use the Sun dead keys
-
-    include "fr(latin9)"
-    name[Group1]="French (legacy, alt., Sun dead keys)";
-
-    key <AE01>	{ [       ampersand,               1,         dead_acute,       periodcentered ] };
-    key <AE07>	{ [          egrave,               7,         dead_grave,               Egrave ] };
-    key <AD11>	{ [ dead_circumflex,  dead_diaeresis,         dead_tilde,           apostrophe ] };
 };
 
 partial alphanumeric_keys
@@ -1065,7 +1026,7 @@ xkb_symbols "us" {
     key <AC06> { [	   h,          H,    udiaeresis,       Udiaeresis ] }; // ü Ü
     key <AC07> { [	   j,          J,   ucircumflex,      Ucircumflex ] }; // û Û
     key <AC08> { [	   k,          K,   icircumflex,      Icircumflex ] }; // î Î
-    key <AC11> { [apostrophe,   quotedbl,dead_diaeresis                   ] };
+    key <AC11> { [apostrophe,   quotedbl,dead_diaeresis,           degree ] };
 
     key <AD03> { [	   e,          E,        eacute,           Eacute ] }; // é É
     key <AD04> { [	   r,          R,        egrave,           Egrave ] }; // è È

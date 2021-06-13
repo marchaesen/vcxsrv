@@ -231,11 +231,11 @@ FetchInstruction::FetchInstruction(GPRVector dst, PValue src, int scratch_size):
    add_remappable_src_value(&m_buffer_offset);
 }
 
-void FetchInstruction::replace_values(const ValueSet& candiates, PValue new_value)
+void FetchInstruction::replace_values(const ValueSet& candidates, PValue new_value)
 {
    if (!m_src)
       return;
-   for (auto c: candiates) {
+   for (auto c: candidates) {
       for (int i = 0; i < 4; ++i) {
          if (*c == *m_dst.reg_i(i))
             m_dst.set_reg_i(i, new_value);
@@ -470,7 +470,7 @@ void FetchInstruction::do_print(std::ostream& os) const
 
    if (m_flags.any()) {
       os << " Flags:";
-      for( int i = 0; i < vtx_unknwon; ++i) {
+      for( int i = 0; i < vtx_unknown; ++i) {
          if (m_flags.test(i))
             os << ' ' << flag_string[i];
       }

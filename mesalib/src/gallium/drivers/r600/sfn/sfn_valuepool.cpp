@@ -425,7 +425,9 @@ void ValuePool::allocate_arrays(array_list& arrays)
 
       uint32_t mask = ((1 << a.ncomponents) - 1) << ncomponents;
 
-      PValue  array = PValue(new GPRArray(current_index, a.length, mask, ncomponents));
+      PGPRArray array = PGPRArray(new GPRArray(current_index, a.length, mask, ncomponents));
+
+      m_reg_arrays.push_back(array);
 
       sfn_log << SfnLog::reg << "Add array at "<< current_index
               << " of size " << a.length << " with " << a.ncomponents

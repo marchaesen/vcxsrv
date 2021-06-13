@@ -45,6 +45,7 @@ libfreedreno_cffdec = static_library(
     libfreedreno_rnn,
     libfreedreno_ir2,  # for disasm_a2xx
     libfreedreno_ir3,  # for disasm_a3xx
+    _libmesa_util,
   ],
   build_by_default: false,
 )

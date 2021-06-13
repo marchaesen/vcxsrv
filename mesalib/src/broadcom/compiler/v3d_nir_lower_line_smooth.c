@@ -118,11 +118,7 @@ initialise_coverage_var(struct lower_line_smooth_state *state,
         /* Discard fragments that aren’t covered at all by the line */
         nir_ssa_def *outside = nir_fge(&b, nir_imm_float(&b, 0.0f), coverage);
 
-        nir_intrinsic_instr *discard =
-                nir_intrinsic_instr_create(state->shader,
-                                           nir_intrinsic_discard_if);
-        discard->src[0] = nir_src_for_ssa(outside);
-        nir_builder_instr_insert(&b, &discard->instr);
+        nir_discard_if(&b, outside);
 
         /* Clamp to at most 1.0. If it was less than 0.0 then the fragment will
          * be discarded so we don’t need to handle that.

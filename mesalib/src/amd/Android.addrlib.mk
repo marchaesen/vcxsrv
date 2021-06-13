@@ -30,6 +30,8 @@ LOCAL_MODULE := libmesa_amdgpu_addrlib
 
 LOCAL_SRC_FILES := $(ADDRLIB_FILES)
 
+LOCAL_CPPFLAGS += -DLITTLEENDIAN_CPU
+
 LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src \
 	$(MESA_TOP)/src/amd/common \

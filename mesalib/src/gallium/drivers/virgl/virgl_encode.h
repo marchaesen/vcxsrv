@@ -308,5 +308,10 @@ void virgl_encode_end_transfers(struct virgl_cmd_buf *buf);
 
 int virgl_encode_tweak(struct virgl_context *ctx, enum vrend_tweak_type tweak, uint32_t value);
 
+void virgl_encode_get_memory_info(struct virgl_context *ctx, struct virgl_resource *res);
+
+void virgl_encode_emit_string_marker(struct virgl_context *ctx, const char *message,
+                                       int len);
+
 enum virgl_formats pipe_to_virgl_format(enum pipe_format format);
 #endif

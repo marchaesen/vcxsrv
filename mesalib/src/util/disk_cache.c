@@ -103,9 +103,18 @@ disk_cache_create(const char *gpu_name, const char *driver_id,
    goto path_fail;
 #endif
 
-   char *path = disk_cache_generate_cache_dir(local);
+   char *path = disk_cache_generate_cache_dir(local, gpu_name, driver_id);
    if (!path)
       goto path_fail;
+
+   cache->path = ralloc_strdup(cache, path);
+   if (cache->path == NULL)
+      goto path_fail;
+
+   if (env_var_as_boolean("MESA_DISK_CACHE_SINGLE_FILE", false)) {
+      if (!disk_cache_load_cache_index(local, cache))
+         goto path_fail;
+   }
 
    if (!disk_cache_mmap_cache_index(local, cache, path))
       goto path_fail;
@@ -162,10 +171,11 @@ disk_cache_create(const char *gpu_name, const char *driver_id,
     * The queue will resize automatically when it's full, so adding new jobs
     * doesn't stall.
     */
-   util_queue_init(&cache->cache_queue, "disk$", 32, 4,
-                   UTIL_QUEUE_INIT_RESIZE_IF_FULL |
-                   UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY |
-                   UTIL_QUEUE_INIT_SET_FULL_THREAD_AFFINITY);
+   if (!util_queue_init(&cache->cache_queue, "disk$", 32, 4,
+                        UTIL_QUEUE_INIT_RESIZE_IF_FULL |
+                        UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY |
+                        UTIL_QUEUE_INIT_SET_FULL_THREAD_AFFINITY))
+      goto fail;
 
    cache->path_init_failed = false;
 
@@ -222,6 +232,10 @@ disk_cache_destroy(struct disk_cache *cache)
    if (cache && !cache->path_init_failed) {
       util_queue_finish(&cache->cache_queue);
       util_queue_destroy(&cache->cache_queue);
+
+      if (env_var_as_boolean("MESA_DISK_CACHE_SINGLE_FILE", false))
+         foz_destroy(&cache->foz_db);
+
       disk_cache_destroy_mmap(cache);
    }
 
@@ -310,28 +324,25 @@ cache_put(void *job, int thread_index)
    char *filename = NULL;
    struct disk_cache_put_job *dc_job = (struct disk_cache_put_job *) job;
 
-   filename = disk_cache_get_cache_filename(dc_job->cache, dc_job->key);
-   if (filename == NULL)
-      goto done;
+   if (env_var_as_boolean("MESA_DISK_CACHE_SINGLE_FILE", false)) {
+      disk_cache_write_item_to_disk_foz(dc_job);
+   } else {
+      filename = disk_cache_get_cache_filename(dc_job->cache, dc_job->key);
+      if (filename == NULL)
+         goto done;
 
-   /* If the cache is too large, evict something else first. */
-   while (*dc_job->cache->size + dc_job->size > dc_job->cache->max_size &&
-          i < 8) {
-      disk_cache_evict_lru_item(dc_job->cache);
-      i++;
-   }
+      /* If the cache is too large, evict something else first. */
+      while (*dc_job->cache->size + dc_job->size > dc_job->cache->max_size &&
+             i < 8) {
+         disk_cache_evict_lru_item(dc_job->cache);
+         i++;
+      }
 
-   /* Create CRC of the data. We will read this when restoring the cache and
-    * use it to check for corruption.
-    */
-   struct cache_entry_file_data cf_data;
-   cf_data.crc32 = util_hash_crc32(dc_job->data, dc_job->size);
-   cf_data.uncompressed_size = dc_job->size;
-
-   disk_cache_write_item_to_disk(dc_job, &cf_data, filename);
+      disk_cache_write_item_to_disk(dc_job, filename);
 
 done:
-   free(filename);
+      free(filename);
+   }
 }
 
 void
@@ -385,11 +396,15 @@ disk_cache_get(struct disk_cache *cache, const cache_key key, size_t *size)
       return blob;
    }
 
-   char *filename = disk_cache_get_cache_filename(cache, key);
-   if (filename == NULL)
-      return NULL;
+   if (env_var_as_boolean("MESA_DISK_CACHE_SINGLE_FILE", false)) {
+      return disk_cache_load_item_foz(cache, key, size);
+   } else {
+      char *filename = disk_cache_get_cache_filename(cache, key);
+      if (filename == NULL)
+         return NULL;
 
-   return disk_cache_load_item(cache, filename, size);
+      return disk_cache_load_item(cache, filename, size);
+   }
 }
 
 void

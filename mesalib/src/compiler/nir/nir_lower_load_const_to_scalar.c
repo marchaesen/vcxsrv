@@ -59,7 +59,7 @@ lower_load_const_instr_scalar(nir_load_const_instr *lower)
    nir_ssa_def *vec = nir_vec(&b, loads, lower->def.num_components);
 
    /* Replace the old load with a reference to our reconstructed vector. */
-   nir_ssa_def_rewrite_uses(&lower->def, nir_src_for_ssa(vec));
+   nir_ssa_def_rewrite_uses(&lower->def, vec);
    nir_instr_remove(&lower->instr);
    return true;
 }

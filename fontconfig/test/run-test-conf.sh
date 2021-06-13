@@ -40,6 +40,7 @@ if [ ! -f ${RUNNER} ]; then
 fi
 
 for i in \
+	45-generic.conf \
 	60-generic.conf \
 	90-synthetic.conf \
     ; do

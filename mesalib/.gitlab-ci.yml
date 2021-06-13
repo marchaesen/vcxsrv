@@ -1,6 +1,6 @@
 variables:
   FDO_UPSTREAM_REPO: mesa/mesa
-  MESA_TEMPLATES_COMMIT: &ci-templates-commit 43ac932d5b8ebf43040d302de3c6e734df178384
+  MESA_TEMPLATES_COMMIT: &ci-templates-commit 52dd4a94044449c8481d18dcdc221a3c636366d2
   CI_PRE_CLONE_SCRIPT: |-
           set -o xtrace
           /usr/bin/wget -q -O- ${CI_PROJECT_URL}/-/raw/${CI_COMMIT_SHA}/.gitlab-ci/download-git-cache.sh | sh -
@@ -9,15 +9,27 @@ variables:
 
 include:
   - project: 'freedesktop/ci-templates'
-    ref: *ci-templates-commit
+    ref: 79c325922670137e8f0a4dc5f6f097e0eb57c1af
     file:
       - '/templates/ci-fairy.yml'
   - project: 'freedesktop/ci-templates'
-    ref: 52dd4a94044449c8481d18dcdc221a3c636366d2
+    ref: *ci-templates-commit
     file:
       - '/templates/debian.yml'
   - local: '.gitlab-ci/lava-gitlab-ci.yml'
   - local: '.gitlab-ci/test-source-dep.yml'
+  - local: 'src/amd/ci/gitlab-ci.yml'
+  - local: 'src/broadcom/ci/gitlab-ci.yml'
+  - local: 'src/freedreno/ci/gitlab-ci.yml'
+  - local: 'src/gallium/drivers/iris/ci/gitlab-ci.yml'
+  - local: 'src/gallium/drivers/lima/ci/gitlab-ci.yml'
+  - local: 'src/gallium/drivers/llvmpipe/ci/gitlab-ci.yml'
+  - local: 'src/gallium/drivers/panfrost/ci/gitlab-ci.yml'
+  - local: 'src/gallium/drivers/radeonsi/ci/gitlab-ci.yml'
+  - local: 'src/gallium/drivers/softpipe/ci/gitlab-ci.yml'
+  - local: 'src/gallium/drivers/virgl/ci/gitlab-ci.yml'
+  - local: 'src/gallium/drivers/zink/ci/gitlab-ci.yml'
+  - local: 'src/gallium/frontends/lavapipe/ci/gitlab-ci.yml'
 
 stages:
   - sanity
@@ -27,9 +39,10 @@ stages:
   - meson-x86_64
   - build-misc
   - amd
+  - intel
   - arm
+  - broadcom
   - freedreno
-  - raspberrypi
   - software-renderer
   - layered-backends
   - deploy
@@ -115,13 +128,14 @@ test-docs-mr:
     - test-docs
   needs:
     - sanity
+  artifacts:
+    expose_as: 'Documentation preview'
+    paths:
+    - public/
   rules:
-    - if: *is-pre-merge-for-marge
-      changes: *docs-or-ci
-      when: on_success
     - if: *is-pre-merge
       changes: *docs-or-ci
-      when: manual
+      when: on_success
     # Other cases default to never
 
 # When to automatically run the CI
@@ -143,10 +157,6 @@ test-docs-mr:
       - meson*
       - build-support/**/*
       - subprojects/**/*
-      # SCons
-      - SConstruct
-      - scons/**/*
-      - common.py
       # Source code
       - include/**/*
       - src/**/*
@@ -187,6 +197,33 @@ success:
       # Watch out!  Artifacts are relative to the build dir.
       # https://gitlab.com/gitlab-org/gitlab-ce/commit/8788fb925706cad594adf6917a6c5f6587dd1521
       - artifacts
+      - _build/meson-logs/*.txt
+      - _build/meson-logs/strace
+
+
+# Docker image tag helper templates
+
+.incorporate-templates-commit:
+  variables:
+    FDO_DISTRIBUTION_TAG: "${MESA_IMAGE_TAG}--${MESA_TEMPLATES_COMMIT}"
+
+.incorporate-base-tag+templates-commit:
+  variables:
+    FDO_BASE_IMAGE: "${CI_REGISTRY_IMAGE}/${MESA_BASE_IMAGE}:${MESA_BASE_TAG}--${MESA_TEMPLATES_COMMIT}"
+    FDO_DISTRIBUTION_TAG: "${MESA_IMAGE_TAG}--${MESA_BASE_TAG}--${MESA_TEMPLATES_COMMIT}"
+
+.set-image:
+  variables:
+    MESA_IMAGE: "$CI_REGISTRY_IMAGE/${MESA_IMAGE_PATH}:${MESA_IMAGE_TAG}--${MESA_TEMPLATES_COMMIT}"
+  image: "$MESA_IMAGE"
+
+.set-image-base-tag:
+  extends:
+    - .set-image
+    - .incorporate-base-tag+templates-commit
+  variables:
+    MESA_IMAGE: "$CI_REGISTRY_IMAGE/${MESA_IMAGE_PATH}:${MESA_IMAGE_TAG}--${MESA_BASE_TAG}--${MESA_TEMPLATES_COMMIT}"
+
 
 # Build the CI docker images.
 #
@@ -209,6 +246,7 @@ success:
   stage: container
   extends:
     - .ci-run-policy
+    - .incorporate-templates-commit
   rules:
     - *ignore_scheduled_pipelines
     # Run pipeline by default in the main project if any CI pipeline
@@ -238,7 +276,6 @@ success:
     # Otherwise, container jobs won't run
     - when: never
   variables:
-    FDO_DISTRIBUTION_TAG: "${MESA_IMAGE_TAG}-${MESA_TEMPLATES_COMMIT}"
     FDO_DISTRIBUTION_VERSION: buster-slim
     FDO_REPO_SUFFIX: "debian/$CI_JOB_NAME"
     FDO_DISTRIBUTION_EXEC: 'env FDO_CI_CONCURRENT=${FDO_CI_CONCURRENT} bash .gitlab-ci/container/${CI_JOB_NAME}.sh'
@@ -248,11 +285,10 @@ success:
 .use-base-image:
   extends:
     - .container
+    - .incorporate-base-tag+templates-commit
     # Don't want the .container rules
     - .ci-run-policy
   stage: container-2
-  variables:
-    FDO_BASE_IMAGE: "${CI_REGISTRY_IMAGE}/${MESA_BASE_IMAGE}:${MESA_BASE_TAG}-${MESA_TEMPLATES_COMMIT}"
 
 # Debian 10 based x86 build image base
 x86_build-base:
@@ -260,7 +296,7 @@ x86_build-base:
     - .fdo.container-build@debian
     - .container
   variables:
-    MESA_IMAGE_TAG: &x86_build-base "2020-12-17-use-ephemeral"
+    MESA_IMAGE_TAG: &x86_build-base "2021-02-08-container-reorg"
 
 .use-x86_build-base:
   extends:
@@ -277,12 +313,15 @@ x86_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &x86_build "2020-12-17-use-ephemeral"
+    MESA_IMAGE_TAG: &x86_build "2021-02-19-strace"
 
 .use-x86_build:
+  extends:
+    - .set-image-base-tag
   variables:
-    TAG: *x86_build
-  image: "$CI_REGISTRY_IMAGE/debian/x86_build:${TAG}-${MESA_TEMPLATES_COMMIT}"
+    MESA_BASE_TAG: *x86_build-base
+    MESA_IMAGE_PATH: "debian/x86_build"
+    MESA_IMAGE_TAG: *x86_build
   needs:
     - x86_build
 
@@ -291,12 +330,15 @@ i386_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &i386_build "2020-12-23-opengl"
+    MESA_IMAGE_TAG: &i386_build "2021-02-08-container-reorg"
 
 .use-i386_build:
+  extends:
+    - .set-image-base-tag
   variables:
-    TAG: *i386_build
-  image: "$CI_REGISTRY_IMAGE/debian/i386_build:${TAG}-${MESA_TEMPLATES_COMMIT}"
+    MESA_BASE_TAG: *x86_build-base
+    MESA_IMAGE_PATH: "debian/i386_build"
+    MESA_IMAGE_TAG: *i386_build
   needs:
     - i386_build
 
@@ -305,12 +347,15 @@ ppc64el_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &ppc64el_build "2020-12-23-opengl"
+    MESA_IMAGE_TAG: &ppc64el_build "2021-02-08-container-reorg"
 
 .use-ppc64el_build:
+  extends:
+    - .set-image-base-tag
   variables:
-    TAG: *ppc64el_build
-  image: "$CI_REGISTRY_IMAGE/debian/ppc64el_build:${TAG}-${MESA_TEMPLATES_COMMIT}"
+    MESA_BASE_TAG: *x86_build-base
+    MESA_IMAGE_PATH: "debian/ppc64el_build"
+    MESA_IMAGE_TAG: *ppc64el_build
   needs:
     - ppc64el_build
 
@@ -319,12 +364,15 @@ s390x_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &s390x_build "2020-12-23-opengl"
+    MESA_IMAGE_TAG: &s390x_build "2021-02-08-container-reorg"
 
 .use-s390x_build:
+  extends:
+    - .set-image-base-tag
   variables:
-    TAG: *s390x_build
-  image: "$CI_REGISTRY_IMAGE/debian/s390x_build:${TAG}-${MESA_TEMPLATES_COMMIT}"
+    MESA_BASE_TAG: *x86_build-base
+    MESA_IMAGE_PATH: "debian/s390x_build"
+    MESA_IMAGE_TAG: *s390x_build
   needs:
     - s390x_build
 
@@ -333,12 +381,15 @@ android_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &android_build "2020-12-17-use-ephemeral"
+    MESA_IMAGE_TAG: &android_build "2021-02-08-container-reorg"
 
 .use-android_build:
+  extends:
+    - .set-image-base-tag
   variables:
-    TAG: *android_build
-  image: "$CI_REGISTRY_IMAGE/debian/android_build:${TAG}-${MESA_TEMPLATES_COMMIT}"
+    MESA_BASE_TAG: *x86_build-base
+    MESA_IMAGE_PATH: "debian/android_build"
+    MESA_IMAGE_TAG: *android_build
   needs:
     - android_build
 
@@ -346,7 +397,7 @@ android_build:
 x86_test-base:
   extends: x86_build-base
   variables:
-    MESA_IMAGE_TAG: &x86_test-base "2020-12-17-install-ci-fairy"
+    MESA_IMAGE_TAG: &x86_test-base "2021-02-17-gfxreconstruct-master"
 
 .use-x86_test-base:
   extends:
@@ -362,13 +413,13 @@ x86_test-base:
 x86_test-gl:
   extends: .use-x86_test-base
   variables:
-    MESA_IMAGE_TAG: &x86_test-gl "2020-12-22-runner"
+    MESA_IMAGE_TAG: &x86_test-gl "2021-03-16-piglit-runner"
 
 # Debian 10 based x86 test image for VK
 x86_test-vk:
   extends: .use-x86_test-base
   variables:
-    MESA_IMAGE_TAG: &x86_test-vk "2020-12-22-runner"
+    MESA_IMAGE_TAG: &x86_test-vk "2021-03-16-piglit-runner"
 
 # Debian 10 based ARM build image
 arm_build:
@@ -376,12 +427,14 @@ arm_build:
     - .fdo.container-build@debian@arm64v8
     - .container
   variables:
-    MESA_IMAGE_TAG: &arm_build "2020-12-23-opengl"
+    MESA_IMAGE_TAG: &arm_build "2021-02-15-asan"
 
 .use-arm_build:
+  extends:
+    - .set-image
   variables:
-    TAG: *arm_build
-  image: "$CI_REGISTRY_IMAGE/debian/arm_build:${TAG}-${MESA_TEMPLATES_COMMIT}"
+    MESA_IMAGE_PATH: "debian/arm_build"
+    MESA_IMAGE_TAG: *arm_build
   needs:
     - arm_build
 
@@ -391,7 +444,7 @@ arm_test-base:
     - .fdo.container-build@debian
     - .container
   variables:
-    MESA_IMAGE_TAG: &arm_test-base "2020-12-03-expect"
+    MESA_IMAGE_TAG: &arm_test-base "2021-02-08-container-reorg"
 
 .use-arm_test-base:
   extends:
@@ -408,12 +461,15 @@ arm64_test:
   extends:
     - .use-arm_test-base
   variables:
-    MESA_IMAGE_TAG: &arm64_test "2020-12-23-piglit-2"
+    MESA_IMAGE_TAG: &arm64_test "2021-03-17-waffle-dep"
 
 .use-arm64_test:
+  extends:
+    - .set-image-base-tag
   variables:
-    TAG: *arm64_test
-  image: "$CI_REGISTRY_IMAGE/debian/arm64_test:${TAG}-${MESA_TEMPLATES_COMMIT}"
+    MESA_BASE_TAG: *arm_test-base
+    MESA_IMAGE_PATH: "debian/arm64_test"
+    MESA_IMAGE_TAG: *arm64_test
   needs:
     - arm64_test
 
@@ -422,12 +478,15 @@ armhf_test:
   extends:
     - .use-arm_test-base
   variables:
-    MESA_IMAGE_TAG: &armhf_test "2020-12-23-piglit-2"
+    MESA_IMAGE_TAG: &armhf_test "2021-03-17-waffle-dep"
 
 .use-armhf_test:
+  extends:
+    - .set-image-base-tag
   variables:
-    TAG: *armhf_test
-  image: "$CI_REGISTRY_IMAGE/debian/armhf_test:${TAG}-${MESA_TEMPLATES_COMMIT}"
+    MESA_BASE_TAG: *arm_test-base
+    MESA_IMAGE_PATH: "debian/armhf_test"
+    MESA_IMAGE_TAG: *armhf_test
   needs:
     - armhf_test
 
@@ -444,10 +503,12 @@ armhf_test:
 # then in the build stage by executing inside Docker.
 
 .windows-docker-vs2019:
+  extends:
+    - .set-image
   variables:
-    WINDOWS_TAG: "2020-12-02"
-    WINDOWS_IMAGE: "$CI_REGISTRY_IMAGE/windows/x64_build:${WINDOWS_TAG}-${MESA_TEMPLATES_COMMIT}"
-    WINDOWS_UPSTREAM_IMAGE: "$CI_REGISTRY/$FDO_UPSTREAM_REPO/windows/x64_build:${WINDOWS_TAG}-${MESA_TEMPLATES_COMMIT}"
+    MESA_IMAGE_PATH: "windows/x64_build"
+    MESA_IMAGE_TAG: "2021-03-15-tls"
+    MESA_UPSTREAM_IMAGE: "$CI_REGISTRY/$FDO_UPSTREAM_REPO/$MESA_IMAGE_PATH:${MESA_IMAGE_TAG}--${MESA_TEMPLATES_COMMIT}"
 
 windows_build_vs2019:
   extends:
@@ -456,18 +517,18 @@ windows_build_vs2019:
   stage: container
   variables:
     GIT_STRATEGY: fetch # we do actually need the full repository though
-  timeout: 2h # LLVM + piglit takes ages
+  timeout: 2h 30m # LLVM + piglit takes ages
   tags:
     - windows
     - shell
     - "1809"
     - mesa
   script:
-    - .\.gitlab-ci\windows\mesa_container.ps1 $CI_REGISTRY $CI_REGISTRY_USER $CI_REGISTRY_PASSWORD $WINDOWS_IMAGE $WINDOWS_UPSTREAM_IMAGE
+    - .\.gitlab-ci\windows\mesa_container.ps1 $CI_REGISTRY $CI_REGISTRY_USER $CI_REGISTRY_PASSWORD $MESA_IMAGE $MESA_UPSTREAM_IMAGE
 
 .use-windows_build_vs2019:
   extends: .windows-docker-vs2019
-  image: "$WINDOWS_IMAGE"
+  image: "$MESA_IMAGE"
   needs:
     - windows_build_vs2019
 
@@ -527,6 +588,7 @@ sanity:
     when: always
     paths:
       - _build/meson-logs/*.txt
+      - _build/meson-logs/strace
       # scons:
       - build/*/config.log
       - shader-db
@@ -566,7 +628,7 @@ sanity:
   variables:
     LLVM_VERSION: 10
   script:
-    - .gitlab-ci/meson-build.sh
+    - .gitlab-ci/meson/build.sh
 
 .scons-build:
   extends:
@@ -589,15 +651,15 @@ meson-testing:
       -D platforms=x11
     GALLIUM_ST: >
       -D dri3=enabled
-    GALLIUM_DRIVERS: "swrast,virgl,radeonsi"
+    GALLIUM_DRIVERS: "swrast,virgl,radeonsi,zink,iris"
     VULKAN_DRIVERS: "swrast,amd"
     BUILDTYPE: "debugoptimized"
     EXTRA_OPTION: >
+      -D valgrind=false
       -D werror=true
-    UPLOAD_FOR_LAVA: 1
-    DEBIAN_ARCH: amd64
+    MINIO_ARTIFACT_NAME: mesa-amd64
   script:
-    - .gitlab-ci/meson-build.sh
+    - .gitlab-ci/meson/build.sh
     - .gitlab-ci/prepare-artifacts.sh
 
 meson-testing-asan:
@@ -606,7 +668,9 @@ meson-testing-asan:
   variables:
     EXTRA_OPTION: >
       -D b_sanitize=address
-    UPLOAD_FOR_LAVA: ""
+      -D valgrind=false
+    MINIO_ARTIFACT_NAME: ""
+    ARTIFACTS_DEBUG_SYMBOLS: 1
 
 meson-clover-testing:
   extends:
@@ -625,9 +689,10 @@ meson-clover-testing:
     GALLIUM_DRIVERS: "swrast"
     BUILDTYPE: "debugoptimized"
     EXTRA_OPTION: >
+      -D valgrind=false
       -D werror=true
   script:
-    - .gitlab-ci/meson-build.sh
+    - .gitlab-ci/meson/build.sh
     - .gitlab-ci/prepare-artifacts.sh
 
 meson-gallium:
@@ -649,14 +714,14 @@ meson-gallium:
       -D gallium-xa=enabled
       -D gallium-nine=true
       -D gallium-opencl=disabled
-    GALLIUM_DRIVERS: "iris,nouveau,kmsro,r300,r600,freedreno,swr,swrast,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink"
+    GALLIUM_DRIVERS: "iris,nouveau,kmsro,r300,r600,freedreno,swr,swrast,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,d3d12"
     VULKAN_DRIVERS: swrast
     EXTRA_OPTION: >
       -D osmesa=true
       -D tools=all
       -D werror=true
   script:
-    - .gitlab-ci/meson-build.sh
+    - .gitlab-ci/meson/build.sh
     - .gitlab-ci/run-shader-db.sh
     - src/freedreno/.gitlab-ci/run-fdtools.sh
 
@@ -681,14 +746,14 @@ meson-release:
       -D gallium-nine=false
       -D gallium-opencl=disabled
       -D llvm=false
-    GALLIUM_DRIVERS: "nouveau,kmsro,freedreno,r300,svga,swrast,v3d,vc4,virgl,etnaviv,panfrost,lima,zink"
+    GALLIUM_DRIVERS: "nouveau,kmsro,freedreno,r300,svga,swrast,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,d3d12"
     BUILDTYPE: "release"
     EXTRA_OPTION: >
       -D osmesa=true
       -D tools=all
       -D werror=true
   script:
-    - .gitlab-ci/meson-build.sh
+    - .gitlab-ci/meson/build.sh
 
 meson-android:
   extends:
@@ -705,6 +770,7 @@ meson-android:
       -D android-stub=true
       -D llvm=disabled
       -D platform-sdk-version=26
+      -D valgrind=false
     GALLIUM_ST: >
       -D dri3=disabled
       -D gallium-vdpau=disabled
@@ -715,14 +781,14 @@ meson-android:
       -D gallium-nine=false
       -D gallium-opencl=disabled
     LLVM_VERSION: ""
+    PKG_CONFIG_LIBDIR: "/disable/non/android/system/pc/files"
   script:
-    # arm64 build: Can't build v3d/vc4 because they require expat for v3d_decode.
-    - PKG_CONFIG_PATH=/usr/local/lib/aarch64-linux-android/pkgconfig/:/android-ndk-r21d/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/pkgconfig/ CROSS=aarch64-linux-android GALLIUM_DRIVERS=etnaviv,freedreno,lima,panfrost VULKAN_DRIVERS=freedreno .gitlab-ci/meson-build.sh
+    - PKG_CONFIG_PATH=/usr/local/lib/aarch64-linux-android/pkgconfig/:/android-ndk-r21d/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/pkgconfig/ CROSS=aarch64-linux-android GALLIUM_DRIVERS=etnaviv,freedreno,lima,panfrost,vc4,v3d VULKAN_DRIVERS=freedreno,broadcom .gitlab-ci/meson/build.sh
     # x86_64 build:
     # Can't do Intel because gen_decoder.c currently requires libexpat, which
     # is not a dependency that AOSP wants to accept.  Can't do Radeon because
     # it requires LLVM, which we don't have an Android build of.
-    # - PKG_CONFIG_PATH=/usr/local/lib/x86_64-linux-android/pkgconfig/ CROSS=x86_64-linux-android GALLIUM_DRIVERS=iris VULKAN_DRIVERS=intel .gitlab-ci/meson-build.sh
+    # - PKG_CONFIG_PATH=/usr/local/lib/x86_64-linux-android/pkgconfig/ CROSS=x86_64-linux-android GALLIUM_DRIVERS=iris VULKAN_DRIVERS=intel .gitlab-ci/meson/build.sh
 
 .meson-cross:
   extends:
@@ -768,10 +834,10 @@ meson-armhf:
     LLVM_VERSION: "7"
     EXTRA_OPTION: >
       -D llvm=disabled
-    UPLOAD_FOR_LAVA: 1
-    DEBIAN_ARCH: armhf
+      -D valgrind=false
+    MINIO_ARTIFACT_NAME: mesa-armhf
   script:
-    - .gitlab-ci/meson-build.sh
+    - .gitlab-ci/meson/build.sh
     - .gitlab-ci/prepare-artifacts.sh
 
 meson-arm64:
@@ -782,11 +848,23 @@ meson-arm64:
     VULKAN_DRIVERS: "freedreno,broadcom"
     EXTRA_OPTION: >
       -D llvm=disabled
-    UPLOAD_FOR_LAVA: 1
-    DEBIAN_ARCH: arm64
+      -D valgrind=false
+    MINIO_ARTIFACT_NAME: mesa-arm64
   script:
-    - .gitlab-ci/meson-build.sh
+    - .gitlab-ci/meson/build.sh
     - .gitlab-ci/prepare-artifacts.sh
+
+meson-arm64-asan:
+  extends:
+    - meson-arm64
+  variables:
+    EXTRA_OPTION: >
+      -D llvm=disabled
+      -D b_sanitize=address
+      -D valgrind=false
+    ARTIFACTS_DEBUG_SYMBOLS: 1
+    MINIO_ARTIFACT_NAME: mesa-arm64-asan
+    MESON_TEST_ARGS: "--no-suite mesa:compiler"
 
 meson-arm64-build-test:
   extends:
@@ -798,7 +876,7 @@ meson-arm64-build-test:
       -Dtools=panfrost
       -D werror=true
   script:
-    - .gitlab-ci/meson-build.sh
+    - .gitlab-ci/meson/build.sh
 
 meson-clang:
   extends: .meson-build
@@ -807,7 +885,7 @@ meson-clang:
     DRI_LOADERS: >
       -D glvnd=true
     DRI_DRIVERS: "auto"
-    GALLIUM_DRIVERS: "iris,nouveau,kmsro,r300,r600,freedreno,swr,swrast,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,radeonsi,tegra"
+    GALLIUM_DRIVERS: "iris,nouveau,kmsro,r300,r600,freedreno,swr,swrast,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,radeonsi,tegra,d3d12"
     VULKAN_DRIVERS: intel,amd,freedreno,broadcom
     CC: "ccache clang-10"
     CXX: "ccache clang++-10"
@@ -838,7 +916,7 @@ test-d3d12-windows:
     GIT_STRATEGY: none # testing doesn't build anything from source
     GALLIUM_DRIVER: d3d12
     PIGLIT_PROFILE: quick_gl
-    PIGLIT_OPTIONS: -x nv_copy_depth_to_color -x repeat-wait
+    PIGLIT_TESTS: -x nv_copy_depth_to_color -x repeat-wait -x arb_timer_query@timestamp-get
   script:
     - . _install/piglit_run.ps1
   artifacts:
@@ -847,7 +925,7 @@ test-d3d12-windows:
     paths:
       - summary/
 
-scons-win64:
+.scons-win64:
   extends: .scons-build
   variables:
     SCONS_TARGET: platform=windows machine=x86_64 debug=1
@@ -873,11 +951,12 @@ meson-clover:
       -D gallium-nine=false
       -D gallium-opencl=icd
     EXTRA_OPTION: >
+      -D valgrind=false
       -D werror=true
   script:
-    - LLVM_VERSION=8 .gitlab-ci/meson-build.sh
-    - LLVM_VERSION=9 .gitlab-ci/meson-build.sh
-    - .gitlab-ci/meson-build.sh
+    - LLVM_VERSION=8 .gitlab-ci/meson/build.sh
+    - LLVM_VERSION=9 .gitlab-ci/meson/build.sh
+    - .gitlab-ci/meson/build.sh
 
 meson-vulkan:
   extends: .meson-build
@@ -904,8 +983,7 @@ meson-vulkan:
     UBSAN_OPTIONS: "print_stacktrace=1"
     VULKAN_DRIVERS: intel,amd,freedreno,broadcom
     EXTRA_OPTION: >
-      -D vulkan-overlay-layer=true
-      -D vulkan-device-select-layer=true
+      -D vulkan-layers=device-select,overlay
       -D build-aco-tests=true
       -D werror=true
 
@@ -915,11 +993,11 @@ meson-i386:
     - .use-i386_build
   variables:
     CROSS: i386
-    VULKAN_DRIVERS: intel,amd
-    GALLIUM_DRIVERS: "iris,r300,radeonsi,swrast,virgl"
+    VULKAN_DRIVERS: intel,amd,swrast
+    GALLIUM_DRIVERS: "iris,nouveau,r300,r600,radeonsi,swrast,virgl,zink"
+    DRI_DRIVERS: "i915,i965,r100,r200,nouveau"
     EXTRA_OPTION: >
-      -D vulkan-overlay-layer=true
-      -D vulkan-device-select-layer=true
+      -D vulkan-layers=device-select,overlay
       -D werror=true
 
 meson-s390x:
@@ -932,7 +1010,8 @@ meson-s390x:
     CROSS: s390x
     EXTRA_OPTION: >
       -D werror=true
-    GALLIUM_DRIVERS: "swrast"
+    GALLIUM_DRIVERS: "swrast,zink"
+    VULKAN_DRIVERS: "swrast"
 
 meson-ppc64el:
   extends:
@@ -940,9 +1019,10 @@ meson-ppc64el:
     - .use-ppc64el_build
   variables:
     CROSS: ppc64el
-    EXTRA_OPTION: ""
-    GALLIUM_DRIVERS: "nouveau,radeonsi,swrast,virgl"
-    VULKAN_DRIVERS: "amd"
+    EXTRA_OPTION: >
+      -D werror=true
+    GALLIUM_DRIVERS: "nouveau,radeonsi,swrast,virgl,zink"
+    VULKAN_DRIVERS: "amd,swrast"
 
 meson-mingw32-x86_64:
   extends: .meson-build
@@ -953,6 +1033,7 @@ meson-mingw32-x86_64:
     GALLIUM_DRIVERS: "swrast"
     EXTRA_OPTION: >
       -Dllvm=disabled
+      -Dzlib=disabled
       -Dosmesa=true
       --cross-file=.gitlab-ci/x86_64-w64-mingw32
 
@@ -977,9 +1058,11 @@ meson-mingw32-x86_64:
 .use-x86_test-gl:
   extends:
     - .test
+    - .set-image-base-tag
   variables:
-    TAG: *x86_test-gl
-  image: "$CI_REGISTRY_IMAGE/debian/x86_test-gl:${TAG}-${MESA_TEMPLATES_COMMIT}"
+    MESA_BASE_TAG: *x86_test-base
+    MESA_IMAGE_PATH: "debian/x86_test-gl"
+    MESA_IMAGE_TAG: *x86_test-gl
   needs:
     - x86_test-gl
 
@@ -993,9 +1076,11 @@ meson-mingw32-x86_64:
 .test-vk:
   extends:
     - .test
+    - .set-image-base-tag
   variables:
-    TAG: *x86_test-vk
-  image: "$CI_REGISTRY_IMAGE/debian/x86_test-vk:${TAG}-${MESA_TEMPLATES_COMMIT}"
+    MESA_BASE_TAG: *x86_test-base
+    MESA_IMAGE_PATH: "debian/x86_test-vk"
+    MESA_IMAGE_TAG: *x86_test-vk
   needs:
     - meson-testing
     - x86_test-vk
@@ -1012,7 +1097,7 @@ meson-mingw32-x86_64:
     when: on_failure
     name: "mesa_${CI_JOB_NAME}"
     paths:
-      - summary/
+      - results/summary/
       - results/*.txt
   variables:
     PIGLIT_NO_WINDOW: 1
@@ -1035,147 +1120,10 @@ meson-mingw32-x86_64:
     PIGLIT_PROFILES: replay
     PIGLIT_REPLAY_UPLOAD_TO_MINIO: 1
     PIGLIT_REPLAY_EXTRA_ARGS:  --keep-image --db-path ${CI_PROJECT_DIR}/replayer-db/
-    PIGLIT_REPLAY_REFERENCE_IMAGES_BASE_URL: "/mesa-tracie-results/$CI_PROJECT_PATH"
+    PIGLIT_REPLAY_REFERENCE_IMAGES_BASE_URL: "/mesa-tracie-results/$FDO_UPSTREAM_REPO"
     PIGLIT_REPLAY_ARTIFACTS_BASE_URL: "/artifacts/$CI_PROJECT_PATH/$CI_PIPELINE_ID/$CI_JOB_ID"
     PIGLIT_HTML_SUMMARY: 0
     PIGLIT_JUNIT_RESULTS: 1
-
-.llvmpipe-test:
-  extends:
-    - .llvmpipe-rules
-  variables:
-    LIBGL_ALWAYS_SOFTWARE: "true"
-    GALLIUM_DRIVER: "llvmpipe"
-
-llvmpipe-piglit-cl:
-  extends:
-    - .test-cl
-    - .piglit-test
-    - .llvmpipe-test
-    - .llvmpipe-cl-rules
-  variables:
-    LP_CL: 1
-    LP_NUM_THREADS: 1
-    PIGLIT_PROFILES: cl
-    PIGLIT_RESULTS: "llvmpipe-cl"
-    PIGLIT_OPTIONS: >
-      -x bswap -x phatk -x clz-optimizations
-  script:
-    - install/piglit/run_cl.sh
-
-llvmpipe-piglit-quick_gl:
-  extends:
-    - .test-gl
-    - .piglit-test
-    - .llvmpipe-test
-  variables:
-    LP_NUM_THREADS: 0
-    PIGLIT_OPTIONS: >
-      --process-isolation false
-      -x egl_ext_device_
-      -x egl_ext_platform_device
-      -x ext_timer_query@time-elapsed
-      -x glx-multithread-clearbuffer
-      -x glx-multithread-shader-compile
-      -x max-texture-size
-      -x maxsize
-    PIGLIT_PROFILES: quick_gl
-    PIGLIT_RESULTS: "llvmpipe-quick_gl"
-
-llvmpipe-piglit-glslparser:
-  extends:
-    - .test-gl
-    - .piglit-test
-    - .llvmpipe-test
-  variables:
-    LP_NUM_THREADS: 0
-    PIGLIT_PROFILES: glslparser
-    PIGLIT_RESULTS: "llvmpipe-glslparser"
-
-llvmpipe-piglit-quick_shader:
-  extends:
-    - .test-gl
-    - .piglit-test
-    - .llvmpipe-test
-  variables:
-    LP_NUM_THREADS: 1
-    PIGLIT_PROFILES: quick_shader
-    PIGLIT_RESULTS: "llvmpipe-quick_shader"
-
-llvmpipe-traces:
-  extends:
-    - .test-gl
-    - .piglit-traces-test
-    - .llvmpipe-test
-  variables:
-    EGL_PLATFORM: "surfaceless"
-    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-llvmpipe.yml"
-    PIGLIT_REPLAY_DEVICE_NAME: "gl-vmware-llvmpipe"
-    PIGLIT_RESULTS: "llvmpipe-replay"
-
-.virgl-test:
-  extends:
-    - .test-gl
-    - .virgl-rules
-  variables:
-    LIBGL_ALWAYS_SOFTWARE: "true"
-    GALLIUM_DRIVER: "virpipe"
-
-virgl-traces:
-  extends:
-    - .piglit-traces-test
-    - .virgl-test
-  variables:
-    EGL_PLATFORM: "surfaceless"
-    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-virgl.yml"
-    PIGLIT_REPLAY_DEVICE_NAME: "gl-virgl"
-    PIGLIT_RESULTS: "virgl-replay"
-    MESA_GLES_VERSION_OVERRIDE: "3.1"
-    MESA_GLSL_VERSION_OVERRIDE: "310"
-
-arm64-a630-traces:
-  extends:
-    - .piglit-traces-test
-    - .arm64-a630-test
-  variables:
-    BARE_METAL_TEST_SCRIPT: "/install/piglit/run.sh"
-    EGL_PLATFORM: "surfaceless"
-    PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/traces-freedreno.yml"
-    PIGLIT_REPLAY_DEVICE_NAME: "freedreno-a630"
-    PIGLIT_RESULTS: "freedreno-a630-replay"
-    # This lets us run several more traces which don't use any features we're
-    # missing.
-    MESA_GLSL_VERSION_OVERRIDE: "460"
-    MESA_GL_VERSION_OVERRIDE: "4.6"
-  artifacts:
-    reports:
-      junit: results/junit.xml
-
-radv-polaris10-traces:
-  extends:
-    - .piglit-traces-test
-    - .test-vk
-    - .test-radv
-    - .test-manual
-  variables:
-    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-radv.yml"
-    PIGLIT_REPLAY_DEVICE_NAME: "vk-amd-polaris10"
-    PIGLIT_RESULTS: "radv-polaris10-replay"
-  tags:
-    - polaris10
-
-radv-raven-traces:
-  extends:
-    - .piglit-traces-test
-    - .test-vk
-    - .test-radv
-    - .test-manual
-  variables:
-    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-radv.yml"
-    PIGLIT_REPLAY_DEVICE_NAME: "vk-amd-raven"
-    PIGLIT_RESULTS: "radv-raven-replay"
-  tags:
-    - raven
 
 .deqp-test:
   script:
@@ -1199,134 +1147,6 @@ radv-raven-traces:
     paths:
       - results/
 
-llvmpipe-gles2:
-  variables:
-    DEQP_VER: gles2
-    # Don't use threads inside llvmpipe, we've already got all cores
-    # busy at the deqp-runner level.
-    LP_NUM_THREADS: 0
-    GPU_VERSION: llvmpipe
-    DEQP_EXPECTED_RENDERER: llvmpipe
-  extends:
-    - .test-gl
-    - .deqp-test
-    - .llvmpipe-test
-
-softpipe-gles2:
-  extends:
-    - llvmpipe-gles2
-    - .softpipe-rules
-  variables:
-    GPU_VERSION: softpipe
-    GALLIUM_DRIVER: "softpipe"
-    DEQP_EXPECTED_RENDERER: softpipe
-
-softpipe-gles3:
-  variables:
-    DEQP_VER: gles3
-  extends: softpipe-gles2
-
-softpipe-gles31:
-  parallel: 2
-  variables:
-    DEQP_VER: gles31
-  extends: softpipe-gles2
-
-softpipe-piglit-quick:
-  extends:
-    - .piglit-test
-    - .test-gl
-    - .softpipe-rules
-  variables:
-    GALLIUM_DRIVER: softpipe
-    # rasterpos skipped until we uprev piglit (commit ff2a7650be7349)
-    # triangle-rasterization skipped due to flakes thanks to it using a time-based random seed.
-    # glx-multithread-texture is flaky, undiagnosed
-    PIGLIT_OPTIONS: >
-      --process-isolation false
-      -x rasterpos
-      -x triangle-rasterization
-      -x glx-multithread-texture
-      -x egl_ext_device_
-      -x egl_ext_platform_device
-      -x ext_timer_query@time-elapsed
-      -x glx-multithread-clearbuffer
-      -x glx-multithread-shader-compile
-      -x max-texture-size
-      -x maxsize
-      -x fs-execution-ordering
-      -x local-id-explosion
-      -x arb_pipeline_statistics_query-comp
-      -x streaming-texture-leak
-      -x longprim
-      -x shader-mem-barrier
-      -x arb_gpu_shader_fp64
-      -x arb_gpu_shader_int64
-      -x arb_tessellation_shader
-      -x glsl-4.00
-      -x glsl-4.10
-      -x glsl-4.20
-      -x glsl-4.30
-      -x glsl-4.40
-      -x glsl-4.50
-      -x gpu_shader4
-      -x gpu_shader5
-    PIGLIT_PROFILES: quick_gl quick_shader
-    PIGLIT_RESULTS: softpipe-quick
-
-# Note that KHR-GL3* test sets include all tests from the previous
-# version, so we only need to run one test list (unlike dEQP-GLES,
-# where the test sets are separate).
-softpipe-gl:
-  variables:
-    DEQP_VER: gl33
-  extends:
-    - softpipe-gles2
-
-virgl-gles2-on-gl:
-  variables:
-    DEQP_VER: gles2
-    DEQP_NO_SAVE_RESULTS: 1
-    GPU_VERSION: virgl-gl
-    # Don't use threads inside llvmpipe, we've already got all cores
-    # busy at the deqp-runner level.
-    LP_NUM_THREADS: 0
-    DEQP_OPTIONS: "--deqp-log-images=disable"
-    DEQP_EXPECTED_RENDERER: virgl
-  extends:
-    - .deqp-test
-    - .virgl-test
-
-virgl-gles3-on-gl:
-  variables:
-    DEQP_VER: gles3
-    DEQP_RUNNER_OPTIONS: "--timeout 180"
-  extends: virgl-gles2-on-gl
-
-virgl-gles31-on-gl:
-  parallel: 2
-  variables:
-    DEQP_VER: gles31
-    MESA_GLES_VERSION_OVERRIDE: "3.1"
-    MESA_GLSL_VERSION_OVERRIDE: "310"
-    MESA_EXTENSION_OVERRIDE: "-GL_OES_tessellation_shader"
-  extends: virgl-gles3-on-gl
-
-virgl-gl30-on-gl:
-  variables:
-    DEQP_VER: gl30
-  extends: virgl-gles2-on-gl
-
-virgl-gl31-on-gl:
-  variables:
-    DEQP_VER: gl31
-  extends: virgl-gles2-on-gl
-
-virgl-gl32-on-gl:
-  variables:
-    DEQP_VER: gl32
-  extends: virgl-gles2-on-gl
-
 # Rules for tests that should not be present in MRs or the main
 # project's pipeline (don't block marge or report red on
 # mesa/mesamaster) but should be present on pipelines in personal
@@ -1343,170 +1163,6 @@ virgl-gl32-on-gl:
   variables:
     GIT_STRATEGY: none
 
-virgl-gles2-on-gles:
-  variables:
-    VIRGL_HOST_API: GLES
-    GPU_VERSION: virgl-gles
-  extends:
-    - virgl-gles2-on-gl
-    - .test-manual
-
-virgl-gles3-on-gles:
-  variables:
-    VIRGL_HOST_API: GLES
-    GPU_VERSION: virgl-gles
-  extends:
-    - virgl-gles3-on-gl
-    - .test-manual
-
-virgl-gles31-on-gles:
-  variables:
-    VIRGL_HOST_API: GLES
-    GPU_VERSION: virgl-gles
-  extends:
-    - virgl-gles31-on-gl
-    - .test-manual
-
-.arm64-a630-test:
-  extends:
-    - .freedreno-test
-  variables:
-    BM_KERNEL: /lava-files/cheza-kernel
-    BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 root=/dev/nfs rw nfsrootdebug nfsroot=,tcp,nfsvers=4.2 init=/init"
-    GPU_VERSION: freedreno-a630
-    BM_DTB: /lava-files/db820c.dtb
-    GIT_STRATEGY: none
-    DEQP_EXPECTED_RENDERER: FD630
-  tags:
-    - google-freedreno-cheza
-  script:
-    - ./install/bare-metal/cros-servo.sh
-
-arm64_a630_gles2:
-  extends:
-    - .baremetal-deqp-test
-    - .arm64-a630-test
-  variables:
-    DEQP_VER: gles2
-
-arm64_a630_gles31:
-  extends:
-    - .baremetal-deqp-test
-    - .arm64-a630-test
-  variables:
-    DEQP_VER: gles31
-
-arm64_a630_gles3:
-  extends:
-    - .baremetal-deqp-test
-    - .arm64-a630-test
-  variables:
-    DEQP_VER: gles3
-
-arm64_a630_gl:
-  extends:
-    - .baremetal-deqp-test
-    - .arm64-a630-test
-  variables:
-    DEQP_VER: gl32
-
-arm64_a630_gles_others:
-  extends:
-    - .baremetal-deqp-test
-    - .arm64-a630-test
-  variables:
-    BARE_METAL_TEST_SCRIPT: "/install/bare-metal/arm64_a630_gles_others.sh"
-
-arm64_a630_vk:
-  extends:
-    - .baremetal-deqp-test-freedreno-vk
-    - .arm64-a630-test
-  parallel: 2
-  variables:
-    DEQP_FRACTION: 10
-    # Force binning in the main run, which makes sure we render at
-    # least 2 bins.  This is the path that impacts the most different
-    # features.  However, we end up with flaky results in
-    # dEQP-VK.binding_model.*.geometry and dEQP-VK.glsl.*_vertex.
-    TU_DEBUG: forcebin
-
-# Do a separate sysmem pass over the testcases that really affect sysmem
-# rendering.  This is currently very flaky, leave it as an option for devs
-# to click play on in their branches.
-arm64_a630_vk_sysmem:
-  extends:
-    - .baremetal-deqp-test-freedreno-vk
-    - .arm64-a630-test
-  variables:
-    DEQP_FRACTION: 15
-    DEQP_CASELIST_FILTER: "dEQP-VK.renderpass.*"
-    GPU_VERSION: freedreno-a630-bypass
-    TU_DEBUG: sysmem
-
-.arm64_a630_piglit:
-  extends:
-    - .piglit-test
-    - .arm64-a630-test
-  variables:
-    BARE_METAL_TEST_SCRIPT: "/install/piglit/run.sh"
-    # Excluding various features we don't support to keep runtime down in
-    # deciding that they aren't supported.
-    #
-    # Also excluding some particularly slow tests (gl-1.3-texture-env takes 100s)
-    #
-    # Known flakes in the list are between "arb_blend_func_extended" and
-    # "varray-disabled"
-    PIGLIT_OPTIONS: >-
-      --process-isolation false
-      -x arb_blend_func_extended-fbo-extended-blend-pattern_gles2
-      -x clear-accum
-      -x copypixels-sync
-      -x copyteximage-border
-      -x copytexsubimage
-      -x draw-sync
-      -x getteximage-simple
-      -x gl30basic
-      -x tcs-input
-      -x tes-input
-      -x unaligned-blit
-      -x user-clip
-      -x varray-disabled
-      -x egl_ext_device_
-      -x egl_ext_platform_device
-      -x ext_timer_query@time-elapsed
-      -x glx-multithread-clearbuffer
-      -x glx-multithread-shader-compile
-      -x max-texture-size
-      -x maxsize
-      -x arb_gpu_shader_fp64
-      -x arb_gpu_shader_gpu5
-      -x arb_gpu_shader_int64
-      -x glsl-4.00
-      -x glsl-4.10
-      -x glsl-4.20
-      -x glsl-4.30
-      -x glsl-4.40
-      -x glsl-4.50
-      -x glsl-4.60
-      -x gl-1.3-texture-env
-    PIGLIT_PLATFORM: gbm
-
-# Takes ~20 minutes, so manual-only until we can sort out runtime.
-arm64_a630_piglit_gl:
-  extends:
-    - .arm64_a630_piglit
-    - .test-manual
-  variables:
-    PIGLIT_PROFILES: quick_gl
-    PIGLIT_RESULTS: freedreno-a630-gl
-
-arm64_a630_piglit_shader:
-  extends:
-    - .arm64_a630_piglit
-  variables:
-    PIGLIT_PROFILES: quick_shader
-    PIGLIT_RESULTS: freedreno-a630-shader
-
 .baremetal-test:
   extends:
     - .ci-run-policy
@@ -1514,6 +1170,12 @@ arm64_a630_piglit_shader:
   # Cancel job if a newer commit is pushed to the same branch
   interruptible: true
   stage: test
+  before_script:
+    # Use this instead of gitlab's artifacts download because it hits packet.net
+    # instead of fd.o.  Set FDO_HTTP_CACHE_URI to an http cache for your test lab to
+    # improve it even more (see https://docs.mesa3d.org/ci/bare-metal.html for
+    # setup).
+    - wget ${FDO_HTTP_CACHE_URI:-}https://minio-packet.freedesktop.org/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}/${MINIO_ARTIFACT_NAME}.tar.gz -S --progress=dot:giga -O- | tar -xz
   artifacts:
     when: always
     name: "mesa_${CI_JOB_NAME}"
@@ -1525,249 +1187,23 @@ arm64_a630_piglit_shader:
     reports:
       junit: results/junit.xml
 
-.freedreno-test:
+.baremetal-test-armhf:
   extends:
     - .baremetal-test
-    - .use-arm64_test
-    - .freedreno-rules
   variables:
-    BM_ROOTFS: /lava-files/rootfs-arm64
-    FLAKES_CHANNEL: "#freedreno-ci"
-  script:
-    - ./install/bare-metal/fastboot.sh
+    MINIO_ARTIFACT_NAME: mesa-armhf
+
+.baremetal-arm64-asan-test:
+  variables:
+    TEST_LD_PRELOAD: libasan.so.5
+    MINIO_ARTIFACT_NAME: mesa-arm64-asan
   needs:
     - arm64_test
-    - meson-arm64
-  tags:
-    - google-freedreno-db410c
+    - job: meson-arm64-asan
+      artifacts: false
 
 .baremetal-deqp-test:
   variables:
     BARE_METAL_TEST_SCRIPT: "/install/deqp-runner.sh"
     DEQP_SKIPS: deqp-default-skips.txt
     DEQP_PARALLEL: 0 # Default to number of CPUs
-
-.baremetal-deqp-test-freedreno-vk:
-  extends:
-    - .baremetal-deqp-test
-  variables:
-    DEQP_VER: vk
-    VK_DRIVER: freedreno
-
-.arm64-a306-test:
-  extends:
-    - .freedreno-test
-  variables:
-    BM_KERNEL: /lava-files/Image.gz
-    BM_DTB: /lava-files/apq8016-sbc.dtb
-    BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8"
-    GPU_VERSION: freedreno-a307
-    DEQP_EXPECTED_RENDERER: FD307
-
-arm64_a306_gles2:
-  extends:
-    - .baremetal-deqp-test
-    - .arm64-a306-test
-  variables:
-    DEQP_VER: gles2
-
-# Fractional run, single threaded, due to flaky results
-arm64_a306_gles3:
-  extends:
-    - .baremetal-deqp-test
-    - .arm64-a306-test
-  variables:
-    DEQP_VER: gles3
-    DEQP_PARALLEL: 1
-    DEQP_FRACTION: 25
-
-# Fractional runs with debug options.  Note that since we're not
-# hitting the iommu faults, we can run in parallel (derive from gles2, not gles3).
-arm64_a306_gles3_options:
-  extends:
-    - .baremetal-deqp-test
-    - .arm64-a306-test
-  variables:
-    DEQP_VER: gles3
-  script:
-    # Check that the non-constbuf UBO case works.
-    - DEQP_RUN_SUFFIX=-nouboopt IR3_SHADER_DEBUG=nouboopt DEQP_CASELIST_FILTER="functional.*ubo" ./install/bare-metal/fastboot.sh
-
-.arm64-a530-test:
-  extends:
-    - .freedreno-test
-  variables:
-    BM_KERNEL: /lava-files/db820c-kernel
-    BM_DTB: /lava-files/db820c.dtb
-    # Disable SMP because only CPU 0 is at a freq higher than 19mhz on
-    # current upstream kernel.
-    BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 nosmp"
-    FDO_CI_CONCURRENT: 1
-    GPU_VERSION: freedreno-a530
-    DEQP_EXPECTED_RENDERER: FD530
-  tags:
-    - google-freedreno-db820c
-
-arm64_a530_gles2:
-  extends:
-    - .baremetal-deqp-test
-    - .arm64-a530-test
-  variables:
-    DEQP_VER: gles2
-  parallel: 2
-
-arm64_a530_gles3:
-  extends:
-    - .baremetal-deqp-test
-    - .arm64-a530-test
-  variables:
-    DEQP_VER: gles3
-    DEQP_FRACTION: 40
-
-arm64_a530_gles31:
-  extends:
-    - arm64_a530_gles3
-  variables:
-    DEQP_VER: gles31
-    DEQP_FRACTION: 10
-
-.arm64_a530_piglit:
-  extends:
-    - .piglit-test
-    - .arm64-a530-test
-  variables:
-    BARE_METAL_TEST_SCRIPT: "/install/piglit/run.sh"
-    # SMP is disabled in the current kernels for db820c.
-    FDO_CI_CONCURRENT: 1
-    # Excluding for flakes in multisample (MSAA fails covered well by deqp, we
-    # can enable it once we stabilize that.) and other flakes from
-    # atomic_counters through userclip in the list.
-    #
-    # Also excluding some particularly slow tests (gl-1.3-texture-env)
-    #
-    # Check fastboot.sh for more piglit tests being excluded!
-    PIGLIT_OPTIONS: >-
-      --process-isolation false
-      -x atomic_counters
-      -x gl-1.0-blend-func
-      -x glsl-1.30@execution@clipping
-      -x user-clip
-      -x arb_texture_multisample
-      -x ext_framebuffer_multisample
-      -x egl_ext_device_
-      -x egl_ext_platform_device
-      -x ext_timer_query@time-elapsed
-      -x glx-multithread-clearbuffer
-      -x glx-multithread-shader-compile
-      -x max-texture-size
-      -x maxsize
-      -x arb_gpu_shader5
-      -x arb_gpu_shader_fp64
-      -x arb_gpu_shader_int64
-      -x arb_tessellation_shader
-      -x glsl-1.50
-      -x glsl-4.00
-      -x glsl-4.10
-      -x glsl-4.20
-      -x glsl-4.30
-      -x glsl-4.40
-      -x glsl-4.50
-      -x glsl-4.60
-      -x gl-1.3-texture-env
-    PIGLIT_PLATFORM: gbm
-
-# Takes ~25 minutes, so manual-only until we can sort out runtime.
-arm64_a530_piglit_gl:
-  extends:
-    - .arm64_a530_piglit
-    - .test-manual
-  variables:
-    PIGLIT_PROFILES: quick_gl
-    PIGLIT_RESULTS: freedreno-a530-gl
-
-arm64_a530_piglit_shader:
-  extends:
-    - .arm64_a530_piglit
-  variables:
-    PIGLIT_PROFILES: quick_shader
-    PIGLIT_RESULTS: freedreno-a530-shader
-
-vc4-rpi3-gles2:armhf:
-  extends:
-    - .baremetal-test
-    - .use-armhf_test
-    - .vc4-rules
-  parallel: 4
-  variables:
-    BARE_METAL_TEST_SCRIPT: "/install/deqp-runner.sh"
-    BM_BOOTFS: /boot/armhf
-    BM_KERNEL_MODULES: vc4
-    BM_ROOTFS: /lava-files/rootfs-armhf
-    BM_ROOTFS_EXTRA: /modules/armhf
-    GPU_VERSION: vc4-rpi3
-    DEQP_EXPECTED_RENDERER: VC4
-    DEQP_VER: gles2
-  script:
-    - ./install/bare-metal/poe-powered.sh
-  needs:
-    - armhf_test
-    - meson-armhf
-  tags:
-    - igalia-rpi3
-
-lavapipe-vk:
-  stage: software-renderer
-  extends:
-    - .test-vk
-    - .llvmpipe-rules
-    - .deqp-test-vk
-  variables:
-    GPU_VERSION: lvp
-    VK_DRIVER: lvp
-    DEQP_FRACTION: 10
-
-# RADV CI
-.test-radv:
-  extends:
-    - .test-vk
-    - .radv-rules
-  stage: amd
-  variables:
-    VK_DRIVER: radeon
-    ACO_DEBUG: validateir,validatera
-
-# Can only be triggered manually on personal branches because RADV is the only
-# driver that does Vulkan testing at the moment.
-radv_polaris10_vkcts:
-  extends:
-    - .deqp-test-vk
-    - .test-radv
-    - .test-manual
-  variables:
-    GPU_VERSION: radv-polaris10
-  tags:
-    - polaris10
-
-radv-fossils:
-  extends:
-    - .fossilize-test
-    - .test-radv
-  script:
-    # Pitcairn (GFX6)
-    - export RADV_FORCE_FAMILY="pitcairn"
-    - ./install/fossilize-runner.sh
-    # Bonaire (GFX7)
-    - export RADV_FORCE_FAMILY="bonaire"
-    - ./install/fossilize-runner.sh
-    # Polaris10 (GFX8)
-    - export RADV_FORCE_FAMILY="polaris10"
-    - ./install/fossilize-runner.sh
-    # Vega10 (GFX9)
-    - export RADV_FORCE_FAMILY="gfx900"
-    - ./install/fossilize-runner.sh
-    # Navi10 (GFX10)
-    - export RADV_FORCE_FAMILY="gfx1010"
-    - ./install/fossilize-runner.sh
-    # Sienna Cichlid (GFX10)
-    - export RADV_FORCE_FAMILY="gfx1030"
-    - ./install/fossilize-runner.sh

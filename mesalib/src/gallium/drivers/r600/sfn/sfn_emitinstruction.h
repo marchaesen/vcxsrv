@@ -91,6 +91,8 @@ protected:
                         const PValue& reg, bool map);
 
    int remap_atomic_base(int base);
+
+   void set_has_txs_cube_array_comp();
 private:
 
    ShaderFromNirProcessor& m_proc;

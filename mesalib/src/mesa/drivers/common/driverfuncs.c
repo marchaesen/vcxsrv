@@ -121,6 +121,8 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
 
    /* Draw functions */
    driver->Draw = NULL;
+   driver->DrawGallium = _mesa_draw_gallium_fallback;
+   driver->DrawGalliumComplex = _mesa_draw_gallium_complex_fallback;
    driver->DrawIndirect = NULL;
    driver->DrawTransformFeedback = NULL;
 

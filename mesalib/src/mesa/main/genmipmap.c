@@ -115,7 +115,7 @@ generate_texture_mipmap(struct gl_context *ctx,
 {
    struct gl_texture_image *srcImage;
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    if (texObj->Attrib.BaseLevel >= texObj->Attrib.MaxLevel) {
       /* nothing to do */

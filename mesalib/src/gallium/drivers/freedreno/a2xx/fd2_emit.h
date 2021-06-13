@@ -40,8 +40,8 @@ struct fd2_vertex_buf {
 
 void fd2_emit_vertex_bufs(struct fd_ringbuffer *ring, uint32_t val,
 		struct fd2_vertex_buf *vbufs, uint32_t n);
-void fd2_emit_state_binning(struct fd_context *ctx, const enum fd_dirty_3d_state dirty);
-void fd2_emit_state(struct fd_context *ctx, const enum fd_dirty_3d_state dirty);
+void fd2_emit_state_binning(struct fd_context *ctx, const enum fd_dirty_3d_state dirty) assert_dt;
+void fd2_emit_state(struct fd_context *ctx, const enum fd_dirty_3d_state dirty) assert_dt;
 void fd2_emit_restore(struct fd_context *ctx, struct fd_ringbuffer *ring);
 
 void fd2_emit_init_screen(struct pipe_screen *pscreen);

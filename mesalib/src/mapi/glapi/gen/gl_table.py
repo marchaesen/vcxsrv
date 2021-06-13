@@ -64,6 +64,10 @@ class PrintGlTable(gl_XML.gl_print_base):
         print('extern "C" {')
         print('#endif')
         print('')
+        print('#ifdef MemoryBarrier')
+        print('#undef MemoryBarrier')
+        print('#endif')
+        print('')
         print('struct _glapi_table')
         print('{')
         return

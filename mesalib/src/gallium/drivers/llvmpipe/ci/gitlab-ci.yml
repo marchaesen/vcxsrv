@@ -1,0 +1,92 @@
+.llvmpipe-test:
+  extends:
+    - .llvmpipe-rules
+  variables:
+    LIBGL_ALWAYS_SOFTWARE: "true"
+    GALLIUM_DRIVER: "llvmpipe"
+
+llvmpipe-piglit-cl:
+  extends:
+    - .test-cl
+    - .piglit-test
+    - .llvmpipe-test
+    - .llvmpipe-cl-rules
+  variables:
+    LP_CL: 1
+    LP_NUM_THREADS: 1
+    PIGLIT_PROFILES: cl
+    PIGLIT_RESULTS: "llvmpipe-cl"
+    PIGLIT_TESTS: >
+      -x bswap -x phatk -x clz-optimizations
+  script:
+    - install/piglit/run_cl.sh
+
+llvmpipe-piglit-quick_gl:
+  extends:
+    - .test-gl
+    - .piglit-test
+    - .llvmpipe-test
+  variables:
+    GALLIVM_PERF: "no_filter_hacks"
+    LP_NUM_THREADS: 0
+    PIGLIT_OPTIONS: >
+      --process-isolation false
+    # Can't run gl-2.0-edgeflag* because of assertion failures on loading from
+    # disk cache which flake depending on which one runs first
+    PIGLIT_TESTS: >
+      -x gl-2.0-edgeflag
+      -x egl_ext_device_
+      -x egl_ext_platform_device
+      -x ext_timer_query@time-elapsed
+      -x glx-multithread-clearbuffer
+      -x glx-multithread-shader-compile
+      -x max-texture-size
+      -x maxsize
+    PIGLIT_PROFILES: quick_gl
+    PIGLIT_RESULTS: "llvmpipe-quick_gl"
+
+llvmpipe-piglit-glslparser:
+  extends:
+    - .test-gl
+    - .piglit-test
+    - .llvmpipe-test
+  variables:
+    LP_NUM_THREADS: 0
+    PIGLIT_PROFILES: glslparser
+    PIGLIT_RESULTS: "llvmpipe-glslparser"
+
+llvmpipe-piglit-quick_shader:
+  extends:
+    - .test-gl
+    - .piglit-test
+    - .llvmpipe-test
+  variables:
+    GALLIVM_PERF: "no_filter_hacks"
+    LP_NUM_THREADS: 1
+    PIGLIT_PROFILES: quick_shader
+    PIGLIT_RESULTS: "llvmpipe-quick_shader"
+
+llvmpipe-traces:
+  extends:
+    - .test-gl
+    - .piglit-traces-test
+    - .llvmpipe-test
+  variables:
+    EGL_PLATFORM: "surfaceless"
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-llvmpipe.yml"
+    PIGLIT_REPLAY_DEVICE_NAME: "gl-vmware-llvmpipe"
+    PIGLIT_RESULTS: "llvmpipe-replay"
+
+llvmpipe-gles2:
+  variables:
+    DEQP_VER: gles2
+    GALLIVM_PERF: "nopt,no_filter_hacks"
+    # Don't use threads inside llvmpipe, we've already got all cores
+    # busy at the deqp-runner level.
+    LP_NUM_THREADS: 0
+    GPU_VERSION: llvmpipe
+    DEQP_EXPECTED_RENDERER: llvmpipe
+  extends:
+    - .test-gl
+    - .deqp-test
+    - .llvmpipe-test

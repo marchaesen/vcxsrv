@@ -254,13 +254,15 @@ convert_op_dst_type(SpvOp opcode)
 
 nir_op
 vtn_nir_alu_op_for_spirv_opcode(struct vtn_builder *b,
-                                SpvOp opcode, bool *swap,
+                                SpvOp opcode, bool *swap, bool *exact,
                                 unsigned src_bit_size, unsigned dst_bit_size)
 {
    /* Indicates that the first two arguments should be swapped.  This is
     * used for implementing greater-than and less-than-or-equal.
     */
    *swap = false;
+
+   *exact = false;
 
    switch (opcode) {
    case SpvOpSNegate:            return nir_op_ineg;
@@ -319,28 +321,28 @@ vtn_nir_alu_op_for_spirv_opcode(struct vtn_builder *b,
     * the logical operator to use since they also need to check if operands are
     * ordered.
     */
-   case SpvOpFOrdEqual:                            return nir_op_feq;
-   case SpvOpFUnordEqual:                          return nir_op_feq;
-   case SpvOpINotEqual:                            return nir_op_ine;
+   case SpvOpFOrdEqual:                            *exact = true;  return nir_op_feq;
+   case SpvOpFUnordEqual:                          *exact = true;  return nir_op_feq;
+   case SpvOpINotEqual:                                            return nir_op_ine;
    case SpvOpLessOrGreater:                        /* Deprecated, use OrdNotEqual */
-   case SpvOpFOrdNotEqual:                         return nir_op_fneu;
-   case SpvOpFUnordNotEqual:                       return nir_op_fneu;
-   case SpvOpULessThan:                            return nir_op_ult;
-   case SpvOpSLessThan:                            return nir_op_ilt;
-   case SpvOpFOrdLessThan:                         return nir_op_flt;
-   case SpvOpFUnordLessThan:                       return nir_op_flt;
-   case SpvOpUGreaterThan:          *swap = true;  return nir_op_ult;
-   case SpvOpSGreaterThan:          *swap = true;  return nir_op_ilt;
-   case SpvOpFOrdGreaterThan:       *swap = true;  return nir_op_flt;
-   case SpvOpFUnordGreaterThan:     *swap = true;  return nir_op_flt;
-   case SpvOpULessThanEqual:        *swap = true;  return nir_op_uge;
-   case SpvOpSLessThanEqual:        *swap = true;  return nir_op_ige;
-   case SpvOpFOrdLessThanEqual:     *swap = true;  return nir_op_fge;
-   case SpvOpFUnordLessThanEqual:   *swap = true;  return nir_op_fge;
-   case SpvOpUGreaterThanEqual:                    return nir_op_uge;
-   case SpvOpSGreaterThanEqual:                    return nir_op_ige;
-   case SpvOpFOrdGreaterThanEqual:                 return nir_op_fge;
-   case SpvOpFUnordGreaterThanEqual:               return nir_op_fge;
+   case SpvOpFOrdNotEqual:                         *exact = true;  return nir_op_fneu;
+   case SpvOpFUnordNotEqual:                       *exact = true;  return nir_op_fneu;
+   case SpvOpULessThan:                                            return nir_op_ult;
+   case SpvOpSLessThan:                                            return nir_op_ilt;
+   case SpvOpFOrdLessThan:                         *exact = true;  return nir_op_flt;
+   case SpvOpFUnordLessThan:                       *exact = true;  return nir_op_flt;
+   case SpvOpUGreaterThan:          *swap = true;                  return nir_op_ult;
+   case SpvOpSGreaterThan:          *swap = true;                  return nir_op_ilt;
+   case SpvOpFOrdGreaterThan:       *swap = true;  *exact = true;  return nir_op_flt;
+   case SpvOpFUnordGreaterThan:     *swap = true;  *exact = true;  return nir_op_flt;
+   case SpvOpULessThanEqual:        *swap = true;                  return nir_op_uge;
+   case SpvOpSLessThanEqual:        *swap = true;                  return nir_op_ige;
+   case SpvOpFOrdLessThanEqual:     *swap = true;  *exact = true;  return nir_op_fge;
+   case SpvOpFUnordLessThanEqual:   *swap = true;  *exact = true;  return nir_op_fge;
+   case SpvOpUGreaterThanEqual:                                    return nir_op_uge;
+   case SpvOpSGreaterThanEqual:                                    return nir_op_ige;
+   case SpvOpFOrdGreaterThanEqual:                 *exact = true;  return nir_op_fge;
+   case SpvOpFUnordGreaterThanEqual:               *exact = true;  return nir_op_fge;
 
    /* Conversions: */
    case SpvOpQuantizeToF16:         return nir_op_fquantize2f16;
@@ -384,6 +386,12 @@ handle_no_contraction(struct vtn_builder *b, struct vtn_value *val, int member,
       return;
 
    b->nb.exact = true;
+}
+
+void
+vtn_handle_no_contraction(struct vtn_builder *b, struct vtn_value *val)
+{
+   vtn_foreach_decoration(b, val, handle_no_contraction, NULL);
 }
 
 nir_rounding_mode
@@ -461,7 +469,7 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
    struct vtn_value *dest_val = vtn_untyped_value(b, w[2]);
    const struct glsl_type *dest_type = vtn_get_type(b, w[1])->type;
 
-   vtn_foreach_decoration(b, dest_val, handle_no_contraction, NULL);
+   vtn_handle_no_contraction(b, dest_val);
 
    /* Collect the various SSA sources */
    const unsigned num_inputs = count - 3;
@@ -554,19 +562,34 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
       dest->def = nir_fmul(&b->nb, src[0], src[1]);
       break;
 
-   case SpvOpIsNan:
-      dest->def = nir_fneu(&b->nb, src[0], src[0]);
-      break;
+   case SpvOpIsNan: {
+      const bool save_exact = b->nb.exact;
 
-   case SpvOpOrdered:
+      b->nb.exact = true;
+      dest->def = nir_fneu(&b->nb, src[0], src[0]);
+      b->nb.exact = save_exact;
+      break;
+   }
+
+   case SpvOpOrdered: {
+      const bool save_exact = b->nb.exact;
+
+      b->nb.exact = true;
       dest->def = nir_iand(&b->nb, nir_feq(&b->nb, src[0], src[0]),
                                    nir_feq(&b->nb, src[1], src[1]));
+      b->nb.exact = save_exact;
       break;
+   }
 
-   case SpvOpUnordered:
+   case SpvOpUnordered: {
+      const bool save_exact = b->nb.exact;
+
+      b->nb.exact = true;
       dest->def = nir_ior(&b->nb, nir_fneu(&b->nb, src[0], src[0]),
                                   nir_fneu(&b->nb, src[1], src[1]));
+      b->nb.exact = save_exact;
       break;
+   }
 
    case SpvOpIsInf: {
       nir_ssa_def *inf = nir_imm_floatN_t(&b->nb, INFINITY, src[0]->bit_size);
@@ -581,9 +604,11 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
    case SpvOpFUnordLessThanEqual:
    case SpvOpFUnordGreaterThanEqual: {
       bool swap;
+      bool unused_exact;
       unsigned src_bit_size = glsl_get_bit_size(vtn_src[0]->type);
       unsigned dst_bit_size = glsl_get_bit_size(dest_type);
       nir_op op = vtn_nir_alu_op_for_spirv_opcode(b, opcode, &swap,
+                                                  &unused_exact,
                                                   src_bit_size, dst_bit_size);
 
       if (swap) {
@@ -592,12 +617,18 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
          src[1] = tmp;
       }
 
+      const bool save_exact = b->nb.exact;
+
+      b->nb.exact = true;
+
       dest->def =
          nir_ior(&b->nb,
                  nir_build_alu(&b->nb, op, src[0], src[1], NULL, NULL),
                  nir_ior(&b->nb,
                          nir_fneu(&b->nb, src[0], src[0]),
                          nir_fneu(&b->nb, src[1], src[1])));
+
+      b->nb.exact = save_exact;
       break;
    }
 
@@ -608,12 +639,18 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
        * ordered so we don’t need to handle it specially.
        */
       bool swap;
+      bool exact;
       unsigned src_bit_size = glsl_get_bit_size(vtn_src[0]->type);
       unsigned dst_bit_size = glsl_get_bit_size(dest_type);
-      nir_op op = vtn_nir_alu_op_for_spirv_opcode(b, opcode, &swap,
+      nir_op op = vtn_nir_alu_op_for_spirv_opcode(b, opcode, &swap, &exact,
                                                   src_bit_size, dst_bit_size);
 
       assert(!swap);
+      assert(exact);
+
+      const bool save_exact = b->nb.exact;
+
+      b->nb.exact = true;
 
       dest->def =
          nir_iand(&b->nb,
@@ -621,6 +658,8 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
                   nir_iand(&b->nb,
                           nir_feq(&b->nb, src[0], src[0]),
                           nir_feq(&b->nb, src[1], src[1])));
+
+      b->nb.exact = save_exact;
       break;
    }
 
@@ -676,10 +715,13 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
    case SpvOpShiftRightArithmetic:
    case SpvOpShiftRightLogical: {
       bool swap;
+      bool exact;
       unsigned src0_bit_size = glsl_get_bit_size(vtn_src[0]->type);
       unsigned dst_bit_size = glsl_get_bit_size(dest_type);
-      nir_op op = vtn_nir_alu_op_for_spirv_opcode(b, opcode, &swap,
+      nir_op op = vtn_nir_alu_op_for_spirv_opcode(b, opcode, &swap, &exact,
                                                   src0_bit_size, dst_bit_size);
+
+      assert(!exact);
 
       assert (op == nir_op_ushr || op == nir_op_ishr || op == nir_op_ishl ||
               op == nir_op_bitfield_insert || op == nir_op_ubitfield_extract ||
@@ -725,9 +767,11 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
 
    default: {
       bool swap;
+      bool exact;
       unsigned src_bit_size = glsl_get_bit_size(vtn_src[0]->type);
       unsigned dst_bit_size = glsl_get_bit_size(dest_type);
       nir_op op = vtn_nir_alu_op_for_spirv_opcode(b, opcode, &swap,
+                                                  &exact,
                                                   src_bit_size, dst_bit_size);
 
       if (swap) {
@@ -747,7 +791,14 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
          break;
       }
 
+      const bool save_exact = b->nb.exact;
+
+      if (exact)
+         b->nb.exact = true;
+
       dest->def = nir_build_alu(&b->nb, op, src[0], src[1], src[2], src[3]);
+
+      b->nb.exact = save_exact;
       break;
    } /* default */
    }

@@ -341,6 +341,7 @@ static void bind_inputs(struct gl_context *ctx,
 /* Translate indices to GLuints and store in VB->Elts.
  */
 static void bind_indices(struct gl_context *ctx,
+                         unsigned start,
                          const struct _mesa_index_buffer *ib,
                          struct gl_buffer_object **bo,
                          GLuint *nr_bo)
@@ -376,21 +377,23 @@ static void bind_indices(struct gl_context *ctx,
       VB->Elts = (GLuint *) ptr;
    }
    else {
-      GLuint *elts = (GLuint *)get_space(ctx, ib->count * sizeof(GLuint));
+      GLuint *elts = (GLuint *)get_space(ctx, (start + ib->count) * sizeof(GLuint));
       VB->Elts = elts;
 
+      elts += start;
+
       if (ib->index_size_shift == 2) {
-         const GLuint *in = (GLuint *)ptr;
+         const GLuint *in = (GLuint *)ptr + start;
          for (i = 0; i < ib->count; i++)
             *elts++ = (GLuint)(*in++) + VB->Primitive[0].basevertex;
       }
       else if (ib->index_size_shift == 1) {
-         const GLushort *in = (GLushort *)ptr;
+         const GLushort *in = (GLushort *)ptr + start;
          for (i = 0; i < ib->count; i++)
             *elts++ = (GLuint)(*in++) + VB->Primitive[0].basevertex;
       }
       else {
-         const GLubyte *in = (GLubyte *)ptr;
+         const GLubyte *in = (GLubyte *)ptr + start;
          for (i = 0; i < ib->count; i++)
             *elts++ = (GLuint)(*in++) + VB->Primitive[0].basevertex;
       }
@@ -491,7 +494,7 @@ void _tnl_draw_prims(struct gl_context *ctx,
        * one for the index buffer.
        */
       struct gl_buffer_object *bo[VERT_ATTRIB_MAX + 1];
-      GLuint nr_bo = 0;
+      GLuint nr_bo;
       GLuint inst;
 
       assert(num_instances > 0);
@@ -505,7 +508,8 @@ void _tnl_draw_prims(struct gl_context *ctx,
           */
          for (this_nr_prims = 1; i + this_nr_prims < nr_prims;
               this_nr_prims++) {
-            if (prim[i].basevertex != prim[i + this_nr_prims].basevertex)
+            if (prim[i].basevertex != prim[i + this_nr_prims].basevertex ||
+                prim[i].start != prim[i + this_nr_prims].start)
                break;
          }
 
@@ -513,11 +517,12 @@ void _tnl_draw_prims(struct gl_context *ctx,
           * They will need to be unmapped below.
           */
          for (inst = 0; inst < num_instances; inst++) {
+            nr_bo = 0;
 
             bind_prims(ctx, &prim[i], this_nr_prims);
             bind_inputs(ctx, arrays, max_index + prim[i].basevertex + 1,
                         bo, &nr_bo);
-            bind_indices(ctx, ib, bo, &nr_bo);
+            bind_indices(ctx, prim[i].start, ib, bo, &nr_bo);
 
             tnl->CurInstance = inst;
             TNL_CONTEXT(ctx)->Driver.RunPipeline(ctx);
@@ -552,7 +557,7 @@ update_vao_inputs(struct gl_context *ctx,
    const struct gl_vertex_array_object *vao = ctx->Array._DrawVAO;
 
    /* Make sure we process only arrays enabled in the VAO */
-   assert((enable & ~_mesa_get_vao_vp_inputs(vao)) == 0);
+   assert((enable & ~vao->_EnabledWithMapMode) == 0);
 
    /* Fill in the client arrays from the VAO */
    const struct gl_vertex_buffer_binding *bindings = &vao->BufferBinding[0];

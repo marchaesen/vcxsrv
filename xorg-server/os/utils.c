@@ -113,6 +113,8 @@ __stdcall unsigned long GetTickCount(void);
 
 #include "picture.h"
 
+#include "miinitext.h"
+
 Bool noTestExtensions;
 
 #ifdef COMPOSITE
@@ -595,6 +597,7 @@ UseMsg(void)
     ErrorF("-schedInterval int     Set scheduler interval in msec\n");
     ErrorF("+extension name        Enable extension\n");
     ErrorF("-extension name        Disable extension\n");
+    ListStaticExtensions();
 #ifdef HYPERV
     ErrorF("-vmid GUID             Hyper-V VM GUID to accept VSock connections from\n");
     ErrorF("-vsockport port        integer port number to listen for VSock connections.  Default 106000.\n");

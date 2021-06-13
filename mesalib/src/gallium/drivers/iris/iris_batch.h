@@ -31,7 +31,7 @@
 #include "util/u_dynarray.h"
 
 #include "drm-uapi/i915_drm.h"
-#include "common/gen_decoder.h"
+#include "common/intel_decoder.h"
 
 #include "iris_fence.h"
 #include "iris_fine_fence.h"
@@ -58,6 +58,7 @@ enum iris_batch_name {
 #define IRIS_BATCH_COUNT 2
 
 struct iris_batch {
+   struct iris_context *ice;
    struct iris_screen *screen;
    struct pipe_debug_callback *dbg;
    struct pipe_device_reset_callback *reset;
@@ -134,7 +135,7 @@ struct iris_batch {
       struct hash_table *render;
    } cache;
 
-   struct gen_batch_decode_ctx decoder;
+   struct intel_batch_decode_ctx decoder;
    struct hash_table_u64 *state_sizes;
 
    /**
@@ -161,6 +162,9 @@ struct iris_batch {
    /** Have we emitted any draw calls with next_seqno? */
    bool contains_draw_with_next_seqno;
 
+   /** Batch contains fence signal operation. */
+   bool contains_fence_signal;
+
    /**
     * Number of times iris_batch_sync_region_start() has been called without a
     * matching iris_batch_sync_region_end() on this batch.
@@ -168,6 +172,7 @@ struct iris_batch {
    uint32_t sync_region_depth;
 
    uint32_t last_aux_map_state;
+   struct iris_measure_batch *measure;
 };
 
 void iris_init_batch(struct iris_context *ice,

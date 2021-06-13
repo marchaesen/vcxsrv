@@ -5,7 +5,6 @@ set -o xtrace
 
 # Packages which are needed by this script, but not for the xserver build
 EPHEMERAL="
-	git
 	libcairo2-dev
 	libevdev-dev
 	libexpat-dev
@@ -27,6 +26,7 @@ apt-get install -y \
 	ca-certificates \
 	ccache \
 	flex \
+	git \
 	libaudit-dev \
 	libbsd-dev \
 	libcairo2 \
@@ -94,7 +94,6 @@ apt-get install -y \
 	python3-mako \
 	python3-numpy \
 	python3-six \
-	x11-xkb-utils \
 	x11proto-dev \
 	xfonts-utils \
 	xkb-data \
@@ -152,6 +151,14 @@ echo 'path=/root/xts' >> piglit/piglit.conf
 
 find -name \*.a -o -name \*.o -o -name \*.c -o -name \*.h -o -name \*.la\* | xargs rm
 strip xts/xts5/*/.libs/*
+
+# Running meson dist requires xkbcomp 1.4.1 or newer, but Debian buster has 1.4.0 only
+git clone https://gitlab.freedesktop.org/xorg/app/xkbcomp.git --depth 1 --branch=xkbcomp-1.4.1
+cd xkbcomp
+./autogen.sh --datarootdir=/usr/share
+make -j${FDO_CI_CONCURRENT:-4} install
+cd ..
+rm -rf xkbcomp
 
 apt-get purge -y \
 	$EPHEMERAL

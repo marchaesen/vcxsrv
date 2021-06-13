@@ -21,6 +21,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "compiler/spirv/spirv.h"
+
 #include "zink_pipeline.h"
 
 #include "zink_compiler.h"
@@ -85,6 +87,10 @@ zink_create_gfx_pipeline(struct zink_screen *screen,
    ms_state.alphaToCoverageEnable = state->blend_state->alpha_to_coverage;
    ms_state.alphaToOneEnable = state->blend_state->alpha_to_one;
    ms_state.pSampleMask = state->sample_mask ? &state->sample_mask : NULL;
+   if (state->rast_state->force_persample_interp) {
+      ms_state.sampleShadingEnable = VK_TRUE;
+      ms_state.minSampleShading = 1.0;
+   }
 
    VkPipelineViewportStateCreateInfo viewport_state = {};
    viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -120,23 +126,30 @@ zink_create_gfx_pipeline(struct zink_screen *screen,
    depth_stencil_state.back = state->depth_stencil_alpha_state->stencil_back;
    depth_stencil_state.depthWriteEnable = state->depth_stencil_alpha_state->depth_write;
 
-   VkDynamicState dynamicStateEnables[] = {
-      VK_DYNAMIC_STATE_VIEWPORT,
-      VK_DYNAMIC_STATE_SCISSOR,
+   VkDynamicState dynamicStateEnables[24] = {
       VK_DYNAMIC_STATE_LINE_WIDTH,
       VK_DYNAMIC_STATE_DEPTH_BIAS,
       VK_DYNAMIC_STATE_BLEND_CONSTANTS,
       VK_DYNAMIC_STATE_STENCIL_REFERENCE,
    };
+   unsigned state_count = 4;
+   if (screen->info.have_EXT_extended_dynamic_state) {
+      dynamicStateEnables[state_count++] = VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT_EXT;
+      dynamicStateEnables[state_count++] = VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT_EXT;
+      dynamicStateEnables[state_count++] = VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE_EXT;
+   } else {
+      dynamicStateEnables[state_count++] = VK_DYNAMIC_STATE_VIEWPORT;
+      dynamicStateEnables[state_count++] = VK_DYNAMIC_STATE_SCISSOR;
+   }
 
    VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo = {};
    pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
    pipelineDynamicStateCreateInfo.pDynamicStates = dynamicStateEnables;
-   pipelineDynamicStateCreateInfo.dynamicStateCount = ARRAY_SIZE(dynamicStateEnables);
+   pipelineDynamicStateCreateInfo.dynamicStateCount = state_count;
 
    VkGraphicsPipelineCreateInfo pci = {};
    pci.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-   pci.layout = prog->layout;
+   pci.layout = prog->base.layout;
    pci.renderPass = state->render_pass->render_pass;
    pci.pVertexInputState = &vertex_input_state;
    pci.pInputAssemblyState = &primitive_state;
@@ -177,9 +190,51 @@ zink_create_gfx_pipeline(struct zink_screen *screen,
    pci.stageCount = num_stages;
 
    VkPipeline pipeline;
-   if (vkCreateGraphicsPipelines(screen->dev, VK_NULL_HANDLE, 1, &pci,
+   if (vkCreateGraphicsPipelines(screen->dev, screen->pipeline_cache, 1, &pci,
                                  NULL, &pipeline) != VK_SUCCESS) {
       debug_printf("vkCreateGraphicsPipelines failed\n");
+      return VK_NULL_HANDLE;
+   }
+
+   return pipeline;
+}
+
+VkPipeline
+zink_create_compute_pipeline(struct zink_screen *screen, struct zink_compute_program *comp, struct zink_compute_pipeline_state *state)
+{
+   VkComputePipelineCreateInfo pci = {};
+   pci.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+   pci.flags = VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT;
+   pci.layout = comp->base.layout;
+
+   VkPipelineShaderStageCreateInfo stage = {};
+   stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+   stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+   stage.module = comp->module->shader;
+   stage.pName = "main";
+
+   VkSpecializationInfo sinfo = {};
+   VkSpecializationMapEntry me[3];
+   if (state->use_local_size) {
+      stage.pSpecializationInfo = &sinfo;
+      sinfo.mapEntryCount = 3;
+      sinfo.pMapEntries = &me[0];
+      sinfo.dataSize = sizeof(state->local_size);
+      sinfo.pData = &state->local_size[0];
+      uint32_t ids[] = {ZINK_WORKGROUP_SIZE_X, ZINK_WORKGROUP_SIZE_Y, ZINK_WORKGROUP_SIZE_Z};
+      for (int i = 0; i < 3; i++) {
+         me[i].size = sizeof(uint32_t);
+         me[i].constantID = ids[i];
+         me[i].offset = i * sizeof(uint32_t);
+      }
+   }
+
+   pci.stage = stage;
+
+   VkPipeline pipeline;
+   if (vkCreateComputePipelines(screen->dev, screen->pipeline_cache, 1, &pci,
+                                 NULL, &pipeline) != VK_SUCCESS) {
+      debug_printf("vkCreateComputePipelines failed\n");
       return VK_NULL_HANDLE;
    }
 

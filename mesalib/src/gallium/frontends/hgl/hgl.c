@@ -57,24 +57,20 @@ hgl_st_framebuffer(struct st_framebuffer_iface *stfbi)
 
 
 static bool
-hgl_st_framebuffer_flush_front(struct st_context_iface *stctxi,
+hgl_st_framebuffer_flush_front(struct st_context_iface* stctxi,
 	struct st_framebuffer_iface* stfbi, enum st_attachment_type statt)
 {
 	CALLED();
 
-	//struct hgl_context* context = hgl_st_context(stctxi);
-	// struct hgl_buffer* buffer = hgl_st_context(stfbi);
 	struct hgl_buffer* buffer = hgl_st_framebuffer(stfbi);
-	//buffer->surface
+	struct pipe_resource* ptex = buffer->textures[statt];
 
-	#if 0
-	struct stw_st_framebuffer *stwfb = stw_st_framebuffer(stfb);
-	mtx_lock(&stwfb->fb->mutex);
+	if (!ptex)
+		return true;
 
-	struct pipe_resource* resource = textures[statt];
-	if (resource)
-		stw_framebuffer_present_locked(...);
-	#endif
+	// TODO: pipe_context here??? Might be needed for hw renderers
+	buffer->screen->flush_frontbuffer(buffer->screen, NULL, ptex, 0, 0,
+		buffer->winsysContext, NULL);
 
 	return true;
 }
@@ -93,6 +89,8 @@ hgl_st_framebuffer_validate_textures(struct st_framebuffer_iface *stfbi,
 	buffer = hgl_st_framebuffer(stfbi);
 
 	if (buffer->width != width || buffer->height != height) {
+		TRACE("validate_textures: size changed: %d, %d -> %d, %d\n",
+			buffer->width, buffer->height, width, height);
 		for (i = 0; i < ST_ATTACHMENT_COUNT; i++)
 			pipe_resource_reference(&buffer->textures[i], NULL);
 	}
@@ -109,31 +107,34 @@ hgl_st_framebuffer_validate_textures(struct st_framebuffer_iface *stfbi,
 		enum pipe_format format;
 		unsigned bind;
 
-		switch (i) {
-			case ST_ATTACHMENT_FRONT_LEFT:
-			case ST_ATTACHMENT_BACK_LEFT:
-			case ST_ATTACHMENT_FRONT_RIGHT:
-			case ST_ATTACHMENT_BACK_RIGHT:
-				format = buffer->visual->color_format;
-				bind = PIPE_BIND_DISPLAY_TARGET | PIPE_BIND_RENDER_TARGET;
-				break;
-			case ST_ATTACHMENT_DEPTH_STENCIL:
-				format = buffer->visual->depth_stencil_format;
-				bind = PIPE_BIND_DEPTH_STENCIL;
-				break;
-			default:
-				format = PIPE_FORMAT_NONE;
-				bind = 0;
-				break;
-		}
+		if (((1 << i) & buffer->visual->buffer_mask) && buffer->textures[i] == NULL) {
+			switch (i) {
+				case ST_ATTACHMENT_FRONT_LEFT:
+				case ST_ATTACHMENT_BACK_LEFT:
+				case ST_ATTACHMENT_FRONT_RIGHT:
+				case ST_ATTACHMENT_BACK_RIGHT:
+					format = buffer->visual->color_format;
+					bind = PIPE_BIND_DISPLAY_TARGET | PIPE_BIND_RENDER_TARGET;
+					break;
+				case ST_ATTACHMENT_DEPTH_STENCIL:
+					format = buffer->visual->depth_stencil_format;
+					bind = PIPE_BIND_DEPTH_STENCIL;
+					break;
+				default:
+					format = PIPE_FORMAT_NONE;
+					bind = 0;
+					break;
+			}
 
-		if (format != PIPE_FORMAT_NONE) {
-			templat.format = format;
-			templat.bind = bind;
-			buffer->textures[i] = buffer->screen->resource_create(buffer->screen,
-				&templat);
-			if (!buffer->textures[i])
-				return FALSE;
+			if (format != PIPE_FORMAT_NONE) {
+				templat.format = format;
+				templat.bind = bind;
+				TRACE("resource_create(%d, %d, %d)\n", i, format, bind);
+				buffer->textures[i] = buffer->screen->resource_create(buffer->screen,
+					&templat);
+				if (!buffer->textures[i])
+					return FALSE;
+			}
 		}
 	}
 
@@ -165,10 +166,6 @@ hgl_st_framebuffer_validate(struct st_context_iface *stctxi,
 	context = hgl_st_context(stctxi);
 	buffer = hgl_st_framebuffer(stfbi);
 
-	//int32 width = 0;
-	//int32 height = 0;
-	//get_bitmap_size(context->bitmap, &width, &height);
-
 	// Build mask of current attachments
 	stAttachmentMask = 0;
 	for (i = 0; i < count; i++)
@@ -186,14 +183,9 @@ hgl_st_framebuffer_validate(struct st_context_iface *stctxi,
 
 		ret = hgl_st_framebuffer_validate_textures(stfbi, 
 			context->width, context->height, stAttachmentMask);
-		
+
 		if (!ret)
 			return ret;
-
-		// TODO: Simply update attachments
-		//if (!resized) {
-
-		//}
 	}
 
 	for (i = 0; i < count; i++)
@@ -217,18 +209,20 @@ hgl_st_manager_get_param(struct st_manager *smapi, enum st_manager_param param)
 }
 
 
+static uint32_t hgl_fb_ID = 0;
+
 /**
  * Create new framebuffer
  */
 struct hgl_buffer *
-hgl_create_st_framebuffer(struct hgl_context* context)
+hgl_create_st_framebuffer(struct hgl_context* context, void *winsysContext)
 {
 	struct hgl_buffer *buffer;
 	CALLED();
 
 	// Our requires before creating a framebuffer
 	assert(context);
-	assert(context->screen);
+	assert(context->display);
 	assert(context->stVisual);
 
 	buffer = CALLOC_STRUCT(hgl_buffer);
@@ -240,9 +234,10 @@ hgl_create_st_framebuffer(struct hgl_context* context)
 
 	// Prepare our buffer
 	buffer->visual = context->stVisual;
-	buffer->screen = context->screen;
+	buffer->screen = context->display->manager->screen;
+	buffer->winsysContext = winsysContext;
 
-	if (context->screen->get_param(buffer->screen, PIPE_CAP_NPOT_TEXTURES))
+	if (buffer->screen->get_param(buffer->screen, PIPE_CAP_NPOT_TEXTURES))
 		buffer->target = PIPE_TEXTURE_2D;
 	else
 		buffer->target = PIPE_TEXTURE_RECT;
@@ -254,8 +249,24 @@ hgl_create_st_framebuffer(struct hgl_context* context)
 
 	p_atomic_set(&buffer->stfbi->stamp, 1);
 	buffer->stfbi->st_manager_private = (void*)buffer;
+	buffer->stfbi->ID = p_atomic_inc_return(&hgl_fb_ID);
+	buffer->stfbi->state_manager = context->display->manager;
 
 	return buffer;
+}
+
+
+void
+hgl_destroy_st_framebuffer(struct hgl_buffer *buffer)
+{
+	CALLED();
+
+	int i;
+	for (i = 0; i < ST_ATTACHMENT_COUNT; i++)
+		pipe_resource_reference(&buffer->textures[i], NULL);
+
+	FREE(buffer->stfbi);
+	FREE(buffer);
 }
 
 
@@ -264,38 +275,6 @@ hgl_create_st_api()
 {
 	CALLED();
 	return st_gl_api_create();
-}
-
-
-struct st_manager *
-hgl_create_st_manager(struct hgl_context* context)
-{
-	struct st_manager* manager;
-
-	CALLED();
-
-	// Required things
-	assert(context);
-	assert(context->screen);
-
-	manager = CALLOC_STRUCT(st_manager);
-	assert(manager);
-
-	//manager->display = dpy;
-	manager->screen = context->screen;
-	manager->get_param = hgl_st_manager_get_param;
-	manager->st_manager_private = (void *)context;
-	
-	return manager;
-}
-
-
-void
-hgl_destroy_st_manager(struct st_manager *manager)
-{
-	CALLED();
-
-	FREE(manager);
 }
 
 
@@ -331,6 +310,7 @@ hgl_create_st_visual(ulong options)
 	visual->render_buffer = ST_ATTACHMENT_FRONT_LEFT;
 
 	if ((options & BGL_DOUBLE) != 0) {
+		TRACE("double buffer enabled\n");
 		visual->buffer_mask |= ST_ATTACHMENT_BACK_LEFT_MASK;
 		visual->render_buffer = ST_ATTACHMENT_BACK_LEFT;
 	}
@@ -359,4 +339,34 @@ hgl_destroy_st_visual(struct st_visual* visual)
 	CALLED();
 
 	FREE(visual);
+}
+
+
+struct hgl_display*
+hgl_create_display(struct pipe_screen* screen)
+{
+	struct hgl_display* display;
+
+	display = CALLOC_STRUCT(hgl_display);
+	assert(display);
+	display->api = st_gl_api_create();
+	display->manager = CALLOC_STRUCT(st_manager);
+	assert(display->manager);
+	display->manager->screen = screen;
+	display->manager->get_param = hgl_st_manager_get_param;
+	// display->manager->st_manager_private is used by llvmpipe
+
+	return display;
+}
+
+
+void
+hgl_destroy_display(struct hgl_display *display)
+{
+	if (display->manager->destroy)
+		display->manager->destroy(display->manager);
+	FREE(display->manager);
+	if (display->api->destroy)
+		display->api->destroy(display->api);
+	FREE(display);
 }

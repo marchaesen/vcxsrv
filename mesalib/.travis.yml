@@ -13,16 +13,11 @@ matrix:
   include:
     - env:
       - BUILD=meson
-    - env:
-      - BUILD=scons
 
 before_install:
   - HOMEBREW_NO_AUTO_UPDATE=1 brew install expat gettext
   - if test "x$BUILD" = xmeson; then
       HOMEBREW_NO_AUTO_UPDATE=1 brew install ninja;
-    fi
-  - if test "x$BUILD" = xscons; then
-      HOMEBREW_NO_AUTO_UPDATE=1 brew install scons;
     fi
 
   # Set PATH for homebrew pip3 installs
@@ -47,9 +42,6 @@ install:
       pip3 install --user meson;
       pip3 install --user mako;
     fi
-  - if test "x$BUILD" = xscons; then
-      pip2 install --user mako;
-    fi
 
 script:
   - if test "x$BUILD" = xmeson; then
@@ -57,8 +49,4 @@ script:
       ninja -C _build || travis_terminate 1;
       ninja -C _build test || travis_terminate 1;
       ninja -C _build install || travis_terminate 1;
-    fi
-  - if test "x$BUILD" = xscons; then
-      scons force_scons=1 || travis_terminate 1;
-      scons force_scons=1 check || travis_terminate 1;
     fi

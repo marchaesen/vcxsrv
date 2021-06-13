@@ -48,6 +48,8 @@ buffers, surfaces) are bound to the driver.
   type. index is used to indicate which buffer to set (some APIs may allow
   multiple ones to be set, and binding a specific one later, though drivers
   are mostly restricted to the first one right now).
+  If take_ownership is true, the buffer reference is passed to the driver, so
+  that the driver doesn't have to increment the reference count.
 
 * ``set_inlinable_constants`` sets inlinable constants for constant buffer 0.
 
@@ -124,9 +126,10 @@ objects. They all follow simple, one-method binding calls, e.g.
 Samplers
 ^^^^^^^^
 
-pipe_sampler_state objects control how textures are sampled (coordinate
-wrap modes, interpolation modes, etc).  Note that samplers are not used
-for texture buffer objects.  That is, pipe_context::bind_sampler_views()
+pipe_sampler_state objects control how textures are sampled
+(coordinate wrap modes, interpolation modes, etc).  Note that unless
+``PIPE_CAP_TEXTURE_BUFFER_SAMPLER`` is enabled, samplers are not used for
+texture buffer objects.  That is, pipe_context::bind_sampler_views()
 will not bind a sampler if the corresponding sampler view refers to a
 PIPE_BUFFER resource.
 
@@ -562,6 +565,9 @@ Normally, if the occlusion query returned a non-zero result subsequent
 drawing happens normally so fragments may be generated, shaded and
 processed even where they're known to be obscured.
 
+The ''render_condition_mem'' function specifies the drawing is dependant
+on a value in memory. A buffer resource and offset denote which 32-bit
+value to use for the query. This is used for Vulkan API.
 
 Flushing
 ^^^^^^^^

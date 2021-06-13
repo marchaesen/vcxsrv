@@ -102,6 +102,8 @@ fd6_zsa_state_create(struct pipe_context *pctx,
 
 	so->base = *cso;
 
+	so->writes_zs = util_writes_depth_stencil(cso);
+
 	so->rb_depth_cntl |=
 		A6XX_RB_DEPTH_CNTL_ZFUNC(cso->depth_func); /* maps 1:1 */
 

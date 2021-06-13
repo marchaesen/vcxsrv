@@ -600,11 +600,11 @@ bool gpir_codegen_prog(gpir_compiler *comp)
 
    for (int i = 0; i < num_instr; i++) {
       if (code[i].register0_attribute)
-         comp->prog->prefetch = i;
+         comp->prog->state.prefetch = i;
    }
 
    comp->prog->shader = code;
-   comp->prog->shader_size = num_instr * sizeof(gpir_codegen_instr);
+   comp->prog->state.shader_size = num_instr * sizeof(gpir_codegen_instr);
 
    if (lima_debug & LIMA_DEBUG_GP) {
       gpir_codegen_print_prog(comp);

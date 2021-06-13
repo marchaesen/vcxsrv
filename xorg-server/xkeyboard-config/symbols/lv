@@ -1,4 +1,4 @@
-// Latvian keymap version 1.1
+// Latvian keymap version 1.2
 // Copyright (C) Dmitry Golubev <lastguru@mail.ru>, 2003-2004
 //
 // Reworked to get rid of dead_keys (use of which in this case
@@ -112,8 +112,8 @@ xkb_symbols "apostrophe" {
 
 	name[Group1]= "Latvian (apostrophe)";
 
-	key <AC11> {[ISO_Level3_Latch, quotedbl, apostrophe, quotedbl]};
-	key <SPCE> {[space, space, apostrophe]};
+	key <AC11> {[ISO_Level3_Latch, ISO_Level3_Latch, apostrophe, quotedbl]};
+	key <SPCE> {[space, space, apostrophe, quotedbl]};
 	modifier_map Mod5 { <AC11> };
 };
 

@@ -2474,6 +2474,8 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
    struct gl_program_parameter_list *params = prog->Parameters;
    gl_shader_stage shader_type = prog->info.stage;
 
+   _mesa_disallow_parameter_storage_realloc(params);
+
    /* After adding each uniform to the parameter list, connect the storage for
     * the parameter with the tracking structure used by the API for the
     * uniform.
@@ -2612,6 +2614,24 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
 	      last_location = location;
       }
    }
+}
+
+void
+_mesa_ensure_and_associate_uniform_storage(struct gl_context *ctx,
+                              struct gl_shader_program *shader_program,
+                              struct gl_program *prog, unsigned required_space)
+{
+   /* Avoid reallocation of the program parameter list, because the uniform
+    * storage is only associated with the original parameter list.
+    */
+   _mesa_reserve_parameter_storage(prog->Parameters, required_space,
+                                   required_space);
+
+   /* This has to be done last.  Any operation the can cause
+    * prog->ParameterValues to get reallocated (e.g., anything that adds a
+    * program constant) has to happen before creating this linkage.
+    */
+   _mesa_associate_uniform_storage(ctx, shader_program, prog);
 }
 
 /*

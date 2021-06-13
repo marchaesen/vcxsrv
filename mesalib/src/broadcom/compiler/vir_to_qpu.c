@@ -272,7 +272,7 @@ v3d_generate_code_block(struct v3d_compile *c,
                 }
 
                 if (qinst->qpu.type == V3D_QPU_INSTR_TYPE_ALU) {
-                        if (qinst->qpu.sig.ldunif) {
+                        if (qinst->qpu.sig.ldunif || qinst->qpu.sig.ldunifa) {
                                 assert(qinst->qpu.alu.add.op == V3D_QPU_A_NOP);
                                 assert(qinst->qpu.alu.mul.op == V3D_QPU_M_NOP);
 
@@ -280,8 +280,13 @@ v3d_generate_code_block(struct v3d_compile *c,
                                     dst.index != V3D_QPU_WADDR_R5) {
                                         assert(c->devinfo->ver >= 40);
 
-                                        qinst->qpu.sig.ldunif = false;
-                                        qinst->qpu.sig.ldunifrf = true;
+                                        if (qinst->qpu.sig.ldunif) {
+                                           qinst->qpu.sig.ldunif = false;
+                                           qinst->qpu.sig.ldunifrf = true;
+                                        } else {
+                                           qinst->qpu.sig.ldunifa = false;
+                                           qinst->qpu.sig.ldunifarf = true;
+                                        }
                                         qinst->qpu.sig_addr = dst.index;
                                         qinst->qpu.sig_magic = dst.magic;
                                 }

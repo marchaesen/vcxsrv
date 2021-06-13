@@ -39,6 +39,8 @@ files_libiris = files(
   'iris_formats.c',
   'iris_genx_macros.h',
   'iris_genx_protos.h',
+  'iris_measure.c',
+  'iris_measure.h',
   'iris_monitor.c',
   'iris_perf.h',
   'iris_perf.c',

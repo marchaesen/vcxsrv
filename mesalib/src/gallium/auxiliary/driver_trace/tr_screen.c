@@ -103,6 +103,18 @@ trace_screen_get_device_vendor(struct pipe_screen *_screen)
 }
 
 
+static const void *
+trace_screen_get_compiler_options(struct pipe_screen *_screen,
+                                  enum pipe_shader_ir ir,
+                                  enum pipe_shader_type shader)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+
+   return screen->get_compiler_options(screen, ir, shader);
+}
+
+
 static struct disk_cache *
 trace_screen_get_disk_shader_cache(struct pipe_screen *_screen)
 {
@@ -707,6 +719,7 @@ trace_screen_create(struct pipe_screen *screen)
    tr_scr->base.get_name = trace_screen_get_name;
    tr_scr->base.get_vendor = trace_screen_get_vendor;
    tr_scr->base.get_device_vendor = trace_screen_get_device_vendor;
+   SCR_INIT(get_compiler_options);
    SCR_INIT(get_disk_shader_cache);
    tr_scr->base.get_param = trace_screen_get_param;
    tr_scr->base.get_shader_param = trace_screen_get_shader_param;

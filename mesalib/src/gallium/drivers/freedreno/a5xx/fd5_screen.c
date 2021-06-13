@@ -126,12 +126,11 @@ fd5_screen_init(struct pipe_screen *pscreen)
 {
 	struct fd_screen *screen = fd_screen(pscreen);
 	screen->max_rts = A5XX_MAX_RENDER_TARGETS;
-	screen->compiler = ir3_compiler_create(screen->dev, screen->gpu_id);
 	pscreen->context_create = fd5_context_create;
 	pscreen->is_format_supported = fd5_screen_is_format_supported;
 
 	screen->setup_slices = fd5_setup_slices;
-	if (fd_mesa_debug & FD_DBG_TTILE)
+	if (FD_DBG(TTILE))
 		screen->tile_mode = fd5_tile_mode;
 
 	fd5_emit_init_screen(pscreen);

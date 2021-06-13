@@ -42,7 +42,7 @@ panfrost_initialize_surface(
         unsigned level = surf->u.tex.level;
         struct panfrost_resource *rsrc = pan_resource(surf->texture);
 
-        rsrc->slices[level].initialized = true;
+        rsrc->layout.slices[level].initialized = true;
 }
 
 /* Generate a fragment job. This should be called once per frame. (According to
@@ -62,12 +62,10 @@ panfrost_fragment_job(struct panfrost_batch *batch, bool has_draws)
 
         struct pipe_framebuffer_state *fb = &batch->key;
 
-        for (unsigned i = 0; i < fb->nr_cbufs; ++i) {
+        for (unsigned i = 0; i < fb->nr_cbufs; ++i)
                 panfrost_initialize_surface(batch, fb->cbufs[i]);
-        }
 
-        if (fb->zsbuf)
-                panfrost_initialize_surface(batch, fb->zsbuf);
+        panfrost_initialize_surface(batch, fb->zsbuf);
 
         /* The passed tile coords can be out of range in some cases, so we need
          * to clamp them to the framebuffer size to avoid a TILE_RANGE_FAULT.
@@ -90,8 +88,7 @@ panfrost_fragment_job(struct panfrost_batch *batch, bool has_draws)
         assert(batch->maxy > batch->miny);
 
         struct panfrost_ptr transfer =
-                panfrost_pool_alloc_aligned(&batch->pool,
-                                            MALI_FRAGMENT_JOB_LENGTH, 64);
+                panfrost_pool_alloc_desc(&batch->pool, FRAGMENT_JOB);
 
         pan_section_pack(transfer.cpu, FRAGMENT_JOB, HEADER, header) {
                 header.type = MALI_JOB_TYPE_FRAGMENT;

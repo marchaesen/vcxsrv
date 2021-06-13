@@ -67,7 +67,7 @@ line_width(struct gl_context *ctx, GLfloat width, bool no_error)
       return;
    }
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewLineState ? 0 : _NEW_LINE);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewLineState ? 0 : _NEW_LINE, GL_LINE_BIT);
    ctx->NewDriverState |= ctx->DriverFlags.NewLineState;
    ctx->Line.Width = width;
 
@@ -122,7 +122,7 @@ _mesa_LineStipple( GLint factor, GLushort pattern )
        ctx->Line.StipplePattern == pattern)
       return;
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewLineState ? 0 : _NEW_LINE);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewLineState ? 0 : _NEW_LINE, GL_LINE_BIT);
    ctx->NewDriverState |= ctx->DriverFlags.NewLineState;
    ctx->Line.StippleFactor = factor;
    ctx->Line.StipplePattern = pattern;

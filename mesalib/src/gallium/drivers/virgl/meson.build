@@ -37,7 +37,7 @@ libvirgl = static_library(
   [ files_libvirgl ],
   gnu_symbol_visibility : 'hidden',
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_virtio],
-  dependencies : [dep_libdrm, idep_mesautil],
+  dependencies : [dep_libdrm, idep_mesautil, idep_xmlconfig],
 )
 
 driver_virgl = declare_dependency(

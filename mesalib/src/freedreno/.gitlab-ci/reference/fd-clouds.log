@@ -21,14 +21,14 @@ t4		write SP_UNKNOWN_AE04 (ae04)
 t4		write SP_UNKNOWN_AE00 (ae00)
 			SP_UNKNOWN_AE00: 0
 0000000001d91024:		0000: 40ae0001 00000000
-t4		write SP_UNKNOWN_AE0F (ae0f)
-			SP_UNKNOWN_AE0F: 0x3f
+t4		write SP_PERFCTR_ENABLE (ae0f)
+			SP_PERFCTR_ENABLE: { VS | HS | DS | GS | FS | CS }
 0000000001d9102c:		0000: 40ae0f01 0000003f
-t4		write SP_UNKNOWN_B605 (b605)
-			SP_UNKNOWN_B605: 0x44
+t4		write TPL1_UNKNOWN_B605 (b605)
+			TPL1_UNKNOWN_B605: 68
 0000000001d91034:		0000: 40b60501 00000044
-t4		write SP_UNKNOWN_B600 (b600)
-			SP_UNKNOWN_B600: 0x100000
+t4		write TPL1_UNKNOWN_B600 (b600)
+			TPL1_UNKNOWN_B600: 0x100000
 0000000001d9103c:		0000: 40b60001 00100000
 t4		write HLSQ_UNKNOWN_BE00 (be00)
 			HLSQ_UNKNOWN_BE00: 0x80
@@ -67,7 +67,7 @@ t4		write RB_UNKNOWN_8E01 (8e01)
 			RB_UNKNOWN_8E01: 0x1
 0000000001d9109c:		0000: 408e0101 00000001
 t4		write SP_MODE_CONTROL (ab00)
-			SP_MODE_CONTROL: { CONSTANT_DEMOTION_ENABLE | 0x4 }
+			SP_MODE_CONTROL: { CONSTANT_DEMOTION_ENABLE | UNK2 }
 0000000001d910a4:		0000: 40ab0001 00000005
 t4		write VFD_ADD_OFFSET (a009)
 			VFD_ADD_OFFSET: { VERTEX }
@@ -175,7 +175,7 @@ t4		write SP_TP_SAMPLE_CONFIG (b304)
 			SP_TP_SAMPLE_CONFIG: { 0 }
 0000000001d911bc:		0000: 48b30401 00000000
 t4		write SP_TP_UNKNOWN_B309 (b309)
-			SP_TP_UNKNOWN_B309: 0xa2
+			SP_TP_UNKNOWN_B309: 162
 0000000001d911c4:		0000: 40b30901 000000a2
 t4		write RB_SAMPLE_CONFIG (8804)
 			RB_SAMPLE_CONFIG: { 0 }
@@ -202,7 +202,7 @@ t4		write RB_Z_BOUNDS_MAX (8879)
 			RB_Z_BOUNDS_MAX: 0.000000
 0000000001d91204:		0000: 40887901 00000000
 t4		write HLSQ_CONTROL_5_REG (b986)
-			HLSQ_CONTROL_5_REG: 0xfc
+			HLSQ_CONTROL_5_REG: { UNK0 = r63.x }
 0000000001d9120c:		0000: 48b98601 000000fc
 t7		opcode: CP_WAIT_FOR_IDLE (26) (1 dwords)
 0000000001d91214:		0000: 70268000
@@ -252,18 +252,18 @@ t4		write RB_DEPTH_BUFFER_INFO (8872)
 			RB_DEPTH_BUFFER_INFO: { DEPTH_FORMAT = DEPTH6_NONE }
 			RB_DEPTH_BUFFER_PITCH: 0
 			RB_DEPTH_BUFFER_ARRAY_PITCH: 0
-			RB_DEPTH_BUFFER_BASE_LO: 0
+			RB_DEPTH_BUFFER_BASE: 0
 			RB_DEPTH_BUFFER_BASE_HI: 0
 			RB_DEPTH_BUFFER_BASE_GMEM: 0
 0000000001d91284:		0000: 48887286 00000000 00000000 00000000 00000000 00000000 00000000
 t4		write GRAS_SU_DEPTH_BUFFER_INFO (8098)
 			GRAS_SU_DEPTH_BUFFER_INFO: { DEPTH_FORMAT = DEPTH6_NONE }
 0000000001d912a0:		0000: 48809801 00000000
-t4		write GRAS_LRZ_BUFFER_BASE_LO (8103)
-			GRAS_LRZ_BUFFER_BASE_LO: 0
+t4		write GRAS_LRZ_BUFFER_BASE (8103)
+			GRAS_LRZ_BUFFER_BASE: 0
 			GRAS_LRZ_BUFFER_BASE_HI: 0
 			GRAS_LRZ_BUFFER_PITCH: { PITCH = 0 | ARRAY_PITCH = 0 }
-			GRAS_LRZ_FAST_CLEAR_BUFFER_BASE_LO: 0
+			GRAS_LRZ_FAST_CLEAR_BUFFER_BASE: 0
 			GRAS_LRZ_FAST_CLEAR_BUFFER_BASE_HI: 0
 0000000001d912a8:		0000: 48810385 00000000 00000000 00000000 00000000 00000000
 t4		write RB_STENCIL_INFO (8881)
@@ -273,15 +273,15 @@ t4		write RB_MRT[0].BUF_INFO (8822)
 			RB_MRT[0].BUF_INFO: { COLOR_FORMAT = FMT6_8_8_8_X8_UNORM | COLOR_TILE_MODE = TILE6_LINEAR | COLOR_SWAP = WXYZ }
 			RB_MRT[0].PITCH: 8704
 			RB_MRT[0].ARRAY_PITCH: 12533760
-			RB_MRT[0].BASE_LO: 0x1125000
+			RB_MRT[0].BASE: 0x1125000
 			RB_MRT[0].BASE_HI: 0
 			RB_MRT[0].BASE_GMEM: 0
 0000000001d912c8:		0000: 48882286 00002031 00000088 0002fd00 01125000 00000000 00000000
 t4		write SP_FS_MRT[0].REG (a996)
 			SP_FS_MRT[0].REG: { COLOR_FORMAT = FMT6_8_8_8_X8_UNORM }
 0000000001d912e4:		0000: 48a99601 00000031
-t4		write RB_MRT_FLAG_BUFFER[0].ADDR_LO (8903)
-			RB_MRT_FLAG_BUFFER[0].ADDR_LO: 0
+t4		write RB_MRT_FLAG_BUFFER[0].ADDR (8903)
+			RB_MRT_FLAG_BUFFER[0].ADDR: 0
 			RB_MRT_FLAG_BUFFER[0].ADDR_HI: 0
 			RB_MRT_FLAG_BUFFER[0].PITCH: { PITCH = 0 | ARRAY_PITCH = 0 }
 0000000001d912ec:		0000: 40890383 00000000 00000000 00000000
@@ -365,7 +365,7 @@ t4		write VFD_MODE_CNTL (a007)
 0000000001d913cc:		0000: 40a00701 00000001
 t4		write VSC_BIN_SIZE (0c02)
 			VSC_BIN_SIZE: { WIDTH = 544 | HEIGHT = 480 }
-			VSC_DRAW_STRM_SIZE_ADDRESS_LO: 0x1d65800
+			VSC_DRAW_STRM_SIZE_ADDRESS: 0x1d65800
 			VSC_DRAW_STRM_SIZE_ADDRESS_HI: 0
 0000000001d913d4:		0000: 400c0283 00001e11 01d65800 00000000
 t4		write VSC_BIN_COUNT (0c06)
@@ -407,14 +407,14 @@ t4		write VSC_PIPE_CONFIG[0].REG (0c10)
 0000000001d913ec:		0000: 400c1020 04100000 04100001 04100002 04100003 04100400 04100401 04100402
 0000000001d9140c:		0020: 04100403 04100800 04100801 04100802 04100803 00000000 00000000 00000000
 *
-t4		write VSC_PRIM_STRM_ADDRESS_LO (0c30)
-			VSC_PRIM_STRM_ADDRESS_LO: 0x1d67000
+t4		write VSC_PRIM_STRM_ADDRESS (0c30)
+			VSC_PRIM_STRM_ADDRESS: 0x1d67000
 			VSC_PRIM_STRM_ADDRESS_HI: 0
 			VSC_PRIM_STRM_PITCH: 0x1040
 			VSC_PRIM_STRM_LIMIT: 0x28000
 0000000001d91470:		0000: 480c3004 01d67000 00000000 00001040 00028000
-t4		write VSC_DRAW_STRM_ADDRESS_LO (0c34)
-			VSC_DRAW_STRM_ADDRESS_LO: 0x1d5d000
+t4		write VSC_DRAW_STRM_ADDRESS (0c34)
+			VSC_DRAW_STRM_ADDRESS: 0x1d5d000
 			VSC_DRAW_STRM_ADDRESS_HI: 0
 			VSC_DRAW_STRM_PITCH: 0x440
 			VSC_DRAW_STRM_LIMIT: 0xa000
@@ -607,26 +607,25 @@ t4					write SP_HS_OBJ_FIRST_EXEC_OFFSET (a833)
 						SP_HS_OBJ_FIRST_EXEC_OFFSET: 0
 0000000001121000:					0000: 40a83301 00000000
 t4					write SP_FS_PREFETCH_CNTL (a99e)
-						SP_FS_PREFETCH_CNTL: { COUNT = 0 | UNK4 = r63.x | 0x7000 }
+						SP_FS_PREFETCH_CNTL: { COUNT = 0 | UNK4 = r63.x | UNK12 = 0x7 }
 0000000001121008:					0000: 40a99e01 00007fc0
 t4					write SP_UNKNOWN_A9A8 (a9a8)
 						SP_UNKNOWN_A9A8: 0
 0000000001121010:					0000: 40a9a801 00000000
 t4					write SP_MODE_CONTROL (ab00)
-						SP_MODE_CONTROL: { CONSTANT_DEMOTION_ENABLE | 0x4 }
+						SP_MODE_CONTROL: { CONSTANT_DEMOTION_ENABLE | UNK2 }
 0000000001121018:					0000: 40ab0001 00000005
 t4					write SP_FS_OUTPUT_CNTL0 (a98c)
 						SP_FS_OUTPUT_CNTL0: { DEPTH_REGID = r63.x | SAMPMASK_REGID = r63.x | STENCILREF_REGID = r63.x }
 0000000001121020:					0000: 40a98c01 fcfcfc00
 t4					write SP_VS_CTRL_REG0 (a800)
-						SP_VS_CTRL_REG0: { HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 1 | BRANCHSTACK = 0 | THREADSIZE = FOUR_QUADS | MERGEDREGS }
+						SP_VS_CTRL_REG0: { MERGEDREGS | THREADMODE = MULTI | HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 1 | BRANCHSTACK = 0 | 0x80000000 }
 0000000001121028:					0000: 40a80001 80100080
 t4					write SP_VS_INSTRLEN (a824)
 						SP_VS_INSTRLEN: 1
 0000000001121030:					0000: 40a82401 00000001
-t4					write SP_VS_OBJ_START_LO (a81c)
-						SP_VS_OBJ_START_LO: 0x1011000		base=1011000, offset=0, size=128
-						SP_VS_OBJ_START_HI: 0		base=1011000, offset=0, size=128
+t4					write SP_VS_OBJ_START (a81c)
+						SP_VS_OBJ_START: 0x1011000		base=1011000, offset=0, size=128
 0000000001011000:							0000: 00000000 03000000 00000000 00000000 00000000 00000000 00000000 00000000
 *
 							:0:0000:0000[03000000x_00000000x] end
@@ -634,18 +633,12 @@ t4					write SP_VS_OBJ_START_LO (a81c)
 							:0:0002:0002[00000000x_00000000x] nop
 							:0:0003:0003[00000000x_00000000x] nop
 							:0:0004:0004[00000000x_00000000x] nop
-							Register Stats:
-							- used (half): (cnt=0, max=0)
-							- used (full): (cnt=0, max=0)
-							- input (half): (cnt=0, max=0)
-							- input (full): (cnt=0, max=0)
-							- max const: 0
-
-							- output (half): (cnt=0, max=0)  (estimated)
-							- output (full): (cnt=0, max=0)  (estimated)
-							- shaderdb: 5 instructions, 4 nops, 1 non-nops, (5 instlen), 0 last-baryf, 0 half, 0 full
+							Stats:
+							- shaderdb: 5 instr, 4 nops, 1 non-nops, 0 mov, 0 cov
+							- shaderdb: 0 last-baryf, 0 half, 0 full, 0 constlen
 							- shaderdb: 5 cat0, 0 cat1, 0 cat2, 0 cat3, 0 cat4, 0 cat5, 0 cat6, 0 cat7
-							- shaderdb: 0 (ss), 0 (sy)
+							- shaderdb: 0 sstall, 0 (ss), 0 (sy)
+						SP_VS_OBJ_START_HI: 0
 0000000001121038:					0000: 48a81c02 01011000 00000000
 t7					opcode: CP_LOAD_STATE6_GEOM (32) (4 dwords)
 						{ DST_OFF = 0 | STATE_TYPE = ST6_SHADER | STATE_SRC = SS6_INDIRECT | STATE_BLOCK = SB6_VS_SHADER | NUM_UNIT = 1 }
@@ -656,18 +649,11 @@ t7					opcode: CP_LOAD_STATE6_GEOM (32) (4 dwords)
 						:0:0002:0002[00000000x_00000000x] nop
 						:0:0003:0003[00000000x_00000000x] nop
 						:0:0004:0004[00000000x_00000000x] nop
-						Register Stats:
-						- used (half): (cnt=0, max=0)
-						- used (full): (cnt=0, max=0)
-						- input (half): (cnt=0, max=0)
-						- input (full): (cnt=0, max=0)
-						- max const: 0
-
-						- output (half): (cnt=0, max=0)  (estimated)
-						- output (full): (cnt=0, max=0)  (estimated)
-						- shaderdb: 5 instructions, 4 nops, 1 non-nops, (5 instlen), 0 last-baryf, 0 half, 0 full
+						Stats:
+						- shaderdb: 5 instr, 4 nops, 1 non-nops, 0 mov, 0 cov
+						- shaderdb: 0 last-baryf, 0 half, 0 full, 0 constlen
 						- shaderdb: 5 cat0, 0 cat1, 0 cat2, 0 cat3, 0 cat4, 0 cat5, 0 cat6, 0 cat7
-						- shaderdb: 0 (ss), 0 (sy)
+						- shaderdb: 0 sstall, 0 (ss), 0 (sy)
 0000000001121044:					0000: 70328003 00620000 01011000 00000000
 t4					write VPC_VAR[0].DISABLE (9212)
 						VPC_VAR[0].DISABLE: 0xffffffff
@@ -685,7 +671,7 @@ t4					write SP_HS_WAVE_INPUT_SIZE (a831)
 						SP_HS_WAVE_INPUT_SIZE: 0
 0000000001121078:					0000: 48a83101 00000000
 t4					write SP_VS_PRIMITIVE_CNTL (a802)
-						SP_VS_PRIMITIVE_CNTL: { OUT = 1 }
+						SP_VS_PRIMITIVE_CNTL: { OUT = 1 | FLAGS_REGID = r0.x }
 0000000001121080:					0000: 48a80201 00000001
 t4					write VPC_CNTL_0 (9304)
 						VPC_CNTL_0: { NUMNONPOSVAR = 0 | PRIMIDLOC = 255 | VIEWIDLOC = 255 }
@@ -701,13 +687,13 @@ t4					write HLSQ_CONTROL_1_REG (b982)
 						HLSQ_CONTROL_2_REG: { FACEREGID = r63.x | SAMPLEID = r63.x | SAMPLEMASK = r63.x | SIZE = r63.x }
 						HLSQ_CONTROL_3_REG: { IJ_PERSP_PIXEL = r63.x | IJ_LINEAR_PIXEL = r63.x | IJ_PERSP_CENTROID = r63.x | IJ_LINEAR_CENTROID = r63.x }
 						HLSQ_CONTROL_4_REG: { IJ_PERSP_SAMPLE = r63.x | IJ_LINEAR_SAMPLE = r63.x | XYCOORDREGID = r63.x | ZWCOORDREGID = r63.x }
-						HLSQ_CONTROL_5_REG: 0xfc
+						HLSQ_CONTROL_5_REG: { UNK0 = r63.x }
 00000000011210a0:					0000: 40b98285 00000007 fcfcfcfc fcfcfcfc fcfcfcfc 000000fc
-t4					write HLSQ_UNKNOWN_B980 (b980)
-						HLSQ_UNKNOWN_B980: 0x1
+t4					write HLSQ_FS_CNTL_0 (b980)
+						HLSQ_FS_CNTL_0: { THREADSIZE = THREAD128 }
 00000000011210b8:					0000: 48b98001 00000001
 t4					write SP_FS_CTRL_REG0 (a980)
-						SP_FS_CTRL_REG0: { HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 1 | BRANCHSTACK = 0 | THREADSIZE = FOUR_QUADS | MERGEDREGS | 0x1000000 }
+						SP_FS_CTRL_REG0: { THREADSIZE = THREAD128 | UNK24 | MERGEDREGS | THREADMODE = MULTI | HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 1 | BRANCHSTACK = 0 }
 00000000011210c0:					0000: 40a98001 81100080
 t4					write SP_FS_OBJ_FIRST_EXEC_OFFSET (a982)
 						SP_FS_OBJ_FIRST_EXEC_OFFSET: 0
@@ -760,9 +746,9 @@ t4					write VPC_UNKNOWN_9107 (9107)
 t4					write VFD_CONTROL_1 (a001)
 						VFD_CONTROL_1: { REGID4VTX = r63.x | REGID4INST = r63.x | REGID4PRIMID = r63.x | REGID4VIEWID = r63.x }
 						VFD_CONTROL_2: { REGID_HSPATCHID = r63.x | REGID_INVOCATIONID = r63.x }
-						VFD_CONTROL_3: { REGID_DSPATCHID = r63.x | REGID_TESSX = r63.x | REGID_TESSY = r63.x | 0xfc }
-						VFD_CONTROL_4: 0xfc
-						VFD_CONTROL_5: { REGID_GSHEADER = r63.x | 0xfc00 }
+						VFD_CONTROL_3: { UNK0 = r63.x | REGID_DSPATCHID = r63.x | REGID_TESSX = r63.x | REGID_TESSY = r63.x }
+						VFD_CONTROL_4: { UNK0 = r63.x }
+						VFD_CONTROL_5: { REGID_GSHEADER = r63.x | UNK8 = r63.x }
 						VFD_CONTROL_6: { 0 }
 0000000001121150:					0000: 40a00186 fcfcfcfc 0000fcfc fcfcfcfc 000000fc 0000fcfc 00000000
 t4					write RB_DEPTH_PLANE_CNTL (8870)
@@ -794,13 +780,13 @@ t4					write GRAS_SU_DEPTH_PLANE_CNTL (8094)
 0000000001116020:				0020: 40a0d001 0000000f 48a00001 00000101
 t4					write VFD_FETCH[0].BASE (a010)
 						VFD_FETCH[0].BASE: 0x1016000
-						VFD_FETCH[0].BASE+0x1: 0
+						VFD_FETCH[0].BASE_HI: 0
 						VFD_FETCH[0].SIZE: 1048576
 						VFD_FETCH[0].STRIDE: 12
 0000000001116000:					0000: 40a01004 01016000 00000000 00100000 0000000c
 t4					write VFD_DECODE[0].INSTR (a090)
 						VFD_DECODE[0].INSTR: { IDX = 0 | OFFSET = 0 | FORMAT = FMT6_32_32_32_FLOAT | SWAP = WZYX | UNK30 | FLOAT }
-						VFD_DECODE[0].STEP_RATE: 0x1
+						VFD_DECODE[0].STEP_RATE: 1
 0000000001116014:					0000: 48a09002 c7400000 00000001
 t4					write VFD_DEST_CNTL[0].INSTR (a0d0)
 						VFD_DEST_CNTL[0].INSTR: { WRITEMASK = 0xf | REGID = r0.x }
@@ -889,7 +875,7 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 !+	00000002			CP_SCRATCH[0x7].REG: 2
 			:0,1,11,2
 !+	00001e11			VSC_BIN_SIZE: { WIDTH = 544 | HEIGHT = 480 }
-!+	01d65800			VSC_DRAW_STRM_SIZE_ADDRESS_LO: 0x1d65800
+!+	01d65800			VSC_DRAW_STRM_SIZE_ADDRESS: 0x1d65800
  +	00000000			VSC_DRAW_STRM_SIZE_ADDRESS_HI: 0
 !+	00001808			VSC_BIN_COUNT: { NX = 4 | NY = 3 }
 !+	04100000			VSC_PIPE_CONFIG[0].REG: { X = 0 | Y = 0 | W = 1 | H = 1 }
@@ -924,11 +910,11 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
  +	00000000			VSC_PIPE_CONFIG[0x1d].REG: { X = 0 | Y = 0 | W = 0 | H = 0 }
  +	00000000			VSC_PIPE_CONFIG[0x1e].REG: { X = 0 | Y = 0 | W = 0 | H = 0 }
  +	00000000			VSC_PIPE_CONFIG[0x1f].REG: { X = 0 | Y = 0 | W = 0 | H = 0 }
-!+	01d67000			VSC_PRIM_STRM_ADDRESS_LO: 0x1d67000
+!+	01d67000			VSC_PRIM_STRM_ADDRESS: 0x1d67000
  +	00000000			VSC_PRIM_STRM_ADDRESS_HI: 0
 !+	00001040			VSC_PRIM_STRM_PITCH: 0x1040
 !+	00028000			VSC_PRIM_STRM_LIMIT: 0x28000
-!+	01d5d000			VSC_DRAW_STRM_ADDRESS_LO: 0x1d5d000
+!+	01d5d000			VSC_DRAW_STRM_ADDRESS: 0x1d5d000
  +	00000000			VSC_DRAW_STRM_ADDRESS_HI: 0
 !+	00000440			VSC_DRAW_STRM_PITCH: 0x440
 !+	0000a000			VSC_DRAW_STRM_LIMIT: 0xa000
@@ -971,10 +957,10 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 !+	059f086f			GRAS_SC_WINDOW_SCISSOR_BR: { X = 2159 | Y = 1439 }
  +	00000000			GRAS_LRZ_CNTL: { 0 }
  +	00000000			GRAS_UNKNOWN_8101: 0
- +	00000000			GRAS_LRZ_BUFFER_BASE_LO: 0
+ +	00000000			GRAS_LRZ_BUFFER_BASE: 0
  +	00000000			GRAS_LRZ_BUFFER_BASE_HI: 0
  +	00000000			GRAS_LRZ_BUFFER_PITCH: { PITCH = 0 | ARRAY_PITCH = 0 }
- +	00000000			GRAS_LRZ_FAST_CLEAR_BUFFER_BASE_LO: 0
+ +	00000000			GRAS_LRZ_FAST_CLEAR_BUFFER_BASE: 0
  +	00000000			GRAS_LRZ_FAST_CLEAR_BUFFER_BASE_HI: 0
  +	00000000			GRAS_SAMPLE_CNTL: { 0 }
 !+	00000002			GRAS_UNKNOWN_8110: 0x2
@@ -1004,7 +990,7 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 !+	00002031			RB_MRT[0].BUF_INFO: { COLOR_FORMAT = FMT6_8_8_8_X8_UNORM | COLOR_TILE_MODE = TILE6_LINEAR | COLOR_SWAP = WXYZ }
 !+	00000088			RB_MRT[0].PITCH: 8704
 !+	0002fd00			RB_MRT[0].ARRAY_PITCH: 12533760
-!+	01125000			RB_MRT[0].BASE_LO: 0x1125000
+!+	01125000			RB_MRT[0].BASE: 0x1125000
  +	00000000			RB_MRT[0].BASE_HI: 0
  +	00000000			RB_MRT[0].BASE_GMEM: 0
  +	00000000			RB_BLEND_RED_F32: 0.000000
@@ -1018,7 +1004,7 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
  +	00000000			RB_DEPTH_BUFFER_INFO: { DEPTH_FORMAT = DEPTH6_NONE }
  +	00000000			RB_DEPTH_BUFFER_PITCH: 0
  +	00000000			RB_DEPTH_BUFFER_ARRAY_PITCH: 0
- +	00000000			RB_DEPTH_BUFFER_BASE_LO: 0
+ +	00000000			RB_DEPTH_BUFFER_BASE: 0
  +	00000000			RB_DEPTH_BUFFER_BASE_HI: 0
  +	00000000			RB_DEPTH_BUFFER_BASE_GMEM: 0
  +	00000000			RB_Z_BOUNDS_MIN: 0.000000
@@ -1033,7 +1019,7 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 !+	00001e11			RB_BIN_CONTROL2: { BINW = 544 | BINH = 480 }
  +	00000000			RB_MSAA_CNTL: { SAMPLES = MSAA_ONE }
  +	00000000			RB_UNKNOWN_88F0: 0
- +	00000000			RB_MRT_FLAG_BUFFER[0].ADDR_LO: 0
+ +	00000000			RB_MRT_FLAG_BUFFER[0].ADDR: 0
  +	00000000			RB_MRT_FLAG_BUFFER[0].ADDR_HI: 0
  +	00000000			RB_MRT_FLAG_BUFFER[0].PITCH: { PITCH = 0 | ARRAY_PITCH = 0 }
 !+	00000001			RB_UNKNOWN_8E01: 0x1
@@ -1073,9 +1059,9 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 !+	00000101			VFD_CONTROL_0: { FETCH_CNT = 1 | DECODE_CNT = 1 }
 !+	fcfcfcfc			VFD_CONTROL_1: { REGID4VTX = r63.x | REGID4INST = r63.x | REGID4PRIMID = r63.x | REGID4VIEWID = r63.x }
 !+	0000fcfc			VFD_CONTROL_2: { REGID_HSPATCHID = r63.x | REGID_INVOCATIONID = r63.x }
-!+	fcfcfcfc			VFD_CONTROL_3: { REGID_DSPATCHID = r63.x | REGID_TESSX = r63.x | REGID_TESSY = r63.x | 0xfc }
-!+	000000fc			VFD_CONTROL_4: 0xfc
-!+	0000fcfc			VFD_CONTROL_5: { REGID_GSHEADER = r63.x | 0xfc00 }
+!+	fcfcfcfc			VFD_CONTROL_3: { UNK0 = r63.x | REGID_DSPATCHID = r63.x | REGID_TESSX = r63.x | REGID_TESSY = r63.x }
+!+	000000fc			VFD_CONTROL_4: { UNK0 = r63.x }
+!+	0000fcfc			VFD_CONTROL_5: { REGID_GSHEADER = r63.x | UNK8 = r63.x }
  +	00000000			VFD_CONTROL_6: { 0 }
 !+	00000001			VFD_MODE_CNTL: { BINNING_PASS }
  +	00000000			VFD_MULTIVIEW_CNTL: { VIEWS = 0 }
@@ -1083,20 +1069,19 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
  +	00000000			VFD_INDEX_OFFSET: 0
  +	00000000			VFD_INSTANCE_START_OFFSET: 0
 !+	01016000			VFD_FETCH[0].BASE: 0x1016000
- +	00000000			VFD_FETCH[0].BASE+0x1: 0
+ +	00000000			VFD_FETCH[0].BASE_HI: 0
 !+	00100000			VFD_FETCH[0].SIZE: 1048576
 !+	0000000c			VFD_FETCH[0].STRIDE: 12
 !+	c7400000			VFD_DECODE[0].INSTR: { IDX = 0 | OFFSET = 0 | FORMAT = FMT6_32_32_32_FLOAT | SWAP = WZYX | UNK30 | FLOAT }
-!+	00000001			VFD_DECODE[0].STEP_RATE: 0x1
+!+	00000001			VFD_DECODE[0].STEP_RATE: 1
 !+	0000000f			VFD_DEST_CNTL[0].INSTR: { WRITEMASK = 0xf | REGID = r0.x }
 !+	00000001			SP_UNKNOWN_A0F8: 0x1
-!+	80100080			SP_VS_CTRL_REG0: { HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 1 | BRANCHSTACK = 0 | THREADSIZE = FOUR_QUADS | MERGEDREGS }
-!+	00000001			SP_VS_PRIMITIVE_CNTL: { OUT = 1 }
+!+	80100080			SP_VS_CTRL_REG0: { MERGEDREGS | THREADMODE = MULTI | HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 1 | BRANCHSTACK = 0 | 0x80000000 }
+!+	00000001			SP_VS_PRIMITIVE_CNTL: { OUT = 1 | FLAGS_REGID = r0.x }
 !+	00000f00			SP_VS_OUT[0].REG: { A_REGID = r0.x | A_COMPMASK = 0xf | B_REGID = r0.x | B_COMPMASK = 0 }
  +	00000000			SP_VS_VPC_DST[0].REG: { OUTLOC0 = 0 | OUTLOC1 = 0 | OUTLOC2 = 0 | OUTLOC3 = 0 }
  +	00000000			SP_VS_OBJ_FIRST_EXEC_OFFSET: 0
-!+	01011000			SP_VS_OBJ_START_LO: 0x1011000		base=1011000, offset=0, size=128
- +	00000000			SP_VS_OBJ_START_HI: 0		base=1011000, offset=0, size=128
+!+	01011000			SP_VS_OBJ_START: 0x1011000		base=1011000, offset=0, size=128
 0000000001011000:				0000: 00000000 03000000 00000000 00000000 00000000 00000000 00000000 00000000
 *
 				:0:0000:0000[03000000x_00000000x] end
@@ -1104,18 +1089,12 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 				:0:0002:0002[00000000x_00000000x] nop
 				:0:0003:0003[00000000x_00000000x] nop
 				:0:0004:0004[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): (cnt=0, max=0)
-				- input (half): (cnt=0, max=0)
-				- input (full): (cnt=0, max=0)
-				- max const: 0
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): (cnt=0, max=0)  (estimated)
-				- shaderdb: 5 instructions, 4 nops, 1 non-nops, (5 instlen), 0 last-baryf, 0 half, 0 full
+				Stats:
+				- shaderdb: 5 instr, 4 nops, 1 non-nops, 0 mov, 0 cov
+				- shaderdb: 0 last-baryf, 0 half, 0 full, 0 constlen
 				- shaderdb: 5 cat0, 0 cat1, 0 cat2, 0 cat3, 0 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 0 (ss), 0 (sy)
+				- shaderdb: 0 sstall, 0 (ss), 0 (sy)
+ +	00000000			SP_VS_OBJ_START_HI: 0
 !+	00000100			SP_VS_CONFIG: { ENABLED | NTEX = 0 | NSAMP = 0 | NIBO = 0 }
 !+	00000001			SP_VS_INSTRLEN: 1
  +	00000000			SP_HS_WAVE_INPUT_SIZE: 0
@@ -1124,7 +1103,7 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
  +	00000000			SP_DS_CONFIG: { NTEX = 0 | NSAMP = 0 | NIBO = 0 }
  +	00000000			SP_GS_PRIM_SIZE: 0
  +	00000000			SP_GS_CONFIG: { NTEX = 0 | NSAMP = 0 | NIBO = 0 }
-!+	81100080			SP_FS_CTRL_REG0: { HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 1 | BRANCHSTACK = 0 | THREADSIZE = FOUR_QUADS | MERGEDREGS | 0x1000000 }
+!+	81100080			SP_FS_CTRL_REG0: { THREADSIZE = THREAD128 | UNK24 | MERGEDREGS | THREADMODE = MULTI | HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 1 | BRANCHSTACK = 0 }
  +	00000000			SP_FS_OBJ_FIRST_EXEC_OFFSET: 0
  +	00000000			SP_SRGB_CNTL: { 0 }
 !+	0000000f			SP_FS_RENDER_COMPONENTS: { RT0 = 0xf | RT1 = 0 | RT2 = 0 | RT3 = 0 | RT4 = 0 | RT5 = 0 | RT6 = 0 | RT7 = 0 }
@@ -1138,34 +1117,34 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 !+	000000fc			SP_FS_OUTPUT[0x6].REG: { REGID = r63.x }
 !+	000000fc			SP_FS_OUTPUT[0x7].REG: { REGID = r63.x }
 !+	00000031			SP_FS_MRT[0].REG: { COLOR_FORMAT = FMT6_8_8_8_X8_UNORM }
-!+	00007fc0			SP_FS_PREFETCH_CNTL: { COUNT = 0 | UNK4 = r63.x | 0x7000 }
+!+	00007fc0			SP_FS_PREFETCH_CNTL: { COUNT = 0 | UNK4 = r63.x | UNK12 = 0x7 }
  +	00000000			SP_UNKNOWN_A9A8: 0
-!+	00000005			SP_MODE_CONTROL: { CONSTANT_DEMOTION_ENABLE | 0x4 }
+!+	00000005			SP_MODE_CONTROL: { CONSTANT_DEMOTION_ENABLE | UNK2 }
 !+	00000100			SP_FS_CONFIG: { ENABLED | NTEX = 0 | NSAMP = 0 | NIBO = 0 }
  +	00000000			SP_IBO_COUNT: 0
  +	00000000			SP_UNKNOWN_AE00: 0
 !+	00001430			SP_UNKNOWN_AE03: 0x1430
 !+	00000008			SP_UNKNOWN_AE04: 0x8
-!+	0000003f			SP_UNKNOWN_AE0F: 0x3f
+!+	0000003f			SP_PERFCTR_ENABLE: { VS | HS | DS | GS | FS | CS }
  +	00000000			SP_UNKNOWN_B182: 0
  +	00000000			SP_UNKNOWN_B183: 0
  +	00000000			SP_TP_RAS_MSAA_CNTL: { SAMPLES = MSAA_ONE }
 !+	00000004			SP_TP_DEST_MSAA_CNTL: { SAMPLES = MSAA_ONE | MSAA_DISABLE }
  +	00000000			SP_TP_SAMPLE_CONFIG: { 0 }
  +	00000000			SP_TP_WINDOW_OFFSET: { X = 0 | Y = 0 }
-!+	000000a2			SP_TP_UNKNOWN_B309: 0xa2
-!+	00100000			SP_UNKNOWN_B600: 0x100000
-!+	00000044			SP_UNKNOWN_B605: 0x44
+!+	000000a2			SP_TP_UNKNOWN_B309: 162
+!+	00100000			TPL1_UNKNOWN_B600: 0x100000
+!+	00000044			TPL1_UNKNOWN_B605: 68
 !+	00000100			HLSQ_VS_CNTL: { CONSTLEN = 0 | ENABLED }
  +	00000000			HLSQ_HS_CNTL: { CONSTLEN = 0 }
  +	00000000			HLSQ_DS_CNTL: { CONSTLEN = 0 }
  +	00000000			HLSQ_GS_CNTL: { CONSTLEN = 0 }
-!+	00000001			HLSQ_UNKNOWN_B980: 0x1
+!+	00000001			HLSQ_FS_CNTL_0: { THREADSIZE = THREAD128 }
 !+	00000007			HLSQ_CONTROL_1_REG: 0x7
 !+	fcfcfcfc			HLSQ_CONTROL_2_REG: { FACEREGID = r63.x | SAMPLEID = r63.x | SAMPLEMASK = r63.x | SIZE = r63.x }
 !+	fcfcfcfc			HLSQ_CONTROL_3_REG: { IJ_PERSP_PIXEL = r63.x | IJ_LINEAR_PIXEL = r63.x | IJ_PERSP_CENTROID = r63.x | IJ_LINEAR_CENTROID = r63.x }
 !+	fcfcfcfc			HLSQ_CONTROL_4_REG: { IJ_PERSP_SAMPLE = r63.x | IJ_LINEAR_SAMPLE = r63.x | XYCOORDREGID = r63.x | ZWCOORDREGID = r63.x }
-!+	000000fc			HLSQ_CONTROL_5_REG: 0xfc
+!+	000000fc			HLSQ_CONTROL_5_REG: { UNK0 = r63.x }
 !+	000000ff			HLSQ_INVALIDATE_CMD: { VS_STATE | HS_STATE | DS_STATE | GS_STATE | FS_STATE | CS_STATE | CS_IBO | GFX_IBO | CS_BINDLESS = 0 | GFX_BINDLESS = 0 }
 !+	00000108			HLSQ_FS_CNTL: { CONSTLEN = 32 | ENABLED }
  +	00000000			HLSQ_SHARED_CONSTS: { 0 }
@@ -1922,26 +1901,25 @@ t4					write SP_HS_OBJ_FIRST_EXEC_OFFSET (a833)
 						SP_HS_OBJ_FIRST_EXEC_OFFSET: 0
 0000000001120000:					0000: 40a83301 00000000
 t4					write SP_FS_PREFETCH_CNTL (a99e)
-						SP_FS_PREFETCH_CNTL: { COUNT = 0 | UNK4 = r63.x | 0x7000 }
+						SP_FS_PREFETCH_CNTL: { COUNT = 0 | UNK4 = r63.x | UNK12 = 0x7 }
 0000000001120008:					0000: 40a99e01 00007fc0
 t4					write SP_UNKNOWN_A9A8 (a9a8)
 						SP_UNKNOWN_A9A8: 0
 0000000001120010:					0000: 40a9a801 00000000
 t4					write SP_MODE_CONTROL (ab00)
-						SP_MODE_CONTROL: { CONSTANT_DEMOTION_ENABLE | 0x4 }
+						SP_MODE_CONTROL: { CONSTANT_DEMOTION_ENABLE | UNK2 }
 0000000001120018:					0000: 40ab0001 00000005
 t4					write SP_FS_OUTPUT_CNTL0 (a98c)
 						SP_FS_OUTPUT_CNTL0: { DEPTH_REGID = r63.x | SAMPMASK_REGID = r63.x | STENCILREF_REGID = r63.x }
 0000000001120020:					0000: 40a98c01 fcfcfc00
 t4					write SP_VS_CTRL_REG0 (a800)
-						SP_VS_CTRL_REG0: { HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 1 | BRANCHSTACK = 0 | THREADSIZE = FOUR_QUADS | MERGEDREGS }
+						SP_VS_CTRL_REG0: { MERGEDREGS | THREADMODE = MULTI | HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 1 | BRANCHSTACK = 0 | 0x80000000 }
 0000000001120028:					0000: 40a80001 80100080
 t4					write SP_VS_INSTRLEN (a824)
 						SP_VS_INSTRLEN: 1
 0000000001120030:					0000: 40a82401 00000001
-t4					write SP_VS_OBJ_START_LO (a81c)
-						SP_VS_OBJ_START_LO: 0x1012000		base=1012000, offset=0, size=128
-						SP_VS_OBJ_START_HI: 0		base=1012000, offset=0, size=128
+t4					write SP_VS_OBJ_START (a81c)
+						SP_VS_OBJ_START: 0x1012000		base=1012000, offset=0, size=128
 0000000001012000:							0000: 00000000 03000000 00000000 00000000 00000000 00000000 00000000 00000000
 *
 							:0:0000:0000[03000000x_00000000x] end
@@ -1949,18 +1927,12 @@ t4					write SP_VS_OBJ_START_LO (a81c)
 							:0:0002:0002[00000000x_00000000x] nop
 							:0:0003:0003[00000000x_00000000x] nop
 							:0:0004:0004[00000000x_00000000x] nop
-							Register Stats:
-							- used (half): (cnt=0, max=0)
-							- used (full): (cnt=0, max=0)
-							- input (half): (cnt=0, max=0)
-							- input (full): (cnt=0, max=0)
-							- max const: 0
-
-							- output (half): (cnt=0, max=0)  (estimated)
-							- output (full): (cnt=0, max=0)  (estimated)
-							- shaderdb: 5 instructions, 4 nops, 1 non-nops, (5 instlen), 0 last-baryf, 0 half, 0 full
+							Stats:
+							- shaderdb: 5 instr, 4 nops, 1 non-nops, 0 mov, 0 cov
+							- shaderdb: 0 last-baryf, 0 half, 0 full, 0 constlen
 							- shaderdb: 5 cat0, 0 cat1, 0 cat2, 0 cat3, 0 cat4, 0 cat5, 0 cat6, 0 cat7
-							- shaderdb: 0 (ss), 0 (sy)
+							- shaderdb: 0 sstall, 0 (ss), 0 (sy)
+						SP_VS_OBJ_START_HI: 0
 0000000001120038:					0000: 48a81c02 01012000 00000000
 t7					opcode: CP_LOAD_STATE6_GEOM (32) (4 dwords)
 						{ DST_OFF = 0 | STATE_TYPE = ST6_SHADER | STATE_SRC = SS6_INDIRECT | STATE_BLOCK = SB6_VS_SHADER | NUM_UNIT = 1 }
@@ -1971,18 +1943,11 @@ t7					opcode: CP_LOAD_STATE6_GEOM (32) (4 dwords)
 						:0:0002:0002[00000000x_00000000x] nop
 						:0:0003:0003[00000000x_00000000x] nop
 						:0:0004:0004[00000000x_00000000x] nop
-						Register Stats:
-						- used (half): (cnt=0, max=0)
-						- used (full): (cnt=0, max=0)
-						- input (half): (cnt=0, max=0)
-						- input (full): (cnt=0, max=0)
-						- max const: 0
-
-						- output (half): (cnt=0, max=0)  (estimated)
-						- output (full): (cnt=0, max=0)  (estimated)
-						- shaderdb: 5 instructions, 4 nops, 1 non-nops, (5 instlen), 0 last-baryf, 0 half, 0 full
+						Stats:
+						- shaderdb: 5 instr, 4 nops, 1 non-nops, 0 mov, 0 cov
+						- shaderdb: 0 last-baryf, 0 half, 0 full, 0 constlen
 						- shaderdb: 5 cat0, 0 cat1, 0 cat2, 0 cat3, 0 cat4, 0 cat5, 0 cat6, 0 cat7
-						- shaderdb: 0 (ss), 0 (sy)
+						- shaderdb: 0 sstall, 0 (ss), 0 (sy)
 0000000001120044:					0000: 70328003 00620000 01012000 00000000
 t4					write VPC_VAR[0].DISABLE (9212)
 						VPC_VAR[0].DISABLE: 0xffffffff
@@ -2000,7 +1965,7 @@ t4					write SP_HS_WAVE_INPUT_SIZE (a831)
 						SP_HS_WAVE_INPUT_SIZE: 0
 0000000001120078:					0000: 48a83101 00000000
 t4					write SP_VS_PRIMITIVE_CNTL (a802)
-						SP_VS_PRIMITIVE_CNTL: { OUT = 1 }
+						SP_VS_PRIMITIVE_CNTL: { OUT = 1 | FLAGS_REGID = r0.x }
 0000000001120080:					0000: 48a80201 00000001
 t4					write VPC_CNTL_0 (9304)
 						VPC_CNTL_0: { NUMNONPOSVAR = 0 | PRIMIDLOC = 255 | VIEWIDLOC = 255 }
@@ -2016,13 +1981,13 @@ t4					write HLSQ_CONTROL_1_REG (b982)
 						HLSQ_CONTROL_2_REG: { FACEREGID = r63.x | SAMPLEID = r63.x | SAMPLEMASK = r63.x | SIZE = r63.x }
 						HLSQ_CONTROL_3_REG: { IJ_PERSP_PIXEL = r63.x | IJ_LINEAR_PIXEL = r63.x | IJ_PERSP_CENTROID = r63.x | IJ_LINEAR_CENTROID = r63.x }
 						HLSQ_CONTROL_4_REG: { IJ_PERSP_SAMPLE = r63.x | IJ_LINEAR_SAMPLE = r63.x | XYCOORDREGID = r4.w | ZWCOORDREGID = r5.y }
-						HLSQ_CONTROL_5_REG: 0xfc
+						HLSQ_CONTROL_5_REG: { UNK0 = r63.x }
 00000000011200a0:					0000: 40b98285 00000007 fcfcfcfc fcfcfcfc 1513fcfc 000000fc
-t4					write HLSQ_UNKNOWN_B980 (b980)
-						HLSQ_UNKNOWN_B980: 0x1
+t4					write HLSQ_FS_CNTL_0 (b980)
+						HLSQ_FS_CNTL_0: { THREADSIZE = THREAD128 }
 00000000011200b8:					0000: 48b98001 00000001
 t4					write SP_FS_CTRL_REG0 (a980)
-						SP_FS_CTRL_REG0: { HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 19 | BRANCHSTACK = 2 | THREADSIZE = FOUR_QUADS | VARYING | MERGEDREGS | 0x1000000 }
+						SP_FS_CTRL_REG0: { THREADSIZE = THREAD128 | VARYING | UNK24 | MERGEDREGS | THREADMODE = MULTI | HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 19 | BRANCHSTACK = 2 }
 00000000011200c0:					0000: 40a98001 81508980
 t4					write SP_FS_OBJ_FIRST_EXEC_OFFSET (a982)
 						SP_FS_OBJ_FIRST_EXEC_OFFSET: 0
@@ -2075,9 +2040,8 @@ t4					write VPC_UNKNOWN_9107 (9107)
 t4					write SP_FS_INSTRLEN (ab05)
 						SP_FS_INSTRLEN: 88
 0000000001120150:					0000: 40ab0501 00000058
-t4					write SP_FS_OBJ_START_LO (a983)
-						SP_FS_OBJ_START_LO: 0x1013000		base=1013000, offset=0, size=11264
-						SP_FS_OBJ_START_HI: 0		base=1013000, offset=0, size=11264
+t4					write SP_FS_OBJ_START (a983)
+						SP_FS_OBJ_START: 0x1013000		base=1013000, offset=0, size=11264
 0000000001013000:							0000: 40400000 204cc000 00000000 204cc006 3e99999a 204cc004 20080014 42700008
 0000000001013020:							0020: 10331003 6380000c 00000006 200cc00d 00041003 40700004 00000000 20244014
 0000000001013040:							0040: 1036000c 4070000e 0000000d 200cc005 1034000c 4070000f 10251024 63820004
@@ -2087,7 +2051,7 @@ t4					write SP_FS_OBJ_START_LO (a983)
 00000000010130c0:							00c0: 10261023 6386800d 20080013 42700010 10261023 6387000e 40141066 4010001b
 00000000010130e0:							00e0: 00141025 40700016 00000014 80100014 20040008 46f00008 00000004 80900000
 							:1:0000:0000[204cc000x_40400000x] mov.u32u32 r0.x, 0x40400000
-							:1:0001:0001[204cc006x_00000000x] mov.u32u32 r1.z, 0x00000000
+							:1:0001:0001[204cc006x_00000000x] mov.u32u32 r1.z, 0
 							:1:0002:0002[204cc004x_3e99999ax] mov.u32u32 r1.x, 0x3e99999a
 							:2:0003:0003[42700008x_20080014x] sub.s r2.x, r5.x, 8
 							:3:0004:0004[6380000cx_10331003x] mad.f32 r3.x, c0.w, r0.x, c12.w
@@ -2256,16 +2220,17 @@ t4					write SP_FS_OBJ_START_LO (a983)
 							:3:0167:0244[63869016x_40160008x] (ss)mad.f32 r5.z, r2.x, (neg)r3.y, r5.z
 							:2:0168:0245[4070080dx_000d0010x] (nop1) mul.f r3.y, r4.x, r3.y
 							:3:0169:0247[6389000dx_000d0008x] mad.f32 r3.y, r2.x, r4.z, r3.y
+							:1:0170:0248[280cc008x_00000006x] l170:
 							:1:0170:0248[280cc008x_00000006x] (jp)mov.u32u32 r2.x, r1.z
 							:0:0171:0249[00000200x_00000000x] (rpt2)nop
 							:2:0172:0252[42bb08f8x_20820008x] (nop3) cmps.s.ge p0.x, r2.x, 130
 							:0:0173:0256[00000200x_00000000x] (rpt2)nop
-							:0:0174:0259[00800000x_00000464x] br p0.x, #1124
+							:0:0174:0259[00800000x_00000464x] br p0.x, #l1298
 							:1:0175:0260[280cc008x_00000003x] (jp)mov.u32u32 r2.x, r0.w
 							:0:0176:0261[00000200x_00000000x] (rpt2)nop
 							:2:0177:0264[40b808f8x_0008106ex] (nop3) cmps.f.lt p0.x, c27.z, r2.x
 							:0:0178:0268[00000200x_00000000x] (rpt2)nop
-							:0:0179:0271[00800000x_0000045fx] br p0.x, #1119
+							:0:0179:0271[00800000x_0000045fx] br p0.x, #l1298
 							:1:0180:0272[280cc012x_00000004x] (jp)mov.u32u32 r4.z, r1.x
 							:1:0181:0273[200cc018x_00000004x] mov.u32u32 r6.x, r1.x
 							:1:0182:0274[200cc019x_00000004x] mov.u32u32 r6.y, r1.x
@@ -2617,7 +2582,7 @@ t4					write SP_FS_OBJ_START_LO (a983)
 							:2:0528:0937[40580023x_10700023x] (nop2) max.f r8.w, r8.w, c28.x
 							:2:0529:0940[40700026x_103e0025x] mul.f r9.z, r9.y, c15.z
 							:2:0530:0941[40300023x_10290023x] min.f r8.w, r8.w, c10.y
-							:0:0531:0942[00900000x_000002cdx] br !p0.x, #717
+							:0:0531:0942[00900000x_000002cdx] br !p0.x, #l1248
 							:2:0532:0943[48100028x_10550019x] (jp)add.f r10.x, r6.y, c21.y
 							:2:0533:0944[40700029x_10270019x] mul.f r10.y, r6.y, c9.w
 							:2:0534:0945[40100019x_10590019x] add.f r6.y, r6.y, c22.y
@@ -3333,8 +3298,9 @@ t4					write SP_FS_OBJ_START_LO (a983)
 							:2:1244:2198[40700808x_0010001ax] (nop1) mul.f r2.x, r6.z, r4.x
 							:2:1245:2200[40700009x_00180029x] mul.f r2.y, r10.y, r6.x
 							:2:1246:2201[4070000ax_0012001dx] mul.f r2.z, r7.y, r4.z
-							:0:1247:2202[01000000x_0000000ex] jump #14
-							:1:1248:2203[284cc007x_00000000x] (jp)mov.u32u32 r1.w, 0x00000000
+							:0:1247:2202[01000000x_0000000ex] jump #l1261
+							:1:1248:2203[284cc007x_00000000x] l1248:
+							:1:1248:2203[284cc007x_00000000x] (jp)mov.u32u32 r1.w, 0
 							:0:1249:2204[00000200x_00000000x] (rpt2)nop
 							:1:1250:2207[200cc010x_00000007x] mov.u32u32 r4.x, r1.w
 							:0:1251:2208[00000200x_00000000x] (rpt2)nop
@@ -3347,6 +3313,7 @@ t4					write SP_FS_OBJ_START_LO (a983)
 							:1:1258:2223[200cc010x_00000009x] mov.u32u32 r4.x, r2.y
 							:0:1259:2224[00000200x_00000000x] (rpt2)nop
 							:1:1260:2227[200cc008x_00000010x] mov.u32u32 r2.x, r4.x
+							:1:1261:2228[280cc012x_00000004x] l1261:
 							:1:1261:2228[280cc012x_00000004x] (jp)mov.u32u32 r4.z, r1.x
 							:1:1262:2229[200cc019x_00000009x] mov.u32u32 r6.y, r2.y
 							:1:1263:2230[200cc01ax_0000000ax] mov.u32u32 r6.z, r2.z
@@ -3383,7 +3350,8 @@ t4					write SP_FS_OBJ_START_LO (a983)
 							:1:1294:2266[200cc024x_0000000bx] mov.u32u32 r9.x, r2.w
 							:2:1295:2267[42180006x_20010023x] (nop2) add.u r1.z, r8.w, 1
 							:1:1296:2270[200cc005x_00000024x] mov.u32u32 r1.y, r9.x
-							:0:1297:2271[01000000x_fffffb99x] jump #-1127
+							:0:1297:2271[01000000x_fffffb99x] jump #l170
+							:2:1298:2272[48500401x_00010001x] l1298:
 							:2:1298:2272[48500401x_00010001x] (jp)(sat)max.f r0.y, r0.y, r0.y
 							:2:1299:2273[40500402x_00020002x] (sat)max.f r0.z, r0.z, r0.z
 							:2:1300:2274[40100003x_400e1022x] add.f r0.w, c8.z, (neg)r3.z
@@ -3492,25 +3460,19 @@ t4					write SP_FS_OBJ_START_LO (a983)
 							:0:1403:2411[00000000x_00000000x] nop
 							:0:1404:2412[00000000x_00000000x] nop
 							:0:1405:2413[00000000x_00000000x] nop
-							Register Stats:
-							- used (half): 0-147 (cnt=148, max=147)
-							- used (full): 0-73 (cnt=74, max=73)
-							- input (half): 38-41 (cnt=4, max=41)
-							- input (full): 19-20 (cnt=2, max=20)
-							- max const: 113
-
-							- output (half): 8-15 (cnt=8, max=15)  (estimated)
-							- output (full): 4-7 (cnt=4, max=7)  (estimated)
-							- shaderdb: 2414 instructions, 1114 nops, 1300 non-nops, (1406 instlen), 0 last-baryf, 0 half, 19 full
+							Stats:
+							- shaderdb: 2414 instr, 1114 nops, 1300 non-nops, 46 mov, 2 cov
+							- shaderdb: 0 last-baryf, 0 half, 19 full, 29 constlen
 							- shaderdb: 1120 cat0, 48 cat1, 551 cat2, 512 cat3, 183 cat4, 0 cat5, 0 cat6, 0 cat7
-							- shaderdb: 140 (ss), 0 (sy)
+							- shaderdb: 1326 sstall, 140 (ss), 0 (sy)
+						SP_FS_OBJ_START_HI: 0
 0000000001120158:					0000: 40a98302 01013000 00000000
 t7					opcode: CP_LOAD_STATE6_FRAG (34) (4 dwords)
 						{ DST_OFF = 0 | STATE_TYPE = ST6_SHADER | STATE_SRC = SS6_INDIRECT | STATE_BLOCK = SB6_FS_SHADER | NUM_UNIT = 88 }
 						{ EXT_SRC_ADDR = 0x1013000 }
 						{ EXT_SRC_ADDR_HI = 0 }
 						:1:0000:0000[204cc000x_40400000x] mov.u32u32 r0.x, 0x40400000
-						:1:0001:0001[204cc006x_00000000x] mov.u32u32 r1.z, 0x00000000
+						:1:0001:0001[204cc006x_00000000x] mov.u32u32 r1.z, 0
 						:1:0002:0002[204cc004x_3e99999ax] mov.u32u32 r1.x, 0x3e99999a
 						:2:0003:0003[42700008x_20080014x] sub.s r2.x, r5.x, 8
 						:3:0004:0004[6380000cx_10331003x] mad.f32 r3.x, c0.w, r0.x, c12.w
@@ -3679,16 +3641,17 @@ t7					opcode: CP_LOAD_STATE6_FRAG (34) (4 dwords)
 						:3:0167:0244[63869016x_40160008x] (ss)mad.f32 r5.z, r2.x, (neg)r3.y, r5.z
 						:2:0168:0245[4070080dx_000d0010x] (nop1) mul.f r3.y, r4.x, r3.y
 						:3:0169:0247[6389000dx_000d0008x] mad.f32 r3.y, r2.x, r4.z, r3.y
+						:1:0170:0248[280cc008x_00000006x] l170:
 						:1:0170:0248[280cc008x_00000006x] (jp)mov.u32u32 r2.x, r1.z
 						:0:0171:0249[00000200x_00000000x] (rpt2)nop
 						:2:0172:0252[42bb08f8x_20820008x] (nop3) cmps.s.ge p0.x, r2.x, 130
 						:0:0173:0256[00000200x_00000000x] (rpt2)nop
-						:0:0174:0259[00800000x_00000464x] br p0.x, #1124
+						:0:0174:0259[00800000x_00000464x] br p0.x, #l1298
 						:1:0175:0260[280cc008x_00000003x] (jp)mov.u32u32 r2.x, r0.w
 						:0:0176:0261[00000200x_00000000x] (rpt2)nop
 						:2:0177:0264[40b808f8x_0008106ex] (nop3) cmps.f.lt p0.x, c27.z, r2.x
 						:0:0178:0268[00000200x_00000000x] (rpt2)nop
-						:0:0179:0271[00800000x_0000045fx] br p0.x, #1119
+						:0:0179:0271[00800000x_0000045fx] br p0.x, #l1298
 						:1:0180:0272[280cc012x_00000004x] (jp)mov.u32u32 r4.z, r1.x
 						:1:0181:0273[200cc018x_00000004x] mov.u32u32 r6.x, r1.x
 						:1:0182:0274[200cc019x_00000004x] mov.u32u32 r6.y, r1.x
@@ -4040,7 +4003,7 @@ t7					opcode: CP_LOAD_STATE6_FRAG (34) (4 dwords)
 						:2:0528:0937[40580023x_10700023x] (nop2) max.f r8.w, r8.w, c28.x
 						:2:0529:0940[40700026x_103e0025x] mul.f r9.z, r9.y, c15.z
 						:2:0530:0941[40300023x_10290023x] min.f r8.w, r8.w, c10.y
-						:0:0531:0942[00900000x_000002cdx] br !p0.x, #717
+						:0:0531:0942[00900000x_000002cdx] br !p0.x, #l1248
 						:2:0532:0943[48100028x_10550019x] (jp)add.f r10.x, r6.y, c21.y
 						:2:0533:0944[40700029x_10270019x] mul.f r10.y, r6.y, c9.w
 						:2:0534:0945[40100019x_10590019x] add.f r6.y, r6.y, c22.y
@@ -4756,8 +4719,9 @@ t7					opcode: CP_LOAD_STATE6_FRAG (34) (4 dwords)
 						:2:1244:2198[40700808x_0010001ax] (nop1) mul.f r2.x, r6.z, r4.x
 						:2:1245:2200[40700009x_00180029x] mul.f r2.y, r10.y, r6.x
 						:2:1246:2201[4070000ax_0012001dx] mul.f r2.z, r7.y, r4.z
-						:0:1247:2202[01000000x_0000000ex] jump #14
-						:1:1248:2203[284cc007x_00000000x] (jp)mov.u32u32 r1.w, 0x00000000
+						:0:1247:2202[01000000x_0000000ex] jump #l1261
+						:1:1248:2203[284cc007x_00000000x] l1248:
+						:1:1248:2203[284cc007x_00000000x] (jp)mov.u32u32 r1.w, 0
 						:0:1249:2204[00000200x_00000000x] (rpt2)nop
 						:1:1250:2207[200cc010x_00000007x] mov.u32u32 r4.x, r1.w
 						:0:1251:2208[00000200x_00000000x] (rpt2)nop
@@ -4770,6 +4734,7 @@ t7					opcode: CP_LOAD_STATE6_FRAG (34) (4 dwords)
 						:1:1258:2223[200cc010x_00000009x] mov.u32u32 r4.x, r2.y
 						:0:1259:2224[00000200x_00000000x] (rpt2)nop
 						:1:1260:2227[200cc008x_00000010x] mov.u32u32 r2.x, r4.x
+						:1:1261:2228[280cc012x_00000004x] l1261:
 						:1:1261:2228[280cc012x_00000004x] (jp)mov.u32u32 r4.z, r1.x
 						:1:1262:2229[200cc019x_00000009x] mov.u32u32 r6.y, r2.y
 						:1:1263:2230[200cc01ax_0000000ax] mov.u32u32 r6.z, r2.z
@@ -4806,7 +4771,8 @@ t7					opcode: CP_LOAD_STATE6_FRAG (34) (4 dwords)
 						:1:1294:2266[200cc024x_0000000bx] mov.u32u32 r9.x, r2.w
 						:2:1295:2267[42180006x_20010023x] (nop2) add.u r1.z, r8.w, 1
 						:1:1296:2270[200cc005x_00000024x] mov.u32u32 r1.y, r9.x
-						:0:1297:2271[01000000x_fffffb99x] jump #-1127
+						:0:1297:2271[01000000x_fffffb99x] jump #l170
+						:2:1298:2272[48500401x_00010001x] l1298:
 						:2:1298:2272[48500401x_00010001x] (jp)(sat)max.f r0.y, r0.y, r0.y
 						:2:1299:2273[40500402x_00020002x] (sat)max.f r0.z, r0.z, r0.z
 						:2:1300:2274[40100003x_400e1022x] add.f r0.w, c8.z, (neg)r3.z
@@ -4915,25 +4881,18 @@ t7					opcode: CP_LOAD_STATE6_FRAG (34) (4 dwords)
 						:0:1403:2411[00000000x_00000000x] nop
 						:0:1404:2412[00000000x_00000000x] nop
 						:0:1405:2413[00000000x_00000000x] nop
-						Register Stats:
-						- used (half): 0-147 (cnt=148, max=147)
-						- used (full): 0-73 (cnt=74, max=73)
-						- input (half): 38-41 (cnt=4, max=41)
-						- input (full): 19-20 (cnt=2, max=20)
-						- max const: 113
-
-						- output (half): 8-15 (cnt=8, max=15)  (estimated)
-						- output (full): 4-7 (cnt=4, max=7)  (estimated)
-						- shaderdb: 2414 instructions, 1114 nops, 1300 non-nops, (1406 instlen), 0 last-baryf, 0 half, 19 full
+						Stats:
+						- shaderdb: 2414 instr, 1114 nops, 1300 non-nops, 46 mov, 2 cov
+						- shaderdb: 0 last-baryf, 0 half, 19 full, 29 constlen
 						- shaderdb: 1120 cat0, 48 cat1, 551 cat2, 512 cat3, 183 cat4, 0 cat5, 0 cat6, 0 cat7
-						- shaderdb: 140 (ss), 0 (sy)
+						- shaderdb: 1326 sstall, 140 (ss), 0 (sy)
 0000000001120164:					0000: 70348003 16320000 01013000 00000000
 t4					write VFD_CONTROL_1 (a001)
 						VFD_CONTROL_1: { REGID4VTX = r63.x | REGID4INST = r63.x | REGID4PRIMID = r63.x | REGID4VIEWID = r63.x }
 						VFD_CONTROL_2: { REGID_HSPATCHID = r63.x | REGID_INVOCATIONID = r63.x }
-						VFD_CONTROL_3: { REGID_DSPATCHID = r63.x | REGID_TESSX = r63.x | REGID_TESSY = r63.x | 0xfc }
-						VFD_CONTROL_4: 0xfc
-						VFD_CONTROL_5: { REGID_GSHEADER = r63.x | 0xfc00 }
+						VFD_CONTROL_3: { UNK0 = r63.x | REGID_DSPATCHID = r63.x | REGID_TESSX = r63.x | REGID_TESSY = r63.x }
+						VFD_CONTROL_4: { UNK0 = r63.x }
+						VFD_CONTROL_5: { REGID_GSHEADER = r63.x | UNK8 = r63.x }
 						VFD_CONTROL_6: { 0 }
 0000000001120174:					0000: 40a00186 fcfcfcfc 0000fcfc fcfcfcfc 000000fc 0000fcfc 00000000
 t4					write RB_DEPTH_PLANE_CNTL (8870)
@@ -5038,13 +4997,13 @@ t4					write SP_FS_OUTPUT_CNTL1 (a98d)
 0000000001116020:				0020: 40a0d001 0000000f 48a00001 00000101
 t4					write VFD_FETCH[0].BASE (a010)
 						VFD_FETCH[0].BASE: 0x1016000
-						VFD_FETCH[0].BASE+0x1: 0
+						VFD_FETCH[0].BASE_HI: 0
 						VFD_FETCH[0].SIZE: 1048576
 						VFD_FETCH[0].STRIDE: 12
 0000000001116000:					0000: 40a01004 01016000 00000000 00100000 0000000c
 t4					write VFD_DECODE[0].INSTR (a090)
 						VFD_DECODE[0].INSTR: { IDX = 0 | OFFSET = 0 | FORMAT = FMT6_32_32_32_FLOAT | SWAP = WZYX | UNK30 | FLOAT }
-						VFD_DECODE[0].STEP_RATE: 0x1
+						VFD_DECODE[0].STEP_RATE: 1
 0000000001116014:					0000: 48a09002 c7400000 00000001
 t4					write VFD_DEST_CNTL[0].INSTR (a0d0)
 						VFD_DEST_CNTL[0].INSTR: { WRITEMASK = 0xf | REGID = r0.x }
@@ -5083,9 +5042,9 @@ t7					opcode: CP_LOAD_STATE6 (36) (4 dwords)
 						{ EXT_SRC_ADDR = 0x11160a0 }
 						{ EXT_SRC_ADDR_HI = 0 }
 00000000011160a0:					0000: 70b68003 003a0000 011160a0 00000000
-t4					write SP_IBO_LO (ab1a)
-						SP_IBO_LO: 0x11160a0		base=1116000, offset=160, size=388
-						SP_IBO_HI: 0		base=1116000, offset=160, size=388
+t4					write SP_IBO (ab1a)
+						SP_IBO: 0x11160a0		base=1116000, offset=160, size=388
+						SP_IBO_HI: 0
 00000000011160b0:					0000: 48ab1a02 011160a0 00000000
 t4					write SP_IBO_COUNT (ab20)
 						SP_IBO_COUNT: 0
@@ -5303,25 +5262,24 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
  +	00000101			VFD_CONTROL_0: { FETCH_CNT = 1 | DECODE_CNT = 1 }
  +	fcfcfcfc			VFD_CONTROL_1: { REGID4VTX = r63.x | REGID4INST = r63.x | REGID4PRIMID = r63.x | REGID4VIEWID = r63.x }
  +	0000fcfc			VFD_CONTROL_2: { REGID_HSPATCHID = r63.x | REGID_INVOCATIONID = r63.x }
- +	fcfcfcfc			VFD_CONTROL_3: { REGID_DSPATCHID = r63.x | REGID_TESSX = r63.x | REGID_TESSY = r63.x | 0xfc }
- +	000000fc			VFD_CONTROL_4: 0xfc
- +	0000fcfc			VFD_CONTROL_5: { REGID_GSHEADER = r63.x | 0xfc00 }
+ +	fcfcfcfc			VFD_CONTROL_3: { UNK0 = r63.x | REGID_DSPATCHID = r63.x | REGID_TESSX = r63.x | REGID_TESSY = r63.x }
+ +	000000fc			VFD_CONTROL_4: { UNK0 = r63.x }
+ +	0000fcfc			VFD_CONTROL_5: { REGID_GSHEADER = r63.x | UNK8 = r63.x }
  +	00000000			VFD_CONTROL_6: { 0 }
  +	00000000			VFD_INDEX_OFFSET: 0
  +	00000000			VFD_INSTANCE_START_OFFSET: 0
  +	01016000			VFD_FETCH[0].BASE: 0x1016000
- +	00000000			VFD_FETCH[0].BASE+0x1: 0
+ +	00000000			VFD_FETCH[0].BASE_HI: 0
  +	00100000			VFD_FETCH[0].SIZE: 1048576
  +	0000000c			VFD_FETCH[0].STRIDE: 12
  +	c7400000			VFD_DECODE[0].INSTR: { IDX = 0 | OFFSET = 0 | FORMAT = FMT6_32_32_32_FLOAT | SWAP = WZYX | UNK30 | FLOAT }
- +	00000001			VFD_DECODE[0].STEP_RATE: 0x1
+ +	00000001			VFD_DECODE[0].STEP_RATE: 1
  +	0000000f			VFD_DEST_CNTL[0].INSTR: { WRITEMASK = 0xf | REGID = r0.x }
- +	80100080			SP_VS_CTRL_REG0: { HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 1 | BRANCHSTACK = 0 | THREADSIZE = FOUR_QUADS | MERGEDREGS }
- +	00000001			SP_VS_PRIMITIVE_CNTL: { OUT = 1 }
+ +	80100080			SP_VS_CTRL_REG0: { MERGEDREGS | THREADMODE = MULTI | HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 1 | BRANCHSTACK = 0 | 0x80000000 }
+ +	00000001			SP_VS_PRIMITIVE_CNTL: { OUT = 1 | FLAGS_REGID = r0.x }
  +	00000f00			SP_VS_OUT[0].REG: { A_REGID = r0.x | A_COMPMASK = 0xf | B_REGID = r0.x | B_COMPMASK = 0 }
  +	00000000			SP_VS_VPC_DST[0].REG: { OUTLOC0 = 0 | OUTLOC1 = 0 | OUTLOC2 = 0 | OUTLOC3 = 0 }
-!+	01012000			SP_VS_OBJ_START_LO: 0x1012000		base=1012000, offset=0, size=128
- +	00000000			SP_VS_OBJ_START_HI: 0		base=1012000, offset=0, size=128
+!+	01012000			SP_VS_OBJ_START: 0x1012000		base=1012000, offset=0, size=128
 0000000001012000:				0000: 00000000 03000000 00000000 00000000 00000000 00000000 00000000 00000000
 *
 				:0:0000:0000[03000000x_00000000x] end
@@ -5329,18 +5287,12 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 				:0:0002:0002[00000000x_00000000x] nop
 				:0:0003:0003[00000000x_00000000x] nop
 				:0:0004:0004[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): (cnt=0, max=0)
-				- input (half): (cnt=0, max=0)
-				- input (full): (cnt=0, max=0)
-				- max const: 0
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): (cnt=0, max=0)  (estimated)
-				- shaderdb: 5 instructions, 4 nops, 1 non-nops, (5 instlen), 0 last-baryf, 0 half, 0 full
+				Stats:
+				- shaderdb: 5 instr, 4 nops, 1 non-nops, 0 mov, 0 cov
+				- shaderdb: 0 last-baryf, 0 half, 0 full, 0 constlen
 				- shaderdb: 5 cat0, 0 cat1, 0 cat2, 0 cat3, 0 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 0 (ss), 0 (sy)
+				- shaderdb: 0 sstall, 0 (ss), 0 (sy)
+ +	00000000			SP_VS_OBJ_START_HI: 0
  +	00000100			SP_VS_CONFIG: { ENABLED | NTEX = 0 | NSAMP = 0 | NIBO = 0 }
  +	00000001			SP_VS_INSTRLEN: 1
  +	00000000			SP_HS_WAVE_INPUT_SIZE: 0
@@ -5349,10 +5301,9 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
  +	00000000			SP_DS_CONFIG: { NTEX = 0 | NSAMP = 0 | NIBO = 0 }
  +	00000000			SP_GS_PRIM_SIZE: 0
  +	00000000			SP_GS_CONFIG: { NTEX = 0 | NSAMP = 0 | NIBO = 0 }
-!+	81508980			SP_FS_CTRL_REG0: { HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 19 | BRANCHSTACK = 2 | THREADSIZE = FOUR_QUADS | VARYING | MERGEDREGS | 0x1000000 }
+!+	81508980			SP_FS_CTRL_REG0: { THREADSIZE = THREAD128 | VARYING | UNK24 | MERGEDREGS | THREADMODE = MULTI | HALFREGFOOTPRINT = 0 | FULLREGFOOTPRINT = 19 | BRANCHSTACK = 2 }
  +	00000000			SP_FS_OBJ_FIRST_EXEC_OFFSET: 0
-!+	01013000			SP_FS_OBJ_START_LO: 0x1013000		base=1013000, offset=0, size=11264
- +	00000000			SP_FS_OBJ_START_HI: 0		base=1013000, offset=0, size=11264
+!+	01013000			SP_FS_OBJ_START: 0x1013000		base=1013000, offset=0, size=11264
 0000000001013000:				0000: 40400000 204cc000 00000000 204cc006 3e99999a 204cc004 20080014 42700008
 0000000001013020:				0020: 10331003 6380000c 00000006 200cc00d 00041003 40700004 00000000 20244014
 0000000001013040:				0040: 1036000c 4070000e 0000000d 200cc005 1034000c 4070000f 10251024 63820004
@@ -5362,7 +5313,7 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 00000000010130c0:				00c0: 10261023 6386800d 20080013 42700010 10261023 6387000e 40141066 4010001b
 00000000010130e0:				00e0: 00141025 40700016 00000014 80100014 20040008 46f00008 00000004 80900000
 				:1:0000:0000[204cc000x_40400000x] mov.u32u32 r0.x, 0x40400000
-				:1:0001:0001[204cc006x_00000000x] mov.u32u32 r1.z, 0x00000000
+				:1:0001:0001[204cc006x_00000000x] mov.u32u32 r1.z, 0
 				:1:0002:0002[204cc004x_3e99999ax] mov.u32u32 r1.x, 0x3e99999a
 				:2:0003:0003[42700008x_20080014x] sub.s r2.x, r5.x, 8
 				:3:0004:0004[6380000cx_10331003x] mad.f32 r3.x, c0.w, r0.x, c12.w
@@ -5531,16 +5482,17 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 				:3:0167:0244[63869016x_40160008x] (ss)mad.f32 r5.z, r2.x, (neg)r3.y, r5.z
 				:2:0168:0245[4070080dx_000d0010x] (nop1) mul.f r3.y, r4.x, r3.y
 				:3:0169:0247[6389000dx_000d0008x] mad.f32 r3.y, r2.x, r4.z, r3.y
+				:1:0170:0248[280cc008x_00000006x] l170:
 				:1:0170:0248[280cc008x_00000006x] (jp)mov.u32u32 r2.x, r1.z
 				:0:0171:0249[00000200x_00000000x] (rpt2)nop
 				:2:0172:0252[42bb08f8x_20820008x] (nop3) cmps.s.ge p0.x, r2.x, 130
 				:0:0173:0256[00000200x_00000000x] (rpt2)nop
-				:0:0174:0259[00800000x_00000464x] br p0.x, #1124
+				:0:0174:0259[00800000x_00000464x] br p0.x, #l1298
 				:1:0175:0260[280cc008x_00000003x] (jp)mov.u32u32 r2.x, r0.w
 				:0:0176:0261[00000200x_00000000x] (rpt2)nop
 				:2:0177:0264[40b808f8x_0008106ex] (nop3) cmps.f.lt p0.x, c27.z, r2.x
 				:0:0178:0268[00000200x_00000000x] (rpt2)nop
-				:0:0179:0271[00800000x_0000045fx] br p0.x, #1119
+				:0:0179:0271[00800000x_0000045fx] br p0.x, #l1298
 				:1:0180:0272[280cc012x_00000004x] (jp)mov.u32u32 r4.z, r1.x
 				:1:0181:0273[200cc018x_00000004x] mov.u32u32 r6.x, r1.x
 				:1:0182:0274[200cc019x_00000004x] mov.u32u32 r6.y, r1.x
@@ -5892,7 +5844,7 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 				:2:0528:0937[40580023x_10700023x] (nop2) max.f r8.w, r8.w, c28.x
 				:2:0529:0940[40700026x_103e0025x] mul.f r9.z, r9.y, c15.z
 				:2:0530:0941[40300023x_10290023x] min.f r8.w, r8.w, c10.y
-				:0:0531:0942[00900000x_000002cdx] br !p0.x, #717
+				:0:0531:0942[00900000x_000002cdx] br !p0.x, #l1248
 				:2:0532:0943[48100028x_10550019x] (jp)add.f r10.x, r6.y, c21.y
 				:2:0533:0944[40700029x_10270019x] mul.f r10.y, r6.y, c9.w
 				:2:0534:0945[40100019x_10590019x] add.f r6.y, r6.y, c22.y
@@ -6608,8 +6560,9 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 				:2:1244:2198[40700808x_0010001ax] (nop1) mul.f r2.x, r6.z, r4.x
 				:2:1245:2200[40700009x_00180029x] mul.f r2.y, r10.y, r6.x
 				:2:1246:2201[4070000ax_0012001dx] mul.f r2.z, r7.y, r4.z
-				:0:1247:2202[01000000x_0000000ex] jump #14
-				:1:1248:2203[284cc007x_00000000x] (jp)mov.u32u32 r1.w, 0x00000000
+				:0:1247:2202[01000000x_0000000ex] jump #l1261
+				:1:1248:2203[284cc007x_00000000x] l1248:
+				:1:1248:2203[284cc007x_00000000x] (jp)mov.u32u32 r1.w, 0
 				:0:1249:2204[00000200x_00000000x] (rpt2)nop
 				:1:1250:2207[200cc010x_00000007x] mov.u32u32 r4.x, r1.w
 				:0:1251:2208[00000200x_00000000x] (rpt2)nop
@@ -6622,6 +6575,7 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 				:1:1258:2223[200cc010x_00000009x] mov.u32u32 r4.x, r2.y
 				:0:1259:2224[00000200x_00000000x] (rpt2)nop
 				:1:1260:2227[200cc008x_00000010x] mov.u32u32 r2.x, r4.x
+				:1:1261:2228[280cc012x_00000004x] l1261:
 				:1:1261:2228[280cc012x_00000004x] (jp)mov.u32u32 r4.z, r1.x
 				:1:1262:2229[200cc019x_00000009x] mov.u32u32 r6.y, r2.y
 				:1:1263:2230[200cc01ax_0000000ax] mov.u32u32 r6.z, r2.z
@@ -6658,7 +6612,8 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 				:1:1294:2266[200cc024x_0000000bx] mov.u32u32 r9.x, r2.w
 				:2:1295:2267[42180006x_20010023x] (nop2) add.u r1.z, r8.w, 1
 				:1:1296:2270[200cc005x_00000024x] mov.u32u32 r1.y, r9.x
-				:0:1297:2271[01000000x_fffffb99x] jump #-1127
+				:0:1297:2271[01000000x_fffffb99x] jump #l170
+				:2:1298:2272[48500401x_00010001x] l1298:
 				:2:1298:2272[48500401x_00010001x] (jp)(sat)max.f r0.y, r0.y, r0.y
 				:2:1299:2273[40500402x_00020002x] (sat)max.f r0.z, r0.z, r0.z
 				:2:1300:2274[40100003x_400e1022x] add.f r0.w, c8.z, (neg)r3.z
@@ -6767,18 +6722,12 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 				:0:1403:2411[00000000x_00000000x] nop
 				:0:1404:2412[00000000x_00000000x] nop
 				:0:1405:2413[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): 0-147 (cnt=148, max=147)
-				- used (full): 0-73 (cnt=74, max=73)
-				- input (half): 38-41 (cnt=4, max=41)
-				- input (full): 19-20 (cnt=2, max=20)
-				- max const: 113
-
-				- output (half): 8-15 (cnt=8, max=15)  (estimated)
-				- output (full): 4-7 (cnt=4, max=7)  (estimated)
-				- shaderdb: 2414 instructions, 1114 nops, 1300 non-nops, (1406 instlen), 0 last-baryf, 0 half, 19 full
+				Stats:
+				- shaderdb: 2414 instr, 1114 nops, 1300 non-nops, 46 mov, 2 cov
+				- shaderdb: 0 last-baryf, 0 half, 19 full, 29 constlen
 				- shaderdb: 1120 cat0, 48 cat1, 551 cat2, 512 cat3, 183 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 140 (ss), 0 (sy)
+				- shaderdb: 1326 sstall, 140 (ss), 0 (sy)
+ +	00000000			SP_FS_OBJ_START_HI: 0
 !+	00000100			SP_BLEND_CNTL: { UNK8 }
  +	fcfcfc00			SP_FS_OUTPUT_CNTL0: { DEPTH_REGID = r63.x | SAMPMASK_REGID = r63.x | STENCILREF_REGID = r63.x }
 !+	00000001			SP_FS_OUTPUT_CNTL1: { MRT = 1 }
@@ -6790,24 +6739,24 @@ t7			opcode: CP_DRAW_INDX_OFFSET (38) (4 dwords)
 !+	00000004			SP_FS_OUTPUT[0x5].REG: { REGID = r1.x }
 !+	00000004			SP_FS_OUTPUT[0x6].REG: { REGID = r1.x }
 !+	00000004			SP_FS_OUTPUT[0x7].REG: { REGID = r1.x }
- +	00007fc0			SP_FS_PREFETCH_CNTL: { COUNT = 0 | UNK4 = r63.x | 0x7000 }
+ +	00007fc0			SP_FS_PREFETCH_CNTL: { COUNT = 0 | UNK4 = r63.x | UNK12 = 0x7 }
  +	00000000			SP_UNKNOWN_A9A8: 0
- +	00000005			SP_MODE_CONTROL: { CONSTANT_DEMOTION_ENABLE | 0x4 }
+ +	00000005			SP_MODE_CONTROL: { CONSTANT_DEMOTION_ENABLE | UNK2 }
  +	00000100			SP_FS_CONFIG: { ENABLED | NTEX = 0 | NSAMP = 0 | NIBO = 0 }
 !+	00000058			SP_FS_INSTRLEN: 88
-!+	011160a0			SP_IBO_LO: 0x11160a0		base=1116000, offset=160, size=388
- +	00000000			SP_IBO_HI: 0		base=1116000, offset=160, size=388
+!+	011160a0			SP_IBO: 0x11160a0		base=1116000, offset=160, size=388
+ +	00000000			SP_IBO_HI: 0
  +	00000000			SP_IBO_COUNT: 0
  +	00000100			HLSQ_VS_CNTL: { CONSTLEN = 0 | ENABLED }
  +	00000000			HLSQ_HS_CNTL: { CONSTLEN = 0 }
  +	00000000			HLSQ_DS_CNTL: { CONSTLEN = 0 }
  +	00000000			HLSQ_GS_CNTL: { CONSTLEN = 0 }
- +	00000001			HLSQ_UNKNOWN_B980: 0x1
+ +	00000001			HLSQ_FS_CNTL_0: { THREADSIZE = THREAD128 }
  +	00000007			HLSQ_CONTROL_1_REG: 0x7
  +	fcfcfcfc			HLSQ_CONTROL_2_REG: { FACEREGID = r63.x | SAMPLEID = r63.x | SAMPLEMASK = r63.x | SIZE = r63.x }
  +	fcfcfcfc			HLSQ_CONTROL_3_REG: { IJ_PERSP_PIXEL = r63.x | IJ_LINEAR_PIXEL = r63.x | IJ_PERSP_CENTROID = r63.x | IJ_LINEAR_CENTROID = r63.x }
 !+	1513fcfc			HLSQ_CONTROL_4_REG: { IJ_PERSP_SAMPLE = r63.x | IJ_LINEAR_SAMPLE = r63.x | XYCOORDREGID = r4.w | ZWCOORDREGID = r5.y }
- +	000000fc			HLSQ_CONTROL_5_REG: 0xfc
+ +	000000fc			HLSQ_CONTROL_5_REG: { UNK0 = r63.x }
  +	000000ff			HLSQ_INVALIDATE_CMD: { VS_STATE | HS_STATE | DS_STATE | GS_STATE | FS_STATE | CS_STATE | CS_IBO | GFX_IBO | CS_BINDLESS = 0 | GFX_BINDLESS = 0 }
  +	00000108			HLSQ_FS_CNTL: { CONSTLEN = 32 | ENABLED }
 0000000001d8f130:			0000: 70388003 00000186 00000001 00000004
@@ -6875,7 +6824,7 @@ t4			write RB_BLIT_INFO (88e3)
 t4			write RB_BLIT_DST_INFO (88d7)
 				RB_BLIT_DST_INFO: { TILE_MODE = TILE6_LINEAR | SAMPLES = MSAA_ONE | COLOR_SWAP = WXYZ | COLOR_FORMAT = FMT6_8_8_8_X8_UNORM }
 				RB_BLIT_DST: 0x1125000
-				RB_BLIT_DST+0x1: 0
+				RB_BLIT_DST_HI: 0
 				RB_BLIT_DST_PITCH: 8704
 				RB_BLIT_DST_ARRAY_PITCH: 12533760
 0000000001116144:			0000: 4888d785 000018a0 01125000 00000000 00000088 0002fd00
@@ -6903,7 +6852,7 @@ t7			opcode: CP_EVENT_WRITE (46) (2 dwords)
  +	00000000			RB_BLIT_BASE_GMEM: 0
 !+	000018a0			RB_BLIT_DST_INFO: { TILE_MODE = TILE6_LINEAR | SAMPLES = MSAA_ONE | COLOR_SWAP = WXYZ | COLOR_FORMAT = FMT6_8_8_8_X8_UNORM }
 !+	01125000			RB_BLIT_DST: 0x1125000
- +	00000000			RB_BLIT_DST+0x1: 0
+ +	00000000			RB_BLIT_DST_HI: 0
 !+	00000088			RB_BLIT_DST_PITCH: 8704
 !+	0002fd00			RB_BLIT_DST_ARRAY_PITCH: 12533760
 !+	00000000			RB_BLIT_INFO: { CLEAR_MASK = 0 }

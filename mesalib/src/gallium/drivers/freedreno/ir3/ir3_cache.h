@@ -37,7 +37,7 @@
 
 /* key into program state cache */
 struct ir3_cache_key {
-	struct ir3_shader *vs, *hs, *ds, *gs, *fs;  // 5 pointers
+	struct ir3_shader_state *vs, *hs, *ds, *gs, *fs;  // 5 pointers
 	struct ir3_shader_key key;             // 7 dwords
 };
 

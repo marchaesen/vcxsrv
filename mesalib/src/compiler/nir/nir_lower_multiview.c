@@ -89,10 +89,13 @@ shader_writes_to_memory(nir_shader *shader)
          case nir_intrinsic_shared_atomic_comp_swap:
          case nir_intrinsic_image_deref_store:
          case nir_intrinsic_image_deref_atomic_add:
+         case nir_intrinsic_image_deref_atomic_fadd:
          case nir_intrinsic_image_deref_atomic_umin:
          case nir_intrinsic_image_deref_atomic_umax:
          case nir_intrinsic_image_deref_atomic_imin:
          case nir_intrinsic_image_deref_atomic_imax:
+         case nir_intrinsic_image_deref_atomic_fmin:
+         case nir_intrinsic_image_deref_atomic_fmax:
          case nir_intrinsic_image_deref_atomic_and:
          case nir_intrinsic_image_deref_atomic_or:
          case nir_intrinsic_image_deref_atomic_xor:
@@ -306,7 +309,7 @@ nir_lower_multiview(nir_shader *shader, uint32_t view_mask)
          switch (intrin->intrinsic) {
          case nir_intrinsic_load_view_index: {
             assert(intrin->dest.is_ssa);
-            nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(view_index));
+            nir_ssa_def_rewrite_uses(&intrin->dest.ssa, view_index);
             break;
          }
 

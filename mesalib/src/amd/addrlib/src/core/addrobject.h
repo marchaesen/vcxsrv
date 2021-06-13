@@ -62,7 +62,7 @@ public:
     Object(const Client* pClient);
     virtual ~Object();
 
-    VOID* operator new(size_t size, VOID* pMem);
+    VOID* operator new(size_t size, VOID* pMem) noexcept;
     VOID  operator delete(VOID* pObj);
     /// Microsoft compiler requires a matching delete implementation, which seems to be called when
     /// bad_alloc is thrown. But currently C++ exception isn't allowed so a dummy implementation is
@@ -92,4 +92,3 @@ private:
 
 } // Addr
 #endif
-

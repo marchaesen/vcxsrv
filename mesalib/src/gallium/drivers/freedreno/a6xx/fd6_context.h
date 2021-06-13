@@ -70,23 +70,7 @@ struct fd6_context {
 	struct u_upload_mgr *border_color_uploader;
 	struct pipe_resource *border_color_buf;
 
-	/* if *any* of bits are set in {v,f}saturate_{s,t,r} */
-	bool vsaturate, fsaturate;
-
-	/* bitmask of sampler which needs coords clamped for vertex
-	 * shader:
-	 */
-	uint16_t vsaturate_s, vsaturate_t, vsaturate_r;
-
-	/* bitmask of sampler which needs coords clamped for frag
-	 * shader:
-	 */
-	uint16_t fsaturate_s, fsaturate_t, fsaturate_r;
-
-	/* some state changes require a different shader variant.  Keep
-	 * track of this so we know when we need to re-emit shader state
-	 * due to variant change.  See fixup_shader_state()
-	 */
+	/* storage for ctx->last.key: */
 	struct ir3_shader_key last_key;
 
 	/* Is there current VS driver-param state set? */
@@ -94,11 +78,6 @@ struct fd6_context {
 
 	/* number of active samples-passed queries: */
 	int samples_passed_queries;
-
-	/* maps per-shader-stage state plus variant key to hw
-	 * program stateobj:
-	 */
-	struct ir3_cache *shader_cache;
 
 	/* cached stateobjs to avoid hashtable lookup when not dirty: */
 	const struct fd6_program_state *prog;

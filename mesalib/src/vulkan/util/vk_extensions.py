@@ -16,6 +16,17 @@ class Extension:
         self.ext_version = int(ext_version)
         self.enable = _bool_to_c_expr(enable)
 
+    def c_android_condition(self):
+        # if it's an EXT or vendor extension, it's allowed
+        if not self.name.startswith(ANDROID_EXTENSION_WHITELIST_PREFIXES):
+            return 'true'
+
+        allowed_version = ALLOWED_ANDROID_VERSION.get(self.name, None)
+        if allowed_version is None:
+            return 'false'
+
+        return 'ANDROID_API_LEVEL >= %d' % (allowed_version)
+
 class ApiVersion:
     def __init__(self, version, enable):
         self.version = version
@@ -63,6 +74,43 @@ class VkVersion:
 
         return self.__int_ver() > other.__int_ver()
 
+# Sort the extension list the way we expect: KHR, then EXT, then vendors
+# alphabetically. For digits, read them as a whole number sort that.
+# eg.: VK_KHR_8bit_storage < VK_KHR_16bit_storage < VK_EXT_acquire_xlib_display
+def extension_order(ext):
+    order = []
+    for substring in re.split('(KHR|EXT|[0-9]+)', ext.name):
+        if substring == 'KHR':
+            order.append(1)
+        if substring == 'EXT':
+            order.append(2)
+        elif substring.isdigit():
+            order.append(int(substring))
+        else:
+            order.append(substring)
+    return order
+
+def get_all_exts_from_xml(xml):
+    """ Get a list of all Vulkan extensions. """
+
+    xml = et.parse(xml)
+
+    extensions = []
+    for ext_elem in xml.findall('.extensions/extension'):
+        supported = ext_elem.attrib['supported'] == 'vulkan'
+        name = ext_elem.attrib['name']
+        if not supported and name != 'VK_ANDROID_native_buffer':
+            continue
+        version = None
+        for enum_elem in ext_elem.findall('.require/enum'):
+            if enum_elem.attrib['name'].endswith('_SPEC_VERSION'):
+                assert version is None
+                version = int(enum_elem.attrib['value'])
+        ext = Extension(name, version, True)
+        extensions.append(Extension(name, version, True))
+
+    return sorted(extensions, key=extension_order)
+
 def init_exts_from_xml(xml, extensions, platform_defines):
     """ Walk the Vulkan XML and fill out extra extension information. """
 
@@ -87,7 +135,7 @@ def init_exts_from_xml(xml, extensions, platform_defines):
 
 # Mapping between extension name and the android version in which the extension
 # was whitelisted in Android CTS.
-allowed_android_version = {
+ALLOWED_ANDROID_VERSION = {
     # Allowed Instance KHR Extensions
     "VK_KHR_surface": 26,
     "VK_KHR_display": 26,
@@ -158,19 +206,9 @@ allowed_android_version = {
 
 # Extensions with these prefixes are checked in Android CTS, and thus must be
 # whitelisted per the preceding dict.
-android_extension_whitelist_prefixes = (
+ANDROID_EXTENSION_WHITELIST_PREFIXES = (
     "VK_KHX",
     "VK_KHR",
     "VK_GOOGLE",
     "VK_ANDROID"
 )
-
-def get_extension_condition(ext_name, condition):
-    """ If |ext_name| is an extension that Android CTS cares about, prepend
-        a condition to ensure that the extension is only enabled for Android
-        versions in which the extension is whitelisted in CTS. """
-    if not ext_name.startswith(android_extension_whitelist_prefixes):
-        return condition
-    allowed_version = allowed_android_version.get(ext_name, 9999)
-    return "(!ANDROID || ANDROID_API_LEVEL >= %d) && (%s)" % (allowed_version,
-                                                              condition)

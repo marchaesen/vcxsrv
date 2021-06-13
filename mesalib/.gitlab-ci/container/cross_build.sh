@@ -21,6 +21,7 @@ apt-get install -y --no-remove \
         libffi-dev:$arch \
         libstdc++6:$arch \
         libtinfo-dev:$arch \
+        libvulkan-dev:$arch \
         libx11-dev:$arch \
         libx11-xcb-dev:$arch \
         libxcb-dri2-0-dev:$arch \
@@ -46,7 +47,7 @@ fi
 apt-get install -y --no-remove -t buster-backports \
         $LLVM:$arch
 
-. .gitlab-ci/create-cross-file.sh $arch
+. .gitlab-ci/container/create-cross-file.sh $arch
 
 
 . .gitlab-ci/container/container_pre_build.sh
@@ -54,7 +55,7 @@ apt-get install -y --no-remove -t buster-backports \
 
 # dependencies where we want a specific version
 EXTRA_MESON_ARGS="--cross-file=/cross_file-${arch}.txt -D libdir=lib/$(dpkg-architecture -A $arch -qDEB_TARGET_MULTIARCH)"
-. .gitlab-ci/build-libdrm.sh
+. .gitlab-ci/container/build-libdrm.sh
 
 apt-get purge -y \
         $STABLE_EPHEMERAL

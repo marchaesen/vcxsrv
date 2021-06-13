@@ -47,7 +47,7 @@ struct compute_memory_item
 	int64_t start_in_dw;
 	int64_t size_in_dw;	/**< Size of the chunk in dwords */
 
-	/** Intermediate buffer asociated with an item. It is used mainly for mapping
+	/** Intermediate buffer associated with an item. It is used mainly for mapping
 	 * items against it. They are listed in the pool's unallocated list */
 	struct r600_resource *real_buffer;
 

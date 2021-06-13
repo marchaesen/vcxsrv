@@ -255,6 +255,7 @@ driCreateConfigs(mesa_format format,
       shifts = format_table[5].shifts;
       break;
    case MESA_FORMAT_R8G8B8X8_UNORM:
+   case MESA_FORMAT_R8G8B8X8_SRGB:
       masks = format_table[6].masks;
       shifts = format_table[6].shifts;
       break;

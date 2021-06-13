@@ -197,7 +197,7 @@ tu_CreateDisplayPlaneSurfaceKHR(
    if (allocator)
       alloc = allocator;
    else
-      alloc = &instance->alloc;
+      alloc = &instance->vk.alloc;
 
    return wsi_create_display_surface(_instance, alloc,
                                      create_info, surface);

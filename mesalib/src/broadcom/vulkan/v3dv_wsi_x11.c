@@ -74,7 +74,7 @@ VkResult v3dv_CreateXcbSurfaceKHR(
    if (pAllocator)
       alloc = pAllocator;
    else
-      alloc = &instance->alloc;
+      alloc = &instance->vk.alloc;
 
    return wsi_create_xcb_surface(alloc, pCreateInfo, pSurface);
 }
@@ -93,7 +93,7 @@ VkResult v3dv_CreateXlibSurfaceKHR(
    if (pAllocator)
       alloc = pAllocator;
    else
-      alloc = &instance->alloc;
+      alloc = &instance->vk.alloc;
 
    return wsi_create_xlib_surface(alloc, pCreateInfo, pSurface);
 }

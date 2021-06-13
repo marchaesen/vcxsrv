@@ -32,7 +32,7 @@
 
 namespace r600 {
 
-/* ALU op2 instructions 17:7 top three bits alwayss zero. */
+/* ALU op2 instructions 17:7 top three bits always zero. */
 enum EAluOp {
    op2_add = 0,
    op2_mul = 1,

@@ -1,0 +1,115 @@
+/*
+ * Copyright © 2020 Mike Blumenkrantz
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ * 
+ * Authors:
+ *    Mike Blumenkrantz <michael.blumenkrantz@gmail.com>
+ */
+
+#include "util/u_dynarray.h"
+#include "pipe/p_state.h"
+#include <vulkan/vulkan.h>
+#include "util/u_rect.h"
+
+struct zink_context;
+struct zink_resource;
+
+struct zink_framebuffer_clear_data {
+   union {
+      struct {
+         union pipe_color_union color;
+         bool srgb;
+      } color;
+      struct {
+         float depth;
+         unsigned stencil;
+         uint8_t bits : 2; // PIPE_CLEAR_DEPTH, PIPE_CLEAR_STENCIL
+      } zs;
+   };
+   struct pipe_scissor_state scissor;
+   bool has_scissor;
+   bool conditional;
+};
+
+struct zink_framebuffer_clear {
+   struct util_dynarray clears;
+};
+
+void
+zink_clear(struct pipe_context *pctx,
+           unsigned buffers,
+           const struct pipe_scissor_state *scissor_state,
+           const union pipe_color_union *pcolor,
+           double depth, unsigned stencil);
+void
+zink_clear_texture(struct pipe_context *ctx,
+                   struct pipe_resource *p_res,
+                   unsigned level,
+                   const struct pipe_box *box,
+                   const void *data);
+
+bool
+zink_fb_clear_needs_explicit(struct zink_framebuffer_clear *fb_clear);
+
+bool
+zink_fb_clear_first_needs_explicit(struct zink_framebuffer_clear *fb_clear);
+
+void
+zink_clear_framebuffer(struct zink_context *ctx, unsigned clear_buffers);
+
+static inline struct zink_framebuffer_clear_data *
+zink_fb_clear_element(struct zink_framebuffer_clear *fb_clear, int idx)
+{
+   return util_dynarray_element(&fb_clear->clears, struct zink_framebuffer_clear_data, idx);
+}
+
+static inline unsigned
+zink_fb_clear_count(struct zink_framebuffer_clear *fb_clear)
+{
+   return fb_clear ? util_dynarray_num_elements(&fb_clear->clears, struct zink_framebuffer_clear_data) : 0;
+}
+
+void
+zink_fb_clear_reset(struct zink_context *ctx, unsigned idx);
+
+static inline bool
+zink_fb_clear_element_needs_explicit(struct zink_framebuffer_clear_data *clear)
+{
+   return clear->has_scissor || clear->conditional;
+}
+
+void
+zink_clear_apply_conditionals(struct zink_context *ctx);
+
+void
+zink_fb_clears_apply(struct zink_context *ctx, struct pipe_resource *pres);
+
+void
+zink_fb_clears_discard(struct zink_context *ctx, struct pipe_resource *pres);
+
+void
+zink_fb_clears_apply_or_discard(struct zink_context *ctx, struct pipe_resource *pres, struct u_rect region, bool discard_only);
+
+void
+zink_fb_clears_apply_region(struct zink_context *ctx, struct pipe_resource *pres, struct u_rect region);
+
+void
+zink_fb_clear_util_unpack_clear_color(struct zink_framebuffer_clear_data *clear, enum pipe_format format, union pipe_color_union *color);

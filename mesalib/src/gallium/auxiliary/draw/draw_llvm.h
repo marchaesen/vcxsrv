@@ -437,7 +437,7 @@ typedef boolean
                       unsigned vertex_id_offset,
                       unsigned start_instance,
                       const unsigned *fetch_elts,
-                      unsigned draw_id);
+                      unsigned draw_id, unsigned view_id);
 
 
 typedef int
@@ -447,13 +447,15 @@ typedef int
                     unsigned num_prims,
                     unsigned instance_id,
                     int *prim_ids,
-                    unsigned invocation_id);
+                    unsigned invocation_id,
+                    unsigned view_id);
 
 typedef int
 (*draw_tcs_jit_func)(struct draw_tcs_jit_context *context,
                      float inputs[32][NUM_TCS_INPUTS][TGSI_NUM_CHANNELS],
                      float outputs[32][PIPE_MAX_SHADER_INPUTS][TGSI_NUM_CHANNELS],
-                     uint32_t prim_id, uint32_t patch_vertices_in);
+                     uint32_t prim_id, uint32_t patch_vertices_in,
+                     unsigned view_id);
 
 typedef int
 (*draw_tes_jit_func)(struct draw_tes_jit_context *context,
@@ -461,7 +463,8 @@ typedef int
                      struct vertex_header *io,
                      uint32_t prim_id, uint32_t num_tess_coord,
                      float *tess_coord_x, float *tess_coord_y, float *tess_outer,
-                     float *tess_inner, uint32_t patch_vertices_in);
+                     float *tess_inner, uint32_t patch_vertices_in,
+                     unsigned view_id);
 
 
 struct draw_llvm_variant_key

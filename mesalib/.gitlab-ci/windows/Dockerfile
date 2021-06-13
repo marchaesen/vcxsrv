@@ -6,5 +6,8 @@ FROM mcr.microsoft.com/windows:1809
 SHELL ["powershell", "-ExecutionPolicy", "RemoteSigned", "-Command", "$ErrorActionPreference = 'Stop';"]
 ENV ErrorActionPreference='Stop'
 
+COPY mesa_deps_vs2019.ps1 C:\
+RUN C:\mesa_deps_vs2019.ps1
+
 COPY mesa_deps.ps1 C:\
 RUN C:\mesa_deps.ps1

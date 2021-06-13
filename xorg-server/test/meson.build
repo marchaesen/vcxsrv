@@ -122,6 +122,7 @@ if build_xorg
 # For now, requires xf86 ddx, could be adjusted to use another
     unit_sources = [
      '../mi/miinitext.c',
+     '../mi/miinitext.h',
      'fixes.c',
      'input.c',
      'list.c',

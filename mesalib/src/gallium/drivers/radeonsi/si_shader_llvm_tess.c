@@ -275,13 +275,13 @@ static LLVMValueRef buffer_load(struct si_shader_context *ctx, LLVMTypeRef type,
    LLVMTypeRef vec_type = LLVMVectorType(type, 4);
 
    if (swizzle == ~0) {
-      value = ac_build_buffer_load(&ctx->ac, buffer, 4, NULL, base, offset, 0, ac_glc,
+      value = ac_build_buffer_load(&ctx->ac, buffer, 4, NULL, base, offset, 0, type, ac_glc,
                                    can_speculate, false);
 
       return LLVMBuildBitCast(ctx->ac.builder, value, vec_type, "");
    }
 
-   value = ac_build_buffer_load(&ctx->ac, buffer, 4, NULL, base, offset, 0, ac_glc,
+   value = ac_build_buffer_load(&ctx->ac, buffer, 4, NULL, base, offset, 0, type, ac_glc,
                                 can_speculate, false);
 
    value = LLVMBuildBitCast(ctx->ac.builder, value, vec_type, "");
@@ -460,7 +460,7 @@ static LLVMValueRef si_nir_load_input_tes(struct ac_shader_abi *abi, LLVMTypeRef
       get_tcs_tes_buffer_address_from_generic_indices(ctx, vertex_index, param_index, semantic);
 
    /* TODO: This will generate rather ordinary llvm code, although it
-    * should be easy for the optimiser to fix up. In future we might want
+    * should be easy for the optimizer to fix up. In future we might want
     * to refactor buffer_load().
     */
    LLVMValueRef value[4];
@@ -593,7 +593,7 @@ static LLVMValueRef load_tess_level_default(struct si_shader_context *ctx, unsig
    int i, offset;
 
    slot = LLVMConstInt(ctx->ac.i32, SI_HS_CONST_DEFAULT_TESS_LEVELS, 0);
-   buf = ac_get_arg(&ctx->ac, ctx->rw_buffers);
+   buf = ac_get_arg(&ctx->ac, ctx->internal_bindings);
    buf = ac_build_load_to_sgpr(&ctx->ac, buf, slot);
    offset = sysval == SYSTEM_VALUE_TESS_LEVEL_INNER_DEFAULT ? 4 : 0;
 
@@ -922,6 +922,9 @@ static void si_llvm_emit_tcs_epilogue(struct ac_shader_abi *abi, unsigned max_ou
 /* Pass TCS inputs from LS to TCS on GFX9. */
 static void si_set_ls_return_value_for_tcs(struct si_shader_context *ctx)
 {
+   if (!ctx->shader->is_monolithic)
+      ac_build_endif(&ctx->ac, ctx->merged_wrap_if_label);
+
    LLVMValueRef ret = ctx->return_value;
 
    ret = si_insert_input_ptr(ctx, ret, ctx->other_const_and_shader_buffers, 0);
@@ -931,7 +934,7 @@ static void si_set_ls_return_value_for_tcs(struct si_shader_context *ctx)
    ret = si_insert_input_ret(ctx, ret, ctx->args.tcs_factor_offset, 4);
    ret = si_insert_input_ret(ctx, ret, ctx->args.scratch_offset, 5);
 
-   ret = si_insert_input_ptr(ctx, ret, ctx->rw_buffers, 8 + SI_SGPR_RW_BUFFERS);
+   ret = si_insert_input_ptr(ctx, ret, ctx->internal_bindings, 8 + SI_SGPR_INTERNAL_BINDINGS);
    ret = si_insert_input_ptr(ctx, ret, ctx->bindless_samplers_and_images,
                              8 + SI_SGPR_BINDLESS_SAMPLERS_AND_IMAGES);
 

@@ -495,40 +495,40 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_load_barycentric_model:
    case nir_intrinsic_load_gs_header_ir3:
    case nir_intrinsic_load_tcs_header_ir3:
-      shader->info.system_values_read |=
-         (1ull << nir_system_value_from_intrinsic(instr->intrinsic));
+      BITSET_SET(shader->info.system_values_read,
+                 nir_system_value_from_intrinsic(instr->intrinsic));
       break;
 
    case nir_intrinsic_load_barycentric_pixel:
       if (nir_intrinsic_interp_mode(instr) == INTERP_MODE_SMOOTH ||
           nir_intrinsic_interp_mode(instr) == INTERP_MODE_NONE) {
-         shader->info.system_values_read |=
-            BITFIELD64_BIT(SYSTEM_VALUE_BARYCENTRIC_PERSP_PIXEL);
+         BITSET_SET(shader->info.system_values_read,
+                    SYSTEM_VALUE_BARYCENTRIC_PERSP_PIXEL);
       } else if (nir_intrinsic_interp_mode(instr) == INTERP_MODE_NOPERSPECTIVE) {
-         shader->info.system_values_read |=
-            BITFIELD64_BIT(SYSTEM_VALUE_BARYCENTRIC_LINEAR_PIXEL);
+         BITSET_SET(shader->info.system_values_read,
+                    SYSTEM_VALUE_BARYCENTRIC_LINEAR_PIXEL);
       }
       break;
 
    case nir_intrinsic_load_barycentric_centroid:
       if (nir_intrinsic_interp_mode(instr) == INTERP_MODE_SMOOTH ||
           nir_intrinsic_interp_mode(instr) == INTERP_MODE_NONE) {
-         shader->info.system_values_read |=
-            BITFIELD64_BIT(SYSTEM_VALUE_BARYCENTRIC_PERSP_CENTROID);
+         BITSET_SET(shader->info.system_values_read,
+                    SYSTEM_VALUE_BARYCENTRIC_PERSP_CENTROID);
       } else if (nir_intrinsic_interp_mode(instr) == INTERP_MODE_NOPERSPECTIVE) {
-         shader->info.system_values_read |=
-            BITFIELD64_BIT(SYSTEM_VALUE_BARYCENTRIC_LINEAR_CENTROID);
+         BITSET_SET(shader->info.system_values_read,
+                    SYSTEM_VALUE_BARYCENTRIC_LINEAR_CENTROID);
       }
       break;
 
    case nir_intrinsic_load_barycentric_sample:
       if (nir_intrinsic_interp_mode(instr) == INTERP_MODE_SMOOTH ||
           nir_intrinsic_interp_mode(instr) == INTERP_MODE_NONE) {
-         shader->info.system_values_read |=
-            BITFIELD64_BIT(SYSTEM_VALUE_BARYCENTRIC_PERSP_SAMPLE);
+         BITSET_SET(shader->info.system_values_read,
+                    SYSTEM_VALUE_BARYCENTRIC_PERSP_SAMPLE);
       } else if (nir_intrinsic_interp_mode(instr) == INTERP_MODE_NOPERSPECTIVE) {
-         shader->info.system_values_read |=
-            BITFIELD64_BIT(SYSTEM_VALUE_BARYCENTRIC_LINEAR_SAMPLE);
+         BITSET_SET(shader->info.system_values_read,
+                    SYSTEM_VALUE_BARYCENTRIC_LINEAR_SAMPLE);
       }
       if (shader->info.stage == MESA_SHADER_FRAGMENT)
          shader->info.fs.uses_sample_qualifier = true;
@@ -568,6 +568,8 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_write_invocation_amd:
       if (shader->info.stage == MESA_SHADER_FRAGMENT)
          shader->info.fs.needs_all_helper_invocations = true;
+      if (shader->info.stage == MESA_SHADER_COMPUTE)
+         shader->info.cs.uses_wide_subgroup_intrinsics = true;
       break;
 
    case nir_intrinsic_end_primitive:
@@ -617,6 +619,8 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_bindless_image_atomic_umax:
    case nir_intrinsic_bindless_image_atomic_umin:
    case nir_intrinsic_bindless_image_atomic_xor:
+   case nir_intrinsic_bindless_image_atomic_fmin:
+   case nir_intrinsic_bindless_image_atomic_fmax:
    case nir_intrinsic_bindless_image_store:
    case nir_intrinsic_bindless_image_store_raw_intel:
    case nir_intrinsic_global_atomic_add:
@@ -646,6 +650,8 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_image_atomic_umax:
    case nir_intrinsic_image_atomic_umin:
    case nir_intrinsic_image_atomic_xor:
+   case nir_intrinsic_image_atomic_fmin:
+   case nir_intrinsic_image_atomic_fmax:
    case nir_intrinsic_image_deref_atomic_add:
    case nir_intrinsic_image_deref_atomic_and:
    case nir_intrinsic_image_deref_atomic_comp_swap:
@@ -659,6 +665,8 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_image_deref_atomic_umax:
    case nir_intrinsic_image_deref_atomic_umin:
    case nir_intrinsic_image_deref_atomic_xor:
+   case nir_intrinsic_image_deref_atomic_fmin:
+   case nir_intrinsic_image_deref_atomic_fmax:
    case nir_intrinsic_image_deref_store:
    case nir_intrinsic_image_deref_store_raw_intel:
    case nir_intrinsic_image_store:
@@ -708,6 +716,28 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_deref_atomic_exchange:
    case nir_intrinsic_deref_atomic_comp_swap:
       update_memory_written_for_deref(shader, nir_src_as_deref(instr->src[0]));
+      break;
+
+   case nir_intrinsic_control_barrier:
+      shader->info.uses_control_barrier = true;
+      break;
+
+   case nir_intrinsic_scoped_barrier:
+      shader->info.uses_control_barrier |=
+         nir_intrinsic_execution_scope(instr) != NIR_SCOPE_NONE;
+
+      shader->info.uses_memory_barrier |=
+         nir_intrinsic_memory_scope(instr) != NIR_SCOPE_NONE;
+      break;
+
+   case nir_intrinsic_memory_barrier:
+   case nir_intrinsic_group_memory_barrier:
+   case nir_intrinsic_memory_barrier_atomic_counter:
+   case nir_intrinsic_memory_barrier_buffer:
+   case nir_intrinsic_memory_barrier_image:
+   case nir_intrinsic_memory_barrier_shared:
+   case nir_intrinsic_memory_barrier_tcs_patch:
+      shader->info.uses_memory_barrier = true;
       break;
 
    default:
@@ -829,7 +859,7 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
    shader->info.patch_outputs_read = 0;
    shader->info.patch_inputs_read = 0;
    shader->info.patch_outputs_written = 0;
-   shader->info.system_values_read = 0;
+   BITSET_ZERO(shader->info.system_values_read);
    shader->info.inputs_read_indirectly = 0;
    shader->info.outputs_accessed_indirectly = 0;
    shader->info.patch_inputs_read_indirectly = 0;
@@ -862,8 +892,8 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
 
    if (shader->info.stage == MESA_SHADER_FRAGMENT &&
        (shader->info.fs.uses_sample_qualifier ||
-        (shader->info.system_values_read & BITFIELD64_BIT(SYSTEM_VALUE_SAMPLE_ID)) ||
-         shader->info.system_values_read & BITFIELD64_BIT(SYSTEM_VALUE_SAMPLE_POS))) {
+        (BITSET_TEST(shader->info.system_values_read, SYSTEM_VALUE_SAMPLE_ID) ||
+         BITSET_TEST(shader->info.system_values_read, SYSTEM_VALUE_SAMPLE_POS)))) {
       /* This shouldn't be cleared because if optimizations remove all
        * sample-qualified inputs and that pass is run again, the sample
        * shading must stay enabled.

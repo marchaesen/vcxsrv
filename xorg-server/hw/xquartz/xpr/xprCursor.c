@@ -380,7 +380,9 @@ QuartzInitCursor(ScreenPtr pScreen)
  */
 void
 QuartzSuspendXCursor(ScreenPtr pScreen)
-{}
+{
+    xp_show_cursor();
+}
 
 /*
  * QuartzResumeXCursor

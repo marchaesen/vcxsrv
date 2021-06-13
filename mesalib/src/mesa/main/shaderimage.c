@@ -495,7 +495,7 @@ _mesa_is_image_unit_valid(struct gl_context *ctx, struct gl_image_unit *u)
    if (!tex_format)
       return GL_FALSE;
 
-   switch (t->ImageFormatCompatibilityType) {
+   switch (t->Attrib.ImageFormatCompatibilityType) {
    case GL_IMAGE_FORMAT_COMPATIBILITY_BY_SIZE:
       if (_mesa_get_format_bytes(tex_format) !=
           _mesa_get_format_bytes(u->_ActualFormat))
@@ -588,7 +588,7 @@ bind_image_texture(struct gl_context *ctx, struct gl_texture_object *texObj,
 
    u = &ctx->ImageUnits[unit];
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
    ctx->NewDriverState |= ctx->DriverFlags.NewImageUnits;
 
    set_image_binding(u, texObj, level, layered, layer, access, format);
@@ -687,7 +687,7 @@ bind_image_textures(struct gl_context *ctx, GLuint first, GLuint count,
    int i;
 
    /* Assume that at least one binding will be changed */
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
    ctx->NewDriverState |= ctx->DriverFlags.NewImageUnits;
 
    /* Note that the error semantics for multi-bind commands differ from

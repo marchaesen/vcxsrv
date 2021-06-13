@@ -1,5 +1,6 @@
 import argparse
 import subprocess
+import json
 import os
 import re
 
@@ -7,12 +8,23 @@ if __name__== '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('input')
     parser.add_argument('output')
+    parser.add_argument('buildroot')
 
     args = parser.parse_known_args()
-    print (args[0].output)
+
+    # c_args might contain things that are essential for crosscompilation, but
+    # are not included in cc.cmd_array(), so we have to look them up ourselves
+    host_cargs = []
+    buildroot = args[0].buildroot
+    with open(os.path.join(buildroot, 'meson-info', 'intro-buildoptions.json')) as json_file:
+        bopts = json.load(json_file)
+        for opt in bopts:
+            if opt['name'] == 'c_args' and opt['section'] == 'compiler' and opt['machine'] == 'host':
+                host_cargs = opt['value']
+                break
 
     cpp = args[1]
-    ret = subprocess.run(cpp + [args[0].input], stdout=subprocess.PIPE)
+    ret = subprocess.run(cpp + host_cargs + [args[0].input], stdout=subprocess.PIPE, check=True)
 
     stdout = ret.stdout.decode('utf8')
 

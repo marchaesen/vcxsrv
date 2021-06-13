@@ -433,6 +433,7 @@ emit_blit(struct fd_ringbuffer *ring, const struct pipe_blit_info *info)
 
 bool
 fd5_blitter_blit(struct fd_context *ctx, const struct pipe_blit_info *info)
+	assert_dt
 {
 	struct fd_batch *batch;
 
@@ -441,6 +442,8 @@ fd5_blitter_blit(struct fd_context *ctx, const struct pipe_blit_info *info)
 	}
 
 	batch = fd_bc_alloc_batch(&ctx->screen->batch_cache, ctx, true);
+
+	fd_batch_update_queries(batch);
 
 	emit_setup(batch->draw);
 
@@ -461,6 +464,11 @@ fd5_blitter_blit(struct fd_context *ctx, const struct pipe_blit_info *info)
 
 	fd_batch_flush(batch);
 	fd_batch_reference(&batch, NULL);
+
+	/* Acc query state will have been dirtied by our fd_batch_update_queries, so
+	 * the ctx->batch may need to turn its queries back on.
+	 */
+	ctx->update_active_queries = true;
 
 	return true;
 }

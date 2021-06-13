@@ -34,8 +34,10 @@
 #include "util/list.h"
 #include "util/slab.h"
 #include "util/u_string.h"
+#include "util/u_threaded_context.h"
 #include "util/u_trace.h"
 
+#include "freedreno_autotune.h"
 #include "freedreno_screen.h"
 #include "freedreno_gmem.h"
 #include "freedreno_util.h"
@@ -87,6 +89,13 @@ struct fd_vertex_stateobj {
 	unsigned num_elements;
 };
 
+struct fd_stream_output_target {
+	struct pipe_stream_output_target base;
+	struct pipe_resource *offset_buf;
+	/* stride of the last stream out recorded to this target, for glDrawTransformFeedback(). */
+	uint32_t stride;
+};
+
 struct fd_streamout_stateobj {
 	struct pipe_stream_output_target *targets[PIPE_MAX_SO_BUFFERS];
 	/* Bitmask of stream that should be reset. */
@@ -102,6 +111,17 @@ struct fd_streamout_stateobj {
 	 * something more clever.
 	 */
 	unsigned offsets[PIPE_MAX_SO_BUFFERS];
+
+	/* Pre-a6xx, the maximum number of vertices that could be recorded to this
+	 * set of targets with the current vertex shader.  a6xx and newer, hardware
+	 * queries are used.
+	 */
+	unsigned max_tf_vtx;
+
+	/* Pre-a6xx, the number of verts written to the buffers since the last
+	 * Begin.  Used for overflow checking for SW queries.
+	 */
+	unsigned verts_written;
 };
 
 #define MAX_GLOBAL_BUFFERS 16
@@ -136,24 +156,24 @@ enum fd_dirty_3d_state {
 	FD_DIRTY_SCISSOR     = BIT(12),
 	FD_DIRTY_STREAMOUT   = BIT(13),
 	FD_DIRTY_UCP         = BIT(14),
-	FD_DIRTY_BLEND_DUAL  = BIT(15),
-
-	/* These are a bit redundent with fd_dirty_shader_state, and possibly
-	 * should be removed.  (But OTOH kinda convenient in some places)
-	 */
-	FD_DIRTY_PROG        = BIT(16),
-	FD_DIRTY_CONST       = BIT(17),
-	FD_DIRTY_TEX         = BIT(18),
-	FD_DIRTY_IMAGE       = BIT(19),
-	FD_DIRTY_SSBO        = BIT(20),
+	FD_DIRTY_PROG        = BIT(15),
+	FD_DIRTY_CONST       = BIT(16),
+	FD_DIRTY_TEX         = BIT(17),
+	FD_DIRTY_IMAGE       = BIT(18),
+	FD_DIRTY_SSBO        = BIT(19),
 
 	/* only used by a2xx.. possibly can be removed.. */
-	FD_DIRTY_TEXSTATE    = BIT(21),
+	FD_DIRTY_TEXSTATE    = BIT(20),
 
 	/* fine grained state changes, for cases where state is not orthogonal
 	 * from hw perspective:
 	 */
 	FD_DIRTY_RASTERIZER_DISCARD = BIT(24),
+	FD_DIRTY_BLEND_DUAL  = BIT(25),
+#define NUM_DIRTY_BITS 26
+
+	/* additional flag for state requires updated resource tracking: */
+	FD_DIRTY_RESOURCE    = BIT(31),
 };
 
 /* per shader-stage dirty state: */
@@ -163,32 +183,19 @@ enum fd_dirty_shader_state {
 	FD_DIRTY_SHADER_TEX   = BIT(2),
 	FD_DIRTY_SHADER_SSBO  = BIT(3),
 	FD_DIRTY_SHADER_IMAGE = BIT(4),
-};
-
-/* Bitmask of stages in rendering that a particular query is active.
- * Queries will be automatically started/stopped (generating additional
- * fd_hw_sample_period's) on entrance/exit from stages that are
- * applicable to the query.
- *
- * NOTE: set the stage to NULL at end of IB to ensure no query is still
- * active.  Things aren't going to work out the way you want if a query
- * is active across IB's (or between tile IB and draw IB)
- */
-enum fd_render_stage {
-	FD_STAGE_NULL     = 0x00,
-	FD_STAGE_DRAW     = 0x01,
-	FD_STAGE_CLEAR    = 0x02,
-	/* used for driver internal draws (ie. util_blitter_blit()): */
-	FD_STAGE_BLIT     = 0x04,
-	FD_STAGE_ALL      = 0xff,
+#define NUM_DIRTY_SHADER_BITS 5
 };
 
 #define MAX_HW_SAMPLE_PROVIDERS 7
 struct fd_hw_sample_provider;
 struct fd_hw_sample;
 
+struct ir3_shader_key;
+
 struct fd_context {
 	struct pipe_context base;
+
+	struct threaded_context *tc;
 
 	struct list_head node;   /* node in screen->context_list */
 
@@ -206,43 +213,46 @@ struct fd_context {
 	struct fd_screen *screen;
 	struct fd_pipe *pipe;
 
-	struct blitter_context *blitter;
-	void *clear_rs_state[2];
-	struct primconvert_context *primconvert;
+	struct blitter_context *blitter dt;
+	void *clear_rs_state[2] dt;
+	struct primconvert_context *primconvert dt;
 
 	/* slab for pipe_transfer allocations: */
-	struct slab_child_pool transfer_pool;
+	struct slab_child_pool transfer_pool dt;
+	struct slab_child_pool transfer_pool_unsync; /* for threaded_context */
+
+	struct fd_autotune autotune dt;
 
 	/**
 	 * query related state:
 	 */
 	/*@{*/
 	/* slabs for fd_hw_sample and fd_hw_sample_period allocations: */
-	struct slab_mempool sample_pool;
-	struct slab_mempool sample_period_pool;
+	struct slab_mempool sample_pool dt;
+	struct slab_mempool sample_period_pool dt;
 
 	/* sample-providers for hw queries: */
 	const struct fd_hw_sample_provider *hw_sample_providers[MAX_HW_SAMPLE_PROVIDERS];
 
 	/* list of active queries: */
-	struct list_head hw_active_queries;
+	struct list_head hw_active_queries dt;
 
 	/* sample-providers for accumulating hw queries: */
 	const struct fd_acc_sample_provider *acc_sample_providers[MAX_HW_SAMPLE_PROVIDERS];
 
 	/* list of active accumulating queries: */
-	struct list_head acc_active_queries;
+	struct list_head acc_active_queries dt;
 	/*@}*/
 
-	/* Whether we need to walk the acc_active_queries next fd_set_stage() to
-	 * update active queries (even if stage doesn't change).
+	/* Whether we need to recheck the active_queries list next
+	 * fd_batch_update_queries().
 	 */
-	bool update_active_queries;
+	bool update_active_queries dt;
 
 	/* Current state of pctx->set_active_query_state() (i.e. "should drawing
 	 * be counted against non-perfcounter queries")
 	 */
-	bool active_queries;
+	bool active_queries dt;
 
 	/* table with PIPE_PRIM_MAX entries mapping PIPE_PRIM_x to
 	 * DI_PT_x value to use for draw initiator.  There are some
@@ -268,7 +278,12 @@ struct fd_context {
 		uint64_t batch_total, batch_sysmem, batch_gmem, batch_nondraw, batch_restore;
 		uint64_t staging_uploads, shadow_uploads;
 		uint64_t vs_regs, hs_regs, ds_regs, gs_regs, fs_regs;
-	} stats;
+	} stats dt;
+
+	/* Counter for number of users who need sw counters (so we can
+	 * skip collecting them when not needed)
+	 */
+	unsigned stats_users;
 
 	/* Current batch.. the rule here is that you can deref ctx->batch
 	 * in codepaths from pipe_context entrypoints.  But not in code-
@@ -276,13 +291,13 @@ struct fd_context {
 	 * called from GMEM code), since in those code-paths the batch
 	 * you care about is not necessarily the same as ctx->batch.
 	 */
-	struct fd_batch *batch;
+	struct fd_batch *batch dt;
 
 	/* NULL if there has been rendering since last flush.  Otherwise
 	 * keeps a reference to the last fence so we can re-use it rather
 	 * than having to flush no-op batch.
 	 */
-	struct pipe_fence_handle *last_fence;
+	struct pipe_fence_handle *last_fence dt;
 
 	/* Fence fd we are told to wait on via ->fence_server_sync() (or -1
 	 * if none).  The in-fence is transferred over to the batch on the
@@ -297,7 +312,7 @@ struct fd_context {
 	 * maturely, causing us to stall early in the frame where we could
 	 * be building up cmdstream.
 	 */
-	int in_fence_fd;
+	int in_fence_fd dt;
 
 	/* track last known reset status globally and per-context to
 	 * determine if more resets occurred since then.  If global reset
@@ -305,72 +320,91 @@ struct fd_context {
 	 * per-context reset count increases, it means we crashed the
 	 * gpu.
 	 */
-	uint32_t context_reset_count, global_reset_count;
+	uint32_t context_reset_count dt;
+	uint32_t global_reset_count dt;
 
 	/* Context sequence #, used for batch-cache key: */
 	uint16_t seqno;
 
+	/* Cost per draw, used in conjunction with samples-passed history to
+	 * estimate whether GMEM or bypass is the better option.
+	 */
+	uint8_t draw_cost;
+
 	/* Are we in process of shadowing a resource? Used to detect recursion
 	 * in transfer_map, and skip unneeded synchronization.
 	 */
-	bool in_shadow : 1;
+	bool in_shadow : 1 dt;
 
 	/* Ie. in blit situation where we no longer care about previous framebuffer
 	 * contents.  Main point is to eliminate blits from fd_try_shadow_resource().
 	 * For example, in case of texture upload + gen-mipmaps.
 	 */
-	bool in_discard_blit : 1;
+	bool in_discard_blit : 1 dt;
 
 	/* points to either scissor or disabled_scissor depending on rast state: */
-	struct pipe_scissor_state *current_scissor;
+	struct pipe_scissor_state *current_scissor dt;
 
-	struct pipe_scissor_state scissor;
+	struct pipe_scissor_state scissor dt;
 
 	/* we don't have a disable/enable bit for scissor, so instead we keep
 	 * a disabled-scissor state which matches the entire bound framebuffer
 	 * and use that when scissor is not enabled.
 	 */
-	struct pipe_scissor_state disabled_scissor;
+	struct pipe_scissor_state disabled_scissor dt;
 
 	/* Per vsc pipe bo's (a2xx-a5xx): */
-	struct fd_bo *vsc_pipe_bo[32];
+	struct fd_bo *vsc_pipe_bo[32] dt;
+
+	/* Maps generic gallium oriented fd_dirty_3d_state bits to generation
+	 * specific bitmask of state "groups".
+	 */
+	uint32_t gen_dirty_map[NUM_DIRTY_BITS];
+	uint32_t gen_dirty_shader_map[PIPE_SHADER_TYPES][NUM_DIRTY_SHADER_BITS];
+
+	/* Bitmask of all possible gen_dirty bits: */
+	uint32_t gen_all_dirty;
+
+	/* Generation specific bitmask of dirty state groups: */
+	uint32_t gen_dirty;
 
 	/* which state objects need to be re-emit'd: */
-	enum fd_dirty_3d_state dirty;
+	enum fd_dirty_3d_state dirty dt;
 
 	/* per shader-stage dirty status: */
-	enum fd_dirty_shader_state dirty_shader[PIPE_SHADER_TYPES];
+	enum fd_dirty_shader_state dirty_shader[PIPE_SHADER_TYPES] dt;
 
-	void *compute;
-	struct pipe_blend_state *blend;
-	struct pipe_rasterizer_state *rasterizer;
-	struct pipe_depth_stencil_alpha_state *zsa;
+	void *compute dt;
+	struct pipe_blend_state *blend dt;
+	struct pipe_rasterizer_state *rasterizer dt;
+	struct pipe_depth_stencil_alpha_state *zsa dt;
 
-	struct fd_texture_stateobj tex[PIPE_SHADER_TYPES];
+	struct fd_texture_stateobj tex[PIPE_SHADER_TYPES] dt;
 
-	struct fd_program_stateobj prog;
+	struct fd_program_stateobj prog dt;
+	uint32_t bound_shader_stages dt;
 
-	struct fd_vertex_state vtx;
+	struct fd_vertex_state vtx dt;
 
-	struct pipe_blend_color blend_color;
-	struct pipe_stencil_ref stencil_ref;
-	unsigned sample_mask;
-	unsigned min_samples;
+	struct pipe_blend_color blend_color dt;
+	struct pipe_stencil_ref stencil_ref dt;
+	unsigned sample_mask dt;
+	unsigned min_samples dt;
 	/* local context fb state, for when ctx->batch is null: */
-	struct pipe_framebuffer_state framebuffer;
-	struct pipe_poly_stipple stipple;
-	struct pipe_viewport_state viewport;
-	struct pipe_scissor_state viewport_scissor;
-	struct fd_constbuf_stateobj constbuf[PIPE_SHADER_TYPES];
-	struct fd_shaderbuf_stateobj shaderbuf[PIPE_SHADER_TYPES];
-	struct fd_shaderimg_stateobj shaderimg[PIPE_SHADER_TYPES];
-	struct fd_streamout_stateobj streamout;
-	struct fd_global_bindings_stateobj global_bindings;
-	struct pipe_clip_state ucp;
+	struct pipe_framebuffer_state framebuffer dt;
+	struct pipe_poly_stipple stipple dt;
+	struct pipe_viewport_state viewport dt;
+	struct pipe_scissor_state viewport_scissor dt;
+	struct fd_constbuf_stateobj constbuf[PIPE_SHADER_TYPES] dt;
+	struct fd_shaderbuf_stateobj shaderbuf[PIPE_SHADER_TYPES] dt;
+	struct fd_shaderimg_stateobj shaderimg[PIPE_SHADER_TYPES] dt;
+	struct fd_streamout_stateobj streamout dt;
+	struct fd_global_bindings_stateobj global_bindings dt;
+	struct pipe_clip_state ucp dt;
 
-	struct pipe_query *cond_query;
-	bool cond_cond; /* inverted rendering condition */
-	uint cond_mode;
+	struct pipe_query *cond_query dt;
+	bool cond_cond dt; /* inverted rendering condition */
+	uint cond_mode dt;
 
 	/* Private memory is a memory space where each fiber gets its own piece of
 	 * memory, in addition to registers. It is backed by a buffer which needs
@@ -391,52 +425,57 @@ struct fd_context {
 	struct {
 		struct fd_bo *bo;
 		uint32_t per_fiber_size;
-	} pvtmem[2];
+	} pvtmem[2] dt;
+
+	/* maps per-shader-stage state plus variant key to hw
+	 * program stateobj:
+	 */
+	struct ir3_cache *shader_cache;
 
 	struct pipe_debug_callback debug;
 
-	struct u_trace_context trace_context;
+	struct u_trace_context trace_context dt;
 
 	/* Called on rebind_resource() for any per-gen cleanup required: */
-	void (*rebind_resource)(struct fd_context *ctx, struct fd_resource *rsc);
+	void (*rebind_resource)(struct fd_context *ctx, struct fd_resource *rsc) dt;
 
 	/* GMEM/tile handling fxns: */
-	void (*emit_tile_init)(struct fd_batch *batch);
-	void (*emit_tile_prep)(struct fd_batch *batch, const struct fd_tile *tile);
-	void (*emit_tile_mem2gmem)(struct fd_batch *batch, const struct fd_tile *tile);
-	void (*emit_tile_renderprep)(struct fd_batch *batch, const struct fd_tile *tile);
-	void (*emit_tile)(struct fd_batch *batch, const struct fd_tile *tile);
-	void (*emit_tile_gmem2mem)(struct fd_batch *batch, const struct fd_tile *tile);
-	void (*emit_tile_fini)(struct fd_batch *batch);   /* optional */
+	void (*emit_tile_init)(struct fd_batch *batch) dt;
+	void (*emit_tile_prep)(struct fd_batch *batch, const struct fd_tile *tile) dt;
+	void (*emit_tile_mem2gmem)(struct fd_batch *batch, const struct fd_tile *tile) dt;
+	void (*emit_tile_renderprep)(struct fd_batch *batch, const struct fd_tile *tile) dt;
+	void (*emit_tile)(struct fd_batch *batch, const struct fd_tile *tile) dt;
+	void (*emit_tile_gmem2mem)(struct fd_batch *batch, const struct fd_tile *tile) dt;
+	void (*emit_tile_fini)(struct fd_batch *batch) dt;   /* optional */
 
 	/* optional, for GMEM bypass: */
-	void (*emit_sysmem_prep)(struct fd_batch *batch);
-	void (*emit_sysmem_fini)(struct fd_batch *batch);
+	void (*emit_sysmem_prep)(struct fd_batch *batch) dt;
+	void (*emit_sysmem_fini)(struct fd_batch *batch) dt;
 
 	/* draw: */
 	bool (*draw_vbo)(struct fd_context *ctx, const struct pipe_draw_info *info,
-                         const struct pipe_draw_indirect_info *indirect,
-                         const struct pipe_draw_start_count *draw,
-			unsigned index_offset);
+			const struct pipe_draw_indirect_info *indirect,
+			const struct pipe_draw_start_count *draw,
+			unsigned index_offset) dt;
 	bool (*clear)(struct fd_context *ctx, unsigned buffers,
-			const union pipe_color_union *color, double depth, unsigned stencil);
+			const union pipe_color_union *color, double depth, unsigned stencil) dt;
 
 	/* compute: */
-	void (*launch_grid)(struct fd_context *ctx, const struct pipe_grid_info *info);
+	void (*launch_grid)(struct fd_context *ctx, const struct pipe_grid_info *info) dt;
 
 	/* query: */
 	struct fd_query * (*create_query)(struct fd_context *ctx, unsigned query_type, unsigned index);
-	void (*query_prepare)(struct fd_batch *batch, uint32_t num_tiles);
+	void (*query_prepare)(struct fd_batch *batch, uint32_t num_tiles) dt;
 	void (*query_prepare_tile)(struct fd_batch *batch, uint32_t n,
-			struct fd_ringbuffer *ring);
-	void (*query_set_stage)(struct fd_batch *batch, enum fd_render_stage stage);
+			struct fd_ringbuffer *ring) dt;
+	void (*query_update_batch)(struct fd_batch *batch, bool disable_all) dt;
 
 	/* blitter: */
-	bool (*blit)(struct fd_context *ctx, const struct pipe_blit_info *info);
-	void (*clear_ubwc)(struct fd_batch *batch, struct fd_resource *rsc);
+	bool (*blit)(struct fd_context *ctx, const struct pipe_blit_info *info) dt;
+	void (*clear_ubwc)(struct fd_batch *batch, struct fd_resource *rsc) dt;
 
 	/* handling for barriers: */
-	void (*framebuffer_barrier)(struct fd_context *ctx);
+	void (*framebuffer_barrier)(struct fd_context *ctx) dt;
 
 	/* logger: */
 	void (*record_timestamp)(struct fd_ringbuffer *ring, struct fd_bo *bo, unsigned offset);
@@ -476,7 +515,16 @@ struct fd_context {
 		uint32_t instance_start;
 		uint32_t restart_index;
 		uint32_t streamout_mask;
-	} last;
+
+		/* some state changes require a different shader variant.  Keep
+		 * track of this so we know when we need to re-emit shader state
+		 * due to variant change.  See ir3_fixup_shader_state()
+		 *
+		 * (used for a3xx+, NULL otherwise)
+		 */
+		struct ir3_shader_key *key;
+
+	} last dt;
 };
 
 static inline struct fd_context *
@@ -485,21 +533,106 @@ fd_context(struct pipe_context *pctx)
 	return (struct fd_context *)pctx;
 }
 
+static inline struct fd_stream_output_target *
+fd_stream_output_target(struct pipe_stream_output_target *target)
+{
+	return (struct fd_stream_output_target *)target;
+}
+
+/**
+ * Does the dirty state require resource tracking, ie. in general
+ * does it reference some resource.  There are some special cases:
+ *
+ * - FD_DIRTY_CONST can reference a resource, but cb0 is handled
+ *   specially as if it is not a user-buffer, we expect it to be
+ *   coming from const_uploader, so we can make some assumptions
+ *   that future transfer_map will be UNSYNCRONIZED
+ * - FD_DIRTY_ZSA controls how the framebuffer is accessed
+ * - FD_DIRTY_BLEND needs to update GMEM reason
+ *
+ * TODO if we can make assumptions that framebuffer state is bound
+ * first, before blend/zsa/etc state we can move some of the ZSA/
+ * BLEND state handling from draw time to bind time.  I think this
+ * is true of mesa/st, perhaps we can just document it to be a
+ * frontend requirement?
+ */
+static inline bool
+fd_context_dirty_resource(enum fd_dirty_3d_state dirty)
+{
+	return dirty & (FD_DIRTY_FRAMEBUFFER | FD_DIRTY_ZSA |
+			FD_DIRTY_BLEND | FD_DIRTY_SSBO | FD_DIRTY_IMAGE |
+			FD_DIRTY_VTXBUF | FD_DIRTY_TEX | FD_DIRTY_STREAMOUT);
+}
+
+/* Mark specified non-shader-stage related state as dirty: */
+static inline void
+fd_context_dirty(struct fd_context *ctx, enum fd_dirty_3d_state dirty)
+	assert_dt
+{
+	assert(util_is_power_of_two_nonzero(dirty));
+	STATIC_ASSERT(ffs(dirty) <= ARRAY_SIZE(ctx->gen_dirty_map));
+
+	ctx->gen_dirty |= ctx->gen_dirty_map[ffs(dirty) - 1];
+
+	if (fd_context_dirty_resource(dirty))
+		dirty |= FD_DIRTY_RESOURCE;
+
+	ctx->dirty |= dirty;
+}
+
+static inline void
+fd_context_dirty_shader(struct fd_context *ctx, enum pipe_shader_type shader,
+		enum fd_dirty_shader_state dirty)
+	assert_dt
+{
+	const enum fd_dirty_3d_state map[] = {
+		FD_DIRTY_PROG,
+		FD_DIRTY_CONST,
+		FD_DIRTY_TEX,
+		FD_DIRTY_SSBO,
+		FD_DIRTY_IMAGE,
+	};
+
+	/* Need to update the table above if these shift: */
+	STATIC_ASSERT(FD_DIRTY_SHADER_PROG  == BIT(0));
+	STATIC_ASSERT(FD_DIRTY_SHADER_CONST == BIT(1));
+	STATIC_ASSERT(FD_DIRTY_SHADER_TEX   == BIT(2));
+	STATIC_ASSERT(FD_DIRTY_SHADER_SSBO  == BIT(3));
+	STATIC_ASSERT(FD_DIRTY_SHADER_IMAGE == BIT(4));
+
+	assert(util_is_power_of_two_nonzero(dirty));
+	assert(ffs(dirty) <= ARRAY_SIZE(map));
+
+	ctx->gen_dirty |= ctx->gen_dirty_shader_map[shader][ffs(dirty) - 1];
+
+	ctx->dirty_shader[shader] |= dirty;
+	fd_context_dirty(ctx, map[ffs(dirty) - 1]);
+}
+
 /* mark all state dirty: */
 static inline void
 fd_context_all_dirty(struct fd_context *ctx)
+	assert_dt
 {
 	ctx->last.dirty = true;
 	ctx->dirty = ~0;
+
+	/* NOTE: don't use ~0 for gen_dirty, because the gen specific
+	 * emit code will loop over all the bits:
+	 */
+	ctx->gen_dirty = ctx->gen_all_dirty;
+
 	for (unsigned i = 0; i < PIPE_SHADER_TYPES; i++)
 		ctx->dirty_shader[i] = ~0;
 }
 
 static inline void
 fd_context_all_clean(struct fd_context *ctx)
+	assert_dt
 {
 	ctx->last.dirty = false;
 	ctx->dirty = 0;
+	ctx->gen_dirty = 0;
 	for (unsigned i = 0; i < PIPE_SHADER_TYPES; i++) {
 		/* don't mark compute state as clean, since it is not emitted
 		 * during normal draw call.  The places that call _all_dirty(),
@@ -512,8 +645,37 @@ fd_context_all_clean(struct fd_context *ctx)
 	}
 }
 
+/**
+ * Add mapping between global dirty bit and generation specific dirty
+ * bit.
+ */
+static inline void
+fd_context_add_map(struct fd_context *ctx, enum fd_dirty_3d_state dirty,
+		uint32_t gen_dirty)
+{
+	u_foreach_bit (b, dirty) {
+		ctx->gen_dirty_map[b] |= gen_dirty;
+	}
+	ctx->gen_all_dirty |= gen_dirty;
+}
+
+/**
+ * Add mapping between shader stage specific dirty bit and generation
+ * specific dirty bit
+ */
+static inline void
+fd_context_add_shader_map(struct fd_context *ctx, enum pipe_shader_type shader,
+		enum fd_dirty_shader_state dirty, uint32_t gen_dirty)
+{
+	u_foreach_bit (b, dirty) {
+		ctx->gen_dirty_shader_map[shader][b] |= gen_dirty;
+	}
+	ctx->gen_all_dirty |= gen_dirty;
+}
+
 static inline struct pipe_scissor_state *
 fd_context_get_scissor(struct fd_context *ctx)
+	assert_dt
 {
 	return ctx->current_scissor;
 }
@@ -524,10 +686,10 @@ fd_supported_prim(struct fd_context *ctx, unsigned prim)
 	return (1 << prim) & ctx->primtype_mask;
 }
 
-void fd_context_switch_from(struct fd_context *ctx);
-void fd_context_switch_to(struct fd_context *ctx, struct fd_batch *batch);
-struct fd_batch * fd_context_batch(struct fd_context *ctx);
-struct fd_batch * fd_context_batch_locked(struct fd_context *ctx);
+void fd_context_switch_from(struct fd_context *ctx) assert_dt;
+void fd_context_switch_to(struct fd_context *ctx, struct fd_batch *batch) assert_dt;
+struct fd_batch * fd_context_batch(struct fd_context *ctx) assert_dt;
+struct fd_batch * fd_context_batch_locked(struct fd_context *ctx) assert_dt;
 
 void fd_context_setup_common_vbos(struct fd_context *ctx);
 void fd_context_cleanup_common_vbos(struct fd_context *ctx);
@@ -537,7 +699,8 @@ void fd_emit_string5(struct fd_ringbuffer *ring, const char *string, int len);
 struct pipe_context * fd_context_init(struct fd_context *ctx,
 		struct pipe_screen *pscreen, const uint8_t *primtypes,
 		void *priv, unsigned flags);
+struct pipe_context * fd_context_init_tc(struct pipe_context *pctx, unsigned flags);
 
-void fd_context_destroy(struct pipe_context *pctx);
+void fd_context_destroy(struct pipe_context *pctx) assert_dt;
 
 #endif /* FREEDRENO_CONTEXT_H_ */

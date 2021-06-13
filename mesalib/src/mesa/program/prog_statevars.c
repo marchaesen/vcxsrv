@@ -30,6 +30,7 @@
 
 
 #include <stdio.h>
+#include <stddef.h>
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/blend.h"
@@ -87,39 +88,20 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
    switch (state[0]) {
    case STATE_MATERIAL:
       {
-         /* state[1] is either 0=front or 1=back side */
-         const GLuint face = (GLuint) state[1];
+         /* state[1] is MAT_ATTRIB_FRONT_* */
+         const GLuint index = (GLuint) state[1];
          const struct gl_material *mat = &ctx->Light.Material;
-         assert(face == 0 || face == 1);
-         /* we rely on tokens numbered so that _BACK_ == _FRONT_+ 1 */
-         assert(MAT_ATTRIB_FRONT_AMBIENT + 1 == MAT_ATTRIB_BACK_AMBIENT);
-         /* XXX we could get rid of this switch entirely with a little
-          * work in arbprogparse.c's parse_state_single_item().
-          */
-         /* state[2] is the material attribute */
-         switch (state[2]) {
-         case STATE_AMBIENT:
-            COPY_4V(value, mat->Attrib[MAT_ATTRIB_FRONT_AMBIENT + face]);
-            return;
-         case STATE_DIFFUSE:
-            COPY_4V(value, mat->Attrib[MAT_ATTRIB_FRONT_DIFFUSE + face]);
-            return;
-         case STATE_SPECULAR:
-            COPY_4V(value, mat->Attrib[MAT_ATTRIB_FRONT_SPECULAR + face]);
-            return;
-         case STATE_EMISSION:
-            COPY_4V(value, mat->Attrib[MAT_ATTRIB_FRONT_EMISSION + face]);
-            return;
-         case STATE_SHININESS:
-            value[0] = mat->Attrib[MAT_ATTRIB_FRONT_SHININESS + face][0];
+         assert(index >= MAT_ATTRIB_FRONT_AMBIENT &&
+                index <= MAT_ATTRIB_BACK_SHININESS);
+         if (index >= MAT_ATTRIB_FRONT_SHININESS) {
+            value[0] = mat->Attrib[index][0];
             value[1] = 0.0F;
             value[2] = 0.0F;
             value[3] = 1.0F;
-            return;
-         default:
-            unreachable("Invalid material state in fetch_state");
-            return;
+         } else {
+            COPY_4V(value, mat->Attrib[index]);
          }
+         return;
       }
    case STATE_LIGHT:
       {
@@ -134,13 +116,29 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
             value[0] = ctx->Light.LightSource[ln].SpotCutoff;
          return;
       }
-   case STATE_LIGHT_ATTRIBS:
+   case STATE_LIGHT_ARRAY: {
+      /* This must be exact because it must match the gl_LightSource layout
+       * in GLSL.
+       */
+      STATIC_ASSERT(sizeof(struct gl_light_uniforms) == 29 * 4);
+      STATIC_ASSERT(ARRAY_SIZE(ctx->Light.LightSourceData) == 29 * MAX_LIGHTS);
       /* state[1] is the index of the first value */
       /* state[2] is the number of values */
       assert(state[1] + state[2] <= ARRAY_SIZE(ctx->Light.LightSourceData));
       memcpy(value, &ctx->Light.LightSourceData[state[1]],
              state[2] * sizeof(float));
       return;
+   }
+   case STATE_LIGHT_ATTENUATION_ARRAY: {
+      const unsigned first = state[1];
+      const unsigned num_lights = state[2];
+      for (unsigned i = 0; i < num_lights; i++) {
+         COPY_4V(value,
+                 &ctx->Light.LightSource[first + i].ConstantAttenuation);
+         value += 4;
+      }
+      return;
+   }
    case STATE_LIGHTMODEL_AMBIENT:
       COPY_4V(value, ctx->Light.Model.Ambient);
       return;
@@ -169,73 +167,131 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
    case STATE_LIGHTPROD:
       {
          const GLuint ln = (GLuint) state[1];
-         const GLuint face = (GLuint) state[2];
-         GLint i;
-         assert(face == 0 || face == 1);
-         switch (state[3]) {
-            case STATE_AMBIENT:
-               for (i = 0; i < 3; i++) {
-                  value[i] = ctx->Light.LightSource[ln].Ambient[i] *
-                     ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_AMBIENT+face][i];
-               }
-               /* [3] = material alpha */
-               value[3] = ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_AMBIENT+face][3];
-               return;
-            case STATE_DIFFUSE:
-               for (i = 0; i < 3; i++) {
-                  value[i] = ctx->Light.LightSource[ln].Diffuse[i] *
-                     ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_DIFFUSE+face][i];
-               }
-               /* [3] = material alpha */
-               value[3] = ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_DIFFUSE+face][3];
-               return;
-            case STATE_SPECULAR:
-               for (i = 0; i < 3; i++) {
-                  value[i] = ctx->Light.LightSource[ln].Specular[i] *
-                     ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_SPECULAR+face][i];
-               }
-               /* [3] = material alpha */
-               value[3] = ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_SPECULAR+face][3];
-               return;
-            default:
-               unreachable("Invalid lightprod state in fetch_state");
-               return;
+         const GLuint index = (GLuint) state[2];
+         const GLuint attr = (index / 2) * 4;
+         assert(index >= MAT_ATTRIB_FRONT_AMBIENT &&
+                index <= MAT_ATTRIB_BACK_SPECULAR);
+         for (int i = 0; i < 3; i++) {
+            /* We want attr to access out of bounds into the following Diffuse
+             * and Specular fields. This is guaranteed to work because
+             * STATE_LIGHT and STATE_LIGHT_ARRAY also rely on this memory
+             * layout.
+             */
+            STATIC_ASSERT(offsetof(struct gl_light_uniforms, Ambient) + 16 ==
+                          offsetof(struct gl_light_uniforms, Diffuse));
+            STATIC_ASSERT(offsetof(struct gl_light_uniforms, Diffuse) + 16 ==
+                          offsetof(struct gl_light_uniforms, Specular));
+            value[i] = ctx->Light.LightSource[ln].Ambient[attr + i] *
+                       ctx->Light.Material.Attrib[index][i];
+         }
+         /* [3] = material alpha */
+         value[3] = ctx->Light.Material.Attrib[index][3];
+         return;
+      }
+   case STATE_LIGHTPROD_ARRAY_FRONT: {
+      const unsigned first_light = state[1];
+      const unsigned num_lights = state[2];
+
+      for (unsigned i = 0; i < num_lights; i++) {
+         unsigned light = first_light + i;
+
+         for (unsigned attrib = MAT_ATTRIB_FRONT_AMBIENT;
+              attrib <= MAT_ATTRIB_FRONT_SPECULAR; attrib += 2) {
+            for (int chan = 0; chan < 3; chan++) {
+               /* We want offset to access out of bounds into the following
+                * Diffuse and Specular fields. This is guaranteed to work
+                * because STATE_LIGHT and STATE_LIGHT_ATTRIBS also rely
+                * on this memory layout.
+                */
+               unsigned offset = (attrib / 2) * 4 + chan;
+               *value++ =
+                  (&ctx->Light.LightSource[light].Ambient[0])[offset] *
+                  ctx->Light.Material.Attrib[attrib][chan];
+            }
+            /* [3] = material alpha */
+            *value++ = ctx->Light.Material.Attrib[attrib][3];
          }
       }
+      return;
+   }
+   case STATE_LIGHTPROD_ARRAY_BACK: {
+      const unsigned first_light = state[1];
+      const unsigned num_lights = state[2];
+
+      for (unsigned i = 0; i < num_lights; i++) {
+         unsigned light = first_light + i;
+
+         for (unsigned attrib = MAT_ATTRIB_BACK_AMBIENT;
+              attrib <= MAT_ATTRIB_BACK_SPECULAR; attrib += 2) {
+            for (int chan = 0; chan < 3; chan++) {
+               /* We want offset to access out of bounds into the following
+                * Diffuse and Specular fields. This is guaranteed to work
+                * because STATE_LIGHT and STATE_LIGHT_ATTRIBS also rely
+                * on this memory layout.
+                */
+               unsigned offset = (attrib / 2) * 4 + chan;
+               *value++ =
+                  (&ctx->Light.LightSource[light].Ambient[0])[offset] *
+                  ctx->Light.Material.Attrib[attrib][chan];
+            }
+            /* [3] = material alpha */
+            *value++ = ctx->Light.Material.Attrib[attrib][3];
+         }
+      }
+      return;
+   }
+   case STATE_LIGHTPROD_ARRAY_TWOSIDE: {
+      const unsigned first_light = state[1];
+      const unsigned num_lights = state[2];
+
+      for (unsigned i = 0; i < num_lights; i++) {
+         unsigned light = first_light + i;
+
+         for (unsigned attrib = MAT_ATTRIB_FRONT_AMBIENT;
+              attrib <= MAT_ATTRIB_BACK_SPECULAR; attrib++) {
+            for (int chan = 0; chan < 3; chan++) {
+               /* We want offset to access out of bounds into the following
+                * Diffuse and Specular fields. This is guaranteed to work
+                * because STATE_LIGHT and STATE_LIGHT_ATTRIBS also rely
+                * on this memory layout.
+                */
+               unsigned offset = (attrib / 2) * 4 + chan;
+               *value++ =
+                  (&ctx->Light.LightSource[light].Ambient[0])[offset] *
+                  ctx->Light.Material.Attrib[attrib][chan];
+            }
+            /* [3] = material alpha */
+            *value++ = ctx->Light.Material.Attrib[attrib][3];
+         }
+      }
+      return;
+   }
    case STATE_TEXGEN:
       {
          /* state[1] is the texture unit */
          const GLuint unit = (GLuint) state[1];
          /* state[2] is the texgen attribute */
-         switch (state[2]) {
-         case STATE_TEXGEN_EYE_S:
-            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenS.EyePlane);
-            return;
-         case STATE_TEXGEN_EYE_T:
-            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenT.EyePlane);
-            return;
-         case STATE_TEXGEN_EYE_R:
-            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenR.EyePlane);
-            return;
-         case STATE_TEXGEN_EYE_Q:
-            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenQ.EyePlane);
-            return;
-         case STATE_TEXGEN_OBJECT_S:
-            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenS.ObjectPlane);
-            return;
-         case STATE_TEXGEN_OBJECT_T:
-            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenT.ObjectPlane);
-            return;
-         case STATE_TEXGEN_OBJECT_R:
-            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenR.ObjectPlane);
-            return;
-         case STATE_TEXGEN_OBJECT_Q:
-            COPY_4V(value, ctx->Texture.FixedFuncUnit[unit].GenQ.ObjectPlane);
-            return;
-         default:
-            unreachable("Invalid texgen state in fetch_state");
-            return;
-         }
+         /* Assertions for the expected memory layout. */
+#define MEMBER_SIZEOF(type, member) sizeof(((type *)0)->member)
+         STATIC_ASSERT(MEMBER_SIZEOF(struct gl_fixedfunc_texture_unit,
+                                     EyePlane[0]) == 4 * sizeof(float));
+         STATIC_ASSERT(MEMBER_SIZEOF(struct gl_fixedfunc_texture_unit,
+                                     ObjectPlane[0]) == 4 * sizeof(float));
+#undef MEMBER_SIZEOF
+         STATIC_ASSERT(STATE_TEXGEN_EYE_T - STATE_TEXGEN_EYE_S == GEN_T - GEN_S);
+         STATIC_ASSERT(STATE_TEXGEN_EYE_R - STATE_TEXGEN_EYE_S == GEN_R - GEN_S);
+         STATIC_ASSERT(STATE_TEXGEN_EYE_Q - STATE_TEXGEN_EYE_S == GEN_Q - GEN_S);
+         STATIC_ASSERT(offsetof(struct gl_fixedfunc_texture_unit, ObjectPlane) -
+                       offsetof(struct gl_fixedfunc_texture_unit, EyePlane) ==
+                       (STATE_TEXGEN_OBJECT_S - STATE_TEXGEN_EYE_S) * 4 * sizeof(float));
+         STATIC_ASSERT(STATE_TEXGEN_OBJECT_T - STATE_TEXGEN_OBJECT_S == GEN_T - GEN_S);
+         STATIC_ASSERT(STATE_TEXGEN_OBJECT_R - STATE_TEXGEN_OBJECT_S == GEN_R - GEN_S);
+         STATIC_ASSERT(STATE_TEXGEN_OBJECT_Q - STATE_TEXGEN_OBJECT_S == GEN_Q - GEN_S);
+
+         const float *attr = (float*)ctx->Texture.FixedFuncUnit[unit].EyePlane +
+                             (state[2] - STATE_TEXGEN_EYE_S) * 4;
+         COPY_4V(value, attr);
+         return;
       }
    case STATE_TEXENV_COLOR:
       {
@@ -307,7 +363,8 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
       return;
    }
    case STATE_PROJECTION_MATRIX_INVERSE: {
-      const GLmatrix *matrix = ctx->ProjectionMatrixStack.Top;
+      GLmatrix *matrix = ctx->ProjectionMatrixStack.Top;
+      _math_matrix_analyse(matrix); /* make sure the inverse is up to date */
       copy_matrix(value, matrix->inv, state[2], state[3]);
       return;
    }
@@ -317,7 +374,8 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
       return;
    }
    case STATE_PROJECTION_MATRIX_INVTRANS: {
-      const GLmatrix *matrix = ctx->ProjectionMatrixStack.Top;
+      GLmatrix *matrix = ctx->ProjectionMatrixStack.Top;
+      _math_matrix_analyse(matrix); /* make sure the inverse is up to date */
       copy_matrix_transposed(value, matrix->inv, state[2], state[3]);
       return;
    }
@@ -327,7 +385,8 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
       return;
    }
    case STATE_MVP_MATRIX_INVERSE: {
-      const GLmatrix *matrix = &ctx->_ModelProjectMatrix;
+      GLmatrix *matrix = &ctx->_ModelProjectMatrix;
+      _math_matrix_analyse(matrix); /* make sure the inverse is up to date */
       copy_matrix(value, matrix->inv, state[2], state[3]);
       return;
    }
@@ -337,7 +396,8 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
       return;
    }
    case STATE_MVP_MATRIX_INVTRANS: {
-      const GLmatrix *matrix = &ctx->_ModelProjectMatrix;
+      GLmatrix *matrix = &ctx->_ModelProjectMatrix;
+      _math_matrix_analyse(matrix); /* make sure the inverse is up to date */
       copy_matrix_transposed(value, matrix->inv, state[2], state[3]);
       return;
    }
@@ -408,280 +468,317 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
       value[2] = ctx->ViewportArray[0].Far - ctx->ViewportArray[0].Near; /* far - near */
       value[3] = 1.0;
       return;
-   case STATE_FRAGMENT_PROGRAM:
-      {
-         /* state[1] = {STATE_ENV, STATE_LOCAL} */
-         /* state[2] = parameter index          */
-         const int idx = (int) state[2];
-         switch (state[1]) {
-            case STATE_ENV:
-               COPY_4V(value, ctx->FragmentProgram.Parameters[idx]);
-               return;
-            case STATE_LOCAL:
-               if (!ctx->FragmentProgram.Current->arb.LocalParams) {
-                  ctx->FragmentProgram.Current->arb.LocalParams =
-                     rzalloc_array_size(ctx->FragmentProgram.Current,
-                                        sizeof(float[4]),
-                                        MAX_PROGRAM_LOCAL_PARAMS);
-                  if (!ctx->FragmentProgram.Current->arb.LocalParams)
-                     return;
-               }
+   case STATE_FRAGMENT_PROGRAM_ENV: {
+      const int idx = (int) state[1];
+      COPY_4V(value, ctx->FragmentProgram.Parameters[idx]);
+      return;
+   }
+   case STATE_FRAGMENT_PROGRAM_ENV_ARRAY: {
+      const unsigned idx = state[1];
+      const unsigned bytes = state[2] * 16;
+      memcpy(value, ctx->FragmentProgram.Parameters[idx], bytes);
+      return;
+   }
+   case STATE_FRAGMENT_PROGRAM_LOCAL: {
+      float (*params)[4] = ctx->FragmentProgram.Current->arb.LocalParams;
+      if (unlikely(!params)) {
+         /* Local parameters haven't been allocated yet.
+          * ARB_fragment_program says that local parameters are
+          * "initially set to (0,0,0,0)." Return that.
+          */
+         memset(value, 0, sizeof(float) * 4);
+         return;
+      }
 
-               COPY_4V(value,
-                       ctx->FragmentProgram.Current->arb.LocalParams[idx]);
-               return;
-            default:
-               unreachable("Bad state switch in fetch_state()");
-               return;
-         }
+      const int idx = (int) state[1];
+      COPY_4V(value, params[idx]);
+      return;
+   }
+   case STATE_FRAGMENT_PROGRAM_LOCAL_ARRAY: {
+      const unsigned idx = state[1];
+      const unsigned bytes = state[2] * 16;
+      float (*params)[4] = ctx->FragmentProgram.Current->arb.LocalParams;
+      if (!params) {
+         /* Local parameters haven't been allocated yet.
+          * ARB_fragment_program says that local parameters are
+          * "initially set to (0,0,0,0)." Return that.
+          */
+         memset(value, 0, bytes);
+         return;
+      }
+      memcpy(value, params[idx], bytes);
+      return;
+   }
+   case STATE_VERTEX_PROGRAM_ENV: {
+      const int idx = (int) state[1];
+      COPY_4V(value, ctx->VertexProgram.Parameters[idx]);
+      return;
+   }
+   case STATE_VERTEX_PROGRAM_ENV_ARRAY: {
+      const unsigned idx = state[1];
+      const unsigned bytes = state[2] * 16;
+      memcpy(value, ctx->VertexProgram.Parameters[idx], bytes);
+      return;
+   }
+   case STATE_VERTEX_PROGRAM_LOCAL: {
+      float (*params)[4] = ctx->VertexProgram.Current->arb.LocalParams;
+      if (unlikely(!params)) {
+         /* Local parameters haven't been allocated yet.
+          * ARB_vertex_program says that local parameters are
+          * "initially set to (0,0,0,0)." Return that.
+          */
+         memset(value, 0, sizeof(float) * 4);
+         return;
+      }
+
+      const int idx = (int) state[1];
+      COPY_4V(value, params[idx]);
+      return;
+   }
+   case STATE_VERTEX_PROGRAM_LOCAL_ARRAY: {
+      const unsigned idx = state[1];
+      const unsigned bytes = state[2] * 16;
+      float (*params)[4] = ctx->VertexProgram.Current->arb.LocalParams;
+      if (!params) {
+         /* Local parameters haven't been allocated yet.
+          * ARB_vertex_program says that local parameters are
+          * "initially set to (0,0,0,0)." Return that.
+          */
+         memset(value, 0, bytes);
+         return;
+      }
+      memcpy(value, params[idx], bytes);
+      return;
+   }
+
+   case STATE_NORMAL_SCALE_EYESPACE:
+      ASSIGN_4V(value, ctx->_ModelViewInvScaleEyespace, 0, 0, 1);
+      return;
+
+   case STATE_CURRENT_ATTRIB:
+      {
+         const GLuint idx = (GLuint) state[1];
+         COPY_4V(value, ctx->Current.Attrib[idx]);
       }
       return;
 
-   case STATE_VERTEX_PROGRAM:
+   case STATE_CURRENT_ATTRIB_MAYBE_VP_CLAMPED:
       {
-         /* state[1] = {STATE_ENV, STATE_LOCAL} */
-         /* state[2] = parameter index          */
-         const int idx = (int) state[2];
-         switch (state[1]) {
-            case STATE_ENV:
-               COPY_4V(value, ctx->VertexProgram.Parameters[idx]);
-               return;
-            case STATE_LOCAL:
-               if (!ctx->VertexProgram.Current->arb.LocalParams) {
-                  ctx->VertexProgram.Current->arb.LocalParams =
-                     rzalloc_array_size(ctx->VertexProgram.Current,
-                                        sizeof(float[4]),
-                                        MAX_PROGRAM_LOCAL_PARAMS);
-                  if (!ctx->VertexProgram.Current->arb.LocalParams)
-                     return;
-               }
-
-               COPY_4V(value,
-                       ctx->VertexProgram.Current->arb.LocalParams[idx]);
-               return;
-            default:
-               unreachable("Bad state switch in fetch_state()");
-               return;
+         const GLuint idx = (GLuint) state[1];
+         if(ctx->Light._ClampVertexColor &&
+            (idx == VERT_ATTRIB_COLOR0 ||
+             idx == VERT_ATTRIB_COLOR1)) {
+            value[0] = SATURATE(ctx->Current.Attrib[idx][0]);
+            value[1] = SATURATE(ctx->Current.Attrib[idx][1]);
+            value[2] = SATURATE(ctx->Current.Attrib[idx][2]);
+            value[3] = SATURATE(ctx->Current.Attrib[idx][3]);
          }
+         else
+            COPY_4V(value, ctx->Current.Attrib[idx]);
       }
       return;
 
    case STATE_NORMAL_SCALE:
-      ASSIGN_4V(value, ctx->_ModelViewInvScaleEyespace, 0, 0, 1);
+      ASSIGN_4V(value,
+                ctx->_ModelViewInvScale,
+                ctx->_ModelViewInvScale,
+                ctx->_ModelViewInvScale,
+                1);
       return;
 
-   case STATE_INTERNAL:
-      switch (state[1]) {
-      case STATE_CURRENT_ATTRIB:
-         {
-            const GLuint idx = (GLuint) state[2];
-            COPY_4V(value, ctx->Current.Attrib[idx]);
+   case STATE_FOG_PARAMS_OPTIMIZED: {
+      /* for simpler per-vertex/pixel fog calcs. POW (for EXP/EXP2 fog)
+       * might be more expensive than EX2 on some hw, plus it needs
+       * another constant (e) anyway. Linear fog can now be done with a
+       * single MAD.
+       * linear: fogcoord * -1/(end-start) + end/(end-start)
+       * exp: 2^-(density/ln(2) * fogcoord)
+       * exp2: 2^-((density/(sqrt(ln(2))) * fogcoord)^2)
+       */
+      float val =  (ctx->Fog.End == ctx->Fog.Start)
+         ? 1.0f : (GLfloat)(-1.0F / (ctx->Fog.End - ctx->Fog.Start));
+      value[0] = val;
+      value[1] = ctx->Fog.End * -val;
+      value[2] = (GLfloat)(ctx->Fog.Density * M_LOG2E); /* M_LOG2E == 1/ln(2) */
+      value[3] = (GLfloat)(ctx->Fog.Density * ONE_DIV_SQRT_LN2);
+      return;
+   }
+
+   case STATE_POINT_SIZE_CLAMPED:
+      {
+        /* this includes implementation dependent limits, to avoid
+         * another potentially necessary clamp.
+         * Note: for sprites, point smooth (point AA) is ignored
+         * and we'll clamp to MinPointSizeAA and MaxPointSize, because we
+         * expect drivers will want to say their minimum for AA size is 0.0
+         * but for non-AA it's 1.0 (because normal points with size below 1.0
+         * need to get rounded up to 1.0, hence never disappear). GL does
+         * not specify max clamp size for sprites, other than it needs to be
+         * at least as large as max AA size, hence use non-AA size there.
+         */
+         GLfloat minImplSize;
+         GLfloat maxImplSize;
+         if (ctx->Point.PointSprite) {
+            minImplSize = ctx->Const.MinPointSizeAA;
+            maxImplSize = ctx->Const.MaxPointSize;
          }
-         return;
-
-      case STATE_CURRENT_ATTRIB_MAYBE_VP_CLAMPED:
-         {
-            const GLuint idx = (GLuint) state[2];
-            if(ctx->Light._ClampVertexColor &&
-               (idx == VERT_ATTRIB_COLOR0 ||
-                idx == VERT_ATTRIB_COLOR1)) {
-               value[0] = SATURATE(ctx->Current.Attrib[idx][0]);
-               value[1] = SATURATE(ctx->Current.Attrib[idx][1]);
-               value[2] = SATURATE(ctx->Current.Attrib[idx][2]);
-               value[3] = SATURATE(ctx->Current.Attrib[idx][3]);
-            }
-            else
-               COPY_4V(value, ctx->Current.Attrib[idx]);
+         else if (ctx->Point.SmoothFlag || _mesa_is_multisample_enabled(ctx)) {
+            minImplSize = ctx->Const.MinPointSizeAA;
+            maxImplSize = ctx->Const.MaxPointSizeAA;
          }
-         return;
-
-      case STATE_NORMAL_SCALE:
-         ASSIGN_4V(value,
-                   ctx->_ModelViewInvScale,
-                   ctx->_ModelViewInvScale,
-                   ctx->_ModelViewInvScale,
-                   1);
-         return;
-
-      case STATE_FOG_PARAMS_OPTIMIZED: {
-         /* for simpler per-vertex/pixel fog calcs. POW (for EXP/EXP2 fog)
-          * might be more expensive than EX2 on some hw, plus it needs
-          * another constant (e) anyway. Linear fog can now be done with a
-          * single MAD.
-          * linear: fogcoord * -1/(end-start) + end/(end-start)
-          * exp: 2^-(density/ln(2) * fogcoord)
-          * exp2: 2^-((density/(sqrt(ln(2))) * fogcoord)^2)
-          */
-         float val =  (ctx->Fog.End == ctx->Fog.Start)
-            ? 1.0f : (GLfloat)(-1.0F / (ctx->Fog.End - ctx->Fog.Start));
-         value[0] = val;
-         value[1] = ctx->Fog.End * -val;
-         value[2] = (GLfloat)(ctx->Fog.Density * M_LOG2E); /* M_LOG2E == 1/ln(2) */
-         value[3] = (GLfloat)(ctx->Fog.Density * ONE_DIV_SQRT_LN2);
-         return;
+         else {
+            minImplSize = ctx->Const.MinPointSize;
+            maxImplSize = ctx->Const.MaxPointSize;
+         }
+         value[0] = ctx->Point.Size;
+         value[1] = ctx->Point.MinSize >= minImplSize ? ctx->Point.MinSize : minImplSize;
+         value[2] = ctx->Point.MaxSize <= maxImplSize ? ctx->Point.MaxSize : maxImplSize;
+         value[3] = ctx->Point.Threshold;
       }
+      return;
+   case STATE_LIGHT_SPOT_DIR_NORMALIZED:
+      {
+         /* here, state[1] is the light number */
+         /* pre-normalize spot dir */
+         const GLuint ln = (GLuint) state[1];
+         COPY_3V(value, ctx->Light.Light[ln]._NormSpotDirection);
+         value[3] = ctx->Light.LightSource[ln]._CosCutoff;
+      }
+      return;
 
-      case STATE_POINT_SIZE_CLAMPED:
-         {
-           /* this includes implementation dependent limits, to avoid
-            * another potentially necessary clamp.
-            * Note: for sprites, point smooth (point AA) is ignored
-            * and we'll clamp to MinPointSizeAA and MaxPointSize, because we
-            * expect drivers will want to say their minimum for AA size is 0.0
-            * but for non-AA it's 1.0 (because normal points with size below 1.0
-            * need to get rounded up to 1.0, hence never disappear). GL does
-            * not specify max clamp size for sprites, other than it needs to be
-            * at least as large as max AA size, hence use non-AA size there.
-            */
-            GLfloat minImplSize;
-            GLfloat maxImplSize;
-            if (ctx->Point.PointSprite) {
-               minImplSize = ctx->Const.MinPointSizeAA;
-               maxImplSize = ctx->Const.MaxPointSize;
-            }
-            else if (ctx->Point.SmoothFlag || _mesa_is_multisample_enabled(ctx)) {
-               minImplSize = ctx->Const.MinPointSizeAA;
-               maxImplSize = ctx->Const.MaxPointSizeAA;
-            }
-            else {
-               minImplSize = ctx->Const.MinPointSize;
-               maxImplSize = ctx->Const.MaxPointSize;
-            }
-            value[0] = ctx->Point.Size;
-            value[1] = ctx->Point.MinSize >= minImplSize ? ctx->Point.MinSize : minImplSize;
-            value[2] = ctx->Point.MaxSize <= maxImplSize ? ctx->Point.MaxSize : maxImplSize;
-            value[3] = ctx->Point.Threshold;
-         }
-         return;
-      case STATE_LIGHT_SPOT_DIR_NORMALIZED:
-         {
-            /* here, state[2] is the light number */
-            /* pre-normalize spot dir */
-            const GLuint ln = (GLuint) state[2];
-            COPY_3V(value, ctx->Light.Light[ln]._NormSpotDirection);
-            value[3] = ctx->Light.LightSource[ln]._CosCutoff;
-         }
-         return;
+   case STATE_LIGHT_POSITION:
+      {
+         const GLuint ln = (GLuint) state[1];
+         COPY_4V(value, ctx->Light.Light[ln]._Position);
+      }
+      return;
 
-      case STATE_LIGHT_POSITION:
-         {
-            const GLuint ln = (GLuint) state[2];
-            COPY_4V(value, ctx->Light.Light[ln]._Position);
-         }
-         return;
+   case STATE_LIGHT_POSITION_ARRAY: {
+      const unsigned first = state[1];
+      const unsigned num_lights = state[2];
+      for (unsigned i = 0; i < num_lights; i++) {
+         COPY_4V(value, ctx->Light.Light[first + i]._Position);
+         value += 4;
+      }
+      return;
+   }
 
-      case STATE_LIGHT_POSITION_NORMALIZED:
-         {
-            const GLuint ln = (GLuint) state[2];
-            float p[4];
-            COPY_4V(p, ctx->Light.Light[ln]._Position);
-            NORMALIZE_3FV(p);
-            COPY_4V(value, p);
-         }
-         return;
+   case STATE_LIGHT_POSITION_NORMALIZED:
+      {
+         const GLuint ln = (GLuint) state[1];
+         float p[4];
+         COPY_4V(p, ctx->Light.Light[ln]._Position);
+         NORMALIZE_3FV(p);
+         COPY_4V(value, p);
+      }
+      return;
 
-      case STATE_LIGHT_HALF_VECTOR:
-         {
-            const GLuint ln = (GLuint) state[2];
-            GLfloat p[3];
-            /* Compute infinite half angle vector:
-             *   halfVector = normalize(normalize(lightPos) + (0, 0, 1))
-             * light.EyePosition.w should be 0 for infinite lights.
-             */
-            COPY_3V(p, ctx->Light.Light[ln]._Position);
-            NORMALIZE_3FV(p);
-            ADD_3V(p, p, ctx->_EyeZDir);
-            NORMALIZE_3FV(p);
-            COPY_3V(value, p);
-            value[3] = 1.0;
-         }
-         return;
+   case STATE_LIGHT_POSITION_NORMALIZED_ARRAY: {
+      const unsigned first = state[1];
+      const unsigned num_lights = state[2];
+      for (unsigned i = 0; i < num_lights; i++) {
+         float p[4];
+         COPY_4V(p, ctx->Light.Light[first + i]._Position);
+         NORMALIZE_3FV(p);
+         COPY_4V(value, p);
+         value += 4;
+      }
+      return;
+   }
 
-      case STATE_PT_SCALE:
-         value[0] = ctx->Pixel.RedScale;
-         value[1] = ctx->Pixel.GreenScale;
-         value[2] = ctx->Pixel.BlueScale;
-         value[3] = ctx->Pixel.AlphaScale;
-         return;
+   case STATE_LIGHT_HALF_VECTOR:
+      {
+         const GLuint ln = (GLuint) state[1];
+         GLfloat p[3];
+         /* Compute infinite half angle vector:
+          *   halfVector = normalize(normalize(lightPos) + (0, 0, 1))
+          * light.EyePosition.w should be 0 for infinite lights.
+          */
+         COPY_3V(p, ctx->Light.Light[ln]._Position);
+         NORMALIZE_3FV(p);
+         ADD_3V(p, p, ctx->_EyeZDir);
+         NORMALIZE_3FV(p);
+         COPY_3V(value, p);
+         value[3] = 1.0;
+      }
+      return;
 
-      case STATE_PT_BIAS:
-         value[0] = ctx->Pixel.RedBias;
-         value[1] = ctx->Pixel.GreenBias;
-         value[2] = ctx->Pixel.BlueBias;
-         value[3] = ctx->Pixel.AlphaBias;
-         return;
+   case STATE_PT_SCALE:
+      value[0] = ctx->Pixel.RedScale;
+      value[1] = ctx->Pixel.GreenScale;
+      value[2] = ctx->Pixel.BlueScale;
+      value[3] = ctx->Pixel.AlphaScale;
+      return;
 
-      case STATE_FB_SIZE:
-         value[0] = (GLfloat) (ctx->DrawBuffer->Width - 1);
-         value[1] = (GLfloat) (ctx->DrawBuffer->Height - 1);
+   case STATE_PT_BIAS:
+      value[0] = ctx->Pixel.RedBias;
+      value[1] = ctx->Pixel.GreenBias;
+      value[2] = ctx->Pixel.BlueBias;
+      value[3] = ctx->Pixel.AlphaBias;
+      return;
+
+   case STATE_FB_SIZE:
+      value[0] = (GLfloat) (ctx->DrawBuffer->Width - 1);
+      value[1] = (GLfloat) (ctx->DrawBuffer->Height - 1);
+      value[2] = 0.0F;
+      value[3] = 0.0F;
+      return;
+
+   case STATE_FB_WPOS_Y_TRANSFORM:
+      /* A driver may negate this conditional by using ZW swizzle
+       * instead of XY (based on e.g. some other state). */
+      if (!ctx->DrawBuffer->FlipY) {
+         /* Identity (XY) followed by flipping Y upside down (ZW). */
+         value[0] = 1.0F;
+         value[1] = 0.0F;
+         value[2] = -1.0F;
+         value[3] = _mesa_geometric_height(ctx->DrawBuffer);
+      } else {
+         /* Flipping Y upside down (XY) followed by identity (ZW). */
+         value[0] = -1.0F;
+         value[1] = _mesa_geometric_height(ctx->DrawBuffer);
+         value[2] = 1.0F;
+         value[3] = 0.0F;
+      }
+      return;
+
+   case STATE_FB_PNTC_Y_TRANSFORM:
+      {
+         bool flip_y = (ctx->Point.SpriteOrigin == GL_LOWER_LEFT) ^
+            (ctx->DrawBuffer->FlipY);
+
+         value[0] = flip_y ? -1.0F : 1.0F;
+         value[1] = flip_y ? 1.0F : 0.0F;
          value[2] = 0.0F;
          value[3] = 0.0F;
-         return;
-
-      case STATE_FB_WPOS_Y_TRANSFORM:
-         /* A driver may negate this conditional by using ZW swizzle
-          * instead of XY (based on e.g. some other state). */
-         if (!ctx->DrawBuffer->FlipY) {
-            /* Identity (XY) followed by flipping Y upside down (ZW). */
-            value[0] = 1.0F;
-            value[1] = 0.0F;
-            value[2] = -1.0F;
-            value[3] = _mesa_geometric_height(ctx->DrawBuffer);
-         } else {
-            /* Flipping Y upside down (XY) followed by identity (ZW). */
-            value[0] = -1.0F;
-            value[1] = _mesa_geometric_height(ctx->DrawBuffer);
-            value[2] = 1.0F;
-            value[3] = 0.0F;
-         }
-         return;
-
-      case STATE_TCS_PATCH_VERTICES_IN:
-         val[0].i = ctx->TessCtrlProgram.patch_vertices;
-         return;
-
-      case STATE_TES_PATCH_VERTICES_IN:
-         if (ctx->TessCtrlProgram._Current)
-            val[0].i = ctx->TessCtrlProgram._Current->info.tess.tcs_vertices_out;
-         else
-            val[0].i = ctx->TessCtrlProgram.patch_vertices;
-         return;
-
-      case STATE_ADVANCED_BLENDING_MODE:
-         val[0].i = _mesa_get_advanced_blend_sh_constant(
-                      ctx->Color.BlendEnabled, ctx->Color._AdvancedBlendMode);
-         return;
-
-      case STATE_ALPHA_REF:
-         value[0] = ctx->Color.AlphaRefUnclamped;
-         return;
-
-      case STATE_CLIP_INTERNAL:
-         {
-            const GLuint plane = (GLuint) state[2];
-            COPY_4V(value, ctx->Transform._ClipUserPlane[plane]);
-         }
-         return;
-
-      /* XXX: make sure new tokens added here are also handled in the
-       * _mesa_program_state_flags() switch, below.
-       */
-      default:
-         /* Unknown state indexes are silently ignored here.
-          * Drivers may do something special.
-          */
-         return;
       }
       return;
 
-   case STATE_NOT_STATE_VAR:
-      /* Most likely PROGRAM_CONSTANT. This only happens in rare cases, e.g.
-       * ARB_vp with ARL, which can't sort parameters by type.
-       */
+   case STATE_TCS_PATCH_VERTICES_IN:
+      val[0].i = ctx->TessCtrlProgram.patch_vertices;
       return;
 
-   default:
-      unreachable("Invalid state in _mesa_fetch_state");
+   case STATE_TES_PATCH_VERTICES_IN:
+      if (ctx->TessCtrlProgram._Current)
+         val[0].i = ctx->TessCtrlProgram._Current->info.tess.tcs_vertices_out;
+      else
+         val[0].i = ctx->TessCtrlProgram.patch_vertices;
+      return;
+
+   case STATE_ADVANCED_BLENDING_MODE:
+      val[0].i = _mesa_get_advanced_blend_sh_constant(
+                   ctx->Color.BlendEnabled, ctx->Color._AdvancedBlendMode);
+      return;
+
+   case STATE_ALPHA_REF:
+      value[0] = ctx->Color.AlphaRefUnclamped;
+      return;
+
+   case STATE_CLIP_INTERNAL:
+      {
+         const GLuint plane = (GLuint) state[1];
+         COPY_4V(value, ctx->Transform._ClipUserPlane[plane]);
+      }
       return;
    }
 }
@@ -708,15 +805,26 @@ _mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH])
 {
    switch (state[0]) {
    case STATE_MATERIAL:
+      return _NEW_MATERIAL;
+
    case STATE_LIGHTPROD:
+   case STATE_LIGHTPROD_ARRAY_FRONT:
+   case STATE_LIGHTPROD_ARRAY_BACK:
+   case STATE_LIGHTPROD_ARRAY_TWOSIDE:
    case STATE_LIGHTMODEL_SCENECOLOR:
-      /* these can be effected by glColor when colormaterial mode is used */
-      return _NEW_LIGHT | _NEW_CURRENT_ATTRIB;
+      return _NEW_LIGHT_CONSTANTS | _NEW_MATERIAL;
 
    case STATE_LIGHT:
-   case STATE_LIGHT_ATTRIBS:
+   case STATE_LIGHT_ARRAY:
+   case STATE_LIGHT_ATTENUATION_ARRAY:
    case STATE_LIGHTMODEL_AMBIENT:
-      return _NEW_LIGHT;
+   case STATE_LIGHT_SPOT_DIR_NORMALIZED:
+   case STATE_LIGHT_POSITION:
+   case STATE_LIGHT_POSITION_ARRAY:
+   case STATE_LIGHT_POSITION_NORMALIZED:
+   case STATE_LIGHT_POSITION_NORMALIZED_ARRAY:
+   case STATE_LIGHT_HALF_VECTOR:
+      return _NEW_LIGHT_CONSTANTS;
 
    case STATE_TEXGEN:
       return _NEW_TEXTURE_STATE;
@@ -726,6 +834,7 @@ _mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH])
    case STATE_FOG_COLOR:
       return _NEW_FOG | _NEW_BUFFERS | _NEW_FRAG_CLAMP;
    case STATE_FOG_PARAMS:
+   case STATE_FOG_PARAMS_OPTIMIZED:
       return _NEW_FOG;
 
    case STATE_CLIPPLANE:
@@ -739,7 +848,10 @@ _mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH])
    case STATE_MODELVIEW_MATRIX_INVERSE:
    case STATE_MODELVIEW_MATRIX_TRANSPOSE:
    case STATE_MODELVIEW_MATRIX_INVTRANS:
+   case STATE_NORMAL_SCALE_EYESPACE:
+   case STATE_NORMAL_SCALE:
       return _NEW_MODELVIEW;
+
    case STATE_PROJECTION_MATRIX:
    case STATE_PROJECTION_MATRIX_INVERSE:
    case STATE_PROJECTION_MATRIX_TRANSPOSE:
@@ -762,61 +874,47 @@ _mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH])
       return _NEW_TRACK_MATRIX;
 
    case STATE_NUM_SAMPLES:
+   case STATE_FB_SIZE:
+   case STATE_FB_WPOS_Y_TRANSFORM:
       return _NEW_BUFFERS;
+
+   case STATE_FB_PNTC_Y_TRANSFORM:
+      return _NEW_BUFFERS | _NEW_POINT;
 
    case STATE_DEPTH_RANGE:
       return _NEW_VIEWPORT;
 
-   case STATE_FRAGMENT_PROGRAM:
-   case STATE_VERTEX_PROGRAM:
+   case STATE_FRAGMENT_PROGRAM_ENV:
+   case STATE_FRAGMENT_PROGRAM_ENV_ARRAY:
+   case STATE_FRAGMENT_PROGRAM_LOCAL:
+   case STATE_FRAGMENT_PROGRAM_LOCAL_ARRAY:
+   case STATE_VERTEX_PROGRAM_ENV:
+   case STATE_VERTEX_PROGRAM_ENV_ARRAY:
+   case STATE_VERTEX_PROGRAM_LOCAL:
+   case STATE_VERTEX_PROGRAM_LOCAL_ARRAY:
       return _NEW_PROGRAM;
 
-   case STATE_NORMAL_SCALE:
-      return _NEW_MODELVIEW;
+   case STATE_CURRENT_ATTRIB:
+      return _NEW_CURRENT_ATTRIB;
+   case STATE_CURRENT_ATTRIB_MAYBE_VP_CLAMPED:
+      return _NEW_CURRENT_ATTRIB | _NEW_LIGHT_STATE | _NEW_BUFFERS;
 
-   case STATE_INTERNAL:
-      switch (state[1]) {
-      case STATE_CURRENT_ATTRIB:
-         return _NEW_CURRENT_ATTRIB;
-      case STATE_CURRENT_ATTRIB_MAYBE_VP_CLAMPED:
-         return _NEW_CURRENT_ATTRIB | _NEW_LIGHT | _NEW_BUFFERS;
+   case STATE_POINT_SIZE_CLAMPED:
+      return _NEW_POINT | _NEW_MULTISAMPLE;
 
-      case STATE_NORMAL_SCALE:
-         return _NEW_MODELVIEW;
+   case STATE_PT_SCALE:
+   case STATE_PT_BIAS:
+      return _NEW_PIXEL;
 
-      case STATE_FOG_PARAMS_OPTIMIZED:
-	 return _NEW_FOG;
-      case STATE_POINT_SIZE_CLAMPED:
-         return _NEW_POINT | _NEW_MULTISAMPLE;
-      case STATE_LIGHT_SPOT_DIR_NORMALIZED:
-      case STATE_LIGHT_POSITION:
-      case STATE_LIGHT_POSITION_NORMALIZED:
-      case STATE_LIGHT_HALF_VECTOR:
-         return _NEW_LIGHT;
+   case STATE_ADVANCED_BLENDING_MODE:
+   case STATE_ALPHA_REF:
+      return _NEW_COLOR;
 
-      case STATE_PT_SCALE:
-      case STATE_PT_BIAS:
-         return _NEW_PIXEL;
+   case STATE_CLIP_INTERNAL:
+      return _NEW_TRANSFORM | _NEW_PROJECTION;
 
-      case STATE_FB_SIZE:
-      case STATE_FB_WPOS_Y_TRANSFORM:
-         return _NEW_BUFFERS;
-
-      case STATE_ADVANCED_BLENDING_MODE:
-         return _NEW_COLOR;
-
-      case STATE_ALPHA_REF:
-         return _NEW_COLOR;
-
-      case STATE_CLIP_INTERNAL:
-         return _NEW_TRANSFORM | _NEW_PROJECTION;
-
-      default:
-         /* unknown state indexes are silently ignored and
-         *  no flag set, since it is handled by the driver.
-         */
-	 return 0;
-      }
+   case STATE_INTERNAL_DRIVER:
+      return 0; /* internal driver state */
 
    case STATE_NOT_STATE_VAR:
       return 0;
@@ -847,13 +945,16 @@ append_token(char *dst, gl_state_index k)
 {
    switch (k) {
    case STATE_MATERIAL:
-      append(dst, "material.");
+      append(dst, "material");
       break;
    case STATE_LIGHT:
       append(dst, "light");
       break;
-   case STATE_LIGHT_ATTRIBS:
-      append(dst, "light.attribs");
+   case STATE_LIGHT_ARRAY:
+      append(dst, "light.array");
+      break;
+   case STATE_LIGHT_ATTENUATION_ARRAY:
+      append(dst, "light.attenuation");
       break;
    case STATE_LIGHTMODEL_AMBIENT:
       append(dst, "lightmodel.ambient");
@@ -862,6 +963,15 @@ append_token(char *dst, gl_state_index k)
       break;
    case STATE_LIGHTPROD:
       append(dst, "lightprod");
+      break;
+   case STATE_LIGHTPROD_ARRAY_FRONT:
+      append(dst, "lightprod.array.front");
+      break;
+   case STATE_LIGHTPROD_ARRAY_BACK:
+      append(dst, "lightprod.array.back");
+      break;
+   case STATE_LIGHTPROD_ARRAY_TWOSIDE:
+      append(dst, "lightprod.array.twoside");
       break;
    case STATE_TEXGEN:
       append(dst, "texgen");
@@ -1005,24 +1115,30 @@ append_token(char *dst, gl_state_index k)
    case STATE_DEPTH_RANGE:
       append(dst, "depth.range");
       break;
-   case STATE_VERTEX_PROGRAM:
-   case STATE_FRAGMENT_PROGRAM:
-      break;
-   case STATE_ENV:
+   case STATE_VERTEX_PROGRAM_ENV:
+   case STATE_FRAGMENT_PROGRAM_ENV:
       append(dst, "env");
       break;
-   case STATE_LOCAL:
+   case STATE_VERTEX_PROGRAM_ENV_ARRAY:
+   case STATE_FRAGMENT_PROGRAM_ENV_ARRAY:
+      append(dst, "env.range");
+      break;
+   case STATE_VERTEX_PROGRAM_LOCAL:
+   case STATE_FRAGMENT_PROGRAM_LOCAL:
       append(dst, "local");
       break;
-   /* BEGIN internal state vars */
-   case STATE_INTERNAL:
-      append(dst, "internal.");
+   case STATE_VERTEX_PROGRAM_LOCAL_ARRAY:
+   case STATE_FRAGMENT_PROGRAM_LOCAL_ARRAY:
+      append(dst, "local.range");
       break;
    case STATE_CURRENT_ATTRIB:
       append(dst, "current");
       break;
    case STATE_CURRENT_ATTRIB_MAYBE_VP_CLAMPED:
       append(dst, "currentAttribMaybeVPClamped");
+      break;
+   case STATE_NORMAL_SCALE_EYESPACE:
+      append(dst, "normalScaleEyeSpace");
       break;
    case STATE_NORMAL_SCALE:
       append(dst, "normalScale");
@@ -1037,10 +1153,16 @@ append_token(char *dst, gl_state_index k)
       append(dst, "lightSpotDirNormalized");
       break;
    case STATE_LIGHT_POSITION:
-      append(dst, "lightPosition");
+      append(dst, "light.position");
+      break;
+   case STATE_LIGHT_POSITION_ARRAY:
+      append(dst, "light.position.array");
       break;
    case STATE_LIGHT_POSITION_NORMALIZED:
       append(dst, "light.position.normalized");
+      break;
+   case STATE_LIGHT_POSITION_NORMALIZED_ARRAY:
+      append(dst, "light.position.normalized.array");
       break;
    case STATE_LIGHT_HALF_VECTOR:
       append(dst, "lightHalfVector");
@@ -1057,6 +1179,9 @@ append_token(char *dst, gl_state_index k)
    case STATE_FB_WPOS_Y_TRANSFORM:
       append(dst, "FbWposYTransform");
       break;
+   case STATE_FB_PNTC_Y_TRANSFORM:
+      append(dst, "PntcYTransform");
+      break;
    case STATE_ADVANCED_BLENDING_MODE:
       append(dst, "AdvancedBlendingMode");
       break;
@@ -1070,15 +1195,6 @@ append_token(char *dst, gl_state_index k)
       /* probably STATE_INTERNAL_DRIVER+i (driver private state) */
       append(dst, "driverState");
    }
-}
-
-static void
-append_face(char *dst, GLint face)
-{
-   if (face == 0)
-      append(dst, "front.");
-   else
-      append(dst, "back.");
 }
 
 static void
@@ -1104,17 +1220,9 @@ _mesa_program_state_string(const gl_state_index16 state[STATE_LENGTH])
    append_token(str, state[0]);
 
    switch (state[0]) {
-   case STATE_MATERIAL:
-      append_face(str, state[1]);
-      append_token(str, state[2]);
-      break;
    case STATE_LIGHT:
       append_index(str, state[1], true); /* light number [i]. */
       append_token(str, state[2]); /* coefficients */
-      break;
-   case STATE_LIGHT_ATTRIBS:
-      sprintf(tmp, "[%d..%d]", state[1], state[1] + state[2] - 1);
-      append(str, tmp);
       break;
    case STATE_LIGHTMODEL_AMBIENT:
       break;
@@ -1127,9 +1235,8 @@ _mesa_program_state_string(const gl_state_index16 state[STATE_LENGTH])
       }
       break;
    case STATE_LIGHTPROD:
-      append_index(str, state[1], true); /* light number [i]. */
-      append_face(str, state[2]);
-      append_token(str, state[3]);
+      append_index(str, state[1], false); /* light number [i] */
+      append_index(str, state[2], false);
       break;
    case STATE_TEXGEN:
       append_index(str, state[1], true); /* tex unit [i] */
@@ -1183,33 +1290,53 @@ _mesa_program_state_string(const gl_state_index16 state[STATE_LENGTH])
          append(str, tmp);
       }
       break;
+   case STATE_LIGHT_ARRAY:
+   case STATE_LIGHT_ATTENUATION_ARRAY:
+   case STATE_FRAGMENT_PROGRAM_ENV_ARRAY:
+   case STATE_FRAGMENT_PROGRAM_LOCAL_ARRAY:
+   case STATE_VERTEX_PROGRAM_ENV_ARRAY:
+   case STATE_VERTEX_PROGRAM_LOCAL_ARRAY:
+   case STATE_LIGHTPROD_ARRAY_FRONT:
+   case STATE_LIGHTPROD_ARRAY_BACK:
+   case STATE_LIGHTPROD_ARRAY_TWOSIDE:
+   case STATE_LIGHT_POSITION_ARRAY:
+   case STATE_LIGHT_POSITION_NORMALIZED_ARRAY:
+      sprintf(tmp, "[%d..%d]", state[1], state[1] + state[2] - 1);
+      append(str, tmp);
+      break;
+   case STATE_MATERIAL:
+   case STATE_FRAGMENT_PROGRAM_ENV:
+   case STATE_FRAGMENT_PROGRAM_LOCAL:
+   case STATE_VERTEX_PROGRAM_ENV:
+   case STATE_VERTEX_PROGRAM_LOCAL:
+   case STATE_CURRENT_ATTRIB:
+   case STATE_CURRENT_ATTRIB_MAYBE_VP_CLAMPED:
+   case STATE_LIGHT_SPOT_DIR_NORMALIZED:
+   case STATE_LIGHT_POSITION:
+   case STATE_LIGHT_POSITION_NORMALIZED:
+   case STATE_LIGHT_HALF_VECTOR:
+   case STATE_CLIP_INTERNAL:
+      append_index(str, state[1], false);
+      break;
    case STATE_POINT_SIZE:
-      break;
    case STATE_POINT_ATTENUATION:
-      break;
    case STATE_FOG_PARAMS:
-      break;
    case STATE_FOG_COLOR:
-      break;
    case STATE_NUM_SAMPLES:
-      break;
    case STATE_DEPTH_RANGE:
-      break;
-   case STATE_FRAGMENT_PROGRAM:
-   case STATE_VERTEX_PROGRAM:
-      /* state[1] = {STATE_ENV, STATE_LOCAL} */
-      /* state[2] = parameter index          */
-      append_token(str, state[1]);
-      append_index(str, state[2], false);
-      break;
+   case STATE_NORMAL_SCALE_EYESPACE:
    case STATE_NORMAL_SCALE:
+   case STATE_FOG_PARAMS_OPTIMIZED:
+   case STATE_POINT_SIZE_CLAMPED:
+   case STATE_PT_SCALE:
+   case STATE_PT_BIAS:
+   case STATE_FB_SIZE:
+   case STATE_FB_WPOS_Y_TRANSFORM:
+   case STATE_TCS_PATCH_VERTICES_IN:
+   case STATE_TES_PATCH_VERTICES_IN:
+   case STATE_ADVANCED_BLENDING_MODE:
+   case STATE_ALPHA_REF:
       break;
-   case STATE_INTERNAL:
-      append_token(str, state[1]);
-      if (state[1] == STATE_CURRENT_ATTRIB ||
-          state[1] == STATE_CURRENT_ATTRIB_MAYBE_VP_CLAMPED)
-         append_index(str, state[2], false);
-       break;
    case STATE_NOT_STATE_VAR:
       append(str, "not_state");
       break;
@@ -1237,9 +1364,9 @@ _mesa_load_state_parameters(struct gl_context *ctx,
    if (!paramList)
       return;
 
-   int num = paramList->NumParameters;
+   int last = paramList->LastStateVarIndex;
 
-   for (int i = paramList->FirstStateVarIndex; i < num; i++) {
+   for (int i = paramList->FirstStateVarIndex; i <= last; i++) {
       unsigned pvo = paramList->Parameters[i].ValueOffset;
       fetch_state(ctx, paramList->Parameters[i].StateIndexes,
                   paramList->ParameterValues + pvo);
@@ -1251,9 +1378,9 @@ _mesa_upload_state_parameters(struct gl_context *ctx,
                               struct gl_program_parameter_list *paramList,
                               uint32_t *dst)
 {
-   int num = paramList->NumParameters;
+   int last = paramList->LastStateVarIndex;
 
-   for (int i = paramList->FirstStateVarIndex; i < num; i++) {
+   for (int i = paramList->FirstStateVarIndex; i <= last; i++) {
       unsigned pvo = paramList->Parameters[i].ValueOffset;
       fetch_state(ctx, paramList->Parameters[i].StateIndexes,
                   (gl_constant_value*)(dst + pvo));
@@ -1268,7 +1395,8 @@ _mesa_upload_state_parameters(struct gl_context *ctx,
  * It's only meant to optimize _mesa_load/upload_state_parameters.
  */
 void
-_mesa_optimize_state_parameters(struct gl_program_parameter_list *list)
+_mesa_optimize_state_parameters(struct gl_constants *consts,
+                                struct gl_program_parameter_list *list)
 {
    for (int first_param = list->FirstStateVarIndex;
         first_param < (int)list->NumParameters; first_param++) {
@@ -1344,7 +1472,10 @@ _mesa_optimize_state_parameters(struct gl_program_parameter_list *list)
                   list->Parameters[i].StateIndexes[2] ==
                   list->Parameters[i - 1].StateIndexes[2] + 1) ||
                  /* Consecutive attributes between 2 lights: */
-                 (list->Parameters[i].StateIndexes[1] ==
+                 /* SPOT_CUTOFF should have only 1 component, which isn't true
+                  * with unpacked uniform storage. */
+                 (consts->PackedDriverUniformStorage &&
+                  list->Parameters[i].StateIndexes[1] ==
                   list->Parameters[i - 1].StateIndexes[1] + 1 &&
                   list->Parameters[i].StateIndexes[2] == STATE_AMBIENT &&
                   list->Parameters[i - 1].StateIndexes[2] == STATE_SPOT_CUTOFF))) {
@@ -1354,23 +1485,204 @@ _mesa_optimize_state_parameters(struct gl_program_parameter_list *list)
             break; /* The adjacent state var is incompatible. */
          }
          if (last_param > first_param) {
-            /* Convert the state var to STATE_LIGHT_ATTRIBS. */
-            list->Parameters[first_param].StateIndexes[0] = STATE_LIGHT_ATTRIBS;
+            /* Convert the state var to STATE_LIGHT_ARRAY. */
+            list->Parameters[first_param].StateIndexes[0] = STATE_LIGHT_ARRAY;
             /* Set the offset in floats. */
             list->Parameters[first_param].StateIndexes[1] =
                list->Parameters[first_param].StateIndexes[1] * /* light index */
                sizeof(struct gl_light_uniforms) / 4 +
                (list->Parameters[first_param].StateIndexes[2] - STATE_AMBIENT) * 4;
-            /* Set the size in floats. */
+
+            /* Set the real size in floats that we will upload (memcpy). */
             list->Parameters[first_param].StateIndexes[2] =
+               _mesa_program_state_value_size(list->Parameters[last_param].StateIndexes) +
+               list->Parameters[last_param].ValueOffset -
+               list->Parameters[first_param].ValueOffset;
+
+            /* Set the allocated size, which can be aligned to 4 components. */
             list->Parameters[first_param].Size =
                list->Parameters[last_param].Size +
                list->Parameters[last_param].ValueOffset -
                list->Parameters[first_param].ValueOffset;
 
             param_diff = last_param - first_param;
+            break; /* all done */
+         }
+
+         /* We were not able to convert light attributes to STATE_LIGHT_ARRAY.
+          * Another occuring pattern is light attentuation vectors placed back
+          * to back. Find them.
+          */
+         if (list->Parameters[first_param].StateIndexes[2] == STATE_ATTENUATION) {
+            for (int i = first_param + 1; i < (int)list->NumParameters; i++) {
+               if (list->Parameters[i].StateIndexes[0] == STATE_LIGHT &&
+                   /* Consecutive light: */
+                   list->Parameters[i].StateIndexes[1] ==
+                   list->Parameters[i - 1].StateIndexes[1] + 1 &&
+                   /* Same attribute: */
+                   list->Parameters[i].StateIndexes[2] ==
+                   list->Parameters[i - 1].StateIndexes[2]) {
+                  last_param = i;
+                  continue;
+               }
+               break; /* The adjacent state var is incompatible. */
+            }
+            if (last_param > first_param) {
+               param_diff = last_param - first_param;
+
+               /* Convert the state var to STATE_LIGHT_ATTENUATION_ARRAY. */
+               list->Parameters[first_param].StateIndexes[0] =
+                  STATE_LIGHT_ATTENUATION_ARRAY;
+               /* Keep the light index the same. */
+               /* Set the number of lights. */
+               unsigned size = param_diff + 1;
+               list->Parameters[first_param].StateIndexes[2] = size;
+               list->Parameters[first_param].Size = size * 4;
+               break; /* all done */
+            }
          }
          break;
+
+      case STATE_VERTEX_PROGRAM_ENV:
+      case STATE_VERTEX_PROGRAM_LOCAL:
+      case STATE_FRAGMENT_PROGRAM_ENV:
+      case STATE_FRAGMENT_PROGRAM_LOCAL:
+         if (list->Parameters[first_param].Size != 4)
+            break;
+
+         /* Search for adjacent mergeable state vars. */
+         for (int i = first_param + 1; i < (int)list->NumParameters; i++) {
+            if (list->Parameters[i].StateIndexes[0] ==
+                list->Parameters[i - 1].StateIndexes[0] &&
+                list->Parameters[i].StateIndexes[1] ==
+                list->Parameters[i - 1].StateIndexes[1] + 1 &&
+                list->Parameters[i].Size == 4) {
+               last_param = i;
+               continue;
+            }
+            break; /* The adjacent state var is incompatible. */
+         }
+         if (last_param > first_param) {
+            /* Set STATE_xxx_RANGE. */
+            STATIC_ASSERT(STATE_VERTEX_PROGRAM_ENV + 1 ==
+                          STATE_VERTEX_PROGRAM_ENV_ARRAY);
+            STATIC_ASSERT(STATE_VERTEX_PROGRAM_LOCAL + 1 ==
+                          STATE_VERTEX_PROGRAM_LOCAL_ARRAY);
+            STATIC_ASSERT(STATE_FRAGMENT_PROGRAM_ENV + 1 ==
+                          STATE_FRAGMENT_PROGRAM_ENV_ARRAY);
+            STATIC_ASSERT(STATE_FRAGMENT_PROGRAM_LOCAL + 1 ==
+                          STATE_FRAGMENT_PROGRAM_LOCAL_ARRAY);
+            list->Parameters[first_param].StateIndexes[0]++;
+
+            param_diff = last_param - first_param;
+
+            /* Set the size. */
+            unsigned size = param_diff + 1;
+            list->Parameters[first_param].StateIndexes[2] = size;
+            list->Parameters[first_param].Size = size * 4;
+         }
+         break;
+
+      case STATE_LIGHTPROD: {
+         if (list->Parameters[first_param].Size != 4)
+            break;
+
+         gl_state_index16 state = STATE_NOT_STATE_VAR;
+         unsigned num_lights = 0;
+
+         for (unsigned state_iter = STATE_LIGHTPROD_ARRAY_FRONT;
+              state_iter <= STATE_LIGHTPROD_ARRAY_TWOSIDE; state_iter++) {
+            unsigned num_attribs, base_attrib, attrib_incr;
+
+            if (state_iter == STATE_LIGHTPROD_ARRAY_FRONT)  {
+               num_attribs = 3;
+               base_attrib = MAT_ATTRIB_FRONT_AMBIENT;
+               attrib_incr = 2;
+            } else if (state_iter == STATE_LIGHTPROD_ARRAY_BACK) {
+               num_attribs = 3;
+               base_attrib = MAT_ATTRIB_BACK_AMBIENT;
+               attrib_incr = 2;
+            } else if (state_iter == STATE_LIGHTPROD_ARRAY_TWOSIDE) {
+               num_attribs = 6;
+               base_attrib = MAT_ATTRIB_FRONT_AMBIENT;
+               attrib_incr = 1;
+            }
+
+            /* Find all attributes for one light. */
+            while (first_param + (num_lights + 1) * num_attribs <=
+                   list->NumParameters &&
+                   (state == STATE_NOT_STATE_VAR || state == state_iter)) {
+               unsigned i = 0, base = first_param + num_lights * num_attribs;
+
+               /* Consecutive light indices: */
+               if (list->Parameters[first_param].StateIndexes[1] + num_lights ==
+                   list->Parameters[base].StateIndexes[1]) {
+                  for (i = 0; i < num_attribs; i++) {
+                     if (list->Parameters[base + i].StateIndexes[0] ==
+                         STATE_LIGHTPROD &&
+                         list->Parameters[base + i].Size == 4 &&
+                         /* Equal light indices: */
+                         list->Parameters[base + i].StateIndexes[1] ==
+                         list->Parameters[base + 0].StateIndexes[1] &&
+                         /* Consecutive attributes: */
+                         list->Parameters[base + i].StateIndexes[2] ==
+                         base_attrib + i * attrib_incr)
+                        continue;
+                     break;
+                  }
+               }
+               if (i == num_attribs) {
+                  /* Accept all parameters for merging. */
+                  state = state_iter;
+                  last_param = base + num_attribs - 1;
+                  num_lights++;
+               } else {
+                  break;
+               }
+            }
+         }
+
+         if (last_param > first_param) {
+            param_diff = last_param - first_param;
+
+            list->Parameters[first_param].StateIndexes[0] = state;
+            list->Parameters[first_param].StateIndexes[2] = num_lights;
+            list->Parameters[first_param].Size = (param_diff + 1) * 4;
+         }
+         break;
+      }
+
+      case STATE_LIGHT_POSITION:
+      case STATE_LIGHT_POSITION_NORMALIZED:
+         if (list->Parameters[first_param].Size != 4)
+            break;
+
+         for (int i = first_param + 1; i < (int)list->NumParameters; i++) {
+            if (list->Parameters[i].StateIndexes[0] ==
+                list->Parameters[i - 1].StateIndexes[0] &&
+                /* Consecutive light: */
+                list->Parameters[i].StateIndexes[1] ==
+                list->Parameters[i - 1].StateIndexes[1] + 1) {
+               last_param = i;
+               continue;
+            }
+            break; /* The adjacent state var is incompatible. */
+         }
+         if (last_param > first_param) {
+            param_diff = last_param - first_param;
+
+            /* Convert the state var to STATE_LIGHT_POSITION_*ARRAY. */
+            STATIC_ASSERT(STATE_LIGHT_POSITION + 1 ==
+                          STATE_LIGHT_POSITION_ARRAY);
+            STATIC_ASSERT(STATE_LIGHT_POSITION_NORMALIZED + 1 ==
+                          STATE_LIGHT_POSITION_NORMALIZED_ARRAY);
+            list->Parameters[first_param].StateIndexes[0]++;
+            /* Keep the light index the same. */
+            unsigned size = param_diff + 1;
+            /* Set the number of lights. */
+            list->Parameters[first_param].StateIndexes[2] = size;
+            list->Parameters[first_param].Size = size * 4;
+         }
       }
 
       if (param_diff) {
@@ -1384,11 +1696,15 @@ _mesa_optimize_state_parameters(struct gl_program_parameter_list *list)
             free((char*)list->Parameters[i].Name);
 
          /* Remove the merged state vars. */
-         memmove(&list->Parameters[first_param + 1],
-                 &list->Parameters[last_param + 1],
-                 sizeof(list->Parameters[0]) *
-                 (list->NumParameters - last_param - 1));
+         if (last_param + 1 < list->NumParameters) {
+            memmove(&list->Parameters[first_param + 1],
+                    &list->Parameters[last_param + 1],
+                    sizeof(list->Parameters[0]) *
+                    (list->NumParameters - last_param - 1));
+         }
          list->NumParameters -= param_diff;
       }
    }
+
+   _mesa_recompute_parameter_bounds(list);
 }

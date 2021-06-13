@@ -113,7 +113,7 @@ tu6_texswiz(const VkComponentMapping *comps,
             const struct tu_sampler_ycbcr_conversion *conversion,
             VkFormat format,
             VkImageAspectFlagBits aspect_mask,
-            bool limited_z24s8)
+            bool has_z24uint_s8uint)
 {
    unsigned char swiz[4] = {
       A6XX_TEX_X, A6XX_TEX_Y, A6XX_TEX_Z, A6XX_TEX_W,
@@ -135,7 +135,7 @@ tu6_texswiz(const VkComponentMapping *comps,
       break;
    case VK_FORMAT_D24_UNORM_S8_UINT:
       if (aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT) {
-         if (limited_z24s8) {
+         if (!has_z24uint_s8uint) {
             /* using FMT6_8_8_8_8_UINT */
             swiz[0] = A6XX_TEX_W;
             swiz[1] = A6XX_TEX_ZERO;
@@ -193,7 +193,7 @@ tu_cs_image_flag_ref(struct tu_cs *cs, const struct tu_image_view *iview, uint32
 void
 tu_image_view_init(struct tu_image_view *iview,
                    const VkImageViewCreateInfo *pCreateInfo,
-                   bool limited_z24s8)
+                   bool has_z24uint_s8uint)
 {
    TU_FROM_HANDLE(tu_image, image, pCreateInfo->image);
    const VkImageSubresourceRange *range = &pCreateInfo->subresourceRange;
@@ -260,7 +260,7 @@ tu_image_view_init(struct tu_image_view *iview,
       if (aspect_mask & VK_IMAGE_ASPECT_DEPTH_BIT)
          fmt_tex = FMT6_Z24_UNORM_S8_UINT;
       if (aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT)
-         fmt_tex = limited_z24s8 ? FMT6_8_8_8_8_UINT : FMT6_Z24_UINT_S8_UINT;
+         fmt_tex = has_z24uint_s8uint ? FMT6_Z24_UINT_S8_UINT : FMT6_8_8_8_8_UINT;
       /* TODO: also use this format with storage descriptor ? */
    }
 
@@ -270,7 +270,7 @@ tu_image_view_init(struct tu_image_view *iview,
       A6XX_TEX_CONST_0_FMT(fmt_tex) |
       A6XX_TEX_CONST_0_SAMPLES(tu_msaa_samples(layout->nr_samples)) |
       A6XX_TEX_CONST_0_SWAP(fmt.swap) |
-      tu6_texswiz(&pCreateInfo->components, conversion, format, aspect_mask, limited_z24s8) |
+      tu6_texswiz(&pCreateInfo->components, conversion, format, aspect_mask, has_z24uint_s8uint) |
       A6XX_TEX_CONST_0_MIPLVLS(tu_get_levelCount(image, range) - 1);
    iview->descriptor[1] = A6XX_TEX_CONST_1_WIDTH(width) | A6XX_TEX_CONST_1_HEIGHT(height);
    iview->descriptor[2] =
@@ -447,7 +447,8 @@ tu_image_view_init(struct tu_image_view *iview,
 }
 
 bool
-ubwc_possible(VkFormat format, VkImageType type, VkImageUsageFlags usage, bool limited_z24s8)
+ubwc_possible(VkFormat format, VkImageType type, VkImageUsageFlags usage, bool has_z24uint_s8uint,
+              VkSampleCountFlagBits samples)
 {
    /* no UBWC with compressed formats, E5B9G9R9, S8_UINT
     * (S8_UINT because separate stencil doesn't have UBWC-enable bit)
@@ -485,9 +486,12 @@ ubwc_possible(VkFormat format, VkImageType type, VkImageUsageFlags usage, bool l
     * Additionally, the special AS_R8G8B8A8 format is broken without UBWC,
     * so we have to fallback to 8_8_8_8_UNORM when UBWC is disabled
     */
-   if (limited_z24s8 &&
+   if (!has_z24uint_s8uint &&
        format == VK_FORMAT_D24_UNORM_S8_UINT &&
        (usage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)))
+      return false;
+
+   if (!has_z24uint_s8uint && samples > VK_SAMPLE_COUNT_1_BIT)
       return false;
 
    return true;
@@ -549,6 +553,10 @@ tu_CreateImage(VkDevice _device,
    if (!image)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
+   const VkExternalMemoryImageCreateInfo *external_info =
+      vk_find_struct_const(pCreateInfo->pNext, EXTERNAL_MEMORY_IMAGE_CREATE_INFO);
+   image->shareable = external_info != NULL;
+
    image->vk_format = pCreateInfo->format;
    image->level_count = pCreateInfo->mipLevels;
    image->layer_count = pCreateInfo->arrayLayers;
@@ -595,7 +603,7 @@ tu_CreateImage(VkDevice _device,
    }
 
    if (!ubwc_possible(image->vk_format, pCreateInfo->imageType, pCreateInfo->usage,
-                      device->physical_device->limited_z24s8))
+                      device->physical_device->info.a6xx.has_z24uint_s8uint, pCreateInfo->samples))
       ubwc_enabled = false;
 
    /* expect UBWC enabled if we asked for it */
@@ -791,7 +799,7 @@ tu_CreateImageView(VkDevice _device,
    if (view == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   tu_image_view_init(view, pCreateInfo, device->physical_device->limited_z24s8);
+   tu_image_view_init(view, pCreateInfo, device->physical_device->info.a6xx.has_z24uint_s8uint);
 
    *pView = tu_image_view_to_handle(view);
 

@@ -26,10 +26,20 @@
 #ifndef ZINK_SHADER_KEYS_H
 # define ZINK_SHADER_KEYS_H
 
+struct zink_vs_key {
+   unsigned shader_id;
+   bool clip_halfz;
+   bool push_drawid;
+   bool last_vertex_stage;
+};
+
 struct zink_fs_key {
    unsigned shader_id;
+   uint8_t coord_replace_bits;
+   bool coord_replace_yinvert;
    //bool flat_shade;
    bool samples;
+   bool force_dual_color_blend;
 };
 
 struct zink_tcs_key {
@@ -45,6 +55,8 @@ struct zink_tcs_key {
  */
 struct zink_shader_key {
    union {
+      /* reuse vs key for now with tes/gs since we only use clip_halfz */
+      struct zink_vs_key vs;
       struct zink_fs_key fs;
       struct zink_tcs_key tcs;
    } key;
@@ -55,6 +67,12 @@ static inline const struct zink_fs_key *
 zink_fs_key(const struct zink_shader_key *key)
 {
    return &key->key.fs;
+}
+
+static inline const struct zink_vs_key *
+zink_vs_key(const struct zink_shader_key *key)
+{
+   return &key->key.vs;
 }
 
 

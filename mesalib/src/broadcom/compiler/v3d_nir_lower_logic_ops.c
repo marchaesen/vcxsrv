@@ -90,7 +90,7 @@ v3d_logicop(nir_builder *b, int logicop_func,
                 return nir_imm_int(b, ~0);
         default:
                 fprintf(stderr, "Unknown logic op %d\n", logicop_func);
-                /* FALLTHROUGH */
+                FALLTHROUGH;
         case PIPE_LOGICOP_COPY:
                 return src;
         }
@@ -103,7 +103,7 @@ v3d_nir_get_swizzled_channel(nir_builder *b, nir_ssa_def **srcs, int swiz)
         default:
         case PIPE_SWIZZLE_NONE:
                 fprintf(stderr, "warning: unknown swizzle\n");
-                /* FALLTHROUGH */
+                FALLTHROUGH;
         case PIPE_SWIZZLE_0:
                 return nir_imm_float(b, 0.0);
         case PIPE_SWIZZLE_1:
@@ -147,7 +147,7 @@ v3d_nir_unpack_and_swizzle(nir_builder *b, nir_ssa_def *packed,
 static nir_ssa_def *
 pack_unorm_rgb10a2(nir_builder *b, nir_ssa_def *c)
 {
-        const unsigned bits[4] = { 10, 10, 10, 2 };
+        static const unsigned bits[4] = { 10, 10, 10, 2 };
         nir_ssa_def *unorm = nir_format_float_to_unorm(b, c, bits);
 
         nir_ssa_def *chans[4];
@@ -168,7 +168,7 @@ pack_unorm_rgb10a2(nir_builder *b, nir_ssa_def *c)
 static nir_ssa_def *
 unpack_unorm_rgb10a2(nir_builder *b, nir_ssa_def *c)
 {
-        const unsigned bits[4] = { 10, 10, 10, 2 };
+        static const unsigned bits[4] = { 10, 10, 10, 2 };
         const unsigned masks[4] = { BITFIELD_MASK(bits[0]),
                                     BITFIELD_MASK(bits[1]),
                                     BITFIELD_MASK(bits[2]),
@@ -205,18 +205,8 @@ static nir_ssa_def *
 v3d_nir_get_tlb_color(nir_builder *b, int rt, int sample)
 {
         nir_ssa_def *color[4];
-        for (int i = 0; i < 4; i++) {
-                nir_intrinsic_instr *load =
-                        nir_intrinsic_instr_create(b->shader,
-                                                   nir_intrinsic_load_tlb_color_v3d);
-                load->num_components = 1;
-                nir_intrinsic_set_base(load, sample);
-                nir_intrinsic_set_component(load, i);
-                load->src[0] = nir_src_for_ssa(nir_imm_int(b, rt));
-                nir_ssa_dest_init(&load->instr, &load->dest, 1, 32, NULL);
-                nir_builder_instr_insert(b, &load->instr);
-                color[i] = &load->dest.ssa;
-        }
+        for (int i = 0; i < 4; i++)
+                color[i] = nir_load_tlb_color_v3d(b, 1, 32, nir_imm_int(b, rt), .base = sample, .component = i);
 
         return nir_vec4(b, color[0], color[1], color[2], color[3]);
 }
@@ -249,7 +239,7 @@ v3d_emit_logic_op_unorm(struct v3d_compile *c, nir_builder *b,
                         int rt, int sample,
                         nir_pack_func pack_func, nir_unpack_func unpack_func)
 {
-        const uint8_t src_swz[4] = { 0, 1, 2, 3 };
+        static const uint8_t src_swz[4] = { 0, 1, 2, 3 };
         nir_ssa_def *packed_src =
                 v3d_nir_swizzle_and_pack(b, src_chans, src_swz, pack_func);
 
@@ -291,21 +281,11 @@ v3d_nir_emit_logic_op(struct v3d_compile *c, nir_builder *b,
 }
 
 static void
-v3d_emit_ms_output(struct v3d_compile *c, nir_builder *b,
+v3d_emit_ms_output(nir_builder *b,
                    nir_ssa_def *color, nir_src *offset,
                    nir_alu_type type, int rt, int sample)
 {
-
-        nir_intrinsic_instr *store =
-                nir_intrinsic_instr_create(b->shader,
-                                           nir_intrinsic_store_tlb_sample_color_v3d);
-        store->num_components = 4;
-        nir_intrinsic_set_base(store, sample);
-        nir_intrinsic_set_component(store, 0);
-        nir_intrinsic_set_src_type(store, type);
-        store->src[0] = nir_src_for_ssa(color);
-        store->src[1] = nir_src_for_ssa(nir_imm_int(b, rt));
-        nir_builder_instr_insert(b, &store->instr);
+        nir_store_tlb_sample_color_v3d(b, color, nir_imm_int(b, rt), .base = sample, .component = 0, .src_type = type);
 }
 
 static void
@@ -327,7 +307,7 @@ v3d_nir_lower_logic_op_instr(struct v3d_compile *c,
                         nir_ssa_def *sample =
                                 v3d_nir_emit_logic_op(c, b, frag_color, rt, i);
 
-                        v3d_emit_ms_output(c, b, sample, offset, type, rt, i);
+                        v3d_emit_ms_output(b, sample, offset, type, rt, i);
                 }
 
                 nir_instr_remove(&intr->instr);

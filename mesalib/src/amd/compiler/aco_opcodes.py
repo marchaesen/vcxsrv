@@ -30,6 +30,28 @@
 import sys
 from enum import Enum
 
+class InstrClass(Enum):
+   Valu32 = 0
+   ValuConvert32 = 1
+   Valu64 = 2
+   ValuQuarterRate32 = 3
+   ValuFma = 4
+   ValuTranscendental32 = 5
+   ValuDouble = 6
+   ValuDoubleAdd = 7
+   ValuDoubleConvert = 8
+   ValuDoubleTranscendental = 9
+   Salu = 10
+   SMem = 11
+   Barrier = 12
+   Branch = 13
+   Sendmsg = 14
+   DS = 15
+   Export = 16
+   VMem = 17
+   Waitcnt = 18
+   Other = 19
+
 class Format(Enum):
    PSEUDO = 0
    SOP1 = 1
@@ -53,8 +75,7 @@ class Format(Enum):
    VOP1 = 1 << 8
    VOP2 = 1 << 9
    VOPC = 1 << 10
-   VOP3A = 1 << 11
-   VOP3B = 1 << 11
+   VOP3 = 1 << 11
    VINTRP = 1 << 12
    DPP = 1 << 13
    SDWA = 1 << 14
@@ -134,6 +155,9 @@ class Format(Enum):
                  ('uint8_t', 'row_mask', '0xF'),
                  ('uint8_t', 'bank_mask', '0xF'),
                  ('bool', 'bound_ctrl', 'true')]
+      elif self == Format.VOP3P:
+         return [('uint8_t', 'opsel_lo', None),
+                 ('uint8_t', 'opsel_hi', None)]
       elif self in [Format.FLAT, Format.GLOBAL, Format.SCRATCH]:
          return [('uint16_t', 'offset', 0),
                  ('memory_sync_info', 'sync', 'memory_sync_info()'),
@@ -167,7 +191,7 @@ class Opcode(object):
    """Class that represents all the information we have about the opcode
    NOTE: this must be kept in sync with aco_op_info
    """
-   def __init__(self, name, opcode_gfx7, opcode_gfx9, opcode_gfx10, format, input_mod, output_mod, is_atomic):
+   def __init__(self, name, opcode_gfx7, opcode_gfx9, opcode_gfx10, format, input_mod, output_mod, is_atomic, cls):
       """Parameters:
 
       - name is the name of the opcode (prepend nir_op_ for the enum name)
@@ -194,6 +218,7 @@ class Opcode(object):
       self.output_mod = "1" if output_mod else "0"
       self.is_atomic = "1" if is_atomic else "0"
       self.format = format
+      self.cls = cls
 
       parts = name.replace('_e64', '').rsplit('_', 2)
       op_dtype = parts[-1]
@@ -212,35 +237,41 @@ class Opcode(object):
       self.operand_size = op_dtype_sizes.get(op_dtype, 32)
       self.definition_size = def_dtype_sizes.get(def_dtype, self.operand_size)
 
-      # exceptions
-      if self.operand_size == 16 and op_dtype != 'f16':
-         self.operand_size = 16
+      # exceptions for operands:
+      if 'sad_' in name:
+        self.operand_size = 0
+      elif name in ['v_mad_u64_u32', 'v_mad_i64_i32']:
+        self.operand_size = 0
       elif self.operand_size == 24:
         self.operand_size = 32
-      elif name in ['s_sext_i32_i8', 's_sext_i32_i16', 'v_msad_u8', 'v_cvt_pk_u16_u32', 'v_cvt_pk_i16_i32']:
-         self.operand_size = 32
-      elif name in ['v_qsad_pk_u16_u8', 'v_mqsad_pk_u16_u8', 'v_mqsad_u32_u8']:
-         self.definition_size = 0
-         self.operand_size = 0
-      elif name in ['v_mad_u64_u32', 'v_mad_i64_i32']:
-         self.operand_size = 0
-      elif '_pk' in name or name in ['v_lerp_u8', 'v_sad_u8', 'v_sad_u16',
-                                      'v_cvt_f32_ubyte0', 'v_cvt_f32_ubyte1',
-                                      'v_cvt_f32_ubyte2', 'v_cvt_f32_ubyte3']:
-         self.operand_size = 32
-         self.definition_size = 32
-      elif '_pknorm_' in name:
-         self.definition_size = 32
+      elif op_dtype == 'u8' or op_dtype == 'i8':
+        self.operand_size = 32
+      elif name in ['v_cvt_f32_ubyte0', 'v_cvt_f32_ubyte1',
+                    'v_cvt_f32_ubyte2', 'v_cvt_f32_ubyte3']:
+        self.operand_size = 32
+
+      # exceptions for definitions:
+      if 'sad_' in name:
+        self.definition_size = 0
+      elif '_pk' in name:
+        self.definition_size = 32
 
 
 # global dictionary of opcodes
 opcodes = {}
 
-def opcode(name, opcode_gfx7 = -1, opcode_gfx9 = -1, opcode_gfx10 = -1, format = Format.PSEUDO, input_mod = False, output_mod = False, is_atomic = False):
+def opcode(name, opcode_gfx7 = -1, opcode_gfx9 = -1, opcode_gfx10 = -1, format = Format.PSEUDO, cls = InstrClass.Other, input_mod = False, output_mod = False, is_atomic = False):
    assert name not in opcodes
-   opcodes[name] = Opcode(name, opcode_gfx7, opcode_gfx9, opcode_gfx10, format, input_mod, output_mod, is_atomic)
+   opcodes[name] = Opcode(name, opcode_gfx7, opcode_gfx9, opcode_gfx10, format, input_mod, output_mod, is_atomic, cls)
 
-opcode("exp", 0, 0, 0, format = Format.EXP)
+def default_class(opcodes, cls):
+   for op in opcodes:
+      if isinstance(op[-1], InstrClass):
+         yield op
+      else:
+         yield op + (cls,)
+
+opcode("exp", 0, 0, 0, format = Format.EXP, cls = InstrClass.Export)
 opcode("p_parallelcopy")
 opcode("p_startpgm")
 opcode("p_phi")
@@ -280,13 +311,14 @@ opcode("p_end_linear_vgpr")
 
 opcode("p_wqm")
 opcode("p_discard_if")
-opcode("p_load_helper")
 opcode("p_demote_to_helper")
 opcode("p_is_helper")
 opcode("p_exit_early_if")
 
 # simulates proper bpermute behavior when it's unsupported, eg. GFX10 wave64
 opcode("p_bpermute")
+
+opcode("p_constaddr")
 
 # SOP2 instructions: 2 scalar inputs, 1 scalar output (+optional scc)
 SOP2 = {
@@ -332,9 +364,9 @@ SOP2 = {
    (0x28, 0x28, 0x26, 0x26, 0x28, "s_bfe_i32"),
    (0x29, 0x29, 0x27, 0x27, 0x29, "s_bfe_u64"),
    (0x2a, 0x2a, 0x28, 0x28, 0x2a, "s_bfe_i64"),
-   (0x2b, 0x2b, 0x29, 0x29,   -1, "s_cbranch_g_fork"),
+   (0x2b, 0x2b, 0x29, 0x29,   -1, "s_cbranch_g_fork", InstrClass.Branch),
    (0x2c, 0x2c, 0x2a, 0x2a, 0x2c, "s_absdiff_i32"),
-   (  -1,   -1, 0x2b, 0x2b,   -1, "s_rfe_restore_b64"),
+   (  -1,   -1, 0x2b, 0x2b,   -1, "s_rfe_restore_b64", InstrClass.Branch),
    (  -1,   -1,   -1, 0x2e, 0x2e, "s_lshl1_add_u32"),
    (  -1,   -1,   -1, 0x2f, 0x2f, "s_lshl2_add_u32"),
    (  -1,   -1,   -1, 0x30, 0x30, "s_lshl3_add_u32"),
@@ -344,9 +376,11 @@ SOP2 = {
    (  -1,   -1,   -1, 0x34, 0x34, "s_pack_hh_b32_b16"),
    (  -1,   -1,   -1, 0x2c, 0x35, "s_mul_hi_u32"),
    (  -1,   -1,   -1, 0x2d, 0x36, "s_mul_hi_i32"),
+   # actually a pseudo-instruction. it's lowered to SALU during assembly though, so it's useful to identify it as a SOP2.
+   (  -1,   -1,   -1,   -1,   -1, "p_constaddr_addlo"),
 }
-for (gfx6, gfx7, gfx8, gfx9, gfx10, name) in SOP2:
-    opcode(name, gfx7, gfx9, gfx10, Format.SOP2)
+for (gfx6, gfx7, gfx8, gfx9, gfx10, name, cls) in default_class(SOP2, InstrClass.Salu):
+    opcode(name, gfx7, gfx9, gfx10, Format.SOP2, cls)
 
 
 # SOPK instructions: 0 input (+ imm), 1 output + optional scc
@@ -369,20 +403,20 @@ SOPK = {
    (0x0e, 0x0e, 0x0d, 0x0d, 0x0e, "s_cmpk_le_u32"),
    (0x0f, 0x0f, 0x0e, 0x0e, 0x0f, "s_addk_i32"),
    (0x10, 0x10, 0x0f, 0x0f, 0x10, "s_mulk_i32"),
-   (0x11, 0x11, 0x10, 0x10,   -1, "s_cbranch_i_fork"),
+   (0x11, 0x11, 0x10, 0x10,   -1, "s_cbranch_i_fork", InstrClass.Branch),
    (0x12, 0x12, 0x11, 0x11, 0x12, "s_getreg_b32"),
    (0x13, 0x13, 0x12, 0x12, 0x13, "s_setreg_b32"),
    (0x15, 0x15, 0x14, 0x14, 0x15, "s_setreg_imm32_b32"), # requires 32bit literal
-   (  -1,   -1, 0x15, 0x15, 0x16, "s_call_b64"),
-   (  -1,   -1,   -1,   -1, 0x17, "s_waitcnt_vscnt"),
-   (  -1,   -1,   -1,   -1, 0x18, "s_waitcnt_vmcnt"),
-   (  -1,   -1,   -1,   -1, 0x19, "s_waitcnt_expcnt"),
-   (  -1,   -1,   -1,   -1, 0x1a, "s_waitcnt_lgkmcnt"),
-   (  -1,   -1,   -1,   -1, 0x1b, "s_subvector_loop_begin"),
-   (  -1,   -1,   -1,   -1, 0x1c, "s_subvector_loop_end"),
+   (  -1,   -1, 0x15, 0x15, 0x16, "s_call_b64", InstrClass.Branch),
+   (  -1,   -1,   -1,   -1, 0x17, "s_waitcnt_vscnt", InstrClass.Waitcnt),
+   (  -1,   -1,   -1,   -1, 0x18, "s_waitcnt_vmcnt", InstrClass.Waitcnt),
+   (  -1,   -1,   -1,   -1, 0x19, "s_waitcnt_expcnt", InstrClass.Waitcnt),
+   (  -1,   -1,   -1,   -1, 0x1a, "s_waitcnt_lgkmcnt", InstrClass.Waitcnt),
+   (  -1,   -1,   -1,   -1, 0x1b, "s_subvector_loop_begin", InstrClass.Branch),
+   (  -1,   -1,   -1,   -1, 0x1c, "s_subvector_loop_end", InstrClass.Branch),
 }
-for (gfx6, gfx7, gfx8, gfx9, gfx10, name) in SOPK:
-   opcode(name, gfx7, gfx9, gfx10, Format.SOPK)
+for (gfx6, gfx7, gfx8, gfx9, gfx10, name, cls) in default_class(SOPK, InstrClass.Salu):
+   opcode(name, gfx7, gfx9, gfx10, Format.SOPK, cls)
 
 
 # SOP1 instructions: 1 input, 1 output (+optional SCC)
@@ -417,9 +451,9 @@ SOP1 = {
    (0x1d, 0x1d, 0x1a, 0x1a, 0x1d, "s_bitset1_b32"),
    (0x1e, 0x1e, 0x1b, 0x1b, 0x1e, "s_bitset1_b64"),
    (0x1f, 0x1f, 0x1c, 0x1c, 0x1f, "s_getpc_b64"),
-   (0x20, 0x20, 0x1d, 0x1d, 0x20, "s_setpc_b64"),
-   (0x21, 0x21, 0x1e, 0x1e, 0x21, "s_swappc_b64"),
-   (0x22, 0x22, 0x1f, 0x1f, 0x22, "s_rfe_b64"),
+   (0x20, 0x20, 0x1d, 0x1d, 0x20, "s_setpc_b64", InstrClass.Branch),
+   (0x21, 0x21, 0x1e, 0x1e, 0x21, "s_swappc_b64", InstrClass.Branch),
+   (0x22, 0x22, 0x1f, 0x1f, 0x22, "s_rfe_b64", InstrClass.Branch),
    (0x24, 0x24, 0x20, 0x20, 0x24, "s_and_saveexec_b64"),
    (0x25, 0x25, 0x21, 0x21, 0x25, "s_or_saveexec_b64"),
    (0x26, 0x26, 0x22, 0x22, 0x26, "s_xor_saveexec_b64"),
@@ -434,7 +468,7 @@ SOP1 = {
    (0x2f, 0x2f, 0x2b, 0x2b, 0x2f, "s_movrels_b64"),
    (0x30, 0x30, 0x2c, 0x2c, 0x30, "s_movreld_b32"),
    (0x31, 0x31, 0x2d, 0x2d, 0x31, "s_movreld_b64"),
-   (0x32, 0x32, 0x2e, 0x2e,   -1, "s_cbranch_join"),
+   (0x32, 0x32, 0x2e, 0x2e,   -1, "s_cbranch_join", InstrClass.Branch),
    (0x34, 0x34, 0x30, 0x30, 0x34, "s_abs_i32"),
    (0x35, 0x35,   -1,   -1, 0x35, "s_mov_fed_b32"),
    (  -1,   -1, 0x32, 0x32,   -1, "s_set_gpr_idx_idx"),
@@ -457,10 +491,10 @@ SOP1 = {
    (  -1,   -1,   -1,   -1, 0x47, "s_andn2_wrexec_b32"),
    (  -1,   -1,   -1,   -1, 0x49, "s_movrelsd_2_b32"),
    # actually a pseudo-instruction. it's lowered to SALU during assembly though, so it's useful to identify it as a SOP1.
-   (  -1,   -1,   -1,   -1,   -1, "p_constaddr"),
+   (  -1,   -1,   -1,   -1,   -1, "p_constaddr_getpc"),
 }
-for (gfx6, gfx7, gfx8, gfx9, gfx10, name) in SOP1:
-   opcode(name, gfx7, gfx9, gfx10, Format.SOP1)
+for (gfx6, gfx7, gfx8, gfx9, gfx10, name, cls) in default_class(SOP1, InstrClass.Salu):
+   opcode(name, gfx7, gfx9, gfx10, Format.SOP1, cls)
 
 
 # SOPC instructions: 2 inputs and 0 outputs (+SCC)
@@ -488,7 +522,7 @@ SOPC = {
    (  -1,   -1, 0x13, 0x13, 0x13, "s_cmp_lg_u64"),
 }
 for (gfx6, gfx7, gfx8, gfx9, gfx10, name) in SOPC:
-   opcode(name, gfx7, gfx9, gfx10, Format.SOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.SOPC, InstrClass.Salu)
 
 
 # SOPP instructions: 0 inputs (+optional scc/vcc), 0 outputs
@@ -496,31 +530,31 @@ SOPP = {
   # GFX6, GFX7, GFX8, GFX9, GFX10, name
    (0x00, 0x00, 0x00, 0x00, 0x00, "s_nop"),
    (0x01, 0x01, 0x01, 0x01, 0x01, "s_endpgm"),
-   (0x02, 0x02, 0x02, 0x02, 0x02, "s_branch"),
+   (0x02, 0x02, 0x02, 0x02, 0x02, "s_branch", InstrClass.Branch),
    (  -1,   -1, 0x03, 0x03, 0x03, "s_wakeup"),
-   (0x04, 0x04, 0x04, 0x04, 0x04, "s_cbranch_scc0"),
-   (0x05, 0x05, 0x05, 0x05, 0x05, "s_cbranch_scc1"),
-   (0x06, 0x06, 0x06, 0x06, 0x06, "s_cbranch_vccz"),
-   (0x07, 0x07, 0x07, 0x07, 0x07, "s_cbranch_vccnz"),
-   (0x08, 0x08, 0x08, 0x08, 0x08, "s_cbranch_execz"),
-   (0x09, 0x09, 0x09, 0x09, 0x09, "s_cbranch_execnz"),
-   (0x0a, 0x0a, 0x0a, 0x0a, 0x0a, "s_barrier"),
+   (0x04, 0x04, 0x04, 0x04, 0x04, "s_cbranch_scc0", InstrClass.Branch),
+   (0x05, 0x05, 0x05, 0x05, 0x05, "s_cbranch_scc1", InstrClass.Branch),
+   (0x06, 0x06, 0x06, 0x06, 0x06, "s_cbranch_vccz", InstrClass.Branch),
+   (0x07, 0x07, 0x07, 0x07, 0x07, "s_cbranch_vccnz", InstrClass.Branch),
+   (0x08, 0x08, 0x08, 0x08, 0x08, "s_cbranch_execz", InstrClass.Branch),
+   (0x09, 0x09, 0x09, 0x09, 0x09, "s_cbranch_execnz", InstrClass.Branch),
+   (0x0a, 0x0a, 0x0a, 0x0a, 0x0a, "s_barrier", InstrClass.Barrier),
    (  -1, 0x0b, 0x0b, 0x0b, 0x0b, "s_setkill"),
-   (0x0c, 0x0c, 0x0c, 0x0c, 0x0c, "s_waitcnt"),
+   (0x0c, 0x0c, 0x0c, 0x0c, 0x0c, "s_waitcnt", InstrClass.Waitcnt),
    (0x0d, 0x0d, 0x0d, 0x0d, 0x0d, "s_sethalt"),
    (0x0e, 0x0e, 0x0e, 0x0e, 0x0e, "s_sleep"),
    (0x0f, 0x0f, 0x0f, 0x0f, 0x0f, "s_setprio"),
-   (0x10, 0x10, 0x10, 0x10, 0x10, "s_sendmsg"),
-   (0x11, 0x11, 0x11, 0x11, 0x11, "s_sendmsghalt"),
-   (0x12, 0x12, 0x12, 0x12, 0x12, "s_trap"),
+   (0x10, 0x10, 0x10, 0x10, 0x10, "s_sendmsg", InstrClass.Sendmsg),
+   (0x11, 0x11, 0x11, 0x11, 0x11, "s_sendmsghalt", InstrClass.Sendmsg),
+   (0x12, 0x12, 0x12, 0x12, 0x12, "s_trap", InstrClass.Branch),
    (0x13, 0x13, 0x13, 0x13, 0x13, "s_icache_inv"),
    (0x14, 0x14, 0x14, 0x14, 0x14, "s_incperflevel"),
    (0x15, 0x15, 0x15, 0x15, 0x15, "s_decperflevel"),
    (0x16, 0x16, 0x16, 0x16, 0x16, "s_ttracedata"),
-   (  -1, 0x17, 0x17, 0x17, 0x17, "s_cbranch_cdbgsys"),
-   (  -1, 0x18, 0x18, 0x18, 0x18, "s_cbranch_cdbguser"),
-   (  -1, 0x19, 0x19, 0x19, 0x19, "s_cbranch_cdbgsys_or_user"),
-   (  -1, 0x1a, 0x1a, 0x1a, 0x1a, "s_cbranch_cdbgsys_and_user"),
+   (  -1, 0x17, 0x17, 0x17, 0x17, "s_cbranch_cdbgsys", InstrClass.Branch),
+   (  -1, 0x18, 0x18, 0x18, 0x18, "s_cbranch_cdbguser", InstrClass.Branch),
+   (  -1, 0x19, 0x19, 0x19, 0x19, "s_cbranch_cdbgsys_or_user", InstrClass.Branch),
+   (  -1, 0x1a, 0x1a, 0x1a, 0x1a, "s_cbranch_cdbgsys_and_user", InstrClass.Branch),
    (  -1,   -1, 0x1b, 0x1b, 0x1b, "s_endpgm_saved"),
    (  -1,   -1, 0x1c, 0x1c,   -1, "s_set_gpr_idx_off"),
    (  -1,   -1, 0x1d, 0x1d,   -1, "s_set_gpr_idx_mode"),
@@ -534,8 +568,8 @@ SOPP = {
    (  -1,   -1,   -1,   -1, 0x25, "s_denorm_mode"),
    (  -1,   -1,   -1,   -1, 0x26, "s_ttracedata_imm"),
 }
-for (gfx6, gfx7, gfx8, gfx9, gfx10, name) in SOPP:
-   opcode(name, gfx7, gfx9, gfx10, Format.SOPP)
+for (gfx6, gfx7, gfx8, gfx9, gfx10, name, cls) in default_class(SOPP, InstrClass.Salu):
+   opcode(name, gfx7, gfx9, gfx10, Format.SOPP, cls)
 
 
 # SMEM instructions: sbase input (2 sgpr), potentially 2 offset inputs, 1 sdata input/output
@@ -630,7 +664,7 @@ SMEM = {
    (  -1,   -1,   -1, 0xac, 0xac, "s_atomic_dec_x2"),
 }
 for (gfx6, gfx7, gfx8, gfx9, gfx10, name) in SMEM:
-   opcode(name, gfx7, gfx9, gfx10, Format.SMEM, is_atomic = "atomic" in name)
+   opcode(name, gfx7, gfx9, gfx10, Format.SMEM, InstrClass.SMem, is_atomic = "atomic" in name)
 
 
 # VOP2 instructions: 2 inputs, 1 output (+ optional vcc)
@@ -711,12 +745,12 @@ VOP2 = {
    (  -1,   -1,   -1,   -1, 0x3c, "v_pk_fmac_f16", False),
 }
 for (gfx6, gfx7, gfx8, gfx9, gfx10, name, modifiers) in VOP2:
-   opcode(name, gfx7, gfx9, gfx10, Format.VOP2, modifiers, modifiers)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOP2, InstrClass.Valu32, modifiers, modifiers)
 
 if True:
     # v_cndmask_b32 can use input modifiers but not output modifiers
     (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0x00, 0x00, 0x00, 0x00, 0x01, "v_cndmask_b32")
-    opcode(name, gfx7, gfx9, gfx10, Format.VOP2, True, False)
+    opcode(name, gfx7, gfx9, gfx10, Format.VOP2, InstrClass.Valu32, True, False)
 
 
 # VOP1 instructions: instructions with 1 input and 1 output
@@ -725,8 +759,8 @@ VOP1 = {
    (0x00, 0x00, 0x00, 0x00, 0x00, "v_nop", False, False),
    (0x01, 0x01, 0x01, 0x01, 0x01, "v_mov_b32", False, False),
    (0x02, 0x02, 0x02, 0x02, 0x02, "v_readfirstlane_b32", False, False),
-   (0x03, 0x03, 0x03, 0x03, 0x03, "v_cvt_i32_f64", True, False),
-   (0x04, 0x04, 0x04, 0x04, 0x04, "v_cvt_f64_i32", False, True),
+   (0x03, 0x03, 0x03, 0x03, 0x03, "v_cvt_i32_f64", True, False, InstrClass.ValuDoubleConvert),
+   (0x04, 0x04, 0x04, 0x04, 0x04, "v_cvt_f64_i32", False, True, InstrClass.ValuDoubleConvert),
    (0x05, 0x05, 0x05, 0x05, 0x05, "v_cvt_f32_i32", False, True),
    (0x06, 0x06, 0x06, 0x06, 0x06, "v_cvt_f32_u32", False, True),
    (0x07, 0x07, 0x07, 0x07, 0x07, "v_cvt_u32_f32", True, False),
@@ -738,50 +772,50 @@ VOP1 = {
    (0x0c, 0x0c, 0x0c, 0x0c, 0x0c, "v_cvt_rpi_i32_f32", True, False),
    (0x0d, 0x0d, 0x0d, 0x0d, 0x0d, "v_cvt_flr_i32_f32", True, False),
    (0x0e, 0x0e, 0x0e, 0x0e, 0x0e, "v_cvt_off_f32_i4", False, True),
-   (0x0f, 0x0f, 0x0f, 0x0f, 0x0f, "v_cvt_f32_f64", True, True),
-   (0x10, 0x10, 0x10, 0x10, 0x10, "v_cvt_f64_f32", True, True),
+   (0x0f, 0x0f, 0x0f, 0x0f, 0x0f, "v_cvt_f32_f64", True, True, InstrClass.ValuDoubleConvert),
+   (0x10, 0x10, 0x10, 0x10, 0x10, "v_cvt_f64_f32", True, True, InstrClass.ValuDoubleConvert),
    (0x11, 0x11, 0x11, 0x11, 0x11, "v_cvt_f32_ubyte0", False, True),
    (0x12, 0x12, 0x12, 0x12, 0x12, "v_cvt_f32_ubyte1", False, True),
    (0x13, 0x13, 0x13, 0x13, 0x13, "v_cvt_f32_ubyte2", False, True),
    (0x14, 0x14, 0x14, 0x14, 0x14, "v_cvt_f32_ubyte3", False, True),
-   (0x15, 0x15, 0x15, 0x15, 0x15, "v_cvt_u32_f64", True, False),
-   (0x16, 0x16, 0x16, 0x16, 0x16, "v_cvt_f64_u32", False, True),
-   (  -1, 0x17, 0x17, 0x17, 0x17, "v_trunc_f64", True, True),
-   (  -1, 0x18, 0x18, 0x18, 0x18, "v_ceil_f64", True, True),
-   (  -1, 0x19, 0x19, 0x19, 0x19, "v_rndne_f64", True, True),
-   (  -1, 0x1a, 0x1a, 0x1a, 0x1a, "v_floor_f64", True, True),
+   (0x15, 0x15, 0x15, 0x15, 0x15, "v_cvt_u32_f64", True, False, InstrClass.ValuDoubleConvert),
+   (0x16, 0x16, 0x16, 0x16, 0x16, "v_cvt_f64_u32", False, True, InstrClass.ValuDoubleConvert),
+   (  -1, 0x17, 0x17, 0x17, 0x17, "v_trunc_f64", True, True, InstrClass.ValuDouble),
+   (  -1, 0x18, 0x18, 0x18, 0x18, "v_ceil_f64", True, True, InstrClass.ValuDouble),
+   (  -1, 0x19, 0x19, 0x19, 0x19, "v_rndne_f64", True, True, InstrClass.ValuDouble),
+   (  -1, 0x1a, 0x1a, 0x1a, 0x1a, "v_floor_f64", True, True, InstrClass.ValuDouble),
    (  -1,   -1,   -1,   -1, 0x1b, "v_pipeflush", False, False),
    (0x20, 0x20, 0x1b, 0x1b, 0x20, "v_fract_f32", True, True),
    (0x21, 0x21, 0x1c, 0x1c, 0x21, "v_trunc_f32", True, True),
    (0x22, 0x22, 0x1d, 0x1d, 0x22, "v_ceil_f32", True, True),
    (0x23, 0x23, 0x1e, 0x1e, 0x23, "v_rndne_f32", True, True),
    (0x24, 0x24, 0x1f, 0x1f, 0x24, "v_floor_f32", True, True),
-   (0x25, 0x25, 0x20, 0x20, 0x25, "v_exp_f32", True, True),
-   (0x26, 0x26,   -1,   -1,   -1, "v_log_clamp_f32", True, True),
-   (0x27, 0x27, 0x21, 0x21, 0x27, "v_log_f32", True, True),
-   (0x28, 0x28,   -1,   -1,   -1, "v_rcp_clamp_f32", True, True),
-   (0x29, 0x29,   -1,   -1,   -1, "v_rcp_legacy_f32", True, True),
-   (0x2a, 0x2a, 0x22, 0x22, 0x2a, "v_rcp_f32", True, True),
-   (0x2b, 0x2b, 0x23, 0x23, 0x2b, "v_rcp_iflag_f32", True, True),
-   (0x2c, 0x2c,   -1,   -1,   -1, "v_rsq_clamp_f32", True, True),
-   (0x2d, 0x2d,   -1,   -1,   -1, "v_rsq_legacy_f32", True, True),
-   (0x2e, 0x2e, 0x24, 0x24, 0x2e, "v_rsq_f32", True, True),
-   (0x2f, 0x2f, 0x25, 0x25, 0x2f, "v_rcp_f64", True, True),
-   (0x30, 0x30,   -1,   -1,   -1, "v_rcp_clamp_f64", True, True),
-   (0x31, 0x31, 0x26, 0x26, 0x31, "v_rsq_f64", True, True),
-   (0x32, 0x32,   -1,   -1,   -1, "v_rsq_clamp_f64", True, True),
-   (0x33, 0x33, 0x27, 0x27, 0x33, "v_sqrt_f32", True, True),
-   (0x34, 0x34, 0x28, 0x28, 0x34, "v_sqrt_f64", True, True),
-   (0x35, 0x35, 0x29, 0x29, 0x35, "v_sin_f32", True, True),
-   (0x36, 0x36, 0x2a, 0x2a, 0x36, "v_cos_f32", True, True),
+   (0x25, 0x25, 0x20, 0x20, 0x25, "v_exp_f32", True, True, InstrClass.ValuTranscendental32),
+   (0x26, 0x26,   -1,   -1,   -1, "v_log_clamp_f32", True, True, InstrClass.ValuTranscendental32),
+   (0x27, 0x27, 0x21, 0x21, 0x27, "v_log_f32", True, True, InstrClass.ValuTranscendental32),
+   (0x28, 0x28,   -1,   -1,   -1, "v_rcp_clamp_f32", True, True, InstrClass.ValuTranscendental32),
+   (0x29, 0x29,   -1,   -1,   -1, "v_rcp_legacy_f32", True, True, InstrClass.ValuTranscendental32),
+   (0x2a, 0x2a, 0x22, 0x22, 0x2a, "v_rcp_f32", True, True, InstrClass.ValuTranscendental32),
+   (0x2b, 0x2b, 0x23, 0x23, 0x2b, "v_rcp_iflag_f32", True, True, InstrClass.ValuTranscendental32),
+   (0x2c, 0x2c,   -1,   -1,   -1, "v_rsq_clamp_f32", True, True, InstrClass.ValuTranscendental32),
+   (0x2d, 0x2d,   -1,   -1,   -1, "v_rsq_legacy_f32", True, True, InstrClass.ValuTranscendental32),
+   (0x2e, 0x2e, 0x24, 0x24, 0x2e, "v_rsq_f32", True, True, InstrClass.ValuTranscendental32),
+   (0x2f, 0x2f, 0x25, 0x25, 0x2f, "v_rcp_f64", True, True, InstrClass.ValuDoubleTranscendental),
+   (0x30, 0x30,   -1,   -1,   -1, "v_rcp_clamp_f64", True, True, InstrClass.ValuDoubleTranscendental),
+   (0x31, 0x31, 0x26, 0x26, 0x31, "v_rsq_f64", True, True, InstrClass.ValuDoubleTranscendental),
+   (0x32, 0x32,   -1,   -1,   -1, "v_rsq_clamp_f64", True, True, InstrClass.ValuDoubleTranscendental),
+   (0x33, 0x33, 0x27, 0x27, 0x33, "v_sqrt_f32", True, True, InstrClass.ValuTranscendental32),
+   (0x34, 0x34, 0x28, 0x28, 0x34, "v_sqrt_f64", True, True, InstrClass.ValuDoubleTranscendental),
+   (0x35, 0x35, 0x29, 0x29, 0x35, "v_sin_f32", True, True, InstrClass.ValuTranscendental32),
+   (0x36, 0x36, 0x2a, 0x2a, 0x36, "v_cos_f32", True, True, InstrClass.ValuTranscendental32),
    (0x37, 0x37, 0x2b, 0x2b, 0x37, "v_not_b32", False, False),
    (0x38, 0x38, 0x2c, 0x2c, 0x38, "v_bfrev_b32", False, False),
    (0x39, 0x39, 0x2d, 0x2d, 0x39, "v_ffbh_u32", False, False),
    (0x3a, 0x3a, 0x2e, 0x2e, 0x3a, "v_ffbl_b32", False, False),
    (0x3b, 0x3b, 0x2f, 0x2f, 0x3b, "v_ffbh_i32", False, False),
-   (0x3c, 0x3c, 0x30, 0x30, 0x3c, "v_frexp_exp_i32_f64", True, False),
-   (0x3d, 0x3d, 0x31, 0x31, 0x3d, "v_frexp_mant_f64", True, False),
-   (0x3e, 0x3e, 0x32, 0x32, 0x3e, "v_fract_f64", True, True),
+   (0x3c, 0x3c, 0x30, 0x30, 0x3c, "v_frexp_exp_i32_f64", True, False, InstrClass.ValuDouble),
+   (0x3d, 0x3d, 0x31, 0x31, 0x3d, "v_frexp_mant_f64", True, False, InstrClass.ValuDouble),
+   (0x3e, 0x3e, 0x32, 0x32, 0x3e, "v_fract_f64", True, True, InstrClass.ValuDouble),
    (0x3f, 0x3f, 0x33, 0x33, 0x3f, "v_frexp_exp_i32_f32", True, False),
    (0x40, 0x40, 0x34, 0x34, 0x40, "v_frexp_mant_f32", True, False),
    (0x41, 0x41, 0x35, 0x35, 0x41, "v_clrexcp", False, False),
@@ -794,11 +828,11 @@ VOP1 = {
    (  -1,   -1, 0x3a, 0x3a, 0x51, "v_cvt_f16_i16", False, True),
    (  -1,   -1, 0x3b, 0x3b, 0x52, "v_cvt_u16_f16", True, False),
    (  -1,   -1, 0x3c, 0x3c, 0x53, "v_cvt_i16_f16", True, False),
-   (  -1,   -1, 0x3d, 0x3d, 0x54, "v_rcp_f16", True, True),
-   (  -1,   -1, 0x3e, 0x3e, 0x55, "v_sqrt_f16", True, True),
-   (  -1,   -1, 0x3f, 0x3f, 0x56, "v_rsq_f16", True, True),
-   (  -1,   -1, 0x40, 0x40, 0x57, "v_log_f16", True, True),
-   (  -1,   -1, 0x41, 0x41, 0x58, "v_exp_f16", True, True),
+   (  -1,   -1, 0x3d, 0x3d, 0x54, "v_rcp_f16", True, True, InstrClass.ValuTranscendental32),
+   (  -1,   -1, 0x3e, 0x3e, 0x55, "v_sqrt_f16", True, True, InstrClass.ValuTranscendental32),
+   (  -1,   -1, 0x3f, 0x3f, 0x56, "v_rsq_f16", True, True, InstrClass.ValuTranscendental32),
+   (  -1,   -1, 0x40, 0x40, 0x57, "v_log_f16", True, True, InstrClass.ValuTranscendental32),
+   (  -1,   -1, 0x41, 0x41, 0x58, "v_exp_f16", True, True, InstrClass.ValuTranscendental32),
    (  -1,   -1, 0x42, 0x42, 0x59, "v_frexp_mant_f16", True, False),
    (  -1,   -1, 0x43, 0x43, 0x5a, "v_frexp_exp_i16_f16", True, False),
    (  -1,   -1, 0x44, 0x44, 0x5b, "v_floor_f16", True, True),
@@ -806,18 +840,18 @@ VOP1 = {
    (  -1,   -1, 0x46, 0x46, 0x5d, "v_trunc_f16", True, True),
    (  -1,   -1, 0x47, 0x47, 0x5e, "v_rndne_f16", True, True),
    (  -1,   -1, 0x48, 0x48, 0x5f, "v_fract_f16", True, True),
-   (  -1,   -1, 0x49, 0x49, 0x60, "v_sin_f16", True, True),
-   (  -1,   -1, 0x4a, 0x4a, 0x61, "v_cos_f16", True, True),
-   (  -1, 0x46, 0x4b, 0x4b,   -1, "v_exp_legacy_f32", True, True),
-   (  -1, 0x45, 0x4c, 0x4c,   -1, "v_log_legacy_f32", True, True),
+   (  -1,   -1, 0x49, 0x49, 0x60, "v_sin_f16", True, True, InstrClass.ValuTranscendental32),
+   (  -1,   -1, 0x4a, 0x4a, 0x61, "v_cos_f16", True, True, InstrClass.ValuTranscendental32),
+   (  -1, 0x46, 0x4b, 0x4b,   -1, "v_exp_legacy_f32", True, True, InstrClass.ValuTranscendental32),
+   (  -1, 0x45, 0x4c, 0x4c,   -1, "v_log_legacy_f32", True, True, InstrClass.ValuTranscendental32),
    (  -1,   -1,   -1, 0x4f, 0x62, "v_sat_pk_u8_i16", False, False),
    (  -1,   -1,   -1, 0x4d, 0x63, "v_cvt_norm_i16_f16", True, False),
    (  -1,   -1,   -1, 0x4e, 0x64, "v_cvt_norm_u16_f16", True, False),
    (  -1,   -1,   -1, 0x51, 0x65, "v_swap_b32", False, False),
    (  -1,   -1,   -1,   -1, 0x68, "v_swaprel_b32", False, False),
 }
-for (gfx6, gfx7, gfx8, gfx9, gfx10, name, in_mod, out_mod) in VOP1:
-   opcode(name, gfx7, gfx9, gfx10, Format.VOP1, in_mod, out_mod)
+for (gfx6, gfx7, gfx8, gfx9, gfx10, name, in_mod, out_mod, cls) in default_class(VOP1, InstrClass.Valu32):
+   opcode(name, gfx7, gfx9, gfx10, Format.VOP1, cls, in_mod, out_mod)
 
 
 # VOPC instructions:
@@ -827,33 +861,33 @@ VOPC_CLASS = {
    (  -1,   -1, 0x14, 0x14, 0x8f, "v_cmp_class_f16"),
    (0x98, 0x98, 0x11, 0x11, 0x98, "v_cmpx_class_f32"),
    (  -1,   -1, 0x15, 0x15, 0x9f, "v_cmpx_class_f16"),
-   (0xa8, 0xa8, 0x12, 0x12, 0xa8, "v_cmp_class_f64"),
-   (0xb8, 0xb8, 0x13, 0x13, 0xb8, "v_cmpx_class_f64"),
+   (0xa8, 0xa8, 0x12, 0x12, 0xa8, "v_cmp_class_f64", InstrClass.ValuDouble),
+   (0xb8, 0xb8, 0x13, 0x13, 0xb8, "v_cmpx_class_f64", InstrClass.ValuDouble),
 }
-for (gfx6, gfx7, gfx8, gfx9, gfx10, name) in VOPC_CLASS:
-    opcode(name, gfx7, gfx9, gfx10, Format.VOPC, True, False)
+for (gfx6, gfx7, gfx8, gfx9, gfx10, name, cls) in default_class(VOPC_CLASS, InstrClass.Valu32):
+    opcode(name, gfx7, gfx9, gfx10, Format.VOPC, cls, True, False)
 
 COMPF = ["f", "lt", "eq", "le", "gt", "lg", "ge", "o", "u", "nge", "nlg", "ngt", "nle", "neq", "nlt", "tru"]
 
 for i in range(8):
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, 0x20+i, 0x20+i, 0xc8+i, "v_cmp_"+COMPF[i]+"_f16")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, True, False)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32, True, False)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, 0x30+i, 0x30+i, 0xd8+i, "v_cmpx_"+COMPF[i]+"_f16")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, True, False)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32, True, False)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, 0x28+i, 0x28+i, 0xe8+i, "v_cmp_"+COMPF[i+8]+"_f16")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, True, False)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32, True, False)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, 0x38+i, 0x38+i, 0xf8+i, "v_cmpx_"+COMPF[i+8]+"_f16")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, True, False)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32, True, False)
 
 for i in range(16):
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0x00+i, 0x00+i, 0x40+i, 0x40+i, 0x00+i, "v_cmp_"+COMPF[i]+"_f32")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, True, False)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32, True, False)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0x10+i, 0x10+i, 0x50+i, 0x50+i, 0x10+i, "v_cmpx_"+COMPF[i]+"_f32")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, True, False)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32, True, False)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0x20+i, 0x20+i, 0x60+i, 0x60+i, 0x20+i, "v_cmp_"+COMPF[i]+"_f64")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, True, False)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.ValuDouble, True, False)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0x30+i, 0x30+i, 0x70+i, 0x70+i, 0x30+i, "v_cmpx_"+COMPF[i]+"_f64")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, True, False)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.ValuDouble, True, False)
    # GFX_6_7
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0x40+i, 0x40+i, -1, -1, -1, "v_cmps_"+COMPF[i]+"_f32")
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0x50+i, 0x50+i, -1, -1, -1, "v_cmpsx_"+COMPF[i]+"_f32")
@@ -865,72 +899,73 @@ COMPI = ["f", "lt", "eq", "le", "gt", "lg", "ge", "tru"]
 # GFX_8_9
 for i in [0,7]: # only 0 and 7
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, 0xa0+i, 0xa0+i, -1, "v_cmp_"+COMPI[i]+"_i16")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, 0xb0+i, 0xb0+i, -1, "v_cmpx_"+COMPI[i]+"_i16")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, 0xa8+i, 0xa8+i, -1, "v_cmp_"+COMPI[i]+"_u16")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, 0xb8+i, 0xb8+i, -1, "v_cmpx_"+COMPI[i]+"_u16")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32)
 
 for i in range(1, 7): # [1..6]
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, 0xa0+i, 0xa0+i, 0x88+i, "v_cmp_"+COMPI[i]+"_i16")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, 0xb0+i, 0xb0+i, 0x98+i, "v_cmpx_"+COMPI[i]+"_i16")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, 0xa8+i, 0xa8+i, 0xa8+i, "v_cmp_"+COMPI[i]+"_u16")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, 0xb8+i, 0xb8+i, 0xb8+i, "v_cmpx_"+COMPI[i]+"_u16")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32)
 
 for i in range(8):
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0x80+i, 0x80+i, 0xc0+i, 0xc0+i, 0x80+i, "v_cmp_"+COMPI[i]+"_i32")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0x90+i, 0x90+i, 0xd0+i, 0xd0+i, 0x90+i, "v_cmpx_"+COMPI[i]+"_i32")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0xa0+i, 0xa0+i, 0xe0+i, 0xe0+i, 0xa0+i, "v_cmp_"+COMPI[i]+"_i64")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu64)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0xb0+i, 0xb0+i, 0xf0+i, 0xf0+i, 0xb0+i, "v_cmpx_"+COMPI[i]+"_i64")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu64)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0xc0+i, 0xc0+i, 0xc8+i, 0xc8+i, 0xc0+i, "v_cmp_"+COMPI[i]+"_u32")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0xd0+i, 0xd0+i, 0xd8+i, 0xd8+i, 0xd0+i, "v_cmpx_"+COMPI[i]+"_u32")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu32)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0xe0+i, 0xe0+i, 0xe8+i, 0xe8+i, 0xe0+i, "v_cmp_"+COMPI[i]+"_u64")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu64)
    (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (0xf0+i, 0xf0+i, 0xf8+i, 0xf8+i, 0xf0+i, "v_cmpx_"+COMPI[i]+"_u64")
-   opcode(name, gfx7, gfx9, gfx10, Format.VOPC)
+   opcode(name, gfx7, gfx9, gfx10, Format.VOPC, InstrClass.Valu64)
 
 
 # VOPP instructions: packed 16bit instructions - 1 or 2 inputs and 1 output
 VOPP = {
-   (0x00, "v_pk_mad_i16"),
-   (0x01, "v_pk_mul_lo_u16"),
-   (0x02, "v_pk_add_i16"),
-   (0x03, "v_pk_sub_i16"),
-   (0x04, "v_pk_lshlrev_b16"),
-   (0x05, "v_pk_lshrrev_b16"),
-   (0x06, "v_pk_ashrrev_i16"),
-   (0x07, "v_pk_max_i16"),
-   (0x08, "v_pk_min_i16"),
-   (0x09, "v_pk_mad_u16"),
-   (0x0a, "v_pk_add_u16"),
-   (0x0b, "v_pk_sub_u16"),
-   (0x0c, "v_pk_max_u16"),
-   (0x0d, "v_pk_min_u16"),
-   (0x0e, "v_pk_fma_f16"),
-   (0x0f, "v_pk_add_f16"),
-   (0x10, "v_pk_mul_f16"),
-   (0x11, "v_pk_min_f16"),
-   (0x12, "v_pk_max_f16"),
-   (0x20, "v_pk_fma_mix_f32"), # v_mad_mix_f32 in VEGA ISA, v_fma_mix_f32 in RDNA ISA
-   (0x21, "v_pk_fma_mixlo_f16"), # v_mad_mixlo_f16 in VEGA ISA, v_fma_mixlo_f16 in RDNA ISA
-   (0x22, "v_pk_fma_mixhi_f16"), # v_mad_mixhi_f16 in VEGA ISA, v_fma_mixhi_f16 in RDNA ISA
+   # opcode, name, input/output modifiers
+   (0x00, "v_pk_mad_i16", False),
+   (0x01, "v_pk_mul_lo_u16", False),
+   (0x02, "v_pk_add_i16", False),
+   (0x03, "v_pk_sub_i16", False),
+   (0x04, "v_pk_lshlrev_b16", False),
+   (0x05, "v_pk_lshrrev_b16", False),
+   (0x06, "v_pk_ashrrev_i16", False),
+   (0x07, "v_pk_max_i16", False),
+   (0x08, "v_pk_min_i16", False),
+   (0x09, "v_pk_mad_u16", False),
+   (0x0a, "v_pk_add_u16", False),
+   (0x0b, "v_pk_sub_u16", False),
+   (0x0c, "v_pk_max_u16", False),
+   (0x0d, "v_pk_min_u16", False),
+   (0x0e, "v_pk_fma_f16", True),
+   (0x0f, "v_pk_add_f16", True),
+   (0x10, "v_pk_mul_f16", True),
+   (0x11, "v_pk_min_f16", True),
+   (0x12, "v_pk_max_f16", True),
+   (0x20, "v_fma_mix_f32", True), # v_mad_mix_f32 in VEGA ISA, v_fma_mix_f32 in RDNA ISA
+   (0x21, "v_fma_mixlo_f16", True), # v_mad_mixlo_f16 in VEGA ISA, v_fma_mixlo_f16 in RDNA ISA
+   (0x22, "v_fma_mixhi_f16", True), # v_mad_mixhi_f16 in VEGA ISA, v_fma_mixhi_f16 in RDNA ISA
 }
 # note that these are only supported on gfx9+ so we'll need to distinguish between gfx8 and gfx9 here
 # (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, -1, code, code, name)
-for (code, name) in VOPP:
-   opcode(name, -1, code, code, Format.VOP3P)
+for (code, name, modifiers) in VOPP:
+   opcode(name, -1, code, code, Format.VOP3P, InstrClass.Valu32, modifiers, modifiers)
 
 
 # VINTERP instructions: 
@@ -941,7 +976,7 @@ VINTRP = {
 }
 # (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (code, code, code, code, code, name)
 for (code, name) in VINTRP:
-   opcode(name, code, code, code, Format.VINTRP)
+   opcode(name, code, code, code, Format.VINTRP, InstrClass.Valu32)
 
 # VOP3 instructions: 3 inputs, 1 output
 # VOP3b instructions: have a unique scalar output, e.g. VOP2 with vcc out
@@ -957,8 +992,8 @@ VOP3 = {
    (0x148, 0x148, 0x1c8, 0x1c8, 0x148, "v_bfe_u32", False, False),
    (0x149, 0x149, 0x1c9, 0x1c9, 0x149, "v_bfe_i32", False, False),
    (0x14a, 0x14a, 0x1ca, 0x1ca, 0x14a, "v_bfi_b32", False, False),
-   (0x14b, 0x14b, 0x1cb, 0x1cb, 0x14b, "v_fma_f32", True, True),
-   (0x14c, 0x14c, 0x1cc, 0x1cc, 0x14c, "v_fma_f64", True, True),
+   (0x14b, 0x14b, 0x1cb, 0x1cb, 0x14b, "v_fma_f32", True, True, InstrClass.ValuFma),
+   (0x14c, 0x14c, 0x1cc, 0x1cc, 0x14c, "v_fma_f64", True, True, InstrClass.ValuDouble),
    (0x14d, 0x14d, 0x1cd, 0x1cd, 0x14d, "v_lerp_u8", False, False),
    (0x14e, 0x14e, 0x1ce, 0x1ce, 0x14e, "v_alignbit_b32", False, False),
    (0x14f, 0x14f, 0x1cf, 0x1cf, 0x14f, "v_alignbyte_b32", False, False),
@@ -979,36 +1014,36 @@ VOP3 = {
    (0x15e, 0x15e, 0x1dd, 0x1dd, 0x15e, "v_cvt_pk_u8_f32", True, False),
    (0x15f, 0x15f, 0x1de, 0x1de, 0x15f, "v_div_fixup_f32", True, True),
    (0x160, 0x160, 0x1df, 0x1df, 0x160, "v_div_fixup_f64", True, True),
-   (0x161, 0x161,    -1,    -1,    -1, "v_lshl_b64", False, False),
-   (0x162, 0x162,    -1,    -1,    -1, "v_lshr_b64", False, False),
-   (0x163, 0x163,    -1,    -1,    -1, "v_ashr_i64", False, False),
-   (0x164, 0x164, 0x280, 0x280, 0x164, "v_add_f64", True, True),
-   (0x165, 0x165, 0x281, 0x281, 0x165, "v_mul_f64", True, True),
-   (0x166, 0x166, 0x282, 0x282, 0x166, "v_min_f64", True, True),
-   (0x167, 0x167, 0x283, 0x283, 0x167, "v_max_f64", True, True),
-   (0x168, 0x168, 0x284, 0x284, 0x168, "v_ldexp_f64", False, True), # src1 can take input modifiers
-   (0x169, 0x169, 0x285, 0x285, 0x169, "v_mul_lo_u32", False, False),
-   (0x16a, 0x16a, 0x286, 0x286, 0x16a, "v_mul_hi_u32", False, False),
-   (0x16b, 0x16b, 0x285, 0x285, 0x16b, "v_mul_lo_i32", False, False), # identical to v_mul_lo_u32
-   (0x16c, 0x16c, 0x287, 0x287, 0x16c, "v_mul_hi_i32", False, False),
+   (0x161, 0x161,    -1,    -1,    -1, "v_lshl_b64", False, False, InstrClass.Valu64),
+   (0x162, 0x162,    -1,    -1,    -1, "v_lshr_b64", False, False, InstrClass.Valu64),
+   (0x163, 0x163,    -1,    -1,    -1, "v_ashr_i64", False, False, InstrClass.Valu64),
+   (0x164, 0x164, 0x280, 0x280, 0x164, "v_add_f64", True, True, InstrClass.ValuDoubleAdd),
+   (0x165, 0x165, 0x281, 0x281, 0x165, "v_mul_f64", True, True, InstrClass.ValuDouble),
+   (0x166, 0x166, 0x282, 0x282, 0x166, "v_min_f64", True, True, InstrClass.ValuDouble),
+   (0x167, 0x167, 0x283, 0x283, 0x167, "v_max_f64", True, True, InstrClass.ValuDouble),
+   (0x168, 0x168, 0x284, 0x284, 0x168, "v_ldexp_f64", False, True, InstrClass.ValuDouble), # src1 can take input modifiers
+   (0x169, 0x169, 0x285, 0x285, 0x169, "v_mul_lo_u32", False, False, InstrClass.ValuQuarterRate32),
+   (0x16a, 0x16a, 0x286, 0x286, 0x16a, "v_mul_hi_u32", False, False, InstrClass.ValuQuarterRate32),
+   (0x16b, 0x16b, 0x285, 0x285, 0x16b, "v_mul_lo_i32", False, False, InstrClass.ValuQuarterRate32), # identical to v_mul_lo_u32
+   (0x16c, 0x16c, 0x287, 0x287, 0x16c, "v_mul_hi_i32", False, False, InstrClass.ValuQuarterRate32),
    (0x16d, 0x16d, 0x1e0, 0x1e0, 0x16d, "v_div_scale_f32", True, True), # writes to VCC
-   (0x16e, 0x16e, 0x1e1, 0x1e1, 0x16e, "v_div_scale_f64", True, True), # writes to VCC
+   (0x16e, 0x16e, 0x1e1, 0x1e1, 0x16e, "v_div_scale_f64", True, True, InstrClass.ValuDouble), # writes to VCC
    (0x16f, 0x16f, 0x1e2, 0x1e2, 0x16f, "v_div_fmas_f32", True, True), # takes VCC input
-   (0x170, 0x170, 0x1e3, 0x1e3, 0x170, "v_div_fmas_f64", True, True), # takes VCC input
+   (0x170, 0x170, 0x1e3, 0x1e3, 0x170, "v_div_fmas_f64", True, True, InstrClass.ValuDouble), # takes VCC input
    (0x171, 0x171, 0x1e4, 0x1e4, 0x171, "v_msad_u8", False, False),
    (0x172, 0x172, 0x1e5, 0x1e5, 0x172, "v_qsad_pk_u16_u8", False, False),
    (0x172,    -1,    -1,    -1,    -1, "v_qsad_u8", False, False), # what's the difference?
    (0x173, 0x173, 0x1e6, 0x1e6, 0x173, "v_mqsad_pk_u16_u8", False, False),
    (0x173,    -1,    -1,    -1,    -1, "v_mqsad_u8", False, False), # what's the difference?
-   (0x174, 0x174, 0x292, 0x292, 0x174, "v_trig_preop_f64", False, False),
+   (0x174, 0x174, 0x292, 0x292, 0x174, "v_trig_preop_f64", False, False, InstrClass.ValuDouble),
    (   -1, 0x175, 0x1e7, 0x1e7, 0x175, "v_mqsad_u32_u8", False, False),
-   (   -1, 0x176, 0x1e8, 0x1e8, 0x176, "v_mad_u64_u32", False, False),
-   (   -1, 0x177, 0x1e9, 0x1e9, 0x177, "v_mad_i64_i32", False, False),
+   (   -1, 0x176, 0x1e8, 0x1e8, 0x176, "v_mad_u64_u32", False, False, InstrClass.Valu64),
+   (   -1, 0x177, 0x1e9, 0x1e9, 0x177, "v_mad_i64_i32", False, False, InstrClass.Valu64),
    (   -1,    -1, 0x1ea, 0x1ea,    -1, "v_mad_legacy_f16", True, True),
    (   -1,    -1, 0x1eb, 0x1eb,    -1, "v_mad_legacy_u16", False, False),
    (   -1,    -1, 0x1ec, 0x1ec,    -1, "v_mad_legacy_i16", False, False),
    (   -1,    -1, 0x1ed, 0x1ed, 0x344, "v_perm_b32", False, False),
-   (   -1,    -1, 0x1ee, 0x1ee,    -1, "v_fma_legacy_f16", True, True),
+   (   -1,    -1, 0x1ee, 0x1ee,    -1, "v_fma_legacy_f16", True, True, InstrClass.ValuFma),
    (   -1,    -1, 0x1ef, 0x1ef,    -1, "v_div_fixup_legacy_f16", True, True),
    (0x12c, 0x12c, 0x1f0, 0x1f0,    -1, "v_cvt_pkaccum_u8_f32", True, False),
    (   -1,    -1,    -1, 0x1f1, 0x373, "v_mad_u32_u16", False, False),
@@ -1044,9 +1079,9 @@ VOP3 = {
    (0x122, 0x122, 0x28b, 0x28b, 0x364, "v_bcnt_u32_b32", False, False),
    (0x123, 0x123, 0x28c, 0x28c, 0x365, "v_mbcnt_lo_u32_b32", False, False),
    (   -1,    -1, 0x28d, 0x28d, 0x366, "v_mbcnt_hi_u32_b32_e64", False, False),
-   (   -1,    -1, 0x28f, 0x28f, 0x2ff, "v_lshlrev_b64", False, False),
-   (   -1,    -1, 0x290, 0x290, 0x300, "v_lshrrev_b64", False, False),
-   (   -1,    -1, 0x291, 0x291, 0x301, "v_ashrrev_i64", False, False),
+   (   -1,    -1, 0x28f, 0x28f, 0x2ff, "v_lshlrev_b64", False, False, InstrClass.Valu64),
+   (   -1,    -1, 0x290, 0x290, 0x300, "v_lshrrev_b64", False, False, InstrClass.Valu64),
+   (   -1,    -1, 0x291, 0x291, 0x301, "v_ashrrev_i64", False, False, InstrClass.Valu64),
    (0x11e, 0x11e, 0x293, 0x293, 0x363, "v_bfm_b32", False, False),
    (0x12d, 0x12d, 0x294, 0x294, 0x368, "v_cvt_pknorm_i16_f32", True, False),
    (0x12e, 0x12e, 0x295, 0x295, 0x369, "v_cvt_pknorm_u16_f32", True, False),
@@ -1076,10 +1111,10 @@ VOP3 = {
    (   -1,    -1,    -1,    -1, 0x307, "v_lshrrev_b16_e64", False, False),
    (   -1,    -1,    -1,    -1, 0x308, "v_ashrrev_i16_e64", False, False),
    (   -1,    -1,    -1,    -1, 0x314, "v_lshlrev_b16_e64", False, False),
-   (   -1,    -1,    -1,    -1, 0x140, "v_fma_legacy_f32", True, True), #GFX10.3+
+   (   -1,    -1,    -1,    -1, 0x140, "v_fma_legacy_f32", True, True, InstrClass.ValuFma), #GFX10.3+
 }
-for (gfx6, gfx7, gfx8, gfx9, gfx10, name, in_mod, out_mod) in VOP3:
-   opcode(name, gfx7, gfx9, gfx10, Format.VOP3A, in_mod, out_mod)
+for (gfx6, gfx7, gfx8, gfx9, gfx10, name, in_mod, out_mod, cls) in default_class(VOP3, InstrClass.Valu32):
+   opcode(name, gfx7, gfx9, gfx10, Format.VOP3, cls, in_mod, out_mod)
 
 
 # DS instructions: 3 inputs (1 addr, 2 data), 1 output
@@ -1241,7 +1276,7 @@ DS = {
    (  -1, 0xff, 0xff, 0xff, 0xff, "ds_read_b128"),
 }
 for (gfx6, gfx7, gfx8, gfx9, gfx10, name) in DS:
-    opcode(name, gfx7, gfx9, gfx10, Format.DS)
+    opcode(name, gfx7, gfx9, gfx10, Format.DS, InstrClass.DS)
 
 # MUBUF instructions:
 MUBUF = {
@@ -1327,7 +1362,7 @@ MUBUF = {
    (  -1,   -1,   -1,   -1, 0x34, "buffer_atomic_csub"), #GFX10.3+. seems glc must be set
 }
 for (gfx6, gfx7, gfx8, gfx9, gfx10, name) in MUBUF:
-    opcode(name, gfx7, gfx9, gfx10, Format.MUBUF, is_atomic = "atomic" in name)
+    opcode(name, gfx7, gfx9, gfx10, Format.MUBUF, InstrClass.VMem, is_atomic = "atomic" in name)
 
 MTBUF = {
    (0x00, 0x00, 0x00, 0x00, 0x00, "tbuffer_load_format_x"),
@@ -1348,7 +1383,7 @@ MTBUF = {
    (  -1,   -1, 0x0f, 0x0f, 0x0f, "tbuffer_store_format_d16_xyzw"),
 }
 for (gfx6, gfx7, gfx8, gfx9, gfx10, name) in MTBUF:
-    opcode(name, gfx7, gfx9, gfx10, Format.MTBUF)
+    opcode(name, gfx7, gfx9, gfx10, Format.MTBUF, InstrClass.VMem)
 
 
 IMAGE = {
@@ -1367,9 +1402,9 @@ IMAGE = {
 }
 # (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (code, code, code, code, code, name)
 for (code, name) in IMAGE:
-   opcode(name, code, code, code, Format.MIMG)
+   opcode(name, code, code, code, Format.MIMG, InstrClass.VMem)
 
-opcode("image_msaa_load", -1, -1, 0x80, Format.MIMG) #GFX10.3+
+opcode("image_msaa_load", -1, -1, 0x80, Format.MIMG, InstrClass.VMem) #GFX10.3+
 
 IMAGE_ATOMIC = {
    (0x0f, 0x0f, 0x10, "image_atomic_swap"),
@@ -1393,7 +1428,7 @@ IMAGE_ATOMIC = {
 # (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (gfx6, gfx7, gfx89, gfx89, ???, name)
 # gfx7 and gfx10 opcodes are the same here
 for (gfx6, gfx7, gfx89, name) in IMAGE_ATOMIC:
-   opcode(name, gfx7, gfx89, gfx7, Format.MIMG, is_atomic = True)
+   opcode(name, gfx7, gfx89, gfx7, Format.MIMG, InstrClass.VMem, is_atomic = True)
 
 IMAGE_SAMPLE = {
    (0x20, "image_sample"),
@@ -1439,7 +1474,7 @@ IMAGE_SAMPLE = {
 }
 # (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (code, code, code, code, code, name)
 for (code, name) in IMAGE_SAMPLE:
-   opcode(name, code, code, code, Format.MIMG)
+   opcode(name, code, code, code, Format.MIMG, InstrClass.VMem)
 
 IMAGE_GATHER4 = {
    (0x40, "image_gather4"),
@@ -1472,7 +1507,7 @@ IMAGE_GATHER4 = {
 }
 # (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (code, code, code, code, code, name)
 for (code, name) in IMAGE_GATHER4:
-   opcode(name, code, code, code, Format.MIMG)
+   opcode(name, code, code, code, Format.MIMG, InstrClass.VMem)
 
 
 FLAT = {
@@ -1533,7 +1568,7 @@ FLAT = {
    (0x60,   -1, 0x60, "flat_atomic_fmax_x2"),
 }
 for (gfx7, gfx8, gfx10, name) in FLAT:
-    opcode(name, gfx7, gfx8, gfx10, Format.FLAT, is_atomic = "atomic" in name)
+    opcode(name, gfx7, gfx8, gfx10, Format.FLAT, InstrClass.VMem, is_atomic = "atomic" in name) #TODO: also LDS?
 
 GLOBAL = {
    #GFX8_9, GFX10
@@ -1596,7 +1631,7 @@ GLOBAL = {
    (  -1, 0x34, "global_atomic_csub"), #GFX10.3+. seems glc must be set
 }
 for (gfx8, gfx10, name) in GLOBAL:
-    opcode(name, -1, gfx8, gfx10, Format.GLOBAL, is_atomic = "atomic" in name)
+    opcode(name, -1, gfx8, gfx10, Format.GLOBAL, InstrClass.VMem, is_atomic = "atomic" in name)
 
 SCRATCH = {
    #GFX8_9, GFX10
@@ -1624,7 +1659,7 @@ SCRATCH = {
    (0x25, 0x25, "scratch_load_short_d16_hi"),
 }
 for (gfx8, gfx10, name) in SCRATCH:
-    opcode(name, -1, gfx8, gfx10, Format.SCRATCH)
+    opcode(name, -1, gfx8, gfx10, Format.SCRATCH, InstrClass.VMem)
 
 # check for duplicate opcode numbers
 for ver in ['gfx9', 'gfx10']:

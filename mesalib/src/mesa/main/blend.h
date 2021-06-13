@@ -175,9 +175,9 @@ static inline void
 _mesa_flush_vertices_for_blend_state(struct gl_context *ctx)
 {
    if (!ctx->DriverFlags.NewBlend) {
-      FLUSH_VERTICES(ctx, _NEW_COLOR);
+      FLUSH_VERTICES(ctx, _NEW_COLOR, GL_COLOR_BUFFER_BIT);
    } else {
-      FLUSH_VERTICES(ctx, 0);
+      FLUSH_VERTICES(ctx, 0, GL_COLOR_BUFFER_BIT);
       ctx->NewDriverState |= ctx->DriverFlags.NewBlend;
    }
 }
@@ -191,7 +191,7 @@ _mesa_flush_vertices_for_blend_adv(struct gl_context *ctx,
    if (_mesa_has_KHR_blend_equation_advanced(ctx) &&
        _mesa_advanded_blend_sh_constant_changed(ctx, new_blend_enabled,
                                                 new_mode)) {
-      FLUSH_VERTICES(ctx, _NEW_COLOR);
+      FLUSH_VERTICES(ctx, _NEW_COLOR, GL_COLOR_BUFFER_BIT);
       ctx->NewDriverState |= ctx->DriverFlags.NewBlend;
       return;
    }

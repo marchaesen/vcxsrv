@@ -38,7 +38,6 @@
 struct fd6_image {
 	struct pipe_resource *prsc;
 	enum pipe_format pfmt;
-	enum a6xx_format fmt;
 	enum a6xx_tex_type type;
 	bool srgb;
 	uint32_t cpp;
@@ -67,7 +66,6 @@ static void translate_image(struct fd6_image *img, const struct pipe_image_view 
 
 	img->prsc      = prsc;
 	img->pfmt      = format;
-	img->fmt       = fd6_pipe2tex(format);
 	img->type      = fd6_tex_type(prsc->target);
 	img->srgb      = util_format_is_srgb(format);
 	img->cpp       = rsc->layout.cpp;
@@ -145,7 +143,6 @@ static void translate_buf(struct fd6_image *img, const struct pipe_shader_buffer
 
 	img->prsc      = prsc;
 	img->pfmt      = format;
-	img->fmt       = fd6_pipe2tex(format);
 	img->type      = fd6_tex_type(prsc->target);
 	img->srgb      = util_format_is_srgb(format);
 	img->cpp       = rsc->layout.cpp;
@@ -249,7 +246,7 @@ static void emit_image_ssbo(struct fd_ringbuffer *ring, struct fd6_image *img)
 	enum a6xx_tile_mode tile_mode = fd_resource_tile_mode(img->prsc, img->level);
 	bool ubwc_enabled = fd_resource_ubwc_enabled(rsc, img->level);
 
-	OUT_RING(ring, A6XX_IBO_0_FMT(img->fmt) |
+	OUT_RING(ring, A6XX_IBO_0_FMT(fd6_pipe2tex(img->pfmt)) |
 		A6XX_IBO_0_TILE_MODE(tile_mode));
 	OUT_RING(ring, A6XX_IBO_1_WIDTH(img->width) |
 		A6XX_IBO_1_HEIGHT(img->height));
@@ -319,12 +316,15 @@ fd6_build_ibo_state(struct fd_context *ctx, const struct ir3_shader_variant *v,
 static void fd6_set_shader_images(struct pipe_context *pctx,
 		enum pipe_shader_type shader,
 		unsigned start, unsigned count,
+		unsigned unbind_num_trailing_slots,
 		const struct pipe_image_view *images)
+	in_dt
 {
 	struct fd_context *ctx = fd_context(pctx);
 	struct fd_shaderimg_stateobj *so = &ctx->shaderimg[shader];
 
-	fd_set_shader_images(pctx, shader, start, count, images);
+	fd_set_shader_images(pctx, shader, start, count,
+			     unbind_num_trailing_slots, images);
 
 	if (!images)
 		return;

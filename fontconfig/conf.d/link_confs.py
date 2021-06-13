@@ -3,6 +3,7 @@
 import os
 import sys
 import argparse
+import platform
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
@@ -11,7 +12,14 @@ if __name__=='__main__':
     parser.add_argument('links', nargs='+')
     args = parser.parse_args()
 
-    confpath = os.path.join(os.environ['MESON_INSTALL_DESTDIR_PREFIX'], args.confpath)
+    if os.path.isabs(args.confpath):
+        destdir = os.environ.get('DESTDIR')
+        if destdir:
+            confpath = os.path.join(destdir, args.confpath[1:])
+        else:
+            confpath = args.confpath
+    else:
+        confpath = os.path.join(os.environ['MESON_INSTALL_DESTDIR_PREFIX'], args.confpath)
 
     if not os.path.exists(confpath):
         os.makedirs(confpath)
@@ -20,14 +28,16 @@ if __name__=='__main__':
         src = os.path.join(args.availpath, link)
         dst = os.path.join(confpath, link)
         try:
+            os.remove(dst)
+        except FileNotFoundError:
+            pass
+        try:
             os.symlink(src, dst)
         except NotImplementedError:
             # Not supported on this version of Windows
             break
         except OSError as e:
             # Symlink privileges are not available
-            if len(e.args) == 1 and 'privilege' in e.args[0]:
+            if platform.system().lower() == 'windows' and e.winerror == 1314:
                 break
             raise
-        except FileExistsError:
-            pass

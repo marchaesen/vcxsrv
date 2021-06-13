@@ -52,7 +52,7 @@ else
 endif
 if with_gallium_softpipe
   subdir('drivers/softpipe')
-  if with_llvm
+  if draw_with_llvm
     subdir('drivers/llvmpipe')
   endif
 else

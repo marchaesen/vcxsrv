@@ -35,5 +35,7 @@ libshadow_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 libshadow_la_LIBADD = $(top_builddir)/miext/shadow/libshadow.la
 libshadow_la_SOURCES = shmodule.c
 
-libdixmods_la_SOURCES = $(top_srcdir)/mi/miinitext.c
+libdixmods_la_SOURCES = \
+	$(top_srcdir)/mi/miinitext.c \
+	$(top_srcdir)/mi/miinitext.h
 libdixmods_la_CFLAGS = $(AM_CFLAGS)

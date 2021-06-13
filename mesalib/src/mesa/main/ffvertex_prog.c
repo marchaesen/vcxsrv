@@ -163,7 +163,7 @@ static void make_state_key( struct gl_context *ctx, struct state_key *key )
    key->need_eye_coords = ctx->_NeedEyeCoords;
 
    key->fragprog_inputs_read = fp->info.inputs_read;
-   key->varying_vp_inputs = ctx->varying_vp_inputs;
+   key->varying_vp_inputs = ctx->VertexProgram._VaryingInputs;
 
    if (ctx->RenderMode == GL_FEEDBACK) {
       /* make sure the vertprog emits color and tex0 */
@@ -443,7 +443,7 @@ static struct ureg register_input( struct tnl_program *p, GLuint input )
       return make_ureg(PROGRAM_INPUT, input);
    }
    else {
-      return register_param3( p, STATE_INTERNAL, STATE_CURRENT_ATTRIB, input );
+      return register_param2(p, STATE_CURRENT_ATTRIB, input);
    }
 }
 
@@ -797,8 +797,7 @@ static struct ureg get_transformed_normal( struct tnl_program *p )
       else if (p->state->need_eye_coords == p->state->rescale_normals) {
          /* This is already adjusted for eye/non-eye rendering:
           */
-	 struct ureg rescale = register_param2(p, STATE_INTERNAL,
-                                               STATE_NORMAL_SCALE);
+	 struct ureg rescale = register_param1(p, STATE_NORMAL_SCALE);
 
 	 emit_op2( p, OPCODE_MUL, transformed_normal, 0, normal, rescale );
          normal = transformed_normal;
@@ -882,7 +881,7 @@ static struct ureg get_material( struct tnl_program *p, GLuint side,
       return register_input( p, VERT_ATTRIB_MAT(attrib) );
    }
    else
-      return register_param3( p, STATE_MATERIAL, side, property );
+      return register_param2(p, STATE_MATERIAL, attrib);
 }
 
 #define SCENE_COLOR_BITS(side) (( MAT_BIT_FRONT_EMISSION | \
@@ -931,7 +930,7 @@ static struct ureg get_lightprod( struct tnl_program *p, GLuint light,
       return tmp;
    }
    else
-      return register_param4(p, STATE_LIGHTPROD, light, side, property);
+      return register_param3(p, STATE_LIGHTPROD, light, attrib);
 }
 
 
@@ -947,8 +946,7 @@ static struct ureg calculate_light_attenuation( struct tnl_program *p,
    /* Calculate spot attenuation:
     */
    if (!p->state->unit[i].light_spotcutoff_is_180) {
-      struct ureg spot_dir_norm = register_param3(p, STATE_INTERNAL,
-						  STATE_LIGHT_SPOT_DIR_NORMALIZED, i);
+      struct ureg spot_dir_norm = register_param2(p, STATE_LIGHT_SPOT_DIR_NORMALIZED, i);
       struct ureg spot = get_temp(p);
       struct ureg slt = get_temp(p);
 
@@ -1109,6 +1107,44 @@ static void build_lighting( struct tnl_program *p )
       return;
    }
 
+   /* Declare light products first to place them sequentially next to each
+    * other for optimal constant uploads.
+    */
+   struct ureg lightprod_front[MAX_LIGHTS][3];
+   struct ureg lightprod_back[MAX_LIGHTS][3];
+
+   for (i = 0; i < MAX_LIGHTS; i++) {
+      if (p->state->unit[i].light_enabled) {
+         lightprod_front[i][0] = get_lightprod(p, i, 0, STATE_AMBIENT);
+         if (twoside)
+            lightprod_back[i][0] = get_lightprod(p, i, 1, STATE_AMBIENT);
+
+         lightprod_front[i][1] = get_lightprod(p, i, 0, STATE_DIFFUSE);
+         if (twoside)
+            lightprod_back[i][1] = get_lightprod(p, i, 1, STATE_DIFFUSE);
+
+         lightprod_front[i][2] = get_lightprod(p, i, 0, STATE_SPECULAR);
+         if (twoside)
+            lightprod_back[i][2] = get_lightprod(p, i, 1, STATE_SPECULAR);
+      }
+   }
+
+   /* Add more variables now that we'll use later, so that they are nicely
+    * sorted in the parameter list.
+    */
+   for (i = 0; i < MAX_LIGHTS; i++) {
+      if (p->state->unit[i].light_enabled) {
+         if (p->state->unit[i].light_eyepos3_is_zero)
+            register_param2(p, STATE_LIGHT_POSITION_NORMALIZED, i);
+         else
+            register_param2(p, STATE_LIGHT_POSITION, i);
+      }
+   }
+   for (i = 0; i < MAX_LIGHTS; i++) {
+      if (p->state->unit[i].light_enabled)
+         register_param3(p, STATE_LIGHT, i, STATE_ATTENUATION);
+   }
+
    for (i = 0; i < MAX_LIGHTS; i++) {
       if (p->state->unit[i].light_enabled) {
 	 struct ureg half = undef;
@@ -1117,11 +1153,9 @@ static void build_lighting( struct tnl_program *p )
 
 	 count++;
          if (p->state->unit[i].light_eyepos3_is_zero) {
-             VPpli = register_param3(p, STATE_INTERNAL,
-                                     STATE_LIGHT_POSITION_NORMALIZED, i);
+             VPpli = register_param2(p, STATE_LIGHT_POSITION_NORMALIZED, i);
          } else {
-            struct ureg Ppli = register_param3(p, STATE_INTERNAL,
-                                               STATE_LIGHT_POSITION, i);
+            struct ureg Ppli = register_param2(p, STATE_LIGHT_POSITION, i);
             struct ureg V = get_eye_position(p);
 
             VPpli = get_temp(p);
@@ -1153,8 +1187,7 @@ static void build_lighting( struct tnl_program *p )
                emit_op2(p, OPCODE_SUB, half, 0, VPpli, eye_hat);
                emit_normalize_vec3(p, half, half);
             } else if (p->state->unit[i].light_eyepos3_is_zero) {
-               half = register_param3(p, STATE_INTERNAL,
-                                      STATE_LIGHT_HALF_VECTOR, i);
+               half = register_param2(p, STATE_LIGHT_HALF_VECTOR, i);
             } else {
                struct ureg z_dir = swizzle(get_identity_param(p),X,Y,W,Z);
                half = get_temp(p);
@@ -1176,9 +1209,9 @@ static void build_lighting( struct tnl_program *p )
 	 /* Front face lighting:
 	  */
 	 {
-	    struct ureg ambient = get_lightprod(p, i, 0, STATE_AMBIENT);
-	    struct ureg diffuse = get_lightprod(p, i, 0, STATE_DIFFUSE);
-	    struct ureg specular = get_lightprod(p, i, 0, STATE_SPECULAR);
+	    struct ureg ambient = lightprod_front[i][0];
+	    struct ureg diffuse = lightprod_front[i][1];
+	    struct ureg specular = lightprod_front[i][2];
 	    struct ureg res0, res1;
 	    GLuint mask0, mask1;
 
@@ -1231,9 +1264,9 @@ static void build_lighting( struct tnl_program *p )
 	 /* Back face lighting:
 	  */
 	 if (twoside) {
-	    struct ureg ambient = get_lightprod(p, i, 1, STATE_AMBIENT);
-	    struct ureg diffuse = get_lightprod(p, i, 1, STATE_DIFFUSE);
-	    struct ureg specular = get_lightprod(p, i, 1, STATE_SPECULAR);
+	    struct ureg ambient = lightprod_back[i][0];
+	    struct ureg diffuse = lightprod_back[i][1];
+	    struct ureg specular = lightprod_back[i][2];
 	    struct ureg res0, res1;
 	    GLuint mask0, mask1;
 
@@ -1521,7 +1554,7 @@ static void build_texture_transform( struct tnl_program *p )
 static void build_atten_pointsize( struct tnl_program *p )
 {
    struct ureg eye = get_eye_position_z(p);
-   struct ureg state_size = register_param2(p, STATE_INTERNAL, STATE_POINT_SIZE_CLAMPED);
+   struct ureg state_size = register_param1(p, STATE_POINT_SIZE_CLAMPED);
    struct ureg state_attenuation = register_param1(p, STATE_POINT_ATTENUATION);
    struct ureg out = register_output(p, VARYING_SLOT_PSIZ);
    struct ureg ut = get_temp(p);
@@ -1664,7 +1697,7 @@ _mesa_get_fixed_func_vertex_program(struct gl_context *ctx)
    struct gl_program *prog;
    struct state_key key;
 
-   /* We only update ctx->varying_vp_inputs when in VP_MODE_FF _VPMode */
+   /* We only update ctx->VertexProgram._VaryingInputs when in VP_MODE_FF _VPMode */
    assert(VP_MODE_FF == ctx->VertexProgram._VPMode);
 
    /* Grab all the relevant state and put it in a single structure:

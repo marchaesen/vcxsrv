@@ -30,6 +30,7 @@
 #include "freedreno_resource.h"
 
 #include "fd5_context.h"
+#include "fd5_emit.h"
 #include "fd5_format.h"
 #include "fd5_query.h"
 
@@ -68,8 +69,7 @@ occlusion_resume(struct fd_acc_query *aq, struct fd_batch *batch)
 	OUT_PKT4(ring, REG_A5XX_RB_SAMPLE_COUNT_ADDR_LO, 2);
 	OUT_RELOC(ring, query_sample(aq, start));
 
-	OUT_PKT7(ring, CP_EVENT_WRITE, 1);
-	OUT_RING(ring, ZPASS_DONE);
+	fd5_event_write(batch, ring, ZPASS_DONE, false);
 	fd_reset_wfi(batch);
 
 	fd5_context(batch->ctx)->samples_passed_queries++;
@@ -93,8 +93,7 @@ occlusion_pause(struct fd_acc_query *aq, struct fd_batch *batch)
 	OUT_PKT4(ring, REG_A5XX_RB_SAMPLE_COUNT_ADDR_LO, 2);
 	OUT_RELOC(ring, query_sample(aq, stop));
 
-	OUT_PKT7(ring, CP_EVENT_WRITE, 1);
-	OUT_RING(ring, ZPASS_DONE);
+	fd5_event_write(batch, ring, ZPASS_DONE, false);
 	fd_reset_wfi(batch);
 
 	OUT_PKT7(ring, CP_WAIT_REG_MEM, 6);
@@ -162,6 +161,7 @@ static const struct fd_acc_sample_provider occlusion_predicate_conservative = {
 
 static void
 timestamp_resume(struct fd_acc_query *aq, struct fd_batch *batch)
+	assert_dt
 {
 	struct fd_ringbuffer *ring = batch->draw;
 
@@ -176,6 +176,7 @@ timestamp_resume(struct fd_acc_query *aq, struct fd_batch *batch)
 
 static void
 timestamp_pause(struct fd_acc_query *aq, struct fd_batch *batch)
+	assert_dt
 {
 	struct fd_ringbuffer *ring = batch->draw;
 
@@ -271,6 +272,7 @@ struct fd_batch_query_data {
 
 static void
 perfcntr_resume(struct fd_acc_query *aq, struct fd_batch *batch)
+	assert_dt
 {
 	struct fd_batch_query_data *data = aq->query_data;
 	struct fd_screen *screen = data->screen;
@@ -311,6 +313,7 @@ perfcntr_resume(struct fd_acc_query *aq, struct fd_batch *batch)
 
 static void
 perfcntr_pause(struct fd_acc_query *aq, struct fd_batch *batch)
+	assert_dt
 {
 	struct fd_batch_query_data *data = aq->query_data;
 	struct fd_screen *screen = data->screen;
@@ -446,11 +449,12 @@ error:
 
 void
 fd5_query_context_init(struct pipe_context *pctx)
+	disable_thread_safety_analysis
 {
 	struct fd_context *ctx = fd_context(pctx);
 
 	ctx->create_query = fd_acc_create_query;
-	ctx->query_set_stage = fd_acc_query_set_stage;
+	ctx->query_update_batch = fd_acc_query_update_batch;
 
 	pctx->create_batch_query = fd5_create_batch_query;
 

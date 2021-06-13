@@ -51,7 +51,7 @@ point_size(struct gl_context *ctx, GLfloat size, bool no_error)
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_POINT);
+   FLUSH_VERTICES(ctx, _NEW_POINT, GL_POINT_BIT);
    ctx->Point.Size = size;
 
    if (ctx->Driver.PointSize)
@@ -130,7 +130,8 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
       case GL_DISTANCE_ATTENUATION_EXT:
          if (TEST_EQ_3V(ctx->Point.Params, params))
             return;
-         FLUSH_VERTICES(ctx, _NEW_POINT);
+         FLUSH_VERTICES(ctx, _NEW_POINT | _NEW_FF_VERT_PROGRAM |
+                        _NEW_TNL_SPACES, GL_POINT_BIT);
          COPY_3V(ctx->Point.Params, params);
          ctx->Point._Attenuated = (ctx->Point.Params[0] != 1.0F ||
                                    ctx->Point.Params[1] != 0.0F ||
@@ -144,7 +145,7 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
          }
          if (ctx->Point.MinSize == params[0])
             return;
-         FLUSH_VERTICES(ctx, _NEW_POINT);
+         FLUSH_VERTICES(ctx, _NEW_POINT, GL_POINT_BIT);
          ctx->Point.MinSize = params[0];
          break;
       case GL_POINT_SIZE_MAX_EXT:
@@ -155,7 +156,7 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
          }
          if (ctx->Point.MaxSize == params[0])
             return;
-         FLUSH_VERTICES(ctx, _NEW_POINT);
+         FLUSH_VERTICES(ctx, _NEW_POINT, GL_POINT_BIT);
          ctx->Point.MaxSize = params[0];
          break;
       case GL_POINT_FADE_THRESHOLD_SIZE_EXT:
@@ -166,7 +167,7 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
          }
          if (ctx->Point.Threshold == params[0])
             return;
-         FLUSH_VERTICES(ctx, _NEW_POINT);
+         FLUSH_VERTICES(ctx, _NEW_POINT, GL_POINT_BIT);
          ctx->Point.Threshold = params[0];
          break;
       case GL_POINT_SPRITE_COORD_ORIGIN:
@@ -183,7 +184,7 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
             }
             if (ctx->Point.SpriteOrigin == value)
                return;
-            FLUSH_VERTICES(ctx, _NEW_POINT);
+            FLUSH_VERTICES(ctx, _NEW_POINT, GL_POINT_BIT);
             ctx->Point.SpriteOrigin = value;
          }
          else {

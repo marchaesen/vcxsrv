@@ -155,9 +155,9 @@ GDSStoreTessFactor::GDSStoreTessFactor(GPRVector& value):
    add_remappable_src_value(&m_value);
 }
 
-void GDSStoreTessFactor::replace_values(const ValueSet& candiates, PValue new_value)
+void GDSStoreTessFactor::replace_values(const ValueSet& candidates, PValue new_value)
 {
-   for (auto& c: candiates) {
+   for (auto& c: candidates) {
       for (int i = 0; i < 4; ++i) {
          if (*c == *m_value[i])
             m_value[i] = new_value;

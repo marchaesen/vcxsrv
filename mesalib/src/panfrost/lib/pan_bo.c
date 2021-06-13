@@ -436,6 +436,9 @@ panfrost_bo_unreference(struct panfrost_bo *bo)
                 /* When the reference count goes to zero, we need to cleanup */
                 panfrost_bo_munmap(bo);
 
+                if (dev->debug & (PAN_DBG_TRACE | PAN_DBG_SYNC))
+                        pandecode_inject_free(bo->ptr.gpu, bo->size);
+
                 /* Rather than freeing the BO now, we'll cache the BO for later
                  * allocations if we're allowed to.
                  */

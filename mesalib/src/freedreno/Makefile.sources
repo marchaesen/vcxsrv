@@ -6,6 +6,11 @@ common_SOURCES := \
 	common/freedreno_uuid.c \
 	common/freedreno_uuid.h
 
+decode_SOURCES := \
+	isa/decode.c \
+	isa/decode.h \
+	isa/isa.h
+
 drm_SOURCES := \
 	drm/freedreno_bo.c \
 	drm/freedreno_drmif.h \
@@ -21,6 +26,10 @@ drm_SOURCES := \
 	drm/freedreno_device.c \
 	drm/freedreno_priv.h \
 	drm/msm_ringbuffer.c
+
+encode_SOURCES := \
+	isa/encode.c \
+	isa/isa.h
 
 ir2_SOURCES := \
 	ir2/disasm-a2xx.c \

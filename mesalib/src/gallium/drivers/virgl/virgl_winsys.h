@@ -33,6 +33,7 @@ struct virgl_hw_res;
 
 #define VIRGL_MAX_TBUF_DWORDS 1024
 #define VIRGL_MAX_CMDBUF_DWORDS ((64 * 1024) + VIRGL_MAX_TBUF_DWORDS)
+#define VIRGL_MAX_PLANE_COUNT 3
 
 struct virgl_drm_caps {
    union virgl_caps caps;
@@ -87,6 +88,15 @@ struct virgl_winsys {
                                                        uint32_t *plane_offset,
                                                        uint64_t *modifier,
                                                        uint32_t *blob_mem);
+   void (*resource_set_type)(struct virgl_winsys *vws,
+                             struct virgl_hw_res *res,
+                             uint32_t format, uint32_t bind,
+                             uint32_t width, uint32_t height,
+                             uint32_t usage, uint64_t modifier,
+                             uint32_t plane_count,
+                             const uint32_t *plane_strides,
+                             const uint32_t *plane_offsets);
+
    boolean (*resource_get_handle)(struct virgl_winsys *vws,
                                   struct virgl_hw_res *res,
                                   uint32_t stride,

@@ -297,7 +297,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			struct ir3_instruction *baryf;
 
 			/* (ss)bary.f (ei)r63.x, 0, r0.x */
-			baryf = ir3_instr_create(block, OPC_BARY_F);
+			baryf = ir3_instr_create(block, OPC_BARY_F, 3);
 			ir3_reg_create(baryf, regid(63, 0), 0);
 			ir3_reg_create(baryf, 0, IR3_REG_IMMED)->iim_val = 0;
 			ir3_reg_create(baryf, regid(0, 0), 0);
@@ -323,7 +323,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 		struct ir3_instruction *baryf;
 
 		/* (ss)bary.f (ei)r63.x, 0, r0.x */
-		baryf = ir3_instr_create(block, OPC_BARY_F);
+		baryf = ir3_instr_create(block, OPC_BARY_F, 3);
 		ir3_reg_create(baryf, regid(63, 0), 0)->flags |= IR3_REG_EI;
 		ir3_reg_create(baryf, 0, IR3_REG_IMMED)->iim_val = 0;
 		ir3_reg_create(baryf, regid(0, 0), 0);
@@ -517,7 +517,7 @@ resolve_jump(struct ir3_instruction *instr)
 	 * then we can just drop the jump.
 	 */
 	unsigned next_block;
-	if (instr->cat0.inv == true)
+	if (instr->cat0.inv1 == true)
 		next_block = 2;
 	else
 		next_block = 1;
@@ -609,7 +609,7 @@ block_sched(struct ir3 *ir)
 			 * frequently/always end up being a fall-thru):
 			 */
 			br = ir3_B(block, block->condition, 0);
-			br->cat0.inv = true;
+			br->cat0.inv1 = true;
 			br->cat0.target = block->successors[1];
 
 			/* "then" branch: */
@@ -667,7 +667,7 @@ kill_sched(struct ir3 *ir, struct ir3_shader_variant *so)
 			if (instr->opc != OPC_KILL)
 				continue;
 
-			struct ir3_instruction *br = ir3_instr_create(block, OPC_B);
+			struct ir3_instruction *br = ir3_instr_create(block, OPC_B, 2);
 			br->regs[1] = instr->regs[1];
 			br->cat0.target =
 				list_last_entry(&ir->block_list, struct ir3_block, node);

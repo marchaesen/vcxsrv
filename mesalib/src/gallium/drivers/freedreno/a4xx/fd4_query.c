@@ -110,6 +110,7 @@ occlusion_predicate_accumulate_result(struct fd_context *ctx,
 
 static void
 time_elapsed_enable(struct fd_context *ctx, struct fd_ringbuffer *ring)
+	assert_dt
 {
 	/* Right now, the assignment of countable to counter register is
 	 * just hard coded.  If we start exposing more countables than we
@@ -125,6 +126,7 @@ time_elapsed_enable(struct fd_context *ctx, struct fd_ringbuffer *ring)
 
 static struct fd_hw_sample *
 time_elapsed_get_sample(struct fd_batch *batch, struct fd_ringbuffer *ring)
+	assert_dt
 {
 	struct fd_hw_sample *samp = fd_hw_sample_init(batch, sizeof(uint64_t));
 
@@ -240,28 +242,25 @@ timestamp_accumulate_result(struct fd_context *ctx,
 
 static const struct fd_hw_sample_provider occlusion_counter = {
 		.query_type = PIPE_QUERY_OCCLUSION_COUNTER,
-		.active = FD_STAGE_DRAW,
 		.get_sample = occlusion_get_sample,
 		.accumulate_result = occlusion_counter_accumulate_result,
 };
 
 static const struct fd_hw_sample_provider occlusion_predicate = {
 		.query_type = PIPE_QUERY_OCCLUSION_PREDICATE,
-		.active = FD_STAGE_DRAW,
 		.get_sample = occlusion_get_sample,
 		.accumulate_result = occlusion_predicate_accumulate_result,
 };
 
 static const struct fd_hw_sample_provider occlusion_predicate_conservative = {
 		.query_type = PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE,
-		.active = FD_STAGE_DRAW,
 		.get_sample = occlusion_get_sample,
 		.accumulate_result = occlusion_predicate_accumulate_result,
 };
 
 static const struct fd_hw_sample_provider time_elapsed = {
 		.query_type = PIPE_QUERY_TIME_ELAPSED,
-		.active = FD_STAGE_ALL,
+		.always = true,
 		.enable = time_elapsed_enable,
 		.get_sample = time_elapsed_get_sample,
 		.accumulate_result = time_elapsed_accumulate_result,
@@ -275,20 +274,21 @@ static const struct fd_hw_sample_provider time_elapsed = {
  */
 static const struct fd_hw_sample_provider timestamp = {
 		.query_type = PIPE_QUERY_TIMESTAMP,
-		.active = FD_STAGE_ALL,
+		.always = true,
 		.enable = time_elapsed_enable,
 		.get_sample = time_elapsed_get_sample,
 		.accumulate_result = timestamp_accumulate_result,
 };
 
 void fd4_query_context_init(struct pipe_context *pctx)
+	disable_thread_safety_analysis
 {
 	struct fd_context *ctx = fd_context(pctx);
 
 	ctx->create_query = fd_hw_create_query;
 	ctx->query_prepare = fd_hw_query_prepare;
 	ctx->query_prepare_tile = fd_hw_query_prepare_tile;
-	ctx->query_set_stage = fd_hw_query_set_stage;
+	ctx->query_update_batch = fd_hw_query_update_batch;
 
 	fd_hw_query_register_provider(pctx, &occlusion_counter);
 	fd_hw_query_register_provider(pctx, &occlusion_predicate);

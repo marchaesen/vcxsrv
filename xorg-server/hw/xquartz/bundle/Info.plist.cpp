@@ -39,9 +39,9 @@
 	<key>LSApplicationCategoryType</key>
 		<string>public.app-category.utilities</string>
 	<key>NSHumanReadableCopyright</key>
-		<string>© 2003-2016 Apple Inc.
+		<string>© 2003-2021 Apple Inc.
 © 2003 XFree86 Project, Inc.
-© 2003-2016 X.org Foundation, Inc.
+© 2003-2021 X.org Foundation, Inc.
 </string>
 	<key>NSMainNibFile</key>
 		<string>main</string>

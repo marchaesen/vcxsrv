@@ -76,8 +76,7 @@ struct xwl_egl_backend {
      * wl_buffer for a currently buffer-less pixmap, or simply return the
      * pixmap they've prepared beforehand.
      */
-    struct wl_buffer *(*get_wl_buffer_for_pixmap)(PixmapPtr pixmap,
-                                                  Bool *created);
+    struct wl_buffer *(*get_wl_buffer_for_pixmap)(PixmapPtr pixmap);
 
     /* Called by Xwayland to perform any pre-wl_surface damage routines
      * that are required by the backend. If your backend is poorly
@@ -107,8 +106,7 @@ Bool xwl_screen_set_drm_interface(struct xwl_screen *xwl_screen,
                                   uint32_t id, uint32_t version);
 Bool xwl_screen_set_dmabuf_interface(struct xwl_screen *xwl_screen,
                                      uint32_t id, uint32_t version);
-struct wl_buffer *xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap,
-                                                  Bool *created);
+struct wl_buffer *xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap);
 void xwl_glamor_init_wl_registry(struct xwl_screen *xwl_screen,
                                  struct wl_registry *registry,
                                  uint32_t id, const char *interface,

@@ -77,7 +77,7 @@ set_src_live(nir_src *src, void *void_live)
    if (!src->is_ssa)
       return true;
 
-   if (src->ssa->parent_instr->type == nir_instr_type_ssa_undef)
+   if (nir_src_is_undef(*src))
       return true;   /* undefined variables are never live */
 
    BITSET_SET(live, src->ssa->index);

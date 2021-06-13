@@ -23,8 +23,6 @@
 #else
 #include <cmath>
 #endif
-//#include <windows.h> // Just used for some commented out debug stat printing.
-//#include <strsafe.h> // Ditto.
 #define min(x,y) (x < y ? x : y)
 #define max(x,y) (x > y ? x : y)
 
@@ -194,9 +192,13 @@ INT32 floatToIDotF( const float& input )
         {
 //            assert( iShift < 32 );
 #if defined(_MSC_VER)
-#pragma warning( suppress : 4293 )
+#pragma warning( push )
+#pragma warning( disable : 4293 26452 )
 #endif
             _fxpMaxPosValueFloat -= INT32( 1 ) << iShift;
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif
         }
 
         // The maximum negative fixed point value is -2^(i-1).
@@ -216,9 +218,13 @@ INT32 floatToIDotF( const float& input )
         {
 //            assert( iShift < 32 );
 #if defined(_MSC_VER)
-#pragma warning( suppress : 4293 )
+#pragma warning( push )
+#pragma warning( disable : 4293 26452 )
 #endif
             _fxpMaxPosValueFloat -= INT32( 1 ) << iShift;
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif
         }
 
         // The maximum negative fixed point value is 0.
@@ -348,7 +354,7 @@ INT32 floatToIDotF( const float& input )
                                                     // or equal to this allows avg. reduction on a quad patch
                                                     // including rounding.
 
-static const FXP s_fixedReciprocal[D3D11_TESSELLATOR_MAX_TESSELLATION_FACTOR+1] =
+static const FXP s_fixedReciprocal[PIPE_TESSELLATOR_MAX_TESSELLATION_FACTOR+1] =
 {
     0xffffffff, // 1/0 is the first entry (unused)
     0x10000, 0x8000, 0x5555, 0x4000,
@@ -432,9 +438,6 @@ CHWTessellator::CHWTessellator()
     m_NumIndices = 0;
     m_bUsingPatchedIndices = false;
     m_bUsingPatchedIndices2 = false;
-#ifdef ALLOW_XBOX_360_COMPARISON
-	m_bXBox360Mode = false;
-#endif
 }
 //---------------------------------------------------------------------------------------------------------------------------------
 // CHWTessellator::~CHWTessellator
@@ -450,8 +453,8 @@ CHWTessellator::~CHWTessellator()
 // User calls this.
 //---------------------------------------------------------------------------------------------------------------------------------
 void CHWTessellator::Init(
-    D3D11_TESSELLATOR_PARTITIONING       partitioning,
-    D3D11_TESSELLATOR_OUTPUT_PRIMITIVE   outputPrimitive)
+    PIPE_TESSELLATOR_PARTITIONING       partitioning,
+    PIPE_TESSELLATOR_OUTPUT_PRIMITIVE   outputPrimitive)
 {
     if( 0 == m_Point )
     {
@@ -465,13 +468,13 @@ void CHWTessellator::Init(
     m_originalPartitioning = partitioning;
     switch( partitioning )
     {
-    case D3D11_TESSELLATOR_PARTITIONING_INTEGER:
+    case PIPE_TESSELLATOR_PARTITIONING_INTEGER:
     default:
         break;
-    case D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
+    case PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
         m_parity = TESSELLATOR_PARITY_ODD;
         break;
-    case D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
+    case PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
         m_parity = TESSELLATOR_PARITY_EVEN;
         break;
     }
@@ -506,17 +509,17 @@ void CHWTessellator::TessellateQuadDomain( float tessFactor_Ueq0, float tessFact
 
         switch(m_outputPrimitive)
         {
-        case D3D11_TESSELLATOR_OUTPUT_TRIANGLE_CW:
-        case D3D11_TESSELLATOR_OUTPUT_TRIANGLE_CCW:
+        case PIPE_TESSELLATOR_OUTPUT_TRIANGLE_CW:
+        case PIPE_TESSELLATOR_OUTPUT_TRIANGLE_CCW:
             // function orients them CCW if needed
             DefineClockwiseTriangle(0,1,3,/*indexStorageOffset*/0);
             DefineClockwiseTriangle(1,2,3,/*indexStorageOffset*/3);
             m_NumIndices = 6;
             break;
-        case D3D11_TESSELLATOR_OUTPUT_POINT:
+        case PIPE_TESSELLATOR_OUTPUT_POINT:
             DumpAllPoints();
             break;
-        case D3D11_TESSELLATOR_OUTPUT_LINE:
+        case PIPE_TESSELLATOR_OUTPUT_LINE:
             DumpAllPointsAsInOrderLineList();
             break;
         }
@@ -525,12 +528,12 @@ void CHWTessellator::TessellateQuadDomain( float tessFactor_Ueq0, float tessFact
 
     QuadGeneratePoints(processedTessFactors);
 
-    if( m_outputPrimitive == D3D11_TESSELLATOR_OUTPUT_POINT )
+    if( m_outputPrimitive == PIPE_TESSELLATOR_OUTPUT_POINT )
     {
         DumpAllPoints();
         return;
     }
-    if( m_outputPrimitive == D3D11_TESSELLATOR_OUTPUT_LINE )
+    if( m_outputPrimitive == PIPE_TESSELLATOR_OUTPUT_LINE )
     {
         DumpAllPointsAsInOrderLineList();
         return;
@@ -563,20 +566,20 @@ void CHWTessellator::QuadProcessTessFactors( float tessFactor_Ueq0, float tessFa
     float lowerBound = 0.0, upperBound = 0.0;
     switch(m_originalPartitioning)
     {
-        case D3D11_TESSELLATOR_PARTITIONING_INTEGER:
-        case D3D11_TESSELLATOR_PARTITIONING_POW2: // don�t care about pow2 distinction for validation, just treat as integer
-            lowerBound = D3D11_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR;
-            upperBound = D3D11_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR;
+        case PIPE_TESSELLATOR_PARTITIONING_INTEGER:
+        case PIPE_TESSELLATOR_PARTITIONING_POW2: // don�t care about pow2 distinction for validation, just treat as integer
+            lowerBound = PIPE_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR;
+            upperBound = PIPE_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR;
             break;
 
-        case D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
-            lowerBound = D3D11_TESSELLATOR_MIN_EVEN_TESSELLATION_FACTOR;
-            upperBound = D3D11_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR;
+        case PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
+            lowerBound = PIPE_TESSELLATOR_MIN_EVEN_TESSELLATION_FACTOR;
+            upperBound = PIPE_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR;
             break;
 
-        case D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
-            lowerBound = D3D11_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR;
-            upperBound = D3D11_TESSELLATOR_MAX_ODD_TESSELLATION_FACTOR;
+        case PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
+            lowerBound = PIPE_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR;
+            upperBound = PIPE_TESSELLATOR_MAX_ODD_TESSELLATION_FACTOR;
             break;
     }
 
@@ -594,10 +597,10 @@ void CHWTessellator::QuadProcessTessFactors( float tessFactor_Ueq0, float tessFa
     }
 
     // Clamp inside TessFactors
-    if(D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD == m_originalPartitioning)
+    if(PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD == m_originalPartitioning)
     {
 #define EPSILON 0.0000152587890625f // 2^(-16), min positive fixed point fraction
-#define MIN_ODD_TESSFACTOR_PLUS_HALF_EPSILON (D3D11_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR + EPSILON/2)
+#define MIN_ODD_TESSFACTOR_PLUS_HALF_EPSILON (PIPE_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR + EPSILON/2)
         // If any TessFactor will end up > 1 after floatToFixed conversion later,
         // then force the inside TessFactors to be > 1 so there is a picture frame.
         if( (tessFactor_Ueq0 > MIN_ODD_TESSFACTOR_PLUS_HALF_EPSILON) ||
@@ -608,7 +611,7 @@ void CHWTessellator::QuadProcessTessFactors( float tessFactor_Ueq0, float tessFa
             (insideTessFactor_V > MIN_ODD_TESSFACTOR_PLUS_HALF_EPSILON) )
         {
             // Force picture frame
-            lowerBound = D3D11_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR + EPSILON;
+            lowerBound = PIPE_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR + EPSILON;
         }
     }
 
@@ -1026,16 +1029,16 @@ void CHWTessellator::TessellateTriDomain( float tessFactor_Ueq0, float tessFacto
 
         switch(m_outputPrimitive)
         {
-        case D3D11_TESSELLATOR_OUTPUT_TRIANGLE_CW:
-        case D3D11_TESSELLATOR_OUTPUT_TRIANGLE_CCW:
+        case PIPE_TESSELLATOR_OUTPUT_TRIANGLE_CW:
+        case PIPE_TESSELLATOR_OUTPUT_TRIANGLE_CCW:
             // function orients them CCW if needed
             DefineClockwiseTriangle(0,1,2,/*indexStorageBaseOffset*/m_NumIndices);
             m_NumIndices = 3;
             break;
-        case D3D11_TESSELLATOR_OUTPUT_POINT:
+        case PIPE_TESSELLATOR_OUTPUT_POINT:
             DumpAllPoints();
             break;
-        case D3D11_TESSELLATOR_OUTPUT_LINE:
+        case PIPE_TESSELLATOR_OUTPUT_LINE:
             DumpAllPointsAsInOrderLineList();
             break;
         }
@@ -1044,12 +1047,12 @@ void CHWTessellator::TessellateTriDomain( float tessFactor_Ueq0, float tessFacto
 
     TriGeneratePoints(processedTessFactors);
 
-    if( m_outputPrimitive == D3D11_TESSELLATOR_OUTPUT_POINT )
+    if( m_outputPrimitive == PIPE_TESSELLATOR_OUTPUT_POINT )
     {
         DumpAllPoints();
         return;
     }
-    if( m_outputPrimitive == D3D11_TESSELLATOR_OUTPUT_LINE )
+    if( m_outputPrimitive == PIPE_TESSELLATOR_OUTPUT_LINE )
     {
         DumpAllPointsAsInOrderLineList();
         return;
@@ -1081,20 +1084,20 @@ void CHWTessellator::TriProcessTessFactors( float tessFactor_Ueq0, float tessFac
     float lowerBound = 0.0, upperBound = 0.0;
     switch(m_originalPartitioning)
     {
-        case D3D11_TESSELLATOR_PARTITIONING_INTEGER:
-        case D3D11_TESSELLATOR_PARTITIONING_POW2: // don�t care about pow2 distinction for validation, just treat as integer
-            lowerBound = D3D11_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR;
-            upperBound = D3D11_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR;
+        case PIPE_TESSELLATOR_PARTITIONING_INTEGER:
+        case PIPE_TESSELLATOR_PARTITIONING_POW2: // don�t care about pow2 distinction for validation, just treat as integer
+            lowerBound = PIPE_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR;
+            upperBound = PIPE_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR;
             break;
 
-        case D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
-            lowerBound = D3D11_TESSELLATOR_MIN_EVEN_TESSELLATION_FACTOR;
-            upperBound = D3D11_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR;
+        case PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
+            lowerBound = PIPE_TESSELLATOR_MIN_EVEN_TESSELLATION_FACTOR;
+            upperBound = PIPE_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR;
             break;
 
-        case D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
-            lowerBound = D3D11_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR;
-            upperBound = D3D11_TESSELLATOR_MAX_ODD_TESSELLATION_FACTOR;
+        case PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
+            lowerBound = PIPE_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR;
+            upperBound = PIPE_TESSELLATOR_MAX_ODD_TESSELLATION_FACTOR;
             break;
     }
 
@@ -1110,7 +1113,7 @@ void CHWTessellator::TriProcessTessFactors( float tessFactor_Ueq0, float tessFac
     }
 
     // Clamp inside TessFactors
-    if(D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD == m_originalPartitioning)
+    if(PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD == m_originalPartitioning)
     {
         if( (tessFactor_Ueq0 > MIN_ODD_TESSFACTOR_PLUS_HALF_EPSILON) ||
             (tessFactor_Veq0 > MIN_ODD_TESSFACTOR_PLUS_HALF_EPSILON) ||
@@ -1120,7 +1123,7 @@ void CHWTessellator::TriProcessTessFactors( float tessFactor_Ueq0, float tessFac
             // patches which have 2 insideTessFactors.
         {
             // Force picture frame
-            lowerBound = D3D11_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR + EPSILON;
+            lowerBound = PIPE_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR + EPSILON;
         }
     }
 
@@ -1456,25 +1459,25 @@ void CHWTessellator::IsoLineProcessTessFactors( float TessFactor_V_LineDensity, 
     float lowerBound = 0.0, upperBound = 0.0;
     switch(m_originalPartitioning)
     {
-        case D3D11_TESSELLATOR_PARTITIONING_INTEGER:
-        case D3D11_TESSELLATOR_PARTITIONING_POW2: // don�t care about pow2 distinction for validation, just treat as integer
-            lowerBound = D3D11_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR;
-            upperBound = D3D11_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR;
+        case PIPE_TESSELLATOR_PARTITIONING_INTEGER:
+        case PIPE_TESSELLATOR_PARTITIONING_POW2: // don�t care about pow2 distinction for validation, just treat as integer
+            lowerBound = PIPE_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR;
+            upperBound = PIPE_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR;
             break;
 
-        case D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
-            lowerBound = D3D11_TESSELLATOR_MIN_EVEN_TESSELLATION_FACTOR;
-            upperBound = D3D11_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR;
+        case PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
+            lowerBound = PIPE_TESSELLATOR_MIN_EVEN_TESSELLATION_FACTOR;
+            upperBound = PIPE_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR;
             break;
 
-        case D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
-            lowerBound = D3D11_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR;
-            upperBound = D3D11_TESSELLATOR_MAX_ODD_TESSELLATION_FACTOR;
+        case PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
+            lowerBound = PIPE_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR;
+            upperBound = PIPE_TESSELLATOR_MAX_ODD_TESSELLATION_FACTOR;
             break;
     }
 
-    TessFactor_V_LineDensity = tess_fmin( D3D11_TESSELLATOR_MAX_ISOLINE_DENSITY_TESSELLATION_FACTOR,
-                                    tess_fmax( D3D11_TESSELLATOR_MIN_ISOLINE_DENSITY_TESSELLATION_FACTOR, TessFactor_V_LineDensity ) );
+    TessFactor_V_LineDensity = tess_fmin( PIPE_TESSELLATOR_MAX_ISOLINE_DENSITY_TESSELLATION_FACTOR,
+                                    tess_fmax( PIPE_TESSELLATOR_MIN_ISOLINE_DENSITY_TESSELLATION_FACTOR, TessFactor_V_LineDensity ) );
     TessFactor_U_LineDetail = tess_fmin( upperBound, tess_fmax( lowerBound, TessFactor_U_LineDetail ) );
 
     // Reset our vertex and index buffers.  We have enough storage for the max tessFactor.
@@ -1499,7 +1502,7 @@ void CHWTessellator::IsoLineProcessTessFactors( float TessFactor_V_LineDensity, 
     ComputeTessFactorContext(fxpTessFactor_U_LineDetail, processedTessFactors.lineDetailTessFactorCtx);
     processedTessFactors.numPointsPerLine = NumPointsForTessFactor(fxpTessFactor_U_LineDetail);
 
-    OverridePartitioning(D3D11_TESSELLATOR_PARTITIONING_INTEGER);
+    OverridePartitioning(PIPE_TESSELLATOR_PARTITIONING_INTEGER);
 
     TessFactor_V_LineDensity = ceil(TessFactor_V_LineDensity);
     processedTessFactors.lineDensityParity = isEven(TessFactor_V_LineDensity) ? TESSELLATOR_PARITY_EVEN : TESSELLATOR_PARITY_ODD;
@@ -1515,7 +1518,7 @@ void CHWTessellator::IsoLineProcessTessFactors( float TessFactor_V_LineDensity, 
 
     // outside edge offsets
     m_NumPoints = processedTessFactors.numPointsPerLine * processedTessFactors.numLines;
-    if( m_outputPrimitive == D3D11_TESSELLATOR_OUTPUT_POINT )
+    if( m_outputPrimitive == PIPE_TESSELLATOR_OUTPUT_POINT )
     {
         m_NumIndices = m_NumPoints;
     }
@@ -1553,7 +1556,7 @@ void CHWTessellator::IsoLineGeneratePoints( const PROCESSED_TESS_FACTORS_ISOLINE
 void CHWTessellator::IsoLineGenerateConnectivity( const PROCESSED_TESS_FACTORS_ISOLINE& processedTessFactors )
 {
     int line, pointOffset, indexOffset;
-    if( m_outputPrimitive == D3D11_TESSELLATOR_OUTPUT_POINT )
+    if( m_outputPrimitive == PIPE_TESSELLATOR_OUTPUT_POINT )
     {
         for(line = 0, pointOffset = 0, indexOffset = 0; line < processedTessFactors.numLines; line++)
         {
@@ -1647,7 +1650,7 @@ void CHWTessellator::DefineClockwiseTriangle(int index0, int index1, int index2,
 {
     // inputs a clockwise triangle, stores a CW or CCW triangle depending on the state
     DefineIndex(index0,indexStorageBaseOffset);
-    bool bWantClockwise = (m_outputPrimitive == D3D11_TESSELLATOR_OUTPUT_TRIANGLE_CW) ? true : false;
+    bool bWantClockwise = (m_outputPrimitive == PIPE_TESSELLATOR_OUTPUT_TRIANGLE_CW) ? true : false;
     if( bWantClockwise )
     {
         DefineIndex(index1,indexStorageBaseOffset+1);
@@ -1762,21 +1765,11 @@ void CHWTessellator::ComputeTessFactorContext( FXP fxpTessFactor, TESS_FACTOR_CO
         }
         else
         {
-#ifdef ALLOW_XBOX_360_COMPARISON
-            if( m_bXBox360Mode )
-                TessFactorCtx.splitPointOnFloorHalfTessFactor = TessFactorCtx.numHalfTessFactorPoints-2;
-            else
-#endif
 				TessFactorCtx.splitPointOnFloorHalfTessFactor = (RemoveMSB((fxpFloorHalfTessFactor>>FXP_FRACTION_BITS)-1)<<1) + 1;
         }
     }
     else
     {
-#ifdef ALLOW_XBOX_360_COMPARISON
-        if( m_bXBox360Mode )
-            TessFactorCtx.splitPointOnFloorHalfTessFactor = TessFactorCtx.numHalfTessFactorPoints-1;
-        else
-#endif
 			TessFactorCtx.splitPointOnFloorHalfTessFactor = (RemoveMSB(fxpFloorHalfTessFactor>>FXP_FRACTION_BITS)<<1) + 1;
     }
     int numFloorSegments = (fxpFloorHalfTessFactor * 2)>>FXP_FRACTION_BITS;
@@ -1944,58 +1937,6 @@ void CHWTessellator::StitchTransition(int baseIndexOffset,
                                     TESSELLATOR_PARITY outsideTessFactorParity
 )
 {
-
-#ifdef ALLOW_XBOX_360_COMPARISON
-    // Tables to assist in the stitching of 2 rows of points having arbitrary TessFactors.
-    // The stitching order is governed by Ruler Function vertex split ordering (see external documentation).
-    //
-    // The contents of the finalPointPositionTable are where vertex i [0..32] ends up on the half-edge
-    // at the max tessellation amount given ruler-function split order.
-    // Recall the other half of an edge is mirrored, so we only need to deal with one half.
-    // This table is used to decide when to advance a point on the interior or exterior.
-    // It supports odd TessFactor up to 65 and even TessFactor up to 64.
-    static const int _finalPointPositionTable[33] =
-            { 0, 32, 16, 8, 17, 4, 18, 9, 19, 2, 20, 10, 21, 5, 22, 11, 23,
-              1, 24, 12, 25, 6, 26, 13, 27, 3, 28, 14, 29, 7, 30, 15, 31 };
-    // The loopStart and loopEnd tables below just provide optimal loop bounds for the
-    // stitching algorithm further below, for any given halfTssFactor.
-    // There is probably a better way to encode this...
-
-    // loopStart[halfTessFactor] encodes the FIRST entry other that [0] in finalPointPositionTable[] above which is
-    // less than halfTessFactor.  Exceptions are entry 0 and 1, which are set up to skip the loop.
-    static const int _loopStart[33] =
-            {1,1,17,9,9,5,5,5,5,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2};
-    // loopStart[halfTessFactor] encodes the LAST entry in finalPointPositionTable[] above which is
-    // less than halfTessFactor.  Exceptions are entry 0 and 1, which are set up to skip the loop.
-    static const int _loopEnd[33] =
-            {0,0,17,17,25,25,25,25,29,29,29,29,29,29,29,29,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,32};
-    const int* finalPointPositionTable;
-    const int* loopStart;
-    const int* loopEnd;
-    if( m_bXBox360Mode )
-    {
-        // The XBox360 vertex introduction order is always from the center of the edge.
-        // So the final positions of points on the half-edge are this trivial table.
-        static const int XBOXfinalPointPositionTable[33] =
-                { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-                  18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
-        // loopStart and loopEnd (meaning described above) also become trivial for XBox360 splitting.
-        static const int XBOXloopStart[33] =
-                {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-        static const int XBOXloopEnd[33] =
-                {0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31};
-
-        finalPointPositionTable = XBOXfinalPointPositionTable;
-        loopStart = XBOXloopStart;
-        loopEnd = XBOXloopEnd;
-    }
-    else
-    {
-        finalPointPositionTable = _finalPointPositionTable;
-        loopStart = _loopStart;
-        loopEnd =_loopEnd;
-    }
-#else
     // Tables to assist in the stitching of 2 rows of points having arbitrary TessFactors.
     // The stitching order is governed by Ruler Function vertex split ordering (see external documentation).
     //
@@ -2020,7 +1961,7 @@ void CHWTessellator::StitchTransition(int baseIndexOffset,
     // less than halfTessFactor.  Exceptions are entry 0 and 1, which are set up to skip the loop.
     static const int loopEnd[33] =
             {0,0,17,17,25,25,25,25,29,29,29,29,29,29,29,29,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,32};
-#endif
+
     if( TESSELLATOR_PARITY_ODD == insideEdgeTessFactorParity )
     {
         insideNumHalfTessFactorPoints -= 1;
@@ -2174,10 +2115,10 @@ CHLSLTessellator::CHLSLTessellator()
 // User calls this.
 //---------------------------------------------------------------------------------------------------------------------------------
 void CHLSLTessellator::Init(
-    D3D11_TESSELLATOR_PARTITIONING       partitioning,
-    D3D11_TESSELLATOR_REDUCTION          insideTessFactorReduction,
-    D3D11_TESSELLATOR_QUAD_REDUCTION_AXIS quadInsideTessFactorReductionAxis,
-    D3D11_TESSELLATOR_OUTPUT_PRIMITIVE   outputPrimitive)
+    PIPE_TESSELLATOR_PARTITIONING       partitioning,
+    PIPE_TESSELLATOR_REDUCTION          insideTessFactorReduction,
+    PIPE_TESSELLATOR_QUAD_REDUCTION_AXIS quadInsideTessFactorReductionAxis,
+    PIPE_TESSELLATOR_OUTPUT_PRIMITIVE   outputPrimitive)
 {
     CHWTessellator::Init(partitioning,outputPrimitive);
     m_LastComputedTessFactors[0] = m_LastComputedTessFactors[1] = m_LastComputedTessFactors[2] =
@@ -2186,13 +2127,13 @@ void CHLSLTessellator::Init(
     m_originalPartitioning = partitioning;
     switch( partitioning )
     {
-    case D3D11_TESSELLATOR_PARTITIONING_INTEGER:
+    case PIPE_TESSELLATOR_PARTITIONING_INTEGER:
     default:
         break;
-    case D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
+    case PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
         m_parity = TESSELLATOR_PARITY_ODD;
         break;
-    case D3D11_TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
+    case PIPE_TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
         m_parity = TESSELLATOR_PARITY_EVEN;
         break;
     }
@@ -2274,17 +2215,17 @@ void CHLSLTessellator::QuadHLSLProcessTessFactors( float tessFactor_Ueq0, float 
 
     // Compute inside TessFactors
     float insideTessFactor[QUAD_AXES];
-    if( m_quadInsideTessFactorReductionAxis == D3D11_TESSELLATOR_QUAD_REDUCTION_1_AXIS )
+    if( m_quadInsideTessFactorReductionAxis == PIPE_TESSELLATOR_QUAD_REDUCTION_1_AXIS )
     {
         switch( m_insideTessFactorReduction )
         {
-        case D3D11_TESSELLATOR_REDUCTION_MIN:
+        case PIPE_TESSELLATOR_REDUCTION_MIN:
             insideTessFactor[U] = tess_fmin(tess_fmin(tessFactor_Veq0,tessFactor_Veq1),tess_fmin(tessFactor_Ueq0,tessFactor_Ueq1));
             break;
-        case D3D11_TESSELLATOR_REDUCTION_MAX:
+        case PIPE_TESSELLATOR_REDUCTION_MAX:
             insideTessFactor[U] = tess_fmax(tess_fmax(tessFactor_Veq0,tessFactor_Veq1),tess_fmax(tessFactor_Ueq0,tessFactor_Ueq1));
             break;
-        case D3D11_TESSELLATOR_REDUCTION_AVERAGE:
+        case PIPE_TESSELLATOR_REDUCTION_AVERAGE:
             insideTessFactor[U] = (tessFactor_Veq0 + tessFactor_Veq1 + tessFactor_Ueq0 + tessFactor_Ueq1) / 4;
             break;
         }
@@ -2317,7 +2258,7 @@ void CHLSLTessellator::QuadHLSLProcessTessFactors( float tessFactor_Ueq0, float 
         if( (TESSELLATOR_PARITY_ODD == insideTessFactorParity[U]) &&
             (insideTessFactor[U] < FLOAT_THREE) )
         {
-            if(D3D11_TESSELLATOR_REDUCTION_MAX == m_insideTessFactorReduction)
+            if(PIPE_TESSELLATOR_REDUCTION_MAX == m_insideTessFactorReduction)
             {
                 insideTessFactor[U] = tess_fmin(FLOAT_THREE,tess_fmax(tess_fmax(tessFactor_Veq0,tessFactor_Veq1),tess_fmax(tessFactor_Ueq0,tessFactor_Ueq1)));
             }
@@ -2340,15 +2281,15 @@ void CHLSLTessellator::QuadHLSLProcessTessFactors( float tessFactor_Ueq0, float 
     {
         switch( m_insideTessFactorReduction )
         {
-        case D3D11_TESSELLATOR_REDUCTION_MIN:
+        case PIPE_TESSELLATOR_REDUCTION_MIN:
             insideTessFactor[U] = tess_fmin(tessFactor_Veq0,tessFactor_Veq1);
             insideTessFactor[V] = tess_fmin(tessFactor_Ueq0,tessFactor_Ueq1);
             break;
-        case D3D11_TESSELLATOR_REDUCTION_MAX:
+        case PIPE_TESSELLATOR_REDUCTION_MAX:
             insideTessFactor[U] = tess_fmax(tessFactor_Veq0,tessFactor_Veq1);
             insideTessFactor[V] = tess_fmax(tessFactor_Ueq0,tessFactor_Ueq1);
             break;
-        case D3D11_TESSELLATOR_REDUCTION_AVERAGE:
+        case PIPE_TESSELLATOR_REDUCTION_AVERAGE:
             insideTessFactor[U] = (tessFactor_Veq0 + tessFactor_Veq1) / 2;
             insideTessFactor[V] = (tessFactor_Ueq0 + tessFactor_Ueq1) / 2;
             break;
@@ -2388,7 +2329,7 @@ void CHLSLTessellator::QuadHLSLProcessTessFactors( float tessFactor_Ueq0, float 
         if( (TESSELLATOR_PARITY_ODD == insideTessFactorParity[U]) &&
             (insideTessFactor[U] < FLOAT_THREE) )
         {
-            if(D3D11_TESSELLATOR_REDUCTION_MAX == m_insideTessFactorReduction)
+            if(PIPE_TESSELLATOR_REDUCTION_MAX == m_insideTessFactorReduction)
             {
                 insideTessFactor[U] = tess_fmin(FLOAT_THREE,tess_fmax(tessFactor_Veq0,tessFactor_Veq1));
             }
@@ -2408,7 +2349,7 @@ void CHLSLTessellator::QuadHLSLProcessTessFactors( float tessFactor_Ueq0, float 
         if( (TESSELLATOR_PARITY_ODD == insideTessFactorParity[V]) &&
             (insideTessFactor[V] < FLOAT_THREE) )
         {
-            if(D3D11_TESSELLATOR_REDUCTION_MAX == m_insideTessFactorReduction)
+            if(PIPE_TESSELLATOR_REDUCTION_MAX == m_insideTessFactorReduction)
             {
                 insideTessFactor[V] = tess_fmin(FLOAT_THREE,tess_fmax(tessFactor_Ueq0,tessFactor_Ueq1));
             }
@@ -2514,13 +2455,13 @@ void CHLSLTessellator::TriHLSLProcessTessFactors( float tessFactor_Ueq0, float t
     float insideTessFactor;
     switch( m_insideTessFactorReduction )
     {
-    case D3D11_TESSELLATOR_REDUCTION_MIN:
+    case PIPE_TESSELLATOR_REDUCTION_MIN:
         insideTessFactor = tess_fmin(tess_fmin(tessFactor_Ueq0,tessFactor_Veq0),tessFactor_Weq0);
         break;
-    case D3D11_TESSELLATOR_REDUCTION_MAX:
+    case PIPE_TESSELLATOR_REDUCTION_MAX:
         insideTessFactor = tess_fmax(tess_fmax(tessFactor_Ueq0,tessFactor_Veq0),tessFactor_Weq0);
         break;
-    case D3D11_TESSELLATOR_REDUCTION_AVERAGE:
+    case PIPE_TESSELLATOR_REDUCTION_AVERAGE:
         insideTessFactor = (tessFactor_Ueq0 + tessFactor_Veq0 + tessFactor_Weq0) / 3;
         break;
     }
@@ -2548,7 +2489,7 @@ void CHLSLTessellator::TriHLSLProcessTessFactors( float tessFactor_Ueq0, float t
     {
         // To prevent snapping on edges, the "picture frame" comes
         // in using avg or max (and ignore inside TessFactor scaling) until it is at least 3.
-        if(D3D11_TESSELLATOR_REDUCTION_MAX == m_insideTessFactorReduction)
+        if(PIPE_TESSELLATOR_REDUCTION_MAX == m_insideTessFactorReduction)
         {
             insideTessFactor = tess_fmin(FLOAT_THREE,tess_fmax(tessFactor_Ueq0,tess_fmax(tessFactor_Veq0,tessFactor_Weq0)));
         }
@@ -2608,7 +2549,7 @@ void CHLSLTessellator::IsoLineHLSLProcessTessFactors( float TessFactor_V_LineDen
         RoundUpTessFactor(TessFactor_U_LineDetail);
     }
 
-    OverridePartitioning(D3D11_TESSELLATOR_PARTITIONING_INTEGER);
+    OverridePartitioning(PIPE_TESSELLATOR_PARTITIONING_INTEGER);
 
     ClampTessFactor(TessFactor_V_LineDensity); // Clamp unbounded user input to integer
     m_LastUnRoundedComputedTessFactors[0] = TessFactor_V_LineDensity;    // Save off TessFactors so they can be returned to app
@@ -2629,19 +2570,19 @@ void CHLSLTessellator::ClampTessFactor(float& TessFactor)
 {
     if( Pow2Partitioning() )
     {
-        TessFactor = tess_fmin( D3D11_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR, tess_fmax( TessFactor, D3D11_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR) );
+        TessFactor = tess_fmin( PIPE_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR, tess_fmax( TessFactor, PIPE_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR) );
     }
     else if( IntegerPartitioning() )
     {
-        TessFactor = tess_fmin( D3D11_TESSELLATOR_MAX_TESSELLATION_FACTOR, tess_fmax( TessFactor, D3D11_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR) );
+        TessFactor = tess_fmin( PIPE_TESSELLATOR_MAX_TESSELLATION_FACTOR, tess_fmax( TessFactor, PIPE_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR) );
     }
     else if( Odd() )
     {
-        TessFactor = tess_fmin( D3D11_TESSELLATOR_MAX_ODD_TESSELLATION_FACTOR, tess_fmax( TessFactor, D3D11_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR) );
+        TessFactor = tess_fmin( PIPE_TESSELLATOR_MAX_ODD_TESSELLATION_FACTOR, tess_fmax( TessFactor, PIPE_TESSELLATOR_MIN_ODD_TESSELLATION_FACTOR) );
     }
     else // even
     {
-        TessFactor = tess_fmin( D3D11_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR, tess_fmax( TessFactor, D3D11_TESSELLATOR_MIN_EVEN_TESSELLATION_FACTOR) );
+        TessFactor = tess_fmin( PIPE_TESSELLATOR_MAX_EVEN_TESSELLATION_FACTOR, tess_fmax( TessFactor, PIPE_TESSELLATOR_MIN_EVEN_TESSELLATION_FACTOR) );
     }
 }
 

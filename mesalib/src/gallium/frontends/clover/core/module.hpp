@@ -85,10 +85,8 @@ namespace clover {
             constant,
             global,
             local,
-            image2d_rd,
-            image2d_wr,
-            image3d_rd,
-            image3d_wr,
+            image_rd,
+            image_wr,
             sampler
          };
 
@@ -153,6 +151,7 @@ namespace clover {
          std::vector<argument> args;
       };
 
+      module() : printf_strings_in_buffer(0) { }
       void serialize(std::ostream &os) const;
       static module deserialize(std::istream &is);
       size_t size() const;

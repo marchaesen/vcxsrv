@@ -117,7 +117,7 @@ public:
    ECFAluOpCode cf_type() const {return m_cf_type;}
    void set_cf_type(ECFAluOpCode cf_type){ m_cf_type = cf_type; }
 
-   void replace_values(const ValueSet& candiates, PValue new_value) override;
+   void replace_values(const ValueSet& candidates, PValue new_value) override;
 
 private:
 

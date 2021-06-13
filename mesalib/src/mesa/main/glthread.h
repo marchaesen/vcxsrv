@@ -124,6 +124,24 @@ struct glthread_client_attrib {
    bool Valid;
 };
 
+/* For glPushAttrib / glPopAttrib. */
+struct glthread_attrib_node {
+   GLbitfield Mask;
+   int ActiveTexture;
+   GLenum MatrixMode;
+};
+
+typedef enum {
+   M_MODELVIEW,
+   M_PROJECTION,
+   M_PROGRAM0,
+   M_PROGRAM_LAST = M_PROGRAM0 + MAX_PROGRAM_MATRICES - 1,
+   M_TEXTURE0,
+   M_TEXTURE_LAST = M_TEXTURE0 + MAX_TEXTURE_UNITS - 1,
+   M_DUMMY, /* used instead of reporting errors */
+   M_NUM_MATRIX_STACKS,
+} gl_matrix_index;
+
 struct glthread_state
 {
    /** Multithreaded queue. */
@@ -135,8 +153,10 @@ struct glthread_state
    /** Whether GLThread is enabled. */
    bool enabled;
 
-   /** Whether GLThread is inside a display list generation. */
-   bool inside_dlist;
+   /** Display lists. */
+   GLenum ListMode; /**< Zero if not inside display list, else list mode. */
+   unsigned ListBase;
+   unsigned ListCallDepth;
 
    /** For L3 cache pinning. */
    unsigned pin_thread_counter;
@@ -185,12 +205,28 @@ struct glthread_state
    /** Currently-bound buffer object IDs. */
    GLuint CurrentArrayBufferName;
    GLuint CurrentDrawIndirectBufferName;
+   GLuint CurrentPixelPackBufferName;
+   GLuint CurrentPixelUnpackBufferName;
 
    /**
     * The batch index of the last occurence of glLinkProgram or
     * glDeleteProgram or -1 if there is no such enqueued call.
     */
    int LastProgramChangeBatch;
+
+   /**
+    * The batch index of the last occurence of glEndList or
+    * glDeleteLists or -1 if there is no such enqueued call.
+    */
+   int LastDListChangeBatchIndex;
+
+   /** Basic matrix state tracking. */
+   int ActiveTexture;
+   GLenum MatrixMode;
+   gl_matrix_index MatrixIndex;
+   struct glthread_attrib_node AttribStack[MAX_ATTRIB_STACK_DEPTH];
+   int AttribStackDepth;
+   int MatrixStackDepth[M_NUM_MATRIX_STACKS];
 };
 
 void _mesa_glthread_init(struct gl_context *ctx);
@@ -208,6 +244,7 @@ void _mesa_glthread_upload(struct gl_context *ctx, const void *data,
 void _mesa_glthread_reset_vao(struct glthread_vao *vao);
 void _mesa_error_glthread_safe(struct gl_context *ctx, GLenum error,
                                bool glthread, const char *format, ...);
+void _mesa_glthread_execute_list(struct gl_context *ctx, GLuint list);
 
 void _mesa_glthread_BindBuffer(struct gl_context *ctx, GLenum target,
                                GLuint buffer);

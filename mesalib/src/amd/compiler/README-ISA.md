@@ -130,6 +130,25 @@ on what sort of addressing should be used, but it says that it
 "is equivalent to an `S_CBRANCH` with extra math", so the subvector loop handling
 in ACO is done according to the `s_cbranch` doc.
 
+## RDNA early rasterization
+
+The ISA documentation says about `s_endpgm`:
+
+> The hardware implicitly executes S_WAITCNT 0 and S_WAITCNT_VSCNT 0
+> before executing this instruction.
+
+What the doc doesn't say is that in case of NGG (and legacy VS) when there
+are no param exports, the driver sets `NO_PC_EXPORT=1` for optimal performance,
+and when this is set, the hardware will start clipping and rasterization
+as soon as it encounters a position export with `DONE=1`, without waiting
+for the NGG (or VS) to finish.
+
+It can even launch PS waves before NGG (or VS) ends.
+
+When this happens, any store performed by a VS is not guaranteed
+to be complete when PS tries to load it, so we need to manually
+make sure to insert wait instructions before the position exports.
+
 # Hardware Bugs
 
 ## SMEM corrupts VCCZ on SI/CI

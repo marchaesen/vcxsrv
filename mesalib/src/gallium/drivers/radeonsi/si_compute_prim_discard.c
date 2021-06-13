@@ -362,7 +362,7 @@ void si_build_prim_discard_compute_shader(struct si_shader_context *ctx)
    unsigned num_vs_params = 0;
    unsigned param_vertex_id, param_instance_id;
 
-   vs_params[num_vs_params++] = LLVMGetUndef(LLVMTypeOf(LLVMGetParam(vs, 0))); /* RW_BUFFERS */
+   vs_params[num_vs_params++] = LLVMGetUndef(LLVMTypeOf(LLVMGetParam(vs, 0))); /* INTERNAL RESOURCES */
    vs_params[num_vs_params++] = LLVMGetUndef(LLVMTypeOf(LLVMGetParam(vs, 1))); /* BINDLESS */
    vs_params[num_vs_params++] = ac_get_arg(&ctx->ac, param_const_desc);
    vs_params[num_vs_params++] = ac_get_arg(&ctx->ac, param_sampler_desc);
@@ -460,7 +460,7 @@ void si_build_prim_discard_compute_shader(struct si_shader_context *ctx)
    if (key->opt.cs_indexed) {
       for (unsigned i = 0; i < 3; i++) {
          index[i] = ac_build_buffer_load_format(&ctx->ac, input_indexbuf, index[i], ctx->ac.i32_0,
-                                                1, 0, true, false);
+                                                1, 0, true, false, false);
          index[i] = ac_to_integer(&ctx->ac, index[i]);
       }
    }
@@ -539,7 +539,7 @@ void si_build_prim_discard_compute_shader(struct si_shader_context *ctx)
             LLVMValueRef strip_start = ac_build_umsb(&ctx->ac, preceding_reset_threadmask, NULL);
             strip_start = LLVMBuildAdd(builder, strip_start, ctx->ac.i32_1, "");
 
-            /* This flips the orientatino based on reset indices within this wave only. */
+            /* This flips the orientation based on reset indices within this wave only. */
             first_is_odd = LLVMBuildTrunc(builder, strip_start, ctx->ac.i1, "");
 
             LLVMValueRef last_strip_start, prev_wave_state, ret, tmp;
@@ -846,7 +846,7 @@ static bool si_shader_select_prim_discard_cs(struct si_context *sctx,
    assert(!primitive_restart || info->instance_count == 1);
 
    memset(&key, 0, sizeof(key));
-   si_shader_selector_key_vs(sctx, sctx->vs_shader.cso, &key, &key.part.vs.prolog);
+   si_shader_selector_key_vs(sctx, sctx->shader.vs.cso, &key, &key.part.vs.prolog);
    assert(!key.part.vs.prolog.instance_divisor_is_fetched);
 
    key.part.vs.prolog.unpack_instance_id_from_vertex_id = 0;
@@ -861,7 +861,7 @@ static bool si_shader_select_prim_discard_cs(struct si_context *sctx,
     * orientation for cases where front and back primitive orientation matters.
     */
    if (primitive_restart) {
-      struct si_shader_selector *ps = sctx->ps_shader.cso;
+      struct si_shader_selector *ps = sctx->shader.ps.cso;
 
       key.opt.cs_need_correct_orientation = rs->cull_front != rs->cull_back ||
                                             ps->info.uses_frontface ||
@@ -874,8 +874,8 @@ static bool si_shader_select_prim_discard_cs(struct si_context *sctx,
       key.opt.cs_cull_front = 1;
       key.opt.cs_cull_back = 1;
    } else {
-      key.opt.cs_cull_front = sctx->viewports.y_inverted ? rs->cull_back : rs->cull_front;
-      key.opt.cs_cull_back = sctx->viewports.y_inverted ? rs->cull_front : rs->cull_back;
+      key.opt.cs_cull_front = sctx->viewport0_y_inverted ? rs->cull_back : rs->cull_front;
+      key.opt.cs_cull_back = sctx->viewport0_y_inverted ? rs->cull_front : rs->cull_back;
    }
 
    if (!rs->depth_clamp_any && CULL_Z) {
@@ -883,7 +883,7 @@ static bool si_shader_select_prim_discard_cs(struct si_context *sctx,
       key.opt.cs_halfz_clip_space = rs->clip_halfz;
    }
 
-   sctx->cs_prim_discard_state.cso = sctx->vs_shader.cso;
+   sctx->cs_prim_discard_state.cso = sctx->shader.vs.cso;
    sctx->cs_prim_discard_state.current = NULL;
 
    if (!sctx->compiler.passes)
@@ -1084,8 +1084,10 @@ si_prepare_prim_discard_or_split_draw(struct si_context *sctx, const struct pipe
        */
       if (!radeon_emitted(gfx_cs, sctx->initial_gfx_cs_size) &&
           gfx_cs->current.cdw + need_gfx_dw > gfx_cs->current.max_dw) {
+         radeon_begin(gfx_cs);
          radeon_emit(gfx_cs, PKT3(PKT3_NOP, 0, 0));
          radeon_emit(gfx_cs, 0);
+         radeon_end();
       }
 
       si_flush_gfx_cs(sctx, RADEON_FLUSH_ASYNC_START_NEXT_GFX_IB_NOW, NULL);
@@ -1184,6 +1186,7 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
        * TTM buffer moves in the kernel.
        */
       if (sctx->chip_class >= GFX10) {
+         radeon_begin(cs);
          radeon_emit(cs, PKT3(PKT3_ACQUIRE_MEM, 6, 0));
          radeon_emit(cs, 0);          /* CP_COHER_CNTL */
          radeon_emit(cs, 0xffffffff); /* CP_COHER_SIZE */
@@ -1195,6 +1198,7 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
                      S_586_GLI_INV(V_586_GLI_ALL) | S_586_GLK_INV(1) | S_586_GLV_INV(1) |
                         S_586_GL1_INV(1) | S_586_GL2_INV(1) | S_586_GL2_WB(1) | S_586_GLM_INV(1) |
                         S_586_GLM_WB(1) | S_586_SEQ(V_586_SEQ_FORWARD));
+         radeon_end();
       } else {
          si_emit_surface_sync(sctx, cs,
                               S_0085F0_TC_ACTION_ENA(1) | S_0085F0_TCL1_ACTION_ENA(1) |
@@ -1211,6 +1215,7 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
 
       si_emit_initial_compute_regs(sctx, cs);
 
+      radeon_begin(cs);
       radeon_set_sh_reg(
          cs, R_00B860_COMPUTE_TMPRING_SIZE,
          S_00B860_WAVES(sctx->scratch_waves) | S_00B860_WAVESIZE(0)); /* no scratch */
@@ -1226,11 +1231,12 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
 
       /* Disable ordered alloc for OA resources. */
       for (unsigned i = 0; i < 2; i++) {
-         radeon_set_uconfig_reg_seq(cs, R_031074_GDS_OA_CNTL, 3);
+         radeon_set_uconfig_reg_seq(cs, R_031074_GDS_OA_CNTL, 3, false);
          radeon_emit(cs, S_031074_INDEX(i));
          radeon_emit(cs, 0);
          radeon_emit(cs, S_03107C_ENABLE(0));
       }
+      radeon_end();
 
       if (sctx->last_ib_barrier_buf) {
          assert(!sctx->last_ib_barrier_fence);
@@ -1349,6 +1355,7 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
        * in parallel with compute shaders.
        */
       if (first_dispatch) {
+         radeon_begin(cs);
          radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 2 + gds_size / 4, 0));
          radeon_emit(cs, S_370_DST_SEL(V_370_GDS) | S_370_WR_CONFIRM(1));
          radeon_emit(cs, gds_offset);
@@ -1356,6 +1363,7 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
          radeon_emit(cs, 0); /* value to write */
          if (gds_size == 8)
             radeon_emit(cs, 0);
+         radeon_end();
       }
    }
 
@@ -1370,6 +1378,7 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
       assert(shader->config.scratch_bytes_per_wave == 0);
       assert(shader->config.num_vgprs * WAVES_PER_TG <= 256 * 4);
 
+      radeon_begin(cs);
       radeon_set_sh_reg_seq(cs, R_00B830_COMPUTE_PGM_LO, 2);
       radeon_emit(cs, shader_va >> 8);
       radeon_emit(cs, S_00B834_DATA(shader_va >> 40));
@@ -1390,6 +1399,7 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
       radeon_set_sh_reg(cs, R_00B854_COMPUTE_RESOURCE_LIMITS,
                         ac_get_compute_resource_limits(&sctx->screen->info, WAVES_PER_TG,
                                                        MAX_WAVES_PER_SH, THREADGROUPS_PER_CU));
+      radeon_end();
       sctx->compute_ib_last_shader = shader;
    }
 
@@ -1417,8 +1427,10 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
          sctx->compute_rewind_va = gfx_cs->gpu_address + (gfx_cs->current.cdw + 1) * 4;
 
          if (sctx->chip_class <= GFX7 || FORCE_REWIND_EMULATION) {
+            radeon_begin(gfx_cs);
             radeon_emit(gfx_cs, PKT3(PKT3_NOP, 0, 0));
             radeon_emit(gfx_cs, 0);
+            radeon_end();
 
             si_cp_wait_mem(
                sctx, gfx_cs,
@@ -1430,8 +1442,10 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
              */
             sctx->ws->cs_check_space(gfx_cs, 0, true);
          } else {
+            radeon_begin(gfx_cs);
             radeon_emit(gfx_cs, PKT3(PKT3_REWIND, 0, 0));
             radeon_emit(gfx_cs, 0);
+            radeon_end();
          }
       }
 
@@ -1441,12 +1455,16 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
       uint64_t index_va = out_indexbuf_va + start_prim * 12;
 
       /* Emit the draw packet into the gfx IB. */
+      radeon_begin(gfx_cs);
       radeon_emit(gfx_cs, PKT3(PKT3_DRAW_INDEX_2, 4, 0));
       radeon_emit(gfx_cs, num_prims * vertices_per_prim);
       radeon_emit(gfx_cs, index_va);
       radeon_emit(gfx_cs, index_va >> 32);
       radeon_emit(gfx_cs, 0);
       radeon_emit(gfx_cs, V_0287F0_DI_SRC_SEL_DMA);
+      radeon_end();
+
+      radeon_begin_again(cs);
 
       /* Continue with the compute IB. */
       if (start_prim == 0) {
@@ -1503,6 +1521,7 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
       radeon_emit(cs, S_00B800_COMPUTE_SHADER_EN(1) | S_00B800_PARTIAL_TG_EN(!!partial_block_size) |
                          S_00B800_ORDERED_APPEND_ENBL(VERTEX_COUNTER_GDS_MODE == 2) |
                          S_00B800_ORDER_MODE(0 /* launch in order */));
+      radeon_end();
 
       /* This is only for unordered append. Ordered append writes this from
        * the shader.

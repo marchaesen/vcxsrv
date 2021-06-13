@@ -340,11 +340,6 @@ vc4_write_uniforms(struct vc4_context *vc4, struct vc4_compiled_shader *shader,
                                         0));
                         break;
 
-                case QUNIFORM_ALPHA_REF:
-                        cl_aligned_f(&uniforms,
-                                     vc4->zsa->base.alpha_ref_value);
-                        break;
-
                 case QUNIFORM_SAMPLE_MASK:
                         cl_aligned_u32(&uniforms, vc4->sample_mask);
                         break;
@@ -422,7 +417,6 @@ vc4_set_shader_uniform_dirty_flags(struct vc4_compiled_shader *shader)
                         break;
 
                 case QUNIFORM_STENCIL:
-                case QUNIFORM_ALPHA_REF:
                         dirty |= VC4_DIRTY_ZSA;
                         break;
 

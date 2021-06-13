@@ -84,7 +84,7 @@ void nir_inline_function_impl(struct nir_builder *b,
             assert(param_idx < impl->function->num_params);
             assert(load->dest.is_ssa);
             nir_ssa_def_rewrite_uses(&load->dest.ssa,
-                                     nir_src_for_ssa(params[param_idx]));
+                                     params[param_idx]);
 
             /* Remove any left-over load_param intrinsics because they're soon
              * to be in another function and therefore no longer valid.

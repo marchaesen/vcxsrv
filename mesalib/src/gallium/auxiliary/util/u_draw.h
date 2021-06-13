@@ -155,6 +155,14 @@ util_draw_indirect(struct pipe_context *pipe,
                    const struct pipe_draw_info *info,
                    const struct pipe_draw_indirect_info *indirect);
 
+/* Helper to handle multi-draw by splitting into individual draws.  You
+ * don't want to call this if num_draws==1
+ */
+void
+util_draw_multi(struct pipe_context *pctx, const struct pipe_draw_info *info,
+                const struct pipe_draw_indirect_info *indirect,
+                const struct pipe_draw_start_count *draws,
+                unsigned num_draws);
 
 unsigned
 util_draw_max_index(

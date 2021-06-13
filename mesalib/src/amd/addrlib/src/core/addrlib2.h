@@ -67,6 +67,7 @@ struct SwizzleModeFlags
 
     UINT_32 isT             : 1;    // T mode
 
+    // GFX10
     UINT_32 isRtOpt         : 1;    // mode opt for render target
 
     UINT_32 reserved        : 20;   // Reserved bits
@@ -88,16 +89,15 @@ struct Dim3d
 // Macro define resource block type
 enum AddrBlockType
 {
-    AddrBlockMicro      = 0, // Resource uses 256B block
-    AddrBlockThin4KB    = 1, // Resource uses thin 4KB block
-    AddrBlockThick4KB   = 2, // Resource uses thick 4KB block
-    AddrBlockThin64KB   = 3, // Resource uses thin 64KB block
-    AddrBlockThick64KB  = 4, // Resource uses thick 64KB block
-    AddrBlockThinVar    = 5, // Resource uses thin var block
-    AddrBlockThickVar   = 6, // Resource uses thick var block
-    AddrBlockLinear,         // Resource uses linear swizzle mode
-
-    AddrBlockMaxTiledType = AddrBlockLinear,
+    AddrBlockLinear    = 0, // Resource uses linear swizzle mode
+    AddrBlockMicro     = 1, // Resource uses 256B block
+    AddrBlockThin4KB   = 2, // Resource uses thin 4KB block
+    AddrBlockThick4KB  = 3, // Resource uses thick 4KB block
+    AddrBlockThin64KB  = 4, // Resource uses thin 64KB block
+    AddrBlockThick64KB = 5, // Resource uses thick 64KB block
+    AddrBlockThinVar   = 6, // Resource uses thin var block
+    AddrBlockThickVar  = 7, // Resource uses thick var block
+    AddrBlockMaxTiledType,
 
 };
 
@@ -290,6 +290,10 @@ public:
     ADDR_E_RETURNCODE ComputeSubResourceOffsetForSwizzlePattern(
         const ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_INPUT* pIn,
         ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_OUTPUT*      pOut);
+
+    ADDR_E_RETURNCODE ComputeNonBlockCompressedView(
+        const ADDR2_COMPUTE_NONBLOCKCOMPRESSEDVIEW_INPUT* pIn,
+        ADDR2_COMPUTE_NONBLOCKCOMPRESSEDVIEW_OUTPUT*      pOut);
 
     ADDR_E_RETURNCODE Addr2GetPreferredSurfaceSetting(
         const ADDR2_GET_PREFERRED_SURF_SETTING_INPUT* pIn,
@@ -540,12 +544,18 @@ protected:
         return ADDR_NOTSUPPORTED;
     }
 
-    virtual ADDR_E_RETURNCODE HwlComputeDccAddrFromCoord(
+    virtual ADDR_E_RETURNCODE HwlSupportComputeDccAddrFromCoord(
+        const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT* pIn)
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTSUPPORTED;
+    }
+
+    virtual VOID HwlComputeDccAddrFromCoord(
         const ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT* pIn,
         ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT*      pOut)
     {
         ADDR_NOT_IMPLEMENTED();
-        return ADDR_NOTSUPPORTED;
     }
 
     virtual ADDR_E_RETURNCODE HwlComputeCmaskAddrFromCoord(
@@ -633,10 +643,17 @@ protected:
         return ADDR_NOTSUPPORTED;
     }
 
-
     virtual ADDR_E_RETURNCODE HwlComputeSubResourceOffsetForSwizzlePattern(
         const ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_INPUT* pIn,
         ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_OUTPUT*      pOut) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTSUPPORTED;
+    }
+
+    virtual ADDR_E_RETURNCODE HwlComputeNonBlockCompressedView(
+        const ADDR2_COMPUTE_NONBLOCKCOMPRESSEDVIEW_INPUT* pIn,
+        ADDR2_COMPUTE_NONBLOCKCOMPRESSEDVIEW_OUTPUT*      pOut) const
     {
         ADDR_NOT_IMPLEMENTED();
         return ADDR_NOTSUPPORTED;
@@ -904,6 +921,22 @@ protected:
         ADDR2_SWMODE_SET& allowedSwModeSet,
         AddrResourceType  resourceType,
         UINT_32           elemLog2) const;
+
+    static BOOL_32 IsBlockTypeAvaiable(ADDR2_BLOCK_SET blockSet, AddrBlockType blockType);
+
+    static BOOL_32 BlockTypeWithinMemoryBudget(
+        UINT_64 minSize,
+        UINT_64 newBlockTypeSize,
+        UINT_32 ratioLow,
+        UINT_32 ratioHi,
+        DOUBLE  memoryBudget = 0.0f,
+        BOOL_32 newBlockTypeBigger = TRUE);
+
+#if DEBUG
+    VOID ValidateStereoInfo(
+        const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
+        const ADDR2_COMPUTE_SURFACE_INFO_OUTPUT* pOut) const;
+#endif
 
     UINT_32 m_se;                       ///< Number of shader engine
     UINT_32 m_rbPerSe;                  ///< Number of render backend per shader engine

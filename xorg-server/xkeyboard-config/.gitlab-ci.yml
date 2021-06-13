@@ -23,7 +23,7 @@ variables:
 
   # Changing the tag will rebuild the container images. The value is just a
   # string, but we use the date for human benefits.
-  FDO_DISTRIBUTION_TAG: '2020-11-06.0'
+  FDO_DISTRIBUTION_TAG: '2021-01-08.0'
 
 
 stages:
@@ -43,7 +43,7 @@ container-prep:
     # minimal set of packages required to build xkeyboard-config.
     BASE_PACKAGES: 'xorg-util-macros autoconf automake make gettext pkg-config gcc grep m4 python meson ninja git'
     # extra packages we need for various tests
-    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest'
+    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev'
     FDO_DISTRIBUTION_PACKAGES: $BASE_PACKAGES $EXTRA_PACKAGES
 
 
@@ -95,6 +95,7 @@ check-merge-request:
     reports:
       junit: results.xml
   allow_failure: true
+  dependencies: []
 
 make_install:
   extends: .default_build
@@ -161,6 +162,43 @@ meson_from_tarball:
     TARBALL: "xkeyboard-config-master.tar.bz2"
     GIT_STRATEGY: none
 
+# Checks for new evdev keycodes to be added to keycodes/evdev
+evdev keycode check:
+  extends:
+    - .default_setup
+  stage: test
+  script:
+    - .gitlab-ci/generate-evdev-keycodes.py --verbose || (echo "keycodes/evdev file needs to be updated" && false)
+  allow_failure: true
+  artifacts:
+    when: on_failure
+    name: Updated evdev keycodes
+    expire_in: 2 weeks
+    paths:
+      - keycodes/evdev
+  needs: ['container-prep']
+
+
+# Checks for new keysyms to be added to symbols/inet (using xorgproto master)
+evdev keysym check (xorgproto master):
+  extends:
+    - .default_setup
+  stage: test
+  script:
+    # Check out the latest xorgproto tag
+    - git clone https://gitlab.freedesktop.org/xorg/proto/xorgproto
+    - .gitlab-ci/generate-evdev-keysyms.py --header xorgproto/include/X11/XF86keysym.h
+    - git diff --exit-code || (echo "New keysyms available, please update symbols/inet" && false)
+  allow_failure: true
+  artifacts:
+    when: on_failure
+    name: Updated inet keysyms
+    expire_in: 2 weeks
+    paths:
+      - symbols/inet
+  needs: ['container-prep']
+
+
 xmllint:
   extends:
     - .default_setup
@@ -179,21 +217,33 @@ layout_tests:
   stage: test
   needs: ["make_install"]
   script:
-    - git clone https://github.com/xkbcommon/libxkbcommon
+    # make sure the custom layout resolves to something
+    - ln -s "$INSTDIR/share/X11/xkb/symbols/us" "$INSTDIR/share/X11/xkb/symbols/custom"
+    - rm -rf xorgproto libxkbcommon
+    # Get latest xorgproto so we definitely have all keysyms
+    - git clone --depth=1 https://gitlab.freedesktop.org/xorg/proto/xorgproto
+    - export X11_HEADERS_PREFIX="$PWD/xorgproto/"
+    - git clone --depth=1 https://github.com/xkbcommon/libxkbcommon
     - pushd libxkbcommon > /dev/null
+    - ./scripts/update-keysyms
     - meson builddir -Denable-wayland=false -Denable-x11=false -Denable-docs=false -Dxkb-config-root="$INSTDIR/share/X11/xkb"
     - ninja -C builddir
     - echo Running test script - this will take several minutes
-    - ./builddir/xkeyboard-config-test "$INSTDIR/share/X11/xkb/rules/evdev.xml" > $INSTDIR/xkeyboard-config-test.out
-    - ./builddir/xkeyboard-config-test "$INSTDIR/share/X11/xkb/rules/evdev.extras.xml" >> $INSTDIR/xkeyboard-config-test.out
+    - ./builddir/xkeyboard-config-test "$INSTDIR/share/X11/xkb/rules/evdev.xml" > $INSTDIR/xkeyboard-config-test.stdout 2> $INSTDIR/xkeyboard-config-test.stderr
+    - ./builddir/xkeyboard-config-test "$INSTDIR/share/X11/xkb/rules/evdev.extras.xml" >> $INSTDIR/xkeyboard-config-test.stdout 2>> $INSTDIR/xkeyboard-config-test.stderr
     - popd > /dev/null
+  after_script:
+    - xz -z "$INSTDIR/xkeyboard-config-test.stdout"
+    - xz -z "$INSTDIR/xkeyboard-config-test.stderr"
   variables:
     GIT_STRATEGY: none
   artifacts:
+    when: on_failure
     name: xkeyboard-config test output
     expire_in: 2 weeks
     paths:
-    - $INSTDIR/xkeyboard-config-test.out
+    - $INSTDIR/xkeyboard-config-test.stdout.xz
+    - $INSTDIR/xkeyboard-config-test.stderr.xz
 
 keymap_tests:
   extends: .default_setup

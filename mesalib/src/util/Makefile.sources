@@ -11,6 +11,8 @@ MESA_UTIL_FILES := \
 	build_id.h \
 	cnd_monotonic.h \
 	compiler.h \
+	compress.c \
+	compress.h \
 	crc32.c \
 	crc32.h \
 	dag.c \
@@ -32,6 +34,8 @@ MESA_UTIL_FILES := \
 	format/u_format_bptc.h \
 	format/u_format_etc.c \
 	format/u_format_etc.h \
+	format/u_format_fxt1.c \
+	format/u_format_fxt1.h \
 	format/u_format_latc.c \
 	format/u_format_latc.h \
 	format/u_format_other.c \
@@ -49,6 +53,8 @@ MESA_UTIL_FILES := \
 	format_r11g11b10f.h \
 	format_rgb9e5.h \
 	format_srgb.h \
+	fossilize_db.c \
+	fossilize_db.h \
 	futex.h \
 	half_float.c \
 	half_float.h \
@@ -141,6 +147,7 @@ MESA_UTIL_FILES := \
 
 
 MESA_UTIL_GENERATED_FILES = \
+	driconf_static.h \
 	format_srgb.c \
 	format/u_format_table.c \
 	format/u_format_pack.h

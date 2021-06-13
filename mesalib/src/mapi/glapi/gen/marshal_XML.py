@@ -65,7 +65,7 @@ class marshal_function(gl_XML.gl_function):
         client and server threads."""
         # If a "marshal" attribute was present, that overrides any
         # determination that would otherwise be made by this function.
-        if self.marshal not in (None, 'draw'):
+        if self.marshal is not None:
             return self.marshal
 
         if self.exec_flavor == 'skip':
@@ -78,9 +78,7 @@ class marshal_function(gl_XML.gl_function):
         for p in self.parameters:
             if p.is_output:
                 return 'sync'
-            if (p.is_pointer() and not (p.count or p.counter or p.marshal_count)
-                and not (self.marshal == 'draw'
-                         and (p.name == 'indices' or p.name == 'indirect'))):
+            if (p.is_pointer() and not (p.count or p.counter or p.marshal_count)):
                 return 'sync'
             if p.count_parameter_list and not p.marshal_count:
                 # Parameter size is determined by enums; haven't

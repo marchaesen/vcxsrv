@@ -1,0 +1,26 @@
+# Note: skips lists for CI are just a list of lines that, when
+# non-zero-length and not starting with '#', will regex match to
+# delete lines from the test list.  Be careful.
+
+# TODO: fix me
+dEQP-VK.texture.filtering.3d.sizes.3x7x5.linear_mipmap_linear
+
+# Timeout (VK-GL-CTS 1.2.5.2)
+dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_fractional_even_spacing
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.linear.clamp_to_edge.clamp_to_edge.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.linear.clamp_to_edge.mirror_clamp_to_edge.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.linear.clamp_to_edge.repeat.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.linear.mirror_clamp_to_edge.clamp_to_edge.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.linear.mirror_clamp_to_edge.mirror_clamp_to_edge.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.linear.mirror_clamp_to_edge.repeat.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.linear.mirrored_repeat.mirrored_repeat.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.linear.repeat.clamp_to_edge.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.linear.repeat.mirror_clamp_to_edge.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.linear.repeat.repeat.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.nearest.clamp_to_edge.mirrored_repeat.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.nearest.mirror_clamp_to_edge.mirrored_repeat.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.nearest.mirrored_repeat.clamp_to_edge.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.nearest.mirrored_repeat.mirror_clamp_to_edge.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.nearest.mirrored_repeat.repeat.mirrored_repeat
+dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.nearest.repeat.mirrored_repeat.mirrored_repeat
+dEQP-VK.texture.filtering.3d.formats.a1r5g5b5_unorm.a1r5g5b5_unorm_linear_mipmap_linear

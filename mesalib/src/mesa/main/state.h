@@ -54,13 +54,8 @@ _mesa_set_vp_override(struct gl_context *ctx, GLboolean flag);
 extern void
 _mesa_update_vertex_processing_mode(struct gl_context *ctx);
 
-
-/**
- * Set the _DrawVAO and the net enabled arrays.
- */
-void
-_mesa_set_draw_vao(struct gl_context *ctx, struct gl_vertex_array_object *vao,
-                   GLbitfield filter);
+extern void
+_mesa_reset_vertex_processing_mode(struct gl_context *ctx);
 
 
 static inline bool

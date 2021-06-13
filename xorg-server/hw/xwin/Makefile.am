@@ -88,6 +88,7 @@ SRCS =	InitInput.c \
 	windisplay.h \
 	XWin.rc \
 	$(top_srcdir)/mi/miinitext.c \
+	$(top_srcdir)/mi/miinitext.h \
 	$(SRCS_CLIPBOARD) \
 	$(SRCS_MULTIWINDOW) \
 	$(SRCS_RANDR)

@@ -11,7 +11,7 @@ variables:
     UPSTREAM_REPO: xorg/xserver
     FDO_DISTRIBUTION_VERSION: buster-slim
     FDO_DISTRIBUTION_EXEC: 'env FDO_CI_CONCURRENT=${FDO_CI_CONCURRENT} bash .gitlab-ci/debian-install.sh'
-    FDO_DISTRIBUTION_TAG: "2020-11-16"
+    FDO_DISTRIBUTION_TAG: "2021-01-19-git"
 
 include:
   - project: 'freedesktop/ci-templates'
@@ -72,13 +72,10 @@ autotools:
 
 meson:
     extends: .common-build-and-test
-    variables:
-        PIGLIT_DIR: /root/piglit
-        XTEST_DIR: /root/xts
     script:
         - meson -Dc_args="-fno-common" -Dprefix=/usr -Dxephyr=true -Dwerror=true $MESON_EXTRA_OPTIONS build/
-        - ninja -j${FDO_CI_CONCURRENT:-4} -C build/ install
-        - ninja -j${FDO_CI_CONCURRENT:-4} -C build/ test
+        - ninja -j${FDO_CI_CONCURRENT:-4} -C build/ dist
+        - PIGLIT_DIR=/root/piglit XTEST_DIR=/root/xts ninja -j${FDO_CI_CONCURRENT:-4} -C build/ test
         - .gitlab-ci/manpages-check
 
 meson-noglamor:

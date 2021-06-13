@@ -22,19 +22,24 @@
  * IN THE SOFTWARE.
  */
 
+#include "v3d_decoder.h"
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdarg.h>
 #include <string.h>
+#ifdef WITH_LIBEXPAT
 #include <expat.h>
+#endif
 #include <inttypes.h>
 #include <zlib.h>
 
 #include <util/macros.h>
 #include <util/ralloc.h>
+#include <util/u_debug.h>
 
-#include "v3d_decoder.h"
 #include "v3d_packet_helpers.h"
 #include "v3d_xml.h"
 #include "broadcom/clif/clif_private.h"
@@ -51,6 +56,8 @@ struct v3d_spec {
         int nenums;
         struct v3d_enum *enums[256];
 };
+
+#ifdef WITH_LIBEXPAT
 
 struct location {
         const char *filename;
@@ -74,6 +81,8 @@ struct parser_context {
         int parse_depth;
         int parse_skip_depth;
 };
+
+#endif /* WITH_LIBEXPAT */
 
 const char *
 v3d_group_get_name(struct v3d_group *group)
@@ -127,6 +136,8 @@ v3d_spec_find_enum(struct v3d_spec *spec, const char *name)
 
         return NULL;
 }
+
+#ifdef WITH_LIBEXPAT
 
 static void __attribute__((noreturn))
 fail(struct location *loc, const char *msg, ...)
@@ -645,9 +656,16 @@ static uint32_t zlib_inflate(const void *compressed_data,
         return zstream.total_out;
 }
 
+#endif /* WITH_LIBEXPAT */
+
 struct v3d_spec *
 v3d_spec_load(const struct v3d_device_info *devinfo)
 {
+        struct v3d_spec *spec = calloc(1, sizeof(struct v3d_spec));
+        if (!spec)
+                return NULL;
+
+#ifdef WITH_LIBEXPAT
         struct parser_context ctx;
         void *buf;
         uint8_t *text_data = NULL;
@@ -683,7 +701,7 @@ v3d_spec_load(const struct v3d_device_info *devinfo)
         XML_SetElementHandler(ctx.parser, start_element, end_element);
         XML_SetCharacterDataHandler(ctx.parser, character_data);
 
-        ctx.spec = xzalloc(sizeof(*ctx.spec));
+        ctx.spec = spec;
 
         total_length = zlib_inflate(compress_genxmls,
                                     sizeof(compress_genxmls),
@@ -709,6 +727,10 @@ v3d_spec_load(const struct v3d_device_info *devinfo)
         free(text_data);
 
         return ctx.spec;
+#else /* !WITH_LIBEXPAT */
+        debug_warn_once("CLIF dumping not supported due to missing libexpat");
+        return spec;
+#endif /* !WITH_LIBEXPAT */
 }
 
 struct v3d_group *

@@ -436,7 +436,7 @@ lp_build_occlusion_count(struct gallivm_state *gallivm,
    assert(type.length <= 16);
    assert(type.floating);
 
-   if(util_cpu_caps.has_sse && type.length == 4) {
+   if(util_get_cpu_caps()->has_sse && type.length == 4) {
       const char *movmskintr = "llvm.x86.sse.movmsk.ps";
       const char *popcntintr = "llvm.ctpop.i32";
       LLVMValueRef bits = LLVMBuildBitCast(builder, maskvalue,
@@ -447,7 +447,7 @@ lp_build_occlusion_count(struct gallivm_state *gallivm,
                                        LLVMInt32TypeInContext(context), bits);
       count = LLVMBuildZExt(builder, count, LLVMIntTypeInContext(context, 64), "");
    }
-   else if(util_cpu_caps.has_avx && type.length == 8) {
+   else if(util_get_cpu_caps()->has_avx && type.length == 8) {
       const char *movmskintr = "llvm.x86.avx.movmsk.ps.256";
       const char *popcntintr = "llvm.ctpop.i32";
       LLVMValueRef bits = LLVMBuildBitCast(builder, maskvalue,
@@ -881,8 +881,8 @@ lp_build_depth_stencil_test(struct gallivm_state *gallivm,
 
    /* Sanity checking */
    {
-      const unsigned z_swizzle = format_desc->swizzle[0];
-      const unsigned s_swizzle = format_desc->swizzle[1];
+      ASSERTED const unsigned z_swizzle = format_desc->swizzle[0];
+      ASSERTED const unsigned s_swizzle = format_desc->swizzle[1];
 
       assert(z_swizzle != PIPE_SWIZZLE_NONE ||
              s_swizzle != PIPE_SWIZZLE_NONE);

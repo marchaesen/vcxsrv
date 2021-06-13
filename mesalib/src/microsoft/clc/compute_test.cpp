@@ -45,7 +45,7 @@ enum compute_test_debug_flags {
    COMPUTE_DEBUG_SERIALIZE_LIBCLC     = 1 << 3,
 };
 
-static const struct debug_named_value debug_options[] = {
+static const struct debug_named_value compute_debug_options[] = {
    { "experimental_shaders",  COMPUTE_DEBUG_EXPERIMENTAL_SHADERS, "Enable experimental shaders" },
    { "use_hw_d3d",            COMPUTE_DEBUG_USE_HW_D3D,           "Use a hardware D3D device"   },
    { "optimize_libclc",       COMPUTE_DEBUG_OPTIMIZE_LIBCLC,      "Optimize the clc_context before using it" },
@@ -53,7 +53,7 @@ static const struct debug_named_value debug_options[] = {
    DEBUG_NAMED_VALUE_END
 };
 
-DEBUG_GET_ONCE_FLAGS_OPTION(debug_compute, "COMPUTE_TEST_DEBUG", debug_options, 0)
+DEBUG_GET_ONCE_FLAGS_OPTION(debug_compute, "COMPUTE_TEST_DEBUG", compute_debug_options, 0)
 
 static void warning_callback(void *priv, const char *msg)
 {

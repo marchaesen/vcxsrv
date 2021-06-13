@@ -111,6 +111,11 @@ readN(int fd, char *buf, size_t len)
    return total ? (ssize_t)total : err;
 }
 
+#ifndef O_BINARY
+/* Unix makes no distinction between text and binary files. */
+#define O_BINARY 0
+#endif
+
 char *
 os_read_file(const char *filename, size_t *size)
 {
@@ -121,7 +126,7 @@ os_read_file(const char *filename, size_t *size)
     */
    size_t len = 64;
 
-   int fd = open(filename, O_RDONLY);
+   int fd = open(filename, O_RDONLY | O_BINARY);
    if (fd == -1) {
       /* errno set by open() */
       return NULL;

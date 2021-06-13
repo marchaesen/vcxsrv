@@ -60,7 +60,7 @@ replace_with_strict_ffma(struct nir_builder *bld, struct u_vector *dead_flrp,
    nir_ssa_def *const outer_ffma = nir_ffma(bld, b, c, inner_ffma);
    nir_instr_as_alu(outer_ffma->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(outer_ffma));
+   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, outer_ffma);
 
    /* DO NOT REMOVE the original flrp yet.  Many of the lowering choices are
     * based on other uses of the sources.  Removing the flrp may cause the
@@ -93,7 +93,7 @@ replace_with_single_ffma(struct nir_builder *bld, struct u_vector *dead_flrp,
    nir_ssa_def *const final_ffma = nir_ffma(bld, a, one_minus_c, b_times_c);
    nir_instr_as_alu(final_ffma->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(final_ffma));
+   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, final_ffma);
 
    /* DO NOT REMOVE the original flrp yet.  Many of the lowering choices are
     * based on other uses of the sources.  Removing the flrp may cause the
@@ -129,7 +129,7 @@ replace_with_strict(struct nir_builder *bld, struct u_vector *dead_flrp,
    nir_ssa_def *const sum = nir_fadd(bld, first_product, second_product);
    nir_instr_as_alu(sum->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(sum));
+   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, sum);
 
    /* DO NOT REMOVE the original flrp yet.  Many of the lowering choices are
     * based on other uses of the sources.  Removing the flrp may cause the
@@ -161,7 +161,7 @@ replace_with_fast(struct nir_builder *bld, struct u_vector *dead_flrp,
    nir_ssa_def *const sum = nir_fadd(bld, a, product);
    nir_instr_as_alu(sum->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(sum));
+   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, sum);
 
    /* DO NOT REMOVE the original flrp yet.  Many of the lowering choices are
     * based on other uses of the sources.  Removing the flrp may cause the
@@ -203,7 +203,7 @@ replace_with_expanded_ffma_and_add(struct nir_builder *bld,
    nir_ssa_def *const outer_sum = nir_fadd(bld, inner_sum, b_times_c);
    nir_instr_as_alu(outer_sum->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, nir_src_for_ssa(outer_sum));
+   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, outer_sum);
 
    /* DO NOT REMOVE the original flrp yet.  Many of the lowering choices are
     * based on other uses of the sources.  Removing the flrp may cause the

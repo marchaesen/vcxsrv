@@ -12,18 +12,19 @@
 
 #include <GL/gl.h>
 
-#define BGL_RGB			0
-#define BGL_INDEX		1
-#define BGL_SINGLE		0
-#define BGL_DOUBLE		2
-#define BGL_DIRECT		0
-#define BGL_INDIRECT	4
-#define BGL_ACCUM		8
-#define BGL_ALPHA		16
-#define BGL_DEPTH		32
-#define BGL_OVERLAY		64
-#define BGL_UNDERLAY	128
-#define BGL_STENCIL		512
+#define BGL_RGB				0
+#define BGL_INDEX			1
+#define BGL_SINGLE			0
+#define BGL_DOUBLE			2
+#define BGL_DIRECT			0
+#define BGL_INDIRECT		4
+#define BGL_ACCUM			8
+#define BGL_ALPHA			16
+#define BGL_DEPTH			32
+#define BGL_OVERLAY			64
+#define BGL_UNDERLAY		128
+#define BGL_STENCIL			512
+#define BGL_SHARE_CONTEXT	1024
 
 #ifdef __cplusplus
 
@@ -39,7 +40,7 @@ struct glview_direct_info;
 class BGLRenderer;
 class GLRendererRoster;
 
-class BGLView : public BView {
+class _EXPORT BGLView : public BView {
 public:
 							BGLView(BRect rect, const char* name,
 								ulong resizingMode, ulong mode,

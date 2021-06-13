@@ -287,6 +287,7 @@ NIR_FILES = \
 	nir/nir_lower_passthrough_edgeflags.c \
 	nir/nir_lower_patch_vertices.c \
 	nir/nir_lower_phis_to_scalar.c \
+	nir/nir_lower_pntc_ytransform.c \
 	nir/nir_lower_point_size.c \
 	nir/nir_lower_point_size_mov.c \
 	nir/nir_lower_printf.c \
@@ -298,6 +299,7 @@ NIR_FILES = \
 	nir/nir_lower_subgroups.c \
 	nir/nir_lower_system_values.c \
 	nir/nir_lower_tex.c \
+	nir/nir_lower_texcoord_replace.c \
 	nir/nir_lower_to_source_mods.c \
 	nir/nir_lower_two_sided_color.c \
 	nir/nir_lower_ubo_vec4.c \
@@ -336,6 +338,7 @@ NIR_FILES = \
 	nir/nir_opt_load_store_vectorize.c \
 	nir/nir_opt_memcpy.c \
 	nir/nir_opt_move.c \
+	nir/nir_opt_offsets.c \
 	nir/nir_opt_peephole_select.c \
 	nir/nir_opt_rematerialize_compares.c \
 	nir/nir_opt_remove_phis.c \

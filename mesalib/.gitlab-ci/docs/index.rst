@@ -14,7 +14,7 @@ modified and thus is unreliable).
 The CI runs a number of tests, from trivial build-testing to complex GPU rendering:
 
 - Build testing for a number of build systems, configurations and platforms
-- Sanity checks (``meson test`` & ``scons check``)
+- Sanity checks (``meson test``)
 - Some drivers (softpipe, llvmpipe, freedreno and panfrost) are also tested
   using `VK-GL-CTS <https://github.com/KhronosGroup/VK-GL-CTS>`__
 - Replay of application traces
@@ -102,11 +102,11 @@ pipeline backing up.  As a result, we require that the test farm be
 able to handle a whole pipeline's worth of jobs in less than 15 minutes
 (to compare, the build stage is about 10 minutes).
 
-If a test farm is short the HW to provide these guarantees, consider
-dropping tests to reduce runtime.
-``VK-GL-CTS/scripts/log/bottleneck_report.py`` can help you find what
-tests were slow in a ``results.qpa`` file.  Or, you can have a job with
-no ``parallel`` field set and:
+If a test farm is short the HW to provide these guarantees, consider dropping
+tests to reduce runtime.  dEQP job logs print the slowest tests at the end of
+the run, and piglit logs the runtime of tests in the results.json.bz2 in the
+artifacts.  Or, you can add the following to your job to only run some fraction
+(in this case, 1/10th) of the deqp tests.
 
 .. code-block:: yaml
 

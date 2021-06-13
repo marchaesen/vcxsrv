@@ -56,16 +56,10 @@ struct fd_reg_pair {
 		if (i < ARRAY_SIZE(regs) && (i == 0 || regs[i].reg > 0)) {	\
 			__assert_eq(regs[0].reg + i, regs[i].reg);				\
 			if (regs[i].bo) {										\
-				struct fd_reloc reloc = {							\
-					.bo = regs[i].bo,								\
-					.offset = regs[i].bo_offset,					\
-					.or = regs[i].value,							\
-					.shift = regs[i].bo_shift,						\
-					.orhi = regs[i].value >> 32						\
-				};													\
 				ring->cur = p;										\
 				p += 2;												\
-				fd_ringbuffer_reloc(ring, &reloc);					\
+				OUT_RELOC(ring, regs[i].bo, regs[i].bo_offset, 		\
+						regs[i].value, regs[i].bo_shift);			\
 			} else {												\
 				*p++ = regs[i].value;								\
 				if (regs[i].is_address)								\

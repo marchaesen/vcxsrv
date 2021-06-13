@@ -1,0 +1,28 @@
+# Really slow until https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/485
+gl-1.3-texture-env
+
+# Intermittent timeouts
+spec@ext_texture_lod_bias@lodbias
+
+# Skip over a bunch of extensions since we don't have extension fast skipping yet.
+spec@glsl-1.50
+spec@glsl-4.*
+spec@arb_gpu_shader5
+spec@arb_gpu_shader_fp64
+spec@arb_gpu_shader_int64
+spec@arb_tessellation_shader
+
+# Skip flaky piglit MSAA, which is well covered by our xfails in dEQP
+arb_texture_multisample
+ext_framebuffer_multisample
+
+# 1.5 minutes
+spec@!opengl 1.2@tex3d-maxsize
+
+# ~1 minute
+glx@glx-multithread-texture
+spec@!opengl 1.1@draw-sync
+spec@glsl-1.30@execution@texelfetch fs sampler2d 1x281-501x281
+spec@glsl-1.30@execution@texelfetch fs sampler2darray 98x1x9-98x129x9
+spec@glsl-1.30@execution@texelfetch fs sampler2darray 1x129x9-98x129x9
+spec@!opengl 2.0@tex3d-npot

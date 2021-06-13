@@ -113,7 +113,7 @@ st_convert_image(const struct st_context *st, const struct gl_image_unit *u,
       }
 
       img->resource = stObj->pt;
-      img->u.tex.level = u->Level + stObj->base.MinLevel;
+      img->u.tex.level = u->Level + stObj->base.Attrib.MinLevel;
       assert(img->u.tex.level <= img->resource->last_level);
       if (stObj->pt->target == PIPE_TEXTURE_3D) {
          if (u->Layered) {
@@ -124,11 +124,11 @@ st_convert_image(const struct st_context *st, const struct gl_image_unit *u,
             img->u.tex.last_layer = u->_Layer;
          }
       } else {
-         img->u.tex.first_layer = u->_Layer + stObj->base.MinLayer;
-         img->u.tex.last_layer = u->_Layer + stObj->base.MinLayer;
+         img->u.tex.first_layer = u->_Layer + stObj->base.Attrib.MinLayer;
+         img->u.tex.last_layer = u->_Layer + stObj->base.Attrib.MinLayer;
          if (u->Layered && img->resource->array_size > 1) {
             if (stObj->base.Immutable)
-               img->u.tex.last_layer += stObj->base.NumLayers - 1;
+               img->u.tex.last_layer += stObj->base.Attrib.NumLayers - 1;
             else
                img->u.tex.last_layer += img->resource->array_size - 1;
          }
@@ -161,26 +161,26 @@ st_bind_images(struct st_context *st, struct gl_program *prog,
 {
    unsigned i;
    struct pipe_image_view images[MAX_IMAGE_UNIFORMS];
-   struct gl_program_constants *c;
 
    if (!prog || !st->pipe->set_shader_images)
       return;
 
-   c = &st->ctx->Const.Program[prog->info.stage];
+   unsigned num_images = prog->info.num_images;
 
-   for (i = 0; i < prog->info.num_images; i++) {
+   for (i = 0; i < num_images; i++) {
       struct pipe_image_view *img = &images[i];
 
       st_convert_image_from_unit(st, img, prog->sh.ImageUnits[i],
                                  prog->sh.ImageAccess[i]);
    }
-   cso_set_shader_images(st->cso_context, shader_type, 0,
-                         prog->info.num_images, images);
-   /* clear out any stale shader images */
-   if (prog->info.num_images < c->MaxImageUniforms)
-      cso_set_shader_images(
-            st->cso_context, shader_type, prog->info.num_images,
-            c->MaxImageUniforms - prog->info.num_images, NULL);
+
+   struct pipe_context *pipe = st->pipe;
+   unsigned last_num_images = st->state.num_images[shader_type];
+   unsigned unbind_slots = last_num_images > num_images ?
+                              last_num_images - num_images : 0;
+   pipe->set_shader_images(pipe, shader_type, 0, num_images, unbind_slots,
+                           images);
+   st->state.num_images[shader_type] = num_images;
 }
 
 void st_bind_vs_images(struct st_context *st)

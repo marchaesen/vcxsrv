@@ -97,10 +97,15 @@ pp_jimenezmlaa_run(struct pp_queue_t *ppq, struct pipe_resource *in,
       dimensions[1] = p->framebuffer.height;
    }
 
-   cso_set_constant_user_buffer(p->cso, PIPE_SHADER_VERTEX,
-                                0, constants, sizeof(constants));
-   cso_set_constant_user_buffer(p->cso, PIPE_SHADER_FRAGMENT,
-                                0, constants, sizeof(constants));
+   struct pipe_constant_buffer cb;
+   cb.buffer = NULL;
+   cb.buffer_offset = 0;
+   cb.buffer_size = sizeof(constants);
+   cb.user_buffer = constants;
+
+   struct pipe_context *pipe = ppq->p->pipe;
+   pipe->set_constant_buffer(pipe, PIPE_SHADER_VERTEX, 0, false, &cb);
+   pipe->set_constant_buffer(pipe, PIPE_SHADER_FRAGMENT, 0, false, &cb);
 
    mstencil.stencil[0].enabled = 1;
    mstencil.stencil[0].valuemask = mstencil.stencil[0].writemask = ~0;
@@ -129,7 +134,7 @@ pp_jimenezmlaa_run(struct pp_queue_t *ppq, struct pipe_resource *in,
       const struct pipe_sampler_state *samplers[] = {&p->sampler_point};
       cso_set_samplers(p->cso, PIPE_SHADER_FRAGMENT, 1, samplers);
    }
-   cso_set_sampler_views(p->cso, PIPE_SHADER_FRAGMENT, 1, &p->view);
+   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 1, 0, &p->view);
 
    cso_set_vertex_shader_handle(p->cso, ppq->shaders[n][1]);    /* offsetvs */
    cso_set_fragment_shader_handle(p->cso, ppq->shaders[n][2]);
@@ -161,7 +166,7 @@ pp_jimenezmlaa_run(struct pp_queue_t *ppq, struct pipe_resource *in,
    }
 
    arr[0] = p->view;
-   cso_set_sampler_views(p->cso, PIPE_SHADER_FRAGMENT, 3, arr);
+   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 3, 0, arr);
 
    cso_set_vertex_shader_handle(p->cso, ppq->shaders[n][0]);    /* passvs */
    cso_set_fragment_shader_handle(p->cso, ppq->shaders[n][3]);
@@ -193,7 +198,7 @@ pp_jimenezmlaa_run(struct pp_queue_t *ppq, struct pipe_resource *in,
    }
 
    arr[1] = p->view;
-   cso_set_sampler_views(p->cso, PIPE_SHADER_FRAGMENT, 2, arr);
+   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 2, 0, arr);
 
    cso_set_vertex_shader_handle(p->cso, ppq->shaders[n][1]);    /* offsetvs */
    cso_set_fragment_shader_handle(p->cso, ppq->shaders[n][4]);

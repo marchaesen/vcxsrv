@@ -38,7 +38,7 @@
 #include "util/u_upload_mgr.h"
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_builder.h"
-#include "intel/common/gen_disasm.h"
+#include "intel/common/intel_disasm.h"
 #include "intel/compiler/brw_compiler.h"
 #include "intel/compiler/brw_eu.h"
 #include "intel/compiler/brw_nir.h"
@@ -99,99 +99,18 @@ iris_find_cached_shader(struct iris_context *ice,
    return entry ? entry->data : NULL;
 }
 
-const void *
-iris_find_previous_compile(const struct iris_context *ice,
-                           enum iris_program_cache_id cache_id,
-                           unsigned program_string_id)
-{
-   hash_table_foreach(ice->shaders.cache, entry) {
-      const struct keybox *keybox = entry->key;
-      const struct brw_base_prog_key *key = (const void *)keybox->data;
-      if (keybox->cache_id == cache_id &&
-          key->program_string_id == program_string_id) {
-         return keybox->data;
-      }
-   }
-
-   return NULL;
-}
-
 void
-iris_delete_shader_variants(struct iris_context *ice,
-                            struct iris_uncompiled_shader *ish)
+iris_delete_shader_variant(struct iris_compiled_shader *shader)
 {
-   struct hash_table *cache = ice->shaders.cache;
-   gl_shader_stage stage = ish->nir->info.stage;
-   enum iris_program_cache_id cache_id = stage;
-
-   hash_table_foreach(cache, entry) {
-      const struct keybox *keybox = entry->key;
-      const struct brw_base_prog_key *key = (const void *)keybox->data;
-
-      if (keybox->cache_id == cache_id &&
-          key->program_string_id == ish->program_id) {
-         struct iris_compiled_shader *shader = entry->data;
-
-         _mesa_hash_table_remove(cache, entry);
-
-         /* Shader variants may still be bound in the context even after
-          * the API-facing shader has been deleted.  In particular, a draw
-          * may not have triggered iris_update_compiled_shaders() yet.  In
-          * that case, we may be referring to that shader's VUE map, stream
-          * output settings, and so on.  We also like to compare the old and
-          * new shader programs when swapping them out to flag dirty state.
-          *
-          * So, it's hazardous to delete a bound shader variant.  We avoid
-          * doing so, choosing to instead move "deleted" shader variants to
-          * a list, deferring the actual deletion until they're not bound.
-          *
-          * For simplicity, we always move deleted variants to the list,
-          * even if we could delete them immediately.  We'll then process
-          * the list, catching both these variants and any others.
-          */
-         list_addtail(&shader->link, &ice->shaders.deleted_variants[stage]);
-      }
-   }
-
-   /* Process any pending deferred variant deletions. */
-   list_for_each_entry_safe(struct iris_compiled_shader, shader,
-                            &ice->shaders.deleted_variants[stage], link) {
-      /* If the shader is still bound, defer deletion. */
-      if (ice->shaders.prog[stage] == shader)
-         continue;
-
-      list_del(&shader->link);
-
-      /* Actually delete the variant. */
-      pipe_resource_reference(&shader->assembly.res, NULL);
-      ralloc_free(shader);
-   }
-}
-
-
-/**
- * Look for an existing entry in the cache that has identical assembly code.
- *
- * This is useful for programs generating shaders at runtime, where multiple
- * distinct shaders (from an API perspective) may compile to the same assembly
- * in our backend.  This saves space in the program cache buffer.
- */
-static const struct iris_compiled_shader *
-find_existing_assembly(struct hash_table *cache,
-                       const void *assembly,
-                       unsigned assembly_size)
-{
-   hash_table_foreach(cache, entry) {
-      const struct iris_compiled_shader *existing = entry->data;
-      if (existing->prog_data->program_size == assembly_size &&
-          memcmp(existing->map, assembly, assembly_size) == 0)
-         return existing;
-   }
-   return NULL;
+   pipe_resource_reference(&shader->assembly.res, NULL);
+   ralloc_free(shader);
 }
 
 struct iris_compiled_shader *
-iris_upload_shader(struct iris_context *ice,
+iris_upload_shader(struct iris_screen *screen,
+                   struct iris_uncompiled_shader *ish,
+                   struct hash_table *driver_shaders,
+                   struct u_upload_mgr *uploader,
                    enum iris_program_cache_id cache_id,
                    uint32_t key_size,
                    const void *key,
@@ -204,51 +123,38 @@ iris_upload_shader(struct iris_context *ice,
                    unsigned num_cbufs,
                    const struct iris_binding_table *bt)
 {
-   struct hash_table *cache = ice->shaders.cache;
-   struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
+   const struct gen_device_info *devinfo = &screen->devinfo;
+
+   void *mem_ctx = ish ? NULL : (void *) driver_shaders;
    struct iris_compiled_shader *shader =
-      rzalloc_size(cache, sizeof(struct iris_compiled_shader) +
+      rzalloc_size(mem_ctx, sizeof(struct iris_compiled_shader) +
                    screen->vtbl.derived_program_state_size(cache_id));
-   const struct iris_compiled_shader *existing =
-      find_existing_assembly(cache, assembly, prog_data->program_size);
 
-   /* If we can find a matching prog in the cache already, then reuse the
-    * existing stuff without creating new copy into the underlying buffer
-    * object.  This is notably useful for programs generating shaders at
-    * runtime, where multiple shaders may compile to the same thing in our
-    * backend.
-    */
-   if (existing) {
-      pipe_resource_reference(&shader->assembly.res, existing->assembly.res);
-      shader->assembly.offset = existing->assembly.offset;
-      shader->map = existing->map;
-   } else {
-      shader->assembly.res = NULL;
-      u_upload_alloc(ice->shaders.uploader, 0, prog_data->program_size, 64,
-                     &shader->assembly.offset, &shader->assembly.res,
-                     &shader->map);
-      memcpy(shader->map, assembly, prog_data->program_size);
+   pipe_reference_init(&shader->ref, 1);
 
-      struct iris_resource *res = (void *) shader->assembly.res;
-      uint64_t shader_data_addr = res->bo->gtt_offset +
-                                  shader->assembly.offset +
-                                  prog_data->const_data_offset;
+   shader->assembly.res = NULL;
+   u_upload_alloc(uploader, 0, prog_data->program_size, 64,
+                  &shader->assembly.offset, &shader->assembly.res,
+                  &shader->map);
+   memcpy(shader->map, assembly, prog_data->program_size);
 
-      struct brw_shader_reloc_value reloc_values[] = {
-         {
-            .id = IRIS_SHADER_RELOC_CONST_DATA_ADDR_LOW,
-            .value = shader_data_addr,
-         },
-         {
-            .id = IRIS_SHADER_RELOC_CONST_DATA_ADDR_HIGH,
-            .value = shader_data_addr >> 32,
-         },
-      };
-      brw_write_shader_relocs(&screen->devinfo, shader->map, prog_data,
-                              reloc_values, ARRAY_SIZE(reloc_values));
-   }
+   struct iris_resource *res = (void *) shader->assembly.res;
+   uint64_t shader_data_addr = res->bo->gtt_offset +
+                               shader->assembly.offset +
+                               prog_data->const_data_offset;
 
-   list_inithead(&shader->link);
+   struct brw_shader_reloc_value reloc_values[] = {
+      {
+         .id = IRIS_SHADER_RELOC_CONST_DATA_ADDR_LOW,
+         .value = shader_data_addr,
+      },
+      {
+         .id = IRIS_SHADER_RELOC_CONST_DATA_ADDR_HIGH,
+         .value = shader_data_addr >> 32,
+      },
+   };
+   brw_write_shader_relocs(&screen->devinfo, shader->map, prog_data,
+                           reloc_values, ARRAY_SIZE(reloc_values));
 
    shader->prog_data = prog_data;
    shader->streamout = streamout;
@@ -266,10 +172,35 @@ iris_upload_shader(struct iris_context *ice,
    ralloc_steal(shader, shader->system_values);
 
    /* Store the 3DSTATE shader packets and other derived state. */
-   screen->vtbl.store_derived_program_state(ice, cache_id, shader);
+   screen->vtbl.store_derived_program_state(devinfo, cache_id, shader);
 
-   struct keybox *keybox = make_keybox(shader, cache_id, key, key_size);
-   _mesa_hash_table_insert(ice->shaders.cache, keybox, shader);
+   if (ish) {
+      assert(key_size <= sizeof(union iris_any_prog_key));
+      memcpy(&shader->key, key, key_size);
+
+      simple_mtx_lock(&ish->lock);
+
+      /* While unlikely, it's possible that another thread concurrently
+       * compiled the same variant.  Make sure no one beat us to it; if
+       * they did, return the existing one and discard our new one.
+       */
+      list_for_each_entry(struct iris_compiled_shader, existing,
+                          &ish->variants, link) {
+         if (memcmp(&existing->key, key, key_size) == 0) {
+            iris_delete_shader_variant(shader);
+            simple_mtx_unlock(&ish->lock);
+            return existing;
+         }
+      }
+
+      /* Append our new variant to the shader's variant list. */
+      list_addtail(&shader->link, &ish->variants);
+
+      simple_mtx_unlock(&ish->lock);
+   } else {
+      struct keybox *keybox = make_keybox(shader, cache_id, key, key_size);
+      _mesa_hash_table_insert(driver_shaders, keybox, shader);
+   }
 
    return shader;
 }
@@ -309,6 +240,7 @@ iris_blorp_upload_shader(struct blorp_batch *blorp_batch, uint32_t stage,
    struct blorp_context *blorp = blorp_batch->blorp;
    struct iris_context *ice = blorp->driver_ctx;
    struct iris_batch *batch = blorp_batch->driver_batch;
+   struct iris_screen *screen = batch->screen;
 
    void *prog_data = ralloc_size(NULL, prog_data_size);
    memcpy(prog_data, prog_data_templ, prog_data_size);
@@ -317,7 +249,9 @@ iris_blorp_upload_shader(struct blorp_batch *blorp_batch, uint32_t stage,
    memset(&bt, 0, sizeof(bt));
 
    struct iris_compiled_shader *shader =
-      iris_upload_shader(ice, IRIS_CACHE_BLORP, key_size, key, kernel,
+      iris_upload_shader(screen, NULL, ice->shaders.cache,
+                         ice->shaders.uploader_driver,
+                         IRIS_CACHE_BLORP, key_size, key, kernel,
                          prog_data, NULL, NULL, 0, 0, 0, &bt);
 
    struct iris_bo *bo = iris_resource_bo(shader->assembly.res);
@@ -336,55 +270,29 @@ iris_init_program_cache(struct iris_context *ice)
    ice->shaders.cache =
       _mesa_hash_table_create(ice, keybox_hash, keybox_equals);
 
-   ice->shaders.uploader =
+   ice->shaders.uploader_driver =
       u_upload_create(&ice->ctx, 16384, PIPE_BIND_CUSTOM, PIPE_USAGE_IMMUTABLE,
                       IRIS_RESOURCE_FLAG_SHADER_MEMZONE);
-
-   for (int i = 0; i < MESA_SHADER_STAGES; i++)
-      list_inithead(&ice->shaders.deleted_variants[i]);
+   ice->shaders.uploader_unsync =
+      u_upload_create(&ice->ctx, 16384, PIPE_BIND_CUSTOM, PIPE_USAGE_IMMUTABLE,
+                      IRIS_RESOURCE_FLAG_SHADER_MEMZONE);
 }
 
 void
 iris_destroy_program_cache(struct iris_context *ice)
 {
    for (int i = 0; i < MESA_SHADER_STAGES; i++) {
-      ice->shaders.prog[i] = NULL;
-
-      list_for_each_entry_safe(struct iris_compiled_shader, shader,
-                               &ice->shaders.deleted_variants[i], link) {
-         pipe_resource_reference(&shader->assembly.res, NULL);
-      }
+      iris_shader_variant_reference(&ice->shaders.prog[i], NULL);
    }
+   iris_shader_variant_reference(&ice->shaders.last_vue_shader, NULL);
 
    hash_table_foreach(ice->shaders.cache, entry) {
       struct iris_compiled_shader *shader = entry->data;
-      pipe_resource_reference(&shader->assembly.res, NULL);
+      iris_delete_shader_variant(shader);
    }
 
-   u_upload_destroy(ice->shaders.uploader);
+   u_upload_destroy(ice->shaders.uploader_driver);
+   u_upload_destroy(ice->shaders.uploader_unsync);
 
    ralloc_free(ice->shaders.cache);
-}
-
-static const char *
-cache_name(enum iris_program_cache_id cache_id)
-{
-   if (cache_id == IRIS_CACHE_BLORP)
-      return "BLORP";
-
-   return _mesa_shader_stage_to_string(cache_id);
-}
-
-void
-iris_print_program_cache(struct iris_context *ice)
-{
-   struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
-   const struct gen_device_info *devinfo = &screen->devinfo;
-
-   hash_table_foreach(ice->shaders.cache, entry) {
-      const struct keybox *keybox = entry->key;
-      struct iris_compiled_shader *shader = entry->data;
-      fprintf(stderr, "%s:\n", cache_name(keybox->cache_id));
-      gen_disassemble(devinfo, shader->map, 0, stderr);
-   }
 }

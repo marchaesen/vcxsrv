@@ -345,7 +345,7 @@ if dep_libdrm.found()
   )
 endif
 
-if with_llvm
+if draw_with_llvm
   files_libgallium += files(
     'gallivm/lp_bld_arit.c',
     'gallivm/lp_bld_arit.h',

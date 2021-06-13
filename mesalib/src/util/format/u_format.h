@@ -250,8 +250,8 @@ struct util_format_pack_description {
     * Only defined for non-depth-stencil formats.
     */
    void
-   (*pack_rgba_8unorm)(uint8_t *dst, unsigned dst_stride,
-                       const uint8_t *src, unsigned src_stride,
+   (*pack_rgba_8unorm)(uint8_t *restrict dst, unsigned dst_stride,
+                       const uint8_t *restrict src, unsigned src_stride,
                        unsigned width, unsigned height);
 
    /**
@@ -261,8 +261,8 @@ struct util_format_pack_description {
     * Only defined for non-depth-stencil formats.
     */
    void
-   (*pack_rgba_float)(uint8_t *dst, unsigned dst_stride,
-                      const float *src, unsigned src_stride,
+   (*pack_rgba_float)(uint8_t *restrict dst, unsigned dst_stride,
+                      const float *restrict src, unsigned src_stride,
                       unsigned width, unsigned height);
 
    /**
@@ -272,8 +272,8 @@ struct util_format_pack_description {
     * Only defined for depth formats.
     */
    void
-   (*pack_z_32unorm)(uint8_t *dst, unsigned dst_stride,
-                     const uint32_t *src, unsigned src_stride,
+   (*pack_z_32unorm)(uint8_t *restrict dst, unsigned dst_stride,
+                     const uint32_t *restrict src, unsigned src_stride,
                      unsigned width, unsigned height);
 
    /**
@@ -283,8 +283,8 @@ struct util_format_pack_description {
     * Only defined for depth formats.
     */
    void
-   (*pack_z_float)(uint8_t *dst, unsigned dst_stride,
-                   const float *src, unsigned src_stride,
+   (*pack_z_float)(uint8_t *restrict dst, unsigned dst_stride,
+                   const float *restrict src, unsigned src_stride,
                    unsigned width, unsigned height);
 
    /**
@@ -294,18 +294,18 @@ struct util_format_pack_description {
     * Only defined for stencil formats.
     */
    void
-   (*pack_s_8uint)(uint8_t *dst, unsigned dst_stride,
-                   const uint8_t *src, unsigned src_stride,
+   (*pack_s_8uint)(uint8_t *restrict dst, unsigned dst_stride,
+                   const uint8_t *restrict src, unsigned src_stride,
                    unsigned width, unsigned height);
 
    void
-   (*pack_rgba_uint)(uint8_t *dst, unsigned dst_stride,
-                     const uint32_t *src, unsigned src_stride,
+   (*pack_rgba_uint)(uint8_t *restrict dst, unsigned dst_stride,
+                     const uint32_t *restrict src, unsigned src_stride,
                      unsigned width, unsigned height);
 
    void
-   (*pack_rgba_sint)(uint8_t *dst, unsigned dst_stride,
-                     const int32_t *src, unsigned src_stride,
+   (*pack_rgba_sint)(uint8_t *restrict dst, unsigned dst_stride,
+                     const int32_t *restrict src, unsigned src_stride,
                      unsigned width, unsigned height);
 };
 
@@ -318,8 +318,8 @@ struct util_format_unpack_description {
     * Only defined for non-depth-stencil formats.
     */
    void
-   (*unpack_rgba_8unorm)(uint8_t *dst, unsigned dst_stride,
-                         const uint8_t *src, unsigned src_stride,
+   (*unpack_rgba_8unorm)(uint8_t *restrict dst, unsigned dst_stride,
+                         const uint8_t *restrict src, unsigned src_stride,
                          unsigned width, unsigned height);
 
    /**
@@ -328,8 +328,8 @@ struct util_format_unpack_description {
     * XXX: Only defined for a very few select formats.
     */
    void
-   (*fetch_rgba_8unorm)(uint8_t *dst,
-                        const uint8_t *src,
+   (*fetch_rgba_8unorm)(uint8_t *restrict dst,
+                        const uint8_t *restrict src,
                         unsigned i, unsigned j);
 
    /**
@@ -341,8 +341,8 @@ struct util_format_unpack_description {
     * Only defined for non-depth-stencil formats.
     */
    void
-   (*unpack_rgba)(void *dst, unsigned dst_stride,
-                  const uint8_t *src, unsigned src_stride,
+   (*unpack_rgba)(void *restrict dst, unsigned dst_stride,
+                  const uint8_t *restrict src, unsigned src_stride,
                   unsigned width, unsigned height);
 
    /**
@@ -352,8 +352,8 @@ struct util_format_unpack_description {
     * Only defined for depth formats.
     */
    void
-   (*unpack_z_32unorm)(uint32_t *dst, unsigned dst_stride,
-                       const uint8_t *src, unsigned src_stride,
+   (*unpack_z_32unorm)(uint32_t *restrict dst, unsigned dst_stride,
+                       const uint8_t *restrict src, unsigned src_stride,
                        unsigned width, unsigned height);
 
    /**
@@ -363,8 +363,8 @@ struct util_format_unpack_description {
     * Only defined for depth formats.
     */
    void
-   (*unpack_z_float)(float *dst, unsigned dst_stride,
-                     const uint8_t *src, unsigned src_stride,
+   (*unpack_z_float)(float *restrict dst, unsigned dst_stride,
+                     const uint8_t *restrict src, unsigned src_stride,
                      unsigned width, unsigned height);
 
    /**
@@ -374,12 +374,12 @@ struct util_format_unpack_description {
     * Only defined for stencil formats.
     */
    void
-   (*unpack_s_8uint)(uint8_t *dst, unsigned dst_stride,
-                     const uint8_t *src, unsigned src_stride,
+   (*unpack_s_8uint)(uint8_t *restrict dst, unsigned dst_stride,
+                     const uint8_t *restrict src, unsigned src_stride,
                      unsigned width, unsigned height);
 };
 
-typedef void (*util_format_fetch_rgba_func_ptr)(void *dst, const uint8_t *src,
+typedef void (*util_format_fetch_rgba_func_ptr)(void *restrict dst, const uint8_t *restrict src,
                                                 unsigned i, unsigned j);
 
 /* Silence warnings triggered by sharing function/struct names */
@@ -729,6 +729,8 @@ util_format_is_unorm(enum pipe_format format) ATTRIBUTE_CONST;
 boolean
 util_format_is_snorm8(enum pipe_format format) ATTRIBUTE_CONST;
 
+boolean
+util_format_is_scaled(enum pipe_format format) ATTRIBUTE_CONST;
 /**
  * Check if the src format can be blitted to the destination format with
  * a simple memcpy.  For example, blitting from RGBA to RGBx is OK, but not
@@ -980,6 +982,8 @@ util_format_srgb(enum pipe_format format)
       return PIPE_FORMAT_DXT3_SRGBA;
    case PIPE_FORMAT_DXT5_RGBA:
       return PIPE_FORMAT_DXT5_SRGBA;
+   case PIPE_FORMAT_R5G6B5_UNORM:
+      return PIPE_FORMAT_R5G6B5_SRGB;
    case PIPE_FORMAT_B5G6R5_UNORM:
       return PIPE_FORMAT_B5G6R5_SRGB;
    case PIPE_FORMAT_BPTC_RGBA_UNORM:
@@ -1088,6 +1092,8 @@ util_format_linear(enum pipe_format format)
       return PIPE_FORMAT_DXT3_RGBA;
    case PIPE_FORMAT_DXT5_SRGBA:
       return PIPE_FORMAT_DXT5_RGBA;
+   case PIPE_FORMAT_R5G6B5_SRGB:
+      return PIPE_FORMAT_R5G6B5_UNORM;
    case PIPE_FORMAT_B5G6R5_SRGB:
       return PIPE_FORMAT_B5G6R5_UNORM;
    case PIPE_FORMAT_BPTC_SRGBA:
@@ -1147,6 +1153,7 @@ util_format_linear(enum pipe_format format)
    case PIPE_FORMAT_ASTC_6x6x6_SRGB:
       return PIPE_FORMAT_ASTC_6x6x6;
    default:
+      assert(!util_format_is_srgb(format));
       return format;
    }
 }
@@ -1617,6 +1624,13 @@ util_copy_rect(ubyte * dst, enum pipe_format format,
                unsigned dst_stride, unsigned dst_x, unsigned dst_y,
                unsigned width, unsigned height, const ubyte * src,
                int src_stride, unsigned src_x, unsigned src_y);
+
+/**
+ * If the format is RGB, return BGR. If the format is BGR, return RGB.
+ * This may fail by returning PIPE_FORMAT_NONE.
+ */
+enum pipe_format
+util_format_rgb_to_bgr(enum pipe_format format);
 
 #ifdef __cplusplus
 } // extern "C" {

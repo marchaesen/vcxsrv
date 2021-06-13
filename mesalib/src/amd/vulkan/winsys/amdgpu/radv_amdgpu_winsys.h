@@ -46,17 +46,22 @@ struct radv_amdgpu_winsys {
 	bool debug_all_bos;
 	bool debug_log_bos;
 	bool use_ib_bos;
+	enum radeon_bo_domain cs_bo_domain;
 	bool zero_all_vram_allocs;
 	bool use_local_bos;
 	bool use_llvm;
-	unsigned num_buffers;
-
-	struct u_rwlock global_bo_list_lock;
-	struct list_head global_bo_list;
 
 	uint64_t allocated_vram;
 	uint64_t allocated_vram_vis;
 	uint64_t allocated_gtt;
+
+	/* Global BO list */
+	struct {
+		struct radv_amdgpu_winsys_bo **bos;
+		uint32_t count;
+		uint32_t capacity;
+		struct u_rwlock lock;
+	} global_bo_list;
 
 	/* syncobj cache */
 	pthread_mutex_t syncobj_lock;
@@ -66,6 +71,8 @@ struct radv_amdgpu_winsys {
 	/* BO log */
 	struct u_rwlock log_bo_list_lock;
 	struct list_head log_bo_list;
+
+	uint32_t refcount;
 };
 
 static inline struct radv_amdgpu_winsys *

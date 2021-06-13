@@ -103,67 +103,6 @@ tgsi_util_set_src_register_swizzle(struct tgsi_src_register *reg,
 }
 
 
-unsigned
-tgsi_util_get_full_src_register_sign_mode(
-   const struct tgsi_full_src_register *reg,
-   UNUSED unsigned component)
-{
-   unsigned sign_mode;
-
-   if (reg->Register.Absolute) {
-      /* Consider only the post-abs negation. */
-
-      if (reg->Register.Negate) {
-         sign_mode = TGSI_UTIL_SIGN_SET;
-      }
-      else {
-         sign_mode = TGSI_UTIL_SIGN_CLEAR;
-      }
-   }
-   else {
-      if (reg->Register.Negate) {
-         sign_mode = TGSI_UTIL_SIGN_TOGGLE;
-      }
-      else {
-         sign_mode = TGSI_UTIL_SIGN_KEEP;
-      }
-   }
-
-   return sign_mode;
-}
-
-
-void
-tgsi_util_set_full_src_register_sign_mode(struct tgsi_full_src_register *reg,
-                                          unsigned sign_mode)
-{
-   switch (sign_mode) {
-   case TGSI_UTIL_SIGN_CLEAR:
-      reg->Register.Negate = 0;
-      reg->Register.Absolute = 1;
-      break;
-
-   case TGSI_UTIL_SIGN_SET:
-      reg->Register.Absolute = 1;
-      reg->Register.Negate = 1;
-      break;
-
-   case TGSI_UTIL_SIGN_TOGGLE:
-      reg->Register.Negate = 1;
-      reg->Register.Absolute = 0;
-      break;
-
-   case TGSI_UTIL_SIGN_KEEP:
-      reg->Register.Negate = 0;
-      reg->Register.Absolute = 0;
-      break;
-
-   default:
-      assert(0);
-   }
-}
-
-
 /**
  * Determine which channels of the specificed src register are effectively
  * used by this instruction.

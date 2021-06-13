@@ -30,12 +30,15 @@ struct bi_op_props bi_opcode_props[BI_NUM_OPCODES] = {
         sr_count = add["staging_count"].upper() if add else "0"
         sr_read = int(add["staging"] in ["r", "rw"] if add else False)
         sr_write = int(add["staging"] in ["w", "rw"] if add else False)
+        last = int(bool(add["last"]) if add else False)
+        table = int(bool(add["table"]) if add else False)
+        branch = int(opcode.startswith('BRANCH'))
         has_fma = int("*" + opcode in instructions)
         has_add = int("+" + opcode in instructions)
     %>
     [BI_OPCODE_${opcode.replace('.', '_').upper()}] = {
         "${opcode}", BIFROST_MESSAGE_${message}, BI_SR_COUNT_${sr_count},
-        ${sr_read}, ${sr_write}, ${has_fma}, ${has_add},
+        ${sr_read}, ${sr_write}, ${last}, ${branch}, ${table}, ${has_fma}, ${has_add},
     },
 % endfor
 };"""

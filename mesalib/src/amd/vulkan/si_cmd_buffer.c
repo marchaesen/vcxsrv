@@ -31,7 +31,6 @@
 #include "radv_shader.h"
 #include "radv_cs.h"
 #include "sid.h"
-#include "radv_util.h"
 
 static void
 si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
@@ -140,6 +139,22 @@ si_emit_compute(struct radv_device *device,
 			uint64_t bc_va = radv_buffer_get_va(device->border_color_data.bo);
 			radeon_set_config_reg(cs, R_00950C_TA_CS_BC_BASE_ADDR, bc_va >> 8);
 		}
+	}
+
+	if (device->tma_bo) {
+		uint64_t tba_va, tma_va;
+
+		assert(device->physical_device->rad_info.chip_class == GFX8);
+
+		tba_va = radv_buffer_get_va(device->trap_handler_shader->bo) +
+			 device->trap_handler_shader->bo_offset;
+		tma_va = radv_buffer_get_va(device->tma_bo);
+
+		radeon_set_sh_reg_seq(cs, R_00B838_COMPUTE_TBA_LO, 4);
+		radeon_emit(cs, tba_va >> 8);
+		radeon_emit(cs, tba_va >> 40);
+		radeon_emit(cs, tma_va >> 8);
+		radeon_emit(cs, tma_va >> 40);
 	}
 }
 
@@ -491,15 +506,6 @@ si_emit_graphics(struct radv_device *device,
                         /* This allows sample shading. */
 			radeon_set_context_reg(cs, R_028848_PA_CL_VRS_CNTL,
                                                S_028848_SAMPLE_ITER_COMBINER_MODE(1));
-
-			/* This is the main VRS register and also the last
-			 * combiner, set it to passthrough mode because other
-			 * combiners are configured with PA_CL_VRS_CNTL.
-			 */
-			radeon_set_context_reg(cs, R_028064_DB_VRS_OVERRIDE_CNTL,
-					       S_028064_VRS_OVERRIDE_RATE_COMBINER_MODE(V_028064_VRS_COMB_MODE_PASSTHRU) |
-					       S_028064_VRS_OVERRIDE_RATE_X(0) |
-					       S_028064_VRS_OVERRIDE_RATE_Y(0));
 		}
 
 		if (physical_device->rad_info.chip_class == GFX10) {
@@ -606,6 +612,31 @@ si_emit_graphics(struct radv_device *device,
 			       S_028818_VPORT_Y_SCALE_ENA(1) | S_028818_VPORT_Y_OFFSET_ENA(1) |
 			       S_028818_VPORT_Z_SCALE_ENA(1) | S_028818_VPORT_Z_OFFSET_ENA(1));
 
+	if (device->tma_bo) {
+		uint64_t tba_va, tma_va;
+
+		assert(device->physical_device->rad_info.chip_class == GFX8);
+
+		tba_va = radv_buffer_get_va(device->trap_handler_shader->bo) +
+			 device->trap_handler_shader->bo_offset;
+		tma_va = radv_buffer_get_va(device->tma_bo);
+
+		uint32_t regs[] = {R_00B000_SPI_SHADER_TBA_LO_PS,
+				   R_00B100_SPI_SHADER_TBA_LO_VS,
+				   R_00B200_SPI_SHADER_TBA_LO_GS,
+				   R_00B300_SPI_SHADER_TBA_LO_ES,
+				   R_00B400_SPI_SHADER_TBA_LO_HS,
+				   R_00B500_SPI_SHADER_TBA_LO_LS};
+
+		for (i = 0; i < ARRAY_SIZE(regs); ++i) {
+			radeon_set_sh_reg_seq(cs, regs[i], 4);
+			radeon_emit(cs, tba_va >> 8);
+			radeon_emit(cs, tba_va >> 40);
+			radeon_emit(cs, tma_va >> 8);
+			radeon_emit(cs, tma_va >> 40);
+		}
+	}
+
 	si_emit_compute(device, cs);
 }
 
@@ -627,7 +658,8 @@ cik_create_gfx_config(struct radv_device *device)
 
 	device->gfx_init = device->ws->buffer_create(device->ws,
 						     cs->cdw * 4, 4096,
-						     RADEON_DOMAIN_GTT,
+						     radv_cmdbuffer_domain(&device->physical_device->rad_info,
+									   device->instance->perftest_flags),
 						     RADEON_FLAG_CPU_ACCESS|
 						     RADEON_FLAG_NO_INTERPROCESS_SHARING |
 						     RADEON_FLAG_READ_ONLY |
@@ -638,7 +670,7 @@ cik_create_gfx_config(struct radv_device *device)
 
 	void *map = device->ws->buffer_map(device->gfx_init);
 	if (!map) {
-		device->ws->buffer_destroy(device->gfx_init);
+		device->ws->buffer_destroy(device->ws, device->gfx_init);
 		device->gfx_init = NULL;
 		goto fail;
 	}
@@ -988,26 +1020,54 @@ void si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs,
 		if (!is_gfx8_mec)
 			radeon_emit(cs, 0); /* unused */
 	} else {
-		if (chip_class == GFX7 ||
-		    chip_class == GFX8) {
-			/* Two EOP events are required to make all engines go idle
-			 * (and optional cache flushes executed) before the timestamp
-			 * is written.
-			 */
+		/* On GFX6, EOS events are always emitted with EVENT_WRITE_EOS.
+		 * On GFX7+, EOS events are emitted with EVENT_WRITE_EOS on
+		 * the graphics queue, and with RELEASE_MEM on the compute
+		 * queue.
+		 */
+		if (event == V_028B9C_CS_DONE || event == V_028B9C_PS_DONE) {
+			assert(event_flags == 0 &&
+			       dst_sel == EOP_DST_SEL_MEM &&
+			       data_sel == EOP_DATA_SEL_VALUE_32BIT);
+
+			if (is_mec) {
+				radeon_emit(cs, PKT3(PKT3_RELEASE_MEM, 5, false));
+				radeon_emit(cs, op);
+				radeon_emit(cs, sel);
+				radeon_emit(cs, va);            /* address lo */
+				radeon_emit(cs, va >> 32);      /* address hi */
+				radeon_emit(cs, new_fence);     /* immediate data lo */
+				radeon_emit(cs, 0);		/* immediate data hi */
+			} else {
+				radeon_emit(cs, PKT3(PKT3_EVENT_WRITE_EOS, 3, false));
+				radeon_emit(cs, op);
+				radeon_emit(cs, va);
+				radeon_emit(cs, ((va >> 32) & 0xffff) |
+						EOS_DATA_SEL(EOS_DATA_SEL_VALUE_32BIT));
+				radeon_emit(cs, new_fence);
+			}
+		} else {
+			if (chip_class == GFX7 ||
+			    chip_class == GFX8) {
+				/* Two EOP events are required to make all
+				 * engines go idle (and optional cache flushes
+				 * executed) before the timestamp is written.
+				 */
+				radeon_emit(cs, PKT3(PKT3_EVENT_WRITE_EOP, 4, false));
+				radeon_emit(cs, op);
+				radeon_emit(cs, va);
+				radeon_emit(cs, ((va >> 32) & 0xffff) | sel);
+				radeon_emit(cs, 0); /* immediate data */
+				radeon_emit(cs, 0); /* unused */
+			}
+
 			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE_EOP, 4, false));
 			radeon_emit(cs, op);
 			radeon_emit(cs, va);
 			radeon_emit(cs, ((va >> 32) & 0xffff) | sel);
-			radeon_emit(cs, 0); /* immediate data */
+			radeon_emit(cs, new_fence); /* immediate data */
 			radeon_emit(cs, 0); /* unused */
 		}
-
-		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE_EOP, 4, false));
-		radeon_emit(cs, op);
-		radeon_emit(cs, va);
-		radeon_emit(cs, ((va >> 32) & 0xffff) | sel);
-		radeon_emit(cs, new_fence); /* immediate data */
-		radeon_emit(cs, 0); /* unused */
 	}
 }
 
@@ -1102,12 +1162,9 @@ gfx10_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 		            S_586_GLM_WB(1) | S_586_GLM_INV(1);
 
 		*sqtt_flush_bits |= RGP_FLUSH_FLUSH_L2;
-	}
-
-	/* TODO: Implement this new flag for GFX9+.
-	else if (flush_bits & RADV_CMD_FLAG_INV_L2_METADATA)
+	} else if (flush_bits & RADV_CMD_FLAG_INV_L2_METADATA) {
 		gcr_cntl |= S_586_GLM_INV(1) | S_586_GLM_WB(1);
-	*/
+	}
 
 	if (flush_bits & (RADV_CMD_FLAG_FLUSH_AND_INV_CB | RADV_CMD_FLAG_FLUSH_AND_INV_DB)) {
 		/* TODO: trigger on RADV_CMD_FLAG_FLUSH_AND_INV_CB_META */
@@ -1374,10 +1431,10 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 		 * TCL1                  = invalidate L1
 		 */
 		tc_flags = EVENT_TC_ACTION_ENA |
-		           EVENT_TC_MD_ACTION_ENA;
+			   EVENT_TC_MD_ACTION_ENA;
 
 		*sqtt_flush_bits |= RGP_FLUSH_FLUSH_CB | RGP_FLUSH_INVAL_CB |
-		                    RGP_FLUSH_FLUSH_DB | RGP_FLUSH_INVAL_DB;
+			            RGP_FLUSH_FLUSH_DB | RGP_FLUSH_INVAL_DB;
 
 		/* Ideally flush TC together with CB/DB. */
 		if (flush_bits & RADV_CMD_FLAG_INV_L2) {
@@ -1393,6 +1450,7 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 
 			*sqtt_flush_bits |= RGP_FLUSH_INVAL_L2;
 		}
+
 		assert(flush_cnt);
 		(*flush_cnt)++;
 
@@ -1497,6 +1555,7 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 	                                          RADV_CMD_FLAG_FLUSH_AND_INV_CB_META |
 	                                          RADV_CMD_FLAG_FLUSH_AND_INV_DB |
 	                                          RADV_CMD_FLAG_FLUSH_AND_INV_DB_META |
+	                                          RADV_CMD_FLAG_INV_L2_METADATA |
 	                                          RADV_CMD_FLAG_PS_PARTIAL_FLUSH |
 	                                          RADV_CMD_FLAG_VS_PARTIAL_FLUSH |
 	                                          RADV_CMD_FLAG_VGT_FLUSH |
@@ -1717,7 +1776,7 @@ static void si_cp_dma_realign_engine(struct radv_cmd_buffer *cmd_buffer, unsigne
 
 	assert(size < SI_CPDMA_ALIGNMENT);
 
-	radv_cmd_buffer_upload_alloc(cmd_buffer, buf_size, SI_CPDMA_ALIGNMENT,  &offset, &ptr);
+	radv_cmd_buffer_upload_alloc(cmd_buffer, buf_size,  &offset, &ptr);
 
 	va = radv_buffer_get_va(cmd_buffer->upload.upload_bo);
 	va += offset;
@@ -1765,10 +1824,17 @@ void si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer,
 		unsigned dma_flags = 0;
 		unsigned byte_count = MIN2(size, cp_dma_max_byte_count(cmd_buffer));
 
-		if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX10) {
+		if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
 			/* DMA operations via L2 are coherent and faster.
-			 * TODO: GFX7-GFX9 should also support this but it
+			 * TODO: GFX7-GFX8 should also support this but it
 			 * requires tests/benchmarks.
+			 *
+			 * Also enable on GFX9 so we can use L2 at rest on GFX9+. On Raven
+			 * this didn't seem to be worse.
+			 *
+			 * Note that we only use CP DMA for sizes < RADV_BUFFER_OPS_CS_THRESHOLD,
+			 * which is 4k at the moment, so this is really unlikely to cause
+			 * significant thrashing.
 			 */
 			dma_flags |= CP_DMA_USE_L2;
 		}
@@ -1817,10 +1883,12 @@ void si_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va,
 		unsigned byte_count = MIN2(size, cp_dma_max_byte_count(cmd_buffer));
 		unsigned dma_flags = CP_DMA_CLEAR;
 
-		if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX10) {
+		if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
 			/* DMA operations via L2 are coherent and faster.
-			 * TODO: GFX7-GFX9 should also support this but it
+			 * TODO: GFX7-GFX8 should also support this but it
 			 * requires tests/benchmarks.
+			 *
+			 * Also enable on GFX9 so we can use L2 at rest on GFX9+.
 			 */
 			dma_flags |= CP_DMA_USE_L2;
 		}

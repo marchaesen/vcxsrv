@@ -49,6 +49,7 @@ struct fd6_zsa_stateobj {
 	uint32_t rb_stencilwrmask;
 
 	struct fd6_lrz_state lrz;
+	bool writes_zs;     /* writes depth and/or stencil */
 	bool invalidate_lrz;
 	bool alpha_test;
 
@@ -63,6 +64,7 @@ fd6_zsa_stateobj(struct pipe_depth_stencil_alpha_state *zsa)
 
 static inline struct fd_ringbuffer *
 fd6_zsa_state(struct fd_context *ctx, bool no_alpha, bool depth_clamp)
+	assert_dt
 {
 	int variant = 0;
 	if (no_alpha)

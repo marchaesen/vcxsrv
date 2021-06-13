@@ -53,27 +53,26 @@
 #include "iris_screen.h"
 #include "compiler/glsl_types.h"
 #include "intel/compiler/brw_compiler.h"
-#include "intel/common/gen_gem.h"
-#include "intel/common/gen_l3_config.h"
-#include "intel/common/gen_uuid.h"
+#include "intel/common/intel_gem.h"
+#include "intel/common/intel_l3_config.h"
+#include "intel/common/intel_uuid.h"
 #include "iris_monitor.h"
 
 #define genX_call(devinfo, func, ...)             \
-   switch ((devinfo)->gen) {                      \
-   case 12:                                       \
-      if (gen_device_info_is_12hp(devinfo)) {     \
-         gen125_##func(__VA_ARGS__);              \
-      } else {                                    \
-         gen12_##func(__VA_ARGS__);               \
-      }                                           \
+   switch ((devinfo)->genx10) {                   \
+   case 125:                                      \
+      gen125_##func(__VA_ARGS__);                 \
       break;                                      \
-   case 11:                                       \
+   case 120:                                      \
+      gen12_##func(__VA_ARGS__);                  \
+      break;                                      \
+   case 110:                                      \
       gen11_##func(__VA_ARGS__);                  \
       break;                                      \
-   case 9:                                        \
+   case 90:                                       \
       gen9_##func(__VA_ARGS__);                   \
       break;                                      \
-   case 8:                                        \
+   case 80:                                       \
       gen8_##func(__VA_ARGS__);                   \
       break;                                      \
    default:                                       \
@@ -107,7 +106,7 @@ iris_get_device_uuid(struct pipe_screen *pscreen, char *uuid)
    struct iris_screen *screen = (struct iris_screen *)pscreen;
    const struct isl_device *isldev = &screen->isl_dev;
 
-   gen_uuid_compute_device_id((uint8_t *)uuid, isldev, PIPE_UUID_SIZE);
+   intel_uuid_compute_device_id((uint8_t *)uuid, isldev, PIPE_UUID_SIZE);
 }
 
 static void
@@ -116,7 +115,7 @@ iris_get_driver_uuid(struct pipe_screen *pscreen, char *uuid)
    struct iris_screen *screen = (struct iris_screen *)pscreen;
    const struct gen_device_info *devinfo = &screen->devinfo;
 
-   gen_uuid_compute_driver_id((uint8_t *)uuid, devinfo, PIPE_UUID_SIZE);
+   intel_uuid_compute_driver_id((uint8_t *)uuid, devinfo, PIPE_UUID_SIZE);
 }
 
 static bool
@@ -612,6 +611,7 @@ iris_get_timestamp(struct pipe_screen *pscreen)
 void
 iris_screen_destroy(struct iris_screen *screen)
 {
+   iris_destroy_screen_measure(screen);
    glsl_type_singleton_decref();
    iris_bo_unreference(screen->workaround_bo);
    u_transfer_helper_destroy(screen->base.transfer_helper);
@@ -674,15 +674,15 @@ iris_getparam_integer(int fd, int param)
    return -1;
 }
 
-static const struct gen_l3_config *
+static const struct intel_l3_config *
 iris_get_default_l3_config(const struct gen_device_info *devinfo,
                            bool compute)
 {
    bool wants_dc_cache = true;
    bool has_slm = compute;
-   const struct gen_l3_weights w =
-      gen_get_default_l3_weights(devinfo, wants_dc_cache, has_slm);
-   return gen_get_l3_config(devinfo, w);
+   const struct intel_l3_weights w =
+      intel_get_default_l3_weights(devinfo, wants_dc_cache, has_slm);
+   return intel_get_l3_config(devinfo, w);
 }
 
 static void
@@ -726,7 +726,7 @@ static void
 iris_detect_kernel_features(struct iris_screen *screen)
 {
    /* Kernel 5.2+ */
-   if (gen_gem_supports_syncobj_wait(screen->fd))
+   if (intel_gem_supports_syncobj_wait(screen->fd))
       screen->kernel_features |= KERNEL_HAS_WAIT_FOR_SUBMIT;
 }
 
@@ -754,7 +754,7 @@ iris_init_identifier_bo(struct iris_screen *screen)
 struct pipe_screen *
 iris_screen_create(int fd, const struct pipe_screen_config *config)
 {
-   /* Here are the i915 features we need for Iris (in chronoligical order) :
+   /* Here are the i915 features we need for Iris (in chronological order) :
     *    - I915_PARAM_HAS_EXEC_NO_RELOC     (3.10)
     *    - I915_PARAM_HAS_EXEC_HANDLE_LUT   (3.10)
     *    - I915_PARAM_HAS_EXEC_BATCH_FIRST  (4.13)
@@ -839,8 +839,7 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
    slab_create_parent(&screen->transfer_pool,
                       sizeof(struct iris_transfer), 64);
 
-   screen->subslice_total =
-      iris_getparam_integer(screen->fd, I915_PARAM_SUBSLICE_TOTAL);
+   screen->subslice_total = gen_device_info_subslice_total(&screen->devinfo);
    assert(screen->subslice_total >= 1);
 
    iris_detect_kernel_features(screen);
@@ -849,6 +848,7 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
 
    iris_init_screen_fence_functions(pscreen);
    iris_init_screen_resource_functions(pscreen);
+   iris_init_screen_measure(screen);
 
    pscreen->destroy = iris_screen_unref;
    pscreen->get_name = iris_get_name;

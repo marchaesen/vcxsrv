@@ -25,6 +25,7 @@
  */
 
 #include "pan_ir.h"
+#include "compiler/nir/nir_builder.h"
 
 /* TODO: ssbo_size */
 static int
@@ -48,6 +49,19 @@ panfrost_sysval_for_sampler(nir_intrinsic_instr *instr)
         return PAN_SYSVAL(SAMPLER, uindex);
 }
 
+static int
+panfrost_sysval_for_image_size(nir_intrinsic_instr *instr)
+{
+        nir_src index = instr->src[0];
+        assert(nir_src_is_const(index));
+
+        bool is_array = nir_intrinsic_image_array(instr);
+        uint32_t uindex = nir_src_as_uint(index);
+        unsigned dim = nir_intrinsic_dest_components(instr) - is_array;
+
+        return PAN_SYSVAL(IMAGE_SIZE, PAN_TXS_SYSVAL_ID(uindex, dim, is_array));
+}
+
 static unsigned
 panfrost_nir_sysval_for_intrinsic(nir_intrinsic_instr *instr)
 {
@@ -58,11 +72,19 @@ panfrost_nir_sysval_for_intrinsic(nir_intrinsic_instr *instr)
                 return PAN_SYSVAL_VIEWPORT_OFFSET;
         case nir_intrinsic_load_num_work_groups:
                 return PAN_SYSVAL_NUM_WORK_GROUPS;
+        case nir_intrinsic_load_local_group_size:
+                return PAN_SYSVAL_LOCAL_GROUP_SIZE;
+        case nir_intrinsic_load_work_dim:
+                return PAN_SYSVAL_WORK_DIM;
+        case nir_intrinsic_load_sample_positions_pan:
+                return PAN_SYSVAL_SAMPLE_POSITIONS;
         case nir_intrinsic_load_ssbo_address: 
         case nir_intrinsic_get_ssbo_size: 
                 return panfrost_sysval_for_ssbo(instr);
         case nir_intrinsic_load_sampler_lod_parameters_pan:
                 return panfrost_sysval_for_sampler(instr);
+        case nir_intrinsic_image_size:
+                return panfrost_sysval_for_image_size(instr);
         default:
                 return ~0;
         }
@@ -104,38 +126,31 @@ panfrost_sysval_for_instr(nir_instr *instr, nir_dest *dest)
         return sysval;
 }
 
-static void
-panfrost_nir_assign_sysval_body(struct panfrost_sysvals *ctx, nir_instr *instr)
+unsigned
+pan_lookup_sysval(struct hash_table_u64 *sysval_to_id,
+                  struct panfrost_sysvals *sysvals,
+                  int sysval)
 {
-        int sysval = panfrost_sysval_for_instr(instr, NULL);
-        if (sysval < 0)
-                return;
+        /* Try to lookup */
 
-        /* We have a sysval load; check if it's already been assigned */
+        void *cached = _mesa_hash_table_u64_search(sysval_to_id, sysval);
 
-        if (_mesa_hash_table_u64_search(ctx->sysval_to_id, sysval))
-                return;
+        if (cached)
+                return ((uintptr_t) cached) - 1;
 
-        /* It hasn't -- so assign it now! */
+        /* Else assign */
 
-        unsigned id = ctx->sysval_count++;
-        _mesa_hash_table_u64_insert(ctx->sysval_to_id, sysval, (void *) ((uintptr_t) id + 1));
-        ctx->sysvals[id] = sysval;
+        unsigned id = sysvals->sysval_count++;
+        assert(id < MAX_SYSVAL_COUNT);
+        _mesa_hash_table_u64_insert(sysval_to_id, sysval, (void *) ((uintptr_t) id + 1));
+        sysvals->sysvals[id] = sysval;
+
+        return id;
 }
 
-void
-panfrost_nir_assign_sysvals(struct panfrost_sysvals *ctx, void *memctx, nir_shader *shader)
+struct hash_table_u64 *
+panfrost_init_sysvals(struct panfrost_sysvals *sysvals, void *memctx)
 {
-        ctx->sysval_count = 0;
-        ctx->sysval_to_id = _mesa_hash_table_u64_create(memctx);
-
-        nir_foreach_function(function, shader) {
-                if (!function->impl) continue;
-
-                nir_foreach_block(block, function->impl) {
-                        nir_foreach_instr_safe(instr, block) {
-                                panfrost_nir_assign_sysval_body(ctx, instr);
-                        }
-                }
-        }
+        sysvals->sysval_count = 0;
+        return _mesa_hash_table_u64_create(memctx);
 }

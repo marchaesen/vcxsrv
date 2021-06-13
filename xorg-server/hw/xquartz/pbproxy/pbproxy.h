@@ -35,17 +35,6 @@
 
 #include <asl.h>
 
-#include <AvailabilityMacros.h>
-#if MAC_OS_X_VERSION_MIN_REQUIRED < 1050
-#if __LP64__ || NS_BUILD_32_LIKE_64
-typedef long NSInteger;
-typedef unsigned long NSUInteger;
-#else
-typedef int NSInteger;
-typedef unsigned int NSUInteger;
-#endif
-#endif
-
 #define  Cursor X_Cursor
 #undef _SHAPE_H_
 #include <X11/Xlib.h>

@@ -158,6 +158,9 @@ static GLboolean run_vertex_stage( struct gl_context *ctx,
 				    VB->AttribPtr[_TNL_ATTRIB_POS]);
    }
 
+   /* make sure the inverse is up to date */
+   _math_matrix_analyse(&ctx->_ModelProjectMatrix);
+
    VB->ClipPtr = TransformRaw( &store->clip,
 			       &ctx->_ModelProjectMatrix,
 			       VB->AttribPtr[_TNL_ATTRIB_POS] );

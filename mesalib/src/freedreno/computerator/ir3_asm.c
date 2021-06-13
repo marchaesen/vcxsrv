@@ -31,6 +31,8 @@ ir3_asm_assemble(struct ir3_compiler *c, FILE *in)
 {
 	struct ir3_kernel *kernel = calloc(1, sizeof(*kernel));
 	struct ir3_shader *shader = ir3_parse_asm(c, &kernel->info, in);
+	if (!shader)
+		errx(-1, "assembler failed");
 	struct ir3_shader_variant *v = shader->variants;
 
 	v->mergedregs = true;
@@ -38,7 +40,9 @@ ir3_asm_assemble(struct ir3_compiler *c, FILE *in)
 	kernel->v = v;
 	kernel->bin = v->bin;
 
-	memcpy(kernel->base.local_size, kernel->info.local_size, sizeof(kernel->base.local_size));
+	kernel->base.local_size[0] = v->local_size[0];
+	kernel->base.local_size[1] = v->local_size[0];
+	kernel->base.local_size[2] = v->local_size[0];
 	kernel->base.num_bufs = kernel->info.num_bufs;
 	memcpy(kernel->base.buf_sizes, kernel->info.buf_sizes, sizeof(kernel->base.buf_sizes));
 

@@ -81,12 +81,12 @@ partial alphanumeric_keys
 
 partial alphanumeric_keys
 	xkb_symbols "Sundeadkeys" {
-	include "fr(sundeadkeys)"
+	include "fr(basic)"
 };
 
 partial alphanumeric_keys
 	xkb_symbols "sundeadkeys" {
-	include "fr(sundeadkeys)"
+	include "fr(basic)"
 };
 
 partial alphanumeric_keys
@@ -106,12 +106,12 @@ partial alphanumeric_keys
 
 partial alphanumeric_keys
 	xkb_symbols "oss_Sundeadkeys" {
-	include "fr(oss_sundeadkeys)"
+	include "fr(oss)"
 };
 
 partial alphanumeric_keys
 	xkb_symbols "oss_sundeadkeys" {
-	include "fr(oss_sundeadkeys)"
+	include "fr(oss)"
 };
 
 partial alphanumeric_keys
@@ -126,12 +126,12 @@ partial alphanumeric_keys
 
 partial alphanumeric_keys
 	xkb_symbols "latin9_Sundeadkeys" {
-	include "fr(latin9_sundeadkeys)"
+	include "fr(latin9)"
 };
 
 partial alphanumeric_keys
 	xkb_symbols "latin9_sundeadkeys" {
-	include "fr(latin9_sundeadkeys)"
+	include "fr(latin9)"
 };
 
 partial alphanumeric_keys

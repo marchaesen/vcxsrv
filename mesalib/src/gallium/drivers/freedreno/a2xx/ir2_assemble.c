@@ -541,7 +541,7 @@ void assemble(struct ir2_context *ctx, bool binning)
 	for (int i = 0; i < ctx->info->num_fetch_instrs; i++)
 		ctx->info->fetch_info[i].offset += cfdwords;
 
-	if (fd_mesa_debug & FD_DBG_DISASM) {
+	if (FD_DBG(DISASM)) {
 		DBG("disassemble: type=%d", ctx->so->type);
 		disasm_a2xx(dwords, sizedwords, 0, ctx->so->type);
 	}

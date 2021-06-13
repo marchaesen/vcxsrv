@@ -81,8 +81,25 @@ typedef enum {
 	OPC_PREDF           = _OPC(0, 30),   /* predicated false */
 	OPC_PREDE           = _OPC(0, 31),   /* predicated end */
 
+	/* Logical opcodes for different branch instruction variations: */
+	OPC_BR              = _OPC(0, 40),
+	OPC_BRAO            = _OPC(0, 41),
+	OPC_BRAA            = _OPC(0, 42),
+	OPC_BRAC            = _OPC(0, 43),
+	OPC_BANY            = _OPC(0, 44),
+	OPC_BALL            = _OPC(0, 45),
+	OPC_BRAX            = _OPC(0, 46),
+
 	/* category 1: */
 	OPC_MOV             = _OPC(1, 0),
+	OPC_MOVMSK          = _OPC(1, 3),
+
+	/* Logical opcodes for different variants of mov: */
+	OPC_MOV_IMMED       = _OPC(1, 40),
+	OPC_MOV_CONST       = _OPC(1, 41),
+	OPC_MOV_GPR         = _OPC(1, 42),
+	OPC_MOV_RELGPR      = _OPC(1, 43),
+	OPC_MOV_RELCONST    = _OPC(1, 44),
 
 	/* category 2: */
 	OPC_ADD_F           = _OPC(2, 0),
@@ -243,6 +260,24 @@ typedef enum {
 	OPC_GETSPID         = _OPC(6, 36), /* SP ID */
 	OPC_GETWID          = _OPC(6, 37), /* wavefront ID */
 
+	/* Logical opcodes for things that differ in a6xx+ */
+	OPC_STC             = _OPC(6, 40),
+	OPC_RESINFO_B       = _OPC(6, 41),
+	OPC_LDIB_B          = _OPC(6, 42),
+	OPC_STIB_B          = _OPC(6, 43),
+
+	/* Logical opcodes for different atomic instruction variations: */
+	OPC_ATOMIC_B_ADD      = _OPC(6, 44),
+	OPC_ATOMIC_B_SUB      = _OPC(6, 45),
+	OPC_ATOMIC_B_XCHG     = _OPC(6, 46),
+	OPC_ATOMIC_B_INC      = _OPC(6, 47),
+	OPC_ATOMIC_B_DEC      = _OPC(6, 48),
+	OPC_ATOMIC_B_CMPXCHG  = _OPC(6, 49),
+	OPC_ATOMIC_B_MIN      = _OPC(6, 50),
+	OPC_ATOMIC_B_MAX      = _OPC(6, 51),
+	OPC_ATOMIC_B_AND      = _OPC(6, 52),
+	OPC_ATOMIC_B_OR       = _OPC(6, 53),
+	OPC_ATOMIC_B_XOR      = _OPC(6, 54),
 
 	/* category 7: */
 	OPC_BAR             = _OPC(7, 0),
@@ -396,13 +431,13 @@ typedef struct PACKED {
 	uint32_t repeat   : 3;
 	uint32_t dummy3   : 1;
 	uint32_t ss       : 1;
-	uint32_t inv1     : 1;
-	uint32_t comp1    : 2;
+	uint32_t inv2     : 1;
+	uint32_t comp2    : 2;
 	uint32_t eq       : 1;
 	uint32_t opc_hi   : 1;  /* at least one bit */
 	uint32_t dummy4   : 2;
-	uint32_t inv0     : 1;
-	uint32_t comp0    : 2;  /* component for first src */
+	uint32_t inv1     : 1;
+	uint32_t comp1    : 2;  /* component for first src */
 	uint32_t opc      : 4;
 	uint32_t jmp_tgt  : 1;
 	uint32_t sync     : 1;
@@ -446,7 +481,7 @@ typedef struct PACKED {
 	uint32_t src_im     : 1;
 	uint32_t even       : 1;
 	uint32_t pos_inf    : 1;
-	uint32_t must_be_0  : 2;
+	uint32_t opc        : 2;
 	uint32_t jmp_tgt    : 1;
 	uint32_t sync       : 1;
 	uint32_t opc_cat    : 3;
@@ -472,7 +507,7 @@ typedef struct PACKED {
 		struct PACKED {
 			uint32_t src1         : 12;
 			uint32_t src1_c       : 1;   /* const */
-			uint32_t dummy        : 3;
+			int32_t dummy        : 3;
 		} c1;
 	};
 
@@ -737,15 +772,15 @@ typedef struct PACKED {
 	uint32_t opc_cat          : 3;
 } instr_cat5_t;
 
-/* dword0 encoding for src_off: [src1 + off], src2: */
+/* dword0 encoding for src_off: [src1 + off], src3: */
 typedef struct PACKED {
 	/* dword0: */
 	uint32_t mustbe1  : 1;
-	int32_t  off      : 13;
+	int32_t  off      : 13;   /* src2 */
 	uint32_t src1     : 8;
 	uint32_t src1_im  : 1;
-	uint32_t src2_im  : 1;
-	uint32_t src2     : 8;
+	uint32_t src3_im  : 1;
+	uint32_t src3     : 8;
 
 	/* dword1: */
 	uint32_t dword1;
@@ -1005,6 +1040,28 @@ static inline bool instr_sat(instr_t *instr)
 	}
 }
 
+static inline bool is_sat_compatible(opc_t opc)
+{
+	/* On a6xx saturation doesn't work on cat4 */
+	if (opc_cat(opc) != 2 && opc_cat(opc) != 3)
+		return false;
+
+	switch (opc) {
+	/* On a3xx and a6xx saturation doesn't work on bary.f */
+	case OPC_BARY_F:
+	/* On a6xx saturation doesn't work on sel.* */
+	case OPC_SEL_B16:
+	case OPC_SEL_B32:
+	case OPC_SEL_S16:
+	case OPC_SEL_S32:
+	case OPC_SEL_F16:
+	case OPC_SEL_F32:
+		return false;
+	default:
+		return true;
+	}
+}
+
 /* We can probably drop the gpu_id arg, but keeping it for now so we can
  * assert if we see something we think should be new encoding on an older
  * gpu.
@@ -1013,13 +1070,15 @@ static inline bool is_cat6_legacy(instr_t *instr, unsigned gpu_id)
 {
 	instr_cat6_a6xx_t *cat6 = &instr->cat6_a6xx;
 
+	if (gpu_id < 600)
+		return true;
+
 	/* At least one of these two bits is pad in all the possible
 	 * "legacy" cat6 encodings, and a analysis of all the pre-a6xx
 	 * cmdstream traces I have indicates that the pad bit is zero
 	 * in all cases.  So we can use this to detect new encoding:
 	 */
 	if ((cat6->pad3 & 0x4) && (cat6->pad5 & 0x2)) {
-		ir3_assert(gpu_id >= 600);
 		ir3_assert(instr->cat6.opc == 0);
 		return false;
 	}
@@ -1031,7 +1090,7 @@ static inline uint32_t instr_opc(instr_t *instr, unsigned gpu_id)
 {
 	switch (instr->opc_cat) {
 	case 0:  return instr->cat0.opc | instr->cat0.opc_hi << 4;
-	case 1:  return 0;
+	case 1:  return instr->cat1.opc;
 	case 2:  return instr->cat2.opc;
 	case 3:  return instr->cat3.opc;
 	case 4:  return instr->cat4.opc;

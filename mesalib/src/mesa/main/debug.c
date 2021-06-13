@@ -73,7 +73,7 @@ void
 _mesa_print_state( const char *msg, GLuint state )
 {
    _mesa_debug(NULL,
-	   "%s: (0x%x) %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+	   "%s: (0x%x) %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 	   msg,
 	   state,
 	   (state & _NEW_MODELVIEW)       ? "ctx->ModelView, " : "",
@@ -83,7 +83,8 @@ _mesa_print_state( const char *msg, GLuint state )
 	   (state & _NEW_DEPTH)           ? "ctx->Depth, " : "",
 	   (state & _NEW_FOG)             ? "ctx->Fog, " : "",
 	   (state & _NEW_HINT)            ? "ctx->Hint, " : "",
-	   (state & _NEW_LIGHT)           ? "ctx->Light, " : "",
+	   (state & _NEW_LIGHT_CONSTANTS) ? "ctx->Light(Constants), " : "",
+           (state & _NEW_LIGHT_STATE)     ? "ctx->Light(State), " : "",
 	   (state & _NEW_LINE)            ? "ctx->Line, " : "",
 	   (state & _NEW_PIXEL)           ? "ctx->Pixel, " : "",
 	   (state & _NEW_POINT)           ? "ctx->Point, " : "",
@@ -155,7 +156,6 @@ set_verbose_flags(const char *str)
       { "list",      VERBOSE_DISPLAY_LIST },
       { "lighting",  VERBOSE_LIGHTING },
       { "disassem",  VERBOSE_DISASSEM },
-      { "draw",      VERBOSE_DRAW },
       { "swap",      VERBOSE_SWAPBUFFERS }
    };
    GLuint i;

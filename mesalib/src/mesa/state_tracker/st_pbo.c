@@ -194,6 +194,7 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
             unsigned surface_width, unsigned surface_height)
 {
    struct cso_context *cso = st->cso_context;
+   struct pipe_context *pipe = st->pipe;
 
    /* Setup vertex and geometry shaders */
    if (!st->pbo.vs) {
@@ -255,6 +256,7 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
       cso_set_vertex_elements(cso, &velem);
 
       cso_set_vertex_buffers(cso, 0, 1, &vbo);
+      st->last_num_vbuffers = MAX2(st->last_num_vbuffers, 1);
 
       pipe_resource_reference(&vbo.buffer.resource, NULL);
    }
@@ -268,7 +270,7 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
       cb.buffer_offset = 0;
       cb.buffer_size = sizeof(addr->constants);
 
-      cso_set_constant_buffer(cso, PIPE_SHADER_FRAGMENT, 0, &cb);
+      pipe->set_constant_buffer(pipe, PIPE_SHADER_FRAGMENT, 0, false, &cb);
 
       pipe_resource_reference(&cb.buffer, NULL);
    }
@@ -433,16 +435,21 @@ create_fs(struct st_context *st, bool download,
    nir_ssa_def *coord = nir_load_var(&b, fragcoord);
 
    nir_ssa_def *layer = NULL;
-   if (st->pbo.layers && need_layer && (!download || target == PIPE_TEXTURE_1D_ARRAY ||
-                                                     target == PIPE_TEXTURE_2D_ARRAY ||
-                                                     target == PIPE_TEXTURE_3D ||
-                                                     target == PIPE_TEXTURE_CUBE ||
-                                                     target == PIPE_TEXTURE_CUBE_ARRAY)) {
-      nir_variable *var = nir_variable_create(b.shader, nir_var_shader_in,
-                                              glsl_int_type(), "gl_Layer");
-      var->data.location = VARYING_SLOT_LAYER;
-      var->data.interpolation = INTERP_MODE_FLAT;
-      layer = nir_load_var(&b, var);
+   if (st->pbo.layers && (!download || target == PIPE_TEXTURE_1D_ARRAY ||
+                                       target == PIPE_TEXTURE_2D_ARRAY ||
+                                       target == PIPE_TEXTURE_3D ||
+                                       target == PIPE_TEXTURE_CUBE ||
+                                       target == PIPE_TEXTURE_CUBE_ARRAY)) {
+      if (need_layer) {
+         nir_variable *var = nir_variable_create(b.shader, nir_var_shader_in,
+                                                glsl_int_type(), "gl_Layer");
+         var->data.location = VARYING_SLOT_LAYER;
+         var->data.interpolation = INTERP_MODE_FLAT;
+         layer = nir_load_var(&b, var);
+      }
+      else {
+         layer = zero;
+      }
    }
 
    /* offset_pos = param.xy + f2i(coord.xy) */
@@ -479,9 +486,14 @@ create_fs(struct st_context *st, bool download,
             src_layer = nir_iadd(&b, layer, layer_offset);
          }
 
-         texcoord = nir_vec3(&b, nir_channel(&b, texcoord, 0),
-                                 nir_channel(&b, texcoord, 1),
-                                 src_layer);
+         if (target == PIPE_TEXTURE_1D_ARRAY) {
+            texcoord = nir_vec2(&b, nir_channel(&b, texcoord, 0),
+                                    src_layer);
+         } else {
+            texcoord = nir_vec3(&b, nir_channel(&b, texcoord, 0),
+                                    nir_channel(&b, texcoord, 1),
+                                    src_layer);
+         }
       }
    } else {
       texcoord = pbo_addr;
@@ -500,7 +512,7 @@ create_fs(struct st_context *st, bool download,
    tex->sampler_dim = glsl_get_sampler_dim(tex_var->type);
    tex->coord_components =
       glsl_get_sampler_coordinate_components(tex_var->type);
-   tex->dest_type = nir_type_float;
+   tex->dest_type = nir_type_float32;
    tex->src[0].src_type = nir_tex_src_texture_deref;
    tex->src[0].src = nir_src_for_ssa(&tex_deref->dest.ssa);
    tex->src[1].src_type = nir_tex_src_sampler_deref;
@@ -525,16 +537,12 @@ create_fs(struct st_context *st, bool download,
       img_var->data.explicit_binding = true;
       img_var->data.binding = 0;
       nir_deref_instr *img_deref = nir_build_deref_var(&b, img_var);
-      nir_intrinsic_instr *intrin =
-         nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_deref_store);
-      intrin->src[0] = nir_src_for_ssa(&img_deref->dest.ssa);
-      intrin->src[1] =
-         nir_src_for_ssa(nir_vec4(&b, pbo_addr, zero, zero, zero));
-      intrin->src[2] = nir_src_for_ssa(zero);
-      intrin->src[3] = nir_src_for_ssa(result);
-      intrin->src[4] = nir_src_for_ssa(nir_imm_int(&b, 0));
-      intrin->num_components = 4;
-      nir_builder_instr_insert(&b, &intrin->instr);
+
+      nir_image_deref_store(&b, &img_deref->dest.ssa,
+                            nir_vec4(&b, pbo_addr, zero, zero, zero),
+                            zero,
+                            result,
+                            nir_imm_int(&b, 0));
    } else {
       nir_variable *color =
          nir_variable_create(b.shader, nir_var_shader_out, glsl_vec4_type(),

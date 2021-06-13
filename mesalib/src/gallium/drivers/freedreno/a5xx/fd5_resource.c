@@ -29,17 +29,17 @@
 static void
 setup_lrz(struct fd_resource *rsc)
 {
-	struct fd_screen *screen = fd_screen(rsc->base.screen);
+	struct fd_screen *screen = fd_screen(rsc->b.b.screen);
 	const uint32_t flags = DRM_FREEDRENO_GEM_CACHE_WCOMBINE |
 			DRM_FREEDRENO_GEM_TYPE_KMEM; /* TODO */
-	unsigned lrz_pitch  = align(DIV_ROUND_UP(rsc->base.width0, 8), 64);
-	unsigned lrz_height = DIV_ROUND_UP(rsc->base.height0, 8);
+	unsigned lrz_pitch  = align(DIV_ROUND_UP(rsc->b.b.width0, 8), 64);
+	unsigned lrz_height = DIV_ROUND_UP(rsc->b.b.height0, 8);
 
 	/* LRZ buffer is super-sampled: */
-	switch (rsc->base.nr_samples) {
+	switch (rsc->b.b.nr_samples) {
 	case 4:
 		lrz_pitch *= 2;
-		/* fallthrough */
+		FALLTHROUGH;
 	case 2:
 		lrz_height *= 2;
 	}
@@ -57,9 +57,9 @@ setup_lrz(struct fd_resource *rsc)
 uint32_t
 fd5_setup_slices(struct fd_resource *rsc)
 {
-	struct pipe_resource *prsc = &rsc->base;
+	struct pipe_resource *prsc = &rsc->b.b;
 
-	if ((fd_mesa_debug & FD_DBG_LRZ) && has_depth(rsc->base.format))
+	if (FD_DBG(LRZ) && has_depth(rsc->b.b.format))
 		setup_lrz(rsc);
 
 	fdl5_layout(&rsc->layout, prsc->format, fd_resource_nr_samples(prsc),

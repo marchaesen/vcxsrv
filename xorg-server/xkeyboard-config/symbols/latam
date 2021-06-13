@@ -26,15 +26,6 @@ xkb_symbols "basic" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "sundeadkeys" {
-    include "latam(basic)"
-    name[Group1]="Spanish (Latin American, Sun dead keys)";
-
-    key <AC11>	{ [dead_acute, dead_diaeresis, braceleft, braceleft ]	};
-    key <AD11>	{ [dead_grave, dead_circumflex, bracketleft, dead_abovering ] };
-};
-
-partial alphanumeric_keys
 xkb_symbols "nodeadkeys" {
 
     include "latam(basic)"

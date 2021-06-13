@@ -12,28 +12,34 @@
 #include <image.h>
 
 #include <kernel/image.h>
-#include <system/safemode_defs.h>
+#include <private/system/safemode_defs.h>
 
 #include <Directory.h>
 #include <FindDirectory.h>
 #include <Path.h>
 #include <strings.h>
-#include "GLDispatcher.h"
 #include "GLRendererRoster.h"
 
 #include <new>
 #include <string.h>
+#include <stdio.h>
 
 
 extern "C" status_t _kern_get_safemode_option(const char* parameter,
 	char* buffer, size_t* _bufferSize);
 
+GLRendererRoster *GLRendererRoster::fInstance = NULL;
 
-GLRendererRoster::GLRendererRoster(BGLView* view, ulong options)
+GLRendererRoster *GLRendererRoster::Roster()
+{
+	if (fInstance == NULL) {
+		fInstance = new GLRendererRoster();
+	}
+	return fInstance;
+}
+
+GLRendererRoster::GLRendererRoster()
 	:
-	fNextID(0),
-	fView(view),
-	fOptions(options),
 	fSafeMode(false),
 	fABISubDirectory(NULL)
 {
@@ -84,14 +90,19 @@ GLRendererRoster::~GLRendererRoster()
 
 
 BGLRenderer*
-GLRendererRoster::GetRenderer(int32 id)
+GLRendererRoster::GetRenderer(BGLView *view, ulong options)
 {
-	RendererMap::const_iterator iterator = fRenderers.find(id);
-	if (iterator == fRenderers.end())
-		return NULL;
-
-	struct renderer_item item = iterator->second;
-	return item.renderer;
+	for (
+		RendererMap::const_iterator iterator = fRenderers.begin();
+		iterator != fRenderers.end();
+		iterator++
+	) {
+		renderer_item item = *iterator;
+		BGLRenderer* renderer;
+		renderer = item.entry(view, options);
+		return renderer;
+	}
+	return NULL;
 }
 
 
@@ -102,6 +113,7 @@ GLRendererRoster::AddDefaultPaths()
 	const directory_which paths[] = {
 		B_USER_NONPACKAGED_ADDONS_DIRECTORY,
 		B_USER_ADDONS_DIRECTORY,
+		B_SYSTEM_NONPACKAGED_ADDONS_DIRECTORY,
 		B_SYSTEM_ADDONS_DIRECTORY,
 	};
 
@@ -162,24 +174,22 @@ GLRendererRoster::AddPath(const char* path)
 
 
 status_t
-GLRendererRoster::AddRenderer(BGLRenderer* renderer,
+GLRendererRoster::AddRenderer(InstantiateRenderer entry,
 	image_id image, const entry_ref* ref, ino_t node)
 {
 	renderer_item item;
-	item.renderer = renderer;
+	item.entry = entry;
 	item.image = image;
 	item.node = node;
 	if (ref != NULL)
 		item.ref = *ref;
 
 	try {
-		fRenderers[fNextID] = item;
+		fRenderers.push_back(item);
 	} catch (...) {
 		return B_NO_MEMORY;
 	}
 
-	renderer->fOwningRoster = this;
-	renderer->fID = fNextID++;
 	return B_OK;
 }
 
@@ -194,30 +204,29 @@ GLRendererRoster::CreateRenderer(const entry_ref& ref)
 		return status;
 
 	BPath path(&ref);
+	printf("OpenGL load add-on: %s\n", path.Path());
+
 	image_id image = load_add_on(path.Path());
 	if (image < B_OK)
 		return image;
 
-	BGLRenderer* (*instantiate_renderer)
-		(BGLView* view, ulong options, BGLDispatcher* dispatcher);
+	InstantiateRenderer instantiate_renderer;
 
-	status = get_image_symbol(image, "instantiate_gl_renderer",
-		B_SYMBOL_TYPE_TEXT, (void**)&instantiate_renderer);
+	status = get_image_symbol(
+		image, "instantiate_gl_renderer",
+		B_SYMBOL_TYPE_TEXT, (void**)&instantiate_renderer
+	);
+
 	if (status == B_OK) {
-		BGLRenderer* renderer
-			= instantiate_renderer(fView, fOptions, new BGLDispatcher());
-		if (!renderer) {
+		if ((status = AddRenderer(instantiate_renderer, image, &ref, nodeRef.node)) != B_OK) {
 			unload_add_on(image);
-			return B_UNSUPPORTED;
+			return status;
 		}
-
-		if (AddRenderer(renderer, image, &ref, nodeRef.node) != B_OK) {
-			renderer->Release();
-			// this will delete the renderer
-			unload_add_on(image);
-		}
+		printf("OpenGL add-on registered: %s\n", path.Path());
 		return B_OK;
 	}
+
+	printf("OpenGL add-on failed to instantiate: %s\n", path.Path());
 	unload_add_on(image);
 
 	return status;

@@ -228,7 +228,7 @@ v3dv_get_query_pool_results_cpu(struct v3dv_device *device,
 
    VkResult result = VK_SUCCESS;
    for (uint32_t i = first; i < first + count; i++) {
-      bool available;
+      bool available = false;
       uint64_t value = get_query_result(device, pool, i, do_wait, &available);
 
       /**

@@ -25,14 +25,10 @@ files_panfrost = files(
   'pan_screen.h',
   'pan_resource.c',
   'pan_resource.h',
-
-  'nir/nir_lower_blend.c',
-
   'pan_context.c',
   'pan_blit.c',
   'pan_job.c',
   'pan_assemble.c',
-  'pan_blending.c',
   'pan_blend_shaders.c',
   'pan_blend_cso.c',
   'pan_cmdstream.c',

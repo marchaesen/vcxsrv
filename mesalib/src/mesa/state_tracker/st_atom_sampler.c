@@ -98,6 +98,31 @@ gl_filter_to_img_filter(GLenum filter)
    return PIPE_TEX_FILTER_NEAREST;
 }
 
+static inline unsigned
+get_border_clamp(unsigned wrap, bool clamp_to_border)
+{
+   if (wrap == PIPE_TEX_WRAP_CLAMP)
+      wrap = clamp_to_border ? PIPE_TEX_WRAP_CLAMP_TO_BORDER :
+                               PIPE_TEX_WRAP_CLAMP_TO_EDGE;
+   else if (wrap == PIPE_TEX_WRAP_MIRROR_CLAMP)
+      wrap = clamp_to_border ? PIPE_TEX_WRAP_MIRROR_CLAMP_TO_BORDER :
+                               PIPE_TEX_WRAP_MIRROR_CLAMP_TO_EDGE;
+   return wrap;
+}
+
+static inline enum pipe_tex_reduction_mode
+gl_reduction_mode_to_pipe(GLenum reduction_mode)
+{
+   switch (reduction_mode) {
+   case GL_MIN:
+      return PIPE_TEX_REDUCTION_MIN;
+   case GL_MAX:
+      return PIPE_TEX_REDUCTION_MAX;
+   case GL_WEIGHTED_AVERAGE_EXT:
+   default:
+      return PIPE_TEX_REDUCTION_WEIGHTED_AVERAGE;
+   }
+}
 
 /**
  * Convert a gl_sampler_object to a pipe_sampler_state object.
@@ -122,6 +147,14 @@ st_convert_sampler(const struct st_context *st,
       sampler->mag_img_filter = gl_filter_to_img_filter(msamp->Attrib.MagFilter);
    }
    sampler->min_mip_filter = gl_filter_to_mip_filter(msamp->Attrib.MinFilter);
+
+   if (st->emulate_gl_clamp) {
+      bool clamp_to_border = sampler->min_img_filter != PIPE_TEX_FILTER_NEAREST &&
+                             sampler->mag_img_filter != PIPE_TEX_FILTER_NEAREST;
+      sampler->wrap_s = get_border_clamp(sampler->wrap_s, clamp_to_border);
+      sampler->wrap_t = get_border_clamp(sampler->wrap_t, clamp_to_border);
+      sampler->wrap_r = get_border_clamp(sampler->wrap_r, clamp_to_border);
+   }
 
    if (texobj->Target != GL_TEXTURE_RECTANGLE_ARB)
       sampler->normalized_coords = 1;
@@ -168,7 +201,7 @@ st_convert_sampler(const struct st_context *st,
       const GLboolean is_integer = texobj->_IsIntegerFormat;
       GLenum texBaseFormat = _mesa_base_tex_image(texobj)->_BaseFormat;
 
-      if (texobj->Attrib.StencilSampling)
+      if (texobj->StencilSampling)
          texBaseFormat = GL_STENCIL_INDEX;
 
       if (st->apply_texture_swizzle_to_border_color) {
@@ -202,6 +235,7 @@ st_convert_sampler(const struct st_context *st,
                             &sampler->border_color,
                             texBaseFormat, is_integer);
       }
+      sampler->border_color_is_integer = is_integer;
    }
 
    sampler->max_anisotropy = (msamp->Attrib.MaxAnisotropy == 1.0 ?
@@ -212,7 +246,7 @@ st_convert_sampler(const struct st_context *st,
       GLenum texBaseFormat = _mesa_base_tex_image(texobj)->_BaseFormat;
 
       if (texBaseFormat == GL_DEPTH_COMPONENT ||
-          (texBaseFormat == GL_DEPTH_STENCIL && !texobj->Attrib.StencilSampling)) {
+          (texBaseFormat == GL_DEPTH_STENCIL && !texobj->StencilSampling)) {
          sampler->compare_mode = PIPE_TEX_COMPARE_R_TO_TEXTURE;
          sampler->compare_func = st_compare_func_to_pipe(msamp->Attrib.CompareFunc);
       }
@@ -223,6 +257,8 @@ st_convert_sampler(const struct st_context *st,
     * handles, as specified by ARB_bindless_texture.
     */
    sampler->seamless_cube_map = msamp->Attrib.CubeMapSeamless;
+
+   sampler->reduction_mode = gl_reduction_mode_to_pipe(msamp->Attrib.ReductionMode);
 }
 
 /**
@@ -239,7 +275,6 @@ st_convert_sampler_from_unit(const struct st_context *st,
 
    texobj = ctx->Texture.Unit[texUnit]._Current;
    assert(texobj);
-   assert(texobj->Target != GL_TEXTURE_BUFFER);
 
    msamp = _mesa_get_samplerobj(ctx, texUnit);
 
@@ -289,7 +324,8 @@ update_shader_samplers(struct st_context *st,
        * states that are NULL.
        */
       if (samplers_used & 1 &&
-          ctx->Texture.Unit[tex_unit]._Current->Target != GL_TEXTURE_BUFFER) {
+          (ctx->Texture.Unit[tex_unit]._Current->Target != GL_TEXTURE_BUFFER ||
+           st->texture_buffer_sampler)) {
          st_convert_sampler_from_unit(st, sampler, tex_unit);
          states[unit] = sampler;
       } else {

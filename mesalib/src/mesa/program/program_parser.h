@@ -186,7 +186,8 @@ struct asm_parser_state {
     * Value to use in state vector accessors for environment and local
     * parameters
     */
-   unsigned state_param_enum;
+   unsigned state_param_enum_env;
+   unsigned state_param_enum_local;
 
 
    /**

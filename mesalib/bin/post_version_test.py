@@ -19,140 +19,49 @@
 # SOFTWARE.
 
 from unittest import mock
-import textwrap
 
-from lxml import html
 import pytest
 
 from . import post_version
 
 
-# Mock out subprocess.run to avoid having git commits
 @mock.patch('bin.post_version.subprocess.run', mock.Mock())
 class TestUpdateCalendar:
 
-    HEAD = textwrap.dedent("""\
-        <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-        <html lang="en">
-        <head>
-        <meta http-equiv="content-type" content="text/html; charset=utf-8">
-        <title>Release Calendar</title>
-        <link rel="stylesheet" type="text/css" href="mesa.css">
-        </head>
-        <body>
-        """)
-
-    TABLE = textwrap.dedent("""\
-        <table>
-        <tr>
-        <th>Branch</th>
-        <th>Expected date</th>
-        <th>Release</th>
-        <th>Release manager</th>
-        <th>Notes</th>
-        </tr>
-        """)
-
-    FOOT = "</body></html>"
-
-    TABLE_FOOT = "</table>"
-
-    def wrap_table(self, table: str) -> str:
-        return self.HEAD + self.TABLE + table + self.TABLE_FOOT + self.FOOT
+    @pytest.fixture(autouse=True)
+    def mock_sideffects(self) -> None:
+        """Mock out side effects."""
+        with mock.patch('bin.post_version.subprocess.run', mock.Mock()), \
+                mock.patch('bin.post_version.pathlib', mock.MagicMock()):
+            yield
 
     def test_basic(self):
-        data = self.wrap_table(textwrap.dedent("""\
-            <tr>
-            <td rowspan="3">19.2</td>
-            <td>2019-11-06</td>
-            <td>19.2.3</td>
-            <td>Dylan Baker</td>
-            </tr>
-            <tr>
-            <td>2019-11-20</td>
-            <td>19.2.4</td>
-            <td>Dylan Baker</td>
-            </tr>
-            <tr>
-            <td>2019-12-04</td>
-            <td>19.2.5</td>
-            <td>Dylan Baker</td>
-            <td>Last planned 19.2.x release</td>
-            </tr>
-            """))
+        data = [
+            ['20.3', '2021-01-13', '20.3.3', 'Dylan Baker', None],
+            [None,   '2021-01-27', '20.3.4', 'Dylan Baker', None],
+        ]
 
-        parsed = html.fromstring(data)
-        parsed.write = mock.Mock()
+        m = mock.Mock()
+        with mock.patch('bin.post_version.csv.reader', mock.Mock(return_value=data.copy())), \
+                mock.patch('bin.post_version.csv.writer', mock.Mock(return_value=m)):
+            post_version.update_calendar('20.3.3')
 
-        with mock.patch('bin.post_version.html.parse',
-                        mock.Mock(return_value=parsed)):
-            post_version.update_calendar('19.2.3')
+            m.writerows.assert_called_with([data[1]])
 
-        assert len(parsed.findall('.//tr')) == 3
-        # we need the second element becouse the first is the header
+    def test_two_releases(self):
+        data = [
+            ['20.3', '2021-01-13', '20.3.3', 'Dylan Baker', None],
+            [None,   '2021-01-27', '20.3.4', 'Dylan Baker', None],
+            ['21.0', '2021-01-13', '21.0.0', 'Dylan Baker', None],
+            [None,   '2021-01-13', '21.0.1', 'Dylan Baker', None],
+        ]
 
-        tr = parsed.findall('.//tr')[1]
-        tds = tr.findall('.//td')
-        assert tds[0].get("rowspan") == "2"
-        assert tds[0].text == "19.2"
-        assert tds[1].text == "2019-11-20"
+        m = mock.Mock()
+        with mock.patch('bin.post_version.csv.reader', mock.Mock(return_value=data.copy())), \
+                mock.patch('bin.post_version.csv.writer', mock.Mock(return_value=m)):
+            post_version.update_calendar('20.3.3')
 
-    @pytest.fixture
-    def two_releases(self) -> html.etree.ElementTree:
-        data = self.wrap_table(textwrap.dedent("""\
-            <tr>
-            <td rowspan="1">19.1</td>
-            <td>2019-11-06</td>
-            <td>19.1.8</td>
-            <td>Not Dylan Baker</td>
-            </tr>
-            <tr>
-            <td rowspan="3">19.2</td>
-            <td>2019-11-06</td>
-            <td>19.2.3</td>
-            <td>Dylan Baker</td>
-            </tr>
-            <tr>
-            <td>2019-11-20</td>
-            <td>19.2.4</td>
-            <td>Dylan Baker</td>
-            </tr>
-            <tr>
-            <td>2019-12-04</td>
-            <td>19.2.5</td>
-            <td>Dylan Baker</td>
-            <td>Last planned 19.2.x release</td>
-            </tr>
-            """))
-
-        p = html.fromstring(data)
-        p.write = mock.Mock()
-        return p
-
-    def test_two_releases(self, two_releases: html.etree.ElementTree):
-        with mock.patch('bin.post_version.html.parse',
-                        mock.Mock(return_value=two_releases)):
-            post_version.update_calendar('19.2.3')
-
-        assert len(two_releases.findall('.//tr')) == 4
-        # we need the second element becouse the first is the header
-
-        tr = two_releases.findall('.//tr')[2]
-        tds = tr.findall('.//td')
-        assert tds[0].get("rowspan") == "2"
-        assert tds[0].text == "19.2"
-        assert tds[1].text == "2019-11-20"
-
-    def test_last_Release(self, two_releases: html.etree.ElementTree):
-        with mock.patch('bin.post_version.html.parse',
-                        mock.Mock(return_value=two_releases)):
-            post_version.update_calendar('19.1.8')
-
-        assert len(two_releases.findall('.//tr')) == 4
-        # we need the second element becouse the first is the header
-
-        tr = two_releases.findall('.//tr')[1]
-        tds = tr.findall('.//td')
-        assert tds[0].get("rowspan") == "3"
-        assert tds[0].text == "19.2"
-        assert tds[1].text == "2019-11-06"
+            d = data.copy()
+            del d[0]
+            d[0][0] = '20.3'
+            m.writerows.assert_called_with(d)

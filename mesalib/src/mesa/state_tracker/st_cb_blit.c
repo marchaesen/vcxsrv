@@ -170,7 +170,7 @@ st_BlitFramebuffer(struct gl_context *ctx,
       st_window_rectangles_to_blit(ctx, &blit);
 
    blit.filter = pFilter;
-   blit.render_condition_enable = TRUE;
+   blit.render_condition_enable = st->has_conditional_render;
    blit.alpha_blend = FALSE;
 
    if (mask & GL_COLOR_BUFFER_BIT) {
@@ -196,7 +196,7 @@ st_BlitFramebuffer(struct gl_context *ctx,
          blit.src.resource = srcObj->pt;
          blit.src.level = srcAtt->TextureLevel;
          blit.src.box.z = srcAtt->Zoffset + srcAtt->CubeMapFace;
-         blit.src.format = srcObj->pt->format;
+         blit.src.format = srcObj->surface_based ? srcObj->surface_format : srcObj->pt->format;
 
          if (!ctx->Color.sRGBEnabled)
             blit.src.format = util_format_linear(blit.src.format);

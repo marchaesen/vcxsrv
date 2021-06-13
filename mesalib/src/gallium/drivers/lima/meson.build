@@ -60,6 +60,8 @@ files_lima = files(
   'lima_resource.c',
   'lima_resource.h',
   'lima_state.c',
+  'lima_disk_cache.c',
+  'lima_disk_cache.h',
   'lima_draw.c',
   'lima_program.c',
   'lima_query.c',

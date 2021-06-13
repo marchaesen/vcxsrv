@@ -28,12 +28,11 @@ srcs_libxquartz = [
     'darwinXinput.c',
     'keysym2ucs.c',
     'quartz.c',
-    'quartzCocoa.m',
     'quartzKeyboard.c',
     'quartzStartup.c',
     'quartzRandR.c',
-    'console_redirect.c',
     '../../mi/miinitext.c',
+    '../../mi/miinitext.h',
 ]
 
 libxquartz_defs = [

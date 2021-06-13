@@ -291,19 +291,15 @@ static void *vc4_get_yuv_fs(struct pipe_context *pctx, int cpp)
            y_offset = nir_imul(&b, y, stride);
    }
 
-   nir_intrinsic_instr *load =
-           nir_intrinsic_instr_create(b.shader, nir_intrinsic_load_ubo);
-   load->num_components = 1;
-   nir_ssa_dest_init(&load->instr, &load->dest, load->num_components, 32, NULL);
-   load->src[0] = nir_src_for_ssa(one);
-   load->src[1] = nir_src_for_ssa(nir_iadd(&b, x_offset, y_offset));
-   nir_intrinsic_set_align(load,  4, 0);
-   nir_intrinsic_set_range_base(load, 0);
-   nir_intrinsic_set_range(load, ~0);
-   nir_builder_instr_insert(&b, &load->instr);
+   nir_ssa_def *load =
+      nir_load_ubo(&b, 1, 32, one, nir_iadd(&b, x_offset, y_offset),
+                   .align_mul = 4,
+                   .align_offset = 0,
+                   .range_base = 0,
+                   .range = ~0);
 
    nir_store_var(&b, color_out,
-                 nir_unpack_unorm_4x8(&b, &load->dest.ssa),
+                 nir_unpack_unorm_4x8(&b, load),
                  0xf);
 
    struct pipe_shader_state shader_tmpl = {
@@ -373,19 +369,19 @@ vc4_yuv_blit(struct pipe_context *pctx, const struct pipe_blit_info *info)
                 .user_buffer = &stride,
                 .buffer_size = sizeof(stride),
         };
-        pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 0, &cb_uniforms);
+        pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 0, false, &cb_uniforms);
         struct pipe_constant_buffer cb_src = {
                 .buffer = info->src.resource,
                 .buffer_offset = src->slices[info->src.level].offset,
                 .buffer_size = (src->bo->size -
                                 src->slices[info->src.level].offset),
         };
-        pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 1, &cb_src);
+        pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 1, false, &cb_src);
 
         /* Unbind the textures, to make sure we don't try to recurse into the
          * shadow blit.
          */
-        pctx->set_sampler_views(pctx, PIPE_SHADER_FRAGMENT, 0, 0, NULL);
+        pctx->set_sampler_views(pctx, PIPE_SHADER_FRAGMENT, 0, 0, 0, NULL);
         pctx->bind_sampler_states(pctx, PIPE_SHADER_FRAGMENT, 0, 0, NULL);
 
         util_blitter_custom_shader(vc4->blitter, dst_surf,
@@ -396,7 +392,7 @@ vc4_yuv_blit(struct pipe_context *pctx, const struct pipe_blit_info *info)
         util_blitter_restore_constant_buffer_state(vc4->blitter);
         /* Restore cb1 (util_blitter doesn't handle this one). */
         struct pipe_constant_buffer cb_disabled = { 0 };
-        pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 1, &cb_disabled);
+        pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 1, false, &cb_disabled);
 
         pipe_surface_reference(&dst_surf, NULL);
 

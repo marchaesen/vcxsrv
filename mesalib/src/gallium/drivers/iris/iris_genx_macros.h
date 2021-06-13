@@ -61,6 +61,12 @@ __gen_combine_address(struct iris_batch *batch, void *location,
    return result;
 }
 
+static inline struct iris_address
+__gen_get_batch_address(struct iris_batch *batch, void *location)
+{
+   unreachable("Not supported by iris");
+}
+
 #define __gen_address_type struct iris_address
 #define __gen_user_data struct iris_batch
 
@@ -68,6 +74,7 @@ __gen_combine_address(struct iris_batch *batch, void *location,
 #define __genxml_cmd_length_bias(cmd) cmd ## _length_bias
 #define __genxml_cmd_header(cmd) cmd ## _header
 #define __genxml_cmd_pack(cmd) cmd ## _pack
+#define __genxml_reg_num(cmd) cmd ## _num
 
 #include "genxml/genX_pack.h"
 #include "genxml/gen_macros.h"
@@ -76,8 +83,8 @@ __gen_combine_address(struct iris_batch *batch, void *location,
 /* CS_GPR(15) is reserved for combining conditional rendering predicates
  * with GL_ARB_indirect_parameters draw number predicates.
  */
-#define GEN_MI_BUILDER_NUM_ALLOC_GPRS 15
-#include "common/gen_mi_builder.h"
+#define MI_BUILDER_NUM_ALLOC_GPRS 15
+#include "common/mi_builder.h"
 
 #define _iris_pack_command(batch, cmd, dst, name)                 \
    for (struct cmd name = { __genxml_cmd_header(cmd) },           \
@@ -108,6 +115,20 @@ __gen_combine_address(struct iris_batch *batch, void *location,
          dw[i] = (dwords0)[i] | (dwords1)[i];                   \
       VG(VALGRIND_CHECK_MEM_IS_DEFINED(dw, num_dwords));        \
    } while (0)
+
+#define iris_emit_reg(batch, reg, name)                                 \
+   for (struct reg name = {}, *_cont = (struct reg *)1; _cont != NULL;  \
+        ({                                                              \
+            uint32_t _dw[__genxml_cmd_length(reg)];                     \
+            __genxml_cmd_pack(reg)(NULL, _dw, &name);                   \
+            for (unsigned i = 0; i < __genxml_cmd_length(reg); i++) {   \
+               iris_emit_cmd(batch, GENX(MI_LOAD_REGISTER_IMM), lri) {  \
+                  lri.RegisterOffset   = __genxml_reg_num(reg);         \
+                  lri.DataDWord        = _dw[i];                        \
+               }                                                        \
+            }                                                           \
+           _cont = NULL;                                                \
+         }))
 
 
 /**

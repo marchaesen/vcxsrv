@@ -88,6 +88,7 @@ freedreno_dev_info_init(struct freedreno_dev_info *info, uint32_t gpu_id)
 			info->a6xx.magic.RB_UNKNOWN_8E04_blit = 0x00100000;
 			info->a6xx.magic.PC_UNKNOWN_9805 = 1;
 			info->a6xx.magic.SP_UNKNOWN_A0F8 = 1;
+			info->a6xx.has_z24uint_s8uint = true;
 			break;
 		case 650:
 			info->num_sp_cores = 3;
@@ -98,6 +99,7 @@ freedreno_dev_info_init(struct freedreno_dev_info *info, uint32_t gpu_id)
 			info->a6xx.magic.RB_UNKNOWN_8E04_blit = 0x04100000;
 			info->a6xx.magic.PC_UNKNOWN_9805 = 2;
 			info->a6xx.magic.SP_UNKNOWN_A0F8 = 2;
+			info->a6xx.has_z24uint_s8uint = true;
 			break;
 		default:
 			/* Drivers should be doing their own version filtering, so we

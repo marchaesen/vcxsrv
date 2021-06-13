@@ -119,6 +119,7 @@ llvmpipe_set_sampler_views(struct pipe_context *pipe,
                            enum pipe_shader_type shader,
                            unsigned start,
                            unsigned num,
+                           unsigned unbind_num_trailing_slots,
                            struct pipe_sampler_view **views)
 {
    struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
@@ -151,6 +152,11 @@ llvmpipe_set_sampler_views(struct pipe_context *pipe,
          llvmpipe_flush_resource(pipe, view->texture, 0, true, false, false, "sampler_view");
       pipe_sampler_view_reference(&llvmpipe->sampler_views[shader][start + i],
                                   view);
+   }
+
+   for (; i < num + unbind_num_trailing_slots; i++) {
+      pipe_sampler_view_reference(&llvmpipe->sampler_views[shader][start + i],
+                                  NULL);
    }
 
    /* find highest non-null sampler_views[] entry */

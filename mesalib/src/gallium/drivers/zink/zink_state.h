@@ -49,6 +49,7 @@ struct zink_rasterizer_hw_state {
    VkFrontFace front_face;
    VkPolygonMode polygon_mode;
    VkCullModeFlags cull_mode;
+   bool force_persample_interp;
 };
 
 struct zink_rasterizer_state {
@@ -69,6 +70,7 @@ struct zink_blend_state {
    VkBool32 alpha_to_one;
 
    bool need_blend_constants;
+   bool dual_src_blend;
 };
 
 struct zink_depth_stencil_alpha_hw_state {

@@ -654,7 +654,7 @@ remove_out_of_bounds_induction_use(nir_shader *shader, nir_loop *loop,
                      nir_ssa_undef(&b, intrin->dest.ssa.num_components,
                                    intrin->dest.ssa.bit_size);
                   nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                           nir_src_for_ssa(undef));
+                                           undef);
                } else {
                   nir_instr_remove(instr);
                   continue;
@@ -750,6 +750,77 @@ partial_unroll(nir_shader *shader, nir_loop *loop, unsigned trip_count)
    _mesa_hash_table_destroy(remap_table, NULL);
 }
 
+static bool
+is_indirect_load(nir_instr *instr)
+{
+   if (instr->type == nir_instr_type_intrinsic) {
+      nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+
+      if ((intrin->intrinsic == nir_intrinsic_load_ubo ||
+           intrin->intrinsic == nir_intrinsic_load_ssbo ||
+           intrin->intrinsic == nir_intrinsic_load_global) &&
+          !nir_src_is_const(intrin->src[1])) {
+         return true;
+      }
+
+      if (intrin->intrinsic == nir_intrinsic_load_deref ||
+          intrin->intrinsic == nir_intrinsic_store_deref) {
+         nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+         nir_variable_mode mem_modes = nir_var_mem_ssbo | nir_var_mem_ubo | nir_var_mem_global;
+         if (!nir_deref_mode_may_be(deref, mem_modes))
+            return false;
+         while (deref) {
+            if ((deref->deref_type == nir_deref_type_array ||
+                 deref->deref_type == nir_deref_type_ptr_as_array) &&
+                !nir_src_is_const(deref->arr.index)) {
+               return true;
+            }
+            deref = nir_deref_instr_parent(deref);
+         }
+      }
+   } else if (instr->type == nir_instr_type_tex) {
+      nir_tex_instr *tex = nir_instr_as_tex(instr);
+
+      for (unsigned i = 0; i < tex->num_srcs; i++) {
+         if (!nir_src_is_const(tex->src[i].src))
+            return true;
+      }
+   }
+
+   return false;
+}
+
+static bool
+can_pipeline_loads(nir_loop *loop)
+{
+   if (!loop->info->exact_trip_count_known)
+      return false;
+
+   bool interesting_loads = false;
+
+   foreach_list_typed(nir_cf_node, cf_node, node, &loop->body) {
+      if (cf_node == &loop->info->limiting_terminator->nif->cf_node)
+         continue;
+
+      /* Control flow usually prevents useful scheduling */
+      if (cf_node->type != nir_cf_node_block)
+         return false;
+
+      if (interesting_loads)
+         continue;
+
+      nir_block *block = nir_cf_node_as_block(cf_node);
+      nir_foreach_instr(instr, block) {
+         if (is_indirect_load(instr)) {
+            interesting_loads = true;
+            break;
+         }
+      }
+   }
+
+   return interesting_loads;
+}
+
 /*
  * Returns true if we should unroll the loop, otherwise false.
  */
@@ -764,19 +835,22 @@ check_unrolling_restrictions(nir_shader *shader, nir_loop *loop)
 
    nir_loop_info *li = loop->info;
    unsigned max_iter = shader->options->max_unroll_iterations;
+   /* Unroll much more aggressively if it can hide load latency. */
+   if (shader->options->max_unroll_iterations_aggressive && can_pipeline_loads(loop))
+      max_iter = shader->options->max_unroll_iterations_aggressive;
    unsigned trip_count =
       li->max_trip_count ? li->max_trip_count : li->guessed_trip_count;
 
-   if (trip_count > max_iter)
-      return false;
-
-   if (li->force_unroll && !li->guessed_trip_count)
+   if (li->force_unroll && !li->guessed_trip_count && trip_count <= max_iter)
       return true;
 
-   bool loop_not_too_large =
-      li->instr_cost * trip_count <= max_iter * LOOP_UNROLL_LIMIT;
+   unsigned cost_limit = max_iter * LOOP_UNROLL_LIMIT;
+   unsigned cost = li->instr_cost * trip_count;
 
-   return loop_not_too_large;
+   if (cost <= cost_limit && trip_count <= max_iter)
+      return true;
+
+   return false;
 }
 
 static bool

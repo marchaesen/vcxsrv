@@ -131,6 +131,15 @@ _legal_parameters(struct gl_context *ctx, GLenum target, GLenum internalformat,
    case GL_NUM_SAMPLE_COUNTS:
       break;
 
+   case GL_TEXTURE_REDUCTION_MODE_ARB:
+      if (!_mesa_has_ARB_texture_filter_minmax(ctx)) {
+         _mesa_error(ctx, GL_INVALID_ENUM,
+                     "glGetInternalformativ(pname=%s)",
+                     _mesa_enum_to_string(pname));
+         return false;
+      }
+      break;
+
    case GL_SRGB_DECODE_ARB:
       /* The ARB_internalformat_query2 spec says:
        *
@@ -375,6 +384,7 @@ _set_default_response(GLenum pname, GLint buffer[16])
    case GL_STENCIL_RENDERABLE:
    case GL_MIPMAP:
    case GL_TEXTURE_COMPRESSED:
+   case GL_TEXTURE_REDUCTION_MODE_ARB:
       buffer[0] = GL_FALSE;
       break;
 
@@ -1458,7 +1468,7 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
        * just with the purpose of getting the value.
        */
       struct gl_texture_object *tex_obj = _mesa_new_texture_object(ctx, 0, target);
-      buffer[0] = tex_obj->ImageFormatCompatibilityType;
+      buffer[0] = tex_obj->Attrib.ImageFormatCompatibilityType;
       _mesa_delete_texture_object(ctx, tex_obj);
 
       break;
@@ -1551,6 +1561,14 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
    case GL_TILING_TYPES_EXT:
       ctx->Driver.QueryInternalFormat(ctx, target, internalformat, pname,
                                       buffer);
+      break;
+
+   case GL_TEXTURE_REDUCTION_MODE_ARB:
+      /* We don't currently have a way of querying this information. A driver
+       * enabling this capability should handle all formats until this is
+       * addressed.
+       */
+      buffer[0] = (GLint)1;
       break;
 
    default:

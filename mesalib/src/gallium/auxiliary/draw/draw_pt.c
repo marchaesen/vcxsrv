@@ -200,7 +200,7 @@ boolean draw_pt_init( struct draw_context *draw )
    if (!draw->pt.middle.general)
       return FALSE;
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    if (draw->llvm)
       draw->pt.middle.llvm = draw_pt_fetch_pipeline_or_emit_llvm( draw );
 #endif
@@ -463,6 +463,40 @@ resolve_draw_info(const struct pipe_draw_info *raw_info,
    }
 }
 
+/*
+ * Loop over all instances and execute draws for them.
+ */
+static void
+draw_instances(struct draw_context *draw,
+               const struct pipe_draw_info *info,
+               const struct pipe_draw_start_count *draws,
+               int count)
+{
+   unsigned instance;
+
+   draw->start_instance = info->start_instance;
+
+   for (instance = 0; instance < info->instance_count; instance++) {
+      unsigned instance_idx = instance + info->start_instance;
+      draw->instance_id = instance;
+      /* check for overflow */
+      if (instance_idx < instance ||
+          instance_idx < draw->start_instance) {
+         /* if we overflown just set the instance id to the max */
+         draw->instance_id = 0xffffffff;
+      }
+
+      draw_new_instance(draw);
+
+      if (info->primitive_restart) {
+         draw_pt_arrays_restart(draw, info, &draws[0]);
+      }
+      else {
+         draw_pt_arrays(draw, info->mode, draws[0].start, count);
+      }
+   }
+}
+
 /**
  * Draw vertex arrays.
  * This is the main entrypoint into the drawing module.  If drawing an indexed
@@ -476,7 +510,6 @@ draw_vbo(struct draw_context *draw,
          const struct pipe_draw_start_count *draws,
          unsigned num_draws)
 {
-   unsigned instance;
    unsigned index_limit;
    unsigned count;
    unsigned fpstate = util_fpstate_get();
@@ -502,12 +535,12 @@ draw_vbo(struct draw_context *draw,
 
    count = draws[0].count;
 
-   draw->pt.user.eltBias = info->index_bias;
-   draw->pt.user.min_index = info->min_index;
-   draw->pt.user.max_index = info->max_index;
+   draw->pt.user.eltBias = info->index_size ? info->index_bias : 0;
+   draw->pt.user.min_index = info->index_bounds_valid ? info->min_index : 0;
+   draw->pt.user.max_index = info->index_bounds_valid ? info->max_index : ~0;
    draw->pt.user.eltSize = info->index_size ? draw->pt.user.eltSizeIB : 0;
    draw->pt.user.drawid = info->drawid;
-
+   draw->pt.user.viewid = 0;
    draw->pt.vertices_per_patch = info->vertices_per_patch;
 
    if (0)
@@ -546,7 +579,7 @@ draw_vbo(struct draw_context *draw,
                                      draw->pt.vertex_element,
                                      draw->pt.nr_vertex_elements,
                                      info);
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
    if (!draw->llvm)
 #endif
    {
@@ -571,26 +604,13 @@ draw_vbo(struct draw_context *draw,
     * the min_index/max_index hints given by gallium frontends.
     */
 
-   for (instance = 0; instance < info->instance_count; instance++) {
-      unsigned instance_idx = instance + info->start_instance;
-      draw->start_instance = info->start_instance;
-      draw->instance_id = instance;
-      /* check for overflow */
-      if (instance_idx < instance ||
-          instance_idx < draw->start_instance) {
-         /* if we overflown just set the instance id to the max */
-         draw->instance_id = 0xffffffff;
+   if (info->view_mask) {
+      u_foreach_bit(i, info->view_mask) {
+         draw->pt.user.viewid = i;
+         draw_instances(draw, info, draws, count);
       }
-
-      draw_new_instance(draw);
-
-      if (info->primitive_restart) {
-         draw_pt_arrays_restart(draw, info, &draws[0]);
-      }
-      else {
-         draw_pt_arrays(draw, info->mode, draws[0].start, count);
-      }
-   }
+   } else
+      draw_instances(draw, info, draws, count);
 
    /* If requested emit the pipeline statistics for this run */
    if (draw->collect_statistics) {

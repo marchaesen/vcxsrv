@@ -146,7 +146,7 @@ lower_color(lower_drawpixels_state *state, nir_intrinsic_instr *intr)
    tex->op = nir_texop_tex;
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
    tex->coord_components = 2;
-   tex->dest_type = nir_type_float;
+   tex->dest_type = nir_type_float32;
    tex->src[0].src_type = nir_tex_src_texture_deref;
    tex->src[0].src = nir_src_for_ssa(&tex_deref->dest.ssa);
    tex->src[1].src_type = nir_tex_src_sampler_deref;
@@ -188,7 +188,7 @@ lower_color(lower_drawpixels_state *state, nir_intrinsic_instr *intr)
       tex->coord_components = 2;
       tex->sampler_index = state->options->pixelmap_sampler;
       tex->texture_index = state->options->pixelmap_sampler;
-      tex->dest_type = nir_type_float;
+      tex->dest_type = nir_type_float32;
       tex->src[0].src_type = nir_tex_src_texture_deref;
       tex->src[0].src = nir_src_for_ssa(&pixelmap_deref->dest.ssa);
       tex->src[1].src_type = nir_tex_src_sampler_deref;
@@ -206,7 +206,7 @@ lower_color(lower_drawpixels_state *state, nir_intrinsic_instr *intr)
       tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
       tex->coord_components = 2;
       tex->sampler_index = state->options->pixelmap_sampler;
-      tex->dest_type = nir_type_float;
+      tex->dest_type = nir_type_float32;
       tex->src[0].src_type = nir_tex_src_coord;
       tex->src[0].src = nir_src_for_ssa(nir_channels(b, def, 0xc));
 
@@ -222,7 +222,7 @@ lower_color(lower_drawpixels_state *state, nir_intrinsic_instr *intr)
                      nir_channel(b, def_zw, 1));
    }
 
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(def));
+   nir_ssa_def_rewrite_uses(&intr->dest.ssa, def);
 }
 
 static void
@@ -231,7 +231,7 @@ lower_texcoord(lower_drawpixels_state *state, nir_intrinsic_instr *intr)
    state->b.cursor = nir_before_instr(&intr->instr);
 
    nir_ssa_def *texcoord_const = get_texcoord_const(state);
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_src_for_ssa(texcoord_const));
+   nir_ssa_def_rewrite_uses(&intr->dest.ssa, texcoord_const);
 }
 
 static bool

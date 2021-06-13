@@ -38,18 +38,18 @@ WriteoutInstruction::WriteoutInstruction(instr_type t, const GPRVector& value):
    add_remappable_src_value(&m_value);
 }
 
-void WriteoutInstruction::replace_values(const ValueSet& candiates, PValue new_value)
+void WriteoutInstruction::replace_values(const ValueSet& candidates, PValue new_value)
 {
    // I wonder whether we can actually end up here ...
-   for (auto c: candiates) {
+   for (auto c: candidates) {
       if (*c == *m_value.reg_i(c->chan()))
          m_value.set_reg_i(c->chan(), new_value);
    }
 
-   replace_values_child(candiates, new_value);
+   replace_values_child(candidates, new_value);
 }
 
-void WriteoutInstruction::replace_values_child(UNUSED const ValueSet& candiates,
+void WriteoutInstruction::replace_values_child(UNUSED const ValueSet& candidates,
                                                UNUSED PValue new_value)
 {
 }
@@ -168,12 +168,12 @@ void WriteScratchInstruction::do_print(std::ostream& os) const
       << " " <<  gpr()  << " AL:" << m_align << " ALO:" << m_align_offset;
 }
 
-void WriteScratchInstruction::replace_values_child(const ValueSet& candiates, PValue new_value)
+void WriteScratchInstruction::replace_values_child(const ValueSet& candidates, PValue new_value)
 {
    if (!m_address)
       return;
 
-   for (auto c: candiates) {
+   for (auto c: candidates) {
       if (*c == *m_address)
          m_address = new_value;
    }
@@ -304,13 +304,13 @@ void MemRingOutIntruction::do_print(std::ostream& os) const
 }
 
 
-void MemRingOutIntruction::replace_values_child(const ValueSet& candiates,
+void MemRingOutIntruction::replace_values_child(const ValueSet& candidates,
                                                 PValue new_value)
 {
    if (!m_index)
       return;
 
-   for (auto c: candiates) {
+   for (auto c: candidates) {
       if (*c == *m_index)
          m_index = new_value;
    }

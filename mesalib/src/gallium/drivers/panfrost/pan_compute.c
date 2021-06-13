@@ -30,6 +30,7 @@
 #include "pan_cmdstream.h"
 #include "panfrost-quirks.h"
 #include "pan_bo.h"
+#include "pan_shader.h"
 #include "util/u_memory.h"
 #include "nir_serialize.h"
 
@@ -44,6 +45,7 @@ panfrost_create_compute_state(
         const struct pipe_compute_state *cso)
 {
         struct panfrost_context *ctx = pan_context(pctx);
+        struct panfrost_device *dev = pan_device(pctx->screen);
 
         struct panfrost_shader_variants *so = CALLOC_STRUCT(panfrost_shader_variants);
         so->cbase = *cso;
@@ -60,12 +62,16 @@ panfrost_create_compute_state(
                 const struct pipe_binary_program_header *hdr = cso->prog;
 
                 blob_reader_init(&reader, hdr->blob, hdr->num_bytes);
-                so->cbase.prog = nir_deserialize(NULL, &midgard_nir_options, &reader);
+
+                const struct nir_shader_compiler_options *options =
+                        pan_shader_get_compiler_options(dev);
+
+                so->cbase.prog = nir_deserialize(NULL, options, &reader);
                 so->cbase.ir_type = PIPE_SHADER_IR_NIR;
         }
 
         panfrost_shader_compile(ctx, so->cbase.ir_type, so->cbase.prog,
-                                MESA_SHADER_COMPUTE, v, NULL);
+                                MESA_SHADER_COMPUTE, v);
 
         return so;
 }
@@ -74,11 +80,7 @@ static void
 panfrost_bind_compute_state(struct pipe_context *pipe, void *cso)
 {
         struct panfrost_context *ctx = pan_context(pipe);
-
-        struct panfrost_shader_variants *variants =
-                (struct panfrost_shader_variants *) cso;
-
-        ctx->shader[PIPE_SHADER_COMPUTE] = variants;
+        ctx->shader[PIPE_SHADER_COMPUTE] = cso;
 }
 
 static void
@@ -97,17 +99,15 @@ panfrost_launch_grid(struct pipe_context *pipe,
 {
         struct panfrost_context *ctx = pan_context(pipe);
         struct panfrost_device *dev = pan_device(pipe->screen);
-
-        /* TODO: Do we want a special compute-only batch? */
         struct panfrost_batch *batch = panfrost_get_batch_for_fbo(ctx);
+
+        /* TODO: Indirect compute dispatch */
+        assert(!info->indirect);
 
         ctx->compute_grid = info;
 
-        /* TODO: Stub */
         struct panfrost_ptr t =
-                panfrost_pool_alloc_aligned(&batch->pool,
-                                            MALI_COMPUTE_JOB_LENGTH,
-                                            64);
+                panfrost_pool_alloc_desc(&batch->pool, COMPUTE_JOB);
 
         /* We implement OpenCL inputs as uniforms (or a UBO -- same thing), so
          * reuse the graphics path for this by lowering to Gallium */
@@ -120,7 +120,7 @@ panfrost_launch_grid(struct pipe_context *pipe,
         };
 
         if (info->input)
-                pipe->set_constant_buffer(pipe, PIPE_SHADER_COMPUTE, 0, &ubuf);
+                pipe->set_constant_buffer(pipe, PIPE_SHADER_COMPUTE, 0, false, &ubuf);
 
         /* Invoke according to the grid info */
 
@@ -142,9 +142,10 @@ panfrost_launch_grid(struct pipe_context *pipe,
 
         pan_section_pack(t.cpu, COMPUTE_JOB, DRAW, cfg) {
                 cfg.draw_descriptor_is_64b = true;
-                if (!(dev->quirks & IS_BIFROST))
+                if (!pan_is_bifrost(dev))
                         cfg.texture_descriptor_is_64b = true;
                 cfg.state = panfrost_emit_compute_shader_meta(batch, PIPE_SHADER_COMPUTE);
+                cfg.attributes = panfrost_emit_image_attribs(batch, &cfg.attribute_buffers, PIPE_SHADER_COMPUTE);
                 cfg.thread_storage = panfrost_emit_shared_memory(batch, info);
                 cfg.uniform_buffers = panfrost_emit_const_buf(batch,
                                 PIPE_SHADER_COMPUTE, &cfg.push_uniforms);
@@ -157,7 +158,7 @@ panfrost_launch_grid(struct pipe_context *pipe,
         pan_section_pack(t.cpu, COMPUTE_JOB, DRAW_PADDING, cfg);
 
         panfrost_add_job(&batch->pool, &batch->scoreboard,
-                         MALI_JOB_TYPE_COMPUTE, true, 0, &t, true);
+                         MALI_JOB_TYPE_COMPUTE, true, false, 0, 0, &t, true);
         panfrost_flush_all_batches(ctx);
 }
 

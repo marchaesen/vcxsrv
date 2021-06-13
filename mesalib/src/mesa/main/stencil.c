@@ -112,6 +112,7 @@ _mesa_ClearStencil( GLint s )
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glClearStencil(%d)\n", s);
 
+   ctx->PopAttribState |= GL_STENCIL_BUFFER_BIT;
    ctx->Stencil.Clear = (GLuint) s;
 }
 
@@ -157,7 +158,8 @@ _mesa_StencilFuncSeparateATI( GLenum frontfunc, GLenum backfunc, GLint ref, GLui
        ctx->Stencil.Ref[0] == ref &&
        ctx->Stencil.Ref[1] == ref)
       return;
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL,
+                  GL_STENCIL_BUFFER_BIT);
    ctx->NewDriverState |= ctx->DriverFlags.NewStencil;
    ctx->Stencil.Function[0]  = frontfunc;
    ctx->Stencil.Function[1]  = backfunc;
@@ -195,7 +197,8 @@ stencil_func(struct gl_context *ctx, GLenum func, GLint ref, GLuint mask)
           ctx->Stencil.ValueMask[face] == mask &&
           ctx->Stencil.Ref[face] == ref)
          return;
-      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL);
+      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL,
+                     GL_STENCIL_BUFFER_BIT);
       ctx->NewDriverState |= ctx->DriverFlags.NewStencil;
       ctx->Stencil.Function[face] = func;
       ctx->Stencil.Ref[face] = ref;
@@ -217,7 +220,8 @@ stencil_func(struct gl_context *ctx, GLenum func, GLint ref, GLuint mask)
           ctx->Stencil.Ref[0] == ref &&
           ctx->Stencil.Ref[1] == ref)
          return;
-      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL);
+      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL,
+                     GL_STENCIL_BUFFER_BIT);
       ctx->NewDriverState |= ctx->DriverFlags.NewStencil;
       ctx->Stencil.Function[0]  = ctx->Stencil.Function[1]  = func;
       ctx->Stencil.Ref[0]       = ctx->Stencil.Ref[1]       = ref;
@@ -282,7 +286,8 @@ _mesa_StencilMask( GLuint mask )
        */
       if (ctx->Stencil.WriteMask[face] == mask)
          return;
-      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL);
+      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL,
+                     GL_STENCIL_BUFFER_BIT);
       ctx->NewDriverState |= ctx->DriverFlags.NewStencil;
       ctx->Stencil.WriteMask[face] = mask;
 
@@ -298,7 +303,8 @@ _mesa_StencilMask( GLuint mask )
       if (ctx->Stencil.WriteMask[0] == mask &&
           ctx->Stencil.WriteMask[1] == mask)
          return;
-      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL);
+      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL,
+                     GL_STENCIL_BUFFER_BIT);
       ctx->NewDriverState |= ctx->DriverFlags.NewStencil;
       ctx->Stencil.WriteMask[0] = ctx->Stencil.WriteMask[1] = mask;
       if (ctx->Driver.StencilMaskSeparate) {
@@ -336,7 +342,8 @@ stencil_op(struct gl_context *ctx, GLenum fail, GLenum zfail, GLenum zpass)
           ctx->Stencil.ZPassFunc[face] == zpass &&
           ctx->Stencil.FailFunc[face] == fail)
          return;
-      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL);
+      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL,
+                     GL_STENCIL_BUFFER_BIT);
       ctx->NewDriverState |= ctx->DriverFlags.NewStencil;
       ctx->Stencil.ZFailFunc[face] = zfail;
       ctx->Stencil.ZPassFunc[face] = zpass;
@@ -358,7 +365,8 @@ stencil_op(struct gl_context *ctx, GLenum fail, GLenum zfail, GLenum zpass)
           ctx->Stencil.FailFunc[0] == fail &&
           ctx->Stencil.FailFunc[1] == fail)
          return;
-      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL);
+      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL,
+                     GL_STENCIL_BUFFER_BIT);
       ctx->NewDriverState |= ctx->DriverFlags.NewStencil;
       ctx->Stencil.ZFailFunc[0] = ctx->Stencil.ZFailFunc[1] = zfail;
       ctx->Stencil.ZPassFunc[0] = ctx->Stencil.ZPassFunc[1] = zpass;
@@ -442,7 +450,8 @@ stencil_op_separate(struct gl_context *ctx, GLenum face, GLenum sfail,
       if (ctx->Stencil.ZFailFunc[0] != zfail ||
           ctx->Stencil.ZPassFunc[0] != zpass ||
           ctx->Stencil.FailFunc[0] != sfail){
-         FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL);
+         FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL,
+                        GL_STENCIL_BUFFER_BIT);
          ctx->NewDriverState |= ctx->DriverFlags.NewStencil;
          ctx->Stencil.ZFailFunc[0] = zfail;
          ctx->Stencil.ZPassFunc[0] = zpass;
@@ -456,7 +465,8 @@ stencil_op_separate(struct gl_context *ctx, GLenum face, GLenum sfail,
       if (ctx->Stencil.ZFailFunc[1] != zfail ||
           ctx->Stencil.ZPassFunc[1] != zpass ||
           ctx->Stencil.FailFunc[1] != sfail) {
-         FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL);
+         FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL,
+                        GL_STENCIL_BUFFER_BIT);
          ctx->NewDriverState |= ctx->DriverFlags.NewStencil;
          ctx->Stencil.ZFailFunc[1] = zfail;
          ctx->Stencil.ZPassFunc[1] = zpass;
@@ -516,7 +526,8 @@ static void
 stencil_func_separate(struct gl_context *ctx, GLenum face, GLenum func,
                       GLint ref, GLuint mask)
 {
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL,
+                  GL_STENCIL_BUFFER_BIT);
    ctx->NewDriverState |= ctx->DriverFlags.NewStencil;
 
    if (face != GL_BACK) {
@@ -574,7 +585,8 @@ _mesa_StencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
 static void
 stencil_mask_separate(struct gl_context *ctx, GLenum face, GLuint mask)
 {
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL);
+   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL,
+                  GL_STENCIL_BUFFER_BIT);
    ctx->NewDriverState |= ctx->DriverFlags.NewStencil;
 
    if (face != GL_BACK) {

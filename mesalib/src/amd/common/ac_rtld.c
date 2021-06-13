@@ -36,8 +36,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef EM_AMDGPU
 // Old distributions may not have this enum constant
-#define MY_EM_AMDGPU 224
+#define EM_AMDGPU 224
+#endif
 
 #ifndef STT_AMDGPU_LDS
 #define STT_AMDGPU_LDS 13 // this is deprecated -- remove
@@ -326,7 +328,7 @@ bool ac_rtld_open(struct ac_rtld_binary *binary, struct ac_rtld_open_info i)
 
       const Elf64_Ehdr *ehdr = elf64_getehdr(part->elf);
       report_elf_if(!ehdr);
-      report_if(ehdr->e_machine != MY_EM_AMDGPU);
+      report_if(ehdr->e_machine != EM_AMDGPU);
 
       size_t section_str_index;
       size_t num_shdrs;
@@ -434,24 +436,30 @@ bool ac_rtld_open(struct ac_rtld_binary *binary, struct ac_rtld_open_info i)
    binary->rx_size += rx_size;
    binary->exec_size = exec_size;
 
-   if (i.info->chip_class >= GFX10) {
-      /* In gfx10, the SQ fetches up to 3 cache lines of 16 dwords
-       * ahead of the PC, configurable by SH_MEM_CONFIG and
-       * S_INST_PREFETCH. This can cause two issues:
-       *
-       * (1) Crossing a page boundary to an unmapped page. The logic
-       *     does not distinguish between a required fetch and a "mere"
-       *     prefetch and will fault.
-       *
-       * (2) Prefetching instructions that will be changed for a
-       *     different shader.
-       *
-       * (2) is not currently an issue because we flush the I$ at IB
-       * boundaries, but (1) needs to be addressed. Due to buffer
-       * suballocation, we just play it safe.
-       */
-      binary->rx_size = align(binary->rx_size + 3 * 64, 64);
-   }
+   /* The SQ fetches up to N cache lines of 16 dwords
+    * ahead of the PC, configurable by SH_MEM_CONFIG and
+    * S_INST_PREFETCH. This can cause two issues:
+    *
+    * (1) Crossing a page boundary to an unmapped page. The logic
+    *     does not distinguish between a required fetch and a "mere"
+    *     prefetch and will fault.
+    *
+    * (2) Prefetching instructions that will be changed for a
+    *     different shader.
+    *
+    * (2) is not currently an issue because we flush the I$ at IB
+    * boundaries, but (1) needs to be addressed. Due to buffer
+    * suballocation, we just play it safe.
+    */
+   unsigned prefetch_distance = 0;
+
+   if (!i.info->has_graphics && i.info->family >= CHIP_ALDEBARAN)
+      prefetch_distance = 16;
+   else if (i.info->chip_class >= GFX10)
+      prefetch_distance = 3;
+
+   if (prefetch_distance)
+      binary->rx_size = align(binary->rx_size + prefetch_distance * 64, 64);
 
    return true;
 
@@ -725,23 +733,24 @@ static bool apply_relocs(const struct ac_rtld_upload_info *u, unsigned part_idx,
  * Upload the binary or binaries to the provided GPU buffers, including
  * relocations.
  */
-bool ac_rtld_upload(struct ac_rtld_upload_info *u)
+int ac_rtld_upload(struct ac_rtld_upload_info *u)
 {
 #define report_if(cond)                                                                            \
    do {                                                                                            \
       if ((cond)) {                                                                                \
          report_errorf(#cond);                                                                     \
-         return false;                                                                             \
+         return -1;                                                                             \
       }                                                                                            \
    } while (false)
 #define report_elf_if(cond)                                                                        \
    do {                                                                                            \
       if ((cond)) {                                                                                \
          report_errorf(#cond);                                                                     \
-         return false;                                                                             \
+         return -1;                                                                             \
       }                                                                                            \
    } while (false)
 
+   int size = 0;
    if (u->binary->options.halt_at_entry) {
       /* s_sethalt 1 */
       *(uint32_t *)u->rx_ptr = util_cpu_to_le32(0xbf8d0001);
@@ -764,6 +773,8 @@ bool ac_rtld_upload(struct ac_rtld_upload_info *u)
          Elf_Data *data = elf_getdata(section, NULL);
          report_elf_if(!data || data->d_size != shdr->sh_size);
          memcpy(u->rx_ptr + s->offset, data->d_buf, shdr->sh_size);
+
+         size = MAX2(size, s->offset + shdr->sh_size);
       }
    }
 
@@ -771,6 +782,7 @@ bool ac_rtld_upload(struct ac_rtld_upload_info *u)
       uint32_t *dst = (uint32_t *)(u->rx_ptr + u->binary->rx_end_markers);
       for (unsigned i = 0; i < DEBUGGER_NUM_MARKERS; ++i)
          *dst++ = util_cpu_to_le32(DEBUGGER_END_OF_CODE_MARKER);
+      size += 4 * DEBUGGER_NUM_MARKERS;
    }
 
    /* Second pass: handle relocations, overwriting uploaded data where
@@ -784,15 +796,15 @@ bool ac_rtld_upload(struct ac_rtld_upload_info *u)
             Elf_Data *relocs = elf_getdata(section, NULL);
             report_elf_if(!relocs || relocs->d_size != shdr->sh_size);
             if (!apply_relocs(u, i, shdr, relocs))
-               return false;
+               return -1;
          } else if (shdr->sh_type == SHT_RELA) {
             report_errorf("SHT_RELA not supported");
-            return false;
+            return -1;
          }
       }
    }
 
-   return true;
+   return size;
 
 #undef report_if
 #undef report_elf_if

@@ -4409,6 +4409,27 @@ get_variable_being_redeclared(ir_variable **var_ptr, YYLTYPE loc,
               earlier->data.how_declared == ir_var_declared_implicitly) {
       /* No need to do anything, just allow it. Qualifier is stored in state */
 
+   } else if (state->is_version(0, 300) &&
+              state->has_separate_shader_objects() &&
+              (strcmp(var->name, "gl_Position") == 0 ||
+              strcmp(var->name, "gl_PointSize") == 0)) {
+
+       /*  EXT_separate_shader_objects spec says:
+       *
+       *  "The following vertex shader outputs may be redeclared
+       *   at global scope to specify a built-in output interface,
+       *   with or without special qualifiers:
+       *
+       *    gl_Position
+       *    gl_PointSize
+       *
+       *    When compiling shaders using either of the above variables,
+       *    both such variables must be redeclared prior to use."
+       */
+      if (earlier->data.used) {
+         _mesa_glsl_error(&loc, state, "the first redeclaration of "
+                         "%s must appear before any use", var->name);
+      }
    } else if ((earlier->data.how_declared == ir_var_declared_implicitly &&
                state->allow_builtin_variable_redeclaration) ||
               allow_all_redeclarations) {

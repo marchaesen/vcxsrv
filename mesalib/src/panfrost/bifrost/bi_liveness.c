@@ -29,13 +29,18 @@ bi_liveness_ins_update(uint16_t *live, bi_instr *ins, unsigned max)
 {
         /* live_in[s] = GEN[s] + (live_out[s] - KILL[s]) */
 
-        pan_liveness_kill(live, bi_get_node(ins->dest[0]), max, bi_writemask(ins));
+        bi_foreach_dest(ins, d) {
+                pan_liveness_kill(live, bi_get_node(ins->dest[d]), max,
+                                bi_writemask(ins, d));
+        }
 
         bi_foreach_src(ins, src) {
-                unsigned node = bi_get_node(ins->src[src]);
-                unsigned bytemask = bi_bytemask_of_read_components(ins, ins->src[src]);
+                unsigned count = bi_count_read_registers(ins, src);
+                unsigned rmask = (1 << (4 * count)) - 1;
+                uint16_t mask = (rmask << (4 * ins->src[src].offset));
 
-                pan_liveness_gen(live, node, max, bytemask);
+                unsigned node = bi_get_node(ins->src[src]);
+                pan_liveness_gen(live, node, max, mask);
         }
 }
 

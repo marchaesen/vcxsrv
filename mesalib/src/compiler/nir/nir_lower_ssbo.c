@@ -206,7 +206,7 @@ nir_lower_ssbo(nir_shader *shader)
 
             if (replace)  {
                nir_ssa_def_rewrite_uses(&intr->dest.ssa,
-                                     nir_src_for_ssa(replace));
+                                     replace);
             }
 
             nir_instr_remove(instr);

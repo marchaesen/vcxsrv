@@ -170,7 +170,7 @@ struct iris_bo {
    uint64_t kflags;
 
    /**
-    * Kenel-assigned global name for this object
+    * Kernel-assigned global name for this object
     *
     * List contains both flink named and prime fd'd objects
     */

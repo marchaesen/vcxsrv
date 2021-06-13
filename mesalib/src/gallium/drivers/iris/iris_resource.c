@@ -47,7 +47,7 @@
 #include "iris_context.h"
 #include "iris_resource.h"
 #include "iris_screen.h"
-#include "intel/common/gen_aux_map.h"
+#include "intel/common/intel_aux_map.h"
 #include "intel/dev/gen_debug.h"
 #include "isl/isl.h"
 #include "drm-uapi/drm_fourcc.h"
@@ -385,7 +385,6 @@ iris_resource_disable_aux(struct iris_resource *res)
    res->aux.usage = ISL_AUX_USAGE_NONE;
    res->aux.possible_usages = 1 << ISL_AUX_USAGE_NONE;
    res->aux.sampler_usages = 1 << ISL_AUX_USAGE_NONE;
-   res->aux.has_hiz = 0;
    res->aux.surf.size_B = 0;
    res->aux.bo = NULL;
    res->aux.extra_aux.surf.size_B = 0;
@@ -395,17 +394,18 @@ iris_resource_disable_aux(struct iris_resource *res)
 
 static void
 iris_resource_destroy(struct pipe_screen *screen,
-                      struct pipe_resource *resource)
+                      struct pipe_resource *p_res)
 {
-   struct iris_resource *res = (struct iris_resource *)resource;
+   struct iris_resource *res = (struct iris_resource *) p_res;
 
-   if (resource->target == PIPE_BUFFER)
+   if (p_res->target == PIPE_BUFFER)
       util_range_destroy(&res->valid_buffer_range);
 
    iris_resource_disable_aux(res);
 
+   threaded_resource_deinit(p_res);
    iris_bo_unreference(res->bo);
-   iris_pscreen_unref(res->base.screen);
+   iris_pscreen_unref(res->base.b.screen);
 
    free(res);
 }
@@ -418,9 +418,10 @@ iris_alloc_resource(struct pipe_screen *pscreen,
    if (!res)
       return NULL;
 
-   res->base = *templ;
-   res->base.screen = iris_pscreen_ref(pscreen);
-   pipe_reference_init(&res->base.reference, 1);
+   res->base.b = *templ;
+   res->base.b.screen = iris_pscreen_ref(pscreen);
+   pipe_reference_init(&res->base.b.reference, 1);
+   threaded_resource_init(&res->base.b);
 
    res->aux.possible_usages = 1 << ISL_AUX_USAGE_NONE;
    res->aux.sampler_usages = 1 << ISL_AUX_USAGE_NONE;
@@ -494,10 +495,10 @@ map_aux_addresses(struct iris_screen *screen, struct iris_resource *res,
       const unsigned aux_offset = res->aux.extra_aux.surf.size_B > 0 ?
          res->aux.extra_aux.offset : res->aux.offset;
       const uint64_t format_bits =
-         gen_aux_map_format_bits(res->surf.tiling, format, plane);
-      gen_aux_map_add_mapping(aux_map_ctx, res->bo->gtt_offset + res->offset,
-                              res->aux.bo->gtt_offset + aux_offset,
-                              res->surf.size_B, format_bits);
+         intel_aux_map_format_bits(res->surf.tiling, format, plane);
+      intel_aux_map_add_mapping(aux_map_ctx, res->bo->gtt_offset + res->offset,
+                                res->aux.bo->gtt_offset + aux_offset,
+                                res->surf.size_B, format_bits);
       res->bo->aux_map_address = res->aux.bo->gtt_offset;
    }
 }
@@ -686,16 +687,8 @@ iris_resource_configure_aux(struct iris_screen *screen,
 
    res->aux.usage = util_last_bit(res->aux.possible_usages) - 1;
 
-   res->aux.sampler_usages = res->aux.possible_usages;
-
-   /* We don't always support sampling with hiz. But when we do, it must be
-    * single sampled.
-    */
-   if (!devinfo->has_sample_with_hiz || res->surf.samples > 1)
-      res->aux.sampler_usages &= ~(1 << ISL_AUX_USAGE_HIZ);
-
-   /* ISL_AUX_USAGE_HIZ_CCS doesn't support sampling at all */
-   res->aux.sampler_usages &= ~(1 << ISL_AUX_USAGE_HIZ_CCS);
+   if (!has_hiz || iris_sample_with_depth_aux(devinfo, res))
+      res->aux.sampler_usages = res->aux.possible_usages;
 
    enum isl_aux_state initial_state;
    assert(!res->aux.bo);
@@ -759,19 +752,6 @@ iris_resource_configure_aux(struct iris_screen *screen,
    res->aux.state = create_aux_state_map(res, initial_state);
    if (!res->aux.state)
       return false;
-
-   if (isl_aux_usage_has_hiz(res->aux.usage)) {
-      for (unsigned level = 0; level < res->surf.levels; ++level) {
-         uint32_t width = u_minify(res->surf.phys_level0_sa.width, level);
-         uint32_t height = u_minify(res->surf.phys_level0_sa.height, level);
-
-         /* Disable HiZ for LOD > 0 unless the width/height are 8x4 aligned.
-          * For LOD == 0, we can grow the dimensions to make it work.
-          */
-         if (level == 0 || ((width & 7) == 0 && (height & 3) == 0))
-            res->aux.has_hiz |= 1 << level;
-      }
-   }
 
    return true;
 }
@@ -842,7 +822,7 @@ iris_resource_finish_aux_import(struct pipe_screen *pscreen,
    struct iris_resource *r[4] = { NULL, };
    unsigned num_planes = 0;
    unsigned num_main_planes = 0;
-   for (struct pipe_resource *p_res = &res->base; p_res; p_res = p_res->next) {
+   for (struct pipe_resource *p_res = &res->base.b; p_res; p_res = p_res->next) {
       r[num_planes] = (struct iris_resource *)p_res;
       num_main_planes += r[num_planes++]->bo != NULL;
    }
@@ -921,14 +901,16 @@ iris_resource_create_for_buffer(struct pipe_screen *pscreen,
 
    res->bo = iris_bo_alloc(screen->bufmgr, name, templ->width0, memzone);
    if (!res->bo) {
-      iris_resource_destroy(pscreen, &res->base);
+      iris_resource_destroy(pscreen, &res->base.b);
       return NULL;
    }
 
-   if (templ->bind & PIPE_BIND_SHARED)
+   if (templ->bind & PIPE_BIND_SHARED) {
       iris_bo_make_external(res->bo);
+      res->base.is_shared = true;
+   }
 
-   return &res->base;
+   return &res->base.b;
 }
 
 static struct pipe_resource *
@@ -1020,16 +1002,17 @@ iris_resource_create_with_modifiers(struct pipe_screen *pscreen,
       map_aux_addresses(screen, res, res->surf.format, 0);
    }
 
-   if (templ->bind & PIPE_BIND_SHARED)
+   if (templ->bind & PIPE_BIND_SHARED) {
       iris_bo_make_external(res->bo);
+      res->base.is_shared = true;
+   }
 
-   return &res->base;
+   return &res->base.b;
 
 fail:
    fprintf(stderr, "XXX: resource creation failed\n");
-   iris_resource_destroy(pscreen, &res->base);
+   iris_resource_destroy(pscreen, &res->base.b);
    return NULL;
-
 }
 
 static struct pipe_resource *
@@ -1070,17 +1053,18 @@ iris_resource_from_user_memory(struct pipe_screen *pscreen,
    assert(templ->target == PIPE_BUFFER);
 
    res->internal_format = templ->format;
+   res->base.is_user_ptr = true;
    res->bo = iris_bo_create_userptr(bufmgr, "user",
                                     user_memory, templ->width0,
                                     IRIS_MEMZONE_OTHER);
    if (!res->bo) {
-      iris_resource_destroy(pscreen, &res->base);
+      iris_resource_destroy(pscreen, &res->base.b);
       return NULL;
    }
 
-   util_range_add(&res->base, &res->valid_buffer_range, 0, templ->width0);
+   util_range_add(&res->base.b, &res->valid_buffer_range, 0, templ->width0);
 
-   return &res->base;
+   return &res->base.b;
 }
 
 static struct pipe_resource *
@@ -1146,10 +1130,10 @@ iris_resource_from_handle(struct pipe_screen *pscreen,
       res->bo = NULL;
    }
 
-   return &res->base;
+   return &res->base.b;
 
 fail:
-   iris_resource_destroy(pscreen, &res->base);
+   iris_resource_destroy(pscreen, &res->base.b);
    return NULL;
 }
 
@@ -1165,6 +1149,20 @@ iris_flush_resource(struct pipe_context *ctx, struct pipe_resource *resource)
                                 0, INTEL_REMAINING_LAYERS,
                                 mod ? mod->aux_usage : ISL_AUX_USAGE_NONE,
                                 mod ? mod->supports_clear_color : false);
+
+   if (!res->mod_info && res->aux.usage != ISL_AUX_USAGE_NONE) {
+      /* flush_resource may be used to prepare an image for sharing external
+       * to the driver (e.g. via eglCreateImage). To account for this, make
+       * sure to get rid of any compression that a consumer wouldn't know how
+       * to handle.
+       */
+      for (int i = 0; i < IRIS_BATCH_COUNT; i++) {
+         if (iris_batch_references(&ice->batches[i], res->bo))
+            iris_batch_flush(&ice->batches[i]);
+      }
+
+      iris_resource_disable_aux(res);
+   }
 }
 
 static void
@@ -1263,7 +1261,7 @@ iris_resource_get_param(struct pipe_screen *pscreen,
 
 static bool
 iris_resource_get_handle(struct pipe_screen *pscreen,
-                         struct pipe_context *ctx,
+                         struct pipe_context *unused_ctx,
                          struct pipe_resource *resource,
                          struct winsys_handle *whandle,
                          unsigned usage)
@@ -1272,6 +1270,8 @@ iris_resource_get_handle(struct pipe_screen *pscreen,
    struct iris_resource *res = (struct iris_resource *)resource;
    bool mod_with_aux =
       res->mod_info && res->mod_info->aux_usage != ISL_AUX_USAGE_NONE;
+
+   /* if ctx is ever used, do ctx = threaded_context_unwrap_sync(ctx) */
 
    iris_resource_disable_aux_on_first_query(resource, usage);
 
@@ -1338,6 +1338,32 @@ resource_is_busy(struct iris_context *ice,
    return busy;
 }
 
+void
+iris_replace_buffer_storage(struct pipe_context *ctx,
+                            struct pipe_resource *p_dst,
+                            struct pipe_resource *p_src)
+{
+   struct iris_screen *screen = (void *) ctx->screen;
+   struct iris_context *ice = (void *) ctx;
+   struct iris_resource *dst = (void *) p_dst;
+   struct iris_resource *src = (void *) p_src;
+
+   assert(memcmp(&dst->surf, &src->surf, sizeof(dst->surf)) == 0);
+
+   struct iris_bo *old_bo = dst->bo;
+
+   /* Swap out the backing storage */
+   iris_bo_reference(src->bo);
+   dst->bo = src->bo;
+
+   /* Rebind the buffer, replacing any state referring to the old BO's
+    * address, and marking state dirty so it's reemitted.
+    */
+   screen->vtbl.rebind_buffer(ice, dst);
+
+   iris_bo_unreference(old_bo);
+}
+
 static void
 iris_invalidate_resource(struct pipe_context *ctx,
                          struct pipe_resource *resource)
@@ -1365,10 +1391,6 @@ iris_invalidate_resource(struct pipe_context *ctx,
 
    /* We can't reallocate memory we didn't allocate in the first place. */
    if (res->bo->userptr)
-      return;
-
-   // XXX: We should support this.
-   if (res->bind_history & PIPE_BIND_STREAM_OUTPUT)
       return;
 
    struct iris_bo *old_bo = res->bo;
@@ -1432,7 +1454,7 @@ static void
 iris_map_copy_region(struct iris_transfer *map)
 {
    struct pipe_screen *pscreen = &map->batch->screen->base;
-   struct pipe_transfer *xfer = &map->base;
+   struct pipe_transfer *xfer = &map->base.b;
    struct pipe_box *box = &xfer->box;
    struct iris_resource *res = (void *) xfer->resource;
 
@@ -1605,7 +1627,7 @@ s8_offset(uint32_t stride, uint32_t x, uint32_t y)
 static void
 iris_unmap_s8(struct iris_transfer *map)
 {
-   struct pipe_transfer *xfer = &map->base;
+   struct pipe_transfer *xfer = &map->base.b;
    const struct pipe_box *box = &xfer->box;
    struct iris_resource *res = (struct iris_resource *) xfer->resource;
    struct isl_surf *surf = &res->surf;
@@ -1637,7 +1659,7 @@ iris_unmap_s8(struct iris_transfer *map)
 static void
 iris_map_s8(struct iris_transfer *map)
 {
-   struct pipe_transfer *xfer = &map->base;
+   struct pipe_transfer *xfer = &map->base.b;
    const struct pipe_box *box = &xfer->box;
    struct iris_resource *res = (struct iris_resource *) xfer->resource;
    struct isl_surf *surf = &res->surf;
@@ -1709,7 +1731,7 @@ tile_extents(const struct isl_surf *surf,
 static void
 iris_unmap_tiled_memcpy(struct iris_transfer *map)
 {
-   struct pipe_transfer *xfer = &map->base;
+   struct pipe_transfer *xfer = &map->base.b;
    const struct pipe_box *box = &xfer->box;
    struct iris_resource *res = (struct iris_resource *) xfer->resource;
    struct isl_surf *surf = &res->surf;
@@ -1738,7 +1760,7 @@ iris_unmap_tiled_memcpy(struct iris_transfer *map)
 static void
 iris_map_tiled_memcpy(struct iris_transfer *map)
 {
-   struct pipe_transfer *xfer = &map->base;
+   struct pipe_transfer *xfer = &map->base.b;
    const struct pipe_box *box = &xfer->box;
    struct iris_resource *res = (struct iris_resource *) xfer->resource;
    struct isl_surf *surf = &res->surf;
@@ -1783,13 +1805,13 @@ iris_map_tiled_memcpy(struct iris_transfer *map)
 static void
 iris_map_direct(struct iris_transfer *map)
 {
-   struct pipe_transfer *xfer = &map->base;
+   struct pipe_transfer *xfer = &map->base.b;
    struct pipe_box *box = &xfer->box;
    struct iris_resource *res = (struct iris_resource *) xfer->resource;
 
    void *ptr = iris_bo_map(map->dbg, res->bo, xfer->usage & MAP_FLAGS);
 
-   if (res->base.target == PIPE_BUFFER) {
+   if (res->base.b.target == PIPE_BUFFER) {
       xfer->stride = 0;
       xfer->layer_stride = 0;
 
@@ -1819,7 +1841,7 @@ can_promote_to_async(const struct iris_resource *res,
     * initialized with useful data, then we can safely promote this write
     * to be unsynchronized.  This helps the common pattern of appending data.
     */
-   return res->base.target == PIPE_BUFFER && (usage & PIPE_MAP_WRITE) &&
+   return res->base.b.target == PIPE_BUFFER && (usage & PIPE_MAP_WRITE) &&
           !(usage & TC_TRANSFER_MAP_NO_INFER_UNSYNCHRONIZED) &&
           !util_ranges_intersect(&res->valid_buffer_range, box->x,
                                  box->x + box->width);
@@ -1871,11 +1893,17 @@ iris_transfer_map(struct pipe_context *ctx,
        (usage & PIPE_MAP_DIRECTLY))
       return NULL;
 
-   struct iris_transfer *map = slab_alloc(&ice->transfer_pool);
-   struct pipe_transfer *xfer = &map->base;
+   struct iris_transfer *map;
+
+   if (usage & TC_TRANSFER_MAP_THREADED_UNSYNC)
+      map = slab_alloc(&ice->transfer_pool_unsync);
+   else
+      map = slab_alloc(&ice->transfer_pool);
 
    if (!map)
       return NULL;
+
+   struct pipe_transfer *xfer = &map->base.b;
 
    memset(map, 0, sizeof(*map));
    map->dbg = &ice->dbg;
@@ -1891,7 +1919,7 @@ iris_transfer_map(struct pipe_context *ctx,
                             box->x + box->width);
 
    if (usage & PIPE_MAP_WRITE)
-      util_range_add(&res->base, &res->valid_buffer_range, box->x, box->x + box->width);
+      util_range_add(&res->base.b, &res->valid_buffer_range, box->x, box->x + box->width);
 
    /* Avoid using GPU copies for persistent/coherent buffers, as the idea
     * there is to access them simultaneously on the CPU & GPU.  This also
@@ -1976,14 +2004,14 @@ iris_transfer_flush_region(struct pipe_context *ctx,
 
    uint32_t history_flush = 0;
 
-   if (res->base.target == PIPE_BUFFER) {
+   if (res->base.b.target == PIPE_BUFFER) {
       if (map->staging)
          history_flush |= PIPE_CONTROL_RENDER_TARGET_FLUSH;
 
       if (map->dest_had_defined_contents)
          history_flush |= iris_flush_bits_for_history(ice, res);
 
-      util_range_add(&res->base, &res->valid_buffer_range, box->x, box->x + box->width);
+      util_range_add(&res->base.b, &res->valid_buffer_range, box->x, box->x + box->width);
    }
 
    if (history_flush & ~PIPE_CONTROL_CS_STALL) {
@@ -2025,6 +2053,11 @@ iris_transfer_unmap(struct pipe_context *ctx, struct pipe_transfer *xfer)
       map->unmap(map);
 
    pipe_resource_reference(&xfer->resource, NULL);
+
+   /* transfer_unmap is always called from the driver thread, so we have to
+    * use transfer_pool, not transfer_pool_unsync.  Freeing an object into a
+    * different pool is allowed, however.
+    */
    slab_free(&ice->transfer_pool, map);
 }
 
@@ -2162,7 +2195,7 @@ iris_flush_and_dirty_for_history(struct iris_context *ice,
                                  uint32_t extra_flags,
                                  const char *reason)
 {
-   if (res->base.target != PIPE_BUFFER)
+   if (res->base.b.target != PIPE_BUFFER)
       return;
 
    uint32_t flush = iris_flush_bits_for_history(ice, res) | extra_flags;

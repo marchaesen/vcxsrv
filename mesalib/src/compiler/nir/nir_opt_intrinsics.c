@@ -53,20 +53,31 @@ src_is_single_use_shuffle(nir_src src, nir_ssa_def **data, nir_ssa_def **index)
 }
 
 static nir_ssa_def *
-try_opt_bcsel_of_shuffle(nir_builder *b, nir_alu_instr *alu)
+try_opt_bcsel_of_shuffle(nir_builder *b, nir_alu_instr *alu,
+                         bool block_has_discard)
 {
    assert(alu->op == nir_op_bcsel);
+
+   /* If we've seen a discard in this block, don't do the optimization.  We
+    * could try to do something fancy where we check if the shuffle is on our
+    * side of the discard or not but this is good enough for correctness for
+    * now and subgroup ops in the presence of discard aren't common.
+    */
+   if (block_has_discard)
+      return false;
 
    if (!nir_alu_src_is_trivial_ssa(alu, 0))
       return NULL;
 
    nir_ssa_def *data1, *index1;
    if (!nir_alu_src_is_trivial_ssa(alu, 1) ||
+       alu->src[1].src.ssa->parent_instr->block != alu->instr.block ||
        !src_is_single_use_shuffle(alu->src[1].src, &data1, &index1))
       return NULL;
 
    nir_ssa_def *data2, *index2;
    if (!nir_alu_src_is_trivial_ssa(alu, 2) ||
+       alu->src[2].src.ssa->parent_instr->block != alu->instr.block ||
        !src_is_single_use_shuffle(alu->src[2].src, &data2, &index2))
       return NULL;
 
@@ -74,27 +85,20 @@ try_opt_bcsel_of_shuffle(nir_builder *b, nir_alu_instr *alu)
       return NULL;
 
    nir_ssa_def *index = nir_bcsel(b, alu->src[0].src.ssa, index1, index2);
-   nir_intrinsic_instr *shuffle =
-      nir_intrinsic_instr_create(b->shader, nir_intrinsic_shuffle);
-   shuffle->src[0] = nir_src_for_ssa(index);
-   shuffle->src[1] = nir_src_for_ssa(data1);
-   shuffle->num_components = alu->dest.dest.ssa.num_components;
-   nir_ssa_dest_init(&shuffle->instr, &shuffle->dest,
-                     alu->dest.dest.ssa.num_components,
-                     alu->dest.dest.ssa.bit_size, NULL);
-   nir_builder_instr_insert(b, &shuffle->instr);
+   nir_ssa_def *shuffle = nir_shuffle(b, data1, index);
 
-   return &shuffle->dest.ssa;
+   return shuffle;
 }
 
 static bool
-opt_intrinsics_alu(nir_builder *b, nir_alu_instr *alu)
+opt_intrinsics_alu(nir_builder *b, nir_alu_instr *alu,
+                   bool block_has_discard)
 {
    nir_ssa_def *replacement = NULL;
 
    switch (alu->op) {
    case nir_op_bcsel:
-      replacement = try_opt_bcsel_of_shuffle(b, alu);
+      replacement = try_opt_bcsel_of_shuffle(b, alu, block_has_discard);
       break;
 
    default:
@@ -103,7 +107,7 @@ opt_intrinsics_alu(nir_builder *b, nir_alu_instr *alu)
 
    if (replacement) {
       nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa,
-                               nir_src_for_ssa(replacement));
+                               replacement);
       nir_instr_remove(&alu->instr);
       return true;
    } else {
@@ -145,7 +149,7 @@ opt_intrinsics_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
                   new_expr = nir_inot(b, new_expr);
 
                nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa,
-                                        nir_src_for_ssa(new_expr));
+                                        new_expr);
                nir_instr_remove(&alu->instr);
                progress = true;
             }
@@ -168,20 +172,32 @@ opt_intrinsics_impl(nir_function_impl *impl,
    bool progress = false;
 
    nir_foreach_block(block, impl) {
+      bool block_has_discard = false;
+
       nir_foreach_instr_safe(instr, block) {
          b.cursor = nir_before_instr(instr);
 
          switch (instr->type) {
          case nir_instr_type_alu:
-            if (opt_intrinsics_alu(&b, nir_instr_as_alu(instr)))
+            if (opt_intrinsics_alu(&b, nir_instr_as_alu(instr),
+                                   block_has_discard))
                progress = true;
             break;
 
-         case nir_instr_type_intrinsic:
-            if (opt_intrinsics_intrin(&b, nir_instr_as_intrinsic(instr),
-                                      options))
+         case nir_instr_type_intrinsic: {
+            nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+            if (intrin->intrinsic == nir_intrinsic_discard ||
+                intrin->intrinsic == nir_intrinsic_discard_if ||
+                intrin->intrinsic == nir_intrinsic_demote ||
+                intrin->intrinsic == nir_intrinsic_demote_if ||
+                intrin->intrinsic == nir_intrinsic_terminate ||
+                intrin->intrinsic == nir_intrinsic_terminate_if)
+               block_has_discard = true;
+
+            if (opt_intrinsics_intrin(&b, intrin, options))
                progress = true;
             break;
+         }
 
          default:
             break;

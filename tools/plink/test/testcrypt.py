@@ -90,7 +90,7 @@ method_prefixes = {
     'val_mpoint': 'ecc_montgomery_',
     'val_epoint': 'ecc_edwards_',
     'val_hash': 'ssh_hash_',
-    'val_mac': 'ssh_mac_',
+    'val_mac': 'ssh2_mac_',
     'val_key': 'ssh_key_',
     'val_cipher': 'ssh_cipher_',
     'val_dh': 'dh_',
@@ -177,7 +177,8 @@ def make_argword(arg, argtype, fnname, argindex, to_preserve):
         return "true" if arg else "false"
     if typename in {
             "hashalg", "macalg", "keyalg", "cipheralg",
-            "dh_group", "ecdh_alg", "rsaorder", "primegenpolicy"}:
+            "dh_group", "ecdh_alg", "rsaorder", "primegenpolicy",
+            "argon2flavour", "fptype"}:
         arg = coerce_to_bytes(arg)
         if isinstance(arg, bytes) and b" " not in arg:
             return arg

@@ -58,10 +58,6 @@ endif
 x11_bin = executable('X11.bin',
      [
       'bundle-main.c',
-      # strndup(3) was added in Mac OS X 10.7 (Lion), but we do this
-      # unconditionally to deal with the case where we build on 10.7 or later,
-      # but target 10.6 (Snow Leopard) or earlier as the minimum OS version.
-      '../../../os/strndup.c',
       mach_startup[1], # mach_startupServer.c
       mach_startup[3], # mach_startupUser.c
      ],

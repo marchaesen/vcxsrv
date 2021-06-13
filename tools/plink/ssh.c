@@ -691,6 +691,19 @@ static bool ssh_test_for_upstream(const char *host, int port, Conf *conf)
     return ret;
 }
 
+static char *ssh_close_warn_text(Backend *be)
+{
+    Ssh *ssh = container_of(be, Ssh, backend);
+    if (!ssh->connshare)
+        return NULL;
+    int ndowns = share_ndownstreams(ssh->connshare);
+    if (ndowns == 0)
+        return NULL;
+    char *msg = dupprintf("This will also close %d downstream connection%s.",
+                          ndowns, ndowns==1 ? "" : "s");
+    return msg;
+}
+
 static const PlugVtable Ssh_plugvt = {
     .log = ssh_socket_log,
     .closing = ssh_closing,
@@ -865,6 +878,13 @@ bool ssh_is_bare(Ssh *ssh)
     return ssh->backend.vt->protocol == PROT_SSHCONN;
 }
 
+/* Dummy connlayer must provide ssh_sharing_no_more_downstreams,
+ * because it might be called early due to plink -shareexists */
+static void dummy_sharing_no_more_downstreams(ConnectionLayer *cl) {}
+static const ConnectionLayerVtable dummy_connlayer_vtable = {
+    .sharing_no_more_downstreams = dummy_sharing_no_more_downstreams,
+};
+
 /*
  * Called to set up the connection.
  *
@@ -900,6 +920,7 @@ static char *ssh_init(const BackendVtable *vt, Seat *seat,
     ssh->bare_connection = (vt->protocol == PROT_SSHCONN);
 
     ssh->seat = seat;
+    ssh->cl_dummy.vt = &dummy_connlayer_vtable;
     ssh->cl_dummy.logctx = ssh->logctx = logctx;
 
     random_ref(); /* do this now - may be needed by sharing setup code */
@@ -1196,6 +1217,7 @@ const BackendVtable ssh_backend = {
     .unthrottle = ssh_unthrottle,
     .cfg_info = ssh_cfg_info,
     .test_for_upstream = ssh_test_for_upstream,
+    .close_warn_text = ssh_close_warn_text,
     .id = "ssh",
     .displayname = "SSH",
     .protocol = PROT_SSH,
@@ -1219,6 +1241,7 @@ const BackendVtable sshconn_backend = {
     .unthrottle = ssh_unthrottle,
     .cfg_info = ssh_cfg_info,
     .test_for_upstream = ssh_test_for_upstream,
+    .close_warn_text = ssh_close_warn_text,
     .id = "ssh-connection",
     .displayname = "Bare ssh-connection",
     .protocol = PROT_SSHCONN,

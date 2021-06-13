@@ -134,7 +134,7 @@ update_array_sizes(struct gl_shader_program *prog, nir_variable *var,
          _mesa_hash_table_search(referenced_uniforms[stage], var->name);
       if (entry) {
          ainfo = (struct uniform_array_info *)  entry->data;
-         max_array_size = MAX2(BITSET_LAST_BIT(ainfo->indices, words),
+         max_array_size = MAX2(BITSET_LAST_BIT_SIZED(ainfo->indices, words),
                                max_array_size);
       }
 
@@ -1651,8 +1651,8 @@ gl_nir_link_uniforms(struct gl_context *ctx,
 
          int location = var->data.location;
 
-         struct gl_uniform_block *blocks;
-         int num_blocks;
+         struct gl_uniform_block *blocks = NULL;
+         int num_blocks = 0;
          int buffer_block_index = -1;
          if (!prog->data->spirv && state.var_is_in_block) {
             /* If the uniform is inside a uniform block determine its block index by
@@ -1729,7 +1729,7 @@ gl_nir_link_uniforms(struct gl_context *ctx,
             }
          }
 
-         if (!prog->data->spirv && state.var_is_in_block) {
+         if (blocks && !prog->data->spirv && state.var_is_in_block) {
             if (glsl_without_array(state.current_var->type) != state.current_var->interface_type) {
                /* this is nested at some offset inside the block */
                bool found = false;

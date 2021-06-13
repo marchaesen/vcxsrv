@@ -50,6 +50,7 @@ struct hud_context {
    /* Context where the HUD is drawn: */
    struct pipe_context *pipe;
    struct cso_context *cso;
+   struct st_context_iface *st;
 
    struct hud_batch_query_context *batch_query;
    struct list_head pane_list;

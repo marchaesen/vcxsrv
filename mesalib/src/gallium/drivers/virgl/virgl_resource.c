@@ -460,7 +460,7 @@ static void virgl_resource_layout(struct pipe_resource *pt,
                                   uint32_t plane,
                                   uint32_t winsys_stride,
                                   uint32_t plane_offset,
-                                  uint32_t modifier)
+                                  uint64_t modifier)
 {
    unsigned level, nblocksy;
    unsigned width = pt->width0;
@@ -580,6 +580,49 @@ static struct pipe_resource *virgl_resource_from_handle(struct pipe_screen *scre
    if (!res->hw_res) {
       FREE(res);
       return NULL;
+   }
+
+   /* assign blob resource a type in case it was created untyped */
+   if (res->blob_mem && plane == 0 &&
+       (vs->caps.caps.v2.capability_bits_v2 & VIRGL_CAP_V2_UNTYPED_RESOURCE)) {
+      uint32_t plane_strides[VIRGL_MAX_PLANE_COUNT];
+      uint32_t plane_offsets[VIRGL_MAX_PLANE_COUNT];
+      uint32_t plane_count = 0;
+      struct pipe_resource *iter = &res->u.b;
+
+      do {
+         struct virgl_resource *plane = virgl_resource(iter);
+
+         /* must be a plain 2D texture sharing the same hw_res */
+         if (plane->u.b.target != PIPE_TEXTURE_2D ||
+             plane->u.b.depth0 != 1 ||
+             plane->u.b.array_size != 1 ||
+             plane->u.b.last_level != 0 ||
+             plane->u.b.nr_samples > 1 ||
+             plane->hw_res != res->hw_res ||
+             plane_count >= VIRGL_MAX_PLANE_COUNT) {
+            vs->vws->resource_reference(vs->vws, &res->hw_res, NULL);
+            FREE(res);
+            return NULL;
+         }
+
+         plane_strides[plane_count] = plane->metadata.stride[0];
+         plane_offsets[plane_count] = plane->metadata.plane_offset;
+         plane_count++;
+         iter = iter->next;
+      } while (iter);
+
+      vs->vws->resource_set_type(vs->vws,
+                                 res->hw_res,
+                                 pipe_to_virgl_format(res->u.b.format),
+                                 pipe_to_virgl_bind(vs, res->u.b.bind),
+                                 res->u.b.width0,
+                                 res->u.b.height0,
+                                 usage,
+                                 res->metadata.modifier,
+                                 plane_count,
+                                 plane_strides,
+                                 plane_offsets);
    }
 
    virgl_texture_init(res);

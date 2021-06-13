@@ -127,6 +127,8 @@ public:
 
    uint32_t sel() const override;
 
+   uint32_t mask() const { return m_component_mask; };
+
    size_t size() const {return m_values.size();}
 
    PValue get_indirect(unsigned index, PValue indirect, unsigned component);

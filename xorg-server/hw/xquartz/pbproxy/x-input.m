@@ -89,14 +89,7 @@ x_event_apple_wm_notify(XAppleWMNotifyEvent *e)
 static void
 xpbproxy_process_xevents(void)
 {
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-
-    if (pool == nil) {
-        ErrorF("unable to allocate/init auto release pool!\n");
-        return;
-    }
-
-    while (XPending(xpbproxy_dpy) != 0) {
+    while (XPending(xpbproxy_dpy) != 0) { @autoreleasepool {
         XEvent e;
 
         XNextEvent(xpbproxy_dpy, &e);
@@ -134,9 +127,7 @@ xpbproxy_process_xevents(void)
         }
 
         XFlush(xpbproxy_dpy);
-    }
-
-    [pool release];
+    }}
 }
 
 static BOOL

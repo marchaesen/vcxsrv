@@ -40,7 +40,8 @@ subdir('ramdac')
 subdir('xkb')
 
 srcs_xorg = [
-    '../../mi/miinitext.c'
+    '../../mi/miinitext.c',
+    '../../mi/miinitext.h',
 ]
 
 # Extract all the objects so that all symbols get brought into the
@@ -137,6 +138,12 @@ if get_option('xf86-input-inputtest')
     subdir('drivers/inputtest')
 endif
 
+meson.add_install_script(
+    'sh', '-c',
+    'ln -fs Xorg @0@@1@'.format(
+        '${DESTDIR}',
+        join_paths(get_option('prefix'), get_option('bindir'), 'X')))
+
 if get_option('suid_wrapper')
     executable('Xorg.wrap',
         'xorg-wrapper.c',
@@ -145,13 +152,22 @@ if get_option('suid_wrapper')
         c_args: xorg_c_args,
         install: true,
         install_dir: get_option('libexecdir'),
-        # install_mode: ['r-sr-xr-x', 0, 0],
+        install_mode: ['r-sr-xr-x', 0, 0],
     )
-    configure_file(
+
+    # meson gets confused when there are two targets of the same name
+    # within the same directory, so we use a different intermediate name.
+    xorg_sh = configure_file(
         input: 'Xorg.sh.in',
-        output: 'Xorg',
+        output: 'Xorg.sh',
         configuration: conf_data,
+    )
+
+    install_data(
+        xorg_sh,
+        install_mode: 'rwxr-xr-x',
         install_dir: join_paths(get_option('prefix'), get_option('bindir')),
+        rename: ['Xorg']
     )
 endif
 

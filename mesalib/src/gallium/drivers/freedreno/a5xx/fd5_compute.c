@@ -32,50 +32,13 @@
 #include "fd5_context.h"
 #include "fd5_emit.h"
 
-struct fd5_compute_stateobj {
-	struct ir3_shader *shader;
-};
-
-
-static void *
-fd5_create_compute_state(struct pipe_context *pctx,
-		const struct pipe_compute_state *cso)
-{
-	struct fd_context *ctx = fd_context(pctx);
-
-	/* req_input_mem will only be non-zero for cl kernels (ie. clover).
-	 * This isn't a perfect test because I guess it is possible (but
-	 * uncommon) for none for the kernel parameters to be a global,
-	 * but ctx->set_global_bindings() can't fail, so this is the next
-	 * best place to fail if we need a newer version of kernel driver:
-	 */
-	if ((cso->req_input_mem > 0) &&
-			fd_device_version(ctx->dev) < FD_VERSION_BO_IOVA) {
-		return NULL;
-	}
-
-	struct ir3_compiler *compiler = ctx->screen->compiler;
-	struct fd5_compute_stateobj *so = CALLOC_STRUCT(fd5_compute_stateobj);
-	so->shader = ir3_shader_create_compute(compiler, cso, &ctx->debug, pctx->screen);
-	return so;
-}
-
-static void
-fd5_delete_compute_state(struct pipe_context *pctx, void *hwcso)
-{
-	struct fd5_compute_stateobj *so = hwcso;
-	ir3_shader_state_delete(pctx, so->shader);
-	free(so);
-}
 
 /* maybe move to fd5_program? */
 static void
-cs_program_emit(struct fd_ringbuffer *ring, struct ir3_shader_variant *v,
-		const struct pipe_grid_info *info)
+cs_program_emit(struct fd_ringbuffer *ring, struct ir3_shader_variant *v)
 {
-	const unsigned *local_size = info->block;
 	const struct ir3_info *i = &v->info;
-	enum a3xx_threadsize thrsz;
+	enum a3xx_threadsize thrsz = i->double_threadsize ? FOUR_QUADS : TWO_QUADS;
 	unsigned instrlen = v->instrlen;
 
 	/* if shader is more than 32*16 instructions, don't preload it.  Similar
@@ -83,15 +46,6 @@ cs_program_emit(struct fd_ringbuffer *ring, struct ir3_shader_variant *v,
 	 */
 	if (instrlen > 32)
 		instrlen = 0;
-
-	/* maybe the limit should be 1024.. basically if we can't have full
-	 * occupancy, use TWO_QUAD mode to reduce divergence penalty.
-	 */
-	if ((local_size[0] * local_size[1] * local_size[2]) < 512) {
-		thrsz = TWO_QUADS;
-	} else {
-		thrsz = FOUR_QUADS;
-	}
 
 	OUT_PKT4(ring, REG_A5XX_SP_SP_CNTL, 1);
 	OUT_RING(ring, 0x00000000);        /* SP_SP_CNTL */
@@ -151,24 +105,24 @@ cs_program_emit(struct fd_ringbuffer *ring, struct ir3_shader_variant *v,
 
 static void
 fd5_launch_grid(struct fd_context *ctx, const struct pipe_grid_info *info)
+	assert_dt
 {
-	struct fd5_compute_stateobj *so = ctx->compute;
 	struct ir3_shader_key key = {};
 	struct ir3_shader_variant *v;
 	struct fd_ringbuffer *ring = ctx->batch->draw;
 	unsigned nglobal = 0;
 
-	v = ir3_shader_variant(so->shader, key, false, &ctx->debug);
+	v = ir3_shader_variant(ir3_get_shader(ctx->compute), key, false, &ctx->debug);
 	if (!v)
 		return;
 
 	if (ctx->dirty_shader[PIPE_SHADER_COMPUTE] & FD_DIRTY_SHADER_PROG)
-		cs_program_emit(ring, v, info);
+		cs_program_emit(ring, v);
 
 	fd5_emit_cs_state(ctx, ring, v);
 	fd5_emit_cs_consts(v, ring, ctx, info);
 
-	foreach_bit(i, ctx->global_bindings.enabled_mask)
+	u_foreach_bit(i, ctx->global_bindings.enabled_mask)
 		nglobal++;
 
 	if (nglobal > 0) {
@@ -179,7 +133,7 @@ fd5_launch_grid(struct fd_context *ctx, const struct pipe_grid_info *info)
 		 * payload:
 		 */
 		OUT_PKT7(ring, CP_NOP, 2 * nglobal);
-		foreach_bit(i, ctx->global_bindings.enabled_mask) {
+		u_foreach_bit(i, ctx->global_bindings.enabled_mask) {
 			struct pipe_resource *prsc = ctx->global_bindings.buf[i];
 			OUT_RELOC(ring, fd_resource(prsc)->bo, 0, 0, 0);
 		}
@@ -228,9 +182,10 @@ fd5_launch_grid(struct fd_context *ctx, const struct pipe_grid_info *info)
 
 void
 fd5_compute_init(struct pipe_context *pctx)
+	disable_thread_safety_analysis
 {
 	struct fd_context *ctx = fd_context(pctx);
 	ctx->launch_grid = fd5_launch_grid;
-	pctx->create_compute_state = fd5_create_compute_state;
-	pctx->delete_compute_state = fd5_delete_compute_state;
+	pctx->create_compute_state = ir3_shader_compute_state_create;
+	pctx->delete_compute_state = ir3_shader_state_delete;
 }

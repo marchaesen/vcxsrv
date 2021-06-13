@@ -24,6 +24,7 @@
 
 #include "si_pipe.h"
 #include "sid.h"
+#include "si_build_pm4.h"
 
 /* Set this if you want the ME to wait until CP DMA is done.
  * It should be set on the last CP DMA packet. */
@@ -102,6 +103,8 @@ static void si_emit_cp_dma(struct si_context *sctx, struct radeon_cmdbuf *cs, ui
          S_411_SRC_SEL(V_411_SRC_ADDR_TC_L2) | S_500_SRC_CACHE_POLICY(cache_policy == L2_STREAM);
    }
 
+   radeon_begin(cs);
+
    if (sctx->chip_class >= GFX7) {
       radeon_emit(cs, PKT3(PKT3_DMA_DATA, 5, 0));
       radeon_emit(cs, header);
@@ -130,9 +133,10 @@ static void si_emit_cp_dma(struct si_context *sctx, struct radeon_cmdbuf *cs, ui
       radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
       radeon_emit(cs, 0);
    }
+   radeon_end();
 }
 
-void si_cp_dma_wait_for_idle(struct si_context *sctx)
+void si_cp_dma_wait_for_idle(struct si_context *sctx, struct radeon_cmdbuf *cs)
 {
    /* Issue a dummy DMA that copies zero bytes.
     *
@@ -140,7 +144,7 @@ void si_cp_dma_wait_for_idle(struct si_context *sctx)
     * DMA request, however, the CP will see the sync flag and still wait
     * for all DMAs to complete.
     */
-   si_emit_cp_dma(sctx, &sctx->gfx_cs, 0, 0, 0, CP_DMA_SYNC, L2_BYPASS);
+   si_emit_cp_dma(sctx, cs, 0, 0, 0, CP_DMA_SYNC, L2_BYPASS);
 }
 
 static void si_cp_dma_prepare(struct si_context *sctx, struct pipe_resource *dst,
@@ -179,7 +183,7 @@ static void si_cp_dma_prepare(struct si_context *sctx, struct pipe_resource *dst
     * Also wait for the previous CP DMA operations.
     */
    if (!(user_flags & SI_CPDMA_SKIP_GFX_SYNC) && sctx->flags)
-      sctx->emit_cache_flush(sctx);
+      sctx->emit_cache_flush(sctx, &sctx->gfx_cs);
 
    if (!(user_flags & SI_CPDMA_SKIP_SYNC_BEFORE) && *is_first && !(*packet_flags & CP_DMA_CLEAR))
       *packet_flags |= CP_DMA_RAW_WAIT;
@@ -399,132 +403,44 @@ void si_cp_dma_copy_buffer(struct si_context *sctx, struct pipe_resource *dst,
    }
 }
 
-void cik_prefetch_TC_L2_async(struct si_context *sctx, struct pipe_resource *buf, uint64_t offset,
-                              unsigned size)
+void si_cp_dma_prefetch(struct si_context *sctx, struct pipe_resource *buf,
+                        unsigned offset, unsigned size)
 {
+   uint64_t address = si_resource(buf)->gpu_address + offset;
+
    assert(sctx->chip_class >= GFX7);
 
-   si_cp_dma_copy_buffer(sctx, buf, buf, offset, offset, size, SI_CPDMA_SKIP_ALL,
-                         SI_COHERENCY_SHADER, L2_LRU);
-}
+   /* The prefetch address and size must be aligned, so that we don't have to apply
+    * the complicated hw bug workaround.
+    *
+    * The size should also be less than 2 MB, so that we don't have to use a loop.
+    * Callers shouldn't need to prefetch more than 2 MB.
+    */
+   assert(size % SI_CPDMA_ALIGNMENT == 0);
+   assert(address % SI_CPDMA_ALIGNMENT == 0);
+   assert(size < S_414_BYTE_COUNT_GFX6(~0u));
 
-static void cik_prefetch_shader_async(struct si_context *sctx, struct si_pm4_state *state)
-{
-   struct pipe_resource *bo = &state->shader->bo->b.b;
+   uint32_t header = S_411_SRC_SEL(V_411_SRC_ADDR_TC_L2);
+   uint32_t command = S_414_BYTE_COUNT_GFX6(size);
 
-   cik_prefetch_TC_L2_async(sctx, bo, 0, bo->width0);
-}
-
-static void cik_prefetch_VBO_descriptors(struct si_context *sctx)
-{
-   if (!sctx->vertex_elements || !sctx->vertex_elements->vb_desc_list_alloc_size)
-      return;
-
-   cik_prefetch_TC_L2_async(sctx, &sctx->vb_descriptors_buffer->b.b, sctx->vb_descriptors_offset,
-                            sctx->vertex_elements->vb_desc_list_alloc_size);
-}
-
-/**
- * Prefetch shaders and VBO descriptors.
- *
- * \param vertex_stage_only  Whether only the the API VS and VBO descriptors
- *                           should be prefetched.
- */
-void cik_emit_prefetch_L2(struct si_context *sctx, bool vertex_stage_only)
-{
-   unsigned mask = sctx->prefetch_L2_mask;
-   assert(mask);
-
-   /* Prefetch shaders and VBO descriptors to TC L2. */
    if (sctx->chip_class >= GFX9) {
-      /* Choose the right spot for the VBO prefetch. */
-      if (sctx->queued.named.hs) {
-         if (mask & SI_PREFETCH_HS)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.hs);
-         if (mask & SI_PREFETCH_VBO_DESCRIPTORS)
-            cik_prefetch_VBO_descriptors(sctx);
-         if (vertex_stage_only) {
-            sctx->prefetch_L2_mask &= ~(SI_PREFETCH_HS | SI_PREFETCH_VBO_DESCRIPTORS);
-            return;
-         }
-
-         if (mask & SI_PREFETCH_GS)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.gs);
-         if (mask & SI_PREFETCH_VS)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.vs);
-      } else if (sctx->queued.named.gs) {
-         if (mask & SI_PREFETCH_GS)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.gs);
-         if (mask & SI_PREFETCH_VBO_DESCRIPTORS)
-            cik_prefetch_VBO_descriptors(sctx);
-         if (vertex_stage_only) {
-            sctx->prefetch_L2_mask &= ~(SI_PREFETCH_GS | SI_PREFETCH_VBO_DESCRIPTORS);
-            return;
-         }
-
-         if (mask & SI_PREFETCH_VS)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.vs);
-      } else {
-         if (mask & SI_PREFETCH_VS)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.vs);
-         if (mask & SI_PREFETCH_VBO_DESCRIPTORS)
-            cik_prefetch_VBO_descriptors(sctx);
-         if (vertex_stage_only) {
-            sctx->prefetch_L2_mask &= ~(SI_PREFETCH_VS | SI_PREFETCH_VBO_DESCRIPTORS);
-            return;
-         }
-      }
+      command |= S_414_DISABLE_WR_CONFIRM_GFX9(1);
+      header |= S_411_DST_SEL(V_411_NOWHERE);
    } else {
-      /* GFX6-GFX8 */
-      /* Choose the right spot for the VBO prefetch. */
-      if (sctx->tes_shader.cso) {
-         if (mask & SI_PREFETCH_LS)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.ls);
-         if (mask & SI_PREFETCH_VBO_DESCRIPTORS)
-            cik_prefetch_VBO_descriptors(sctx);
-         if (vertex_stage_only) {
-            sctx->prefetch_L2_mask &= ~(SI_PREFETCH_LS | SI_PREFETCH_VBO_DESCRIPTORS);
-            return;
-         }
-
-         if (mask & SI_PREFETCH_HS)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.hs);
-         if (mask & SI_PREFETCH_ES)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.es);
-         if (mask & SI_PREFETCH_GS)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.gs);
-         if (mask & SI_PREFETCH_VS)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.vs);
-      } else if (sctx->gs_shader.cso) {
-         if (mask & SI_PREFETCH_ES)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.es);
-         if (mask & SI_PREFETCH_VBO_DESCRIPTORS)
-            cik_prefetch_VBO_descriptors(sctx);
-         if (vertex_stage_only) {
-            sctx->prefetch_L2_mask &= ~(SI_PREFETCH_ES | SI_PREFETCH_VBO_DESCRIPTORS);
-            return;
-         }
-
-         if (mask & SI_PREFETCH_GS)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.gs);
-         if (mask & SI_PREFETCH_VS)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.vs);
-      } else {
-         if (mask & SI_PREFETCH_VS)
-            cik_prefetch_shader_async(sctx, sctx->queued.named.vs);
-         if (mask & SI_PREFETCH_VBO_DESCRIPTORS)
-            cik_prefetch_VBO_descriptors(sctx);
-         if (vertex_stage_only) {
-            sctx->prefetch_L2_mask &= ~(SI_PREFETCH_VS | SI_PREFETCH_VBO_DESCRIPTORS);
-            return;
-         }
-      }
+      command |= S_414_DISABLE_WR_CONFIRM_GFX6(1);
+      header |= S_411_DST_SEL(V_411_DST_ADDR_TC_L2);
    }
 
-   if (mask & SI_PREFETCH_PS)
-      cik_prefetch_shader_async(sctx, sctx->queued.named.ps);
-
-   sctx->prefetch_L2_mask = 0;
+   struct radeon_cmdbuf *cs = &sctx->gfx_cs;
+   radeon_begin(cs);
+   radeon_emit(cs, PKT3(PKT3_DMA_DATA, 5, 0));
+   radeon_emit(cs, header);
+   radeon_emit(cs, address);       /* SRC_ADDR_LO [31:0] */
+   radeon_emit(cs, address >> 32); /* SRC_ADDR_HI [31:0] */
+   radeon_emit(cs, address);       /* DST_ADDR_LO [31:0] */
+   radeon_emit(cs, address >> 32); /* DST_ADDR_HI [31:0] */
+   radeon_emit(cs, command);
+   radeon_end();
 }
 
 void si_test_gds(struct si_context *sctx)
@@ -585,11 +501,13 @@ void si_cp_write_data(struct si_context *sctx, struct si_resource *buf, unsigned
    radeon_add_to_buffer_list(sctx, cs, buf, RADEON_USAGE_WRITE, RADEON_PRIO_CP_DMA);
    uint64_t va = buf->gpu_address + offset;
 
+   radeon_begin(cs);
    radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 2 + size / 4, 0));
    radeon_emit(cs, S_370_DST_SEL(dst_sel) | S_370_WR_CONFIRM(1) | S_370_ENGINE_SEL(engine));
    radeon_emit(cs, va);
    radeon_emit(cs, va >> 32);
    radeon_emit_array(cs, (const uint32_t *)data, size / 4);
+   radeon_end();
 }
 
 void si_cp_copy_data(struct si_context *sctx, struct radeon_cmdbuf *cs, unsigned dst_sel,
@@ -607,10 +525,12 @@ void si_cp_copy_data(struct si_context *sctx, struct radeon_cmdbuf *cs, unsigned
    uint64_t dst_va = (dst ? dst->gpu_address : 0ull) + dst_offset;
    uint64_t src_va = (src ? src->gpu_address : 0ull) + src_offset;
 
+   radeon_begin(cs);
    radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
    radeon_emit(cs, COPY_DATA_SRC_SEL(src_sel) | COPY_DATA_DST_SEL(dst_sel) | COPY_DATA_WR_CONFIRM);
    radeon_emit(cs, src_va);
    radeon_emit(cs, src_va >> 32);
    radeon_emit(cs, dst_va);
    radeon_emit(cs, dst_va >> 32);
+   radeon_end();
 }

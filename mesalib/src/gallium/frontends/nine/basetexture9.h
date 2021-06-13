@@ -42,10 +42,13 @@ struct NineBaseTexture9
     int16_t bind_count; /* to Device9->state.texture */
 
     boolean shadow;
+    boolean fetch4_compatible;
     uint8_t pstype; /* 0: 2D, 1: 1D, 2: CUBE, 3: 3D */
 
     boolean dirty_mip;
     D3DTEXTUREFILTERTYPE mipfilter;
+
+    unsigned level_count;
 
     /* Specific to managed textures */
     struct {

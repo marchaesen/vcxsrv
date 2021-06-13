@@ -1,0 +1,4 @@
+dEQP-GLES31.functional.geometry_shading.query.primitives_generated_amplification,Fail
+dEQP-GLES31.functional.geometry_shading.query.primitives_generated_instanced,Fail
+dEQP-GLES31.functional.geometry_shading.query.primitives_generated_no_amplification,Fail
+dEQP-GLES31.functional.geometry_shading.query.primitives_generated_partial_primitives,Fail

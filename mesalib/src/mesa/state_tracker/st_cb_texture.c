@@ -382,28 +382,72 @@ st_UnmapTextureImage(struct gl_context *ctx,
       assert(z == transfer->box.z);
 
       if (transfer->usage & PIPE_MAP_WRITE) {
-         if (texImage->TexFormat == MESA_FORMAT_ETC1_RGB8) {
-            _mesa_etc1_unpack_rgba8888(itransfer->map, transfer->stride,
-                                       itransfer->temp_data,
-                                       itransfer->temp_stride,
+         if (util_format_is_compressed(stImage->pt->format)) {
+            /* Transcode into a different compressed format. */
+            unsigned size =
+               _mesa_format_image_size(PIPE_FORMAT_R8G8B8A8_UNORM,
                                        transfer->box.width,
-                                       transfer->box.height);
-         } else if (_mesa_is_format_etc2(texImage->TexFormat)) {
-            bool bgra = stImage->pt->format == PIPE_FORMAT_B8G8R8A8_SRGB;
-            _mesa_unpack_etc2_format(itransfer->map, transfer->stride,
-                                     itransfer->temp_data,
-                                     itransfer->temp_stride,
-                                     transfer->box.width, transfer->box.height,
-                                     texImage->TexFormat,
-                                     bgra);
-         } else if (_mesa_is_format_astc_2d(texImage->TexFormat)) {
-            _mesa_unpack_astc_2d_ldr(itransfer->map, transfer->stride,
-                                     itransfer->temp_data,
-                                     itransfer->temp_stride,
-                                     transfer->box.width, transfer->box.height,
-                                     texImage->TexFormat);
+                                       transfer->box.height, 1);
+            void *tmp = malloc(size);
+
+            /* Decompress to tmp. */
+            if (texImage->TexFormat == MESA_FORMAT_ETC1_RGB8) {
+               _mesa_etc1_unpack_rgba8888(tmp, transfer->box.width * 4,
+                                          itransfer->temp_data,
+                                          itransfer->temp_stride,
+                                          transfer->box.width,
+                                          transfer->box.height);
+            } else if (_mesa_is_format_etc2(texImage->TexFormat)) {
+               bool bgra = stImage->pt->format == PIPE_FORMAT_B8G8R8A8_SRGB;
+
+               _mesa_unpack_etc2_format(tmp, transfer->box.width * 4,
+                                        itransfer->temp_data,
+                                        itransfer->temp_stride,
+                                        transfer->box.width,
+                                        transfer->box.height,
+                                        texImage->TexFormat,
+                                        bgra);
+            } else {
+               /* TODO: We could transcode ASTC too. */
+               unreachable("unexpected format for a compressed format fallback");
+            }
+
+            /* Compress it to the target format. */
+            struct gl_pixelstore_attrib pack = {0};
+            pack.Alignment = 4;
+
+            _mesa_texstore(ctx, 2, GL_RGBA, stImage->pt->format,
+                           transfer->stride, &itransfer->map,
+                           transfer->box.width,
+                           transfer->box.height, 1, GL_RGBA,
+                           GL_UNSIGNED_BYTE, tmp, &pack);
+            free(tmp);
          } else {
-            unreachable("unexpected format for a compressed format fallback");
+            /* Decompress into an uncompressed format. */
+            if (texImage->TexFormat == MESA_FORMAT_ETC1_RGB8) {
+               _mesa_etc1_unpack_rgba8888(itransfer->map, transfer->stride,
+                                          itransfer->temp_data,
+                                          itransfer->temp_stride,
+                                          transfer->box.width,
+                                          transfer->box.height);
+            } else if (_mesa_is_format_etc2(texImage->TexFormat)) {
+               bool bgra = stImage->pt->format == PIPE_FORMAT_B8G8R8A8_SRGB;
+
+               _mesa_unpack_etc2_format(itransfer->map, transfer->stride,
+                                        itransfer->temp_data,
+                                        itransfer->temp_stride,
+                                        transfer->box.width, transfer->box.height,
+                                        texImage->TexFormat,
+                                        bgra);
+            } else if (_mesa_is_format_astc_2d(texImage->TexFormat)) {
+               _mesa_unpack_astc_2d_ldr(itransfer->map, transfer->stride,
+                                        itransfer->temp_data,
+                                        itransfer->temp_stride,
+                                        transfer->box.width, transfer->box.height,
+                                        texImage->TexFormat);
+            } else {
+               unreachable("unexpected format for a compressed format fallback");
+            }
          }
       }
 
@@ -1275,9 +1319,7 @@ try_pbo_upload_common(struct gl_context *ctx,
    if (!fs)
       return false;
 
-   cso_save_state(cso, (CSO_BIT_FRAGMENT_SAMPLER_VIEWS |
-                        CSO_BIT_VERTEX_ELEMENTS |
-                        CSO_BIT_AUX_VERTEX_BUFFER_SLOT |
+   cso_save_state(cso, (CSO_BIT_VERTEX_ELEMENTS |
                         CSO_BIT_FRAMEBUFFER |
                         CSO_BIT_VIEWPORT |
                         CSO_BIT_BLEND |
@@ -1289,7 +1331,6 @@ try_pbo_upload_common(struct gl_context *ctx,
                         CSO_BIT_MIN_SAMPLES |
                         CSO_BIT_RENDER_CONDITION |
                         CSO_BITS_ALL_SHADERS));
-   cso_save_constant_buffer_slot0(cso, PIPE_SHADER_FRAGMENT);
 
    cso_set_sample_mask(cso, ~0);
    cso_set_min_samples(cso, 1);
@@ -1315,7 +1356,10 @@ try_pbo_upload_common(struct gl_context *ctx,
       if (sampler_view == NULL)
          goto fail;
 
-      cso_set_sampler_views(cso, PIPE_SHADER_FRAGMENT, 1, &sampler_view);
+      pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 1, 0,
+                              &sampler_view);
+      st->state.num_sampler_views[PIPE_SHADER_FRAGMENT] =
+         MAX2(st->state.num_sampler_views[PIPE_SHADER_FRAGMENT], 1);
 
       pipe_sampler_view_reference(&sampler_view, NULL);
    }
@@ -1351,7 +1395,18 @@ try_pbo_upload_common(struct gl_context *ctx,
 
 fail:
    cso_restore_state(cso);
-   cso_restore_constant_buffer_slot0(cso, PIPE_SHADER_FRAGMENT);
+
+   /* Unbind all because st/mesa won't do it if the current shader doesn't
+    * use them.
+    */
+   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 0,
+                           st->state.num_sampler_views[PIPE_SHADER_FRAGMENT],
+                           NULL);
+   st->state.num_sampler_views[PIPE_SHADER_FRAGMENT] = 0;
+
+   st->dirty |= ST_NEW_VERTEX_ARRAYS |
+                ST_NEW_FS_CONSTANTS |
+                ST_NEW_FS_SAMPLER_VIEWS;
 
    return success;
 }
@@ -1448,10 +1503,10 @@ try_pbo_upload(struct gl_context *ctx, GLuint dims,
    /* Set up the surface */
    {
       unsigned level = stObj->pt != stImage->pt
-         ? 0 : texImage->TexObject->MinLevel + texImage->Level;
+         ? 0 : texImage->TexObject->Attrib.MinLevel + texImage->Level;
       unsigned max_layer = util_max_layer(texture, level);
 
-      zoffset += texImage->Face + texImage->TexObject->MinLayer;
+      zoffset += texImage->Face + texImage->TexObject->Attrib.MinLayer;
 
       struct pipe_surface templ;
       memset(&templ, 0, sizeof(templ));
@@ -1496,7 +1551,7 @@ st_TexSubImage(struct gl_context *ctx, GLuint dims,
    GLenum gl_target = texImage->TexObject->Target;
    unsigned bind;
    GLubyte *map;
-   unsigned dstz = texImage->Face + texImage->TexObject->MinLayer;
+   unsigned dstz = texImage->Face + texImage->TexObject->Attrib.MinLayer;
    unsigned dst_level = 0;
    bool throttled = false;
 
@@ -1504,7 +1559,7 @@ st_TexSubImage(struct gl_context *ctx, GLuint dims,
    st_invalidate_readpix_cache(st);
 
    if (stObj->pt == stImage->pt)
-      dst_level = texImage->TexObject->MinLevel + texImage->Level;
+      dst_level = texImage->TexObject->Attrib.MinLevel + texImage->Level;
 
    assert(!_mesa_is_format_etc2(texImage->TexFormat) &&
           !_mesa_is_format_astc_2d(texImage->TexFormat) &&
@@ -1878,17 +1933,17 @@ st_CompressedTexSubImage(struct gl_context *ctx, GLuint dims,
    /* Set up the surface. */
    {
       unsigned level = stObj->pt != stImage->pt
-         ? 0 : texImage->TexObject->MinLevel + texImage->Level;
+         ? 0 : texImage->TexObject->Attrib.MinLevel + texImage->Level;
       unsigned max_layer = util_max_layer(texture, level);
 
-      z += texImage->Face + texImage->TexObject->MinLayer;
+      GLint layer = z + texImage->Face + texImage->TexObject->Attrib.MinLayer;
 
       struct pipe_surface templ;
       memset(&templ, 0, sizeof(templ));
       templ.format = copy_format;
       templ.u.tex.level = level;
-      templ.u.tex.first_layer = MIN2(z, max_layer);
-      templ.u.tex.last_layer = MIN2(z + d - 1, max_layer);
+      templ.u.tex.first_layer = MIN2(layer, max_layer);
+      templ.u.tex.last_layer = MIN2(layer + d - 1, max_layer);
 
       surface = pipe->create_surface(pipe, texture, &templ);
       if (!surface)
@@ -2177,12 +2232,12 @@ st_GetTexSubImage(struct gl_context * ctx,
    }
 
    assert(texImage->Face == 0 ||
-          texImage->TexObject->MinLayer == 0 ||
+          texImage->TexObject->Attrib.MinLayer == 0 ||
           zoffset == 0);
 
    memset(&blit, 0, sizeof(blit));
    blit.src.resource = src;
-   blit.src.level = texImage->Level + texImage->TexObject->MinLevel;
+   blit.src.level = texImage->Level + texImage->TexObject->Attrib.MinLevel;
    blit.src.format = src_format;
    blit.dst.resource = dst;
    blit.dst.level = 0;
@@ -2191,7 +2246,7 @@ st_GetTexSubImage(struct gl_context * ctx,
    blit.dst.box.x = 0;
    blit.src.box.y = yoffset;
    blit.dst.box.y = 0;
-   blit.src.box.z = texImage->Face + texImage->TexObject->MinLayer + zoffset;
+   blit.src.box.z = texImage->Face + texImage->TexObject->Attrib.MinLayer + zoffset;
    blit.dst.box.z = 0;
    blit.src.box.width = blit.dst.box.width = width;
    blit.src.box.height = blit.dst.box.height = height;
@@ -2581,10 +2636,11 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
    blit.dst.resource = stImage->pt;
    blit.dst.format = dst_format;
    blit.dst.level = stObj->pt != stImage->pt
-      ? 0 : texImage->Level + texImage->TexObject->MinLevel;
+      ? 0 : texImage->Level + texImage->TexObject->Attrib.MinLevel;
    blit.dst.box.x = destX;
    blit.dst.box.y = destY;
-   blit.dst.box.z = stImage->base.Face + slice + texImage->TexObject->MinLayer;
+   blit.dst.box.z = stImage->base.Face + slice +
+                    texImage->TexObject->Attrib.MinLayer;
    blit.dst.box.width = width;
    blit.dst.box.height = height;
    blit.dst.box.depth = 1;
@@ -3123,7 +3179,7 @@ st_TextureView(struct gl_context *ctx,
    struct gl_texture_image *image = texObj->Image[0][0];
 
    const int numFaces = _mesa_num_tex_faces(texObj->Target);
-   const int numLevels = texObj->NumLevels;
+   const int numLevels = texObj->Attrib.NumLevels;
 
    int face;
    int level;
@@ -3233,8 +3289,8 @@ st_ClearTexSubImage(struct gl_context *ctx,
        * not a texture view, the offsets will be zero.
        */
       assert(stImage->pt == st_texture_object(texObj)->pt);
-      level = texImage->Level + texObj->MinLevel;
-      box.z += texObj->MinLayer;
+      level = texImage->Level + texObj->Attrib.MinLevel;
+      box.z += texObj->Attrib.MinLayer;
    }
    else {
       /* Texture level sizes may be inconsistent.  We my have "loose",

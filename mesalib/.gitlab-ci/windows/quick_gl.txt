@@ -1,3 +1,4 @@
+fast_color_clear/fcc-clear-tex: skip
 fast_color_clear/fcc-write-after-clear: skip
 hiz/hiz-depth-read-fbo-d24-s8: skip
 hiz/hiz-depth-stencil-test-fbo-d24-s8: skip
@@ -366,6 +367,7 @@ spec/!opengl 2.0/vertex-program-two-side/vs, gs and fs: skip
 spec/!opengl 2.0/vertex-program-two-side/vs, tcs, tes and fs: skip
 spec/!opengl 2.1/fbo-mrt-alphatest-no-buffer-zero-write: crash
 spec/!opengl 3.0/bound-resource-limits: fail
+spec/!opengl 3.0/clearbuffer-depth-cs-probe: skip
 spec/!opengl 3.0/required-sized-texture-formats: fail
 spec/!opengl 3.1/default-vao: fail
 spec/!opengl 3.1/genned-names: fail
@@ -2074,6 +2076,9 @@ spec/arb_shader_draw_parameters/drawid-indirect: skip
 spec/arb_shader_draw_parameters/drawid-indirect-baseinstance: skip
 spec/arb_shader_draw_parameters/drawid-indirect-basevertex: skip
 spec/arb_shader_draw_parameters/drawid-indirect-vertexid: skip
+spec/arb_shader_draw_parameters/drawid-single-draw: skip
+spec/arb_shader_draw_parameters/drawid-single-draw-display-list: skip
+spec/arb_shader_draw_parameters/drawid-single-draw-primitive-restart: skip
 spec/arb_shader_draw_parameters/drawid-vertexid: skip
 spec/arb_shader_draw_parameters/vertexid-zerobased: skip
 spec/arb_shader_draw_parameters/vertexid-zerobased-indirect: skip
@@ -3690,6 +3695,7 @@ spec/arb_texture_view/clear-into-view-2d-array: skip
 spec/arb_texture_view/clear-into-view-layered: skip
 spec/arb_texture_view/copytexsubimage-layers: skip
 spec/arb_texture_view/cubemap-view: skip
+spec/arb_texture_view/fbo-blit: skip
 spec/arb_texture_view/formats: skip
 spec/arb_texture_view/getteximage-srgb: skip
 spec/arb_texture_view/immutable_levels: skip
@@ -3833,6 +3839,7 @@ spec/egl_mesa_platform_surfaceless/conformance: skip
 spec/egl_mesa_query_driver/conformance: skip
 spec/egl_nok_swap_region/basic: skip
 spec/egl_nok_texture_from_pixmap/basic: skip
+spec/egl_ext_protected_content/conformance: skip
 spec/ext_base_instance/arb_base_instance-baseinstance-doesnt-affect-gl-instance-id_gles3: skip
 spec/ext_base_instance/arb_base_instance-drawarrays_gles3: skip
 spec/ext_color_buffer_float/ext_color_buffer_float-draw_gles3: skip
@@ -3852,9 +3859,13 @@ spec/ext_draw_instanced/ext_draw_instanced-drawarrays: skip
 spec/ext_external_objects/memory-object-api-errors: skip
 spec/ext_external_objects/semaphore-api-errors: skip
 spec/ext_external_objects/vk-buf-exchange: skip
+spec/ext_external_objects/vk-depth-display: skip
 spec/ext_external_objects/vk-image-display: skip
 spec/ext_external_objects/vk-image-display-overwrite: skip
 spec/ext_external_objects/vk-image-overwrite: skip
+spec/ext_external_objects/vk-pix-buf-update-errors: skip
+spec/ext_external_objects/vk-vert-buf-reuse: skip
+spec/ext_external_objects/vk-vert-buf-update-errors: skip
 spec/ext_external_objects_fd/memory-object-api-errors: skip
 spec/ext_external_objects_fd/semaphore-api-errors: skip
 spec/ext_frag_depth/fragdepth_gles2: skip
@@ -4150,6 +4161,7 @@ spec/ext_framebuffer_multisample_blit_scaled/blit-scaled samples=6 with gl_textu
 spec/ext_framebuffer_multisample_blit_scaled/blit-scaled samples=8: warn
 spec/ext_framebuffer_multisample_blit_scaled/blit-scaled samples=8 with gl_texture_2d_multisample_array: warn
 spec/ext_image_dma_buf_import/ext_image_dma_buf_import-export: skip
+spec/ext_image_dma_buf_import/ext_image_dma_buf_import-export-tex: skip
 spec/ext_image_dma_buf_import/ext_image_dma_buf_import-intel_external_sampler_only: skip
 spec/ext_image_dma_buf_import/ext_image_dma_buf_import-invalid_attributes: skip
 spec/ext_image_dma_buf_import/ext_image_dma_buf_import-invalid_hints: skip
@@ -4742,10 +4754,10 @@ wgl/wgl-sanity: skip
 summary:
        name:  results
        ----  --------
-       pass:    13254
+       pass:    13298
        fail:      539
       crash:       68
-       skip:     4114
+       skip:     4126
     timeout:        0
        warn:       10
  incomplete:        0
@@ -4754,4 +4766,4 @@ summary:
     changes:        0
       fixes:        0
 regressions:        0
-      total:    17995
+      total:    18051

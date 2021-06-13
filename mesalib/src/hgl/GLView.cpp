@@ -18,12 +18,12 @@
 #include <string.h>
 
 #include <DirectWindow.h>
-#include <GLRenderer.h>
+#include "GLRenderer.h"
 
-#include "interface/DirectWindowPrivate.h"
-#include "GLDispatcher.h"
+#include <private/interface/DirectWindowPrivate.h>
 #include "GLRendererRoster.h"
 
+#include "glapi/glapi.h"
 
 struct glview_direct_info {
 	direct_buffer_info* direct_info;
@@ -39,7 +39,6 @@ BGLView::BGLView(BRect rect, const char* name, ulong resizingMode, ulong mode,
 	ulong options)
 	:
 	BView(rect, name, B_FOLLOW_ALL_SIDES, mode | B_WILL_DRAW | B_FRAME_EVENTS),
-		//  | B_FULL_UPDATE_ON_RESIZE)
 	fGc(NULL),
 	fOptions(options),
 	fDitherCount(0),
@@ -47,11 +46,9 @@ BGLView::BGLView(BRect rect, const char* name, ulong resizingMode, ulong mode,
 	fDisplayLock("BGLView display lock"),
 	fClipInfo(NULL),
 	fRenderer(NULL),
-	fRoster(NULL),
 	fDitherMap(NULL)
 {
-	fRoster = new GLRendererRoster(this, options);
-	fRenderer = fRoster->GetRenderer();
+	fRenderer = GLRendererRoster::Roster()->GetRenderer(this, options);
 }
 
 
@@ -77,6 +74,15 @@ BGLView::LockGL()
 void
 BGLView::UnlockGL()
 {
+	thread_id lockerThread = fDisplayLock.LockingThread();
+	thread_id callerThread = find_thread(NULL);
+
+	if (lockerThread != B_ERROR && lockerThread != callerThread) {
+		printf("UnlockGL is called from wrong thread, lockerThread: %d, callerThread: %d\n",
+			(int)lockerThread, (int)callerThread);
+		debugger("[!]");
+	}
+
 	if (fRenderer != NULL && fDisplayLock.CountLocks() == 1)
 		fRenderer->UnlockGL();
 	fDisplayLock.Unlock();
@@ -113,15 +119,7 @@ BGLView::EmbeddedView()
 void*
 BGLView::GetGLProcAddress(const char* procName)
 {
-	BGLDispatcher* glDispatcher = NULL;
-
-	if (fRenderer)
-		glDispatcher = fRenderer->GLDispatcher();
-
-	if (glDispatcher)
-		return (void*)glDispatcher->AddressOf(procName);
-
-	return NULL;
+	return (void*)_glapi_get_proc_address(procName);
 }
 
 
@@ -170,9 +168,8 @@ void
 BGLView::Draw(BRect updateRect)
 {
 	if (fRenderer) {
-		_LockDraw();
-		fRenderer->Draw(updateRect);
-		_UnlockDraw();
+		if (!fClipInfo || !fClipInfo->enable_direct_mode)
+			fRenderer->Draw(updateRect);
 		return;
 	}
 	// TODO: auto-size and center the string
@@ -237,10 +234,6 @@ BGLView::AllAttached()
 void
 BGLView::DetachedFromWindow()
 {
-	if (fRenderer)
-		fRenderer->Release();
-	fRenderer = NULL;
-
 	BView::DetachedFromWindow();
 }
 
@@ -260,12 +253,9 @@ BGLView::FrameResized(float width, float height)
 		v->ConvertToParent(&fBounds);
 
 	if (fRenderer) {
-		LockGL();
-		_LockDraw();
-		_CallDirectConnected();
+		//_LockDraw();
 		fRenderer->FrameResized(width, height);
-		_UnlockDraw();
-		UnlockGL();
+		//_UnlockDraw();
 	}
 
 	BView::FrameResized(width, height);
@@ -342,6 +332,7 @@ BGLView::GetSupportedSuites(BMessage* data)
 void
 BGLView::DirectConnected(direct_buffer_info* info)
 {
+	printf("BGLView::DirectConnected\n");
 	if (fClipInfo == NULL) {
 		fClipInfo = new (std::nothrow) glview_direct_info();
 		if (fClipInfo == NULL)
@@ -350,33 +341,33 @@ BGLView::DirectConnected(direct_buffer_info* info)
 
 	direct_buffer_info* localInfo = fClipInfo->direct_info;
 
+	_LockDraw();
 	switch (info->buffer_state & B_DIRECT_MODE_MASK) {
 		case B_DIRECT_START:
 			fClipInfo->direct_connected = true;
 			memcpy(localInfo, info, DIRECT_BUFFER_INFO_AREA_SIZE);
-			_UnlockDraw();
 			break;
 
 		case B_DIRECT_MODIFY:
-			_LockDraw();
 			memcpy(localInfo, info, DIRECT_BUFFER_INFO_AREA_SIZE);
-			_UnlockDraw();
 			break;
 
 		case B_DIRECT_STOP:
 			fClipInfo->direct_connected = false;
-			_LockDraw();
 			break;
 	}
 
 	if (fRenderer)
 		_CallDirectConnected();
+
+	_UnlockDraw();
 }
 
 
 void
 BGLView::EnableDirectMode(bool enabled)
 {
+	printf("BGLView::EnableDirectMode: %d\n", (int)enabled);
 	if (fRenderer)
 		fRenderer->EnableDirectMode(enabled);
 	if (fClipInfo == NULL) {
@@ -412,8 +403,10 @@ BGLView::_UnlockDraw()
 void
 BGLView::_CallDirectConnected()
 {
-	if (!fClipInfo)
+	if (!fClipInfo || !fClipInfo->direct_connected) {
+		fRenderer->DirectConnected(NULL);
 		return;
+	}
 
 	direct_buffer_info* localInfo = fClipInfo->direct_info;
 	direct_buffer_info* info = (direct_buffer_info*)malloc(
@@ -472,10 +465,9 @@ BGLView::BGLView(BRect rect, char* name, ulong resizingMode, ulong mode,
 	fDisplayLock("BGLView display lock"),
 	fClipInfo(NULL),
 	fRenderer(NULL),
-	fRoster(NULL),
 	fDitherMap(NULL)
 {
-	fRoster = new GLRendererRoster(this, options);
+	fRenderer = GLRendererRoster::Roster()->GetRenderer(this, options);
 }
 
 

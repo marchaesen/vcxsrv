@@ -121,7 +121,7 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
          nir_ssa_def *zero = nir_imm_zero(b, intr->dest.ssa.num_components,
                                           intr->dest.ssa.bit_size);
          nir_ssa_def_rewrite_uses(&intr->dest.ssa,
-                                  nir_src_for_ssa(zero));
+                                  zero);
       }
       nir_instr_remove(&intr->instr);
       return;
@@ -186,7 +186,7 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
       }
 
       nir_ssa_def_rewrite_uses(&intr->dest.ssa,
-                               nir_src_for_ssa(&element_intr->dest.ssa));
+                               &element_intr->dest.ssa);
    } else {
       nir_intrinsic_set_write_mask(element_intr,
                                    nir_intrinsic_write_mask(intr));

@@ -358,10 +358,41 @@ enum virgl_formats {
    VIRGL_FORMAT_ETC2_RG11_UNORM         = 277,
    VIRGL_FORMAT_ETC2_RG11_SNORM         = 278,
 
+    /* astc compressed */
+   VIRGL_FORMAT_ASTC_4x4                = 279,
+   VIRGL_FORMAT_ASTC_5x4                = 280,
+   VIRGL_FORMAT_ASTC_5x5                = 281,
+   VIRGL_FORMAT_ASTC_6x5                = 282,
+   VIRGL_FORMAT_ASTC_6x6                = 283,
+   VIRGL_FORMAT_ASTC_8x5                = 284,
+   VIRGL_FORMAT_ASTC_8x6                = 285,
+   VIRGL_FORMAT_ASTC_8x8                = 286,
+   VIRGL_FORMAT_ASTC_10x5               = 287,
+   VIRGL_FORMAT_ASTC_10x6               = 288,
+   VIRGL_FORMAT_ASTC_10x8               = 289,
+   VIRGL_FORMAT_ASTC_10x10              = 290,
+   VIRGL_FORMAT_ASTC_12x10              = 291,
+   VIRGL_FORMAT_ASTC_12x12              = 292,
+   VIRGL_FORMAT_ASTC_4x4_SRGB           = 293,
+   VIRGL_FORMAT_ASTC_5x4_SRGB           = 294,
+   VIRGL_FORMAT_ASTC_5x5_SRGB           = 295,
+   VIRGL_FORMAT_ASTC_6x5_SRGB           = 296,
+   VIRGL_FORMAT_ASTC_6x6_SRGB           = 297,
+   VIRGL_FORMAT_ASTC_8x5_SRGB           = 298,
+   VIRGL_FORMAT_ASTC_8x6_SRGB           = 299,
+   VIRGL_FORMAT_ASTC_8x8_SRGB           = 300,
+   VIRGL_FORMAT_ASTC_10x5_SRGB          = 301,
+   VIRGL_FORMAT_ASTC_10x6_SRGB          = 302,
+   VIRGL_FORMAT_ASTC_10x8_SRGB          = 303,
+   VIRGL_FORMAT_ASTC_10x10_SRGB         = 304,
+   VIRGL_FORMAT_ASTC_12x10_SRGB         = 305,
+   VIRGL_FORMAT_ASTC_12x12_SRGB         = 306,
+
    VIRGL_FORMAT_R10G10B10X2_UNORM       = 308,
    VIRGL_FORMAT_A4B4G4R4_UNORM          = 311,
 
    VIRGL_FORMAT_R8_SRGB                 = 312,
+   VIRGL_FORMAT_R8G8_SRGB               = 313,
    VIRGL_FORMAT_MAX /* = PIPE_FORMAT_COUNT */,
 
    /* Below formats must not be used in the guest. */
@@ -407,6 +438,10 @@ enum virgl_formats {
 
 /* These are used by the capability_bits_v2 field in virgl_caps_v2. */
 #define VIRGL_CAP_V2_BLEND_EQUATION       (1 << 0)
+#define VIRGL_CAP_V2_UNTYPED_RESOURCE     (1 << 1)
+#define VIRGL_CAP_V2_VIDEO_MEMORY         (1 << 2)
+#define VIRGL_CAP_V2_MEMINFO              (1 << 3)
+#define VIRGL_CAP_V2_STRING_MARKER        (1 << 4)
 
 /* virgl bind flags - these are compatible with mesa 10.5 gallium.
  * but are fixed, no other should be passed to virgl either.
@@ -558,6 +593,7 @@ struct virgl_caps_v2 {
         uint32_t host_feature_check_version;
         struct virgl_supported_format_mask supported_readback_formats;
         struct virgl_supported_format_mask scanout;
+        uint32_t max_video_memory;
         uint32_t capability_bits_v2;
 };
 

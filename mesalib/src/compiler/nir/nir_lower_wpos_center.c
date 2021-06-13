@@ -67,7 +67,7 @@ update_fragcoord(nir_builder *b, nir_intrinsic_instr *intr,
                                nir_imm_float(b, 0.0f)));
    }
 
-   nir_ssa_def_rewrite_uses_after(&intr->dest.ssa, nir_src_for_ssa(wpos),
+   nir_ssa_def_rewrite_uses_after(&intr->dest.ssa, wpos,
                                   wpos->parent_instr);
 }
 

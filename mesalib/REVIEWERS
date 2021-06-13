@@ -67,11 +67,6 @@ GALLIUM TARGETS
 R: Emil Velikov <emil.l.velikov@gmail.com>
 F: src/gallium/targets/
 
-SCONS BUILD
-F: scons/
-F: */SConscript*
-F: */Makefile.sources
-
 ANDROID BUILD
 R: Emil Velikov <emil.l.velikov@gmail.com>
 R: Rob Herring <robh@kernel.org>

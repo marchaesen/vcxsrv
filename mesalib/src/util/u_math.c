@@ -92,7 +92,7 @@ util_fpstate_get(void)
    unsigned mxcsr = 0;
 
 #if defined(PIPE_ARCH_SSE)
-   if (util_cpu_caps.has_sse) {
+   if (util_get_cpu_caps()->has_sse) {
       mxcsr = _mm_getcsr();
    }
 #endif
@@ -110,10 +110,10 @@ unsigned
 util_fpstate_set_denorms_to_zero(unsigned current_mxcsr)
 {
 #if defined(PIPE_ARCH_SSE)
-   if (util_cpu_caps.has_sse) {
+   if (util_get_cpu_caps()->has_sse) {
       /* Enable flush to zero mode */
       current_mxcsr |= _MM_FLUSH_ZERO_MASK;
-      if (util_cpu_caps.has_daz) {
+      if (util_get_cpu_caps()->has_daz) {
          /* Enable denormals are zero mode */
          current_mxcsr |= _MM_DENORMALS_ZERO_MASK;
       }
@@ -132,7 +132,7 @@ void
 util_fpstate_set(unsigned mxcsr)
 {
 #if defined(PIPE_ARCH_SSE)
-   if (util_cpu_caps.has_sse) {
+   if (util_get_cpu_caps()->has_sse) {
       _mm_setcsr(mxcsr);
    }
 #endif

@@ -24,6 +24,7 @@
 #define _NINE_STATE_H_
 
 #include "d3d9.h"
+#include "iunknown.h"
 #include "nine_defines.h"
 #include "pipe/p_state.h"
 #include "util/list.h"
@@ -40,10 +41,11 @@
  */
 #define NINED3DRS_ALPHACOVERAGE  (D3DRS_BLENDOPALPHA + 3)
 #define NINED3DRS_MULTISAMPLE  (D3DRS_BLENDOPALPHA + 4)
+#define NINED3DRS_FETCH4  (D3DRS_BLENDOPALPHA + 5)
 
 #define D3DRS_LAST       D3DRS_BLENDOPALPHA
 #define D3DSAMP_LAST     D3DSAMP_DMAPOFFSET
-#define NINED3DRS_LAST   NINED3DRS_MULTISAMPLE /* 214 */
+#define NINED3DRS_LAST   NINED3DRS_FETCH4 /* 215 */
 #define NINED3DSAMP_LAST NINED3DSAMP_CUBETEX /* 16 */
 #define NINED3DTSS_LAST  D3DTSS_CONSTANT
 #define NINED3DTS_LAST   D3DTS_WORLDMATRIX(255)
@@ -297,6 +299,7 @@ struct nine_context {
     DWORD samp[NINE_MAX_SAMPLERS][NINED3DSAMP_COUNT];
 
     uint32_t samplers_shadow;
+    uint32_t samplers_fetch4;
 
     uint8_t bound_samplers_mask_vs;
     uint16_t bound_samplers_mask_ps;
@@ -349,6 +352,19 @@ struct NineDevice9;
 /* Internal multithreading: When enabled, the nine_context functions
  * will append work to a worker thread when possible. Only the worker
  * thread can access struct nine_context. */
+
+void
+nine_context_set_stream_source_apply(struct NineDevice9 *device,
+                                    UINT StreamNumber,
+                                    struct pipe_resource *res,
+                                    UINT OffsetInBytes,
+                                    UINT Stride);
+
+void
+nine_context_set_indices_apply(struct NineDevice9 *device,
+                               struct pipe_resource *res,
+                               UINT IndexSize,
+                               UINT OffsetInBytes);
 
 void
 nine_context_set_render_state(struct NineDevice9 *device,
@@ -512,12 +528,6 @@ nine_context_draw_indexed_primitive(struct NineDevice9 *device,
                                     UINT PrimitiveCount);
 
 void
-nine_context_draw_primitive_from_vtxbuf(struct NineDevice9 *device,
-                                        D3DPRIMITIVETYPE PrimitiveType,
-                                        UINT PrimitiveCount,
-                                        struct pipe_vertex_buffer *vtxbuf);
-
-void
 nine_context_draw_indexed_primitive_from_vtxbuf_idxbuf(struct NineDevice9 *device,
                                                        D3DPRIMITIVETYPE PrimitiveType,
                                                        UINT MinVertexIndex,
@@ -570,6 +580,7 @@ nine_context_range_upload(struct NineDevice9 *device,
                           struct pipe_resource *res,
                           unsigned offset,
                           unsigned size,
+                          unsigned usage,
                           const void *data);
 
 void
@@ -600,6 +611,9 @@ boolean
 nine_context_get_query_result(struct NineDevice9 *device, struct pipe_query *query,
                               unsigned *counter, boolean flush, boolean wait,
                               union pipe_query_result *result);
+
+void
+nine_context_pipe_flush(struct NineDevice9 *device);
 
 void nine_state_restore_non_cso(struct NineDevice9 *device);
 void nine_state_set_defaults(struct NineDevice9 *, const D3DCAPS9 *,
@@ -645,9 +659,13 @@ nine_csmt_create( struct NineDevice9 *This );
 void
 nine_csmt_destroy( struct NineDevice9 *This, struct csmt_context *ctx );
 
+/* Flushes and waits everything is executed */
 void
 nine_csmt_process( struct NineDevice9 *This );
 
+/* Flushes and doesn't wait */
+void
+nine_csmt_flush( struct NineDevice9 *This );
 
 /* Get the pipe_context (should not be called from the worker thread).
  * All the work in the worker thread is finished before returning. */
@@ -669,5 +687,8 @@ nine_context_get_pipe_acquire( struct NineDevice9 *device );
 
 void
 nine_context_get_pipe_release( struct NineDevice9 *device );
+
+bool
+nine_context_is_worker( struct NineDevice9 *device );
 
 #endif /* _NINE_STATE_H_ */

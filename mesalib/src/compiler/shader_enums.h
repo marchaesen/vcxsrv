@@ -253,6 +253,7 @@ const char *gl_vert_attrib_name(gl_vert_attrib attrib);
  * - vertResults (in prog_print.c's arb_output_attrib_string())
  * - fragAttribs (in prog_print.c's arb_input_attrib_string())
  * - _mesa_varying_slot_in_fs()
+ * - _mesa_varying_slot_name_for_stage()
  */
 typedef enum
 {
@@ -332,7 +333,6 @@ typedef enum
 #define VARYING_SLOT_TESS_MAX	(VARYING_SLOT_PATCH0 + MAX_VARYING)
 #define MAX_VARYINGS_INCL_PATCH (VARYING_SLOT_TESS_MAX - VARYING_SLOT_VAR0)
 
-const char *gl_varying_slot_name(gl_varying_slot slot);
 const char *gl_varying_slot_name_for_stage(gl_varying_slot slot,
                                            gl_shader_stage stage);
 
@@ -381,15 +381,6 @@ const char *gl_varying_slot_name_for_stage(gl_varying_slot slot,
 #define VARYING_BIT_VIEWPORT_MASK BITFIELD64_BIT(VARYING_SLOT_VIEWPORT_MASK)
 #define VARYING_BIT_VAR(V) BITFIELD64_BIT(VARYING_SLOT_VAR0 + (V))
 /*@}*/
-
-/**
- * Bitflags for system values.
- */
-#define SYSTEM_BIT_SAMPLE_ID ((uint64_t)1 << SYSTEM_VALUE_SAMPLE_ID)
-#define SYSTEM_BIT_SAMPLE_POS ((uint64_t)1 << SYSTEM_VALUE_SAMPLE_POS)
-#define SYSTEM_BIT_SAMPLE_MASK_IN ((uint64_t)1 << SYSTEM_VALUE_SAMPLE_MASK_IN)
-#define SYSTEM_BIT_LOCAL_INVOCATION_ID ((uint64_t)1 << SYSTEM_VALUE_LOCAL_INVOCATION_ID)
-#define SYSTEM_BIT_FRONT_FACE ((uint64_t)1 << SYSTEM_VALUE_FRONT_FACE)
 
 /**
  * If the gl_register_file is PROGRAM_SYSTEM_VALUE, the register index will be

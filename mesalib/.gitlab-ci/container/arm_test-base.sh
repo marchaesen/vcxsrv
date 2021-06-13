@@ -19,7 +19,6 @@ apt-get install -y --no-remove \
         cmake \
         cpio \
         debootstrap \
-        expect \
         fastboot \
         flex \
         g++ \

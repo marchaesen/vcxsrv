@@ -145,6 +145,8 @@ rastpos_point(struct draw_stage *stage, struct prim_header *prim)
    const GLfloat *pos;
    GLuint i;
 
+   ctx->PopAttribState |= GL_CURRENT_BIT;
+
    /* if we get here, we didn't get clipped */
    ctx->Current.RasterPosValid = GL_TRUE;
 
@@ -250,6 +252,7 @@ st_RasterPos(struct gl_context *ctx, const GLfloat v[4])
    st_validate_state(st, ST_PIPELINE_RENDER);
 
    /* This will get set only if rastpos_point(), above, gets called */
+   ctx->PopAttribState |= GL_CURRENT_BIT;
    ctx->Current.RasterPosValid = GL_FALSE;
 
    /* All vertex attribs but position were previously initialized above.

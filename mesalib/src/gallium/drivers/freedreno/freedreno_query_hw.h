@@ -71,19 +71,19 @@
 struct fd_hw_sample_provider {
 	unsigned query_type;
 
-	/* stages applicable to the query type: */
-	enum fd_render_stage active;
+	/* Set if the provider should still count while !ctx->active_queries */
+	bool always;
 
 	/* Optional hook for enabling a counter.  Guaranteed to happen
 	 * at least once before the first ->get_sample() in a batch.
 	 */
-	void (*enable)(struct fd_context *ctx, struct fd_ringbuffer *ring);
+	void (*enable)(struct fd_context *ctx, struct fd_ringbuffer *ring) dt;
 
 	/* when a new sample is required, emit appropriate cmdstream
 	 * and return a sample object:
 	 */
 	struct fd_hw_sample *(*get_sample)(struct fd_batch *batch,
-			struct fd_ringbuffer *ring);
+			struct fd_ringbuffer *ring) dt;
 
 	/* accumulate the results from specified sample period: */
 	void (*accumulate_result)(struct fd_context *ctx,
@@ -141,11 +141,11 @@ struct fd_query * fd_hw_create_query(struct fd_context *ctx, unsigned query_type
 struct fd_hw_sample * fd_hw_sample_init(struct fd_batch *batch, uint32_t size);
 /* don't call directly, use fd_hw_sample_reference() */
 void __fd_hw_sample_destroy(struct fd_context *ctx, struct fd_hw_sample *samp);
-void fd_hw_query_prepare(struct fd_batch *batch, uint32_t num_tiles);
+void fd_hw_query_prepare(struct fd_batch *batch, uint32_t num_tiles) assert_dt;
 void fd_hw_query_prepare_tile(struct fd_batch *batch, uint32_t n,
-		struct fd_ringbuffer *ring);
-void fd_hw_query_set_stage(struct fd_batch *batch, enum fd_render_stage stage);
-void fd_hw_query_enable(struct fd_batch *batch, struct fd_ringbuffer *ring);
+		struct fd_ringbuffer *ring) assert_dt;
+void fd_hw_query_update_batch(struct fd_batch *batch, bool end_batch) assert_dt;
+void fd_hw_query_enable(struct fd_batch *batch, struct fd_ringbuffer *ring) assert_dt;
 void fd_hw_query_register_provider(struct pipe_context *pctx,
 		const struct fd_hw_sample_provider *provider);
 void fd_hw_query_init(struct pipe_context *pctx);

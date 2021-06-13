@@ -35,14 +35,7 @@
 static nir_ssa_def *
 load_sample_pos(nir_builder *b, nir_ssa_def *samp_id)
 {
-	nir_intrinsic_instr *load_sp =
-			nir_intrinsic_instr_create(b->shader,
-					nir_intrinsic_load_sample_pos_from_id);
-	load_sp->src[0] = nir_src_for_ssa(samp_id);
-	nir_ssa_dest_init(&load_sp->instr, &load_sp->dest, 2, 32, NULL);
-	nir_builder_instr_insert(b, &load_sp->instr);
-
-	return &load_sp->dest.ssa;
+	return nir_load_sample_pos_from_id(b, 32, samp_id);
 }
 
 static nir_ssa_def *
@@ -50,15 +43,7 @@ lower_load_barycentric_at_sample(nir_builder *b, nir_intrinsic_instr *intr)
 {
 	nir_ssa_def *pos = load_sample_pos(b, intr->src[0].ssa);
 
-	nir_intrinsic_instr *load_bary_at_offset =
-			nir_intrinsic_instr_create(b->shader,
-					nir_intrinsic_load_barycentric_at_offset);
-	load_bary_at_offset->src[0] = nir_src_for_ssa(pos);
-	nir_ssa_dest_init(&load_bary_at_offset->instr,
-			&load_bary_at_offset->dest, 2, 32, NULL);
-	nir_builder_instr_insert(b, &load_bary_at_offset->instr);
-
-	return &load_bary_at_offset->dest.ssa;
+	return nir_load_barycentric_at_offset(b, 32, pos);
 }
 
 static nir_ssa_def *

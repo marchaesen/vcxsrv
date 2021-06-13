@@ -31,14 +31,26 @@
 #include "util/u_inlines.h"
 
 #include "zink_context.h"
+#include "zink_compiler.h"
 #include "zink_shader_keys.h"
 
 struct zink_screen;
 struct zink_shader;
 struct zink_gfx_pipeline_state;
+struct zink_descriptor_set;
 
 struct hash_table;
 struct set;
+struct util_dynarray;
+
+struct zink_program;
+
+struct zink_push_constant {
+   unsigned draw_mode_is_indexed;
+   unsigned draw_id;
+   float default_inner_level[2];
+   float default_outer_level[4];
+};
 
 /* a shader module is used for directly reusing a shader module between programs,
  * e.g., in the case where we're swapping out only one shader,
@@ -55,21 +67,79 @@ struct zink_shader_cache {
    struct hash_table *shader_cache;
 };
 
-struct zink_gfx_program {
+struct zink_program {
    struct pipe_reference reference;
+   bool is_compute;
+
+   struct zink_descriptor_pool *pool[ZINK_DESCRIPTOR_TYPES];
+   struct zink_descriptor_set *last_set[ZINK_DESCRIPTOR_TYPES];
+
+   VkPipelineLayout layout;
+};
+
+struct zink_gfx_program {
+   struct zink_program base;
 
    struct zink_shader_module *modules[ZINK_SHADER_COUNT]; // compute stage doesn't belong here
    struct zink_shader *shaders[ZINK_SHADER_COUNT];
    struct zink_shader_cache *shader_cache;
    unsigned char shader_slot_map[VARYING_SLOT_MAX];
    unsigned char shader_slots_reserved;
-   VkDescriptorSetLayout dsl;
-   VkPipelineLayout layout;
-   unsigned num_descriptors;
    struct hash_table *pipelines[11]; // number of draw modes we support
-   struct set *render_passes;
 };
 
+struct zink_compute_program {
+   struct zink_program base;
+
+   struct zink_shader_module *module;
+   struct zink_shader *shader;
+   struct zink_shader_cache *shader_cache;
+   struct hash_table *pipelines;
+};
+
+static inline enum zink_descriptor_type
+zink_desc_type_from_vktype(VkDescriptorType type)
+{
+   switch (type) {
+   case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+   case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+      return ZINK_DESCRIPTOR_TYPE_UBO;
+   case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+   case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+      return ZINK_DESCRIPTOR_TYPE_SAMPLER_VIEW;
+   case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+      return ZINK_DESCRIPTOR_TYPE_SSBO;
+   case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+   case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+      return ZINK_DESCRIPTOR_TYPE_IMAGE;
+   default:
+      unreachable("unhandled descriptor type");
+   }
+   return 0;
+   
+}
+
+static inline bool
+zink_program_has_descriptors(const struct zink_program *pg)
+{
+   for (unsigned i = 0; i < ARRAY_SIZE(pg->pool); i++) {
+      if (pg->pool[i])
+         return true;
+   }
+   return false;
+}
+
+unsigned
+zink_program_num_descriptors(const struct zink_program *pg);
+
+unsigned
+zink_program_num_bindings_typed(const struct zink_program *pg, enum zink_descriptor_type type, bool is_compute);
+
+unsigned
+zink_program_num_bindings(const struct zink_program *pg, bool is_compute);
+
+bool
+zink_program_descriptor_is_buffer(struct zink_context *ctx, enum pipe_shader_type stage, enum zink_descriptor_type type, unsigned i);
 
 void
 zink_update_gfx_program(struct zink_context *ctx, struct zink_gfx_program *prog);
@@ -91,19 +161,61 @@ zink_get_gfx_pipeline(struct zink_screen *screen,
 void
 zink_program_init(struct zink_context *ctx);
 
+uint32_t
+zink_program_get_descriptor_usage(struct zink_context *ctx, enum pipe_shader_type stage, enum zink_descriptor_type type);
+
 void
 debug_describe_zink_gfx_program(char* buf, const struct zink_gfx_program *ptr);
 
-static inline void
+static inline bool
 zink_gfx_program_reference(struct zink_screen *screen,
                            struct zink_gfx_program **dst,
                            struct zink_gfx_program *src)
 {
    struct zink_gfx_program *old_dst = dst ? *dst : NULL;
+   bool ret = false;
 
-   if (pipe_reference_described(old_dst ? &old_dst->reference : NULL, &src->reference,
-                                (debug_reference_descriptor)debug_describe_zink_gfx_program))
+   if (pipe_reference_described(old_dst ? &old_dst->base.reference : NULL, &src->base.reference,
+                                (debug_reference_descriptor)debug_describe_zink_gfx_program)) {
       zink_destroy_gfx_program(screen, old_dst);
+      ret = true;
+   }
    if (dst) *dst = src;
+   return ret;
 }
+
+struct zink_compute_program *
+zink_create_compute_program(struct zink_context *ctx, struct zink_shader *shader);
+void
+zink_destroy_compute_program(struct zink_screen *screen,
+                         struct zink_compute_program *comp);
+
+void
+debug_describe_zink_compute_program(char* buf, const struct zink_compute_program *ptr);
+
+static inline bool
+zink_compute_program_reference(struct zink_screen *screen,
+                           struct zink_compute_program **dst,
+                           struct zink_compute_program *src)
+{
+   struct zink_compute_program *old_dst = dst ? *dst : NULL;
+   bool ret = false;
+
+   if (pipe_reference_described(old_dst ? &old_dst->base.reference : NULL, &src->base.reference,
+                                (debug_reference_descriptor)debug_describe_zink_compute_program)) {
+      zink_destroy_compute_program(screen, old_dst);
+      ret = true;
+   }
+   if (dst) *dst = src;
+   return ret;
+}
+
+void
+zink_program_update_compute_pipeline_state(struct zink_context *ctx, struct zink_compute_program *comp, const uint block[3]);
+
+VkPipeline
+zink_get_compute_pipeline(struct zink_screen *screen,
+                      struct zink_compute_program *comp,
+                      struct zink_compute_pipeline_state *state);
+
 #endif

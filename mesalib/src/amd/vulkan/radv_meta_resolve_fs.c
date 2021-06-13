@@ -161,11 +161,8 @@ create_resolve_pipeline(struct radv_device *device,
 	if (vk_format_is_int(format))
 		is_integer = true;
 
-	struct radv_shader_module fs = { .nir = NULL };
-	fs.nir = build_resolve_fragment_shader(device, is_integer, samples);
-	struct radv_shader_module vs = {
-		.nir = build_nir_vertex_shader(),
-	};
+	nir_shader *fs = build_resolve_fragment_shader(device, is_integer, samples);
+	nir_shader *vs = build_nir_vertex_shader();
 
 	VkRenderPass *rp = &device->meta_state.resolve_fragment.rc[samples_log2].render_pass[fs_key][0];
 
@@ -175,13 +172,13 @@ create_resolve_pipeline(struct radv_device *device,
 		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_VERTEX_BIT,
-			.module = radv_shader_module_to_handle(&vs),
+			.module = vk_shader_module_handle_from_nir(vs),
 			.pName = "main",
 			.pSpecializationInfo = NULL
 		}, {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.module = radv_shader_module_to_handle(&fs),
+			.module = vk_shader_module_handle_from_nir(fs),
 			.pName = "main",
 			.pSpecializationInfo = NULL
 		},
@@ -190,11 +187,12 @@ create_resolve_pipeline(struct radv_device *device,
 
 	for (unsigned dst_layout = 0; dst_layout < RADV_META_DST_LAYOUT_COUNT; ++dst_layout) {
 		VkImageLayout layout = radv_meta_dst_layout_to_layout(dst_layout);
-		result = radv_CreateRenderPass(radv_device_to_handle(device),
-					&(VkRenderPassCreateInfo) {
-						.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+		result = radv_CreateRenderPass2(radv_device_to_handle(device),
+					&(VkRenderPassCreateInfo2) {
+						.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2,
 						.attachmentCount = 1,
-						.pAttachments = &(VkAttachmentDescription) {
+						.pAttachments = &(VkAttachmentDescription2) {
+							.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
 							.format = format,
 							.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
 							.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -202,16 +200,19 @@ create_resolve_pipeline(struct radv_device *device,
 							.finalLayout = layout,
 						},
 						.subpassCount = 1,
-						.pSubpasses = &(VkSubpassDescription) {
+						.pSubpasses = &(VkSubpassDescription2) {
+							.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2,
 							.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
 							.inputAttachmentCount = 0,
 							.colorAttachmentCount = 1,
-							.pColorAttachments = &(VkAttachmentReference) {
+							.pColorAttachments = &(VkAttachmentReference2) {
+								.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2,
 								.attachment = 0,
 								.layout = layout,
 							},
 						.pResolveAttachments = NULL,
-						.pDepthStencilAttachment = &(VkAttachmentReference) {
+						.pDepthStencilAttachment = &(VkAttachmentReference2) {
+							.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2,
 							.attachment = VK_ATTACHMENT_UNUSED,
 							.layout = VK_IMAGE_LAYOUT_GENERAL,
 						},
@@ -219,8 +220,9 @@ create_resolve_pipeline(struct radv_device *device,
 						.pPreserveAttachments = NULL,
 					},
 					.dependencyCount = 2,
-					.pDependencies = (VkSubpassDependency[]) {
+					.pDependencies = (VkSubpassDependency2[]) {
 						{
+							.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
 							.srcSubpass = VK_SUBPASS_EXTERNAL,
 							.dstSubpass = 0,
 							.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -230,6 +232,7 @@ create_resolve_pipeline(struct radv_device *device,
 							.dependencyFlags = 0
 						},
 						{
+							.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
 							.srcSubpass = 0,
 							.dstSubpass = VK_SUBPASS_EXTERNAL,
 							.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -312,8 +315,8 @@ create_resolve_pipeline(struct radv_device *device,
 					       &vk_pipeline_info, &radv_pipeline_info,
 					       &device->meta_state.alloc,
 					       pipeline);
-	ralloc_free(vs.nir);
-	ralloc_free(fs.nir);
+	ralloc_free(vs);
+	ralloc_free(fs);
 
 	mtx_unlock(&device->meta_state.mtx);
 	return result;
@@ -376,7 +379,7 @@ build_depth_stencil_resolve_fragment_shader(struct radv_device *dev, int samples
 
 	nir_ssa_def *input_img_deref = &nir_build_deref_var(&b, input_img)->dest.ssa;
 
-	nir_alu_type type = index == DEPTH_RESOLVE ? nir_type_float : nir_type_uint;
+	nir_alu_type type = index == DEPTH_RESOLVE ? nir_type_float32 : nir_type_uint32;
 
 	nir_tex_instr *tex = nir_tex_instr_create(b.shader, 3);
 	tex->sampler_dim = GLSL_SAMPLER_DIM_MS;
@@ -490,25 +493,21 @@ create_depth_stencil_resolve_pipeline(struct radv_device *device,
 		return VK_SUCCESS;
 	}
 
-	struct radv_shader_module fs = { .nir = NULL };
-	struct radv_shader_module vs = { .nir = NULL };
 	uint32_t samples = 1 << samples_log2;
-
-	vs.nir = build_nir_vertex_shader();
-	fs.nir = build_depth_stencil_resolve_fragment_shader(device, samples,
-							     index, resolve_mode);
+	nir_shader *fs = build_depth_stencil_resolve_fragment_shader(device, samples, index, resolve_mode);
+	nir_shader *vs = build_nir_vertex_shader();
 
 	VkPipelineShaderStageCreateInfo pipeline_shader_stages[] = {
 		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_VERTEX_BIT,
-			.module = radv_shader_module_to_handle(&vs),
+			.module = vk_shader_module_handle_from_nir(vs),
 			.pName = "main",
 			.pSpecializationInfo = NULL
 		}, {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.module = radv_shader_module_to_handle(&fs),
+			.module = vk_shader_module_handle_from_nir(fs),
 			.pName = "main",
 			.pSpecializationInfo = NULL
 		},
@@ -523,11 +522,12 @@ create_depth_stencil_resolve_pipeline(struct radv_device *device,
 	}
 
 	if (!*render_pass) {
-		result = radv_CreateRenderPass(radv_device_to_handle(device),
-					       &(VkRenderPassCreateInfo) {
-							.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+		result = radv_CreateRenderPass2(radv_device_to_handle(device),
+						&(VkRenderPassCreateInfo2) {
+							.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2,
 							.attachmentCount = 1,
-							.pAttachments = &(VkAttachmentDescription) {
+							.pAttachments = &(VkAttachmentDescription2) {
+								.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
 								.format = src_format,
 								.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 								.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -537,13 +537,15 @@ create_depth_stencil_resolve_pipeline(struct radv_device *device,
 								.finalLayout = VK_IMAGE_LAYOUT_GENERAL,
 							},
 							.subpassCount = 1,
-							.pSubpasses = &(VkSubpassDescription) {
+							.pSubpasses = &(VkSubpassDescription2) {
+								.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2,
 								.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
 								.inputAttachmentCount = 0,
 								.colorAttachmentCount = 0,
 								.pColorAttachments = NULL,
 							.pResolveAttachments = NULL,
-							.pDepthStencilAttachment = &(VkAttachmentReference) {
+							.pDepthStencilAttachment = &(VkAttachmentReference2) {
+								.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2,
 								.attachment = 0,
 								.layout = VK_IMAGE_LAYOUT_GENERAL,
 							},
@@ -551,8 +553,9 @@ create_depth_stencil_resolve_pipeline(struct radv_device *device,
 							.pPreserveAttachments = NULL,
 						},
 						.dependencyCount = 2,
-						.pDependencies = (VkSubpassDependency[]) {
+						.pDependencies = (VkSubpassDependency2[]) {
 							{
+								.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
 								.srcSubpass = VK_SUBPASS_EXTERNAL,
 								.dstSubpass = 0,
 								.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -562,6 +565,7 @@ create_depth_stencil_resolve_pipeline(struct radv_device *device,
 								.dependencyFlags = 0
 							},
 							{
+								.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
 								.srcSubpass = 0,
 								.dstSubpass = VK_SUBPASS_EXTERNAL,
 								.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -671,8 +675,8 @@ create_depth_stencil_resolve_pipeline(struct radv_device *device,
 					       &device->meta_state.alloc,
 					       pipeline);
 
-	ralloc_free(vs.nir);
-	ralloc_free(fs.nir);
+	ralloc_free(vs);
+	ralloc_free(fs);
 
 	mtx_unlock(&device->meta_state.mtx);
 	return result;
@@ -858,7 +862,9 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 					      },
 				      });
 
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB;
+	cmd_buffer->state.flush_bits |=
+		radv_dst_access_flush(cmd_buffer, VK_ACCESS_SHADER_READ_BIT, src_iview->image) |
+		radv_dst_access_flush(cmd_buffer, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, dest_iview->image);
 
 	unsigned push_constants[2] = {
 		src_offset->x - dest_offset->x,
@@ -889,7 +895,8 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 	});
 
 	radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB;
+	cmd_buffer->state.flush_bits |=
+		radv_src_access_flush(cmd_buffer, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, dest_iview->image);
 }
 
 static void
@@ -1195,18 +1202,25 @@ radv_depth_stencil_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer,
 	barrier.dst_access_mask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
 	radv_subpass_barrier(cmd_buffer, &barrier);
 
-	radv_decompress_resolve_subpass_src(cmd_buffer);
+	struct radv_subpass_attachment src_att = *subpass->depth_stencil_attachment;
+	struct radv_image_view *src_iview =
+		cmd_buffer->state.attachments[src_att.attachment].iview;
+	struct radv_image *src_image = src_iview->image;
+
+	VkImageResolve2KHR region = {0};
+	region.sType = VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2_KHR;
+	region.srcSubresource.aspectMask = aspects;
+	region.srcSubresource.mipLevel = 0;
+	region.srcSubresource.baseArrayLayer = 0;
+	region.srcSubresource.layerCount = 1;
+
+	radv_decompress_resolve_src(cmd_buffer, src_image, src_att.layout, &region);
 
 	radv_meta_save(&saved_state, cmd_buffer,
 		       RADV_META_SAVE_GRAPHICS_PIPELINE |
 		       RADV_META_SAVE_DESCRIPTORS);
 
-	struct radv_subpass_attachment src_att = *subpass->depth_stencil_attachment;
 	struct radv_subpass_attachment dst_att = *subpass->ds_resolve_attachment;
-
-	struct radv_image_view *src_iview =
-		cmd_buffer->state.attachments[src_att.attachment].iview;
-	struct radv_image *src_image = src_iview->image;
 	struct radv_image_view *dst_iview =
 		cmd_buffer->state.attachments[dst_att.attachment].iview;
 

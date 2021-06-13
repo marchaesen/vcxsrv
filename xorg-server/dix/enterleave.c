@@ -56,7 +56,7 @@
  *
  * For a full description of the focus in/out model from a window's
  * perspective, see
- * http://lists.freedesktop.org/archives/xorg/2008-December/041740.html
+ * https://lists.freedesktop.org/archives/xorg/2008-December/041684.html
  *
  * Additional notes:
  * - The core protocol spec says that "In a LeaveNotify event, if a child of the

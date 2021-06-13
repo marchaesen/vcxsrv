@@ -28,6 +28,7 @@
 #include <math.h>
 
 #include "aco_ir.h"
+#include "sid.h"
 
 namespace aco {
 
@@ -106,93 +107,6 @@ uint8_t get_counters_for_event(wait_event ev)
       return 0;
    }
 }
-
-uint16_t get_events_for_counter(counter_type ctr)
-{
-   switch (ctr) {
-   case counter_exp:
-      return exp_events;
-   case counter_lgkm:
-      return lgkm_events;
-   case counter_vm:
-      return vm_events;
-   case counter_vs:
-      return vs_events;
-   }
-   return 0;
-}
-
-struct wait_imm {
-   static const uint8_t unset_counter = 0xff;
-
-   uint8_t vm;
-   uint8_t exp;
-   uint8_t lgkm;
-   uint8_t vs;
-
-   wait_imm() :
-      vm(unset_counter), exp(unset_counter), lgkm(unset_counter), vs(unset_counter) {}
-   wait_imm(uint16_t vm_, uint16_t exp_, uint16_t lgkm_, uint16_t vs_) :
-      vm(vm_), exp(exp_), lgkm(lgkm_), vs(vs_) {}
-
-   wait_imm(enum chip_class chip, uint16_t packed) : vs(unset_counter)
-   {
-      vm = packed & 0xf;
-      if (chip >= GFX9)
-         vm |= (packed >> 10) & 0x30;
-
-      exp = (packed >> 4) & 0x7;
-
-      lgkm = (packed >> 8) & 0xf;
-      if (chip >= GFX10)
-         lgkm |= (packed >> 8) & 0x30;
-   }
-
-   uint16_t pack(enum chip_class chip) const
-   {
-      uint16_t imm = 0;
-      assert(exp == unset_counter || exp <= 0x7);
-      switch (chip) {
-      case GFX10:
-      case GFX10_3:
-         assert(lgkm == unset_counter || lgkm <= 0x3f);
-         assert(vm == unset_counter || vm <= 0x3f);
-         imm = ((vm & 0x30) << 10) | ((lgkm & 0x3f) << 8) | ((exp & 0x7) << 4) | (vm & 0xf);
-         break;
-      case GFX9:
-         assert(lgkm == unset_counter || lgkm <= 0xf);
-         assert(vm == unset_counter || vm <= 0x3f);
-         imm = ((vm & 0x30) << 10) | ((lgkm & 0xf) << 8) | ((exp & 0x7) << 4) | (vm & 0xf);
-         break;
-      default:
-         assert(lgkm == unset_counter || lgkm <= 0xf);
-         assert(vm == unset_counter || vm <= 0xf);
-         imm = ((lgkm & 0xf) << 8) | ((exp & 0x7) << 4) | (vm & 0xf);
-         break;
-      }
-      if (chip < GFX9 && vm == wait_imm::unset_counter)
-         imm |= 0xc000; /* should have no effect on pre-GFX9 and now we won't have to worry about the architecture when interpreting the immediate */
-      if (chip < GFX10 && lgkm == wait_imm::unset_counter)
-         imm |= 0x3000; /* should have no effect on pre-GFX10 and now we won't have to worry about the architecture when interpreting the immediate */
-      return imm;
-   }
-
-   bool combine(const wait_imm& other)
-   {
-      bool changed = other.vm < vm || other.exp < exp || other.lgkm < lgkm || other.vs < vs;
-      vm = std::min(vm, other.vm);
-      exp = std::min(exp, other.exp);
-      lgkm = std::min(lgkm, other.lgkm);
-      vs = std::min(vs, other.vs);
-      return changed;
-   }
-
-   bool empty() const
-   {
-      return vm == unset_counter && exp == unset_counter &&
-             lgkm == unset_counter && vs == unset_counter;
-   }
-};
 
 struct wait_entry {
    wait_imm imm;
@@ -278,13 +192,6 @@ struct wait_ctx {
 
    std::map<PhysReg,wait_entry> gpr_map;
 
-   /* used for vmem/smem scores */
-   bool collect_statistics;
-   Instruction *gen_instr;
-   std::map<Instruction *, unsigned> unwaited_instrs[num_counters];
-   std::map<PhysReg,std::set<Instruction *>> reg_instrs[num_counters];
-   std::vector<unsigned> wait_distances[num_events];
-
    wait_ctx() {}
    wait_ctx(Program *program_)
            : program(program_),
@@ -293,8 +200,7 @@ struct wait_ctx {
              max_exp_cnt(6),
              max_lgkm_cnt(program_->chip_class >= GFX10 ? 62 : 14),
              max_vs_cnt(program_->chip_class >= GFX10 ? 62 : 0),
-             unordered_events(event_smem | (program_->chip_class < GFX10 ? event_flat : 0)),
-             collect_statistics(program_->collect_statistics) {}
+             unordered_events(event_smem | (program_->chip_class < GFX10 ? event_flat : 0)) {}
 
    bool join(const wait_ctx* other, bool logical)
    {
@@ -333,55 +239,11 @@ struct wait_ctx {
          barrier_events[i] |= other->barrier_events[i];
       }
 
-      /* these are used for statistics, so don't update "changed" */
-      for (unsigned i = 0; i < num_counters; i++) {
-         for (const auto& instr : other->unwaited_instrs[i]) {
-            using iterator = std::map<Instruction *, unsigned>::iterator;
-            const std::pair<iterator, bool> insert_pair = unwaited_instrs[i].insert(instr);
-            if (!insert_pair.second) {
-               const iterator pos = insert_pair.first;
-               pos->second = std::min(pos->second, instr.second);
-            }
-         }
-         for (const auto& instr_pair : other->reg_instrs[i]) {
-            const PhysReg reg = instr_pair.first;
-            const std::set<Instruction *>& instrs = instr_pair.second;
-            reg_instrs[i][reg].insert(instrs.begin(), instrs.end());
-         }
-      }
-
       return changed;
    }
 
    void wait_and_remove_from_entry(PhysReg reg, wait_entry& entry, counter_type counter) {
-      if (collect_statistics && (entry.counters & counter)) {
-         unsigned counter_idx = ffs(counter) - 1;
-         for (Instruction *instr : reg_instrs[counter_idx][reg]) {
-            auto pos = unwaited_instrs[counter_idx].find(instr);
-            if (pos == unwaited_instrs[counter_idx].end())
-               continue;
-
-            unsigned distance = pos->second;
-            unsigned events = entry.events & get_events_for_counter(counter);
-            while (events) {
-               unsigned event_idx = u_bit_scan(&events);
-               wait_distances[event_idx].push_back(distance);
-            }
-
-            unwaited_instrs[counter_idx].erase(pos);
-         }
-         reg_instrs[counter_idx][reg].clear();
-      }
-
       entry.remove_counter(counter);
-   }
-
-   void advance_unwaited_instrs()
-   {
-      for (unsigned i = 0; i < num_counters; i++) {
-         for (std::pair<Instruction * const, unsigned>& instr : unwaited_instrs[i])
-            instr.second++;
-      }
    }
 };
 
@@ -415,17 +277,14 @@ wait_imm check_instr(Instruction* instr, wait_ctx& ctx)
             continue;
 
          /* Vector Memory reads and writes return in the order they were issued */
-         bool has_sampler = instr->format == Format::MIMG && !instr->operands[1].isUndefined() && instr->operands[1].regClass() == s4;
+         bool has_sampler = instr->isMIMG() && !instr->operands[1].isUndefined() && instr->operands[1].regClass() == s4;
          if (instr->isVMEM() && ((it->second.events & vm_events) == event_vmem) &&
              it->second.has_vmem_nosampler == !has_sampler && it->second.has_vmem_sampler == has_sampler)
             continue;
 
          /* LDS reads and writes return in the order they were issued. same for GDS */
-         if (instr->format == Format::DS) {
-            bool gds = static_cast<DS_instruction*>(instr)->gds;
-            if ((it->second.events & lgkm_events) == (gds ? event_gds : event_lds))
-               continue;
-         }
+         if (instr->isDS() && (it->second.events & lgkm_events) == (instr->ds().gds ? event_gds : event_lds))
+            continue;
 
          wait.combine(it->second.imm);
       }
@@ -439,10 +298,10 @@ wait_imm parse_wait_instr(wait_ctx& ctx, Instruction *instr)
    if (instr->opcode == aco_opcode::s_waitcnt_vscnt &&
        instr->definitions[0].physReg() == sgpr_null) {
       wait_imm imm;
-      imm.vs = std::min<uint8_t>(imm.vs, static_cast<SOPK_instruction*>(instr)->imm);
+      imm.vs = std::min<uint8_t>(imm.vs, instr->sopk().imm);
       return imm;
    } else if (instr->opcode == aco_opcode::s_waitcnt) {
-      return wait_imm(ctx.chip_class, static_cast<SOPP_instruction*>(instr)->imm);
+      return wait_imm(ctx.chip_class, instr->sopp().imm);
    }
    return wait_imm();
 }
@@ -463,8 +322,8 @@ wait_imm perform_barrier(wait_ctx& ctx, memory_sync_info sync, unsigned semantic
          if (bar_scope_lds <= subgroup_scope)
             events &= ~event_lds;
 
-         /* in non-WGP, the L1/L0 cache keeps all memory operations in-order for the same workgroup */
-         if (ctx.chip_class < GFX10 && sync.scope <= scope_workgroup)
+         /* in non-WGP, the L1 (L0 on GFX10+) cache keeps all memory operations in-order for the same workgroup */
+         if (!ctx.program->wgp_mode && sync.scope <= scope_workgroup)
             events &= ~(event_vmem | event_vmem_store | event_smem);
 
          if (events)
@@ -515,23 +374,37 @@ wait_imm kill(Instruction* instr, wait_ctx& ctx, memory_sync_info sync_info)
       imm.lgkm = 0;
    }
 
-   if (ctx.chip_class >= GFX10 && instr->format == Format::SMEM) {
+   if (ctx.chip_class >= GFX10 && instr->isSMEM()) {
       /* GFX10: A store followed by a load at the same address causes a problem because
        * the load doesn't load the correct values unless we wait for the store first.
        * This is NOT mitigated by an s_nop.
        *
        * TODO: Refine this when we have proper alias analysis.
        */
-      SMEM_instruction *smem = static_cast<SMEM_instruction *>(instr);
       if (ctx.pending_s_buffer_store &&
-          !smem->definitions.empty() &&
-          !smem->sync.can_reorder()) {
+          !instr->smem().definitions.empty() &&
+          !instr->smem().sync.can_reorder()) {
          imm.lgkm = 0;
       }
    }
 
+   if (ctx.program->early_rast && instr->opcode == aco_opcode::exp) {
+      if (instr->exp().dest >= V_008DFC_SQ_EXP_POS &&
+          instr->exp().dest < V_008DFC_SQ_EXP_PRIM) {
+
+         /* With early_rast, the HW will start clipping and rasterization after the 1st DONE pos export.
+          * Wait for all stores (and atomics) to complete, so PS can read them.
+          * TODO: This only really applies to DONE pos exports. Consider setting the DONE bit earlier.
+          */
+         if (ctx.vs_cnt > 0)
+            imm.vs = 0;
+         if (ctx.vm_cnt > 0)
+            imm.vm = 0;
+      }
+   }
+
    if (instr->opcode == aco_opcode::p_barrier)
-      imm.combine(perform_barrier(ctx, static_cast<Pseudo_barrier_instruction *>(instr)->sync, semantic_acqrel));
+      imm.combine(perform_barrier(ctx, instr->barrier().sync, semantic_acqrel));
    else
       imm.combine(perform_barrier(ctx, sync_info, semantic_release));
 
@@ -721,16 +594,6 @@ void insert_wait_entry(wait_ctx& ctx, PhysReg reg, RegClass rc, wait_event event
       if (!it.second)
          it.first->second.join(new_entry);
    }
-
-   if (ctx.collect_statistics) {
-      unsigned counters_todo = counters;
-      while (counters_todo) {
-         unsigned i = u_bit_scan(&counters_todo);
-         ctx.unwaited_instrs[i].insert(std::make_pair(ctx.gen_instr, 0u));
-         for (unsigned j = 0; j < rc.size(); j++)
-            ctx.reg_instrs[i][PhysReg{reg.reg()+j}].insert(ctx.gen_instr);
-      }
-   }
 }
 
 void insert_wait_entry(wait_ctx& ctx, Operand op, wait_event event, bool has_sampler=false)
@@ -748,12 +611,12 @@ void gen(Instruction* instr, wait_ctx& ctx)
 {
    switch (instr->format) {
    case Format::EXP: {
-      Export_instruction* exp_instr = static_cast<Export_instruction*>(instr);
+      Export_instruction& exp_instr = instr->exp();
 
       wait_event ev;
-      if (exp_instr->dest <= 9)
+      if (exp_instr.dest <= 9)
          ev = event_exp_mrt_null;
-      else if (exp_instr->dest <= 15)
+      else if (exp_instr.dest <= 15)
          ev = event_exp_pos;
       else
          ev = event_exp_param;
@@ -762,10 +625,10 @@ void gen(Instruction* instr, wait_ctx& ctx)
       /* insert new entries for exported vgprs */
       for (unsigned i = 0; i < 4; i++)
       {
-         if (exp_instr->enabled_mask & (1 << i)) {
-            unsigned idx = exp_instr->compressed ? i >> 1 : i;
-            assert(idx < exp_instr->operands.size());
-            insert_wait_entry(ctx, exp_instr->operands[idx], ev);
+         if (exp_instr.enabled_mask & (1 << i)) {
+            unsigned idx = exp_instr.compressed ? i >> 1 : i;
+            assert(idx < exp_instr.operands.size());
+            insert_wait_entry(ctx, exp_instr.operands[idx], ev);
 
          }
       }
@@ -773,38 +636,38 @@ void gen(Instruction* instr, wait_ctx& ctx)
       break;
    }
    case Format::FLAT: {
-      FLAT_instruction *flat = static_cast<FLAT_instruction*>(instr);
+      FLAT_instruction& flat = instr->flat();
       if (ctx.chip_class < GFX10 && !instr->definitions.empty())
-         update_counters_for_flat_load(ctx, flat->sync);
+         update_counters_for_flat_load(ctx, flat.sync);
       else
-         update_counters(ctx, event_flat, flat->sync);
+         update_counters(ctx, event_flat, flat.sync);
 
       if (!instr->definitions.empty())
          insert_wait_entry(ctx, instr->definitions[0], event_flat);
       break;
    }
    case Format::SMEM: {
-      SMEM_instruction *smem = static_cast<SMEM_instruction*>(instr);
-      update_counters(ctx, event_smem, smem->sync);
+      SMEM_instruction& smem = instr->smem();
+      update_counters(ctx, event_smem, smem.sync);
 
       if (!instr->definitions.empty())
          insert_wait_entry(ctx, instr->definitions[0], event_smem);
       else if (ctx.chip_class >= GFX10 &&
-               !smem->sync.can_reorder())
+               !smem.sync.can_reorder())
          ctx.pending_s_buffer_store = true;
 
       break;
    }
    case Format::DS: {
-      DS_instruction *ds = static_cast<DS_instruction*>(instr);
-      update_counters(ctx, ds->gds ? event_gds : event_lds, ds->sync);
-      if (ds->gds)
+      DS_instruction& ds = instr->ds();
+      update_counters(ctx, ds.gds ? event_gds : event_lds, ds.sync);
+      if (ds.gds)
          update_counters(ctx, event_gds_gpr_lock);
 
       if (!instr->definitions.empty())
-         insert_wait_entry(ctx, instr->definitions[0], ds->gds ? event_gds : event_lds);
+         insert_wait_entry(ctx, instr->definitions[0], ds.gds ? event_gds : event_lds);
 
-      if (ds->gds) {
+      if (ds.gds) {
          for (const Operand& op : instr->operands)
             insert_wait_entry(ctx, op, event_gds_gpr_lock);
          insert_wait_entry(ctx, exec, s2, event_gds_gpr_lock, false);
@@ -818,7 +681,7 @@ void gen(Instruction* instr, wait_ctx& ctx)
       wait_event ev = !instr->definitions.empty() || ctx.chip_class < GFX10 ? event_vmem : event_vmem_store;
       update_counters(ctx, ev, get_sync_info(instr));
 
-      bool has_sampler = instr->format == Format::MIMG && !instr->operands[1].isUndefined() && instr->operands[1].regClass() == s4;
+      bool has_sampler = instr->isMIMG() && !instr->operands[1].isUndefined() && instr->operands[1].regClass() == s4;
 
       if (!instr->definitions.empty())
          insert_wait_entry(ctx, instr->definitions[0], ev, has_sampler);
@@ -830,11 +693,11 @@ void gen(Instruction* instr, wait_ctx& ctx)
          update_counters(ctx, event_vmem_gpr_lock);
          insert_wait_entry(ctx, instr->operands[3], event_vmem_gpr_lock);
       } else if (ctx.chip_class == GFX6 &&
-                 instr->format == Format::MIMG &&
-                 instr->operands[1].regClass().type() == RegType::vgpr) {
+                 instr->isMIMG() &&
+                 !instr->operands[2].isUndefined()) {
          ctx.exp_cnt++;
          update_counters(ctx, event_vmem_gpr_lock);
-         insert_wait_entry(ctx, instr->operands[1], event_vmem_gpr_lock);
+         insert_wait_entry(ctx, instr->operands[2], event_vmem_gpr_lock);
       }
 
       break;
@@ -879,7 +742,6 @@ void handle_block(Program *program, Block& block, wait_ctx& ctx)
       memory_sync_info sync_info = get_sync_info(instr.get());
       queued_imm.combine(kill(instr.get(), ctx, sync_info));
 
-      ctx.gen_instr = instr.get();
       gen(instr.get(), ctx);
 
       if (instr->format != Format::PSEUDO_BARRIER && !is_wait) {
@@ -890,9 +752,6 @@ void handle_block(Program *program, Block& block, wait_ctx& ctx)
          new_instructions.emplace_back(std::move(instr));
 
          queued_imm.combine(perform_barrier(ctx, sync_info, semantic_acquire));
-
-         if (ctx.collect_statistics)
-            ctx.advance_unwaited_instrs();
       }
    }
 
@@ -903,51 +762,6 @@ void handle_block(Program *program, Block& block, wait_ctx& ctx)
 }
 
 } /* end namespace */
-
-static uint32_t calculate_score(std::vector<wait_ctx> &ctx_vec, uint32_t event_mask)
-{
-   double result = 0.0;
-   unsigned num_waits = 0;
-   while (event_mask) {
-      unsigned event_index = u_bit_scan(&event_mask);
-      for (const wait_ctx &ctx : ctx_vec) {
-         for (unsigned dist : ctx.wait_distances[event_index]) {
-            double score = dist;
-            /* for many events, excessive distances provide little benefit, so
-             * decrease the score in that case. */
-            double threshold = INFINITY;
-            double inv_strength = 0.000001;
-            switch (1 << event_index) {
-            case event_smem:
-               threshold = 70.0;
-               inv_strength = 75.0;
-               break;
-            case event_vmem:
-            case event_vmem_store:
-            case event_flat:
-               threshold = 230.0;
-               inv_strength = 150.0;
-               break;
-            case event_lds:
-               threshold = 16.0;
-               break;
-            default:
-               break;
-            }
-            if (score > threshold) {
-               score -= threshold;
-               score = threshold + score / (1.0 + score / inv_strength);
-            }
-
-            /* we don't want increases in high scores to hide decreases in low scores,
-             * so raise to the power of 0.1 before averaging. */
-            result += pow(score, 0.1);
-            num_waits++;
-         }
-      }
-   }
-   return round(pow(result / num_waits, 10.0) * 10.0);
-}
 
 void insert_wait_states(Program* program)
 {
@@ -1001,13 +815,6 @@ void insert_wait_states(Program* program)
       handle_block(program, current, ctx);
 
       out_ctx[current.index] = std::move(ctx);
-   }
-
-   if (program->collect_statistics) {
-      program->statistics[statistic_vmem_score] =
-         calculate_score(out_ctx, event_vmem | event_flat | event_vmem_store);
-      program->statistics[statistic_smem_score] =
-         calculate_score(out_ctx, event_smem);
    }
 }
 

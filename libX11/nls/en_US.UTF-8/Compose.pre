@@ -924,9 +924,11 @@ XCOMM Part 3
 <Multi_key> <e> <minus> 		: "ē"   U0113 # LATIN SMALL LETTER E WITH MACRON
 <dead_breve> <E>                 	: "Ĕ"   U0114 # LATIN CAPITAL LETTER E WITH BREVE
 <Multi_key> <U> <E>              	: "Ĕ"   U0114 # LATIN CAPITAL LETTER E WITH BREVE
+<Multi_key> <u> <E>              	: "Ĕ"   U0114 # LATIN CAPITAL LETTER E WITH BREVE
 <Multi_key> <b> <E>              	: "Ĕ"   U0114 # LATIN CAPITAL LETTER E WITH BREVE
 <dead_breve> <e>                 	: "ĕ"   U0115 # LATIN SMALL LETTER E WITH BREVE
 <Multi_key> <U> <e>              	: "ĕ"   U0115 # LATIN SMALL LETTER E WITH BREVE
+<Multi_key> <u> <e>              	: "ĕ"   U0115 # LATIN SMALL LETTER E WITH BREVE
 <Multi_key> <b> <e>              	: "ĕ"   U0115 # LATIN SMALL LETTER E WITH BREVE
 <dead_abovedot> <E>              	: "Ė"   U0116 # LATIN CAPITAL LETTER E WITH DOT ABOVE
 <Multi_key> <period> <E>         	: "Ė"   U0116 # LATIN CAPITAL LETTER E WITH DOT ABOVE
@@ -960,14 +962,18 @@ XCOMM Part 3
 <Multi_key> <asciicircum> <g>    	: "ĝ"   U011D # LATIN SMALL LETTER G WITH CIRCUMFLEX
 <dead_breve> <G>                 	: "Ğ"   U011E # LATIN CAPITAL LETTER G WITH BREVE
 <Multi_key> <U> <G>              	: "Ğ"   U011E # LATIN CAPITAL LETTER G WITH BREVE
+<Multi_key> <u> <G>              	: "Ğ"   U011E # LATIN CAPITAL LETTER G WITH BREVE
 <Multi_key> <G> <U> 			: "Ğ"   U011E # LATIN CAPITAL LETTER G WITH BREVE
+<Multi_key> <G> <u> 			: "Ğ"   U011E # LATIN CAPITAL LETTER G WITH BREVE
 <Multi_key> <b> <G>              	: "Ğ"   U011E # LATIN CAPITAL LETTER G WITH BREVE
 <Multi_key> <breve> <G> 		: "Ğ"   U011E # LATIN CAPITAL LETTER G WITH BREVE
 <Multi_key> <G> <breve> 		: "Ğ"   U011E # LATIN CAPITAL LETTER G WITH BREVE
 <Multi_key> <G> <parenleft> 		: "Ğ"   U011E # LATIN CAPITAL LETTER G WITH BREVE
 <dead_breve> <g>                 	: "ğ"   U011F # LATIN SMALL LETTER G WITH BREVE
 <Multi_key> <U> <g>              	: "ğ"   U011F # LATIN SMALL LETTER G WITH BREVE
+<Multi_key> <u> <g>              	: "ğ"   U011F # LATIN SMALL LETTER G WITH BREVE
 <Multi_key> <g> <U> 			: "ğ"   U011F # LATIN SMALL LETTER G WITH BREVE
+<Multi_key> <g> <u> 			: "ğ"   U011F # LATIN SMALL LETTER G WITH BREVE
 <Multi_key> <b> <g>              	: "ğ"   U011F # LATIN SMALL LETTER G WITH BREVE
 <Multi_key> <breve> <g> 		: "ğ"   U011F # LATIN SMALL LETTER G WITH BREVE
 <Multi_key> <g> <breve> 		: "ğ"   U011F # LATIN SMALL LETTER G WITH BREVE
@@ -1016,9 +1022,11 @@ XCOMM Part 3
 <Multi_key> <i> <minus> 		: "ī"   U012B # LATIN SMALL LETTER I WITH MACRON
 <dead_breve> <I>                 	: "Ĭ"   U012C # LATIN CAPITAL LETTER I WITH BREVE
 <Multi_key> <U> <I>              	: "Ĭ"   U012C # LATIN CAPITAL LETTER I WITH BREVE
+<Multi_key> <u> <I>              	: "Ĭ"   U012C # LATIN CAPITAL LETTER I WITH BREVE
 <Multi_key> <b> <I>              	: "Ĭ"   U012C # LATIN CAPITAL LETTER I WITH BREVE
 <dead_breve> <i>                 	: "ĭ"   U012D # LATIN SMALL LETTER I WITH BREVE
 <Multi_key> <U> <i>              	: "ĭ"   U012D # LATIN SMALL LETTER I WITH BREVE
+<Multi_key> <u> <i>              	: "ĭ"   U012D # LATIN SMALL LETTER I WITH BREVE
 <Multi_key> <b> <i>              	: "ĭ"   U012D # LATIN SMALL LETTER I WITH BREVE
 <dead_ogonek> <I>                	: "Į"   U012E # LATIN CAPITAL LETTER I WITH OGONEK
 <Multi_key> <semicolon> <I>      	: "Į"   U012E # LATIN CAPITAL LETTER I WITH OGONEK
@@ -1123,9 +1131,11 @@ XCOMM Part 3
 <Multi_key> <o> <minus>         	: "ō"   U014D # LATIN SMALL LETTER O WITH MACRON
 <dead_breve> <O>                 	: "Ŏ"   U014E # LATIN CAPITAL LETTER O WITH BREVE
 <Multi_key> <U> <O>              	: "Ŏ"   U014E # LATIN CAPITAL LETTER O WITH BREVE
+<Multi_key> <u> <O>              	: "Ŏ"   U014E # LATIN CAPITAL LETTER O WITH BREVE
 <Multi_key> <b> <O>              	: "Ŏ"   U014E # LATIN CAPITAL LETTER O WITH BREVE
 <dead_breve> <o>                 	: "ŏ"   U014F # LATIN SMALL LETTER O WITH BREVE
 <Multi_key> <U> <o>              	: "ŏ"   U014F # LATIN SMALL LETTER O WITH BREVE
+<Multi_key> <u> <o>              	: "ŏ"   U014F # LATIN SMALL LETTER O WITH BREVE
 <Multi_key> <b> <o>              	: "ŏ"   U014F # LATIN SMALL LETTER O WITH BREVE
 <dead_doubleacute> <O>           	: "Ő"   U0150 # LATIN CAPITAL LETTER O WITH DOUBLE ACUTE
 <Multi_key> <equal> <O>          	: "Ő"   U0150 # LATIN CAPITAL LETTER O WITH DOUBLE ACUTE
@@ -6019,8 +6029,7 @@ XCOMM Characters from "Miscellaneous Technical"
 <Multi_key> <minus> <U2191>                     : "⍏"   U234f   # - ↑ APL FUNCTIONAL SYMBOL UPWARDS VANE
 <Multi_key> <U2191> <U2395>                     : "⍐"   U2350   # ↑ ⎕ APL FUNCTIONAL SYMBOL QUAD UPWARDS ARROW
 <Multi_key> <U2395> <U2191>                     : "⍐"   U2350   # ⎕ ↑ APL FUNCTIONAL SYMBOL QUAD UPWARDS ARROW
-XCOMM I cannot get anything to work with <macron>. Given that no extant APLs use ⍑ I will just leave the lines
-XCOMM in place.
+XCOMM The next two somehow don't work.  However, no extant APL uses "⍑".
 <Multi_key> <macron> <U22a4>                    : "⍑"   U2351   # ¯ ⊤ APL FUNCTIONAL SYMBOL UP TACK OVERBAR
 <Multi_key> <U22a4> <macron>                    : "⍑"   U2351   # ⊤ ¯ APL FUNCTIONAL SYMBOL UP TACK OVERBAR
 <Multi_key> <U2207> <bar>                       : "⍒"   U2352   # ∇ | APL FUNCTIONAL SYMBOL DEL STILE
@@ -6035,10 +6044,7 @@ XCOMM in place.
 <Multi_key> <minus> <U2193>                     : "⍖"   U2356   # - ↓ APL FUNCTIONAL SYMBOL DOWNWARDS VANE
 <Multi_key> <U2193> <U2395>                     : "⍗"   U2357   # ↓ ⎕ APL FUNCTIONAL SYMBOL QUAD DOWNWARDS ARROW
 <Multi_key> <U2395> <U2193>                     : "⍗"   U2357   # ⎕ ↓ APL FUNCTIONAL SYMBOL QUAD DOWNWARDS ARROW
-XCOMM This line clashes with the <apostrophe> <underscore> <E> (and similar) that appear to be there to provide
-XCOMM a work around for the problems with <macron>. Or to cope with keyboards that do not have <macron> (more likely).
-XCOMM All APL keyboards have <macron>, it is used as the -ve sign for numbers.
-XCOMM I do not know of an extant APL using ⍘
+XCOMM The <apostrophe> <underscore> is used elsewhere.  However, no extant APL uses "⍘".
 <Multi_key> <underscore> <apostrophe>           : "⍘"   U2358   # _ ' APL FUNCTIONAL SYMBOL QUOTE UNDERBAR
 <Multi_key> <U2206> <underscore>                : "⍙"   U2359   # ∆ _ APL FUNCTIONAL SYMBOL DELTA UNDERBAR
 <Multi_key> <underscore> <U2206>                : "⍙"   U2359   # _ ∆ APL FUNCTIONAL SYMBOL DELTA UNDERBAR
@@ -6079,10 +6085,7 @@ XCOMM I do not know of an extant APL using ⍘
 <Multi_key> <asciitilde> <0>                    : "⍬"   U236c   # ~ 0 APL FUNCTIONAL SYMBOL ZILDE
 <Multi_key> <bar> <asciitilde>                  : "⍭"   U236d   # | ~ APL FUNCTIONAL SYMBOL STILE TILDE
 <Multi_key> <asciitilde> <bar>                  : "⍭"   U236d   # ~ | APL FUNCTIONAL SYMBOL STILE TILDE
-XCOMM This line does not work. It clashes with
-XCOMM <underscore> <semicolon> <O> for Ǭ and
-XCOMM <underscore> <semicolon> <o> for ǭ.
-XCOMM Given that no extant APLs use ⍮ I will just leave the line in place.
+XCOMM The <underscore> <semicolon> is used elsewhere.  However, no extant APL uses "⍮".
 <Multi_key> <semicolon> <underscore>            : "⍮"   U236e   # ; _ APL FUNCTIONAL SYMBOL SEMICOLON UNDERBAR
 <Multi_key> <U2260> <U2395>                     : "⍯"   U236f   # ≠ ⎕ APL FUNCTIONAL SYMBOL QUAD NOT EQUAL
 <Multi_key> <U2395> <U2260>                     : "⍯"   U236f   # ⎕ ≠ APL FUNCTIONAL SYMBOL QUAD NOT EQUAL

@@ -91,7 +91,7 @@ void setup_reduce_temp(Program* program)
          if (instr->format != Format::PSEUDO_REDUCTION)
             continue;
 
-         ReduceOp op = static_cast<Pseudo_reduction_instruction *>(instr)->reduce_op;
+         ReduceOp op = instr->reduction().reduce_op;
          reduceTmp_in_loop |= block.loop_nest_depth > 0;
 
          if ((int)last_top_level_block_idx != inserted_at) {
@@ -115,7 +115,7 @@ void setup_reduce_temp(Program* program)
          }
 
          /* same as before, except for the vector temporary instead of the reduce temporary */
-         unsigned cluster_size = static_cast<Pseudo_reduction_instruction *>(instr)->cluster_size;
+         unsigned cluster_size = instr->reduction().cluster_size;
          bool need_vtmp = op == imul32 || op == fadd64 || op == fmul64 ||
                           op == fmin64 || op == fmax64 || op == umin64 ||
                           op == umax64 || op == imin64 || op == imax64 ||

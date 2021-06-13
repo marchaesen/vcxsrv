@@ -1,0 +1,117 @@
+panfrost-t720-gles2:arm64:
+  extends:
+    - .lava-test:arm64
+    - .panfrost-rules
+  variables:
+    DEVICE_TYPE: sun50i-h6-pine-h64
+    DTB: ${DEVICE_TYPE}
+    GPU_VERSION: panfrost-t720
+    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T720"
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+panfrost-t760-gles2:armhf:
+  extends:
+    - .lava-test:armhf
+    - .panfrost-rules
+  variables:
+    DEVICE_TYPE: rk3288-veyron-jaq
+    DTB: ${DEVICE_TYPE}
+    GPU_VERSION: panfrost-t760
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
+    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T760"
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+panfrost-t760-traces:armhf:
+  extends:
+    - .lava-piglit-traces:armhf
+    - .panfrost-rules
+  variables:
+    DEVICE_TYPE: rk3288-veyron-jaq
+    DTB: ${DEVICE_TYPE}
+    GPU_VERSION: panfrost-t760
+    DRIVER_NAME: panfrost
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
+    ENV_VARS: "PAN_MESA_DEBUG=deqp MESA_GLES_VERSION_OVERRIDE=3.1 MESA_GL_VERSION_OVERRIDE=3.3 MESA_GLSL_VERSION_OVERRIDE=330 EGL_PLATFORM=surfaceless PIGLIT_PROFILES=replay PIGLIT_HTML_SUMMARY=0 PIGLIT_JUNIT_RESULTS=1"
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+.lava-rk3399-gru-kevin:
+  extends:
+    - .panfrost-rules
+  variables:
+    DEVICE_TYPE: rk3399-gru-kevin
+    DTB: ${DEVICE_TYPE}
+    GPU_VERSION: panfrost-t860
+    DRIVER_NAME: panfrost
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+panfrost-t860-gles2:arm64:
+  extends:
+    - .lava-test:arm64
+    - .lava-rk3399-gru-kevin
+  variables:
+    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T860"
+
+panfrost-t860-gles3:arm64:
+  parallel: 2
+  extends:
+    - .lava-test:arm64
+    - .lava-rk3399-gru-kevin
+  variables:
+    DEQP_VERSION: gles3
+    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T860"
+
+panfrost-t860-traces:arm64:
+  extends:
+    - .lava-piglit-traces:arm64
+    - .lava-rk3399-gru-kevin
+  variables:
+    ENV_VARS: "PAN_MESA_DEBUG=deqp MESA_GLES_VERSION_OVERRIDE=3.1 MESA_GL_VERSION_OVERRIDE=3.3 MESA_GLSL_VERSION_OVERRIDE=330 EGL_PLATFORM=surfaceless PIGLIT_PROFILES=replay PIGLIT_HTML_SUMMARY=0 PIGLIT_JUNIT_RESULTS=1"
+
+.lava-meson-g12b-a311d-khadas-vim3:
+  extends:
+    - .panfrost-rules
+  variables:
+    DEVICE_TYPE: meson-g12b-a311d-khadas-vim3
+    DTB: ${DEVICE_TYPE}
+    GPU_VERSION: panfrost-g52
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+panfrost-g52-gles2:arm64:
+  extends:
+    - .lava-test:arm64
+    - .lava-meson-g12b-a311d-khadas-vim3
+  variables:
+    ENV_VARS: "DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=G52"
+
+panfrost-g52-gles3:arm64:
+  extends:
+    - .lava-test:arm64
+    - .lava-meson-g12b-a311d-khadas-vim3
+  variables:
+    # We don't have enough VIM3s to run the full GLES3 testsuite yet
+    CI_NODE_INDEX: 1
+    CI_NODE_TOTAL: 2
+    DEQP_VERSION: gles3
+    ENV_VARS: "PAN_MESA_DEBUG=deqp DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=G52"
+
+.panfrost-t820-gles2:arm64:
+  extends:
+    - .lava-test:arm64
+    - .panfrost-rules
+  variables:
+    DEVICE_TYPE: meson-gxm-khadas-vim2
+    DTB: ${DEVICE_TYPE}
+    GPU_VERSION: panfrost-t820
+    LAVA_TAGS: panfrost
+    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T820"
+  tags:
+    - mesa-ci-aarch64-lava-baylibre

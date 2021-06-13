@@ -4,7 +4,7 @@
     "name": "VK_LAYER_MESA_device_select",
     "type": "GLOBAL",
     "library_path": "libVkLayer_MESA_device_select.so",
-    "api_version": "1.1.73",
+    "api_version": "1.2.73",
     "implementation_version": "1",
     "description": "Linux device selection layer",
     "functions": {

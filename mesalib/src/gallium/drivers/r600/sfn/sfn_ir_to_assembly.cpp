@@ -94,6 +94,7 @@ public:
    int m_loop_nesting;
    int m_nliterals_in_group;
    std::set<int> vtx_fetch_results;
+   bool m_last_op_was_barrier;
 };
 
 
@@ -159,6 +160,8 @@ bool AssemblyFromShaderLegacyImpl::emit(const Instruction::Pointer i)
    if (i->type() != Instruction::vtx)
        vtx_fetch_results.clear();
 
+   m_last_op_was_barrier &= i->type() == Instruction::alu;
+
    sfn_log << SfnLog::assembly << "Emit from '" << *i << "\n";
    switch (i->type()) {
    case Instruction::alu:
@@ -219,7 +222,8 @@ AssemblyFromShaderLegacyImpl::AssemblyFromShaderLegacyImpl(r600_shader *sh,
    has_pos_output(false),
    has_param_output(false),
    m_loop_nesting(0),
-   m_nliterals_in_group(0)
+   m_nliterals_in_group(0),
+   m_last_op_was_barrier(false)
 {
    m_max_color_exports = MAX2(m_key->ps.nr_cbufs, 1);
 }
@@ -250,6 +254,11 @@ bool AssemblyFromShaderLegacyImpl::emit_alu(const AluInstruction& ai, ECFAluOpCo
       return false;
    }
 
+   if (m_last_op_was_barrier && ai.opcode() == op0_group_barrier)
+      return true;
+
+   m_last_op_was_barrier = ai.opcode() == op0_group_barrier;
+
    unsigned old_nliterals_in_group = m_nliterals_in_group;
    for (unsigned i = 0; i < ai.n_sources(); ++i) {
       auto& s = ai.src(i);
@@ -257,7 +266,7 @@ bool AssemblyFromShaderLegacyImpl::emit_alu(const AluInstruction& ai, ECFAluOpCo
          ++m_nliterals_in_group;
    }
 
-   /* This instruction group would exeed the limit of literals, so
+   /* This instruction group would exceed the limit of literals, so
     * force a new instruction group by adding a NOP as last
     * instruction. This will no loner be needed with a real
     * scheduler */
@@ -958,7 +967,7 @@ bool AssemblyFromShaderLegacyImpl::emit_ldsread(const LDSReadInstruction& instr)
    r600_bytecode_alu alu_read;
 
    /* We must add a new ALU clause if the fetch and read op would be split otherwise
-    * r600_asm limites at 120 slots = 240 dwords */
+    * r600_asm limits at 120 slots = 240 dwords */
    if (m_bc->cf_last->ndw > 240 - 4 * n_values)
       m_bc->force_add_cf = 1;
 

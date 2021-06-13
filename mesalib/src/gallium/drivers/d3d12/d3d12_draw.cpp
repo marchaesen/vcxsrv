@@ -59,16 +59,15 @@ fill_cbv_descriptors(struct d3d12_context *ctx,
       unsigned binding = shader->cb_bindings[i].binding;
       struct pipe_constant_buffer *buffer = &ctx->cbufs[stage][binding];
 
-      assert(buffer->buffer_size > 0);
-      assert(buffer->buffer);
-
-      struct d3d12_resource *res = d3d12_resource(buffer->buffer);
-      d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
       D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc = {};
-      cbv_desc.BufferLocation = d3d12_resource_gpu_virtual_address(res) + buffer->buffer_offset;
-      cbv_desc.SizeInBytes = MIN2(D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
-                                  align(buffer->buffer_size, 256));
-      d3d12_batch_reference_resource(batch, res);
+      if (buffer && buffer->buffer) {
+         struct d3d12_resource *res = d3d12_resource(buffer->buffer);
+         d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+         cbv_desc.BufferLocation = d3d12_resource_gpu_virtual_address(res) + buffer->buffer_offset;
+         cbv_desc.SizeInBytes = MIN2(D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
+            align(buffer->buffer_size, 256));
+         d3d12_batch_reference_resource(batch, res);
+      }
 
       struct d3d12_descriptor_handle handle;
       d3d12_descriptor_heap_alloc_handle(batch->view_heap, &handle);
@@ -84,6 +83,7 @@ fill_srv_descriptors(struct d3d12_context *ctx,
                      unsigned stage)
 {
    struct d3d12_batch *batch = d3d12_current_batch(ctx);
+   struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
    D3D12_CPU_DESCRIPTOR_HANDLE descs[PIPE_MAX_SHADER_SAMPLER_VIEWS];
    struct d3d12_descriptor_handle table_start;
 
@@ -119,7 +119,7 @@ fill_srv_descriptors(struct d3d12_context *ctx,
                                                 state);
          }
       } else {
-         descs[i] = ctx->null_srvs[shader->srv_bindings[i].dimension].cpu_handle;
+         descs[i] = screen->null_srvs[shader->srv_bindings[i].dimension].cpu_handle;
       }
    }
 
@@ -426,7 +426,22 @@ d3d12_draw_vbo(struct pipe_context *pctx,
                const struct pipe_draw_start_count *draws,
                unsigned num_draws)
 {
+   if (num_draws > 1) {
+      struct pipe_draw_info tmp_info = *dinfo;
+
+      for (unsigned i = 0; i < num_draws; i++) {
+         d3d12_draw_vbo(pctx, &tmp_info, indirect, &draws[i], 1);
+         if (tmp_info.increment_draw_id)
+            tmp_info.drawid++;
+      }
+      return;
+   }
+
+   if (!indirect && (!draws[0].count || !dinfo->instance_count))
+      return;
+
    struct d3d12_context *ctx = d3d12_context(pctx);
+   struct d3d12_screen *screen = d3d12_screen(pctx->screen);
    struct d3d12_batch *batch;
    struct pipe_resource *index_buffer = NULL;
    unsigned index_offset = 0;
@@ -649,7 +664,7 @@ d3d12_draw_vbo(struct pipe_context *pctx,
             render_targets[i] = d3d12_surface_get_handle(surface, conversion_modes[i]);
             d3d12_batch_reference_surface_texture(batch, surface);
          } else
-            render_targets[i] = ctx->null_rtv.cpu_handle;
+            render_targets[i] = screen->null_rtv.cpu_handle;
       }
       if (ctx->fb.zsbuf) {
          struct d3d12_surface *surface = d3d12_surface(ctx->fb.zsbuf);

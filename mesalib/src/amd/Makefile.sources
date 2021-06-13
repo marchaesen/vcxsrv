@@ -42,8 +42,16 @@ AMD_COMMON_FILES = \
 	common/ac_exp_param.h \
 	common/ac_gpu_info.c \
 	common/ac_gpu_info.h \
+	common/ac_msgpack.c \
+	common/ac_msgpack.h \
+	common/ac_nir.h \
+	common/ac_nir_lower_esgs_io_to_mem.c \
+	common/ac_nir_lower_tess_io_to_mem.c \
 	common/ac_surface.c \
 	common/ac_surface.h \
+	common/ac_rgp.c \
+	common/ac_rgp.h \
+	common/ac_rgp_elf_object_pack.c \
 	common/ac_rtld.c \
 	common/ac_rtld.h \
 	common/ac_shader_args.c \
@@ -51,7 +59,9 @@ AMD_COMMON_FILES = \
 	common/ac_shader_util.c \
 	common/ac_shader_util.h \
 	common/ac_shadowed_regs.c \
-	common/ac_shadowed_regs.h
+	common/ac_shadowed_regs.h \
+	common/ac_sqtt.c \
+	common/ac_sqtt.h
 
 AMD_COMMON_LLVM_FILES = \
 	llvm/ac_llvm_build.c \

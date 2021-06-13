@@ -146,7 +146,7 @@ void Instruction::add_remappable_dst_value(GPRVector *v)
    m_mappable_dst_vectors.push_back(v);
 }
 
-void Instruction::replace_values(UNUSED const ValueSet& candiates, UNUSED PValue new_value)
+void Instruction::replace_values(UNUSED const ValueSet& candidates, UNUSED PValue new_value)
 {
 
 }

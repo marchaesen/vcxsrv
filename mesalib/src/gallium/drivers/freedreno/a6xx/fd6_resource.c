@@ -37,29 +37,24 @@
  * it can be tiled doesn't mean it can be compressed.
  */
 static bool
-ok_ubwc_format(struct fd_resource *rsc, enum pipe_format pfmt)
+ok_ubwc_format(struct pipe_screen *pscreen, enum pipe_format pfmt)
 {
-	/* NOTE: both x24s8 and z24s8 map to RB6_X8Z24_UNORM, but UBWC
-	 * does not seem to work properly when sampling x24s8.. possibly
-	 * because we sample it as TFMT6_8_8_8_8_UINT.
-	 *
-	 * This could possibly be a hw limitation, or maybe something
-	 * else wrong somewhere (although z24s8 blits and sampling with
-	 * UBWC seem fine).  Recheck on a later revision of a6xx
-	 */
-	if (pfmt == PIPE_FORMAT_X24S8_UINT)
-		return false;
+	switch (pfmt) {
+	case PIPE_FORMAT_X24S8_UINT:
+	case PIPE_FORMAT_Z24_UNORM_S8_UINT:
+		/* We can't sample stencil with UBWC on a630, and we may need to be able
+		 * to sample stencil at some point.  We can't just use
+		 * fd_resource_uncompress() at the point of stencil sampling because
+		 * that itself uses stencil sampling in the fd_blitter_blit path.
+		 */
+		return fd_screen(pscreen)->info.a6xx.has_z24uint_s8uint;
 
-	/* We don't fully understand what's going wrong with this combination, but
-	 * we haven't been able to make it work.  It's enough of a corner-case
-	 * that we can just disable UBWC for these resources.
-	 */
-	if (rsc->base.target != PIPE_TEXTURE_2D &&
-			pfmt == PIPE_FORMAT_Z24_UNORM_S8_UINT)
-		return false;
-
-	if (pfmt == PIPE_FORMAT_R8_G8B8_420_UNORM)
+	case PIPE_FORMAT_R8_G8B8_420_UNORM:
 		return true;
+
+	default:
+		break;
+	}
 
 	switch (fd6_pipe2color(pfmt)) {
 	case FMT6_10_10_10_2_UINT:
@@ -95,6 +90,19 @@ ok_ubwc_format(struct fd_resource *rsc, enum pipe_format pfmt)
 	}
 }
 
+static bool
+can_do_ubwc(struct pipe_resource *prsc)
+{
+	/* limit things to simple single level 2d for now: */
+	if ((prsc->depth0 != 1) || (prsc->array_size != 1) || (prsc->last_level != 0))
+		return false;
+	if (prsc->target != PIPE_TEXTURE_2D)
+		return false;
+	if (!ok_ubwc_format(prsc->screen, prsc->format))
+		return false;
+	return true;
+}
+
 /**
  * Ensure the rsc is in an ok state to be used with the specified format.
  * This handles the case of UBWC buffers used with non-UBWC compatible
@@ -104,11 +112,16 @@ void
 fd6_validate_format(struct fd_context *ctx, struct fd_resource *rsc,
 		enum pipe_format format)
 {
+	tc_assert_driver_thread(ctx->tc);
+
 	if (!rsc->layout.ubwc)
 		return;
 
-	if (ok_ubwc_format(rsc, format))
+	if (ok_ubwc_format(rsc->b.b.screen, format))
 		return;
+
+	perf_debug_ctx(ctx, "%"PRSC_FMT": demoted to uncompressed due to use as %s",
+		PRSC_ARGS(&rsc->b.b), util_format_short_name(format));
 
 	fd_resource_uncompress(ctx, rsc);
 }
@@ -116,17 +129,17 @@ fd6_validate_format(struct fd_context *ctx, struct fd_resource *rsc,
 static void
 setup_lrz(struct fd_resource *rsc)
 {
-	struct fd_screen *screen = fd_screen(rsc->base.screen);
+	struct fd_screen *screen = fd_screen(rsc->b.b.screen);
 	const uint32_t flags = DRM_FREEDRENO_GEM_CACHE_WCOMBINE |
 			DRM_FREEDRENO_GEM_TYPE_KMEM; /* TODO */
-	unsigned width0 = rsc->base.width0;
-	unsigned height0 = rsc->base.height0;
+	unsigned width0 = rsc->b.b.width0;
+	unsigned height0 = rsc->b.b.height0;
 
 	/* LRZ buffer is super-sampled: */
-	switch (rsc->base.nr_samples) {
+	switch (rsc->b.b.nr_samples) {
 	case 4:
 		width0 *= 2;
-		/* fallthru */
+		FALLTHROUGH;
 	case 2:
 		height0 *= 2;
 	}
@@ -145,12 +158,12 @@ setup_lrz(struct fd_resource *rsc)
 static uint32_t
 fd6_setup_slices(struct fd_resource *rsc)
 {
-	struct pipe_resource *prsc = &rsc->base;
+	struct pipe_resource *prsc = &rsc->b.b;
 
-	if (!(fd_mesa_debug & FD_DBG_NOLRZ) && has_depth(rsc->base.format))
+	if (!FD_DBG(NOLRZ) && has_depth(rsc->b.b.format))
 		setup_lrz(rsc);
 
-	if (rsc->layout.ubwc && !ok_ubwc_format(rsc, rsc->base.format))
+	if (rsc->layout.ubwc && !ok_ubwc_format(rsc->b.b.screen, rsc->b.b.format))
 		rsc->layout.ubwc = false;
 
 	fdl6_layout(&rsc->layout, prsc->format, fd_resource_nr_samples(prsc),
@@ -165,18 +178,13 @@ fd6_setup_slices(struct fd_resource *rsc)
 static int
 fill_ubwc_buffer_sizes(struct fd_resource *rsc)
 {
-	struct pipe_resource *prsc = &rsc->base;
+	struct pipe_resource *prsc = &rsc->b.b;
 	struct fdl_explicit_layout explicit = {
 		.offset = rsc->layout.slices[0].offset,
 		.pitch = rsc->layout.pitch0,
 	};
 
-	/* limit things to simple single level 2d for now: */
-	if ((prsc->depth0 != 1) || (prsc->array_size != 1) || (prsc->last_level != 0))
-		return -1;
-	if (prsc->target != PIPE_TEXTURE_2D)
-		return -1;
-	if (!ok_ubwc_format(rsc, prsc->format))
+	if (!can_do_ubwc(prsc))
 		return -1;
 
 	rsc->layout.ubwc = true;
@@ -200,7 +208,16 @@ fd6_layout_resource_for_modifier(struct fd_resource *rsc, uint64_t modifier)
 	case DRM_FORMAT_MOD_QCOM_COMPRESSED:
 		return fill_ubwc_buffer_sizes(rsc);
 	case DRM_FORMAT_MOD_LINEAR:
+		if (can_do_ubwc(&rsc->b.b)) {
+			perf_debug("%"PRSC_FMT": not UBWC: imported with DRM_FORMAT_MOD_LINEAR!",
+					PRSC_ARGS(&rsc->b.b));
+		}
+		return 0;
 	case DRM_FORMAT_MOD_INVALID:
+		if (can_do_ubwc(&rsc->b.b)) {
+			perf_debug("%"PRSC_FMT": not UBWC: imported with DRM_FORMAT_MOD_INVALID!",
+					PRSC_ARGS(&rsc->b.b));
+		}
 		return 0;
 	default:
 		return -1;

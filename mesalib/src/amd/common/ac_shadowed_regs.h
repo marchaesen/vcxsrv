@@ -47,6 +47,10 @@ enum ac_reg_range_type
    SI_NUM_ALL_REG_RANGES,
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef void (*set_context_reg_seq_array_fn)(struct radeon_cmdbuf *cs, unsigned reg, unsigned num,
                                              const uint32_t *values);
 
@@ -58,5 +62,10 @@ void ac_emulate_clear_state(const struct radeon_info *info, struct radeon_cmdbuf
 void ac_check_shadowed_regs(enum chip_class chip_class, enum radeon_family family,
                             unsigned reg_offset, unsigned count);
 void ac_print_shadowed_regs(const struct radeon_info *info);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif

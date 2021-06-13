@@ -35,12 +35,6 @@
 #include "window.h"
 #include <Xplugin.h>
 
-#if XPLUGIN_VERSION < 4
-typedef int xp_frame_attr;
-typedef int xp_frame_class;
-typedef int xp_frame_rect;
-#endif
-
 typedef int (*DisableUpdateProc)(void);
 typedef int (*EnableUpdateProc)(void);
 typedef int (*SetWindowLevelProc)(WindowPtr pWin, int level);

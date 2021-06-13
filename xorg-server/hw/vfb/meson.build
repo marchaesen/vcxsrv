@@ -2,6 +2,7 @@ srcs = [
     'InitInput.c',
     'InitOutput.c',
     '../../mi/miinitext.c',
+    '../../mi/miinitext.h',
 ]
 
 xvfb_server = executable(

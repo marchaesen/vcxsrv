@@ -23,25 +23,28 @@ When an instruction has a scalar result, the result is usually copied into
 each of the components of *dst*. When this happens, the result is said to be
 *replicated* to *dst*. :opcode:`RCP` is one such instruction.
 
-Modifiers
+Source Modifiers
+^^^^^^^^^^^^^^^^
+
+TGSI supports 32-bit negate and absolute value modifiers on floating-point
+inputs, and 32-bit integer negates on some drivers.  The negate applies after
+absolute value if both are present.
+
+The type of an input can be found by ``tgsi_opcode_infer_src_type()``, and
+TGSI_OPCODE_MOV and the second and third operands of TGSI_OPCODE_UCMP (which
+return TGSI_TYPE_UNTYPED) are also considered floats for the purpose of source
+modifiers.
+
+
+Other Modifiers
 ^^^^^^^^^^^^^^^
 
-TGSI supports modifiers on inputs (as well as saturate and precise modifier
-on instructions).
+The saturate modifier clamps 32-bit destination stores to [0.0, 1.0].
 
 For arithmetic instruction having a precise modifier certain optimizations
 which may alter the result are disallowed. Example: *add(mul(a,b),c)* can't be
 optimized to TGSI_OPCODE_MAD, because some hardware only supports the fused
 MAD instruction.
-
-For inputs which have a floating point type, both absolute value and
-negation modifiers are supported (with absolute value being applied
-first).  The only source of TGSI_OPCODE_MOV and the second and third
-sources of TGSI_OPCODE_UCMP are considered to have float type for
-applying modifiers.
-
-For inputs which have signed or unsigned type only the negate modifier is
-supported.
 
 Instruction Set
 ---------------

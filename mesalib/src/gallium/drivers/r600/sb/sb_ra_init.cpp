@@ -313,24 +313,26 @@ int ra_init::run() {
 
 	alloc_arrays();
 
-	ra_node(sh.root);
-	return 0;
+	return ra_node(sh.root) ? 0 : 1;
 }
 
-void ra_init::ra_node(container_node* c) {
+bool ra_init::ra_node(container_node* c) {
 
 	for (node_iterator I = c->begin(), E = c->end(); I != E; ++I) {
 		node *n = *I;
 		if (n->type == NT_OP) {
-			process_op(n);
+			if (!process_op(n))
+                           return false;
 		}
 		if (n->is_container() && !n->is_alu_packed()) {
-			ra_node(static_cast<container_node*>(n));
+			if (!ra_node(static_cast<container_node*>(n)))
+                           return false;
 		}
 	}
+        return true;
 }
 
-void ra_init::process_op(node* n) {
+bool ra_init::process_op(node* n) {
 
 	bool copy = n->is_copy_mov();
 
@@ -355,7 +357,8 @@ void ra_init::process_op(node* n) {
 		for (vvec::iterator I = n->src.begin(), E = n->src.end(); I != E; ++I) {
 			value *v = *I;
 			if (v && v->is_sgpr())
-				color(v);
+				if (!color(v))
+                                       return false;
 		}
 	}
 
@@ -372,10 +375,12 @@ void ra_init::process_op(node* n) {
 						assign_color(v, s->gpr);
 					}
 				} else
-					color(v);
+                                   if (!color(v))
+                                          return false;
 			}
 		}
 	}
+        return true;
 }
 
 void ra_init::color_bs_constraint(ra_constraint* c) {
@@ -476,15 +481,15 @@ void ra_init::color_bs_constraint(ra_constraint* c) {
 	}
 }
 
-void ra_init::color(value* v) {
+bool ra_init::color(value* v) {
 
 	if (v->constraint && v->constraint->kind == CK_PACKED_BS) {
 		color_bs_constraint(v->constraint);
-		return;
+		return true;
 	}
 
 	if (v->chunk && v->chunk->is_fixed())
-		return;
+		return true;
 
 	RA_DUMP(
 		sblog << "coloring ";
@@ -497,24 +502,24 @@ void ra_init::color(value* v) {
 	if (v->is_reg_pinned()) {
 		assert(v->is_chan_pinned());
 		assign_color(v, v->pin_gpr);
-		return;
+		return true;
 	}
 
 	regbits rb(sh, v->interferences);
 	sel_chan c;
 
 	if (v->is_chan_pinned()) {
-		RA_DUMP( sblog << "chan_pinned = " << v->pin_gpr.chan() << "  ";	);
 		unsigned mask = 1 << v->pin_gpr.chan();
 		c = rb.find_free_chans(mask) + v->pin_gpr.chan();
 	} else {
 		unsigned cm = get_preferable_chan_mask();
-		RA_DUMP( sblog << "pref chan mask: " << cm << "\n"; );
 		c = rb.find_free_chan_by_mask(cm);
-	}
+	}    
 
-	assert(c && c.sel() < 128 - ctx.alu_temp_gprs && "color failed");
+        if (!c || c.sel() >= 128 - ctx.alu_temp_gprs)
+           return false;
 	assign_color(v, c);
+        return true;
 }
 
 void ra_init::assign_color(value* v, sel_chan c) {

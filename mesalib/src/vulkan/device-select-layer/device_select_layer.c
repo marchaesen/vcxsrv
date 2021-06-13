@@ -51,8 +51,8 @@ struct instance_info {
    PFN_GetPhysicalDeviceProcAddr  GetPhysicalDeviceProcAddr;
    PFN_vkEnumerateDeviceExtensionProperties EnumerateDeviceExtensionProperties;
    PFN_vkGetPhysicalDeviceProperties GetPhysicalDeviceProperties;
-   PFN_vkGetPhysicalDeviceProperties2KHR GetPhysicalDeviceProperties2KHR;
-   bool has_props2, has_pci_bus;
+   PFN_vkGetPhysicalDeviceProperties2 GetPhysicalDeviceProperties2;
+   bool has_pci_bus, has_vulkan11;
    bool has_wayland, has_xcb;
 };
 
@@ -150,8 +150,6 @@ static VkResult device_select_CreateInstance(const VkInstanceCreateInfo *pCreate
    }
 
    for (unsigned i = 0; i < pCreateInfo->enabledExtensionCount; i++) {
-      if (!strcmp(pCreateInfo->ppEnabledExtensionNames[i], VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
-         info->has_props2 = true;
 #ifdef VK_USE_PLATFORM_WAYLAND_KHR
       if (!strcmp(pCreateInfo->ppEnabledExtensionNames[i], VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME))
          info->has_wayland = true;
@@ -162,6 +160,14 @@ static VkResult device_select_CreateInstance(const VkInstanceCreateInfo *pCreate
 #endif
    }
 
+   /*
+    * The loader is currently not able to handle GetPhysicalDeviceProperties2KHR calls in
+    * EnumeratePhysicalDevices when there are other layers present. To avoid mysterious crashes
+    * for users just use only the vulkan version for now.
+    */
+   info->has_vulkan11 = pCreateInfo->pApplicationInfo &&
+                        pCreateInfo->pApplicationInfo->apiVersion >= VK_MAKE_VERSION(1, 1, 0);
+
    info->GetPhysicalDeviceProcAddr = (PFN_GetPhysicalDeviceProcAddr)info->GetInstanceProcAddr(*pInstance, "vk_layerGetPhysicalDeviceProcAddr");
 #define DEVSEL_GET_CB(func) info->func = (PFN_vk##func)info->GetInstanceProcAddr(*pInstance, "vk" #func)
    DEVSEL_GET_CB(DestroyInstance);
@@ -169,8 +175,8 @@ static VkResult device_select_CreateInstance(const VkInstanceCreateInfo *pCreate
    DEVSEL_GET_CB(EnumeratePhysicalDeviceGroups);
    DEVSEL_GET_CB(GetPhysicalDeviceProperties);
    DEVSEL_GET_CB(EnumerateDeviceExtensionProperties);
-   if (info->has_props2)
-      DEVSEL_GET_CB(GetPhysicalDeviceProperties2KHR);
+   if (info->has_vulkan11)
+      DEVSEL_GET_CB(GetPhysicalDeviceProperties2);
 #undef DEVSEL_GET_CB
 
    device_select_layer_add_instance(*pInstance, info);
@@ -187,6 +193,13 @@ static void device_select_DestroyInstance(VkInstance instance, const VkAllocatio
    free(info);
 }
 
+static void get_device_properties(const struct instance_info *info, VkPhysicalDevice device, VkPhysicalDeviceProperties2 *properties)
+{
+    info->GetPhysicalDeviceProperties(device, &properties->properties);
+
+    if (info->GetPhysicalDeviceProperties2 && properties->properties.apiVersion >= VK_API_VERSION_1_1)
+        info->GetPhysicalDeviceProperties2(device, properties);
+}
 
 static void print_gpu(const struct instance_info *info, unsigned index, VkPhysicalDevice device)
 {
@@ -197,12 +210,9 @@ static void print_gpu(const struct instance_info *info, unsigned index, VkPhysic
    VkPhysicalDeviceProperties2KHR properties = (VkPhysicalDeviceProperties2KHR){
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR
    };
-   if (info->has_props2 && info->has_pci_bus)
+   if (info->has_vulkan11 && info->has_pci_bus)
       properties.pNext = &ext_pci_properties;
-   if (info->GetPhysicalDeviceProperties2KHR)
-      info->GetPhysicalDeviceProperties2KHR(device, &properties);
-   else
-      info->GetPhysicalDeviceProperties(device, &properties.properties);
+   get_device_properties(info, device, &properties);
 
    switch(properties.properties.deviceType) {
    case VK_PHYSICAL_DEVICE_TYPE_OTHER:
@@ -243,12 +253,9 @@ static bool fill_drm_device_info(const struct instance_info *info,
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR
    };
 
-   if (info->has_props2 && info->has_pci_bus)
+   if (info->has_vulkan11 && info->has_pci_bus)
       properties.pNext = &ext_pci_properties;
-   if (info->GetPhysicalDeviceProperties2KHR)
-     info->GetPhysicalDeviceProperties2KHR(device, &properties);
-   else
-     info->GetPhysicalDeviceProperties(device, &properties.properties);
+   get_device_properties(info, device, &properties);
 
    drm_device->cpu_device = properties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU;
    drm_device->dev_info.vendor_id = properties.properties.vendorID;
@@ -474,11 +481,65 @@ static VkResult device_select_EnumeratePhysicalDevices(VkInstance instance,
 }
 
 static VkResult device_select_EnumeratePhysicalDeviceGroups(VkInstance instance,
-							    uint32_t* pPhysicalDeviceGroupCount,
-							    VkPhysicalDeviceGroupProperties *pPhysicalDeviceGroups)
+                                                            uint32_t* pPhysicalDeviceGroupCount,
+                                                            VkPhysicalDeviceGroupProperties *pPhysicalDeviceGroups)
 {
    struct instance_info *info = device_select_layer_get_instance(instance);
-   VkResult result = info->EnumeratePhysicalDeviceGroups(instance, pPhysicalDeviceGroupCount, pPhysicalDeviceGroups);
+   uint32_t physical_device_group_count = 0;
+   uint32_t selected_physical_device_group_count = 0;
+   VkResult result = info->EnumeratePhysicalDeviceGroups(instance, &physical_device_group_count, NULL);
+   VK_OUTARRAY_MAKE(out, pPhysicalDeviceGroups, pPhysicalDeviceGroupCount);
+
+   if (result != VK_SUCCESS)
+      return result;
+
+   VkPhysicalDeviceGroupProperties *physical_device_groups = (VkPhysicalDeviceGroupProperties*)calloc(sizeof(VkPhysicalDeviceGroupProperties), physical_device_group_count);
+   VkPhysicalDeviceGroupProperties *selected_physical_device_groups = (VkPhysicalDeviceGroupProperties*)calloc(sizeof(VkPhysicalDeviceGroupProperties), physical_device_group_count);
+
+   if (!physical_device_groups || !selected_physical_device_groups) {
+      result = VK_ERROR_OUT_OF_HOST_MEMORY;
+      goto out;
+   }
+
+   result = info->EnumeratePhysicalDeviceGroups(instance, &physical_device_group_count, physical_device_groups);
+   if (result != VK_SUCCESS)
+      goto out;
+
+   /* just sort groups with CPU devices to the end? - assume nobody will mix these */
+   int num_gpu_groups = 0;
+   int num_cpu_groups = 0;
+   selected_physical_device_group_count = physical_device_group_count;
+   for (unsigned i = 0; i < physical_device_group_count; i++) {
+      bool group_has_cpu_device = false;
+      for (unsigned j = 0; j < physical_device_groups[i].physicalDeviceCount; j++) {
+         VkPhysicalDevice physical_device = physical_device_groups[i].physicalDevices[j];
+         VkPhysicalDeviceProperties2KHR properties = (VkPhysicalDeviceProperties2KHR){
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR
+         };
+         info->GetPhysicalDeviceProperties(physical_device, &properties.properties);
+         group_has_cpu_device = properties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU;
+      }
+
+      if (group_has_cpu_device) {
+         selected_physical_device_groups[physical_device_group_count - num_cpu_groups - 1] = physical_device_groups[i];
+         num_cpu_groups++;
+      } else {
+         selected_physical_device_groups[num_gpu_groups] = physical_device_groups[i];
+         num_gpu_groups++;
+      }
+   }
+
+   assert(result == VK_SUCCESS);
+
+   for (unsigned i = 0; i < selected_physical_device_group_count; i++) {
+      vk_outarray_append(&out, ent) {
+         *ent = selected_physical_device_groups[i];
+      }
+   }
+   result = vk_outarray_status(&out);
+out:
+   free(physical_device_groups);
+   free(selected_physical_device_groups);
    return result;
 }
 
@@ -490,6 +551,8 @@ static void  (*get_pdevice_proc_addr(VkInstance instance, const char* name))()
 
 static void  (*get_instance_proc_addr(VkInstance instance, const char* name))()
 {
+   if (strcmp(name, "vkGetInstanceProcAddr") == 0)
+      return (void(*)())get_instance_proc_addr;
    if (strcmp(name, "vkCreateInstance") == 0)
       return (void(*)())device_select_CreateInstance;
    if (strcmp(name, "vkDestroyInstance") == 0)

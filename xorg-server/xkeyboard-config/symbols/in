@@ -42,7 +42,7 @@ xkb_symbols "deva" {
 	// INSCRIPT in place of the symbols that are here for now.  But this
 	// requires XKB to map 1 key into two to three other key presses.
 	key <AE03> { [ U0969, numbersign,  3, numbersign  ] };
-	key <AE04> { [ U096a, dollar,      4		  ] };
+	key <AE04> { [ U096a, dollar,      4, U20b9       ] }; // Rupee
 	key <AE05> { [ U096b, percent,     5, percent     ] };
 	key <AE06> { [ U096c, asciicircum, 6, asciicircum ] };
 	key <AE07> { [ U096d, ampersand,   7, ampersand   ] };
@@ -93,7 +93,6 @@ xkb_symbols "deva" {
 
 	// space, space, Zero-Width-Non-Joiner (ZWNJ), Zero-Width-Joiner (ZWJ):
 	include "nbsp(zwnj3zwj4)"
-        include "rupeesign(4)"
         include "level3(ralt_switch)"
 };
 
@@ -116,7 +115,7 @@ xkb_symbols "bolnagri" {
     key <AE01>  { [   1,	exclam,		U0967,		exclam	   ] };
     key <AE02>  { [   2,	at,		U0968,		at	   ] };
     key <AE03>  { [   3,    	numbersign, 	U0969,		numbersign ] };
-    key <AE04>  { [   4,	dollar,		U096A			    ] }; // Rupee symbol on AltGr+4
+    key <AE04>  { [   4,	dollar,		U096A,		U20B9      ] }; // Rupee
     key <AE05>  { [   5,	percent,	U096B,		percent    ] };
     key <AE06>  { [   6,	asciicircum,	U096C,		asciicircum ] };
     key <AE07>  { [   7,	ampersand,	U096D,		ampersand  ] };
@@ -172,7 +171,6 @@ xkb_symbols "bolnagri" {
 //    modifier_map Mod3   { Mode_switch };
 
     include "level3(ralt_switch)"
-    include "rupeesign(4)"
 };
 
 partial alphanumeric_keys
@@ -857,7 +855,7 @@ xkb_symbols "mal_lalitha" {
     key <AE01>  { [   1,	exclam,	U0D67,		exclam	   ] };
     key <AE02>  { [   2,	at,		U0D68,		at	   ] };
     key <AE03>  { [   3,    	numbersign, 	U0D69,		numbersign ] };
-    key <AE04>  { [   4,	dollar,		U0D6A			     ] };
+    key <AE04>  { [   4,	dollar,		U0D6A,		U20B9      ] }; // Rupee
     key <AE05>  { [   5,	percent,	U0D6B,		percent    ] };
     key <AE06>  { [   6,	asciicircum,	U0D6C,		asciicircum ] };
     key <AE07>  { [   7,	ampersand,	U0D6D,		ampersand  ] };
@@ -912,7 +910,6 @@ xkb_symbols "mal_lalitha" {
 //    modifier_map Control{ Control_L };
 //    modifier_map Mod3   { Mode_switch };
     include "level3(ralt_switch)"
-    include "rupeesign(4)"
 };
 
 
@@ -1666,6 +1663,7 @@ xkb_symbols "olpc" {
 // Contact: Walter Bender <walter@laptop.org>
 
   include "in(deva)"
+
   key <TLDE> { [	U094A,	U0912 ] }; // DEVANAGARI VOWEL SIGN SHORT O; DEVANAGARI LETTER SHORT O
   key <AE01> { [	U0967,	U090D ] }; // DEVANAGARI DIGIT ONE; DEVANAGARI LETTER CANDRA E
   key <AE02> { [	U0968,	U0945 ] }; // DEVANAGARI DIGIT TWO; DEVANAGARI VOWEL SIGN CANDRA E
@@ -1722,8 +1720,6 @@ xkb_symbols "olpc" {
   include "nbsp(zwnj3zwj4)"
 
   include "group(olpc)"
-  include "rupeesign(4)"
-  include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys

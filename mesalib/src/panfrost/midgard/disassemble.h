@@ -1,5 +1,4 @@
 #include <stddef.h>
-#include "compiler/shader_enums.h"
 
 struct midgard_disasm_stats {
         /* Counts gleaned from disassembly, or negative if the field cannot be
@@ -24,4 +23,4 @@ struct midgard_disasm_stats {
 };
 
 struct midgard_disasm_stats
-disassemble_midgard(FILE *fp, uint8_t *code, size_t size, unsigned gpu_id, gl_shader_stage stage);
+disassemble_midgard(FILE *fp, uint8_t *code, size_t size, unsigned gpu_id);

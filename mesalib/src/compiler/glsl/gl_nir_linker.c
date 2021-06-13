@@ -35,7 +35,7 @@
  */
 
 static bool
-can_remove_uniform(nir_variable *var)
+can_remove_uniform(nir_variable *var, UNUSED void *data)
 {
    /* Section 2.11.6 (Uniform Variables) of the OpenGL ES 3.0.3 spec
     * says:
@@ -603,8 +603,11 @@ gl_nir_link_spirv(struct gl_context *ctx, struct gl_shader_program *prog,
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *shader = prog->_LinkedShaders[i];
       if (shader) {
+         const nir_remove_dead_variables_options opts = {
+            .can_remove_var = can_remove_uniform,
+         };
          nir_remove_dead_variables(shader->Program->nir, nir_var_uniform,
-                                   &can_remove_uniform);
+                                   &opts);
       }
    }
 
@@ -664,8 +667,11 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *shader = prog->_LinkedShaders[i];
       if (shader) {
+         const nir_remove_dead_variables_options opts = {
+            .can_remove_var = can_remove_uniform,
+         };
          nir_remove_dead_variables(shader->Program->nir, nir_var_uniform,
-                                   &can_remove_uniform);
+                                   &opts);
       }
    }
 

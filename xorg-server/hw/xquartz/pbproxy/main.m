@@ -78,54 +78,48 @@ x_error_handler(Display *dpy, XErrorEvent *errevent)
 int
 xpbproxy_run(void)
 {
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    size_t i;
+    @autoreleasepool {
+        size_t i;
 
-    for (i = 0, xpbproxy_dpy = NULL; !xpbproxy_dpy && i < 5; i++) {
-        xpbproxy_dpy = XOpenDisplay(NULL);
+        for (i = 0, xpbproxy_dpy = NULL; !xpbproxy_dpy && i < 5; i++) {
+            xpbproxy_dpy = XOpenDisplay(NULL);
 
-        if (!xpbproxy_dpy && display) {
-            char _display[32];
-            snprintf(_display, sizeof(_display), ":%s", display);
-            setenv("DISPLAY", _display, TRUE);
+            if (!xpbproxy_dpy && display) {
+                char _display[32];
+                snprintf(_display, sizeof(_display), ":%s", display);
+                setenv("DISPLAY", _display, TRUE);
 
-            xpbproxy_dpy = XOpenDisplay(_display);
+                xpbproxy_dpy = XOpenDisplay(_display);
+            }
+            if (!xpbproxy_dpy)
+                sleep(1);
         }
-        if (!xpbproxy_dpy)
-            sleep(1);
+
+        if (xpbproxy_dpy == NULL) {
+            ErrorF("xpbproxy: can't open default display\n");
+            return EXIT_FAILURE;
+        }
+
+        XSetIOErrorHandler(x_io_error_handler);
+        XSetErrorHandler(x_error_handler);
+
+        if (!XAppleWMQueryExtension(xpbproxy_dpy, &xpbproxy_apple_wm_event_base,
+                                    &xpbproxy_apple_wm_error_base)) {
+            ErrorF("xpbproxy: can't open AppleWM server extension\n");
+            return EXIT_FAILURE;
+        }
+
+        xpbproxy_have_xfixes = XFixesQueryExtension(xpbproxy_dpy, &xpbproxy_xfixes_event_base,
+                                                    &xpbproxy_xfixes_error_base);
+
+        XAppleWMSelectInput(xpbproxy_dpy, AppleWMActivationNotifyMask | AppleWMPasteboardNotifyMask);
+
+        _selection_object = [x_selection new];
+
+        if (!xpbproxy_input_register()) {
+            return EXIT_FAILURE;
+        }
     }
-
-    if (xpbproxy_dpy == NULL) {
-        ErrorF("xpbproxy: can't open default display\n");
-        [pool release];
-        return EXIT_FAILURE;
-    }
-
-    XSetIOErrorHandler(x_io_error_handler);
-    XSetErrorHandler(x_error_handler);
-
-    if (!XAppleWMQueryExtension(xpbproxy_dpy, &xpbproxy_apple_wm_event_base,
-                                &xpbproxy_apple_wm_error_base)) {
-        ErrorF("xpbproxy: can't open AppleWM server extension\n");
-        [pool release];
-        return EXIT_FAILURE;
-    }
-
-    xpbproxy_have_xfixes =
-        XFixesQueryExtension(xpbproxy_dpy, &xpbproxy_xfixes_event_base,
-                             &xpbproxy_xfixes_error_base);
-
-    XAppleWMSelectInput(xpbproxy_dpy, AppleWMActivationNotifyMask |
-                        AppleWMPasteboardNotifyMask);
-
-    _selection_object = [[x_selection alloc] init];
-
-    if (!xpbproxy_input_register()) {
-        [pool release];
-        return EXIT_FAILURE;
-    }
-
-    [pool release];
 
     CFRunLoopRun();
 

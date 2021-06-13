@@ -55,6 +55,12 @@ struct set {
    uint32_t deleted_entries;
 };
 
+bool
+_mesa_set_init(struct set *ht, void *mem_ctx,
+                 uint32_t (*key_hash_function)(const void *key),
+                 bool (*key_equals_function)(const void *a,
+                                             const void *b));
+
 struct set *
 _mesa_set_create(void *mem_ctx,
                  uint32_t (*key_hash_function)(const void *key),
@@ -81,10 +87,10 @@ struct set_entry *
 _mesa_set_add_pre_hashed(struct set *set, uint32_t hash, const void *key);
 
 struct set_entry *
-_mesa_set_search_or_add(struct set *set, const void *key);
+_mesa_set_search_or_add(struct set *set, const void *key, bool *found);
 struct set_entry *
 _mesa_set_search_or_add_pre_hashed(struct set *set, uint32_t hash,
-                                   const void *key);
+                                   const void *key, bool *found);
 
 struct set_entry *
 _mesa_set_search(const struct set *set, const void *key);

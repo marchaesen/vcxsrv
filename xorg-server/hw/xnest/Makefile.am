@@ -41,7 +41,8 @@ SRCS =	Args.c \
 	XNPixmap.h \
 	XNWindow.h \
 	xnest-config.h \
-	$(top_srcdir)/mi/miinitext.c
+	$(top_srcdir)/mi/miinitext.c \
+	$(top_srcdir)/mi/miinitext.h
 
 XNEST_LIBS = \
         @XNEST_LIBS@ \

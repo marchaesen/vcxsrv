@@ -648,6 +648,7 @@ try_setup_line( struct lp_setup_context *setup,
    line->inputs.opaque = FALSE;
    line->inputs.layer = layer;
    line->inputs.viewport_index = viewport_index;
+   line->inputs.view_index = setup->view_index;
 
    /*
     * XXX: this code is mostly identical to the one in lp_setup_tri, except it

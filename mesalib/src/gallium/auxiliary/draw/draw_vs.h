@@ -164,7 +164,7 @@ draw_create_vs_exec(struct draw_context *draw,
 struct draw_vs_variant_key;
 struct draw_vertex_shader;
 
-#ifdef LLVM_AVAILABLE
+#ifdef DRAW_LLVM_AVAILABLE
 struct draw_vertex_shader *
 draw_create_vs_llvm(struct draw_context *draw,
 		    const struct pipe_shader_state *state);

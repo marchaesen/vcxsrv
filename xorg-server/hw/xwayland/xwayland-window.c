@@ -800,8 +800,7 @@ xwl_window_post_damage(struct xwl_window *xwl_window)
 
 #ifdef XWL_HAS_GLAMOR
     if (xwl_screen->glamor)
-        buffer = xwl_glamor_pixmap_get_wl_buffer(pixmap,
-                                                 NULL);
+        buffer = xwl_glamor_pixmap_get_wl_buffer(pixmap);
     else
 #endif
         buffer = xwl_shm_pixmap_get_wl_buffer(pixmap);

@@ -36,6 +36,8 @@
 
 #include "os/os_thread.h"
 #include "pipe/p_state.h"
+#include "pipe/p_screen.h"
+#include "util/u_atomic.h"
 #include "util/u_math.h"
 #include "util/simple_mtx.h"
 
@@ -61,7 +63,8 @@ util_range_add(struct pipe_resource *resource, struct util_range *range,
                unsigned start, unsigned end)
 {
    if (start < range->start || end > range->end) {
-      if (resource->flags & PIPE_RESOURCE_FLAG_SINGLE_THREAD_USE) {
+      if (resource->flags & PIPE_RESOURCE_FLAG_SINGLE_THREAD_USE ||
+          p_atomic_read(&resource->screen->num_contexts) == 1) {
          range->start = MIN2(start, range->start);
          range->end = MAX2(end, range->end);
       } else {

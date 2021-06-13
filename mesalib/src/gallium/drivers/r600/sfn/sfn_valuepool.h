@@ -180,6 +180,9 @@ public:
 
    GPRVector get_temp_vec4();
 
+protected:
+   std::vector<PGPRArray> m_reg_arrays;
+
 private:
 
    unsigned get_ssa_register_index(const nir_ssa_def& ssa) const;
@@ -233,7 +236,6 @@ private:
 
    unsigned m_next_register_index;
 
-   std::map<unsigned, PGPRArray> m_arrays_map;
 
    std::map<uint32_t, PValue> m_literals;
 

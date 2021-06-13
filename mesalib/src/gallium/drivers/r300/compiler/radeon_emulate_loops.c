@@ -341,7 +341,7 @@ static int build_loop_info(struct radeon_compiler * c, struct loop_info * loop,
 	for(ptr = loop->BeginLoop->Next; !loop->EndLoop; ptr = ptr->Next) {
 
 		if (ptr == &c->Program.Instructions) {
-			rc_error(c, "%s: BGNLOOP without an ENDLOOOP.\n",
+			rc_error(c, "%s: BGNLOOP without an ENDLOOP.\n",
 								__FUNCTION__);
 			return 0;
 		}
@@ -362,7 +362,7 @@ static int build_loop_info(struct radeon_compiler * c, struct loop_info * loop,
 				}
 			}
 			if (ptr == &c->Program.Instructions) {
-				rc_error(c, "%s: BGNLOOP without an ENDLOOOP\n",
+				rc_error(c, "%s: BGNLOOP without an ENDLOOP\n",
 								__FUNCTION__);
 					return 0;
 			}

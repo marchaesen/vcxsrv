@@ -47,17 +47,17 @@ static const unsigned half_class_sizes[] = {
 /* seems to just be used for compute shaders?  Seems like vec1 and vec3
  * are sufficient (for now?)
  */
-static const unsigned high_class_sizes[] = {
+static const unsigned shared_class_sizes[] = {
 	1, 3,
 };
-#define high_class_count ARRAY_SIZE(high_class_sizes)
+#define shared_class_count ARRAY_SIZE(shared_class_sizes)
 
-#define total_class_count (class_count + half_class_count + high_class_count)
+#define total_class_count (class_count + half_class_count + shared_class_count)
 
 /* Below a0.x are normal regs.  RA doesn't need to assign a0.x/p0.x. */
 #define NUM_REGS             (4 * 48)  /* r0 to r47 */
-#define NUM_HIGH_REGS        (4 * 8)   /* r48 to r55 */
-#define FIRST_HIGH_REG       (4 * 48)
+#define NUM_SHARED_REGS      (4 * 8)   /* r48 to r55 */
+#define FIRST_SHARED_REG     (4 * 48)
 /* Number of virtual regs in a given class: */
 
 static inline unsigned CLASS_REGS(unsigned i)
@@ -74,22 +74,22 @@ static inline unsigned HALF_CLASS_REGS(unsigned i)
 	return (NUM_REGS - (half_class_sizes[i] - 1));
 }
 
-static inline unsigned HIGH_CLASS_REGS(unsigned i)
+static inline unsigned SHARED_CLASS_REGS(unsigned i)
 {
-	assert(i < high_class_count);
+	assert(i < shared_class_count);
 
-	return (NUM_HIGH_REGS - (high_class_sizes[i] - 1));
+	return (NUM_SHARED_REGS - (shared_class_sizes[i] - 1));
 }
 
 #define HALF_OFFSET          (class_count)
-#define HIGH_OFFSET          (class_count + half_class_count)
+#define SHARED_OFFSET        (class_count + half_class_count)
 
 /* register-set, created one time, used for all shaders: */
 struct ir3_ra_reg_set {
 	struct ra_regs *regs;
 	unsigned int classes[class_count];
 	unsigned int half_classes[half_class_count];
-	unsigned int high_classes[high_class_count];
+	unsigned int shared_classes[shared_class_count];
 
 	/* pre-fetched tex dst is limited, on current gens to regs
 	 * 0x3f and below.  An additional register class, with one
@@ -100,7 +100,7 @@ struct ir3_ra_reg_set {
 	unsigned prefetch_exclude_reg;
 
 	/* The virtual register space flattens out all the classes,
-	 * starting with full, followed by half and then high, ie:
+	 * starting with full, followed by half and then shared, ie:
 	 *
 	 *   scalar full  (starting at zero)
 	 *   vec2 full
@@ -111,12 +111,12 @@ struct ir3_ra_reg_set {
 	 *   vec2 half
 	 *   ...
 	 *   vecN half
-	 *   scalar high  (starting at first_high_reg)
+	 *   scalar shared  (starting at first_shared_reg)
 	 *   ...
-	 *   vecN high
+	 *   vecN shared
 	 *
 	 */
-	unsigned first_half_reg, first_high_reg;
+	unsigned first_half_reg, first_shared_reg;
 
 	/* maps flat virtual register space to base gpr: */
 	uint16_t *ra_reg_to_gpr;
@@ -373,7 +373,7 @@ __ra_init_use_itr(struct ir3_ra_ctx *ctx, struct ir3_instruction *instr)
 	for (unsigned __name = __ra_init_use_itr(__ctx, __instr); \
 	     __name != NO_NAME; __name = __ra_itr_pop(__ctx))
 
-int ra_size_to_class(unsigned sz, bool half, bool high);
-int ra_class_to_size(unsigned class, bool *half, bool *high);
+int ra_size_to_class(unsigned sz, bool half, bool shared);
+int ra_class_to_size(unsigned class, bool *half, bool *shared);
 
 #endif  /* IR3_RA_H_ */

@@ -356,10 +356,9 @@ tu_drm_device_init(struct tu_physical_device *device,
    if (instance->debug_flags & TU_DEBUG_STARTUP)
       mesa_logi("Found compatible device '%s'.", path);
 
-   vk_object_base_init(NULL, &device->base, VK_OBJECT_TYPE_PHYSICAL_DEVICE);
    device->instance = instance;
 
-   if (instance->enabled_extensions.KHR_display) {
+   if (instance->vk.enabled_extensions.KHR_display) {
       master_fd =
          open(drm_device->nodes[DRM_NODE_PRIMARY], O_RDWR | O_CLOEXEC);
       if (master_fd >= 0) {
@@ -393,6 +392,10 @@ tu_drm_device_init(struct tu_physical_device *device,
                          "could not get GMEM size");
       goto fail;
    }
+
+   device->heap.size = tu_get_system_heap_size();
+   device->heap.used = 0u;
+   device->heap.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT;
 
    return tu_physical_device_init(device, instance);
 

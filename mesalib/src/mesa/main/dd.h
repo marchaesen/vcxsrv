@@ -36,6 +36,14 @@
 #include "menums.h"
 #include "compiler/shader_enums.h"
 
+/* Windows winnt.h defines MemoryBarrier as a macro on some platforms,
+ * including as a function-like macro in some cases. That either causes
+ * the table entry below to have a weird name, or fail to compile.
+ */
+#ifdef MemoryBarrier
+#undef MemoryBarrier
+#endif
+
 struct gl_bitmap_atlas;
 struct gl_buffer_object;
 struct gl_context;
@@ -56,6 +64,8 @@ struct ati_fragment_shader;
 struct util_queue_monitoring;
 struct _mesa_prim;
 struct _mesa_index_buffer;
+struct pipe_draw_info;
+struct pipe_draw_start_count;
 
 /* GL_ARB_vertex_buffer_object */
 /* Modifies GL_MAP_UNSYNCHRONIZED_BIT to allow driver to fail (return
@@ -554,6 +564,46 @@ struct dd_function_table {
                 unsigned min_index, unsigned max_index,
                 unsigned num_instances, unsigned base_instance);
 
+   /**
+    * Optimal Gallium version of Draw() that doesn't require translation
+    * of draw info in the state tracker.
+    *
+    * The interface is identical to pipe_context::draw_vbo
+    * with indirect == NULL.
+    *
+    * "info" is not const and the following fields can be changed by
+    * the callee, so callers should be aware:
+    * - info->index_bounds_valid (if false)
+    * - info->min_index (if index_bounds_valid is false)
+    * - info->max_index (if index_bounds_valid is false)
+    * - info->drawid (if increment_draw_id is true)
+    * - info->index.gl_bo (if index_size && !has_user_indices)
+    */
+   void (*DrawGallium)(struct gl_context *ctx,
+                       struct pipe_draw_info *info,
+                       const struct pipe_draw_start_count *draws,
+                       unsigned num_draws);
+
+   /**
+    * Same as DrawGallium, but base_vertex and mode can also change between draws.
+    *
+    * If index_bias != NULL, index_bias changes for each draw.
+    * If mode != NULL, mode changes for each draw.
+    * At least one of them must be non-NULL.
+    *
+    * "info" is not const and the following fields can be changed by
+    * the callee in addition to the fields listed by DrawGallium:
+    * - info->mode (if mode != NULL)
+    * - info->index_bias (if index_bias != NULL)
+    *
+    * This function exists to decrease complexity of DrawGallium.
+    */
+   void (*DrawGalliumComplex)(struct gl_context *ctx,
+                              struct pipe_draw_info *info,
+                              const struct pipe_draw_start_count *draws,
+                              const unsigned char *mode,
+                              const int *base_vertex,
+                              unsigned num_draws);
 
    /**
     * Draw a primitive, getting the vertex count, instance count, start

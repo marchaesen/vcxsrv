@@ -161,7 +161,7 @@ static int r300_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
             return r300screen->caps.dxtc_swizzle;
 
         /* We don't support color clamping on r500, so that we can use color
-         * intepolators for generic varyings. */
+         * interpolators for generic varyings. */
         case PIPE_CAP_VERTEX_COLOR_CLAMPED:
             return !is_r500;
 
@@ -174,6 +174,8 @@ static int r300_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
             return is_r500 ? 1 : 0;
 
         case PIPE_CAP_GLSL_OPTIMIZE_CONSERVATIVELY:
+            return 0;
+        case PIPE_CAP_SHAREABLE_SHADERS:
             return 0;
 
         case PIPE_CAP_MAX_GS_INVOCATIONS:
@@ -326,7 +328,13 @@ static int r300_get_shader_param(struct pipe_screen *pscreen,
         }
 
         if (!r300screen->caps.has_tcl) {
-            return draw_get_shader_param(shader, param);
+            switch (param) {
+            case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
+            case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
+                return 0;
+            default:
+                return draw_get_shader_param(shader, param);
+            }
         }
 
         switch (param)
@@ -693,7 +701,7 @@ struct pipe_screen* r300_screen_create(struct radeon_winsys *rws,
         return NULL;
     }
 
-    rws->query_info(rws, &r300screen->info);
+    rws->query_info(rws, &r300screen->info, false, false);
 
     r300_init_debug(r300screen);
     r300_parse_chipset(r300screen->info.pci_id, &r300screen->caps);

@@ -29,7 +29,6 @@
  */
 
 #include <CoreFoundation/CoreFoundation.h>
-#include <AvailabilityMacros.h>
 
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
@@ -44,11 +43,7 @@
 #include <stdbool.h>
 #include <signal.h>
 
-#ifdef HAVE_LIBDISPATCH
 #include <dispatch/dispatch.h>
-#else
-#include <pthread.h>
-#endif
 
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -61,7 +56,7 @@
 #include "mach_startup.h"
 #include "mach_startupServer.h"
 
-#include "console_redirect.h"
+#include <asl.h>
 
 /* From darwinEvents.c ... but don't want to pull in all the server cruft */
 void
@@ -91,12 +86,8 @@ extern int noPanoramiXExtension;
 static char __crashreporter_info_buff__[4096] = { 0 };
 static const char *__crashreporter_info__ __attribute__((__used__)) =
     &__crashreporter_info_buff__[0];
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-// This is actually a toolchain requirement, but I'm not sure the correct check,
-// but it should be fine to just only include it for Leopard and later.  This line
-// just tells the linker to never strip this symbol (such as for space optimization)
+// This line just tells the linker to never strip this symbol (such as for space optimization)
 asm (".desc ___crashreporter_info__, 0x10");
-#endif
 
 static const char *__crashreporter_info__base =
     "X.Org X Server " XSERVER_VERSION;
@@ -119,23 +110,6 @@ static char *pref_app_to_run;
 static char *pref_login_shell;
 static char *pref_startx_script;
 
-#ifndef HAVE_LIBDISPATCH
-/*** Pthread Magics ***/
-static pthread_t
-create_thread(void *(*func)(void *), void *arg)
-{
-    pthread_attr_t attr;
-    pthread_t tid;
-
-    pthread_attr_init(&attr);
-    pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_create(&tid, &attr, func, arg);
-    pthread_attr_destroy(&attr);
-
-    return tid;
-}
-#endif
 
 /*** Mach-O IPC Stuffs ***/
 
@@ -243,16 +217,9 @@ typedef struct {
 /* This thread accepts an incoming connection and hands off the file
  * descriptor for the new connection to accept_fd_handoff()
  */
-#ifdef HAVE_LIBDISPATCH
 static void
 socket_handoff(socket_handoff_t *handoff_data)
 {
-#else
-static void *
-socket_handoff_thread(void *arg)
-{
-    socket_handoff_t *handoff_data = (socket_handoff_t *)arg;
-#endif
 
     int launchd_fd = -1;
     int connected_fd;
@@ -287,9 +254,6 @@ socket_handoff_thread(void *arg)
         launchd_fd);
     DarwinListenOnOpenFD(launchd_fd);
 
-#ifndef HAVE_LIBDISPATCH
-    return NULL;
-#endif
 }
 
 static int
@@ -373,14 +337,10 @@ do_request_fd_handoff_socket(mach_port_t port, string_t filename)
 
     strlcpy(filename, handoff_data->filename, STRING_T_SIZE);
 
-#ifdef HAVE_LIBDISPATCH
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,
                                              0), ^ {
                        socket_handoff(handoff_data);
                    });
-#else
-    create_thread(socket_handoff_thread, handoff_data);
-#endif
 
 #ifdef DEBUG
     ErrorF(
@@ -477,14 +437,9 @@ startup_trigger(int argc, char **argv, char **envp)
 
         kr = bootstrap_look_up(bootstrap_port, server_bootstrap_name, &mp);
         if (kr != KERN_SUCCESS) {
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
             ErrorF("bootstrap_look_up(%s): %s\n", server_bootstrap_name,
                    bootstrap_strerror(
                        kr));
-#else
-            ErrorF("bootstrap_look_up(%s): %ul\n", server_bootstrap_name,
-                   (unsigned long)kr);
-#endif
             exit(EXIT_FAILURE);
         }
 
@@ -564,24 +519,8 @@ setup_console_redirect(const char *bundle_id)
 
     asl_set_filter(aslc, ASL_FILTER_MASK_UPTO(ASL_LEVEL_WARNING));
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
-# if MAC_OS_X_VERSION_MIN_REQUIRED < 1080
-    if (asl_log_descriptor)
-# endif
-    {
-        asl_log_descriptor(aslc, NULL, ASL_LEVEL_INFO, STDOUT_FILENO, ASL_LOG_DESCRIPTOR_WRITE);
-        asl_log_descriptor(aslc, NULL, ASL_LEVEL_NOTICE, STDERR_FILENO, ASL_LOG_DESCRIPTOR_WRITE);
-    }
-# if MAC_OS_X_VERSION_MIN_REQUIRED < 1080
-    else {
-        xq_asl_capture_fd(aslc, NULL, ASL_LEVEL_INFO, STDOUT_FILENO);
-        xq_asl_capture_fd(aslc, NULL, ASL_LEVEL_NOTICE, STDERR_FILENO);
-    }
-# endif
-#else
-    xq_asl_capture_fd(aslc, NULL, ASL_LEVEL_INFO, STDOUT_FILENO);
-    xq_asl_capture_fd(aslc, NULL, ASL_LEVEL_NOTICE, STDERR_FILENO);
-#endif
+    asl_log_descriptor(aslc, NULL, ASL_LEVEL_INFO, STDOUT_FILENO, ASL_LOG_DESCRIPTOR_WRITE);
+    asl_log_descriptor(aslc, NULL, ASL_LEVEL_NOTICE, STDERR_FILENO, ASL_LOG_DESCRIPTOR_WRITE);
 }
 
 static void

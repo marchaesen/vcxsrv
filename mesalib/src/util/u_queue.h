@@ -78,7 +78,7 @@ util_queue_fence_init(struct util_queue_fence *fence)
 static inline void
 util_queue_fence_destroy(struct util_queue_fence *fence)
 {
-   assert(fence->val == 0);
+   assert(p_atomic_read_relaxed(&fence->val) == 0);
    /* no-op */
 }
 
@@ -113,7 +113,7 @@ util_queue_fence_reset(struct util_queue_fence *fence)
 static inline bool
 util_queue_fence_is_signalled(struct util_queue_fence *fence)
 {
-   return fence->val == 0;
+   return p_atomic_read_relaxed(&fence->val) == 0;
 }
 #endif
 

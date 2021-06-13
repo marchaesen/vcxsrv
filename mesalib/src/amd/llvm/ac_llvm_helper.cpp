@@ -321,6 +321,9 @@ LLVMValueRef ac_build_atomic_rmw(struct ac_llvm_context *ctx, LLVMAtomicRMWBinOp
    unsigned SSID = llvm::unwrap(ctx->context)->getOrInsertSyncScopeID(sync_scope);
    return llvm::wrap(llvm::unwrap(ctx->builder)
                         ->CreateAtomicRMW(binop, llvm::unwrap(ptr), llvm::unwrap(val),
+#if LLVM_VERSION_MAJOR >= 13
+                                          llvm::MaybeAlign(0),
+#endif
                                           llvm::AtomicOrdering::SequentiallyConsistent, SSID));
 }
 
@@ -331,6 +334,9 @@ LLVMValueRef ac_build_atomic_cmp_xchg(struct ac_llvm_context *ctx, LLVMValueRef 
    return llvm::wrap(llvm::unwrap(ctx->builder)
                         ->CreateAtomicCmpXchg(llvm::unwrap(ptr), llvm::unwrap(cmp),
                                               llvm::unwrap(val),
+#if LLVM_VERSION_MAJOR >= 13
+                                              llvm::MaybeAlign(0),
+#endif
                                               llvm::AtomicOrdering::SequentiallyConsistent,
                                               llvm::AtomicOrdering::SequentiallyConsistent, SSID));
 }

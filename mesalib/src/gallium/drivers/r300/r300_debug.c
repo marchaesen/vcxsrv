@@ -26,7 +26,7 @@
 
 #include <stdio.h>
 
-static const struct debug_named_value debug_options[] = {
+static const struct debug_named_value r300_debug_options[] = {
     { "info", DBG_INFO, "Print hardware info (printed by default on debug builds"},
     { "fp", DBG_FP, "Log fragment program compilation" },
     { "vp", DBG_VP, "Log vertex program compilation" },
@@ -58,7 +58,7 @@ static const struct debug_named_value debug_options[] = {
 
 void r300_init_debug(struct r300_screen * screen)
 {
-    screen->debug = debug_get_flags_option("RADEON_DEBUG", debug_options, 0);
+    screen->debug = debug_get_flags_option("RADEON_DEBUG", r300_debug_options, 0);
 }
 
 void r500_dump_rs_block(struct r300_rs_block *rs)

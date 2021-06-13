@@ -84,7 +84,7 @@ class PrintCode(gl_XML.gl_print_base):
     def print_sync_call(self, func, unmarshal = 0):
         call = 'CALL_{0}(ctx->CurrentServerDispatch, ({1}))'.format(
             func.name, func.get_called_parameter_string())
-        if func.return_type == 'void':
+        if func.return_type == 'void' or unmarshal:
             out('{0};'.format(call))
             if func.marshal_call_after and not unmarshal:
                 out(func.marshal_call_after);
@@ -108,31 +108,44 @@ class PrintCode(gl_XML.gl_print_base):
     def print_async_dispatch(self, func):
         out('cmd = _mesa_glthread_allocate_command(ctx, '
             'DISPATCH_CMD_{0}, cmd_size);'.format(func.name))
-        for p in func.fixed_params:
+
+        # We want glthread to ignore variable-sized parameters if the only thing
+        # we want is to pass the pointer parameter as-is, e.g. when a PBO is bound.
+        # Making it conditional on marshal_sync is kinda hacky, but it's the easiest
+        # path towards handling PBOs in glthread, which use marshal_sync to check whether
+        # a PBO is bound.
+        if func.marshal_sync:
+            fixed_params = func.fixed_params + func.variable_params
+            variable_params = []
+        else:
+            fixed_params = func.fixed_params
+            variable_params = func.variable_params
+
+        for p in fixed_params:
             if p.count:
                 out('memcpy(cmd->{0}, {0}, {1});'.format(
                         p.name, p.size_string()))
             else:
                 out('cmd->{0} = {0};'.format(p.name))
-        if func.variable_params:
+        if variable_params:
             out('char *variable_data = (char *) (cmd + 1);')
             i = 1
-            for p in func.variable_params:
+            for p in variable_params:
                 if p.img_null_flag:
                     out('cmd->{0}_null = !{0};'.format(p.name))
                     out('if (!cmd->{0}_null) {{'.format(p.name))
                     with indent():
                         out(('memcpy(variable_data, {0}, {0}_size);').format(p.name))
-                        if i < len(func.variable_params):
+                        if i < len(variable_params):
                             out('variable_data += {0}_size;'.format(p.name))
                     out('}')
                 else:
                     out(('memcpy(variable_data, {0}, {0}_size);').format(p.name))
-                    if i < len(func.variable_params):
+                    if i < len(variable_params):
                         out('variable_data += {0}_size;'.format(p.name))
                 i += 1
 
-        if not func.fixed_params and not func.variable_params:
+        if not fixed_params and not variable_params:
             out('(void) cmd;')
 
         if func.marshal_call_after:
@@ -179,25 +192,32 @@ class PrintCode(gl_XML.gl_print_base):
         return val
 
     def print_async_struct(self, func):
+        if func.marshal_sync:
+            fixed_params = func.fixed_params + func.variable_params
+            variable_params = []
+        else:
+            fixed_params = func.fixed_params
+            variable_params = func.variable_params
+
         out('struct marshal_cmd_{0}'.format(func.name))
         out('{')
         with indent():
             out('struct marshal_cmd_base cmd_base;')
 
             # Sort the parameters according to their size to pack the structure optimally
-            for p in sorted(func.fixed_params, key=lambda p: self.get_type_size(p.type_string())):
+            for p in sorted(fixed_params, key=lambda p: self.get_type_size(p.type_string())):
                 if p.count:
                     out('{0} {1}[{2}];'.format(
                             p.get_base_type_string(), p.name, p.count))
                 else:
                     out('{0} {1};'.format(p.type_string(), p.name))
 
-            for p in func.variable_params:
+            for p in variable_params:
                 if p.img_null_flag:
                     out('bool {0}_null; /* If set, no data follows '
                         'for "{0}" */'.format(p.name))
 
-            for p in func.variable_params:
+            for p in variable_params:
                 if p.count_scale != 1:
                     out(('/* Next {0} bytes are '
                          '{1} {2}[{3}][{4}] */').format(
@@ -211,12 +231,19 @@ class PrintCode(gl_XML.gl_print_base):
         out('};')
 
     def print_async_unmarshal(self, func):
+        if func.marshal_sync:
+            fixed_params = func.fixed_params + func.variable_params
+            variable_params = []
+        else:
+            fixed_params = func.fixed_params
+            variable_params = func.variable_params
+
         out('void')
         out(('_mesa_unmarshal_{0}(struct gl_context *ctx, '
              'const struct marshal_cmd_{0} *cmd)').format(func.name))
         out('{')
         with indent():
-            for p in func.fixed_params:
+            for p in fixed_params:
                 if p.count:
                     p_decl = '{0} * {1} = cmd->{1};'.format(
                             p.get_base_type_string(), p.name)
@@ -224,20 +251,20 @@ class PrintCode(gl_XML.gl_print_base):
                     p_decl = '{0} {1} = cmd->{1};'.format(
                             p.type_string(), p.name)
 
-                if not p_decl.startswith('const '):
+                if not p_decl.startswith('const ') and p.count:
                     # Declare all local function variables as const, even if
                     # the original parameter is not const.
                     p_decl = 'const ' + p_decl
 
                 out(p_decl)
 
-            if func.variable_params:
-                for p in func.variable_params:
+            if variable_params:
+                for p in variable_params:
                     out('{0} * {1};'.format(
                             p.get_base_type_string(), p.name))
                 out('const char *variable_data = (const char *) (cmd + 1);')
                 i = 1
-                for p in func.variable_params:
+                for p in variable_params:
                     out('{0} = ({1} *) variable_data;'.format(
                             p.name, p.get_base_type_string()))
 
@@ -245,11 +272,11 @@ class PrintCode(gl_XML.gl_print_base):
                         out('if (cmd->{0}_null)'.format(p.name))
                         with indent():
                             out('{0} = NULL;'.format(p.name))
-                        if i < len(func.variable_params):
+                        if i < len(variable_params):
                             out('else')
                             with indent():
                                 out('variable_data += {0};'.format(p.size_string(False, marshal = 1)))
-                    elif i < len(func.variable_params):
+                    elif i < len(variable_params):
                         out('variable_data += {0};'.format(p.size_string(False, marshal = 1)))
                     i += 1
 
@@ -279,26 +306,26 @@ class PrintCode(gl_XML.gl_print_base):
         out('}')
 
     def print_async_marshal(self, func):
-        out('void GLAPIENTRY')
+        out('{0} GLAPIENTRY'.format(func.return_type))
         out('_mesa_marshal_{0}({1})'.format(
                 func.name, func.get_parameter_string()))
         out('{')
         with indent():
             out('GET_CURRENT_CONTEXT(ctx);')
-            for p in func.variable_params:
-                out('int {0}_size = {1};'.format(p.name, p.size_string(marshal = 1)))
+            if not func.marshal_sync:
+                for p in func.variable_params:
+                    out('int {0}_size = {1};'.format(p.name, p.size_string(marshal = 1)))
 
             struct = 'struct marshal_cmd_{0}'.format(func.name)
             size_terms = ['sizeof({0})'.format(struct)]
-            for p in func.variable_params:
-                if p.img_null_flag:
-                    size_terms.append('({0} ? {0}_size : 0)'.format(p.name))
-                else:
-                    size_terms.append('{0}_size'.format(p.name))
+            if not func.marshal_sync:
+                for p in func.variable_params:
+                    if p.img_null_flag:
+                        size_terms.append('({0} ? {0}_size : 0)'.format(p.name))
+                    else:
+                        size_terms.append('{0}_size'.format(p.name))
             out('int cmd_size = {0};'.format(' + '.join(size_terms)))
             out('{0} *cmd;'.format(struct))
-
-            self.validate_count_or_fallback(func)
 
             if func.marshal_sync:
                 out('if ({0}) {{'.format(func.marshal_sync))
@@ -307,9 +334,12 @@ class PrintCode(gl_XML.gl_print_base):
                     self.print_sync_call(func)
                     out('return;')
                 out('}')
+            else:
+                self.validate_count_or_fallback(func)
 
-        with indent():
             self.print_async_dispatch(func)
+            if func.return_type == 'GLboolean':
+                out('return GL_TRUE;') # for glUnmapBuffer
         out('}')
 
     def print_async_body(self, func):

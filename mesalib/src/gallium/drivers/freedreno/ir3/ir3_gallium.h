@@ -31,24 +31,31 @@
 #include "pipe/p_screen.h"
 #include "ir3/ir3_shader.h"
 
-struct ir3_shader * ir3_shader_create(struct ir3_compiler *compiler,
-		const struct pipe_shader_state *cso,
-		struct pipe_debug_callback *debug,
-		struct pipe_screen *screen);
-struct ir3_shader *
-ir3_shader_create_compute(struct ir3_compiler *compiler,
-		const struct pipe_compute_state *cso,
-		struct pipe_debug_callback *debug,
-		struct pipe_screen *screen);
+#include "freedreno_util.h"
+
+/**
+ * The ir3 hwcso type, use ir3_get_shader() to dereference the
+ * underlying ir3_shader
+ */
+struct ir3_shader_state;
+
 struct ir3_shader_variant * ir3_shader_variant(struct ir3_shader *shader,
 		struct ir3_shader_key key, bool binning_pass,
 		struct pipe_debug_callback *debug);
 
+void * ir3_shader_compute_state_create(struct pipe_context *pctx,
+		const struct pipe_compute_state *cso);
 void * ir3_shader_state_create(struct pipe_context *pctx, const struct pipe_shader_state *cso);
 void ir3_shader_state_delete(struct pipe_context *pctx, void *hwcso);
 
+struct ir3_shader * ir3_get_shader(struct ir3_shader_state *hwcso);
+struct shader_info * ir3_get_shader_info(struct ir3_shader_state *hwcso);
+
+void ir3_fixup_shader_state(struct pipe_context *pctx, struct ir3_shader_key *key) assert_dt;
+
 void ir3_prog_init(struct pipe_context *pctx);
 void ir3_screen_init(struct pipe_screen *pscreen);
+void ir3_screen_fini(struct pipe_screen *pscreen);
 
 /**
  * A helper to determine if a fs input 'i' is point/sprite coord, given
@@ -69,5 +76,7 @@ ir3_point_sprite(const struct ir3_shader_variant *fs, int i,
 		return false;
 	}
 }
+
+void ir3_update_max_tf_vtx(struct fd_context *ctx, const struct ir3_shader_variant *v) assert_dt;
 
 #endif /* IR3_GALLIUM_H_ */

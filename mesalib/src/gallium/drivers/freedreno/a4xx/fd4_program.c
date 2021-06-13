@@ -45,7 +45,7 @@ emit_shader(struct fd_ringbuffer *ring, const struct ir3_shader_variant *so)
 	enum a4xx_state_src src;
 	uint32_t i, sz, *bin;
 
-	if (fd_mesa_debug & FD_DBG_DIRECT) {
+	if (FD_DBG(DIRECT)) {
 		sz = si->sizedwords;
 		src = SS4_DIRECT;
 		bin = fd_bo_map(so->bo);
@@ -176,7 +176,7 @@ fd4_program_emit(struct fd_ringbuffer *ring, struct fd4_emit *emit,
 
 	setup_stages(emit, s);
 
-	fssz = (s[FS].i->max_reg >= 24) ? TWO_QUADS : FOUR_QUADS;
+	fssz = (s[FS].i->double_threadsize) ? FOUR_QUADS : TWO_QUADS;
 
 	/* blob seems to always use constmode currently: */
 	constmode = 1;
@@ -534,9 +534,46 @@ fd4_program_emit(struct fd_ringbuffer *ring, struct fd4_emit *emit,
 			emit_shader(ring, s[FS].v);
 }
 
+static struct ir3_program_state *
+fd4_program_create(void *data, struct ir3_shader_variant *bs,
+		struct ir3_shader_variant *vs,
+		struct ir3_shader_variant *hs,
+		struct ir3_shader_variant *ds,
+		struct ir3_shader_variant *gs,
+		struct ir3_shader_variant *fs,
+		const struct ir3_shader_key *key)
+	in_dt
+{
+	struct fd_context *ctx = fd_context(data);
+	struct fd4_program_state *state = CALLOC_STRUCT(fd4_program_state);
+
+	tc_assert_driver_thread(ctx->tc);
+
+	state->bs = bs;
+	state->vs = vs;
+	state->fs = fs;
+
+	return &state->base;
+}
+
+static void
+fd4_program_destroy(void *data, struct ir3_program_state *state)
+{
+	struct fd4_program_state *so = fd4_program_state(state);
+	free(so);
+}
+
+static const struct ir3_cache_funcs cache_funcs = {
+	.create_state = fd4_program_create,
+	.destroy_state = fd4_program_destroy,
+};
+
 void
 fd4_prog_init(struct pipe_context *pctx)
 {
+	struct fd_context *ctx = fd_context(pctx);
+
+	ctx->shader_cache = ir3_cache_create(&cache_funcs, ctx);
 	ir3_prog_init(pctx);
 	fd_prog_init(pctx);
 }

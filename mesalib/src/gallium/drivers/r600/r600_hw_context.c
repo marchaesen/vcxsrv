@@ -44,7 +44,7 @@ void r600_need_cs_space(struct r600_context *ctx, unsigned num_dw,
 		ctx->b.gfx.flush(ctx, PIPE_FLUSH_ASYNC, NULL);
 		return;
 	}
-	/* all will be accounted once relocation are emited */
+	/* all will be accounted once relocation are emitted */
 	ctx->b.gtt = 0;
 	ctx->b.vram = 0;
 

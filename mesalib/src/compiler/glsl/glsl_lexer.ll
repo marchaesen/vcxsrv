@@ -118,11 +118,13 @@ static int classify_identifier(struct _mesa_glsl_parse_state *, const char *,
 
 /**
  * A macro for handling keywords that have been present in GLSL since
- * its origin, but were changed into reserved words in GLSL 3.00 ES.
+ * its origin, but were changed into reserved words in later versions.
  */
-#define DEPRECATED_ES_KEYWORD(token)					\
+#define DEPRECATED_KEYWORD(token, state, reserved_glsl,			\
+                           reserved_glsl_es)				\
    do {									\
-      if (yyextra->is_version(0, 300)) {				\
+      if (yyextra->is_version(reserved_glsl, reserved_glsl_es) &&	\
+          !state->compat_shader) {					\
 	 _mesa_glsl_error(yylloc, yyextra,				\
 			  "illegal use of reserved word `%s'", yytext);	\
 	 return ERROR_TOK;						\
@@ -132,7 +134,7 @@ static int classify_identifier(struct _mesa_glsl_parse_state *, const char *,
    } while (0)
 
 /**
- * Like DEPRECATED_ES_KEYWORD, but for types
+ * Like DEPRECATED_KEYWORD, but for types
  */
 #define DEPRECATED_ES_TYPE_WITH_ALT(alt_expr, gtype)			\
    do {									\
@@ -393,7 +395,7 @@ PATH		["][./ _A-Za-z0-9]*["]
 
 \n		{ yylineno++; yycolumn = 0; }
 
-attribute	DEPRECATED_ES_KEYWORD(ATTRIBUTE);
+attribute	DEPRECATED_KEYWORD(ATTRIBUTE, yyextra, 420, 300);
 const		return CONST_TOK;
 bool		{ yylval->type = glsl_type::bool_type; return BASIC_TYPE_TOK; }
 float		{ yylval->type = glsl_type::float_type; return BASIC_TYPE_TOK; }
@@ -441,7 +443,7 @@ out		return OUT_TOK;
 inout		return INOUT_TOK;
 uniform		return UNIFORM;
 buffer		KEYWORD_WITH_ALT(0, 0, 430, 310, yyextra->ARB_shader_storage_buffer_object_enable, BUFFER);
-varying		DEPRECATED_ES_KEYWORD(VARYING);
+varying		DEPRECATED_KEYWORD(VARYING, yyextra, 420, 300);
 centroid	KEYWORD_WITH_ALT(120, 300, 120, 300, yyextra->EXT_gpu_shader4_enable, CENTROID);
 invariant	KEYWORD(120, 100, 120, 100, INVARIANT);
 flat		KEYWORD_WITH_ALT(130, 100, 130, 300, yyextra->EXT_gpu_shader4_enable, FLAT);

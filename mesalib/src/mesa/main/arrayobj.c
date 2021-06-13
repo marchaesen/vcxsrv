@@ -47,6 +47,7 @@
 #include "context.h"
 #include "bufferobj.h"
 #include "arrayobj.h"
+#include "draw_validate.h"
 #include "macros.h"
 #include "mtypes.h"
 #include "state.h"
@@ -1010,6 +1011,13 @@ bind_vertex_array(struct gl_context *ctx, GLuint id, bool no_error)
    _mesa_set_draw_vao(ctx, ctx->Array._EmptyVAO, 0);
 
    _mesa_reference_vao(ctx, &ctx->Array.VAO, newObj);
+
+   /* Update the valid-to-render state if binding on unbinding default VAO
+    * if drawing with the default VAO is invalid.
+    */
+   if (ctx->API == API_OPENGL_CORE &&
+       (oldObj == ctx->Array.DefaultVAO) != (newObj == ctx->Array.DefaultVAO))
+      _mesa_update_valid_to_render_state(ctx);
 }
 
 

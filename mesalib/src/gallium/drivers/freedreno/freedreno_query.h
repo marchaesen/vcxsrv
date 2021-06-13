@@ -29,20 +29,26 @@
 
 #include "pipe/p_context.h"
 
+#include "util/u_threaded_context.h"
+
+#include "freedreno_util.h"
+
 struct fd_context;
 struct fd_query;
 
 struct fd_query_funcs {
 	void (*destroy_query)(struct fd_context *ctx,
-			struct fd_query *q);
-	void (*begin_query)(struct fd_context *ctx, struct fd_query *q);
-	void (*end_query)(struct fd_context *ctx, struct fd_query *q);
+			struct fd_query *q) dt;
+	void (*begin_query)(struct fd_context *ctx, struct fd_query *q) dt;
+	void (*end_query)(struct fd_context *ctx, struct fd_query *q) dt;
 	bool (*get_query_result)(struct fd_context *ctx,
 			struct fd_query *q, bool wait,
 			union pipe_query_result *result);
 };
 
 struct fd_query {
+	struct threaded_query base;
+
 	const struct fd_query_funcs *funcs;
 	int type;
 	unsigned index;

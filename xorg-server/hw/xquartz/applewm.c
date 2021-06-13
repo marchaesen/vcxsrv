@@ -34,7 +34,7 @@
 #include <dix-config.h>
 #endif
 
-#include "quartzCommon.h"
+#include "quartz.h"
 
 #include "misc.h"
 #include "dixstruct.h"

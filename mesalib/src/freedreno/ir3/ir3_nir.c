@@ -72,6 +72,8 @@ static const nir_shader_compiler_options options = {
 		.lower_rotate = true,
 		.lower_to_scalar = true,
 		.has_imul24 = true,
+		.has_fsub = true,
+		.has_isub = true,
 		.lower_wpos_pntc = true,
 		.lower_cs_local_index_from_id = true,
 
@@ -125,6 +127,8 @@ static const nir_shader_compiler_options options_a6xx = {
 		.vectorize_io = true,
 		.lower_to_scalar = true,
 		.has_imul24 = true,
+		.has_fsub = true,
+		.has_isub = true,
 		.max_unroll_iterations = 32,
 		.lower_wpos_pntc = true,
 		.lower_cs_local_index_from_id = true,
@@ -135,6 +139,7 @@ static const nir_shader_compiler_options options_a6xx = {
 		 */
 		.lower_int64_options = (nir_lower_int64_options)~0,
 		.lower_uniforms_to_ubo = true,
+		.lower_device_index_to_zero = true,
 };
 
 const nir_shader_compiler_options *
@@ -150,7 +155,8 @@ ir3_nir_should_vectorize_mem(unsigned align_mul, unsigned align_offset,
 		unsigned bit_size,
 		unsigned num_components,
 		nir_intrinsic_instr *low,
-		nir_intrinsic_instr *high)
+		nir_intrinsic_instr *high,
+		void *data)
 {
 	assert(bit_size >= 8);
 	if (bit_size != 32)
@@ -218,8 +224,12 @@ ir3_optimize_loop(nir_shader *s)
 		progress |= OPT(s, nir_lower_pack);
 		progress |= OPT(s, nir_opt_constant_folding);
 
-		progress |= OPT(s, nir_opt_load_store_vectorize, nir_var_mem_ubo,
-				ir3_nir_should_vectorize_mem, 0);
+		nir_load_store_vectorize_options vectorize_opts = {
+		   .modes = nir_var_mem_ubo,
+		   .callback = ir3_nir_should_vectorize_mem,
+		   .robust_modes = 0,
+		};
+		progress |= OPT(s, nir_opt_load_store_vectorize, &vectorize_opts);
 
 		if (lower_flrp != 0) {
 			if (OPT(s, nir_lower_flrp,
@@ -323,6 +333,11 @@ ir3_finalize_nir(struct ir3_compiler *compiler, nir_shader *s)
 		debug_printf("----------------------\n");
 	}
 
+	nir_foreach_uniform_variable_safe(var, s) {
+		exec_node_remove(&var->node);
+	}
+	nir_validate_shader(s, "after uniform var removal");
+
 	nir_sweep(s);
 }
 
@@ -397,7 +412,7 @@ ir3_nir_lower_view_layer_id(nir_shader *nir, bool layer_zero, bool view_zero)
 				b.cursor = nir_before_instr(&intrin->instr);
 				nir_ssa_def *zero = nir_imm_int(&b, 0);
 				nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-										 nir_src_for_ssa(zero));
+										 zero);
 				nir_instr_remove(&intrin->instr);
 				progress = true;
 			}
@@ -455,45 +470,14 @@ ir3_nir_lower_variant(struct ir3_shader_variant *so, nir_shader *s)
 	if (s->info.stage == MESA_SHADER_VERTEX) {
 		if (so->key.ucp_enables)
 			progress |= OPT(s, nir_lower_clip_vs, so->key.ucp_enables, false, false, NULL);
-		if (so->key.vclamp_color)
-			progress |= OPT(s, nir_lower_clamp_color_outputs);
 	} else if (s->info.stage == MESA_SHADER_FRAGMENT) {
 		bool layer_zero = so->key.layer_zero && (s->info.inputs_read & VARYING_BIT_LAYER);
 		bool view_zero = so->key.view_zero && (s->info.inputs_read & VARYING_BIT_VIEWPORT);
 
 		if (so->key.ucp_enables && !so->shader->compiler->has_clip_cull)
 			progress |= OPT(s, nir_lower_clip_fs, so->key.ucp_enables, false);
-		if (so->key.fclamp_color)
-			progress |= OPT(s, nir_lower_clamp_color_outputs);
 		if (layer_zero || view_zero)
 			progress |= OPT(s, ir3_nir_lower_view_layer_id, layer_zero, view_zero);
-	}
-	if (so->key.color_two_side) {
-		OPT_V(s, nir_lower_two_sided_color, true);
-		progress = true;
-	}
-
-	struct nir_lower_tex_options tex_options = { };
-
-	switch (so->shader->type) {
-	case MESA_SHADER_FRAGMENT:
-		tex_options.saturate_s = so->key.fsaturate_s;
-		tex_options.saturate_t = so->key.fsaturate_t;
-		tex_options.saturate_r = so->key.fsaturate_r;
-		break;
-	case MESA_SHADER_VERTEX:
-		tex_options.saturate_s = so->key.vsaturate_s;
-		tex_options.saturate_t = so->key.vsaturate_t;
-		tex_options.saturate_r = so->key.vsaturate_r;
-		break;
-	default:
-		/* TODO */
-		break;
-	}
-
-	if (tex_options.saturate_s || tex_options.saturate_t ||
-		tex_options.saturate_r) {
-		progress |= OPT(s, nir_lower_tex, &tex_options);
 	}
 
 	/* Move large constant variables to the constants attached to the NIR

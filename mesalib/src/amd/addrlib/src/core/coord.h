@@ -33,8 +33,23 @@ namespace Addr
 {
 namespace V2
 {
+#if defined(__cplusplus)
+#if defined(_MSC_VER)
+    #if _MSC_VER >= 1900
+        #define ADDR_CPP11_COMPILER TRUE
+    #endif
+#else
+    #if __cplusplus >= 201103L
+        #define ADDR_CPP11_COMPILER TRUE
+    #endif
+#endif
+#endif
 
+#if defined(ADDR_CPP11_COMPILER)
+enum Dim : INT_8
+#else
 enum Dim
+#endif
 {
    DIM_X,
    DIM_Y,

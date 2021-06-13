@@ -144,6 +144,15 @@ si_create_shadowing_ib_preamble(struct si_context *sctx)
    return pm4;
 }
 
+static void si_set_context_reg_array(struct radeon_cmdbuf *cs, unsigned reg, unsigned num,
+                                     const uint32_t *values)
+{
+   radeon_begin(cs);
+   radeon_set_context_reg_seq(cs, reg, num);
+   radeon_emit_array(cs, values, num);
+   radeon_end();
+}
+
 void si_init_cp_reg_shadowing(struct si_context *sctx)
 {
    if (sctx->screen->info.mid_command_buffer_preemption_enabled ||
@@ -174,8 +183,7 @@ void si_init_cp_reg_shadowing(struct si_context *sctx)
       radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, sctx->shadowed_regs,
                                 RADEON_USAGE_READWRITE, RADEON_PRIO_DESCRIPTORS);
       si_pm4_emit(sctx, shadowing_preamble);
-      ac_emulate_clear_state(&sctx->screen->info, &sctx->gfx_cs,
-                             radeon_set_context_reg_seq_array);
+      ac_emulate_clear_state(&sctx->screen->info, &sctx->gfx_cs, si_set_context_reg_array);
       si_pm4_emit(sctx, sctx->cs_preamble_state);
 
       /* The register values are shadowed, so we won't need to set them again. */

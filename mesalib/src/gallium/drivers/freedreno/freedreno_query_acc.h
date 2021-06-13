@@ -64,8 +64,8 @@ struct fd_acc_sample_provider {
 
 	unsigned size;
 
-	void (*resume)(struct fd_acc_query *aq, struct fd_batch *batch);
-	void (*pause)(struct fd_acc_query *aq, struct fd_batch *batch);
+	void (*resume)(struct fd_acc_query *aq, struct fd_batch *batch) dt;
+	void (*pause)(struct fd_acc_query *aq, struct fd_batch *batch) dt;
 
 	void (*result)(struct fd_acc_query *aq, void *buf,
 			union pipe_query_result *result);
@@ -106,7 +106,7 @@ struct fd_query * fd_acc_create_query(struct fd_context *ctx, unsigned query_typ
 	unsigned index);
 struct fd_query * fd_acc_create_query2(struct fd_context *ctx, unsigned query_type,
 		unsigned index, const struct fd_acc_sample_provider *provider);
-void fd_acc_query_set_stage(struct fd_batch *batch, enum fd_render_stage stage);
+void fd_acc_query_update_batch(struct fd_batch *batch, bool disable_all) assert_dt;
 void fd_acc_query_register_provider(struct pipe_context *pctx,
 		const struct fd_acc_sample_provider *provider);
 

@@ -225,7 +225,7 @@ calc_nbins(struct gmem_key *key, struct fd_gmem_stateobj *gmem)
 	uint32_t max_width = screen->info.tile_max_w;
 	uint32_t max_height = screen->info.tile_max_h;
 
-	if (fd_mesa_debug & FD_DBG_MSGS) {
+	if (FD_DBG(MSGS)) {
 		debug_printf("binning input: cbuf cpp:");
 		for (unsigned i = 0; i < key->nr_cbufs; i++)
 			debug_printf(" %d", key->cbuf_cpp[i]);
@@ -493,7 +493,7 @@ gmem_key_init(struct fd_batch *batch, bool assume_zs, bool no_scis_opt)
 	} else {
 		struct pipe_scissor_state *scissor = &batch->max_scissor;
 
-		if (fd_mesa_debug & FD_DBG_NOSCIS) {
+		if (FD_DBG(NOSCIS)) {
 			scissor->minx = 0;
 			scissor->miny = 0;
 			scissor->maxx = pfb->width;
@@ -574,6 +574,7 @@ found:
 
 static void
 render_tiles(struct fd_batch *batch, struct fd_gmem_stateobj *gmem)
+	assert_dt
 {
 	struct fd_context *ctx = batch->ctx;
 	int i;
@@ -624,6 +625,7 @@ render_tiles(struct fd_batch *batch, struct fd_gmem_stateobj *gmem)
 
 static void
 render_sysmem(struct fd_batch *batch)
+	assert_dt
 {
 	struct fd_context *ctx = batch->ctx;
 
@@ -651,10 +653,10 @@ render_sysmem(struct fd_batch *batch)
 static void
 flush_ring(struct fd_batch *batch)
 {
-	uint32_t timestamp;
+	uint32_t timestamp = 0;
 	int out_fence_fd = -1;
 
-	if (unlikely(fd_mesa_debug & FD_DBG_NOHW))
+	if (FD_DBG(NOHW))
 		return;
 
 	fd_submit_flush(batch->submit, batch->in_fence_fd,
@@ -678,10 +680,8 @@ fd_gmem_render_tiles(struct fd_batch *batch)
 	}
 
 	if (ctx->emit_sysmem_prep && !batch->nondraw) {
-		if (batch->cleared || batch->gmem_reason ||
-				((batch->num_draws > 5) && !batch->blit) ||
-				(pfb->samples > 1)) {
-		} else if (!(fd_mesa_debug & FD_DBG_NOBYPASS)) {
+		if (fd_autotune_use_bypass(&ctx->autotune, batch) &&
+				!FD_DBG(NOBYPASS)) {
 			sysmem = true;
 		}
 
@@ -691,7 +691,7 @@ fd_gmem_render_tiles(struct fd_batch *batch)
 		}
 	}
 
-	if (fd_mesa_debug & FD_DBG_NOGMEM)
+	if (FD_DBG(NOGMEM))
 		sysmem = true;
 
 	/* Layered rendering always needs bypass. */

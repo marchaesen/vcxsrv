@@ -54,6 +54,7 @@ retry:
 	if (!fc_atomic_ptr_cmpexch (&_lock, NULL, lock))
 	{
 	    FcMutexFinish (lock);
+	    free (lock);
 	    goto retry;
 	}
 	FcMutexLock (lock);
@@ -988,12 +989,12 @@ FcConfigCompareValue (const FcValue	*left_o,
     FcBool	ret = FcFalse;
     FcOp	op = FC_OP_GET_OP (op_);
     int		flags = FC_OP_GET_FLAGS (op_);
+    FcValuePromotionBuffer buf1, buf2;
 
     if (left_o->type != right_o->type)
     {
         left = FcValueCanonicalize(left_o);
         right = FcValueCanonicalize(right_o);
-        FcValuePromotionBuffer buf1, buf2;
         left = FcConfigPromote (left, right, &buf1);
         right = FcConfigPromote (right, left, &buf2);
         left_o = &left;

@@ -134,6 +134,9 @@ _tnl_InvalidateState( struct gl_context *ctx, GLuint new_state )
    const struct gl_program *fp = ctx->FragmentProgram._Current;
    GLuint i;
 
+   if (new_state & (_NEW_LIGHT_CONSTANTS | _NEW_MATERIAL))
+      _mesa_update_light_materials(ctx);
+
    if (new_state & (_NEW_HINT | _NEW_PROGRAM)) {
       assert(tnl->AllowVertexFog || tnl->AllowPixelFog);
       tnl->_DoVertexFog = ((tnl->AllowVertexFog && (ctx->Hint.Fog != GL_NICEST))

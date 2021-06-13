@@ -48,7 +48,7 @@ fd5_emit_shader(struct fd_ringbuffer *ring, const struct ir3_shader_variant *so)
 	enum a4xx_state_src src;
 	uint32_t i, sz, *bin;
 
-	if (fd_mesa_debug & FD_DBG_DIRECT) {
+	if (FD_DBG(DIRECT)) {
 		sz = si->sizedwords;
 		src = SS4_DIRECT;
 		bin = fd_bo_map(so->bo);
@@ -79,53 +79,6 @@ fd5_emit_shader(struct fd_ringbuffer *ring, const struct ir3_shader_variant *so)
 
 	for (i = 0; i < sz; i++) {
 		OUT_RING(ring, bin[i]);
-	}
-}
-
-/* Add any missing varyings needed for stream-out.  Otherwise varyings not
- * used by fragment shader will be stripped out.
- */
-static void
-link_stream_out(struct ir3_shader_linkage *l, const struct ir3_shader_variant *v)
-{
-	const struct ir3_stream_output_info *strmout = &v->shader->stream_output;
-
-	/*
-	 * First, any stream-out varyings not already in linkage map (ie. also
-	 * consumed by frag shader) need to be added:
-	 */
-	for (unsigned i = 0; i < strmout->num_outputs; i++) {
-		const struct ir3_stream_output *out = &strmout->output[i];
-		unsigned k = out->register_index;
-		unsigned compmask =
-			(1 << (out->num_components + out->start_component)) - 1;
-		unsigned idx, nextloc = 0;
-
-		/* psize/pos need to be the last entries in linkage map, and will
-		 * get added link_stream_out, so skip over them:
-		 */
-		if ((v->outputs[k].slot == VARYING_SLOT_PSIZ) ||
-				(v->outputs[k].slot == VARYING_SLOT_POS))
-			continue;
-
-		for (idx = 0; idx < l->cnt; idx++) {
-			if (l->var[idx].regid == v->outputs[k].regid)
-				break;
-			nextloc = MAX2(nextloc, l->var[idx].loc + 4);
-		}
-
-		/* add if not already in linkage map: */
-		if (idx == l->cnt)
-			ir3_link_add(l, v->outputs[k].regid, compmask, nextloc);
-
-		/* expand component-mask if needed, ie streaming out all components
-		 * but frag shader doesn't consume all components:
-		 */
-		if (compmask & ~l->var[idx].compmask) {
-			l->var[idx].compmask |= compmask;
-			l->max_loc = MAX2(l->max_loc,
-				l->var[idx].loc + util_last_bit(l->var[idx].compmask));
-		}
 	}
 }
 
@@ -294,7 +247,9 @@ fd5_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
 	setup_stages(emit, s);
 
-	fssz = (s[FS].i->max_reg >= 24) ? TWO_QUADS : FOUR_QUADS;
+	bool do_streamout = (s[VS].v->shader->stream_output.num_outputs > 0);
+
+	fssz = (s[FS].i->double_threadsize) ? FOUR_QUADS : TWO_QUADS;
 
 	pos_regid = ir3_find_output_regid(s[VS].v, VARYING_SLOT_POS);
 	psize_regid = ir3_find_output_regid(s[VS].v, VARYING_SLOT_PSIZ);
@@ -411,18 +366,26 @@ fd5_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
 			A5XX_SP_VS_CTRL_REG0_BRANCHSTACK(s[VS].v->branchstack) |
 			COND(s[VS].v->need_pixlod, A5XX_SP_VS_CTRL_REG0_PIXLODENABLE));
 
+	/* If we have streamout, link against the real FS in the binning program,
+	 * rather than the dummy FS used for binning pass state, to ensure the
+	 * OUTLOC's match.  Depending on whether we end up doing sysmem or gmem, the
+	 * actual streamout could happen with either the binning pass or draw pass
+	 * program, but the same streamout stateobj is used in either case:
+	 */
+	const struct ir3_shader_variant *link_fs = s[FS].v;
+	if (do_streamout && emit->binning_pass)
+		link_fs = emit->prog->fs;
 	struct ir3_shader_linkage l = {0};
-	ir3_link_shaders(&l, s[VS].v, s[FS].v, true);
-
-	if ((s[VS].v->shader->stream_output.num_outputs > 0) &&
-			!emit->binning_pass)
-		link_stream_out(&l, s[VS].v);
+	ir3_link_shaders(&l, s[VS].v, link_fs, true);
 
 	OUT_PKT4(ring, REG_A5XX_VPC_VAR_DISABLE(0), 4);
 	OUT_RING(ring, ~l.varmask[0]);  /* VPC_VAR[0].DISABLE */
 	OUT_RING(ring, ~l.varmask[1]);  /* VPC_VAR[1].DISABLE */
 	OUT_RING(ring, ~l.varmask[2]);  /* VPC_VAR[2].DISABLE */
 	OUT_RING(ring, ~l.varmask[3]);  /* VPC_VAR[3].DISABLE */
+
+	/* Add stream out outputs after computing the VPC_VAR_DISABLE bitmask. */
+	ir3_link_stream_out(&l, s[VS].v);
 
 	/* a5xx appends pos/psize to end of the linkage map: */
 	if (pos_regid != regid(63,0))
@@ -433,16 +396,14 @@ fd5_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
 		ir3_link_add(&l, psize_regid, 0x1, l.max_loc);
 	}
 
-	if ((s[VS].v->shader->stream_output.num_outputs > 0) &&
-			!emit->binning_pass) {
+	/* If we have stream-out, we use the full shader for binning
+	 * pass, rather than the optimized binning pass one, so that we
+	 * have all the varying outputs available for xfb.  So streamout
+	 * state should always be derived from the non-binning pass
+	 * program:
+	 */
+	if (do_streamout && !emit->binning_pass)
 		emit_stream_out(ring, s[VS].v, &l);
-
-		OUT_PKT4(ring, REG_A5XX_VPC_SO_OVERRIDE, 1);
-		OUT_RING(ring, 0x00000000);
-	} else {
-		OUT_PKT4(ring, REG_A5XX_VPC_SO_OVERRIDE, 1);
-		OUT_RING(ring, A5XX_VPC_SO_OVERRIDE_SO_DISABLE);
-	}
 
 	for (i = 0, j = 0; (i < 16) && (j < l.cnt); i++) {
 		uint32_t reg = 0;
@@ -677,9 +638,46 @@ fd5_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
 	OUT_RING(ring, 0x00000000);   /* VFD_CONTROL_5 */
 }
 
+static struct ir3_program_state *
+fd5_program_create(void *data, struct ir3_shader_variant *bs,
+		struct ir3_shader_variant *vs,
+		struct ir3_shader_variant *hs,
+		struct ir3_shader_variant *ds,
+		struct ir3_shader_variant *gs,
+		struct ir3_shader_variant *fs,
+		const struct ir3_shader_key *key)
+	in_dt
+{
+	struct fd_context *ctx = fd_context(data);
+	struct fd5_program_state *state = CALLOC_STRUCT(fd5_program_state);
+
+	tc_assert_driver_thread(ctx->tc);
+
+	state->bs = bs;
+	state->vs = vs;
+	state->fs = fs;
+
+	return &state->base;
+}
+
+static void
+fd5_program_destroy(void *data, struct ir3_program_state *state)
+{
+	struct fd5_program_state *so = fd5_program_state(state);
+	free(so);
+}
+
+static const struct ir3_cache_funcs cache_funcs = {
+	.create_state = fd5_program_create,
+	.destroy_state = fd5_program_destroy,
+};
+
 void
 fd5_prog_init(struct pipe_context *pctx)
 {
+	struct fd_context *ctx = fd_context(pctx);
+
+	ctx->shader_cache = ir3_cache_create(&cache_funcs, ctx);
 	ir3_prog_init(pctx);
 	fd_prog_init(pctx);
 }

@@ -65,9 +65,6 @@ struct lvp_swapchain {
                              uint32_t image_index);
 };
 
-LVP_DEFINE_NONDISP_HANDLE_CASTS(_VkIcdSurfaceBase, VkSurfaceKHR)
-LVP_DEFINE_NONDISP_HANDLE_CASTS(lvp_swapchain, VkSwapchainKHR)
-
 VkResult lvp_x11_init_wsi(struct lvp_instance *instance);
 void lvp_x11_finish_wsi(struct lvp_instance *instance);
 VkResult lvp_wl_init_wsi(struct lvp_instance *instance);

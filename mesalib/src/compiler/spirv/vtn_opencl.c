@@ -811,7 +811,8 @@ handle_printf(struct vtn_builder *b, uint32_t opcode,
       glsl_struct_type(fields, num_srcs - 1, "printf", true);
 
    /* Step 3, create a variable of that type and populate its fields */
-   nir_variable *var = nir_local_variable_create(b->func->impl, struct_type, NULL);
+   nir_variable *var = nir_local_variable_create(b->func->nir_func->impl,
+                                                 struct_type, NULL);
    nir_deref_instr *deref_var = nir_build_deref_var(&b->nb, var);
    size_t fmt_pos = 0;
    for (unsigned i = 1; i < num_srcs; ++i) {

@@ -33,8 +33,10 @@ os_dupfd_cloexec(int fd);
 /*
  * Read a file.
  * Returns a char* that the caller must free(), or NULL and sets errno.
- * If size is not null and no error occured it's set to the size of the
+ * If size is not null and no error occurred it's set to the size of the
  * file.
+ * Reads files as binary and includes a NUL terminator after the end of the
+ * returned buffer.
  */
 char *
 os_read_file(const char *filename, size_t *size);

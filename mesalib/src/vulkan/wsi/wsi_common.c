@@ -117,6 +117,12 @@ wsi_device_init(struct wsi_device *wsi,
       goto fail;
 #endif
 
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+   result = wsi_win32_init_wsi(wsi, alloc, pdevice);
+   if (result != VK_SUCCESS)
+      goto fail;
+#endif
+
 #ifdef VK_USE_PLATFORM_DISPLAY_KHR
    result = wsi_display_init_wsi(wsi, alloc, display_fd);
    if (result != VK_SUCCESS)
@@ -152,6 +158,7 @@ wsi_device_init(struct wsi_device *wsi,
    return VK_SUCCESS;
 #if defined(VK_USE_PLATFORM_XCB_KHR) || \
    defined(VK_USE_PLATFORM_WAYLAND_KHR) || \
+   defined(VK_USE_PLATFORM_WIN32_KHR) || \
    defined(VK_USE_PLATFORM_DISPLAY_KHR)
 fail:
    wsi_device_finish(wsi, alloc);
@@ -168,6 +175,9 @@ wsi_device_finish(struct wsi_device *wsi,
 #endif
 #ifdef VK_USE_PLATFORM_WAYLAND_KHR
    wsi_wl_finish_wsi(wsi, alloc);
+#endif
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+   wsi_win32_finish_wsi(wsi, alloc);
 #endif
 #ifdef VK_USE_PLATFORM_XCB_KHR
    wsi_x11_finish_wsi(wsi, alloc);

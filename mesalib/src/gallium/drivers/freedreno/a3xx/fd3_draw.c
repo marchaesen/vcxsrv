@@ -54,6 +54,7 @@ add_sat(uint32_t a, int32_t b)
 static void
 draw_impl(struct fd_context *ctx, struct fd_ringbuffer *ring,
 		struct fd3_emit *emit, unsigned index_offset)
+	assert_dt
 {
 	const struct pipe_draw_info *info = emit->info;
 	enum pc_di_primtype primtype = ctx->primtypes[info->mode];
@@ -67,8 +68,8 @@ draw_impl(struct fd_context *ctx, struct fd_ringbuffer *ring,
 	OUT_RING(ring, 0x0000000b);             /* PC_VERTEX_REUSE_BLOCK_CNTL */
 
 	OUT_PKT0(ring, REG_A3XX_VFD_INDEX_MIN, 4);
-	OUT_RING(ring, add_sat(info->min_index, info->index_bias)); /* VFD_INDEX_MIN */
-	OUT_RING(ring, add_sat(info->max_index, info->index_bias)); /* VFD_INDEX_MAX */
+	OUT_RING(ring, info->index_bounds_valid ? add_sat(info->min_index, info->index_size ? info->index_bias : 0) : 0);  /* VFD_INDEX_MIN */
+	OUT_RING(ring, info->index_bounds_valid ? add_sat(info->max_index, info->index_size ? info->index_bias : 0) : ~0); /* VFD_INDEX_MAX */
 	OUT_RING(ring, info->start_instance);   /* VFD_INSTANCEID_OFFSET */
 	OUT_RING(ring, info->index_size ? info->index_bias : emit->draw->start); /* VFD_INDEX_OFFSET */
 
@@ -87,78 +88,58 @@ draw_impl(struct fd_context *ctx, struct fd_ringbuffer *ring,
 			info, emit->draw, index_offset);
 }
 
-/* fixup dirty shader state in case some "unrelated" (from the state-
- * tracker's perspective) state change causes us to switch to a
- * different variant.
- */
-static void
-fixup_shader_state(struct fd_context *ctx, struct ir3_shader_key *key)
-{
-	struct fd3_context *fd3_ctx = fd3_context(ctx);
-	struct ir3_shader_key *last_key = &fd3_ctx->last_key;
-
-	if (!ir3_shader_key_equal(last_key, key)) {
-		if (ir3_shader_key_changes_fs(last_key, key)) {
-			ctx->dirty_shader[PIPE_SHADER_FRAGMENT] |= FD_DIRTY_SHADER_PROG;
-			ctx->dirty |= FD_DIRTY_PROG;
-		}
-
-		if (ir3_shader_key_changes_vs(last_key, key)) {
-			ctx->dirty_shader[PIPE_SHADER_VERTEX] |= FD_DIRTY_SHADER_PROG;
-			ctx->dirty |= FD_DIRTY_PROG;
-		}
-
-		fd3_ctx->last_key = *key;
-	}
-}
-
 static bool
 fd3_draw_vbo(struct fd_context *ctx, const struct pipe_draw_info *info,
              const struct pipe_draw_indirect_info *indirect,
              const struct pipe_draw_start_count *draw,
              unsigned index_offset)
+	in_dt
 {
-	struct fd3_context *fd3_ctx = fd3_context(ctx);
 	struct fd3_emit emit = {
 		.debug = &ctx->debug,
 		.vtx  = &ctx->vtx,
-		.prog = &ctx->prog,
 		.info = info,
-                .indirect = indirect,
-                .draw = draw,
+		.indirect = indirect,
+		.draw = draw,
 		.key = {
-			.color_two_side = ctx->rasterizer->light_twoside,
-			.vclamp_color = ctx->rasterizer->clamp_vertex_color,
-			.fclamp_color = ctx->rasterizer->clamp_fragment_color,
-			.has_per_samp = (fd3_ctx->fsaturate || fd3_ctx->vsaturate),
-			.vsaturate_s = fd3_ctx->vsaturate_s,
-			.vsaturate_t = fd3_ctx->vsaturate_t,
-			.vsaturate_r = fd3_ctx->vsaturate_r,
-			.fsaturate_s = fd3_ctx->fsaturate_s,
-			.fsaturate_t = fd3_ctx->fsaturate_t,
-			.fsaturate_r = fd3_ctx->fsaturate_r,
+			.vs = ctx->prog.vs,
+			.fs = ctx->prog.fs,
 		},
 		.rasterflat = ctx->rasterizer->flatshade,
 		.sprite_coord_enable = ctx->rasterizer->sprite_coord_enable,
 		.sprite_coord_mode = ctx->rasterizer->sprite_coord_mode,
 	};
 
-	if (fd3_needs_manual_clipping(ctx->prog.vs, ctx->rasterizer))
-		emit.key.ucp_enables = ctx->rasterizer->clip_plane_enable;
+	if (info->mode != PIPE_PRIM_MAX &&
+			!indirect &&
+			!info->primitive_restart &&
+			!u_trim_pipe_prim(info->mode, (unsigned*)&draw->count))
+		return false;
 
-	fixup_shader_state(ctx, &emit.key);
+	if (fd3_needs_manual_clipping(ir3_get_shader(ctx->prog.vs), ctx->rasterizer))
+		emit.key.key.ucp_enables = ctx->rasterizer->clip_plane_enable;
+
+	ir3_fixup_shader_state(&ctx->base, &emit.key.key);
 
 	unsigned dirty = ctx->dirty;
+
+	emit.prog = fd3_program_state(ir3_cache_lookup(ctx->shader_cache, &emit.key, &ctx->debug));
+
+	/* bail if compile failed: */
+	if (!emit.prog)
+		return false;
+
 	const struct ir3_shader_variant *vp = fd3_emit_get_vp(&emit);
 	const struct ir3_shader_variant *fp = fd3_emit_get_fp(&emit);
 
-	/* do regular pass first, since that is more likely to fail compiling: */
+	ir3_update_max_tf_vtx(ctx, vp);
 
-	if (!vp || !fp)
-		return false;
+	/* do regular pass first: */
 
-	ctx->stats.vs_regs += ir3_shader_halfregs(vp);
-	ctx->stats.fs_regs += ir3_shader_halfregs(fp);
+	if (unlikely(ctx->stats_users > 0)) {
+		ctx->stats.vs_regs += ir3_shader_halfregs(vp);
+		ctx->stats.fs_regs += ir3_shader_halfregs(fp);
+	}
 
 	emit.binning_pass = false;
 	emit.dirty = dirty;
@@ -178,6 +159,7 @@ fd3_draw_vbo(struct fd_context *ctx, const struct pipe_draw_info *info,
 
 void
 fd3_draw_init(struct pipe_context *pctx)
+	disable_thread_safety_analysis
 {
 	struct fd_context *ctx = fd_context(pctx);
 	ctx->draw_vbo = fd3_draw_vbo;

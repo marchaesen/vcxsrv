@@ -75,6 +75,7 @@ struct lp_setup_context
 
    struct pipe_context *pipe;
    struct vertex_info *vertex_info;
+   uint view_index;
    uint prim;
    uint vertex_size;
    uint nr_vertices;

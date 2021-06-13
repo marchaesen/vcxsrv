@@ -1,0 +1,68 @@
+.test-radv:
+  extends:
+    - .test-vk
+    - .radv-rules
+  stage: amd
+  variables:
+    VK_DRIVER: radeon
+    ACO_DEBUG: validateir,validatera
+
+radv-polaris10-traces:
+  extends:
+    - .test-radv
+    - .piglit-traces-test
+    - .test-manual
+  variables:
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-radv.yml"
+    PIGLIT_REPLAY_DEVICE_NAME: "vk-amd-polaris10"
+    PIGLIT_RESULTS: "radv-polaris10-replay"
+  tags:
+    - polaris10
+
+radv-raven-traces:
+  extends:
+    - .test-radv
+    - .piglit-traces-test
+    - .test-manual
+  variables:
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-radv.yml"
+    PIGLIT_REPLAY_DEVICE_NAME: "vk-amd-raven"
+    PIGLIT_RESULTS: "radv-raven-replay"
+  tags:
+    - raven
+
+# Can only be triggered manually on personal branches because RADV is the only
+# driver that does Vulkan testing at the moment.
+radv_polaris10_vkcts:
+  extends:
+    - .deqp-test-vk
+    - .test-radv
+    - .test-manual
+  variables:
+    GPU_VERSION: radv-polaris10
+  tags:
+    - polaris10
+
+radv-fossils:
+  extends:
+    - .fossilize-test
+    - .test-radv
+  script:
+    # Pitcairn (GFX6)
+    - export RADV_FORCE_FAMILY="pitcairn"
+    - ./install/fossilize-runner.sh
+    # Bonaire (GFX7)
+    - export RADV_FORCE_FAMILY="bonaire"
+    - ./install/fossilize-runner.sh
+    # Polaris10 (GFX8)
+    - export RADV_FORCE_FAMILY="polaris10"
+    - ./install/fossilize-runner.sh
+    # Vega10 (GFX9)
+    - export RADV_FORCE_FAMILY="gfx900"
+    - ./install/fossilize-runner.sh
+    # Navi10 (GFX10)
+    - export RADV_FORCE_FAMILY="gfx1010"
+    - ./install/fossilize-runner.sh
+    # Sienna Cichlid (GFX10)
+    - export RADV_FORCE_FAMILY="gfx1030"
+    - ./install/fossilize-runner.sh

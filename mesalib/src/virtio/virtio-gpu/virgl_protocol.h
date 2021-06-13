@@ -35,6 +35,16 @@ struct virgl_host_query_state {
    uint64_t result;
 };
 
+struct virgl_memory_info
+{
+   uint32_t total_device_memory; /**< size of device memory, e.g. VRAM */
+   uint32_t avail_device_memory; /**< free device memory at the moment */
+   uint32_t total_staging_memory; /**< size of staging memory, e.g. GART */
+   uint32_t avail_staging_memory; /**< free staging memory at the moment */
+   uint32_t device_memory_evicted; /**< size of memory evicted (monotonic counter) */
+   uint32_t nr_device_memory_evictions; /**< # of evictions (monotonic counter) */
+};
+
 enum virgl_object_type {
    VIRGL_OBJECT_NULL,
    VIRGL_OBJECT_BLEND,
@@ -102,6 +112,9 @@ enum virgl_context_cmd {
    VIRGL_CCMD_SET_TWEAKS,
    VIRGL_CCMD_CLEAR_TEXTURE,
    VIRGL_CCMD_PIPE_RESOURCE_CREATE,
+   VIRGL_CCMD_PIPE_RESOURCE_SET_TYPE,
+   VIRGL_CCMD_GET_MEMORY_INFO,
+   VIRGL_CCMD_EMIT_STRING_MARKER,
    VIRGL_MAX_COMMANDS
 };
 
@@ -635,5 +648,23 @@ enum vrend_tweak_type {
 #define VIRGL_PIPE_RES_CREATE_NR_SAMPLES 9
 #define VIRGL_PIPE_RES_CREATE_FLAGS 10
 #define VIRGL_PIPE_RES_CREATE_BLOB_ID 11
+
+/* VIRGL_CCMD_PIPE_RESOURCE_SET_TYPE */
+#define VIRGL_PIPE_RES_SET_TYPE_SIZE(nplanes) (8 + (nplanes) * 2)
+#define VIRGL_PIPE_RES_SET_TYPE_RES_HANDLE 1
+#define VIRGL_PIPE_RES_SET_TYPE_FORMAT 2
+#define VIRGL_PIPE_RES_SET_TYPE_BIND 3
+#define VIRGL_PIPE_RES_SET_TYPE_WIDTH 4
+#define VIRGL_PIPE_RES_SET_TYPE_HEIGHT 5
+#define VIRGL_PIPE_RES_SET_TYPE_USAGE 6
+#define VIRGL_PIPE_RES_SET_TYPE_MODIFIER_LO 7
+#define VIRGL_PIPE_RES_SET_TYPE_MODIFIER_HI 8
+#define VIRGL_PIPE_RES_SET_TYPE_PLANE_STRIDE(plane) (9 + (plane) * 2)
+#define VIRGL_PIPE_RES_SET_TYPE_PLANE_OFFSET(plane) (10 + (plane) * 2)
+
+/* send string marker */
+#define VIRGL_SEND_STRING_MARKER_MIN_SIZE 2
+#define VIRGL_SEND_STRING_MARKER_STRING_SIZE 1
+#define VIRGL_SEND_STRING_MARKER_OFFSET 2
 
 #endif

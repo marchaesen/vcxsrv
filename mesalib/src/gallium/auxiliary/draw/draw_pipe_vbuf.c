@@ -191,6 +191,8 @@ vbuf_start_prim(struct vbuf_stage *vbuf, uint prim)
    const struct vertex_info *vinfo;
 
    vbuf->render->set_primitive(vbuf->render, prim);
+   if (vbuf->render->set_view_index)
+      vbuf->render->set_view_index(vbuf->render, vbuf->stage.draw->pt.user.viewid);
 
    /* Must do this after set_primitive() above:
     *

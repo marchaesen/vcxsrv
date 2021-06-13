@@ -133,6 +133,7 @@ struct ac_llvm_context {
 
    enum chip_class chip_class;
    enum radeon_family family;
+   const struct radeon_info *info;
 
    unsigned wave_size;
    unsigned ballot_mask_bits;
@@ -144,6 +145,7 @@ struct ac_llvm_context {
 
 void ac_llvm_context_init(struct ac_llvm_context *ctx, struct ac_llvm_compiler *compiler,
                           enum chip_class chip_class, enum radeon_family family,
+                          const struct radeon_info *info,
                           enum ac_float_mode float_mode, unsigned wave_size,
                           unsigned ballot_mask_bits);
 
@@ -195,8 +197,13 @@ LLVMValueRef ac_build_gather_values_extended(struct ac_llvm_context *ctx, LLVMVa
 LLVMValueRef ac_build_gather_values(struct ac_llvm_context *ctx, LLVMValueRef *values,
                                     unsigned value_count);
 
+LLVMValueRef ac_build_concat(struct ac_llvm_context *ctx, LLVMValueRef a, LLVMValueRef b);
+
 LLVMValueRef ac_extract_components(struct ac_llvm_context *ctx, LLVMValueRef value, unsigned start,
                                    unsigned channels);
+
+LLVMValueRef ac_build_expand(struct ac_llvm_context *ctx, LLVMValueRef value,
+                             unsigned src_channels, unsigned dst_channels);
 
 LLVMValueRef ac_build_expand_to_vec4(struct ac_llvm_context *ctx, LLVMValueRef value,
                                      unsigned num_channels);
@@ -255,13 +262,13 @@ void ac_build_buffer_store_format(struct ac_llvm_context *ctx, LLVMValueRef rsrc
 
 LLVMValueRef ac_build_buffer_load(struct ac_llvm_context *ctx, LLVMValueRef rsrc, int num_channels,
                                   LLVMValueRef vindex, LLVMValueRef voffset, LLVMValueRef soffset,
-                                  unsigned inst_offset, unsigned cache_policy, bool can_speculate,
-                                  bool allow_smem);
+                                  unsigned inst_offset, LLVMTypeRef channel_type,
+                                  unsigned cache_policy, bool can_speculate, bool allow_smem);
 
 LLVMValueRef ac_build_buffer_load_format(struct ac_llvm_context *ctx, LLVMValueRef rsrc,
                                          LLVMValueRef vindex, LLVMValueRef voffset,
                                          unsigned num_channels, unsigned cache_policy,
-                                         bool can_speculate, bool d16);
+                                         bool can_speculate, bool d16, bool tfe);
 
 LLVMValueRef ac_build_tbuffer_load_short(struct ac_llvm_context *ctx, LLVMValueRef rsrc,
                                          LLVMValueRef voffset, LLVMValueRef soffset,
@@ -398,7 +405,10 @@ struct ac_image_args {
    unsigned cache_policy : 3;
    bool unorm : 1;
    bool level_zero : 1;
-   bool d16 : 1;        /* data and return values are 16-bit, requires GFX8+ */
+   bool d16 : 1;        /* GFX8+: data and return values are 16-bit */
+   bool a16 : 1;        /* GFX9+: address components except compare, offset and bias are 16-bit */
+   bool g16 : 1;        /* GFX10+: derivatives are 16-bit; GFX<=9: must be equal to a16 */
+   bool tfe : 1;
    unsigned attributes; /* additional call-site specific AC_FUNC_ATTRs */
 
    LLVMValueRef resource;

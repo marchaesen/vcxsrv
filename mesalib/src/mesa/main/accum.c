@@ -49,6 +49,7 @@ _mesa_ClearAccum( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha )
    if (TEST_EQ_4V(tmp, ctx->Accum.ClearColor))
       return;
 
+   ctx->PopAttribState |= GL_ACCUM_BUFFER_BIT;
    COPY_4FV( ctx->Accum.ClearColor, tmp );
 }
 
@@ -453,7 +454,7 @@ void GLAPIENTRY
 _mesa_Accum( GLenum op, GLfloat value )
 {
    GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    switch (op) {
    case GL_ADD:

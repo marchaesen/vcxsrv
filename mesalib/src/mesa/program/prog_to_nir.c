@@ -461,10 +461,7 @@ ptn_kil(nir_builder *b, nir_ssa_def **src)
    nir_ssa_def *cmp = nir_bany(b, nir_flt(b, src[0], nir_imm_float(b, 0.0)));
    b->exact = false;
 
-   nir_intrinsic_instr *discard =
-      nir_intrinsic_instr_create(b->shader, nir_intrinsic_discard_if);
-   discard->src[0] = nir_src_for_ssa(cmp);
-   nir_builder_instr_insert(b, &discard->instr);
+   nir_discard_if(b, cmp);
 }
 
 enum glsl_sampler_dim
@@ -550,7 +547,7 @@ ptn_tex(struct ptn_compile *c, nir_alu_dest dest, nir_ssa_def **src,
 
    instr = nir_tex_instr_create(b->shader, num_srcs);
    instr->op = op;
-   instr->dest_type = nir_type_float;
+   instr->dest_type = nir_type_float32;
    instr->is_shadow = prog_inst->TexShadow;
 
    bool is_array;
@@ -907,10 +904,8 @@ setup_registers_and_variables(struct ptn_compile *c)
    }
 
    /* Create system value variables */
-   uint64_t system_values_read = c->prog->info.system_values_read;
-   while (system_values_read) {
-      const int i = u_bit_scan64(&system_values_read);
-
+   int i;
+   BITSET_FOREACH_SET(i, c->prog->info.system_values_read, SYSTEM_VALUE_MAX) {
       nir_variable *var =
          nir_variable_create(shader, nir_var_system_value, glsl_vec4_type(),
                              ralloc_asprintf(shader, "sv_%d", i));

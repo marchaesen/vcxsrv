@@ -11,21 +11,21 @@
 #undef UINT8_TYPE
 
 void
-util_format_etc1_rgb8_unpack_rgba_8unorm(uint8_t *dst_row, unsigned dst_stride, const uint8_t *src_row, unsigned src_stride, unsigned width, unsigned height)
+util_format_etc1_rgb8_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride, const uint8_t *restrict src_row, unsigned src_stride, unsigned width, unsigned height)
 {
    etc1_unpack_rgba8888(dst_row, dst_stride, src_row, src_stride, width, height);
 }
 
 void
-util_format_etc1_rgb8_pack_rgba_8unorm(UNUSED uint8_t *dst_row, UNUSED unsigned dst_stride,
-                                       UNUSED const uint8_t *src_row, UNUSED unsigned src_stride,
+util_format_etc1_rgb8_pack_rgba_8unorm(UNUSED uint8_t *restrict dst_row, UNUSED unsigned dst_stride,
+                                       UNUSED const uint8_t *restrict src_row, UNUSED unsigned src_stride,
                                        UNUSED unsigned width, UNUSED unsigned height)
 {
    assert(0);
 }
 
 void
-util_format_etc1_rgb8_unpack_rgba_float(void *dst_row, unsigned dst_stride, const uint8_t *src_row, unsigned src_stride, unsigned width, unsigned height)
+util_format_etc1_rgb8_unpack_rgba_float(void *restrict dst_row, unsigned dst_stride, const uint8_t *restrict src_row, unsigned src_stride, unsigned width, unsigned height)
 {
    const unsigned bw = 4, bh = 4, bs = 8, comps = 4;
    struct etc1_block block;
@@ -59,15 +59,15 @@ util_format_etc1_rgb8_unpack_rgba_float(void *dst_row, unsigned dst_stride, cons
 }
 
 void
-util_format_etc1_rgb8_pack_rgba_float(UNUSED uint8_t *dst_row, UNUSED unsigned dst_stride,
-                                      UNUSED const float *src_row, UNUSED unsigned src_stride,
+util_format_etc1_rgb8_pack_rgba_float(UNUSED uint8_t *restrict dst_row, UNUSED unsigned dst_stride,
+                                      UNUSED const float *restrict src_row, UNUSED unsigned src_stride,
                                       UNUSED unsigned width, UNUSED unsigned height)
 {
    assert(0);
 }
 
 void
-util_format_etc1_rgb8_fetch_rgba(void *in_dst, const uint8_t *src, unsigned i, unsigned j)
+util_format_etc1_rgb8_fetch_rgba(void *restrict in_dst, const uint8_t *restrict src, unsigned i, unsigned j)
 {
    float *dst = in_dst;
    struct etc1_block block;

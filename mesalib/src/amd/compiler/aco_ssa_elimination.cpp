@@ -52,7 +52,7 @@ void collect_phi_info(ssa_elimination_ctx& ctx)
          for (unsigned i = 0; i < phi->operands.size(); i++) {
             if (phi->operands[i].isUndefined())
                continue;
-            if (phi->operands[i].isTemp() && phi->operands[i].physReg() == phi->definitions[0].physReg())
+            if (phi->operands[i].physReg() == phi->definitions[0].physReg())
                continue;
 
             std::vector<unsigned>& preds = phi->opcode == aco_opcode::p_phi ? block.logical_preds : block.linear_preds;
@@ -96,7 +96,7 @@ void insert_parallelcopies(ssa_elimination_ctx& ctx)
       Block& block = ctx.program->blocks[entry.first];
       std::vector<aco_ptr<Instruction>>::iterator it = block.instructions.end();
       --it;
-      assert((*it)->format == Format::PSEUDO_BRANCH);
+      assert((*it)->isBranch());
       aco_ptr<Pseudo_instruction> pc{create_instruction<Pseudo_instruction>(aco_opcode::p_parallelcopy, Format::PSEUDO, entry.second.size(), entry.second.size())};
       unsigned i = 0;
       for (std::pair<Definition, Operand>& pair : entry.second)
@@ -178,10 +178,10 @@ void try_remove_invert_block(ssa_elimination_ctx& ctx, Block* block)
       pred->linear_succs[0] = succ_idx;
       ctx.program->blocks[succ_idx].linear_preds[i] = pred->index;
 
-      Pseudo_branch_instruction *branch = static_cast<Pseudo_branch_instruction*>(pred->instructions.back().get());
-      assert(branch->format == Format::PSEUDO_BRANCH);
-      branch->target[0] = succ_idx;
-      branch->target[1] = succ_idx;
+      Pseudo_branch_instruction& branch = pred->instructions.back()->branch();
+      assert(branch.isBranch());
+      branch.target[0] = succ_idx;
+      branch.target[1] = succ_idx;
    }
 
    block->instructions.clear();
@@ -196,17 +196,17 @@ void try_remove_simple_block(ssa_elimination_ctx& ctx, Block* block)
 
    Block& pred = ctx.program->blocks[block->linear_preds[0]];
    Block& succ = ctx.program->blocks[block->linear_succs[0]];
-   Pseudo_branch_instruction* branch = static_cast<Pseudo_branch_instruction*>(pred.instructions.back().get());
-   if (branch->opcode == aco_opcode::p_branch) {
-      branch->target[0] = succ.index;
-      branch->target[1] = succ.index;
-   } else if (branch->target[0] == block->index) {
-      branch->target[0] = succ.index;
-   } else if (branch->target[0] == succ.index) {
-      assert(branch->target[1] == block->index);
-      branch->target[1] = succ.index;
-      branch->opcode = aco_opcode::p_branch;
-   } else if (branch->target[1] == block->index) {
+   Pseudo_branch_instruction& branch = pred.instructions.back()->branch();
+   if (branch.opcode == aco_opcode::p_branch) {
+      branch.target[0] = succ.index;
+      branch.target[1] = succ.index;
+   } else if (branch.target[0] == block->index) {
+      branch.target[0] = succ.index;
+   } else if (branch.target[0] == succ.index) {
+      assert(branch.target[1] == block->index);
+      branch.target[1] = succ.index;
+      branch.opcode = aco_opcode::p_branch;
+   } else if (branch.target[1] == block->index) {
       /* check if there is a fall-through path from block to succ */
       bool falls_through = block->index < succ.index;
       for (unsigned j = block->index + 1; falls_through && j < succ.index; j++) {
@@ -215,35 +215,35 @@ void try_remove_simple_block(ssa_elimination_ctx& ctx, Block* block)
             falls_through = false;
       }
       if (falls_through) {
-         branch->target[1] = succ.index;
+         branch.target[1] = succ.index;
       } else {
          /* check if there is a fall-through path for the alternative target */
-         if (block->index >= branch->target[0])
+         if (block->index >= branch.target[0])
             return;
-         for (unsigned j = block->index + 1; j < branch->target[0]; j++) {
+         for (unsigned j = block->index + 1; j < branch.target[0]; j++) {
             if (!ctx.program->blocks[j].instructions.empty())
                return;
          }
 
          /* This is a (uniform) break or continue block. The branch condition has to be inverted. */
-         if (branch->opcode == aco_opcode::p_cbranch_z)
-            branch->opcode = aco_opcode::p_cbranch_nz;
-         else if (branch->opcode == aco_opcode::p_cbranch_nz)
-            branch->opcode = aco_opcode::p_cbranch_z;
+         if (branch.opcode == aco_opcode::p_cbranch_z)
+            branch.opcode = aco_opcode::p_cbranch_nz;
+         else if (branch.opcode == aco_opcode::p_cbranch_nz)
+            branch.opcode = aco_opcode::p_cbranch_z;
          else
             assert(false);
          /* also invert the linear successors */
          pred.linear_succs[0] = pred.linear_succs[1];
          pred.linear_succs[1] = succ.index;
-         branch->target[1] = branch->target[0];
-         branch->target[0] = succ.index;
+         branch.target[1] = branch.target[0];
+         branch.target[0] = succ.index;
       }
    } else {
       assert(false);
    }
 
-   if (branch->target[0] == branch->target[1])
-      branch->opcode = aco_opcode::p_branch;
+   if (branch.target[0] == branch.target[1])
+      branch.opcode = aco_opcode::p_branch;
 
    for (unsigned i = 0; i < pred.linear_succs.size(); i++)
       if (pred.linear_succs[i] == block->index)

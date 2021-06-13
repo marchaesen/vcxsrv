@@ -267,7 +267,7 @@ copy_subregion_no_barriers(struct d3d12_context *ctx,
                            const struct pipe_box *psrc_box,
                            unsigned mask)
 {
-   struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
+   UNUSED struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
    D3D12_TEXTURE_COPY_LOCATION src_loc, dst_loc;
    unsigned src_z = psrc_box->z;
 
@@ -594,7 +594,7 @@ static struct pipe_resource *
 create_tmp_resource(struct pipe_screen *screen,
                     const struct pipe_blit_info *info)
 {
-   struct pipe_resource tpl = { 0 };
+   struct pipe_resource tpl = {};
    tpl.width0 = info->dst.box.width;
    tpl.height0 = info->dst.box.height;
    tpl.depth0 = info->dst.box.depth;
@@ -637,14 +637,17 @@ get_stencil_resolve_vs(struct d3d12_context *ctx)
 }
 
 static void *
-get_stencil_resolve_fs(struct d3d12_context *ctx)
+get_stencil_resolve_fs(struct d3d12_context *ctx, bool no_flip)
 {
-   if (ctx->stencil_resolve_fs)
+   if (!no_flip && ctx->stencil_resolve_fs)
       return ctx->stencil_resolve_fs;
+
+   if (no_flip && ctx->stencil_resolve_fs_no_flip)
+      return ctx->stencil_resolve_fs_no_flip;
 
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT,
                                                   dxil_get_nir_compiler_options(),
-                                                  "stencil_resolve_fs");
+                                                  no_flip ? "stencil_resolve_fs_no_flip" : "stencil_resolve_fs");
 
    nir_variable *stencil_out = nir_variable_create(b.shader,
                                                    nir_var_shader_out,
@@ -666,16 +669,44 @@ get_stencil_resolve_fs(struct d3d12_context *ctx)
    pos_in->data.location = VARYING_SLOT_POS; // VARYING_SLOT_VAR0?
    nir_ssa_def *pos = nir_load_var(&b, pos_in);
 
+   nir_ssa_def *pos_src;
+
+   if (no_flip)
+      pos_src = pos;
+   else {
+      nir_tex_instr *txs = nir_tex_instr_create(b.shader, 1);
+      txs->op = nir_texop_txs;
+      txs->sampler_dim = GLSL_SAMPLER_DIM_MS;
+      txs->src[0].src_type = nir_tex_src_texture_deref;
+      txs->src[0].src = nir_src_for_ssa(tex_deref);
+      txs->is_array = false;
+      txs->dest_type = nir_type_int;
+
+      nir_ssa_dest_init(&txs->instr, &txs->dest, 2, 32, "tex");
+      nir_builder_instr_insert(&b, &txs->instr);
+
+      pos_src = nir_vec4(&b,
+                         nir_channel(&b, pos, 0),
+                         /*Height - pos_dest.y - 1*/
+                         nir_fsub(&b,
+                                  nir_fsub(&b,
+                                           nir_channel(&b, nir_i2f32(&b, &txs->dest.ssa), 1),
+                                           nir_channel(&b, pos, 1)),
+                                  nir_imm_float(&b, 1.0)),
+                         nir_channel(&b, pos, 2),
+                         nir_channel(&b, pos, 3));
+   }
+
    nir_tex_instr *tex = nir_tex_instr_create(b.shader, 3);
    tex->sampler_dim = GLSL_SAMPLER_DIM_MS;
    tex->op = nir_texop_txf_ms;
    tex->src[0].src_type = nir_tex_src_coord;
-   tex->src[0].src = nir_src_for_ssa(nir_channels(&b, nir_f2i32(&b, pos), 0x3));
+   tex->src[0].src = nir_src_for_ssa(nir_channels(&b, nir_f2i32(&b, pos_src), 0x3));
    tex->src[1].src_type = nir_tex_src_ms_index;
    tex->src[1].src = nir_src_for_ssa(nir_imm_int(&b, 0)); /* just use first sample */
    tex->src[2].src_type = nir_tex_src_texture_deref;
    tex->src[2].src = nir_src_for_ssa(tex_deref);
-   tex->dest_type = nir_type_uint;
+   tex->dest_type = nir_type_uint32;
    tex->is_array = false;
    tex->coord_components = 2;
 
@@ -687,9 +718,16 @@ get_stencil_resolve_fs(struct d3d12_context *ctx)
    struct pipe_shader_state state = {};
    state.type = PIPE_SHADER_IR_NIR;
    state.ir.nir = b.shader;
-   ctx->stencil_resolve_fs = ctx->base.create_fs_state(&ctx->base, &state);
+   void *result;
+   if (no_flip) {
+      result = ctx->base.create_fs_state(&ctx->base, &state);
+      ctx->stencil_resolve_fs_no_flip = result;
+   } else {
+      result = ctx->base.create_fs_state(&ctx->base, &state);
+      ctx->stencil_resolve_fs = result;
+   }
 
-   return ctx->stencil_resolve_fs;
+   return result;
 }
 
 static void *
@@ -739,11 +777,11 @@ resolve_stencil_to_temp(struct d3d12_context *ctx,
    void *sampler_state = get_sampler_state(ctx);
 
    util_blit_save_state(ctx);
-   pctx->set_sampler_views(pctx, PIPE_SHADER_FRAGMENT, 0, 1, &src_view);
+   pctx->set_sampler_views(pctx, PIPE_SHADER_FRAGMENT, 0, 1, 0, &src_view);
    pctx->bind_sampler_states(pctx, PIPE_SHADER_FRAGMENT, 0, 1, &sampler_state);
    util_blitter_custom_shader(ctx->blitter, dst_surf,
                               get_stencil_resolve_vs(ctx),
-                              get_stencil_resolve_fs(ctx));
+                              get_stencil_resolve_fs(ctx, info->src.box.height == info->dst.box.height));
    util_blitter_restore_textures(ctx->blitter);
    pipe_surface_reference(&dst_surf, NULL);
    pipe_sampler_view_reference(&src_view, NULL);

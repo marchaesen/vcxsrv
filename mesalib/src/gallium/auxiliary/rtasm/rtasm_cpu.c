@@ -35,10 +35,10 @@
 
 DEBUG_GET_ONCE_BOOL_OPTION(nosse, "GALLIUM_NOSSE", false);
 
-static struct util_cpu_caps *get_cpu_caps(void)
+static const struct util_cpu_caps_t *get_cpu_caps(void)
 {
    util_cpu_detect();
-   return &util_cpu_caps;
+   return util_get_cpu_caps();
 }
 
 int rtasm_cpu_has_sse(void)

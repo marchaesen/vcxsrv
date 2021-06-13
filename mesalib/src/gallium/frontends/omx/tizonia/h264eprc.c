@@ -236,7 +236,7 @@ static void enc_ScaleInput(vid_enc_PrivateType * priv, struct pipe_video_buffer 
 }
 
 static void enc_HandleTask(vid_enc_PrivateType * priv, struct encode_task *task,
-                           enum pipe_h264_enc_picture_type picture_type)
+                           enum pipe_h2645_enc_picture_type picture_type)
 {
    unsigned size = priv->out_port_def_.nBufferSize;
    struct pipe_video_buffer *vbuf = task->buf;
@@ -254,7 +254,7 @@ static void enc_HandleTask(vid_enc_PrivateType * priv, struct encode_task *task,
 
    picture.picture_type = picture_type;
    picture.pic_order_cnt = task->pic_order_cnt;
-   if (priv->restricted_b_frames && picture_type == PIPE_H264_ENC_PICTURE_TYPE_B)
+   if (priv->restricted_b_frames && picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B)
       picture.not_referenced = true;
    enc_ControlPicture_common(priv, &picture);
 
@@ -276,13 +276,13 @@ static void enc_ClearBframes(vid_enc_PrivateType * priv, struct input_buf_privat
 
    /* promote last from to P frame */
    priv->ref_idx_l0 = priv->ref_idx_l1;
-   enc_HandleTask(priv, task, PIPE_H264_ENC_PICTURE_TYPE_P);
+   enc_HandleTask(priv, task, PIPE_H2645_ENC_PICTURE_TYPE_P);
    list_addtail(&task->list, &inp->tasks);
    priv->ref_idx_l1 = priv->frame_num++;
 
    /* handle B frames */
    LIST_FOR_EACH_ENTRY(task, &priv->b_frames, list) {
-      enc_HandleTask(priv, task, PIPE_H264_ENC_PICTURE_TYPE_B);
+      enc_HandleTask(priv, task, PIPE_H2645_ENC_PICTURE_TYPE_B);
       if (!priv->restricted_b_frames)
          priv->ref_idx_l0 = priv->frame_num;
       priv->frame_num++;
@@ -301,7 +301,7 @@ static OMX_ERRORTYPE enc_LoadImage(vid_enc_PrivateType * priv, OMX_BUFFERHEADERT
 static OMX_ERRORTYPE encode_frame(vid_enc_PrivateType * priv, OMX_BUFFERHEADERTYPE * in_buf)
 {
    struct input_buf_private *inp = in_buf->pInputPortPrivate;
-   enum pipe_h264_enc_picture_type picture_type;
+   enum pipe_h2645_enc_picture_type picture_type;
    struct encode_task *task;
    unsigned stacked_num = 0;
    OMX_ERRORTYPE err;
@@ -339,20 +339,20 @@ static OMX_ERRORTYPE encode_frame(vid_enc_PrivateType * priv, OMX_BUFFERHEADERTY
    if (!(priv->pic_order_cnt % OMX_VID_ENC_IDR_PERIOD_DEFAULT) ||
        priv->force_pic_type.IntraRefreshVOP) {
       enc_ClearBframes(priv, inp);
-      picture_type = PIPE_H264_ENC_PICTURE_TYPE_IDR;
+      picture_type = PIPE_H2645_ENC_PICTURE_TYPE_IDR;
       priv->force_pic_type.IntraRefreshVOP = OMX_FALSE;
       priv->frame_num = 0;
    } else if (priv->codec->profile == PIPE_VIDEO_PROFILE_MPEG4_AVC_BASELINE ||
               !(priv->pic_order_cnt % OMX_VID_ENC_P_PERIOD_DEFAULT) ||
               (in_buf->nFlags & OMX_BUFFERFLAG_EOS)) {
-      picture_type = PIPE_H264_ENC_PICTURE_TYPE_P;
+      picture_type = PIPE_H2645_ENC_PICTURE_TYPE_P;
    } else {
-      picture_type = PIPE_H264_ENC_PICTURE_TYPE_B;
+      picture_type = PIPE_H2645_ENC_PICTURE_TYPE_B;
    }
 
    task->pic_order_cnt = priv->pic_order_cnt++;
 
-   if (picture_type == PIPE_H264_ENC_PICTURE_TYPE_B) {
+   if (picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B) {
       /* put frame at the tail of the queue */
       list_addtail(&task->list, &priv->b_frames);
    } else {
@@ -373,7 +373,7 @@ static OMX_ERRORTYPE encode_frame(vid_enc_PrivateType * priv, OMX_BUFFERHEADERTY
 
       /* handle B frames */
       LIST_FOR_EACH_ENTRY(task, &priv->b_frames, list) {
-         enc_HandleTask(priv, task, PIPE_H264_ENC_PICTURE_TYPE_B);
+         enc_HandleTask(priv, task, PIPE_H2645_ENC_PICTURE_TYPE_B);
          if (!priv->restricted_b_frames)
             priv->ref_idx_l0 = priv->frame_num;
          priv->frame_num++;

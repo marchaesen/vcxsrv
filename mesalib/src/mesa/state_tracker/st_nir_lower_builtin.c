@@ -228,7 +228,7 @@ lower_builtin_block(lower_builtin_state *state, nir_block *block)
 
       /* and rewrite uses of original instruction: */
       assert(intrin->dest.is_ssa);
-      nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(def));
+      nir_ssa_def_rewrite_uses(&intrin->dest.ssa, def);
 
       /* at this point intrin should be unused.  We need to remove it
        * (rather than waiting for DCE pass) to avoid dangling reference

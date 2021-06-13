@@ -2261,6 +2261,9 @@ ProcChangePointerControl(ClientPtr client)
     REQUEST(xChangePointerControlReq);
     REQUEST_SIZE_MATCH(xChangePointerControlReq);
 
+    /* If the device has no PtrFeedbackPtr, the xserver has a bug */
+    BUG_RETURN_VAL (!mouse->ptrfeed, BadImplementation);
+
     ctrl = mouse->ptrfeed->ctrl;
     if ((stuff->doAccel != xTrue) && (stuff->doAccel != xFalse)) {
         client->errorValue = stuff->doAccel;

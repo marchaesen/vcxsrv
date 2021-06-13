@@ -40,7 +40,7 @@ create_render_pass(VkDevice dev, struct zink_render_pass_state *state)
       attachments[i].flags = 0;
       attachments[i].format = rt->format;
       attachments[i].samples = rt->samples;
-      attachments[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+      attachments[i].loadOp = rt->clear_color ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
       attachments[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
       attachments[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
       attachments[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -56,9 +56,9 @@ create_render_pass(VkDevice dev, struct zink_render_pass_state *state)
       attachments[num_attachments].flags = 0;
       attachments[num_attachments].format = rt->format;
       attachments[num_attachments].samples = rt->samples;
-      attachments[num_attachments].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+      attachments[num_attachments].loadOp = rt->clear_color ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
       attachments[num_attachments].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-      attachments[num_attachments].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+      attachments[num_attachments].stencilLoadOp = rt->clear_stencil ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
       attachments[num_attachments].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
       attachments[num_attachments].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
       attachments[num_attachments].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -81,8 +81,10 @@ create_render_pass(VkDevice dev, struct zink_render_pass_state *state)
    rpci.pSubpasses = &subpass;
 
    VkRenderPass render_pass;
-   if (vkCreateRenderPass(dev, &rpci, NULL, &render_pass) != VK_SUCCESS)
+   if (vkCreateRenderPass(dev, &rpci, NULL, &render_pass) != VK_SUCCESS) {
+      debug_printf("vkCreateRenderPass failed\n");
       return VK_NULL_HANDLE;
+   }
 
    return render_pass;
 }
@@ -94,8 +96,6 @@ zink_create_render_pass(struct zink_screen *screen,
    struct zink_render_pass *rp = CALLOC_STRUCT(zink_render_pass);
    if (!rp)
       goto fail;
-
-   pipe_reference_init(&rp->reference, 1);
 
    rp->render_pass = create_render_pass(screen->dev, state);
    if (!rp->render_pass)
@@ -115,10 +115,4 @@ zink_destroy_render_pass(struct zink_screen *screen,
 {
    vkDestroyRenderPass(screen->dev, rp->render_pass, NULL);
    FREE(rp);
-}
-
-void
-debug_describe_zink_render_pass(char* buf, const struct zink_render_pass *ptr)
-{
-   sprintf(buf, "zink_render_pass");
 }

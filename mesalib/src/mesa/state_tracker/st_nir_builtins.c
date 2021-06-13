@@ -22,19 +22,18 @@
 
 #include "tgsi/tgsi_from_mesa.h"
 #include "st_nir.h"
+#include "st_program.h"
 
 #include "compiler/nir/nir_builder.h"
 #include "compiler/glsl/gl_nir.h"
-#include "nir/nir_to_tgsi.h"
+#include "tgsi/tgsi_parse.h"
 
 struct pipe_shader_state *
 st_nir_finish_builtin_shader(struct st_context *st,
                              nir_shader *nir)
 {
-   struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = st->screen;
    gl_shader_stage stage = nir->info.stage;
-   enum pipe_shader_type sh = pipe_shader_type_from_mesa(stage);
 
    nir->info.separate_shader = true;
    if (stage == MESA_SHADER_FRAGMENT)
@@ -52,6 +51,11 @@ st_nir_finish_builtin_shader(struct st_context *st,
           (stage < MESA_SHADER_FRAGMENT ? nir_var_shader_out : 0);
 
       NIR_PASS_V(nir, nir_lower_io_to_scalar_early, mask);
+   }
+
+   if (st->lower_rect_tex) {
+      const struct nir_lower_tex_options opts = { .lower_rect = true, };
+      NIR_PASS_V(nir, nir_lower_tex, &opts);
    }
 
    nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
@@ -74,28 +78,7 @@ st_nir_finish_builtin_shader(struct st_context *st,
       .ir.nir = nir,
    };
 
-   if (PIPE_SHADER_IR_NIR !=
-       screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_PREFERRED_IR)) {
-      state.type = PIPE_SHADER_IR_TGSI;
-      state.tokens = nir_to_tgsi(nir, screen);
-      ralloc_free(nir);
-   }
-
-   switch (stage) {
-   case MESA_SHADER_VERTEX:
-      return pipe->create_vs_state(pipe, &state);
-   case MESA_SHADER_TESS_CTRL:
-      return pipe->create_tcs_state(pipe, &state);
-   case MESA_SHADER_TESS_EVAL:
-      return pipe->create_tes_state(pipe, &state);
-   case MESA_SHADER_GEOMETRY:
-      return pipe->create_gs_state(pipe, &state);
-   case MESA_SHADER_FRAGMENT:
-      return pipe->create_fs_state(pipe, &state);
-   default:
-      unreachable("unsupported shader stage");
-      return NULL;
-   }
+   return st_create_nir_shader(st, &state);
 }
 
 /**

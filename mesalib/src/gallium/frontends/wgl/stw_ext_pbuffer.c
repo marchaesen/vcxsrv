@@ -90,7 +90,7 @@ wglCreatePbufferARB(HDC hCurrentDC,
    int textureTarget = WGL_NO_TEXTURE_ARB;
    BOOL textureMipmap = FALSE;
 
-   info = stw_pixelformat_get_info(iPixelFormat - 1);
+   info = stw_pixelformat_get_info(iPixelFormat);
    if (!info) {
       SetLastError(ERROR_INVALID_PIXEL_FORMAT);
       return 0;

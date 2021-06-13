@@ -23,6 +23,7 @@ BAREMETAL_EPHEMERAL=" \
         libexpat1-dev:$arch \
         libffi-dev:$arch \
         libgbm-dev:$arch \
+        libgl1-mesa-dev:$arch \
         libgles2-mesa-dev:$arch \
         libpciaccess-dev:$arch \
         libpcre3-dev:$arch \
@@ -47,14 +48,14 @@ mkdir /var/cache/apt/archives/$arch
 
 ############### Create cross-files
 
-. .gitlab-ci/create-cross-file.sh $arch
+. .gitlab-ci/container/create-cross-file.sh $arch
 
 . .gitlab-ci/container/container_pre_build.sh
 
 ############### Create rootfs
-KERNEL_URL=https://github.com/anholt/linux/archive/cheza-pagetables-2020-09-04.tar.gz
+KERNEL_URL=https://github.com/anholt/linux/archive/mesa-ci-2021-02-17-5.11.tar.gz
 
-DEBIAN_ARCH=$arch INCLUDE_VK_CTS=1 . .gitlab-ci/container/lava_build.sh
+DEBIAN_ARCH=$arch . .gitlab-ci/container/lava_build.sh
 
 ############### Uninstall the build software
 

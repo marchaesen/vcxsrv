@@ -46,6 +46,10 @@ LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/freedreno/ir3 \
 	$(intermediates)/ir3
 
+LOCAL_WHOLE_STATIC_LIBRARIES := \
+	libir3decode \
+	libir3encode
+
 # We need libmesa_nir to get NIR's generated include directories.
 LOCAL_STATIC_LIBRARIES := \
 	libmesa_nir

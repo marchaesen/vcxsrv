@@ -95,6 +95,9 @@ endif
 if with_microsoft_clc or with_gallium_d3d12 or with_spirv_to_dxil
   subdir('microsoft')
 endif
+if with_gallium_nouveau
+  subdir('nouveau')
+endif
 subdir('mesa')
 subdir('loader')
 if with_platform_haiku

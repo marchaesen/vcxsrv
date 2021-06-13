@@ -23,6 +23,7 @@
 #ifndef CLOVER_CORE_CONTEXT_HPP
 #define CLOVER_CORE_CONTEXT_HPP
 
+#include <map>
 #include <stack>
 
 #include "core/object.hpp"
@@ -41,6 +42,7 @@ namespace clover {
       ~context();
 
       typedef std::function<void (const char *)> notify_action;
+      typedef std::map<const void *, size_t> svm_pointer_map;
 
       context(const property_list &props, const ref_vector<device> &devs,
               const notify_action &notify);
@@ -62,12 +64,22 @@ namespace clover {
       device_range
       devices() const;
 
+      void
+      add_svm_allocation(const void *ptr, size_t size);
+
+      void
+      remove_svm_allocation(const void *ptr);
+
+      svm_pointer_map::value_type
+      find_svm_allocation(const void *ptr) const;
+
       const notify_action notify;
 
    private:
       property_list props;
       const std::vector<intrusive_ref<device>> devs;
       std::stack<std::function<void ()>> _destroy_notify;
+      svm_pointer_map svm_ptrs;
    };
 }
 

@@ -131,12 +131,12 @@ bool validate_ir(Program* program)
          check(base_format == instr_info.format[(int)instr->opcode], "Wrong base format for instruction", instr.get());
 
          /* check VOP3 modifiers */
-         if (((uint32_t)instr->format & (uint32_t)Format::VOP3) && instr->format != Format::VOP3) {
+         if (instr->isVOP3() && instr->format != Format::VOP3) {
             check(base_format == Format::VOP2 ||
                   base_format == Format::VOP1 ||
                   base_format == Format::VOPC ||
                   base_format == Format::VINTRP,
-                  "Format cannot have VOP3A/VOP3B applied", instr.get());
+                  "Format cannot have VOP3/VOP3B applied", instr.get());
          }
 
          /* check SDWA */
@@ -148,10 +148,10 @@ bool validate_ir(Program* program)
 
             check(program->chip_class >= GFX8, "SDWA is GFX8+ only", instr.get());
 
-            SDWA_instruction *sdwa = static_cast<SDWA_instruction*>(instr.get());
-            check(sdwa->omod == 0 || program->chip_class >= GFX9, "SDWA omod only supported on GFX9+", instr.get());
+            SDWA_instruction& sdwa = instr->sdwa();
+            check(sdwa.omod == 0 || program->chip_class >= GFX9, "SDWA omod only supported on GFX9+", instr.get());
             if (base_format == Format::VOPC) {
-               check(sdwa->clamp == false || program->chip_class == GFX8, "SDWA VOPC clamp only supported on GFX8", instr.get());
+               check(sdwa.clamp == false || program->chip_class == GFX8, "SDWA VOPC clamp only supported on GFX8", instr.get());
                check((instr->definitions[0].isFixed() && instr->definitions[0].physReg() == vcc) ||
                      program->chip_class >= GFX9,
                      "SDWA+VOPC definition must be fixed to vcc on GFX8", instr.get());
@@ -182,37 +182,33 @@ bool validate_ir(Program* program)
                      "SDWA can't be used with this opcode", instr.get());
             }
 
-            for (unsigned i = 0; i < MIN2(instr->operands.size(), 2); i++) {
-               if (instr->operands[i].hasRegClass() && instr->operands[i].regClass().is_subdword())
-                  check((sdwa->sel[i] & sdwa_asuint) == (sdwa_isra | instr->operands[i].bytes()), "Unexpected SDWA sel for sub-dword operand", instr.get());
-            }
             if (instr->definitions[0].regClass().is_subdword())
-               check((sdwa->dst_sel & sdwa_asuint) == (sdwa_isra | instr->definitions[0].bytes()), "Unexpected SDWA sel for sub-dword definition", instr.get());
+               check((sdwa.dst_sel & sdwa_asuint) == (sdwa_isra | instr->definitions[0].bytes()), "Unexpected SDWA sel for sub-dword definition", instr.get());
          }
 
          /* check opsel */
          if (instr->isVOP3()) {
-            VOP3A_instruction *vop3 = static_cast<VOP3A_instruction*>(instr.get());
-            check(vop3->opsel == 0 || program->chip_class >= GFX9, "Opsel is only supported on GFX9+", instr.get());
+            VOP3_instruction& vop3 = instr->vop3();
+            check(vop3.opsel == 0 || program->chip_class >= GFX9, "Opsel is only supported on GFX9+", instr.get());
 
             for (unsigned i = 0; i < 3; i++) {
                if (i >= instr->operands.size() ||
                    (instr->operands[i].hasRegClass() && instr->operands[i].regClass().is_subdword() && !instr->operands[i].isFixed()))
-                  check((vop3->opsel & (1 << i)) == 0, "Unexpected opsel for operand", instr.get());
+                  check((vop3.opsel & (1 << i)) == 0, "Unexpected opsel for operand", instr.get());
             }
             if (instr->definitions[0].regClass().is_subdword() && !instr->definitions[0].isFixed())
-               check((vop3->opsel & (1 << 3)) == 0, "Unexpected opsel for sub-dword definition", instr.get());
+               check((vop3.opsel & (1 << 3)) == 0, "Unexpected opsel for sub-dword definition", instr.get());
          }
 
          /* check for undefs */
          for (unsigned i = 0; i < instr->operands.size(); i++) {
             if (instr->operands[i].isUndefined()) {
-               bool flat = instr->format == Format::FLAT || instr->format == Format::SCRATCH || instr->format == Format::GLOBAL;
-               bool can_be_undef = is_phi(instr) || instr->format == Format::EXP ||
-                                   instr->format == Format::PSEUDO_REDUCTION ||
+               bool flat = instr->isFlatLike();
+               bool can_be_undef = is_phi(instr) || instr->isEXP() ||
+                                   instr->isReduction() ||
                                    instr->opcode == aco_opcode::p_create_vector ||
-                                   (flat && i == 1) || (instr->format == Format::MIMG && i == 1) ||
-                                   ((instr->format == Format::MUBUF || instr->format == Format::MTBUF) && i == 1);
+                                   (flat && i == 1) || (instr->isMIMG() && (i == 1 || i == 2)) ||
+                                   ((instr->isMUBUF() || instr->isMTBUF()) && i == 1);
                check(can_be_undef, "Undefs can only be used in certain operands", instr.get());
             } else {
                check(instr->operands[i].isFixed() || instr->operands[i].isTemp() || instr->operands[i].isConstant(), "Uninitialized Operand", instr.get());
@@ -222,7 +218,7 @@ bool validate_ir(Program* program)
          /* check subdword definitions */
          for (unsigned i = 0; i < instr->definitions.size(); i++) {
             if (instr->definitions[i].regClass().is_subdword())
-               check(instr->format == Format::PSEUDO || instr->definitions[i].bytes() <= 4, "Only Pseudo instructions can write subdword registers larger than 4 bytes", instr.get());
+               check(instr->isPseudo() || instr->definitions[i].bytes() <= 4, "Only Pseudo instructions can write subdword registers larger than 4 bytes", instr.get());
          }
 
          if (instr->isSALU() || instr->isVALU()) {
@@ -234,18 +230,15 @@ bool validate_ir(Program* program)
                if (!op.isLiteral())
                   continue;
 
-               check(instr->format == Format::SOP1 ||
-                     instr->format == Format::SOP2 ||
-                     instr->format == Format::SOPC ||
-                     instr->format == Format::VOP1 ||
-                     instr->format == Format::VOP2 ||
-                     instr->format == Format::VOPC ||
-                     (instr->isVOP3() && program->chip_class >= GFX10),
+               check(instr->isSOP1() || instr->isSOP2() || instr->isSOPC() ||
+                     instr->isVOP1() || instr->isVOP2() || instr->isVOPC() ||
+                     (instr->isVOP3() && program->chip_class >= GFX10) ||
+                     (instr->isVOP3P() && program->chip_class >= GFX10),
                      "Literal applied on wrong instruction format", instr.get());
 
                check(literal.isUndefined() || (literal.size() == op.size() && literal.constantValue() == op.constantValue()), "Only 1 Literal allowed", instr.get());
                literal = op;
-               check(!instr->isVALU() || instr->isVOP3() || i == 0 || i == 2, "Wrong source position for Literal argument", instr.get());
+               check(instr->isSALU() || instr->isVOP3() || instr->isVOP3P() || i == 0 || i == 2, "Wrong source position for Literal argument", instr.get());
             }
 
             /* check num sgprs for VALU */
@@ -257,11 +250,11 @@ bool validate_ir(Program* program)
                if (program->chip_class >= GFX10 && !is_shift64)
                   const_bus_limit = 2;
 
-               uint32_t scalar_mask = instr->isVOP3() ? 0x7 : 0x5;
+               uint32_t scalar_mask = instr->isVOP3() || instr->isVOP3P() ? 0x7 : 0x5;
                if (instr->isSDWA())
                   scalar_mask = program->chip_class >= GFX9 ? 0x7 : 0x4;
 
-               if ((int) instr->format & (int) Format::VOPC ||
+               if (instr->isVOPC() ||
                    instr->opcode == aco_opcode::v_readfirstlane_b32 ||
                    instr->opcode == aco_opcode::v_readlane_b32 ||
                    instr->opcode == aco_opcode::v_readlane_b32_e64) {
@@ -316,7 +309,7 @@ bool validate_ir(Program* program)
                check(num_sgprs + (literal.isUndefined() ? 0 : 1) <= const_bus_limit, "Too many SGPRs/literals", instr.get());
             }
 
-            if (instr->format == Format::SOP1 || instr->format == Format::SOP2) {
+            if (instr->isSOP1() || instr->isSOP2()) {
                check(instr->definitions[0].getTemp().type() == RegType::sgpr, "Wrong Definition type for SALU instruction", instr.get());
                for (const Operand& op : instr->operands) {
                  check(op.isConstant() || op.regClass().type() <= RegType::sgpr,
@@ -327,37 +320,10 @@ bool validate_ir(Program* program)
 
          switch (instr->format) {
          case Format::PSEUDO: {
-            if (instr->opcode == aco_opcode::p_parallelcopy) {
-               for (unsigned i = 0; i < instr->operands.size(); i++) {
-                  if (!instr->definitions[i].regClass().is_subdword())
-                     continue;
-                  Operand op = instr->operands[i];
-                  check(program->chip_class >= GFX9 || !op.isLiteral(), "Sub-dword copies cannot take literals", instr.get());
-                  if (op.isConstant() || (op.hasRegClass() && op.regClass().type() == RegType::sgpr))
-                     check(program->chip_class >= GFX9, "Sub-dword pseudo instructions can only take constants or SGPRs on GFX9+", instr.get());
-               }
-            } else {
-               bool is_subdword = false;
-               bool has_const_sgpr = false;
-               bool has_literal = false;
-               for (Definition def : instr->definitions)
-                  is_subdword |= def.regClass().is_subdword();
-               for (unsigned i = 0; i < instr->operands.size(); i++) {
-                  if (instr->opcode == aco_opcode::p_extract_vector && i == 1)
-                     continue;
-                  Operand op = instr->operands[i];
-                  is_subdword |= op.hasRegClass() && op.regClass().is_subdword();
-                  has_const_sgpr |= op.isConstant() || (op.hasRegClass() && op.regClass().type() == RegType::sgpr);
-                  has_literal |= op.isLiteral();
-               }
-
-               check(!is_subdword || !has_const_sgpr || program->chip_class >= GFX9 || instr->opcode == aco_opcode::p_unit_test,
-                     "Sub-dword pseudo instructions can only take constants or SGPRs on GFX9+", instr.get());
-            }
-
             if (instr->opcode == aco_opcode::p_create_vector) {
                unsigned size = 0;
                for (const Operand& op : instr->operands) {
+                  check(op.bytes() < 4 || size % 4 == 0, "Operand is not aligned", instr.get());
                   size += op.bytes();
                }
                check(size == instr->definitions[0].bytes(), "Definition size does not match operand sizes", instr.get());
@@ -372,6 +338,8 @@ bool validate_ir(Program* program)
                check((instr->operands[1].constantValue() + 1) * instr->definitions[0].bytes() <= instr->operands[0].bytes(), "Index out of range", instr.get());
                check(instr->definitions[0].getTemp().type() == RegType::vgpr || instr->operands[0].regClass().type() == RegType::sgpr,
                      "Cannot extract SGPR value from VGPR vector", instr.get());
+               check(program->chip_class >= GFX9 || !instr->definitions[0].regClass().is_subdword() ||
+                     instr->operands[0].regClass().type() == RegType::vgpr, "Cannot extract subdword from SGPR before GFX9+", instr.get());
             } else if (instr->opcode == aco_opcode::p_split_vector) {
                check(instr->operands[0].isTemp(), "Operand must be a temporary", instr.get());
                unsigned size = 0;
@@ -382,10 +350,14 @@ bool validate_ir(Program* program)
                if (instr->operands[0].getTemp().type() == RegType::vgpr) {
                   for (const Definition& def : instr->definitions)
                      check(def.regClass().type() == RegType::vgpr, "Wrong Definition type for VGPR split_vector", instr.get());
+               } else {
+                  for (const Definition& def : instr->definitions)
+                     check(program->chip_class >= GFX9 || !def.regClass().is_subdword(), "Cannot split SGPR into subdword VGPRs before GFX9+", instr.get());
                }
             } else if (instr->opcode == aco_opcode::p_parallelcopy) {
                check(instr->definitions.size() == instr->operands.size(), "Number of Operands does not match number of Definitions", instr.get());
                for (unsigned i = 0; i < instr->operands.size(); i++) {
+                  check(instr->definitions[i].bytes() == instr->operands[i].bytes(), "Operand and Definition size must match", instr.get());
                   if (instr->operands[i].isTemp())
                      check((instr->definitions[i].getTemp().type() == instr->operands[i].regClass().type()) ||
                            (instr->definitions[i].getTemp().type() == RegType::vgpr && instr->operands[i].regClass().type() == RegType::sgpr),
@@ -405,9 +377,7 @@ bool validate_ir(Program* program)
             for (const Operand &op : instr->operands)
                check(op.regClass().type() == RegType::vgpr, "All operands of PSEUDO_REDUCTION instructions must be in VGPRs.", instr.get());
 
-            unsigned cluster_size = static_cast<Pseudo_reduction_instruction *>(instr.get())->cluster_size;
-
-            if (instr->opcode == aco_opcode::p_reduce && cluster_size == program->wave_size)
+            if (instr->opcode == aco_opcode::p_reduce && instr->reduction().cluster_size == program->wave_size)
                check(instr->definitions[0].regClass().type() == RegType::sgpr, "The result of unclustered reductions must go into an SGPR.", instr.get());
             else
                check(instr->definitions[0].regClass().type() == RegType::vgpr, "The result of scans and clustered reductions must go into a VGPR.", instr.get());
@@ -435,17 +405,26 @@ bool validate_ir(Program* program)
             break;
          }
          case Format::MIMG: {
-            check(instr->operands.size() == 3, "MIMG instructions must have exactly 3 operands", instr.get());
+            check(instr->operands.size() >= 4, "MIMG instructions must have at least 4 operands", instr.get());
             check(instr->operands[0].hasRegClass() && (instr->operands[0].regClass() == s4 || instr->operands[0].regClass() == s8),
                   "MIMG operands[0] (resource constant) must be in 4 or 8 SGPRs", instr.get());
-            if (instr->operands[1].hasRegClass() && instr->operands[1].regClass().type() == RegType::sgpr)
+            if (instr->operands[1].hasRegClass())
                check(instr->operands[1].regClass() == s4, "MIMG operands[1] (sampler constant) must be 4 SGPRs", instr.get());
-            else if (instr->operands[1].hasRegClass() && instr->operands[1].regClass().type() == RegType::vgpr)
-               check((instr->definitions.empty() || instr->definitions[0].regClass() == instr->operands[1].regClass() ||
-                     instr->opcode == aco_opcode::image_atomic_cmpswap || instr->opcode == aco_opcode::image_atomic_fcmpswap),
-                     "MIMG operands[1] (VDATA) must be the same as definitions[0] for atomics", instr.get());
-            check(instr->operands[2].hasRegClass() && instr->operands[2].regClass().type() == RegType::vgpr,
-                  "MIMG operands[2] (VADDR) must be VGPR", instr.get());
+            if (!instr->operands[2].isUndefined()) {
+               bool is_cmpswap = instr->opcode == aco_opcode::image_atomic_cmpswap ||
+                                 instr->opcode == aco_opcode::image_atomic_fcmpswap;
+               check(instr->definitions.empty() || (instr->definitions[0].regClass() == instr->operands[2].regClass() || is_cmpswap),
+                     "MIMG operands[2] (VDATA) must be the same as definitions[0] for atomics and TFE/LWE loads", instr.get());
+            }
+            check(instr->operands.size() == 4 || program->chip_class >= GFX10, "NSA is only supported on GFX10+", instr.get());
+            for (unsigned i = 3; i < instr->operands.size(); i++) {
+               if (instr->operands.size() == 4) {
+                  check(instr->operands[i].hasRegClass() && instr->operands[i].regClass().type() == RegType::vgpr,
+                        "MIMG operands[3] (VADDR) must be VGPR", instr.get());
+               } else {
+                  check(instr->operands[i].regClass() == v1, "MIMG VADDR must be v1 if NSA is used", instr.get());
+               }
+            }
             check(instr->definitions.empty() || (instr->definitions[0].isTemp() && instr->definitions[0].regClass().type() == RegType::vgpr),
                   "MIMG definitions[0] (VDATA) must be VGPR", instr.get());
             break;
@@ -568,9 +547,9 @@ bool validate_subdword_operand(chip_class chip, const aco_ptr<Instruction>& inst
 
    if (instr->opcode == aco_opcode::p_as_uniform)
       return byte == 0;
-   if (instr->format == Format::PSEUDO && chip >= GFX8)
+   if (instr->isPseudo() && chip >= GFX8)
       return true;
-   if (instr->isSDWA() && (static_cast<SDWA_instruction *>(instr.get())->sel[index] & sdwa_asuint) == (sdwa_isra | op.bytes()))
+   if (instr->isSDWA() && (instr->sdwa().sel[index] & sdwa_asuint) == (sdwa_isra | op.bytes()))
       return true;
    if (byte == 2 && can_use_opsel(chip, instr->opcode, index, 1))
       return true;
@@ -618,9 +597,9 @@ bool validate_subdword_definition(chip_class chip, const aco_ptr<Instruction>& i
    Definition def = instr->definitions[0];
    unsigned byte = def.physReg().byte();
 
-   if (instr->format == Format::PSEUDO && chip >= GFX8)
+   if (instr->isPseudo() && chip >= GFX8)
       return true;
-   if (instr->isSDWA() && static_cast<SDWA_instruction *>(instr.get())->dst_sel == (sdwa_isra | def.bytes()))
+   if (instr->isSDWA() && instr->sdwa().dst_sel == (sdwa_isra | def.bytes()))
       return true;
    if (byte == 2 && can_use_opsel(chip, instr->opcode, -1, 1))
       return true;
@@ -649,9 +628,9 @@ unsigned get_subdword_bytes_written(Program *program, const aco_ptr<Instruction>
    chip_class chip = program->chip_class;
    Definition def = instr->definitions[index];
 
-   if (instr->format == Format::PSEUDO)
+   if (instr->isPseudo())
       return chip >= GFX8 ? def.bytes() : def.size() * 4u;
-   if (instr->isSDWA() && static_cast<SDWA_instruction *>(instr.get())->dst_sel == (sdwa_isra | def.bytes()))
+   if (instr->isSDWA() && instr->sdwa().dst_sel == (sdwa_isra | def.bytes()))
       return def.bytes();
 
    switch (instr->opcode) {
@@ -675,7 +654,7 @@ unsigned get_subdword_bytes_written(Program *program, const aco_ptr<Instruction>
    case aco_opcode::global_load_short_d16_hi:
    case aco_opcode::ds_read_u8_d16_hi:
    case aco_opcode::ds_read_u16_d16_hi:
-      return program->sram_ecc_enabled ? 4 : 2;
+      return program->dev.sram_ecc_enabled ? 4 : 2;
    case aco_opcode::v_mad_f16:
    case aco_opcode::v_mad_u16:
    case aco_opcode::v_mad_i16:
@@ -700,6 +679,7 @@ bool validate_ra(Program *program) {
    bool err = false;
    aco::live live_vars = aco::live_var_analysis(program);
    std::vector<std::vector<Temp>> phi_sgpr_ops(program->blocks.size());
+   uint16_t sgpr_limit = get_addr_sgpr_from_waves(program, program->num_waves);
 
    std::map<unsigned, Assignment> assignments;
    for (Block& block : program->blocks) {
@@ -725,7 +705,7 @@ bool validate_ra(Program *program) {
             if (assignments.count(op.tempId()) && assignments[op.tempId()].reg != op.physReg())
                err |= ra_fail(program, loc, assignments.at(op.tempId()).firstloc, "Operand %d has an inconsistent register assignment with instruction", i);
             if ((op.getTemp().type() == RegType::vgpr && op.physReg().reg_b + op.bytes() > (256 + program->config->num_vgprs) * 4) ||
-                (op.getTemp().type() == RegType::sgpr && op.physReg() + op.size() > program->config->num_sgprs && op.physReg() < program->sgpr_limit))
+                (op.getTemp().type() == RegType::sgpr && op.physReg() + op.size() > program->config->num_sgprs && op.physReg() < sgpr_limit))
                err |= ra_fail(program, loc, assignments.at(op.tempId()).firstloc, "Operand %d has an out-of-bounds register assignment", i);
             if (op.physReg() == vcc && !program->needs_vcc)
                err |= ra_fail(program, loc, Location(), "Operand %d fixed to vcc but needs_vcc=false", i);
@@ -746,7 +726,7 @@ bool validate_ra(Program *program) {
             if (assignments[def.tempId()].defloc.block)
                err |= ra_fail(program, loc, assignments.at(def.tempId()).defloc, "Temporary %%%d also defined by instruction", def.tempId());
             if ((def.getTemp().type() == RegType::vgpr && def.physReg().reg_b + def.bytes() > (256 + program->config->num_vgprs) * 4) ||
-                (def.getTemp().type() == RegType::sgpr && def.physReg() + def.size() > program->config->num_sgprs && def.physReg() < program->sgpr_limit))
+                (def.getTemp().type() == RegType::sgpr && def.physReg() + def.size() > program->config->num_sgprs && def.physReg() < sgpr_limit))
                err |= ra_fail(program, loc, assignments.at(def.tempId()).firstloc, "Definition %d has an out-of-bounds register assignment", i);
             if (def.physReg() == vcc && !program->needs_vcc)
                err |= ra_fail(program, loc, Location(), "Definition %d fixed to vcc but needs_vcc=false", i);

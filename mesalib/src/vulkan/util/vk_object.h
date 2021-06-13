@@ -42,6 +42,8 @@ struct vk_object_base {
    VK_LOADER_DATA _loader_data;
    VkObjectType type;
 
+   struct vk_device *device;
+
    /* For VK_EXT_private_data */
    struct util_sparse_array private_data;
 };
@@ -50,6 +52,7 @@ void vk_object_base_init(UNUSED struct vk_device *device,
                          struct vk_object_base *base,
                          UNUSED VkObjectType obj_type);
 void vk_object_base_finish(UNUSED struct vk_object_base *base);
+void vk_object_base_reset(struct vk_object_base *base);
 
 static inline void
 vk_object_base_assert_valid(ASSERTED struct vk_object_base *base,
@@ -65,26 +68,6 @@ vk_object_base_from_u64_handle(uint64_t handle, VkObjectType obj_type)
    vk_object_base_assert_valid(base, obj_type);
    return base;
 }
-
-
-struct vk_device {
-   struct vk_object_base base;
-   VkAllocationCallbacks alloc;
-
-   /* For VK_EXT_private_data */
-   uint32_t private_data_next_index;
-
-#ifdef ANDROID
-   mtx_t swapchain_private_mtx;
-   struct hash_table *swapchain_private;
-#endif
-};
-
-void vk_device_init(struct vk_device *device,
-                    const VkDeviceCreateInfo *pCreateInfo,
-                    const VkAllocationCallbacks *instance_alloc,
-                    const VkAllocationCallbacks *device_alloc);
-void vk_device_finish(struct vk_device *device);
 
 #define VK_DEFINE_HANDLE_CASTS(__driver_type, __base, __VkType, __VK_TYPE) \
    static inline struct __driver_type *                                    \

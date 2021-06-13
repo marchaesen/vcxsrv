@@ -479,6 +479,9 @@ _mesa_choose_tex_format(struct gl_context *ctx, GLenum target,
    case GL_SR8_EXT:
       RETURN_IF_SUPPORTED(MESA_FORMAT_R_SRGB8);
       break;
+   case GL_SRG8_EXT:
+      RETURN_IF_SUPPORTED(MESA_FORMAT_RG_SRGB8);
+      break;
    case GL_SLUMINANCE_EXT:
    case GL_SLUMINANCE8_EXT:
       RETURN_IF_SUPPORTED(MESA_FORMAT_L_SRGB8);

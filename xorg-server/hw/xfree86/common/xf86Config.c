@@ -1738,15 +1738,34 @@ configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen, int scrnum,
 
     if (auto_gpu_device && conf_screen->num_gpu_devices == 0 &&
         xf86configptr->conf_device_lst) {
-        XF86ConfDevicePtr sdevice = xf86configptr->conf_device_lst->list.next;
+        /* Loop through the entire device list and skip the primary device
+         * assigned to the screen. This is important because there are two
+         * cases where the assigned primary device is not the first device in
+         * the device list. Firstly, if the first device in the list is assigned
+         * to a different seat than this X server, it will not have been picked
+         * by the previous FIND_SUITABLE. Secondly, if the device was explicitly
+         * assigned in the config but there is still only one screen, this code
+         * path is executed but the explicitly assigned device may not be the
+         * first device in the list. */
+        XF86ConfDevicePtr ptmp, sdevice = xf86configptr->conf_device_lst;
 
         for (i = 0; i < MAX_GPUDEVICES; i++) {
             if (!sdevice)
                 break;
 
-            FIND_SUITABLE (XF86ConfDevicePtr, sdevice, conf_screen->scrn_gpu_devices[i]);
-            if (!conf_screen->scrn_gpu_devices[i])
+            FIND_SUITABLE (XF86ConfDevicePtr, sdevice, ptmp);
+            if (!ptmp)
                 break;
+
+            /* skip the primary device on the screen */
+            if (ptmp != conf_screen->scrn_device) {
+                conf_screen->scrn_gpu_devices[i] = ptmp;
+            } else {
+                sdevice = ptmp->list.next;
+                i--; /* run the next iteration with the same index */
+                continue;
+            }
+
             screenp->gpu_devices[i] = xnfcalloc(1, sizeof(GDevRec));
             if (configDevice(screenp->gpu_devices[i], conf_screen->scrn_gpu_devices[i], TRUE, TRUE)) {
                 screenp->gpu_devices[i]->myScreenSection = screenp;

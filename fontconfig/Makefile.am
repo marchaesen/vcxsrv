@@ -39,7 +39,6 @@ MESON_FILES = \
 	doc/run-quiet.py \
 	fc-case/fc-case.py \
 	fc-lang/fc-lang.py \
-	install-cache.py \
 	meson.build \
 	meson_options.txt \
 	src/cutout.py \
@@ -47,7 +46,6 @@ MESON_FILES = \
 	src/fcwindows.h \
 	src/fontconfig.def.in \
 	src/makealias.py \
-	stdin_wrapper.py \
 	$(wildcard $(srcdir)/*/meson.build) \
 	$(wildcard $(srcdir)/meson-cc-tests/*) \
 	$(wildcard $(srcdir)/subprojects/*.wrap)

@@ -25,12 +25,11 @@
 
 #include <stdio.h>
 #include "pan_blend_shaders.h"
+#include "pan_shader.h"
 #include "pan_util.h"
 #include "panfrost-quirks.h"
-#include "midgard/midgard_compile.h"
-#include "bifrost/bifrost_compile.h"
 #include "compiler/nir/nir_builder.h"
-#include "nir/nir_lower_blend.h"
+#include "panfrost/util/nir_lower_blend.h"
 #include "panfrost/util/pan_lower_framebuffer.h"
 #include "gallium/auxiliary/util/u_blend.h"
 #include "util/u_memory.h"
@@ -76,62 +75,6 @@
  * (compilation).
  */
 
-static nir_lower_blend_options
-nir_make_options(const struct pipe_blend_state *blend, unsigned i)
-{
-        nir_lower_blend_options options = { 0 };
-
-        if (blend->logicop_enable) {
-            options.logicop_enable = true;
-            options.logicop_func = blend->logicop_func;
-            return options;
-        }
-
-        options.logicop_enable = false;
-
-        if (!blend->independent_blend_enable)
-                i = 0;
-
-        /* If blend is disabled, we just use replace mode */
-
-        nir_lower_blend_channel rgb = {
-                .func = BLEND_FUNC_ADD,
-                .src_factor = BLEND_FACTOR_ZERO,
-                .invert_src_factor = true,
-                .dst_factor = BLEND_FACTOR_ZERO,
-                .invert_dst_factor = false
-        };
-
-        nir_lower_blend_channel alpha = rgb;
-
-        if (blend->rt[i].blend_enable) {
-                rgb.func = util_blend_func_to_shader(blend->rt[i].rgb_func);
-                rgb.src_factor = util_blend_factor_to_shader(blend->rt[i].rgb_src_factor);
-                rgb.dst_factor = util_blend_factor_to_shader(blend->rt[i].rgb_dst_factor);
-                rgb.invert_src_factor = util_blend_factor_is_inverted(blend->rt[i].rgb_src_factor);
-                rgb.invert_dst_factor = util_blend_factor_is_inverted(blend->rt[i].rgb_dst_factor);
-
-                alpha.func = util_blend_func_to_shader(blend->rt[i].alpha_func);
-                alpha.src_factor = util_blend_factor_to_shader(blend->rt[i].alpha_src_factor);
-                alpha.dst_factor = util_blend_factor_to_shader(blend->rt[i].alpha_dst_factor);
-                alpha.invert_src_factor = util_blend_factor_is_inverted(blend->rt[i].alpha_src_factor);
-                alpha.invert_dst_factor = util_blend_factor_is_inverted(blend->rt[i].alpha_dst_factor);
-        }
-
-        options.rgb = rgb;
-        options.alpha = alpha;
-
-        options.colormask = blend->rt[i].colormask;
-
-        return options;
-}
-
-static nir_ssa_def *
-nir_iclamp(nir_builder *b, nir_ssa_def *v, int32_t lo, int32_t hi)
-{
-        return nir_imin(b, nir_imax(b, v, nir_imm_int(b, lo)), nir_imm_int(b, hi));
-}
-
 struct panfrost_blend_shader *
 panfrost_create_blend_shader(struct panfrost_context *ctx,
                              struct panfrost_blend_state *state,
@@ -139,88 +82,22 @@ panfrost_create_blend_shader(struct panfrost_context *ctx,
 {
         struct panfrost_device *dev = pan_device(ctx->base.screen);
         struct panfrost_blend_shader *res = rzalloc(ctx, struct panfrost_blend_shader);
+        struct pan_blend_state pan_blend = state->pan;
 
         res->ctx = ctx;
         res->key = *key;
 
         /* Build the shader */
+        pan_blend.rts[key->rt].format = key->format;
+        pan_blend.rts[key->rt].nr_samples = key->nr_samples;
+        res->nir = pan_blend_create_shader(dev, &pan_blend, key->rt);
 
-        nir_shader *shader = nir_shader_create(ctx, MESA_SHADER_FRAGMENT, &midgard_nir_options, NULL);
-        nir_function *fn = nir_function_create(shader, "main");
-        fn->is_entrypoint = true;
-        nir_function_impl *impl = nir_function_impl_create(fn);
-
-        const struct util_format_description *format_desc =
-                util_format_description(key->format);
-
-        nir_alu_type T = pan_unpacked_type_for_format(format_desc);
-        enum glsl_base_type g =
-                (T == nir_type_float16) ? GLSL_TYPE_FLOAT16 :
-                (T == nir_type_float32) ? GLSL_TYPE_FLOAT :
-                (T == nir_type_int8) ? GLSL_TYPE_INT8 :
-                (T == nir_type_int16) ? GLSL_TYPE_INT16 :
-                (T == nir_type_int32) ? GLSL_TYPE_INT :
-                (T == nir_type_uint8) ? GLSL_TYPE_UINT8 :
-                (T == nir_type_uint16) ? GLSL_TYPE_UINT16 :
-                (T == nir_type_uint32) ? GLSL_TYPE_UINT :
-                GLSL_TYPE_FLOAT;
-
-        /* Create the blend variables */
-
-        nir_variable *c_src = nir_variable_create(shader, nir_var_shader_in, glsl_vector_type(GLSL_TYPE_FLOAT, 4), "gl_Color");
-        nir_variable *c_src1 = nir_variable_create(shader, nir_var_shader_in, glsl_vector_type(GLSL_TYPE_FLOAT, 4), "gl_Color1");
-        nir_variable *c_out = nir_variable_create(shader, nir_var_shader_out, glsl_vector_type(g, 4), "gl_FragColor");
-
-        c_src->data.location = VARYING_SLOT_COL0;
-        c_src1->data.location = VARYING_SLOT_VAR0;
-        c_out->data.location = FRAG_RESULT_COLOR;
-
-        c_src1->data.driver_location = 1;
-
-        /* Setup nir_builder */
-
-        nir_builder _b;
-        nir_builder *b = &_b;
-        nir_builder_init(b, impl);
-        b->cursor = nir_before_block(nir_start_block(impl));
-
-        /* Setup inputs */
-
-        nir_ssa_def *s_src[] = {nir_load_var(b, c_src), nir_load_var(b, c_src1)};
-
-        for (int i = 0; i < ARRAY_SIZE(s_src); ++i) {
-                if (T == nir_type_float16)
-                        s_src[i] = nir_f2f16(b, s_src[i]);
-                else if (T == nir_type_int16)
-                        s_src[i] = nir_i2i16(b, nir_iclamp(b, s_src[i], -32768, 32767));
-                else if (T == nir_type_uint16)
-                        s_src[i] = nir_u2u16(b, nir_umin(b, s_src[i], nir_imm_int(b, 65535)));
-                else if (T == nir_type_int8)
-                        s_src[i] = nir_i2i8(b, nir_iclamp(b, s_src[i], -128, 127));
-                else if (T == nir_type_uint8)
-                        s_src[i] = nir_u2u8(b, nir_umin(b, s_src[i], nir_imm_int(b, 255)));
-        }
-
-        /* Build a trivial blend shader */
-        nir_store_var(b, c_out, s_src[0], 0xFF);
-
-        nir_lower_blend_options options = nir_make_options(&state->base, key->rt);
-        options.format = key->format;
-        options.is_bifrost = !!(dev->quirks & IS_BIFROST);
-        options.src1 = s_src[1];
-
-        if (T == nir_type_float16)
-                options.half = true;
-
-        NIR_PASS_V(shader, nir_lower_blend, options);
-
-        res->nir = shader;
         return res;
 }
 
-static uint64_t
+uint64_t
 bifrost_get_blend_desc(const struct panfrost_device *dev,
-                       enum pipe_format fmt, unsigned rt)
+                       enum pipe_format fmt, unsigned rt, unsigned force_size)
 {
         const struct util_format_description *desc = util_format_description(fmt);
         uint64_t res;
@@ -231,6 +108,10 @@ bifrost_get_blend_desc(const struct panfrost_device *dev,
                 cfg.fixed_function.rt = rt;
 
                 nir_alu_type T = pan_unpacked_type_for_format(desc);
+
+                if (force_size)
+                        T = nir_alu_type_get_base_type(T) | force_size;
+
                 switch (T) {
                 case nir_type_float16:
                         cfg.fixed_function.conversion.register_format =
@@ -240,6 +121,7 @@ bifrost_get_blend_desc(const struct panfrost_device *dev,
                         cfg.fixed_function.conversion.register_format =
                                 MALI_BIFROST_REGISTER_FILE_FORMAT_F32;
                         break;
+                case nir_type_int8:
                 case nir_type_int16:
                         cfg.fixed_function.conversion.register_format =
                                 MALI_BIFROST_REGISTER_FILE_FORMAT_I16;
@@ -248,6 +130,7 @@ bifrost_get_blend_desc(const struct panfrost_device *dev,
                         cfg.fixed_function.conversion.register_format =
                                 MALI_BIFROST_REGISTER_FILE_FORMAT_I32;
                         break;
+                case nir_type_uint8:
                 case nir_type_uint16:
                         cfg.fixed_function.conversion.register_format =
                                 MALI_BIFROST_REGISTER_FILE_FORMAT_U16;
@@ -294,22 +177,23 @@ panfrost_compile_blend_shader(struct panfrost_blend_shader *shader,
         if (constants)
                 memcpy(inputs.blend.constants, constants, sizeof(inputs.blend.constants));
 
-        panfrost_program *program;
-
-        if (dev->quirks & IS_BIFROST) {
+        if (pan_is_bifrost(dev)) {
                 inputs.blend.bifrost_blend_desc =
-                        bifrost_get_blend_desc(dev, shader->key.format, shader->key.rt);
-                program = bifrost_compile_shader_nir(NULL, shader->nir, &inputs);
-	} else {
-                program = midgard_compile_shader_nir(NULL, shader->nir, &inputs);
+                        bifrost_get_blend_desc(dev, shader->key.format, shader->key.rt, 0);
         }
 
-        /* Allow us to patch later */
-        shader->first_tag = program->first_tag;
-        shader->size = program->compiled.size;
-        shader->buffer = reralloc_size(shader, shader->buffer, shader->size);
-        memcpy(shader->buffer, program->compiled.data, shader->size);
-        shader->work_count = program->work_register_count;
+        struct pan_shader_info info;
+        struct util_dynarray binary;
 
-        ralloc_free(program);
+        util_dynarray_init(&binary, NULL);
+        pan_shader_compile(dev, shader->nir, &inputs, &binary, &info);
+
+        /* Allow us to patch later */
+        shader->first_tag = pan_is_bifrost(dev) ? 0 : info.midgard.first_tag;
+        shader->size = binary.size;
+        shader->buffer = reralloc_size(shader, shader->buffer, shader->size);
+        memcpy(shader->buffer, binary.data, shader->size);
+        shader->work_count = info.work_reg_count;
+
+        util_dynarray_fini(&binary);
 }

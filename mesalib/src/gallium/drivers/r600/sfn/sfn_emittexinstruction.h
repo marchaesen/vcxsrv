@@ -55,16 +55,6 @@ private:
       PValue texture_offset;
    };
 
-
-   bool emit_cube_tex(nir_tex_instr* instr, TexInputs& src);
-   bool emit_cube_txf(nir_tex_instr* instr, TexInputs& src);
-   bool emit_cube_txb(nir_tex_instr* instr, TexInputs& src);
-   bool emit_cube_txl(nir_tex_instr* instr, TexInputs& src);
-   bool emit_cube_txd(nir_tex_instr* instr, TexInputs& src);
-   bool emit_cube_lod(nir_tex_instr* instr, TexInputs& src);
-   bool emit_cube_tg4(nir_tex_instr* instr, TexInputs& src);
-   bool emit_cube_prep(const GPRVector& coord, GPRVector& cubed, bool is_array);
-
    bool emit_tex_tex(nir_tex_instr* instr, TexInputs& src);
 
    bool emit_tex_txf(nir_tex_instr* instr, TexInputs &src);
@@ -97,7 +87,7 @@ private:
       bool indirect;
    };
 
-   SamplerId get_samplerr_id(int sampler_id, const nir_variable *deref);
+   SamplerId get_sampler_id(int sampler_id, const nir_variable *deref);
 
 };
 

@@ -80,6 +80,7 @@ lower_sample_tex_compare_impl(nir_builder *b, nir_instr *instr,
    nir_tex_instr *tex = nir_instr_as_tex(instr);
 
    sampler_state *state = (sampler_state *)options;
+   unsigned num_components = nir_tex_instr_result_size(tex);
 
    b->cursor = nir_after_instr(instr);
    tex->is_shadow = false;
@@ -122,7 +123,7 @@ lower_sample_tex_compare_impl(nir_builder *b, nir_instr *instr,
                         lookup[state->tex_swizzles[sampler->data.binding].swizzle_a]
                        };
 
-   result = nir_vec(b, r, nir_dest_num_components(tex->dest));
+   result = nir_vec(b, r, num_components);
 
    sampler->type = strip_shadow_with_array(sampler->type);
    sampler_deref->type = sampler->type;

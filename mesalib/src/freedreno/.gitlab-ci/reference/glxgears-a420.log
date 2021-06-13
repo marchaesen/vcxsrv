@@ -424,18 +424,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (35 dwords)
 				:0:0002:0002[00000000x_00000000x] nop
 				:0:0003:0003[00000000x_00000000x] nop
 				:0:0004:0004[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): (cnt=0, max=0)
-				- input (half): (cnt=0, max=0)
-				- input (full): (cnt=0, max=0)
-				- max const: 0
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): (cnt=0, max=0)  (estimated)
-				- shaderdb: 5 instructions, 4 nops, 1 non-nops, (5 instlen), 0 last-baryf, 0 half, 0 full
+				Stats:
+				- shaderdb: 5 instr, 4 nops, 1 non-nops, 0 mov, 0 cov
+				- shaderdb: 0 last-baryf, 0 half, 0 full, 0 constlen
 				- shaderdb: 5 cat0, 0 cat1, 0 cat2, 0 cat3, 0 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 0 (ss), 0 (sy)
+				- shaderdb: 0 sstall, 0 (ss), 0 (sy)
 109ce1f0:			0000: c0213000 00600000 00000000 00000000 03000000 00000000 00000000 00000000
 *
 t3			opcode: CP_LOAD_STATE4 (30) (35 dwords)
@@ -450,18 +443,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (35 dwords)
 				:0:0006:0006[00000000x_00000000x] nop
 				:0:0007:0007[00000000x_00000000x] nop
 				:0:0008:0008[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-3 (cnt=4, max=3)
-				- input (half): (cnt=0, max=0)
-				- input (full): (cnt=0, max=0)
-				- max const: 3
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): 0-3 (cnt=4, max=3)  (estimated)
-				- shaderdb: 9 instructions, 4 nops, 5 non-nops, (9 instlen), 0 last-baryf, 0 half, 1 full
+				Stats:
+				- shaderdb: 9 instr, 4 nops, 5 non-nops, 4 mov, 0 cov
+				- shaderdb: 0 last-baryf, 0 half, 1 full, 1 constlen
 				- shaderdb: 5 cat0, 4 cat1, 0 cat2, 0 cat3, 0 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 0 (ss), 0 (sy)
+				- shaderdb: 0 sstall, 0 (ss), 0 (sy)
 109ce27c:			0000: c0213000 00700000 00000000 00000000 20244000 00000001 20244001 00000002
 109ce29c:			0020: 20244002 00000003 20244003 00000000 03000000 00000000 00000000 00000000
 *
@@ -1038,18 +1024,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (131 dwords)
 				:0:0058:0071[00000000x_00000000x] nop
 				:0:0059:0072[00000000x_00000000x] nop
 				:0:0060:0073[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-13 (cnt=14, max=13)
-				- input (half): (cnt=0, max=0)
-				- input (full): 2-5 (cnt=4, max=5)
-				- max const: 52
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): 6-13 (cnt=8, max=13)  (estimated)
-				- shaderdb: 74 instructions, 27 nops, 47 non-nops, (61 instlen), 0 last-baryf, 0 half, 4 full
+				Stats:
+				- shaderdb: 74 instr, 27 nops, 47 non-nops, 7 mov, 1 cov
+				- shaderdb: 0 last-baryf, 0 half, 4 full, 13 constlen
 				- shaderdb: 28 cat0, 8 cat1, 15 cat2, 22 cat3, 1 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 10 sstall, 1 (ss), 0 (sy)
 109ce66c:			0000: c0813000 01200000 00000000 10000002 40700000 10030002 40700001 00001004
 109ce68c:			0020: 63818000 00011007 63818001 00001008 63820000 0001100b 63820001 0000100c
 109ce6ac:			0040: 63828006 10010002 40700000 0001100f 63828009 00001005 63818000 00000010
@@ -1080,18 +1059,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (35 dwords)
 				:0:0008:0008[00000000x_00000000x] nop
 				:0:0009:0009[00000000x_00000000x] nop
 				:0:0010:0010[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-3 (cnt=4, max=3)
-				- input (half): (cnt=0, max=0)
-				- input (full): 0-3 (cnt=4, max=3)
-				- max const: 0
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): (cnt=0, max=0)  (estimated)
-				- shaderdb: 11 instructions, 5 nops, 6 non-nops, (11 instlen), 5 last-baryf, 0 half, 1 full
+				Stats:
+				- shaderdb: 11 instr, 5 nops, 6 non-nops, 0 mov, 0 cov
+				- shaderdb: 5 last-baryf, 0 half, 1 full, 0 constlen
 				- shaderdb: 6 cat0, 0 cat1, 1 cat2, 0 cat3, 0 cat4, 0 cat5, 4 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 0 sstall, 1 (ss), 0 (sy)
 109ce878:			0000: c0213000 00700000 00000000 00000000 00000000 01c00000 c7c60000 01c00002
 109ce898:			0020: c7c60001 01c00004 c7c60002 01c00006 c7c60003 00002000 473090fc 00000000
 109ce8b8:			0040: 03000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
@@ -1670,18 +1642,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (131 dwords)
 				:0:0053:0064[00000000x_00000000x] nop
 				:0:0054:0065[00000000x_00000000x] nop
 				:0:0055:0066[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-8 10-17 (cnt=17, max=17)
-				- input (half): (cnt=0, max=0)
-				- input (full): 2-8 (cnt=7, max=8)
-				- max const: 52
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): 10-17 (cnt=8, max=17)  (estimated)
-				- shaderdb: 67 instructions, 23 nops, 44 non-nops, (56 instlen), 0 last-baryf, 0 half, 5 full
+				Stats:
+				- shaderdb: 67 instr, 23 nops, 44 non-nops, 4 mov, 1 cov
+				- shaderdb: 0 last-baryf, 0 half, 5 full, 13 constlen
 				- shaderdb: 24 cat0, 5 cat1, 15 cat2, 22 cat3, 1 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 10 sstall, 1 (ss), 0 (sy)
 109cee34:			0000: c0813000 01200000 00000000 10000002 40700000 10030002 40700001 00001004
 109cee54:			0020: 63818000 00011007 63818001 00001008 63820000 0001100b 63820001 0000100c
 109cee74:			0040: 6382800a 10010002 40700000 0001100f 6382800d 00001005 63818000 00000010
@@ -1711,18 +1676,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (35 dwords)
 				:0:0008:0008[00000000x_00000000x] nop
 				:0:0009:0009[00000000x_00000000x] nop
 				:0:0010:0010[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-3 (cnt=4, max=3)
-				- input (half): (cnt=0, max=0)
-				- input (full): 0-3 (cnt=4, max=3)
-				- max const: 0
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): (cnt=0, max=0)  (estimated)
-				- shaderdb: 11 instructions, 5 nops, 6 non-nops, (11 instlen), 5 last-baryf, 0 half, 1 full
+				Stats:
+				- shaderdb: 11 instr, 5 nops, 6 non-nops, 0 mov, 0 cov
+				- shaderdb: 5 last-baryf, 0 half, 1 full, 0 constlen
 				- shaderdb: 6 cat0, 0 cat1, 1 cat2, 0 cat3, 0 cat4, 0 cat5, 4 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 0 sstall, 1 (ss), 0 (sy)
 109cf040:			0000: c0213000 00700000 00000000 00000000 00000000 01c00000 c7c60000 01c00002
 109cf060:			0020: c7c60001 01c00004 c7c60002 01c00006 c7c60003 00002000 473090fc 00000000
 109cf080:			0040: 03000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
@@ -2103,18 +2061,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (131 dwords)
 				:0:0053:0064[00000000x_00000000x] nop
 				:0:0054:0065[00000000x_00000000x] nop
 				:0:0055:0066[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-8 10-17 (cnt=17, max=17)
-				- input (half): (cnt=0, max=0)
-				- input (full): 2-8 (cnt=7, max=8)
-				- max const: 52
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): 10-17 (cnt=8, max=17)  (estimated)
-				- shaderdb: 67 instructions, 23 nops, 44 non-nops, (56 instlen), 0 last-baryf, 0 half, 5 full
+				Stats:
+				- shaderdb: 67 instr, 23 nops, 44 non-nops, 4 mov, 1 cov
+				- shaderdb: 0 last-baryf, 0 half, 5 full, 13 constlen
 				- shaderdb: 24 cat0, 5 cat1, 15 cat2, 22 cat3, 1 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 10 sstall, 1 (ss), 0 (sy)
 109cf40c:			0000: c0813000 01200000 00000000 10000002 40700000 10030002 40700001 00001004
 109cf42c:			0020: 63818000 00011007 63818001 00001008 63820000 0001100b 63820001 0000100c
 109cf44c:			0040: 6382800a 10010002 40700000 0001100f 6382800d 00001005 63818000 00000010
@@ -2142,18 +2093,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (35 dwords)
 				:0:0006:0006[00000000x_00000000x] nop
 				:0:0007:0007[00000000x_00000000x] nop
 				:0:0008:0008[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0 2-5 (cnt=5, max=5)
-				- input (half): (cnt=0, max=0)
-				- input (full): 0 (cnt=1, max=0)
-				- max const: 0
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): 2-5 (cnt=4, max=5)  (estimated)
-				- shaderdb: 9 instructions, 4 nops, 5 non-nops, (9 instlen), 3 last-baryf, 0 half, 2 full
+				Stats:
+				- shaderdb: 9 instr, 4 nops, 5 non-nops, 0 mov, 0 cov
+				- shaderdb: 3 last-baryf, 0 half, 2 full, 0 constlen
 				- shaderdb: 5 cat0, 0 cat1, 4 cat2, 0 cat3, 0 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 0 (ss), 0 (sy)
+				- shaderdb: 0 sstall, 0 (ss), 0 (sy)
 109cf618:			0000: c0213000 00700000 00000000 00002000 47300002 00002001 47300003 00002002
 109cf638:			0020: 47300004 00002003 47308005 00000000 03000000 00000000 00000000 00000000
 *
@@ -2497,18 +2441,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (131 dwords)
 				:0:0058:0071[00000000x_00000000x] nop
 				:0:0059:0072[00000000x_00000000x] nop
 				:0:0060:0073[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-13 (cnt=14, max=13)
-				- input (half): (cnt=0, max=0)
-				- input (full): 2-5 (cnt=4, max=5)
-				- max const: 52
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): 6-13 (cnt=8, max=13)  (estimated)
-				- shaderdb: 74 instructions, 27 nops, 47 non-nops, (61 instlen), 0 last-baryf, 0 half, 4 full
+				Stats:
+				- shaderdb: 74 instr, 27 nops, 47 non-nops, 7 mov, 1 cov
+				- shaderdb: 0 last-baryf, 0 half, 4 full, 13 constlen
 				- shaderdb: 28 cat0, 8 cat1, 15 cat2, 22 cat3, 1 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 10 sstall, 1 (ss), 0 (sy)
 109cf96c:			0000: c0813000 01200000 00000000 10000002 40700000 10030002 40700001 00001004
 109cf98c:			0020: 63818000 00011007 63818001 00001008 63820000 0001100b 63820001 0000100c
 109cf9ac:			0040: 63828006 10010002 40700000 0001100f 63828009 00001005 63818000 00000010
@@ -2539,18 +2476,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (35 dwords)
 				:0:0008:0008[00000000x_00000000x] nop
 				:0:0009:0009[00000000x_00000000x] nop
 				:0:0010:0010[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-3 (cnt=4, max=3)
-				- input (half): (cnt=0, max=0)
-				- input (full): 0-3 (cnt=4, max=3)
-				- max const: 0
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): (cnt=0, max=0)  (estimated)
-				- shaderdb: 11 instructions, 5 nops, 6 non-nops, (11 instlen), 5 last-baryf, 0 half, 1 full
+				Stats:
+				- shaderdb: 11 instr, 5 nops, 6 non-nops, 0 mov, 0 cov
+				- shaderdb: 5 last-baryf, 0 half, 1 full, 0 constlen
 				- shaderdb: 6 cat0, 0 cat1, 1 cat2, 0 cat3, 0 cat4, 0 cat5, 4 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 0 sstall, 1 (ss), 0 (sy)
 109cfb78:			0000: c0213000 00700000 00000000 00000000 00000000 01c00000 c7c60000 01c00002
 109cfb98:			0020: c7c60001 01c00004 c7c60002 01c00006 c7c60003 00002000 473090fc 00000000
 109cfbb8:			0040: 03000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
@@ -3052,18 +2982,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (131 dwords)
 				:0:0053:0064[00000000x_00000000x] nop
 				:0:0054:0065[00000000x_00000000x] nop
 				:0:0055:0066[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-8 10-17 (cnt=17, max=17)
-				- input (half): (cnt=0, max=0)
-				- input (full): 2-8 (cnt=7, max=8)
-				- max const: 52
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): 10-17 (cnt=8, max=17)  (estimated)
-				- shaderdb: 67 instructions, 23 nops, 44 non-nops, (56 instlen), 0 last-baryf, 0 half, 5 full
+				Stats:
+				- shaderdb: 67 instr, 23 nops, 44 non-nops, 4 mov, 1 cov
+				- shaderdb: 0 last-baryf, 0 half, 5 full, 13 constlen
 				- shaderdb: 24 cat0, 5 cat1, 15 cat2, 22 cat3, 1 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 10 sstall, 1 (ss), 0 (sy)
 109d00b4:			0000: c0813000 01200000 00000000 10000002 40700000 10030002 40700001 00001004
 109d00d4:			0020: 63818000 00011007 63818001 00001008 63820000 0001100b 63820001 0000100c
 109d00f4:			0040: 6382800a 10010002 40700000 0001100f 6382800d 00001005 63818000 00000010
@@ -3093,18 +3016,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (35 dwords)
 				:0:0008:0008[00000000x_00000000x] nop
 				:0:0009:0009[00000000x_00000000x] nop
 				:0:0010:0010[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-3 (cnt=4, max=3)
-				- input (half): (cnt=0, max=0)
-				- input (full): 0-3 (cnt=4, max=3)
-				- max const: 0
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): (cnt=0, max=0)  (estimated)
-				- shaderdb: 11 instructions, 5 nops, 6 non-nops, (11 instlen), 5 last-baryf, 0 half, 1 full
+				Stats:
+				- shaderdb: 11 instr, 5 nops, 6 non-nops, 0 mov, 0 cov
+				- shaderdb: 5 last-baryf, 0 half, 1 full, 0 constlen
 				- shaderdb: 6 cat0, 0 cat1, 1 cat2, 0 cat3, 0 cat4, 0 cat5, 4 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 0 sstall, 1 (ss), 0 (sy)
 109d02c0:			0000: c0213000 00700000 00000000 00000000 00000000 01c00000 c7c60000 01c00002
 109d02e0:			0020: c7c60001 01c00004 c7c60002 01c00006 c7c60003 00002000 473090fc 00000000
 109d0300:			0040: 03000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
@@ -3485,18 +3401,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (131 dwords)
 				:0:0053:0064[00000000x_00000000x] nop
 				:0:0054:0065[00000000x_00000000x] nop
 				:0:0055:0066[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-8 10-17 (cnt=17, max=17)
-				- input (half): (cnt=0, max=0)
-				- input (full): 2-8 (cnt=7, max=8)
-				- max const: 52
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): 10-17 (cnt=8, max=17)  (estimated)
-				- shaderdb: 67 instructions, 23 nops, 44 non-nops, (56 instlen), 0 last-baryf, 0 half, 5 full
+				Stats:
+				- shaderdb: 67 instr, 23 nops, 44 non-nops, 4 mov, 1 cov
+				- shaderdb: 0 last-baryf, 0 half, 5 full, 13 constlen
 				- shaderdb: 24 cat0, 5 cat1, 15 cat2, 22 cat3, 1 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 10 sstall, 1 (ss), 0 (sy)
 109d068c:			0000: c0813000 01200000 00000000 10000002 40700000 10030002 40700001 00001004
 109d06ac:			0020: 63818000 00011007 63818001 00001008 63820000 0001100b 63820001 0000100c
 109d06cc:			0040: 6382800a 10010002 40700000 0001100f 6382800d 00001005 63818000 00000010
@@ -3524,18 +3433,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (35 dwords)
 				:0:0006:0006[00000000x_00000000x] nop
 				:0:0007:0007[00000000x_00000000x] nop
 				:0:0008:0008[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0 2-5 (cnt=5, max=5)
-				- input (half): (cnt=0, max=0)
-				- input (full): 0 (cnt=1, max=0)
-				- max const: 0
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): 2-5 (cnt=4, max=5)  (estimated)
-				- shaderdb: 9 instructions, 4 nops, 5 non-nops, (9 instlen), 3 last-baryf, 0 half, 2 full
+				Stats:
+				- shaderdb: 9 instr, 4 nops, 5 non-nops, 0 mov, 0 cov
+				- shaderdb: 3 last-baryf, 0 half, 2 full, 0 constlen
 				- shaderdb: 5 cat0, 0 cat1, 4 cat2, 0 cat3, 0 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 0 (ss), 0 (sy)
+				- shaderdb: 0 sstall, 0 (ss), 0 (sy)
 109d0898:			0000: c0213000 00700000 00000000 00002000 47300002 00002001 47300003 00002002
 109d08b8:			0020: 47300004 00002003 47308005 00000000 03000000 00000000 00000000 00000000
 *
@@ -3879,18 +3781,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (131 dwords)
 				:0:0058:0071[00000000x_00000000x] nop
 				:0:0059:0072[00000000x_00000000x] nop
 				:0:0060:0073[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-13 (cnt=14, max=13)
-				- input (half): (cnt=0, max=0)
-				- input (full): 2-5 (cnt=4, max=5)
-				- max const: 52
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): 6-13 (cnt=8, max=13)  (estimated)
-				- shaderdb: 74 instructions, 27 nops, 47 non-nops, (61 instlen), 0 last-baryf, 0 half, 4 full
+				Stats:
+				- shaderdb: 74 instr, 27 nops, 47 non-nops, 7 mov, 1 cov
+				- shaderdb: 0 last-baryf, 0 half, 4 full, 13 constlen
 				- shaderdb: 28 cat0, 8 cat1, 15 cat2, 22 cat3, 1 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 10 sstall, 1 (ss), 0 (sy)
 109d0bec:			0000: c0813000 01200000 00000000 10000002 40700000 10030002 40700001 00001004
 109d0c0c:			0020: 63818000 00011007 63818001 00001008 63820000 0001100b 63820001 0000100c
 109d0c2c:			0040: 63828006 10010002 40700000 0001100f 63828009 00001005 63818000 00000010
@@ -3921,18 +3816,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (35 dwords)
 				:0:0008:0008[00000000x_00000000x] nop
 				:0:0009:0009[00000000x_00000000x] nop
 				:0:0010:0010[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-3 (cnt=4, max=3)
-				- input (half): (cnt=0, max=0)
-				- input (full): 0-3 (cnt=4, max=3)
-				- max const: 0
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): (cnt=0, max=0)  (estimated)
-				- shaderdb: 11 instructions, 5 nops, 6 non-nops, (11 instlen), 5 last-baryf, 0 half, 1 full
+				Stats:
+				- shaderdb: 11 instr, 5 nops, 6 non-nops, 0 mov, 0 cov
+				- shaderdb: 5 last-baryf, 0 half, 1 full, 0 constlen
 				- shaderdb: 6 cat0, 0 cat1, 1 cat2, 0 cat3, 0 cat4, 0 cat5, 4 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 0 sstall, 1 (ss), 0 (sy)
 109d0df8:			0000: c0213000 00700000 00000000 00000000 00000000 01c00000 c7c60000 01c00002
 109d0e18:			0020: c7c60001 01c00004 c7c60002 01c00006 c7c60003 00002000 473090fc 00000000
 109d0e38:			0040: 03000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
@@ -4434,18 +4322,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (131 dwords)
 				:0:0053:0064[00000000x_00000000x] nop
 				:0:0054:0065[00000000x_00000000x] nop
 				:0:0055:0066[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-8 10-17 (cnt=17, max=17)
-				- input (half): (cnt=0, max=0)
-				- input (full): 2-8 (cnt=7, max=8)
-				- max const: 52
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): 10-17 (cnt=8, max=17)  (estimated)
-				- shaderdb: 67 instructions, 23 nops, 44 non-nops, (56 instlen), 0 last-baryf, 0 half, 5 full
+				Stats:
+				- shaderdb: 67 instr, 23 nops, 44 non-nops, 4 mov, 1 cov
+				- shaderdb: 0 last-baryf, 0 half, 5 full, 13 constlen
 				- shaderdb: 24 cat0, 5 cat1, 15 cat2, 22 cat3, 1 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 10 sstall, 1 (ss), 0 (sy)
 109d1334:			0000: c0813000 01200000 00000000 10000002 40700000 10030002 40700001 00001004
 109d1354:			0020: 63818000 00011007 63818001 00001008 63820000 0001100b 63820001 0000100c
 109d1374:			0040: 6382800a 10010002 40700000 0001100f 6382800d 00001005 63818000 00000010
@@ -4475,18 +4356,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (35 dwords)
 				:0:0008:0008[00000000x_00000000x] nop
 				:0:0009:0009[00000000x_00000000x] nop
 				:0:0010:0010[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-3 (cnt=4, max=3)
-				- input (half): (cnt=0, max=0)
-				- input (full): 0-3 (cnt=4, max=3)
-				- max const: 0
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): (cnt=0, max=0)  (estimated)
-				- shaderdb: 11 instructions, 5 nops, 6 non-nops, (11 instlen), 5 last-baryf, 0 half, 1 full
+				Stats:
+				- shaderdb: 11 instr, 5 nops, 6 non-nops, 0 mov, 0 cov
+				- shaderdb: 5 last-baryf, 0 half, 1 full, 0 constlen
 				- shaderdb: 6 cat0, 0 cat1, 1 cat2, 0 cat3, 0 cat4, 0 cat5, 4 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 0 sstall, 1 (ss), 0 (sy)
 109d1540:			0000: c0213000 00700000 00000000 00000000 00000000 01c00000 c7c60000 01c00002
 109d1560:			0020: c7c60001 01c00004 c7c60002 01c00006 c7c60003 00002000 473090fc 00000000
 109d1580:			0040: 03000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
@@ -4867,18 +4741,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (131 dwords)
 				:0:0053:0064[00000000x_00000000x] nop
 				:0:0054:0065[00000000x_00000000x] nop
 				:0:0055:0066[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0-8 10-17 (cnt=17, max=17)
-				- input (half): (cnt=0, max=0)
-				- input (full): 2-8 (cnt=7, max=8)
-				- max const: 52
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): 10-17 (cnt=8, max=17)  (estimated)
-				- shaderdb: 67 instructions, 23 nops, 44 non-nops, (56 instlen), 0 last-baryf, 0 half, 5 full
+				Stats:
+				- shaderdb: 67 instr, 23 nops, 44 non-nops, 4 mov, 1 cov
+				- shaderdb: 0 last-baryf, 0 half, 5 full, 13 constlen
 				- shaderdb: 24 cat0, 5 cat1, 15 cat2, 22 cat3, 1 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 1 (ss), 0 (sy)
+				- shaderdb: 10 sstall, 1 (ss), 0 (sy)
 109d190c:			0000: c0813000 01200000 00000000 10000002 40700000 10030002 40700001 00001004
 109d192c:			0020: 63818000 00011007 63818001 00001008 63820000 0001100b 63820001 0000100c
 109d194c:			0040: 6382800a 10010002 40700000 0001100f 6382800d 00001005 63818000 00000010
@@ -4906,18 +4773,11 @@ t3			opcode: CP_LOAD_STATE4 (30) (35 dwords)
 				:0:0006:0006[00000000x_00000000x] nop
 				:0:0007:0007[00000000x_00000000x] nop
 				:0:0008:0008[00000000x_00000000x] nop
-				Register Stats:
-				- used (half): (cnt=0, max=0)
-				- used (full): 0 2-5 (cnt=5, max=5)
-				- input (half): (cnt=0, max=0)
-				- input (full): 0 (cnt=1, max=0)
-				- max const: 0
-
-				- output (half): (cnt=0, max=0)  (estimated)
-				- output (full): 2-5 (cnt=4, max=5)  (estimated)
-				- shaderdb: 9 instructions, 4 nops, 5 non-nops, (9 instlen), 3 last-baryf, 0 half, 2 full
+				Stats:
+				- shaderdb: 9 instr, 4 nops, 5 non-nops, 0 mov, 0 cov
+				- shaderdb: 3 last-baryf, 0 half, 2 full, 0 constlen
 				- shaderdb: 5 cat0, 0 cat1, 4 cat2, 0 cat3, 0 cat4, 0 cat5, 0 cat6, 0 cat7
-				- shaderdb: 0 (ss), 0 (sy)
+				- shaderdb: 0 sstall, 0 (ss), 0 (sy)
 109d1b18:			0000: c0213000 00700000 00000000 00002000 47300002 00002001 47300003 00002002
 109d1b38:			0020: 47300004 00002003 47308005 00000000 03000000 00000000 00000000 00000000
 *
@@ -5211,18 +5071,11 @@ t3		opcode: CP_LOAD_STATE4 (30) (35 dwords)
 			:0:0002:0002[00000000x_00000000x] nop
 			:0:0003:0003[00000000x_00000000x] nop
 			:0:0004:0004[00000000x_00000000x] nop
-			Register Stats:
-			- used (half): (cnt=0, max=0)
-			- used (full): (cnt=0, max=0)
-			- input (half): (cnt=0, max=0)
-			- input (full): (cnt=0, max=0)
-			- max const: 0
-
-			- output (half): (cnt=0, max=0)  (estimated)
-			- output (full): (cnt=0, max=0)  (estimated)
-			- shaderdb: 5 instructions, 4 nops, 1 non-nops, (5 instlen), 0 last-baryf, 0 half, 0 full
+			Stats:
+			- shaderdb: 5 instr, 4 nops, 1 non-nops, 0 mov, 0 cov
+			- shaderdb: 0 last-baryf, 0 half, 0 full, 0 constlen
 			- shaderdb: 5 cat0, 0 cat1, 0 cat2, 0 cat3, 0 cat4, 0 cat5, 0 cat6, 0 cat7
-			- shaderdb: 0 (ss), 0 (sy)
+			- shaderdb: 0 sstall, 0 (ss), 0 (sy)
 108ce4b0:		0000: c0213000 00600000 00000000 00000000 03000000 00000000 00000000 00000000
 *
 t3		opcode: CP_LOAD_STATE4 (30) (35 dwords)
@@ -5237,18 +5090,11 @@ t3		opcode: CP_LOAD_STATE4 (30) (35 dwords)
 			:0:0006:0006[00000000x_00000000x] nop
 			:0:0007:0007[00000000x_00000000x] nop
 			:0:0008:0008[00000000x_00000000x] nop
-			Register Stats:
-			- used (half): (cnt=0, max=0)
-			- used (full): 0-3 (cnt=4, max=3)
-			- input (half): (cnt=0, max=0)
-			- input (full): (cnt=0, max=0)
-			- max const: 3
-
-			- output (half): (cnt=0, max=0)  (estimated)
-			- output (full): 0-3 (cnt=4, max=3)  (estimated)
-			- shaderdb: 9 instructions, 4 nops, 5 non-nops, (9 instlen), 0 last-baryf, 0 half, 1 full
+			Stats:
+			- shaderdb: 9 instr, 4 nops, 5 non-nops, 4 mov, 0 cov
+			- shaderdb: 0 last-baryf, 0 half, 1 full, 1 constlen
 			- shaderdb: 5 cat0, 4 cat1, 0 cat2, 0 cat3, 0 cat4, 0 cat5, 0 cat6, 0 cat7
-			- shaderdb: 0 (ss), 0 (sy)
+			- shaderdb: 0 sstall, 0 (ss), 0 (sy)
 108ce53c:		0000: c0213000 00700000 00000000 00000000 20244000 00000001 20244001 00000002
 108ce55c:		0020: 20244002 00000003 20244003 00000000 03000000 00000000 00000000 00000000
 *

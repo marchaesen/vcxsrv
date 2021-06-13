@@ -146,16 +146,15 @@ void vbo_exec_destroy( struct gl_context *ctx )
  * This function converts 2-vertex line strips/loops into GL_LINES, etc.
  */
 void
-vbo_try_prim_conversion(struct _mesa_prim *p)
+vbo_try_prim_conversion(GLubyte *mode, unsigned *count)
 {
-   if (p->mode == GL_LINE_STRIP && p->count == 2) {
+   if (*mode == GL_LINE_STRIP && *count == 2) {
       /* convert 2-vertex line strip to a separate line */
-      p->mode = GL_LINES;
-   }
-   else if ((p->mode == GL_TRIANGLE_STRIP || p->mode == GL_TRIANGLE_FAN)
-       && p->count == 3) {
+      *mode = GL_LINES;
+   } else if ((*mode == GL_TRIANGLE_STRIP || *mode == GL_TRIANGLE_FAN) &&
+              *count == 3) {
       /* convert 3-vertex tri strip or fan to a separate triangle */
-      p->mode = GL_TRIANGLES;
+      *mode = GL_TRIANGLES;
    }
 
    /* Note: we can't convert a 4-vertex quad strip to a separate quad
@@ -171,20 +170,24 @@ vbo_try_prim_conversion(struct _mesa_prim *p)
  */
 bool
 vbo_merge_draws(struct gl_context *ctx, bool in_dlist,
-                struct _mesa_prim *p0, const struct _mesa_prim *p1)
+                GLubyte mode0, GLubyte mode1,
+                unsigned start0, unsigned start1,
+                unsigned *count0, unsigned count1,
+                unsigned basevertex0, unsigned basevertex1,
+                bool *end0, bool begin1, bool end1)
 {
    /* The prim mode must match (ex: both GL_TRIANGLES) */
-   if (p0->mode != p1->mode)
+   if (mode0 != mode1)
       return false;
 
    /* p1's vertices must come right after p0 */
-   if (p0->start + p0->count != p1->start)
+   if (start0 + *count0 != start1)
       return false;
 
    /* This checks whether mode is equal to any line primitive type, taking
     * advantage of the fact that primitives types go from 0 to 14.
     */
-   if ((1 << p0->mode) &
+   if ((1 << mode0) &
        ((1 << GL_LINES) |
         (1 << GL_LINE_LOOP) |
         (1 << GL_LINE_STRIP) |
@@ -198,7 +201,7 @@ vbo_merge_draws(struct gl_context *ctx, bool in_dlist,
        * Other uses of "begin" are internal to the vbo module, and in those
        * cases, "begin" is not used after merging draws.
        */
-      if (p1->begin == 1 && (in_dlist || ctx->Line.StippleFlag))
+      if (begin1 == 1 && (in_dlist || ctx->Line.StippleFlag))
          return false;
 
       /* _mesa_prim::end is irrelevant at this point and is only used
@@ -206,34 +209,34 @@ vbo_merge_draws(struct gl_context *ctx, bool in_dlist,
        */
    }
 
-   assert(p0->basevertex == p1->basevertex);
+   assert(basevertex0 == basevertex1);
 
-   switch (p0->mode) {
+   switch (mode0) {
    case GL_POINTS:
       /* can always merge subsequent GL_POINTS primitives */
       break;
    /* check independent primitives with no extra vertices */
    case GL_LINES:
-      if (p0->count % 2)
+      if (*count0 % 2)
          return false;
       break;
    case GL_TRIANGLES:
-      if (p0->count % 3)
+      if (*count0 % 3)
          return false;
       break;
    case GL_QUADS:
    case GL_LINES_ADJACENCY:
-      if (p0->count % 4)
+      if (*count0 % 4)
          return false;
       break;
    case GL_TRIANGLES_ADJACENCY:
-      if (p0->count % 6)
+      if (*count0 % 6)
          return false;
       break;
    case GL_PATCHES:
       /* "patch_vertices" can be unknown when compiling a display list. */
       if (in_dlist ||
-          p0->count % ctx->TessCtrlProgram.patch_vertices)
+          *count0 % ctx->TessCtrlProgram.patch_vertices)
          return false;
       break;
    default:
@@ -241,8 +244,8 @@ vbo_merge_draws(struct gl_context *ctx, bool in_dlist,
    }
 
    /* Merge draws. */
-   p0->count += p1->count;
-   p0->end = p1->end;
+   *count0 += count1;
+   *end0 = end1;
    return true;
 }
 
@@ -257,13 +260,13 @@ vbo_merge_draws(struct gl_context *ctx, bool in_dlist,
 unsigned
 vbo_copy_vertices(struct gl_context *ctx,
                   GLenum mode,
-                  struct _mesa_prim *last_prim,
+                  unsigned start, unsigned *pcount, bool begin,
                   unsigned vertex_size,
                   bool in_dlist,
                   fi_type *dst,
                   const fi_type *src)
 {
-   const unsigned count = last_prim->count;
+   const unsigned count = *pcount;
    unsigned copy = 0;
 
    switch (mode) {
@@ -307,7 +310,7 @@ vbo_copy_vertices(struct gl_context *ctx,
       }
       break;
    case GL_LINE_LOOP:
-      if (!in_dlist && last_prim->begin == 0) {
+      if (!in_dlist && begin == 0) {
          /* We're dealing with the second or later section of a split/wrapped
           * GL_LINE_LOOP.  Since we're converting line loops to line strips,
           * we've already incremented the last_prim->start counter by one to
@@ -315,7 +318,7 @@ vbo_copy_vertices(struct gl_context *ctx,
           * subtract one from last_prim->start) so that we copy the 0th vertex
           * to the next vertex buffer.
           */
-         assert(last_prim->start > 0);
+         assert(start > 0);
          src -= vertex_size;
       }
       FALLTHROUGH;
@@ -334,7 +337,7 @@ vbo_copy_vertices(struct gl_context *ctx,
       }
    case GL_TRIANGLE_STRIP:
       /* Draw an even number of triangles to keep front/back facing the same. */
-      last_prim->count -= count % 2;
+      *pcount -= count % 2;
       FALLTHROUGH;
    case GL_QUAD_STRIP:
       if (count <= 1)

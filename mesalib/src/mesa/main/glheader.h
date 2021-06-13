@@ -138,6 +138,10 @@ typedef int GLclampx;
 #define GL_SR8_EXT                                              0x8FBD
 #endif
 
+#ifndef GL_EXT_texture_sRGB_RG8
+#define GL_SRG8_EXT                                             0x8FBE
+#endif
+
 #ifndef GL_AMD_compressed_ATC_texture
 #define GL_ATC_RGB_AMD                                          0x8C92
 #define GL_ATC_RGBA_EXPLICIT_ALPHA_AMD                          0x8C93

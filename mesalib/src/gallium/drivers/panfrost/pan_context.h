@@ -31,7 +31,7 @@
 #include <assert.h>
 #include "pan_resource.h"
 #include "pan_job.h"
-#include "pan_blend.h"
+#include "pan_blend_cso.h"
 #include "pan_encoder.h"
 #include "pan_texture.h"
 #include "midgard_pack.h"
@@ -156,6 +156,9 @@ struct panfrost_context {
         struct pipe_shader_buffer ssbo[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_BUFFERS];
         uint32_t ssbo_mask[PIPE_SHADER_TYPES];
 
+        struct pipe_image_view images[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_IMAGES];
+        uint32_t image_mask[PIPE_SHADER_TYPES];
+
         struct panfrost_sampler_state *samplers[PIPE_SHADER_TYPES][PIPE_MAX_SAMPLERS];
         unsigned sampler_count[PIPE_SHADER_TYPES];
 
@@ -181,6 +184,8 @@ struct panfrost_context {
         struct panfrost_query *cond_query;
         bool cond_cond;
         enum pipe_render_cond_flag cond_mode;
+
+        bool is_noop;
 };
 
 /* Corresponds to the CSO */
@@ -205,51 +210,15 @@ struct panfrost_shader_state {
                 uint32_t offset;
         } upload;
 
-        struct MALI_SHADER shader;
-        struct MALI_RENDERER_PROPERTIES properties;
-        struct MALI_PRELOAD preload;
+        struct pan_shader_info info;
 
-        /* Non-descript information */
-        unsigned uniform_count;
-        unsigned work_reg_count;
-        bool can_discard;
-        bool writes_point_size;
-        bool writes_depth;
-        bool writes_stencil;
-        bool reads_point_coord;
-        bool reads_face;
-        bool reads_frag_coord;
-        bool writes_global;
-        unsigned stack_size;
-        unsigned shared_size;
-
-        /* Does the fragment shader have side effects? In particular, if output
-         * is masked out, is it legal to skip shader execution? */
-        bool fs_sidefx;
-
-        /* For Bifrost - output type for each RT */
-        enum mali_bifrost_register_file_format blend_types[MALI_BIFROST_BLEND_MAX_RT];
-
-        unsigned attribute_count, varying_count, ubo_count;
-        enum mali_format varyings[PIPE_MAX_ATTRIBS];
-        gl_varying_slot varyings_loc[PIPE_MAX_ATTRIBS];
         struct pipe_stream_output_info stream_output;
         uint64_t so_mask;
-
-        unsigned sysval_count;
-        unsigned sysval[MAX_SYSVAL_COUNT];
-
-        /* Should we enable helper invocations */
-        bool helper_invocations;
 
         /* GPU-executable memory */
         struct panfrost_bo *bo;
 
-        BITSET_WORD outputs_read;
         enum pipe_format rt_formats[8];
-
-        /* Blend return addresses */
-        uint32_t blend_ret_addrs[8];
 };
 
 /* A collection of varyings (the CSO) */
@@ -282,6 +251,7 @@ struct panfrost_vertex_state {
 
 struct panfrost_zsa_state {
         struct pipe_depth_stencil_alpha_state base;
+        enum mali_func alpha_func;
 
         /* Precomputed stencil state */
         struct MALI_STENCIL stencil_front;
@@ -345,7 +315,7 @@ panfrost_flush(
         unsigned flags);
 
 bool
-pan_render_condition_check(struct pipe_context *pctx);
+panfrost_render_condition_check(struct panfrost_context *ctx);
 
 mali_ptr panfrost_sfbd_fragment(struct panfrost_batch *batch, bool has_draws);
 mali_ptr panfrost_mfbd_fragment(struct panfrost_batch *batch, bool has_draws);
@@ -369,8 +339,7 @@ panfrost_shader_compile(struct panfrost_context *ctx,
                         enum pipe_shader_ir ir_type,
                         const void *ir,
                         gl_shader_stage stage,
-                        struct panfrost_shader_state *state,
-                        uint64_t *outputs_written);
+                        struct panfrost_shader_state *state);
 
 void
 panfrost_create_sampler_view_bo(struct panfrost_sampler_view *so,

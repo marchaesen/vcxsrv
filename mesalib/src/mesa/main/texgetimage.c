@@ -1394,7 +1394,7 @@ get_texture_image(struct gl_context *ctx,
    unsigned firstFace, numFaces, i;
    GLint imageStride;
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    texImage = select_tex_image(texObj, target, level, zoffset);
    assert(texImage);  /* should have been error checked already */
@@ -1768,7 +1768,7 @@ get_compressed_texture_image(struct gl_context *ctx,
    struct gl_texture_image *texImage;
    unsigned firstFace, numFaces, i, imageStride;
 
-   FLUSH_VERTICES(ctx, 0);
+   FLUSH_VERTICES(ctx, 0, 0);
 
    texImage = select_tex_image(texObj, target, level, zoffset);
    assert(texImage);  /* should have been error checked already */

@@ -385,6 +385,9 @@ int bc_parser::prepare_alu_group(cf_node* cf, alu_group_node *g) {
 		if (ctx.alu_slots(n->bc.op) & AF_4SLOT)
 			n->flags |= NF_ALU_4SLOT;
 
+		if (ctx.alu_slots(n->bc.op) & AF_2SLOT)
+			n->flags |= NF_ALU_2SLOT;
+
 		n->src.resize(src_count);
 
 		unsigned flags = n->bc.op_ptr->flags;
@@ -586,12 +589,16 @@ int bc_parser::prepare_alu_group(cf_node* cf, alu_group_node *g) {
 		alu_node *a = static_cast<alu_node*>(*I);
 		unsigned sflags = a->bc.slot_flags;
 
-		if (sflags == AF_4V || (ctx.is_cayman() && sflags == AF_S)) {
+		if (sflags == AF_4V || sflags == AF_2V  || (ctx.is_cayman() && sflags == AF_S)) {
 			if (!p)
 				p = sh->create_alu_packed();
 
 			a->remove();
 			p->push_back(a);
+                        if (sflags == AF_2V && p->count() == 2) {
+                           g->push_front(p);
+                           p = NULL;
+                        }
 		}
 	}
 

@@ -193,7 +193,7 @@ static void evergreen_cs_set_constant_buffer(struct r600_context *rctx,
 	cb.buffer = buffer;
 	cb.user_buffer = NULL;
 
-	rctx->b.b.set_constant_buffer(&rctx->b.b, PIPE_SHADER_COMPUTE, cb_index, &cb);
+	rctx->b.b.set_constant_buffer(&rctx->b.b, PIPE_SHADER_COMPUTE, cb_index, false, &cb);
 }
 
 /* We need to define these R600 registers here, because we can't include
@@ -1288,7 +1288,7 @@ static void r600_compute_global_transfer_unmap(struct pipe_context *ctx,
 	 * to an offset within the compute memory pool.  The function
 	 * r600_compute_global_transfer_map() maps the memory pool
 	 * resource rather than the struct r600_resource_global passed to
-	 * it as an argument and then initalizes ptransfer->resource with
+	 * it as an argument and then initializes ptransfer->resource with
 	 * the memory pool resource (via pipe_buffer_map_range).
 	 * When transfer_unmap is called it uses the memory pool's
 	 * vtable which calls r600_buffer_transfer_map() rather than

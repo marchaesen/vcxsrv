@@ -432,6 +432,7 @@ typedef enum pipe_format mesa_format;
 #define MESA_FORMAT_R8G8B8X8_SRGB                PIPE_FORMAT_RGBX8888_SRGB
 #define MESA_FORMAT_X8B8G8R8_SRGB                PIPE_FORMAT_XBGR8888_SRGB
 #define MESA_FORMAT_R_SRGB8                      PIPE_FORMAT_R8_SRGB
+#define MESA_FORMAT_RG_SRGB8                     PIPE_FORMAT_R8G8_SRGB
 #define MESA_FORMAT_L_SRGB8                      PIPE_FORMAT_L8_SRGB
 #define MESA_FORMAT_LA_SRGB8                     PIPE_FORMAT_L8A8_SRGB
 #define MESA_FORMAT_BGR_SRGB8                    PIPE_FORMAT_R8G8B8_SRGB

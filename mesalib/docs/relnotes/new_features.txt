@@ -1,12 +1,9 @@
-GL_EXT_demote_to_helper_invocation on radeonsi
-GL_NV_compute_shader_derivatives on radeonsi
-EGL_MESA_platform_xcb
-Removed GL_NV_point_sprite for classic swrast.
-driconf: remove glx_disable_oml_sync_control, glx_disable_sgi_video_sync, and glx_disable_ext_buffer_age
-Removed support for loading DRI drivers older than Mesa 8.0, including all DRI1 support
-Add support for VK_VALVE_mutable_descriptor_type on RADV
-Removed classic OSMesa in favor of the newly improved gallium OSMesa
-VK_KHR_fragment_shading_rate on RADV (RDNA2 only)
-Freedreno a6xx exposes GL 3.2
-Classic swrast dri driver removed in favor of gallium swrast (llvmpipe or softpipe)
-Panfrost t760/t860 exposes GL 3.0
+VK_KHR_workgroup_memory_explicit_layout on Intel, RADV
+DRM format modifiers for AMD.
+VK_KHR_zero_initialize_workgroup_memory on Intel, RADV
+Zink exposes GL 4.6 and ES 3.1
+GL_EXT_depth_bounds_test on softpipe, zink
+GL_EXT_texture_filter_minmax on nvc0 (gm200+)
+GL_ARB_texture_filter_minmax on nvc0 (gm200+)
+GL_ARB_post_depth_coverage on zink
+VK_KHR_copy_commands2 on lavapipe

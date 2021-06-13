@@ -104,8 +104,9 @@ lp_setup_alloc_triangle(struct lp_scene *scene,
    tri->inputs.stride = input_array_sz;
 
    {
-      char *a = (char *)tri;
-      char *b = (char *)&GET_PLANES(tri)[nr_planes];
+      ASSERTED char *a = (char *)tri;
+      ASSERTED char *b = (char *)&GET_PLANES(tri)[nr_planes];
+
       assert(b - a == *tri_size);
    }
 
@@ -394,6 +395,7 @@ do_triangle_ccw(struct lp_setup_context *setup,
    tri->inputs.opaque = setup->fs.current.variant->opaque;
    tri->inputs.layer = layer;
    tri->inputs.viewport_index = viewport_index;
+   tri->inputs.view_index = setup->view_index;
 
    if (0)
       lp_dump_setup_coef(&setup->setup.variant->key,

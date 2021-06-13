@@ -55,6 +55,9 @@ void
 _mesa_sha1_format(char *buf, const unsigned char *sha1);
 
 void
+_mesa_sha1_hex_to_sha1(unsigned char *buf, const char *hex);
+
+void
 _mesa_sha1_compute(const void *data, size_t size, unsigned char result[20]);
 
 #ifdef __cplusplus

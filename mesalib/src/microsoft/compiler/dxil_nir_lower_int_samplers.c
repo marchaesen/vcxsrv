@@ -71,7 +71,7 @@ dx_get_texture_lod(nir_builder *b, nir_tex_instr *tex)
    tql->is_new_style_shadow = tex->is_new_style_shadow;
    tql->texture_index = tex->texture_index;
    tql->sampler_index = tex->sampler_index;
-   tql->dest_type = nir_type_float;
+   tql->dest_type = nir_type_float32;
 
    /* The coordinate needs special handling because we might have
     * to strip the array index. Don't clutter the code  with an additional

@@ -451,7 +451,7 @@ iris_setup_uniforms(const struct brw_compiler *compiler,
                                intrin->dest.ssa.bit_size);
 
             nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                     nir_src_for_ssa(data));
+                                     data);
             continue;
          }
          case nir_intrinsic_load_user_clip_plane: {
@@ -565,20 +565,16 @@ iris_setup_uniforms(const struct brw_compiler *compiler,
             continue;
          }
 
-         nir_intrinsic_instr *load =
-            nir_intrinsic_instr_create(nir, nir_intrinsic_load_ubo);
-         load->num_components = intrin->dest.ssa.num_components;
-         load->src[0] = nir_src_for_ssa(temp_ubo_name);
-         load->src[1] = nir_src_for_ssa(offset);
-         nir_intrinsic_set_align(load, 4, 0);
-         nir_intrinsic_set_range_base(load, 0);
-         nir_intrinsic_set_range(load, ~0);
-         nir_ssa_dest_init(&load->instr, &load->dest,
-                           intrin->dest.ssa.num_components,
-                           intrin->dest.ssa.bit_size, NULL);
-         nir_builder_instr_insert(&b, &load->instr);
+         nir_ssa_def *load =
+            nir_load_ubo(&b, intrin->dest.ssa.num_components, intrin->dest.ssa.bit_size,
+                         temp_ubo_name, offset,
+                         .align_mul = 4,
+                         .align_offset = 0,
+                         .range_base = 0,
+                         .range = ~0);
+
          nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                  nir_src_for_ssa(&load->dest.ssa));
+                                  load);
          nir_instr_remove(instr);
       }
    }
@@ -814,7 +810,7 @@ iris_setup_binding_table(const struct gen_device_info *devinfo,
       bt->used_mask[IRIS_SURFACE_GROUP_RENDER_TARGET] =
          BITFIELD64_MASK(num_render_targets);
 
-      /* Setup render target read surface group inorder to support non-coherent
+      /* Setup render target read surface group in order to support non-coherent
        * framebuffer fetch on Gen8
        */
       if (devinfo->gen == 8 && info->outputs_read) {
@@ -826,8 +822,8 @@ iris_setup_binding_table(const struct gen_device_info *devinfo,
       bt->sizes[IRIS_SURFACE_GROUP_CS_WORK_GROUPS] = 1;
    }
 
-   bt->sizes[IRIS_SURFACE_GROUP_TEXTURE] = util_last_bit(info->textures_used);
-   bt->used_mask[IRIS_SURFACE_GROUP_TEXTURE] = info->textures_used;
+   bt->sizes[IRIS_SURFACE_GROUP_TEXTURE] = BITSET_LAST_BIT(info->textures_used);
+   bt->used_mask[IRIS_SURFACE_GROUP_TEXTURE] = info->textures_used[0];
 
    bt->sizes[IRIS_SURFACE_GROUP_IMAGE] = info->num_images;
 
@@ -1025,24 +1021,27 @@ iris_setup_binding_table(const struct gen_device_info *devinfo,
 }
 
 static void
-iris_debug_recompile(struct iris_context *ice,
-                     struct shader_info *info,
+iris_debug_recompile(struct iris_screen *screen,
+                     struct pipe_debug_callback *dbg,
+                     struct iris_uncompiled_shader *ish,
                      const struct brw_base_prog_key *key)
 {
-   struct iris_screen *screen = (struct iris_screen *) ice->ctx.screen;
-   const struct gen_device_info *devinfo = &screen->devinfo;
-   const struct brw_compiler *c = screen->compiler;
-
-   if (!info)
+   if (!ish || list_is_empty(&ish->variants)
+            || list_is_singular(&ish->variants))
       return;
 
-   c->shader_perf_log(&ice->dbg, "Recompiling %s shader for program %s: %s\n",
+   const struct gen_device_info *devinfo = &screen->devinfo;
+   const struct brw_compiler *c = screen->compiler;
+   const struct shader_info *info = &ish->nir->info;
+
+   c->shader_perf_log(dbg, "Recompiling %s shader for program %s: %s\n",
                       _mesa_shader_stage_to_string(info->stage),
                       info->name ? info->name : "(no identifier)",
                       info->label ? info->label : "");
 
-   const void *old_iris_key =
-      iris_find_previous_compile(ice, info->stage, key->program_string_id);
+   struct iris_compiled_shader *shader =
+      list_first_entry(&ish->variants, struct iris_compiled_shader, link);
+   const void *old_iris_key = &shader->key;
 
    union brw_any_prog_key old_key;
 
@@ -1069,7 +1068,26 @@ iris_debug_recompile(struct iris_context *ice,
       unreachable("invalid shader stage");
    }
 
-   brw_debug_key_recompile(c, &ice->dbg, info->stage, &old_key.base, key);
+   brw_debug_key_recompile(c, dbg, info->stage, &old_key.base, key);
+}
+
+static void
+check_urb_size(struct iris_context *ice,
+               unsigned needed_size,
+               gl_shader_stage stage)
+{
+   unsigned last_allocated_size = ice->shaders.urb.size[stage];
+
+   /* If the last URB allocation wasn't large enough for our needs,
+    * flag it as needing to be reconfigured.  Otherwise, we can use
+    * the existing config.  However, if the URB is constrained, and
+    * we can shrink our size for this stage, we may be able to gain
+    * extra concurrency by reconfiguring it to be smaller.  Do so.
+    */
+   if (last_allocated_size < needed_size ||
+       (ice->shaders.urb.constrained && last_allocated_size > needed_size)) {
+      ice->state.dirty |= IRIS_DIRTY_URB;
+   }
 }
 
 /**
@@ -1089,15 +1107,59 @@ last_vue_stage(struct iris_context *ice)
    return MESA_SHADER_VERTEX;
 }
 
+static inline struct iris_compiled_shader *
+find_variant(const struct iris_screen *screen,
+             struct iris_uncompiled_shader *ish,
+             const void *key, unsigned key_size)
+{
+   struct list_head *start = ish->variants.next;
+
+   if (screen->precompile) {
+      /* Check the first list entry.  There will always be at least one
+       * variant in the list (most likely the precompile variant), and
+       * other contexts only append new variants, so we can safely check
+       * it without locking, saving that cost in the common case.
+       */
+      struct iris_compiled_shader *first =
+         list_first_entry(&ish->variants, struct iris_compiled_shader, link);
+
+      if (memcmp(&first->key, key, key_size) == 0)
+         return first;
+
+      /* Skip this one in the loop below */
+      start = first->link.next;
+   }
+
+   struct iris_compiled_shader *variant = NULL;
+
+   /* If it doesn't match, we have to walk the list; other contexts may be
+    * concurrently appending shaders to it, so we need to lock here.
+    */
+   simple_mtx_lock(&ish->lock);
+
+   list_for_each_entry_from(struct iris_compiled_shader, v, start,
+                            &ish->variants, link) {
+      if (memcmp(&v->key, key, key_size) == 0) {
+         variant = v;
+         break;
+      }
+   }
+
+   simple_mtx_unlock(&ish->lock);
+
+   return variant;
+}
+
 /**
  * Compile a vertex shader, and upload the assembly.
  */
 static struct iris_compiled_shader *
-iris_compile_vs(struct iris_context *ice,
+iris_compile_vs(struct iris_screen *screen,
+                struct u_upload_mgr *uploader,
+                struct pipe_debug_callback *dbg,
                 struct iris_uncompiled_shader *ish,
                 const struct iris_vs_prog_key *key)
 {
-   struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
    const struct brw_compiler *compiler = screen->compiler;
    const struct gen_device_info *devinfo = &screen->devinfo;
    void *mem_ctx = ralloc_context(NULL);
@@ -1138,28 +1200,29 @@ iris_compile_vs(struct iris_context *ice,
 
    struct brw_vs_prog_key brw_key = iris_to_brw_vs_key(devinfo, key);
 
-   char *error_str = NULL;
-   const unsigned *program =
-      brw_compile_vs(compiler, &ice->dbg, mem_ctx, &brw_key, vs_prog_data,
-                     nir, -1, NULL, &error_str);
+   struct brw_compile_vs_params params = {
+      .nir = nir,
+      .key = &brw_key,
+      .prog_data = vs_prog_data,
+      .log_data = dbg,
+   };
+
+   const unsigned *program = brw_compile_vs(compiler, mem_ctx, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile vertex shader: %s\n", error_str);
+      dbg_printf("Failed to compile vertex shader: %s\n", params.error_str);
       ralloc_free(mem_ctx);
       return false;
    }
 
-   if (ish->compiled_once) {
-      iris_debug_recompile(ice, &nir->info, &brw_key.base);
-   } else {
-      ish->compiled_once = true;
-   }
+   iris_debug_recompile(screen, dbg, ish, &brw_key.base);
 
    uint32_t *so_decls =
       screen->vtbl.create_so_decl_list(&ish->stream_output,
                                     &vue_prog_data->vue_map);
 
    struct iris_compiled_shader *shader =
-      iris_upload_shader(ice, IRIS_CACHE_VS, sizeof(*key), key, program,
+      iris_upload_shader(screen, ish, NULL, uploader,
+                         IRIS_CACHE_VS, sizeof(*key), key, program,
                          prog_data, so_decls, system_values, num_system_values,
                          0, num_cbufs, &bt);
 
@@ -1179,6 +1242,7 @@ iris_update_compiled_vs(struct iris_context *ice)
 {
    struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
    struct iris_shader_state *shs = &ice->state.shaders[MESA_SHADER_VERTEX];
+   struct u_upload_mgr *uploader = ice->shaders.uploader_driver;
    struct iris_uncompiled_shader *ish =
       ice->shaders.uncompiled[MESA_SHADER_VERTEX];
 
@@ -1187,42 +1251,28 @@ iris_update_compiled_vs(struct iris_context *ice)
 
    struct iris_compiled_shader *old = ice->shaders.prog[IRIS_CACHE_VS];
    struct iris_compiled_shader *shader =
-      iris_find_cached_shader(ice, IRIS_CACHE_VS, sizeof(key), &key);
+      find_variant(screen, ish, &key, sizeof(key));
+
+   if (!shader) {
+      shader = iris_disk_cache_retrieve(screen, uploader, ish,
+                                        &key, sizeof(key));
+   }
 
    if (!shader)
-      shader = iris_disk_cache_retrieve(ice, ish, &key, sizeof(key));
-
-   if (!shader)
-      shader = iris_compile_vs(ice, ish, &key);
+      shader = iris_compile_vs(screen, uploader, &ice->dbg, ish, &key);
 
    if (old != shader) {
-      ice->shaders.prog[IRIS_CACHE_VS] = shader;
+      iris_shader_variant_reference(&ice->shaders.prog[MESA_SHADER_VERTEX],
+                                    shader);
       ice->state.dirty |= IRIS_DIRTY_VF_SGVS;
       ice->state.stage_dirty |= IRIS_STAGE_DIRTY_VS |
                                 IRIS_STAGE_DIRTY_BINDINGS_VS |
                                 IRIS_STAGE_DIRTY_CONSTANTS_VS;
       shs->sysvals_need_upload = true;
 
-      const struct brw_vs_prog_data *vs_prog_data =
-            (void *) shader->prog_data;
-      const bool uses_draw_params = vs_prog_data->uses_firstvertex ||
-                                    vs_prog_data->uses_baseinstance;
-      const bool uses_derived_draw_params = vs_prog_data->uses_drawid ||
-                                            vs_prog_data->uses_is_indexed_draw;
-      const bool needs_sgvs_element = uses_draw_params ||
-                                      vs_prog_data->uses_instanceid ||
-                                      vs_prog_data->uses_vertexid;
-
-      if (ice->state.vs_uses_draw_params != uses_draw_params ||
-          ice->state.vs_uses_derived_draw_params != uses_derived_draw_params ||
-          ice->state.vs_needs_edge_flag != ish->needs_edge_flag) {
-         ice->state.dirty |= IRIS_DIRTY_VERTEX_BUFFERS |
-                             IRIS_DIRTY_VERTEX_ELEMENTS;
-      }
-      ice->state.vs_uses_draw_params = uses_draw_params;
-      ice->state.vs_uses_derived_draw_params = uses_derived_draw_params;
-      ice->state.vs_needs_sgvs_element = needs_sgvs_element;
-      ice->state.vs_needs_edge_flag = ish->needs_edge_flag;
+      const struct brw_vue_prog_data *vue_prog_data =
+         (void *) shader->prog_data;
+      check_urb_size(ice, vue_prog_data->urb_entry_size, MESA_SHADER_VERTEX);
    }
 }
 
@@ -1276,11 +1326,13 @@ get_unified_tess_slots(const struct iris_context *ice,
  * Compile a tessellation control shader, and upload the assembly.
  */
 static struct iris_compiled_shader *
-iris_compile_tcs(struct iris_context *ice,
+iris_compile_tcs(struct iris_screen *screen,
+                 struct hash_table *passthrough_ht,
+                 struct u_upload_mgr *uploader,
+                 struct pipe_debug_callback *dbg,
                  struct iris_uncompiled_shader *ish,
                  const struct iris_tcs_prog_key *key)
 {
-   struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
    const struct brw_compiler *compiler = screen->compiler;
    const struct nir_shader_compiler_options *options =
       compiler->glsl_compiler_options[MESA_SHADER_TESS_CTRL].NirOptions;
@@ -1348,7 +1400,7 @@ iris_compile_tcs(struct iris_context *ice,
 
    char *error_str = NULL;
    const unsigned *program =
-      brw_compile_tcs(compiler, &ice->dbg, mem_ctx, &brw_key, tcs_prog_data,
+      brw_compile_tcs(compiler, dbg, mem_ctx, &brw_key, tcs_prog_data,
                       nir, -1, NULL, &error_str);
    if (program == NULL) {
       dbg_printf("Failed to compile control shader: %s\n", error_str);
@@ -1356,16 +1408,11 @@ iris_compile_tcs(struct iris_context *ice,
       return false;
    }
 
-   if (ish) {
-      if (ish->compiled_once) {
-         iris_debug_recompile(ice, &nir->info, &brw_key.base);
-      } else {
-         ish->compiled_once = true;
-      }
-   }
+   iris_debug_recompile(screen, dbg, ish, &brw_key.base);
 
    struct iris_compiled_shader *shader =
-      iris_upload_shader(ice, IRIS_CACHE_TCS, sizeof(*key), key, program,
+      iris_upload_shader(screen, ish, passthrough_ht, uploader,
+                         IRIS_CACHE_TCS, sizeof(*key), key, program,
                          prog_data, NULL, system_values, num_system_values,
                          0, num_cbufs, &bt);
 
@@ -1388,6 +1435,7 @@ iris_update_compiled_tcs(struct iris_context *ice)
    struct iris_uncompiled_shader *tcs =
       ice->shaders.uncompiled[MESA_SHADER_TESS_CTRL];
    struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
+   struct u_upload_mgr *uploader = ice->shaders.uploader_driver;
    const struct brw_compiler *compiler = screen->compiler;
    const struct gen_device_info *devinfo = &screen->devinfo;
 
@@ -1408,20 +1456,29 @@ iris_update_compiled_tcs(struct iris_context *ice)
 
    struct iris_compiled_shader *old = ice->shaders.prog[IRIS_CACHE_TCS];
    struct iris_compiled_shader *shader =
+      tcs ? find_variant(screen, tcs, &key, sizeof(key)) :
       iris_find_cached_shader(ice, IRIS_CACHE_TCS, sizeof(key), &key);
 
-   if (tcs && !shader)
-      shader = iris_disk_cache_retrieve(ice, tcs, &key, sizeof(key));
+   if (tcs && !shader) {
+      shader = iris_disk_cache_retrieve(screen, uploader, tcs,
+                                        &key, sizeof(key));
+   }
 
-   if (!shader)
-      shader = iris_compile_tcs(ice, tcs, &key);
+   if (!shader) {
+      shader = iris_compile_tcs(screen, ice->shaders.cache,
+                                uploader, &ice->dbg, tcs, &key);
+   }
 
    if (old != shader) {
-      ice->shaders.prog[IRIS_CACHE_TCS] = shader;
+      iris_shader_variant_reference(&ice->shaders.prog[MESA_SHADER_TESS_CTRL],
+                                    shader);
       ice->state.stage_dirty |= IRIS_STAGE_DIRTY_TCS |
                                 IRIS_STAGE_DIRTY_BINDINGS_TCS |
                                 IRIS_STAGE_DIRTY_CONSTANTS_TCS;
       shs->sysvals_need_upload = true;
+
+      const struct brw_vue_prog_data *prog_data = (void *) shader->prog_data;
+      check_urb_size(ice, prog_data->urb_entry_size, MESA_SHADER_TESS_CTRL);
    }
 }
 
@@ -1429,11 +1486,12 @@ iris_update_compiled_tcs(struct iris_context *ice)
  * Compile a tessellation evaluation shader, and upload the assembly.
  */
 static struct iris_compiled_shader *
-iris_compile_tes(struct iris_context *ice,
+iris_compile_tes(struct iris_screen *screen,
+                 struct u_upload_mgr *uploader,
+                 struct pipe_debug_callback *dbg,
                  struct iris_uncompiled_shader *ish,
                  const struct iris_tes_prog_key *key)
 {
-   struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
    const struct brw_compiler *compiler = screen->compiler;
    void *mem_ctx = ralloc_context(NULL);
    struct brw_tes_prog_data *tes_prog_data =
@@ -1474,7 +1532,7 @@ iris_compile_tes(struct iris_context *ice,
 
    char *error_str = NULL;
    const unsigned *program =
-      brw_compile_tes(compiler, &ice->dbg, mem_ctx, &brw_key, &input_vue_map,
+      brw_compile_tes(compiler, dbg, mem_ctx, &brw_key, &input_vue_map,
                       tes_prog_data, nir, -1, NULL, &error_str);
    if (program == NULL) {
       dbg_printf("Failed to compile evaluation shader: %s\n", error_str);
@@ -1482,11 +1540,7 @@ iris_compile_tes(struct iris_context *ice,
       return false;
    }
 
-   if (ish->compiled_once) {
-      iris_debug_recompile(ice, &nir->info, &brw_key.base);
-   } else {
-      ish->compiled_once = true;
-   }
+   iris_debug_recompile(screen, dbg, ish, &brw_key.base);
 
    uint32_t *so_decls =
       screen->vtbl.create_so_decl_list(&ish->stream_output,
@@ -1494,7 +1548,8 @@ iris_compile_tes(struct iris_context *ice,
 
 
    struct iris_compiled_shader *shader =
-      iris_upload_shader(ice, IRIS_CACHE_TES, sizeof(*key), key, program,
+      iris_upload_shader(screen, ish, NULL, uploader,
+                         IRIS_CACHE_TES, sizeof(*key), key, program,
                          prog_data, so_decls, system_values, num_system_values,
                          0, num_cbufs, &bt);
 
@@ -1513,6 +1568,7 @@ static void
 iris_update_compiled_tes(struct iris_context *ice)
 {
    struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
+   struct u_upload_mgr *uploader = ice->shaders.uploader_driver;
    struct iris_shader_state *shs = &ice->state.shaders[MESA_SHADER_TESS_EVAL];
    struct iris_uncompiled_shader *ish =
       ice->shaders.uncompiled[MESA_SHADER_TESS_EVAL];
@@ -1523,25 +1579,31 @@ iris_update_compiled_tes(struct iris_context *ice)
 
    struct iris_compiled_shader *old = ice->shaders.prog[IRIS_CACHE_TES];
    struct iris_compiled_shader *shader =
-      iris_find_cached_shader(ice, IRIS_CACHE_TES, sizeof(key), &key);
+      find_variant(screen, ish, &key, sizeof(key));
+
+   if (!shader) {
+      shader = iris_disk_cache_retrieve(screen, uploader, ish,
+                                        &key, sizeof(key));
+   }
 
    if (!shader)
-      shader = iris_disk_cache_retrieve(ice, ish, &key, sizeof(key));
-
-   if (!shader)
-      shader = iris_compile_tes(ice, ish, &key);
+      shader = iris_compile_tes(screen, uploader, &ice->dbg, ish, &key);
 
    if (old != shader) {
-      ice->shaders.prog[IRIS_CACHE_TES] = shader;
+      iris_shader_variant_reference(&ice->shaders.prog[MESA_SHADER_TESS_EVAL],
+                                    shader);
       ice->state.stage_dirty |= IRIS_STAGE_DIRTY_TES |
                                 IRIS_STAGE_DIRTY_BINDINGS_TES |
                                 IRIS_STAGE_DIRTY_CONSTANTS_TES;
       shs->sysvals_need_upload = true;
+
+      const struct brw_vue_prog_data *prog_data = (void *) shader->prog_data;
+      check_urb_size(ice, prog_data->urb_entry_size, MESA_SHADER_TESS_EVAL);
    }
 
    /* TODO: Could compare and avoid flagging this. */
    const struct shader_info *tes_info = &ish->nir->info;
-   if (tes_info->system_values_read & (1ull << SYSTEM_VALUE_VERTICES_IN)) {
+   if (BITSET_TEST(tes_info->system_values_read, SYSTEM_VALUE_VERTICES_IN)) {
       ice->state.stage_dirty |= IRIS_STAGE_DIRTY_CONSTANTS_TES;
       ice->state.shaders[MESA_SHADER_TESS_EVAL].sysvals_need_upload = true;
    }
@@ -1551,11 +1613,12 @@ iris_update_compiled_tes(struct iris_context *ice)
  * Compile a geometry shader, and upload the assembly.
  */
 static struct iris_compiled_shader *
-iris_compile_gs(struct iris_context *ice,
+iris_compile_gs(struct iris_screen *screen,
+                struct u_upload_mgr *uploader,
+                struct pipe_debug_callback *dbg,
                 struct iris_uncompiled_shader *ish,
                 const struct iris_gs_prog_key *key)
 {
-   struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
    const struct brw_compiler *compiler = screen->compiler;
    const struct gen_device_info *devinfo = &screen->devinfo;
    void *mem_ctx = ralloc_context(NULL);
@@ -1596,7 +1659,7 @@ iris_compile_gs(struct iris_context *ice,
 
    char *error_str = NULL;
    const unsigned *program =
-      brw_compile_gs(compiler, &ice->dbg, mem_ctx, &brw_key, gs_prog_data,
+      brw_compile_gs(compiler, dbg, mem_ctx, &brw_key, gs_prog_data,
                      nir, NULL, -1, NULL, &error_str);
    if (program == NULL) {
       dbg_printf("Failed to compile geometry shader: %s\n", error_str);
@@ -1604,18 +1667,15 @@ iris_compile_gs(struct iris_context *ice,
       return false;
    }
 
-   if (ish->compiled_once) {
-      iris_debug_recompile(ice, &nir->info, &brw_key.base);
-   } else {
-      ish->compiled_once = true;
-   }
+   iris_debug_recompile(screen, dbg, ish, &brw_key.base);
 
    uint32_t *so_decls =
       screen->vtbl.create_so_decl_list(&ish->stream_output,
                                     &vue_prog_data->vue_map);
 
    struct iris_compiled_shader *shader =
-      iris_upload_shader(ice, IRIS_CACHE_GS, sizeof(*key), key, program,
+      iris_upload_shader(screen, ish, NULL, uploader,
+                         IRIS_CACHE_GS, sizeof(*key), key, program,
                          prog_data, so_decls, system_values, num_system_values,
                          0, num_cbufs, &bt);
 
@@ -1634,6 +1694,7 @@ static void
 iris_update_compiled_gs(struct iris_context *ice)
 {
    struct iris_shader_state *shs = &ice->state.shaders[MESA_SHADER_GEOMETRY];
+   struct u_upload_mgr *uploader = ice->shaders.uploader_driver;
    struct iris_uncompiled_shader *ish =
       ice->shaders.uncompiled[MESA_SHADER_GEOMETRY];
    struct iris_compiled_shader *old = ice->shaders.prog[IRIS_CACHE_GS];
@@ -1644,22 +1705,28 @@ iris_update_compiled_gs(struct iris_context *ice)
       struct iris_gs_prog_key key = { KEY_ID(vue.base) };
       screen->vtbl.populate_gs_key(ice, &ish->nir->info, last_vue_stage(ice), &key);
 
-      shader =
-         iris_find_cached_shader(ice, IRIS_CACHE_GS, sizeof(key), &key);
+      shader = find_variant(screen, ish, &key, sizeof(key));
+
+      if (!shader) {
+         shader = iris_disk_cache_retrieve(screen, uploader, ish,
+                                           &key, sizeof(key));
+      }
 
       if (!shader)
-         shader = iris_disk_cache_retrieve(ice, ish, &key, sizeof(key));
-
-      if (!shader)
-         shader = iris_compile_gs(ice, ish, &key);
+         shader = iris_compile_gs(screen, uploader, &ice->dbg, ish, &key);
    }
 
    if (old != shader) {
-      ice->shaders.prog[IRIS_CACHE_GS] = shader;
+      iris_shader_variant_reference(&ice->shaders.prog[MESA_SHADER_GEOMETRY],
+                                    shader);
       ice->state.stage_dirty |= IRIS_STAGE_DIRTY_GS |
                                 IRIS_STAGE_DIRTY_BINDINGS_GS |
                                 IRIS_STAGE_DIRTY_CONSTANTS_GS;
       shs->sysvals_need_upload = true;
+
+      unsigned urb_entry_size = shader ?
+         ((struct brw_vue_prog_data *) shader->prog_data)->urb_entry_size : 0;
+      check_urb_size(ice, urb_entry_size, MESA_SHADER_GEOMETRY);
    }
 }
 
@@ -1667,12 +1734,13 @@ iris_update_compiled_gs(struct iris_context *ice)
  * Compile a fragment (pixel) shader, and upload the assembly.
  */
 static struct iris_compiled_shader *
-iris_compile_fs(struct iris_context *ice,
+iris_compile_fs(struct iris_screen *screen,
+                struct u_upload_mgr *uploader,
+                struct pipe_debug_callback *dbg,
                 struct iris_uncompiled_shader *ish,
                 const struct iris_fs_prog_key *key,
                 struct brw_vue_map *vue_map)
 {
-   struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
    const struct brw_compiler *compiler = screen->compiler;
    void *mem_ctx = ralloc_context(NULL);
    struct brw_wm_prog_data *fs_prog_data =
@@ -1712,25 +1780,29 @@ iris_compile_fs(struct iris_context *ice,
 
    struct brw_wm_prog_key brw_key = iris_to_brw_fs_key(devinfo, key);
 
-   char *error_str = NULL;
-   const unsigned *program =
-      brw_compile_fs(compiler, &ice->dbg, mem_ctx, &brw_key, fs_prog_data,
-                     nir, -1, -1, -1, true, false, vue_map,
-                     NULL, &error_str);
+   struct brw_compile_fs_params params = {
+      .nir = nir,
+      .key = &brw_key,
+      .prog_data = fs_prog_data,
+
+      .allow_spilling = true,
+      .vue_map = vue_map,
+
+      .log_data = dbg,
+   };
+
+   const unsigned *program = brw_compile_fs(compiler, mem_ctx, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile fragment shader: %s\n", error_str);
+      dbg_printf("Failed to compile fragment shader: %s\n", params.error_str);
       ralloc_free(mem_ctx);
       return false;
    }
 
-   if (ish->compiled_once) {
-      iris_debug_recompile(ice, &nir->info, &brw_key.base);
-   } else {
-      ish->compiled_once = true;
-   }
+   iris_debug_recompile(screen, dbg, ish, &brw_key.base);
 
    struct iris_compiled_shader *shader =
-      iris_upload_shader(ice, IRIS_CACHE_FS, sizeof(*key), key, program,
+      iris_upload_shader(screen, ish, NULL, uploader,
+                         IRIS_CACHE_FS, sizeof(*key), key, program,
                          prog_data, NULL, system_values, num_system_values,
                          0, num_cbufs, &bt);
 
@@ -1749,29 +1821,38 @@ static void
 iris_update_compiled_fs(struct iris_context *ice)
 {
    struct iris_shader_state *shs = &ice->state.shaders[MESA_SHADER_FRAGMENT];
+   struct u_upload_mgr *uploader = ice->shaders.uploader_driver;
    struct iris_uncompiled_shader *ish =
       ice->shaders.uncompiled[MESA_SHADER_FRAGMENT];
    struct iris_fs_prog_key key = { KEY_ID(base) };
    struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
    screen->vtbl.populate_fs_key(ice, &ish->nir->info, &key);
 
+   struct brw_vue_map *last_vue_map =
+      &brw_vue_prog_data(ice->shaders.last_vue_shader->prog_data)->vue_map;
+
    if (ish->nos & (1ull << IRIS_NOS_LAST_VUE_MAP))
-      key.input_slots_valid = ice->shaders.last_vue_map->slots_valid;
+      key.input_slots_valid = last_vue_map->slots_valid;
 
    struct iris_compiled_shader *old = ice->shaders.prog[IRIS_CACHE_FS];
    struct iris_compiled_shader *shader =
-      iris_find_cached_shader(ice, IRIS_CACHE_FS, sizeof(key), &key);
+      find_variant(screen, ish, &key, sizeof(key));
 
-   if (!shader)
-      shader = iris_disk_cache_retrieve(ice, ish, &key, sizeof(key));
+   if (!shader) {
+      shader = iris_disk_cache_retrieve(screen, uploader, ish,
+                                        &key, sizeof(key));
+   }
 
-   if (!shader)
-      shader = iris_compile_fs(ice, ish, &key, ice->shaders.last_vue_map);
+   if (!shader) {
+      shader = iris_compile_fs(screen, uploader, &ice->dbg,
+                               ish, &key, last_vue_map);
+   }
 
    if (old != shader) {
       // XXX: only need to flag CLIP if barycentric has NONPERSPECTIVE
       // toggles.  might be able to avoid flagging SBE too.
-      ice->shaders.prog[IRIS_CACHE_FS] = shader;
+      iris_shader_variant_reference(&ice->shaders.prog[MESA_SHADER_FRAGMENT],
+                                    shader);
       ice->state.dirty |= IRIS_DIRTY_WM |
                           IRIS_DIRTY_CLIP |
                           IRIS_DIRTY_SBE;
@@ -1790,11 +1871,12 @@ iris_update_compiled_fs(struct iris_context *ice)
  */
 static void
 update_last_vue_map(struct iris_context *ice,
-                    struct brw_stage_prog_data *prog_data)
+                    struct iris_compiled_shader *shader)
 {
-   struct brw_vue_prog_data *vue_prog_data = (void *) prog_data;
+   struct brw_vue_prog_data *vue_prog_data = (void *) shader->prog_data;
    struct brw_vue_map *vue_map = &vue_prog_data->vue_map;
-   struct brw_vue_map *old_map = ice->shaders.last_vue_map;
+   struct brw_vue_map *old_map = !ice->shaders.last_vue_shader ? NULL :
+      &brw_vue_prog_data(ice->shaders.last_vue_shader->prog_data)->vue_map;
    const uint64_t changed_slots =
       (old_map ? old_map->slots_valid : 0ull) ^ vue_map->slots_valid;
 
@@ -1813,7 +1895,7 @@ update_last_vue_map(struct iris_context *ice,
       ice->state.dirty |= IRIS_DIRTY_SBE;
    }
 
-   ice->shaders.last_vue_map = &vue_prog_data->vue_map;
+   iris_shader_variant_reference(&ice->shaders.last_vue_shader, shader);
 }
 
 static void
@@ -1847,18 +1929,6 @@ iris_update_pull_constant_descriptors(struct iris_context *ice,
 }
 
 /**
- * Get the prog_data for a given stage, or NULL if the stage is disabled.
- */
-static struct brw_vue_prog_data *
-get_vue_prog_data(struct iris_context *ice, gl_shader_stage stage)
-{
-   if (!ice->shaders.prog[stage])
-      return NULL;
-
-   return (void *) ice->shaders.prog[stage]->prog_data;
-}
-
-/**
  * Update the current shader variants for the given state.
  *
  * This should be called on every draw call to ensure that the correct
@@ -1868,14 +1938,7 @@ get_vue_prog_data(struct iris_context *ice, gl_shader_stage stage)
 void
 iris_update_compiled_shaders(struct iris_context *ice)
 {
-   const uint64_t dirty = ice->state.dirty;
    const uint64_t stage_dirty = ice->state.stage_dirty;
-
-   struct brw_vue_prog_data *old_prog_datas[4];
-   if (!(dirty & IRIS_DIRTY_URB)) {
-      for (int i = MESA_SHADER_VERTEX; i <= MESA_SHADER_GEOMETRY; i++)
-         old_prog_datas[i] = get_vue_prog_data(ice, i);
-   }
 
    if (stage_dirty & (IRIS_STAGE_DIRTY_UNCOMPILED_TCS |
                       IRIS_STAGE_DIRTY_UNCOMPILED_TES)) {
@@ -1885,12 +1948,15 @@ iris_update_compiled_shaders(struct iris_context *ice)
           iris_update_compiled_tcs(ice);
           iris_update_compiled_tes(ice);
        } else {
-          ice->shaders.prog[IRIS_CACHE_TCS] = NULL;
-          ice->shaders.prog[IRIS_CACHE_TES] = NULL;
+         iris_shader_variant_reference(&ice->shaders.prog[MESA_SHADER_TESS_CTRL], NULL);
+         iris_shader_variant_reference(&ice->shaders.prog[MESA_SHADER_TESS_EVAL], NULL);
           ice->state.stage_dirty |=
              IRIS_STAGE_DIRTY_TCS | IRIS_STAGE_DIRTY_TES |
              IRIS_STAGE_DIRTY_BINDINGS_TCS | IRIS_STAGE_DIRTY_BINDINGS_TES |
              IRIS_STAGE_DIRTY_CONSTANTS_TCS | IRIS_STAGE_DIRTY_CONSTANTS_TES;
+
+          if (ice->shaders.urb.constrained)
+             ice->state.dirty |= IRIS_DIRTY_URB;
        }
    }
 
@@ -1930,7 +1996,7 @@ iris_update_compiled_shaders(struct iris_context *ice)
    gl_shader_stage last_stage = last_vue_stage(ice);
    struct iris_compiled_shader *shader = ice->shaders.prog[last_stage];
    struct iris_uncompiled_shader *ish = ice->shaders.uncompiled[last_stage];
-   update_last_vue_map(ice, shader->prog_data);
+   update_last_vue_map(ice, shader);
    if (ice->state.streamout != shader->streamout) {
       ice->state.streamout = shader->streamout;
       ice->state.dirty |= IRIS_DIRTY_SO_DECL_LIST | IRIS_DIRTY_STREAMOUT;
@@ -1948,19 +2014,6 @@ iris_update_compiled_shaders(struct iris_context *ice)
    if (stage_dirty & IRIS_STAGE_DIRTY_UNCOMPILED_FS)
       iris_update_compiled_fs(ice);
 
-   /* Changing shader interfaces may require a URB configuration. */
-   if (!(dirty & IRIS_DIRTY_URB)) {
-      for (int i = MESA_SHADER_VERTEX; i <= MESA_SHADER_GEOMETRY; i++) {
-         struct brw_vue_prog_data *old = old_prog_datas[i];
-         struct brw_vue_prog_data *new = get_vue_prog_data(ice, i);
-         if (!!old != !!new ||
-             (new && new->urb_entry_size != old->urb_entry_size)) {
-            ice->state.dirty |= IRIS_DIRTY_URB;
-            break;
-         }
-      }
-   }
-
    for (int i = MESA_SHADER_VERTEX; i <= MESA_SHADER_FRAGMENT; i++) {
       if (ice->state.stage_dirty & (IRIS_STAGE_DIRTY_CONSTANTS_VS << i))
          iris_update_pull_constant_descriptors(ice, i);
@@ -1968,11 +2021,12 @@ iris_update_compiled_shaders(struct iris_context *ice)
 }
 
 static struct iris_compiled_shader *
-iris_compile_cs(struct iris_context *ice,
+iris_compile_cs(struct iris_screen *screen,
+                struct u_upload_mgr *uploader,
+                struct pipe_debug_callback *dbg,
                 struct iris_uncompiled_shader *ish,
                 const struct iris_cs_prog_key *key)
 {
-   struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
    const struct brw_compiler *compiler = screen->compiler;
    void *mem_ctx = ralloc_context(NULL);
    struct brw_cs_prog_data *cs_prog_data =
@@ -1997,24 +2051,25 @@ iris_compile_cs(struct iris_context *ice,
 
    struct brw_cs_prog_key brw_key = iris_to_brw_cs_key(devinfo, key);
 
-   char *error_str = NULL;
-   const unsigned *program =
-      brw_compile_cs(compiler, &ice->dbg, mem_ctx, &brw_key, cs_prog_data,
-                     nir, -1, NULL, &error_str);
+   struct brw_compile_cs_params params = {
+      .nir = nir,
+      .key = &brw_key,
+      .prog_data = cs_prog_data,
+      .log_data = dbg,
+   };
+
+   const unsigned *program = brw_compile_cs(compiler, mem_ctx, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile compute shader: %s\n", error_str);
+      dbg_printf("Failed to compile compute shader: %s\n", params.error_str);
       ralloc_free(mem_ctx);
       return false;
    }
 
-   if (ish->compiled_once) {
-      iris_debug_recompile(ice, &nir->info, &brw_key.base);
-   } else {
-      ish->compiled_once = true;
-   }
+   iris_debug_recompile(screen, dbg, ish, &brw_key.base);
 
    struct iris_compiled_shader *shader =
-      iris_upload_shader(ice, IRIS_CACHE_CS, sizeof(*key), key, program,
+      iris_upload_shader(screen, ish, NULL, uploader,
+                         IRIS_CACHE_CS, sizeof(*key), key, program,
                          prog_data, NULL, system_values, num_system_values,
                          ish->kernel_input_size, num_cbufs, &bt);
 
@@ -2028,6 +2083,7 @@ static void
 iris_update_compiled_cs(struct iris_context *ice)
 {
    struct iris_shader_state *shs = &ice->state.shaders[MESA_SHADER_COMPUTE];
+   struct u_upload_mgr *uploader = ice->shaders.uploader_driver;
    struct iris_uncompiled_shader *ish =
       ice->shaders.uncompiled[MESA_SHADER_COMPUTE];
 
@@ -2037,16 +2093,19 @@ iris_update_compiled_cs(struct iris_context *ice)
 
    struct iris_compiled_shader *old = ice->shaders.prog[IRIS_CACHE_CS];
    struct iris_compiled_shader *shader =
-      iris_find_cached_shader(ice, IRIS_CACHE_CS, sizeof(key), &key);
+      find_variant(screen, ish, &key, sizeof(key));
+
+   if (!shader) {
+      shader = iris_disk_cache_retrieve(screen, uploader, ish,
+                                        &key, sizeof(key));
+   }
 
    if (!shader)
-      shader = iris_disk_cache_retrieve(ice, ish, &key, sizeof(key));
-
-   if (!shader)
-      shader = iris_compile_cs(ice, ish, &key);
+      shader = iris_compile_cs(screen, uploader, &ice->dbg, ish, &key);
 
    if (old != shader) {
-      ice->shaders.prog[IRIS_CACHE_CS] = shader;
+      iris_shader_variant_reference(&ice->shaders.prog[MESA_SHADER_COMPUTE],
+                                    shader);
       ice->state.stage_dirty |= IRIS_STAGE_DIRTY_CS |
                                 IRIS_STAGE_DIRTY_BINDINGS_CS |
                                 IRIS_STAGE_DIRTY_CONSTANTS_CS;
@@ -2109,8 +2168,8 @@ iris_get_scratch_space(struct iris_context *ice,
     * in the base configuration.
     */
    unsigned subslice_total = screen->subslice_total;
-   if (devinfo->gen >= 12)
-      subslice_total = devinfo->num_subslices[0];
+   if (devinfo->gen == 12)
+      subslice_total = (devinfo->is_dg1 || devinfo->gt == 2 ? 6 : 2);
    else if (devinfo->gen == 11)
       subslice_total = 8;
    else if (devinfo->gen < 11)
@@ -2165,17 +2224,19 @@ iris_get_scratch_space(struct iris_context *ice,
  * Actual shader compilation to assembly happens later, at first use.
  */
 static void *
-iris_create_uncompiled_shader(struct pipe_context *ctx,
+iris_create_uncompiled_shader(struct iris_screen *screen,
                               nir_shader *nir,
                               const struct pipe_stream_output_info *so_info)
 {
-   struct iris_screen *screen = (struct iris_screen *)ctx->screen;
    const struct gen_device_info *devinfo = &screen->devinfo;
 
    struct iris_uncompiled_shader *ish =
       calloc(1, sizeof(struct iris_uncompiled_shader));
    if (!ish)
       return NULL;
+
+   list_inithead(&ish->variants);
+   simple_mtx_init(&ish->lock, mtx_plain);
 
    NIR_PASS(ish->needs_edge_flag, nir, iris_fix_edge_flags);
 
@@ -2218,6 +2279,7 @@ static struct iris_uncompiled_shader *
 iris_create_shader_state(struct pipe_context *ctx,
                          const struct pipe_shader_state *state)
 {
+   struct iris_screen *screen = (void *) ctx->screen;
    struct nir_shader *nir;
 
    if (state->type == PIPE_SHADER_IR_TGSI)
@@ -2225,7 +2287,7 @@ iris_create_shader_state(struct pipe_context *ctx,
    else
       nir = state->ir.nir;
 
-   return iris_create_uncompiled_shader(ctx, nir, &state->stream_output);
+   return iris_create_uncompiled_shader(screen, nir, &state->stream_output);
 }
 
 static void *
@@ -2234,6 +2296,7 @@ iris_create_vs_state(struct pipe_context *ctx,
 {
    struct iris_context *ice = (void *) ctx;
    struct iris_screen *screen = (void *) ctx->screen;
+   struct u_upload_mgr *uploader = ice->shaders.uploader_unsync;
    struct iris_uncompiled_shader *ish = iris_create_shader_state(ctx, state);
 
    /* User clip planes */
@@ -2243,8 +2306,8 @@ iris_create_vs_state(struct pipe_context *ctx,
    if (screen->precompile) {
       struct iris_vs_prog_key key = { KEY_ID(vue.base) };
 
-      if (!iris_disk_cache_retrieve(ice, ish, &key, sizeof(key)))
-         iris_compile_vs(ice, ish, &key);
+      if (!iris_disk_cache_retrieve(screen, uploader, ish, &key, sizeof(key)))
+         iris_compile_vs(screen, uploader, &ice->dbg, ish, &key);
    }
 
    return ish;
@@ -2257,6 +2320,7 @@ iris_create_tcs_state(struct pipe_context *ctx,
    struct iris_context *ice = (void *) ctx;
    struct iris_screen *screen = (void *) ctx->screen;
    const struct brw_compiler *compiler = screen->compiler;
+   struct u_upload_mgr *uploader = ice->shaders.uploader_unsync;
    struct iris_uncompiled_shader *ish = iris_create_shader_state(ctx, state);
    struct shader_info *info = &ish->nir->info;
 
@@ -2280,8 +2344,8 @@ iris_create_tcs_state(struct pipe_context *ctx,
       if (compiler->use_tcs_8_patch)
          key.input_vertices = info->tess.tcs_vertices_out;
 
-      if (!iris_disk_cache_retrieve(ice, ish, &key, sizeof(key)))
-         iris_compile_tcs(ice, ish, &key);
+      if (!iris_disk_cache_retrieve(screen, uploader, ish, &key, sizeof(key)))
+         iris_compile_tcs(screen, NULL, uploader, &ice->dbg, ish, &key);
    }
 
    return ish;
@@ -2289,10 +2353,11 @@ iris_create_tcs_state(struct pipe_context *ctx,
 
 static void *
 iris_create_tes_state(struct pipe_context *ctx,
-                     const struct pipe_shader_state *state)
+                      const struct pipe_shader_state *state)
 {
    struct iris_context *ice = (void *) ctx;
    struct iris_screen *screen = (void *) ctx->screen;
+   struct u_upload_mgr *uploader = ice->shaders.uploader_unsync;
    struct iris_uncompiled_shader *ish = iris_create_shader_state(ctx, state);
    struct shader_info *info = &ish->nir->info;
 
@@ -2308,8 +2373,8 @@ iris_create_tes_state(struct pipe_context *ctx,
          .patch_inputs_read = info->patch_inputs_read,
       };
 
-      if (!iris_disk_cache_retrieve(ice, ish, &key, sizeof(key)))
-         iris_compile_tes(ice, ish, &key);
+      if (!iris_disk_cache_retrieve(screen, uploader, ish, &key, sizeof(key)))
+         iris_compile_tes(screen, uploader, &ice->dbg, ish, &key);
    }
 
    return ish;
@@ -2321,6 +2386,7 @@ iris_create_gs_state(struct pipe_context *ctx,
 {
    struct iris_context *ice = (void *) ctx;
    struct iris_screen *screen = (void *) ctx->screen;
+   struct u_upload_mgr *uploader = ice->shaders.uploader_unsync;
    struct iris_uncompiled_shader *ish = iris_create_shader_state(ctx, state);
 
    /* User clip planes */
@@ -2330,8 +2396,8 @@ iris_create_gs_state(struct pipe_context *ctx,
    if (screen->precompile) {
       struct iris_gs_prog_key key = { KEY_ID(vue.base) };
 
-      if (!iris_disk_cache_retrieve(ice, ish, &key, sizeof(key)))
-         iris_compile_gs(ice, ish, &key);
+      if (!iris_disk_cache_retrieve(screen, uploader, ish, &key, sizeof(key)))
+         iris_compile_gs(screen, uploader, &ice->dbg, ish, &key);
    }
 
    return ish;
@@ -2343,6 +2409,7 @@ iris_create_fs_state(struct pipe_context *ctx,
 {
    struct iris_context *ice = (void *) ctx;
    struct iris_screen *screen = (void *) ctx->screen;
+   struct u_upload_mgr *uploader = ice->shaders.uploader_unsync;
    struct iris_uncompiled_shader *ish = iris_create_shader_state(ctx, state);
    struct shader_info *info = &ish->nir->info;
 
@@ -2375,8 +2442,8 @@ iris_create_fs_state(struct pipe_context *ctx,
             can_rearrange_varyings ? 0 : info->inputs_read | VARYING_BIT_POS,
       };
 
-      if (!iris_disk_cache_retrieve(ice, ish, &key, sizeof(key)))
-         iris_compile_fs(ice, ish, &key, NULL);
+      if (!iris_disk_cache_retrieve(screen, uploader, ish, &key, sizeof(key)))
+         iris_compile_fs(screen, uploader, &ice->dbg, ish, &key, NULL);
    }
 
    return ish;
@@ -2388,6 +2455,7 @@ iris_create_compute_state(struct pipe_context *ctx,
 {
    struct iris_context *ice = (void *) ctx;
    struct iris_screen *screen = (void *) ctx->screen;
+   struct u_upload_mgr *uploader = ice->shaders.uploader_unsync;
    const nir_shader_compiler_options *options =
       screen->compiler->glsl_compiler_options[MESA_SHADER_COMPUTE].NirOptions;
 
@@ -2418,7 +2486,7 @@ iris_create_compute_state(struct pipe_context *ctx,
    nir->info.stage = MESA_SHADER_COMPUTE;
 
    struct iris_uncompiled_shader *ish =
-      iris_create_uncompiled_shader(ctx, nir, NULL);
+      iris_create_uncompiled_shader(screen, nir, NULL);
    ish->kernel_input_size = state->req_input_mem;
    ish->kernel_shared_size = state->req_local_mem;
 
@@ -2427,8 +2495,8 @@ iris_create_compute_state(struct pipe_context *ctx,
    if (screen->precompile) {
       struct iris_cs_prog_key key = { KEY_ID(base) };
 
-      if (!iris_disk_cache_retrieve(ice, ish, &key, sizeof(key)))
-         iris_compile_cs(ice, ish, &key);
+      if (!iris_disk_cache_retrieve(screen, uploader, ish, &key, sizeof(key)))
+         iris_compile_cs(screen, uploader, &ice->dbg, ish, &key);
    }
 
    return ish;
@@ -2450,7 +2518,15 @@ iris_delete_shader_state(struct pipe_context *ctx, void *state, gl_shader_stage 
       ice->state.stage_dirty |= IRIS_STAGE_DIRTY_UNCOMPILED_VS << stage;
    }
 
-   iris_delete_shader_variants(ice, ish);
+   /* No need to take ish->lock; we hold the last reference to ish */
+   list_for_each_entry_safe(struct iris_compiled_shader, shader,
+                            &ish->variants, link) {
+      list_del(&shader->link);
+
+      iris_shader_variant_reference(&shader, NULL);
+   }
+
+   simple_mtx_destroy(&ish->lock);
 
    ralloc_free(ish->nir);
    free(ish);
@@ -2509,8 +2585,8 @@ bind_shader_state(struct iris_context *ice,
    const struct shader_info *old_info = iris_get_shader_info(ice, stage);
    const struct shader_info *new_info = ish ? &ish->nir->info : NULL;
 
-   if ((old_info ? util_last_bit(old_info->textures_used) : 0) !=
-       (new_info ? util_last_bit(new_info->textures_used) : 0)) {
+   if ((old_info ? BITSET_LAST_BIT(old_info->textures_used) : 0) !=
+       (new_info ? BITSET_LAST_BIT(new_info->textures_used) : 0)) {
       ice->state.stage_dirty |= IRIS_STAGE_DIRTY_SAMPLER_STATES_VS << stage;
    }
 
@@ -2532,17 +2608,40 @@ static void
 iris_bind_vs_state(struct pipe_context *ctx, void *state)
 {
    struct iris_context *ice = (struct iris_context *)ctx;
-   struct iris_uncompiled_shader *new_ish = state;
+   struct iris_uncompiled_shader *ish = state;
 
-   if (new_ish &&
-       ice->state.window_space_position !=
-       new_ish->nir->info.vs.window_space_position) {
-      ice->state.window_space_position =
-         new_ish->nir->info.vs.window_space_position;
+   if (ish) {
+      const struct shader_info *info = &ish->nir->info;
+      if (ice->state.window_space_position != info->vs.window_space_position) {
+         ice->state.window_space_position = info->vs.window_space_position;
 
-      ice->state.dirty |= IRIS_DIRTY_CLIP |
-                          IRIS_DIRTY_RASTER |
-                          IRIS_DIRTY_CC_VIEWPORT;
+         ice->state.dirty |= IRIS_DIRTY_CLIP |
+                             IRIS_DIRTY_RASTER |
+                             IRIS_DIRTY_CC_VIEWPORT;
+      }
+
+      const bool uses_draw_params =
+         BITSET_TEST(info->system_values_read, SYSTEM_VALUE_FIRST_VERTEX) ||
+         BITSET_TEST(info->system_values_read, SYSTEM_VALUE_BASE_INSTANCE);
+      const bool uses_derived_draw_params =
+         BITSET_TEST(info->system_values_read, SYSTEM_VALUE_DRAW_ID) ||
+         BITSET_TEST(info->system_values_read, SYSTEM_VALUE_IS_INDEXED_DRAW);
+      const bool needs_sgvs_element = uses_draw_params ||
+         BITSET_TEST(info->system_values_read, SYSTEM_VALUE_INSTANCE_ID) ||
+         BITSET_TEST(info->system_values_read,
+                     SYSTEM_VALUE_VERTEX_ID_ZERO_BASE);
+
+      if (ice->state.vs_uses_draw_params != uses_draw_params ||
+          ice->state.vs_uses_derived_draw_params != uses_derived_draw_params ||
+          ice->state.vs_needs_edge_flag != ish->needs_edge_flag) {
+         ice->state.dirty |= IRIS_DIRTY_VERTEX_BUFFERS |
+                             IRIS_DIRTY_VERTEX_ELEMENTS;
+      }
+
+      ice->state.vs_uses_draw_params = uses_draw_params;
+      ice->state.vs_uses_derived_draw_params = uses_derived_draw_params;
+      ice->state.vs_needs_sgvs_element = needs_sgvs_element;
+      ice->state.vs_needs_edge_flag = ish->needs_edge_flag;
    }
 
    bind_shader_state((void *) ctx, state, MESA_SHADER_VERTEX);

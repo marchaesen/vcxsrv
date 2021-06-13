@@ -288,21 +288,14 @@ struct ir3_shader_key {
 			unsigned has_per_samp : 1;
 
 			/*
-			 * Vertex shader variant parameters:
-			 */
-			unsigned vclamp_color : 1;
-
-			/*
 			 * Fragment shader variant parameters:
 			 */
 			unsigned sample_shading : 1;
 			unsigned msaa           : 1;
-			unsigned color_two_side : 1;
 			/* used when shader needs to handle flat varyings (a4xx)
 			 * for front/back color inputs to frag shader:
 			 */
 			unsigned rasterflat : 1;
-			unsigned fclamp_color : 1;
 
 			/* Indicates that this is a tessellation pipeline which requires a
 			 * whole different kind of vertex shader.  In case of
@@ -332,20 +325,10 @@ struct ir3_shader_key {
 		uint32_t global;
 	};
 
-	/* bitmask of sampler which needs coords clamped for vertex
-	 * shader:
-	 */
-	uint16_t vsaturate_s, vsaturate_t, vsaturate_r;
-
-	/* bitmask of sampler which needs coords clamped for frag
-	 * shader:
-	 */
-	uint16_t fsaturate_s, fsaturate_t, fsaturate_r;
-
-	/* bitmask of ms shifts */
+	/* bitmask of ms shifts (a3xx) */
 	uint32_t vsamples, fsamples;
 
-	/* bitmask of samplers which need astc srgb workaround: */
+	/* bitmask of samplers which need astc srgb workaround (a4xx+a5xx): */
 	uint16_t vastc_srgb, fastc_srgb;
 };
 
@@ -378,19 +361,10 @@ static inline bool
 ir3_shader_key_changes_fs(struct ir3_shader_key *key, struct ir3_shader_key *last_key)
 {
 	if (last_key->has_per_samp || key->has_per_samp) {
-		if ((last_key->fsaturate_s != key->fsaturate_s) ||
-				(last_key->fsaturate_t != key->fsaturate_t) ||
-				(last_key->fsaturate_r != key->fsaturate_r) ||
-				(last_key->fsamples != key->fsamples) ||
+		if ((last_key->fsamples != key->fsamples) ||
 				(last_key->fastc_srgb != key->fastc_srgb))
 			return true;
 	}
-
-	if (last_key->fclamp_color != key->fclamp_color)
-		return true;
-
-	if (last_key->color_two_side != key->color_two_side)
-		return true;
 
 	if (last_key->rasterflat != key->rasterflat)
 		return true;
@@ -412,16 +386,10 @@ static inline bool
 ir3_shader_key_changes_vs(struct ir3_shader_key *key, struct ir3_shader_key *last_key)
 {
 	if (last_key->has_per_samp || key->has_per_samp) {
-		if ((last_key->vsaturate_s != key->vsaturate_s) ||
-				(last_key->vsaturate_t != key->vsaturate_t) ||
-				(last_key->vsaturate_r != key->vsaturate_r) ||
-				(last_key->vsamples != key->vsamples) ||
+		if ((last_key->vsamples != key->vsamples) ||
 				(last_key->vastc_srgb != key->vastc_srgb))
 			return true;
 	}
-
-	if (last_key->vclamp_color != key->vclamp_color)
-		return true;
 
 	if (last_key->ucp_enables != key->ucp_enables)
 		return true;
@@ -472,6 +440,12 @@ struct ir3_ibo_mapping {
 
 	uint8_t num_tex;    /* including real textures */
 	uint8_t tex_base;   /* the number of real textures, ie. image/ssbo start here */
+};
+
+struct ir3_disasm_info {
+	bool write_disasm;
+	char *nir;
+	char *disasm;
 };
 
 /* Represents half register in regid */
@@ -558,6 +532,9 @@ struct ir3_shader_variant {
 	unsigned pvtmem_size;
 	/* Whether we should use the new per-wave layout rather than per-fiber. */
 	bool pvtmem_per_wave;
+
+	/* Size in bytes of required shared memory */
+	unsigned shared_size;
 
 	/* About Linkage:
 	 *   + Let the frag shader determine the position/compmask for the
@@ -658,6 +635,9 @@ struct ir3_shader_variant {
 
 	bool need_fine_derivatives;
 
+	/* do we need VS driver params? */
+	bool need_driver_params;
+
 	/* do we have image write, etc (which prevents early-z): */
 	bool no_earlyz;
 
@@ -686,6 +666,11 @@ struct ir3_shader_variant {
 	/* texture sampler pre-dispatches */
 	uint32_t num_sampler_prefetch;
 	struct ir3_sampler_prefetch sampler_prefetch[IR3_MAX_SAMPLER_PREFETCH];
+
+	uint16_t local_size[3];
+	bool local_size_variable;
+
+	struct ir3_disasm_info disasm_info;
 };
 
 static inline const char *
@@ -785,7 +770,7 @@ ir3_max_const(const struct ir3_shader_variant *v)
 
 void * ir3_shader_assemble(struct ir3_shader_variant *v);
 struct ir3_shader_variant * ir3_shader_get_variant(struct ir3_shader *shader,
-		const struct ir3_shader_key *key, bool binning_pass, bool *created);
+		const struct ir3_shader_key *key, bool binning_pass, bool keep_ir, bool *created);
 struct ir3_shader * ir3_shader_from_nir(struct ir3_compiler *compiler, nir_shader *nir,
 		unsigned reserved_user_consts, struct ir3_stream_output_info *stream_output);
 uint32_t ir3_trim_constlen(struct ir3_shader_variant **variants,
@@ -976,6 +961,8 @@ ir3_find_output_regid(const struct ir3_shader_variant *so, unsigned slot)
 		}
 	return regid(63, 0);
 }
+
+void ir3_link_stream_out(struct ir3_shader_linkage *l, const struct ir3_shader_variant *v);
 
 #define VARYING_SLOT_GS_HEADER_IR3			(VARYING_SLOT_MAX + 0)
 #define VARYING_SLOT_GS_VERTEX_FLAGS_IR3	(VARYING_SLOT_MAX + 1)

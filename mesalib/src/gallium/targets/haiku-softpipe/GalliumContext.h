@@ -16,10 +16,10 @@
 #include "pipe/p_screen.h"
 #include "postprocess/filters.h"
 #include "hgl_context.h"
+#include "sw/hgl/hgl_sw_winsys.h"
 
-#include "bitmap_wrapper.h"
 
-
+class BBitmap;
 
 class GalliumContext {
 public:
@@ -29,28 +29,30 @@ public:
 		void				Lock();
 		void				Unlock();
 
-		context_id			CreateContext(Bitmap* bitmap);
+		context_id			CreateContext(HGLWinsysContext *wsContext);
 		void				DestroyContext(context_id contextID);
 		context_id			GetCurrentContext() { return fCurrentContext; };
-		status_t			SetCurrentContext(Bitmap *bitmap,
-								context_id contextID);
+		status_t			SetCurrentContext(bool set, context_id contextID);
 
 		status_t			SwapBuffers(context_id contextID);
+		void				Draw(context_id contextID, BRect updateRect);
 
 		bool				Validate(uint32 width, uint32 height);
 		void				Invalidate(uint32 width, uint32 height);
 
 private:
-		status_t			CreateScreen();
+		status_t			CreateDisplay();
+		void				DestroyDisplay();
 		void				Flush();
 
 		ulong				fOptions;
-		struct pipe_screen*	fScreen;
+		static int32		fDisplayRefCount;
+		static hgl_display*	fDisplay;
 
 		// Context Management
 		struct hgl_context*	fContext[CONTEXT_MAX];
 		context_id			fCurrentContext;
-		mtx_t			fMutex;
+		mtx_t				fMutex;
 };
 
 

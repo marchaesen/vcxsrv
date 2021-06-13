@@ -29,6 +29,8 @@
 
 #include "pipe/p_state.h"
 
+#include "freedreno_util.h"
+
 struct fd_resource;
 struct fd_batch;
 struct fd_context;
@@ -63,16 +65,16 @@ struct fd_batch_cache {
 void fd_bc_init(struct fd_batch_cache *cache);
 void fd_bc_fini(struct fd_batch_cache *cache);
 
-void fd_bc_flush(struct fd_batch_cache *cache, struct fd_context *ctx);
-void fd_bc_flush_deferred(struct fd_batch_cache *cache, struct fd_context *ctx);
+void fd_bc_flush(struct fd_batch_cache *cache, struct fd_context *ctx) assert_dt;
+void fd_bc_flush_deferred(struct fd_batch_cache *cache, struct fd_context *ctx) assert_dt;
 void fd_bc_dump(struct fd_screen *screen, const char *fmt, ...)  _util_printf_format(2, 3);
 
 void fd_bc_invalidate_context(struct fd_context *ctx);
 void fd_bc_invalidate_batch(struct fd_batch *batch, bool destroy);
 void fd_bc_invalidate_resource(struct fd_resource *rsc, bool destroy);
-struct fd_batch * fd_bc_alloc_batch(struct fd_batch_cache *cache, struct fd_context *ctx, bool nondraw);
+struct fd_batch * fd_bc_alloc_batch(struct fd_batch_cache *cache, struct fd_context *ctx, bool nondraw) assert_dt;
 
 struct fd_batch * fd_batch_from_fb(struct fd_batch_cache *cache,
-		struct fd_context *ctx, const struct pipe_framebuffer_state *pfb);
+		struct fd_context *ctx, const struct pipe_framebuffer_state *pfb) assert_dt;
 
 #endif /* FREEDRENO_BATCH_CACHE_H_ */

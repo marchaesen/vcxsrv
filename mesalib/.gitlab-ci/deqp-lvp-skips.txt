@@ -1,9 +1,0 @@
-# Note: skips lists for CI are just a list of lines that, when
-# non-zero-length and not starting with '#', will regex match to
-# delete lines from the test list.  Be careful.
-
-# TODO: fix me
-dEQP-VK.texture.filtering.3d.sizes.3x7x5.linear_mipmap_linear
-
-# Timeout (VK-GL-CTS 1.2.5.0)
-dEQP-VK.tessellation.invariance.outer_triangle_set.quads_fractional_odd_spacing

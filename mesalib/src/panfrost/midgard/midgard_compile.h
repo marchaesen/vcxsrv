@@ -29,9 +29,11 @@
 #include "util/u_dynarray.h"
 #include "panfrost/util/pan_ir.h"
 
-panfrost_program *
-midgard_compile_shader_nir(void *mem_ctx, nir_shader *nir,
-                           const struct panfrost_compile_inputs *inputs);
+void
+midgard_compile_shader_nir(nir_shader *nir,
+                           const struct panfrost_compile_inputs *inputs,
+                           struct util_dynarray *binary,
+                           struct pan_shader_info *info);
 
 /* NIR options are shared between the standalone compiler and the online
  * compiler. Defining it here is the simplest, though maybe not the Right
@@ -51,6 +53,7 @@ static const nir_shader_compiler_options midgard_nir_options = {
         .lower_isign = true,
         .lower_fpow = true,
         .lower_find_lsb = true,
+        .lower_ifind_msb = true,
         .lower_fdph = true,
 
         .lower_wpos_pntc = true,
@@ -59,6 +62,10 @@ static const nir_shader_compiler_options midgard_nir_options = {
          * eventually */
         .lower_fsign = true,
 
+        .lower_bit_count = true,
+        .lower_bitfield_reverse = true,
+        .lower_bitfield_insert_to_shifts = true,
+        .lower_bitfield_extract_to_shifts = true,
         .lower_extract_byte = true,
         .lower_extract_word = true,
         .lower_rotate = true,
@@ -78,6 +85,8 @@ static const nir_shader_compiler_options midgard_nir_options = {
         .lower_doubles_options = nir_lower_dmod,
 
         .lower_bitfield_extract_to_shifts = true,
+        .has_fsub = true,
+        .has_isub = true,
         .vectorize_io = true,
         .use_interpolated_input_intrinsics = true,
 

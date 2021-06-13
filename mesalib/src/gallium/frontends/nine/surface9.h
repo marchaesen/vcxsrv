@@ -23,6 +23,7 @@
 #ifndef _NINE_SURFACE9_H_
 #define _NINE_SURFACE9_H_
 
+#include "nine_memory_helper.h"
 #include "resource9.h"
 
 #include "pipe/p_state.h"
@@ -46,8 +47,8 @@ struct NineSurface9
     unsigned layer;
     D3DSURFACE_DESC desc;
 
-    uint8_t *data; /* system memory backing */
-    uint8_t *data_internal; /* for conversions */
+    struct nine_allocation *data; /* system memory backing */
+    struct nine_allocation *data_internal; /* for conversions */
     enum pipe_format format_internal;
     unsigned stride; /* for system memory backing */
     unsigned stride_internal;
@@ -64,7 +65,7 @@ HRESULT
 NineSurface9_new( struct NineDevice9 *pDevice,
                   struct NineUnknown *pContainer,
                   struct pipe_resource *pResource,
-                  void *user_buffer,
+                  struct nine_allocation *user_buffer,
                   uint8_t TextureType, /* 0 if pContainer isn't BaseTexure9 */
                   unsigned Level,
                   unsigned Layer,
@@ -76,7 +77,7 @@ NineSurface9_ctor( struct NineSurface9 *This,
                    struct NineUnknownParams *pParams,
                    struct NineUnknown *pContainer,
                    struct pipe_resource *pResource,
-                   void *user_buffer,
+                   struct nine_allocation *user_buffer,
                    uint8_t TextureType,
                    unsigned Level,
                    unsigned Layer,

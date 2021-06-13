@@ -41,24 +41,30 @@ extern "C" {
 
 extern uint32_t V3D_DEBUG;
 
-#define V3D_DEBUG_SHADERDB		(1 << 0)
-#define V3D_DEBUG_TGSI			(1 << 1)
-#define V3D_DEBUG_NIR			(1 << 2)
-#define V3D_DEBUG_VIR			(1 << 3)
-#define V3D_DEBUG_QPU			(1 << 4)
-#define V3D_DEBUG_FS			(1 << 5)
-#define V3D_DEBUG_GS			(1 << 6)
-#define V3D_DEBUG_VS			(1 << 7)
-#define V3D_DEBUG_CS			(1 << 8)
-#define V3D_DEBUG_CL			(1 << 9)
-#define V3D_DEBUG_SURFACE		(1 << 10)
-#define V3D_DEBUG_PERF			(1 << 11)
-#define V3D_DEBUG_NORAST		(1 << 12)
-#define V3D_DEBUG_ALWAYS_FLUSH		(1 << 13)
-#define V3D_DEBUG_CLIF			(1 << 14)
-#define V3D_DEBUG_PRECOMPILE		(1 << 15)
-#define V3D_DEBUG_RA		        (1 << 16)
-#define V3D_DEBUG_DUMP_SPIRV		(1 << 17)
+#define V3D_DEBUG_SHADERDB          (1 << 0)
+#define V3D_DEBUG_TGSI              (1 << 1)
+#define V3D_DEBUG_NIR               (1 << 2)
+#define V3D_DEBUG_VIR               (1 << 3)
+#define V3D_DEBUG_QPU               (1 << 4)
+#define V3D_DEBUG_FS                (1 << 5)
+#define V3D_DEBUG_GS                (1 << 6)
+#define V3D_DEBUG_VS                (1 << 7)
+#define V3D_DEBUG_CS                (1 << 8)
+#define V3D_DEBUG_CL                (1 << 9)
+#define V3D_DEBUG_SURFACE           (1 << 10)
+#define V3D_DEBUG_PERF              (1 << 11)
+#define V3D_DEBUG_NORAST            (1 << 12)
+#define V3D_DEBUG_ALWAYS_FLUSH      (1 << 13)
+#define V3D_DEBUG_CLIF              (1 << 14)
+#define V3D_DEBUG_PRECOMPILE        (1 << 15)
+#define V3D_DEBUG_RA                (1 << 16)
+#define V3D_DEBUG_DUMP_SPIRV        (1 << 17)
+
+#define V3D_DEBUG_SHADERS           (V3D_DEBUG_TGSI | V3D_DEBUG_NIR | \
+                                     V3D_DEBUG_VIR | V3D_DEBUG_QPU | \
+                                     V3D_DEBUG_FS | V3D_DEBUG_GS | \
+                                     V3D_DEBUG_VS | V3D_DEBUG_CS | \
+                                     V3D_DEBUG_RA)
 
 #ifdef HAVE_ANDROID_PLATFORM
 #define LOG_TAG "BROADCOM-MESA"

@@ -59,12 +59,10 @@ struct renderonly {
    struct renderonly_scanout *(*create_for_resource)(struct pipe_resource *rsc,
                                                      struct renderonly *ro,
                                                      struct winsys_handle *out_handle);
+   void (*destroy)(struct renderonly *ro);
    int kms_fd;
    int gpu_fd;
 };
-
-struct renderonly *
-renderonly_dup(const struct renderonly *ro);
 
 static inline struct renderonly_scanout *
 renderonly_scanout_for_resource(struct pipe_resource *rsc,

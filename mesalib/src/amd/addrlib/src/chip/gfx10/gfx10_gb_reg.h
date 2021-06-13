@@ -43,7 +43,7 @@
 #error "BIGENDIAN_CPU or LITTLEENDIAN_CPU must be defined"
 #endif
 
-union GB_ADDR_CONFIG_gfx10
+union GB_ADDR_CONFIG_GFX10
 {
     struct
     {

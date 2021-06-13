@@ -74,4 +74,6 @@ libxserver_xext_vidmode = static_library('libxserver_xext_vidmode',
     dependencies: common_dep,
 )
 
-install_data(hdrs_xext, install_dir: xorgsdkdir)
+if build_xorg
+    install_data(hdrs_xext, install_dir: xorgsdkdir)
+endif
