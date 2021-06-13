@@ -556,6 +556,32 @@ draw_rgba_pixels( struct gl_context *ctx, GLint x, GLint y,
    swrast_render_finish(ctx);
 }
 
+/**
+ * Incoming Z/stencil values are always in uint_24_8 format.
+ */
+static void
+pack_uint_24_8_depth_stencil_row(mesa_format format, uint32_t n,
+                                       const uint32_t *src, void *dst)
+{
+   switch (format) {
+   case MESA_FORMAT_S8_UINT_Z24_UNORM:
+      memcpy(dst, src, n * sizeof(uint32_t));
+      break;
+   case MESA_FORMAT_Z24_UNORM_S8_UINT:
+      {
+         uint32_t *d = ((uint32_t *) dst);
+         uint32_t i;
+         for (i = 0; i < n; i++) {
+            uint32_t s = src[i] << 24;
+            uint32_t z = src[i] >> 8;
+            d[i] = s | z;
+         }
+      }
+      break;
+   default:
+      unreachable("bad format in _mesa_pack_ubyte_s_row");
+   }
+}
 
 /**
  * Draw depth+stencil values into a MESA_FORAMT_Z24_S8 or MESA_FORMAT_Z24_UNORM_S8_UINT
@@ -584,8 +610,7 @@ fast_draw_depth_stencil(struct gl_context *ctx, GLint x, GLint y,
    dstRowStride = srb->RowStride;
 
    for (i = 0; i < height; i++) {
-      _mesa_pack_uint_24_8_depth_stencil_row(rb->Format, width,
-                                             (const GLuint *) src, dst);
+      pack_uint_24_8_depth_stencil_row(rb->Format, width, (const GLuint *) src, dst);
       dst += dstRowStride;
       src += srcRowStride;
    }

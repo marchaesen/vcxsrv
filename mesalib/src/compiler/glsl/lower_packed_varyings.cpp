@@ -554,6 +554,16 @@ lower_packed_varyings_visitor::lower_rvalue(ir_rvalue *rvalue,
                                    false, vertex_index);
    } else if (rvalue->type->vector_elements * dmul +
               fine_location % 4 > 4) {
+      /* We don't have code to split up 64bit variable between two
+       * varying slots, instead we add padding if necessary.
+       */
+      unsigned aligned_fine_location = ALIGN_POT(fine_location, dmul);
+      if (aligned_fine_location != fine_location) {
+         return this->lower_rvalue(rvalue, aligned_fine_location,
+                                   unpacked_var, name, false,
+                                   vertex_index);
+      }
+
       /* This vector is going to be "double parked" across two varying slots,
        * so handle it as two separate assignments. For doubles, a dvec3/dvec4
        * can end up being spread over 3 slots. However the second splitting
@@ -567,8 +577,8 @@ lower_packed_varyings_visitor::lower_rvalue(ir_rvalue *rvalue,
 
       left_components = 4 - fine_location % 4;
       if (rvalue->type->is_64bit()) {
-         /* We might actually end up with 0 left components! */
          left_components /= 2;
+         assert(left_components > 0);
       }
       right_components = rvalue->type->vector_elements - left_components;
 
@@ -609,6 +619,7 @@ lower_packed_varyings_visitor::lower_rvalue(ir_rvalue *rvalue,
       unsigned location_frac = fine_location % 4;
       for (unsigned i = 0; i < components; ++i)
          swizzle_values[i] = i + location_frac;
+      assert(this->components[location - VARYING_SLOT_VAR0] >= components);
       ir_dereference *packed_deref =
          this->get_packed_varying_deref(location, unpacked_var, name,
                                         vertex_index);
@@ -655,6 +666,11 @@ lower_packed_varyings_visitor::lower_arraylike(ir_rvalue *rvalue,
                                                bool gs_input_toplevel,
                                                unsigned vertex_index)
 {
+   unsigned dmul = rvalue->type->without_array()->is_64bit() ? 2 : 1;
+   if (array_size * dmul + fine_location % 4 > 4) {
+      fine_location = ALIGN_POT(fine_location, dmul);
+   }
+
    for (unsigned i = 0; i < array_size; i++) {
       if (i != 0)
          rvalue = rvalue->clone(this->mem_ctx, NULL);

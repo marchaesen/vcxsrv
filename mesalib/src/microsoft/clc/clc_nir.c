@@ -168,8 +168,6 @@ static bool
 lower_load_kernel_input(nir_builder *b, nir_intrinsic_instr *intr,
                         nir_variable *var)
 {
-   nir_intrinsic_instr *load;
-
    b->cursor = nir_before_instr(&intr->instr);
 
    unsigned bit_size = nir_dest_bit_size(intr->dest);

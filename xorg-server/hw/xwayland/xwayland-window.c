@@ -805,9 +805,18 @@ xwl_window_post_damage(struct xwl_window *xwl_window)
 #endif
         buffer = xwl_shm_pixmap_get_wl_buffer(pixmap);
 
+    if (!buffer) {
+        ErrorF("Error getting buffer\n");
+        return;
+    }
+
 #ifdef XWL_HAS_GLAMOR
-    if (xwl_screen->glamor)
-        xwl_glamor_post_damage(xwl_window, pixmap, region);
+    if (xwl_screen->glamor) {
+        if (!xwl_glamor_post_damage(xwl_window, pixmap, region)) {
+            ErrorF("glamor: Failed to post damage\n");
+            return;
+        }
+    }
 #endif
 
     wl_surface_attach(xwl_window->surface, buffer, 0, 0);

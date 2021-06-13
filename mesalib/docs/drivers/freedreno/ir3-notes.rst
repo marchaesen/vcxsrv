@@ -3,7 +3,7 @@ IR3 NOTES
 
 Some notes about ir3, the compiler and machine-specific IR for the shader ISA introduced with adreno a3xx.  The same shader ISA is present, with some small differences, in adreno a4xx.
 
-Compared to the previous generation a2xx ISA (ir2), the a3xx ISA is a "simple" scalar instruction set.  However, the compiler is responsible, in most cases, to schedule the instructions.  The hardware does not try to hide the shader core pipeline stages.  For a common example, a common (cat2) ALU instruction takes four cycles, so a subsequent cat2 instruction which uses the result must have three intervening instructions (or nops).  When operating on vec4's, typically the corresponding scalar instructions for operating on the remaining three components could typically fit.  Although that results in a lot of edge cases where things fall over, like:
+Compared to the previous generation a2xx ISA (ir2), the a3xx ISA is a "simple" scalar instruction set.  However, the compiler is responsible, in most cases, to schedule the instructions.  The hardware does not try to hide the shader core pipeline stages.  For a common example, a common (cat2) ALU instruction takes four cycles, so a subsequent cat2 instruction which uses the result must have three intervening instructions (or NOPs).  When operating on vec4's, typically the corresponding scalar instructions for operating on the remaining three components could typically fit.  Although that results in a lot of edge cases where things fall over, like:
 
 ::
 
@@ -26,7 +26,7 @@ External Structure
     which are generated on demand based on the shader key.
 
 ``ir3_shader_key``
-    The configuration key that identifies a shader variant.  Ie. based
+    The configuration key that identifies a shader variant.  I.e. based
     on other GL state (two-sided-color, render-to-alpha, etc) or render
     stages (binning-pass vertex shader) different shader variants are
     generated.
@@ -260,7 +260,7 @@ Most instructions support addressing indirectly (relative to address register) i
     Note that cat5 (texture sample) instructions are the notable exception, not
     supporting relative addressing of src or dst.
 
-Relative addressing of the const file (for example, a uniform array) is relatively simple.  We don't do register assignment of the const file, so all that is required is to schedule things properly.  Ie. the instruction that writes the address register must be scheduled first, and we cannot have two different address register values live at one time.
+Relative addressing of the const file (for example, a uniform array) is relatively simple.  We don't do register assignment of the const file, so all that is required is to schedule things properly.  I.e. the instruction that writes the address register must be scheduled first, and we cannot have two different address register values live at one time.
 
 But relative addressing of gpr file (which can be as src or dst) has additional restrictions on register assignment (i.e. the array elements must be assigned to consecutive scalar registers).  And in the case of relative dst, subsequent instructions now depend on both the relative write, as well as the previous instruction which wrote that register, since we do not know at compile time which actual register was written.
 

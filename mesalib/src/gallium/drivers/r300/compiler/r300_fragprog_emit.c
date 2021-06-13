@@ -43,6 +43,8 @@
 #include "radeon_program_pair.h"
 #include "r300_fragprog_swizzle.h"
 
+#include "util/compiler.h"
+
 
 struct r300_emit_state {
 	struct r300_fragment_program_compiler * compiler;
@@ -112,9 +114,9 @@ static unsigned int translate_rgb_opcode(struct r300_fragment_program_compiler *
 	case RC_OPCODE_FRC: return R300_ALU_OUTC_FRC;
 	default:
 		error("translate_rgb_opcode: Unknown opcode %s", rc_get_opcode_info(opcode)->Name);
-		/* fall through */
+		FALLTHROUGH;
 	case RC_OPCODE_NOP:
-		/* fall through */
+		FALLTHROUGH;
 	case RC_OPCODE_MAD: return R300_ALU_OUTC_MAD;
 	case RC_OPCODE_MAX: return R300_ALU_OUTC_MAX;
 	case RC_OPCODE_MIN: return R300_ALU_OUTC_MIN;
@@ -134,9 +136,9 @@ static unsigned int translate_alpha_opcode(struct r300_fragment_program_compiler
 	case RC_OPCODE_LG2: return R300_ALU_OUTA_LG2;
 	default:
 		error("translate_rgb_opcode: Unknown opcode %s", rc_get_opcode_info(opcode)->Name);
-		/* fall through */
+		FALLTHROUGH;
 	case RC_OPCODE_NOP:
-		/* fall through */
+		FALLTHROUGH;
 	case RC_OPCODE_MAD: return R300_ALU_OUTA_MAD;
 	case RC_OPCODE_MAX: return R300_ALU_OUTA_MAX;
 	case RC_OPCODE_MIN: return R300_ALU_OUTA_MIN;

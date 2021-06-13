@@ -33,9 +33,6 @@ struct gl_context;
 struct gl_renderbuffer;
 
 extern struct gl_framebuffer *
-_mesa_create_framebuffer(const struct gl_config *visual);
-
-extern struct gl_framebuffer *
 _mesa_new_framebuffer(struct gl_context *ctx, GLuint name);
 
 extern void

@@ -362,7 +362,7 @@ xkb_symbols "olpc" {
    key <AC08> {  [ 0x10006A9, 0x100062E ] };
    key <AC09> {  [ 0x1000644, 0x1000656 ] };
    key <AC10> {  [ 0x100061B, colon ] };
-   key <AC11> {  [ quote, doublequote  ] };
+   key <AC11> {  [ apostrophe, quotedbl ] };
 
    key <BKSL> { [  backslash, bar  ] };
    key <SPCE> { [  space  ] };
@@ -380,4 +380,68 @@ xkb_symbols "olpc" {
    key <AB10> {  [ slash,     0x100061F ] };
 
    include "group(olpc)"
+};
+
+// EXTRAS:
+
+// Navees, a phonetic keyboard layout for Urdu
+// https://saadatm.github.io/navees
+partial alphanumeric_keys
+xkb_symbols "urd-navees" {
+    name[Group1]= "Urdu (Pakistan, Navees)";
+
+    key <TLDE> {[ U0060,    U064B,    U007E  ]};        // GRAVE ACCENT,                       ARABIC FATHATAN,  TILDE
+    key <AE01> {[ U06F1,    U0031,    U0021  ]};        // EXTENDED ARABIC-INDIC DIGIT ONE,    DIGIT ONE,        EXCLAMATION MARK
+    key <AE02> {[ U06F2,    U0032,    U0040  ]};        // EXTENDED ARABIC-INDIC DIGIT TWO,    DIGIT TWO,        COMMERCIAL AT
+    key <AE03> {[ U06F3,    U0033,    U0023  ]};        // EXTENDED ARABIC-INDIC DIGIT THREE,  DIGIT THREE,      NUMBER SIGN
+    key <AE04> {[ U06F4,    U0034,    U0024  ]};        // EXTENDED ARABIC-INDIC DIGIT FOUR,   DIGIT FOUR,       DOLLAR SIGN
+    key <AE05> {[ U06F5,    U0035,    U066A  ]};        // EXTENDED ARABIC-INDIC DIGIT FIVE,   DIGIT FIVE,       ARABIC PERCENT SIGN
+    key <AE06> {[ U06F6,    U0036,    U005E  ]};        // EXTENDED ARABIC-INDIC DIGIT SIX,    DIGIT SIX,        CIRCUMFLEX ACCENT
+    key <AE07> {[ U06F7,    U0037,    U0026  ]};        // EXTENDED ARABIC-INDIC DIGIT SEVEN,  DIGIT SEVEN,      AMPERSAND
+    key <AE08> {[ U06F8,    U0038,    U002A  ]};        // EXTENDED ARABIC-INDIC DIGIT EIGHT,  DIGIT EIGHT,      ASTERISK
+    key <AE09> {[ U06F9,    U0039,    U0029  ]};        // EXTENDED ARABIC-INDIC DIGIT NINE,   DIGIT NINE,       RIGHT PARENTHESIS
+    key <AE10> {[ U06F0,    U0030,    U0028  ]};        // EXTENDED ARABIC-INDIC DIGIT ZERO,   DIGIT ZERO,       LEFT PARENTHESIS
+    key <AE11> {[ U002D,    U005F,    VoidSymbol ]};    // HYPHEN-MINUS,                       LOW LINE
+    key <AE12> {[ U003D,    U002B,    VoidSymbol ]};    // EQUALS SIGN,                        PLUS SIGN
+
+    key <AD01> {[ U0642,    U0652,    VoidSymbol ]};    // ARABIC LETTER QAF,         ARABIC SUKUN
+    key <AD02> {[ U0648,    U0651,    U0624  ]};        // ARABIC LETTER WAW,         ARABIC SHADDA,                       ARABIC LETTER WAW WITH HAMZA ABOVE
+    key <AD03> {[ U0639,    U0670,    U0656  ]};        // ARABIC LETTER AIN,         ARABIC LETTER SUPERSCRIPT ALEF,      ARABIC SUBSCRIPT ALEF
+    key <AD04> {[ U0631,    U0691,    U0613  ]};        // ARABIC LETTER REH,         ARABIC LETTER RREH,                  ARABIC SIGN RADI ALLAHOU ANHU
+    key <AD05> {[ U062A,    U0679,    U0614  ]};        // ARABIC LETTER TEH,         ARABIC LETTER TTEH,                  ARABIC SIGN TAKHALLUS
+    key <AD06> {[ U06D2,    U064E,    U06D3  ]};        // ARABIC LETTER YEH BARREE,  ARABIC FATHA,                        ARABIC LETTER YEH BARREE WITH HAMZA ABOVE
+    key <AD07> {[ U0621,    U0626,    U0654  ]};        // ARABIC LETTER HAMZA,       ARABIC LETTER YEH WITH HAMZA ABOVE,  ARABIC HAMZA ABOVE
+    key <AD08> {[ U06CC,    U0650,    U0611  ]};        // ARABIC LETTER FARSI YEH,   ARABIC KASRA,                        ARABIC SIGN ALAYHE ASSALLAM
+    key <AD09> {[ U06C1,    U06C3,    U06C2  ]};        // ARABIC LETTER HEH GOAL,    ARABIC LETTER TEH MARBUTA GOAL,      ARABIC LETTER HEH GOAL WITH HAMZA ABOVE
+    key <AD10> {[ U067E,    U064F,    U0657  ]};        // ARABIC LETTER PEH,         ARABIC DAMMA,                        ARABIC INVERTED DAMMA
+    key <AD11> {[ U005D,    U007D,    U200E  ]};        // RIGHT SQUARE BRACKET,      RIGHT CURLY BRACKET,                 LEFT-TO-RIGHT MARK
+    key <AD12> {[ U005B,    U007B,    U200F  ]};        // LEFT SQUARE BRACKET,       LEFT CURLY BRACKET,                  RIGHT-TO-LEFT MARK
+    key <BKSL> {[ U005C,    U007C,    U200D  ]};        // REVERSE SOLIDUS,           VERTICAL LINE,                       ZERO WIDTH JOINER
+
+    key <AC01> {[ U0627,    U0622,        U0623  ]};        // ARABIC LETTER ALEF,   ARABIC LETTER ALEF WITH MADDA ABOVE,  ARABIC LETTER ALEF WITH HAMZA ABOVE
+    key <AC02> {[ U0633,    U0635,        U0610  ]};        // ARABIC LETTER SEEN,   ARABIC LETTER SAD,                    ARABIC SIGN SALLALLAHOU ALAYHE WASSALLAM
+    key <AC03> {[ U062F,    U0688,        UFDFA  ]};        // ARABIC LETTER DAL,    ARABIC LETTER DDAL,                   ARABIC LIGATURE SALLALLAHOU ALAYHE WASALLAM
+    key <AC04> {[ U0641,    VoidSymbol,   U0602  ]};        // ARABIC LETTER FEH,    VoidSymbol,                           ARABIC FOOTNOTE MARKER
+    key <AC05> {[ U06AF,    U063A,        VoidSymbol ]};    // ARABIC LETTER GAF,    ARABIC LETTER GHAIN
+    key <AC06> {[ U062D,    U06BE,        U0612  ]};        // ARABIC LETTER HAH,    ARABIC LETTER HEH DOACHASHMEE,        ARABIC SIGN RAHMATULLAH ALAYHE
+    key <AC07> {[ U062C,    U0636,        UFDFB  ]};        // ARABIC LETTER JEEM,   ARABIC LETTER DAD,                    ARABIC LIGATURE JALLAJALALOUHOU
+    key <AC08> {[ U06A9,    U062E,        U0601  ]};        // ARABIC LETTER KEHEH,  ARABIC LETTER KHAH,                   ARABIC SIGN SANAH
+    key <AC09> {[ U0644,    VoidSymbol,   VoidSymbol ]};    // ARABIC LETTER LAM
+    key <AC10> {[ U061B,    U003A,        VoidSymbol ]};    // ARABIC SEMICOLON,     COLON
+    key <AC11> {[ U0027,    U0022,        VoidSymbol ]};    // APOSTROPHE,           QUOTATION MARK
+
+    key <AB01> {[ U0632,    U0630,        U060F  ]};        // ARABIC LETTER ZAIN,   ARABIC LETTER THAL,         ARABIC SIGN MISRA
+    key <AB02> {[ U0634,    U0698,        U060E  ]};        // ARABIC LETTER SHEEN,  ARABIC LETTER JEH,          ARABIC POETIC VERSE SIGN
+    key <AB03> {[ U0686,    U062B,        U0603  ]};        // ARABIC LETTER TCHEH,  ARABIC LETTER THEH,         ARABIC SIGN SAFHA
+    key <AB04> {[ U0637,    U0638,        VoidSymbol ]};    // ARABIC LETTER TAH,    ARABIC LETTER ZAH
+    key <AB05> {[ U0628,    VoidSymbol,   UFDFD  ]};        // ARABIC LETTER BEH,    VoidSymbol,                 ARABIC LIGATURE BISMILLAH AR-RAHMAN AR-RAHEEM
+    key <AB06> {[ U0646,    U06BA,        U0600  ]};        // ARABIC LETTER NOON,   ARABIC LETTER NOON GHUNNA,  ARABIC NUMBER SIGN
+    key <AB07> {[ U0645,    U0658,        VoidSymbol ]};    // ARABIC LETTER MEEM,   ARABIC MARK NOON GHUNNA
+    key <AB08> {[ U060C,    U060D,        U003C  ]};        // ARABIC COMMA,         ARABIC DATE SEPARATOR,      GREATER-THAN SIGN
+    key <AB09> {[ U06D4,    U066B,        U003E  ]};        // ARABIC FULL STOP,     ARABIC DECIMAL SEPARATOR,   LESS-THAN SIGN
+    key <AB10> {[ U002F,    U061F,        VoidSymbol ]};    // SOLIDUS,              ARABIC QUESTION MARK
+
+    include "nbsp(zwnj2)"
+
+    include "level3(ralt_switch)"
 };

@@ -24,142 +24,167 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "util/os_file.h"
 
 #include "freedreno_drmif.h"
 #include "freedreno_priv.h"
 
-struct fd_device * kgsl_device_new(int fd);
-struct fd_device * msm_device_new(int fd);
+struct fd_device *msm_device_new(int fd, drmVersionPtr version);
 
-struct fd_device * fd_device_new(int fd)
+struct fd_device *
+fd_device_new(int fd)
 {
-	struct fd_device *dev;
-	drmVersionPtr version;
+   struct fd_device *dev;
+   drmVersionPtr version;
 
-	/* figure out if we are kgsl or msm drm driver: */
-	version = drmGetVersion(fd);
-	if (!version) {
-		ERROR_MSG("cannot get version: %s", strerror(errno));
-		return NULL;
-	}
+   /* figure out if we are kgsl or msm drm driver: */
+   version = drmGetVersion(fd);
+   if (!version) {
+      ERROR_MSG("cannot get version: %s", strerror(errno));
+      return NULL;
+   }
 
-	if (!strcmp(version->name, "msm")) {
-		DEBUG_MSG("msm DRM device");
-		if (version->version_major != 1) {
-			ERROR_MSG("unsupported version: %u.%u.%u", version->version_major,
-				version->version_minor, version->version_patchlevel);
-			dev = NULL;
-			goto out;
-		}
+   if (!strcmp(version->name, "msm")) {
+      DEBUG_MSG("msm DRM device");
+      if (version->version_major != 1) {
+         ERROR_MSG("unsupported version: %u.%u.%u", version->version_major,
+                   version->version_minor, version->version_patchlevel);
+         dev = NULL;
+         goto out;
+      }
 
-		dev = msm_device_new(fd);
-		dev->version = version->version_minor;
+      dev = msm_device_new(fd, version);
+      dev->version = version->version_minor;
 #if HAVE_FREEDRENO_KGSL
-	} else if (!strcmp(version->name, "kgsl")) {
-		DEBUG_MSG("kgsl DRM device");
-		dev = kgsl_device_new(fd);
+   } else if (!strcmp(version->name, "kgsl")) {
+      DEBUG_MSG("kgsl DRM device");
+      dev = kgsl_device_new(fd);
 #endif
-	} else {
-		ERROR_MSG("unknown device: %s", version->name);
-		dev = NULL;
-	}
+   } else {
+      ERROR_MSG("unknown device: %s", version->name);
+      dev = NULL;
+   }
 
 out:
-	drmFreeVersion(version);
+   drmFreeVersion(version);
 
-	if (!dev)
-		return NULL;
+   if (!dev)
+      return NULL;
 
-	p_atomic_set(&dev->refcnt, 1);
-	dev->fd = fd;
-	dev->handle_table = _mesa_hash_table_create(NULL, _mesa_hash_u32, _mesa_key_u32_equal);
-	dev->name_table = _mesa_hash_table_create(NULL, _mesa_hash_u32, _mesa_key_u32_equal);
-	fd_bo_cache_init(&dev->bo_cache, false);
-	fd_bo_cache_init(&dev->ring_cache, true);
+   p_atomic_set(&dev->refcnt, 1);
+   dev->fd = fd;
+   dev->handle_table =
+      _mesa_hash_table_create(NULL, _mesa_hash_u32, _mesa_key_u32_equal);
+   dev->name_table =
+      _mesa_hash_table_create(NULL, _mesa_hash_u32, _mesa_key_u32_equal);
+   fd_bo_cache_init(&dev->bo_cache, false);
+   fd_bo_cache_init(&dev->ring_cache, true);
 
-	return dev;
+   list_inithead(&dev->deferred_submits);
+   simple_mtx_init(&dev->submit_lock, mtx_plain);
+
+   return dev;
 }
 
 /* like fd_device_new() but creates it's own private dup() of the fd
  * which is close()d when the device is finalized.
  */
-struct fd_device * fd_device_new_dup(int fd)
+struct fd_device *
+fd_device_new_dup(int fd)
 {
-	int dup_fd = os_dupfd_cloexec(fd);
-	struct fd_device *dev = fd_device_new(dup_fd);
-	if (dev)
-		dev->closefd = 1;
-	else
-		close(dup_fd);
-	return dev;
+   int dup_fd = os_dupfd_cloexec(fd);
+   struct fd_device *dev = fd_device_new(dup_fd);
+   if (dev)
+      dev->closefd = 1;
+   else
+      close(dup_fd);
+   return dev;
 }
 
-struct fd_device * fd_device_ref(struct fd_device *dev)
+struct fd_device *
+fd_device_ref(struct fd_device *dev)
 {
-	p_atomic_inc(&dev->refcnt);
-	return dev;
+   p_atomic_inc(&dev->refcnt);
+   return dev;
 }
 
-static void fd_device_del_impl(struct fd_device *dev)
+void
+fd_device_purge(struct fd_device *dev)
 {
-	int close_fd = dev->closefd ? dev->fd : -1;
-
-	simple_mtx_assert_locked(&table_lock);
-
-	fd_bo_cache_cleanup(&dev->bo_cache, 0);
-	fd_bo_cache_cleanup(&dev->ring_cache, 0);
-	_mesa_hash_table_destroy(dev->handle_table, NULL);
-	_mesa_hash_table_destroy(dev->name_table, NULL);
-	dev->funcs->destroy(dev);
-	if (close_fd >= 0)
-		close(close_fd);
+   simple_mtx_lock(&table_lock);
+   fd_bo_cache_cleanup(&dev->bo_cache, 0);
+   fd_bo_cache_cleanup(&dev->ring_cache, 0);
+   simple_mtx_unlock(&table_lock);
 }
 
-void fd_device_del_locked(struct fd_device *dev)
+static void
+fd_device_del_impl(struct fd_device *dev)
 {
-	if (!p_atomic_dec_zero(&dev->refcnt))
-		return;
-	fd_device_del_impl(dev);
+   int close_fd = dev->closefd ? dev->fd : -1;
+
+   simple_mtx_assert_locked(&table_lock);
+
+   assert(list_is_empty(&dev->deferred_submits));
+
+   fd_bo_cache_cleanup(&dev->bo_cache, 0);
+   fd_bo_cache_cleanup(&dev->ring_cache, 0);
+   _mesa_hash_table_destroy(dev->handle_table, NULL);
+   _mesa_hash_table_destroy(dev->name_table, NULL);
+   dev->funcs->destroy(dev);
+   if (close_fd >= 0)
+      close(close_fd);
 }
 
-void fd_device_del(struct fd_device *dev)
+void
+fd_device_del_locked(struct fd_device *dev)
 {
-	if (!p_atomic_dec_zero(&dev->refcnt))
-		return;
-	simple_mtx_lock(&table_lock);
-	fd_device_del_impl(dev);
-	simple_mtx_unlock(&table_lock);
+   if (!p_atomic_dec_zero(&dev->refcnt))
+      return;
+   fd_device_del_impl(dev);
 }
 
-int fd_device_fd(struct fd_device *dev)
+void
+fd_device_del(struct fd_device *dev)
 {
-	return dev->fd;
+   if (!p_atomic_dec_zero(&dev->refcnt))
+      return;
+   simple_mtx_lock(&table_lock);
+   fd_device_del_impl(dev);
+   simple_mtx_unlock(&table_lock);
 }
 
-enum fd_version fd_device_version(struct fd_device *dev)
+int
+fd_device_fd(struct fd_device *dev)
 {
-	return dev->version;
+   return dev->fd;
 }
 
-bool fd_dbg(void)
+enum fd_version
+fd_device_version(struct fd_device *dev)
 {
-	static int dbg;
-
-	if (!dbg)
-		dbg = getenv("LIBGL_DEBUG") ? 1 : -1;
-
-	return dbg == 1;
+   return dev->version;
 }
 
-bool fd_has_syncobj(struct fd_device *dev)
+bool
+fd_dbg(void)
 {
-	uint64_t value;
-	if (drmGetCap(dev->fd, DRM_CAP_SYNCOBJ, &value))
-		return false;
-	return value && dev->version >= FD_VERSION_FENCE_FD;
+   static int dbg;
+
+   if (!dbg)
+      dbg = getenv("LIBGL_DEBUG") ? 1 : -1;
+
+   return dbg == 1;
+}
+
+bool
+fd_has_syncobj(struct fd_device *dev)
+{
+   uint64_t value;
+   if (drmGetCap(dev->fd, DRM_CAP_SYNCOBJ, &value))
+      return false;
+   return value && dev->version >= FD_VERSION_FENCE_FD;
 }

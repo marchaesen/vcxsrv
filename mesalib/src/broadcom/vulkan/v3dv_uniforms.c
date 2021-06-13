@@ -28,6 +28,44 @@
 #include "v3dv_private.h"
 #include "vk_format_info.h"
 
+/* Our Vulkan resource indices represent indices in descriptor maps which
+ * include all shader stages, so we need to size the arrays below
+ * accordingly. For now we only support a maximum of 2 stages for VS and
+ * FS.
+ */
+#define MAX_STAGES 2
+
+#define MAX_TOTAL_TEXTURE_SAMPLERS (V3D_MAX_TEXTURE_SAMPLERS * MAX_STAGES)
+struct texture_bo_list {
+   struct v3dv_bo *tex[MAX_TOTAL_TEXTURE_SAMPLERS];
+};
+
+/* This tracks state BOs forboth textures and samplers, so we
+ * multiply by 2.
+ */
+#define MAX_TOTAL_STATES (2 * V3D_MAX_TEXTURE_SAMPLERS * MAX_STAGES)
+struct state_bo_list {
+   uint32_t count;
+   struct v3dv_bo *states[MAX_TOTAL_STATES];
+};
+
+#define MAX_TOTAL_UNIFORM_BUFFERS (1 + MAX_UNIFORM_BUFFERS * MAX_STAGES)
+#define MAX_TOTAL_STORAGE_BUFFERS (MAX_STORAGE_BUFFERS * MAX_STAGES)
+struct buffer_bo_list {
+   struct v3dv_bo *ubo[MAX_TOTAL_UNIFORM_BUFFERS];
+   struct v3dv_bo *ssbo[MAX_TOTAL_STORAGE_BUFFERS];
+};
+
+static bool
+state_bo_in_list(struct state_bo_list *list, struct v3dv_bo *bo)
+{
+   for (int i = 0; i < list->count; i++) {
+      if (list->states[i] == bo)
+         return true;
+   }
+   return false;
+}
+
 /*
  * This method checks if the ubo used for push constants is needed to be
  * updated or not.
@@ -87,43 +125,56 @@ check_push_constants_ubo(struct v3dv_cmd_buffer *cmd_buffer,
 static void
 write_tmu_p0(struct v3dv_cmd_buffer *cmd_buffer,
              struct v3dv_pipeline *pipeline,
+             broadcom_shader_stage stage,
              struct v3dv_cl_out **uniforms,
-             uint32_t data)
+             uint32_t data,
+             struct texture_bo_list *tex_bos,
+             struct state_bo_list *state_bos)
 {
    uint32_t texture_idx = v3d_unit_data_get_unit(data);
-   struct v3dv_job *job = cmd_buffer->state.job;
+
    struct v3dv_descriptor_state *descriptor_state =
       v3dv_cmd_buffer_get_descriptor_state(cmd_buffer, pipeline);
 
    /* We need to ensure that the texture bo is added to the job */
    struct v3dv_bo *texture_bo =
       v3dv_descriptor_map_get_texture_bo(descriptor_state,
-                                         &pipeline->shared_data->texture_map,
+                                         &pipeline->shared_data->maps[stage]->texture_map,
                                          pipeline->layout, texture_idx);
    assert(texture_bo);
-   v3dv_job_add_bo(job, texture_bo);
+   assert(texture_idx < V3D_MAX_TEXTURE_SAMPLERS);
+   tex_bos->tex[texture_idx] = texture_bo;
 
    struct v3dv_cl_reloc state_reloc =
       v3dv_descriptor_map_get_texture_shader_state(descriptor_state,
-                                                   &pipeline->shared_data->texture_map,
+                                                   &pipeline->shared_data->maps[stage]->texture_map,
                                                    pipeline->layout,
                                                    texture_idx);
 
-   cl_aligned_reloc(&job->indirect, uniforms,
-                    state_reloc.bo,
-                    state_reloc.offset +
-                    v3d_unit_data_get_offset(data));
+   cl_aligned_u32(uniforms, state_reloc.bo->offset +
+                            state_reloc.offset +
+                            v3d_unit_data_get_offset(data));
+
+   /* Texture and Sampler states are typically suballocated, so they are
+    * usually the same BO: only flag them once to avoid trying to add them
+    * multiple times to the job later.
+    */
+   if (!state_bo_in_list(state_bos, state_reloc.bo)) {
+      assert(state_bos->count < 2 * V3D_MAX_TEXTURE_SAMPLERS);
+      state_bos->states[state_bos->count++] = state_reloc.bo;
+   }
 }
 
 /** V3D 4.x TMU configuration parameter 1 (sampler) */
 static void
 write_tmu_p1(struct v3dv_cmd_buffer *cmd_buffer,
              struct v3dv_pipeline *pipeline,
+             broadcom_shader_stage stage,
              struct v3dv_cl_out **uniforms,
-             uint32_t data)
+             uint32_t data,
+             struct state_bo_list *state_bos)
 {
    uint32_t sampler_idx = v3d_unit_data_get_unit(data);
-   struct v3dv_job *job = cmd_buffer->state.job;
    struct v3dv_descriptor_state *descriptor_state =
       v3dv_cmd_buffer_get_descriptor_state(cmd_buffer, pipeline);
 
@@ -132,12 +183,12 @@ write_tmu_p1(struct v3dv_cmd_buffer *cmd_buffer,
 
    struct v3dv_cl_reloc sampler_state_reloc =
       v3dv_descriptor_map_get_sampler_state(descriptor_state,
-                                            &pipeline->shared_data->sampler_map,
+                                            &pipeline->shared_data->maps[stage]->sampler_map,
                                             pipeline->layout, sampler_idx);
 
    const struct v3dv_sampler *sampler =
       v3dv_descriptor_map_get_sampler(descriptor_state,
-                                      &pipeline->shared_data->sampler_map,
+                                      &pipeline->shared_data->maps[stage]->sampler_map,
                                       pipeline->layout, sampler_idx);
    assert(sampler);
 
@@ -151,26 +202,36 @@ write_tmu_p1(struct v3dv_cmd_buffer *cmd_buffer,
                                         &p1_unpacked);
    }
 
-   cl_aligned_reloc(&job->indirect, uniforms,
-                    sampler_state_reloc.bo,
-                    sampler_state_reloc.offset +
-                    p1_packed);
+   cl_aligned_u32(uniforms, sampler_state_reloc.bo->offset +
+                            sampler_state_reloc.offset +
+                            p1_packed);
+
+   /* Texture and Sampler states are typically suballocated, so they are
+    * usually the same BO: only flag them once to avoid trying to add them
+    * multiple times to the job later.
+    */
+   if (!state_bo_in_list(state_bos, sampler_state_reloc.bo)) {
+      assert(state_bos->count < 2 * V3D_MAX_TEXTURE_SAMPLERS);
+      state_bos->states[state_bos->count++] = sampler_state_reloc.bo;
+   }
 }
 
 static void
 write_ubo_ssbo_uniforms(struct v3dv_cmd_buffer *cmd_buffer,
                         struct v3dv_pipeline *pipeline,
+                        broadcom_shader_stage stage,
                         struct v3dv_cl_out **uniforms,
                         enum quniform_contents content,
-                        uint32_t data)
+                        uint32_t data,
+                        struct buffer_bo_list *buffer_bos)
 {
-   struct v3dv_job *job = cmd_buffer->state.job;
    struct v3dv_descriptor_state *descriptor_state =
       v3dv_cmd_buffer_get_descriptor_state(cmd_buffer, pipeline);
 
    struct v3dv_descriptor_map *map =
       content == QUNIFORM_UBO_ADDR || content == QUNIFORM_GET_UBO_SIZE ?
-      &pipeline->shared_data->ubo_map : &pipeline->shared_data->ssbo_map;
+      &pipeline->shared_data->maps[stage]->ubo_map :
+      &pipeline->shared_data->maps[stage]->ssbo_map;
 
    uint32_t offset =
       content == QUNIFORM_UBO_ADDR ?
@@ -193,10 +254,10 @@ write_ubo_ssbo_uniforms(struct v3dv_cmd_buffer *cmd_buffer,
          &cmd_buffer->push_constants_resource;
       assert(resource->bo);
 
-      cl_aligned_reloc(&job->indirect, uniforms,
-                       resource->bo,
-                       resource->offset + offset + dynamic_offset);
-
+      cl_aligned_u32(uniforms, resource->bo->offset +
+                               resource->offset +
+                               offset + dynamic_offset);
+      buffer_bos->ubo[0] = resource->bo;
    } else {
       uint32_t index =
          content == QUNIFORM_UBO_ADDR ?
@@ -216,10 +277,18 @@ write_ubo_ssbo_uniforms(struct v3dv_cmd_buffer *cmd_buffer,
           content == QUNIFORM_GET_UBO_SIZE) {
          cl_aligned_u32(uniforms, descriptor->range);
       } else {
-         cl_aligned_reloc(&job->indirect, uniforms,
-                          descriptor->buffer->mem->bo,
-                          descriptor->buffer->mem_offset +
-                          descriptor->offset + offset + dynamic_offset);
+         cl_aligned_u32(uniforms, descriptor->buffer->mem->bo->offset +
+                                  descriptor->buffer->mem_offset +
+                                  descriptor->offset +
+                                  offset + dynamic_offset);
+
+         if (content == QUNIFORM_UBO_ADDR) {
+            assert(index + 1 < MAX_TOTAL_UNIFORM_BUFFERS);
+            buffer_bos->ubo[index + 1] = descriptor->buffer->mem->bo;
+         } else {
+            assert(index < MAX_TOTAL_STORAGE_BUFFERS);
+            buffer_bos->ssbo[index] = descriptor->buffer->mem->bo;
+         }
       }
    }
 }
@@ -279,6 +348,7 @@ get_texture_size_from_buffer_view(struct v3dv_buffer_view *buffer_view,
 static uint32_t
 get_texture_size(struct v3dv_cmd_buffer *cmd_buffer,
                  struct v3dv_pipeline *pipeline,
+                 broadcom_shader_stage stage,
                  enum quniform_contents contents,
                  uint32_t data)
 {
@@ -288,7 +358,7 @@ get_texture_size(struct v3dv_cmd_buffer *cmd_buffer,
 
    struct v3dv_descriptor *descriptor =
       v3dv_descriptor_map_get_descriptor(descriptor_state,
-                                         &pipeline->shared_data->texture_map,
+                                         &pipeline->shared_data->maps[stage]->texture_map,
                                          pipeline->layout,
                                          texture_idx, NULL);
 
@@ -322,6 +392,10 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
 
    struct v3dv_job *job = cmd_buffer->state.job;
    assert(job);
+
+   struct texture_bo_list tex_bos = { 0 };
+   struct state_bo_list state_bos = { 0 };
+   struct buffer_bo_list buffer_bos = { 0 };
 
    /* The hardware always pre-fetches the next uniform (also when there
     * aren't any), so we always allocate space for an extra slot. This
@@ -369,17 +443,20 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
       case QUNIFORM_UBO_ADDR:
       case QUNIFORM_GET_SSBO_SIZE:
       case QUNIFORM_GET_UBO_SIZE:
-         write_ubo_ssbo_uniforms(cmd_buffer, pipeline, &uniforms,
-                                 uinfo->contents[i], data);
+         write_ubo_ssbo_uniforms(cmd_buffer, pipeline, variant->stage, &uniforms,
+                                 uinfo->contents[i], data, &buffer_bos);
+
         break;
 
       case QUNIFORM_IMAGE_TMU_CONFIG_P0:
       case QUNIFORM_TMU_CONFIG_P0:
-         write_tmu_p0(cmd_buffer, pipeline, &uniforms, data);
+         write_tmu_p0(cmd_buffer, pipeline, variant->stage,
+                      &uniforms, data, &tex_bos, &state_bos);
          break;
 
       case QUNIFORM_TMU_CONFIG_P1:
-         write_tmu_p1(cmd_buffer, pipeline, &uniforms, data);
+         write_tmu_p1(cmd_buffer, pipeline, variant->stage,
+                      &uniforms, data, &state_bos);
          break;
 
       case QUNIFORM_IMAGE_WIDTH:
@@ -395,6 +472,7 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
          cl_aligned_u32(&uniforms,
                         get_texture_size(cmd_buffer,
                                          pipeline,
+                                         variant->stage,
                                          uinfo->contents[i],
                                          data));
          break;
@@ -410,12 +488,12 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
       case QUNIFORM_SHARED_OFFSET:
          assert(job->type == V3DV_JOB_TYPE_GPU_CSD);
          assert(job->csd.shared_memory);
-         cl_aligned_reloc(&job->indirect, &uniforms, job->csd.shared_memory, 0);
+         cl_aligned_u32(&uniforms, job->csd.shared_memory->offset);
          break;
 
       case QUNIFORM_SPILL_OFFSET:
          assert(pipeline->spill.bo);
-         cl_aligned_reloc(&job->indirect, &uniforms, pipeline->spill.bo, 0);
+         cl_aligned_u32(&uniforms, pipeline->spill.bo->offset);
          break;
 
       case QUNIFORM_SPILL_SIZE_PER_THREAD:
@@ -429,6 +507,30 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
    }
 
    cl_end(&job->indirect, uniforms);
+
+   for (int i = 0; i < MAX_TOTAL_TEXTURE_SAMPLERS; i++) {
+      if (tex_bos.tex[i])
+         v3dv_job_add_bo(job, tex_bos.tex[i]);
+   }
+
+   for (int i = 0; i < state_bos.count; i++)
+      v3dv_job_add_bo(job, state_bos.states[i]);
+
+   for (int i = 0; i < MAX_TOTAL_UNIFORM_BUFFERS; i++) {
+      if (buffer_bos.ubo[i])
+         v3dv_job_add_bo(job, buffer_bos.ubo[i]);
+   }
+
+   for (int i = 0; i < MAX_TOTAL_STORAGE_BUFFERS; i++) {
+      if (buffer_bos.ssbo[i])
+         v3dv_job_add_bo(job, buffer_bos.ssbo[i]);
+   }
+
+   if (job->csd.shared_memory)
+      v3dv_job_add_bo(job, job->csd.shared_memory);
+
+   if (pipeline->spill.bo)
+      v3dv_job_add_bo(job, pipeline->spill.bo);
 
    return uniform_stream;
 }

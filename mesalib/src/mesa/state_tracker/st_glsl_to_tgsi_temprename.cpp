@@ -1231,7 +1231,7 @@ get_temp_registers_required_live_ranges(void *mem_ctx, exec_list *instructions,
          assert(num_inst_src_regs(inst) == 1);
          access.record_read(inst->src[0], line, switch_scope);
 
-         /* Fall through to allocate the scope. */
+         FALLTHROUGH; /* To allocate the scope. */
       }
       case TGSI_OPCODE_DEFAULT: {
          prog_scope_type t = inst->op == TGSI_OPCODE_CASE ? switch_case_branch

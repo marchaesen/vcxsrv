@@ -479,17 +479,6 @@ isa_decode_field(struct decode_scope *scope, const char *field_name)
 	return val;
 }
 
-static int64_t
-sign_extend(uint64_t val, unsigned width)
-{
-	assert(width > 0);
-	if (val & (UINT64_C(1) << (width - 1))) {
-		return -(int64_t)((UINT64_C(1) << width) - val);
-	} else {
-		return val;
-	}
-}
-
 static void
 display_field(struct decode_scope *scope, const char *field_name)
 {
@@ -528,7 +517,7 @@ display_field(struct decode_scope *scope, const char *field_name)
 	/* Basic types: */
 	case TYPE_BRANCH:
 		if (scope->state->options->branch_labels) {
-			int offset = sign_extend(val, width) + scope->state->n;
+			int offset = util_sign_extend(val, width) + scope->state->n;
 			if (offset < scope->state->num_instr) {
 				fprintf(out, "l%d", offset);
 				BITSET_SET(scope->state->branch_targets, offset);
@@ -537,7 +526,7 @@ display_field(struct decode_scope *scope, const char *field_name)
 		}
 		FALLTHROUGH;
 	case TYPE_INT:
-		fprintf(out, "%"PRId64, sign_extend(val, width));
+		fprintf(out, "%"PRId64, util_sign_extend(val, width));
 		break;
 	case TYPE_UINT:
 		fprintf(out, "%"PRIu64, val);
@@ -548,7 +537,7 @@ display_field(struct decode_scope *scope, const char *field_name)
 		break;
 	case TYPE_OFFSET:
 		if (val != 0) {
-			fprintf(out, "%+"PRId64, sign_extend(val, width));
+			fprintf(out, "%+"PRId64, util_sign_extend(val, width));
 		}
 		break;
 	case TYPE_FLOAT:

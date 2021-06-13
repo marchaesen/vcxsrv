@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # converts the <rules>.xml file to the old format <rules>.lst file
 #

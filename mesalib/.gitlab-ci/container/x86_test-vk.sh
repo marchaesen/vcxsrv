@@ -10,13 +10,16 @@ STABLE_EPHEMERAL=" \
       ccache \
       cmake \
       g++ \
+      glslang-tools \
       libgbm-dev \
       libgles2-mesa-dev \
       liblz4-dev \
       libpciaccess-dev \
-      libpng-dev \
+      libudev-dev \
       libvulkan-dev \
       libwaffle-dev \
+      libwayland-dev \
+      libx11-xcb-dev \
       libxcb-ewmh-dev \
       libxcb-keysyms1-dev \
       libxkbcommon-dev \
@@ -77,7 +80,7 @@ rm crashdialog.reg
 # system.reg file, which fails.
 # Just giving it a bit more of time for it to be created solves the
 # problem ...
-test -f  "${WINEPREFIX}/system.reg" || sleep 2
+while ! test -f  "${WINEPREFIX}/system.reg"; do sleep 1; done
 
 wget "https://github.com/doitsujin/dxvk/releases/download/v${DXVK_VERSION}/dxvk-${DXVK_VERSION}.tar.gz"
 tar xzpf dxvk-"${DXVK_VERSION}".tar.gz
@@ -112,11 +115,6 @@ wine \
 ############### Build piglit
 
 PIGLIT_BUILD_TARGETS="piglit_replayer" . .gitlab-ci/container/build-piglit.sh
-
-############### Build dEQP runner (and install rust temporarily for it)
-. .gitlab-ci/container/build-rust.sh
-. .gitlab-ci/container/build-deqp-runner.sh
-rm -rf /root/.rustup /root/.cargo
 
 ############### Build Fossilize
 

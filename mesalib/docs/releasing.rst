@@ -112,29 +112,29 @@ good contact point.
    then they should be squashed together. The commit messages and the
    "``cherry picked from``"-tags must be preserved.
 
-::
+   .. code-block:: console
 
-   git show b10859ec41d09c57663a258f43fe57c12332698e
+      git show b10859ec41d09c57663a258f43fe57c12332698e
 
-   commit b10859ec41d09c57663a258f43fe57c12332698e
-   Author: Jonas Pfeil <pfeiljonas@gmx.de>
-   Date:   Wed Mar 1 18:11:10 2017 +0100
+      commit b10859ec41d09c57663a258f43fe57c12332698e
+      Author: Jonas Pfeil <pfeiljonas@gmx.de>
+      Date:   Wed Mar 1 18:11:10 2017 +0100
 
-       ralloc: Make sure ralloc() allocations match malloc()'s alignment.
+         ralloc: Make sure ralloc() allocations match malloc()'s alignment.
 
-       The header of ralloc needs to be aligned, because the compiler assumes
-       ...
+         The header of ralloc needs to be aligned, because the compiler assumes
+         ...
 
-       (cherry picked from commit cd2b55e536dc806f9358f71db438dd9c246cdb14)
+         (cherry picked from commit cd2b55e536dc806f9358f71db438dd9c246cdb14)
 
-       Squashed with commit:
+         Squashed with commit:
 
-       ralloc: don't leave out the alignment factor
+         ralloc: don't leave out the alignment factor
 
-       Experimentation shows that without alignment factor GCC and Clang choose
-       ...
+         Experimentation shows that without alignment factor GCC and Clang choose
+         ...
 
-       (cherry picked from commit ff494fe999510ea40e3ed5827e7818550b6de126)
+         (cherry picked from commit ff494fe999510ea40e3ed5827e7818550b6de126)
 
 Regression/functionality testing
 --------------------------------
@@ -180,12 +180,12 @@ Check if the version number is going to remain as, alternatively
 
 To setup the branchpoint:
 
-::
+.. code-block:: console
 
-   git checkout master # make sure we're in master first
+   git checkout main # make sure we're in main first
    git tag -s X.Y-branchpoint -m "Mesa X.Y branchpoint"
    git checkout -b X.Y
-   git checkout master
+   git checkout main
    $EDITOR VERSION # bump the version number
    git commit -as
    truncate docs/relnotes/new_features.txt
@@ -209,7 +209,7 @@ These are the instructions for making a new Mesa release.
 Get latest source files
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Ensure the latest code is available - both in your local master and the
+Ensure the latest code is available - both in your local main and the
 relevant branch.
 
 Perform basic testing
@@ -223,7 +223,7 @@ Most of the testing should already be done during the
 
 Here is one solution:
 
-::
+.. code-block:: console
 
    __glxgears_cmd='glxgears 2>&1 | grep -v "configuration file"'
    __es2info_cmd='es2_info 2>&1 | egrep "GL_VERSION|GL_RENDERER|.*dri\.so"'
@@ -275,7 +275,7 @@ Use the release.sh script from xorg `util-modular <https://cgit.freedesktop.org/
 
 Start the release process.
 
-::
+.. code-block:: console
 
    ../relative/path/to/release.sh . # append --dist if you've already done distcheck above
 
@@ -294,19 +294,19 @@ Add the sha256sums to the release notes
 Edit ``docs/relnotes/X.Y.Z.rst`` to add the ``sha256sum`` as available in the
 ``mesa-X.Y.Z.announce`` template. Commit this change.
 
-Back on mesa master, add the new release notes into the tree
+Back on mesa main, add the new release notes into the tree
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Something like the following steps will do the trick:
 
-::
+.. code-block:: console
 
    git cherry-pick -x X.Y~1
    git cherry-pick -x X.Y
 
 Then run the
 
-::
+.. code-block:: console
 
    ./bin/post_version.py X.Y.Z
 
@@ -315,9 +315,9 @@ docs/relnotes.rst and docs/release-calendar.csv. It will then generate
 a Git commit automatically. Check that everything looks correct and
 push:
 
-::
+.. code-block:: console
 
-      git push origin master X.Y
+      git push origin main X.Y
 
 Announce the release
 --------------------

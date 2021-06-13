@@ -1,8 +1,16 @@
-# Slow tests (> 1 minute to run)
+# Broadcom waivers
+dEQP-VK.draw.inverted_depth_ranges.nodepthclamp_deltazero
+dEQP-VK.rasterization.depth_bias.d32_sfloat
+
+# Timeout tests (> 1 minute to run)
+dEQP-VK.graphicsfuzz.spv-stable-maze-flatten-copy-composite
+dEQP-VK.graphicsfuzz.stable-binarysearch-tree-nested-if-and-conditional
+dEQP-VK.memory.mapping.suballocation.full.variable.implicit_unmap
+dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_vert
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_linear_clamp
 dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_linear_repeat
 dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_nearest_clamp
 dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_nearest_repeat
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_nearest_linear_mipmap_linear_clamp
 dEQP-VK.texture.explicit_lod.2d.sizes.128x128_nearest_linear_mipmap_linear_repeat
-
-# Flaky tests
-dEQP-VK.synchronization.op.single_queue.binary_semaphore.write_update_buffer_read_vertex_input.buffer_16384
+dEQP-VK.ubo.random.all_shared_buffer.48

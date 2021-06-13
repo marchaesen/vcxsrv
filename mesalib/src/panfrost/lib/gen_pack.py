@@ -105,7 +105,7 @@ __gen_unpack_uint(const uint8_t *restrict cl, uint32_t start, uint32_t end)
    const int width = end - start + 1;
    const uint64_t mask = (width == 64 ? ~0 : (1ull << width) - 1 );
 
-   for (int byte = start / 8; byte <= end / 8; byte++) {
+   for (uint32_t byte = start / 8; byte <= end / 8; byte++) {
       val |= ((uint64_t) cl[byte]) << ((byte - start / 8) * 8);
    }
 
@@ -171,19 +171,19 @@ __gen_unpack_padded(const uint8_t *restrict cl, uint32_t start, uint32_t end)
 
 #define mali_pixel_format_print_v6(fp, format) \\
     fprintf(fp, "%*sFormat (v6): %s%s%s %s%s%s%s\\n", indent, "", \\
-        mali_format_as_str((format >> 12) & 0xFF), \\
+        mali_format_as_str((enum mali_format)((format >> 12) & 0xFF)), \\
         (format & (1 << 20)) ? " sRGB" : "", \\
         (format & (1 << 21)) ? " big-endian" : "", \\
-        mali_channel_as_str(((format >> 0) & 0x7)), \\
-        mali_channel_as_str(((format >> 3) & 0x7)), \\
-        mali_channel_as_str(((format >> 6) & 0x7)), \\
-        mali_channel_as_str(((format >> 9) & 0x7)));
+        mali_channel_as_str((enum mali_channel)((format >> 0) & 0x7)), \\
+        mali_channel_as_str((enum mali_channel)((format >> 3) & 0x7)), \\
+        mali_channel_as_str((enum mali_channel)((format >> 6) & 0x7)), \\
+        mali_channel_as_str((enum mali_channel)((format >> 9) & 0x7)));
 
 #define mali_pixel_format_print_v7(fp, format) \\
     fprintf(fp, "%*sFormat (v7): %s%s %s%s\\n", indent, "", \\
-        mali_format_as_str((format >> 12) & 0xFF), \\
+        mali_format_as_str((enum mali_format)((format >> 12) & 0xFF)), \\
         (format & (1 << 20)) ? " sRGB" : "", \\
-        mali_rgb_component_order_as_str((format & ((1 << 12) - 1))), \\
+        mali_rgb_component_order_as_str((enum mali_rgb_component_order)(format & ((1 << 12) - 1))), \\
         (format & (1 << 21)) ? " XXX BAD BIT" : "");
 
 
@@ -584,8 +584,10 @@ class Group(object):
             args.append(str(fieldref.start))
             args.append(str(fieldref.end))
 
-            if field.type in set(["uint", "uint/float", "address", "Pixel Format"]) | self.parser.enums:
+            if field.type in set(["uint", "uint/float", "address", "Pixel Format"]):
                 convert = "__gen_unpack_uint"
+            elif field.type in self.parser.enums:
+                convert = "(enum %s)__gen_unpack_uint" % enum_name(field.type)
             elif field.type == "int":
                 convert = "__gen_unpack_sint"
             elif field.type == "padded":

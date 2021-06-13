@@ -30,14 +30,13 @@
 #include "pipe/p_context.h"
 
 void fd_sampler_states_bind(struct pipe_context *pctx,
-		enum pipe_shader_type shader, unsigned start,
-		unsigned nr, void **hwcso);
+                            enum pipe_shader_type shader, unsigned start,
+                            unsigned nr, void **hwcso);
 
 void fd_set_sampler_views(struct pipe_context *pctx,
-						  enum pipe_shader_type shader,
-						  unsigned start, unsigned nr,
-						  unsigned unbind_num_trailing_slots,
-						  struct pipe_sampler_view **views);
+                          enum pipe_shader_type shader, unsigned start,
+                          unsigned nr, unsigned unbind_num_trailing_slots,
+                          struct pipe_sampler_view **views);
 
 void fd_texture_init(struct pipe_context *pctx);
 
@@ -70,6 +69,6 @@ struct fd_texture_stateobj;
  */
 #define BORDERCOLOR_SIZE 0x40
 void fd_setup_border_colors(struct fd_texture_stateobj *tex, void *ptr,
-		unsigned offset);
+                            unsigned offset);
 
 #endif /* FREEDRENO_TEXTURE_H_ */

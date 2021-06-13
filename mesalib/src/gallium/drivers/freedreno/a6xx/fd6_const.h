@@ -22,24 +22,29 @@
  * SOFTWARE.
  */
 
-
 #ifndef FD6_CONST_H
 #define FD6_CONST_H
 
 #include "fd6_emit.h"
 
-struct fd_ringbuffer * fd6_build_tess_consts(struct fd6_emit *emit) assert_dt;
-struct fd_ringbuffer * fd6_build_user_consts(struct fd6_emit *emit) assert_dt;
-struct fd_ringbuffer * fd6_build_vs_driver_params(struct fd6_emit *emit) assert_dt;
+struct fd_ringbuffer *fd6_build_tess_consts(struct fd6_emit *emit) assert_dt;
+struct fd_ringbuffer *fd6_build_user_consts(struct fd6_emit *emit) assert_dt;
+struct fd_ringbuffer *
+fd6_build_vs_driver_params(struct fd6_emit *emit) assert_dt;
 
-void fd6_emit_ibo_consts(struct fd6_emit *emit, const struct ir3_shader_variant *v,
-		enum pipe_shader_type stage, struct fd_ringbuffer *ring) assert_dt;
-void fd6_emit_cs_consts(const struct ir3_shader_variant *v, struct fd_ringbuffer *ring,
-		struct fd_context *ctx, const struct pipe_grid_info *info) assert_dt;
-void fd6_emit_immediates(struct fd_screen *screen, const struct ir3_shader_variant *v,
-		struct fd_ringbuffer *ring) assert_dt;
+void fd6_emit_ibo_consts(struct fd6_emit *emit,
+                         const struct ir3_shader_variant *v,
+                         enum pipe_shader_type stage,
+                         struct fd_ringbuffer *ring) assert_dt;
+void fd6_emit_cs_consts(const struct ir3_shader_variant *v,
+                        struct fd_ringbuffer *ring, struct fd_context *ctx,
+                        const struct pipe_grid_info *info) assert_dt;
+void fd6_emit_immediates(struct fd_screen *screen,
+                         const struct ir3_shader_variant *v,
+                         struct fd_ringbuffer *ring) assert_dt;
 void fd6_emit_link_map(struct fd_screen *screen,
-		const struct ir3_shader_variant *producer,
-		const struct ir3_shader_variant *v, struct fd_ringbuffer *ring) assert_dt;
+                       const struct ir3_shader_variant *producer,
+                       const struct ir3_shader_variant *v,
+                       struct fd_ringbuffer *ring) assert_dt;
 
 #endif /* FD6_CONST_H */

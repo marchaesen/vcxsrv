@@ -165,9 +165,6 @@ find_neighbors(struct ir3 *ir)
 	bool progress = false;
 	unsigned i;
 
-	foreach_output (out, ir)
-		progress |= instr_find_neighbors(out);
-
 	foreach_block (block, &ir->block_list) {
 		for (i = 0; i < block->keeps_count; i++) {
 			struct ir3_instruction *instr = block->keeps[i];

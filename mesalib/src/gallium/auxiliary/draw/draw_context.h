@@ -325,8 +325,9 @@ draw_set_mapped_so_targets(struct draw_context *draw,
 
 void draw_vbo(struct draw_context *draw,
               const struct pipe_draw_info *info,
+              unsigned drawid_offset,
               const struct pipe_draw_indirect_info *indirect,
-              const struct pipe_draw_start_count *draws,
+              const struct pipe_draw_start_count_bias *draws,
               unsigned num_draws);
 
 

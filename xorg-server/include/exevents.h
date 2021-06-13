@@ -192,11 +192,12 @@ extern int
             GrabMask * /* eventMask */ );
 
 extern int
- GrabTouch(ClientPtr /* client */ ,
-           DeviceIntPtr /* dev */ ,
-           DeviceIntPtr /* mod_dev */ ,
-           GrabParameters * /* param */ ,
-           GrabMask * /* eventMask */ );
+ GrabTouchOrGesture(ClientPtr /* client */ ,
+                    DeviceIntPtr /* dev */ ,
+                    DeviceIntPtr /* mod_dev */ ,
+                    int /* type */ ,
+                    GrabParameters * /* param */ ,
+                    GrabMask * /* eventMask */ );
 
 extern int
  SelectForWindow(DeviceIntPtr /* dev */ ,

@@ -58,6 +58,7 @@
 enum xf86ITDeviceType {
     DEVICE_KEYBOARD = 1,
     DEVICE_POINTER,
+    DEVICE_POINTER_GESTURE,
     DEVICE_POINTER_ABS,
     DEVICE_POINTER_ABS_PROXIMITY,
     DEVICE_TOUCH,
@@ -475,6 +476,14 @@ init_touch(InputInfoPtr pInfo)
 }
 
 static void
+init_gesture(InputInfoPtr pInfo)
+{
+    DeviceIntPtr dev = pInfo->dev;
+    int ntouches = TOUCH_MAX_SLOTS;
+    InitGestureClassDeviceStruct(dev, ntouches);
+}
+
+static void
 device_init(DeviceIntPtr dev)
 {
     InputInfoPtr pInfo = dev->public.devicePrivate;
@@ -488,6 +497,10 @@ device_init(DeviceIntPtr dev)
             break;
         case DEVICE_POINTER:
             init_pointer(pInfo);
+            break;
+        case DEVICE_POINTER_GESTURE:
+            init_pointer(pInfo);
+            init_gesture(pInfo);
             break;
         case DEVICE_POINTER_ABS:
             init_pointer_absolute(pInfo);
@@ -679,6 +692,37 @@ handle_touch(InputInfoPtr pInfo, xf86ITEventTouch *event)
 }
 
 static void
+handle_gesture_swipe(InputInfoPtr pInfo, xf86ITEventGestureSwipe *event)
+{
+    DeviceIntPtr dev = pInfo->dev;
+    xf86ITDevicePtr driver_data = pInfo->private;
+
+    xf86IDrvMsg(pInfo, X_DEBUG, "Handling gesture swipe event\n");
+
+    driver_data->last_event_num++;
+
+    xf86PostGestureSwipeEvent(dev, event->gesture_type, event->num_touches, event->flags,
+                              event->delta_x, event->delta_y,
+                              event->delta_unaccel_x, event->delta_unaccel_y);
+}
+
+static void
+handle_gesture_pinch(InputInfoPtr pInfo, xf86ITEventGesturePinch *event)
+{
+    DeviceIntPtr dev = pInfo->dev;
+    xf86ITDevicePtr driver_data = pInfo->private;
+
+    xf86IDrvMsg(pInfo, X_DEBUG, "Handling gesture pinch event\n");
+
+    driver_data->last_event_num++;
+
+    xf86PostGesturePinchEvent(dev, event->gesture_type, event->num_touches, event->flags,
+                              event->delta_x, event->delta_y,
+                              event->delta_unaccel_x, event->delta_unaccel_y,
+                              event->scale, event->delta_angle);
+}
+
+static void
 client_new_handle_event(InputInfoPtr pInfo, xf86ITEventAny *event)
 {
     switch (event->header.type) {
@@ -714,6 +758,12 @@ client_ready_handle_event(InputInfoPtr pInfo, xf86ITEventAny *event)
             break;
         case XF86IT_EVENT_TOUCH:
             handle_touch(pInfo, &event->touch);
+            break;
+        case XF86IT_EVENT_GESTURE_PINCH:
+            handle_gesture_pinch(pInfo, &(event->pinch));
+            break;
+        case XF86IT_EVENT_GESTURE_SWIPE:
+            handle_gesture_swipe(pInfo, &(event->swipe));
             break;
         case XF86IT_EVENT_CLIENT_VERSION:
             xf86IDrvMsg(pInfo, X_ERROR, "Only single ClientVersion event is allowed\n");
@@ -759,6 +809,8 @@ is_supported_event(enum xf86ITEventType type)
         case XF86IT_EVENT_BUTTON:
         case XF86IT_EVENT_KEY:
         case XF86IT_EVENT_TOUCH:
+        case XF86IT_EVENT_GESTURE_PINCH:
+        case XF86IT_EVENT_GESTURE_SWIPE:
             return true;
     }
     return false;
@@ -775,6 +827,8 @@ get_event_size(enum xf86ITEventType type)
         case XF86IT_EVENT_BUTTON: return sizeof(xf86ITEventButton);
         case XF86IT_EVENT_KEY: return sizeof(xf86ITEventKey);
         case XF86IT_EVENT_TOUCH: return sizeof(xf86ITEventTouch);
+        case XF86IT_EVENT_GESTURE_PINCH: return sizeof(xf86ITEventGesturePinch);
+        case XF86IT_EVENT_GESTURE_SWIPE: return sizeof(xf86ITEventGestureSwipe);
     }
     abort();
 }
@@ -864,6 +918,7 @@ get_type_name(InputInfoPtr pInfo, xf86ITDevicePtr driver_data)
     switch (driver_data->device_type) {
         case DEVICE_TOUCH: return XI_TOUCHSCREEN;
         case DEVICE_POINTER: return XI_MOUSE;
+        case DEVICE_POINTER_GESTURE: return XI_TOUCHPAD;
         case DEVICE_POINTER_ABS: return XI_MOUSE;
         case DEVICE_POINTER_ABS_PROXIMITY: return XI_TABLET;
         case DEVICE_KEYBOARD: return XI_KEYBOARD;
@@ -986,6 +1041,8 @@ pre_init(InputDriverPtr drv, InputInfoPtr pInfo, int flags)
         driver_data->device_type = DEVICE_KEYBOARD;
     } else if (strcmp(device_type_option, "Pointer") == 0) {
         driver_data->device_type = DEVICE_POINTER;
+    } else if (strcmp(device_type_option, "PointerGesture") == 0) {
+        driver_data->device_type = DEVICE_POINTER_GESTURE;
     } else if (strcmp(device_type_option, "PointerAbsolute") == 0) {
         driver_data->device_type = DEVICE_POINTER_ABS;
     } else if (strcmp(device_type_option, "PointerAbsoluteProximity") == 0) {

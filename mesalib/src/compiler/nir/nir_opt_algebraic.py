@@ -553,7 +553,11 @@ optimizations.extend([
    (('imin', a, a), a),
    (('imax', a, a), a),
    (('umin', a, a), a),
+   (('umin', a, 0), 0),
+   (('umin', a, -1), a),
    (('umax', a, a), a),
+   (('umax', a, 0), a),
+   (('umax', a, -1), -1),
    (('fmax', ('fmax', a, b), b), ('fmax', a, b)),
    (('umax', ('umax', a, b), b), ('umax', a, b)),
    (('imax', ('imax', a, b), b), ('imax', a, b)),
@@ -1201,11 +1205,13 @@ optimizations.extend([
    (('unpack_64_2x32_split_y', ('pack_64_2x32_split', a, b)), b),
    (('unpack_64_2x32', ('pack_64_2x32_split', a, b)), ('vec2', a, b)),
    (('unpack_64_2x32', ('pack_64_2x32', a)), a),
+   (('unpack_double_2x32_dxil', ('pack_double_2x32_dxil', a)), a),
    (('pack_64_2x32_split', ('unpack_64_2x32_split_x', a),
                            ('unpack_64_2x32_split_y', a)), a),
    (('pack_64_2x32', ('vec2', ('unpack_64_2x32_split_x', a),
                               ('unpack_64_2x32_split_y', a))), a),
    (('pack_64_2x32', ('unpack_64_2x32', a)), a),
+   (('pack_double_2x32_dxil', ('unpack_double_2x32_dxil', a)), a),
 
    # Comparing two halves of an unpack separately.  While this optimization
    # should be correct for non-constant values, it's less obvious that it's

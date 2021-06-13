@@ -328,8 +328,10 @@ setup_vs_output_info(isel_context *ctx, nir_shader *nir,
 
    outinfo->param_exports = 0;
    int pos_written = 0x1;
+   bool writes_primitive_shading_rate = outinfo->writes_primitive_shading_rate ||
+                                        ctx->options->force_vrs_rates;
    if (outinfo->writes_pointsize || outinfo->writes_viewport_index || outinfo->writes_layer ||
-       outinfo->writes_primitive_shading_rate)
+       writes_primitive_shading_rate)
       pos_written |= 1 << 1;
 
    uint64_t mask = nir->info.outputs_written;
@@ -390,7 +392,7 @@ setup_vs_variables(isel_context *ctx, nir_shader *nir)
          assert(!ctx->args->shader_info->so.num_outputs);
 
       /* TODO: check if the shader writes edge flags (not in Vulkan) */
-      ctx->ngg_nogs_early_prim_export = true;
+      ctx->ngg_nogs_early_prim_export = exec_list_is_singular(&nir_shader_get_entrypoint(nir)->body);
    }
 
    if (ctx->stage == vertex_ngg && ctx->args->options->key.vs_common_out.export_prim_id) {
@@ -417,8 +419,9 @@ void setup_gs_variables(isel_context *ctx, nir_shader *nir)
       ctx->ngg_gs_emit_vtx_bytes = ctx->ngg_gs_primflags_offset + 4u;
       ctx->ngg_gs_emit_addr = esgs_ring_bytes;
       ctx->ngg_gs_scratch_addr = ctx->ngg_gs_emit_addr + ngg_emit_bytes;
+      ctx->ngg_gs_scratch_addr = ALIGN(ctx->ngg_gs_scratch_addr, 16u);
 
-      unsigned total_lds_bytes = esgs_ring_bytes + ngg_emit_bytes + ngg_gs_scratch_bytes;
+      unsigned total_lds_bytes = ctx->ngg_gs_scratch_addr + ngg_gs_scratch_bytes;
       assert(total_lds_bytes >= ctx->ngg_gs_emit_addr);
       assert(total_lds_bytes >= ctx->ngg_gs_scratch_addr);
       ctx->program->config->lds_size = DIV_ROUND_UP(total_lds_bytes, ctx->program->dev.lds_encoding_granule);
@@ -461,8 +464,7 @@ setup_tes_variables(isel_context *ctx, nir_shader *nir)
       if (ctx->stage.hw == HWStage::NGG)
          assert(!ctx->args->shader_info->so.num_outputs);
 
-      /* Tess eval shaders can't write edge flags, so this can be always true. */
-      ctx->ngg_nogs_early_prim_export = true;
+      ctx->ngg_nogs_early_prim_export = exec_list_is_singular(&nir_shader_get_entrypoint(nir)->body);
    }
 }
 
@@ -474,7 +476,7 @@ setup_variables(isel_context *ctx, nir_shader *nir)
       break;
    }
    case MESA_SHADER_COMPUTE: {
-      ctx->program->config->lds_size = DIV_ROUND_UP(nir->info.cs.shared_size, ctx->program->dev.lds_encoding_granule);
+      ctx->program->config->lds_size = DIV_ROUND_UP(nir->info.shared_size, ctx->program->dev.lds_encoding_granule);
       break;
    }
    case MESA_SHADER_VERTEX: {

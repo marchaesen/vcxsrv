@@ -48,8 +48,14 @@
  */
 
 static bool
-lower_fragcolor_instr(nir_intrinsic_instr *instr, nir_builder *b, unsigned max_draw_buffers)
+lower_fragcolor_instr(nir_builder *b, nir_instr *intr, void *data)
 {
+   if (intr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *instr = nir_instr_as_intrinsic(intr);
+   unsigned *max_draw_buffers = data;
+
    nir_variable *out;
    if (instr->intrinsic != nir_intrinsic_store_deref)
       return false;
@@ -72,47 +78,29 @@ lower_fragcolor_instr(nir_intrinsic_instr *instr, nir_builder *b, unsigned max_d
    /* translate gl_FragColor -> gl_FragData since this is already handled */
    out->data.location = FRAG_RESULT_DATA0;
    nir_component_mask_t writemask = nir_intrinsic_write_mask(instr);
+   b->shader->info.outputs_written &= ~BITFIELD64_BIT(FRAG_RESULT_COLOR);
+   b->shader->info.outputs_written |= BITFIELD64_BIT(FRAG_RESULT_DATA0);
 
-   for (unsigned i = 1; i < max_draw_buffers; i++) {
+   for (unsigned i = 1; i < *max_draw_buffers; i++) {
       char name[28];
       snprintf(name, sizeof(name), name_tmpl, i);
       nir_variable *out_color = nir_variable_create(b->shader, nir_var_shader_out,
-                                                   glsl_vec4_type(),
-                                                   name);
+                                                   out->type, name);
       out_color->data.location = FRAG_RESULT_DATA0 + i;
-      out_color->data.driver_location = i;
+      out_color->data.driver_location = b->shader->num_outputs++;
       out_color->data.index = out->data.index;
       nir_store_var(b, out_color, frag_color, writemask);
+      b->shader->info.outputs_written |= BITFIELD64_BIT(FRAG_RESULT_DATA0 + i);
    }
    return true;
 }
 
 bool
-nir_lower_fragcolor(nir_shader *shader)
+nir_lower_fragcolor(nir_shader *shader, unsigned max_draw_buffers)
 {
-   bool progress = false;
-
    if (shader->info.stage != MESA_SHADER_FRAGMENT)
       return false;
 
-   const unsigned max_draw_buffers =
-      shader->info.fs.color_is_dual_source ? 1 : 8;
-
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         nir_builder builder;
-         nir_builder_init(&builder, function->impl);
-         nir_foreach_block(block, function->impl) {
-            nir_foreach_instr_safe(instr, block) {
-               if (instr->type == nir_instr_type_intrinsic)
-                  progress |= lower_fragcolor_instr(nir_instr_as_intrinsic(instr),
-                                                    &builder, max_draw_buffers);
-            }
-         }
-
-         nir_metadata_preserve(function->impl, nir_metadata_block_index | nir_metadata_dominance);
-      }
-   }
-
-   return progress;
+   return nir_shader_instructions_pass(shader, lower_fragcolor_instr,
+         nir_metadata_block_index | nir_metadata_dominance, &max_draw_buffers);
 }

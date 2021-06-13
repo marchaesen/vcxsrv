@@ -76,10 +76,13 @@ REAL_FUNCTION_POINTER(readdir);
 REAL_FUNCTION_POINTER(readdir64);
 REAL_FUNCTION_POINTER(readlink);
 REAL_FUNCTION_POINTER(realpath);
+
+#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 33
 REAL_FUNCTION_POINTER(__xstat);
 REAL_FUNCTION_POINTER(__xstat64);
 REAL_FUNCTION_POINTER(__fxstat);
 REAL_FUNCTION_POINTER(__fxstat64);
+#endif
 
 /* Full path of /dev/dri/renderD* */
 static char *render_node_path;
@@ -205,10 +208,13 @@ init_shim(void)
    GET_FUNCTION_POINTER(readdir64);
    GET_FUNCTION_POINTER(readlink);
    GET_FUNCTION_POINTER(realpath);
+
+#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 33
    GET_FUNCTION_POINTER(__xstat);
    GET_FUNCTION_POINTER(__xstat64);
    GET_FUNCTION_POINTER(__fxstat);
    GET_FUNCTION_POINTER(__fxstat64);
+#endif
 
    get_dri_render_node_minor();
 
@@ -272,6 +278,7 @@ PUBLIC int open(const char *path, int flags, ...)
 }
 PUBLIC int open64(const char*, int, ...) __attribute__((alias("open")));
 
+#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 33
 /* Fakes stat to return character device stuff for our fake render node. */
 PUBLIC int __xstat(int ver, const char *path, struct stat *st)
 {
@@ -372,6 +379,7 @@ PUBLIC int __fxstat64(int ver, int fd, struct stat64 *st)
 
    return 0;
 }
+#endif
 
 /* Tracks if the opendir was on /dev/dri. */
 PUBLIC DIR *

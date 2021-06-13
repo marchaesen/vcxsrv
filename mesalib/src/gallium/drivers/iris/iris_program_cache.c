@@ -123,7 +123,7 @@ iris_upload_shader(struct iris_screen *screen,
                    unsigned num_cbufs,
                    const struct iris_binding_table *bt)
 {
-   const struct gen_device_info *devinfo = &screen->devinfo;
+   const struct intel_device_info *devinfo = &screen->devinfo;
 
    void *mem_ctx = ish ? NULL : (void *) driver_shaders;
    struct iris_compiled_shader *shader =

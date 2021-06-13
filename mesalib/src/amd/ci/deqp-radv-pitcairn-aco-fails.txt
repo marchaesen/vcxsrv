@@ -1,5 +1,3 @@
-dEQP-VK.pipeline.depth.format.d16_unorm.compare_ops.never_zerodepthbounds_depthdisabled_stencilenabled,Fail
-dEQP-VK.pipeline.depth.format.d32_sfloat.compare_ops.never_zerodepthbounds_depthdisabled_stencilenabled,Fail
 dEQP-VK.robustness.robustness2.bind.notemplate.r32f.dontunroll.volatile.storage_buffer.no_fmt_qual.len_12.samples_1.1d.comp,Fail
 dEQP-VK.robustness.robustness2.bind.notemplate.r32f.dontunroll.volatile.storage_buffer.no_fmt_qual.len_12.samples_1.1d.frag,Fail
 dEQP-VK.robustness.robustness2.bind.notemplate.r32f.dontunroll.volatile.storage_buffer.no_fmt_qual.len_12.samples_1.1d.vert,Fail

@@ -30,30 +30,30 @@
 
 #define ATI_VENDOR_ID 0x1002
 
-#define MAX_VBS         32
-#define MAX_VERTEX_ATTRIBS 32
-#define MAX_RTS          8
-#define MAX_VIEWPORTS   16
-#define MAX_SCISSORS    16
-#define MAX_DISCARD_RECTANGLES 4
-#define MAX_SAMPLE_LOCATIONS 32
-#define MAX_PUSH_CONSTANTS_SIZE 128
-#define MAX_PUSH_DESCRIPTORS 32
-#define MAX_DYNAMIC_UNIFORM_BUFFERS 16
-#define MAX_DYNAMIC_STORAGE_BUFFERS 8
-#define MAX_DYNAMIC_BUFFERS (MAX_DYNAMIC_UNIFORM_BUFFERS + MAX_DYNAMIC_STORAGE_BUFFERS)
-#define MAX_SAMPLES_LOG2 4
-#define NUM_META_FS_KEYS 12
-#define RADV_MAX_DRM_DEVICES 8
-#define MAX_VIEWS        8
-#define MAX_SO_STREAMS 4
-#define MAX_SO_BUFFERS 4
-#define MAX_SO_OUTPUTS 64
-#define MAX_INLINE_UNIFORM_BLOCK_SIZE (4ull * 1024 * 1024)
+#define MAX_VBS                        32
+#define MAX_VERTEX_ATTRIBS             32
+#define MAX_RTS                        8
+#define MAX_VIEWPORTS                  16
+#define MAX_SCISSORS                   16
+#define MAX_DISCARD_RECTANGLES         4
+#define MAX_SAMPLE_LOCATIONS           32
+#define MAX_PUSH_CONSTANTS_SIZE        128
+#define MAX_PUSH_DESCRIPTORS           32
+#define MAX_DYNAMIC_UNIFORM_BUFFERS    16
+#define MAX_DYNAMIC_STORAGE_BUFFERS    8
+#define MAX_DYNAMIC_BUFFERS            (MAX_DYNAMIC_UNIFORM_BUFFERS + MAX_DYNAMIC_STORAGE_BUFFERS)
+#define MAX_SAMPLES_LOG2               4
+#define NUM_META_FS_KEYS               12
+#define RADV_MAX_DRM_DEVICES           8
+#define MAX_VIEWS                      8
+#define MAX_SO_STREAMS                 4
+#define MAX_SO_BUFFERS                 4
+#define MAX_SO_OUTPUTS                 64
+#define MAX_INLINE_UNIFORM_BLOCK_SIZE  (4ull * 1024 * 1024)
 #define MAX_INLINE_UNIFORM_BLOCK_COUNT 64
-#define MAX_BIND_POINTS 2 /* compute + graphics */
+#define MAX_BIND_POINTS                2 /* compute + graphics */
 
-#define NUM_DEPTH_CLEAR_PIPELINES 3
+#define NUM_DEPTH_CLEAR_PIPELINES      3
 #define NUM_DEPTH_DECOMPRESS_PIPELINES 3
 
 /*
@@ -65,13 +65,13 @@
 #define RADV_BUFFER_UPDATE_THRESHOLD 1024
 
 /* descriptor index into scratch ring offsets */
-#define RING_SCRATCH 0
-#define RING_ESGS_VS 1
-#define RING_ESGS_GS 2
-#define RING_GSVS_VS 3
-#define RING_GSVS_GS 4
-#define RING_HS_TESS_FACTOR 5
-#define RING_HS_TESS_OFFCHIP 6
+#define RING_SCRATCH             0
+#define RING_ESGS_VS             1
+#define RING_ESGS_GS             2
+#define RING_GSVS_VS             3
+#define RING_GSVS_GS             4
+#define RING_HS_TESS_FACTOR      5
+#define RING_HS_TESS_OFFCHIP     6
 #define RING_PS_SAMPLE_POSITIONS 7
 
 /* max number of descriptor sets */
@@ -80,7 +80,7 @@
 /* Make sure everything is addressable by a signed 32-bit int, and
  * our largest descriptors are 96 bytes.
  */
-#define RADV_MAX_PER_SET_DESCRIPTORS ((1ull << 31 ) / 96)
+#define RADV_MAX_PER_SET_DESCRIPTORS ((1ull << 31) / 96)
 
 /* Our buffer size fields allow only 2**32 - 1. We round that down to a multiple
  * of 4 bytes so we can align buffer sizes up.
@@ -91,4 +91,3 @@
 #define RADV_SUBGROUP_SIZE 64
 
 #endif /* RADV_CONSTANTS_H */
-

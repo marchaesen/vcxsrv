@@ -223,6 +223,18 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
       SET_MultiTexCoord3hvNV(tab, vfmt->MultiTexCoord3hvNV);
       SET_MultiTexCoord4hNV(tab, vfmt->MultiTexCoord4hNV);
       SET_MultiTexCoord4hvNV(tab, vfmt->MultiTexCoord4hvNV);
+      SET_VertexAttrib1hNV(tab, vfmt->VertexAttrib1hNV);
+      SET_VertexAttrib2hNV(tab, vfmt->VertexAttrib2hNV);
+      SET_VertexAttrib3hNV(tab, vfmt->VertexAttrib3hNV);
+      SET_VertexAttrib4hNV(tab, vfmt->VertexAttrib4hNV);
+      SET_VertexAttrib1hvNV(tab, vfmt->VertexAttrib1hvNV);
+      SET_VertexAttrib2hvNV(tab, vfmt->VertexAttrib2hvNV);
+      SET_VertexAttrib3hvNV(tab, vfmt->VertexAttrib3hvNV);
+      SET_VertexAttrib4hvNV(tab, vfmt->VertexAttrib4hvNV);
+      SET_VertexAttribs1hvNV(tab, vfmt->VertexAttribs1hvNV);
+      SET_VertexAttribs2hvNV(tab, vfmt->VertexAttribs2hvNV);
+      SET_VertexAttribs3hvNV(tab, vfmt->VertexAttribs3hvNV);
+      SET_VertexAttribs4hvNV(tab, vfmt->VertexAttribs4hvNV);
       SET_FogCoordhNV(tab, vfmt->FogCoordhNV);
       SET_FogCoordhvNV(tab, vfmt->FogCoordhvNV);
       SET_SecondaryColor3hNV(tab, vfmt->SecondaryColor3hNV);

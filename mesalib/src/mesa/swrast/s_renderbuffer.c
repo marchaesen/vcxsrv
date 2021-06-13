@@ -429,50 +429,6 @@ add_accum_renderbuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
 
 
 /**
- * Add a software-based aux renderbuffer to the given framebuffer.
- * This is a helper routine for device drivers when creating a
- * window system framebuffer (not a user-created render/framebuffer).
- * Once this function is called, you can basically forget about this
- * renderbuffer; core Mesa will handle all the buffer management and
- * rendering!
- *
- * NOTE: color-index aux buffers not supported.
- */
-static GLboolean
-add_aux_renderbuffers(struct gl_context *ctx, struct gl_framebuffer *fb,
-                      GLuint colorBits, GLuint numBuffers)
-{
-   GLuint i;
-
-   if (colorBits > 16) {
-      _mesa_problem(ctx,
-                    "Unsupported colorBits in add_aux_renderbuffers");
-      return GL_FALSE;
-   }
-
-   assert(numBuffers <= MAX_AUX_BUFFERS);
-
-   for (i = 0; i < numBuffers; i++) {
-      struct gl_renderbuffer *rb = _swrast_new_soft_renderbuffer(ctx, 0);
-
-      assert(fb->Attachment[BUFFER_AUX0 + i].Renderbuffer == NULL);
-
-      if (!rb) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "Allocating aux buffer");
-         return GL_FALSE;
-      }
-
-      assert (colorBits <= 8);
-      rb->InternalFormat = GL_RGBA;
-
-      rb->AllocStorage = soft_renderbuffer_storage;
-      _mesa_attach_and_own_rb(fb, BUFFER_AUX0 + i, rb);
-   }
-   return GL_TRUE;
-}
-
-
-/**
  * Create/attach software-based renderbuffers to the given framebuffer.
  * This is a helper routine for device drivers.  Drivers can just as well
  * call the individual _mesa_add_*_renderbuffer() routines directly.
@@ -483,8 +439,7 @@ _swrast_add_soft_renderbuffers(struct gl_framebuffer *fb,
                                GLboolean depth,
                                GLboolean stencil,
                                GLboolean accum,
-                               GLboolean alpha,
-                               GLboolean aux)
+                               GLboolean alpha)
 {
    GLboolean frontLeft = GL_TRUE;
    GLboolean backLeft = fb->Visual.doubleBufferMode;
@@ -536,18 +491,6 @@ _swrast_add_soft_renderbuffers(struct gl_framebuffer *fb,
                              fb->Visual.accumBlueBits,
                              fb->Visual.accumAlphaBits);
    }
-
-   if (aux) {
-      assert(fb->Visual.numAuxBuffers > 0);
-      add_aux_renderbuffers(NULL, fb, fb->Visual.redBits,
-                            fb->Visual.numAuxBuffers);
-   }
-
-#if 0
-   if (multisample) {
-      /* maybe someday */
-   }
-#endif
 }
 
 

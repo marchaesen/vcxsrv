@@ -243,7 +243,7 @@ zink_create_blend_state(struct pipe_context *pctx,
 
    cso->need_blend_constants = false;
 
-   for (int i = 0; i < PIPE_MAX_COLOR_BUFS; ++i) {
+   for (int i = 0; i < blend_state->max_rt + 1; ++i) {
       const struct pipe_rt_blend_state *rt = blend_state->rt;
       if (blend_state->independent_blend_enable)
          rt = blend_state->rt + i;
@@ -438,6 +438,7 @@ zink_create_rasterizer_state(struct pipe_context *pctx,
    state->hw_state.depth_clamp = rs_state->depth_clip_near == 0;
    state->hw_state.rasterizer_discard = rs_state->rasterizer_discard;
    state->hw_state.force_persample_interp = rs_state->force_persample_interp;
+   state->hw_state.pv_mode = rs_state->flatshade_first ? VK_PROVOKING_VERTEX_MODE_FIRST_VERTEX_EXT : VK_PROVOKING_VERTEX_MODE_LAST_VERTEX_EXT;
 
    assert(rs_state->fill_front <= PIPE_POLYGON_MODE_POINT);
    if (rs_state->fill_back != rs_state->fill_front)
@@ -467,12 +468,19 @@ static void
 zink_bind_rasterizer_state(struct pipe_context *pctx, void *cso)
 {
    struct zink_context *ctx = zink_context(pctx);
+   struct zink_screen *screen = zink_screen(pctx->screen);
    bool clip_halfz = ctx->rast_state ? ctx->rast_state->base.clip_halfz : false;
    bool point_quad_rasterization = ctx->rast_state ? ctx->rast_state->base.point_quad_rasterization : false;
    ctx->rast_state = cso;
 
    if (ctx->rast_state) {
       if (ctx->gfx_pipeline_state.rast_state != &ctx->rast_state->hw_state) {
+         if (screen->info.have_EXT_provoking_vertex &&
+             (!ctx->gfx_pipeline_state.rast_state ||
+              ctx->gfx_pipeline_state.rast_state->pv_mode != ctx->rast_state->hw_state.pv_mode) &&
+             /* without this prop, change in pv mode requires new rp */
+             !screen->info.pv_props.provokingVertexModePerPipeline)
+            zink_batch_no_rp(ctx);
          ctx->gfx_pipeline_state.rast_state = &ctx->rast_state->hw_state;
          ctx->gfx_pipeline_state.dirty = true;
       }

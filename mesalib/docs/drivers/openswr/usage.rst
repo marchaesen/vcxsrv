@@ -26,12 +26,6 @@ for libGL.so into::
   lib/gallium/libswrAVX.so
   lib/gallium/libswrAVX2.so
 
-Alternatively, building with SCons will produce::
-
-  build/linux-x86_64/gallium/targets/libgl-xlib/libGL.so
-  build/linux-x86_64/gallium/drivers/swr/libswrAVX.so
-  build/linux-x86_64/gallium/drivers/swr/libswrAVX2.so
-
 To use it set the LD_LIBRARY_PATH environment variable accordingly.
 
 **IMPORTANT:** Mesa will default to using llvmpipe or softpipe as the default software renderer.  To select the OpenSWR driver, set the GALLIUM_DRIVER environment variable appropriately: ::

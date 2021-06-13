@@ -37,6 +37,9 @@
 bool
 wsi_device_matches_drm_fd(const struct wsi_device *wsi, int drm_fd)
 {
+   if (wsi->can_present_on_device)
+      return wsi->can_present_on_device(wsi->pdevice, drm_fd);
+
    drmDevicePtr fd_device;
    int ret = drmGetDevice2(drm_fd, 0, &fd_device);
    if (ret)

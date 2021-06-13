@@ -240,7 +240,7 @@ setup_point_coefficients( struct lp_setup_context *setup,
 
       case LP_INTERP_LINEAR:
          /* Sprite tex coords may use linear interpolation someday */
-         /* fall-through */
+         FALLTHROUGH;
       case LP_INTERP_PERSPECTIVE: {
          /* check if the sprite coord flag is set for this attribute.
           * If so, set it up so it up so x and y vary from 0 to 1.

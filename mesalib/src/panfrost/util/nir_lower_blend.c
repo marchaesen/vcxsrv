@@ -79,12 +79,11 @@ static nir_ssa_def *
 nir_alpha_saturate(
    nir_builder *b,
    nir_ssa_def *src, nir_ssa_def *dst,
-   unsigned chan,
-   bool half)
+   unsigned chan)
 {
    nir_ssa_def *Asrc = nir_channel(b, src, 3);
    nir_ssa_def *Adst = nir_channel(b, dst, 3);
-   nir_ssa_def *one = half ? nir_imm_float16(b, 1.0) : nir_imm_float(b, 1.0);
+   nir_ssa_def *one = nir_imm_floatN_t(b, 1.0, src->bit_size);
    nir_ssa_def *Adsti = nir_fsub(b, one, Adst);
 
    return (chan < 3) ? nir_fmin(b, Asrc, Adsti) : one;
@@ -97,12 +96,11 @@ nir_blend_factor_value(
    nir_builder *b,
    nir_ssa_def *src, nir_ssa_def *src1, nir_ssa_def *dst, nir_ssa_def *bconst,
    unsigned chan,
-   enum blend_factor factor,
-   bool half)
+   enum blend_factor factor)
 {
    switch (factor) {
    case BLEND_FACTOR_ZERO:
-      return half ? nir_imm_float16(b, 0.0) : nir_imm_float(b, 0.0);
+      return nir_imm_floatN_t(b, 0.0, src->bit_size);
    case BLEND_FACTOR_SRC_COLOR:
       return nir_channel(b, src, chan);
    case BLEND_FACTOR_SRC1_COLOR:
@@ -120,7 +118,7 @@ nir_blend_factor_value(
    case BLEND_FACTOR_CONSTANT_ALPHA:
       return nir_channel(b, bconst, 3);
    case BLEND_FACTOR_SRC_ALPHA_SATURATE:
-      return nir_alpha_saturate(b, src, dst, chan, half);
+      return nir_alpha_saturate(b, src, dst, chan);
    }
 
    unreachable("Invalid blend factor");
@@ -133,16 +131,13 @@ nir_blend_factor(
    nir_ssa_def *src, nir_ssa_def *src1, nir_ssa_def *dst, nir_ssa_def *bconst,
    unsigned chan,
    enum blend_factor factor,
-   bool inverted,
-   bool half)
+   bool inverted)
 {
    nir_ssa_def *f =
-      nir_blend_factor_value(b, src, src1, dst, bconst, chan, factor, half);
-
-   nir_ssa_def *unity = half ? nir_imm_float16(b, 1.0) : nir_imm_float(b, 1.0);
+      nir_blend_factor_value(b, src, src1, dst, bconst, chan, factor);
 
    if (inverted)
-      f = nir_fsub(b, unity, f);
+      f = nir_fadd_imm(b, nir_fneg(b, f), 1.0);
 
    return nir_fmul(b, raw_scalar, f);
 }
@@ -267,10 +262,7 @@ nir_blend(
 
    /* Grab the blend constant ahead of time */
    nir_ssa_def *bconst;
-   if (options.is_bifrost) {
-      /* Bifrost is a scalar architecture, so let's split loads now to avoid a
-       * lowering pass.
-       */
+   if (options.scalar) {
       bconst = nir_vec4(b,
                         nir_load_blend_const_color_r_float(b),
                         nir_load_blend_const_color_g_float(b),
@@ -298,12 +290,12 @@ nir_blend(
          psrc = nir_blend_factor(
                    b, psrc,
                    src, src1, dst, bconst, c,
-                   chan.src_factor, chan.invert_src_factor, options.half);
+                   chan.src_factor, chan.invert_src_factor);
 
          pdst = nir_blend_factor(
                    b, pdst,
                    src, src1, dst, bconst, c,
-                   chan.dst_factor, chan.invert_dst_factor, options.half);
+                   chan.dst_factor, chan.invert_dst_factor);
       }
 
       channels[c] = nir_blend_func(b, chan.func, psrc, pdst);
@@ -332,56 +324,52 @@ nir_is_blend_replace(nir_lower_blend_options options)
       nir_is_blend_channel_replace(options.alpha);
 }
 
+static bool
+nir_lower_blend_instr(nir_builder *b, nir_instr *instr, void *data)
+{
+   nir_lower_blend_options *options = data;
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   if (intr->intrinsic != nir_intrinsic_store_deref)
+      return false;
+
+   /* TODO: Extending to MRT */
+   nir_variable *var = nir_intrinsic_get_var(intr, 0);
+   if (var->data.location != FRAG_RESULT_COLOR &&
+         var->data.location < FRAG_RESULT_DATA0)
+      return false;
+
+   b->cursor = nir_before_instr(instr);
+
+   /* Grab the input color */
+   nir_ssa_def *src = nir_ssa_for_src(b, intr->src[1], 4);
+
+   /* Grab the dual-source input color */
+   nir_ssa_def *src1 = options->src1;
+
+   /* Grab the tilebuffer color - io lowered to load_output */
+   nir_ssa_def *dst = nir_load_var(b, var);
+
+   /* Blend the two colors per the passed options */
+   nir_ssa_def *blended = nir_blend(b, *options, src, src1, dst);
+
+   /* Write out the final color instead of the input */
+   nir_instr_rewrite_src_ssa(instr, &intr->src[1], blended);
+   return true;
+}
+
 void
 nir_lower_blend(nir_shader *shader, nir_lower_blend_options options)
 {
-   /* Blend shaders are represented as special fragment shaders */
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
-   /* Special case replace, since there's nothing to do and we don't want to
-    * degrade intermediate precision (e.g. for non-blendable R32F targets) */
-   if (nir_is_blend_replace(options))
-      return;
+   /* Only run for actual blending, since there's nothing to do and we don't
+    * want to degrade intermediate precision for non-blendable R32F targets) */
 
-   nir_foreach_function(func, shader) {
-      nir_foreach_block(block, func->impl) {
-         nir_foreach_instr_safe(instr, block) {
-            if (instr->type != nir_instr_type_intrinsic)
-               continue;
-
-            nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-            if (intr->intrinsic != nir_intrinsic_store_deref)
-               continue;
-
-            /* TODO: Extending to MRT */
-            nir_variable *var = nir_intrinsic_get_var(intr, 0);
-            if (var->data.location != FRAG_RESULT_COLOR)
-               continue;
-
-            nir_builder b;
-            nir_builder_init(&b, func->impl);
-            b.cursor = nir_before_instr(instr);
-
-            /* Grab the input color */
-            nir_ssa_def *src = nir_ssa_for_src(&b, intr->src[1], 4);
-
-            /* Grab the dual-source input color */
-            nir_ssa_def *src1 = options.src1;
-
-            /* Grab the tilebuffer color - io lowered to load_output */
-            nir_ssa_def *dst = nir_load_var(&b, var);
-
-            /* Blend the two colors per the passed options */
-            nir_ssa_def *blended = nir_blend(&b, options, src, src1, dst);
-
-            /* Write out the final color instead of the input */
-            nir_instr_rewrite_src(instr, &intr->src[1],
-                                  nir_src_for_ssa(blended));
-
-         }
-      }
-
-      nir_metadata_preserve(func->impl, nir_metadata_block_index |
-                            nir_metadata_dominance);
+   if (!nir_is_blend_replace(options)) {
+      nir_shader_instructions_pass(shader, nir_lower_blend_instr,
+            nir_metadata_block_index | nir_metadata_dominance, &options);
    }
 }

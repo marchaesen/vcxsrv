@@ -247,20 +247,9 @@ ComputeTest::create_buffer(int size, D3D12_HEAP_TYPE heap_type)
 
    D3D12_HEAP_PROPERTIES heap_pris = dev->GetCustomHeapProperties(0, heap_type);
 
-   D3D12_RESOURCE_STATES initial_state = D3D12_RESOURCE_STATE_COMMON;
-   switch (heap_type) {
-   case D3D12_HEAP_TYPE_UPLOAD:
-      initial_state = D3D12_RESOURCE_STATE_GENERIC_READ;
-      break;
-
-   case D3D12_HEAP_TYPE_READBACK:
-      initial_state = D3D12_RESOURCE_STATE_COPY_DEST;
-      break;
-   }
-
    ComPtr<ID3D12Resource> res;
    if (FAILED(dev->CreateCommittedResource(&heap_pris,
-       D3D12_HEAP_FLAG_NONE, &desc, initial_state,
+       D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON,
        NULL, __uuidof(ID3D12Resource), (void **)&res)))
       throw runtime_error("CreateCommittedResource failed");
 
@@ -805,7 +794,6 @@ ComputeTest::compile(const std::vector<const char *> &sources,
    struct clc_compile_args args = { 0 };
    args.args = compile_args.data();
    args.num_args = (unsigned)compile_args.size();
-   struct clc_dxil_object *dxil;
    ComputeTest::Shader shader;
 
    std::vector<Shader> shaders;

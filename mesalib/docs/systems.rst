@@ -21,8 +21,7 @@ Hardware drivers include:
    Wiki <https://github.com/freedreno/freedreno/wiki>`__
 -  Broadcom VideoCore 4, 5. See `This Week in
    V3D <https://anholt.github.io/twivc4/>`__
--  ARM Mali Utgard. See `Lima
-   Wiki <https://gitlab.freedesktop.org/lima/web/wikis/home>`__
+-  ARM Mali Utgard. See :doc:`Lima <drivers/lima>`
 -  ARM Mali Midgard, Bifrost. See :doc:`Panfrost <drivers/panfrost>`
 -  Vivante GCxxx. See `Etnaviv
    Wiki <https://github.com/laanwj/etna_viv/wiki>`__
@@ -46,7 +45,6 @@ Additional driver information:
    Window System
 -  :doc:`Xlib / swrast driver <xlibdriver>` for the X Window System
    and Unix-like operating systems
--  `Microsoft Windows <README.WIN32>`__
 
 Deprecated Systems and Drivers
 ------------------------------

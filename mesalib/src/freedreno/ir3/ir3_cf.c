@@ -37,7 +37,7 @@ is_fp16_conv(struct ir3_instruction *instr)
 	/* disallow conversions that cannot be folded into
 	 * alu instructions:
 	 */
-	if (dst->flags & (IR3_REG_EVEN | IR3_REG_POS_INF))
+	if (instr->cat1.round != ROUND_ZERO)
 		return false;
 
 	if (dst->flags & (IR3_REG_RELATIV | IR3_REG_ARRAY))

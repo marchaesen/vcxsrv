@@ -200,7 +200,7 @@ void ms_drm_abort(ScrnInfoPtr scrn,
                   void *match_data);
 void ms_drm_abort_seq(ScrnInfoPtr scrn, uint32_t seq);
 
-Bool ms_crtc_on(xf86CrtcPtr crtc);
+Bool xf86_crtc_on(xf86CrtcPtr crtc);
 
 xf86CrtcPtr ms_dri2_crtc_covering_drawable(DrawablePtr pDraw);
 RRCrtcPtr   ms_randr_crtc_covering_drawable(DrawablePtr pDraw);

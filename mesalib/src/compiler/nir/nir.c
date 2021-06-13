@@ -122,7 +122,6 @@ nir_shader_create(void *mem_ctx,
    shader->num_inputs = 0;
    shader->num_outputs = 0;
    shader->num_uniforms = 0;
-   shader->shared_size = 0;
 
    return shader;
 }
@@ -1654,6 +1653,32 @@ nir_block_get_following_loop(nir_block *block)
       return NULL;
 
    return nir_cf_node_as_loop(next_node);
+}
+
+static int
+compare_block_index(const void *p1, const void *p2)
+{
+   const nir_block *block1 = *((const nir_block **) p1);
+   const nir_block *block2 = *((const nir_block **) p2);
+
+   return (int) block1->index - (int) block2->index;
+}
+
+nir_block **
+nir_block_get_predecessors_sorted(const nir_block *block, void *mem_ctx)
+{
+   nir_block **preds =
+      ralloc_array(mem_ctx, nir_block *, block->predecessors->entries);
+
+   unsigned i = 0;
+   set_foreach(block->predecessors, entry)
+      preds[i++] = (nir_block *) entry->key;
+   assert(i == block->predecessors->entries);
+
+   qsort(preds, block->predecessors->entries, sizeof(nir_block *),
+         compare_block_index);
+
+   return preds;
 }
 
 void

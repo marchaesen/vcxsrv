@@ -121,7 +121,7 @@ Maya-03 test 2
 
 This test makes some unusual calls to glRotate. For example:
 
-::
+.. code-block:: c
 
    glRotate(50, 50, 50, 1);
    glRotate(100, 100, 100, 1);
@@ -130,21 +130,25 @@ This test makes some unusual calls to glRotate. For example:
 These unusual values lead to invalid modelview matrices. For example,
 the last glRotate command above produces this matrix with Mesa:
 
-::
+.. math::
 
-   1.08536e+24 2.55321e-23 -0.000160389 0
-   5.96937e-25 1.08536e+24 103408 0
-   103408 -0.000160389 1.74755e+09 0
-   0 0 0 nan
+   \begin{matrix}
+   1.08536 \times 10^{24} & 2.55321 \times 10^{-23} & -0.000160389         & 0\\
+   5.96937 \times 10^{25} & 1.08536 \times 10^{24}  & 103408               & 0\\
+                   103408 & -0.000160389            & 1.74755\times 10^{9} & 0\\
+   0                      &                       0 &                      0 & nan
+   \end{matrix}
 
 and with NVIDIA's OpenGL:
 
-::
+.. math::
 
-   1.4013e-45 0 -nan 0
-   0 1.4013e-45 1.4013e-45 0
-   1.4013e-45 -nan 1.4013e-45 0
-   0 0 0 1.4013e-45
+   \begin{matrix}
+   1.4013 \times 10^{-45} &                      0 &                   -nan & 0\\
+                        0 & 1.4013 \times 10^{-45} & 1.4013 \times 10^{-45} & 0\\
+   1.4013 \times 10^{-45} &                   -nan & 1.4013 \times 10^{-45} & 0\\
+                        0 &                      0 &                      0 & 1.4013 \times 10^{-45}
+   \end{matrix}
 
 This causes the object in question to be drawn in a strange orientation
 and with a semi-random color (between white and black) since GL_FOG is

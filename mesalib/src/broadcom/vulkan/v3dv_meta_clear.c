@@ -1171,11 +1171,11 @@ emit_tlb_clear_store(struct v3dv_cmd_buffer *cmd_buffer,
       store.r_b_swap = iview->swap_rb;
       store.memory_format = slice->tiling;
 
-      if (slice->tiling == VC5_TILING_UIF_NO_XOR ||
-          slice->tiling == VC5_TILING_UIF_XOR) {
+      if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
+          slice->tiling == V3D_TILING_UIF_XOR) {
          store.height_in_ub_or_stride =
             slice->padded_height_of_output_image_in_uif_blocks;
-      } else if (slice->tiling == VC5_TILING_RASTER) {
+      } else if (slice->tiling == V3D_TILING_RASTER) {
          store.height_in_ub_or_stride = slice->stride;
       }
 
@@ -1427,8 +1427,8 @@ emit_tlb_clear_job(struct v3dv_cmd_buffer *cmd_buffer,
       const struct v3d_resource_slice *slice = &image->slices[iview->base_level];
 
       uint32_t clear_pad = 0;
-      if (slice->tiling == VC5_TILING_UIF_NO_XOR ||
-          slice->tiling == VC5_TILING_UIF_XOR) {
+      if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
+          slice->tiling == V3D_TILING_UIF_XOR) {
          int uif_block_height = v3d_utile_height(image->cpp) * 2;
 
          uint32_t implicit_padded_height =
@@ -1515,6 +1515,9 @@ emit_tlb_clear(struct v3dv_cmd_buffer *cmd_buffer,
    struct v3dv_job *job =
       v3dv_cmd_buffer_start_job(cmd_buffer, cmd_buffer->state.subpass_idx,
                                 V3DV_JOB_TYPE_GPU_CL);
+
+   if (!job)
+      return;
 
    /* vkCmdClearAttachments runs inside a render pass */
    job->is_subpass_continue = true;

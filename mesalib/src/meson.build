@@ -86,7 +86,7 @@ endif
 if with_gallium_panfrost or with_gallium_lima
   subdir('panfrost')
 endif
-if with_gallium_virgl
+if with_gallium_virgl or with_virtio_vk
   subdir('virtio')
 endif
 if with_any_intel
@@ -97,6 +97,9 @@ if with_microsoft_clc or with_gallium_d3d12 or with_spirv_to_dxil
 endif
 if with_gallium_nouveau
   subdir('nouveau')
+endif
+if with_gallium_asahi or with_tools.contains('asahi')
+  subdir('asahi')
 endif
 subdir('mesa')
 subdir('loader')

@@ -1233,9 +1233,6 @@ ra_block_alloc(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 		foreach_input (in, ctx->ir) {
 			reg_assign(ctx, in->regs[0], in);
 		}
-		foreach_output (out, ctx->ir) {
-			reg_assign(ctx, out->regs[0], out);
-		}
 	}
 }
 

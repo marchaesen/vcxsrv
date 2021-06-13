@@ -29,7 +29,13 @@
 #include <vulkan/vulkan.h>
 #include "util/u_dynarray.h"
 #include "util/u_inlines.h"
-#include "util/u_dynarray.h"
+#include "util/simple_mtx.h"
+
+#include "zink_batch.h"
+
+#ifndef ZINK_SHADER_COUNT
+#define ZINK_SHADER_COUNT (PIPE_SHADER_TYPES - 1)
+#endif
 
 enum zink_descriptor_type {
    ZINK_DESCRIPTOR_TYPE_UBO,
@@ -45,13 +51,22 @@ struct zink_descriptor_refs {
 };
 
 
-#include "zink_context.h"
+/* hashes of all the named types in a given state */
+struct zink_descriptor_state {
+   bool valid[ZINK_DESCRIPTOR_TYPES];
+   uint32_t state[ZINK_DESCRIPTOR_TYPES];
+};
 
 struct hash_table;
 
+struct zink_context;
+struct zink_image_view;
 struct zink_program;
 struct zink_resource;
+struct zink_sampler;
+struct zink_sampler_view;
 struct zink_shader;
+struct zink_screen;
 
 
 struct zink_descriptor_state_key {
@@ -84,6 +99,7 @@ struct zink_descriptor_pool {
    struct zink_descriptor_pool_key key;
    unsigned num_resources;
    unsigned num_sets_allocated;
+   simple_mtx_t mtx;
 };
 
 struct zink_descriptor_set {
@@ -120,30 +136,12 @@ void
 zink_descriptor_set_refs_clear(struct zink_descriptor_refs *refs, void *ptr);
 
 void
-zink_image_view_desc_set_add(struct zink_image_view *image_view, struct zink_descriptor_set *zds, unsigned idx);
-void
-zink_sampler_state_desc_set_add(struct zink_sampler_state *sampler_state, struct zink_descriptor_set *zds, unsigned idx);
-void
-zink_sampler_view_desc_set_add(struct zink_sampler_view *sv, struct zink_descriptor_set *zds, unsigned idx);
-void
-zink_resource_desc_set_add(struct zink_resource *res, struct zink_descriptor_set *zds, unsigned idx);
-
-struct zink_descriptor_set *
-zink_descriptor_set_get(struct zink_context *ctx,
-                               enum zink_descriptor_type type,
-                               bool is_compute,
-                               bool *cache_hit,
-                               bool *need_resource_refs);
-void
 zink_descriptor_set_recycle(struct zink_descriptor_set *zds);
 
 bool
 zink_descriptor_program_init(struct zink_context *ctx,
                        struct zink_shader *stages[ZINK_SHADER_COUNT],
                        struct zink_program *pg);
-
-void
-zink_descriptor_set_invalidate(struct zink_descriptor_set *zds);
 
 void
 zink_descriptor_pool_free(struct zink_screen *screen, struct zink_descriptor_pool *pool);
@@ -170,4 +168,20 @@ zink_descriptor_pool_reference(struct zink_screen *screen,
       zink_descriptor_pool_free(screen, old_dst);
    if (dst) *dst = src;
 }
+
+void
+zink_descriptors_update(struct zink_context *ctx, struct zink_screen *screen, bool is_compute);
+
+
+void
+zink_context_update_descriptor_states(struct zink_context *ctx, bool is_compute);
+void
+zink_context_invalidate_descriptor_state(struct zink_context *ctx, enum pipe_shader_type shader, enum zink_descriptor_type type);
+
+uint32_t
+zink_get_sampler_view_hash(struct zink_context *ctx, struct zink_sampler_view *sampler_view, bool is_buffer);
+uint32_t
+zink_get_image_view_hash(struct zink_context *ctx, struct zink_image_view *image_view, bool is_buffer);
+struct zink_resource *
+zink_get_resource_for_descriptor(struct zink_context *ctx, enum zink_descriptor_type type, enum pipe_shader_type shader, int idx);
 #endif

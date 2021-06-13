@@ -150,6 +150,76 @@
         <param name="v" type="const GLhalfNV *" count="4"/>
     </function>
 
+    <function name="VertexAttrib1hNV" exec="dynamic" deprecated="3.1">
+        <param name="index" type="GLuint"/>
+        <param name="x" type="GLhalfNV"/>
+    </function>
+
+    <function name="VertexAttrib1hvNV" exec="dynamic" deprecated="3.1">
+        <param name="index" type="GLuint"/>
+        <param name="v" type="const GLhalfNV *" count="1"/>
+    </function>
+
+    <function name="VertexAttrib2hNV" exec="dynamic" deprecated="3.1">
+        <param name="index" type="GLuint"/>
+        <param name="x" type="GLhalfNV"/>
+        <param name="y" type="GLhalfNV"/>
+    </function>
+
+    <function name="VertexAttrib2hvNV" exec="dynamic" deprecated="3.1">
+        <param name="index" type="GLuint"/>
+        <param name="v" type="const GLhalfNV *" count="2"/>
+    </function>
+
+    <function name="VertexAttrib3hNV" exec="dynamic" deprecated="3.1">
+        <param name="index" type="GLuint"/>
+        <param name="x" type="GLhalfNV"/>
+        <param name="y" type="GLhalfNV"/>
+        <param name="z" type="GLhalfNV"/>
+    </function>
+
+    <function name="VertexAttrib3hvNV" exec="dynamic" deprecated="3.1">
+        <param name="index" type="GLuint"/>
+        <param name="v" type="const GLhalfNV *" count="3"/>
+    </function>
+
+    <function name="VertexAttrib4hNV" exec="dynamic" deprecated="3.1">
+        <param name="index" type="GLuint"/>
+        <param name="x" type="GLhalfNV"/>
+        <param name="y" type="GLhalfNV"/>
+        <param name="z" type="GLhalfNV"/>
+        <param name="w" type="GLhalfNV"/>
+    </function>
+
+    <function name="VertexAttrib4hvNV" exec="dynamic" deprecated="3.1">
+        <param name="index" type="GLuint"/>
+        <param name="v" type="const GLhalfNV *" count="4"/>
+    </function>
+
+    <function name="VertexAttribs1hvNV" exec="dynamic" deprecated="3.1">
+        <param name="index" type="GLuint"/>
+        <param name="n" type="GLsizei"/>
+        <param name="v" type="const GLhalfNV *" count="n"/>
+    </function>
+
+    <function name="VertexAttribs2hvNV" exec="dynamic" deprecated="3.1">
+        <param name="index" type="GLuint"/>
+        <param name="n" type="GLsizei"/>
+        <param name="v" type="const GLhalfNV *" count="n" count_scale="2"/>
+    </function>
+
+    <function name="VertexAttribs3hvNV" exec="dynamic" deprecated="3.1">
+        <param name="index" type="GLuint"/>
+        <param name="n" type="GLsizei"/>
+        <param name="v" type="const GLhalfNV *" count="n" count_scale="3"/>
+    </function>
+
+    <function name="VertexAttribs4hvNV" exec="dynamic" deprecated="3.1">
+        <param name="index" type="GLuint"/>
+        <param name="n" type="GLsizei"/>
+        <param name="v" type="const GLhalfNV *" count="n" count_scale="4"/>
+    </function>
+
     <function name="FogCoordhNV" exec="dynamic" deprecated="3.1">
         <param name="x" type="GLhalfNV"/>
     </function>

@@ -18,14 +18,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+bison_command = []
+if yacc_is_bison
+  bison_command = [
+    prog_bison, '-o', '@OUTPUT0@', '-p', 'glcpp_parser_',
+    '--defines=@OUTPUT1@', '@INPUT@',
+  ]
+else
+  bison_command = [
+    prog_bison, '-o', '@OUTPUT0@', '-p', 'glcpp_parser_',
+    '-H', '@OUTPUT1@', '@INPUT@',
+  ]
+endif
+
 glcpp_parse = custom_target(
   'glcpp-parse.[ch]',
   input : 'glcpp-parse.y',
   output : ['glcpp-parse.c', 'glcpp-parse.h'],
-  command : [
-    prog_bison, '-o', '@OUTPUT0@', '-p', 'glcpp_parser_',
-    '--defines=@OUTPUT1@', '@INPUT@',
-  ],
+  command : bison_command
 )
 
 glcpp_lex = custom_target(

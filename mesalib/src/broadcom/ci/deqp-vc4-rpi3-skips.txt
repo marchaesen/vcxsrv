@@ -26,3 +26,7 @@ dEQP-GLES2.functional.uniform_api.random.79
 # running simultaneously, so we can't even leave these in the flakes
 # list for tracking.
 dEQP-GLES2.functional.shaders.loops.*dynamic.*vertex
+
+# Timeout tests (> 1 minute to run)
+KHR-GLES2.texture_3d.filtering.sizes.3x7x5_linear_mipmap_linear
+KHR-GLES2.texture_3d.filtering.sizes.4x8x8_linear_mipmap_linear

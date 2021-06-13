@@ -304,7 +304,7 @@ foz_destroy(struct foz_db *foz_db)
    }
 
    if (foz_db->mem_ctx) {
-      _mesa_hash_table_u64_destroy(foz_db->index_db, NULL);
+      _mesa_hash_table_u64_destroy(foz_db->index_db);
       ralloc_free(foz_db->mem_ctx);
       simple_mtx_destroy(&foz_db->mtx);
    }

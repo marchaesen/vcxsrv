@@ -1,4 +1,3 @@
-dEQP-GLES2.functional.fbo.render.shared_colorbuffer.tex2d_rgba_stencil_index8,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_dst_y,Fail

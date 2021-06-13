@@ -76,7 +76,7 @@ nir_nextafter(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y)
    nir_ssa_def *conddir = nir_flt(b, x, y);
    nir_ssa_def *condzero = nir_feq(b, x, zero);
 
-   uint64_t sign_mask = 1 << (x->bit_size - 1);
+   uint64_t sign_mask = 1ull << (x->bit_size - 1);
    uint64_t min_abs = 1;
 
    if (nir_is_denorm_flush_to_zero(b->shader->info.float_controls_execution_mode, x->bit_size)) {

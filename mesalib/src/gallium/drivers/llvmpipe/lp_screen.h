@@ -64,6 +64,9 @@ struct llvmpipe_screen
    bool use_tgsi;
    bool allow_cl;
 
+   mtx_t late_mutex;
+   bool late_init_done;
+
    struct disk_cache *disk_shader_cache;
    unsigned num_disk_shader_cache_hits;
    unsigned num_disk_shader_cache_misses;
@@ -76,6 +79,7 @@ void lp_disk_cache_insert_shader(struct llvmpipe_screen *screen,
                                  struct lp_cached_code *cache,
                                  unsigned char ir_sha1_cache_key[20]);
 
+bool llvmpipe_screen_late_init(struct llvmpipe_screen *screen);
 
 static inline struct llvmpipe_screen *
 llvmpipe_screen( struct pipe_screen *pipe )

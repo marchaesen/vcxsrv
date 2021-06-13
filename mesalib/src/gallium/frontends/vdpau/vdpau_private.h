@@ -144,8 +144,10 @@ FormatYCBCRToPipe(VdpYCbCrFormat vdpau_format)
 #endif
       default:
          /* NOTE: Can't be "unreachable", as it's quite reachable. */
-         assert(!"unexpected VdpYCbCrFormat");
-         /* fallthrough */
+         debug_assert(!"unexpected VdpYCbCrFormat");
+#if defined(NDEBUG) || defined(DEBUG)
+         FALLTHROUGH;
+#endif
 #ifdef VDP_YCBCR_FORMAT_Y_UV_444
       case VDP_YCBCR_FORMAT_Y_UV_444:
 #endif

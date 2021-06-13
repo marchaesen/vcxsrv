@@ -665,6 +665,55 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeDccInfo(
         pOut->metaBlkNumPerSlice = numMetaBlkX * numMetaBlkY;
         pOut->fastClearSizePerSlice =
             pOut->metaBlkNumPerSlice * numCompressBlkPerMetaBlk * Min(numFrags, m_maxCompFrag);
+
+        // Get the DCC address equation (copied from DccAddrFromCoord)
+        UINT_32 elementBytesLog2  = Log2(pIn->bpp >> 3);
+        UINT_32 numSamplesLog2    = Log2(pIn->numFrags);
+        UINT_32 metaBlkWidthLog2  = Log2(pOut->metaBlkWidth);
+        UINT_32 metaBlkHeightLog2 = Log2(pOut->metaBlkHeight);
+        UINT_32 metaBlkDepthLog2  = Log2(pOut->metaBlkDepth);
+        UINT_32 compBlkWidthLog2  = Log2(pOut->compressBlkWidth);
+        UINT_32 compBlkHeightLog2 = Log2(pOut->compressBlkHeight);
+        UINT_32 compBlkDepthLog2  = Log2(pOut->compressBlkDepth);
+
+        MetaEqParams metaEqParams = {0, elementBytesLog2, numSamplesLog2, pIn->dccKeyFlags,
+                                     Gfx9DataColor, pIn->swizzleMode, pIn->resourceType,
+                                     metaBlkWidthLog2, metaBlkHeightLog2, metaBlkDepthLog2,
+                                     compBlkWidthLog2, compBlkHeightLog2, compBlkDepthLog2};
+
+        CoordEq *eq = (CoordEq *)((Gfx9Lib *)this)->GetMetaEquation(metaEqParams);
+
+        // Generate the DCC address equation.
+        pOut->equation.gfx9.num_bits = Min(32u, eq->getsize());
+        bool checked = false;
+        for (unsigned b = 0; b < pOut->equation.gfx9.num_bits; b++) {
+           CoordTerm &bit = (*eq)[b];
+
+           unsigned c;
+           for (c = 0; c < bit.getsize(); c++) {
+              Coordinate &coord = bit[c];
+              pOut->equation.gfx9.bit[b].coord[c].dim = coord.getdim();
+              pOut->equation.gfx9.bit[b].coord[c].ord = coord.getord();
+           }
+           for (; c < 5; c++)
+              pOut->equation.gfx9.bit[b].coord[c].dim = 5; /* meaning invalid */
+        }
+
+        // Reduce num_bits because DIM_M fills the rest of the bits monotonically.
+        for (int b = pOut->equation.gfx9.num_bits - 1; b >= 1; b--) {
+           CoordTerm &prev = (*eq)[b - 1];
+           CoordTerm &cur = (*eq)[b];
+
+           if (cur.getsize() == 1 && cur[0].getdim() == DIM_M &&
+               prev.getsize() == 1 && prev[0].getdim() == DIM_M &&
+               prev[0].getord() + 1 == cur[0].getord())
+              pOut->equation.gfx9.num_bits = b;
+           else
+              break;
+        }
+
+        pOut->equation.gfx9.numPipeBits = GetPipeLog2ForMetaAddressing(pIn->dccKeyFlags.pipeAligned,
+                                                                       pIn->swizzleMode);
     }
 
     return ADDR_OK;
@@ -3759,7 +3808,10 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlGetPreferredSurfaceSetting(
                         // Select the biggest allowed block type
                         minSizeBlk = Log2NonPow2(allowedBlockSet.value) + 1;
 
-                        minSizeBlk = (minSizeBlk == AddrBlockMaxTiledType) ? AddrBlockLinear : minSizeBlk;
+                        if (minSizeBlk == static_cast<UINT_32>(AddrBlockMaxTiledType))
+                        {
+                            minSizeBlk = AddrBlockLinear;
+                        }
                     }
 
                     switch (minSizeBlk)

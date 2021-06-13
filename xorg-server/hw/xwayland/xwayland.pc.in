@@ -10,3 +10,4 @@ have_eglstream=@have_eglstream@
 have_initfd=true
 have_listenfd=true
 have_verbose=true
+have_terminate_delay=true

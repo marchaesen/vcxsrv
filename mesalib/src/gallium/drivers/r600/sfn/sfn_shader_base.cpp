@@ -124,7 +124,7 @@ bool ShaderFromNirProcessor::scan_instruction(nir_instr *instr)
       case nir_intrinsic_image_atomic_comp_swap:
       case nir_intrinsic_ssbo_atomic_comp_swap:
          m_sel.info.writes_memory = 1;
-         /* fallthrough */
+         FALLTHROUGH;
       case nir_intrinsic_image_load:
          m_ssbo_instr.set_require_rat_return_address();
          break;
@@ -292,14 +292,9 @@ bool ShaderFromNirProcessor::process_uniforms(nir_variable *uniform)
    return true;
 }
 
-bool ShaderFromNirProcessor::process_inputs(nir_variable *input)
+bool ShaderFromNirProcessor::scan_inputs_read(const nir_shader *sh)
 {
-   return do_process_inputs(input);
-}
-
-bool ShaderFromNirProcessor::process_outputs(nir_variable *output)
-{
-   return do_process_outputs(output);
+   return true;
 }
 
 void ShaderFromNirProcessor::set_var_address(nir_deref_instr *instr)
@@ -638,8 +633,6 @@ bool ShaderFromNirProcessor::emit_intrinsic_instruction(nir_intrinsic_instr* ins
          return false;
       }
       switch (mode_helper->second) {
-      case nir_var_shader_in:
-         return emit_load_input_deref(var, instr);
       case nir_var_function_temp:
          return emit_load_function_temp(var, instr);
       default:
@@ -652,8 +645,6 @@ bool ShaderFromNirProcessor::emit_intrinsic_instruction(nir_intrinsic_instr* ins
       return emit_store_scratch(instr);
    case nir_intrinsic_load_scratch:
       return emit_load_scratch(instr);
-   case nir_intrinsic_store_deref:
-      return emit_store_deref(instr);
    case nir_intrinsic_load_uniform:
       return load_uniform(instr);
    case nir_intrinsic_discard:
@@ -855,7 +846,7 @@ GPRVector ShaderFromNirProcessor::vec_from_nir_with_fetch_constant(const nir_src
     */
    if (!use_same) {
       AluInstruction *ir = nullptr;
-      GPRVector result(allocate_temp_register(), swizzle);
+      GPRVector result = get_temp_vec4(swizzle);
       for (int i = 0; i < 4; ++i) {
          if (swizzle[i] < 4 && (mask & (1 << i))) {
             ir = new AluInstruction(op1_mov, result[i], from_nir(src, swizzle[i]),
@@ -962,12 +953,6 @@ bool ShaderFromNirProcessor::emit_discard_if(nir_intrinsic_instr* instr)
    }
    m_sh_info.uses_kill = 1;
    return true;
-}
-
-bool ShaderFromNirProcessor::emit_load_input_deref(const nir_variable *var,
-                                                   nir_intrinsic_instr* instr)
-{
-   return do_emit_load_deref(var, instr);
 }
 
 bool ShaderFromNirProcessor::load_uniform(nir_intrinsic_instr* instr)
@@ -1088,15 +1073,6 @@ PValue ShaderFromNirProcessor::from_nir_with_fetch_constant(const nir_src& src, 
       value = retval;
    }
    return value;
-}
-
-bool ShaderFromNirProcessor::emit_store_deref(nir_intrinsic_instr* instr)
-{
-   auto out_var = get_deref_location(instr->src[0]);
-   if (!out_var)
-      return false;
-
-   return do_emit_store_deref(out_var, instr);
 }
 
 bool ShaderFromNirProcessor::emit_deref_instruction(nir_deref_instr* instr)

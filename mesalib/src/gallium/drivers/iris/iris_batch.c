@@ -541,6 +541,20 @@ finish_seqno(struct iris_batch *batch)
 static void
 iris_finish_batch(struct iris_batch *batch)
 {
+   const struct intel_device_info *devinfo = &batch->screen->devinfo;
+
+   if (devinfo->ver == 12 && batch->name == IRIS_BATCH_RENDER) {
+      /* We re-emit constants at the beginning of every batch as a hardware
+       * bug workaround, so invalidate indirect state pointers in order to
+       * save ourselves the overhead of restoring constants redundantly when
+       * the next render batch is executed.
+       */
+      iris_emit_pipe_control_flush(batch, "ISP invalidate at batch end",
+                                   PIPE_CONTROL_INDIRECT_STATE_POINTERS_DISABLE |
+                                   PIPE_CONTROL_STALL_AT_SCOREBOARD |
+                                   PIPE_CONTROL_CS_STALL);
+   }
+
    add_aux_map_bos_to_batch(batch);
 
    finish_seqno(batch);

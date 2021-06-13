@@ -252,6 +252,14 @@ ADDR_E_RETURNCODE Gfx10Lib::HwlComputeHtileInfo(
                 pOut->pMipInfo[0].sliceSize = pOut->sliceSize;
             }
         }
+
+        // Get the HTILE address equation (copied from HtileAddrFromCoord).
+        // Note that HTILE doesn't depend on the number of samples.
+        const UINT_32 index = m_xmaskBaseIndex;
+        const UINT_8* patIdxTable = m_settings.supportRbPlus ? GFX10_HTILE_RBPLUS_PATIDX : GFX10_HTILE_PATIDX;
+
+        ADDR_C_ASSERT(sizeof(GFX10_HTILE_SW_PATTERN[patIdxTable[index]]) == 72 * 2);
+        pOut->equation.gfx10_bits = (UINT_16 *)GFX10_HTILE_SW_PATTERN[patIdxTable[index]];
     }
 
     return ret;
@@ -496,6 +504,53 @@ ADDR_E_RETURNCODE Gfx10Lib::HwlComputeDccInfo(
                     pOut->pMipInfo[0].sliceSize = pOut->dccRamSliceSize;
                 }
             }
+
+            // Get the DCC address equation (copied from DccAddrFromCoord)
+            const UINT_32 elemLog2    = Log2(pIn->bpp >> 3);
+            const UINT_32 numPipeLog2 = m_pipesLog2;
+            UINT_32       index       = m_dccBaseIndex + elemLog2;
+            const UINT_8* patIdxTable;
+
+            if (m_settings.supportRbPlus)
+            {
+                patIdxTable = GFX10_DCC_64K_R_X_RBPLUS_PATIDX;
+
+                if (pIn->dccKeyFlags.pipeAligned)
+                {
+                    index += MaxNumOfBpp;
+
+                    if (m_numPkrLog2 < 2)
+                    {
+                        index += m_pipesLog2 * MaxNumOfBpp;
+                    }
+                    else
+                    {
+                        // 4 groups for "m_numPkrLog2 < 2" case
+                        index += 4 * MaxNumOfBpp;
+
+                        const UINT_32 dccPipePerPkr = 3;
+
+                        index += (m_numPkrLog2 - 2) * dccPipePerPkr * MaxNumOfBpp +
+                                 (m_pipesLog2 - m_numPkrLog2) * MaxNumOfBpp;
+                    }
+                }
+            }
+            else
+            {
+                patIdxTable = GFX10_DCC_64K_R_X_PATIDX;
+
+                if (pIn->dccKeyFlags.pipeAligned)
+                {
+                    index += (numPipeLog2 + UnalignedDccType) * MaxNumOfBpp;
+                }
+                else
+                {
+                    index += Min(numPipeLog2, UnalignedDccType - 1) * MaxNumOfBpp;
+                }
+            }
+
+            ADDR_C_ASSERT(sizeof(GFX10_DCC_64K_R_X_SW_PATTERN[patIdxTable[index]]) == 68 * 2);
+            pOut->equation.gfx10_bits = (UINT_16*)GFX10_DCC_64K_R_X_SW_PATTERN[patIdxTable[index]];
         }
     }
 
@@ -1425,7 +1480,7 @@ VOID Gfx10Lib::ConvertSwizzlePatternToEquation(
         const UINT_32 blkXMask = dim.w - 1;
         const UINT_32 blkYMask = dim.h - 1;
 
-        ADDR_BIT_SETTING swizzle[ADDR_MAX_EQUATION_BIT];
+        ADDR_BIT_SETTING swizzle[ADDR_MAX_EQUATION_BIT] = {};
         UINT_32          xMask = 0;
         UINT_32          yMask = 0;
         UINT_32          bMask = (1 << elemLog2) - 1;
@@ -1628,7 +1683,7 @@ VOID Gfx10Lib::ConvertSwizzlePatternToEquation(
         const UINT_32 blkYMask = (1 << blkYLog2) - 1;
         const UINT_32 blkZMask = (1 << blkZLog2) - 1;
 
-        ADDR_BIT_SETTING swizzle[ADDR_MAX_EQUATION_BIT];
+        ADDR_BIT_SETTING swizzle[ADDR_MAX_EQUATION_BIT] = {};
         UINT_32          xMask = 0;
         UINT_32          yMask = 0;
         UINT_32          zMask = 0;
@@ -3131,7 +3186,10 @@ ADDR_E_RETURNCODE Gfx10Lib::HwlGetPreferredSurfaceSetting(
                             // Select the biggest allowed block type
                             minSizeBlk = Log2NonPow2(allowedBlockSet.value) + 1;
 
-                            minSizeBlk = (minSizeBlk == AddrBlockMaxTiledType) ? AddrBlockLinear : minSizeBlk;
+                            if (minSizeBlk == static_cast<UINT_32>(AddrBlockMaxTiledType))
+                            {
+                                minSizeBlk = AddrBlockLinear;
+                            }
                         }
 
                         switch (minSizeBlk)

@@ -342,6 +342,14 @@ ChangeDeviceID(DeviceIntPtr dev, InternalEvent *event)
     case ET_BarrierLeave:
         event->barrier_event.deviceid = dev->id;
         break;
+    case ET_GesturePinchBegin:
+    case ET_GesturePinchUpdate:
+    case ET_GesturePinchEnd:
+    case ET_GestureSwipeBegin:
+    case ET_GestureSwipeUpdate:
+    case ET_GestureSwipeEnd:
+        event->gesture_event.deviceid = dev->id;
+        break;
     default:
         ErrorF("[mi] Unknown event type (%d), cannot change id.\n",
                event->any.type);

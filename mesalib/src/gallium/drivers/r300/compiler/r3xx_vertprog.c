@@ -35,6 +35,8 @@
 #include "radeon_emulate_loops.h"
 #include "radeon_remove_constants.h"
 
+#include "util/compiler.h"
+
 /*
  * Take an already-setup and valid source then swizzle it appropriately to
  * obtain a constant ZERO or ONE source.
@@ -60,7 +62,7 @@ static unsigned long t_dst_class(rc_register_file file)
 	switch (file) {
 	default:
 		fprintf(stderr, "%s: Bad register file %i\n", __FUNCTION__, file);
-		/* fall-through */
+		FALLTHROUGH;
 	case RC_FILE_TEMPORARY:
 		return PVS_DST_REG_TEMPORARY;
 	case RC_FILE_OUTPUT:
@@ -84,7 +86,7 @@ static unsigned long t_src_class(rc_register_file file)
 	switch (file) {
 	default:
 		fprintf(stderr, "%s: Bad register file %i\n", __FUNCTION__, file);
-		/* fall-through */
+		FALLTHROUGH;
 	case RC_FILE_NONE:
 	case RC_FILE_TEMPORARY:
 		return PVS_SRC_REG_TEMPORARY;

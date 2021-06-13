@@ -39,36 +39,40 @@ namespace r600 {
 
 using std::vector;
 
-struct AssemblyFromShaderLegacyImpl {
+
+
+struct AssemblyFromShaderLegacyImpl : public ConstInstructionVisitor {
 
    AssemblyFromShaderLegacyImpl(r600_shader *sh, r600_shader_key *key);
+
+
    bool emit(const Instruction::Pointer i);
    void reset_addr_register() {m_last_addr.reset();}
 
-private:
-   bool emit_alu(const AluInstruction& ai, ECFAluOpCode cf_op);
-   bool emit_export(const ExportInstruction & exi);
-   bool emit_streamout(const StreamOutIntruction& instr);
-   bool emit_memringwrite(const MemRingOutIntruction& instr);
-   bool emit_tex(const TexInstruction & tex_instr);
-   bool emit_vtx(const FetchInstruction& fetch_instr);
-   bool emit_if_start(const IfInstruction & if_instr);
-   bool emit_else(const ElseInstruction & else_instr);
-   bool emit_endif(const IfElseEndInstruction & endif_instr);
-   bool emit_emit_vertex(const EmitVertex &instr);
-
-   bool emit_loop_begin(const LoopBeginInstruction& instr);
-   bool emit_loop_end(const LoopEndInstruction& instr);
-   bool emit_loop_break(const LoopBreakInstruction& instr);
-   bool emit_loop_continue(const LoopContInstruction& instr);
-   bool emit_wait_ack(const WaitAck& instr);
-   bool emit_wr_scratch(const WriteScratchInstruction& instr);
-   bool emit_gds(const GDSInstr& instr);
-   bool emit_rat(const RatInstruction& instr);
-   bool emit_ldswrite(const LDSWriteInstruction& instr);
-   bool emit_ldsread(const LDSReadInstruction& instr);
-   bool emit_ldsatomic(const LDSAtomicInstruction& instr);
-   bool emit_tf_write(const GDSStoreTessFactor& instr);
+public:
+   bool visit(const AluInstruction& i) override;
+   bool visit(const ExportInstruction& i) override;
+   bool visit(const TexInstruction& i) override;
+   bool visit(const FetchInstruction& i) override;
+   bool visit(const IfInstruction& i) override;
+   bool visit(const ElseInstruction& i) override;
+   bool visit(const IfElseEndInstruction& i) override;
+   bool visit(const LoopBeginInstruction& i) override;
+   bool visit(const LoopEndInstruction& i) override;
+   bool visit(const LoopBreakInstruction& i) override;
+   bool visit(const LoopContInstruction& i) override;
+   bool visit(const StreamOutIntruction& i) override;
+   bool visit(const MemRingOutIntruction& i) override;
+   bool visit(const EmitVertex& i) override;
+   bool visit(const WaitAck& i) override;
+   bool visit(const WriteScratchInstruction& i) override;
+   bool visit(const GDSInstr& i) override;
+   bool visit(const RatInstruction& i) override;
+   bool visit(const LDSWriteInstruction& i) override;
+   bool visit(const LDSReadInstruction& i) override;
+   bool visit(const LDSAtomicInstruction& i) override;
+   bool visit(const GDSStoreTessFactor& i) override;
+   bool visit(const InstructionBlock& i) override;
 
    bool emit_load_addr(PValue addr);
    bool emit_fs_pixel_export(const ExportInstruction & exi);
@@ -119,14 +123,9 @@ bool AssemblyFromShaderLegacy::do_lower(const std::vector<InstructionBlock>& ir)
    std::vector<Instruction::Pointer> exports;
 
    for (const auto& block : ir) {
-      for (const auto& i : block) {
-         if (!impl->emit(i))
+      if (!impl->visit(block))
          return false;
-      if (i->type() != Instruction::alu)
-         impl->reset_addr_register();
-      }
-   }
-   /*
+   }   /*
    for (const auto& i : exports) {
       if (!impl->emit_export(static_cast<const ExportInstruction&>(*i)))
           return false;
@@ -155,62 +154,25 @@ bool AssemblyFromShaderLegacy::do_lower(const std::vector<InstructionBlock>& ir)
    return true;
 }
 
-bool AssemblyFromShaderLegacyImpl::emit(const Instruction::Pointer i)
+bool AssemblyFromShaderLegacyImpl::visit(const InstructionBlock& block)
 {
-   if (i->type() != Instruction::vtx)
-       vtx_fetch_results.clear();
+   for (const auto& i : block) {
 
-   m_last_op_was_barrier &= i->type() == Instruction::alu;
+      if (i->type() != Instruction::vtx)
+          vtx_fetch_results.clear();
 
-   sfn_log << SfnLog::assembly << "Emit from '" << *i << "\n";
-   switch (i->type()) {
-   case Instruction::alu:
-      return emit_alu(static_cast<const AluInstruction&>(*i), cf_alu_undefined);
-   case Instruction::exprt:
-      return emit_export(static_cast<const ExportInstruction&>(*i));
-   case Instruction::tex:
-      return emit_tex(static_cast<const TexInstruction&>(*i));
-   case Instruction::vtx:
-      return emit_vtx(static_cast<const FetchInstruction&>(*i));
-   case Instruction::cond_if:
-      return emit_if_start(static_cast<const IfInstruction&>(*i));
-   case Instruction::cond_else:
-      return emit_else(static_cast<const ElseInstruction&>(*i));
-   case Instruction::cond_endif:
-      return emit_endif(static_cast<const IfElseEndInstruction&>(*i));
-   case Instruction::loop_begin:
-      return emit_loop_begin(static_cast<const LoopBeginInstruction&>(*i));
-   case Instruction::loop_end:
-      return emit_loop_end(static_cast<const LoopEndInstruction&>(*i));
-   case Instruction::loop_break:
-      return emit_loop_break(static_cast<const LoopBreakInstruction&>(*i));
-   case Instruction::loop_continue:
-      return emit_loop_continue(static_cast<const LoopContInstruction&>(*i));
-   case Instruction::streamout:
-      return emit_streamout(static_cast<const StreamOutIntruction&>(*i));
-   case Instruction::ring:
-      return emit_memringwrite(static_cast<const MemRingOutIntruction&>(*i));
-   case Instruction::emit_vtx:
-      return emit_emit_vertex(static_cast<const EmitVertex&>(*i));
-   case Instruction::wait_ack:
-      return emit_wait_ack(static_cast<const WaitAck&>(*i));
-   case Instruction::mem_wr_scratch:
-      return emit_wr_scratch(static_cast<const WriteScratchInstruction&>(*i));
-   case Instruction::gds:
-      return emit_gds(static_cast<const GDSInstr&>(*i));
-   case Instruction::rat:
-      return emit_rat(static_cast<const RatInstruction&>(*i));
-   case Instruction::lds_write:
-      return emit_ldswrite(static_cast<const LDSWriteInstruction&>(*i));
-   case Instruction::lds_read:
-      return emit_ldsread(static_cast<const LDSReadInstruction&>(*i));
-   case Instruction::lds_atomic:
-      return emit_ldsatomic(static_cast<const LDSAtomicInstruction&>(*i));
-   case Instruction::tf_write:
-      return emit_tf_write(static_cast<const GDSStoreTessFactor&>(*i));
-   default:
-      return false;
+      m_last_op_was_barrier &= i->type() == Instruction::alu;
+
+      sfn_log << SfnLog::assembly << "Emit from '" << *i << "\n";
+
+      if (!i->accept(*this))
+         return false;
+
+      if (i->type() != Instruction::alu)
+         reset_addr_register();
    }
+
+   return true;
 }
 
 AssemblyFromShaderLegacyImpl::AssemblyFromShaderLegacyImpl(r600_shader *sh,
@@ -226,6 +188,7 @@ AssemblyFromShaderLegacyImpl::AssemblyFromShaderLegacyImpl(r600_shader *sh,
    m_last_op_was_barrier(false)
 {
    m_max_color_exports = MAX2(m_key->ps.nr_cbufs, 1);
+
 }
 
 extern const std::map<EAluOp, int> opcode_map;
@@ -242,7 +205,7 @@ bool AssemblyFromShaderLegacyImpl::emit_load_addr(PValue addr)
    return true;
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_alu(const AluInstruction& ai, ECFAluOpCode cf_op)
+bool AssemblyFromShaderLegacyImpl::visit(const AluInstruction& ai)
 {
 
    struct r600_bytecode_alu alu;
@@ -353,8 +316,7 @@ bool AssemblyFromShaderLegacyImpl::emit_alu(const AluInstruction& ai, ECFAluOpCo
          m_last_addr.reset();
       }
 
-   if (cf_op == cf_alu_undefined)
-      cf_op = ai.cf_type();
+   auto cf_op = ai.cf_type();
 
    unsigned type = 0;
    switch (cf_op) {
@@ -482,7 +444,7 @@ bool AssemblyFromShaderLegacyImpl::emit_fs_pixel_export(const ExportInstruction 
 }
 
 
-bool AssemblyFromShaderLegacyImpl::emit_export(const ExportInstruction & exi)
+bool AssemblyFromShaderLegacyImpl::visit(const ExportInstruction & exi)
 {
    switch (exi.export_type()) {
    case ExportInstruction::et_pixel:
@@ -497,32 +459,34 @@ bool AssemblyFromShaderLegacyImpl::emit_export(const ExportInstruction & exi)
    }
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_if_start(const IfInstruction & if_instr)
+bool AssemblyFromShaderLegacyImpl::visit(const IfInstruction & if_instr)
 {
-	bool needs_workaround = false;
    int elems = m_callstack.push(FC_PUSH_VPM);
+   bool needs_workaround = false;
 
    if (m_bc->chip_class == CAYMAN && m_bc->stack.loop > 1)
       needs_workaround = true;
+
    if (m_bc->family != CHIP_HEMLOCK &&
        m_bc->family != CHIP_CYPRESS &&
        m_bc->family != CHIP_JUNIPER) {
       unsigned dmod1 = (elems - 1) % m_bc->stack.entry_size;
-		unsigned dmod2 = (elems) % m_bc->stack.entry_size;
+      unsigned dmod2 = (elems) % m_bc->stack.entry_size;
 
       if (elems && (!dmod1 || !dmod2))
-			needs_workaround = true;
-	}
+         needs_workaround = true;
+   }
 
    auto& pred = if_instr.pred();
-   auto op = cf_alu_push_before;
 
    if (needs_workaround) {
-		r600_bytecode_add_cfinst(m_bc, CF_OP_PUSH);
-                m_bc->cf_last->cf_addr = m_bc->cf_last->id + 2;
-		op = cf_alu;
-	}
-   emit_alu(pred, op);
+      r600_bytecode_add_cfinst(m_bc, CF_OP_PUSH);
+      m_bc->cf_last->cf_addr = m_bc->cf_last->id + 2;
+      auto new_pred = pred;
+      new_pred.set_cf_type(cf_alu);
+      visit(new_pred);
+   } else
+      visit(pred);
 
    r600_bytecode_add_cfinst(m_bc, CF_OP_JUMP);
 
@@ -530,14 +494,14 @@ bool AssemblyFromShaderLegacyImpl::emit_if_start(const IfInstruction & if_instr)
    return true;
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_else(UNUSED const ElseInstruction & else_instr)
+bool AssemblyFromShaderLegacyImpl::visit(UNUSED const ElseInstruction & else_instr)
 {
    r600_bytecode_add_cfinst(m_bc, CF_OP_ELSE);
    m_bc->cf_last->pop_count = 1;
    return m_jump_tracker.add_mid(m_bc->cf_last, jt_if);
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_endif(UNUSED const IfElseEndInstruction & endif_instr)
+bool AssemblyFromShaderLegacyImpl::visit(UNUSED const IfElseEndInstruction & endif_instr)
 {
    m_callstack.pop(FC_PUSH_VPM);
 
@@ -571,7 +535,7 @@ bool AssemblyFromShaderLegacyImpl::emit_endif(UNUSED const IfElseEndInstruction 
    return m_jump_tracker.pop(m_bc->cf_last, jt_if);
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_loop_begin(UNUSED const LoopBeginInstruction& instr)
+bool AssemblyFromShaderLegacyImpl::visit(UNUSED const LoopBeginInstruction& instr)
 {
    r600_bytecode_add_cfinst(m_bc, CF_OP_LOOP_START_DX10);
    m_jump_tracker.push(m_bc->cf_last, jt_loop);
@@ -580,7 +544,7 @@ bool AssemblyFromShaderLegacyImpl::emit_loop_begin(UNUSED const LoopBeginInstruc
    return true;
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_loop_end(UNUSED const LoopEndInstruction& instr)
+bool AssemblyFromShaderLegacyImpl::visit(UNUSED const LoopEndInstruction& instr)
 {
    r600_bytecode_add_cfinst(m_bc, CF_OP_LOOP_END);
    m_callstack.pop(FC_LOOP);
@@ -589,19 +553,19 @@ bool AssemblyFromShaderLegacyImpl::emit_loop_end(UNUSED const LoopEndInstruction
    return m_jump_tracker.pop(m_bc->cf_last, jt_loop);
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_loop_break(UNUSED const LoopBreakInstruction& instr)
+bool AssemblyFromShaderLegacyImpl::visit(UNUSED const LoopBreakInstruction& instr)
 {
    r600_bytecode_add_cfinst(m_bc, CF_OP_LOOP_BREAK);
    return m_jump_tracker.add_mid(m_bc->cf_last, jt_loop);
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_loop_continue(UNUSED const LoopContInstruction &instr)
+bool AssemblyFromShaderLegacyImpl::visit(UNUSED const LoopContInstruction &instr)
 {
    r600_bytecode_add_cfinst(m_bc, CF_OP_LOOP_CONTINUE);
    return m_jump_tracker.add_mid(m_bc->cf_last, jt_loop);
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_streamout(const StreamOutIntruction& so_instr)
+bool AssemblyFromShaderLegacyImpl::visit(const StreamOutIntruction& so_instr)
 {
    struct r600_bytecode_output output;
    memset(&output, 0, sizeof(struct r600_bytecode_output));
@@ -626,7 +590,7 @@ bool AssemblyFromShaderLegacyImpl::emit_streamout(const StreamOutIntruction& so_
 }
 
 
-bool AssemblyFromShaderLegacyImpl::emit_memringwrite(const MemRingOutIntruction& instr)
+bool AssemblyFromShaderLegacyImpl::visit(const MemRingOutIntruction& instr)
 {
    struct r600_bytecode_output output;
    memset(&output, 0, sizeof(struct r600_bytecode_output));
@@ -651,7 +615,7 @@ bool AssemblyFromShaderLegacyImpl::emit_memringwrite(const MemRingOutIntruction&
 }
 
 
-bool AssemblyFromShaderLegacyImpl::emit_tex(const TexInstruction & tex_instr)
+bool AssemblyFromShaderLegacyImpl::visit(const TexInstruction & tex_instr)
 {
    auto addr = tex_instr.sampler_offset();
    if (addr && (!m_bc->index_loaded[1] || m_loop_nesting
@@ -724,7 +688,7 @@ bool AssemblyFromShaderLegacyImpl::emit_tex(const TexInstruction & tex_instr)
    return true;
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_vtx(const FetchInstruction& fetch_instr)
+bool AssemblyFromShaderLegacyImpl::visit(const FetchInstruction& fetch_instr)
 {
    int buffer_offset = 0;
    auto addr = fetch_instr.buffer_offset();
@@ -741,7 +705,7 @@ bool AssemblyFromShaderLegacyImpl::emit_vtx(const FetchInstruction& fetch_instr)
 
    if (fetch_instr.has_prelude()) {
       for(auto &i : fetch_instr.prelude()) {
-         if (!emit(i))
+         if (!i->accept(*this))
             return false;
       }
    }
@@ -799,7 +763,7 @@ bool AssemblyFromShaderLegacyImpl::emit_vtx(const FetchInstruction& fetch_instr)
    return true;
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_emit_vertex(const EmitVertex &instr)
+bool AssemblyFromShaderLegacyImpl::visit(const EmitVertex &instr)
 {
    int r = r600_bytecode_add_cfinst(m_bc, instr.op());
    if (!r)
@@ -809,7 +773,7 @@ bool AssemblyFromShaderLegacyImpl::emit_emit_vertex(const EmitVertex &instr)
    return r == 0;
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_wait_ack(const WaitAck& instr)
+bool AssemblyFromShaderLegacyImpl::visit(const WaitAck& instr)
 {
    int r = r600_bytecode_add_cfinst(m_bc, instr.op());
    if (!r)
@@ -818,7 +782,7 @@ bool AssemblyFromShaderLegacyImpl::emit_wait_ack(const WaitAck& instr)
    return r == 0;
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_wr_scratch(const WriteScratchInstruction& instr)
+bool AssemblyFromShaderLegacyImpl::visit(const WriteScratchInstruction& instr)
 {
    struct r600_bytecode_output cf;
 
@@ -859,7 +823,7 @@ bool AssemblyFromShaderLegacyImpl::emit_wr_scratch(const WriteScratchInstruction
 
 extern const std::map<ESDOp, int> ds_opcode_map;
 
-bool AssemblyFromShaderLegacyImpl::emit_gds(const GDSInstr& instr)
+bool AssemblyFromShaderLegacyImpl::visit(const GDSInstr& instr)
 {
    struct r600_bytecode_gds gds;
 
@@ -899,7 +863,7 @@ bool AssemblyFromShaderLegacyImpl::emit_gds(const GDSInstr& instr)
    return true;
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_tf_write(const GDSStoreTessFactor& instr)
+bool AssemblyFromShaderLegacyImpl::visit(const GDSStoreTessFactor& instr)
 {
    struct r600_bytecode_gds gds;
 
@@ -935,7 +899,7 @@ bool AssemblyFromShaderLegacyImpl::emit_tf_write(const GDSStoreTessFactor& instr
    return true;
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_ldswrite(const LDSWriteInstruction& instr)
+bool AssemblyFromShaderLegacyImpl::visit(const LDSWriteInstruction& instr)
 {
    r600_bytecode_alu alu;
    memset(&alu, 0, sizeof(r600_bytecode_alu));
@@ -956,7 +920,7 @@ bool AssemblyFromShaderLegacyImpl::emit_ldswrite(const LDSWriteInstruction& inst
    return r600_bytecode_add_alu(m_bc, &alu) == 0;
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_ldsread(const LDSReadInstruction& instr)
+bool AssemblyFromShaderLegacyImpl::visit(const LDSReadInstruction& instr)
 {
    int r;
    unsigned nread = 0;
@@ -1007,7 +971,7 @@ bool AssemblyFromShaderLegacyImpl::emit_ldsread(const LDSReadInstruction& instr)
    return true;
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_ldsatomic(const LDSAtomicInstruction& instr)
+bool AssemblyFromShaderLegacyImpl::visit(const LDSAtomicInstruction& instr)
 {
    if (m_bc->cf_last->ndw > 240 - 4)
       m_bc->force_add_cf = 1;
@@ -1041,7 +1005,7 @@ bool AssemblyFromShaderLegacyImpl::emit_ldsatomic(const LDSAtomicInstruction& in
    return true;
 }
 
-bool AssemblyFromShaderLegacyImpl::emit_rat(const RatInstruction& instr)
+bool AssemblyFromShaderLegacyImpl::visit(const RatInstruction& instr)
 {
    struct r600_bytecode_gds gds;
 

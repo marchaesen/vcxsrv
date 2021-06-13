@@ -37,7 +37,6 @@ struct zink_fs_key {
    unsigned shader_id;
    uint8_t coord_replace_bits;
    bool coord_replace_yinvert;
-   //bool flat_shade;
    bool samples;
    bool force_dual_color_blend;
 };
@@ -46,6 +45,10 @@ struct zink_tcs_key {
    unsigned shader_id;
    unsigned vertices_per_patch;
    uint64_t vs_outputs_written;
+};
+
+struct zink_shader_key_base {
+   uint32_t inlined_uniform_values[MAX_INLINABLE_UNIFORMS];
 };
 
 /* a shader key is used for swapping out shader modules based on pipeline states,
@@ -60,7 +63,10 @@ struct zink_shader_key {
       struct zink_fs_key fs;
       struct zink_tcs_key tcs;
    } key;
+   struct zink_shader_key_base base;
+   unsigned inline_uniforms:1;
    uint32_t size;
+   bool is_default_variant;
 };
 
 static inline const struct zink_fs_key *

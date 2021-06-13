@@ -28,7 +28,7 @@
 
 #include <X11/Xatom.h>
 
-RESTYPE RRProviderType;
+RESTYPE RRProviderType = 0;
 
 /*
  * Initialize provider type error value

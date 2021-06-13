@@ -144,7 +144,10 @@ if build_xorg
         unit_defines += ['-DRES_TESTS']
     endif
 
+    unit_c_args = unit_defines
     if meson.get_compiler('c').has_link_argument('-Wl,-wrap')
+       # LTO breaks with -Wl,-wrap on certain configurations
+       unit_c_args += ['-fno-lto']
        unit_sources += [
         'xi1/protocol-xchangedevicecontrol.c',
         'xi2/protocol-common.c',
@@ -178,7 +181,7 @@ if build_xorg
 
     unit = executable('tests',
          unit_sources,
-         c_args: unit_defines,
+         c_args: unit_c_args,
          dependencies: [pixman_dep, randrproto_dep, inputproto_dep],
          include_directories: unit_includes,
          link_args: ldwraps,

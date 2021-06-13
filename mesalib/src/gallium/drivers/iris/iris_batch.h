@@ -41,11 +41,12 @@ struct iris_context;
 /* The kernel assumes batchbuffers are smaller than 256kB. */
 #define MAX_BATCH_SIZE (256 * 1024)
 
-/* Terminating the batch takes either 4 bytes for MI_BATCH_BUFFER_END
- * or 12 bytes for MI_BATCH_BUFFER_START (when chaining).  Plus another
- * 24 bytes for the seqno write (using PIPE_CONTROL).
+/* Terminating the batch takes either 4 bytes for MI_BATCH_BUFFER_END or 12
+ * bytes for MI_BATCH_BUFFER_START (when chaining).  Plus another 24 bytes for
+ * the seqno write (using PIPE_CONTROL), and another 24 bytes for the ISP
+ * invalidation pipe control.
  */
-#define BATCH_RESERVED 36
+#define BATCH_RESERVED 60
 
 /* Our target batch size - flush approximately at this point. */
 #define BATCH_SZ (64 * 1024 - BATCH_RESERVED)

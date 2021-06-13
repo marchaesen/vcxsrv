@@ -246,7 +246,6 @@ NIR_FILES = \
 	nir/nir_lower_bool_to_bitsize.c \
 	nir/nir_lower_bool_to_float.c \
 	nir/nir_lower_bool_to_int32.c \
-	nir/nir_lower_cl_images_to_tex.c \
 	nir/nir_lower_clamp_color_outputs.c \
 	nir/nir_lower_clip.c \
 	nir/nir_lower_clip_cull_distance_arrays.c \
@@ -278,8 +277,9 @@ NIR_FILES = \
 	nir/nir_lower_io_to_temporaries.c \
 	nir/nir_lower_io_to_scalar.c \
 	nir/nir_lower_io_to_vector.c \
+	nir/nir_lower_is_helper_invocation.c \
 	nir/nir_lower_multiview.c \
-	nir/nir_lower_mediump_outputs.c \
+	nir/nir_lower_mediump.c \
 	nir/nir_lower_memcpy.c \
 	nir/nir_lower_memory_model.c \
 	nir/nir_lower_non_uniform_access.c \
@@ -292,6 +292,7 @@ NIR_FILES = \
 	nir/nir_lower_point_size_mov.c \
 	nir/nir_lower_printf.c \
 	nir/nir_lower_regs_to_ssa.c \
+	nir/nir_lower_readonly_images_to_tex.c \
 	nir/nir_lower_returns.c \
 	nir/nir_lower_samplers.c \
 	nir/nir_lower_scratch.c \

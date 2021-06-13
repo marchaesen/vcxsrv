@@ -101,7 +101,8 @@ lower_clip_plane_store(nir_intrinsic_instr *instr, unsigned clip_plane_enable, n
       if (clip_plane_enable & (1 << plane))
          return false;
 
-      nir_store_deref(b, deref, nir_imm_int(b, 0), 1 << plane);
+      assert(nir_intrinsic_write_mask(instr) == 1);
+      nir_store_deref(b, deref, nir_imm_int(b, 0), 1);
    } else {
       /* storing using a variable index */
       nir_ssa_def *index = nir_ssa_for_src(b, deref->arr.index, 1);

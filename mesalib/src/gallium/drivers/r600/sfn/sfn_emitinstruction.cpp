@@ -109,29 +109,14 @@ GPRVector EmitInstruction::vec_from_nir_with_fetch_constant(const nir_src& src, 
    return m_proc.vec_from_nir_with_fetch_constant(src, mask, swizzle, match);
 }
 
-int EmitInstruction::lookup_register_index(const nir_src& src) const
-{
-   return m_proc.lookup_register_index(src);
-}
-
-int EmitInstruction::allocate_temp_register()
-{
-   return m_proc.allocate_temp_register();
-}
-
-int EmitInstruction::lookup_register_index(const nir_dest& dst)
-{
-   return m_proc.lookup_register_index(dst);
-}
-
 PGPRValue EmitInstruction::get_temp_register(int channel)
 {
    return m_proc.get_temp_register(channel);
 }
 
-GPRVector EmitInstruction::get_temp_vec4()
+GPRVector EmitInstruction::get_temp_vec4(const GPRVector::Swizzle& swizzle)
 {
-   return m_proc.get_temp_vec4();
+   return m_proc.get_temp_vec4(swizzle);
 }
 
 PValue EmitInstruction::create_register_from_nir_src(const nir_src& src, unsigned swizzle)

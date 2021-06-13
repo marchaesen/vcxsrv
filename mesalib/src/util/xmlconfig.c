@@ -321,8 +321,8 @@ driParseOptionInfo(driOptionCache *info,
     * config options we've ever seen in a driver.
     */
    info->tableSize = 6;
-   info->info = calloc(1 << info->tableSize, sizeof(driOptionInfo));
-   info->values = calloc(1 << info->tableSize, sizeof(driOptionValue));
+   info->info = calloc((size_t)1 << info->tableSize, sizeof(driOptionInfo));
+   info->values = calloc((size_t)1 << info->tableSize, sizeof(driOptionValue));
    if (info->info == NULL || info->values == NULL) {
       fprintf(stderr, "%s: %d: out of memory.\n", __FILE__, __LINE__);
       abort();
@@ -1109,13 +1109,13 @@ initOptionCache(driOptionCache *cache, const driOptionCache *info)
    unsigned i, size = 1 << info->tableSize;
    cache->info = info->info;
    cache->tableSize = info->tableSize;
-   cache->values = malloc((1<<info->tableSize) * sizeof(driOptionValue));
+   cache->values = malloc(((size_t)1 << info->tableSize) * sizeof(driOptionValue));
    if (cache->values == NULL) {
       fprintf(stderr, "%s: %d: out of memory.\n", __FILE__, __LINE__);
       abort();
    }
    memcpy(cache->values, info->values,
-           (1<<info->tableSize) * sizeof(driOptionValue));
+           ((size_t)1 << info->tableSize) * sizeof(driOptionValue));
    for (i = 0; i < size; ++i) {
       if (cache->info[i].type == DRI_STRING)
          XSTRDUP(cache->values[i]._string, info->values[i]._string);

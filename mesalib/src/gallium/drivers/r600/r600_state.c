@@ -755,11 +755,11 @@ r600_create_sampler_view_custom(struct pipe_context *ctx,
 	view->tex_resource_words[1] = (S_038004_TEX_HEIGHT(height - 1) |
 				       S_038004_TEX_DEPTH(depth - 1) |
 				       S_038004_DATA_FORMAT(format));
-	view->tex_resource_words[2] = tmp->surface.u.legacy.level[offset_level].offset >> 8;
+	view->tex_resource_words[2] = tmp->surface.u.legacy.level[offset_level].offset_256B;
 	if (offset_level >= tmp->resource.b.b.last_level) {
-		view->tex_resource_words[3] = tmp->surface.u.legacy.level[offset_level].offset >> 8;
+		view->tex_resource_words[3] = tmp->surface.u.legacy.level[offset_level].offset_256B;
 	} else {
-		view->tex_resource_words[3] = tmp->surface.u.legacy.level[offset_level + 1].offset >> 8;
+		view->tex_resource_words[3] = tmp->surface.u.legacy.level[offset_level + 1].offset_256B;
 	}
 	view->tex_resource_words[4] = (word4 |
 				       S_038010_REQUEST_SIZE(1) |
@@ -824,7 +824,7 @@ static void r600_init_color_surface(struct r600_context *rctx,
 		assert(rtex);
 	}
 
-	offset = rtex->surface.u.legacy.level[level].offset;
+	offset = (uint64_t)rtex->surface.u.legacy.level[level].offset_256B * 256;
 	color_view = S_028080_SLICE_START(surf->base.u.tex.first_layer) |
 		     S_028080_SLICE_MAX(surf->base.u.tex.last_layer);
 
@@ -982,7 +982,7 @@ static void r600_init_color_surface(struct r600_context *rctx,
 		/* CMASK. */
 		if (!rctx->dummy_cmask ||
 		    rctx->dummy_cmask->b.b.width0 < cmask.size ||
-		    rctx->dummy_cmask->buf->alignment % cmask.alignment != 0) {
+		    (1 << rctx->dummy_cmask->buf->alignment_log2) % cmask.alignment != 0) {
 			struct pipe_transfer *transfer;
 			void *ptr;
 
@@ -1007,7 +1007,7 @@ static void r600_init_color_surface(struct r600_context *rctx,
 		/* FMASK. */
 		if (!rctx->dummy_fmask ||
 		    rctx->dummy_fmask->b.b.width0 < fmask.size ||
-		    rctx->dummy_fmask->buf->alignment % fmask.alignment != 0) {
+		    (1 << rctx->dummy_fmask->buf->alignment_log2) % fmask.alignment != 0) {
 			r600_resource_reference(&rctx->dummy_fmask, NULL);
 			rctx->dummy_fmask = (struct r600_resource*)
 				r600_aligned_buffer_create(&rscreen->b.b, 0,
@@ -1041,7 +1041,7 @@ static void r600_init_depth_surface(struct r600_context *rctx,
 	unsigned level, pitch, slice, format, offset, array_mode;
 
 	level = surf->base.u.tex.level;
-	offset = rtex->surface.u.legacy.level[level].offset;
+	offset = (uint64_t)rtex->surface.u.legacy.level[level].offset_256B * 256;
 	pitch = rtex->surface.u.legacy.level[level].nblk_x / 8 - 1;
 	slice = (rtex->surface.u.legacy.level[level].nblk_x * rtex->surface.u.legacy.level[level].nblk_y) / 64;
 	if (slice) {
@@ -2884,8 +2884,8 @@ static boolean r600_dma_copy_tile(struct r600_context *rctx,
 		x = src_x;
 		y = src_y;
 		z = src_z;
-		base = rsrc->surface.u.legacy.level[src_level].offset;
-		addr = rdst->surface.u.legacy.level[dst_level].offset;
+		base = (uint64_t)rsrc->surface.u.legacy.level[src_level].offset_256B * 256;
+		addr = (uint64_t)rdst->surface.u.legacy.level[dst_level].offset_256B * 256;
 		addr += (uint64_t)rdst->surface.u.legacy.level[dst_level].slice_size_dw * 4 * dst_z;
 		addr += dst_y * pitch + dst_x * bpp;
 	} else {
@@ -2903,8 +2903,8 @@ static boolean r600_dma_copy_tile(struct r600_context *rctx,
 		x = dst_x;
 		y = dst_y;
 		z = dst_z;
-		base = rdst->surface.u.legacy.level[dst_level].offset;
-		addr = rsrc->surface.u.legacy.level[src_level].offset;
+		base = (uint64_t)rdst->surface.u.legacy.level[dst_level].offset_256B * 256;
+		addr = (uint64_t)rsrc->surface.u.legacy.level[src_level].offset_256B * 256;
 		addr += (uint64_t)rsrc->surface.u.legacy.level[src_level].slice_size_dw * 4 * src_z;
 		addr += src_y * pitch + src_x * bpp;
 	}
@@ -3007,10 +3007,10 @@ static void r600_dma_copy(struct pipe_context *ctx,
 		 *   dst_x/y == 0
 		 *   dst_pitch == src_pitch
 		 */
-		src_offset= rsrc->surface.u.legacy.level[src_level].offset;
+		src_offset= (uint64_t)rsrc->surface.u.legacy.level[src_level].offset_256B * 256;
 		src_offset += (uint64_t)rsrc->surface.u.legacy.level[src_level].slice_size_dw * 4 * src_box->z;
 		src_offset += src_y * src_pitch + src_x * bpp;
-		dst_offset = rdst->surface.u.legacy.level[dst_level].offset;
+		dst_offset = (uint64_t)rdst->surface.u.legacy.level[dst_level].offset_256B * 256;
 		dst_offset += (uint64_t)rdst->surface.u.legacy.level[dst_level].slice_size_dw * 4 * dst_z;
 		dst_offset += dst_y * dst_pitch + dst_x * bpp;
 		size = src_box->height * src_pitch;

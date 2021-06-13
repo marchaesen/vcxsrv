@@ -642,6 +642,20 @@ util_bswap16(uint16_t n)
           (n << 8);
 }
 
+/**
+ * Extend sign.
+ */
+static inline int64_t
+util_sign_extend(uint64_t val, unsigned width)
+{
+	assert(width > 0);
+	if (val & (UINT64_C(1) << (width - 1))) {
+		return -(int64_t)((UINT64_C(1) << width) - val);
+	} else {
+		return val;
+	}
+}
+
 static inline void*
 util_memcpy_cpu_to_le32(void * restrict dest, const void * restrict src, size_t n)
 {
@@ -723,8 +737,8 @@ ALIGN_NPOT(uintptr_t value, int32_t alignment)
  *
  * \sa ALIGN()
  */
-static inline uintptr_t
-ROUND_DOWN_TO(uintptr_t value, int32_t alignment)
+static inline uint64_t
+ROUND_DOWN_TO(uint64_t value, int32_t alignment)
 {
    assert(util_is_power_of_two_nonzero(alignment));
    return ((value) & ~(alignment - 1));

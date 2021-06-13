@@ -24,7 +24,7 @@
 /**
  * @file v3dx_simulator.c
  *
- * Implements the actual HW interaction betweeh the GL driver's VC5 simulator and the simulator.
+ * Implements the actual HW interaction betweeh the GL driver's V3D simulator and the simulator.
  *
  * The register headers between V3D versions will have conflicting defines, so
  * all register interactions appear in this file and are compiled per V3D version
@@ -241,7 +241,7 @@ v3dX(simulator_get_param_ioctl)(struct v3d_hw *v3d,
                 return 0;
         }
 
-        fprintf(stderr, "Unknown DRM_IOCTL_VC5_GET_PARAM(%lld)\n",
+        fprintf(stderr, "Unknown DRM_IOCTL_V3D_GET_PARAM(%lld)\n",
                 (long long)args->value);
         abort();
 }

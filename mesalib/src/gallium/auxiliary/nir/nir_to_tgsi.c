@@ -476,7 +476,10 @@ ntt_reladdr(struct ntt_compile *c, struct ureg_src addr)
       c->addr_declared[c->next_addr_reg] = true;
    }
 
-   ureg_UARL(c->ureg, c->addr_reg[c->next_addr_reg], addr);
+   if (c->native_integers)
+      ureg_UARL(c->ureg, c->addr_reg[c->next_addr_reg], addr);
+   else
+      ureg_ARL(c->ureg, c->addr_reg[c->next_addr_reg], addr);
    return ureg_scalar(ureg_src(c->addr_reg[c->next_addr_reg++]), 0);
 }
 
@@ -1535,7 +1538,7 @@ ntt_emit_load_input(struct ntt_compile *c, nir_intrinsic_instr *instr)
           * emit the extra TGSI interp instruction, we can just read the
           * input.
           */
-         if (c->centroid_inputs & (1 << nir_intrinsic_base(instr))) {
+         if (c->centroid_inputs & (1ull << nir_intrinsic_base(instr))) {
             ntt_store(c, &instr->dest, input);
          } else {
             ureg_INTERP_CENTROID(c->ureg, ntt_get_dest(c, &instr->dest),
@@ -2411,6 +2414,7 @@ ntt_optimize_nir(struct nir_shader *s, struct pipe_screen *screen)
 
       NIR_PASS(progress, s, nir_copy_prop);
       NIR_PASS(progress, s, nir_opt_algebraic);
+      NIR_PASS(progress, s, nir_opt_constant_folding);
       NIR_PASS(progress, s, nir_opt_remove_phis);
       NIR_PASS(progress, s, nir_opt_conditional_discard);
       NIR_PASS(progress, s, nir_opt_dce);
@@ -2714,8 +2718,8 @@ nir_to_tgsi(struct nir_shader *s,
 
    if (!original_options->lower_uniforms_to_ubo) {
       NIR_PASS_V(s, nir_lower_uniforms_to_ubo,
-                 screen->get_param(screen, PIPE_CAP_PACKED_UNIFORMS) ?
-                 4 : 16);
+                 screen->get_param(screen, PIPE_CAP_PACKED_UNIFORMS),
+                 !native_integers);
    }
 
    /* Do lowering so we can directly translate f64/i64 NIR ALU ops to TGSI --

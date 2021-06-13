@@ -597,6 +597,13 @@ st_nir_vectorize_io(nir_shader *producer, nir_shader *consumer)
       NIR_PASS_V(producer, nir_split_var_copies);
       NIR_PASS_V(producer, nir_lower_var_copies);
    }
+
+   /* Undef scalar store_deref intrinsics are not ignored by nir_lower_io,
+    * so they must be removed before that. These passes remove them.
+    */
+   NIR_PASS_V(producer, nir_lower_vars_to_ssa);
+   NIR_PASS_V(producer, nir_opt_undef);
+   NIR_PASS_V(producer, nir_opt_dce);
 }
 
 static void
@@ -634,6 +641,8 @@ st_nir_link_shaders(nir_shader *producer, nir_shader *consumer)
       NIR_PASS_V(consumer, nir_remove_dead_variables, nir_var_shader_in,
                  NULL);
    }
+
+   nir_link_varying_precision(producer, consumer);
 }
 
 static void
@@ -996,12 +1005,10 @@ st_unpacked_uniforms_type_size(const struct glsl_type *type, bool bindless)
 void
 st_nir_lower_uniforms(struct st_context *st, nir_shader *nir)
 {
-   unsigned multiplier = 16;
    if (st->ctx->Const.PackedDriverUniformStorage) {
       NIR_PASS_V(nir, nir_lower_io, nir_var_uniform,
                  st_packed_uniforms_type_size,
                  (nir_lower_io_options)0);
-      multiplier = 4;
    } else {
       NIR_PASS_V(nir, nir_lower_io, nir_var_uniform,
                  st_unpacked_uniforms_type_size,
@@ -1009,7 +1016,9 @@ st_nir_lower_uniforms(struct st_context *st, nir_shader *nir)
    }
 
    if (nir->options->lower_uniforms_to_ubo)
-      NIR_PASS_V(nir, nir_lower_uniforms_to_ubo, multiplier);
+      NIR_PASS_V(nir, nir_lower_uniforms_to_ubo,
+                 st->ctx->Const.PackedDriverUniformStorage,
+                 !st->ctx->Const.NativeIntegers);
 }
 
 /* Last third of preparing nir from glsl, which happens after shader

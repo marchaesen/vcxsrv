@@ -116,9 +116,9 @@ get_src_register_pointer(const struct prog_src_register *source,
       return machine->Outputs[reg];
 
    case PROGRAM_STATE_VAR:
-      /* Fallthrough */
+      FALLTHROUGH;
    case PROGRAM_CONSTANT:
-      /* Fallthrough */
+      FALLTHROUGH;
    case PROGRAM_UNIFORM: {
       if (reg >= (GLint) prog->Parameters->NumParameters)
          return ZeroVec;

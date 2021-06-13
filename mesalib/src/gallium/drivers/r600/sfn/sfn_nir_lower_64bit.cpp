@@ -933,7 +933,7 @@ r600_nir_64_to_vec2(nir_shader *sh)
                         swizzle[2 * k] = swizzle[2 * k + 1] = alu->src[i].swizzle[k] * 2;
                         break;
                      }
-                     /* fallthrough */
+                     FALLTHROUGH;
                   default:
                      swizzle[2 * k] = alu->src[i].swizzle[k] * 2;
                      swizzle[2 * k + 1] = alu->src[i].swizzle[k] * 2 + 1;

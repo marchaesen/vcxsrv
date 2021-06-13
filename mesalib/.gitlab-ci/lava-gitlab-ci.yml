@@ -1,69 +1,28 @@
-variables:
-  MESA_LAVA_TAG: "2021-03-16-piglit-runner"
-
-.kernel+rootfs:
-  stage: container-2
-  extends:
-    - .ci-run-policy
-  variables:
-    DISTRIBUTION_TAG: &distribution-tag-arm "${MESA_LAVA_TAG}--${MESA_IMAGE_TAG}--${MESA_TEMPLATES_COMMIT}"
-    GIT_STRATEGY: fetch
-    KERNEL_URL: "https://gitlab.freedesktop.org/tomeu/linux/-/archive/v5.10-rc2-for-mesa-ci/linux-v5.10-rc2-for-mesa-ci.tar.gz"
-    UPLOAD_FOR_LAVA: 1
-    INSTALL_KERNEL_MODULES: 1
-    INCLUDE_PIGLIT: 1
-    PIGLIT_BUILD_TARGETS: "piglit_replayer"
-  script:
-    - .gitlab-ci/container/lava_build.sh
-
-kernel+rootfs_amd64:
-  extends:
-    - .use-x86_build-base
-    - .kernel+rootfs
-  image: "$FDO_BASE_IMAGE"
-  variables:
-    DEBIAN_ARCH: "amd64"
-    DISTRIBUTION_TAG: &distribution-tag-amd64 "${MESA_LAVA_TAG}--${MESA_BASE_TAG}--${MESA_TEMPLATES_COMMIT}"
-
-kernel+rootfs_arm64:
-  extends:
-    - .use-arm_build
-    - .kernel+rootfs
-  tags:
-    - aarch64
-  variables:
-    DEBIAN_ARCH: "arm64"
-
-kernel+rootfs_armhf:
-  extends:
-    - kernel+rootfs_arm64
-  variables:
-    DEBIAN_ARCH: "armhf"
-
 .lava-test:
   extends:
     - .ci-run-policy
   # Cancel job if a newer commit is pushed to the same branch
   interruptible: true
   variables:
-    DISTRIBUTION_TAG: *distribution-tag-arm
     GIT_STRATEGY: none # testing doesn't build anything from source
     ENV_VARS: "DEQP_PARALLEL=6"
-    FIXED_ENV_VARS: "CI_PIPELINE_ID=${CI_PIPELINE_ID} CI_JOB_ID=${CI_JOB_ID} CI_PAGES_DOMAIN=${CI_PAGES_DOMAIN} CI_PROJECT_NAME=${CI_PROJECT_NAME} CI_PROJECT_PATH=${CI_PROJECT_PATH} CI_PROJECT_ROOT_NAMESPACE=${CI_PROJECT_ROOT_NAMESPACE} CI_JOB_JWT=${CI_JOB_JWT} CI_SERVER_URL=${CI_SERVER_URL} DRIVER_NAME=${DRIVER_NAME} FDO_UPSTREAM_REPO=${FDO_UPSTREAM_REPO} PIGLIT_NO_WINDOW=1 PIGLIT_REPLAY_UPLOAD_TO_MINIO=1 MINIO_HOST=${MINIO_HOST}"
+    FIXED_ENV_VARS: "CI_PIPELINE_ID=${CI_PIPELINE_ID} CI_JOB_ID=${CI_JOB_ID} CI_PAGES_DOMAIN=${CI_PAGES_DOMAIN} CI_PROJECT_NAME=${CI_PROJECT_NAME} CI_PROJECT_PATH=${CI_PROJECT_PATH} CI_PROJECT_ROOT_NAMESPACE=${CI_PROJECT_ROOT_NAMESPACE} CI_JOB_JWT=${CI_JOB_JWT} CI_SERVER_URL=${CI_SERVER_URL} DRIVER_NAME=${DRIVER_NAME} FDO_UPSTREAM_REPO=${FDO_UPSTREAM_REPO} PIGLIT_NO_WINDOW=1 PIGLIT_REPLAY_UPLOAD_TO_MINIO=1 MINIO_HOST=${MINIO_HOST} LAVA_TEST_SCRIPT=${LAVA_TEST_SCRIPT} TEST_SUITE=${TEST_SUITE}"
     DEQP_VERSION: gles2
-    ARTIFACTS_PREFIX: "https://${MINIO_HOST}/mesa-lava/"
-    MESA_URL: "https://${MINIO_HOST}/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}/mesa-${ARCH}.tar.gz"
+    ARTIFACTS_PREFIX: "https://${MINIO_HOST}/mesa-lava"
+    MESA_URL: "http://caching-proxy/cache/?uri=https://${MINIO_HOST}/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}/mesa-${ARCH}.tar.gz"
   script:
     # Try to use the kernel and rootfs built in mainline first, to save cycles
     - >
       if wget -q --method=HEAD "${ARTIFACTS_PREFIX}/${FDO_UPSTREAM_REPO}/${DISTRIBUTION_TAG}/${ARCH}/done"; then
-        ARTIFACTS_URL="${ARTIFACTS_PREFIX}/mesa/mesa/${DISTRIBUTION_TAG}/${ARCH}"
+        ARTIFACTS_URL="${ARTIFACTS_PREFIX}/${FDO_UPSTREAM_REPO}/${DISTRIBUTION_TAG}/${ARCH}"
       else
         ARTIFACTS_URL="${ARTIFACTS_PREFIX}/${CI_PROJECT_PATH}/${DISTRIBUTION_TAG}/${ARCH}"
       fi
+    - rm -rf results
+    - mkdir -p results
     - >
       artifacts/generate_lava.py \
-        --template artifacts/lava-${TEST_SUITE}.yml.jinja2 \
+        --template artifacts/lava.yml.jinja2 \
         --pipeline-info "$CI_PIPELINE_URL on $CI_COMMIT_REF_NAME ${CI_NODE_INDEX}/${CI_NODE_TOTAL}" \
         --base-artifacts-url ${ARTIFACTS_URL} \
         --mesa-url ${MESA_URL} \
@@ -78,20 +37,23 @@ kernel+rootfs_armhf:
         --lava-tags "${LAVA_TAGS}" \
         --ci-node-index "${CI_NODE_INDEX}" \
         --ci-node-total "${CI_NODE_TOTAL}"
-    - lava_job_id=`lavacli jobs submit lava-${TEST_SUITE}.yml` || lavacli jobs submit lava-${TEST_SUITE}.yml
+    - lava_job_id=`lavacli jobs submit lava.yml` || lavacli jobs submit lava.yml
     - echo $lava_job_id
-    - rm -rf artifacts/*
-    - cp lava-${TEST_SUITE}.yml artifacts/.
-    - lavacli jobs logs $lava_job_id | tee artifacts/lava-${TEST_SUITE}-$lava_job_id.log
+    - cp lava.yml results/.
+    - lavacli jobs logs $lava_job_id | tee results/lava-$lava_job_id.log
     - lavacli jobs show $lava_job_id
-    - result=`lavacli results $lava_job_id 0_${TEST_SUITE} ${TEST_SUITE} | head -1`
+    - result=`lavacli results $lava_job_id 0_mesa mesa | head -1`
     - echo $result
     - '[[ "$result" == "pass" ]]'
   artifacts:
     name: "mesa_${CI_JOB_NAME}"
     when: always
     paths:
-      - artifacts/
+      - results/
+    exclude:
+      - results/*.shader_cache
+  after_script:
+    - wget -q "https://minio-packet.freedesktop.org/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}/${CI_JOB_ID}/results.tar.gz" -O- | tar -xz
 
 .lava-test:armhf:
   variables:
@@ -100,9 +62,11 @@ kernel+rootfs_armhf:
     KERNEL_IMAGE_TYPE: "type:\ zimage"
     BOOT_METHOD: u-boot
     TEST_SUITE: "deqp"
+    LAVA_TEST_SCRIPT: "/install/deqp-runner.sh"
   extends:
     - .lava-test
     - .use-arm_build
+    - .use-kernel+rootfs-arm
   needs:
     - kernel+rootfs_armhf
     - meson-armhf
@@ -114,9 +78,11 @@ kernel+rootfs_armhf:
     KERNEL_IMAGE_TYPE: "type:\ image"
     BOOT_METHOD: u-boot
     TEST_SUITE: "deqp"
+    LAVA_TEST_SCRIPT: "/install/deqp-runner.sh"
   extends:
     - .lava-test
     - .use-arm_build
+    - .use-kernel+rootfs-arm
   dependencies:
     - meson-arm64
   needs:
@@ -126,31 +92,32 @@ kernel+rootfs_armhf:
 .lava-test:amd64:
   variables:
     ARCH: amd64
-    DISTRIBUTION_TAG: *distribution-tag-amd64
     KERNEL_IMAGE_NAME: bzImage
     KERNEL_IMAGE_TYPE: "type:\ zimage"
     BOOT_METHOD: u-boot
     TEST_SUITE: "deqp"
+    LAVA_TEST_SCRIPT: "/install/deqp-runner.sh"
   extends:
     - .use-x86_build-base # for same $MESA_BASE_TAG as in kernel+rootfs_amd64
     - .use-arm_build # ARM because it must match the architecture of the runner
     - .lava-test
+    - .use-kernel+rootfs-amd64
   needs:
     - kernel+rootfs_amd64
     - arm_build # ARM because it must match the architecture of the runner
     - meson-testing
 
 .lava-traces-base:
-  after_script:
-    - mkdir -p artifacts
-    - wget -O "artifacts/junit.xml" "https://minio-packet.freedesktop.org/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}/${CI_JOB_ID}/traces/junit.xml"
+  variables:
+    LAVA_TEST_SCRIPT: "/install/piglit/run.sh"
   artifacts:
     reports:
-      junit: artifacts/junit.xml
+      junit: results/junit.xml
 
 .lava-piglit:
   variables:
     TEST_SUITE: "piglit"
+    LAVA_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
 
 .lava-piglit-traces:amd64:
   extends:
@@ -169,3 +136,8 @@ kernel+rootfs_armhf:
     - .lava-test:arm64
     - .lava-piglit
     - .lava-traces-base
+
+.lava-piglit:amd64:
+  extends:
+    - .lava-test:amd64
+    - .lava-piglit

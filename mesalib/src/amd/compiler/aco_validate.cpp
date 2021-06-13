@@ -549,8 +549,10 @@ bool validate_subdword_operand(chip_class chip, const aco_ptr<Instruction>& inst
       return byte == 0;
    if (instr->isPseudo() && chip >= GFX8)
       return true;
-   if (instr->isSDWA() && (instr->sdwa().sel[index] & sdwa_asuint) == (sdwa_isra | op.bytes()))
-      return true;
+   if (instr->isSDWA()) {
+      unsigned sel = instr->sdwa().sel[index] & sdwa_asuint;
+      return (sel & sdwa_isra) && (sel & sdwa_rasize) <= op.bytes();
+   }
    if (byte == 2 && can_use_opsel(chip, instr->opcode, index, 1))
       return true;
 
@@ -585,6 +587,7 @@ bool validate_subdword_operand(chip_class chip, const aco_ptr<Instruction>& inst
    case aco_opcode::global_store_short_d16_hi:
       if (byte == 2 && index == 2)
          return true;
+      break;
    default:
       break;
    }
@@ -663,6 +666,7 @@ unsigned get_subdword_bytes_written(Program *program, const aco_ptr<Instruction>
    case aco_opcode::v_interp_p2_f16:
       if (chip >= GFX9)
          return 2;
+      break;
    default:
       break;
    }

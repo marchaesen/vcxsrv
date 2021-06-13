@@ -33,8 +33,9 @@
         )
 
 #define OP_IS_PROJECTION(op) ( \
-                op == midgard_op_ldst_perspective_division_z || \
-                op == midgard_op_ldst_perspective_division_w \
+                op == midgard_op_ldst_perspective_div_y || \
+                op == midgard_op_ldst_perspective_div_z || \
+                op == midgard_op_ldst_perspective_div_w \
         )
 
 #define OP_IS_VEC4_ONLY(op) ( \
@@ -43,16 +44,13 @@
         )
 
 #define OP_IS_MOVE(op) ( \
-                op == midgard_alu_op_fmov || \
+                (op >= midgard_alu_op_fmov && op <= midgard_alu_op_fmov_rtp) || \
                 op == midgard_alu_op_imov \
         )
 
 #define OP_IS_UBO_READ(op) ( \
-                op == midgard_op_ld_ubo_u8   || \
-                op == midgard_op_ld_ubo_u16  || \
-                op == midgard_op_ld_ubo_u32  || \
-                op == midgard_op_ld_ubo_u64  || \
-                op == midgard_op_ld_ubo_u128 \
+                op >= midgard_op_ld_ubo_u8 && \
+                op <= midgard_op_ld_ubo_128_bswap8 \
         )
 
 #define OP_IS_CSEL_V(op) ( \
@@ -77,6 +75,36 @@
                 op == midgard_alu_op_ilt || \
                 op == midgard_alu_op_ile || \
                 OP_IS_UNSIGNED_CMP(op) \
+        )
+
+#define OP_IS_COMMON_STORE(op) ( \
+                op >= midgard_op_st_u8 && \
+                op <= midgard_op_st_128_bswap8 \
+        )
+
+#define OP_IS_IMAGE(op) ( \
+                (op >= midgard_op_ld_image_32f && op <= midgard_op_ld_image_32i) || \
+                (op >= midgard_op_st_image_32f && op <= midgard_op_st_image_32i) || \
+                op == midgard_op_lea_image \
+        )
+
+#define OP_IS_SPECIAL(op) ( \
+                (op >= midgard_op_ld_special_32f && op <= midgard_op_ld_special_32i) || \
+                (op >= midgard_op_st_special_32f && op <= midgard_op_st_special_32i) \
+        )
+
+#define OP_IS_PACK_COLOUR(op) ( \
+                (op >= midgard_op_pack_colour_f32 && op <= midgard_op_pack_colour_s32) \
+        )
+
+#define OP_IS_UNPACK_COLOUR(op) ( \
+                (op >= midgard_op_unpack_colour_f32 && op <= midgard_op_unpack_colour_s32) \
+        )
+
+/* Instructions that are on the load/store unit but don't access memory */
+#define OP_IS_REG2REG_LDST(op) ( \
+                op >= midgard_op_unpack_colour_f32 && \
+                op <= midgard_op_ldst_perspective_div_w \
         )
 
 /* ALU control words are single bit fields with a lot of space */
@@ -148,6 +176,21 @@
 #define REGISTER_TEXTURE_BASE 28
 #define REGISTER_SELECT 31
 
+/* The following registers are read-only */
+
+/* XY is Program Counter, ZW is Stack Pointer */
+#define REGISTER_LDST_PC_SP 2
+
+/* XY is Thread Local Storage pointer, ZW is Workgroup Local Storage pointer */
+#define REGISTER_LDST_LOCAL_STORAGE_PTR 3
+
+#define REGISTER_LDST_LOCAL_THREAD_ID 4
+#define REGISTER_LDST_GROUP_ID 5
+#define REGISTER_LDST_GLOBAL_THREAD_ID 6
+
+/* This register is always zeroed when read. */
+#define REGISTER_LDST_ZERO 7
+
 /* SSA helper aliases to mimic the registers. */
 
 #define SSA_FIXED_SHIFT 24
@@ -218,6 +261,11 @@ struct mir_ldst_op_props {
         unsigned props;
 };
 
+struct mir_tex_op_props {
+        const char *name;
+        unsigned props;
+};
+
 struct mir_tag_props {
         const char *name;
         unsigned size;
@@ -241,6 +289,9 @@ struct mir_tag_props {
 
 /* Some fields such swizzle and address have special meanings */
 #define LDST_ATOMIC (1 << 6)
+
+/* Operates on attributes/varyings (including images) */
+#define LDST_ATTRIB (1 << 7)
 
 /* This file is common, so don't define the tables themselves. #include
  * midgard_op.h if you need that, or edit midgard_ops.c directly */
@@ -309,9 +360,9 @@ mir_is_simple_swizzle(unsigned *swizzle, unsigned mask)
 /* Packs a load/store argument */
 
 static inline uint8_t
-midgard_ldst_reg(unsigned reg, unsigned component, unsigned size)
+midgard_ldst_comp(unsigned reg, unsigned component, unsigned size)
 {
-        assert((reg == REGISTER_LDST_BASE) || (reg == REGISTER_LDST_BASE + 1));
+        assert((reg & ~1) == 0);
         assert(size == 16 || size == 32 || size == 64);
 
         /* Shift so everything is in terms of 32-bit units */
@@ -323,16 +374,37 @@ midgard_ldst_reg(unsigned reg, unsigned component, unsigned size)
                 component >>= 1;
         }
 
-        midgard_ldst_register_select sel = {
-                .component = component,
-                .select = reg - 26
-        };
-
-        uint8_t packed;
-        memcpy(&packed, &sel, sizeof(packed));
-
-        return packed;
+        return component;
 }
+
+/* Packs/unpacks a ubo index immediate */
+
+void midgard_pack_ubo_index_imm(midgard_load_store_word *word, unsigned index);
+unsigned midgard_unpack_ubo_index_imm(midgard_load_store_word word);
+
+/* Packs/unpacks varying parameters.
+ * FIXME: IMPORTANT: We currently handle varying mode weirdly, by passing all
+ * parameters via an offset and using REGISTER_LDST_ZERO as base. This works
+ * for most parameters, but does not allow us to encode/decode direct sample
+ * position. */
+void midgard_pack_varying_params(midgard_load_store_word *word, midgard_varying_params p);
+midgard_varying_params midgard_unpack_varying_params(midgard_load_store_word word);
+
+/* Load/store ops' displacement helpers.
+ * This is useful because different types of load/store ops have different
+ * displacement bitsize. */
+
+#define UNPACK_LDST_ATTRIB_OFS(a) ((a) >> 9)
+#define UNPACK_LDST_VERTEX_OFS(a) util_sign_extend((a) & 0x1FF, 9)
+#define UNPACK_LDST_SELECTOR_OFS(a) ((a) >> 9)
+#define UNPACK_LDST_UBO_OFS(a) ((a) >> 2)
+#define UNPACK_LDST_MEM_OFS(a) ((a))
+
+#define PACK_LDST_ATTRIB_OFS(a) ((a) << 9)
+#define PACK_LDST_VERTEX_OFS(a) ((a) & 0x1FF)
+#define PACK_LDST_SELECTOR_OFS(a) ((a) << 9)
+#define PACK_LDST_UBO_OFS(a) ((a) << 2)
+#define PACK_LDST_MEM_OFS(a) ((a))
 
 static inline bool
 midgard_is_branch_unit(unsigned unit)

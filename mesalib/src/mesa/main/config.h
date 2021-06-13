@@ -106,13 +106,6 @@
 #define MAX_ARRAY_TEXTURE_LAYERS 64
 
 /**
- * Max number of texture coordinate units.  This mainly just applies to
- * the fixed-function vertex code.  This will be difficult to raise above
- * eight because of various vertex attribute bitvectors.
- */
-#define MAX_TEXTURE_COORD_UNITS 8
-
-/**
  * Max number of texture image units.  Also determines number of texture
  * samplers in shaders.
  */
@@ -213,7 +206,6 @@
 
 /** For GL_ARB_vertex_shader */
 /*@{*/
-#define MAX_VERTEX_GENERIC_ATTRIBS 16
 /* 6 is for vertex, hull, domain, geometry, fragment, and compute shader. */
 #define MAX_COMBINED_TEXTURE_IMAGE_UNITS (MAX_TEXTURE_IMAGE_UNITS * 6)
 /*@}*/

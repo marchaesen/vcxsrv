@@ -38,6 +38,7 @@
 #include "pipe/p_context.h"
 #include "pipe/p_state.h"
 #include "util/u_rect.h"
+#include "util/u_threaded_context.h"
 
 #include "util/slab.h"
 #include "util/list.h"
@@ -123,16 +124,11 @@ struct zink_viewport_state {
    uint8_t num_viewports;
 };
 
-
-/* hashes of all the named types in a given state */
-struct zink_descriptor_state {
-   bool valid[ZINK_DESCRIPTOR_TYPES];
-   uint32_t state[ZINK_DESCRIPTOR_TYPES];
-};
-
 struct zink_context {
    struct pipe_context base;
+   struct threaded_context *tc;
    struct slab_child_pool transfer_pool;
+   struct slab_child_pool transfer_pool_unsync;
    struct blitter_context *blitter;
 
    struct pipe_device_reset_callback reset;
@@ -141,11 +137,16 @@ struct zink_context {
 
    uint32_t curr_batch; //the current batch id
    struct zink_batch batch;
+   simple_mtx_t batch_mtx;
    struct zink_fence *last_fence; //the last command buffer submitted
-   VkQueue queue; //gfx+compute
    struct hash_table batch_states; //submitted batch states
    struct util_dynarray free_batch_states; //unused batch states
    VkDeviceSize resource_size; //the accumulated size of resources in submitted buffers
+
+   unsigned shader_has_inlinable_uniforms_mask;
+   unsigned inlinable_uniforms_dirty_mask;
+   unsigned inlinable_uniforms_valid_mask;
+   uint32_t inlinable_uniforms[PIPE_SHADER_TYPES][MAX_INLINABLE_UNIFORMS];
 
    struct pipe_constant_buffer ubos[PIPE_SHADER_TYPES][PIPE_MAX_CONSTANT_BUFFERS];
    struct pipe_shader_buffer ssbos[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_BUFFERS];
@@ -226,6 +227,7 @@ struct zink_context {
    bool dirty_so_targets;
    bool xfb_barrier;
    bool first_frame_done;
+   bool have_timelines;
 };
 
 static inline struct zink_context *
@@ -254,6 +256,9 @@ zink_fence_wait(struct pipe_context *ctx);
 void
 zink_wait_on_batch(struct zink_context *ctx, uint32_t batch_id);
 
+bool
+zink_check_batch_completion(struct zink_context *ctx, uint32_t batch_id);
+
 void
 zink_flush_queue(struct zink_context *ctx);
 
@@ -266,11 +271,16 @@ zink_resource_access_is_write(VkAccessFlags flags);
 bool
 zink_resource_buffer_needs_barrier(struct zink_resource *res, VkAccessFlags flags, VkPipelineStageFlags pipeline);
 
+bool
+zink_resource_buffer_barrier_init(VkBufferMemoryBarrier *bmb, struct zink_resource *res, VkAccessFlags flags, VkPipelineStageFlags pipeline);
+
 void
 zink_resource_buffer_barrier(struct zink_context *ctx, struct zink_batch *batch, struct zink_resource *res, VkAccessFlags flags, VkPipelineStageFlags pipeline);
 
 bool
 zink_resource_image_needs_barrier(struct zink_resource *res, VkImageLayout new_layout, VkAccessFlags flags, VkPipelineStageFlags pipeline);
+bool
+zink_resource_image_barrier_init(VkImageMemoryBarrier *imb, struct zink_resource *res, VkImageLayout new_layout, VkAccessFlags flags, VkPipelineStageFlags pipeline);
 void
 zink_resource_image_barrier(struct zink_context *ctx, struct zink_batch *batch, struct zink_resource *res,
                       VkImageLayout new_layout, VkAccessFlags flags, VkPipelineStageFlags pipeline);
@@ -319,10 +329,14 @@ void
 zink_resource_rebind(struct zink_context *ctx, struct zink_resource *res);
 
 void
+zink_rebind_framebuffer(struct zink_context *ctx, struct zink_resource *res);
+
+void
 zink_draw_vbo(struct pipe_context *pctx,
               const struct pipe_draw_info *dinfo,
+              unsigned drawid_offset,
               const struct pipe_draw_indirect_info *indirect,
-              const struct pipe_draw_start_count *draws,
+              const struct pipe_draw_start_count_bias *draws,
               unsigned num_draws);
 
 void
@@ -355,13 +369,5 @@ zink_buffer_view_reference(struct zink_screen *screen,
       zink_destroy_buffer_view(screen, old_dst);
    if (dst) *dst = src;
 }
-
-void
-zink_context_update_descriptor_states(struct zink_context *ctx, bool is_compute);
-
-uint32_t
-zink_get_sampler_view_hash(struct zink_context *ctx, struct zink_sampler_view *sampler_view, bool is_buffer);
-uint32_t
-zink_get_image_view_hash(struct zink_context *ctx, struct zink_image_view *image_view, bool is_buffer);
 
 #endif

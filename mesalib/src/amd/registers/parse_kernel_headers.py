@@ -51,11 +51,12 @@ gfx_versions = {
 }
 
 # match: static const struct IP_BASE GC_BASE ={ { { { 0x00001260, 0x0000A000, 0x02402C00, 0, 0 } },
-re_base = re.compile(r'^static const struct IP_BASE GC_BASE\s*=\s*{ { { { (\w+), (\w+), (\w+), (\w+), (\w+) } },\n')
+re_base = re.compile(r'^static const struct IP_BASE.*GC_BASE\s*=\s*{ { { { (\w+), (\w+), (\w+), (\w+), (\w+).*} },\n')
 
 # match: #define mmSDMA0_DEC_START                              0x0000
 # match: #define ixSDMA0_DEC_START                              0x0000
-re_offset = re.compile(r'^#define (?P<mm>[mi][mx])(?P<name>\w+)\s+(?P<value>\w+)\n')
+# match: #define regSDMA0_DEC_START                              0x0000
+re_offset = re.compile(r'^#define (?P<mm>(mm|ix|reg))(?P<name>\w+)\s+(?P<value>\w+)\n')
 
 # match: #define SDMA0_DEC_START__START__SHIFT                  0x0
 re_shift = re.compile(r'^#define (?P<name>\w+)__(?P<field>\w+)__SHIFT\s+(?P<value>\w+)\n')
@@ -628,6 +629,8 @@ fields_missing = {
   },
   'gfx103': {
     "DB_RESERVED_REG_2": [["RESOURCE_LEVEL", 28, 31, None, True]],
+    "VGT_DRAW_PAYLOAD_CNTL": [["EN_VRS_RATE", 6, 6]],
+    "VGT_SHADER_STAGES_EN": [["PRIMGEN_PASSTHRU_NO_MSG", 26, 26]],
   },
 }
 

@@ -672,6 +672,10 @@ add_parameter(struct gl_uniform_storage *uniform,
                comps = 4;
          }
 
+         /* TODO: This will waste space with 1 and 3 16-bit components. */
+         if (glsl_type_is_16bit(glsl_without_array(type)))
+            comps = DIV_ROUND_UP(comps, 2);
+
          _mesa_add_parameter(params, PROGRAM_UNIFORM, uniform->name, comps,
                              glsl_get_gl_type(type), NULL, NULL, false);
       }

@@ -4,6 +4,7 @@ AM_CFLAGS = $(DIX_CFLAGS)
 
 libxfixes_la_SOURCES = 	\
 	cursor.c	\
+	disconnect.c	\
 	region.c	\
 	saveset.c	\
 	select.c	\

@@ -135,21 +135,21 @@ v3d_setup_slices(struct v3dv_image *image)
       level_height = DIV_ROUND_UP(level_height, block_height);
 
       if (!image->tiled) {
-         slice->tiling = VC5_TILING_RASTER;
+         slice->tiling = V3D_TILING_RASTER;
          if (image->type == VK_IMAGE_TYPE_1D)
             level_width = align(level_width, 64 / image->cpp);
       } else {
          if ((i != 0 || !uif_top) &&
              (level_width <= utile_w || level_height <= utile_h)) {
-            slice->tiling = VC5_TILING_LINEARTILE;
+            slice->tiling = V3D_TILING_LINEARTILE;
             level_width = align(level_width, utile_w);
             level_height = align(level_height, utile_h);
          } else if ((i != 0 || !uif_top) && level_width <= uif_block_w) {
-            slice->tiling = VC5_TILING_UBLINEAR_1_COLUMN;
+            slice->tiling = V3D_TILING_UBLINEAR_1_COLUMN;
             level_width = align(level_width, uif_block_w);
             level_height = align(level_height, uif_block_h);
          } else if ((i != 0 || !uif_top) && level_width <= 2 * uif_block_w) {
-            slice->tiling = VC5_TILING_UBLINEAR_2_COLUMN;
+            slice->tiling = V3D_TILING_UBLINEAR_2_COLUMN;
             level_width = align(level_width, 2 * uif_block_w);
             level_height = align(level_height, uif_block_h);
          } else {
@@ -167,10 +167,10 @@ v3d_setup_slices(struct v3dv_image *image)
              * perfectly misaligned.
              */
             if ((level_height / uif_block_h) %
-                (VC5_PAGE_CACHE_SIZE / VC5_UIFBLOCK_ROW_SIZE) == 0) {
-               slice->tiling = VC5_TILING_UIF_XOR;
+                (V3D_PAGE_CACHE_SIZE / V3D_UIFBLOCK_ROW_SIZE) == 0) {
+               slice->tiling = V3D_TILING_UIF_XOR;
             } else {
-               slice->tiling = VC5_TILING_UIF_NO_XOR;
+               slice->tiling = V3D_TILING_UIF_NO_XOR;
             }
          }
       }
@@ -178,8 +178,8 @@ v3d_setup_slices(struct v3dv_image *image)
       slice->offset = offset;
       slice->stride = level_width * image->cpp;
       slice->padded_height = level_height;
-      if (slice->tiling == VC5_TILING_UIF_NO_XOR ||
-          slice->tiling == VC5_TILING_UIF_XOR) {
+      if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
+          slice->tiling == V3D_TILING_UIF_XOR) {
          slice->padded_height_of_output_image_in_uif_blocks =
             slice->padded_height / (2 * v3d_utile_height(image->cpp));
       }
@@ -195,7 +195,7 @@ v3d_setup_slices(struct v3dv_image *image)
       if (i == 1 &&
           level_width > 4 * uif_block_w &&
           level_height > PAGE_CACHE_MINUS_1_5_UB_ROWS * uif_block_h) {
-         slice_total_size = align(slice_total_size, VC5_UIFCFG_PAGE_SIZE);
+         slice_total_size = align(slice_total_size, V3D_UIFCFG_PAGE_SIZE);
       }
 
       offset += slice_total_size;
@@ -465,10 +465,10 @@ pack_texture_shader_state_helper(struct v3dv_device *device,
    v3dv_pack(image_view->texture_shader_state[index], TEXTURE_SHADER_STATE, tex) {
 
       tex.level_0_is_strictly_uif =
-         (image->slices[0].tiling == VC5_TILING_UIF_XOR ||
-          image->slices[0].tiling == VC5_TILING_UIF_NO_XOR);
+         (image->slices[0].tiling == V3D_TILING_UIF_XOR ||
+          image->slices[0].tiling == V3D_TILING_UIF_NO_XOR);
 
-      tex.level_0_xor_enable = (image->slices[0].tiling == VC5_TILING_UIF_XOR);
+      tex.level_0_xor_enable = (image->slices[0].tiling == V3D_TILING_UIF_XOR);
 
       if (tex.level_0_is_strictly_uif)
          tex.level_0_ub_pad = image->slices[0].ub_pad;

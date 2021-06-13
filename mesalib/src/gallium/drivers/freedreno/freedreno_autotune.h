@@ -71,31 +71,31 @@ struct fd_autotune_results;
  */
 struct fd_autotune {
 
-	/**
-	 * Cache to map batch->key (also used for batch-cache) to historical
-	 * information about rendering to that particular render target.
-	 */
-	struct hash_table *ht;
+   /**
+    * Cache to map batch->key (also used for batch-cache) to historical
+    * information about rendering to that particular render target.
+    */
+   struct hash_table *ht;
 
-	/**
-	 * List of recently used historical results (to age out old results)
-	 */
-	struct list_head lru;
+   /**
+    * List of recently used historical results (to age out old results)
+    */
+   struct list_head lru;
 
-	/**
-	 * GPU buffer used to communicate back results to the CPU
-	 */
-	struct fd_bo *results_mem;
-	struct fd_autotune_results *results;
+   /**
+    * GPU buffer used to communicate back results to the CPU
+    */
+   struct fd_bo *results_mem;
+   struct fd_autotune_results *results;
 
-	/**
-	 * List of per-batch results that we are waiting for the GPU to finish
-	 * with before reading back the results.
-	 */
-	struct list_head pending_results;
+   /**
+    * List of per-batch results that we are waiting for the GPU to finish
+    * with before reading back the results.
+    */
+   struct list_head pending_results;
 
-	uint32_t fence_counter;
-	uint32_t idx_counter;
+   uint32_t fence_counter;
+   uint32_t idx_counter;
 };
 
 /**
@@ -107,34 +107,34 @@ struct fd_autotune {
  */
 struct fd_autotune_results {
 
-	/**
-	 * The GPU writes back a "fence" seqno value from the cmdstream after
-	 * it finishes writing it's result slot, so that the CPU knows when
-	 * results are valid
-	 */
-	uint32_t fence;
+   /**
+    * The GPU writes back a "fence" seqno value from the cmdstream after
+    * it finishes writing it's result slot, so that the CPU knows when
+    * results are valid
+    */
+   uint32_t fence;
 
-	uint32_t __pad0;
-	uint64_t __pad1;
+   uint32_t __pad0;
+   uint64_t __pad1;
 
-	/**
-	 * From the cmdstream, the captured samples-passed values are recorded
-	 * at the start and end of the batch.
-	 *
-	 * Note that we do the math on the CPU to avoid a WFI.  But pre-emption
-	 * may force us to revisit that.
-	 */
-	struct {
-		uint64_t samples_start;
-		uint64_t __pad0;
-		uint64_t samples_end;
-		uint64_t __pad1;
-	} result[127];
+   /**
+    * From the cmdstream, the captured samples-passed values are recorded
+    * at the start and end of the batch.
+    *
+    * Note that we do the math on the CPU to avoid a WFI.  But pre-emption
+    * may force us to revisit that.
+    */
+   struct {
+      uint64_t samples_start;
+      uint64_t __pad0;
+      uint64_t samples_end;
+      uint64_t __pad1;
+   } result[127];
 };
 
-#define offset(base, ptr)  ((uint8_t *)(ptr) - (uint8_t *)(base))
-#define results_ptr(at, member) \
-	(at)->results_mem, offset((at)->results, &(at)->results->member), 0, 0
+#define offset(base, ptr) ((uint8_t *)(ptr) - (uint8_t *)(base))
+#define results_ptr(at, member)                                                \
+   (at)->results_mem, offset((at)->results, &(at)->results->member), 0, 0
 
 struct fd_batch_history;
 
@@ -147,31 +147,32 @@ struct fd_batch_history;
  */
 struct fd_batch_result {
 
-	/**
-	 * The index/slot in fd_autotune_results::result[] to write start/end
-	 * counter to
-	 */
-	unsigned idx;
+   /**
+    * The index/slot in fd_autotune_results::result[] to write start/end
+    * counter to
+    */
+   unsigned idx;
 
-	/**
-	 * Fence value to write back to fd_autotune_results::fence after both
-	 * start/end values written
-	 */
-	uint32_t fence;
+   /**
+    * Fence value to write back to fd_autotune_results::fence after both
+    * start/end values written
+    */
+   uint32_t fence;
 
-	/*
-	 * Below here, only used internally within autotune
-	 */
-	struct fd_batch_history *history;
-	struct list_head node;
-	uint32_t cost;
-	uint64_t samples_passed;
+   /*
+    * Below here, only used internally within autotune
+    */
+   struct fd_batch_history *history;
+   struct list_head node;
+   uint32_t cost;
+   uint64_t samples_passed;
 };
 
 void fd_autotune_init(struct fd_autotune *at, struct fd_device *dev);
 void fd_autotune_fini(struct fd_autotune *at);
 
 struct fd_batch;
-bool fd_autotune_use_bypass(struct fd_autotune *at, struct fd_batch *batch) assert_dt;
+bool fd_autotune_use_bypass(struct fd_autotune *at,
+                            struct fd_batch *batch) assert_dt;
 
 #endif /* FREEDRENO_AUTOTUNE_H */

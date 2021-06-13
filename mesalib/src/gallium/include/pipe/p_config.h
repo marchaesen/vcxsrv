@@ -118,7 +118,7 @@
 #define PIPE_ARCH_ARM
 #endif
 
-#if defined(__aarch64__)
+#if defined(__aarch64__) || defined(_M_ARM64)
 #define PIPE_ARCH_AARCH64
 #endif
 

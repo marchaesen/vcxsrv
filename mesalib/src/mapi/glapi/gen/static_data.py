@@ -1677,6 +1677,18 @@ offsets = {
     "SecondaryColor3hNV": 1641,
     "SecondaryColor3hvNV": 1642,
     "InternalSetError": 1643,
+    "VertexAttrib1hNV": 1644,
+    "VertexAttrib1hvNV": 1645,
+    "VertexAttrib2hNV": 1646,
+    "VertexAttrib2hvNV": 1647,
+    "VertexAttrib3hNV": 1648,
+    "VertexAttrib3hvNV": 1649,
+    "VertexAttrib4hNV": 1650,
+    "VertexAttrib4hvNV": 1651,
+    "VertexAttribs1hvNV": 1652,
+    "VertexAttribs2hvNV": 1653,
+    "VertexAttribs3hvNV": 1654,
+    "VertexAttribs4hvNV": 1655,
 }
 
 functions = [

@@ -125,6 +125,7 @@ static int parse_w(const char *str)
 "(ul)"                            return TOKEN(T_UL);
 "(even)"                          return TOKEN(T_EVEN);
 "(pos_infinity)"                  return TOKEN(T_POS_INFINITY);
+"(neg_infinity)"                  return TOKEN(T_NEG_INFINITY);
 "(ei)"                            return TOKEN(T_EI);
 "(jp)"                            return TOKEN(T_JP);
 "(sat)"                           return TOKEN(T_SAT);
@@ -179,6 +180,9 @@ static int parse_w(const char *str)
 "mova"                            return TOKEN(T_OP_MOVA);
 "mov"                             return TOKEN(T_OP_MOV);
 "cov"                             return TOKEN(T_OP_COV);
+"swz"                             return TOKEN(T_OP_SWZ);
+"gat"                             return TOKEN(T_OP_GAT);
+"sct"                             return TOKEN(T_OP_SCT);
 
 ("f16"|"f32"|"u16"|"u32"|"s16"|"s32"|"u8"|"s8"){2} ir3_yylval.str = yytext; return T_CAT1_TYPE_TYPE;
 

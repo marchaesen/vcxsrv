@@ -768,7 +768,7 @@ gtf_supported(xf86MonPtr mon)
     } else {
         for (i = 0; i < DET_TIMINGS; i++) {
             struct detailed_monitor_section *det_timing_des = &(mon->det_mon[i]);
-            if (det_timing_des && (det_timing_des->type == DS_RANGES) &&
+            if (det_timing_des && (det_timing_des->type == DS_RANGES) && (mon->features.msc & 0x1) &&
                 (det_timing_des->section.ranges.display_range_timing_flags == DR_DEFAULT_GTF
 		|| det_timing_des->section.ranges.display_range_timing_flags == DR_SECONDARY_GTF))
 		    return TRUE;

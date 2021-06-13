@@ -99,7 +99,6 @@ MAIN_FILES = \
 	main/format_fallback.c \
 	main/format_info.h \
 	main/format_pack.h \
-	main/format_pack.c \
 	main/format_unpack.h \
 	main/formatquery.c \
 	main/formatquery.h \
@@ -422,7 +421,6 @@ VBO_FILES = \
 	vbo/vbo_minmax_index.c \
 	vbo/vbo_noop.c \
 	vbo/vbo_noop.h \
-	vbo/vbo_primitive_restart.c \
 	vbo/vbo_private.h \
 	vbo/vbo_save_api.c \
 	vbo/vbo_save.c \

@@ -7,21 +7,6 @@ dEQP-GLES2.functional.clipping.triangle_vertex.clip_two.clip_neg_y_neg_z_and_neg
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_two.clip_pos_y_pos_z_and_neg_x_neg_y_neg_z,Fail
 dEQP-GLES2.functional.draw.random.10,Fail
 dEQP-GLES2.functional.draw.random.42,Fail
-dEQP-GLES2.functional.fbo.render.color_clear.rbo_rgba4,Fail
-dEQP-GLES2.functional.fbo.render.color_clear.rbo_rgba4_depth_component16,Fail
-dEQP-GLES2.functional.fbo.render.color_clear.rbo_rgba4_stencil_index8,Fail
-dEQP-GLES2.functional.fbo.render.depth.rbo_rgba4_depth_component16,Fail
-dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.no_rebind_rbo_rgba4,Fail
-dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.no_rebind_rbo_rgba4_stencil_index8,Fail
-dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_rbo_rgba4,Fail
-dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_rbo_rgba4_stencil_index8,Fail
-dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.no_rebind_rbo_rgba4_depth_component16,Fail
-dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.rebind_rbo_rgba4_depth_component16,Fail
-dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.no_rebind_rbo_rgba4_stencil_index8,Fail
-dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.rebind_rbo_rgba4_stencil_index8,Fail
-dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_rgba4,Fail
-dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_rgba4_depth_component16,Fail
-dEQP-GLES2.functional.fbo.render.shared_depthbuffer.rbo_rgba4_depth_component16,Fail
 dEQP-GLES2.functional.polygon_offset.default_displacement_with_units,Fail
 dEQP-GLES2.functional.polygon_offset.fixed16_displacement_with_units,Fail
 dEQP-GLES2.functional.rasterization.interpolation.basic.line_loop_wide,Fail
@@ -47,6 +32,7 @@ dEQP-GLES3.functional.draw.random.206,Fail
 dEQP-GLES3.functional.draw.random.31,Fail
 dEQP-GLES3.functional.draw.random.43,Fail
 dEQP-GLES3.functional.draw.random.84,Fail
+dEQP-GLES3.functional.fbo.blit.default_framebuffer.rgb8_linear_scale_blit_from_default,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_src_dst_x,Fail
@@ -57,13 +43,6 @@ dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_dst_y,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_x,Fail
-dEQP-GLES3.functional.fbo.depth.depth_test_clamp.depth24_stencil8,Fail
-dEQP-GLES3.functional.fbo.depth.depth_test_clamp.depth32f_stencil8,Fail
-dEQP-GLES3.functional.fbo.depth.depth_test_clamp.depth_component16,Fail
-dEQP-GLES3.functional.fbo.depth.depth_test_clamp.depth_component24,Fail
-dEQP-GLES3.functional.fbo.depth.depth_test_clamp.depth_component32f,Fail
-dEQP-GLES3.functional.fbo.depth.depth_write_clamp.depth32f_stencil8,Fail
-dEQP-GLES3.functional.fbo.depth.depth_write_clamp.depth_component32f,Fail
 dEQP-GLES3.functional.polygon_offset.default_displacement_with_units,Fail
 dEQP-GLES3.functional.polygon_offset.default_render_with_units,Fail
 dEQP-GLES3.functional.polygon_offset.fixed16_displacement_with_units,Fail
@@ -83,7 +62,6 @@ dEQP-GLES3.functional.rasterization.interpolation.basic.lines_wide,Fail
 dEQP-GLES3.functional.rasterization.interpolation.projected.line_loop_wide,Fail
 dEQP-GLES3.functional.rasterization.interpolation.projected.line_strip_wide,Fail
 dEQP-GLES3.functional.rasterization.interpolation.projected.lines_wide,Fail
-dEQP-GLES3.functional.texture.specification.basic_copytexsubimage2d.cube_alpha,Fail
 dEQP-GLES31.functional.atomic_counter.dec.1_counter_100_calls_1_thread,Fail
 dEQP-GLES31.functional.atomic_counter.dec.1_counter_1_call_10_threads,Fail
 dEQP-GLES31.functional.atomic_counter.dec.1_counter_1_call_5000_threads,Fail
@@ -2529,6 +2507,12 @@ dEQP-GLES31.functional.synchronization.inter_invocation.ssbo_atomic_read_write,F
 dEQP-GLES31.functional.synchronization.inter_invocation.ssbo_overwrite,Fail
 dEQP-GLES31.functional.synchronization.inter_invocation.ssbo_read_write,Fail
 dEQP-GLES31.functional.synchronization.inter_invocation.ssbo_write_read,Fail
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/2892
+KHR-GL30.shaders30.glsl_constructors.bvec4_from_bool_mat2_vs,Crash
+KHR-GL30.shaders30.glsl_constructors.bvec4_from_bool_mat3_vs,Crash
+KHR-GL30.shaders30.glsl_constructors.bvec4_from_bool_mat4x2_vs,Crash
+KHR-GL30.shaders30.glsl_constructors.bvec4_from_bool_mat4x3_fs,Crash
+KHR-GL30.shaders30.glsl_constructors.bvec4_from_mat4x2_vs,Crash
 KHR-GL30.transform_feedback.api_errors_test,Fail
 KHR-GL30.transform_feedback.capture_vertex_interleaved_test,Fail
 KHR-GL30.transform_feedback.capture_vertex_separate_test,Fail
@@ -2538,6 +2522,7 @@ KHR-GL30.transform_feedback.draw_xfb_stream_instanced_test,Crash
 KHR-GL30.transform_feedback.get_xfb_varying,Fail
 KHR-GL30.transform_feedback.query_vertex_interleaved_test,Fail
 KHR-GL30.transform_feedback.query_vertex_separate_test,Fail
+KHR-GL31.transform_feedback.capture_special_interleaved_test,Crash
 KHR-GL31.transform_feedback.capture_vertex_interleaved_test,Fail
 KHR-GL31.transform_feedback.capture_vertex_separate_test,Fail
 KHR-GL31.transform_feedback.discard_vertex_test,Fail

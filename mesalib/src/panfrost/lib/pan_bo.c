@@ -31,6 +31,7 @@
 #include "drm-uapi/panfrost_drm.h"
 
 #include "pan_bo.h"
+#include "pan_device.h"
 #include "pan_util.h"
 #include "wrap.h"
 
@@ -334,8 +335,11 @@ panfrost_bo_mmap(struct panfrost_bo *bo)
         bo->ptr.cpu = os_mmap(NULL, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED,
                               bo->dev->fd, mmap_bo.offset);
         if (bo->ptr.cpu == MAP_FAILED) {
-                fprintf(stderr, "mmap failed: %p %m\n", bo->ptr.cpu);
-                assert(0);
+                bo->ptr.cpu = NULL;
+                fprintf(stderr,
+                        "mmap failed: result=%p size=0x%llx fd=%i offset=0x%llx %m\n",
+                        bo->ptr.cpu, (long long)bo->size, bo->dev->fd,
+                        (long long)mmap_bo.offset);
         }
 }
 
@@ -363,7 +367,7 @@ panfrost_bo_create(struct panfrost_device *dev, size_t size,
         assert(size > 0);
 
         /* To maximize BO cache usage, don't allocate tiny BOs */
-        size = MAX2(size, 4096);
+        size = ALIGN_POT(size, 4096);
 
         /* GROWABLE BOs cannot be mmapped */
         if (flags & PAN_BO_GROWABLE)
@@ -471,9 +475,16 @@ panfrost_bo_import(struct panfrost_device *dev, int fd)
                 bo->dev = dev;
                 bo->ptr.gpu = (mali_ptr) get_bo_offset.offset;
                 bo->size = lseek(fd, 0, SEEK_END);
+                /* Sometimes this can fail and return -1. size of -1 is not
+                 * a nice thing for mmap to try mmap. Be more robust also
+                 * for zero sized maps and fail nicely too
+                 */
+                if ((bo->size == 0) || (bo->size == (size_t)-1)) {
+                        pthread_mutex_unlock(&dev->bo_map_lock);
+                        return NULL;
+                }
                 bo->flags = PAN_BO_SHARED;
                 bo->gem_handle = gem_handle;
-                assert(bo->size > 0);
                 p_atomic_set(&bo->refcnt, 1);
                 // TODO map and unmap on demand?
                 panfrost_bo_mmap(bo);

@@ -374,6 +374,8 @@ static void si_decompress_depth(struct si_context *sctx, struct si_texture *tex,
        * the decompression is much worse.
        */
       if (has_htile && !tc_compat_htile &&
+          /* We can only transition the whole buffer in one clear, so no mipmapping: */
+          tex->buffer.b.b.last_level == 0 &&
           tex->surface.flags & RADEON_SURF_TC_COMPATIBLE_HTILE &&
           (inplace_planes & PIPE_MASK_Z || !tex->htile_stencil_disabled))
          tex->enable_tc_compatible_htile_next_clear = true;
@@ -438,7 +440,7 @@ static void si_blit_decompress_color(struct si_context *sctx, struct si_texture 
                    first_level, last_level, level_mask);
 
    if (need_dcc_decompress) {
-      assert(sctx->chip_class == GFX8);
+      assert(sctx->chip_class == GFX8 || tex->buffer.b.b.nr_storage_samples >= 2);
       custom_blend = sctx->custom_blend_dcc_decompress;
 
       assert(vi_dcc_enabled(tex, first_level));
@@ -486,6 +488,22 @@ static void si_blit_decompress_color(struct si_context *sctx, struct si_texture 
              custom_blend == sctx->custom_blend_dcc_decompress)
             sctx->flags |= SI_CONTEXT_FLUSH_AND_INV_CB;
 
+         /* When running FMASK decompresion with DCC, we need to run the "eliminate fast clear" pass
+          * separately because FMASK decompression doesn't eliminate DCC fast clear. This makes
+          * render->texture transitions more expensive. It can be disabled by
+          * allow_dcc_msaa_clear_to_reg_for_bpp.
+          *
+          * TODO: When we get here, change the compression to TC-compatible on the next clear
+          *       to disable both the FMASK decompression and fast clear elimination passes.
+          */
+         if (sctx->screen->allow_dcc_msaa_clear_to_reg_for_bpp[util_logbase2(tex->surface.bpe)] &&
+             custom_blend == sctx->custom_blend_fmask_decompress &&
+             vi_dcc_enabled(tex, level)) {
+            si_blitter_begin(sctx, SI_DECOMPRESS);
+            util_blitter_custom_color(sctx->blitter, cbsurf, sctx->custom_blend_eliminate_fastclear);
+            si_blitter_end(sctx);
+         }
+
          pipe_surface_reference(&cbsurf, NULL);
       }
 
@@ -498,7 +516,7 @@ static void si_blit_decompress_color(struct si_context *sctx, struct si_texture 
 
    sctx->decompression_enabled = false;
    si_make_CB_shader_coherent(sctx, tex->buffer.b.b.nr_samples, vi_dcc_enabled(tex, first_level),
-                              tex->surface.u.gfx9.dcc.pipe_aligned);
+                              tex->surface.u.gfx9.color.dcc.pipe_aligned);
 
 expand_fmask:
    if (need_fmask_expand && tex->surface.fmask_offset && !tex->fmask_is_identity) {
@@ -876,7 +894,7 @@ void si_resource_copy_region(struct pipe_context *ctx, struct pipe_resource *dst
 
    /* Handle buffers first. */
    if (dst->target == PIPE_BUFFER && src->target == PIPE_BUFFER) {
-      si_copy_buffer(sctx, dst, src, dstx, src_box->x, src_box->width);
+      si_copy_buffer(sctx, dst, src, dstx, src_box->x, src_box->width, SI_OP_SYNC_BEFORE_AFTER);
       return;
    }
 
@@ -889,7 +907,7 @@ void si_resource_copy_region(struct pipe_context *ctx, struct pipe_resource *dst
        !(dst->target != src->target &&
          (src->target == PIPE_TEXTURE_1D_ARRAY || dst->target == PIPE_TEXTURE_1D_ARRAY))) {
       si_compute_copy_image(sctx, dst, dst_level, src, src_level, dstx, dsty, dstz,
-                            src_box, false);
+                            src_box, false, SI_OP_SYNC_BEFORE_AFTER);
       return;
    }
 
@@ -1120,9 +1138,12 @@ static bool do_hardware_msaa_resolve(struct pipe_context *ctx, const struct pipe
        * This is still the fastest codepath even with this clear.
        */
       if (vi_dcc_enabled(dst, info->dst.level)) {
-         if (!vi_dcc_clear_level(sctx, dst, info->dst.level, DCC_UNCOMPRESSED))
+         struct si_clear_info clear_info;
+
+         if (!vi_dcc_get_clear_info(sctx, dst, info->dst.level, DCC_UNCOMPRESSED, &clear_info))
             goto resolve_to_temp;
 
+         si_execute_clears(sctx, &clear_info, 1, SI_CLEAR_TYPE_DCC);
          dst->dirty_level_mask &= ~(1 << info->dst.level);
       }
 
@@ -1255,50 +1276,14 @@ static void si_flush_resource(struct pipe_context *ctx, struct pipe_resource *re
    struct si_texture *tex = (struct si_texture *)res;
 
    assert(res->target != PIPE_BUFFER);
-   assert(!tex->dcc_separate_buffer || tex->dcc_gather_statistics);
-
-   /* st/dri calls flush twice per frame (not a bug), this prevents double
-    * decompression. */
-   if (tex->dcc_separate_buffer && !tex->separate_dcc_dirty)
-      return;
 
    if (!tex->is_depth && (tex->cmask_buffer || vi_dcc_enabled(tex, 0))) {
       si_blit_decompress_color(sctx, tex, 0, res->last_level, 0, util_max_layer(res, 0),
-                               tex->dcc_separate_buffer != NULL, false);
+                               false, false);
 
       if (tex->surface.display_dcc_offset && tex->displayable_dcc_dirty) {
          si_retile_dcc(sctx, tex);
          tex->displayable_dcc_dirty = false;
-      }
-   }
-
-   /* Always do the analysis even if DCC is disabled at the moment. */
-   if (tex->dcc_gather_statistics) {
-      bool separate_dcc_dirty = tex->separate_dcc_dirty;
-
-      /* If the color buffer hasn't been unbound and fast clear hasn't
-       * been used, separate_dcc_dirty is false, but there may have been
-       * new rendering. Check if the color buffer is bound and assume
-       * it's dirty.
-       *
-       * Note that DRI2 never unbinds window colorbuffers, which means
-       * the DCC pipeline statistics query would never be re-set and would
-       * keep adding new results until all free memory is exhausted if we
-       * didn't do this.
-       */
-      if (!separate_dcc_dirty) {
-         for (unsigned i = 0; i < sctx->framebuffer.state.nr_cbufs; i++) {
-            if (sctx->framebuffer.state.cbufs[i] &&
-                sctx->framebuffer.state.cbufs[i]->texture == res) {
-               separate_dcc_dirty = true;
-               break;
-            }
-         }
-      }
-
-      if (separate_dcc_dirty) {
-         tex->separate_dcc_dirty = false;
-         vi_separate_dcc_process_and_reset_stats(ctx, tex);
       }
    }
 }
@@ -1314,27 +1299,32 @@ void si_flush_implicit_resources(struct si_context *sctx)
 
 void si_decompress_dcc(struct si_context *sctx, struct si_texture *tex)
 {
+   assert(!tex->is_depth);
+
    /* If graphics is disabled, we can't decompress DCC, but it shouldn't
     * be compressed either. The caller should simply discard it.
     */
-   if (!tex->surface.dcc_offset || !sctx->has_graphics)
+   if (!tex->surface.meta_offset || !sctx->has_graphics)
       return;
 
-   if (sctx->chip_class == GFX8) {
+   if (sctx->chip_class == GFX8 || tex->buffer.b.b.nr_storage_samples >= 2) {
       si_blit_decompress_color(sctx, tex, 0, tex->buffer.b.b.last_level, 0,
                                util_max_layer(&tex->buffer.b.b, 0), true, false);
    } else {
       struct pipe_resource *ptex = &tex->buffer.b.b;
+      assert(ptex->nr_storage_samples <= 1);
 
       /* DCC decompression using a compute shader. */
-      for (unsigned level = 0; level < tex->surface.num_dcc_levels; level++) {
+      for (unsigned level = 0; level < tex->surface.num_meta_levels; level++) {
          struct pipe_box box;
 
          u_box_3d(0, 0, 0, u_minify(ptex->width0, level),
                   u_minify(ptex->height0, level),
                   util_num_layers(ptex, level), &box);
-         si_compute_copy_image(sctx, ptex, level, ptex, level, 0, 0, 0, &box,
-                               true);
+         si_compute_copy_image(sctx, ptex, level, ptex, level, 0, 0, 0, &box, true,
+                               /* Sync before the first copy and after the last copy */
+                               (level == 0 ? SI_OP_SYNC_BEFORE : 0) |
+                               (level == tex->surface.num_meta_levels - 1 ? SI_OP_SYNC_AFTER : 0));
       }
 
       /* Now clear DCC metadata to uncompressed.
@@ -1345,9 +1335,18 @@ void si_decompress_dcc(struct si_context *sctx, struct si_texture *tex)
        *  dEQP-GLES31.functional.image_load_store.2d.format_reinterpret.rgba32f_rgba32i
        */
       uint32_t clear_value = DCC_UNCOMPRESSED;
-      si_clear_buffer(sctx, ptex, tex->surface.dcc_offset,
-                      tex->surface.dcc_size, &clear_value, 4,
+      si_clear_buffer(sctx, ptex, tex->surface.meta_offset,
+                      tex->surface.meta_size, &clear_value, 4, SI_OP_SYNC_AFTER,
                       SI_COHERENCY_CB_META, SI_COMPUTE_CLEAR_METHOD);
+      si_mark_display_dcc_dirty(sctx, tex);
+
+      /* Clearing DCC metadata requires flushing L2 and invalidating L2 metadata to make
+       * the metadata visible to L2 caches. This is because clear_buffer uses plain stores
+       * that can go to different L2 channels than where L2 metadata caches expect them.
+       * This is not done for fast clears because plain stores are visible to CB/DB. Only
+       * L2 metadata caches have the problem.
+       */
+      sctx->flags |= SI_CONTEXT_WB_L2 | SI_CONTEXT_INV_L2_METADATA;
    }
 }
 

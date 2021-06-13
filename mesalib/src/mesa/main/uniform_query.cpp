@@ -345,6 +345,8 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
 
    {
       unsigned elements = uni->type->components();
+      unsigned components = uni->type->vector_elements;
+
       const int rmul = glsl_base_type_is_64bit(returnType) ? 2 : 1;
       int dmul = (uni->type->is_64bit()) ? 2 : 1;
 
@@ -362,8 +364,16 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
       const union gl_constant_value *src;
       if (ctx->Const.PackedDriverUniformStorage &&
           (uni->is_bindless || !uni->type->contains_opaque())) {
+         unsigned dword_elements = elements;
+
+         /* 16-bit uniforms are packed. */
+         if (glsl_base_type_is_16bit(uni->type->base_type)) {
+            dword_elements = DIV_ROUND_UP(components, 2) *
+                             uni->type->matrix_columns;
+         }
+
          src = (gl_constant_value *) uni->driver_storage[0].data +
-            (offset * elements * dmul);
+            (offset * dword_elements * dmul);
       } else {
          src = &uni->storage[offset * elements * dmul];
       }
@@ -401,9 +411,18 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
             int sidx = i * dmul;
             int didx = i * rmul;
 
+            if (glsl_base_type_is_16bit(uni->type->base_type)) {
+               unsigned column = i / components;
+               unsigned row = i % components;
+               sidx = column * align(components, 2) + row;
+            }
+
             switch (returnType) {
             case GLSL_TYPE_FLOAT:
                switch (uni->type->base_type) {
+               case GLSL_TYPE_FLOAT16:
+                  dst[didx].f = _mesa_half_to_float(((uint16_t*)src)[sidx]);
+                  break;
                case GLSL_TYPE_UINT:
                   dst[didx].f = (float) src[sidx].u;
                   break;
@@ -441,6 +460,11 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
 
             case GLSL_TYPE_DOUBLE:
                switch (uni->type->base_type) {
+               case GLSL_TYPE_FLOAT16: {
+                  double f = _mesa_half_to_float(((uint16_t*)src)[sidx]);
+                  memcpy(&dst[didx].f, &f, sizeof(f));
+                  break;
+               }
                case GLSL_TYPE_UINT: {
                   double tmp = src[sidx].u;
                   memcpy(&dst[didx].f, &tmp, sizeof(tmp));
@@ -507,6 +531,10 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
                    */
                   dst[didx].i = (int64_t) roundf(src[sidx].f);
                   break;
+               case GLSL_TYPE_FLOAT16:
+                  dst[didx].i =
+                     (int64_t)roundf(_mesa_half_to_float(((uint16_t*)src)[sidx]));
+                  break;
                case GLSL_TYPE_BOOL:
                   dst[didx].i = src[sidx].i ? 1 : 0;
                   break;
@@ -554,6 +582,11 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
                   dst[didx].u = src[sidx].f < 0.0f ?
                      0u : (uint32_t) roundf(src[sidx].f);
                   break;
+               case GLSL_TYPE_FLOAT16: {
+                  float f = _mesa_half_to_float(((uint16_t*)src)[sidx]);
+                  dst[didx].u = f < 0.0f ? 0u : (uint32_t)roundf(f);
+                  break;
+               }
                case GLSL_TYPE_BOOL:
                   dst[didx].i = src[sidx].i ? 1 : 0;
                   break;
@@ -614,6 +647,12 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
                   memcpy(&dst[didx].u, &tmp, sizeof(tmp));
                   break;
                }
+               case GLSL_TYPE_FLOAT16: {
+                  float f = _mesa_half_to_float(((uint16_t*)src)[sidx]);
+                  int64_t tmp = (int64_t) roundf(f);
+                  memcpy(&dst[didx].u, &tmp, sizeof(tmp));
+                  break;
+               }
                case GLSL_TYPE_DOUBLE: {
                   double d;
                   memcpy(&d, &src[sidx].f, sizeof(d));
@@ -656,6 +695,12 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
                case GLSL_TYPE_FLOAT: {
                   uint64_t tmp = src[sidx].f < 0.0f ?
                      0ull : (uint64_t) roundf(src[sidx].f);
+                  memcpy(&dst[didx].u, &tmp, sizeof(tmp));
+                  break;
+               }
+               case GLSL_TYPE_FLOAT16: {
+                  float f = _mesa_half_to_float(((uint16_t*)src)[sidx]);
+                  uint64_t tmp = f < 0.0f ? 0ull : (uint64_t) roundf(f);
                   memcpy(&dst[didx].u, &tmp, sizeof(tmp));
                   break;
                }
@@ -963,6 +1008,9 @@ validate_uniform(GLint location, GLsizei count, const GLvoid *values,
    case GLSL_TYPE_IMAGE:
       match = (basicType == GLSL_TYPE_INT && _mesa_is_desktop_gl(ctx));
       break;
+   case GLSL_TYPE_FLOAT16:
+      match = basicType == GLSL_TYPE_FLOAT;
+      break;
    default:
       match = (basicType == uni->type->base_type);
       break;
@@ -1071,8 +1119,9 @@ copy_uniforms_to_storage(gl_constant_value *storage,
    const gl_constant_value *src = (const gl_constant_value*)values;
    bool copy_as_uint64 = uni->is_bindless &&
                          (uni->type->is_sampler() || uni->type->is_image());
+   bool copy_to_float16 = uni->type->base_type == GLSL_TYPE_FLOAT16;
 
-   if (!uni->type->is_boolean() && !copy_as_uint64) {
+   if (!uni->type->is_boolean() && !copy_as_uint64 && !copy_to_float16) {
       unsigned size = sizeof(storage[0]) * components * count * size_mul;
 
       if (!memcmp(storage, values, size))
@@ -1082,6 +1131,46 @@ copy_uniforms_to_storage(gl_constant_value *storage,
          _mesa_flush_vertices_for_uniforms(ctx, uni);
 
       memcpy(storage, values, size);
+      return true;
+   } else if (copy_to_float16) {
+      assert(ctx->Const.PackedDriverUniformStorage);
+      const unsigned dst_components = align(components, 2);
+      uint16_t *dst = (uint16_t*)storage;
+
+      int i = 0;
+      unsigned c = 0;
+
+      if (flush) {
+         /* Find the first element that's different. */
+         for (; i < count; i++) {
+            for (; c < components; c++) {
+               if (dst[c] != _mesa_float_to_half(src[c].f)) {
+                  _mesa_flush_vertices_for_uniforms(ctx, uni);
+                  flush = false;
+                  goto break_loops;
+               }
+            }
+            c = 0;
+            dst += dst_components;
+            src += components;
+         }
+      break_loops:
+         if (flush)
+            return false; /* No change. */
+      }
+
+      /* Set the remaining elements. We know that at least 1 element is
+       * different and that we have flushed.
+       */
+      for (; i < count; i++) {
+         for (; c < components; c++)
+            dst[c] = _mesa_float_to_half(src[c].f);
+
+         c = 0;
+         dst += dst_components;
+         src += components;
+      }
+
       return true;
    } else if (copy_as_uint64) {
       const unsigned elems = components * count;
@@ -1230,8 +1319,14 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
    if (ctx->Const.PackedDriverUniformStorage &&
        (uni->is_bindless || !uni->type->contains_opaque())) {
       for (unsigned s = 0; s < uni->num_driver_storage; s++) {
+         unsigned dword_components = components;
+
+         /* 16-bit uniforms are packed. */
+         if (glsl_base_type_is_16bit(uni->type->base_type))
+            dword_components = DIV_ROUND_UP(dword_components, 2);
+
          storage = (gl_constant_value *)
-            uni->driver_storage[s].data + (size_mul * offset * components);
+            uni->driver_storage[s].data + (size_mul * offset * dword_components);
 
          if (copy_uniforms_to_storage(storage, uni, ctx, count, values, size_mul,
                                       offset, components, basicType, !ctx_flushed))
@@ -1362,7 +1457,106 @@ copy_uniform_matrix_to_storage(struct gl_context *ctx,
    const unsigned elements = components * vectors;
    const unsigned size = sizeof(storage[0]) * elements * count * size_mul;
 
-   if (!transpose) {
+   if (uni->type->base_type == GLSL_TYPE_FLOAT16) {
+      assert(ctx->Const.PackedDriverUniformStorage);
+      const unsigned dst_components = align(components, 2);
+      const unsigned dst_elements = dst_components * vectors;
+
+      if (!transpose) {
+         const float *src = (const float *)values;
+         uint16_t *dst = (uint16_t*)storage;
+
+         unsigned i = 0, r = 0, c = 0;
+
+         if (flush) {
+            /* Find the first element that's different. */
+            for (; i < count; i++) {
+               for (; c < cols; c++) {
+                  for (; r < rows; r++) {
+                     if (dst[(c * dst_components) + r] !=
+                         _mesa_float_to_half(src[(c * components) + r])) {
+                        _mesa_flush_vertices_for_uniforms(ctx, uni);
+                        flush = false;
+                        goto break_loops_16bit;
+                     }
+                  }
+                  r = 0;
+               }
+               c = 0;
+               dst += dst_elements;
+               src += elements;
+            }
+
+         break_loops_16bit:
+            if (flush)
+               return false; /* No change. */
+         }
+
+         /* Set the remaining elements. We know that at least 1 element is
+          * different and that we have flushed.
+          */
+         for (; i < count; i++) {
+            for (; c < cols; c++) {
+               for (; r < rows; r++) {
+                  dst[(c * dst_components) + r] =
+                     _mesa_float_to_half(src[(c * components) + r]);
+               }
+               r = 0;
+            }
+            c = 0;
+            dst += dst_elements;
+            src += elements;
+         }
+         return true;
+      } else {
+         /* Transpose the matrix. */
+         const float *src = (const float *)values;
+         uint16_t *dst = (uint16_t*)storage;
+
+         unsigned i = 0, r = 0, c = 0;
+
+         if (flush) {
+            /* Find the first element that's different. */
+            for (; i < count; i++) {
+               for (; r < rows; r++) {
+                  for (; c < cols; c++) {
+                     if (dst[(c * dst_components) + r] !=
+                         _mesa_float_to_half(src[c + (r * vectors)])) {
+                        _mesa_flush_vertices_for_uniforms(ctx, uni);
+                        flush = false;
+                        goto break_loops_16bit_transpose;
+                     }
+                  }
+                  c = 0;
+               }
+               r = 0;
+               dst += elements;
+               src += elements;
+            }
+
+         break_loops_16bit_transpose:
+            if (flush)
+               return false; /* No change. */
+         }
+
+         /* Set the remaining elements. We know that at least 1 element is
+          * different and that we have flushed.
+          */
+         for (; i < count; i++) {
+            for (; r < rows; r++) {
+               for (; c < cols; c++) {
+                  dst[(c * dst_components) + r] =
+                     _mesa_float_to_half(src[c + (r * vectors)]);
+               }
+               c = 0;
+            }
+            r = 0;
+            dst += elements;
+            src += elements;
+         }
+         return true;
+      }
+   } else if (!transpose) {
       if (!memcmp(storage, values, size))
          return false;
 
@@ -1529,7 +1723,9 @@ _mesa_uniform_matrix(GLint location, GLsizei count,
     * There are no Boolean matrix types, so we do not need to allow
     * GLSL_TYPE_BOOL here (as _mesa_uniform does).
     */
-   if (uni->type->base_type != basicType) {
+   if (uni->type->base_type != basicType &&
+       !(uni->type->base_type == GLSL_TYPE_FLOAT16 &&
+         basicType == GLSL_TYPE_FLOAT)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glUniformMatrix%ux%u(\"%s\"@%d is %s, not %s)",
                   cols, rows, uni->name, location,
@@ -1566,8 +1762,15 @@ _mesa_uniform_matrix(GLint location, GLsizei count,
       bool flushed = false;
 
       for (unsigned s = 0; s < uni->num_driver_storage; s++) {
+         unsigned dword_components = components;
+
+         /* 16-bit uniforms are packed. */
+         if (glsl_base_type_is_16bit(uni->type->base_type))
+            dword_components = DIV_ROUND_UP(dword_components, 2);
+
          storage = (gl_constant_value *)
-            uni->driver_storage[s].data + (size_mul * offset * elements);
+            uni->driver_storage[s].data +
+            (size_mul * offset * dword_components * vectors);
 
          if (copy_uniform_matrix_to_storage(ctx, storage, uni, count, values,
                                             size_mul, offset, components,

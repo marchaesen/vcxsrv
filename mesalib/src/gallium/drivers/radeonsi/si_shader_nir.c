@@ -23,6 +23,7 @@
  */
 
 #include "ac_nir_to_llvm.h"
+#include "ac_nir.h"
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_builder.h"
 #include "compiler/nir/nir_deref.h"
@@ -72,8 +73,10 @@ static void scan_io_usage(struct si_shader_info *info, nir_intrinsic_instr *intr
    }
    assert(bit_size != 64 && !(mask & ~0xf) && "64-bit IO should have been lowered");
 
-   /* Convert the 16-bit component mask to a 32-bit component mask. */
-   if (bit_size == 16) {
+   /* Convert the 16-bit component mask to a 32-bit component mask except for VS inputs
+    * where the mask is untyped.
+    */
+   if (bit_size == 16 && !is_input) {
       unsigned new_mask = 0;
       for (unsigned i = 0; i < 4; i++) {
          if (mask & (1 << i))
@@ -115,6 +118,12 @@ static void scan_io_usage(struct si_shader_info *info, nir_intrinsic_instr *intr
 
          if (mask) {
             info->input_usage_mask[loc] |= mask;
+            if (bit_size == 16) {
+               if (nir_intrinsic_io_semantics(intr).high_16bits)
+                  info->input_fp16_lo_hi_valid[loc] |= 0x2;
+               else
+                  info->input_fp16_lo_hi_valid[loc] |= 0x1;
+            }
             info->num_inputs = MAX2(info->num_inputs, loc + 1);
          }
       }
@@ -506,7 +515,7 @@ static bool si_alu_to_scalar_filter(const nir_instr *instr, const void *data)
 {
    struct si_screen *sscreen = (struct si_screen *)data;
 
-   if (sscreen->info.has_packed_math_16bit &&
+   if (sscreen->options.fp16 &&
        instr->type == nir_instr_type_alu) {
       nir_alu_instr *alu = nir_instr_as_alu(instr);
 
@@ -586,7 +595,7 @@ void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first)
          NIR_PASS(progress, nir, nir_opt_loop_unroll, 0);
       }
 
-      if (sscreen->info.has_packed_math_16bit)
+      if (sscreen->options.fp16)
          NIR_PASS(progress, nir, nir_opt_vectorize, NULL, NULL);
    } while (progress);
 
@@ -603,6 +612,50 @@ void si_nir_late_opts(nir_shader *nir)
       NIR_PASS_V(nir, nir_copy_prop);
       NIR_PASS_V(nir, nir_opt_dce);
       NIR_PASS_V(nir, nir_opt_cse);
+   }
+}
+
+static void si_late_optimize_16bit_samplers(struct si_screen *sscreen, nir_shader *nir)
+{
+   /* Optimize and fix types of image_sample sources and destinations.
+    *
+    * The image_sample constraints are:
+    *   nir_tex_src_coord:       has_a16 ? select 16 or 32 : 32
+    *   nir_tex_src_comparator:  32
+    *   nir_tex_src_offset:      32
+    *   nir_tex_src_bias:        32
+    *   nir_tex_src_lod:         match coord
+    *   nir_tex_src_min_lod:     match coord
+    *   nir_tex_src_ms_index:    match coord
+    *   nir_tex_src_ddx:         has_g16 && coord == 32 ? select 16 or 32 : match coord
+    *   nir_tex_src_ddy:         match ddy
+    *
+    * coord and ddx are selected optimally. The types of the rest are legalized
+    * based on those two.
+    */
+   /* TODO: The constraints can't represent the ddx constraint. */
+   /*bool has_g16 = sscreen->info.chip_class >= GFX10 && LLVM_VERSION_MAJOR >= 12;*/
+   bool has_g16 = false;
+   nir_tex_src_type_constraints tex_constraints = {
+      [nir_tex_src_comparator]   = {true, 32},
+      [nir_tex_src_offset]       = {true, 32},
+      [nir_tex_src_bias]         = {true, 32},
+      [nir_tex_src_lod]          = {true, 0, nir_tex_src_coord},
+      [nir_tex_src_min_lod]      = {true, 0, nir_tex_src_coord},
+      [nir_tex_src_ms_index]     = {true, 0, nir_tex_src_coord},
+      [nir_tex_src_ddx]          = {!has_g16, 0, nir_tex_src_coord},
+      [nir_tex_src_ddy]          = {true, 0, has_g16 ? nir_tex_src_ddx : nir_tex_src_coord},
+   };
+   bool changed = false;
+
+   NIR_PASS(changed, nir, nir_fold_16bit_sampler_conversions,
+            (1 << nir_tex_src_coord) |
+            (has_g16 ? 1 << nir_tex_src_ddx : 0));
+   NIR_PASS(changed, nir, nir_legalize_16bit_sampler_srcs, tex_constraints);
+
+   if (changed) {
+      si_nir_opts(sscreen, nir, false);
+      si_nir_late_opts(nir);
    }
 }
 
@@ -660,15 +713,13 @@ static void si_lower_io(struct nir_shader *nir)
 {
    /* HW supports indirect indexing for: | Enabled in driver
     * -------------------------------------------------------
-    * VS inputs                          | No
     * TCS inputs                         | Yes
     * TES inputs                         | Yes
     * GS inputs                          | No
     * -------------------------------------------------------
     * VS outputs before TCS              | No
-    * VS outputs before GS               | No
     * TCS outputs                        | Yes
-    * TES outputs before GS              | No
+    * VS/TES outputs before GS           | No
     */
    bool has_indirect_inputs = nir->info.stage == MESA_SHADER_TESS_CTRL ||
                               nir->info.stage == MESA_SHADER_TESS_EVAL;
@@ -796,10 +847,15 @@ static void si_lower_nir(struct si_screen *sscreen, struct nir_shader *nir)
       NIR_PASS_V(nir, nir_lower_compute_system_values, &options);
    }
 
-   if (nir->info.stage == MESA_SHADER_FRAGMENT &&
-       sscreen->info.has_packed_math_16bit &&
-       sscreen->b.get_shader_param(&sscreen->b, PIPE_SHADER_FRAGMENT, PIPE_SHADER_CAP_FP16))
-      NIR_PASS_V(nir, nir_lower_mediump_outputs);
+   if (sscreen->b.get_shader_param(&sscreen->b, PIPE_SHADER_FRAGMENT, PIPE_SHADER_CAP_FP16)) {
+      NIR_PASS_V(nir, nir_lower_mediump_io,
+                 /* TODO: LLVM fails to compile this test if VS inputs are 16-bit:
+                  * dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec3_lowp_geometry
+                  */
+                 (nir->info.stage != MESA_SHADER_VERTEX ? nir_var_shader_in : 0) | nir_var_shader_out,
+                 BITFIELD64_BIT(VARYING_SLOT_PNTC) | BITFIELD64_RANGE(VARYING_SLOT_VAR0, 32),
+                 true);
+   }
 
    si_nir_opts(sscreen, nir, true);
 
@@ -816,12 +872,15 @@ static void si_lower_nir(struct si_screen *sscreen, struct nir_shader *nir)
       NIR_PASS(changed, nir, nir_opt_large_constants, glsl_get_natural_size_align_bytes, 16);
    }
 
-   changed |= ac_lower_indirect_derefs(nir, sscreen->info.chip_class);
+   changed |= ac_nir_lower_indirect_derefs(nir, sscreen->info.chip_class);
    if (changed)
       si_nir_opts(sscreen, nir, false);
 
-   /* Run late optimizations to fuse ffma. */
+   /* Run late optimizations to fuse ffma and eliminate 16-bit conversions. */
    si_nir_late_opts(nir);
+
+   if (sscreen->b.get_shader_param(&sscreen->b, PIPE_SHADER_FRAGMENT, PIPE_SHADER_CAP_FP16))
+      si_late_optimize_16bit_samplers(sscreen, nir);
 
    NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_function_temp, NULL);
 

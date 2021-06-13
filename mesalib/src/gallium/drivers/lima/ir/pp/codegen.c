@@ -541,6 +541,7 @@ static void ppir_codegen_encode_combine(ppir_node *node, void *code)
       default:
          break;
       }
+      break;
    }
    default:
       break;

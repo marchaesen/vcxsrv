@@ -107,10 +107,11 @@ dri2_drawable_get_buffers(struct dri_drawable *drawable,
    boolean with_format;
    __DRIbuffer *buffers;
    int num_buffers;
-   unsigned attachments[10];
+   unsigned attachments[__DRI_BUFFER_COUNT];
    unsigned num_attachments, i;
 
    assert(loader);
+   assert(*count <= __DRI_BUFFER_COUNT);
    with_format = dri_with_format(drawable->sPriv);
 
    num_attachments = 0;
@@ -409,6 +410,8 @@ dri2_allocate_textures(struct dri_context *ctx,
    __DRIbuffer *buffers = NULL;
    struct winsys_handle whandle;
    unsigned num_buffers = statts_count;
+
+   assert(num_buffers <= __DRI_BUFFER_COUNT);
 
    /* First get the buffers from the loader */
    if (image) {
@@ -1164,12 +1167,8 @@ dri2_query_image_by_resource_handle(__DRIimage *image, int attrib, int *value)
    if (image->use & __DRI_IMAGE_USE_BACKBUFFER)
       usage |= PIPE_HANDLE_USAGE_EXPLICIT_FLUSH;
 
-   for (i = 0, tex = image->texture; tex; i++, tex = tex->next)
-      if (i == image->plane)
-          break;
-   assert(tex);
-
-   if (!pscreen->resource_get_handle(pscreen, NULL, tex, &whandle, usage))
+   if (!pscreen->resource_get_handle(pscreen, NULL, image->texture,
+                                     &whandle, usage))
       return false;
 
    switch (attrib) {

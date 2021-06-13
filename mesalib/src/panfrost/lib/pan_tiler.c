@@ -26,7 +26,9 @@
 
 #include "util/u_math.h"
 #include "util/macros.h"
+#include "pan_device.h"
 #include "pan_encoder.h"
+#include "panfrost-quirks.h"
 
 /* Mali GPUs are tiled-mode renderers, rather than immediate-mode.
  * Conceptually, the screen is divided into 16x16 tiles. Vertex shaders run.
@@ -370,4 +372,22 @@ panfrost_choose_hierarchy_mask(
         /* Otherwise, default everything on. TODO: Proper tests */
 
         return 0xFF;
+}
+
+unsigned
+panfrost_tiler_get_polygon_list_size(const struct panfrost_device *dev,
+                                     unsigned fb_width, unsigned fb_height,
+                                     bool has_draws)
+{
+        if (pan_is_bifrost(dev))
+                return 0;
+
+        if (!has_draws)
+                return MALI_MIDGARD_TILER_MINIMUM_HEADER_SIZE + 4;
+
+        bool hierarchy = !(dev->quirks & MIDGARD_NO_HIER_TILING);
+        unsigned hierarchy_mask =
+                panfrost_choose_hierarchy_mask(fb_width, fb_height, 1, hierarchy);
+
+        return panfrost_tiler_full_size(fb_width, fb_height, hierarchy_mask, hierarchy);
 }

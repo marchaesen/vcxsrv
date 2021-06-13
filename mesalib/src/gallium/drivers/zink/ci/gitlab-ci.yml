@@ -2,8 +2,8 @@
   extends:
     - .zink-rules
   variables:
-    MESA_LOADER_DRIVER_OVERRIDE: "zink"
     ZINK_USE_LAVAPIPE: "true"
+    LIBGL_ALWAYS_SOFTWARE: "1"
     GPU_VERSION: zink-lvp
     # Fix non-conformant llvmpipe filter defaults
     GALLIVM_PERF: "no_filter_hacks"
@@ -15,17 +15,19 @@
     - .deqp-test
     - .zink-lvp-test
   variables:
+    GALLIUM_DRIVER: "zink" # move here due to bad xvfb-run interactions
     VK_DRIVER: lvp # Don't move to the top level, piglit runs do funny stuff with VK_DRIVER set
     DEQP_EXPECTED_RENDERER: "zink.*llvmpipe"
 
 zink-piglit-quick_gl:
   extends:
-    - .zink-lvp-deqp-test
+    - .test-gl
+    - .zink-lvp-test
   variables:
     PIGLIT_PROFILES: quick_gl
     PIGLIT_NO_WINDOW: 1
   script:
-    - xvfb-run --server-args='-noreset' sh -c install/piglit/piglit-runner.sh
+    - xvfb-run --server-args='-noreset' sh -c "GALLIUM_DRIVER=zink VK_DRIVER=lvp install/piglit/piglit-runner.sh"
 
 zink-lvp-gles2:
   extends:

@@ -177,8 +177,8 @@ def main():
     parser.add_argument(
         "--template",
         type=argparse.FileType("r"),
-        default=open("keycodes/evdev.in"),
-        help="The template file (default: keycodes/evdev.in)",
+        default=open(".gitlab-ci/evdev.in"),
+        help="The template file (default: .gitlab-ci/evdev.in)",
     )
     parser.add_argument(
         "--output",

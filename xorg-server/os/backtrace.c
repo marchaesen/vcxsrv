@@ -227,6 +227,8 @@ xorg_backtrace_frame(uintptr_t pc, int signo, void *arg)
 #endif                          /* HAVE_WALKCONTEXT */
 
 #ifdef HAVE_PSTACK
+#include <unistd.h>
+
 static int
 xorg_backtrace_pstack(void)
 {

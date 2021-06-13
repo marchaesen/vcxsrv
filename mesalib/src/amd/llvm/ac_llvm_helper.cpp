@@ -51,14 +51,8 @@ void ac_add_attr_dereferenceable(LLVMValueRef val, uint64_t bytes)
 
 void ac_add_attr_alignment(LLVMValueRef val, uint64_t bytes)
 {
-#if LLVM_VERSION_MAJOR >= 10
    llvm::Argument *A = llvm::unwrap<llvm::Argument>(val);
    A->addAttr(llvm::Attribute::getWithAlignment(A->getContext(), llvm::Align(bytes)));
-#else
-   /* Avoid unused parameter warnings. */
-   (void)val;
-   (void)bytes;
-#endif
 }
 
 bool ac_is_sgpr_param(LLVMValueRef arg)
@@ -235,11 +229,7 @@ struct ac_compiler_passes *ac_create_llvm_passes(LLVMTargetMachineRef tm)
    llvm::TargetMachine *TM = reinterpret_cast<llvm::TargetMachine *>(tm);
 
    if (TM->addPassesToEmitFile(p->passmgr, p->ostream, nullptr,
-#if LLVM_VERSION_MAJOR >= 10
                                llvm::CGFT_ObjectFile)) {
-#else
-                               llvm::TargetMachine::CGFT_ObjectFile)) {
-#endif
       fprintf(stderr, "amd: TargetMachine can't emit a file of this type!\n");
       delete p;
       return NULL;
@@ -309,11 +299,9 @@ LLVMValueRef ac_build_atomic_rmw(struct ac_llvm_context *ctx, LLVMAtomicRMWBinOp
    case LLVMAtomicRMWBinOpUMin:
       binop = llvm::AtomicRMWInst::UMin;
       break;
-#if LLVM_VERSION_MAJOR >= 10
    case LLVMAtomicRMWBinOpFAdd:
       binop = llvm::AtomicRMWInst::FAdd;
       break;
-#endif
    default:
       unreachable("invalid LLVMAtomicRMWBinOp");
       break;

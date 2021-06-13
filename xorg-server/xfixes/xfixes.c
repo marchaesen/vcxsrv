@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006, Oracle and/or its affiliates. All rights reserved.
- * Copyright 2010 Red Hat, Inc.
+ * Copyright 2010, 2021 Red Hat, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -103,6 +103,7 @@ static const int version_requests[] = {
     X_XFixesExpandRegion,       /* Version 3 */
     X_XFixesShowCursor,         /* Version 4 */
     X_XFixesDestroyPointerBarrier,      /* Version 5 */
+    X_XFixesGetClientDisconnectMode,    /* Version 6 */
 };
 
 int (*ProcXFixesVector[XFixesNumberRequests]) (ClientPtr) = {
@@ -139,7 +140,10 @@ int (*ProcXFixesVector[XFixesNumberRequests]) (ClientPtr) = {
 /*************** Version 4 ****************/
         ProcXFixesHideCursor, ProcXFixesShowCursor,
 /*************** Version 5 ****************/
-ProcXFixesCreatePointerBarrier, ProcXFixesDestroyPointerBarrier,};
+        ProcXFixesCreatePointerBarrier, ProcXFixesDestroyPointerBarrier,
+/*************** Version 6 ****************/
+        ProcXFixesSetClientDisconnectMode, ProcXFixesGetClientDisconnectMode,
+};
 
 static int
 ProcXFixesDispatch(ClientPtr client)
@@ -200,7 +204,10 @@ static int (*SProcXFixesVector[XFixesNumberRequests]) (ClientPtr) = {
 /*************** Version 4 ****************/
         SProcXFixesHideCursor, SProcXFixesShowCursor,
 /*************** Version 5 ****************/
-SProcXFixesCreatePointerBarrier, SProcXFixesDestroyPointerBarrier,};
+        SProcXFixesCreatePointerBarrier, SProcXFixesDestroyPointerBarrier,
+/*************** Version 6 ****************/
+        SProcXFixesSetClientDisconnectMode, SProcXFixesGetClientDisconnectMode,
+};
 
 static _X_COLD int
 SProcXFixesDispatch(ClientPtr client)
@@ -220,7 +227,10 @@ XFixesExtensionInit(void)
         (&XFixesClientPrivateKeyRec, PRIVATE_CLIENT, sizeof(XFixesClientRec)))
         return;
 
-    if (XFixesSelectionInit() && XFixesCursorInit() && XFixesRegionInit() &&
+    if (XFixesSelectionInit() &&
+        XFixesCursorInit() &&
+        XFixesRegionInit() &&
+        XFixesClientDisconnectInit() &&
         (extEntry = AddExtension(XFIXES_NAME, XFixesNumberEvents,
                                  XFixesNumberErrors,
                                  ProcXFixesDispatch, SProcXFixesDispatch,

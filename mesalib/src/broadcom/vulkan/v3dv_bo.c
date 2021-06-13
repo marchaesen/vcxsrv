@@ -184,6 +184,7 @@ v3dv_bo_init(struct v3dv_bo *bo,
              bool private)
 {
    bo->handle = handle;
+   bo->handle_bit = 1ull << (handle % 64);
    bo->size = size;
    bo->offset = offset;
    bo->map = NULL;

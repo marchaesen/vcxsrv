@@ -57,6 +57,12 @@ panfrost_pack_work_groups_compute(
 
         unsigned shifts[7] = { 0 };
 
+        /* Make sure size_{x,y,z} and num_{x,y,z} are positive, otherwise we
+         * end up with an integer underflow.
+         */
+        assert(size_x && size_y && size_z);
+        assert(num_x && num_y && num_z);
+
         unsigned values[6] = {
                 MALI_POSITIVE(size_x),
                 MALI_POSITIVE(size_y),

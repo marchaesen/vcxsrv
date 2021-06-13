@@ -32,6 +32,7 @@
 #include "pipe/p_state.h"
 #include "pipe/p_context.h"
 #include "pipe/p_screen.h"
+#include "util/u_draw.h"
 #include "util/u_inlines.h"
 #include "util/u_transfer.h"
 #include "util/u_upload_mgr.h"
@@ -115,8 +116,9 @@ iris_update_draw_info(struct iris_context *ice,
 static void
 iris_update_draw_parameters(struct iris_context *ice,
                             const struct pipe_draw_info *info,
+                            unsigned drawid_offset,
                             const struct pipe_draw_indirect_info *indirect,
-                            const struct pipe_draw_start_count *draw)
+                            const struct pipe_draw_start_count_bias *draw)
 {
    bool changed = false;
 
@@ -131,7 +133,7 @@ iris_update_draw_parameters(struct iris_context *ice,
          changed = true;
          ice->draw.params_valid = false;
       } else {
-         int firstvertex = info->index_size ? info->index_bias : draw->start;
+         int firstvertex = info->index_size ? draw->index_bias : draw->start;
 
          if (!ice->draw.params_valid ||
              ice->draw.params.firstvertex != firstvertex ||
@@ -153,11 +155,11 @@ iris_update_draw_parameters(struct iris_context *ice,
       struct iris_state_ref *derived_params = &ice->draw.derived_draw_params;
       int is_indexed_draw = info->index_size ? -1 : 0;
 
-      if (ice->draw.derived_params.drawid != info->drawid ||
+      if (ice->draw.derived_params.drawid != drawid_offset ||
           ice->draw.derived_params.is_indexed_draw != is_indexed_draw) {
 
          changed = true;
-         ice->draw.derived_params.drawid = info->drawid;
+         ice->draw.derived_params.drawid = drawid_offset;
          ice->draw.derived_params.is_indexed_draw = is_indexed_draw;
 
          u_upload_data(ice->ctx.stream_uploader, 0,
@@ -177,8 +179,9 @@ iris_update_draw_parameters(struct iris_context *ice,
 static void
 iris_indirect_draw_vbo(struct iris_context *ice,
                        const struct pipe_draw_info *dinfo,
+                       unsigned drawid_offset,
                        const struct pipe_draw_indirect_info *dindirect,
-                       const struct pipe_draw_start_count *draw)
+                       const struct pipe_draw_start_count_bias *draw)
 {
    struct iris_batch *batch = &ice->batches[IRIS_BATCH_RENDER];
    struct pipe_draw_info info = *dinfo;
@@ -194,13 +197,11 @@ iris_indirect_draw_vbo(struct iris_context *ice,
    const uint64_t orig_stage_dirty = ice->state.stage_dirty;
 
    for (int i = 0; i < indirect.draw_count; i++) {
-      info.drawid = i;
-
       iris_batch_maybe_flush(batch, 1500);
 
-      iris_update_draw_parameters(ice, &info, &indirect, draw);
+      iris_update_draw_parameters(ice, &info, drawid_offset + i, &indirect, draw);
 
-      batch->screen->vtbl.upload_render_state(ice, batch, &info, &indirect, draw);
+      batch->screen->vtbl.upload_render_state(ice, batch, &info, drawid_offset + i, &indirect, draw);
 
       ice->state.dirty &= ~IRIS_ALL_DIRTY_FOR_RENDER;
       ice->state.stage_dirty &= ~IRIS_ALL_STAGE_DIRTY_FOR_RENDER;
@@ -222,16 +223,17 @@ iris_indirect_draw_vbo(struct iris_context *ice,
 static void
 iris_simple_draw_vbo(struct iris_context *ice,
                      const struct pipe_draw_info *draw,
+                     unsigned drawid_offset,
                      const struct pipe_draw_indirect_info *indirect,
-                     const struct pipe_draw_start_count *sc)
+                     const struct pipe_draw_start_count_bias *sc)
 {
    struct iris_batch *batch = &ice->batches[IRIS_BATCH_RENDER];
 
    iris_batch_maybe_flush(batch, 1500);
 
-   iris_update_draw_parameters(ice, draw, indirect, sc);
+   iris_update_draw_parameters(ice, draw, drawid_offset, indirect, sc);
 
-   batch->screen->vtbl.upload_render_state(ice, batch, draw, indirect, sc);
+   batch->screen->vtbl.upload_render_state(ice, batch, draw, drawid_offset, indirect, sc);
 }
 
 /**
@@ -239,18 +241,13 @@ iris_simple_draw_vbo(struct iris_context *ice,
  */
 void
 iris_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info *info,
+              unsigned drawid_offset,
               const struct pipe_draw_indirect_info *indirect,
-              const struct pipe_draw_start_count *draws,
+              const struct pipe_draw_start_count_bias *draws,
               unsigned num_draws)
 {
    if (num_draws > 1) {
-      struct pipe_draw_info tmp_info = *info;
-
-      for (unsigned i = 0; i < num_draws; i++) {
-         iris_draw_vbo(ctx, &tmp_info, indirect, &draws[i], 1);
-         if (tmp_info.increment_draw_id)
-            tmp_info.drawid++;
-      }
+      util_draw_multi(ctx, info, drawid_offset, indirect, draws, num_draws);
       return;
    }
 
@@ -259,7 +256,7 @@ iris_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info *info,
 
    struct iris_context *ice = (struct iris_context *) ctx;
    struct iris_screen *screen = (struct iris_screen*)ice->ctx.screen;
-   const struct gen_device_info *devinfo = &screen->devinfo;
+   const struct intel_device_info *devinfo = &screen->devinfo;
    struct iris_batch *batch = &ice->batches[IRIS_BATCH_RENDER];
 
    if (ice->state.predicate == IRIS_PREDICATE_STATE_DONT_RENDER)
@@ -272,8 +269,8 @@ iris_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info *info,
 
    iris_update_draw_info(ice, info);
 
-   if (devinfo->gen == 9)
-      gen9_toggle_preemption(ice, batch, info);
+   if (devinfo->ver == 9)
+      gfx9_toggle_preemption(ice, batch, info);
 
    iris_update_compiled_shaders(ice);
 
@@ -294,9 +291,9 @@ iris_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info *info,
    iris_handle_always_flush_cache(batch);
 
    if (indirect && indirect->buffer)
-      iris_indirect_draw_vbo(ice, info, indirect, &draws[0]);
+      iris_indirect_draw_vbo(ice, info, drawid_offset, indirect, &draws[0]);
    else
-      iris_simple_draw_vbo(ice, info, indirect, &draws[0]);
+      iris_simple_draw_vbo(ice, info, drawid_offset, indirect, &draws[0]);
 
    iris_handle_always_flush_cache(batch);
 

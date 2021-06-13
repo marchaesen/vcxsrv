@@ -115,7 +115,7 @@ bool VertexStageExportForFS::do_store_output(const store_loc& store_info, nir_in
    case VARYING_SLOT_PSIZ:
       m_proc.sh_info().vs_out_point_size = 1;
       m_proc.sh_info().vs_out_misc_write = 1;
-      /* fallthrough */
+      FALLTHROUGH;
    case VARYING_SLOT_POS:
       return emit_varying_pos(store_info, instr);
    case VARYING_SLOT_EDGE: {
@@ -186,7 +186,7 @@ bool VertexStageExportForFS::emit_varying_pos(const store_loc &store_info, nir_i
       m_proc.emit_instruction(op1_flt_to_int, value.reg_i(1), {value.reg_i(1)}, {alu_write, alu_last_instr});
       m_proc.sh_info().output[store_info.driver_location].write_mask = 0xf;
    }
-      /* fallthrough */
+      FALLTHROUGH;
    case VARYING_SLOT_PSIZ:
    case VARYING_SLOT_LAYER:
       export_slot = 1;
@@ -288,13 +288,16 @@ void VertexStageWithOutputInfo::scan_store_output(nir_intrinsic_instr* instr)
    auto index = nir_src_as_const_value(instr->src[1]);
    assert(index);
 
+   unsigned noutputs = driver_location + index->u32 + 1;
+   if (m_proc.sh_info().noutput < noutputs)
+      m_proc.sh_info().noutput = noutputs;
+
    r600_shader_io& io = m_proc.sh_info().output[driver_location + index->u32];
    auto semantic = r600_get_varying_semantic(location + index->u32);
    io.name = semantic.first;
    io.sid = semantic.second;
    m_proc.evaluate_spi_sid(io);
    io.write_mask = nir_intrinsic_write_mask(instr);
-   ++m_proc.sh_info().noutput;
 
    if (location == VARYING_SLOT_PSIZ ||
        location == VARYING_SLOT_EDGE ||
@@ -412,22 +415,20 @@ bool VertexStageExportForFS::emit_stream(int stream)
        * to store Y, Z, or W at buffer offset 0, we need to use MOV
        * to move it to X and output X. */
       if (m_so_info->output[i].dst_offset < m_so_info->output[i].start_component) {
-         int tmp_index = m_proc.allocate_temp_register();
+
+         GPRVector::Swizzle swizzle =  {0,1,2,3};
+         for (auto j = m_so_info->output[i].num_components; j < 4; ++j)
+            swizzle[j] = 7;
+         tmp[i] = m_proc.get_temp_vec4(swizzle);
+
          int sc = m_so_info->output[i].start_component;
          AluInstruction *alu = nullptr;
          for (int j = 0; j < m_so_info->output[i].num_components; j++) {
-            PValue dst(new GPRValue(tmp_index, j));
-            alu = new AluInstruction(op1_mov, dst, so_gpr[i]->reg_i(j + sc), {alu_write});
-            tmp[i].set_reg_i(j, dst);
+            alu = new AluInstruction(op1_mov, tmp[i][j], so_gpr[i]->reg_i(j + sc), {alu_write});
             m_proc.emit_instruction(alu);
          }
          if (alu)
             alu->set_flag(alu_last_instr);
-
-         /* Fill the vector with masked values */
-         PValue dst_blank(new GPRValue(tmp_index, 7));
-         for (int j = m_so_info->output[i].num_components; j < 4; j++)
-            tmp[i].set_reg_i(j, dst_blank);
 
          start_comp[i] = 0;
          so_gpr[i] = &tmp[i];

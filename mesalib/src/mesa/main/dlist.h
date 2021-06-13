@@ -111,11 +111,8 @@ _mesa_dlist_alloc(struct gl_context *ctx, GLuint opcode, GLuint sz);
 void *
 _mesa_dlist_alloc_aligned(struct gl_context *ctx, GLuint opcode, GLuint bytes);
 
-GLint
-_mesa_dlist_alloc_opcode(struct gl_context *ctx, GLuint sz,
-                         void (*execute)(struct gl_context *, void *),
-                         void (*destroy)(struct gl_context *, void *),
-                         void (*print)(struct gl_context *, void *, FILE *));
+void *
+_mesa_dlist_alloc_vertex_list(struct gl_context *ctx);
 
 void
 _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist);
@@ -129,9 +126,6 @@ _mesa_install_dlist_vtxfmt(struct _glapi_table *disp,
 
 void
 _mesa_init_display_list(struct gl_context * ctx);
-
-void
-_mesa_free_display_list_data(struct gl_context *ctx);
 
 bool
 _mesa_get_list(struct gl_context *ctx, GLuint list,

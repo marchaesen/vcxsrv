@@ -1484,6 +1484,14 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
       };
 
       vtn_foreach_decoration(b, val, struct_member_decoration_cb, &ctx);
+
+      /* Propagate access specifiers that are present on all members to the overall type */
+      enum gl_access_qualifier overall_access = ACCESS_COHERENT | ACCESS_VOLATILE |
+                                                ACCESS_NON_READABLE | ACCESS_NON_WRITEABLE;
+      for (unsigned i = 0; i < num_fields; ++i)
+         overall_access &= val->type->members[i]->access;
+      val->type->access = overall_access;
+
       vtn_foreach_decoration(b, val, struct_member_matrix_stride_cb, &ctx);
 
       vtn_foreach_decoration(b, val, struct_block_decoration_cb, NULL);
@@ -2301,7 +2309,7 @@ vtn_mem_semantics_to_nir_mem_semantics(struct vtn_builder *b,
       break;
 
    case SpvMemorySemanticsSequentiallyConsistentMask:
-      /* Fall through.  Treated as AcquireRelease in Vulkan. */
+      FALLTHROUGH; /* Treated as AcquireRelease in Vulkan. */
    case SpvMemorySemanticsAcquireReleaseMask:
       nir_semantics = NIR_MEMORY_ACQUIRE | NIR_MEMORY_RELEASE;
       break;
@@ -2334,9 +2342,11 @@ vtn_mem_semantics_to_nir_var_modes(struct vtn_builder *b,
    /* Vulkan Environment for SPIR-V says "SubgroupMemory, CrossWorkgroupMemory,
     * and AtomicCounterMemory are ignored".
     */
-   semantics &= ~(SpvMemorySemanticsSubgroupMemoryMask |
-                  SpvMemorySemanticsCrossWorkgroupMemoryMask |
-                  SpvMemorySemanticsAtomicCounterMemoryMask);
+   if (b->options->environment == NIR_SPIRV_VULKAN) {
+      semantics &= ~(SpvMemorySemanticsSubgroupMemoryMask |
+                     SpvMemorySemanticsCrossWorkgroupMemoryMask |
+                     SpvMemorySemanticsAtomicCounterMemoryMask);
+   }
 
    /* TODO: Consider adding nir_var_mem_image mode to NIR so it can be used
     * for SpvMemorySemanticsImageMemoryMask.
@@ -2352,6 +2362,8 @@ vtn_mem_semantics_to_nir_var_modes(struct vtn_builder *b,
    }
    if (semantics & SpvMemorySemanticsWorkgroupMemoryMask)
       modes |= nir_var_mem_shared;
+   if (semantics & SpvMemorySemanticsCrossWorkgroupMemoryMask)
+      modes |= nir_var_mem_global;
    if (semantics & SpvMemorySemanticsOutputMemoryMask) {
       modes |= nir_var_shader_out;
    }
@@ -2536,6 +2548,28 @@ non_uniform_decoration_cb(struct vtn_builder *b,
    default:
       break;
    }
+}
+
+/* Apply SignExtend/ZeroExtend operands to get the actual result type for
+ * image read/sample operations and source type for write operations.
+ */
+static nir_alu_type
+get_image_type(struct vtn_builder *b, nir_alu_type type, unsigned operands)
+{
+   unsigned extend_operands =
+      operands & (SpvImageOperandsSignExtendMask | SpvImageOperandsZeroExtendMask);
+   vtn_fail_if(nir_alu_type_get_base_type(type) == nir_type_float && extend_operands,
+               "SignExtend/ZeroExtend used on floating-point texel type");
+   vtn_fail_if(extend_operands ==
+               (SpvImageOperandsSignExtendMask | SpvImageOperandsZeroExtendMask),
+               "SignExtend and ZeroExtend both specified");
+
+   if (operands & SpvImageOperandsSignExtendMask)
+      return nir_type_int | nir_alu_type_get_type_size(type);
+   if (operands & SpvImageOperandsZeroExtendMask)
+      return nir_type_uint | nir_alu_type_get_type_size(type);
+
+   return type;
 }
 
 static void
@@ -2822,8 +2856,9 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
 
    /* Now we need to handle some number of optional arguments */
    struct vtn_value *gather_offsets = NULL;
+   uint32_t operands = SpvImageOperandsMaskNone;
    if (idx < count) {
-      uint32_t operands = w[idx];
+      operands = w[idx];
 
       if (operands & SpvImageOperandsBiasMask) {
          vtn_assert(texop == nir_texop_tex ||
@@ -2954,6 +2989,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
                   "SPIR-V return type mismatches image type. This is only valid "
                   "for untyped images (OpenCL).");
       dest_type = nir_get_nir_type_for_glsl_base_type(ret_base);
+      dest_type = get_image_type(b, dest_type, operands);
    }
 
    instr->dest_type = dest_type;
@@ -3100,6 +3136,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    struct vtn_image_pointer image;
    SpvScope scope = SpvScopeInvocation;
    SpvMemorySemanticsMask semantics = 0;
+   SpvImageOperandsMask operands = SpvImageOperandsMaskNone;
 
    enum gl_access_qualifier access = 0;
 
@@ -3170,8 +3207,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       image.image = vtn_get_image(b, w[3], &access);
       image.coord = get_image_coord(b, w[4]);
 
-      const SpvImageOperandsMask operands =
-         count > 5 ? w[5] : SpvImageOperandsMaskNone;
+      operands = count > 5 ? w[5] : SpvImageOperandsMaskNone;
 
       if (operands & SpvImageOperandsSampleMask) {
          uint32_t arg = image_operand_arg(b, w, count, 5,
@@ -3211,8 +3247,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
 
       /* texel = w[3] */
 
-      const SpvImageOperandsMask operands =
-         count > 4 ? w[4] : SpvImageOperandsMaskNone;
+      operands = count > 4 ? w[4] : SpvImageOperandsMaskNone;
 
       if (operands & SpvImageOperandsSampleMask) {
          uint32_t arg = image_operand_arg(b, w, count, 4,
@@ -3360,8 +3395,11 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
        */
       intrin->src[4] = nir_src_for_ssa(image.lod);
 
-      if (opcode == SpvOpImageWrite)
-         nir_intrinsic_set_src_type(intrin, nir_get_nir_type_for_glsl_type(value->type));
+      if (opcode == SpvOpImageWrite) {
+         nir_alu_type src_type =
+            get_image_type(b, nir_get_nir_type_for_glsl_type(value->type), operands);
+         nir_intrinsic_set_src_type(intrin, src_type);
+      }
       break;
    }
 
@@ -3438,8 +3476,11 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
          vtn_push_nir_ssa(b, w[2], result);
       }
 
-      if (opcode == SpvOpImageRead || opcode == SpvOpImageSparseRead)
-         nir_intrinsic_set_dest_type(intrin, nir_get_nir_type_for_glsl_type(type->type));
+      if (opcode == SpvOpImageRead || opcode == SpvOpImageSparseRead) {
+         nir_alu_type dest_type =
+            get_image_type(b, nir_get_nir_type_for_glsl_type(type->type), operands);
+         nir_intrinsic_set_dest_type(intrin, dest_type);
+      }
    } else {
       nir_builder_instr_insert(&b->nb, &intrin->instr);
    }
@@ -4286,8 +4327,9 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          break;
 
       case SpvCapabilityLinkage:
-         vtn_warn("Unsupported SPIR-V capability: %s",
-                  spirv_capability_to_string(cap));
+         if (!b->options->create_library)
+            vtn_warn("Unsupported SPIR-V capability: %s",
+                     spirv_capability_to_string(cap));
          break;
 
       case SpvCapabilitySparseResidency:
@@ -4348,11 +4390,14 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(kernel_image, cap);
          break;
 
+      case SpvCapabilityImageReadWrite:
+         spv_check_supported(kernel_image_read_write, cap);
+         break;
+
       case SpvCapabilityLiteralSampler:
          spv_check_supported(literal_sampler, cap);
          break;
 
-      case SpvCapabilityImageReadWrite:
       case SpvCapabilityImageMipmap:
       case SpvCapabilityPipes:
       case SpvCapabilityDeviceEnqueue:
@@ -5333,6 +5378,7 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpGenericPtrMemSemantics:
    case SpvOpSubgroupBlockReadINTEL:
    case SpvOpSubgroupBlockWriteINTEL:
+   case SpvOpConvertUToAccelerationStructureKHR:
       vtn_handle_variables(b, opcode, w, count);
       break;
 
@@ -6055,19 +6101,18 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    nir_foreach_variable_with_modes(var, b->shader, nir_var_mem_shared) {
       if (glsl_type_is_interface(var->type)) {
          assert(b->options->caps.workgroup_memory_explicit_layout);
-         b->shader->info.cs.shared_memory_explicit_layout = true;
+         b->shader->info.shared_memory_explicit_layout = true;
          break;
       }
    }
-   if (b->shader->info.cs.shared_memory_explicit_layout) {
+   if (b->shader->info.shared_memory_explicit_layout) {
       unsigned size = 0;
       nir_foreach_variable_with_modes(var, b->shader, nir_var_mem_shared) {
          assert(glsl_type_is_interface(var->type));
          const bool align_to_stride = false;
          size = MAX2(size, glsl_get_explicit_size(var->type, align_to_stride));
       }
-      b->shader->info.cs.shared_size = size;
-      b->shader->shared_size = size;
+      b->shader->info.shared_size = size;
    }
 
    /* Unparent the shader from the vtn_builder before we delete the builder */

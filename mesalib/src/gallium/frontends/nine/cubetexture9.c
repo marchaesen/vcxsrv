@@ -54,6 +54,8 @@ NineCubeTexture9_ctor( struct NineCubeTexture9 *This,
         This, pParams, EdgeLength, Levels, Usage,
         Format, Pool, pSharedHandle);
 
+    This->base.base.base.device = pParams->device; /* Early fill this field in case of failure */
+
     user_assert(EdgeLength, D3DERR_INVALIDCALL);
 
     /* user_assert(!pSharedHandle || Pool == D3DPOOL_DEFAULT, D3DERR_INVALIDCALL); */
@@ -177,7 +179,8 @@ NineCubeTexture9_dtor( struct NineCubeTexture9 *This )
 
     if (This->surfaces) {
         for (i = 0; i < This->base.level_count * 6; ++i)
-            NineUnknown_Destroy(&This->surfaces[i]->base.base);
+            if (This->surfaces[i])
+                NineUnknown_Destroy(&This->surfaces[i]->base.base);
         FREE(This->surfaces);
     }
 

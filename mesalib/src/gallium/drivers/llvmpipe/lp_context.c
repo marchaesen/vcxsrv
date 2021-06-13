@@ -179,6 +179,9 @@ llvmpipe_create_context(struct pipe_screen *screen, void *priv,
 {
    struct llvmpipe_context *llvmpipe;
 
+   if (!llvmpipe_screen_late_init(llvmpipe_screen(screen)))
+      return NULL;
+
    llvmpipe = align_malloc(sizeof(struct llvmpipe_context), 16);
    if (!llvmpipe)
       return NULL;

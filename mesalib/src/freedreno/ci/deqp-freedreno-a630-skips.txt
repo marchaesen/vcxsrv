@@ -18,9 +18,12 @@ dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_tesse
 # Timeout, passes otherwise
 dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_odd_spacing
 
-# Timeout (VK-GL-CTS 1.2.5.0)
-dEQP-VK.geometry.layered.cube_array.36_36_12.readback
-dEQP-VK.geometry.layered.cube_array.64_64_12.readback
+# Timeout (VK-GL-CTS 1.2.6.0)
+dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_geom
+dEQP-VK.tessellation.invariance.outer_edge_division.quads_equal_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.quads_fractional_even_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_fractional_odd_spacing
+dEQP-VK.ubo.random.all_out_of_order_offsets.45
 
 # Crashes likely caused by https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/2701
 dEQP-VK.synchronization.cross_instance.*binary_semaphore_fence_fd

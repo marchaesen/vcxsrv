@@ -1,5 +1,6 @@
 srcs_xfixes = [
     'cursor.c',
+    'disconnect.c',
     'region.c',
     'saveset.c',
     'select.c',

@@ -12,6 +12,7 @@ srcs_dix = [
     'eventconvert.c',
     'extension.c',
     'gc.c',
+    'gestures.c',
     'getevents.c',
     'globals.c',
     'glyphcurs.c',

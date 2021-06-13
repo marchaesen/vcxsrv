@@ -29,6 +29,7 @@
 
 #include <stdint.h>
 
+#include "util/bitset.h"
 #include "util/u_debug.h"
 
 #ifdef __cplusplus
@@ -40,65 +41,92 @@ struct fd_pipe;
 struct fd_device;
 
 enum fd_pipe_id {
-	FD_PIPE_3D = 1,
-	FD_PIPE_2D = 2,
-	/* some devices have two 2d blocks.. not really sure how to
-	 * use that yet, so just ignoring the 2nd 2d pipe for now
-	 */
-	FD_PIPE_MAX
+   FD_PIPE_3D = 1,
+   FD_PIPE_2D = 2,
+   /* some devices have two 2d blocks.. not really sure how to
+    * use that yet, so just ignoring the 2nd 2d pipe for now
+    */
+   FD_PIPE_MAX
 };
 
 enum fd_param_id {
-	FD_DEVICE_ID,
-	FD_GMEM_SIZE,
-	FD_GMEM_BASE,
-	FD_GPU_ID,
-	FD_CHIP_ID,
-	FD_MAX_FREQ,
-	FD_TIMESTAMP,
-	FD_NR_RINGS,      /* # of rings == # of distinct priority levels */
-	FD_PP_PGTABLE,    /* are per-process pagetables used for the pipe/ctx */
-	FD_CTX_FAULTS,    /* # of per context faults */
-	FD_GLOBAL_FAULTS, /* # of global (all context) faults */
+   FD_DEVICE_ID,
+   FD_GMEM_SIZE,
+   FD_GMEM_BASE,
+   FD_GPU_ID,
+   FD_CHIP_ID,
+   FD_MAX_FREQ,
+   FD_TIMESTAMP,
+   FD_NR_RINGS,      /* # of rings == # of distinct priority levels */
+   FD_PP_PGTABLE,    /* are per-process pagetables used for the pipe/ctx */
+   FD_CTX_FAULTS,    /* # of per context faults */
+   FD_GLOBAL_FAULTS, /* # of global (all context) faults */
+};
+
+/**
+ * Helper for fence/seqno comparisions which deals properly with rollover.
+ * Returns true if fence 'a' is before fence 'b'
+ */
+static inline bool
+fd_fence_before(uint32_t a, uint32_t b)
+{
+   return (int32_t)(a - b) < 0;
+}
+
+static inline bool
+fd_fence_after(uint32_t a, uint32_t b)
+{
+   return (int32_t)(a - b) > 0;
+}
+
+/**
+ * Per submit, there are actually two fences:
+ *  1) The userspace maintained fence, which is used to optimistically
+ *     avoid kernel ioctls to query if specific rendering is completed
+ *  2) The kernel maintained fence, which we cannot directly do anything
+ *     with, other than pass it back to the kernel
+ *
+ * The userspace fence is mostly internal to the drm layer, but we want
+ * the gallium layer to be able to pass it back to us for things like
+ * fd_pipe_wait().  So this struct encapsulates the two.
+ */
+struct fd_fence {
+   uint32_t kfence;     /* kernel fence */
+   uint32_t ufence;     /* userspace fence */
 };
 
 /* bo flags: */
-#define DRM_FREEDRENO_GEM_TYPE_SMI        0x00000001
-#define DRM_FREEDRENO_GEM_TYPE_KMEM       0x00000002
-#define DRM_FREEDRENO_GEM_TYPE_MEM_MASK   0x0000000f
-#define DRM_FREEDRENO_GEM_CACHE_NONE      0x00000000
-#define DRM_FREEDRENO_GEM_CACHE_WCOMBINE  0x00100000
-#define DRM_FREEDRENO_GEM_CACHE_WTHROUGH  0x00200000
-#define DRM_FREEDRENO_GEM_CACHE_WBACK     0x00400000
-#define DRM_FREEDRENO_GEM_CACHE_WBACKWA   0x00800000
-#define DRM_FREEDRENO_GEM_CACHE_MASK      0x00f00000
-#define DRM_FREEDRENO_GEM_GPUREADONLY     0x01000000
-#define DRM_FREEDRENO_GEM_SCANOUT         0x02000000
+#define FD_BO_GPUREADONLY  BITSET_BIT(1)
+#define FD_BO_SCANOUT      BITSET_BIT(2)
+/* Default caching is WRITECOMBINE, we can add new bo flags later for cached/etc */
 
 /* bo access flags: (keep aligned to MSM_PREP_x) */
-#define DRM_FREEDRENO_PREP_READ           0x01
-#define DRM_FREEDRENO_PREP_WRITE          0x02
-#define DRM_FREEDRENO_PREP_NOSYNC         0x04
+#define FD_BO_PREP_READ   BITSET_BIT(0)
+#define FD_BO_PREP_WRITE  BITSET_BIT(1)
+#define FD_BO_PREP_NOSYNC BITSET_BIT(2)
+#define FD_BO_PREP_FLUSH  BITSET_BIT(3)
+
 
 /* device functions:
  */
 
-struct fd_device * fd_device_new(int fd);
-struct fd_device * fd_device_new_dup(int fd);
-struct fd_device * fd_device_ref(struct fd_device *dev);
+struct fd_device *fd_device_new(int fd);
+struct fd_device *fd_device_new_dup(int fd);
+struct fd_device *fd_device_ref(struct fd_device *dev);
+void fd_device_purge(struct fd_device *dev);
 void fd_device_del(struct fd_device *dev);
 int fd_device_fd(struct fd_device *dev);
 
 enum fd_version {
-	FD_VERSION_MADVISE = 1,            /* kernel supports madvise */
-	FD_VERSION_UNLIMITED_CMDS = 1,     /* submits w/ >4 cmd buffers (growable ringbuffer) */
-	FD_VERSION_FENCE_FD = 2,           /* submit command supports in/out fences */
-	FD_VERSION_GMEM_BASE = 3,          /* supports querying GMEM base address */
-	FD_VERSION_SUBMIT_QUEUES = 3,      /* submit queues and multiple priority levels */
-	FD_VERSION_BO_IOVA = 3,            /* supports fd_bo_get/put_iova() */
-	FD_VERSION_SOFTPIN = 4,            /* adds softpin, bo name, and dump flag */
-	FD_VERSION_ROBUSTNESS = 5,         /* adds FD_NR_FAULTS and FD_PP_PGTABLE */
-	FD_VERSION_MEMORY_FD = 2,          /* supports shared memory objects */
+   FD_VERSION_MADVISE = 1,             /* kernel supports madvise */
+   FD_VERSION_UNLIMITED_CMDS = 1,      /* submits w/ >4 cmd buffers (growable ringbuffer) */
+   FD_VERSION_FENCE_FD = 2,            /* submit command supports in/out fences */
+   FD_VERSION_GMEM_BASE = 3,           /* supports querying GMEM base address */
+   FD_VERSION_SUBMIT_QUEUES = 3,       /* submit queues and multiple priority levels */
+   FD_VERSION_BO_IOVA = 3,             /* supports fd_bo_get/put_iova() */
+   FD_VERSION_SOFTPIN = 4,             /* adds softpin, bo name, and dump flag */
+   FD_VERSION_ROBUSTNESS = 5,          /* adds FD_NR_FAULTS and FD_PP_PGTABLE */
+   FD_VERSION_MEMORY_FD = 2,           /* supports shared memory objects */
 };
 enum fd_version fd_device_version(struct fd_device *dev);
 
@@ -107,72 +135,73 @@ bool fd_has_syncobj(struct fd_device *dev);
 /* pipe functions:
  */
 
-struct fd_pipe * fd_pipe_new(struct fd_device *dev, enum fd_pipe_id id);
-struct fd_pipe * fd_pipe_new2(struct fd_device *dev, enum fd_pipe_id id, uint32_t prio);
-struct fd_pipe * fd_pipe_ref(struct fd_pipe *pipe);
+struct fd_pipe *fd_pipe_new(struct fd_device *dev, enum fd_pipe_id id);
+struct fd_pipe *fd_pipe_new2(struct fd_device *dev, enum fd_pipe_id id,
+                             uint32_t prio);
+struct fd_pipe *fd_pipe_ref(struct fd_pipe *pipe);
+struct fd_pipe *fd_pipe_ref_locked(struct fd_pipe *pipe);
 void fd_pipe_del(struct fd_pipe *pipe);
+void fd_pipe_purge(struct fd_pipe *pipe);
 int fd_pipe_get_param(struct fd_pipe *pipe, enum fd_param_id param,
-		uint64_t *value);
-int fd_pipe_wait(struct fd_pipe *pipe, uint32_t timestamp);
+                      uint64_t *value);
+int fd_pipe_wait(struct fd_pipe *pipe, const struct fd_fence *fence);
 /* timeout in nanosec */
-int fd_pipe_wait_timeout(struct fd_pipe *pipe, uint32_t timestamp,
-		uint64_t timeout);
-
+int fd_pipe_wait_timeout(struct fd_pipe *pipe, const struct fd_fence *fence,
+                         uint64_t timeout);
 
 /* buffer-object functions:
  */
 
-struct fd_bo * _fd_bo_new(struct fd_device *dev,
-		uint32_t size, uint32_t flags);
+struct fd_bo *_fd_bo_new(struct fd_device *dev, uint32_t size, uint32_t flags);
 void _fd_bo_set_name(struct fd_bo *bo, const char *fmt, va_list ap);
 
-static inline void
-fd_bo_set_name(struct fd_bo *bo, const char *fmt, ...) _util_printf_format(2, 3);
+static inline void fd_bo_set_name(struct fd_bo *bo, const char *fmt, ...)
+   _util_printf_format(2, 3);
 
 static inline void
 fd_bo_set_name(struct fd_bo *bo, const char *fmt, ...)
 {
 #ifndef NDEBUG
-	va_list ap;
-	va_start(ap, fmt);
-	_fd_bo_set_name(bo, fmt, ap);
-	va_end(ap);
+   va_list ap;
+   va_start(ap, fmt);
+   _fd_bo_set_name(bo, fmt, ap);
+   va_end(ap);
 #endif
 }
 
-static inline struct fd_bo *
-fd_bo_new(struct fd_device *dev, uint32_t size, uint32_t flags,
-		const char *fmt, ...) _util_printf_format(4, 5);
+static inline struct fd_bo *fd_bo_new(struct fd_device *dev, uint32_t size,
+                                      uint32_t flags, const char *fmt, ...)
+   _util_printf_format(4, 5);
 
 static inline struct fd_bo *
-fd_bo_new(struct fd_device *dev, uint32_t size, uint32_t flags,
-		const char *fmt, ...)
+fd_bo_new(struct fd_device *dev, uint32_t size, uint32_t flags, const char *fmt,
+          ...)
 {
-	struct fd_bo *bo = _fd_bo_new(dev, size, flags);
+   struct fd_bo *bo = _fd_bo_new(dev, size, flags);
 #ifndef NDEBUG
-	if (fmt) {
-		va_list ap;
-		va_start(ap, fmt);
-		_fd_bo_set_name(bo, fmt, ap);
-		va_end(ap);
-	}
+   if (fmt) {
+      va_list ap;
+      va_start(ap, fmt);
+      _fd_bo_set_name(bo, fmt, ap);
+      va_end(ap);
+   }
 #endif
-	return bo;
+   return bo;
 }
 
-struct fd_bo *fd_bo_from_handle(struct fd_device *dev,
-		uint32_t handle, uint32_t size);
-struct fd_bo * fd_bo_from_name(struct fd_device *dev, uint32_t name);
-struct fd_bo * fd_bo_from_dmabuf(struct fd_device *dev, int fd);
+struct fd_bo *fd_bo_from_handle(struct fd_device *dev, uint32_t handle,
+                                uint32_t size);
+struct fd_bo *fd_bo_from_name(struct fd_device *dev, uint32_t name);
+struct fd_bo *fd_bo_from_dmabuf(struct fd_device *dev, int fd);
 void fd_bo_mark_for_dump(struct fd_bo *bo);
 uint64_t fd_bo_get_iova(struct fd_bo *bo);
-struct fd_bo * fd_bo_ref(struct fd_bo *bo);
+struct fd_bo *fd_bo_ref(struct fd_bo *bo);
 void fd_bo_del(struct fd_bo *bo);
 int fd_bo_get_name(struct fd_bo *bo, uint32_t *name);
 uint32_t fd_bo_handle(struct fd_bo *bo);
 int fd_bo_dmabuf(struct fd_bo *bo);
 uint32_t fd_bo_size(struct fd_bo *bo);
-void * fd_bo_map(struct fd_bo *bo);
+void *fd_bo_map(struct fd_bo *bo);
 int fd_bo_cpu_prep(struct fd_bo *bo, struct fd_pipe *pipe, uint32_t op);
 void fd_bo_cpu_fini(struct fd_bo *bo);
 

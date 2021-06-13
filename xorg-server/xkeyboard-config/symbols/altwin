@@ -24,6 +24,13 @@ xkb_symbols "ctrl_win" {
     modifier_map Control { <LWIN>, <RWIN> };
 };
 
+// Ctrl is mapped to the Right Super and the usual Ctrl key.
+partial modifier_keys
+xkb_symbols "ctrl_rwin" {
+    key <RWIN> { [ Control_R ] };
+    modifier_map Control { <RWIN> };
+};
+
 // Ctrl is mapped to the Alt, Alt to the Super, and Win to the Ctrl keys.
 partial modifier_keys
 xkb_symbols "ctrl_alt_win" {

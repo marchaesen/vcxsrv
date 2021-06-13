@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef VC5_QPU_DISASM_H
-#define VC5_QPU_DISASM_H
+#ifndef QPU_DISASM_H
+#define QPU_DISASM_H
 
 #include "broadcom/common/v3d_device_info.h"
 
@@ -36,4 +36,4 @@ const char *v3d_qpu_disasm(const struct v3d_device_info *devinfo, uint64_t inst)
 void v3d_qpu_dump(const struct v3d_device_info *devinfo, const
                   struct v3d_qpu_instr *instr);
 
-#endif /* VC5_QPU_DISASM_H */
+#endif /* QPU_DISASM_H */

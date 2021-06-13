@@ -110,6 +110,12 @@ xkb_symbols "std" {
     include "level3(ralt_switch)"
 };
 
+partial alphanumeric_keys
+xkb_symbols "us" {
+    include "us(euro)"
+
+    name[Group1]= "Dutch (US)";
+};
 
 // Copied from macintosh_vndr/nl
 partial alphanumeric_keys

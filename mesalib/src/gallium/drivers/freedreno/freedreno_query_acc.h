@@ -29,9 +29,8 @@
 
 #include "util/list.h"
 
-#include "freedreno_query.h"
 #include "freedreno_context.h"
-
+#include "freedreno_query.h"
 
 /*
  * Accumulated HW Queries:
@@ -53,61 +52,64 @@
  *     span multiple batches, etc.
  */
 
-
 struct fd_acc_query;
 
 struct fd_acc_sample_provider {
-	unsigned query_type;
+   unsigned query_type;
 
-	/* Set if the provider should still count while !ctx->active_queries */
-	bool always;
+   /* Set if the provider should still count while !ctx->active_queries */
+   bool always;
 
-	unsigned size;
+   unsigned size;
 
-	void (*resume)(struct fd_acc_query *aq, struct fd_batch *batch) dt;
-	void (*pause)(struct fd_acc_query *aq, struct fd_batch *batch) dt;
+   void (*resume)(struct fd_acc_query *aq, struct fd_batch *batch) dt;
+   void (*pause)(struct fd_acc_query *aq, struct fd_batch *batch) dt;
 
-	void (*result)(struct fd_acc_query *aq, void *buf,
-			union pipe_query_result *result);
+   void (*result)(struct fd_acc_query *aq, void *buf,
+                  union pipe_query_result *result);
 };
 
 struct fd_acc_query {
-	struct fd_query base;
+   struct fd_query base;
 
-	const struct fd_acc_sample_provider *provider;
+   const struct fd_acc_sample_provider *provider;
 
-	struct pipe_resource *prsc;
+   struct pipe_resource *prsc;
 
-	/* Pointer to the batch that our query has had resume() called on (if
-	 * any).
-	 */
-	struct fd_batch *batch;
+   /* Pointer to the batch that our query has had resume() called on (if
+    * any).
+    */
+   struct fd_batch *batch;
 
-	/* usually the same as provider->size but for batch queries we
-	 * need to calculate the size dynamically when the query is
-	 * allocated:
-	 */
-	unsigned size;
+   /* usually the same as provider->size but for batch queries we
+    * need to calculate the size dynamically when the query is
+    * allocated:
+    */
+   unsigned size;
 
-	struct list_head node;   /* list-node in ctx->active_acc_queries */
+   struct list_head node; /* list-node in ctx->active_acc_queries */
 
-	int no_wait_cnt;         /* see fd_acc_get_query_result() */
+   int no_wait_cnt; /* see fd_acc_get_query_result() */
 
-	void *query_data;        /* query specific data */
+   void *query_data; /* query specific data */
 };
 
 static inline struct fd_acc_query *
 fd_acc_query(struct fd_query *q)
 {
-	return (struct fd_acc_query *)q;
+   return (struct fd_acc_query *)q;
 }
 
-struct fd_query * fd_acc_create_query(struct fd_context *ctx, unsigned query_type,
-	unsigned index);
-struct fd_query * fd_acc_create_query2(struct fd_context *ctx, unsigned query_type,
-		unsigned index, const struct fd_acc_sample_provider *provider);
-void fd_acc_query_update_batch(struct fd_batch *batch, bool disable_all) assert_dt;
-void fd_acc_query_register_provider(struct pipe_context *pctx,
-		const struct fd_acc_sample_provider *provider);
+struct fd_query *fd_acc_create_query(struct fd_context *ctx,
+                                     unsigned query_type, unsigned index);
+struct fd_query *
+fd_acc_create_query2(struct fd_context *ctx, unsigned query_type,
+                     unsigned index,
+                     const struct fd_acc_sample_provider *provider);
+void fd_acc_query_update_batch(struct fd_batch *batch,
+                               bool disable_all) assert_dt;
+void
+fd_acc_query_register_provider(struct pipe_context *pctx,
+                               const struct fd_acc_sample_provider *provider);
 
 #endif /* FREEDRENO_QUERY_ACC_H_ */

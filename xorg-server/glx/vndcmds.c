@@ -92,6 +92,9 @@ static void SetReplyHeader(ClientPtr client, void *replyPtr)
     xGenericReply *rep = (xGenericReply *) replyPtr;
     rep->type = X_Reply;
     rep->sequenceNumber = client->sequence;
+    if (client->swapped) {
+	swaps(&rep->sequenceNumber);
+    }
     rep->length = 0;
 }
 

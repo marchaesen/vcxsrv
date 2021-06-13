@@ -24,8 +24,8 @@
 #ifndef _ASM_H_
 #define _ASM_H_
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "afuc.h"
 
 extern int gpuver;
@@ -37,78 +37,77 @@ extern int gpuver;
  * about the different encodings for 2src regs vs 1src+immed, or mnemonics
  */
 struct asm_instruction {
-	int tok;
-	int dst;
-	int src1;
-	int src2;
-	int immed;
-	int shift;
-	int bit;
-	int xmov;
-	uint32_t literal;
-	const char *label;
+   int tok;
+   int dst;
+   int src1;
+   int src2;
+   int immed;
+   int shift;
+   int bit;
+   int xmov;
+   uint32_t literal;
+   const char *label;
 
-	bool has_immed : 1;
-	bool has_shift : 1;
-	bool has_bit   : 1;
-	bool is_literal : 1;
-	bool rep        : 1;
+   bool has_immed : 1;
+   bool has_shift : 1;
+   bool has_bit : 1;
+   bool is_literal : 1;
+   bool rep : 1;
 };
 
 struct asm_label {
-	unsigned offset;
-	const char *label;
+   unsigned offset;
+   const char *label;
 };
 
 struct asm_instruction *next_instr(int tok);
 void decl_label(const char *str);
 
-
 static inline uint32_t
 parse_reg(const char *str)
 {
-	char *retstr;
-	long int ret;
+   char *retstr;
+   long int ret;
 
-	if (!strcmp(str, "$rem"))
-		return 0x1c;
-	else if (!strcmp(str, "$addr"))
-		return 0x1d;
-	else if (!strcmp(str, "$addr2"))
-		return 0x1e;
-	else if (!strcmp(str, "$data"))
-		return 0x1f;
+   if (!strcmp(str, "$rem"))
+      return 0x1c;
+   else if (!strcmp(str, "$addr"))
+      return 0x1d;
+   else if (!strcmp(str, "$addr2"))
+      return 0x1e;
+   else if (!strcmp(str, "$data"))
+      return 0x1f;
 
-	ret = strtol(str + 1, &retstr, 16);
+   ret = strtol(str + 1, &retstr, 16);
 
-	if (*retstr != '\0') {
-		printf("invalid register: %s\n", str);
-		exit(2);
-	}
+   if (*retstr != '\0') {
+      printf("invalid register: %s\n", str);
+      exit(2);
+   }
 
-	return ret;
+   return ret;
 }
 
 static inline uint32_t
 parse_literal(const char *str)
 {
-	char *retstr;
-	long int ret;
+   char *retstr;
+   long int ret;
 
-	ret = strtol(str + 1, &retstr, 16);
+   ret = strtol(str + 1, &retstr, 16);
 
-	if (*retstr != ']') {
-		printf("invalid literal: %s\n", str);
-		exit(2);
-	}
+   if (*retstr != ']') {
+      printf("invalid literal: %s\n", str);
+      exit(2);
+   }
 
-	return ret;
+   return ret;
 }
 
 static inline uint32_t
 parse_bit(const char *str)
 {
-	return strtol(str + 1, NULL, 10);
+   return strtol(str + 1, NULL, 10);
 }
 
 unsigned parse_control_reg(const char *name);
@@ -117,12 +116,11 @@ unsigned parse_control_reg(const char *name);
 static inline const char *
 parse_label_decl(const char *str)
 {
-	char *s = strdup(str);
-	s[strlen(s) - 1] = '\0';
-	return s;
+   char *s = strdup(str);
+   s[strlen(s) - 1] = '\0';
+   return s;
 }
 
-void yyset_in (FILE *  _in_str );
-
+void yyset_in(FILE *_in_str);
 
 #endif /* _ASM_H_ */

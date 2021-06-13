@@ -850,6 +850,74 @@ SBarrierEvent(xXIBarrierEvent * from,
     swapl(&to->eventid);
 }
 
+static void
+SGesturePinchEvent(xXIGesturePinchEvent* from,
+                   xXIGesturePinchEvent* to)
+{
+    *to = *from;
+
+    swaps(&to->sequenceNumber);
+    swapl(&to->length);
+    swaps(&to->evtype);
+    swaps(&to->deviceid);
+    swapl(&to->time);
+    swapl(&to->detail);
+    swapl(&to->root);
+    swapl(&to->event);
+    swapl(&to->child);
+    swapl(&to->root_x);
+    swapl(&to->root_y);
+    swapl(&to->event_x);
+    swapl(&to->event_y);
+
+    swapl(&to->delta_x);
+    swapl(&to->delta_y);
+    swapl(&to->delta_unaccel_x);
+    swapl(&to->delta_unaccel_y);
+    swapl(&to->scale);
+    swapl(&to->delta_angle);
+    swaps(&to->sourceid);
+
+    swapl(&to->mods.base_mods);
+    swapl(&to->mods.latched_mods);
+    swapl(&to->mods.locked_mods);
+    swapl(&to->mods.effective_mods);
+    swapl(&to->flags);
+}
+
+static void
+SGestureSwipeEvent(xXIGestureSwipeEvent* from,
+                   xXIGestureSwipeEvent* to)
+{
+    *to = *from;
+
+    swaps(&to->sequenceNumber);
+    swapl(&to->length);
+    swaps(&to->evtype);
+    swaps(&to->deviceid);
+    swapl(&to->time);
+    swapl(&to->detail);
+    swapl(&to->root);
+    swapl(&to->event);
+    swapl(&to->child);
+    swapl(&to->root_x);
+    swapl(&to->root_y);
+    swapl(&to->event_x);
+    swapl(&to->event_y);
+
+    swapl(&to->delta_x);
+    swapl(&to->delta_y);
+    swapl(&to->delta_unaccel_x);
+    swapl(&to->delta_unaccel_y);
+    swaps(&to->sourceid);
+
+    swapl(&to->mods.base_mods);
+    swapl(&to->mods.latched_mods);
+    swapl(&to->mods.locked_mods);
+    swapl(&to->mods.effective_mods);
+    swapl(&to->flags);
+}
+
 /** Event swapping function for XI2 events. */
 void _X_COLD
 XI2EventSwap(xGenericEvent *from, xGenericEvent *to)
@@ -900,6 +968,18 @@ XI2EventSwap(xGenericEvent *from, xGenericEvent *to)
     case XI_BarrierLeave:
         SBarrierEvent((xXIBarrierEvent *) from,
                       (xXIBarrierEvent *) to);
+        break;
+    case XI_GesturePinchBegin:
+    case XI_GesturePinchUpdate:
+    case XI_GesturePinchEnd:
+        SGesturePinchEvent((xXIGesturePinchEvent*) from,
+                           (xXIGesturePinchEvent*) to);
+        break;
+    case XI_GestureSwipeBegin:
+    case XI_GestureSwipeUpdate:
+    case XI_GestureSwipeEnd:
+        SGestureSwipeEvent((xXIGestureSwipeEvent*) from,
+                           (xXIGestureSwipeEvent*) to);
         break;
     default:
         ErrorF("[Xi] Unknown event type to swap. This is a bug.\n");

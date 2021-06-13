@@ -172,8 +172,8 @@ void si_init_cp_reg_shadowing(struct si_context *sctx)
    if (sctx->shadowed_regs) {
       /* We need to clear the shadowed reg buffer. */
       si_cp_dma_clear_buffer(sctx, &sctx->gfx_cs, &sctx->shadowed_regs->b.b,
-                             0, sctx->shadowed_regs->bo_size, 0, 0, SI_COHERENCY_CP,
-                             L2_BYPASS);
+                             0, sctx->shadowed_regs->bo_size, 0, SI_OP_SYNC_AFTER,
+                             SI_COHERENCY_CP, L2_BYPASS);
 
       /* Create the shadowing preamble. */
       struct si_pm4_state *shadowing_preamble =

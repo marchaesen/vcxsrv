@@ -49,7 +49,6 @@ pan_shader_prepare_midgard_rsd(const struct pan_shader_info *info,
 {
         assert((info->push.count & 3) == 0);
 
-        rsd->properties.uniform_buffer_count = info->ubo_count;
         rsd->properties.midgard.uniform_count = info->push.count / 4;
         rsd->properties.midgard.shader_has_side_effects = info->writes_global;
         rsd->properties.midgard.fp_mode = MALI_FP_MODE_GL_INF_NAN_ALLOWED;
@@ -105,17 +104,17 @@ pan_shader_classify_pixel_kill_coverage(const struct pan_shader_info *info,
 #undef SET_PIXEL_KILL
 
 static inline void
-pan_shader_prepare_bifrost_rsd(const struct pan_shader_info *info,
+pan_shader_prepare_bifrost_rsd(const struct panfrost_device *dev,
+                               const struct pan_shader_info *info,
                                struct MALI_RENDERER_STATE *rsd)
 {
         unsigned fau_count = DIV_ROUND_UP(info->push.count, 2);
+        rsd->preload.uniform_count = fau_count;
 
         switch (info->stage) {
         case MESA_SHADER_VERTEX:
                 rsd->properties.bifrost.zs_update_operation = MALI_PIXEL_KILL_STRONG_EARLY;
-                rsd->properties.uniform_buffer_count = info->ubo_count;
 
-                rsd->preload.uniform_count = fau_count;
                 rsd->preload.vertex.vertex_id = true;
                 rsd->preload.vertex.instance_id = true;
                 break;
@@ -123,11 +122,11 @@ pan_shader_prepare_bifrost_rsd(const struct pan_shader_info *info,
         case MESA_SHADER_FRAGMENT:
                 pan_shader_classify_pixel_kill_coverage(info, rsd);
 
-                rsd->properties.uniform_buffer_count = info->ubo_count;
-                rsd->properties.bifrost.shader_wait_dependency_6 = info->bifrost.wait_6;
-                rsd->properties.bifrost.shader_wait_dependency_7 = info->bifrost.wait_7;
+                if (dev->arch > 6) {
+                        rsd->properties.bifrost.shader_wait_dependency_6 = info->bifrost.wait_6;
+                        rsd->properties.bifrost.shader_wait_dependency_7 = info->bifrost.wait_7;
+                }
 
-                rsd->preload.uniform_count = fau_count;
                 rsd->preload.fragment.fragment_position = info->fs.reads_frag_coord;
                 rsd->preload.fragment.coverage = true;
                 rsd->preload.fragment.primitive_flags = info->fs.reads_face;
@@ -144,9 +143,6 @@ pan_shader_prepare_bifrost_rsd(const struct pan_shader_info *info,
                 break;
 
         case MESA_SHADER_COMPUTE:
-                rsd->properties.uniform_buffer_count = info->ubo_count;
-
-                rsd->preload.uniform_count = fau_count;
                 rsd->preload.compute.local_invocation_xy = true;
                 rsd->preload.compute.local_invocation_z = true;
                 rsd->preload.compute.work_group_x = true;
@@ -178,6 +174,7 @@ pan_shader_prepare_rsd(const struct panfrost_device *dev,
         rsd->shader.texture_count = shader_info->texture_count;
         rsd->shader.sampler_count = shader_info->sampler_count;
         rsd->properties.shader_contains_barrier = shader_info->contains_barrier;
+        rsd->properties.uniform_buffer_count = shader_info->ubo_count;
 
         if (shader_info->stage == MESA_SHADER_FRAGMENT) {
                 rsd->properties.shader_contains_barrier |=
@@ -194,7 +191,7 @@ pan_shader_prepare_rsd(const struct panfrost_device *dev,
         }
 
         if (pan_is_bifrost(dev))
-                pan_shader_prepare_bifrost_rsd(shader_info, rsd);
+                pan_shader_prepare_bifrost_rsd(dev, shader_info, rsd);
         else
                 pan_shader_prepare_midgard_rsd(shader_info, rsd);
 }

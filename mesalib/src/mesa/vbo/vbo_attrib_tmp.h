@@ -1477,6 +1477,141 @@ TAG(MultiTexCoord4hvNV)(GLenum target, const GLhalfNV * v)
 
 
 static void GLAPIENTRY
+TAG(VertexAttrib1hNV)(GLuint index, GLhalfNV x)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (is_vertex_position(ctx, index))
+      ATTR1H(0, x);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR1H(VBO_ATTRIB_GENERIC0 + index, x);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttrib2hNV)(GLuint index, GLhalfNV x, GLhalfNV y)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (is_vertex_position(ctx, index))
+      ATTR2H(0, x, y);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR2H(VBO_ATTRIB_GENERIC0 + index, x, y);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttrib3hNV)(GLuint index, GLhalfNV x, GLhalfNV y, GLhalfNV z)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (is_vertex_position(ctx, index))
+      ATTR3H(0, x, y, z);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR3H(VBO_ATTRIB_GENERIC0 + index, x, y, z);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttrib4hNV)(GLuint index, GLhalfNV x, GLhalfNV y, GLhalfNV z, GLhalfNV w)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (is_vertex_position(ctx, index))
+      ATTR4H(0, x, y, z, w);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR4H(VBO_ATTRIB_GENERIC0 + index, x, y, z, w);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttrib1hvNV)(GLuint index, const GLhalfNV * v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (is_vertex_position(ctx, index))
+      ATTR1HV(0, v);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR1HV(VBO_ATTRIB_GENERIC0 + index, v);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttrib2hvNV)(GLuint index, const GLhalfNV * v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (is_vertex_position(ctx, index))
+      ATTR2HV(0, v);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR2HV(VBO_ATTRIB_GENERIC0 + index, v);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttrib3hvNV)(GLuint index, const GLhalfNV * v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (is_vertex_position(ctx, index))
+      ATTR3HV(0, v);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR3HV(VBO_ATTRIB_GENERIC0 + index, v);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttrib4hvNV)(GLuint index, const GLhalfNV * v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (is_vertex_position(ctx, index))
+      ATTR4HV(0, v);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR4HV(VBO_ATTRIB_GENERIC0 + index, v);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttribs1hvNV)(GLuint index, GLsizei n, const GLhalfNV *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   n = MIN2(n, VBO_ATTRIB_MAX - index);
+   for (GLint i = n - 1; i >= 0; i--)
+      ATTR1H(index + i, v[i]);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttribs2hvNV)(GLuint index, GLsizei n, const GLhalfNV *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   n = MIN2(n, VBO_ATTRIB_MAX - index);
+   for (GLint i = n - 1; i >= 0; i--)
+      ATTR2H(index + i, v[2 * i], v[2 * i + 1]);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttribs3hvNV)(GLuint index, GLsizei n, const GLhalfNV *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   n = MIN2(n, VBO_ATTRIB_MAX - index);
+   for (GLint i = n - 1; i >= 0; i--)
+      ATTR3H(index + i, v[3 * i], v[3 * i + 1], v[3 * i + 2]);
+}
+
+
+static void GLAPIENTRY
+TAG(VertexAttribs4hvNV)(GLuint index, GLsizei n, const GLhalfNV *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   n = MIN2(n, VBO_ATTRIB_MAX - index);
+   for (GLint i = n - 1; i >= 0; i--)
+      ATTR4H(index + i, v[4 * i], v[4 * i + 1], v[4 * i + 2], v[4 * i + 3]);
+}
+
+
+
+static void GLAPIENTRY
 TAG(FogCoordhNV)(GLhalf x)
 {
    GET_CURRENT_CONTEXT(ctx);

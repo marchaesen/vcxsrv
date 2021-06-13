@@ -77,7 +77,7 @@ xkb_symbols "dvorak" {
 // by Elan Ruusamäe <glen@delfi.ee>
 partial alphanumeric_keys
 xkb_symbols "us" {
-    include "us(euro)"
+    include "us(basic)"
     name[Group1] = "Estonian (US)";
 
     // ž, Ž
@@ -94,6 +94,7 @@ xkb_symbols "us" {
     key <AE03>	{ [           3,  numbersign, sterling,   sterling   ]	};
 
     include "level3(ralt_switch)"
+    include "eurosign(5)"
     include "eurosign(e)"
 };
 

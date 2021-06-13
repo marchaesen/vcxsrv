@@ -271,6 +271,11 @@ pandecode_sample_locations(const void *fb, int job_no)
         }
 }
 
+static void
+pandecode_dcd(const struct MALI_DRAW *p,
+              int job_no, enum mali_job_type job_type,
+              char *suffix, bool is_bifrost, unsigned gpu_id);
+
 static struct pandecode_fbd
 pandecode_mfbd_bfr(uint64_t gpu_va, int job_no, bool is_fragment, bool is_bifrost, unsigned gpu_id)
 {
@@ -280,8 +285,35 @@ pandecode_mfbd_bfr(uint64_t gpu_va, int job_no, bool is_fragment, bool is_bifros
 
         struct pandecode_fbd info;
 
-        if (is_bifrost)
+        if (is_bifrost) {
                 pandecode_sample_locations(fb, job_no);
+
+                pan_section_unpack(fb, MULTI_TARGET_FRAMEBUFFER, BIFROST_PARAMETERS, bparams);
+                unsigned dcd_size = MALI_DRAW_LENGTH + MALI_DRAW_PADDING_LENGTH;
+                struct pandecode_mapped_memory *dcdmem =
+                        pandecode_find_mapped_gpu_mem_containing(bparams.frame_shader_dcds);
+
+                if (bparams.pre_frame_0 != MALI_PRE_POST_FRAME_SHADER_MODE_NEVER) {
+                        const void *PANDECODE_PTR_VAR(dcd, dcdmem, bparams.frame_shader_dcds + (0 * dcd_size));
+                        pan_unpack(dcd, DRAW, draw);
+                        pandecode_log("Pre frame 0:\n");
+                        pandecode_dcd(&draw, job_no, MALI_JOB_TYPE_FRAGMENT, "", true, gpu_id);
+                }
+
+                if (bparams.pre_frame_1 != MALI_PRE_POST_FRAME_SHADER_MODE_NEVER) {
+                        const void *PANDECODE_PTR_VAR(dcd, dcdmem, bparams.frame_shader_dcds + (1 * dcd_size));
+                        pan_unpack(dcd, DRAW, draw);
+                        pandecode_log("Pre frame 1:\n");
+                        pandecode_dcd(&draw, job_no, MALI_JOB_TYPE_FRAGMENT, "", true, gpu_id);
+                }
+
+                if (bparams.post_frame != MALI_PRE_POST_FRAME_SHADER_MODE_NEVER) {
+                        const void *PANDECODE_PTR_VAR(dcd, dcdmem, bparams.frame_shader_dcds + (2 * dcd_size));
+                        pan_unpack(dcd, DRAW, draw);
+                        pandecode_log("Post frame:\n");
+                        pandecode_dcd(&draw, job_no, MALI_JOB_TYPE_FRAGMENT, "", true, gpu_id);
+                }
+        }
  
         pandecode_log("Multi-Target Framebuffer:\n");
         pandecode_indent++;
@@ -506,6 +538,7 @@ shader_type_for_job(unsigned type)
         switch (type) {
         case MALI_JOB_TYPE_VERTEX:  return "VERTEX";
         case MALI_JOB_TYPE_TILER:   return "FRAGMENT";
+        case MALI_JOB_TYPE_FRAGMENT: return "FRAGMENT";
         case MALI_JOB_TYPE_COMPUTE: return "COMPUTE";
         default: return "UNKNOWN";
         }
@@ -548,7 +581,7 @@ pandecode_shader_disassemble(mali_ptr shader_ptr, int shader_no, int type,
                 stats.helper_invocations = false;
         } else {
                 stats = disassemble_midgard(pandecode_dump_stream,
-                                code, sz, gpu_id);
+                                code, sz, gpu_id, true);
         }
 
         unsigned nr_threads =
@@ -749,10 +782,9 @@ pandecode_samplers(mali_ptr samplers, unsigned sampler_count, int job_no, bool i
 }
 
 static void
-pandecode_vertex_tiler_postfix_pre(
-                const struct MALI_DRAW *p,
-                int job_no, enum mali_job_type job_type,
-                char *suffix, bool is_bifrost, unsigned gpu_id)
+pandecode_dcd(const struct MALI_DRAW *p,
+              int job_no, enum mali_job_type job_type,
+              char *suffix, bool is_bifrost, unsigned gpu_id)
 {
         struct pandecode_mapped_memory *attr_mem;
 
@@ -810,7 +842,7 @@ pandecode_vertex_tiler_postfix_pre(
                 /* MRT blend fields are used whenever MFBD is used, with
                  * per-RT descriptors */
 
-                if (job_type == MALI_JOB_TYPE_TILER &&
+                if ((job_type == MALI_JOB_TYPE_TILER || job_type == MALI_JOB_TYPE_FRAGMENT) &&
                     (is_bifrost || p->fbd & MALI_FBD_TAG_IS_MFBD)) {
                         void* blend_base = ((void *) cl) + MALI_RENDERER_STATE_LENGTH;
 
@@ -927,7 +959,7 @@ pandecode_vertex_compute_geometry_job(const struct MALI_JOB_HEADER *h,
 {
         struct mali_compute_job_packed *PANDECODE_PTR_VAR(p, mem, job);
         pan_section_unpack(p, COMPUTE_JOB, DRAW, draw);
-        pandecode_vertex_tiler_postfix_pre(&draw, job_no, h->type, "", is_bifrost, gpu_id);
+        pandecode_dcd(&draw, job_no, h->type, "", is_bifrost, gpu_id);
 
         pandecode_log("Vertex Job Payload:\n");
         pandecode_indent++;
@@ -946,7 +978,7 @@ pandecode_tiler_job_bfr(const struct MALI_JOB_HEADER *h,
         struct mali_bifrost_tiler_job_packed *PANDECODE_PTR_VAR(p, mem, job);
         pan_section_unpack(p, BIFROST_TILER_JOB, DRAW, draw);
         pan_section_unpack(p, BIFROST_TILER_JOB, TILER, tiler_ptr);
-        pandecode_vertex_tiler_postfix_pre(&draw, job_no, h->type, "", true, gpu_id);
+        pandecode_dcd(&draw, job_no, h->type, "", true, gpu_id);
 
         pandecode_log("Tiler Job Payload:\n");
         pandecode_indent++;
@@ -970,7 +1002,7 @@ pandecode_tiler_job_mdg(const struct MALI_JOB_HEADER *h,
 {
         struct mali_midgard_tiler_job_packed *PANDECODE_PTR_VAR(p, mem, job);
         pan_section_unpack(p, MIDGARD_TILER_JOB, DRAW, draw);
-        pandecode_vertex_tiler_postfix_pre(&draw, job_no, h->type, "", false, gpu_id);
+        pandecode_dcd(&draw, job_no, h->type, "", false, gpu_id);
 
         pandecode_log("Tiler Job Payload:\n");
         pandecode_indent++;

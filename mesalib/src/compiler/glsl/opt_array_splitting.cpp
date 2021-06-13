@@ -474,6 +474,8 @@ optimize_split_arrays(exec_list *instructions, bool linked)
                                             entry->var->name, i);
          ir_variable *new_var =
             new(entry->mem_ctx) ir_variable(subtype, name, ir_var_temporary);
+         new_var->data.invariant = entry->var->data.invariant;
+         new_var->data.precise = entry->var->data.precise;
 
          /* Do not lose memory/format qualifiers when arrays of images are
           * split.

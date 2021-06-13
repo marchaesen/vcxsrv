@@ -69,10 +69,11 @@ struct vbo_save_vertex_list {
    GLuint min_index, max_index;
 
    struct {
-      struct _mesa_prim *prims;
       struct _mesa_index_buffer ib;
-      GLuint prim_count;
-      GLuint min_index, max_index;
+      struct pipe_draw_info info;
+      unsigned char *mode;
+      struct pipe_draw_start_count_bias *start_count;
+      unsigned num_draws;
    } merged;
 
    struct vbo_save_primitive_store *prim_store;

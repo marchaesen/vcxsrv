@@ -64,12 +64,15 @@ meson _build --native-file=native.file \
       -D libdir=lib \
       -D buildtype=${BUILDTYPE:-debug} \
       -D build-tests=true \
+      -D c_args="$(echo -n $C_ARGS)" \
+      -D cpp_args="$(echo -n $CPP_ARGS)" \
       -D libunwind=${UNWIND} \
       ${DRI_LOADERS} \
       -D dri-drivers=${DRI_DRIVERS:-[]} \
       ${GALLIUM_ST} \
       -D gallium-drivers=${GALLIUM_DRIVERS:-[]} \
       -D vulkan-drivers=${VULKAN_DRIVERS:-[]} \
+      -D werror=true \
       ${EXTRA_OPTION}
 cd _build
 meson configure

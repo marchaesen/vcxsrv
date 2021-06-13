@@ -167,7 +167,7 @@ match_mask(nir_intrinsic_instr *intrin,
        intrin->intrinsic != nir_intrinsic_store_per_vertex_output)
       slot -= VARYING_SLOT_PATCH0;
 
-   return (1UL << slot) & mask;
+   return (UINT64_C(1) << slot) & mask;
 }
 
 static bool

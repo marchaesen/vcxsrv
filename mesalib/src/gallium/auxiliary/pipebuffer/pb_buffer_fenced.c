@@ -645,7 +645,7 @@ fenced_buffer_copy_storage_to_cpu_locked(struct fenced_buffer *fenced_buf)
 
 
 static void
-fenced_buffer_destroy(struct pb_buffer *buf)
+fenced_buffer_destroy(void *winsys, struct pb_buffer *buf)
 {
    struct fenced_buffer *fenced_buf = fenced_buffer(buf);
    struct fenced_manager *fenced_mgr = fenced_buf->mgr;
@@ -908,7 +908,7 @@ fenced_bufmgr_create_buffer(struct pb_manager *mgr,
       goto no_buffer;
 
    pipe_reference_init(&fenced_buf->base.reference, 1);
-   fenced_buf->base.alignment = desc->alignment;
+   fenced_buf->base.alignment_log2 = util_logbase2(desc->alignment);
    fenced_buf->base.usage = desc->usage;
    fenced_buf->base.size = size;
    fenced_buf->size = size;

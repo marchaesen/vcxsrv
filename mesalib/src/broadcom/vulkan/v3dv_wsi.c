@@ -46,6 +46,31 @@ v3dv_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
    return vk_device_dispatch_table_get(&vk_device_trampolines, pName);
 }
 
+static bool
+v3dv_wsi_can_present_on_device(VkPhysicalDevice _pdevice, int fd)
+{
+   V3DV_FROM_HANDLE(v3dv_physical_device, pdevice, _pdevice);
+
+   drmDevicePtr fd_devinfo, display_devinfo;
+   int ret;
+
+   ret = drmGetDevice2(fd, 0, &fd_devinfo);
+   if (ret)
+      return false;
+
+   ret = drmGetDevice2(pdevice->display_fd, 0, &display_devinfo);
+   if (ret) {
+      drmFreeDevice(&fd_devinfo);
+      return false;
+   }
+
+   bool result = drmDevicesEqual(fd_devinfo, display_devinfo);
+
+   drmFreeDevice(&fd_devinfo);
+   drmFreeDevice(&display_devinfo);
+   return result;
+}
+
 VkResult
 v3dv_wsi_init(struct v3dv_physical_device *physical_device)
 {
@@ -61,6 +86,8 @@ v3dv_wsi_init(struct v3dv_physical_device *physical_device)
       return result;
 
    physical_device->wsi_device.supports_modifiers = true;
+   physical_device->wsi_device.can_present_on_device =
+      v3dv_wsi_can_present_on_device;
 
    return VK_SUCCESS;
 }

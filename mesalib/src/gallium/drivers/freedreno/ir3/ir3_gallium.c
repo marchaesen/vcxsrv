@@ -24,14 +24,14 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-#include "pipe/p_state.h"
 #include "pipe/p_screen.h"
-#include "util/u_string.h"
-#include "util/u_memory.h"
-#include "util/u_inlines.h"
-#include "util/format/u_format.h"
+#include "pipe/p_state.h"
 #include "tgsi/tgsi_dump.h"
 #include "tgsi/tgsi_parse.h"
+#include "util/format/u_format.h"
+#include "util/u_inlines.h"
+#include "util/u_memory.h"
+#include "util/u_string.h"
 
 #include "nir/tgsi_to_nir.h"
 
@@ -39,10 +39,10 @@
 #include "freedreno_util.h"
 
 #include "ir3/ir3_cache.h"
-#include "ir3/ir3_shader.h"
-#include "ir3/ir3_gallium.h"
 #include "ir3/ir3_compiler.h"
+#include "ir3/ir3_gallium.h"
 #include "ir3/ir3_nir.h"
+#include "ir3/ir3_shader.h"
 
 /**
  * The hardware cso for shader state
@@ -51,10 +51,10 @@
  * plumb in async compile.
  */
 struct ir3_shader_state {
-	struct ir3_shader *shader;
+   struct ir3_shader *shader;
 
-	/* Fence signalled when async compile is completed: */
-	struct util_queue_fence ready;
+   /* Fence signalled when async compile is completed: */
+   struct util_queue_fence ready;
 };
 
 /**
@@ -68,211 +68,196 @@ struct ir3_shader_state {
 static bool
 initial_variants_synchronous(struct fd_context *ctx)
 {
-	return unlikely(ctx->debug.debug_message) ||
-			FD_DBG(SHADERDB) || FD_DBG(SERIALC);
+   return unlikely(ctx->debug.debug_message) || FD_DBG(SHADERDB) ||
+          FD_DBG(SERIALC);
 }
 
 static void
-dump_shader_info(struct ir3_shader_variant *v, struct pipe_debug_callback *debug)
+dump_shader_info(struct ir3_shader_variant *v,
+                 struct pipe_debug_callback *debug)
 {
-	if (!FD_DBG(SHADERDB))
-		return;
+   if (!FD_DBG(SHADERDB))
+      return;
 
-	pipe_debug_message(debug, SHADER_INFO,
-			"%s shader: %u inst, %u nops, %u non-nops, %u mov, %u cov, "
-			"%u dwords, %u last-baryf, %u half, %u full, %u constlen, "
-			"%u cat0, %u cat1, %u cat2, %u cat3, %u cat4, %u cat5, %u cat6, %u cat7, "
-			"%u sstall, %u (ss), %u (sy), %d waves, %d max_sun, %d loops\n",
-			ir3_shader_stage(v),
-			v->info.instrs_count,
-			v->info.nops_count,
-			v->info.instrs_count - v->info.nops_count,
-			v->info.mov_count,
-			v->info.cov_count,
-			v->info.sizedwords,
-			v->info.last_baryf,
-			v->info.max_half_reg + 1,
-			v->info.max_reg + 1,
-			v->constlen,
-			v->info.instrs_per_cat[0],
-			v->info.instrs_per_cat[1],
-			v->info.instrs_per_cat[2],
-			v->info.instrs_per_cat[3],
-			v->info.instrs_per_cat[4],
-			v->info.instrs_per_cat[5],
-			v->info.instrs_per_cat[6],
-			v->info.instrs_per_cat[7],
-			v->info.sstall,
-			v->info.ss, v->info.sy,
-			v->info.max_waves,
-			v->max_sun, v->loops);
+   pipe_debug_message(
+      debug, SHADER_INFO,
+      "%s shader: %u inst, %u nops, %u non-nops, %u mov, %u cov, "
+      "%u dwords, %u last-baryf, %u half, %u full, %u constlen, "
+      "%u cat0, %u cat1, %u cat2, %u cat3, %u cat4, %u cat5, %u cat6, %u cat7, "
+      "%u sstall, %u (ss), %u (sy), %d waves, %d max_sun, %d loops\n",
+      ir3_shader_stage(v), v->info.instrs_count, v->info.nops_count,
+      v->info.instrs_count - v->info.nops_count, v->info.mov_count,
+      v->info.cov_count, v->info.sizedwords, v->info.last_baryf,
+      v->info.max_half_reg + 1, v->info.max_reg + 1, v->constlen,
+      v->info.instrs_per_cat[0], v->info.instrs_per_cat[1],
+      v->info.instrs_per_cat[2], v->info.instrs_per_cat[3],
+      v->info.instrs_per_cat[4], v->info.instrs_per_cat[5],
+      v->info.instrs_per_cat[6], v->info.instrs_per_cat[7], v->info.sstall,
+      v->info.ss, v->info.sy, v->info.max_waves, v->max_sun, v->loops);
 }
 
 static void
 upload_shader_variant(struct ir3_shader_variant *v)
 {
-	struct shader_info *info = &v->shader->nir->info;
-	struct ir3_compiler *compiler = v->shader->compiler;
+   struct shader_info *info = &v->shader->nir->info;
+   struct ir3_compiler *compiler = v->shader->compiler;
 
-	assert(!v->bo);
+   assert(!v->bo);
 
-	v->bo = fd_bo_new(compiler->dev, v->info.size,
-			DRM_FREEDRENO_GEM_CACHE_WCOMBINE |
-			DRM_FREEDRENO_GEM_TYPE_KMEM,
-			"%s:%s", ir3_shader_stage(v), info->name);
+   v->bo =
+      fd_bo_new(compiler->dev, v->info.size, 0,
+                "%s:%s", ir3_shader_stage(v), info->name);
 
-	/* Always include shaders in kernel crash dumps. */
-	fd_bo_mark_for_dump(v->bo);
+   /* Always include shaders in kernel crash dumps. */
+   fd_bo_mark_for_dump(v->bo);
 
-	memcpy(fd_bo_map(v->bo), v->bin, v->info.size);
+   memcpy(fd_bo_map(v->bo), v->bin, v->info.size);
 }
 
 struct ir3_shader_variant *
 ir3_shader_variant(struct ir3_shader *shader, struct ir3_shader_key key,
-		bool binning_pass, struct pipe_debug_callback *debug)
+                   bool binning_pass, struct pipe_debug_callback *debug)
 {
-	struct ir3_shader_variant *v;
-	bool created = false;
+   struct ir3_shader_variant *v;
+   bool created = false;
 
-	/* Some shader key values may not be used by a given ir3_shader (for
-	 * example, fragment shader saturates in the vertex shader), so clean out
-	 * those flags to avoid recompiling.
-	 */
-	ir3_key_clear_unused(&key, shader);
+   /* Some shader key values may not be used by a given ir3_shader (for
+    * example, fragment shader saturates in the vertex shader), so clean out
+    * those flags to avoid recompiling.
+    */
+   ir3_key_clear_unused(&key, shader);
 
-	v = ir3_shader_get_variant(shader, &key, binning_pass, false, &created);
+   v = ir3_shader_get_variant(shader, &key, binning_pass, false, &created);
 
-	if (created) {
-		if (shader->initial_variants_done) {
-			pipe_debug_message(debug, SHADER_INFO,
-					"%s shader: recompiling at draw time: global 0x%08x, vfsamples %x/%x, astc %x/%x\n",
-					ir3_shader_stage(v),
-					key.global,
-					key.vsamples, key.fsamples,
-					key.vastc_srgb, key.fastc_srgb);
+   if (created) {
+      if (shader->initial_variants_done) {
+         pipe_debug_message(debug, SHADER_INFO,
+                            "%s shader: recompiling at draw time: global "
+                            "0x%08x, vfsamples %x/%x, astc %x/%x\n",
+                            ir3_shader_stage(v), key.global, key.vsamples,
+                            key.fsamples, key.vastc_srgb, key.fastc_srgb);
+      }
 
-		}
+      dump_shader_info(v, debug);
+      upload_shader_variant(v);
 
-		dump_shader_info(v, debug);
-		upload_shader_variant(v);
+      if (v->binning) {
+         upload_shader_variant(v->binning);
+         dump_shader_info(v->binning, debug);
+      }
+   }
 
-		if (v->binning) {
-			upload_shader_variant(v->binning);
-			dump_shader_info(v->binning, debug);
-		}
-	}
-
-	return v;
+   return v;
 }
 
 static void
 copy_stream_out(struct ir3_stream_output_info *i,
-		const struct pipe_stream_output_info *p)
+                const struct pipe_stream_output_info *p)
 {
-	STATIC_ASSERT(ARRAY_SIZE(i->stride) == ARRAY_SIZE(p->stride));
-	STATIC_ASSERT(ARRAY_SIZE(i->output) == ARRAY_SIZE(p->output));
+   STATIC_ASSERT(ARRAY_SIZE(i->stride) == ARRAY_SIZE(p->stride));
+   STATIC_ASSERT(ARRAY_SIZE(i->output) == ARRAY_SIZE(p->output));
 
-	i->num_outputs = p->num_outputs;
-	for (int n = 0; n < ARRAY_SIZE(i->stride); n++)
-		i->stride[n] = p->stride[n];
+   i->num_outputs = p->num_outputs;
+   for (int n = 0; n < ARRAY_SIZE(i->stride); n++)
+      i->stride[n] = p->stride[n];
 
-	for (int n = 0; n < ARRAY_SIZE(i->output); n++) {
-		i->output[n].register_index  = p->output[n].register_index;
-		i->output[n].start_component = p->output[n].start_component;
-		i->output[n].num_components  = p->output[n].num_components;
-		i->output[n].output_buffer   = p->output[n].output_buffer;
-		i->output[n].dst_offset      = p->output[n].dst_offset;
-		i->output[n].stream          = p->output[n].stream;
-	}
+   for (int n = 0; n < ARRAY_SIZE(i->output); n++) {
+      i->output[n].register_index = p->output[n].register_index;
+      i->output[n].start_component = p->output[n].start_component;
+      i->output[n].num_components = p->output[n].num_components;
+      i->output[n].output_buffer = p->output[n].output_buffer;
+      i->output[n].dst_offset = p->output[n].dst_offset;
+      i->output[n].stream = p->output[n].stream;
+   }
 }
 
 static void
 create_initial_variants(struct ir3_shader_state *hwcso,
-		struct pipe_debug_callback *debug)
+                        struct pipe_debug_callback *debug)
 {
-	struct ir3_shader *shader = hwcso->shader;
-	struct ir3_compiler *compiler = shader->compiler;
-	nir_shader *nir = shader->nir;
+   struct ir3_shader *shader = hwcso->shader;
+   struct ir3_compiler *compiler = shader->compiler;
+   nir_shader *nir = shader->nir;
 
-	/* Compile standard variants immediately to try to avoid draw-time stalls
-	 * to run the compiler.
-	 */
-	struct ir3_shader_key key = {
-		.tessellation = IR3_TESS_NONE,
-		.ucp_enables = MASK(nir->info.clip_distance_array_size),
-		.msaa = true,
-	};
+   /* Compile standard variants immediately to try to avoid draw-time stalls
+    * to run the compiler.
+    */
+   struct ir3_shader_key key = {
+      .tessellation = IR3_TESS_NONE,
+      .ucp_enables = MASK(nir->info.clip_distance_array_size),
+      .msaa = true,
+   };
 
-	switch (nir->info.stage) {
-	case MESA_SHADER_TESS_EVAL:
-		key.tessellation = ir3_tess_mode(nir->info.tess.primitive_mode);
-		break;
+   switch (nir->info.stage) {
+   case MESA_SHADER_TESS_EVAL:
+      key.tessellation = ir3_tess_mode(nir->info.tess.primitive_mode);
+      break;
 
-	case MESA_SHADER_TESS_CTRL:
-		/* The primitive_mode field, while it exists for TCS, is not
-		 * populated (since separable shaders between TCS/TES are legal,
-		 * so TCS wouldn't have access to TES's declaration).  Make a
-		 * guess so that we shader-db something plausible for TCS.
-		 */
-		if (nir->info.outputs_written & VARYING_BIT_TESS_LEVEL_INNER)
-			key.tessellation = IR3_TESS_TRIANGLES;
-		else
-			key.tessellation = IR3_TESS_ISOLINES;
-		break;
+   case MESA_SHADER_TESS_CTRL:
+      /* The primitive_mode field, while it exists for TCS, is not
+       * populated (since separable shaders between TCS/TES are legal,
+       * so TCS wouldn't have access to TES's declaration).  Make a
+       * guess so that we shader-db something plausible for TCS.
+       */
+      if (nir->info.outputs_written & VARYING_BIT_TESS_LEVEL_INNER)
+         key.tessellation = IR3_TESS_TRIANGLES;
+      else
+         key.tessellation = IR3_TESS_ISOLINES;
+      break;
 
-	case MESA_SHADER_GEOMETRY:
-		key.has_gs = true;
-		break;
+   case MESA_SHADER_GEOMETRY:
+      key.has_gs = true;
+      break;
 
-	default:
-		break;
-	}
+   default:
+      break;
+   }
 
-	key.safe_constlen = false;
-	struct ir3_shader_variant *v = ir3_shader_variant(shader, key, false, debug);
-	if (!v)
-		return;
+   key.safe_constlen = false;
+   struct ir3_shader_variant *v = ir3_shader_variant(shader, key, false, debug);
+   if (!v)
+      return;
 
-	if (v->constlen > compiler->max_const_safe) {
-		key.safe_constlen = true;
-		ir3_shader_variant(shader, key, false, debug);
-	}
+   if (v->constlen > compiler->max_const_safe) {
+      key.safe_constlen = true;
+      ir3_shader_variant(shader, key, false, debug);
+   }
 
-	/* For vertex shaders, also compile initial binning pass shader: */
-	if (nir->info.stage == MESA_SHADER_VERTEX) {
-		key.safe_constlen = false;
-		v = ir3_shader_variant(shader, key, true, debug);
-		if (!v)
-			return;
+   /* For vertex shaders, also compile initial binning pass shader: */
+   if (nir->info.stage == MESA_SHADER_VERTEX) {
+      key.safe_constlen = false;
+      v = ir3_shader_variant(shader, key, true, debug);
+      if (!v)
+         return;
 
-		if (v->constlen > compiler->max_const_safe) {
-			key.safe_constlen = true;
-			ir3_shader_variant(shader, key, true, debug);
-		}
-	}
+      if (v->constlen > compiler->max_const_safe) {
+         key.safe_constlen = true;
+         ir3_shader_variant(shader, key, true, debug);
+      }
+   }
 
-	shader->initial_variants_done = true;
+   shader->initial_variants_done = true;
 }
 
 static void
 create_initial_variants_async(void *job, int thread_index)
 {
-	struct ir3_shader_state *hwcso = job;
-	struct pipe_debug_callback debug = {};
+   struct ir3_shader_state *hwcso = job;
+   struct pipe_debug_callback debug = {};
 
-	create_initial_variants(hwcso, &debug);
+   create_initial_variants(hwcso, &debug);
 }
 
 static void
 create_initial_compute_variants_async(void *job, int thread_index)
 {
-	struct ir3_shader_state *hwcso = job;
-	struct ir3_shader *shader = hwcso->shader;
-	struct pipe_debug_callback debug = {};
-	static struct ir3_shader_key key; /* static is implicitly zeroed */
+   struct ir3_shader_state *hwcso = job;
+   struct ir3_shader *shader = hwcso->shader;
+   struct pipe_debug_callback debug = {};
+   static struct ir3_shader_key key; /* static is implicitly zeroed */
 
-	ir3_shader_variant(shader, key, false, &debug);
-	shader->initial_variants_done = true;
+   ir3_shader_variant(shader, key, false, &debug);
+   shader->initial_variants_done = true;
 }
 
 /* a bit annoying that compute-shader and normal shader state objects
@@ -280,172 +265,172 @@ create_initial_compute_variants_async(void *job, int thread_index)
  */
 void *
 ir3_shader_compute_state_create(struct pipe_context *pctx,
-		const struct pipe_compute_state *cso)
+                                const struct pipe_compute_state *cso)
 {
-	struct fd_context *ctx = fd_context(pctx);
+   struct fd_context *ctx = fd_context(pctx);
 
-	/* req_input_mem will only be non-zero for cl kernels (ie. clover).
-	 * This isn't a perfect test because I guess it is possible (but
-	 * uncommon) for none for the kernel parameters to be a global,
-	 * but ctx->set_global_bindings() can't fail, so this is the next
-	 * best place to fail if we need a newer version of kernel driver:
-	 */
-	if ((cso->req_input_mem > 0) &&
-			fd_device_version(ctx->dev) < FD_VERSION_BO_IOVA) {
-		return NULL;
-	}
+   /* req_input_mem will only be non-zero for cl kernels (ie. clover).
+    * This isn't a perfect test because I guess it is possible (but
+    * uncommon) for none for the kernel parameters to be a global,
+    * but ctx->set_global_bindings() can't fail, so this is the next
+    * best place to fail if we need a newer version of kernel driver:
+    */
+   if ((cso->req_input_mem > 0) &&
+       fd_device_version(ctx->dev) < FD_VERSION_BO_IOVA) {
+      return NULL;
+   }
 
-	struct ir3_compiler *compiler = ctx->screen->compiler;
-	nir_shader *nir;
+   struct ir3_compiler *compiler = ctx->screen->compiler;
+   nir_shader *nir;
 
-	if (cso->ir_type == PIPE_SHADER_IR_NIR) {
-		/* we take ownership of the reference: */
-		nir = (nir_shader *)cso->prog;
-	} else {
-		debug_assert(cso->ir_type == PIPE_SHADER_IR_TGSI);
-		if (ir3_shader_debug & IR3_DBG_DISASM) {
-			tgsi_dump(cso->prog, 0);
-		}
-		nir = tgsi_to_nir(cso->prog, pctx->screen, false);
-	}
+   if (cso->ir_type == PIPE_SHADER_IR_NIR) {
+      /* we take ownership of the reference: */
+      nir = (nir_shader *)cso->prog;
+   } else {
+      debug_assert(cso->ir_type == PIPE_SHADER_IR_TGSI);
+      if (ir3_shader_debug & IR3_DBG_DISASM) {
+         tgsi_dump(cso->prog, 0);
+      }
+      nir = tgsi_to_nir(cso->prog, pctx->screen, false);
+   }
 
-	struct ir3_shader *shader = ir3_shader_from_nir(compiler, nir, 0, NULL);
-	struct ir3_shader_state *hwcso = calloc(1, sizeof(*hwcso));
+   struct ir3_shader *shader = ir3_shader_from_nir(compiler, nir, 0, NULL);
+   struct ir3_shader_state *hwcso = calloc(1, sizeof(*hwcso));
 
-	util_queue_fence_init(&hwcso->ready);
-	hwcso->shader = shader;
+   util_queue_fence_init(&hwcso->ready);
+   hwcso->shader = shader;
 
-	/* Immediately compile a standard variant.  We have so few variants in our
-	 * shaders, that doing so almost eliminates draw-time recompiles.  (This
-	 * is also how we get data from shader-db's ./run)
-	 */
+   /* Immediately compile a standard variant.  We have so few variants in our
+    * shaders, that doing so almost eliminates draw-time recompiles.  (This
+    * is also how we get data from shader-db's ./run)
+    */
 
-	if (initial_variants_synchronous(ctx)) {
-		static struct ir3_shader_key key; /* static is implicitly zeroed */
-		ir3_shader_variant(shader, key, false, &ctx->debug);
-		shader->initial_variants_done = true;
-	} else {
-		struct fd_screen *screen = ctx->screen;
-		util_queue_add_job(&screen->compile_queue, hwcso,
-				&hwcso->ready, create_initial_compute_variants_async,
-				NULL, 0);
-	}
+   if (initial_variants_synchronous(ctx)) {
+      static struct ir3_shader_key key; /* static is implicitly zeroed */
+      ir3_shader_variant(shader, key, false, &ctx->debug);
+      shader->initial_variants_done = true;
+   } else {
+      struct fd_screen *screen = ctx->screen;
+      util_queue_add_job(&screen->compile_queue, hwcso, &hwcso->ready,
+                         create_initial_compute_variants_async, NULL, 0);
+   }
 
-	return hwcso;
+   return hwcso;
 }
 
 void *
-ir3_shader_state_create(struct pipe_context *pctx, const struct pipe_shader_state *cso)
+ir3_shader_state_create(struct pipe_context *pctx,
+                        const struct pipe_shader_state *cso)
 {
-	struct fd_context *ctx = fd_context(pctx);
-	struct ir3_compiler *compiler = ctx->screen->compiler;
-	struct ir3_shader_state *hwcso = calloc(1, sizeof(*hwcso));
+   struct fd_context *ctx = fd_context(pctx);
+   struct ir3_compiler *compiler = ctx->screen->compiler;
+   struct ir3_shader_state *hwcso = calloc(1, sizeof(*hwcso));
 
-	/*
-	 * Convert to nir (if necessary):
-	 */
+   /*
+    * Convert to nir (if necessary):
+    */
 
-	nir_shader *nir;
-	if (cso->type == PIPE_SHADER_IR_NIR) {
-		/* we take ownership of the reference: */
-		nir = cso->ir.nir;
-	} else {
-		debug_assert(cso->type == PIPE_SHADER_IR_TGSI);
-		if (ir3_shader_debug & IR3_DBG_DISASM) {
-			tgsi_dump(cso->tokens, 0);
-		}
-		nir = tgsi_to_nir(cso->tokens, pctx->screen, false);
-	}
+   nir_shader *nir;
+   if (cso->type == PIPE_SHADER_IR_NIR) {
+      /* we take ownership of the reference: */
+      nir = cso->ir.nir;
+   } else {
+      debug_assert(cso->type == PIPE_SHADER_IR_TGSI);
+      if (ir3_shader_debug & IR3_DBG_DISASM) {
+         tgsi_dump(cso->tokens, 0);
+      }
+      nir = tgsi_to_nir(cso->tokens, pctx->screen, false);
+   }
 
-	/*
-	 * Create ir3_shader:
-	 *
-	 * This part is cheap, it doesn't compile initial variants
-	 */
+   /*
+    * Create ir3_shader:
+    *
+    * This part is cheap, it doesn't compile initial variants
+    */
 
-	struct ir3_stream_output_info stream_output = {};
-	copy_stream_out(&stream_output, &cso->stream_output);
+   struct ir3_stream_output_info stream_output = {};
+   copy_stream_out(&stream_output, &cso->stream_output);
 
-	hwcso->shader = ir3_shader_from_nir(compiler, nir, 0, &stream_output);
+   hwcso->shader = ir3_shader_from_nir(compiler, nir, 0, &stream_output);
 
-	/*
-	 * Create initial variants to avoid draw-time stalls.  This is
-	 * normally done asynchronously, unless debug is enabled (which
-	 * will be the case for shader-db)
-	 */
+   /*
+    * Create initial variants to avoid draw-time stalls.  This is
+    * normally done asynchronously, unless debug is enabled (which
+    * will be the case for shader-db)
+    */
 
-	util_queue_fence_init(&hwcso->ready);
+   util_queue_fence_init(&hwcso->ready);
 
-	if (initial_variants_synchronous(ctx)) {
-		create_initial_variants(hwcso, &ctx->debug);
-	} else {
-		util_queue_add_job(&ctx->screen->compile_queue, hwcso,
-				&hwcso->ready, create_initial_variants_async,
-				NULL, 0);
-	}
+   if (initial_variants_synchronous(ctx)) {
+      create_initial_variants(hwcso, &ctx->debug);
+   } else {
+      util_queue_add_job(&ctx->screen->compile_queue, hwcso, &hwcso->ready,
+                         create_initial_variants_async, NULL, 0);
+   }
 
-	return hwcso;
+   return hwcso;
 }
 
 void
 ir3_shader_state_delete(struct pipe_context *pctx, void *_hwcso)
 {
-	struct fd_context *ctx = fd_context(pctx);
-	struct fd_screen *screen = ctx->screen;
-	struct ir3_shader_state *hwcso = _hwcso;
-	struct ir3_shader *so = hwcso->shader;
+   struct fd_context *ctx = fd_context(pctx);
+   struct fd_screen *screen = ctx->screen;
+   struct ir3_shader_state *hwcso = _hwcso;
+   struct ir3_shader *so = hwcso->shader;
 
-	ir3_cache_invalidate(ctx->shader_cache, hwcso);
+   ir3_cache_invalidate(ctx->shader_cache, hwcso);
 
-	/* util_queue_drop_job() guarantees that either:
-	 *  1) job did not execute
-	 *  2) job completed
-	 *
-	 * In either case the fence is signaled
-	 */
-	util_queue_drop_job(&screen->compile_queue, &hwcso->ready);
+   /* util_queue_drop_job() guarantees that either:
+    *  1) job did not execute
+    *  2) job completed
+    *
+    * In either case the fence is signaled
+    */
+   util_queue_drop_job(&screen->compile_queue, &hwcso->ready);
 
-	/* free the uploaded shaders, since this is handled outside of the
-	 * shared ir3 code (ie. not used by turnip):
-	 */
-	for (struct ir3_shader_variant *v = so->variants; v; v = v->next) {
-		fd_bo_del(v->bo);
-		v->bo = NULL;
+   /* free the uploaded shaders, since this is handled outside of the
+    * shared ir3 code (ie. not used by turnip):
+    */
+   for (struct ir3_shader_variant *v = so->variants; v; v = v->next) {
+      fd_bo_del(v->bo);
+      v->bo = NULL;
 
-		if (v->binning && v->binning->bo) {
-			fd_bo_del(v->binning->bo);
-			v->binning->bo = NULL;
-		}
-	}
+      if (v->binning && v->binning->bo) {
+         fd_bo_del(v->binning->bo);
+         v->binning->bo = NULL;
+      }
+   }
 
-	ir3_shader_destroy(so);
-	util_queue_fence_destroy(&hwcso->ready);
-	free(hwcso);
+   ir3_shader_destroy(so);
+   util_queue_fence_destroy(&hwcso->ready);
+   free(hwcso);
 }
 
 struct ir3_shader *
 ir3_get_shader(struct ir3_shader_state *hwcso)
 {
-	if (!hwcso)
-		return NULL;
+   if (!hwcso)
+      return NULL;
 
-	struct ir3_shader *shader = hwcso->shader;
-	perf_time(1000, "waited for %s:%s:%s variants",
-			_mesa_shader_stage_to_abbrev(shader->type),
-			shader->nir->info.name, shader->nir->info.label) {
-		/* wait for initial variants to compile: */
-		util_queue_fence_wait(&hwcso->ready);
-	}
+   struct ir3_shader *shader = hwcso->shader;
+   perf_time (1000, "waited for %s:%s:%s variants",
+              _mesa_shader_stage_to_abbrev(shader->type),
+              shader->nir->info.name,
+              shader->nir->info.label) {
+      /* wait for initial variants to compile: */
+      util_queue_fence_wait(&hwcso->ready);
+   }
 
-	return shader;
+   return shader;
 }
 
 struct shader_info *
 ir3_get_shader_info(struct ir3_shader_state *hwcso)
 {
-	if (!hwcso)
-		return NULL;
-	return &hwcso->shader->nir->info;
+   if (!hwcso)
+      return NULL;
+   return &hwcso->shader->nir->info;
 }
 
 /* fixup dirty shader state in case some "unrelated" (from the state-
@@ -455,147 +440,152 @@ ir3_get_shader_info(struct ir3_shader_state *hwcso)
 void
 ir3_fixup_shader_state(struct pipe_context *pctx, struct ir3_shader_key *key)
 {
-	struct fd_context *ctx = fd_context(pctx);
+   struct fd_context *ctx = fd_context(pctx);
 
-	if (!ir3_shader_key_equal(ctx->last.key, key)) {
-		if (ir3_shader_key_changes_fs(ctx->last.key, key)) {
-			fd_context_dirty_shader(ctx, PIPE_SHADER_FRAGMENT, FD_DIRTY_SHADER_PROG);
-		}
+   if (!ir3_shader_key_equal(ctx->last.key, key)) {
+      if (ir3_shader_key_changes_fs(ctx->last.key, key)) {
+         fd_context_dirty_shader(ctx, PIPE_SHADER_FRAGMENT,
+                                 FD_DIRTY_SHADER_PROG);
+      }
 
-		if (ir3_shader_key_changes_vs(ctx->last.key, key)) {
-			fd_context_dirty_shader(ctx, PIPE_SHADER_VERTEX, FD_DIRTY_SHADER_PROG);
-		}
+      if (ir3_shader_key_changes_vs(ctx->last.key, key)) {
+         fd_context_dirty_shader(ctx, PIPE_SHADER_VERTEX, FD_DIRTY_SHADER_PROG);
+      }
 
-		/* NOTE: currently only a6xx has gs/tess, but needs no
-		 * gs/tess specific lowering.
-		 */
+      /* NOTE: currently only a6xx has gs/tess, but needs no
+       * gs/tess specific lowering.
+       */
 
-		*ctx->last.key = *key;
-	}
+      *ctx->last.key = *key;
+   }
 }
 
 static void
 ir3_screen_finalize_nir(struct pipe_screen *pscreen, void *nir, bool optimize)
 {
-	struct fd_screen *screen = fd_screen(pscreen);
+   struct fd_screen *screen = fd_screen(pscreen);
 
-	ir3_finalize_nir(screen->compiler, nir);
+   ir3_nir_lower_io_to_temporaries(nir);
+   ir3_finalize_nir(screen->compiler, nir);
 }
 
 static void
-ir3_set_max_shader_compiler_threads(struct pipe_screen *pscreen, unsigned max_threads)
+ir3_set_max_shader_compiler_threads(struct pipe_screen *pscreen,
+                                    unsigned max_threads)
 {
-	struct fd_screen *screen = fd_screen(pscreen);
+   struct fd_screen *screen = fd_screen(pscreen);
 
-	/* This function doesn't allow a greater number of threads than
-	 * the queue had at its creation.
-	 */
-	util_queue_adjust_num_threads(&screen->compile_queue, max_threads);
+   /* This function doesn't allow a greater number of threads than
+    * the queue had at its creation.
+    */
+   util_queue_adjust_num_threads(&screen->compile_queue, max_threads);
 }
 
 static bool
 ir3_is_parallel_shader_compilation_finished(struct pipe_screen *pscreen,
-		void *shader, enum pipe_shader_type shader_type)
+                                            void *shader,
+                                            enum pipe_shader_type shader_type)
 {
-	struct ir3_shader_state *hwcso = (struct ir3_shader_state *)shader;
+   struct ir3_shader_state *hwcso = (struct ir3_shader_state *)shader;
 
-	return util_queue_fence_is_signalled(&hwcso->ready);
+   return util_queue_fence_is_signalled(&hwcso->ready);
 }
 
 void
 ir3_prog_init(struct pipe_context *pctx)
 {
-	pctx->create_vs_state = ir3_shader_state_create;
-	pctx->delete_vs_state = ir3_shader_state_delete;
+   pctx->create_vs_state = ir3_shader_state_create;
+   pctx->delete_vs_state = ir3_shader_state_delete;
 
-	pctx->create_tcs_state = ir3_shader_state_create;
-	pctx->delete_tcs_state = ir3_shader_state_delete;
+   pctx->create_tcs_state = ir3_shader_state_create;
+   pctx->delete_tcs_state = ir3_shader_state_delete;
 
-	pctx->create_tes_state = ir3_shader_state_create;
-	pctx->delete_tes_state = ir3_shader_state_delete;
+   pctx->create_tes_state = ir3_shader_state_create;
+   pctx->delete_tes_state = ir3_shader_state_delete;
 
-	pctx->create_gs_state = ir3_shader_state_create;
-	pctx->delete_gs_state = ir3_shader_state_delete;
+   pctx->create_gs_state = ir3_shader_state_create;
+   pctx->delete_gs_state = ir3_shader_state_delete;
 
-	pctx->create_fs_state = ir3_shader_state_create;
-	pctx->delete_fs_state = ir3_shader_state_delete;
+   pctx->create_fs_state = ir3_shader_state_create;
+   pctx->delete_fs_state = ir3_shader_state_delete;
 }
 
 void
 ir3_screen_init(struct pipe_screen *pscreen)
 {
-	struct fd_screen *screen = fd_screen(pscreen);
+   struct fd_screen *screen = fd_screen(pscreen);
 
-	screen->compiler = ir3_compiler_create(screen->dev, screen->gpu_id);
+   screen->compiler = ir3_compiler_create(screen->dev, screen->gpu_id, false);
 
-	/* TODO do we want to limit things to # of fast cores, or just limit
-	 * based on total # of both big and little cores.  The little cores
-	 * tend to be in-order and probably much slower for compiling than
-	 * big cores.  OTOH if they are sitting idle, maybe it is useful to
-	 * use them?
-	 */
-	unsigned num_threads = sysconf(_SC_NPROCESSORS_ONLN) - 1;
+   /* TODO do we want to limit things to # of fast cores, or just limit
+    * based on total # of both big and little cores.  The little cores
+    * tend to be in-order and probably much slower for compiling than
+    * big cores.  OTOH if they are sitting idle, maybe it is useful to
+    * use them?
+    */
+   unsigned num_threads = sysconf(_SC_NPROCESSORS_ONLN) - 1;
 
-	util_queue_init(&screen->compile_queue, "ir3q", 64, num_threads,
-			UTIL_QUEUE_INIT_RESIZE_IF_FULL |
-			UTIL_QUEUE_INIT_SET_FULL_THREAD_AFFINITY);
+   util_queue_init(&screen->compile_queue, "ir3q", 64, num_threads,
+                   UTIL_QUEUE_INIT_RESIZE_IF_FULL |
+                      UTIL_QUEUE_INIT_SET_FULL_THREAD_AFFINITY);
 
-	pscreen->finalize_nir = ir3_screen_finalize_nir;
-	pscreen->set_max_shader_compiler_threads =
-			ir3_set_max_shader_compiler_threads;
-	pscreen->is_parallel_shader_compilation_finished =
-			ir3_is_parallel_shader_compilation_finished;
+   pscreen->finalize_nir = ir3_screen_finalize_nir;
+   pscreen->set_max_shader_compiler_threads =
+      ir3_set_max_shader_compiler_threads;
+   pscreen->is_parallel_shader_compilation_finished =
+      ir3_is_parallel_shader_compilation_finished;
 }
 
 void
 ir3_screen_fini(struct pipe_screen *pscreen)
 {
-	struct fd_screen *screen = fd_screen(pscreen);
+   struct fd_screen *screen = fd_screen(pscreen);
 
-	util_queue_destroy(&screen->compile_queue);
-	ir3_compiler_destroy(screen->compiler);
-	screen->compiler = NULL;
+   util_queue_destroy(&screen->compile_queue);
+   ir3_compiler_destroy(screen->compiler);
+   screen->compiler = NULL;
 }
 
 void
-ir3_update_max_tf_vtx(struct fd_context *ctx, const struct ir3_shader_variant *v)
+ir3_update_max_tf_vtx(struct fd_context *ctx,
+                      const struct ir3_shader_variant *v)
 {
-	struct fd_streamout_stateobj *so = &ctx->streamout;
-	struct ir3_stream_output_info *info = &v->shader->stream_output;
-	uint32_t maxvtxcnt = 0x7fffffff;
+   struct fd_streamout_stateobj *so = &ctx->streamout;
+   struct ir3_stream_output_info *info = &v->shader->stream_output;
+   uint32_t maxvtxcnt = 0x7fffffff;
 
-	if (v->shader->stream_output.num_outputs == 0)
-		ctx->streamout.max_tf_vtx = 0;
-	if (so->num_targets == 0)
-		ctx->streamout.max_tf_vtx = 0;
+   if (v->shader->stream_output.num_outputs == 0)
+      ctx->streamout.max_tf_vtx = 0;
+   if (so->num_targets == 0)
+      ctx->streamout.max_tf_vtx = 0;
 
-	/* offset to write to is:
-	 *
-	 *   total_vtxcnt = vtxcnt + offsets[i]
-	 *   offset = total_vtxcnt * stride[i]
-	 *
-	 *   offset =   vtxcnt * stride[i]       ; calculated in shader
-	 *            + offsets[i] * stride[i]   ; calculated at emit_tfbos()
-	 *
-	 * assuming for each vtx, each target buffer will have data written
-	 * up to 'offset + stride[i]', that leaves maxvtxcnt as:
-	 *
-	 *   buffer_size = (maxvtxcnt * stride[i]) + stride[i]
-	 *   maxvtxcnt   = (buffer_size - stride[i]) / stride[i]
-	 *
-	 * but shader is actually doing a less-than (rather than less-than-
-	 * equal) check, so we can drop the -stride[i].
-	 *
-	 * TODO is assumption about `offset + stride[i]` legit?
-	 */
-	for (unsigned i = 0; i < so->num_targets; i++) {
-		struct pipe_stream_output_target *target = so->targets[i];
-		unsigned stride = info->stride[i] * 4;   /* convert dwords->bytes */
-		if (target) {
-			uint32_t max = target->buffer_size / stride;
-			maxvtxcnt = MIN2(maxvtxcnt, max);
-		}
-	}
+   /* offset to write to is:
+    *
+    *   total_vtxcnt = vtxcnt + offsets[i]
+    *   offset = total_vtxcnt * stride[i]
+    *
+    *   offset =   vtxcnt * stride[i]       ; calculated in shader
+    *            + offsets[i] * stride[i]   ; calculated at emit_tfbos()
+    *
+    * assuming for each vtx, each target buffer will have data written
+    * up to 'offset + stride[i]', that leaves maxvtxcnt as:
+    *
+    *   buffer_size = (maxvtxcnt * stride[i]) + stride[i]
+    *   maxvtxcnt   = (buffer_size - stride[i]) / stride[i]
+    *
+    * but shader is actually doing a less-than (rather than less-than-
+    * equal) check, so we can drop the -stride[i].
+    *
+    * TODO is assumption about `offset + stride[i]` legit?
+    */
+   for (unsigned i = 0; i < so->num_targets; i++) {
+      struct pipe_stream_output_target *target = so->targets[i];
+      unsigned stride = info->stride[i] * 4; /* convert dwords->bytes */
+      if (target) {
+         uint32_t max = target->buffer_size / stride;
+         maxvtxcnt = MIN2(maxvtxcnt, max);
+      }
+   }
 
-	ctx->streamout.max_tf_vtx = maxvtxcnt;
+   ctx->streamout.max_tf_vtx = maxvtxcnt;
 }

@@ -43,6 +43,9 @@
 #include "xace.h"
 #include "inpututils.h"
 
+#include "exglobals.h"
+#include "privates.h"
+
 #include "xiquerydevice.h"
 
 static Bool ShouldSkipDevice(ClientPtr client, int deviceid, DeviceIntPtr d);
@@ -233,6 +236,9 @@ SizeDeviceClasses(DeviceIntPtr dev)
 
     if (dev->touch)
         len += sizeof(xXITouchInfo);
+
+    if (dev->gesture)
+        len += sizeof(xXIGestureInfo);
 
     return len;
 }
@@ -464,6 +470,46 @@ SwapTouchInfo(DeviceIntPtr dev, xXITouchInfo * touch)
     swaps(&touch->sourceid);
 }
 
+static Bool ShouldListGestureInfo(ClientPtr client)
+{
+    /* libxcb 14.1 and older are not forwards-compatible with new device classes as it does not
+     * properly ignore unknown device classes. Since breaking libxcb would break quite a lot of
+     * applications, we instead report Gesture device class only if the client advertised support
+     * for XI 2.4. Clients may still not work in cases when a client advertises XI 2.4 support
+     * and then a completely separate module within the client uses broken libxcb to call
+     * XIQueryDevice.
+     */
+    XIClientPtr pXIClient = dixLookupPrivate(&client->devPrivates, XIClientPrivateKey);
+    if (pXIClient->major_version) {
+        return version_compare(pXIClient->major_version, pXIClient->minor_version, 2, 4) >= 0;
+    }
+    return FALSE;
+}
+
+/**
+ * List gesture information
+ *
+ * @return The number of bytes written into info.
+ */
+static int
+ListGestureInfo(DeviceIntPtr dev, xXIGestureInfo * gesture)
+{
+    gesture->type = XIGestureClass;
+    gesture->length = sizeof(xXIGestureInfo) >> 2;
+    gesture->sourceid = dev->gesture->sourceid;
+    gesture->num_touches = dev->gesture->max_touches;
+
+    return gesture->length << 2;
+}
+
+static void
+SwapGestureInfo(DeviceIntPtr dev, xXIGestureInfo * gesture)
+{
+    swaps(&gesture->type);
+    swaps(&gesture->length);
+    swaps(&gesture->sourceid);
+}
+
 int
 GetDeviceUse(DeviceIntPtr dev, uint16_t * attachment)
 {
@@ -567,6 +613,13 @@ ListDeviceClasses(ClientPtr client, DeviceIntPtr dev,
         total_len += len;
     }
 
+    if (dev->gesture && ShouldListGestureInfo(client)) {
+        (*nclasses)++;
+        len = ListGestureInfo(dev, (xXIGestureInfo *) any);
+        any += len;
+        total_len += len;
+    }
+
     return total_len;
 }
 
@@ -598,7 +651,9 @@ SwapDeviceInfo(DeviceIntPtr dev, xXIDeviceInfo * info)
         case XITouchClass:
             SwapTouchInfo(dev, (xXITouchInfo *) any);
             break;
-
+        case XIGestureClass:
+            SwapGestureInfo(dev, (xXIGestureInfo *) any);
+            break;
         }
 
         any += len * 4;

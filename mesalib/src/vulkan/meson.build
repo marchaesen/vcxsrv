@@ -59,9 +59,6 @@ if with_xlib_lease
   vulkan_wsi_deps += [dep_xlib_xrandr]
   vulkan_wsi_list += ['xlib_xrandr']
 endif
-if with_platform_windows
-  vulkan_wsi_args += ['-DVK_USE_PLATFORM_WIN32_KHR']
-endif
 
 
 subdir('util')

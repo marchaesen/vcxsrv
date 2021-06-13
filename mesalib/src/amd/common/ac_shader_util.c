@@ -109,8 +109,8 @@ unsigned ac_get_tbuffer_format(enum chip_class chip_class, unsigned dfmt, unsign
 {
    // Some games try to access vertex buffers without a valid format.
    // This is a game bug, but we should still handle it gracefully.
-   if (dfmt == V_008F0C_IMG_FORMAT_INVALID)
-      return V_008F0C_IMG_FORMAT_INVALID;
+   if (dfmt == V_008F0C_GFX10_FORMAT_INVALID)
+      return V_008F0C_GFX10_FORMAT_INVALID;
 
    if (chip_class >= GFX10) {
       unsigned format;
@@ -118,40 +118,43 @@ unsigned ac_get_tbuffer_format(enum chip_class chip_class, unsigned dfmt, unsign
       default:
          unreachable("bad dfmt");
       case V_008F0C_BUF_DATA_FORMAT_INVALID:
-         format = V_008F0C_IMG_FORMAT_INVALID;
+         format = V_008F0C_GFX10_FORMAT_INVALID;
          break;
       case V_008F0C_BUF_DATA_FORMAT_8:
-         format = V_008F0C_IMG_FORMAT_8_UINT;
+         format = V_008F0C_GFX10_FORMAT_8_UINT;
          break;
       case V_008F0C_BUF_DATA_FORMAT_8_8:
-         format = V_008F0C_IMG_FORMAT_8_8_UINT;
+         format = V_008F0C_GFX10_FORMAT_8_8_UINT;
          break;
       case V_008F0C_BUF_DATA_FORMAT_8_8_8_8:
-         format = V_008F0C_IMG_FORMAT_8_8_8_8_UINT;
+         format = V_008F0C_GFX10_FORMAT_8_8_8_8_UINT;
          break;
       case V_008F0C_BUF_DATA_FORMAT_16:
-         format = V_008F0C_IMG_FORMAT_16_UINT;
+         format = V_008F0C_GFX10_FORMAT_16_UINT;
          break;
       case V_008F0C_BUF_DATA_FORMAT_16_16:
-         format = V_008F0C_IMG_FORMAT_16_16_UINT;
+         format = V_008F0C_GFX10_FORMAT_16_16_UINT;
          break;
       case V_008F0C_BUF_DATA_FORMAT_16_16_16_16:
-         format = V_008F0C_IMG_FORMAT_16_16_16_16_UINT;
+         format = V_008F0C_GFX10_FORMAT_16_16_16_16_UINT;
          break;
       case V_008F0C_BUF_DATA_FORMAT_32:
-         format = V_008F0C_IMG_FORMAT_32_UINT;
+         format = V_008F0C_GFX10_FORMAT_32_UINT;
          break;
       case V_008F0C_BUF_DATA_FORMAT_32_32:
-         format = V_008F0C_IMG_FORMAT_32_32_UINT;
+         format = V_008F0C_GFX10_FORMAT_32_32_UINT;
          break;
       case V_008F0C_BUF_DATA_FORMAT_32_32_32:
-         format = V_008F0C_IMG_FORMAT_32_32_32_UINT;
+         format = V_008F0C_GFX10_FORMAT_32_32_32_UINT;
          break;
       case V_008F0C_BUF_DATA_FORMAT_32_32_32_32:
-         format = V_008F0C_IMG_FORMAT_32_32_32_32_UINT;
+         format = V_008F0C_GFX10_FORMAT_32_32_32_32_UINT;
          break;
       case V_008F0C_BUF_DATA_FORMAT_2_10_10_10:
-         format = V_008F0C_IMG_FORMAT_2_10_10_10_UINT;
+         format = V_008F0C_GFX10_FORMAT_2_10_10_10_UINT;
+         break;
+      case V_008F0C_BUF_DATA_FORMAT_10_11_11:
+         format = V_008F0C_GFX10_FORMAT_10_11_11_UINT;
          break;
       }
 

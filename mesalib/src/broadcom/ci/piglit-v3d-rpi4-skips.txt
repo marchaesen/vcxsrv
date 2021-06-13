@@ -1,7 +1,9 @@
 # Slow tests (> 1 minute to run)
 spec@!opengl 1.1@streaming-texture-leak
 spec@!opengl 1.2@tex3d-maxsize
-spec@!opengl 1.3@gl-1.3-texture-env
+spec@ext_texture_env_combine@texture-env-combine
+spec@glsl-1.10@execution@loops@glsl-fs-unroll-explosion
+spec@glsl-1.10@execution@loops@glsl-vs-unroll-explosion
 
 # Extensions not supported
 spec@arb_gpu_shader_fp64.*

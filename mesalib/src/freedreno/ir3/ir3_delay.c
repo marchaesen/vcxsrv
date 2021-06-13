@@ -35,34 +35,6 @@
  * src iterators work.
  */
 
-/* generally don't count false dependencies, since this can just be
- * something like a barrier, or SSBO store.  The exception is array
- * dependencies if the assigner is an array write and the consumer
- * reads the same array.
- */
-static bool
-ignore_dep(struct ir3_instruction *assigner,
-		struct ir3_instruction *consumer, unsigned n)
-{
-	if (!__is_false_dep(consumer, n))
-		return false;
-
-	if (assigner->barrier_class & IR3_BARRIER_ARRAY_W) {
-		struct ir3_register *dst = assigner->regs[0];
-
-		debug_assert(dst->flags & IR3_REG_ARRAY);
-
-		foreach_src (src, consumer) {
-			if ((src->flags & IR3_REG_ARRAY) &&
-					(dst->array.id == src->array.id)) {
-				return false;
-			}
-		}
-	}
-
-	return true;
-}
-
 /* calculate required # of delay slots between the instruction that
  * assigns a value and the one that consumes
  */
@@ -70,7 +42,10 @@ int
 ir3_delayslots(struct ir3_instruction *assigner,
 		struct ir3_instruction *consumer, unsigned n, bool soft)
 {
-	if (ignore_dep(assigner, consumer, n))
+	/* generally don't count false dependencies, since this can just be
+	 * something like a barrier, or SSBO store.
+	 */
+	if (__is_false_dep(consumer, n))
 		return 0;
 
 	/* worst case is cat1-3 (alu) -> cat4/5 needing 6 cycles, normal
@@ -104,6 +79,10 @@ ir3_delayslots(struct ir3_instruction *assigner,
 
 	if (assigner->opc == OPC_MOVMSK)
 		return 4;
+
+	/* As far as we know, shader outputs don't need any delay. */
+	if (consumer->opc == OPC_END || consumer->opc == OPC_CHMASK)
+		return 0;
 
 	/* assigner must be alu: */
 	if (is_flow(consumer) || is_sfu(consumer) || is_tex(consumer) ||
@@ -174,8 +153,8 @@ distance(struct ir3_block *block, struct ir3_instruction *instr,
 		/* (ab)use block->data to prevent recursion: */
 		block->data = block;
 
-		set_foreach (block->predecessors, entry) {
-			struct ir3_block *pred = (struct ir3_block *)entry->key;
+		for (unsigned i = 0; i < block->predecessors_count; i++) {
+			struct ir3_block *pred = block->predecessors[i];
 			unsigned n;
 
 			n = distance(pred, instr, min, pred);
@@ -313,8 +292,8 @@ delay_calc_array(struct ir3_block *block, unsigned array_id,
 	/* (ab)use block->data to prevent recursion: */
 	block->data = block;
 
-	set_foreach (block->predecessors, entry) {
-		struct ir3_block *pred = (struct ir3_block *)entry->key;
+	for (unsigned i = 0; i < block->predecessors_count; i++) {
+		struct ir3_block *pred = block->predecessors[i];
 		unsigned delay =
 			delay_calc_array(pred, array_id, consumer, srcn, soft, pred, maxd);
 

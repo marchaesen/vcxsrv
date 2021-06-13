@@ -37,6 +37,7 @@ enum a3xx_color_fmt fd3_fs_output_format(enum pipe_format format);
 enum a3xx_color_swap fd3_pipe2swap(enum pipe_format format);
 
 uint32_t fd3_tex_swiz(enum pipe_format format, unsigned swizzle_r,
-		unsigned swizzle_g, unsigned swizzle_b, unsigned swizzle_a);
+                      unsigned swizzle_g, unsigned swizzle_b,
+                      unsigned swizzle_a);
 
 #endif /* FD3_FORMAT_H_ */

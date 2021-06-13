@@ -177,15 +177,12 @@ pan_shader_compile(const struct panfrost_device *dev,
                 if (s->info.outputs_written & BITFIELD64_BIT(FRAG_RESULT_SAMPLE_MASK))
                         info->fs.writes_coverage = true;
 
-                uint64_t outputs_read = s->info.outputs_read;
-                if (outputs_read & BITFIELD64_BIT(FRAG_RESULT_COLOR))
-                        outputs_read |= BITFIELD64_BIT(FRAG_RESULT_DATA0);
-
-                info->fs.outputs_read = outputs_read >> FRAG_RESULT_DATA0;
+                info->fs.outputs_read = s->info.outputs_read >> FRAG_RESULT_DATA0;
+                info->fs.outputs_written = s->info.outputs_written >> FRAG_RESULT_DATA0;
 
                 /* EXT_shader_framebuffer_fetch requires per-sample */
                 info->fs.sample_shading = s->info.fs.uses_sample_shading ||
-                                          outputs_read;
+                                          info->fs.outputs_read;
 
                 info->fs.can_discard = s->info.fs.uses_discard;
                 info->fs.helper_invocations = s->info.fs.needs_quad_helper_invocations;
@@ -217,7 +214,7 @@ pan_shader_compile(const struct panfrost_device *dev,
                                  &info->varyings.input_count);
                 break;
         case MESA_SHADER_COMPUTE:
-                info->wls_size = s->info.cs.shared_size;
+                info->wls_size = s->info.shared_size;
                 break;
         default:
                 unreachable("Unknown shader state");
@@ -234,5 +231,5 @@ pan_shader_compile(const struct panfrost_device *dev,
         info->attribute_count += util_bitcount(s->info.images_used);
         info->writes_global = s->info.writes_memory;
 
-        info->sampler_count = info->texture_count = s->info.num_textures;
+        info->sampler_count = info->texture_count = BITSET_LAST_BIT(s->info.textures_used);
 }

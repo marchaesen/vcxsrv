@@ -27,6 +27,8 @@
 
 #include "nine_helpers.h"
 
+#include "util/macros.h"
+
 #define DBG_CHANNEL DBG_DEVICE
 
 static HRESULT
@@ -63,27 +65,29 @@ NineDevice9Ex_dtor( struct NineDevice9Ex *This )
 }
 
 HRESULT NINE_WINAPI
-NineDevice9Ex_SetConvolutionMonoKernel( struct NineDevice9Ex *This,
-                                        UINT width,
-                                        UINT height,
-                                        float *rows,
-                                        float *columns )
+NineDevice9Ex_SetConvolutionMonoKernel( UNUSED struct NineDevice9Ex *This,
+                                        UNUSED UINT width,
+                                        UNUSED UINT height,
+                                        UNUSED float *rows,
+                                        UNUSED float *columns )
 {
-    STUB(D3DERR_INVALIDCALL);
+    DBG("This\n");
+    STUB(D3D_OK);
 }
 
 HRESULT NINE_WINAPI
-NineDevice9Ex_ComposeRects( struct NineDevice9Ex *This,
-                            IDirect3DSurface9 *pSrc,
-                            IDirect3DSurface9 *pDst,
-                            IDirect3DVertexBuffer9 *pSrcRectDescs,
-                            UINT NumRects,
-                            IDirect3DVertexBuffer9 *pDstRectDescs,
-                            D3DCOMPOSERECTSOP Operation,
-                            int Xoffset,
-                            int Yoffset )
+NineDevice9Ex_ComposeRects( UNUSED struct NineDevice9Ex *This,
+                            UNUSED IDirect3DSurface9 *pSrc,
+                            UNUSED IDirect3DSurface9 *pDst,
+                            UNUSED IDirect3DVertexBuffer9 *pSrcRectDescs,
+                            UNUSED UINT NumRects,
+                            UNUSED IDirect3DVertexBuffer9 *pDstRectDescs,
+                            UNUSED D3DCOMPOSERECTSOP Operation,
+                            UNUSED int Xoffset,
+                            UNUSED int Yoffset )
 {
-    STUB(D3DERR_INVALIDCALL);
+    DBG("This\n");
+    STUB(D3D_OK);
 }
 
 HRESULT NINE_WINAPI
@@ -115,43 +119,56 @@ HRESULT NINE_WINAPI
 NineDevice9Ex_GetGPUThreadPriority( struct NineDevice9Ex *This,
                                     INT *pPriority )
 {
-    STUB(D3DERR_INVALIDCALL);
+    DBG("This\n");
+    user_assert(pPriority != NULL, D3DERR_INVALIDCALL);
+    *pPriority = This->base.gpu_priority;
+    return D3D_OK;
 }
 
 HRESULT NINE_WINAPI
 NineDevice9Ex_SetGPUThreadPriority( struct NineDevice9Ex *This,
                                     INT Priority )
 {
-    STUB(D3DERR_INVALIDCALL);
+    DBG("This\n");
+    user_assert(Priority >= -7 && Priority <= 7, D3DERR_INVALIDCALL);
+    This->base.gpu_priority = Priority;
+    return D3D_OK;
 }
 
 HRESULT NINE_WINAPI
-NineDevice9Ex_WaitForVBlank( struct NineDevice9Ex *This,
-                             UINT iSwapChain )
+NineDevice9Ex_WaitForVBlank( UNUSED struct NineDevice9Ex *This,
+                             UNUSED UINT iSwapChain )
 {
-    STUB(D3DERR_INVALIDCALL);
+    DBG("This\n");
+    STUB(D3D_OK);
 }
 
 HRESULT NINE_WINAPI
-NineDevice9Ex_CheckResourceResidency( struct NineDevice9Ex *This,
-                                      IDirect3DResource9 **pResourceArray,
-                                      UINT32 NumResources )
+NineDevice9Ex_CheckResourceResidency( UNUSED struct NineDevice9Ex *This,
+                                      UNUSED IDirect3DResource9 **pResourceArray,
+                                      UNUSED UINT32 NumResources )
 {
-    STUB(D3DERR_INVALIDCALL);
+    DBG("This\n");
+    STUB(D3D_OK);
 }
 
 HRESULT NINE_WINAPI
 NineDevice9Ex_SetMaximumFrameLatency( struct NineDevice9Ex *This,
                                       UINT MaxLatency )
 {
-    STUB(D3DERR_INVALIDCALL);
+    DBG("This\n");
+    This->base.max_frame_latency = MaxLatency;
+    return D3D_OK;
 }
 
 HRESULT NINE_WINAPI
 NineDevice9Ex_GetMaximumFrameLatency( struct NineDevice9Ex *This,
                                       UINT *pMaxLatency )
 {
-    STUB(D3DERR_INVALIDCALL);
+    DBG("This\n");
+    user_assert(pMaxLatency != NULL, D3DERR_INVALIDCALL);
+    *pMaxLatency = This->base.max_frame_latency;
+    return D3D_OK;
 }
 
 HRESULT NINE_WINAPI
@@ -183,9 +200,24 @@ NineDevice9Ex_CreateRenderTargetEx( struct NineDevice9Ex *This,
                                     BOOL Lockable,
                                     IDirect3DSurface9 **ppSurface,
                                     HANDLE *pSharedHandle,
-                                    DWORD Usage )
+                                    UNUSED DWORD Usage )
 {
-    STUB(D3DERR_INVALIDCALL);
+    DBG("This\n");
+    /* The Create*Ex functions only purpose seem to introduce the
+     * Usage field, to pass the new d3d9ex flags on secure/restricted
+     * content.
+     * TODO: Return error on invalid Usage.
+     * TODO: Store Usage in the surface descriptor, in case the
+     * app checks */
+    return NineDevice9_CreateRenderTarget(&This->base,
+                                          Width,
+                                          Height,
+                                          Format,
+                                          MultiSample,
+                                          MultisampleQuality,
+                                          Lockable,
+                                          ppSurface,
+                                          pSharedHandle);
 }
 
 HRESULT NINE_WINAPI
@@ -196,9 +228,22 @@ NineDevice9Ex_CreateOffscreenPlainSurfaceEx( struct NineDevice9Ex *This,
                                              D3DPOOL Pool,
                                              IDirect3DSurface9 **ppSurface,
                                              HANDLE *pSharedHandle,
-                                             DWORD Usage )
+                                             UNUSED DWORD Usage )
 {
-    STUB(D3DERR_INVALIDCALL);
+    DBG("This\n");
+    /* The Create*Ex functions only purpose seem to introduce the
+     * Usage field, to pass the new d3d9ex flags on secure/restricted
+     * content.
+     * TODO: Return error on invalid Usage.
+     * TODO: Store Usage in the surface descriptor, in case the
+     * app checks */
+    return NineDevice9_CreateOffscreenPlainSurface(&This->base,
+                                                   Width,
+                                                   Height,
+                                                   Format,
+                                                   Pool,
+                                                   ppSurface,
+                                                   pSharedHandle);
 }
 
 HRESULT NINE_WINAPI
@@ -211,9 +256,24 @@ NineDevice9Ex_CreateDepthStencilSurfaceEx( struct NineDevice9Ex *This,
                                            BOOL Discard,
                                            IDirect3DSurface9 **ppSurface,
                                            HANDLE *pSharedHandle,
-                                           DWORD Usage )
+                                           UNUSED DWORD Usage )
 {
-    STUB(D3DERR_INVALIDCALL);
+    DBG("This\n");
+    /* The Create*Ex functions only purpose seem to introduce the
+     * Usage field, to pass the new d3d9ex flags on secure/restricted
+     * content.
+     * TODO: Return error on invalid Usage.
+     * TODO: Store Usage in the surface descriptor, in case the
+     * app checks */
+    return NineDevice9_CreateDepthStencilSurface(&This->base,
+                                                 Width,
+                                                 Height,
+                                                 Format,
+                                                 MultiSample,
+                                                 MultisampleQuality,
+                                                 Discard,
+                                                 ppSurface,
+                                                 pSharedHandle);
 }
 
 HRESULT NINE_WINAPI
@@ -222,6 +282,7 @@ NineDevice9Ex_ResetEx( struct NineDevice9Ex *This,
                        D3DDISPLAYMODEEX *pFullscreenDisplayMode )
 {
     HRESULT hr = D3D_OK;
+    float MinZ, MaxZ;
     unsigned i;
 
     DBG("This=%p pPresentationParameters=%p pFullscreenDisplayMode=%p\n", This, pPresentationParameters, pFullscreenDisplayMode);
@@ -235,8 +296,17 @@ NineDevice9Ex_ResetEx( struct NineDevice9Ex *This,
             break;
     }
 
+    MinZ = This->base.state.viewport.MinZ; /* These are preserved */
+    MaxZ = This->base.state.viewport.MaxZ;
     NineDevice9_SetRenderTarget(
         (struct NineDevice9 *)This, 0, (IDirect3DSurface9 *)This->base.swapchains[0]->buffers[0]);
+    This->base.state.viewport.MinZ = MinZ;
+    This->base.state.viewport.MaxZ = MaxZ;
+    nine_context_set_viewport(&This->base, &This->base.state.viewport);
+
+    if (This->base.nswapchains && This->base.swapchains[0]->params.EnableAutoDepthStencil)
+        NineDevice9_SetDepthStencilSurface(
+            &This->base, (IDirect3DSurface9 *)This->base.swapchains[0]->zsbuf);
 
     return hr;
 }
@@ -246,6 +316,7 @@ NineDevice9Ex_Reset( struct NineDevice9Ex *This,
                      D3DPRESENT_PARAMETERS *pPresentationParameters )
 {
     HRESULT hr = D3D_OK;
+    float MinZ, MaxZ;
     unsigned i;
 
     DBG("This=%p pPresentationParameters=%p\n", This, pPresentationParameters);
@@ -257,13 +328,17 @@ NineDevice9Ex_Reset( struct NineDevice9Ex *This,
             break;
     }
 
-    nine_csmt_process(&This->base);
-    nine_device_state_clear((struct NineDevice9 *)This);
-    nine_context_clear(&This->base);
-
-    NineDevice9_SetDefaultState((struct NineDevice9 *)This, TRUE);
+    MinZ = This->base.state.viewport.MinZ; /* These are preserved */
+    MaxZ = This->base.state.viewport.MaxZ;
     NineDevice9_SetRenderTarget(
         (struct NineDevice9 *)This, 0, (IDirect3DSurface9 *)This->base.swapchains[0]->buffers[0]);
+    This->base.state.viewport.MinZ = MinZ;
+    This->base.state.viewport.MaxZ = MaxZ;
+    nine_context_set_viewport(&This->base, &This->base.state.viewport);
+
+    if (This->base.nswapchains && This->base.swapchains[0]->params.EnableAutoDepthStencil)
+        NineDevice9_SetDepthStencilSurface(
+            &This->base, (IDirect3DSurface9 *)This->base.swapchains[0]->zsbuf);
 
     return hr;
 }
@@ -286,8 +361,9 @@ NineDevice9Ex_GetDisplayModeEx( struct NineDevice9Ex *This,
 }
 
 HRESULT NINE_WINAPI
-NineDevice9Ex_TestCooperativeLevel( struct NineDevice9Ex *This )
+NineDevice9Ex_TestCooperativeLevel( UNUSED struct NineDevice9Ex *This )
 {
+    DBG("This\n");
     return D3D_OK;
 }
 

@@ -198,19 +198,20 @@ static void add_const(unsigned reg, unsigned c0, unsigned c1, unsigned c2, unsig
 	struct ir3_const_state *const_state = ir3_const_state(variant);
 	assert((reg & 0x7) == 0);
 	int idx = reg >> (1 + 2); /* low bit is half vs full, next two bits are swiz */
-	if (const_state->immediates_count == const_state->immediates_size) {
+	if (idx * 4 + 4 > const_state->immediates_size) {
 		const_state->immediates = rerzalloc(const_state,
 				const_state->immediates,
 				__typeof__(const_state->immediates[0]),
 				const_state->immediates_size,
-				const_state->immediates_size + 4);
-		const_state->immediates_size += 4;
+				idx * 4 + 4);
+		for (unsigned i = const_state->immediates_size; i < idx * 4; i++)
+			const_state->immediates[i] = 0xd0d0d0d0;
+		const_state->immediates_size = const_state->immediates_count = idx * 4 + 4;
 	}
 	const_state->immediates[idx * 4 + 0] = c0;
 	const_state->immediates[idx * 4 + 1] = c1;
 	const_state->immediates[idx * 4 + 2] = c2;
 	const_state->immediates[idx * 4 + 3] = c3;
-	const_state->immediates_count++;
 }
 
 static void add_sysval(unsigned reg, unsigned compmask, gl_system_value sysval)
@@ -333,6 +334,7 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 /* dst register flags */
 %token <tok> T_EVEN
 %token <tok> T_POS_INFINITY
+%token <tok> T_NEG_INFINITY
 %token <tok> T_EI
 %token <num> T_WRMASK
 
@@ -397,6 +399,9 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %token <tok> T_OP_MOVA
 %token <tok> T_OP_MOV
 %token <tok> T_OP_COV
+%token <tok> T_OP_SWZ
+%token <tok> T_OP_GAT
+%token <tok> T_OP_SCT
 
 /* category 2: */
 %token <tok> T_OP_ADD_F
@@ -789,10 +794,19 @@ cat1_mova:         T_OP_MOVA T_A0 ',' {
                        new_reg((61 << 3), IR3_REG_HALF);
                    } cat1_src
 
+cat1_swz:          T_OP_SWZ '.' T_CAT1_TYPE_TYPE { parse_type_type(new_instr(OPC_SWZ), $3); } dst_reg ',' dst_reg ',' src_reg ',' src_reg
+
+cat1_gat:          T_OP_GAT '.' T_CAT1_TYPE_TYPE { parse_type_type(new_instr(OPC_GAT), $3); } dst_reg ',' src_reg ',' src_reg ',' src_reg ',' src_reg
+
+cat1_sct:          T_OP_SCT '.' T_CAT1_TYPE_TYPE { parse_type_type(new_instr(OPC_SCT), $3); } dst_reg ',' dst_reg ',' dst_reg ',' dst_reg ',' src_reg
+
                    /* NOTE: cat1 can also *write* to relative gpr */
 cat1_instr:        cat1_movmsk
 |                  cat1_mova1
 |                  cat1_mova
+|                  cat1_swz
+|                  cat1_gat
+|                  cat1_sct
 |                  cat1_opc dst_reg ',' cat1_src
 |                  cat1_opc relative_gpr ',' cat1_src
 
@@ -1112,8 +1126,9 @@ reg:               T_REGISTER     { $$ = new_reg($1, 0); }
 
 const:             T_CONSTANT     { $$ = new_reg($1, IR3_REG_CONST); }
 
-dst_reg_flag:      T_EVEN         { rflags.flags |= IR3_REG_EVEN; }
-|                  T_POS_INFINITY { rflags.flags |= IR3_REG_POS_INF; }
+dst_reg_flag:      T_EVEN         { instr->cat1.round = ROUND_EVEN; }
+|                  T_POS_INFINITY { instr->cat1.round = ROUND_POS_INF; }
+|                  T_NEG_INFINITY { instr->cat1.round = ROUND_NEG_INF; }
 |                  T_EI           { rflags.flags |= IR3_REG_EI; }
 |                  T_WRMASK       { rflags.wrmask = $1; }
 

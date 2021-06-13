@@ -706,6 +706,7 @@ void gen(Instruction* instr, wait_ctx& ctx)
       if (instr->opcode == aco_opcode::s_sendmsg ||
           instr->opcode == aco_opcode::s_sendmsghalt)
          update_counters(ctx, event_sendmsg);
+      break;
    }
    default:
       break;

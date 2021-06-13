@@ -155,6 +155,9 @@
         *gallium_core_file_list
       when: on_success
     - changes:
+        *vulkan_file_list
+      when: on_success
+    - changes:
       # Note: when https://gitlab.com/gitlab-org/gitlab/-/issues/198688
       # is supported, we can change the src/freedreno/ rule to explicitly
       # exclude tools
@@ -223,6 +226,9 @@
     - *ignore_scheduled_pipelines
     - changes:
         *mesa_core_file_list
+      when: on_success
+    - changes:
+        *vulkan_file_list
       when: on_success
     - changes:
       - src/broadcom/**/*

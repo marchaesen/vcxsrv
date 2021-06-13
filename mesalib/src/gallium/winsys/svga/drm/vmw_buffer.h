@@ -34,8 +34,8 @@
 
 
 /* These extra flags are used wherever the pb_usage_flags enum type is used */
-#define VMW_BUFFER_USAGE_SHARED    (1 << 20)
-#define VMW_BUFFER_USAGE_SYNC      (1 << 21)
+#define VMW_BUFFER_USAGE_SHARED    (1 << 14)
+#define VMW_BUFFER_USAGE_SYNC      (1 << 15)
 
 struct SVGAGuestPtr;
 struct pb_buffer;

@@ -88,10 +88,9 @@ vk_common_DestroyDebugReportCallbackEXT(VkInstance _instance,
    /* Remove from list and destroy given callback. */
    mtx_lock(&instance->debug_report.callbacks_mutex);
    list_del(&callback->link);
+   vk_object_base_finish(&callback->base);
    vk_free2(&instance->alloc, pAllocator, callback);
    mtx_unlock(&instance->debug_report.callbacks_mutex);
-
-   vk_object_base_finish(&callback->base);
 }
 
 static void

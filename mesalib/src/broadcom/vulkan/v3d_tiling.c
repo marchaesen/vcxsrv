@@ -23,7 +23,7 @@
 
 /** @file v3d_tiling.c
  *
- * Handles information about the VC5 tiling formats, and loading and storing
+ * Handles information about the V3D tiling formats, and loading and storing
  * from them.
  */
 
@@ -153,7 +153,7 @@ v3d_get_ublinear_1_column_pixel_offset(uint32_t cpp, uint32_t image_h,
 /**
  * Returns the byte offset for a given pixel in a UIF layout.
  *
- * UIF is the general VC5 tiling layout shared across 3D, media, and scanout.
+ * UIF is the general V3D tiling layout shared across 3D, media, and scanout.
  * It stores pixels in UIF blocks (2x2 utiles), and UIF blocks are stored in
  * 4x4 groups, and those 4x4 groups are then stored in raster order.
  */
@@ -416,35 +416,35 @@ v3d_move_tiled_image(void *gpu, uint32_t gpu_stride,
                      bool is_load)
 {
         switch (tiling_format) {
-        case VC5_TILING_UIF_XOR:
+        case V3D_TILING_UIF_XOR:
                 v3d_move_pixels_general(gpu, gpu_stride,
                                         cpu, cpu_stride,
                                         cpp, image_h, box,
                                         v3d_get_uif_xor_pixel_offset,
                                         is_load);
                 break;
-        case VC5_TILING_UIF_NO_XOR:
+        case V3D_TILING_UIF_NO_XOR:
                 v3d_move_pixels_general(gpu, gpu_stride,
                                         cpu, cpu_stride,
                                         cpp, image_h, box,
                                         v3d_get_uif_no_xor_pixel_offset,
                                         is_load);
                 break;
-        case VC5_TILING_UBLINEAR_2_COLUMN:
+        case V3D_TILING_UBLINEAR_2_COLUMN:
                 v3d_move_pixels_general(gpu, gpu_stride,
                                         cpu, cpu_stride,
                                         cpp, image_h, box,
                                         v3d_get_ublinear_2_column_pixel_offset,
                                         is_load);
                 break;
-        case VC5_TILING_UBLINEAR_1_COLUMN:
+        case V3D_TILING_UBLINEAR_1_COLUMN:
                 v3d_move_pixels_general(gpu, gpu_stride,
                                         cpu, cpu_stride,
                                         cpp, image_h, box,
                                         v3d_get_ublinear_1_column_pixel_offset,
                                         is_load);
                 break;
-        case VC5_TILING_LINEARTILE:
+        case V3D_TILING_LINEARTILE:
                 v3d_move_pixels_general(gpu, gpu_stride,
                                         cpu, cpu_stride,
                                         cpp, image_h, box,

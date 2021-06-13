@@ -39,12 +39,6 @@ struct gl_program;
 struct prog_instruction;
 
 
-extern GLboolean
-_mesa_find_temp_intervals(const struct prog_instruction *instructions,
-                          GLuint numInstructions,
-                          GLint intBegin[MAX_PROGRAM_TEMPS],
-                          GLint intEnd[MAX_PROGRAM_TEMPS]);
-
 extern void
 _mesa_optimize_program(struct gl_program *program, void *mem_ctx);
 

@@ -680,6 +680,7 @@ dxil_get_overload_type(struct dxil_module *mod, enum overload_type overload)
    case DXIL_I16: return get_int16_type(mod);
    case DXIL_I32: return get_int32_type(mod);
    case DXIL_I64: return get_int64_type(mod);
+   case DXIL_F16: return get_float16_type(mod);
    case DXIL_F32: return get_float32_type(mod);
    case DXIL_F64: return get_float64_type(mod);
    default:
@@ -725,6 +726,15 @@ dxil_module_get_cbuf_ret_type(struct dxil_module *mod, enum overload_type overlo
    }
 
    return dxil_module_get_struct_type(mod, name, fields, num_fields);
+}
+
+const struct dxil_type *
+dxil_module_get_split_double_ret_type(struct dxil_module *mod)
+{
+   const struct dxil_type *int32_type = dxil_module_get_int_type(mod, 32);
+   const struct dxil_type *fields[2] = { int32_type, int32_type };
+
+   return dxil_module_get_struct_type(mod, "dx.types.splitDouble", fields, 2);
 }
 
 static const struct dxil_type *
@@ -818,6 +828,14 @@ dxil_module_get_res_type(struct dxil_module *m, enum dxil_resource_kind kind,
                get_res_comp_type_name(comp_type),
                get_res_ms_postfix(kind));
       return dxil_module_get_struct_type(m, class_name, &vec_type, 1);
+   }
+
+   case DXIL_RESOURCE_KIND_RAW_BUFFER:
+   {
+      const struct dxil_type *component_type = dxil_module_get_int_type(m, 32);
+      char class_name[64] = { 0 };
+      snprintf(class_name, 64, "struct.%sByteAddressBuffer", readwrite ? "RW" : "");
+      return dxil_module_get_struct_type(m, class_name, &component_type, 1);
    }
 
    default:
@@ -1614,6 +1632,30 @@ dxil_module_get_int_const(struct dxil_module *m, intmax_t value,
 }
 
 const struct dxil_value *
+dxil_module_get_float16_const(struct dxil_module *m, uint16_t value)
+{
+   const struct dxil_type *type = get_float16_type(m);
+   if (!type)
+      return NULL;
+
+   struct dxil_const *c;
+   LIST_FOR_EACH_ENTRY(c, &m->const_list, head) {
+      if (c->value.type != type || c->undef)
+         continue;
+
+      if (c->int_value == (uintmax_t)value)
+         return &c->value;
+   }
+
+   c = create_const(m, type, false);
+   if (!c)
+      return NULL;
+
+   c->int_value = (uintmax_t)value;
+   return &c->value;
+}
+
+const struct dxil_value *
 dxil_module_get_float_const(struct dxil_module *m, float value)
 {
    const struct dxil_type *type = get_float32_type(m);
@@ -2016,6 +2058,15 @@ emit_int_value(struct dxil_module *m, int64_t value)
 }
 
 static bool
+emit_float16_value(struct dxil_module *m, uint16_t value)
+{
+   if (!value)
+      return emit_null_value(m);
+   uint64_t data = value;
+   return emit_record_no_abbrev(&m->buf, CST_CODE_FLOAT, &data, 1);
+}
+
+static bool
 emit_float_value(struct dxil_module *m, float value)
 {
    uint64_t data = fui(value);
@@ -2077,6 +2128,10 @@ emit_consts(struct dxil_module *m)
 
       case TYPE_FLOAT:
          switch (curr_type->float_bits) {
+         case 16:
+            if (!emit_float16_value(m, (uint16_t)(uintmax_t)c->int_value))
+               return false;
+            break;
          case 32:
             if (!emit_float_value(m, c->float_value))
                return false;

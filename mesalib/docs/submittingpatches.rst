@@ -163,11 +163,11 @@ check for regressions.
 As mentioned at the beginning, patches should be bisectable. A good way
 to test this is to make use of the \`git rebase\` command, to run your
 tests on each commit. Assuming your branch is based off
-``origin/master``, you can run:
+``origin/main``, you can run:
 
-::
+.. code-block:: console
 
-   $ git rebase --interactive --exec "meson test -C build/" origin/master
+   $ git rebase --interactive --exec "meson test -C build/" origin/main
 
 replacing ``"meson test"`` with whatever other test you want to run.
 
@@ -188,7 +188,7 @@ Add labels to your MR to help reviewers find it. For example:
 -  Other tag examples: gallium, util
 
 Tick the following when creating the MR. It allows developers to rebase
-your work on top of master.
+your work on top of main.
 
 ::
 
@@ -304,7 +304,7 @@ accepted and which are not. The stable-release manager is also given
 broad discretion in rejecting patches that have been nominated.
 
 -  Patch must conform with the :ref:`Basic guidelines <guidelines>`
--  Patch must have landed in master first. In case where the original
+-  Patch must have landed in main first. In case where the original
    patch is too large and/or otherwise contradicts with the rules set
    within, a backport is appropriate.
 -  It must not introduce a regression - be that build or runtime wise.
@@ -353,12 +353,27 @@ conflicts they should ask the original author to provide a backport or
 de-nominate the patch.
 
 For patches that either need to be nominated after they've landed in
-master, or that are known ahead of time to not not apply cleanly to a
+main, or that are known ahead of time to not not apply cleanly to a
 stable branch (such as due to a rename), using a GitLab MR is most
 appropriate. The MR should be based on and target the
 staging/year.quarter branch, not on the year.quarter branch, per the
 stable branch policy. Assigning the MR to release maintainer for said
 branch or mentioning them is helpful, but not required.
+
+Documentation patches
+---------------------
+
+Our documentation is written as `reStructuredText`_ files in the
+:file:`docs` folder, and built using `Sphinx`_.
+
+The preferred language of the documentation is US English. This
+doesn't mean that everyone is expected to pay close attention to
+the different English variants, but it does mean someone might
+suggest a spelling-change, either during review or as a follow-up
+merge-request.
+
+.. _reStructuredText: https://docutils.sourceforge.io/rst.html
+.. _Sphinx: https://www.sphinx-doc.org/
 
 Git tips
 --------

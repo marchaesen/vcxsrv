@@ -27,6 +27,7 @@
 #include "d3d12_screen.h"
 #include "d3d12_nir_passes.h"
 #include "nir_to_dxil.h"
+#include "dxil_nir.h"
 
 #include "pipe/p_state.h"
 
@@ -134,7 +135,7 @@ compile_nir(struct d3d12_context *ctx, struct d3d12_shader_selector *sel,
    sel->current = shader;
 
    NIR_PASS_V(nir, nir_lower_samplers);
-   NIR_PASS_V(nir, d3d12_create_bare_samplers);
+   NIR_PASS_V(nir, dxil_nir_create_bare_samplers);
 
    if (key->samples_int_textures)
       NIR_PASS_V(nir, dxil_lower_sample_to_txf_for_integer_tex,
@@ -146,7 +147,7 @@ compile_nir(struct d3d12_context *ctx, struct d3d12_shader_selector *sel,
 
    uint32_t num_ubos_before_lower_to_ubo = nir->info.num_ubos;
    uint32_t num_uniforms_before_lower_to_ubo = nir->num_uniforms;
-   NIR_PASS_V(nir, nir_lower_uniforms_to_ubo, 16);
+   NIR_PASS_V(nir, nir_lower_uniforms_to_ubo, false, false);
    shader->has_default_ubo0 = num_uniforms_before_lower_to_ubo > 0 &&
                               nir->info.num_ubos > num_ubos_before_lower_to_ubo;
 
@@ -160,7 +161,6 @@ compile_nir(struct d3d12_context *ctx, struct d3d12_shader_selector *sel,
    NIR_PASS_V(nir, d3d12_lower_load_first_vertex);
    NIR_PASS_V(nir, d3d12_lower_state_vars, shader);
    NIR_PASS_V(nir, d3d12_lower_bool_input);
-   NIR_PASS_V(nir, d3d12_fixup_clipdist_writes);
 
    struct nir_to_dxil_options opts = {};
    opts.interpolate_at_vertex = screen->have_load_at_vertex;
@@ -175,16 +175,17 @@ compile_nir(struct d3d12_context *ctx, struct d3d12_shader_selector *sel,
    }
 
    // Non-ubo variables
+   shader->begin_srv_binding = (UINT_MAX);
    nir_foreach_variable_with_modes(var, nir, nir_var_uniform) {
       auto type = glsl_without_array(var->type);
       if (glsl_type_is_sampler(type) && glsl_get_sampler_result_type(type) != GLSL_TYPE_VOID) {
          unsigned count = glsl_type_is_array(var->type) ? glsl_get_aoa_size(var->type) : 1;
          for (unsigned i = 0; i < count; ++i) {
-            shader->srv_bindings[shader->num_srv_bindings].index = var->data.binding + i;
-            shader->srv_bindings[shader->num_srv_bindings].binding = var->data.binding;
-            shader->srv_bindings[shader->num_srv_bindings].dimension = resource_dimension(glsl_get_sampler_dim(type));
-            shader->num_srv_bindings++;
+            shader->srv_bindings[var->data.binding + i].binding = var->data.binding;
+            shader->srv_bindings[var->data.binding + i].dimension = resource_dimension(glsl_get_sampler_dim(type));
          }
+         shader->begin_srv_binding = MIN2(var->data.binding, shader->begin_srv_binding);
+         shader->end_srv_binding = MAX2(var->data.binding + count, shader->end_srv_binding);
       }
    }
 
@@ -848,7 +849,7 @@ select_shader_variant(struct d3d12_selection_context *sel_ctx, d3d12_shader_sele
       NIR_PASS_V(new_nir_variant, d3d12_add_missing_dual_src_target,
                  key.fs.missing_dual_src_outputs);
    } else if (key.fs.frag_result_color_lowering) {
-      NIR_PASS_V(new_nir_variant, d3d12_lower_frag_result,
+      NIR_PASS_V(new_nir_variant, nir_lower_fragcolor,
                  key.fs.frag_result_color_lowering);
    }
 
@@ -1046,6 +1047,7 @@ d3d12_create_shader(struct d3d12_context *ctx,
                           VARYING_BIT_PRIMITIVE_ID;
 
    d3d12_fix_io_uint_type(nir, in_mask, out_mask);
+   NIR_PASS_V(nir, dxil_nir_split_clip_cull_distance);
 
    if (nir->info.stage != MESA_SHADER_VERTEX)
       nir->info.inputs_read =

@@ -1898,14 +1898,14 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
          emit_asm(ir, TGSI_OPCODE_I2F, result_dst, op[0]);
          break;
       }
-      /* fallthrough to next case otherwise */
+      FALLTHROUGH;
    case ir_unop_b2f:
       if (native_integers) {
          emit_asm(ir, TGSI_OPCODE_AND, result_dst, op[0],
                   st_src_reg_for_float(1.0));
          break;
       }
-      /* fallthrough to next case otherwise */
+      FALLTHROUGH;
    case ir_unop_i2u:
    case ir_unop_u2i:
    case ir_unop_i642u64:
@@ -2016,13 +2016,13 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
          emit_asm(ir, TGSI_OPCODE_NOT, result_dst, op[0]);
          break;
       }
-      /* fallthrough */
+      FALLTHROUGH;
    case ir_unop_u2f:
       if (native_integers) {
          emit_asm(ir, TGSI_OPCODE_U2F, result_dst, op[0]);
          break;
       }
-      /* fallthrough */
+      FALLTHROUGH;
    case ir_binop_lshift:
    case ir_binop_rshift:
       if (native_integers) {
@@ -2044,19 +2044,19 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
          emit_asm(ir, opcode, result_dst, op[0], count);
          break;
       }
-      /* fallthrough */
+      FALLTHROUGH;
    case ir_binop_bit_and:
       if (native_integers) {
          emit_asm(ir, TGSI_OPCODE_AND, result_dst, op[0], op[1]);
          break;
       }
-      /* fallthrough */
+      FALLTHROUGH;
    case ir_binop_bit_xor:
       if (native_integers) {
          emit_asm(ir, TGSI_OPCODE_XOR, result_dst, op[0], op[1]);
          break;
       }
-      /* fallthrough */
+      FALLTHROUGH;
    case ir_binop_bit_or:
       if (native_integers) {
          emit_asm(ir, TGSI_OPCODE_OR, result_dst, op[0], op[1]);
@@ -3965,9 +3965,9 @@ glsl_to_tgsi_visitor::visit_image_intrinsic(ir_call *ir)
       coord.swizzle = SWIZZLE_XXXX;
       switch (type->coordinate_components()) {
       case 4: assert(!"unexpected coord count");
-      /* fallthrough */
+      FALLTHROUGH;
       case 3: coord.swizzle |= SWIZZLE_Z << 6;
-      /* fallthrough */
+      FALLTHROUGH;
       case 2: coord.swizzle |= SWIZZLE_Y << 3;
       }
 
@@ -5473,7 +5473,7 @@ glsl_to_tgsi_visitor::eliminate_dead_code(void)
       case TGSI_OPCODE_IF:
       case TGSI_OPCODE_UIF:
          ++level;
-         /* fallthrough to default case to mark the condition as read */
+         FALLTHROUGH; /* to mark the condition as read */
       default:
          /* Continuing the block, clear any channels from the write array that
           * are read by this instruction.
@@ -6662,8 +6662,8 @@ st_translate_program(
    struct pipe_screen *screen = st_context(ctx)->screen;
    struct st_translate *t;
    unsigned i;
-   struct gl_program_constants *frag_const =
-      &ctx->Const.Program[MESA_SHADER_FRAGMENT];
+   struct gl_program_constants *prog_const =
+      &ctx->Const.Program[program->shader->Stage];
    enum pipe_error ret = PIPE_OK;
 
    assert(numInputs <= ARRAY_SIZE(t->inputs));
@@ -6999,7 +6999,7 @@ st_translate_program(
    assert(i == program->num_immediates);
 
    /* texture samplers */
-   for (i = 0; i < frag_const->MaxTextureImageUnits; i++) {
+   for (i = 0; i < prog_const->MaxTextureImageUnits; i++) {
       if (program->samplers_used & (1u << i)) {
          enum tgsi_return_type type =
             st_translate_texture_type(program->sampler_types[i]);
@@ -7020,7 +7020,7 @@ st_translate_program(
             unsigned index = (prog->info.num_ssbos +
                               prog->sh.AtomicBuffers[i]->Binding);
             assert(prog->sh.AtomicBuffers[i]->Binding <
-                   frag_const->MaxAtomicBuffers);
+                   prog_const->MaxAtomicBuffers);
             t->buffers[index] = ureg_DECL_buffer(ureg, index, true);
          }
       } else {
@@ -7033,7 +7033,7 @@ st_translate_program(
          }
       }
 
-      assert(prog->info.num_ssbos <= frag_const->MaxShaderStorageBlocks);
+      assert(prog->info.num_ssbos <= prog_const->MaxShaderStorageBlocks);
       for (i = 0; i < prog->info.num_ssbos; i++) {
          t->buffers[i] = ureg_DECL_buffer(ureg, i, false);
       }

@@ -2785,6 +2785,10 @@ typedef struct _ADDR2_COMPUTE_HTILE_INFO_OUTPUT
     UINT_32    metaBlkNumPerSlice;  ///< Number of metablock within one slice
 
     ADDR2_META_MIP_INFO* pMipInfo;  ///< HTILE mip information
+
+    struct {
+      UINT_16* gfx10_bits; /* 72 2-byte elements */
+   } equation;
 } ADDR2_COMPUTE_HTILE_INFO_OUTPUT;
 
 /**
@@ -3394,6 +3398,35 @@ typedef struct _ADDR2_COMPUTE_DCCINFO_OUTPUT
     };
 
     ADDR2_META_MIP_INFO* pMipInfo;      ///< DCC mip information
+
+    /* The equation for doing DCC address computations in shaders. */
+    union {
+       /* This is chip-specific, and it varies with:
+        * - resource type
+        * - swizzle_mode
+        * - bpp
+        * - number of fragments
+        * - pipe_aligned
+        * - rb_aligned
+        */
+       struct {
+          UINT_8 num_bits;
+
+          struct {
+             struct {
+                UINT_8 dim; /* 0..4 as index, 5 means invalid */
+                UINT_8 ord; /* 0..31 */
+             } coord[8]; /* 0..num_coords */
+          } bit[32]; /* 0..num_bits */
+          UINT_8 numPipeBits;
+       } gfx9;
+
+       /* This is chip-specific, it requires 64KB_R_X, and it varies with:
+        * - bpp
+        * - pipe_aligned
+        */
+       UINT_16 *gfx10_bits; /* 68 2-byte elements */
+    } equation;
 } ADDR2_COMPUTE_DCCINFO_OUTPUT;
 
 /**

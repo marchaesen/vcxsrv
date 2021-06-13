@@ -1075,8 +1075,7 @@ _swrast_put_row(struct gl_context *ctx, struct gl_renderbuffer *rb,
 
    if (!mask) {
       if (datatype == GL_UNSIGNED_BYTE) {
-         _mesa_pack_ubyte_rgba_row(rb->Format, count,
-                                   (const GLubyte (*)[4]) values, dst);
+         _mesa_pack_ubyte_rgba_row(rb->Format, count, values, dst);
       }
       else {
          assert(datatype == GL_FLOAT);
@@ -1103,7 +1102,7 @@ _swrast_put_row(struct gl_context *ctx, struct gl_renderbuffer *rb,
             if (runLen > 0) {
                if (datatype == GL_UNSIGNED_BYTE) {
                   _mesa_pack_ubyte_rgba_row(rb->Format, runLen,
-                                     (const GLubyte (*)[4]) values + runStart,
+                                     (uint8_t *)values + runStart,
                                      dst + runStart * bpp);
                }
                else {

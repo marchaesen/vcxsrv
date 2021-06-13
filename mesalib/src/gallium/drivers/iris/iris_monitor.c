@@ -35,7 +35,7 @@ struct iris_monitor_object {
    size_t result_size;
    unsigned char *result_buffer;
 
-   struct gen_perf_query_object *query;
+   struct intel_perf_query_object *query;
 };
 
 int
@@ -43,7 +43,7 @@ iris_get_monitor_info(struct pipe_screen *pscreen, unsigned index,
                       struct pipe_driver_query_info *info)
 {
    const struct iris_screen *screen = (struct iris_screen *)pscreen;
-   const struct gen_perf_config *perf_cfg = screen->perf_cfg;
+   const struct intel_perf_config *perf_cfg = screen->perf_cfg;
    assert(perf_cfg);
    if (!perf_cfg)
       return 0;
@@ -53,30 +53,30 @@ iris_get_monitor_info(struct pipe_screen *pscreen, unsigned index,
       return perf_cfg->n_counters;
    }
 
-   struct gen_perf_query_counter_info *counter_info = &perf_cfg->counter_infos[index];
-   struct gen_perf_query_counter *counter = counter_info->counter;
+   struct intel_perf_query_counter_info *counter_info = &perf_cfg->counter_infos[index];
+   struct intel_perf_query_counter *counter = counter_info->counter;
 
    info->group_id = counter_info->location.group_idx;
    info->name = counter->name;
    info->query_type = PIPE_QUERY_DRIVER_SPECIFIC + index;
 
-   if (counter->type == GEN_PERF_COUNTER_TYPE_THROUGHPUT)
+   if (counter->type == INTEL_PERF_COUNTER_TYPE_THROUGHPUT)
       info->result_type = PIPE_DRIVER_QUERY_RESULT_TYPE_AVERAGE;
    else
       info->result_type = PIPE_DRIVER_QUERY_RESULT_TYPE_CUMULATIVE;
    switch (counter->data_type) {
-   case GEN_PERF_COUNTER_DATA_TYPE_BOOL32:
-   case GEN_PERF_COUNTER_DATA_TYPE_UINT32:
+   case INTEL_PERF_COUNTER_DATA_TYPE_BOOL32:
+   case INTEL_PERF_COUNTER_DATA_TYPE_UINT32:
       info->type = PIPE_DRIVER_QUERY_TYPE_UINT;
       assert(counter->raw_max <= UINT32_MAX);
       info->max_value.u32 = (uint32_t)counter->raw_max;
       break;
-   case GEN_PERF_COUNTER_DATA_TYPE_UINT64:
+   case INTEL_PERF_COUNTER_DATA_TYPE_UINT64:
       info->type = PIPE_DRIVER_QUERY_TYPE_UINT64;
       info->max_value.u64 = counter->raw_max;
       break;
-   case GEN_PERF_COUNTER_DATA_TYPE_FLOAT:
-   case GEN_PERF_COUNTER_DATA_TYPE_DOUBLE:
+   case INTEL_PERF_COUNTER_DATA_TYPE_FLOAT:
+   case INTEL_PERF_COUNTER_DATA_TYPE_DOUBLE:
       info->type = PIPE_DRIVER_QUERY_TYPE_FLOAT;
       info->max_value.f = counter->raw_max;
       break;
@@ -93,7 +93,7 @@ iris_get_monitor_info(struct pipe_screen *pscreen, unsigned index,
 static bool
 iris_monitor_init_metrics(struct iris_screen *screen)
 {
-   struct gen_perf_config *perf_cfg = gen_perf_new(screen);
+   struct intel_perf_config *perf_cfg = intel_perf_new(screen);
    if (unlikely(!perf_cfg))
       return false;
 
@@ -101,7 +101,7 @@ iris_monitor_init_metrics(struct iris_screen *screen)
 
    iris_perf_init_vtbl(perf_cfg);
 
-   gen_perf_init_metrics(perf_cfg, &screen->devinfo, screen->fd,
+   intel_perf_init_metrics(perf_cfg, &screen->devinfo, screen->fd,
                          true /* pipeline stats*/);
 
    return perf_cfg->n_counters > 0;
@@ -118,7 +118,7 @@ iris_get_monitor_group_info(struct pipe_screen *pscreen,
          return 0;
    }
 
-   const struct gen_perf_config *perf_cfg = screen->perf_cfg;
+   const struct intel_perf_config *perf_cfg = screen->perf_cfg;
 
    if (!info) {
       /* return the count that can be queried */
@@ -130,7 +130,7 @@ iris_get_monitor_group_info(struct pipe_screen *pscreen,
       return 0;
    }
 
-   struct gen_perf_query_info *query = &perf_cfg->queries[group_index];
+   struct intel_perf_query_info *query = &perf_cfg->queries[group_index];
 
    info->name = query->name;
    info->max_active_queries = query->n_counters;
@@ -144,13 +144,13 @@ iris_init_monitor_ctx(struct iris_context *ice)
 {
    struct iris_screen *screen = (struct iris_screen *) ice->ctx.screen;
 
-   ice->perf_ctx = gen_perf_new_context(ice);
+   ice->perf_ctx = intel_perf_new_context(ice);
    if (unlikely(!ice->perf_ctx))
       return;
 
-   struct gen_perf_context *perf_ctx = ice->perf_ctx;
-   struct gen_perf_config *perf_cfg = screen->perf_cfg;
-   gen_perf_init_context(perf_ctx,
+   struct intel_perf_context *perf_ctx = ice->perf_ctx;
+   struct intel_perf_config *perf_cfg = screen->perf_cfg;
+   intel_perf_init_context(perf_ctx,
                          perf_cfg,
                          ice,
                          ice,
@@ -167,8 +167,8 @@ iris_create_monitor_object(struct iris_context *ice,
                            unsigned *query_types)
 {
    struct iris_screen *screen = (struct iris_screen *) ice->ctx.screen;
-   struct gen_perf_config *perf_cfg = screen->perf_cfg;
-   struct gen_perf_query_object *query_obj = NULL;
+   struct intel_perf_config *perf_cfg = screen->perf_cfg;
+   struct intel_perf_query_object *query_obj = NULL;
 
    /* initialize perf context if this has not already been done.  This
     * function is the first entry point that carries the gl context.
@@ -176,7 +176,7 @@ iris_create_monitor_object(struct iris_context *ice,
    if (ice->perf_ctx == NULL) {
       iris_init_monitor_ctx(ice);
    }
-   struct gen_perf_context *perf_ctx = ice->perf_ctx;
+   struct intel_perf_context *perf_ctx = ice->perf_ctx;
 
    assert(num_queries > 0);
    int query_index = query_types[0] - PIPE_QUERY_DRIVER_SPECIFIC;
@@ -204,8 +204,8 @@ iris_create_monitor_object(struct iris_context *ice,
          perf_cfg->counter_infos[current_query_index].location.counter_idx;
    }
 
-   /* create the gen_perf_query */
-   query_obj = gen_perf_new_query(perf_ctx, group);
+   /* create the intel_perf_query */
+   query_obj = intel_perf_new_query(perf_ctx, group);
    if (unlikely(!query_obj))
       goto allocation_failure;
 
@@ -233,7 +233,7 @@ iris_destroy_monitor_object(struct pipe_context *ctx,
 {
    struct iris_context *ice = (struct iris_context *)ctx;
 
-   gen_perf_delete_query(ice->perf_ctx, monitor->query);
+   intel_perf_delete_query(ice->perf_ctx, monitor->query);
    free(monitor->result_buffer);
    monitor->result_buffer = NULL;
    free(monitor->active_counters);
@@ -246,9 +246,9 @@ iris_begin_monitor(struct pipe_context *ctx,
                    struct iris_monitor_object *monitor)
 {
    struct iris_context *ice = (void *) ctx;
-   struct gen_perf_context *perf_ctx = ice->perf_ctx;
+   struct intel_perf_context *perf_ctx = ice->perf_ctx;
 
-   return gen_perf_begin_query(perf_ctx, monitor->query);
+   return intel_perf_begin_query(perf_ctx, monitor->query);
 }
 
 bool
@@ -256,9 +256,9 @@ iris_end_monitor(struct pipe_context *ctx,
                  struct iris_monitor_object *monitor)
 {
    struct iris_context *ice = (void *) ctx;
-   struct gen_perf_context *perf_ctx = ice->perf_ctx;
+   struct intel_perf_context *perf_ctx = ice->perf_ctx;
 
-   gen_perf_end_query(perf_ctx, monitor->query);
+   intel_perf_end_query(perf_ctx, monitor->query);
    return true;
 }
 
@@ -269,22 +269,22 @@ iris_get_monitor_result(struct pipe_context *ctx,
                         union pipe_numeric_type_union *result)
 {
    struct iris_context *ice = (void *) ctx;
-   struct gen_perf_context *perf_ctx = ice->perf_ctx;
+   struct intel_perf_context *perf_ctx = ice->perf_ctx;
    struct iris_batch *batch = &ice->batches[IRIS_BATCH_RENDER];
 
    bool monitor_ready =
-      gen_perf_is_query_ready(perf_ctx, monitor->query, batch);
+      intel_perf_is_query_ready(perf_ctx, monitor->query, batch);
 
    if (!monitor_ready) {
       if (!wait)
          return false;
-      gen_perf_wait_query(perf_ctx, monitor->query, batch);
+      intel_perf_wait_query(perf_ctx, monitor->query, batch);
    }
 
-   assert(gen_perf_is_query_ready(perf_ctx, monitor->query, batch));
+   assert(intel_perf_is_query_ready(perf_ctx, monitor->query, batch));
 
    unsigned bytes_written;
-   gen_perf_get_query_data(perf_ctx, monitor->query, batch,
+   intel_perf_get_query_data(perf_ctx, monitor->query, batch,
                            monitor->result_size,
                            (unsigned*) monitor->result_buffer,
                            &bytes_written);
@@ -294,23 +294,23 @@ iris_get_monitor_result(struct pipe_context *ctx,
    /* copy metrics into the batch result */
    for (int i = 0; i < monitor->num_active_counters; ++i) {
       int current_counter = monitor->active_counters[i];
-      const struct gen_perf_query_info *info =
-         gen_perf_query_info(monitor->query);
-      const struct gen_perf_query_counter *counter =
+      const struct intel_perf_query_info *info =
+         intel_perf_query_info(monitor->query);
+      const struct intel_perf_query_counter *counter =
          &info->counters[current_counter];
-      assert(gen_perf_query_counter_get_size(counter));
+      assert(intel_perf_query_counter_get_size(counter));
       switch (counter->data_type) {
-      case GEN_PERF_COUNTER_DATA_TYPE_UINT64:
+      case INTEL_PERF_COUNTER_DATA_TYPE_UINT64:
          result[i].u64 = *(uint64_t*)(monitor->result_buffer + counter->offset);
          break;
-      case GEN_PERF_COUNTER_DATA_TYPE_FLOAT:
+      case INTEL_PERF_COUNTER_DATA_TYPE_FLOAT:
          result[i].f = *(float*)(monitor->result_buffer + counter->offset);
          break;
-      case GEN_PERF_COUNTER_DATA_TYPE_UINT32:
-      case GEN_PERF_COUNTER_DATA_TYPE_BOOL32:
+      case INTEL_PERF_COUNTER_DATA_TYPE_UINT32:
+      case INTEL_PERF_COUNTER_DATA_TYPE_BOOL32:
          result[i].u64 = *(uint32_t*)(monitor->result_buffer + counter->offset);
          break;
-      case GEN_PERF_COUNTER_DATA_TYPE_DOUBLE: {
+      case INTEL_PERF_COUNTER_DATA_TYPE_DOUBLE: {
          double v = *(double*)(monitor->result_buffer + counter->offset);
          result[i].f = v;
          break;

@@ -23,7 +23,7 @@ Building OSMesa
 
 Configure and build Mesa with something like:
 
-::
+.. code-block:: console
 
    meson builddir -Dosmesa=true -Dgallium-drivers=swrast -Ddri-drivers=[] -Dvulkan-drivers=[] -Dprefix=$PWD/builddir/install
    ninja -C builddir install

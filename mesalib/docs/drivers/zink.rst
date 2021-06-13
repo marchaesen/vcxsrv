@@ -28,22 +28,23 @@ Here's a list of those requirements:
 * ``VkPhysicalDeviceFeatures``:
 
   * ``logicOp``
-  * ``depthClamp``
   * ``fillModeNonSolid``
   * ``wideLines``
   * ``largePoints``
   * ``alphaToOne``
   * ``shaderClipDistance``
 
-* Instance extensions:
-
-  * `VK_KHR_get_physical_device_properties2`_
-  * `VK_KHR_external_memory_capabilities`_
-
 * Device extensions:
 
   * `VK_KHR_maintenance1`_
-  * `VK_KHR_external_memory`_
+  * `VK_EXT_custom_border_color`_
+  * `VK_EXT_provoking_vertex`_
+
+In addition to this, `VK_KHR_external_memory`_ is required to support the
+DRI code-path.
+
+We also require either the `VK_EXT_scalar_block_layout`_ extension or
+Vulkan 1.2, with the ``scalarBlockLayout`` feature.
 
 OpenGL 3.0
 ^^^^^^^^^^
@@ -110,7 +111,6 @@ supported:
 * Device extensions:
 
   * `VK_KHR_maintenance2`_
-  * `VK_KHR_vulkan_memory_model`
 
 * Formats requiring ``VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT``:
 
@@ -124,14 +124,19 @@ OpenGL 4.1
 For OpenGL 4.1 support, the following additional ``VkPhysicalDeviceLimits``
 are required:
 
-* `maxImageDimension2D` ≥ 16384
-* `maxViewports` ≥ 16
+* ``maxImageDimension2D`` ≥ 16384
+* ``maxViewports`` ≥ 16
 
 OpenGL 4.2
 ^^^^^^^^^^
 
 For OpenGL 4.2 support, the following additional requirements needs to be
 supported:
+
+* ``VkPhysicalDeviceLimits``:
+
+  * ``shaderStorageImageExtendedFormats``
+  * ``shaderStorageImageWriteWithoutFormat``
 
 * For Vulkan 1.2 and above:
   
@@ -253,15 +258,15 @@ questions, don't hesitate to visit `#zink on FreeNode
 <irc://irc.freenode.net/zink>`_ and say hi!
 
 
-.. _VK_KHR_get_physical_device_properties2: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_get_physical_device_properties2.html
-.. _VK_KHR_external_memory_capabilities: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_external_memory_capabilities.html
 .. _VK_KHR_maintenance1: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_maintenance1.html
 .. _VK_KHR_external_memory: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_external_memory.html
+.. _VK_EXT_scalar_block_layout: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_EXT_scalar_block_layout.html
 .. _VK_EXT_transform_feedback: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_EXT_transform_feedback.html
 .. _VK_EXT_conditional_rendering: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_EXT_conditional_rendering.html
 .. _VK_EXT_vertex_attribute_divisor: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_EXT_vertex_attribute_divisor.html
 .. _VK_KHR_maintenance2: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_maintenance2.html
-.. _VK_KHR_vulkan_memory_model: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_vulkan_memory_model.html
 .. _VK_KHR_shader_draw_parameters: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_shader_draw_parameters.html
 .. _VK_KHR_draw_indirect_count: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_draw_indirect_count.html
 .. _VK_KHR_sampler_mirror_clamp_to_edge: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_sampler_mirror_clamp_to_edge.html
+.. _VK_EXT_custom_border_color: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_EXT_custom_border_color.html
+.. _VK_EXT_provoking_vertex: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_EXT_provoking_vertex.html

@@ -2716,7 +2716,7 @@ _XkbSetMap(ClientPtr client, DeviceIntPtr dev, xkbSetMapReq * req, char *values)
 int
 ProcXkbSetMap(ClientPtr client)
 {
-    DeviceIntPtr dev;
+    DeviceIntPtr dev, master;
     char *tmp;
     int rc;
 
@@ -2744,7 +2744,7 @@ ProcXkbSetMap(ClientPtr client)
     if (rc != Success)
         return rc;
 
-    DeviceIntPtr master = GetMaster(dev, MASTER_KEYBOARD);
+    master = GetMaster(dev, MASTER_KEYBOARD);
 
     if (stuff->deviceSpec == XkbUseCoreKbd) {
         DeviceIntPtr other;

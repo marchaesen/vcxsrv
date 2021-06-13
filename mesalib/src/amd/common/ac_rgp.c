@@ -31,7 +31,21 @@
 
 #include "ac_sqtt.h"
 #include "ac_gpu_info.h"
+#ifdef _WIN32
+#define AMDGPU_VRAM_TYPE_UNKNOWN 0
+#define AMDGPU_VRAM_TYPE_GDDR1 1
+#define AMDGPU_VRAM_TYPE_DDR2  2
+#define AMDGPU_VRAM_TYPE_GDDR3 3
+#define AMDGPU_VRAM_TYPE_GDDR4 4
+#define AMDGPU_VRAM_TYPE_GDDR5 5
+#define AMDGPU_VRAM_TYPE_HBM   6
+#define AMDGPU_VRAM_TYPE_DDR3  7
+#define AMDGPU_VRAM_TYPE_DDR4  8
+#define AMDGPU_VRAM_TYPE_GDDR6 9
+#define AMDGPU_VRAM_TYPE_DDR5  10
+#else
 #include "drm-uapi/amdgpu_drm.h"
+#endif
 
 #include <stdbool.h>
 #include <string.h>
@@ -847,7 +861,7 @@ static void ac_sqtt_dump_data(struct radeon_info *rad_info,
       struct sqtt_file_chunk_code_object_database code_object;
       struct sqtt_code_object_database_record code_object_record;
       uint32_t elf_size_calc = 0;
-      uint flags = ac_chip_class_to_elf_gfxip_level(rad_info->chip_class);
+      uint32_t flags = ac_chip_class_to_elf_gfxip_level(rad_info->chip_class);
 
       fseek(output, sizeof(struct sqtt_file_chunk_code_object_database), SEEK_CUR);
       file_offset += sizeof(struct sqtt_file_chunk_code_object_database);

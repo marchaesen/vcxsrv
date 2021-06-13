@@ -417,18 +417,18 @@ v3d_set_shader_uniform_dirty_flags(struct v3d_compiled_shader *shader)
                         break;
                 case QUNIFORM_UNIFORM:
                 case QUNIFORM_UBO_ADDR:
-                        dirty |= VC5_DIRTY_CONSTBUF;
+                        dirty |= V3D_DIRTY_CONSTBUF;
                         break;
 
                 case QUNIFORM_VIEWPORT_X_SCALE:
                 case QUNIFORM_VIEWPORT_Y_SCALE:
                 case QUNIFORM_VIEWPORT_Z_OFFSET:
                 case QUNIFORM_VIEWPORT_Z_SCALE:
-                        dirty |= VC5_DIRTY_VIEWPORT;
+                        dirty |= V3D_DIRTY_VIEWPORT;
                         break;
 
                 case QUNIFORM_USER_CLIP_PLANE:
-                        dirty |= VC5_DIRTY_CLIP;
+                        dirty |= V3D_DIRTY_CLIP;
                         break;
 
                 case QUNIFORM_TMU_CONFIG_P0:
@@ -447,13 +447,13 @@ v3d_set_shader_uniform_dirty_flags(struct v3d_compiled_shader *shader)
                         /* We could flag this on just the stage we're
                          * compiling for, but it's not passed in.
                          */
-                        dirty |= VC5_DIRTY_FRAGTEX | VC5_DIRTY_VERTTEX |
-                                 VC5_DIRTY_GEOMTEX | VC5_DIRTY_COMPTEX;
+                        dirty |= V3D_DIRTY_FRAGTEX | V3D_DIRTY_VERTTEX |
+                                 V3D_DIRTY_GEOMTEX | V3D_DIRTY_COMPTEX;
                         break;
 
                 case QUNIFORM_SSBO_OFFSET:
                 case QUNIFORM_GET_SSBO_SIZE:
-                        dirty |= VC5_DIRTY_SSBO;
+                        dirty |= V3D_DIRTY_SSBO;
                         break;
 
                 case QUNIFORM_IMAGE_TMU_CONFIG_P0:
@@ -461,12 +461,12 @@ v3d_set_shader_uniform_dirty_flags(struct v3d_compiled_shader *shader)
                 case QUNIFORM_IMAGE_HEIGHT:
                 case QUNIFORM_IMAGE_DEPTH:
                 case QUNIFORM_IMAGE_ARRAY_SIZE:
-                        dirty |= VC5_DIRTY_SHADER_IMAGE;
+                        dirty |= V3D_DIRTY_SHADER_IMAGE;
                         break;
 
                 case QUNIFORM_LINE_WIDTH:
                 case QUNIFORM_AA_LINE_WIDTH:
-                        dirty |= VC5_DIRTY_RASTERIZER;
+                        dirty |= V3D_DIRTY_RASTERIZER;
                         break;
 
                 case QUNIFORM_NUM_WORK_GROUPS:
@@ -475,13 +475,13 @@ v3d_set_shader_uniform_dirty_flags(struct v3d_compiled_shader *shader)
                         break;
 
                 case QUNIFORM_FB_LAYERS:
-                        dirty |= VC5_DIRTY_FRAMEBUFFER;
+                        dirty |= V3D_DIRTY_FRAMEBUFFER;
                         break;
 
                 default:
                         assert(quniform_contents_is_texture_p0(shader->prog_data.base->uniforms.contents[i]));
-                        dirty |= VC5_DIRTY_FRAGTEX | VC5_DIRTY_VERTTEX |
-                                 VC5_DIRTY_GEOMTEX | VC5_DIRTY_COMPTEX;
+                        dirty |= V3D_DIRTY_FRAGTEX | V3D_DIRTY_VERTTEX |
+                                 V3D_DIRTY_GEOMTEX | V3D_DIRTY_COMPTEX;
                         break;
                 }
         }

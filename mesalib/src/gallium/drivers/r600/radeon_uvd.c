@@ -152,7 +152,7 @@ static void map_msg_fb_it_buf(struct ruvd_decoder *dec)
 	buf = &dec->msg_fb_it_buffers[dec->cur_buffer];
 
 	/* and map it for CPU access */
-	ptr = dec->ws->buffer_map(buf->res->buf, &dec->cs,
+	ptr = dec->ws->buffer_map(dec->ws, buf->res->buf, &dec->cs,
                                   PIPE_MAP_WRITE | RADEON_MAP_TEMPORARY);
 
 	/* calc buffer offsets */
@@ -177,7 +177,7 @@ static void send_msg_buf(struct ruvd_decoder *dec)
 	buf = &dec->msg_fb_it_buffers[dec->cur_buffer];
 
 	/* unmap the buffer */
-	dec->ws->buffer_unmap(buf->res->buf);
+	dec->ws->buffer_unmap(dec->ws, buf->res->buf);
 	dec->bs_ptr = NULL;
 	dec->msg = NULL;
 	dec->fb = NULL;
@@ -840,7 +840,7 @@ static void ruvd_begin_frame(struct pipe_video_codec *decoder,
 					    &ruvd_destroy_associated_data);
 
 	dec->bs_size = 0;
-	dec->bs_ptr = dec->ws->buffer_map(
+	dec->bs_ptr = dec->ws->buffer_map(dec->ws,
 		dec->bs_buffers[dec->cur_buffer].res->buf,
 		&dec->cs, PIPE_MAP_WRITE | RADEON_MAP_TEMPORARY);
 }
@@ -888,14 +888,14 @@ static void ruvd_decode_bitstream(struct pipe_video_codec *decoder,
 			new_size += 2; /* save for EOI */
 
 		if (new_size > buf->res->buf->size) {
-			dec->ws->buffer_unmap(buf->res->buf);
+			dec->ws->buffer_unmap(dec->ws, buf->res->buf);
 			dec->bs_ptr = NULL;
 			if (!rvid_resize_buffer(dec->screen, &dec->cs, buf, new_size)) {
 				RVID_ERR("Can't resize bitstream buffer!");
 				return;
 			}
 
-			dec->bs_ptr = dec->ws->buffer_map(buf->res->buf, &dec->cs,
+			dec->bs_ptr = dec->ws->buffer_map(dec->ws, buf->res->buf, &dec->cs,
 							  PIPE_MAP_WRITE |
 							  RADEON_MAP_TEMPORARY);
 			if (!dec->bs_ptr)
@@ -939,7 +939,7 @@ static void ruvd_end_frame(struct pipe_video_codec *decoder,
 
 	bs_size = align(dec->bs_size, 128);
 	memset(dec->bs_ptr, 0, bs_size - dec->bs_size);
-	dec->ws->buffer_unmap(bs_buf->res->buf);
+	dec->ws->buffer_unmap(dec->ws, bs_buf->res->buf);
 	dec->bs_ptr = NULL;
 
 	map_msg_fb_it_buf(dec);
@@ -1051,7 +1051,7 @@ struct pipe_video_codec *ruvd_create_decoder(struct pipe_context *context,
 		if (templ->entrypoint > PIPE_VIDEO_ENTRYPOINT_BITSTREAM || info.family < CHIP_PALM)
 			return vl_create_mpeg12_decoder(context, templ);
 
-		/* fall through */
+		FALLTHROUGH;
 	case PIPE_VIDEO_FORMAT_MPEG4:
 		width = align(width, VL_MACROBLOCK_WIDTH);
 		height = align(height, VL_MACROBLOCK_HEIGHT);
@@ -1170,7 +1170,7 @@ error:
 /* calculate top/bottom offset */
 static unsigned texture_offset(struct radeon_surf *surface, unsigned layer)
 {
-	return surface->u.legacy.level[0].offset +
+	return (uint64_t)surface->u.legacy.level[0].offset_256B * 256 +
 		layer * (uint64_t)surface->u.legacy.level[0].slice_size_dw * 4;
 }
 

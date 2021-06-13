@@ -178,7 +178,6 @@ struct r600_resource {
 struct r600_transfer {
 	struct threaded_transfer	b;
 	struct r600_resource		*staging;
-	unsigned			offset;
 };
 
 struct r600_fmask_info {

@@ -174,7 +174,7 @@ tu6_emit_load_state(struct tu_pipeline *pipeline, bool compute)
             base = MAX_SETS;
             offset = (layout->set[i].dynamic_offset_start +
                       binding->dynamic_offset_offset) * A6XX_TEX_CONST_DWORDS;
-            /* fallthrough */
+            FALLTHROUGH;
          case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
          case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
          case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
@@ -206,7 +206,7 @@ tu6_emit_load_state(struct tu_pipeline *pipeline, bool compute)
             base = MAX_SETS;
             offset = (layout->set[i].dynamic_offset_start +
                       binding->dynamic_offset_offset) * A6XX_TEX_CONST_DWORDS;
-            /* fallthrough */
+            FALLTHROUGH;
          case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
             tu_foreach_stage(stage, stages) {
                emit_load_state(&cs, tu6_stage2opcode(stage), ST6_UBO,
@@ -259,6 +259,7 @@ struct tu_pipeline_builder
 
    bool rasterizer_discard;
    /* these states are affectd by rasterizer_discard */
+   bool emit_msaa_state;
    VkSampleCountFlagBits samples;
    bool use_color_attachments;
    bool use_dual_src_blend;
@@ -398,7 +399,7 @@ tu6_emit_xs_config(struct tu_cs *cs,
       tu_cs_emit_regs(cs, A6XX_SP_VS_CTRL_REG0(
                .fullregfootprint = xs->info.max_reg + 1,
                .halfregfootprint = xs->info.max_half_reg + 1,
-               .branchstack = xs->branchstack,
+               .branchstack = ir3_shader_branchstack_hw(xs),
                .mergedregs = xs->mergedregs,
       ));
       break;
@@ -406,14 +407,14 @@ tu6_emit_xs_config(struct tu_cs *cs,
       tu_cs_emit_regs(cs, A6XX_SP_HS_CTRL_REG0(
                .fullregfootprint = xs->info.max_reg + 1,
                .halfregfootprint = xs->info.max_half_reg + 1,
-               .branchstack = xs->branchstack,
+               .branchstack = ir3_shader_branchstack_hw(xs),
       ));
       break;
    case MESA_SHADER_TESS_EVAL:
       tu_cs_emit_regs(cs, A6XX_SP_DS_CTRL_REG0(
                .fullregfootprint = xs->info.max_reg + 1,
                .halfregfootprint = xs->info.max_half_reg + 1,
-               .branchstack = xs->branchstack,
+               .branchstack = ir3_shader_branchstack_hw(xs),
                .mergedregs = xs->mergedregs,
       ));
       break;
@@ -421,14 +422,14 @@ tu6_emit_xs_config(struct tu_cs *cs,
       tu_cs_emit_regs(cs, A6XX_SP_GS_CTRL_REG0(
                .fullregfootprint = xs->info.max_reg + 1,
                .halfregfootprint = xs->info.max_half_reg + 1,
-               .branchstack = xs->branchstack,
+               .branchstack = ir3_shader_branchstack_hw(xs),
       ));
       break;
    case MESA_SHADER_FRAGMENT:
       tu_cs_emit_regs(cs, A6XX_SP_FS_CTRL_REG0(
                .fullregfootprint = xs->info.max_reg + 1,
                .halfregfootprint = xs->info.max_half_reg + 1,
-               .branchstack = xs->branchstack,
+               .branchstack = ir3_shader_branchstack_hw(xs),
                .mergedregs = xs->mergedregs,
                .threadsize = thrsz,
                .pixlodenable = xs->need_pixlod,
@@ -442,7 +443,7 @@ tu6_emit_xs_config(struct tu_cs *cs,
       tu_cs_emit_regs(cs, A6XX_SP_CS_CTRL_REG0(
                .fullregfootprint = xs->info.max_reg + 1,
                .halfregfootprint = xs->info.max_half_reg + 1,
-               .branchstack = xs->branchstack,
+               .branchstack = ir3_shader_branchstack_hw(xs),
                .mergedregs = xs->mergedregs,
                .threadsize = thrsz,
       ));
@@ -1135,8 +1136,13 @@ tu6_emit_vpc(struct tu_cs *cs,
       tu_cs_emit_pkt4(cs, REG_A6XX_PC_PRIMITIVE_CNTL_6, 1);
       tu_cs_emit(cs, A6XX_PC_PRIMITIVE_CNTL_6_STRIDE_IN_VPC(vec4_size));
 
+      uint32_t prim_size = prev_stage_output_size;
+      if (prim_size > 64)
+         prim_size = 64;
+      else if (prim_size == 64)
+         prim_size = 63;
       tu_cs_emit_pkt4(cs, REG_A6XX_SP_GS_PRIM_SIZE, 1);
-      tu_cs_emit(cs, prev_stage_output_size);
+      tu_cs_emit(cs, prim_size);
    }
 }
 
@@ -1370,7 +1376,8 @@ tu6_emit_fs_outputs(struct tu_cs *cs,
                     const struct ir3_shader_variant *fs,
                     uint32_t mrt_count, bool dual_src_blend,
                     uint32_t render_components,
-                    bool no_earlyz)
+                    bool no_earlyz,
+                    struct tu_pipeline *pipeline)
 {
    uint32_t smask_regid, posz_regid, stencilref_regid;
 
@@ -1395,16 +1402,33 @@ tu6_emit_fs_outputs(struct tu_cs *cs,
                   COND(dual_src_blend, A6XX_SP_FS_OUTPUT_CNTL0_DUAL_COLOR_IN_ENABLE));
    tu_cs_emit(cs, A6XX_SP_FS_OUTPUT_CNTL1_MRT(mrt_count));
 
+   uint32_t fs_render_components = 0;
+
    tu_cs_emit_pkt4(cs, REG_A6XX_SP_FS_OUTPUT_REG(0), 8);
    for (uint32_t i = 0; i < ARRAY_SIZE(fragdata_regid); i++) {
       // TODO we could have a mix of half and full precision outputs,
       // we really need to figure out half-precision from IR3_REG_HALF
       tu_cs_emit(cs, A6XX_SP_FS_OUTPUT_REG_REGID(fragdata_regid[i]) |
                         (false ? A6XX_SP_FS_OUTPUT_REG_HALF_PRECISION : 0));
+
+      if (VALIDREG(fragdata_regid[i])) {
+         fs_render_components |= 0xf << (i * 4);
+      }
    }
 
+   /* dual source blending has an extra fs output in the 2nd slot */
+   if (dual_src_blend) {
+      fs_render_components |= 0xf << 4;
+   }
+
+   /* There is no point in having component enabled which is not written
+    * by the shader. Per VK spec it is an UB, however a few apps depend on
+    * attachment not being changed if FS doesn't have corresponding output.
+    */
+   fs_render_components &= render_components;
+
    tu_cs_emit_regs(cs,
-                   A6XX_SP_FS_RENDER_COMPONENTS(.dword = render_components));
+                   A6XX_SP_FS_RENDER_COMPONENTS(.dword = fs_render_components));
 
    tu_cs_emit_pkt4(cs, REG_A6XX_RB_FS_OUTPUT_CNTL0, 2);
    tu_cs_emit(cs, COND(fs->writes_pos, A6XX_RB_FS_OUTPUT_CNTL0_FRAG_WRITES_Z) |
@@ -1414,22 +1438,16 @@ tu6_emit_fs_outputs(struct tu_cs *cs,
    tu_cs_emit(cs, A6XX_RB_FS_OUTPUT_CNTL1_MRT(mrt_count));
 
    tu_cs_emit_regs(cs,
-                   A6XX_RB_RENDER_COMPONENTS(.dword = render_components));
+                   A6XX_RB_RENDER_COMPONENTS(.dword = fs_render_components));
 
-   enum a6xx_ztest_mode zmode;
+   if (pipeline) {
+      pipeline->lrz.fs_has_kill = fs->has_kill;
 
-   if ((fs->shader && !fs->shader->nir->info.fs.early_fragment_tests) &&
-       (fs->no_earlyz || fs->has_kill || fs->writes_pos || fs->writes_stencilref || no_earlyz || fs->writes_smask)) {
-      zmode = A6XX_LATE_Z;
-   } else {
-      zmode = A6XX_EARLY_Z;
+      if ((fs->shader && !fs->shader->nir->info.fs.early_fragment_tests) &&
+          (fs->no_earlyz || fs->has_kill || fs->writes_pos || fs->writes_stencilref || no_earlyz || fs->writes_smask)) {
+         pipeline->lrz.force_late_z = true;
+      }
    }
-
-   tu_cs_emit_pkt4(cs, REG_A6XX_GRAS_SU_DEPTH_PLANE_CNTL, 1);
-   tu_cs_emit(cs, A6XX_GRAS_SU_DEPTH_PLANE_CNTL_Z_MODE(zmode));
-
-   tu_cs_emit_pkt4(cs, REG_A6XX_RB_DEPTH_PLANE_CNTL, 1);
-   tu_cs_emit(cs, A6XX_RB_DEPTH_PLANE_CNTL_Z_MODE(zmode));
 }
 
 static void
@@ -1497,7 +1515,8 @@ tu6_emit_geom_tess_consts(struct tu_cs *cs,
 static void
 tu6_emit_program(struct tu_cs *cs,
                  struct tu_pipeline_builder *builder,
-                 bool binning_pass)
+                 bool binning_pass,
+                 struct tu_pipeline *pipeline)
 {
    const struct ir3_shader_variant *vs = builder->variants[MESA_SHADER_VERTEX];
    const struct ir3_shader_variant *bs = builder->binning_variant;
@@ -1591,7 +1610,8 @@ tu6_emit_program(struct tu_cs *cs,
       tu6_emit_fs_outputs(cs, fs, mrt_count,
                           builder->use_dual_src_blend,
                           render_components,
-                          no_earlyz);
+                          no_earlyz,
+                          pipeline);
    } else {
       /* TODO: check if these can be skipped if fs is disabled */
       struct ir3_shader_variant dummy_variant = {};
@@ -1599,7 +1619,8 @@ tu6_emit_program(struct tu_cs *cs,
       tu6_emit_fs_outputs(cs, &dummy_variant, mrt_count,
                           builder->use_dual_src_blend,
                           render_components,
-                          no_earlyz);
+                          no_earlyz,
+                          NULL);
    }
 
    if (gs || hs) {
@@ -2323,12 +2344,12 @@ tu_pipeline_builder_parse_dynamic(struct tu_pipeline_builder *builder,
    const VkPipelineDynamicStateCreateInfo *dynamic_info =
       builder->create_info->pDynamicState;
 
-   if (!dynamic_info)
-      return;
-
    pipeline->gras_su_cntl_mask = ~0u;
    pipeline->rb_depth_cntl_mask = ~0u;
    pipeline->rb_stencil_cntl_mask = ~0u;
+
+   if (!dynamic_info)
+      return;
 
    for (uint32_t i = 0; i < dynamic_info->dynamicStateCount; i++) {
       VkDynamicState state = dynamic_info->pDynamicStates[i];
@@ -2387,9 +2408,14 @@ tu_pipeline_builder_parse_dynamic(struct tu_pipeline_builder *builder,
          pipeline->dynamic_state_mask |= BIT(TU_DYNAMIC_STATE_RB_STENCIL_CNTL);
          break;
       case VK_DYNAMIC_STATE_STENCIL_OP_EXT:
-         pipeline->rb_stencil_cntl_mask &= A6XX_RB_STENCIL_CONTROL_STENCIL_ENABLE |
-                                           A6XX_RB_STENCIL_CONTROL_STENCIL_ENABLE_BF |
-                                           A6XX_RB_STENCIL_CONTROL_STENCIL_READ;
+         pipeline->rb_stencil_cntl_mask &= ~(A6XX_RB_STENCIL_CONTROL_FUNC__MASK |
+                                             A6XX_RB_STENCIL_CONTROL_FAIL__MASK |
+                                             A6XX_RB_STENCIL_CONTROL_ZPASS__MASK |
+                                             A6XX_RB_STENCIL_CONTROL_ZFAIL__MASK |
+                                             A6XX_RB_STENCIL_CONTROL_FUNC_BF__MASK |
+                                             A6XX_RB_STENCIL_CONTROL_FAIL_BF__MASK |
+                                             A6XX_RB_STENCIL_CONTROL_ZPASS_BF__MASK |
+                                             A6XX_RB_STENCIL_CONTROL_ZFAIL_BF__MASK);
          pipeline->dynamic_state_mask |= BIT(TU_DYNAMIC_STATE_RB_STENCIL_CNTL);
          break;
       default:
@@ -2415,11 +2441,11 @@ tu_pipeline_builder_parse_shader_stages(struct tu_pipeline_builder *builder,
 {
    struct tu_cs prog_cs;
    tu_cs_begin_sub_stream(&pipeline->cs, 512, &prog_cs);
-   tu6_emit_program(&prog_cs, builder, false);
+   tu6_emit_program(&prog_cs, builder, false, pipeline);
    pipeline->program.state = tu_cs_end_draw_state(&pipeline->cs, &prog_cs);
 
    tu_cs_begin_sub_stream(&pipeline->cs, 512, &prog_cs);
-   tu6_emit_program(&prog_cs, builder, true);
+   tu6_emit_program(&prog_cs, builder, true, pipeline);
    pipeline->program.binning_state = tu_cs_end_draw_state(&pipeline->cs, &prog_cs);
 
    VkShaderStageFlags stages = 0;
@@ -2559,7 +2585,8 @@ tu_pipeline_builder_parse_rasterization(struct tu_pipeline_builder *builder,
       depth_clip_disable = !depth_clip_state->depthClipEnable;
 
    struct tu_cs cs;
-   pipeline->rast_state = tu_cs_draw_state(&pipeline->cs, &cs, 13);
+   uint32_t cs_size = 13 + (builder->emit_msaa_state ? 11 : 0);
+   pipeline->rast_state = tu_cs_draw_state(&pipeline->cs, &cs, cs_size);
 
    tu_cs_emit_regs(&cs,
                    A6XX_GRAS_CL_CNTL(
@@ -2590,6 +2617,12 @@ tu_pipeline_builder_parse_rasterization(struct tu_pipeline_builder *builder,
                                        .discard = rast_info->rasterizerDiscardEnable));
    tu_cs_emit_regs(&cs,
                    A6XX_VPC_UNKNOWN_9107(.raster_discard = rast_info->rasterizerDiscardEnable));
+
+   /* If samples count couldn't be devised from the subpass, we should emit it here.
+    * It happens when subpass doesn't use any color/depth attachment.
+    */
+   if (builder->emit_msaa_state)
+      tu6_emit_msaa(&cs, builder->samples);
 
    pipeline->gras_su_cntl =
       tu6_gras_su_cntl(rast_info, builder->samples, builder->multiview_mask != 0);
@@ -2675,16 +2708,14 @@ tu_pipeline_builder_parse_depth_stencil(struct tu_pipeline_builder *builder,
    if (tu_pipeline_static_state(pipeline, &cs, TU_DYNAMIC_STATE_RB_DEPTH_CNTL, 2)) {
       tu_cs_emit_pkt4(&cs, REG_A6XX_RB_DEPTH_CNTL, 1);
       tu_cs_emit(&cs, rb_depth_cntl);
-   } else {
-      pipeline->rb_depth_cntl = rb_depth_cntl;
    }
+   pipeline->rb_depth_cntl = rb_depth_cntl;
 
    if (tu_pipeline_static_state(pipeline, &cs, TU_DYNAMIC_STATE_RB_STENCIL_CNTL, 2)) {
       tu_cs_emit_pkt4(&cs, REG_A6XX_RB_STENCIL_CONTROL, 1);
       tu_cs_emit(&cs, rb_stencil_cntl);
-   } else {
-      pipeline->rb_stencil_cntl = rb_stencil_cntl;
    }
+   pipeline->rb_stencil_cntl = rb_stencil_cntl;
 
    /* the remaining draw states arent used if there is no d/s, leave them empty */
    if (builder->depth_attachment_format == VK_FORMAT_UNDEFINED)
@@ -2702,8 +2733,9 @@ tu_pipeline_builder_parse_depth_stencil(struct tu_pipeline_builder *builder,
    }
 
    if (tu_pipeline_static_state(pipeline, &cs, VK_DYNAMIC_STATE_STENCIL_WRITE_MASK, 2)) {
-      tu_cs_emit_regs(&cs, A6XX_RB_STENCILWRMASK(.wrmask = ds_info->front.writeMask & 0xff,
-                                                 .bfwrmask = ds_info->back.writeMask & 0xff));
+      update_stencil_mask(&pipeline->stencil_wrmask,  VK_STENCIL_FACE_FRONT_BIT, ds_info->front.writeMask);
+      update_stencil_mask(&pipeline->stencil_wrmask,  VK_STENCIL_FACE_BACK_BIT, ds_info->back.writeMask);
+      tu_cs_emit_regs(&cs, A6XX_RB_STENCILWRMASK(.dword = pipeline->stencil_wrmask));
    }
 
    if (tu_pipeline_static_state(pipeline, &cs, VK_DYNAMIC_STATE_STENCIL_REFERENCE, 2)) {
@@ -2711,55 +2743,13 @@ tu_pipeline_builder_parse_depth_stencil(struct tu_pipeline_builder *builder,
                                               .bfref = ds_info->back.reference & 0xff));
    }
 
-   if (ds_info->depthTestEnable) {
-      pipeline->lrz.write = ds_info->depthWriteEnable;
-      pipeline->lrz.invalidate = false;
-      pipeline->lrz.z_test_enable = true;
-
-      /* LRZ does not support some depth modes.
-       *
-       * The HW has a flag for GREATER and GREATER_OR_EQUAL modes which is used
-       * in freedreno, however there are some dEQP-VK tests that fail if we use here.
-       * Furthermore, blob disables LRZ on these comparison opcodes too.
-       *
-       * TODO: investigate if we can enable GREATER flag here.
-       */
-      switch(ds_info->depthCompareOp) {
-      case VK_COMPARE_OP_ALWAYS:
-      case VK_COMPARE_OP_NOT_EQUAL:
-      case VK_COMPARE_OP_GREATER:
-      case VK_COMPARE_OP_GREATER_OR_EQUAL:
-         pipeline->lrz.invalidate = true;
-         pipeline->lrz.write = false;
-         break;
-      case VK_COMPARE_OP_EQUAL:
-      case VK_COMPARE_OP_NEVER:
-         pipeline->lrz.enable = true;
-         pipeline->lrz.write = false;
-         break;
-      case VK_COMPARE_OP_LESS:
-      case VK_COMPARE_OP_LESS_OR_EQUAL:
-         pipeline->lrz.enable = true;
-         break;
-      default:
-         unreachable("bad VK_COMPARE_OP value");
-         break;
-      };
-   }
-
-   if (ds_info->stencilTestEnable) {
-      pipeline->lrz.write = false;
-      pipeline->lrz.invalidate = true;
-   }
-
    if (builder->shaders[MESA_SHADER_FRAGMENT]) {
       const struct ir3_shader_variant *fs = &builder->shaders[MESA_SHADER_FRAGMENT]->ir3_shader->variants[0];
       if (fs->has_kill || fs->no_earlyz || fs->writes_pos) {
-         pipeline->lrz.write = false;
+         pipeline->lrz.force_disable_mask |= TU_LRZ_FORCE_DISABLE_WRITE;
       }
       if (fs->no_earlyz || fs->writes_pos) {
-         pipeline->lrz.enable = false;
-         pipeline->lrz.z_test_enable = false;
+         pipeline->lrz.force_disable_mask = TU_LRZ_FORCE_DISABLE_LRZ;
       }
    }
 }
@@ -2819,9 +2809,13 @@ tu_pipeline_builder_parse_multisample_and_color_blend(
           * From the PoV of LRZ, having masked color channels is
           * the same as having blend enabled, in that the draw will
           * care about the fragments from an earlier draw.
+          *
+          * TODO: We need to disable LRZ writes only for the binning pass.
+          * Therefore, we need to emit it in a separate draw state. We keep
+          * it disabled for sysmem path as well for the moment.
           */
          if (blendAttachment.blendEnable || blendAttachment.colorWriteMask != 0xf) {
-            pipeline->lrz.blend_disable_write = true;
+            pipeline->lrz.force_disable_mask |= TU_LRZ_FORCE_DISABLE_WRITE;
          }
       }
    }
@@ -2968,6 +2962,9 @@ tu_pipeline_builder_init_graphics(
 
    builder->rasterizer_discard =
       create_info->pRasterizationState->rasterizerDiscardEnable;
+
+   /* variableMultisampleRate support */
+   builder->emit_msaa_state = (subpass->samples == 0) && !builder->rasterizer_discard;
 
    if (builder->rasterizer_discard) {
       builder->samples = VK_SAMPLE_COUNT_1_BIT;

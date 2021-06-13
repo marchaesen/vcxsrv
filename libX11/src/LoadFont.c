@@ -27,6 +27,7 @@ in this Software without prior written authorization from The Open Group.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <limits.h>
 #include "Xlibint.h"
 
 Font
@@ -37,6 +38,9 @@ XLoadFont (
     register long nbytes;
     Font fid;
     register xOpenFontReq *req;
+
+    if (name != NULL && strlen(name) >= USHRT_MAX)
+        return (0);
 
     if (_XF86LoadQueryLocaleFont(dpy, name, (XFontStruct **)0, &fid))
       return fid;

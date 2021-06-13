@@ -62,8 +62,6 @@ enum ac_func_attr
 enum ac_target_machine_options
 {
    AC_TM_SUPPORTS_SPILL = (1 << 0),
-   AC_TM_FORCE_ENABLE_XNACK = (1 << 1),
-   AC_TM_FORCE_DISABLE_XNACK = (1 << 2),
    AC_TM_PROMOTE_ALLOCA_TO_SCRATCH = (1 << 3),
    AC_TM_CHECK_IR = (1 << 4),
    AC_TM_ENABLE_GLOBAL_ISEL = (1 << 5),
@@ -145,12 +143,8 @@ void ac_enable_global_isel(LLVMTargetMachineRef tm);
 
 static inline bool ac_has_vec3_support(enum chip_class chip, bool use_format)
 {
-   if (chip == GFX6 && !use_format) {
-      /* GFX6 only supports vec3 with load/store format. */
-      return false;
-   }
-
-   return LLVM_VERSION_MAJOR >= 9;
+   /* GFX6 only supports vec3 with load/store format. */
+   return chip != GFX6 || use_format;
 }
 
 #ifdef __cplusplus

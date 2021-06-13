@@ -106,7 +106,7 @@ Begin by saving your current directory location:
    export TOP=$PWD
      
 
--  Mesa/Gallium master branch. This code is used to build libGL, and the
+-  Mesa/Gallium main branch. This code is used to build libGL, and the
    direct rendering svga driver for libGL, vmwgfx_dri.so, and the X
    acceleration library libxatracker.so.x.x.x.
 

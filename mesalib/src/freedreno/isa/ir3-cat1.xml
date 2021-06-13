@@ -60,16 +60,18 @@ SOFTWARE.
 	</encode>
 </bitset>
 
+<enum name="#round">
+	<value val="0" display=""/>
+	<value val="1" display="(even)"/>
+	<value val="2" display="(pos_infinity)"/>
+	<value val="3" display="(neg_infinity)"/>
+</enum>
+
 <bitset name="#instruction-cat1" extends="#instruction">
-	<field name="DST" low="32" high="39" type="#cat1-dst">
-		<param name="DST_REL"/>
-	</field>
-	<field name="REPEAT" low="40" high="42" type="#rptN"/>
+	<pattern pos="42">0</pattern>
 	<field name="SS" pos="44" type="bool" display="(ss)"/>
 	<field name="UL" pos="45" type="bool" display="(ul)"/>
-	<field name="DST_REL" pos="49" type="bool"/>
-	<field name="EVEN" pos="55" type="bool" display="(even)"/>
-	<field name="POS_INF" pos="56" type="bool" display="(pos_infinity)"/>
+	<field name="ROUND" low="55" high="56" type="#round"/>
 	<field name="JP" pos="59" type="bool" display="(jp)"/>
 	<field name="SY" pos="60" type="bool" display="(sy)"/>
 	<pattern low="61" high="63">001</pattern>  <!-- cat1 -->
@@ -77,49 +79,12 @@ SOFTWARE.
 		<map name="SRC">src->regs[1]</map>
 		<map name="SRC_R">!!(src->regs[1]->flags &amp; IR3_REG_R)</map>
 		<map name="UL">!!(src->flags &amp; IR3_INSTR_UL)</map>
-		<map name="DST_TYPE">src->cat1.dst_type</map>
 		<map name="DST_REL">!!(src->regs[0]->flags &amp; IR3_REG_RELATIV)</map>
-		<map name="SRC_TYPE">src->cat1.src_type</map>
-		<map name="EVEN">!!(src->regs[0]->flags &amp; IR3_REG_EVEN)</map>
-		<map name="POS_INF">!!(src->regs[0]->flags &amp; IR3_REG_POS_INF)</map>
+		<map name="ROUND">src->cat1.round</map>
 	</encode>
 </bitset>
 
-<bitset name="#instruction-cat1-mov" extends="#instruction-cat1">
-	<override>
-		<expr>
-			({DST} == 0xf4 /* a0.x */) &amp;&amp; ({SRC_TYPE} == 4 /* s16 */) &amp;&amp; ({DST_TYPE} == 4)
-		</expr>
-		<display>
-			{SY}{SS}{JP}{REPEAT}{UL}mova {EVEN}{POS_INF}a0.x, {SRC}
-		</display>
-		<assert low="32" high="39">11110100</assert>  <!-- DST==a0.x -->
-		<assert low="46" high="48">100</assert>       <!-- DST_TYPE==s16 -->
-		<assert low="50" high="52">100</assert>       <!-- SRC_TYPE==s16 -->
-	</override>
-	<override>
-		<expr>
-			({DST} == 0xf5 /* a0.y */) &amp;&amp; ({SRC_TYPE} == 2 /* u16 */) &amp;&amp; ({DST_TYPE} == 2)
-		</expr>
-		<display>
-			{SY}{SS}{JP}{REPEAT}{UL}mova1 {EVEN}{POS_INF}a1.x, {SRC}
-		</display>
-		<assert low="32" high="39">11110101</assert>  <!-- DST==a0.y -->
-		<assert low="46" high="48">010</assert>       <!-- DST_TYPE==u16 -->
-		<assert low="50" high="52">010</assert>       <!-- SRC_TYPE==u16 -->
-	</override>
-	<override>
-		<expr>
-			{SRC_TYPE} != {DST_TYPE}
-		</expr>
-		<display>
-			{SY}{SS}{JP}{REPEAT}{UL}cov.{SRC_TYPE}{DST_TYPE} {EVEN}{POS_INF}{DST_HALF}{DST}, {SRC}
-		</display>
-	</override>
-	<display>
-		{SY}{SS}{JP}{REPEAT}{UL}mov.{SRC_TYPE}{DST_TYPE} {EVEN}{POS_INF}{DST_HALF}{DST}, {SRC}
-	</display>
-	<pattern low="57" high="58">00</pattern>  <!-- OPC -->
+<bitset name="#instruction-cat1-typed" extends="#instruction-cat1">
 	<derived name="HALF" type="bool" display="h">
 		<expr>
 			({SRC_TYPE} == 0) /* f16 */ ||
@@ -140,6 +105,53 @@ SOFTWARE.
 	</derived>
 	<field name="DST_TYPE" low="46" high="48" type="#type"/>
 	<field name="SRC_TYPE" low="50" high="52" type="#type"/>
+
+	<encode>
+		<map name="DST_TYPE">src->cat1.dst_type</map>
+		<map name="SRC_TYPE">src->cat1.src_type</map>
+	</encode>
+</bitset>
+
+<bitset name="#instruction-cat1-mov" extends="#instruction-cat1-typed">
+	<override>
+		<expr>
+			({DST} == 0xf4 /* a0.x */) &amp;&amp; ({SRC_TYPE} == 4 /* s16 */) &amp;&amp; ({DST_TYPE} == 4)
+		</expr>
+		<display>
+			{SY}{SS}{JP}{REPEAT}{UL}mova {ROUND}a0.x, {SRC}
+		</display>
+		<assert low="32" high="39">11110100</assert>  <!-- DST==a0.x -->
+		<assert low="46" high="48">100</assert>       <!-- DST_TYPE==s16 -->
+		<assert low="50" high="52">100</assert>       <!-- SRC_TYPE==s16 -->
+	</override>
+	<override>
+		<expr>
+			({DST} == 0xf5 /* a0.y */) &amp;&amp; ({SRC_TYPE} == 2 /* u16 */) &amp;&amp; ({DST_TYPE} == 2)
+		</expr>
+		<display>
+			{SY}{SS}{JP}{REPEAT}{UL}mova1 {ROUND}a1.x, {SRC}
+		</display>
+		<assert low="32" high="39">11110101</assert>  <!-- DST==a0.y -->
+		<assert low="46" high="48">010</assert>       <!-- DST_TYPE==u16 -->
+		<assert low="50" high="52">010</assert>       <!-- SRC_TYPE==u16 -->
+	</override>
+	<override>
+		<expr>
+			{SRC_TYPE} != {DST_TYPE}
+		</expr>
+		<display>
+			{SY}{SS}{JP}{REPEAT}{UL}cov.{SRC_TYPE}{DST_TYPE} {ROUND}{DST_HALF}{DST}, {SRC}
+		</display>
+	</override>
+	<display>
+		{SY}{SS}{JP}{REPEAT}{UL}mov.{SRC_TYPE}{DST_TYPE} {ROUND}{DST_HALF}{DST}, {SRC}
+	</display>
+	<field name="DST" low="32" high="39" type="#cat1-dst">
+		<param name="DST_REL"/>
+	</field>
+	<field name="REPEAT" low="40" high="41" type="#rptN"/>
+	<field name="DST_REL" pos="49" type="bool"/>
+	<pattern low="57" high="58">00</pattern>  <!-- OPC -->
 </bitset>
 
 <!--
@@ -298,6 +310,131 @@ SOFTWARE.
 	Other newer cat1 instructions
  -->
 
+<bitset name="#cat1-multi-src" size="8">
+	<display>
+		{HALF}{REG}
+	</display>
+	<field name="REG" low="0" high="7" type="#reg-gpr"/>
+
+	<encode type="struct ir3_register *">
+		<map name="REG">src</map>
+	</encode>
+</bitset>
+
+<bitset name="#cat1-multi-dst" size="8">
+	<display>
+		{DST_HALF}{REG}
+	</display>
+
+	<field name="REG" low="0" high="7" type="#reg-gpr"/>
+
+	<encode type="struct ir3_register *">
+		<map name="REG">src</map>
+	</encode>
+</bitset>
+
+<bitset name="#instruction-cat1-multi" extends="#instruction-cat1-typed">
+	<doc>
+		These instructions all expand to a series of mov instructions,
+		like (rptN) but more flexible. They aren't any faster than the
+		equivalent sequence of mov/cov, but they guarantee that all
+		sources are read before any destination is written, so they
+		behave as-if the moves are executed in parallel.
+		TODO: when were these added?
+	</doc>
+	<field name="SRC0" low="0" high="7" type="#cat1-multi-src">
+		<param name="HALF"/>
+	</field>
+	<field name="DST0" low="32" high="39" type="#cat1-multi-dst">
+		<param name="DST_HALF"/>
+	</field>
+	<pattern pos="43">0</pattern>   <!-- SRC_R -->
+	<pattern pos="49">0</pattern>   <!-- DST_REL -->
+	<pattern low="53" high="54">00</pattern>
+	<pattern low="57" high="58">10</pattern>  <!-- OPC -->
+
+	<encode>
+		<map name="DST0">src->regs[0]</map>
+	</encode>
+</bitset>
+
+<bitset name="swz" extends="#instruction-cat1-multi">
+	<doc>
+                SWiZzle. Move SRC0 to DST0 and SRC1 to DST1 in parallel. In
+                particular this can be used to swap two registers.
+	</doc>
+	<display>
+		{SY}{SS}{JP}{UL}swz.{SRC_TYPE}{DST_TYPE} {ROUND}{DST0}, {DST1}, {SRC0}, {SRC1}
+	</display>
+	<field name="SRC1" low="8" high="15" type="#cat1-multi-src">
+		<param name="HALF"/>
+	</field>
+	<field name="DST1" low="16" high="23" type="#cat1-multi-dst">
+		<param name="DST_HALF"/>
+	</field>
+	<pattern low="24" high="31">00000000</pattern>
+
+	<pattern low="40" high="41">00</pattern> <!-- SUB_OPC -->
+
+	<encode>
+		<map name="SRC0">src->regs[2]</map>
+		<map name="SRC1">src->regs[3]</map>
+		<map name="DST1">src->regs[1]</map>
+	</encode>
+</bitset>
+
+<bitset name="gat" extends="#instruction-cat1-multi">
+	<doc>
+		GATher. Move SRC0 to DST0, SRC1 to DST0 + 1, SRC2 to DST0 + 2, and SRC3 to DST0 + 3.
+	</doc>
+	<display>
+		{SY}{SS}{JP}{UL}gat.{SRC_TYPE}{DST_TYPE} {ROUND}{DST0}, {SRC0}, {SRC1}, {SRC2}, {SRC3}
+	</display>
+	<field name="SRC1" low="8" high="15" type="#cat1-multi-src">
+		<param name="HALF"/>
+	</field>
+	<field name="SRC2" low="16" high="23" type="#cat1-multi-src">
+		<param name="HALF"/>
+	</field>
+	<field name="SRC3" low="24" high="31" type="#cat1-multi-src">
+		<param name="HALF"/>
+	</field>
+	<pattern low="40" high="41">01</pattern> <!-- SUB_OPC -->
+
+	<encode>
+		<map name="SRC0">src->regs[1]</map>
+		<map name="SRC1">src->regs[2]</map>
+		<map name="SRC2">src->regs[3]</map>
+		<map name="SRC3">src->regs[4]</map>
+	</encode>
+</bitset>
+
+<bitset name="sct" extends="#instruction-cat1-multi">
+	<doc>
+		SCaTter. Move SRC0 to DST0, SRC0 + 1 to DST1, SRC0 + 2 to DST2 + 3, and SRC0 + 3 to DST3.
+	</doc>
+	<display>
+		{SY}{SS}{JP}{UL}sct.{SRC_TYPE}{DST_TYPE} {ROUND}{DST0}, {DST1}, {DST2}, {DST3}, {SRC0}
+	</display>
+	<field name="DST1" low="8" high="15" type="#cat1-multi-dst">
+		<param name="DST_HALF"/>
+	</field>
+	<field name="DST2" low="16" high="23" type="#cat1-multi-dst">
+		<param name="DST_HALF"/>
+	</field>
+	<field name="DST3" low="24" high="31" type="#cat1-multi-dst">
+		<param name="DST_HALF"/>
+	</field>
+	<pattern low="40" high="41">10</pattern> <!-- SUB_OPC -->
+
+	<encode>
+		<map name="SRC0">src->regs[4]</map>
+		<map name="DST1">src->regs[1]</map>
+		<map name="DST2">src->regs[2]</map>
+		<map name="DST3">src->regs[3]</map>
+	</encode>
+</bitset>
+
 <bitset name="movmsk" extends="#instruction-cat1">
 	<display>
 		{SY}{SS}{JP}{UL}movmsk.w{W} {DST}
@@ -308,8 +445,13 @@ SOFTWARE.
 		</expr>
 	</derived>
 	<pattern low="0" high="31">00000000000000000000000000000000</pattern>
+	<field name="DST" low="32" high="39" type="#cat1-dst">
+		<param name="DST_REL"/>
+	</field>
+	<field name="REPEAT" low="40" high="41" type="#rptN"/>
 	<pattern pos="43">0</pattern>   <!-- SRC_R -->
 	<pattern low="46" high="48">011</pattern>       <!-- DST_TYPE==u32 -->
+	<field name="DST_REL" pos="49" type="bool"/>
 	<pattern low="50" high="52">011</pattern>       <!-- SRC_TYPE==u32 -->
 	<pattern low="53" high="54">00</pattern>
 	<pattern low="57" high="58">11</pattern>  <!-- OPC -->

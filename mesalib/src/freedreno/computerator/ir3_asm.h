@@ -26,15 +26,15 @@
 
 #include "main.h"
 
-#include "ir3/ir3_shader.h"
 #include "ir3/ir3_parser.h"
+#include "ir3/ir3_shader.h"
 
 struct ir3_kernel {
-	struct kernel base;
-	struct ir3_kernel_info info;
-	struct backend *backend;
-	struct ir3_shader_variant *v;
-	void *bin;
+   struct kernel base;
+   struct ir3_kernel_info info;
+   struct backend *backend;
+   struct ir3_shader_variant *v;
+   void *bin;
 };
 define_cast(kernel, ir3_kernel);
 

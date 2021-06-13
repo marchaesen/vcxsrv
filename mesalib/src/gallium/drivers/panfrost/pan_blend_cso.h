@@ -54,30 +54,6 @@ struct panfrost_blend_shader_key {
         struct pipe_rt_blend_state equation;
 };
 
-/* An internal blend shader descriptor, from the compiler */
-
-struct panfrost_blend_shader {
-        struct panfrost_blend_shader_key key;
-        struct panfrost_context *ctx;
-
-        nir_shader *nir;
-
-        /* Blend constants */
-        float constants[4];
-
-        /* The compiled shader */
-        void *buffer;
-
-        /* Byte count of the shader */
-        unsigned size;
-
-        /* Number of 128-bit work registers required by the shader */
-        unsigned work_count;
-
-        /* First instruction tag (for tagging the pointer) */
-        unsigned first_tag;
-};
-
 /* A blend shader descriptor ready for actual use */
 
 struct panfrost_blend_shader_final {
@@ -86,9 +62,6 @@ struct panfrost_blend_shader_final {
 
         /* First instruction tag (for tagging the pointer) */
         unsigned first_tag;
-
-        /* Same meaning as panfrost_blend_shader */
-        unsigned work_count;
 };
 
 struct panfrost_blend_equation_final {

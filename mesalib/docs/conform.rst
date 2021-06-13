@@ -4,7 +4,7 @@ Conformance Testing
 Mesa as a project does not get certified conformant by Khronos for the
 APIs it implements.  Rather, individual driver teams run the
 conformance tests and submit their results on a set of hardware on a
-particular operating system.  The canonical list is at Khronos's list
+particular operating system.  The canonical list is at Khronos' list
 of `conformant
 products <https://www.khronos.org/conformance/adopters/conformant-products/>`_
 and you can find some reports there by searching for "Mesa",

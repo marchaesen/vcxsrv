@@ -29,6 +29,11 @@
 #include "amd_family.h"
 #include "util/format/u_format.h"
 
+/* NIR is optional. Some components don't want to include NIR with ac_surface.h. */
+#ifdef AC_SURFACE_INCLUDE_NIR
+#include "compiler/nir/nir_builder.h"
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -85,14 +90,17 @@ enum radeon_micro_mode
 #define RADEON_SURF_PRT                   (1ull << 32)
 
 struct legacy_surf_level {
-   uint64_t offset;
+   uint32_t offset_256B;   /* divided by 256, the hw can only do 40-bit addresses */
    uint32_t slice_size_dw; /* in dwords; max = 4GB / 4. */
-   uint32_t dcc_offset;    /* relative offset within DCC mip tree */
-   uint32_t dcc_fast_clear_size;
-   uint32_t dcc_slice_fast_clear_size;
    unsigned nblk_x : 15;
    unsigned nblk_y : 15;
    enum radeon_surf_mode mode : 2;
+};
+
+struct legacy_surf_dcc_level {
+   uint32_t dcc_offset;    /* relative offset within DCC mip tree */
+   uint32_t dcc_fast_clear_size;
+   uint32_t dcc_slice_fast_clear_size;
 };
 
 struct legacy_surf_fmask {
@@ -121,11 +129,22 @@ struct legacy_surf_layout {
    unsigned stencil_adjusted : 1;
 
    struct legacy_surf_level level[RADEON_SURF_MAX_LEVELS];
-   struct legacy_surf_level stencil_level[RADEON_SURF_MAX_LEVELS];
    uint8_t tiling_index[RADEON_SURF_MAX_LEVELS];
-   uint8_t stencil_tiling_index[RADEON_SURF_MAX_LEVELS];
-   struct legacy_surf_fmask fmask;
-   unsigned cmask_slice_tile_max;
+
+   union {
+      /* Color layout */
+      struct {
+         struct legacy_surf_dcc_level dcc_level[RADEON_SURF_MAX_LEVELS];
+         struct legacy_surf_fmask fmask;
+         unsigned cmask_slice_tile_max;
+      } color;
+
+      /* Z/S layout */
+      struct {
+         struct legacy_surf_level stencil_level[RADEON_SURF_MAX_LEVELS];
+         uint8_t stencil_tiling_index[RADEON_SURF_MAX_LEVELS];
+      } zs;
+   };
 };
 
 /* Same as addrlib - AddrResourceType. */
@@ -136,32 +155,83 @@ enum gfx9_resource_type
    RADEON_RESOURCE_3D,
 };
 
-struct gfx9_surf_flags {
-   uint16_t swizzle_mode; /* tile mode */
-   uint16_t epitch;       /* (pitch - 1) or (height - 1) */
-};
-
 struct gfx9_surf_meta_flags {
-   unsigned rb_aligned : 1;   /* optimal for RBs */
-   unsigned pipe_aligned : 1; /* optimal for TC */
-   unsigned independent_64B_blocks : 1;
-   unsigned independent_128B_blocks : 1;
-   unsigned max_compressed_block_size : 2;
+   uint8_t rb_aligned : 1;   /* optimal for RBs */
+   uint8_t pipe_aligned : 1; /* optimal for TC */
+   uint8_t independent_64B_blocks : 1;
+   uint8_t independent_128B_blocks : 1;
+   uint8_t max_compressed_block_size : 2;
+   uint8_t display_equation_valid : 1;
 };
 
 struct gfx9_surf_level {
    unsigned offset;
-   unsigned size;
+   unsigned size; /* the size of one level in one layer (the image is an array of layers
+                   * where each layer has an array of levels) */
+};
+
+/**
+ * Meta address equation.
+ *
+ * DCC/HTILE address equation for doing DCC/HTILE address computations in shaders.
+ *
+ * ac_surface_meta_address_test.c contains the reference implementation.
+ * ac_nir_{dcc,htile}_addr_from_coord is the NIR implementation.
+ *
+ * For DCC:
+ * The gfx9 equation doesn't support mipmapping.
+ * The gfx10 equation doesn't support mipmapping and MSAA.
+ * (those are also limitations of Addr2ComputeDccAddrFromCoord)
+ *
+ * For HTILE:
+ * The gfx9 equation isn't implemented.
+ * The gfx10 equation doesn't support mipmapping.
+ */
+struct gfx9_meta_equation {
+   uint16_t meta_block_width;
+   uint16_t meta_block_height;
+   uint16_t meta_block_depth;
+
+   union {
+      /* The gfx9 DCC equation is chip-specific, and it varies with:
+       * - resource type
+       * - swizzle_mode
+       * - bpp
+       * - number of samples
+       * - number of fragments
+       * - pipe_aligned
+       * - rb_aligned
+       */
+      struct {
+         uint8_t num_bits;
+         uint8_t num_pipe_bits;
+
+         struct {
+            struct {
+               uint8_t dim:3; /* 0..4 */
+               uint8_t ord:5; /* 0..31 */
+            } coord[5]; /* 0..num_coords-1 */
+         } bit[20]; /* 0..num_bits-1 */
+      } gfx9;
+
+      /* The gfx10 DCC equation is chip-specific, it requires 64KB_R_X, and it varies with:
+       * - bpp
+       * - number of samples
+       * - number of fragments
+       * - pipe_aligned
+       *
+       * The gfx10 HTILE equation is chip-specific, it requires 64KB_Z_X, and it varies with:
+       * - number of samples
+       */
+      uint16_t gfx10_bits[60];
+   } u;
 };
 
 struct gfx9_surf_layout {
-   struct gfx9_surf_flags surf;    /* color or depth surface */
-   struct gfx9_surf_flags fmask;   /* not added to surf_size */
-   struct gfx9_surf_flags stencil; /* added to surf_size, use stencil_offset */
+   uint16_t epitch;           /* gfx9 only, not on gfx10 */
+   uint8_t swizzle_mode;      /* color or depth */
 
-   struct gfx9_surf_meta_flags dcc; /* metadata of color */
-
-   enum gfx9_resource_type resource_type; /* 1D, 2D or 3D */
+   enum gfx9_resource_type resource_type:8; /* 1D, 2D or 3D */
    uint16_t surf_pitch;                   /* in blocks */
    uint16_t surf_height;
 
@@ -176,60 +246,78 @@ struct gfx9_surf_layout {
    uint16_t base_mip_width;
    uint16_t base_mip_height;
 
-   uint64_t stencil_offset; /* separate stencil */
-
-   uint8_t dcc_block_width;
-   uint8_t dcc_block_height;
-   uint8_t dcc_block_depth;
-
-   /* Displayable DCC. This is always rb_aligned=0 and pipe_aligned=0.
-    * The 3D engine doesn't support that layout except for chips with 1 RB.
-    * All other chips must set rb_aligned=1.
-    * A compute shader needs to convert from aligned DCC to unaligned.
-    */
-   uint32_t display_dcc_size;
-   uint32_t display_dcc_alignment;
-   uint16_t display_dcc_pitch_max; /* (mip chain pitch - 1) */
-   uint16_t dcc_pitch_max;
-   bool dcc_retile_use_uint16;     /* if all values fit into uint16_t */
-   uint32_t dcc_retile_num_elements;
-   void *dcc_retile_map;
-
-   /* Offset within slice in bytes, only valid for prt images. */
-   uint32_t prt_level_offset[RADEON_SURF_MAX_LEVELS];
    /* Pitch of level in blocks, only valid for prt images. */
    uint16_t prt_level_pitch[RADEON_SURF_MAX_LEVELS];
+   /* Offset within slice in bytes, only valid for prt images. */
+   uint32_t prt_level_offset[RADEON_SURF_MAX_LEVELS];
 
-   /* DCC level info */
-   struct gfx9_surf_level dcc_levels[RADEON_SURF_MAX_LEVELS];
+   /* DCC or HTILE level info */
+   struct gfx9_surf_level meta_levels[RADEON_SURF_MAX_LEVELS];
 
-   /* HTILE level info */
-   struct gfx9_surf_level htile_levels[RADEON_SURF_MAX_LEVELS];
+   union {
+      /* Color */
+      struct {
+         struct gfx9_surf_meta_flags dcc; /* metadata of color */
+         uint8_t fmask_swizzle_mode;
+         uint16_t fmask_epitch;     /* gfx9 only, not on gfx10 */
+
+         uint16_t dcc_pitch_max;
+         uint16_t dcc_height;
+
+         uint8_t dcc_block_width;
+         uint8_t dcc_block_height;
+         uint8_t dcc_block_depth;
+
+         /* Displayable DCC. This is always rb_aligned=0 and pipe_aligned=0.
+          * The 3D engine doesn't support that layout except for chips with 1 RB.
+          * All other chips must set rb_aligned=1.
+          * A compute shader needs to convert from aligned DCC to unaligned.
+          */
+         uint8_t display_dcc_alignment_log2;
+         uint32_t display_dcc_size;
+         uint16_t display_dcc_pitch_max; /* (mip chain pitch - 1) */
+         uint16_t display_dcc_height;
+         bool dcc_retile_use_uint16;     /* if all values fit into uint16_t */
+         uint32_t dcc_retile_num_elements;
+         void *dcc_retile_map;
+
+         /* CMASK level info (only level 0) */
+         struct gfx9_surf_level cmask_level0;
+
+         /* For DCC retiling. */
+         struct gfx9_meta_equation dcc_equation; /* 2D only */
+         struct gfx9_meta_equation display_dcc_equation;
+      } color;
+
+      /* Z/S */
+      struct {
+         uint64_t stencil_offset; /* separate stencil */
+         uint16_t stencil_epitch;   /* gfx9 only, not on gfx10 */
+         uint8_t stencil_swizzle_mode;
+
+         /* For HTILE VRS. */
+         struct gfx9_meta_equation htile_equation;
+      } zs;
+   };
 };
 
 struct radeon_surf {
    /* Format properties. */
-   unsigned blk_w : 4;
-   unsigned blk_h : 4;
-   unsigned bpe : 5;
-   /* Number of mipmap levels where DCC is enabled starting from level 0.
+   uint8_t blk_w : 4;
+   uint8_t blk_h : 4;
+   uint8_t bpe : 5;
+   /* Display, standard(thin), depth, render(rotated). AKA D,S,Z,R swizzle modes. */
+   uint8_t micro_tile_mode : 3;
+   /* Number of mipmap levels where DCC or HTILE is enabled starting from level 0.
     * Non-zero levels may be disabled due to alignment constraints, but not
     * the first level.
     */
-   unsigned num_dcc_levels : 4;
-   unsigned is_linear : 1;
-   unsigned has_stencil : 1;
+   uint8_t num_meta_levels : 4;
+   uint8_t is_linear : 1;
+   uint8_t has_stencil : 1;
    /* This might be true even if micro_tile_mode isn't displayable or rotated. */
-   unsigned is_displayable : 1;
-   /* Displayable, thin, depth, rotated. AKA D,S,Z,R swizzle modes. */
-   unsigned micro_tile_mode : 3;
-   uint64_t flags;
-
-    /*
-     * DRM format modifier. Set to DRM_FORMAT_MOD_INVALID to have addrlib
-     * select tiling parameters instead.
-     */
-    uint64_t modifier;
+   uint8_t is_displayable : 1;
+   uint8_t first_mip_tail_level : 4;
 
    /* These are return values. Some of them can be set by the caller, but
     * they will be treated as hints (e.g. bankw, bankh) and might be
@@ -237,7 +325,6 @@ struct radeon_surf {
     */
 
    /* Not supported yet for depth + stencil. */
-   uint8_t first_mip_tail_level;
    uint16_t prt_tile_width;
    uint16_t prt_tile_height;
 
@@ -257,34 +344,37 @@ struct radeon_surf {
    uint8_t tile_swizzle;
    uint8_t fmask_tile_swizzle;
 
+   /* Use (1 << log2) to compute the alignment. */
+   uint8_t surf_alignment_log2;
+   uint8_t fmask_alignment_log2;
+   uint8_t meta_alignment_log2; /* DCC or HTILE */
+   uint8_t cmask_alignment_log2;
+   uint8_t alignment_log2;
+
+   /* DRM format modifier. Set to DRM_FORMAT_MOD_INVALID to have addrlib
+    * select tiling parameters instead.
+    */
+   uint64_t modifier;
+   uint64_t flags;
+
    uint64_t surf_size;
    uint64_t fmask_size;
-   uint32_t surf_alignment;
-   uint32_t fmask_alignment;
-   uint64_t fmask_slice_size;
+   uint32_t fmask_slice_size; /* max 2^31 (16K * 16K * 8) */
 
-   /* DCC and HTILE are very small. */
-   uint32_t dcc_size;
-   uint32_t dcc_slice_size;
-   uint32_t dcc_alignment;
-
-   uint32_t htile_size;
-   uint32_t htile_slice_size;
-   uint32_t htile_alignment;
-   uint32_t num_htile_levels : 4;
+   /* DCC and HTILE (they are very small) */
+   uint32_t meta_size;
+   uint32_t meta_slice_size;
+   uint32_t meta_pitch;
 
    uint32_t cmask_size;
    uint32_t cmask_slice_size;
-   uint32_t cmask_alignment;
 
    /* All buffers combined. */
-   uint64_t htile_offset;
+   uint64_t meta_offset; /* DCC or HTILE */
    uint64_t fmask_offset;
    uint64_t cmask_offset;
-   uint64_t dcc_offset;
    uint64_t display_dcc_offset;
    uint64_t total_size;
-   uint32_t alignment;
 
    union {
       /* Return values for GFX8 and older.
@@ -370,10 +460,25 @@ uint64_t ac_surface_get_plane_stride(enum chip_class chip_class,
 /* Of the whole miplevel, not an individual layer */
 uint64_t ac_surface_get_plane_size(const struct radeon_surf *surf,
                                    unsigned plane);
-uint32_t ac_surface_get_retile_map_size(const struct radeon_surf *surf);
 
 void ac_surface_print_info(FILE *out, const struct radeon_info *info,
                            const struct radeon_surf *surf);
+
+#ifdef AC_SURFACE_INCLUDE_NIR
+nir_ssa_def *ac_nir_dcc_addr_from_coord(nir_builder *b, const struct radeon_info *info,
+                                        unsigned bpe, struct gfx9_meta_equation *equation,
+                                        nir_ssa_def *dcc_pitch, nir_ssa_def *dcc_height,
+                                        nir_ssa_def *dcc_slice_size,
+                                        nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *z,
+                                        nir_ssa_def *sample, nir_ssa_def *pipe_xor);
+
+nir_ssa_def *ac_nir_htile_addr_from_coord(nir_builder *b, const struct radeon_info *info,
+                                          struct gfx9_meta_equation *equation,
+                                          nir_ssa_def *htile_pitch,
+                                          nir_ssa_def *htile_slice_size,
+                                          nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *z,
+                                          nir_ssa_def *pipe_xor);
+#endif
 
 #ifdef __cplusplus
 }

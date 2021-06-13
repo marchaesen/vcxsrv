@@ -64,6 +64,10 @@ public:
 
    void update_output_map(OutputRegisterMap& map) const;
 
+   bool accept(InstructionVisitor& visitor) override {return visitor.visit(*this);}
+   bool accept(ConstInstructionVisitor& visitor) const override {return visitor.visit(*this);}
+
+
 private:
    bool is_equal_to(const Instruction& lhs) const override;
    void do_print(std::ostream& os) const override;
@@ -86,6 +90,9 @@ public:
    int address() const { assert(m_address); return m_address->sel();}
    bool indirect() const { return !!m_address;}
    int array_size() const { return m_array_size;}
+
+   bool accept(InstructionVisitor& visitor) override {return visitor.visit(*this);}
+   bool accept(ConstInstructionVisitor& visitor) const override {return visitor.visit(*this);}
 
 private:
    bool is_equal_to(const Instruction& lhs) const override;
@@ -115,6 +122,9 @@ public:
    int array_size() const { return m_array_size;}
    int comp_mask() const { return m_writemask;}
    unsigned op() const;
+
+   bool accept(InstructionVisitor& visitor) override {return visitor.visit(*this);}
+   bool accept(ConstInstructionVisitor& visitor) const override {return visitor.visit(*this);}
 
 private:
    bool is_equal_to(const Instruction& lhs) const override;
@@ -153,6 +163,10 @@ public:
    void remap_registers_child(std::vector<rename_reg_pair>& map,
                         ValueMap& values) override;
    void patch_ring(int stream, PValue index);
+
+   bool accept(InstructionVisitor& visitor) override {return visitor.visit(*this);}
+   bool accept(ConstInstructionVisitor& visitor) const override {return visitor.visit(*this);}
+
 private:
    bool is_equal_to(const Instruction& lhs) const override;
    void do_print(std::ostream& os) const override;

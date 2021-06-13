@@ -159,6 +159,7 @@ void get_block_needs(wqm_ctx &ctx, exec_ctx &exec_ctx, Block* block)
       }
 
       if (instr->isBranch() && ctx.branch_wqm[block->index]) {
+         assert(!(info.block_needs & Exact_Branch));
          needs = WQM;
          propagate_wqm = true;
       }
@@ -202,18 +203,35 @@ void get_block_needs(wqm_ctx &ctx, exec_ctx &exec_ctx, Block* block)
    }
 }
 
+/* If an outer loop needs WQM but a nested loop does not, we have to ensure that
+ * the nested loop is done in WQM so that the exec is not empty upon entering
+ * the nested loop.
+ *
+ * TODO: This could be fixed with slightly better code (for loops with divergent
+ * breaks, which might benefit from being in exact) by adding Exact_Branch to a
+ * divergent branch surrounding the nested loop, if such a branch exists.
+ */
+void handle_wqm_loops(wqm_ctx& ctx, exec_ctx& exec_ctx, unsigned preheader)
+{
+   for (unsigned idx = preheader + 1; idx < exec_ctx.program->blocks.size(); idx++) {
+      Block& block = exec_ctx.program->blocks[idx];
+      if (block.kind & block_kind_break)
+         mark_block_wqm(ctx, idx);
+
+      if ((block.kind & block_kind_loop_exit) && block.loop_nest_depth == 0)
+         break;
+   }
+}
+
+/* If an outer loop and it's nested loops does not need WQM,
+ * add_branch_code() will ensure that it enters in Exact. We have to
+ * ensure that the exact exec mask is not empty by adding Exact_Branch to
+ * the outer divergent branch.
+ */
 void handle_exact_loops(wqm_ctx& ctx, exec_ctx& exec_ctx, unsigned preheader)
 {
    unsigned header = preheader + 1;
    assert(exec_ctx.program->blocks[header].kind & block_kind_loop_header);
-
-   unsigned exit = header + 1;
-   for (; exit < exec_ctx.program->blocks.size(); exit++) {
-      Block& exit_block = exec_ctx.program->blocks[exit];
-      if ((exit_block.kind & block_kind_loop_exit) && exit_block.loop_nest_depth == 0)
-         break;
-   }
-   assert(exit != exec_ctx.program->blocks.size());
 
    int parent_branch = preheader;
    unsigned rel_branch_depth = 0;
@@ -238,9 +256,8 @@ void handle_exact_loops(wqm_ctx& ctx, exec_ctx& exec_ctx, unsigned preheader)
    assert(branch.kind & block_kind_branch);
    if (ctx.branch_wqm[parent_branch]) {
       /* The branch can't be done in Exact because some other blocks in it
-       * are in WQM. So instead, ensure that the loop breaks are done in WQM. */
-      for (unsigned pred_idx : exec_ctx.program->blocks[exit].logical_preds)
-         mark_block_wqm(ctx, pred_idx);
+       * are in WQM. So instead, ensure that the loop is done in WQM. */
+      handle_wqm_loops(ctx, exec_ctx, preheader);
    } else {
       exec_ctx.info[parent_branch].block_needs |= Exact_Branch;
    }
@@ -257,21 +274,23 @@ void calculate_wqm_needs(exec_ctx& exec_ctx)
       Block& block = exec_ctx.program->blocks[block_index];
       get_block_needs(ctx, exec_ctx, &block);
 
-      /* If an outer loop and it's nested loops does not need WQM,
-       * add_branch_code() will ensure that it enters in Exact. We have to
-       * ensure that the exact exec mask is not empty by adding Exact_Branch to
-       * the outer divergent branch.
-       *
-       * If the loop or a nested loop needs WQM, branch_wqm will be true for the
-       * preheader.
+      /* handle_exact_loops() needs information on outer branches, so don't
+       * handle loops until a top-level block.
        */
       if (block.kind & block_kind_top_level && block.index != exec_ctx.program->blocks.size() - 1) {
          unsigned preheader = block.index;
          do {
             Block& preheader_block = exec_ctx.program->blocks[preheader];
             if ((preheader_block.kind & block_kind_loop_preheader) &&
-                preheader_block.loop_nest_depth == 0 && !ctx.branch_wqm[preheader])
-               handle_exact_loops(ctx, exec_ctx, preheader);
+                preheader_block.loop_nest_depth == 0) {
+               /* If the loop or a nested loop needs WQM, branch_wqm will be true for the
+                * preheader.
+                */
+               if (ctx.branch_wqm[preheader])
+                  handle_wqm_loops(ctx, exec_ctx, preheader);
+               else
+                  handle_exact_loops(ctx, exec_ctx, preheader);
+            }
             preheader++;
          } while (!(exec_ctx.program->blocks[preheader].kind & block_kind_top_level));
       }

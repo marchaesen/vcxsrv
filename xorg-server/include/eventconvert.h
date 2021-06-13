@@ -36,4 +36,7 @@ _X_INTERNAL int GetCoreType(enum EventType type);
 _X_INTERNAL int GetXIType(enum EventType type);
 _X_INTERNAL int GetXI2Type(enum EventType type);
 
+_X_INTERNAL enum EventType GestureTypeToBegin(enum EventType type);
+_X_INTERNAL enum EventType GestureTypeToEnd(enum EventType type);
+
 #endif                          /* _EVENTCONVERT_H_ */

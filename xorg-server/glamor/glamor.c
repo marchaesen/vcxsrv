@@ -414,6 +414,7 @@ glamor_debug_output_callback(GLenum source,
 
     LogMessageVerb(X_ERROR, 0, "glamor%d: GL error: %*s\n",
                screen->myNum, length, message);
+    xorg_backtrace();
 }
 
 /**

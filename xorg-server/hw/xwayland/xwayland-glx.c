@@ -378,6 +378,9 @@ egl_screen_probe(ScreenPtr pScreen)
         return NULL;
     }
 
+    if (!screen->base.glvnd && xwl_screen->glvnd_vendor)
+        screen->base.glvnd = strdup(xwl_screen->glvnd_vendor);
+
     if (!screen->base.glvnd)
         screen->base.glvnd = strdup("mesa");
 

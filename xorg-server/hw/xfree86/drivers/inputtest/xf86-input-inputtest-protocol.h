@@ -31,7 +31,7 @@ extern "C" {
 #include <stdint.h>
 
 #define XF86IT_PROTOCOL_VERSION_MAJOR 1
-#define XF86IT_PROTOCOL_VERSION_MINOR 0
+#define XF86IT_PROTOCOL_VERSION_MINOR 1
 
 enum xf86ITResponseType {
     XF86IT_RESPONSE_SERVER_VERSION,
@@ -70,6 +70,8 @@ enum xf86ITEventType {
     XF86IT_EVENT_BUTTON,
     XF86IT_EVENT_KEY,
     XF86IT_EVENT_TOUCH,
+    XF86IT_EVENT_GESTURE_PINCH,
+    XF86IT_EVENT_GESTURE_SWIPE,
 };
 
 typedef struct {
@@ -127,6 +129,30 @@ typedef struct {
     xf86ITValuatorData valuators;
 } xf86ITEventTouch;
 
+typedef struct {
+    xf86ITEventHeader header;
+    uint16_t gesture_type;
+    uint16_t num_touches;
+    uint32_t flags;
+    double delta_x;
+    double delta_y;
+    double delta_unaccel_x;
+    double delta_unaccel_y;
+    double scale;
+    double delta_angle;
+} xf86ITEventGesturePinch;
+
+typedef struct {
+    xf86ITEventHeader header;
+    uint16_t gesture_type;
+    uint16_t num_touches;
+    uint32_t flags;
+    double delta_x;
+    double delta_y;
+    double delta_unaccel_x;
+    double delta_unaccel_y;
+} xf86ITEventGestureSwipe;
+
 typedef union {
     xf86ITEventHeader header;
     xf86ITEventClientVersion version;
@@ -135,6 +161,8 @@ typedef union {
     xf86ITEventButton button;
     xf86ITEventKey key;
     xf86ITEventTouch touch;
+    xf86ITEventGesturePinch pinch;
+    xf86ITEventGestureSwipe swipe;
 } xf86ITEventAny;
 
 #ifdef __cplusplus

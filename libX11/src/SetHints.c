@@ -49,6 +49,7 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <limits.h>
 #include <X11/Xlibint.h>
 #include <X11/Xutil.h>
 #include "Xatomtype.h"
@@ -214,6 +215,8 @@ XSetCommand (
 	register char *buf, *bp;
 	for (i = 0, nbytes = 0; i < argc; i++) {
 		nbytes += safestrlen(argv[i]) + 1;
+		if (nbytes >= USHRT_MAX)
+                    return 1;
 	}
 	if ((bp = buf = Xmalloc(nbytes))) {
 	    /* copy arguments into single buffer */
@@ -256,6 +259,8 @@ XSetStandardProperties (
 
 	if (name != NULL) XStoreName (dpy, w, name);
 
+        if (safestrlen(icon_string) >= USHRT_MAX)
+            return 1;
 	if (icon_string != NULL) {
 	    XChangeProperty (dpy, w, XA_WM_ICON_NAME, XA_STRING, 8,
                              PropModeReplace,
@@ -298,6 +303,8 @@ XSetClassHint(
 
 	len_nm = safestrlen(classhint->res_name);
 	len_cl = safestrlen(classhint->res_class);
+        if (len_nm + len_cl >= USHRT_MAX)
+            return 1;
 	if ((class_string = s = Xmalloc(len_nm + len_cl + 2))) {
 	    if (len_nm) {
 		strcpy(s, classhint->res_name);

@@ -531,13 +531,17 @@ u_unfilled_gen_c = custom_target(
   capture : true,
 )
 
+libgallium_extra_c_args = []
+if with_swrast_vk and with_gallium_zink
+  libgallium_extra_c_args += '-DZINK_WITH_SWRAST_VK'
+endif
 libgallium = static_library(
   'gallium',
   [files_libgallium, u_indices_gen_c, u_unfilled_gen_c],
   include_directories : [
     inc_loader, inc_gallium, inc_src, inc_include, include_directories('util')
   ],
-  c_args : [c_msvc_compat_args],
+  c_args : [c_msvc_compat_args, libgallium_extra_c_args],
   cpp_args : [cpp_msvc_compat_args],
   gnu_symbol_visibility : 'hidden',
   dependencies : [

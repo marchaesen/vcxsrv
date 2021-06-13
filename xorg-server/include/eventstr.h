@@ -75,6 +75,12 @@ enum EventType {
     ET_XQuartz,
     ET_BarrierHit,
     ET_BarrierLeave,
+    ET_GesturePinchBegin,
+    ET_GesturePinchUpdate,
+    ET_GesturePinchEnd,
+    ET_GestureSwipeBegin,
+    ET_GestureSwipeUpdate,
+    ET_GestureSwipeEnd,
     ET_Internal = 0xFF          /* First byte */
 };
 
@@ -260,6 +266,38 @@ struct _BarrierEvent {
     uint32_t flags;
 };
 
+struct _GestureEvent {
+    unsigned char header; /**< Always ET_Internal */
+    enum EventType type;  /**< One of ET_Gesture{Pinch,Swipe}{Begin,Update,End} */
+    int length;           /**< Length in bytes */
+    Time time;            /**< Time in ms */
+    int deviceid;         /**< Device to post this event for */
+    int sourceid;         /**< The physical source device */
+    uint32_t num_touches; /**< The number of touches in this gesture */
+    double root_x;        /**< Pos relative to root window */
+    double root_y;        /**< Pos relative to root window */
+    double delta_x;
+    double delta_y;
+    double delta_unaccel_x;
+    double delta_unaccel_y;
+    double scale;         /**< Only on ET_GesturePinch{Begin,Update} */
+    double delta_angle;   /**< Only on ET_GesturePinch{Begin,Update} */
+    struct {
+        uint32_t base;    /**< XKB base modifiers */
+        uint32_t latched; /**< XKB latched modifiers */
+        uint32_t locked;  /**< XKB locked modifiers */
+        uint32_t effective;/**< XKB effective modifiers */
+    } mods;
+    struct {
+        uint8_t base;    /**< XKB base group */
+        uint8_t latched; /**< XKB latched group */
+        uint8_t locked;  /**< XKB locked group */
+        uint8_t effective;/**< XKB effective group */
+    } group;
+    Window root;      /**< Root window of the event */
+    uint32_t flags;   /**< Flags to be copied into the generated event */
+};
+
 #ifdef XQUARTZ
 #define XQUARTZ_EVENT_MAXARGS 5
 struct _XQuartzEvent {
@@ -294,6 +332,7 @@ union _InternalEvent {
 #ifdef XQUARTZ
     XQuartzEvent xquartz_event;
 #endif
+    GestureEvent gesture_event;
 };
 
 #endif

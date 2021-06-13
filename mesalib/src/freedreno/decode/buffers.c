@@ -29,143 +29,148 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "buffers.h"
 #include "util/rb_tree.h"
+#include "buffers.h"
 
 struct buffer {
-	struct rb_node node;
-	void *hostptr;
-	unsigned int len;
-	uint64_t gpuaddr;
+   struct rb_node node;
+   void *hostptr;
+   unsigned int len;
+   uint64_t gpuaddr;
 
-	/* for 'once' mode, for buffers containing cmdstream keep track per offset
-	 * into buffer of which modes it has already been dumped;
-	 */
-	struct {
-		unsigned offset;
-		unsigned dumped_mask;
-	} offsets[64];
-	unsigned noffsets;
+   /* for 'once' mode, for buffers containing cmdstream keep track per offset
+    * into buffer of which modes it has already been dumped;
+    */
+   struct {
+      unsigned offset;
+      unsigned dumped_mask;
+   } offsets[64];
+   unsigned noffsets;
 };
 
 static struct rb_tree buffers;
 
-static int buffer_insert_cmp(const struct rb_node *n1, const struct rb_node *n2)
+static int
+buffer_insert_cmp(const struct rb_node *n1, const struct rb_node *n2)
 {
-	const struct buffer *buf1 = (const struct buffer *) n1;
-	const struct buffer *buf2 = (const struct buffer *) n2;
-	return buf1->gpuaddr - buf2->gpuaddr;
+   const struct buffer *buf1 = (const struct buffer *)n1;
+   const struct buffer *buf2 = (const struct buffer *)n2;
+   return buf1->gpuaddr - buf2->gpuaddr;
 }
 
-static int buffer_search_cmp(const struct rb_node *node, const void *addrptr)
+static int
+buffer_search_cmp(const struct rb_node *node, const void *addrptr)
 {
-	const struct buffer *buf = (const struct buffer *) node;
-	uint64_t gpuaddr = *(uint64_t *)addrptr;
-	if (buf->gpuaddr + buf->len <= gpuaddr)
-		return -1;
-	else if (buf->gpuaddr > gpuaddr)
-		return 1;
-	return 0;
+   const struct buffer *buf = (const struct buffer *)node;
+   uint64_t gpuaddr = *(uint64_t *)addrptr;
+   if (buf->gpuaddr + buf->len <= gpuaddr)
+      return -1;
+   else if (buf->gpuaddr > gpuaddr)
+      return 1;
+   return 0;
 }
 
-static struct buffer *get_buffer(uint64_t gpuaddr)
+static struct buffer *
+get_buffer(uint64_t gpuaddr)
 {
-	if (gpuaddr == 0)
-		return NULL;
-	return (struct buffer *) rb_tree_search(&buffers, &gpuaddr, buffer_search_cmp);
+   if (gpuaddr == 0)
+      return NULL;
+   return (struct buffer *)rb_tree_search(&buffers, &gpuaddr,
+                                          buffer_search_cmp);
 }
 
 static int
 buffer_contains_hostptr(struct buffer *buf, void *hostptr)
 {
-	return (buf->hostptr <= hostptr) && (hostptr < (buf->hostptr + buf->len));
+   return (buf->hostptr <= hostptr) && (hostptr < (buf->hostptr + buf->len));
 }
-
 
 uint64_t
 gpuaddr(void *hostptr)
 {
-	rb_tree_foreach(struct buffer, buf, &buffers, node) {
-		if (buffer_contains_hostptr(buf, hostptr))
-			return buf->gpuaddr + (hostptr - buf->hostptr);
-	}
-	return 0;
+   rb_tree_foreach(struct buffer, buf, &buffers, node)
+   {
+      if (buffer_contains_hostptr(buf, hostptr))
+         return buf->gpuaddr + (hostptr - buf->hostptr);
+   }
+   return 0;
 }
 
 uint64_t
 gpubaseaddr(uint64_t gpuaddr)
 {
-	struct buffer *buf = get_buffer(gpuaddr);
-	if (buf)
-		return buf->gpuaddr;
-	else
-		return 0;
+   struct buffer *buf = get_buffer(gpuaddr);
+   if (buf)
+      return buf->gpuaddr;
+   else
+      return 0;
 }
 
 void *
 hostptr(uint64_t gpuaddr)
 {
-	struct buffer *buf = get_buffer(gpuaddr);
-	if (buf)
-		return buf->hostptr + (gpuaddr - buf->gpuaddr);
-	else
-		return 0;
+   struct buffer *buf = get_buffer(gpuaddr);
+   if (buf)
+      return buf->hostptr + (gpuaddr - buf->gpuaddr);
+   else
+      return 0;
 }
 
 unsigned
 hostlen(uint64_t gpuaddr)
 {
-	struct buffer *buf = get_buffer(gpuaddr);
-	if (buf)
-		return buf->len + buf->gpuaddr - gpuaddr;
-	else
-		return 0;
+   struct buffer *buf = get_buffer(gpuaddr);
+   if (buf)
+      return buf->len + buf->gpuaddr - gpuaddr;
+   else
+      return 0;
 }
 
 bool
 has_dumped(uint64_t gpuaddr, unsigned enable_mask)
 {
-	if (!gpuaddr)
-		return false;
+   if (!gpuaddr)
+      return false;
 
-	struct buffer *b = get_buffer(gpuaddr);
-	if (!b)
-		return false;
+   struct buffer *b = get_buffer(gpuaddr);
+   if (!b)
+      return false;
 
-	assert(gpuaddr >= b->gpuaddr);
-	unsigned offset = gpuaddr - b->gpuaddr;
+   assert(gpuaddr >= b->gpuaddr);
+   unsigned offset = gpuaddr - b->gpuaddr;
 
-	unsigned n = 0;
-	while (n < b->noffsets) {
-		if (offset == b->offsets[n].offset)
-			break;
-		n++;
-	}
+   unsigned n = 0;
+   while (n < b->noffsets) {
+      if (offset == b->offsets[n].offset)
+         break;
+      n++;
+   }
 
-	/* if needed, allocate a new offset entry: */
-	if (n == b->noffsets) {
-		b->noffsets++;
-		assert(b->noffsets < ARRAY_SIZE(b->offsets));
-		b->offsets[n].dumped_mask = 0;
-		b->offsets[n].offset = offset;
-	}
+   /* if needed, allocate a new offset entry: */
+   if (n == b->noffsets) {
+      b->noffsets++;
+      assert(b->noffsets < ARRAY_SIZE(b->offsets));
+      b->offsets[n].dumped_mask = 0;
+      b->offsets[n].offset = offset;
+   }
 
-	if ((b->offsets[n].dumped_mask & enable_mask) == enable_mask)
-		return true;
+   if ((b->offsets[n].dumped_mask & enable_mask) == enable_mask)
+      return true;
 
-	b->offsets[n].dumped_mask |= enable_mask;
+   b->offsets[n].dumped_mask |= enable_mask;
 
-	return false;
+   return false;
 }
 
 void
 reset_buffers(void)
 {
-	rb_tree_foreach_safe(struct buffer, buf, &buffers, node) {
-		rb_tree_remove(&buffers, &buf->node);
-		free(buf->hostptr);
-		free(buf);
-	}
+   rb_tree_foreach_safe(struct buffer, buf, &buffers, node)
+   {
+      rb_tree_remove(&buffers, &buf->node);
+      free(buf->hostptr);
+      free(buf);
+   }
 }
 
 /**
@@ -175,16 +180,16 @@ reset_buffers(void)
 void
 add_buffer(uint64_t gpuaddr, unsigned int len, void *hostptr)
 {
-	struct buffer *buf = get_buffer(gpuaddr);
+   struct buffer *buf = get_buffer(gpuaddr);
 
-	if (!buf) {
-		buf = calloc(sizeof(struct buffer), 1);
-		buf->gpuaddr = gpuaddr;
-		rb_tree_insert(&buffers, &buf->node, buffer_insert_cmp);
-	}
+   if (!buf) {
+      buf = calloc(sizeof(struct buffer), 1);
+      buf->gpuaddr = gpuaddr;
+      rb_tree_insert(&buffers, &buf->node, buffer_insert_cmp);
+   }
 
-	assert(buf->gpuaddr == gpuaddr);
+   assert(buf->gpuaddr == gpuaddr);
 
-	buf->hostptr = hostptr;
-	buf->len     = len;
+   buf->hostptr = hostptr;
+   buf->len = len;
 }

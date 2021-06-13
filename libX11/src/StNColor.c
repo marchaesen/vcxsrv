@@ -27,6 +27,7 @@ in this Software without prior written authorization from The Open Group.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <limits.h>
 #include <stdio.h>
 #include "Xlibint.h"
 #include "Xcmsint.h"
@@ -46,6 +47,8 @@ int flags)  /* DoRed, DoGreen, DoBlue */
     XcmsColor cmsColor_exact;
     XColor scr_def;
 
+    if (name != NULL && strlen(name) >= USHRT_MAX)
+        return 0;
 #ifdef XCMS
     /*
      * Let's Attempt to use Xcms approach to Parse Color

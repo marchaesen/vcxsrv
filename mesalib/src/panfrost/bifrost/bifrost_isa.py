@@ -245,13 +245,15 @@ def simplify_to_ir(ins):
         }
 
 
-def combine_ir_variants(instructions, v):
-    variants = sum([[simplify_to_ir(Q[1]) for Q in instructions[x]] for x in v], [])
+def combine_ir_variants(instructions, key):
+    seen = [op for op in instructions.keys() if op[1:] == key]
+    variant_objs = [[simplify_to_ir(Q[1]) for Q in instructions[x]] for x in seen]
+    variants = sum(variant_objs, [])
 
     # Accumulate modifiers across variants
     modifiers = {}
 
-    for s in variants:
+    for s in variants[0:]:
         # Check consistency
         assert(s['srcs'] == variants[0]['srcs'])
         assert(s['dests'] == variants[0]['dests'])
@@ -271,15 +273,19 @@ def combine_ir_variants(instructions, v):
             'dests': variants[0]['dests'],
             'staging': variants[0]['staging'],
             'immediates': sorted(variants[0]['immediates']),
-            'modifiers': { k: modifiers[k] for k in modifiers }
+            'modifiers': modifiers,
+            'v': len(variants),
+            'ir': variants
         }
 
 # Partition instructions to mnemonics, considering units and variants
 # equivalent.
 
 def partition_mnemonics(instructions):
-    partitions = itertools.groupby(instructions, lambda x: x[1:])
-    return { k: combine_ir_variants(instructions, v) for (k, v) in partitions }
+    key_func = lambda x: x[1:]
+    sorted_instrs = sorted(instructions.keys(), key = key_func)
+    partitions = itertools.groupby(sorted_instrs, key_func)
+    return { k: combine_ir_variants(instructions, k) for k, v in partitions }
 
 # Generate modifier lists, by accumulating all the possible modifiers, and
 # deduplicating thus assigning canonical enum values. We don't try _too_ hard

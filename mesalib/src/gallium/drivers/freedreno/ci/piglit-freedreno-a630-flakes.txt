@@ -22,3 +22,10 @@ spec@arb_shader_image_load_store@invalid
 
 # Flaky since around 2021-03-20.  First appeared on the autotune branch.
 spec@arb_draw_indirect@arb_draw_indirect-transform-feedback
+
+# Flaky since around 2021-03-22.  First appeared on an innocent mingw branch.
+spec@arb_depth_texture@fbo-clear-formats
+
+# Flaky since around 2021-04-21.  First appeared on
+# https://gitlab.freedesktop.org/robclark/mesa/-/jobs/9101752 (fd/go-fast)
+spec@ext_packed_depth_stencil@fbo-clear-formats stencil

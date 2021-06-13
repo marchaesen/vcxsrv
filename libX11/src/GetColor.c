@@ -27,6 +27,7 @@ in this Software without prior written authorization from The Open Group.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <limits.h>
 #include <stdio.h>
 #include "Xlibint.h"
 #include "Xcmsint.h"
@@ -47,6 +48,9 @@ XColor *exact_def) /* RETURN */
     XcmsCCC ccc;
     XcmsColor cmsColor_exact;
     Status ret;
+
+    if (colorname != NULL && strlen(colorname) >= USHRT_MAX)
+        return (0);
 
 #ifdef XCMS
     /*

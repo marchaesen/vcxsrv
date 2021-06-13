@@ -11,3 +11,4 @@ dEQP-GLES31.functional.blend_equation_advanced.srgb.colordodge,Fail
 dEQP-GLES31.functional.blend_equation_advanced.srgb.exclusion,Fail
 dEQP-GLES31.functional.blend_equation_advanced.srgb.multiply,Fail
 dEQP-GLES31.functional.draw_buffers_indexed.overwrite_common.common_blend_eq_buffer_advanced_blend_eq,Fail
+dEQP-VK.renderpass.suballocation.subpass_dependencies.implicit_dependencies.render_passes_5,Fail

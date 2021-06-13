@@ -127,7 +127,7 @@ const struct mali_sample_positions sample_position_lut[] = {
 };
 
 mali_ptr
-panfrost_sample_positions(struct panfrost_device *dev,
+panfrost_sample_positions(const struct panfrost_device *dev,
                 enum mali_sample_pattern pattern)
 {
         assert(pattern < ARRAY_SIZE(sample_position_lut));

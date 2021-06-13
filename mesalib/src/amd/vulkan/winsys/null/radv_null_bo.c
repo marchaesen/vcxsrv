@@ -29,34 +29,31 @@
 #include "util/u_memory.h"
 
 static struct radeon_winsys_bo *
-radv_null_winsys_bo_create(struct radeon_winsys *_ws,
-			   uint64_t size,
-			   unsigned alignment,
-			   enum radeon_bo_domain initial_domain,
-			   enum radeon_bo_flag flags,
-			   unsigned priority)
+radv_null_winsys_bo_create(struct radeon_winsys *_ws, uint64_t size, unsigned alignment,
+                           enum radeon_bo_domain initial_domain, enum radeon_bo_flag flags,
+                           unsigned priority)
 {
-	struct radv_null_winsys_bo *bo;
+   struct radv_null_winsys_bo *bo;
 
-	bo = CALLOC_STRUCT(radv_null_winsys_bo);
-	if (!bo)
-		return NULL;
+   bo = CALLOC_STRUCT(radv_null_winsys_bo);
+   if (!bo)
+      return NULL;
 
-	bo->ptr = malloc(size);
-	if (!bo->ptr)
-		goto error_ptr_alloc;
+   bo->ptr = malloc(size);
+   if (!bo->ptr)
+      goto error_ptr_alloc;
 
-	return (struct radeon_winsys_bo *)bo;
+   return (struct radeon_winsys_bo *)bo;
 error_ptr_alloc:
-	FREE(bo);
-	return NULL;
+   FREE(bo);
+   return NULL;
 }
 
 static void *
 radv_null_winsys_bo_map(struct radeon_winsys_bo *_bo)
 {
-	struct radv_null_winsys_bo *bo = radv_null_winsys_bo(_bo);
-	return bo->ptr;
+   struct radv_null_winsys_bo *bo = radv_null_winsys_bo(_bo);
+   return bo->ptr;
 }
 
 static void
@@ -64,18 +61,19 @@ radv_null_winsys_bo_unmap(struct radeon_winsys_bo *_bo)
 {
 }
 
-static void radv_null_winsys_bo_destroy(struct radeon_winsys *_ws,
-					struct radeon_winsys_bo *_bo)
+static void
+radv_null_winsys_bo_destroy(struct radeon_winsys *_ws, struct radeon_winsys_bo *_bo)
 {
-	struct radv_null_winsys_bo *bo = radv_null_winsys_bo(_bo);
-	FREE(bo->ptr);
-	FREE(bo);
+   struct radv_null_winsys_bo *bo = radv_null_winsys_bo(_bo);
+   FREE(bo->ptr);
+   FREE(bo);
 }
 
-void radv_null_bo_init_functions(struct radv_null_winsys *ws)
+void
+radv_null_bo_init_functions(struct radv_null_winsys *ws)
 {
-	ws->base.buffer_create = radv_null_winsys_bo_create;
-	ws->base.buffer_destroy = radv_null_winsys_bo_destroy;
-	ws->base.buffer_map = radv_null_winsys_bo_map;
-	ws->base.buffer_unmap = radv_null_winsys_bo_unmap;
+   ws->base.buffer_create = radv_null_winsys_bo_create;
+   ws->base.buffer_destroy = radv_null_winsys_bo_destroy;
+   ws->base.buffer_map = radv_null_winsys_bo_map;
+   ws->base.buffer_unmap = radv_null_winsys_bo_unmap;
 }

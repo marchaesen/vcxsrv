@@ -37,8 +37,7 @@ Experimenting with Shader Replacements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Shaders can be dumped and replaced on runtime for debugging purposes.
-This feature is not currently supported by SCons build. This is
-controlled via following environment variables:
+This is controlled via following environment variables:
 
 -  **MESA_SHADER_DUMP_PATH** - path where shader sources are dumped
 -  **MESA_SHADER_READ_PATH** - path where replacement shaders are read
@@ -116,13 +115,13 @@ Programming Hints
 -  Use the built-in library functions whenever possible. For example,
    instead of writing this:
 
-   ::
+   .. code-block:: glsl
 
       float x = 1.0 / sqrt(y);
 
    Write this:
 
-   ::
+   .. code-block:: glsl
 
       float x = inversesqrt(y);
 
@@ -144,7 +143,7 @@ src/compiler/glsl/glsl_compiler
 Here's an example of using the compiler to compile a vertex shader and
 emit GL_ARB_vertex_program-style instructions:
 
-::
+.. code-block:: console
 
        src/compiler/glsl/glsl_compiler --version XXX --dump-ast myshader.vert
 

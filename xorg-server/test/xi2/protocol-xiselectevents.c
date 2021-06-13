@@ -124,6 +124,16 @@ _set_bit(unsigned char *bits, int bit)
         SetBit(bits, XI_TouchUpdate);
         SetBit(bits, XI_TouchEnd);
     }
+    if (bit >= XI_GesturePinchBegin && bit <= XI_GesturePinchEnd) {
+        SetBit(bits, XI_GesturePinchBegin);
+        SetBit(bits, XI_GesturePinchUpdate);
+        SetBit(bits, XI_GesturePinchEnd);
+    }
+    if (bit >= XI_GestureSwipeBegin && bit <= XI_GestureSwipeEnd) {
+        SetBit(bits, XI_GestureSwipeBegin);
+        SetBit(bits, XI_GestureSwipeUpdate);
+        SetBit(bits, XI_GestureSwipeEnd);
+    }
 }
 
 static void
@@ -134,6 +144,16 @@ _clear_bit(unsigned char *bits, int bit)
         ClearBit(bits, XI_TouchBegin);
         ClearBit(bits, XI_TouchUpdate);
         ClearBit(bits, XI_TouchEnd);
+    }
+    if (bit >= XI_GesturePinchBegin && bit <= XI_GesturePinchEnd) {
+        ClearBit(bits, XI_GesturePinchBegin);
+        ClearBit(bits, XI_GesturePinchUpdate);
+        ClearBit(bits, XI_GesturePinchEnd);
+    }
+    if (bit >= XI_GestureSwipeBegin && bit <= XI_GestureSwipeEnd) {
+        ClearBit(bits, XI_GestureSwipeBegin);
+        ClearBit(bits, XI_GestureSwipeUpdate);
+        ClearBit(bits, XI_GestureSwipeEnd);
     }
 }
 
@@ -213,6 +233,17 @@ request_XISelectEvents_masks(xXISelectEventsReq * req)
         }
 
         /* Test 5:
+         * Mask len is 1 and XI_GestureSwipeEnd is set outside the mask.
+         * That bit should be ignored -> Success
+         */
+        bits = (unsigned char *) &mask[1];
+        mask->mask_len = 1;
+        memset(bits, 0, 5);
+        SetBit(bits, XI_ButtonPress); // does not matter which one
+        SetBit(bits, XI_GestureSwipeEnd);
+        request_XISelectEvent(req, Success);
+
+        /* Test 6:
          * HierarchyChanged bit is BadValue for devices other than
          * XIAllDevices
          */
@@ -227,7 +258,7 @@ request_XISelectEvents_masks(xXISelectEventsReq * req)
             request_XISelectEvent(req, BadValue);
         }
 
-        /* Test 6:
+        /* Test 7:
          * All bits set minus hierarchy changed bit -> Success
          */
         bits = (unsigned char *) &mask[1];

@@ -31,6 +31,8 @@
 
 #include <pipe/p_state.h>
 
+#define MAX_DRAWS_PER_JOB 2500
+
 struct lima_context;
 struct lima_bo;
 struct lima_dump;
@@ -79,6 +81,8 @@ struct lima_job {
    struct lima_job_clear clear;
 
    struct lima_job_fb_info fb;
+
+   int draws;
 
    /* for dump command stream */
    struct lima_dump *dump;

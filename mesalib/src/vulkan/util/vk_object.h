@@ -120,6 +120,20 @@ vk_object_zalloc(struct vk_device *device,
                 size_t size,
                 VkObjectType vk_obj_type);
 
+struct vk_multialloc;
+
+void *
+vk_object_multialloc(struct vk_device *device,
+                     struct vk_multialloc *ma,
+                     const VkAllocationCallbacks *alloc,
+                     VkObjectType vk_obj_type);
+
+void *
+vk_object_multizalloc(struct vk_device *device,
+                      struct vk_multialloc *ma,
+                      const VkAllocationCallbacks *alloc,
+                      VkObjectType vk_obj_type);
+
 void
 vk_object_free(struct vk_device *device,
                const VkAllocationCallbacks *alloc,

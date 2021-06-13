@@ -96,8 +96,15 @@ void si_flush_gfx_cs(struct si_context *ctx, unsigned flags, struct pipe_fence_h
        !(flags & RADEON_FLUSH_TOGGLE_SECURE_SUBMISSION))
       return;
 
-   if (ctx->b.get_device_reset_status(&ctx->b) != PIPE_NO_RESET)
-      return;
+   /* Non-aux contexts must set up no-op API dispatch on GPU resets. This is
+    * similar to si_get_reset_status but here we can ignore soft-recoveries,
+    * while si_get_reset_status can't. */
+   if (!(ctx->context_flags & SI_CONTEXT_FLAG_AUX) &&
+       ctx->device_reset_callback.reset) {
+      enum pipe_reset_status status = ctx->ws->ctx_query_reset_status(ctx->ctx, true, NULL);
+      if (status != PIPE_NO_RESET)
+         ctx->device_reset_callback.reset(ctx->device_reset_callback.data, status);
+   }
 
    if (sscreen->debug_flags & DBG(CHECK_VM))
       flags &= ~PIPE_FLUSH_ASYNC;
@@ -388,6 +395,7 @@ void si_begin_new_gfx_cs(struct si_context *ctx, bool first_cs)
     */
    ctx->flags |= SI_CONTEXT_INV_ICACHE | SI_CONTEXT_INV_SCACHE | SI_CONTEXT_INV_VCACHE |
                  SI_CONTEXT_INV_L2 | SI_CONTEXT_START_PIPELINE_STATS;
+   ctx->pipeline_stats_enabled = -1;
 
    /* We don't know if the last draw call used GS fast launch, so assume it didn't. */
    if (ctx->chip_class == GFX10 && ctx->ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_ALL)
@@ -568,6 +576,8 @@ void si_emit_surface_sync(struct si_context *sctx, struct radeon_cmdbuf *cs, uns
 
    assert(sctx->chip_class <= GFX9);
 
+   cp_coher_cntl |= 1u << 31; /* don't sync PFP, i.e. execute the sync in ME */
+
    radeon_begin(cs);
 
    if (sctx->chip_class == GFX9 || compute_ib) {
@@ -741,38 +751,50 @@ void gfx10_emit_cache_flush(struct si_context *ctx, struct radeon_cmdbuf *cs)
                         EOP_DST_SEL_MEM, EOP_INT_SEL_SEND_DATA_AFTER_WR_CONFIRM,
                         EOP_DATA_SEL_VALUE_32BIT, wait_mem_scratch, va, ctx->wait_mem_number,
                         SI_NOT_QUERY);
+
+      if (unlikely(ctx->thread_trace_enabled)) {
+         si_sqtt_describe_barrier_start(ctx, &ctx->gfx_cs);
+      }
+
       si_cp_wait_mem(ctx, cs, va, ctx->wait_mem_number, 0xffffffff, WAIT_REG_MEM_EQUAL);
+
+      if (unlikely(ctx->thread_trace_enabled)) {
+         si_sqtt_describe_barrier_end(ctx, &ctx->gfx_cs, flags);
+      }
    }
 
    radeon_begin_again(cs);
 
    /* Ignore fields that only modify the behavior of other fields. */
    if (gcr_cntl & C_586_GL1_RANGE & C_586_GL2_RANGE & C_586_SEQ) {
+      unsigned dont_sync_pfp = (!(flags & SI_CONTEXT_PFP_SYNC_ME)) << 31;
+
       /* Flush caches and wait for the caches to assert idle.
        * The cache flush is executed in the ME, but the PFP waits
        * for completion.
        */
       radeon_emit(cs, PKT3(PKT3_ACQUIRE_MEM, 6, 0));
-      radeon_emit(cs, 0);          /* CP_COHER_CNTL */
+      radeon_emit(cs, dont_sync_pfp); /* CP_COHER_CNTL */
       radeon_emit(cs, 0xffffffff); /* CP_COHER_SIZE */
       radeon_emit(cs, 0xffffff);   /* CP_COHER_SIZE_HI */
       radeon_emit(cs, 0);          /* CP_COHER_BASE */
       radeon_emit(cs, 0);          /* CP_COHER_BASE_HI */
       radeon_emit(cs, 0x0000000A); /* POLL_INTERVAL */
       radeon_emit(cs, gcr_cntl);   /* GCR_CNTL */
-   } else if (cb_db_event || (flags & (SI_CONTEXT_VS_PARTIAL_FLUSH | SI_CONTEXT_PS_PARTIAL_FLUSH |
-                                       SI_CONTEXT_CS_PARTIAL_FLUSH))) {
-      /* We need to ensure that PFP waits as well. */
+   } else if (flags & SI_CONTEXT_PFP_SYNC_ME) {
+      /* Synchronize PFP with ME. (this stalls PFP) */
       radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
       radeon_emit(cs, 0);
    }
 
-   if (flags & SI_CONTEXT_START_PIPELINE_STATS) {
+   if (flags & SI_CONTEXT_START_PIPELINE_STATS && ctx->pipeline_stats_enabled != 1) {
       radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
       radeon_emit(cs, EVENT_TYPE(V_028A90_PIPELINESTAT_START) | EVENT_INDEX(0));
-   } else if (flags & SI_CONTEXT_STOP_PIPELINE_STATS) {
+      ctx->pipeline_stats_enabled = 1;
+   } else if (flags & SI_CONTEXT_STOP_PIPELINE_STATS && ctx->pipeline_stats_enabled != 0) {
       radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
       radeon_emit(cs, EVENT_TYPE(V_028A90_PIPELINESTAT_STOP) | EVENT_INDEX(0));
+      ctx->pipeline_stats_enabled = 0;
    }
    radeon_end();
 
@@ -947,26 +969,23 @@ void si_emit_cache_flush(struct si_context *sctx, struct radeon_cmdbuf *cs)
       si_cp_release_mem(sctx, cs, cb_db_event, tc_flags, EOP_DST_SEL_MEM,
                         EOP_INT_SEL_SEND_DATA_AFTER_WR_CONFIRM, EOP_DATA_SEL_VALUE_32BIT,
                         wait_mem_scratch, va, sctx->wait_mem_number, SI_NOT_QUERY);
-      si_cp_wait_mem(sctx, cs, va, sctx->wait_mem_number, 0xffffffff, WAIT_REG_MEM_EQUAL);
-   }
 
-   /* Make sure ME is idle (it executes most packets) before continuing.
-    * This prevents read-after-write hazards between PFP and ME.
-    */
-   if (sctx->has_graphics &&
-       (cp_coher_cntl || (flags & (SI_CONTEXT_CS_PARTIAL_FLUSH | SI_CONTEXT_INV_VCACHE |
-                                   SI_CONTEXT_INV_L2 | SI_CONTEXT_WB_L2)))) {
-      radeon_begin(cs);
-      radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
-      radeon_emit(cs, 0);
-      radeon_end();
+      if (unlikely(sctx->thread_trace_enabled)) {
+         si_sqtt_describe_barrier_start(sctx, &sctx->gfx_cs);
+      }
+
+      si_cp_wait_mem(sctx, cs, va, sctx->wait_mem_number, 0xffffffff, WAIT_REG_MEM_EQUAL);
+
+      if (unlikely(sctx->thread_trace_enabled)) {
+         si_sqtt_describe_barrier_end(sctx, &sctx->gfx_cs, sctx->flags);
+      }
    }
 
    /* GFX6-GFX8 only:
     *   When one of the CP_COHER_CNTL.DEST_BASE flags is set, SURFACE_SYNC
     *   waits for idle, so it should be last. SURFACE_SYNC is done in PFP.
     *
-    * cp_coher_cntl should contain all necessary flags except TC flags
+    * cp_coher_cntl should contain all necessary flags except TC and PFP flags
     * at this point.
     *
     * GFX6-GFX7 don't support L2 write-back.
@@ -1008,19 +1027,28 @@ void si_emit_cache_flush(struct si_context *sctx, struct radeon_cmdbuf *cs)
    if (cp_coher_cntl)
       si_emit_surface_sync(sctx, cs, cp_coher_cntl);
 
+   if (flags & SI_CONTEXT_PFP_SYNC_ME) {
+      radeon_begin(cs);
+      radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
+      radeon_emit(cs, 0);
+      radeon_end();
+   }
+
    if (is_barrier)
       si_prim_discard_signal_next_compute_ib_start(sctx);
 
-   if (flags & SI_CONTEXT_START_PIPELINE_STATS) {
+   if (flags & SI_CONTEXT_START_PIPELINE_STATS && sctx->pipeline_stats_enabled != 1) {
       radeon_begin(cs);
       radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
       radeon_emit(cs, EVENT_TYPE(V_028A90_PIPELINESTAT_START) | EVENT_INDEX(0));
       radeon_end();
-   } else if (flags & SI_CONTEXT_STOP_PIPELINE_STATS) {
+      sctx->pipeline_stats_enabled = 1;
+   } else if (flags & SI_CONTEXT_STOP_PIPELINE_STATS && sctx->pipeline_stats_enabled != 0) {
       radeon_begin(cs);
       radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
       radeon_emit(cs, EVENT_TYPE(V_028A90_PIPELINESTAT_STOP) | EVENT_INDEX(0));
       radeon_end();
+      sctx->pipeline_stats_enabled = 0;
    }
 
    sctx->flags = 0;

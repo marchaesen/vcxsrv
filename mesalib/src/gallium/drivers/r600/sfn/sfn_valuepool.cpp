@@ -163,10 +163,10 @@ PGPRValue ValuePool::get_temp_register(int channel)
    return std::make_shared<GPRValue>(current_temp_reg_index, next_temp_reg_comp++);
 }
 
-GPRVector ValuePool::get_temp_vec4()
+GPRVector ValuePool::get_temp_vec4(const GPRVector::Swizzle& swizzle)
 {
    int sel = allocate_temp_register();
-   return GPRVector(sel, {0,1,2,3});
+   return GPRVector(sel, swizzle);
 }
 
 PValue ValuePool::create_register_from_nir_src(const nir_src& src, int comp)
@@ -209,12 +209,6 @@ int ValuePool::lookup_register_index(const nir_src& src) const
    return static_cast<int>(r->second.index);
 }
 
-
-int ValuePool::allocate_component(unsigned index, unsigned comp, bool pre_alloc)
-{
-   assert(comp < 8);
-   return allocate_with_mask(index, 1 << comp, pre_alloc);
-}
 
 int ValuePool::allocate_temp_register()
 {
@@ -371,19 +365,22 @@ unsigned ValuePool::get_ssa_register_index(const nir_ssa_def& ssa) const
 
 unsigned ValuePool::get_local_register_index(const nir_register& reg)
 {
-   auto pos = m_local_register_map.find(reg.index);
-   if (pos == m_local_register_map.end()) {
+   unsigned index = reg.index | 0x80000000;
+
+   auto pos = m_ssa_register_map.find(index);
+   if (pos == m_ssa_register_map.end()) {
       allocate_local_register(reg);
-      pos = m_local_register_map.find(reg.index);
-      assert(pos != m_local_register_map.end());
+      pos = m_ssa_register_map.find(index);
+      assert(pos != m_ssa_register_map.end());
    }
    return pos->second;
 }
 
 unsigned ValuePool::get_local_register_index(const nir_register& reg) const
 {
-   auto pos = m_local_register_map.find(reg.index);
-   if (pos == m_local_register_map.end()) {
+   unsigned index = reg.index | 0x80000000;
+   auto pos = m_ssa_register_map.find(index);
+   if (pos == m_ssa_register_map.end()) {
       sfn_log << SfnLog::err << __func__ << ": local register "
               << reg.index << " lookup failed";
       return -1;
@@ -433,7 +430,7 @@ void ValuePool::allocate_arrays(array_list& arrays)
               << " of size " << a.length << " with " << a.ncomponents
               << " components, mask " << mask << "\n";
 
-      m_local_register_map[a.index] = current_index + instance;
+      m_ssa_register_map[a.index | 0x80000000] = current_index + instance;
 
       for (unsigned  i = 0; i < a.ncomponents; ++i)
          m_registers[((current_index  + instance) << 3) + i] = array;
@@ -449,13 +446,13 @@ void ValuePool::allocate_arrays(array_list& arrays)
 void ValuePool::allocate_local_register(const nir_register& reg)
 {
    int index = m_next_register_index++;
-   m_local_register_map[reg.index] = index;
+   m_ssa_register_map[reg.index | 0x80000000] = index;
    allocate_with_mask(index, 0xf, true);
 
    /* Create actual register and map it */;
    for (int i = 0; i < 4; ++i) {
       int k = (index << 3) + i;
-      m_registers[k] = PValue(new GPRValue(index, i));
+      m_registers[k] = std::make_shared<GPRValue>(index, i);
    }
 }
 

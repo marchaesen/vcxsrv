@@ -1,4 +1,4 @@
-AC_INIT(xkeyboard-config, 2.32) # change version in meson.build as well
+AC_INIT(xkeyboard-config, 2.33) # change version in meson.build as well
 AC_CONFIG_SRCDIR(rules/base.xml)
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 

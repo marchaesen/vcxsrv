@@ -38,6 +38,7 @@ enum a3xx_color_swap fd5_pipe2swap(enum pipe_format format);
 enum a5xx_depth_format fd5_pipe2depth(enum pipe_format format);
 
 uint32_t fd5_tex_swiz(enum pipe_format format, unsigned swizzle_r,
-		unsigned swizzle_g, unsigned swizzle_b, unsigned swizzle_a);
+                      unsigned swizzle_g, unsigned swizzle_b,
+                      unsigned swizzle_a);
 
 #endif /* FD5_UTIL_H_ */

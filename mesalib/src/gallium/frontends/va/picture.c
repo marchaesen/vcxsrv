@@ -710,7 +710,7 @@ vlVaEndPicture(VADriverContextP ctx, VAContextID context_id)
    if (realloc) {
       struct pipe_video_buffer *old_buf = surf->buffer;
 
-      if (vlVaHandleSurfaceAllocate(drv, surf, &surf->templat) != VA_STATUS_SUCCESS) {
+      if (vlVaHandleSurfaceAllocate(drv, surf, &surf->templat, NULL, 0) != VA_STATUS_SUCCESS) {
          mtx_unlock(&drv->mutex);
          return VA_STATUS_ERROR_ALLOCATION_FAILED;
       }

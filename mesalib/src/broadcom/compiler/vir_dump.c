@@ -174,8 +174,8 @@ vir_print_reg(struct v3d_compile *c, const struct qinst *inst,
                                                    &unpacked);
                 assert(ok); (void) ok;
 
-                if ((int)inst->qpu.raddr_b >= -16 &&
-                    (int)inst->qpu.raddr_b <= 15)
+                int8_t *p = (int8_t *)&inst->qpu.raddr_b;
+                if (*p >= -16 && *p <= 15)
                         fprintf(stderr, "%d", unpacked);
                 else
                         fprintf(stderr, "%f", uif(unpacked));

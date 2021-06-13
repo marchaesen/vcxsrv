@@ -681,6 +681,10 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
                        screen->is_format_supported(screen, PIPE_FORMAT_DXT1_SRGBA,
                                                    PIPE_TEXTURE_2D, 0, 0,
                                                    PIPE_BIND_SAMPLER_VIEW);
+   st->transcode_astc = options->transcode_astc &&
+                        screen->is_format_supported(screen, PIPE_FORMAT_DXT5_SRGBA,
+                                                    PIPE_TEXTURE_2D, 0, 0,
+                                                    PIPE_BIND_SAMPLER_VIEW);
    st->has_astc_2d_ldr =
       screen->is_format_supported(screen, PIPE_FORMAT_ASTC_4x4_SRGB,
                                   PIPE_TEXTURE_2D, 0, 0, PIPE_BIND_SAMPLER_VIEW);
@@ -843,7 +847,9 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
          !st->lower_ucp;
    st->shader_has_one_variant[MESA_SHADER_COMPUTE] = st->has_shareable_shaders;
 
-   if (util_get_cpu_caps()->cores_per_L3 == util_get_cpu_caps()->nr_cpus ||
+   util_cpu_detect();
+
+   if (util_get_cpu_caps()->num_L3_caches == 1 ||
        !st->pipe->set_context_param)
       st->pin_thread_counter = ST_L3_PINNING_DISABLED;
 

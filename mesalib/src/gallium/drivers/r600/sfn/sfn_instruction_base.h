@@ -27,6 +27,7 @@
 #ifndef sfn_r600_instr_h
 #define sfn_r600_instr_h
 
+#include "sfn_instructionvisitor.h"
 #include "sfn_value_gpr.h"
 #include "sfn_defines.h"
 
@@ -37,7 +38,6 @@
 #include <set>
 
 namespace r600 {
-
 
 struct rename_reg_pair {
    bool valid;
@@ -113,6 +113,9 @@ public:
    void evalue_liveness(LiverangeEvaluator& eval) const;
 
    void remap_registers(ValueRemapper& map);
+
+   virtual bool accept(InstructionVisitor& visitor) = 0;
+   virtual bool accept(ConstInstructionVisitor& visitor) const = 0;
 
 protected:
 

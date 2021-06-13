@@ -686,13 +686,13 @@ static void r300_emit_query_end_frag_pipes(struct r300_context *r300,
             OUT_CS_REG(R300_SU_REG_DEST, 1 << 3);
             OUT_CS_REG(R300_ZB_ZPASS_ADDR, (query->num_results + 3) * 4);
             OUT_CS_RELOC(r300->query_current);
-            /* fallthrough */
+            FALLTHROUGH;
         case 3:
             /* pipe 2 only */
             OUT_CS_REG(R300_SU_REG_DEST, 1 << 2);
             OUT_CS_REG(R300_ZB_ZPASS_ADDR, (query->num_results + 2) * 4);
             OUT_CS_RELOC(r300->query_current);
-            /* fallthrough */
+            FALLTHROUGH;
         case 2:
             /* pipe 1 only */
             /* As mentioned above, accommodate RV380 and older. */
@@ -700,7 +700,7 @@ static void r300_emit_query_end_frag_pipes(struct r300_context *r300,
                     1 << (caps->high_second_pipe ? 3 : 1));
             OUT_CS_REG(R300_ZB_ZPASS_ADDR, (query->num_results + 1) * 4);
             OUT_CS_RELOC(r300->query_current);
-            /* fallthrough */
+            FALLTHROUGH;
         case 1:
             /* pipe 0 only */
             OUT_CS_REG(R300_SU_REG_DEST, 1 << 0);

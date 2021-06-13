@@ -30,7 +30,8 @@ struct d3d12_root_signature_key {
    bool has_stream_output;
    struct {
       unsigned num_cb_bindings;
-      unsigned num_srv_bindings;
+      unsigned end_srv_binding;
+      unsigned begin_srv_binding;
       unsigned state_vars_size;
       bool has_default_ubo0;
    } stages[D3D12_GFX_SHADER_STAGES];

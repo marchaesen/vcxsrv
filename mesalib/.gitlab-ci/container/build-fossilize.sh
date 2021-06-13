@@ -4,7 +4,7 @@ set -ex
 
 git clone https://github.com/ValveSoftware/Fossilize.git
 cd Fossilize
-git checkout 6b5b570008c9ab5269e341f04c811fe49a1bb72c
+git checkout 72088685d90bc814d14aad5505354ffa8a642789
 git submodule update --init
 mkdir build
 cd build

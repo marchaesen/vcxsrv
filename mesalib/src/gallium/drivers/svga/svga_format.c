@@ -369,7 +369,7 @@ svga_translate_format(const struct svga_screen *ss,
 
    case PIPE_FORMAT_Z32_UNORM:
       /* SVGA3D_Z_D32 is not yet unsupported */
-      /* fall-through */
+      FALLTHROUGH;
    default:
       return SVGA3D_FORMAT_INVALID;
    }

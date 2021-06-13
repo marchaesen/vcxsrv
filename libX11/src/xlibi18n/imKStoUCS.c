@@ -285,7 +285,7 @@ KeySymToUcs4(KeySym keysym)
 	return keysym_to_unicode_3a2_3fe[keysym - 0x3a2];
     else if (keysym > 0x4a0 && keysym < 0x4e0)
 	return keysym_to_unicode_4a1_4df[keysym - 0x4a1];
-    else if (keysym > 0x589 && keysym < 0x5ff)
+    else if (keysym > 0x58f && keysym < 0x5ff)
 	return keysym_to_unicode_590_5fe[keysym - 0x590];
     else if (keysym > 0x67f && keysym < 0x700)
 	return keysym_to_unicode_680_6ff[keysym - 0x680];

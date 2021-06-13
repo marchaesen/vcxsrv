@@ -34,7 +34,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "elf.h"
+#include <libelf.h>
 #include "ac_msgpack.h"
 #include "ac_rgp.h"
 #include "main/macros.h"
@@ -364,7 +364,7 @@ struct ac_rgp_elf_note_msgpack_hdr {
 void
 ac_rgp_file_write_elf_object(FILE *output, size_t file_elf_start,
                              struct rgp_code_object_record *record,
-                             uint32_t *written_size, uint flags)
+                             uint32_t *written_size, uint32_t flags)
 {
    Elf64_Ehdr elf_hdr;
    Elf64_Shdr sec_hdr[5];

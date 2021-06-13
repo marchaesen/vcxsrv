@@ -1564,11 +1564,13 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
       break;
 
    case GL_TEXTURE_REDUCTION_MODE_ARB:
-      /* We don't currently have a way of querying this information. A driver
-       * enabling this capability should handle all formats until this is
-       * addressed.
-       */
-      buffer[0] = (GLint)1;
+      if (ctx->Extensions.EXT_texture_filter_minmax)
+         buffer[0] = (GLint)1;
+      else if (ctx->Extensions.ARB_texture_filter_minmax)
+         ctx->Driver.QueryInternalFormat(ctx, target, internalformat, pname,
+                                         buffer);
+      else
+         buffer[0] = (GLint)0;
       break;
 
    default:

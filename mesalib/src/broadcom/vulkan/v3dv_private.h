@@ -40,6 +40,7 @@
 #include "vk_instance.h"
 #include "vk_physical_device.h"
 #include "vk_shader_module.h"
+#include "vk_util.h"
 
 #include <xf86drm.h>
 
@@ -55,6 +56,7 @@
 
 #include "common/v3d_device_info.h"
 #include "common/v3d_limits.h"
+#include "common/v3d_util.h"
 
 #include "compiler/shader_enums.h"
 #include "compiler/spirv/nir_spirv.h"
@@ -68,7 +70,6 @@
 #include "u_atomic.h"
 
 #include "v3dv_entrypoints.h"
-#include "v3dv_extensions.h"
 #include "v3dv_bo.h"
 
 #include "drm-uapi/v3d_drm.h"
@@ -325,6 +326,17 @@ broadcom_shader_stage_to_gl(broadcom_shader_stage stage)
    }
 }
 
+static inline const char *
+broadcom_shader_stage_name(broadcom_shader_stage stage)
+{
+   switch(stage) {
+   case BROADCOM_SHADER_VERTEX_BIN:
+      return "MESA_SHADER_VERTEX_BIN";
+   default:
+      return gl_shader_stage_name(broadcom_shader_stage_to_gl(stage));
+   }
+}
+
 struct v3dv_pipeline_cache {
    struct vk_object_base base;
 
@@ -446,26 +458,26 @@ struct v3dv_format {
  */
 enum v3d_tiling_mode {
    /* Untiled resources.  Not valid as texture inputs. */
-   VC5_TILING_RASTER,
+   V3D_TILING_RASTER,
 
    /* Single line of u-tiles. */
-   VC5_TILING_LINEARTILE,
+   V3D_TILING_LINEARTILE,
 
    /* Departure from standard 4-UIF block column format. */
-   VC5_TILING_UBLINEAR_1_COLUMN,
+   V3D_TILING_UBLINEAR_1_COLUMN,
 
    /* Departure from standard 4-UIF block column format. */
-   VC5_TILING_UBLINEAR_2_COLUMN,
+   V3D_TILING_UBLINEAR_2_COLUMN,
 
    /* Normal tiling format: grouped in 4x4 UIFblocks, each of which is
     * split 2x2 into utiles.
     */
-   VC5_TILING_UIF_NO_XOR,
+   V3D_TILING_UIF_NO_XOR,
 
    /* Normal tiling format: grouped in 4x4 UIFblocks, each of which is
     * split 2x2 into utiles.
     */
-   VC5_TILING_UIF_XOR,
+   V3D_TILING_UIF_XOR,
 };
 
 struct v3d_resource_slice {
@@ -807,10 +819,10 @@ void v3dv_viewport_compute_xform(const VkViewport *viewport,
                                  float translate[3]);
 
 enum v3dv_ez_state {
-   VC5_EZ_UNDECIDED = 0,
-   VC5_EZ_GT_GE,
-   VC5_EZ_LT_LE,
-   VC5_EZ_DISABLED,
+   V3D_EZ_UNDECIDED = 0,
+   V3D_EZ_GT_GE,
+   V3D_EZ_LT_LE,
+   V3D_EZ_DISABLED,
 };
 
 enum v3dv_job_type {
@@ -923,6 +935,7 @@ struct v3dv_job {
     */
    struct set *bos;
    uint32_t bo_count;
+   uint64_t bo_handle_mask;
 
    struct v3dv_bo *tile_alloc;
    struct v3dv_bo *tile_state;
@@ -997,7 +1010,10 @@ void v3dv_job_init(struct v3dv_job *job,
                    struct v3dv_cmd_buffer *cmd_buffer,
                    int32_t subpass_idx);
 void v3dv_job_destroy(struct v3dv_job *job);
+
 void v3dv_job_add_bo(struct v3dv_job *job, struct v3dv_bo *bo);
+void v3dv_job_add_bo_unchecked(struct v3dv_job *job, struct v3dv_bo *bo);
+
 void v3dv_job_emit_binning_flush(struct v3dv_job *job);
 void v3dv_job_start_frame(struct v3dv_job *job,
                           uint32_t width,
@@ -1042,7 +1058,10 @@ struct v3dv_cmd_buffer_state {
    struct v3dv_cmd_pipeline_state compute;
 
    struct v3dv_dynamic_state dynamic;
+
    uint32_t dirty;
+   VkShaderStageFlagBits dirty_descriptor_stages;
+   VkShaderStageFlagBits dirty_push_constants_stages;
 
    /* Current clip window. We use this to check whether we have an active
     * scissor, since in that case we can't use TLB clears and need to fallback
@@ -1125,10 +1144,13 @@ struct v3dv_cmd_buffer_state {
          struct v3dv_end_query_cpu_job_info *states;
       } end;
 
-      /* This is not NULL if we have an active query, that is, we have called
-       * vkCmdBeginQuery but not vkCmdEndQuery.
+      /* This BO is not NULL if we have an active query, that is, we have
+       * called vkCmdBeginQuery but not vkCmdEndQuery.
        */
-      struct v3dv_bo *active_query;
+      struct {
+         struct v3dv_bo *bo;
+         uint32_t offset;
+      } active_query;
    } query;
 };
 
@@ -1189,13 +1211,20 @@ struct v3dv_combined_image_sampler_descriptor {
 struct v3dv_query {
    bool maybe_available;
    union {
-      struct v3dv_bo *bo; /* Used by GPU queries (occlusion) */
-      uint64_t value; /* Used by CPU queries (timestamp) */
+      /* Used by GPU queries (occlusion) */
+      struct {
+         struct v3dv_bo *bo;
+         uint32_t offset;
+      };
+      /* Used by CPU queries (timestamp) */
+      uint64_t value;
    };
 };
 
 struct v3dv_query_pool {
    struct vk_object_base base;
+
+   struct v3dv_bo *bo; /* Only used with GPU queries (occlusion) */
 
    VkQueryType query_type;
    uint32_t query_count;
@@ -1355,16 +1384,6 @@ struct v3dv_event {
    struct vk_object_base base;
    int state;
 };
-
-/* FIXME: the same function at anv, radv and tu, perhaps create common
- * place?
- */
-static inline gl_shader_stage
-vk_to_mesa_shader_stage(VkShaderStageFlagBits vk_stage)
-{
-   assert(__builtin_popcount(vk_stage) == 1);
-   return ffs(vk_stage) - 1;
-}
 
 struct v3dv_shader_variant {
    broadcom_shader_stage stage;
@@ -1562,18 +1581,30 @@ struct v3dv_pipeline_layout {
    uint32_t push_constant_size;
 };
 
+/*
+ * We are using descriptor maps for ubo/ssbo and texture/samplers, so we need
+ * it to be big enough to include the max value for all of them.
+ *
+ * FIXME: one alternative would be to allocate the map as big as you need for
+ * each descriptor type. That would means more individual allocations.
+ */
+#define DESCRIPTOR_MAP_SIZE MAX3(V3D_MAX_TEXTURE_SAMPLERS, \
+                                 MAX_UNIFORM_BUFFERS,      \
+                                 MAX_STORAGE_BUFFERS)
+
+
 struct v3dv_descriptor_map {
    /* TODO: avoid fixed size array/justify the size */
    unsigned num_desc; /* Number of descriptors  */
-   int set[64];
-   int binding[64];
-   int array_index[64];
-   int array_size[64];
+   int set[DESCRIPTOR_MAP_SIZE];
+   int binding[DESCRIPTOR_MAP_SIZE];
+   int array_index[DESCRIPTOR_MAP_SIZE];
+   int array_size[DESCRIPTOR_MAP_SIZE];
 
    /* NOTE: the following is only for sampler, but this is the easier place to
     * put it.
     */
-   uint8_t return_size[64];
+   uint8_t return_size[DESCRIPTOR_MAP_SIZE];
 };
 
 struct v3dv_sampler {
@@ -1630,6 +1661,13 @@ v3dv_pipeline_combined_index_key_unpack(uint32_t combined_index_key,
       *sampler_index = sampler;
 }
 
+struct v3dv_descriptor_maps {
+   struct v3dv_descriptor_map ubo_map;
+   struct v3dv_descriptor_map ssbo_map;
+   struct v3dv_descriptor_map sampler_map;
+   struct v3dv_descriptor_map texture_map;
+};
+
 /* The structure represents data shared between different objects, like the
  * pipeline and the pipeline cache, so we ref count it to know when it should
  * be freed.
@@ -1639,11 +1677,7 @@ struct v3dv_pipeline_shared_data {
 
    unsigned char sha1_key[20];
 
-   struct v3dv_descriptor_map ubo_map;
-   struct v3dv_descriptor_map ssbo_map;
-   struct v3dv_descriptor_map sampler_map;
-   struct v3dv_descriptor_map texture_map;
-
+   struct v3dv_descriptor_maps *maps[BROADCOM_SHADER_STAGES];
    struct v3dv_shader_variant *variants[BROADCOM_SHADER_STAGES];
 
    struct v3dv_bo *assembly_bo;
@@ -1844,7 +1878,6 @@ v3dv_get_internal_depth_type(VkFormat format)
    }
 }
 
-uint32_t v3dv_physical_device_api_version(struct v3dv_physical_device *dev);
 uint32_t v3dv_physical_device_vendor_id(struct v3dv_physical_device *dev);
 uint32_t v3dv_physical_device_device_id(struct v3dv_physical_device *dev);
 

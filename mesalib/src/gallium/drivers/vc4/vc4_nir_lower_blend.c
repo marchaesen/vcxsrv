@@ -406,7 +406,7 @@ vc4_logicop(nir_builder *b, int logicop_func,
                 return nir_imm_int(b, ~0);
         default:
                 fprintf(stderr, "Unknown logic op %d\n", logicop_func);
-                /* FALLTHROUGH */
+                FALLTHROUGH;
         case PIPE_LOGICOP_COPY:
                 return src;
         }

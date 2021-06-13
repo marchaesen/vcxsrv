@@ -40,6 +40,7 @@
 #include "wayland-drm-client-protocol.h"
 #include "linux-dmabuf-unstable-v1-client-protocol.h"
 
+#include <util/compiler.h>
 #include <util/hash_table.h>
 #include <util/timespec.h>
 #include <util/u_vector.h>
@@ -135,7 +136,7 @@ wsi_wl_display_add_wl_format(struct wsi_wl_display *display,
    case WL_DRM_FORMAT_XBGR8888:
       wsi_wl_display_add_vk_format(display, formats,
                                    VK_FORMAT_R8G8B8_UNORM);
-      /* fallthrough */
+      FALLTHROUGH;
    case WL_DRM_FORMAT_ABGR8888:
       wsi_wl_display_add_vk_format(display, formats,
                                    VK_FORMAT_R8G8B8A8_UNORM);
@@ -165,7 +166,7 @@ wsi_wl_display_add_wl_format(struct wsi_wl_display *display,
                                    VK_FORMAT_B8G8R8_SRGB);
       wsi_wl_display_add_vk_format(display, formats,
                                    VK_FORMAT_B8G8R8_UNORM);
-      /* fallthrough */
+      FALLTHROUGH;
    case WL_DRM_FORMAT_ARGB8888:
       wsi_wl_display_add_vk_format(display, formats,
                                    VK_FORMAT_B8G8R8A8_SRGB);

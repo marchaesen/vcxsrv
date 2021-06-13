@@ -710,7 +710,6 @@ static void vid_dec_h265_EndFrame(vid_dec_PrivateType *priv)
          LIST_FOR_EACH_ENTRY(entry, &priv->codec_data.h265.dpb_list, list) {
             if (entry->poc == priv->picture.h265.PicOrderCntVal[i]) {
                priv->picture.h265.ref[i] = entry->buffer;
-               break;
             }
          }
 

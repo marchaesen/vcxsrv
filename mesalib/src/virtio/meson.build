@@ -19,3 +19,7 @@
 # SOFTWARE.
 
 inc_virtio = include_directories('.')
+
+if with_virtio_vk
+  subdir('vulkan')
+endif

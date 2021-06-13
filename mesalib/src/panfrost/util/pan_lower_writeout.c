@@ -95,8 +95,7 @@ pan_nir_lower_zs_store(nir_shader *nir)
                                 const nir_variable *var = nir_find_variable_with_driver_location(nir, nir_var_shader_out, nir_intrinsic_base(intr));
                                 assert(var);
 
-                                if (var->data.location != FRAG_RESULT_COLOR &&
-                                    var->data.location < FRAG_RESULT_DATA0)
+                                if (var->data.location < FRAG_RESULT_DATA0)
                                         continue;
 
                                 if (var->data.index)

@@ -42,20 +42,6 @@ bool TcsShaderFromNir::scan_sysvalue_access(nir_instr *instr)
    return true;
 }
 
-bool TcsShaderFromNir::do_process_outputs(nir_variable *output)
-{
-   unsigned name, sid;
-
-   tgsi_get_gl_varying_semantic(static_cast<gl_varying_slot>(output->data.location),
-                                true, &name, &sid);
-
-   auto& io = sh_info().output[sh_info().noutput++];
-   io.name = name;
-   io.write_mask = ((1 << output->type->components()) - 1)
-                   << output->data.location_frac;
-   return true;
-}
-
 bool TcsShaderFromNir::do_allocate_reserved_registers()
 {
    if (m_sv_values.test(es_primitive_id)) {

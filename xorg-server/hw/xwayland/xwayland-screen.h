@@ -83,6 +83,7 @@ struct xwl_screen {
     struct zwp_relative_pointer_manager_v1 *relative_pointer_manager;
     struct zwp_pointer_constraints_v1 *pointer_constraints;
     struct zwp_xwayland_keyboard_grab_manager_v1 *wp_grab;
+    struct zwp_linux_dmabuf_v1 *dmabuf;
     struct zxdg_output_manager_v1 *xdg_output_manager;
     struct wp_viewporter *viewporter;
     uint32_t serial;
@@ -106,6 +107,9 @@ struct xwl_screen {
     struct glamor_context *glamor_ctx;
 
     Atom allow_commits_prop;
+
+    /* The preferred GLVND vendor. If NULL, "mesa" is assumed. */
+    const char *glvnd_vendor;
 };
 
 /* Apps which use randr/vidmode to change the mode when going fullscreen,

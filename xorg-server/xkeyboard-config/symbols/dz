@@ -49,7 +49,7 @@ xkb_symbols "azerty-deadkeys" {
 
     include "fr"
 
-    name[Group1]= "Kabyle (azerty layout, dead keys)";
+    name[Group1]= "Kabyle (AZERTY, with dead keys)";
 
     key <AD01>	{ [     a,       A,     U025B, U0190  ]}; // a A ɛ Ɛ
     key <AD02>  { [ 	z,  	 Z,  	U2D63 	      ] }; // ⵣ
@@ -68,7 +68,7 @@ xkb_symbols "qwerty-gb-deadkeys" {
 
     include "gb(intl)"
 
-    name[Group1]= "Kabyle (qwerty-gb layout, dead keys)";
+    name[Group1]= "Kabyle (QWERTY, UK, with dead keys)";
 
     key <AC01>	{ [     a,       A,     U025B, U0190  ]}; // a A ɛ Ɛ
     key <AD01>	{ [     q,       Q,     U0263, U0194  ] }; // q Q ɣ Ɣ
@@ -86,7 +86,7 @@ xkb_symbols "qwerty-us-deadkeys" {
 
     include "us(intl)"
 
-    name[Group1]= "Kabyle (qwerty-us layout, dead keys)";
+    name[Group1]= "Kabyle (QWERTY, US, with dead keys)";
 
     key <AC01>	{ [     a,       A,     U025B, U0190  ]	}; // a A ɛ Ɛ
     key <AD01>	{ [     q,       Q,     U0263, U0194  ] }; // q Q ɣ Ɣ

@@ -149,7 +149,6 @@ spec/!opengl 1.1/polygon-mode-offset/config 4: expected white pixel on left edge
 spec/!opengl 1.1/polygon-mode-offset/config 4: expected white pixel on right edge: fail
 spec/!opengl 1.1/polygon-mode-offset/config 4: expected white pixel on top edge: fail
 spec/!opengl 1.1/polygon-offset: fail
-spec/!opengl 1.1/ppgtt_memory_alignment: fail
 spec/!opengl 1.1/read-front clear-front-first samples=16: skip
 spec/!opengl 1.1/read-front clear-front-first samples=2: skip
 spec/!opengl 1.1/read-front clear-front-first samples=32: skip
@@ -4754,8 +4753,8 @@ wgl/wgl-sanity: skip
 summary:
        name:  results
        ----  --------
-       pass:    13298
-       fail:      539
+       pass:    13299
+       fail:      538
       crash:       68
        skip:     4126
     timeout:        0

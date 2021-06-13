@@ -263,7 +263,7 @@ _iris_measure_snapshot(struct iris_context *ice,
                        enum intel_measure_snapshot_type type,
                        const struct pipe_draw_info *draw,
                        const struct pipe_draw_indirect_info *indirect,
-                       const struct pipe_draw_start_count *sc)
+                       const struct pipe_draw_start_count_bias *sc)
 {
 
    const struct intel_measure_config *config = config_from_context(ice);

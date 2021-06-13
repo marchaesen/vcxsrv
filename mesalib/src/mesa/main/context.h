@@ -67,22 +67,7 @@ struct _glapi_table;
 /** \name Visual-related functions */
 /*@{*/
 
-extern struct gl_config *
-_mesa_create_visual( GLboolean dbFlag,
-                     GLboolean stereoFlag,
-                     GLint redBits,
-                     GLint greenBits,
-                     GLint blueBits,
-                     GLint alphaBits,
-                     GLint depthBits,
-                     GLint stencilBits,
-                     GLint accumRedBits,
-                     GLint accumGreenBits,
-                     GLint accumBlueBits,
-                     GLint accumAlphaBits,
-                     GLuint numSamples );
-
-extern GLboolean
+extern void
 _mesa_initialize_visual( struct gl_config *v,
                          GLboolean dbFlag,
                          GLboolean stereoFlag,
@@ -97,9 +82,6 @@ _mesa_initialize_visual( struct gl_config *v,
                          GLint accumBlueBits,
                          GLint accumAlphaBits,
                          GLuint numSamples );
-
-extern void
-_mesa_destroy_visual( struct gl_config *vis );
 
 /*@}*/
 

@@ -617,7 +617,7 @@ def generate_format_unpack(format, dst_channel, dst_native_type, dst_suffix):
     else:
         dst_proto_type = 'void'
 
-    proto = 'util_format_%s_unpack_%s(%s *restrict dst_row, unsigned dst_stride, const uint8_t *restrict src_row, unsigned src_stride, unsigned width, unsigned height)' % (
+    proto = 'util_format_%s_unpack_%s(%s *restrict dst_row, const uint8_t *restrict src, unsigned width)' % (
         name, dst_suffix, dst_proto_type)
     print('void %s;' % proto, file=sys.stdout2)
 
@@ -626,19 +626,14 @@ def generate_format_unpack(format, dst_channel, dst_native_type, dst_suffix):
     print('{')
 
     if is_format_supported(format):
-        print('   unsigned x, y;')
-        print('   for(y = 0; y < height; y += %u) {' % (format.block_height,))
-        print('      %s *dst = dst_row;' % (dst_native_type))
-        print('      const uint8_t *src = src_row;')
-        print('      for(x = 0; x < width; x += %u) {' % (format.block_width,))
+        print('   %s *dst = dst_row;' % (dst_native_type))
+        print(
+            '   for (unsigned x = 0; x < width; x += %u) {' % (format.block_width,))
         
         generate_unpack_kernel(format, dst_channel, dst_native_type)
     
-        print('         src += %u;' % (format.block_size() / 8,))
-        print('         dst += 4;')
-        print('      }')
-        print('      src_row += src_stride;')
-        print('      dst_row = (uint8_t *)dst_row + dst_stride;')
+        print('      src += %u;' % (format.block_size() / 8,))
+        print('      dst += 4;')
         print('   }')
 
     print('}')

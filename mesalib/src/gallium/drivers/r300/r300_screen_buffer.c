@@ -96,7 +96,7 @@ r300_buffer_transfer_map( struct pipe_context *context,
 
         /* Check if mapping this buffer would cause waiting for the GPU. */
         if (r300->rws->cs_is_buffer_referenced(&r300->cs, rbuf->buf, RADEON_USAGE_READWRITE) ||
-            !r300->rws->buffer_wait(rbuf->buf, 0, RADEON_USAGE_READWRITE)) {
+            !r300->rws->buffer_wait(r300->rws, rbuf->buf, 0, RADEON_USAGE_READWRITE)) {
             unsigned i;
             struct pb_buffer *new_buf;
 
@@ -127,7 +127,7 @@ r300_buffer_transfer_map( struct pipe_context *context,
        usage |= PIPE_MAP_UNSYNCHRONIZED;
     }
 
-    map = rws->buffer_map(rbuf->buf, &r300->cs, usage);
+    map = rws->buffer_map(rws, rbuf->buf, &r300->cs, usage);
 
     if (!map) {
         slab_free(&r300->pool_transfers, transfer);

@@ -538,7 +538,7 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
    cso_set_tessctrl_shader_handle(cso, NULL);
    cso_set_tesseval_shader_handle(cso, NULL);
    cso_set_geometry_shader_handle(cso, NULL);
-   cso_set_vertex_shader_handle(cso, hud->vs);
+   cso_set_vertex_shader_handle(cso, hud->vs_color);
    cso_set_vertex_elements(cso, &hud->velems);
    cso_set_render_condition(cso, NULL, FALSE, 0);
    pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 1, 0,
@@ -569,6 +569,7 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
 
    /* draw accumulated vertices for text */
    if (hud->text.num_vertices) {
+      cso_set_vertex_shader_handle(cso, hud->vs_text);
       cso_set_vertex_buffers(cso, 0, 1, &hud->text.vbuf);
       cso_set_fragment_shader_handle(hud->cso, hud->fs_text);
       cso_draw_arrays(cso, PIPE_PRIM_QUADS, 0, hud->text.num_vertices);
@@ -592,6 +593,7 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
    pipe->set_constant_buffer(pipe, PIPE_SHADER_VERTEX, 0, false, &hud->constbuf);
 
    if (hud->whitelines.num_vertices) {
+      cso_set_vertex_shader_handle(cso, hud->vs_color);
       cso_set_vertex_buffers(cso, 0, 1, &hud->whitelines.vbuf);
       cso_set_fragment_shader_handle(hud->cso, hud->fs_color);
       cso_draw_arrays(cso, PIPE_PRIM_LINES, 0, hud->whitelines.num_vertices);
@@ -1639,9 +1641,13 @@ hud_unset_draw_context(struct hud_context *hud)
       pipe->delete_fs_state(pipe, hud->fs_text);
       hud->fs_text = NULL;
    }
-   if (hud->vs) {
-      pipe->delete_vs_state(pipe, hud->vs);
-      hud->vs = NULL;
+   if (hud->vs_color) {
+      pipe->delete_vs_state(pipe, hud->vs_color);
+      hud->vs_color = NULL;
+   }
+   if (hud->vs_text) {
+      pipe->delete_vs_state(pipe, hud->vs_text);
+      hud->vs_text = NULL;
    }
 
    hud->cso = NULL;
@@ -1667,13 +1673,14 @@ hud_set_draw_context(struct hud_context *hud, struct cso_context *cso,
    if (!hud->font_sampler_view)
       goto fail;
 
-   /* fragment shader */
+   /* color fragment shader */
    hud->fs_color =
          util_make_fragment_passthrough_shader(pipe,
                                                TGSI_SEMANTIC_COLOR,
                                                TGSI_INTERPOLATE_CONSTANT,
                                                TRUE);
 
+   /* text fragment shader */
    {
       /* Read a texture and do .xxxx swizzling. */
       static const char *fragment_shader_text = {
@@ -1700,7 +1707,7 @@ hud_set_draw_context(struct hud_context *hud, struct cso_context *cso,
       hud->fs_text = pipe->create_fs_state(pipe, &state);
    }
 
-   /* vertex shader */
+   /* color vertex shader */
    {
       static const char *vertex_shader_text = {
          "VERT\n"
@@ -1733,7 +1740,43 @@ hud_set_draw_context(struct hud_context *hud, struct cso_context *cso,
          goto fail;
       }
       pipe_shader_state_from_tgsi(&state, tokens);
-      hud->vs = pipe->create_vs_state(pipe, &state);
+      hud->vs_color = pipe->create_vs_state(pipe, &state);
+   }
+
+   /* text vertex shader */
+   {
+      /* similar to the above, without the color component
+       * to match the varyings in fs_text */
+      static const char *vertex_shader_text = {
+         "VERT\n"
+         "DCL IN[0..1]\n"
+         "DCL OUT[0], POSITION\n"
+         "DCL OUT[1], GENERIC[0]\n" /* texcoord */
+         /* [0] = color,
+          * [1] = (2/fb_width, 2/fb_height, xoffset, yoffset)
+          * [2] = (xscale, yscale, 0, 0) */
+         "DCL CONST[0][0..2]\n"
+         "DCL TEMP[0]\n"
+         "IMM[0] FLT32 { -1, 0, 0, 1 }\n"
+
+         /* v = in * (xscale, yscale) + (xoffset, yoffset) */
+         "MAD TEMP[0].xy, IN[0], CONST[0][2].xyyy, CONST[0][1].zwww\n"
+         /* pos = v * (2 / fb_width, 2 / fb_height) - (1, 1) */
+         "MAD OUT[0].xy, TEMP[0], CONST[0][1].xyyy, IMM[0].xxxx\n"
+         "MOV OUT[0].zw, IMM[0]\n"
+
+         "MOV OUT[1], IN[1]\n"
+         "END\n"
+      };
+
+      struct tgsi_token tokens[1000];
+      struct pipe_shader_state state = {0};
+      if (!tgsi_text_translate(vertex_shader_text, tokens, ARRAY_SIZE(tokens))) {
+         assert(0);
+         goto fail;
+      }
+      pipe_shader_state_from_tgsi(&state, tokens);
+      hud->vs_text = pipe->create_vs_state(pipe, &state);
    }
 
    return true;
@@ -1848,10 +1891,19 @@ hud_create(struct cso_context *cso, struct st_context_iface *st,
    }
 
    hud->refcount = 1;
-   hud->has_srgb = screen->is_format_supported(screen,
-                                               PIPE_FORMAT_B8G8R8A8_SRGB,
-                                               PIPE_TEXTURE_2D, 0, 0,
-                                               PIPE_BIND_RENDER_TARGET) != 0;
+
+   static const enum pipe_format srgb_formats[] = {
+      PIPE_FORMAT_B8G8R8A8_SRGB,
+      PIPE_FORMAT_B8G8R8X8_SRGB
+   };
+   for (i = 0; i < ARRAY_SIZE(srgb_formats); i++) {
+      if (!screen->is_format_supported(screen, srgb_formats[i],
+                                       PIPE_TEXTURE_2D, 0, 0,
+                                       PIPE_BIND_RENDER_TARGET))
+         break;
+   }
+
+   hud->has_srgb = (i == ARRAY_SIZE(srgb_formats));
 
    /* blend state */
    hud->no_blend.rt[0].colormask = PIPE_MASK_RGBA;

@@ -41,16 +41,6 @@ xkb_symbols "caps_switch" {
   include "level5(modifier_mapping)"
 };
 
-// The Menu key (while pressed) chooses the fifth shift level.
-partial modifier_keys
-xkb_symbols "menu_switch" {
-  key <MENU> {
-    type[Group1]="ONE_LEVEL",
-    symbols[Group1] = [ ISO_Level5_Shift ]
-  };
-  include "level5(modifier_mapping)"
-};
-
 // Ensure a mapping to a real modifier for LevelFive.
 partial modifier_keys
 xkb_symbols "modifier_mapping" {

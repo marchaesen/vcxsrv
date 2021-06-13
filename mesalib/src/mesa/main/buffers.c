@@ -65,7 +65,6 @@ supported_buffer_bitmask(const struct gl_context *ctx,
    }
    else {
       /* A window system framebuffer */
-      GLint i;
       mask = BUFFER_BIT_FRONT_LEFT; /* always have this */
       if (fb->Visual.stereoMode) {
          mask |= BUFFER_BIT_FRONT_RIGHT;
@@ -75,10 +74,6 @@ supported_buffer_bitmask(const struct gl_context *ctx,
       }
       else if (fb->Visual.doubleBufferMode) {
          mask |= BUFFER_BIT_BACK_LEFT;
-      }
-
-      for (i = 0; i < fb->Visual.numAuxBuffers; i++) {
-         mask |= (BUFFER_BIT_AUX0 << i);
       }
    }
 
@@ -161,7 +156,6 @@ draw_buffer_enum_to_bitmask(const struct gl_context *ctx, GLenum buffer)
       case GL_FRONT_LEFT:
          return BUFFER_BIT_FRONT_LEFT;
       case GL_AUX0:
-         return BUFFER_BIT_AUX0;
       case GL_AUX1:
       case GL_AUX2:
       case GL_AUX3:
@@ -220,10 +214,9 @@ read_buffer_enum_to_index(const struct gl_context *ctx, GLenum buffer)
          return BUFFER_FRONT_LEFT;
       case GL_FRONT_LEFT:
          return BUFFER_FRONT_LEFT;
-      case GL_AUX0:
-         return BUFFER_AUX0;
       case GL_FRONT_AND_BACK:
          return BUFFER_FRONT_LEFT;
+      case GL_AUX0:
       case GL_AUX1:
       case GL_AUX2:
       case GL_AUX3:

@@ -24,6 +24,7 @@
  */
 
 #include "pan_bo.h"
+#include "pan_device.h"
 #include "pan_pool.h"
 
 /* Transient command stream pooling: command stream uploads try to simply copy

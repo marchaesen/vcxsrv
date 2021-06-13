@@ -80,30 +80,10 @@ compute_depth_max(struct gl_framebuffer *fb)
 }
 
 /**
- * Create and initialize a gl_framebuffer object.
- * This is intended for creating _window_system_ framebuffers, not generic
- * framebuffer objects ala GL_EXT_framebuffer_object.
- *
- * \sa _mesa_new_framebuffer
- */
-struct gl_framebuffer *
-_mesa_create_framebuffer(const struct gl_config *visual)
-{
-   struct gl_framebuffer *fb = CALLOC_STRUCT(gl_framebuffer);
-   assert(visual);
-   if (fb) {
-      _mesa_initialize_window_framebuffer(fb, visual);
-   }
-   return fb;
-}
-
-
-/**
  * Allocate a new gl_framebuffer object.
  * This is the default function for ctx->Driver.NewFramebuffer().
  * This is for allocating user-created framebuffers, not window-system
  * framebuffers!
- * \sa _mesa_create_framebuffer
  */
 struct gl_framebuffer *
 _mesa_new_framebuffer(struct gl_context *ctx, GLuint name)
@@ -450,15 +430,14 @@ _mesa_update_framebuffer_visual(struct gl_context *ctx,
           * attachments).
           */
          fb->Visual.samples = rb->NumSamples;
-         fb->Visual.sampleBuffers = rb->NumSamples > 0 ? 1 : 0;
 
          if (_mesa_is_legal_color_format(ctx, baseFormat)) {
             fb->Visual.redBits = _mesa_get_format_bits(fmt, GL_RED_BITS);
             fb->Visual.greenBits = _mesa_get_format_bits(fmt, GL_GREEN_BITS);
             fb->Visual.blueBits = _mesa_get_format_bits(fmt, GL_BLUE_BITS);
             fb->Visual.alphaBits = _mesa_get_format_bits(fmt, GL_ALPHA_BITS);
-            fb->Visual.rgbBits = fb->Visual.redBits
-               + fb->Visual.greenBits + fb->Visual.blueBits;
+            fb->Visual.rgbBits = fb->Visual.redBits + fb->Visual.greenBits +
+                                 fb->Visual.blueBits + fb->Visual.alphaBits;
             if (_mesa_is_format_srgb(fmt))
                 fb->Visual.sRGBCapable = ctx->Extensions.EXT_sRGB;
             break;
@@ -468,6 +447,8 @@ _mesa_update_framebuffer_visual(struct gl_context *ctx,
 
    fb->Visual.floatMode = GL_FALSE;
    for (unsigned i = 0; i < BUFFER_COUNT; i++) {
+      if (i == BUFFER_DEPTH)
+         continue;
       if (fb->Attachment[i].Renderbuffer) {
          const struct gl_renderbuffer *rb = fb->Attachment[i].Renderbuffer;
          const mesa_format fmt = rb->Format;

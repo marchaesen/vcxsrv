@@ -50,6 +50,7 @@ struct ir3_legalize_ctx {
 	struct ir3_shader_variant *so;
 	gl_shader_stage type;
 	int max_bary;
+	bool early_input_release;
 };
 
 struct ir3_legalize_state {
@@ -86,7 +87,6 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 	if (bd->valid)
 		return false;
 
-	struct ir3_instruction *last_input = NULL;
 	struct ir3_instruction *last_rel = NULL;
 	struct ir3_instruction *last_n = NULL;
 	struct list_head instr_list;
@@ -97,8 +97,8 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 	bool mergedregs = ctx->so->mergedregs;
 
 	/* our input state is the OR of all predecessor blocks' state: */
-	set_foreach(block->predecessors, entry) {
-		struct ir3_block *predecessor = (struct ir3_block *)entry->key;
+	for (unsigned i = 0; i < block->predecessors_count; i++) {
+		struct ir3_block *predecessor = block->predecessors[i];
 		struct ir3_legalize_block_data *pbd = predecessor->data;
 		struct ir3_legalize_state *pstate = &pbd->state;
 
@@ -112,6 +112,22 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 		regmask_or(&state->needs_sy,
 				&state->needs_sy, &pstate->needs_sy);
 	}
+
+	unsigned input_count = 0;
+
+	foreach_instr (n, &block->instr_list) {
+		if (is_input(n)) {
+			input_count++;
+		}
+	}
+
+	unsigned inputs_remaining = input_count;
+
+	/* Either inputs are in the first block or we expect inputs to be released
+	 * with the end of the program.
+	 */
+	assert(input_count == 0 || !ctx->early_input_release ||
+		   block == list_first_entry(&block->shader->block_list, struct ir3_block, node));
 
 	/* remove all the instructions from the list, we'll be adding
 	 * them back in as we go
@@ -230,6 +246,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 					samgp->flags |= IR3_INSTR_SY;
 			}
 		} else {
+			list_delinit(&n->node);
 			list_addtail(&n->node, &block->instr_list);
 		}
 
@@ -278,44 +295,47 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			}
 		}
 
-		if (is_input(n)) {
-			last_input = n;
+		if (ctx->early_input_release && is_input(n)) {
 			last_input_needs_ss |= (n->opc == OPC_LDLV);
+
+			assert(inputs_remaining > 0);
+			inputs_remaining--;
+			if (inputs_remaining == 0) {
+				/* This is the last input. We add the (ei) flag to release
+				 * varying memory after this executes. If it's an ldlv,
+				 * however, we need to insert a dummy bary.f on which we can
+				 * set the (ei) flag. We may also need to insert an (ss) to
+				 * guarantee that all ldlv's have finished fetching their
+				 * results before releasing the varying memory.
+				 */
+				struct ir3_instruction *last_input = n;
+				if (n->opc == OPC_LDLV) {
+					struct ir3_instruction *baryf;
+
+					/* (ss)bary.f (ei)r63.x, 0, r0.x */
+					baryf = ir3_instr_create(block, OPC_BARY_F, 3);
+					ir3_reg_create(baryf, regid(63, 0), 0);
+					ir3_reg_create(baryf, 0, IR3_REG_IMMED)->iim_val = 0;
+					ir3_reg_create(baryf, regid(0, 0), 0);
+
+					last_input = baryf;
+				}
+
+				last_input->regs[0]->flags |= IR3_REG_EI;
+				if (last_input_needs_ss) {
+					last_input->flags |= IR3_INSTR_SS;
+					regmask_init(&state->needs_ss_war, mergedregs);
+					regmask_init(&state->needs_ss, mergedregs);
+				}
+			}
 		}
 
 		last_n = n;
 	}
 
-	if (last_input) {
-		assert(block == list_first_entry(&block->shader->block_list,
-				struct ir3_block, node));
-		/* special hack.. if using ldlv to bypass interpolation,
-		 * we need to insert a dummy bary.f on which we can set
-		 * the (ei) flag:
-		 */
-		if (is_mem(last_input) && (last_input->opc == OPC_LDLV)) {
-			struct ir3_instruction *baryf;
+	assert(inputs_remaining == 0 || !ctx->early_input_release);
 
-			/* (ss)bary.f (ei)r63.x, 0, r0.x */
-			baryf = ir3_instr_create(block, OPC_BARY_F, 3);
-			ir3_reg_create(baryf, regid(63, 0), 0);
-			ir3_reg_create(baryf, 0, IR3_REG_IMMED)->iim_val = 0;
-			ir3_reg_create(baryf, regid(0, 0), 0);
-
-			/* insert the dummy bary.f after last_input: */
-			ir3_instr_move_after(baryf, last_input);
-
-			last_input = baryf;
-
-			/* by definition, we need (ss) since we are inserting
-			 * the dummy bary.f immediately after the ldlv:
-			 */
-			last_input_needs_ss = true;
-		}
-		last_input->regs[0]->flags |= IR3_REG_EI;
-		if (last_input_needs_ss)
-			last_input->flags |= IR3_INSTR_SS;
-	} else if (has_tex_prefetch) {
+	if (has_tex_prefetch && input_count == 0) {
 		/* texture prefetch, but *no* inputs.. we need to insert a
 		 * dummy bary.f at the top of the shader to unblock varying
 		 * storage:
@@ -460,7 +480,7 @@ remove_unused_block(struct ir3_block *old_target)
 	for (unsigned i = 0; i < ARRAY_SIZE(old_target->successors); i++) {
 		if (old_target->successors[i]) {
 			struct ir3_block *succ = old_target->successors[i];
-			_mesa_set_remove_key(succ->predecessors, old_target);
+			ir3_block_remove_predecessor(succ, old_target);
 		}
 	}
 }
@@ -480,13 +500,12 @@ retarget_jump(struct ir3_instruction *instr, struct ir3_block *new_target)
 	}
 
 	/* update new target's predecessors: */
-	_mesa_set_add(new_target->predecessors, cur_block);
+	ir3_block_add_predecessor(new_target, cur_block);
 
 	/* and remove old_target's predecessor: */
-	debug_assert(_mesa_set_search(old_target->predecessors, cur_block));
-	_mesa_set_remove_key(old_target->predecessors, cur_block);
+	ir3_block_remove_predecessor(old_target, cur_block);
 
-	if (old_target->predecessors->entries == 0)
+	if (old_target->predecessors_count == 0)
 		remove_unused_block(old_target);
 
 	instr->cat0.target = new_target;
@@ -568,17 +587,17 @@ static void
 mark_xvergence_points(struct ir3 *ir)
 {
 	foreach_block (block, &ir->block_list) {
-		if (block->predecessors->entries > 1) {
+		if (block->predecessors_count > 1) {
 			/* if a block has more than one possible predecessor, then
 			 * the first instruction is a convergence point.
 			 */
 			mark_jp(block);
-		} else if (block->predecessors->entries == 1) {
+		} else if (block->predecessors_count == 1) {
 			/* If a block has one predecessor, which has multiple possible
 			 * successors, it is a divergence point.
 			 */
-			set_foreach(block->predecessors, entry) {
-				struct ir3_block *predecessor = (struct ir3_block *)entry->key;
+			for (unsigned i = 0; i < block->predecessors_count; i++) {
+				struct ir3_block *predecessor = block->predecessors[i];
 				if (predecessor->successors[1]) {
 					mark_jp(block);
 				}
@@ -767,6 +786,25 @@ ir3_legalize(struct ir3 *ir, struct ir3_shader_variant *so, int *max_bary)
 	}
 
 	ir3_remove_nops(ir);
+
+	/* We may have failed to pull all input loads into the first block.
+	 * In such case at the moment we aren't able to find a better place
+	 * to for (ei) than the end of the program.
+	 * a5xx and a6xx do automatically release varying storage at the end.
+	 */
+	ctx->early_input_release = true;
+	struct ir3_block *first_block =
+		list_first_entry(&ir->block_list, struct ir3_block, node);
+	foreach_block (block, &ir->block_list) {
+		foreach_instr (instr, &block->instr_list) {
+			if (is_input(instr) && block != first_block) {
+				ctx->early_input_release = false;
+				break;
+			}
+		}
+	}
+
+	assert(ctx->early_input_release || ctx->compiler->gpu_id > 500);
 
 	/* process each block: */
 	do {

@@ -131,6 +131,9 @@ public:
 
    bool has_prelude() const {return !m_prelude.empty();}
 
+   bool accept(InstructionVisitor& visitor) override {return visitor.visit(*this);}
+   bool accept(ConstInstructionVisitor& visitor) const override {return visitor.visit(*this);}
+
 private:
    bool is_equal_to(const Instruction& lhs) const override;
    void do_print(std::ostream& os) const override;

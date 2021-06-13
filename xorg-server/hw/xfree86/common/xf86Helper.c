@@ -729,9 +729,9 @@ xf86SetWeight(ScrnInfoPtr scrp, rgb weight, rgb mask)
         scrp->mask.red = mask.red;
         scrp->mask.green = mask.green;
         scrp->mask.blue = mask.blue;
-        scrp->offset.red = ffs(mask.red);
-        scrp->offset.green = ffs(mask.green);
-        scrp->offset.blue = ffs(mask.blue);
+        scrp->offset.red = ffs(mask.red) - 1;
+        scrp->offset.green = ffs(mask.green) - 1;
+        scrp->offset.blue = ffs(mask.blue) - 1;
     }
     return TRUE;
 }

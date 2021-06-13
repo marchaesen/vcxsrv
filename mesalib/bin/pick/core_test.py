@@ -34,7 +34,7 @@ class TestCommit:
 
     @pytest.fixture
     def unnominated_commit(self) -> 'core.Commit':
-        return core.Commit('abc123', 'sub: A commit', master_sha='45678')
+        return core.Commit('abc123', 'sub: A commit', main_sha='45678')
 
     @pytest.fixture
     def nominated_commit(self) -> 'core.Commit':
@@ -48,7 +48,7 @@ class TestCommit:
             v = c.to_json()
             assert v == {'sha': 'abc123', 'description': 'sub: A commit', 'nominated': False,
                          'nomination_type': None, 'resolution': core.Resolution.UNRESOLVED.value,
-                         'master_sha': '45678', 'because_sha': None}
+                         'main_sha': '45678', 'because_sha': None}
 
         def test_nominated(self, nominated_commit: 'core.Commit'):
             c = nominated_commit
@@ -58,7 +58,7 @@ class TestCommit:
                          'nominated': True,
                          'nomination_type': core.NominationType.CC.value,
                          'resolution': core.Resolution.UNRESOLVED.value,
-                         'master_sha': None,
+                         'main_sha': None,
                          'because_sha': None}
 
     class TestFromJson:

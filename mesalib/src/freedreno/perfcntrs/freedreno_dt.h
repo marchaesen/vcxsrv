@@ -39,7 +39,7 @@ extern "C" {
  */
 
 bool fd_dt_find_freqs(uint32_t *min_freq, uint32_t *max_freq);
-void * fd_dt_find_io(void);
+void *fd_dt_find_io(void);
 
 #ifdef __cplusplus
 } /* end of extern "C" */

@@ -2099,3 +2099,139 @@ PostSyntheticMotion(DeviceIntPtr pDev,
     /* FIXME: MD/SD considerations? */
     (*pDev->public.processInputProc) ((InternalEvent *) &ev, pDev);
 }
+
+void
+InitGestureEvent(InternalEvent *ievent, DeviceIntPtr dev, CARD32 ms,
+                 int type, uint16_t num_touches, uint32_t flags,
+                 double delta_x, double delta_y,
+                 double delta_unaccel_x, double delta_unaccel_y,
+                 double scale, double delta_angle)
+{
+    ScreenPtr scr = dev->spriteInfo->sprite->hotPhys.pScreen;
+    GestureEvent *event = &ievent->gesture_event;
+    double screenx = 0.0, screeny = 0.0;        /* desktop coordinate system */
+
+    init_gesture_event(event, dev, ms);
+
+    screenx = dev->spriteInfo->sprite->hotPhys.x;
+    screeny = dev->spriteInfo->sprite->hotPhys.y;
+
+    event->type = type;
+    event->root = scr->root->drawable.id;
+    event->root_x = screenx - scr->x;
+    event->root_y = screeny - scr->y;
+    event->num_touches = num_touches;
+    event->flags = flags;
+
+    event->delta_x = delta_x;
+    event->delta_y = delta_y;
+    event->delta_unaccel_x = delta_unaccel_x;
+    event->delta_unaccel_y = delta_unaccel_y;
+    event->scale = scale;
+    event->delta_angle = delta_angle;
+}
+
+/**
+ * Get events for a pinch or swipe gesture.
+ *
+ * events is not NULL-terminated; the return value is the number of events.
+ * The DDX is responsible for allocating the event structure in the first
+ * place via GetMaximumEventsNum(), and for freeing it.
+ *
+ * @param[out] events The list of events generated
+ * @param dev The device to generate the events for
+ * @param type XI_Gesture{Pinch,Swipe}{Begin,Update,End}
+ * @prama num_touches The number of touches in the gesture
+ * @param flags Event flags
+ * @param delta_x,delta_y accelerated relative motion delta
+ * @param delta_unaccel_x,delta_unaccel_y unaccelerated relative motion delta
+ * @param scale (valid only to pinch events) absolute scale of a pinch gesture
+ * @param delta_angle (valid only to pinch events) the ange delta in degrees between the last and
+ *        the current pinch event.
+ */
+int
+GetGestureEvents(InternalEvent *events, DeviceIntPtr dev,
+                 uint16_t type, uint16_t num_touches, uint32_t flags,
+                 double delta_x, double delta_y,
+                 double delta_unaccel_x, double delta_unaccel_y,
+                 double scale, double delta_angle)
+
+{
+    GestureClassPtr g = dev->gesture;
+    CARD32 ms = GetTimeInMillis();
+    enum EventType evtype;
+    int num_events = 0;
+    uint32_t evflags = 0;
+
+    if (!dev->enabled || !g)
+        return 0;
+
+    if (!IsMaster(dev))
+        events = UpdateFromMaster(events, dev, DEVCHANGE_POINTER_EVENT,
+                                  &num_events);
+
+    switch (type) {
+    case XI_GesturePinchBegin:
+        evtype = ET_GesturePinchBegin;
+        break;
+    case XI_GesturePinchUpdate:
+        evtype = ET_GesturePinchUpdate;
+        break;
+    case XI_GesturePinchEnd:
+        evtype = ET_GesturePinchEnd;
+        if (flags & XIGesturePinchEventCancelled)
+            evflags |= GESTURE_CANCELLED;
+        break;
+    case XI_GestureSwipeBegin:
+        evtype = ET_GestureSwipeBegin;
+        break;
+    case XI_GestureSwipeUpdate:
+        evtype = ET_GestureSwipeUpdate;
+        break;
+    case XI_GestureSwipeEnd:
+        evtype = ET_GestureSwipeEnd;
+        if (flags & XIGestureSwipeEventCancelled)
+            evflags |= GESTURE_CANCELLED;
+        break;
+    default:
+        return 0;
+    }
+
+    InitGestureEvent(events, dev, ms, evtype, num_touches, evflags,
+                     delta_x, delta_y, delta_unaccel_x, delta_unaccel_y,
+                     scale, delta_angle);
+    num_events++;
+
+    return num_events;
+}
+
+void
+QueueGesturePinchEvents(DeviceIntPtr dev, uint16_t type,
+                        uint16_t num_touches, uint32_t flags,
+                        double delta_x, double delta_y,
+                        double delta_unaccel_x,
+                        double delta_unaccel_y,
+                        double scale, double delta_angle)
+{
+    int nevents;
+    nevents = GetGestureEvents(InputEventList, dev, type, num_touches, flags,
+                               delta_x, delta_y,
+                               delta_unaccel_x, delta_unaccel_y,
+                               scale, delta_angle);
+    queueEventList(dev, InputEventList, nevents);
+}
+
+void
+QueueGestureSwipeEvents(DeviceIntPtr dev, uint16_t type,
+                        uint16_t num_touches, uint32_t flags,
+                        double delta_x, double delta_y,
+                        double delta_unaccel_x,
+                        double delta_unaccel_y)
+{
+    int nevents;
+    nevents = GetGestureEvents(InputEventList, dev, type, num_touches, flags,
+                               delta_x, delta_y,
+                               delta_unaccel_x, delta_unaccel_y,
+                               0.0, 0.0);
+    queueEventList(dev, InputEventList, nevents);
+}

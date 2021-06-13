@@ -108,7 +108,7 @@ static bool
 value_equals_store_src(struct value *value, nir_intrinsic_instr *intrin)
 {
    assert(intrin->intrinsic == nir_intrinsic_store_deref);
-   uintptr_t write_mask = nir_intrinsic_write_mask(intrin);
+   nir_component_mask_t write_mask = nir_intrinsic_write_mask(intrin);
 
    for (unsigned i = 0; i < intrin->num_components; i++) {
       if ((write_mask & (1 << i)) &&

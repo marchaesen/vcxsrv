@@ -139,7 +139,8 @@ int device_select_find_wayland_pci_default(struct device_pci_info *devices, uint
       }
    }
 
-   wl_drm_destroy(info.wl_drm);
+   if (info.wl_drm)
+      wl_drm_destroy(info.wl_drm);
    wl_registry_destroy(registry);
    wl_display_disconnect(display);
  out:

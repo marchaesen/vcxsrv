@@ -38,8 +38,8 @@ bi_pack_header(bi_clause *clause, bi_clause *next_1, bi_clause *next_2, bool tdd
 
         struct bifrost_header header = {
                 .flow_control =
-                        (next_1 == NULL) ? BIFROST_FLOW_END :
-                        clause->flow_control,
+                        (next_1 == NULL && next_2 == NULL) ?
+                        BIFROST_FLOW_END :  clause->flow_control,
                 .terminate_discarded_threads = tdd,
                 .next_clause_prefetch = clause->next_clause_prefetch && next_1,
                 .staging_barrier = clause->staging_barrier,
@@ -733,20 +733,21 @@ bi_pack(bi_context *ctx, struct util_dynarray *emission)
 
                 bi_assign_branch_offset(ctx, block);
 
-                /* Passthrough the first clause of where we're branching to for
-                 * the last clause of the block (the clause with the branch) */
-
-                bi_clause *succ_clause = block->base.successors[1] ?
-                        bi_next_clause(ctx, block->base.successors[1], NULL) : NULL;
-
-                if (!succ_clause && block->base.successors[0])
-                        succ_clause = bi_next_clause(ctx, block->base.successors[0], NULL);
-
                 bi_foreach_clause_in_block(block, clause) {
-                        bool is_last = clause->link.next == &block->clauses;
+                        bool is_last = (clause->link.next == &block->clauses);
 
-                        bi_clause *next = bi_next_clause(ctx, _block, clause);
-                        bi_clause *next_2 = is_last ? succ_clause : NULL;
+                        /* Get the succeeding clauses, either two successors of
+                         * the block for the last clause in the block or just
+                         * the next clause within the block */
+
+                        bi_clause *next = NULL, *next_2 = NULL;
+
+                        if (is_last) {
+                                next = bi_next_clause(ctx, block->base.successors[0], NULL);
+                                next_2 = bi_next_clause(ctx, block->base.successors[1], NULL);
+                        } else {
+                                next = bi_next_clause(ctx, _block, clause);
+                        }
 
                         previous_size = emission->size;
 

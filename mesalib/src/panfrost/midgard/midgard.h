@@ -35,6 +35,7 @@
 #define MIDGARD_DBG_SHADERS		0x0002
 #define MIDGARD_DBG_SHADERDB            0x0004
 #define MIDGARD_DBG_INORDER             0x0008
+#define MIDGARD_DBG_VERBOSE             0x0010
 
 extern int midgard_debug;
 
@@ -77,171 +78,224 @@ enum {
  */
 
 typedef enum {
-        midgard_alu_op_fadd       = 0x10,
-        midgard_alu_op_fmul       = 0x14,
+        midgard_alu_op_fadd        = 0x10, /* round to even */
+        midgard_alu_op_fadd_rtz    = 0x11,
+        midgard_alu_op_fadd_rtn    = 0x12,
+        midgard_alu_op_fadd_rtp    = 0x13,
+        midgard_alu_op_fmul        = 0x14, /* round to even */
+        midgard_alu_op_fmul_rtz    = 0x15,
+        midgard_alu_op_fmul_rtn    = 0x16,
+        midgard_alu_op_fmul_rtp    = 0x17,
 
-        midgard_alu_op_fmin       = 0x28,
-        midgard_alu_op_fmax       = 0x2C,
+        midgard_alu_op_fmin        = 0x28, /* if an operand is NaN, propagate the other */
+        midgard_alu_op_fmin_nan    = 0x29, /* if an operand is NaN, propagate it */
+        midgard_alu_op_fabsmin     = 0x2A, /* min(abs(a,b)) */
+        midgard_alu_op_fabsmin_nan = 0x2B, /* min_nan(abs(a,b)) */
+        midgard_alu_op_fmax        = 0x2C, /* if an operand is NaN, propagate the other */
+        midgard_alu_op_fmax_nan    = 0x2D, /* if an operand is NaN, propagate it */
+        midgard_alu_op_fabsmax     = 0x2E, /* max(abs(a,b)) */
+        midgard_alu_op_fabsmax_nan = 0x2F, /* max_nan(abs(a,b)) */
 
-        midgard_alu_op_fmov       = 0x30, /* fmov_rte */
-        midgard_alu_op_fmov_rtz   = 0x31,
-        midgard_alu_op_fmov_rtn   = 0x32,
-        midgard_alu_op_fmov_rtp   = 0x33,
-        midgard_alu_op_froundeven = 0x34,
-        midgard_alu_op_ftrunc     = 0x35,
-        midgard_alu_op_ffloor     = 0x36,
-        midgard_alu_op_fceil      = 0x37,
-        midgard_alu_op_ffma       = 0x38,
-        midgard_alu_op_fdot3      = 0x3C,
-        midgard_alu_op_fdot3r     = 0x3D,
-        midgard_alu_op_fdot4      = 0x3E,
-        midgard_alu_op_freduce    = 0x3F,
+        midgard_alu_op_fmov        = 0x30, /* fmov_rte */
+        midgard_alu_op_fmov_rtz    = 0x31,
+        midgard_alu_op_fmov_rtn    = 0x32,
+        midgard_alu_op_fmov_rtp    = 0x33,
+        midgard_alu_op_froundeven  = 0x34,
+        midgard_alu_op_ftrunc      = 0x35,
+        midgard_alu_op_ffloor      = 0x36,
+        midgard_alu_op_fceil       = 0x37,
+        midgard_alu_op_ffma        = 0x38, /* rte */
+        midgard_alu_op_ffma_rtz    = 0x39,
+        midgard_alu_op_ffma_rtn    = 0x3A,
+        midgard_alu_op_ffma_rtp    = 0x3B,
+        midgard_alu_op_fdot3       = 0x3C,
+        midgard_alu_op_fdot3r      = 0x3D,
+        midgard_alu_op_fdot4       = 0x3E,
+        midgard_alu_op_freduce     = 0x3F,
 
-        midgard_alu_op_iadd       = 0x40,
-        midgard_alu_op_ishladd    = 0x41, /* a + (b<<1) */
-        midgard_alu_op_isub       = 0x46,
-        midgard_alu_op_iaddsat    = 0x48,
-        midgard_alu_op_uaddsat    = 0x49,
-        midgard_alu_op_isubsat    = 0x4E,
-        midgard_alu_op_usubsat    = 0x4F,
+        midgard_alu_op_iadd        = 0x40,
+        midgard_alu_op_ishladd     = 0x41, /* (a<<1) + b */
+        midgard_alu_op_isub        = 0x46,
+        midgard_alu_op_ishlsub     = 0x47, /* (a<<1) - b */
+        midgard_alu_op_iaddsat     = 0x48,
+        midgard_alu_op_uaddsat     = 0x49,
+        midgard_alu_op_isubsat     = 0x4E,
+        midgard_alu_op_usubsat     = 0x4F,
 
-        midgard_alu_op_imul       = 0x58,
+        midgard_alu_op_imul        = 0x58,
+        /* Multiplies two ints and stores the result in the next larger datasize. */
+        midgard_alu_op_iwmul       = 0x59, /* sint * sint = sint */
+        midgard_alu_op_uwmul       = 0x5A, /* uint * uint = uint */
+        midgard_alu_op_iuwmul      = 0x5B, /* sint * uint = sint */
 
-        midgard_alu_op_imin       = 0x60,
-        midgard_alu_op_umin       = 0x61,
-        midgard_alu_op_imax       = 0x62,
-        midgard_alu_op_umax       = 0x63,
-        midgard_alu_op_ihadd      = 0x64,
-        midgard_alu_op_uhadd      = 0x65,
-        midgard_alu_op_irhadd     = 0x66,
-        midgard_alu_op_urhadd     = 0x67,
-        midgard_alu_op_iasr       = 0x68,
-        midgard_alu_op_ilsr       = 0x69,
-        midgard_alu_op_ishl       = 0x6E,
+        midgard_alu_op_imin        = 0x60,
+        midgard_alu_op_umin        = 0x61,
+        midgard_alu_op_imax        = 0x62,
+        midgard_alu_op_umax        = 0x63,
+        midgard_alu_op_iavg        = 0x64,
+        midgard_alu_op_uavg        = 0x65,
+        midgard_alu_op_iravg       = 0x66,
+        midgard_alu_op_uravg       = 0x67,
+        midgard_alu_op_iasr        = 0x68,
+        midgard_alu_op_ilsr        = 0x69,
+        midgard_alu_op_ishlsat     = 0x6C,
+        midgard_alu_op_ushlsat     = 0x6D,
+        midgard_alu_op_ishl        = 0x6E,
 
-        midgard_alu_op_iand       = 0x70,
-        midgard_alu_op_ior        = 0x71,
-        midgard_alu_op_inand      = 0x72, /* ~(a & b), for inot let a = b */
-        midgard_alu_op_inor       = 0x73, /* ~(a | b) */
-        midgard_alu_op_iandnot    = 0x74, /* (a & ~b), used for not/b2f */
-        midgard_alu_op_iornot     = 0x75, /* (a | ~b) */
-        midgard_alu_op_ixor       = 0x76,
-        midgard_alu_op_inxor      = 0x77, /* ~(a & b) */
-        midgard_alu_op_iclz       = 0x78, /* Number of zeroes on left */
-        midgard_alu_op_ipopcnt    = 0x7A, /* Population count */
-        midgard_alu_op_imov       = 0x7B,
-        midgard_alu_op_iabsdiff   = 0x7C,
-        midgard_alu_op_uabsdiff   = 0x7D,
-        midgard_alu_op_ichoose    = 0x7E, /* vector, component number - dupe for shuffle() */
+        midgard_alu_op_iand        = 0x70,
+        midgard_alu_op_ior         = 0x71,
+        midgard_alu_op_inand       = 0x72, /* ~(a & b), for inot let a = b */
+        midgard_alu_op_inor        = 0x73, /* ~(a | b) */
+        midgard_alu_op_iandnot     = 0x74, /* (a & ~b), used for not/b2f */
+        midgard_alu_op_iornot      = 0x75, /* (a | ~b) */
+        midgard_alu_op_ixor        = 0x76,
+        midgard_alu_op_inxor       = 0x77, /* ~(a ^ b) */
+        midgard_alu_op_iclz        = 0x78, /* Number of zeroes on left */
+        midgard_alu_op_ipopcnt     = 0x7A, /* Population count */
+        midgard_alu_op_imov        = 0x7B,
+        midgard_alu_op_iabsdiff    = 0x7C,
+        midgard_alu_op_uabsdiff    = 0x7D,
+        midgard_alu_op_ichoose     = 0x7E, /* vector, component number - dupe for shuffle() */
 
-        midgard_alu_op_feq        = 0x80,
-        midgard_alu_op_fne        = 0x81,
-        midgard_alu_op_flt        = 0x82,
-        midgard_alu_op_fle        = 0x83,
-        midgard_alu_op_fball_eq   = 0x88,
-        midgard_alu_op_fball_neq  = 0x89,
-        midgard_alu_op_fball_lt   = 0x8A, /* all(lessThan(.., ..)) */
-        midgard_alu_op_fball_lte  = 0x8B, /* all(lessThanEqual(.., ..)) */
+        midgard_alu_op_feq         = 0x80,
+        midgard_alu_op_fne         = 0x81,
+        midgard_alu_op_flt         = 0x82,
+        midgard_alu_op_fle         = 0x83,
+        midgard_alu_op_fball_eq    = 0x88,
+        midgard_alu_op_fball_neq   = 0x89,
+        midgard_alu_op_fball_lt    = 0x8A, /* all(lessThan(.., ..)) */
+        midgard_alu_op_fball_lte   = 0x8B, /* all(lessThanEqual(.., ..)) */
 
-        midgard_alu_op_fbany_eq   = 0x90,
-        midgard_alu_op_fbany_neq  = 0x91,
-        midgard_alu_op_fbany_lt   = 0x92, /* any(lessThan(.., ..)) */
-        midgard_alu_op_fbany_lte  = 0x93, /* any(lessThanEqual(.., ..)) */
+        midgard_alu_op_fbany_eq    = 0x90,
+        midgard_alu_op_fbany_neq   = 0x91,
+        midgard_alu_op_fbany_lt    = 0x92, /* any(lessThan(.., ..)) */
+        midgard_alu_op_fbany_lte   = 0x93, /* any(lessThanEqual(.., ..)) */
 
-        midgard_alu_op_f2i_rte    = 0x98,
-        midgard_alu_op_f2i_rtz    = 0x99,
-        midgard_alu_op_f2i_rtn    = 0x9A,
-        midgard_alu_op_f2i_rtp    = 0x9B,
-        midgard_alu_op_f2u_rte    = 0x9C,
-        midgard_alu_op_f2u_rtz    = 0x9D,
-        midgard_alu_op_f2u_rtn    = 0x9E,
-        midgard_alu_op_f2u_rtp    = 0x9F,
+        midgard_alu_op_f2i_rte     = 0x98,
+        midgard_alu_op_f2i_rtz     = 0x99,
+        midgard_alu_op_f2i_rtn     = 0x9A,
+        midgard_alu_op_f2i_rtp     = 0x9B,
+        midgard_alu_op_f2u_rte     = 0x9C,
+        midgard_alu_op_f2u_rtz     = 0x9D,
+        midgard_alu_op_f2u_rtn     = 0x9E,
+        midgard_alu_op_f2u_rtp     = 0x9F,
 
-        midgard_alu_op_ieq        = 0xA0,
-        midgard_alu_op_ine        = 0xA1,
-        midgard_alu_op_ult        = 0xA2,
-        midgard_alu_op_ule        = 0xA3,
-        midgard_alu_op_ilt        = 0xA4,
-        midgard_alu_op_ile        = 0xA5,
-        midgard_alu_op_iball_eq   = 0xA8,
-        midgard_alu_op_iball_neq  = 0xA9,
-        midgard_alu_op_uball_lt   = 0xAA,
-        midgard_alu_op_uball_lte  = 0xAB,
-        midgard_alu_op_iball_lt   = 0xAC,
-        midgard_alu_op_iball_lte  = 0xAD,
+        midgard_alu_op_ieq         = 0xA0,
+        midgard_alu_op_ine         = 0xA1,
+        midgard_alu_op_ult         = 0xA2,
+        midgard_alu_op_ule         = 0xA3,
+        midgard_alu_op_ilt         = 0xA4,
+        midgard_alu_op_ile         = 0xA5,
+        midgard_alu_op_iball_eq    = 0xA8,
+        midgard_alu_op_iball_neq   = 0xA9,
+        midgard_alu_op_uball_lt    = 0xAA,
+        midgard_alu_op_uball_lte   = 0xAB,
+        midgard_alu_op_iball_lt    = 0xAC,
+        midgard_alu_op_iball_lte   = 0xAD,
 
-        midgard_alu_op_ibany_eq   = 0xB0,
-        midgard_alu_op_ibany_neq  = 0xB1,
-        midgard_alu_op_ubany_lt   = 0xB2,
-        midgard_alu_op_ubany_lte  = 0xB3,
-        midgard_alu_op_ibany_lt   = 0xB4, /* any(lessThan(.., ..)) */
-        midgard_alu_op_ibany_lte  = 0xB5, /* any(lessThanEqual(.., ..)) */
-        midgard_alu_op_i2f_rte    = 0xB8,
-        midgard_alu_op_i2f_rtz    = 0xB9,
-        midgard_alu_op_i2f_rtn    = 0xBA,
-        midgard_alu_op_i2f_rtp    = 0xBB,
-        midgard_alu_op_u2f_rte    = 0xBC,
-        midgard_alu_op_u2f_rtz    = 0xBD,
-        midgard_alu_op_u2f_rtn    = 0xBE,
-        midgard_alu_op_u2f_rtp    = 0xBF,
+        midgard_alu_op_ibany_eq    = 0xB0,
+        midgard_alu_op_ibany_neq   = 0xB1,
+        midgard_alu_op_ubany_lt    = 0xB2,
+        midgard_alu_op_ubany_lte   = 0xB3,
+        midgard_alu_op_ibany_lt    = 0xB4, /* any(lessThan(.., ..)) */
+        midgard_alu_op_ibany_lte   = 0xB5, /* any(lessThanEqual(.., ..)) */
+        midgard_alu_op_i2f_rte     = 0xB8,
+        midgard_alu_op_i2f_rtz     = 0xB9,
+        midgard_alu_op_i2f_rtn     = 0xBA,
+        midgard_alu_op_i2f_rtp     = 0xBB,
+        midgard_alu_op_u2f_rte     = 0xBC,
+        midgard_alu_op_u2f_rtz     = 0xBD,
+        midgard_alu_op_u2f_rtn     = 0xBE,
+        midgard_alu_op_u2f_rtp     = 0xBF,
 
-        midgard_alu_op_icsel_v    = 0xC0, /* condition code r31 */
-        midgard_alu_op_icsel      = 0xC1, /* condition code r31.w */
-        midgard_alu_op_fcsel_v    = 0xC4,
-        midgard_alu_op_fcsel      = 0xC5,
-        midgard_alu_op_fround     = 0xC6,
+        /* All csel* instructions use as a condition the output of the previous
+         * vector or scalar unit, thus it must run on the second pipeline stage
+         * and be scheduled to the same bundle as the opcode that it uses as a
+         * condition. */
+        midgard_alu_op_icsel_v     = 0xC0,
+        midgard_alu_op_icsel       = 0xC1,
+        midgard_alu_op_fcsel_v     = 0xC4,
+        midgard_alu_op_fcsel       = 0xC5,
+        midgard_alu_op_froundaway  = 0xC6, /* round to nearest away */
 
-        midgard_alu_op_fatan_pt2  = 0xE8,
-        midgard_alu_op_fpow_pt1   = 0xEC,
-        midgard_alu_op_fpown_pt1  = 0xED,
-        midgard_alu_op_fpowr_pt1  = 0xEE,
+        midgard_alu_op_fatan2_pt2  = 0xE8,
+        midgard_alu_op_fpow_pt1    = 0xEC,
+        midgard_alu_op_fpown_pt1   = 0xED,
+        midgard_alu_op_fpowr_pt1   = 0xEE,
 
-        midgard_alu_op_frcp       = 0xF0,
-        midgard_alu_op_frsqrt     = 0xF2,
-        midgard_alu_op_fsqrt      = 0xF3,
-        midgard_alu_op_fexp2      = 0xF4,
-        midgard_alu_op_flog2      = 0xF5,
-        midgard_alu_op_fsin       = 0xF6,
-        midgard_alu_op_fcos       = 0xF7,
-        midgard_alu_op_fatan2_pt1 = 0xF9,
+        midgard_alu_op_frcp        = 0xF0,
+        midgard_alu_op_frsqrt      = 0xF2,
+        midgard_alu_op_fsqrt       = 0xF3,
+        midgard_alu_op_fexp2       = 0xF4,
+        midgard_alu_op_flog2       = 0xF5,
+        midgard_alu_op_fsinpi      = 0xF6, /* sin(pi * x) */
+        midgard_alu_op_fcospi      = 0xF7, /* cos(pi * x) */
+        midgard_alu_op_fatan2_pt1  = 0xF9,
 } midgard_alu_op;
 
 typedef enum {
-        midgard_outmod_none = 0,
-        midgard_outmod_pos  = 1, /* max(x, 0.0) */
-        midgard_outmod_sat_signed  = 2, /* clamp(x, -1.0, 1.0) */
-        midgard_outmod_sat  = 3 /* clamp(x, 0.0, 1.0) */
+        midgard_outmod_none        = 0,
+        midgard_outmod_clamp_0_inf = 1, /* max(x, 0.0), NaNs become +0.0 */
+        midgard_outmod_clamp_m1_1  = 2, /* clamp(x, -1.0, 1.0), NaNs become -1.0 */
+        midgard_outmod_clamp_0_1   = 3  /* clamp(x, 0.0, 1.0), NaNs become +0.0 */
 } midgard_outmod_float;
 
+/* These are applied to the resulting value that's going to be stored in the dest reg.
+ * This should be set to midgard_outmod_keeplo when shrink_mode is midgard_shrink_mode_none. */
 typedef enum {
-        midgard_outmod_int_saturate = 0,
-        midgard_outmod_uint_saturate = 1,
-        midgard_outmod_int_wrap = 2,
-        midgard_outmod_int_high = 3, /* Overflowed portion */
+        midgard_outmod_ssat   = 0,
+        midgard_outmod_usat   = 1,
+        midgard_outmod_keeplo = 2, /* Keep low half */
+        midgard_outmod_keephi = 3, /* Keep high half */
 } midgard_outmod_int;
 
 typedef enum {
-        midgard_reg_mode_8 = 0,
+        midgard_reg_mode_8  = 0,
         midgard_reg_mode_16 = 1,
         midgard_reg_mode_32 = 2,
         midgard_reg_mode_64 = 3
 } midgard_reg_mode;
 
 typedef enum {
-        midgard_dest_override_lower = 0,
-        midgard_dest_override_upper = 1,
-        midgard_dest_override_none = 2
-} midgard_dest_override;
+        midgard_shrink_mode_lower = 0,
+        midgard_shrink_mode_upper = 1,
+        midgard_shrink_mode_none  = 2
+} midgard_shrink_mode;
 
+/* Only used if midgard_src_expand_mode is set to one of midgard_src_expand_*. */
 typedef enum {
         midgard_int_sign_extend = 0,
         midgard_int_zero_extend = 1,
-        midgard_int_normal = 2,
-        midgard_int_shift = 3
+        midgard_int_replicate   = 2,
+        midgard_int_left_shift  = 3
 } midgard_int_mod;
 
+/* Unlike midgard_int_mod, fload modifiers are applied after the expansion happens, so
+ * they don't depend on midgard_src_expand_mode. */
 #define MIDGARD_FLOAT_MOD_ABS (1 << 0)
 #define MIDGARD_FLOAT_MOD_NEG (1 << 1)
+
+/* The expand options depend on both midgard_int_mod and midgard_reg_mode.  For
+ * example, a vec4 with midgard_int_sign_extend and midgard_src_expand_low is
+ * treated as a vec8 and each 16-bit element from the low 64-bits is then sign
+ * extended, resulting in a vec4 where each 32-bit element corresponds to a
+ * 16-bit element from the low 64-bits of the input vector. */
+typedef enum {
+        midgard_src_passthrough = 0,
+        midgard_src_rep_low = 1, /* replicate lower 64 bits to higher 64 bits */
+        midgard_src_rep_high = 2, /* replicate higher 64 bits to lower 64 bits */
+        midgard_src_swap = 3, /* swap lower 64 bits with higher 64 bits */
+        midgard_src_expand_low = 4, /* expand low 64 bits */
+        midgard_src_expand_high = 5, /* expand high 64 bits */
+        midgard_src_expand_low_swap = 6, /* expand low 64 bits, then swap */
+        midgard_src_expand_high_swap = 7, /* expand high 64 bits, then swap */
+} midgard_src_expand_mode;
+
+#define INPUT_EXPANDS(a) \
+        (a >= midgard_src_expand_low && a <= midgard_src_expand_high_swap)
+
+#define INPUT_SWAPS(a) \
+        (a == midgard_src_swap || a >= midgard_src_expand_low_swap)
 
 typedef struct
 __attribute__((__packed__))
@@ -249,13 +303,7 @@ __attribute__((__packed__))
         /* Either midgard_int_mod or from midgard_float_mod_*, depending on the
          * type of op */
         unsigned mod : 2;
-
-        /* replicate lower half if dest = half, or low/high half selection if
-         * dest = full
-         */
-        bool rep_low     : 1;
-        bool rep_high    : 1; /* unused if dest = full */
-        bool half        : 1; /* only matters if dest = full */
+        midgard_src_expand_mode expand_mode : 3;
         unsigned swizzle : 8;
 }
 midgard_vector_alu_src;
@@ -264,12 +312,12 @@ typedef struct
 __attribute__((__packed__))
 {
         midgard_alu_op op               :  8;
-        midgard_reg_mode reg_mode   :  2;
-        unsigned src1 : 13;
-        unsigned src2 : 13;
-        midgard_dest_override dest_override : 2;
-        unsigned outmod               : 2;
-        unsigned mask                           : 8;
+        midgard_reg_mode reg_mode       :  2;
+        unsigned src1                   : 13;
+        unsigned src2                   : 13;
+        midgard_shrink_mode shrink_mode :  2;
+        unsigned outmod                 :  2;
+        unsigned mask                   :  8;
 }
 midgard_vector_alu;
 
@@ -277,7 +325,7 @@ typedef struct
 __attribute__((__packed__))
 {
         unsigned mod       : 2;
-        bool full          : 1; /* 0 = half, 1 = full */
+        bool full          : 1; /* 0 = 16-bit, 1 = 32-bit */
         unsigned component : 3;
 }
 midgard_scalar_alu_src;
@@ -287,9 +335,10 @@ __attribute__((__packed__))
 {
         midgard_alu_op op         :  8;
         unsigned src1             :  6;
+        /* last 5 bits are used when src2 is an immediate */
         unsigned src2             : 11;
         unsigned unknown          :  1;
-        unsigned outmod :  2;
+        unsigned outmod           :  2;
         bool output_full          :  1;
         unsigned output_component :  3;
 }
@@ -410,17 +459,23 @@ midgard_writeout;
 typedef enum {
         midgard_op_ld_st_noop   = 0x03,
 
-        /* Unpack a colour from a native format to fp16 */
-        midgard_op_unpack_colour = 0x05,
+        /* Unpacks a colour from a native format to <format> */
+        midgard_op_unpack_colour_f32 = 0x04,
+        midgard_op_unpack_colour_f16 = 0x05,
+        midgard_op_unpack_colour_u32 = 0x06,
+        midgard_op_unpack_colour_s32 = 0x07,
 
-        /* Packs a colour from fp16 to a native format */
-        midgard_op_pack_colour   = 0x09,
+        /* Packs a colour from <format> to a native format */
+        midgard_op_pack_colour_f32 = 0x08,
+        midgard_op_pack_colour_f16 = 0x09,
+        midgard_op_pack_colour_u32 = 0x0A,
+        midgard_op_pack_colour_s32 = 0x0B,
 
-        /* Likewise packs from fp32 */
-        midgard_op_pack_colour_32 = 0x0A,
+        /* Computes the effective address of a mem address expression */
+        midgard_op_lea = 0x0C,
 
-        /* Converts image/tex coordinates into mem address */
-        midgard_op_lea_tex = 0x0D,
+        /* Converts image coordinates into mem address */
+        midgard_op_lea_image = 0x0D,
 
         /* Unclear why this is on the L/S unit, but moves fp32 cube map
          * coordinates in r27 to its cube map texture coordinate destination
@@ -428,52 +483,83 @@ typedef enum {
 
         midgard_op_ld_cubemap_coords = 0x0E,
 
-        /* Loads a global/local/group ID, depending on arguments */
-        midgard_op_ld_compute_id = 0x10,
+        /* A mov between registers that the ldst pipeline can access */
+        midgard_op_ldst_mov = 0x10,
 
         /* The L/S unit can do perspective division a clock faster than the ALU
          * if you're lucky. Put the vec4 in r27, and call with 0x24 as the
          * unknown state; the output will be <x/w, y/w, z/w, 1>. Replace w with
          * z for the z version */
-        midgard_op_ldst_perspective_division_z = 0x12,
-        midgard_op_ldst_perspective_division_w = 0x13,
+        midgard_op_ldst_perspective_div_y = 0x11,
+        midgard_op_ldst_perspective_div_z = 0x12,
+        midgard_op_ldst_perspective_div_w = 0x13,
 
         /* val in r27.y, address embedded, outputs result to argument. Invert val for sub. Let val = +-1 for inc/dec. */
         midgard_op_atomic_add = 0x40,
         midgard_op_atomic_add64 = 0x41,
+        midgard_op_atomic_add_be = 0x42,
+        midgard_op_atomic_add64_be = 0x43,
 
         midgard_op_atomic_and = 0x44,
         midgard_op_atomic_and64 = 0x45,
+        midgard_op_atomic_and_be = 0x46,
+        midgard_op_atomic_and64_be = 0x47,
         midgard_op_atomic_or = 0x48,
         midgard_op_atomic_or64 = 0x49,
+        midgard_op_atomic_or_be = 0x4A,
+        midgard_op_atomic_or64_be = 0x4B,
         midgard_op_atomic_xor = 0x4C,
         midgard_op_atomic_xor64 = 0x4D,
+        midgard_op_atomic_xor_be = 0x4E,
+        midgard_op_atomic_xor64_be = 0x4F,
 
         midgard_op_atomic_imin = 0x50,
         midgard_op_atomic_imin64 = 0x51,
+        midgard_op_atomic_imin_be = 0x52,
+        midgard_op_atomic_imin64_be = 0x53,
         midgard_op_atomic_umin = 0x54,
         midgard_op_atomic_umin64 = 0x55,
+        midgard_op_atomic_umin_be = 0x56,
+        midgard_op_atomic_umin64_be = 0x57,
         midgard_op_atomic_imax = 0x58,
         midgard_op_atomic_imax64 = 0x59,
+        midgard_op_atomic_imax_be = 0x5A,
+        midgard_op_atomic_imax64_be = 0x5B,
         midgard_op_atomic_umax = 0x5C,
         midgard_op_atomic_umax64 = 0x5D,
+        midgard_op_atomic_umax_be = 0x5E,
+        midgard_op_atomic_umax64_be = 0x5F,
 
         midgard_op_atomic_xchg = 0x60,
         midgard_op_atomic_xchg64 = 0x61,
+        midgard_op_atomic_xchg_be = 0x62,
+        midgard_op_atomic_xchg64_be = 0x63,
 
         midgard_op_atomic_cmpxchg = 0x64,
         midgard_op_atomic_cmpxchg64 = 0x65,
+        midgard_op_atomic_cmpxchg_be = 0x66,
+        midgard_op_atomic_cmpxchg64_be = 0x67,
 
-        /* Used for compute shader's __global arguments, __local variables (or
-         * for register spilling) */
+        /* Used for compute shader's __global arguments, __local
+         * variables (or for register spilling) */
 
-        midgard_op_ld_u8 = 0x80, /* zero extends */
-        midgard_op_ld_i8 = 0x81, /* sign extends */
-        midgard_op_ld_u16 = 0x84, /* zero extends */
-        midgard_op_ld_i16 = 0x85, /* sign extends */
-        midgard_op_ld_u32 = 0x88,
-        midgard_op_ld_u64 = 0x8C,
-        midgard_op_ld_u128 = 0x90,
+        midgard_op_ld_u8         = 0x80, /* zero extends */
+        midgard_op_ld_i8         = 0x81, /* sign extends */
+        midgard_op_ld_u16        = 0x84, /* zero extends */
+        midgard_op_ld_i16        = 0x85, /* sign extends */
+        midgard_op_ld_u16_be     = 0x86, /* zero extends, big endian */
+        midgard_op_ld_i16_be     = 0x87, /* sign extends, big endian */
+        midgard_op_ld_32         = 0x88, /* short2, int, float */
+        midgard_op_ld_32_bswap2  = 0x89, /* 16-bit big endian vector */
+        midgard_op_ld_32_bswap4  = 0x8A, /* 32-bit big endian scalar */
+        midgard_op_ld_64         = 0x8C, /* int2, float2, long */
+        midgard_op_ld_64_bswap2  = 0x8D, /* 16-bit big endian vector */
+        midgard_op_ld_64_bswap4  = 0x8E, /* 32-bit big endian vector */
+        midgard_op_ld_64_bswap8  = 0x8F, /* 64-bit big endian scalar */
+        midgard_op_ld_128        = 0x90, /* float4, long2 */
+        midgard_op_ld_128_bswap2 = 0x91, /* 16-bit big endian vector */
+        midgard_op_ld_128_bswap4 = 0x92, /* 32-bit big endian vector */
+        midgard_op_ld_128_bswap8 = 0x93, /* 64-bit big endian vector */
 
         midgard_op_ld_attr_32 = 0x94,
         midgard_op_ld_attr_16 = 0x95,
@@ -484,40 +570,67 @@ typedef enum {
         midgard_op_ld_vary_32u = 0x9A,
         midgard_op_ld_vary_32i = 0x9B,
 
-        /* Old version of midgard_op_ld_color_buffer_as_fp16, for T720 */
-        midgard_op_ld_color_buffer_as_fp32_old = 0x9C,
-        midgard_op_ld_color_buffer_as_fp16_old = 0x9D,
-        midgard_op_ld_color_buffer_32u_old = 0x9E,
+        /* This instruction behaves differently depending if the gpu is a v4
+         * or a newer gpu. The main difference hinges on which values of the
+         * second argument are valid for each gpu.
+         * TODO: properly document and decode each possible value for the
+         * second argument. */
+        midgard_op_ld_special_32f = 0x9C,
+        midgard_op_ld_special_16f = 0x9D,
+        midgard_op_ld_special_32u = 0x9E,
+        midgard_op_ld_special_32i = 0x9F,
 
-        /* The distinction between these ops is the alignment requirement /
-         * accompanying shift. Thus, the offset to ld_ubo_int4 is in 16-byte
-         * units and can load 128-bit. The offset to ld_ubo_short4 is in 8-byte
-         * units; ld_ubo_char4 in 4-byte units. ld_ubo_char/ld_ubo_char2 are
-         * purely theoretical (never seen in the wild) since int8/int16/fp16
-         * UBOs don't really exist. The ops are still listed to maintain
-         * symmetry with generic I/O ops. */
-
-        midgard_op_ld_ubo_u8   = 0xA0, /* theoretical */
-        midgard_op_ld_ubo_u16  = 0xA4, /* theoretical */
-        midgard_op_ld_ubo_u32  = 0xA8,
-        midgard_op_ld_ubo_u64  = 0xAC,
-        midgard_op_ld_ubo_u128 = 0xB0,
+        /* The distinction between these ops is the alignment
+         * requirement / accompanying shift. Thus, the offset to
+         * ld_ubo_128 is in 16-byte units and can load 128-bit. The
+         * offset to ld_ubo_64 is in 8-byte units; ld_ubo_32 in 4-byte
+         * units. */
+        midgard_op_ld_ubo_u8         = 0xA0, /* theoretical */
+        midgard_op_ld_ubo_i8         = 0xA1, /* theoretical */
+        midgard_op_ld_ubo_u16        = 0xA4, /* theoretical */
+        midgard_op_ld_ubo_i16        = 0xA5, /* theoretical */
+        midgard_op_ld_ubo_u16_be     = 0xA6, /* theoretical */
+        midgard_op_ld_ubo_i16_be     = 0xA7, /* theoretical */
+        midgard_op_ld_ubo_32         = 0xA8,
+        midgard_op_ld_ubo_32_bswap2  = 0xA9,
+        midgard_op_ld_ubo_32_bswap4  = 0xAA,
+        midgard_op_ld_ubo_64         = 0xAC,
+        midgard_op_ld_ubo_64_bswap2  = 0xAD,
+        midgard_op_ld_ubo_64_bswap4  = 0xAE,
+        midgard_op_ld_ubo_64_bswap8  = 0xAF,
+        midgard_op_ld_ubo_128        = 0xB0,
+        midgard_op_ld_ubo_128_bswap2 = 0xB1,
+        midgard_op_ld_ubo_128_bswap4 = 0xB2,
+        midgard_op_ld_ubo_128_bswap8 = 0xB3,
 
         midgard_op_ld_image_32f = 0xB4,
         midgard_op_ld_image_16f = 0xB5,
         midgard_op_ld_image_32u = 0xB6,
         midgard_op_ld_image_32i = 0xB7,
 
-        /* New-style blending ops. Works on T760/T860 */
-        midgard_op_ld_color_buffer_as_fp32 = 0xB8,
-        midgard_op_ld_color_buffer_as_fp16 = 0xB9,
-        midgard_op_ld_color_buffer_32u = 0xBA,
+        /* Only works on v5 or newer.
+         * Older cards must use ld_special with tilebuffer selectors. */
+        midgard_op_ld_tilebuffer_32f = 0xB8,
+        midgard_op_ld_tilebuffer_16f = 0xB9,
+        midgard_op_ld_tilebuffer_raw = 0xBA,
 
-        midgard_op_st_u8 = 0xC0,
-        midgard_op_st_u16 = 0xC4,
-        midgard_op_st_u32 = 0xC8,
-        midgard_op_st_u64 = 0xCC,
-        midgard_op_st_u128 = 0xD0,
+        midgard_op_st_u8         = 0xC0, /* zero extends */
+        midgard_op_st_i8         = 0xC1, /* sign extends */
+        midgard_op_st_u16        = 0xC4, /* zero extends */
+        midgard_op_st_i16        = 0xC5, /* sign extends */
+        midgard_op_st_u16_be     = 0xC6, /* zero extends, big endian */
+        midgard_op_st_i16_be     = 0xC7, /* sign extends, big endian */
+        midgard_op_st_32         = 0xC8, /* short2, int, float */
+        midgard_op_st_32_bswap2  = 0xC9, /* 16-bit big endian vector */
+        midgard_op_st_32_bswap4  = 0xCA, /* 32-bit big endian scalar */
+        midgard_op_st_64         = 0xCC, /* int2, float2, long */
+        midgard_op_st_64_bswap2  = 0xCD, /* 16-bit big endian vector */
+        midgard_op_st_64_bswap4  = 0xCE, /* 32-bit big endian vector */
+        midgard_op_st_64_bswap8  = 0xCF, /* 64-bit big endian scalar */
+        midgard_op_st_128        = 0xD0, /* float4, long2 */
+        midgard_op_st_128_bswap2 = 0xD1, /* 16-bit big endian vector */
+        midgard_op_st_128_bswap4 = 0xD2, /* 32-bit big endian vector */
+        midgard_op_st_128_bswap8 = 0xD3, /* 64-bit big endian vector */
 
         midgard_op_st_vary_32 = 0xD4,
         midgard_op_st_vary_16 = 0xD5,
@@ -529,6 +642,18 @@ typedef enum {
         midgard_op_st_image_16f = 0xD9,
         midgard_op_st_image_32u = 0xDA,
         midgard_op_st_image_32i = 0xDB,
+
+        midgard_op_st_special_32f = 0xDC,
+        midgard_op_st_special_16f = 0xDD,
+        midgard_op_st_special_32u = 0xDE,
+        midgard_op_st_special_32i = 0xDF,
+
+        /* Only works on v5 or newer.
+         * Older cards must use ld_special with tilebuffer selectors. */
+        midgard_op_st_tilebuffer_32f = 0xE8,
+        midgard_op_st_tilebuffer_16f = 0xE9,
+        midgard_op_st_tilebuffer_raw = 0xEA,
+        midgard_op_trap = 0xFC,
 } midgard_load_store_op;
 
 typedef enum {
@@ -540,31 +665,37 @@ typedef enum {
 typedef enum {
         midgard_varying_mod_none = 0,
 
-        /* Other values unknown */
-
-        /* Take the would-be result and divide all components by its z/w
+        /* Take the would-be result and divide all components by its y/z/w
          * (perspective division baked in with the load)  */
+        midgard_varying_mod_perspective_y = 1,
         midgard_varying_mod_perspective_z = 2,
         midgard_varying_mod_perspective_w = 3,
+
+        /* The result is a 64-bit cubemap descriptor to use with
+         * midgard_tex_op_normal or midgard_tex_op_gradient */
+        midgard_varying_mod_cubemap = 4,
 } midgard_varying_modifier;
 
 typedef struct
 __attribute__((__packed__))
 {
-        unsigned zero0 : 1; /* Always zero */
+        midgard_varying_modifier modifier : 3;
 
-        midgard_varying_modifier modifier : 2;
+        bool flat_shading : 1;
 
-        unsigned zero1: 1; /* Always zero */
+        /* These are ignored if flat_shading is enabled. */
+        bool perspective_correction : 1;
+        bool centroid_mapping : 1;
 
-        /* Varying qualifiers, zero if not a varying */
-        unsigned flat    : 1;
-        unsigned is_varying : 1; /* Always one for varying, but maybe something else? */
-        midgard_interpolation interpolation : 2;
+        /* This is ignored if the shader only runs once per pixel. */
+        bool interpolate_sample : 1;
 
-        unsigned zero2 : 2; /* Always zero */
+        bool zero0 : 1; /* Always zero */
+
+        unsigned direct_sample_pos_x : 4;
+        unsigned direct_sample_pos_y : 4;
 }
-midgard_varying_parameter;
+midgard_varying_params;
 
 /* 8-bit register/etc selector for load/store ops */
 typedef struct
@@ -587,26 +718,56 @@ __attribute__((__packed__))
 }
 midgard_ldst_register_select;
 
+typedef enum {
+        /* 0 is reserved */
+        midgard_index_address_u64 = 1,
+        midgard_index_address_u32 = 2,
+        midgard_index_address_s32 = 3,
+} midgard_index_address_format;
+
 typedef struct
 __attribute__((__packed__))
 {
         midgard_load_store_op op : 8;
-        unsigned reg     : 5;
-        unsigned mask    : 4;
+
+        /* Source/dest reg */
+        unsigned reg  : 5;
+
+        /* Generally is a writemask.
+         * For ST_ATTR and ST_TEX, unused.
+         * For other stores, each bit masks 1/4th of the output. */
+        unsigned mask : 4;
+
+        /* Swizzle for stores, but for atomics it encodes also the source
+         * register. This fits because atomics dont need a swizzle since they
+         * are not vectorized instructions. */
         unsigned swizzle : 8;
 
-        /* Load/store ops can take two additional registers as arguments, but
-         * these are limited to load/store registers with only a few supported
-         * mask/swizzle combinations. The tradeoff is these are much more
-         * compact, requiring 8-bits each rather than 17-bits for a full
-         * reg/mask/swizzle. Usually (?) encoded as
-         * midgard_ldst_register_select. */
-        unsigned arg_1   : 8;
-        unsigned arg_2   : 8;
+        /* Arg reg, meaning changes according to each opcode */
+        unsigned arg_comp : 2;
+        unsigned arg_reg  : 3;
 
-        unsigned varying_parameters : 10;
+        /* 64-bit address enable
+         * 32-bit data type enable for CUBEMAP and perspective div.
+         * Explicit indexing enable for LD_ATTR.
+         * 64-bit coordinate enable for LD_IMAGE. */
+        bool bitsize_toggle : 1;
 
-        unsigned address : 9;
+        /* These are mainly used for opcodes that have addresses.
+         * For cmpxchg, index_reg is used for the comparison value.
+         * For ops that access the attrib table, bit 1 encodes which table.
+         * For LD_VAR and LD/ST_ATTR, bit 0 enables dest/src type inferral. */
+        midgard_index_address_format index_format : 2;
+        unsigned index_comp  : 2;
+        unsigned index_reg   : 3;
+        unsigned index_shift : 4;
+
+        /* Generaly is a signed offset, but has different bitsize and starts at
+         * different bits depending on the opcode, LDST_*_DISPLACEMENT helpers
+         * are recommended when packing/unpacking this attribute.
+         * For LD_UBO, bit 0 enables ubo index immediate.
+         * For LD_TILEBUFFER_RAW, bit 0 disables sample index immediate. */
+        int signed_offset : 18;
 }
 midgard_load_store_word;
 
@@ -647,15 +808,42 @@ midgard_tex_register_select;
 #define REG_TEX_BASE 28
 
 enum mali_texture_op {
-        TEXTURE_OP_NORMAL = 1,  /* texture */
-        TEXTURE_OP_LOD = 2,     /* textureLod */
-        TEXTURE_OP_TEXEL_FETCH = 4,
-        TEXTURE_OP_BARRIER = 11,
-        TEXTURE_OP_DERIVATIVE = 13
+        /* [texture + LOD bias]
+         * If the texture is mipmapped, barriers must be enabled in the
+         * instruction word in order for this opcode to compute the output
+         * correctly. */
+        midgard_tex_op_normal = 1,
+
+        /* [texture + gradient for LOD and anisotropy]
+         * Unlike midgard_tex_op_normal, this opcode does not require barriers
+         * to compute the output correctly. */
+        midgard_tex_op_gradient = 2,
+
+        /* [unfiltered texturing]
+         * Unlike midgard_tex_op_normal, this opcode does not require barriers
+         * to compute the output correctly. */
+        midgard_tex_op_fetch = 4,
+
+        /* [gradient from derivative] */
+        midgard_tex_op_grad_from_derivative = 9,
+
+        /* [mov] */
+        midgard_tex_op_mov = 10,
+
+        /* [noop]
+         * Mostly used for barriers. */
+        midgard_tex_op_barrier = 11,
+
+        /* [gradient from coords] */
+        midgard_tex_op_grad_from_coords = 12,
+
+        /* [derivative]
+         * Computes derivatives in 2x2 fragment blocks. */
+        midgard_tex_op_derivative = 13
 };
 
 enum mali_sampler_type {
-        MALI_SAMPLER_UNK        = 0x0,
+        /* 0 is reserved */
         MALI_SAMPLER_FLOAT      = 0x1, /* sampler */
         MALI_SAMPLER_UNSIGNED   = 0x2, /* usampler */
         MALI_SAMPLER_SIGNED     = 0x3, /* isampler */

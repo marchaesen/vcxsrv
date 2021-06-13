@@ -1,6 +1,3 @@
-# Really slow until https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/485
-gl-1.3-texture-env
-
 # Intermittent timeouts
 spec@ext_texture_lod_bias@lodbias
 
@@ -26,3 +23,8 @@ spec@glsl-1.30@execution@texelfetch fs sampler2d 1x281-501x281
 spec@glsl-1.30@execution@texelfetch fs sampler2darray 98x1x9-98x129x9
 spec@glsl-1.30@execution@texelfetch fs sampler2darray 1x129x9-98x129x9
 spec@!opengl 2.0@tex3d-npot
+
+# This one seems to be triggering faults and causing random other fails
+# depending on what else was running at the time:
+spec@arb_texture_cube_map_array@texsubimage cube_map_array
+spec@arb_pixel_buffer_object@texsubimage cube_map_array pbo

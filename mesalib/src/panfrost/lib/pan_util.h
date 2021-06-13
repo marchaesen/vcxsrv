@@ -31,7 +31,7 @@
 #define PAN_DBG_MSGS		0x0001
 #define PAN_DBG_TRACE           0x0002
 #define PAN_DBG_DEQP            0x0004
-#define PAN_DBG_AFBC            0x0008
+/* 0x8 unused */
 #define PAN_DBG_SYNC            0x0010
 #define PAN_DBG_PRECOMPILE      0x0020
 #define PAN_DBG_NOFP16          0x0040

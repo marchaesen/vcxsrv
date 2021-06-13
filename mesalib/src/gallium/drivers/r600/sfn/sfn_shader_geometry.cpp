@@ -51,16 +51,6 @@ GeometryShaderFromNir::GeometryShaderFromNir(r600_pipe_shader *sh,
    sh_info().atomic_base = key.gs.first_atomic_counter;
 }
 
-bool GeometryShaderFromNir::do_emit_load_deref(UNUSED const nir_variable *in_var, UNUSED nir_intrinsic_instr* instr)
-{
-   return false;
-}
-
-bool GeometryShaderFromNir::do_emit_store_deref(UNUSED const nir_variable *out_var, UNUSED nir_intrinsic_instr* instr)
-{
-   return false;
-}
-
 bool GeometryShaderFromNir::emit_store(nir_intrinsic_instr* instr)
 {
    auto location = nir_intrinsic_io_semantics(instr).location;
@@ -193,83 +183,6 @@ bool GeometryShaderFromNir::process_load_input(nir_intrinsic_instr* instr)
    return false;
 }
 
-bool GeometryShaderFromNir::do_process_inputs(nir_variable *input)
-{
-
-   if (input->data.location == VARYING_SLOT_POS ||
-       input->data.location == VARYING_SLOT_PSIZ ||
-       input->data.location == VARYING_SLOT_FOGC ||
-       input->data.location == VARYING_SLOT_CLIP_VERTEX ||
-       input->data.location == VARYING_SLOT_CLIP_DIST0 ||
-       input->data.location == VARYING_SLOT_CLIP_DIST1 ||
-       input->data.location == VARYING_SLOT_COL0 ||
-       input->data.location == VARYING_SLOT_COL1 ||
-       input->data.location == VARYING_SLOT_BFC0 ||
-       input->data.location == VARYING_SLOT_BFC1 ||
-       input->data.location == VARYING_SLOT_PNTC ||
-       (input->data.location >= VARYING_SLOT_VAR0 &&
-       input->data.location <= VARYING_SLOT_VAR31) ||
-       (input->data.location >= VARYING_SLOT_TEX0 &&
-       input->data.location <= VARYING_SLOT_TEX7)) {
-
-      r600_shader_io& io = sh_info().input[input->data.driver_location];
-      auto semantic = r600_get_varying_semantic(input->data.location);
-      io.name = semantic.first;
-      io.sid = semantic.second;
-
-      io.ring_offset = 16 * input->data.driver_location;
-      ++sh_info().ninput;
-      m_next_input_ring_offset += 16;
-      return true;
-   }
-
-   return false;
-}
-
-bool GeometryShaderFromNir::do_process_outputs(nir_variable *output)
-{
-   if (output->data.location == VARYING_SLOT_COL0 ||
-       output->data.location == VARYING_SLOT_COL1 ||
-       (output->data.location >= VARYING_SLOT_VAR0 &&
-       output->data.location <= VARYING_SLOT_VAR31) ||
-       (output->data.location >= VARYING_SLOT_TEX0 &&
-       output->data.location <= VARYING_SLOT_TEX7) ||
-       output->data.location == VARYING_SLOT_BFC0 ||
-       output->data.location == VARYING_SLOT_BFC1 ||
-       output->data.location == VARYING_SLOT_PNTC ||
-       output->data.location == VARYING_SLOT_CLIP_VERTEX ||
-       output->data.location == VARYING_SLOT_CLIP_DIST0 ||
-       output->data.location == VARYING_SLOT_CLIP_DIST1 ||
-       output->data.location == VARYING_SLOT_PRIMITIVE_ID ||
-       output->data.location == VARYING_SLOT_POS ||
-       output->data.location == VARYING_SLOT_PSIZ ||
-       output->data.location == VARYING_SLOT_LAYER ||
-       output->data.location == VARYING_SLOT_VIEWPORT ||
-       output->data.location == VARYING_SLOT_FOGC) {
-      r600_shader_io& io = sh_info().output[output->data.driver_location];
-
-      auto semantic = r600_get_varying_semantic(output->data.location);
-      io.name = semantic.first;
-      io.sid = semantic.second;
-
-      evaluate_spi_sid(io);
-      ++sh_info().noutput;
-
-      if (output->data.location == VARYING_SLOT_CLIP_DIST0 ||
-          output->data.location == VARYING_SLOT_CLIP_DIST1) {
-         m_clip_dist_mask |= 1 << (output->data.location - VARYING_SLOT_CLIP_DIST0);
-      }
-
-      if (output->data.location == VARYING_SLOT_VIEWPORT) {
-         sh_info().vs_out_viewport = 1;
-         sh_info().vs_out_misc_write = 1;
-      }
-      return true;
-   }
-   return false;
-}
-
-
 bool GeometryShaderFromNir::do_allocate_reserved_registers()
 {
    const int sel[6] = {0, 0 ,0, 1, 1, 1};
@@ -318,14 +231,13 @@ void GeometryShaderFromNir::emit_adj_fix()
    PValue adjhelp0(new  GPRValue(m_export_base[0]->sel(), 1));
    emit_instruction(op2_and_int, adjhelp0, {m_primitive_id, Value::one_i}, {alu_write, alu_last_instr});
 
-   int help2 = allocate_temp_register();
    int reg_indices[6];
-   int reg_chanels[6] = {0, 1, 2, 3, 2, 3};
+   int reg_chanels[6] = {1, 2, 3, 1, 2, 3};
 
    int rotate_indices[6] = {4, 5, 0, 1, 2, 3};
 
-   reg_indices[0] = reg_indices[1] = reg_indices[2] = reg_indices[3] = help2;
-   reg_indices[4] = reg_indices[5] = m_export_base[0]->sel();
+   reg_indices[0] = reg_indices[1] = reg_indices[2] = m_export_base[1]->sel();
+   reg_indices[3] = reg_indices[4] = reg_indices[5] = m_export_base[2]->sel();
 
    std::array<PValue, 6> adjhelp;
 

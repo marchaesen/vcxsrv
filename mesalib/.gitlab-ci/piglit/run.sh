@@ -57,10 +57,6 @@ else
     ### GL/ES ###
 
     if [ "x$PIGLIT_PROFILES" = "xreplay" ]; then
-        # Set environment for renderdoc libraries.
-        export PYTHONPATH="$PYTHONPATH:/renderdoc/build/lib"
-        export __LD_LIBRARY_PATH="$__LD_LIBRARY_PATH:/renderdoc/build/lib"
-
         # Set environment for apitrace executable.
         export PATH="/apitrace/build:$PATH"
 
@@ -73,12 +69,6 @@ else
 
 
     # Set up the platform windowing system.
-
-    # Set environment for the waffle library.
-    export __LD_LIBRARY_PATH="/waffle/build/lib:$__LD_LIBRARY_PATH"
-
-    # Set environment for wflinfo executable.
-    export PATH="/waffle/build/bin:$PATH"
 
     if [ "x$EGL_PLATFORM" = "xsurfaceless" ]; then
 
@@ -202,7 +192,7 @@ PIGLIT_OPTIONS=$(printf "%s" "$PIGLIT_OPTIONS")
 
 PIGLIT_TESTS=$(printf "%s" "$PIGLIT_TESTS")
 
-PIGLIT_CMD="./piglit run -j${FDO_CI_CONCURRENT:-4} $PIGLIT_OPTIONS $PIGLIT_TESTS $PIGLIT_PROFILES "$(/usr/bin/printf "%q" "$RESULTS")
+PIGLIT_CMD="./piglit run --timeout 300 -j${FDO_CI_CONCURRENT:-4} $PIGLIT_OPTIONS $PIGLIT_TESTS $PIGLIT_PROFILES "$(/usr/bin/printf "%q" "$RESULTS")
 
 RUN_CMD="export LD_LIBRARY_PATH=$__LD_LIBRARY_PATH; $SANITY_MESA_VERSION_CMD && $PIGLIT_CMD"
 
@@ -243,13 +233,7 @@ if [ "x$PIGLIT_PROFILES" = "xreplay" ] \
     __MINIO_PATH="$PIGLIT_REPLAY_ARTIFACTS_BASE_URL"
     __MINIO_TRACES_PREFIX="traces"
 
-    ci-fairy minio cp "$RESULTS"/results.json.bz2 \
-        "minio://${MINIO_HOST}${__MINIO_PATH}/${__MINIO_TRACES_PREFIX}/results.json.bz2"
-
     quiet replay_minio_upload_images
-
-    ci-fairy minio cp "$RESULTS"/junit.xml \
-        "minio://${MINIO_HOST}${__MINIO_PATH}/${__MINIO_TRACES_PREFIX}/junit.xml"
 fi
 
 if [ -n "$USE_CASELIST" ]; then
@@ -269,19 +253,17 @@ if diff -q ".gitlab-ci/piglit/$PIGLIT_RESULTS.txt.baseline" $RESULTSFILE; then
     exit 0
 fi
 
-if [ ${PIGLIT_HTML_SUMMARY:-1} -eq 1 ]; then
-    ./piglit summary html --exclude-details=pass \
-        "$RESULTS"/summary "$RESULTS"/results.json.bz2
+./piglit summary html --exclude-details=pass \
+"$RESULTS"/summary "$RESULTS"/results.json.bz2
 
-    if [ "x$PIGLIT_PROFILES" = "xreplay" ]; then
-        find "$RESULTS"/summary -type f -name "*.html" -print0 \
-            | xargs -0 sed -i 's%<img src="file://'"${RESULTS}"'.*-\([0-9a-f]*\)\.png%<img src="https://'"${MINIO_HOST}${PIGLIT_REPLAY_ARTIFACTS_BASE_URL}"'/traces/\1.png%g'
-        find "$RESULTS"/summary -type f -name "*.html" -print0 \
-            | xargs -0 sed -i 's%<img src="file://%<img src="https://'"${MINIO_HOST}${PIGLIT_REPLAY_REFERENCE_IMAGES_BASE_URL}"'/%g'
-    fi
-
-    FAILURE_MESSAGE=$(printf "${FAILURE_MESSAGE}\n%s" "Check the HTML summary for problems at: ${ARTIFACTS_BASE_URL}/results/summary/problems.html")
+if [ "x$PIGLIT_PROFILES" = "xreplay" ]; then
+find "$RESULTS"/summary -type f -name "*.html" -print0 \
+        | xargs -0 sed -i 's%<img src="file://'"${RESULTS}"'.*-\([0-9a-f]*\)\.png%<img src="https://'"${MINIO_HOST}${PIGLIT_REPLAY_ARTIFACTS_BASE_URL}"'/traces/\1.png%g'
+find "$RESULTS"/summary -type f -name "*.html" -print0 \
+        | xargs -0 sed -i 's%<img src="file://%<img src="https://'"${MINIO_HOST}${PIGLIT_REPLAY_REFERENCE_IMAGES_BASE_URL}"'/%g'
 fi
+
+FAILURE_MESSAGE=$(printf "${FAILURE_MESSAGE}\n%s" "Check the HTML summary for problems at: ${ARTIFACTS_BASE_URL}/results/summary/problems.html")
 
 quiet print_red printf "%s\n" "$FAILURE_MESSAGE"
 quiet diff --color=always -u ".gitlab-ci/piglit/$PIGLIT_RESULTS.txt.baseline" $RESULTSFILE

@@ -27,42 +27,69 @@
 #include <assert.h>
 
 #include "freedreno_drmif.h"
-#include "freedreno_ringbuffer.h"
 #include "freedreno_priv.h"
+#include "freedreno_ringbuffer.h"
 
 struct fd_submit *
 fd_submit_new(struct fd_pipe *pipe)
 {
-	return pipe->funcs->submit_new(pipe);
+   struct fd_submit *submit = pipe->funcs->submit_new(pipe);
+   submit->refcnt = 1;
+   submit->pipe = fd_pipe_ref(pipe);
+   return submit;
 }
 
 void
 fd_submit_del(struct fd_submit *submit)
 {
-	return submit->funcs->destroy(submit);
+   if (!p_atomic_dec_zero(&submit->refcnt))
+      return;
+
+   if (submit->primary)
+      fd_ringbuffer_del(submit->primary);
+
+   fd_pipe_del(submit->pipe);
+
+   submit->funcs->destroy(submit);
+}
+
+struct fd_submit *
+fd_submit_ref(struct fd_submit *submit)
+{
+   p_atomic_inc(&submit->refcnt);
+   return submit;
 }
 
 int
-fd_submit_flush(struct fd_submit *submit, int in_fence_fd, int *out_fence_fd,
-		uint32_t *out_fence)
+fd_submit_flush(struct fd_submit *submit, int in_fence_fd,
+                struct fd_submit_fence *out_fence)
 {
-	return submit->funcs->flush(submit, in_fence_fd, out_fence_fd, out_fence);
+   submit->fence = fd_pipe_emit_fence(submit->pipe, submit->primary);
+   return submit->funcs->flush(submit, in_fence_fd, out_fence);
 }
 
 struct fd_ringbuffer *
 fd_submit_new_ringbuffer(struct fd_submit *submit, uint32_t size,
-		enum fd_ringbuffer_flags flags)
+                         enum fd_ringbuffer_flags flags)
 {
-	debug_assert(!(flags & _FD_RINGBUFFER_OBJECT));
-	if (flags & FD_RINGBUFFER_STREAMING) {
-		debug_assert(!(flags & FD_RINGBUFFER_GROWABLE));
-		debug_assert(!(flags & FD_RINGBUFFER_PRIMARY));
-	}
-	return submit->funcs->new_ringbuffer(submit, size, flags);
+   debug_assert(!(flags & _FD_RINGBUFFER_OBJECT));
+   if (flags & FD_RINGBUFFER_STREAMING) {
+      debug_assert(!(flags & FD_RINGBUFFER_GROWABLE));
+      debug_assert(!(flags & FD_RINGBUFFER_PRIMARY));
+   }
+   struct fd_ringbuffer *ring =
+         submit->funcs->new_ringbuffer(submit, size, flags);
+
+   if (flags & FD_RINGBUFFER_PRIMARY) {
+      debug_assert(!submit->primary);
+      submit->primary = fd_ringbuffer_ref(ring);
+   }
+
+   return ring;
 }
 
 struct fd_ringbuffer *
 fd_ringbuffer_new_object(struct fd_pipe *pipe, uint32_t size)
 {
-	return pipe->funcs->ringbuffer_new_object(pipe, size);
+   return pipe->funcs->ringbuffer_new_object(pipe, size);
 }

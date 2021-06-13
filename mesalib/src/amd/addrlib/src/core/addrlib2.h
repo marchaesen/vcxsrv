@@ -46,31 +46,36 @@ namespace V2
 * @brief Flags for SwizzleModeTable
 ************************************************************************************************************************
 */
-struct SwizzleModeFlags
+union SwizzleModeFlags
 {
-    // Swizzle mode
-    UINT_32 isLinear        : 1;    // Linear
+    struct
+    {
+        // Swizzle mode
+        UINT_32 isLinear        : 1;    // Linear
 
-    // Block size
-    UINT_32 is256b          : 1;    // Block size is 256B
-    UINT_32 is4kb           : 1;    // Block size is 4KB
-    UINT_32 is64kb          : 1;    // Block size is 64KB
-    UINT_32 isVar           : 1;    // Block size is variable
+        // Block size
+        UINT_32 is256b          : 1;    // Block size is 256B
+        UINT_32 is4kb           : 1;    // Block size is 4KB
+        UINT_32 is64kb          : 1;    // Block size is 64KB
+        UINT_32 isVar           : 1;    // Block size is variable
 
-    UINT_32 isZ             : 1;    // Z order swizzle mode
-    UINT_32 isStd           : 1;    // Standard swizzle mode
-    UINT_32 isDisp          : 1;    // Display swizzle mode
-    UINT_32 isRot           : 1;    // Rotate swizzle mode
+        UINT_32 isZ             : 1;    // Z order swizzle mode
+        UINT_32 isStd           : 1;    // Standard swizzle mode
+        UINT_32 isDisp          : 1;    // Display swizzle mode
+        UINT_32 isRot           : 1;    // Rotate swizzle mode
 
-    // XOR mode
-    UINT_32 isXor           : 1;    // XOR after swizzle if set
+        // XOR mode
+        UINT_32 isXor           : 1;    // XOR after swizzle if set
 
-    UINT_32 isT             : 1;    // T mode
+        UINT_32 isT             : 1;    // T mode
 
-    // GFX10
-    UINT_32 isRtOpt         : 1;    // mode opt for render target
+        // GFX10
+        UINT_32 isRtOpt         : 1;    // mode opt for render target
 
-    UINT_32 reserved        : 20;   // Reserved bits
+        UINT_32 reserved        : 20;   // Reserved bits
+    };
+
+    UINT_32 u32All;
 };
 
 struct Dim2d
@@ -323,11 +328,7 @@ protected:
 
     BOOL_32 IsValidSwMode(AddrSwizzleMode swizzleMode) const
     {
-        // Don't dereference a reinterpret_cast pointer so as not to break
-        // strict-aliasing rules.
-        UINT_32 mode;
-        memcpy(&mode, &m_swizzleModeTable[swizzleMode], sizeof(UINT_32));
-        return mode != 0;
+        return (m_swizzleModeTable[swizzleMode].u32All != 0);
     }
 
     // Checking block size

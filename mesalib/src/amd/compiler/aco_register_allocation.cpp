@@ -1869,7 +1869,13 @@ void handle_loop_phis(ra_ctx& ctx, const IDSet& live_in,
          if (!op.isTemp())
             continue;
 
-         op.setTemp(read_variable(ctx, op.getTemp(), preds[j]));
+         /* Find the original name, since this operand might not use the original name if the phi
+          * was created after init_reg_file().
+          */
+         std::unordered_map<unsigned, Temp>::iterator it = ctx.orig_names.find(op.tempId());
+         Temp orig = it != ctx.orig_names.end() ? it->second : op.getTemp();
+
+         op.setTemp(read_variable(ctx, orig, preds[j]));
          op.setFixed(ctx.assignments[op.tempId()].reg);
       }
    }
@@ -2194,6 +2200,11 @@ void register_allocation(Program *program, std::vector<IDSet>& live_out_per_bloc
                for (unsigned i = 0; i < preds.size(); i++)
                   new_phi->operands[i] = Operand(pc.first);
                instructions.emplace_back(std::move(new_phi));
+
+               /* Remove from live_out_per_block (now used for live-in), because handle_loop_phis()
+                * would re-create this phi later if this is a loop header.
+                */
+               live_out_per_block[block.index].erase(orig.id());
             }
 
             register_file.fill(definition);
@@ -2614,6 +2625,8 @@ void register_allocation(Program *program, std::vector<IDSet>& live_out_per_bloc
    /* num_gpr = rnd_up(max_used_gpr + 1) */
    program->config->num_vgprs = get_vgpr_alloc(program, ctx.max_used_vgpr + 1);
    program->config->num_sgprs = get_sgpr_alloc(program, ctx.max_used_sgpr + 1);
+
+   program->progress = CompilationProgress::after_ra;
 }
 
 }

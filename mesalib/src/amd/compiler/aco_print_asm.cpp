@@ -5,9 +5,7 @@
 #include "ac_llvm_util.h"
 
 #include <llvm/ADT/StringRef.h>
-#if LLVM_VERSION_MAJOR >= 11
 #include <llvm/MC/MCDisassembler/MCDisassembler.h>
-#endif
 
 namespace aco {
 namespace {
@@ -161,11 +159,7 @@ bool print_asm(Program *program, std::vector<uint32_t>& binary,
          referenced_blocks[succ] = true;
    }
 
-   #if LLVM_VERSION_MAJOR >= 11
    std::vector<llvm::SymbolInfoTy> symbols;
-   #else
-   std::vector<std::tuple<uint64_t, llvm::StringRef, uint8_t>> symbols;
-   #endif
    std::vector<std::array<char,16>> block_names;
    block_names.reserve(program->blocks.size());
    for (Block& block : program->blocks) {

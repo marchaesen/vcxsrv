@@ -28,7 +28,7 @@
 #include "util/disk_cache.h"
 #include "util/slab.h"
 #include "util/u_screen.h"
-#include "intel/dev/gen_device_info.h"
+#include "intel/dev/intel_device_info.h"
 #include "intel/isl/isl.h"
 #include "iris_bufmgr.h"
 #include "iris_binder.h"
@@ -62,8 +62,9 @@ struct iris_vtable {
    void (*upload_render_state)(struct iris_context *ice,
                                struct iris_batch *batch,
                                const struct pipe_draw_info *draw,
+                               unsigned drawid_offset,
                                const struct pipe_draw_indirect_info *indirect,
-                               const struct pipe_draw_start_count *sc);
+                               const struct pipe_draw_start_count_bias *sc);
    void (*update_surface_base_address)(struct iris_batch *batch,
                                        struct iris_binder *binder);
    void (*upload_compute_state)(struct iris_context *ice,
@@ -110,7 +111,7 @@ struct iris_vtable {
                                      uint32_t report_id);
 
    unsigned (*derived_program_state_size)(enum iris_program_cache_id id);
-   void (*store_derived_program_state)(const struct gen_device_info *devinfo,
+   void (*store_derived_program_state)(const struct intel_device_info *devinfo,
                                        enum iris_program_cache_id cache_id,
                                        struct iris_compiled_shader *shader);
    uint32_t *(*create_so_decl_list)(const struct pipe_stream_output_info *sol,
@@ -198,11 +199,11 @@ struct iris_screen {
     */
    uint64_t last_seqno;
 
-   struct gen_device_info devinfo;
+   struct intel_device_info devinfo;
    struct isl_device isl_dev;
    struct iris_bufmgr *bufmgr;
    struct brw_compiler *compiler;
-   struct gen_perf_config *perf_cfg;
+   struct intel_perf_config *perf_cfg;
 
    const struct intel_l3_config *l3_config_3d;
    const struct intel_l3_config *l3_config_cs;

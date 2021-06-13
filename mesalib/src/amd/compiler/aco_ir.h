@@ -1859,6 +1859,12 @@ struct DeviceInfo {
    bool sram_ecc_enabled = false;
 };
 
+enum class CompilationProgress {
+   after_isel,
+   after_spilling,
+   after_ra,
+};
+
 class Program final {
 public:
    std::vector<Block> blocks;
@@ -1888,6 +1894,8 @@ public:
 
    bool needs_vcc = false;
    bool needs_flat_scr = false;
+
+   CompilationProgress progress;
 
    bool collect_statistics = false;
    uint32_t statistics[num_statistics];
@@ -1927,6 +1935,9 @@ public:
    {
       return allocationID;
    }
+
+   friend void reindex_ssa(Program* program);
+   friend void reindex_ssa(Program* program, std::vector<IDSet>& live_out);
 
    Block* create_and_insert_block() {
       Block block;

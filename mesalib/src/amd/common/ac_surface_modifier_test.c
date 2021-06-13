@@ -10,108 +10,19 @@
 #include "drm-uapi/amdgpu_drm.h"
 #include "drm-uapi/drm_fourcc.h"
 
-#include "ac_gpu_info.h"
 #include "ac_surface.h"
 #include "util/macros.h"
 #include "util/u_math.h"
 #include "util/u_vector.h"
 #include "util/mesa-sha1.h"
 #include "addrlib/inc/addrinterface.h"
-#include "amdgfxregs.h"
+
+#include "ac_surface_test_common.h"
 
 /*
  * The main goal of this test is making sure that we do
  * not change the meaning of existing modifiers.
  */
-
-
-typedef void (*gpu_init_func)(struct radeon_info *info);
-
-static void init_vega10(struct radeon_info *info)
-{
-   info->family = CHIP_VEGA10;
-   info->chip_class = GFX9;
-   info->family_id = AMDGPU_FAMILY_AI;
-   info->chip_external_rev = 0x01;
-   info->use_display_dcc_unaligned = false;
-   info->use_display_dcc_with_retile_blit = false;
-   info->has_graphics = true;
-   info->tcc_cache_line_size = 64;
-
-   info->gb_addr_config = 0x2a114042;
-}
-
-static void init_vega20(struct radeon_info *info)
-{
-   info->family = CHIP_VEGA20;
-   info->chip_class = GFX9;
-   info->family_id = AMDGPU_FAMILY_AI;
-   info->chip_external_rev = 0x30;
-   info->use_display_dcc_unaligned = false;
-   info->use_display_dcc_with_retile_blit = false;
-   info->has_graphics = true;
-   info->tcc_cache_line_size = 64;
-
-   info->gb_addr_config = 0x2a114042;
-}
-
-
-static void init_raven(struct radeon_info *info)
-{
-   info->family = CHIP_RAVEN;
-   info->chip_class = GFX9;
-   info->family_id = AMDGPU_FAMILY_RV;
-   info->chip_external_rev = 0x01;
-   info->use_display_dcc_unaligned = false;
-   info->use_display_dcc_with_retile_blit = true;
-   info->has_graphics = true;
-   info->tcc_cache_line_size = 64;
-
-   info->gb_addr_config = 0x24000042;
-}
-
-static void init_raven2(struct radeon_info *info)
-{
-   info->family = CHIP_RAVEN2;
-   info->chip_class = GFX9;
-   info->family_id = AMDGPU_FAMILY_RV;
-   info->chip_external_rev = 0x82;
-   info->use_display_dcc_unaligned = true;
-   info->use_display_dcc_with_retile_blit = false;
-   info->has_graphics = true;
-   info->tcc_cache_line_size = 64;
-
-   info->gb_addr_config = 0x26013041;
-}
-
-static void init_navi10(struct radeon_info *info)
-{
-   info->family = CHIP_NAVI10;
-   info->chip_class = GFX10;
-   info->family_id = AMDGPU_FAMILY_NV;
-   info->chip_external_rev = 3;
-   info->use_display_dcc_unaligned = false;
-   info->use_display_dcc_with_retile_blit = false;
-   info->has_graphics = true;
-   info->tcc_cache_line_size = 128;
-
-   info->gb_addr_config = 0x00100044;
-}
-
-static void init_navi14(struct radeon_info *info)
-{
-   info->family = CHIP_NAVI14;
-   info->chip_class = GFX10;
-   info->family_id = AMDGPU_FAMILY_NV;
-   info->chip_external_rev = 0x15;
-   info->use_display_dcc_unaligned = false;
-   info->use_display_dcc_with_retile_blit = false;
-   info->has_graphics = true;
-   info->tcc_cache_line_size = 128;
-
-   info->gb_addr_config = 0x00000043;
-}
-
 
 struct test_entry {
    /* key part */
@@ -132,6 +43,9 @@ struct test_entry {
 
    /* u_vector requires power of two sizing */
    char padding[8];
+#ifdef PIPE_ARCH_X86
+   char padding2[8];
+#endif
 };
 
 static uint64_t
@@ -164,7 +78,7 @@ get_addr_from_coord_base(ADDR_HANDLE addrlib, const struct radeon_surf *surf,
    din.size = sizeof(ADDR2_COMPUTE_DCCINFO_INPUT);
    dout.size = sizeof(ADDR2_COMPUTE_DCCINFO_OUTPUT);
 
-   din.swizzleMode = surf->u.gfx9.surf.swizzle_mode;
+   din.swizzleMode = surf->u.gfx9.swizzle_mode;
    din.resourceType = ADDR_RSRC_TEX_2D;
    din.bpp = util_format_get_blocksizebits(format);
    din.unalignedWidth = w;
@@ -172,8 +86,8 @@ get_addr_from_coord_base(ADDR_HANDLE addrlib, const struct radeon_surf *surf,
    din.numSlices = 1;
    din.numMipLevels = 1;
    din.numFrags = 1;
-   din.dccKeyFlags.pipeAligned = surf->u.gfx9.dcc.pipe_aligned;
-   din.dccKeyFlags.rbAligned = surf->u.gfx9.dcc.rb_aligned;
+   din.dccKeyFlags.pipeAligned = surf->u.gfx9.color.dcc.pipe_aligned;
+   din.dccKeyFlags.rbAligned = surf->u.gfx9.color.dcc.rb_aligned;
    din.dataSurfaceSize = surf->surf_size;
 
    ADDR_E_RETURNCODE ret = Addr2ComputeDccInfo(addrlib, &din, &dout);
@@ -181,7 +95,7 @@ get_addr_from_coord_base(ADDR_HANDLE addrlib, const struct radeon_surf *surf,
 
    ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT dcc_input = {0};
    dcc_input.size = sizeof(dcc_input);
-   dcc_input.swizzleMode = surf->u.gfx9.surf.swizzle_mode;
+   dcc_input.swizzleMode = surf->u.gfx9.swizzle_mode;
    dcc_input.resourceType = ADDR_RSRC_TEX_2D;
    dcc_input.bpp = din.bpp;
    dcc_input.numSlices = 1;
@@ -212,14 +126,14 @@ void generate_hash(struct ac_addrlib *ac_addrlib,
    _mesa_sha1_init(&ctx);
 
    _mesa_sha1_update(&ctx, &surf->total_size, sizeof(surf->total_size));
-   _mesa_sha1_update(&ctx, &surf->dcc_offset, sizeof(surf->dcc_offset));
+   _mesa_sha1_update(&ctx, &surf->meta_offset, sizeof(surf->meta_offset));
    _mesa_sha1_update(&ctx, &surf->display_dcc_offset, sizeof(surf->display_dcc_offset));
-   _mesa_sha1_update(&ctx, &surf->u.gfx9.display_dcc_pitch_max,
-                     sizeof(surf->u.gfx9.display_dcc_pitch_max));
+   _mesa_sha1_update(&ctx, &surf->u.gfx9.color.display_dcc_pitch_max,
+                     sizeof(surf->u.gfx9.color.display_dcc_pitch_max));
 
    ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT input = {0};
    input.size = sizeof(input);
-   input.swizzleMode = surf->u.gfx9.surf.swizzle_mode;
+   input.swizzleMode = surf->u.gfx9.swizzle_mode;
    input.resourceType = ADDR_RSRC_TEX_2D;
    input.bpp = util_format_get_blocksizebits(entry->format);
    input.unalignedWidth = entry->w;
@@ -231,11 +145,11 @@ void generate_hash(struct ac_addrlib *ac_addrlib,
    input.pitchInElement = surf->u.gfx9.surf_pitch;
 
    ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT dcc_input = {0};
-   if (surf->dcc_offset) {
+   if (surf->meta_offset) {
       dcc_input = get_addr_from_coord_base(addrlib, surf, entry->w,
                                            entry->h, entry->format,
-                                           surf->u.gfx9.dcc.rb_aligned,
-                                           surf->u.gfx9.dcc.pipe_aligned);
+                                           surf->u.gfx9.color.dcc.rb_aligned,
+                                           surf->u.gfx9.color.dcc.pipe_aligned);
    }
 
    ADDR2_COMPUTE_DCC_ADDRFROMCOORD_INPUT display_dcc_input = {0};
@@ -261,7 +175,7 @@ void generate_hash(struct ac_addrlib *ac_addrlib,
 
       _mesa_sha1_update(&ctx, &output.addr, sizeof(output.addr));
 
-      if (surf->dcc_offset) {
+      if (surf->meta_offset) {
          dcc_input.x = (x & INT_MAX) % entry->w;
          dcc_input.y = (y & INT_MAX) % entry->h;
 
@@ -344,7 +258,6 @@ static void test_modifier(const struct radeon_info *info,
       int r = ac_compute_surface(addrlib, info, &config, RADEON_SURF_MODE_2D, &surf);
       assert(!r);
 
-      assert(surf.htile_offset == 0);
       assert(surf.cmask_offset == 0);
       assert(surf.fmask_offset == 0);
 
@@ -373,8 +286,8 @@ static void test_modifier(const struct radeon_info *info,
                      elem_bits, 20, &dcc_pitch,
                      NULL) << 12;
 
-         assert(surf.u.gfx9.display_dcc_size == align(dcc_size, dcc_align));
-         assert(surf.u.gfx9.display_dcc_pitch_max + 1 == dcc_pitch);
+         assert(surf.u.gfx9.color.display_dcc_size == align(dcc_size, dcc_align));
+         assert(surf.u.gfx9.color.display_dcc_pitch_max + 1 == dcc_pitch);
          assert(surf.display_dcc_offset == expected_offset);
 
          expected_offset += align(dcc_size, dcc_align);
@@ -405,17 +318,17 @@ static void test_modifier(const struct radeon_info *info,
          }
 
          expected_offset = align(expected_offset, dcc_align);
-         assert(surf.dcc_offset == expected_offset);
+         assert(surf.meta_offset == expected_offset);
 
          uint64_t dcc_size = block_count(dims[i][0], dims[i][1],
                      elem_bits, block_bits,
                      NULL, NULL) << (block_bits - 8);
          dcc_size = align64(dcc_size, dcc_align);
-         assert(surf.dcc_size == dcc_size);
+         assert(surf.meta_size == dcc_size);
 
          expected_offset += dcc_size;
       } else
-         assert(!surf.dcc_offset);
+         assert(!surf.meta_offset);
 
       assert(surf.total_size == expected_offset);
 
@@ -425,7 +338,8 @@ static void test_modifier(const struct radeon_info *info,
 
 }
 
-static void run_gpu_test(struct u_vector *test_entries, const char *name, const struct radeon_info *info)
+static void run_modifier_test(struct u_vector *test_entries, const char *name,
+                                  const struct radeon_info *info)
 {
    struct ac_addrlib *addrlib = ac_addrlib_create(info, NULL);
    assert(addrlib);
@@ -483,65 +397,15 @@ static void print_test_entry(const struct test_entry *e)
 
 int main()
 {
-   struct u_vector test_entries;
-   u_vector_init(&test_entries,  util_next_power_of_two(sizeof(struct test_entry)), 4096);
+   STATIC_ASSERT(sizeof(struct test_entry) == 64);
 
-   struct testcase {
-      const char *name;
-      gpu_init_func init;
-      int banks_or_pkrs;
-      int pipes;
-      int se;
-      int rb_per_se;
-   } testcases[] = {
-      {"vega10", init_vega10, 4, 2, 2, 2},
-      {"vega10_diff_bank", init_vega10, 3, 2, 2, 2},
-      {"vega10_diff_rb", init_vega10, 4, 2, 2, 0},
-      {"vega10_diff_pipe", init_vega10, 4, 0, 2, 2},
-      {"vega10_diff_se", init_vega10, 4, 2, 1, 2},
-      {"vega20", init_vega20, 4, 2, 2, 2},
-      {"raven", init_raven, 0, 2, 0, 1},
-      {"raven2", init_raven2, 3, 1, 0, 1},
-      {"navi10", init_navi10, 0, 4, 1, 0},
-      {"navi10_diff_pipe", init_navi10, 0, 3, 1, 0},
-      {"navi10_diff_pkr", init_navi10, 1, 4, 1, 0},
-      {"navi14", init_navi14, 1, 3, 1, 0}
-   };
+   struct u_vector test_entries;
+   u_vector_init(&test_entries,  sizeof(struct test_entry), 4096);
 
    for (unsigned i = 0; i < ARRAY_SIZE(testcases); ++i) {
-      struct radeon_info info = {
-         .drm_major = 3,
-         .drm_minor = 30,
-      };
+      struct radeon_info info = get_radeon_info(&testcases[i]);
 
-      testcases[i].init(&info);
-
-      info.max_render_backends = 1u << (testcases[i].se +
-                                        testcases[i].rb_per_se);
-      switch(info.chip_class) {
-      case GFX10:
-      case GFX10_3:
-         info.gb_addr_config = (info.gb_addr_config &
-                                C_0098F8_NUM_PIPES &
-                                C_0098F8_NUM_PKRS) |
-                                S_0098F8_NUM_PIPES(testcases[i].pipes) |
-                                S_0098F8_NUM_PKRS(testcases[i].banks_or_pkrs);
-         break;
-      case GFX9:
-         info.gb_addr_config = (info.gb_addr_config &
-                                C_0098F8_NUM_PIPES &
-                                C_0098F8_NUM_BANKS &
-                                C_0098F8_NUM_SHADER_ENGINES_GFX9 &
-                                C_0098F8_NUM_RB_PER_SE) |
-                                S_0098F8_NUM_PIPES(testcases[i].pipes) |
-                                S_0098F8_NUM_BANKS(testcases[i].banks_or_pkrs) |
-                                S_0098F8_NUM_SHADER_ENGINES_GFX9(testcases[i].se) |
-                                S_0098F8_NUM_RB_PER_SE(testcases[i].rb_per_se);
-         break;
-      default:
-         unreachable("Unhandled generation");
-      }
-      run_gpu_test(&test_entries, testcases[i].name, &info);
+      run_modifier_test(&test_entries, testcases[i].name, &info);
    }
 
    qsort(u_vector_tail(&test_entries),

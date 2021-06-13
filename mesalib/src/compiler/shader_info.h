@@ -67,6 +67,7 @@ struct spirv_supported_capabilities {
    bool integer_functions2;
    bool kernel;
    bool kernel_image;
+   bool kernel_image_read_write;
    bool literal_sampler;
    bool min_lod;
    bool multiview;
@@ -151,6 +152,15 @@ typedef struct shader_info {
    /* Which system values are actually read */
    BITSET_DECLARE(system_values_read, SYSTEM_VALUE_MAX);
 
+   /* Which 16-bit inputs and outputs are used corresponding to
+    * VARYING_SLOT_VARn_16BIT.
+    */
+   uint16_t inputs_read_16bit;
+   uint16_t outputs_written_16bit;
+   uint16_t outputs_read_16bit;
+   uint16_t inputs_read_indirectly_16bit;
+   uint16_t outputs_accessed_indirectly_16bit;
+
    /* Which patch inputs are actually read */
    uint32_t patch_inputs_read;
    /* Which patch outputs are actually written */
@@ -182,6 +192,11 @@ typedef struct shader_info {
 
    /* SPV_KHR_float_controls: execution mode for floating point ops */
    uint16_t float_controls_execution_mode;
+
+   /**
+    * Size of shared variables accessed by compute/task/mesh shaders.
+    */
+   unsigned shared_size;
 
    uint16_t inlinable_uniform_dw_offsets[MAX_INLINABLE_UNIFORMS];
    uint8_t num_inlinable_uniforms:4;
@@ -232,6 +247,12 @@ typedef struct shader_info {
    /* Whether explicit barriers are used */
    bool uses_control_barrier : 1;
    bool uses_memory_barrier : 1;
+
+   /**
+    * Shared memory types have explicit layout set.  Used for
+    * SPV_KHR_workgroup_storage_explicit_layout.
+    */
+   bool shared_memory_explicit_layout:1;
 
    union {
       struct {
@@ -378,11 +399,6 @@ typedef struct shader_info {
          bool zero_initialize_shared_memory;
 
          /**
-          * Size of shared variables accessed by the compute shader.
-          */
-         unsigned shared_size;
-
-         /**
           * pointer size is:
           *   AddressingModelLogical:    0    (default)
           *   AddressingModelPhysical32: 32
@@ -394,12 +410,6 @@ typedef struct shader_info {
           * Uses subgroup intrinsics which can communicate across a quad.
           */
          bool uses_wide_subgroup_intrinsics;
-
-         /**
-          * Shared memory types have explicit layout set.  Used for
-          * SPV_KHR_workgroup_storage_explicit_layout.
-          */
-         bool shared_memory_explicit_layout;
       } cs;
 
       /* Applies to both TCS and TES. */

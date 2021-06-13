@@ -24,163 +24,162 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-#include "util/ralloc.h"
 #include "util/hash_table.h"
+#include "util/ralloc.h"
 #define XXH_INLINE_ALL
 #include "util/xxhash.h"
 
 #include "ir3_cache.h"
 #include "ir3_gallium.h"
 
-
 static uint32_t
 key_hash(const void *_key)
 {
-	const struct ir3_cache_key *key = _key;
-	return  XXH32(key, sizeof(*key), 0);
+   const struct ir3_cache_key *key = _key;
+   return XXH32(key, sizeof(*key), 0);
 }
 
 static bool
 key_equals(const void *_a, const void *_b)
 {
-	const struct ir3_cache_key *a = _a;
-	const struct ir3_cache_key *b = _b;
-	// TODO we could optimize the key shader-variant key comparison by not
-	// ignoring has_per_samp.. not really sure if that helps..
-	return memcmp(a, b, sizeof(struct ir3_cache_key)) == 0;
+   const struct ir3_cache_key *a = _a;
+   const struct ir3_cache_key *b = _b;
+   // TODO we could optimize the key shader-variant key comparison by not
+   // ignoring has_per_samp.. not really sure if that helps..
+   return memcmp(a, b, sizeof(struct ir3_cache_key)) == 0;
 }
 
 struct ir3_cache {
-	/* cache mapping gallium/etc shader state-objs + shader-key to backend
-	 * specific state-object
-	 */
-	struct hash_table *ht;
+   /* cache mapping gallium/etc shader state-objs + shader-key to backend
+    * specific state-object
+    */
+   struct hash_table *ht;
 
-	const struct ir3_cache_funcs *funcs;
-	void *data;
+   const struct ir3_cache_funcs *funcs;
+   void *data;
 };
 
-struct ir3_cache * ir3_cache_create(const struct ir3_cache_funcs *funcs, void *data)
+struct ir3_cache *
+ir3_cache_create(const struct ir3_cache_funcs *funcs, void *data)
 {
-	struct ir3_cache *cache = rzalloc(NULL, struct ir3_cache);
+   struct ir3_cache *cache = rzalloc(NULL, struct ir3_cache);
 
-	cache->ht = _mesa_hash_table_create(cache, key_hash, key_equals);
-	cache->funcs = funcs;
-	cache->data = data;
+   cache->ht = _mesa_hash_table_create(cache, key_hash, key_equals);
+   cache->funcs = funcs;
+   cache->data = data;
 
-	return cache;
+   return cache;
 }
 
-void ir3_cache_destroy(struct ir3_cache *cache)
+void
+ir3_cache_destroy(struct ir3_cache *cache)
 {
-	if (!cache)
-		return;
+   if (!cache)
+      return;
 
-	/* _mesa_hash_table_destroy is so *almost* useful.. */
-	hash_table_foreach(cache->ht, entry) {
-		cache->funcs->destroy_state(cache->data, entry->data);
-	}
+   /* _mesa_hash_table_destroy is so *almost* useful.. */
+   hash_table_foreach (cache->ht, entry) {
+      cache->funcs->destroy_state(cache->data, entry->data);
+   }
 
-	ralloc_free(cache);
+   ralloc_free(cache);
 }
 
 struct ir3_program_state *
 ir3_cache_lookup(struct ir3_cache *cache, const struct ir3_cache_key *key,
-		struct pipe_debug_callback *debug)
+                 struct pipe_debug_callback *debug)
 {
-	uint32_t hash = key_hash(key);
-	struct hash_entry *entry =
-		_mesa_hash_table_search_pre_hashed(cache->ht, hash, key);
+   uint32_t hash = key_hash(key);
+   struct hash_entry *entry =
+      _mesa_hash_table_search_pre_hashed(cache->ht, hash, key);
 
-	if (entry) {
-		return entry->data;
-	}
+   if (entry) {
+      return entry->data;
+   }
 
-	if (key->hs)
-		debug_assert(key->ds);
+   if (key->hs)
+      debug_assert(key->ds);
 
-	struct ir3_shader *shaders[MESA_SHADER_STAGES] = {
-		[MESA_SHADER_VERTEX]    = ir3_get_shader(key->vs),
-		[MESA_SHADER_TESS_CTRL] = ir3_get_shader(key->hs),
-		[MESA_SHADER_TESS_EVAL] = ir3_get_shader(key->ds),
-		[MESA_SHADER_GEOMETRY]  = ir3_get_shader(key->gs),
-		[MESA_SHADER_FRAGMENT]  = ir3_get_shader(key->fs),
-	};
+   struct ir3_shader *shaders[MESA_SHADER_STAGES] = {
+      [MESA_SHADER_VERTEX] = ir3_get_shader(key->vs),
+      [MESA_SHADER_TESS_CTRL] = ir3_get_shader(key->hs),
+      [MESA_SHADER_TESS_EVAL] = ir3_get_shader(key->ds),
+      [MESA_SHADER_GEOMETRY] = ir3_get_shader(key->gs),
+      [MESA_SHADER_FRAGMENT] = ir3_get_shader(key->fs),
+   };
 
-	struct ir3_shader_variant *variants[MESA_SHADER_STAGES];
-	struct ir3_shader_key shader_key = key->key;
+   struct ir3_shader_variant *variants[MESA_SHADER_STAGES];
+   struct ir3_shader_key shader_key = key->key;
 
-	for (gl_shader_stage stage = MESA_SHADER_VERTEX;
-		 stage < MESA_SHADER_STAGES; stage++) {
-		if (shaders[stage]) {
-			variants[stage] =
-				ir3_shader_variant(shaders[stage], shader_key, false, debug);
-			if (!variants[stage])
-				return NULL;
-		} else {
-			variants[stage] = NULL;
-		}
-	}
+   for (gl_shader_stage stage = MESA_SHADER_VERTEX; stage < MESA_SHADER_STAGES;
+        stage++) {
+      if (shaders[stage]) {
+         variants[stage] =
+            ir3_shader_variant(shaders[stage], shader_key, false, debug);
+         if (!variants[stage])
+            return NULL;
+      } else {
+         variants[stage] = NULL;
+      }
+   }
 
-	struct ir3_compiler *compiler = shaders[MESA_SHADER_VERTEX]->compiler;
-	uint32_t safe_constlens = ir3_trim_constlen(variants, compiler);
-	shader_key.safe_constlen = true;
+   struct ir3_compiler *compiler = shaders[MESA_SHADER_VERTEX]->compiler;
+   uint32_t safe_constlens = ir3_trim_constlen(variants, compiler);
+   shader_key.safe_constlen = true;
 
-	for (gl_shader_stage stage = MESA_SHADER_VERTEX;
-		 stage < MESA_SHADER_STAGES; stage++) {
-		if (safe_constlens & (1 << stage)) {
-			variants[stage] =
-				ir3_shader_variant(shaders[stage], shader_key, false, debug);
-			if (!variants[stage])
-				return NULL;
-		}
-	}
+   for (gl_shader_stage stage = MESA_SHADER_VERTEX; stage < MESA_SHADER_STAGES;
+        stage++) {
+      if (safe_constlens & (1 << stage)) {
+         variants[stage] =
+            ir3_shader_variant(shaders[stage], shader_key, false, debug);
+         if (!variants[stage])
+            return NULL;
+      }
+   }
 
-	struct ir3_shader_variant *bs;
+   struct ir3_shader_variant *bs;
 
-	if (ir3_has_binning_vs(&key->key)) {
-		shader_key.safe_constlen = !!(safe_constlens & (1 << MESA_SHADER_VERTEX));
-		bs = ir3_shader_variant(shaders[MESA_SHADER_VERTEX], key->key, true, debug);
-		if (!bs)
-			return NULL;
-	} else {
-		bs = variants[MESA_SHADER_VERTEX];
-	}
+   if (ir3_has_binning_vs(&key->key)) {
+      shader_key.safe_constlen = !!(safe_constlens & (1 << MESA_SHADER_VERTEX));
+      bs =
+         ir3_shader_variant(shaders[MESA_SHADER_VERTEX], key->key, true, debug);
+      if (!bs)
+         return NULL;
+   } else {
+      bs = variants[MESA_SHADER_VERTEX];
+   }
 
-	struct ir3_program_state *state =
-		cache->funcs->create_state(cache->data, bs,
-								   variants[MESA_SHADER_VERTEX],
-								   variants[MESA_SHADER_TESS_CTRL],
-								   variants[MESA_SHADER_TESS_EVAL],
-								   variants[MESA_SHADER_GEOMETRY],
-								   variants[MESA_SHADER_FRAGMENT],
-								   &key->key);
-	state->key = *key;
+   struct ir3_program_state *state = cache->funcs->create_state(
+      cache->data, bs, variants[MESA_SHADER_VERTEX],
+      variants[MESA_SHADER_TESS_CTRL], variants[MESA_SHADER_TESS_EVAL],
+      variants[MESA_SHADER_GEOMETRY], variants[MESA_SHADER_FRAGMENT],
+      &key->key);
+   state->key = *key;
 
-	/* NOTE: uses copy of key in state obj, because pointer passed by caller
-	 * is probably on the stack
-	 */
-	_mesa_hash_table_insert_pre_hashed(cache->ht, hash, &state->key, state);
+   /* NOTE: uses copy of key in state obj, because pointer passed by caller
+    * is probably on the stack
+    */
+   _mesa_hash_table_insert_pre_hashed(cache->ht, hash, &state->key, state);
 
-	return state;
+   return state;
 }
 
 /* call when an API level state object is destroyed, to invalidate
  * cache entries which reference that state object.
  */
-void ir3_cache_invalidate(struct ir3_cache *cache, void *stobj)
+void
+ir3_cache_invalidate(struct ir3_cache *cache, void *stobj)
 {
-	if (!cache)
-		return;
+   if (!cache)
+      return;
 
-	hash_table_foreach(cache->ht, entry) {
-		const struct ir3_cache_key *key = entry->key;
-		if ((key->fs == stobj) || (key->vs == stobj) ||
-				(key->ds == stobj) || (key->hs == stobj) ||
-				(key->gs == stobj)) {
-			cache->funcs->destroy_state(cache->data, entry->data);
-			_mesa_hash_table_remove(cache->ht, entry);
-			return;
-		}
-	}
+   hash_table_foreach (cache->ht, entry) {
+      const struct ir3_cache_key *key = entry->key;
+      if ((key->fs == stobj) || (key->vs == stobj) || (key->ds == stobj) ||
+          (key->hs == stobj) || (key->gs == stobj)) {
+         cache->funcs->destroy_state(cache->data, entry->data);
+         _mesa_hash_table_remove(cache->ht, entry);
+         return;
+      }
+   }
 }

@@ -162,8 +162,15 @@ static void
 xwl_cursor_attach_pixmap(struct xwl_seat *xwl_seat,
                          struct xwl_cursor *xwl_cursor, PixmapPtr pixmap)
 {
-    wl_surface_attach(xwl_cursor->surface,
-                      xwl_shm_pixmap_get_wl_buffer(pixmap), 0, 0);
+    struct wl_buffer *buffer;
+
+    buffer = xwl_shm_pixmap_get_wl_buffer(pixmap);
+    if (!buffer) {
+        ErrorF("cursor: Error getting buffer\n");
+        return;
+    }
+
+    wl_surface_attach(xwl_cursor->surface, buffer, 0, 0);
     xwl_surface_damage(xwl_seat->xwl_screen, xwl_cursor->surface, 0, 0,
                        xwl_seat->x_cursor->bits->width,
                        xwl_seat->x_cursor->bits->height);

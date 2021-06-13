@@ -216,19 +216,20 @@ _mesa_glthread_flush_batch(struct gl_context *ctx)
    /* Pin threads regularly to the same Zen CCX that the main thread is
     * running on. The main thread can move between CCXs.
     */
-   if (util_get_cpu_caps()->nr_cpus != util_get_cpu_caps()->cores_per_L3 &&
+   if (util_get_cpu_caps()->num_L3_caches > 1 &&
        /* driver support */
        ctx->Driver.PinDriverToL3Cache &&
        ++glthread->pin_thread_counter % 128 == 0) {
       int cpu = util_get_current_cpu();
 
       if (cpu >= 0) {
-         unsigned L3_cache = util_get_cpu_caps()->cpu_to_L3[cpu];
-
-         util_set_thread_affinity(glthread->queue.threads[0],
-                                  util_get_cpu_caps()->L3_affinity_mask[L3_cache],
-                                  NULL, util_get_cpu_caps()->num_cpu_mask_bits);
-         ctx->Driver.PinDriverToL3Cache(ctx, L3_cache);
+         uint16_t L3_cache = util_get_cpu_caps()->cpu_to_L3[cpu];
+         if (L3_cache != U_CPU_INVALID_L3) {
+            util_set_thread_affinity(glthread->queue.threads[0],
+                                     util_get_cpu_caps()->L3_affinity_mask[L3_cache],
+                                     NULL, util_get_cpu_caps()->num_cpu_mask_bits);
+            ctx->Driver.PinDriverToL3Cache(ctx, L3_cache);
+         }
       }
    }
 

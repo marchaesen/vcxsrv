@@ -757,11 +757,13 @@ is_indirect_load(nir_instr *instr)
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
       if ((intrin->intrinsic == nir_intrinsic_load_ubo ||
-           intrin->intrinsic == nir_intrinsic_load_ssbo ||
-           intrin->intrinsic == nir_intrinsic_load_global) &&
+           intrin->intrinsic == nir_intrinsic_load_ssbo) &&
           !nir_src_is_const(intrin->src[1])) {
          return true;
       }
+
+      if (intrin->intrinsic == nir_intrinsic_load_global)
+         return true;
 
       if (intrin->intrinsic == nir_intrinsic_load_deref ||
           intrin->intrinsic == nir_intrinsic_store_deref) {

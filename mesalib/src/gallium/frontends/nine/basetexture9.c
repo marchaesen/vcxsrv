@@ -573,7 +573,7 @@ NineBaseTexture9_UpdateSamplerView( struct NineBaseTexture9 *This,
 
     DBG("sampler view = %p(resource = %p)\n", This->view[sRGB], resource);
 
-    return This->view ? D3D_OK : D3DERR_DRIVERINTERNALERROR;
+    return This->view[sRGB] ? D3D_OK : D3DERR_DRIVERINTERNALERROR;
 }
 
 void NINE_WINAPI

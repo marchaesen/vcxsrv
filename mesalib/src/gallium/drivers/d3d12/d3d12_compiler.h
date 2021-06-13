@@ -136,11 +136,11 @@ struct d3d12_shader {
    bool state_vars_used;
 
    struct {
-      int index;
       int binding;
       uint32_t dimension;
    } srv_bindings[PIPE_MAX_SHADER_SAMPLER_VIEWS];
-   size_t num_srv_bindings;
+   size_t begin_srv_binding;
+   size_t end_srv_binding;
 
    bool has_default_ubo0;
    unsigned pstipple_binding;

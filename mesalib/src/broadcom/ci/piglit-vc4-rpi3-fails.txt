@@ -1,15 +1,9 @@
-spec@egl 1.4@eglcreatepbuffersurface with egl_samples set,Crash
-spec@egl_android_native_fence_sync@egl_khr_fence_sync android_native,Crash
-spec@egl_ext_device_base@conformance,Crash
-spec@egl_khr_wait_sync@conformance,Crash
 glx@glx-copy-sub-buffer samples=2,Crash
 glx@glx-copy-sub-buffer samples=4,Crash
 glx@glx-make-current,Crash
 glx@glx-multithread-buffer,Fail
-glx@glx-multithread-texture,Timeout
 glx@glx-query-drawable-glx_fbconfig_id-window,Fail
 glx@glx-swap-pixmap-bad,Fail
-glx@glx-tfp,Fail
 glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-depth,Crash
 glx@glx-visuals-stencil -pixmap,Crash
@@ -27,7 +21,6 @@ glx@glx_ext_import_context@query context info,Fail
 shaders@glsl-arb-fragment-coord-conventions,Fail
 shaders@glsl-bug-110796,Fail
 shaders@glsl-max-vertex-attrib,Fail
-shaders@glsl-vs-loop-nested,Fail
 spec@!opengl 1.0@gl-1.0-bitmap-heart-dance,Fail
 spec@!opengl 1.0@gl-1.0-dlist-bitmap,Crash
 spec@!opengl 1.0@gl-1.0-drawbuffer-modes,Fail
@@ -73,7 +66,6 @@ spec@!opengl 1.1@read-front clear-front-first samples=2,Crash
 spec@!opengl 1.1@read-front clear-front-first samples=4,Crash
 spec@!opengl 1.1@read-front samples=2,Crash
 spec@!opengl 1.1@read-front samples=4,Crash
-spec@!opengl 1.1@streaming-texture-leak,Timeout
 spec@!opengl 1.1@tex-upside-down-miptree,Fail
 spec@!opengl 1.1@texsubimage-unpack,Fail
 spec@!opengl 1.1@texwrap 2d proj,Fail
@@ -106,9 +98,6 @@ spec@!opengl 2.1@minmax,Fail
 spec@!opengl 2.1@pbo,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
 spec@!opengl es 2.0@draw_buffers_gles2,Fail
-spec@amd_performance_monitor@api,Crash
-spec@amd_performance_monitor@measure,Crash
-spec@amd_performance_monitor@vc4,Crash
 spec@arb_arrays_of_arrays@execution@glsl-arrays-copy-size-mismatch,Fail
 spec@arb_depth_texture@depth-level-clamp,Fail
 spec@arb_depth_texture@texwrap formats,Fail
@@ -167,7 +156,6 @@ spec@arb_framebuffer_srgb@blit texture srgb_to_linear msaa disabled render,Crash
 spec@arb_framebuffer_srgb@blit texture srgb_to_linear msaa enabled clear,Crash
 spec@arb_framebuffer_srgb@blit texture srgb_to_linear msaa enabled render,Crash
 spec@arb_internalformat_query2@all internalformat_<x>_size pname checks,Fail
-spec@arb_internalformat_query2@all internalformat_<x>_type pname checks,Timeout
 spec@arb_internalformat_query2@api error checks,Fail
 spec@arb_internalformat_query2@max dimensions related pname checks,Fail
 spec@arb_occlusion_query2@render,Fail
@@ -182,8 +170,6 @@ spec@arb_point_sprite@arb_point_sprite-mipmap,Fail
 spec@arb_provoking_vertex@arb-provoking-vertex-render,Fail
 spec@arb_sampler_objects@sampler-objects,Fail
 spec@arb_shader_texture_lod@execution@glsl-fs-texturelod-01,Fail
-spec@arb_texture_cube_map@copyteximage cube samples=2,Crash
-spec@arb_texture_cube_map@copyteximage cube samples=4,Crash
 spec@arb_texture_multisample@arb_texture_multisample-teximage-3d-multisample,Fail
 spec@arb_texture_rectangle@1-1-linear-texture,Fail
 spec@arb_texture_rectangle@copyteximage rect samples=2,Crash
@@ -191,7 +177,6 @@ spec@arb_texture_rectangle@copyteximage rect samples=4,Crash
 spec@arb_texture_rectangle@texrect-many,Crash
 spec@arb_texture_storage@texture-storage,Fail
 spec@arb_vertex_program@minmax,Fail
-spec@arb_vertex_type_2_10_10_10_rev@attrib-p-type-size-match,Fail
 spec@egl 1.4@egl-copy-buffers,Crash
 spec@egl 1.4@eglterminate then unbind context,Fail
 spec@egl 1.4@largest possible eglcreatepbuffersurface and then glclear,Fail
@@ -204,32 +189,6 @@ spec@ext_direct_state_access@indexed-state-queries 12,Fail
 spec@ext_direct_state_access@multi-texture,Crash
 spec@ext_direct_state_access@textures,Fail
 spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
-spec@ext_framebuffer_multisample@accuracy 2 depth_draw depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 2 depth_draw small depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 2 depth_resolve depthstencil,Crash
-spec@ext_framebuffer_multisample@accuracy 2 depth_resolve small depthstencil,Timeout
-spec@ext_framebuffer_multisample@accuracy 2 stencil_resolve depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 2 stencil_resolve small depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 4 depth_draw depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 4 depth_draw small depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 4 depth_resolve depthstencil,Crash
-spec@ext_framebuffer_multisample@accuracy 4 depth_resolve small depthstencil,Timeout
-spec@ext_framebuffer_multisample@accuracy 4 srgb depthstencil linear,Fail
-spec@ext_framebuffer_multisample@accuracy 4 srgb depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 4 srgb small depthstencil linear,Fail
-spec@ext_framebuffer_multisample@accuracy 4 srgb small depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 4 stencil_resolve depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 4 stencil_resolve small depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy all_samples depth_draw depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy all_samples depth_draw small depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy all_samples depth_resolve depthstencil,Crash
-spec@ext_framebuffer_multisample@accuracy all_samples depth_resolve small depthstencil,Timeout
-spec@ext_framebuffer_multisample@accuracy all_samples srgb depthstencil linear,Fail
-spec@ext_framebuffer_multisample@accuracy all_samples srgb depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy all_samples srgb small depthstencil linear,Fail
-spec@ext_framebuffer_multisample@accuracy all_samples srgb small depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy all_samples stencil_resolve depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy all_samples stencil_resolve small depthstencil,Fail
 spec@ext_framebuffer_multisample@blit-flipped 2 x,Crash
 spec@ext_framebuffer_multisample@blit-flipped 2 y,Crash
 spec@ext_framebuffer_multisample@blit-flipped 4 x,Crash
@@ -388,13 +347,14 @@ spec@glsl-1.10@execution@built-in-functions@vs-tan-vec2,Fail
 spec@glsl-1.10@execution@built-in-functions@vs-tan-vec3,Fail
 spec@glsl-1.10@execution@built-in-functions@vs-tan-vec4,Fail
 spec@glsl-1.10@execution@fs-texture-select,Fail
-spec@glsl-1.10@execution@gl_lightsource_indirect,Crash
 spec@glsl-1.10@execution@glsl-fs-convolution-2,Fail
 spec@glsl-1.10@execution@samplers@glsl-fs-sampler-numbering-2,Fail
 spec@glsl-1.10@execution@samplers@glsl-fs-sampler-numbering-3,Fail
 spec@glsl-1.10@execution@samplers@in-parameter-array,Fail
 spec@glsl-1.10@execution@texture3d,Fail
 spec@glsl-1.20@built-in constants,Fail
+spec@glsl-1.20@execution@fs-nan-builtin-max,Fail
+spec@glsl-1.20@execution@fs-nan-builtin-min,Fail
 spec@glsl-1.20@execution@tex-miplevel-selection gl2:texture() 1d,Fail
 spec@glsl-1.20@execution@tex-miplevel-selection gl2:texture() 1dshadow,Fail
 spec@glsl-1.20@execution@tex-miplevel-selection gl2:texture() 2d,Fail
@@ -423,6 +383,8 @@ spec@glsl-1.20@execution@tex-miplevel-selection gl2:textureproj(bias) 2dshadow,F
 spec@glsl-1.20@execution@tex-miplevel-selection gl2:textureproj(bias) 3d,Fail
 spec@glsl-1.20@execution@variable-indexing@fs-temp-array-mat4-index-col-row-wr,Fail
 spec@glsl-1.20@execution@variable-indexing@vs-temp-array-mat4-index-col-row-wr,Fail
+spec@glsl-1.20@execution@vs-nan-builtin-max,Fail
+spec@glsl-1.20@execution@vs-nan-builtin-min,Fail
 spec@intel_performance_query@intel_performance_query-issue_2235,Fail
 spec@khr_texture_compression_astc@basic-gles,Fail
 spec@khr_texture_compression_astc@miptree-gl ldr,Fail

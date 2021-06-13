@@ -119,10 +119,6 @@ _mesa_varying_slot_in_fs(gl_varying_slot slot)
 #define BUFFER_BIT_BACK_LEFT    (1 << BUFFER_BACK_LEFT)
 #define BUFFER_BIT_FRONT_RIGHT  (1 << BUFFER_FRONT_RIGHT)
 #define BUFFER_BIT_BACK_RIGHT   (1 << BUFFER_BACK_RIGHT)
-#define BUFFER_BIT_AUX0         (1 << BUFFER_AUX0)
-#define BUFFER_BIT_AUX1         (1 << BUFFER_AUX1)
-#define BUFFER_BIT_AUX2         (1 << BUFFER_AUX2)
-#define BUFFER_BIT_AUX3         (1 << BUFFER_AUX3)
 #define BUFFER_BIT_DEPTH        (1 << BUFFER_DEPTH)
 #define BUFFER_BIT_STENCIL      (1 << BUFFER_STENCIL)
 #define BUFFER_BIT_ACCUM        (1 << BUFFER_ACCUM)
@@ -142,7 +138,6 @@ _mesa_varying_slot_in_fs(gl_varying_slot slot)
                             BUFFER_BIT_BACK_LEFT | \
                             BUFFER_BIT_FRONT_RIGHT | \
                             BUFFER_BIT_BACK_RIGHT | \
-                            BUFFER_BIT_AUX0 | \
                             BUFFER_BIT_COLOR0 | \
                             BUFFER_BIT_COLOR1 | \
                             BUFFER_BIT_COLOR2 | \
@@ -175,45 +170,14 @@ struct gl_config
    GLint depthBits;
    GLint stencilBits;
 
-   GLint numAuxBuffers;
-
-   GLint level;
-
-   /* EXT_visual_rating / GLX 1.2 */
-   GLint visualRating;
-
-   /* EXT_visual_info / GLX 1.2 */
-   GLint transparentPixel;
-   /*    colors are floats scaled to ints */
-   GLint transparentRed, transparentGreen, transparentBlue, transparentAlpha;
-   GLint transparentIndex;
-
    /* ARB_multisample / SGIS_multisample */
-   GLint sampleBuffers;
    GLuint samples;
-
-   /* SGIX_pbuffer / GLX 1.3 */
-   GLint maxPbufferWidth;
-   GLint maxPbufferHeight;
-   GLint maxPbufferPixels;
-   GLint optimalPbufferWidth;   /* Only for SGIX_pbuffer. */
-   GLint optimalPbufferHeight;  /* Only for SGIX_pbuffer. */
 
    /* OML_swap_method */
    GLint swapMethod;
 
-   /* EXT_texture_from_pixmap */
-   GLint bindToTextureRgb;
-   GLint bindToTextureRgba;
-   GLint bindToMipmapTexture;
-   GLint bindToTextureTargets;
-   GLint yInverted;
-
    /* EXT_framebuffer_sRGB */
    GLint sRGBCapable;
-
-   /* EGL_KHR_mutable_render_buffer */
-   GLuint mutableRenderBuffer; /* bool */
 };
 
 
@@ -3289,6 +3253,7 @@ struct gl_shader_compiler_options
    GLboolean LowerPrecisionFloat16;
    GLboolean LowerPrecisionInt16;
    GLboolean LowerPrecisionDerivatives;
+   GLboolean LowerPrecisionFloat16Uniforms;
 
    /**
     * This enables lowering of 16b constants.  Some drivers may not
@@ -4427,6 +4392,7 @@ struct gl_extensions
    GLboolean ARB_texture_env_crossbar;
    GLboolean ARB_texture_env_dot3;
    GLboolean ARB_texture_filter_anisotropic;
+   GLboolean ARB_texture_filter_minmax;
    GLboolean ARB_texture_float;
    GLboolean ARB_texture_gather;
    GLboolean ARB_texture_mirror_clamp_to_edge;
@@ -5493,8 +5459,6 @@ struct gl_context
    GLboolean _ForceEyeCoords;
 
    GLuint TextureStateTimestamp; /**< detect changes to shared state */
-
-   struct gl_list_extensions *ListExt; /**< driver dlist extensions */
 
    /** \name For debugging/development only */
    /*@{*/

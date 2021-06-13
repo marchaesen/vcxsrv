@@ -61,7 +61,7 @@
 static enum pipe_error
 translate_indices(struct svga_hwtnl *hwtnl,
                   const struct pipe_draw_info *info,
-                  const struct pipe_draw_start_count *draw,
+                  const struct pipe_draw_start_count_bias *draw,
                   enum pipe_prim_type gen_prim,
                   unsigned orig_nr, unsigned gen_nr,
                   unsigned gen_size,
@@ -216,7 +216,7 @@ svga_hwtnl_simple_draw_range_elements(struct svga_hwtnl *hwtnl,
 enum pipe_error
 svga_hwtnl_draw_range_elements(struct svga_hwtnl *hwtnl,
                                const struct pipe_draw_info *info,
-                               const struct pipe_draw_start_count *draw,
+                               const struct pipe_draw_start_count_bias *draw,
                                unsigned count)
 {
    struct pipe_context *pipe = &hwtnl->svga->pipe;
@@ -278,7 +278,7 @@ svga_hwtnl_draw_range_elements(struct svga_hwtnl *hwtnl,
 
       ret = svga_hwtnl_simple_draw_range_elements(hwtnl, index_buffer,
                                                   info->index_size,
-                                                  info->index_bias,
+                                                  draw->index_bias,
                                                   info->index_bounds_valid ? info->min_index : 0,
                                                   info->index_bounds_valid ? info->max_index : ~0,
                                                   gen_prim, index_offset, count,
@@ -306,7 +306,7 @@ svga_hwtnl_draw_range_elements(struct svga_hwtnl *hwtnl,
          ret = svga_hwtnl_simple_draw_range_elements(hwtnl,
                                                      gen_buf,
                                                      gen_size,
-                                                     info->index_bias,
+                                                     draw->index_bias,
                                                      info->index_bounds_valid ? info->min_index : 0,
                                                      info->index_bounds_valid ? info->max_index : ~0,
                                                      gen_prim, gen_offset,

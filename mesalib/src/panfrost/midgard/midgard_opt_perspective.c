@@ -122,10 +122,10 @@ midgard_opt_combine_projection(compiler_context *ctx, midgard_block *block)
                         .src_types = { nir_type_float32 },
                         .swizzle = SWIZZLE_IDENTITY_4,
                         .op = frcp_component == COMPONENT_W ?
-                                midgard_op_ldst_perspective_division_w :
-                                midgard_op_ldst_perspective_division_z,
+                                midgard_op_ldst_perspective_div_w :
+                                midgard_op_ldst_perspective_div_z,
                         .load_store = {
-                                .arg_1 = 0x20
+                                .bitsize_toggle = true,
                         }
                 };
 
@@ -167,23 +167,20 @@ midgard_opt_varying_projection(compiler_context *ctx, midgard_block *block)
                         /* We found it, so rewrite it to project. Grab the
                          * modifier */
 
-                        unsigned param = v->load_store.varying_parameters;
-                        midgard_varying_parameter p;
-                        memcpy(&p, &param, sizeof(p));
+                        midgard_varying_params p =
+                                midgard_unpack_varying_params(v->load_store);
 
                         if (p.modifier != midgard_varying_mod_none)
                                 break;
 
                         bool projects_w =
-                                ins->op == midgard_op_ldst_perspective_division_w;
+                                ins->op == midgard_op_ldst_perspective_div_w;
 
                         p.modifier = projects_w ?
                                 midgard_varying_mod_perspective_w :
                                 midgard_varying_mod_perspective_z;
 
-                        /* Aliasing rules are annoying */
-                        memcpy(&param, &p, sizeof(p));
-                        v->load_store.varying_parameters = param;
+                        midgard_pack_varying_params(&v->load_store, p);
 
                         /* Use the new destination */
                         v->dest = to;

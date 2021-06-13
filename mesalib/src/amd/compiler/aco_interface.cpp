@@ -82,10 +82,8 @@ void aco_compile_shader(unsigned shader_count,
       aco::select_trap_handler_shader(program.get(), shaders[0], &config, args);
    else
       aco::select_program(program.get(), shader_count, shaders, &config, args);
-   if (args->options->dump_preoptir) {
-      std::cerr << "After Instruction Selection:\n";
+   if (args->options->dump_preoptir)
       aco_print_program(program.get(), stderr);
-   }
 
    aco::live live_vars;
    if (!args->is_trap_handler_shader) {
@@ -142,15 +140,12 @@ void aco_compile_shader(unsigned shader_count,
 
       /* Register Allocation */
       aco::register_allocation(program.get(), live_vars.live_out);
-      if (args->options->dump_shader) {
-         std::cerr << "After RA:\n";
-         aco_print_program(program.get(), stderr);
-      }
 
       if (aco::validate_ra(program.get())) {
-         std::cerr << "Program after RA validation failure:\n";
          aco_print_program(program.get(), stderr);
          abort();
+      } else if (args->options->dump_shader) {
+         aco_print_program(program.get(), stderr);
       }
 
       validate(program.get());

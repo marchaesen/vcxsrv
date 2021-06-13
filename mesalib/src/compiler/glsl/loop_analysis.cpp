@@ -107,7 +107,7 @@ calculate_iterations(ir_rvalue *from, ir_rvalue *to, ir_rvalue *increment,
       return -1;
    }
 
-   if (!iter->type->is_integer_32() && !iter->type->is_integer_64()) {
+   if (!iter->type->is_integer()) {
       const ir_expression_operation op = iter->type->is_double()
          ? ir_unop_d2i : ir_unop_f2i;
       ir_rvalue *cast =
@@ -162,7 +162,7 @@ calculate_iterations(ir_rvalue *from, ir_rvalue *to, ir_rvalue *increment,
          iter = new(mem_ctx) ir_constant(int32_t(iter_value + bias[i]));
          break;
       case GLSL_TYPE_INT16:
-         iter = new(mem_ctx) ir_constant(uint16_t(iter_value + bias[i]));
+         iter = new(mem_ctx) ir_constant(int16_t(iter_value + bias[i]));
          break;
       case GLSL_TYPE_INT64:
          iter = new(mem_ctx) ir_constant(int64_t(iter_value + bias[i]));

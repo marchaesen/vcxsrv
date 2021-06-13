@@ -8,3 +8,11 @@ dEQP-GLES[0-9]*.stress.*
 
 # These are really slow on tiling architectures (including llvmpipe).
 dEQP-GLES[0-9]*.functional.flush_finish.*
+
+# RA failures
+dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.21
+dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.36
+
+# Some compute jobs take more 0.5s, the maximum allowed by the
+# kernel driver
+dEQP-GLES31.functional.draw_indirect.compute_interop.large.*

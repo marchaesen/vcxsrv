@@ -525,6 +525,27 @@ void _mesa_hash_table_remove_key(struct hash_table *ht,
 }
 
 /**
+ * This function is an iterator over the hash_table when no deleted entries are present.
+ *
+ * Pass in NULL for the first entry, as in the start of a for loop.
+ */
+struct hash_entry *
+_mesa_hash_table_next_entry_unsafe(const struct hash_table *ht, struct hash_entry *entry)
+{
+   assert(!ht->deleted_entries);
+   if (!ht->entries)
+      return NULL;
+   if (entry == NULL)
+      entry = ht->table;
+   else
+      entry = entry + 1;
+   if (entry != ht->table + ht->size)
+      return entry->key ? entry : _mesa_hash_table_next_entry_unsafe(ht, entry);
+
+   return NULL;
+}
+
+/**
  * This function is an iterator over the hash table.
  *
  * Pass in NULL for the first entry, as in the start of a for loop.  Note that
@@ -747,65 +768,35 @@ _mesa_hash_table_u64_create(void *mem_ctx)
    return ht;
 }
 
-void
-_mesa_hash_table_u64_clear(struct hash_table_u64 *ht,
-                           void (*delete_function)(struct hash_entry *entry))
+static void
+_mesa_hash_table_u64_delete_key(struct hash_entry *entry)
 {
-   if (!ht)
+   if (sizeof(void *) == 8)
       return;
 
-   if (ht->deleted_key_data) {
-      if (delete_function) {
-         struct hash_table *table = ht->table;
-         struct hash_entry entry;
+   struct hash_key_u64 *_key = (struct hash_key_u64 *)entry->key;
 
-         /* Create a fake entry for the delete function. */
-         if (sizeof(void *) == 8) {
-            entry.hash = table->key_hash_function(table->deleted_key);
-         } else {
-            struct hash_key_u64 _key = { .value = (uintptr_t)table->deleted_key };
-            entry.hash = table->key_hash_function(&_key);
-         }
-         entry.key = table->deleted_key;
-         entry.data = ht->deleted_key_data;
-
-         delete_function(&entry);
-      }
-      ht->deleted_key_data = NULL;
-   }
-
-   if (ht->freed_key_data) {
-      if (delete_function) {
-         struct hash_table *table = ht->table;
-         struct hash_entry entry;
-
-         /* Create a fake entry for the delete function. */
-         if (sizeof(void *) == 8) {
-            entry.hash = table->key_hash_function(uint_key(FREED_KEY_VALUE));
-         } else {
-            struct hash_key_u64 _key = { .value = (uintptr_t)FREED_KEY_VALUE };
-            entry.hash = table->key_hash_function(&_key);
-         }
-         entry.key = uint_key(FREED_KEY_VALUE);
-         entry.data = ht->freed_key_data;
-
-         delete_function(&entry);
-      }
-      ht->freed_key_data = NULL;
-   }
-
-   _mesa_hash_table_clear(ht->table, delete_function);
+   if (_key)
+      free(_key);
 }
 
 void
-_mesa_hash_table_u64_destroy(struct hash_table_u64 *ht,
-                             void (*delete_function)(struct hash_entry *entry))
+_mesa_hash_table_u64_clear(struct hash_table_u64 *ht)
 {
    if (!ht)
       return;
 
-   _mesa_hash_table_u64_clear(ht, delete_function);
-   _mesa_hash_table_destroy(ht->table, delete_function);
+   _mesa_hash_table_clear(ht->table, _mesa_hash_table_u64_delete_key);
+}
+
+void
+_mesa_hash_table_u64_destroy(struct hash_table_u64 *ht)
+{
+   if (!ht)
+      return;
+
+   _mesa_hash_table_u64_clear(ht);
+   _mesa_hash_table_destroy(ht->table, NULL);
    free(ht);
 }
 

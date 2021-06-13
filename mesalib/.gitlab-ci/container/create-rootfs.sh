@@ -5,85 +5,76 @@ set -ex
 if [ $DEBIAN_ARCH = arm64 ]; then
     ARCH_PACKAGES="firmware-qcom-media"
 elif [ $DEBIAN_ARCH = amd64 ]; then
-    # Upstream LLVM package repository
-    apt-get -y install --no-install-recommends gnupg ca-certificates
-    apt-key add /llvm-snapshot.gpg.key
-    echo "deb https://apt.llvm.org/buster/ llvm-toolchain-buster-10 main" >/etc/apt/sources.list.d/llvm10.list
-    apt-get update
-
     ARCH_PACKAGES="firmware-amd-graphics
                    libelf1
-                   libllvm10
+                   libllvm11
                   "
 fi
 
-if [ -n "$INCLUDE_PIGLIT" ]; then
-    PIGLIT_PACKAGES="libpython3.7
-                     libwaffle-1-0
-                     libx11-6
-                     libx11-xcb1
-                     libxcb-glx0
-                     libxcb-shm0
-                     libxdamage1
-                     libxext6
-                     libxfixes3
-                     libxkbcommon0
-                     libxxf86vm1
-                     python3
-                     python3-lxml
-                     python3-mako
-                     python3-numpy
-                     python3-packaging
-                     python3-pil
-                     python3-requests
-                     python3-simplejson
-                     python3-yaml
-                    "
-    INSTALL_CI_FAIRY_PACKAGES="git
-                               python3-dev
-                               python3-pip
-                               python3-setuptools
-                               python3-wheel
-                              "
-fi
+INSTALL_CI_FAIRY_PACKAGES="git
+                           python3-dev
+                           python3-pip
+                           python3-setuptools
+                           python3-wheel
+                           "
 
 apt-get -y install --no-install-recommends \
     $ARCH_PACKAGES \
-    $CI_FAIRY_PACKAGES \
     $INSTALL_CI_FAIRY_PACKAGES \
-    $PIGLIT_PACKAGES \
-    $VK_CTS_PACKAGES \
+    apitrace \
     ca-certificates \
     curl \
+    firmware-realtek \
     initramfs-tools \
-    libasan5 \
+    libasan6 \
     libexpat1 \
     libpng16-16 \
+    libpython3.9 \
     libsensors5 \
     libvulkan1 \
+    libwaffle-1-0 \
+    libx11-6 \
+    libx11-xcb1 \
     libxcb-dri2-0 \
     libxcb-dri3-0 \
+    libxcb-glx0 \
     libxcb-present0 \
     libxcb-randr0 \
+    libxcb-shm0 \
     libxcb-sync1 \
     libxcb-xfixes0 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxkbcommon0 \
+    libxrender1 \
     libxshmfence1 \
+    libxxf86vm1 \
     netcat-openbsd \
+    python3 \
+    python3-lxml \
+    python3-mako \
+    python3-numpy \
+    python3-packaging \
+    python3-pil \
+    python3-renderdoc \
+    python3-requests \
+    python3-simplejson \
+    python3-yaml \
     sntp \
     strace \
+    waffle-utils \
     wget \
     xinit \
     xserver-xorg-core \
     xz-utils
 
-if [ -n "$INCLUDE_PIGLIT" ]; then
-    # Needed for ci-fairy, this revision is able to upload files to
-    # MinIO and doesn't depend on git
-    pip3 install git+http://gitlab.freedesktop.org/freedesktop/ci-templates@0f1abc24c043e63894085a6bd12f14263e8b29eb
+# Needed for ci-fairy, this revision is able to upload files to
+# MinIO and doesn't depend on git
+pip3 install git+http://gitlab.freedesktop.org/freedesktop/ci-templates@0f1abc24c043e63894085a6bd12f14263e8b29eb
 
-    apt-get purge -y \
+apt-get purge -y \
         $INSTALL_CI_FAIRY_PACKAGES
-fi
 
 passwd root -d
 chsh -s /bin/sh
@@ -95,28 +86,21 @@ exec sh
 EOF
 chmod +x  /init
 
-mkdir -p /lib/firmware/rtl_nic
-wget https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/tree/rtl_nic/rtl8153a-3.fw -O /lib/firmware/rtl_nic/rtl8153a-3.fw
-
 #######################################################################
 # Strip the image to a small minimal system without removing the debian
 # toolchain.
 
-# xz compress firmware so it doesn't waste RAM at runtime.  Except db820c's
-# GPU firmware, due to using a precompiled kernel without compression support.
+# xz compress firmware so it doesn't waste RAM at runtime on ramdisk systems
 find /lib/firmware -type f -print0 | \
-    grep -vz a530 | \
     xargs -0r -P4 -n4 xz -T1 -C crc32
-ln -s /lib/firmware/qcom/a530* /lib/firmware/
 
 # Copy timezone file and remove tzdata package
 rm -rf /etc/localtime
 cp /usr/share/zoneinfo/Etc/UTC /etc/localtime
 
-UNNEEDED_PACKAGES="libfdisk1
-                   tzdata
-                   diffutils
-                   gnupg"
+UNNEEDED_PACKAGES="
+        libfdisk1
+        "
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -194,7 +178,6 @@ UNNEEDED_PACKAGES="apt libapt-pkg6.0 "\
 "libgles2-mesa-dev "\
 "libglx-mesa0 "\
 "mesa-common-dev "\
-"libz3-4 "\
 
 # Removing unneeded packages
 for PACKAGE in ${UNNEEDED_PACKAGES}
@@ -230,8 +213,8 @@ rm -rf usr/share/bash-completion
 # No zsh, no need for comletions
 rm -rf usr/share/zsh/vendor-completions
 
-# drop gcc-6 python helpers
-rm -rf usr/share/gcc-6
+# drop gcc python helpers
+rm -rf usr/share/gcc
 
 # Drop sysvinit leftovers
 rm -rf etc/init.d

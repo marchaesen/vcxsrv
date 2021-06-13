@@ -73,7 +73,7 @@ mir_analyze_ranges(compiler_context *ctx)
         mir_foreach_instr_global(ctx, ins) {
                 if (!mir_is_direct_aligned_ubo(ins)) continue;
 
-                unsigned ubo = ins->load_store.arg_1;
+                unsigned ubo = midgard_unpack_ubo_index_imm(ins->load_store);
                 unsigned offset = ins->constants.u32[0] / 16;
 
                 assert(ubo < res.nr_blocks);
@@ -276,7 +276,7 @@ midgard_promote_uniforms(compiler_context *ctx)
         mir_foreach_instr_global_safe(ctx, ins) {
                 if (!mir_is_direct_aligned_ubo(ins)) continue;
 
-                unsigned ubo = ins->load_store.arg_1;
+                unsigned ubo = midgard_unpack_ubo_index_imm(ins->load_store);
                 unsigned qword = ins->constants.u32[0] / 16;
 
                 /* Check if we decided to push this */

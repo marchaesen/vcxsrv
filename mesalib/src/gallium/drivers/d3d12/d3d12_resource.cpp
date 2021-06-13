@@ -177,7 +177,7 @@ init_texture(struct d3d12_screen *screen,
    case PIPE_TEXTURE_CUBE:
    case PIPE_TEXTURE_CUBE_ARRAY:
       desc.DepthOrArraySize *= 6;
-      /* fall-through */
+      FALLTHROUGH;
    case PIPE_TEXTURE_2D:
    case PIPE_TEXTURE_2D_ARRAY:
    case PIPE_TEXTURE_RECT:

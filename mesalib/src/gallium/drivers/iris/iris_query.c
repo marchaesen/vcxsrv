@@ -156,9 +156,9 @@ iris_pipelined_write(struct iris_batch *batch,
                      enum pipe_control_flags flags,
                      unsigned offset)
 {
-   const struct gen_device_info *devinfo = &batch->screen->devinfo;
+   const struct intel_device_info *devinfo = &batch->screen->devinfo;
    const unsigned optional_cs_stall =
-      GEN_GEN == 9 && devinfo->gt == 4 ?  PIPE_CONTROL_CS_STALL : 0;
+      GFX_VER == 9 && devinfo->gt == 4 ?  PIPE_CONTROL_CS_STALL : 0;
    struct iris_bo *bo = iris_resource_bo(q->query_state_ref.res);
 
    iris_emit_pipe_control_write(batch, "query: pipelined snapshot write",
@@ -184,7 +184,7 @@ write_value(struct iris_context *ice, struct iris_query *q, unsigned offset)
    case PIPE_QUERY_OCCLUSION_COUNTER:
    case PIPE_QUERY_OCCLUSION_PREDICATE:
    case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
-      if (GEN_GEN >= 10) {
+      if (GFX_VER >= 10) {
          /* "Driver must program PIPE_CONTROL with only Depth Stall Enable
           *  bit set prior to programming a PIPE_CONTROL with Write PS Depth
           *  Count sync operation."
@@ -286,7 +286,7 @@ stream_overflowed(struct iris_query_so_overflow *so, int s)
 }
 
 static void
-calculate_result_on_cpu(const struct gen_device_info *devinfo,
+calculate_result_on_cpu(const struct intel_device_info *devinfo,
                         struct iris_query *q)
 {
    switch (q->type) {
@@ -297,12 +297,12 @@ calculate_result_on_cpu(const struct gen_device_info *devinfo,
    case PIPE_QUERY_TIMESTAMP:
    case PIPE_QUERY_TIMESTAMP_DISJOINT:
       /* The timestamp is the single starting snapshot. */
-      q->result = gen_device_info_timebase_scale(devinfo, q->map->start);
+      q->result = intel_device_info_timebase_scale(devinfo, q->map->start);
       q->result &= (1ull << TIMESTAMP_BITS) - 1;
       break;
    case PIPE_QUERY_TIME_ELAPSED:
       q->result = iris_raw_timestamp_delta(q->map->start, q->map->end);
-      q->result = gen_device_info_timebase_scale(devinfo, q->result);
+      q->result = intel_device_info_timebase_scale(devinfo, q->result);
       q->result &= (1ull << TIMESTAMP_BITS) - 1;
       break;
    case PIPE_QUERY_SO_OVERFLOW_PREDICATE:
@@ -317,7 +317,7 @@ calculate_result_on_cpu(const struct gen_device_info *devinfo,
       q->result = q->map->end - q->map->start;
 
       /* WaDividePSInvocationCountBy4:HSW,BDW */
-      if (GEN_GEN == 8 && q->index == PIPE_STAT_QUERY_PS_INVOCATIONS)
+      if (GFX_VER == 8 && q->index == PIPE_STAT_QUERY_PS_INVOCATIONS)
          q->result /= 4;
       break;
    case PIPE_QUERY_OCCLUSION_COUNTER:
@@ -385,7 +385,7 @@ query_is_boolean(enum pipe_query_type type)
  * Calculate the result using MI_MATH.
  */
 static struct mi_value
-calculate_result_on_gpu(const struct gen_device_info *devinfo,
+calculate_result_on_gpu(const struct intel_device_info *devinfo,
                         struct mi_builder *b,
                         struct iris_query *q)
 {
@@ -424,7 +424,7 @@ calculate_result_on_gpu(const struct gen_device_info *devinfo,
    }
 
    /* WaDividePSInvocationCountBy4:HSW,BDW */
-   if (GEN_GEN == 8 &&
+   if (GFX_VER == 8 &&
        q->type == PIPE_QUERY_PIPELINE_STATISTICS_SINGLE &&
        q->index == PIPE_STAT_QUERY_PS_INVOCATIONS)
       result = mi_ushr32_imm(b, result, 2);
@@ -590,7 +590,7 @@ static void
 iris_check_query_no_flush(struct iris_context *ice, struct iris_query *q)
 {
    struct iris_screen *screen = (void *) ice->ctx.screen;
-   const struct gen_device_info *devinfo = &screen->devinfo;
+   const struct intel_device_info *devinfo = &screen->devinfo;
 
    if (!q->ready && READ_ONCE(q->map->snapshots_landed)) {
       calculate_result_on_cpu(devinfo, q);
@@ -610,7 +610,7 @@ iris_get_query_result(struct pipe_context *ctx,
       return iris_get_monitor_result(ctx, q->monitor, wait, result->batch);
 
    struct iris_screen *screen = (void *) ctx->screen;
-   const struct gen_device_info *devinfo = &screen->devinfo;
+   const struct intel_device_info *devinfo = &screen->devinfo;
 
    if (unlikely(screen->no_hw)) {
       result->u64 = 0;
@@ -660,7 +660,7 @@ iris_get_query_result_resource(struct pipe_context *ctx,
    struct iris_context *ice = (void *) ctx;
    struct iris_query *q = (void *) query;
    struct iris_batch *batch = &ice->batches[q->batch_idx];
-   const struct gen_device_info *devinfo = &batch->screen->devinfo;
+   const struct intel_device_info *devinfo = &batch->screen->devinfo;
    struct iris_resource *res = (void *) p_res;
    struct iris_bo *query_bo = iris_resource_bo(q->query_state_ref.res);
    struct iris_bo *dst_bo = iris_resource_bo(p_res);

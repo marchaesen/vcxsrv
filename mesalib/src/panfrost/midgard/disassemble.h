@@ -23,4 +23,4 @@ struct midgard_disasm_stats {
 };
 
 struct midgard_disasm_stats
-disassemble_midgard(FILE *fp, uint8_t *code, size_t size, unsigned gpu_id);
+disassemble_midgard(FILE *fp, uint8_t *code, size_t size, unsigned gpu_id, bool verbose);

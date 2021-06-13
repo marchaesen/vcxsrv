@@ -71,6 +71,7 @@ if with_tools.contains('all')
     'nir',
     'nouveau',
     'xvmc',
+    'asahi',
   ]
 endif
 with_clc = false
@@ -198,7 +199,7 @@ if gallium_drivers.contains('auto')
       ]
     elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
       gallium_drivers = [
-        'kmsro', 'v3d', 'vc4', 'freedreno', 'etnaviv', 'nouveau',
+        'v3d', 'vc4', 'freedreno', 'etnaviv', 'nouveau',
         'tegra', 'virgl', 'lima', 'panfrost', 'swrast'
       ]
     elif ['mips', 'mips64'].contains(host_machine.cpu_family())
@@ -216,7 +217,6 @@ if gallium_drivers.contains('auto')
           host_machine.system()))
   endif
 endif
-with_gallium_kmsro = gallium_drivers.contains('kmsro')
 with_gallium_radeonsi = gallium_drivers.contains('radeonsi')
 with_gallium_r300 = gallium_drivers.contains('r300')
 with_gallium_r600 = gallium_drivers.contains('r600')
@@ -236,8 +236,10 @@ with_gallium_swr = gallium_drivers.contains('swr')
 with_gallium_lima = gallium_drivers.contains('lima')
 with_gallium_zink = gallium_drivers.contains('zink')
 with_gallium_d3d12 = gallium_drivers.contains('d3d12')
+with_gallium_asahi = gallium_drivers.contains('asahi')
 
 with_gallium = gallium_drivers.length() != 0
+with_gallium_kmsro = with_gallium_v3d or with_gallium_vc4 or with_gallium_etnaviv or with_gallium_panfrost or with_gallium_lima or with_gallium_freedreno
 
 if with_gallium and system_has_kms_drm
   _glx = get_option('glx')
@@ -273,6 +275,7 @@ with_intel_vk = _vulkan_drivers.contains('intel')
 with_amd_vk = _vulkan_drivers.contains('amd')
 with_freedreno_vk = _vulkan_drivers.contains('freedreno')
 with_swrast_vk = _vulkan_drivers.contains('swrast')
+with_virtio_vk = _vulkan_drivers.contains('virtio-experimental')
 with_freedreno_kgsl = get_option('freedreno-kgsl')
 with_broadcom_vk = _vulkan_drivers.contains('broadcom')
 with_any_vk = _vulkan_drivers.length() != 0
@@ -285,9 +288,6 @@ if with_swrast_vk and not with_gallium_softpipe
 endif
 if with_dri_i915 and with_gallium_i915
   error('Only one i915 provider can be built')
-endif
-if with_gallium_kmsro and not (with_gallium_v3d or with_gallium_vc4 or with_gallium_etnaviv or with_gallium_freedreno or with_gallium_panfrost or with_gallium_lima)
-  error('kmsro driver requires one or more renderonly drivers (vc4, etnaviv, freedreno, panfrost, lima)')
 endif
 if with_gallium_tegra and not with_gallium_nouveau
   error('tegra driver requires nouveau driver')
@@ -573,6 +573,7 @@ if with_gallium_zink
   dep_vulkan = dependency('vulkan')
 endif
 
+dep_dxheaders = null_dep
 if with_gallium_d3d12 or with_microsoft_clc
   dep_dxheaders = dependency('DirectX-Headers', fallback : ['DirectX-Headers', 'dep_dxheaders'],
     required : with_gallium_d3d12
@@ -732,6 +733,10 @@ if _va != 'disabled'
   if dep_va.found()
     dep_va_headers = dep_va.partial_dependency(compile_args : true)
     with_gallium_va = true
+    if cc.has_header_symbol('va/va.h', 'VASurfaceAttribDRMFormatModifiers',
+                            dependencies: dep_va_headers)
+      pre_args += '-DHAVE_VA_SURFACE_ATTRIB_DRM_FORMAT_MODIFIERS'
+    endif
   endif
 endif
 
@@ -1023,6 +1028,7 @@ if cc.get_id() == 'msvc'
                '/wd4624',  # destructor was implicitly defined as deleted [from LLVM]
                '/wd4309',  # 'initializing': truncation of constant value
                '/wd4838',  # conversion from 'int' to 'const char' requires a narrowing conversion
+               '/wd5105',  # macro expansion producing 'defined' has undefined behavior (winbase.h, need Windows SDK upgrade)
                '/we4020',  # Error when passing the wrong number of parameters
                '/we4024',  # Error when passing different type of parameter
               ]
@@ -1453,7 +1459,7 @@ dep_libdrm_radeon = null_dep
 dep_libdrm_nouveau = null_dep
 dep_libdrm_intel = null_dep
 
-_drm_amdgpu_ver = '2.4.100'
+_drm_amdgpu_ver = '2.4.105'
 _drm_radeon_ver = '2.4.71'
 _drm_nouveau_ver = '2.4.102'
 _drm_intel_ver = '2.4.75'
@@ -1461,7 +1467,7 @@ _drm_ver = '2.4.81'
 
 _libdrm_checks = [
   ['intel', with_dri_i915 or with_gallium_i915],
-  ['amdgpu', with_amd_vk or with_gallium_radeonsi],
+  ['amdgpu', (with_amd_vk and not with_platform_windows) or with_gallium_radeonsi],
   ['radeon', (with_gallium_radeonsi or with_dri_r100 or with_dri_r200 or
               with_gallium_r300 or with_gallium_r600)],
   ['nouveau', (with_gallium_nouveau or with_dri_nouveau)],
@@ -1537,9 +1543,11 @@ if with_tests or with_gallium_softpipe
   llvm_modules += 'native'
 endif
 
-if with_microsoft_clc
+if with_amd_vk or with_gallium_radeonsi
+  _llvm_version = '>= 11.0.0'
+elif with_microsoft_clc
   _llvm_version = '>= 10.0.0'
-elif with_amd_vk or with_gallium_radeonsi or with_gallium_opencl
+elif with_gallium_opencl
   _llvm_version = '>= 8.0.0'
 elif with_gallium_swr
   _llvm_version = '>= 6.0.0'
@@ -1606,6 +1614,8 @@ if with_llvm
 
   if draw_with_llvm
     pre_args += '-DDRAW_LLVM_AVAILABLE'
+  elif with_swrast_vk
+    error('Lavapipe requires LLVM draw support.')
   elif with_gallium_swr
     error('SWR requires LLVM draw support.')
   endif
@@ -1635,8 +1645,16 @@ if with_llvm
       cpp_args += '-fno-rtti'
     endif
   endif
-elif with_amd_vk or with_gallium_radeonsi or with_gallium_swr
-  error('The following drivers require LLVM: Radv, RadeonSI, SWR. One of these is enabled, but LLVM is disabled.')
+
+  if cc.get_id() == 'msvc'
+    # Suppress "/DELAYLOAD:ole32.dll/shell32.dll ignored" warnings that LLVM adds
+    add_project_link_arguments(
+      '/ignore:4199',
+      language : ['c', 'cpp'],
+    )
+  endif
+elif with_amd_vk or with_gallium_radeonsi or with_gallium_swr or with_swrast_vk
+  error('The following drivers require LLVM: Radv, RadeonSI, SWR, Lavapipe. One of these is enabled, but LLVM is disabled.')
 elif with_gallium_opencl
   error('The OpenCL "Clover" state tracker requires LLVM, but LLVM is disabled.')
 elif with_microsoft_clc
@@ -1675,7 +1693,11 @@ with_opencl_native = _opencl != 'disabled' and get_option('opencl-native')
 if (with_amd_vk or with_gallium_radeonsi or
     (with_gallium_opencl and with_opencl_native) or
     (with_gallium_r600 and with_llvm))
-  dep_elf = dependency('libelf', required : false)
+  if with_platform_windows
+    dep_elf = dependency('libelf', required : false, fallback : ['libelf', 'libelf_dep'])
+  else
+    dep_elf = dependency('libelf', required : false)
+  endif
   if not dep_elf.found()
     dep_elf = cc.find_library('elf')
   endif
@@ -1715,6 +1737,8 @@ else
   asan_c_args = ['-DBUILT_WITH_ASAN=0']
 endif
 
+yacc_is_bison = true
+
 if build_machine.system() == 'windows'
   # Prefer the winflexbison versions, they're much easier to install and have
   # better windows support.
@@ -1723,21 +1747,35 @@ if build_machine.system() == 'windows'
   if prog_flex.found()
     # windows compatibility (uses <io.h> instead of <unistd.h> and _isatty,
     # _fileno functions)
-    prog_flex = [prog_flex, '--wincompat', '-D__STDC_VERSION__=199901']
+    prog_flex = [prog_flex, '--wincompat']
+    if get_option('c_std') == 'c99'
+      prog_flex += '-D__STDC_VERSION__=199901'
+    endif
   else
     prog_flex = [find_program('flex', 'lex', required : with_any_opengl)]
   endif
   # Force flex to use const keyword in prototypes, as relies on __cplusplus or
   # __STDC__ macro to determine whether it's safe to use const keyword, but
-  # MSVC never defines __STDC__ unless we disable all MSVC extensions.
+  # MSVC only defines __STDC_VERSION__ for C11/C17.
   prog_flex += '-DYY_USE_CONST='
+
+  prog_flex_cpp = prog_flex
+  if get_option('c_std') != 'c99'
+    # Convince win_flex to use <inttypes.h> for C++ files
+    prog_flex_cpp += '-D__STDC_VERSION__=199901'
+  endif
 
   prog_bison = find_program('win_bison', required : false)
   if not prog_bison.found()
     prog_bison = find_program('bison', 'yacc', required : with_any_opengl)
   endif
 else
-  prog_bison = find_program('bison', required : with_any_opengl)
+  prog_bison = find_program('bison', required : false)
+
+  if not prog_bison.found()
+    prog_bison = find_program('byacc', required : with_any_opengl)
+    yacc_is_bison = false
+  endif
 
   # Disable deprecated keyword warnings, since we have to use them for
   # old-bison compat.  See discussion in
@@ -1747,6 +1785,7 @@ else
   endif
 
   prog_flex = find_program('flex', required : with_any_opengl)
+  prog_flex_cpp = prog_flex
 endif
 
 dep_selinux = null_dep
@@ -1840,6 +1879,16 @@ dep_xshmfence = null_dep
 dep_xcb_xrandr = null_dep
 dep_xcb_shm = null_dep
 dep_xlib_xrandr = null_dep
+dep_openmp = null_dep
+
+# Even if we find OpenMP, Gitlab CI fails to link with gcc/i386 and clang/anyarch.
+if host_machine.cpu_family() == 'x86_64' and cc.get_id() == 'gcc'
+  dep_openmp = dependency('openmp', required : false)
+  if dep_openmp.found()
+    pre_args += ['-DHAVE_OPENMP']
+  endif
+endif
+
 if with_platform_x11
   if with_glx == 'xlib' or with_glx == 'gallium-xlib'
     dep_x11 = dependency('x11')
@@ -1894,8 +1943,10 @@ if with_platform_x11
       with_gallium_omx != 'disabled'))
     dep_xcb_xfixes = dependency('xcb-xfixes')
   endif
-  if with_xlib_lease
+  if with_xlib_lease or with_any_vk
     dep_xcb_xrandr = dependency('xcb-randr')
+  endif
+  if with_xlib_lease
     dep_xlib_xrandr = dependency('xrandr', version : '>= 1.3')
   endif
 endif

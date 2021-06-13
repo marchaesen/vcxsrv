@@ -36,6 +36,8 @@ import aiohttp
 from mako.template import Template
 from mako import exceptions
 
+import docutils.utils
+import docutils.parsers.rst.states as states
 
 CURRENT_GL_VERSION = '4.6'
 CURRENT_VK_VERSION = '1.2'
@@ -101,16 +103,74 @@ TEMPLATE = Template(textwrap.dedent("""\
     """))
 
 
-def rst_escape(unsafe_str: str) -> str:
-    "Escape rST special chars when they follow or preceed a whitespace"
-    special = re.escape(r'`<>*_#[]|')
-    unsafe_str = re.sub(r'(^|\s)([' + special + r'])',
-                        r'\1\\\2',
-                        unsafe_str)
-    unsafe_str = re.sub(r'([' + special + r'])(\s|$)',
-                        r'\\\1\2',
-                        unsafe_str)
-    return unsafe_str
+# copied from https://docutils.sourceforge.io/sandbox/xml2rst/xml2rstlib/markup.py
+class Inliner(states.Inliner):
+    """
+    Recognizer for inline markup. Derive this from the original inline
+    markup parser for best results.
+    """
+
+    # Copy static attributes from super class
+    vars().update(vars(states.Inliner))
+
+    def quoteInline(self, text):
+        """
+        `text`: ``str``
+          Return `text` with inline markup quoted.
+        """
+        # Method inspired by `states.Inliner.parse`
+        self.document = docutils.utils.new_document("<string>")
+        self.document.settings.trim_footnote_reference_space = False
+        self.document.settings.character_level_inline_markup = False
+        self.document.settings.pep_references = False
+        self.document.settings.rfc_references = False
+
+        self.init_customizations(self.document.settings)
+
+        self.reporter = self.document.reporter
+        self.reporter.stream = None
+        self.language = None
+        self.parent = self.document
+        remaining = docutils.utils.escape2null(text)
+        checked = ""
+        processed = []
+        unprocessed = []
+        messages = []
+        while remaining:
+            original = remaining
+            match = self.patterns.initial.search(remaining)
+            if match:
+                groups = match.groupdict()
+                method = self.dispatch[groups['start'] or groups['backquote']
+                                       or groups['refend'] or groups['fnend']]
+                before, inlines, remaining, sysmessages = method(self, match, 0)
+                checked += before
+                if inlines:
+                    assert len(inlines) == 1, "More than one inline found"
+                    inline = original[len(before)
+                                      :len(original) - len(remaining)]
+                    rolePfx = re.search("^:" + self.simplename + ":(?=`)",
+                                        inline)
+                    refSfx = re.search("_+$", inline)
+                    if rolePfx:
+                        # Prefixed roles need to be quoted in the middle
+                        checked += (inline[:rolePfx.end()] + "\\"
+                                    + inline[rolePfx.end():])
+                    elif refSfx and not re.search("^`", inline):
+                        # Pure reference markup needs to be quoted at the end
+                        checked += (inline[:refSfx.start()] + "\\"
+                                    + inline[refSfx.start():])
+                    else:
+                        # Quote other inlines by prefixing
+                        checked += "\\" + inline
+            else:
+                checked += remaining
+                break
+        # Quote all original backslashes
+        checked = re.sub('\x00', "\\\x00", checked)
+        return docutils.utils.unescape(checked, 1)
+
+inliner = Inliner();
 
 
 async def gather_commits(version: str) -> str:
@@ -262,7 +322,7 @@ async def main() -> None:
                 header_underline=header_underline,
                 previous_version=previous_version,
                 vk_version=CURRENT_VK_VERSION,
-                rst_escape=rst_escape,
+                rst_escape=inliner.quoteInline,
             ))
         except:
             print(exceptions.text_error_template().render())

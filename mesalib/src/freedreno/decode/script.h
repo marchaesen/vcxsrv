@@ -31,7 +31,6 @@
 
 #include <stdint.h>
 
-
 // XXX make script support optional
 #define ENABLE_SCRIPTING 1
 
@@ -53,7 +52,8 @@ struct rnn;
 struct rnndomain;
 __attribute__((weak))
 void script_packet(uint32_t *dwords, uint32_t sizedwords,
-		struct rnn *rnn, struct rnndomain *dom);
+                   struct rnn *rnn,
+                   struct rnndomain *dom);
 
 /* maybe at some point it is interesting to add additional script
  * hooks for CP_EVENT_WRITE, etc?
@@ -71,6 +71,5 @@ void script_finish(void);
 #else
 // TODO no-op stubs..
 #endif
-
 
 #endif /* SCRIPT_H_ */

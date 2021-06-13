@@ -552,7 +552,7 @@ can_exchange(ScrnInfoPtr scrn, DrawablePtr draw,
             return FALSE;
 #endif
 
-        if (ms_crtc_on(config->crtc[i]))
+        if (xf86_crtc_on(config->crtc[i]))
             num_crtcs_on++;
     }
 

@@ -31,46 +31,45 @@
 
 #include "radv_amdgpu_winsys.h"
 
-
 struct radv_amdgpu_map_range {
-	uint64_t offset;
-	uint64_t size;
-	struct radv_amdgpu_winsys_bo *bo;
-	uint64_t bo_offset;
+   uint64_t offset;
+   uint64_t size;
+   struct radv_amdgpu_winsys_bo *bo;
+   uint64_t bo_offset;
 };
 
 struct radv_amdgpu_winsys_bo {
-	struct radeon_winsys_bo base;
-	amdgpu_va_handle va_handle;
-	uint64_t size;
-	bool is_virtual;
-	uint8_t priority;
-	int ref_count;
+   struct radeon_winsys_bo base;
+   amdgpu_va_handle va_handle;
+   uint64_t size;
+   bool is_virtual;
+   uint8_t priority;
+   int ref_count;
 
-	union {
-		/* physical bo */
-		struct {
-			amdgpu_bo_handle bo;
-			bool is_shared;
-			uint32_t bo_handle;
-		};
-		/* virtual bo */
-		struct {
-			struct radv_amdgpu_map_range *ranges;
-			uint32_t range_count;
-			uint32_t range_capacity;
+   union {
+      /* physical bo */
+      struct {
+         amdgpu_bo_handle bo;
+         bool is_shared;
+         uint32_t bo_handle;
+      };
+      /* virtual bo */
+      struct {
+         struct radv_amdgpu_map_range *ranges;
+         uint32_t range_count;
+         uint32_t range_capacity;
 
-			struct radv_amdgpu_winsys_bo **bos;
-			uint32_t bo_count;
-			uint32_t bo_capacity;
-		};
-	};
+         struct radv_amdgpu_winsys_bo **bos;
+         uint32_t bo_count;
+         uint32_t bo_capacity;
+      };
+   };
 };
 
-static inline
-struct radv_amdgpu_winsys_bo *radv_amdgpu_winsys_bo(struct radeon_winsys_bo *bo)
+static inline struct radv_amdgpu_winsys_bo *
+radv_amdgpu_winsys_bo(struct radeon_winsys_bo *bo)
 {
-	return (struct radv_amdgpu_winsys_bo *)bo;
+   return (struct radv_amdgpu_winsys_bo *)bo;
 }
 
 void radv_amdgpu_bo_init_functions(struct radv_amdgpu_winsys *ws);

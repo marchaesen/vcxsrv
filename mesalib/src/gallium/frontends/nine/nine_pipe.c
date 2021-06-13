@@ -166,7 +166,7 @@ nine_convert_blend_state(struct pipe_blend_state *blend_state, const DWORD *rs)
     blend.dither = !!rs[D3DRS_DITHERENABLE];
 
  /* blend.alpha_to_one = 0; */
-    blend.alpha_to_coverage = rs[NINED3DRS_ALPHACOVERAGE] & 1;
+    blend.alpha_to_coverage = !!(rs[NINED3DRS_ALPHACOVERAGE] & 5);
 
     blend.rt[0].blend_enable = !!rs[D3DRS_ALPHABLENDENABLE];
     if (blend.rt[0].blend_enable) {
@@ -240,7 +240,7 @@ nine_convert_sampler_state(struct cso_context *ctx, int idx, const DWORD *ss)
     samp.mag_img_filter = (ss[D3DSAMP_MAGFILTER] == D3DTEXF_POINT && !ss[NINED3DSAMP_SHADOW]) ? PIPE_TEX_FILTER_NEAREST : PIPE_TEX_FILTER_LINEAR;
     if (ss[D3DSAMP_MINFILTER] == D3DTEXF_ANISOTROPIC ||
         ss[D3DSAMP_MAGFILTER] == D3DTEXF_ANISOTROPIC)
-        samp.max_anisotropy = ss[D3DSAMP_MAXANISOTROPY];
+        samp.max_anisotropy = MIN2(16, ss[D3DSAMP_MAXANISOTROPY]);
     samp.compare_mode = ss[NINED3DSAMP_SHADOW] ? PIPE_TEX_COMPARE_R_TO_TEXTURE : PIPE_TEX_COMPARE_NONE;
     samp.compare_func = PIPE_FUNC_LEQUAL;
     samp.normalized_coords = 1;

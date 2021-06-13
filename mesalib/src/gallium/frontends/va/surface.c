@@ -512,6 +512,16 @@ vlVaQuerySurfaceAttributes(VADriverContextP ctx, VAConfigID config_id,
    attribs[i].value.value.p = NULL; /* ignore */
    i++;
 
+#ifdef HAVE_VA_SURFACE_ATTRIB_DRM_FORMAT_MODIFIERS
+   if (drv->pipe->create_video_buffer_with_modifiers) {
+      attribs[i].type = VASurfaceAttribDRMFormatModifiers;
+      attribs[i].value.type = VAGenericValueTypePointer;
+      attribs[i].flags = VA_SURFACE_ATTRIB_SETTABLE;
+      attribs[i].value.value.p = NULL; /* ignore */
+      i++;
+   }
+#endif
+
    if (config->entrypoint != PIPE_VIDEO_ENTRYPOINT_UNKNOWN) {
       attribs[i].type = VASurfaceAttribMaxWidth;
       attribs[i].value.type = VAGenericValueTypeInteger;
@@ -641,12 +651,23 @@ fail:
 
 VAStatus
 vlVaHandleSurfaceAllocate(vlVaDriver *drv, vlVaSurface *surface,
-                          struct pipe_video_buffer *templat)
+                          struct pipe_video_buffer *templat,
+                          const uint64_t *modifiers,
+                          unsigned int modifiers_count)
 {
    struct pipe_surface **surfaces;
    unsigned i;
 
-   surface->buffer = drv->pipe->create_video_buffer(drv->pipe, templat);
+   if (modifiers_count > 0) {
+      if (!drv->pipe->create_video_buffer_with_modifiers)
+         return VA_STATUS_ERROR_ATTR_NOT_SUPPORTED;
+      surface->buffer =
+         drv->pipe->create_video_buffer_with_modifiers(drv->pipe, templat,
+                                                       modifiers,
+                                                       modifiers_count);
+   } else {
+      surface->buffer = drv->pipe->create_video_buffer(drv->pipe, templat);
+   }
    if (!surface->buffer)
       return VA_STATUS_ERROR_ALLOCATION_FAILED;
 
@@ -677,6 +698,9 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
 {
    vlVaDriver *drv;
    VASurfaceAttribExternalBuffers *memory_attribute;
+#ifdef HAVE_VA_SURFACE_ATTRIB_DRM_FORMAT_MODIFIERS
+   const VADRMFormatModifierList *modifier_list;
+#endif
    struct pipe_video_buffer templat;
    struct pipe_screen *pscreen;
    int i;
@@ -685,6 +709,8 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
    VAStatus vaStatus;
    vlVaSurface *surf;
    bool protected;
+   const uint64_t *modifiers;
+   unsigned int modifiers_count;
 
    if (!ctx)
       return VA_STATUS_ERROR_INVALID_CONTEXT;
@@ -706,18 +732,20 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
    memory_attribute = NULL;
    memory_type = VA_SURFACE_ATTRIB_MEM_TYPE_VA;
    expected_fourcc = 0;
+   modifiers = NULL;
+   modifiers_count = 0;
 
    for (i = 0; i < num_attribs && attrib_list; i++) {
-      if ((attrib_list[i].type == VASurfaceAttribPixelFormat) &&
-          (attrib_list[i].flags & VA_SURFACE_ATTRIB_SETTABLE)) {
+      if (!(attrib_list[i].flags & VA_SURFACE_ATTRIB_SETTABLE))
+         continue;
+
+      switch (attrib_list[i].type) {
+      case VASurfaceAttribPixelFormat:
          if (attrib_list[i].value.type != VAGenericValueTypeInteger)
             return VA_STATUS_ERROR_INVALID_PARAMETER;
          expected_fourcc = attrib_list[i].value.value.i;
-      }
-
-      if ((attrib_list[i].type == VASurfaceAttribMemoryType) &&
-          (attrib_list[i].flags & VA_SURFACE_ATTRIB_SETTABLE)) {
-
+         break;
+      case VASurfaceAttribMemoryType:
          if (attrib_list[i].value.type != VAGenericValueTypeInteger)
             return VA_STATUS_ERROR_INVALID_PARAMETER;
 
@@ -729,13 +757,27 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
          default:
             return VA_STATUS_ERROR_UNSUPPORTED_MEMORY_TYPE;
          }
-      }
-
-      if ((attrib_list[i].type == VASurfaceAttribExternalBufferDescriptor) &&
-          (attrib_list[i].flags == VA_SURFACE_ATTRIB_SETTABLE)) {
+         break;
+      case VASurfaceAttribExternalBufferDescriptor:
          if (attrib_list[i].value.type != VAGenericValueTypePointer)
             return VA_STATUS_ERROR_INVALID_PARAMETER;
          memory_attribute = (VASurfaceAttribExternalBuffers *)attrib_list[i].value.value.p;
+         break;
+#ifdef HAVE_VA_SURFACE_ATTRIB_DRM_FORMAT_MODIFIERS
+      case VASurfaceAttribDRMFormatModifiers:
+         if (attrib_list[i].value.type != VAGenericValueTypePointer)
+            return VA_STATUS_ERROR_INVALID_PARAMETER;
+         modifier_list = attrib_list[i].value.value.p;
+         modifiers = modifier_list->modifiers;
+         modifiers_count = modifier_list->num_modifiers;
+         break;
+#endif
+      case VASurfaceAttribUsageHint:
+         if (attrib_list[i].value.type != VAGenericValueTypeInteger)
+            return VA_STATUS_ERROR_INVALID_PARAMETER;
+         break;
+      default:
+         return VA_STATUS_ERROR_ATTR_NOT_SUPPORTED;
       }
    }
 
@@ -756,6 +798,8 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
    case VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME:
       if (!memory_attribute)
          return VA_STATUS_ERROR_INVALID_PARAMETER;
+      if (modifiers)
+         return VA_STATUS_ERROR_INVALID_PARAMETER;
 
       expected_fourcc = memory_attribute->pixel_format;
       break;
@@ -771,12 +815,14 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
       PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
       PIPE_VIDEO_CAP_PREFERED_FORMAT
    );
-   templat.interlaced = pscreen->get_video_param(
-      pscreen,
-      PIPE_VIDEO_PROFILE_UNKNOWN,
-      PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
-      PIPE_VIDEO_CAP_PREFERS_INTERLACED
-   );
+
+   if (modifiers)
+      templat.interlaced = false;
+   else
+      templat.interlaced =
+         pscreen->get_video_param(pscreen, PIPE_VIDEO_PROFILE_UNKNOWN,
+                                  PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
+                                  PIPE_VIDEO_CAP_PREFERS_INTERLACED);
 
    if (expected_fourcc) {
       enum pipe_format expected_format = VaFourccToPipeFormat(expected_fourcc);
@@ -814,7 +860,8 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
              !(memory_attribute->flags & VA_SURFACE_EXTBUF_DESC_ENABLE_TILING))
             templat.bind = PIPE_BIND_LINEAR | PIPE_BIND_SHARED;
 
-	 vaStatus = vlVaHandleSurfaceAllocate(drv, surf, &templat);
+	 vaStatus = vlVaHandleSurfaceAllocate(drv, surf, &templat, modifiers,
+                                              modifiers_count);
          if (vaStatus != VA_STATUS_SUCCESS)
             goto free_surf;
          break;
@@ -1042,7 +1089,7 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
 
       surf->templat.interlaced = false;
 
-      ret = vlVaHandleSurfaceAllocate(drv, surf, &surf->templat);
+      ret = vlVaHandleSurfaceAllocate(drv, surf, &surf->templat, NULL, 0);
       if (ret != VA_STATUS_SUCCESS) {
          mtx_unlock(&drv->mutex);
          return VA_STATUS_ERROR_ALLOCATION_FAILED;
@@ -1117,7 +1164,7 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
 
    if (flags & VA_EXPORT_SURFACE_COMPOSED_LAYERS) {
       uint32_t drm_format = pipe_format_to_drm_format(surf->buffer->buffer_format);
-      if (drm_format == DRM_FORMAT_MOD_INVALID) {
+      if (drm_format == DRM_FORMAT_INVALID) {
          ret = VA_STATUS_ERROR_UNSUPPORTED_MEMORY_TYPE;
          goto fail;
       }

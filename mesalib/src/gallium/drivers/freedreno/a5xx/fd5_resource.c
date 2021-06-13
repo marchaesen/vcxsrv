@@ -29,43 +29,40 @@
 static void
 setup_lrz(struct fd_resource *rsc)
 {
-	struct fd_screen *screen = fd_screen(rsc->b.b.screen);
-	const uint32_t flags = DRM_FREEDRENO_GEM_CACHE_WCOMBINE |
-			DRM_FREEDRENO_GEM_TYPE_KMEM; /* TODO */
-	unsigned lrz_pitch  = align(DIV_ROUND_UP(rsc->b.b.width0, 8), 64);
-	unsigned lrz_height = DIV_ROUND_UP(rsc->b.b.height0, 8);
+   struct fd_screen *screen = fd_screen(rsc->b.b.screen);
+   unsigned lrz_pitch = align(DIV_ROUND_UP(rsc->b.b.width0, 8), 64);
+   unsigned lrz_height = DIV_ROUND_UP(rsc->b.b.height0, 8);
 
-	/* LRZ buffer is super-sampled: */
-	switch (rsc->b.b.nr_samples) {
-	case 4:
-		lrz_pitch *= 2;
-		FALLTHROUGH;
-	case 2:
-		lrz_height *= 2;
-	}
+   /* LRZ buffer is super-sampled: */
+   switch (rsc->b.b.nr_samples) {
+   case 4:
+      lrz_pitch *= 2;
+      FALLTHROUGH;
+   case 2:
+      lrz_height *= 2;
+   }
 
-	unsigned size = lrz_pitch * lrz_height * 2;
+   unsigned size = lrz_pitch * lrz_height * 2;
 
-	size += 0x1000; /* for GRAS_LRZ_FAST_CLEAR_BUFFER */
+   size += 0x1000; /* for GRAS_LRZ_FAST_CLEAR_BUFFER */
 
-	rsc->lrz_height = lrz_height;
-	rsc->lrz_width = lrz_pitch;
-	rsc->lrz_pitch = lrz_pitch;
-	rsc->lrz = fd_bo_new(screen->dev, size, flags, "lrz");
+   rsc->lrz_height = lrz_height;
+   rsc->lrz_width = lrz_pitch;
+   rsc->lrz_pitch = lrz_pitch;
+   rsc->lrz = fd_bo_new(screen->dev, size, 0, "lrz");
 }
 
 uint32_t
 fd5_setup_slices(struct fd_resource *rsc)
 {
-	struct pipe_resource *prsc = &rsc->b.b;
+   struct pipe_resource *prsc = &rsc->b.b;
 
-	if (FD_DBG(LRZ) && has_depth(rsc->b.b.format))
-		setup_lrz(rsc);
+   if (FD_DBG(LRZ) && has_depth(rsc->b.b.format))
+      setup_lrz(rsc);
 
-	fdl5_layout(&rsc->layout, prsc->format, fd_resource_nr_samples(prsc),
-			prsc->width0, prsc->height0, prsc->depth0,
-			prsc->last_level + 1, prsc->array_size,
-			prsc->target == PIPE_TEXTURE_3D);
+   fdl5_layout(&rsc->layout, prsc->format, fd_resource_nr_samples(prsc),
+               prsc->width0, prsc->height0, prsc->depth0, prsc->last_level + 1,
+               prsc->array_size, prsc->target == PIPE_TEXTURE_3D);
 
-	return rsc->layout.size;
+   return rsc->layout.size;
 }

@@ -123,7 +123,6 @@ enum st_attachment_type {
    ST_ATTACHMENT_BACK_RIGHT,
    ST_ATTACHMENT_DEPTH_STENCIL,
    ST_ATTACHMENT_ACCUM,
-   ST_ATTACHMENT_SAMPLE,
 
    ST_ATTACHMENT_COUNT,
    ST_ATTACHMENT_INVALID = -1
@@ -136,7 +135,6 @@ enum st_attachment_type {
 #define ST_ATTACHMENT_BACK_RIGHT_MASK     (1 << ST_ATTACHMENT_BACK_RIGHT)
 #define ST_ATTACHMENT_DEPTH_STENCIL_MASK  (1 << ST_ATTACHMENT_DEPTH_STENCIL)
 #define ST_ATTACHMENT_ACCUM_MASK          (1 << ST_ATTACHMENT_ACCUM)
-#define ST_ATTACHMENT_SAMPLE_MASK         (1 << ST_ATTACHMENT_SAMPLE)
 
 /**
  * Flush flags.
@@ -196,8 +194,6 @@ struct st_egl_image
  */
 struct st_visual
 {
-   bool no_config;
-
    /**
     * Available buffers.  Bitfield of ST_ATTACHMENT_*_MASK bits.
     */
@@ -246,6 +242,7 @@ struct st_config_options
    bool force_integer_tex_nearest;
    bool force_gl_names_reuse;
    bool transcode_etc;
+   bool transcode_astc;
    char *force_gl_vendor;
    unsigned char config_options_sha1[20];
 };

@@ -937,10 +937,10 @@ place_phi_read(nir_builder *b, nir_register *reg,
    nir_store_reg(b, reg, def, ~0);
 }
 
-/** Lower all of the phi nodes in a block to imovs to and from a register
+/** Lower all of the phi nodes in a block to movs to and from a register
  *
  * This provides a very quick-and-dirty out-of-SSA pass that you can run on a
- * single block to convert all of its phis to a register and some imovs.
+ * single block to convert all of its phis to a register and some movs.
  * The code that is generated, while not optimal for actual codegen in a
  * back-end, is easy to generate, correct, and will turn into the same set of
  * phis after you call regs_to_ssa and do some copy propagation.

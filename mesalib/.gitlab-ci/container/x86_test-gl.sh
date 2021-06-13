@@ -10,49 +10,55 @@ STABLE_EPHEMERAL=" \
       autoconf \
       automake \
       ccache \
-      clang-10 \
+      clang-11 \
       cmake \
       g++ \
-      libclang-cpp10-dev \
+      libclang-cpp11-dev \
       libgbm-dev \
       libgles2-mesa-dev \
-      libpcre3-dev \
+      libllvmspirvlib-dev \
       libpciaccess-dev \
-      libpng-dev \
+      libudev-dev \
       libvulkan-dev \
       libwaffle-dev \
-      libxcb-keysyms1-dev \
+      libwayland-dev \
+      libx11-xcb-dev \
       libxkbcommon-dev \
       libxrender-dev \
-      llvm-10-dev \
+      llvm-11-dev \
+      llvm-spirv \
       make \
       meson \
       ocl-icd-opencl-dev \
       patch \
       pkg-config \
       python3-distutils \
-      python3.7-dev \
       wget \
       xz-utils \
       "
 
 apt-get install -y --no-remove \
       $STABLE_EPHEMERAL \
+      apitrace \
       clinfo \
-      libclang-common-10-dev \
-      libclang-cpp10 \
+      libclang-common-11-dev \
+      libclang-cpp11 \
+      libegl1 \
+      libllvmspirvlib11 \
       libxcb-shm0 \
       ocl-icd-libopencl1 \
       python3-lxml \
-      python3-simplejson
+      python3-renderdoc \
+      python3-simplejson \
+      spirv-tools
 
 
 . .gitlab-ci/container/container_pre_build.sh
 
 
-############### Build spirv-tools (debian too old)
+############### Build libdrm
 
-. .gitlab-ci/container/build-spirv-tools.sh
+. .gitlab-ci/container/build-libdrm.sh
 
 ############### Build libclc
 
@@ -64,28 +70,12 @@ apt-get install -y --no-remove \
 
 ############### Build piglit
 
-INCLUDE_OPENCL_TESTS=1 . .gitlab-ci/container/build-piglit.sh
-
-############### Build dEQP runner (and install rust temporarily for it)
-. .gitlab-ci/container/build-rust.sh
-. .gitlab-ci/container/build-deqp-runner.sh
-rm -rf /root/.rustup /root/.cargo
+PIGLIT_OPTS="-DPIGLIT_BUILD_CL_TESTS=ON -DPIGLIT_BUILD_VK_TESTS=OFF" . .gitlab-ci/container/build-piglit.sh
 
 ############### Build dEQP GL
 
 DEQP_TARGET=surfaceless . .gitlab-ci/container/build-deqp.sh
 
-############### Build apitrace
-
-. .gitlab-ci/container/build-apitrace.sh
-
-############### Build renderdoc
-
-. .gitlab-ci/container/build-renderdoc.sh
-
-############### Build libdrm
-
-. .gitlab-ci/container/build-libdrm.sh
 
 ############### Uninstall the build software
 

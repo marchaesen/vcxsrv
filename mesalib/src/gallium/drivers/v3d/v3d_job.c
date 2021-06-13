@@ -23,7 +23,7 @@
 
 /** @file v3d_job.c
  *
- * Functions for submitting VC5 render jobs to the kernel.
+ * Functions for submitting V3D render jobs to the kernel.
  */
 
 #include <xf86drm.h>

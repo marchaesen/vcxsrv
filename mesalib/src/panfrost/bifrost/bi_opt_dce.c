@@ -33,18 +33,22 @@
  * encodings will result.)
  */
 
-bool
+void
 bi_opt_dead_code_eliminate(bi_context *ctx, bool soft)
 {
-        bool progress = false;
         unsigned temp_count = bi_max_temp(ctx);
 
         bi_invalidate_liveness(ctx);
         bi_compute_liveness(ctx);
 
-        bi_foreach_block(ctx, _block) {
+        bi_foreach_block_rev(ctx, _block) {
                 bi_block *block = (bi_block *) _block;
-                uint16_t *live = mem_dup(block->base.live_out, temp_count * sizeof(uint16_t));
+                uint16_t *live = rzalloc_array(_block, uint16_t, temp_count);
+
+                pan_foreach_successor(_block, succ) {
+                        for (unsigned i = 0; i < temp_count; ++i)
+                                live[i] |= succ->live_in[i];
+                }
 
                 bi_foreach_instr_in_block_safe_rev(block, ins) {
                         bool all_null = true;
@@ -52,24 +56,19 @@ bi_opt_dead_code_eliminate(bi_context *ctx, bool soft)
                         bi_foreach_dest(ins, d) {
                                 unsigned index = bi_get_node(ins->dest[d]);
 
-                                if (index < temp_count && !(live[index] & bi_writemask(ins, d))) {
+                                if (index < temp_count && !(live[index] & bi_writemask(ins, d)))
                                         ins->dest[d] = bi_null();
-                                        progress = true;
-                                }
 
                                 all_null &= bi_is_null(ins->dest[d]);
                         }
 
-                        if (all_null && !soft && !bi_side_effects(ins->op)) {
+                        if (all_null && !soft && !bi_side_effects(ins->op))
                                 bi_remove_instruction(ins);
-                                progress = true;
-                        }
-
-                        bi_liveness_ins_update(live, ins, temp_count);
+                        else
+                                bi_liveness_ins_update(live, ins, temp_count);
                 }
 
-                free(live);
+                ralloc_free(block->base.live_in);
+                block->base.live_in = live;
         }
-
-        return progress;
 }

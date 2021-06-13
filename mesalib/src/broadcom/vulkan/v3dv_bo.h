@@ -30,6 +30,7 @@ struct v3dv_bo {
    struct list_head list_link;
 
    uint32_t handle;
+   uint64_t handle_bit;
    uint32_t size;
    uint32_t offset;
 

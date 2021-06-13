@@ -68,6 +68,7 @@ NineSurface9_ctor( struct NineSurface9 *This,
 
     /* Mark this as a special surface held by another internal resource. */
     pParams->container = pContainer;
+    This->base.base.device = pParams->device; /* Early fill this field in case of failure */
     /* Make sure there's a Desc */
     assert(pDesc);
 
@@ -338,15 +339,10 @@ NineSurface9_GetContainer( struct NineSurface9 *This,
 
     if (!ppContainer) return E_POINTER;
 
-    /* Return device for OffscreenPlainSurface, DepthStencilSurface and RenderTarget */
-    if (!NineUnknown(This)->container) {
-        *ppContainer = NineUnknown(This)->device;
-        NineUnknown_AddRef(NineUnknown(*ppContainer));
-
-        return D3D_OK;
-    }
-
-    hr = NineUnknown_QueryInterface(NineUnknown(This)->container, riid, ppContainer);
+    /* Use device for OffscreenPlainSurface, DepthStencilSurface and RenderTarget */
+    hr = NineUnknown_QueryInterface(NineUnknown(This)->container ?
+                                        NineUnknown(This)->container : &NineUnknown(This)->device->base,
+                                    riid, ppContainer);
     if (FAILED(hr))
         DBG("QueryInterface FAILED!\n");
     return hr;
@@ -457,12 +453,6 @@ NineSurface9_LockRect( struct NineSurface9 *This,
                 (resource && (resource->flags & NINE_RESOURCE_FLAG_LOCKABLE)),
                 D3DERR_INVALIDCALL);
 #endif
-    user_assert(!(Flags & ~(D3DLOCK_DISCARD |
-                            D3DLOCK_DONOTWAIT |
-                            D3DLOCK_NO_DIRTY_UPDATE |
-                            D3DLOCK_NOOVERWRITE |
-                            D3DLOCK_NOSYSLOCK | /* ignored */
-                            D3DLOCK_READONLY)), D3DERR_INVALIDCALL);
     user_assert(!((Flags & D3DLOCK_DISCARD) && (Flags & D3DLOCK_READONLY)),
                 D3DERR_INVALIDCALL);
 

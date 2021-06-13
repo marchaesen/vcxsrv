@@ -238,6 +238,92 @@ get_z32_values(struct gl_context *ctx, struct gl_renderbuffer *rb,
 }
 
 
+/** Helper struct for MESA_FORMAT_Z32_FLOAT_S8X24_UINT */
+struct z32f_x24s8
+{
+   float z;
+   uint32_t x24s8;
+};
+
+
+/**
+ ** Pack uint Z pixels.  The incoming src value is always in
+ ** the range [0, 2^32-1].
+ **/
+
+static void
+pack_uint_S8_UINT_Z24_UNORM(const uint32_t *src, void *dst)
+{
+   /* don't disturb the stencil values */
+   uint32_t *d = ((uint32_t *) dst);
+   uint32_t s = *d & 0xff;
+   uint32_t z = *src & 0xffffff00;
+   *d = z | s;
+}
+
+static void
+pack_uint_Z24_UNORM_S8_UINT(const uint32_t *src, void *dst)
+{
+   /* don't disturb the stencil values */
+   uint32_t *d = ((uint32_t *) dst);
+   uint32_t s = *d & 0xff000000;
+   uint32_t z = *src >> 8;
+   *d = s | z;
+}
+
+static void
+pack_uint_Z_UNORM16(const uint32_t *src, void *dst)
+{
+   uint16_t *d = ((uint16_t *) dst);
+   *d = *src >> 16;
+}
+
+static void
+pack_uint_Z_UNORM32(const uint32_t *src, void *dst)
+{
+   uint32_t *d = ((uint32_t *) dst);
+   *d = *src;
+}
+
+/**
+ ** Pack uint to Z_FLOAT32 or Z_FLOAT32_X24S8.
+ **/
+
+static void
+pack_uint_Z_FLOAT32(const uint32_t *src, void *dst)
+{
+   float *d = ((float *) dst);
+   const double scale = 1.0 / (double) 0xffffffff;
+   *d = (float) (*src * scale);
+   assert(*d >= 0.0f);
+   assert(*d <= 1.0f);
+}
+
+/** Pack a uint32_t Z value to dest address */
+typedef void (*mesa_pack_uint_z_func)(const uint32_t *src, void *dst);
+
+static mesa_pack_uint_z_func
+get_pack_uint_z_func(mesa_format format)
+{
+   switch (format) {
+   case MESA_FORMAT_S8_UINT_Z24_UNORM:
+   case MESA_FORMAT_X8_UINT_Z24_UNORM:
+      return pack_uint_S8_UINT_Z24_UNORM;
+   case MESA_FORMAT_Z24_UNORM_S8_UINT:
+   case MESA_FORMAT_Z24_UNORM_X8_UINT:
+      return pack_uint_Z24_UNORM_S8_UINT;
+   case MESA_FORMAT_Z_UNORM16:
+      return pack_uint_Z_UNORM16;
+   case MESA_FORMAT_Z_UNORM32:
+      return pack_uint_Z_UNORM32;
+   case MESA_FORMAT_Z_FLOAT32:
+   case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
+      return pack_uint_Z_FLOAT32;
+   default:
+      unreachable("unexpected format in get_pack_uint_z_func()");
+   }
+}
+
 /**
  * Put an array of 32-bit z values into the depth buffer.
  * Note: the z values are always in the range [0, 2^32-1].
@@ -262,7 +348,7 @@ put_z32_values(struct gl_context *ctx, struct gl_renderbuffer *rb,
       }
    }
    else {
-      mesa_pack_uint_z_func packZ = _mesa_get_pack_uint_z_func(rb->Format);
+      mesa_pack_uint_z_func packZ = get_pack_uint_z_func(rb->Format);
       const GLint bpp = _mesa_get_format_bytes(rb->Format);
       const GLint rowStride = srb->RowStride;
       for (i = 0; i < count; i++) {
@@ -379,7 +465,7 @@ _swrast_depth_test_span(struct gl_context *ctx, SWspan *span)
       }
       else {
          /* horizontal row */
-         mesa_pack_uint_z_func packZ = _mesa_get_pack_uint_z_func(rb->Format);
+         mesa_pack_uint_z_func packZ = get_pack_uint_z_func(rb->Format);
          GLubyte *dst = zStart;
          GLuint i;
          for (i = 0; i < count; i++) {

@@ -683,7 +683,7 @@ static uint32_t r300_get_border_color(enum pipe_format format,
             border_swizzled[0] = border_swizzled[0] < 0 ?
                                  border_swizzled[0]*0.5+1 :
                                  border_swizzled[0]*0.5;
-            /* fallthrough. */
+            FALLTHROUGH;
 
         case PIPE_FORMAT_RGTC1_UNORM:
         case PIPE_FORMAT_LATC1_UNORM:

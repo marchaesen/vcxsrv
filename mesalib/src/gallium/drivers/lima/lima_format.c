@@ -61,9 +61,11 @@
 #define LIMA_PIXEL_FORMAT_B8G8R8A8     0x03
 #define LIMA_PIXEL_FORMAT_B8           0x04
 #define LIMA_PIXEL_FORMAT_G8B8         0x05
+#define LIMA_PIXEL_FORMAT_B16G16R16A16_FLOAT 0x06
+#define LIMA_PIXEL_FORMAT_B16_FLOAT    0x07
+#define LIMA_PIXEL_FORMAT_G16B16_FLOAT 0x08
 #define LIMA_PIXEL_FORMAT_Z16          0x0e
 #define LIMA_PIXEL_FORMAT_Z24S8        0x0f
-#define LIMA_PIXEL_FORMAT_R16G16B16A16_FLOAT 0x26
 
 struct lima_format {
    bool present;
@@ -138,7 +140,9 @@ static const struct lima_format lima_pixel_formats[] = {
    LIMA_PIXEL_FORMAT(R8G8_UNORM,         G8B8,     true,  0x8888),
    LIMA_PIXEL_FORMAT(Z24_UNORM_S8_UINT,  Z24S8,    false, 0x0000),
    LIMA_PIXEL_FORMAT(Z24X8_UNORM,        Z24S8,    false, 0x0000),
-   LIMA_PIXEL_FORMAT(R16G16B16A16_FLOAT, R16G16B16A16_FLOAT, true, 0x0000),
+   LIMA_PIXEL_FORMAT(R16G16B16A16_FLOAT, B16G16R16A16_FLOAT, true, 0x0000),
+   LIMA_PIXEL_FORMAT(R16_FLOAT,          B16_FLOAT, true, 0x0000),
+   LIMA_PIXEL_FORMAT(R16G16_FLOAT,       G16B16_FLOAT, true, 0x0000),
 };
 
 static const struct lima_format *

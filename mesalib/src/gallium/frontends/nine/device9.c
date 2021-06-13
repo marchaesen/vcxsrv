@@ -45,6 +45,7 @@
 #include "pipe/p_screen.h"
 #include "pipe/p_context.h"
 #include "pipe/p_config.h"
+#include "util/macros.h"
 #include "util/u_math.h"
 #include "util/u_inlines.h"
 #include "util/u_hash_table.h"
@@ -75,11 +76,35 @@ static void nine_setup_fpu()
     __asm__ __volatile__ ("fldcw %0" : : "m" (*&c));
 }
 
+static void nine_setup_set_fpu(uint16_t val)
+{
+    __asm__ __volatile__ ("fldcw %0" : : "m" (*&val));
+}
+
+static uint16_t nine_setup_get_fpu()
+{
+    uint16_t c;
+
+    __asm__ __volatile__ ("fnstcw %0" : "=m" (*&c));
+    return c;
+}
+
 #else
 
 static void nine_setup_fpu(void)
 {
     WARN_ONCE("FPU setup not supported on non-x86 platforms\n");
+}
+
+static void nine_setup_set_fpu(UNUSED uint16_t val)
+{
+    WARN_ONCE("FPU setup not supported on non-x86 platforms\n");
+}
+
+static uint16_t nine_setup_get_fpu()
+{
+    WARN_ONCE("FPU setup not supported on non-x86 platforms\n");
+    return 0;
 }
 
 #endif
@@ -159,6 +184,7 @@ NineDevice9_ctor( struct NineDevice9 *This,
                   int minorVersionNum )
 {
     unsigned i;
+    uint16_t fpu_cw = 0;
     HRESULT hr = NineUnknown_ctor(&This->base, pParams);
 
     DBG("This=%p pParams=%p pScreen=%p pCreationParameters=%p pCaps=%p pPresentationParameters=%p "
@@ -185,11 +211,20 @@ NineDevice9_ctor( struct NineDevice9 *This,
     This->present = pPresentationGroup;
     This->minor_version_num = minorVersionNum;
 
+    /* Ex */
+    This->gpu_priority = 0;
+    This->max_frame_latency = 3;
+
     IDirect3D9_AddRef(This->d3d9);
     ID3DPresentGroup_AddRef(This->present);
 
-    if (!(This->params.BehaviorFlags & D3DCREATE_FPU_PRESERVE))
+    if (!(This->params.BehaviorFlags & D3DCREATE_FPU_PRESERVE)) {
         nine_setup_fpu();
+    } else {
+        /* Software renderer initialization needs exceptions masked */
+        fpu_cw = nine_setup_get_fpu();
+        nine_setup_set_fpu(fpu_cw | 0x007f);
+    }
 
     if (This->params.BehaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING) {
         DBG("Application asked full Software Vertex Processing.\n");
@@ -242,6 +277,8 @@ NineDevice9_ctor( struct NineDevice9 *This,
      * instance. This is the Win 7 behavior.
      * Win XP shares this counter across multiple devices. */
     This->available_texture_mem = This->screen->get_param(This->screen, PIPE_CAP_VIDEO_MEMORY);
+    This->available_texture_mem =  (pCTX->override_vram_size >= 0) ?
+        (long long)pCTX->override_vram_size : This->available_texture_mem;
     This->available_texture_mem <<= 20;
 
     /* We cap texture memory usage to 95% of what is reported free initially
@@ -324,7 +361,10 @@ NineDevice9_ctor( struct NineDevice9 *This,
 
     This->workarounds.dynamic_texture_workaround = pCTX->dynamic_texture_workaround;
 
-    This->buffer_upload = nine_upload_create(This->pipe_secondary, 4 * 1024 * 1024, 4);
+    /* Due to the pb_cache, in some cases the buffer_upload path can increase GTT usage/virtual memory.
+     * As the performance gain is negligible when csmt is off, disable it in this case.
+     * That way csmt_force=0 can be used as a workaround to reduce GTT usage/virtual memory. */
+    This->buffer_upload = This->csmt_active ? nine_upload_create(This->pipe_secondary, 4 * 1024 * 1024, 4) : NULL;
 
     /* Initialize a dummy VBO to be used when a vertex declaration does not
      * specify all the inputs needed by vertex shader, on win default behavior
@@ -543,6 +583,9 @@ NineDevice9_ctor( struct NineDevice9 *This,
     ID3DPresentGroup_Release(This->present);
     nine_context_update_state(This); /* Some drivers needs states to be initialized */
     nine_csmt_process(This);
+
+    if (This->params.BehaviorFlags & D3DCREATE_FPU_PRESERVE)
+        nine_setup_set_fpu(fpu_cw);
 
     return D3D_OK;
 }
@@ -805,16 +848,13 @@ NineDevice9_SetCursorProperties( struct NineDevice9 *This,
     {
         D3DLOCKED_RECT lock;
         HRESULT hr;
-        const struct util_format_unpack_description *unpack =
-            util_format_unpack_description(surf->base.info.format);
-        assert(unpack);
 
         hr = NineSurface9_LockRect(surf, &lock, NULL, D3DLOCK_READONLY);
         if (FAILED(hr))
             ret_err("Failed to map cursor source image.\n",
                     D3DERR_DRIVERINTERNALERROR);
 
-        unpack->unpack_rgba_8unorm(ptr, transfer->stride,
+        util_format_unpack_rgba_8unorm_rect(surf->base.info.format, ptr, transfer->stride,
                                    lock.pBits, lock.Pitch,
                                    This->cursor.w, This->cursor.h);
 
@@ -822,7 +862,8 @@ NineDevice9_SetCursorProperties( struct NineDevice9 *This,
             void *data = lock.pBits;
             /* SetCursor assumes 32x32 argb with pitch 128 */
             if (lock.Pitch != 128) {
-                unpack->unpack_rgba_8unorm(This->cursor.hw_upload_temp, 128,
+                util_format_unpack_rgba_8unorm_rect(surf->base.info.format,
+                                           This->cursor.hw_upload_temp, 128,
                                            lock.pBits, lock.Pitch,
                                            32, 32);
                 data = This->cursor.hw_upload_temp;
@@ -1962,6 +2003,8 @@ NineDevice9_SetRenderTarget( struct NineDevice9 *This,
         This->state.scissor.miny = 0;
         This->state.scissor.maxx = rt->desc.Width;
         This->state.scissor.maxy = rt->desc.Height;
+        nine_context_set_viewport(This, &This->state.viewport);
+        nine_context_set_scissor(This, &This->state.scissor);
     }
 
     if (This->state.rt[i] != NineSurface9(pRenderTarget))
@@ -2559,14 +2602,28 @@ HRESULT NINE_WINAPI
 NineDevice9_SetClipStatus( struct NineDevice9 *This,
                            const D3DCLIPSTATUS9 *pClipStatus )
 {
-    STUB(D3DERR_INVALIDCALL);
+    user_assert(pClipStatus, D3DERR_INVALIDCALL);
+    return D3D_OK;
 }
 
 HRESULT NINE_WINAPI
 NineDevice9_GetClipStatus( struct NineDevice9 *This,
                            D3DCLIPSTATUS9 *pClipStatus )
 {
-    STUB(D3DERR_INVALIDCALL);
+    user_assert(pClipStatus, D3DERR_INVALIDCALL);
+    /* Set/GetClipStatus is supposed to get the app some infos
+     * about vertices being clipped if it is using the software
+     * vertex rendering. It would be too complicated to implement.
+     * Probably the info is for developpers when working on their
+     * applications. Else it could be for apps to know if it is worth
+     * drawing some elements. In that case it makes sense to send
+     * 0 for ClipUnion and 0xFFFFFFFF for ClipIntersection (basically
+     * means not all vertices are clipped). Those values are known to
+     * be the default if SetClipStatus is not set. Else we could return
+     * what was set with SetClipStatus unchanged. */
+    pClipStatus->ClipUnion = 0;
+    pClipStatus->ClipIntersection = 0xFFFFFFFF;
+    return D3D_OK;
 }
 
 HRESULT NINE_WINAPI
@@ -3163,7 +3220,7 @@ NineDevice9_ProcessVertices( struct NineDevice9 *This,
     struct pipe_stream_output_info so;
     struct pipe_stream_output_target *target;
     struct pipe_draw_info draw;
-    struct pipe_draw_start_count sc;
+    struct pipe_draw_start_count_bias sc;
     struct pipe_box box;
     bool programmable_vs = This->state.vs && !(This->state.vdecl && This->state.vdecl->position_t);
     unsigned offsets[1] = {0};
@@ -3251,14 +3308,14 @@ NineDevice9_ProcessVertices( struct NineDevice9 *This,
     draw.instance_count = 1;
     draw.index_size = 0;
     sc.start = 0;
-    draw.index_bias = 0;
+    sc.index_bias = 0;
     draw.min_index = 0;
     draw.max_index = VertexCount - 1;
 
 
     pipe_sw->set_stream_output_targets(pipe_sw, 1, &target, offsets);
 
-    pipe_sw->draw_vbo(pipe_sw, &draw, NULL, &sc, 1);
+    pipe_sw->draw_vbo(pipe_sw, &draw, 0, NULL, &sc, 1);
 
     pipe_sw->set_stream_output_targets(pipe_sw, 0, NULL, 0);
     pipe_sw->stream_output_target_destroy(pipe_sw, target);

@@ -561,7 +561,7 @@ UseMsg(void)
     ErrorF("-s #                   screen-saver timeout (minutes)\n");
     ErrorF("-seat string           seat to run on\n");
     ErrorF("-t #                   default pointer threshold (pixels/t)\n");
-    ErrorF("-terminate             terminate at server reset\n");
+    ErrorF("-terminate [delay]     terminate at server reset (optional delay in sec)\n");
     ErrorF("-tst                   disable testing extensions\n");
     ErrorF("ttyxx                  server started from init on /dev/ttyxx\n");
     ErrorF("v                      video blanking for screen-saver\n");
@@ -917,6 +917,10 @@ ProcessCommandLine(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "-terminate") == 0) {
             dispatchExceptionAtReset = DE_TERMINATE;
+            terminateDelay = -1;
+            if ((i + 1 < argc) && (isdigit(*argv[i + 1])))
+               terminateDelay = atoi(argv[++i]);
+            terminateDelay = max(0, terminateDelay);
         }
         else if (strcmp(argv[i], "-tst") == 0) {
             noTestExtensions = TRUE;

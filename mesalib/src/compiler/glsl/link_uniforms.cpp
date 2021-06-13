@@ -685,11 +685,24 @@ public:
                               struct gl_uniform_storage *uniforms,
                               union gl_constant_value *values,
                               bool use_std430_as_default)
-      : prog(prog), map(map), uniforms(uniforms),
-        use_std430_as_default(use_std430_as_default), values(values),
-        bindless_targets(NULL), bindless_access(NULL),
+      : buffer_block_index(0), ubo_byte_offset(0),
+        shader_type(MESA_SHADER_NONE),
+        prog(prog), map(map), uniforms(uniforms),
+        next_sampler(0), next_bindless_sampler(0), next_image(0),
+        next_bindless_image(0), next_subroutine(0),
+        use_std430_as_default(use_std430_as_default),
+        field_counter(0), current_var(NULL), explicit_location(0),
+        record_array_count(0), record_next_sampler(NULL),
+        record_next_image(NULL), record_next_bindless_sampler(NULL),
+        record_next_bindless_image(NULL),
+        values(values),
+        shader_samplers_used(0), shader_shadow_samplers(0),
+        num_bindless_samplers(0),
+        bindless_targets(NULL), num_bindless_images(0),
+        bindless_access(NULL),
         shader_storage_blocks_write_access(0)
    {
+      memset(this->targets, 0, sizeof(this->targets));
    }
 
    virtual ~parcel_out_uniform_storage()

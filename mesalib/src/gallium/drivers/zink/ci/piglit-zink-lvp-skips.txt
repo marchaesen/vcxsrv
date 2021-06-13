@@ -8,7 +8,6 @@ glx@glx-make-current
 spec@arb_timer_query.*
 spec@arb_sample_shading@builtin-gl-sample-mask
 spec@glsl-1.30@execution@tex-miplevel-selection.*
-spec@arb_query_buffer_object@qbo.*
 
 # only supported if Piglit is using GLUT
 spec@!opengl 1.1@windowoverlap

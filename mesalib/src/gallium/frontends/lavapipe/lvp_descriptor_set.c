@@ -36,10 +36,10 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateDescriptorSetLayout(
    struct lvp_descriptor_set_layout *set_layout;
 
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO);
-   uint32_t max_binding = 0;
+   uint32_t num_bindings = 0;
    uint32_t immutable_sampler_count = 0;
    for (uint32_t j = 0; j < pCreateInfo->bindingCount; j++) {
-      max_binding = MAX2(max_binding, pCreateInfo->pBindings[j].binding);
+      num_bindings = MAX2(num_bindings, pCreateInfo->pBindings[j].binding + 1);
       /* From the Vulkan 1.1.97 spec for VkDescriptorSetLayoutBinding:
        *
        *    "If descriptorType specifies a VK_DESCRIPTOR_TYPE_SAMPLER or
@@ -59,7 +59,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateDescriptorSetLayout(
    }
 
    size_t size = sizeof(struct lvp_descriptor_set_layout) +
-                 (max_binding + 1) * sizeof(set_layout->binding[0]) +
+                 num_bindings * sizeof(set_layout->binding[0]) +
                  immutable_sampler_count * sizeof(struct lvp_sampler *);
 
    set_layout = vk_zalloc2(&device->vk.alloc, pAllocator, size, 8,
@@ -72,19 +72,21 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateDescriptorSetLayout(
    set_layout->ref_cnt = 1;
    /* We just allocate all the samplers at the end of the struct */
    struct lvp_sampler **samplers =
-      (struct lvp_sampler **)&set_layout->binding[max_binding + 1];
+      (struct lvp_sampler **)&set_layout->binding[num_bindings];
 
    set_layout->alloc = pAllocator;
-   set_layout->binding_count = max_binding + 1;
+   set_layout->binding_count = num_bindings;
    set_layout->shader_stages = 0;
    set_layout->size = 0;
 
-   VkDescriptorSetLayoutBinding *bindings = vk_create_sorted_bindings(pCreateInfo->pBindings,
-                                                                      pCreateInfo->bindingCount);
-   if (!bindings) {
+   VkDescriptorSetLayoutBinding *bindings = NULL;
+   VkResult result = vk_create_sorted_bindings(pCreateInfo->pBindings,
+                                               pCreateInfo->bindingCount,
+                                               &bindings);
+   if (result != VK_SUCCESS) {
       vk_object_base_finish(&set_layout->base);
       vk_free2(&device->vk.alloc, pAllocator, set_layout);
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device->instance, result);
    }
 
    uint32_t dynamic_offset_count = 0;
@@ -169,6 +171,8 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateDescriptorSetLayout(
 
       set_layout->shader_stages |= binding->stageFlags;
    }
+
+   free(bindings);
 
    set_layout->dynamic_offset_count = dynamic_offset_count;
 
@@ -543,7 +547,6 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateDescriptorUpdateTemplate(VkDevice _devi
                                             VkDescriptorUpdateTemplate *pDescriptorUpdateTemplate)
 {
    LVP_FROM_HANDLE(lvp_device, device, _device);
-   LVP_FROM_HANDLE(lvp_descriptor_set_layout, set_layout, pCreateInfo->descriptorSetLayout);
    const uint32_t entry_count = pCreateInfo->descriptorUpdateEntryCount;
    const size_t size = sizeof(struct lvp_descriptor_update_template) +
       sizeof(VkDescriptorUpdateTemplateEntry) * entry_count;
@@ -558,10 +561,13 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateDescriptorUpdateTemplate(VkDevice _devi
                        VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE);
 
    templ->type = pCreateInfo->templateType;
-   templ->descriptor_set_layout = set_layout;
    templ->bind_point = pCreateInfo->pipelineBindPoint;
    templ->set = pCreateInfo->set;
-   templ->pipeline_layout = lvp_pipeline_layout_from_handle(pCreateInfo->pipelineLayout);
+   /* This parameter is ignored if templateType is not VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR */
+   if (pCreateInfo->templateType == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR)
+      templ->pipeline_layout = lvp_pipeline_layout_from_handle(pCreateInfo->pipelineLayout);
+   else
+      templ->pipeline_layout = NULL;
    templ->entry_count = entry_count;
 
    VkDescriptorUpdateTemplateEntry *entries = (VkDescriptorUpdateTemplateEntry *)(templ + 1);

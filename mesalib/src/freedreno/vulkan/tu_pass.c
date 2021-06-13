@@ -630,8 +630,6 @@ tu_CreateRenderPass2(VkDevice _device,
             pass->attachments[a].gmem_offset = 0;
             update_samples(subpass, pCreateInfo->pAttachments[a].samples);
       }
-
-      subpass->samples = subpass->samples ?: 1;
    }
 
    /* disable unused attachments */

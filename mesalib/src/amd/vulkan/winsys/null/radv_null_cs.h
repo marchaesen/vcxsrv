@@ -28,17 +28,17 @@
 #ifndef RADV_NULL_CS_H
 #define RADV_NULL_CS_H
 
-#include "radv_radeon_winsys.h"
 #include "radv_null_winsys.h"
+#include "radv_radeon_winsys.h"
 
 struct radv_null_ctx {
-	struct radv_null_winsys *ws;
+   struct radv_null_winsys *ws;
 };
 
 static inline struct radv_null_ctx *
 radv_null_ctx(struct radeon_winsys_ctx *base)
 {
-	return (struct radv_null_ctx *)base;
+   return (struct radv_null_ctx *)base;
 }
 
 void radv_null_cs_init_functions(struct radv_null_winsys *ws);

@@ -25,7 +25,9 @@ apt-get install -y \
 	build-essential \
 	ca-certificates \
 	ccache \
+	dpkg-dev \
 	flex \
+	gcc-mingw-w64-i686 \
 	git \
 	libaudit-dev \
 	libbsd-dev \
@@ -87,20 +89,31 @@ apt-get install -y \
 	libxt-dev \
 	libxtst-dev \
 	libxv-dev \
+	libz-mingw-w64-dev \
 	mesa-common-dev \
 	meson \
+	mingw-w64-tools \
 	nettle-dev \
 	pkg-config \
 	python3-mako \
 	python3-numpy \
 	python3-six \
-	x11proto-dev \
 	xfonts-utils \
 	xkb-data \
 	xtrans-dev \
 	xutils-dev
 
+.gitlab-ci/cross-prereqs-build.sh i686-w64-mingw32
+
 cd /root
+
+# xserver requires xorgproto >= 2021.4.99.2 for XI 2.3.99.1
+git clone https://gitlab.freedesktop.org/xorg/proto/xorgproto.git --depth 1 --branch=xorgproto-2021.4.99.2
+pushd xorgproto
+./autogen.sh
+make -j${FDO_CI_CONCURRENT:-4} install
+popd
+rm -rf xorgproto
 
 # weston 9.0 requires libwayland >= 1.18
 git clone https://gitlab.freedesktop.org/wayland/wayland.git --depth 1 --branch=1.18.0

@@ -145,6 +145,7 @@ tu6_texswiz(const VkComponentMapping *comps,
             swiz[1] = A6XX_TEX_ZERO;
          }
       }
+      break;
    default:
       break;
    }
@@ -447,7 +448,8 @@ tu_image_view_init(struct tu_image_view *iview,
 }
 
 bool
-ubwc_possible(VkFormat format, VkImageType type, VkImageUsageFlags usage, bool has_z24uint_s8uint,
+ubwc_possible(VkFormat format, VkImageType type, VkImageUsageFlags usage,
+              VkImageUsageFlags stencil_usage, bool has_z24uint_s8uint,
               VkSampleCountFlagBits samples)
 {
    /* no UBWC with compressed formats, E5B9G9R9, S8_UINT
@@ -472,7 +474,7 @@ ubwc_possible(VkFormat format, VkImageType type, VkImageUsageFlags usage, bool h
     * UBWC-enabled mipmaps in freedreno currently.  Just match the closed GL
     * behavior of no UBWC.
    */
-   if (usage & VK_IMAGE_USAGE_STORAGE_BIT)
+   if ((usage | stencil_usage) & VK_IMAGE_USAGE_STORAGE_BIT)
       return false;
 
    /* Disable UBWC for D24S8 on A630 in some cases
@@ -488,7 +490,7 @@ ubwc_possible(VkFormat format, VkImageType type, VkImageUsageFlags usage, bool h
     */
    if (!has_z24uint_s8uint &&
        format == VK_FORMAT_D24_UNORM_S8_UINT &&
-       (usage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)))
+       (stencil_usage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)))
       return false;
 
    if (!has_z24uint_s8uint && samples > VK_SAMPLE_COUNT_1_BIT)
@@ -591,7 +593,7 @@ tu_CreateImage(VkDevice _device,
       if (fmt_list) {
          may_be_swapped = false;
          for (uint32_t i = 0; i < fmt_list->viewFormatCount; i++) {
-            if (tu6_format_color(fmt_list->pViewFormats[i], TILE6_LINEAR).swap) {
+            if (tu6_format_texture(fmt_list->pViewFormats[i], TILE6_LINEAR).swap) {
                may_be_swapped = true;
                break;
             }
@@ -602,7 +604,11 @@ tu_CreateImage(VkDevice _device,
       ubwc_enabled = false;
    }
 
+   const VkImageStencilUsageCreateInfo *stencil_usage_info =
+      vk_find_struct_const(pCreateInfo->pNext, IMAGE_STENCIL_USAGE_CREATE_INFO);
+
    if (!ubwc_possible(image->vk_format, pCreateInfo->imageType, pCreateInfo->usage,
+                      stencil_usage_info ? stencil_usage_info->stencilUsage : pCreateInfo->usage,
                       device->physical_device->info.a6xx.has_z24uint_s8uint, pCreateInfo->samples))
       ubwc_enabled = false;
 
@@ -688,7 +694,7 @@ tu_CreateImage(VkDevice _device,
       switch (layout->nr_samples) {
       case 4:
          width *= 2;
-         /* fallthru */
+         FALLTHROUGH;
       case 2:
          height *= 2;
          break;

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="17701" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15702" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment version="1040" identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17701"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15702"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -196,7 +196,7 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="414" y="417.03906000000001" width="580" height="341"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1025"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1417"/>
             <value key="minSize" type="size" width="320" height="240"/>
             <view key="contentView" id="245" colorLabel="IBBuiltInLabel-Red">
                 <rect key="frame" x="0.0" y="0.0" width="580" height="341"/>
@@ -205,39 +205,39 @@
                     <tabView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="348" colorLabel="IBBuiltInLabel-Red">
                         <rect key="frame" x="13" y="10" width="554" height="325"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <font key="font" metaFont="system"/>
+                        <font key="font" metaFont="message"/>
                         <tabViewItems>
                             <tabViewItem label="Entrée" identifier="1" id="349">
-                                <view key="view" id="351" colorLabel="IBBuiltInLabel-Red">
+                                <view key="view" ambiguous="YES" id="351" colorLabel="IBBuiltInLabel-Red">
                                     <rect key="frame" x="10" y="33" width="534" height="279"/>
-                                    <autoresizingMask key="autoresizingMask"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="363" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="18" y="243" width="402" height="18"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Émuler une souris à trois boutons" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="100363">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="394"/>
                                             </connections>
                                         </button>
                                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="480" translatesAutoresizingMaskIntoConstraints="NO" id="364" colorLabel="IBBuiltInLabel-Red">
-                                            <rect key="frame" x="36" y="82" width="484" height="42"/>
+                                            <rect key="frame" x="36" y="96" width="461" height="28"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" placeholderString="" id="100364">
-                                                <font key="font" metaFont="smallSystem"/>
-                                                <string key="title">Quand cette option est activée, les touches équivalentes de la barre des menus peuvent perturber les applications X11 qui utilisent le modificateur d’instructions virtuelles.</string>
+                                                <font key="font" metaFont="controlContent" size="11"/>
+                                                <string key="title">Quand cette option est activée, les raccourcis système (ex. ⌘Q) qui gênent parfois les applications X11 ne sont pas interprétés localement, mais transmis en l'état à X11.</string>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
                                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="480" translatesAutoresizingMaskIntoConstraints="NO" id="365" colorLabel="IBBuiltInLabel-Red">
-                                            <rect key="frame" x="36" y="203" width="484" height="34"/>
+                                            <rect key="frame" x="36" y="205" width="484" height="34"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" placeholderString="" id="100365">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <string key="title">Maintenez la touche Option ou Commande enfoncée tout en cliquant pour activer le bouton droit ou central de la souris.
 </string>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -245,41 +245,32 @@
                                             </textFieldCell>
                                         </textField>
                                         <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="368" colorLabel="IBBuiltInLabel-Red">
-                                            <rect key="frame" x="18" y="130" width="402" height="18"/>
+                                            <rect key="frame" x="18" y="126" width="456" height="18"/>
                                             <autoresizingMask key="autoresizingMask"/>
-                                            <buttonCell key="cell" type="check" title="Activer les touches équivalentes sous X11" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="100368">
+                                            <buttonCell key="cell" type="check" title="Echappe les raccourcis système et envoi les touches équivalentes à X11" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="100368">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="396"/>
                                             </connections>
                                         </button>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="480" translatesAutoresizingMaskIntoConstraints="NO" id="369" colorLabel="IBBuiltInLabel-Red">
-                                            <rect key="frame" x="36" y="144" width="484" height="29"/>
-                                            <autoresizingMask key="autoresizingMask"/>
-                                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="Autorise les modifications du menu d’entrée pour remplacer la disposition des touches du clavier X11." placeholderString="" id="100369">
-                                                <font key="font" metaFont="smallSystem"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
                                         <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="370" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="18" y="179" width="402" height="18"/>
                                             <autoresizingMask key="autoresizingMask"/>
-                                            <buttonCell key="cell" type="check" title="Utiliser la disposition des touches du clavier du système" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="100370">
+                                            <buttonCell key="cell" type="check" title="Suivre la disposition des touches du clavier du système" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="100370">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="395"/>
                                             </connections>
                                         </button>
                                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="480" translatesAutoresizingMaskIntoConstraints="NO" id="300476" colorLabel="IBBuiltInLabel-Red">
-                                            <rect key="frame" x="36" y="35" width="484" height="28"/>
+                                            <rect key="frame" x="36" y="37" width="484" height="28"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="Une fois activées, les touches option envoient les symboles Alt_L et Alt_R au lieu de Mode_switch." id="300479">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
@@ -289,7 +280,7 @@
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Les touches option envoient Alt_L et Alt_R" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="300478">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="300480"/>
@@ -300,12 +291,22 @@
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Faire toujours défiler dans le sens du mouvement des doigts" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="300483" colorLabel="IBBuiltInLabel-Red">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="300484"/>
                                             </connections>
                                         </button>
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="480" translatesAutoresizingMaskIntoConstraints="NO" id="369" colorLabel="IBBuiltInLabel-Red">
+                                            <rect key="frame" x="36" y="150" width="484" height="29"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" placeholderString="" id="100369">
+                                                <font key="font" metaFont="controlContent" size="11"/>
+                                                <string key="title">Quand cette option est activée, les modifications du menu d’entrée pour remplacer la disposition des touches du clavier à prise en compte par X11.</string>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
                                     </subviews>
                                 </view>
                             </tabViewItem>
@@ -314,12 +315,12 @@
                                     <rect key="frame" x="10" y="33" width="534" height="279"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <subviews>
-                                        <popUpButton verticalHuggingPriority="750" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="382" colorLabel="IBBuiltInLabel-Red">
+                                        <popUpButton verticalHuggingPriority="750" fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="382" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="90" y="234" width="128" height="26"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <popUpButtonCell key="cell" type="push" title="du moniteur" bezelStyle="rounded" alignment="left" lineBreakMode="clipping" state="on" borderStyle="borderAndBezel" tag="-1" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" selectedItem="384" id="100382">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" title="OtherViews" id="380">
                                                     <items>
                                                         <menuItem title="du moniteur" state="on" tag="-1" id="384"/>
@@ -333,60 +334,60 @@
                                                 <action selector="prefs_changed:" target="196" id="398"/>
                                             </connections>
                                         </popUpButton>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="67" translatesAutoresizingMaskIntoConstraints="NO" id="385" colorLabel="IBBuiltInLabel-Red">
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="67" translatesAutoresizingMaskIntoConstraints="NO" id="385" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="17" y="238" width="71" height="20"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="Couleurs :" placeholderString="" id="100385">
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="388" translatesAutoresizingMaskIntoConstraints="NO" id="386" colorLabel="IBBuiltInLabel-Red">
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="388" translatesAutoresizingMaskIntoConstraints="NO" id="386" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="36" y="216" width="392" height="14"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="Cette option prend effet au prochain lancement d’X11." placeholderString="" id="100386">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <button imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="541" colorLabel="IBBuiltInLabel-Red">
+                                        <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="541" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="18" y="182" width="409" height="23"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Mode plein écran" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="100541">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="enable_fullscreen_changed:" target="196" id="547"/>
                                             </connections>
                                         </button>
-                                        <button imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300472" colorLabel="IBBuiltInLabel-Red">
+                                        <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300472" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="37" y="116" width="468" height="18"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Autoriser un accès à la barre des menus en mode plein écran" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="300473" colorLabel="IBBuiltInLabel-Red">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="300475"/>
                                             </connections>
                                         </button>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="480" translatesAutoresizingMaskIntoConstraints="NO" id="543" colorLabel="IBBuiltInLabel-Red">
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="480" translatesAutoresizingMaskIntoConstraints="NO" id="543" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="36" y="145" width="484" height="31"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="Active la fenêtre root X11. Utilisez le raccourci clavier Commande + Option + A pour ouvrir et fermer le mode plein écran." placeholderString="" id="100543">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="462" translatesAutoresizingMaskIntoConstraints="NO" id="300487" colorLabel="IBBuiltInLabel-Red">
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="462" translatesAutoresizingMaskIntoConstraints="NO" id="300487" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="54" y="79" width="466" height="31"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="La barre des menus sera visible lorsque le curseur de souris est placé en haut de votre affichage principal." id="300488" colorLabel="IBBuiltInLabel-Red">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
@@ -399,85 +400,85 @@
                                     <rect key="frame" x="10" y="33" width="534" height="279"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <subviews>
-                                        <button imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300424" colorLabel="IBBuiltInLabel-Red">
+                                        <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300424" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="18" y="255" width="409" height="23"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Activer la synchronisation" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="300440">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="300465"/>
                                             </connections>
                                         </button>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="490" translatesAutoresizingMaskIntoConstraints="NO" id="300423" colorLabel="IBBuiltInLabel-Red">
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="490" translatesAutoresizingMaskIntoConstraints="NO" id="300423" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="36" y="207" width="494" height="42"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" id="300441">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <string key="title">Active la commande de menu « Copier » et permet la synchronisation entre le presse-papiers de OSX, celui de X11 (CLIPBOARD) et les mémoires tampons principales (PRIMARY).</string>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <button imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300447" colorLabel="IBBuiltInLabel-Red">
+                                        <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300447" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="34" y="129" width="458" height="18"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Mettre à jour CLIPBOARD lorsque le presse-papiers est modifié" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="300450">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="300467"/>
                                             </connections>
                                         </button>
-                                        <button imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300451" colorLabel="IBBuiltInLabel-Red">
+                                        <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300451" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="34" y="104" width="495" height="18"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Mettre à jour PRIMARY (clic central) lorsque le presse-papiers est modifié" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="300452">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="300468"/>
                                             </connections>
                                         </button>
-                                        <button imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300457" colorLabel="IBBuiltInLabel-Red">
+                                        <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300457" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="34" y="79" width="437" height="18"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Mettre à jour le presse-papiers dès la sélection de nouveau texte" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="300458">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="300469"/>
                                             </connections>
                                         </button>
-                                        <button imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300453" colorLabel="IBBuiltInLabel-Red">
+                                        <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300453" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="34" y="192" width="474" height="18"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Mettre à jour le presse-papiers lorsque CLIPBOARD est modifié" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="300454">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="300466"/>
                                             </connections>
                                         </button>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="478" translatesAutoresizingMaskIntoConstraints="NO" id="300455" colorLabel="IBBuiltInLabel-Red">
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="478" translatesAutoresizingMaskIntoConstraints="NO" id="300455" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="48" y="158" width="482" height="28"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="Désactivez cette option si vous voulez utiliser xclipboard, klipper, ou tout autre gestionnaire de presse-papiers X11." id="300456">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="478" translatesAutoresizingMaskIntoConstraints="NO" id="300459" colorLabel="IBBuiltInLabel-Red">
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="478" translatesAutoresizingMaskIntoConstraints="NO" id="300459" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="48" y="47" width="482" height="28"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="En raison de limitations du protocole X11, cette option ne fonctionnera pas toujours dans certaines applications." id="300460">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
@@ -490,63 +491,63 @@
                                     <rect key="frame" x="10" y="33" width="534" height="279"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <subviews>
-                                        <button imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300359" colorLabel="IBBuiltInLabel-Red">
+                                        <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300359" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="15" y="245" width="402" height="18"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Activation des fenêtres inactives en un clic" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="300360">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="300389"/>
                                             </connections>
                                         </button>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="501" translatesAutoresizingMaskIntoConstraints="NO" id="300358" colorLabel="IBBuiltInLabel-Red">
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="501" translatesAutoresizingMaskIntoConstraints="NO" id="300358" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="23" y="208" width="505" height="31"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" placeholderString="" id="300361">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <string key="title">En cas d’activation de cette option, si vous cliquez sur une fenêtre inactive, celle-ci deviendra active et le clic sera effectif.</string>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <button imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300362" colorLabel="IBBuiltInLabel-Red">
+                                        <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300362" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="15" y="184" width="402" height="18"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Activation des fenêtres survolées par la souris" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="300363">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="300390"/>
                                             </connections>
                                         </button>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="501" translatesAutoresizingMaskIntoConstraints="NO" id="300364" colorLabel="IBBuiltInLabel-Red">
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="501" translatesAutoresizingMaskIntoConstraints="NO" id="300364" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="23" y="150" width="505" height="28"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="L’activation des fenêtres X11 suit le curseur. Ceci comporte des effets adverses." placeholderString="" id="300365">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <button imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300368" colorLabel="IBBuiltInLabel-Red">
+                                        <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="300368" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="15" y="140" width="402" height="18"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Activation des nouvelles fenêtres" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="300369">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="300391"/>
                                             </connections>
                                         </button>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="501" translatesAutoresizingMaskIntoConstraints="NO" id="300370" colorLabel="IBBuiltInLabel-Red">
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="501" translatesAutoresizingMaskIntoConstraints="NO" id="300370" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="23" y="92" width="505" height="42"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" placeholderString="" id="300371">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <string key="title">Lorsque cette option est activée, la création d’une nouvelle fenêtre X11 fait passer X11.app au premier plan (au lieu de Finder.app, Terminal.app, etc.)</string>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -560,53 +561,53 @@
                                     <rect key="frame" x="10" y="33" width="534" height="279"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <subviews>
-                                        <button imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="374" colorLabel="IBBuiltInLabel-Red">
+                                        <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="374" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="18" y="243" width="402" height="18"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Authentifier les connexions" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="100374">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="399"/>
                                             </connections>
                                         </button>
-                                        <button imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="375" colorLabel="IBBuiltInLabel-Red">
+                                        <button fixedFrame="YES" imageHugsTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="375" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="18" y="166" width="402" height="18"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <buttonCell key="cell" type="check" title="Autoriser les connexions de clients réseau" bezelStyle="regularSquare" imagePosition="leading" alignment="left" inset="2" id="100375">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="prefs_changed:" target="196" id="401"/>
                                             </connections>
                                         </button>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="480" translatesAutoresizingMaskIntoConstraints="NO" id="376" colorLabel="IBBuiltInLabel-Red">
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="480" translatesAutoresizingMaskIntoConstraints="NO" id="376" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="36" y="195" width="484" height="42"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" placeholderString="" id="100376">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <string key="title">Le lancement d’X11 créera des touches de contrôle d’accès Xauthority. Si l’adresse IP du système change, ces touches ne seront plus valides, ce qui risquera d’empêcher le lancement des applications X11.</string>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="480" translatesAutoresizingMaskIntoConstraints="NO" id="377" colorLabel="IBBuiltInLabel-Red">
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="480" translatesAutoresizingMaskIntoConstraints="NO" id="377" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="36" y="104" width="484" height="56"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" placeholderString="" id="100377">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <string key="title">En cas d’activation de cette option, « Authentifier les connexions » doit aussi être activée pour garantir la sécurité du système. En cas de désactivation, les connexions à partir d’applications distantes sont interdites.</string>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="400" translatesAutoresizingMaskIntoConstraints="NO" id="379" colorLabel="IBBuiltInLabel-Red">
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" preferredMaxLayoutWidth="400" translatesAutoresizingMaskIntoConstraints="NO" id="379" colorLabel="IBBuiltInLabel-Red">
                                             <rect key="frame" x="17" y="17" width="404" height="14"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="Ces options prennent effet au prochain lancement d’X11." placeholderString="" id="100379">
-                                                <font key="font" metaFont="smallSystem"/>
+                                                <font key="font" metaFont="controlContent" size="11"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
@@ -618,12 +619,13 @@
                     </tabView>
                 </subviews>
             </view>
+            <point key="canvasLocation" x="132" y="-151"/>
         </window>
         <window title="Menu de l’application X11" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" deferred="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" frameAutosaveName="x11_apps" animationBehavior="default" id="285" userLabel="EditPrograms" customClass="NSPanel" colorLabel="IBBuiltInLabel-Red">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="302" y="440" width="548" height="271"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1025"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1417"/>
             <value key="minSize" type="size" width="320" height="240"/>
             <view key="contentView" id="286">
                 <rect key="frame" x="0.0" y="0.0" width="548" height="271"/>
@@ -634,7 +636,7 @@
                         <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="push" title="Dupliquer" bezelStyle="rounded" alignment="center" borderStyle="border" inset="2" id="100292">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                            <font key="font" metaFont="system"/>
+                            <font key="font" metaFont="message"/>
                         </buttonCell>
                         <connections>
                             <action selector="apps_table_duplicate:" target="196" id="304"/>
@@ -645,7 +647,7 @@
                         <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="push" title="Supprimer" bezelStyle="rounded" alignment="center" borderStyle="border" inset="2" id="100293">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                            <font key="font" metaFont="system"/>
+                            <font key="font" metaFont="message"/>
                         </buttonCell>
                         <connections>
                             <action selector="apps_table_delete:" target="196" id="303"/>
@@ -654,12 +656,12 @@
                     <scrollView fixedFrame="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="295">
                         <rect key="frame" x="20" y="20" width="350" height="231"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <clipView key="contentView" id="dk6-mg-gE4">
-                            <rect key="frame" x="1" y="1" width="333" height="214"/>
-                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <clipView key="contentView" ambiguous="YES" id="dk6-mg-gE4">
+                            <rect key="frame" x="1" y="0.0" width="348" height="230"/>
+                            <autoresizingMask key="autoresizingMask"/>
                             <subviews>
-                                <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnReordering="NO" multipleSelection="NO" autosaveColumns="NO" headerView="300295" id="296">
-                                    <rect key="frame" x="0.0" y="0.0" width="333" height="186"/>
+                                <tableView verticalHuggingPriority="750" ambiguous="YES" allowsExpansionToolTips="YES" columnReordering="NO" multipleSelection="NO" autosaveColumns="NO" headerView="300295" id="296">
+                                    <rect key="frame" x="0.0" y="0.0" width="348" height="202"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <size key="intercellSpacing" width="3" height="2"/>
                                     <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -671,7 +673,7 @@
                                                 <color key="backgroundColor" white="0.33333298560000002" alpha="1" colorSpace="calibratedWhite"/>
                                             </tableHeaderCell>
                                             <textFieldCell key="dataCell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" alignment="left" title="Text Cell" placeholderString="" id="573">
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                             </textFieldCell>
@@ -683,7 +685,7 @@
                                                 <color key="backgroundColor" white="0.33333298560000002" alpha="1" colorSpace="calibratedWhite"/>
                                             </tableHeaderCell>
                                             <textFieldCell key="dataCell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" alignment="left" title="Text Cell" placeholderString="" id="574">
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="message"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                             </textFieldCell>
@@ -695,7 +697,7 @@
                                                 <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                             </tableHeaderCell>
                                             <textFieldCell key="dataCell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" alignment="left" title="Text Cell" placeholderString="" drawsBackground="YES" id="575">
-                                                <font key="font" metaFont="cellTitle"/>
+                                                <font key="font" metaFont="label" size="12"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
@@ -705,16 +707,16 @@
                                 </tableView>
                             </subviews>
                         </clipView>
-                        <scroller key="horizontalScroller" verticalHuggingPriority="750" horizontal="YES" id="200295">
-                            <rect key="frame" x="1" y="215" width="333" height="15"/>
+                        <scroller key="horizontalScroller" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="200295">
+                            <rect key="frame" x="1" y="214" width="348" height="16"/>
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
-                        <scroller key="verticalScroller" verticalHuggingPriority="750" horizontal="NO" id="100295">
-                            <rect key="frame" x="334" y="29" width="15" height="186"/>
+                        <scroller key="verticalScroller" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="100295">
+                            <rect key="frame" x="333" y="28" width="16" height="202"/>
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
                         <tableHeaderView key="headerView" wantsLayer="YES" id="300295">
-                            <rect key="frame" x="0.0" y="0.0" width="333" height="28"/>
+                            <rect key="frame" x="0.0" y="0.0" width="348" height="28"/>
                             <autoresizingMask key="autoresizingMask"/>
                         </tableHeaderView>
                     </scrollView>
@@ -723,7 +725,7 @@
                         <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="push" title="Ajouter un élément" bezelStyle="rounded" alignment="center" state="on" borderStyle="border" inset="2" id="100310">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                            <font key="font" metaFont="system"/>
+                            <font key="font" metaFont="message"/>
                         </buttonCell>
                         <connections>
                             <action selector="apps_table_new:" target="196" id="311"/>

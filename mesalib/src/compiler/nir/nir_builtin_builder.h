@@ -126,27 +126,6 @@ nir_bitselect(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *s)
 }
 
 static inline nir_ssa_def *
-nir_fclamp(nir_builder *b,
-           nir_ssa_def *x, nir_ssa_def *min_val, nir_ssa_def *max_val)
-{
-   return nir_fmin(b, nir_fmax(b, x, min_val), max_val);
-}
-
-static inline nir_ssa_def *
-nir_iclamp(nir_builder *b,
-           nir_ssa_def *x, nir_ssa_def *min_val, nir_ssa_def *max_val)
-{
-   return nir_imin(b, nir_imax(b, x, min_val), max_val);
-}
-
-static inline nir_ssa_def *
-nir_uclamp(nir_builder *b,
-           nir_ssa_def *x, nir_ssa_def *min_val, nir_ssa_def *max_val)
-{
-   return nir_umin(b, nir_umax(b, x, min_val), max_val);
-}
-
-static inline nir_ssa_def *
 nir_copysign(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y)
 {
    uint64_t masks = 1ull << (x->bit_size - 1);

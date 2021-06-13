@@ -156,6 +156,10 @@ pipe_loader_drm_probe_fd_nodup(struct pipe_loader_device **dev, int fd)
 #endif
    ddev->dd = get_driver_descriptor(ddev->base.driver_name, plib);
 
+   /* vgem is a virtual device; don't try using it with kmsro */
+   if (strcmp(ddev->base.driver_name, "vgem") == 0)
+      goto fail;
+
    /* kmsro supports lots of drivers, try as a fallback */
    if (!ddev->dd)
       ddev->dd = get_driver_descriptor("kmsro", plib);

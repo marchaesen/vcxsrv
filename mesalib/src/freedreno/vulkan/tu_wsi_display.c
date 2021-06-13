@@ -263,16 +263,17 @@ VkResult
 tu_RegisterDeviceEventEXT(VkDevice                    _device,
                           const VkDeviceEventInfoEXT  *device_event_info,
                           const VkAllocationCallbacks *allocator,
-                          VkFence                     *_fence)
+                          VkFence                     *out_fence)
 {
    TU_FROM_HANDLE(tu_device, device, _device);
    VkResult ret;
 
-   ret = tu_CreateFence(_device, &(VkFenceCreateInfo) {}, allocator, _fence);
+   VkFence _fence;
+   ret = tu_CreateFence(_device, &(VkFenceCreateInfo) {}, allocator, &_fence);
    if (ret != VK_SUCCESS)
       return ret;
 
-   TU_FROM_HANDLE(tu_syncobj, fence, *_fence);
+   TU_FROM_HANDLE(tu_syncobj, fence, _fence);
 
    int sync_fd = tu_syncobj_to_fd(device, fence);
    if (sync_fd >= 0) {
@@ -289,7 +290,9 @@ tu_RegisterDeviceEventEXT(VkDevice                    _device,
    }
 
    if (ret != VK_SUCCESS)
-      tu_DestroyFence(_device, *_fence, allocator);
+      tu_DestroyFence(_device, _fence, allocator);
+   else
+      *out_fence = _fence;
 
    return ret;
 }

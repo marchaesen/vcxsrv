@@ -47,7 +47,7 @@ struct dri_drawable
    __DRIdrawable *dPriv;
    __DRIscreen *sPriv;
 
-   __DRIbuffer old[8];
+   __DRIbuffer old[__DRI_BUFFER_COUNT];
    unsigned old_num;
    unsigned old_w;
    unsigned old_h;

@@ -19,30 +19,6 @@ TEvalShaderFromNir::TEvalShaderFromNir(r600_pipe_shader *sh, r600_pipe_shader_se
       m_export_processor.reset(new VertexStageExportForFS(*this, &sel.so, sh, key));
 }
 
-bool TEvalShaderFromNir::do_process_inputs(nir_variable *input)
-{
-   if (input->data.location == VARYING_SLOT_POS ||
-       input->data.location == VARYING_SLOT_PSIZ ||
-       input->data.location == VARYING_SLOT_CLIP_DIST0 ||
-       input->data.location == VARYING_SLOT_CLIP_DIST1 ||
-       (input->data.location >= VARYING_SLOT_VAR0 &&
-       input->data.location <= VARYING_SLOT_VAR31) ||
-       (input->data.location >= VARYING_SLOT_TEX0 &&
-       input->data.location <= VARYING_SLOT_TEX7) ||
-        (input->data.location >= VARYING_SLOT_PATCH0 &&
-         input->data.location <= VARYING_SLOT_TESS_MAX)) {
-
-      r600_shader_io& io = sh_info().input[input->data.driver_location];
-      tgsi_get_gl_varying_semantic(static_cast<gl_varying_slot>( input->data.location),
-                                   true, &io.name, &io.sid);
-      ++sh_info().ninput;
-      return true;
-   }
-
-   return false;
-
-}
-
 bool TEvalShaderFromNir::scan_sysvalue_access(nir_instr *instr)
 {
    if (instr->type != nir_instr_type_intrinsic)
@@ -121,17 +97,6 @@ bool TEvalShaderFromNir::emit_intrinsic_instruction_override(nir_intrinsic_instr
    default:
       return false;
    }
-}
-
-
-bool TEvalShaderFromNir::do_process_outputs(nir_variable *output)
-{
-   return m_export_processor->do_process_outputs(output);
-}
-
-bool TEvalShaderFromNir::do_emit_store_deref(const nir_variable *out_var, nir_intrinsic_instr* instr)
-{
-   return false;
 }
 
 void TEvalShaderFromNir::do_finalize()

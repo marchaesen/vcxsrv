@@ -27,7 +27,7 @@
 #define __PAN_BO_H__
 
 #include "util/list.h"
-#include "pan_device.h"
+#include "panfrost-job.h"
 #include <time.h>
 
 /* Flags for allocated memory */
@@ -67,6 +67,8 @@
 
 /* BO is accessed by the fragment job. */
 #define PAN_BO_ACCESS_FRAGMENT        (1 << 4)
+
+struct panfrost_device;
 
 struct panfrost_ptr {
         /* CPU address */

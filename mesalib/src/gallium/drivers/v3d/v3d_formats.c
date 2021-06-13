@@ -24,7 +24,7 @@
 /**
  * @file v3d_formats.c
  *
- * Contains the table and accessors for VC5 texture and render target format
+ * Contains the table and accessors for V3D texture and render target format
  * support.
  *
  * The hardware has limited support for texture formats, and extremely limited

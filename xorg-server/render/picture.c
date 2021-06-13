@@ -523,12 +523,12 @@ PictureMatchVisual(ScreenPtr pScreen, int depth, VisualPtr pVisual)
                     return format;
             }
             else {
-                if (format->direct.redMask << format->direct.red ==
-                    pVisual->redMask &&
-                    format->direct.greenMask << format->direct.green ==
-                    pVisual->greenMask &&
-                    format->direct.blueMask << format->direct.blue ==
-                    pVisual->blueMask) {
+                if ((unsigned long)format->direct.redMask <<
+                        format->direct.red == pVisual->redMask &&
+                    (unsigned long)format->direct.greenMask <<
+                        format->direct.green == pVisual->greenMask &&
+                    (unsigned long)format->direct.blueMask <<
+                        format->direct.blue == pVisual->blueMask) {
                     return format;
                 }
             }

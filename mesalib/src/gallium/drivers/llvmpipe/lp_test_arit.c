@@ -296,7 +296,7 @@ const float fract_values[] = {
 #ifdef _MSC_VER
 #define WRAP(func) \
 static float \
-wrap_ ## func ## (float x) \
+wrap_ ## func(float x) \
 { \
    return func(x); \
 }

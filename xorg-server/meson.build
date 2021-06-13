@@ -3,7 +3,7 @@ project('xserver', 'c',
             'buildtype=debugoptimized',
             'c_std=gnu99',
         ],
-        version: '1.20.99.1',
+        version: '20.99.1',
         meson_version: '>= 0.47.0',
 )
 add_project_arguments('-DHAVE_DIX_CONFIG_H', language: ['c', 'objc'])
@@ -66,31 +66,31 @@ wayland_protocols_req = '>= 1.18'
 gbm_req = '>= 10.2'
 xf86dgaproto_req = '>= 2.0.99.1'
 
-xproto_dep = dependency('xproto', version: '>= 7.0.31')
-randrproto_dep = dependency('randrproto', version: '>= 1.6.0')
-renderproto_dep = dependency('renderproto', version: '>= 0.11')
-xextproto_dep = dependency('xextproto', version: '>= 7.2.99.901')
-inputproto_dep = dependency('inputproto', version: '>= 2.3')
-kbproto_dep = dependency('kbproto', version: '>= 1.0.3')
-fontsproto_dep = dependency('fontsproto', version: '>= 2.1.3')
-fixesproto_dep = dependency('fixesproto', version: '>= 5.0')
-damageproto_dep = dependency('damageproto', version: '>= 1.1')
-xcmiscproto_dep = dependency('xcmiscproto', version: '>= 1.2.0')
-bigreqsproto_dep = dependency('bigreqsproto', version: '>= 1.1.0')
+xproto_dep = dependency('xproto', version: '>= 7.0.31', fallback: ['xorgproto', 'ext_xorgproto'])
+randrproto_dep = dependency('randrproto', version: '>= 1.6.0', fallback: ['xorgproto', 'ext_xorgproto'])
+renderproto_dep = dependency('renderproto', version: '>= 0.11', fallback: ['xorgproto', 'ext_xorgproto'])
+xextproto_dep = dependency('xextproto', version: '>= 7.2.99.901', fallback: ['xorgproto', 'ext_xorgproto'])
+inputproto_dep = dependency('inputproto', version: '>= 2.3.99.1', fallback: ['xorgproto', 'ext_xorgproto'])
+kbproto_dep = dependency('kbproto', version: '>= 1.0.3', fallback: ['xorgproto', 'ext_xorgproto'])
+fontsproto_dep = dependency('fontsproto', version: '>= 2.1.3', fallback: ['xorgproto', 'ext_xorgproto'])
+fixesproto_dep = dependency('fixesproto', version: '>= 6.0', fallback: ['xorgproto', 'ext_xorgproto'])
+damageproto_dep = dependency('damageproto', version: '>= 1.1', fallback: ['xorgproto', 'ext_xorgproto'])
+xcmiscproto_dep = dependency('xcmiscproto', version: '>= 1.2.0', fallback: ['xorgproto', 'ext_xorgproto'])
+bigreqsproto_dep = dependency('bigreqsproto', version: '>= 1.1.0', fallback: ['xorgproto', 'ext_xorgproto'])
 xtrans_dep = dependency('xtrans', version: '>= 1.3.5')
 
-videoproto_dep = dependency('videoproto')
-compositeproto_dep = dependency('compositeproto', version: '>= 0.4')
-recordproto_dep = dependency('recordproto', version: '>= 1.13.99.1')
-scrnsaverproto_dep = dependency('scrnsaverproto', version: '>= 1.1')
-resourceproto_dep = dependency('resourceproto', version: '>= 1.2.0')
-xf86driproto_dep = dependency('xf86driproto', version: '>= 2.1.0', required: get_option('dri1') == 'true')
-dri2proto_dep = dependency('dri2proto', version: '>= 2.8', required: get_option('dri2') == 'true')
-dri3proto_dep = dependency('dri3proto', version: '>= 1.2', required: get_option('dri3') == 'true')
-xineramaproto_dep = dependency('xineramaproto')
-xf86bigfontproto_dep = dependency('xf86bigfontproto', version: '>= 1.2.0', required: get_option('xf86bigfont'))
-xf86vidmodeproto_dep = dependency('xf86vidmodeproto', version: '>= 2.2.99.1')
-applewmproto_dep = dependency('applewmproto', version: '>= 1.4', required: false)
+videoproto_dep = dependency('videoproto', fallback: ['xorgproto', 'ext_xorgproto'])
+compositeproto_dep = dependency('compositeproto', version: '>= 0.4', fallback: ['xorgproto', 'ext_xorgproto'])
+recordproto_dep = dependency('recordproto', version: '>= 1.13.99.1', fallback: ['xorgproto', 'ext_xorgproto'])
+scrnsaverproto_dep = dependency('scrnsaverproto', version: '>= 1.1', fallback: ['xorgproto', 'ext_xorgproto'])
+resourceproto_dep = dependency('resourceproto', version: '>= 1.2.0', fallback: ['xorgproto', 'ext_xorgproto'])
+xf86driproto_dep = dependency('xf86driproto', version: '>= 2.1.0', fallback: ['xorgproto', 'ext_xorgproto'], required: get_option('dri1') == 'true')
+dri2proto_dep = dependency('dri2proto', version: '>= 2.8', fallback: ['xorgproto', 'ext_xorgproto'], required: get_option('dri2') == 'true')
+dri3proto_dep = dependency('dri3proto', version: '>= 1.2', fallback: ['xorgproto', 'ext_xorgproto'], required: get_option('dri3') == 'true')
+xineramaproto_dep = dependency('xineramaproto', fallback: ['xorgproto', 'ext_xorgproto'])
+xf86bigfontproto_dep = dependency('xf86bigfontproto', version: '>= 1.2.0', fallback: ['xorgproto', 'ext_xorgproto'], required: get_option('xf86bigfont'))
+xf86vidmodeproto_dep = dependency('xf86vidmodeproto', version: '>= 2.2.99.1', fallback: ['xorgproto', 'ext_xorgproto'])
+applewmproto_dep = dependency('applewmproto', version: '>= 1.4', fallback: ['xorgproto', 'ext_xorgproto'], required: false)
 xshmfence_dep = dependency('xshmfence', version: '>= 1.1', required: false)
 
 pixman_dep = dependency('pixman-1')

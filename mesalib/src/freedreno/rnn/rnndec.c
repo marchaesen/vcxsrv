@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include "util.h"
+#include "util/compiler.h"
 
 struct rnndeccontext *rnndec_newcontext(struct rnndb *db) {
 	struct rnndeccontext *res = calloc (sizeof *res, 1);
@@ -266,7 +267,7 @@ char *rnndec_decodeval(struct rnndeccontext *ctx, struct rnntypeinfo *ti, uint64
 						ctx->colors->reset);
 				break;
 			}
-			/* fallthrough */
+			FALLTHROUGH;
 		case RNN_TTYPE_UFIXED:
 			asprintf (&res, "%s%lf%s", ctx->colors->num,
 					((double)value) / ((double)(1LL << ti->radix)),

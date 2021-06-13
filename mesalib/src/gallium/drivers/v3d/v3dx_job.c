@@ -23,7 +23,7 @@
 
 /** @file v3dx_job.c
  *
- * V3D version-specific functions for submitting VC5 render jobs to the
+ * V3D version-specific functions for submitting V3D render jobs to the
  * kernel.
  */
 

@@ -145,7 +145,7 @@ static VAStatus vlVaPostProcBlit(vlVaDriver *drv, vlVaContext *context,
       surf->templat.interlaced = false;
       dst->destroy(dst);
 
-      if (vlVaHandleSurfaceAllocate(drv, surf, &surf->templat) != VA_STATUS_SUCCESS)
+      if (vlVaHandleSurfaceAllocate(drv, surf, &surf->templat, NULL, 0) != VA_STATUS_SUCCESS)
          return VA_STATUS_ERROR_ALLOCATION_FAILED;
 
       dst = context->target = surf->buffer;
@@ -317,7 +317,7 @@ vlVaHandleVAProcPipelineParameterBufferType(vlVaDriver *drv, vlVaContext *contex
       surf->templat.interlaced = false;
       dst->destroy(dst);
 
-      if (vlVaHandleSurfaceAllocate(drv, surf, &surf->templat) != VA_STATUS_SUCCESS)
+      if (vlVaHandleSurfaceAllocate(drv, surf, &surf->templat, NULL, 0) != VA_STATUS_SUCCESS)
          return VA_STATUS_ERROR_ALLOCATION_FAILED;
 
       dst = context->target = surf->buffer;

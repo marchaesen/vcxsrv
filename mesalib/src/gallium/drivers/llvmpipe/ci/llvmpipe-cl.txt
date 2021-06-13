@@ -9,6 +9,7 @@ api/cllinkprogram: skip
 api/clsetkernelarg/set kernel argument for cl_int3: fail
 interop/egl_khr_cl_event2: skip
 program/build/include-directories: fail
+program/build/math-intrinsics: fail
 program/build/printf: skip
 program/check predefined preprocessor macros/__opencl_c_version__ must be consistent with host (if defined): skip
 program/check predefined preprocessor macros/__opencl_c_version__ must be defined for opencl 1.2 and later: skip
@@ -16,7 +17,7 @@ program/check predefined preprocessor macros/cl_version_1_2 must be defined for 
 program/check predefined preprocessor macros/cl_version_2_0 must be defined for opencl 2.0 and later: skip
 program/execute/amdgcn-callee-saved-registers: skip
 program/execute/amdgcn-f16-inline-immediates: skip
-program/execute/amdgcn-f32-inline-immediates/add integer 64: fail
+program/execute/amdgcn-f32-inline-immediates: fail
 program/execute/amdgcn-i16-inline-immediates: skip
 program/execute/atomic_int64_add-global: skip
 program/execute/atomic_int64_add-global-return: skip
@@ -72,6 +73,7 @@ program/execute/call-clobbers-amdgcn: skip
 program/execute/calls-large-struct: crash
 program/execute/calls-struct/regs struct: fail
 program/execute/calls-struct/small struct in regs: fail
+program/execute/fdiv-modifiers-f32: fail
 program/execute/global-offset/3d, input dependent: fail
 program/execute/image-attributes: crash
 program/execute/image-read-2d/read float from cl_float cl_rgba image.: fail

@@ -137,9 +137,6 @@ find_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
 	foreach_array (arr, &ir->array_list)
 		arr->unused = true;
 
-	foreach_output (out, ir)
-		instr_dce(out, false);
-
 	foreach_block (block, &ir->block_list) {
 		for (i = 0; i < block->keeps_count; i++)
 			instr_dce(block->keeps[i], false);

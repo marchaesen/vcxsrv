@@ -67,14 +67,8 @@ static void ac_init_llvm_target(void)
       "mesa",
       "-simplifycfg-sink-common=false",
       "-global-isel-abort=2",
-#if LLVM_VERSION_MAJOR >= 10
-      /* Atomic optimizations require LLVM 10.0 for gfx10 support. */
       "-amdgpu-atomic-optimizations=true",
-#endif
-#if LLVM_VERSION_MAJOR >= 11
-      /* This was disabled by default in: https://reviews.llvm.org/D77228 */
       "-structurizecfg-skip-uniform-regions",
-#endif
    };
    LLVMParseCommandLineOptions(ARRAY_SIZE(argv), argv, NULL);
 }
@@ -196,13 +190,10 @@ static LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family,
    const char *triple = (tm_options & AC_TM_SUPPORTS_SPILL) ? "amdgcn-mesa-mesa3d" : "amdgcn--";
    LLVMTargetRef target = ac_get_llvm_target(triple);
 
-   snprintf(features, sizeof(features), "+DumpCode%s%s%s%s%s",
-            LLVM_VERSION_MAJOR >= 11 ? "" : ",-fp32-denormals,+fp64-denormals",
+   snprintf(features, sizeof(features), "+DumpCode%s%s",
             family >= CHIP_NAVI10 && !(tm_options & AC_TM_WAVE32)
                ? ",+wavefrontsize64,-wavefrontsize32"
                : "",
-            family <= CHIP_NAVI14 && tm_options & AC_TM_FORCE_ENABLE_XNACK ? ",+xnack" : "",
-            family <= CHIP_NAVI14 && tm_options & AC_TM_FORCE_DISABLE_XNACK ? ",-xnack" : "",
             tm_options & AC_TM_PROMOTE_ALLOCA_TO_SCRATCH ? ",-promote-alloca" : "");
 
    LLVMTargetMachineRef tm =

@@ -104,27 +104,30 @@ struct radv_pipeline_layout {
 
 static inline const uint32_t *
 radv_immutable_samplers(const struct radv_descriptor_set_layout *set,
-                        const struct radv_descriptor_set_binding_layout *binding) {
-	return (const uint32_t*)((const char*)set + binding->immutable_samplers_offset);
+                        const struct radv_descriptor_set_binding_layout *binding)
+{
+   return (const uint32_t *)((const char *)set + binding->immutable_samplers_offset);
 }
 
 static inline unsigned
-radv_combined_image_descriptor_sampler_offset(const struct radv_descriptor_set_binding_layout *binding)
+radv_combined_image_descriptor_sampler_offset(
+   const struct radv_descriptor_set_binding_layout *binding)
 {
-	return binding->size - ((!binding->immutable_samplers_equal) ? 16 : 0);
+   return binding->size - ((!binding->immutable_samplers_equal) ? 16 : 0);
 }
 
 static inline const struct radv_sampler_ycbcr_conversion *
-radv_immutable_ycbcr_samplers(const struct radv_descriptor_set_layout *set,
-                              unsigned binding_index)
+radv_immutable_ycbcr_samplers(const struct radv_descriptor_set_layout *set, unsigned binding_index)
 {
-	if (!set->ycbcr_sampler_offsets_offset)
-		return NULL;
+   if (!set->ycbcr_sampler_offsets_offset)
+      return NULL;
 
-	const uint32_t *offsets = (const uint32_t*)((const char*)set + set->ycbcr_sampler_offsets_offset);
+   const uint32_t *offsets =
+      (const uint32_t *)((const char *)set + set->ycbcr_sampler_offsets_offset);
 
-	if (offsets[binding_index] == 0)
-		return NULL;
-	return (const struct radv_sampler_ycbcr_conversion *)((const char*)set + offsets[binding_index]);
+   if (offsets[binding_index] == 0)
+      return NULL;
+   return (const struct radv_sampler_ycbcr_conversion *)((const char *)set +
+                                                         offsets[binding_index]);
 }
 #endif /* RADV_DESCRIPTOR_SET_H */

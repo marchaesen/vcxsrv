@@ -53,6 +53,7 @@ struct nir_to_dxil_options {
    unsigned ubo_binding_offset;
    unsigned provoking_vertex;
    unsigned num_kernel_globals;
+   bool vulkan_environment;
 };
 
 bool

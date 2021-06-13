@@ -103,7 +103,7 @@ Bug fixes
 - Graphics glitches after upgrade to mesa 20.3 on Khadas VIM3 Pro (Mali G52 GPU)
 - glthread crash in \_mesa_glthread_upload
 - Iris driver causing graphics glitch in QEMU spice egl DMA-BUF
-- \[RADV/ACO\] Death Stranding cause a GPU hung (*ERROR\* Waiting for fences timed out!)
+- \[RADV/ACO\] Death Stranding cause a GPU hung (\*ERROR\* Waiting for fences timed out!)
 - \[TGL\] Elder Scrolls Online misrenders
 - \[ANV\] System hang with GRVK demos
 - Rendering artifacts in Barn Finders specifically on Radeon Vega
@@ -160,7 +160,7 @@ Bug fixes
 - \[bdw][iris][bisected][regression\] failing test on multiple test suites
 - osmesa classic: build failure with Meson and MinGW-W64
 - Crash and slowness in FreeCAD
-- ci: Missing needs: in radeonsi-stoney-*?
+- ci: Missing needs: in radeonsi-stoney-\*?
 - Triangles appear from the center of the field on PES2021 with Mesa 20.2.x
 - \[gen9][iris][regression][bisected\] flaky piglit tests
 - \[Intel][OpenGL\] Fail to get correct value when sampling from a texture in depth formats.
@@ -894,7 +894,7 @@ Danylo Piliaiev (22):
 - freedreno/a6xx: fix transform feedback resuming
 - freedreno/a5xx: implement transform feedback resuming
 - freedreno: Enable GLSL 3.30, updating us to GL 3.3 contexts
-- turnip: remove unused IR3_DP_LOCAL_GROUP_SIZE_\* from cs params
+- turnip: remove unused IR3_DP_LOCAL_GROUP_SIZE_* from cs params
 - turnip: implement indirect dispatch
 
 Dave Airlie (69):

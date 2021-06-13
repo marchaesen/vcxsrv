@@ -1,0 +1,345 @@
+<agxml>
+  <enum name="Channel">
+    <value name="R" value="0"/>
+    <value name="G" value="1"/>
+    <value name="B" value="2"/>
+    <value name="A" value="3"/>
+    <value name="1" value="4"/>
+    <value name="0" value="5"/>
+  </enum>
+
+  <enum name="ZS Func">
+    <value name="Never" value="0"/>
+    <value name="Less" value="1"/>
+    <value name="Equal" value="2"/>
+    <value name="Lequal" value="3"/>
+    <value name="Greater" value="4"/>
+    <value name="Not Equal" value="5"/>
+    <value name="Gequal" value="6"/>
+    <value name="Always" value="7"/>
+  </enum>
+
+  <enum name="Compare func">
+    <value name="Lequal" value="0"/>
+    <value name="Gequal" value="1"/>
+    <value name="Less" value="2"/>
+    <value name="Greater" value="3"/>
+    <value name="Equal" value="4"/>
+    <value name="Not Equal" value="5"/>
+    <value name="Always" value="6"/>
+    <value name="Never" value="7"/>
+  </enum>
+
+  <enum name="Stencil Op">
+    <value name="Keep" value="0"/>
+    <value name="Zero" value="1"/>
+    <value name="Replace" value="2"/>
+    <value name="Incr Sat" value="3"/>
+    <value name="Decr Sat" value="4"/>
+    <value name="Invert" value="5"/>
+    <value name="Incr Wrap" value="6"/>
+    <value name="Decr Wrap" value="7"/>
+  </enum>
+
+  <enum name="Polygon Mode">
+    <value name="Fill" value="0"/>
+    <value name="Line" value="1"/>
+    <value name="Point" value="2"/>
+  </enum>
+
+  <enum name="Primitive">
+    <value name="Points" value="0"/>
+    <value name="Lines" value="1"/>
+    <value name="Line strip" value="3"/>
+    <value name="Line loop" value="5"/>
+    <value name="Triangles" value="6"/>
+    <value name="Triangle strip" value="9"/>
+    <value name="Triangle fan" value="10"/>
+    <value name="Quads" value="14"/> <!-- guess, confirm with piglit later XXX -->
+    <value name="Quad strip" value="15"/> <!-- guess, confirm with piglit later XXX -->
+  </enum>
+
+  <struct name="Varying header" size="8">
+    <field name="Slots 1" size="8" start="0:0" type="uint"/>
+    <field name="Slots 2" size="8" start="0:8" type="uint"/>
+    <field name="Unk 1" size="32" start="1:0" type="hex" default="12"/>
+  </struct>
+
+  <struct name="Varying" size="4">
+    <field name="Unk" size="8" start="0" type="hex" default="0x1F"/>
+    <field name="Slot 1" size="8" start="8" type="uint"/>
+    <field name="Slot 2" size="8" start="16" type="uint"/>
+  </struct>
+
+  <struct name="Render Target" size="16">
+    <field name="Format" size="17" start="0" type="hex"/>
+    <field name="Swizzle R" size="2" start="16" type="Channel"/>
+    <field name="Swizzle G" size="2" start="18" type="Channel"/>
+    <field name="Swizzle B" size="2" start="20" type="Channel"/>
+    <field name="Swizzle A" size="2" start="22" type="Channel"/>
+    <field name="Width" size="14" start="24" type="uint" modifier="minus(1)"/>
+    <field name="Height" size="14" start="38" type="uint" modifier="minus(1)"/>
+    <field name="Unk 52" size="1" start="52" type="bool"/>
+    <field name="Rotate 90" size="1" start="53" type="bool" default="false"/>
+    <field name="Flip vertical" size="1" start="54" type="bool" default="false"/>
+    <field name="Unk 55" size="9" start="55" type="hex"/>
+    <field name="Buffer" size="36" start="64" type="address" modifier="shr(4)"/>
+    <field name="Unk 100" size="28" start="100" type="hex"/>
+  </struct>
+
+  <!-- Payloads follow, right-shifted by 4 because of course -->
+  <struct name="Texture" size="16">
+    <!-- See notes for a listing, TODO: enumify -->
+    <field name="Format" size="16" start="0" type="hex"/>
+    <field name="Swizzle R" size="3" start="16" type="Channel" default="R"/>
+    <field name="Swizzle G" size="3" start="19" type="Channel" default="G"/>
+    <field name="Swizzle B" size="3" start="22" type="Channel" default="B"/>
+    <field name="Swizzle A" size="3" start="25" type="Channel" default="A"/>
+    <field name="Width" size="14" start="28" type="uint" modifier="minus(1)"/>
+    <field name="Height" size="14" start="42" type="uint" modifier="minus(1)"/>
+    <field name="Unk 1" size="36" start="66" type="hex" modifier="shr(4)"/>
+    <field name="Compression" size="2" start="106" type="hex"/> <!-- 0 for 64x64 tiling -->
+    <field name="sRGB" size="1" start="108" type="bool"/>
+    <field name="Unk 2" size="19" start="109" type="hex"/>
+  </struct>
+
+  <enum name="Wrap">
+    <value name="Clamp to edge" value="0"/>
+    <value name="Repeat" value="1"/>
+    <value name="Mirrored repeat" value="2"/>
+    <value name="Clamp to border" value="3"/>
+  </enum>
+
+  <enum name="Mip filter">
+    <value name="None" value="0"/>
+    <value name="Nearest" value="1"/>
+    <value name="Linear" value="2"/>
+  </enum>
+
+  <enum name="Border colour">
+    <value name="Transparent black" value="0"/>
+    <value name="Opaque black" value="1"/>
+    <value name="Opaque white" value="2"/>
+  </enum>
+
+  <struct name="Sampler" size="8">
+    <field name="Unk 1" size="2" start="17" type="hex" default="3"/>
+    <field name="Magnify linear" size="1" start="19" type="bool"/>
+    <field name="Unk 2" size="2" start="23" type="hex" default="1"/>
+    <field name="Minify linear" size="1" start="25" type="bool"/>
+    <field name="Mip filter" size="2" start="27" type="Mip filter"/>
+    <field name="Wrap S" size="3" start="29" type="Wrap"/>
+    <field name="Wrap T" size="3" start="32" type="Wrap"/>
+    <field name="Wrap R" size="3" start="35" type="Wrap"/>
+    <field name="Pixel coordinates" size="1" start="38" type="bool"/>
+    <field name="Compare func" size="3" start="39" type="Compare func"/>
+    <field name="Unk 3" size="1" start="42" type="hex" default="1"/>
+    <field name="Border colour" size="2" start="55" type="Border colour"/>
+  </struct>
+
+  <!--- Identified by tag? -->
+  <struct name="Viewport" size="40">
+    <field name="Tag" size="32" start="0:0" type="hex" default="0xc00"/>
+
+    <!-- Acts like a scissor at 32x32 tile boundaries, ignored unless clip tile is set -->
+    <field name="Max tile X" size="9" start="1:0" type="uint" modifier="minus(1)"/>
+    <field name="Min tile X" size="9" start="1:16" type="uint"/>
+    <field name="Clip tile" size="1" start="1:31" type="bool"/>
+    <field name="Max tile Y" size="9" start="2:0" type="uint" modifier="minus(1)"/>
+    <field name="Min tile Y" size="9" start="2:16" type="uint"/>
+
+    <!-- Used to convert clip space coordinates to NDC, does not clip -->
+    <field name="Translate X" size="32" start="4:0" type="float"/>
+    <field name="Scale X" size="32" start="5:0" type="float"/>
+    <field name="Translate Y" size="32" start="6:0" type="float"/>
+    <field name="Scale Y" size="32" start="7:0" type="float"/>
+    <field name="Near Z" size="32" start="8:0" type="float"/>
+    <field name="Z Range" size="32" start="9:0" type="float"/>
+  </struct>
+
+  <!--- Pointed to from the command buffer -->
+  <struct name="Scissor" size="16">
+    <field name="Min X" size="16" start="0:0" type="uint"/>
+    <field name="X Range" size="16" start="0:16" type="uint"/>
+    <field name="Min Y" size="16" start="1:0" type="uint"/>
+    <field name="Y Range" size="16" start="1:16" type="uint"/>
+    <field name="Min Z" size="32" start="2:0" type="float"/>
+    <field name="Max Z" size="32" start="3:0" type="float"/>
+  </struct>
+
+  <struct name="Rasterizer face" size="8">
+    <field name="Stencil reference" size="8" start="0:0" type="hex" default="0x00"/>
+    <field name="Unk 1" size="8" start="0:8" type="hex" default="0xF"/>
+    <field name="Polygon mode" size="2" start="0:18" type="Polygon Mode" default="Fill"/>
+    <field name="Disable depth write" size="1" start="0:21" type="bool"/>
+    <field name="Depth function" size="3" start="0:24" type="ZS Func" default="Always"/>
+    <field name="Stencil write mask" size="8" start="1:0" type="hex" default="0xFF"/>
+    <field name="Stencil read mask" size="8" start="1:8" type="hex" default="0xFF"/>
+    <field name="Depth pass" size="3" start="1:16" type="Stencil Op"/>
+    <field name="Depth fail" size="3" start="1:19" type="Stencil Op"/>
+    <field name="Stencil fail" size="3" start="1:22" type="Stencil Op"/>
+    <field name="Stencil compare" size="3" start="1:25" type="ZS Func" default="Always"/>
+  </struct>
+
+  <struct name="Rasterizer" size="28">
+    <field name="Tag" size="32" start="0:0" type="hex" default="0x10000b5"/>
+    <field name="Unk 1" size="1" start="1:9" type="hex" default="0x1"/>
+    <field name="Unk ZS" size="1" start="1:18" type="hex" default="0x1"/>
+    <field name="Unk 2" size="2" start="1:19" type="hex" default="0x0"/>
+    <field name="Unk fill lines" size="1" start="1:26" type="hex" default="0x0"/> <!-- set when drawing LINES -->
+    <field name="Front" size="64" start="2:0" type="Rasterizer face"/>
+    <field name="Back" size="64" start="4:0" type="Rasterizer face"/>
+  </struct>
+
+  <struct name="Cull" size="8">
+    <field name="Tag" size="32" start="0:0" type="hex" default="0x200000"/>
+    <field name="Cull front" size="1" start="1:0" type="bool"/>
+    <field name="Cull back" size="1" start="1:1" type="bool"/>
+    <field name="Depth clip" size="1" start="1:10" type="bool"/>
+    <field name="Depth clamp" size="1" start="1:11" type="bool"/>
+    <field name="Front face CCW" size="1" start="1:16" type="bool"/>
+  </struct>
+
+  <struct name="Linkage" size="16">
+    <field name="Tag" size="32" start="0:0" type="hex" default="0xC020000"/>
+    <field name="Unk 1" size="32" start="1:0" type="hex" default="0x100"/>
+    <field name="Unk 2" size="32" start="2:0" type="hex" default="0x0"/>
+    <field name="Varying count" size="32" start="3:0" type="uint"/>
+  </struct>
+
+  <!--- Commands valid within a pipeline -->
+  <struct name="Bind uniform" size="8">
+    <field name="Tag" size="8" start="0:0" type="hex" default="0x1d"/>
+    <field name="Start (halfs)" size="8" start="0:8" type="uint"/>
+    <field name="Unk" size="4" start="0:16" type="hex" default="0x0"/>
+    <field name="Size (halfs)" size="4" start="0:20" type="uint"/>
+    <field name="Buffer" size="40" start="0:24" type="address"/>
+  </struct>
+
+  <struct name="Bind texture" size="8">
+    <field name="Tag" size="8" start="0:0" type="hex" default="0xdd"/>
+    <field name="Start" size="8" start="0:8" type="uint"/>
+    <field name="Count" size="4" start="0:20" type="uint"/>
+    <field name="Buffer" size="40" start="0:24" type="address"/>
+  </struct>
+
+  <struct name="Bind sampler" size="8">
+    <field name="Tag" size="8" start="0:0" type="hex" default="0x9d"/>
+    <field name="Start" size="8" start="0:8" type="uint"/>
+    <field name="Count" size="4" start="0:20" type="uint"/>
+    <field name="Buffer" size="40" start="0:24" type="address"/>
+  </struct>
+
+  <enum name="Preshader mode">
+    <value name="Preshader" value="3"/>
+    <value name="No preshader" value="8"/>
+  </enum>
+
+  <struct name="Set shader" size="24">
+    <field name="Tag" size="8" start="0:0" type="hex" default="0x4d"/>
+    <field name="Unk 1" size="24" start="0:8" type="hex" default="0x90"/>
+    <field name="Unk 2" size="8" start="1:0" type="hex" default="0x0d"/> <!-- TODO differs with stage -->
+    <field name="Unk 2b" size="8" start="1:8" type="uint" default="4"/>
+    <field name="Code" size="32" start="1:16" type="address"/>
+    <field name="Unk 3" size="8" start="2:16" type="hex" default="0x8d"/>
+    <field name="Register quadwords" size="5" start="2:24" type="uint"/> <!-- 0 for max -->
+    <field name="Unk 3b" size="3" start="2:29" type="hex" default="0x0"/>
+    <field name="Spill size" size="8" start="3:0" type="hex" default="0"/> <!-- TODO: determine relation, see docs/table.py -->
+    <field name="Unk 4" size="12" start="3:8" type="hex" default="0x801"/>
+    <field name="Preshader mode" size="4" start="3:20" type="Preshader mode" default="No preshader"/>
+    <field name="Unk 6" size="8" start="3:24" type="hex" default="0x0"/>
+    <field name="Preshader unk" size="16" start="4:0" type="hex" default="0x0"/>
+    <field name="Preshader code" size="32" start="4:16" type="address"/>
+    <field name="Unk 7" size="16" start="5:16" type="hex" default="0x0"/> <!-- blob is inconsistent -->
+  </struct>
+
+  <struct name="Set shader extended" size="32">
+    <field name="Tag" size="8" start="0:0" type="hex" default="0x4d"/>
+    <field name="Unk 1" size="24" start="0:8" type="hex" default="0x2010bd"/>
+    <field name="Unk 2" size="8" start="1:0" type="hex" default="0x0d"/> <!-- 90d if ld_tile or discard is used (to disable opts), 50d for other frag, 80d for vert..? 40d for compute..? -->
+    <field name="Unk 2b" size="8" start="1:8" type="uint" default="5"/>
+    <field name="Code" size="32" start="1:16" type="address"/>
+    <field name="Unk 3" size="8" start="2:16" type="hex" default="0x28d"/>
+    <field name="Register quadwords" size="5" start="2:24" type="uint"/> <!-- 0 for max -->
+    <field name="Unk 3b" size="3" start="2:29" type="hex" default="0x0"/>
+    <field name="Frag unk" size="32" start="3:0" type="hex" default="0xf3580100"/>
+    <field name="Spill size" size="8" start="4:0" type="hex" default="0"/> <!-- TODO: determine relation, see docs/table.py -->
+    <field name="Unk 4" size="12" start="4:8" type="hex" default="0x801"/>
+    <field name="Preshader mode" size="4" start="4:20" type="Preshader mode" default="No preshader"/>
+    <field name="Unk 6" size="8" start="4:24" type="hex" default="0x0"/>
+    <field name="Preshader unk" size="16" start="5:0" type="hex" default="0x0"/>
+    <field name="Preshader code" size="32" start="5:16" type="address"/>
+    <field name="Unk 7" size="16" start="6:16" type="hex" default="0x0"/> <!-- blob is inconsistent -->
+    <field name="Unk 8" size="32" start="7:0" type="hex" default="0x0"/> <!-- may not exist -->
+  </struct>
+
+  <!--- Command to bind a vertex pipeline, followed by subcommands. Counts are
+	specified in 32-bit word units. Intepretation per-shader stage.
+	Probably actually 17 bytes. -->
+  <struct name="Bind pipeline" size="16">
+    <field name="Tag" size="32" start="0:0" type="hex" default="0x4000002e"/>
+    <field name="Unk 1" size="16" start="1:0" type="hex" default="0x1002"/>
+    <field name="Input count" size="8" start="1:16" type="uint" default="0"/>
+    <field name="Padding 1" size="8" start="1:24" type="hex" default="0x0"/>
+    <field name="Pipeline" size="32" start="2:0" type="address"/>
+
+    <!-- Overlaps -->
+    <field name="FS Varyings" size="32" start="3:0" type="address"/>
+    <field name="VS Output count 1" size="8" start="3:0" type="uint" default="0"/>
+    <field name="VS Output count 2" size="8" start="3:8" type="uint" default="0"/>
+    <field name="Padding 2" size="16" start="3:16" type="hex" default="0x0"/>
+  </struct>
+
+  <!-- Subcommands are packed inside sized records -->
+  <struct name="Record" size="8">
+    <field name="Size (words)" size="8" start="0:0" type="uint"/>
+    <field name="Tag" size="16" start="0:8" type="hex" default="0x0000"/>
+    <field name="Data" size="40" start="0:24" type="address"/>
+  </struct>
+
+  <!--- Command to issue a direct non-indexed draw -->
+  <struct name="Draw" size="16">
+    <field name="Unk" size="8" start="0:0" type="hex" default="0x0"/>
+    <field name="Primitive" size="8" start="0:8" type="Primitive"/>
+    <field name="Command" size="16" start="0:16" type="hex" default="0x61c0"/>
+    <field name="Vertex count" size="32" start="1:0" type="uint"/>
+    <field name="Instance count" size="32" start="2:0" type="uint"/> <!-- must be nonzero -->
+    <field name="Vertex start" size="32" start="3:0" type="uint"/>
+  </struct>
+
+  <enum name="Index size">
+    <value name="U8" value="0"/>
+    <value name="U16" value="1"/>
+    <value name="U32" value="2"/>
+  </enum>
+
+  <struct name="Indexed draw" size="32">
+    <field name="Unk 1" size="8" start="0:0" type="hex" default="0x1"/>
+    <field name="Command" size="24" start="0:8" type="hex" default="0x400000"/>
+    <field name="Restart index" size="32" start="1:0" type="hex"/>
+    <field name="Unk 2a" size="8" start="2:0" type="hex" default="0x15"/>
+    <field name="Primitive" size="8" start="2:8" type="Primitive"/>
+    <field name="Restart enable" size="1" start="2:16" type="bool"/> <!-- Metal sets this bit for strips -->
+    <field name="Index size" size="3" start="2:17" type="Index size"/>
+    <field name="Unk 2c" size="4" start="2:20" type="hex" default="0xF"/>
+    <field name="Unk 2d" size="8" start="2:24" type="hex" default="0x61"/>
+    <field name="Index buffer offset" size="32" start="3:0" type="hex"/>
+    <field name="Index count" size="32" start="4:0" type="uint"/>
+    <field name="Instance count" size="32" start="5:0" type="uint"/>
+    <field name="Base vertex" size="32" start="6:0" type="uint"/>
+    <field name="Index buffer size" size="32" start="7:0" type="uint" modifier="shr(2)"/>
+  </struct>
+
+  <!--- Command to launch a direct compute kernel -->
+  <struct name="Launch" size="36">
+    <field name="Command" size="32" start="0:0" type="hex" default="0x1002"/>
+    <field name="Pipeline" size="32" start="1:0" type="address"/>
+    <field name="Group count X" size="32" start="2:0" type="uint"/>
+    <field name="Group count Y" size="32" start="3:0" type="uint"/>
+    <field name="Group count Z" size="32" start="4:0" type="uint"/>
+    <field name="Local size X" size="32" start="5:0" type="uint"/>
+    <field name="Local size Y" size="32" start="6:0" type="uint"/>
+    <field name="Local size Z" size="32" start="7:0" type="uint"/>
+    <field name="Unk" size="32" start="8:0" type="hex" default="0x60000160"/>
+  </struct>
+</agxml>

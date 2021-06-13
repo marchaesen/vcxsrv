@@ -101,7 +101,6 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_vote_ieq:
    case nir_intrinsic_load_push_constant:
    case nir_intrinsic_load_work_dim:
-   case nir_intrinsic_load_work_group_id:
    case nir_intrinsic_load_num_work_groups:
    case nir_intrinsic_load_local_group_size:
    case nir_intrinsic_load_subgroup_id:
@@ -231,6 +230,11 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
          is_divergent = !(options & nir_divergence_single_patch_per_tes_subgroup);
       else
          assert(stage == MESA_SHADER_TESS_CTRL);
+      break;
+
+   case nir_intrinsic_load_work_group_id:
+      assert(stage == MESA_SHADER_COMPUTE);
+      is_divergent |= (options & nir_divergence_multiple_workgroup_per_compute_subgroup);
       break;
 
    /* Clustered reductions are uniform if cluster_size == subgroup_size or

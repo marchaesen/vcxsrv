@@ -50,6 +50,7 @@
 #include "pipe/p_state.h"
 #include "util/hash_table.h"
 #include "util/u_blitter.h"
+#include "util/u_draw.h"
 #include "util/u_helpers.h"
 #include "util/u_memory.h"
 #include "util/u_prim.h"
@@ -224,18 +225,13 @@ etna_get_fs(struct etna_context *ctx, struct etna_shader_key key)
 
 static void
 etna_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
+              unsigned drawid_offset,
               const struct pipe_draw_indirect_info *indirect,
-              const struct pipe_draw_start_count *draws,
+              const struct pipe_draw_start_count_bias *draws,
               unsigned num_draws)
 {
    if (num_draws > 1) {
-      struct pipe_draw_info tmp_info = *info;
-
-      for (unsigned i = 0; i < num_draws; i++) {
-         etna_draw_vbo(pctx, &tmp_info, indirect, &draws[i], 1);
-         if (tmp_info.increment_draw_id)
-            tmp_info.drawid++;
-      }
+      util_draw_multi(pctx, info, drawid_offset, indirect, draws, num_draws);
       return;
    }
 
@@ -259,7 +255,7 @@ etna_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
    if (!(ctx->prim_hwsupport & (1 << info->mode))) {
       struct primconvert_context *primconvert = ctx->primconvert;
       util_primconvert_save_rasterizer_state(primconvert, ctx->rasterizer);
-      util_primconvert_draw_vbo(primconvert, info, &draws[0]);
+      util_primconvert_draw_vbo(primconvert, info, drawid_offset, indirect, draws, num_draws);
       return;
    }
 
@@ -386,10 +382,10 @@ etna_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
    if (screen->specs.halti >= 2) {
       /* On HALTI2+ (GC3000 and higher) only use instanced drawing commands, as the blob does */
       etna_draw_instanced(ctx->stream, info->index_size, draw_mode, info->instance_count,
-         draws[0].count, info->index_size ? info->index_bias : draws[0].start);
+         draws[0].count, info->index_size ? draws->index_bias : draws[0].start);
    } else {
       if (info->index_size)
-         etna_draw_indexed_primitives(ctx->stream, draw_mode, 0, prims, info->index_bias);
+         etna_draw_indexed_primitives(ctx->stream, draw_mode, 0, prims, draws->index_bias);
       else
          etna_draw_primitives(ctx->stream, draw_mode, draws[0].start, prims);
    }

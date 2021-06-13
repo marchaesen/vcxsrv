@@ -87,9 +87,11 @@ amd_common_files = files(
   'ac_msgpack.c',
   'ac_msgpack.h',
   'ac_rgp_elf_object_pack.c',
+  'ac_nir.c',
   'ac_nir.h',
   'ac_nir_lower_esgs_io_to_mem.c',
   'ac_nir_lower_tess_io_to_mem.c',
+  'amd_family.c',
 )
 
 libamd_common = static_library(
@@ -100,7 +102,7 @@ libamd_common = static_library(
   ],
   dependencies : [
     dep_thread, dep_elf, dep_libdrm_amdgpu, dep_valgrind,
-    idep_mesautil, idep_nir_headers
+    idep_mesautil, idep_nir_headers, idep_nir
   ],
   gnu_symbol_visibility : 'hidden',
 )
@@ -122,4 +124,21 @@ if with_tests and not with_platform_windows
     ),
     suite: ['amd']
   )
+
+  # Limit this to only a few architectures for the Gitlab CI.
+  if ['x86', 'x86_64', 'aarch64'].contains(host_machine.cpu_family())
+    test(
+      'ac_surface_meta_address_test',
+      executable(
+        'ac_surface_meta_address_test',
+        ['ac_surface_meta_address_test.c'],
+        link_with: [libamd_common, libamdgpu_addrlib],
+        include_directories : [
+          inc_amd, inc_gallium, inc_include, inc_src,
+        ],
+        dependencies: [idep_amdgfxregs_h, dep_libdrm_amdgpu, idep_mesautil, dep_openmp],
+      ),
+      suite: ['amd']
+    )
+  endif
 endif

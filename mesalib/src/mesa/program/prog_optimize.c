@@ -954,11 +954,11 @@ update_interval(GLint intBegin[], GLint intEnd[],
 /**
  * Find first/last instruction that references each temporary register.
  */
-GLboolean
-_mesa_find_temp_intervals(const struct prog_instruction *instructions,
-                          GLuint numInstructions,
-                          GLint intBegin[REG_ALLOCATE_MAX_PROGRAM_TEMPS],
-                          GLint intEnd[REG_ALLOCATE_MAX_PROGRAM_TEMPS])
+static bool
+find_temp_intervals(const struct prog_instruction *instructions,
+                    GLuint numInstructions,
+                    GLint intBegin[REG_ALLOCATE_MAX_PROGRAM_TEMPS],
+                    GLint intEnd[REG_ALLOCATE_MAX_PROGRAM_TEMPS])
 {
    struct loop_info loopStack[MAX_LOOP_NESTING];
    GLuint loopStackDepth = 0;
@@ -1034,9 +1034,8 @@ find_live_intervals(struct gl_program *prog,
    }
 
    /* build intermediate arrays */
-   if (!_mesa_find_temp_intervals(prog->arb.Instructions,
-                                  prog->arb.NumInstructions,
-                                  intBegin, intEnd))
+   if (!find_temp_intervals(prog->arb.Instructions, prog->arb.NumInstructions,
+                            intBegin, intEnd))
       return GL_FALSE;
 
    /* Build live intervals list from intermediate arrays */

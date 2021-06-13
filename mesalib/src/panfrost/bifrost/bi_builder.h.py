@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-SKIP = set(["lane", "lanes", "lanes", "replicate", "swz", "widen", "swap", "neg", "abs", "not", "sign", "extend", "divzero", "clamp", "sem", "not_result", "skip"])
+SKIP = set(["lane", "lane_dest", "lanes", "lanes", "replicate", "swz", "widen", "swap", "neg", "abs", "not", "sign", "extend", "divzero", "clamp", "sem", "not_result", "skip"])
 
 TEMPLATE = """
 #ifndef _BI_BUILDER_H_
@@ -28,6 +28,11 @@ TEMPLATE = """
 #include "compiler.h"
 
 <%
+# For <32-bit loads/stores, the default extend `none` with a natural sized
+# input is not encodeable! To avoid a footgun, swap the default to `zext` which
+# will work as expected
+ZEXT_DEFAULT = set(["LOAD.i8", "LOAD.i16", "LOAD.i24", "STORE.i8", "STORE.i16", "STORE.i24"])
+
 def nirtypes(opcode):
     split = opcode.split('.', 1)
     if len(split) < 2:
@@ -114,6 +119,9 @@ bi_instr * bi_${opcode.replace('.', '_').lower()}${to_suffix(ops[opcode])}(${sig
 % for imm in ops[opcode]["immediates"]:
     I->${imm} = ${imm};
 % endfor
+% if opcode in ZEXT_DEFAULT:
+    I->extend = BI_EXTEND_ZEXT;
+% endif
     bi_builder_insert(&b->cursor, I);
     return I;
 }

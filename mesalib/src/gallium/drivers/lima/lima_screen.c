@@ -320,9 +320,14 @@ lima_screen_is_format_supported(struct pipe_screen *pscreen,
    if (sample_count > 1 && sample_count != 4)
       return false;
 
-   if (usage & PIPE_BIND_RENDER_TARGET &&
-       !lima_format_pixel_supported(format))
-      return false;
+   if (usage & PIPE_BIND_RENDER_TARGET) {
+      if (!lima_format_pixel_supported(format))
+         return false;
+
+      /* multisample unsupported with half float target */
+      if (sample_count > 1 && util_format_is_float(format))
+         return false;
+   }
 
    if (usage & PIPE_BIND_DEPTH_STENCIL) {
       switch (format) {

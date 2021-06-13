@@ -62,10 +62,14 @@ void trace_dump_stencil_ref(const struct pipe_stencil_ref *state);
 
 void trace_dump_framebuffer_state(const struct pipe_framebuffer_state *state);
 
+void trace_dump_framebuffer_state_deep(const struct pipe_framebuffer_state *state);
+
 void trace_dump_sampler_state(const struct pipe_sampler_state *state);
 
 void trace_dump_sampler_view_template(const struct pipe_sampler_view *view,
                                       enum pipe_texture_target target);
+
+void trace_dump_surface(const struct pipe_surface *surface);
 
 void trace_dump_surface_template(const struct pipe_surface *state,
                                  enum pipe_texture_target target);
@@ -82,7 +86,7 @@ void trace_dump_shader_buffer(const struct pipe_shader_buffer *buffer);
 
 void trace_dump_draw_info(const struct pipe_draw_info *state);
 
-void trace_dump_draw_start_count(const struct pipe_draw_start_count *state);
+void trace_dump_draw_start_count(const struct pipe_draw_start_count_bias *state);
 
 void trace_dump_draw_indirect_info(const struct pipe_draw_indirect_info *state);
 

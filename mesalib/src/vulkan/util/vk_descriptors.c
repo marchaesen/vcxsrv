@@ -36,20 +36,21 @@ binding_compare(const void* av, const void *bv)
    return (a->binding < b->binding) ? -1 : (a->binding > b->binding) ? 1 : 0;
 }
  
-VkDescriptorSetLayoutBinding *
-vk_create_sorted_bindings(const VkDescriptorSetLayoutBinding *bindings, unsigned count)
+VkResult
+vk_create_sorted_bindings(const VkDescriptorSetLayoutBinding *bindings, unsigned count,
+                          VkDescriptorSetLayoutBinding **sorted_bindings)
 {
-   VkDescriptorSetLayoutBinding *sorted_bindings = malloc(MAX2(count * sizeof(VkDescriptorSetLayoutBinding), 1));
-   if (!sorted_bindings)
-      return NULL;
- 
-   if (count) {
-      memcpy(sorted_bindings, bindings, count * sizeof(VkDescriptorSetLayoutBinding));
-      qsort(sorted_bindings, count, sizeof(VkDescriptorSetLayoutBinding), binding_compare);
-   } else {
-      /* just an empty struct */
-      memset(sorted_bindings, 0, sizeof(VkDescriptorSetLayoutBinding));
+   if (!count) {
+      *sorted_bindings = NULL;
+      return VK_SUCCESS;
    }
+
+   *sorted_bindings = malloc(count * sizeof(VkDescriptorSetLayoutBinding));
+   if (!*sorted_bindings)
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+   memcpy(*sorted_bindings, bindings, count * sizeof(VkDescriptorSetLayoutBinding));
+   qsort(*sorted_bindings, count, sizeof(VkDescriptorSetLayoutBinding), binding_compare);
  
-   return sorted_bindings;
+   return VK_SUCCESS;
 }

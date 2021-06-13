@@ -420,10 +420,10 @@ run_vp( struct gl_context *ctx, struct tnl_pipeline_stage *stage )
 	 /* impossible */
       case 2:
 	 _mesa_vector4f_clean_elem( VB->ClipPtr, VB->Count, 2 );
-	 /* fall-through */
+	 FALLTHROUGH;
       case 3:
 	 _mesa_vector4f_clean_elem( VB->ClipPtr, VB->Count, 3 );
-	 /* fall-through */
+	 FALLTHROUGH;
       case 4:
 	 break;
       }

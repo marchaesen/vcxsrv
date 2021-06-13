@@ -132,7 +132,6 @@ html_extra_path = [
   'libGL.txt',
   'README.UVD',
   'README.VCE',
-  'README.WIN32',
 ]
 
 html_redirects = [
@@ -147,6 +146,7 @@ html_redirects = [
   ('gallium/drivers/zink', 'drivers/zink.html'),
   ('llvmpipe', 'drivers/llvmpipe.html'),
   ('postprocess', 'gallium/postprocess.html'),
+  ('versions', 'relnotes.html'),
   ('vmware-guest', 'drivers/vmware-guest.html'),
   ('webmaster', 'https://www.mesa3d.org/website/'),
 ]

@@ -164,6 +164,7 @@ static const struct opc_info {
 	OPC(0, OPC_CALL,         call),
 	OPC(0, OPC_RET,          ret),
 	OPC(0, OPC_KILL,         kill),
+	OPC(0, OPC_DEMOTE,       demote),
 	OPC(0, OPC_END,          end),
 	OPC(0, OPC_EMIT,         emit),
 	OPC(0, OPC_CUT,          cut),

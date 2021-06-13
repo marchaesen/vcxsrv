@@ -83,7 +83,7 @@ xkb_symbols "alt-us" {
     include "us(basic)"
     include "level3(ralt_switch)"
 
-    name[Group1]="Maltese (US layout with AltGr overrides)";
+    name[Group1]="Maltese (US, with AltGr overrides)";
 
     // Currency symbols
     key <AE03>  { [         3,  numbersign,    sterling,     NoSymbol ] };
@@ -153,7 +153,7 @@ xkb_symbols "alt-us" {
     include "us(basic)"
     include "level3(ralt_switch)"
 
-    name[Group1]="Maltese (US layout with AltGr overrides)";
+    name[Group1]="Maltese (US, with AltGr overrides)";
 
     // Currency symbols
     key <AE03>  { [         3,  numbersign,    sterling,     NoSymbol ] };

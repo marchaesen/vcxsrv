@@ -102,6 +102,8 @@ XFontStruct *XLoadQueryFont(
     XF86BigfontCodes *extcodes = _XF86BigfontCodes(dpy);
 #endif
 
+    if (name != NULL && strlen(name) >= USHRT_MAX)
+        return NULL;
     if (_XF86LoadQueryLocaleFont(dpy, name, &font_result, (Font *)0))
       return font_result;
     LockDisplay(dpy);
@@ -654,7 +656,7 @@ int _XF86LoadQueryLocaleFont(
    XFontStruct **xfp,
    Font *fidp)
 {
-    int l;
+    size_t l;
     const char *charset, *p;
     char buf[256];
     XFontStruct *fs;
@@ -662,8 +664,8 @@ int _XF86LoadQueryLocaleFont(
 
     if (!name)
 	return 0;
-    l = (int) strlen(name);
-    if (l < 2 || name[l - 1] != '*' || name[l - 2] != '-')
+    l = strlen(name);
+    if (l < 2 || name[l - 1] != '*' || name[l - 2] != '-' || l >= USHRT_MAX)
 	return 0;
     charset = NULL;
     /* next three lines stolen from _XkbGetCharset() */
@@ -675,11 +677,11 @@ int _XF86LoadQueryLocaleFont(
 	charset = "ISO8859-1";
 	p = charset + 7;
     }
-    if (l - 2 - (p - charset) < 0)
+    if (l - 2 < p - charset)
 	return 0;
     if (_XlcNCompareISOLatin1(name + l - 2 - (p - charset), charset, p - charset))
 	return 0;
-    if (strlen(p + 1) + (size_t) l - 1 >= sizeof(buf) - 1)
+    if (strlen(p + 1) + l - 1 >= sizeof(buf) - 1)
 	return 0;
     strcpy(buf, name);
     strcpy(buf + l - 1, p + 1);

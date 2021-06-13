@@ -537,6 +537,9 @@ void
 kernel::local_argument::unbind(exec_context &ctx) {
 }
 
+kernel::constant_argument::constant_argument() : buf(nullptr), st(nullptr) {
+}
+
 void
 kernel::constant_argument::set(size_t size, const void *value) {
    if (size != sizeof(cl_mem))

@@ -138,7 +138,7 @@
     <model>
       <configItem>
         <name>azonaRF2300</name>
-        <description>Azona RF2300 wireless Internet</description>
+        <description>Azona RF2300 Wireless Internet</description>
         <vendor>Azona</vendor>
       </configItem>
     </model>
@@ -1396,6 +1396,12 @@
         </variant>
         <variant>
           <configItem>
+            <name>colemak_dh_iso</name>
+            <description>English (Colemak-DH ISO)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>dvorak</name>
             <description>English (Dvorak)</description>
           </configItem>
@@ -1949,7 +1955,7 @@
         <variant>
           <configItem>
             <name>ben_inscript</name>
-            <description>Bangla (India, Baishakhi Inscript)</description>
+            <description>Bangla (India, Baishakhi InScript)</description>
             <languageList>
               <iso639Id>ben</iso639Id>
               <!-- sat-Beng: http://www.ethnologue.com/language/sat -->
@@ -2048,7 +2054,7 @@
             <name>mal_enhanced</name>
             <!-- Keyboard indicator for Malayalam layouts -->
             <shortDescription>ml</shortDescription>
-            <description>Malayalam (enhanced Inscript, with rupee)</description>
+            <description>Malayalam (enhanced InScript, with rupee)</description>
             <languageList>
               <iso639Id>mal</iso639Id>
             </languageList>
@@ -2060,6 +2066,32 @@
             <!-- Keyboard indicator for Oriya layouts -->
             <shortDescription>or</shortDescription>
             <description>Oriya</description>
+            <languageList>
+              <iso639Id>ori</iso639Id>
+              <!-- sat-Orya: http://www.ethnologue.com/language/sat -->
+              <iso639Id>sat</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+           <configItem>
+            <name>ori-bolnagri</name>
+            <!-- Keyboard indicator for Oriya layouts -->
+            <shortDescription>or</shortDescription>
+            <description>Oriya (Bolnagri)</description>
+            <languageList>
+              <iso639Id>ori</iso639Id>
+              <!-- sat-Orya: http://www.ethnologue.com/language/sat -->
+              <iso639Id>sat</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>ori-wx</name>
+            <!-- Keyboard indicator for Oriya layouts -->
+            <shortDescription>or</shortDescription>
+            <description>Oriya (Wx)</description>
             <languageList>
               <iso639Id>ori</iso639Id>
               <!-- sat-Orya: http://www.ethnologue.com/language/sat -->
@@ -2128,7 +2160,7 @@
             <name>tam</name>
             <!-- Keyboard indicator for Tamil layouts -->
             <shortDescription>ta</shortDescription>
-            <description>Tamil (Inscript)</description>
+            <description>Tamil (InScript)</description>
             <languageList>
               <iso639Id>tam</iso639Id>
             </languageList>
@@ -2271,14 +2303,14 @@
             <name>iipa</name>
             <description>Indic IPA</description>
             <languageList>
-              <iso639Id>inc</iso639Id>
+              <iso639Id>eng</iso639Id>
             </languageList>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>marathi</name>
-            <description>Marathi (enhanced Inscript)</description>
+            <description>Marathi (enhanced InScript)</description>
             <languageList>
               <iso639Id>mar</iso639Id>
             </languageList>
@@ -2417,7 +2449,7 @@
           <configItem>
             <name>azerty-deadkeys</name>
             <shortDescription>kab</shortDescription>
-            <description>Kabyle (azerty layout, dead keys)</description>
+            <description>Kabyle (AZERTY, with dead keys)</description>
             <languageList>
               <iso639Id>kab</iso639Id>
             </languageList>
@@ -2427,7 +2459,7 @@
           <configItem>
             <name>qwerty-gb-deadkeys</name>
             <shortDescription>kab</shortDescription>
-            <description>Kabyle (qwerty-gb layout, dead keys)</description>
+            <description>Kabyle (QWERTY, UK, with dead keys)</description>
             <languageList>
               <iso639Id>kab</iso639Id>
             </languageList>
@@ -2437,7 +2469,7 @@
           <configItem>
             <name>qwerty-us-deadkeys</name>
             <shortDescription>kab</shortDescription>
-            <description>Kabyle (qwerty-us layout, dead keys)</description>
+            <description>Kabyle (QWERTY, US, with dead keys)</description>
             <languageList>
               <iso639Id>kab</iso639Id>
             </languageList>
@@ -2842,7 +2874,7 @@
             <name>tib</name>
             <description>Tibetan</description>
             <languageList>
-              <iso639Id>tib</iso639Id>
+              <iso639Id>bod</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -2851,7 +2883,7 @@
             <name>tib_asciinum</name>
             <description>Tibetan (with ASCII numerals)</description>
             <languageList>
-              <iso639Id>tib</iso639Id>
+              <iso639Id>bod</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -3027,6 +3059,12 @@
         </languageList>
       </configItem>
       <variantList>
+        <variant>
+          <configItem>
+            <name>us</name>
+            <description>Dutch (US)</description>
+          </configItem>
+        </variant>
         <variant>
           <configItem>
             <name>mac</name>
@@ -3484,7 +3522,7 @@
     <layout>
       <configItem>
         <name>gn</name>
-        <description>N'Ko (azerty)</description>
+        <description>N'Ko (AZERTY)</description>
         <languageList>
           <iso639Id>nqo</iso639Id>
         </languageList>
@@ -3660,7 +3698,7 @@
             <name>tr</name>
             <description>Turkish (Germany)</description>
             <languageList>
-              <iso639Id>tr</iso639Id>
+              <iso639Id>tur</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -4424,7 +4462,7 @@
         <variant>
           <configItem>
             <name>alt-us</name>
-            <description>Maltese (US layout with AltGr overrides)</description>
+            <description>Maltese (US, with AltGr overrides)</description>
           </configItem>
         </variant>
         <variant>
@@ -6266,7 +6304,7 @@
       <configItem>
         <name>id</name>
         <shortDescription>id</shortDescription>
-        <description>Indonesian (Arab Melayu, phonetic)</description>
+        <description>Indonesian (Latin)</description>
         <languageList>
           <iso639Id>ind</iso639Id>
           <iso639Id>msa</iso639Id>
@@ -6281,7 +6319,7 @@
        <variant>
          <configItem>
           <name>phoneticx</name>
-            <description>Indonesian (Arab Melayu, extended phonetic)</description>
+            <description>Indonesian (Arab Pegon, extended phonetic)</description>
          </configItem>
        </variant>
       </variantList>
@@ -6292,7 +6330,7 @@
         <shortDescription>jv</shortDescription>
         <description>Indonesian (Javanese)</description>
         <languageList>
-          <iso639Id>jv</iso639Id>
+          <iso639Id>jav</iso639Id>
         </languageList>
       </configItem>
       <variantList/>
@@ -7053,6 +7091,12 @@
         <configItem>
           <name>altwin:ctrl_win</name>
           <description>Ctrl is mapped to Win and the usual Ctrl</description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>altwin:ctrl_rwin</name>
+          <description>Ctrl is mapped to Right Win and the usual Ctrl</description>
         </configItem>
       </option>
       <option>

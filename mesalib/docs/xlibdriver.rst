@@ -23,12 +23,10 @@ Mesa supports RGB(A) rendering into almost any X visual type and depth.
 The glXChooseVisual function tries to choose the best X visual for the
 given attribute list. However, if this doesn't suit your needs you can
 force Mesa to use any X visual you want (any supported by your X server
-that is) by setting the **MESA_RGB_VISUAL** and **MESA_CI_VISUAL**
-environment variables. When an RGB visual is requested, glXChooseVisual
-will first look if the MESA_RGB_VISUAL variable is defined. If so, it
-will try to use the specified visual. Similarly, when a color index
-visual is requested, glXChooseVisual will look for the MESA_CI_VISUAL
-variable.
+that is) by setting the **MESA_RGB_VISUAL** environment variable. When
+a visual is requested, glXChooseVisual will first look if the
+MESA_RGB_VISUAL variable is defined. If so, it will try to use the
+specified visual.
 
 The format of accepted values is: ``visual-class depth``
 
@@ -38,12 +36,10 @@ Here are some examples:
 
    using csh:
        % setenv MESA_RGB_VISUAL "TrueColor 8"      // 8-bit TrueColor
-       % setenv MESA_CI_VISUAL "PseudoColor 12"    // 12-bit PseudoColor
        % setenv MESA_RGB_VISUAL "PseudoColor 8"    // 8-bit PseudoColor
 
    using bash:
        $ export MESA_RGB_VISUAL="TrueColor 8"
-       $ export MESA_CI_VISUAL="PseudoColor 12"
        $ export MESA_RGB_VISUAL="PseudoColor 8"
 
 Double Buffering
@@ -80,8 +76,6 @@ window. Otherwise, a new, private colormap will be allocated.
 When sharing the root colormap, Mesa may be unable to allocate the
 colors it needs, resulting in poor color quality. This can happen when a
 large number of colorcells in the root colormap are already allocated.
-To prevent colormap sharing in GLUT, set the **MESA_PRIVATE_CMAP**
-environment variable. The value isn't significant.
 
 Gamma Correction
 ----------------
@@ -100,10 +94,10 @@ gamma value and G is one gamma value to use for all three channels. Each
 value is a positive real number typically in the range 1.0 to 2.5. The
 defaults are all 1.0, effectively disabling gamma correction. Examples:
 
-::
+.. code-block:: console
 
-   % export MESA_GAMMA="2.3 2.2 2.4"  // separate R,G,B values
-   % export MESA_GAMMA="2.0"       // same gamma for R,G,B
+   % export MESA_GAMMA="2.3 2.2 2.4"  # separate R,G,B values
+   % export MESA_GAMMA="2.0"          # same gamma for R,G,B
 
 The ``demos/gamma.c`` program in mesa/demos repository may help you to
 determine reasonable gamma value for your display. With correct gamma
@@ -130,17 +124,10 @@ Hardware overlay planes are supported by the Xlib driver. To determine
 if your X server has overlay support you can test for the
 SERVER_OVERLAY_VISUALS property:
 
-::
+.. code-block:: console
 
    xprop -root | grep SERVER_OVERLAY_VISUALS
 
-HPCR Dithering
---------------
-
-If you set the **MESA_HPCR_CLEAR** environment variable then dithering
-will be used when clearing the color buffer. This is only applicable to
-HP systems with the HPCR (Color Recovery) feature. This incurs a small
-performance penalty.
 
 Extensions
 ----------
@@ -153,7 +140,7 @@ GLX_MESA_pixmap_colormap
 
 This extension adds the GLX function:
 
-::
+.. code-block:: c
 
    GLXPixmap glXCreateGLXPixmapMESA( Display *dpy, XVisualInfo *visual,
                                      Pixmap pixmap, Colormap cmap )
@@ -186,7 +173,7 @@ The GLX_MESA_release_buffers extension allows a client to explicitly
 deallocate the ancillary buffers by calling glxReleaseBuffersMESA() just
 before an X window is destroyed. For example:
 
-::
+.. code-block:: c
 
    #ifdef GLX_MESA_release_buffers
       glXReleaseBuffersMESA( dpy, window );
@@ -213,10 +200,15 @@ This extension was added in Mesa 2.6
 Summary of X-related environment variables
 ------------------------------------------
 
-::
-
-   MESA_RGB_VISUAL - specifies the X visual and depth for RGB mode (X only)
-   MESA_CI_VISUAL - specifies the X visual and depth for CI mode (X only)
-   MESA_BACK_BUFFER - specifies how to implement the back color buffer (X only)
-   MESA_PRIVATE_CMAP - force aux/tk libraries to use private colormaps (X only)
-   MESA_GAMMA - gamma correction coefficients (X only)
++-----------------------------+--------------------------------------+
+| Environment variable        | Description                          |
++=============================+======================================+
+| :envvar:`MESA_RGB_VISUAL`   | specifies the X visual and depth for |
+|                             | RGB mode (X only)                    |
++-----------------------------+--------------------------------------+
+| :envvar:`MESA_BACK_BUFFER`  | specifies how to implement the back  |
+|                             | color buffer (X only)                |
++-----------------------------+--------------------------------------+
+| :envvar:`MESA_GAMMA`        | gamma correction coefficients        |
+|                             | (X only)                             |
++-----------------------------+--------------------------------------+

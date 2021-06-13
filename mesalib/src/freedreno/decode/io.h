@@ -35,17 +35,16 @@
 
 struct io;
 
-struct io * io_open(const char *filename);
-struct io * io_openfd(int fd);
+struct io *io_open(const char *filename);
+struct io *io_openfd(int fd);
 void io_close(struct io *io);
 unsigned io_offset(struct io *io);
 int io_readn(struct io *io, void *buf, int nbytes);
 
-
 static inline int
 check_extension(const char *path, const char *ext)
 {
-	return strcmp(path + strlen(path) - strlen(ext), ext) == 0;
+   return strcmp(path + strlen(path) - strlen(ext), ext) == 0;
 }
 
 #endif /* IO_H_ */
