@@ -1,5 +1,5 @@
 /*
- * Copyright © 2007-2008 Peter Hutterer
+ * Copyright ? 2007-2008 Peter Hutterer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -55,3 +55,4 @@ Bool XGEQueryVersion(Display* dpy, int *major, int* minor);
 _XFUNCPROTOEND
 
 #endif /* _XGE_H_ */
+

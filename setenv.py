@@ -7,11 +7,11 @@ os.system("cmd /c \"setenv.bat amd64 2> nul\"")
 def readenv(filename):
   env={}
   fIN=open(filename, "r")
-  for line in fIN.xreadlines():
+  for line in fIN.readlines():
     idx=line.find("=")
     if idx!=-1:
       var=line[:idx]
-      val=line[idx+1:-2]
+      val=line[idx+1:-1]
       env[var]=val
   return env
 
@@ -24,7 +24,7 @@ def escapepath(val):
   paths=val.split(";")
   newpath=[]
   for path in paths:
-    if not tmp.has_key(path):
+    if not path in tmp:
       tmp[path]=1
       path=path.replace("c:","/cygdrive/c")
       path=path.replace("C:","/cygdrive/c")
@@ -40,9 +40,9 @@ env_after=readenv("env_after.txt")
 os.remove("env_before.txt")
 os.remove("env_after.txt")
 
-for var,val in env_after.iteritems():
-  if not env_before.has_key(var):
-    print "export %s=%s"%(var,escape(val))
+for var,val in env_after.items():
+  if not var in env_before:
+    print("export %s=%s"%(var,escape(val)))
   else:
     oldval=env_before[var]
     if val != oldval:
@@ -53,5 +53,5 @@ for var,val in env_after.iteritems():
         #print oldval
         #print val
       else:
-        print "export PATH=%s"%(escapepath(val))
+        print("export PATH=%s"%(escapepath(val)))
 

@@ -236,25 +236,29 @@ Diff=False
 def CompareFiles(f1name, f2name):
   try:
     if len(sys.argv)>1:
-      print "Comparing",f1name,f2name
-    f1 = open(f1name, 'rU')
-    f2 = open(f2name, 'rU')
+      print("Comparing "+f1name+" "+f2name)
+    f1 = open(f1name, 'r')
+    f2 = open(f2name, 'r')
 
     a = f1.readlines(); f1.close()
     b = f2.readlines(); f2.close()
     for line in difflib.ndiff(a, b):
       if line[0]!=' ':
-        print f1name,"and",f2name,"are different"
+        print(f1name+" and "+f2name+" are different")
         return True
 
     return False
-  except:
-    if not os.path.exists(f1name): print "\n",f1name,"does not exist\n"
-    if not os.path.exists(f2name): print "\n",f2name,"does not exist\n"
+  except Exception as e:
+    if not os.path.exists(f1name):
+        print("\n"+f1name+" does not exist\n")
+    elif not os.path.exists(f2name):
+        print("\n"+f2name+" does not exist\n")
+    else:
+        print(f1name+" and "+f2name+" are different")
     return True
 
-for SrcFile,DestFile in izip(Files[0::2], Files[1::2]):
+for SrcFile,DestFile in zip(Files[0::2], Files[1::2]):
   Diff |= CompareFiles(SrcFile, DestFile)
 
 if not Diff:
-  print "All Files are the same"
+  print("All Files are the same")

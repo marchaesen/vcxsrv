@@ -39,6 +39,7 @@ INCLUDELIBFILES += mesa\$(OBJDIR)\libmesa.lib
 INCLUDELIBFILES += util\$(OBJDIR)\libutil.lib
 INCLUDELIBFILES += mapi\$(OBJDIR)\libmapi.lib
 INCLUDELIBFILES += gallium\targets\dri\$(OBJDIR)\libgallium.lib
+INCLUDELIBFILES += gallium\auxiliary\rbug\$(OBJDIR)\librbug.lib
 INCLUDELIBFILES += mesa\drivers\dri\common\$(OBJDIR)\libdricommon.lib
 INCLUDELIBFILES += $(MHMAKECONF)\expat\lib\$(OBJDIR)\libexpat.lib
 INCLUDELIBFILES += $(MHMAKECONF)\libregex\$(OBJDIR)\libregex.lib

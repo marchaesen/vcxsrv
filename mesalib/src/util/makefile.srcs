@@ -22,3 +22,9 @@ format/u_format_pack.h: $(u_format_deps)
 format/u_format_table.c: $(srcdir)/format/u_format_table.py $(srcdir)/format/u_format.csv
 	$(PYTHON3) $(srcdir)/format/u_format_table.py $(srcdir)/format/u_format.csv > $@
 
+driconf_static_gen := driconf_static.py
+driconf_static_deps := 00-mesa-defaults.conf
+
+driconf_static.h: $(driconf_static_deps)
+	$(PYTHON3) $(driconf_static_gen) $^ $@
+

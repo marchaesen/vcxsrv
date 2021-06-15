@@ -2,12 +2,13 @@ top_srcdir=../../../..
 
 DEFINES = WIN32 SWRAST_DRI_EXPORT INSERVER _USE_MATH_DEFINES __STDC_CONSTANT_MACROS __STDC_CONSTANT_MACROS __STDC_FORMAT_MACROS XML_STATIC __STDC_LIMIT_MACROS HAVE_PIPE_LOADER_DRI GALLIUM_SOFTPIPE GALLIUM_STATIC_TARGETS PIPE_SEARCH_DIR=\".\"
 
-INCLUDES += $(MHMAKECONF)/include ../../auxiliary ../../include ../../.. $(top_srcdir)/include ../../frontends/dri \
+INCLUDES += $(MHMAKECONF)/include ../../auxiliary ../../auxiliary/driver_rbug ../../include ../../.. $(top_srcdir)/include ../../frontends/dri \
   ../../../mesa/drivers/dri/common ../../../mesa ../../drivers ../../../mapi ../../../compiler/nir ../../winsys
 
 LIBRARY = libgallium
 
-vpath %.c ../../frontends/dri:../../auxiliary/postprocess:../../auxiliary/cso_cache:../../auxiliary/util:../../auxiliary/translate:../../auxiliary/rtasm:../../auxiliary/tgsi:../../auxiliary/hud:../../auxiliary/draw:../../auxiliary/nir:../../auxiliary/pipe-loader:../../drivers/softpipe:../../winsys/sw/dri::../../winsys/sw/wrapper:../../winsys/sw/null
+vpath %.c ../../frontends/dri:../../auxiliary/os:../../auxiliary/postprocess:../../auxiliary/driver_noop:../../auxiliary/driver_rbug:../../auxiliary/driver_trace:../../auxiliary/driver_ddebug:../../auxiliary/cso_cache:../../auxiliary/util:../../auxiliary/translate:../../auxiliary/rtasm:../../auxiliary/tgsi:../../auxiliary/hud:../../auxiliary/draw:../../auxiliary/nir:../../auxiliary/pipe-loader:../../drivers/softpipe:../../winsys/sw/dri::../../winsys/sw/wrapper:../../winsys/sw/null
+
 
 CSRCS := target.c drisw.c dri_context.c dri_screen.c dri_drawable.c dri_helpers.c dri_query_renderer.c \
   pp_colors.c pp_mlaa.c pp_init.c pp_run.c pp_program.c pp_celshade.c \
@@ -21,4 +22,6 @@ CSRCS := target.c drisw.c dri_context.c dri_screen.c dri_drawable.c dri_helpers.
   nir_to_tgsi.c \
   pipe_loader.c pipe_loader_sw.c \
   sp_screen.c sp_texture.c sp_context.c sp_state_shader.c sp_state_rasterizer.c sp_fs_exec.c sp_image.c sp_tex_sample.c sp_tex_tile_cache.c sp_query.c sp_tile_cache.c sp_surface.c sp_compute.c sp_state_derived.c sp_state_sampler.c sp_quad_pipe.c sp_draw_arrays.c sp_state_surface.c sp_state_image.c sp_state_vertex.c sp_state_so.c sp_state_clip.c sp_state_blend.c sp_prim_vbuf.c sp_flush.c sp_setup.c sp_quad_blend.c sp_quad_depth_test.c sp_quad_fs.c sp_quad_stipple.c sp_clear.c sp_buffer.c sp_fence.c \
-   dri_sw_winsys.c wrapper_sw_winsys.c null_sw_winsys.c
+   dri_sw_winsys.c wrapper_sw_winsys.c null_sw_winsys.c dd_screen.c u_tests.c tr_screen.c tr_dump.c tr_dump_state.c dd_context.c dd_draw.c u_dump_state.c \
+   u_dump_defines.c u_log.c os_process.c rbug_screen.c rbug_context.c rbug_objects.c rbug_core.c u_network.c tr_context.c tr_texture.c u_threaded_context.c \
+   noop_pipe.c noop_state.c

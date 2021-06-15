@@ -17,6 +17,7 @@ CSRCS = winplink.c winhandl.c misc.c settings.c winstore.c windefs.c winmisc.c w
 				ssh2transport.c ssh2userauth.c ssh2connection.c ssh1connection-client.c ssh2transhk.c \
 				ssh2connection-client.c mainchan.c ssh2kex-client.c memory.c ecc.c mpint.c utils.c \
 				winmiscs.c sshauxcrypt.c sshhmac.c sshprng.c stripctrl.c wcwidth.c winnohlp.c \
-				winselcli.c sshutils.c wincliloop.c clicons.c supdup.c sshsha3.c
+				winselcli.c sshutils.c wincliloop.c clicons.c supdup.c sshsha3.c console.c sshargon2.c \
+				sshblake2.c	
 
 TTYAPP=plink
