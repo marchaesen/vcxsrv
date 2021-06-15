@@ -163,7 +163,7 @@ fi
 	fi
 
 	if [[ "$BUILDDEBUG" == "1" ]] ; then
-		tools/mhmake/Debug64/mhmake -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
+		tools/mhmake/Release64/mhmake -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
 		check-error 'Error compiling vcxsrv for debug'
 	fi
 
@@ -188,7 +188,7 @@ if [[ "$BUILDDEPS" == "1" ]] ; then
 		check-error 'Error compiling vcxsrv for release'
 	fi
 	if [[ "$BUILDDEBUG" == "1" ]] ; then
-		tools/mhmake/Debug/mhmake -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
+		tools/mhmake/Release/mhmake.exe -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
 		check-error 'Error compiling vcxsrv for debug'
 	fi
 
