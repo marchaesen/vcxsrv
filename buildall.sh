@@ -50,7 +50,6 @@ check-error 'Make sure that python.exe is in the PATH. (e.g. cp /usr/bin/python2
 # c:\perl should have a copy of strawberry perl portable edition
 which /cygdrive/c/perl/perl/bin/perl.exe > /dev/null 2>&1
 check-error 'Please install strawberry perl portable edition into c:\perl'
-ORIPATH=$PATH
 export PATH=/cygdrive/c/perl/perl/bin:$PATH
 
 # echo script lines from now one
@@ -141,10 +140,6 @@ cd ..
 
 fi
 # fi BUILDDEPS
-
-#reuse the cygwin perl again
-export PATH=$ORIPATH
-
 
 if [[ "$IS64" == "1" ]]; then
 
