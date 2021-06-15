@@ -219,6 +219,17 @@ typedef struct {
 } xXITouchInfo;
 
 /**
+ * Denotes touchpad gesture capability on a device.
+ */
+typedef struct {
+    uint16_t    type;           /**< Always GestureClass */
+    uint16_t    length;         /**< Length in 4 byte units */
+    uint16_t    sourceid;       /**< source device for this class */
+    uint8_t     num_touches;    /**< Maximum number of touches gesture supports (0==unlimited) */
+    uint8_t     pad0;
+} xXIGestureInfo;
+
+/**
  * Used to select for events on a given window.
  * Struct is followed by (mask_len * CARD8), with each bit set representing
  * the event mask for the given type. A mask bit represents an event type if
@@ -1082,6 +1093,72 @@ typedef struct
 typedef xXIBarrierEvent xXIBarrierHitEvent;
 typedef xXIBarrierEvent xXIBarrierPointerReleasedEvent;
 typedef xXIBarrierEvent xXIBarrierLeaveEvent;
+
+/**
+ * Event for touchpad gesture pinch input events
+ */
+typedef struct
+{
+    uint8_t     type;                   /**< Always GenericEvent */
+    uint8_t     extension;              /**< XI extension offset */
+    uint16_t    sequenceNumber;
+    uint32_t    length;                 /**< Length in 4 byte uints */
+    uint16_t    evtype;
+    uint16_t    deviceid;
+    Time        time;
+    uint32_t    detail;                 /**< The number of touches in the gesture */
+    Window      root;
+    Window      event;
+    Window      child;
+/* └──────── 32 byte boundary ────────┘ */
+    FP1616      root_x;                 /**< Always screen coords, 16.16 fixed point */
+    FP1616      root_y;
+    FP1616      event_x;                /**< Always screen coords, 16.16 fixed point */
+    FP1616      event_y;
+    FP1616      delta_x;
+    FP1616      delta_y;
+    FP1616      delta_unaccel_x;
+    FP1616      delta_unaccel_y;
+    FP1616      scale;
+    FP1616      delta_angle;
+    uint16_t    sourceid;               /**< The source device */
+    uint16_t    pad0;
+    xXIModifierInfo     mods;
+    xXIGroupInfo        group;
+    uint32_t    flags;                  /**< ::XIGesturePinchEventCancelled */
+} xXIGesturePinchEvent;
+
+/**
+ * Event for touchpad gesture swipe input events
+ */
+typedef struct
+{
+    uint8_t     type;                   /**< Always GenericEvent */
+    uint8_t     extension;              /**< XI extension offset */
+    uint16_t    sequenceNumber;
+    uint32_t    length;                 /**< Length in 4 byte uints */
+    uint16_t    evtype;
+    uint16_t    deviceid;
+    Time        time;
+    uint32_t    detail;                 /**< The number of touches in the gesture */
+    Window      root;
+    Window      event;
+    Window      child;
+/* └──────── 32 byte boundary ────────┘ */
+    FP1616      root_x;                 /**< Always screen coords, 16.16 fixed point */
+    FP1616      root_y;
+    FP1616      event_x;                /**< Always screen coords, 16.16 fixed point */
+    FP1616      event_y;
+    FP1616      delta_x;
+    FP1616      delta_y;
+    FP1616      delta_unaccel_x;
+    FP1616      delta_unaccel_y;
+    uint16_t    sourceid;               /**< The source device */
+    uint16_t    pad0;
+    xXIModifierInfo     mods;
+    xXIGroupInfo        group;
+    uint32_t    flags;                  /**< ::XIGestureSwipeEventCancelled */
+} xXIGestureSwipeEvent;
 
 #undef Window
 #undef Time

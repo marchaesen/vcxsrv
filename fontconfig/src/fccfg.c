@@ -2614,6 +2614,65 @@ FcConfigXdgDataHome (void)
     return ret;
 }
 
+FcStrSet *
+FcConfigXdgDataDirs (void)
+{
+    const char *env = getenv ("XDG_DATA_DIRS");
+    FcStrSet *ret = FcStrSetCreate ();
+
+    if (env)
+    {
+	FcChar8 *ee, *e = ee = FcStrCopy ((const FcChar8 *) env);
+
+	/* We don't intentionally use FC_SEARCH_PATH_SEPARATOR here because of:
+	 *   The directories in $XDG_DATA_DIRS should be seperated with a colon ':'.
+	 * in doc.
+	 */
+	while (e)
+	{
+	    FcChar8 *p = (FcChar8 *) strchr ((const char *) e, ':');
+	    FcChar8 *s;
+	    size_t len;
+
+	    if (!p)
+	    {
+		s = FcStrCopy (e);
+		e = NULL;
+	    }
+	    else
+	    {
+		*p = 0;
+		s = FcStrCopy (e);
+		e = p + 1;
+	    }
+	    len = strlen ((const char *) s);
+	    if (s[len - 1] == FC_DIR_SEPARATOR)
+	    {
+		do
+		{
+		    len--;
+		}
+		while (len > 1 && s[len - 1] == FC_DIR_SEPARATOR);
+		s[len] = 0;
+	    }
+	    FcStrSetAdd (ret, s);
+	    FcStrFree (s);
+	}
+	FcStrFree (ee);
+    }
+    else
+    {
+	/* From spec doc at https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables
+	 *
+	 * If $XDG_DATA_DIRS is either not set or empty, a value equal to /usr/local/share/:/usr/share/ should be used.
+	 */
+	FcStrSetAdd (ret, (const FcChar8 *) "/usr/local/share");
+	FcStrSetAdd (ret, (const FcChar8 *) "/usr/share");
+    }
+
+    return ret;
+}
+
 FcBool
 FcConfigEnableHome (FcBool enable)
 {

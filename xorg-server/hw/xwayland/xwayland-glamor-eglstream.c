@@ -334,7 +334,12 @@ xwl_glamor_eglstream_destroy_pixmap(PixmapPtr pixmap)
 static struct wl_buffer *
 xwl_glamor_eglstream_get_wl_buffer_for_pixmap(PixmapPtr pixmap)
 {
-    return xwl_pixmap_get(pixmap)->buffer;
+    struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
+
+    if (!xwl_pixmap)
+        return NULL;
+
+    return xwl_pixmap->buffer;
 }
 
 static void

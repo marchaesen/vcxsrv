@@ -404,9 +404,6 @@ xwl_present_check_flip2(RRCrtcPtr crtc,
     if (!xwl_window)
         return FALSE;
 
-    if (!xwl_glamor_pixmap_get_wl_buffer(pixmap))
-        return FALSE;
-
     if (!xwl_glamor_check_flip(pixmap))
         return FALSE;
 

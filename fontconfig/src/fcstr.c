@@ -1252,7 +1252,7 @@ _FcStrSetGrow (FcStrSet *set, int growElements)
 }
 
 static FcBool
-_FcStrSetAppend (FcStrSet *set, FcChar8 *s)
+_FcStrSetInsert (FcStrSet *set, FcChar8 *s, int pos)
 {
     if (!FcStrSetHasControlBit (set, FCSS_ALLOW_DUPLICATES))
     {
@@ -1268,8 +1268,21 @@ _FcStrSetAppend (FcStrSet *set, FcChar8 *s)
         if (!_FcStrSetGrow(set, growElements))
             return FcFalse;
     }
-    set->strs[set->num++] = s;
-    set->strs[set->num] = 0;
+    if (pos >= set->num)
+    {
+	set->strs[set->num++] = s;
+	set->strs[set->num] = 0;
+    }
+    else
+    {
+	int i;
+
+	set->num++;
+	set->strs[set->num] = 0;
+	for (i = set->num - 1; i > pos; i--)
+	    set->strs[i] = set->strs[i - 1];
+	set->strs[pos] = s;
+    }
     return FcTrue;
 }
 
@@ -1354,7 +1367,21 @@ FcStrSetAdd (FcStrSet *set, const FcChar8 *s)
     FcChar8 *new = FcStrCopy (s);
     if (!new)
 	return FcFalse;
-    if (!_FcStrSetAppend (set, new))
+    if (!_FcStrSetInsert (set, new, set->num))
+    {
+	FcStrFree (new);
+	return FcFalse;
+    }
+    return FcTrue;
+}
+
+FcBool
+FcStrSetInsert (FcStrSet *set, const FcChar8 *s, int pos)
+{
+    FcChar8 *new = FcStrCopy (s);
+    if (!new)
+	return FcFalse;
+    if (!_FcStrSetInsert (set, new, pos))
     {
 	FcStrFree (new);
 	return FcFalse;
@@ -1368,7 +1395,7 @@ FcStrSetAddTriple (FcStrSet *set, const FcChar8 *a, const FcChar8 *b, const FcCh
     FcChar8 *new = FcStrMakeTriple (a, b, c);
     if (!new)
 	return FcFalse;
-    if (!_FcStrSetAppend (set, new))
+    if (!_FcStrSetInsert (set, new, set->num))
     {
 	FcStrFree (new);
 	return FcFalse;
@@ -1403,7 +1430,7 @@ FcStrSetAddFilename (FcStrSet *set, const FcChar8 *s)
     FcChar8 *new = FcStrCopyFilename (s);
     if (!new)
 	return FcFalse;
-    if (!_FcStrSetAppend (set, new))
+    if (!_FcStrSetInsert (set, new, set->num))
     {
 	FcStrFree (new);
 	return FcFalse;

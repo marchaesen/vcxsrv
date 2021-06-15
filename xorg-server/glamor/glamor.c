@@ -817,7 +817,8 @@ glamor_init(ScreenPtr screen, unsigned int flags)
      * cached IB.
      */
     if (strstr((char *)glGetString(GL_VENDOR), "Broadcom") &&
-        strstr((char *)glGetString(GL_RENDERER), "VC4"))
+        (strstr((char *)glGetString(GL_RENDERER), "VC4") ||
+         strstr((char *)glGetString(GL_RENDERER), "V3D")))
         glamor_priv->use_quads = FALSE;
 
     glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE, &glamor_priv->max_fbo_size);

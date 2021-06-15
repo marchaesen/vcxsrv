@@ -1285,13 +1285,14 @@ FcConfigGetAttribute (FcConfigParse *parse, const char *attr)
     return 0;
 }
 
-static FcChar8 *
-_get_real_path_from_prefix(FcConfigParse *parse, const FcChar8 *path, const FcChar8 *prefix)
+static FcStrSet *
+_get_real_paths_from_prefix(FcConfigParse *parse, const FcChar8 *path, const FcChar8 *prefix)
 {
 #ifdef _WIN32
     FcChar8 buffer[1000] = { 0 };
 #endif
     FcChar8 *parent = NULL, *retval = NULL;
+    FcStrSet *e = NULL;
 
     if (prefix)
     {
@@ -1301,6 +1302,12 @@ _get_real_path_from_prefix(FcConfigParse *parse, const FcChar8 *path, const FcCh
 	    if (!parent)
 	    {
 		/* Home directory might be disabled */
+		return NULL;
+	    }
+	    e = FcConfigXdgDataDirs ();
+	    if (!e)
+	    {
+		FcStrFree (parent);
 		return NULL;
 	    }
 	}
@@ -1388,8 +1395,28 @@ _get_real_path_from_prefix(FcConfigParse *parse, const FcChar8 *path, const FcCh
     {
 	retval = FcStrdup (path);
     }
+    if (!e)
+	e = FcStrSetCreate ();
+    else
+    {
+	FcChar8 *s;
+	int i;
 
-    return retval;
+	for (i = 0; i < e->num; i++)
+	{
+	    s = FcStrBuildFilename (e->strs[i], path, NULL);
+	    FcStrFree (e->strs[i]);
+	    e->strs[i] = s;
+	}
+    }
+    if (!FcStrSetInsert (e, retval, 0))
+    {
+	FcStrSetDestroy (e);
+	e = NULL;
+    }
+    FcStrFree (retval);
+
+    return e;
 }
 
 static void
@@ -2062,7 +2089,7 @@ static void
 FcParseRemapDir (FcConfigParse *parse)
 {
     const FcChar8 *path, *attr, *data, *salt;
-    FcChar8 *prefix = NULL;
+    FcStrSet *prefix_dirs = NULL;
 
     data = FcStrBufDoneStatic (&parse->pstack->str);
     if (!data)
@@ -2083,20 +2110,28 @@ FcParseRemapDir (FcConfigParse *parse)
     }
     attr = FcConfigGetAttribute (parse, "prefix");
     salt = FcConfigGetAttribute (parse, "salt");
-    prefix = _get_real_path_from_prefix (parse, data, attr);
-    if (!prefix || prefix[0] == 0)
+    prefix_dirs = _get_real_paths_from_prefix (parse, data, attr);
+    if (prefix_dirs)
     {
-	/* nop */
-    }
-    else if (!parse->scanOnly && (!FcStrUsesHome (prefix) || FcConfigHome ()))
-    {
-	if (!FcConfigAddFontDir (parse->config, prefix, path, salt))
-	    FcConfigMessage (parse, FcSevereError, "out of memory; cannot create remap data for %s as %s", prefix, path);
-    }
-    FcStrBufDestroy (&parse->pstack->str);
+	FcStrList *l = FcStrListCreate (prefix_dirs);
+	FcChar8 *prefix;
 
-    if (prefix)
-	FcStrFree (prefix);
+	FcStrSetDestroy (prefix_dirs);
+	while ((prefix = FcStrListNext (l)))
+	{
+	    if (!prefix || prefix[0] == 0)
+	    {
+		/* nop */
+	    }
+	    else if (!parse->scanOnly && (!FcStrUsesHome (prefix) || FcConfigHome ()))
+	    {
+		if (!FcConfigAddFontDir (parse->config, prefix, path, salt))
+		    FcConfigMessage (parse, FcSevereError, "out of memory; cannot create remap data for %s as %s", prefix, path);
+	    }
+	    FcStrBufDestroy (&parse->pstack->str);
+	}
+	FcStrListDone (l);
+    }
 }
 
 static void
@@ -2250,7 +2285,7 @@ static void
 FcParseDir (FcConfigParse *parse)
 {
     const FcChar8 *attr, *data, *salt;
-    FcChar8 *prefix = NULL;
+    FcStrSet *prefix_dirs = NULL;
 
     data = FcStrBufDoneStatic (&parse->pstack->str);
     if (!data)
@@ -2265,20 +2300,28 @@ FcParseDir (FcConfigParse *parse)
     }
     attr = FcConfigGetAttribute (parse, "prefix");
     salt = FcConfigGetAttribute (parse, "salt");
-    prefix = _get_real_path_from_prefix (parse, data, attr);
-    if (!prefix || prefix[0] == 0)
+    prefix_dirs = _get_real_paths_from_prefix (parse, data, attr);
+    if (prefix_dirs)
     {
-	/* nop */
-    }
-    else if (!parse->scanOnly && (!FcStrUsesHome (prefix) || FcConfigHome ()))
-    {
-	if (!FcConfigAddFontDir (parse->config, prefix, NULL, salt))
-	    FcConfigMessage (parse, FcSevereError, "out of memory; cannot add directory %s", prefix);
-    }
-    FcStrBufDestroy (&parse->pstack->str);
+	FcStrList *l = FcStrListCreate (prefix_dirs);
+	FcChar8 *prefix;
 
-    if (prefix)
-	FcStrFree (prefix);
+	FcStrSetDestroy (prefix_dirs);
+	while ((prefix = FcStrListNext (l)))
+	{
+	    if (!prefix || prefix[0] == 0)
+	    {
+		/* nop */
+	    }
+	    else if (!parse->scanOnly && (!FcStrUsesHome (prefix) || FcConfigHome ()))
+	    {
+		if (!FcConfigAddFontDir (parse->config, prefix, NULL, salt))
+		    FcConfigMessage (parse, FcSevereError, "out of memory; cannot add directory %s", prefix);
+	    }
+	    FcStrBufDestroy (&parse->pstack->str);
+	}
+	FcStrListDone (l);
+    }
 }
 
 static void

@@ -664,6 +664,9 @@ FcConfigXdgConfigHome (void);
 FcPrivate FcChar8 *
 FcConfigXdgDataHome (void);
 
+FcPrivate FcStrSet *
+FcConfigXdgDataDirs (void);
+
 FcPrivate FcExpr *
 FcConfigAllocExpr (FcConfig *config);
 
@@ -1256,6 +1259,9 @@ FcIsFsMtimeBroken (const FcChar8 *dir);
 /* fcstr.c */
 FcPrivate FcStrSet *
 FcStrSetCreateEx (unsigned int control);
+
+FcPrivate FcBool
+FcStrSetInsert (FcStrSet *set, const FcChar8 *s, int pos);
 
 FcPrivate FcBool
 FcStrSetAddLangs (FcStrSet *strs, const char *languages);

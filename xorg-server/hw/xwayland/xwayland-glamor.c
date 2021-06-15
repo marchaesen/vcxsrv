@@ -84,6 +84,9 @@ xwl_glamor_check_flip(PixmapPtr pixmap)
 {
     struct xwl_screen *xwl_screen = xwl_screen_get(pixmap->drawable.pScreen);
 
+    if (!xwl_glamor_pixmap_get_wl_buffer(pixmap))
+        return FALSE;
+
     if (xwl_screen->egl_backend->check_flip)
         return xwl_screen->egl_backend->check_flip(pixmap);
 
