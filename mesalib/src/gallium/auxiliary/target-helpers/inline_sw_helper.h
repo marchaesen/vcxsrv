@@ -33,6 +33,10 @@
 #include "d3d12/d3d12_public.h"
 #endif
 
+#ifdef GALLIUM_ASAHI
+#include "asahi/agx_public.h"
+#endif
+
 static inline struct pipe_screen *
 sw_screen_create_named(struct sw_winsys *winsys, const char *driver)
 {
@@ -71,6 +75,11 @@ sw_screen_create_named(struct sw_winsys *winsys, const char *driver)
       screen = d3d12_create_dxcore_screen(winsys, NULL);
 #endif
 
+#if defined(GALLIUM_ASAHI)
+   if (screen == NULL && strcmp(driver, "asahi") == 0)
+      screen = agx_screen_create(winsys);
+#endif
+
    return screen ? debug_screen_wrap(screen) : NULL;
 }
 
@@ -81,11 +90,11 @@ sw_screen_create(struct sw_winsys *winsys)
    UNUSED bool only_sw = env_var_as_boolean("LIBGL_ALWAYS_SOFTWARE", false);
    const char *drivers[] = {
       debug_get_option("GALLIUM_DRIVER", ""),
-#if defined(GALLIUM_ZINK)
-      only_sw ? "" : "zink",
-#endif
 #if defined(GALLIUM_D3D12)
       only_sw ? "" : "d3d12",
+#endif
+#if defined(GALLIUM_ASAHI)
+      only_sw ? "" : "asahi",
 #endif
 #if defined(GALLIUM_LLVMPIPE)
       "llvmpipe",
@@ -95,6 +104,9 @@ sw_screen_create(struct sw_winsys *winsys)
 #endif
 #if defined(GALLIUM_SWR)
       "swr",
+#endif
+#if defined(GALLIUM_ZINK)
+      only_sw ? "" : "zink",
 #endif
    };
 

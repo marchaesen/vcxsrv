@@ -28,18 +28,18 @@
 #ifndef RADV_NULL_WINSYS_H
 #define RADV_NULL_WINSYS_H
 
-#include "radv_radeon_winsys.h"
-#include "ac_gpu_info.h"
 #include "util/list.h"
+#include "ac_gpu_info.h"
+#include "radv_radeon_winsys.h"
 
 struct radv_null_winsys {
-	struct radeon_winsys base;
+   struct radeon_winsys base;
 };
 
 static inline struct radv_null_winsys *
 radv_null_winsys(struct radeon_winsys *base)
 {
-	return (struct radv_null_winsys*)base;
+   return (struct radv_null_winsys *)base;
 }
 
 #endif /* RADV_NULL_WINSYS_H */

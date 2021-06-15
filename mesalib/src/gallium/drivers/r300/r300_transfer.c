@@ -33,9 +33,6 @@ struct r300_transfer {
     /* Parent class */
     struct pipe_transfer transfer;
 
-    /* Offset from start of buffer. */
-    unsigned offset;
-
     /* Linear texture. */
     struct r300_resource *linear_texture;
 };
@@ -120,7 +117,7 @@ r300_texture_transfer_map(struct pipe_context *ctx,
         referenced_hw = TRUE;
     } else {
         referenced_hw =
-            !r300->rws->buffer_wait(tex->buf, 0, RADEON_USAGE_READWRITE);
+            !r300->rws->buffer_wait(r300->rws, tex->buf, 0, RADEON_USAGE_READWRITE);
     }
 
     trans = CALLOC_STRUCT(r300_transfer);
@@ -206,7 +203,7 @@ r300_texture_transfer_map(struct pipe_context *ctx,
             /* Unpipelined transfer. */
             trans->transfer.stride = tex->tex.stride_in_bytes[level];
             trans->transfer.layer_stride = tex->tex.layer_size_in_bytes[level];
-            trans->offset = r300_texture_get_offset(tex, level, box->z);
+            trans->transfer.offset = r300_texture_get_offset(tex, level, box->z);
 
             if (referenced_cs &&
                 !(usage & PIPE_MAP_UNSYNCHRONIZED)) {
@@ -218,7 +215,7 @@ r300_texture_transfer_map(struct pipe_context *ctx,
     if (trans->linear_texture) {
         /* The detiled texture is of the same size as the region being mapped
          * (no offset needed). */
-        map = r300->rws->buffer_map(trans->linear_texture->buf,
+        map = r300->rws->buffer_map(r300->rws, trans->linear_texture->buf,
                                     &r300->cs, usage);
         if (!map) {
             pipe_resource_reference(
@@ -230,14 +227,14 @@ r300_texture_transfer_map(struct pipe_context *ctx,
         return map;
     } else {
         /* Tiling is disabled. */
-        map = r300->rws->buffer_map(tex->buf, &r300->cs, usage);
+        map = r300->rws->buffer_map(r300->rws, tex->buf, &r300->cs, usage);
         if (!map) {
             FREE(trans);
             return NULL;
         }
 
 	*transfer = &trans->transfer;
-        return map + trans->offset +
+        return map + trans->transfer.offset +
             box->y / util_format_get_blockheight(format) * trans->transfer.stride +
             box->x / util_format_get_blockwidth(format) * util_format_get_blocksize(format);
     }

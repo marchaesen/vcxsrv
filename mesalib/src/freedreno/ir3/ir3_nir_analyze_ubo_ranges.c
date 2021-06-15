@@ -470,7 +470,7 @@ fixup_load_uniform_instr(struct nir_builder *b, nir_instr *instr, void *arg)
 	if (nir_src_is_const(intr->src[0]))
 		return NULL;
 
-	const unsigned base_offset_limit = (1 << 10);  /* 10 bits */
+	const unsigned base_offset_limit = (1 << 9);  /* 9 bits */
 	unsigned base_offset = nir_intrinsic_base(intr);
 
 	/* Or cases were base offset is lower than the hw limit: */

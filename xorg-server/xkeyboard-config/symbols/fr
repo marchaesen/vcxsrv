@@ -1009,7 +1009,7 @@ xkb_symbols "geo" {
 partial alphanumeric_keys
 xkb_symbols "us" {
 
-    include "us(euro)"
+    include "us(basic)"
     name[Group1]= "French (US)";
 
 
@@ -1039,6 +1039,9 @@ xkb_symbols "us" {
     key <AD12> { [bracketright, braceright, guillemotright, rightdoublequotemark ] }; // » ”
 
     key <AE04> { [        4,     dollar,      EuroSign,         currency ] }; // € ¤
+
+    include "level3(ralt_switch)"
+    include "eurosign(5)"
 };
 
 // EXTRAS:
@@ -1141,7 +1144,7 @@ xkb_symbols "azerty" {
 partial alphanumeric_keys
 xkb_symbols "us-alt" {
 
-    include "us(euro)"
+    include "us(basic)"
     name[Group1]= "French (US with dead keys, alt.)";
 
     key <AB03> { [         c,          C,      ccedilla,         Ccedilla ] }; // ç Ç
@@ -1157,6 +1160,9 @@ xkb_symbols "us-alt" {
     key <TLDE> { [dead_grave, asciitilde,         grave ] };
     key <AE06> { [dead_circumflex, asciicircum,       6 ] };
     key <AE04> { [         4,     dollar,      EuroSign,         currency ] }; // € ¤
+
+    include "level3(ralt_switch)"
+    include "eurosign(5)"
 };
 
 // For physically modified US keyboard (Q <-> A, W <-> Z and ; <-> M)
@@ -1201,17 +1207,17 @@ xkb_symbols "us-azerty" {
 //   © 2019 Cimbali <me @ cimba.li>
 //
 // ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
-// │ # ̑  │ 1 À │ 2 É │ 3 È │ 4 Ê │ 5 ̋  │ 6 ̏  │ 7   │ 8 — │ 9 ‹ │ 0 › │ "   │ ¨   ┃ ⌫ Retour┃
+// │ # ̑  │ 1 À │ 2 É │ 3 È │ 4 Ê │ 5 ̋  │ 6 ̏  │ 7   │ 8 — │ 9 ‹ │ 0 › │ " ˚ │ ¨   ┃ ⌫ Retour┃
 // │ @ ̆̆̆  ̆│ à § │ é  ́ │ è  ̀ │ ê & │ ( [ │ ) ] │ ‘ ̄̄  │ ’ _ │ « “ │ » ” │ ' ° │ ̂  ̌̌̌  ┃  arrière┃
 // ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
 // ┃       ┃ A Æ │ Z   │ E   │ R   │ T ™ │ Y   │ U Ù │ I  ̣ │ O Œ │ P ‰ │ – ‑ │ ± ‡ ┃Entrée ┃
 // ┃Tab ↹  ┃ a æ │ z £ │ e € │ r ® │ t { │ y } │ u ù │ i ̇  │ o œ │ p % │ - − │ + † ┃   ⏎   ┃
 // ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
-// ┃        ┃ Q   │ S ẞ │ D   │ F   │ G   │ H ̱  │ J", │ K   │ L   │ M   │ \ √ │ ½ ¼ ┃      ┃
+// ┃        ┃ Q   │ S ẞ │ D   │ F   │ G   │ H ̱  │ J   │ K   │ L   │ M   │ \ √ │ ½ ¼ ┃      ┃
 // ┃Maj ⇬   ┃ q θ │ s ß │ d $ │ f ¤ │ g µ │ h   │ j   │ k ̷  │ l | │ m ∞ │ / ÷ │ * × ┃      ┃
 // ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
-// ┃       ┃ > ≥ │ W “ │ X ” │ C ® │ V ← │ B ↑ │ N → │ ? … │ . . │ / ∕ │ § − ┃             ┃
-// ┃Shift ⇧┃ < ≤ │ w « │ x » │ c © │ v ⍽ │ b ↓ │ n ¬ │ , ¿ │ ; × │ : ÷ │ ! ¡ ┃Shift ⇧      ┃
+// ┃       ┃ > ≥ │ W Ʒ │ X   │ C Ç │ V ˛ │ B   │ N   │ ?   │ !  ̦ │ …   │ = ≠ ┃             ┃
+// ┃Shift ⇧┃ < ≤ │ w ʒ │ x © │ c ç │ v ¸ │ b  ̵ │ n ~ │ . ¿ │ , ¡ │ : · │ ; ≃ ┃Shift ⇧      ┃
 // ┣━━━━━━━╋━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
 // ┃       ┃       ┃       ┃ ␣         Espace fine insécable ⍽ ┃       ┃       ┃       ┃
 // ┃Ctrl   ┃Meta   ┃Alt    ┃ ␣ Espace       Espace insécable ⍽ ┃AltGr ⇮┃Menu   ┃Ctrl   ┃
@@ -1241,7 +1247,7 @@ xkb_symbols "afnor" {
      key <AE11> { [          apostrophe,        quotedbl,                   degree,       dead_abovering ] }; // ' " °
      key <AE12> { [     dead_circumflex,  dead_diaeresis,               dead_caron,           VoidSymbol ] }; // ̂  ¨ ̌̌̌    //
 
-     // Second  ow
+     // Second row
      key <AD01> { [                   a,               A,                       ae,                   AE ] }; // a A æ Æ
      key <AD02> { [                   z,               Z,                 sterling,           VoidSymbol ] }; // z Z £
      key <AD03> { [                   e,               E,                 EuroSign,           VoidSymbol ] }; // e E €
@@ -1255,7 +1261,7 @@ xkb_symbols "afnor" {
      key <AD11> { [               minus,          endash,                0x1002212,            0x1002011 ] }; // - – − ‑ // signe moins (minus sign), trait d'union insécable (non-breaking hyphen)
      key <AD12> { [                plus,       plusminus,                   dagger,         doubledagger ] }; // + ± † ‡
 
-     // Third r w
+     // Third row
      key <AC01> { [                   q,               Q,              Greek_theta,           VoidSymbol ] }; // q Q θ
      key <AC02> { [                   s,               S,                   ssharp,            0x1001E9E ] }; // s S ß ẞ // lettre majuscule latine S dur (latin capital letter sharp s)
      key <AC03> { [                   d,               D,                   dollar,           VoidSymbol ] }; // d D $

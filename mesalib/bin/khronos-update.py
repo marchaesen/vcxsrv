@@ -175,7 +175,6 @@ SOURCES = [
             Source('include/vulkan/vulkan_xlib.h',              'https://github.com/KhronosGroup/Vulkan-Headers/raw/master/include/vulkan/vulkan_xlib.h'),
             Source('include/vulkan/vulkan_xlib_xrandr.h',       'https://github.com/KhronosGroup/Vulkan-Headers/raw/master/include/vulkan/vulkan_xlib_xrandr.h'),
             Source('include/vulkan/vk_android_native_buffer.h', 'https://android.googlesource.com/platform/frameworks/native/+/master/vulkan/include/vulkan/vk_android_native_buffer.h?format=TEXT'),
-            Source('include/vulkan/vulkan_intel.h',             None),
             Source('include/vulkan/.editorconfig',              None),
         ],
     },

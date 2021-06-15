@@ -407,8 +407,14 @@ st_UnmapTextureImage(struct gl_context *ctx,
                                         transfer->box.height,
                                         texImage->TexFormat,
                                         bgra);
+            } else if (_mesa_is_format_astc_2d(texImage->TexFormat)) {
+               _mesa_unpack_astc_2d_ldr(tmp, transfer->box.width * 4,
+                                        itransfer->temp_data,
+                                        itransfer->temp_stride,
+                                        transfer->box.width,
+                                        transfer->box.height,
+                                        texImage->TexFormat);
             } else {
-               /* TODO: We could transcode ASTC too. */
                unreachable("unexpected format for a compressed format fallback");
             }
 

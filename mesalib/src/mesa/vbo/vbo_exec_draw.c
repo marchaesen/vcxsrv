@@ -333,10 +333,9 @@ vbo_exec_vtx_flush(struct vbo_exec_context *exec)
          exec->vtx.info.vertices_per_patch =
             ctx->TessCtrlProgram.patch_vertices;
 
-         ctx->Driver.DrawGalliumComplex(ctx, &exec->vtx.info,
+         ctx->Driver.DrawGalliumMultiMode(ctx, &exec->vtx.info, 0,
                                         exec->vtx.draw,
                                         exec->vtx.mode,
-                                        NULL,
                                         exec->vtx.prim_count);
 
          /* Get new storage -- unless asked not to. */

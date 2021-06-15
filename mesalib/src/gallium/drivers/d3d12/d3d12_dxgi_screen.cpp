@@ -23,6 +23,7 @@
 
 #include "d3d12_screen.h"
 #include "d3d12_public.h"
+#include "d3d12_debug.h"
 
 #include "util/debug.h"
 #include "util/u_memory.h"
@@ -38,25 +39,31 @@ get_dxgi_factory()
       { 0xbf, 0x0c, 0x21, 0xca, 0x39, 0xe5, 0x16, 0x8a }
    };
 
-   typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY)(REFIID riid, void **ppFactory);
-   PFN_CREATE_DXGI_FACTORY CreateDXGIFactory;
-
    util_dl_library *dxgi_mod = util_dl_open(UTIL_DL_PREFIX "dxgi" UTIL_DL_EXT);
    if (!dxgi_mod) {
       debug_printf("D3D12: failed to load DXGI.DLL\n");
       return NULL;
    }
 
-   CreateDXGIFactory = (PFN_CREATE_DXGI_FACTORY)util_dl_get_proc_address(dxgi_mod, "CreateDXGIFactory");
-   if (!CreateDXGIFactory) {
-      debug_printf("D3D12: failed to load CreateDXGIFactory from DXGI.DLL\n");
+   typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY2)(UINT flags, REFIID riid, void **ppFactory);
+   PFN_CREATE_DXGI_FACTORY2 CreateDXGIFactory2;
+
+   CreateDXGIFactory2 = (PFN_CREATE_DXGI_FACTORY2)util_dl_get_proc_address(dxgi_mod, "CreateDXGIFactory2");
+   if (!CreateDXGIFactory2) {
+      debug_printf("D3D12: failed to load CreateDXGIFactory2 from DXGI.DLL\n");
       return NULL;
    }
 
+   UINT flags = 0;
+#ifndef DEBUG
+   if (d3d12_debug & D3D12_DEBUG_DEBUG_LAYER)
+#endif
+      flags |= DXGI_CREATE_FACTORY_DEBUG;
+
    IDXGIFactory4 *factory = NULL;
-   HRESULT hr = CreateDXGIFactory(IID_IDXGIFactory4, (void **)&factory);
+   HRESULT hr = CreateDXGIFactory2(flags, IID_IDXGIFactory4, (void **)&factory);
    if (FAILED(hr)) {
-      debug_printf("D3D12: CreateDXGIFactory failed: %08x\n", hr);
+      debug_printf("D3D12: CreateDXGIFactory2 failed: %08x\n", hr);
       return NULL;
    }
 

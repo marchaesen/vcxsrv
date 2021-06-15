@@ -50,12 +50,6 @@ _mesa_unpack_uint_rgba_row(mesa_format format, uint32_t n,
    util_format_unpack_rgba(format, dst, src, n);
 }
 
-extern void
-_mesa_unpack_rgba_block(mesa_format format,
-                        const void *src, int32_t srcRowStride,
-                        float dst[][4], int32_t dstRowStride,
-                        uint32_t x, uint32_t y, uint32_t width, uint32_t height);
-
 static inline void
 _mesa_unpack_float_z_row(mesa_format format, uint32_t n,
                          const void *src, float *dst)

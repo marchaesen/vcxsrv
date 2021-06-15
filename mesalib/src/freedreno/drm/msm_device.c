@@ -24,38 +24,56 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "msm_priv.h"
 
-static void msm_device_destroy(struct fd_device *dev)
+static void
+msm_device_destroy(struct fd_device *dev)
 {
-	struct msm_device *msm_dev = to_msm_device(dev);
-	free(msm_dev);
+   struct msm_device *msm_dev = to_msm_device(dev);
+   if (util_queue_is_initialized(&msm_dev->submit_queue)) {
+      util_queue_destroy(&msm_dev->submit_queue);
+   }
+   free(msm_dev);
 }
 
 static const struct fd_device_funcs funcs = {
-		.bo_new_handle = msm_bo_new_handle,
-		.bo_from_handle = msm_bo_from_handle,
-		.pipe_new = msm_pipe_new,
-		.destroy = msm_device_destroy,
+   .bo_new_handle = msm_bo_new_handle,
+   .bo_from_handle = msm_bo_from_handle,
+   .pipe_new = msm_pipe_new,
+   .destroy = msm_device_destroy,
 };
 
-struct fd_device * msm_device_new(int fd)
+struct fd_device *
+msm_device_new(int fd, drmVersionPtr version)
 {
-	struct msm_device *msm_dev;
-	struct fd_device *dev;
+   struct msm_device *msm_dev;
+   struct fd_device *dev;
 
-	msm_dev = calloc(1, sizeof(*msm_dev));
-	if (!msm_dev)
-		return NULL;
+   STATIC_ASSERT(FD_BO_PREP_READ == MSM_PREP_READ);
+   STATIC_ASSERT(FD_BO_PREP_WRITE == MSM_PREP_WRITE);
+   STATIC_ASSERT(FD_BO_PREP_NOSYNC == MSM_PREP_NOSYNC);
 
-	dev = &msm_dev->base;
-	dev->funcs = &funcs;
+   msm_dev = calloc(1, sizeof(*msm_dev));
+   if (!msm_dev)
+      return NULL;
 
-	dev->bo_size = sizeof(struct msm_bo);
+   dev = &msm_dev->base;
+   dev->funcs = &funcs;
 
-	return dev;
+   /* async submit_queue currently only used for msm_submit_sp: */
+   if (version->version_minor >= FD_VERSION_SOFTPIN) {
+      /* Note the name is intentionally short to avoid the queue
+       * thread's comm truncating the interesting part of the
+       * process name.
+       */
+      util_queue_init(&msm_dev->submit_queue, "sq", 8, 1, 0);
+   }
+
+   dev->bo_size = sizeof(struct msm_bo);
+
+   return dev;
 }

@@ -445,13 +445,5 @@ ir3_a6xx_fixup_atomic_dests(struct ir3 *ir, struct ir3_shader_variant *so)
 		}
 	}
 
-	/* we also need to fixup shader outputs: */
-	foreach_output_n (out, n, ir) {
-		if (is_atomic(out->opc) && (out->flags & IR3_INSTR_G)) {
-			ir->outputs[n] = get_atomic_dest_mov(out);
-			progress = true;
-		}
-	}
-
 	return progress;
 }

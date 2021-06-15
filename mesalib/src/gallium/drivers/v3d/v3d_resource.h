@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef VC5_RESOURCE_H
-#define VC5_RESOURCE_H
+#ifndef V3D_RESOURCE_H
+#define V3D_RESOURCE_H
 
 #include "v3d_screen.h"
 #include "util/u_transfer.h"
@@ -43,26 +43,26 @@
  */
 enum v3d_tiling_mode {
         /* Untiled resources.  Not valid as texture inputs. */
-        VC5_TILING_RASTER,
+        V3D_TILING_RASTER,
 
         /* Single line of u-tiles. */
-        VC5_TILING_LINEARTILE,
+        V3D_TILING_LINEARTILE,
 
         /* Departure from standard 4-UIF block column format. */
-        VC5_TILING_UBLINEAR_1_COLUMN,
+        V3D_TILING_UBLINEAR_1_COLUMN,
 
         /* Departure from standard 4-UIF block column format. */
-        VC5_TILING_UBLINEAR_2_COLUMN,
+        V3D_TILING_UBLINEAR_2_COLUMN,
 
         /* Normal tiling format: grouped in 4x4 UIFblocks, each of which is
          * split 2x2 into utiles.
          */
-        VC5_TILING_UIF_NO_XOR,
+        V3D_TILING_UIF_NO_XOR,
 
         /* Normal tiling format: grouped in 4x4 UIFblocks, each of which is
          * split 2x2 into utiles.
          */
-        VC5_TILING_UIF_XOR,
+        V3D_TILING_UIF_XOR,
 };
 
 struct v3d_transfer {
@@ -125,6 +125,7 @@ struct v3d_resource {
         struct renderonly_scanout *scanout;
         struct v3d_resource_slice slices[V3D_MAX_MIP_LEVELS];
         uint32_t cube_map_stride;
+        uint32_t sand_col128_stride;
         uint32_t size;
         int cpp;
         bool tiled;
@@ -187,4 +188,4 @@ uint32_t v3d_layer_offset(struct pipe_resource *prsc, uint32_t level,
                           uint32_t layer);
 
 
-#endif /* VC5_RESOURCE_H */
+#endif /* V3D_RESOURCE_H */

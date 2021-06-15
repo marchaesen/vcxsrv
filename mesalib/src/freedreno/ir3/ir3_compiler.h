@@ -44,6 +44,11 @@ struct ir3_compiler {
 
 	struct disk_cache *disk_cache;
 
+	/* If true, UBO accesses are assumed to be bounds-checked as defined by
+	 * VK_EXT_robustness2 and optimizations may have to be more conservative.
+	 */
+	bool robust_ubo_access;
+
 	/*
 	 * Configuration options for things that are handled differently on
 	 * different generations:
@@ -153,7 +158,8 @@ struct ir3_compiler {
 };
 
 void ir3_compiler_destroy(struct ir3_compiler *compiler);
-struct ir3_compiler * ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id);
+struct ir3_compiler * ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id,
+										  bool robust_ubo_access);
 
 void ir3_disk_cache_init(struct ir3_compiler *compiler);
 void ir3_disk_cache_init_shader_key(struct ir3_compiler *compiler,
@@ -190,6 +196,9 @@ enum ir3_shader_debug {
 	/* DEBUG-only options: */
 	IR3_DBG_SCHEDMSGS  = BITFIELD_BIT(20),
 	IR3_DBG_RAMSGS     = BITFIELD_BIT(21),
+
+	/* Only used for the disk-caching logic: */
+	IR3_DBG_ROBUST_UBO_ACCESS = BITFIELD_BIT(30),
 };
 
 extern enum ir3_shader_debug ir3_shader_debug;

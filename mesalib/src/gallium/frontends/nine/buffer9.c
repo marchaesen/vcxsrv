@@ -165,7 +165,6 @@ NineBuffer9_ctor( struct NineBuffer9 *This,
                                              Size, 1, 0), 32);
         if (!This->managed.data)
             return E_OUTOFMEMORY;
-        memset(This->managed.data, 0, Size);
         This->managed.dirty = TRUE;
         u_box_1d(0, Size, &This->managed.dirty_box);
         u_box_1d(0, 0, &This->managed.valid_region);
@@ -259,12 +258,6 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
         OffsetToLock, SizeToLock, Flags);
 
     user_assert(ppbData, E_POINTER);
-    user_assert(!(Flags & ~(D3DLOCK_DISCARD |
-                            D3DLOCK_DONOTWAIT |
-                            D3DLOCK_NO_DIRTY_UPDATE |
-                            D3DLOCK_NOSYSLOCK |
-                            D3DLOCK_READONLY |
-                            D3DLOCK_NOOVERWRITE)), D3DERR_INVALIDCALL);
 
     if (SizeToLock == 0) {
         SizeToLock = This->size - OffsetToLock;
@@ -344,8 +337,15 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
      * Our tests: On win 7 nvidia, D3DLOCK_DONOTWAIT does return
      * D3DERR_WASSTILLDRAWING if the resource is in use, except for DYNAMIC.
      * Our tests: some apps do use both DISCARD and NOOVERWRITE at the same
-     * time. On windows it seems to return different pointer, thus indicating
-     * DISCARD is taken into account. */
+     * time. On windows it seems to return different pointer in some conditions,
+     * creation flags and drivers. However these tests indicate having
+     * NOOVERWRITE win is a valid behaviour (NVidia).
+     */
+
+    /* Have NOOVERWRITE win over DISCARD. This is allowed (see above) and
+     * it prevents overconsuming buffers if apps do use both at the same time. */
+    if ((Flags & (D3DLOCK_DISCARD | D3DLOCK_NOOVERWRITE)) == (D3DLOCK_DISCARD | D3DLOCK_NOOVERWRITE))
+        Flags &= ~D3DLOCK_DISCARD;
 
     if (Flags & D3DLOCK_DISCARD)
         usage = PIPE_MAP_WRITE | PIPE_MAP_DISCARD_WHOLE_RESOURCE;

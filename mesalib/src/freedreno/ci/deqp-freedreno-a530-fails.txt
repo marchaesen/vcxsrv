@@ -548,6 +548,3 @@ dEQP-GLES3.functional.transform_feedback.random.separate.points.3,Fail
 dEQP-GLES3.functional.transform_feedback.random.separate.points.5,Fail
 dEQP-GLES3.functional.transform_feedback.random.separate.points.7,Fail
 dEQP-GLES3.functional.transform_feedback.random.separate.points.9,Fail
-
-# Flaky since running more of GLES31
-dEQP-GLES31.functional.texture.border_clamp.*

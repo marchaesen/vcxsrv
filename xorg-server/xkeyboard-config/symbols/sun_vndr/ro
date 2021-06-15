@@ -69,26 +69,26 @@ xkb_symbols "sun_type6" {
 };
 
 partial alphanumeric_keys
-    xkb_symbols "basic" {
+xkb_symbols "basic" {
     include "sun_vndr/ro(sun_type6)"
 };
 
 partial alphanumeric_keys
-    xkb_symbols "std" {
+xkb_symbols "std" {
     include "ro(std)"
 };
 
 partial alphanumeric_keys
-    xkb_symbols "winkeys" {
+xkb_symbols "winkeys" {
     include "ro(winkeys)"
 };
 
 partial alphanumeric_keys
-    xkb_symbols "crh_dobruja" {
+xkb_symbols "crh_dobruja" {
     include "ro(crh_dobruja)"
 };
 
 partial alphanumeric_keys
-    xkb_symbols "ergonomic" {
+xkb_symbols "ergonomic" {
     include "ro(ergonomic)"
 };

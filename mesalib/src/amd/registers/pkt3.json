@@ -122,14 +122,15 @@
  },
  "register_mappings": [
   {
+   "comment": "This is at offset 0x415 instead of 0x414 due to a conflict with SQ_WAVE_GPR_ALLOC",
    "chips": ["gfx6", "gfx7", "gfx8", "gfx81"],
-   "map": {"at": 1044, "to": "pkt3"},
+   "map": {"at": 1045, "to": "pkt3"},
    "name": "COMMAND",
    "type_ref": "COMMAND"
   },
   {
    "chips": ["gfx9", "gfx10", "gfx103"],
-   "map": {"at": 1044, "to": "pkt3"},
+   "map": {"at": 1045, "to": "pkt3"},
    "name": "COMMAND",
    "type_ref": "COMMAND_gfx9"
   },

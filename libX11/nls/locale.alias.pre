@@ -343,6 +343,8 @@ en_IE.ISO-8859-15@euro:				en_IE.ISO8859-15
 en_IE@euro:					en_IE.ISO8859-15
 en_IE.UTF-8@euro:				en_IE.UTF-8
 en_IE.utf8:					en_IE.UTF-8
+en_IL:						en_IL.ISO8859-1
+en_IL.utf8:					en_IL.UTF-8
 en_IN.utf8:					en_IN.UTF-8
 en_IN:						en_IN.ISO8859-1
 en_NZ:						en_NZ.ISO8859-1

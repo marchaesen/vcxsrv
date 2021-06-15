@@ -34,6 +34,8 @@
 #include "radeon_variable.h"
 #include "r300_reg.h"
 
+#include "util/compiler.h"
+
 /**
  * Rewrite IF instructions to use the ALU result special register.
  */
@@ -138,13 +140,13 @@ int r500_transform_IF(
 				break;
 			case RC_OPCODE_SLE:
 				reverse_srcs = 1;
-				/* Fall through */
+				FALLTHROUGH;
 			case RC_OPCODE_SGE:
 				compare_func = RC_COMPARE_FUNC_GEQUAL;
 				break;
 			case RC_OPCODE_SGT:
 				reverse_srcs = 1;
-				/* Fall through */
+				FALLTHROUGH;
 			case RC_OPCODE_SLT:
 				compare_func = RC_COMPARE_FUNC_LESS;
 				break;

@@ -648,7 +648,7 @@
     <field name="Indices" size="64" start="4:0" type="address"/>
   </struct>
 
-  <struct name="Draw" size="30">
+  <struct name="Draw" size="30" align="64">
     <field name="Four Components Per Vertex" size="1" start="0:0" type="bool"/>
     <field name="Draw Descriptor Is 64b" size="1" start="0:1" type="bool"/>
     <field name="Texture Descriptor Is 64b" size="1" start="0:2" type="bool"/>
@@ -680,7 +680,7 @@
     <field name="FBD" size="64" start="28:0" type="address"/>
   </struct>
 
-  <struct name="Draw Padding" size="2">
+  <struct name="Draw Padding" size="2" align="8">
   </struct>
 
   <struct name="Surface" align="8">
@@ -897,7 +897,7 @@
     <field name="Stencil enable" size="1" start="16" type="bool"/>
     <field name="Alpha-to-coverage" size="1" start="17" type="bool"/>
     <field name="Alpha-to-coverage Invert" size="1" start="18" type="bool"/>
-    <field name="Alpha to one" size="1" start="19" type="bool"/>
+    <field name="SFBD Alpha to one" size="1" start="19" type="bool"/>
     <field name="SFBD Write enable" size="1" start="20" type="bool"/>
     <field name="Alpha test compare function" size="3" start="21" type="Func"/>
     <field name="SFBD sRGB" size="1" start="24" type="bool"/>
@@ -1392,6 +1392,7 @@
     <value name="Never" value="0"/>
     <value name="Always" value="1"/>
     <value name="Intersect" value="2"/>
+    <value name="Early ZS always" value="3"/>
   </enum>
 
   <struct name="Bifrost Framebuffer Parameters">

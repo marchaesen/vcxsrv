@@ -158,7 +158,7 @@ check_ir_node(ir_instruction *ir, void *data)
 
       if (deref->array_index->ir_type != ir_type_constant)
          v->found_dynamic_arrayref = true;
-   } /* fall-through */
+   } FALLTHROUGH;
    case ir_type_expression:
    case ir_type_dereference_record:
       if (v->is_then)

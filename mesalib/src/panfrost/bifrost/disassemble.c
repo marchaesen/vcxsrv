@@ -33,6 +33,7 @@
 #include "bifrost.h"
 #include "disassemble.h"
 #include "bi_print_common.h"
+#include "util/compiler.h"
 #include "util/macros.h"
 
 // return bits (high, lo]
@@ -565,7 +566,7 @@ static bool dump_clause(FILE *fp, uint32_t *words, unsigned *size, unsigned offs
                                 /* Format 0 - followed by constants */
                                 num_instrs = 1;
                                 done = stop;
-                                /* fallthrough */
+                                FALLTHROUGH;
                         case 0x5:
                                 /* Format 0 - followed by instructions */
                                 header_bits = bits(words[2], 19, 32) | ((uint64_t) words[3] << (32 - 19));

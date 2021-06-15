@@ -106,8 +106,8 @@ class UI:
 
     """Main management object.
 
-    :previous_commits: A list of commits to master since this branch was created
-    :new_commits: Commits added to master since the last time this script was run
+    :previous_commits: A list of commits to main since this branch was created
+    :new_commits: Commits added to main since the last time this script was run
     """
 
     commit_list: typing.List['urwid.Button'] = attr.ib(factory=lambda: urwid.SimpleFocusListWalker([]), init=False)

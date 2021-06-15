@@ -92,7 +92,7 @@ mm_buffer(struct pb_buffer *buf)
 
 
 static void
-mm_buffer_destroy(struct pb_buffer *buf)
+mm_buffer_destroy(void *winsys, struct pb_buffer *buf)
 {
    struct mm_buffer *mm_buf = mm_buffer(buf);
    struct mm_pb_manager *mm = mm_buf->mgr;
@@ -193,7 +193,7 @@ mm_bufmgr_create_buffer(struct pb_manager *mgr,
    }
 
    pipe_reference_init(&mm_buf->base.reference, 1);
-   mm_buf->base.alignment = desc->alignment;
+   mm_buf->base.alignment_log2 = util_logbase2(desc->alignment);
    mm_buf->base.usage = desc->usage;
    mm_buf->base.size = size;
    

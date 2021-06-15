@@ -165,6 +165,10 @@ struct NineDevice9
     boolean pure;
 
     unsigned frame_count; /* It's ok if we overflow */
+
+    /* Ex */
+    int gpu_priority;
+    unsigned max_frame_latency;
 };
 static inline struct NineDevice9 *
 NineDevice9( void *data )

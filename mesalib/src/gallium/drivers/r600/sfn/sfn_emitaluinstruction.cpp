@@ -148,7 +148,6 @@ bool EmitAluInstruction::do_emit(nir_instr* ir)
    case nir_op_i32csel_gt: return emit_alu_op3(instr, op3_cndgt_int,  {0, 1, 2});
    case nir_op_ieq32: return emit_alu_op2_int(instr, op2_sete_int);
    case nir_op_ieq: return emit_alu_op2_int(instr, op2_sete_int);
-   case nir_op_ifind_msb: return emit_find_msb(instr, true);
    case nir_op_ifind_msb_rev: return emit_alu_op1(instr, op1_ffbh_int);
    case nir_op_ige32: return emit_alu_op2_int(instr, op2_setge_int);
    case nir_op_ige: return emit_alu_op2_int(instr, op2_setge_int);
@@ -174,7 +173,6 @@ bool EmitAluInstruction::do_emit(nir_instr* ir)
    case nir_op_sge: return emit_alu_op2(instr, op2_setge);
    case nir_op_u2f32: return emit_alu_trans_op1(instr, op1_uint_to_flt);
    case nir_op_ubfe: return emit_alu_op3(instr, op3_bfe_uint);
-   case nir_op_ufind_msb: return emit_find_msb(instr, false);
    case nir_op_ufind_msb_rev: return emit_alu_op1(instr, op1_ffbh_uint);
    case nir_op_uge32: return emit_alu_op2_int(instr, op2_setge_uint);
    case nir_op_uge: return emit_alu_op2_int(instr, op2_setge_uint);
@@ -469,46 +467,6 @@ bool EmitAluInstruction::emit_alu_f2b32(const nir_alu_instr& instr)
       }
    }
    make_last(ir);
-   return true;
-}
-
-bool EmitAluInstruction::emit_find_msb(const nir_alu_instr& instr, bool sgn)
-{
-   int sel_tmp = allocate_temp_register();
-   int sel_tmp2 = allocate_temp_register();
-   GPRVector tmp(sel_tmp, {0,1,2,3});
-   GPRVector tmp2(sel_tmp2, {0,1,2,3});
-   AluInstruction *ir = nullptr;
-   EAluOp opcode = sgn ? op1_ffbh_int : op1_ffbh_uint;
-   for (int i = 0; i < 4; ++i) {
-      if (!(instr.dest.write_mask & (1 << i)))
-         continue;
-
-      ir = new AluInstruction(opcode, tmp.reg_i(i), m_src[0][i], write);
-      emit_instruction(ir);
-   }
-   make_last(ir);
-
-   for (int i = 0; i < 4 ; ++i) {
-      if (!(instr.dest.write_mask & (1 << i)))
-         continue;
-
-      ir = new AluInstruction(op2_sub_int, tmp2.reg_i(i),
-                              PValue(new LiteralValue(31u, 0)), tmp.reg_i(i), write);
-      emit_instruction(ir);
-   }
-   make_last(ir);
-
-   for (int i = 0; i < 4 ; ++i) {
-      if (!(instr.dest.write_mask & (1 << i)))
-         continue;
-
-      ir = new AluInstruction(op3_cndge_int, from_nir(instr.dest, i), tmp.reg_i(i),
-                              tmp2.reg_i(i), tmp.reg_i(i), write);
-      emit_instruction(ir);
-   }
-   make_last(ir);
-
    return true;
 }
 
@@ -955,12 +913,10 @@ bool EmitAluInstruction::emit_tex_fdd(const nir_alu_instr& instr, TexInstruction
    GPRVector::Values v;
    std::array<int, 4> writemask = {0,1,2,3};
 
-   int ncomp = nir_src_num_components(instr.src[0].src);
-
-   GPRVector::Swizzle src_swz;
-   for (auto i = 0; i < 4; ++i) {
+   int ncomp = nir_dest_num_components(instr.dest.dest);
+   GPRVector::Swizzle src_swz = {7,7,7,7};
+   for (auto i = 0; i < ncomp; ++i)
       src_swz[i] = instr.src[0].swizzle[i];
-   }
 
    auto src = vec_from_nir_with_fetch_constant(instr.src[0].src, (1 << ncomp) - 1, src_swz);
 

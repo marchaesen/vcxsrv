@@ -35,9 +35,6 @@ v3dv_CreateQueryPool(VkDevice _device,
           pCreateInfo->queryType == VK_QUERY_TYPE_TIMESTAMP);
    assert(pCreateInfo->queryCount > 0);
 
-   /* FIXME: the hw allows us to allocate up to 16 queries in a single block
-    *        for occlussion queries so we should try to use that.
-    */
    struct v3dv_query_pool *pool =
       vk_object_zalloc(&device->vk, pAllocator, sizeof(*pool),
                        VK_OBJECT_TYPE_QUERY_POOL);
@@ -54,25 +51,38 @@ v3dv_CreateQueryPool(VkDevice _device,
                              VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (pool->queries == NULL) {
       result = vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
-      goto fail_alloc_bo_list;
+      goto fail;
+   }
+
+   if (pool->query_type == VK_QUERY_TYPE_OCCLUSION) {
+      /* The hardware allows us to setup groups of 16 queries in consecutive
+       * 4-byte addresses, requiring only that each group of 16 queries is
+       * aligned to a 1024 byte boundary.
+       */
+      const uint32_t query_groups = DIV_ROUND_UP(pool->query_count, 16);
+      const uint32_t bo_size = query_groups * 1024;
+      pool->bo = v3dv_bo_alloc(device, bo_size, "query", true);
+      if (!pool->bo) {
+         result = vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+         goto fail;
+      }
+      if (!v3dv_bo_map(device, pool->bo, bo_size)) {
+         result = vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+         goto fail;
+      }
    }
 
    uint32_t i;
    for (i = 0; i < pool->query_count; i++) {
       pool->queries[i].maybe_available = false;
       switch (pool->query_type) {
-      case VK_QUERY_TYPE_OCCLUSION:
-         pool->queries[i].bo = v3dv_bo_alloc(device, 4096, "query", true);
-         if (!pool->queries[i].bo) {
-            result = vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
-            goto fail_alloc_bo;
-         }
-         /* For occlusion queries we only need a 4-byte counter */
-         if (!v3dv_bo_map(device, pool->queries[i].bo, 4)) {
-            result = vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
-            goto fail_alloc_bo;
-         }
+      case VK_QUERY_TYPE_OCCLUSION: {
+         const uint32_t query_group = i / 16;
+         const uint32_t query_offset = query_group * 1024 + (i % 16) * 4;
+         pool->queries[i].bo = pool->bo;
+         pool->queries[i].offset = query_offset;
          break;
+         }
       case VK_QUERY_TYPE_TIMESTAMP:
          pool->queries[i].value = 0;
          break;
@@ -85,12 +95,11 @@ v3dv_CreateQueryPool(VkDevice _device,
 
    return VK_SUCCESS;
 
-fail_alloc_bo:
-   for (uint32_t j = 0; j < i; j++)
-      v3dv_bo_free(device, pool->queries[j].bo);
-   vk_free2(&device->vk.alloc, pAllocator, pool->queries);
-
-fail_alloc_bo_list:
+fail:
+   if (pool->bo)
+      v3dv_bo_free(device, pool->bo);
+   if (pool->queries)
+      vk_free2(&device->vk.alloc, pAllocator, pool->queries);
    vk_object_free(&device->vk, pAllocator, pool);
 
    return result;
@@ -107,12 +116,12 @@ v3dv_DestroyQueryPool(VkDevice _device,
    if (!pool)
       return;
 
-   if (pool->query_type == VK_QUERY_TYPE_OCCLUSION) {
-      for (uint32_t i = 0; i < pool->query_count; i++)
-         v3dv_bo_free(device, pool->queries[i].bo);
-   }
+   if (pool->bo)
+      v3dv_bo_free(device, pool->bo);
 
-   vk_free2(&device->vk.alloc, pAllocator, pool->queries);
+   if (pool->queries)
+      vk_free2(&device->vk.alloc, pAllocator, pool->queries);
+
    vk_object_free(&device->vk, pAllocator, pool);
 }
 
@@ -159,7 +168,8 @@ get_occlusion_query_result(struct v3dv_device *device,
       *available = q->maybe_available && v3dv_bo_wait(device, q->bo, 0);
    }
 
-   return (uint64_t) *((uint32_t *) q->bo->map);
+   const uint8_t *query_addr = ((uint8_t *) q->bo->map) + q->offset;
+   return (uint64_t) *((uint32_t *)query_addr);
 }
 
 static uint64_t

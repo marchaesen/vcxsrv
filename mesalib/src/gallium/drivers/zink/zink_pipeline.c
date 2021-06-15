@@ -114,6 +114,15 @@ zink_create_gfx_pipeline(struct zink_screen *screen,
    rast_state.depthBiasSlopeFactor = 0.0;
    rast_state.lineWidth = 1.0f;
 
+   VkPipelineRasterizationProvokingVertexStateCreateInfoEXT pv_state;
+   pv_state.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_PROVOKING_VERTEX_STATE_CREATE_INFO_EXT;
+   pv_state.provokingVertexMode = state->rast_state->pv_mode;
+   if (screen->info.have_EXT_provoking_vertex &&
+       state->rast_state->pv_mode == VK_PROVOKING_VERTEX_MODE_LAST_VERTEX_EXT) {
+      pv_state.pNext = rast_state.pNext;
+      rast_state.pNext = &pv_state;
+   }
+
    VkPipelineDepthStencilStateCreateInfo depth_stencil_state = {};
    depth_stencil_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
    depth_stencil_state.depthTestEnable = state->depth_stencil_alpha_state->depth_test;
@@ -204,7 +213,6 @@ zink_create_compute_pipeline(struct zink_screen *screen, struct zink_compute_pro
 {
    VkComputePipelineCreateInfo pci = {};
    pci.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-   pci.flags = VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT;
    pci.layout = comp->base.layout;
 
    VkPipelineShaderStageCreateInfo stage = {};

@@ -488,7 +488,7 @@ xkb_symbols "acer_laptop" {
 
 // Azona
 
-// Azona RF2300 wireless Internet
+// Azona RF2300 Wireless Internet
 partial alphanumeric_keys
 xkb_symbols "azonaRF2300" {
     // From Radics Laszlo <garaboncias@mailbox.hu>

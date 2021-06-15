@@ -55,7 +55,7 @@ disable_rb_aux_buffer(struct iris_context *ice,
    /* We only need to worry about color compression and fast clears. */
    if (tex_res->aux.usage != ISL_AUX_USAGE_CCS_D &&
        tex_res->aux.usage != ISL_AUX_USAGE_CCS_E &&
-       tex_res->aux.usage != ISL_AUX_USAGE_GEN12_CCS_E)
+       tex_res->aux.usage != ISL_AUX_USAGE_GFX12_CCS_E)
       return false;
 
    for (unsigned i = 0; i < cso_fb->nr_cbufs; i++) {
@@ -186,7 +186,7 @@ iris_predraw_resolve_framebuffer(struct iris_context *ice,
 {
    struct pipe_framebuffer_state *cso_fb = &ice->state.framebuffer;
    struct iris_screen *screen = (void *) ice->ctx.screen;
-   struct gen_device_info *devinfo = &screen->devinfo;
+   struct intel_device_info *devinfo = &screen->devinfo;
    struct iris_uncompiled_shader *ish =
       ice->shaders.uncompiled[MESA_SHADER_FRAGMENT];
    const nir_shader *nir = ish->nir;
@@ -215,7 +215,7 @@ iris_predraw_resolve_framebuffer(struct iris_context *ice,
       }
    }
 
-   if (devinfo->gen == 8 && nir->info.outputs_read != 0) {
+   if (devinfo->ver == 8 && nir->info.outputs_read != 0) {
       for (unsigned i = 0; i < cso_fb->nr_cbufs; i++) {
          if (cso_fb->cbufs[i]) {
             struct iris_surface *surf = (void *) cso_fb->cbufs[i];
@@ -254,8 +254,7 @@ iris_predraw_resolve_framebuffer(struct iris_context *ice,
                                       surf->view.array_len,
                                       aux_usage);
 
-         iris_cache_flush_for_render(batch, res->bo, surf->view.format,
-                                     aux_usage);
+         iris_cache_flush_for_render(batch, res->bo, aux_usage);
       }
    }
 }
@@ -330,28 +329,20 @@ iris_postdraw_update_resolve_tracking(struct iris_context *ice,
    }
 }
 
-static void *
-format_aux_tuple(enum isl_format format, enum isl_aux_usage aux_usage)
-{
-   return (void *)(uintptr_t)((uint32_t)format << 8 | aux_usage);
-}
-
 void
 iris_cache_flush_for_render(struct iris_batch *batch,
                             struct iris_bo *bo,
-                            enum isl_format format,
                             enum isl_aux_usage aux_usage)
 {
    iris_emit_buffer_barrier_for(batch, bo, IRIS_DOMAIN_RENDER_WRITE);
 
    /* Check to see if this bo has been used by a previous rendering operation
-    * but with a different format or aux usage.  If it has, flush the render
-    * cache so we ensure that it's only in there with one format or aux usage
-    * at a time.
+    * but with a different aux usage.  If it has, flush the render cache so we
+    * ensure that it's only in there with one aux usage at a time.
     *
     * Even though it's not obvious, this can easily happen in practice.
     * Suppose a client is blending on a surface with sRGB encode enabled on
-    * gen9.  This implies that you get AUX_USAGE_CCS_D at best.  If the client
+    * gfx9.  This implies that you get AUX_USAGE_CCS_D at best.  If the client
     * then disables sRGB decode and continues blending we will flip on
     * AUX_USAGE_CCS_E without doing any sort of resolve in-between (this is
     * perfectly valid since CCS_E is a subset of CCS_D).  However, this means
@@ -360,24 +351,24 @@ iris_cache_flush_for_render(struct iris_batch *batch,
     * same time and the pixel scoreboard and color blender are trying to sort
     * it all out.  This ends badly (i.e. GPU hangs).
     *
-    * To date, we have never observed GPU hangs or even corruption to be
-    * associated with switching the format, only the aux usage.  However,
-    * there are comments in various docs which indicate that the render cache
-    * isn't 100% resilient to format changes.  We may as well be conservative
-    * and flush on format changes too.  We can always relax this later if we
-    * find it to be a performance problem.
+    * There are comments in various docs which indicate that the render cache
+    * isn't 100% resilient to format changes.  However, to date, we have never
+    * observed GPU hangs or even corruption to be associated with switching the
+    * format, only the aux usage.  So we let that slide for now.
     */
+   void *v_aux_usage = (void *) (uintptr_t) aux_usage;
    struct hash_entry *entry =
       _mesa_hash_table_search_pre_hashed(batch->cache.render, bo->hash, bo);
    if (!entry) {
       _mesa_hash_table_insert_pre_hashed(batch->cache.render, bo->hash, bo,
-                                         format_aux_tuple(format, aux_usage));
-   } else if (entry->data != format_aux_tuple(format, aux_usage)) {
+                                         v_aux_usage);
+   } else if (entry->data != v_aux_usage) {
       iris_emit_pipe_control_flush(batch,
-                                   "cache tracker: render format mismatch",
+                                   "cache tracker: aux usage mismatch",
                                    PIPE_CONTROL_RENDER_TARGET_FLUSH |
+                                   PIPE_CONTROL_TILE_CACHE_FLUSH |
                                    PIPE_CONTROL_CS_STALL);
-      entry->data = format_aux_tuple(format, aux_usage);
+      entry->data = v_aux_usage;
    }
 }
 
@@ -453,7 +444,7 @@ iris_mcs_partial_resolve(struct iris_context *ice,
 }
 
 bool
-iris_sample_with_depth_aux(const struct gen_device_info *devinfo,
+iris_sample_with_depth_aux(const struct intel_device_info *devinfo,
                            const struct iris_resource *res)
 {
    switch (res->aux.usage) {
@@ -538,7 +529,7 @@ iris_hiz_exec(struct iris_context *ice,
     *    enabled must be issued before the rectangle primitive used for
     *    the depth buffer clear operation."
     *
-    * Same applies for Gen8 and Gen9.
+    * Same applies for Gfx8 and Gfx9.
     */
    iris_emit_pipe_control_flush(batch,
                                 "hiz op: pre-flush",
@@ -823,7 +814,7 @@ iris_resource_texture_aux_usage(struct iris_context *ice,
                                 enum isl_format view_format)
 {
    struct iris_screen *screen = (void *) ice->ctx.screen;
-   struct gen_device_info *devinfo = &screen->devinfo;
+   struct intel_device_info *devinfo = &screen->devinfo;
 
    switch (res->aux.usage) {
    case ISL_AUX_USAGE_HIZ:
@@ -839,7 +830,7 @@ iris_resource_texture_aux_usage(struct iris_context *ice,
       return res->aux.usage;
 
    case ISL_AUX_USAGE_CCS_E:
-   case ISL_AUX_USAGE_GEN12_CCS_E:
+   case ISL_AUX_USAGE_GFX12_CCS_E:
       /* If we don't have any unresolved color, report an aux usage of
        * ISL_AUX_USAGE_NONE.  This way, texturing won't even look at the
        * aux surface and we can save some bandwidth.
@@ -848,7 +839,7 @@ iris_resource_texture_aux_usage(struct iris_context *ice,
                                     0, INTEL_REMAINING_LAYERS))
          return ISL_AUX_USAGE_NONE;
 
-      /* On Gen9 color buffers may be compressed by the hardware (lossless
+      /* On Gfx9 color buffers may be compressed by the hardware (lossless
        * compression). There are, however, format restrictions and care needs
        * to be taken that the sampler engine is capable for re-interpreting a
        * buffer with format different the buffer was originally written with.
@@ -888,8 +879,8 @@ iris_image_view_aux_usage(struct iris_context *ice,
    bool uses_atomic_load_store =
       ice->shaders.uncompiled[info->stage]->uses_atomic_load_store;
 
-   if (aux_usage == ISL_AUX_USAGE_GEN12_CCS_E && !uses_atomic_load_store)
-      return ISL_AUX_USAGE_GEN12_CCS_E;
+   if (aux_usage == ISL_AUX_USAGE_GFX12_CCS_E && !uses_atomic_load_store)
+      return ISL_AUX_USAGE_GFX12_CCS_E;
 
    return ISL_AUX_USAGE_NONE;
 }
@@ -897,11 +888,11 @@ iris_image_view_aux_usage(struct iris_context *ice,
 static bool
 isl_formats_are_fast_clear_compatible(enum isl_format a, enum isl_format b)
 {
-   /* On gen8 and earlier, the hardware was only capable of handling 0/1 clear
+   /* On gfx8 and earlier, the hardware was only capable of handling 0/1 clear
     * values so sRGB curve application was a no-op for all fast-clearable
     * formats.
     *
-    * On gen9+, the hardware supports arbitrary clear values.  For sRGB clear
+    * On gfx9+, the hardware supports arbitrary clear values.  For sRGB clear
     * values, the hardware interprets the floats, not as what would be
     * returned from the sampler (or written by the shader), but as being
     * between format conversion and sRGB curve application.  This means that
@@ -961,7 +952,7 @@ iris_resource_render_aux_usage(struct iris_context *ice,
                                bool draw_aux_disabled)
 {
    struct iris_screen *screen = (void *) ice->ctx.screen;
-   struct gen_device_info *devinfo = &screen->devinfo;
+   struct intel_device_info *devinfo = &screen->devinfo;
 
    if (draw_aux_disabled)
       return ISL_AUX_USAGE_NONE;
@@ -984,8 +975,8 @@ iris_resource_render_aux_usage(struct iris_context *ice,
 
    case ISL_AUX_USAGE_CCS_D:
    case ISL_AUX_USAGE_CCS_E:
-   case ISL_AUX_USAGE_GEN12_CCS_E:
-      /* Disable CCS for some cases of texture-view rendering. On gen12, HW
+   case ISL_AUX_USAGE_GFX12_CCS_E:
+      /* Disable CCS for some cases of texture-view rendering. On gfx12, HW
        * may convert some subregions of shader output to fast-cleared blocks
        * if CCS is enabled and the shader output matches the clear color.
        * Existing fast-cleared blocks are correctly interpreted by the clear
@@ -1008,7 +999,7 @@ iris_resource_render_aux_usage(struct iris_context *ice,
                                            render_format)) {
          return res->aux.usage;
       }
-      /* fallthrough */
+      FALLTHROUGH;
 
    default:
       return ISL_AUX_USAGE_NONE;

@@ -184,7 +184,7 @@ st_IsPerfQueryReady(struct gl_context *ctx, struct gl_perf_query_object *o)
    return pipe->is_intel_perf_query_ready(pipe, (struct pipe_query *)o);
 }
 
-static void
+static bool
 st_GetPerfQueryData(struct gl_context *ctx,
                     struct gl_perf_query_object *o,
                     GLsizei data_size,
@@ -200,8 +200,8 @@ st_GetPerfQueryData(struct gl_context *ctx,
     */
    assert(o->Ready);
 
-   pipe->get_intel_perf_query_data(pipe, (struct pipe_query *)o, data_size, data,
-                                   bytes_written);
+   return pipe->get_intel_perf_query_data(pipe, (struct pipe_query *)o,
+                                          data_size, data, bytes_written);
 }
 
 static struct gl_perf_query_object *

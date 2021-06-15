@@ -60,6 +60,15 @@ const struct drm_driver_descriptor descriptor_name = {         \
 
 #endif
 
+#ifdef GALLIUM_KMSRO_ONLY
+#undef GALLIUM_V3D
+#undef GALLIUM_VC4
+#undef GALLIUM_FREEDRENO
+#undef GALLIUM_ETNAVIV
+#undef GALLIUM_PANFROST
+#undef GALLIUM_LIMA
+#endif
+
 #ifdef GALLIUM_I915
 #include "i915/drm/i915_drm_public.h"
 #include "i915/i915_public.h"

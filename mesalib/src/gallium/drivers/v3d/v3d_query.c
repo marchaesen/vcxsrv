@@ -97,7 +97,7 @@ v3d_begin_query(struct pipe_context *pctx, struct pipe_query *query)
                 *map = 0;
 
                 v3d->current_oq = q->bo;
-                v3d->dirty |= VC5_DIRTY_OQ;
+                v3d->dirty |= V3D_DIRTY_OQ;
                 break;
         default:
                 unreachable("unsupported query type");
@@ -135,7 +135,7 @@ v3d_end_query(struct pipe_context *pctx, struct pipe_query *query)
         case PIPE_QUERY_OCCLUSION_PREDICATE:
         case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
                 v3d->current_oq = NULL;
-                v3d->dirty |= VC5_DIRTY_OQ;
+                v3d->dirty |= V3D_DIRTY_OQ;
                 break;
         default:
                 unreachable("unsupported query type");
@@ -195,8 +195,8 @@ v3d_set_active_query_state(struct pipe_context *pctx, bool enable)
         struct v3d_context *v3d = v3d_context(pctx);
 
         v3d->active_queries = enable;
-        v3d->dirty |= VC5_DIRTY_OQ;
-        v3d->dirty |= VC5_DIRTY_STREAMOUT;
+        v3d->dirty |= V3D_DIRTY_OQ;
+        v3d->dirty |= V3D_DIRTY_STREAMOUT;
 }
 
 void

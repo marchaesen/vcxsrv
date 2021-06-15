@@ -156,16 +156,8 @@ etna_resource_copy_region(struct pipe_context *pctx, struct pipe_resource *dst,
 {
    struct etna_context *ctx = etna_context(pctx);
 
-   /* XXX we can use the RS as a literal copy engine here
-    * the only complexity is tiling; the size of the boxes needs to be aligned
-    * to the tile size
-    * how to handle the case where a resource is copied from/to a non-aligned
-    * position?
-    * from non-aligned: can fall back to rendering-based copy?
-    * to non-aligned: can fall back to rendering-based copy?
-    * XXX this goes wrong when source surface is supertiled.
-    */
-   if (util_blitter_is_copy_supported(ctx->blitter, dst, src)) {
+   if (src->target != PIPE_BUFFER && dst->target != PIPE_BUFFER &&
+       util_blitter_is_copy_supported(ctx->blitter, dst, src)) {
       etna_blit_save_state(ctx);
       util_blitter_copy_texture(ctx->blitter, dst, dst_level, dstx, dsty, dstz,
                                 src, src_level, src_box);

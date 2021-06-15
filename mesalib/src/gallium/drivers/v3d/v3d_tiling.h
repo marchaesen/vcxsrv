@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef VC5_TILING_H
-#define VC5_TILING_H
+#ifndef V3D_TILING_H
+#define V3D_TILING_H
 
 uint32_t v3d_utile_width(int cpp) ATTRIBUTE_CONST;
 uint32_t v3d_utile_height(int cpp) ATTRIBUTE_CONST;
@@ -38,4 +38,4 @@ void v3d_store_tiled_image(void *dst, uint32_t dst_stride,
                            uint32_t image_h,
                            const struct pipe_box *box);
 
-#endif /* VC5_TILING_H */
+#endif /* V3D_TILING_H */

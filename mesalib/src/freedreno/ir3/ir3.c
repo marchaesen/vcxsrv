@@ -112,6 +112,16 @@ should_double_threadsize(struct ir3_shader_variant *v,
 						 unsigned regs_count)
 {
 	const struct ir3_compiler *compiler = v->shader->compiler;
+
+	/* We can't support more than compiler->branchstack_size diverging threads
+	 * in a wave. Thus, doubling the threadsize is only possible if we don't
+	 * exceed the branchstack size limit.
+	 */
+	if (MIN2(v->branchstack, compiler->threadsize_base * 2) >
+			compiler->branchstack_size) {
+		return false;
+	}
+
 	switch (v->type) {
 	case MESA_SHADER_COMPUTE: {
 		unsigned threads_per_wg = v->local_size[0] * v->local_size[1] * v->local_size[2];
@@ -137,7 +147,7 @@ should_double_threadsize(struct ir3_shader_variant *v,
 				return false;
 		}
 	}
-	/* fallthrough */
+	FALLTHROUGH;
 	case MESA_SHADER_FRAGMENT: {
 		/* Check that doubling the threadsize wouldn't exceed the regfile size */
 		return regs_count * 2 <= compiler->reg_size_vec4;
@@ -261,7 +271,7 @@ ir3_collect_info(struct ir3_shader_variant *v)
 				nops_count = 1 + instr->repeat;
 				info->instrs_per_cat[0] += nops_count;
 			} else {
-				info->instrs_per_cat[opc_cat(instr->opc)] += instrs_count;
+				info->instrs_per_cat[opc_cat(instr->opc)] += 1 + instr->repeat;
 				info->instrs_per_cat[0] += nops_count;
 			}
 
@@ -342,8 +352,39 @@ struct ir3_block * ir3_block_create(struct ir3 *shader)
 	block->shader = shader;
 	list_inithead(&block->node);
 	list_inithead(&block->instr_list);
-	block->predecessors = _mesa_pointer_set_create(block);
 	return block;
+}
+
+
+void ir3_block_add_predecessor(struct ir3_block *block, struct ir3_block *pred)
+{
+	array_insert(block, block->predecessors, pred);
+}
+
+void ir3_block_remove_predecessor(struct ir3_block *block, struct ir3_block *pred)
+{
+	for (unsigned i = 0; i < block->predecessors_count; i++) {
+		if (block->predecessors[i] == pred) {
+			if (i < block->predecessors_count - 1) {
+				block->predecessors[i] =
+					block->predecessors[block->predecessors_count - 1];
+			}
+
+			block->predecessors_count--;
+			return;
+		}
+	}
+}
+
+unsigned ir3_block_get_pred_index(struct ir3_block *block, struct ir3_block *pred)
+{
+	for (unsigned i = 0; i < block->predecessors_count; i++) {
+		if (block->predecessors[i] == pred) {
+			return i;
+		}
+	}
+
+	unreachable("ir3_block_get_pred_index() invalid predecessor");
 }
 
 static struct ir3_instruction *instr_create(struct ir3_block *block, int nreg)
@@ -582,18 +623,16 @@ ir3_set_dst_type(struct ir3_instruction *instr, bool half)
 void
 ir3_fixup_src_type(struct ir3_instruction *instr)
 {
-	bool half = !!(instr->regs[1]->flags & IR3_REG_HALF);
-
 	switch (opc_cat(instr->opc)) {
 	case 1: /* move instructions */
-		if (half) {
+		if (instr->regs[1]->flags & IR3_REG_HALF) {
 			instr->cat1.src_type = half_type(instr->cat1.src_type);
 		} else {
 			instr->cat1.src_type = full_type(instr->cat1.src_type);
 		}
 		break;
 	case 3:
-		if (half) {
+		if (instr->regs[1]->flags & IR3_REG_HALF) {
 			instr->opc = cat3_half_opc(instr->opc);
 		} else {
 			instr->opc = cat3_full_opc(instr->opc);
@@ -654,6 +693,8 @@ ir3_valid_flags(struct ir3_instruction *instr, unsigned n,
 	}
 
 	switch (opc_cat(instr->opc)) {
+	case 0: /* end, chmask */
+		return flags == 0;
 	case 1:
 		valid_flags = IR3_REG_IMMED | IR3_REG_CONST | IR3_REG_RELATIV;
 		if (flags & ~valid_flags)
@@ -761,6 +802,7 @@ ir3_valid_flags(struct ir3_instruction *instr, unsigned n,
 			 */
 			switch (instr->opc) {
 			case OPC_LDIB:
+			case OPC_STIB:
 			case OPC_LDC:
 			case OPC_RESINFO:
 				if (n != 0)

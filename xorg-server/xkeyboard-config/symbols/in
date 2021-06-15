@@ -16,7 +16,7 @@
 // - Indic INSCRIPT keyboard layout diagrams:
 //     http://java.sun.com/products/jfc/tsc/articles/InputMethod/indiclayout.html
 // - Bangla Baishakhi (Bangla layouts):
-// - Bangla Baishakhi Inscript (Bangla layouts):
+// - Bangla Baishakhi InScript (Bangla layouts):
 // - Bangla Bornona (Bangla layouts):
 // - Uni Gitanjali (Bangla layouts):
 //     http://nltr.org
@@ -319,7 +319,7 @@ xkb_symbols "ben_probhat" {
     include "rupeesign(4)"
 };
 
-// Bangla Baishakhi, Bangla Baishakhi Inscript, Bangla Bornona, Uni Gitanjali Layouts are added by Promathesh Mandal <promathesh812004@gmail.com>
+// Bangla Baishakhi, Bangla Baishakhi InScript, Bangla Bornona, Uni Gitanjali Layouts are added by Promathesh Mandal <promathesh812004@gmail.com>
 
 xkb_symbols "ben_baishakhi" {
  name[Group1]= "Bangla (India, Baishakhi)";
@@ -397,7 +397,7 @@ xkb_symbols "ben_baishakhi" {
 };
 
 xkb_symbols "ben_inscript" {
-    name[Group1]= "Bangla (India, Baishakhi Inscript)";
+    name[Group1]= "Bangla (India, Baishakhi InScript)";
 
       // Mainly numbers.
       key <TLDE> { [      0x100200D, 0x100200C	] 	};
@@ -682,7 +682,7 @@ xkb_symbols "guj" {
 partial alphanumeric_keys
 xkb_symbols "kan" {
 
-    // Inscript layout for Kannada  
+    // InScript layout for Kannada  
     // Author : G Karunakar <karunakar@freedomink.org>
     // Date   : Wed Nov 13 17:22:58 IST 2002
     // Kannada digits mapped in basic only
@@ -984,7 +984,7 @@ xkb_symbols "olck" {
 
 partial alphanumeric_keys
 xkb_symbols "ori" {
-    // Inscript layout for Oriya  
+    // InScript layout for Oriya  
     // Author: G Karunakar <karunakar@freedomink.org>
     // Date: Wed Nov 13 18:16:19 IST 2002
 
@@ -1046,10 +1046,133 @@ xkb_symbols "ori" {
     include "level3(ralt_switch)"
 };
 
+// Phonetic layout for Oriya like Hindi Bolnagiri
+// Author: Lalit Mishra
+// Date: 3rd March, 2021.
+partial alphanumeric_keys
+xkb_symbols "ori-bolnagri" {
+     name[Group1] = "Oriya (Bolnagri)";
+     key.type="FOUR_LEVEL";
+    // Roman digits
+    key <TLDE>  { [   U0B02,     U0B01,       grave,    asciitilde ] }; // grave: anusvara, candrabindu
+    key <AE01>  { [   U0B67,     exclam,      1         ] };
+    key <AE02>  { [   U0B68,     at,          2,        U20AC      ] };
+    key <AE03>  { [   U0B69,     numbersign,  3,        U00A3      ] };
+    key <AE04>  { [   U0B6A,     dollar,      4,        U20B9      ] }; // Rupee symbol on Shift+AltGr+4
+    key <AE05>  { [   U0B6B,     percent,     5         ] };
+    key <AE06>  { [   U0B6C,     asciicircum, 6         ] };
+    key <AE07>  { [   U0B6D,     ampersand,   7         ] };
+    key <AE08>  { [   U0B6E,     asterisk,    8         ] };
+    key <AE09>  { [   U0B6F,     parenleft,   9         ] };
+    key <AE10>  { [   U0B66,     parenright,  0         ] };
+    key <AE11>  { [   minus,     underscore             ] };
+    key <AE12>  { [   equal,     plus                   ] };
+    key <BKSL>  { [   U0964,     U0965,       U007C,    U005C      ] }; //pipe : danda, double danda
+    //Q Row
+    key <AD01>  { [   U200C,     U200D        ] };                      // Q: ZWNJ, ZWJ
+    key <AD02>  { [   U0B71,     U0B35        ] };                      // W: wa
+    key <AD03>  { [   U0B47,     U0B48,       U0B0F,    U0B10      ] }; // E: e, ai matras
+    key <AD04>  { [   U0B30,     U0B43,       U0B0B,    U0B60      ] }; // R: ra, vocalic Ri
+    key <AD05>  { [   U0B24,     U0B25        ] };                      // T: ta, tha
+    key <AD06>  { [   U0B2f,     U0B5F,       U0B1E     ] };            // Y: ya, nya
+    key <AD07>  { [   U0B41,     U0B42,       U0B09,    U0B0A      ] }; // U: u, uu matras
+    key <AD08>  { [   U0B3F,     U0B40,       U0B07,    U0B08      ] }; // I: i, ii matras
+    key <AD09>  { [   U0B4B,     U0B4C,       U0B13,    U0B14      ] }; // O: o, au matras
+    key <AD10>  { [   U0B2A,     U0B2B        ] };                      // P: pa, pha
+    key <AD11>  { [   bracketleft,  braceleft ] };
+    key <AD12>  { [   bracketright, braceright] };
+    //A Row
+    key <AC01>  { [   U0B3E,      U0B06,      U0B05,    U0B06      ] }; // A: aa, full A, AA
+    key <AC02>  { [   U0B38,      U0B37       ] };                      // S: sa, ssa
+    key <AC03>  { [   U0B26,      U0B27       ] };                      // D: da, dha
+    key <AC04>  { [   U0B1F,      U0B20       ] };                      // F: TA, THA
+    key <AC05>  { [   U0B17,      U0B18       ] };                      // G: ga, gha
+    key <AC06>  { [   U0B39,      U0B03       ] };                      // H: ha, visarg
+    key <AC07>  { [   U0B1C,      U0B1D       ] };                      // J: ja, jha
+    key <AC08>  { [   U0B15,      U0B16       ] };                      // K: ka, kha
+    key <AC09>  { [   U0B32,      U0B33,      U0B62,    U0B0C      ] }; // L: la, vocalic L or lru matra
+    key <AC10>  { [   semicolon,  colon       ] };
+    key <AC11>  { [   apostrophe, quotedbl    ] };
+    //Z Row
+    key <AB01>  { [   U0B36       ] };                                  // Z: sha, akaar candra
+    key <AB02>  { [   U0B4D       ] };                                  // X: halant, aakaar candra, chandra A
+    key <AB03>  { [   U0B1A,      U0B1B       ] };                      // C: ca, cha
+    key <AB04>  { [   U0B21,      U0B22       ] };                      // V: da, dha
+    key <AB05>  { [   U0B2C,      U0B2D       ] };                      // B: ba, bha
+    key <AB06>  { [   U0B28,      U0B23       ] };                      // N: na, nna
+    key <AB07>  { [   U0B2E,      U0B19,      U0B3D     ] };            // M: ma, nga, avagraha
+    key <AB08>  { [   comma,      U0B70,      U0B44,    U0B61    ] };   // comma: comma, dev abbreviation sign
+    key <AB09>  { [   period,     U0B3C,      U0B55     ] };            // period: period, nukta
+    key <AB10>  { [   slash,      question    ] };
+
+//    modifier_map Shift  { Shift_L };
+//    modifier_map Lock   { Caps_Lock };
+//    modifier_map Control{ Control_L };
+//    modifier_map Mod3   { Mode_switch };
+
+  include "level3(ralt_switch)"
+};
+
+// Phonetic layout for Oriya like Hindi Wx
+// Author: Lalit Mishra
+// Date: 3rd March, 2021.
+partial alphanumeric_keys
+xkb_symbols "ori-wx" {
+    name[Group1]= "Oriya (Wx)";
+      key <TLDE> {   [      grave,        asciitilde,  0x100200C, 0x100200D ] };
+      key <AE01> {   [      0x1000B67,    exclam,      1 ] };
+      key <AE02> {   [      0x1000B68,    at,          2,         0x10020AC  ] };
+      key <AE03> {   [      0x1000B69,    numbersign,  3,         0x10000A3  ] };
+      key <AE04> {   [      0x1000B6A,    dollar,      4,         0x10020B9  ] };
+      key <AE05> {   [      0x1000B6B,    percent,     5 ] };
+      key <AE06> {   [      0x1000B6C,    asciicircum, 6 ] };
+      key <AE07> {   [      0x1000B6D,    ampersand,   7 ] };
+      key <AE08> {   [      0x1000B6e,    asterisk,    8 ] };
+      key <AE09> {   [      0x1000B6F,    parenleft,   9 ] };
+      key <AE10> {   [      0x1000B66,    parenright,  0 ] };
+      key <AE11> {   [      minus,        underscore   ] };
+      key <AE12> {   [      equal,        plus         ] };
+      key <AD01> {   [      0x1000B43,    0x1000B44,   0x1000B0B, 0x1000B60 ] };
+      key <AD02> {   [      0x1000B24,    0x1000B25    ] };
+      key <AD03> {   [      0x1000B47,    0x1000B48,   0x1000B0F, 0x1000B10 ] };
+      key <AD04> {   [      0x1000B30,    0x1000B37    ] };
+      key <AD05> {   [      0x1000B1F,    0x1000B20    ] };
+      key <AD06> {   [      0x1000B2F,    0x1000B5F    ] };
+      key <AD07> {   [      0x1000B41,    0x1000B42,   0x1000B09, 0x1000B0A ] };
+      key <AD08> {   [      0x1000B3F,    0x1000B40,   0x1000B07, 0x1000B08 ] };
+      key <AD09> {   [      0x1000B4B,    0x1000B4C,   0x1000B13, 0x1000B14 ] };
+      key <AD10> {   [      0x1000B2A,    0x1000B2B    ] };
+      key <AD11> {   [      bracketleft,  braceleft    ] };
+      key <AD12> {   [      bracketright, braceright   ] };
+      key <BKSL> {   [      0x1000964,    0x1000965,   backslash, bar       ] };
+      key <AC01> {   [      0x1000B4D,    0x1000B3E,   0x1000B05, 0x1000B06 ] };
+      key <AC02> {   [      0x1000B38,    0x1000B36    ] };
+      key <AC03> {   [      0x1000B21,    0x1000B22    ] };
+      key <AC04> {   [      0x1000B19,    0x1000B1E    ] };
+      key <AC05> {   [      0x1000B17,    0x1000B18    ] };
+      key <AC06> {   [      0x1000B39,    0x1000B03    ] };
+      key <AC07> {   [      0x1000B1C,    0x1000B1D    ] };
+      key <AC08> {   [      0x1000B15,    0x1000B16    ] };
+      key <AC09> {   [      0x1000B32,    0x1000B62,   0x1000B33, 0x1000B0C ] };
+      key <AC10> {   [      semicolon,    colon        ] };
+      key <AC11> {   [      apostrophe,   quotedbl     ] };
+      key <AB01> {   [      0x1000B01,    0x1000B3C,   0x1000B3D  ] };
+      key <AB02> {   [      0x1000B26,    0x1000B27    ] };
+      key <AB03> {   [      0x1000B1A,    0x1000B1B    ] };
+      key <AB04> {   [      0x1000B71,    0x1000B35    ] };
+      key <AB05> {   [      0x1000B2C,    0x1000B2D    ] };
+      key <AB06> {   [      0x1000B28,    0x1000B23    ] };
+      key <AB07> {   [      0x1000B2E,    0x1000B02    ] };
+      key <AB08> {   [      comma,        less         ] };
+      key <AB09> {   [      period,       greater      ] };
+      key <AB10> {   [      slash,        question     ] };
+
+  include "level3(ralt_switch)"
+};
 
 partial alphanumeric_keys
 xkb_symbols "tam" {
-      name[Group1]= "Tamil (Inscript)";
+      name[Group1]= "Tamil (InScript)";
 
       key <TLDE> { [      U0BCA, U0B92	]	};
 
@@ -1359,7 +1482,7 @@ xkb_symbols "tam_tamilnet_TAB" {
 partial alphanumeric_keys
 xkb_symbols "tel" {
 
-    // Inscript layout for Telugu using Unicode 
+    // InScript layout for Telugu using Unicode 
     // Author: G Karunakar <karunakar@freedomink.org>
     // Date:
     // See layout at http://www.indlinux.org/keymap/telugu.php
@@ -1584,10 +1707,10 @@ xkb_symbols "guru" {
     include "level3(ralt_switch)"
 };
 
-//Name		:	Jhelum (Refind Inscript)
+//Name		:	Jhelum (Refind InScript)
 //Description	:	A Jhelum keyboard layout for Gurmukhi (Punjabi)
 //			http://www.satluj.org/Jhelum.html
-//Modified for Inscript to make
+//Modified for InScript to make
 //Original Author :	Amanpreet Singh Alam <apreet.alam@gmail.com
 
 partial alphanumeric_keys
@@ -1804,13 +1927,13 @@ xkb_symbols "eng" {
 // Author      : Mahesh T Pai <paivakil@gmail.com>
 // Date        : March, 2011
 // Source      : http://www.nongnu.org/smc/docs/images/ml_inscript_layout.jpg
-// Comment     : Based on the Inscript Keyboard created by M Baiju
+// Comment     : Based on the InScript Keyboard created by M Baiju
 // Mapping:
 
 partial alphanumeric_keys
 xkb_symbols "mal_enhanced" {
 
-    name[Group1] = "Malayalam (enhanced Inscript, with rupee)";
+    name[Group1] = "Malayalam (enhanced InScript, with rupee)";
 
    //From grave to backslash (\)
 
@@ -2264,7 +2387,7 @@ xkb_symbols "iipa" {
 // Contact - niranjanvikastambe@gmail.com
 
 xkb_symbols "marathi" {
-	name[Group1]="Marathi (enhanced Inscript)";
+	name[Group1]="Marathi (enhanced InScript)";
 	key <TLDE> { [ U0962, U090C,   grave, asciitilde  ] }; // Added  ॢ & ऌ
 	key <AE01> { [ U0967, exclam,       1, exclam      ] }; // Added exclamation mark
 	key <AE02> { [ U0968, U0945,       2, at          ] }; // Added ॅ
@@ -2453,4 +2576,12 @@ xkb_symbols "modi-kagapa" {
     key <AB10>  { [   slash,     question                   ] };
 
     include "level3(ralt_switch)"
+};
+
+// Navees, a phonetic keyboard layout for Urdu
+// https://saadatm.github.io/navees
+partial alphanumeric_keys
+xkb_symbols "urd-navees" {
+    include "pk(urd-navees)"
+    name[Group1]= "Urdu (Navees)";
 };

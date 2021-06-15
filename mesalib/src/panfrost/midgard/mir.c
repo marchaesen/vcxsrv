@@ -148,7 +148,7 @@ mir_nontrivial_outmod(midgard_instruction *ins)
                 return true;
 
         if (is_int)
-                return mod != midgard_outmod_int_wrap;
+                return mod != midgard_outmod_keeplo;
         else
                 return mod != midgard_outmod_none;
 }

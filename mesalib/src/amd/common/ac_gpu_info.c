@@ -26,7 +26,6 @@
 #include "ac_gpu_info.h"
 
 #include "addrlib/src/amdgpu_asic_addr.h"
-#include "drm-uapi/amdgpu_drm.h"
 #include "sid.h"
 #include "util/macros.h"
 #include "util/u_cpu_detect.h"
@@ -35,6 +34,52 @@
 #include <stdio.h>
 
 #ifdef _WIN32
+#define DRM_CAP_ADDFB2_MODIFIERS 0x10
+#define DRM_CAP_SYNCOBJ 0x13
+#define DRM_CAP_SYNCOBJ_TIMELINE 0x14
+#define AMDGPU_GEM_DOMAIN_GTT 0x2
+#define AMDGPU_GEM_DOMAIN_VRAM 0x4
+#define AMDGPU_GEM_CREATE_CPU_ACCESS_REQUIRED (1 << 0)
+#define AMDGPU_GEM_CREATE_ENCRYPTED (1 << 10)
+#define AMDGPU_HW_IP_GFX 0
+#define AMDGPU_HW_IP_COMPUTE 1
+#define AMDGPU_HW_IP_DMA 2
+#define AMDGPU_HW_IP_UVD 3
+#define AMDGPU_HW_IP_VCE 4
+#define AMDGPU_HW_IP_UVD_ENC 5
+#define AMDGPU_HW_IP_VCN_DEC 6
+#define AMDGPU_HW_IP_VCN_ENC 7
+#define AMDGPU_HW_IP_VCN_JPEG 8
+#define AMDGPU_IDS_FLAGS_FUSION 0x1
+#define AMDGPU_IDS_FLAGS_PREEMPTION 0x2
+#define AMDGPU_IDS_FLAGS_TMZ 0x4
+#define AMDGPU_INFO_FW_VCE 0x1
+#define AMDGPU_INFO_FW_UVD 0x2
+#define AMDGPU_INFO_FW_GFX_ME 0x04
+#define AMDGPU_INFO_FW_GFX_PFP 0x05
+#define AMDGPU_INFO_FW_GFX_CE 0x06
+#define AMDGPU_INFO_DEV_INFO 0x16
+#define AMDGPU_INFO_MEMORY 0x19
+#define AMDGPU_INFO_VIDEO_CAPS_DECODE 0
+#define AMDGPU_INFO_VIDEO_CAPS_ENCODE 1
+struct drm_amdgpu_heap_info {
+   uint64_t total_heap_size;
+};
+struct drm_amdgpu_memory_info {
+   struct drm_amdgpu_heap_info vram;
+   struct drm_amdgpu_heap_info cpu_accessible_vram;
+   struct drm_amdgpu_heap_info gtt;
+};
+struct drm_amdgpu_info_device {
+   uint32_t num_tcc_blocks;
+   uint32_t pa_sc_tile_steering_override;
+   uint64_t tcc_disabled_mask;
+};
+struct drm_amdgpu_info_hw_ip {
+   uint32_t ib_start_alignment;
+   uint32_t ib_size_alignment;
+   uint32_t available_rings;
+};
 typedef struct _drmPciBusInfo {
    uint16_t domain;
    uint8_t bus;
@@ -155,11 +200,17 @@ int amdgpu_query_gds_info(amdgpu_device_handle dev,
 {
    return -EINVAL;
 }
+int amdgpu_query_video_caps_info(amdgpu_device_handle dev, unsigned cap_type,
+                                 unsigned size, void *value)
+{
+   return -EINVAL;
+}
 const char *amdgpu_get_marketing_name(amdgpu_device_handle dev)
 {
    return NULL;
 }
 #else
+#include "drm-uapi/amdgpu_drm.h"
 #include <amdgpu.h>
 #include <xf86drm.h>
 #endif
@@ -224,6 +275,14 @@ static bool has_timeline_syncobj(int fd)
 {
    uint64_t value;
    if (drmGetCap(fd, DRM_CAP_SYNCOBJ_TIMELINE, &value))
+      return false;
+   return value ? true : false;
+}
+
+static bool has_modifiers(int fd)
+{
+   uint64_t value;
+   if (drmGetCap(fd, DRM_CAP_ADDFB2_MODIFIERS, &value))
       return false;
    return value ? true : false;
 }
@@ -474,6 +533,22 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->gart_size_kb = DIV_ROUND_UP(info->gart_size, 1024);
    info->vram_size_kb = DIV_ROUND_UP(info->vram_size, 1024);
 
+   if (info->drm_minor >= 41) {
+      r = amdgpu_query_video_caps_info(dev, AMDGPU_INFO_VIDEO_CAPS_DECODE,
+            sizeof(info->dec_caps), &(info->dec_caps));
+      if (r) {
+         fprintf(stderr, "amdgpu: amdgpu_query_video_caps_info for decode failed.\n");
+         return r;
+      }
+
+      r = amdgpu_query_video_caps_info(dev, AMDGPU_INFO_VIDEO_CAPS_ENCODE,
+            sizeof(info->enc_caps), &(info->enc_caps));
+      if (r) {
+         fprintf(stderr, "amdgpu: amdgpu_query_video_caps_info for encode failed.\n");
+         return r;
+      }
+   }
+
    /* Add some margin of error, though this shouldn't be needed in theory. */
    info->all_vram_visible = info->vram_size * 0.9 < info->vram_vis_size;
 
@@ -616,9 +691,7 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->has_userptr = true;
    info->has_syncobj = has_syncobj(fd);
    info->has_timeline_syncobj = has_timeline_syncobj(fd);
-   info->has_syncobj_wait_for_submit = info->has_syncobj && info->drm_minor >= 20;
    info->has_fence_to_handle = info->has_syncobj && info->drm_minor >= 21;
-   info->has_ctx_priority = info->drm_minor >= 22;
    info->has_local_buffers = info->drm_minor >= 20;
    info->kernel_flushes_hdp_before_ib = true;
    info->htile_cmask_support_1d_tiling = true;
@@ -641,7 +714,7 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->has_scheduled_fence_dependency = info->drm_minor >= 28;
    info->mid_command_buffer_preemption_enabled = amdinfo->ids_flags & AMDGPU_IDS_FLAGS_PREEMPTION;
    info->has_tmz_support = has_tmz_support(dev, info, amdinfo);
-   info->kernel_has_modifiers = info->chip_class >= GFX9 && info->drm_minor >= 40;
+   info->kernel_has_modifiers = has_modifiers(fd);
    info->has_graphics = gfx.available_rings > 0;
 
    info->pa_sc_tile_steering_override = device_info.pa_sc_tile_steering_override;
@@ -807,6 +880,12 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
 
    /* Drawing from 0-sized index buffers causes hangs on Navi10/14. */
    info->has_zero_index_buffer_bug = info->family == CHIP_NAVI10 || info->family == CHIP_NAVI14;
+
+   /* Whether chips are affected by the image load/sample/gather hw bug when
+    * DCC is enabled (ie. WRITE_COMPRESS_ENABLE should be 0).
+    */
+   info->has_image_load_dcc_bug = info->family == CHIP_DIMGREY_CAVEFISH ||
+                                  info->family == CHIP_VANGOGH;
 
    /* Support for GFX10.3 was added with F32_ME_FEATURE_VERSION_31 but the
     * firmware version wasn't bumped.
@@ -1107,10 +1186,8 @@ void ac_print_gpu_info(struct radeon_info *info, FILE *f)
    fprintf(f, "    drm = %i.%i.%i\n", info->drm_major, info->drm_minor, info->drm_patchlevel);
    fprintf(f, "    has_userptr = %i\n", info->has_userptr);
    fprintf(f, "    has_syncobj = %u\n", info->has_syncobj);
-   fprintf(f, "    has_syncobj_wait_for_submit = %u\n", info->has_syncobj_wait_for_submit);
    fprintf(f, "    has_timeline_syncobj = %u\n", info->has_timeline_syncobj);
    fprintf(f, "    has_fence_to_handle = %u\n", info->has_fence_to_handle);
-   fprintf(f, "    has_ctx_priority = %u\n", info->has_ctx_priority);
    fprintf(f, "    has_local_buffers = %u\n", info->has_local_buffers);
    fprintf(f, "    kernel_flushes_hdp_before_ib = %u\n", info->kernel_flushes_hdp_before_ib);
    fprintf(f, "    htile_cmask_support_1d_tiling = %u\n", info->htile_cmask_support_1d_tiling);

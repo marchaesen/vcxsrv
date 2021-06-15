@@ -97,6 +97,7 @@ SOFTWARE.
 #include "exevents.h"
 #include "extnsionst.h"
 #include "exglobals.h"
+#include "eventstr.h"
 #include "dixevents.h"          /* DeliverFocusedEvent */
 #include "dixgrabs.h"           /* CreateGrab() */
 #include "scrnintstr.h"
@@ -163,6 +164,49 @@ IsTouchEvent(InternalEvent *event)
     case ET_TouchBegin:
     case ET_TouchUpdate:
     case ET_TouchEnd:
+        return TRUE;
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+Bool
+IsGestureEvent(InternalEvent *event)
+{
+    switch (event->any.type) {
+    case ET_GesturePinchBegin:
+    case ET_GesturePinchUpdate:
+    case ET_GesturePinchEnd:
+    case ET_GestureSwipeBegin:
+    case ET_GestureSwipeUpdate:
+    case ET_GestureSwipeEnd:
+        return TRUE;
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+Bool
+IsGestureBeginEvent(InternalEvent *event)
+{
+    switch (event->any.type) {
+    case ET_GesturePinchBegin:
+    case ET_GestureSwipeBegin:
+        return TRUE;
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+Bool
+IsGestureEndEvent(InternalEvent *event)
+{
+    switch (event->any.type) {
+    case ET_GesturePinchEnd:
+    case ET_GestureSwipeEnd:
         return TRUE;
     default:
         break;
@@ -648,6 +692,25 @@ DeepCopyPointerClasses(DeviceIntPtr from, DeviceIntPtr to)
     }
     /* Don't remove touch class if from->touch is non-existent. The to device
      * may have an active touch grab, so we need to keep the touch class record
+     * around. */
+
+    if (from->gesture) {
+        if (!to->gesture) {
+            classes = to->unused_classes;
+            to->gesture = classes->gesture;
+            if (!to->gesture) {
+                if (!InitGestureClassDeviceStruct(to, from->gesture->max_touches))
+                    FatalError("[Xi] no memory for class shift.\n");
+            }
+            else
+                classes->gesture = NULL;
+        }
+
+        to->gesture->sourceid = from->gesture->sourceid;
+        /* to->gesture->gesture is separate on the master,  don't copy */
+    }
+    /* Don't remove gesture class if from->gesture is non-existent. The to device
+     * may have an active gesture grab, so we need to keep the gesture class record
      * around. */
 }
 
@@ -1682,6 +1745,72 @@ ProcessBarrierEvent(InternalEvent *e, DeviceIntPtr dev)
     free(ev);
 }
 
+static BOOL
+IsAnotherGestureActiveOnMaster(DeviceIntPtr dev, InternalEvent* ev)
+{
+    GestureClassPtr g = dev->gesture;
+    if (g->gesture.active && g->gesture.sourceid != ev->gesture_event.sourceid) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+/**
+ * Processes and delivers a Gesture{Pinch,Swipe}{Begin,Update,End}.
+ *
+ * Due to having rather different delivery semantics (see the Xi 2.4 protocol
+ * spec for more information), this implements its own grab and event-selection
+ * delivery logic.
+ */
+void
+ProcessGestureEvent(InternalEvent *ev, DeviceIntPtr dev)
+{
+    GestureInfoPtr gi;
+    DeviceIntPtr kbd;
+    Bool deactivateGestureGrab = FALSE;
+    Bool delivered = FALSE;
+
+    if (!dev->gesture)
+        return;
+
+    if (IsMaster(dev) && IsAnotherGestureActiveOnMaster(dev, ev))
+        return;
+
+    if (IsGestureBeginEvent(ev))
+        gi = GestureBeginGesture(dev, ev);
+    else
+        gi = GestureFindActiveByEventType(dev, ev->any.type);
+
+    if (!gi) {
+        /* This may happen if gesture is no longer active or was never started. */
+        return;
+    }
+
+    kbd = GetMaster(dev, KEYBOARD_OR_FLOAT);
+    event_set_state_gesture(kbd, &ev->gesture_event);
+
+    if (IsGestureBeginEvent(ev))
+        GestureSetupListener(dev, gi, ev);
+
+    if (IsGestureEndEvent(ev) &&
+            dev->deviceGrab.grab &&
+            dev->deviceGrab.fromPassiveGrab &&
+            GrabIsGestureGrab(dev->deviceGrab.grab))
+        deactivateGestureGrab = TRUE;
+
+    delivered = DeliverGestureEventToOwner(dev, gi, ev);
+
+    if (delivered && !deactivateGestureGrab &&
+            (IsGestureBeginEvent(ev) || IsGestureEndEvent(ev)))
+        FreezeThisEventIfNeededForSyncGrab(dev, ev);
+
+    if (IsGestureEndEvent(ev))
+        GestureEndGesture(gi);
+
+    if (deactivateGestureGrab)
+        (*dev->deviceGrab.DeactivateGrab) (dev);
+}
+
 /**
  * Process DeviceEvents and DeviceChangedEvents.
  */
@@ -1877,6 +2006,14 @@ ProcessOtherEvent(InternalEvent *ev, DeviceIntPtr device)
     case ET_BarrierHit:
     case ET_BarrierLeave:
         ProcessBarrierEvent(ev, device);
+        break;
+    case ET_GesturePinchBegin:
+    case ET_GesturePinchUpdate:
+    case ET_GesturePinchEnd:
+    case ET_GestureSwipeBegin:
+    case ET_GestureSwipeUpdate:
+    case ET_GestureSwipeEnd:
+        ProcessGestureEvent(ev, device);
         break;
     default:
         ProcessDeviceEvent(ev, device);
@@ -2080,6 +2217,111 @@ DeliverTouchEvents(DeviceIntPtr dev, TouchPointInfoPtr ti,
 
         DeliverTouchEvent(dev, ti, ev, listener, client, win, grab, mask);
     }
+}
+
+/**
+ * Attempts to deliver a gesture event to the given client.
+ */
+static Bool
+DeliverOneGestureEvent(ClientPtr client, DeviceIntPtr dev, GestureInfoPtr gi,
+                       GrabPtr grab, WindowPtr win, InternalEvent *ev)
+{
+    int err;
+    xEvent *xi2;
+    Mask filter;
+    Window child = DeepestSpriteWin(&gi->sprite)->drawable.id;
+
+    /* If we fail here, we're going to leave a client hanging. */
+    err = EventToXI2(ev, &xi2);
+    if (err != Success)
+        FatalError("[Xi] %s: XI2 conversion failed in %s"
+                   " (%d)\n", dev->name, __func__, err);
+
+    FixUpEventFromWindow(&gi->sprite, xi2, win, child, FALSE);
+    filter = GetEventFilter(dev, xi2);
+    if (XaceHook(XACE_RECEIVE_ACCESS, client, win, xi2, 1) != Success)
+        return FALSE;
+    err = TryClientEvents(client, dev, xi2, 1, filter, filter, NullGrab);
+    free(xi2);
+
+    /* Returning the value from TryClientEvents isn't useful, since all our
+     * resource-gone cleanups will update the delivery list anyway. */
+    return TRUE;
+}
+
+/**
+ * Given a gesture event and a potential listener, retrieve info needed for processing the event.
+ *
+ * @param dev The device generating the gesture event.
+ * @param ev The gesture event to process.
+ * @param listener The gesture event listener that may receive the gesture event.
+ * @param[out] client The client that should receive the gesture event.
+ * @param[out] win The window to deliver the event on.
+ * @param[out] grab The grab to deliver the event through, if any.
+ * @return TRUE if an event should be delivered to the listener, FALSE
+ *         otherwise.
+ */
+static Bool
+RetrieveGestureDeliveryData(DeviceIntPtr dev, InternalEvent *ev, GestureListener* listener,
+                            ClientPtr *client, WindowPtr *win, GrabPtr *grab)
+{
+    int rc;
+    int evtype;
+    InputClients *iclients = NULL;
+    *grab = NULL;
+
+    if (listener->type == GESTURE_LISTENER_GRAB ||
+        listener->type == GESTURE_LISTENER_NONGESTURE_GRAB) {
+        *grab = listener->grab;
+
+        BUG_RETURN_VAL(!*grab, FALSE);
+
+        *client = rClient(*grab);
+        *win = (*grab)->window;
+    }
+    else {
+        rc = dixLookupResourceByType((void **) win, listener->listener, listener->resource_type,
+                                     serverClient, DixSendAccess);
+        if (rc != Success)
+            return FALSE;
+
+        /* note that we only will have XI2 listeners as
+           listener->type == GESTURE_LISTENER_REGULAR */
+        evtype = GetXI2Type(ev->any.type);
+
+        nt_list_for_each_entry(iclients, wOtherInputMasks(*win)->inputClients, next)
+            if (xi2mask_isset(iclients->xi2mask, dev, evtype))
+                break;
+
+        BUG_RETURN_VAL(!iclients, FALSE);
+
+        *client = rClient(iclients);
+    }
+
+    return TRUE;
+}
+
+/**
+ * Delivers a gesture to the owner, if possible and needed. Returns whether
+ * an event was delivered.
+ */
+Bool
+DeliverGestureEventToOwner(DeviceIntPtr dev, GestureInfoPtr gi, InternalEvent *ev)
+{
+    GrabPtr grab = NULL;
+    ClientPtr client;
+    WindowPtr win;
+
+    if (!gi->has_listener || gi->listener.type == GESTURE_LISTENER_NONGESTURE_GRAB) {
+        return 0;
+    }
+
+    if (!RetrieveGestureDeliveryData(dev, ev, &gi->listener, &client, &win, &grab))
+        return 0;
+
+    ev->gesture_event.deviceid = dev->id;
+
+    return DeliverOneGestureEvent(client, dev, gi, grab, win, ev);
 }
 
 int
@@ -2387,8 +2629,8 @@ GrabWindow(ClientPtr client, DeviceIntPtr dev, int type,
 
 /* Touch grab */
 int
-GrabTouch(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr mod_dev,
-          GrabParameters *param, GrabMask *mask)
+GrabTouchOrGesture(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr mod_dev,
+                   int type, GrabParameters *param, GrabMask *mask)
 {
     WindowPtr pWin;
     GrabPtr grab;
@@ -2406,7 +2648,7 @@ GrabTouch(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr mod_dev,
         return rc;
 
     grab = CreateGrab(client->index, dev, mod_dev, pWin, XI2,
-                      mask, param, XI_TouchBegin, 0, NullWindow, NullCursor);
+                      mask, param, type, 0, NullWindow, NullCursor);
     if (!grab)
         return BadAlloc;
 

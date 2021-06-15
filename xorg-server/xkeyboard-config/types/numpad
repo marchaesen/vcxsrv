@@ -2,7 +2,6 @@ default partial xkb_types "pc" {
     type "KEYPAD" {
 	modifiers = Shift+NumLock;
 	map[None] = Level1;
-	map[Shift] = Level2;
 	map[NumLock] = Level2;
 	map[Shift+NumLock] = Level1;
 	level_name[Level1] = "Base";

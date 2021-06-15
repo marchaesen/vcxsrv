@@ -26,8 +26,11 @@ libpanfrost_lib_files = files(
   'pan_attributes.c',
   'pan_bo.c',
   'pan_blend.c',
-  'pan_blit.c',
+  'pan_blitter.c',
+  'pan_cs.c',
   'pan_format.c',
+  'pan_indirect_dispatch.c',
+  'pan_indirect_draw.c',
   'pan_invocation.c',
   'pan_sampler.c',
   'pan_samples.c',
@@ -76,4 +79,10 @@ libpanfrost_decode = static_library(
   c_args : [no_override_init_args],
   gnu_symbol_visibility : 'hidden',
   build_by_default : false,
+)
+
+libpanfrost_dep = declare_dependency(
+  link_with: [libpanfrost_lib, libpanfrost_decode, libpanfrost_midgard, libpanfrost_bifrost],
+  include_directories: [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_panfrost_hw, inc_panfrost],
+  dependencies: [dep_libdrm, idep_nir, idep_midgard_pack],
 )

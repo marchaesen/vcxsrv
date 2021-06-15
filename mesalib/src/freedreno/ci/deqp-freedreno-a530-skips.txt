@@ -11,3 +11,13 @@ dEQP-GLES[0-9]*.functional.flush_finish.*
 
 # Times out
 dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.36
+
+# Intermittent timeouts in CI (~1/month)
+dEQP-GLES3.functional.shaders.builtin_functions.precision.cosh.mediump_fragment.vec3
+dEQP-GLES3.functional.shaders.builtin_functions.precision.faceforward.lowp_fragment.vec4
+dEQP-GLES3.functional.shaders.builtin_functions.precision.sinh.mediump_vertex.vec3
+dEQP-GLES3.functional.shaders.builtin_functions.precision.tanh.highp_fragment.vec3
+dEQP-GLES31.functional.shaders.builtin_functions.precision.distance.lowp_compute.vec4
+dEQP-GLES31.functional.shaders.builtin_functions.precision.pow.highp_compute.vec3
+dEQP-GLES31.functional.shaders.builtin_functions.precision.sqrt.highp_compute.vec3
+dEQP-GLES31.functional.shaders.builtin_functions.precision.tanh.lowp_compute.vec3

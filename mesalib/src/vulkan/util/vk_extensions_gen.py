@@ -28,6 +28,8 @@ import xml.etree.ElementTree as et
 
 from mako.template import Template
 
+# Mesa-local imports must be declared in meson variable
+# '{file_without_suffix}_depend_files'.
 from vk_extensions import *
 
 _TEMPLATE_H = Template(COPYRIGHT + """

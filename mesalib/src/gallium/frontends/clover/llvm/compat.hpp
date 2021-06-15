@@ -42,6 +42,7 @@
 #include <llvm/Analysis/TargetLibraryInfo.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Type.h>
 #include <llvm/Linker/Linker.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Transforms/IPO.h>
@@ -102,6 +103,36 @@ namespace clover {
                                                c->getPreprocessorOpts(),
 #endif
                                                d);
+         }
+
+         static inline bool
+         is_scalable_vector(const ::llvm::Type *type)
+         {
+#if LLVM_VERSION_MAJOR >= 11
+            return ::llvm::isa<::llvm::ScalableVectorType>(type);
+#else
+            return false;
+#endif
+         }
+
+         static inline bool
+         is_fixed_vector(const ::llvm::Type *type)
+         {
+#if LLVM_VERSION_MAJOR >= 11
+            return ::llvm::isa<::llvm::FixedVectorType>(type);
+#else
+            return type->isVectorTy();
+#endif
+         }
+
+         static inline unsigned
+         get_fixed_vector_elements(const ::llvm::Type *type)
+         {
+#if LLVM_VERSION_MAJOR >= 11
+            return ::llvm::cast<::llvm::FixedVectorType>(type)->getNumElements();
+#else
+            return ((::llvm::VectorType*)type)->getNumElements();
+#endif
          }
       }
    }

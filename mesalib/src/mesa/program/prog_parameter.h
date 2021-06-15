@@ -185,12 +185,12 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
 
 extern GLint
 _mesa_add_typed_unnamed_constant(struct gl_program_parameter_list *paramList,
-                           const gl_constant_value values[4], GLuint size,
+                           const gl_constant_value *values, GLuint size,
                            GLenum datatype, GLuint *swizzleOut);
 
 static inline GLint
 _mesa_add_unnamed_constant(struct gl_program_parameter_list *paramList,
-                           const gl_constant_value values[4], GLuint size,
+                           const gl_constant_value *values, GLuint size,
                            GLuint *swizzleOut)
 {
    return _mesa_add_typed_unnamed_constant(paramList, values, size, GL_NONE,
@@ -204,7 +204,7 @@ _mesa_add_sized_state_reference(struct gl_program_parameter_list *paramList,
 
 extern GLint
 _mesa_add_state_reference(struct gl_program_parameter_list *paramList,
-                          const gl_state_index16 stateTokens[]);
+                          const gl_state_index16 stateTokens[STATE_LENGTH]);
 
 
 static inline GLint

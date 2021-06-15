@@ -65,7 +65,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1644
+#define _gloffset_COUNT 1656
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -475,7 +475,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 1236
+#define driDispatchRemapTable_size 1248
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1714,6 +1714,18 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define SecondaryColor3hNV_remap_index 1233
 #define SecondaryColor3hvNV_remap_index 1234
 #define InternalSetError_remap_index 1235
+#define VertexAttrib1hNV_remap_index 1236
+#define VertexAttrib1hvNV_remap_index 1237
+#define VertexAttrib2hNV_remap_index 1238
+#define VertexAttrib2hvNV_remap_index 1239
+#define VertexAttrib3hNV_remap_index 1240
+#define VertexAttrib3hvNV_remap_index 1241
+#define VertexAttrib4hNV_remap_index 1242
+#define VertexAttrib4hvNV_remap_index 1243
+#define VertexAttribs1hvNV_remap_index 1244
+#define VertexAttribs2hvNV_remap_index 1245
+#define VertexAttribs3hvNV_remap_index 1246
+#define VertexAttribs4hvNV_remap_index 1247
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2951,6 +2963,18 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_SecondaryColor3hNV driDispatchRemapTable[SecondaryColor3hNV_remap_index]
 #define _gloffset_SecondaryColor3hvNV driDispatchRemapTable[SecondaryColor3hvNV_remap_index]
 #define _gloffset_InternalSetError driDispatchRemapTable[InternalSetError_remap_index]
+#define _gloffset_VertexAttrib1hNV driDispatchRemapTable[VertexAttrib1hNV_remap_index]
+#define _gloffset_VertexAttrib1hvNV driDispatchRemapTable[VertexAttrib1hvNV_remap_index]
+#define _gloffset_VertexAttrib2hNV driDispatchRemapTable[VertexAttrib2hNV_remap_index]
+#define _gloffset_VertexAttrib2hvNV driDispatchRemapTable[VertexAttrib2hvNV_remap_index]
+#define _gloffset_VertexAttrib3hNV driDispatchRemapTable[VertexAttrib3hNV_remap_index]
+#define _gloffset_VertexAttrib3hvNV driDispatchRemapTable[VertexAttrib3hvNV_remap_index]
+#define _gloffset_VertexAttrib4hNV driDispatchRemapTable[VertexAttrib4hNV_remap_index]
+#define _gloffset_VertexAttrib4hvNV driDispatchRemapTable[VertexAttrib4hvNV_remap_index]
+#define _gloffset_VertexAttribs1hvNV driDispatchRemapTable[VertexAttribs1hvNV_remap_index]
+#define _gloffset_VertexAttribs2hvNV driDispatchRemapTable[VertexAttribs2hvNV_remap_index]
+#define _gloffset_VertexAttribs3hvNV driDispatchRemapTable[VertexAttribs3hvNV_remap_index]
+#define _gloffset_VertexAttribs4hvNV driDispatchRemapTable[VertexAttribs4hvNV_remap_index]
 
 typedef void (GLAPIENTRYP _glptr_NewList)(GLuint, GLenum);
 #define CALL_NewList(disp, parameters) \
@@ -21034,6 +21058,138 @@ static INLINE _glptr_InternalSetError GET_InternalSetError(struct _glapi_table *
 
 static INLINE void SET_InternalSetError(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum)) {
    SET_by_offset(disp, _gloffset_InternalSetError, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexAttrib1hNV)(GLuint, GLhalfNV);
+#define CALL_VertexAttrib1hNV(disp, parameters) \
+    (* GET_VertexAttrib1hNV(disp)) parameters
+static INLINE _glptr_VertexAttrib1hNV GET_VertexAttrib1hNV(struct _glapi_table *disp) {
+   return (_glptr_VertexAttrib1hNV) (GET_by_offset(disp, _gloffset_VertexAttrib1hNV));
+}
+
+static INLINE void SET_VertexAttrib1hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_VertexAttrib1hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexAttrib1hvNV)(GLuint, const GLhalfNV *);
+#define CALL_VertexAttrib1hvNV(disp, parameters) \
+    (* GET_VertexAttrib1hvNV(disp)) parameters
+static INLINE _glptr_VertexAttrib1hvNV GET_VertexAttrib1hvNV(struct _glapi_table *disp) {
+   return (_glptr_VertexAttrib1hvNV) (GET_by_offset(disp, _gloffset_VertexAttrib1hvNV));
+}
+
+static INLINE void SET_VertexAttrib1hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_VertexAttrib1hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexAttrib2hNV)(GLuint, GLhalfNV, GLhalfNV);
+#define CALL_VertexAttrib2hNV(disp, parameters) \
+    (* GET_VertexAttrib2hNV(disp)) parameters
+static INLINE _glptr_VertexAttrib2hNV GET_VertexAttrib2hNV(struct _glapi_table *disp) {
+   return (_glptr_VertexAttrib2hNV) (GET_by_offset(disp, _gloffset_VertexAttrib2hNV));
+}
+
+static INLINE void SET_VertexAttrib2hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_VertexAttrib2hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexAttrib2hvNV)(GLuint, const GLhalfNV *);
+#define CALL_VertexAttrib2hvNV(disp, parameters) \
+    (* GET_VertexAttrib2hvNV(disp)) parameters
+static INLINE _glptr_VertexAttrib2hvNV GET_VertexAttrib2hvNV(struct _glapi_table *disp) {
+   return (_glptr_VertexAttrib2hvNV) (GET_by_offset(disp, _gloffset_VertexAttrib2hvNV));
+}
+
+static INLINE void SET_VertexAttrib2hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_VertexAttrib2hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexAttrib3hNV)(GLuint, GLhalfNV, GLhalfNV, GLhalfNV);
+#define CALL_VertexAttrib3hNV(disp, parameters) \
+    (* GET_VertexAttrib3hNV(disp)) parameters
+static INLINE _glptr_VertexAttrib3hNV GET_VertexAttrib3hNV(struct _glapi_table *disp) {
+   return (_glptr_VertexAttrib3hNV) (GET_by_offset(disp, _gloffset_VertexAttrib3hNV));
+}
+
+static INLINE void SET_VertexAttrib3hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLhalfNV, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_VertexAttrib3hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexAttrib3hvNV)(GLuint, const GLhalfNV *);
+#define CALL_VertexAttrib3hvNV(disp, parameters) \
+    (* GET_VertexAttrib3hvNV(disp)) parameters
+static INLINE _glptr_VertexAttrib3hvNV GET_VertexAttrib3hvNV(struct _glapi_table *disp) {
+   return (_glptr_VertexAttrib3hvNV) (GET_by_offset(disp, _gloffset_VertexAttrib3hvNV));
+}
+
+static INLINE void SET_VertexAttrib3hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_VertexAttrib3hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexAttrib4hNV)(GLuint, GLhalfNV, GLhalfNV, GLhalfNV, GLhalfNV);
+#define CALL_VertexAttrib4hNV(disp, parameters) \
+    (* GET_VertexAttrib4hNV(disp)) parameters
+static INLINE _glptr_VertexAttrib4hNV GET_VertexAttrib4hNV(struct _glapi_table *disp) {
+   return (_glptr_VertexAttrib4hNV) (GET_by_offset(disp, _gloffset_VertexAttrib4hNV));
+}
+
+static INLINE void SET_VertexAttrib4hNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLhalfNV, GLhalfNV, GLhalfNV, GLhalfNV)) {
+   SET_by_offset(disp, _gloffset_VertexAttrib4hNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexAttrib4hvNV)(GLuint, const GLhalfNV *);
+#define CALL_VertexAttrib4hvNV(disp, parameters) \
+    (* GET_VertexAttrib4hvNV(disp)) parameters
+static INLINE _glptr_VertexAttrib4hvNV GET_VertexAttrib4hvNV(struct _glapi_table *disp) {
+   return (_glptr_VertexAttrib4hvNV) (GET_by_offset(disp, _gloffset_VertexAttrib4hvNV));
+}
+
+static INLINE void SET_VertexAttrib4hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_VertexAttrib4hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexAttribs1hvNV)(GLuint, GLsizei, const GLhalfNV *);
+#define CALL_VertexAttribs1hvNV(disp, parameters) \
+    (* GET_VertexAttribs1hvNV(disp)) parameters
+static INLINE _glptr_VertexAttribs1hvNV GET_VertexAttribs1hvNV(struct _glapi_table *disp) {
+   return (_glptr_VertexAttribs1hvNV) (GET_by_offset(disp, _gloffset_VertexAttribs1hvNV));
+}
+
+static INLINE void SET_VertexAttribs1hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizei, const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_VertexAttribs1hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexAttribs2hvNV)(GLuint, GLsizei, const GLhalfNV *);
+#define CALL_VertexAttribs2hvNV(disp, parameters) \
+    (* GET_VertexAttribs2hvNV(disp)) parameters
+static INLINE _glptr_VertexAttribs2hvNV GET_VertexAttribs2hvNV(struct _glapi_table *disp) {
+   return (_glptr_VertexAttribs2hvNV) (GET_by_offset(disp, _gloffset_VertexAttribs2hvNV));
+}
+
+static INLINE void SET_VertexAttribs2hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizei, const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_VertexAttribs2hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexAttribs3hvNV)(GLuint, GLsizei, const GLhalfNV *);
+#define CALL_VertexAttribs3hvNV(disp, parameters) \
+    (* GET_VertexAttribs3hvNV(disp)) parameters
+static INLINE _glptr_VertexAttribs3hvNV GET_VertexAttribs3hvNV(struct _glapi_table *disp) {
+   return (_glptr_VertexAttribs3hvNV) (GET_by_offset(disp, _gloffset_VertexAttribs3hvNV));
+}
+
+static INLINE void SET_VertexAttribs3hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizei, const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_VertexAttribs3hvNV, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexAttribs4hvNV)(GLuint, GLsizei, const GLhalfNV *);
+#define CALL_VertexAttribs4hvNV(disp, parameters) \
+    (* GET_VertexAttribs4hvNV(disp)) parameters
+static INLINE _glptr_VertexAttribs4hvNV GET_VertexAttribs4hvNV(struct _glapi_table *disp) {
+   return (_glptr_VertexAttribs4hvNV) (GET_by_offset(disp, _gloffset_VertexAttribs4hvNV));
+}
+
+static INLINE void SET_VertexAttribs4hvNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizei, const GLhalfNV *)) {
+   SET_by_offset(disp, _gloffset_VertexAttribs4hvNV, fn);
 }
 
 

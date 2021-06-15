@@ -8,6 +8,7 @@ bool r600_lower_tess_io_filter(const nir_instr *instr, gl_shader_stage stage)
    nir_intrinsic_instr *op = nir_instr_as_intrinsic(instr);
    switch (op->intrinsic) {
    case nir_intrinsic_load_input:
+      return stage == MESA_SHADER_TESS_CTRL || stage == MESA_SHADER_TESS_EVAL;
    case nir_intrinsic_load_output:
    case nir_intrinsic_load_per_vertex_input:
    case nir_intrinsic_load_per_vertex_output:
@@ -366,7 +367,7 @@ r600_lower_tess_io_impl(nir_builder *b, nir_instr *instr, enum pipe_prim_type pr
    case nir_intrinsic_load_tess_level_inner:
       tf_inner_address_offset = 4;
       ncomps_correct = 2;
-      /* fallthrough */
+      FALLTHROUGH;
    case nir_intrinsic_load_tess_level_outer: {
       auto ncomps = outer_tf_components(prim_type);
       if (!ncomps)

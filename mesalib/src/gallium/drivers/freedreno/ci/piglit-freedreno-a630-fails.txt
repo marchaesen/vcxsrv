@@ -5,7 +5,6 @@ glx@glx-make-current,Crash
 glx@glx-multi-window-single-context,Fail
 glx@glx-query-drawable-glx_fbconfig_id-window,Fail
 glx@glx-swap-pixmap-bad,Fail
-glx@glx-tfp,Fail
 glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil -pixmap,Crash
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
@@ -22,6 +21,7 @@ glx@glx_ext_import_context@make current- multi process,Fail
 glx@glx_ext_import_context@make current- single process,Fail
 glx@glx_ext_import_context@query context info,Fail
 shaders@glsl-bug-110796,Fail
+shaders@glsl-fs-fogscale,Fail
 shaders@point-vertex-id divisor,Crash
 shaders@point-vertex-id gl_instanceid,Crash
 shaders@point-vertex-id gl_instanceid divisor,Crash
@@ -35,8 +35,6 @@ spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
 spec@!opengl 1.0@gl-1.0-scissor-offscreen,Fail
 spec@!opengl 1.0@gl-1.0-spot-light,Fail
 spec@!opengl 1.0@rasterpos,Crash
-spec@!opengl 1.1@copyteximage 1d,Crash
-spec@!opengl 1.1@copyteximage 2d,Crash
 spec@!opengl 1.1@draw-pixels,Fail
 spec@!opengl 1.1@getteximage-depth,Fail
 spec@!opengl 1.1@getteximage-formats,Fail
@@ -100,11 +98,7 @@ spec@arb_direct_state_access@gettextureimage-formats,Crash
 spec@arb_direct_state_access@gettextureimage-formats init-by-rendering,Fail
 spec@arb_direct_state_access@transformfeedback-bufferbase,Fail
 spec@arb_direct_state_access@transformfeedback-bufferrange,Fail
-spec@arb_draw_buffers@fbo-mrt-alphatest,Fail
-spec@arb_es2_compatibility@fbo-alphatest-formats,Fail
 spec@arb_es2_compatibility@texwrap formats bordercolor-swizzled,Fail
-spec@arb_fragment_program@fp-fragment-position,Crash
-spec@arb_fragment_program@sparse-samplers,Crash
 spec@arb_framebuffer_srgb@blit renderbuffer linear msaa disabled clear,Fail
 spec@arb_framebuffer_srgb@blit renderbuffer linear msaa disabled render,Fail
 spec@arb_framebuffer_srgb@blit renderbuffer linear msaa enabled clear,Fail
@@ -181,19 +175,9 @@ spec@arb_texture_buffer_object@formats (fs- arb),Fail
 spec@arb_texture_buffer_object@formats (vs- arb),Fail
 spec@arb_texture_compression@texwrap formats bordercolor-swizzled,Fail
 spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled,Fail
-spec@arb_texture_cube_map@copyteximage cube,Crash
-spec@arb_texture_cube_map@copyteximage cube samples=2,Crash
-spec@arb_texture_cube_map@copyteximage cube samples=4,Crash
-spec@arb_texture_float@fbo-alphatest-formats,Fail
 spec@arb_texture_float@fbo-blending-formats,Fail
 spec@arb_texture_float@texwrap formats bordercolor-swizzled,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch,Fail
 spec@arb_texture_rectangle@1-1-linear-texture,Fail
-spec@arb_texture_rectangle@copyteximage rect,Crash
-spec@arb_texture_rectangle@copyteximage rect samples=2,Crash
-spec@arb_texture_rectangle@copyteximage rect samples=4,Crash
-spec@arb_texture_rg@fbo-alphatest-formats,Fail
-spec@arb_texture_rg@fbo-alphatest-formats-float,Fail
 spec@arb_texture_rg@texwrap formats bordercolor-swizzled,Fail
 spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled,Fail
 spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled,Fail
@@ -276,33 +260,15 @@ spec@ext_framebuffer_multisample@unaligned-blit 2 stencil msaa,Fail
 spec@ext_framebuffer_multisample@unaligned-blit 4 color msaa,Fail
 spec@ext_framebuffer_multisample@unaligned-blit 4 depth msaa,Fail
 spec@ext_framebuffer_multisample@unaligned-blit 4 stencil msaa,Fail
-spec@ext_framebuffer_object@fbo-alphatest-formats,Fail
 spec@ext_framebuffer_object@fbo-alphatest-nocolor,Fail
 spec@ext_framebuffer_object@fbo-alphatest-nocolor-ff,Fail
 spec@ext_framebuffer_object@fbo-blending-format-quirks,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-clear-and-render,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-rendering,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_ayuv,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p010,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p012,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p016,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_uyvy,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_xyuv,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuv420,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuyv,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Crash
 spec@ext_packed_depth_stencil@texwrap formats bordercolor,Fail
 spec@ext_packed_depth_stencil@texwrap formats bordercolor-swizzled,Fail
-spec@ext_packed_float@fbo-alphatest-formats,Fail
 spec@ext_packed_float@query-rgba-signed-components,Fail
 spec@ext_packed_float@texwrap formats bordercolor-swizzled,Fail
-spec@ext_texture_array@copyteximage 1d_array,Crash
-spec@ext_texture_array@copyteximage 1d_array samples=2,Crash
-spec@ext_texture_array@copyteximage 1d_array samples=4,Crash
-spec@ext_texture_array@copyteximage 2d_array,Crash
-spec@ext_texture_array@copyteximage 2d_array samples=2,Crash
-spec@ext_texture_array@copyteximage 2d_array samples=4,Crash
 spec@ext_texture_array@fbo-depth-array depth-layered-clear,Crash
 spec@ext_texture_array@fbo-depth-array stencil-layered-clear,Crash
 spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled,Fail
@@ -319,7 +285,6 @@ spec@ext_texture_snorm@fbo-generatemipmap-formats,Fail
 spec@ext_texture_snorm@multisample-formats 2 gl_ext_texture_snorm,Fail
 spec@ext_texture_snorm@multisample-formats 4 gl_ext_texture_snorm,Fail
 spec@ext_texture_snorm@texwrap formats bordercolor-swizzled,Fail
-spec@ext_texture_srgb@fbo-alphatest-formats,Fail
 spec@ext_texture_srgb@texwrap formats bordercolor-swizzled,Fail
 spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled,Fail
 spec@ext_transform_feedback@geometry-shaders-basic,Fail
@@ -345,6 +310,7 @@ spec@glsl-1.20@execution@tex-miplevel-selection gl2:textureproj 2d,Crash
 spec@glsl-1.20@execution@tex-miplevel-selection gl2:textureproj 2d_projvec4,Crash
 spec@glsl-1.20@execution@tex-miplevel-selection gl2:textureproj 2dshadow,Crash
 spec@glsl-1.20@execution@tex-miplevel-selection gl2:textureproj 3d,Crash
+spec@glsl-1.30@execution@range_analysis_fsat_of_nan,Fail
 spec@glsl-1.30@execution@tex-miplevel-selection texture() 1d,Crash
 spec@glsl-1.30@execution@tex-miplevel-selection texture() 1darray,Crash
 spec@glsl-1.30@execution@tex-miplevel-selection texture() 1darrayshadow,Crash
@@ -487,9 +453,6 @@ spec@arb_arrays_of_arrays@execution@image_store@basic-imagestore-non-const-unifo
 spec@arb_arrays_of_arrays@execution@sampler@fs-struct-const-index-sampler-const-index,Crash
 spec@arb_compute_shader@execution@border-color,Fail
 spec@arb_shader_storage_buffer_object@linker@instance-matching-shader-storage-blocks-member-array-size-mismatch,Fail
-spec@arb_tessellation_shader@execution@16in-1out,Crash
-spec@arb_tessellation_shader@execution@1in-1out,Crash
-spec@arb_tessellation_shader@execution@barrier-patch,Crash
 spec@arb_tessellation_shader@execution@fs-primitiveid-instanced,Fail
 spec@arb_tessellation_shader@execution@gs-primitiveid-instanced,Fail
 spec@arb_tessellation_shader@execution@invocation-counting-even,Fail
@@ -508,43 +471,19 @@ spec@arb_tessellation_shader@execution@variable-indexing@tcs-input-array-float-i
 spec@arb_tessellation_shader@execution@variable-indexing@tcs-input-array-vec2-index-rd,Crash
 spec@arb_tessellation_shader@execution@variable-indexing@tcs-input-array-vec3-index-rd,Crash
 spec@arb_tessellation_shader@execution@variable-indexing@tcs-input-array-vec4-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-float-index-rd-after-barrier,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-float-index-wr,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-float-index-wr-before-barrier,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec2-index-rd-after-barrier,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec2-index-wr,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec2-index-wr-before-barrier,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec3-index-rd-after-barrier,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec3-index-wr,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec3-index-wr-before-barrier,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec4-index-rd-after-barrier,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec4-index-wr,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec4-index-wr-before-barrier,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-patch-output-array-float-index-wr,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-patch-output-array-vec2-index-wr,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-patch-output-array-vec3-index-wr,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-patch-output-array-vec4-index-wr,Crash
 spec@arb_tessellation_shader@execution@variable-indexing@tcs-patch-vec4-index-wr,Crash
 spec@arb_tessellation_shader@execution@variable-indexing@tcs-patch-vec4-swiz-index-wr,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-float-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-vec2-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-vec3-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-vec4-index-rd,Crash
 spec@arb_tessellation_shader@execution@variable-indexing@tes-input-array-float-index-rd,Crash
 spec@arb_tessellation_shader@execution@variable-indexing@tes-input-array-vec2-index-rd,Crash
 spec@arb_tessellation_shader@execution@variable-indexing@tes-input-array-vec3-index-rd,Crash
 spec@arb_tessellation_shader@execution@variable-indexing@tes-input-array-vec4-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-patch-input-array-float-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-patch-input-array-vec2-index-invalid-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-patch-input-array-vec2-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-patch-input-array-vec3-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-patch-input-array-vec4-index-rd,Crash
+spec@arb_tessellation_shader@execution@variable-indexing@vs-output-array-vec3-index-wr-before-tcs,Fail
+spec@arb_tessellation_shader@execution@variable-indexing@vs-output-array-vec4-index-wr-before-tcs,Fail
 spec@arb_tessellation_shader@execution@vertex-partial-write,Crash
 spec@arb_tessellation_shader@execution@vs-tes-max-in-out-components,Fail
 spec@arb_tessellation_shader@execution@vs-tes-tessinner-tessouter-inputs-quads,Fail
 spec@arb_tessellation_shader@execution@vs-tes-tessinner-tessouter-inputs-tris,Fail
 spec@arb_tessellation_shader@execution@vs-tes-vertex,Fail
-spec@glsl-1.10@execution@vsfs-unused-array-member,Crash
 spec@glsl-1.30@execution@fs-large-local-array-vec2,Crash
 spec@glsl-1.30@execution@fs-large-local-array-vec3,Crash
 spec@glsl-1.30@execution@fs-large-local-array-vec4,Crash
@@ -576,7 +515,6 @@ spec@glsl-1.50@execution@primitive-id-no-gs-quads,Fail
 spec@glsl-1.50@execution@variable-indexing@gs-input-array-float-index-rd,Fail
 spec@glsl-1.50@execution@variable-indexing@gs-input-array-vec2-index-rd,Fail
 spec@glsl-1.50@execution@variable-indexing@gs-input-array-vec3-index-rd,Crash
-spec@glsl-1.50@execution@variable-indexing@gs-input-array-vec4-index-rd,Fail
 spec@glsl-1.50@execution@variable-indexing@gs-output-array-vec3-index-wr,Fail
 spec@glsl-1.50@execution@variable-indexing@gs-output-array-vec4-index-wr,Crash
 spec@glsl-1.50@execution@variable-indexing@vs-output-array-vec3-index-wr-before-gs,Fail

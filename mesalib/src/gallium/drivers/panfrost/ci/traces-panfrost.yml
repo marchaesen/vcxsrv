@@ -170,7 +170,7 @@ traces:
   - path: glmark2/terrain.rdc
     expectations:
       - device: gl-panfrost-t860
-        checksum: 2264a06895a84154bd2f54abffcc48d8
+        checksum: 3f2856f8c77c4e583b11c71d666f8724
   - path: glmark2/texture-texture-filter=linear.rdc
     expectations:
       - device: gl-panfrost-t860

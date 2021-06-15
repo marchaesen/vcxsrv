@@ -815,7 +815,10 @@ wsi_display_surface_get_support(VkIcdSurfaceBase *surface,
                                 uint32_t queueFamilyIndex,
                                 VkBool32* pSupported)
 {
-   *pSupported = VK_TRUE;
+   struct wsi_display *wsi =
+      (struct wsi_display *) wsi_device->wsi[VK_ICD_WSI_PLATFORM_DISPLAY];
+
+   *pSupported = wsi->fd != -1;
    return VK_SUCCESS;
 }
 

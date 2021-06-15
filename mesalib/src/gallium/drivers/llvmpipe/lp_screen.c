@@ -223,8 +223,9 @@ llvmpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 64;
    case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
       return 1;
+   /* Adressing that many 64bpp texels fits in an i32 so this is a reasonable value */
    case PIPE_CAP_MAX_TEXTURE_BUFFER_SIZE:
-      return 65536;
+      return 134217728;
    case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
       return 16;
    case PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER:
@@ -376,11 +377,8 @@ llvmpipe_get_shader_param(struct pipe_screen *screen,
          else
             return PIPE_SHADER_IR_NIR;
       }
-      switch (param) {
-      default:
-         return gallivm_get_shader_param(param);
-      }
-      FALLTHROUGH;
+
+      return gallivm_get_shader_param(param);
    case PIPE_SHADER_TESS_CTRL:
    case PIPE_SHADER_TESS_EVAL:
       /* Tessellation shader needs llvm coroutines support */
@@ -591,6 +589,7 @@ static const struct nir_shader_compiler_options gallivm_nir_options = {
    .lower_uniforms_to_ubo = true,
    .lower_vector_cmp = true,
    .lower_device_index_to_zero = true,
+   .support_16bit_alu = true,
 };
 
 static void
@@ -876,6 +875,36 @@ void lp_disk_cache_insert_shader(struct llvmpipe_screen *screen,
    disk_cache_compute_key(screen->disk_shader_cache, ir_sha1_cache_key, 20, sha1);
    disk_cache_put(screen->disk_shader_cache, sha1, cache->data, cache->data_size, NULL);
 }
+
+bool
+llvmpipe_screen_late_init(struct llvmpipe_screen *screen)
+{
+   bool ret = true;
+   mtx_lock(&screen->late_mutex);
+
+   if (screen->late_init_done)
+      goto out;
+
+   screen->rast = lp_rast_create(screen->num_threads);
+   if (!screen->rast) {
+      ret = false;
+      goto out;
+   }
+
+   screen->cs_tpool = lp_cs_tpool_create(screen->num_threads);
+   if (!screen->cs_tpool) {
+      lp_rast_destroy(screen->rast);
+      ret = false;
+      goto out;
+   }
+
+   lp_disk_cache_create(screen);
+   screen->late_init_done = true;
+out:
+   mtx_unlock(&screen->late_mutex);
+   return ret;
+}
+
 /**
  * Create a new pipe_screen object
  * Note: we're not presently subclassing pipe_screen (no llvmpipe_screen).
@@ -939,23 +968,10 @@ llvmpipe_create_screen(struct sw_winsys *winsys)
    screen->num_threads = debug_get_num_option("LP_NUM_THREADS", screen->num_threads);
    screen->num_threads = MIN2(screen->num_threads, LP_MAX_THREADS);
 
-   screen->rast = lp_rast_create(screen->num_threads);
-   if (!screen->rast) {
-      lp_jit_screen_cleanup(screen);
-      FREE(screen);
-      return NULL;
-   }
+   (void) mtx_init(&screen->cs_mutex, mtx_plain);
    (void) mtx_init(&screen->rast_mutex, mtx_plain);
 
-   screen->cs_tpool = lp_cs_tpool_create(screen->num_threads);
-   if (!screen->cs_tpool) {
-      lp_rast_destroy(screen->rast);
-      lp_jit_screen_cleanup(screen);
-      FREE(screen);
-      return NULL;
-   }
-   (void) mtx_init(&screen->cs_mutex, mtx_plain);
+   (void) mtx_init(&screen->late_mutex, mtx_plain);
 
-   lp_disk_cache_create(screen);
    return &screen->base;
 }

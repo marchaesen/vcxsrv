@@ -30,7 +30,7 @@
 #include "util/u_debug.h"
 #include "util/u_threaded_context.h"
 #include "intel/blorp/blorp.h"
-#include "intel/dev/gen_debug.h"
+#include "intel/dev/intel_debug.h"
 #include "intel/common/intel_l3_config.h"
 #include "intel/compiler/brw_compiler.h"
 #include "iris_batch.h"
@@ -336,6 +336,7 @@ enum pipe_control_flags
 #define PIPE_CONTROL_CACHE_FLUSH_BITS \
    (PIPE_CONTROL_DEPTH_CACHE_FLUSH |  \
     PIPE_CONTROL_DATA_CACHE_FLUSH |   \
+    PIPE_CONTROL_TILE_CACHE_FLUSH |   \
     PIPE_CONTROL_RENDER_TARGET_FLUSH)
 
 #define PIPE_CONTROL_CACHE_INVALIDATE_BITS  \
@@ -661,7 +662,7 @@ struct iris_context {
       struct iris_bo *scratch_bos[1 << 4][MESA_SHADER_STAGES];
    } shaders;
 
-   struct gen_perf_context *perf_ctx;
+   struct intel_perf_context *perf_ctx;
 
    /** Frame number for debug prints */
    uint32_t frame;
@@ -813,8 +814,6 @@ struct iris_context {
       pipe_debug_message(dbg, PERF_INFO, __VA_ARGS__); \
 } while(0)
 
-double get_time(void);
-
 struct pipe_context *
 iris_create_context(struct pipe_screen *screen, void *priv, unsigned flags);
 
@@ -855,8 +854,9 @@ void iris_copy_region(struct blorp_context *blorp,
 /* iris_draw.c */
 
 void iris_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info *info,
+                   unsigned drawid_offset,
                    const struct pipe_draw_indirect_info *indirect,
-                   const struct pipe_draw_start_count *draws,
+                   const struct pipe_draw_start_count_bias *draws,
                    unsigned num_draws);
 void iris_launch_grid(struct pipe_context *, const struct pipe_grid_info *);
 
@@ -984,7 +984,6 @@ void iris_postdraw_update_resolve_tracking(struct iris_context *ice,
                                            struct iris_batch *batch);
 void iris_cache_flush_for_render(struct iris_batch *batch,
                                  struct iris_bo *bo,
-                                 enum isl_format format,
                                  enum isl_aux_usage aux_usage);
 int iris_get_driver_query_info(struct pipe_screen *pscreen, unsigned index,
                                struct pipe_driver_query_info *info);
@@ -993,7 +992,7 @@ int iris_get_driver_query_group_info(struct pipe_screen *pscreen,
                                      struct pipe_driver_query_group_info *info);
 
 /* iris_state.c */
-void gen9_toggle_preemption(struct iris_context *ice,
+void gfx9_toggle_preemption(struct iris_context *ice,
                             struct iris_batch *batch,
                             const struct pipe_draw_info *draw);
 
@@ -1002,34 +1001,34 @@ void gen9_toggle_preemption(struct iris_context *ice,
 #ifdef genX
 #  include "iris_genx_protos.h"
 #else
-#  define genX(x) gen4_##x
+#  define genX(x) gfx4_##x
 #  include "iris_genx_protos.h"
 #  undef genX
-#  define genX(x) gen5_##x
+#  define genX(x) gfx5_##x
 #  include "iris_genx_protos.h"
 #  undef genX
-#  define genX(x) gen6_##x
+#  define genX(x) gfx6_##x
 #  include "iris_genx_protos.h"
 #  undef genX
-#  define genX(x) gen7_##x
+#  define genX(x) gfx7_##x
 #  include "iris_genx_protos.h"
 #  undef genX
-#  define genX(x) gen75_##x
+#  define genX(x) gfx75_##x
 #  include "iris_genx_protos.h"
 #  undef genX
-#  define genX(x) gen8_##x
+#  define genX(x) gfx8_##x
 #  include "iris_genx_protos.h"
 #  undef genX
-#  define genX(x) gen9_##x
+#  define genX(x) gfx9_##x
 #  include "iris_genx_protos.h"
 #  undef genX
-#  define genX(x) gen11_##x
+#  define genX(x) gfx11_##x
 #  include "iris_genx_protos.h"
 #  undef genX
-#  define genX(x) gen12_##x
+#  define genX(x) gfx12_##x
 #  include "iris_genx_protos.h"
 #  undef genX
-#  define genX(x) gen125_##x
+#  define genX(x) gfx125_##x
 #  include "iris_genx_protos.h"
 #  undef genX
 #endif

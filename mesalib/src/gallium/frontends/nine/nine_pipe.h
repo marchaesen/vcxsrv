@@ -365,6 +365,15 @@ d3d9_to_pipe_format_checked(struct pipe_screen *screen,
                 return PIPE_FORMAT_NONE;
             if (format_check_internal(PIPE_FORMAT_R32G32B32X32_FLOAT))
                 return PIPE_FORMAT_R32G32B32X32_FLOAT;
+            break;
+        /* Fallback for YUV formats */
+        case D3DFMT_UYVY:
+        case D3DFMT_YUY2:
+        case D3DFMT_NV12:
+            if (bindings & PIPE_BIND_RENDER_TARGET)
+                return PIPE_FORMAT_NONE;
+            if (format_check_internal(PIPE_FORMAT_R8G8B8X8_UNORM))
+                return PIPE_FORMAT_R8G8B8X8_UNORM;
         default:
             break;
     }

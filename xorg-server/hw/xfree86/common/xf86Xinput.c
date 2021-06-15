@@ -1590,6 +1590,58 @@ xf86PostTouchEvent(DeviceIntPtr dev, uint32_t touchid, uint16_t type,
     QueueTouchEvents(dev, type, touchid, flags, mask);
 }
 
+/**
+ * Post a gesture pinch event.  The driver is responsible for maintaining the
+ * correct event sequence (GesturePinchBegin, GesturePinchUpdate,
+ * GesturePinchEnd).
+ *
+ * @param dev The device to post the event for
+ * @param type One of XI_GesturePinchBegin, XI_GesturePinchUpdate,
+ *        XI_GesturePinchEnd
+ * @param num_touches The number of touches in the gesture
+ * @param flags Flags for this event
+ * @param delta_x,delta_y accelerated relative motion delta
+ * @param delta_unaccel_x,delta_unaccel_y unaccelerated relative motion delta
+ * @param scale absolute scale of a pinch gesture
+ * @param delta_angle the ange delta in degrees between the last and the current pinch event.
+ */
+void
+xf86PostGesturePinchEvent(DeviceIntPtr dev, uint16_t type,
+                          uint16_t num_touches, uint32_t flags,
+                          double delta_x, double delta_y,
+                          double delta_unaccel_x,
+                          double delta_unaccel_y,
+                          double scale, double delta_angle)
+{
+    QueueGesturePinchEvents(dev, type, num_touches, flags, delta_x, delta_y,
+                            delta_unaccel_x, delta_unaccel_y,
+                            scale, delta_angle);
+}
+
+/**
+ * Post a gesture swipe event.  The driver is responsible for maintaining the
+ * correct event sequence (GestureSwipeBegin, GestureSwipeUpdate,
+ * GestureSwipeEnd).
+ *
+ * @param dev The device to post the event for
+ * @param type One of XI_GestureSwipeBegin, XI_GestureSwipeUpdate,
+ *        XI_GestureSwipeEnd
+ * @param num_touches The number of touches in the gesture
+ * @param flags Flags for this event
+ * @param delta_x,delta_y accelerated relative motion delta
+ * @param delta_unaccel_x,delta_unaccel_y unaccelerated relative motion delta
+ */
+void
+xf86PostGestureSwipeEvent(DeviceIntPtr dev, uint16_t type,
+                          uint16_t num_touches, uint32_t flags,
+                          double delta_x, double delta_y,
+                          double delta_unaccel_x,
+                          double delta_unaccel_y)
+{
+    QueueGestureSwipeEvents(dev, type, num_touches, flags, delta_x, delta_y,
+                            delta_unaccel_x, delta_unaccel_y);
+}
+
 void
 xf86InputEnableVTProbe(void)
 {

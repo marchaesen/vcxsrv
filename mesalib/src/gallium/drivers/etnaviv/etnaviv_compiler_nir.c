@@ -614,6 +614,7 @@ emit_instr(struct etna_compile *c, nir_instr * instr)
       break;
    case nir_instr_type_jump:
       assert(nir_instr_is_last(instr));
+      break;
    case nir_instr_type_load_const:
    case nir_instr_type_ssa_undef:
    case nir_instr_type_deref:
@@ -1113,7 +1114,11 @@ etna_compile_shader_nir(struct etna_shader_variant *v)
    NIR_PASS_V(s, nir_lower_indirect_derefs, nir_var_all, UINT32_MAX);
    NIR_PASS_V(s, nir_lower_tex, &(struct nir_lower_tex_options) { .lower_txp = ~0u });
    NIR_PASS_V(s, nir_lower_alu_to_scalar, etna_alu_to_scalar_filter_cb, specs);
-   NIR_PASS_V(s, nir_lower_idiv, nir_lower_idiv_fast);
+   nir_lower_idiv_options idiv_options = {
+      .imprecise_32bit_lowering = true,
+      .allow_fp16 = true,
+   };
+   NIR_PASS_V(s, nir_lower_idiv, &idiv_options);
 
    etna_optimize_loop(s);
 

@@ -121,25 +121,26 @@ lower_tex_src_plane_block(nir_builder *b, lower_tex_src_state *state, nir_block 
 
       if (plane[0].i32 > 0) {
          unsigned y_samp = tex->texture_index;
+         int tex_index = nir_tex_instr_src_index(tex, nir_tex_src_texture_deref);
+         if (tex_index >= 0) {
+            nir_deref_instr *deref = nir_src_as_deref(tex->src[tex_index].src);
+            y_samp = nir_deref_instr_get_variable(deref)->data.binding;
+         }
 
-         assume(tex->texture_index == tex->sampler_index);
          assume(((state->lower_3plane & (1 << y_samp)) && plane[0].i32 < 3) ||
                (plane[0].i32 < 2));
 
-         tex->texture_index = tex->sampler_index =
-               state->sampler_map[y_samp][plane[0].i32 - 1];
-
-         BITSET_SET(state->shader->info.textures_used, tex->texture_index);
+         unsigned u_v_samp = state->sampler_map[y_samp][plane[0].i32 - 1];
+         BITSET_SET(state->shader->info.textures_used, u_v_samp);
 
          /* For drivers using PIPE_CAP_NIR_SAMPLERS_AS_DEREF, we need
           * to reference the correct sampler nir variable.
           */
-         int tex_index = nir_tex_instr_src_index(tex, nir_tex_src_texture_deref);
          int samp_index = nir_tex_instr_src_index(tex, nir_tex_src_sampler_deref);
          if (tex_index >= 0 && samp_index >= 0) {
             b->cursor = nir_before_instr(&tex->instr);
 
-            nir_variable* samp = find_sampler(state, tex->sampler_index);
+            nir_variable* samp = find_sampler(state, u_v_samp);
             assert(samp);
 
             nir_deref_instr *tex_deref_instr = nir_build_deref_var(b, samp);
@@ -151,6 +152,10 @@ lower_tex_src_plane_block(nir_builder *b, lower_tex_src_state *state, nir_block 
             nir_instr_rewrite_src(&tex->instr,
                                   &tex->src[samp_index].src,
                                   nir_src_for_ssa(tex_deref));
+         } else {
+            /* For others we need to update texture_index */
+            assume(tex->texture_index == tex->sampler_index);
+            tex->texture_index = tex->sampler_index = u_v_samp;
          }
       }
 

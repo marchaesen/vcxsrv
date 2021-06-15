@@ -1812,7 +1812,11 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0xe000" name="GRAS_CL_CNTL">
 		<bitfield name="ZERO_GB_SCALE_Z" pos="6" type="boolean"/>
 	</reg32>
-	<reg32 offset="0xe001" name="UNKNOWN_E001"/> <!-- always 00000000? -->
+	<bitset name="a5xx_gras_xs_cl_cntl" inline="yes">
+		<bitfield name="CLIP_MASK" low="0" high="7"/>
+		<bitfield name="CULL_MASK" low="8" high="15"/>
+	</bitset>
+	<reg32 offset="0xe001" name="GRAS_VS_CL_CNTL" type="a5xx_gras_xs_cl_cntl"/>
 	<reg32 offset="0xe004" name="UNKNOWN_E004"/> <!-- always 00000000? -->
 	<reg32 offset="0xe005" name="GRAS_CNTL">
 		<!-- see also RB_RENDER_CONTROL0 -->
@@ -2279,7 +2283,16 @@ bit 7 for RECTLIST (clear) when z32s8 (used for clear of depth32?  not set
 		<reg32 offset="0" name="DISABLE"/>
 	</array>
 	<reg32 offset="0xe298" name="VPC_GS_SIV_CNTL"/>
-	<reg32 offset="0xe29a" name="UNKNOWN_E29A"/>
+	<reg32 offset="0xe29a" name="VPC_CLIP_CNTL">
+		<bitfield name="CLIP_MASK" low="0" high="7" type="uint"/>
+		<!-- there can be up to 8 total clip/cull distance outputs,
+		     but apparenly VPC can only deal with vec4, so when there are
+		     more than 4 outputs a second location needs to be programmed
+		-->
+		<bitfield name="CLIP_DIST_03_LOC" low="8" high="15" type="uint"/>
+		<bitfield name="CLIP_DIST_47_LOC" low="16" high="23" type="uint"/>
+	</reg32>
+
 	<reg32 offset="0xe29d" name="VPC_PACK">
 		<bitfield name="NUMNONPOSVAR" low="0" high="7" type="uint"/>
 		<!--
@@ -2374,7 +2387,9 @@ bit 7 for RECTLIST (clear) when z32s8 (used for clear of depth32?  not set
 		<bitfield name="POLYMODE_BACK_PTYPE" low="3" high="5" type="adreno_pa_su_sc_draw"/>
 		<bitfield name="POLYMODE_ENABLE" pos="6" type="boolean"/>
 	</reg32>
-	<reg32 offset="0xe389" name="UNKNOWN_E389"/>
+	<reg32 offset="0xe389" name="PC_CLIP_CNTL">
+		<bitfield name="CLIP_MASK" low="0" high="7"/>
+	</reg32>
 	<reg32 offset="0xe38c" name="PC_RESTART_INDEX"/>
 	<reg32 offset="0xe38d" name="PC_GS_LAYERED"/>
 	<reg32 offset="0xe38e" name="PC_GS_PARAM">

@@ -116,6 +116,9 @@ bi_writemask(bi_instr *ins, unsigned d)
 bi_clause *
 bi_next_clause(bi_context *ctx, pan_block *block, bi_clause *clause)
 {
+        if (!block && !clause)
+                return NULL;
+
         /* Try the first clause in this block if we're starting from scratch */
         if (!clause && !list_is_empty(&((bi_block *) block)->clauses))
                 return list_first_entry(&((bi_block *) block)->clauses, bi_clause, link);

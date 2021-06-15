@@ -18,6 +18,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# Mesa-local imports in the Python files must be declared here for correct
+# dependency tracking.
+vk_extensions_depend_files = [
+]
+vk_extensions_gen_depend_files = [
+  files('vk_extensions.py'),
+  vk_extensions_depend_files,
+]
+vk_dispatch_table_gen_depend_files = [
+  files('vk_extensions.py'),
+  vk_extensions_depend_files,
+]
+vk_entrypoints_gen_depend_files = [
+  files('vk_dispatch_table_gen.py'),
+  vk_dispatch_table_gen_depend_files,
+]
+
 vk_entrypoints_gen = files('vk_entrypoints_gen.py')
 vk_extensions_gen = files('vk_extensions_gen.py')
 vk_icd_gen = files('vk_icd_gen.py')
@@ -55,6 +72,7 @@ vk_common_entrypoints = custom_target(
     prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--proto', '--weak',
     '--out-h', '@OUTPUT0@', '--out-c', '@OUTPUT1@', '--prefix', 'vk_common',
   ],
+  depend_files : vk_entrypoints_gen_depend_files,
 )
 
 vk_dispatch_table = custom_target(
@@ -65,6 +83,7 @@ vk_dispatch_table = custom_target(
     prog_python, '@INPUT0@', '--xml', '@INPUT1@',
     '--out-c', '@OUTPUT0@', '--out-h', '@OUTPUT1@'
   ],
+  depend_files : vk_dispatch_table_gen_depend_files,
 )
 
 vk_enum_to_str = custom_target(
@@ -85,7 +104,7 @@ vk_extensions = custom_target(
     prog_python, '@INPUT0@', '--xml', '@INPUT1@',
     '--out-c', '@OUTPUT0@', '--out-h', '@OUTPUT1@'
   ],
-  depend_files : files('vk_extensions.py'),
+  depend_files : vk_extensions_gen_depend_files,
 )
 
 libvulkan_util = static_library(
@@ -106,7 +125,10 @@ idep_vulkan_util_headers = declare_dependency(
   include_directories : include_directories('.')
 )
 
-if with_platform_windows
+# This is likely a bug in the Meson VS backend, as MSVC with ninja works fine.
+# See this discussion here:
+# https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/10506 
+if get_option('backend').startswith('vs')
   idep_vulkan_util = declare_dependency(
     link_with : libvulkan_util,
     dependencies : idep_vulkan_util_headers

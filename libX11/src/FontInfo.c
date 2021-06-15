@@ -58,6 +58,9 @@ XFontStruct **info)	/* RETURN */
     register xListFontsReq *req;
     int j;
 
+    if (pattern != NULL && strlen(pattern) >= USHRT_MAX)
+        return NULL;
+
     LockDisplay(dpy);
     GetReq(ListFontsWithInfo, req);
     req->maxNames = maxNames;

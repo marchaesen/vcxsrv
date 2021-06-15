@@ -31,17 +31,58 @@ mir_get_imod(bool shift, nir_alu_type T, bool half, bool scalar)
 {
         if (!half) {
                 assert(!shift);
-                /* Sign-extension, really... */
-                return scalar ? 0 : midgard_int_normal;
+                /* Doesn't matter, src mods are only used when expanding */
+                return midgard_int_sign_extend;
         }
 
         if (shift)
-                return midgard_int_shift;
+                return midgard_int_left_shift;
 
         if (nir_alu_type_get_base_type(T) == nir_type_int)
                 return midgard_int_sign_extend;
         else
                 return midgard_int_zero_extend;
+}
+
+void
+midgard_pack_ubo_index_imm(midgard_load_store_word *word, unsigned index)
+{
+        word->arg_comp = index & 0x3;
+        word->arg_reg = (index >> 2) & 0x7;
+        word->bitsize_toggle = (index >> 5) & 0x1;
+        word->index_format = (index >> 6) & 0x3;
+}
+
+unsigned
+midgard_unpack_ubo_index_imm(midgard_load_store_word word)
+{
+        unsigned ubo = word.arg_comp |
+                       (word.arg_reg << 2)  |
+                       (word.bitsize_toggle << 5) |
+                       (word.index_format << 6);
+
+        return ubo;
+}
+
+void midgard_pack_varying_params(midgard_load_store_word *word, midgard_varying_params p)
+{
+        /* Currently these parameters are not supported. */
+        assert(p.direct_sample_pos_x == 0 && p.direct_sample_pos_y == 0);
+
+        unsigned u;
+        memcpy(&u, &p, sizeof(p));
+
+        word->signed_offset |= u & 0x1FF;
+}
+
+midgard_varying_params midgard_unpack_varying_params(midgard_load_store_word word)
+{
+        unsigned params = word.signed_offset & 0x1FF;
+
+        midgard_varying_params p;
+        memcpy(&p, &params, sizeof(p));
+
+        return p;
 }
 
 unsigned
@@ -178,11 +219,11 @@ mir_pack_mask_alu(midgard_instruction *ins, midgard_vector_alu *alu)
 
         if (upper_shift >= 0) {
                 effective >>= upper_shift;
-                alu->dest_override = upper_shift ?
-                        midgard_dest_override_upper :
-                        midgard_dest_override_lower;
+                alu->shrink_mode = upper_shift ?
+                        midgard_shrink_mode_upper :
+                        midgard_shrink_mode_lower;
         } else {
-                alu->dest_override = midgard_dest_override_none;
+                alu->shrink_mode = midgard_shrink_mode_none;
         }
 
         if (inst_size == 32)
@@ -195,11 +236,14 @@ mir_pack_mask_alu(midgard_instruction *ins, midgard_vector_alu *alu)
 
 static unsigned
 mir_pack_swizzle(unsigned mask, unsigned *swizzle,
-                nir_alu_type T, midgard_reg_mode reg_mode,
-                bool op_channeled, bool *rep_low, bool *rep_high)
+                 unsigned sz, unsigned base_size,
+                 bool op_channeled, midgard_src_expand_mode *expand_mode)
 {
         unsigned packed = 0;
-        unsigned sz = nir_alu_type_get_type_size(T);
+
+        *expand_mode = midgard_src_passthrough;
+
+        midgard_reg_mode reg_mode = reg_mode_for_bitsize(base_size);
 
         if (reg_mode == midgard_reg_mode_64) {
                 assert(sz == 64 || sz == 32);
@@ -216,9 +260,11 @@ mir_pack_swizzle(unsigned mask, unsigned *swizzle,
                                 if (mask & 2)
                                         assert(lo == hi);
 
-                                *rep_low = lo;
+                                *expand_mode = lo ? midgard_src_expand_high :
+                                                    midgard_src_expand_low;
                         } else {
-                                *rep_low = hi;
+                                *expand_mode = hi ? midgard_src_expand_high :
+                                                    midgard_src_expand_low;
                         }
                 } else if (sz < 32) {
                         unreachable("Cannot encode 8/16 swizzle in 64-bit");
@@ -261,14 +307,19 @@ mir_pack_swizzle(unsigned mask, unsigned *swizzle,
                  * dot products */
 
                 if (reg_mode == midgard_reg_mode_16 && sz == 16) {
-                        *rep_low = !upper;
-                        *rep_high = upper;
+                        *expand_mode = upper ? midgard_src_rep_high :
+                                               midgard_src_rep_low;
                 } else if (reg_mode == midgard_reg_mode_16 && sz == 8) {
-                        *rep_low = upper;
-                        *rep_high = upper;
-                } else if (reg_mode == midgard_reg_mode_32) {
-                        *rep_low = upper;
-                } else {
+                        if (base_size == 16) {
+                                *expand_mode = upper ? midgard_src_expand_high :
+                                                       midgard_src_expand_low;
+                        } else if (upper) {
+                                *expand_mode = midgard_src_swap;
+                        }
+                } else if (reg_mode == midgard_reg_mode_32 && sz == 16) {
+                        *expand_mode = upper ? midgard_src_expand_high :
+                                               midgard_src_expand_low;
+                } else if (reg_mode == midgard_reg_mode_8) {
                         unreachable("Unhandled reg mode");
                 }
         }
@@ -290,21 +341,17 @@ mir_pack_vector_srcs(midgard_instruction *ins, midgard_vector_alu *alu)
                 if (ins->src[i] == ~0)
                         continue;
 
-                bool rep_lo = false, rep_hi = false;
                 unsigned sz = nir_alu_type_get_type_size(ins->src_types[i]);
-                bool half = (sz == (base_size >> 1));
+                assert((sz == base_size) || (sz == base_size / 2));
 
-                assert((sz == base_size) || half);
-
+                midgard_src_expand_mode expand_mode = midgard_src_passthrough;
                 unsigned swizzle = mir_pack_swizzle(ins->mask, ins->swizzle[i],
-                                ins->src_types[i], reg_mode_for_bitsize(base_size),
-                                channeled, &rep_lo, &rep_hi);
+                                                    sz, base_size, channeled,
+                                                    &expand_mode);
 
                 midgard_vector_alu_src pack = {
                         .mod = mir_pack_mod(ins, i, false),
-                        .rep_low = rep_lo,
-                        .rep_high = rep_hi,
-                        .half = half,
+                        .expand_mode = expand_mode,
                         .swizzle = swizzle
                 };
 
@@ -401,9 +448,67 @@ mir_pack_tex_ooo(midgard_block *block, midgard_bundle *bundle, midgard_instructi
         ins->texture.out_of_order = count;
 }
 
-/* Load store masks are 4-bits. Load/store ops pack for that. vec4 is the
- * natural mask width; vec8 is constrained to be in pairs, vec2 is duplicated. TODO: 8-bit?
+/* Load store masks are 4-bits. Load/store ops pack for that.
+ * For most operations, vec4 is the natural mask width; vec8 is constrained to
+ * be in pairs, vec2 is duplicated. TODO: 8-bit?
+ * For common stores (i.e. ST.*), each bit masks a single byte in the 32-bit
+ * case, 2 bytes in the 64-bit case and 4 bytes in the 128-bit case.
  */
+
+static unsigned
+midgard_pack_common_store_mask(midgard_instruction *ins) {
+        unsigned comp_sz = nir_alu_type_get_type_size(ins->dest_type);
+        unsigned mask = ins->mask;
+        unsigned packed = 0;
+        unsigned nr_comp;
+
+        switch (ins->op) {
+                case midgard_op_st_u8:
+                        packed |= mask & 1;
+                        break;
+                case midgard_op_st_u16:
+                        nr_comp = 16 / comp_sz;
+                        for (int i = 0; i < nr_comp; i++) {
+                                if (mask & (1 << i)) {
+                                        if (comp_sz == 16)
+                                                packed |= 0x3;
+                                        else if (comp_sz == 8)
+                                                packed |= 1 << i;
+                                }
+                        }
+                        break;
+                case midgard_op_st_32:
+                case midgard_op_st_64:
+                case midgard_op_st_128: {
+                        unsigned total_sz = 32;
+                        if (ins->op == midgard_op_st_128)
+                                total_sz = 128;
+                        else if (ins->op == midgard_op_st_64)
+                                total_sz = 64;
+
+                        nr_comp = total_sz / comp_sz;
+
+                        /* Each writemask bit masks 1/4th of the value to be stored. */
+                        assert(comp_sz >= total_sz / 4);
+
+                        for (int i = 0; i < nr_comp; i++) {
+                                if (mask & (1 << i)) {
+                                        if (comp_sz == total_sz)
+                                                packed |= 0xF;
+                                        else if (comp_sz == total_sz / 2)
+                                                packed |= 0x3 << (i * 2);
+                                        else if (comp_sz == total_sz / 4)
+                                                packed |= 0x1 << i;
+                                }
+                        }
+                        break;
+                }
+                default:
+                        unreachable("unexpected ldst opcode");
+        }
+
+        return packed;
+}
 
 static void
 mir_pack_ldst_mask(midgard_instruction *ins)
@@ -411,22 +516,26 @@ mir_pack_ldst_mask(midgard_instruction *ins)
         unsigned sz = nir_alu_type_get_type_size(ins->dest_type);
         unsigned packed = ins->mask;
 
-        if (sz == 64) {
-                packed = ((ins->mask & 0x2) ? (0x8 | 0x4) : 0) |
-                         ((ins->mask & 0x1) ? (0x2 | 0x1) : 0);
-        } else if (sz == 16) {
-                packed = 0;
-
-                for (unsigned i = 0; i < 4; ++i) {
-                        /* Make sure we're duplicated */
-                        bool u = (ins->mask & (1 << (2*i + 0))) != 0;
-                        ASSERTED bool v = (ins->mask & (1 << (2*i + 1))) != 0;
-                        assert(u == v);
-
-                        packed |= (u << i);
-                }
+        if (OP_IS_COMMON_STORE(ins->op)) {
+                packed = midgard_pack_common_store_mask(ins);
         } else {
-                assert(sz == 32);
+                if (sz == 64) {
+                        packed = ((ins->mask & 0x2) ? (0x8 | 0x4) : 0) |
+                                ((ins->mask & 0x1) ? (0x2 | 0x1) : 0);
+                } else if (sz == 16) {
+                        packed = 0;
+
+                        for (unsigned i = 0; i < 4; ++i) {
+                                /* Make sure we're duplicated */
+                                bool u = (ins->mask & (1 << (2*i + 0))) != 0;
+                                ASSERTED bool v = (ins->mask & (1 << (2*i + 1))) != 0;
+                                assert(u == v);
+
+                                packed |= (u << i);
+                        }
+                } else {
+                        assert(sz == 32);
+                }
         }
 
         ins->load_store.mask = packed;
@@ -510,15 +619,15 @@ load_store_from_instr(midgard_instruction *ins)
         }
 
         if (ins->src[1] != ~0) {
-                unsigned src = SSA_REG_FROM_FIXED(ins->src[1]);
+                ldst.arg_reg = SSA_REG_FROM_FIXED(ins->src[1]) - REGISTER_LDST_BASE;
                 unsigned sz = nir_alu_type_get_type_size(ins->src_types[1]);
-                ldst.arg_1 |= midgard_ldst_reg(src, ins->swizzle[1][0], sz);
+                ldst.arg_comp = midgard_ldst_comp(ldst.arg_reg, ins->swizzle[1][0], sz);
         }
 
         if (ins->src[2] != ~0) {
-                unsigned src = SSA_REG_FROM_FIXED(ins->src[2]);
+                ldst.index_reg = SSA_REG_FROM_FIXED(ins->src[2]) - REGISTER_LDST_BASE;
                 unsigned sz = nir_alu_type_get_type_size(ins->src_types[2]);
-                ldst.arg_2 |= midgard_ldst_reg(src, ins->swizzle[2][0], sz);
+                ldst.index_comp = midgard_ldst_comp(ldst.index_reg, ins->swizzle[2][0], sz);
         }
 
         return ldst;
@@ -808,13 +917,22 @@ emit_alu_bundle(compiler_context *ctx,
  * over some other semantic distinction else well, but it unifies things in the
  * compiler so I don't mind. */
 
-static unsigned
-mir_ldst_imm_shift(midgard_load_store_op op)
+static void
+mir_ldst_pack_offset(midgard_instruction *ins, int offset)
 {
-        if (OP_IS_UBO_READ(op))
-                return 3;
+        /* These opcodes don't support offsets */
+        assert(!OP_IS_REG2REG_LDST(ins->op) ||
+               ins->op == midgard_op_lea    ||
+               ins->op == midgard_op_lea_image);
+
+        if (OP_IS_UBO_READ(ins->op))
+                ins->load_store.signed_offset |= PACK_LDST_UBO_OFS(offset);
+        else if (OP_IS_IMAGE(ins->op))
+                ins->load_store.signed_offset |= PACK_LDST_ATTRIB_OFS(offset);
+        else if (OP_IS_SPECIAL(ins->op))
+                ins->load_store.signed_offset |= PACK_LDST_SELECTOR_OFS(offset);
         else
-                return 1;
+                ins->load_store.signed_offset |= PACK_LDST_MEM_OFS(offset);
 }
 
 static enum mali_sampler_type
@@ -863,22 +981,17 @@ emit_binary_bundle(compiler_context *ctx,
                 /* Copy masks */
 
                 for (unsigned i = 0; i < bundle->instruction_count; ++i) {
-                        mir_pack_ldst_mask(bundle->instructions[i]);
+                        midgard_instruction *ins = bundle->instructions[i];
+                        mir_pack_ldst_mask(ins);
 
                         /* Atomic ops don't use this swizzle the same way as other ops */
-                        if (!OP_IS_ATOMIC(bundle->instructions[i]->op))
-                                mir_pack_swizzle_ldst(bundle->instructions[i]);
+                        if (!OP_IS_ATOMIC(ins->op))
+                                mir_pack_swizzle_ldst(ins);
 
                         /* Apply a constant offset */
-                        unsigned offset = bundle->instructions[i]->constants.u32[0];
-
-                        if (offset) {
-                                unsigned shift = mir_ldst_imm_shift(bundle->instructions[i]->op);
-                                unsigned upper_shift = 10 - shift;
-
-                                bundle->instructions[i]->load_store.varying_parameters |= (offset & ((1 << upper_shift) - 1)) << shift;
-                                bundle->instructions[i]->load_store.address |= (offset >> upper_shift);
-                        }
+                        unsigned offset = ins->constants.u32[0];
+                        if (offset)
+                                mir_ldst_pack_offset(ins, offset);
                 }
 
                 midgard_load_store_word ldst0 =
@@ -916,7 +1029,7 @@ emit_binary_bundle(compiler_context *ctx,
                 ins->texture.next_type = next_tag;
 
                 /* Nothing else to pack for barriers */
-                if (ins->op == TEXTURE_OP_BARRIER) {
+                if (ins->op == midgard_tex_op_barrier) {
                         ins->texture.cont = ins->texture.last = 1;
                         ins->texture.op = ins->op;
                         util_dynarray_append(emission, midgard_texture_word, ins->texture);

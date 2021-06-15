@@ -28,57 +28,55 @@
 #ifndef RADV_AMDGPU_WINSYS_H
 #define RADV_AMDGPU_WINSYS_H
 
-#include "radv_radeon_winsys.h"
-#include "ac_gpu_info.h"
 #include <amdgpu.h>
+#include <pthread.h>
 #include "util/list.h"
 #include "util/rwlock.h"
-#include <pthread.h>
+#include "ac_gpu_info.h"
+#include "radv_radeon_winsys.h"
 
 struct radv_amdgpu_winsys {
-	struct radeon_winsys base;
-	amdgpu_device_handle dev;
+   struct radeon_winsys base;
+   amdgpu_device_handle dev;
 
-	struct radeon_info info;
-	struct amdgpu_gpu_info amdinfo;
-	struct ac_addrlib *addrlib;
+   struct radeon_info info;
+   struct amdgpu_gpu_info amdinfo;
+   struct ac_addrlib *addrlib;
 
-	bool debug_all_bos;
-	bool debug_log_bos;
-	bool use_ib_bos;
-	enum radeon_bo_domain cs_bo_domain;
-	bool zero_all_vram_allocs;
-	bool use_local_bos;
-	bool use_llvm;
+   bool debug_all_bos;
+   bool debug_log_bos;
+   bool use_ib_bos;
+   bool zero_all_vram_allocs;
+   uint64_t perftest;
 
-	uint64_t allocated_vram;
-	uint64_t allocated_vram_vis;
-	uint64_t allocated_gtt;
+   uint64_t allocated_vram;
+   uint64_t allocated_vram_vis;
+   uint64_t allocated_gtt;
 
-	/* Global BO list */
-	struct {
-		struct radv_amdgpu_winsys_bo **bos;
-		uint32_t count;
-		uint32_t capacity;
-		struct u_rwlock lock;
-	} global_bo_list;
+   /* Global BO list */
+   struct {
+      struct radv_amdgpu_winsys_bo **bos;
+      uint32_t count;
+      uint32_t capacity;
+      struct u_rwlock lock;
+   } global_bo_list;
 
-	/* syncobj cache */
-	pthread_mutex_t syncobj_lock;
-	uint32_t *syncobj;
-	uint32_t syncobj_count, syncobj_capacity;
+   /* syncobj cache */
+   pthread_mutex_t syncobj_lock;
+   uint32_t *syncobj;
+   uint32_t syncobj_count, syncobj_capacity;
 
-	/* BO log */
-	struct u_rwlock log_bo_list_lock;
-	struct list_head log_bo_list;
+   /* BO log */
+   struct u_rwlock log_bo_list_lock;
+   struct list_head log_bo_list;
 
-	uint32_t refcount;
+   uint32_t refcount;
 };
 
 static inline struct radv_amdgpu_winsys *
 radv_amdgpu_winsys(struct radeon_winsys *base)
 {
-	return (struct radv_amdgpu_winsys*)base;
+   return (struct radv_amdgpu_winsys *)base;
 }
 
 #endif /* RADV_AMDGPU_WINSYS_H */

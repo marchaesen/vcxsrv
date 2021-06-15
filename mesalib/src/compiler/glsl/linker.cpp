@@ -3864,7 +3864,7 @@ add_shader_variable(const struct gl_context *ctx,
          }
          return true;
       }
-      /* fallthrough */
+      FALLTHROUGH;
    }
 
    default: {

@@ -97,6 +97,9 @@ nine_upload_create_buffer_group(struct nine_buffer_upload *upload,
     group->map = pipe_buffer_map_range(upload->pipe, group->resource,
                                        0, upload->buffers_size,
                                        PIPE_MAP_WRITE |
+#ifdef PIPE_ARCH_X86
+                                       PIPE_MAP_ONCE |
+#endif
                                        PIPE_MAP_PERSISTENT |
                                        PIPE_MAP_COHERENT,
                                        &group->transfer);
@@ -228,6 +231,9 @@ nine_upload_create_buffer(struct nine_buffer_upload *upload,
         buf->map = pipe_buffer_map_range(upload->pipe, buf->resource,
                                          0, buffer_size,
                                          PIPE_MAP_WRITE |
+#ifdef PIPE_ARCH_X86
+                                         PIPE_MAP_ONCE |
+#endif
                                          PIPE_MAP_PERSISTENT |
                                          PIPE_MAP_COHERENT,
                                          &buf->transfer);

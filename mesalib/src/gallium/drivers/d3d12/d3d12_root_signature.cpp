@@ -115,23 +115,23 @@ create_root_signature(struct d3d12_context *ctx, struct d3d12_root_signature_key
          num_params++;
       }
 
-      if (key->stages[i].num_srv_bindings > 0) {
+      if (key->stages[i].end_srv_binding > 0) {
          init_range_root_param(&root_params[num_params],
                                &desc_ranges[num_params],
                                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-                               key->stages[i].num_srv_bindings,
+                               key->stages[i].end_srv_binding - key->stages[i].begin_srv_binding,
                                visibility,
-                               0);
+            key->stages[i].begin_srv_binding);
          num_params++;
       }
 
-      if (key->stages[i].num_srv_bindings > 0) {
+      if (key->stages[i].end_srv_binding > 0) {
          init_range_root_param(&root_params[num_params],
                                &desc_ranges[num_params],
                                D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
-                               key->stages[i].num_srv_bindings,
+                               key->stages[i].end_srv_binding - key->stages[i].begin_srv_binding,
                                visibility,
-                               0);
+                               key->stages[i].begin_srv_binding);
          num_params++;
       }
 
@@ -186,7 +186,8 @@ fill_key(struct d3d12_context *ctx, struct d3d12_root_signature_key *key)
 
       if (shader) {
          key->stages[i].num_cb_bindings = shader->num_cb_bindings;
-         key->stages[i].num_srv_bindings = shader->num_srv_bindings;
+         key->stages[i].end_srv_binding = shader->end_srv_binding;
+         key->stages[i].begin_srv_binding = shader->begin_srv_binding;
          key->stages[i].state_vars_size = shader->state_vars_size;
          key->stages[i].has_default_ubo0 = shader->has_default_ubo0;
 

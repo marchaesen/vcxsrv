@@ -63,7 +63,7 @@ ir3_compiler_destroy(struct ir3_compiler *compiler)
 }
 
 struct ir3_compiler *
-ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id)
+ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id, bool robust_ubo_access)
 {
 	struct ir3_compiler *compiler = rzalloc(NULL, struct ir3_compiler);
 
@@ -77,6 +77,7 @@ ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id)
 
 	compiler->dev = dev;
 	compiler->gpu_id = gpu_id;
+	compiler->robust_ubo_access = robust_ubo_access;
 	compiler->set = ir3_ra_alloc_reg_set(compiler, false);
 
 	/* All known GPU's have 32k local memory (aka shared) */

@@ -41,12 +41,8 @@ public:
    PValue primitive_id() override {return m_primitive_id;}
 
 private:
-   bool do_emit_load_deref(const nir_variable *in_var, nir_intrinsic_instr* instr) override;
-   bool do_emit_store_deref(const nir_variable *out_var, nir_intrinsic_instr* instr) override;
 
-   bool do_process_inputs(nir_variable *input) override;
    bool do_allocate_reserved_registers() override;
-   bool do_process_outputs(nir_variable *output) override;
    bool emit_intrinsic_instruction_override(nir_intrinsic_instr* instr) override;
 
    bool emit_vertex(nir_intrinsic_instr* instr, bool cut);

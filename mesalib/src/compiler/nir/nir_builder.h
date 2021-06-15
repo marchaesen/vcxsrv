@@ -570,7 +570,7 @@ nir_mov_alu(nir_builder *build, nir_alu_src src, unsigned num_components)
 }
 
 /**
- * Construct an fmov or imov that reswizzles the source's components.
+ * Construct a mov that reswizzles the source's components.
  */
 static inline nir_ssa_def *
 nir_swizzle(nir_builder *build, nir_ssa_def *src, const unsigned *swiz,
@@ -930,6 +930,27 @@ nir_udiv_imm(nir_builder *build, nir_ssa_def *x, uint64_t y)
    } else {
       return nir_udiv(build, x, nir_imm_intN_t(build, y, x->bit_size));
    }
+}
+
+static inline nir_ssa_def *
+nir_fclamp(nir_builder *b,
+           nir_ssa_def *x, nir_ssa_def *min_val, nir_ssa_def *max_val)
+{
+   return nir_fmin(b, nir_fmax(b, x, min_val), max_val);
+}
+
+static inline nir_ssa_def *
+nir_iclamp(nir_builder *b,
+           nir_ssa_def *x, nir_ssa_def *min_val, nir_ssa_def *max_val)
+{
+   return nir_imin(b, nir_imax(b, x, min_val), max_val);
+}
+
+static inline nir_ssa_def *
+nir_uclamp(nir_builder *b,
+           nir_ssa_def *x, nir_ssa_def *min_val, nir_ssa_def *max_val)
+{
+   return nir_umin(b, nir_umax(b, x, min_val), max_val);
 }
 
 static inline nir_ssa_def *
@@ -1664,18 +1685,29 @@ nir_scoped_memory_barrier(nir_builder *b,
 }
 
 static inline nir_ssa_def *
+nir_type_convert(nir_builder *b,
+                    nir_ssa_def *src,
+                    nir_alu_type src_type,
+                    nir_alu_type dest_type)
+{
+   assert(nir_alu_type_get_type_size(src_type) == 0 ||
+          nir_alu_type_get_type_size(src_type) == src->bit_size);
+
+   src_type = (nir_alu_type) (src_type | src->bit_size);
+
+   nir_op opcode =
+      nir_type_conversion_op(src_type, dest_type, nir_rounding_mode_undef);
+
+   return nir_build_alu(b, opcode, src, NULL, NULL, NULL);
+}
+
+static inline nir_ssa_def *
 nir_convert_to_bit_size(nir_builder *b,
                     nir_ssa_def *src,
                     nir_alu_type type,
                     unsigned bit_size)
 {
-   nir_alu_type base_type = nir_alu_type_get_base_type(type);
-   nir_alu_type dst_type = (nir_alu_type)(bit_size | base_type);
-
-   nir_op opcode =
-      nir_type_conversion_op(type, dst_type, nir_rounding_mode_undef);
-
-   return nir_build_alu(b, opcode, src, NULL, NULL, NULL);
+   return nir_type_convert(b, src, type, (nir_alu_type) (type | bit_size));
 }
 
 static inline nir_ssa_def *
@@ -1700,6 +1732,34 @@ static inline nir_ssa_def *
 nir_f2fN(nir_builder *b, nir_ssa_def *src, unsigned bit_size)
 {
    return nir_convert_to_bit_size(b, src, nir_type_float, bit_size);
+}
+
+static inline nir_ssa_def *
+nir_i2fN(nir_builder *b, nir_ssa_def *src, unsigned bit_size)
+{
+   return nir_type_convert(b, src, nir_type_int,
+         (nir_alu_type) (nir_type_float | bit_size));
+}
+
+static inline nir_ssa_def *
+nir_u2fN(nir_builder *b, nir_ssa_def *src, unsigned bit_size)
+{
+   return nir_type_convert(b, src, nir_type_uint,
+         (nir_alu_type) (nir_type_float | bit_size));
+}
+
+static inline nir_ssa_def *
+nir_f2uN(nir_builder *b, nir_ssa_def *src, unsigned bit_size)
+{
+   return nir_type_convert(b, src, nir_type_float,
+         (nir_alu_type) (nir_type_uint | bit_size));
+}
+
+static inline nir_ssa_def *
+nir_f2iN(nir_builder *b, nir_ssa_def *src, unsigned bit_size)
+{
+   return nir_type_convert(b, src, nir_type_float,
+         (nir_alu_type) (nir_type_int | bit_size));
 }
 
 #endif /* NIR_BUILDER_H */

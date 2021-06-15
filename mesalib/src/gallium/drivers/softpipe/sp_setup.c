@@ -1289,7 +1289,7 @@ sp_setup_point(struct setup_context *setup,
 
       switch (sinfo->attrib[fragSlot].interp) {
       case SP_INTERP_CONSTANT:
-         /* fall-through */
+         FALLTHROUGH;
       case SP_INTERP_LINEAR:
          for (j = 0; j < TGSI_NUM_CHANNELS; j++)
             const_coeff(setup, &setup->coef[fragSlot], vertSlot, j);

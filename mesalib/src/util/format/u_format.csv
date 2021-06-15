@@ -34,6 +34,7 @@
 # - layout, per enum util_format_layout, in shortened lower caps
 # - pixel block's width
 # - pixel block's height
+# - pixel block's depth, in number of pixels
 # - channel encoding (only meaningful for plain layout), containing for each
 #   channel the following information:
 #   - type, one of
@@ -147,7 +148,7 @@ PIPE_FORMAT_A8R8G8B8_SRGB           , plain, 1, 1, 1, un8 , un8 , un8 , un8 , yz
 PIPE_FORMAT_X8R8G8B8_SRGB           , plain, 1, 1, 1, x8  , un8 , un8 , un8 , yzw1, srgb
 
 # Mixed-sign formats (typically used for bump map textures)
-PIPE_FORMAT_R8SG8SB8UX8U_NORM       , plain, 1, 1, 1, sn8 , sn8 , un8 , x8  , xyz1, rgb
+PIPE_FORMAT_R8SG8SB8UX8U_NORM       , plain, 1, 1, 1, sn8 , sn8 , un8 , x8  , xyz1, rgb,  x8 , un8 , sn8 , sn8 , wzy1
 PIPE_FORMAT_R10SG10SB10SA2U_NORM    , plain, 1, 1, 1, sn10, sn10, sn10, un2 , xyzw, rgb, un2 , sn10, sn10, sn10, wzyx
 PIPE_FORMAT_R5SG5SB6U_NORM          , plain, 1, 1, 1, sn5 , sn5 , un6 ,     , xyz1, rgb, un6 , sn5 , sn5 ,     , zyx1
 

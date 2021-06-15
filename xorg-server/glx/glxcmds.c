@@ -495,8 +495,15 @@ __glXGetDrawable(__GLXcontext * glxc, GLXDrawable drawId, ClientPtr client,
     __GLXscreen *pGlxScreen;
     int rc;
 
-    if (validGlxDrawable(client, drawId, GLX_DRAWABLE_ANY,
-                         DixWriteAccess, &pGlxDraw, &rc)) {
+    rc = dixLookupResourceByType((void **)&pGlxDraw, drawId,
+                                 __glXDrawableRes, client, DixWriteAccess);
+    if (rc == Success &&
+        /* If pGlxDraw->drawId == drawId, drawId is a valid GLX drawable.
+         * Otherwise, if pGlxDraw->type == GLX_DRAWABLE_WINDOW, drawId is
+         * an X window, but the client has already created a GLXWindow
+         * associated with it, so we don't want to create another one. */
+        (pGlxDraw->drawId == drawId ||
+         pGlxDraw->type == GLX_DRAWABLE_WINDOW)) {
         if (glxc != NULL &&
             glxc->config != NULL &&
             glxc->config != pGlxDraw->config) {
@@ -726,8 +733,9 @@ xorgGlxMakeCurrent(ClientPtr client, GLXContextTag tag, XID drawId, XID readId,
         }
 
         glxc->currentClient = client;
-        glxServer.setContextTagPrivate(client, newContextTag, glxc);
     }
+
+    glxServer.setContextTagPrivate(client, newContextTag, glxc);
 
     if (prevglxc) {
         prevglxc->currentClient = NULL;
@@ -1053,7 +1061,6 @@ __glXDisp_GetVisualConfigs(__GLXclientState * cl, GLbyte * pc)
         }
         /* Pad with zeroes, so that attributes count is constant. */
         while (p < GLX_VIS_CONFIG_TOTAL) {
-            buf[p++] = 0;
             buf[p++] = 0;
         }
 
@@ -1949,7 +1956,7 @@ DoGetDrawableAttributes(__GLXclientState * cl, XID drawId)
         int err = dixLookupWindow((WindowPtr *)&pDraw, drawId, client,
                                   DixGetAttrAccess);
         if (err != Success)
-            return error;
+            return __glXError(GLXBadDrawable);
     }
     if (pGlxDraw)
         pDraw = pGlxDraw->pDraw;

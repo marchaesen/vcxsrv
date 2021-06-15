@@ -29,39 +29,39 @@
 
 #include "pipe/p_context.h"
 
-#include "freedreno_texture.h"
 #include "freedreno_resource.h"
+#include "freedreno_texture.h"
 
 #include "fd4_context.h"
 #include "fd4_format.h"
 
 struct fd4_sampler_stateobj {
-	struct pipe_sampler_state base;
-	uint32_t texsamp0, texsamp1;
-	bool needs_border;
+   struct pipe_sampler_state base;
+   uint32_t texsamp0, texsamp1;
+   bool needs_border;
 };
 
 static inline struct fd4_sampler_stateobj *
 fd4_sampler_stateobj(struct pipe_sampler_state *samp)
 {
-	return (struct fd4_sampler_stateobj *)samp;
+   return (struct fd4_sampler_stateobj *)samp;
 }
 
 struct fd4_pipe_sampler_view {
-	struct pipe_sampler_view base;
-	uint32_t texconst0, texconst1, texconst2, texconst3, texconst4;
-	uint32_t offset;
-	bool astc_srgb;
+   struct pipe_sampler_view base;
+   uint32_t texconst0, texconst1, texconst2, texconst3, texconst4;
+   uint32_t offset;
+   bool astc_srgb;
 };
 
 static inline struct fd4_pipe_sampler_view *
 fd4_pipe_sampler_view(struct pipe_sampler_view *pview)
 {
-	return (struct fd4_pipe_sampler_view *)pview;
+   return (struct fd4_pipe_sampler_view *)pview;
 }
 
 unsigned fd4_get_const_idx(struct fd_context *ctx,
-		struct fd_texture_stateobj *tex, unsigned samp_id);
+                           struct fd_texture_stateobj *tex, unsigned samp_id);
 
 void fd4_texture_init(struct pipe_context *pctx);
 

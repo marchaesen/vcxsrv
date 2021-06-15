@@ -50,9 +50,9 @@
 #include "errno.h"
 #include "common/intel_aux_map.h"
 #include "common/intel_clflush.h"
-#include "dev/gen_debug.h"
+#include "dev/intel_debug.h"
 #include "common/intel_gem.h"
-#include "dev/gen_device_info.h"
+#include "dev/intel_device_info.h"
 #include "main/macros.h"
 #include "os/os_mman.h"
 #include "util/debug.h"
@@ -100,6 +100,19 @@
 } while (0)
 
 #define FILE_DEBUG_FLAG DEBUG_BUFMGR
+
+/**
+ * For debugging purposes, this returns a time in seconds.
+ */
+static double
+get_time(void)
+{
+   struct timespec tp;
+
+   clock_gettime(CLOCK_MONOTONIC, &tp);
+
+   return tp.tv_sec + tp.tv_nsec / 1000000000.0;
+}
 
 static inline int
 atomic_add_unless(int *v, int add, int unless)
@@ -798,14 +811,17 @@ bo_free(struct iris_bo *bo)
    if (bo->map_cpu && !bo->userptr) {
       VG_NOACCESS(bo->map_cpu, bo->size);
       os_munmap(bo->map_cpu, bo->size);
+      bo->map_cpu = NULL;
    }
    if (bo->map_wc) {
       VG_NOACCESS(bo->map_wc, bo->size);
       os_munmap(bo->map_wc, bo->size);
+      bo->map_wc = NULL;
    }
    if (bo->map_gtt) {
       VG_NOACCESS(bo->map_gtt, bo->size);
       os_munmap(bo->map_gtt, bo->size);
+      bo->map_gtt = NULL;
    }
 
    if (bo->idle) {
@@ -1054,7 +1070,7 @@ iris_bo_map_cpu(struct pipe_debug_callback *dbg,
        * LLC entirely requiring us to keep dirty pixels for the scanout
        * out of any cache.)
        */
-      gen_invalidate_range(bo->map_cpu, bo->size);
+      intel_invalidate_range(bo->map_cpu, bo->size);
    }
 
    return bo->map_cpu;
@@ -1425,7 +1441,7 @@ iris_bo_import_dmabuf(struct iris_bufmgr *bufmgr, int prime_fd,
    bo->external = true;
    bo->kflags = EXEC_OBJECT_SUPPORTS_48B_ADDRESS | EXEC_OBJECT_PINNED;
 
-   /* From the Bspec, Memory Compression - Gen12:
+   /* From the Bspec, Memory Compression - Gfx12:
     *
     *    The base address for the surface has to be 64K page aligned and the
     *    surface is expected to be padded in the virtual domain to be 4 4K
@@ -1462,6 +1478,60 @@ err:
    bo_free(bo);
    mtx_unlock(&bufmgr->lock);
    return NULL;
+}
+
+struct iris_bo *
+iris_bo_import_dmabuf_no_mods(struct iris_bufmgr *bufmgr,
+                              int prime_fd)
+{
+   uint32_t handle;
+   struct iris_bo *bo;
+
+   mtx_lock(&bufmgr->lock);
+   int ret = drmPrimeFDToHandle(bufmgr->fd, prime_fd, &handle);
+   if (ret) {
+      DBG("import_dmabuf: failed to obtain handle from fd: %s\n",
+          strerror(errno));
+      mtx_unlock(&bufmgr->lock);
+      return NULL;
+   }
+
+   /*
+    * See if the kernel has already returned this buffer to us. Just as
+    * for named buffers, we must not create two bo's pointing at the same
+    * kernel object
+    */
+   bo = find_and_ref_external_bo(bufmgr->handle_table, handle);
+   if (bo)
+      goto out;
+
+   bo = bo_calloc();
+   if (!bo)
+      goto out;
+
+   p_atomic_set(&bo->refcount, 1);
+
+   /* Determine size of bo.  The fd-to-handle ioctl really should
+    * return the size, but it doesn't.  If we have kernel 3.12 or
+    * later, we can lseek on the prime fd to get the size.  Older
+    * kernels will just fail, in which case we fall back to the
+    * provided (estimated or guess size). */
+   ret = lseek(prime_fd, 0, SEEK_END);
+   if (ret != -1)
+      bo->size = ret;
+
+   bo->bufmgr = bufmgr;
+   bo->name = "prime";
+   bo->reusable = false;
+   bo->external = true;
+   bo->kflags = EXEC_OBJECT_SUPPORTS_48B_ADDRESS | EXEC_OBJECT_PINNED;
+   bo->gtt_offset = vma_alloc(bufmgr, IRIS_MEMZONE_OTHER, bo->size, 1);
+   bo->gem_handle = handle;
+   _mesa_hash_table_insert(bufmgr->handle_table, &bo->gem_handle, bo);
+
+out:
+   mtx_unlock(&bufmgr->lock);
+   return bo;
 }
 
 static void
@@ -1788,7 +1858,7 @@ intel_aux_map_buffer_free(void *driver_ctx, struct intel_buffer *buffer)
    free(buffer);
 }
 
-static struct gen_mapped_pinned_buffer_alloc aux_map_allocator = {
+static struct intel_mapped_pinned_buffer_alloc aux_map_allocator = {
    .alloc = intel_aux_map_buffer_alloc,
    .free = intel_aux_map_buffer_free,
 };
@@ -1812,7 +1882,7 @@ gem_param(int fd, int name)
  * \param fd File descriptor of the opened DRM device.
  */
 static struct iris_bufmgr *
-iris_bufmgr_create(struct gen_device_info *devinfo, int fd, bool bo_reuse)
+iris_bufmgr_create(struct intel_device_info *devinfo, int fd, bool bo_reuse)
 {
    uint64_t gtt_size = iris_gtt_size(fd);
    if (gtt_size <= IRIS_MEMZONE_OTHER_START)
@@ -1860,13 +1930,13 @@ iris_bufmgr_create(struct gen_device_info *devinfo, int fd, bool bo_reuse)
    util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_SURFACE],
                       IRIS_MEMZONE_SURFACE_START,
                       _4GB_minus_1 - IRIS_MAX_BINDERS * IRIS_BINDER_SIZE);
-   /* TODO: Why does limiting to 2GB help some state items on gen12?
+   /* TODO: Why does limiting to 2GB help some state items on gfx12?
     *  - CC Viewport Pointer
     *  - Blend State Pointer
     *  - Color Calc State Pointer
     */
    const uint64_t dynamic_pool_size =
-      (devinfo->gen >= 12 ? _2GB : _4GB_minus_1) - IRIS_BORDER_COLOR_POOL_SIZE;
+      (devinfo->ver >= 12 ? _2GB : _4GB_minus_1) - IRIS_BORDER_COLOR_POOL_SIZE;
    util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_DYNAMIC],
                       IRIS_MEMZONE_DYNAMIC_START + IRIS_BORDER_COLOR_POOL_SIZE,
                       dynamic_pool_size);
@@ -1918,7 +1988,7 @@ iris_bufmgr_unref(struct iris_bufmgr *bufmgr)
  * \param fd File descriptor of the opened DRM device.
  */
 struct iris_bufmgr *
-iris_bufmgr_get_for_fd(struct gen_device_info *devinfo, int fd, bool bo_reuse)
+iris_bufmgr_get_for_fd(struct intel_device_info *devinfo, int fd, bool bo_reuse)
 {
    struct stat st;
 

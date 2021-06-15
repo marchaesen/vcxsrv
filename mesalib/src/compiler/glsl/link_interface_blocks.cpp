@@ -109,8 +109,19 @@ intrastage_match(ir_variable *a,
                  struct gl_shader_program *prog,
                  bool match_precision)
 {
+   /* From section 4.7 "Precision and Precision Qualifiers" in GLSL 4.50:
+    *
+    *    "For the purposes of determining if an output from one shader
+    *    stage matches an input of the next stage, the precision qualifier
+    *    need not match."
+    */
+   bool interface_type_match =
+      (prog->IsES ?
+       a->get_interface_type() == b->get_interface_type() :
+       a->get_interface_type()->compare_no_precision(b->get_interface_type()));
+
    /* Types must match. */
-   if (a->get_interface_type() != b->get_interface_type()) {
+   if (!interface_type_match) {
       /* Exception: if both the interface blocks are implicitly declared,
        * don't force their types to match.  They might mismatch due to the two
        * shaders using different GLSL versions, and that's ok.

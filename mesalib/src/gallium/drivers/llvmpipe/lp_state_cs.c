@@ -70,7 +70,7 @@ generate_compute(struct llvmpipe_context *lp,
    struct gallivm_state *gallivm = variant->gallivm;
    const struct lp_compute_shader_variant_key *key = &variant->key;
    char func_name[64], func_name_coro[64];
-   LLVMTypeRef arg_types[17];
+   LLVMTypeRef arg_types[18];
    LLVMTypeRef func_type, coro_func_type;
    LLVMTypeRef int32_type = LLVMInt32TypeInContext(gallivm->context);
    LLVMValueRef context_ptr;
@@ -120,8 +120,9 @@ generate_compute(struct llvmpipe_context *lp,
    arg_types[14] = int32_type;                         /* coro block_x_size */
    arg_types[15] = int32_type;                         /* coro block_y_size */
    arg_types[16] = int32_type;                         /* coro block_z_size */
+   arg_types[17] = int32_type;                         /* coro idx */
    func_type = LLVMFunctionType(LLVMVoidTypeInContext(gallivm->context),
-                                arg_types, ARRAY_SIZE(arg_types) - 5, 0);
+                                arg_types, ARRAY_SIZE(arg_types) - 6, 0);
 
    coro_func_type = LLVMFunctionType(LLVMPointerType(LLVMInt8TypeInContext(gallivm->context), 0),
                                      arg_types, ARRAY_SIZE(arg_types), 0);
@@ -210,7 +211,7 @@ generate_compute(struct llvmpipe_context *lp,
    lp_build_loop_begin(&loop_state[0], gallivm,
                        lp_build_const_int32(gallivm, 0)); /* x loop */
    {
-      LLVMValueRef args[17];
+      LLVMValueRef args[18];
       args[0] = context_ptr;
       args[1] = loop_state[0].counter;
       args[2] = loop_state[1].counter;
@@ -238,6 +239,7 @@ generate_compute(struct llvmpipe_context *lp,
       coro_hdl_idx = LLVMBuildAdd(gallivm->builder, coro_hdl_idx,
                                   loop_state[0].counter, "");
 
+      args[17] = coro_hdl_idx;
       LLVMValueRef coro_entry = LLVMBuildGEP(gallivm->builder, coro_hdls, &coro_hdl_idx, 1, "");
 
       LLVMValueRef coro_hdl = LLVMBuildLoad(gallivm->builder, coro_entry, "coro_hdl");
@@ -247,7 +249,7 @@ generate_compute(struct llvmpipe_context *lp,
                                        lp_build_const_int32(gallivm, 0), "");
       /* first time here - call the coroutine function entry point */
       lp_build_if(&ifstate, gallivm, cmp);
-      LLVMValueRef coro_ret = LLVMBuildCall(gallivm->builder, coro, args, 17, "");
+      LLVMValueRef coro_ret = LLVMBuildCall(gallivm->builder, coro, args, 18, "");
       LLVMBuildStore(gallivm->builder, coro_ret, coro_entry);
       lp_build_else(&ifstate);
       /* subsequent calls for this invocation - check if done. */
@@ -297,6 +299,7 @@ generate_compute(struct llvmpipe_context *lp,
    block_x_size_arg = LLVMGetParam(coro, 14);
    block_y_size_arg = LLVMGetParam(coro, 15);
    block_z_size_arg = LLVMGetParam(coro, 16);
+   LLVMValueRef coro_idx = LLVMGetParam(coro, 17);
    block = LLVMAppendBasicBlockInContext(gallivm->context, coro, "entry");
    LLVMPositionBuilderAtEnd(builder, block);
    {
@@ -347,6 +350,10 @@ generate_compute(struct llvmpipe_context *lp,
          system_values.grid_size = LLVMBuildInsertElement(builder, system_values.grid_size, gstids[i], lp_build_const_int32(gallivm, i), "");
 
       system_values.work_dim = work_dim_arg;
+
+      system_values.subgroup_id = coro_idx;
+      system_values.num_subgroups = LLVMBuildMul(builder, num_x_loop,
+                                                 LLVMBuildMul(builder, block_y_size_arg, block_z_size_arg, ""), "");
 
       LLVMValueRef bsize[3] = { block_x_size_arg, block_y_size_arg, block_z_size_arg };
       system_values.block_size = LLVMGetUndef(LLVMVectorType(int32_type, 3));
@@ -449,10 +456,11 @@ llvmpipe_create_compute_state(struct pipe_context *pipe,
       shader->base.type = PIPE_SHADER_IR_NIR;
 
       pipe->screen->finalize_nir(pipe->screen, shader->base.ir.nir, false);
-      shader->req_local_mem += ((struct nir_shader *)shader->base.ir.nir)->info.cs.shared_size;
-   } else if (templ->ir_type == PIPE_SHADER_IR_NIR)
+      shader->req_local_mem += ((struct nir_shader *)shader->base.ir.nir)->info.shared_size;
+   } else if (templ->ir_type == PIPE_SHADER_IR_NIR) {
       shader->base.ir.nir = (struct nir_shader *)templ->prog;
-
+      shader->req_local_mem += ((struct nir_shader *)shader->base.ir.nir)->info.shared_size;
+   }
    if (shader->base.type == PIPE_SHADER_IR_TGSI) {
       /* get/save the summary info for this shader */
       lp_build_tgsi_info(templ->prog, &shader->info);

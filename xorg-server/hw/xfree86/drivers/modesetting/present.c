@@ -259,7 +259,7 @@ ms_present_check_unflip(RRCrtcPtr crtc,
         if (drmmode_crtc->rotate_bo.gbm)
             return FALSE;
 
-        if (ms_crtc_on(config->crtc[i]))
+        if (xf86_crtc_on(config->crtc[i]))
             num_crtcs_on++;
     }
 

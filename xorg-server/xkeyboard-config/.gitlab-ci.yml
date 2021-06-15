@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0:
 
-.templates_sha: &template_sha d303fafa66bbca44cc5bdb337d5773b5f019b70d # see https://docs.gitlab.com/ee/ci/yaml/#includefile
+.templates_sha: &template_sha 290b79e0e78eab67a83766f4e9691be554fc4afd # see https://docs.gitlab.com/ee/ci/yaml/#includefile
 
 
 include:
@@ -8,6 +8,9 @@ include:
   - project: 'freedesktop/ci-templates'
     ref: *template_sha
     file: '/templates/arch.yml'
+  - project: 'freedesktop/ci-templates'
+    ref: *template_sha
+    file: '/templates/ci-fairy.yml'
 
 
 # global variables to be used by most/all jobs.
@@ -23,7 +26,7 @@ variables:
 
   # Changing the tag will rebuild the container images. The value is just a
   # string, but we use the date for human benefits.
-  FDO_DISTRIBUTION_TAG: '2021-01-08.0'
+  FDO_DISTRIBUTION_TAG: '2021-05-20.0'
 
 
 stages:
@@ -43,7 +46,7 @@ container-prep:
     # minimal set of packages required to build xkeyboard-config.
     BASE_PACKAGES: 'xorg-util-macros autoconf automake make gettext pkg-config gcc grep m4 python meson ninja git'
     # extra packages we need for various tests
-    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev'
+    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev python-yaml yq'
     FDO_DISTRIBUTION_PACKAGES: $BASE_PACKAGES $EXTRA_PACKAGES
 
 
@@ -83,11 +86,9 @@ container-prep:
 #
 
 check-merge-request:
-  image: golang:alpine
+  extends:
+    - .fdo.ci-fairy
   stage: gitlab
-  before_script:
-    - apk add python3 py-pip git
-    - pip3 install git+http://gitlab.freedesktop.org/freedesktop/ci-templates
   script:
     - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=results.xml
   artifacts:
@@ -229,21 +230,26 @@ layout_tests:
     - meson builddir -Denable-wayland=false -Denable-x11=false -Denable-docs=false -Dxkb-config-root="$INSTDIR/share/X11/xkb"
     - ninja -C builddir
     - echo Running test script - this will take several minutes
-    - ./builddir/xkeyboard-config-test "$INSTDIR/share/X11/xkb/rules/evdev.xml" > $INSTDIR/xkeyboard-config-test.stdout 2> $INSTDIR/xkeyboard-config-test.stderr
-    - ./builddir/xkeyboard-config-test "$INSTDIR/share/X11/xkb/rules/evdev.extras.xml" >> $INSTDIR/xkeyboard-config-test.stdout 2>> $INSTDIR/xkeyboard-config-test.stderr
+    - ./builddir/xkeyboard-config-test --verbose "$INSTDIR/share/X11/xkb/rules/evdev.xml" > $INSTDIR/keymaps-success.yaml 2> $INSTDIR/keymaps-failed.yaml
+    - ./builddir/xkeyboard-config-test --verbose "$INSTDIR/share/X11/xkb/rules/evdev.extras.xml" >> $INSTDIR/keymaps-success.yaml 2>> $INSTDIR/keymaps-failed.yaml
     - popd > /dev/null
   after_script:
-    - xz -z "$INSTDIR/xkeyboard-config-test.stdout"
-    - xz -z "$INSTDIR/xkeyboard-config-test.stderr"
+    - echo "Failed keymap compilations:"
+    - yq -c ".[] | select(.status != 0) | .cmd, .error" $INSTDIR/keymaps-failed.yaml
+    - .gitlab-ci/yaml-to-junit-xml.py $INSTDIR/keymaps-failed.yaml > junit-results.xml
+    - xz -z "$INSTDIR/keymaps-success.yaml"
+    - xz -z "$INSTDIR/keymaps-failed.yaml"
   variables:
-    GIT_STRATEGY: none
+    GIT_DEPTH: 1
   artifacts:
     when: on_failure
     name: xkeyboard-config test output
     expire_in: 2 weeks
     paths:
-    - $INSTDIR/xkeyboard-config-test.stdout.xz
-    - $INSTDIR/xkeyboard-config-test.stderr.xz
+    - $INSTDIR/keymaps-success.yaml.xz
+    - $INSTDIR/keymaps-failed.yaml.xz
+    reports:
+      junit: junit-results.xml
 
 keymap_tests:
   extends: .default_setup

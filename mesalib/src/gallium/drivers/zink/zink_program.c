@@ -139,10 +139,10 @@ create_gfx_pipeline_layout(VkDevice dev, struct zink_gfx_program *prog)
 
    VkPushConstantRange pcr[2] = {};
    pcr[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-   pcr[0].offset = offsetof(struct zink_push_constant, draw_mode_is_indexed);
+   pcr[0].offset = offsetof(struct zink_gfx_push_constant, draw_mode_is_indexed);
    pcr[0].size = 2 * sizeof(unsigned);
    pcr[1].stageFlags = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
-   pcr[1].offset = offsetof(struct zink_push_constant, default_inner_level);
+   pcr[1].offset = offsetof(struct zink_gfx_push_constant, default_inner_level);
    pcr[1].size = sizeof(float) * 6;
    plci.pushConstantRangeCount = 2;
    plci.pPushConstantRanges = &pcr[0];
@@ -176,6 +176,15 @@ create_compute_pipeline_layout(VkDevice dev, struct zink_compute_program *comp)
 
    plci.pSetLayouts = layouts;
    plci.setLayoutCount = num_layouts;
+
+   VkPushConstantRange pcr = {};
+   if (comp->shader->nir->info.stage == MESA_SHADER_KERNEL) {
+      pcr.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+      pcr.offset = 0;
+      pcr.size = sizeof(struct zink_cs_push_constant);
+      plci.pushConstantRangeCount = 1;
+      plci.pPushConstantRanges = &pcr;
+   }
 
    VkPipelineLayout layout;
    if (vkCreatePipelineLayout(dev, &plci, NULL, &layout) != VK_SUCCESS) {
@@ -220,7 +229,6 @@ shader_key_fs_gen(struct zink_context *ctx, struct zink_shader *zs,
    key->size = sizeof(struct zink_fs_key);
 
    fs_key->shader_id = zs->shader_id;
-   //fs_key->flat_shade = ctx->rast_state->base.flatshade;
 
    /* if gl_SampleMask[] is written to, we have to ensure that we get a shader with the same sample count:
     * in GL, rast_samples==1 means ignore gl_SampleMask[]
@@ -263,18 +271,60 @@ static zink_shader_key_gen shader_key_vtbl[] =
    [MESA_SHADER_FRAGMENT] = shader_key_fs_gen,
 };
 
+/* return pointer to make function reusable */
+static inline struct zink_shader_module **
+get_default_shader_module_ptr(struct zink_gfx_program *prog, struct zink_shader *zs, struct zink_shader_key *key)
+{
+   if (zs->nir->info.stage == MESA_SHADER_VERTEX ||
+       zs->nir->info.stage == MESA_SHADER_TESS_EVAL) {
+      /* no streamout or halfz */
+      if (!zink_vs_key(key)->last_vertex_stage)
+         return &prog->default_variants[zs->nir->info.stage][1];
+   }
+   return &prog->default_variants[zs->nir->info.stage][0];
+}
+
 static struct zink_shader_module *
 get_shader_module_for_stage(struct zink_context *ctx, struct zink_shader *zs, struct zink_gfx_program *prog)
 {
    gl_shader_stage stage = zs->nir->info.stage;
+   enum pipe_shader_type pstage = pipe_shader_type_from_mesa(stage);
    struct zink_shader_key key = {};
    VkShaderModule mod;
    struct zink_shader_module *zm;
+   struct zink_shader_module **default_zm = NULL;
    struct keybox *keybox;
    uint32_t hash;
+   bool needs_base_size = false;
 
    shader_key_vtbl[stage](ctx, zs, ctx->gfx_stages, &key);
-   keybox = make_keybox(NULL, stage, &key, key.size);
+   /* this is default variant if there is no default or it matches the default */
+   if (prog->default_variant_key[pstage]) {
+      const struct keybox *tmp = prog->default_variant_key[pstage];
+      /* if comparing against the existing default, use the base variant key size since
+       * we're only checking the stage-specific data
+       */
+      key.is_default_variant = !memcmp(tmp->data, &key, key.size);
+   } else
+      key.is_default_variant = true;
+
+   if (zs->nir->info.num_inlinable_uniforms &&
+       ctx->inlinable_uniforms_valid_mask & BITFIELD64_BIT(pstage)) {
+      key.inline_uniforms = true;
+      memcpy(key.base.inlined_uniform_values,
+             ctx->inlinable_uniforms[pstage],
+             zs->nir->info.num_inlinable_uniforms * 4);
+      needs_base_size = true;
+      key.is_default_variant = false;
+   }
+   if (key.is_default_variant) {
+      default_zm = get_default_shader_module_ptr(prog, zs, &key);
+      if (*default_zm)
+         return *default_zm;
+   }
+   if (needs_base_size)
+      key.size += sizeof(struct zink_shader_key_base);
+   keybox = make_keybox(prog->shader_cache, stage, &key, key.size);
    hash = keybox_hash(keybox);
    struct hash_entry *entry = _mesa_hash_table_search_pre_hashed(prog->shader_cache->shader_cache,
                                                                  hash, keybox);
@@ -299,6 +349,11 @@ get_shader_module_for_stage(struct zink_context *ctx, struct zink_shader *zs, st
       zm->shader = mod;
 
       _mesa_hash_table_insert_pre_hashed(prog->shader_cache->shader_cache, hash, keybox, zm);
+      if (key.is_default_variant) {
+         /* previously returned */
+         *default_zm = zm;
+         prog->default_variant_key[pstage] = keybox;
+      }
    }
    return zm;
 }
@@ -329,9 +384,10 @@ zink_destroy_shader_cache(struct zink_screen *screen, struct zink_shader_cache *
    hash_table_foreach(sc->shader_cache, entry) {
       struct zink_shader_module *zm = entry->data;
       zink_shader_module_reference(screen, &zm, NULL);
+      _mesa_hash_table_remove(sc->shader_cache, entry);
    }
    _mesa_hash_table_destroy(sc->shader_cache, NULL);
-   free(sc);
+   ralloc_free(sc);
 }
 
 static inline void
@@ -372,7 +428,9 @@ update_shader_modules(struct zink_context *ctx, struct zink_shader *stages[ZINK_
    }
 
    for (int i = 0; i < ZINK_SHADER_COUNT; ++i) {
+      /* we need to iterate over the stages in pipeline-order here */
       enum pipe_shader_type type = pipe_shader_type_from_mesa(i);
+      assert(type < ZINK_SHADER_COUNT);
       if (dirty[i]) {
          struct zink_shader_module *zm;
          zm = get_shader_module_for_stage(ctx, dirty[i], prog);
@@ -386,7 +444,7 @@ update_shader_modules(struct zink_context *ctx, struct zink_shader *stages[ZINK_
       prog->shaders[type] = stages[type];
    }
    ctx->gfx_pipeline_state.module_hash = _mesa_hash_data(ctx->gfx_pipeline_state.modules, sizeof(ctx->gfx_pipeline_state.modules));
-   unsigned clean = u_bit_consecutive(PIPE_SHADER_VERTEX, 5);;
+   unsigned clean = u_bit_consecutive(PIPE_SHADER_VERTEX, 5);
    ctx->dirty_shader_stages &= ~clean;
 }
 
@@ -494,7 +552,10 @@ init_slot_map(struct zink_context *ctx, struct zink_gfx_program *prog)
                      nir_variable *var = nir_find_variable_with_location(ctx->gfx_stages[i]->nir,
                                                                          nir_var_shader_out, slot);
                      assert(var);
-                     user_outputs_count += glsl_count_vec4_slots(var->type, false, false);
+                     if (i == PIPE_SHADER_TESS_CTRL && var->data.location >= VARYING_SLOT_VAR0)
+                        user_outputs_count += (glsl_count_vec4_slots(var->type, false, false) / 32 /*MAX_PATCH_VERTICES*/);
+                     else
+                        user_outputs_count += glsl_count_vec4_slots(var->type, false, false);
                   }
                }
                max_outputs = MAX2(max_outputs, user_outputs_count);
@@ -513,7 +574,7 @@ init_slot_map(struct zink_context *ctx, struct zink_gfx_program *prog)
        * the slots match up
        * TOOD: if we compact the slot map table, we can store it on the shader keys and reuse the cache
        */
-      prog->shader_cache = CALLOC_STRUCT(zink_shader_cache);
+      prog->shader_cache = ralloc(NULL, struct zink_shader_cache);
       pipe_reference_init(&prog->shader_cache->reference, 1);
       prog->shader_cache->shader_cache =  _mesa_hash_table_create(NULL, keybox_hash, keybox_equals);
    } else {
@@ -591,7 +652,9 @@ void
 zink_program_update_compute_pipeline_state(struct zink_context *ctx, struct zink_compute_program *comp, const uint block[3])
 {
    struct zink_shader *zs = comp->shader;
-   bool use_local_size = BITSET_TEST(zs->nir->info.system_values_read, SYSTEM_VALUE_LOCAL_GROUP_SIZE);
+   bool use_local_size = !(zs->nir->info.cs.local_size[0] ||
+                           zs->nir->info.cs.local_size[1] ||
+                           zs->nir->info.cs.local_size[2]);
    if (ctx->compute_pipeline_state.use_local_size != use_local_size)
       ctx->compute_pipeline_state.dirty = true;
    ctx->compute_pipeline_state.use_local_size = use_local_size;
@@ -627,7 +690,7 @@ zink_create_compute_program(struct zink_context *ctx, struct zink_shader *shader
 
    if (!ctx->curr_compute || !ctx->curr_compute->shader_cache) {
       /* TODO: cs shader keys placeholder for now */
-      comp->shader_cache = CALLOC_STRUCT(zink_shader_cache);
+      comp->shader_cache = ralloc(NULL, struct zink_shader_cache);
       pipe_reference_init(&comp->shader_cache->reference, 1);
       comp->shader_cache->shader_cache = _mesa_hash_table_create(NULL, _mesa_hash_u32, _mesa_key_u32_equal);
    } else
@@ -785,16 +848,6 @@ zink_program_num_descriptors(const struct zink_program *pg)
    return num_descriptors;
 }
 
-static void
-gfx_program_remove_shader(struct zink_gfx_program *prog, struct zink_shader *shader)
-{
-   enum pipe_shader_type p_stage = pipe_shader_type_from_mesa(shader->nir->info.stage);
-
-   assert(prog->shaders[p_stage] == shader);
-   prog->shaders[p_stage] = NULL;
-   _mesa_set_remove_key(shader->programs, prog);
-}
-
 void
 zink_destroy_gfx_program(struct zink_screen *screen,
                          struct zink_gfx_program *prog)
@@ -803,8 +856,10 @@ zink_destroy_gfx_program(struct zink_screen *screen,
       vkDestroyPipelineLayout(screen->dev, prog->base.layout, NULL);
 
    for (int i = 0; i < ZINK_SHADER_COUNT; ++i) {
-      if (prog->shaders[i])
-         gfx_program_remove_shader(prog, prog->shaders[i]);
+      if (prog->shaders[i]) {
+         _mesa_set_remove_key(prog->shaders[i]->programs, prog);
+         prog->shaders[i] = NULL;
+      }
       if (prog->modules[i])
          zink_shader_module_reference(screen, &prog->modules[i], NULL);
    }
@@ -993,6 +1048,10 @@ bind_stage(struct zink_context *ctx, enum pipe_shader_type stage,
    else
       ctx->gfx_stages[stage] = shader;
    ctx->dirty_shader_stages |= 1 << stage;
+   if (shader && shader->nir->info.num_inlinable_uniforms)
+      ctx->shader_has_inlinable_uniforms_mask |= 1 << stage;
+   else
+      ctx->shader_has_inlinable_uniforms_mask &= ~(1 << stage);
 }
 
 static void

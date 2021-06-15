@@ -22,26 +22,26 @@
  */
 
 struct testcase {
-	enum pipe_format format;
+   enum pipe_format format;
 
-	int array_size; /* Size for array textures, or 0 otherwise. */
-	bool is_3d;
+   int array_size; /* Size for array textures, or 0 otherwise. */
+   bool is_3d;
 
-    /* Partially filled layout of input parameters and expected results. */
-	struct {
-		uint32_t tile_mode : 2;
-		bool ubwc : 1;
-		uint32_t width0, height0, depth0;
-		uint32_t nr_samples;
-		struct {
-				uint32_t offset;
-				uint32_t pitch;
-		} slices[FDL_MAX_MIP_LEVELS];
-		struct {
-				uint32_t offset;
-				uint32_t pitch;
-		} ubwc_slices[FDL_MAX_MIP_LEVELS];
-	} layout;
+   /* Partially filled layout of input parameters and expected results. */
+   struct {
+      uint32_t tile_mode : 2;
+      bool ubwc : 1;
+      uint32_t width0, height0, depth0;
+      uint32_t nr_samples;
+      struct {
+         uint32_t offset;
+         uint32_t pitch;
+      } slices[FDL_MAX_MIP_LEVELS];
+      struct {
+         uint32_t offset;
+         uint32_t pitch;
+      } ubwc_slices[FDL_MAX_MIP_LEVELS];
+   } layout;
 };
 
 bool fdl_test_layout(const struct testcase *testcase, int gpu_id);

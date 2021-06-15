@@ -906,6 +906,19 @@ void aco_print_block(const Block* block, FILE *output, unsigned flags, const liv
 
 void aco_print_program(const Program *program, FILE *output, const live& live_vars, unsigned flags)
 {
+   switch (program->progress) {
+   case CompilationProgress::after_isel:
+      fprintf(output, "After Instruction Selection:\n");
+      break;
+   case CompilationProgress::after_spilling:
+      fprintf(output, "After Spilling:\n");
+      flags |= print_kill;
+      break;
+   case CompilationProgress::after_ra:
+      fprintf(output, "After RA:\n");
+      break;
+   }
+
    print_stage(program->stage, output);
 
    for (Block const& block : program->blocks)

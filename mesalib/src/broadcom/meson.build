@@ -53,7 +53,7 @@ endforeach
 libbroadcom_v3d = static_library(
   'libbroadcom_v3d',
   [
-    files('common/v3d_debug.c', 'common/v3d_device_info.c', 'clif/clif_dump.c'),
+    files('common/v3d_debug.c', 'common/v3d_device_info.c', 'clif/clif_dump.c', 'common/v3d_util.c'),
     v3d_xml_pack,
   ],
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom],

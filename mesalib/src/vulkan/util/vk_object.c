@@ -91,6 +91,39 @@ vk_object_zalloc(struct vk_device *device,
    return ptr;
 }
 
+void *
+vk_object_multialloc(struct vk_device *device,
+                     struct vk_multialloc *ma,
+                     const VkAllocationCallbacks *alloc,
+                     VkObjectType obj_type)
+{
+   void *ptr = vk_multialloc_alloc2(ma, &device->alloc, alloc,
+                                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (ptr == NULL)
+      return NULL;
+
+   vk_object_base_init(device, (struct vk_object_base *)ptr, obj_type);
+
+   return ptr;
+}
+
+void *
+vk_object_multizalloc(struct vk_device *device,
+                      struct vk_multialloc *ma,
+                      const VkAllocationCallbacks *alloc,
+                      VkObjectType obj_type)
+{
+   void *ptr = vk_multialloc_alloc2(ma, &device->alloc, alloc,
+                                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (ptr == NULL)
+      return NULL;
+
+   memset(ptr, 0, ma->size);
+   vk_object_base_init(device, (struct vk_object_base *)ptr, obj_type);
+
+   return ptr;
+}
+
 void
 vk_object_free(struct vk_device *device,
                const VkAllocationCallbacks *alloc,

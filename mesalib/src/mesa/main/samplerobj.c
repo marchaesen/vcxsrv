@@ -877,7 +877,8 @@ static GLuint
 set_sampler_reduction_mode(struct gl_context *ctx,
                            struct gl_sampler_object *samp, GLenum param)
 {
-   if (!ctx->Extensions.EXT_texture_filter_minmax)
+   if (!ctx->Extensions.EXT_texture_filter_minmax &&
+       !_mesa_has_ARB_texture_filter_minmax(ctx))
       return INVALID_PNAME;
 
    if (samp->Attrib.ReductionMode == param)
@@ -980,7 +981,7 @@ _mesa_SamplerParameteri(GLuint sampler, GLenum pname, GLint param)
       res = set_sampler_reduction_mode(ctx, sampObj, param);
       break;
    case GL_TEXTURE_BORDER_COLOR:
-      /* fall-through */
+      FALLTHROUGH;
    default:
       res = INVALID_PNAME;
    }
@@ -1066,7 +1067,7 @@ _mesa_SamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
       res = set_sampler_reduction_mode(ctx, sampObj, (GLenum) param);
       break;
    case GL_TEXTURE_BORDER_COLOR:
-      /* fall-through */
+      FALLTHROUGH;
    default:
       res = INVALID_PNAME;
    }
@@ -1530,7 +1531,8 @@ _mesa_GetSamplerParameteriv(GLuint sampler, GLenum pname, GLint *params)
       *params = (GLenum) sampObj->Attrib.sRGBDecode;
       break;
    case GL_TEXTURE_REDUCTION_MODE_EXT:
-      if (!ctx->Extensions.EXT_texture_filter_minmax)
+      if (!ctx->Extensions.EXT_texture_filter_minmax &&
+          !_mesa_has_ARB_texture_filter_minmax(ctx))
          goto invalid_pname;
       *params = (GLenum) sampObj->Attrib.ReductionMode;
       break;
@@ -1607,7 +1609,8 @@ _mesa_GetSamplerParameterfv(GLuint sampler, GLenum pname, GLfloat *params)
       *params = (GLfloat) sampObj->Attrib.sRGBDecode;
       break;
    case GL_TEXTURE_REDUCTION_MODE_EXT:
-      if (!ctx->Extensions.EXT_texture_filter_minmax)
+      if (!ctx->Extensions.EXT_texture_filter_minmax &&
+          !_mesa_has_ARB_texture_filter_minmax(ctx))
          goto invalid_pname;
       *params = (GLfloat) sampObj->Attrib.ReductionMode;
       break;
@@ -1684,7 +1687,8 @@ _mesa_GetSamplerParameterIiv(GLuint sampler, GLenum pname, GLint *params)
       *params = (GLenum) sampObj->Attrib.sRGBDecode;
       break;
    case GL_TEXTURE_REDUCTION_MODE_EXT:
-      if (!ctx->Extensions.EXT_texture_filter_minmax)
+      if (!ctx->Extensions.EXT_texture_filter_minmax &&
+          !_mesa_has_ARB_texture_filter_minmax(ctx))
          goto invalid_pname;
       *params = (GLenum) sampObj->Attrib.ReductionMode;
       break;
@@ -1761,7 +1765,8 @@ _mesa_GetSamplerParameterIuiv(GLuint sampler, GLenum pname, GLuint *params)
       *params = (GLenum) sampObj->Attrib.sRGBDecode;
       break;
    case GL_TEXTURE_REDUCTION_MODE_EXT:
-      if (!ctx->Extensions.EXT_texture_filter_minmax)
+      if (!ctx->Extensions.EXT_texture_filter_minmax &&
+          !_mesa_has_ARB_texture_filter_minmax(ctx))
          goto invalid_pname;
       *params = (GLenum) sampObj->Attrib.ReductionMode;
       break;

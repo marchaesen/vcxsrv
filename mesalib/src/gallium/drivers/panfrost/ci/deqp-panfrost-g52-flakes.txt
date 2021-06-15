@@ -1,5 +1,3 @@
-dEQP-GLES2.functional.fbo.render.shared_colorbuffer.tex2d_rgba_stencil_index8
-dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_rgba4_depth_component16
 dEQP-GLES2.functional.texture.vertex.cube.filtering.nearest_mipmap_linear_linear_clamp
 dEQP-GLES2.functional.texture.vertex.cube.filtering.nearest_mipmap_linear_linear_mirror
 dEQP-GLES2.functional.texture.vertex.cube.filtering.nearest_mipmap_linear_linear_repeat

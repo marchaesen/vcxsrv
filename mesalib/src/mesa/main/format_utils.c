@@ -393,8 +393,7 @@ _mesa_format_convert(void *void_dst, uint32_t dst_format, size_t dst_stride,
             }
             else {
                for (row = 0; row < height; ++row) {
-                  _mesa_pack_ubyte_rgba_row(dst_format, width,
-                                            (const uint8_t (*)[4])src, dst);
+                  _mesa_pack_ubyte_rgba_row(dst_format, width, src, dst);
                   src += src_stride;
                   dst += dst_stride;
                }
@@ -653,7 +652,7 @@ _mesa_format_convert(void *void_dst, uint32_t dst_format, size_t dst_stride,
       } else {
          for (row = 0; row < height; ++row) {
             _mesa_pack_ubyte_rgba_row(dst_format, width,
-                                      (const uint8_t (*)[4])tmp_ubyte + row * width, dst);
+                                      (const uint8_t *)(tmp_ubyte + row * width), dst);
             dst += dst_stride;
          }
       }

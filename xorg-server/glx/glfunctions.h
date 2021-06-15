@@ -1678,5 +1678,17 @@
 #define glSecondaryColor3hNV(a1, a2, a3) CALL_SecondaryColor3hNV(GET_DISPATCH(), (a1, a2, a3))
 #define glSecondaryColor3hvNV(a1) CALL_SecondaryColor3hvNV(GET_DISPATCH(), (a1))
 #define glInternalSetError(a1) CALL_InternalSetError(GET_DISPATCH(), (a1))
+#define glVertexAttrib1hNV(a1, a2) CALL_VertexAttrib1hNV(GET_DISPATCH(), (a1, a2))
+#define glVertexAttrib1hvNV(a1, a2) CALL_VertexAttrib1hvNV(GET_DISPATCH(), (a1, a2))
+#define glVertexAttrib2hNV(a1, a2, a3) CALL_VertexAttrib2hNV(GET_DISPATCH(), (a1, a2, a3))
+#define glVertexAttrib2hvNV(a1, a2) CALL_VertexAttrib2hvNV(GET_DISPATCH(), (a1, a2))
+#define glVertexAttrib3hNV(a1, a2, a3, a4) CALL_VertexAttrib3hNV(GET_DISPATCH(), (a1, a2, a3, a4))
+#define glVertexAttrib3hvNV(a1, a2) CALL_VertexAttrib3hvNV(GET_DISPATCH(), (a1, a2))
+#define glVertexAttrib4hNV(a1, a2, a3, a4, a5) CALL_VertexAttrib4hNV(GET_DISPATCH(), (a1, a2, a3, a4, a5))
+#define glVertexAttrib4hvNV(a1, a2) CALL_VertexAttrib4hvNV(GET_DISPATCH(), (a1, a2))
+#define glVertexAttribs1hvNV(a1, a2, a3) CALL_VertexAttribs1hvNV(GET_DISPATCH(), (a1, a2, a3))
+#define glVertexAttribs2hvNV(a1, a2, a3) CALL_VertexAttribs2hvNV(GET_DISPATCH(), (a1, a2, a3))
+#define glVertexAttribs3hvNV(a1, a2, a3) CALL_VertexAttribs3hvNV(GET_DISPATCH(), (a1, a2, a3))
+#define glVertexAttribs4hvNV(a1, a2, a3) CALL_VertexAttribs4hvNV(GET_DISPATCH(), (a1, a2, a3))
 
 #endif /* !defined( __GLFUNCTIONS_H__ ) */

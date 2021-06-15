@@ -30,7 +30,7 @@
    See commit libXi-1.4.2-21-ge8531dd */
 
 #define XI_2_Major                              2
-#define XI_2_Minor                              3
+#define XI_2_Minor                              4
 
 /* Property event flags */
 #define XIPropertyDeleted                       0
@@ -85,6 +85,8 @@
 #define XIGrabtypeEnter                         2
 #define XIGrabtypeFocusIn                       3
 #define XIGrabtypeTouchBegin                    4
+#define XIGrabtypeGesturePinchBegin             5
+#define XIGrabtypeGestureSwipeBegin             6
 
 /* Passive grab modifier */
 #define XIAnyModifier                           (1U << 31)
@@ -142,6 +144,7 @@
 #define XIValuatorClass                         2
 #define XIScrollClass                           3
 #define XITouchClass                            8
+#define XIGestureClass                          9
 
 /* Scroll class types */
 #define XIScrollTypeVertical                    1
@@ -164,6 +167,11 @@
 #define XIBarrierPointerReleased                (1 << 0)
 #define XIBarrierDeviceIsGrabbed                (1 << 1)
 
+/* Gesture pinch event flags */
+#define XIGesturePinchEventCancelled            (1 << 0)
+
+/* Gesture swipe event flags */
+#define XIGestureSwipeEventCancelled            (1 << 0)
 
 /* Touch modes */
 #define XIDirectTouch                           1
@@ -206,7 +214,13 @@
 #define XI_RawTouchEnd                   24
 #define XI_BarrierHit                    25 /* XI 2.3 */
 #define XI_BarrierLeave                  26
-#define XI_LASTEVENT                     XI_BarrierLeave
+#define XI_GesturePinchBegin             27 /* XI 2.4 */
+#define XI_GesturePinchUpdate            28
+#define XI_GesturePinchEnd               29
+#define XI_GestureSwipeBegin             30
+#define XI_GestureSwipeUpdate            31
+#define XI_GestureSwipeEnd               32
+#define XI_LASTEVENT                     XI_GestureSwipeEnd
 /* NOTE: XI2LASTEVENT in xserver/include/inputstr.h must be the same value
  * as XI_LASTEVENT if the server is supposed to handle masks etc. for this
  * type of event. */

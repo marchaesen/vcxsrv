@@ -29,37 +29,35 @@
 struct ir3_kernel *
 ir3_asm_assemble(struct ir3_compiler *c, FILE *in)
 {
-	struct ir3_kernel *kernel = calloc(1, sizeof(*kernel));
-	struct ir3_shader *shader = ir3_parse_asm(c, &kernel->info, in);
-	if (!shader)
-		errx(-1, "assembler failed");
-	struct ir3_shader_variant *v = shader->variants;
+   struct ir3_kernel *kernel = calloc(1, sizeof(*kernel));
+   struct ir3_shader *shader = ir3_parse_asm(c, &kernel->info, in);
+   if (!shader)
+      errx(-1, "assembler failed");
+   struct ir3_shader_variant *v = shader->variants;
 
-	v->mergedregs = true;
+   v->mergedregs = true;
 
-	kernel->v = v;
-	kernel->bin = v->bin;
+   kernel->v = v;
+   kernel->bin = v->bin;
 
-	kernel->base.local_size[0] = v->local_size[0];
-	kernel->base.local_size[1] = v->local_size[0];
-	kernel->base.local_size[2] = v->local_size[0];
-	kernel->base.num_bufs = kernel->info.num_bufs;
-	memcpy(kernel->base.buf_sizes, kernel->info.buf_sizes, sizeof(kernel->base.buf_sizes));
+   kernel->base.local_size[0] = v->local_size[0];
+   kernel->base.local_size[1] = v->local_size[0];
+   kernel->base.local_size[2] = v->local_size[0];
+   kernel->base.num_bufs = kernel->info.num_bufs;
+   memcpy(kernel->base.buf_sizes, kernel->info.buf_sizes,
+          sizeof(kernel->base.buf_sizes));
 
-	unsigned sz = v->info.size;
+   unsigned sz = v->info.size;
 
-	v->bo = fd_bo_new(c->dev, sz,
-			DRM_FREEDRENO_GEM_CACHE_WCOMBINE |
-			DRM_FREEDRENO_GEM_TYPE_KMEM,
-			"%s", ir3_shader_stage(v));
+   v->bo = fd_bo_new(c->dev, sz, 0, "%s", ir3_shader_stage(v));
 
-	memcpy(fd_bo_map(v->bo), kernel->bin, sz);
+   memcpy(fd_bo_map(v->bo), kernel->bin, sz);
 
-	return kernel;
+   return kernel;
 }
 
 void
 ir3_asm_disassemble(struct ir3_kernel *k, FILE *out)
 {
-	ir3_shader_disasm(k->v, k->bin, out);
+   ir3_shader_disasm(k->v, k->bin, out);
 }

@@ -37,7 +37,14 @@
 #include "util/list.h"
 #include "util/sparse_array.h"
 
+#include "panfrost/util/pan_ir.h"
+#include "pan_pool.h"
+
 #include <midgard_pack.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* Driver limits */
 #define PAN_MAX_CONST_BUFFERS 16
@@ -68,25 +75,78 @@
 /* Fencepost problem, hence the off-by-one */
 #define NR_BO_CACHE_BUCKETS (MAX_BO_CACHE_BUCKET - MIN_BO_CACHE_BUCKET + 1)
 
-/* Cache for blit shaders. Defined here so they can be cached with the device */
-
-enum pan_blit_type {
-        PAN_BLIT_FLOAT = 0,
-        PAN_BLIT_UINT,
-        PAN_BLIT_INT,
-        PAN_BLIT_NUM_TYPES,
+struct pan_blitter {
+        struct {
+                struct pan_pool pool;
+                struct hash_table *blit;
+                struct hash_table *blend;
+                pthread_mutex_t lock;
+        } shaders;
+        struct {
+                struct pan_pool pool;
+                struct hash_table *rsds;
+                pthread_mutex_t lock;
+        } rsds;
 };
 
-#define PAN_BLIT_NUM_TARGETS (12)
-
-struct pan_blit_shader {
-        mali_ptr shader;
-        uint32_t blend_ret_addr;
+struct pan_blend_shaders {
+        struct hash_table *shaders;
+        pthread_mutex_t lock;
 };
 
-struct pan_blit_shaders {
-        struct panfrost_bo *bo;
-        struct pan_blit_shader loads[PAN_BLIT_NUM_TARGETS][PAN_BLIT_NUM_TYPES][2];
+enum pan_indirect_draw_flags {
+        PAN_INDIRECT_DRAW_NO_INDEX = 0 << 0,
+        PAN_INDIRECT_DRAW_1B_INDEX = 1 << 0,
+        PAN_INDIRECT_DRAW_2B_INDEX = 2 << 0,
+        PAN_INDIRECT_DRAW_4B_INDEX = 3 << 0,
+        PAN_INDIRECT_DRAW_INDEX_SIZE_MASK = 3 << 0,
+        PAN_INDIRECT_DRAW_HAS_PSIZ = 1 << 2,
+        PAN_INDIRECT_DRAW_PRIMITIVE_RESTART = 1 << 3,
+        PAN_INDIRECT_DRAW_UPDATE_PRIM_SIZE = 1 << 4,
+        PAN_INDIRECT_DRAW_LAST_FLAG = PAN_INDIRECT_DRAW_UPDATE_PRIM_SIZE,
+        PAN_INDIRECT_DRAW_FLAGS_MASK = (PAN_INDIRECT_DRAW_LAST_FLAG << 1) - 1,
+        PAN_INDIRECT_DRAW_MIN_MAX_SEARCH_1B_INDEX = PAN_INDIRECT_DRAW_LAST_FLAG << 1,
+        PAN_INDIRECT_DRAW_MIN_MAX_SEARCH_2B_INDEX,
+        PAN_INDIRECT_DRAW_MIN_MAX_SEARCH_4B_INDEX,
+        PAN_INDIRECT_DRAW_NUM_SHADERS,
+};
+
+struct pan_indirect_draw_shader {
+        struct panfrost_ubo_push push;
+        mali_ptr rsd;
+};
+
+struct pan_indirect_draw_shaders {
+        struct pan_indirect_draw_shader shaders[PAN_INDIRECT_DRAW_NUM_SHADERS];
+
+        /* Take the lock when initializing the draw shaders context or when
+         * allocating from the binary pool.
+         */
+        pthread_mutex_t lock;
+
+        /* A memory pool for shader binaries. We currently don't allocate a
+         * single BO for all shaders up-front because estimating shader size
+         * is not trivial, and changes to the compiler might influence this
+         * estimation.
+         */
+        struct pan_pool bin_pool;
+
+        /* BO containing all renderer states attached to the compute shaders.
+         * Those are built at shader compilation time and re-used every time
+         * panfrost_emit_indirect_draw() is called.
+         */
+        struct panfrost_bo *states;
+
+        /* Varying memory is allocated dynamically by compute jobs from this
+         * heap.
+         */
+        struct panfrost_bo *varying_heap;
+};
+
+struct pan_indirect_dispatch {
+        struct panfrost_ubo_push push;
+        struct panfrost_bo *bin;
+        struct panfrost_bo *descs;
 };
 
 typedef uint32_t mali_pixel_format;
@@ -142,7 +202,10 @@ struct panfrost_device {
                 struct list_head buckets[NR_BO_CACHE_BUCKETS];
         } bo_cache;
 
-        struct pan_blit_shaders blit_shaders;
+        struct pan_blitter blitter;
+        struct pan_blend_shaders blend_shaders;
+        struct pan_indirect_draw_shaders indirect_draw_shaders;
+        struct pan_indirect_dispatch indirect_dispatch;
 
         /* Tiler heap shared across all tiler jobs, allocated against the
          * device since there's only a single tiler. Since this is invisible to
@@ -180,7 +243,7 @@ void
 panfrost_upload_sample_positions(struct panfrost_device *dev);
 
 mali_ptr
-panfrost_sample_positions(struct panfrost_device *dev,
+panfrost_sample_positions(const struct panfrost_device *dev,
                 enum mali_sample_pattern pattern);
 void
 panfrost_query_sample_position(
@@ -191,7 +254,7 @@ panfrost_query_sample_position(
 static inline struct panfrost_bo *
 pan_lookup_bo(struct panfrost_device *dev, uint32_t gem_handle)
 {
-        return util_sparse_array_get(&dev->bo_map, gem_handle);
+        return (struct panfrost_bo *)util_sparse_array_get(&dev->bo_map, gem_handle);
 }
 
 static inline bool
@@ -199,5 +262,9 @@ pan_is_bifrost(const struct panfrost_device *dev)
 {
         return dev->arch >= 6 && dev->arch <= 7;
 }
+
+#if defined(__cplusplus)
+} // extern "C"
+#endif
 
 #endif

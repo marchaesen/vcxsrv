@@ -35,6 +35,7 @@
 #include "pipe/p_compiler.h"
 #include "pipe/p_context.h"
 #include "pipe/p_state.h"
+#include "util/compiler.h"
 #include "util/u_memory.h"
 #include "util/u_atomic.h"
 #include "frontend/api.h"
@@ -238,7 +239,7 @@ stw_create_context_attribs(HDC hdc, INT iLayerPlane, DHGLRC hShareContext,
          attribs.profile = ST_PROFILE_OPENGL_CORE;
          break;
       }
-      /* fall-through */
+      FALLTHROUGH;
    case WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB:
       /*
        * The spec also says:
@@ -555,7 +556,7 @@ stw_make_current(HDC hDrawDC, HDC hReadDC, DHGLRC dhglrc)
       if (old_fb && old_fb != fb) {
          stw_lock_framebuffers(stw_dev);
          stw_framebuffer_lock(old_fb);
-         stw_framebuffer_release_locked(old_fb);
+         stw_framebuffer_release_locked(old_fb, old_ctx->st);
          stw_unlock_framebuffers(stw_dev);
       }
 
@@ -584,7 +585,7 @@ fail:
          old_ctx->current_framebuffer = NULL;
          stw_lock_framebuffers(stw_dev);
          stw_framebuffer_lock(old_fb);
-         stw_framebuffer_release_locked(old_fb);
+         stw_framebuffer_release_locked(old_fb, old_ctx->st);
          stw_unlock_framebuffers(stw_dev);
       }
    }

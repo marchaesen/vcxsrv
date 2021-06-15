@@ -2470,7 +2470,7 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
       return TYPE_INT;
 
    case GL_BLEND_SRC:
-      /* fall-through */
+      FALLTHROUGH;
    case GL_BLEND_SRC_RGB:
       if (index >= ctx->Const.MaxDrawBuffers)
          goto invalid_value;
@@ -2486,7 +2486,7 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
       v->value_int = ctx->Color.Blend[index].SrcA;
       return TYPE_INT;
    case GL_BLEND_DST:
-      /* fall-through */
+      FALLTHROUGH;
    case GL_BLEND_DST_RGB:
       if (index >= ctx->Const.MaxDrawBuffers)
          goto invalid_value;

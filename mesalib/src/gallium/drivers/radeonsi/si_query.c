@@ -570,7 +570,7 @@ void si_query_buffer_reset(struct si_context *sctx, struct si_query_buffer *buff
 
    /* Discard even the oldest buffer if it can't be mapped without a stall. */
    if (si_cs_is_buffer_referenced(sctx, buffer->buf->buf, RADEON_USAGE_READWRITE) ||
-       !sctx->ws->buffer_wait(buffer->buf->buf, 0, RADEON_USAGE_READWRITE)) {
+       !sctx->ws->buffer_wait(sctx->ws, buffer->buf->buf, 0, RADEON_USAGE_READWRITE)) {
       si_resource_reference(&buffer->buf, NULL);
    } else {
       buffer->unprepared = true;
@@ -629,7 +629,7 @@ static bool si_query_hw_prepare_buffer(struct si_context *sctx, struct si_query_
    struct si_screen *screen = sctx->screen;
 
    /* The caller ensures that the buffer is currently unused by the GPU. */
-   uint32_t *results = screen->ws->buffer_map(qbuf->buf->buf, NULL,
+   uint32_t *results = screen->ws->buffer_map(sctx->ws, qbuf->buf->buf, NULL,
                                               PIPE_MAP_WRITE | PIPE_MAP_UNSYNCHRONIZED);
    if (!results)
       return false;
@@ -1424,7 +1424,7 @@ bool si_query_hw_get_result(struct si_context *sctx, struct si_query *squery, bo
       void *map;
 
       if (squery->b.flushed)
-         map = sctx->ws->buffer_map(qbuf->buf->buf, NULL, usage);
+         map = sctx->ws->buffer_map(sctx->ws, qbuf->buf->buf, NULL, usage);
       else
          map = si_buffer_map(sctx, qbuf->buf, usage);
 
@@ -1500,8 +1500,6 @@ static void si_query_hw_get_result_resource(struct si_context *sctx, struct si_q
 
    ssbo[2] = ssbo[1];
 
-   sctx->b.bind_compute_state(&sctx->b, sctx->query_result_shader);
-
    grid.block[0] = 1;
    grid.block[1] = 1;
    grid.block[2] = 1;
@@ -1566,8 +1564,6 @@ static void si_query_hw_get_result_resource(struct si_context *sctx, struct si_q
          si_resource(resource)->TC_L2_dirty = true;
       }
 
-      sctx->b.set_shader_buffers(&sctx->b, PIPE_SHADER_COMPUTE, 0, 3, ssbo, 1 << 2);
-
       if (wait && qbuf == &query->buffer) {
          uint64_t va;
 
@@ -1580,9 +1576,9 @@ static void si_query_hw_get_result_resource(struct si_context *sctx, struct si_q
 
          si_cp_wait_mem(sctx, &sctx->gfx_cs, va, 0x80000000, 0x80000000, WAIT_REG_MEM_EQUAL);
       }
-
-      sctx->b.launch_grid(&sctx->b, &grid);
-      sctx->flags |= SI_CONTEXT_CS_PARTIAL_FLUSH;
+      si_launch_grid_internal_ssbos(sctx, &grid, sctx->query_result_shader,
+                                    SI_OP_SYNC_AFTER, SI_COHERENCY_SHADER,
+                                    3, ssbo, 0x4);
    }
 
    si_restore_qbo_state(sctx, &saved_state);

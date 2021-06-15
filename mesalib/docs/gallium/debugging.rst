@@ -32,6 +32,19 @@ specified file. Paths may be relative or absolute; relative paths are relative
 to the working directory.  For example, setting it to "trace.xml" will cause
 the trace to be written to a file of the same name in the working directory.
 
+.. envvar:: GALLIUM_TRACE_TC <bool> (false)
+
+If enabled while :ref:`trace` is active, this variable specifies that the threaded context
+should be traced for drivers which implement it. By default, the driver thread is traced,
+which will include any reordering of the command stream from threaded context.
+
+.. envvar:: GALLIUM_TRACE_TRIGGER <string> ("")
+
+If set while :ref:`trace` is active, this variable specifies a filename to monitor.
+Once the file exists (e.g., from the user running 'touch /path/to/file'), a single
+frame will be recorded into the trace output.
+Paths may be relative or absolute; relative paths are relative to the working directory.
+
 .. envvar:: GALLIUM_DUMP_CPU <bool> (false)
 
 Dump information about the current CPU that the driver is running on.

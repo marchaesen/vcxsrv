@@ -532,6 +532,40 @@ typedef struct {
 
 #define sz_xXFixesDestroyPointerBarrierReq 8
 
+/*************** Version 6.0 ******************/
+
+typedef struct {
+    CARD8   reqType;
+    CARD8   xfixesReqType;
+    CARD16  length;
+    CARD32  disconnect_mode;
+} xXFixesSetClientDisconnectModeReq;
+
+#define sz_xXFixesSetClientDisconnectModeReq    8
+
+typedef struct {
+    CARD8   reqType;
+    CARD8   xfixesReqType;
+    CARD16  length;
+} xXFixesGetClientDisconnectModeReq;
+
+#define sz_xXFixesGetClientDisconnectModeReq    4
+
+typedef struct {
+    BYTE        type;                   /* X_Reply */
+    CARD8       pad0;
+    CARD16      sequenceNumber;
+    CARD32      length;
+    CARD32      disconnect_mode;
+    CARD32      pad1;
+    CARD32      pad2;
+    CARD32      pad3;
+    CARD32      pad4;
+    CARD32      pad5;
+} xXFixesGetClientDisconnectModeReply;
+
+#define sz_xXFixesGetClientDisconnectModeReply	32
+
 #undef Barrier
 #undef Region
 #undef Picture

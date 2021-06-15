@@ -71,8 +71,8 @@ call "servo"::
 Setup
 -----
 
-Each board will be registered in fd.o GitLab.  You'll want something
-like this to register a fastboot board:
+Each board will be registered in freedesktop.org GitLab.  You'll want
+something like this to register a fastboot board:
 
 .. code-block:: console
 
@@ -91,8 +91,8 @@ like this to register a fastboot board:
 For a servo board, you'll need to also volume mount the board's NFS
 root dir at /nfs and TFTP kernel directory at /tftp.
 
-The registration token has to come from a fd.o GitLab admin going to
-https://gitlab.freedesktop.org/admin/runners
+The registration token has to come from a freedesktop.org GitLab admin
+going to https://gitlab.freedesktop.org/admin/runners
 
 The name scheme for Google's lab is google-freedreno-boardname-n, and
 our tag is something like google-freedreno-db410c.  The tag is what

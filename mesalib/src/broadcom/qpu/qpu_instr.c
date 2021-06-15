@@ -22,6 +22,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include "util/macros.h"
 #include "broadcom/common/v3d_device_info.h"
 #include "qpu_instr.h"
@@ -1016,4 +1017,20 @@ v3d_qpu_unpacks_f16(const struct v3d_qpu_instr *inst)
         }
 
         return false;
+}
+
+bool
+v3d_qpu_is_nop(struct v3d_qpu_instr *inst)
+{
+        static const struct v3d_qpu_sig nosig = { 0 };
+
+        if (inst->type != V3D_QPU_INSTR_TYPE_ALU)
+                return false;
+        if (inst->alu.add.op != V3D_QPU_A_NOP)
+                return false;
+        if (inst->alu.mul.op != V3D_QPU_M_NOP)
+                return false;
+        if (memcmp(&inst->sig, &nosig, sizeof(nosig)))
+                return false;
+        return true;
 }

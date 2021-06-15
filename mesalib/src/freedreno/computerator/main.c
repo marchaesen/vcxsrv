@@ -24,8 +24,8 @@
 #include <getopt.h>
 #include <inttypes.h>
 #include <locale.h>
-#include <xf86drm.h>
 #include <stdlib.h>
+#include <xf86drm.h>
 
 #include "util/u_math.h"
 
@@ -33,94 +33,90 @@
 
 #include "main.h"
 
-
 static void
 dump_float(void *buf, int sz)
 {
-	uint8_t *ptr = (uint8_t *)buf;
-	uint8_t *end = ptr + sz - 3;
-	int i = 0;
+   uint8_t *ptr = (uint8_t *)buf;
+   uint8_t *end = ptr + sz - 3;
+   int i = 0;
 
-	while (ptr < end) {
-		uint32_t d = 0;
+   while (ptr < end) {
+      uint32_t d = 0;
 
-		printf((i % 8) ? " " : "\t");
+      printf((i % 8) ? " " : "\t");
 
-		d |= *(ptr++) <<  0;
-		d |= *(ptr++) <<  8;
-		d |= *(ptr++) << 16;
-		d |= *(ptr++) << 24;
+      d |= *(ptr++) << 0;
+      d |= *(ptr++) << 8;
+      d |= *(ptr++) << 16;
+      d |= *(ptr++) << 24;
 
-		printf("%8f", uif(d));
+      printf("%8f", uif(d));
 
-		if ((i % 8) == 7) {
-			printf("\n");
-		}
+      if ((i % 8) == 7) {
+         printf("\n");
+      }
 
-		i++;
-	}
+      i++;
+   }
 
-	if (i % 8) {
-		printf("\n");
-	}
+   if (i % 8) {
+      printf("\n");
+   }
 }
 
 static void
 dump_hex(void *buf, int sz)
 {
-	uint8_t *ptr = (uint8_t *)buf;
-	uint8_t *end = ptr + sz;
-	int i = 0;
+   uint8_t *ptr = (uint8_t *)buf;
+   uint8_t *end = ptr + sz;
+   int i = 0;
 
-	while (ptr < end) {
-		uint32_t d = 0;
+   while (ptr < end) {
+      uint32_t d = 0;
 
-		printf((i % 8) ? " " : "\t");
+      printf((i % 8) ? " " : "\t");
 
-		d |= *(ptr++) <<  0;
-		d |= *(ptr++) <<  8;
-		d |= *(ptr++) << 16;
-		d |= *(ptr++) << 24;
+      d |= *(ptr++) << 0;
+      d |= *(ptr++) << 8;
+      d |= *(ptr++) << 16;
+      d |= *(ptr++) << 24;
 
-		printf("%08x", d);
+      printf("%08x", d);
 
-		if ((i % 8) == 7) {
-			printf("\n");
-		}
+      if ((i % 8) == 7) {
+         printf("\n");
+      }
 
-		i++;
-	}
+      i++;
+   }
 
-	if (i % 8) {
-		printf("\n");
-	}
+   if (i % 8) {
+      printf("\n");
+   }
 }
 
 static const char *shortopts = "df:g:hp:";
 
 static const struct option longopts[] = {
-	{"disasm",   no_argument,       0, 'd'},
-	{"file",     required_argument, 0, 'f'},
-	{"groups",   required_argument, 0, 'g'},
-	{"help",     no_argument,       0, 'h'},
-	{"perfcntr", required_argument, 0, 'p'},
-	{0, 0, 0, 0}
-};
+   {"disasm", no_argument, 0, 'd'},         {"file", required_argument, 0, 'f'},
+   {"groups", required_argument, 0, 'g'},   {"help", no_argument, 0, 'h'},
+   {"perfcntr", required_argument, 0, 'p'}, {0, 0, 0, 0}};
 
 static void
 usage(const char *name)
 {
-	printf("Usage: %s [-dfgh]\n"
-		"\n"
-		"options:\n"
-		"    -d, --disasm             print disassembled shader\n"
-		"    -f, --file=FILE          read shader from file (instead of stdin)\n"
-		"    -g, --groups=X,Y,Z       use specified group size\n"
-		"    -h, --help               show this message\n"
-		"    -p, --perfcntr=LIST      sample specified performance counters (comma\n"
-		"                             separated list)\n"
-		,
-		name);
+   printf(
+      "Usage: %s [-dfgh]\n"
+      "\n"
+      "options:\n"
+      "    -d, --disasm             print disassembled shader\n"
+      "    -f, --file=FILE          read shader from file (instead of stdin)\n"
+      "    -g, --groups=X,Y,Z       use specified group size\n"
+      "    -h, --help               show this message\n"
+      "    -p, --perfcntr=LIST      sample specified performance counters "
+      "(comma\n"
+      "                             separated list)\n",
+      name);
 }
 
 /* performance counter description: */
@@ -133,183 +129,184 @@ static unsigned *enabled_counters;
 static void
 setup_counter(const char *name, struct perfcntr *c)
 {
-	for (int i = 0; i < num_groups; i++) {
-		const struct fd_perfcntr_group *group = &groups[i];
+   for (int i = 0; i < num_groups; i++) {
+      const struct fd_perfcntr_group *group = &groups[i];
 
-		for (int j = 0; j < group->num_countables; j++) {
-			const struct fd_perfcntr_countable *countable = &group->countables[j];
+      for (int j = 0; j < group->num_countables; j++) {
+         const struct fd_perfcntr_countable *countable = &group->countables[j];
 
-			if (strcmp(name, countable->name) != 0)
-				continue;
+         if (strcmp(name, countable->name) != 0)
+            continue;
 
-			/*
-			 * Allocate a counter to use to monitor the requested countable:
-			 */
-			if (enabled_counters[i] >= group->num_counters) {
-				errx(-1, "Too many counters selected in group: %s", group->name);
-			}
+         /*
+          * Allocate a counter to use to monitor the requested countable:
+          */
+         if (enabled_counters[i] >= group->num_counters) {
+            errx(-1, "Too many counters selected in group: %s", group->name);
+         }
 
-			unsigned idx = enabled_counters[i]++;
-			const struct fd_perfcntr_counter *counter = &group->counters[idx];
+         unsigned idx = enabled_counters[i]++;
+         const struct fd_perfcntr_counter *counter = &group->counters[idx];
 
-			/*
-			 * And initialize the perfcntr struct, pulling together the info
-			 * about selected counter and countable, to simplify life for the
-			 * backend:
-			 */
-			c->name           = name;
-			c->select_reg     = counter->select_reg;
-			c->counter_reg_lo = counter->counter_reg_lo;
-			c->counter_reg_hi = counter->counter_reg_hi;
-			c->selector       = countable->selector;
+         /*
+          * And initialize the perfcntr struct, pulling together the info
+          * about selected counter and countable, to simplify life for the
+          * backend:
+          */
+         c->name = name;
+         c->select_reg = counter->select_reg;
+         c->counter_reg_lo = counter->counter_reg_lo;
+         c->counter_reg_hi = counter->counter_reg_hi;
+         c->selector = countable->selector;
 
-			return;
-		}
-	}
+         return;
+      }
+   }
 
-	errx(-1, "could not find countable: %s", name);
+   errx(-1, "could not find countable: %s", name);
 }
 
 static struct perfcntr *
-parse_perfcntrs(uint32_t gpu_id, const char *perfcntrstr, unsigned *num_perfcntrs)
+parse_perfcntrs(uint32_t gpu_id, const char *perfcntrstr,
+                unsigned *num_perfcntrs)
 {
-	struct perfcntr *counters = NULL;
-	char *cnames, *s;
-	unsigned cnt = 0;
+   struct perfcntr *counters = NULL;
+   char *cnames, *s;
+   unsigned cnt = 0;
 
-	groups = fd_perfcntrs(gpu_id, &num_groups);
-	enabled_counters = calloc(num_groups, sizeof(enabled_counters[0]));
+   groups = fd_perfcntrs(gpu_id, &num_groups);
+   enabled_counters = calloc(num_groups, sizeof(enabled_counters[0]));
 
-	cnames = strdup(perfcntrstr);
-	while ((s = strstr(cnames, ","))) {
-		char *name = cnames;
-		s[0] = '\0';
-		cnames = &s[1];
+   cnames = strdup(perfcntrstr);
+   while ((s = strstr(cnames, ","))) {
+      char *name = cnames;
+      s[0] = '\0';
+      cnames = &s[1];
 
-		counters = realloc(counters, ++cnt * sizeof(counters[0]));
-		setup_counter(name, &counters[cnt-1]);
-	}
+      counters = realloc(counters, ++cnt * sizeof(counters[0]));
+      setup_counter(name, &counters[cnt - 1]);
+   }
 
-	char * name = cnames;
-	counters = realloc(counters, ++cnt * sizeof(counters[0]));
-	setup_counter(name, &counters[cnt-1]);
+   char *name = cnames;
+   counters = realloc(counters, ++cnt * sizeof(counters[0]));
+   setup_counter(name, &counters[cnt - 1]);
 
-	*num_perfcntrs = cnt;
+   *num_perfcntrs = cnt;
 
-	return counters;
+   return counters;
 }
 
 int
 main(int argc, char **argv)
 {
-	FILE *in = stdin;
-	const char *perfcntrstr = NULL;
-	struct perfcntr *perfcntrs = NULL;
-	unsigned num_perfcntrs = 0;
-	bool disasm = false;
-	uint32_t grid[3] = {0};
-	int opt, ret;
+   FILE *in = stdin;
+   const char *perfcntrstr = NULL;
+   struct perfcntr *perfcntrs = NULL;
+   unsigned num_perfcntrs = 0;
+   bool disasm = false;
+   uint32_t grid[3] = {0};
+   int opt, ret;
 
-	setlocale(LC_NUMERIC, "en_US.UTF-8");
+   setlocale(LC_NUMERIC, "en_US.UTF-8");
 
-	while ((opt = getopt_long_only(argc, argv, shortopts, longopts, NULL)) != -1) {
-		switch (opt) {
-		case 'd':
-			disasm = true;
-			break;
-		case 'f':
-			in = fopen(optarg, "r");
-			if (!in)
-				err(1, "could not open '%s'", optarg);
-			break;
-		case 'g':
-			ret = sscanf(optarg, "%u,%u,%u", &grid[0], &grid[1], &grid[2]);
-			if (ret != 3)
-				goto usage;
-			break;
-		case 'h':
-			goto usage;
-		case 'p':
-			perfcntrstr = optarg;
-			break;
-		default:
-			printf("unrecognized arg: %c\n", opt);
-			goto usage;
-		}
-	}
+   while ((opt = getopt_long_only(argc, argv, shortopts, longopts, NULL)) !=
+          -1) {
+      switch (opt) {
+      case 'd':
+         disasm = true;
+         break;
+      case 'f':
+         in = fopen(optarg, "r");
+         if (!in)
+            err(1, "could not open '%s'", optarg);
+         break;
+      case 'g':
+         ret = sscanf(optarg, "%u,%u,%u", &grid[0], &grid[1], &grid[2]);
+         if (ret != 3)
+            goto usage;
+         break;
+      case 'h':
+         goto usage;
+      case 'p':
+         perfcntrstr = optarg;
+         break;
+      default:
+         printf("unrecognized arg: %c\n", opt);
+         goto usage;
+      }
+   }
 
-	int fd = drmOpenWithType("msm", NULL, DRM_NODE_RENDER);
-	if (fd < 0)
-		err(1, "could not open drm device");
+   int fd = drmOpenWithType("msm", NULL, DRM_NODE_RENDER);
+   if (fd < 0)
+      err(1, "could not open drm device");
 
-	struct fd_device *dev = fd_device_new(fd);
-	struct fd_pipe *pipe = fd_pipe_new(dev, FD_PIPE_3D);
+   struct fd_device *dev = fd_device_new(fd);
+   struct fd_pipe *pipe = fd_pipe_new(dev, FD_PIPE_3D);
 
-	uint64_t val;
-	fd_pipe_get_param(pipe, FD_GPU_ID, &val);
-	uint32_t gpu_id = val;
+   uint64_t val;
+   fd_pipe_get_param(pipe, FD_GPU_ID, &val);
+   uint32_t gpu_id = val;
 
-	printf("got gpu_id: %u\n", gpu_id);
+   printf("got gpu_id: %u\n", gpu_id);
 
-	struct backend *backend;
-	switch (gpu_id) {
-	case 600 ... 699:
-		backend = a6xx_init(dev, gpu_id);
-		break;
-	default:
-		err(1, "unsupported gpu: a%u", gpu_id);
-	}
+   struct backend *backend;
+   switch (gpu_id) {
+   case 600 ... 699:
+      backend = a6xx_init(dev, gpu_id);
+      break;
+   default:
+      err(1, "unsupported gpu: a%u", gpu_id);
+   }
 
-	struct kernel *kernel = backend->assemble(backend, in);
-	printf("localsize: %dx%dx%d\n", kernel->local_size[0],
-			kernel->local_size[1], kernel->local_size[2]);
-	for (int i = 0; i < kernel->num_bufs; i++) {
-		printf("buf[%d]: size=%u\n", i, kernel->buf_sizes[i]);
-		kernel->bufs[i] = fd_bo_new(dev, kernel->buf_sizes[i] * 4,
-				DRM_FREEDRENO_GEM_TYPE_KMEM, "buf[%d]", i);
-	}
+   struct kernel *kernel = backend->assemble(backend, in);
+   printf("localsize: %dx%dx%d\n", kernel->local_size[0], kernel->local_size[1],
+          kernel->local_size[2]);
+   for (int i = 0; i < kernel->num_bufs; i++) {
+      printf("buf[%d]: size=%u\n", i, kernel->buf_sizes[i]);
+      kernel->bufs[i] = fd_bo_new(dev, kernel->buf_sizes[i] * 4, 0, "buf[%d]", i);
+   }
 
-	if (disasm)
-		backend->disassemble(kernel, stdout);
+   if (disasm)
+      backend->disassemble(kernel, stdout);
 
-	if (grid[0] == 0)
-		return 0;
+   if (grid[0] == 0)
+      return 0;
 
-	struct fd_submit *submit = fd_submit_new(pipe);
+   struct fd_submit *submit = fd_submit_new(pipe);
 
-	if (perfcntrstr) {
-		if (!backend->set_perfcntrs) {
-			err(1, "performance counters not supported");
-		}
-		perfcntrs = parse_perfcntrs(gpu_id, perfcntrstr, &num_perfcntrs);
-		backend->set_perfcntrs(backend, perfcntrs, num_perfcntrs);
-	}
+   if (perfcntrstr) {
+      if (!backend->set_perfcntrs) {
+         err(1, "performance counters not supported");
+      }
+      perfcntrs = parse_perfcntrs(gpu_id, perfcntrstr, &num_perfcntrs);
+      backend->set_perfcntrs(backend, perfcntrs, num_perfcntrs);
+   }
 
-	backend->emit_grid(kernel, grid, submit);
+   backend->emit_grid(kernel, grid, submit);
 
-	fd_submit_flush(submit, -1, NULL, NULL);
+   fd_submit_flush(submit, -1, NULL);
 
-	for (int i = 0; i < kernel->num_bufs; i++) {
-		fd_bo_cpu_prep(kernel->bufs[i], pipe, DRM_FREEDRENO_PREP_READ);
-		void *map = fd_bo_map(kernel->bufs[i]);
+   for (int i = 0; i < kernel->num_bufs; i++) {
+      fd_bo_cpu_prep(kernel->bufs[i], pipe, FD_BO_PREP_READ);
+      void *map = fd_bo_map(kernel->bufs[i]);
 
-		printf("buf[%d]:\n", i);
-		dump_hex(map, kernel->buf_sizes[i] * 4);
-		dump_float(map, kernel->buf_sizes[i] * 4);
-	}
+      printf("buf[%d]:\n", i);
+      dump_hex(map, kernel->buf_sizes[i] * 4);
+      dump_float(map, kernel->buf_sizes[i] * 4);
+   }
 
-	if (perfcntrstr) {
-		uint64_t results[num_perfcntrs];
-		backend->read_perfcntrs(backend, results);
+   if (perfcntrstr) {
+      uint64_t results[num_perfcntrs];
+      backend->read_perfcntrs(backend, results);
 
-		for (unsigned i = 0; i < num_perfcntrs; i++) {
-			printf("%s:\t%'"PRIu64"\n", perfcntrs[i].name, results[i]);
-		}
-	}
+      for (unsigned i = 0; i < num_perfcntrs; i++) {
+         printf("%s:\t%'" PRIu64 "\n", perfcntrs[i].name, results[i]);
+      }
+   }
 
-	return 0;
+   return 0;
 
 usage:
-	usage(argv[0]);
-	return -1;
+   usage(argv[0]);
+   return -1;
 }

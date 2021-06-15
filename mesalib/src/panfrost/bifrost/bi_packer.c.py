@@ -107,6 +107,9 @@ def pack_modifier(mod, width, default, opts, body, pack_exprs):
         # Construct a list
         lists = [pick_from_bucket(opts, bucket) for bucket in SWIZZLE_BUCKETS]
         ir_value = "src[{}].swizzle".format(arg)
+    elif raw == "lane_dest":
+        lists = [pick_from_bucket(opts, bucket) for bucket in SWIZZLE_BUCKETS]
+        ir_value = "dest->swizzle"
     elif raw in ["abs", "sign"]:
         ir_value = "src[{}].abs".format(arg)
     elif raw in ["neg", "not"]:

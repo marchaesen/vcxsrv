@@ -700,12 +700,10 @@ vtn_process_block(struct vtn_builder *b,
       return NULL;
 
    case SpvOpKill:
-      b->has_early_terminate = true;
       block->branch_type = vtn_branch_type_discard;
       return NULL;
 
    case SpvOpTerminateInvocation:
-      b->has_early_terminate = true;
       block->branch_type = vtn_branch_type_terminate_invocation;
       return NULL;
 
@@ -1170,8 +1168,6 @@ vtn_emit_cf_list_structured(struct vtn_builder *b, struct list_head *cf_list,
             nir_pop_if(&b->nb, cont_if);
 
             nir_store_var(&b->nb, do_cont, nir_imm_true(&b->nb), 1);
-
-            b->has_loop_continue = true;
          }
 
          nir_pop_loop(&b->nb, loop);
@@ -1377,7 +1373,6 @@ vtn_function_emit(struct vtn_builder *b, struct vtn_function *func,
    b->func = func;
    b->nb.cursor = nir_after_cf_list(&impl->body);
    b->nb.exact = b->exact;
-   b->has_loop_continue = false;
    b->phi_table = _mesa_pointer_hash_table_create(b);
 
    if (b->shader->info.stage == MESA_SHADER_KERNEL || force_unstructured) {
@@ -1393,12 +1388,22 @@ vtn_function_emit(struct vtn_builder *b, struct vtn_function *func,
 
    nir_rematerialize_derefs_in_use_blocks_impl(impl);
 
-   /* Continue blocks for loops get inserted before the body of the loop
-    * but instructions in the continue may use SSA defs in the loop body.
-    * Therefore, we need to repair SSA to insert the needed phi nodes.
+   /*
+    * There are some cases where we need to repair SSA to insert
+    * the needed phi nodes:
+    *
+    * - Continue blocks for loops get inserted before the body of the loop
+    *   but instructions in the continue may use SSA defs in the loop body.
+    *
+    * - Early termination instructions `OpKill` and `OpTerminateInvocation`,
+    *   in NIR. They're represented by regular intrinsics with no control-flow
+    *   semantics. This means that the SSA form from the SPIR-V may not
+    *   100% match NIR.
+    *
+    * - Switches with only default case may also define SSA which may
+    *   subsequently be used out of the switch.
     */
-   if (func->nir_func->impl->structured &&
-       (b->has_loop_continue || b->has_early_terminate))
+   if (func->nir_func->impl->structured)
       nir_repair_ssa_impl(impl);
 
    func->emitted = true;

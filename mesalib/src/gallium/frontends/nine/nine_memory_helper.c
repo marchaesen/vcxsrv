@@ -367,12 +367,13 @@ static void move_region_ordered(struct list_head *tail, struct nine_memfd_file_r
 
 static void move_region_ordered_merge(struct nine_allocator *allocator, struct list_head *tail, struct nine_memfd_file_region *region)
 {
-    struct nine_memfd_file_region *cur_region = NULL, *prev_region = NULL;
+    struct nine_memfd_file_region *p, *cur_region = NULL, *prev_region = NULL;
 
     /* Remove from previous list (if any) */
     list_delinit(&region->list);
 
-    LIST_FOR_EACH_ENTRY(cur_region, tail, list) {
+    LIST_FOR_EACH_ENTRY(p, tail, list) {
+        cur_region = p;
         if (cur_region->offset > region->offset)
             break;
         prev_region = cur_region;
@@ -534,16 +535,13 @@ nine_memfd_unmap_region(struct nine_allocator *allocator,
                             struct nine_memfd_file *memfd_file,
                             struct nine_memfd_file_region *region)
 {
-    int error;
     DBG("Unmapping memfd mapped region at %d: size: %d, map=%p, locks=%d, weak=%d\n",
         region->offset,  region->size, region->map,
         region->num_locks, region->num_weak_unlocks);
     assert(region->map != NULL);
 
-    if (munmap(region->map, region->size) != 0) {
-        error = errno;
-        fprintf(stderr, "Error on unmapping, errno=%d\n", error);
-    }
+    if (munmap(region->map, region->size) != 0)
+        fprintf(stderr, "Error on unmapping, errno=%d\n", (int)errno);
 
     region->map = NULL;
     /* Move from one of the mapped region list to the unmapped one */
@@ -660,7 +658,6 @@ nine_memfd_files_unmap(struct nine_allocator *allocator,
 static bool
 nine_memfd_region_map(struct nine_allocator *allocator, struct nine_memfd_file *memfd_file, struct nine_memfd_file_region *region)
 {
-    int error;
     if (region->map != NULL)
         return true;
 
@@ -675,8 +672,7 @@ nine_memfd_region_map(struct nine_allocator *allocator, struct nine_memfd_file *
         buf = mmap(NULL, region->size, PROT_READ | PROT_WRITE, MAP_SHARED, memfd_file->fd, region->offset);
     }
     if (buf == MAP_FAILED) {
-        error = errno;
-        DBG("Failed to mmap a memfd file, errno=%d\n", error);
+        DBG("Failed to mmap a memfd file, errno=%d\n", (int)errno);
         return false;
     }
     region->map = buf;
@@ -695,8 +691,6 @@ nine_memfd_allocator(struct nine_allocator *allocator,
 {
     struct nine_memfd_file *memfd_file;
     struct nine_memfd_file_region *region;
-    int error;
-
 
     allocation_size = DIVUP(allocation_size, allocator->page_size) * allocator->page_size;
     new_allocation->allocation_type = NINE_MEMFD_ALLOC;
@@ -722,15 +716,13 @@ nine_memfd_allocator(struct nine_allocator *allocator,
 
     memfd_file->fd = memfd_create("gallium_nine_ram", 0);
     if (memfd_file->fd == -1) {
-        error = errno;
-        DBG("Failed to created a memfd file, errno=%d\n", error);
+        DBG("Failed to created a memfd file, errno=%d\n", (int)errno);
         allocator->num_fd--;
         return false;
     }
 
     if (ftruncate(memfd_file->fd, memfd_file->filesize) != 0) {
-        error = errno;
-        DBG("Failed to resize a memfd file, errno=%d\n", error);
+        DBG("Failed to resize a memfd file, errno=%d\n", (int)errno);
         close(memfd_file->fd);
         allocator->num_fd--;
         return false;

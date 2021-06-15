@@ -292,10 +292,7 @@ int si_get_perfcounter_group_info(struct si_screen *, unsigned index,
                                   struct pipe_driver_query_group_info *info);
 
 struct si_qbo_state {
-   void *saved_compute;
    struct pipe_constant_buffer saved_const0;
-   struct pipe_shader_buffer saved_ssbo[3];
-   unsigned saved_ssbo_writable_mask;
 };
 
 #endif /* SI_QUERY_H */

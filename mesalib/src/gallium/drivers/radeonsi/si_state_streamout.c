@@ -112,7 +112,7 @@ static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targ
 
       /* The BUFFER_FILLED_SIZE is written using a PS_DONE event. */
       if (sctx->screen->use_ngg_streamout) {
-         sctx->flags |= SI_CONTEXT_PS_PARTIAL_FLUSH;
+         sctx->flags |= SI_CONTEXT_PS_PARTIAL_FLUSH | SI_CONTEXT_PFP_SYNC_ME;
 
          /* Wait now. This is needed to make sure that GDS is not
           * busy at the end of IBs.
@@ -122,7 +122,7 @@ static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targ
           */
          wait_now = true;
       } else {
-         sctx->flags |= SI_CONTEXT_VS_PARTIAL_FLUSH;
+         sctx->flags |= SI_CONTEXT_VS_PARTIAL_FLUSH | SI_CONTEXT_PFP_SYNC_ME;
       }
    }
 
@@ -133,7 +133,8 @@ static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targ
       if (sctx->screen->use_ngg_streamout)
          si_allocate_gds(sctx);
 
-      sctx->flags |= SI_CONTEXT_PS_PARTIAL_FLUSH | SI_CONTEXT_CS_PARTIAL_FLUSH;
+      sctx->flags |= SI_CONTEXT_PS_PARTIAL_FLUSH | SI_CONTEXT_CS_PARTIAL_FLUSH |
+                     SI_CONTEXT_PFP_SYNC_ME;
    }
 
    /* Streamout buffers must be bound in 2 places:
@@ -246,7 +247,7 @@ static void gfx10_emit_streamout_begin(struct si_context *sctx)
       radeon_emit(cs, va >> 32);
       radeon_emit(cs, 4 * i); /* destination in GDS */
       radeon_emit(cs, 0);
-      radeon_emit(cs, S_414_BYTE_COUNT_GFX9(4) | S_414_DISABLE_WR_CONFIRM_GFX9(i != last_target));
+      radeon_emit(cs, S_415_BYTE_COUNT_GFX9(4) | S_415_DISABLE_WR_CONFIRM_GFX9(i != last_target));
    }
    radeon_end();
 

@@ -56,6 +56,8 @@ NineTexture9_ctor( struct NineTexture9 *This,
     HRESULT hr;
     struct nine_allocation *user_buffer = NULL, *user_buffer_for_level;
 
+    This->base.base.base.device = pParams->device; /* Early fill this field in case of failure */
+
     DBG("(%p) Width=%u Height=%u Levels=%u Usage=%s Format=%s Pool=%s "
         "pSharedHandle=%p\n", This, Width, Height, Levels,
         nine_D3DUSAGE_to_str(Usage),

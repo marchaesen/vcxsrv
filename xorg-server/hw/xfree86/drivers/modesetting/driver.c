@@ -1933,28 +1933,41 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
                        "Failed to initialize the DRI2 extension.\n");
         }
 
-        if (!(ms->drmmode.present_enable = ms_present_screen_init(pScreen))) {
-            xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-                       "Failed to initialize the Present extension.\n");
-        }
         /* enable reverse prime if we are a GPU screen, and accelerated, and not
-         * i915. i915 is happy scanning out from sysmem. */
+         * i915, evdi or udl. i915 is happy scanning out from sysmem.
+         * evdi and udl are virtual drivers scanning out from sysmem
+         * backed dumb buffers.
+         */
         if (pScreen->isGPU) {
             drmVersionPtr version;
 
             /* enable if we are an accelerated GPU screen */
             ms->drmmode.reverse_prime_offload_mode = TRUE;
 
-            /* disable if we detect i915 */
             if ((version = drmGetVersion(ms->drmmode.fd))) {
                 if (!strncmp("i915", version->name, version->name_len)) {
                     ms->drmmode.reverse_prime_offload_mode = FALSE;
+                }
+                if (!strncmp("evdi", version->name, version->name_len)) {
+                    ms->drmmode.reverse_prime_offload_mode = FALSE;
+                }
+                if (!strncmp("udl", version->name, version->name_len)) {
+                    ms->drmmode.reverse_prime_offload_mode = FALSE;
+                }
+                if (!ms->drmmode.reverse_prime_offload_mode) {
+                    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+                       "Disable reverse prime offload mode for %s.\n", version->name);
                 }
                 drmFreeVersion(version);
             }
         }
     }
 #endif
+    if (!(ms->drmmode.present_enable = ms_present_screen_init(pScreen))) {
+        xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+                   "Failed to initialize the Present extension.\n");
+    }
+
 
     pScrn->vtSema = TRUE;
 

@@ -1482,7 +1482,7 @@ builtin_variable_generator::add_varying(int slot, const glsl_type *type,
    case MESA_SHADER_TESS_EVAL:
    case MESA_SHADER_GEOMETRY:
       this->per_vertex_in.add_field(slot, type, precision, name, interp);
-      /* FALLTHROUGH */
+      FALLTHROUGH;
    case MESA_SHADER_VERTEX:
       this->per_vertex_out.add_field(slot, type, precision, name, interp);
       break;

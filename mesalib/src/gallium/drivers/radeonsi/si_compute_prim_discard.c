@@ -954,7 +954,8 @@ static bool si_check_ring_space(struct si_context *sctx, unsigned out_indexbuf_s
 
 enum si_prim_discard_outcome
 si_prepare_prim_discard_or_split_draw(struct si_context *sctx, const struct pipe_draw_info *info,
-                                      const struct pipe_draw_start_count *draws,
+                                      unsigned drawid_offset,
+                                      const struct pipe_draw_start_count_bias *draws,
                                       unsigned num_draws, bool primitive_restart,
                                       unsigned total_count)
 {
@@ -999,7 +1000,7 @@ si_prepare_prim_discard_or_split_draw(struct si_context *sctx, const struct pipe
          for (unsigned i = 0; i < num_draws; i++) {
             if (count && count + draws[i].count > vert_count_per_subdraw) {
                /* Submit previous draws.  */
-               sctx->b.draw_vbo(&sctx->b, info, NULL, draws + first_draw, num_draws_split);
+               sctx->b.draw_vbo(&sctx->b, info, drawid_offset, NULL, draws + first_draw, num_draws_split);
                count = 0;
                first_draw = i;
                num_draws_split = 0;
@@ -1007,7 +1008,7 @@ si_prepare_prim_discard_or_split_draw(struct si_context *sctx, const struct pipe
 
             if (draws[i].count > vert_count_per_subdraw) {
                /* Submit just 1 draw. It will be split. */
-               sctx->b.draw_vbo(&sctx->b, info, NULL, draws + i, 1);
+               sctx->b.draw_vbo(&sctx->b, info, drawid_offset, NULL, draws + i, 1);
                assert(count == 0);
                assert(first_draw == i);
                assert(num_draws_split == 0);
@@ -1023,7 +1024,7 @@ si_prepare_prim_discard_or_split_draw(struct si_context *sctx, const struct pipe
 
       /* Split single draws if splitting multi draws isn't enough. */
       struct pipe_draw_info split_draw = *info;
-      struct pipe_draw_start_count split_draw_range = draws[0];
+      struct pipe_draw_start_count_bias split_draw_range = draws[0];
       unsigned base_start = split_draw_range.start;
 
       split_draw.primitive_restart = primitive_restart;
@@ -1035,7 +1036,7 @@ si_prepare_prim_discard_or_split_draw(struct si_context *sctx, const struct pipe
             split_draw_range.start = base_start + start;
             split_draw_range.count = MIN2(count - start, vert_count_per_subdraw);
 
-            sctx->b.draw_vbo(&sctx->b, &split_draw, NULL, &split_draw_range, 1);
+            sctx->b.draw_vbo(&sctx->b, &split_draw, drawid_offset, NULL, &split_draw_range, 1);
          }
       } else if (prim == PIPE_PRIM_TRIANGLE_STRIP) {
          /* No primitive pair can be split, because strips reverse orientation
@@ -1046,7 +1047,7 @@ si_prepare_prim_discard_or_split_draw(struct si_context *sctx, const struct pipe
             split_draw_range.start = base_start + start;
             split_draw_range.count = MIN2(count - start, vert_count_per_subdraw + 2);
 
-            sctx->b.draw_vbo(&sctx->b, &split_draw, NULL, &split_draw_range, 1);
+            sctx->b.draw_vbo(&sctx->b, &split_draw, drawid_offset, NULL, &split_draw_range, 1);
 
             if (start == 0 && primitive_restart &&
                 sctx->cs_prim_discard_state.current->key.opt.cs_need_correct_orientation)
@@ -1157,7 +1158,7 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
    case PIPE_PRIM_TRIANGLE_FAN:
       vertices_per_prim = 3;
       output_indexbuf_format = V_008F0C_BUF_DATA_FORMAT_32_32_32;
-      gfx10_output_indexbuf_format = V_008F0C_IMG_FORMAT_32_32_32_UINT;
+      gfx10_output_indexbuf_format = V_008F0C_GFX10_FORMAT_32_32_32_UINT;
       break;
    default:
       unreachable("unsupported primitive type");
@@ -1278,9 +1279,9 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
 
    if (sctx->chip_class >= GFX10) {
       desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
-                S_008F0C_FORMAT(index_size == 1 ? V_008F0C_IMG_FORMAT_8_UINT
-                                                : index_size == 2 ? V_008F0C_IMG_FORMAT_16_UINT
-                                                                  : V_008F0C_IMG_FORMAT_32_UINT) |
+                S_008F0C_FORMAT(index_size == 1 ? V_008F0C_GFX10_FORMAT_8_UINT
+                                                : index_size == 2 ? V_008F0C_GFX10_FORMAT_16_UINT
+                                                                  : V_008F0C_GFX10_FORMAT_32_UINT) |
                 S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_STRUCTURED_WITH_OFFSET) |
                 S_008F0C_RESOURCE_LEVEL(1);
    } else {
@@ -1541,8 +1542,7 @@ void si_dispatch_prim_discard_cs_and_draw(struct si_context *sctx,
             unsigned offset = gds_offset + gds_size;
             si_cp_dma_clear_buffer(
                sctx, cs, NULL, offset, GDS_SIZE_UNORDERED - offset, 0,
-               SI_CPDMA_SKIP_CHECK_CS_SPACE | SI_CPDMA_SKIP_GFX_SYNC | SI_CPDMA_SKIP_SYNC_BEFORE,
-               SI_COHERENCY_NONE, L2_BYPASS);
+               SI_OP_CPDMA_SKIP_CHECK_CS_SPACE, SI_COHERENCY_NONE, L2_BYPASS);
          }
       }
       first_dispatch = false;

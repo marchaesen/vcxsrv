@@ -374,9 +374,6 @@ get_fb0_attachment(struct gl_context *ctx, struct gl_framebuffer *fb,
          return &fb->Attachment[BUFFER_BACK_LEFT];
       return NULL;
    case GL_AUX0:
-      if (fb->Visual.numAuxBuffers == 1) {
-         return &fb->Attachment[BUFFER_AUX0];
-      }
       return NULL;
 
    /* Page 336 (page 352 of the PDF) of the OpenGL 3.0 spec says:

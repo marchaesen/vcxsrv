@@ -495,17 +495,6 @@ lower_tess_ctrl_block(nir_block *block, nir_builder *b, struct state *state)
 		nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
 		switch (intr->intrinsic) {
-		case nir_intrinsic_control_barrier:
-		case nir_intrinsic_memory_barrier_tcs_patch:
-			/* Hull shaders dispatch 32 wide so an entire patch will always
-			 * fit in a single warp and execute in lock-step.  Consequently,
-			 * we don't need to do anything for TCS barriers so just remove
-			 * the intrinsic. Otherwise we'll emit an actual barrier
-			 * instructions, which will deadlock.
-			 */
-			nir_instr_remove(&intr->instr);
-			break;
-
 		case nir_intrinsic_load_per_vertex_output: {
 			// src[] = { vertex, offset }.
 

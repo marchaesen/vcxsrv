@@ -844,9 +844,7 @@ void gfx10_emit_ngg_culling_epilogue(struct ac_shader_abi *abi, unsigned max_out
     * Part 2: Compact ES threads in GS threads:
     * - Compute the prefix sum for all 3 vertices from the masks. These are the new
     *   thread IDs for each vertex within the primitive.
-    * - Write the value of the old thread ID into the LDS address of the new thread ID.
-    *   The ES thread will load the old thread ID and use it to load the position, VertexID,
-    *   and InstanceID.
+    * - Write input VGPRs and vertex positions into the LDS address of the new thread ID.
     * - Update vertex indices and null flag in the GS input VGPRs.
     * - Barrier
     *
@@ -857,7 +855,7 @@ void gfx10_emit_ngg_culling_epilogue(struct ac_shader_abi *abi, unsigned max_out
 
    LLVMValueRef vtxindex[3];
    if (shader->key.opt.ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_ALL) {
-      /* For the GS fast launch, the VS prologs simply puts the Vertex IDs
+      /* For the GS fast launch, the VS prolog simply puts the Vertex IDs
        * into these VGPRs.
        */
       vtxindex[0] = ac_get_arg(&ctx->ac, ctx->gs_vtx01_offset);
@@ -981,9 +979,9 @@ void gfx10_emit_ngg_culling_epilogue(struct ac_shader_abi *abi, unsigned max_out
                            (sel->info.uses_primid || shader->key.mono.u.vs_export_prim_id);
 
    /* ES threads compute their prefix sum, which is the new ES thread ID.
-    * Then they write the value of the old thread ID into the LDS address
-    * of the new thread ID. It will be used it to load input VGPRs from
-    * the old thread's LDS location.
+    * Then they write the vertex position and input VGPRs into the LDS address
+    * of the new thread ID. It will be used to load input VGPRs by compacted
+    * threads.
     */
    ac_build_ifcc(&ctx->ac, LLVMBuildLoad(builder, es_accepted, ""), 16009);
    {

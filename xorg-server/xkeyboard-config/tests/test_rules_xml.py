@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 def _xkb_config_root():
     path = os.getenv('XKB_CONFIG_ROOT')
     assert path is not None, 'Environment variable XKB_CONFIG_ROOT must be set'
-    print(f'Using {path}')
+    print(f'Using XKB_CONFIG_ROOT={path}')
 
     xkbpath = Path(path)
     assert (xkbpath / 'rules').exists(), f'{path} is not an XKB installation'

@@ -315,10 +315,20 @@ struct util_format_unpack_description {
     * Unpack pixel blocks to R8G8B8A8_UNORM.
     * Note: strides are in bytes.
     *
-    * Only defined for non-depth-stencil formats.
+    * Only defined for non-block non-depth-stencil formats.
     */
    void
-   (*unpack_rgba_8unorm)(uint8_t *restrict dst, unsigned dst_stride,
+   (*unpack_rgba_8unorm)(uint8_t *restrict dst, const uint8_t *restrict src,
+                         unsigned width);
+
+   /**
+    * Unpack pixel blocks to R8G8B8A8_UNORM.
+    * Note: strides are in bytes.
+    *
+    * Only defined for block non-depth-stencil formats.
+    */
+   void
+   (*unpack_rgba_8unorm_rect)(uint8_t *restrict dst, unsigned dst_stride,
                          const uint8_t *restrict src, unsigned src_stride,
                          unsigned width, unsigned height);
 
@@ -338,10 +348,22 @@ struct util_format_unpack_description {
     *
     * Note: strides are in bytes.
     *
-    * Only defined for non-depth-stencil formats.
+    * Only defined for non-block non-depth-stencil formats.
     */
    void
-   (*unpack_rgba)(void *restrict dst, unsigned dst_stride,
+   (*unpack_rgba)(void *restrict dst, const uint8_t *restrict src,
+                  unsigned width);
+
+   /**
+    * Unpack pixel blocks to R32G32B32A32_UINT/_INT_FLOAT based on whether the
+    * type is pure uint, int, or other.
+    *
+    * Note: strides are in bytes.
+    *
+    * Only defined for block non-depth-stencil formats.
+    */
+   void
+   (*unpack_rgba_rect)(void *restrict dst, unsigned dst_stride,
                   const uint8_t *restrict src, unsigned src_stride,
                   unsigned width, unsigned height);
 
@@ -393,8 +415,17 @@ util_format_description(enum pipe_format format) ATTRIBUTE_CONST;
 const struct util_format_pack_description *
 util_format_pack_description(enum pipe_format format) ATTRIBUTE_CONST;
 
+/* Lookup with CPU detection for choosing optimized paths. */
 const struct util_format_unpack_description *
 util_format_unpack_description(enum pipe_format format) ATTRIBUTE_CONST;
+
+/* Codegenned table of CPU-agnostic unpack code. */
+const struct util_format_unpack_description *
+util_format_unpack_description_generic(enum pipe_format format) ATTRIBUTE_CONST;
+
+const struct util_format_unpack_description *
+util_format_unpack_description_neon(enum pipe_format format) ATTRIBUTE_CONST;
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
@@ -769,6 +800,19 @@ util_format_is_rgba8_variant(const struct util_format_description *desc)
    }
 
    return TRUE;
+}
+
+
+static inline bool
+util_format_is_rgbx_or_bgrx(enum pipe_format format)
+{
+   const struct util_format_description *desc = util_format_description(format);
+   return desc->layout == UTIL_FORMAT_LAYOUT_PLAIN &&
+          desc->nr_channels == 4 &&
+          (desc->swizzle[0] == PIPE_SWIZZLE_X || desc->swizzle[0] == PIPE_SWIZZLE_Z) &&
+          desc->swizzle[1] == PIPE_SWIZZLE_Y &&
+          (desc->swizzle[2] == PIPE_SWIZZLE_Z || desc->swizzle[2] == PIPE_SWIZZLE_X) &&
+          desc->swizzle[3] == PIPE_SWIZZLE_1;
 }
 
 /**
@@ -1477,7 +1521,7 @@ util_format_unpack_rgba(enum pipe_format format, void *dst,
    const struct util_format_unpack_description *desc =
       util_format_unpack_description(format);
 
-   desc->unpack_rgba(dst, 0, (const uint8_t *)src, 0, w, 1);
+   desc->unpack_rgba(dst, (const uint8_t *)src, w);
 }
 
 static inline void
@@ -1557,6 +1601,18 @@ util_format_write_4ub(enum pipe_format format,
                       const uint8_t *src, unsigned src_stride, 
                       void *dst, unsigned dst_stride, 
                       unsigned x, unsigned y, unsigned w, unsigned h);
+
+void
+util_format_unpack_rgba_rect(enum pipe_format format,
+                             void *dst, unsigned dst_stride,
+                             const void *src, unsigned src_stride,
+                             unsigned w, unsigned h);
+
+void
+util_format_unpack_rgba_8unorm_rect(enum pipe_format format,
+                                    void *dst, unsigned dst_stride,
+                                    const void *src, unsigned src_stride,
+                                    unsigned w, unsigned h);
 
 /*
  * Generic format conversion;

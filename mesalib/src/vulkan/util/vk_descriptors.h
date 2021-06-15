@@ -31,8 +31,9 @@ extern "C" {
 
 #include <vulkan/vulkan.h>
 
-VkDescriptorSetLayoutBinding *
-vk_create_sorted_bindings(const VkDescriptorSetLayoutBinding *bindings, unsigned count);
+VkResult
+vk_create_sorted_bindings(const VkDescriptorSetLayoutBinding *bindings, unsigned count,
+                          VkDescriptorSetLayoutBinding **sorted_bindings);
 
 #ifdef __cplusplus
 }

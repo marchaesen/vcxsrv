@@ -58,11 +58,11 @@ radv-fossils:
     - export RADV_FORCE_FAMILY="polaris10"
     - ./install/fossilize-runner.sh
     # Vega10 (GFX9)
-    - export RADV_FORCE_FAMILY="gfx900"
+    - export RADV_FORCE_FAMILY="vega10"
     - ./install/fossilize-runner.sh
     # Navi10 (GFX10)
-    - export RADV_FORCE_FAMILY="gfx1010"
+    - export RADV_FORCE_FAMILY="navi10"
     - ./install/fossilize-runner.sh
     # Sienna Cichlid (GFX10)
-    - export RADV_FORCE_FAMILY="gfx1030"
+    - export RADV_FORCE_FAMILY="sienna_cichlid"
     - ./install/fossilize-runner.sh

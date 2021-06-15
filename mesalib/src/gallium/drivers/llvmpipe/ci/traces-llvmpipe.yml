@@ -169,7 +169,7 @@ traces:
   - path: bgfx/39-assao.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: dfe7796f4bd2b758baf253714e92c8da
+        checksum: e10e7a0e3a604e0bf6a77b4a01d81f54
   - path: bgfx/40-svt.rdc
     expectations:
       - device: gl-vmware-llvmpipe

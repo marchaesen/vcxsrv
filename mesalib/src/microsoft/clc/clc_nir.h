@@ -29,7 +29,7 @@
 
 bool
 clc_nir_lower_system_values(nir_shader *nir, nir_variable *var);
-bool dxil_nir_lower_kernel_input_loads(nir_shader *nir, nir_variable *var);
+bool clc_nir_lower_kernel_input_loads(nir_shader *nir, nir_variable *var);
 
 bool clc_lower_printf_base(nir_shader *nir, unsigned uav_id);
 

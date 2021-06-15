@@ -194,8 +194,15 @@ mark_whole_variable(nir_shader *shader, nir_variable *var,
 }
 
 static unsigned
-get_io_offset(nir_deref_instr *deref, bool is_vertex_input, bool per_vertex)
+get_io_offset(nir_deref_instr *deref, nir_variable *var, bool per_vertex)
 {
+   if (var->data.compact) {
+      assert(deref->deref_type == nir_deref_type_array);
+      return nir_src_is_const(deref->arr.index) ?
+             (nir_src_as_uint(deref->arr.index) + var->data.location_frac) / 4u :
+             (unsigned)-1;
+   }
+
    unsigned offset = 0;
 
    for (nir_deref_instr *d = deref; d; d = nir_deref_instr_parent(d)) {
@@ -206,10 +213,15 @@ get_io_offset(nir_deref_instr *deref, bool is_vertex_input, bool per_vertex)
          if (!nir_src_is_const(d->arr.index))
             return -1;
 
-         offset += glsl_count_attribute_slots(d->type, is_vertex_input) *
+         offset += glsl_count_attribute_slots(d->type, false) *
                    nir_src_as_uint(d->arr.index);
+      } else if (d->deref_type == nir_deref_type_struct) {
+         const struct glsl_type *parent_type = nir_deref_instr_parent(d)->type;
+         for (unsigned i = 0; i < d->strct.index; i++) {
+            const struct glsl_type *field_type = glsl_get_struct_field(parent_type, i);
+            offset += glsl_count_attribute_slots(field_type, false);
+         }
       }
-      /* TODO: we can get the offset for structs here see nir_lower_io() */
    }
 
    return offset;
@@ -238,45 +250,15 @@ try_mask_partial_io(nir_shader *shader, nir_variable *var,
    if (var->data.per_view)
       return false;
 
-   /* The code below only handles:
-    *
-    * - Indexing into matrices
-    * - Indexing into arrays of (arrays, matrices, vectors, or scalars)
-    *
-    * For now, we just give up if we see varying structs and arrays of structs
-    * here marking the entire variable as used.
-    */
-   if (!(glsl_type_is_matrix(type) ||
-         (glsl_type_is_array(type) && !var->data.compact &&
-          (glsl_type_is_numeric(glsl_without_array(type)) ||
-           glsl_type_is_boolean(glsl_without_array(type)))))) {
-
-      /* If we don't know how to handle this case, give up and let the
-       * caller mark the whole variable as used.
-       */
-      return false;
-   }
-
-   unsigned offset = get_io_offset(deref, false, per_vertex);
+   unsigned offset = get_io_offset(deref, var, per_vertex);
    if (offset == -1)
       return false;
 
-   unsigned num_elems;
-   unsigned elem_width = 1;
-   unsigned mat_cols = 1;
-   if (glsl_type_is_array(type)) {
-      num_elems = glsl_get_aoa_size(type);
-      if (glsl_type_is_matrix(glsl_without_array(type)))
-         mat_cols = glsl_get_matrix_columns(glsl_without_array(type));
-   } else {
-      num_elems = glsl_get_matrix_columns(type);
-   }
+   const unsigned slots =
+      var->data.compact ? DIV_ROUND_UP(glsl_get_length(type), 4)
+                        : glsl_count_attribute_slots(type, false);
 
-   /* double element width for double types that takes two slots */
-   if (glsl_type_is_dual_slot(glsl_without_array(type)))
-      elem_width *= 2;
-
-   if (offset >= num_elems * elem_width * mat_cols) {
+   if (offset >= slots) {
       /* Constant index outside the bounds of the matrix/array.  This could
        * arise as a result of constant folding of a legal GLSL program.
        *
@@ -289,7 +271,8 @@ try_mask_partial_io(nir_shader *shader, nir_variable *var,
       return false;
    }
 
-   set_io_mask(shader, var, offset, elem_width, deref, is_output_read);
+   unsigned len = glsl_count_attribute_slots(deref->type, false);
+   set_io_mask(shader, var, offset, len, deref, is_output_read);
    return true;
 }
 
@@ -305,11 +288,13 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
                       void *dead_ctx)
 {
    uint64_t slot_mask = 0;
+   uint16_t slot_mask_16bit = 0;
 
    if (nir_intrinsic_infos[instr->intrinsic].index_map[NIR_INTRINSIC_IO_SEMANTICS] > 0) {
       nir_io_semantics semantics = nir_intrinsic_io_semantics(instr);
 
-      if (semantics.location >= VARYING_SLOT_PATCH0) {
+      if (semantics.location >= VARYING_SLOT_PATCH0 &&
+          semantics.location <= VARYING_SLOT_PATCH31) {
          /* Generic per-patch I/O. */
          assert((shader->info.stage == MESA_SHADER_TESS_EVAL &&
                  instr->intrinsic == nir_intrinsic_load_input) ||
@@ -320,16 +305,23 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
          semantics.location -= VARYING_SLOT_PATCH0;
       }
 
-      slot_mask = BITFIELD64_RANGE(semantics.location, semantics.num_slots);
-      assert(util_bitcount64(slot_mask) == semantics.num_slots);
+      if (semantics.location >= VARYING_SLOT_VAR0_16BIT &&
+          semantics.location <= VARYING_SLOT_VAR15_16BIT) {
+         /* Convert num_slots from the units of half vectors to full vectors. */
+         unsigned num_slots = (semantics.num_slots + semantics.high_16bits + 1) / 2;
+         slot_mask_16bit =
+            BITFIELD_RANGE(semantics.location - VARYING_SLOT_VAR0_16BIT, num_slots);
+      } else {
+         slot_mask = BITFIELD64_RANGE(semantics.location, semantics.num_slots);
+         assert(util_bitcount64(slot_mask) == semantics.num_slots);
+      }
    }
 
    switch (instr->intrinsic) {
    case nir_intrinsic_demote:
    case nir_intrinsic_demote_if:
       shader->info.fs.uses_demote = true;
-      FALLTHROUGH;
-   /* fallthrough - quads with helper lanes only might be discarded entirely */
+      FALLTHROUGH; /* quads with helper lanes only might be discarded entirely */
    case nir_intrinsic_discard:
    case nir_intrinsic_discard_if:
       /* Freedreno uses the discard_if intrinsic to end GS invocations that
@@ -390,8 +382,11 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
             shader->info.patch_inputs_read_indirectly |= slot_mask;
       } else {
          shader->info.inputs_read |= slot_mask;
-         if (!nir_src_is_const(*nir_get_io_offset_src(instr)))
+         shader->info.inputs_read_16bit |= slot_mask_16bit;
+         if (!nir_src_is_const(*nir_get_io_offset_src(instr))) {
             shader->info.inputs_read_indirectly |= slot_mask;
+            shader->info.inputs_read_indirectly_16bit |= slot_mask_16bit;
+         }
       }
 
       if (shader->info.stage == MESA_SHADER_TESS_CTRL &&
@@ -409,8 +404,11 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
             shader->info.patch_outputs_accessed_indirectly |= slot_mask;
       } else {
          shader->info.outputs_read |= slot_mask;
-         if (!nir_src_is_const(*nir_get_io_offset_src(instr)))
+         shader->info.outputs_read_16bit |= slot_mask_16bit;
+         if (!nir_src_is_const(*nir_get_io_offset_src(instr))) {
             shader->info.outputs_accessed_indirectly |= slot_mask;
+            shader->info.outputs_accessed_indirectly_16bit |= slot_mask_16bit;
+         }
       }
 
       if (shader->info.stage == MESA_SHADER_TESS_CTRL &&
@@ -432,8 +430,11 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
             shader->info.patch_outputs_accessed_indirectly |= slot_mask;
       } else {
          shader->info.outputs_written |= slot_mask;
-         if (!nir_src_is_const(*nir_get_io_offset_src(instr)))
+         shader->info.outputs_written_16bit |= slot_mask_16bit;
+         if (!nir_src_is_const(*nir_get_io_offset_src(instr))) {
             shader->info.outputs_accessed_indirectly |= slot_mask;
+            shader->info.outputs_accessed_indirectly_16bit |= slot_mask_16bit;
+         }
       }
 
       if (shader->info.stage == MESA_SHADER_FRAGMENT &&
@@ -856,6 +857,11 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
    shader->info.inputs_read = 0;
    shader->info.outputs_written = 0;
    shader->info.outputs_read = 0;
+   shader->info.inputs_read_16bit = 0;
+   shader->info.outputs_written_16bit = 0;
+   shader->info.outputs_read_16bit = 0;
+   shader->info.inputs_read_indirectly_16bit = 0;
+   shader->info.outputs_accessed_indirectly_16bit = 0;
    shader->info.patch_outputs_read = 0;
    shader->info.patch_inputs_read = 0;
    shader->info.patch_outputs_written = 0;

@@ -30,21 +30,21 @@
 #include "freedreno_context.h"
 
 struct fd2_context {
-	struct fd_context base;
+   struct fd_context base;
 
-	/* vertex buf used for clear/gmem->mem vertices, and mem->gmem
-	 * vertices and tex coords:
-	 */
-	struct pipe_resource *solid_vertexbuf;
+   /* vertex buf used for clear/gmem->mem vertices, and mem->gmem
+    * vertices and tex coords:
+    */
+   struct pipe_resource *solid_vertexbuf;
 };
 
 static inline struct fd2_context *
 fd2_context(struct fd_context *ctx)
 {
-	return (struct fd2_context *)ctx;
+   return (struct fd2_context *)ctx;
 }
 
-struct pipe_context *
-fd2_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags);
+struct pipe_context *fd2_context_create(struct pipe_screen *pscreen, void *priv,
+                                        unsigned flags);
 
 #endif /* FD2_CONTEXT_H_ */

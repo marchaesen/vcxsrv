@@ -42,91 +42,82 @@ extern "C" {
 
 /* Describes a single counter: */
 struct fd_perfcntr_counter {
-	/* offset of the select register to choose what to count: */
-	unsigned select_reg;
-	/* offset of the lo/hi 32b to read current counter value: */
-	unsigned counter_reg_lo;
-	unsigned counter_reg_hi;
-	/* Optional, most counters don't have enable/clear registers: */
-	unsigned enable;
-	unsigned clear;
+   /* offset of the select register to choose what to count: */
+   unsigned select_reg;
+   /* offset of the lo/hi 32b to read current counter value: */
+   unsigned counter_reg_lo;
+   unsigned counter_reg_hi;
+   /* Optional, most counters don't have enable/clear registers: */
+   unsigned enable;
+   unsigned clear;
 };
 
-
 enum fd_perfcntr_type {
-	FD_PERFCNTR_TYPE_UINT64,
-	FD_PERFCNTR_TYPE_UINT,
-	FD_PERFCNTR_TYPE_FLOAT,
-	FD_PERFCNTR_TYPE_PERCENTAGE,
-	FD_PERFCNTR_TYPE_BYTES,
-	FD_PERFCNTR_TYPE_MICROSECONDS,
-	FD_PERFCNTR_TYPE_HZ,
-	FD_PERFCNTR_TYPE_DBM,
-	FD_PERFCNTR_TYPE_TEMPERATURE,
-	FD_PERFCNTR_TYPE_VOLTS,
-	FD_PERFCNTR_TYPE_AMPS,
-	FD_PERFCNTR_TYPE_WATTS,
+   FD_PERFCNTR_TYPE_UINT64,
+   FD_PERFCNTR_TYPE_UINT,
+   FD_PERFCNTR_TYPE_FLOAT,
+   FD_PERFCNTR_TYPE_PERCENTAGE,
+   FD_PERFCNTR_TYPE_BYTES,
+   FD_PERFCNTR_TYPE_MICROSECONDS,
+   FD_PERFCNTR_TYPE_HZ,
+   FD_PERFCNTR_TYPE_DBM,
+   FD_PERFCNTR_TYPE_TEMPERATURE,
+   FD_PERFCNTR_TYPE_VOLTS,
+   FD_PERFCNTR_TYPE_AMPS,
+   FD_PERFCNTR_TYPE_WATTS,
 };
 
 /* Whether an average value per frame or a cumulative value should be
  * displayed.
  */
 enum fd_perfcntr_result_type {
-	FD_PERFCNTR_RESULT_TYPE_AVERAGE,
-	FD_PERFCNTR_RESULT_TYPE_CUMULATIVE,
+   FD_PERFCNTR_RESULT_TYPE_AVERAGE,
+   FD_PERFCNTR_RESULT_TYPE_CUMULATIVE,
 };
-
 
 /* Describes a single countable: */
 struct fd_perfcntr_countable {
-	const char *name;
-	/* selector register enum value to select this countable: */
-	unsigned selector;
+   const char *name;
+   /* selector register enum value to select this countable: */
+   unsigned selector;
 
-	/* description of the countable: */
-	enum fd_perfcntr_type query_type;
-	enum fd_perfcntr_result_type result_type;
+   /* description of the countable: */
+   enum fd_perfcntr_type query_type;
+   enum fd_perfcntr_result_type result_type;
 };
 
 /* Describes an entire counter group: */
 struct fd_perfcntr_group {
-	const char *name;
-	unsigned num_counters;
-	const struct fd_perfcntr_counter *counters;
-	unsigned num_countables;
-	const struct fd_perfcntr_countable *countables;
+   const char *name;
+   unsigned num_counters;
+   const struct fd_perfcntr_counter *counters;
+   unsigned num_countables;
+   const struct fd_perfcntr_countable *countables;
 };
 
 const struct fd_perfcntr_group *fd_perfcntrs(unsigned gpu_id, unsigned *count);
 
-#define COUNTER(_sel, _lo, _hi) {  \
-	.select_reg = REG(_sel),       \
-	.counter_reg_lo = REG(_lo),    \
-	.counter_reg_hi = REG(_hi),    \
-}
+#define COUNTER(_sel, _lo, _hi) {                                              \
+      .select_reg = REG(_sel), .counter_reg_lo = REG(_lo),                     \
+      .counter_reg_hi = REG(_hi),                                              \
+   }
 
-#define COUNTER2(_sel, _lo, _hi, _en, _clr) { \
-	.select_reg     = REG(_sel),  \
-	.counter_reg_lo = REG(_lo),   \
-	.counter_reg_hi = REG(_hi),   \
-	.enable         = REG(_en),   \
-	.clear          = REG(_clr),  \
-}
+#define COUNTER2(_sel, _lo, _hi, _en, _clr) {                                  \
+      .select_reg = REG(_sel), .counter_reg_lo = REG(_lo),                     \
+      .counter_reg_hi = REG(_hi), .enable = REG(_en), .clear = REG(_clr),      \
+   }
 
-#define COUNTABLE(_selector, _query_type, _result_type) {            \
-	.name        = #_selector,                                       \
-	.selector    = _selector,                                        \
-	.query_type  = FD_PERFCNTR_TYPE_ ## _query_type,                 \
-	.result_type = FD_PERFCNTR_RESULT_TYPE_ ## _result_type,         \
-}
+#define COUNTABLE(_selector, _query_type, _result_type) {                      \
+      .name = #_selector, .selector = _selector,                               \
+      .query_type = FD_PERFCNTR_TYPE_##_query_type,                            \
+      .result_type = FD_PERFCNTR_RESULT_TYPE_##_result_type,                   \
+   }
 
-#define GROUP(_name, _counters, _countables) {   \
-	.name           = _name,                     \
-	.num_counters   = ARRAY_SIZE(_counters),     \
-	.counters       = _counters,                 \
-	.num_countables = ARRAY_SIZE(_countables),   \
-	.countables     = _countables,               \
-}
+#define GROUP(_name, _counters, _countables) {                                 \
+      .name = _name, .num_counters = ARRAY_SIZE(_counters),                    \
+      .counters = _counters, .num_countables = ARRAY_SIZE(_countables),        \
+      .countables = _countables,                                               \
+   }
 
 #ifdef __cplusplus
 } /* end of extern "C" */

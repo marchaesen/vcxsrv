@@ -88,7 +88,7 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
    RegisterDemand new_demand;
 
    register_demand.resize(block->instructions.size());
-   block->register_demand = RegisterDemand();
+   RegisterDemand block_register_demand;
    IDSet live = lives.live_out[block->index];
 
    /* initialize register demand */
@@ -159,11 +159,13 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
          }
       }
 
-      block->register_demand.update(register_demand[idx]);
+      block_register_demand.update(register_demand[idx]);
    }
 
    /* update block's register demand for a last time */
-   block->register_demand.update(new_demand);
+   block_register_demand.update(new_demand);
+   if (program->progress < CompilationProgress::after_ra)
+      block->register_demand = block_register_demand;
 
    /* handle phi definitions */
    int phi_idx = idx;
@@ -226,11 +228,13 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
          /* check if we changed an already processed block */
          const bool inserted = lives.live_out[preds[i]].insert(operand.tempId()).second;
          if (inserted) {
-            operand.setKill(true);
             worklist.insert(preds[i]);
             if (insn->opcode == aco_opcode::p_phi && operand.getTemp().type() == RegType::sgpr)
                phi_sgpr_ops[preds[i]] += operand.size();
          }
+
+         /* set if the operand is killed by this (or another) phi instruction */
+         operand.setKill(!live.count(operand.tempId()));
       }
       phi_idx--;
    }
@@ -383,7 +387,8 @@ live live_var_analysis(Program* program)
    }
 
    /* calculate the program's register demand and number of waves */
-   update_vgpr_sgpr_demand(program, new_demand);
+   if (program->progress < CompilationProgress::after_ra)
+      update_vgpr_sgpr_demand(program, new_demand);
 
    return result;
 }

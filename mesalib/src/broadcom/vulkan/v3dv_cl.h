@@ -194,7 +194,7 @@ void v3dv_cl_ensure_space_with_branch(struct v3dv_cl *cl, uint32_t space);
  * Helper function called by the XML-generated pack functions for filling in
  * an address field in shader records.
  *
- * Since we have a private address space as of VC5, our BOs can have lifelong
+ * Since we have a private address space as of V3D, our BOs can have lifelong
  * offsets, and all the kernel needs to know is which BOs need to be paged in
  * for this exec.
  */

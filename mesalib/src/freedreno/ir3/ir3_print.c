@@ -240,7 +240,7 @@ print_instr(struct ir3_instruction *instr, int lvl)
 		printf(" ");
 	}
 
-	if (!is_flow(instr)) {
+	if (!is_flow(instr) || instr->opc == OPC_END || instr->opc == OPC_CHMASK) {
 		for (unsigned i = 0, n = 0; i < instr->regs_count; i++) {
 			struct ir3_register *reg = instr->regs[i];
 
@@ -355,16 +355,12 @@ print_block(struct ir3_block *block, int lvl)
 {
 	tab(lvl); printf("block%u {\n", block_id(block));
 
-	/* computerator (ir3 assembler) doesn't really use blocks for flow
-	 * control, so block->predecessors will be null.
-	 */
-	if (block->predecessors && block->predecessors->entries > 0) {
-		unsigned i = 0;
+	if (block->predecessors_count > 0) {
 		tab(lvl+1);
 		printf("pred: ");
-		set_foreach (block->predecessors, entry) {
-			struct ir3_block *pred = (struct ir3_block *)entry->key;
-			if (i++)
+		for (unsigned i = 0; i < block->predecessors_count; i++) {
+			struct ir3_block *pred = block->predecessors[i];
+			if (i != 0)
 				printf(", ");
 			printf("block%u", block_id(pred));
 		}
@@ -401,9 +397,4 @@ ir3_print(struct ir3 *ir)
 {
 	foreach_block (block, &ir->block_list)
 		print_block(block, 0);
-
-	foreach_output_n (out, i, ir) {
-		printf("out%d: ", i);
-		print_instr(out, 0);
-	}
 }

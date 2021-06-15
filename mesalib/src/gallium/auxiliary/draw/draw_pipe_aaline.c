@@ -318,7 +318,6 @@ generate_aaline_fs(struct aaline_stage *aaline)
 static boolean
 generate_aaline_fs_nir(struct aaline_stage *aaline)
 {
-#ifdef DRAW_LLVM_AVAILABLE
    struct pipe_context *pipe = aaline->stage.draw->pipe;
    const struct pipe_shader_state *orig_fs = &aaline->fs->state;
    struct pipe_shader_state aaline_fs;
@@ -334,9 +333,6 @@ generate_aaline_fs_nir(struct aaline_stage *aaline)
       return FALSE;
 
    return TRUE;
-#else
-   return FALSE;
-#endif
 }
 
 /**
@@ -644,10 +640,8 @@ aaline_create_fs_state(struct pipe_context *pipe,
    aafs->state.type = fs->type;
    if (fs->type == PIPE_SHADER_IR_TGSI)
       aafs->state.tokens = tgsi_dup_tokens(fs->tokens);
-#ifdef DRAW_LLVM_AVAILABLE
    else
       aafs->state.ir.nir = nir_shader_clone(NULL, fs->ir.nir);
-#endif
 
    /* pass-through */
    aafs->driver_fs = aaline->driver_create_fs_state(pipe, fs);

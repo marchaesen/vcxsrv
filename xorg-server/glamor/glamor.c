@@ -414,6 +414,7 @@ glamor_debug_output_callback(GLenum source,
 
     LogMessageVerb(X_ERROR, 0, "glamor%d: GL error: %*s\n",
                screen->myNum, length, message);
+    xorg_backtrace();
 }
 
 /**
@@ -816,7 +817,8 @@ glamor_init(ScreenPtr screen, unsigned int flags)
      * cached IB.
      */
     if (strstr((char *)glGetString(GL_VENDOR), "Broadcom") &&
-        strstr((char *)glGetString(GL_RENDERER), "VC4"))
+        (strstr((char *)glGetString(GL_RENDERER), "VC4") ||
+         strstr((char *)glGetString(GL_RENDERER), "V3D")))
         glamor_priv->use_quads = FALSE;
 
     glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE, &glamor_priv->max_fbo_size);

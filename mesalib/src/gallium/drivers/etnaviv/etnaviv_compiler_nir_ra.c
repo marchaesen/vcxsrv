@@ -154,6 +154,7 @@ etna_ra_assign(struct etna_compile *c, nir_shader *shader)
          case nir_op_fcos:
             assert(dest->is_ssa);
             comp = REG_CLASS_VIRT_VEC2T;
+            break;
          default:
             break;
          }

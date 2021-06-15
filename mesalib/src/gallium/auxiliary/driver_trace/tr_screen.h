@@ -51,6 +51,7 @@ struct trace_screen
    struct pipe_screen base;
 
    struct pipe_screen *screen;
+   bool trace_tc;
 };
 
 

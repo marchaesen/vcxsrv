@@ -134,6 +134,20 @@ pipe_surface_release(struct pipe_context *pipe, struct pipe_surface **ptr)
    *ptr = NULL;
 }
 
+static inline void
+pipe_resource_destroy(struct pipe_resource *res)
+{
+   /* Avoid recursion, which would prevent inlining this function */
+   do {
+      struct pipe_resource *next = res->next;
+
+      res->screen->resource_destroy(res->screen, res);
+      res = next;
+   } while (pipe_reference_described(res ? &res->reference : NULL,
+                                     NULL,
+                                     (debug_reference_descriptor)
+                                     debug_describe_resource));
+}
 
 static inline void
 pipe_resource_reference(struct pipe_resource **dst, struct pipe_resource *src)
@@ -144,16 +158,7 @@ pipe_resource_reference(struct pipe_resource **dst, struct pipe_resource *src)
                                 src ? &src->reference : NULL,
                                 (debug_reference_descriptor)
                                 debug_describe_resource)) {
-      /* Avoid recursion, which would prevent inlining this function */
-      do {
-         struct pipe_resource *next = old_dst->next;
-
-         old_dst->screen->resource_destroy(old_dst->screen, old_dst);
-         old_dst = next;
-      } while (pipe_reference_described(old_dst ? &old_dst->reference : NULL,
-                                        NULL,
-                                        (debug_reference_descriptor)
-                                        debug_describe_resource));
+      pipe_resource_destroy(old_dst);
    }
    *dst = src;
 }

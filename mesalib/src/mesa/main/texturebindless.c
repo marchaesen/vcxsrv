@@ -378,8 +378,8 @@ _mesa_init_resident_handles(struct gl_context *ctx)
 void
 _mesa_free_resident_handles(struct gl_context *ctx)
 {
-   _mesa_hash_table_u64_destroy(ctx->ResidentTextureHandles, NULL);
-   _mesa_hash_table_u64_destroy(ctx->ResidentImageHandles, NULL);
+   _mesa_hash_table_u64_destroy(ctx->ResidentTextureHandles);
+   _mesa_hash_table_u64_destroy(ctx->ResidentImageHandles);
 }
 
 /**
@@ -397,10 +397,10 @@ void
 _mesa_free_shared_handles(struct gl_shared_state *shared)
 {
    if (shared->TextureHandles)
-      _mesa_hash_table_u64_destroy(shared->TextureHandles, NULL);
+      _mesa_hash_table_u64_destroy(shared->TextureHandles);
 
    if (shared->ImageHandles)
-      _mesa_hash_table_u64_destroy(shared->ImageHandles, NULL);
+      _mesa_hash_table_u64_destroy(shared->ImageHandles);
 
    mtx_destroy(&shared->HandlesMutex);
 }

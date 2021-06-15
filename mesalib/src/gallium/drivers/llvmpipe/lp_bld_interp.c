@@ -324,7 +324,7 @@ attribs_update_simple(struct lp_build_interp_soa_context *bld,
             index = lp_build_const_int32(gallivm, chan);
             switch (interp) {
             case LP_INTERP_PERSPECTIVE:
-               /* fall-through */
+               FALLTHROUGH;
 
             case LP_INTERP_LINEAR:
                if (attrib == 0 && chan == 0) {
@@ -462,7 +462,7 @@ lp_build_interp_soa_indirect(struct lp_build_interp_soa_context *bld,
    dst_type.length = 1;
    switch (interp) {
    case LP_INTERP_PERSPECTIVE:
-      /* fall-through */
+      FALLTHROUGH;
    case LP_INTERP_LINEAR:
 
       dadx = lp_build_gather(gallivm, coeff_bld->type.length,
@@ -605,7 +605,7 @@ lp_build_interp_soa(struct lp_build_interp_soa_context *bld,
 
    switch (interp) {
    case LP_INTERP_PERSPECTIVE:
-      /* fall-through */
+      FALLTHROUGH;
    case LP_INTERP_LINEAR:
       dadx = lp_build_extract_broadcast(gallivm, setup_bld->type,
                                         coeff_bld->type, bld->dadxaos[attrib],

@@ -211,7 +211,7 @@ bi_lower_atom_c1(bi_context *ctx, struct bi_clause_state *clause, struct
         pinstr->src[2] = pinstr->src[1];
         pinstr->src[1] = pinstr->src[0];
         pinstr->src[3] = bi_dontcare();
-        pinstr->src[0] = pinstr->dest[0];
+        pinstr->src[0] = bi_null();
 
         return atom_c;
 }
@@ -383,6 +383,12 @@ bi_singleton(void *memctx, bi_instr *ins,
 ASSERTED static bool
 bi_can_fma(bi_instr *ins)
 {
+        /* Errata: *V2F32_TO_V2F16 with distinct sources raises
+         * INSTR_INVALID_ENC under certain conditions */
+        if (ins->op == BI_OPCODE_V2F32_TO_V2F16 &&
+                        !bi_is_word_equiv(ins->src[0], ins->src[1]))
+                return false;
+
         /* TODO: some additional fp16 constraints */
         return bi_opcode_props[ins->op].fma;
 }
@@ -390,6 +396,10 @@ bi_can_fma(bi_instr *ins)
 ASSERTED static bool
 bi_can_add(bi_instr *ins)
 {
+        /* +FADD.v2f16 lacks clamp modifier, use *FADD.v2f16 instead */
+        if (ins->op == BI_OPCODE_FADD_V2F16 && ins->clamp)
+                return false;
+
         /* TODO: some additional fp16 constraints */
         return bi_opcode_props[ins->op].add;
 }
@@ -881,12 +891,6 @@ bi_take_instr(bi_context *ctx, struct bi_worklist st,
                 struct bi_tuple_state *tuple,
                 bool fma)
 {
-#ifndef NDEBUG
-        /* Don't pair instructions if debugging */
-        if ((bifrost_debug & BIFROST_DBG_NOSCHED) && tuple->add)
-                return NULL;
-#endif
-
         if (tuple->add && tuple->add->op == BI_OPCODE_CUBEFACE)
                 return bi_lower_cubeface(ctx, clause, tuple);
         else if (tuple->add && tuple->add->op == BI_OPCODE_PATOM_C_I32)
@@ -897,6 +901,12 @@ bi_take_instr(bi_context *ctx, struct bi_worklist st,
                 return bi_lower_seg_add(ctx, clause, tuple);
         else if (tuple->add && tuple->add->table)
                 return bi_lower_dtsel(ctx, clause, tuple);
+
+#ifndef NDEBUG
+        /* Don't pair instructions if debugging */
+        if ((bifrost_debug & BIFROST_DBG_NOSCHED) && tuple->add)
+                return NULL;
+#endif
 
         unsigned idx = bi_choose_index(st, clause, tuple, fma);
 
@@ -1658,7 +1668,7 @@ bi_test_units(bi_builder *b)
                 assert(bi_reads_t(load, i));
         }
 
-        bi_instr *blend = bi_blend_to(b, TMP(), TMP(), TMP(), TMP(), TMP());
+        bi_instr *blend = bi_blend_to(b, TMP(), TMP(), TMP(), TMP(), TMP(), 4);
         assert(!bi_can_fma(load));
         assert(bi_can_add(load));
         assert(bi_must_last(blend));

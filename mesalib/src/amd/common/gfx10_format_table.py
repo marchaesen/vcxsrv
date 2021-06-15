@@ -21,8 +21,7 @@
 # USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 """
-Script that generates the mapping from Gallium PIPE_FORMAT_xxx to gfx10
-IMG_FORMAT_xxx enums.
+Script that generates the mapping from Gallium PIPE_FORMAT_xxx to GFX10_FORMAT_xxx enums.
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -112,7 +111,7 @@ header_template = mako.template.Template("""\
 #include "amdgfxregs.h"
 
 #define FMT(_img_format, ...) \
-   { .img_format = V_008F0C_IMG_FORMAT_##_img_format, \
+   { .img_format = V_008F0C_GFX10_FORMAT_##_img_format, \
      ##__VA_ARGS__ }
 
 const struct gfx10_format gfx10_format_table[PIPE_FORMAT_COUNT] = {
@@ -130,7 +129,7 @@ class Gfx10Format(object):
     RE_plain_channel = re.compile(r'X?([0-9]+)')
 
     def __init__(self, enum_entry):
-        self.img_format = enum_entry.name[11:]
+        self.img_format = enum_entry.name[13:]
         self.flags = getattr(enum_entry, 'flags', [])
 
         code = self.img_format.split('_')
@@ -258,7 +257,7 @@ if __name__ == '__main__':
     with open(sys.argv[2], 'r') as filp:
         db = RegisterDatabase.from_json(json.load(filp))
 
-    gfx10_formats = [Gfx10Format(entry) for entry in db.enum('IMG_FORMAT').entries]
+    gfx10_formats = [Gfx10Format(entry) for entry in db.enum('GFX10_FORMAT').entries]
 
     mapping = Gfx10FormatMapping(pipe_formats, gfx10_formats)
 

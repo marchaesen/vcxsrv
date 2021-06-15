@@ -33,7 +33,6 @@ DOCUMENTATION
 R: Emil Velikov <emil.l.velikov@gmail.com>
 R: Eric Engestrom <eric@engestrom.ch>
 F: docs/
-F: doxygen/
 
 COMPATIBILITY HEADERS
 R: Emil Velikov <emil.l.velikov@gmail.com>

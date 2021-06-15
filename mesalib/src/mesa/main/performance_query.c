@@ -648,6 +648,13 @@ _mesa_GetPerfQueryDataINTEL(GLuint queryHandle, GLuint flags,
       }
    }
 
-   if (obj->Ready)
-      ctx->Driver.GetPerfQueryData(ctx, obj, dataSize, data, bytesWritten);
+   if (obj->Ready) {
+      if (!ctx->Driver.GetPerfQueryData(ctx, obj, dataSize, data, bytesWritten)) {
+         memset(data, 0, dataSize);
+         *bytesWritten = 0;
+
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glGetPerfQueryDataINTEL(deferred begin query failure)");
+      }
+   }
 }

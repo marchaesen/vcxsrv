@@ -3,7 +3,6 @@ glx@glx-multi-window-single-context,Fail
 glx@glx-multithread-buffer,Fail
 glx@glx-query-drawable-glx_fbconfig_id-window,Fail
 glx@glx-swap-pixmap-bad,Fail
-glx@glx-tfp,Fail
 glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil -pixmap,Crash
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
@@ -26,11 +25,9 @@ spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
 spec@!opengl 1.0@gl-1.0-spot-light,Fail
 spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
 spec@!opengl 1.1@depthstencil-default_fb-drawpixels-24_8 samples=2,Fail
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-24_8 samples=4,Fail
 spec@!opengl 1.1@depthstencil-default_fb-drawpixels-32f_24_8_rev samples=2,Fail
 spec@!opengl 1.1@depthstencil-default_fb-drawpixels-32f_24_8_rev samples=4,Fail
 spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=2,Fail
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=4,Fail
 spec@!opengl 1.1@getteximage-depth,Fail
 spec@!opengl 1.1@getteximage-formats,Fail
 spec@!opengl 1.1@linestipple,Fail
@@ -41,7 +38,6 @@ spec@!opengl 1.1@polygon-mode-offset,Fail
 spec@!opengl 1.1@texwrap formats bordercolor,Fail
 spec@!opengl 1.1@texwrap formats bordercolor-swizzled,Fail
 spec@!opengl 1.1@windowoverlap,Fail
-spec@!opengl 1.3@gl-1.3-texture-env,Timeout
 spec@!opengl 1.4@gl-1.4-polygon-offset,Fail
 spec@!opengl 2.0@gl-2.0-edgeflag,Fail
 spec@!opengl 2.0@gl-2.0-edgeflag-immediate,Fail
@@ -67,6 +63,7 @@ spec@arb_pixel_buffer_object@pbo-getteximage,Fail
 spec@arb_pixel_buffer_object@texsubimage array pbo,Fail
 spec@arb_point_sprite@arb_point_sprite-checkerboard,Fail
 spec@arb_point_sprite@arb_point_sprite-mipmap,Fail
+spec@arb_shader_storage_buffer_object@compiler@atomicmin-swizzle.vert,Fail
 spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgrad,Fail
 spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgradcube,Fail
 spec@arb_texture_float@fbo-blending-formats,Fail
@@ -80,7 +77,6 @@ spec@arb_texture_rg@texwrap formats-float bordercolor,Fail
 spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled,Fail
 spec@arb_texture_rg@texwrap formats-float,Fail
 spec@arb_transform_feedback2@change objects while paused (gles3),Fail
-spec@arb_vertex_type_2_10_10_10_rev@attrib-p-type-size-match,Fail
 spec@egl 1.4@egl-copy-buffers,Crash
 spec@egl 1.4@eglterminate then unbind context,Fail
 spec@egl_chromium_sync_control@conformance,Fail
@@ -97,10 +93,7 @@ spec@ext_framebuffer_object@fbo-blending-format-quirks,Fail
 spec@ext_framebuffer_object@fbo-blending-formats,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-clear-and-render,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-rendering,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export-tex,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_ayuv,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_xyuv,Fail
 spec@ext_packed_depth_stencil@texwrap formats bordercolor,Fail
 spec@ext_packed_depth_stencil@texwrap formats bordercolor-swizzled,Fail
 spec@ext_packed_depth_stencil@texwrap formats,Fail
@@ -114,7 +107,9 @@ spec@ext_texture_integer@getteximage-clamping,Fail
 spec@ext_texture_lod_bias@lodbias,Fail
 spec@ext_texture_snorm@texwrap formats bordercolor,Fail
 spec@ext_texture_snorm@texwrap formats bordercolor-swizzled,Fail
-spec@glsl-1.10@execution@gl_lightsource_indirect,Crash
+spec@glsl-1.10@execution@glsl-fs-inline-explosion,Crash
+spec@glsl-1.10@execution@glsl-vs-inline-explosion,Crash
+spec@glsl-1.20@compiler@invalid-vec4-array-to-vec3-array-conversion.vert,Fail
 spec@glsl-1.20@execution@clipping@vs-clip-vertex-primitives,Fail
 spec@glsl-1.20@execution@fs-underflow-mul-compare-zero,Fail
 spec@intel_performance_query@intel_performance_query-issue_2235,Fail
@@ -125,8 +120,57 @@ spec@nv_copy_depth_to_color@nv_copy_depth_to_color 0 0x76356278,Crash
 spec@nv_copy_depth_to_color@nv_copy_depth_to_color 1 0x223344ff,Crash
 spec@nv_copy_depth_to_color@nv_copy_depth_to_color 1 0x76356278,Crash
 spec@nv_copy_depth_to_color@nv_copy_depth_to_color,Crash
+spec@nv_image_formats@compiler@declaration-disallow-r16-snorm-2d-array.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-snorm-2d-array.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-snorm-2d.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-snorm-2d.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-snorm-3d.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-snorm-3d.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-snorm-cube.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-snorm-cube.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-unorm-2d-array.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-unorm-2d-array.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-unorm-2d.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-unorm-2d.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-unorm-3d.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-unorm-3d.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-unorm-cube.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-r16-unorm-cube.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-snorm-2d-array.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-snorm-2d-array.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-snorm-2d.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-snorm-2d.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-snorm-3d.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-snorm-3d.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-snorm-cube.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-snorm-cube.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-unorm-2d-array.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-unorm-2d-array.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-unorm-2d.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-unorm-2d.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-unorm-3d.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-unorm-3d.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-unorm-cube.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rg16-unorm-cube.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-snorm-2d-array.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-snorm-2d-array.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-snorm-2d.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-snorm-2d.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-snorm-3d.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-snorm-3d.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-snorm-cube.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-snorm-cube.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-unorm-2d-array.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-unorm-2d-array.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-unorm-2d.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-unorm-2d.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-unorm-3d.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-unorm-3d.vert,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-unorm-cube.frag,Fail
+spec@nv_image_formats@compiler@declaration-disallow-rgba16-unorm-cube.vert,Fail
 spec@nv_read_depth@read_depth_gles3,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Crash
+spec@oes_shader_io_blocks@compiler@layout-location-aliasing.vert,Fail
 wgl@wgl-multi-context-single-window,Fail
 wgl@wgl-multi-window-single-context,Fail
 wgl@wgl-sanity,Fail

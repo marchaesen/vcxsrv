@@ -62,7 +62,7 @@ struct hud_context {
    struct pipe_depth_stencil_alpha_state dsa;
    void *fs_color, *fs_text;
    struct pipe_rasterizer_state rasterizer, rasterizer_aa_lines;
-   void *vs;
+   void *vs_color, *vs_text;
    struct cso_velems_state velems;
 
    /* font */

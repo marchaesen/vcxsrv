@@ -51,6 +51,9 @@ int *actualCount)	/* RETURN */
     register xListFontsReq *req;
     unsigned long rlen = 0;
 
+    if (pattern != NULL && strlen(pattern) >= USHRT_MAX)
+        return NULL;
+
     LockDisplay(dpy);
     GetReq(ListFonts, req);
     req->maxNames = maxNames;

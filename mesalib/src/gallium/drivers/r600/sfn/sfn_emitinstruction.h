@@ -59,14 +59,10 @@ protected:
    PValue from_nir(const nir_alu_dest& v, unsigned component);
    PValue from_nir(const nir_dest& v, unsigned component);
 
-   int lookup_register_index(const nir_src& src) const;
-   int lookup_register_index(const nir_dest& dst);
    PValue create_register_from_nir_src(const nir_src& src, unsigned comp);
 
-   int allocate_temp_register();
-
    PGPRValue get_temp_register(int channel = -1);
-   GPRVector get_temp_vec4();
+   GPRVector get_temp_vec4(const GPRVector::Swizzle& swizzle = {0,1,2,3});
 
    // forwards from ShaderFromNirProcessor
    void emit_instruction(Instruction *ir);

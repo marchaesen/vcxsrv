@@ -94,7 +94,7 @@ pb_cache_manager_remove_buffer(struct pb_buffer *pb_buf)
  * Actually destroy the buffer.
  */
 static void
-_pb_cache_buffer_destroy(struct pb_buffer *pb_buf)
+_pb_cache_buffer_destroy(void *winsys, struct pb_buffer *pb_buf)
 {
    struct pb_cache_buffer *buf = pb_cache_buffer(pb_buf);
 
@@ -105,7 +105,7 @@ _pb_cache_buffer_destroy(struct pb_buffer *pb_buf)
 
 
 static void
-pb_cache_buffer_destroy(struct pb_buffer *_buf)
+pb_cache_buffer_destroy(void *winsys, struct pb_buffer *_buf)
 {
    struct pb_cache_buffer *buf = pb_cache_buffer(_buf);   
    struct pb_cache_manager *mgr = buf->mgr;
@@ -178,7 +178,7 @@ pb_cache_buffer_vtbl = {
 
 
 static bool
-pb_cache_can_reclaim_buffer(struct pb_buffer *_buf)
+pb_cache_can_reclaim_buffer(void *winsys, struct pb_buffer *_buf)
 {
    struct pb_cache_buffer *buf = pb_cache_buffer(_buf);
 
@@ -232,11 +232,11 @@ pb_cache_manager_create_buffer(struct pb_manager *_mgr,
    }
    
    assert(pipe_is_referenced(&buf->buffer->reference));
-   assert(pb_check_alignment(desc->alignment, buf->buffer->alignment));
+   assert(pb_check_alignment(desc->alignment, 1ull << buf->buffer->alignment_log2));
    assert(buf->buffer->size >= size);
    
    pipe_reference_init(&buf->base.reference, 1);
-   buf->base.alignment = buf->buffer->alignment;
+   buf->base.alignment_log2 = buf->buffer->alignment_log2;
    buf->base.usage = buf->buffer->usage;
    buf->base.size = buf->buffer->size;
    
@@ -305,7 +305,7 @@ pb_cache_manager_create(struct pb_manager *provider,
    mgr->base.flush = pb_cache_manager_flush;
    mgr->provider = provider;
    pb_cache_init(&mgr->cache, 1, usecs, size_factor, bypass_usage,
-                 maximum_cache_size,
+                 maximum_cache_size, NULL,
                  _pb_cache_buffer_destroy,
                  pb_cache_can_reclaim_buffer);
    return &mgr->base;

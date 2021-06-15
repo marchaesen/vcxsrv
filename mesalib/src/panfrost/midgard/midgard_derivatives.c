@@ -78,12 +78,12 @@ mir_op_computes_derivatives(gl_shader_stage stage, unsigned op)
         /* Only fragment shaders may compute derivatives, but the sense of
          * "normal" changes in vertex shaders on certain GPUs */
 
-        if (op == TEXTURE_OP_NORMAL && stage != MESA_SHADER_FRAGMENT)
+        if (op == midgard_tex_op_normal && stage != MESA_SHADER_FRAGMENT)
                 return false;
 
         switch (op) {
-        case TEXTURE_OP_NORMAL:
-        case TEXTURE_OP_DERIVATIVE:
+        case midgard_tex_op_normal:
+        case midgard_tex_op_derivative:
                 assert(stage == MESA_SHADER_FRAGMENT);
                 return true;
         default:
@@ -106,7 +106,7 @@ midgard_emit_derivatives(compiler_context *ctx, nir_alu_instr *instr)
                 .src = { ~0, nir_src_index(ctx, &instr->src[0].src), ~0, ~0 },
                 .swizzle = SWIZZLE_IDENTITY_4,
                 .src_types = { nir_type_float32, nir_type_float32 },
-                .op = TEXTURE_OP_DERIVATIVE,
+                .op = midgard_tex_op_derivative,
                 .texture = {
                         .mode = mir_derivative_mode(instr->op),
                         .format = 2,
@@ -127,7 +127,7 @@ midgard_lower_derivatives(compiler_context *ctx, midgard_block *block)
 {
         mir_foreach_instr_in_block_safe(block, ins) {
                 if (ins->type != TAG_TEXTURE_4) continue;
-                if (ins->op != TEXTURE_OP_DERIVATIVE) continue;
+                if (ins->op != midgard_tex_op_derivative) continue;
 
                 /* Check if we need to split */
 

@@ -90,6 +90,7 @@ static const nir_shader_compiler_options bifrost_nir_options = {
 
         .has_cs_global_id = true,
         .lower_cs_local_index_from_id = true,
+        .max_unroll_iterations = 32,
 };
 
 #endif

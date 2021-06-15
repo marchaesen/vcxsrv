@@ -1023,7 +1023,12 @@ ir_visitor_status
 lower_variables_visitor::visit(ir_variable *var)
 {
    if ((var->data.mode != ir_var_temporary &&
-        var->data.mode != ir_var_auto) ||
+        var->data.mode != ir_var_auto &&
+        /* Lower uniforms but not UBOs. */
+        (var->data.mode != ir_var_uniform ||
+         var->is_in_buffer_block() ||
+         !(options->LowerPrecisionFloat16Uniforms &&
+           var->type->without_array()->base_type == GLSL_TYPE_FLOAT))) ||
        !var->type->without_array()->is_32bit() ||
        (var->data.precision != GLSL_PRECISION_MEDIUM &&
         var->data.precision != GLSL_PRECISION_LOW) ||

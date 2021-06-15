@@ -61,6 +61,13 @@
  */
 #define MAX_TMU_QUEUE_SIZE 8
 
+/**
+ * Maximum offset distance in bytes between two consecutive constant UBO loads
+ * for the same UBO where we would favor updating the unifa address by emitting
+ * dummy ldunifa instructions to avoid writing the unifa register.
+ */
+#define MAX_UNIFA_SKIP_DISTANCE 16
+
 struct nir_builder;
 
 struct v3d_fs_inputs {
@@ -640,6 +647,12 @@ struct v3d_compile {
          */
         bool disable_tmu_pipelining;
 
+        /* Disable sorting of UBO loads with constant offset. This may
+         * increase the chances of being able to compile shaders with high
+         * register pressure.
+         */
+        bool disable_constant_ubo_load_sorting;
+
         /* Emits ldunif for each new uniform, even if the uniform was already
          * emitted in the same block. Useful to compile shaders with high
          * register pressure or to disable the optimization during uniform
@@ -647,14 +660,22 @@ struct v3d_compile {
          */
         bool disable_ldunif_opt;
 
-        /* Last UBO index and offset used with a unifa/ldunifa sequence and the
-         * block where it was emitted. This is used to skip unifa writes (and
-         * their 3 delay slot) when the next UBO load reads right after the
-         * previous one in the same block.
+        /* Minimum number of threads we are willing to use to register allocate
+         * a shader with the current compilation strategy. This only prevents
+         * us from lowering the thread count to register allocate successfully,
+         * which can be useful when we prefer doing other changes to the
+         * compilation strategy before dropping thread count.
          */
-        struct qblock *last_unifa_block;
-        int32_t last_unifa_index;
-        uint32_t last_unifa_offset;
+        uint32_t min_threads_for_reg_alloc;
+
+        /* The UBO index and block used with the last unifa load, as well as the
+         * current unifa offset *after* emitting that load. This is used to skip
+         * unifa writes (and their 3 delay slot) when the next UBO load reads
+         * right after the previous one in the same block.
+         */
+        struct qblock *current_unifa_block;
+        int32_t current_unifa_index;
+        uint32_t current_unifa_offset;
 
         /* State for whether we're executing on each channel currently.  0 if
          * yes, otherwise a block number + 1 that the channel jumped to.
@@ -760,6 +781,7 @@ struct v3d_compile {
         uint32_t qpu_inst_count;
         uint32_t qpu_inst_size;
         uint32_t qpu_inst_stalled_count;
+        uint32_t nop_count;
 
         /* For the FS, the number of varying inputs not counting the
          * point/line varyings payload
@@ -811,6 +833,8 @@ struct v3d_prog_data {
         bool single_seg;
 
         bool tmu_dirty_rcl;
+
+        bool has_control_barrier;
 };
 
 struct v3d_vs_prog_data {

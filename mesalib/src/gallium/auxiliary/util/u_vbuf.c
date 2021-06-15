@@ -406,7 +406,7 @@ void u_vbuf_destroy(struct u_vbuf *mgr)
 static enum pipe_error
 u_vbuf_translate_buffers(struct u_vbuf *mgr, struct translate_key *key,
                          const struct pipe_draw_info *info,
-                         const struct pipe_draw_start_count *draw,
+                         const struct pipe_draw_start_count_bias *draw,
                          unsigned vb_mask, unsigned out_vb,
                          int start_vertex, unsigned num_vertices,
                          int min_index, boolean unroll_indices)
@@ -437,8 +437,11 @@ u_vbuf_translate_buffers(struct u_vbuf *mgr, struct translate_key *key,
          unsigned size = vb->stride ? num_vertices * vb->stride
                                     : sizeof(double)*4;
 
-         if (!vb->buffer.resource)
+         if (!vb->buffer.resource) {
+            static uint64_t dummy_buf[4] = { 0 };
+            tr->set_buffer(tr, i, dummy_buf, 0, 0);
             continue;
+        }
 
          if (offset + size > vb->buffer.resource->width0) {
             /* Don't try to map past end of buffer.  This often happens when
@@ -609,7 +612,7 @@ u_vbuf_translate_find_free_vb_slots(struct u_vbuf *mgr,
 static boolean
 u_vbuf_translate_begin(struct u_vbuf *mgr,
                        const struct pipe_draw_info *info,
-                       const struct pipe_draw_start_count *draw,
+                       const struct pipe_draw_start_count_bias *draw,
                        int start_vertex, unsigned num_vertices,
                        int min_index, boolean unroll_indices)
 {
@@ -1236,7 +1239,7 @@ u_vbuf_get_minmax_index_mapped(const struct pipe_draw_info *info,
 
 void u_vbuf_get_minmax_index(struct pipe_context *pipe,
                              const struct pipe_draw_info *info,
-                             const struct pipe_draw_start_count *draw,
+                             const struct pipe_draw_start_count_bias *draw,
                              unsigned *out_min_index, unsigned *out_max_index)
 {
    struct pipe_transfer *transfer = NULL;
@@ -1275,6 +1278,7 @@ static void u_vbuf_set_driver_vertex_buffers(struct u_vbuf *mgr)
 
 static void
 u_vbuf_split_indexed_multidraw(struct u_vbuf *mgr, struct pipe_draw_info *info,
+                               unsigned drawid_offset,
                                unsigned *indirect_data, unsigned stride,
                                unsigned draw_count)
 {
@@ -1287,22 +1291,23 @@ u_vbuf_split_indexed_multidraw(struct u_vbuf *mgr, struct pipe_draw_info *info,
    assert(info->index_size);
 
    for (unsigned i = 0; i < draw_count; i++) {
-      struct pipe_draw_start_count draw;
+      struct pipe_draw_start_count_bias draw;
       unsigned offset = i * stride / 4;
 
       draw.count = indirect_data[offset + 0];
       info->instance_count = indirect_data[offset + 1];
       draw.start = indirect_data[offset + 2];
-      info->index_bias = indirect_data[offset + 3];
+      draw.index_bias = indirect_data[offset + 3];
       info->start_instance = indirect_data[offset + 4];
 
-      u_vbuf_draw_vbo(mgr, info, NULL, draw);
+      u_vbuf_draw_vbo(mgr, info, drawid_offset, NULL, draw);
    }
 }
 
 void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
+                     unsigned drawid_offset,
                      const struct pipe_draw_indirect_info *indirect,
-                     const struct pipe_draw_start_count draw)
+                     const struct pipe_draw_start_count_bias draw)
 {
    struct pipe_context *pipe = mgr->pipe;
    int start_vertex;
@@ -1314,7 +1319,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
    const uint32_t incompatible_vb_mask =
       mgr->incompatible_vb_mask & used_vb_mask;
    struct pipe_draw_info new_info;
-   struct pipe_draw_start_count new_draw;
+   struct pipe_draw_start_count_bias new_draw;
 
    /* Normal draw. No fallback and no user buffers. */
    if (!incompatible_vb_mask &&
@@ -1326,7 +1331,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
          u_vbuf_set_driver_vertex_buffers(mgr);
       }
 
-      pipe->draw_vbo(pipe, info, indirect, &draw, 1);
+      pipe->draw_vbo(pipe, info, drawid_offset, indirect, &draw, 1);
       return;
    }
 
@@ -1369,7 +1374,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
          /* If we invoke the translate path, we have to split the multidraw. */
          if (incompatible_vb_mask ||
              mgr->ve->incompatible_elem_mask) {
-            u_vbuf_split_indexed_multidraw(mgr, &new_info, data,
+            u_vbuf_split_indexed_multidraw(mgr, &new_info, drawid_offset, data,
                                            indirect->stride, draw_count);
             free(data);
             return;
@@ -1385,7 +1390,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
 
          /* Split the multidraw if index_bias is different. */
          if (!index_bias_same) {
-            u_vbuf_split_indexed_multidraw(mgr, &new_info, data,
+            u_vbuf_split_indexed_multidraw(mgr, &new_info, drawid_offset, data,
                                            indirect->stride, draw_count);
             free(data);
             return;
@@ -1400,7 +1405,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
           * The driver will not look at these values because indirect != NULL.
           * These values determine the user buffer bounds to upload.
           */
-         new_info.index_bias = index_bias0;
+         new_draw.index_bias = index_bias0;
          new_info.index_bounds_valid = true;
          new_info.min_index = ~0u;
          new_info.max_index = 0;
@@ -1510,7 +1515,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
 
          assert(min_index <= max_index);
 
-         start_vertex = min_index + new_info.index_bias;
+         start_vertex = min_index + new_draw.index_bias;
          num_vertices = max_index + 1 - min_index;
 
          /* Primitive restart doesn't work when unrolling indices.
@@ -1550,7 +1555,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
 
       if (unroll_indices) {
          new_info.index_size = 0;
-         new_info.index_bias = 0;
+         new_draw.index_bias = 0;
          new_info.index_bounds_valid = true;
          new_info.min_index = 0;
          new_info.max_index = new_draw.count - 1;
@@ -1597,7 +1602,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
    u_upload_unmap(pipe->stream_uploader);
    u_vbuf_set_driver_vertex_buffers(mgr);
 
-   pipe->draw_vbo(pipe, &new_info, indirect, &new_draw, 1);
+   pipe->draw_vbo(pipe, &new_info, drawid_offset, indirect, &new_draw, 1);
 
    if (mgr->using_translate) {
       u_vbuf_translate_end(mgr);

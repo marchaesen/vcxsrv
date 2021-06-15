@@ -95,7 +95,7 @@ lower_shared(struct v3d_compile *c,
 {
         b->cursor = nir_before_instr(&instr->instr);
         nir_ssa_def *aligned_size =
-                nir_imm_int(b, c->s->info.cs.shared_size & 0xfffffffc);
+                nir_imm_int(b, c->s->info.shared_size & 0xfffffffc);
         nir_ssa_def *offset = nir_umin(b, instr->src[0].ssa, aligned_size);
         nir_instr_rewrite_src(&instr->instr, &instr->src[0],
                               nir_src_for_ssa(offset));

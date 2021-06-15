@@ -981,13 +981,13 @@ translate_opcode(enum tgsi_opcode opcode)
        * only the TGSI_SEMANTIC_SAMPLEPOS system value which contains the
        * position of the current sample in the render target.
        */
-      /* FALL-THROUGH */
+      FALLTHROUGH;
    case TGSI_OPCODE_SAMPLE_INFO:
       /* NOTE: we never actually get this opcode because the GLSL compiler
        * implements the gl_NumSamples variable with a simple constant in the
        * constant buffer.
        */
-      /* FALL-THROUGH */
+      FALLTHROUGH;
    default:
       assert(!"Unexpected TGSI opcode in translate_opcode()");
       return VGPU10_OPCODE_NOP;
@@ -9321,7 +9321,7 @@ emit_vgpu10_instruction(struct svga_shader_emitter_v10 *emit,
    case TGSI_OPCODE_IABS:
       return emit_iabs(emit, inst);
    case TGSI_OPCODE_ARL:
-      /* fall-through */
+      FALLTHROUGH;
    case TGSI_OPCODE_UARL:
       return emit_arl_uarl(emit, inst);
    case TGSI_OPCODE_BGNSUB:
@@ -10246,7 +10246,7 @@ emit_temp_tessfactor_instructions(struct svga_shader_emitter_v10 *emit)
                   emit->tes.inner.in_index + 1, TGSI_SWIZZLE_X);
          dst = writemask_dst(&dst, TGSI_WRITEMASK_Y);
          emit_instruction_op1(emit, VGPU10_OPCODE_MOV, &dst, &src);
-         /* fallthrough */
+         FALLTHROUGH;
       case PIPE_PRIM_TRIANGLES:
          src = make_src_scalar_reg(TGSI_FILE_INPUT,
                   emit->tes.inner.in_index, TGSI_SWIZZLE_X);
@@ -10278,13 +10278,13 @@ emit_temp_tessfactor_instructions(struct svga_shader_emitter_v10 *emit)
                   emit->tes.outer.in_index + 3, TGSI_SWIZZLE_X);
          dst = writemask_dst(&dst, TGSI_WRITEMASK_W);
          emit_instruction_op1(emit, VGPU10_OPCODE_MOV, &dst, &src);
-         /* fallthrough */
+         FALLTHROUGH;
       case PIPE_PRIM_TRIANGLES:
          src = make_src_scalar_reg(TGSI_FILE_INPUT,
                   emit->tes.outer.in_index + 2, TGSI_SWIZZLE_X);
          dst = writemask_dst(&dst, TGSI_WRITEMASK_Z);
          emit_instruction_op1(emit, VGPU10_OPCODE_MOV, &dst, &src);
-         /* fallthrough */
+         FALLTHROUGH;
       case PIPE_PRIM_LINES:
          src = make_src_scalar_reg(TGSI_FILE_INPUT,
                   emit->tes.outer.in_index + 1, TGSI_SWIZZLE_X);

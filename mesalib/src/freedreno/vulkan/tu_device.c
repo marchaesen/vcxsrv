@@ -340,6 +340,8 @@ void
 tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
                               VkPhysicalDeviceFeatures2 *pFeatures)
 {
+   TU_FROM_HANDLE(tu_physical_device, pdevice, physicalDevice);
+
    pFeatures->features = (VkPhysicalDeviceFeatures) {
       .robustBufferAccess = true,
       .fullDrawIndexUint32 = true,
@@ -382,9 +384,9 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
       .shaderCullDistance = true,
       .shaderFloat64 = false,
       .shaderInt64 = false,
-      .shaderInt16 = false,
+      .shaderInt16 = true,
       .sparseBinding = false,
-      .variableMultisampleRate = false,
+      .variableMultisampleRate = true,
       .inheritedQueries = true,
    };
 
@@ -393,7 +395,7 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
       switch (ext->sType) {
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES: {
          VkPhysicalDeviceVulkan11Features *features = (void *) ext;
-         features->storageBuffer16BitAccess            = false;
+         features->storageBuffer16BitAccess            = pdevice->gpu_id >= 650;
          features->uniformAndStorageBuffer16BitAccess  = false;
          features->storagePushConstant16               = false;
          features->storageInputOutput16                = false;
@@ -416,7 +418,7 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
          features->storagePushConstant8                = false;
          features->shaderBufferInt64Atomics            = false;
          features->shaderSharedInt64Atomics            = false;
-         features->shaderFloat16                       = false;
+         features->shaderFloat16                       = true;
          features->shaderInt8                          = false;
 
          features->descriptorIndexing                                 = true;
@@ -442,7 +444,7 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
          features->runtimeDescriptorArray                             = true;
 
          features->samplerFilterMinmax                 = true;
-         features->scalarBlockLayout                   = false;
+         features->scalarBlockLayout                   = true;
          features->imagelessFramebuffer                = false;
          features->uniformBufferStandardLayout         = false;
          features->shaderSubgroupExtendedTypes         = false;
@@ -452,9 +454,9 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
          features->bufferDeviceAddress                 = false;
          features->bufferDeviceAddressCaptureReplay    = false;
          features->bufferDeviceAddressMultiDevice      = false;
-         features->vulkanMemoryModel                   = false;
-         features->vulkanMemoryModelDeviceScope        = false;
-         features->vulkanMemoryModelAvailabilityVisibilityChains = false;
+         features->vulkanMemoryModel                   = true;
+         features->vulkanMemoryModelDeviceScope        = true;
+         features->vulkanMemoryModelAvailabilityVisibilityChains = true;
          features->shaderOutputViewportIndex           = true;
          features->shaderOutputLayer                   = true;
          features->subgroupBroadcastDynamicId          = false;
@@ -489,7 +491,7 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES: {
          VkPhysicalDevice16BitStorageFeatures *features =
             (VkPhysicalDevice16BitStorageFeatures *) ext;
-         features->storageBuffer16BitAccess = false;
+         features->storageBuffer16BitAccess = pdevice->gpu_id >= 650;
          features->uniformAndStorageBuffer16BitAccess = false;
          features->storagePushConstant16 = false;
          features->storageInputOutput16 = false;
@@ -599,6 +601,45 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
          VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR *features =
             (VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR *)ext;
          features->pipelineExecutableInfo = true;
+         break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES: {
+         VkPhysicalDeviceShaderFloat16Int8Features *features =
+            (VkPhysicalDeviceShaderFloat16Int8Features *) ext;
+         features->shaderFloat16 = true;
+         features->shaderInt8 = false;
+         break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES_EXT: {
+         VkPhysicalDeviceScalarBlockLayoutFeaturesEXT *features = (void *)ext;
+         features->scalarBlockLayout = true;
+         break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT: {
+         VkPhysicalDeviceRobustness2FeaturesEXT *features = (void *)ext;
+         features->robustBufferAccess2 = true;
+         features->robustImageAccess2 = true;
+         features->nullDescriptor = true;
+         break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT: {
+         VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT *features =
+            (VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT *)ext;
+         features->shaderDemoteToHelperInvocation = true;
+         break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_TERMINATE_INVOCATION_FEATURES_KHR: {
+         VkPhysicalDeviceShaderTerminateInvocationFeaturesKHR *features =
+            (VkPhysicalDeviceShaderTerminateInvocationFeaturesKHR *)ext;
+         features->shaderTerminateInvocation = true;
+         break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES_KHR: {
+         VkPhysicalDeviceVulkanMemoryModelFeaturesKHR *feature =
+            (VkPhysicalDeviceVulkanMemoryModelFeaturesKHR *)ext;
+         feature->vulkanMemoryModel = true;
+         feature->vulkanMemoryModelDeviceScope = true;
+         feature->vulkanMemoryModelAvailabilityVisibilityChains = true;
          break;
       }
 
@@ -890,7 +931,36 @@ tu_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
          props->maxDescriptorSetUpdateAfterBindInputAttachments = max_descriptor_set_size;
          break;
       }
-
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES: {
+         VkPhysicalDeviceFloatControlsProperties *properties =
+            (VkPhysicalDeviceFloatControlsProperties *) ext;
+         properties->denormBehaviorIndependence = VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_ALL;
+         properties->roundingModeIndependence = VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_ALL;
+         properties->shaderSignedZeroInfNanPreserveFloat16 = true;
+         properties->shaderSignedZeroInfNanPreserveFloat32 = true;
+         properties->shaderSignedZeroInfNanPreserveFloat64 = false;
+         properties->shaderDenormPreserveFloat16 = false;
+         properties->shaderDenormPreserveFloat32 = false;
+         properties->shaderDenormPreserveFloat64 = false;
+         properties->shaderDenormFlushToZeroFloat16 = true;
+         properties->shaderDenormFlushToZeroFloat32 = true;
+         properties->shaderDenormFlushToZeroFloat64 = false;
+         properties->shaderRoundingModeRTEFloat16 = true;
+         properties->shaderRoundingModeRTEFloat32 = true;
+         properties->shaderRoundingModeRTEFloat64 = false;
+         properties->shaderRoundingModeRTZFloat16 = false;
+         properties->shaderRoundingModeRTZFloat32 = false;
+         properties->shaderRoundingModeRTZFloat64 = false;
+         break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_PROPERTIES_EXT: {
+         VkPhysicalDeviceRobustness2PropertiesEXT *props = (void *)ext;
+         /* see write_buffer_descriptor() */
+         props->robustStorageBufferAccessSizeAlignment = 4;
+         /* see write_ubo_descriptor() */
+         props->robustUniformBufferAccessSizeAlignment = 16;
+         break;
+      }
       default:
          break;
       }
@@ -1043,6 +1113,7 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
    struct tu_device *device;
    bool custom_border_colors = false;
    bool perf_query_pools = false;
+   bool robust_buffer_access2 = false;
 
    /* Check enabled features */
    if (pCreateInfo->pEnabledFeatures) {
@@ -1073,6 +1144,11 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
          const VkPhysicalDevicePerformanceQueryFeaturesKHR *feature =
             (VkPhysicalDevicePerformanceQueryFeaturesKHR *)ext;
          perf_query_pools = feature->performanceCounterQueryPools;
+         break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT: {
+         VkPhysicalDeviceRobustness2FeaturesEXT *features = (void *)ext;
+         robust_buffer_access2 = features->robustBufferAccess2;
          break;
       }
       default:
@@ -1131,7 +1207,8 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
       }
    }
 
-   device->compiler = ir3_compiler_create(NULL, physical_device->gpu_id);
+   device->compiler = ir3_compiler_create(NULL, physical_device->gpu_id,
+                                          robust_buffer_access2);
    if (!device->compiler) {
       result = vk_startup_errorf(physical_device->instance,
                                  VK_ERROR_INITIALIZATION_FAILED,

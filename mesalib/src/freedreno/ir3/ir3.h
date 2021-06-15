@@ -108,8 +108,6 @@ struct ir3_register {
 		IR3_REG_SNEG   = 0x100,
 		IR3_REG_SABS   = 0x200,
 		IR3_REG_BNOT   = 0x400,
-		IR3_REG_EVEN   = 0x800,
-		IR3_REG_POS_INF= 0x1000,
 		/* (ei) flag, end-input?  Set on last bary, presumably to signal
 		 * that the shader needs no more input:
 		 */
@@ -264,6 +262,7 @@ struct ir3_instruction {
 		} cat0;
 		struct {
 			type_t src_type, dst_type;
+			round_t round;
 		} cat1;
 		struct {
 			enum {
@@ -305,11 +304,11 @@ struct ir3_instruction {
 			int off;              /* component/offset */
 		} split;
 		struct {
-			/* for output collects, this maps back to the entry in the
+			/* Per-source index back to the entry in the
 			 * ir3_shader_variant::outputs table.
 			 */
-			int outidx;
-		} collect;
+			unsigned *outidxs;
+		} end;
 		struct {
 			unsigned samp, tex;
 			unsigned input_offset;
@@ -392,7 +391,7 @@ struct ir3_instruction {
 	 *                            shared  image  atomic  SSBO  everything
 	 *   barrier()/            -   R/W     R/W    R/W     R/W       X
 	 *     groupMemoryBarrier()
-	 *   memoryBarrier()       -           R/W    R/W
+	 *     memoryBarrier()
 	 *     (but only images declared coherent?)
 	 *   memoryBarrierAtomic() -                  R/W
 	 *   memoryBarrierBuffer() -                          R/W
@@ -463,7 +462,6 @@ struct ir3 {
 	gl_shader_stage type;
 
 	DECLARE_ARRAY(struct ir3_instruction *, inputs);
-	DECLARE_ARRAY(struct ir3_instruction *, outputs);
 
 	/* Track bary.f (and ldlv) instructions.. this is needed in
 	 * scheduling to ensure that all varying fetches happen before
@@ -551,7 +549,7 @@ struct ir3_block {
 	struct ir3_instruction *condition;
 	struct ir3_block *successors[2];
 
-	struct set *predecessors;     /* set of ir3_block */
+	DECLARE_ARRAY(struct ir3_block *, predecessors);
 
 	uint16_t start_ip, end_ip;
 
@@ -579,6 +577,10 @@ block_id(struct ir3_block *block)
 	return (uint32_t)(unsigned long)block;
 #endif
 }
+
+void ir3_block_add_predecessor(struct ir3_block *block, struct ir3_block *pred);
+void ir3_block_remove_predecessor(struct ir3_block *block, struct ir3_block *pred);
+unsigned ir3_block_get_pred_index(struct ir3_block *block, struct ir3_block *pred);
 
 struct ir3_shader_variant;
 
@@ -669,9 +671,9 @@ static inline bool is_flow(struct ir3_instruction *instr)
 	return (opc_cat(instr->opc) == 0);
 }
 
-static inline bool is_kill(struct ir3_instruction *instr)
+static inline bool is_kill_or_demote(struct ir3_instruction *instr)
 {
-	return instr->opc == OPC_KILL;
+	return instr->opc == OPC_KILL || instr->opc == OPC_DEMOTE;
 }
 
 static inline bool is_nop(struct ir3_instruction *instr)
@@ -1225,14 +1227,6 @@ static inline bool __is_false_dep(struct ir3_instruction *instr, unsigned n)
 #define foreach_input(__ininstr, __ir) \
 	foreach_input_n(__ininstr, __i, __ir)
 
-/* iterators for shader outputs: */
-#define foreach_output_n(__outinstr, __cnt, __ir) \
-	for (struct ir3_instruction *__outinstr = (void *)~0; __outinstr; __outinstr = NULL) \
-		for (unsigned __cnt = 0; __cnt < (__ir)->outputs_count; __cnt++) \
-			if ((__outinstr = (__ir)->outputs[__cnt]))
-#define foreach_output(__outinstr, __ir) \
-	foreach_output_n(__outinstr, __i, __ir)
-
 /* iterators for instructions: */
 #define foreach_instr(__instr, __list) \
 	list_for_each_entry(struct ir3_instruction, __instr, __list, node)
@@ -1592,6 +1586,7 @@ ir3_##name(struct ir3_block *block,                                      \
 INSTR1(B)
 INSTR0(JUMP)
 INSTR1(KILL)
+INSTR1(DEMOTE)
 INSTR0(END)
 INSTR0(CHSH)
 INSTR0(CHMASK)

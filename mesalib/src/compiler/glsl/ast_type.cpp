@@ -22,6 +22,7 @@
  */
 
 #include "ast.h"
+#include "util/string_buffer.h"
 
 void
 ast_type_specifier::print(void) const
@@ -831,79 +832,91 @@ ast_type_qualifier::validate_flags(YYLTYPE *loc,
    if (bad.flags.i == 0)
       return true;
 
+   struct _mesa_string_buffer *buf = _mesa_string_buffer_create(NULL, 100);
+#define Q(f) \
+   if (bad.flags.q.f) \
+      _mesa_string_buffer_append(buf, "" #f)
+#define Q2(f, s) \
+   if (bad.flags.q.f) \
+      _mesa_string_buffer_append(buf, " " #s)
+
+   Q(invariant);
+   Q(precise);
+   Q(constant);
+   Q(attribute);
+   Q(varying);
+   Q(in);
+   Q(out);
+   Q(centroid);
+   Q(sample);
+   Q(patch);
+   Q(uniform);
+   Q(buffer);
+   Q(shared_storage);
+   Q(smooth);
+   Q(flat);
+   Q(noperspective);
+   Q(origin_upper_left);
+   Q(pixel_center_integer);
+   Q2(explicit_align, align);
+   Q2(explicit_component, component);
+   Q2(explicit_location, location);
+   Q2(explicit_index, index);
+   Q2(explicit_binding, binding);
+   Q2(explicit_offset, offset);
+   Q(depth_type);
+   Q(std140);
+   Q(std430);
+   Q(shared);
+   Q(packed);
+   Q(column_major);
+   Q(row_major);
+   Q(prim_type);
+   Q(max_vertices);
+   Q(local_size);
+   Q(local_size_variable);
+   Q(early_fragment_tests);
+   Q2(explicit_image_format, image_format);
+   Q(coherent);
+   Q2(_volatile, volatile);
+   Q(restrict_flag);
+   Q(read_only);
+   Q(write_only);
+   Q(invocations);
+   Q(stream);
+   Q(stream);
+   Q2(explicit_xfb_offset, xfb_offset);
+   Q2(xfb_buffer, xfb_buffer);
+   Q2(explicit_xfb_buffer, xfb_buffer);
+   Q2(xfb_stride, xfb_stride);
+   Q2(explicit_xfb_stride, xfb_stride);
+   Q(vertex_spacing);
+   Q(ordering);
+   Q(point_mode);
+   Q(vertices);
+   Q(subroutine);
+   Q(blend_support);
+   Q(inner_coverage);
+   Q(bindless_sampler);
+   Q(bindless_image);
+   Q(bound_sampler);
+   Q(bound_image);
+   Q(post_depth_coverage);
+   Q(pixel_interlock_ordered);
+   Q(pixel_interlock_unordered);
+   Q(sample_interlock_ordered);
+   Q(sample_interlock_unordered);
+   Q2(non_coherent, noncoherent);
+
+#undef Q
+#undef Q2
+
    _mesa_glsl_error(loc, state,
-                    "%s '%s':"
-                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
-                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
-                    "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+                    "%s '%s': %s\n",
                     message, name,
-                    bad.flags.q.invariant ? " invariant" : "",
-                    bad.flags.q.precise ? " precise" : "",
-                    bad.flags.q.constant ? " constant" : "",
-                    bad.flags.q.attribute ? " attribute" : "",
-                    bad.flags.q.varying ? " varying" : "",
-                    bad.flags.q.in ? " in" : "",
-                    bad.flags.q.out ? " out" : "",
-                    bad.flags.q.centroid ? " centroid" : "",
-                    bad.flags.q.sample ? " sample" : "",
-                    bad.flags.q.patch ? " patch" : "",
-                    bad.flags.q.uniform ? " uniform" : "",
-                    bad.flags.q.buffer ? " buffer" : "",
-                    bad.flags.q.shared_storage ? " shared_storage" : "",
-                    bad.flags.q.smooth ? " smooth" : "",
-                    bad.flags.q.flat ? " flat" : "",
-                    bad.flags.q.noperspective ? " noperspective" : "",
-                    bad.flags.q.origin_upper_left ? " origin_upper_left" : "",
-                    bad.flags.q.pixel_center_integer ? " pixel_center_integer" : "",
-                    bad.flags.q.explicit_align ? " align" : "",
-                    bad.flags.q.explicit_component ? " component" : "",
-                    bad.flags.q.explicit_location ? " location" : "",
-                    bad.flags.q.explicit_index ? " index" : "",
-                    bad.flags.q.explicit_binding ? " binding" : "",
-                    bad.flags.q.explicit_offset ? " offset" : "",
-                    bad.flags.q.depth_type ? " depth_type" : "",
-                    bad.flags.q.std140 ? " std140" : "",
-                    bad.flags.q.std430 ? " std430" : "",
-                    bad.flags.q.shared ? " shared" : "",
-                    bad.flags.q.packed ? " packed" : "",
-                    bad.flags.q.column_major ? " column_major" : "",
-                    bad.flags.q.row_major ? " row_major" : "",
-                    bad.flags.q.prim_type ? " prim_type" : "",
-                    bad.flags.q.max_vertices ? " max_vertices" : "",
-                    bad.flags.q.local_size ? " local_size" : "",
-                    bad.flags.q.local_size_variable ? " local_size_variable" : "",
-                    bad.flags.q.early_fragment_tests ? " early_fragment_tests" : "",
-                    bad.flags.q.explicit_image_format ? " image_format" : "",
-                    bad.flags.q.coherent ? " coherent" : "",
-                    bad.flags.q._volatile ? " _volatile" : "",
-                    bad.flags.q.restrict_flag ? " restrict_flag" : "",
-                    bad.flags.q.read_only ? " read_only" : "",
-                    bad.flags.q.write_only ? " write_only" : "",
-                    bad.flags.q.invocations ? " invocations" : "",
-                    bad.flags.q.stream ? " stream" : "",
-                    bad.flags.q.explicit_stream ? " stream" : "",
-                    bad.flags.q.explicit_xfb_offset ? " xfb_offset" : "",
-                    bad.flags.q.xfb_buffer ? " xfb_buffer" : "",
-                    bad.flags.q.explicit_xfb_buffer ? " xfb_buffer" : "",
-                    bad.flags.q.xfb_stride ? " xfb_stride" : "",
-                    bad.flags.q.explicit_xfb_stride ? " xfb_stride" : "",
-                    bad.flags.q.vertex_spacing ? " vertex_spacing" : "",
-                    bad.flags.q.ordering ? " ordering" : "",
-                    bad.flags.q.point_mode ? " point_mode" : "",
-                    bad.flags.q.vertices ? " vertices" : "",
-                    bad.flags.q.subroutine ? " subroutine" : "",
-                    bad.flags.q.blend_support ? " blend_support" : "",
-                    bad.flags.q.inner_coverage ? " inner_coverage" : "",
-                    bad.flags.q.bindless_sampler ? " bindless_sampler" : "",
-                    bad.flags.q.bindless_image ? " bindless_image" : "",
-                    bad.flags.q.bound_sampler ? " bound_sampler" : "",
-                    bad.flags.q.bound_image ? " bound_image" : "",
-                    bad.flags.q.post_depth_coverage ? " post_depth_coverage" : "",
-                    bad.flags.q.pixel_interlock_ordered ? " pixel_interlock_ordered" : "",
-                    bad.flags.q.pixel_interlock_unordered ? " pixel_interlock_unordered": "",
-                    bad.flags.q.sample_interlock_ordered ? " sample_interlock_ordered": "",
-                    bad.flags.q.sample_interlock_unordered ? " sample_interlock_unordered": "",
-                    bad.flags.q.non_coherent ? " noncoherent" : "");
+                    buf->buf);
+   _mesa_string_buffer_destroy(buf);
+
    return false;
 }
 

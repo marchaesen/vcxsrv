@@ -49,6 +49,7 @@ struct zink_rasterizer_hw_state {
    VkFrontFace front_face;
    VkPolygonMode polygon_mode;
    VkCullModeFlags cull_mode;
+   VkProvokingVertexModeEXT pv_mode;
    bool force_persample_interp;
 };
 

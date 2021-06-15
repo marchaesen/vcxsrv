@@ -54,7 +54,7 @@ void *r600_buffer_map_sync_with_rings(struct r600_common_context *ctx,
 	assert(!(resource->flags & RADEON_FLAG_SPARSE));
 
 	if (usage & PIPE_MAP_UNSYNCHRONIZED) {
-		return ctx->ws->buffer_map(resource->buf, NULL, usage);
+		return ctx->ws->buffer_map(ctx->ws, resource->buf, NULL, usage);
 	}
 
 	if (!(usage & PIPE_MAP_WRITE)) {
@@ -85,7 +85,7 @@ void *r600_buffer_map_sync_with_rings(struct r600_common_context *ctx,
 		}
 	}
 
-	if (busy || !ctx->ws->buffer_wait(resource->buf, 0, rusage)) {
+	if (busy || !ctx->ws->buffer_wait(ctx->ws, resource->buf, 0, rusage)) {
 		if (usage & PIPE_MAP_DONTBLOCK) {
 			return NULL;
 		} else {
@@ -98,7 +98,7 @@ void *r600_buffer_map_sync_with_rings(struct r600_common_context *ctx,
 	}
 
 	/* Setting the CS to NULL will prevent doing checks we have done already. */
-	return ctx->ws->buffer_map(resource->buf, NULL, usage);
+	return ctx->ws->buffer_map(ctx->ws, resource->buf, NULL, usage);
 }
 
 void r600_init_resource_fields(struct r600_common_screen *rscreen,
@@ -116,7 +116,7 @@ void r600_init_resource_fields(struct r600_common_screen *rscreen,
 	switch (res->b.b.usage) {
 	case PIPE_USAGE_STREAM:
 		res->flags = RADEON_FLAG_GTT_WC;
-		/* fall through */
+		FALLTHROUGH;
 	case PIPE_USAGE_STAGING:
 		/* Transfers are likely to occur more often with these
 		 * resources. */
@@ -131,7 +131,7 @@ void r600_init_resource_fields(struct r600_common_screen *rscreen,
 			res->flags |= RADEON_FLAG_GTT_WC;
 			break;
 		}
-		/* fall through */
+		FALLTHROUGH;
 	case PIPE_USAGE_DEFAULT:
 	case PIPE_USAGE_IMMUTABLE:
 	default:
@@ -254,7 +254,7 @@ r600_invalidate_buffer(struct r600_common_context *rctx,
 
 	/* Check if mapping this buffer would cause waiting for the GPU. */
 	if (r600_rings_is_buffer_referenced(rctx, rbuffer->buf, RADEON_USAGE_READWRITE) ||
-	    !rctx->ws->buffer_wait(rbuffer->buf, 0, RADEON_USAGE_READWRITE)) {
+	    !rctx->ws->buffer_wait(rctx->ws, rbuffer->buf, 0, RADEON_USAGE_READWRITE)) {
 		rctx->invalidate_buffer(&rctx->b, &rbuffer->b.b);
 	} else {
 		util_range_set_empty(&rbuffer->valid_buffer_range);
@@ -322,7 +322,7 @@ static void *r600_buffer_get_transfer(struct pipe_context *ctx,
 	transfer->b.b.stride = 0;
 	transfer->b.b.layer_stride = 0;
 	transfer->b.staging = NULL;
-	transfer->offset = offset;
+	transfer->b.b.offset = offset;
 	transfer->staging = staging;
 	*ptransfer = &transfer->b.b;
 	return data;
@@ -409,7 +409,7 @@ static void *r600_buffer_transfer_map(struct pipe_context *ctx,
 		 */
 		if (rbuffer->flags & RADEON_FLAG_SPARSE ||
 		    r600_rings_is_buffer_referenced(rctx, rbuffer->buf, RADEON_USAGE_READWRITE) ||
-		    !rctx->ws->buffer_wait(rbuffer->buf, 0, RADEON_USAGE_READWRITE)) {
+		    !rctx->ws->buffer_wait(rctx->ws, rbuffer->buf, 0, RADEON_USAGE_READWRITE)) {
 			/* Do a wait-free write-only transfer using a temporary buffer. */
 			unsigned offset;
 			struct r600_resource *staging = NULL;
@@ -490,7 +490,7 @@ static void r600_buffer_do_flush_region(struct pipe_context *ctx,
 
 		dst = transfer->resource;
 		src = &rtransfer->staging->b.b;
-		soffset = rtransfer->offset + box->x % R600_MAP_BUFFER_ALIGNMENT;
+		soffset = rtransfer->b.b.offset + box->x % R600_MAP_BUFFER_ALIGNMENT;
 
 		u_box_1d(soffset, box->width, &dma_box);
 

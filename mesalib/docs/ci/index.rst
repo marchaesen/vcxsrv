@@ -6,7 +6,7 @@ GitLab CI
 
 GitLab provides a convenient framework for running commands in response to Git pushes.
 We use it to test merge requests (MRs) before merging them (pre-merge testing),
-as well as post-merge testing, for everything that hits ``master``
+as well as post-merge testing, for everything that hits ``main``
 (this is necessary because we still allow commits to be pushed outside of MRs,
 and even then the MR CI runs in the forked repository, which might have been
 modified and thus is unreliable).
@@ -175,7 +175,7 @@ branch, which can get tedious.  Instead, you can navigate to the
 `container registry
 <https://gitlab.freedesktop.org/mesa/mesa/container_registry>`_ for
 your repository and delete the tag to force a rebuild.  When your code
-is eventually merged to master, a full image rebuild will occur again
+is eventually merged to main, a full image rebuild will occur again
 (forks inherit images from the main repo, but MRs don't propagate
 images from the fork into the main repo's registry).
 

@@ -4,12 +4,14 @@ bifrost_FILES := \
         bifrost/bifrost_compile.h \
         bifrost/bi_layout.c \
         bifrost/bi_liveness.c \
+        bifrost/bi_lower_swizzle.c \
         bifrost/bi_schedule.c \
         bifrost/bi_scoreboard.c \
         bifrost/bi_pack.c \
         bifrost/bi_print.c \
         bifrost/bi_print.h \
         bifrost/bi_ra.c \
+        bifrost/bi_opt_constant_fold.c \
         bifrost/bi_opt_copy_prop.c \
         bifrost/bi_opt_dce.c \
         bifrost/bi_opt_push_ubo.c \
@@ -34,10 +36,17 @@ lib_FILES := \
         lib/pan_bo.h \
         lib/pan_blend.c \
         lib/pan_blend.h \
-        lib/pan_blit.c \
+        lib/pan_blitter.c \
+        lib/pan_blitter.h \
+        lib/pan_cs.c \
+        lib/pan_cs.h \
         lib/pan_device.h \
         lib/pan_encoder.h \
         lib/pan_format.c \
+        lib/pan_indirect_dispatch.c \
+        lib/pan_indirect_dispatch.h \
+        lib/pan_indirect_draw.c \
+        lib/pan_indirect_draw.h \
         lib/pan_invocation.c \
         lib/pan_pool.c \
         lib/pan_pool.h \

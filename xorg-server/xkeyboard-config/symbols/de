@@ -517,7 +517,7 @@ xkb_symbols "neo_base" {
 
     // Topmost row
     // --------------------------------------------------------------
-    key <KPDV> { [ KP_Divide,               KP_Divide,               division,                U2300,                   U2215,                   NoSymbol,                U2223,                   NoSymbol                 ] };
+    key <KPDV> { [ KP_Divide,               KP_Divide,               division,                U2300,                   U2044,                   NoSymbol,                U2223,                   NoSymbol                 ] };
     key <KPMU> { [ KP_Multiply,             KP_Multiply,             U22C5,                   U2299,                   multiply,                NoSymbol,                U2297,                   NoSymbol                 ] };
     key <KPSU> { [ KP_Subtract,             KP_Subtract,             U2212,                   U2296,                   U2216,                   NoSymbol,                U2238,                   NoSymbol                 ] };
 
@@ -1195,7 +1195,7 @@ xkb_symbols "neo_qwerty" {
 };
 
 partial alphanumeric_keys
-    xkb_symbols "lld" {
+xkb_symbols "lld" {
     include "de(basic)"
     name[Group1] = "German (Ladin)";
 

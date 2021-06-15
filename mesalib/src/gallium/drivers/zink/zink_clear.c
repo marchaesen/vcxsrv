@@ -378,10 +378,10 @@ zink_clear_texture(struct pipe_context *pctx,
       } else {
          surf = create_clear_surface(pctx, pres, level, box);
          zink_blit_begin(ctx, ZINK_BLIT_SAVE_FB | ZINK_BLIT_SAVE_FS);
-         util_clear_render_target(pctx, surf, &color, box->x, box->y, box->width, box->height);
+         util_blitter_clear_render_target(ctx->blitter, surf, &color, box->x, box->y, box->width, box->height);
       }
-      if (res->base.target == PIPE_BUFFER)
-         util_range_add(&res->base, &res->valid_buffer_range, box->x, box->x + box->width);
+      if (res->base.b.target == PIPE_BUFFER)
+         util_range_add(&res->base.b, &res->valid_buffer_range, box->x, box->x + box->width);
    } else {
       float depth = 0.0;
       uint8_t stencil = 0;

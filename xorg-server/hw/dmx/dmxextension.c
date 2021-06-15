@@ -68,9 +68,6 @@
  * _any_ header files. */
 extern FontPtr defaultFont;
 
-/* Hack to get Present to build (present requires RandR) */
-RESTYPE RRCrtcType;
-
 /** This routine provides information to the DMX protocol extension
  * about a particular screen. */
 Bool

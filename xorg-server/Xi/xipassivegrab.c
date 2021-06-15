@@ -114,14 +114,18 @@ ProcXIPassiveGrabDevice(ClientPtr client)
         stuff->grab_type != XIGrabtypeKeycode &&
         stuff->grab_type != XIGrabtypeEnter &&
         stuff->grab_type != XIGrabtypeFocusIn &&
-        stuff->grab_type != XIGrabtypeTouchBegin) {
+        stuff->grab_type != XIGrabtypeTouchBegin &&
+        stuff->grab_type != XIGrabtypeGesturePinchBegin &&
+        stuff->grab_type != XIGrabtypeGestureSwipeBegin) {
         client->errorValue = stuff->grab_type;
         return BadValue;
     }
 
     if ((stuff->grab_type == XIGrabtypeEnter ||
          stuff->grab_type == XIGrabtypeFocusIn ||
-         stuff->grab_type == XIGrabtypeTouchBegin) && stuff->detail != 0) {
+         stuff->grab_type == XIGrabtypeTouchBegin ||
+         stuff->grab_type == XIGrabtypeGesturePinchBegin ||
+         stuff->grab_type == XIGrabtypeGestureSwipeBegin) && stuff->detail != 0) {
         client->errorValue = stuff->detail;
         return BadValue;
     }
@@ -217,7 +221,16 @@ ProcXIPassiveGrabDevice(ClientPtr client)
             status = GrabWindow(client, dev, stuff->grab_type, &param, &mask);
             break;
         case XIGrabtypeTouchBegin:
-            status = GrabTouch(client, dev, mod_dev, &param, &mask);
+            status = GrabTouchOrGesture(client, dev, mod_dev, XI_TouchBegin,
+                                        &param, &mask);
+            break;
+        case XIGrabtypeGesturePinchBegin:
+            status = GrabTouchOrGesture(client, dev, mod_dev,
+                                        XI_GesturePinchBegin, &param, &mask);
+            break;
+        case XIGrabtypeGestureSwipeBegin:
+            status = GrabTouchOrGesture(client, dev, mod_dev,
+                                        XI_GestureSwipeBegin, &param, &mask);
             break;
         }
 
@@ -307,7 +320,9 @@ ProcXIPassiveUngrabDevice(ClientPtr client)
         stuff->grab_type != XIGrabtypeKeycode &&
         stuff->grab_type != XIGrabtypeEnter &&
         stuff->grab_type != XIGrabtypeFocusIn &&
-        stuff->grab_type != XIGrabtypeTouchBegin) {
+        stuff->grab_type != XIGrabtypeTouchBegin &&
+        stuff->grab_type != XIGrabtypeGesturePinchBegin &&
+        stuff->grab_type != XIGrabtypeGestureSwipeBegin) {
         client->errorValue = stuff->grab_type;
         return BadValue;
     }
@@ -347,6 +362,12 @@ ProcXIPassiveUngrabDevice(ClientPtr client)
         break;
     case XIGrabtypeTouchBegin:
         tempGrab->type = XI_TouchBegin;
+        break;
+    case XIGrabtypeGesturePinchBegin:
+        tempGrab->type = XI_GesturePinchBegin;
+        break;
+    case XIGrabtypeGestureSwipeBegin:
+        tempGrab->type = XI_GestureSwipeBegin;
         break;
     }
     tempGrab->grabtype = XI2;

@@ -140,14 +140,17 @@ mir_create_dependency_graph(midgard_instruction **instructions, unsigned count, 
                 if (instructions[i]->type == TAG_LOAD_STORE_4 &&
                     load_store_opcode_props[instructions[i]->op].props & LDST_ADDRESS) {
 
-                        unsigned type;
-                        switch (instructions[i]->load_store.arg_1 & 0x3E) {
-                        case LDST_SHARED: type = 0; break;
-                        case LDST_SCRATCH: type = 1; break;
-                        default: type = 2; break;
+                        unsigned type = instructions[i]->load_store.arg_reg |
+                                        instructions[i]->load_store.arg_comp;
+
+                        unsigned idx;
+                        switch (type) {
+                        case LDST_SHARED: idx = 0; break;
+                        case LDST_SCRATCH: idx = 1; break;
+                        default: idx = 2; break;
                         }
 
-                        unsigned prev = prev_ldst[type];
+                        unsigned prev = prev_ldst[idx];
 
                         if (prev != ~0) {
                                 BITSET_WORD *dependents = instructions[prev]->dependents;
@@ -160,7 +163,7 @@ mir_create_dependency_graph(midgard_instruction **instructions, unsigned count, 
                                 instructions[i]->nr_dependencies++;
                         }
 
-                        prev_ldst[type] = i;
+                        prev_ldst[idx] = i;
                 }
 
                 if (dest < node_count) {
@@ -243,7 +246,7 @@ mir_is_scalar(midgard_instruction *ains)
         if (ains->src[1] != ~0)
                 could_scalar &= (sz1 == 16) || (sz1 == 32);
 
-        if (midgard_is_integer_out_op(ains->op) && ains->outmod != midgard_outmod_int_wrap)
+        if (midgard_is_integer_out_op(ains->op) && ains->outmod != midgard_outmod_keeplo)
                 return false;
 
         return could_scalar;
@@ -998,9 +1001,9 @@ mir_schedule_texture(
         mir_update_worklist(worklist, len, instructions, ins);
 
         struct midgard_bundle out = {
-                .tag = ins->op == TEXTURE_OP_BARRIER ?
+                .tag = ins->op == midgard_tex_op_barrier ?
                         TAG_TEXTURE_4_BARRIER :
-                        (ins->op == TEXTURE_OP_TEXEL_FETCH) || is_vertex ?
+                        (ins->op == midgard_tex_op_fetch) || is_vertex ?
                         TAG_TEXTURE_4_VTX : TAG_TEXTURE_4,
                 .instruction_count = 1,
                 .instructions = { ins }

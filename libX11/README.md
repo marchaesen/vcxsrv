@@ -31,6 +31,22 @@ For patch submission instructions, see:
 
   https://www.x.org/wiki/Development/Documentation/SubmittingPatches
 
+## Release 1.7.2
+
+This is a bug fix release, correcting a regression introduced by and
+improving the checks from the fix for CVE-2021-31535.
+
+## Release 1.7.1
+
+This is a bug fix release, including a security fix for
+CVE-2021-31535, nls and documentation corrections.
+
+ * Reject string longer than USHRT_MAX before sending them on the wire
+ * Fix out-of-bound access in KeySymToUcs4()
+ * nls: allow composing all breved letters also with a lowercase "u"
+ * nls: add 'C.utf8' as an alias for 'en_US.UTF-8'
+ * Nroff code fixes
+ * Comments fixes
 
 ## Release 1.7.0
 

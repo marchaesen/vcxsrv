@@ -70,7 +70,6 @@ error:
 void
 trace_surf_destroy(struct trace_surface *tr_surf)
 {
-   trace_context_check(tr_surf->base.context);
    pipe_resource_reference(&tr_surf->base.texture, NULL);
    pipe_surface_reference(&tr_surf->surface, NULL);
    FREE(tr_surf);
@@ -91,15 +90,15 @@ trace_transfer_create(struct trace_context *tr_ctx,
    if (!tr_trans)
       goto error;
 
-   memcpy(&tr_trans->base, transfer, sizeof(struct pipe_transfer));
+   memcpy(&tr_trans->base, transfer, tr_ctx->threaded ? sizeof(struct threaded_transfer) : sizeof(struct pipe_transfer));
 
-   tr_trans->base.resource = NULL;
+   tr_trans->base.b.resource = NULL;
    tr_trans->transfer = transfer;
 
-   pipe_resource_reference(&tr_trans->base.resource, res);
-   assert(tr_trans->base.resource == res);
+   pipe_resource_reference(&tr_trans->base.b.resource, res);
+   assert(tr_trans->base.b.resource == res);
 
-   return &tr_trans->base;
+   return &tr_trans->base.b;
 
 error:
    tr_ctx->pipe->transfer_unmap(tr_ctx->pipe, transfer);
@@ -111,7 +110,7 @@ void
 trace_transfer_destroy(struct trace_context *tr_context,
                        struct trace_transfer *tr_trans)
 {
-   pipe_resource_reference(&tr_trans->base.resource, NULL);
+   pipe_resource_reference(&tr_trans->base.b.resource, NULL);
    FREE(tr_trans);
 }
 

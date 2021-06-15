@@ -8,10 +8,9 @@ VK-GL-CTS, on the shared GitLab runners provided by `freedesktop
 Software architecture
 ---------------------
 
-The Docker containers are rebuilt from the debian-install.sh script
-when DEBIAN\_TAG is changed in .gitlab-ci.yml, and
-debian-test-install.sh when DEBIAN\_ARM64\_TAG is changed in
-.gitlab-ci.yml.  The resulting images are around 500MB, and are
+The Docker containers are rebuilt using the shell scripts under
+.gitlab-ci/container/ when the FDO\_DISTRIBUTION\_TAG changes in
+.gitlab-ci.yml. The resulting images are around 1 GB, and are
 expected to change approximately weekly (though an individual
 developer working on them may produce many more images while trying to
 come up with a working MR!).

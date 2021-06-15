@@ -4,7 +4,6 @@ glx@glx-make-current,Crash
 glx@glx-multi-window-single-context,Fail
 glx@glx-query-drawable-glx_fbconfig_id-window,Fail
 glx@glx-swap-pixmap-bad,Fail
-glx@glx-tfp,Fail
 glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil -pixmap,Crash
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
@@ -49,7 +48,6 @@ spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
 spec@!opengl 1.0@gl-1.0-scissor-copypixels,Fail
 spec@!opengl 1.0@gl-1.0-scissor-offscreen,Fail
 spec@!opengl 1.0@gl-1.0-spot-light,Fail
-spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
 spec@!opengl 1.0@rasterpos,Crash
 spec@!opengl 1.1@copypixels-sync,Fail
 spec@!opengl 1.1@copyteximage 1d,Fail
@@ -191,7 +189,6 @@ spec@arb_transform_feedback3@gl_skipcomponents2,Fail
 spec@arb_transform_feedback3@gl_skipcomponents3,Fail
 spec@arb_transform_feedback3@gl_skipcomponents4,Fail
 spec@arb_transform_feedback_instanced@draw-auto instanced,Fail
-spec@arb_vertex_program@clip-plane-transformation arb,Fail
 spec@arb_vertex_type_2_10_10_10_rev@attrib-p-type-size-match,Fail
 spec@egl 1.4@egl-copy-buffers,Crash
 spec@egl 1.4@eglterminate then unbind context,Fail
@@ -230,16 +227,12 @@ spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index8-copypixels,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-clear-and-render,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-rendering,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_ayuv,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_nv12,Crash
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p010,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p012,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p016,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_uyvy,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_xyuv,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuv420,Crash
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuyv,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Crash
 spec@ext_packed_depth_stencil@fbo-clear-formats,Fail
 spec@ext_packed_depth_stencil@fbo-clear-formats stencil,Fail
 spec@ext_packed_depth_stencil@fbo-depth-gl_depth24_stencil8-blit,Fail
@@ -253,16 +246,11 @@ spec@ext_render_snorm@render,Fail
 spec@ext_texture_integer@fbo-integer,Fail
 spec@ext_texture_snorm@fbo-blending-formats,Fail
 spec@ext_transform_feedback2@draw-auto,Fail
-spec@ext_transform_feedback@change-size base-shrink,Fail
-spec@ext_transform_feedback@change-size offset-shrink,Fail
-spec@ext_transform_feedback@change-size range-shrink,Fail
 spec@ext_transform_feedback@discard-copypixels,Fail
 spec@ext_transform_feedback@generatemipmap prims_generated,Fail
 spec@ext_transform_feedback@immediate-reuse,Fail
 spec@ext_transform_feedback@immediate-reuse-index-buffer,Fail
 spec@ext_transform_feedback@immediate-reuse-uniform-buffer,Fail
-spec@ext_transform_feedback@overflow-edge-cases,Fail
-spec@ext_transform_feedback@query-primitives_written-bufferrange-discard,Fail
 spec@ext_transform_feedback@tessellation line_loop flat_first,Fail
 spec@ext_transform_feedback@tessellation line_loop flat_last,Fail
 spec@ext_transform_feedback@tessellation line_loop monochrome,Fail
@@ -309,10 +297,6 @@ spec@ext_transform_feedback@tessellation triangles flat_last,Fail
 spec@ext_transform_feedback@tessellation triangles monochrome,Fail
 spec@ext_transform_feedback@tessellation triangles smooth,Fail
 spec@ext_transform_feedback@tessellation triangles wireframe,Fail
-spec@glsl-1.10@execution@clipping@clip-plane-transformation clipvert_pos,Fail
-spec@glsl-1.10@execution@clipping@clip-plane-transformation fixed,Fail
-spec@glsl-1.10@execution@clipping@clip-plane-transformation pos_clipvert,Fail
-spec@glsl-1.30@execution@clipping@clip-plane-transformation pos,Fail
 spec@glsl-1.30@execution@texelfetch fs sampler3d 1x129x9-98x129x9,Fail
 spec@glsl-1.30@execution@texelfetch fs sampler3d 98x129x1-98x129x9,Fail
 spec@glsl-1.30@execution@texelfetch fs sampler3d 98x1x9-98x129x9,Fail
@@ -353,108 +337,8 @@ spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Crash
 wgl@wgl-multi-context-single-window,Fail
 wgl@wgl-multi-window-single-context,Fail
 wgl@wgl-sanity,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_backcolor-flat-vertex,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_backcolor-smooth-vertex,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_backsecondarycolor-flat-vertex,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_backsecondarycolor-smooth-vertex,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_frontcolor-flat-vertex,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_frontcolor-smooth-vertex,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_frontsecondarycolor-flat-vertex,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_frontsecondarycolor-smooth-vertex,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-other-flat-vertex,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-other-smooth-vertex,Fail
-spec@glsl-1.20@execution@clipping@fixed-clip-enables,Fail
-spec@glsl-1.20@execution@clipping@vs-clip-vertex-const-accept,Fail
-spec@glsl-1.20@execution@clipping@vs-clip-vertex-different-from-position,Fail
-spec@glsl-1.20@execution@clipping@vs-clip-vertex-enables,Fail
-spec@glsl-1.20@execution@clipping@vs-clip-vertex-equal-to-position,Fail
-spec@glsl-1.20@execution@clipping@vs-clip-vertex-homogeneity,Fail
-spec@glsl-1.20@execution@clipping@vs-clip-vertex-primitives,Fail
 spec@glsl-1.30@execution@clipping@fs-clip-distance-interpolated,Crash
-spec@glsl-1.30@execution@clipping@vs-clip-based-on-position,Fail
-spec@glsl-1.30@execution@clipping@vs-clip-based-on-position-homogeneity,Fail
-spec@glsl-1.30@execution@clipping@vs-clip-distance-all-planes-enabled,Fail
-spec@glsl-1.30@execution@clipping@vs-clip-distance-bulk-assign,Fail
-spec@glsl-1.30@execution@clipping@vs-clip-distance-const-accept,Fail
-spec@glsl-1.30@execution@clipping@vs-clip-distance-deadcode,Fail
-spec@glsl-1.30@execution@clipping@vs-clip-distance-enables,Fail
-spec@glsl-1.30@execution@clipping@vs-clip-distance-implicitly-sized,Fail
-spec@glsl-1.30@execution@clipping@vs-clip-distance-in-param,Fail
-spec@glsl-1.30@execution@clipping@vs-clip-distance-inout-param,Fail
-spec@glsl-1.30@execution@clipping@vs-clip-distance-out-param,Fail
-spec@glsl-1.30@execution@clipping@vs-clip-distance-primitives,Fail
-spec@glsl-1.30@execution@clipping@vs-clip-distance-retval,Fail
-spec@glsl-1.30@execution@clipping@vs-clip-distance-uint-index,Fail
 spec@glsl-1.30@execution@fs-large-local-array-vec2,Crash
 spec@glsl-1.30@execution@fs-large-local-array-vec3,Crash
 spec@glsl-1.30@execution@fs-large-local-array-vec4,Crash
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_backcolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_backcolor-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_backcolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_backcolor-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_backsecondarycolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_backsecondarycolor-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_backsecondarycolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_backsecondarycolor-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_frontcolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_frontcolor-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_frontcolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_frontcolor-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_frontsecondarycolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_frontsecondarycolor-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_frontsecondarycolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_frontsecondarycolor-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-other-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-other-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-other-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-flat-other-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-none-gl_backcolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-none-gl_backcolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-none-gl_backsecondarycolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-none-gl_backsecondarycolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-none-gl_frontcolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-none-gl_frontcolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-none-gl_frontsecondarycolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-none-gl_frontsecondarycolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-none-other-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-none-other-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_backcolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_backcolor-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_backcolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_backcolor-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_backsecondarycolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_backsecondarycolor-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_backsecondarycolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_backsecondarycolor-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_frontcolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_frontcolor-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_frontcolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_frontcolor-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_frontsecondarycolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_frontsecondarycolor-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_frontsecondarycolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_frontsecondarycolor-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-other-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-other-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-other-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-noperspective-other-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_backcolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_backcolor-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_backcolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_backcolor-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_backsecondarycolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_backsecondarycolor-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_backsecondarycolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_backsecondarycolor-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_frontcolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_frontcolor-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_frontcolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_frontcolor-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_frontsecondarycolor-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_frontsecondarycolor-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_frontsecondarycolor-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_frontsecondarycolor-smooth-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-other-flat-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-other-flat-vertex,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-other-smooth-distance,Fail
-spec@glsl-1.30@execution@interpolation@interpolation-smooth-other-smooth-vertex,Fail
+spec@glsl-1.30@execution@range_analysis_fsat_of_nan,Fail

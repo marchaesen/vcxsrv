@@ -1631,7 +1631,7 @@ registers:
 	00000001	SP_ADDR_MODE_CNTL: ADDR_64B
 	deadbeef	SP_NC_MODE_CNTL: 0xdeadbeef
 	deadbeef	SP_UNKNOWN_AE03: 0xdeadbeef
-	00000004	SP_UNKNOWN_AE04: 0x4
+	00000004	SP_FLOAT_CNTL: { 0x4 }
 	deadbeef	0xae0c: deadbeef
 	deadbeef	SP_PERFCTR_ENABLE: { VS | HS | DS | GS | CS | 0xdeadbec0 }
 	00000000	SP_PERFCTR_SP_SEL[0]+0: 00000000

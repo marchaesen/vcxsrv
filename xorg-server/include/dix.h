@@ -130,6 +130,7 @@ extern _X_EXPORT ClientPtr clients[MAXCLIENTS];
 extern _X_EXPORT ClientPtr serverClient;
 extern _X_EXPORT int currentMaxClients;
 extern _X_EXPORT char dispatchExceptionAtReset;
+extern _X_EXPORT int terminateDelay;
 
 typedef int HWEventQueueType;
 typedef HWEventQueueType *HWEventQueuePtr;
@@ -421,6 +422,10 @@ DeliverTouchEvents(DeviceIntPtr /* dev */ ,
                    InternalEvent * /* ev */ ,
                    XID /* resource */ );
 
+extern Bool
+DeliverGestureEventToOwner(DeviceIntPtr dev, GestureInfoPtr gi,
+                           InternalEvent *ev);
+
 extern void
 InitializeSprite(DeviceIntPtr /* pDev */ ,
                  WindowPtr /* pWin */ );
@@ -610,6 +615,13 @@ extern Bool
 IsPointerEvent(InternalEvent *event);
 extern Bool
 IsTouchEvent(InternalEvent *event);
+Bool
+IsGestureEvent(InternalEvent *event);
+Bool
+IsGestureBeginEvent(InternalEvent *event);
+Bool
+IsGestureEndEvent(InternalEvent *event);
+
 extern _X_EXPORT Bool
 IsMaster(DeviceIntPtr dev);
 extern _X_EXPORT Bool

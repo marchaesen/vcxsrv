@@ -62,12 +62,12 @@ iris_emit_pipe_control_flush(struct iris_batch *batch,
    if ((flags & PIPE_CONTROL_CACHE_FLUSH_BITS) &&
        (flags & PIPE_CONTROL_CACHE_INVALIDATE_BITS)) {
       /* A pipe control command with flush and invalidate bits set
-       * simultaneously is an inherently racy operation on Gen6+ if the
+       * simultaneously is an inherently racy operation on Gfx6+ if the
        * contents of the flushed caches were intended to become visible from
        * any of the invalidated caches.  Split it in two PIPE_CONTROLs, the
        * first one should stall the pipeline to make sure that the flushed R/W
        * caches are coherent with memory once the specified R/O caches are
-       * invalidated.  On pre-Gen6 hardware the (implicit) R/O cache
+       * invalidated.  On pre-Gfx6 hardware the (implicit) R/O cache
        * invalidation seems to happen at the bottom of the pipeline together
        * with any write cache flush, so this shouldn't be a concern.  In order
        * to ensure a full stall, we do an end-of-pipe sync.
@@ -292,6 +292,7 @@ iris_flush_all_caches(struct iris_batch *batch)
                                 PIPE_CONTROL_DATA_CACHE_FLUSH |
                                 PIPE_CONTROL_DEPTH_CACHE_FLUSH |
                                 PIPE_CONTROL_RENDER_TARGET_FLUSH |
+                                PIPE_CONTROL_TILE_CACHE_FLUSH |
                                 PIPE_CONTROL_VF_CACHE_INVALIDATE |
                                 PIPE_CONTROL_INSTRUCTION_INVALIDATE |
                                 PIPE_CONTROL_TEXTURE_CACHE_INVALIDATE |

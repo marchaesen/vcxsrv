@@ -90,9 +90,21 @@ typedef enum {
 	OPC_BALL            = _OPC(0, 45),
 	OPC_BRAX            = _OPC(0, 46),
 
+	/* Logical opcode to distinguish kill and demote */
+	OPC_DEMOTE          = _OPC(0, 47),
+
 	/* category 1: */
 	OPC_MOV             = _OPC(1, 0),
+	OPC_MOVP            = _OPC(1, 1),
+	/* swz, gat, sct */
 	OPC_MOVMSK          = _OPC(1, 3),
+
+	/* Virtual opcodes for instructions differentiated via a "sub-opcode" that
+	 * replaces the repeat field:
+	 */
+	OPC_SWZ            = _OPC(1, 4),
+	OPC_GAT            = _OPC(1, 5),
+	OPC_SCT            = _OPC(1, 6),
 
 	/* Logical opcodes for different variants of mov: */
 	OPC_MOV_IMMED       = _OPC(1, 40),
@@ -354,6 +366,13 @@ static inline int type_sint(type_t type)
 {
 	return (type == TYPE_S32) || (type == TYPE_S16) || (type == TYPE_S8);
 }
+
+typedef enum {
+	ROUND_ZERO = 0,
+	ROUND_EVEN = 1,
+	ROUND_POS_INF = 2,
+	ROUND_NEG_INF = 3,
+} round_t;
 
 typedef union PACKED {
 	/* normal gpr or const src register: */

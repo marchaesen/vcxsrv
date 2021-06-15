@@ -1,9 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import os,sys,shutil,re,stat
 
 from optparse import OptionParser
 
-sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+#sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 
 usage = "usage: %prog [options] <SrcDir> <DestDir>"
 parser = OptionParser(usage=usage)
@@ -24,7 +24,7 @@ if g_Options.FilesToDeleteRe:
   try:
     g_FilesToDelete=re.compile(g_Options.FilesToDeleteRe,re.I)
   except:
-    print 'Wrong regular expression:',g_Options.FilesToDeleteRe
+    print('Wrong regular expression:'+g_Options.FilesToDeleteRe)
     sys.exit(1)
 else:
   g_FilesToDelete=None
@@ -66,24 +66,24 @@ if g_SrcDir[-1]!=os.path.sep:
   g_LenSrcDir+=1
 
 def SkipDir(SrcDir,File):
-  Ret = g_DirsToSkip.has_key(File)
+  Ret = File in g_DirsToSkip
   SrcDir=SrcDir[g_LenSrcDir:]
 
   while not Ret and SrcDir:
     SrcDir,Part=os.path.split(SrcDir)
     File=os.path.join(Part,File)
-    Ret = g_DirsToSkip.has_key(File)
+    Ret = File in g_DirsToSkip
   return Ret
 
 ###############################################################################
 def DeleteFiles(SrcFile,DestFile):
-  print 'Deleting %s'%(SrcFile)
+  print('Deleting %s'%(SrcFile))
   os.remove(SrcFile)
-  print 'Deleting %s'%(DestFile)
+  print('Deleting %s'%(DestFile))
   try:
     os.remove(DestFile)
   except:
-    print DestFile,'does not exist'
+    print(DestFile,'does not exist')
 
 ###############################################################################
 #characters=['|','/','-','\\']
@@ -110,7 +110,7 @@ def PrintBusy():
 ###############################################################################
 
 if not os.path.isdir(g_DestDir):
-  print g_DestDir,"is not a directory"
+  print(g_DestDir+" is not a directory")
   sys.exit(1)
 
 def FileDiff(SrcFile,DestFile):
@@ -124,7 +124,7 @@ def FileDiff(SrcFile,DestFile):
         return 1
       if not SrcLine:
         return 0
-  except Exception,Object:
+  except Exception as Object:
     #print "Exception occured"
     #print Object
     return 1
@@ -147,12 +147,12 @@ def SynchroniseDir(SrcDir,DestDir):
             continue   # Skip svn administration dirs
           if SkipDir(SrcDir,File):
             continue
-          print 'Deleting directory',DestFile
+          print('Deleting directory '+DestFile)
           shutil.rmtree(DestFile)
         else:
-          if g_FilesToSkip.has_key(File):
+          if File in g_FilesToSkip:
             continue
-          print 'Deleting file',DestFile
+          print('Deleting file '+DestFile)
           os.remove(DestFile)
 
   for File in SrcFiles:
@@ -173,19 +173,19 @@ def SynchroniseDir(SrcDir,DestDir):
           if g_Ask:
             sys.stdout.write("Create directory %s? (y/n)"%DestFile)
             if sys.stdin.read(1)=='y':
-              print "Creating dir",DestFile
+              print("Creating dir "+DestFile)
               os.mkdir(DestFile)
             sys.stdin.read(1)
           else:
-            print "Creating dir",DestFile
+            print("Creating dir "+DestFile)
             os.mkdir(DestFile)
         else:
-          print "Creating dir",DestFile
+          print("Creating dir "+DestFile)
       SynchroniseDir(SrcFile,DestFile)
     else:
       if g_Extre and not g_Extre.search(File):
         continue
-      if g_FilesToSkip.has_key(File):
+      if File in g_FilesToSkip:
         continue
       if g_FilesToDelete:
         if g_FilesToDelete.search(File):
@@ -200,20 +200,20 @@ def SynchroniseDir(SrcDir,DestDir):
           sys.stdout.write('\n')
           g_Dot=0
         if not g_DoNothing:
-          if g_Ask or g_FilesToConfirm.has_key(File):
+          if g_Ask or File in g_FilesToConfirm:
             sys.stdout.write("Copy/Merge %s to %s? (y/n/m/d)"%(SrcFile,DestFile))
             R=sys.stdin.read(1)
             if R=='y':
-              print '%s -> %s'%(SrcFile,DestFile)
+              print('%s -> %s'%(SrcFile,DestFile))
               shutil.copyfile(SrcFile,DestFile)
             elif R=='m':
-              print '%s -> %s'%(SrcFile,DestFile)
+              print('%s -> %s'%(SrcFile,DestFile))
               os.system('fcg "%s" "%s"'%(SrcFile,DestFile))
             elif R=='d':
               DeleteFiles(SrcFile,DestFile)
             sys.stdin.read(1)
           else:
-            print '%s -> %s'%(SrcFile,DestFile)
+            print('%s -> %s'%(SrcFile,DestFile))
             # check if the file is read-only
             try:
               Mode=os.stat(DestFile).st_mode
@@ -229,7 +229,7 @@ def SynchroniseDir(SrcDir,DestDir):
               os.chmod(DestFile,Mode & (~g_WriteMask) )
 
         else:
-          print '%s -> %s'%(SrcFile,DestFile)
+          print('%s -> %s'%(SrcFile,DestFile))
       else:
         PrintBusy()
         g_Dot=1

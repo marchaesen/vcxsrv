@@ -74,7 +74,8 @@ stw_framebuffer_from_hwnd_locked(HWND hwnd)
  * locked.  After this function completes, the fb's mutex will be unlocked.
  */
 void
-stw_framebuffer_release_locked(struct stw_framebuffer *fb)
+stw_framebuffer_release_locked(struct stw_framebuffer *fb,
+                               struct st_context_iface *stctx)
 {
    struct stw_framebuffer **link;
 
@@ -102,7 +103,7 @@ stw_framebuffer_release_locked(struct stw_framebuffer *fb)
                                                 fb->shared_surface);
 
    if (fb->winsys_framebuffer)
-      fb->winsys_framebuffer->destroy(fb->winsys_framebuffer);
+      fb->winsys_framebuffer->destroy(fb->winsys_framebuffer, stctx ? stctx->pipe : NULL);
 
    stw_st_destroy_framebuffer_locked(fb->stfb);
 
@@ -238,8 +239,12 @@ stw_call_window_proc(int nCode, WPARAM wParam, LPARAM lParam)
       else if (pParams->message == WM_DESTROY) {
          stw_lock_framebuffers(stw_dev);
          fb = stw_framebuffer_from_hwnd_locked( pParams->hwnd );
-         if (fb)
-            stw_framebuffer_release_locked(fb);
+         if (fb) {
+            struct stw_context *current_context = stw_current_context();
+            struct st_context_iface *ctx_iface = current_context &&
+               current_context->current_framebuffer == fb ? current_context->st : NULL;
+            stw_framebuffer_release_locked(fb, ctx_iface);
+         }
          stw_unlock_framebuffers(stw_dev);
       }
    }
@@ -363,7 +368,7 @@ stw_framebuffer_cleanup(void)
       next = fb->next;
 
       stw_framebuffer_lock(fb);
-      stw_framebuffer_release_locked(fb);
+      stw_framebuffer_release_locked(fb, NULL);
 
       fb = next;
    }

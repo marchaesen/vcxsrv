@@ -132,6 +132,7 @@ int ProcInitialConnection();
 #include "inputstr.h"
 #include "xkbsrv.h"
 #include "client.h"
+#include "xfixesint.h"
 
 #ifdef XSERVER_DTRACE
 #include "registry.h"
@@ -168,6 +169,7 @@ static int nextFreeClientID;    /* always MIN free client ID */
 static int nClients;            /* number of authorized clients */
 
 CallbackListPtr ClientStateCallback;
+OsTimerPtr dispatchExceptionTimer;
 
 /* dispatchException & isItTimeToYield must be declared volatile since they
  * are modified by signal handlers - otherwise optimizer may assume it doesn't
@@ -401,6 +403,58 @@ SmartScheduleClient(void)
         SmartScheduleSlice = SmartScheduleInterval;
     }
     return best;
+}
+
+static CARD32
+DispatchExceptionCallback(OsTimerPtr timer, CARD32 time, void *arg)
+{
+    dispatchException |= dispatchExceptionAtReset;
+
+    /* Don't re-arm the timer */
+    return 0;
+}
+
+static void
+CancelDispatchExceptionTimer(void)
+{
+    TimerFree(dispatchExceptionTimer);
+    dispatchExceptionTimer = NULL;
+}
+
+static void
+SetDispatchExceptionTimer(void)
+{
+    /* The timer delay is only for terminate, not reset */
+    if (!(dispatchExceptionAtReset & DE_TERMINATE)) {
+        dispatchException |= dispatchExceptionAtReset;
+        return;
+    }
+
+    CancelDispatchExceptionTimer();
+
+    if (terminateDelay == 0)
+        dispatchException |= dispatchExceptionAtReset;
+    else
+        dispatchExceptionTimer = TimerSet(dispatchExceptionTimer,
+                                          0, terminateDelay * 1000 /* msec */,
+                                          &DispatchExceptionCallback,
+                                          NULL);
+}
+
+static Bool
+ShouldDisconnectRemainingClients(void)
+{
+    int i;
+
+    for (i = 1; i < currentMaxClients; i++) {
+        if (clients[i]) {
+            if (!XFixesShouldDisconnectClient(clients[i]))
+                return FALSE;
+        }
+    }
+
+    /* All remaining clients can be safely ignored */
+    return TRUE;
 }
 
 void
@@ -3499,6 +3553,7 @@ ProcNoOperation(ClientPtr client)
  *********************/
 
 char dispatchExceptionAtReset = DE_RESET;
+int terminateDelay = 0;
 
 void
 CloseDownClient(ClientPtr client)
@@ -3555,7 +3610,7 @@ CloseDownClient(ClientPtr client)
 
     if (really_close_down) {
         if (client->clientState == ClientStateRunning && nClients == 0)
-            dispatchException |= dispatchExceptionAtReset;
+            SetDispatchExceptionTimer();
 
         client->clientState = ClientStateGone;
         if (ClientStateCallback) {
@@ -3567,6 +3622,7 @@ CloseDownClient(ClientPtr client)
             CallCallbacks((&ClientStateCallback), (void *) &clientinfo);
         }
         TouchListenerGone(client->clientAsMask);
+        GestureListenerGone(client->clientAsMask);
         FreeClientResources(client);
         /* Disable client ID tracking. This must be done after
          * ClientStateCallback. */
@@ -3583,6 +3639,9 @@ CloseDownClient(ClientPtr client)
         while (!clients[currentMaxClients - 1])
             currentMaxClients--;
     }
+
+    if (ShouldDisconnectRemainingClients())
+        SetDispatchExceptionTimer();
 }
 
 static void
@@ -3784,6 +3843,7 @@ SendConnSetup(ClientPtr client, const char *reason)
         clientinfo.setup = (xConnSetup *) lConnectionInfo;
         CallCallbacks((&ClientStateCallback), (void *) &clientinfo);
     }
+    CancelDispatchExceptionTimer();
     return Success;
 }
 

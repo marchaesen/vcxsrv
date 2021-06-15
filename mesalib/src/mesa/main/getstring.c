@@ -92,7 +92,7 @@ shading_language_version(struct gl_context *ctx)
          return (const GLubyte *) 0;
       }
    case API_OPENGLES:
-      /* fall-through */
+      FALLTHROUGH;
 
    default:
       _mesa_problem(ctx, "Unexpected API value in shading_language_version()");

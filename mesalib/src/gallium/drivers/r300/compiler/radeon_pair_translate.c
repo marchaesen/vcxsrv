@@ -30,6 +30,8 @@
 #include "radeon_compiler.h"
 #include "radeon_compiler_util.h"
 
+#include "util/compiler.h"
+
 
 /**
  * Finally rewrite ADD, MOV, MUL as the appropriate native instruction
@@ -120,7 +122,7 @@ static void classify_instruction(struct rc_sub_instruction * inst,
 		break;
 	case RC_OPCODE_DP4:
 		*needalpha = 1;
-		/* fall through */
+		FALLTHROUGH;
 	case RC_OPCODE_DP3:
 		*needrgb = 1;
 		break;

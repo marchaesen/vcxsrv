@@ -115,8 +115,9 @@ rbug_draw_block_locked(struct rbug_context *rb_pipe, int flag)
 
 static void
 rbug_draw_vbo(struct pipe_context *_pipe, const struct pipe_draw_info *_info,
+              unsigned _drawid_offset,
               const struct pipe_draw_indirect_info *_indirect,
-              const struct pipe_draw_start_count *draws,
+              const struct pipe_draw_start_count_bias *draws,
               unsigned num_draws)
 {
    struct rbug_context *rb_pipe = rbug_context(_pipe);
@@ -135,7 +136,7 @@ rbug_draw_vbo(struct pipe_context *_pipe, const struct pipe_draw_info *_info,
    if (!(rb_pipe->curr.shader[PIPE_SHADER_FRAGMENT] && rb_pipe->curr.shader[PIPE_SHADER_FRAGMENT]->disabled) &&
        !(rb_pipe->curr.shader[PIPE_SHADER_GEOMETRY] && rb_pipe->curr.shader[PIPE_SHADER_GEOMETRY]->disabled) &&
        !(rb_pipe->curr.shader[PIPE_SHADER_VERTEX] && rb_pipe->curr.shader[PIPE_SHADER_VERTEX]->disabled))
-      pipe->draw_vbo(pipe, &info, _indirect, draws, num_draws);
+      pipe->draw_vbo(pipe, &info, _drawid_offset, _indirect, draws, num_draws);
    mtx_unlock(&rb_pipe->call_mutex);
 
    rbug_draw_block_locked(rb_pipe, RBUG_BLOCK_AFTER);

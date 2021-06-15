@@ -225,15 +225,26 @@ vbo_save_playback_vertex_list(struct gl_context *ctx, void *data)
       if (node->vertex_count > 0) {
          bool draw_using_merged_prim = (ctx->Const.AllowIncorrectPrimitiveId ||
                                         ctx->_PrimitiveIDIsUnused) &&
-                                       node->merged.prims;
+                                       node->merged.num_draws;
          if (!draw_using_merged_prim) {
             ctx->Driver.Draw(ctx, node->prims, node->prim_count,
                              NULL, true,
                              false, 0, node->min_index, node->max_index, 1, 0);
          } else {
-            ctx->Driver.Draw(ctx, node->merged.prims, node->merged.prim_count,
-                             &node->merged.ib, true,
-                             false, 0, node->merged.min_index, node->merged.max_index, 1, 0);
+            struct pipe_draw_info *info = (struct pipe_draw_info *) &node->merged.info;
+            info->vertices_per_patch = ctx->TessCtrlProgram.patch_vertices;
+            void *gl_bo = info->index.gl_bo;
+            if (node->merged.mode) {
+               ctx->Driver.DrawGalliumMultiMode(ctx, info, 0,
+                                              node->merged.start_count,
+                                              node->merged.mode,
+                                              node->merged.num_draws);
+            } else {
+               ctx->Driver.DrawGallium(ctx, info, 0,
+                                       node->merged.start_count,
+                                       node->merged.num_draws);
+            }
+            info->index.gl_bo = gl_bo;
          }
       }
    }

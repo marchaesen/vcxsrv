@@ -59,21 +59,21 @@
 #include "iris_monitor.h"
 
 #define genX_call(devinfo, func, ...)             \
-   switch ((devinfo)->genx10) {                   \
+   switch ((devinfo)->verx10) {                   \
    case 125:                                      \
-      gen125_##func(__VA_ARGS__);                 \
+      gfx125_##func(__VA_ARGS__);                 \
       break;                                      \
    case 120:                                      \
-      gen12_##func(__VA_ARGS__);                  \
+      gfx12_##func(__VA_ARGS__);                  \
       break;                                      \
    case 110:                                      \
-      gen11_##func(__VA_ARGS__);                  \
+      gfx11_##func(__VA_ARGS__);                  \
       break;                                      \
    case 90:                                       \
-      gen9_##func(__VA_ARGS__);                   \
+      gfx9_##func(__VA_ARGS__);                   \
       break;                                      \
    case 80:                                       \
-      gen8_##func(__VA_ARGS__);                   \
+      gfx8_##func(__VA_ARGS__);                   \
       break;                                      \
    default:                                       \
       unreachable("Unknown hardware generation"); \
@@ -113,7 +113,7 @@ static void
 iris_get_driver_uuid(struct pipe_screen *pscreen, char *uuid)
 {
    struct iris_screen *screen = (struct iris_screen *)pscreen;
-   const struct gen_device_info *devinfo = &screen->devinfo;
+   const struct intel_device_info *devinfo = &screen->devinfo;
 
    intel_uuid_compute_driver_id((uint8_t *)uuid, devinfo, PIPE_UUID_SIZE);
 }
@@ -145,7 +145,7 @@ iris_get_name(struct pipe_screen *pscreen)
 {
    struct iris_screen *screen = (struct iris_screen *)pscreen;
    static char buf[128];
-   const char *name = gen_get_device_name(screen->pci_id);
+   const char *name = intel_get_device_name(screen->pci_id);
 
    if (!name)
       name = "Intel Unknown";
@@ -158,7 +158,7 @@ static int
 iris_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
 {
    struct iris_screen *screen = (struct iris_screen *)pscreen;
-   const struct gen_device_info *devinfo = &screen->devinfo;
+   const struct intel_device_info *devinfo = &screen->devinfo;
 
    switch (param) {
    case PIPE_CAP_NPOT_TEXTURES:
@@ -257,6 +257,7 @@ iris_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_GL_SPIRV_VARIABLE_POINTERS:
    case PIPE_CAP_DEMOTE_TO_HELPER_INVOCATION:
    case PIPE_CAP_NATIVE_FENCE_FD:
+   case PIPE_CAP_MEMOBJ:
    case PIPE_CAP_MIXED_COLOR_DEPTH_BITS:
    case PIPE_CAP_FENCE_SIGNAL:
       return true;
@@ -269,9 +270,9 @@ iris_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_DEPTH_CLIP_DISABLE_SEPARATE:
    case PIPE_CAP_FRAGMENT_SHADER_INTERLOCK:
    case PIPE_CAP_ATOMIC_FLOAT_MINMAX:
-      return devinfo->gen >= 9;
+      return devinfo->ver >= 9;
    case PIPE_CAP_DEPTH_BOUNDS_TEST:
-      return devinfo->gen >= 12;
+      return devinfo->ver >= 12;
    case PIPE_CAP_MAX_DUAL_SOURCE_RENDER_TARGETS:
       return 1;
    case PIPE_CAP_MAX_RENDER_TARGETS:
@@ -394,6 +395,13 @@ iris_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_INTEGER_MULTIPLY_32X16:
       return true;
 
+   case PIPE_CAP_ALLOW_DYNAMIC_VAO_FASTPATH:
+      /* Internal details of VF cache make this optimization harmful on GFX
+       * version 8 and 9, because generated VERTEX_BUFFER_STATEs are cached
+       * separately.
+       */
+      return devinfo->ver >= 11;
+
    default:
       return u_pipe_screen_get_param_defaults(pscreen, param);
    }
@@ -472,6 +480,7 @@ iris_get_shader_param(struct pipe_screen *pscreen,
    case PIPE_SHADER_CAP_INT64_ATOMICS:
    case PIPE_SHADER_CAP_FP16:
    case PIPE_SHADER_CAP_FP16_DERIVATIVES:
+   case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
    case PIPE_SHADER_CAP_INT16:
    case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
       return 0;
@@ -515,7 +524,7 @@ iris_get_compute_param(struct pipe_screen *pscreen,
                        void *ret)
 {
    struct iris_screen *screen = (struct iris_screen *)pscreen;
-   const struct gen_device_info *devinfo = &screen->devinfo;
+   const struct intel_device_info *devinfo = &screen->devinfo;
 
    /* Limit max_threads to 64 for the GPGPU_WALKER command. */
    const unsigned max_threads = MIN2(64, devinfo->max_cs_threads);
@@ -602,7 +611,7 @@ iris_get_timestamp(struct pipe_screen *pscreen)
 
    iris_reg_read(screen->bufmgr, TIMESTAMP | 1, &result);
 
-   result = gen_device_info_timebase_scale(&screen->devinfo, result);
+   result = intel_device_info_timebase_scale(&screen->devinfo, result);
    result &= (1ull << TIMESTAMP_BITS) - 1;
 
    return result;
@@ -675,7 +684,7 @@ iris_getparam_integer(int fd, int param)
 }
 
 static const struct intel_l3_config *
-iris_get_default_l3_config(const struct gen_device_info *devinfo,
+iris_get_default_l3_config(const struct intel_device_info *devinfo,
                            bool compute)
 {
    bool wants_dc_cache = true;
@@ -772,14 +781,14 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
    if (!screen)
       return NULL;
 
-   if (!gen_get_device_info_from_fd(fd, &screen->devinfo))
+   if (!intel_get_device_info_from_fd(fd, &screen->devinfo))
       return NULL;
    screen->pci_id = screen->devinfo.chipset_id;
    screen->no_hw = screen->devinfo.no_hw;
 
    p_atomic_set(&screen->refcount, 1);
 
-   if (screen->devinfo.gen < 8 || screen->devinfo.is_cherryview)
+   if (screen->devinfo.ver < 8 || screen->devinfo.is_cherryview)
       return NULL;
 
    bool bo_reuse = false;
@@ -829,7 +838,7 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
    screen->compiler->supports_pull_constants = false;
    screen->compiler->supports_shader_constants = true;
    screen->compiler->compact_params = false;
-   screen->compiler->indirect_ubos_use_sampler = screen->devinfo.gen < 12;
+   screen->compiler->indirect_ubos_use_sampler = screen->devinfo.ver < 12;
 
    screen->l3_config_3d = iris_get_default_l3_config(&screen->devinfo, false);
    screen->l3_config_cs = iris_get_default_l3_config(&screen->devinfo, true);
@@ -839,7 +848,7 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
    slab_create_parent(&screen->transfer_pool,
                       sizeof(struct iris_transfer), 64);
 
-   screen->subslice_total = gen_device_info_subslice_total(&screen->devinfo);
+   screen->subslice_total = intel_device_info_subslice_total(&screen->devinfo);
    assert(screen->subslice_total >= 1);
 
    iris_detect_kernel_features(screen);

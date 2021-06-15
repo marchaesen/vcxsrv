@@ -58,6 +58,11 @@ if with_gallium_softpipe
 else
   driver_swrast = declare_dependency()
 endif
+if with_gallium_asahi
+  subdir('drivers/asahi')
+else
+  driver_asahi = declare_dependency()
+endif
 if with_gallium_r300 or with_gallium_radeonsi or with_gallium_r600
   subdir('winsys/radeon/drm')
 endif

@@ -326,8 +326,7 @@ bool EmitSSBOInstruction::emit_store_ssbo(const nir_intrinsic_instr* instr)
 
    auto orig_addr = from_nir(instr->src[2], 0);
 
-   int temp1 = allocate_temp_register();
-   GPRVector addr_vec(temp1, {0,1,2,7});
+   GPRVector addr_vec = get_temp_vec4({0,1,2,7});
 
    auto temp2 = get_temp_vec4();
 

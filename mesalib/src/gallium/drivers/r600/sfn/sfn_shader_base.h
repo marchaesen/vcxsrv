@@ -92,6 +92,8 @@ public:
 
    void get_array_info(r600_shader& shader) const;
 
+   virtual bool scan_inputs_read(const nir_shader *sh);
+
 protected:
 
    void set_var_address(nir_deref_instr *instr);
@@ -161,26 +163,16 @@ private:
    bool load_uniform_indirect(nir_intrinsic_instr* instr, PValue addr, int offest, int bufid);
 
    /* Code creating functions */
-   bool emit_load_input_deref(const nir_variable *var, nir_intrinsic_instr* instr);
    bool emit_load_function_temp(const nir_variable *var, nir_intrinsic_instr *instr);
    AluInstruction *emit_load_literal(const nir_load_const_instr *literal, const nir_src& src, unsigned writemask);
 
-   bool emit_store_deref(nir_intrinsic_instr* instr);
-
    bool load_uniform(nir_intrinsic_instr* instr);
    bool process_uniforms(nir_variable *uniform);
-   bool process_inputs(nir_variable *input);
-   bool process_outputs(nir_variable *output);
 
    void append_block(int nesting_change);
 
    virtual void emit_shader_start();
    virtual bool emit_deref_instruction_override(nir_deref_instr* instr);
-   virtual bool do_process_inputs(nir_variable *input) = 0;
-   virtual bool do_process_outputs(nir_variable *output) = 0;
-   virtual bool do_emit_load_deref(const nir_variable *in_var, nir_intrinsic_instr* instr) = 0;
-   virtual bool do_emit_store_deref(const nir_variable *out_var, nir_intrinsic_instr* instr) = 0;
-
 
    bool emit_store_scratch(nir_intrinsic_instr* instr);
    bool emit_load_scratch(nir_intrinsic_instr* instr);

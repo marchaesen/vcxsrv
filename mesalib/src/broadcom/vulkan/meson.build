@@ -26,28 +26,7 @@ v3dv_entrypoints = custom_target(
     prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--proto', '--weak',
     '--out-h', '@OUTPUT0@', '--out-c', '@OUTPUT1@', '--prefix', 'v3dv',
   ],
-)
-
-v3dv_extensions_c = custom_target(
-  'v3dv_extensions.c',
-  input : ['v3dv_extensions_gen.py', vk_api_xml],
-  output : 'v3dv_extensions.c',
-  command : [
-    prog_python, '@INPUT0@', '--xml', '@INPUT1@',
-    '--out-c', '@OUTPUT@',
-  ],
-  depend_files : [files('v3dv_extensions.py'), vk_extensions_gen],
-)
-
-v3dv_extensions_h = custom_target(
-  'v3dv_extensions.h',
-  input : ['v3dv_extensions_gen.py', vk_api_xml],
-  output : 'v3dv_extensions.h',
-  command : [
-    prog_python, '@INPUT0@', '--xml', '@INPUT1@',
-    '--out-h', '@OUTPUT@',
-  ],
-  depend_files : [files('v3dv_extensions.py'), vk_extensions_gen],
+  depend_files : vk_entrypoints_gen_depend_files,
 )
 
 libv3dv_files = files(
@@ -118,7 +97,7 @@ endif
 
 libvulkan_broadcom = shared_library(
   'vulkan_broadcom',
-  [libv3dv_files, v3dv_entrypoints, v3dv_extensions_c, v3dv_extensions_h, sha1_h],
+  [libv3dv_files, v3dv_entrypoints, sha1_h],
   include_directories : [
     inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom, inc_compiler, inc_util, inc_vulkan_wsi,
   ],
@@ -149,14 +128,15 @@ endif
 
 broadcom_icd = custom_target(
   'broadcom_icd',
-  input : 'v3dv_icd.py',
+  input : [vk_icd_gen, vk_api_xml],
   output : 'broadcom_icd.@0@.json'.format(host_machine.cpu()),
   command : [
-    prog_python, '@INPUT@',
-    '--lib-path', join_paths(get_option('prefix'), get_option('libdir')),
+    prog_python, '@INPUT0@',
+    '--api-version', '1.0', '--xml', '@INPUT1@',
+    '--lib-path', join_paths(get_option('prefix'), get_option('libdir'),
+    		  	     'libvulkan_broadcom.so'),
     '--out', '@OUTPUT@',
   ],
-  depend_files : files('v3dv_extensions.py'),
   build_by_default : true,
   install_dir : with_vulkan_icd_dir,
   install : true,

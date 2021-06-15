@@ -150,6 +150,12 @@ struct wsi_device {
                                 VkDeviceMemory memory,
                                 VkBool32 ownership);
 
+   /*
+    * If this is set, the WSI device will call it to let the driver backend
+    * decide if it can present images directly on the given device fd.
+    */
+   bool (*can_present_on_device)(VkPhysicalDevice pdevice, int fd);
+
 #define WSI_CB(cb) PFN_vk##cb cb
    WSI_CB(AllocateMemory);
    WSI_CB(AllocateCommandBuffers);

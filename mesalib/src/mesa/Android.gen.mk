@@ -35,7 +35,6 @@ sources := \
 	main/api_exec.c \
 	main/dispatch.h \
 	main/format_fallback.c \
-	main/format_pack.c \
 	main/format_info.h \
 	main/remap_helper.h \
 	main/get_hash.h \
@@ -175,15 +174,4 @@ format_info_deps := \
 $(intermediates)/main/format_info.h: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(FORMAT_INFO)
 $(intermediates)/main/format_info.h: PRIVATE_XML :=
 $(intermediates)/main/format_info.h: $(format_info_deps)
-	$(call es-gen, $<)
-
-FORMAT_PACK := $(LOCAL_PATH)/main/format_pack.py
-format_pack_deps := \
-	$(LOCAL_PATH)/main/formats.csv \
-	$(LOCAL_PATH)/main/format_parser.py \
-	$(FORMAT_PACK)
-
-$(intermediates)/main/format_pack.c: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(FORMAT_PACK)
-$(intermediates)/main/format_pack.c: PRIVATE_XML :=
-$(intermediates)/main/format_pack.c: $(format_pack_deps)
 	$(call es-gen, $<)

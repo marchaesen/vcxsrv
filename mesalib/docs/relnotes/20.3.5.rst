@@ -64,7 +64,7 @@ Bug fixes
 - Graphics glitches after upgrade to mesa 20.3 on Khadas VIM3 Pro (Mali G52 GPU)
 - glthread crash in \_mesa_glthread_upload
 - Iris driver causing graphics glitch in QEMU spice egl DMA-BUF
-- \[RADV/ACO\] Death Stranding cause a GPU hung (*ERROR\* Waiting for fences timed out!)
+- \[RADV/ACO\] Death Stranding cause a GPU hung (*ERROR* Waiting for fences timed out!)
 
 
 Changes

@@ -2509,7 +2509,7 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
          case GLSL_TYPE_UINT64:
             if (storage->type->vector_elements > 2)
                dmul *= 2;
-            /* fallthrough */
+            FALLTHROUGH;
          case GLSL_TYPE_UINT:
          case GLSL_TYPE_UINT16:
          case GLSL_TYPE_UINT8:
@@ -2520,7 +2520,7 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
          case GLSL_TYPE_INT64:
             if (storage->type->vector_elements > 2)
                dmul *= 2;
-            /* fallthrough */
+            FALLTHROUGH;
          case GLSL_TYPE_INT:
          case GLSL_TYPE_INT16:
          case GLSL_TYPE_INT8:
@@ -2531,7 +2531,7 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
          case GLSL_TYPE_DOUBLE:
             if (storage->type->vector_elements > 2)
                dmul *= 2;
-            /* fallthrough */
+            FALLTHROUGH;
          case GLSL_TYPE_FLOAT:
          case GLSL_TYPE_FLOAT16:
             format = uniform_native;

@@ -381,6 +381,7 @@ v3d_screen_get_shader_param(struct pipe_screen *pscreen, unsigned shader,
                 return 1;
         case PIPE_SHADER_CAP_FP16:
         case PIPE_SHADER_CAP_FP16_DERIVATIVES:
+        case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
         case PIPE_SHADER_CAP_INT16:
         case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
         case PIPE_SHADER_CAP_TGSI_DROUND_SUPPORTED:
@@ -637,6 +638,7 @@ v3d_screen_get_compiler_options(struct pipe_screen *pscreen,
 static const uint64_t v3d_available_modifiers[] = {
    DRM_FORMAT_MOD_BROADCOM_UIF,
    DRM_FORMAT_MOD_LINEAR,
+   DRM_FORMAT_MOD_BROADCOM_SAND128,
 };
 
 static void
@@ -649,6 +651,10 @@ v3d_screen_query_dmabuf_modifiers(struct pipe_screen *pscreen,
         int i;
         int num_modifiers = ARRAY_SIZE(v3d_available_modifiers);
 
+        /* Expose DRM_FORMAT_MOD_BROADCOM_SAND128 only for PIPE_FORMAT_NV12 */
+        if (format != PIPE_FORMAT_NV12)
+                num_modifiers--;
+
         if (!modifiers) {
                 *count = num_modifiers;
                 return;
@@ -658,8 +664,8 @@ v3d_screen_query_dmabuf_modifiers(struct pipe_screen *pscreen,
         for (i = 0; i < *count; i++) {
                 modifiers[i] = v3d_available_modifiers[i];
                 if (external_only)
-                        external_only[i] = false;
-       }
+                        external_only[i] = util_format_is_yuv(format);
+        }
 }
 
 static bool
@@ -669,11 +675,25 @@ v3d_screen_is_dmabuf_modifier_supported(struct pipe_screen *pscreen,
                                         bool *external_only)
 {
         int i;
+        bool is_sand_col128 = (format == PIPE_FORMAT_NV12) &&
+                (fourcc_mod_broadcom_mod(modifier) == DRM_FORMAT_MOD_BROADCOM_SAND128);
 
-        for (i = 0; i < ARRAY_SIZE(v3d_available_modifiers); i++) {
+        if (is_sand_col128) {
+                if (external_only)
+                        *external_only = true;
+                return true;
+        }
+
+        /* We don't want to generally allow DRM_FORMAT_MOD_BROADCOM_SAND128
+         * modifier, that is the last v3d_available_modifiers. We only accept
+         * it in the case of having a PIPE_FORMAT_NV12.
+         */
+        assert(v3d_available_modifiers[ARRAY_SIZE(v3d_available_modifiers) - 1] ==
+               DRM_FORMAT_MOD_BROADCOM_SAND128);
+        for (i = 0; i < ARRAY_SIZE(v3d_available_modifiers) - 1; i++) {
                 if (v3d_available_modifiers[i] == modifier) {
                         if (external_only)
-                                *external_only = false;
+                                *external_only = util_format_is_yuv(format);
 
                         return true;
                 }

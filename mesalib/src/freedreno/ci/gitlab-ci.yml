@@ -1,18 +1,18 @@
 .freedreno-test:
   extends:
     - .baremetal-test
-    - .use-arm64_test
+    - .use-arm_test
     - .freedreno-rules
   variables:
     MINIO_ARTIFACT_NAME: mesa-arm64
-    BM_ROOTFS: /lava-files/rootfs-arm64
+    BM_ROOTFS: /rootfs-arm64
     FLAKES_CHANNEL: "#freedreno-ci"
     PIGLIT_PLATFORM: mixed_glx_egl
     BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 root=/dev/nfs rw nfsrootdebug nfsroot=,tcp,nfsvers=4.2 init=/init $BM_KERNELARGS"
   script:
     - ./install/bare-metal/fastboot.sh
   needs:
-    - arm64_test
+    - arm_test
     - job: meson-arm64
       artifacts: false
   tags:
@@ -25,26 +25,37 @@
     DEQP_VER: vk
     VK_DRIVER: freedreno
 
-.arm64-a306-test:
+.freedreno-test-traces:
+  extends:
+    - .piglit-traces-test
+  variables:
+    BARE_METAL_TEST_SCRIPT: "/install/piglit/run.sh"
+    BM_START_XORG: 1
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/traces-freedreno.yml"
+  artifacts:
+    reports:
+      junit: results/junit.xml
+
+.a306-test:
   extends:
     - .freedreno-test
   variables:
-    BM_KERNEL: /lava-files/Image.gz
-    BM_DTB: /lava-files/apq8016-sbc.dtb
+    BM_KERNEL: /baremetal-files/Image.gz
+    BM_DTB: /baremetal-files/apq8016-sbc.dtb
     GPU_VERSION: freedreno-a307
     DEQP_EXPECTED_RENDERER: FD307
 
 a306_gles2:
   extends:
     - .baremetal-deqp-test
-    - .arm64-a306-test
+    - .a306-test
   variables:
     DEQP_VER: gles2
 
 a306_gles3:
   extends:
     - .baremetal-deqp-test
-    - .arm64-a306-test
+    - .a306-test
   parallel: 3
   variables:
     DEQP_VER: gles3
@@ -54,19 +65,27 @@ a306_gles3:
 a306_gles3_options:
   extends:
     - .baremetal-deqp-test
-    - .arm64-a306-test
+    - .a306-test
   variables:
     DEQP_VER: gles3
   script:
     # Check that the non-constbuf UBO case works.
     - DEQP_RUN_SUFFIX=-nouboopt IR3_SHADER_DEBUG=nouboopt DEQP_CASELIST_FILTER="functional.*ubo" ./install/bare-metal/fastboot.sh
 
-.arm64-a530-test:
+a306-traces:
+  extends:
+    - .freedreno-test-traces
+    - .a306-test
+  variables:
+    PIGLIT_REPLAY_DEVICE_NAME: "freedreno-a306"
+    PIGLIT_RESULTS: "freedreno-a306-replay"
+
+.a530-test:
   extends:
     - .freedreno-test
   variables:
-    BM_KERNEL: /lava-files/Image.gz
-    BM_DTB: /lava-files/apq8096-db820c.dtb
+    BM_KERNEL: /baremetal-files/Image.gz
+    BM_DTB: /baremetal-files/apq8096-db820c.dtb
     GPU_VERSION: freedreno-a530
     DEQP_EXPECTED_RENDERER: FD530
   tags:
@@ -75,14 +94,14 @@ a306_gles3_options:
 a530_gles2:
   extends:
     - .baremetal-deqp-test
-    - .arm64-a530-test
+    - .a530-test
   variables:
     DEQP_VER: gles2
 
 a530_gles3:
   extends:
     - .baremetal-deqp-test
-    - .arm64-a530-test
+    - .a530-test
   parallel: 2
   variables:
     DEQP_VER: gles3
@@ -98,7 +117,7 @@ a530_gles31:
 .a530_piglit:
   extends:
     - .piglit-test
-    - .arm64-a530-test
+    - .a530-test
   variables:
     BARE_METAL_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
     BM_START_XORG: 1
@@ -119,11 +138,19 @@ a530_piglit_shader:
     PIGLIT_PROFILES: quick_shader
     PIGLIT_FRACTION: 2
 
+a530-traces:
+  extends:
+    - .freedreno-test-traces
+    - .a530-test
+  variables:
+    PIGLIT_REPLAY_DEVICE_NAME: "freedreno-a530"
+    PIGLIT_RESULTS: "freedreno-a530-replay"
+
 .a630-test:
   extends:
     - .freedreno-test
   variables:
-    BM_KERNEL: /lava-files/cheza-kernel
+    BM_KERNEL: /baremetal-files/cheza-kernel
     BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 root=/dev/nfs rw nfsrootdebug nfsroot=,tcp,nfsvers=4.2 init=/init"
     GPU_VERSION: freedreno-a630
     DEQP_EXPECTED_RENDERER: FD630
@@ -160,6 +187,15 @@ a630_gl:
   variables:
     DEQP_VER: gl33
 
+a630_egl:
+  extends:
+    - .baremetal-deqp-test
+    - .a630-test
+  variables:
+    DEQP_VER: egl
+    BM_START_XORG: 1
+    BARE_METAL_TEST_SCRIPT: "/install/bare-metal/arm64_a630_egl.sh"
+
 a630_gles_others:
   extends:
     - .baremetal-deqp-test
@@ -172,6 +208,7 @@ a630_gles_asan:
     - .baremetal-deqp-test
     - .a630-test
     - .baremetal-arm64-asan-test
+    - .test-manual
   variables:
     DEQP_VER: gles31
     DEQP_FRACTION: 10
@@ -220,40 +257,23 @@ a630_vk_sysmem:
     GPU_VERSION: freedreno-a630-bypass
     TU_DEBUG: sysmem
 
-.a630_piglit:
+a630_piglit:
   extends:
     - .piglit-test
     - .a630-test
   variables:
     BARE_METAL_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
     BM_START_XORG: 1
-
-a630_piglit_gl:
-  extends:
-    - .a630_piglit
-  variables:
-    PIGLIT_PROFILES: quick_gl
-
-a630_piglit_shader:
-  extends:
-    - .a630_piglit
-  variables:
-    PIGLIT_PROFILES: quick_shader
+    PIGLIT_PROFILES: gpu
 
 a630-traces:
   extends:
-    - .piglit-traces-test
+    - .freedreno-test-traces
     - .a630-test
   variables:
-    BARE_METAL_TEST_SCRIPT: "/install/piglit/run.sh"
-    BM_START_XORG: 1
-    PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/traces-freedreno.yml"
     PIGLIT_REPLAY_DEVICE_NAME: "freedreno-a630"
     PIGLIT_RESULTS: "freedreno-a630-replay"
     # This lets us run several more traces which don't use any features we're
     # missing.
     MESA_GLSL_VERSION_OVERRIDE: "460"
     MESA_GL_VERSION_OVERRIDE: "4.6"
-  artifacts:
-    reports:
-      junit: results/junit.xml

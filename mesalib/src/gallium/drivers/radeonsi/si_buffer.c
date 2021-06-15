@@ -39,7 +39,7 @@ bool si_cs_is_buffer_referenced(struct si_context *sctx, struct pb_buffer *buf,
 void *si_buffer_map(struct si_context *sctx, struct si_resource *resource,
                     unsigned usage)
 {
-   return sctx->ws->buffer_map(resource->buf, &sctx->gfx_cs, usage);
+   return sctx->ws->buffer_map(sctx->ws, resource->buf, &sctx->gfx_cs, usage);
 }
 
 void si_init_resource_fields(struct si_screen *sscreen, struct si_resource *res, uint64_t size,
@@ -201,7 +201,7 @@ bool si_alloc_resource(struct si_screen *sscreen, struct si_resource *res)
       assert((last >> 32) == sscreen->info.address32_hi);
    }
 
-   pb_reference(&old_buf, NULL);
+   radeon_bo_reference(sscreen->ws, &old_buf, NULL);
 
    util_range_set_empty(&res->valid_buffer_range);
    res->TC_L2_dirty = false;
@@ -213,7 +213,7 @@ bool si_alloc_resource(struct si_screen *sscreen, struct si_resource *res)
    }
 
    if (res->b.b.flags & SI_RESOURCE_FLAG_CLEAR)
-      si_screen_clear_buffer(sscreen, &res->b.b, 0, res->bo_size, 0);
+      si_screen_clear_buffer(sscreen, &res->b.b, 0, res->bo_size, 0, SI_OP_SYNC_AFTER);
 
    return true;
 }
@@ -224,7 +224,7 @@ static void si_buffer_destroy(struct pipe_screen *screen, struct pipe_resource *
 
    threaded_resource_deinit(buf);
    util_range_destroy(&buffer->valid_buffer_range);
-   pb_reference(&buffer->buf, NULL);
+   radeon_bo_reference(((struct si_screen*)screen)->ws, &buffer->buf, NULL);
    FREE(buffer);
 }
 
@@ -252,7 +252,7 @@ static bool si_invalidate_buffer(struct si_context *sctx, struct si_resource *bu
 
    /* Check if mapping this buffer would cause waiting for the GPU. */
    if (si_cs_is_buffer_referenced(sctx, buf->buf, RADEON_USAGE_READWRITE) ||
-       !sctx->ws->buffer_wait(buf->buf, 0, RADEON_USAGE_READWRITE)) {
+       !sctx->ws->buffer_wait(sctx->ws, buf->buf, 0, RADEON_USAGE_READWRITE)) {
       /* Reallocate the buffer in the same pipe_resource. */
       si_alloc_resource(sctx->screen, buf);
       si_rebind_buffer(sctx, &buf->b.b);
@@ -271,7 +271,7 @@ void si_replace_buffer_storage(struct pipe_context *ctx, struct pipe_resource *d
    struct si_resource *sdst = si_resource(dst);
    struct si_resource *ssrc = si_resource(src);
 
-   pb_reference(&sdst->buf, ssrc->buf);
+   radeon_bo_reference(sctx->screen->ws, &sdst->buf, ssrc->buf);
    sdst->gpu_address = ssrc->gpu_address;
    sdst->b.b.bind = ssrc->b.b.bind;
    sdst->b.max_forced_staging_uploads = ssrc->b.max_forced_staging_uploads;
@@ -319,8 +319,8 @@ static void *si_buffer_get_transfer(struct pipe_context *ctx, struct pipe_resour
    transfer->b.b.box = *box;
    transfer->b.b.stride = 0;
    transfer->b.b.layer_stride = 0;
+   transfer->b.b.offset = offset;
    transfer->b.staging = NULL;
-   transfer->offset = offset;
    transfer->staging = staging;
    *ptransfer = &transfer->b.b;
    return data;
@@ -402,7 +402,7 @@ static void *si_buffer_transfer_map(struct pipe_context *ctx, struct pipe_resour
        */
       if (buf->flags & RADEON_FLAG_SPARSE || force_discard_range ||
           si_cs_is_buffer_referenced(sctx, buf->buf, RADEON_USAGE_READWRITE) ||
-          !sctx->ws->buffer_wait(buf->buf, 0, RADEON_USAGE_READWRITE)) {
+          !sctx->ws->buffer_wait(sctx->ws, buf->buf, 0, RADEON_USAGE_READWRITE)) {
          /* Do a wait-free write-only transfer using a temporary buffer. */
          struct u_upload_mgr *uploader;
          struct si_resource *staging = NULL;
@@ -447,7 +447,7 @@ static void *si_buffer_transfer_map(struct pipe_context *ctx, struct pipe_resour
       if (staging) {
          /* Copy the VRAM buffer to the staging buffer. */
          si_copy_buffer(sctx, &staging->b.b, resource, box->x % SI_MAP_BUFFER_ALIGNMENT,
-                        box->x, box->width);
+                        box->x, box->width, SI_OP_SYNC_BEFORE_AFTER);
 
          data = si_buffer_map(sctx, staging, usage & ~PIPE_MAP_UNSYNCHRONIZED);
          if (!data) {
@@ -480,11 +480,11 @@ static void si_buffer_do_flush_region(struct pipe_context *ctx, struct pipe_tran
 
    if (stransfer->staging) {
       unsigned src_offset =
-         stransfer->offset + transfer->box.x % SI_MAP_BUFFER_ALIGNMENT + (box->x - transfer->box.x);
+         stransfer->b.b.offset + transfer->box.x % SI_MAP_BUFFER_ALIGNMENT + (box->x - transfer->box.x);
 
       /* Copy the staging buffer into the original one. */
       si_copy_buffer(sctx, transfer->resource, &stransfer->staging->b.b, box->x, src_offset,
-                     box->width);
+                     box->width, SI_OP_SYNC_BEFORE_AFTER);
    }
 
    util_range_add(&buf->b.b, &buf->valid_buffer_range, box->x, box->x + box->width);
@@ -513,7 +513,7 @@ static void si_buffer_transfer_unmap(struct pipe_context *ctx, struct pipe_trans
 
    if (transfer->usage & (PIPE_MAP_ONCE | RADEON_MAP_TEMPORARY) &&
        !stransfer->staging)
-      sctx->ws->buffer_unmap(si_resource(stransfer->b.b.resource)->buf);
+      sctx->ws->buffer_unmap(sctx->ws, si_resource(stransfer->b.b.resource)->buf);
 
    si_resource_reference(&stransfer->staging, NULL);
    assert(stransfer->b.staging == NULL); /* for threaded context only */
@@ -667,7 +667,7 @@ struct pipe_resource *si_buffer_from_winsys_buffer(struct pipe_screen *screen,
    res->buf = imported_buf;
    res->gpu_address = sscreen->ws->buffer_get_virtual_address(res->buf);
    res->bo_size = imported_buf->size;
-   res->bo_alignment = imported_buf->alignment;
+   res->bo_alignment = 1 << imported_buf->alignment_log2;
    res->domains = sscreen->ws->buffer_get_initial_domain(res->buf);
 
    if (res->domains & RADEON_DOMAIN_VRAM)
@@ -717,7 +717,7 @@ static bool si_resource_commit(struct pipe_context *pctx, struct pipe_resource *
 
    assert(resource->target == PIPE_BUFFER);
 
-   return ctx->ws->buffer_commit(res->buf, box->x, box->width, commit);
+   return ctx->ws->buffer_commit(ctx->ws, res->buf, box->x, box->width, commit);
 }
 
 void si_init_screen_buffer_functions(struct si_screen *sscreen)

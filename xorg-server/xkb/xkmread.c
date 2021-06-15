@@ -532,7 +532,7 @@ ReadXkmCompatMap(FILE * file, XkbDescPtr xkb, XkbChangesPtr changes)
             act->devval.v1_value = wire.actionData[3];
             act->devval.v2_what = wire.actionData[4];
             act->devval.v2_ndx = wire.actionData[5];
-            act->devval.v2_what = wire.actionData[6];
+            act->devval.v2_value = wire.actionData[6];
             break;
 
         case XkbSA_XFree86Private:

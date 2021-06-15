@@ -29,9 +29,8 @@
 
 #include "util/list.h"
 
-#include "freedreno_query.h"
 #include "freedreno_context.h"
-
+#include "freedreno_query.h"
 
 /*
  * HW Queries:
@@ -69,97 +68,99 @@
  */
 
 struct fd_hw_sample_provider {
-	unsigned query_type;
+   unsigned query_type;
 
-	/* Set if the provider should still count while !ctx->active_queries */
-	bool always;
+   /* Set if the provider should still count while !ctx->active_queries */
+   bool always;
 
-	/* Optional hook for enabling a counter.  Guaranteed to happen
-	 * at least once before the first ->get_sample() in a batch.
-	 */
-	void (*enable)(struct fd_context *ctx, struct fd_ringbuffer *ring) dt;
+   /* Optional hook for enabling a counter.  Guaranteed to happen
+    * at least once before the first ->get_sample() in a batch.
+    */
+   void (*enable)(struct fd_context *ctx, struct fd_ringbuffer *ring) dt;
 
-	/* when a new sample is required, emit appropriate cmdstream
-	 * and return a sample object:
-	 */
-	struct fd_hw_sample *(*get_sample)(struct fd_batch *batch,
-			struct fd_ringbuffer *ring) dt;
+   /* when a new sample is required, emit appropriate cmdstream
+    * and return a sample object:
+    */
+   struct fd_hw_sample *(*get_sample)(struct fd_batch *batch,
+                                      struct fd_ringbuffer *ring)dt;
 
-	/* accumulate the results from specified sample period: */
-	void (*accumulate_result)(struct fd_context *ctx,
-			const void *start, const void *end,
-			union pipe_query_result *result);
+   /* accumulate the results from specified sample period: */
+   void (*accumulate_result)(struct fd_context *ctx, const void *start,
+                             const void *end, union pipe_query_result *result);
 };
 
 struct fd_hw_sample {
-	struct pipe_reference reference;  /* keep this first */
+   struct pipe_reference reference; /* keep this first */
 
-	/* offset and size of the sample are know at the time the
-	 * sample is constructed.
-	 */
-	uint32_t size;
-	uint32_t offset;
+   /* offset and size of the sample are know at the time the
+    * sample is constructed.
+    */
+   uint32_t size;
+   uint32_t offset;
 
-	/* backing object, offset/stride/etc are determined not when
-	 * the sample is constructed, but when the batch is submitted.
-	 * This way we can defer allocation until total # of requested
-	 * samples, and total # of tiles, is known.
-	 */
-	struct pipe_resource *prsc;
-	uint32_t num_tiles;
-	uint32_t tile_stride;
+   /* backing object, offset/stride/etc are determined not when
+    * the sample is constructed, but when the batch is submitted.
+    * This way we can defer allocation until total # of requested
+    * samples, and total # of tiles, is known.
+    */
+   struct pipe_resource *prsc;
+   uint32_t num_tiles;
+   uint32_t tile_stride;
 };
 
 struct fd_hw_sample_period;
 
 struct fd_hw_query {
-	struct fd_query base;
+   struct fd_query base;
 
-	const struct fd_hw_sample_provider *provider;
+   const struct fd_hw_sample_provider *provider;
 
-	/* list of fd_hw_sample_periods: */
-	struct list_head periods;
+   /* list of fd_hw_sample_periods: */
+   struct list_head periods;
 
-	/* if active and not paused, the current sample period (not
-	 * yet added to current_periods):
-	 */
-	struct fd_hw_sample_period *period;
+   /* if active and not paused, the current sample period (not
+    * yet added to current_periods):
+    */
+   struct fd_hw_sample_period *period;
 
-	struct list_head list;   /* list-node in batch->active_queries */
+   struct list_head list; /* list-node in batch->active_queries */
 
-	int no_wait_cnt;         /* see fd_hw_get_query_result */
+   int no_wait_cnt; /* see fd_hw_get_query_result */
 };
 
 static inline struct fd_hw_query *
 fd_hw_query(struct fd_query *q)
 {
-	return (struct fd_hw_query *)q;
+   return (struct fd_hw_query *)q;
 }
 
-struct fd_query * fd_hw_create_query(struct fd_context *ctx, unsigned query_type, unsigned index);
+struct fd_query *fd_hw_create_query(struct fd_context *ctx, unsigned query_type,
+                                    unsigned index);
 /* helper for sample providers: */
-struct fd_hw_sample * fd_hw_sample_init(struct fd_batch *batch, uint32_t size);
+struct fd_hw_sample *fd_hw_sample_init(struct fd_batch *batch, uint32_t size);
 /* don't call directly, use fd_hw_sample_reference() */
 void __fd_hw_sample_destroy(struct fd_context *ctx, struct fd_hw_sample *samp);
 void fd_hw_query_prepare(struct fd_batch *batch, uint32_t num_tiles) assert_dt;
 void fd_hw_query_prepare_tile(struct fd_batch *batch, uint32_t n,
-		struct fd_ringbuffer *ring) assert_dt;
+                              struct fd_ringbuffer *ring) assert_dt;
 void fd_hw_query_update_batch(struct fd_batch *batch, bool end_batch) assert_dt;
-void fd_hw_query_enable(struct fd_batch *batch, struct fd_ringbuffer *ring) assert_dt;
-void fd_hw_query_register_provider(struct pipe_context *pctx,
-		const struct fd_hw_sample_provider *provider);
+void fd_hw_query_enable(struct fd_batch *batch,
+                        struct fd_ringbuffer *ring) assert_dt;
+void
+fd_hw_query_register_provider(struct pipe_context *pctx,
+                              const struct fd_hw_sample_provider *provider);
 void fd_hw_query_init(struct pipe_context *pctx);
 void fd_hw_query_fini(struct pipe_context *pctx);
 
 static inline void
-fd_hw_sample_reference(struct fd_context *ctx,
-		struct fd_hw_sample **ptr, struct fd_hw_sample *samp)
+fd_hw_sample_reference(struct fd_context *ctx, struct fd_hw_sample **ptr,
+                       struct fd_hw_sample *samp)
 {
-	struct fd_hw_sample *old_samp = *ptr;
+   struct fd_hw_sample *old_samp = *ptr;
 
-	if (pipe_reference(&(*ptr)->reference, &samp->reference))
-		__fd_hw_sample_destroy(ctx, old_samp);
-	*ptr = samp;
+   if (pipe_reference(&(*ptr)->reference, &samp->reference))
+      __fd_hw_sample_destroy(ctx, old_samp);
+   *ptr = samp;
 }
 
 #endif /* FREEDRENO_QUERY_HW_H_ */

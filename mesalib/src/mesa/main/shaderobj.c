@@ -55,9 +55,9 @@
  * if refcount hits zero).
  * Then set ptr to point to sh, incrementing its refcount.
  */
-void
-_mesa_reference_shader(struct gl_context *ctx, struct gl_shader **ptr,
-                       struct gl_shader *sh)
+static void
+_reference_shader(struct gl_context *ctx, struct gl_shader **ptr,
+                       struct gl_shader *sh, bool skip_locking)
 {
    assert(ptr);
    if (*ptr == sh) {
@@ -71,8 +71,12 @@ _mesa_reference_shader(struct gl_context *ctx, struct gl_shader **ptr,
       assert(old->RefCount > 0);
 
       if (p_atomic_dec_zero(&old->RefCount)) {
-	 if (old->Name != 0)
-	    _mesa_HashRemove(ctx->Shared->ShaderObjects, old->Name);
+         if (old->Name != 0) {
+            if (skip_locking)
+               _mesa_HashRemoveLocked(ctx->Shared->ShaderObjects, old->Name);
+            else
+               _mesa_HashRemove(ctx->Shared->ShaderObjects, old->Name);
+         }
          _mesa_delete_shader(ctx, old);
       }
 
@@ -85,6 +89,13 @@ _mesa_reference_shader(struct gl_context *ctx, struct gl_shader **ptr,
       p_atomic_inc(&sh->RefCount);
       *ptr = sh;
    }
+}
+
+void
+_mesa_reference_shader(struct gl_context *ctx, struct gl_shader **ptr,
+                       struct gl_shader *sh)
+{
+   _reference_shader(ctx, ptr, sh, false);
 }
 
 static void
@@ -252,9 +263,11 @@ _mesa_reference_shader_program_(struct gl_context *ctx,
       assert(old->RefCount > 0);
 
       if (p_atomic_dec_zero(&old->RefCount)) {
-	 if (old->Name != 0)
-	    _mesa_HashRemove(ctx->Shared->ShaderObjects, old->Name);
+         _mesa_HashLockMutex(ctx->Shared->ShaderObjects);
+         if (old->Name != 0)
+	         _mesa_HashRemoveLocked(ctx->Shared->ShaderObjects, old->Name);
          _mesa_delete_shader_program(ctx, old);
+         _mesa_HashUnlockMutex(ctx->Shared->ShaderObjects);
       }
 
       *ptr = NULL;
@@ -345,7 +358,7 @@ _mesa_clear_shader_program_data(struct gl_context *ctx,
    }
 
    if (shProg->data && shProg->data->ProgramResourceHash) {
-      _mesa_hash_table_u64_destroy(shProg->data->ProgramResourceHash, NULL);
+      _mesa_hash_table_u64_destroy(shProg->data->ProgramResourceHash);
       shProg->data->ProgramResourceHash = NULL;
    }
 
@@ -356,6 +369,7 @@ _mesa_clear_shader_program_data(struct gl_context *ctx,
 /**
  * Free all the data that hangs off a shader program object, but not the
  * object itself.
+ * Must be called with shared->ShaderObjects locked.
  */
 void
 _mesa_free_shader_program_data(struct gl_context *ctx,
@@ -384,7 +398,7 @@ _mesa_free_shader_program_data(struct gl_context *ctx,
 
    /* detach shaders */
    for (i = 0; i < shProg->NumShaders; i++) {
-      _mesa_reference_shader(ctx, &shProg->Shaders[i], NULL);
+      _reference_shader(ctx, &shProg->Shaders[i], NULL, true);
    }
    shProg->NumShaders = 0;
 

@@ -1,0 +1,3 @@
+KHR-GL30.shaders30.glsl_constructors.bvec4_from_mat4x2_vs
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/4651
+KHR-GL31.transform_feedback.capture_special_interleaved_test

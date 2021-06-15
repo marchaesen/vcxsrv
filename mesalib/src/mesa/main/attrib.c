@@ -653,6 +653,13 @@ pop_texture_group(struct gl_context *ctx, struct gl_texture_attrib_node *texstat
          if (texObj->Name == 0)
             continue;
 
+         /* But in the MSAA case, where the currently-bound object is not the
+          * default state, we should still restore the saved default object's
+          * data when that's what was saved initially.
+          */
+         if (savedObj->Name == 0)
+            savedObj = &texstate->SavedDefaultObj[tgt];
+
          if (!copy_texture_attribs(texObj, savedObj, tgt))
             continue;
 

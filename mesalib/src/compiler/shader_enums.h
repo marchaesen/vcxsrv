@@ -167,6 +167,14 @@ typedef enum
 const char *gl_vert_attrib_name(gl_vert_attrib attrib);
 
 /**
+ * Max number of texture coordinate units.  This mainly just applies to
+ * the fixed-function vertex code.  This will be difficult to raise above
+ * eight because of various vertex attribute bitvectors.
+ */
+#define MAX_TEXTURE_COORD_UNITS     8
+#define MAX_VERTEX_GENERIC_ATTRIBS  16
+
+/**
  * Symbolic constats to help iterating over
  * specific blocks of vertex attributes.
  *
@@ -223,7 +231,7 @@ const char *gl_vert_attrib_name(gl_vert_attrib attrib);
 #define VERT_BIT_POINT_SIZE      BITFIELD_BIT(VERT_ATTRIB_POINT_SIZE)
 #define VERT_BIT_GENERIC0        BITFIELD_BIT(VERT_ATTRIB_GENERIC0)
 
-#define VERT_BIT(i)              BITFIELD_BIT(i)
+#define VERT_BIT(i)              BITFIELD64_BIT(i)
 #define VERT_BIT_ALL             BITFIELD_RANGE(0, VERT_ATTRIB_MAX)
 
 #define VERT_BIT_FF(i)           VERT_BIT(i)
@@ -325,11 +333,74 @@ typedef enum
    VARYING_SLOT_VAR29,
    VARYING_SLOT_VAR30,
    VARYING_SLOT_VAR31,
+   /* Per-patch varyings for tessellation. */
+   VARYING_SLOT_PATCH0,
+   VARYING_SLOT_PATCH1,
+   VARYING_SLOT_PATCH2,
+   VARYING_SLOT_PATCH3,
+   VARYING_SLOT_PATCH4,
+   VARYING_SLOT_PATCH5,
+   VARYING_SLOT_PATCH6,
+   VARYING_SLOT_PATCH7,
+   VARYING_SLOT_PATCH8,
+   VARYING_SLOT_PATCH9,
+   VARYING_SLOT_PATCH10,
+   VARYING_SLOT_PATCH11,
+   VARYING_SLOT_PATCH12,
+   VARYING_SLOT_PATCH13,
+   VARYING_SLOT_PATCH14,
+   VARYING_SLOT_PATCH15,
+   VARYING_SLOT_PATCH16,
+   VARYING_SLOT_PATCH17,
+   VARYING_SLOT_PATCH18,
+   VARYING_SLOT_PATCH19,
+   VARYING_SLOT_PATCH20,
+   VARYING_SLOT_PATCH21,
+   VARYING_SLOT_PATCH22,
+   VARYING_SLOT_PATCH23,
+   VARYING_SLOT_PATCH24,
+   VARYING_SLOT_PATCH25,
+   VARYING_SLOT_PATCH26,
+   VARYING_SLOT_PATCH27,
+   VARYING_SLOT_PATCH28,
+   VARYING_SLOT_PATCH29,
+   VARYING_SLOT_PATCH30,
+   VARYING_SLOT_PATCH31,
+   /* 32 16-bit vec4 slots packed in 16 32-bit vec4 slots for GLES/mediump.
+    * They are really just additional generic slots used for 16-bit data to
+    * prevent conflicts between neighboring mediump and non-mediump varyings
+    * that can't be packed without breaking one or the other, which is
+    * a limitation of separate shaders. This allows linking shaders in 32 bits
+    * and then get an optimally packed 16-bit varyings by remapping the IO
+    * locations to these slots. The remapping can also be undone trivially.
+    *
+    * nir_io_semantics::high_16bit determines which half of the slot is
+    * accessed. The low and high halves share the same IO "base" number.
+    * Drivers can treat these as 32-bit slots everywhere except for FP16
+    * interpolation.
+    */
+   VARYING_SLOT_VAR0_16BIT,
+   VARYING_SLOT_VAR1_16BIT,
+   VARYING_SLOT_VAR2_16BIT,
+   VARYING_SLOT_VAR3_16BIT,
+   VARYING_SLOT_VAR4_16BIT,
+   VARYING_SLOT_VAR5_16BIT,
+   VARYING_SLOT_VAR6_16BIT,
+   VARYING_SLOT_VAR7_16BIT,
+   VARYING_SLOT_VAR8_16BIT,
+   VARYING_SLOT_VAR9_16BIT,
+   VARYING_SLOT_VAR10_16BIT,
+   VARYING_SLOT_VAR11_16BIT,
+   VARYING_SLOT_VAR12_16BIT,
+   VARYING_SLOT_VAR13_16BIT,
+   VARYING_SLOT_VAR14_16BIT,
+   VARYING_SLOT_VAR15_16BIT,
+
+   NUM_TOTAL_VARYING_SLOTS,
 } gl_varying_slot;
 
 
 #define VARYING_SLOT_MAX	(VARYING_SLOT_VAR0 + MAX_VARYING)
-#define VARYING_SLOT_PATCH0	(VARYING_SLOT_MAX)
 #define VARYING_SLOT_TESS_MAX	(VARYING_SLOT_PATCH0 + MAX_VARYING)
 #define MAX_VARYINGS_INCL_PATCH (VARYING_SLOT_TESS_MAX - VARYING_SLOT_VAR0)
 

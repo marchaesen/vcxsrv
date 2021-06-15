@@ -6,7 +6,7 @@ git config --global user.email "mesa@example.com"
 git config --global user.name "Mesa CI"
 git clone \
     https://github.com/KhronosGroup/VK-GL-CTS.git \
-    -b vulkan-cts-1.2.5.2 \
+    -b vulkan-cts-1.2.6.0 \
     --depth 1 \
     /VK-GL-CTS
 pushd /VK-GL-CTS
@@ -23,11 +23,23 @@ cp doc/testlog-stylesheet/testlog.{css,xsl} /deqp
 popd
 
 pushd /deqp
+# When including EGL/X11 testing, do that build first and save off its
+# deqp-egl binary.
+cmake -S /VK-GL-CTS -B . -G Ninja \
+      -DDEQP_TARGET=x11_egl_glx \
+      -DCMAKE_BUILD_TYPE=Release \
+      $EXTRA_CMAKE_ARGS
+ninja modules/egl/deqp-egl
+cp /deqp/modules/egl/deqp-egl /deqp/modules/egl/deqp-egl-x11
+
+
 cmake -S /VK-GL-CTS -B . -G Ninja \
       -DDEQP_TARGET=${DEQP_TARGET:-x11_glx} \
       -DCMAKE_BUILD_TYPE=Release \
       $EXTRA_CMAKE_ARGS
 ninja
+
+mv /deqp/modules/egl/deqp-egl-x11 /deqp/modules/egl/deqp-egl
 
 # Copy out the mustpass lists we want.
 mkdir /deqp/mustpass
@@ -36,6 +48,12 @@ cp /VK-GL-CTS/external/vulkancts/mustpass/master/vk-default.txt \
 
 cp \
     /deqp/external/openglcts/modules/gl_cts/data/mustpass/gles/aosp_mustpass/3.2.6.x/*.txt \
+    /deqp/mustpass/.
+cp \
+    /deqp/external/openglcts/modules/gl_cts/data/mustpass/egl/aosp_mustpass/3.2.6.x/egl-master.txt \
+    /deqp/mustpass/.
+cp \
+    /deqp/external/openglcts/modules/gl_cts/data/mustpass/gles/khronos_mustpass/3.2.6.x/*-master.txt \
     /deqp/mustpass/.
 cp \
     /deqp/external/openglcts/modules/gl_cts/data/mustpass/gl/khronos_mustpass/4.6.1.x/*-master.txt \
@@ -52,7 +70,6 @@ rm -rf /deqp/external/openglcts/modules/gl_cts/data/mustpass
 rm -rf /deqp/external/openglcts/modules/cts-runner
 rm -rf /deqp/modules/internal
 rm -rf /deqp/execserver
-rm -rf /deqp/modules/egl
 rm -rf /deqp/framework
 find -iname '*cmake*' -o -name '*ninja*' -o -name '*.o' -o -name '*.a' | xargs rm -rf
 ${STRIP_CMD:-strip} external/vulkancts/modules/vulkan/deqp-vk

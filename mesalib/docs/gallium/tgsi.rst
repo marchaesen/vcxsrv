@@ -734,7 +734,7 @@ This instruction replicates its result.
 .. opcode:: TXB2 - Texture Lookup With Bias (some cube maps only)
 
   this is the same as TXB, but uses another reg to encode the
-  lod bias value for cube map arrays and shadow cube maps.
+  LOD bias value for cube map arrays and shadow cube maps.
   Presumably shadow 2d arrays and shadow 3d targets could use
   this encoding too, but this is not legal.
 
@@ -799,7 +799,7 @@ This instruction replicates its result.
 
 .. opcode:: TXL - Texture Lookup With explicit LOD
 
-  for cube map array textures, the explicit lod value
+  for cube map array textures, the explicit LOD value
   cannot be passed in src0.w, and TXL2 must be used instead.
 
   if the target is a shadow texture, the reference value is always
@@ -826,7 +826,7 @@ This instruction replicates its result.
 .. opcode:: TXL2 - Texture Lookup With explicit LOD (for cube map arrays only)
 
   this is the same as TXL, but uses another reg to encode the
-  explicit lod value.
+  explicit LOD value.
   Presumably shadow 3d / 2d array / cube targets could use
   this encoding too, but this is not legal.
 
@@ -997,7 +997,7 @@ XXX doesn't look like most of the opcodes really belong here.
 
    Compute the LOD information that the texture pipe would use to access the
    texture. The Y component contains the computed LOD lambda_prime. The X
-   component contains the LOD that will be accessed, based on min/max lod's
+   component contains the LOD that will be accessed, based on min/max LODs
    and mipmap filters.
 
 .. math::
@@ -3445,7 +3445,7 @@ component is used.
 TGSI_SEMANTIC_WORK_DIM
 """"""""""""""""""""""
 
-For compute shaders started via opencl this retrieves the work_dim
+For compute shaders started via OpenCL this retrieves the work_dim
 parameter to the clEnqueueNDRangeKernel call with which the shader
 was started.
 

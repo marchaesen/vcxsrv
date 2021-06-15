@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Usage: generate-evdev-keysyms.py symbols/inet.in > symbols/inet
+# Usage: generate-evdev-keysyms.py .gitlab-ci/inet.in > symbols/inet
 #
 # Generate the symbols/inet file from the names defined in
 # linux/input-event-codes.h
@@ -131,8 +131,8 @@ def main():
     parser.add_argument(
         "--template",
         type=argparse.FileType("r"),
-        default="symbols/inet.in",
-        help="The template file, usually symbols/inet.in",
+        default=".gitlab-ci/inet.in",
+        help="The template file, usually .gitlab-ci/inet.in",
     )
     parser.add_argument(
         "--header",

@@ -152,6 +152,7 @@ static const char *overload_str[DXIL_NUM_OVERLOADS] = {
    [DXIL_I16] = "i16",
    [DXIL_I32] = "i32",
    [DXIL_I64] = "i64",
+   [DXIL_F16] = "f16",
    [DXIL_F32] = "f32",
    [DXIL_F64] = "f64",
 };

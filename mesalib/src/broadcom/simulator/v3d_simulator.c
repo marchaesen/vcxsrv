@@ -24,10 +24,10 @@
 /**
  * @file v3d_simulator.c
  *
- * Implements VC5 simulation on top of a non-VC5 GEM fd.
+ * Implements V3D simulation on top of a non-V3D GEM fd.
  *
- * This file's goal is to emulate the VC5 ioctls' behavior in the kernel on
- * top of the simpenrose software simulator.  Generally, VC5 driver BOs have a
+ * This file's goal is to emulate the V3D ioctls' behavior in the kernel on
+ * top of the simpenrose software simulator.  Generally, V3D driver BOs have a
  * GEM-side copy of their contents and a simulator-side memory area that the
  * GEM contents get copied into during simulation.  Once simulation is done,
  * the simulator's data is copied back out to the GEM BOs, so that rendering
@@ -40,8 +40,8 @@
  * outside of this file still call ioctls directly on the fd).
  *
  * Another limitation is that BO import doesn't work unless the underlying
- * window system's BO size matches what VC5 is going to use, which of course
- * doesn't work out in practice.  This means that for now, only DRI3 (VC5
+ * window system's BO size matches what V3D is going to use, which of course
+ * doesn't work out in practice.  This means that for now, only DRI3 (V3D
  * makes the winsys BOs) is supported, not DRI2 (window system makes the winys
  * BOs).
  */
@@ -402,9 +402,9 @@ void v3d_simulator_open_from_handle(int fd, int handle, uint32_t size)
 }
 
 /**
- * Simulated ioctl(fd, DRM_VC5_CREATE_BO) implementation.
+ * Simulated ioctl(fd, DRM_V3D_CREATE_BO) implementation.
  *
- * Making a VC5 BO is just a matter of making a corresponding BO on the host.
+ * Making a V3D BO is just a matter of making a corresponding BO on the host.
  */
 static int
 v3d_simulator_create_bo_ioctl(int fd, struct drm_v3d_create_bo *args)
@@ -447,7 +447,7 @@ v3d_simulator_create_bo_ioctl(int fd, struct drm_v3d_create_bo *args)
 }
 
 /**
- * Simulated ioctl(fd, DRM_VC5_MMAP_BO) implementation.
+ * Simulated ioctl(fd, DRM_V3D_MMAP_BO) implementation.
  *
  * We've already grabbed the mmap offset when we created the sim bo, so just
  * return it.

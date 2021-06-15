@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef VC5_CONTEXT_H
-#define VC5_CONTEXT_H
+#ifndef V3D_CONTEXT_H
+#define V3D_CONTEXT_H
 
 #ifdef V3D_VERSION
 #include "broadcom/common/v3d_macros.h"
@@ -56,48 +56,48 @@ void v3d_job_add_bo(struct v3d_job *job, struct v3d_bo *bo);
 #define using_v3d_simulator false
 #endif
 
-#define VC5_DIRTY_BLEND               (1ull <<  0)
-#define VC5_DIRTY_RASTERIZER          (1ull <<  1)
-#define VC5_DIRTY_ZSA                 (1ull <<  2)
-#define VC5_DIRTY_COMPTEX             (1ull <<  3)
-#define VC5_DIRTY_VERTTEX             (1ull <<  4)
-#define VC5_DIRTY_GEOMTEX             (1ull <<  5)
-#define VC5_DIRTY_FRAGTEX             (1ull <<  6)
+#define V3D_DIRTY_BLEND               (1ull <<  0)
+#define V3D_DIRTY_RASTERIZER          (1ull <<  1)
+#define V3D_DIRTY_ZSA                 (1ull <<  2)
+#define V3D_DIRTY_COMPTEX             (1ull <<  3)
+#define V3D_DIRTY_VERTTEX             (1ull <<  4)
+#define V3D_DIRTY_GEOMTEX             (1ull <<  5)
+#define V3D_DIRTY_FRAGTEX             (1ull <<  6)
 
-#define VC5_DIRTY_SHADER_IMAGE        (1ull <<  9)
-#define VC5_DIRTY_BLEND_COLOR         (1ull << 10)
-#define VC5_DIRTY_STENCIL_REF         (1ull << 11)
-#define VC5_DIRTY_SAMPLE_STATE        (1ull << 12)
-#define VC5_DIRTY_FRAMEBUFFER         (1ull << 13)
-#define VC5_DIRTY_STIPPLE             (1ull << 14)
-#define VC5_DIRTY_VIEWPORT            (1ull << 15)
-#define VC5_DIRTY_CONSTBUF            (1ull << 16)
-#define VC5_DIRTY_VTXSTATE            (1ull << 17)
-#define VC5_DIRTY_VTXBUF              (1ull << 18)
-#define VC5_DIRTY_SCISSOR             (1ull << 19)
-#define VC5_DIRTY_FLAT_SHADE_FLAGS    (1ull << 20)
-#define VC5_DIRTY_PRIM_MODE           (1ull << 21)
-#define VC5_DIRTY_CLIP                (1ull << 22)
-#define VC5_DIRTY_UNCOMPILED_CS       (1ull << 23)
-#define VC5_DIRTY_UNCOMPILED_VS       (1ull << 24)
-#define VC5_DIRTY_UNCOMPILED_GS       (1ull << 25)
-#define VC5_DIRTY_UNCOMPILED_FS       (1ull << 26)
+#define V3D_DIRTY_SHADER_IMAGE        (1ull <<  9)
+#define V3D_DIRTY_BLEND_COLOR         (1ull << 10)
+#define V3D_DIRTY_STENCIL_REF         (1ull << 11)
+#define V3D_DIRTY_SAMPLE_STATE        (1ull << 12)
+#define V3D_DIRTY_FRAMEBUFFER         (1ull << 13)
+#define V3D_DIRTY_STIPPLE             (1ull << 14)
+#define V3D_DIRTY_VIEWPORT            (1ull << 15)
+#define V3D_DIRTY_CONSTBUF            (1ull << 16)
+#define V3D_DIRTY_VTXSTATE            (1ull << 17)
+#define V3D_DIRTY_VTXBUF              (1ull << 18)
+#define V3D_DIRTY_SCISSOR             (1ull << 19)
+#define V3D_DIRTY_FLAT_SHADE_FLAGS    (1ull << 20)
+#define V3D_DIRTY_PRIM_MODE           (1ull << 21)
+#define V3D_DIRTY_CLIP                (1ull << 22)
+#define V3D_DIRTY_UNCOMPILED_CS       (1ull << 23)
+#define V3D_DIRTY_UNCOMPILED_VS       (1ull << 24)
+#define V3D_DIRTY_UNCOMPILED_GS       (1ull << 25)
+#define V3D_DIRTY_UNCOMPILED_FS       (1ull << 26)
 
-#define VC5_DIRTY_COMPILED_CS         (1ull << 29)
-#define VC5_DIRTY_COMPILED_VS         (1ull << 30)
-#define VC5_DIRTY_COMPILED_GS_BIN     (1ULL << 31)
-#define VC5_DIRTY_COMPILED_GS         (1ULL << 32)
-#define VC5_DIRTY_COMPILED_FS         (1ull << 33)
+#define V3D_DIRTY_COMPILED_CS         (1ull << 29)
+#define V3D_DIRTY_COMPILED_VS         (1ull << 30)
+#define V3D_DIRTY_COMPILED_GS_BIN     (1ULL << 31)
+#define V3D_DIRTY_COMPILED_GS         (1ULL << 32)
+#define V3D_DIRTY_COMPILED_FS         (1ull << 33)
 
-#define VC5_DIRTY_FS_INPUTS           (1ull << 38)
-#define VC5_DIRTY_GS_INPUTS           (1ull << 39)
-#define VC5_DIRTY_STREAMOUT           (1ull << 40)
-#define VC5_DIRTY_OQ                  (1ull << 41)
-#define VC5_DIRTY_CENTROID_FLAGS      (1ull << 42)
-#define VC5_DIRTY_NOPERSPECTIVE_FLAGS (1ull << 43)
-#define VC5_DIRTY_SSBO                (1ull << 44)
+#define V3D_DIRTY_FS_INPUTS           (1ull << 38)
+#define V3D_DIRTY_GS_INPUTS           (1ull << 39)
+#define V3D_DIRTY_STREAMOUT           (1ull << 40)
+#define V3D_DIRTY_OQ                  (1ull << 41)
+#define V3D_DIRTY_CENTROID_FLAGS      (1ull << 42)
+#define V3D_DIRTY_NOPERSPECTIVE_FLAGS (1ull << 43)
+#define V3D_DIRTY_SSBO                (1ull << 44)
 
-#define VC5_MAX_FS_INPUTS 64
+#define V3D_MAX_FS_INPUTS 64
 
 enum v3d_sampler_state_variant {
         V3D_SAMPLER_STATE_BORDER_0,
@@ -219,7 +219,7 @@ struct v3d_compiled_shader {
         } prog_data;
 
         /**
-         * VC5_DIRTY_* flags that, when set in v3d->dirty, mean that the
+         * V3D_DIRTY_* flags that, when set in v3d->dirty, mean that the
          * uniforms have to be rewritten (and therefore the shader state
          * reemitted).
          */
@@ -284,10 +284,10 @@ struct v3d_job_key {
 };
 
 enum v3d_ez_state {
-        VC5_EZ_UNDECIDED = 0,
-        VC5_EZ_GT_GE,
-        VC5_EZ_LT_LE,
-        VC5_EZ_DISABLED,
+        V3D_EZ_UNDECIDED = 0,
+        V3D_EZ_GT_GE,
+        V3D_EZ_LT_LE,
+        V3D_EZ_DISABLED,
 };
 
 struct v3d_image_view {
@@ -359,7 +359,7 @@ struct v3d_job {
         /** @} */
         /** @{
          * Width/height of the color framebuffer being rendered to,
-         * for VC5_TILE_RENDERING_MODE_CONFIG.
+         * for V3D_TILE_RENDERING_MODE_CONFIG.
         */
         uint32_t draw_width;
         uint32_t draw_height;
@@ -398,7 +398,7 @@ struct v3d_job {
         /**
          * Set if some drawing (triangles, blits, or just a glClear()) has
          * been done to the FBO, meaning that we need to
-         * DRM_IOCTL_VC5_SUBMIT_CL.
+         * DRM_IOCTL_V3D_SUBMIT_CL.
          */
         bool needs_flush;
 
@@ -462,7 +462,7 @@ struct v3d_context {
         struct slab_child_pool transfer_pool;
         struct blitter_context *blitter;
 
-        /** bitfield of VC5_DIRTY_* */
+        /** bitfield of V3D_DIRTY_* */
         uint64_t dirty;
 
         struct primconvert_context *primconvert;
@@ -490,6 +490,10 @@ struct v3d_context {
          * allocate a page at a time.
          */
         struct u_upload_mgr *state_uploader;
+
+        struct pipe_shader_state *sand8_blit_vs;
+        struct pipe_shader_state *sand8_blit_fs_luma;
+        struct pipe_shader_state *sand8_blit_fs_chroma;
 
         /** @{ Current pipeline state objects */
         struct pipe_scissor_state scissor;
@@ -738,4 +742,4 @@ void v3d_get_tile_buffer_size(bool is_msaa,
 #  undef v3dX
 #endif
 
-#endif /* VC5_CONTEXT_H */
+#endif /* V3D_CONTEXT_H */

@@ -71,39 +71,12 @@
 
 #include "vbo/vbo.h"
 #include "vbo/vbo_util.h"
+#include "vbo/vbo_save.h"
 #include "util/format_r11g11b10f.h"
 
 #include "util/u_memory.h"
 
 #define USE_BITMAP_ATLAS 1
-
-
-
-/**
- * Other parts of Mesa (such as the VBO module) can plug into the display
- * list system.  This structure describes new display list instructions.
- */
-struct gl_list_instruction
-{
-   GLuint Size;
-   void (*Execute)( struct gl_context *ctx, void *data );
-   void (*Destroy)( struct gl_context *ctx, void *data );
-   void (*Print)( struct gl_context *ctx, void *data, FILE *f );
-};
-
-
-#define MAX_DLIST_EXT_OPCODES 16
-
-/**
- * Used by device drivers to hook new commands into display lists.
- */
-struct gl_list_extensions
-{
-   struct gl_list_instruction Opcode[MAX_DLIST_EXT_OPCODES];
-   GLuint NumOpcodes;
-};
-
-
 
 /**
  * Flush vertices.
@@ -656,6 +629,8 @@ typedef enum
    OPCODE_NAMED_PROGRAM_STRING,
    OPCODE_NAMED_PROGRAM_LOCAL_PARAMETER,
 
+   OPCODE_VERTEX_LIST,
+
    /* The following three are meta instructions */
    OPCODE_ERROR,                /* raise compiled-in error */
    OPCODE_CONTINUE,
@@ -813,6 +788,54 @@ static GLuint InstSize[OPCODE_END_OF_LIST + 1];
 
 
 void mesa_print_display_list(GLuint list);
+
+
+/**
+ * Called by display list code when a display list is being deleted.
+ */
+static void
+vbo_destroy_vertex_list(struct gl_context *ctx, struct vbo_save_vertex_list *node)
+{
+   for (gl_vertex_processing_mode vpm = VP_MODE_FF; vpm < VP_MODE_MAX; ++vpm)
+      _mesa_reference_vao(ctx, &node->VAO[vpm], NULL);
+
+   if (--node->prim_store->refcount == 0) {
+      free(node->prim_store->prims);
+      free(node->prim_store);
+   }
+
+   free(node->merged.mode);
+   free(node->merged.start_count);
+
+   _mesa_reference_buffer_object(ctx, &node->merged.ib.obj, NULL);
+   free(node->current_data);
+   node->current_data = NULL;
+}
+
+static void
+vbo_print_vertex_list(struct gl_context *ctx, struct vbo_save_vertex_list *node, FILE *f)
+{
+   GLuint i;
+   struct gl_buffer_object *buffer = node->VAO[0]->BufferBinding[0].BufferObj;
+   const GLuint vertex_size = _vbo_save_get_stride(node)/sizeof(GLfloat);
+   (void) ctx;
+
+   fprintf(f, "VBO-VERTEX-LIST, %u vertices, %d primitives, %d vertsize, "
+           "buffer %p\n",
+           node->vertex_count, node->prim_count, vertex_size,
+           buffer);
+
+   for (i = 0; i < node->prim_count; i++) {
+      struct _mesa_prim *prim = &node->prims[i];
+      fprintf(f, "   prim %d: %s %d..%d %s %s\n",
+             i,
+             _mesa_lookup_prim_by_nr(prim->mode),
+             prim->start,
+             prim->start + prim->count,
+             (prim->begin) ? "BEGIN" : "(wrap)",
+             (prim->end) ? "END" : "(wrap)");
+   }
+}
 
 
 /**
@@ -1105,50 +1128,6 @@ _mesa_lookup_list(struct gl_context *ctx, GLuint list)
 }
 
 
-/** Is the given opcode an extension code? */
-static inline GLboolean
-is_ext_opcode(OpCode opcode)
-{
-   return (opcode >= OPCODE_EXT_0);
-}
-
-
-/** Destroy an extended opcode instruction */
-static GLint
-ext_opcode_destroy(struct gl_context *ctx, Node *node)
-{
-   const GLint i = node[0].opcode - OPCODE_EXT_0;
-   GLint step;
-   ctx->ListExt->Opcode[i].Destroy(ctx, &node[1]);
-   step = ctx->ListExt->Opcode[i].Size;
-   return step;
-}
-
-
-/** Execute an extended opcode instruction */
-static GLint
-ext_opcode_execute(struct gl_context *ctx, Node *node)
-{
-   const GLint i = node[0].opcode - OPCODE_EXT_0;
-   GLint step;
-   ctx->ListExt->Opcode[i].Execute(ctx, &node[1]);
-   step = ctx->ListExt->Opcode[i].Size;
-   return step;
-}
-
-
-/** Print an extended opcode instruction */
-static GLint
-ext_opcode_print(struct gl_context *ctx, Node *node, FILE *f)
-{
-   const GLint i = node[0].opcode - OPCODE_EXT_0;
-   GLint step;
-   ctx->ListExt->Opcode[i].Print(ctx, &node[1], f);
-   step = ctx->ListExt->Opcode[i].Size;
-   return step;
-}
-
-
 /**
  * Delete the named display list, but don't remove from hash table.
  * \param dlist - display list pointer
@@ -1169,12 +1148,7 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
    while (1) {
       const OpCode opcode = n[0].opcode;
 
-      /* check for extension opcodes first */
-      if (is_ext_opcode(opcode)) {
-         n += ext_opcode_destroy(ctx, n);
-      }
-      else {
-         switch (opcode) {
+      switch (opcode) {
             /* for some commands, we need to free malloc'd memory */
          case OPCODE_MAP1:
             free(get_pointer(&n[6]));
@@ -1380,6 +1354,9 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
          case OPCODE_NAMED_PROGRAM_STRING:
             free(get_pointer(&n[5]));
             break;
+         case OPCODE_VERTEX_LIST:
+            vbo_destroy_vertex_list(ctx, (struct vbo_save_vertex_list *) &n[1]);
+            break;
          case OPCODE_CONTINUE:
             n = (Node *) get_pointer(&n[1]);
             free(block);
@@ -1393,11 +1370,10 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
          default:
             /* just increment 'n' pointer, below */
             ;
-         }
-
-         assert(InstSize[opcode] > 0);
-         n += InstSize[opcode];
       }
+
+      assert(InstSize[opcode] > 0);
+      n += InstSize[opcode];
    }
 }
 
@@ -1659,33 +1635,11 @@ _mesa_dlist_alloc_aligned(struct gl_context *ctx, GLuint opcode, GLuint bytes)
 }
 
 
-/**
- * This function allows modules and drivers to get their own opcodes
- * for extending display list functionality.
- * \param ctx  the rendering context
- * \param size  number of bytes for storing the new display list command
- * \param execute  function to execute the new display list command
- * \param destroy  function to destroy the new display list command
- * \param print  function to print the new display list command
- * \return  the new opcode number or -1 if error
- */
-GLint
-_mesa_dlist_alloc_opcode(struct gl_context *ctx,
-                         GLuint size,
-                         void (*execute) (struct gl_context *, void *),
-                         void (*destroy) (struct gl_context *, void *),
-                         void (*print) (struct gl_context *, void *, FILE *))
+void *
+_mesa_dlist_alloc_vertex_list(struct gl_context *ctx)
 {
-   if (ctx->ListExt->NumOpcodes < MAX_DLIST_EXT_OPCODES) {
-      const GLuint i = ctx->ListExt->NumOpcodes++;
-      ctx->ListExt->Opcode[i].Size =
-         1 + (size + sizeof(Node) - 1) / sizeof(Node);
-      ctx->ListExt->Opcode[i].Execute = execute;
-      ctx->ListExt->Opcode[i].Destroy = destroy;
-      ctx->ListExt->Opcode[i].Print = print;
-      return i + OPCODE_EXT_0;
-   }
-   return -1;
+   return _mesa_dlist_alloc_aligned(ctx, OPCODE_VERTEX_LIST,
+                                    sizeof(struct vbo_save_vertex_list));
 }
 
 
@@ -11283,11 +11237,7 @@ execute_list(struct gl_context *ctx, GLuint list)
    while (1) {
       const OpCode opcode = n[0].opcode;
 
-      if (is_ext_opcode(opcode)) {
-         n += ext_opcode_execute(ctx, n);
-      }
-      else {
-         switch (opcode) {
+      switch (opcode) {
          case OPCODE_ERROR:
             _mesa_error(ctx, n[1].e, "%s", (const char *) get_pointer(&n[2]));
             break;
@@ -13455,6 +13405,10 @@ execute_list(struct gl_context *ctx, GLuint list)
                                              n[5].f, n[6].f, n[7].f));
             break;
 
+         case OPCODE_VERTEX_LIST:
+            vbo_save_playback_vertex_list(ctx, &n[1]);
+            break;
+
          case OPCODE_CONTINUE:
             n = (Node *) get_pointer(&n[1]);
             continue;
@@ -13473,12 +13427,11 @@ execute_list(struct gl_context *ctx, GLuint list)
             vbo_save_EndCallList(ctx);
             ctx->ListState.CallDepth--;
             return;
-         }
-
-         /* increment n to point to next compiled command */
-         assert(InstSize[opcode] > 0);
-         n += InstSize[opcode];
       }
+
+      /* increment n to point to next compiled command */
+      assert(InstSize[opcode] > 0);
+      n += InstSize[opcode];
    }
 }
 
@@ -14632,11 +14585,7 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
    while (1) {
       const OpCode opcode = n[0].opcode;
 
-      if (is_ext_opcode(opcode)) {
-         n += ext_opcode_print(ctx, n, f);
-      }
-      else {
-         switch (opcode) {
+      switch (opcode) {
          case OPCODE_ACCUM:
             fprintf(f, "Accum %s %g\n", enum_string(n[1].e), n[2].f);
             break;
@@ -14880,6 +14829,9 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
          case OPCODE_NOP:
             fprintf(f, "NOP\n");
             break;
+         case OPCODE_VERTEX_LIST:
+            vbo_print_vertex_list(ctx, (struct vbo_save_vertex_list *) &n[1], f);
+            break;
          default:
             if (opcode < 0 || opcode > OPCODE_END_OF_LIST) {
                printf
@@ -14897,12 +14849,11 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
             if (fname)
                fclose(f);
             return;
-         }
-
-         /* increment n to point to next compiled command */
-         assert(InstSize[opcode] > 0);
-         n += InstSize[opcode];
       }
+
+      /* increment n to point to next compiled command */
+      assert(InstSize[opcode] > 0);
+      n += InstSize[opcode];
    }
 }
 
@@ -14924,10 +14875,7 @@ _mesa_glthread_execute_list(struct gl_context *ctx, GLuint list)
    while (1) {
       const OpCode opcode = n[0].opcode;
 
-      if (is_ext_opcode(opcode)) {
-         n += ctx->ListExt->Opcode[n[0].opcode - OPCODE_EXT_0].Size;
-      } else {
-         switch (opcode) {
+      switch (opcode) {
          case OPCODE_CALL_LIST:
             /* Generated by glCallList(), don't add ListBase */
             if (ctx->GLThread.ListCallDepth < MAX_LIST_NESTING)
@@ -14979,12 +14927,11 @@ _mesa_glthread_execute_list(struct gl_context *ctx, GLuint list)
          default:
             /* ignore */
             break;
-         }
-
-         /* increment n to point to next compiled command */
-         assert(InstSize[opcode] > 0);
-         n += InstSize[opcode];
       }
+
+      /* increment n to point to next compiled command */
+      assert(InstSize[opcode] > 0);
+      n += InstSize[opcode];
    }
 }
 
@@ -15030,9 +14977,6 @@ _mesa_init_display_list(struct gl_context *ctx)
       tableInitialized = GL_TRUE;
    }
 
-   /* extension info */
-   ctx->ListExt = CALLOC_STRUCT(gl_list_extensions);
-
    /* Display list */
    ctx->ListState.CallDepth = 0;
    ctx->ExecuteFlag = GL_TRUE;
@@ -15044,6 +14988,7 @@ _mesa_init_display_list(struct gl_context *ctx)
    ctx->List.ListBase = 0;
 
    InstSize[OPCODE_NOP] = 1;
+   InstSize[OPCODE_VERTEX_LIST] = 1 + align(sizeof(struct vbo_save_vertex_list), sizeof(Node)) / sizeof(Node);
 
 #define NAME_AE(x) _ae_##x
 #define NAME_CALLLIST(x) save_##x
@@ -15051,12 +14996,4 @@ _mesa_init_display_list(struct gl_context *ctx)
 #define NAME_ES(x) save_##x##ARB
 
 #include "vbo/vbo_init_tmp.h"
-}
-
-
-void
-_mesa_free_display_list_data(struct gl_context *ctx)
-{
-   free(ctx->ListExt);
-   ctx->ListExt = NULL;
 }

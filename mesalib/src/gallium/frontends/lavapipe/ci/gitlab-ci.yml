@@ -8,3 +8,16 @@ lavapipe-vk:
     GPU_VERSION: lvp
     VK_DRIVER: lvp
     DEQP_FRACTION: 10
+
+lavapipe-nir-stress:
+  stage: software-renderer
+  extends:
+    - .test-vk
+    - .lavapipe-rules
+    - .deqp-test-vk
+  variables:
+    GPU_VERSION: lvp
+    VK_DRIVER: lvp
+    DEQP_FRACTION: 100
+    NIR_TEST_CLONE: "true"
+    NIR_TEST_SERIALIZE: "true"

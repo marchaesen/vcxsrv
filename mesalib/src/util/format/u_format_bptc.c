@@ -62,10 +62,14 @@ util_format_bptc_rgba_unorm_unpack_rgba_float(void *restrict dst_row, unsigned d
    decompress_rgba_unorm(width, height,
                          src_row, src_stride,
                          temp_block, width * 4 * sizeof(uint8_t));
-   util_format_r8g8b8a8_unorm_unpack_rgba_float(
-                      dst_row, dst_stride,
-                      temp_block, width * 4 * sizeof(uint8_t),
-                      width, height);
+   /* Direct call to row unpack instead of util_format_rgba_unpack_rect()
+    * to avoid table lookup that would pull in all unpack symbols.
+    */
+   for (int y = 0; y < height; y++) {
+      util_format_r8g8b8a8_unorm_unpack_rgba_float((char *)dst_row + dst_stride * y,
+                                                    temp_block + 4 * width * y,
+                                                    width);
+   }
    free((void *) temp_block);
 }
 
@@ -76,10 +80,15 @@ util_format_bptc_rgba_unorm_pack_rgba_float(uint8_t *restrict dst_row, unsigned 
 {
    uint8_t *temp_block;
    temp_block = malloc(width * height * 4 * sizeof(uint8_t));
-   util_format_r32g32b32a32_float_unpack_rgba_8unorm(
-                        temp_block, width * 4 * sizeof(uint8_t),
-                        (uint8_t *)src_row, src_stride,
-                        width, height);
+   /* Direct call to row unpack instead of util_format_rgba_unpack_rect()
+    * to avoid table lookup that would pull in all unpack symbols.
+    */
+   for (int y = 0; y < height; y++) {
+      util_format_r32g32b32a32_float_unpack_rgba_8unorm(
+                        temp_block + 4 * width * y,
+                        (uint8_t *)src_row + src_stride * y,
+                        width);
+   }
    compress_rgba_unorm(width, height,
                        temp_block, width * 4 * sizeof(uint8_t),
                        dst_row, dst_stride);
@@ -131,9 +140,15 @@ util_format_bptc_srgba_unpack_rgba_float(void *restrict dst_row, unsigned dst_st
    decompress_rgba_unorm(width, height,
                          src_row, src_stride,
                          temp_block, width * 4 * sizeof(uint8_t));
-   util_format_r8g8b8a8_srgb_unpack_rgba_float(dst_row, dst_stride,
-                                               temp_block, width * 4 * sizeof(uint8_t),
-                                               width, height);
+
+   /* Direct call to row unpack instead of util_format_rgba_unpack_rect()
+    * to avoid table lookup that would pull in all unpack symbols.
+    */
+   for (int y = 0; y < height; y++) {
+      util_format_r8g8b8a8_srgb_unpack_rgba_float((char *)dst_row + dst_stride * y,
+                                                  temp_block + width * 4 * y,
+                                                  width);
+   }
 
    free((void *) temp_block);
 }
@@ -171,10 +186,15 @@ util_format_bptc_rgb_float_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigne
                         src_row, src_stride,
                         temp_block, width * 4 * sizeof(float),
                         true);
-   util_format_r32g32b32a32_float_unpack_rgba_8unorm(
-                        dst_row, dst_stride,
-                        (const uint8_t *)temp_block, width * 4 * sizeof(float),
-                        width, height);
+   /* Direct call to row unpack instead of util_format_rgba_unpack_rect()
+    * to avoid table lookup that would pull in all unpack symbols.
+    */
+   for (int y = 0; y < height; y++) {
+      util_format_r32g32b32a32_float_unpack_rgba_8unorm(
+          dst_row + dst_stride * y,
+          (const uint8_t *)temp_block + width * 4 * sizeof(float) * y,
+          width);
+   }
    free((void *) temp_block);
 }
 
@@ -229,10 +249,14 @@ util_format_bptc_rgb_ufloat_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsign
                         src_row, src_stride,
                         temp_block, width * 4 * sizeof(float),
                         false);
-   util_format_r32g32b32a32_float_unpack_rgba_8unorm(
-                        dst_row, dst_stride,
-                        (const uint8_t *)temp_block, width * 4 * sizeof(float),
-                        width, height);
+   /* Direct call to row unpack instead of util_format_rgba_unpack_8unorm()
+    * to avoid table lookup that would pull in all unpack symbols.
+    */
+   for (int y = 0; y < height; y++) {
+      util_format_r32g32b32a32_float_unpack_rgba_8unorm(dst_row + dst_stride * y,
+                                                        (void *)(temp_block + 4 * width * y),
+                                                        width);
+   }
    free((void *) temp_block);
 }
 

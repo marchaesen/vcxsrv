@@ -98,6 +98,12 @@ tu_tiling_config_update_tile_layout(struct tu_framebuffer *fb,
       .height = align(fb->height, tile_align_h),
    };
 
+   /* will force to sysmem, don't bother trying to have a valid tile config
+    * TODO: just skip all GMEM stuff when sysmem is forced?
+    */
+   if (!pass->gmem_pixels)
+      return;
+
    if (unlikely(dev->physical_device->instance->debug_flags & TU_DEBUG_FORCEBIN)) {
       /* start with 2x2 tiles */
       fb->tile_count.width = 2;
@@ -119,12 +125,6 @@ tu_tiling_config_update_tile_layout(struct tu_framebuffer *fb,
       fb->tile0.height =
          util_align_npot(DIV_ROUND_UP(fb->height, fb->tile_count.height), tile_align_h);
    }
-
-   /* will force to sysmem, don't bother trying to have a valid tile config
-    * TODO: just skip all GMEM stuff when sysmem is forced?
-    */
-   if (!pass->gmem_pixels)
-      return;
 
    /* do not exceed gmem size */
    while (fb->tile0.width * fb->tile0.height > pass->gmem_pixels) {

@@ -2360,7 +2360,7 @@ ureg_setup_compute_shader(struct ureg_program *ureg,
    ureg_property(ureg, TGSI_PROPERTY_CS_FIXED_BLOCK_DEPTH,
                  info->cs.local_size[2]);
 
-   if (info->cs.shared_size)
+   if (info->shared_size)
       ureg_DECL_memory(ureg, TGSI_MEMORY_TYPE_SHARED);
 }
 

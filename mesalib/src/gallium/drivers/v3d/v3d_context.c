@@ -200,16 +200,16 @@ v3d_flag_dirty_sampler_state(struct v3d_context *v3d,
 {
         switch (shader) {
         case PIPE_SHADER_VERTEX:
-                v3d->dirty |= VC5_DIRTY_VERTTEX;
+                v3d->dirty |= V3D_DIRTY_VERTTEX;
                 break;
         case PIPE_SHADER_GEOMETRY:
-                v3d->dirty |= VC5_DIRTY_GEOMTEX;
+                v3d->dirty |= V3D_DIRTY_GEOMTEX;
                 break;
         case PIPE_SHADER_FRAGMENT:
-                v3d->dirty |= VC5_DIRTY_FRAGTEX;
+                v3d->dirty |= V3D_DIRTY_FRAGTEX;
                 break;
         case PIPE_SHADER_COMPUTE:
-                v3d->dirty |= VC5_DIRTY_COMPTEX;
+                v3d->dirty |= V3D_DIRTY_COMPTEX;
                 break;
         default:
                 unreachable("Unsupported shader stage");
@@ -297,6 +297,13 @@ v3d_context_destroy(struct pipe_context *pctx)
 
         pipe_surface_reference(&v3d->framebuffer.cbufs[0], NULL);
         pipe_surface_reference(&v3d->framebuffer.zsbuf, NULL);
+
+        if (v3d->sand8_blit_vs)
+                pctx->delete_vs_state(pctx, v3d->sand8_blit_vs);
+        if (v3d->sand8_blit_fs_luma)
+                pctx->delete_fs_state(pctx, v3d->sand8_blit_fs_luma);
+        if (v3d->sand8_blit_fs_chroma)
+                pctx->delete_fs_state(pctx, v3d->sand8_blit_fs_chroma);
 
         v3d_program_fini(pctx);
 

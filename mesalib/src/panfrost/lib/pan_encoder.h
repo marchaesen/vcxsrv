@@ -28,6 +28,7 @@
 #define __PAN_ENCODER_H
 
 #include <stdbool.h>
+#include "pan_bo.h"
 #include "midgard_pack.h"
 
 /* Indices for named (non-XFB) varyings that are present. These are packed
@@ -68,6 +69,13 @@ panfrost_pack_work_groups_compute(
         bool quirk_graphics);
 
 /* Tiler structure size computation */
+
+struct panfrost_device;
+
+unsigned
+panfrost_tiler_get_polygon_list_size(const struct panfrost_device *dev,
+                                     unsigned fb_width, unsigned fb_height,
+                                     bool has_draws);
 
 unsigned
 panfrost_tiler_header_size(unsigned width, unsigned height, unsigned mask, bool hierarchy);

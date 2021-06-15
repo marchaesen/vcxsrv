@@ -129,7 +129,6 @@ os_log_message(const char *message)
 #  include "simple_mtx.h"
 
 static struct hash_table *options_tbl;
-static simple_mtx_t options_tbl_lock = _SIMPLE_MTX_INITIALIZER_NP;
 
 static void
 options_tbl_fini(void)

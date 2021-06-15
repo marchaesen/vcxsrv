@@ -83,7 +83,7 @@ vbo_exec_wrap_buffers(struct vbo_exec_context *exec)
    else {
       struct gl_context *ctx = gl_context_from_vbo_exec(exec);
       unsigned last = exec->vtx.prim_count - 1;
-      struct pipe_draw_start_count *last_draw = &exec->vtx.draw[last];
+      struct pipe_draw_start_count_bias *last_draw = &exec->vtx.draw[last];
       const bool last_begin = exec->vtx.markers[last].begin;
       GLuint last_count = 0;
 
@@ -922,7 +922,7 @@ vbo_exec_End(void)
    if (exec->vtx.prim_count > 0) {
       /* close off current primitive */
       unsigned last = exec->vtx.prim_count - 1;
-      struct pipe_draw_start_count *last_draw = &exec->vtx.draw[last];
+      struct pipe_draw_start_count_bias *last_draw = &exec->vtx.draw[last];
       unsigned count = exec->vtx.vert_count - last_draw->start;
 
       last_draw->count = count;

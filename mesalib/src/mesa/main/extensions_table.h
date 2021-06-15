@@ -161,7 +161,7 @@ EXT(ARB_texture_env_combine                 , ARB_texture_env_combine           
 EXT(ARB_texture_env_crossbar                , ARB_texture_env_crossbar               , GLL,  x ,  x ,  x , 2001)
 EXT(ARB_texture_env_dot3                    , ARB_texture_env_dot3                   , GLL,  x ,  x ,  x , 2001)
 EXT(ARB_texture_filter_anisotropic          , ARB_texture_filter_anisotropic         , GLL, GLC,  x ,  x , 2017)
-EXT(ARB_texture_filter_minmax               , EXT_texture_filter_minmax              , GLL, GLC,  x ,  x , 2015)
+EXT(ARB_texture_filter_minmax               , ARB_texture_filter_minmax              , GLL, GLC,  x ,  x , 2015)
 EXT(ARB_texture_float                       , ARB_texture_float                      , GLL, GLC,  x ,  x , 2004)
 EXT(ARB_texture_gather                      , ARB_texture_gather                     , GLL, GLC,  x ,  x , 2009)
 EXT(ARB_texture_mirror_clamp_to_edge        , ARB_texture_mirror_clamp_to_edge       , GLL, GLC,  x ,  x , 2013)

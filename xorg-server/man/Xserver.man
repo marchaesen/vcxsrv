@@ -263,11 +263,14 @@ connected to the system.
 sets pointer acceleration threshold in pixels (i.e. after how many pixels
 pointer acceleration should take effect).
 .TP 8
-.B \-terminate
+.B \-terminate \fI[delay]\fP
 causes the server to terminate at server reset, instead of continuing to run.
 This overrides a previous
 .B \-noreset
 command line option.
+If a delay in seconds is specified, the server waits for at least
+the delay. At the end of this grace period if no client is
+connected, the server terminates immediately.
 .TP 8
 .B \-tst
 disables all testing extensions (e.g., XTEST, XTrap, XTestExtension1, RECORD).

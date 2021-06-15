@@ -674,11 +674,11 @@ v3d_spec_load(const struct v3d_device_info *devinfo)
 
         for (int i = 0; i < ARRAY_SIZE(genxml_files_table); i++) {
                 if (i != 0) {
-                        assert(genxml_files_table[i - 1].gen_10 <
-                               genxml_files_table[i].gen_10);
+                        assert(genxml_files_table[i - 1].ver_10 <
+                               genxml_files_table[i].ver_10);
                 }
 
-                if (genxml_files_table[i].gen_10 <= devinfo->ver) {
+                if (genxml_files_table[i].ver_10 <= devinfo->ver) {
                         text_offset = genxml_files_table[i].offset;
                         text_length = genxml_files_table[i].length;
                 }
@@ -686,6 +686,7 @@ v3d_spec_load(const struct v3d_device_info *devinfo)
 
         if (text_length == 0) {
                 fprintf(stderr, "unable to find gen (%u) data\n", devinfo->ver);
+                free(spec);
                 return NULL;
         }
 
@@ -695,6 +696,7 @@ v3d_spec_load(const struct v3d_device_info *devinfo)
         XML_SetUserData(ctx.parser, &ctx);
         if (ctx.parser == NULL) {
                 fprintf(stderr, "failed to create parser\n");
+                free(spec);
                 return NULL;
         }
 
@@ -720,6 +722,7 @@ v3d_spec_load(const struct v3d_device_info *devinfo)
                         XML_ErrorString(XML_GetErrorCode(ctx.parser)));
                 XML_ParserFree(ctx.parser);
                 free(text_data);
+                free(spec);
                 return NULL;
         }
 

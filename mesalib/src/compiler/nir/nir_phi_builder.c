@@ -263,21 +263,9 @@ nir_phi_builder_value_get_block_def(struct nir_phi_builder_value *val,
    return def;
 }
 
-static int
-compare_blocks(const void *_a, const void *_b)
-{
-   const nir_block * const * a = _a;
-   const nir_block * const * b = _b;
-
-   return (*a)->index - (*b)->index;
-}
-
 void
 nir_phi_builder_finish(struct nir_phi_builder *pb)
 {
-   const unsigned num_blocks = pb->num_blocks;
-   nir_block **preds = rzalloc_array(pb, nir_block *, num_blocks);
-
    foreach_list_typed(struct nir_phi_builder_value, val, node, &pb->values) {
       /* We treat the linked list of phi nodes like a worklist.  The list is
        * pre-populated by calls to nir_phi_builder_value_get_block_def() that
@@ -295,23 +283,18 @@ nir_phi_builder_finish(struct nir_phi_builder *pb)
 
          exec_node_remove(&phi->instr.node);
 
-         /* Construct an array of predecessors.  We sort it to ensure
-          * determinism in the phi insertion algorithm.
-          *
-          * XXX: Calling qsort this many times seems expensive.
-          */
-         int num_preds = 0;
-         set_foreach(phi->instr.block->predecessors, entry)
-            preds[num_preds++] = (nir_block *)entry->key;
-         qsort(preds, num_preds, sizeof(*preds), compare_blocks);
+         /* XXX: Constructing the array this many times seems expensive. */
+         nir_block **preds = nir_block_get_predecessors_sorted(phi->instr.block, pb);
 
-         for (unsigned i = 0; i < num_preds; i++) {
+         for (unsigned i = 0; i < phi->instr.block->predecessors->entries; i++) {
             nir_phi_src *src = ralloc(phi, nir_phi_src);
             src->pred = preds[i];
             src->src = nir_src_for_ssa(
                nir_phi_builder_value_get_block_def(val, preds[i]));
             exec_list_push_tail(&phi->srcs, &src->node);
          }
+
+         ralloc_free(preds);
 
          nir_instr_insert(nir_before_block(phi->instr.block), &phi->instr);
       }

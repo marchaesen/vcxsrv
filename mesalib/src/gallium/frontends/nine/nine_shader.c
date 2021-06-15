@@ -1095,7 +1095,7 @@ tx_src_param(struct shader_translator *tx, const struct sm1_src_param *param)
         break;
     case D3DSPR_SAMPLER:
         assert(param->mod == NINED3DSPSM_NONE);
-        assert(param->swizzle == NINED3DSP_NOSWIZZLE);
+        /* assert(param->swizzle == NINED3DSP_NOSWIZZLE); Passed by wine tests */
         src = ureg_DECL_sampler(ureg, param->idx);
         break;
     case D3DSPR_CONST:
@@ -1204,7 +1204,7 @@ tx_src_param(struct shader_translator *tx, const struct sm1_src_param *param)
         break;
     }
 
-    if (param->swizzle != NINED3DSP_NOSWIZZLE)
+    if (param->swizzle != NINED3DSP_NOSWIZZLE && param->file != D3DSPR_SAMPLER)
         src = ureg_swizzle(src,
                            (param->swizzle >> 0) & 0x3,
                            (param->swizzle >> 2) & 0x3,
@@ -1242,7 +1242,7 @@ tx_src_param(struct shader_translator *tx, const struct sm1_src_param *param)
             ureg_ADD(ureg, tmp, ureg_imm1f(ureg, 1.0f), ureg_negate(src));
             src = ureg_src(tmp);
         }
-        /* fall through */
+        FALLTHROUGH;
     case NINED3DSPSM_COMP:
         tmp = tx_scratch(tx);
         ureg_ADD(ureg, tmp, ureg_imm1f(ureg, 1.0f), ureg_negate(src));
@@ -3649,7 +3649,8 @@ tx_ctor(struct shader_translator *tx, struct pipe_screen *screen, struct nine_sh
         tx->num_constb_allowed = NINE_MAX_CONST_B;
     }
 
-    if (info->swvp_on && tx->version.major >= 2) {
+    if (info->swvp_on) {
+        /* TODO: The values tx->version.major == 1 */
         tx->num_constf_allowed = 8192;
         tx->num_consti_allowed = 2048;
         tx->num_constb_allowed = 2048;

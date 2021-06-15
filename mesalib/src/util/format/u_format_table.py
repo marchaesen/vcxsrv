@@ -166,8 +166,11 @@ def write_format_table(formats):
         print("   },")
 
     def generate_table_getter(type):
+        suffix = ""
+        if type == "unpack_":
+            suffix = "_generic"
         print("const struct util_format_%sdescription *" % type)
-        print("util_format_%sdescription(enum pipe_format format)" % type)
+        print("util_format_%sdescription%s(enum pipe_format format)" % (type, suffix))
         print("{")
         print("   if (format >= ARRAY_SIZE(util_format_%sdescriptions))" % (type))
         print("      return NULL;")
@@ -242,7 +245,6 @@ def write_format_table(formats):
     print("};")
     print()
     generate_table_getter("pack_")
-
     print('static const struct util_format_unpack_description')
     print('util_format_unpack_descriptions[] = {')
     for format in formats:
@@ -255,10 +257,17 @@ def write_format_table(formats):
         print("   [%s] = {" % (format.name,))
 
         if format.colorspace != ZS and not format.is_pure_color():
-            print("      .unpack_rgba_8unorm = &util_format_%s_unpack_rgba_8unorm," % sn)
             if format.layout == 's3tc' or format.layout == 'rgtc':
                 print("      .fetch_rgba_8unorm = &util_format_%s_fetch_rgba_8unorm," % sn)
-            print("      .unpack_rgba = &util_format_%s_unpack_rgba_float," % sn)
+            if format.block_width > 1:
+                print(
+                    "      .unpack_rgba_8unorm_rect = &util_format_%s_unpack_rgba_8unorm," % sn)
+                print(
+                    "      .unpack_rgba_rect = &util_format_%s_unpack_rgba_float," % sn)
+            else:
+                print(
+                    "      .unpack_rgba_8unorm = &util_format_%s_unpack_rgba_8unorm," % sn)
+                print("      .unpack_rgba = &util_format_%s_unpack_rgba_float," % sn)
 
         if format.has_depth():
             print("      .unpack_z_32unorm = &util_format_%s_unpack_z_32unorm," % sn)

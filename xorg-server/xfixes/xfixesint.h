@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006, Oracle and/or its affiliates. All rights reserved.
- * Copyright 2010 Red Hat, Inc.
+ * Copyright 2010, 2021 Red Hat, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -289,6 +289,26 @@ int
 
 int
  SProcXFixesDestroyPointerBarrier(ClientPtr client);
+
+/* Version 6 */
+
+Bool
+ XFixesClientDisconnectInit(void);
+
+int
+ ProcXFixesSetClientDisconnectMode(ClientPtr client);
+
+int
+ ProcXFixesGetClientDisconnectMode(ClientPtr client);
+
+int
+ SProcXFixesSetClientDisconnectMode(ClientPtr client);
+
+int
+ SProcXFixesGetClientDisconnectMode(ClientPtr client);
+
+Bool
+ XFixesShouldDisconnectClient(ClientPtr client);
 
 /* Xinerama */
 #ifdef PANORAMIX

@@ -27,6 +27,7 @@ radv_entrypoints = custom_target(
     '--out-h', '@OUTPUT0@', '--out-c', '@OUTPUT1@', '--prefix', 'radv',
     '--device-prefix', 'sqtt',
   ],
+  depend_files : vk_entrypoints_gen_depend_files,
 )
 
 libradv_files = files(
@@ -56,6 +57,7 @@ libradv_files = files(
   'radv_meta_bufimage.c',
   'radv_meta_clear.c',
   'radv_meta_copy.c',
+  'radv_meta_copy_vrs_htile.c',
   'radv_meta_dcc_retile.c',
   'radv_meta_decompress.c',
   'radv_meta_fast_clear.c',

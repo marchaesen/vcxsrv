@@ -233,6 +233,8 @@ const nir_shader_compiler_options v3dv_nir_options = {
    .vertex_id_zero_based = false, /* FIXME: to set this to true, the intrinsic
                                    * needs to be supported */
    .lower_interpolate_at = true,
+   .divergence_analysis_options =
+      nir_divergence_multiple_workgroup_per_compute_subgroup
 };
 
 const nir_shader_compiler_options *
@@ -473,9 +475,10 @@ shader_module_compile_to_nir(struct v3dv_device *device,
    assert(nir->info.stage == broadcom_shader_stage_to_gl(stage->stage));
 
    if (V3D_DEBUG & (V3D_DEBUG_NIR |
-                    v3d_debug_flag_for_shader_stage(stage->stage))) {
+                    v3d_debug_flag_for_shader_stage(
+                       broadcom_shader_stage_to_gl(stage->stage)))) {
       fprintf(stderr, "Initial form: %s prog %d NIR:\n",
-              gl_shader_stage_name(stage->stage),
+              broadcom_shader_stage_name(stage->stage),
               stage->program_id);
       nir_print_shader(nir, stderr);
       fprintf(stderr, "\n");
@@ -567,11 +570,46 @@ lower_load_push_constant(nir_builder *b, nir_intrinsic_instr *instr,
    instr->intrinsic = nir_intrinsic_load_uniform;
 }
 
+static struct v3dv_descriptor_map*
+pipeline_get_descriptor_map(struct v3dv_pipeline *pipeline,
+                            VkDescriptorType desc_type,
+                            gl_shader_stage gl_stage,
+                            bool is_sampler)
+{
+   broadcom_shader_stage broadcom_stage =
+      gl_shader_stage_to_broadcom(gl_stage);
+
+   assert(pipeline->shared_data &&
+          pipeline->shared_data->maps[broadcom_stage]);
+
+   switch(desc_type) {
+   case VK_DESCRIPTOR_TYPE_SAMPLER:
+      return &pipeline->shared_data->maps[broadcom_stage]->sampler_map;
+   case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+   case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+   case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+   case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+   case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+      return &pipeline->shared_data->maps[broadcom_stage]->texture_map;
+   case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+      return is_sampler ?
+         &pipeline->shared_data->maps[broadcom_stage]->sampler_map :
+         &pipeline->shared_data->maps[broadcom_stage]->texture_map;
+   case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+      return &pipeline->shared_data->maps[broadcom_stage]->ubo_map;
+   case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+      return &pipeline->shared_data->maps[broadcom_stage]->ssbo_map;
+   default:
+      unreachable("Descriptor type unknown or not having a descriptor map");
+   }
+}
+
 /* Gathers info from the intrinsic (set and binding) and then lowers it so it
  * could be used by the v3d_compiler */
 static void
 lower_vulkan_resource_index(nir_builder *b,
                             nir_intrinsic_instr *instr,
+                            nir_shader *shader,
                             struct v3dv_pipeline *pipeline,
                             const struct v3dv_pipeline_layout *layout)
 {
@@ -585,13 +623,13 @@ lower_vulkan_resource_index(nir_builder *b,
    struct v3dv_descriptor_set_binding_layout *binding_layout =
       &set_layout->binding[binding];
    unsigned index = 0;
+   const VkDescriptorType desc_type = nir_intrinsic_desc_type(instr);
 
-   switch (nir_intrinsic_desc_type(instr)) {
+   switch (desc_type) {
    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER: {
       struct v3dv_descriptor_map *descriptor_map =
-         nir_intrinsic_desc_type(instr) == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ?
-         &pipeline->shared_data->ubo_map : &pipeline->shared_data->ssbo_map;
+         pipeline_get_descriptor_map(pipeline, desc_type, shader->info.stage, false);
 
       if (!const_val)
          unreachable("non-constant vulkan_resource_index array index");
@@ -601,7 +639,7 @@ lower_vulkan_resource_index(nir_builder *b,
                                  binding_layout->array_size,
                                  32 /* return_size: doesn't really apply for this case */);
 
-      if (nir_intrinsic_desc_type(instr) == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+      if (desc_type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
          /* skip index 0 which is used for push constants */
          index++;
       }
@@ -629,6 +667,7 @@ lower_vulkan_resource_index(nir_builder *b,
  */
 static uint8_t
 lower_tex_src_to_offset(nir_builder *b, nir_tex_instr *instr, unsigned src_idx,
+                        nir_shader *shader,
                         struct v3dv_pipeline *pipeline,
                         const struct v3dv_pipeline_layout *layout)
 {
@@ -706,9 +745,9 @@ lower_tex_src_to_offset(nir_builder *b, nir_tex_instr *instr, unsigned src_idx,
 
    uint8_t return_size = relaxed_precision || instr->is_shadow ? 16 : 32;
 
-   struct v3dv_descriptor_map *map = is_sampler ?
-      &pipeline->shared_data->sampler_map :
-      &pipeline->shared_data->texture_map;
+   struct v3dv_descriptor_map *map =
+      pipeline_get_descriptor_map(pipeline, binding_layout->type,
+                                  shader->info.stage, is_sampler);
    int desc_index =
       descriptor_map_add(map,
                          deref->var->data.descriptor_set,
@@ -727,6 +766,7 @@ lower_tex_src_to_offset(nir_builder *b, nir_tex_instr *instr, unsigned src_idx,
 
 static bool
 lower_sampler(nir_builder *b, nir_tex_instr *instr,
+              nir_shader *shader,
               struct v3dv_pipeline *pipeline,
               const struct v3dv_pipeline_layout *layout)
 {
@@ -736,13 +776,14 @@ lower_sampler(nir_builder *b, nir_tex_instr *instr,
       nir_tex_instr_src_index(instr, nir_tex_src_texture_deref);
 
    if (texture_idx >= 0)
-      return_size = lower_tex_src_to_offset(b, instr, texture_idx, pipeline, layout);
+      return_size = lower_tex_src_to_offset(b, instr, texture_idx, shader,
+                                            pipeline, layout);
 
    int sampler_idx =
       nir_tex_instr_src_index(instr, nir_tex_src_sampler_deref);
 
    if (sampler_idx >= 0)
-      lower_tex_src_to_offset(b, instr, sampler_idx, pipeline, layout);
+      lower_tex_src_to_offset(b, instr, sampler_idx, shader, pipeline, layout);
 
    if (texture_idx < 0 && sampler_idx < 0)
       return false;
@@ -762,6 +803,7 @@ lower_sampler(nir_builder *b, nir_tex_instr *instr,
 static void
 lower_image_deref(nir_builder *b,
                   nir_intrinsic_instr *instr,
+                  nir_shader *shader,
                   struct v3dv_pipeline *pipeline,
                   const struct v3dv_pipeline_layout *layout)
 {
@@ -811,8 +853,12 @@ lower_image_deref(nir_builder *b,
    assert(binding_layout->type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
           binding_layout->type == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER);
 
+   struct v3dv_descriptor_map *map =
+      pipeline_get_descriptor_map(pipeline, binding_layout->type,
+                                  shader->info.stage, false);
+
    int desc_index =
-      descriptor_map_add(&pipeline->shared_data->texture_map,
+      descriptor_map_add(map,
                          deref->var->data.descriptor_set,
                          deref->var->data.binding,
                          array_index,
@@ -832,6 +878,7 @@ lower_image_deref(nir_builder *b,
 
 static bool
 lower_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
+                nir_shader *shader,
                 struct v3dv_pipeline *pipeline,
                 const struct v3dv_pipeline_layout *layout)
 {
@@ -850,7 +897,7 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
       return true;
 
    case nir_intrinsic_vulkan_resource_index:
-      lower_vulkan_resource_index(b, instr, pipeline, layout);
+      lower_vulkan_resource_index(b, instr, shader, pipeline, layout);
       return true;
 
    case nir_intrinsic_load_vulkan_descriptor: {
@@ -878,7 +925,7 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
    case nir_intrinsic_image_deref_atomic_comp_swap:
    case nir_intrinsic_image_deref_size:
    case nir_intrinsic_image_deref_samples:
-      lower_image_deref(b, instr, pipeline, layout);
+      lower_image_deref(b, instr, shader, pipeline, layout);
       return true;
 
    default:
@@ -888,6 +935,7 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
 
 static bool
 lower_impl(nir_function_impl *impl,
+           nir_shader *shader,
            struct v3dv_pipeline *pipeline,
            const struct v3dv_pipeline_layout *layout)
 {
@@ -901,11 +949,12 @@ lower_impl(nir_function_impl *impl,
          switch (instr->type) {
          case nir_instr_type_tex:
             progress |=
-               lower_sampler(&b, nir_instr_as_tex(instr), pipeline, layout);
+               lower_sampler(&b, nir_instr_as_tex(instr), shader, pipeline, layout);
             break;
          case nir_instr_type_intrinsic:
             progress |=
-               lower_intrinsic(&b, nir_instr_as_intrinsic(instr), pipeline, layout);
+               lower_intrinsic(&b, nir_instr_as_intrinsic(instr), shader,
+                               pipeline, layout);
             break;
          default:
             break;
@@ -925,7 +974,7 @@ lower_pipeline_layout_info(nir_shader *shader,
 
    nir_foreach_function(function, shader) {
       if (function->impl)
-         progress |= lower_impl(function->impl, pipeline, layout);
+         progress |= lower_impl(function->impl, shader, pipeline, layout);
    }
 
    return progress;
@@ -982,13 +1031,16 @@ pipeline_populate_v3d_key(struct v3d_key *key,
                           uint32_t ucp_enables,
                           bool robust_buffer_access)
 {
+   assert(p_stage->pipeline->shared_data &&
+          p_stage->pipeline->shared_data->maps[p_stage->stage]);
+
    /* The following values are default values used at pipeline create. We use
     * there 32 bit as default return size.
     */
    struct v3dv_descriptor_map *sampler_map =
-      &p_stage->pipeline->shared_data->sampler_map;
+      &p_stage->pipeline->shared_data->maps[p_stage->stage]->sampler_map;
    struct v3dv_descriptor_map *texture_map =
-      &p_stage->pipeline->shared_data->texture_map;
+      &p_stage->pipeline->shared_data->maps[p_stage->stage]->texture_map;
 
    key->num_tex_used = texture_map->num_desc;
    assert(key->num_tex_used <= V3D_MAX_TEXTURE_SAMPLERS);
@@ -1454,9 +1506,10 @@ pipeline_compile_shader_variant(struct v3dv_pipeline_stage *p_stage,
    const struct v3d_compiler *compiler = physical_device->compiler;
 
    if (V3D_DEBUG & (V3D_DEBUG_NIR |
-                    v3d_debug_flag_for_shader_stage(p_stage->stage))) {
+                    v3d_debug_flag_for_shader_stage
+                    (broadcom_shader_stage_to_gl(p_stage->stage)))) {
       fprintf(stderr, "Just before v3d_compile: %s prog %d NIR:\n",
-              gl_shader_stage_name(p_stage->stage),
+              broadcom_shader_stage_name(p_stage->stage),
               p_stage->program_id);
       nir_print_shader(p_stage->nir, stderr);
       fprintf(stderr, "\n");
@@ -1594,6 +1647,9 @@ pipeline_lower_nir(struct v3dv_pipeline *pipeline,
                    struct v3dv_pipeline_stage *p_stage,
                    struct v3dv_pipeline_layout *layout)
 {
+   assert(pipeline->shared_data &&
+          pipeline->shared_data->maps[p_stage->stage]);
+
    nir_shader_gather_info(p_stage->nir, nir_shader_get_entrypoint(p_stage->nir));
 
    /* We add this because we need a valid sampler for nir_lower_tex to do
@@ -1604,12 +1660,12 @@ pipeline_lower_nir(struct v3dv_pipeline *pipeline,
     * another for the case we need a 32bit return size.
     */
    UNUSED unsigned index =
-      descriptor_map_add(&pipeline->shared_data->sampler_map,
+      descriptor_map_add(&pipeline->shared_data->maps[p_stage->stage]->sampler_map,
                          -1, -1, -1, 0, 16);
    assert(index == V3DV_NO_SAMPLER_16BIT_IDX);
 
    index =
-      descriptor_map_add(&pipeline->shared_data->sampler_map,
+      descriptor_map_add(&pipeline->shared_data->maps[p_stage->stage]->sampler_map,
                          -2, -2, -2, 0, 32);
    assert(index == V3DV_NO_SAMPLER_32BIT_IDX);
 
@@ -1858,25 +1914,64 @@ pipeline_populate_compute_key(struct v3dv_pipeline *pipeline,
 
 static struct v3dv_pipeline_shared_data *
 v3dv_pipeline_shared_data_new_empty(const unsigned char sha1_key[20],
-                                    struct v3dv_device *device)
+                                    struct v3dv_device *device,
+                                    bool is_graphics_pipeline)
 {
-   size_t size = sizeof(struct v3dv_pipeline_shared_data);
    /* We create new_entry using the device alloc. Right now shared_data is ref
     * and unref by both the pipeline and the pipeline cache, so we can't
     * ensure that the cache or pipeline alloc will be available on the last
     * unref.
     */
    struct v3dv_pipeline_shared_data *new_entry =
-      vk_zalloc2(&device->vk.alloc, NULL, size, 8,
+      vk_zalloc2(&device->vk.alloc, NULL,
+                 sizeof(struct v3dv_pipeline_shared_data), 8,
                  VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
    if (new_entry == NULL)
       return NULL;
 
+   for (uint8_t stage = 0; stage < BROADCOM_SHADER_STAGES; stage++) {
+      /* We don't need specific descriptor map for vertex_bin, we can share
+       * with vertex
+       */
+      if (stage == BROADCOM_SHADER_VERTEX_BIN)
+         continue;
+
+      if ((is_graphics_pipeline && stage == BROADCOM_SHADER_COMPUTE) ||
+          (!is_graphics_pipeline && stage != BROADCOM_SHADER_COMPUTE)) {
+         continue;
+      }
+
+      struct v3dv_descriptor_maps *new_maps =
+         vk_zalloc2(&device->vk.alloc, NULL,
+                    sizeof(struct v3dv_descriptor_maps), 8,
+                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+
+      if (new_maps == NULL)
+         goto fail;
+
+      new_entry->maps[stage] = new_maps;
+   }
+
+   new_entry->maps[BROADCOM_SHADER_VERTEX_BIN] =
+      new_entry->maps[BROADCOM_SHADER_VERTEX];
+
    new_entry->ref_cnt = 1;
    memcpy(new_entry->sha1_key, sha1_key, 20);
 
    return new_entry;
+
+fail:
+   if (new_entry != NULL) {
+      for (uint8_t stage = 0; stage < BROADCOM_SHADER_STAGES; stage++) {
+         if (new_entry->maps[stage] != NULL)
+            vk_free(&device->vk.alloc, new_entry->maps[stage]);
+      }
+   }
+
+   vk_free(&device->vk.alloc, new_entry);
+
+   return NULL;
 }
 
 /*
@@ -2002,7 +2097,7 @@ pipeline_compile_graphics(struct v3dv_pipeline *pipeline,
    }
 
    pipeline->shared_data =
-      v3dv_pipeline_shared_data_new_empty(pipeline_sha1, pipeline->device);
+      v3dv_pipeline_shared_data_new_empty(pipeline_sha1, pipeline->device, true);
    /* If not, we try to get the nir shaders (from the SPIR-V shader, or from
     * the pipeline cache again) and compile.
     */
@@ -2532,25 +2627,25 @@ pipeline_set_ez_state(struct v3dv_pipeline *pipeline,
                       const VkPipelineDepthStencilStateCreateInfo *ds_info)
 {
    if (!ds_info || !ds_info->depthTestEnable) {
-      pipeline->ez_state = VC5_EZ_DISABLED;
+      pipeline->ez_state = V3D_EZ_DISABLED;
       return;
    }
 
    switch (ds_info->depthCompareOp) {
    case VK_COMPARE_OP_LESS:
    case VK_COMPARE_OP_LESS_OR_EQUAL:
-      pipeline->ez_state = VC5_EZ_LT_LE;
+      pipeline->ez_state = V3D_EZ_LT_LE;
       break;
    case VK_COMPARE_OP_GREATER:
    case VK_COMPARE_OP_GREATER_OR_EQUAL:
-      pipeline->ez_state = VC5_EZ_GT_GE;
+      pipeline->ez_state = V3D_EZ_GT_GE;
       break;
    case VK_COMPARE_OP_NEVER:
    case VK_COMPARE_OP_EQUAL:
-      pipeline->ez_state = VC5_EZ_UNDECIDED;
+      pipeline->ez_state = V3D_EZ_UNDECIDED;
       break;
    default:
-      pipeline->ez_state = VC5_EZ_DISABLED;
+      pipeline->ez_state = V3D_EZ_DISABLED;
       break;
    }
 
@@ -2558,7 +2653,7 @@ pipeline_set_ez_state(struct v3dv_pipeline *pipeline,
    if (ds_info->stencilTestEnable &&
        (!stencil_op_is_no_op(&ds_info->front) ||
         !stencil_op_is_no_op(&ds_info->back))) {
-         pipeline->ez_state = VC5_EZ_DISABLED;
+         pipeline->ez_state = V3D_EZ_DISABLED;
    }
 }
 
@@ -3156,7 +3251,8 @@ pipeline_compile_compute(struct v3dv_pipeline *pipeline,
    }
 
    pipeline->shared_data = v3dv_pipeline_shared_data_new_empty(pipeline_sha1,
-                                                               pipeline->device);
+                                                               pipeline->device,
+                                                               false);
 
    /* If not found on cache, compile it */
    p_stage->nir = pipeline_stage_get_nir(p_stage, pipeline, cache);

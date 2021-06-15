@@ -16,10 +16,6 @@ private:
    bool emit_intrinsic_instruction_override(nir_intrinsic_instr* instr) override;
    bool store_tess_factor(nir_intrinsic_instr* instr);
 
-   bool do_process_inputs(nir_variable *input) override { return true;}
-   bool do_process_outputs(nir_variable *output) override;
-   bool do_emit_load_deref(const nir_variable *in_var, nir_intrinsic_instr* instr) override { return true;}
-   bool do_emit_store_deref(const nir_variable *out_var, nir_intrinsic_instr* instr) override { return true;}
    void do_finalize() override {}
 
    int m_reserved_registers;

@@ -165,7 +165,7 @@ ShaderInputVarying::ShaderInputVarying(tgsi_semantic _name, int sid, nir_variabl
          m_ij_index = 0;
          break;
       }
-      /* fall-through */
+      FALLTHROUGH;
 
    case INTERP_MODE_SMOOTH:
       assert(!glsl_base_type_is_integer(base_type));

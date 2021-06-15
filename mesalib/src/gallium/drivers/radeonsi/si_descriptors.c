@@ -231,15 +231,6 @@ static void si_sampler_view_add_buffer(struct si_context *sctx, struct pipe_reso
 
    priority = si_get_sampler_view_priority(&tex->buffer);
    radeon_add_to_gfx_buffer_list_check_mem(sctx, &tex->buffer, usage, priority, check_mem);
-
-   if (resource->target == PIPE_BUFFER)
-      return;
-
-   /* Add separate DCC. */
-   if (tex->dcc_separate_buffer) {
-      radeon_add_to_gfx_buffer_list_check_mem(sctx, tex->dcc_separate_buffer, usage,
-                                              RADEON_PRIO_SEPARATE_META, check_mem);
-   }
 }
 
 static void si_sampler_views_begin_new_cs(struct si_context *sctx, struct si_samplers *samplers)
@@ -310,11 +301,11 @@ void si_set_mutable_tex_desc_fields(struct si_screen *sscreen, struct si_texture
    if (sscreen->info.chip_class >= GFX9) {
       /* Only stencil_offset needs to be added here. */
       if (is_stencil)
-         va += tex->surface.u.gfx9.stencil_offset;
+         va += tex->surface.u.gfx9.zs.stencil_offset;
       else
          va += tex->surface.u.gfx9.surf_offset;
    } else {
-      va += base_level_info->offset;
+      va += (uint64_t)base_level_info->offset_256B * 256;
    }
 
    state[0] = va >> 8;
@@ -331,20 +322,19 @@ void si_set_mutable_tex_desc_fields(struct si_screen *sscreen, struct si_texture
       state[6] &= C_008F28_COMPRESSION_EN;
 
       if (!(access & SI_IMAGE_ACCESS_DCC_OFF) && vi_dcc_enabled(tex, first_level)) {
-         meta_va =
-            (!tex->dcc_separate_buffer ? tex->buffer.gpu_address : 0) + tex->surface.dcc_offset;
+         meta_va = tex->buffer.gpu_address + tex->surface.meta_offset;
 
          if (sscreen->info.chip_class == GFX8) {
-            meta_va += base_level_info->dcc_offset;
+            meta_va += tex->surface.u.legacy.color.dcc_level[base_level].dcc_offset;
             assert(base_level_info->mode == RADEON_SURF_MODE_2D);
          }
 
          unsigned dcc_tile_swizzle = tex->surface.tile_swizzle << 8;
-         dcc_tile_swizzle &= tex->surface.dcc_alignment - 1;
+         dcc_tile_swizzle &= (1 << tex->surface.meta_alignment_log2) - 1;
          meta_va |= dcc_tile_swizzle;
       } else if (vi_tc_compat_htile_enabled(tex, first_level,
                                             is_stencil ? PIPE_MASK_S : PIPE_MASK_Z)) {
-         meta_va = tex->buffer.gpu_address + tex->surface.htile_offset;
+         meta_va = tex->buffer.gpu_address + tex->surface.meta_offset;
       }
 
       if (meta_va)
@@ -358,9 +348,9 @@ void si_set_mutable_tex_desc_fields(struct si_screen *sscreen, struct si_texture
       state[3] &= C_00A00C_SW_MODE;
 
       if (is_stencil) {
-         state[3] |= S_00A00C_SW_MODE(tex->surface.u.gfx9.stencil.swizzle_mode);
+         state[3] |= S_00A00C_SW_MODE(tex->surface.u.gfx9.zs.stencil_swizzle_mode);
       } else {
-         state[3] |= S_00A00C_SW_MODE(tex->surface.u.gfx9.surf.swizzle_mode);
+         state[3] |= S_00A00C_SW_MODE(tex->surface.u.gfx9.swizzle_mode);
       }
 
       state[6] &= C_00A018_META_DATA_ADDRESS_LO & C_00A018_META_PIPE_ALIGNED &
@@ -372,8 +362,8 @@ void si_set_mutable_tex_desc_fields(struct si_screen *sscreen, struct si_texture
             .pipe_aligned = 1,
          };
 
-         if (tex->surface.dcc_offset)
-            meta = tex->surface.u.gfx9.dcc;
+         if (!tex->is_depth && tex->surface.meta_offset)
+            meta = tex->surface.u.gfx9.color.dcc;
 
          state[6] |= S_00A018_META_PIPE_ALIGNED(meta.pipe_aligned) |
                      S_00A018_META_DATA_ADDRESS_LO(meta_va >> 8) |
@@ -386,10 +376,10 @@ void si_set_mutable_tex_desc_fields(struct si_screen *sscreen, struct si_texture
       state[4] &= C_008F20_PITCH;
 
       if (is_stencil) {
-         state[3] |= S_008F1C_SW_MODE(tex->surface.u.gfx9.stencil.swizzle_mode);
-         state[4] |= S_008F20_PITCH(tex->surface.u.gfx9.stencil.epitch);
+         state[3] |= S_008F1C_SW_MODE(tex->surface.u.gfx9.zs.stencil_swizzle_mode);
+         state[4] |= S_008F20_PITCH(tex->surface.u.gfx9.zs.stencil_epitch);
       } else {
-         uint16_t epitch = tex->surface.u.gfx9.surf.epitch;
+         uint16_t epitch = tex->surface.u.gfx9.epitch;
          if (tex->buffer.b.b.format == PIPE_FORMAT_R8G8_R8B8_UNORM &&
              block_width == 1) {
             /* epitch is patched in ac_surface for sdma/vcn blocks to get
@@ -399,7 +389,7 @@ void si_set_mutable_tex_desc_fields(struct si_screen *sscreen, struct si_texture
              */
             epitch = (epitch + 1) / tex->surface.blk_w - 1;
          }
-         state[3] |= S_008F1C_SW_MODE(tex->surface.u.gfx9.surf.swizzle_mode);
+         state[3] |= S_008F1C_SW_MODE(tex->surface.u.gfx9.swizzle_mode);
          state[4] |= S_008F20_PITCH(epitch);
       }
 
@@ -411,8 +401,8 @@ void si_set_mutable_tex_desc_fields(struct si_screen *sscreen, struct si_texture
             .pipe_aligned = 1,
          };
 
-         if (tex->surface.dcc_offset)
-            meta = tex->surface.u.gfx9.dcc;
+         if (!tex->is_depth && tex->surface.meta_offset)
+            meta = tex->surface.u.gfx9.color.dcc;
 
          state[5] |= S_008F24_META_DATA_ADDRESS(meta_va >> 40) |
                      S_008F24_META_PIPE_ALIGNED(meta.pipe_aligned) |
@@ -491,8 +481,11 @@ static void si_set_sampler_view_desc(struct si_context *sctx, struct si_sampler_
 
 static bool color_needs_decompression(struct si_texture *tex)
 {
+   if (tex->is_depth)
+      return false;
+
    return tex->surface.fmask_size ||
-          (tex->dirty_level_mask && (tex->cmask_buffer || tex->surface.dcc_offset));
+          (tex->dirty_level_mask && (tex->cmask_buffer || tex->surface.meta_offset));
 }
 
 static bool depth_needs_decompression(struct si_texture *tex)
@@ -683,6 +676,7 @@ static void si_disable_shader_image(struct si_context *ctx, unsigned shader, uns
 
       memcpy(descs->list + desc_slot * 8, null_image_descriptor, 8 * 4);
       images->enabled_mask &= ~(1u << slot);
+      images->display_dcc_store_mask &= ~(1u << slot);
       ctx->descriptors_dirty |= 1u << si_sampler_and_image_descriptors_idx(shader);
    }
 }
@@ -788,6 +782,7 @@ static void si_set_shader_image(struct si_context *ctx, unsigned shader, unsigne
 
    if (res->b.b.target == PIPE_BUFFER || view->shader_access & SI_IMAGE_ACCESS_AS_BUFFER) {
       images->needs_color_decompress_mask &= ~(1 << slot);
+      images->display_dcc_store_mask &= ~(1u << slot);
       res->bind_history |= PIPE_BIND_SHADER_IMAGE;
    } else {
       struct si_texture *tex = (struct si_texture *)res;
@@ -798,6 +793,11 @@ static void si_set_shader_image(struct si_context *ctx, unsigned shader, unsigne
       } else {
          images->needs_color_decompress_mask &= ~(1 << slot);
       }
+
+      if (tex->surface.display_dcc_offset && view->access & PIPE_IMAGE_ACCESS_WRITE)
+         images->display_dcc_store_mask |= 1u << slot;
+      else
+         images->display_dcc_store_mask &= ~(1u << slot);
 
       if (vi_dcc_enabled(tex, level) && p_atomic_read(&tex->framebuffers_bound))
          ctx->need_check_render_feedback = true;
@@ -1156,7 +1156,7 @@ static void si_set_constant_buffer(struct si_context *sctx, struct si_buffer_res
                 S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
 
       if (sctx->chip_class >= GFX10) {
-         desc[3] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
+         desc[3] |= S_008F0C_FORMAT(V_008F0C_GFX10_FORMAT_32_FLOAT) |
                     S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) | S_008F0C_RESOURCE_LEVEL(1);
       } else {
          desc[3] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
@@ -1257,7 +1257,7 @@ static void si_set_shader_buffer(struct si_context *sctx, struct si_buffer_resou
              S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
 
    if (sctx->chip_class >= GFX10) {
-      desc[3] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
+      desc[3] |= S_008F0C_FORMAT(V_008F0C_GFX10_FORMAT_32_FLOAT) |
                  S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) | S_008F0C_RESOURCE_LEVEL(1);
    } else {
       desc[3] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
@@ -1409,7 +1409,7 @@ void si_set_ring_buffer(struct si_context *sctx, uint slot, struct pipe_resource
          desc[3] |= S_008F0C_ELEMENT_SIZE(element_size);
 
       if (sctx->chip_class >= GFX10) {
-         desc[3] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
+         desc[3] |= S_008F0C_FORMAT(V_008F0C_GFX10_FORMAT_32_FLOAT) |
                     S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) | S_008F0C_RESOURCE_LEVEL(1);
       } else {
          desc[3] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |

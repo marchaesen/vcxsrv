@@ -40,18 +40,18 @@ extern const unsigned a6xx_num_perfcntr_groups;
 const struct fd_perfcntr_group *
 fd_perfcntrs(unsigned gpu_id, unsigned *count)
 {
-	switch (gpu_id) {
-	case 200 ... 299:
-		*count = a2xx_num_perfcntr_groups;
-		return a2xx_perfcntr_groups;
-	case 500 ... 599:
-		*count = a5xx_num_perfcntr_groups;
-		return a5xx_perfcntr_groups;
-	case 600 ... 699:
-		*count = a6xx_num_perfcntr_groups;
-		return a6xx_perfcntr_groups;
-	default:
-		*count = 0;
-		return NULL;
-	}
+   switch (gpu_id) {
+   case 200 ... 299:
+      *count = a2xx_num_perfcntr_groups;
+      return a2xx_perfcntr_groups;
+   case 500 ... 599:
+      *count = a5xx_num_perfcntr_groups;
+      return a5xx_perfcntr_groups;
+   case 600 ... 699:
+      *count = a6xx_num_perfcntr_groups;
+      return a6xx_perfcntr_groups;
+   default:
+      *count = 0;
+      return NULL;
+   }
 }

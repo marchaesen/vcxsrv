@@ -45,7 +45,7 @@
 static enum pipe_error
 retry_draw_range_elements(struct svga_context *svga,
                           const struct pipe_draw_info *info,
-                          const struct pipe_draw_start_count *draw,
+                          const struct pipe_draw_start_count_bias *draw,
                           unsigned count)
 {
    SVGA_STATS_TIME_PUSH(svga_sws(svga), SVGA_STATS_TIME_DRAWELEMENTS);
@@ -218,18 +218,13 @@ get_vcount_from_stream_output(struct svga_context *svga,
 
 static void
 svga_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
+              unsigned drawid_offset,
               const struct pipe_draw_indirect_info *indirect,
-              const struct pipe_draw_start_count *draws,
+              const struct pipe_draw_start_count_bias *draws,
               unsigned num_draws)
 {
    if (num_draws > 1) {
-      struct pipe_draw_info tmp_info = *info;
-
-      for (unsigned i = 0; i < num_draws; i++) {
-         svga_draw_vbo(pipe, &tmp_info, indirect, &draws[i], 1);
-         if (tmp_info.increment_draw_id)
-            tmp_info.drawid++;
-      }
+      util_draw_multi(pipe, info, drawid_offset, indirect, draws, num_draws);
       return;
    }
 
@@ -268,7 +263,7 @@ svga_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
     * always start from 0 for DrawArrays and does not include baseVertex for
     * DrawIndexed.
     */
-   unsigned index_bias = info->index_size ? info->index_bias : 0;
+   unsigned index_bias = info->index_size ? draws->index_bias : 0;
    if (svga->curr.vertex_id_bias != (draws[0].start + index_bias)) {
       svga->curr.vertex_id_bias = draws[0].start + index_bias;
       svga->dirty |= SVGA_NEW_VS_CONSTS;
@@ -288,7 +283,7 @@ svga_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
 
    if (need_fallback_prim_restart(svga, info)) {
       enum pipe_error r;
-      r = util_draw_vbo_without_prim_restart(pipe, info, indirect, &draws[0]);
+      r = util_draw_vbo_without_prim_restart(pipe, info, drawid_offset, indirect, &draws[0]);
       assert(r == PIPE_OK);
       (void) r;
       goto done;
@@ -317,7 +312,7 @@ svga_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
 
       /* Avoid leaking the previous hwtnl bias to swtnl */
       svga_hwtnl_set_index_bias(svga->hwtnl, 0);
-      ret = svga_swtnl_draw_vbo(svga, info, indirect, &draws[0]);
+      ret = svga_swtnl_draw_vbo(svga, info, drawid_offset, indirect, &draws[0]);
    }
    else {
       if (!svga_update_state_retry(svga, SVGA_STATE_HW_DRAW)) {

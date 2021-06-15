@@ -320,6 +320,66 @@ get_s8_values(struct gl_context *ctx, struct gl_renderbuffer *rb,
 }
 
 
+
+/**
+ ** Pack ubyte stencil pixels
+ **/
+
+static void
+pack_ubyte_stencil_Z24_S8(const uint8_t *src, void *dst)
+{
+   /* don't disturb the Z values */
+   uint32_t *d = ((uint32_t *) dst);
+   uint32_t s = *src;
+   uint32_t z = *d & 0xffffff00;
+   *d = z | s;
+}
+
+static void
+pack_ubyte_stencil_S8_Z24(const uint8_t *src, void *dst)
+{
+   /* don't disturb the Z values */
+   uint32_t *d = ((uint32_t *) dst);
+   uint32_t s = *src << 24;
+   uint32_t z = *d & 0xffffff;
+   *d = s | z;
+}
+
+static void
+pack_ubyte_stencil_S8(const uint8_t *src, void *dst)
+{
+   uint8_t *d = (uint8_t *) dst;
+   *d = *src;
+}
+
+static void
+pack_ubyte_stencil_Z32_FLOAT_X24S8(const uint8_t *src, void *dst)
+{
+   float *d = ((float *) dst);
+   d[1] = *src;
+}
+
+/** Pack a uint8_t stencil value to dest address */
+typedef void (*mesa_pack_ubyte_stencil_func)(const uint8_t *src, void *dst);
+
+static mesa_pack_ubyte_stencil_func
+get_pack_ubyte_stencil_func(mesa_format format)
+{
+   switch (format) {
+   case MESA_FORMAT_S8_UINT_Z24_UNORM:
+      return pack_ubyte_stencil_Z24_S8;
+   case MESA_FORMAT_Z24_UNORM_S8_UINT:
+      return pack_ubyte_stencil_S8_Z24;
+   case MESA_FORMAT_S_UINT8:
+      return pack_ubyte_stencil_S8;
+   case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
+      return pack_ubyte_stencil_Z32_FLOAT_X24S8;
+   default:
+      unreachable("unexpected format in get_pack_ubyte_stencil_func()");
+   }
+}
+
+
 /**
  * Put 8-bit stencil values at random locations into the stencil buffer.
  */
@@ -330,7 +390,7 @@ put_s8_values(struct gl_context *ctx, struct gl_renderbuffer *rb,
 {
    const GLint w = rb->Width, h = rb->Height;
    mesa_pack_ubyte_stencil_func pack_stencil =
-      _mesa_get_pack_ubyte_stencil_func(rb->Format);
+      get_pack_ubyte_stencil_func(rb->Format);
    GLuint i;
 
    for (i = 0; i < count; i++) {

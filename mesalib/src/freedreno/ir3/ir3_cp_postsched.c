@@ -43,14 +43,18 @@
  * access and we care about all writes to the array (as we don't know
  * which array element is read).  Otherwise in the case of non-relative
  * access, we only have to care about the write to the specified (>= 0)
- * offset.
+ * offset. In this case, we update `def` to point to the last write in
+ * between `use` and `src` to the same array, so that `use` points to
+ * the correct array write.
  */
 static bool
 has_conflicting_write(struct ir3_instruction *src,
 		struct ir3_instruction *use,
+		struct ir3_instruction **def,
 		unsigned id, int offset)
 {
 	assert(src->block == use->block);
+	bool last_write = true;
 
 	/* NOTE that since src and use are in the same block, src by
 	 * definition appears in the block's instr_list before use:
@@ -93,6 +97,11 @@ has_conflicting_write(struct ir3_instruction *src,
 		/* is write to same array element? */
 		if (dst->array.offset == offset)
 			return true;
+
+		if (last_write)
+			*def = instr;
+
+		last_write = false;
 	}
 
 	return false;
@@ -143,7 +152,8 @@ instr_cp_postsched(struct ir3_instruction *mov)
 		if (is_meta(use))
 			continue;
 
-		if (has_conflicting_write(mov, use, src->array.id, offset))
+		struct ir3_instruction *def = src->instr;
+		if (has_conflicting_write(mov, use, &def, src->array.id, offset))
 			continue;
 
 		if (conflicts(mov->address, use->address))
@@ -164,14 +174,22 @@ instr_cp_postsched(struct ir3_instruction *mov)
 			/* preserve (abs)/etc modifiers: */
 			use->regs[n + 1]-> flags |= reg->flags;
 
+			/* If we're sinking the array read past any writes, make
+			 * sure to update it to point to the new previous write:
+			 */
+			use->regs[n + 1]->instr = def;
+
 			removed = true;
 		}
 
-		/* the use could have been only a false-dep, only add to
-		 * the newdeps array if we've actually updated a real
-		 * src reg for the use:
+		/* the use could have been only a false-dep, only add to the newdeps
+		 * array and update the address if we've actually updated a real src
+		 * reg for the use:
 		 */
 		if (removed) {
+			if (src->flags & IR3_REG_RELATIV)
+				ir3_instr_set_address(use, mov->address);
+
 			util_dynarray_append(&newdeps, struct ir3_instruction *, use);
 
 			/* Remove the use from the src instruction: */

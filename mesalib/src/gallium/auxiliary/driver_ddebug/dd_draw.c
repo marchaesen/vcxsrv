@@ -352,13 +352,15 @@ dd_dump_flush(struct dd_draw_state *dstate, struct call_flush *info, FILE *f)
 
 static void
 dd_dump_draw_vbo(struct dd_draw_state *dstate, struct pipe_draw_info *info,
+                 unsigned drawid_offset,
                  const struct pipe_draw_indirect_info *indirect,
-                 const struct pipe_draw_start_count *draw, FILE *f)
+                 const struct pipe_draw_start_count_bias *draw, FILE *f)
 {
    int sh, i;
 
    DUMP(draw_info, info);
-   DUMP(draw_start_count, draw);
+   PRINT_NAMED(int, "drawid offset", drawid_offset);
+   DUMP(draw_start_count_bias, draw);
    if (indirect) {
       if (indirect->buffer)
          DUMP_M(resource, indirect, buffer);
@@ -636,6 +638,7 @@ dd_dump_call(FILE *f, struct dd_draw_state *state, struct dd_call *call)
       break;
    case CALL_DRAW_VBO:
       dd_dump_draw_vbo(state, &call->info.draw_vbo.info,
+                       call->info.draw_vbo.drawid_offset,
                        &call->info.draw_vbo.indirect,
                        &call->info.draw_vbo.draw, f);
       break;
@@ -1303,8 +1306,9 @@ dd_context_flush(struct pipe_context *_pipe,
 static void
 dd_context_draw_vbo(struct pipe_context *_pipe,
                     const struct pipe_draw_info *info,
+                    unsigned drawid_offset,
                     const struct pipe_draw_indirect_info *indirect,
-                    const struct pipe_draw_start_count *draws,
+                    const struct pipe_draw_start_count_bias *draws,
                     unsigned num_draws)
 {
    struct dd_context *dctx = dd_context(_pipe);
@@ -1313,6 +1317,7 @@ dd_context_draw_vbo(struct pipe_context *_pipe,
 
    record->call.type = CALL_DRAW_VBO;
    record->call.info.draw_vbo.info = *info;
+   record->call.info.draw_vbo.drawid_offset = drawid_offset;
    record->call.info.draw_vbo.draw = draws[0];
    if (info->index_size && !info->has_user_indices) {
       record->call.info.draw_vbo.info.index.resource = NULL;
@@ -1336,7 +1341,7 @@ dd_context_draw_vbo(struct pipe_context *_pipe,
    }
 
    dd_before_draw(dctx, record);
-   pipe->draw_vbo(pipe, info, indirect, draws, num_draws);
+   pipe->draw_vbo(pipe, info, drawid_offset, indirect, draws, num_draws);
    dd_after_draw(dctx, record);
 }
 

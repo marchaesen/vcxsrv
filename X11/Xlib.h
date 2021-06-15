@@ -367,7 +367,7 @@ typedef struct _XImage {
     int bitmap_bit_order;	/* LSBFirst, MSBFirst */
     int bitmap_pad;		/* 8, 16, 32 either XY or ZPixmap */
     int depth;			/* depth of image */
-    int bytes_per_line;		/* accelarator to next line */
+    int bytes_per_line;		/* accelerator to next line */
     int bits_per_pixel;		/* bits per pixel (ZPixmap) */
     unsigned long red_mask;	/* bits in z arrangement */
     unsigned long green_mask;

@@ -66,6 +66,10 @@ present_vblank_create(WindowPtr window,
     present_vblank_ptr          vblank;
     PresentFlipReason           reason = PRESENT_FLIP_REASON_UNKNOWN;
 
+    if (target_crtc) {
+        screen_priv = present_screen_priv(target_crtc->pScreen);
+    }
+
     vblank = calloc (1, sizeof (present_vblank_rec));
     if (!vblank)
         return NULL;

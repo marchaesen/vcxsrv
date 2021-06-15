@@ -39,12 +39,17 @@ protected:
 class IfElseInstruction : public CFInstruction {
 public:
    IfElseInstruction(instr_type type);
+
 };
 
 class IfInstruction : public IfElseInstruction {
 public:
    IfInstruction(AluInstruction *pred);
    const AluInstruction& pred() const {return *m_pred;}
+
+   bool accept(InstructionVisitor& visitor) override {return visitor.visit(*this);}
+   bool accept(ConstInstructionVisitor& visitor) const override {return visitor.visit(*this);}
+
 private:
    void do_evalue_liveness(LiverangeEvaluator& eval) const override;
    bool is_equal_to(const Instruction& lhs) const override;
@@ -55,6 +60,10 @@ private:
 class ElseInstruction : public IfElseInstruction {
 public:
    ElseInstruction(IfInstruction *jump_src);
+
+   bool accept(InstructionVisitor& visitor) override {return visitor.visit(*this);}
+   bool accept(ConstInstructionVisitor& visitor) const override {return visitor.visit(*this);}
+
 private:
    void do_evalue_liveness(LiverangeEvaluator& eval) const override;
    bool is_equal_to(const Instruction& lhs) const override;
@@ -66,6 +75,10 @@ private:
 class IfElseEndInstruction : public IfElseInstruction {
 public:
    IfElseEndInstruction();
+
+   bool accept(InstructionVisitor& visitor) override {return visitor.visit(*this);}
+   bool accept(ConstInstructionVisitor& visitor) const override {return visitor.visit(*this);}
+
 private:
    void do_evalue_liveness(LiverangeEvaluator& eval) const override;
    bool is_equal_to(const Instruction& lhs) const override;
@@ -75,6 +88,10 @@ private:
 class LoopBeginInstruction: public CFInstruction {
 public:
    LoopBeginInstruction();
+
+   bool accept(InstructionVisitor& visitor) override {return visitor.visit(*this);}
+   bool accept(ConstInstructionVisitor& visitor) const override {return visitor.visit(*this);}
+
 private:
    void do_evalue_liveness(LiverangeEvaluator& eval) const override;
    bool is_equal_to(const Instruction& lhs) const override;
@@ -84,6 +101,10 @@ private:
 class LoopEndInstruction: public CFInstruction {
 public:
    LoopEndInstruction(LoopBeginInstruction *start);
+
+   bool accept(InstructionVisitor& visitor) override {return visitor.visit(*this);}
+   bool accept(ConstInstructionVisitor& visitor) const override {return visitor.visit(*this);}
+
 private:
    void do_evalue_liveness(LiverangeEvaluator& eval) const override;
    bool is_equal_to(const Instruction& lhs) const override;
@@ -94,6 +115,10 @@ private:
 class LoopBreakInstruction: public CFInstruction {
 public:
    LoopBreakInstruction();
+
+   bool accept(InstructionVisitor& visitor) override {return visitor.visit(*this);}
+   bool accept(ConstInstructionVisitor& visitor) const override {return visitor.visit(*this);}
+
 private:
    void do_evalue_liveness(LiverangeEvaluator& eval) const override;
    bool is_equal_to(const Instruction& lhs) const override;
@@ -103,6 +128,10 @@ private:
 class LoopContInstruction: public CFInstruction {
 public:
    LoopContInstruction();
+
+   bool accept(InstructionVisitor& visitor) override {return visitor.visit(*this);}
+   bool accept(ConstInstructionVisitor& visitor) const override {return visitor.visit(*this);}
+
 private:
    bool is_equal_to(const Instruction& lhs) const override;
    void do_print(std::ostream& os) const override;

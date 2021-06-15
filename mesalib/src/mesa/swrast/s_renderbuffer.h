@@ -60,8 +60,7 @@ _swrast_add_soft_renderbuffers(struct gl_framebuffer *fb,
                                GLboolean depth,
                                GLboolean stencil,
                                GLboolean accum,
-                               GLboolean alpha,
-                               GLboolean aux);
+                               GLboolean alpha);
 
 
 #endif /* S_RENDERBUFFER_H */

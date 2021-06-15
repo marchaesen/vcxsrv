@@ -415,12 +415,15 @@ void trace_dump_blend_state(const struct pipe_blend_state *state)
 
    trace_dump_struct_begin("pipe_blend_state");
 
-   trace_dump_member(bool, state, dither);
-
+   trace_dump_member(bool, state, independent_blend_enable);
    trace_dump_member(bool, state, logicop_enable);
    trace_dump_member(uint, state, logicop_func);
-
-   trace_dump_member(bool, state, independent_blend_enable);
+   trace_dump_member(bool, state, dither);
+   trace_dump_member(bool, state, alpha_to_coverage);
+   trace_dump_member(bool, state, alpha_to_coverage_dither);
+   trace_dump_member(bool, state, alpha_to_one);
+   trace_dump_member(uint, state, max_rt);
+   trace_dump_member(uint, state, advanced_blend_func);
 
    trace_dump_member_begin("rt");
    if (state->independent_blend_enable)
@@ -480,6 +483,24 @@ void trace_dump_framebuffer_state(const struct pipe_framebuffer_state *state)
    trace_dump_member(uint, state, nr_cbufs);
    trace_dump_member_array(ptr, state, cbufs);
    trace_dump_member(ptr, state, zsbuf);
+
+   trace_dump_struct_end();
+}
+
+void trace_dump_framebuffer_state_deep(const struct pipe_framebuffer_state *state)
+{
+   if (!trace_dumping_enabled_locked())
+      return;
+
+   trace_dump_struct_begin("pipe_framebuffer_state");
+
+   trace_dump_member(uint, state, width);
+   trace_dump_member(uint, state, height);
+   trace_dump_member(uint, state, samples);
+   trace_dump_member(uint, state, layers);
+   trace_dump_member(uint, state, nr_cbufs);
+   trace_dump_member_array(surface, state, cbufs);
+   trace_dump_member(surface, state, zsbuf);
 
    trace_dump_struct_end();
 }
@@ -560,6 +581,12 @@ void trace_dump_sampler_view_template(const struct pipe_sampler_view *state,
    trace_dump_member(uint, state, swizzle_a);
 
    trace_dump_struct_end();
+}
+
+
+void trace_dump_surface(const struct pipe_surface *surface)
+{
+   trace_dump_surface_template(surface, surface ? surface->texture->target : 0);
 }
 
 
@@ -773,7 +800,6 @@ void trace_dump_draw_info(const struct pipe_draw_info *state)
 
    trace_dump_member(uint, state, vertices_per_patch);
 
-   trace_dump_member(int,  state, index_bias);
    trace_dump_member(uint, state, min_index);
    trace_dump_member(uint, state, max_index);
 
@@ -784,14 +810,15 @@ void trace_dump_draw_info(const struct pipe_draw_info *state)
    trace_dump_struct_end();
 }
 
-void trace_dump_draw_start_count(const struct pipe_draw_start_count *state)
+void trace_dump_draw_start_count(const struct pipe_draw_start_count_bias *state)
 {
    if (!trace_dumping_enabled_locked())
       return;
 
-   trace_dump_struct_begin("pipe_draw_start_count");
+   trace_dump_struct_begin("pipe_draw_start_count_bias");
    trace_dump_member(uint, state, start);
    trace_dump_member(uint, state, count);
+   trace_dump_member(int,  state, index_bias);
    trace_dump_struct_end();
 }
 

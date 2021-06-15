@@ -139,7 +139,7 @@ _swrast_update_polygon( struct gl_context *ctx )
          backface_sign = 1.0F;
 	 break;
       case GL_FRONT_AND_BACK:
-         /* fallthrough */
+         FALLTHROUGH;
       default:
 	 backface_sign = 0.0F;
       }

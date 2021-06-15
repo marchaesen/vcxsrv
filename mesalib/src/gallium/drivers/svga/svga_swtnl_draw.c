@@ -39,8 +39,9 @@
 enum pipe_error
 svga_swtnl_draw_vbo(struct svga_context *svga,
                     const struct pipe_draw_info *info,
+                    unsigned drawid_offset,
                     const struct pipe_draw_indirect_info *indirect,
-                    const struct pipe_draw_start_count *draw_one)
+                    const struct pipe_draw_start_count_bias *draw_one)
 {
    struct pipe_transfer *vb_transfer[PIPE_MAX_ATTRIBS] = { 0 };
    struct pipe_transfer *ib_transfer = NULL;
@@ -114,7 +115,7 @@ svga_swtnl_draw_vbo(struct svga_context *svga,
          svga->curr.constbufs[PIPE_SHADER_VERTEX][i].buffer->width0);
    }
 
-   draw_vbo(draw, info, indirect, draw_one, 1);
+   draw_vbo(draw, info, drawid_offset, indirect, draw_one, 1);
 
    draw_flush(svga->swtnl.draw);
 

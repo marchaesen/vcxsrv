@@ -66,7 +66,7 @@ svga_hwtnl_draw_arrays(struct svga_hwtnl *hwtnl,
 enum pipe_error
 svga_hwtnl_draw_range_elements(struct svga_hwtnl *hwtnl,
                                const struct pipe_draw_info *info,
-                               const struct pipe_draw_start_count *draw,
+                               const struct pipe_draw_start_count_bias *draw,
                                unsigned count);
 
 boolean

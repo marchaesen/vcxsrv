@@ -23,24 +23,22 @@
  * IN THE SOFTWARE.
  */
 
-#include "wsi_common_wayland.h"
 #include "radv_private.h"
+#include "wsi_common_wayland.h"
 
-VkBool32 radv_GetPhysicalDeviceWaylandPresentationSupportKHR(
-    VkPhysicalDevice                            physicalDevice,
-    uint32_t                                    queueFamilyIndex,
-    struct wl_display*                          display)
+VkBool32
+radv_GetPhysicalDeviceWaylandPresentationSupportKHR(VkPhysicalDevice physicalDevice,
+                                                    uint32_t queueFamilyIndex,
+                                                    struct wl_display *display)
 {
    RADV_FROM_HANDLE(radv_physical_device, physical_device, physicalDevice);
 
    return wsi_wl_get_presentation_support(&physical_device->wsi_device, display);
 }
 
-VkResult radv_CreateWaylandSurfaceKHR(
-    VkInstance                                  _instance,
-    const VkWaylandSurfaceCreateInfoKHR*        pCreateInfo,
-    const VkAllocationCallbacks*                pAllocator,
-    VkSurfaceKHR*                               pSurface)
+VkResult
+radv_CreateWaylandSurfaceKHR(VkInstance _instance, const VkWaylandSurfaceCreateInfoKHR *pCreateInfo,
+                             const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface)
 {
    RADV_FROM_HANDLE(radv_instance, instance, _instance);
    const VkAllocationCallbacks *alloc;

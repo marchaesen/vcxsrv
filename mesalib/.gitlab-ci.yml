@@ -1,6 +1,6 @@
 variables:
   FDO_UPSTREAM_REPO: mesa/mesa
-  MESA_TEMPLATES_COMMIT: &ci-templates-commit 52dd4a94044449c8481d18dcdc221a3c636366d2
+  MESA_TEMPLATES_COMMIT: &ci-templates-commit 290b79e0e78eab67a83766f4e9691be554fc4afd
   CI_PRE_CLONE_SCRIPT: |-
           set -o xtrace
           /usr/bin/wget -q -O- ${CI_PROJECT_URL}/-/raw/${CI_COMMIT_SHA}/.gitlab-ci/download-git-cache.sh | sh -
@@ -65,11 +65,11 @@ stages:
     # Forked project branch
     - if: &is-forked-branch '$CI_PROJECT_NAMESPACE != "mesa" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $CI_COMMIT_REF_NAME'
       when: manual
-    # Forked project branch / pre-merge pipeline
-    - if: &is-forked-branch-or-pre-merge '$CI_PROJECT_NAMESPACE != "mesa" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $CI_COMMIT_REF_NAME'
+    # Forked project branch / pre-merge pipeline not for Marge bot
+    - if: &is-forked-branch-or-pre-merge-not-for-marge '$CI_PROJECT_NAMESPACE != "mesa" || ($GITLAB_USER_LOGIN != "marge-bot" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $CI_COMMIT_REF_NAME)'
       when: manual
-    # Pipeline runs for the master branch of the main project
-    - if: &is-main-master '$CI_PROJECT_NAMESPACE == "mesa" && $CI_COMMIT_REF_NAME == "master" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != "master"'
+    # Pipeline runs for the main branch of the upstream Mesa project
+    - if: &is-mesa-main '$CI_PROJECT_NAMESPACE == "mesa" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $CI_DEFAULT_BRANCH'
       when: always
     # Post-merge pipeline
     - if: &is-post-merge '$CI_PROJECT_NAMESPACE == "mesa" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $CI_COMMIT_REF_NAME'
@@ -92,7 +92,7 @@ stages:
   script:
   - apk --no-cache add graphviz
   - pip3 install sphinx sphinx_rtd_theme
-  - sphinx-build -b html docs public
+  - sphinx-build -W -b html docs public
 
 pages:
   extends: .docs-base
@@ -103,7 +103,7 @@ pages:
   needs: []
   rules:
     - *ignore_scheduled_pipelines
-    - if: *is-main-master
+    - if: *is-mesa-main
       changes: &docs-or-ci
       - docs/**/*
       - .gitlab-ci.yml
@@ -276,7 +276,7 @@ success:
     # Otherwise, container jobs won't run
     - when: never
   variables:
-    FDO_DISTRIBUTION_VERSION: buster-slim
+    FDO_DISTRIBUTION_VERSION: bullseye-slim
     FDO_REPO_SUFFIX: "debian/$CI_JOB_NAME"
     FDO_DISTRIBUTION_EXEC: 'env FDO_CI_CONCURRENT=${FDO_CI_CONCURRENT} bash .gitlab-ci/container/${CI_JOB_NAME}.sh'
     # no need to pull the whole repo to build the container image
@@ -290,13 +290,13 @@ success:
     - .ci-run-policy
   stage: container-2
 
-# Debian 10 based x86 build image base
+# Debian 11 based x86 build image base
 x86_build-base:
   extends:
     - .fdo.container-build@debian
     - .container
   variables:
-    MESA_IMAGE_TAG: &x86_build-base "2021-02-08-container-reorg"
+    MESA_IMAGE_TAG: &x86_build-base "2021-03-31-bullseye"
 
 .use-x86_build-base:
   extends:
@@ -308,12 +308,12 @@ x86_build-base:
   needs:
     - x86_build-base
 
-# Debian 10 based x86 main build image
+# Debian 11 based x86 main build image
 x86_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &x86_build "2021-02-19-strace"
+    MESA_IMAGE_TAG: &x86_build "2021-04-13-glvnd"
 
 .use-x86_build:
   extends:
@@ -325,12 +325,12 @@ x86_build:
   needs:
     - x86_build
 
-# Debian 10 based i386 cross-build image
+# Debian 11 based i386 cross-build image
 i386_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &i386_build "2021-02-08-container-reorg"
+    MESA_IMAGE_TAG: &i386_build "2021-04-13-bullseye"
 
 .use-i386_build:
   extends:
@@ -342,12 +342,12 @@ i386_build:
   needs:
     - i386_build
 
-# Debian 10 based ppc64el cross-build image
+# Debian 11 based ppc64el cross-build image
 ppc64el_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &ppc64el_build "2021-02-08-container-reorg"
+    MESA_IMAGE_TAG: &ppc64el_build "2021-04-13-bullseye"
 
 .use-ppc64el_build:
   extends:
@@ -359,12 +359,12 @@ ppc64el_build:
   needs:
     - ppc64el_build
 
-# Debian 10 based s390x cross-build image
+# Debian 11 based s390x cross-build image
 s390x_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &s390x_build "2021-02-08-container-reorg"
+    MESA_IMAGE_TAG: &s390x_build "2021-04-13-bullseye"
 
 .use-s390x_build:
   extends:
@@ -381,7 +381,7 @@ android_build:
   extends:
     - .use-x86_build-base
   variables:
-    MESA_IMAGE_TAG: &android_build "2021-02-08-container-reorg"
+    MESA_IMAGE_TAG: &android_build "2021-04-08-libdrm"
 
 .use-android_build:
   extends:
@@ -393,11 +393,11 @@ android_build:
   needs:
     - android_build
 
-# Debian 10 based x86 test image base
+# Debian 11 based x86 test image base
 x86_test-base:
   extends: x86_build-base
   variables:
-    MESA_IMAGE_TAG: &x86_test-base "2021-02-17-gfxreconstruct-master"
+    MESA_IMAGE_TAG: &x86_test-base "2021-03-31-cargo"
 
 .use-x86_test-base:
   extends:
@@ -409,25 +409,27 @@ x86_test-base:
   needs:
     - x86_test-base
 
-# Debian 10 based x86 test image for GL
+# Debian 11 based x86 test image for GL
 x86_test-gl:
   extends: .use-x86_test-base
   variables:
-    MESA_IMAGE_TAG: &x86_test-gl "2021-03-16-piglit-runner"
+    MESA_IMAGE_TAG: &x86_test-gl "2021-04-28-yuv-3"
 
-# Debian 10 based x86 test image for VK
+# Debian 11 based x86 test image for VK
 x86_test-vk:
   extends: .use-x86_test-base
   variables:
-    MESA_IMAGE_TAG: &x86_test-vk "2021-03-16-piglit-runner"
+    MESA_IMAGE_TAG: &x86_test-vk "2021-04-28-yuv-3"
 
-# Debian 10 based ARM build image
+# Debian 11 based ARM build image
 arm_build:
   extends:
-    - .fdo.container-build@debian@arm64v8
+    - .fdo.container-build@debian
     - .container
+  tags:
+    - aarch64
   variables:
-    MESA_IMAGE_TAG: &arm_build "2021-02-15-asan"
+    MESA_IMAGE_TAG: &arm_build "2021-04-13-bullseye"
 
 .use-arm_build:
   extends:
@@ -438,61 +440,84 @@ arm_build:
   needs:
     - arm_build
 
-# Debian 10 based x86 baremetal image base
-arm_test-base:
+.kernel+rootfs:
+  extends:
+    - .ci-run-policy
+  stage: container-2
+  variables:
+    GIT_STRATEGY: fetch
+    KERNEL_URL: "https://gitlab.freedesktop.org/drm/msm/-/archive/v5.11-for-mesa-ci-40abe2528d16/linux-v5.11-for-mesa-ci-40abe2528d16.tar.bz2"
+    MESA_ROOTFS_TAG: &kernel-rootfs "2021-04-28-yuv-3"
+    DISTRIBUTION_TAG: &distribution-tag-arm "${MESA_ROOTFS_TAG}--${MESA_IMAGE_TAG}--${MESA_TEMPLATES_COMMIT}"
+  script:
+    - .gitlab-ci/container/lava_build.sh
+
+kernel+rootfs_amd64:
+  extends:
+    - .use-x86_build-base
+    - .kernel+rootfs
+  image: "$FDO_BASE_IMAGE"
+  variables:
+    DEBIAN_ARCH: "amd64"
+    DISTRIBUTION_TAG: &distribution-tag-amd64 "${MESA_ROOTFS_TAG}--${MESA_BASE_TAG}--${MESA_TEMPLATES_COMMIT}"
+
+kernel+rootfs_arm64:
+  extends:
+    - .use-arm_build
+    - .kernel+rootfs
+  tags:
+    - aarch64
+  variables:
+    DEBIAN_ARCH: "arm64"
+
+kernel+rootfs_armhf:
+  extends:
+    - kernel+rootfs_arm64
+  variables:
+    DEBIAN_ARCH: "armhf"
+
+# Cannot use anchors defined here from included files, so use extends: instead
+.use-kernel+rootfs-arm:
+  variables:
+    DISTRIBUTION_TAG: *distribution-tag-arm
+    MESA_ROOTFS_TAG: *kernel-rootfs
+
+.use-kernel+rootfs-amd64:
+  variables:
+    DISTRIBUTION_TAG: *distribution-tag-amd64
+    MESA_ROOTFS_TAG: *kernel-rootfs
+
+# x86 image with ARM64 & armhf kernel & rootfs for baremetal testing
+arm_test:
   extends:
     - .fdo.container-build@debian
     - .container
-  variables:
-    MESA_IMAGE_TAG: &arm_test-base "2021-02-08-container-reorg"
-
-.use-arm_test-base:
-  extends:
-    - .fdo.container-build@debian
-    - .use-base-image
-  variables:
-    MESA_BASE_IMAGE: "debian/arm_test-base"
-    MESA_BASE_TAG: *arm_test-base
+    # Don't want the .container rules
+    - .ci-run-policy
+  stage: build-misc
   needs:
-    - arm_test-base
-
-# x86 image with ARM64 rootfs for baremetal testing.
-arm64_test:
-  extends:
-    - .use-arm_test-base
+    - kernel+rootfs_arm64
+    - kernel+rootfs_armhf
   variables:
-    MESA_IMAGE_TAG: &arm64_test "2021-03-17-waffle-dep"
+    FDO_DISTRIBUTION_EXEC: 'env ARTIFACTS_PREFIX=https://${MINIO_HOST}/mesa-lava ARTIFACTS_SUFFIX=${MESA_ROOTFS_TAG}--${MESA_ARM_BUILD_TAG}--${MESA_TEMPLATES_COMMIT} CI_PROJECT_PATH=${CI_PROJECT_PATH} FDO_CI_CONCURRENT=${FDO_CI_CONCURRENT} FDO_UPSTREAM_REPO=${FDO_UPSTREAM_REPO} bash .gitlab-ci/container/${CI_JOB_NAME}.sh'
+    FDO_DISTRIBUTION_TAG: "${MESA_IMAGE_TAG}--${MESA_ROOTFS_TAG}--${MESA_ARM_BUILD_TAG}--${MESA_TEMPLATES_COMMIT}"
+    MESA_ARM_BUILD_TAG: *arm_build
+    MESA_IMAGE_TAG: &arm_test "2021-04-20-kernel-modules"
+    MESA_ROOTFS_TAG: *kernel-rootfs
 
-.use-arm64_test:
-  extends:
-    - .set-image-base-tag
+.use-arm_test:
+  image: "$CI_REGISTRY_IMAGE/${MESA_IMAGE_PATH}:${MESA_IMAGE_TAG}--${MESA_ROOTFS_TAG}--${MESA_ARM_BUILD_TAG}--${MESA_TEMPLATES_COMMIT}"
   variables:
-    MESA_BASE_TAG: *arm_test-base
-    MESA_IMAGE_PATH: "debian/arm64_test"
-    MESA_IMAGE_TAG: *arm64_test
+    MESA_ARM_BUILD_TAG: *arm_build
+    MESA_IMAGE_PATH: "debian/arm_test"
+    MESA_IMAGE_TAG: *arm_test
+    MESA_ROOTFS_TAG: *kernel-rootfs
   needs:
-    - arm64_test
-
-# x86 image with armhf rootfs for baremetal testing
-armhf_test:
-  extends:
-    - .use-arm_test-base
-  variables:
-    MESA_IMAGE_TAG: &armhf_test "2021-03-17-waffle-dep"
-
-.use-armhf_test:
-  extends:
-    - .set-image-base-tag
-  variables:
-    MESA_BASE_TAG: *arm_test-base
-    MESA_IMAGE_PATH: "debian/armhf_test"
-    MESA_IMAGE_TAG: *armhf_test
-  needs:
-    - armhf_test
+    - arm_test
 
 # Native Windows docker builds
 #
-# Unlike the above Linux-based builds - including MinGW/SCons builds which
+# Unlike the above Linux-based builds - including MinGW builds which
 # cross-compile for Windows - which use the freedesktop ci-templates, we
 # cannot use the same scheme here. As Windows lacks support for
 # Docker-in-Docker, and Podman does not run natively on Windows, we have
@@ -506,9 +531,10 @@ armhf_test:
   extends:
     - .set-image
   variables:
+    MESA_IMAGE: "$CI_REGISTRY_IMAGE/${MESA_IMAGE_PATH}:${MESA_IMAGE_TAG}"
     MESA_IMAGE_PATH: "windows/x64_build"
-    MESA_IMAGE_TAG: "2021-03-15-tls"
-    MESA_UPSTREAM_IMAGE: "$CI_REGISTRY/$FDO_UPSTREAM_REPO/$MESA_IMAGE_PATH:${MESA_IMAGE_TAG}--${MESA_TEMPLATES_COMMIT}"
+    MESA_IMAGE_TAG: "2021-04-14-radv"
+    MESA_UPSTREAM_IMAGE: "$CI_REGISTRY/$FDO_UPSTREAM_REPO/$MESA_IMAGE_PATH:${MESA_IMAGE_TAG}"
 
 windows_build_vs2019:
   extends:
@@ -589,8 +615,6 @@ sanity:
     paths:
       - _build/meson-logs/*.txt
       - _build/meson-logs/strace
-      # scons:
-      - build/*/config.log
       - shader-db
 
 # Just Linux
@@ -626,17 +650,9 @@ sanity:
     - .use-x86_build
   stage: meson-x86_64
   variables:
-    LLVM_VERSION: 10
+    LLVM_VERSION: 11
   script:
     - .gitlab-ci/meson/build.sh
-
-.scons-build:
-  extends:
-    - .build-linux
-    - .use-x86_build
-  stage: build-misc
-  script:
-    - env SCONSFLAGS="-j${FDO_CI_CONCURRENT:-4}" .gitlab-ci/scons-build.sh
 
 meson-testing:
   extends:
@@ -656,7 +672,6 @@ meson-testing:
     BUILDTYPE: "debugoptimized"
     EXTRA_OPTION: >
       -D valgrind=false
-      -D werror=true
     MINIO_ARTIFACT_NAME: mesa-amd64
   script:
     - .gitlab-ci/meson/build.sh
@@ -666,6 +681,8 @@ meson-testing-asan:
   extends:
     - meson-testing
   variables:
+    C_ARGS: >
+      -Wno-error=stringop-truncation
     EXTRA_OPTION: >
       -D b_sanitize=address
       -D valgrind=false
@@ -678,7 +695,6 @@ meson-clover-testing:
     - .ci-deqp-artifacts
   variables:
     UNWIND: "enabled"
-    LLVM_VERSION: 10
     DRI_LOADERS: >
       -D glx=disabled
       -D egl=disabled
@@ -690,7 +706,6 @@ meson-clover-testing:
     BUILDTYPE: "debugoptimized"
     EXTRA_OPTION: >
       -D valgrind=false
-      -D werror=true
   script:
     - .gitlab-ci/meson/build.sh
     - .gitlab-ci/prepare-artifacts.sh
@@ -719,7 +734,6 @@ meson-gallium:
     EXTRA_OPTION: >
       -D osmesa=true
       -D tools=all
-      -D werror=true
   script:
     - .gitlab-ci/meson/build.sh
     - .gitlab-ci/run-shader-db.sh
@@ -746,12 +760,11 @@ meson-release:
       -D gallium-nine=false
       -D gallium-opencl=disabled
       -D llvm=false
-    GALLIUM_DRIVERS: "nouveau,kmsro,freedreno,r300,svga,swrast,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,d3d12"
+    GALLIUM_DRIVERS: "iris,nouveau,kmsro,freedreno,r300,svga,swrast,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,d3d12"
     BUILDTYPE: "release"
     EXTRA_OPTION: >
       -D osmesa=true
       -D tools=all
-      -D werror=true
   script:
     - .gitlab-ci/meson/build.sh
 
@@ -761,6 +774,21 @@ meson-android:
     - .use-android_build
   variables:
     UNWIND: "disabled"
+    C_ARGS: >
+      -Wno-error=absolute-value
+      -Wno-error=asm-operand-widths
+      -Wno-error=constant-conversion
+      -Wno-error=enum-conversion
+      -Wno-error=extern-initializer
+      -Wno-error=initializer-overrides
+      -Wno-error=missing-braces
+      -Wno-error=sometimes-uninitialized
+      -Wno-error=tautological-constant-out-of-range-compare
+      -Wno-error=unused-function
+      -Wno-error=unused-label
+    CPP_ARGS: >
+      -Wno-error=deprecated-declarations
+      -Wno-error=non-virtual-dtor
     DRI_LOADERS: >
       -D glx=disabled
       -D gbm=disabled
@@ -783,7 +811,7 @@ meson-android:
     LLVM_VERSION: ""
     PKG_CONFIG_LIBDIR: "/disable/non/android/system/pc/files"
   script:
-    - PKG_CONFIG_PATH=/usr/local/lib/aarch64-linux-android/pkgconfig/:/android-ndk-r21d/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/pkgconfig/ CROSS=aarch64-linux-android GALLIUM_DRIVERS=etnaviv,freedreno,lima,panfrost,vc4,v3d VULKAN_DRIVERS=freedreno,broadcom .gitlab-ci/meson/build.sh
+    - PKG_CONFIG_PATH=/usr/local/lib/aarch64-linux-android/pkgconfig/:/android-ndk-r21d/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/pkgconfig/ CROSS=aarch64-linux-android GALLIUM_DRIVERS=etnaviv,freedreno,lima,panfrost,vc4,v3d VULKAN_DRIVERS=freedreno,broadcom,virtio-experimental .gitlab-ci/meson/build.sh
     # x86_64 build:
     # Can't do Intel because gen_decoder.c currently requires libexpat, which
     # is not a dependency that AOSP wants to accept.  Can't do Radeon because
@@ -810,7 +838,6 @@ meson-android:
       -D gallium-va=disabled
       -D gallium-xa=disabled
       -D gallium-nine=false
-    LLVM_VERSION: "8"
 
 .meson-arm:
   extends:
@@ -831,7 +858,6 @@ meson-armhf:
     - .ci-deqp-artifacts
   variables:
     CROSS: armhf
-    LLVM_VERSION: "7"
     EXTRA_OPTION: >
       -D llvm=disabled
       -D valgrind=false
@@ -858,6 +884,8 @@ meson-arm64-asan:
   extends:
     - meson-arm64
   variables:
+    C_ARGS: >
+      -Wno-error=stringop-truncation
     EXTRA_OPTION: >
       -D llvm=disabled
       -D b_sanitize=address
@@ -874,7 +902,6 @@ meson-arm64-build-test:
     VULKAN_DRIVERS: "amd"
     EXTRA_OPTION: >
       -Dtools=panfrost
-      -D werror=true
   script:
     - .gitlab-ci/meson/build.sh
 
@@ -882,13 +909,49 @@ meson-clang:
   extends: .meson-build
   variables:
     UNWIND: "enabled"
+    C_ARGS: >
+      -Wno-error=absolute-value
+      -Wno-error=constant-conversion
+      -Wno-error=constant-logical-operand
+      -Wno-error=enum-conversion
+      -Wno-error=gnu-variable-sized-type-not-at-end
+      -Wno-error=implicit-const-int-float-conversion
+      -Wno-error=initializer-overrides
+      -Wno-error=misleading-indentation
+      -Wno-error=mismatched-tags
+      -Wno-error=missing-braces
+      -Wno-error=overloaded-virtual
+      -Wno-error=self-assign
+      -Wno-error=sometimes-uninitialized
+      -Wno-error=tautological-constant-compare
+      -Wno-error=tautological-constant-out-of-range-compare
+      -Wno-error=tautological-overlap-compare
+      -Wno-error=typedef-redefinition
+      -Wno-error=unused-function
+      -Wno-error=unused-private-field
+      -Wno-error=xor-used-as-pow
+    CPP_ARGS: >
+      -Wno-error=c99-designator
+      -Wno-error=constant-logical-operand
+      -Wno-error=deprecated-declarations
+      -Wno-error=implicit-const-int-float-conversion
+      -Wno-error=mismatched-tags
+      -Wno-error=missing-braces
+      -Wno-error=overloaded-virtual
+      -Wno-error=self-assign
+      -Wno-error=sometimes-uninitialized
+      -Wno-error=tautological-constant-out-of-range-compare
+      -Wno-error=unused-const-variable
+      -Wno-error=unused-private-field
+      -Wno-error=unused-value
+      -Wno-error=unused-variable
     DRI_LOADERS: >
       -D glvnd=true
     DRI_DRIVERS: "auto"
     GALLIUM_DRIVERS: "iris,nouveau,kmsro,r300,r600,freedreno,swr,swrast,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,radeonsi,tegra,d3d12"
-    VULKAN_DRIVERS: intel,amd,freedreno,broadcom
-    CC: "ccache clang-10"
-    CXX: "ccache clang++-10"
+    VULKAN_DRIVERS: intel,amd,freedreno,broadcom,virtio-experimental
+    CC: clang
+    CXX: clang++
 
 meson-windows-vs2019:
   extends:
@@ -925,13 +988,6 @@ test-d3d12-windows:
     paths:
       - summary/
 
-.scons-win64:
-  extends: .scons-build
-  variables:
-    SCONS_TARGET: platform=windows machine=x86_64 debug=1
-    SCONS_CHECK_COMMAND: "true"
-  allow_failure: true
-
 meson-clover:
   extends: .meson-build
   variables:
@@ -952,10 +1008,8 @@ meson-clover:
       -D gallium-opencl=icd
     EXTRA_OPTION: >
       -D valgrind=false
-      -D werror=true
   script:
-    - LLVM_VERSION=8 .gitlab-ci/meson/build.sh
-    - LLVM_VERSION=9 .gitlab-ci/meson/build.sh
+    - LLVM_VERSION=9 GALLIUM_DRIVERS=r600,swrast .gitlab-ci/meson/build.sh
     - .gitlab-ci/meson/build.sh
 
 meson-vulkan:
@@ -981,11 +1035,10 @@ meson-vulkan:
       -D c_args=-fno-sanitize-recover=all
       -D cpp_args=-fno-sanitize-recover=all
     UBSAN_OPTIONS: "print_stacktrace=1"
-    VULKAN_DRIVERS: intel,amd,freedreno,broadcom
+    VULKAN_DRIVERS: intel,amd,freedreno,broadcom,virtio-experimental
     EXTRA_OPTION: >
       -D vulkan-layers=device-select,overlay
       -D build-aco-tests=true
-      -D werror=true
 
 meson-i386:
   extends:
@@ -993,34 +1046,31 @@ meson-i386:
     - .use-i386_build
   variables:
     CROSS: i386
-    VULKAN_DRIVERS: intel,amd,swrast
+    VULKAN_DRIVERS: intel,amd,swrast,virtio-experimental
     GALLIUM_DRIVERS: "iris,nouveau,r300,r600,radeonsi,swrast,virgl,zink"
     DRI_DRIVERS: "i915,i965,r100,r200,nouveau"
     EXTRA_OPTION: >
       -D vulkan-layers=device-select,overlay
-      -D werror=true
 
 meson-s390x:
   extends:
-    - .meson-cross
+    - meson-ppc64el
     - .use-s390x_build
   tags:
     - kvm
   variables:
     CROSS: s390x
-    EXTRA_OPTION: >
-      -D werror=true
     GALLIUM_DRIVERS: "swrast,zink"
+    # The lp_test_blend test times out with LLVM 11
+    LLVM_VERSION: 9
     VULKAN_DRIVERS: "swrast"
 
 meson-ppc64el:
   extends:
-    - meson-s390x
+    - .meson-cross
     - .use-ppc64el_build
   variables:
     CROSS: ppc64el
-    EXTRA_OPTION: >
-      -D werror=true
     GALLIUM_DRIVERS: "nouveau,radeonsi,swrast,virgl,zink"
     VULKAN_DRIVERS: "amd,swrast"
 
@@ -1029,6 +1079,10 @@ meson-mingw32-x86_64:
   stage: build-misc
   variables:
     UNWIND: "disabled"
+    C_ARGS: >
+      -Wno-error=format
+      -Wno-error=format-extra-args
+    CPP_ARGS: $C_ARGS
     DRI_DRIVERS: ""
     GALLIUM_DRIVERS: "swrast"
     EXTRA_OPTION: >
@@ -1122,13 +1176,14 @@ meson-mingw32-x86_64:
     PIGLIT_REPLAY_EXTRA_ARGS:  --keep-image --db-path ${CI_PROJECT_DIR}/replayer-db/
     PIGLIT_REPLAY_REFERENCE_IMAGES_BASE_URL: "/mesa-tracie-results/$FDO_UPSTREAM_REPO"
     PIGLIT_REPLAY_ARTIFACTS_BASE_URL: "/artifacts/$CI_PROJECT_PATH/$CI_PIPELINE_ID/$CI_JOB_ID"
-    PIGLIT_HTML_SUMMARY: 0
     PIGLIT_JUNIT_RESULTS: 1
 
 .deqp-test:
   script:
     - ./install/deqp-runner.sh
   artifacts:
+    exclude:
+      - results/*.shader_cache
     reports:
       junit: results/junit.xml
 
@@ -1149,13 +1204,26 @@ meson-mingw32-x86_64:
 
 # Rules for tests that should not be present in MRs or the main
 # project's pipeline (don't block marge or report red on
-# mesa/mesamaster) but should be present on pipelines in personal
+# mesa/mesa main) but should be present on pipelines in personal
 # branches (so you can opt in to running the flaky test when you want
 # to).
 .test-manual:
   rules:
     - *ignore_scheduled_pipelines
     - if: *is-forked-branch
+      changes:
+        *all_paths
+      when: manual
+    - when: never
+  variables:
+    GIT_STRATEGY: none
+
+# The above .test-manual rules doesn't allow the jobs to be available for MRs
+# but we should have an option to have manual jobs in MRs as well.
+.test-manual-mr:
+  rules:
+    - *ignore_scheduled_pipelines
+    - if: *is-forked-branch-or-pre-merge-not-for-marge
       changes:
         *all_paths
       when: manual
@@ -1195,15 +1263,14 @@ meson-mingw32-x86_64:
 
 .baremetal-arm64-asan-test:
   variables:
-    TEST_LD_PRELOAD: libasan.so.5
+    TEST_LD_PRELOAD: libasan.so.6
     MINIO_ARTIFACT_NAME: mesa-arm64-asan
   needs:
-    - arm64_test
+    - arm_test
     - job: meson-arm64-asan
       artifacts: false
 
 .baremetal-deqp-test:
   variables:
     BARE_METAL_TEST_SCRIPT: "/install/deqp-runner.sh"
-    DEQP_SKIPS: deqp-default-skips.txt
     DEQP_PARALLEL: 0 # Default to number of CPUs

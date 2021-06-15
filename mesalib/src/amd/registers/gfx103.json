@@ -8220,12 +8220,6 @@
   },
   {
    "chips": ["gfx103"],
-   "map": {"at": 199052, "to": "mm"},
-   "name": "GE_VRS_RATE",
-   "type_ref": "GE_VRS_RATE"
-  },
-  {
-   "chips": ["gfx103"],
    "map": {"at": 199168, "to": "mm"},
    "name": "PA_SU_LINE_STIPPLE_VALUE",
    "type_ref": "PA_SU_LINE_STIPPLE_VALUE"
@@ -14488,12 +14482,6 @@
     {"bits": [0, 0], "name": "EN_USER_VGPR1"},
     {"bits": [1, 1], "name": "EN_USER_VGPR2"},
     {"bits": [2, 2], "name": "EN_USER_VGPR3"}
-   ]
-  },
-  "GE_VRS_RATE": {
-   "fields": [
-    {"bits": [0, 1], "name": "RATE_X"},
-    {"bits": [4, 5], "name": "RATE_Y"}
    ]
   },
   "GRBM_GFX_INDEX": {

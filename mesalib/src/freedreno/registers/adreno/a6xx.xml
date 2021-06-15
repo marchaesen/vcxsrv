@@ -1698,7 +1698,8 @@ to upconvert to 32b float internally?
 		<bitfield name="FC_ENABLE" pos="3" type="boolean"/>
 		<!-- set when depth-test + depth-write enabled -->
 		<bitfield name="Z_TEST_ENABLE" pos="4" type="boolean"/>
-		<bitfield name="UNK5" low="5" high="9"/>
+		<bitfield name="Z_BOUNDS_ENABLE" pos="5" type="boolean"/>
+		<bitfield name="UNK6" low="6" high="9"/>
 	</reg32>
 	<reg32 offset="0x8101" name="GRAS_UNKNOWN_8101" low="0" high="2"/>
 	<reg32 offset="0x8102" name="GRAS_2D_BLIT_INFO">
@@ -2908,7 +2909,20 @@ to upconvert to 32b float internally?
 		-->
 		<bitfield name="UNK20" pos="20" type="boolean"/>
 	</reg32>
-	<reg32 offset="0xa871" name="SP_GS_PRIM_SIZE" low="0" high="7" type="uint"/> <!-- size of output of previous stage -->
+	<reg32 offset="0xa871" name="SP_GS_PRIM_SIZE" low="0" high="7" type="uint">
+		<doc>
+			Normally the size of the output of the last stage in
+			dwords. It should be programmed as follows:
+
+			size less than 63    - size
+			size of 63 (?) or 64 - 63
+			size greater than 64 - 64
+
+			What to program when the size is 61-63 is a guess, but
+			both the blob and ir3 align the size to 4 dword's so it
+			doesn't matter in practice.
+		</doc>
+	</reg32>
 	<reg32 offset="0xa872" name="SP_GS_BRANCH_COND" type="hex"/>
 
 	<!-- TODO: exact same layout as 0xa802-0xa81a -->
@@ -3180,7 +3194,9 @@ to upconvert to 32b float internally?
 		<!-- TODO: valid bits 0x3c3f, see kernel -->
 	</reg32>
 	<reg32 offset="0xae03" name="SP_UNKNOWN_AE03"/>
-	<reg32 offset="0xae04" name="SP_UNKNOWN_AE04" low="0" high="3"/> <!-- 0x8 or 0 ? -->
+	<reg32 offset="0xae04" name="SP_FLOAT_CNTL">
+		<bitfield name="F16_NO_INF" pos="3" type="boolean"/>
+	</reg32>
 
 	<reg32 offset="0xae0f" name="SP_PERFCTR_ENABLE">
 		<!-- some perfcntrs are affected by a per-stage enable bit

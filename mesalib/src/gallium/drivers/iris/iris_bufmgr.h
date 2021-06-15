@@ -35,7 +35,7 @@
 #include "pipe/p_defines.h"
 
 struct iris_batch;
-struct gen_device_info;
+struct intel_device_info;
 struct pipe_debug_callback;
 
 /**
@@ -298,8 +298,8 @@ void iris_bo_unreference(struct iris_bo *bo);
 #define MAP_PERSISTENT    PIPE_MAP_PERSISTENT
 #define MAP_COHERENT      PIPE_MAP_COHERENT
 /* internal */
-#define MAP_INTERNAL_MASK (0xffu << 24)
-#define MAP_RAW           (0x01 << 24)
+#define MAP_RAW           (PIPE_MAP_DRV_PRV << 0)
+#define MAP_INTERNAL_MASK (MAP_RAW)
 
 #define MAP_FLAGS         (MAP_READ | MAP_WRITE | MAP_ASYNC | \
                            MAP_PERSISTENT | MAP_COHERENT | MAP_INTERNAL_MASK)
@@ -370,8 +370,8 @@ int iris_bo_busy(struct iris_bo *bo);
 int iris_bo_madvise(struct iris_bo *bo, int madv);
 
 /* drm_bacon_bufmgr_gem.c */
-struct iris_bufmgr *iris_bufmgr_get_for_fd(struct gen_device_info *devinfo, int fd,
-                                           bool bo_reuse);
+struct iris_bufmgr *iris_bufmgr_get_for_fd(struct intel_device_info *devinfo,
+                                           int fd, bool bo_reuse);
 int iris_bufmgr_get_fd(struct iris_bufmgr *bufmgr);
 
 struct iris_bo *iris_bo_gem_create_from_name(struct iris_bufmgr *bufmgr,
@@ -409,6 +409,9 @@ struct iris_bo *iris_bo_import_dmabuf(struct iris_bufmgr *bufmgr, int prime_fd,
  */
 int iris_bo_export_gem_handle_for_device(struct iris_bo *bo, int drm_fd,
                                          uint32_t *out_handle);
+
+struct iris_bo *iris_bo_import_dmabuf_no_mods(struct iris_bufmgr *bufmgr,
+                                              int prime_fd);
 
 uint32_t iris_bo_export_gem_handle(struct iris_bo *bo);
 

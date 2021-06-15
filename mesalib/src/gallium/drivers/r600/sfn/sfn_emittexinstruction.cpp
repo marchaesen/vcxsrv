@@ -453,18 +453,11 @@ bool EmitTexInstruction::emit_tex_txf_ms(nir_tex_instr* instr, TexInputs& src)
    auto sampler = get_sampler_id(instr->sampler_index, src.sampler_deref);
    assert(!sampler.indirect && "Indirect sampler selection not yet supported");
 
-   int sample_id = allocate_temp_register();
-
-   GPRVector sample_id_dest(sample_id, {0,7,7,7});
-   PValue help(new GPRValue(sample_id, 1));
-
-   /* FIXME: Texture destination registers must be handled differently,
-    * because the swizzle identifies which source component has to be written
-    * at a certain position, and the target register is actually different.
-    * At this point we just add a helper register, but for later work (scheduling
-    * and optimization on the r600 IR level, this needs to be implemented
-    * differently */
-
+   PGPRValue sample_id_dest_reg = get_temp_register();
+   GPRVector sample_id_dest(sample_id_dest_reg->sel(), {7,7,7,7});
+   sample_id_dest.set_reg_i(sample_id_dest_reg->chan(), sample_id_dest_reg);
+   std::array<int,4> dest_swz = {7,7,7,7};
+   dest_swz[sample_id_dest_reg->chan()] = 0;
 
    emit_instruction(new AluInstruction(op1_mov, src.coord.reg_i(3),
                                        src.ms_index,
@@ -479,22 +472,25 @@ bool EmitTexInstruction::emit_tex_txf_ms(nir_tex_instr* instr, TexInputs& src)
    tex_sample_id_ir->set_flag(TexInstruction::w_unnormalized);
    tex_sample_id_ir->set_inst_mode(1);
 
-   emit_instruction(tex_sample_id_ir);
+   tex_sample_id_ir->set_dest_swizzle(dest_swz);
 
+   emit_instruction(tex_sample_id_ir);
 
    if (src.ms_index->type() != Value::literal ||
        static_cast<const LiteralValue&>(*src.ms_index).value() != 0) {
+       PValue help = get_temp_register();
+
       emit_instruction(new AluInstruction(op2_lshl_int, help,
                                           src.ms_index, literal(2),
       {alu_write, alu_last_instr}));
 
-      emit_instruction(new AluInstruction(op2_lshr_int, sample_id_dest.reg_i(0),
-                                          {sample_id_dest.reg_i(0), help},
+      emit_instruction(new AluInstruction(op2_lshr_int, sample_id_dest_reg,
+                                          {sample_id_dest_reg, help},
                                           {alu_write, alu_last_instr}));
    }
 
    emit_instruction(new AluInstruction(op2_and_int, src.coord.reg_i(3),
-                                       {sample_id_dest.reg_i(0), PValue(new LiteralValue(15))},
+                                       {sample_id_dest_reg, PValue(new LiteralValue(15))},
                                        {alu_write, alu_last_instr}));
 
    auto dst = make_dest(*instr);

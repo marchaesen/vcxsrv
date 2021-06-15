@@ -516,9 +516,9 @@ void mir_insert_instruction_after_scheduled(compiler_context *ctx, midgard_block
 void mir_flip(midgard_instruction *ins);
 void mir_compute_temp_count(compiler_context *ctx);
 
-#define LDST_GLOBAL 0x3E
-#define LDST_SHARED 0x2E
-#define LDST_SCRATCH 0x2A
+#define LDST_GLOBAL (REGISTER_LDST_ZERO << 2)
+#define LDST_SHARED ((REGISTER_LDST_LOCAL_STORAGE_PTR << 2) | COMPONENT_Z)
+#define LDST_SCRATCH ((REGISTER_LDST_PC_SP << 2) | COMPONENT_Z)
 
 void mir_set_offset(compiler_context *ctx, midgard_instruction *ins, nir_src *offset, unsigned seg);
 void mir_set_ubo_offset(midgard_instruction *ins, nir_src *src, unsigned bias);
@@ -537,7 +537,7 @@ v_mov(unsigned src, unsigned dest)
                 .dest = dest,
                 .dest_type = nir_type_uint32,
                 .op = midgard_alu_op_imov,
-                .outmod = midgard_outmod_int_wrap
+                .outmod = midgard_outmod_keeplo
         };
 
         return ins;
@@ -570,11 +570,14 @@ v_load_store_scratch(
                 .dest = ~0,
                 .src = { ~0, ~0, ~0, ~0 },
                 .swizzle = SWIZZLE_IDENTITY_4,
-                .op = is_store ? midgard_op_st_u128 : midgard_op_ld_u128,
+                .op = is_store ? midgard_op_st_128 : midgard_op_ld_128,
                 .load_store = {
                         /* For register spilling - to thread local storage */
-                        .arg_1 = 0xEA,
-                        .arg_2 = 0x1E,
+                        .arg_reg = REGISTER_LDST_LOCAL_STORAGE_PTR,
+                        .arg_comp = COMPONENT_Z,
+                        .bitsize_toggle = true,
+                        .index_format = midgard_index_address_u32,
+                        .index_reg = REGISTER_LDST_ZERO,
                 },
 
                 /* If we spill an unspill, RA goes into an infinite loop */

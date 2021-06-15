@@ -55,6 +55,7 @@ static const struct debug_named_value r600_debug_options[] = {
 	{ "sbnofallback", DBG_SB_NO_FALLBACK, "Abort on errors instead of fallback" },
 	{ "sbdisasm", DBG_SB_DISASM, "Use sb disassembler for shader dumps" },
 	{ "sbsafemath", DBG_SB_SAFEMATH, "Disable unsafe math optimizations" },
+        { "nirsb", DBG_NIR_SB, "Enable NIR with SB optimizer"},
 
 	DEBUG_NAMED_VALUE_END /* must be last */
 };
@@ -245,7 +246,7 @@ fail:
 }
 
 static bool is_nir_enabled(struct r600_common_screen *screen) {
-   return (screen->debug_flags & DBG_NIR &&
+   return ((screen->debug_flags & DBG_NIR_PREFERRED) &&
        screen->family >= CHIP_CEDAR &&
        screen->family < CHIP_CAYMAN);
 }
@@ -355,7 +356,7 @@ static int r600_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
 		return 256;
 
 	case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
-		return 1;
+		return 4;
 
 	case PIPE_CAP_GLSL_FEATURE_LEVEL:
 		if (family >= CHIP_CEDAR)
@@ -570,7 +571,7 @@ static int r600_get_shader_param(struct pipe_screen* pscreen,
 	case PIPE_SHADER_COMPUTE:
 		if (rscreen->b.family >= CHIP_CEDAR)
 			break;
-		/* fallthrough */
+		FALLTHROUGH;
 	default:
 		return 0;
 	}
@@ -617,6 +618,7 @@ static int r600_get_shader_param(struct pipe_screen* pscreen,
 	case PIPE_SHADER_CAP_INT64_ATOMICS:
 	case PIPE_SHADER_CAP_FP16:
         case PIPE_SHADER_CAP_FP16_DERIVATIVES:
+	case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
         case PIPE_SHADER_CAP_INT16:
         case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
 		return 0;

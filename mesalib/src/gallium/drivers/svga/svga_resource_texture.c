@@ -983,7 +983,7 @@ svga_texture_create(struct pipe_screen *screen,
          break;
       case PIPE_TEXTURE_1D_ARRAY:
          tex->key.flags |= SVGA3D_SURFACE_1D;
-         /* fall-through */
+         FALLTHROUGH;
       case PIPE_TEXTURE_2D_ARRAY:
          tex->key.flags |= SVGA3D_SURFACE_ARRAY;
          tex->key.arraySize = template->array_size;

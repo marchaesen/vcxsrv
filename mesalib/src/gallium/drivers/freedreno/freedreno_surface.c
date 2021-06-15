@@ -28,47 +28,45 @@
 #include "freedreno_resource.h"
 #include "freedreno_util.h"
 
-#include "util/u_memory.h"
 #include "util/u_inlines.h"
+#include "util/u_memory.h"
 
 struct pipe_surface *
-fd_create_surface(struct pipe_context *pctx,
-		struct pipe_resource *ptex,
-		const struct pipe_surface *surf_tmpl)
+fd_create_surface(struct pipe_context *pctx, struct pipe_resource *ptex,
+                  const struct pipe_surface *surf_tmpl)
 {
-	struct fd_surface* surface = CALLOC_STRUCT(fd_surface);
+   struct fd_surface *surface = CALLOC_STRUCT(fd_surface);
 
-	if (!surface)
-		return NULL;
+   if (!surface)
+      return NULL;
 
+   struct pipe_surface *psurf = &surface->base;
+   unsigned level = surf_tmpl->u.tex.level;
 
-	struct pipe_surface *psurf = &surface->base;
-	unsigned level = surf_tmpl->u.tex.level;
+   pipe_reference_init(&psurf->reference, 1);
+   pipe_resource_reference(&psurf->texture, ptex);
 
-	pipe_reference_init(&psurf->reference, 1);
-	pipe_resource_reference(&psurf->texture, ptex);
+   psurf->context = pctx;
+   psurf->format = surf_tmpl->format;
+   psurf->width = u_minify(ptex->width0, level);
+   psurf->height = u_minify(ptex->height0, level);
+   psurf->nr_samples = surf_tmpl->nr_samples;
 
-	psurf->context = pctx;
-	psurf->format = surf_tmpl->format;
-	psurf->width = u_minify(ptex->width0, level);
-	psurf->height = u_minify(ptex->height0, level);
-	psurf->nr_samples = surf_tmpl->nr_samples;
+   if (ptex->target == PIPE_BUFFER) {
+      psurf->u.buf.first_element = surf_tmpl->u.buf.first_element;
+      psurf->u.buf.last_element = surf_tmpl->u.buf.last_element;
+   } else {
+      psurf->u.tex.level = level;
+      psurf->u.tex.first_layer = surf_tmpl->u.tex.first_layer;
+      psurf->u.tex.last_layer = surf_tmpl->u.tex.last_layer;
+   }
 
-	if (ptex->target == PIPE_BUFFER) {
-		psurf->u.buf.first_element = surf_tmpl->u.buf.first_element;
-		psurf->u.buf.last_element = surf_tmpl->u.buf.last_element;
-	} else {
-		psurf->u.tex.level = level;
-		psurf->u.tex.first_layer = surf_tmpl->u.tex.first_layer;
-		psurf->u.tex.last_layer = surf_tmpl->u.tex.last_layer;
-	}
-
-	return &surface->base;
+   return &surface->base;
 }
 
 void
 fd_surface_destroy(struct pipe_context *pctx, struct pipe_surface *psurf)
 {
-	pipe_resource_reference(&psurf->texture, NULL);
-	FREE(psurf);
+   pipe_resource_reference(&psurf->texture, NULL);
+   FREE(psurf);
 }

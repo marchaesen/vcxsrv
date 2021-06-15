@@ -76,6 +76,10 @@ panfrost_shader_compile(struct panfrost_context *ctx,
                 s = tgsi_to_nir(ir, ctx->base.screen, false);
         }
 
+        /* Lower this early so the backends don't have to worry about it */
+        if (stage == MESA_SHADER_FRAGMENT)
+                NIR_PASS_V(s, nir_lower_fragcolor, state->nr_cbufs);
+
         s->info.stage = stage;
 
         /* Call out to Midgard compiler given the above NIR */

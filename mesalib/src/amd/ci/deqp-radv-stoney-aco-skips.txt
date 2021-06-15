@@ -1,0 +1,23 @@
+# Exclude this test which might fail when a new extension is implemented.
+dEQP-VK.info.device_extensions
+
+# Exclude WSI related tests.
+dEQP-VK.image.swapchain_mutable.*
+dEQP-VK.wsi.*
+
+# Exclude this test which timeout most of the time.
+dEQP-VK.memory.pipeline_barrier.transfer_src_transfer_dst.1048576
+
+# These tests take too long to run on the current STONEY testing hardware, skip them.
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_linear_clamp
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_linear_repeat
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_nearest_clamp
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_nearest_repeat
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_nearest_mipmap_linear_clamp
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_nearest_mipmap_linear_repeat
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_nearest_mipmap_nearest_clamp
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_nearest_mipmap_nearest_repeat
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_nearest_linear_mipmap_linear_clamp
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_nearest_linear_mipmap_linear_repeat
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_nearest_linear_mipmap_nearest_clamp
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_nearest_linear_mipmap_nearest_repeat

@@ -75,7 +75,7 @@ extern _X_EXPORT int CountBits(const uint8_t * mask, int len);
  * events to the protocol, the server will not support these events until
  * this number here is bumped.
  */
-#define XI2LASTEVENT    XI_BarrierLeave
+#define XI2LASTEVENT    XI_GestureSwipeEnd
 #define XI2MASKSIZE     ((XI2LASTEVENT >> 3) + 1)       /* no of bytes for masks */
 
 /**
@@ -352,6 +352,32 @@ typedef struct _TouchClassRec {
     Mask motionMask;
 } TouchClassRec;
 
+typedef struct _GestureListener {
+    XID listener;           /* grabs/event selection IDs receiving
+                             * events for this gesture */
+    int resource_type;      /* listener's resource type */
+    enum GestureListenerType type;
+    WindowPtr window;
+    GrabPtr grab;
+} GestureListener;
+
+typedef struct _GestureInfo {
+    int sourceid;               /* Source device's ID for this gesture */
+    Bool active;                /* whether or not the gesture is active */
+    uint8_t type;               /* Gesture type: either ET_GesturePinchBegin or
+                                   ET_GestureSwipeBegin. Valid if active == TRUE */
+    int num_touches;            /* The number of touches in the gesture */
+    SpriteRec sprite;           /* window trace for delivery */
+    GestureListener listener;   /* the listener that will receive events */
+    Bool has_listener;          /* true if listener has been setup already */
+} GestureInfoRec;
+
+typedef struct _GestureClassRec {
+    int sourceid;
+    GestureInfoRec gesture;
+    unsigned short max_touches; /* maximum number of touches, may be 0 */
+} GestureClassRec;
+
 typedef struct _ButtonClassRec {
     int sourceid;
     CARD8 numButtons;
@@ -435,6 +461,7 @@ typedef struct _ClassesRec {
     KeyClassPtr key;
     ValuatorClassPtr valuator;
     TouchClassPtr touch;
+    GestureClassPtr gesture;
     ButtonClassPtr button;
     FocusClassPtr focus;
     ProximityClassPtr proximity;
@@ -550,6 +577,7 @@ typedef struct _DeviceIntRec {
     KeyClassPtr key;
     ValuatorClassPtr valuator;
     TouchClassPtr touch;
+    GestureClassPtr gesture;
     ButtonClassPtr button;
     FocusClassPtr focus;
     ProximityClassPtr proximity;

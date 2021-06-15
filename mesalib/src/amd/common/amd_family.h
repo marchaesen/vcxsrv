@@ -24,6 +24,10 @@
 #ifndef AMD_FAMILY_H
 #define AMD_FAMILY_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum radeon_family
 {
    CHIP_UNKNOWN = 0,
@@ -144,5 +148,11 @@ enum ring_type
    RING_VCN_JPEG,
    NUM_RING_TYPES,
 };
+
+const char *ac_get_family_name(enum radeon_family family);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

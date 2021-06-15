@@ -158,6 +158,20 @@ extern _X_EXPORT void xf86PostKeyboardEvent(DeviceIntPtr device,
 extern _X_EXPORT void xf86PostTouchEvent(DeviceIntPtr dev, uint32_t touchid,
                                          uint16_t type, uint32_t flags,
                                          const ValuatorMask *mask);
+extern _X_EXPORT void xf86PostGesturePinchEvent(DeviceIntPtr dev, uint16_t type,
+                                                uint16_t num_touches,
+                                                uint32_t flags,
+                                                double delta_x, double delta_y,
+                                                double delta_unaccel_x,
+                                                double delta_unaccel_y,
+                                                double scale, double delta_angle);
+extern _X_EXPORT void xf86PostGestureSwipeEvent(DeviceIntPtr dev, uint16_t type,
+                                                uint16_t num_touches,
+                                                uint32_t flags,
+                                                double delta_x, double delta_y,
+                                                double delta_unaccel_x,
+                                                double delta_unaccel_y);
+
 extern _X_EXPORT InputInfoPtr xf86FirstLocalDevice(void);
 extern _X_EXPORT int xf86ScaleAxis(int Cx, int to_max, int to_min, int from_max,
                                    int from_min);

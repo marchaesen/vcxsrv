@@ -34,34 +34,34 @@
 #include "ir3/ir3_shader.h"
 
 struct fd4_context {
-	struct fd_context base;
+   struct fd_context base;
 
-	struct fd_bo *vs_pvt_mem, *fs_pvt_mem;
+   struct fd_bo *vs_pvt_mem, *fs_pvt_mem;
 
-	/* This only needs to be 4 * num_of_pipes bytes (ie. 32 bytes).  We
-	 * could combine it with another allocation.
-	 *
-	 * (upper area used as scratch bo.. see fd4_query)
-	 */
-	struct fd_bo *vsc_size_mem;
+   /* This only needs to be 4 * num_of_pipes bytes (ie. 32 bytes).  We
+    * could combine it with another allocation.
+    *
+    * (upper area used as scratch bo.. see fd4_query)
+    */
+   struct fd_bo *vsc_size_mem;
 
-	struct u_upload_mgr *border_color_uploader;
-	struct pipe_resource *border_color_buf;
+   struct u_upload_mgr *border_color_uploader;
+   struct pipe_resource *border_color_buf;
 
-	/* bitmask of samplers which need astc srgb workaround: */
-	uint16_t vastc_srgb, fastc_srgb;
+   /* bitmask of samplers which need astc srgb workaround: */
+   uint16_t vastc_srgb, fastc_srgb;
 
-	/* storage for ctx->last.key: */
-	struct ir3_shader_key last_key;
+   /* storage for ctx->last.key: */
+   struct ir3_shader_key last_key;
 };
 
 static inline struct fd4_context *
 fd4_context(struct fd_context *ctx)
 {
-	return (struct fd4_context *)ctx;
+   return (struct fd4_context *)ctx;
 }
 
-struct pipe_context *
-fd4_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags);
+struct pipe_context *fd4_context_create(struct pipe_screen *pscreen, void *priv,
+                                        unsigned flags);
 
 #endif /* FD4_CONTEXT_H_ */

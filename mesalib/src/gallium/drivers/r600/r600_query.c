@@ -526,7 +526,7 @@ static bool r600_query_hw_prepare_buffer(struct r600_common_screen *rscreen,
 					 struct r600_resource *buffer)
 {
 	/* Callers ensure that the buffer is currently unused by the GPU. */
-	uint32_t *results = rscreen->ws->buffer_map(buffer->buf, NULL,
+	uint32_t *results = rscreen->ws->buffer_map(rscreen->ws, buffer->buf, NULL,
 						   PIPE_MAP_WRITE |
 						   PIPE_MAP_UNSYNCHRONIZED);
 	if (!results)
@@ -837,7 +837,7 @@ static void r600_query_hw_do_emit_stop(struct r600_common_context *ctx,
 		break;
 	case PIPE_QUERY_TIME_ELAPSED:
 		va += 8;
-		/* fall through */
+		FALLTHROUGH;
 	case PIPE_QUERY_TIMESTAMP:
 		r600_gfx_write_event_eop(ctx, EVENT_TYPE_BOTTOM_OF_PIPE_TS,
 					 0, EOP_DATA_SEL_TIMESTAMP, NULL, va,
@@ -1021,7 +1021,7 @@ void r600_query_hw_reset_buffers(struct r600_common_context *rctx,
 
 	/* Obtain a new buffer if the current one can't be mapped without a stall. */
 	if (r600_rings_is_buffer_referenced(rctx, query->buffer.buf->buf, RADEON_USAGE_READWRITE) ||
-	    !rctx->ws->buffer_wait(query->buffer.buf->buf, 0, RADEON_USAGE_READWRITE)) {
+	    !rctx->ws->buffer_wait(rctx->ws, query->buffer.buf->buf, 0, RADEON_USAGE_READWRITE)) {
 		r600_resource_reference(&query->buffer.buf, NULL);
 		query->buffer.buf = r600_new_query_buffer(rctx->screen, query);
 	} else {
@@ -1125,7 +1125,7 @@ static void r600_get_hw_query_params(struct r600_common_context *rctx,
 	case PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE:
 		params->pair_count = R600_MAX_STREAMS;
 		params->pair_stride = 32;
-		/* fallthrough */
+		FALLTHROUGH;
 	case PIPE_QUERY_SO_OVERFLOW_PREDICATE:
 		params->start_offset = 0;
 		params->end_offset = 16;
@@ -1343,7 +1343,7 @@ bool r600_query_hw_get_result(struct r600_common_context *rctx,
 		void *map;
 
 		if (rquery->b.flushed)
-			map = rctx->ws->buffer_map(qbuf->buf->buf, NULL, usage);
+			map = rctx->ws->buffer_map(rctx->ws, qbuf->buf->buf, NULL, usage);
 		else
 			map = r600_buffer_map_sync_with_rings(rctx, qbuf->buf, usage);
 

@@ -20,7 +20,7 @@ xkb_symbols "basic" {
     key <BKSL>	{ [numbersign, asciitilde,   dead_grave,   dead_breve ]	};
     key <LSGT>	{ [ backslash,        bar,          bar,    brokenbar ]	};
 
-    include "level3(ralt_switch_multikey)"
+    include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys
@@ -260,61 +260,4 @@ xkb_symbols "pl" {
 partial alphanumeric_keys
 	xkb_symbols "sun_type6" {
 	include "sun_vndr/gb(sun_type6)"
-};
-
-// Hyena keybindings
-// Copyleft (c) 2015 by Richard Gomes - http://github.com/frgomes/carpalx
-// Relieving the poor suffering pinkies of heavy Emacs users
-// See "us" layout for more information
-partial alphanumeric_keys
-xkb_symbols "hyena" {
-    include "gb(basic)"
-    name[Group1]= "English (UK, Hyena Layer5)";
-    include "us(lv5-hyena)"
-    include "level3(ralt_switch)"
-};
-partial alphanumeric_keys
-xkb_symbols "hyena-intl" {
-    include "gb(intl)"
-    name[Group1]= "English (UK, intl., with dead keys, Hyena Layer5)";
-    include "us(lv5-hyena)"
-    include "level3(ralt_switch)"
-};
-
-// MiniGuru emulation
-// Copyleft (c) 2014 by Richard Gomes - http://github.com/frgomes/carpalx
-// Inspired by http://www.guru-board.com/english/layout_en
-// See "us" layout for more information
-partial alphanumeric_keys
-xkb_symbols "miniguru" {
-    include "gb(basic)"
-    name[Group1]= "English (UK, MiniGuru Layer5)";
-    include "us(lv5-miniguru)"
-    include "level3(ralt_switch)"
-};
-partial alphanumeric_keys
-xkb_symbols "miniguru-intl" {
-    include "gb(intl)"
-    name[Group1]= "English (UK, intl., with dead keys, MiniGuru Layer5)";
-    include "us(lv5-miniguru)"
-    include "level3(ralt_switch)"
-};
-
-// Tex Yoda emulation
-// Copyleft (c) 2014 by Richard Gomes - http://github.com/frgomes/carpalx
-// Inspired by https://d2qmzng4l690lq.cloudfront.net/resizer/1500x1000/r/MD-2822_20140706105404_346413e18d672383.jpg
-// See "us" layout for more information
-partial alphanumeric_keys
-xkb_symbols "yoda" {
-    include "gb(basic)"
-    name[Group1]= "English (UK, TEX Yoda Layer5)";
-    include "us(lv5-yoda)"
-    include "level3(ralt_switch)"
-};
-partial alphanumeric_keys
-xkb_symbols "yoda-intl" {
-    include "gb(intl)"
-    name[Group1]= "English (UK, intl., with dead keys, TEX Yoda Layer5)";
-    include "us(lv5-yoda)"
-    include "level3(ralt_switch)"
 };

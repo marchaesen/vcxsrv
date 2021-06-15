@@ -140,6 +140,7 @@ main(int argc, char **argv)
       spirv_to_dxil_free(data);
    } else {
       fprintf(stderr, "Compilation failed\n");
+      return 1;
    }
 
    free(file_contents);

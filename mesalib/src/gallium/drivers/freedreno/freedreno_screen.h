@@ -27,18 +27,18 @@
 #ifndef FREEDRENO_SCREEN_H_
 #define FREEDRENO_SCREEN_H_
 
+#include "common/freedreno_dev_info.h"
 #include "drm/freedreno_drmif.h"
 #include "drm/freedreno_ringbuffer.h"
 #include "perfcntrs/freedreno_perfcntr.h"
-#include "common/freedreno_dev_info.h"
 
 #include "pipe/p_screen.h"
+#include "renderonly/renderonly.h"
 #include "util/debug.h"
+#include "util/simple_mtx.h"
+#include "util/slab.h"
 #include "util/u_memory.h"
 #include "util/u_queue.h"
-#include "util/slab.h"
-#include "util/simple_mtx.h"
-#include "renderonly/renderonly.h"
 
 #include "freedreno_batch_cache.h"
 #include "freedreno_gmem.h"
@@ -50,149 +50,148 @@ struct fd_bo;
  * generation backend can override this with screen->gmem_reason_mask
  */
 enum fd_gmem_reason {
-	FD_GMEM_CLEARS_DEPTH_STENCIL = BIT(0),
-	FD_GMEM_DEPTH_ENABLED        = BIT(1),
-	FD_GMEM_STENCIL_ENABLED      = BIT(2),
-	FD_GMEM_BLEND_ENABLED        = BIT(3),
-	FD_GMEM_LOGICOP_ENABLED      = BIT(4),
-	FD_GMEM_FB_READ              = BIT(5),
+   FD_GMEM_CLEARS_DEPTH_STENCIL = BIT(0),
+   FD_GMEM_DEPTH_ENABLED = BIT(1),
+   FD_GMEM_STENCIL_ENABLED = BIT(2),
+   FD_GMEM_BLEND_ENABLED = BIT(3),
+   FD_GMEM_LOGICOP_ENABLED = BIT(4),
+   FD_GMEM_FB_READ = BIT(5),
 };
 
 struct fd_screen {
-	struct pipe_screen base;
+   struct pipe_screen base;
 
-	struct list_head context_list;
+   struct list_head context_list;
 
-	simple_mtx_t lock;
+   simple_mtx_t lock;
 
-	/* it would be tempting to use pipe_reference here, but that
-	 * really doesn't work well if it isn't the first member of
-	 * the struct, so not quite so awesome to be adding refcnting
-	 * further down the inheritance hierarchy:
-	 */
-	int refcnt;
+   /* it would be tempting to use pipe_reference here, but that
+    * really doesn't work well if it isn't the first member of
+    * the struct, so not quite so awesome to be adding refcnting
+    * further down the inheritance hierarchy:
+    */
+   int refcnt;
 
-	/* place for winsys to stash it's own stuff: */
-	void *winsys_priv;
+   /* place for winsys to stash it's own stuff: */
+   void *winsys_priv;
 
-	struct slab_parent_pool transfer_pool;
+   struct slab_parent_pool transfer_pool;
 
-	uint64_t gmem_base;
-	uint32_t gmemsize_bytes;
-	uint32_t device_id;
-	uint32_t gpu_id;         /* 220, 305, etc */
-	uint32_t chip_id;        /* coreid:8 majorrev:8 minorrev:8 patch:8 */
-	uint32_t max_freq;
-	uint32_t ram_size;
-	uint32_t max_rts;        /* max # of render targets */
-	uint32_t priority_mask;
-	bool has_timestamp;
-	bool has_robustness;
-	bool has_syncobj;
+   uint64_t gmem_base;
+   uint32_t gmemsize_bytes;
+   uint32_t device_id;
+   uint32_t gpu_id;  /* 220, 305, etc */
+   uint32_t chip_id; /* coreid:8 majorrev:8 minorrev:8 patch:8 */
+   uint32_t max_freq;
+   uint32_t ram_size;
+   uint32_t max_rts; /* max # of render targets */
+   uint32_t priority_mask;
+   bool has_timestamp;
+   bool has_robustness;
+   bool has_syncobj;
 
-	struct freedreno_dev_info info;
+   struct freedreno_dev_info info;
 
-	/* Bitmask of gmem_reasons that do not force GMEM path over bypass
-	 * for current generation.
-	 */
-	enum fd_gmem_reason gmem_reason_mask;
+   /* Bitmask of gmem_reasons that do not force GMEM path over bypass
+    * for current generation.
+    */
+   enum fd_gmem_reason gmem_reason_mask;
 
-	unsigned num_perfcntr_groups;
-	const struct fd_perfcntr_group *perfcntr_groups;
+   unsigned num_perfcntr_groups;
+   const struct fd_perfcntr_group *perfcntr_groups;
 
-	/* generated at startup from the perfcntr groups: */
-	unsigned num_perfcntr_queries;
-	struct pipe_driver_query_info *perfcntr_queries;
+   /* generated at startup from the perfcntr groups: */
+   unsigned num_perfcntr_queries;
+   struct pipe_driver_query_info *perfcntr_queries;
 
-	void *compiler;          /* currently unused for a2xx */
-	struct util_queue compile_queue; /* currently unused for a2xx */
+   void *compiler;                  /* currently unused for a2xx */
+   struct util_queue compile_queue; /* currently unused for a2xx */
 
-	struct fd_device *dev;
+   struct fd_device *dev;
 
-	/* NOTE: we still need a pipe associated with the screen in a few
-	 * places, like screen->get_timestamp().  For anything context
-	 * related, use ctx->pipe instead.
-	 */
-	struct fd_pipe *pipe;
+   /* NOTE: we still need a pipe associated with the screen in a few
+    * places, like screen->get_timestamp().  For anything context
+    * related, use ctx->pipe instead.
+    */
+   struct fd_pipe *pipe;
 
-	uint32_t (*setup_slices)(struct fd_resource *rsc);
-	unsigned (*tile_mode)(const struct pipe_resource *prsc);
-	int (*layout_resource_for_modifier)(struct fd_resource *rsc, uint64_t modifier);
+   uint32_t (*setup_slices)(struct fd_resource *rsc);
+   unsigned (*tile_mode)(const struct pipe_resource *prsc);
+   int (*layout_resource_for_modifier)(struct fd_resource *rsc,
+                                       uint64_t modifier);
 
-	/* indirect-branch emit: */
-	void (*emit_ib)(struct fd_ringbuffer *ring, struct fd_ringbuffer *target);
+   /* indirect-branch emit: */
+   void (*emit_ib)(struct fd_ringbuffer *ring, struct fd_ringbuffer *target);
 
-	/* simple gpu "memcpy": */
-	void (*mem_to_mem)(struct fd_ringbuffer *ring, struct pipe_resource *dst,
-			unsigned dst_off, struct pipe_resource *src, unsigned src_off,
-			unsigned sizedwords);
+   /* simple gpu "memcpy": */
+   void (*mem_to_mem)(struct fd_ringbuffer *ring, struct pipe_resource *dst,
+                      unsigned dst_off, struct pipe_resource *src,
+                      unsigned src_off, unsigned sizedwords);
 
-	int64_t cpu_gpu_time_delta;
+   int64_t cpu_gpu_time_delta;
 
-	struct fd_batch_cache batch_cache;
-	struct fd_gmem_cache gmem_cache;
+   struct fd_batch_cache batch_cache;
+   struct fd_gmem_cache gmem_cache;
 
-	bool reorder;
+   bool reorder;
 
-	uint16_t rsc_seqno;
-	uint16_t ctx_seqno;
+   uint16_t rsc_seqno;
+   uint16_t ctx_seqno;
 
-	unsigned num_supported_modifiers;
-	const uint64_t *supported_modifiers;
+   unsigned num_supported_modifiers;
+   const uint64_t *supported_modifiers;
 
-	struct renderonly *ro;
+   struct renderonly *ro;
 
-	/* when BATCH_DEBUG is enabled, tracking for fd_batch's which are not yet
-	 * freed:
-	 */
-	struct set *live_batches;
+   /* when BATCH_DEBUG is enabled, tracking for fd_batch's which are not yet
+    * freed:
+    */
+   struct set *live_batches;
 };
 
 static inline struct fd_screen *
 fd_screen(struct pipe_screen *pscreen)
 {
-	return (struct fd_screen *)pscreen;
+   return (struct fd_screen *)pscreen;
 }
 
 static inline void
 fd_screen_lock(struct fd_screen *screen)
 {
-	simple_mtx_lock(&screen->lock);
+   simple_mtx_lock(&screen->lock);
 }
 
 static inline void
 fd_screen_unlock(struct fd_screen *screen)
 {
-	simple_mtx_unlock(&screen->lock);
+   simple_mtx_unlock(&screen->lock);
 }
 
 static inline void
 fd_screen_assert_locked(struct fd_screen *screen)
 {
-	simple_mtx_assert_locked(&screen->lock);
+   simple_mtx_assert_locked(&screen->lock);
 }
 
-bool fd_screen_bo_get_handle(struct pipe_screen *pscreen,
-		struct fd_bo *bo,
-		struct renderonly_scanout *scanout,
-		unsigned stride,
-		struct winsys_handle *whandle);
-struct fd_bo * fd_screen_bo_from_handle(struct pipe_screen *pscreen,
-		struct winsys_handle *whandle);
+bool fd_screen_bo_get_handle(struct pipe_screen *pscreen, struct fd_bo *bo,
+                             struct renderonly_scanout *scanout,
+                             unsigned stride, struct winsys_handle *whandle);
+struct fd_bo *fd_screen_bo_from_handle(struct pipe_screen *pscreen,
+                                       struct winsys_handle *whandle);
 
-struct pipe_screen *
-fd_screen_create(struct fd_device *dev, struct renderonly *ro);
+struct pipe_screen *fd_screen_create(struct fd_device *dev,
+                                     struct renderonly *ro);
 
 static inline boolean
 is_a20x(struct fd_screen *screen)
 {
-	return (screen->gpu_id >= 200) && (screen->gpu_id < 210);
+   return (screen->gpu_id >= 200) && (screen->gpu_id < 210);
 }
 
 static inline boolean
 is_a2xx(struct fd_screen *screen)
 {
-	return (screen->gpu_id >= 200) && (screen->gpu_id < 300);
+   return (screen->gpu_id >= 200) && (screen->gpu_id < 300);
 }
 
 /* is a3xx patch revision 0? */
@@ -200,50 +199,51 @@ is_a2xx(struct fd_screen *screen)
 static inline boolean
 is_a3xx_p0(struct fd_screen *screen)
 {
-	return (screen->chip_id & 0xff0000ff) == 0x03000000;
+   return (screen->chip_id & 0xff0000ff) == 0x03000000;
 }
 
 static inline boolean
 is_a3xx(struct fd_screen *screen)
 {
-	return (screen->gpu_id >= 300) && (screen->gpu_id < 400);
+   return (screen->gpu_id >= 300) && (screen->gpu_id < 400);
 }
 
 static inline boolean
 is_a4xx(struct fd_screen *screen)
 {
-	return (screen->gpu_id >= 400) && (screen->gpu_id < 500);
+   return (screen->gpu_id >= 400) && (screen->gpu_id < 500);
 }
 
 static inline boolean
 is_a5xx(struct fd_screen *screen)
 {
-	return (screen->gpu_id >= 500) && (screen->gpu_id < 600);
+   return (screen->gpu_id >= 500) && (screen->gpu_id < 600);
 }
 
 static inline boolean
 is_a6xx(struct fd_screen *screen)
 {
-	return (screen->gpu_id >= 600) && (screen->gpu_id < 700);
+   return (screen->gpu_id >= 600) && (screen->gpu_id < 700);
 }
 
 static inline boolean
 is_a650(struct fd_screen *screen)
 {
-	return screen->gpu_id == 650;
+   return screen->gpu_id == 650;
 }
 
 /* is it using the ir3 compiler (shader isa introduced with a3xx)? */
 static inline boolean
 is_ir3(struct fd_screen *screen)
 {
-	return is_a3xx(screen) || is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen);
+   return is_a3xx(screen) || is_a4xx(screen) || is_a5xx(screen) ||
+          is_a6xx(screen);
 }
 
 static inline bool
 has_compute(struct fd_screen *screen)
 {
-	return is_a5xx(screen) || is_a6xx(screen);
+   return is_a5xx(screen) || is_a6xx(screen);
 }
 
 #endif /* FREEDRENO_SCREEN_H_ */

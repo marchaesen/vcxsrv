@@ -42,6 +42,10 @@
 extern "C" {
 #endif
 
+#ifdef MemoryBarrier
+#undef MemoryBarrier
+#endif
+
 struct _glapi_table
 {
    void (GLAPIENTRYP NewList)(GLuint list, GLenum mode); /* 0 */

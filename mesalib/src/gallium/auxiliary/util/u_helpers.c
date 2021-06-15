@@ -151,7 +151,7 @@ void util_set_shader_buffers_mask(struct pipe_shader_buffer *dst,
 bool
 util_upload_index_buffer(struct pipe_context *pipe,
                          const struct pipe_draw_info *info,
-                         const struct pipe_draw_start_count *draw,
+                         const struct pipe_draw_start_count_bias *draw,
                          struct pipe_resource **out_buffer,
                          unsigned *out_offset, unsigned alignment)
 {
@@ -216,6 +216,33 @@ util_end_pipestat_query(struct pipe_context *ctx, struct pipe_query *q,
            stats.hs_invocations,
            stats.ds_invocations,
            stats.cs_invocations);
+}
+
+/* This is a helper for profiling. Don't remove. */
+struct pipe_query *
+util_begin_time_query(struct pipe_context *ctx)
+{
+   struct pipe_query *q =
+      ctx->create_query(ctx, PIPE_QUERY_TIME_ELAPSED, 0);
+   if (!q)
+      return NULL;
+
+   ctx->begin_query(ctx, q);
+   return q;
+}
+
+/* This is a helper for profiling. Don't remove. */
+void
+util_end_time_query(struct pipe_context *ctx, struct pipe_query *q, FILE *f,
+                    const char *name)
+{
+   union pipe_query_result result;
+
+   ctx->end_query(ctx, q);
+   ctx->get_query_result(ctx, q, true, &result);
+   ctx->destroy_query(ctx, q);
+
+   fprintf(f, "Time elapsed: %s - %"PRIu64".%u us\n", name, result.u64 / 1000, (unsigned)(result.u64 % 1000) / 100);
 }
 
 /* This is a helper for hardware bring-up. Don't remove. */

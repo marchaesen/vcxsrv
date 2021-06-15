@@ -52,6 +52,10 @@
 #include "xwayland-present.h"
 #include "xwayland-shm.h"
 
+#ifdef MITSHM
+#include "shmint.h"
+#endif
+
 #include "xdg-output-unstable-v1-client-protocol.h"
 #include "viewporter-client-protocol.h"
 #include "xdg-shell-client-protocol.h"
@@ -661,6 +665,10 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
 
     fbPictureInit(pScreen, 0, 0);
+
+#ifdef MITSHM
+    ShmRegisterFbFuncs(pScreen);
+#endif
 
 #ifdef HAVE_XSHMFENCE
     if (!miSyncShmScreenInit(pScreen))

@@ -139,7 +139,7 @@ export PATH=$BM:$PATH
 
 # Start background command for talking to serial if we have one.
 if [ -n "$BM_SERIAL_SCRIPT" ]; then
-  $BM_SERIAL_SCRIPT | tee results/serial-output.txt &
+  $BM_SERIAL_SCRIPT > results/serial-output.txt &
 
   while [ ! -e results/serial-output.txt ]; do
     sleep 1

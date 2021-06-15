@@ -716,3 +716,10 @@ GrabIsKeyboardGrab(GrabPtr grab)
     return (grab->type == KeyPress ||
             grab->type == DeviceKeyPress || grab->type == XI_KeyPress);
 }
+
+Bool
+GrabIsGestureGrab(GrabPtr grab)
+{
+    return (grab->type == XI_GesturePinchBegin ||
+            grab->type == XI_GestureSwipeBegin);
+}

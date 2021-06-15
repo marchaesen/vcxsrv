@@ -34,7 +34,6 @@ struct nu_handle {
 static bool
 nu_handle_init(struct nu_handle *h, nir_src *src)
 {
-   assert(nir_src_num_components(*src) == 1);
    h->src = src;
 
    nir_deref_instr *deref = nir_src_as_deref(*src);
@@ -66,6 +65,31 @@ nu_handle_init(struct nu_handle *h, nir_src *src)
    }
 }
 
+static nir_ssa_def *
+nu_handle_compare(const nir_lower_non_uniform_access_options *options,
+                  nir_builder *b, struct nu_handle *handle)
+{
+   nir_component_mask_t channel_mask = ~0;
+   if (options->callback)
+      channel_mask = options->callback(handle->src, options->callback_data);
+   channel_mask &= BITFIELD_MASK(handle->handle->num_components);
+
+   nir_ssa_def *channels[NIR_MAX_VEC_COMPONENTS];
+   for (unsigned i = 0; i < handle->handle->num_components; i++)
+      channels[i] = nir_channel(b, handle->handle, i);
+
+   handle->first = handle->handle;
+   nir_ssa_def *equal_first = nir_imm_true(b);
+   u_foreach_bit(i, channel_mask) {
+      nir_ssa_def *first = nir_read_first_invocation(b, channels[i]);
+      handle->first = nir_vector_insert_imm(b, handle->first, first, i);
+
+      equal_first = nir_iand(b, equal_first, nir_ieq(b, first, channels[i]));
+   }
+
+   return equal_first;
+}
+
 static void
 nu_handle_rewrite(nir_builder *b, struct nu_handle *h)
 {
@@ -80,7 +104,8 @@ nu_handle_rewrite(nir_builder *b, struct nu_handle *h)
 }
 
 static bool
-lower_non_uniform_tex_access(nir_builder *b, nir_tex_instr *tex)
+lower_non_uniform_tex_access(const nir_lower_non_uniform_access_options *options,
+                             nir_builder *b, nir_tex_instr *tex)
 {
    if (!tex->texture_non_uniform && !tex->sampler_non_uniform)
       return false;
@@ -127,10 +152,7 @@ lower_non_uniform_tex_access(nir_builder *b, nir_tex_instr *tex)
          continue;
       }
 
-      handles[i].first = nir_read_first_invocation(b, handles[i].handle);
-
-      nir_ssa_def *equal_first =
-         nir_ieq(b, handles[i].first, handles[i].handle);
+      nir_ssa_def *equal_first = nu_handle_compare(options, b, &handles[i]);
       all_equal_first = nir_iand(b, all_equal_first, equal_first);
    }
 
@@ -149,7 +171,8 @@ lower_non_uniform_tex_access(nir_builder *b, nir_tex_instr *tex)
 }
 
 static bool
-lower_non_uniform_access_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
+lower_non_uniform_access_intrin(const nir_lower_non_uniform_access_options *options,
+                                nir_builder *b, nir_intrinsic_instr *intrin,
                                 unsigned handle_src)
 {
    if (!(nir_intrinsic_access(intrin) & ACCESS_NON_UNIFORM))
@@ -163,10 +186,7 @@ lower_non_uniform_access_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
 
    nir_push_loop(b);
 
-   assert(handle.handle->num_components == 1);
-
-   handle.first = nir_read_first_invocation(b, handle.handle);
-   nir_push_if(b, nir_ieq(b, handle.first, handle.handle));
+   nir_push_if(b, nu_handle_compare(options, b, &handle));
 
    nu_handle_rewrite(b, &handle);
 
@@ -180,7 +200,7 @@ lower_non_uniform_access_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
 
 static bool
 nir_lower_non_uniform_access_impl(nir_function_impl *impl,
-                                  enum nir_lower_non_uniform_access_type types)
+                                  const nir_lower_non_uniform_access_options *options)
 {
    bool progress = false;
 
@@ -192,8 +212,8 @@ nir_lower_non_uniform_access_impl(nir_function_impl *impl,
          switch (instr->type) {
          case nir_instr_type_tex: {
             nir_tex_instr *tex = nir_instr_as_tex(instr);
-            if ((types & nir_lower_non_uniform_texture_access) &&
-                lower_non_uniform_tex_access(&b, tex))
+            if ((options->types & nir_lower_non_uniform_texture_access) &&
+                lower_non_uniform_tex_access(options, &b, tex))
                progress = true;
             break;
          }
@@ -202,8 +222,8 @@ nir_lower_non_uniform_access_impl(nir_function_impl *impl,
             nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
             switch (intrin->intrinsic) {
             case nir_intrinsic_load_ubo:
-               if ((types & nir_lower_non_uniform_ubo_access) &&
-                   lower_non_uniform_access_intrin(&b, intrin, 0))
+               if ((options->types & nir_lower_non_uniform_ubo_access) &&
+                   lower_non_uniform_access_intrin(options, &b, intrin, 0))
                   progress = true;
                break;
 
@@ -222,15 +242,15 @@ nir_lower_non_uniform_access_impl(nir_function_impl *impl,
             case nir_intrinsic_ssbo_atomic_fmin:
             case nir_intrinsic_ssbo_atomic_fmax:
             case nir_intrinsic_ssbo_atomic_fcomp_swap:
-               if ((types & nir_lower_non_uniform_ssbo_access) &&
-                   lower_non_uniform_access_intrin(&b, intrin, 0))
+               if ((options->types & nir_lower_non_uniform_ssbo_access) &&
+                   lower_non_uniform_access_intrin(options, &b, intrin, 0))
                   progress = true;
                break;
 
             case nir_intrinsic_store_ssbo:
                /* SSBO Stores put the index in the second source */
-               if ((types & nir_lower_non_uniform_ssbo_access) &&
-                   lower_non_uniform_access_intrin(&b, intrin, 1))
+               if ((options->types & nir_lower_non_uniform_ssbo_access) &&
+                   lower_non_uniform_access_intrin(options, &b, intrin, 1))
                   progress = true;
                break;
 
@@ -288,8 +308,8 @@ nir_lower_non_uniform_access_impl(nir_function_impl *impl,
             case nir_intrinsic_image_deref_atomic_fmax:
             case nir_intrinsic_image_deref_size:
             case nir_intrinsic_image_deref_samples:
-               if ((types & nir_lower_non_uniform_image_access) &&
-                   lower_non_uniform_access_intrin(&b, intrin, 0))
+               if ((options->types & nir_lower_non_uniform_image_access) &&
+                   lower_non_uniform_access_intrin(options, &b, intrin, 0))
                   progress = true;
                break;
 
@@ -338,13 +358,13 @@ nir_lower_non_uniform_access_impl(nir_function_impl *impl,
  */
 bool
 nir_lower_non_uniform_access(nir_shader *shader,
-                             enum nir_lower_non_uniform_access_type types)
+                             const nir_lower_non_uniform_access_options *options)
 {
    bool progress = false;
 
    nir_foreach_function(function, shader) {
       if (function->impl &&
-          nir_lower_non_uniform_access_impl(function->impl, types))
+          nir_lower_non_uniform_access_impl(function->impl, options))
          progress = true;
    }
 

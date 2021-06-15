@@ -1803,7 +1803,8 @@ typedef struct nir_io_semantics {
    unsigned gs_streams:8; /* xxyyzzww: 2-bit stream index for each component */
    unsigned medium_precision:1; /* GLSL mediump qualifier */
    unsigned per_view:1;
-   unsigned _pad:7;
+   unsigned high_16bits:1; /* whether accessing low or high half of the slot */
+   unsigned _pad:6;
 } nir_io_semantics;
 
 #define NIR_INTRINSIC_MAX_INPUTS 11
@@ -3125,6 +3126,7 @@ typedef enum {
    nir_divergence_single_patch_per_tes_subgroup = (1 << 2),
    nir_divergence_view_index_uniform = (1 << 3),
    nir_divergence_single_frag_shading_rate_per_subgroup = (1 << 4),
+   nir_divergence_multiple_workgroup_per_compute_subgroup = (1 << 5),
 } nir_divergence_options;
 
 typedef struct nir_shader_compiler_options {
@@ -3434,8 +3436,6 @@ typedef struct nir_shader_compiler_options {
    unsigned max_unroll_iterations;
    unsigned max_unroll_iterations_aggressive;
 
-   /* For the non-zero value of the enum corresponds multiplier when
-    * calling lower_uniforms_to_ubo */
    bool lower_uniforms_to_ubo;
 
    nir_lower_int64_options lower_int64_options;
@@ -3465,9 +3465,6 @@ typedef struct nir_shader {
     * bytes, dwords, or vec4s depending on context and back-end.
     */
    unsigned num_inputs, num_uniforms, num_outputs;
-
-   /** Size in bytes of required shared memory */
-   unsigned shared_size;
 
    /** Size in bytes of required scratch space */
    unsigned scratch_size;
@@ -4048,6 +4045,8 @@ nir_if *nir_block_get_following_if(nir_block *block);
 
 nir_loop *nir_block_get_following_loop(nir_block *block);
 
+nir_block **nir_block_get_predecessors_sorted(const nir_block *block, void *mem_ctx);
+
 void nir_index_local_regs(nir_function_impl *impl);
 void nir_index_ssa_defs(nir_function_impl *impl);
 unsigned nir_index_instrs(nir_function_impl *impl);
@@ -4355,6 +4354,7 @@ void nir_compact_varyings(nir_shader *producer, nir_shader *consumer,
                           bool default_to_smooth_interp);
 void nir_link_xfb_varyings(nir_shader *producer, nir_shader *consumer);
 bool nir_link_opt_varyings(nir_shader *producer, nir_shader *consumer);
+void nir_link_varying_precision(nir_shader *producer, nir_shader *consumer);
 
 bool nir_lower_amul(nir_shader *shader,
                     int (*type_size)(const struct glsl_type *, bool));
@@ -4629,10 +4629,12 @@ bool nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask);
 bool nir_lower_io_to_vector(nir_shader *shader, nir_variable_mode mask);
 bool nir_vectorize_tess_levels(nir_shader *shader);
 
-bool nir_lower_fragcolor(nir_shader *shader);
+bool nir_lower_fragcolor(nir_shader *shader, unsigned max_cbufs);
 bool nir_lower_fragcoord_wtrans(nir_shader *shader);
 void nir_lower_viewport_transform(nir_shader *shader);
-bool nir_lower_uniforms_to_ubo(nir_shader *shader, int multiplier);
+bool nir_lower_uniforms_to_ubo(nir_shader *shader, bool dword_packed, bool load_vec4);
+
+bool nir_lower_is_helper_invocation(nir_shader *shader);
 
 typedef struct nir_lower_subgroups_options {
    uint8_t subgroup_size;
@@ -4846,7 +4848,7 @@ typedef struct nir_lower_tex_options {
 bool nir_lower_tex(nir_shader *shader,
                    const nir_lower_tex_options *options);
 
-bool nir_lower_cl_images_to_tex(nir_shader *shader);
+bool nir_lower_readonly_images_to_tex(nir_shader *shader, bool per_variable);
 
 enum nir_lower_non_uniform_access_type {
    nir_lower_non_uniform_ubo_access     = (1 << 0),
@@ -4855,22 +4857,38 @@ enum nir_lower_non_uniform_access_type {
    nir_lower_non_uniform_image_access   = (1 << 3),
 };
 
+/* Given the nir_src used for the resource, return the channels which might be non-uniform. */
+typedef nir_component_mask_t (*nir_lower_non_uniform_access_callback)(const nir_src *, void *);
+
+typedef struct nir_lower_non_uniform_access_options {
+   enum nir_lower_non_uniform_access_type types;
+   nir_lower_non_uniform_access_callback callback;
+   void *callback_data;
+} nir_lower_non_uniform_access_options;
+
 bool nir_lower_non_uniform_access(nir_shader *shader,
-                                  enum nir_lower_non_uniform_access_type);
+                                  const nir_lower_non_uniform_access_options *options);
 
-enum nir_lower_idiv_path {
-   /* This path is based on NV50LegalizeSSA::handleDIV(). It is the faster of
-    * the two but it is not exact in some cases (for example, 1091317713u /
-    * 1034u gives 5209173 instead of 1055432) */
-   nir_lower_idiv_fast,
-   /* This path is based on AMDGPUTargetLowering::LowerUDIVREM() and
-    * AMDGPUTargetLowering::LowerSDIVREM(). It requires more instructions than
-    * the nv50 path and many of them are integer multiplications, so it is
-    * probably slower. It should always return the correct result, though. */
-   nir_lower_idiv_precise,
-};
+typedef struct {
+   /* If true, a 32-bit division lowering based on NV50LegalizeSSA::handleDIV()
+    * is used. It is the faster of the two but it is not exact in some cases
+    * (for example, 1091317713u / 1034u gives 5209173 instead of 1055432).
+    *
+    * If false, a lowering based on AMDGPUTargetLowering::LowerUDIVREM() and
+    * AMDGPUTargetLowering::LowerSDIVREM() is used. It requires more
+    * instructions than the nv50 path and many of them are integer
+    * multiplications, so it is probably slower. It should always return the
+    * correct result, though.
+    */
+   bool imprecise_32bit_lowering;
 
-bool nir_lower_idiv(nir_shader *shader, enum nir_lower_idiv_path path);
+   /* Whether 16-bit floating point arithmetic should be allowed in 8-bit
+    * division lowering
+    */
+   bool allow_fp16;
+} nir_lower_idiv_options;
+
+bool nir_lower_idiv(nir_shader *shader, const nir_lower_idiv_options *options);
 
 typedef struct nir_input_attachment_options {
    bool use_fragcoord_sysval;
@@ -4984,7 +5002,23 @@ bool nir_lower_doubles(nir_shader *shader, const nir_shader *softfp64,
                        nir_lower_doubles_options options);
 bool nir_lower_pack(nir_shader *shader);
 
-void nir_lower_mediump_outputs(nir_shader *nir);
+bool nir_recompute_io_bases(nir_function_impl *impl, nir_variable_mode modes);
+bool nir_lower_mediump_io(nir_shader *nir, nir_variable_mode modes,
+                          uint64_t varying_mask, bool use_16bit_slots);
+bool nir_force_mediump_io(nir_shader *nir, nir_variable_mode modes,
+                          nir_alu_type types);
+bool nir_unpack_16bit_varying_slots(nir_shader *nir, nir_variable_mode modes);
+bool nir_fold_16bit_sampler_conversions(nir_shader *nir,
+                                        unsigned tex_src_types);
+
+typedef struct {
+   bool legalize_type;         /* whether this src should be legalized */
+   uint8_t bit_size;           /* bit_size to enforce */
+   nir_tex_src_type match_src; /* if bit_size is 0, match bit size of this */
+} nir_tex_src_type_constraint, nir_tex_src_type_constraints[nir_num_tex_src_types];
+
+bool nir_legalize_16bit_sampler_srcs(nir_shader *nir,
+                                     nir_tex_src_type_constraints constraints);
 
 bool nir_lower_point_size(nir_shader *shader, float min, float max);
 

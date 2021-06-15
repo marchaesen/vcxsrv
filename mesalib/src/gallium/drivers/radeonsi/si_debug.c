@@ -107,7 +107,7 @@ static void si_dump_shader(struct si_screen *sscreen, struct si_shader *shader, 
       unsigned size = shader->bo->b.b.width0;
       fprintf(f, "BO: VA=%" PRIx64 " Size=%u\n", shader->bo->gpu_address, size);
 
-      const char *mapped = sscreen->ws->buffer_map(
+      const char *mapped = sscreen->ws->buffer_map(sscreen->ws,
          shader->bo->buf, NULL,
          PIPE_MAP_UNSYNCHRONIZED | PIPE_MAP_READ | RADEON_MAP_TEMPORARY);
 
@@ -115,7 +115,7 @@ static void si_dump_shader(struct si_screen *sscreen, struct si_shader *shader, 
          fprintf(f, " %4x: %08x\n", i, *(uint32_t *)(mapped + i));
       }
 
-      sscreen->ws->buffer_unmap(shader->bo->buf);
+      sscreen->ws->buffer_unmap(sscreen->ws, shader->bo->buf);
 
       fprintf(f, "\n");
    }
@@ -402,7 +402,7 @@ static void si_log_chunk_type_cs_print(void *data, FILE *f)
     * waited for the context, so this buffer should be idle.
     * If the GPU is hung, there is no point in waiting for it.
     */
-   uint32_t *map = ctx->ws->buffer_map(scs->trace_buf->buf, NULL,
+   uint32_t *map = ctx->ws->buffer_map(ctx->ws, scs->trace_buf->buf, NULL,
                                        PIPE_MAP_UNSYNCHRONIZED | PIPE_MAP_READ);
    if (map) {
       last_trace_id = map[0];

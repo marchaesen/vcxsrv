@@ -63,46 +63,46 @@ xkb_symbols "sun_type6" {
 };
 
 partial alphanumeric_keys
-    xkb_symbols "basic" {
+xkb_symbols "basic" {
     include "sun_vndr/fi(sun_type6)"
 };
 
 partial alphanumeric_keys
-    xkb_symbols "kotoistus" {
+xkb_symbols "kotoistus" {
     include "fi(kotoistus)"
 };
 
 partial alphanumeric_keys
-    xkb_symbols "winkeys" {
+xkb_symbols "winkeys" {
     include "fi(winkeys)"
 };
 
 partial alphanumeric_keys
-    xkb_symbols "classic" {
+xkb_symbols "classic" {
     include "fi(fi)"
 };
 
 partial alphanumeric_keys
-    xkb_symbols "nodeadkeys" {
+xkb_symbols "nodeadkeys" {
     include "fi(nodeadkeys)"
 };
 
 partial alphanumeric_keys
-    xkb_symbols "smi" {
+xkb_symbols "smi" {
     include "fi(smi)"
 };
 
 partial alphanumeric_keys
-    xkb_symbols "mac" {
+xkb_symbols "mac" {
     include "fi(mac)"
 };
 
 partial alphanumeric_keys
-    xkb_symbols "das" {
+xkb_symbols "das" {
     include "fi(das)"
 };
 
 partial alphanumeric_keys
-    xkb_symbols "fidvorak" {
+xkb_symbols "fidvorak" {
     include "fi(fidvorak)"
 };

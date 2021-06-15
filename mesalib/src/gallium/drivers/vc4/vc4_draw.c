@@ -23,6 +23,7 @@
  */
 
 #include "util/u_blitter.h"
+#include "util/u_draw.h"
 #include "util/u_prim.h"
 #include "util/format/u_format.h"
 #include "util/u_pack_color.h"
@@ -132,6 +133,7 @@ vc4_predraw_check_textures(struct pipe_context *pctx,
 static void
 vc4_emit_gl_shader_state(struct vc4_context *vc4,
                          const struct pipe_draw_info *info,
+                         const struct pipe_draw_start_count_bias *draws,
                          uint32_t extra_index_bias)
 {
         struct vc4_job *job = vc4->job;
@@ -182,7 +184,7 @@ vc4_emit_gl_shader_state(struct vc4_context *vc4,
         };
 
         uint32_t max_index = 0xffff;
-        unsigned index_bias = info->index_size ? info->index_bias : 0;
+        unsigned index_bias = info->index_size ? draws->index_bias : 0;
         for (int i = 0; i < vtx->num_elements; i++) {
                 struct pipe_vertex_element *elem = &vtx->pipe[i];
                 struct pipe_vertex_buffer *vb =
@@ -288,20 +290,15 @@ vc4_hw_2116_workaround(struct pipe_context *pctx, int vert_count)
 
 static void
 vc4_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
+             unsigned drawid_offset,
              const struct pipe_draw_indirect_info *indirect,
-             const struct pipe_draw_start_count *draws,
+             const struct pipe_draw_start_count_bias *draws,
              unsigned num_draws)
 {
-	if (num_draws > 1) {
-           struct pipe_draw_info tmp_info = *info;
-
-           for (unsigned i = 0; i < num_draws; i++) {
-              vc4_draw_vbo(pctx, &tmp_info, indirect, &draws[i], 1);
-              if (tmp_info.increment_draw_id)
-                 tmp_info.drawid++;
-           }
-           return;
-	}
+        if (num_draws > 1) {
+                util_draw_multi(pctx, info, drawid_offset, indirect, draws, num_draws);
+                return;
+        }
 
         if (!indirect && (!draws[0].count || !info->instance_count))
            return;
@@ -323,7 +320,7 @@ vc4_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
                         info = &local_info;
                 } else {
                         util_primconvert_save_rasterizer_state(vc4->primconvert, &vc4->rasterizer->base);
-                        util_primconvert_draw_vbo(vc4->primconvert, info, &draws[0]);
+                        util_primconvert_draw_vbo(vc4->primconvert, info, drawid_offset, indirect, draws, num_draws);
                         perf_debug("Fallback conversion for %d %s vertices\n",
                                    draws[0].count, u_prim_name(info->mode));
                         return;
@@ -363,7 +360,7 @@ vc4_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
 
         bool needs_drawarrays_shader_state = false;
 
-        unsigned index_bias = info->index_size ? info->index_bias : 0;
+        unsigned index_bias = info->index_size ? draws->index_bias : 0;
         if ((vc4->dirty & (VC4_DIRTY_VTXBUF |
                            VC4_DIRTY_VTXSTATE |
                            VC4_DIRTY_PRIM_MODE |
@@ -376,7 +373,7 @@ vc4_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
                            vc4->prog.fs->uniform_dirty_bits)) ||
             vc4->last_index_bias != index_bias) {
                 if (info->index_size)
-                        vc4_emit_gl_shader_state(vc4, info, 0);
+                        vc4_emit_gl_shader_state(vc4, info, draws, 0);
                 else
                         needs_drawarrays_shader_state = true;
         }
@@ -472,7 +469,7 @@ vc4_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
                         uint32_t step;
 
                         if (needs_drawarrays_shader_state) {
-                                vc4_emit_gl_shader_state(vc4, info,
+                                vc4_emit_gl_shader_state(vc4, info, draws,
                                                          extra_index_bias);
                         }
 

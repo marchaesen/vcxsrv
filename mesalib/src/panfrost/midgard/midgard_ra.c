@@ -394,7 +394,7 @@ allocate_registers(compiler_context *ctx, bool *spilled)
         /* The number of vec4 work registers available depends on the number of
          * register-mapped uniforms and the shader stage. By ABI we limit blend
          * shaders to 8 registers, should be lower XXX */
-        unsigned rmu = ctx->info->push.count / 4;
+        int rmu = ctx->info->push.count / 4;
         int work_count = ctx->inputs->is_blend ? 8 : 16 - MAX2(rmu - 8, 0);
 
        /* No register allocation to do with no SSA */
@@ -744,7 +744,7 @@ install_registers_instr(
         }
 
         case TAG_TEXTURE_4: {
-                if (ins->op == TEXTURE_OP_BARRIER)
+                if (ins->op == midgard_tex_op_barrier)
                         break;
 
                 /* Grab RA results */
@@ -986,13 +986,15 @@ mir_demote_uniforms(compiler_context *ctx, unsigned new_cutoff)
                                         .dest_type = ins->src_types[i],
                                         .src = { ~0, ~0, ~0, ~0 },
                                         .swizzle = SWIZZLE_IDENTITY_4,
-                                        .op = midgard_op_ld_ubo_u128,
+                                        .op = midgard_op_ld_ubo_128,
                                         .load_store = {
-                                                .arg_1 = ctx->info->push.words[idx].ubo,
-                                                .arg_2 = 0x1E,
+                                                .index_reg = REGISTER_LDST_ZERO,
                                         },
                                         .constants.u32[0] = ctx->info->push.words[idx].offset
                                 };
+
+                                midgard_pack_ubo_index_imm(&ld.load_store,
+                                                           ctx->info->push.words[idx].ubo);
 
                                 mir_insert_instruction_before_scheduled(ctx, block, before, ld);
 

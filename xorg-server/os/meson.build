@@ -19,34 +19,34 @@ srcs_os = [
     'log.c',
 ]
 
-# Wrapper code for missing C library functions
+# Wrapper code for missing C library functions. Note that conf_data contains either '1' or false.
 srcs_libc = []
-if not conf_data.get('HAVE_REALLOCARRAY')
+if conf_data.get('HAVE_REALLOCARRAY') == false
     srcs_libc += 'reallocarray.c'
 endif
-if not conf_data.get('HAVE_STRCASECMP')
+if conf_data.get('HAVE_STRCASECMP') == false
     srcs_libc += 'strcasecmp.c'
 endif
-if not conf_data.get('HAVE_STRCASESTR')
+if conf_data.get('HAVE_STRCASESTR') == false
     srcs_libc += 'strcasestr.c'
 endif
-if not conf_data.get('HAVE_STRLCAT')
+if conf_data.get('HAVE_STRLCAT') == false
     srcs_libc += 'strlcat.c'
 endif
-if not conf_data.get('HAVE_STRLCPY')
+if conf_data.get('HAVE_STRLCPY') == false
     srcs_libc += 'strlcpy.c'
 endif
-if not conf_data.get('HAVE_STRNDUP')
+if conf_data.get('HAVE_STRNDUP') == false
     srcs_libc += 'strndup.c'
 endif
-if not conf_data.get('HAVE_TIMINGSAFE_MEMCMP')
+if conf_data.get('HAVE_TIMINGSAFE_MEMCMP') == false
     srcs_libc += 'timingsafe_memcmp.c'
 endif
-if not conf_data.get('HAVE_POLL')
+if conf_data.get('HAVE_POLL') == false
     srcs_os += 'xserver_poll.c'
 endif
 
-if conf_data.get('BUSFAULT')
+if conf_data.get('BUSFAULT') != false
     srcs_os += 'busfault.c'
 endif
 
@@ -72,7 +72,7 @@ if get_option('xres')
     # Only the XRes extension cares about the client ID.
     os_c_args += '-DCLIENTIDS'
     if host_machine.system() == 'openbsd'
-        os_deps += cc.find_library('kvm')
+        os_dep += cc.find_library('kvm')
     endif
 endif
 
@@ -85,6 +85,10 @@ if srcs_libc.length() > 0
             xproto_dep,
         ],
     )
+endif
+
+if enable_input_thread
+    os_dep += cc.find_library('pthread')
 endif
 
 libxserver_os = static_library('libxserver_os',

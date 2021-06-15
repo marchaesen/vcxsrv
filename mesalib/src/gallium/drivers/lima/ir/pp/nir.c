@@ -551,7 +551,7 @@ static bool ppir_emit_tex(ppir_block *block, nir_instr *ni)
 
 static ppir_block *ppir_get_block(ppir_compiler *comp, nir_block *nblock)
 {
-   ppir_block *block = _mesa_hash_table_u64_search(comp->blocks, (uint64_t)nblock);
+   ppir_block *block = _mesa_hash_table_u64_search(comp->blocks, (uintptr_t)nblock);
 
    return block;
 }
@@ -896,7 +896,7 @@ bool ppir_compile_nir(struct lima_fs_compiled_shader *prog, struct nir_shader *n
          if (!block)
             return false;
          block->index = nblock->index;
-         _mesa_hash_table_u64_insert(comp->blocks, (uint64_t)nblock, block);
+         _mesa_hash_table_u64_insert(comp->blocks, (uintptr_t)nblock, block);
       }
    }
 
@@ -972,12 +972,12 @@ bool ppir_compile_nir(struct lima_fs_compiled_shader *prog, struct nir_shader *n
 
    ppir_print_shader_db(nir, comp, debug);
 
-   _mesa_hash_table_u64_destroy(comp->blocks, NULL);
+   _mesa_hash_table_u64_destroy(comp->blocks);
    ralloc_free(comp);
    return true;
 
 err_out0:
-   _mesa_hash_table_u64_destroy(comp->blocks, NULL);
+   _mesa_hash_table_u64_destroy(comp->blocks);
    ralloc_free(comp);
    return false;
 }

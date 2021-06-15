@@ -220,7 +220,7 @@ void si_llvm_create_main_func(struct si_shader_context *ctx, bool ngg_cull_shade
 
 
    if (shader->key.as_ls || ctx->stage == MESA_SHADER_TESS_CTRL) {
-      if (USE_LDS_SYMBOLS && LLVM_VERSION_MAJOR >= 9) {
+      if (USE_LDS_SYMBOLS) {
          /* The LSHS size is not known until draw time, so we append it
           * at the end of whatever LDS use there may be in the rest of
           * the shader (currently none, unless LLVM decides to do its
@@ -412,14 +412,21 @@ static LLVMValueRef si_llvm_get_block_size(struct ac_shader_abi *abi)
 {
    struct si_shader_context *ctx = si_shader_context_from_abi(abi);
 
-   assert(ctx->shader->selector->info.base.cs.local_size_variable);
-   return ac_get_arg(&ctx->ac, ctx->block_size);
+   assert(ctx->shader->selector->info.base.cs.local_size_variable &&
+          ctx->shader->selector->info.uses_variable_block_size);
+
+   LLVMValueRef chan[3] = {
+      si_unpack_param(ctx, ctx->block_size, 0, 10),
+      si_unpack_param(ctx, ctx->block_size, 10, 10),
+      si_unpack_param(ctx, ctx->block_size, 20, 10),
+   };
+   return ac_build_gather_values(&ctx->ac, chan, 3);
 }
 
 static void si_llvm_declare_compute_memory(struct si_shader_context *ctx)
 {
    struct si_shader_selector *sel = ctx->shader->selector;
-   unsigned lds_size = sel->info.base.cs.shared_size;
+   unsigned lds_size = sel->info.base.shared_size;
 
    LLVMTypeRef i8p = LLVMPointerType(ctx->ac.i8, AC_ADDR_SPACE_LDS);
    LLVMValueRef var;
@@ -480,7 +487,7 @@ static bool si_nir_build_llvm(struct si_shader_context *ctx, struct nir_shader *
                                                       nir->info.cs.user_data_components_amd);
       }
 
-      if (ctx->shader->selector->info.base.cs.shared_size)
+      if (ctx->shader->selector->info.base.shared_size)
          si_llvm_declare_compute_memory(ctx);
    }
 
@@ -495,7 +502,9 @@ static bool si_nir_build_llvm(struct si_shader_context *ctx, struct nir_shader *
    for (unsigned i = 0; i < info->num_outputs; i++) {
       LLVMTypeRef type = ctx->ac.f32;
 
-      if (nir_alu_type_get_type_size(ctx->shader->selector->info.output_type[i]) == 16)
+      /* Only FS uses unpacked f16. Other stages pack 16-bit outputs into low and high bits of f32. */
+      if (nir->info.stage == MESA_SHADER_FRAGMENT &&
+          nir_alu_type_get_type_size(ctx->shader->selector->info.output_type[i]) == 16)
          type = ctx->ac.f16;
 
       for (unsigned j = 0; j < 4; j++)

@@ -133,6 +133,7 @@ struct panfrost_context {
         uint64_t tf_prims_generated;
         struct panfrost_query *occlusion_query;
 
+        bool indirect_draw;
         unsigned vertex_count;
         unsigned instance_count;
         unsigned offset_start;
@@ -178,9 +179,6 @@ struct panfrost_context {
         unsigned sample_mask;
         unsigned min_samples;
 
-        struct panfrost_blend_state *blit_blend;
-        struct hash_table *blend_shaders;
-
         struct panfrost_query *cond_query;
         bool cond_cond;
         enum pipe_render_cond_flag cond_mode;
@@ -218,7 +216,9 @@ struct panfrost_shader_state {
         /* GPU-executable memory */
         struct panfrost_bo *bo;
 
+        /* Variants */
         enum pipe_format rt_formats[8];
+        unsigned nr_cbufs;
 };
 
 /* A collection of varyings (the CSO) */
@@ -316,23 +316,6 @@ panfrost_flush(
 
 bool
 panfrost_render_condition_check(struct panfrost_context *ctx);
-
-mali_ptr panfrost_sfbd_fragment(struct panfrost_batch *batch, bool has_draws);
-mali_ptr panfrost_mfbd_fragment(struct panfrost_batch *batch, bool has_draws);
-
-void
-panfrost_attach_mfbd(struct panfrost_batch *batch, unsigned vertex_count);
-
-void
-panfrost_attach_sfbd(struct panfrost_batch *batch, unsigned vertex_count);
-
-void
-panfrost_emit_midg_tiler(struct panfrost_batch *batch,
-                         struct mali_midgard_tiler_packed *tp,
-                         unsigned vertex_count);
-
-mali_ptr
-panfrost_fragment_job(struct panfrost_batch *batch, bool has_draws);
 
 void
 panfrost_shader_compile(struct panfrost_context *ctx,

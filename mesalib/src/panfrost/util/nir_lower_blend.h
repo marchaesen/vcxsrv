@@ -56,7 +56,7 @@ typedef struct {
    /* Use fp16 instead of fp32 */
    bool half;
 
-   bool is_bifrost;
+   bool scalar;
    nir_ssa_def *src1;
 } nir_lower_blend_options;
 

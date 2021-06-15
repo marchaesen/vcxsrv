@@ -37,6 +37,12 @@
    "map": {"at": 3668, "to": "mm"},
    "name": "SRBM_STATUS3",
    "type_ref": "SRBM_STATUS3"
+  },
+  {
+   "chips": ["gfx103"],
+   "map": {"at": 199052, "to": "mm"},
+   "name": "GE_VRS_RATE",
+   "type_ref": "GE_VRS_RATE"
   }
  ],
  "register_types": {
@@ -145,6 +151,12 @@
     {"bits": [13, 13], "name": "MCD5_BUSY"},
     {"bits": [14, 14], "name": "MCD6_BUSY"},
     {"bits": [15, 15], "name": "MCD7_BUSY"}
+   ]
+  },
+  "GE_VRS_RATE": {
+   "fields": [
+    {"bits": [0, 1], "name": "RATE_X"},
+    {"bits": [4, 5], "name": "RATE_Y"}
    ]
   }
  }

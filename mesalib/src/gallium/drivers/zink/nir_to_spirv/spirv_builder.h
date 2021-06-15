@@ -187,6 +187,12 @@ spirv_builder_emit_access_chain(struct spirv_builder *b, SpvId result_type,
                                 SpvId base, const SpvId indexes[],
                                 size_t num_indexes);
 
+void
+spirv_builder_emit_interlock(struct spirv_builder *b, bool end);
+
+SpvId
+spirv_builder_emit_unop_const(struct spirv_builder *b, SpvOp op, SpvId result_type, uint64_t operand);
+
 SpvId
 spirv_builder_emit_unop(struct spirv_builder *b, SpvOp op, SpvId result_type,
                         SpvId operand);
@@ -442,7 +448,7 @@ spirv_builder_get_num_words(struct spirv_builder *b);
 
 size_t
 spirv_builder_get_words(struct spirv_builder *b, uint32_t *words,
-                        size_t num_words);
+                        size_t num_words, bool spirv_15);
 
 void
 spirv_builder_emit_vertex(struct spirv_builder *b, uint32_t stream);

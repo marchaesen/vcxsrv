@@ -22,7 +22,7 @@ You can find some further To-do lists here:
 
 **Common To-Do lists:**
 
--  `features.txt <https://gitlab.freedesktop.org/mesa/mesa/-/blob/master/docs/features.txt>`__
+-  `features.txt <https://gitlab.freedesktop.org/mesa/mesa/-/blob/main/docs/features.txt>`__
    - Status of OpenGL 3.x / 4.x features in Mesa.
 
 **Legacy Driver specific To-Do lists:**

@@ -131,6 +131,7 @@ struct amdgpu_cs_context {
 struct amdgpu_cs {
    struct amdgpu_ib main; /* must be first because this is inherited */
    struct amdgpu_ib compute_ib;      /* optional parallel compute IB */
+   struct amdgpu_winsys *ws;
    struct amdgpu_ctx *ctx;
    enum ring_type ring_type;
    struct drm_amdgpu_cs_chunk_fence fence_chunk;

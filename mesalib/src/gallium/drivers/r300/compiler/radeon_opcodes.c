@@ -30,6 +30,8 @@
 
 #include "radeon_program_constants.h"
 
+#include "util/compiler.h"
+
 struct rc_opcode_info rc_opcodes[MAX_RC_OPCODE] = {
 	{
 		.Opcode = RC_OPCODE_NOP,
@@ -576,7 +578,7 @@ void rc_compute_sources_for_writemask(
 		case RC_OPCODE_TXP:
 		case RC_OPCODE_TXL:
 			srcmasks[0] |= RC_MASK_W;
-			/* Fall through */
+			FALLTHROUGH;
 		case RC_OPCODE_TEX:
 			switch (inst->U.I.TexSrcTarget) {
 				case RC_TEXTURE_1D:
@@ -598,7 +600,7 @@ void rc_compute_sources_for_writemask(
 			switch (inst->U.I.TexSrcTarget) {
 				case RC_TEXTURE_1D_ARRAY:
 					srcmasks[0] |= RC_MASK_Y;
-					/* Fall through. */
+					FALLTHROUGH;
 				case RC_TEXTURE_1D:
 					srcmasks[0] |= RC_MASK_X;
 					srcmasks[1] |= RC_MASK_X;
@@ -606,7 +608,7 @@ void rc_compute_sources_for_writemask(
 					break;
 				case RC_TEXTURE_2D_ARRAY:
 					srcmasks[0] |= RC_MASK_Z;
-					/* Fall through. */
+					FALLTHROUGH;
 				case RC_TEXTURE_2D:
 				case RC_TEXTURE_RECT:
 					srcmasks[0] |= RC_MASK_XY;

@@ -27,64 +27,55 @@
 
 #include <X11/Xlib-xcb.h>
 #include <X11/xshmfence.h>
-#include <xcb/xcb.h>
 #include <xcb/dri3.h>
 #include <xcb/present.h>
+#include <xcb/xcb.h>
 
-#include "wsi_common_x11.h"
 #include "radv_private.h"
+#include "wsi_common_x11.h"
 
-VkBool32 radv_GetPhysicalDeviceXcbPresentationSupportKHR(
-    VkPhysicalDevice                            physicalDevice,
-    uint32_t                                    queueFamilyIndex,
-    xcb_connection_t*                           connection,
-    xcb_visualid_t                              visual_id)
+VkBool32
+radv_GetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalDevice physicalDevice,
+                                                uint32_t queueFamilyIndex,
+                                                xcb_connection_t *connection,
+                                                xcb_visualid_t visual_id)
 {
    RADV_FROM_HANDLE(radv_physical_device, device, physicalDevice);
 
-   return wsi_get_physical_device_xcb_presentation_support(
-      &device->wsi_device,
-      queueFamilyIndex,
-      connection, visual_id);
+   return wsi_get_physical_device_xcb_presentation_support(&device->wsi_device, queueFamilyIndex,
+                                                           connection, visual_id);
 }
 
-VkBool32 radv_GetPhysicalDeviceXlibPresentationSupportKHR(
-    VkPhysicalDevice                            physicalDevice,
-    uint32_t                                    queueFamilyIndex,
-    Display*                                    dpy,
-    VisualID                                    visualID)
+VkBool32
+radv_GetPhysicalDeviceXlibPresentationSupportKHR(VkPhysicalDevice physicalDevice,
+                                                 uint32_t queueFamilyIndex, Display *dpy,
+                                                 VisualID visualID)
 {
    RADV_FROM_HANDLE(radv_physical_device, device, physicalDevice);
 
-   return wsi_get_physical_device_xcb_presentation_support(
-      &device->wsi_device,
-      queueFamilyIndex,
-      XGetXCBConnection(dpy), visualID);
+   return wsi_get_physical_device_xcb_presentation_support(&device->wsi_device, queueFamilyIndex,
+                                                           XGetXCBConnection(dpy), visualID);
 }
 
-VkResult radv_CreateXcbSurfaceKHR(
-    VkInstance                                  _instance,
-    const VkXcbSurfaceCreateInfoKHR*            pCreateInfo,
-    const VkAllocationCallbacks*                pAllocator,
-    VkSurfaceKHR*                               pSurface)
+VkResult
+radv_CreateXcbSurfaceKHR(VkInstance _instance, const VkXcbSurfaceCreateInfoKHR *pCreateInfo,
+                         const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface)
 {
    RADV_FROM_HANDLE(radv_instance, instance, _instance);
    const VkAllocationCallbacks *alloc;
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR);
 
    if (pAllocator)
-     alloc = pAllocator;
+      alloc = pAllocator;
    else
-     alloc = &instance->vk.alloc;
+      alloc = &instance->vk.alloc;
 
    return wsi_create_xcb_surface(alloc, pCreateInfo, pSurface);
 }
 
-VkResult radv_CreateXlibSurfaceKHR(
-    VkInstance                                  _instance,
-    const VkXlibSurfaceCreateInfoKHR*           pCreateInfo,
-    const VkAllocationCallbacks*                pAllocator,
-    VkSurfaceKHR*                               pSurface)
+VkResult
+radv_CreateXlibSurfaceKHR(VkInstance _instance, const VkXlibSurfaceCreateInfoKHR *pCreateInfo,
+                          const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface)
 {
    RADV_FROM_HANDLE(radv_instance, instance, _instance);
    const VkAllocationCallbacks *alloc;
@@ -92,9 +83,9 @@ VkResult radv_CreateXlibSurfaceKHR(
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR);
 
    if (pAllocator)
-     alloc = pAllocator;
+      alloc = pAllocator;
    else
-     alloc = &instance->vk.alloc;
+      alloc = &instance->vk.alloc;
 
    return wsi_create_xlib_surface(alloc, pCreateInfo, pSurface);
 }

@@ -42,12 +42,10 @@ int etna_pipe_wait_ns(struct etna_pipe *pipe, uint32_t timestamp, uint64_t ns)
 	get_abs_timeout(&req.timeout, ns);
 
 	ret = drmCommandWrite(dev->fd, DRM_ETNAVIV_WAIT_FENCE, &req, sizeof(req));
-	if (ret) {
+	if (ret && (ret != -EBUSY) && (ret != -ETIMEDOUT))
 		ERROR_MSG("wait-fence failed! %d (%s)", ret, strerror(errno));
-		return ret;
-	}
 
-	return 0;
+	return ret;
 }
 
 void etna_pipe_del(struct etna_pipe *pipe)

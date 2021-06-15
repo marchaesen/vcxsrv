@@ -69,6 +69,33 @@ struct pan_blend_state {
         struct pan_blend_rt_state rts[8];
 };
 
+struct pan_blend_shader_key {
+        enum pipe_format format;
+        nir_alu_type src0_type, src1_type;
+        unsigned rt : 3;
+        unsigned has_constants : 1;
+        unsigned logicop_enable : 1;
+        unsigned logicop_func:4;
+        unsigned nr_samples : 5;
+        struct pan_blend_equation equation;
+};
+
+struct pan_blend_shader_variant {
+        struct list_head node;
+        float constants[4];
+        struct util_dynarray binary;
+        unsigned first_tag;
+        unsigned work_reg_count;
+};
+
+#define PAN_BLEND_SHADER_MAX_VARIANTS 16
+
+struct pan_blend_shader {
+        struct pan_blend_shader_key key;
+        unsigned nvariants;
+        struct list_head variants;
+};
+
 bool
 pan_blend_reads_dest(const struct pan_blend_state *state, unsigned rt);
 
@@ -99,6 +126,29 @@ pan_blend_to_fixed_function_equation(const struct panfrost_device *dev,
 nir_shader *
 pan_blend_create_shader(const struct panfrost_device *dev,
                         const struct pan_blend_state *state,
+                        nir_alu_type src0_type,
+                        nir_alu_type src1_type,
                         unsigned rt);
+
+uint64_t
+pan_blend_get_bifrost_desc(const struct panfrost_device *dev,
+                           enum pipe_format fmt, unsigned rt,
+                           unsigned force_size);
+
+/* Take blend_shaders.lock before calling this function and release it when
+ * you're done with the shader variant object.
+ */
+struct pan_blend_shader_variant *
+pan_blend_get_shader_locked(const struct panfrost_device *dev,
+                            const struct pan_blend_state *state,
+                            nir_alu_type src0_type,
+                            nir_alu_type src1_type,
+                            unsigned rt);
+
+void
+pan_blend_shaders_init(struct panfrost_device *dev);
+
+void
+pan_blend_shaders_cleanup(struct panfrost_device *dev);
 
 #endif

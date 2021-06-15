@@ -47,7 +47,7 @@ destroy_buffer_locked(struct pb_cache_entry *entry)
       --mgr->num_buffers;
       mgr->cache_size -= buf->size;
    }
-   mgr->destroy_buffer(buf);
+   mgr->destroy_buffer(mgr->winsys, buf);
 }
 
 /**
@@ -97,7 +97,7 @@ pb_cache_add_buffer(struct pb_cache_entry *entry)
 
    /* Directly release any buffer that exceeds the limit. */
    if (mgr->cache_size + buf->size > mgr->max_cache_size) {
-      mgr->destroy_buffer(buf);
+      mgr->destroy_buffer(mgr->winsys, buf);
       mtx_unlock(&mgr->mutex);
       return;
    }
@@ -133,10 +133,10 @@ pb_cache_is_buffer_compat(struct pb_cache_entry *entry,
    if (usage & mgr->bypass_usage)
       return 0;
 
-   if (!pb_check_alignment(alignment, buf->alignment))
+   if (!pb_check_alignment(alignment, 1ull << buf->alignment_log2))
       return 0;
 
-   return mgr->can_reclaim(buf) ? 1 : -1;
+   return mgr->can_reclaim(mgr->winsys, buf) ? 1 : -1;
 }
 
 /**
@@ -280,8 +280,9 @@ void
 pb_cache_init(struct pb_cache *mgr, uint num_heaps,
               uint usecs, float size_factor,
               unsigned bypass_usage, uint64_t maximum_cache_size,
-              void (*destroy_buffer)(struct pb_buffer *buf),
-              bool (*can_reclaim)(struct pb_buffer *buf))
+              void *winsys,
+              void (*destroy_buffer)(void *winsys, struct pb_buffer *buf),
+              bool (*can_reclaim)(void *winsys, struct pb_buffer *buf))
 {
    unsigned i;
 
@@ -293,6 +294,7 @@ pb_cache_init(struct pb_cache *mgr, uint num_heaps,
       list_inithead(&mgr->buckets[i]);
 
    (void) mtx_init(&mgr->mutex, mtx_plain);
+   mgr->winsys = winsys;
    mgr->cache_size = 0;
    mgr->max_cache_size = maximum_cache_size;
    mgr->num_heaps = num_heaps;

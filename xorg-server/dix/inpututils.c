@@ -746,6 +746,21 @@ init_device_event(DeviceEvent *event, DeviceIntPtr dev, Time ms,
     event->source_type = source_type;
 }
 
+/**
+ * Initializes the given gesture event to zero (or default values),
+ * for the given device.
+ */
+void
+init_gesture_event(GestureEvent *event, DeviceIntPtr dev, Time ms)
+{
+    memset(event, 0, sizeof(GestureEvent));
+    event->header = ET_Internal;
+    event->length = sizeof(GestureEvent);
+    event->time = ms;
+    event->deviceid = dev->id;
+    event->sourceid = dev->id;
+}
+
 int
 event_get_corestate(DeviceIntPtr mouse, DeviceIntPtr kbd)
 {
@@ -781,6 +796,24 @@ event_set_state(DeviceIntPtr mouse, DeviceIntPtr kbd, DeviceEvent *event)
             state = &kbd->key->xkbInfo->prev_state;
         else
             state = &kbd->key->xkbInfo->state;
+
+        event->mods.base = state->base_mods;
+        event->mods.latched = state->latched_mods;
+        event->mods.locked = state->locked_mods;
+        event->mods.effective = state->mods;
+
+        event->group.base = state->base_group;
+        event->group.latched = state->latched_group;
+        event->group.locked = state->locked_group;
+        event->group.effective = state->group;
+    }
+}
+
+void
+event_set_state_gesture(DeviceIntPtr kbd, GestureEvent *event)
+{
+    if (kbd && kbd->key) {
+        XkbStatePtr state= &kbd->key->xkbInfo->state;
 
         event->mods.base = state->base_mods;
         event->mods.latched = state->latched_mods;

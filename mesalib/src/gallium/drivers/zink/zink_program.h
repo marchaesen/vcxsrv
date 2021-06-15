@@ -45,11 +45,15 @@ struct util_dynarray;
 
 struct zink_program;
 
-struct zink_push_constant {
+struct zink_gfx_push_constant {
    unsigned draw_mode_is_indexed;
    unsigned draw_id;
    float default_inner_level[2];
    float default_outer_level[4];
+};
+
+struct zink_cs_push_constant {
+   unsigned work_dim;
 };
 
 /* a shader module is used for directly reusing a shader module between programs,
@@ -69,6 +73,7 @@ struct zink_shader_cache {
 
 struct zink_program {
    struct pipe_reference reference;
+   struct zink_batch_usage batch_uses;
    bool is_compute;
 
    struct zink_descriptor_pool *pool[ZINK_DESCRIPTOR_TYPES];
@@ -81,6 +86,9 @@ struct zink_gfx_program {
    struct zink_program base;
 
    struct zink_shader_module *modules[ZINK_SHADER_COUNT]; // compute stage doesn't belong here
+
+   struct zink_shader_module *default_variants[ZINK_SHADER_COUNT][2]; //[default, no streamout]
+   const void *default_variant_key[ZINK_SHADER_COUNT];
    struct zink_shader *shaders[ZINK_SHADER_COUNT];
    struct zink_shader_cache *shader_cache;
    unsigned char shader_slot_map[VARYING_SLOT_MAX];

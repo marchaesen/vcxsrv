@@ -82,6 +82,10 @@ ac_nir_lower_gs_inputs_to_mem(nir_shader *shader,
                               enum chip_class chip_class,
                               unsigned num_reserved_es_outputs);
 
+bool
+ac_nir_lower_indirect_derefs(nir_shader *shader,
+                             enum chip_class chip_class);
+
 #ifdef __cplusplus
 }
 #endif

@@ -55,7 +55,6 @@ class PoERun:
 
         if not boot_detected:
             self.print_error("Something wrong; couldn't detect the boot start up sequence")
-            self.logged_system(self.powerdown)
             return 2
 
         for line in self.ser.lines():

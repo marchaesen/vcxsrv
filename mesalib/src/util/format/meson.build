@@ -28,6 +28,7 @@ files_mesa_format = [
   'u_format_rgtc.c',
   'u_format_s3tc.c',
   'u_format_tests.c',
+  'u_format_unpack_neon.c',
   'u_format_yuv.c',
   'u_format_zs.c',
 ]

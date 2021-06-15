@@ -101,13 +101,21 @@ Basic formatting guidelines
 -  Function names follow various conventions depending on the type of
    function:
 
-   ::
-
-      glFooBar()       - a public GL entry point (in glapi_dispatch.c)
-      _mesa_FooBar()   - the internal immediate mode function
-      save_FooBar()    - retained mode (display list) function in dlist.c
-      foo_bar()        - a static (private) function
-      _mesa_foo_bar()  - an internal non-static Mesa function
+   +---------------------+------------------------------------------+
+   | Convention          | Explanation                              |
+   +=====================+==========================================+
+   | ``glFooBar()``      | a public GL entry point (in              |
+   |                     | :file:`glapi_dispatch.c`)                |
+   +---------------------+------------------------------------------+
+   | ``_mesa_FooBar()``  | the internal immediate mode function     |
+   +---------------------+------------------------------------------+
+   | ``save_FooBar()``   | retained mode (display list) function in |
+   |                     | :file:`dlist.c`                          |
+   +---------------------+------------------------------------------+
+   | ``foo_bar()``       | a static (private) function              |
+   +---------------------+------------------------------------------+
+   | ``_mesa_foo_bar()`` | an internal non-static Mesa function     |
+   +---------------------+------------------------------------------+
 
 -  Constants, macros and enum names are ``ALL_UPPERCASE``, with \_
    between words.

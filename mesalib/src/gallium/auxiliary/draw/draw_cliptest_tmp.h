@@ -26,6 +26,7 @@
  **************************************************************************/
 
 #include "util/u_bitcast.h"
+#include <math.h>
 
 static boolean TAG(do_cliptest)( struct pt_post_vs *pvs,
                                  struct draw_vertex_info *info,
@@ -182,11 +183,10 @@ static boolean TAG(do_cliptest)( struct pt_post_vs *pvs,
        * to NaN to help catch potential errors later.
        */
       else {
-         float zero = 0.0f;
          position[0] =
          position[1] =
          position[2] =
-         position[3] = zero / zero; /* MSVC doesn't accept 0.0 / 0.0 */
+         position[3] = NAN;
       }
 #endif
 

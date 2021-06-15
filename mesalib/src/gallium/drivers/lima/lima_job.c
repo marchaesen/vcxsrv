@@ -99,6 +99,7 @@ lima_job_create(struct lima_context *ctx)
 
    s->damage_rect.minx = s->damage_rect.miny = 0xffff;
    s->damage_rect.maxx = s->damage_rect.maxy = 0;
+   s->draws = 0;
 
    s->clear.depth = 0x00ffffff;
 
@@ -301,7 +302,7 @@ lima_job_get_damage(struct lima_job *job)
 static bool
 lima_fb_cbuf_needs_reload(struct lima_job *job)
 {
-   if (!(job->key.cbuf && (job->resolve & PIPE_CLEAR_COLOR0)))
+   if (!job->key.cbuf)
       return false;
 
    struct lima_surface *surf = lima_surface(job->key.cbuf);
@@ -323,7 +324,7 @@ lima_fb_cbuf_needs_reload(struct lima_job *job)
 static bool
 lima_fb_zsbuf_needs_reload(struct lima_job *job)
 {
-   if (!(job->key.zsbuf && (job->resolve & (PIPE_CLEAR_DEPTH | PIPE_CLEAR_STENCIL))))
+   if (!job->key.zsbuf)
       return false;
 
    struct lima_surface *surf = lima_surface(job->key.zsbuf);
@@ -345,10 +346,8 @@ lima_pack_reload_plbu_cmd(struct lima_job *job, struct pipe_surface *psurf)
 
    struct lima_context *ctx = job->ctx;
    struct lima_surface *surf = lima_surface(psurf);
-
-   struct pipe_surface *cbuf = job->key.cbuf;
-   int level = cbuf->u.tex.level;
-   unsigned first_layer = cbuf->u.tex.first_layer;
+   int level = psurf->u.tex.level;
+   unsigned first_layer = psurf->u.tex.first_layer;
 
    uint32_t va;
    void *cpu = lima_job_create_stream_bo(
@@ -835,18 +834,29 @@ lima_pack_pp_frame_reg(struct lima_job *job, uint32_t *frame_reg,
 {
    struct lima_context *ctx = job->ctx;
    struct lima_job_fb_info *fb = &job->fb;
+   struct pipe_surface *cbuf = job->key.cbuf;
    struct lima_pp_frame_reg *frame = (void *)frame_reg;
    struct lima_screen *screen = lima_screen(ctx->base.screen);
    int wb_idx = 0;
 
    frame->render_address = screen->pp_buffer->va + pp_frame_rsw_offset;
    frame->flags = 0x02;
+   if (cbuf && util_format_is_float(cbuf->format)) {
+      frame->flags |= 0x01; /* enable fp16 */
+      frame->clear_value_color   = (uint32_t)(job->clear.color_16pc & 0xffffffffUL);
+      frame->clear_value_color_1 = (uint32_t)(job->clear.color_16pc >> 32);
+      frame->clear_value_color_2 = 0;
+      frame->clear_value_color_3 = 0;
+   }
+   else {
+      frame->clear_value_color   = job->clear.color_8pc;
+      frame->clear_value_color_1 = job->clear.color_8pc;
+      frame->clear_value_color_2 = job->clear.color_8pc;
+      frame->clear_value_color_3 = job->clear.color_8pc;
+   }
+
    frame->clear_value_depth = job->clear.depth;
    frame->clear_value_stencil = job->clear.stencil;
-   frame->clear_value_color = job->clear.color_8pc;
-   frame->clear_value_color_1 = job->clear.color_8pc;
-   frame->clear_value_color_2 = job->clear.color_8pc;
-   frame->clear_value_color_3 = job->clear.color_8pc;
    frame->one = 1;
 
    frame->width = fb->width - 1;
@@ -870,7 +880,7 @@ lima_pack_pp_frame_reg(struct lima_job *job, uint32_t *frame_reg,
    /* Set default layout to 8888 */
    frame->channel_layout = 0x8888;
 
-   if (job->key.cbuf && (job->resolve & PIPE_CLEAR_COLOR0))
+   if (cbuf && (job->resolve & PIPE_CLEAR_COLOR0))
       lima_pack_wb_cbuf_reg(job, frame_reg, wb_reg, wb_idx++);
 
    if (job->key.zsbuf &&

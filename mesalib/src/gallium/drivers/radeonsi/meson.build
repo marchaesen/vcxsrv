@@ -56,6 +56,7 @@ files_libradeonsi = files(
   'si_shader_llvm_tess.c',
   'si_shader_llvm_vs.c',
   'si_shader_nir.c',
+  'si_shaderlib_nir.c',
   'si_shaderlib_tgsi.c',
   'si_sqtt.c',
   'si_state.c',

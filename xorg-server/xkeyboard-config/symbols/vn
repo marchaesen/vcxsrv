@@ -41,7 +41,7 @@ xkb_symbols "basic" {
 partial alphanumeric_keys
 xkb_symbols "us" {
 
-    include "us(euro)"
+    include "us(basic)"
     name[Group1]= "Vietnamese (US)";
 
     key <TLDE> { [dead_grave, dead_tilde,              grave,          asciitilde ] };
@@ -59,6 +59,9 @@ xkb_symbols "us" {
 
     key <AB09> { [dead_belowdot, greater,             period ] };
     key <AB10> { [ dead_hook,   question,              slash ] };
+
+    include "level3(ralt_switch)"
+    include "eurosign(5)"
 };
 
 // French keyboard made Vietnamese
@@ -123,7 +126,7 @@ xkb_symbols "aderty" {
 partial alphanumeric_keys
 xkb_symbols "qderty" {
 
-    include "us(euro)"
+    include "us(basic)"
     name[Group1]= "Vietnamese (QĐERTY)";
 
     key <TLDE> { [dead_grave, dead_tilde,              grave,          asciitilde ] };
@@ -141,4 +144,7 @@ xkb_symbols "qderty" {
     key <AB01> { [    abreve,     Abreve,                  z,                   Z ] }; // ă Ă
     key <AB09> { [dead_belowdot, greater,             period ] };
     key <AB10> { [ dead_hook,   question,              slash ] };
+
+    include "level3(ralt_switch)"
+    include "eurosign(5)"
 };

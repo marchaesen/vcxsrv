@@ -25,6 +25,7 @@
 #include <stdlib.h>
 
 #include "util/u_debug.h"
+#include "util/u_draw.h"
 #include "util/u_inlines.h"
 #include "util/u_upload_mgr.h"
 
@@ -47,18 +48,13 @@ tegra_destroy(struct pipe_context *pcontext)
 static void
 tegra_draw_vbo(struct pipe_context *pcontext,
                const struct pipe_draw_info *pinfo,
+               unsigned drawid_offset,
                const struct pipe_draw_indirect_info *pindirect,
-               const struct pipe_draw_start_count *draws,
+               const struct pipe_draw_start_count_bias *draws,
                unsigned num_draws)
 {
    if (num_draws > 1) {
-      struct pipe_draw_info tmp_info = *pinfo;
-
-      for (unsigned i = 0; i < num_draws; i++) {
-         tegra_draw_vbo(pcontext, &tmp_info, pindirect, &draws[i], 1);
-         if (tmp_info.increment_draw_id)
-            tmp_info.drawid++;
-      }
+      util_draw_multi(pcontext, pinfo, drawid_offset, pindirect, draws, num_draws);
       return;
    }
 
@@ -85,7 +81,7 @@ tegra_draw_vbo(struct pipe_context *pcontext,
       pinfo = &info;
    }
 
-   context->gpu->draw_vbo(context->gpu, pinfo, pindirect, draws, num_draws);
+   context->gpu->draw_vbo(context->gpu, pinfo, drawid_offset, pindirect, draws, num_draws);
 }
 
 static void

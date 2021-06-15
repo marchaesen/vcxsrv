@@ -72,7 +72,7 @@ C_TEMPLATE = Template(textwrap.dedent(u"""\
     const char *
     vk_${enum.name[2:]}_to_str(${enum.name} input)
     {
-        switch(input) {
+        switch((int64_t)input) {
     % for v in sorted(enum.values.keys()):
         case ${v}:
             return "${enum.values[v]}";

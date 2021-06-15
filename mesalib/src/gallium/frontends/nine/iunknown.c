@@ -131,15 +131,24 @@ NineUnknown_Release( struct NineUnknown *This )
     if (This->forward)
         return NineUnknown_Release(This->container);
 
+    /* Cannot decrease lower than 0. This is a thing
+     * according to wine tests. It's not just clamping
+     * the result as AddRef after Release while refs is 0
+     * will give 1 */
+    if (!p_atomic_read(&This->refs))
+        return 0;
+
     ULONG r = p_atomic_dec_return(&This->refs);
 
     if (r == 0) {
+        struct NineDevice9 *device = This->device;
         /* Containers (here with !forward) take care of item destruction */
+
         if (!This->container && This->bind == 0) {
             This->dtor(This);
         }
-        if (This->device) {
-            NineUnknown_Release(NineUnknown(This->device));
+        if (device) {
+            NineUnknown_Release(NineUnknown(device));
         }
     }
     return r;
@@ -156,14 +165,15 @@ NineUnknown_ReleaseWithDtorLock( struct NineUnknown *This )
     ULONG r = p_atomic_dec_return(&This->refs);
 
     if (r == 0) {
+        struct NineDevice9 *device = This->device;
         /* Containers (here with !forward) take care of item destruction */
         if (!This->container && This->bind == 0) {
             NineLockGlobalMutex();
             This->dtor(This);
             NineUnlockGlobalMutex();
         }
-        if (This->device) {
-            NineUnknown_ReleaseWithDtorLock(NineUnknown(This->device));
+        if (device) {
+            NineUnknown_ReleaseWithDtorLock(NineUnknown(device));
         }
     }
     return r;

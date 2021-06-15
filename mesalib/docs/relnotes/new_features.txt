@@ -1,9 +1,2 @@
-VK_KHR_workgroup_memory_explicit_layout on Intel, RADV
-DRM format modifiers for AMD.
-VK_KHR_zero_initialize_workgroup_memory on Intel, RADV
-Zink exposes GL 4.6 and ES 3.1
-GL_EXT_depth_bounds_test on softpipe, zink
-GL_EXT_texture_filter_minmax on nvc0 (gm200+)
-GL_ARB_texture_filter_minmax on nvc0 (gm200+)
-GL_ARB_post_depth_coverage on zink
-VK_KHR_copy_commands2 on lavapipe
+zink supports GL_ARB_texture_filter_minmax, GL_ARB_shader_clock
+VK_EXT_provoking_vertex on RADV.

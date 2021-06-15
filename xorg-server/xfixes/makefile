@@ -1,4 +1,5 @@
 CSRCS = cursor.c	\
+	disconnect.c	\
 	region.c	\
 	saveset.c	\
 	select.c	\

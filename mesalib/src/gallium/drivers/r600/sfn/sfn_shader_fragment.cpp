@@ -60,18 +60,6 @@ FragmentShaderFromNir::FragmentShaderFromNir(const nir_shader& nir,
    sh_info().atomic_base = key.ps.first_atomic_counter;
 }
 
-bool FragmentShaderFromNir::do_process_inputs(nir_variable *input)
-{
-   /*  inputs have been lowered */
-   return true;
-}
-
-bool FragmentShaderFromNir::do_emit_load_deref(const nir_variable *in_var, nir_intrinsic_instr* instr)
-{
-   assert(0 && "all input derefs should have been lowered");
-   return false;
-}
-
 unsigned barycentric_ij_index(nir_intrinsic_instr *instr)
 {
    unsigned index = 0;
@@ -173,7 +161,7 @@ bool FragmentShaderFromNir::process_load_input(nir_intrinsic_instr *instr,
             tgsi_interpolate = TGSI_INTERPOLATE_COLOR;
             break;
       }
-         /* fallthrough */
+         FALLTHROUGH;
       case INTERP_MODE_SMOOTH:
          tgsi_interpolate = TGSI_INTERPOLATE_PERSPECTIVE;
          break;
@@ -218,7 +206,7 @@ bool FragmentShaderFromNir::process_load_input(nir_intrinsic_instr *instr,
    case TGSI_SEMANTIC_PRIMID:
       sh_info().gs_prim_id_input = true;
       sh_info().ps_prim_id_input = m_shaderio.inputs().size();
-      /* fallthrough */
+      FALLTHROUGH;
    case TGSI_SEMANTIC_FOG:
    case TGSI_SEMANTIC_GENERIC:
    case TGSI_SEMANTIC_TEXCOORD:
@@ -264,7 +252,7 @@ bool FragmentShaderFromNir::scan_sysvalue_access(nir_instr *instr)
          break;
       case nir_intrinsic_load_sample_pos:
          m_sv_values.set(es_sample_pos);
-         /* fallthrough */
+         FALLTHROUGH;
       case nir_intrinsic_load_sample_id:
          m_sv_values.set(es_sample_id);
          break;
@@ -277,6 +265,9 @@ bool FragmentShaderFromNir::scan_sysvalue_access(nir_instr *instr)
       case nir_intrinsic_load_interpolated_input: {
          return process_load_input(ii, true);
       }
+      case nir_intrinsic_store_output:
+         return process_store_output(ii);
+
       default:
          ;
       }
@@ -433,70 +424,52 @@ void FragmentShaderFromNir::emit_shader_start()
    }
 }
 
-bool FragmentShaderFromNir::do_emit_store_deref(const nir_variable *out_var, nir_intrinsic_instr* instr)
+bool FragmentShaderFromNir::process_store_output(nir_intrinsic_instr *instr)
 {
-   if (out_var->data.location == FRAG_RESULT_COLOR)
-      return emit_export_pixel(out_var, instr, m_dual_source_blend ? 1 : m_max_color_exports);
 
-   if ((out_var->data.location >= FRAG_RESULT_DATA0 &&
-        out_var->data.location <= FRAG_RESULT_DATA7) ||
-       out_var->data.location == FRAG_RESULT_DEPTH ||
-       out_var->data.location == FRAG_RESULT_STENCIL ||
-       out_var->data.location == FRAG_RESULT_SAMPLE_MASK)
-      return emit_export_pixel(out_var, instr, 1);
+   auto semantic = nir_intrinsic_io_semantics(instr);
+   unsigned driver_loc = nir_intrinsic_base(instr);
 
-   sfn_log << SfnLog::err << "r600-NIR: Unimplemented store_deref for " <<
-              out_var->data.location << "(" << out_var->data.driver_location << ")\n";
-   return false;
-}
+   if (sh_info().noutput <= driver_loc)
+      sh_info().noutput = driver_loc + 1;
 
-bool FragmentShaderFromNir::do_process_outputs(nir_variable *output)
-{
-   sfn_log << SfnLog::io << "Parse output variable "
-           << output->name << "  @" << output->data.location
-           << "@dl:" << output->data.driver_location
-           << " dual source idx: " << output->data.index
-           << "\n";
-
-   ++sh_info().noutput;
-   r600_shader_io& io = sh_info().output[output->data.driver_location];
-   tgsi_get_gl_frag_result_semantic(static_cast<gl_frag_result>( output->data.location),
+   r600_shader_io& io = sh_info().output[driver_loc];
+   tgsi_get_gl_frag_result_semantic(static_cast<gl_frag_result>(semantic.location),
                                     &io.name, &io.sid);
 
-   /* Check whether this code has become obsolete by the IO vectorization */
-   unsigned num_components = 4;
-   unsigned vector_elements = glsl_get_vector_elements(glsl_without_array(output->type));
-   if (vector_elements)
-           num_components = vector_elements;
-   unsigned component = output->data.location_frac;
+   unsigned component = nir_intrinsic_component(instr);
+   io.write_mask |= nir_intrinsic_write_mask(instr) << component;
 
-   for (unsigned j = component; j < num_components + component; j++)
-      io.write_mask |= 1 << j;
-
-   int loc = output->data.location;
-   if (loc == FRAG_RESULT_COLOR &&
-       (m_nir.info.outputs_written & (1ull << loc)) &&
-       !m_dual_source_blend) {
-           sh_info().fs_write_all = true;
+   if (semantic.location == FRAG_RESULT_COLOR && !m_dual_source_blend) {
+      sh_info().fs_write_all = true;
    }
 
-   if (output->data.location == FRAG_RESULT_COLOR ||
-       (output->data.location >= FRAG_RESULT_DATA0 &&
-        output->data.location <= FRAG_RESULT_DATA7))  {
+   if (semantic.location == FRAG_RESULT_COLOR ||
+       (semantic.location >= FRAG_RESULT_DATA0 &&
+        semantic.location <= FRAG_RESULT_DATA7))  {
       ++m_max_counted_color_exports;
+
+      /* Hack: force dual source output handling if one color output has a
+       * dual_source_blend_index > 0 */
+      if (semantic.location == FRAG_RESULT_COLOR &&
+          semantic.dual_source_blend_index > 0)
+         m_dual_source_blend = true;
 
       if (m_max_counted_color_exports > 1)
          sh_info().fs_write_all = false;
       return true;
    }
-   if (output->data.location == FRAG_RESULT_DEPTH ||
-       output->data.location == FRAG_RESULT_STENCIL ||
-       output->data.location == FRAG_RESULT_SAMPLE_MASK) {
+
+   if (semantic.location == FRAG_RESULT_DEPTH ||
+       semantic.location == FRAG_RESULT_STENCIL ||
+       semantic.location == FRAG_RESULT_SAMPLE_MASK) {
       io.write_mask = 15;
       return true;
    }
 
    return false;
+
+
 }
 
 bool FragmentShaderFromNir::emit_load_sample_mask_in(nir_intrinsic_instr* instr)
@@ -543,9 +516,31 @@ bool FragmentShaderFromNir::emit_intrinsic_instruction_override(nir_intrinsic_in
    case nir_intrinsic_load_interpolated_input: {
       return emit_load_interpolated_input(instr);
    }
+   case nir_intrinsic_store_output:
+      return emit_store_output(instr);
+
    default:
       return false;
    }
+}
+
+bool FragmentShaderFromNir::emit_store_output(nir_intrinsic_instr* instr)
+{
+   auto location = nir_intrinsic_io_semantics(instr).location;
+
+   if (location == FRAG_RESULT_COLOR)
+      return emit_export_pixel(instr, m_dual_source_blend ? 1 : m_max_color_exports);
+
+   if ((location >= FRAG_RESULT_DATA0 &&
+        location <= FRAG_RESULT_DATA7) ||
+       location == FRAG_RESULT_DEPTH ||
+       location == FRAG_RESULT_STENCIL ||
+       location == FRAG_RESULT_SAMPLE_MASK)
+      return emit_export_pixel(instr, 1);
+
+   sfn_log << SfnLog::err << "r600-NIR: Unimplemented store_output for " << location << ")\n";
+   return false;
+
 }
 
 bool FragmentShaderFromNir::emit_load_interpolated_input(nir_intrinsic_instr* instr)
@@ -583,9 +578,8 @@ bool FragmentShaderFromNir::emit_load_interpolated_input(nir_intrinsic_instr* in
       auto & color_input  = static_cast<ShaderInputColor&> (io);
       auto& bgio = m_shaderio.input(color_input.back_color_input_index());
 
-      bgio.set_gpr(allocate_temp_register());
-
-      GPRVector bgcol(bgio.gpr(), {0,1,2,3});
+      GPRVector bgcol = get_temp_vec4();
+      bgio.set_gpr(bgcol.sel());
       load_interpolated(bgcol, bgio, ip, nir_dest_num_components(instr->dest), 0);
 
       load_front_face();
@@ -737,9 +731,8 @@ bool FragmentShaderFromNir::emit_load_input(nir_intrinsic_instr* instr)
       auto & color_input  = static_cast<ShaderInputColor&> (io);
       auto& bgio = m_shaderio.input(color_input.back_color_input_index());
 
-      bgio.set_gpr(allocate_temp_register());
-
-      GPRVector bgcol(bgio.gpr(), {0,1,2,3});
+      GPRVector bgcol = get_temp_vec4();
+      bgio.set_gpr(bgcol.sel());
       load_interpolated(bgcol, bgio, ip, num_components, 0);
 
       load_front_face();
@@ -911,6 +904,77 @@ bool FragmentShaderFromNir::load_interpolated_two_comp_for_one(GPRVector &dest,
       emit_instruction(ir);
    }
    ir->set_flag(alu_last_instr);
+   return true;
+}
+
+
+bool FragmentShaderFromNir::emit_export_pixel(nir_intrinsic_instr* instr, int outputs)
+{
+   std::array<uint32_t,4> swizzle;
+   unsigned writemask = nir_intrinsic_write_mask(instr);
+   auto semantics = nir_intrinsic_io_semantics(instr);
+   unsigned driver_location = nir_intrinsic_base(instr);
+
+   switch (semantics.location) {
+   case FRAG_RESULT_DEPTH:
+      writemask = 1;
+      swizzle = {0,7,7,7};
+      break;
+   case FRAG_RESULT_STENCIL:
+      writemask = 2;
+      swizzle = {7,0,7,7};
+      break;
+   case FRAG_RESULT_SAMPLE_MASK:
+      writemask = 4;
+      swizzle = {7,7,0,7};
+      break;
+   default:
+      for (int i = 0; i < 4; ++i) {
+         swizzle[i] = (i < instr->num_components) ? i : 7;
+      }
+   }
+
+   auto value = vec_from_nir_with_fetch_constant(instr->src[0], writemask, swizzle);
+
+   set_output(driver_location, value.sel());
+
+   if (semantics.location == FRAG_RESULT_COLOR ||
+       (semantics.location >= FRAG_RESULT_DATA0 &&
+        semantics.location <= FRAG_RESULT_DATA7)) {
+      for (int k = 0 ; k < outputs; ++k) {
+
+         unsigned location = (m_dual_source_blend && (semantics.location == FRAG_RESULT_COLOR)
+                             ? semantics.dual_source_blend_index : driver_location) + k - m_depth_exports;
+
+         sfn_log << SfnLog::io << "Pixel output at loc:" << location << "\n";
+
+         if (location >= m_max_color_exports) {
+            sfn_log << SfnLog::io << "Pixel output loc:" << location
+                    << " dl:" << driver_location
+                    << " skipped  because  we have only "   << m_max_color_exports << " CBs\n";
+            continue;
+         }
+
+         m_last_pixel_export = new ExportInstruction(location, value, ExportInstruction::et_pixel);
+
+         if (sh_info().ps_export_highest < location)
+            sh_info().ps_export_highest = location;
+
+         sh_info().nr_ps_color_exports++;
+
+         unsigned mask = (0xfu << (location * 4));
+         sh_info().ps_color_export_mask |= mask;
+
+         emit_export_instruction(m_last_pixel_export);
+      };
+   } else if (semantics.location == FRAG_RESULT_DEPTH ||
+              semantics.location == FRAG_RESULT_STENCIL ||
+              semantics.location == FRAG_RESULT_SAMPLE_MASK) {
+      m_depth_exports++;
+      emit_export_instruction(new ExportInstruction(61, value, ExportInstruction::et_pixel));
+   } else {
+      return false;
+   }
    return true;
 }
 

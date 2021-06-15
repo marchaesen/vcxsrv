@@ -35,63 +35,58 @@
 void
 zink_fence_clear_resources(struct zink_screen *screen, struct zink_fence *fence)
 {
+   simple_mtx_lock(&fence->resource_mtx);
    /* unref all used resources */
-   set_foreach(fence->resources, entry) {
+   set_foreach_remove(fence->resources, entry) {
       struct zink_resource_object *obj = (struct zink_resource_object *)entry->key;
       zink_batch_usage_unset(&obj->reads, fence->batch_id);
       zink_batch_usage_unset(&obj->writes, fence->batch_id);
       zink_resource_object_reference(screen, &obj, NULL);
-      _mesa_set_remove(fence->resources, entry);
    }
+   simple_mtx_unlock(&fence->resource_mtx);
 }
 
 static void
-destroy_fence(struct zink_screen *screen, struct zink_fence *fence)
+destroy_fence(struct zink_screen *screen, struct zink_tc_fence *mfence)
 {
-   if (fence->fence)
-      vkDestroyFence(screen->dev, fence->fence, NULL);
-   zink_batch_state_destroy(screen, zink_batch_state(fence));
+   struct zink_batch_state *bs = zink_batch_state(mfence->fence);
+   mfence->fence = NULL;
+   zink_batch_state_reference(screen, &bs, NULL);
+   tc_unflushed_batch_token_reference(&mfence->tc_token, NULL);
+   FREE(mfence);
 }
 
-bool
-zink_create_fence(struct zink_screen *screen, struct zink_batch_state *bs)
+struct zink_tc_fence *
+zink_create_tc_fence(void)
 {
-   struct zink_fence *fence = zink_fence(bs);
-
-   VkFenceCreateInfo fci = {};
-   fci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
-   if (vkCreateFence(screen->dev, &fci, NULL, &fence->fence) != VK_SUCCESS) {
-      debug_printf("vkCreateFence failed\n");
-      goto fail;
-   }
-
-   pipe_reference_init(&fence->reference, 1);
-   return true;
-fail:
-   destroy_fence(screen, fence);
-   return false;
+   struct zink_tc_fence *mfence = CALLOC_STRUCT(zink_tc_fence);
+   if (!mfence)
+      return NULL;
+   pipe_reference_init(&mfence->reference, 1);
+   util_queue_fence_init(&mfence->ready);
+   return mfence;
 }
 
-void
-zink_fence_init(struct zink_context *ctx, struct zink_batch *batch)
+struct pipe_fence_handle *
+zink_create_tc_fence_for_tc(struct pipe_context *pctx, struct tc_unflushed_batch_token *tc_token)
 {
-   struct zink_fence *fence = zink_fence(batch->state);
-
-   vkResetFences(zink_screen(ctx->base.screen)->dev, 1, &fence->fence);
-   fence->deferred_ctx = NULL;
-   fence->submitted = true;
+   struct zink_tc_fence *mfence = zink_create_tc_fence();
+   if (!mfence)
+      return NULL;
+   util_queue_fence_reset(&mfence->ready);
+   tc_unflushed_batch_token_reference(&mfence->tc_token, tc_token);
+   return (struct pipe_fence_handle*)mfence;
 }
 
 void
 zink_fence_reference(struct zink_screen *screen,
-                     struct zink_fence **ptr,
-                     struct zink_fence *fence)
+                     struct zink_tc_fence **ptr,
+                     struct zink_tc_fence *mfence)
 {
-   if (pipe_reference(&(*ptr)->reference, &fence->reference))
+   if (pipe_reference(&(*ptr)->reference, &mfence->reference))
       destroy_fence(screen, *ptr);
 
-   *ptr = fence;
+   *ptr = mfence;
 }
 
 static void
@@ -99,58 +94,138 @@ fence_reference(struct pipe_screen *pscreen,
                 struct pipe_fence_handle **pptr,
                 struct pipe_fence_handle *pfence)
 {
-   zink_fence_reference(zink_screen(pscreen), (struct zink_fence **)pptr,
-                        zink_fence(pfence));
+   zink_fence_reference(zink_screen(pscreen), (struct zink_tc_fence **)pptr,
+                        zink_tc_fence(pfence));
+}
+
+static bool
+tc_fence_finish(struct zink_context *ctx, struct zink_tc_fence *mfence, uint64_t *timeout_ns)
+{
+   if (!util_queue_fence_is_signalled(&mfence->ready)) {
+      int64_t abs_timeout = os_time_get_absolute_timeout(*timeout_ns);
+      if (mfence->tc_token) {
+         /* Ensure that zink_flush will be called for
+          * this mfence, but only if we're in the API thread
+          * where the context is current.
+          *
+          * Note that the batch containing the flush may already
+          * be in flight in the driver thread, so the mfence
+          * may not be ready yet when this call returns.
+          */
+         threaded_context_flush(&ctx->base, mfence->tc_token, *timeout_ns == 0);
+      }
+
+      if (!timeout_ns)
+         return false;
+
+      /* this is a tc mfence, so we're just waiting on the queue mfence to complete
+       * after being signaled by the real mfence
+       */
+      if (*timeout_ns == PIPE_TIMEOUT_INFINITE) {
+         util_queue_fence_wait(&mfence->ready);
+      } else {
+         if (!util_queue_fence_wait_timeout(&mfence->ready, abs_timeout))
+            return false;
+      }
+      if (*timeout_ns && *timeout_ns != PIPE_TIMEOUT_INFINITE) {
+         int64_t time_ns = os_time_get_nano();
+         *timeout_ns = abs_timeout > time_ns ? abs_timeout - time_ns : 0;
+      }
+   }
+
+   return true;
 }
 
 bool
-zink_fence_finish(struct zink_screen *screen, struct pipe_context *pctx, struct zink_fence *fence,
-                  uint64_t timeout_ns)
+zink_vkfence_wait(struct zink_screen *screen, struct zink_fence *fence, uint64_t timeout_ns)
 {
-   if (pctx && fence->deferred_ctx == pctx) {
-      zink_context(pctx)->batch.has_work = true;
-      /* this must be the current batch */
-      pctx->flush(pctx, NULL, 0);
-   }
-
-   if (!fence->submitted)
+   if (screen->device_lost)
       return true;
-   bool success;
+   if (p_atomic_read(&fence->completed))
+      return true;
 
+   assert(fence->batch_id);
+   assert(fence->submitted);
+
+   bool success = false;
+
+   VkResult ret;
    if (timeout_ns)
-      success = vkWaitForFences(screen->dev, 1, &fence->fence, VK_TRUE, timeout_ns) == VK_SUCCESS;
+      ret = vkWaitForFences(screen->dev, 1, &fence->fence, VK_TRUE, timeout_ns);
    else
-      success = vkGetFenceStatus(screen->dev, fence->fence) == VK_SUCCESS;
+      ret = vkGetFenceStatus(screen->dev, fence->fence);
+   success = zink_screen_handle_vkresult(screen, ret);
 
    if (success) {
+      p_atomic_set(&fence->completed, true);
       zink_fence_clear_resources(screen, fence);
-      p_atomic_set(&fence->submitted, false);
+      zink_screen_update_last_finished(screen, fence->batch_id);
    }
    return success;
+}
+
+static bool
+zink_fence_finish(struct zink_screen *screen, struct pipe_context *pctx, struct zink_tc_fence *mfence,
+                  uint64_t timeout_ns)
+{
+   pctx = threaded_context_unwrap_sync(pctx);
+   struct zink_context *ctx = zink_context(pctx);
+
+   if (screen->device_lost)
+      return true;
+
+   if (pctx && mfence->deferred_ctx == pctx) {
+      if (mfence->deferred_id == ctx->curr_batch) {
+         zink_context(pctx)->batch.has_work = true;
+         /* this must be the current batch */
+         pctx->flush(pctx, NULL, !timeout_ns ? PIPE_FLUSH_ASYNC : 0);
+         if (!timeout_ns)
+            return false;
+      }
+      /* this batch is known to have finished */
+      if (mfence->deferred_id <= screen->last_finished)
+         return true;
+   }
+
+   /* need to ensure the tc mfence has been flushed before we wait */
+   bool tc_finish = tc_fence_finish(ctx, mfence, &timeout_ns);
+   struct zink_fence *fence = mfence->fence;
+   if (!tc_finish || (fence && !fence->submitted))
+      return zink_screen_check_last_finished(screen, mfence->batch_id) ? true :
+             (fence ? p_atomic_read(&fence->completed) : false);
+
+   /* this was an invalid flush, just return completed */
+   if (!mfence->fence)
+      return true;
+   /* if the zink fence has a different batch id then it must have completed and been recycled already */
+   if (mfence->fence->batch_id != mfence->batch_id)
+      return true;
+
+   return zink_vkfence_wait(screen, fence, timeout_ns);
 }
 
 static bool
 fence_finish(struct pipe_screen *pscreen, struct pipe_context *pctx,
                   struct pipe_fence_handle *pfence, uint64_t timeout_ns)
 {
-   return zink_fence_finish(zink_screen(pscreen), pctx, zink_fence(pfence),
+   return zink_fence_finish(zink_screen(pscreen), pctx, zink_tc_fence(pfence),
                             timeout_ns);
 }
 
 void
 zink_fence_server_sync(struct pipe_context *pctx, struct pipe_fence_handle *pfence)
 {
-   struct zink_fence *fence = zink_fence(pfence);
+   struct zink_tc_fence *mfence = zink_tc_fence(pfence);
 
-   if (pctx && fence->deferred_ctx == pctx)
+   if (pctx && mfence->deferred_ctx == pctx)
       return;
 
-   if (fence->deferred_ctx) {
+   if (mfence->deferred_ctx) {
       zink_context(pctx)->batch.has_work = true;
       /* this must be the current batch */
       pctx->flush(pctx, NULL, 0);
    }
-   zink_fence_finish(zink_screen(pctx->screen), pctx, fence, PIPE_TIMEOUT_INFINITE);
+   zink_fence_finish(zink_screen(pctx->screen), pctx, mfence, PIPE_TIMEOUT_INFINITE);
 }
 
 void

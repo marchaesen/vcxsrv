@@ -26,173 +26,182 @@
 
 #include "msm_priv.h"
 
-static int bo_allocate(struct msm_bo *msm_bo)
+static int
+bo_allocate(struct msm_bo *msm_bo)
 {
-	struct fd_bo *bo = &msm_bo->base;
-	if (!msm_bo->offset) {
-		struct drm_msm_gem_info req = {
-				.handle = bo->handle,
-				.info = MSM_INFO_GET_OFFSET,
-		};
-		int ret;
+   struct fd_bo *bo = &msm_bo->base;
+   if (!msm_bo->offset) {
+      struct drm_msm_gem_info req = {
+         .handle = bo->handle,
+         .info = MSM_INFO_GET_OFFSET,
+      };
+      int ret;
 
-		/* if the buffer is already backed by pages then this
-		 * doesn't actually do anything (other than giving us
-		 * the offset)
-		 */
-		ret = drmCommandWriteRead(bo->dev->fd, DRM_MSM_GEM_INFO,
-				&req, sizeof(req));
-		if (ret) {
-			ERROR_MSG("alloc failed: %s", strerror(errno));
-			return ret;
-		}
+      /* if the buffer is already backed by pages then this
+       * doesn't actually do anything (other than giving us
+       * the offset)
+       */
+      ret =
+         drmCommandWriteRead(bo->dev->fd, DRM_MSM_GEM_INFO, &req, sizeof(req));
+      if (ret) {
+         ERROR_MSG("alloc failed: %s", strerror(errno));
+         return ret;
+      }
 
-		msm_bo->offset = req.value;
-	}
+      msm_bo->offset = req.value;
+   }
 
-	return 0;
+   return 0;
 }
 
-static int msm_bo_offset(struct fd_bo *bo, uint64_t *offset)
+static int
+msm_bo_offset(struct fd_bo *bo, uint64_t *offset)
 {
-	struct msm_bo *msm_bo = to_msm_bo(bo);
-	int ret = bo_allocate(msm_bo);
-	if (ret)
-		return ret;
-	*offset = msm_bo->offset;
-	return 0;
+   struct msm_bo *msm_bo = to_msm_bo(bo);
+   int ret = bo_allocate(msm_bo);
+   if (ret)
+      return ret;
+   *offset = msm_bo->offset;
+   return 0;
 }
 
-static int msm_bo_cpu_prep(struct fd_bo *bo, struct fd_pipe *pipe, uint32_t op)
+static int
+msm_bo_cpu_prep(struct fd_bo *bo, struct fd_pipe *pipe, uint32_t op)
 {
-	struct drm_msm_gem_cpu_prep req = {
-			.handle = bo->handle,
-			.op = op,
-	};
+   struct drm_msm_gem_cpu_prep req = {
+      .handle = bo->handle,
+      .op = op,
+   };
 
-	get_abs_timeout(&req.timeout, 5000000000);
+   get_abs_timeout(&req.timeout, 5000000000);
 
-	return drmCommandWrite(bo->dev->fd, DRM_MSM_GEM_CPU_PREP, &req, sizeof(req));
+   return drmCommandWrite(bo->dev->fd, DRM_MSM_GEM_CPU_PREP, &req, sizeof(req));
 }
 
-static void msm_bo_cpu_fini(struct fd_bo *bo)
+static void
+msm_bo_cpu_fini(struct fd_bo *bo)
 {
-	struct drm_msm_gem_cpu_fini req = {
-			.handle = bo->handle,
-	};
+   struct drm_msm_gem_cpu_fini req = {
+      .handle = bo->handle,
+   };
 
-	drmCommandWrite(bo->dev->fd, DRM_MSM_GEM_CPU_FINI, &req, sizeof(req));
+   drmCommandWrite(bo->dev->fd, DRM_MSM_GEM_CPU_FINI, &req, sizeof(req));
 }
 
-static int msm_bo_madvise(struct fd_bo *bo, int willneed)
+static int
+msm_bo_madvise(struct fd_bo *bo, int willneed)
 {
-	struct drm_msm_gem_madvise req = {
-			.handle = bo->handle,
-			.madv = willneed ? MSM_MADV_WILLNEED : MSM_MADV_DONTNEED,
-	};
-	int ret;
+   struct drm_msm_gem_madvise req = {
+      .handle = bo->handle,
+      .madv = willneed ? MSM_MADV_WILLNEED : MSM_MADV_DONTNEED,
+   };
+   int ret;
 
-	/* older kernels do not support this: */
-	if (bo->dev->version < FD_VERSION_MADVISE)
-		return willneed;
+   /* older kernels do not support this: */
+   if (bo->dev->version < FD_VERSION_MADVISE)
+      return willneed;
 
-	ret = drmCommandWriteRead(bo->dev->fd, DRM_MSM_GEM_MADVISE, &req, sizeof(req));
-	if (ret)
-		return ret;
+   ret =
+      drmCommandWriteRead(bo->dev->fd, DRM_MSM_GEM_MADVISE, &req, sizeof(req));
+   if (ret)
+      return ret;
 
-	return req.retained;
+   return req.retained;
 }
 
-static uint64_t msm_bo_iova(struct fd_bo *bo)
+static uint64_t
+msm_bo_iova(struct fd_bo *bo)
 {
-	struct drm_msm_gem_info req = {
-			.handle = bo->handle,
-			.info = MSM_INFO_GET_IOVA,
-	};
-	int ret;
+   struct drm_msm_gem_info req = {
+      .handle = bo->handle,
+      .info = MSM_INFO_GET_IOVA,
+   };
+   int ret;
 
-	ret = drmCommandWriteRead(bo->dev->fd, DRM_MSM_GEM_INFO, &req, sizeof(req));
-	if (ret)
-		return 0;
+   ret = drmCommandWriteRead(bo->dev->fd, DRM_MSM_GEM_INFO, &req, sizeof(req));
+   if (ret)
+      return 0;
 
-	return req.value;
+   return req.value;
 }
 
-static void msm_bo_set_name(struct fd_bo *bo, const char *fmt, va_list ap)
+static void
+msm_bo_set_name(struct fd_bo *bo, const char *fmt, va_list ap)
 {
-	struct drm_msm_gem_info req = {
-			.handle = bo->handle,
-			.info = MSM_INFO_SET_NAME,
-	};
-	char buf[32];
-	int sz;
+   struct drm_msm_gem_info req = {
+      .handle = bo->handle,
+      .info = MSM_INFO_SET_NAME,
+   };
+   char buf[32];
+   int sz;
 
-	if (bo->dev->version < FD_VERSION_SOFTPIN)
-		return;
+   if (bo->dev->version < FD_VERSION_SOFTPIN)
+      return;
 
-	sz = vsnprintf(buf, sizeof(buf), fmt, ap);
+   sz = vsnprintf(buf, sizeof(buf), fmt, ap);
 
-	req.value = VOID2U64(buf);
-	req.len = MIN2(sz, sizeof(buf));
+   req.value = VOID2U64(buf);
+   req.len = MIN2(sz, sizeof(buf));
 
-	drmCommandWrite(bo->dev->fd, DRM_MSM_GEM_INFO, &req, sizeof(req));
+   drmCommandWrite(bo->dev->fd, DRM_MSM_GEM_INFO, &req, sizeof(req));
 }
 
-static void msm_bo_destroy(struct fd_bo *bo)
+static void
+msm_bo_destroy(struct fd_bo *bo)
 {
-	struct msm_bo *msm_bo = to_msm_bo(bo);
-	free(msm_bo);
+   struct msm_bo *msm_bo = to_msm_bo(bo);
+   free(msm_bo);
 }
 
 static const struct fd_bo_funcs funcs = {
-		.offset = msm_bo_offset,
-		.cpu_prep = msm_bo_cpu_prep,
-		.cpu_fini = msm_bo_cpu_fini,
-		.madvise = msm_bo_madvise,
-		.iova = msm_bo_iova,
-		.set_name = msm_bo_set_name,
-		.destroy = msm_bo_destroy,
+   .offset = msm_bo_offset,
+   .cpu_prep = msm_bo_cpu_prep,
+   .cpu_fini = msm_bo_cpu_fini,
+   .madvise = msm_bo_madvise,
+   .iova = msm_bo_iova,
+   .set_name = msm_bo_set_name,
+   .destroy = msm_bo_destroy,
 };
 
 /* allocate a buffer handle: */
-int msm_bo_new_handle(struct fd_device *dev,
-		uint32_t size, uint32_t flags, uint32_t *handle)
+int
+msm_bo_new_handle(struct fd_device *dev, uint32_t size, uint32_t flags,
+                  uint32_t *handle)
 {
-	struct drm_msm_gem_new req = {
-			.size = size,
-			.flags = MSM_BO_WC,  // TODO figure out proper flags..
-	};
-	int ret;
+   struct drm_msm_gem_new req = {
+      .size = size,
+      .flags = MSM_BO_WC, // TODO figure out proper flags..
+   };
+   int ret;
 
-	if (flags & DRM_FREEDRENO_GEM_SCANOUT)
-		req.flags |= MSM_BO_SCANOUT;
+   if (flags & FD_BO_SCANOUT)
+      req.flags |= MSM_BO_SCANOUT;
 
-	if (flags & DRM_FREEDRENO_GEM_GPUREADONLY)
-		req.flags |= MSM_BO_GPU_READONLY;
+   if (flags & FD_BO_GPUREADONLY)
+      req.flags |= MSM_BO_GPU_READONLY;
 
-	ret = drmCommandWriteRead(dev->fd, DRM_MSM_GEM_NEW,
-			&req, sizeof(req));
-	if (ret)
-		return ret;
+   ret = drmCommandWriteRead(dev->fd, DRM_MSM_GEM_NEW, &req, sizeof(req));
+   if (ret)
+      return ret;
 
-	*handle = req.handle;
+   *handle = req.handle;
 
-	return 0;
+   return 0;
 }
 
 /* allocate a new buffer object */
-struct fd_bo * msm_bo_from_handle(struct fd_device *dev,
-		uint32_t size, uint32_t handle)
+struct fd_bo *
+msm_bo_from_handle(struct fd_device *dev, uint32_t size, uint32_t handle)
 {
-	struct msm_bo *msm_bo;
-	struct fd_bo *bo;
+   struct msm_bo *msm_bo;
+   struct fd_bo *bo;
 
-	msm_bo = calloc(1, sizeof(*msm_bo));
-	if (!msm_bo)
-		return NULL;
+   msm_bo = calloc(1, sizeof(*msm_bo));
+   if (!msm_bo)
+      return NULL;
 
-	bo = &msm_bo->base;
-	bo->funcs = &funcs;
+   bo = &msm_bo->base;
+   bo->funcs = &funcs;
 
-	return bo;
+   return bo;
 }

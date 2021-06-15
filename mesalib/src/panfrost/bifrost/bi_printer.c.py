@@ -129,10 +129,12 @@ bi_${mod}_as_str(enum bi_${mod} ${mod})
 
 <%def name="print_modifiers(mods, table)">
     % for mod in mods:
+    % if mod not in ["lane_dest"]:
     % if len(table[mod]) > 2:
         fputs(bi_${mod}_as_str(I->${mod}), fp);
     % else:
         if (I->${mod}) fputs(".${mod}", fp);
+    % endif
     % endif
     % endfor
 </%def>

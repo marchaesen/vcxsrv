@@ -3,7 +3,6 @@ AM_CFLAGS = $(DIX_CFLAGS)
 AM_OBJCFLAGS = $(DIX_CFLAGS)
 AM_CPPFLAGS = \
 	-DXSERVER_VERSION=\"$(VERSION)\" \
-	-DINXQUARTZ \
 	-DUSE_NEW_CLUT \
 	-DXFree86Server \
 	-I$(top_srcdir)/miext/rootless \

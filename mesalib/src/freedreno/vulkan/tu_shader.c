@@ -73,8 +73,20 @@ tu_spirv_to_nir(struct tu_device *dev,
          .descriptor_array_dynamic_indexing = true,
          .descriptor_array_non_uniform_indexing = true,
          .runtime_descriptor_array = true,
+         .float_controls = true,
+         .float16 = true,
+         .int16 = true,
+         .storage_16bit = dev->physical_device->gpu_id >= 650,
+         .demote_to_helper_invocation = true,
+         .vk_memory_model = true,
+         .vk_memory_model_device_scope = true,
       },
    };
+
+   const struct nir_lower_compute_system_values_options compute_sysval_options = {
+      .has_base_work_group_id = true,
+   };
+
    const nir_shader_compiler_options *nir_options =
       ir3_get_compiler_options(dev->compiler);
 
@@ -158,8 +170,6 @@ tu_spirv_to_nir(struct tu_device *dev,
 
    NIR_PASS_V(nir, nir_propagate_invariant);
 
-   NIR_PASS_V(nir, nir_lower_io_to_temporaries, nir_shader_get_entrypoint(nir), true, true);
-
    NIR_PASS_V(nir, nir_lower_global_vars_to_local);
    NIR_PASS_V(nir, nir_split_var_copies);
    NIR_PASS_V(nir, nir_lower_var_copies);
@@ -167,24 +177,16 @@ tu_spirv_to_nir(struct tu_device *dev,
    NIR_PASS_V(nir, nir_opt_copy_prop_vars);
    NIR_PASS_V(nir, nir_opt_combine_stores, nir_var_all);
 
-   /* ir3 doesn't support indirect input/output */
-   /* TODO: We shouldn't perform this lowering pass on gl_TessLevelInner
-    * and gl_TessLevelOuter. Since the tess levels are actually stored in
-    * a global BO, they can be directly accessed via stg and ldg.
-    * nir_lower_indirect_derefs will instead generate a big if-ladder which
-    * isn't *incorrect* but is much less efficient. */
-   NIR_PASS_V(nir, nir_lower_indirect_derefs, nir_var_shader_in | nir_var_shader_out, UINT32_MAX);
-
-   NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects, false);
+   NIR_PASS_V(nir, nir_lower_is_helper_invocation);
 
    NIR_PASS_V(nir, nir_lower_system_values);
-   NIR_PASS_V(nir, nir_lower_compute_system_values, NULL);
+   NIR_PASS_V(nir, nir_lower_compute_system_values, &compute_sysval_options);
 
    NIR_PASS_V(nir, nir_lower_clip_cull_distance_arrays);
 
    NIR_PASS_V(nir, nir_lower_frexp);
 
-   ir3_optimize_loop(nir);
+   ir3_optimize_loop(dev->compiler, nir);
 
    return nir;
 }
@@ -724,7 +726,7 @@ shared_type_info(const struct glsl_type *type, unsigned *size, unsigned *align)
       glsl_type_is_boolean(type) ? 4 : glsl_get_bit_size(type) / 8;
    unsigned length = glsl_get_vector_elements(type);
    *size = comp_size * length;
-   *align = 4;
+   *align = comp_size;
 }
 
 static void
@@ -812,6 +814,13 @@ tu_shader_create(struct tu_device *dev,
                      .use_view_id_for_layer = multiview_mask != 0,
                  });
    }
+
+   /* This needs to happen before multiview lowering which rewrites store
+    * instructions of the position variable, so that we can just rewrite one
+    * store at the end instead of having to rewrite every store specified by
+    * the user.
+    */
+   ir3_nir_lower_io_to_temporaries(nir);
 
    if (nir->info.stage == MESA_SHADER_VERTEX && multiview_mask) {
       tu_nir_lower_multiview(nir, multiview_mask,

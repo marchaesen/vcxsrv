@@ -88,6 +88,59 @@ static const VkAllocationCallbacks default_alloc = {
    .pfnFree = default_free_func,
 };
 
+#define V3DV_API_VERSION VK_MAKE_VERSION(1, 0, VK_HEADER_VERSION)
+
+VkResult
+v3dv_EnumerateInstanceVersion(uint32_t *pApiVersion)
+{
+    *pApiVersion = V3DV_API_VERSION;
+    return VK_SUCCESS;
+}
+
+#define V3DV_HAS_SURFACE (VK_USE_PLATFORM_WIN32_KHR ||   \
+                          VK_USE_PLATFORM_WAYLAND_KHR || \
+                          VK_USE_PLATFORM_XCB_KHR ||     \
+                          VK_USE_PLATFORM_XLIB_KHR ||    \
+                          VK_USE_PLATFORM_DISPLAY_KHR)
+
+static const struct vk_instance_extension_table instance_extensions = {
+#ifdef VK_USE_PLATFORM_DISPLAY_KHR
+   .KHR_display                         = true,
+#endif
+   .KHR_external_memory_capabilities    = true,
+   .KHR_get_physical_device_properties2 = true,
+#ifdef V3DV_HAS_SURFACE
+   .KHR_get_surface_capabilities2       = true,
+   .KHR_surface                         = true,
+#endif
+#ifdef VK_USE_PLATFORM_WAYLAND_KHR
+   .KHR_wayland_surface                 = true,
+#endif
+#ifdef VK_USE_PLATFORM_XCB_KHR
+   .KHR_xcb_surface                     = true,
+#endif
+#ifdef VK_USE_PLATFORM_XLIB_KHR
+   .KHR_xlib_surface                    = true,
+#endif
+   .EXT_debug_report                    = true,
+};
+
+static void
+get_device_extensions(const struct v3dv_physical_device *device,
+                      struct vk_device_extension_table *ext)
+{
+   *ext = (struct vk_device_extension_table) {
+      .KHR_external_memory                 = true,
+      .KHR_external_memory_fd              = true,
+      .KHR_maintenance1                    = true,
+#ifdef V3DV_HAS_SURFACE
+      .KHR_swapchain                       = true,
+#endif
+      .EXT_external_memory_dma_buf         = true,
+      .EXT_private_data                    = true,
+   };
+}
+
 VkResult
 v3dv_EnumerateInstanceExtensionProperties(const char *pLayerName,
                                           uint32_t *pPropertyCount,
@@ -98,7 +151,7 @@ v3dv_EnumerateInstanceExtensionProperties(const char *pLayerName,
       return vk_error(NULL, VK_ERROR_LAYER_NOT_PRESENT);
 
    return vk_enumerate_instance_extension_properties(
-      &v3dv_instance_extensions_supported, pPropertyCount, pProperties);
+      &instance_extensions, pPropertyCount, pProperties);
 }
 
 VkResult
@@ -124,7 +177,7 @@ v3dv_CreateInstance(const VkInstanceCreateInfo *pCreateInfo,
       &dispatch_table, &v3dv_instance_entrypoints, true);
 
    result = vk_instance_init(&instance->vk,
-                             &v3dv_instance_extensions_supported,
+                             &instance_extensions,
                              &dispatch_table,
                              pCreateInfo, pAllocator);
 
@@ -722,8 +775,7 @@ physical_device_init(struct v3dv_physical_device *device,
       goto fail;
    }
 
-   v3dv_physical_device_get_supported_extensions(device,
-                                                 &device->vk.supported_extensions);
+   get_device_extensions(device, &device->vk.supported_extensions);
 
    pthread_mutex_init(&device->mutex, NULL);
 
@@ -997,22 +1049,15 @@ v3dv_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
 {
    V3DV_FROM_HANDLE(v3dv_physical_device, pdevice, physicalDevice);
 
+   STATIC_ASSERT(MAX_SAMPLED_IMAGES + MAX_STORAGE_IMAGES + MAX_INPUT_ATTACHMENTS
+                 <= V3D_MAX_TEXTURE_SAMPLERS);
+   STATIC_ASSERT(MAX_UNIFORM_BUFFERS >= MAX_DYNAMIC_UNIFORM_BUFFERS);
+   STATIC_ASSERT(MAX_STORAGE_BUFFERS >= MAX_DYNAMIC_STORAGE_BUFFERS);
+
    const uint32_t page_size = 4096;
    const uint32_t mem_size = compute_heap_size();
 
-   /* Per-stage limits */
-   const uint32_t max_samplers = 16;
-   const uint32_t max_uniform_buffers = 12;
-   const uint32_t max_storage_buffers = 12;
-   const uint32_t max_dynamic_storage_buffers = 6;
-   const uint32_t max_sampled_images = 16;
-   const uint32_t max_storage_images = 4;
-   const uint32_t max_input_attachments = 4;
-   assert(max_sampled_images + max_storage_images + max_input_attachments
-          <= V3D_MAX_TEXTURE_SAMPLERS);
-
    const uint32_t max_varying_components = 16 * 4;
-   const uint32_t max_render_targets = 4;
 
    const uint32_t v3d_coord_shift = 6;
 
@@ -1043,23 +1088,26 @@ v3dv_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
       .bufferImageGranularity                   = 256, /* A cache line */
       .sparseAddressSpaceSize                   = 0,
       .maxBoundDescriptorSets                   = MAX_SETS,
-      .maxPerStageDescriptorSamplers            = max_samplers,
-      .maxPerStageDescriptorUniformBuffers      = max_uniform_buffers,
-      .maxPerStageDescriptorStorageBuffers      = max_storage_buffers,
-      .maxPerStageDescriptorSampledImages       = max_sampled_images,
-      .maxPerStageDescriptorStorageImages       = max_storage_images,
-      .maxPerStageDescriptorInputAttachments    = max_input_attachments,
+      .maxPerStageDescriptorSamplers            = V3D_MAX_TEXTURE_SAMPLERS,
+      .maxPerStageDescriptorUniformBuffers      = MAX_UNIFORM_BUFFERS,
+      .maxPerStageDescriptorStorageBuffers      = MAX_STORAGE_BUFFERS,
+      .maxPerStageDescriptorSampledImages       = MAX_SAMPLED_IMAGES,
+      .maxPerStageDescriptorStorageImages       = MAX_STORAGE_IMAGES,
+      .maxPerStageDescriptorInputAttachments    = MAX_INPUT_ATTACHMENTS,
       .maxPerStageResources                     = 128,
 
-      /* We multiply some limits by 6 to account for all shader stages */
-      .maxDescriptorSetSamplers                 = 6 * max_samplers,
-      .maxDescriptorSetUniformBuffers           = 6 * max_uniform_buffers,
-      .maxDescriptorSetUniformBuffersDynamic    = 8,
-      .maxDescriptorSetStorageBuffers           = 6 * max_storage_buffers,
-      .maxDescriptorSetStorageBuffersDynamic    = 6 * max_dynamic_storage_buffers,
-      .maxDescriptorSetSampledImages            = 6 * max_sampled_images,
-      .maxDescriptorSetStorageImages            = 6 * max_storage_images,
-      .maxDescriptorSetInputAttachments         = 4,
+      /* Some of these limits are multiplied by 6 because they need to
+       * include all possible shader stages (even if not supported). See
+       * 'Required Limits' table in the Vulkan spec.
+       */
+      .maxDescriptorSetSamplers                 = 6 * V3D_MAX_TEXTURE_SAMPLERS,
+      .maxDescriptorSetUniformBuffers           = 6 * MAX_UNIFORM_BUFFERS,
+      .maxDescriptorSetUniformBuffersDynamic    = MAX_DYNAMIC_UNIFORM_BUFFERS,
+      .maxDescriptorSetStorageBuffers           = 6 * MAX_STORAGE_BUFFERS,
+      .maxDescriptorSetStorageBuffersDynamic    = MAX_DYNAMIC_STORAGE_BUFFERS,
+      .maxDescriptorSetSampledImages            = 6 * MAX_SAMPLED_IMAGES,
+      .maxDescriptorSetStorageImages            = 6 * MAX_STORAGE_IMAGES,
+      .maxDescriptorSetInputAttachments         = MAX_INPUT_ATTACHMENTS,
 
       /* Vertex limits */
       .maxVertexInputAttributes                 = MAX_VERTEX_ATTRIBS,
@@ -1089,9 +1137,9 @@ v3dv_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
       .maxFragmentInputComponents               = max_varying_components,
       .maxFragmentOutputAttachments             = 4,
       .maxFragmentDualSrcAttachments            = 0,
-      .maxFragmentCombinedOutputResources       = max_render_targets +
-                                                  max_storage_buffers +
-                                                  max_storage_images,
+      .maxFragmentCombinedOutputResources       = MAX_RENDER_TARGETS +
+                                                  MAX_STORAGE_BUFFERS +
+                                                  MAX_STORAGE_IMAGES,
 
       /* Compute limits */
       .maxComputeSharedMemorySize               = 16384,
@@ -1112,7 +1160,7 @@ v3dv_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
                                                     2.0 * max_fb_size - 1 },
       .viewportSubPixelBits                     = 0,
       .minMemoryMapAlignment                    = page_size,
-      .minTexelBufferOffsetAlignment            = VC5_UIFBLOCK_SIZE,
+      .minTexelBufferOffsetAlignment            = V3D_UIFBLOCK_SIZE,
       .minUniformBufferOffsetAlignment          = 32,
       .minStorageBufferOffsetAlignment          = 32,
       .minTexelOffset                           = -8,
@@ -1129,7 +1177,7 @@ v3dv_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
       .framebufferDepthSampleCounts             = supported_sample_counts,
       .framebufferStencilSampleCounts           = supported_sample_counts,
       .framebufferNoAttachmentsSampleCounts     = supported_sample_counts,
-      .maxColorAttachments                      = max_render_targets,
+      .maxColorAttachments                      = MAX_RENDER_TARGETS,
       .sampledImageColorSampleCounts            = supported_sample_counts,
       .sampledImageIntegerSampleCounts          = supported_sample_counts,
       .sampledImageDepthSampleCounts            = supported_sample_counts,
@@ -1155,7 +1203,7 @@ v3dv_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
    };
 
    *pProperties = (VkPhysicalDeviceProperties) {
-      .apiVersion = v3dv_physical_device_api_version(pdevice),
+      .apiVersion = V3DV_API_VERSION,
       .driverVersion = vk_get_driver_version(),
       .vendorID = v3dv_physical_device_vendor_id(pdevice),
       .deviceID = v3dv_physical_device_device_id(pdevice),
@@ -1550,7 +1598,9 @@ device_free_wsi_dumb(int32_t display_fd, int32_t dumb_handle)
    struct drm_mode_destroy_dumb destroy_dumb = {
       .handle = dumb_handle,
    };
-   v3dv_ioctl(display_fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb);
+   if (v3dv_ioctl(display_fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb)) {
+      fprintf(stderr, "destroy dumb object %d: %s\n", dumb_handle, strerror(errno));
+   }
 }
 
 static void

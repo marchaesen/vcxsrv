@@ -25,6 +25,7 @@
 
 #include "pipe/p_screen.h"
 #include "util/slab.h"
+#include "util/disk_cache.h"
 #include "virgl_winsys.h"
 
 enum virgl_debug_flags {
@@ -56,6 +57,8 @@ struct virgl_screen {
    bool tweak_gles_emulate_bgra;
    bool tweak_gles_apply_bgra_dest_swizzle;
    int32_t tweak_gles_tf3_value;
+
+   struct disk_cache *disk_cache;
 };
 
 

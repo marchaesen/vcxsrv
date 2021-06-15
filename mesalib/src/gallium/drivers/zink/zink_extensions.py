@@ -191,9 +191,11 @@ class ExtensionRegistry:
 
             for ty in ext.findall("require/type"):
                 ty_name = ty.get("name")
-                if self.is_features_struct(ty_name):
+                if (self.is_features_struct(ty_name) and
+                    entry.features_struct is None):
                     entry.features_struct = ty_name
-                elif self.is_properties_struct(ty_name):
+                elif (self.is_properties_struct(ty_name) and
+                      entry.properties_struct is None):
                     entry.properties_struct = ty_name
 
             self.registry[name] = entry

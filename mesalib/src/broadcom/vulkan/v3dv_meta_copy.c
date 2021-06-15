@@ -438,8 +438,8 @@ emit_rcl_prologue(struct v3dv_job *job,
          const struct v3dv_image *image = clear_info->image;
          const struct v3d_resource_slice *slice =
             &image->slices[clear_info->level];
-         if (slice->tiling == VC5_TILING_UIF_NO_XOR ||
-             slice->tiling == VC5_TILING_UIF_XOR) {
+         if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
+             slice->tiling == V3D_TILING_UIF_XOR) {
             int uif_block_height = v3d_utile_height(image->cpp) * 2;
 
             uint32_t implicit_padded_height =
@@ -585,7 +585,7 @@ emit_linear_load(struct v3dv_cl *cl,
       load.buffer_to_load = buffer;
       load.address = v3dv_cl_address(bo, offset);
       load.input_image_format = format;
-      load.memory_format = VC5_TILING_RASTER;
+      load.memory_format = V3D_TILING_RASTER;
       load.height_in_ub_or_stride = stride;
       load.decimate_mode = V3D_DECIMATE_MODE_SAMPLE_0;
    }
@@ -605,7 +605,7 @@ emit_linear_store(struct v3dv_cl *cl,
       store.address = v3dv_cl_address(bo, offset);
       store.clear_buffer_being_stored = false;
       store.output_image_format = format;
-      store.memory_format = VC5_TILING_RASTER;
+      store.memory_format = V3D_TILING_RASTER;
       store.height_in_ub_or_stride = stride;
       store.decimate_mode = msaa ? V3D_DECIMATE_MODE_ALL_SAMPLES :
                                    V3D_DECIMATE_MODE_SAMPLE_0;
@@ -679,11 +679,11 @@ emit_image_load(struct v3dv_cl *cl,
       load.r_b_swap = needs_rb_swap;
       load.channel_reverse = needs_chan_reverse;
 
-      if (slice->tiling == VC5_TILING_UIF_NO_XOR ||
-          slice->tiling == VC5_TILING_UIF_XOR) {
+      if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
+          slice->tiling == V3D_TILING_UIF_XOR) {
          load.height_in_ub_or_stride =
             slice->padded_height_of_output_image_in_uif_blocks;
-      } else if (slice->tiling == VC5_TILING_RASTER) {
+      } else if (slice->tiling == V3D_TILING_RASTER) {
          load.height_in_ub_or_stride = slice->stride;
       }
 
@@ -739,11 +739,11 @@ emit_image_store(struct v3dv_cl *cl,
                                                     is_copy_to_buffer,
                                                     is_copy_from_buffer);
       store.memory_format = slice->tiling;
-      if (slice->tiling == VC5_TILING_UIF_NO_XOR ||
-          slice->tiling == VC5_TILING_UIF_XOR) {
+      if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
+          slice->tiling == V3D_TILING_UIF_XOR) {
          store.height_in_ub_or_stride =
             slice->padded_height_of_output_image_in_uif_blocks;
-      } else if (slice->tiling == VC5_TILING_RASTER) {
+      } else if (slice->tiling == V3D_TILING_RASTER) {
          store.height_in_ub_or_stride = slice->stride;
       }
 
@@ -1483,11 +1483,11 @@ emit_tfu_job(struct v3dv_cmd_buffer *cmd_buffer,
    tfu.iia |= src_offset;
 
    uint32_t icfg;
-   if (src_slice->tiling == VC5_TILING_RASTER) {
+   if (src_slice->tiling == V3D_TILING_RASTER) {
       icfg = V3D_TFU_ICFG_FORMAT_RASTER;
    } else {
       icfg = V3D_TFU_ICFG_FORMAT_LINEARTILE +
-             (src_slice->tiling - VC5_TILING_LINEARTILE);
+             (src_slice->tiling - V3D_TILING_LINEARTILE);
    }
    tfu.icfg |= icfg << V3D_TFU_ICFG_FORMAT_SHIFT;
 
@@ -1496,16 +1496,16 @@ emit_tfu_job(struct v3dv_cmd_buffer *cmd_buffer,
    tfu.ioa |= dst_offset;
 
    tfu.ioa |= (V3D_TFU_IOA_FORMAT_LINEARTILE +
-               (dst_slice->tiling - VC5_TILING_LINEARTILE)) <<
+               (dst_slice->tiling - V3D_TILING_LINEARTILE)) <<
                 V3D_TFU_IOA_FORMAT_SHIFT;
    tfu.icfg |= format->tex_type << V3D_TFU_ICFG_TTYPE_SHIFT;
 
    switch (src_slice->tiling) {
-   case VC5_TILING_UIF_NO_XOR:
-   case VC5_TILING_UIF_XOR:
+   case V3D_TILING_UIF_NO_XOR:
+   case V3D_TILING_UIF_XOR:
       tfu.iis |= src_slice->padded_height / (2 * v3d_utile_height(src->cpp));
       break;
-   case VC5_TILING_RASTER:
+   case V3D_TILING_RASTER:
       tfu.iis |= src_slice->stride / src->cpp;
       break;
    default:
@@ -1516,8 +1516,8 @@ emit_tfu_job(struct v3dv_cmd_buffer *cmd_buffer,
     * OPAD field for the destination (how many extra UIF blocks beyond
     * those necessary to cover the height).
     */
-   if (dst_slice->tiling == VC5_TILING_UIF_NO_XOR ||
-       dst_slice->tiling == VC5_TILING_UIF_XOR) {
+   if (dst_slice->tiling == V3D_TILING_UIF_NO_XOR ||
+       dst_slice->tiling == V3D_TILING_UIF_XOR) {
       uint32_t uif_block_h = 2 * v3d_utile_height(dst->cpp);
       uint32_t implicit_padded_height = align(height, uif_block_h);
       uint32_t icfg =
@@ -2671,7 +2671,7 @@ copy_buffer_to_image_tfu(struct v3dv_cmd_buffer *cmd_buffer,
       tfu.ioa |= dst_offset;
 
       tfu.ioa |= (V3D_TFU_IOA_FORMAT_LINEARTILE +
-                  (slice->tiling - VC5_TILING_LINEARTILE)) <<
+                  (slice->tiling - V3D_TILING_LINEARTILE)) <<
                    V3D_TFU_IOA_FORMAT_SHIFT;
       tfu.icfg |= format->tex_type << V3D_TFU_ICFG_TTYPE_SHIFT;
 
@@ -2679,8 +2679,8 @@ copy_buffer_to_image_tfu(struct v3dv_cmd_buffer *cmd_buffer,
        * OPAD field for the destination (how many extra UIF blocks beyond
        * those necessary to cover the height).
        */
-      if (slice->tiling == VC5_TILING_UIF_NO_XOR ||
-          slice->tiling == VC5_TILING_UIF_XOR) {
+      if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
+          slice->tiling == V3D_TILING_UIF_XOR) {
          uint32_t uif_block_h = 2 * v3d_utile_height(image->cpp);
          uint32_t implicit_padded_height = align(height, uif_block_h);
          uint32_t icfg =
@@ -4657,6 +4657,7 @@ get_color_blit_fs(struct v3dv_device *device,
          if (dst_bit_size >= src_bit_size)
             continue;
 
+         assert(dst_bit_size > 0);
          if (util_format_is_pure_uint(dst_pformat)) {
             nir_ssa_def *max = nir_imm_int(&b, (1 << dst_bit_size) - 1);
             c[i] = nir_umin(&b, c[i], max);

@@ -52,6 +52,7 @@ enum viv_features_word {
    viv_chipMinorFeatures4 = 5,
    viv_chipMinorFeatures5 = 6,
    viv_chipMinorFeatures6 = 7,
+   viv_chipMinorFeatures7 = 8,
    VIV_FEATURES_WORD_COUNT /* Must be last */
 };
 

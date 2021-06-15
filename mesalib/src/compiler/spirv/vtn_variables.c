@@ -1282,11 +1282,11 @@ apply_var_decoration(struct vtn_builder *b,
 
 static void
 var_is_patch_cb(struct vtn_builder *b, struct vtn_value *val, int member,
-                const struct vtn_decoration *dec, void *out_is_patch)
+                const struct vtn_decoration *dec, void *void_var)
 {
-   if (dec->decoration == SpvDecorationPatch) {
-      *((bool *) out_is_patch) = true;
-   }
+   struct vtn_variable *vtn_var = void_var;
+   if (dec->decoration == SpvDecorationPatch)
+      vtn_var->var->data.patch = true;
 }
 
 static void
@@ -1308,7 +1308,7 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
       vtn_var->input_attachment_index = dec->operands[0];
       return;
    case SpvDecorationPatch:
-      vtn_var->patch = true;
+      vtn_var->var->data.patch = true;
       break;
    case SpvDecorationOffset:
       vtn_var->offset = dec->operands[0];
@@ -1353,7 +1353,7 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
          location += VERT_ATTRIB_GENERIC0;
       } else if (vtn_var->mode == vtn_variable_mode_input ||
                  vtn_var->mode == vtn_variable_mode_output) {
-         location += vtn_var->patch ? VARYING_SLOT_PATCH0 : VARYING_SLOT_VAR0;
+         location += vtn_var->var->data.patch ? VARYING_SLOT_PATCH0 : VARYING_SLOT_VAR0;
       } else if (vtn_var->mode == vtn_variable_mode_call_data ||
                  vtn_var->mode == vtn_variable_mode_ray_payload) {
          /* This location is fine as-is */
@@ -1590,9 +1590,10 @@ vtn_mode_to_address_format(struct vtn_builder *b, enum vtn_variable_mode mode)
 nir_ssa_def *
 vtn_pointer_to_ssa(struct vtn_builder *b, struct vtn_pointer *ptr)
 {
-   if (vtn_pointer_is_external_block(b, ptr) &&
-       vtn_type_contains_block(b, ptr->type) &&
-       ptr->mode != vtn_variable_mode_phys_ssbo) {
+   if ((vtn_pointer_is_external_block(b, ptr) &&
+        vtn_type_contains_block(b, ptr->type) &&
+        ptr->mode != vtn_variable_mode_phys_ssbo) ||
+       ptr->mode == vtn_variable_mode_accel_struct) {
       /* In this case, we're looking for a block index and not an actual
        * deref.
        *
@@ -1641,11 +1642,13 @@ vtn_pointer_from_ssa(struct vtn_builder *b, nir_ssa_def *ssa,
 
    const struct glsl_type *deref_type =
       vtn_type_get_nir_type(b, ptr_type->deref, ptr->mode);
-   if (!vtn_pointer_is_external_block(b, ptr)) {
+   if (!vtn_pointer_is_external_block(b, ptr) &&
+       ptr->mode != vtn_variable_mode_accel_struct) {
       ptr->deref = nir_build_deref_cast(&b->nb, ssa, nir_mode,
                                         deref_type, ptr_type->stride);
-   } else if (vtn_type_contains_block(b, ptr->type) &&
-              ptr->mode != vtn_variable_mode_phys_ssbo) {
+   } else if ((vtn_type_contains_block(b, ptr->type) &&
+               ptr->mode != vtn_variable_mode_phys_ssbo) ||
+              ptr->mode == vtn_variable_mode_accel_struct) {
       /* This is a pointer to somewhere in an array of blocks, not a
        * pointer to somewhere inside the block.  Set the block index
        * instead of making a cast.
@@ -1837,6 +1840,7 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
       var->var->data.mode = nir_mode;
       var->var->data.location = -1;
       var->var->data.driver_location = 0;
+      var->var->data.access = var->type->access;
       break;
 
    case vtn_variable_mode_workgroup:
@@ -1850,6 +1854,11 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
 
    case vtn_variable_mode_input:
    case vtn_variable_mode_output: {
+      var->var = rzalloc(b->shader, nir_variable);
+      var->var->name = ralloc_strdup(var->var, val->name);
+      var->var->type = vtn_type_get_nir_type(b, var->type, var->mode);
+      var->var->data.mode = nir_mode;
+
       /* In order to know whether or not we're a per-vertex inout, we need
        * the patch qualifier.  This means walking the variable decorations
        * early before we actually create any variables.  Not a big deal.
@@ -1866,20 +1875,13 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
        * it to be all or nothing, we'll call it patch if any of the members
        * are declared patch.
        */
-      var->patch = false;
-      vtn_foreach_decoration(b, val, var_is_patch_cb, &var->patch);
+      vtn_foreach_decoration(b, val, var_is_patch_cb, var);
       if (glsl_type_is_array(var->type->type) &&
           glsl_type_is_struct_or_ifc(without_array->type)) {
          vtn_foreach_decoration(b, vtn_value(b, without_array->id,
                                              vtn_value_type_type),
-                                var_is_patch_cb, &var->patch);
+                                var_is_patch_cb, var);
       }
-
-      var->var = rzalloc(b->shader, nir_variable);
-      var->var->name = ralloc_strdup(var->var, val->name);
-      var->var->type = vtn_type_get_nir_type(b, var->type, var->mode);
-      var->var->data.mode = nir_mode;
-      var->var->data.patch = var->patch;
 
       struct vtn_type *per_vertex_type = var->type;
       if (nir_is_per_vertex_io(var->var, b->shader->info.stage))
@@ -1919,7 +1921,7 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
 
          for (unsigned i = 0; i < var->var->num_members; i++) {
             var->var->members[i].mode = nir_mode;
-            var->var->members[i].patch = var->patch;
+            var->var->members[i].patch = var->var->data.patch;
             var->var->members[i].location = -1;
          }
       }

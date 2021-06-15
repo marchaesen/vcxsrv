@@ -21,7 +21,6 @@
  * SOFTWARE.
  */
 
-
 #include "pipe/p_state.h"
 #include "util/u_prim.h"
 
@@ -36,8 +35,8 @@
  */
 
 enum {
-	byte = 8,
-	dword = 4 * byte,
+   byte = 8,
+   dword = 4 * byte,
 } bits_per;
 
 /**
@@ -47,9 +46,9 @@ enum {
 static unsigned
 number_size_bits(unsigned nr)
 {
-	unsigned n = util_last_bit(nr);
-	assert(n);  /* encoding 0 is not possible */
-	return n + (n - 1);
+   unsigned n = util_last_bit(nr);
+   assert(n); /* encoding 0 is not possible */
+   return n + (n - 1);
 }
 
 /**
@@ -59,45 +58,48 @@ number_size_bits(unsigned nr)
 static unsigned
 bitfield_size_bits(unsigned n)
 {
-	return n + 1;  /* worst case is always 1 + nr of bits */
+   return n + 1; /* worst case is always 1 + nr of bits */
 }
 
 static unsigned
 prim_count(const struct pipe_draw_info *info,
-           const struct pipe_draw_start_count *draw)
+           const struct pipe_draw_start_count_bias *draw)
 {
-	/* PIPE_PRIM_MAX used internally for RECTLIST blits on 3d pipe: */
-	unsigned vtx_per_prim = (info->mode == PIPE_PRIM_MAX) ? 2 :
-			u_vertices_per_prim(info->mode);
-	return MAX2(1, (draw->count * info->instance_count) / vtx_per_prim);
+   /* PIPE_PRIM_MAX used internally for RECTLIST blits on 3d pipe: */
+   unsigned vtx_per_prim =
+      (info->mode == PIPE_PRIM_MAX) ? 2 : u_vertices_per_prim(info->mode);
+   return MAX2(1, (draw->count * info->instance_count) / vtx_per_prim);
 }
 
 /**
  * The primitive stream uses a run-length encoding, where each packet contains a
- * bitfield of bins covered and then the number of primitives which have the same
- * bitfield. Each packet consists of the following, in order:
+ * bitfield of bins covered and then the number of primitives which have the
+ * same bitfield. Each packet consists of the following, in order:
  *
  *  - The (compressed) bitfield of bins covered
  *  - The number of primitives with this bitset
  *  - Checksum
  *
- * The worst case would be that each primitive has a different bitmask.  In practice,
- * assuming ever other primitive has a different bitmask still gets us conservatively
- * large primitive stream sizes.  (Ie. 10x what is needed, vs. 20x)
+ * The worst case would be that each primitive has a different bitmask.  In
+ * practice, assuming ever other primitive has a different bitmask still gets us
+ * conservatively large primitive stream sizes.  (Ie. 10x what is needed, vs.
+ * 20x)
  *
  * https://github.com/freedreno/freedreno/wiki/Visibility-Stream-Format#primitive-streams
  */
 static unsigned
 primitive_stream_size_bits(const struct pipe_draw_info *info,
-                           const struct pipe_draw_start_count *draw, unsigned num_bins)
+                           const struct pipe_draw_start_count_bias *draw,
+                           unsigned num_bins)
 {
-	unsigned num_prims = prim_count(info, draw);
-	unsigned nbits =
-			(bitfield_size_bits(num_bins)   /* bitfield of bins covered */
-			+ number_size_bits(1)           /* number of primitives with this bitset */
-			+ 1                             /* checksum */
-			) * DIV_ROUND_UP(num_prims, 2);
-	return align(nbits, dword);
+   unsigned num_prims = prim_count(info, draw);
+   unsigned nbits =
+      (bitfield_size_bits(num_bins) /* bitfield of bins covered */
+       + number_size_bits(1)        /* number of primitives with this bitset */
+       + 1                          /* checksum */
+       ) *
+      DIV_ROUND_UP(num_prims, 2);
+   return align(nbits, dword);
 }
 
 /**
@@ -113,50 +115,50 @@ primitive_stream_size_bits(const struct pipe_draw_info *info,
  */
 static unsigned
 draw_stream_size_bits(const struct pipe_draw_info *info, unsigned num_bins,
-		unsigned prim_strm_bits)
+                      unsigned prim_strm_bits)
 {
-	unsigned ndwords = prim_strm_bits / dword;
-	return (bitfield_size_bits(num_bins)    /* bitfield of bins */
-			+ 1                             /* last-instance-bit */
-			+ number_size_bits(ndwords)     /* size of corresponding prim strm */
-			+ 1                             /* checksum */
-			) * MAX2(1, info->instance_count);
+   unsigned ndwords = prim_strm_bits / dword;
+   return (bitfield_size_bits(num_bins) /* bitfield of bins */
+           + 1                          /* last-instance-bit */
+           + number_size_bits(ndwords)  /* size of corresponding prim strm */
+           + 1                          /* checksum */
+           ) *
+          MAX2(1, info->instance_count);
 }
 
 void
 fd6_vsc_update_sizes(struct fd_batch *batch, const struct pipe_draw_info *info,
-                     const struct pipe_draw_start_count *draw)
+                     const struct pipe_draw_start_count_bias *draw)
 {
-	if (!batch->num_bins_per_pipe) {
-		batch->num_bins_per_pipe = fd_gmem_estimate_bins_per_pipe(batch);
+   if (!batch->num_bins_per_pipe) {
+      batch->num_bins_per_pipe = fd_gmem_estimate_bins_per_pipe(batch);
 
-		/* This is a convenient spot to add the size of the final draw-
-		 * stream packet:
-		 *
-		 * If there are N bins, the final packet, after all the draws are
-		 * done, consists of a 1 followed by N + 17 0's, plus a final 1.
-		 * This uses the otherwise-unused pattern of a non-empty bitfield
-		 * (initial 1) that is nontheless empty (has all 0's)
-		 */
-		unsigned final_pkt_sz = 1 + batch->num_bins_per_pipe + 17 + 1;
-		batch->prim_strm_bits = align(final_pkt_sz, dword);
-	}
+      /* This is a convenient spot to add the size of the final draw-
+       * stream packet:
+       *
+       * If there are N bins, the final packet, after all the draws are
+       * done, consists of a 1 followed by N + 17 0's, plus a final 1.
+       * This uses the otherwise-unused pattern of a non-empty bitfield
+       * (initial 1) that is nontheless empty (has all 0's)
+       */
+      unsigned final_pkt_sz = 1 + batch->num_bins_per_pipe + 17 + 1;
+      batch->prim_strm_bits = align(final_pkt_sz, dword);
+   }
 
-	unsigned prim_strm_bits =
-		primitive_stream_size_bits(info, draw, batch->num_bins_per_pipe);
-	unsigned draw_strm_bits =
-		draw_stream_size_bits(info, batch->num_bins_per_pipe, prim_strm_bits);
+   unsigned prim_strm_bits =
+      primitive_stream_size_bits(info, draw, batch->num_bins_per_pipe);
+   unsigned draw_strm_bits =
+      draw_stream_size_bits(info, batch->num_bins_per_pipe, prim_strm_bits);
 
 #if 0
-	printf("vsc: prim_strm_bits=%d, draw_strm_bits=%d, nb=%u, ic=%u, c=%u, pc=%u (%s)\n",
-			prim_strm_bits, draw_strm_bits, batch->num_bins_per_pipe,
-			info->instance_count, info->count,
-			(info->count * info->instance_count) /
-			u_vertices_per_prim(info->mode),
-			u_prim_name(info->mode));
+   printf("vsc: prim_strm_bits=%d, draw_strm_bits=%d, nb=%u, ic=%u, c=%u, pc=%u (%s)\n",
+          prim_strm_bits, draw_strm_bits, batch->num_bins_per_pipe,
+          info->instance_count, info->count,
+          (info->count * info->instance_count) /
+          u_vertices_per_prim(info->mode),
+          u_prim_name(info->mode));
 #endif
 
-	batch->prim_strm_bits += prim_strm_bits;
-	batch->draw_strm_bits += draw_strm_bits;
+   batch->prim_strm_bits += prim_strm_bits;
+   batch->draw_strm_bits += draw_strm_bits;
 }
-

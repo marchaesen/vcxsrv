@@ -307,6 +307,19 @@ void st_init_limits(struct pipe_screen *screen,
          pc->LowInt.RangeMax = 30;
          pc->LowInt.Precision = 0;
          pc->MediumInt = pc->HighInt = pc->LowInt;
+
+         if (screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_INT16)) {
+            pc->LowInt.RangeMin = 15;
+            pc->LowInt.RangeMax = 14;
+            pc->MediumInt = pc->LowInt;
+         }
+      }
+
+      if (screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_FP16)) {
+         pc->LowFloat.RangeMin = 15;
+         pc->LowFloat.RangeMax = 15;
+         pc->LowFloat.Precision = 10;
+         pc->MediumFloat = pc->LowFloat;
       }
 
       /* TODO: make these more fine-grained if anyone needs it */
@@ -374,6 +387,8 @@ void st_init_limits(struct pipe_screen *screen,
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_INT16);
       options->LowerPrecisionConstants =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_GLSL_16BIT_CONSTS);
+      options->LowerPrecisionFloat16Uniforms =
+         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_FP16_CONST_BUFFERS);
    }
 
    c->MaxUserAssignableUniformLocations =
@@ -497,21 +512,24 @@ void st_init_limits(struct pipe_screen *screen,
       c->NumProgramBinaryFormats = 1;
 
    c->MaxAtomicBufferBindings =
-      c->Program[MESA_SHADER_FRAGMENT].MaxAtomicBuffers;
-   c->MaxAtomicBufferSize =
-      c->Program[MESA_SHADER_FRAGMENT].MaxAtomicCounters * ATOMIC_COUNTER_SIZE;
+      MAX2(c->Program[MESA_SHADER_FRAGMENT].MaxAtomicBuffers,
+           c->Program[MESA_SHADER_COMPUTE].MaxAtomicBuffers);
+   c->MaxAtomicBufferSize = ATOMIC_COUNTER_SIZE *
+      MAX2(c->Program[MESA_SHADER_FRAGMENT].MaxAtomicCounters,
+           c->Program[MESA_SHADER_COMPUTE].MaxAtomicCounters);
 
    c->MaxCombinedAtomicBuffers =
       MIN2(screen->get_param(screen,
                              PIPE_CAP_MAX_COMBINED_HW_ATOMIC_COUNTER_BUFFERS),
            MAX_COMBINED_ATOMIC_BUFFERS);
    if (!c->MaxCombinedAtomicBuffers) {
-      c->MaxCombinedAtomicBuffers =
+      c->MaxCombinedAtomicBuffers = MAX2(
          c->Program[MESA_SHADER_VERTEX].MaxAtomicBuffers +
          c->Program[MESA_SHADER_TESS_CTRL].MaxAtomicBuffers +
          c->Program[MESA_SHADER_TESS_EVAL].MaxAtomicBuffers +
          c->Program[MESA_SHADER_GEOMETRY].MaxAtomicBuffers +
-         c->Program[MESA_SHADER_FRAGMENT].MaxAtomicBuffers;
+         c->Program[MESA_SHADER_FRAGMENT].MaxAtomicBuffers,
+         c->Program[MESA_SHADER_COMPUTE].MaxAtomicBuffers);
       assert(c->MaxCombinedAtomicBuffers <= MAX_COMBINED_ATOMIC_BUFFERS);
    }
 
@@ -533,12 +551,13 @@ void st_init_limits(struct pipe_screen *screen,
          MIN2(screen->get_param(screen, PIPE_CAP_MAX_COMBINED_SHADER_BUFFERS),
               MAX_COMBINED_SHADER_STORAGE_BUFFERS);
       if (!c->MaxCombinedShaderStorageBlocks) {
-         c->MaxCombinedShaderStorageBlocks =
+         c->MaxCombinedShaderStorageBlocks = MAX2(
             c->Program[MESA_SHADER_VERTEX].MaxShaderStorageBlocks +
             c->Program[MESA_SHADER_TESS_CTRL].MaxShaderStorageBlocks +
             c->Program[MESA_SHADER_TESS_EVAL].MaxShaderStorageBlocks +
             c->Program[MESA_SHADER_GEOMETRY].MaxShaderStorageBlocks +
-            c->Program[MESA_SHADER_FRAGMENT].MaxShaderStorageBlocks;
+            c->Program[MESA_SHADER_FRAGMENT].MaxShaderStorageBlocks,
+            c->Program[MESA_SHADER_COMPUTE].MaxShaderStorageBlocks);
          assert(c->MaxCombinedShaderStorageBlocks < MAX_COMBINED_SHADER_STORAGE_BUFFERS);
       }
       c->MaxShaderStorageBufferBindings = c->MaxCombinedShaderStorageBlocks;
@@ -610,7 +629,8 @@ void st_init_limits(struct pipe_screen *screen,
       screen->get_param(screen, PIPE_CAP_SIGNED_VERTEX_BUFFER_OFFSET);
 
    c->MultiDrawWithUserIndices = true;
-   c->AllowDynamicVAOFastPath = true;
+   c->AllowDynamicVAOFastPath =
+         screen->get_param(screen, PIPE_CAP_ALLOW_DYNAMIC_VAO_FASTPATH);
 
    c->glBeginEndBufferSize =
       screen->get_param(screen, PIPE_CAP_GL_BEGIN_END_BUFFER_SIZE);
@@ -791,6 +811,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_spirv_extensions),             PIPE_CAP_GL_SPIRV                         },
       { o(ARB_texture_buffer_object),        PIPE_CAP_TEXTURE_BUFFER_OBJECTS           },
       { o(ARB_texture_cube_map_array),       PIPE_CAP_CUBE_MAP_ARRAY                   },
+      { o(ARB_texture_filter_minmax),        PIPE_CAP_SAMPLER_REDUCTION_MINMAX_ARB     },
       { o(ARB_texture_gather),               PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS    },
       { o(ARB_texture_mirror_clamp_to_edge), PIPE_CAP_TEXTURE_MIRROR_CLAMP_TO_EDGE     },
       { o(ARB_texture_multisample),          PIPE_CAP_TEXTURE_MULTISAMPLE              },
@@ -1118,6 +1139,10 @@ void st_init_extensions(struct pipe_screen *screen,
          extension_table[cap_mapping[i].extension_offset] = GL_TRUE;
       }
    }
+
+   /* EXT implies ARB here */
+   if (extensions->EXT_texture_filter_minmax)
+      extensions->ARB_texture_filter_minmax = GL_TRUE;
 
    /* Expose the extensions which directly correspond to gallium formats. */
    init_format_extensions(screen, extensions, rendertarget_mapping,

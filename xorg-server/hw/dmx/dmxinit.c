@@ -109,8 +109,6 @@ Bool dmxGLXSyncSwap = FALSE;
 Bool dmxGLXFinishSwap = FALSE;
 #endif
 
-RESTYPE RRProviderType = 0;
-
 Bool dmxIgnoreBadFontPaths = FALSE;
 
 Bool dmxAddRemoveScreens = FALSE;

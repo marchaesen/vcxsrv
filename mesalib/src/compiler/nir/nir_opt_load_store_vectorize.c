@@ -159,7 +159,7 @@ struct entry_key {
    nir_ssa_def *resource;
    nir_variable *var;
    unsigned offset_def_count;
-   nir_ssa_def **offset_defs;
+   nir_ssa_scalar *offset_defs;
    uint64_t *offset_defs_mul;
 };
 
@@ -207,8 +207,10 @@ static uint32_t hash_entry_key(const void *key_)
       hash = XXH32(&mode, sizeof(mode), hash);
    }
 
-   for (unsigned i = 0; i < key->offset_def_count; i++)
-      hash = XXH32(&key->offset_defs[i]->index, sizeof(key->offset_defs[i]->index), hash);
+   for (unsigned i = 0; i < key->offset_def_count; i++) {
+      hash = XXH32(&key->offset_defs[i].def->index, sizeof(key->offset_defs[i].def->index), hash);
+      hash = XXH32(&key->offset_defs[i].comp, sizeof(key->offset_defs[i].comp), hash);
+   }
 
    hash = XXH32(key->offset_defs_mul, key->offset_def_count * sizeof(uint64_t), hash);
 
@@ -226,11 +228,15 @@ static bool entry_key_equals(const void *a_, const void *b_)
    if (a->offset_def_count != b->offset_def_count)
       return false;
 
-   size_t offset_def_size = a->offset_def_count * sizeof(nir_ssa_def *);
+   for (unsigned i = 0; i < a->offset_def_count; i++) {
+      if (a->offset_defs[i].def != b->offset_defs[i].def ||
+          a->offset_defs[i].comp != b->offset_defs[i].comp)
+         return false;
+   }
+
    size_t offset_def_mul_size = a->offset_def_count * sizeof(uint64_t);
    if (a->offset_def_count &&
-       (memcmp(a->offset_defs, b->offset_defs, offset_def_size) ||
-        memcmp(a->offset_defs_mul, b->offset_defs_mul, offset_def_mul_size)))
+       memcmp(a->offset_defs_mul, b->offset_defs_mul, offset_def_mul_size))
       return false;
 
    return true;
@@ -268,23 +274,19 @@ get_bit_size(struct entry *entry)
  * sources is a constant, update "def" to be the non-constant source, fill "c"
  * with the constant and return true. */
 static bool
-parse_alu(nir_ssa_def **def, nir_op op, uint64_t *c)
+parse_alu(nir_ssa_scalar *def, nir_op op, uint64_t *c)
 {
-   nir_ssa_scalar scalar;
-   scalar.def = *def;
-   scalar.comp = 0;
-
-   if (!nir_ssa_scalar_is_alu(scalar) || nir_ssa_scalar_alu_op(scalar) != op)
+   if (!nir_ssa_scalar_is_alu(*def) || nir_ssa_scalar_alu_op(*def) != op)
       return false;
 
-   nir_ssa_scalar src0 = nir_ssa_scalar_chase_alu_src(scalar, 0);
-   nir_ssa_scalar src1 = nir_ssa_scalar_chase_alu_src(scalar, 1);
-   if (op != nir_op_ishl && nir_ssa_scalar_is_const(src0) && src1.comp == 0) {
+   nir_ssa_scalar src0 = nir_ssa_scalar_chase_alu_src(*def, 0);
+   nir_ssa_scalar src1 = nir_ssa_scalar_chase_alu_src(*def, 1);
+   if (op != nir_op_ishl && nir_ssa_scalar_is_const(src0)) {
       *c = nir_ssa_scalar_as_uint(src0);
-      *def = src1.def;
-   } else if (nir_ssa_scalar_is_const(src1) && src0.comp == 0) {
+      *def = src1;
+   } else if (nir_ssa_scalar_is_const(src1)) {
       *c = nir_ssa_scalar_as_uint(src1);
-      *def = src0.def;
+      *def = src0;
    } else {
       return false;
    }
@@ -293,11 +295,11 @@ parse_alu(nir_ssa_def **def, nir_op op, uint64_t *c)
 
 /* Parses an offset expression such as "a * 16 + 4" and "(a * 16 + 4) * 64 + 32". */
 static void
-parse_offset(nir_ssa_def **base, uint64_t *base_mul, uint64_t *offset)
+parse_offset(nir_ssa_scalar *base, uint64_t *base_mul, uint64_t *offset)
 {
-   if ((*base)->parent_instr->type == nir_instr_type_load_const) {
-      *offset = nir_src_comp_as_uint(nir_src_for_ssa(*base), 0);
-      *base = NULL;
+   if (nir_ssa_scalar_is_const(*base)) {
+      *offset = nir_ssa_scalar_as_uint(*base);
+      base->def = NULL;
       return;
    }
 
@@ -316,7 +318,18 @@ parse_offset(nir_ssa_def **base, uint64_t *base_mul, uint64_t *offset)
 
       progress |= parse_alu(base, nir_op_iadd, &add2);
       add += add2 * mul;
+
+      if (nir_ssa_scalar_is_alu(*base) && nir_ssa_scalar_alu_op(*base) == nir_op_mov) {
+         *base = nir_ssa_scalar_chase_alu_src(*base, 0);
+         progress = true;
+      }
    } while (progress);
+
+   if (base->def->parent_instr->type == nir_instr_type_intrinsic) {
+      nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(base->def->parent_instr);
+      if (intrin->intrinsic == nir_intrinsic_load_vulkan_descriptor)
+         base->def = NULL;
+   }
 
    *base_mul = mul;
    *offset = add;
@@ -337,22 +350,23 @@ mask_sign_extend(uint64_t val, unsigned bit_size)
 }
 
 static unsigned
-add_to_entry_key(nir_ssa_def **offset_defs, uint64_t *offset_defs_mul,
-                 unsigned offset_def_count, nir_ssa_def *def, uint64_t mul)
+add_to_entry_key(nir_ssa_scalar *offset_defs, uint64_t *offset_defs_mul,
+                 unsigned offset_def_count, nir_ssa_scalar def, uint64_t mul)
 {
-   mul = mask_sign_extend(mul, def->bit_size);
+   mul = mask_sign_extend(mul, def.def->bit_size);
 
    for (unsigned i = 0; i <= offset_def_count; i++) {
-      if (i == offset_def_count || def->index > offset_defs[i]->index) {
+      if (i == offset_def_count || def.def->index > offset_defs[i].def->index) {
          /* insert before i */
          memmove(offset_defs + i + 1, offset_defs + i,
-                 (offset_def_count - i) * sizeof(nir_ssa_def *));
+                 (offset_def_count - i) * sizeof(nir_ssa_scalar));
          memmove(offset_defs_mul + i + 1, offset_defs_mul + i,
                  (offset_def_count - i) * sizeof(uint64_t));
          offset_defs[i] = def;
          offset_defs_mul[i] = mul;
          return 1;
-      } else if (def->index == offset_defs[i]->index) {
+      } else if (def.def == offset_defs[i].def &&
+                 def.comp == offset_defs[i].comp) {
          /* merge with offset_def at i */
          offset_defs_mul[i] += mul;
          return 0;
@@ -372,12 +386,12 @@ create_entry_key_from_deref(void *mem_ctx,
    while (path->path[path_len])
       path_len++;
 
-   nir_ssa_def *offset_defs_stack[32];
+   nir_ssa_scalar offset_defs_stack[32];
    uint64_t offset_defs_mul_stack[32];
-   nir_ssa_def **offset_defs = offset_defs_stack;
+   nir_ssa_scalar *offset_defs = offset_defs_stack;
    uint64_t *offset_defs_mul = offset_defs_mul_stack;
    if (path_len > 32) {
-      offset_defs = malloc(path_len * sizeof(nir_ssa_def *));
+      offset_defs = malloc(path_len * sizeof(nir_ssa_scalar));
       offset_defs_mul = malloc(path_len * sizeof(uint64_t));
    }
    unsigned offset_def_count = 0;
@@ -403,13 +417,13 @@ create_entry_key_from_deref(void *mem_ctx,
          nir_ssa_def *index = deref->arr.index.ssa;
          uint32_t stride = nir_deref_instr_array_stride(deref);
 
-         nir_ssa_def *base = index;
+         nir_ssa_scalar base = {.def=index, .comp=0};
          uint64_t offset = 0, base_mul = 1;
          parse_offset(&base, &base_mul, &offset);
          offset = mask_sign_extend(offset, index->bit_size);
 
          *offset_base += offset * stride;
-         if (base) {
+         if (base.def) {
             offset_def_count += add_to_entry_key(offset_defs, offset_defs_mul,
                                                  offset_def_count,
                                                  base, base_mul * stride);
@@ -433,9 +447,9 @@ create_entry_key_from_deref(void *mem_ctx,
    }
 
    key->offset_def_count = offset_def_count;
-   key->offset_defs = ralloc_array(mem_ctx, nir_ssa_def *, offset_def_count);
+   key->offset_defs = ralloc_array(mem_ctx, nir_ssa_scalar, offset_def_count);
    key->offset_defs_mul = ralloc_array(mem_ctx, uint64_t, offset_def_count);
-   memcpy(key->offset_defs, offset_defs, offset_def_count * sizeof(nir_ssa_def *));
+   memcpy(key->offset_defs, offset_defs, offset_def_count * sizeof(nir_ssa_scalar));
    memcpy(key->offset_defs_mul, offset_defs_mul, offset_def_count * sizeof(uint64_t));
 
    if (offset_defs != offset_defs_stack)
@@ -448,14 +462,14 @@ create_entry_key_from_deref(void *mem_ctx,
 
 static unsigned
 parse_entry_key_from_offset(struct entry_key *key, unsigned size, unsigned left,
-                            nir_ssa_def *base, uint64_t base_mul, uint64_t *offset)
+                            nir_ssa_scalar base, uint64_t base_mul, uint64_t *offset)
 {
    uint64_t new_mul;
    uint64_t new_offset;
    parse_offset(&base, &new_mul, &new_offset);
    *offset += new_offset * base_mul;
 
-   if (!base)
+   if (!base.def)
       return 0;
 
    base_mul *= new_mul;
@@ -463,19 +477,14 @@ parse_entry_key_from_offset(struct entry_key *key, unsigned size, unsigned left,
    assert(left >= 1);
 
    if (left >= 2) {
-      nir_ssa_scalar scalar;
-      scalar.def = base;
-      scalar.comp = 0;
-      if (nir_ssa_scalar_is_alu(scalar) && nir_ssa_scalar_alu_op(scalar) == nir_op_iadd) {
-         nir_ssa_scalar src0 = nir_ssa_scalar_chase_alu_src(scalar, 0);
-         nir_ssa_scalar src1 = nir_ssa_scalar_chase_alu_src(scalar, 1);
-         if (src0.comp == 0 && src1.comp == 0) {
-            unsigned amount = parse_entry_key_from_offset(key, size, left - 1, src0.def, base_mul, offset);
-            amount += parse_entry_key_from_offset(key, size + amount, left - amount, src1.def, base_mul, offset);
+      if (nir_ssa_scalar_is_alu(base) && nir_ssa_scalar_alu_op(base) == nir_op_iadd) {
+         nir_ssa_scalar src0 = nir_ssa_scalar_chase_alu_src(base, 0);
+         nir_ssa_scalar src1 = nir_ssa_scalar_chase_alu_src(base, 1);
+         unsigned amount = parse_entry_key_from_offset(key, size, left - 1, src0, base_mul, offset);
+         amount += parse_entry_key_from_offset(key, size + amount, left - amount, src1, base_mul, offset);
             return amount;
          }
       }
-   }
 
    return add_to_entry_key(key->offset_defs, key->offset_defs_mul, size, base, base_mul);
 }
@@ -487,16 +496,17 @@ create_entry_key_from_offset(void *mem_ctx, nir_ssa_def *base, uint64_t base_mul
    key->resource = NULL;
    key->var = NULL;
    if (base) {
-      nir_ssa_def *offset_defs[32];
+      nir_ssa_scalar offset_defs[32];
       uint64_t offset_defs_mul[32];
       key->offset_defs = offset_defs;
       key->offset_defs_mul = offset_defs_mul;
 
-      key->offset_def_count = parse_entry_key_from_offset(key, 0, 32, base, base_mul, offset);
+      nir_ssa_scalar scalar = {.def=base, .comp=0};
+      key->offset_def_count = parse_entry_key_from_offset(key, 0, 32, scalar, base_mul, offset);
 
-      key->offset_defs = ralloc_array(mem_ctx, nir_ssa_def *, key->offset_def_count);
+      key->offset_defs = ralloc_array(mem_ctx, nir_ssa_scalar, key->offset_def_count);
       key->offset_defs_mul = ralloc_array(mem_ctx, uint64_t, key->offset_def_count);
-      memcpy(key->offset_defs, offset_defs, key->offset_def_count * sizeof(nir_ssa_def *));
+      memcpy(key->offset_defs, offset_defs, key->offset_def_count * sizeof(nir_ssa_scalar));
       memcpy(key->offset_defs_mul, offset_defs_mul, key->offset_def_count * sizeof(uint64_t));
    } else {
       key->offset_def_count = 0;
@@ -592,6 +602,9 @@ create_entry(struct vectorize_ctx *ctx,
       entry->access = nir_intrinsic_access(intrin);
    else if (entry->key->var)
       entry->access = entry->key->var->data.access;
+
+   if (nir_intrinsic_can_reorder(intrin))
+      entry->access |= ACCESS_CAN_REORDER;
 
    uint32_t restrict_modes = nir_var_shader_in | nir_var_shader_out;
    restrict_modes |= nir_var_shader_temp | nir_var_function_temp;
@@ -920,6 +933,9 @@ may_alias(struct entry *a, struct entry *b)
    assert(mode_to_index(get_variable_mode(a)) ==
           mode_to_index(get_variable_mode(b)));
 
+   if ((a->access | b->access) & ACCESS_CAN_REORDER)
+      return false;
+
    /* if the resources/variables are definitively different and both have
     * ACCESS_RESTRICT, we can assume they do not alias. */
    bool res_different = a->key->var != b->key->var ||
@@ -1094,23 +1110,12 @@ update_align(struct entry *entry)
 }
 
 static bool
-vectorize_entries(struct vectorize_ctx *ctx, nir_function_impl *impl, struct hash_table *ht)
+vectorize_sorted_entries(struct vectorize_ctx *ctx, nir_function_impl *impl,
+                         struct util_dynarray *arr)
 {
-   if (!ht)
-      return false;
-
-   bool progress = false;
-   hash_table_foreach(ht, entry) {
-      struct util_dynarray *arr = entry->data;
-      if (!arr->size)
-         continue;
-
-      qsort(util_dynarray_begin(arr),
-            util_dynarray_num_elements(arr, struct entry *),
-            sizeof(struct entry *), &sort_entries);
-
       unsigned num_entries = util_dynarray_num_elements(arr, struct entry *);
 
+   bool progress = false;
       for (unsigned first_idx = 0; first_idx < num_entries; first_idx++) {
          struct entry *low = *util_dynarray_element(arr, struct entry *, first_idx);
          if (!low)
@@ -1137,6 +1142,28 @@ vectorize_entries(struct vectorize_ctx *ctx, nir_function_impl *impl, struct has
 
          *util_dynarray_element(arr, struct entry *, first_idx) = low;
       }
+
+   return progress;
+}
+
+static bool
+vectorize_entries(struct vectorize_ctx *ctx, nir_function_impl *impl, struct hash_table *ht)
+{
+   if (!ht)
+      return false;
+
+   bool progress = false;
+   hash_table_foreach(ht, entry) {
+      struct util_dynarray *arr = entry->data;
+      if (!arr->size)
+         continue;
+
+      qsort(util_dynarray_begin(arr),
+            util_dynarray_num_elements(arr, struct entry *),
+            sizeof(struct entry *), &sort_entries);
+
+      while (vectorize_sorted_entries(ctx, impl, arr))
+         progress = true;
 
       util_dynarray_foreach(arr, struct entry *, elem) {
          if (*elem)

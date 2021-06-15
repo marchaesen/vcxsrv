@@ -47,8 +47,8 @@ Once you can boot your board using a custom job definition, it's time
 to connect Mesa CI to it.  Install gitlab-runner and register as a
 shared runner (you'll need a GitLab admin for help with this).  The
 runner *must* have a tag (like "mesa-lava-db410c") to restrict the
-jobs it takes or it will grab random jobs from tasks across fd.o, and
-your runner isn't ready for that.
+jobs it takes or it will grab random jobs from tasks across
+``gitlab.freedesktop.org``, and your runner isn't ready for that.
 
 The runner will be running an ARM Docker image (we haven't done any
 x86 LAVA yet, so that isn't documented).  If your host for the

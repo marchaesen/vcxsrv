@@ -196,9 +196,8 @@ public:
    void parseTypePointer(const spv_parsed_instruction_t *ins)
    {
       enum clc_kernel_arg_address_qualifier addrQualifier;
-      uint32_t typeId, targetTypeId, storageClass;
+      uint32_t typeId, storageClass;
       const spv_parsed_operand_t *op;
-      const char *typeName;
 
       assert(ins->num_operands == 3);
 
@@ -327,7 +326,7 @@ public:
    void parseOpDecorate(const spv_parsed_instruction_t *ins)
    {
       const spv_parsed_operand_t *op;
-      uint32_t id, decoration;
+      uint32_t id;
 
       assert(ins->num_operands >= 2);
 

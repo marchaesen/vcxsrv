@@ -504,7 +504,7 @@ module clover::nir::spirv_to_nir(const module &mod, const device &dev,
                  glsl_get_cl_type_size_align);
 
       NIR_PASS_V(nir, nir_opt_deref);
-      NIR_PASS_V(nir, nir_lower_cl_images_to_tex);
+      NIR_PASS_V(nir, nir_lower_readonly_images_to_tex, false);
       NIR_PASS_V(nir, clover_nir_lower_images);
       NIR_PASS_V(nir, nir_lower_memcpy);
 

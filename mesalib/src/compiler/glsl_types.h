@@ -521,6 +521,8 @@ public:
     */
    unsigned component_slots() const;
 
+   unsigned component_slots_aligned(unsigned offset) const;
+
    /**
     * Calculate offset between the base location of the struct in
     * uniform storage and a struct member.
@@ -794,7 +796,7 @@ public:
     */
    bool is_integer_16_32() const
    {
-      return is_integer_16() || is_integer_32() || is_integer_64();
+      return is_integer_16() || is_integer_32();
    }
 
    /**

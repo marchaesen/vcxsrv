@@ -1,0 +1,33 @@
+glx@glx-visuals-stencil -pixmap,Crash
+glx@glx_arb_create_context_robustness@invalid reset notification strategy,Fail
+glx@glx_ext_import_context@get context id,Fail
+glx@glx_ext_import_context@import context- single process,Fail
+spec@arb_bindless_texture@illegal,Fail
+spec@arb_direct_state_access@gettextureimage-formats,Crash
+spec@arb_es2_compatibility@texwrap formats bordercolor-swizzled,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled,Fail
+spec@arb_texture_rg@texwrap formats bordercolor-swizzled,Fail
+spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled,Fail
+spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled,Fail
+spec@egl_chromium_sync_control@conformance,Fail
+spec@egl_khr_surfaceless_context@viewport,Fail
+spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_ayuv,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-invalid_hints,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-missing_attributes,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p010,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p016,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_xrgb8888,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y212,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y416,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuv420,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-unsupported_format,Fail
+spec@ext_packed_float@texwrap formats bordercolor-swizzled,Fail
+spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled,Fail
+spec@ext_texture_integer@fbo-integer,Fail
+spec@khr_texture_compression_astc@miptree-gl srgb-fp,Fail
+spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp,Fail
+wgl@wgl-sanity,Fail
+

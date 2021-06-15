@@ -380,7 +380,9 @@ r3d_common(struct tu_cmd_buffer *cmd, struct tu_cs *cs, bool blit, uint32_t num_
            bool layered_clear, bool z_scale)
 {
    struct ir3_const_state dummy_const_state = {};
-   struct ir3_shader dummy_shader = {};
+   struct ir3_shader dummy_shader = {
+      .compiler = cmd->device->compiler,
+   };
 
    struct ir3_shader_variant vs = {
       .type = MESA_SHADER_VERTEX,
@@ -956,13 +958,13 @@ copy_format(VkFormat format, VkImageAspectFlags aspect_mask, bool copy_buffer)
    case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
       if (aspect_mask == VK_IMAGE_ASPECT_PLANE_1_BIT)
          return VK_FORMAT_R8G8_UNORM;
-      /* fallthrough */
+      FALLTHROUGH;
    case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
       return VK_FORMAT_R8_UNORM;
    case VK_FORMAT_D24_UNORM_S8_UINT:
       if (aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT && copy_buffer)
          return VK_FORMAT_R8_UNORM;
-      /* fallthrough */
+      FALLTHROUGH;
    default:
       return format;
    case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32:
@@ -1590,8 +1592,19 @@ tu_CmdCopyImage(VkCommandBuffer commandBuffer,
    TU_FROM_HANDLE(tu_image, src_image, srcImage);
    TU_FROM_HANDLE(tu_image, dst_image, destImage);
 
-   for (uint32_t i = 0; i < regionCount; ++i)
+   for (uint32_t i = 0; i < regionCount; ++i) {
+      if (src_image->vk_format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
+         VkImageCopy info = pRegions[i];
+         u_foreach_bit(b, pRegions[i].dstSubresource.aspectMask) {
+            info.srcSubresource.aspectMask = BIT(b);
+            info.dstSubresource.aspectMask = BIT(b);
+            tu_copy_image_to_image(cmd, src_image, dst_image, &info);
+         }
+         continue;
+      }
+
       tu_copy_image_to_image(cmd, src_image, dst_image, pRegions + i);
+   }
 }
 
 static void

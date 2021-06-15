@@ -40,6 +40,7 @@
 #define DXIL_FUNC_PARAM_RESRET 'R'
 #define DXIL_FUNC_PARAM_CBUF_RET 'B'
 #define DXIL_FUNC_PARAM_DIM 'D'
+#define DXIL_FUNC_PARAM_SPLIT_DOUBLE 'G'
 
 #include "dxil_module.h"
 #include "util/rb_tree.h"

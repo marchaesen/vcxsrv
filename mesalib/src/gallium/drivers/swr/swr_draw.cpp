@@ -38,17 +38,19 @@
  */
 static void
 swr_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
+             unsigned drawid_offset,
              const struct pipe_draw_indirect_info *indirect,
-             const struct pipe_draw_start_count *draws,
+             const struct pipe_draw_start_count_bias *draws,
              unsigned num_draws)
 {
    if (num_draws > 1) {
       struct pipe_draw_info tmp_info = *info;
+      unsigned drawid = drawid_offset;
 
       for (unsigned i = 0; i < num_draws; i++) {
-         swr_draw_vbo(pipe, &tmp_info, indirect, &draws[i], 1);
+         swr_draw_vbo(pipe, &tmp_info, drawid, indirect, &draws[i], 1);
          if (tmp_info.increment_draw_id)
-            tmp_info.drawid++;
+            drawid++;
       }
       return;
    }
@@ -82,7 +84,7 @@ swr_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
    swr_update_draw_context(ctx);
 
    struct pipe_draw_info resolved_info;
-   struct pipe_draw_start_count resolved_draw;
+   struct pipe_draw_start_count_bias resolved_draw;
    /* DrawTransformFeedback */
    if (indirect && indirect->count_from_stream_output) {
       // trick copied from softpipe to modify const struct *info
@@ -254,7 +256,7 @@ swr_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
                                           draws[0].count,
                                           info->instance_count,
                                           draws[0].start,
-                                          info->index_bias,
+                                          draws->index_bias,
                                           info->start_instance);
    else
       ctx->api.pfnSwrDrawInstanced(ctx->swrContext,

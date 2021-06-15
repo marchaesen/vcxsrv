@@ -30,6 +30,8 @@
 #include "tgsi/tgsi_scan.h"
 #include "tgsi/tgsi_util.h"
 
+#include "util/compiler.h"
+
 static unsigned translate_opcode(unsigned opcode)
 {
     switch(opcode) {
@@ -135,7 +137,7 @@ static unsigned translate_register_file(unsigned file)
         case TGSI_FILE_OUTPUT: return RC_FILE_OUTPUT;
         default:
             fprintf(stderr, "Unhandled register file: %i\n", file);
-            /* fall-through */
+            FALLTHROUGH;
         case TGSI_FILE_TEMPORARY: return RC_FILE_TEMPORARY;
         case TGSI_FILE_ADDRESS: return RC_FILE_ADDRESS;
     }

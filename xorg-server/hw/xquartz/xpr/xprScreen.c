@@ -281,10 +281,12 @@ xprDisplayInit(void)
     /* With PseudoramiX, the X server only sees one screen; only PseudoramiX
        itself knows about all of the screens. */
 
-    if (noPseudoramiXExtension)
+    if (noPseudoramiXExtension) {
         darwinScreensFound = displayCount;
-    else
+    } else {
+        PseudoramiXExtensionInit();
         darwinScreensFound = 1;
+    }
 
     if (xp_init(XP_BACKGROUND_EVENTS | XP_NO_DEFERRED_UPDATES) != Success)
         FatalError("Could not initialize the Xplugin library.");

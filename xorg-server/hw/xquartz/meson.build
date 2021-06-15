@@ -36,7 +36,6 @@ srcs_libxquartz = [
 ]
 
 libxquartz_defs = [
-    '-DINXQUARTZ',
     '-DUSE_NEW_CLUT',
     '-DX11LIBDIR="@0@"'.format(join_paths(get_option('prefix'),
                                get_option('libdir'))),

@@ -400,7 +400,7 @@ virgl_resource_transfer_map(struct pipe_context *ctx,
          break;
       }
       vws->resource_reference(vws, &trans->hw_res, vres->hw_res);
-      /* fall through */
+      FALLTHROUGH;
    case VIRGL_TRANSFER_MAP_HW_RES:
       trans->hw_res_map = vws->resource_map(vws, vres->hw_res);
       if (trans->hw_res_map)

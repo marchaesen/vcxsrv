@@ -78,6 +78,7 @@ libaco_files = files(
   'aco_opt_value_numbering.cpp',
   'aco_print_asm.cpp',
   'aco_print_ir.cpp',
+  'aco_reindex_ssa.cpp',
   'aco_scheduler.cpp',
   'aco_spill.cpp',
   'aco_ssa_elimination.cpp',

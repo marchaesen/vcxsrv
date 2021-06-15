@@ -97,7 +97,7 @@ in_sysvalue_name(nir_variable *var)
  * to the semantic name string. Then these strings are dumped into the stream.
  */
 static unsigned
-get_additional_semantic_info(nir_variable *var, struct semantic_info *info,
+get_additional_semantic_info(nir_shader *s, nir_variable *var, struct semantic_info *info,
                              unsigned next_row, bool is_gs_shader)
 {
    const struct glsl_type *type = var->type;
@@ -113,6 +113,24 @@ get_additional_semantic_info(nir_variable *var, struct semantic_info *info,
       info->start_row = info->index;
    } else if (is_depth || (info->kind == DXIL_SEM_PRIMITIVE_ID && is_gs_shader)) {
       info->start_row = -1;
+   } else if (var->data.compact) {
+      if (var->data.location_frac) {
+         info->start_row = next_row - 1;
+      } else {
+         info->start_row = next_row;
+         next_row++;
+      }
+
+      assert(glsl_type_is_array(type) && info->kind == DXIL_SEM_CLIP_DISTANCE);
+      unsigned num_floats = glsl_get_aoa_size(type);
+      unsigned start_offset = (var->data.location - VARYING_SLOT_CLIP_DIST0) * 4 +
+         var->data.location_frac;
+
+      if (start_offset >= s->info.clip_distance_array_size) {
+         info->kind = DXIL_SEM_CULL_DISTANCE;
+         snprintf(info->name, 64, "SV_CullDistance");
+      }
+      info->cols = num_floats;
    } else {
       info->start_row = next_row;
       if (glsl_type_is_array(type) && is_gs_shader)
@@ -126,9 +144,11 @@ get_additional_semantic_info(nir_variable *var, struct semantic_info *info,
       next_row += info->rows;
    }
    info->start_col = (uint8_t)var->data.location_frac;
-   if (glsl_type_is_array(type))
-      type = glsl_get_array_element(type);
-   info->cols = (uint8_t)glsl_get_components(type);
+   if (!info->cols) {
+      if (glsl_type_is_array(type))
+         type = glsl_get_array_element(type);
+      info->cols = (uint8_t)glsl_get_components(type);
+   }
 
    return next_row;
 }
@@ -446,7 +466,7 @@ get_input_signature_group(struct dxil_module *mod, const struct dxil_mdnode **in
       struct semantic_info semantic = {0};
       get_semantics(var, &semantic);
       mod->inputs[num_inputs].sysvalue = semantic.sysvalue_name;
-      *row_iter = get_additional_semantic_info(var, &semantic, *row_iter, is_gs_shader);
+      *row_iter = get_additional_semantic_info(s, var, &semantic, *row_iter, is_gs_shader);
 
       mod->inputs[num_inputs].name = ralloc_strdup(mod->ralloc_ctx,
                                                    semantic.name);
@@ -531,7 +551,7 @@ get_output_signature(struct dxil_module *mod, nir_shader *s)
          get_semantic_name(var, &semantic, var->type);
          mod->outputs[num_outputs].sysvalue = out_sysvalue_name(var);
       }
-      next_row = get_additional_semantic_info(var, &semantic, next_row, false);
+      next_row = get_additional_semantic_info(s, var, &semantic, next_row, false);
 
       mod->info.has_out_position |= semantic.kind== DXIL_SEM_POSITION;
       mod->info.has_out_depth |= semantic.kind == DXIL_SEM_DEPTH;

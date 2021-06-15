@@ -3,12 +3,12 @@
     - .lava-piglit-traces:amd64
     - .iris-rules
   variables:
-    ENV_VARS: "EGL_PLATFORM=surfaceless PIGLIT_PROFILES=replay PIGLIT_HTML_SUMMARY=0 PIGLIT_JUNIT_RESULTS=1"
+    ENV_VARS: "EGL_PLATFORM=surfaceless PIGLIT_PROFILES=replay PIGLIT_JUNIT_RESULTS=1"
 
 iris-apl-traces:amd64:
   extends:
     - .iris-traces:amd64
-    - .test-manual
+    - .test-manual-mr
   variables:
     DEVICE_TYPE: asus-C523NA-A20057-coral
     DTB: ""
@@ -22,11 +22,25 @@ iris-apl-traces:amd64:
 iris-glk-traces:amd64:
   extends:
     - .iris-traces:amd64
-    - .test-manual
+    - .test-manual-mr
   variables:
     DEVICE_TYPE: hp-x360-12b-n4000-octopus
     DTB: ""
     GPU_VERSION: intel-glk
+    DRIVER_NAME: iris
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
+  tags:
+    - mesa-ci-aarch64-lava-collabora
+
+iris-amly-traces:amd64:
+  extends:
+    - .iris-traces:amd64
+    - .test-manual-mr
+  variables:
+    DEVICE_TYPE: asus-C433TA-AJ0005-rammus
+    DTB: ""
+    GPU_VERSION: intel-amly
     DRIVER_NAME: iris
     BOOT_METHOD: depthcharge
     KERNEL_IMAGE_TYPE: ""
