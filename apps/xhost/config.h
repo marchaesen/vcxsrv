@@ -46,7 +46,7 @@
 #define IPv6 1
 
 /* Support os-specific local connections */
-#undef LOCALCONN
+#define LOCALCONN 1
 
 /* Name of package */
 #undef PACKAGE
@@ -91,7 +91,7 @@
 #define TCPCONN 1
 
 /* Support UNIX socket connections */
-#undef UNIXCONN
+#define UNIXCONN 1
 
 /* Version number of package */
 #undef VERSION
