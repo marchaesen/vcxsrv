@@ -1692,6 +1692,18 @@ struct _glapi_table
    void (GLAPIENTRYP SecondaryColor3hNV)(GLhalfNV red, GLhalfNV green, GLhalfNV blue); /* 1641 */
    void (GLAPIENTRYP SecondaryColor3hvNV)(const GLhalfNV * v); /* 1642 */
    void (GLAPIENTRYP InternalSetError)(GLenum error); /* 1643 */
+   void (GLAPIENTRYP VertexAttrib1hNV)(GLuint index, GLhalfNV x); /* 1644 */
+   void (GLAPIENTRYP VertexAttrib1hvNV)(GLuint index, const GLhalfNV * v); /* 1645 */
+   void (GLAPIENTRYP VertexAttrib2hNV)(GLuint index, GLhalfNV x, GLhalfNV y); /* 1646 */
+   void (GLAPIENTRYP VertexAttrib2hvNV)(GLuint index, const GLhalfNV * v); /* 1647 */
+   void (GLAPIENTRYP VertexAttrib3hNV)(GLuint index, GLhalfNV x, GLhalfNV y, GLhalfNV z); /* 1648 */
+   void (GLAPIENTRYP VertexAttrib3hvNV)(GLuint index, const GLhalfNV * v); /* 1649 */
+   void (GLAPIENTRYP VertexAttrib4hNV)(GLuint index, GLhalfNV x, GLhalfNV y, GLhalfNV z, GLhalfNV w); /* 1650 */
+   void (GLAPIENTRYP VertexAttrib4hvNV)(GLuint index, const GLhalfNV * v); /* 1651 */
+   void (GLAPIENTRYP VertexAttribs1hvNV)(GLuint index, GLsizei n, const GLhalfNV * v); /* 1652 */
+   void (GLAPIENTRYP VertexAttribs2hvNV)(GLuint index, GLsizei n, const GLhalfNV * v); /* 1653 */
+   void (GLAPIENTRYP VertexAttribs3hvNV)(GLuint index, GLsizei n, const GLhalfNV * v); /* 1654 */
+   void (GLAPIENTRYP VertexAttribs4hvNV)(GLuint index, GLsizei n, const GLhalfNV * v); /* 1655 */
 };
 
 #ifdef __cplusplus
