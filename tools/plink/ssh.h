@@ -402,6 +402,7 @@ bool ssh_is_bare(Ssh *ssh);
 
 /* Communications back to ssh.c from the BPP */
 void ssh_conn_processed_data(Ssh *ssh);
+void ssh_sendbuffer_changed(Ssh *ssh);
 void ssh_check_frozen(Ssh *ssh);
 
 /* Functions to abort the connection, for various reasons. */
@@ -446,7 +447,7 @@ struct RSAKey {
     ssh_key sshk;
 };
 
-struct dss_key {
+struct dsa_key {
     mp_int *p, *q, *g, *y, *x;
     ssh_key sshk;
 };
@@ -614,7 +615,7 @@ mp_int *ssh_ecdhkex_getkey(ecdh_key *key, ptrlen remoteKey);
 /*
  * Helper function for k generation in DSA, reused in ECDSA
  */
-mp_int *dss_gen_k(const char *id_string,
+mp_int *dsa_gen_k(const char *id_string,
                      mp_int *modulus, mp_int *private_key,
                      unsigned char *digest, int digest_len);
 
@@ -953,22 +954,28 @@ extern const ssh_cipheralg ssh_3des_ssh2;
 extern const ssh_cipheralg ssh_des;
 extern const ssh_cipheralg ssh_des_sshcom_ssh2;
 extern const ssh_cipheralg ssh_aes256_sdctr;
-extern const ssh_cipheralg ssh_aes256_sdctr_hw;
+extern const ssh_cipheralg ssh_aes256_sdctr_ni;
+extern const ssh_cipheralg ssh_aes256_sdctr_neon;
 extern const ssh_cipheralg ssh_aes256_sdctr_sw;
 extern const ssh_cipheralg ssh_aes256_cbc;
-extern const ssh_cipheralg ssh_aes256_cbc_hw;
+extern const ssh_cipheralg ssh_aes256_cbc_ni;
+extern const ssh_cipheralg ssh_aes256_cbc_neon;
 extern const ssh_cipheralg ssh_aes256_cbc_sw;
 extern const ssh_cipheralg ssh_aes192_sdctr;
-extern const ssh_cipheralg ssh_aes192_sdctr_hw;
+extern const ssh_cipheralg ssh_aes192_sdctr_ni;
+extern const ssh_cipheralg ssh_aes192_sdctr_neon;
 extern const ssh_cipheralg ssh_aes192_sdctr_sw;
 extern const ssh_cipheralg ssh_aes192_cbc;
-extern const ssh_cipheralg ssh_aes192_cbc_hw;
+extern const ssh_cipheralg ssh_aes192_cbc_ni;
+extern const ssh_cipheralg ssh_aes192_cbc_neon;
 extern const ssh_cipheralg ssh_aes192_cbc_sw;
 extern const ssh_cipheralg ssh_aes128_sdctr;
-extern const ssh_cipheralg ssh_aes128_sdctr_hw;
+extern const ssh_cipheralg ssh_aes128_sdctr_ni;
+extern const ssh_cipheralg ssh_aes128_sdctr_neon;
 extern const ssh_cipheralg ssh_aes128_sdctr_sw;
 extern const ssh_cipheralg ssh_aes128_cbc;
-extern const ssh_cipheralg ssh_aes128_cbc_hw;
+extern const ssh_cipheralg ssh_aes128_cbc_ni;
+extern const ssh_cipheralg ssh_aes128_cbc_neon;
 extern const ssh_cipheralg ssh_aes128_cbc_sw;
 extern const ssh_cipheralg ssh_blowfish_ssh2_ctr;
 extern const ssh_cipheralg ssh_blowfish_ssh2;
@@ -983,16 +990,18 @@ extern const ssh2_ciphers ssh2_arcfour;
 extern const ssh2_ciphers ssh2_ccp;
 extern const ssh_hashalg ssh_md5;
 extern const ssh_hashalg ssh_sha1;
-extern const ssh_hashalg ssh_sha1_hw;
+extern const ssh_hashalg ssh_sha1_ni;
+extern const ssh_hashalg ssh_sha1_neon;
 extern const ssh_hashalg ssh_sha1_sw;
 extern const ssh_hashalg ssh_sha256;
-extern const ssh_hashalg ssh_sha256_hw;
+extern const ssh_hashalg ssh_sha256_ni;
+extern const ssh_hashalg ssh_sha256_neon;
 extern const ssh_hashalg ssh_sha256_sw;
 extern const ssh_hashalg ssh_sha384;
-extern const ssh_hashalg ssh_sha384_hw;
+extern const ssh_hashalg ssh_sha384_neon;
 extern const ssh_hashalg ssh_sha384_sw;
 extern const ssh_hashalg ssh_sha512;
-extern const ssh_hashalg ssh_sha512_hw;
+extern const ssh_hashalg ssh_sha512_neon;
 extern const ssh_hashalg ssh_sha512_sw;
 extern const ssh_hashalg ssh_sha3_224;
 extern const ssh_hashalg ssh_sha3_256;
@@ -1011,7 +1020,7 @@ extern const ssh_kex ssh_ec_kex_nistp256;
 extern const ssh_kex ssh_ec_kex_nistp384;
 extern const ssh_kex ssh_ec_kex_nistp521;
 extern const ssh_kexes ssh_ecdh_kex;
-extern const ssh_keyalg ssh_dss;
+extern const ssh_keyalg ssh_dsa;
 extern const ssh_keyalg ssh_rsa;
 extern const ssh_keyalg ssh_rsa_sha256;
 extern const ssh_keyalg ssh_rsa_sha512;
@@ -1039,10 +1048,10 @@ ssh_hash *blake2b_new_general(unsigned hashlen);
  * itself. If so, then this function should be implemented in each
  * platform subdirectory.
  */
-bool platform_aes_hw_available(void);
-bool platform_sha256_hw_available(void);
-bool platform_sha1_hw_available(void);
-bool platform_sha512_hw_available(void);
+bool platform_aes_neon_available(void);
+bool platform_sha256_neon_available(void);
+bool platform_sha1_neon_available(void);
+bool platform_sha512_neon_available(void);
 
 /*
  * PuTTY version number formatted as an SSH version string.
@@ -1191,6 +1200,7 @@ void x11_format_auth_for_authfile(
     ptrlen authproto, ptrlen authdata);
 int x11_identify_auth_proto(ptrlen protoname);
 void *x11_dehexify(ptrlen hex, int *outlen);
+bool x11_parse_ip(const char *addr_string, unsigned long *ip);
 
 Channel *agentf_new(SshChannel *c);
 
@@ -1242,7 +1252,7 @@ typedef struct ppk_save_parameters {
      * Parameters for fmt_version == 3
      */
     Argon2Flavour argon2_flavour;
-    uint32_t argon2_mem;               /* in Kb */
+    uint32_t argon2_mem;               /* in Kbyte */
     bool argon2_passes_auto;
     union {
         uint32_t argon2_passes;        /* if auto == false */
@@ -1603,7 +1613,7 @@ enum {
     /* TTY modes with opcodes defined consistently in the SSH specs. */
     #define TTYMODE_CHAR(name, val, index) SSH_TTYMODE_##name = val,
     #define TTYMODE_FLAG(name, val, field, mask) SSH_TTYMODE_##name = val,
-    #include "sshttymodes.h"
+    #include "ssh/ttymode-list.h"
     #undef TTYMODE_CHAR
     #undef TTYMODE_FLAG
 

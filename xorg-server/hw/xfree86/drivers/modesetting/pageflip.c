@@ -167,7 +167,14 @@ do_queue_flip_on_crtc(modesettingPtr ms, xf86CrtcPtr crtc,
                              (void *) (uintptr_t) seq);
 }
 
-static Bool
+enum queue_flip_status {
+    QUEUE_FLIP_SUCCESS,
+    QUEUE_FLIP_ALLOC_FAILED,
+    QUEUE_FLIP_QUEUE_ALLOC_FAILED,
+    QUEUE_FLIP_DRM_FLUSH_FAILED,
+};
+
+static int
 queue_flip_on_crtc(ScreenPtr screen, xf86CrtcPtr crtc,
                    struct ms_flipdata *flipdata,
                    int ref_crtc_vblank_pipe, uint32_t flags)
@@ -177,13 +184,10 @@ queue_flip_on_crtc(ScreenPtr screen, xf86CrtcPtr crtc,
     drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
     struct ms_crtc_pageflip *flip;
     uint32_t seq;
-    int err;
 
     flip = calloc(1, sizeof(struct ms_crtc_pageflip));
     if (flip == NULL) {
-        xf86DrvMsg(scrn->scrnIndex, X_WARNING,
-                   "flip queue: carrier alloc failed.\n");
-        return FALSE;
+        return QUEUE_FLIP_ALLOC_FAILED;
     }
 
     /* Only the reference crtc will finally deliver its page flip
@@ -195,24 +199,21 @@ queue_flip_on_crtc(ScreenPtr screen, xf86CrtcPtr crtc,
     seq = ms_drm_queue_alloc(crtc, flip, ms_pageflip_handler, ms_pageflip_abort);
     if (!seq) {
         free(flip);
-        return FALSE;
+        return QUEUE_FLIP_QUEUE_ALLOC_FAILED;
     }
 
     /* take a reference on flipdata for use in flip */
     flipdata->flip_count++;
 
     while (do_queue_flip_on_crtc(ms, crtc, flags, seq)) {
-        err = errno;
         /* We may have failed because the event queue was full.  Flush it
          * and retry.  If there was nothing to flush, then we failed for
          * some other reason and should just return an error.
          */
         if (ms_flush_drm_events(screen) <= 0) {
-            xf86DrvMsg(scrn->scrnIndex, X_WARNING,
-                       "flip queue failed: %s\n", strerror(err));
             /* Aborting will also decrement flip_count and free(flip). */
             ms_drm_abort_seq(scrn, seq);
-            return FALSE;
+            return QUEUE_FLIP_DRM_FLUSH_FAILED;
         }
 
         /* We flushed some events, so try again. */
@@ -220,7 +221,77 @@ queue_flip_on_crtc(ScreenPtr screen, xf86CrtcPtr crtc,
     }
 
     /* The page flip succeeded. */
-    return TRUE;
+    return QUEUE_FLIP_SUCCESS;
+}
+
+
+#define MS_ASYNC_FLIP_LOG_ENABLE_LOGS_INTERVAL_MS 10000
+#define MS_ASYNC_FLIP_LOG_FREQUENT_LOGS_INTERVAL_MS 1000
+#define MS_ASYNC_FLIP_FREQUENT_LOG_COUNT 10
+
+static void
+ms_print_pageflip_error(int screen_index, const char *log_prefix,
+                        int crtc_index, int flags, int err)
+{
+    /* In certain circumstances we will have a lot of flip errors without a
+     * reasonable way to prevent them. In such case we reduce the number of
+     * logged messages to at least not fill the error logs.
+     *
+     * The details are as follows:
+     *
+     * At least on i915 hardware support for async page flip support depends
+     * on the used modifiers which themselves can change dynamically for a
+     * screen. This results in the following problems:
+     *
+     *  - We can't know about whether a particular CRTC will be able to do an
+     *    async flip without hardcoding the same logic as the kernel as there's
+     *    no interface to query this information.
+     *
+     *  - There is no way to give this information to an application, because
+     *    the protocol of the present extension does not specify anything about
+     *    changing of the capabilities on runtime or the need to re-query them.
+     *
+     * Even if the above was solved, the only benefit would be avoiding a
+     * roundtrip to the kernel and reduced amount of error logs. The former
+     * does not seem to be a good enough benefit compared to the amount of work
+     * that would need to be done. The latter is solved below. */
+
+    static CARD32 error_last_time_ms;
+    static int frequent_logs;
+    static Bool logs_disabled;
+
+    if (flags & DRM_MODE_PAGE_FLIP_ASYNC) {
+        CARD32 curr_time_ms = GetTimeInMillis();
+        int clocks_since_last_log = curr_time_ms - error_last_time_ms;
+
+        if (clocks_since_last_log >
+                MS_ASYNC_FLIP_LOG_ENABLE_LOGS_INTERVAL_MS) {
+            frequent_logs = 0;
+            logs_disabled = FALSE;
+        }
+        if (!logs_disabled) {
+            if (clocks_since_last_log <
+                    MS_ASYNC_FLIP_LOG_FREQUENT_LOGS_INTERVAL_MS) {
+                frequent_logs++;
+            }
+
+            if (frequent_logs > MS_ASYNC_FLIP_FREQUENT_LOG_COUNT) {
+                xf86DrvMsg(screen_index, X_WARNING,
+                           "%s: detected too frequent flip errors, disabling "
+                           "logs until frequency is reduced\n", log_prefix);
+                logs_disabled = TRUE;
+            } else {
+                xf86DrvMsg(screen_index, X_WARNING,
+                           "%s: queue async flip during flip on CRTC %d failed: %s\n",
+                           log_prefix, crtc_index, strerror(err));
+            }
+        }
+        error_last_time_ms = curr_time_ms;
+    } else {
+        xf86DrvMsg(screen_index, X_WARNING,
+                   "%s: queue flip during flip on CRTC %d failed: %s\n",
+                   log_prefix, crtc_index, strerror(err));
+    }
 }
 
 
@@ -311,18 +382,32 @@ ms_do_pageflip(ScreenPtr screen,
      * may never complete; this is a configuration error.
      */
     for (i = 0; i < config->num_crtc; i++) {
+        enum queue_flip_status flip_status;
         xf86CrtcPtr crtc = config->crtc[i];
 
         if (!xf86_crtc_on(crtc))
             continue;
 
-        if (!queue_flip_on_crtc(screen, crtc, flipdata,
-                                ref_crtc_vblank_pipe,
-                                flags)) {
-            xf86DrvMsg(scrn->scrnIndex, X_WARNING,
-                       "%s: Queue flip on CRTC %d failed: %s\n",
-                       log_prefix, i, strerror(errno));
-            goto error_undo;
+        flip_status = queue_flip_on_crtc(screen, crtc, flipdata,
+                                         ref_crtc_vblank_pipe,
+                                         flags);
+
+        switch (flip_status) {
+            case QUEUE_FLIP_ALLOC_FAILED:
+                xf86DrvMsg(scrn->scrnIndex, X_WARNING,
+                           "%s: carrier alloc for queue flip on CRTC %d failed.\n",
+                           log_prefix, i);
+                goto error_undo;
+            case QUEUE_FLIP_QUEUE_ALLOC_FAILED:
+                xf86DrvMsg(scrn->scrnIndex, X_WARNING,
+                           "%s: entry alloc for queue flip on CRTC %d failed.\n",
+                           log_prefix, i);
+                goto error_undo;
+            case QUEUE_FLIP_DRM_FLUSH_FAILED:
+                ms_print_pageflip_error(scrn->scrnIndex, log_prefix, i, flags, errno);
+                goto error_undo;
+            case QUEUE_FLIP_SUCCESS:
+                break;
         }
     }
 

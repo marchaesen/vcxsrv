@@ -662,11 +662,11 @@ xorgGlxMakeCurrent(ClientPtr client, GLXContextTag tag, XID drawId, XID readId,
             glxc->readPriv = NULL;
             return __glXError(GLXBadContext);
         }
-
-        glxc->currentClient = client;
     }
 
     glxServer.setContextTagPrivate(client, newContextTag, glxc);
+    if (glxc)
+        glxc->currentClient = client;
 
     if (prevglxc) {
         prevglxc->currentClient = NULL;

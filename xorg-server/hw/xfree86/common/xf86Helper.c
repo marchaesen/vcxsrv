@@ -55,6 +55,7 @@
 #include "xf86Xinput.h"
 #include "xf86InPriv.h"
 #include "mivalidate.h"
+#include "xf86Crtc.h"
 
 /* For xf86GetClocks */
 #if defined(CSRG_BASED) || defined(__GNU__)
@@ -526,8 +527,8 @@ xf86SetDepthBpp(ScrnInfoPtr scrp, int depth, int dummy, int fbbpp,
      * Find the Display subsection matching the depth/fbbpp and initialise
      * scrp->display with it.
      */
-    for (i = 0, disp = scrp->confScreen->displays;
-         i < scrp->confScreen->numdisplays; i++, disp++) {
+    for (i = 0; i < scrp->confScreen->numdisplays; i++) {
+        disp = scrp->confScreen->displays[i];
         if ((disp->depth == scrp->depth && disp->fbbpp == scrp->bitsPerPixel)
             || (disp->depth == scrp->depth && disp->fbbpp <= 0)
             || (disp->fbbpp == scrp->bitsPerPixel && disp->depth <= 0)) {
@@ -541,8 +542,8 @@ xf86SetDepthBpp(ScrnInfoPtr scrp, int depth, int dummy, int fbbpp,
      * depth or fbbpp specified.
      */
     if (i == scrp->confScreen->numdisplays) {
-        for (i = 0, disp = scrp->confScreen->displays;
-             i < scrp->confScreen->numdisplays; i++, disp++) {
+        for (i = 0; i < scrp->confScreen->numdisplays; i++) {
+            disp = scrp->confScreen->displays[i];
             if (disp->depth <= 0 && disp->fbbpp <= 0) {
                 scrp->display = disp;
                 break;
@@ -557,24 +558,25 @@ xf86SetDepthBpp(ScrnInfoPtr scrp, int depth, int dummy, int fbbpp,
         scrp->confScreen->numdisplays++;
         scrp->confScreen->displays =
             xnfreallocarray(scrp->confScreen->displays,
-                            scrp->confScreen->numdisplays, sizeof(DispRec));
+                            scrp->confScreen->numdisplays, sizeof(DispPtr));
         xf86DrvMsg(scrp->scrnIndex, X_INFO,
                    "Creating default Display subsection in Screen section\n"
                    "\t\"%s\" for depth/fbbpp %d/%d\n",
                    scrp->confScreen->id, scrp->depth, scrp->bitsPerPixel);
-        memset(&scrp->confScreen->displays[i], 0, sizeof(DispRec));
-        scrp->confScreen->displays[i].blackColour.red = -1;
-        scrp->confScreen->displays[i].blackColour.green = -1;
-        scrp->confScreen->displays[i].blackColour.blue = -1;
-        scrp->confScreen->displays[i].whiteColour.red = -1;
-        scrp->confScreen->displays[i].whiteColour.green = -1;
-        scrp->confScreen->displays[i].whiteColour.blue = -1;
-        scrp->confScreen->displays[i].defaultVisual = -1;
-        scrp->confScreen->displays[i].modes = xnfalloc(sizeof(char *));
-        scrp->confScreen->displays[i].modes[0] = NULL;
-        scrp->confScreen->displays[i].depth = depth;
-        scrp->confScreen->displays[i].fbbpp = fbbpp;
-        scrp->display = &scrp->confScreen->displays[i];
+        scrp->confScreen->displays[i] = xnfcalloc(1, sizeof(DispRec));
+        memset(scrp->confScreen->displays[i], 0, sizeof(DispRec));
+        scrp->confScreen->displays[i]->blackColour.red = -1;
+        scrp->confScreen->displays[i]->blackColour.green = -1;
+        scrp->confScreen->displays[i]->blackColour.blue = -1;
+        scrp->confScreen->displays[i]->whiteColour.red = -1;
+        scrp->confScreen->displays[i]->whiteColour.green = -1;
+        scrp->confScreen->displays[i]->whiteColour.blue = -1;
+        scrp->confScreen->displays[i]->defaultVisual = -1;
+        scrp->confScreen->displays[i]->modes = xnfalloc(sizeof(char *));
+        scrp->confScreen->displays[i]->modes[0] = NULL;
+        scrp->confScreen->displays[i]->depth = depth;
+        scrp->confScreen->displays[i]->fbbpp = fbbpp;
+        scrp->display = scrp->confScreen->displays[i];
     }
 
     /*
@@ -850,8 +852,9 @@ xf86SetDpi(ScrnInfoPtr pScrn, int x, int y)
 {
     MessageType from = X_DEFAULT;
     xf86MonPtr DDC = (xf86MonPtr) (pScrn->monitor->DDC);
-    int ddcWidthmm, ddcHeightmm;
+    int probedWidthmm, probedHeightmm;
     int widthErr, heightErr;
+    xf86OutputPtr compat = xf86CompatOutput(pScrn);
 
     /* XXX Maybe there is no need for widthmm/heightmm in ScrnInfoRec */
     pScrn->widthmm = pScrn->monitor->widthmm;
@@ -861,11 +864,15 @@ xf86SetDpi(ScrnInfoPtr pScrn, int x, int y)
         /* DDC gives display size in mm for individual modes,
          * but cm for monitor
          */
-        ddcWidthmm = DDC->features.hsize * 10;  /* 10mm in 1cm */
-        ddcHeightmm = DDC->features.vsize * 10; /* 10mm in 1cm */
+        probedWidthmm = DDC->features.hsize * 10;  /* 10mm in 1cm */
+        probedHeightmm = DDC->features.vsize * 10; /* 10mm in 1cm */
+    }
+    else if (compat && compat->mm_width > 0 && compat->mm_height > 0) {
+        probedWidthmm = compat->mm_width;
+        probedHeightmm = compat->mm_height;
     }
     else {
-        ddcWidthmm = ddcHeightmm = 0;
+        probedWidthmm = probedHeightmm = 0;
     }
 
     if (monitorResolution > 0) {
@@ -891,15 +898,15 @@ xf86SetDpi(ScrnInfoPtr pScrn, int x, int y)
                    pScrn->widthmm, pScrn->heightmm);
 
         /* Warn if config and probe disagree about display size */
-        if (ddcWidthmm && ddcHeightmm) {
+        if (probedWidthmm && probedHeightmm) {
             if (pScrn->widthmm > 0) {
-                widthErr = abs(ddcWidthmm - pScrn->widthmm);
+                widthErr = abs(probedWidthmm - pScrn->widthmm);
             }
             else {
                 widthErr = 0;
             }
             if (pScrn->heightmm > 0) {
-                heightErr = abs(ddcHeightmm - pScrn->heightmm);
+                heightErr = abs(probedHeightmm - pScrn->heightmm);
             }
             else {
                 heightErr = 0;
@@ -908,17 +915,17 @@ xf86SetDpi(ScrnInfoPtr pScrn, int x, int y)
                 /* Should include config file name for monitor here */
                 xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
                            "Probed monitor is %dx%d mm, using Displaysize %dx%d mm\n",
-                           ddcWidthmm, ddcHeightmm, pScrn->widthmm,
+                           probedWidthmm, probedHeightmm, pScrn->widthmm,
                            pScrn->heightmm);
             }
         }
     }
-    else if (ddcWidthmm && ddcHeightmm) {
+    else if (probedWidthmm && probedHeightmm) {
         from = X_PROBED;
         xf86DrvMsg(pScrn->scrnIndex, from, "Display dimensions: (%d, %d) mm\n",
-                   ddcWidthmm, ddcHeightmm);
-        pScrn->widthmm = ddcWidthmm;
-        pScrn->heightmm = ddcHeightmm;
+                   probedWidthmm, probedHeightmm);
+        pScrn->widthmm = probedWidthmm;
+        pScrn->heightmm = probedHeightmm;
         if (pScrn->widthmm > 0) {
             pScrn->xDpi =
                 (int) ((double) pScrn->virtualX * MMPERINCH / pScrn->widthmm);

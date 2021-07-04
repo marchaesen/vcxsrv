@@ -61,6 +61,7 @@ static DevPrivateKeyRec XFixesClientPrivateKeyRec;
 static int
 ProcXFixesQueryVersion(ClientPtr client)
 {
+    int major, minor;
     XFixesClientPtr pXFixesClient = GetXFixesClient(client);
     xXFixesQueryVersionReply rep = {
         .type = X_Reply,
@@ -75,16 +76,17 @@ ProcXFixesQueryVersion(ClientPtr client)
     if (version_compare(stuff->majorVersion, stuff->minorVersion,
                         SERVER_XFIXES_MAJOR_VERSION,
                         SERVER_XFIXES_MINOR_VERSION) < 0) {
-        rep.majorVersion = stuff->majorVersion;
-        rep.minorVersion = stuff->minorVersion;
+        major = max(pXFixesClient->major_version, stuff->majorVersion);
+        minor = stuff->minorVersion;
     }
     else {
-        rep.majorVersion = SERVER_XFIXES_MAJOR_VERSION;
-        rep.minorVersion = SERVER_XFIXES_MINOR_VERSION;
+        major = SERVER_XFIXES_MAJOR_VERSION;
+        minor = SERVER_XFIXES_MINOR_VERSION;
     }
 
-    pXFixesClient->major_version = rep.majorVersion;
-    pXFixesClient->minor_version = rep.minorVersion;
+    pXFixesClient->major_version = major;
+    rep.majorVersion = min(stuff->majorVersion, major);
+    rep.minorVersion = minor;
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);

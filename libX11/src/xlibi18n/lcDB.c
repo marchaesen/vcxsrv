@@ -517,11 +517,13 @@ append_value_list (void)
     }
     if (value != *value_list) {
 	int i;
-	ssize_t delta;
-	delta = value - *value_list;
+	char *old_list;
+	old_list = *value_list;
 	*value_list = value;
+	/* Re-derive pointers from the new realloc() result to avoid undefined
+	   behaviour (and crashes on architectures with pointer bounds). */
 	for (i = 1; i < value_num; ++i) {
-	    value_list[i] += delta;
+	    value_list[i] = value + (value_list[i] - old_list);
 	}
     }
 

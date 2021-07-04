@@ -351,7 +351,7 @@ typedef struct _confscreenrec {
     MonPtr monitor;
     GDevPtr device;
     int numdisplays;
-    DispPtr displays;
+    DispPtr *displays;
     int numxvadaptors;
     confXvAdaptorPtr xvadaptors;
     void *options;

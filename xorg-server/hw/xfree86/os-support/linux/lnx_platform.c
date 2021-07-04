@@ -85,6 +85,9 @@ xf86PlatformDeviceCheckBusID(struct xf86_platform_device *device, const char *bu
     bustype = StringToBusType(busid, &id);
     if (bustype == BUS_PCI) {
         struct pci_device *pPci = device->pdev;
+        if (!pPci)
+            return FALSE;
+
         if (xf86ComparePciBusString(busid,
                                     ((pPci->domain << 8)
                                      | pPci->bus),

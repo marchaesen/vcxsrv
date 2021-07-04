@@ -1794,31 +1794,30 @@ configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen, int scrnum,
         count++;
         dispptr = (XF86ConfDisplayPtr) dispptr->list.next;
     }
-    screenp->displays = xnfallocarray(count, sizeof(DispRec));
+    screenp->displays = xnfallocarray(count, sizeof(DispPtr));
     screenp->numdisplays = count;
 
-    /* Fill in the default Virtual size, if any */
-    if (conf_screen->scrn_virtualX && conf_screen->scrn_virtualY) {
-        for (count = 0, dispptr = conf_screen->scrn_display_lst;
-             dispptr;
-             dispptr = (XF86ConfDisplayPtr) dispptr->list.next, count++) {
-            screenp->displays[count].virtualX = conf_screen->scrn_virtualX;
-            screenp->displays[count].virtualY = conf_screen->scrn_virtualY;
-        }
-    }
+    for (count = 0, dispptr = conf_screen->scrn_display_lst;
+         dispptr;
+         dispptr = (XF86ConfDisplayPtr) dispptr->list.next, count++) {
 
-    /* Now do the per-Display Virtual sizes */
-    count = 0;
-    dispptr = conf_screen->scrn_display_lst;
-    while (dispptr) {
-        configDisplay(&(screenp->displays[count]), dispptr);
-        count++;
-        dispptr = (XF86ConfDisplayPtr) dispptr->list.next;
+        /* Allocate individual Display records */
+        screenp->displays[count] = xnfcalloc(1, sizeof(DispRec));
+
+        /* Fill in the default Virtual size, if any */
+        if (conf_screen->scrn_virtualX && conf_screen->scrn_virtualY) {
+            screenp->displays[count]->virtualX = conf_screen->scrn_virtualX;
+            screenp->displays[count]->virtualY = conf_screen->scrn_virtualY;
+        }
+
+        /* Now do the per-Display Virtual sizes */
+        configDisplay(screenp->displays[count], dispptr);
     }
 
     /*
      * figure out how many videoadaptor references there are and fill them in
      */
+    count = 0;
     conf_adaptor = conf_screen->scrn_adaptor_lst;
     while (conf_adaptor) {
         count++;

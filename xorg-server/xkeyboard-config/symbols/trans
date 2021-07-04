@@ -81,3 +81,13 @@ xkb_symbols "ipa" {
 // Note about a bug in XKB: One has to set lv5:rwin_switch_lock or one of the other level 5 locks for the caps switch to work!
 // https://bugs.freedesktop.org/show_bug.cgi?id=102189
 };
+
+partial alphanumeric_keys
+xkb_symbols "qwerty" {
+    include "trans(ipa)"
+
+    name[Group1] = "International Phonetic Alphabet (QWERTY)";
+
+    key <AB01> {[        z,      U0292,      U0291,                 U0293,                  U0290,                   U026E,                   U261C,    Z        ]};   // z ʒ ʑ ʓ ʐ ɮ ☜ Z
+    key <AD06> {[        y,      U028F,      guillemotright,        U203A,                  U0265,                   NoSymbol,                U0287,    Y        ]};   // y ʏ » › ɥ   ʇ Y
+};

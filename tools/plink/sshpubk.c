@@ -480,7 +480,7 @@ static bool read_header(BinarySource *src, char *header)
 
     while (1) {
         c = get_byte(src);
-        if (c == '\n' || c == '\r' || c == EOF)
+        if (c == '\n' || c == '\r' || get_err(src))
             return false;              /* failure */
         if (c == ':') {
             c = get_byte(src);
@@ -503,10 +503,10 @@ static char *read_body(BinarySource *src)
 
     while (1) {
         int c = get_byte(src);
-        if (c == '\r' || c == '\n' || c == EOF) {
-            if (c != EOF) {
+        if (c == '\r' || c == '\n' || get_err(src)) {
+            if (!get_err(src)) {
                 c = get_byte(src);
-                if (c != '\r' && c != '\n')
+                if (c != '\r' && c != '\n' && !get_err(src))
                     src->pos--;
             }
             return strbuf_to_str(buf);
@@ -563,7 +563,7 @@ const ssh_keyalg *const all_keyalgs[] = {
     &ssh_rsa,
     &ssh_rsa_sha256,
     &ssh_rsa_sha512,
-    &ssh_dss,
+    &ssh_dsa,
     &ssh_ecdsa_nistp256,
     &ssh_ecdsa_nistp384,
     &ssh_ecdsa_nistp521,
@@ -993,12 +993,14 @@ ssh2_userkey *ppk_load_f(const Filename *filename, const char *passphrase,
                          const char **errorstr)
 {
     LoadedFile *lf = lf_load_keyfile(filename, errorstr);
-    if (!lf)
+    ssh2_userkey *toret;
+    if (lf) {
+        toret = ppk_load_s(BinarySource_UPCAST(lf), passphrase, errorstr);
+        lf_free(lf);
+    } else {
+        toret = NULL;
         *errorstr = "can't open file";
-
-    ssh2_userkey *toret = ppk_load_s(BinarySource_UPCAST(lf),
-                                     passphrase, errorstr);
-    lf_free(lf);
+    }
     return toret;
 }
 

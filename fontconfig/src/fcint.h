@@ -1374,10 +1374,6 @@ FcObjectLookupOtherTypeById (FcObject id);
 FcPrivate const FcObjectType *
 FcObjectLookupOtherTypeByName (const char *str);
 
-/* fcopentype.c */
-FcPrivate FcBool
-FcPatternAddFullname (FcPattern *pat);
-
 /* fchash.c */
 FcPrivate FcBool
 FcHashStrCopy (const void  *src,

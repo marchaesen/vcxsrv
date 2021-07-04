@@ -365,10 +365,12 @@ xf86MergeOutputClassOptions(int entityIndex, void **options)
         break;
     case BUS_PCI:
         for (i = 0; i < xf86_num_platform_devices; i++) {
-            if (MATCH_PCI_DEVICES(xf86_platform_devices[i].pdev,
-                                  entity->bus.id.pci)) {
-                dev = &xf86_platform_devices[i];
-                break;
+            if (xf86_platform_devices[i].pdev) {
+                if (MATCH_PCI_DEVICES(xf86_platform_devices[i].pdev,
+                                      entity->bus.id.pci)) {
+                    dev = &xf86_platform_devices[i];
+                    break;
+                }
             }
         }
         break;

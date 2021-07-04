@@ -1318,7 +1318,14 @@
         <!-- Keyboard layouts for transcription and transliteration systems -->
         <description>International Phonetic Alphabet</description>
       </configItem>
-      <variantList/>
+      <variantList>
+        <variant>
+          <configItem popularity="exotic">
+            <name>qwerty</name>
+            <description>International Phonetic Alphabet (QWERTY)</description>
+          </configItem>
+        </variant>
+      </variantList>
     </layout>
     <layout>
       <configItem>

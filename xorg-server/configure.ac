@@ -26,7 +26,7 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.20.99.1, [https://gitlab.freedesktop.org/xorg/xserver/issues], xorg-server)
+AC_INIT([xorg-server], 20.99.1, [https://gitlab.freedesktop.org/xorg/xserver/issues], xorg-server)
 RELEASE_DATE="2018-05-14"
 RELEASE_NAME="Carrot and Ginger Soup"
 AC_CONFIG_SRCDIR([Makefile.am])
@@ -363,12 +363,10 @@ esac
 dnl augment XORG_RELEASE_VERSION for our snapshot number and to expose the
 dnl major number
 PVMAJOR=`echo $PACKAGE_VERSION | cut -d . -f 1`
-PVS=`echo $PACKAGE_VERSION | cut -d . -f 4 | cut -d - -f 1`
-if test "x$PVS" = "x"; then
-	PVS="0"
-fi
 
-VENDOR_RELEASE="((($PVMAJOR) * 10000000) + (($PVM) * 100000) + (($PVP) * 1000) + $PVS)"
+dnl Convert to the old-style 1.x.y version scheme used up to 1.20.x for
+dnl backwards compatibility
+VENDOR_RELEASE="((10000000) + (($PVMAJOR) * 100000) + (($PVM) * 1000) + $PVP)"
 VENDOR_MAN_VERSION="Version ${PACKAGE_VERSION}"
 
 VENDOR_NAME="The X.Org Foundation"
@@ -733,7 +731,7 @@ XPROTO="xproto >= 7.0.31"
 RANDRPROTO="randrproto >= 1.6.0"
 RENDERPROTO="renderproto >= 0.11"
 XEXTPROTO="xextproto >= 7.2.99.901"
-INPUTPROTO="inputproto >= 2.3"
+INPUTPROTO="inputproto >= 2.3.99.1"
 KBPROTO="kbproto >= 1.0.3"
 FONTSPROTO="fontsproto >= 2.1.3"
 FIXESPROTO="fixesproto >= 6.0"

@@ -3256,8 +3256,10 @@ xf86OutputSetEDID(xf86OutputPtr output, xf86MonPtr edid_mon)
     free(output->MonInfo);
 
     output->MonInfo = edid_mon;
-    output->mm_width = 0;
-    output->mm_height = 0;
+    if (edid_mon) {
+        output->mm_width = 0;
+        output->mm_height = 0;
+    }
 
     if (debug_modes) {
         xf86DrvMsg(scrn->scrnIndex, X_INFO, "EDID for output %s\n",

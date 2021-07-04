@@ -502,6 +502,34 @@ static char *strrstr(const char *haystack, const char *needle)
     return last;
 }
 
+/* For certain devices udev does not create ID_PATH entry (which is presumably a bug
+ * in udev). We work around that by implementing a minimal ID_PATH calculator
+ * ourselves along the same logic that udev uses. This works only for the case of
+ * a PCI device being directly connected to a PCI bus, but it will cover most end
+ * users with e.g. a new laptop which only has beta hardware driver support.
+ * See https://gitlab.freedesktop.org/xorg/xserver/-/issues/993 */
+static char*
+config_udev_get_fallback_bus_id(struct udev_device *udev_device)
+{
+    const char *sysname;
+    char *busid;
+
+    udev_device = udev_device_get_parent(udev_device);
+    if (udev_device == NULL)
+        return NULL;
+
+    if (strcmp(udev_device_get_subsystem(udev_device), "pci") != 0)
+        return NULL;
+
+    sysname = udev_device_get_sysname(udev_device);
+    busid = XNFalloc(strlen(sysname) + 5);
+    busid[0] = '\0';
+    strcat(busid, "pci:");
+    strcat(busid, sysname);
+
+    return busid;
+}
+
 static void
 config_udev_odev_setup_attribs(struct udev_device *udev_device, const char *path, const char *syspath,
                                int major, int minor,
@@ -525,6 +553,9 @@ config_udev_odev_setup_attribs(struct udev_device *udev_device, const char *path
         attribs->busid = XNFstrdup(value);
         attribs->busid[3] = ':';
     }
+
+    if (!value)
+        attribs->busid = config_udev_get_fallback_bus_id(udev_device);
 
     /* ownership of attribs is passed to probe layer */
     probe_callback(attribs);

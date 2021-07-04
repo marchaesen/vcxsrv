@@ -329,7 +329,7 @@ LockServer(void)
              */
             break;
         }
-        else {
+        else if (errno == EEXIST) {
             /*
              * Read the pid from the existing file
              */
@@ -373,6 +373,12 @@ LockServer(void)
                      port, "\tIf this server is no longer running, remove",
                      LockFile, "\tand start again.");
             }
+        }
+        else {
+            unlink(tmp);
+            FatalError
+                ("Linking lock file (%s) in place failed: %s\n",
+                 LockFile, strerror(errno));
         }
     }
     unlink(tmp);
