@@ -1,0 +1,766 @@
+\# This file is so named for tradition's sake: it contains what we
+\# always used to refer to, before they were written down, as
+\# PuTTY's `unwritten design principles'. It has nothing to do with
+\# the User Datagram Protocol.
+
+\A{udp} PuTTY hacking guide
+
+This appendix lists a selection of the design principles applying to
+the PuTTY source code. If you are planning to send code
+contributions, you should read this first.
+
+\H{udp-portability} Cross-OS portability
+
+Despite Windows being its main area of fame, PuTTY is no longer a
+Windows-only application suite. It has a working Unix port; a Mac
+port is in progress; more ports may or may not happen at a later
+date.
+
+Therefore, embedding Windows-specific code in core modules such as
+\cw{ssh.c} is not acceptable. We went to great lengths to \e{remove}
+all the Windows-specific stuff from our core modules, and to shift
+it out into Windows-specific modules. Adding large amounts of
+Windows-specific stuff in parts of the code that should be portable
+is almost guaranteed to make us reject a contribution.
+
+The PuTTY source base is divided into platform-specific modules and
+platform-generic modules. The Unix-specific modules are all in the
+\c{unix} subdirectory; the Windows-specific modules are in the
+\c{windows} subdirectory.
+
+All the modules in the main source directory - notably \e{all} of
+the code for the various back ends - are platform-generic. We want
+to keep them that way.
+
+This also means you should stick to the C semantics guaranteed by the
+C standard: try not to make assumptions about the precise size of
+basic types such as \c{int} and \c{long int}; don't use pointer casts
+to do endianness-dependent operations, and so on.
+
+(Even \e{within} a platform front end you should still be careful of
+some of these portability issues. The Windows front end compiles on
+both 32- and 64-bit x86 and also Arm.)
+
+Our current choice of C standards version is \e{mostly} C99. With a
+couple of exceptions, you can assume that C99 features are available
+(in particular \cw{<stdint.h>}, \cw{<stdbool.h>} and \c{inline}), but
+you shouldn't use things that are new in C11 (such as \cw{<uchar.h>}
+or \cw{_Generic}).
+
+The exceptions to that rule are due to the need for Visual Studio
+compatibility:
+
+\b Don't use variable-length arrays. Visual Studio doesn't support
+them even now that it's adopted the rest of C99. We use \cw{-Wvla}
+when building with gcc and clang, to make it easier to avoid
+accidentally breaking that rule.
+
+\b For historical reasons, we still build with one older VS version
+which lacks \cw{<inttypes.h>}. So that file is included centrally in
+\c{defs.h}, and has a set of workaround definitions for the
+\cw{PRIx64}-type macros we use. If you need to use another one of
+those macros, you need to add a workaround definition in \c{defs.h},
+and don't casually re-include \cw{<inttypes.h>} anywhere else in the
+source file.
+
+Here are a few portability assumptions that we \e{do} currently allow
+(because we'd already have to thoroughly vet the existing code if they
+ever needed to change, and it doesn't seem worth doing that unless we
+really have to):
+
+\b You can assume \c{int} is \e{at least} 32 bits wide. (We've never
+tried to port PuTTY to a platform with 16-bit \cw{int}, and it doesn't
+look likely to be necessary in future.)
+
+\b Similarly, you can assume \c{char} is exactly 8 bits. (Exceptions
+to that are even less likely to be relevant to us than short
+\cw{int}.)
+
+\b You can assume that using \c{memset} to write zero bytes over a
+whole structure will have the effect of setting all its pointer fields
+to \cw{NULL}. (The standard itself guarantees this for \e{integer}
+fields, but not for pointers.)
+
+\b You can assume that \c{time_t} has POSIX semantics, i.e. that it
+represents an integer number of non-leap seconds since 1970-01-01
+00:00:00 UTC. (Times in this format are used in X authorisation, but
+we could work around that by carefully distinguishing local \c{time_t}
+from time values used in the wire protocol; but these semantics of
+\c{time_t} are also baked into the shared library API used by the
+GSSAPI authentication code, which would be much harder to change.)
+
+\b You can assume that the execution character encoding is a superset
+of the printable characters of ASCII. (In particular, it's fine to do
+arithmetic on a \c{char} value representing a Latin alphabetic
+character, without bothering to allow for EBCDIC or other
+non-consecutive encodings of the alphabet.)
+
+On the other hand, here are some particular things \e{not} to assume:
+
+\b Don't assume anything about the \e{signedness} of \c{char}. In
+particular, you \e{must} cast \c{char} values to \c{unsigned char}
+before passing them to any \cw{<ctype.h>} function (because those
+expect a non-negative character value, or \cw{EOF}). If you need a
+particular signedness, explicitly specify \c{signed char} or
+\c{unsigned char}, or use C99 \cw{int8_t} or \cw{uint8_t}.
+
+\b From past experience with MacOS, we're still a bit nervous about
+\cw{'\\n'} and \cw{'\\r'} potentially having unusual meanings on a
+given platform. So it's fine to say \c{\\n} in a string you're passing
+to \c{printf}, but in any context where those characters appear in a
+standardised wire protocol or a binary file format, they should be
+spelled \cw{'\\012'} and \cw{'\\015'} respectively.
+
+\H{udp-multi-backend} Multiple backends treated equally
+
+PuTTY is not an SSH client with some other stuff tacked on the side.
+PuTTY is a generic, multiple-backend, remote VT-terminal client
+which happens to support one backend which is larger, more popular
+and more useful than the rest. Any extra feature which can possibly
+be general across all backends should be so: localising features
+unnecessarily into the SSH back end is a design error. (For example,
+we had several code submissions for proxy support which worked by
+hacking \cw{ssh.c}. Clearly this is completely wrong: the
+\cw{network.h} abstraction is the place to put it, so that it will
+apply to all back ends equally, and indeed we eventually put it
+there after another contributor sent a better patch.)
+
+The rest of PuTTY should try to avoid knowing anything about
+specific back ends if at all possible. To support a feature which is
+only available in one network protocol, for example, the back end
+interface should be extended in a general manner such that \e{any}
+back end which is able to provide that feature can do so. If it so
+happens that only one back end actually does, that's just the way it
+is, but it shouldn't be relied upon by any code.
+
+\H{udp-globals} Multiple sessions per process on some platforms
+
+Some ports of PuTTY - notably the in-progress Mac port - are
+constrained by the operating system to run as a single process
+potentially managing multiple sessions.
+
+Therefore, the platform-independent parts of PuTTY never use global
+variables to store per-session data. The global variables that do
+exist are tolerated because they are not specific to a particular
+login session. The random number state in \cw{sshrand.c}, the timer
+list in \cw{timing.c} and the queue of top-level callbacks in
+\cw{callback.c} serve all sessions equally. But most data is specific
+to a particular network session, and is therefore stored in
+dynamically allocated data structures, and pointers to these
+structures are passed around between functions.
+
+Platform-specific code can reverse this decision if it likes. The
+Windows code, for historical reasons, stores most of its data as
+global variables. That's OK, because \e{on Windows} we know there is
+only one session per PuTTY process, so it's safe to do that. But
+changes to the platform-independent code should avoid introducing
+global variables, unless they are genuinely cross-session.
+
+\H{udp-pure-c} C, not C++
+
+PuTTY is written entirely in C, not in C++.
+
+We have made \e{some} effort to make it easy to compile our code
+using a C++ compiler: notably, our \c{snew}, \c{snewn} and
+\c{sresize} macros explicitly cast the return values of \cw{malloc}
+and \cw{realloc} to the target type. (This has type checking
+advantages even in C: it means you never accidentally allocate the
+wrong size piece of memory for the pointer type you're assigning it
+to. C++ friendliness is really a side benefit.)
+
+We want PuTTY to continue being pure C, at least in the
+platform-independent parts and the currently existing ports. Patches
+which switch the Makefiles to compile it as C++ and start using
+classes will not be accepted. Also, in particular, we disapprove of
+\cw{//} comments, at least for the moment. (Perhaps once C99 becomes
+genuinely widespread we might be more lenient.)
+
+The one exception: a port to a new platform may use languages other
+than C if they are necessary to code on that platform. If your
+favourite PDA has a GUI with a C++ API, then there's no way you can
+do a port of PuTTY without using C++, so go ahead and use it. But
+keep the C++ restricted to that platform's subdirectory; if your
+changes force the Unix or Windows ports to be compiled as C++, they
+will be unacceptable to us.
+
+\H{udp-security} Security-conscious coding
+
+PuTTY is a network application and a security application. Assume
+your code will end up being fed deliberately malicious data by
+attackers, and try to code in a way that makes it unlikely to be a
+security risk.
+
+In particular, try not to use fixed-size buffers for variable-size
+data such as strings received from the network (or even the user).
+We provide functions such as \cw{dupcat} and \cw{dupprintf}, which
+dynamically allocate buffers of the right size for the string they
+construct. Use these wherever possible.
+
+\H{udp-multi-compiler} Independence of specific compiler
+
+Windows PuTTY can currently be compiled with any of three Windows
+compilers: MS Visual C, the Cygwin / \cw{mingw32} GNU tools, and
+\cw{clang} (in MS compatibility mode).
+
+This is a really useful property of PuTTY, because it means people
+who want to contribute to the coding don't depend on having a
+specific compiler; so they don't have to fork out money for MSVC if
+they don't already have it, but on the other hand if they \e{do}
+have it they also don't have to spend effort installing \cw{gcc}
+alongside it. They can use whichever compiler they happen to have
+available, or install whichever is cheapest and easiest if they
+don't have one.
+
+Therefore, we don't want PuTTY to start depending on which compiler
+you're using. Using GNU extensions to the C language, for example,
+would ruin this useful property (not that anyone's ever tried it!);
+and more realistically, depending on an MS-specific library function
+supplied by the MSVC C library (\cw{_snprintf}, for example) is a
+mistake, because that function won't be available under the other
+compilers. Any function supplied in an official Windows DLL as part
+of the Windows API is fine, and anything defined in the C library
+standard is also fine, because those should be available
+irrespective of compilation environment. But things in between,
+available as non-standard library and language extensions in only
+one compiler, are disallowed.
+
+(\cw{_snprintf} in particular should be unnecessary, since we
+provide \cw{dupprintf}; see \k{udp-security}.)
+
+Compiler independence should apply on all platforms, of course, not
+just on Windows.
+
+\H{udp-small} Small code size
+
+PuTTY is tiny, compared to many other Windows applications. And it's
+easy to install: it depends on no DLLs, no other applications, no
+service packs or system upgrades. It's just one executable. You
+install that executable wherever you want to, and run it.
+
+We want to keep both these properties - the small size, and the ease
+of installation - if at all possible. So code contributions that
+depend critically on external DLLs, or that add a huge amount to the
+code size for a feature which is only useful to a small minority of
+users, are likely to be thrown out immediately.
+
+We do vaguely intend to introduce a DLL plugin interface for PuTTY,
+whereby seriously large extra features can be implemented in plugin
+modules. The important thing, though, is that those DLLs will be
+\e{optional}; if PuTTY can't find them on startup, it should run
+perfectly happily and just won't provide those particular features.
+A full installation of PuTTY might one day contain ten or twenty
+little DLL plugins, which would cut down a little on the ease of
+installation - but if you really needed ease of installation you
+\e{could} still just install the one PuTTY binary, or just the DLLs
+you really needed, and it would still work fine.
+
+Depending on \e{external} DLLs is something we'd like to avoid if at
+all possible (though for some purposes, such as complex SSH
+authentication mechanisms, it may be unavoidable). If it can't be
+avoided, the important thing is to follow the same principle of
+graceful degradation: if a DLL can't be found, then PuTTY should run
+happily and just not supply the feature that depended on it.
+
+\H{udp-single-threaded} Single-threaded code
+
+PuTTY and its supporting tools, or at least the vast majority of
+them, run in only one OS thread.
+
+This means that if you're devising some piece of internal mechanism,
+there's no need to use locks to make sure it doesn't get called by
+two threads at once. The only way code can be called re-entrantly is
+by recursion.
+
+That said, most of Windows PuTTY's network handling is triggered off
+Windows messages requested by \cw{WSAAsyncSelect()}, so if you call
+\cw{MessageBox()} deep within some network event handling code you
+should be aware that you might be re-entered if a network event
+comes in and is passed on to our window procedure by the
+\cw{MessageBox()} message loop.
+
+Also, the front ends (in particular Windows Plink) can use multiple
+threads if they like. However, Windows Plink keeps \e{very} tight
+control of its auxiliary threads, and uses them pretty much
+exclusively as a form of \cw{select()}. Pretty much all the code
+outside \cw{windows/winplink.c} is \e{only} ever called from the one
+primary thread; the others just loop round blocking on file handles
+and send messages to the main thread when some real work needs
+doing. This is not considered a portability hazard because that bit
+of \cw{windows/winplink.c} will need rewriting on other platforms in
+any case.
+
+One important consequence of this: PuTTY has only one thread in
+which to do everything. That \q{everything} may include managing
+more than one login session (\k{udp-globals}), managing multiple
+data channels within an SSH session, responding to GUI events even
+when nothing is happening on the network, and responding to network
+requests from the server (such as repeat key exchange) even when the
+program is dealing with complex user interaction such as the
+re-configuration dialog box. This means that \e{almost none} of the
+PuTTY code can safely block.
+
+\H{udp-keystrokes} Keystrokes sent to the server wherever possible
+
+In almost all cases, PuTTY sends keystrokes to the server. Even
+weird keystrokes that you think should be hot keys controlling
+PuTTY. Even Alt-F4 or Alt-Space, for example. If a keystroke has a
+well-defined escape sequence that it could usefully be sending to
+the server, then it should do so, or at the very least it should be
+configurably able to do so.
+
+To unconditionally turn a key combination into a hot key to control
+PuTTY is almost always a design error. If a hot key is really truly
+required, then try to find a key combination for it which \e{isn't}
+already used in existing PuTTYs (either it sends nothing to the
+server, or it sends the same thing as some other combination). Even
+then, be prepared for the possibility that one day that key
+combination might end up being needed to send something to the
+server - so make sure that there's an alternative way to invoke
+whatever PuTTY feature it controls.
+
+\H{udp-640x480} 640\u00D7{x}480 friendliness in configuration panels
+
+There's a reason we have lots of tiny configuration panels instead
+of a few huge ones, and that reason is that not everyone has a
+1600\u00D7{x}1200 desktop. 640\u00D7{x}480 is still a viable
+resolution for running Windows (and indeed it's still the default if
+you start up in safe mode), so it's still a resolution we care
+about.
+
+Accordingly, the PuTTY configuration box, and the PuTTYgen control
+window, are deliberately kept just small enough to fit comfortably
+on a 640\u00D7{x}480 display. If you're adding controls to either of
+these boxes and you find yourself wanting to increase the size of
+the whole box, \e{don't}. Split it into more panels instead.
+
+\H{udp-ssh-coroutines} Coroutines in the SSH code
+
+Large parts of the code in the various SSH modules (in fact most of
+the protocol layers) are structured using a set of macros that
+implement (something close to) Donald Knuth's \q{coroutines} concept
+in C.
+
+Essentially, the purpose of these macros are to arrange that a
+function can call \cw{crReturn()} to return to its caller, and the
+next time it is called control will resume from just after that
+\cw{crReturn} statement.
+
+This means that any local (automatic) variables declared in such a
+function will be corrupted every time you call \cw{crReturn}. If you
+need a variable to persist for longer than that, you \e{must} make it
+a field in some appropriate structure containing the persistent state
+of the coroutine \dash typically the main state structure for an SSH
+protocol layer.
+
+See
+\W{https://www.chiark.greenend.org.uk/~sgtatham/coroutines.html}\c{https://www.chiark.greenend.org.uk/~sgtatham/coroutines.html}
+for a more in-depth discussion of what these macros are for and how
+they work.
+
+Another caveat: most of these coroutines are not \e{guaranteed} to run
+to completion, because the SSH connection (or whatever) that they're
+part of might be interrupted at any time by an unexpected network
+event or user action. So whenever a coroutine-managed variable refers
+to a resource that needs releasing, you should also ensure that the
+cleanup function for its containing state structure can reliably
+release it even if the coroutine is aborted at an arbitrary point.
+
+For example, if an SSH packet protocol layer has to have a field that
+sometimes points to a piece of allocated memory, then you should
+ensure that when you free that memory you reset the pointer field to
+\cw{NULL}. Then, no matter when the protocol layer's cleanup function
+is called, it can reliably free the memory if there is any, and not
+crash if there isn't.
+
+\H{udp-traits} Explicit vtable structures to implement traits
+
+A lot of PuTTY's code is written in a style that looks structurally
+rather like an object-oriented language, in spite of PuTTY being a
+pure C program.
+
+For example, there's a single data type called \cw{ssh_hash}, which is
+an abstraction of a secure hash function, and a bunch of functions
+called things like \cw{ssh_hash_}\e{foo} that do things with those
+data types. But in fact, PuTTY supports many different hash functions,
+and each one has to provide its own implementation of those functions.
+
+In C++ terms, this is rather like having a single abstract base class,
+and multiple concrete subclasses of it, each of which fills in all the
+pure virtual methods in a way that's compatible with the data fields
+of the subclass. The implementation is more or less the same, as well:
+in C, we do explicitly in the source code what the C++ compiler will
+be doing behind the scenes at compile time.
+
+But perhaps a closer analogy in functional terms is the Rust concept
+of a \q{trait}, or the Java idea of an \q{interface}. C++ supports a
+multi-level hierarchy of inheritance, whereas PuTTY's system \dash
+like traits or interfaces \dash has only two levels, one describing a
+generic object of a type (e.g. a hash function) and another describing
+a specific implementation of that type (e.g. SHA-256).
+
+The PuTTY code base has a standard idiom for doing this in C, as
+follows.
+
+Firstly, we define two \cw{struct} types for our trait. One of them
+describes a particular \e{kind} of implementation of that trait, and
+it's full of (mostly) function pointers. The other describes a
+specific \e{instance} of an implementation of that trait, and it will
+contain a pointer to a \cw{const} instance of the first type. For
+example:
+
+\c typedef struct MyAbstraction MyAbstraction;
+\c typedef struct MyAbstractionVtable MyAbstractionVtable;
+\c
+\c struct MyAbstractionVtable {
+\c     MyAbstraction *(*new)(const MyAbstractionVtable *vt);
+\c     void (*free)(MyAbstraction *);
+\c     void (*modify)(MyAbstraction *, unsigned some_parameter);
+\c     unsigned (*query)(MyAbstraction *, unsigned some_parameter);
+\c };
+\c
+\c struct MyAbstraction {
+\c     const MyAbstractionVtable *vt;
+\c };
+
+Here, we imagine that \cw{MyAbstraction} might be some kind of object
+that contains mutable state. The associated vtable structure shows
+what operations you can perform on a \cw{MyAbstraction}: you can
+create one (dynamically allocated), free one you already have, or call
+the example methods \q{modify} (to change the state of the object in
+some way) and \q{query} (to return some value derived from the
+object's current state).
+
+(In most cases, the vtable structure has a name ending in \cq{vtable}.
+But for historical reasons a lot of the crypto primitives that use
+this scheme \dash ciphers, hash functions, public key methods and so
+on \dash instead have names ending in \cq{alg}, on the basis that the
+primitives they implement are often referred to as \q{encryption
+algorithms}, \q{hash algorithms} and so forth.)
+
+Now, to define a concrete instance of this trait, you'd define a
+\cw{struct} that contains a \cw{MyAbstraction} field, plus any other
+data it might need:
+
+\c struct MyImplementation {
+\c     unsigned internal_data[16];
+\c     SomeOtherType *dynamic_subthing;
+\c
+\c     MyAbstraction myabs;
+\c };
+
+Next, you'd implement all the necessary methods for that
+implementation of the trait, in this kind of style:
+
+\c static MyAbstraction *myimpl_new(const MyAbstractionVtable *vt)
+\c {
+\c     MyImplementation *impl = snew(MyImplementation);
+\c     memset(impl, 0, sizeof(*impl));
+\c     impl->dynamic_subthing = allocate_some_other_type();
+\c     impl->myabs.vt = vt;
+\c     return &impl->myabs;
+\c }
+\c
+\c static void myimpl_free(MyAbstraction *myabs)
+\c {
+\c     MyImplementation *impl = container_of(myabs, MyImplementation, myabs);
+\c     free_other_type(impl->dynamic_subthing);
+\c     sfree(impl);
+\c }
+\c
+\c static void myimpl_modify(MyAbstraction *myabs, unsigned param)
+\c {
+\c     MyImplementation *impl = container_of(myabs, MyImplementation, myabs);
+\c     impl->internal_data[param] += do_something_with(impl->dynamic_subthing);
+\c }
+\c
+\c static unsigned myimpl_query(MyAbstraction *myabs, unsigned param)
+\c {
+\c     MyImplementation *impl = container_of(myabs, MyImplementation, myabs);
+\c     return impl->internal_data[param];
+\c }
+
+Having defined those methods, now we can define a \cw{const} instance
+of the vtable structure containing pointers to them:
+
+\c const MyAbstractionVtable MyImplementation_vt = {
+\c     .new = myimpl_new,
+\c     .free = myimpl_free,
+\c     .modify = myimpl_modify,
+\c     .query = myimpl_query,
+\c };
+
+\e{In principle}, this is all you need. Client code can construct a
+new instance of a particular implementation of \cw{MyAbstraction} by
+digging out the \cw{new} method from the vtable and calling it (with
+the vtable itself as a parameter), which returns a \cw{MyAbstraction
+*} pointer that identifies a newly created instance, in which the
+\cw{vt} field will contain a pointer to the same vtable structure you
+passed in. And once you have an instance object, say \cw{MyAbstraction
+*myabs}, you can dig out one of the other method pointers from the
+vtable it points to, and call that, passing the object itself as a
+parameter.
+
+But in fact, we don't do that, because it looks pretty ugly at all the
+call sites. Instead, what we generally do in this code base is to
+write a set of \cw{static inline} wrapper functions in the same header
+file that defined the \cw{MyAbstraction} structure types, like this:
+
+\c static MyAbstraction *myabs_new(const MyAbstractionVtable *vt)
+\c { return vt->new(vt); }
+\c static void myabs_free(MyAbstraction *myabs)
+\c { myabs->vt->free(myabs); }
+\c static void myimpl_modify(MyAbstraction *myabs, unsigned param)
+\c { myabs->vt->modify(myabs, param); }
+\c static unsigned myimpl_query(MyAbstraction *myabs, unsigned param)
+\c { return myabs->vt->query(myabs, param); }
+
+And now call sites can use those reasonably clean-looking wrapper
+functions, and shouldn't ever have to directly refer to the \cw{vt}
+field inside any \cw{myabs} object they're holding. For example, you
+might write something like this:
+
+\c MyAbstraction *myabs = myabs_new(&MyImplementation_vtable);
+\c myabs_update(myabs, 10);
+\c unsigned output = myabs_query(myabs, 2);
+\c myabs_free(myabs);
+
+and then all this code can use a different implementation of the same
+abstraction by just changing which vtable pointer it passed in in the
+first line.
+
+Some things to note about this system:
+
+\b The implementation instance type (here \cq{MyImplementation}
+contains the abstraction type (\cq{MyAbstraction}) as one of its
+fields. But that field is not necessarily at the start of the
+structure. So you can't just \e{cast} pointers back and forth between
+the two types. Instead:
+
+\lcont{
+
+\b You \q{up-cast} from implementation to abstraction by taking the
+address of the \cw{MyAbstraction} field. You can see the example
+\cw{new} method above doing this, returning \cw{&impl->myabs}. All
+\cw{new} methods do this on return.
+
+\b Going in the other direction, each method that was passed a generic
+\cw{MyAbstraction *myabs} parameter has to recover a pointer to the
+specific implementation type \cw{MyImplementation *impl}. The idiom
+for doing that is to use the \cq{container_of} macro, also seen in the
+Linux kernel code. Generally, \cw{container_of(p, Type, field)} says:
+\q{I'm confident that the pointer value \cq{p} is pointing to the
+field called \cq{field} within a larger \cw{struct} of type \cw{Type}.
+Please return me the pointer to the containing structure.} So in this
+case, we take the \cq{myabs} pointer passed to the function, and
+\q{down-cast} it into a pointer to the larger and more specific
+structure type \cw{MyImplementation}, by adjusting the pointer value
+based on the offset within that structure of the field called
+\cq{myabs}.
+
+This system is flexible enough to permit \q{multiple inheritance}, or
+rather, multiple \e{implementation}: having one object type implement
+more than one trait. For example, the \cw{Proxy} type implements both
+the \cw{Socket} trait and the \cw{Plug} trait that connects to it,
+because it has to act as an adapter between another instance of each
+of those types.
+
+It's also perfectly possible to have the same object implement the
+\e{same} trait in two different ways. At the time of writing this I
+can't think of any case where we actually do this, but a theoretical
+example might be if you needed to support a trait like \cw{Comparable}
+in two ways that sorted by different criteria. There would be no
+difficulty doing this in the PuTTY system: simply have your
+implementation \cw{struct} contain two (or more) fields of the same
+abstraction type. The fields will have different names, which makes it
+easy to explicitly specify which one you're returning a pointer to
+during up-casting, or which one you're down-casting from using
+\cw{container_of}. And then both sets of implementation methods can
+recover a pointer to the same containing structure.
+
+}
+
+\b Unlike in C++, all objects in PuTTY that use this system are
+dynamically allocated. The \q{constructor} functions (whether they're
+virtualised across the whole abstraction or specific to each
+implementation) always allocate memory and return a pointer to it. The
+\q{free} method (our analogue of a destructor) always expects the
+input pointer to be dynamically allocated, and frees it. As a result,
+client code doesn't need to know how large the implementing object
+type is, because it will never need to allocate it (on the stack or
+anywhere else).
+
+\b Unlike in C++, the abstraction's \q{vtable} structure does not only
+hold methods that you can call on an instance object. It can also
+hold several other kinds of thing:
+
+\lcont{
+
+\b Methods that you can call \e{without} an instance object, given
+only the vtable structure identifying a particular implementation of
+the trait. You might think of these as \q{static methods}, as in C++,
+except that they're \e{virtual} \dash the same code can call the
+static method of a different \q{class} given a different vtable
+pointer. So they're more like \q{virtual static methods}, which is a
+concept C++ doesn't have. An example is the \cw{pubkey_bits} method in
+\cw{ssh_keyalg}.
+
+\b The most important case of a \q{virtual static method} is the
+\cw{new} method that allocates and returns a new object. You can think
+of it as a \q{virtual constructor} \dash another concept C++ doesn't
+have. (However, not all types need one of these: see below.)
+
+\b The vtable can also contain constant data relevant to the class as
+a whole \dash \q{virtual constant data}. For example, a cryptographic
+hash function will contain an integer field giving the length of the
+output hash, and most crypto primitives will contain a string field
+giving the identifier used in the SSH protocol that describes that
+primitive.
+
+The effect of all of this is that you can make other pieces of code
+able to use any instance of one of these types, by passing it an
+actual vtable as a parameter. For example, the \cw{hash_simple}
+function takes an \cw{ssh_hashalg} vtable pointer specifying any hash
+algorithm you like, and internally, it creates an object of that type,
+uses it, and frees it. In C++, you'd probably do this using a
+template, which would mean you had multiple specialisations of
+\cw{hash_simple} \dash and then it would be much more difficult to
+decide \e{at run time} which one you needed to use. Here,
+\cw{hash_simple} is still just one function, and you can decide as
+late as you like which vtable to pass to it.
+
+}
+
+\b The abstract \e{instance} structure can also contain publicly
+visible data fields (this time, usually treated as mutable) which are
+common to all implementations of the trait. For example,
+\cw{BinaryPacketProtocol} has lots of these.
+
+\b Not all abstractions of this kind want virtual constructors. It
+depends on how different the implementations are.
+
+\lcont{
+
+With a crypto primitive like a hash algorithm, the constructor call
+looks the same for every implementing type, so it makes sense to have
+a standardised virtual constructor in the vtable and a
+\cw{ssh_hash_new} wrapper function which can make an instance of
+whatever vtable you pass it. And then you make all the vtable objects
+themselves globally visible throughout the source code, so that any
+module can call (for example) \cw{ssh_hash_new(&ssh_sha256)}.
+
+But with other kinds of object, the constructor for each implementing
+type has to take a different set of parameters. For example,
+implementations of \cw{Socket} are not generally interchangeable at
+construction time, because constructing different kinds of socket
+require totally different kinds of address parameter. In that
+situation, it makes more sense to keep the vtable structure itself
+private to the implementing source file, and instead, publish an
+ordinary constructing function that allocates and returns an instance
+of that particular subtype, taking whatever parameters are appropriate
+to that subtype.
+
+}
+
+\b If you do have virtual constructors, you can choose whether they
+take a vtable pointer as a parameter (as shown above), or an
+\e{existing} instance object. In the latter case, they can refer to
+the object itself as well as the vtable. For example, you could have a
+trait come with a virtual constructor called \q{clone}, meaning
+\q{Make a copy of this object, no matter which implementation it is.}
+
+\b Sometimes, a single vtable structure type can be shared between two
+completely different object types, and contain all the methods for
+both. For example, \cw{ssh_compression_alg} contains methods to
+create, use and free \cw{ssh_compressor} and \cw{ssh_decompressor}
+objects, which are not interchangeable \dash but putting their methods
+in the same vtable means that it's easy to create a matching pair of
+objects that are compatible with each other.
+
+\b Passing the vtable itself as an argument to the \cw{new} method is
+not compulsory: if a given \cw{new} implementation is only used by a
+single vtable, then that function can simply hard-code the vtable
+pointer that it writes into the object it constructs. But passing the
+vtable is more flexible, because it allows a single constructor
+function to be shared between multiple slightly different object
+types. For example, SHA-384 and SHA-512 share the same \cw{new} method
+and the same implementation data type, because they're very nearly the
+same hash algorithm \dash but a couple of the other methods in their
+vtables are different, because the \q{reset} function has to set up
+the initial algorithm state differently, and the \q{digest} method has
+to write out a different amount of data.
+
+\lcont{
+
+One practical advantage of having the \cw{myabs_}\e{foo} family of
+inline wrapper functions in the header file is that if you change your
+mind later about whether the vtable needs to be passed to \cw{new},
+you only have to update the \cw{myabs_new} wrapper, and then the
+existing call sites won't need changing.
+
+}
+
+\b Another piece of \q{stunt object orientation} made possible by this
+scheme is that you can write two vtables that both use the same
+structure layout for the implementation object, and have an object
+\e{transform from one to the other} part way through its lifetime, by
+overwriting its own vtable pointer field. For example, the
+\cw{sesschan} type that handles the server side of an SSH terminal
+session will sometimes transform in mid-lifetime into an SCP or SFTP
+file-transfer channel in this way, at the point where the client sends
+an \cq{exec} or \cq{subsystem} request that indicates that that's what
+it wants to do with the channel.
+
+\lcont{
+
+This concept would be difficult to arrange in C++. In Rust, it
+wouldn't even \e{make sense}, because in Rust, objects implementing a
+trait don't even contain a vtable pointer at all \dash instead, the
+\q{trait object} type (identifying a specific instance of some
+implementation of a given trait) consists of a pair of pointers, one
+to the object itself and one to the vtable. In that model, the only
+way you could make an existing object turn into a different trait
+would be to know where all the pointers to it were stored elsewhere in
+the program, and persuade all their owners to rewrite them.
+
+}
+
+\b Another stunt you can do is to have a vtable that doesn't have a
+corresponding implementation structure at all, because the only
+methods implemented in it are the constructors, and they always end up
+returning an implementation of some other vtable. For example, some of
+PuTTY's crypto primitives have a hardware-accelerated version and a
+pure software version, and decide at run time which one to use (based
+on whether the CPU they're running on supports the necessary
+acceleration instructions). So, for example, there are vtables for
+\cw{ssh_sha256_sw} and \cw{ssh_sha256_hw}, each of which has its own
+data layout and its own implementations of all the methods; and then
+there's a top-level vtable \cw{ssh_sha256}, which only provides the
+\q{new} method, and implements it by calling the \q{new} method on one
+or other of the subtypes depending on what it finds out about the
+machine it's running on. That top-level selector vtable is nearly
+always the one used by client code. (Except for the test suite, which
+has to instantiate both of the subtypes in order to make sure they
+both pass the tests.)
+
+\lcont{
+
+As a result, the top-level selector vtable \cw{ssh_sha256} doesn't
+need to implement any method that takes an \cw{ssh_cipher *}
+parameter, because no \cw{ssh_cipher} object is ever constructed whose
+\cw{vt} field points to \cw{&ssh_sha256}: they all point to one of the
+other two full implementation vtables.
+
+}
+
+\H{udp-perfection} Do as we say, not as we do
+
+The current PuTTY code probably does not conform strictly to \e{all}
+of the principles listed above. There may be the occasional
+SSH-specific piece of code in what should be a backend-independent
+module, or the occasional dependence on a non-standard X library
+function under Unix.
+
+This should not be taken as a licence to go ahead and violate the
+rules. Where we violate them ourselves, we're not happy about it,
+and we would welcome patches that fix any existing problems. Please
+try to help us make our code better, not worse!
