@@ -1,11 +1,71 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.13.93 (2.14 RC3)
-                              2020-11-28
+                      Version 2.13.94 (2.14 RC4)
+                              2021-06-28
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new.
+
+2.13.94 (2.14 RC4)
+
+Akira TAGOH (10):
+      Add back fullname property at scan matching phase
+      Overwrite symlinks for config files
+      Fix missing <dir> element for WINDOWSFONTDIR in meson
+      Refactoring configure.ac to add <dir> element around font paths
+      Fix build fail when missing docbook and/or disabling doc-build
+      ci: Update CA cert related thing for Python on Windows
+      Add support for XDG_DATA_DIRS
+      Better wording for comments in config
+      Revert constructing fullname property from family and style properties
+      Fix score evaluation for multiple values in properties
+
+Albert Astals Cid (1):
+      Fix potential memory leak in _get_real_paths_from_prefix
+
+Ben Wagner (11):
+      Skip leading whitespace in style name.
+      Remove abort from FcCompareSize.
+      Add line between licenses in COPYING.
+      Portable trap conditions in run-test.sh.
+      Fix leaks in fcxml.c, fc-match.c, and tests.
+      Fix wild frees and leak of fs in test-conf.
+      Always run-test-conf, but skip if not built.
+      Fix test-conf string to integer conversion.
+      Test all not_eq for family names.
+      Clean up test-family-matching test.
+      Fix stack use after scope in FcConfigCompareValue
+
+Carmina16 (1):
+      ie.orth: Corrected; mistaken source replaced
+
+Heiko Becker (1):
+      Handle absolute sysconfdir when installing symlinks
+
+Jacko Dirks (1):
+      fccfg.c: lock_config: Fix potential memory leak
+
+Szunti (3):
+      Fix locale dependent behaviour in run-test.sh
+      Check qual and compare for family tests
+      Fix stripping whitespace from end of family in FcPatternAddFullname
+
+Tim-Philipp Müller (6):
+      meson: remove unused stdin_wrapper.py script
+      fcformat: fix compiler warnings with clang on Android
+      ci: add meson android aarch64 build
+      meson: error out in script if gperf preprocessing failed
+      meson: fix cross-compilation issues with gperf header file preprocessing
+      meson: fix subproject build regression
+
+Xavier Claessens (3):
+      Meson: Fallback to gperf subproject on all platforms
+      Meson: Do not wrap fccache insallation script
+      Windows: Fix symlink privilege error detection
+
+ratijas (1):
+      Fix closing tag bracket typo in doc/fontconfig-user.sgml
 
 2.13.93 (2.14 RC3)
 

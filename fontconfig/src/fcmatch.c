@@ -433,7 +433,7 @@ FcCompareValueList (FcObject	     object,
 		*result = FcResultTypeMismatch;
 		return FcFalse;
 	    }
-	    v = v * 1000 + j;
+	    v = v * 1000 + j * 100 + k;
 	    if (v < best)
 	    {
 		if (bestValue)

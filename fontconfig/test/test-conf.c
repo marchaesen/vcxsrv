@@ -166,6 +166,21 @@ build_pattern (json_object *obj)
 			    continue;
 			}
 		    }
+		} else if (fc_o && fc_o->type == FcTypeString) {
+		    for (i = 0; i < n; i++)
+		    {
+			o = json_object_array_get_idx (iter.val, i);
+			type = json_object_get_type (o);
+			if (type != json_type_string) {
+			    fprintf (stderr, "E: unable to convert to string\n");
+			    continue;
+			}
+			v.type = FcTypeString;
+			v.u.s = (const FcChar8 *) json_object_get_string (o);
+			FcPatternAdd (pat, iter.key, v, FcTrue);
+			v.type = FcTypeVoid;
+		    }
+		    continue;
 		} else {
 		    FcLangSet* ls = FcLangSetCreate ();
 		    if (!ls) {
@@ -232,7 +247,8 @@ build_pattern (json_object *obj)
 	    fprintf (stderr, "W: unexpected object to build a pattern: (%s %s)", iter.key, json_type_to_name (json_object_get_type (iter.val)));
 	    continue;
 	}
-	FcPatternAdd (pat, iter.key, v, FcTrue);
+	if (v.type != FcTypeVoid)
+	    FcPatternAdd (pat, iter.key, v, FcTrue);
 	if (destroy_v)
 	    FcValueDestroy (v);
     }

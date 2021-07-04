@@ -64,7 +64,6 @@ extern int XFixesEventBase;
 
 typedef struct _XFixesClient {
     CARD32 major_version;
-    CARD32 minor_version;
 } XFixesClientRec, *XFixesClientPtr;
 
 #define GetXFixesClient(pClient) ((XFixesClientPtr)dixLookupPrivate(&(pClient)->devPrivates, XFixesClientPrivateKey))

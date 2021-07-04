@@ -117,9 +117,6 @@ FcFileScanFontConfig (FcFontSet		*set,
 	if (config && !FcConfigSubstitute (config, font, FcMatchScan))
 	    ret = FcFalse;
 
-	if (!FcPatternAddFullname (font))
-	    ret = FcFalse;
-
 	if (FcDebug() & FC_DBG_SCANV)
 	{
 	    printf ("Final font pattern:\n");

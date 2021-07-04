@@ -494,8 +494,8 @@ key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
 //Old Hungarian z, Z    
     key <AD07> {[ U10CEA, U10CAA, U10CF2, U10CB2 ]};
 //Old Hungarian u, U,  Old Hungarian us, Us    
-    key <AD08> {[ U10CD0, U10C90 ]};
-//Old Hungarian i, I   
+    key <AD08> {[ U10CD0, U10C90, U10CD1, U10C91 ]};
+//Old Hungarian i, I, ii, II  
     key <AD09> {[ U10CDB, U10C9B ]};
 //Old Hungarian o, O    
     key <AD10> {[ U10CE0, U10CA0 ]};

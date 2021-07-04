@@ -47,6 +47,7 @@ TESTDATA =			\
 	test-45-generic.json	\
 	test-60-generic.json	\
 	test-90-synthetic.json	\
+	test-style-match.json	\
 	$(NULL)
 
 if FREETYPE_PCF_LONG_FAMILY_NAMES

@@ -38,23 +38,20 @@ AM_CFLAGS = \
 
 bin_PROGRAMS = xdmxconfig vdltodmx dmxtodmx
 
-xdmxconfig_DEPENDENCIES = libdmxconfig.a
 xdmxconfig_SOURCES = \
 	xdmxconfig.c \
 	$(top_srcdir)/hw/dmx/dmxlog.c \
 	Canvas.c \
 	Canvas.h \
 	CanvasP.h
-xdmxconfig_LDADD = -L. -ldmxconfig @XDMXCONFIG_DEP_LIBS@
+xdmxconfig_LDADD = libdmxconfig.a @XDMXCONFIG_DEP_LIBS@
 xdmxconfig_CFLAGS = $(AM_CFLAGS) @XDMXCONFIG_DEP_CFLAGS@
 
-vdltodmx_DEPENDENCIES = libdmxconfig.a
 vdltodmx_SOURCES = vdltodmx.c
-vdltodmx_LDADD = -L. -ldmxconfig
+vdltodmx_LDADD = libdmxconfig.a
 
-dmxtodmx_DEPENDENCIES = libdmxconfig.a
 dmxtodmx_SOURCES = dmxtodmx.c
-dmxtodmx_LDADD = -L. -ldmxconfig
+dmxtodmx_LDADD = libdmxconfig.a
 
 EXTRA_DIST = \
 	test-a.in test-a.out \

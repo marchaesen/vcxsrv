@@ -5498,6 +5498,12 @@
             <description>Old Turkic</description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>otkf</name>
+            <description>Old Turkic (F)</description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>

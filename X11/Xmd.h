@@ -57,7 +57,11 @@ SOFTWARE.
 #  include <sys/isa_defs.h> /* Solaris: defines _LP64 if necessary */
 # endif
 
-# if defined (_LP64) || defined(__LP64__) || \
+#if defined(__SIZEOF_LONG__)
+# if __SIZEOF_LONG__ == 8
+#  define LONG64				/* 32/64-bit architecture */
+# endif
+# elif defined (_LP64) || defined(__LP64__) || \
      defined(__alpha) || defined(__alpha__) || \
      defined(__ia64__) || defined(ia64) || \
      defined(__sparc64__) || \

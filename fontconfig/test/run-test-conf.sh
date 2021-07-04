@@ -48,3 +48,9 @@ for i in \
     echo $RUNNER $TESTDIR/../conf.d/$i $TESTDIR/$test_json
     $RUNNER $TESTDIR/../conf.d/$i $TESTDIR/$test_json
 done
+for i in \
+	test-style-match.json \
+    ; do
+    echo $RUNNER $TESTDIR/$i ...
+    $RUNNER $TESTDIR/../conf.d/10-autohint.conf $TESTDIR/$i
+done
