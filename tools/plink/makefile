@@ -3,21 +3,38 @@ $(error Please do not specify MAKESERVER=1 on the command line or as environment
 endif
 
 DEFINES += SECURITY_WIN32
+INCLUDES := windows $(INCLUDES)
 
-CSRCS = winplink.c winhandl.c misc.c settings.c winstore.c windefs.c winmisc.c wincons.c \
-        logging.c winnet.c tree234.c winnoise.c sshrand.c cmdline.c sshsha.c timing.c \
-        be_all.c rlogin.c proxy.c winproxy.c cproxy.c sshmd5.c time.c version.c ssh.c \
-        sshdh.c sshzlib.c sshrsa.c sshcrcda.c sshpubk.c sshdes.c wingss.c \
-        sshblowf.c sshsh512.c sshsh256.c sshaes.c pinger.c ssharcf.c x11fwd.c winpgntc.c \
-        winx11.c portfwd.c sshcrc.c wildcard.c ldisc.c sshdss.c raw.c telnet.c sshgssc.c \
-        pgssapi.c winnojmp.c conf.c callback.c sshshare.c winsecur.c errsock.c winshare.c \
-        winnps.c winnpc.c noterm.c winhsock.c sshecc.c sshccp.c be_misc.c wincapi.c miscucs.c \
-				winucs.c sessprep.c marshal.c nullplug.c ssh1bpp.c ssh2bpp.c ssh1censor.c ssh2censor.c \
-				ssh2bpp-bare.c sshcommon.c sshverstring.c sshmac.c agentf.c ssh1login.c ssh1connection.c \
-				ssh2transport.c ssh2userauth.c ssh2connection.c ssh1connection-client.c ssh2transhk.c \
-				ssh2connection-client.c mainchan.c ssh2kex-client.c memory.c ecc.c mpint.c utils.c \
-				winmiscs.c sshauxcrypt.c sshhmac.c sshprng.c stripctrl.c wcwidth.c winnohlp.c \
-				winselcli.c sshutils.c wincliloop.c clicons.c supdup.c sshsha3.c console.c sshargon2.c \
-				sshblake2.c	
+INCLUDELIBFILES =  \
+ windows\$(OBJDIR)\libwindows.lib \
+ utils\$(OBJDIR)\libutils.lib \
+ otherbackends\$(OBJDIR)\libotherbackends.lib \
+ ssh\$(OBJDIR)\libssh.lib \
+ crypto\$(OBJDIR)\libcrypto.lib
+
+CSRCS = settings.c \
+ logging.c \
+ sshrand.c \
+ cmdline.c \
+ timing.c \
+ proxy.c \
+ sshproxy.c \
+ sshpubk.c \
+ cproxy.c \
+ pinger.c \
+ ldisc.c \
+ callback.c \
+ errsock.c \
+ noterm.c \
+ be_all.c \
+ be_misc.c \
+ nullplug.c \
+ clicons.c \
+ console.c \
+ x11disp.c \
+ version.c
+
+LIBDIRS=$(dir $(INCLUDELIBFILES))
+load_makefile $(LIBDIRS:%$(OBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(DEBUG);)
 
 TTYAPP=plink
